@@ -18,17 +18,19 @@
     --in-content-deemphasized-text: #737373;
   }
 }
-@supports not (-moz-bool-pref("browser.in-content.dark-mode")) {
-  :host {
-    --in-content-deemphasized-text: #737373;
-  }
-}
 
 .container {
   overflow: auto;
   padding: 40px;
   box-sizing: border-box;
   height: 100%;
+  min-width: 520px;
+}
+
+@media (max-width: 830px) {
+  .container {
+    padding-inline: 20px;
+  }
 }
 
 .column {
@@ -66,9 +68,9 @@ input[type="url"] {
   text-align: match-parent !important; /* override `all: unset` in the rule below */
 }
 
-input[type="password"][readOnly],
-input[type="text"][readOnly],
-input[type="url"][readOnly] {
+input[type="password"]:read-only,
+input[type="text"]:read-only,
+input[type="url"]:read-only {
   all: unset;
   font-size: 1.1em;
   display: inline-block;
@@ -101,8 +103,7 @@ input[type="url"][readOnly] {
 }
 
 .title {
-  margin-top: 0;
-  margin-bottom: 0;
+  margin-block: 0;
   flex-grow: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -117,6 +118,8 @@ input[type="url"][readOnly] {
   -moz-context-properties: fill;
   fill: currentColor;
   min-width: auto;
+  /* See bug 1627164: In CJK locales, line break could happen in any letter of the button. The fix here is to explicitly specify flex property so that the button couldn't grow or shrink. */
+  flex: 0 0 auto;
 }
 
 .delete-button:dir(rtl),
@@ -134,17 +137,17 @@ input[type="url"][readOnly] {
   padding-inline-start: 32px; /* 8px on each side, and 16px for icon width */
 }
 
-input[type="url"][readOnly] {
+input[type="url"]:read-only {
   color: var(--in-content-link-color) !important;
   cursor: pointer;
 }
 
-input[type="url"][readOnly]:hover {
+input[type="url"]:read-only:hover {
   color: var(--in-content-link-color-hover) !important;
   text-decoration: underline;
 }
 
-input[type="url"][readOnly]:hover:active {
+input[type="url"]:read-only:hover:active {
   color: var(--in-content-link-color-active) !important;
 }
 
@@ -181,7 +184,7 @@ input[type="url"][readOnly]:hover:active {
   margin-bottom: 8px;
 }
 
-:host([data-editing]) .detail-cell input:not([readOnly]):not([type="checkbox"]) {
+:host([data-editing]) .detail-cell input:read-write:not([type="checkbox"]) {
   width: 280px;
 }
 
@@ -220,10 +223,8 @@ input[type="url"][readOnly]:hover:active {
 
 .meta-info {
   font-size: smaller;
-  font-weight: 300;
   color: var(--in-content-deemphasized-text);
-  margin-top: 0;
-  margin-bottom: 8px;
+  margin-block: 0 8px;
 }
 
 .meta-info:first-of-type::before {
@@ -288,73 +289,81 @@ input[name="password"] {
   background-size: contain;
   -moz-context-properties: fill, fill-opacity;
   fill: currentColor;
-  fill-opacity: 0.8;
+  fill-opacity: 0.75;
 }
 
 .login-item-favicon-wrapper.hide-default-favicon {
   background-image: none;
 }
 
+.vulnerable-alert,
 .breach-alert {
-  border-radius: 8px;
+  border-radius: var(--panel-border-radius);
   border: 1px solid var(--in-content-border-color);
-  background-color: var(--yellow-10);
-  color: #0C0C0D;
-  box-shadow: 0 2px 8px 0 rgba(12,12,13,0.1);
+  box-shadow: 0 2px 8px 0 var(--grey-90-a10);
   font-size: .9em;
-  font-weight: 300;
   line-height: 1.4;
   padding-block: 12px;
-  padding-inline-start: 36px;
-  padding-inline-end: 92px;
+  padding-inline: 64px 32px;
   margin-block-end: 40px;
   position: relative;
 }
 
-.breach-alert-link {
-  color: inherit;
-  text-decoration: underline;
+.breach-alert {
+  background-color: var(--red-70);
+  color: #fff;
+}
+
+.vulnerable-alert {
+  background-color: var(--in-content-box-background);
+  color: var(--in-content-text-color);
+}
+
+.alert-title {
+  font-size: 22px;
+  font-weight: normal;
+  line-height: 1em;
+  margin-block: 0 12px;
+}
+
+.alert-date {
+  display: block;
   font-weight: 600;
 }
 
-.breach-icon {
+.alert-link:visited,
+.alert-link {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.breach-alert > .alert-link:visited,
+.breach-alert > .alert-link {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.alert-icon {
   position: absolute;
-  inset-block-start: 10px;
-  inset-inline-start: 10px;
+  inset-block-start: 16px;
+  inset-inline-start: 32px;
   -moz-context-properties: fill;
-  fill: var(--red-90);
-}
-
-.dismiss-breach-alert {
-  border: none;
-  padding: 0;
-  margin: 0;
-  position: absolute;
-  inset-inline-end: 12px;
-  inset-block-start: 12px;
-  min-width: auto;
-  min-height: auto;
-  line-height: 0;
-}
-
-.dismiss-breach-alert {
-  background-color: transparent;
-}
-
-.dismiss-breach-alert:enabled:hover {
-  background-color: var(--grey-90-a20);
-}
-
-.dismiss-breach-alert:enabled:hover:active {
-  background-color: var(--grey-90-a30);
-}
-
-.dismiss-breach-alert-icon {
-  -moz-context-properties: fill, fill-opacity;
-  fill-opacity: 0;
   fill: currentColor;
-  width: 16px;
-  height: 16px;
+  width: 24px;
+}
+
+.alert-learn-more-link:hover,
+.alert-learn-more-link:visited,
+.alert-learn-more-link {
+  position: absolute;
+  inset-block-start: 16px;
+  inset-inline-end: 32px;
+  color: inherit;
+  font-size: 13px;
+}
+
+.vulnerable-alert > .alert-learn-more-link {
+  color: var(--in-content-deemphasized-text);
 }
 
 .error-message {
@@ -363,8 +372,7 @@ input[name="password"] {
   border: 1px solid transparent;
   padding-block: 6px;
   display: inline-block;
-  padding-inline-start: 32px;
-  padding-inline-end: 16px;
+  padding-inline: 32px 16px;
   background-image: url("chrome://global/skin/icons/warning.svg");
   background-repeat: no-repeat;
   background-position: left 10px center;
@@ -386,23 +394,17 @@ input[name="password"] {
 }
 
 @media (-moz-windows-default-theme: 0) {
-  .breach-icon {
+  .alert-icon {
     fill: currentColor;
   }
 }
 
-@supports -moz-bool-pref("browser.in-content.dark-mode") {
-  @media (prefers-color-scheme: dark) {
-    :host {
-      --reveal-checkbox-opacity: .8;
-      --reveal-checkbox-opacity-hover: 1;
-      --reveal-checkbox-opacity-active: .6;
-      --success-color: #86DE74;
-      --edit-delete-button-color: #cfcfd1;
-    }
-
-    .breach-alert {
-      box-shadow: 0 2px 8px 0 rgba(249,249,250,0.1);
-    }
+@media (prefers-color-scheme: dark) {
+  :host {
+    --reveal-checkbox-opacity: .8;
+    --reveal-checkbox-opacity-hover: 1;
+    --reveal-checkbox-opacity-active: .6;
+    --success-color: #86DE74;
+    --edit-delete-button-color: #cfcfd1;
   }
 }

@@ -49,7 +49,7 @@ TEST(Intl_Locale_LocaleService, GetAppLocalesAsLangTags)
   ASSERT_FALSE(appLocales.IsEmpty());
 }
 
-TEST(Intl_Locale_LocaleService, GetAppLocalesAsLangTags_lastIsEnUS)
+TEST(Intl_Locale_LocaleService, GetAppLocalesAsLangTags_lastIsPresent)
 {
   nsAutoCString lastFallbackLocale;
   LocaleService::GetInstance()->GetLastFallbackLocale(lastFallbackLocale);
@@ -57,8 +57,7 @@ TEST(Intl_Locale_LocaleService, GetAppLocalesAsLangTags_lastIsEnUS)
   nsTArray<nsCString> appLocales;
   LocaleService::GetInstance()->GetAppLocalesAsLangTags(appLocales);
 
-  int32_t len = appLocales.Length();
-  ASSERT_TRUE(appLocales[len - 1].Equals(lastFallbackLocale));
+  ASSERT_TRUE(appLocales.Contains(lastFallbackLocale));
 }
 
 TEST(Intl_Locale_LocaleService, GetAppLocaleAsLangTag)
@@ -83,7 +82,7 @@ TEST(Intl_Locale_LocaleService, GetRegionalPrefsLocales)
 
 TEST(Intl_Locale_LocaleService, GetWebExposedLocales)
 {
-  const nsTArray<nsCString> spoofLocale{NS_LITERAL_CSTRING("de")};
+  const nsTArray<nsCString> spoofLocale{"de"_ns};
   LocaleService::GetInstance()->SetAvailableLocales(spoofLocale);
   LocaleService::GetInstance()->SetRequestedLocales(spoofLocale);
 
@@ -92,17 +91,17 @@ TEST(Intl_Locale_LocaleService, GetWebExposedLocales)
   mozilla::Preferences::SetInt("privacy.spoof_english", 0);
   LocaleService::GetInstance()->GetWebExposedLocales(pvLocales);
   ASSERT_TRUE(pvLocales.Length() > 0);
-  ASSERT_TRUE(pvLocales[0].Equals(NS_LITERAL_CSTRING("de")));
+  ASSERT_TRUE(pvLocales[0].Equals("de"_ns));
 
   mozilla::Preferences::SetCString("intl.locale.privacy.web_exposed", "zh-TW");
   LocaleService::GetInstance()->GetWebExposedLocales(pvLocales);
   ASSERT_TRUE(pvLocales.Length() > 0);
-  ASSERT_TRUE(pvLocales[0].Equals(NS_LITERAL_CSTRING("zh-TW")));
+  ASSERT_TRUE(pvLocales[0].Equals("zh-TW"_ns));
 
   mozilla::Preferences::SetInt("privacy.spoof_english", 2);
   LocaleService::GetInstance()->GetWebExposedLocales(pvLocales);
   ASSERT_EQ(1u, pvLocales.Length());
-  ASSERT_TRUE(pvLocales[0].Equals(NS_LITERAL_CSTRING("en-US")));
+  ASSERT_TRUE(pvLocales[0].Equals("en-US"_ns));
 }
 
 TEST(Intl_Locale_LocaleService, GetRequestedLocales)

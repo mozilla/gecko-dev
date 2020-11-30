@@ -14,9 +14,19 @@ namespace mozilla {
 namespace dom {
 
 enum class DocumentL10nState {
-  Initialized = 0,
+  // State set when the DocumentL10n gets constructed.
+  Constructed = 0,
+
+  // State set when the initial translation got triggered. This happens
+  // if DocumentL10n was constructed during parsing of the document.
+  //
+  // If the DocumentL10n gets constructed later, we'll skip directly to
+  // Ready state.
   InitialTranslationTriggered,
-  InitialTranslationCompleted
+
+  // State set the DocumentL10n has been fully initialized, potentially
+  // with initial translation being completed.
+  Ready,
 };
 
 /**
@@ -34,10 +44,12 @@ class DocumentL10n final : public DOMLocalization {
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(DocumentL10n, DOMLocalization)
 
-  explicit DocumentL10n(Document* aDocument);
-  void Init(nsTArray<nsString>& aResourceIds, ErrorResult& aRv);
+  static RefPtr<DocumentL10n> Create(Document* aDocument, const bool aSync);
 
  protected:
+  explicit DocumentL10n(Document* aDocument, const bool aSync);
+  bool Init() override;
+
   virtual ~DocumentL10n() = default;
 
   RefPtr<Document> mDocument;
@@ -51,12 +63,19 @@ class DocumentL10n final : public DOMLocalization {
 
   Promise* Ready();
 
-  void TriggerInitialDocumentTranslation();
+  void TriggerInitialTranslation();
+  already_AddRefed<Promise> TranslateDocument(ErrorResult& aRv);
 
-  void InitialDocumentTranslationCompleted();
+  void InitialTranslationCompleted(bool aL10nCached);
 
   Document* GetDocument() { return mDocument; };
   void OnCreatePresShell();
+
+  void ConnectRoot(nsINode& aNode, bool aTranslate, ErrorResult& aRv);
+
+  DocumentL10nState GetState() { return mState; };
+
+  bool mBlockingLayout = false;
 };
 
 }  // namespace dom

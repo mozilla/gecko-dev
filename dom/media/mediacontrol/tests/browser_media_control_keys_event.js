@@ -17,19 +17,24 @@ add_task(async function setupTestingPref() {
 add_task(async function testPlayPauseAndStop() {
   info(`open page and start media`);
   const tab = await createTabAndLoad(PAGE);
-  await playMedia(tab);
+  await playMedia(tab, testVideoId);
 
   info(`pressing 'pause' key`);
-  ChromeUtils.generateMediaControlKeysTestEvent("pause");
-  await waitUntilPlaybackStops(tab);
+  await generateMediaControlKey("pause");
+  await checkOrWaitUntilMediaStoppedPlaying(tab, testVideoId);
 
   info(`pressing 'play' key`);
-  ChromeUtils.generateMediaControlKeysTestEvent("play");
-  await waitUntilPlaybackStarts(tab);
+  await generateMediaControlKey("play");
+  await checkOrWaitUntilMediaStartedPlaying(tab, testVideoId);
 
   info(`pressing 'stop' key`);
-  ChromeUtils.generateMediaControlKeysTestEvent("stop");
-  await waitUntilPlaybackStops(tab);
+  await generateMediaControlKey("stop");
+  await checkOrWaitUntilMediaStoppedPlaying(tab, testVideoId);
+
+  info(`we have stop controlling media, pressing 'play' won't resume media`);
+  // Not expect playback state change, so using ChromeUtils's method directly.
+  MediaControlService.generateMediaControlKey("play");
+  await checkOrWaitUntilMediaStoppedPlaying(tab, testVideoId);
 
   info(`remove tab`);
   await BrowserTestUtils.removeTab(tab);
@@ -38,15 +43,15 @@ add_task(async function testPlayPauseAndStop() {
 add_task(async function testPlayPause() {
   info(`open page and start media`);
   const tab = await createTabAndLoad(PAGE);
-  await playMedia(tab);
+  await playMedia(tab, testVideoId);
 
   info(`pressing 'playPause' key, media should stop`);
-  ChromeUtils.generateMediaControlKeysTestEvent("playPause");
-  await waitUntilPlaybackStops(tab);
+  await generateMediaControlKey("playpause");
+  await checkOrWaitUntilMediaStoppedPlaying(tab, testVideoId);
 
   info(`pressing 'playPause' key, media should start`);
-  ChromeUtils.generateMediaControlKeysTestEvent("playPause");
-  await waitUntilPlaybackStarts(tab);
+  await generateMediaControlKey("playpause");
+  await checkOrWaitUntilMediaStartedPlaying(tab, testVideoId);
 
   info(`remove tab`);
   await BrowserTestUtils.removeTab(tab);
@@ -55,34 +60,8 @@ add_task(async function testPlayPause() {
 /**
  * The following are helper functions.
  */
-function waitUntilPlaybackStarts(tab) {
-  return Promise.all([
-    checkOrWaitUntilMediaStartedPlaying(tab, testVideoId),
-    waitUntilMainMediaControllerPlaybackChanged(),
-  ]);
-}
-
-function waitUntilPlaybackStops(tab) {
-  return Promise.all([
-    checkOrWaitUntilMediaStoppedPlaying(tab, testVideoId),
-    waitUntilMainMediaControllerPlaybackChanged(),
-  ]);
-}
-
-function playMedia(tab) {
-  const playPromise = SpecialPowers.spawn(
-    tab.linkedBrowser,
-    [testVideoId],
-    Id => {
-      const video = content.document.getElementById(Id);
-      if (!video) {
-        ok(false, `can't get the media element!`);
-      }
-      return video.play();
-    }
-  );
-  return Promise.all([
-    playPromise,
-    waitUntilMainMediaControllerPlaybackChanged(),
-  ]);
+function generateMediaControlKey(event) {
+  const playbackStateChanged = waitUntilDisplayedPlaybackChanged();
+  MediaControlService.generateMediaControlKey(event);
+  return playbackStateChanged;
 }

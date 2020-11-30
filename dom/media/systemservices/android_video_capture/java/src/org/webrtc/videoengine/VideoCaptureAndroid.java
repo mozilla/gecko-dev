@@ -49,21 +49,31 @@ public class VideoCaptureAndroid implements CameraVideoCapturer.CameraEventsHand
   private final CountDownLatch capturerStopped = new CountDownLatch(1);
 
  @WebRTCJNITarget
- public VideoCaptureAndroid(String deviceName, long native_capturer) {
-    this.deviceName = deviceName;
-    this.native_capturer = native_capturer;
+ public VideoCaptureAndroid(String deviceName) {
+    // Remove the camera facing information from the name.
+    String[] parts = deviceName.split("Facing (front|back):");
+    if (parts.length == 2) {
+      this.deviceName = parts[1];
+    } else {
+      Log.e(TAG, "VideoCaptureAndroid: Expected facing mode as part of name: " + deviceName);
+      this.deviceName = deviceName;
+    }
     this.context = GetContext();
 
     CameraEnumerator enumerator;
     if (Camera2Enumerator.isSupported(context)) {
-        enumerator = new Camera2Enumerator(context);
+      enumerator = new Camera2Enumerator(context);
     } else {
-        enumerator = new Camera1Enumerator();
+      enumerator = new Camera1Enumerator();
     }
-    cameraVideoCapturer = enumerator.createCapturer(deviceName, this);
-    eglBase = EglBase.create();
-    surfaceTextureHelper = SurfaceTextureHelper.create("VideoCaptureAndroidSurfaceTextureHelper", eglBase.getEglBaseContext());
-    cameraVideoCapturer.initialize(surfaceTextureHelper, context, this);
+    try {
+      cameraVideoCapturer = enumerator.createCapturer(this.deviceName, this);
+      eglBase = EglBase.create();
+      surfaceTextureHelper = SurfaceTextureHelper.create("VideoCaptureAndroidSurfaceTextureHelper", eglBase.getEglBaseContext());
+      cameraVideoCapturer.initialize(surfaceTextureHelper, context, this);
+    } catch (java.lang.IllegalArgumentException e) {
+      Log.e(TAG, "VideoCaptureAndroid: Exception while creating capturer: " + e);
+    }
   }
 
   // Return the global application context.
@@ -78,9 +88,14 @@ public class VideoCaptureAndroid implements CameraVideoCapturer.CameraEventsHand
   @WebRTCJNITarget
   private synchronized boolean startCapture(
       final int width, final int height,
-      final int min_mfps, final int max_mfps) {
+      final int min_mfps, final int max_mfps,
+      long native_capturer) {
     Log.d(TAG, "startCapture: " + width + "x" + height + "@" +
         min_mfps + ":" + max_mfps);
+
+    if (cameraVideoCapturer == null) {
+      return false;
+    }
 
     cameraVideoCapturer.startCapture(width, height, max_mfps);
     try {
@@ -88,22 +103,21 @@ public class VideoCaptureAndroid implements CameraVideoCapturer.CameraEventsHand
     } catch (InterruptedException e) {
       return false;
     }
+    if (capturerStartedSucceeded) {
+      this.native_capturer = native_capturer;
+    }
     return capturerStartedSucceeded;
-  }
-
-  @WebRTCJNITarget
-  private void unlinkCapturer() {
-    // stopCapture might fail. That might leave the callbacks dangling, so make
-    // sure those don't call into dead code.
-    // Note that onPreviewCameraFrame isn't synchronized, so there's no point in
-    // synchronizing us either. ProvideCameraFrame has to do the null check.
-    native_capturer = 0;
   }
 
   // Called by native code.  Returns true when camera is known to be stopped.
   @WebRTCJNITarget
   private synchronized boolean stopCapture() {
     Log.d(TAG, "stopCapture");
+    if (cameraVideoCapturer == null) {
+      return false;
+    }
+
+    native_capturer = 0;
     try {
       cameraVideoCapturer.stopCapture();
       capturerStopped.await();

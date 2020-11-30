@@ -13,6 +13,7 @@
 #include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
 #include "js/CharacterEncoding.h"
 #include "js/CompilationAndEvaluation.h"
+#include "js/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetReservedSlot
 #include "js/PropertySpec.h"
 #include "js/Proxy.h"
 #include "js/SourceText.h"
@@ -44,6 +45,7 @@
 #include "mozilla/dom/DOMTokenListBinding.h"
 #include "mozilla/dom/ElementBinding.h"
 #include "mozilla/dom/EventBinding.h"
+#include "mozilla/dom/Exceptions.h"
 #include "mozilla/dom/IndexedDatabaseManager.h"
 #include "mozilla/dom/Fetch.h"
 #include "mozilla/dom/FileBinding.h"
@@ -93,11 +95,12 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(SandboxPrivate)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(SandboxPrivate)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
   NS_IMPL_CYCLE_COLLECTION_UNLINK_WEAK_REFERENCE
-  tmp->UnlinkHostObjectURIs();
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_WEAK_PTR
+  tmp->UnlinkObjectsInGlobal();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(SandboxPrivate)
-  tmp->TraverseHostObjectURIs(cb);
+  tmp->TraverseObjectsInGlobal(cb);
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_WRAPPERCACHE(SandboxPrivate)
@@ -486,14 +489,14 @@ static const JSFunctionSpec SandboxFunctions[] = {
     JS_FN("importFunction", SandboxImport, 1, 0), JS_FS_END};
 
 bool xpc::IsSandbox(JSObject* obj) {
-  const JSClass* clasp = js::GetObjectClass(obj);
+  const JSClass* clasp = JS::GetClass(obj);
   return clasp == &SandboxClass;
 }
 
 /***************************************************************************/
-nsXPCComponents_utils_Sandbox::nsXPCComponents_utils_Sandbox() {}
+nsXPCComponents_utils_Sandbox::nsXPCComponents_utils_Sandbox() = default;
 
-nsXPCComponents_utils_Sandbox::~nsXPCComponents_utils_Sandbox() {}
+nsXPCComponents_utils_Sandbox::~nsXPCComponents_utils_Sandbox() = default;
 
 NS_IMPL_QUERY_INTERFACE(nsXPCComponents_utils_Sandbox,
                         nsIXPCComponents_utils_Sandbox, nsIXPCScriptable)
@@ -700,7 +703,7 @@ bool SandboxProxyHandler::getPropertyDescriptorImpl(
     bool getOwn, JS::MutableHandle<PropertyDescriptor> desc) const {
   JS::RootedObject obj(cx, wrappedObject(proxy));
 
-  MOZ_ASSERT(js::GetObjectCompartment(obj) == js::GetObjectCompartment(proxy));
+  MOZ_ASSERT(JS::GetCompartment(obj) == JS::GetCompartment(proxy));
 
   if (getOwn) {
     if (!JS_GetOwnPropertyDescriptorById(cx, obj, id, desc)) {
@@ -926,7 +929,7 @@ bool xpc::GlobalProperties::Parse(JSContext* cx, JS::HandleObject obj) {
 }
 
 bool xpc::GlobalProperties::Define(JSContext* cx, JS::HandleObject obj) {
-  MOZ_ASSERT(js::GetContextCompartment(cx) == js::GetObjectCompartment(obj));
+  MOZ_ASSERT(js::GetContextCompartment(cx) == JS::GetCompartment(obj));
   // Properties will be exposed to System automatically but not to Sandboxes
   // if |[Exposed=System]| is specified.
   // This function holds common properties not exposed automatically but able
@@ -1078,7 +1081,7 @@ bool xpc::GlobalProperties::DefineInXPCComponents(JSContext* cx,
 bool xpc::GlobalProperties::DefineInSandbox(JSContext* cx,
                                             JS::HandleObject obj) {
   MOZ_ASSERT(IsSandbox(obj));
-  MOZ_ASSERT(js::GetContextCompartment(cx) == js::GetObjectCompartment(obj));
+  MOZ_ASSERT(js::GetContextCompartment(cx) == JS::GetCompartment(obj));
 
   if (indexedDB && !(IndexedDatabaseManager::ResolveSandboxBinding(cx) &&
                      IndexedDatabaseManager::DefineIndexedDB(cx, obj)))
@@ -1110,7 +1113,7 @@ nsresult ApplyAddonContentScriptCSP(nsISupports* prinOrSop) {
   }
 
   nsString url;
-  MOZ_TRY_VAR(url, addonPolicy->GetURL(NS_LITERAL_STRING("")));
+  MOZ_TRY_VAR(url, addonPolicy->GetURL(u""_ns));
 
   nsCOMPtr<nsIURI> selfURI;
   MOZ_TRY(NS_NewURI(getter_AddRefs(selfURI), url));
@@ -1141,8 +1144,7 @@ nsresult ApplyAddonContentScriptCSP(nsISupports* prinOrSop) {
 #endif
 
   csp = new nsCSPContext();
-  MOZ_TRY(
-      csp->SetRequestContextWithPrincipal(expanded, selfURI, EmptyString(), 0));
+  MOZ_TRY(csp->SetRequestContextWithPrincipal(expanded, selfURI, u""_ns, 0));
 
   bool reportOnly = StaticPrefs::extensions_content_script_csp_report_only();
 
@@ -1301,7 +1303,7 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
           JS_ReportErrorASCII(cx, "Sandbox must subsume sandboxPrototype");
           return NS_ERROR_INVALID_ARG;
         }
-        const JSClass* unwrappedClass = js::GetObjectClass(unwrappedProto);
+        const JSClass* unwrappedClass = JS::GetClass(unwrappedProto);
         useSandboxProxy = IS_WN_CLASS(unwrappedClass) ||
                           mozilla::dom::IsDOMClass(unwrappedClass);
       }
@@ -1351,7 +1353,7 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
   }
 
   // We handle the case where the context isn't in a compartment for the
-  // benefit of InitSingletonScopes.
+  // benefit of UnprivilegedJunkScope().
   vp.setObject(*sandbox);
   if (js::GetContextCompartment(cx) && !JS_WrapValue(cx, vp)) {
     return NS_ERROR_UNEXPECTED;
@@ -1832,7 +1834,7 @@ static nsresult AssembleSandboxMemoryReporterName(JSContext* cx,
                                                   nsCString& sandboxName) {
   // Use a default name when the caller did not provide a sandboxName.
   if (sandboxName.IsEmpty()) {
-    sandboxName = NS_LITERAL_CSTRING("[anonymous sandbox]");
+    sandboxName = "[anonymous sandbox]"_ns;
   } else {
 #ifndef DEBUG
     // Adding the caller location is fairly expensive, so in non-debug
@@ -2061,7 +2063,7 @@ nsresult xpc::GetSandboxMetadata(JSContext* cx, HandleObject sandbox,
   {
     JSAutoRealm ar(cx, sandbox);
     metadata =
-        JS_GetReservedSlot(sandbox, XPCONNECT_SANDBOX_CLASS_METADATA_SLOT);
+        JS::GetReservedSlot(sandbox, XPCONNECT_SANDBOX_CLASS_METADATA_SLOT);
   }
 
   if (!JS_WrapValue(cx, &metadata)) {

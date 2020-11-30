@@ -191,10 +191,8 @@ void nsFileControlFrame::DestroyFrom(nsIFrame* aDestructRoot,
 
   // Remove the events.
   if (mContent) {
-    mContent->RemoveSystemEventListener(NS_LITERAL_STRING("drop"),
-                                        mMouseListener, false);
-    mContent->RemoveSystemEventListener(NS_LITERAL_STRING("dragover"),
-                                        mMouseListener, false);
+    mContent->RemoveSystemEventListener(u"drop"_ns, mMouseListener, false);
+    mContent->RemoveSystemEventListener(u"dragover"_ns, mMouseListener, false);
   }
 
   aPostDestroyData.AddAnonymousContent(mTextContent.forget());
@@ -212,6 +210,7 @@ static already_AddRefed<Element> MakeAnonButton(Document* aDoc,
   // NOTE: SetIsNativeAnonymousRoot() has to be called before setting any
   // attribute.
   button->SetIsNativeAnonymousRoot();
+  button->SetPseudoElementType(PseudoStyleType::fileSelectorButton);
 
   // Set the file picking button text depending on the current locale.
   nsAutoString buttonTxt;
@@ -220,8 +219,8 @@ static already_AddRefed<Element> MakeAnonButton(Document* aDoc,
 
   // Set the browse button text. It's a bit of a pain to do because we want to
   // make sure we are not notifying.
-  RefPtr<nsTextNode> textContent =
-      new nsTextNode(button->NodeInfo()->NodeInfoManager());
+  RefPtr<nsTextNode> textContent = new (button->NodeInfo()->NodeInfoManager())
+      nsTextNode(button->NodeInfo()->NodeInfoManager());
 
   textContent->SetText(buttonTxt, false);
 
@@ -232,9 +231,7 @@ static already_AddRefed<Element> MakeAnonButton(Document* aDoc,
 
   // Make sure access key and tab order for the element actually redirect to the
   // file picking button.
-  RefPtr<HTMLButtonElement> buttonElement =
-      HTMLButtonElement::FromNodeOrNull(button);
-
+  auto* buttonElement = HTMLButtonElement::FromNode(button);
   if (!aAccessKey.IsEmpty()) {
     buttonElement->SetAccessKey(aAccessKey, IgnoreErrors());
   }
@@ -258,16 +255,20 @@ nsresult nsFileControlFrame::CreateAnonymousContent(
   fileContent->GetAccessKey(accessKey);
 
   mBrowseFilesOrDirs = MakeAnonButton(doc, "Browse", fileContent, accessKey);
-  if (!mBrowseFilesOrDirs || !aElements.AppendElement(mBrowseFilesOrDirs)) {
+  if (!mBrowseFilesOrDirs) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
+  // XXX(Bug 1631371) Check if this should use a fallible operation as it
+  // pretended earlier, or change the return type to void.
+  aElements.AppendElement(mBrowseFilesOrDirs);
 
   // Create and setup the text showing the selected files.
   mTextContent = doc->CreateHTMLElement(nsGkAtoms::label);
   // NOTE: SetIsNativeAnonymousRoot() has to be called before setting any
   // attribute.
   mTextContent->SetIsNativeAnonymousRoot();
-  RefPtr<nsTextNode> text = new nsTextNode(doc->NodeInfoManager());
+  RefPtr<nsTextNode> text =
+      new (doc->NodeInfoManager()) nsTextNode(doc->NodeInfoManager());
   mTextContent->AppendChildTo(text, false);
 
   // Update the displayed text to reflect the current element's value.
@@ -278,10 +279,8 @@ nsresult nsFileControlFrame::CreateAnonymousContent(
   aElements.AppendElement(mTextContent);
 
   // We should be able to interact with the element by doing drag and drop.
-  mContent->AddSystemEventListener(NS_LITERAL_STRING("drop"), mMouseListener,
-                                   false);
-  mContent->AddSystemEventListener(NS_LITERAL_STRING("dragover"),
-                                   mMouseListener, false);
+  mContent->AddSystemEventListener(u"drop"_ns, mMouseListener, false);
+  mContent->AddSystemEventListener(u"dragover"_ns, mMouseListener, false);
 
   SyncDisabledState();
 
@@ -364,7 +363,7 @@ nsFileControlFrame::DnDListener::HandleEvent(Event* aEvent) {
   bool supportsMultiple =
       inputElement->HasAttr(kNameSpaceID_None, nsGkAtoms::multiple);
   if (!CanDropTheseFiles(dataTransfer, supportsMultiple)) {
-    dataTransfer->SetDropEffect(NS_LITERAL_STRING("none"));
+    dataTransfer->SetDropEffect(u"none"_ns);
     aEvent->StopPropagation();
     return NS_OK;
   }
@@ -438,7 +437,7 @@ nsFileControlFrame::DnDListener::HandleEvent(Event* aEvent) {
                            "Failed to dispatch input event");
       nsContentUtils::DispatchTrustedEvent(
           inputElement->OwnerDoc(), static_cast<nsINode*>(inputElement),
-          NS_LITERAL_STRING("change"), CanBubble::eYes, Cancelable::eNo);
+          u"change"_ns, CanBubble::eYes, Cancelable::eNo);
     }
   }
 
@@ -537,27 +536,11 @@ nscoord nsFileControlFrame::GetPrefISize(gfxContext* aRenderingContext) {
 void nsFileControlFrame::SyncDisabledState() {
   EventStates eventStates = mContent->AsElement()->State();
   if (eventStates.HasState(NS_EVENT_STATE_DISABLED)) {
-    mBrowseFilesOrDirs->SetAttr(kNameSpaceID_None, nsGkAtoms::disabled,
-                                EmptyString(), true);
+    mBrowseFilesOrDirs->SetAttr(kNameSpaceID_None, nsGkAtoms::disabled, u""_ns,
+                                true);
   } else {
     mBrowseFilesOrDirs->UnsetAttr(kNameSpaceID_None, nsGkAtoms::disabled, true);
   }
-}
-
-nsresult nsFileControlFrame::AttributeChanged(int32_t aNameSpaceID,
-                                              nsAtom* aAttribute,
-                                              int32_t aModType) {
-  if (aNameSpaceID == kNameSpaceID_None && aAttribute == nsGkAtoms::tabindex) {
-    if (aModType == MutationEvent_Binding::REMOVAL) {
-      mBrowseFilesOrDirs->UnsetAttr(aNameSpaceID, aAttribute, true);
-    } else {
-      nsAutoString value;
-      mContent->AsElement()->GetAttr(aNameSpaceID, aAttribute, value);
-      mBrowseFilesOrDirs->SetAttr(aNameSpaceID, aAttribute, value, true);
-    }
-  }
-
-  return nsBlockFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
 }
 
 void nsFileControlFrame::ContentStatesChanged(EventStates aStates) {
@@ -568,7 +551,7 @@ void nsFileControlFrame::ContentStatesChanged(EventStates aStates) {
 
 #ifdef DEBUG_FRAME_DUMP
 nsresult nsFileControlFrame::GetFrameName(nsAString& aResult) const {
-  return MakeFrameName(NS_LITERAL_STRING("FileControl"), aResult);
+  return MakeFrameName(u"FileControl"_ns, aResult);
 }
 #endif
 

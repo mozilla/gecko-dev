@@ -4,9 +4,18 @@
 
 "use strict";
 
-const { AboutNewTab } = ChromeUtils.import(
+ChromeUtils.defineModuleGetter(
+  this,
+  "AboutNewTab",
   "resource:///modules/AboutNewTab.jsm"
 );
+
+ChromeUtils.defineModuleGetter(
+  this,
+  "AboutHomeStartupCache",
+  "resource:///modules/BrowserGlue.jsm"
+);
+
 const { RemotePages } = ChromeUtils.import(
   "resource://gre/modules/remotepagemanager/RemotePageManagerParent.jsm"
 );
@@ -103,6 +112,10 @@ this.ActivityStreamMessageChannel = class ActivityStreamMessageChannel {
    * @param  {object} action A Redux action
    */
   broadcast(action) {
+    // We're trying to update all tabs, so signal the AboutHomeStartupCache
+    // that its likely time to refresh the cache.
+    AboutHomeStartupCache.onPreloadedNewTabMessage();
+
     this.channel.sendAsyncMessage(this.outgoingMessageName, action);
   }
 
@@ -155,6 +168,11 @@ this.ActivityStreamMessageChannel = class ActivityStreamMessageChannel {
    * @param  {obj} action A redux action
    */
   sendToPreloaded(action) {
+    // We're trying to update the preloaded about:newtab, so signal
+    // the AboutHomeStartupCache that its likely time to refresh
+    // the cache.
+    AboutHomeStartupCache.onPreloadedNewTabMessage();
+
     const preloadedBrowsers = this.getPreloadedBrowser();
     if (preloadedBrowsers && action.data) {
       for (let preloadedBrowser of preloadedBrowsers) {
@@ -202,7 +220,8 @@ this.ActivityStreamMessageChannel = class ActivityStreamMessageChannel {
   createChannel() {
     //  Receive AboutNewTab's Remote Pages instance, if it exists, on override
     const channel =
-      this.pageURL === ABOUT_NEW_TAB_URL && AboutNewTab.override(true);
+      this.pageURL === ABOUT_NEW_TAB_URL &&
+      AboutNewTab.overridePageListener(true);
     this.channel =
       channel || new RemotePages([ABOUT_HOME_URL, ABOUT_NEW_TAB_URL]);
     this.channel.addMessageListener("RemotePage:Init", this.onNewTabInit);
@@ -269,11 +288,16 @@ this.ActivityStreamMessageChannel = class ActivityStreamMessageChannel {
    */
   onNewTabLoad(msg) {
     let { browser } = msg.target;
-    if (this.isPreloadedBrowser(browser)) {
+    if (
+      this.isPreloadedBrowser(browser) &&
+      browser.ownerGlobal.windowState !== browser.ownerGlobal.STATE_MINIMIZED &&
+      !browser.ownerGlobal.isFullyOccluded
+    ) {
       // As a perceived performance optimization, if this loaded Activity Stream
-      // happens to be a preloaded browser, have it render its layers to the
-      // compositor now to increase the odds that by the time we switch to
-      // the tab, the layers are already ready to present to the user.
+      // happens to be a preloaded browser in a window that is not minimized or
+      // occluded, have it render its layers to the compositor now to increase
+      // the odds that by the time we switch to the tab, the layers are already
+      // ready to present to the user.
       browser.renderLayers = true;
     }
 

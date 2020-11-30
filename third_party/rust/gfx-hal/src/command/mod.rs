@@ -23,7 +23,6 @@ use std::ops::Range;
 
 use crate::image::{Filter, Layout, SubresourceRange};
 use crate::memory::{Barrier, Dependencies};
-use crate::range::RangeArg;
 use crate::{buffer, pass, pso, query};
 use crate::{
     Backend,
@@ -37,7 +36,6 @@ use crate::{
 
 pub use self::clear::*;
 pub use self::structs::*;
-
 
 /// Offset for dynamic descriptors.
 pub type DescriptorSetOffset = u32;
@@ -145,9 +143,7 @@ pub trait CommandBuffer<B: Backend>: fmt::Debug + Any + Send + Sync {
         T::Item: Borrow<Barrier<'a, B>>;
 
     /// Fill a buffer with the given `u32` value.
-    unsafe fn fill_buffer<R>(&mut self, buffer: &B::Buffer, range: R, data: u32)
-    where
-        R: RangeArg<buffer::Offset>;
+    unsafe fn fill_buffer(&mut self, buffer: &B::Buffer, range: buffer::SubRange, data: u32);
 
     /// Copy data from the given slice into a buffer.
     unsafe fn update_buffer(&mut self, buffer: &B::Buffer, offset: buffer::Offset, data: &[u8]);
@@ -216,12 +212,11 @@ pub trait CommandBuffer<B: Backend>: fmt::Debug + Any + Send + Sync {
     /// It needs to match with the `VertexBufferDesc` and `AttributeDesc`s to which the
     /// data from each bound vertex buffer should flow.
     ///
-    /// The `buffers` iterator should yield the `Buffer` to bind, as well as an
-    /// offset, in bytes, into that buffer where the vertex data that should be bound
-    /// starts.
+    /// The `buffers` iterator should yield the `Buffer` to bind, as well as a subrange,
+    /// in bytes, into that buffer where the vertex data that should be bound.
     unsafe fn bind_vertex_buffers<I, T>(&mut self, first_binding: pso::BufferIndex, buffers: I)
     where
-        I: IntoIterator<Item = (T, buffer::Offset)>,
+        I: IntoIterator<Item = (T, buffer::SubRange)>,
         T: Borrow<B::Buffer>;
 
     /// Set the viewport parameters for the rasterizer.
@@ -286,6 +281,8 @@ pub trait CommandBuffer<B: Backend>: fmt::Debug + Any + Send + Sync {
     unsafe fn set_depth_bounds(&mut self, bounds: Range<f32>);
 
     /// Set the line width dynamically.
+    ///
+    /// Only valid to call if `Features::LINE_WIDTH` is enabled.
     unsafe fn set_line_width(&mut self, width: f32);
 
     /// Set the depth bias dynamically.
@@ -483,6 +480,46 @@ pub trait CommandBuffer<B: Backend>: fmt::Debug + Any + Send + Sync {
         stride: u32,
     );
 
+    /// Functions identically to `draw_indirect()`, except the amount of draw
+    /// calls are specified by the u32 in `count_buffer` at `count_buffer_offset`.
+    /// There is a limit of `max_draw_count` invocations.
+    ///
+    /// Each draw command in the buffer is a series of 4 `u32` values specifying,
+    /// in order, the number of vertices to draw, the number of instances to draw,
+    /// the index of the first vertex to draw, and the instance ID of the first
+    /// instance to draw.
+    unsafe fn draw_indirect_count(
+        &mut self,
+        _buffer: &B::Buffer,
+        _offset: buffer::Offset,
+        _count_buffer: &B::Buffer,
+        _count_buffer_offset: buffer::Offset,
+        _max_draw_count: u32,
+        _stride: u32
+    ) {
+        unimplemented!("Backend doesn't support draw_indirect_count");
+    }
+
+    /// Functions identically to `draw_indexed_indirect()`, except the amount of draw
+    /// calls are specified by the u32 in `count_buffer` at `count_buffer_offset`.
+    /// There is a limit of `max_draw_count` invocations.
+    ///
+    /// Each draw command in the buffer is a series of 5 values specifying,
+    /// in order, the number of indices, the number of instances, the first index,
+    /// the vertex offset, and the first instance.  All are `u32`'s except
+    /// the vertex offset, which is an `i32`.
+    unsafe fn draw_indexed_indirect_count(
+        &mut self,
+        _buffer: &B::Buffer,
+        _offset: buffer::Offset,
+        _count_buffer: &B::Buffer,
+        _count_buffer_offset: buffer::Offset,
+        _max_draw_count: u32,
+        _stride: u32
+    ) {
+        unimplemented!("Backend doesn't support draw_indexed_indirect_count");
+    }
+
     /// Signals an event once all specified stages of the shader pipeline have completed.
     unsafe fn set_event(&mut self, event: &B::Event, stages: pso::PipelineStage);
 
@@ -561,4 +598,11 @@ pub trait CommandBuffer<B: Backend>: fmt::Debug + Any + Send + Sync {
     where
         T: 'a + Borrow<B::CommandBuffer>,
         I: IntoIterator<Item = &'a T>;
+
+    /// Debug mark the current spot in the command buffer.
+    unsafe fn insert_debug_marker(&mut self, name: &str, color: u32);
+    /// Start a debug marker at the current place in the command buffer.
+    unsafe fn begin_debug_marker(&mut self, name: &str, color: u32);
+    /// End the last started debug marker scope.
+    unsafe fn end_debug_marker(&mut self);
 }

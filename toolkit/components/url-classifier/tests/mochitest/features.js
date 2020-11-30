@@ -1,9 +1,9 @@
 var tests = [
   // Config is an array with 4 elements:
-  // - annotation blacklist
-  // - annotation whitelist
-  // - tracking blacklist
-  // - tracking whitelist
+  // - annotation blocklist
+  // - annotation entitylist
+  // - tracking blocklist
+  // - tracking entitylist
 
   // All disabled.
   {
@@ -12,98 +12,98 @@ var tests = [
     annotationExpected: false,
   },
 
-  // Just whitelisted.
+  // Just entitylisted.
   {
     config: [false, false, false, true],
     loadExpected: true,
     annotationExpected: false,
   },
 
-  // Just blacklisted.
+  // Just blocklisted.
   {
     config: [false, false, true, false],
     loadExpected: false,
     annotationExpected: false,
   },
 
-  // whitelist + blacklist => whitelist wins
+  // entitylist + blocklist => entitylist wins
   {
     config: [false, false, true, true],
     loadExpected: true,
     annotationExpected: false,
   },
 
-  // just annotated in whitelist.
+  // just annotated in entitylist.
   {
     config: [false, true, false, false],
     loadExpected: true,
     annotationExpected: false,
   },
 
-  // TP and annotation whitelisted.
+  // TP and annotation entitylisted.
   {
     config: [false, true, false, true],
     loadExpected: true,
     annotationExpected: false,
   },
 
-  // Annotation whitelisted, but TP blacklisted.
+  // Annotation entitylisted, but TP blocklisted.
   {
     config: [false, true, true, false],
     loadExpected: false,
     annotationExpected: false,
   },
 
-  // Annotation whitelisted. TP blacklisted and whitelisted: whitelist wins.
+  // Annotation entitylisted. TP blocklisted and entitylisted: entitylist wins.
   {
     config: [false, true, true, true],
     loadExpected: true,
     annotationExpected: false,
   },
 
-  // Just blacklist annotated.
+  // Just blocklist annotated.
   {
     config: [true, false, false, false],
     loadExpected: true,
     annotationExpected: true,
   },
 
-  // annotated but TP whitelisted.
+  // annotated but TP entitylisted.
   {
     config: [true, false, false, true],
     loadExpected: true,
     annotationExpected: true,
   },
 
-  // annotated and blacklisted.
+  // annotated and blocklisted.
   {
     config: [true, false, true, false],
     loadExpected: false,
     annotationExpected: false,
   },
 
-  // annotated, TP blacklisted and whitelisted: whitelist wins.
+  // annotated, TP blocklisted and entitylisted: entitylist wins.
   {
     config: [true, false, true, true],
     loadExpected: true,
     annotationExpected: true,
   },
 
-  // annotated in white and blacklist.
+  // annotated in white and blocklist.
   {
     config: [true, true, false, false],
     loadExpected: true,
     annotationExpected: false,
   },
 
-  // annotated in white and blacklist. TP Whiteslited
+  // annotated in white and blocklist. TP Whiteslited
   {
     config: [true, true, false, true],
     loadExpected: true,
     annotationExpected: false,
   },
 
-  // everywhere. TP whitelist wins.
+  // everywhere. TP entitylist wins.
   {
     config: [true, true, true, true],
     loadExpected: true,
@@ -116,7 +116,7 @@ function prefBlacklistValue(value) {
 }
 
 function prefWhitelistValue(value) {
-  return value ? "mochi.test" : "";
+  return value ? "mochi.test,mochi.xorigin-test" : "";
 }
 
 async function runTest(test, expectedFlag, expectedTrackingResource, prefs) {
@@ -208,14 +208,18 @@ async function runTest(test, expectedFlag, expectedTrackingResource, prefs) {
     });
   }
 
-  // Let's load an image with a random query string, just to avoid network cache.
+  // Let's load a script with a random query string to avoid network cache.
+  // Using a script as the fingerprinting feature does not block display content
   let result = await new Promise(resolve => {
-    let image = new Image();
-    image.src =
-      "http://example.com/tests/toolkit/components/url-classifier/tests/mochitest/raptor.jpg?" +
-      Math.random();
-    image.onload = _ => resolve(true);
-    image.onerror = _ => resolve(false);
+    let script = document.createElement("script");
+    script.setAttribute(
+      "src",
+      "http://example.com/tests/toolkit/components/url-classifier/tests/mochitest/evil.js?" +
+        Math.random()
+    );
+    script.onload = _ => resolve(true);
+    script.onerror = _ => resolve(false);
+    document.body.appendChild(script);
   });
 
   is(result, test.loadExpected, "The loading happened correctly");
@@ -253,7 +257,7 @@ function runTests(flag, prefs, trackingResource) {
         !channel ||
         !classifiedChannel ||
         !channel.URI.spec.startsWith(
-          "http://example.com/tests/toolkit/components/url-classifier/tests/mochitest/raptor.jpg"
+          "http://example.com/tests/toolkit/components/url-classifier/tests/mochitest/evil.js"
         )
       ) {
         return;

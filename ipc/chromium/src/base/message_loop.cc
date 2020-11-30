@@ -8,12 +8,14 @@
 
 #include <algorithm>
 
-#include "mozilla/Atomics.h"
 #include "base/compiler_specific.h"
 #include "base/logging.h"
 #include "base/message_pump_default.h"
 #include "base/string_util.h"
 #include "base/thread_local.h"
+#include "mozilla/Atomics.h"
+#include "mozilla/Mutex.h"
+#include "nsThreadUtils.h"
 
 #if defined(OS_MACOSX)
 #  include "base/message_pump_mac.h"
@@ -36,6 +38,7 @@
 #endif
 
 #include "MessagePump.h"
+#include "nsThreadUtils.h"
 
 using base::Time;
 using base::TimeDelta;
@@ -90,7 +93,8 @@ class MessageLoop::EventTarget : public nsISerialEventTarget,
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIEVENTTARGET_FULL
 
-  explicit EventTarget(MessageLoop* aLoop) : mLoop(aLoop) {
+  explicit EventTarget(MessageLoop* aLoop)
+      : mMutex("MessageLoop::EventTarget"), mLoop(aLoop) {
     aLoop->AddDestructionObserver(this);
   }
 
@@ -102,10 +106,15 @@ class MessageLoop::EventTarget : public nsISerialEventTarget,
   }
 
   void WillDestroyCurrentMessageLoop() override {
+    mozilla::MutexAutoLock lock(mMutex);
+    // The MessageLoop is being destroyed and we are called from its destructor
+    // There's no real need to remove ourselves from the destruction observer
+    // list. But it makes things look tidier.
     mLoop->RemoveDestructionObserver(this);
     mLoop = nullptr;
   }
 
+  mozilla::Mutex mMutex;
   MessageLoop* mLoop;
 };
 
@@ -114,6 +123,7 @@ NS_IMPL_ISUPPORTS(MessageLoop::EventTarget, nsIEventTarget,
 
 NS_IMETHODIMP_(bool)
 MessageLoop::EventTarget::IsOnCurrentThreadInfallible() {
+  mozilla::MutexAutoLock lock(mMutex);
   return mLoop == MessageLoop::current();
 }
 
@@ -133,6 +143,7 @@ MessageLoop::EventTarget::DispatchFromScript(nsIRunnable* aEvent,
 NS_IMETHODIMP
 MessageLoop::EventTarget::Dispatch(already_AddRefed<nsIRunnable> aEvent,
                                    uint32_t aFlags) {
+  mozilla::MutexAutoLock lock(mMutex);
   if (!mLoop) {
     return NS_ERROR_NOT_INITIALIZED;
   }
@@ -148,6 +159,7 @@ MessageLoop::EventTarget::Dispatch(already_AddRefed<nsIRunnable> aEvent,
 NS_IMETHODIMP
 MessageLoop::EventTarget::DelayedDispatch(already_AddRefed<nsIRunnable> aEvent,
                                           uint32_t aDelayMs) {
+  mozilla::MutexAutoLock lock(mMutex);
   if (!mLoop) {
     return NS_ERROR_NOT_INITIALIZED;
   }
@@ -244,6 +256,13 @@ MessageLoop::MessageLoop(Type type, nsIEventTarget* aEventTarget)
     pump_ = new base::MessagePumpDefault();
   }
 #endif    // OS_POSIX
+
+  // We want GetCurrentSerialEventTarget() to return the real nsThread if it
+  // will be used to dispatch tasks. However, under all other cases; we'll want
+  // it to return this MessageLoop's EventTarget.
+  if (!pump_->GetXPCOMThread()) {
+    mozilla::SerialEventTargetGuard::Set(mEventTarget);
+  }
 }
 
 MessageLoop::~MessageLoop() {
@@ -356,6 +375,7 @@ void MessageLoop::PostIdleTask(already_AddRefed<nsIRunnable> task) {
   MOZ_ASSERT(NS_IsMainThread());
 
   PendingTask pending_task(std::move(task), false);
+  mozilla::LogRunnable::LogDispatch(pending_task.task.get());
   deferred_non_nestable_work_queue_.push(std::move(pending_task));
 }
 
@@ -402,6 +422,7 @@ void MessageLoop::PostTask_Helper(already_AddRefed<nsIRunnable> task,
   RefPtr<base::MessagePump> pump;
   {
     mozilla::MutexAutoLock locked(incoming_queue_lock_);
+    mozilla::LogRunnable::LogDispatch(pending_task.task.get());
     incoming_queue_.push(std::move(pending_task));
     pump = pump_;
   }
@@ -439,6 +460,8 @@ void MessageLoop::RunTask(already_AddRefed<nsIRunnable> aTask) {
   nestable_tasks_allowed_ = false;
 
   nsCOMPtr<nsIRunnable> task = aTask;
+
+  mozilla::LogRunnable::Run log(task.get());
   task->Run();
   task = nullptr;
 
@@ -455,6 +478,7 @@ bool MessageLoop::DeferOrRunPendingTask(PendingTask&& pending_task) {
 
   // We couldn't run the task now because we're in a nested message loop
   // and the task isn't nestable.
+  mozilla::LogRunnable::LogDispatch(pending_task.task.get());
   deferred_non_nestable_work_queue_.push(std::move(pending_task));
   return false;
 }
@@ -466,6 +490,7 @@ void MessageLoop::AddToDelayedWorkQueue(const PendingTask& pending_task) {
   // delayed_run_time value.
   PendingTask new_pending_task(pending_task);
   new_pending_task.sequence_num = next_sequence_num_++;
+  mozilla::LogRunnable::LogDispatch(new_pending_task.task.get());
   delayed_work_queue_.push(std::move(new_pending_task));
 }
 

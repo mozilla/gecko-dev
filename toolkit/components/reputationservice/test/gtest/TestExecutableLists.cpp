@@ -9,6 +9,10 @@
 // PLEASE read the comment in ApplicationReputation.cpp before modifying this
 // list.
 static const char* const kTestFileExtensions[] = {
+    ".accda",   // MS Access database
+    ".accdb",   // MS Access database
+    ".accde",   // MS Access database
+    ".accdr",   // MS Access database
     ".action",  // Nac script
     ".ad",      // Windows (ignored for app rep)
     ".ade",     // MS Access
@@ -37,6 +41,7 @@ static const char* const kTestFileExtensions[] = {
     ".cab",            // Windows archive
     ".caction",        // Automator action
     ".cdr",            // Mac disk image
+    ".cer",            // Signed certificate file
     ".cfg",            // Windows
     ".chi",            // Windows Help
     ".chm",            // Windows Help
@@ -56,6 +61,7 @@ static const char* const kTestFileExtensions[] = {
     ".dc42",           // Apple DiskCopy Image
     ".deb",            // Linux package
     ".definition",     // Automator action
+    ".der",            // Signed certificate file
     ".desktop",        // A shortcut that runs other files
     ".dex",            // Android
     ".dht",            // HTML
@@ -79,6 +85,7 @@ static const char* const kTestFileExtensions[] = {
     ".efi",            // Firmware
     ".eml",            // MS Outlook
     ".exe",            // Windows executable
+    ".fileloc",        // Apple finder internet location data file
     ".fon",            // Windows font
     ".fxp",            // MS FoxPro
     ".gadget",         // Windows
@@ -249,6 +256,7 @@ static const char* const kTestFileExtensions[] = {
     ".vsw",       // MS Visio
     ".vsx",       // MS Visio
     ".vtx",       // MS Visio
+    ".webloc",    // MacOS website location file
     ".website",   // Windows
     ".wflow",     // Automator action
     ".wim",       // Windows Imaging
@@ -277,6 +285,7 @@ static const char* const kTestFileExtensions[] = {
     ".xml",     // MS Excel
     ".xnk",     // MS Exchange
     ".xrm-ms",  // Windows
+    ".xsd",     // XML schema definition
     ".xsl",     // XML Stylesheet
     ".xz",      // Linux archive (xz)
     ".z",       // InstallShield

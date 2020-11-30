@@ -9,10 +9,12 @@
 
 #include "HttpConnectionMgrChild.h"
 #include "HttpTransactionChild.h"
+#include "AltSvcTransactionChild.h"
 #include "EventTokenBucket.h"
 #include "nsHttpConnectionInfo.h"
 #include "nsHttpConnectionMgr.h"
 #include "nsHttpHandler.h"
+#include "nsISpeculativeConnect.h"
 
 namespace mozilla {
 namespace net {
@@ -31,38 +33,18 @@ void HttpConnectionMgrChild::ActorDestroy(ActorDestroyReason aWhy) {
 }
 
 mozilla::ipc::IPCResult
-HttpConnectionMgrChild::RecvDoShiftReloadConnectionCleanup(
-    const Maybe<HttpConnectionInfoCloneArgs>& aArgs) {
-  nsresult rv;
-  if (aArgs) {
-    RefPtr<nsHttpConnectionInfo> cinfo =
-        nsHttpConnectionInfo::DeserializeHttpConnectionInfoCloneArgs(
-            aArgs.ref());
-    rv = mConnMgr->DoShiftReloadConnectionCleanup(cinfo);
-  } else {
-    rv = mConnMgr->DoShiftReloadConnectionCleanup(nullptr);
-  }
+HttpConnectionMgrChild::RecvDoShiftReloadConnectionCleanupWithConnInfo(
+    const HttpConnectionInfoCloneArgs& aArgs) {
+  RefPtr<nsHttpConnectionInfo> cinfo =
+      nsHttpConnectionInfo::DeserializeHttpConnectionInfoCloneArgs(aArgs);
+  nsresult rv = mConnMgr->DoShiftReloadConnectionCleanupWithConnInfo(cinfo);
   if (NS_FAILED(rv)) {
     LOG(
-        ("HttpConnectionMgrChild::RecvDoShiftReloadConnectionCleanup failed "
+        ("HttpConnectionMgrChild::DoShiftReloadConnectionCleanupWithConnInfo "
+         "failed "
          "(%08x)\n",
          static_cast<uint32_t>(rv)));
   }
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult HttpConnectionMgrChild::RecvPruneDeadConnections() {
-  nsresult rv = mConnMgr->PruneDeadConnections();
-  if (NS_FAILED(rv)) {
-    LOG(("HttpConnectionMgrChild::RecvPruneDeadConnections failed (%08x)\n",
-         static_cast<uint32_t>(rv)));
-  }
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult
-HttpConnectionMgrChild::RecvAbortAndCloseAllConnections() {
-  mConnMgr->AbortAndCloseAllConnections(0, nullptr);
   return IPC_OK();
 }
 
@@ -118,17 +100,80 @@ mozilla::ipc::IPCResult HttpConnectionMgrChild::RecvCancelTransaction(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult HttpConnectionMgrChild::RecvVerifyTraffic() {
-  nsresult rv = mConnMgr->VerifyTraffic();
-  if (NS_FAILED(rv)) {
-    LOG(("HttpConnectionMgrChild::RecvVerifyTraffic failed (%08x)\n",
-         static_cast<uint32_t>(rv)));
+namespace {
+
+class SpeculativeConnectionOverrider final
+    : public nsIInterfaceRequestor,
+      public nsISpeculativeConnectionOverrider {
+ public:
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_NSIINTERFACEREQUESTOR
+  NS_DECL_NSISPECULATIVECONNECTIONOVERRIDER
+
+  explicit SpeculativeConnectionOverrider(
+      SpeculativeConnectionOverriderArgs&& aArgs)
+      : mArgs(std::move(aArgs)) {}
+
+ private:
+  virtual ~SpeculativeConnectionOverrider() = default;
+
+  SpeculativeConnectionOverriderArgs mArgs;
+};
+
+NS_IMPL_ISUPPORTS(SpeculativeConnectionOverrider, nsIInterfaceRequestor,
+                  nsISpeculativeConnectionOverrider)
+
+NS_IMETHODIMP
+SpeculativeConnectionOverrider::GetInterface(const nsIID& iid, void** result) {
+  if (NS_SUCCEEDED(QueryInterface(iid, result)) && *result) {
+    return NS_OK;
   }
-  return IPC_OK();
+  return NS_ERROR_NO_INTERFACE;
 }
 
-mozilla::ipc::IPCResult HttpConnectionMgrChild::RecvClearConnectionHistory() {
-  Unused << mConnMgr->ClearConnectionHistory();
+NS_IMETHODIMP
+SpeculativeConnectionOverrider::GetIgnoreIdle(bool* aIgnoreIdle) {
+  *aIgnoreIdle = mArgs.ignoreIdle();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+SpeculativeConnectionOverrider::GetParallelSpeculativeConnectLimit(
+    uint32_t* aParallelSpeculativeConnectLimit) {
+  *aParallelSpeculativeConnectLimit = mArgs.parallelSpeculativeConnectLimit();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+SpeculativeConnectionOverrider::GetIsFromPredictor(bool* aIsFromPredictor) {
+  *aIsFromPredictor = mArgs.isFromPredictor();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+SpeculativeConnectionOverrider::GetAllow1918(bool* aAllow) {
+  *aAllow = mArgs.allow1918();
+  return NS_OK;
+}
+
+}  // anonymous namespace
+
+mozilla::ipc::IPCResult HttpConnectionMgrChild::RecvSpeculativeConnect(
+    HttpConnectionInfoCloneArgs aConnInfo,
+    Maybe<SpeculativeConnectionOverriderArgs> aOverriderArgs, uint32_t aCaps,
+    Maybe<PAltSvcTransactionChild*> aTrans) {
+  RefPtr<nsHttpConnectionInfo> cinfo =
+      nsHttpConnectionInfo::DeserializeHttpConnectionInfoCloneArgs(aConnInfo);
+  nsCOMPtr<nsIInterfaceRequestor> overrider =
+      aOverriderArgs
+          ? new SpeculativeConnectionOverrider(std::move(aOverriderArgs.ref()))
+          : nullptr;
+  RefPtr<NullHttpTransaction> trans;
+  if (aTrans) {
+    trans = static_cast<AltSvcTransactionChild*>(*aTrans)->CreateTransaction();
+  }
+
+  Unused << mConnMgr->SpeculativeConnect(cinfo, overrider, aCaps, trans);
   return IPC_OK();
 }
 

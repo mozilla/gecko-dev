@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-var EXPORTED_SYMBOLS = ["ExtensionContent"];
+var EXPORTED_SYMBOLS = ["ExtensionContent", "ExtensionContentChild"];
 
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
@@ -50,7 +50,6 @@ const {
   DefaultMap,
   DefaultWeakMap,
   getInnerWindowID,
-  getWinUtils,
   promiseDocumentIdle,
   promiseDocumentLoaded,
   promiseDocumentReady,
@@ -322,8 +321,8 @@ class Script {
   /**
    * @param {BrowserExtensionContent} extension
    * @param {WebExtensionContentScript|object} matcher
-   *        An object with a "matchesWindow" method and content script execution
-   *        details. This is usually a plain WebExtensionContentScript object,
+   *        An object with a "matchesWindowGlobal" method and content script
+   *        execution details. This is usually a plain WebExtensionContentScript
    *        except when the script is run via `tabs.executeScript`. In this
    *        case, the object may have some extra properties:
    *        wantReturnValue, removeCSS, cssOrigin, jsCode
@@ -390,19 +389,19 @@ class Script {
   cleanup(window) {
     if (this.requiresCleanup) {
       if (window) {
-        let winUtils = getWinUtils(window);
+        let { windowUtils } = window;
 
         let type =
           this.cssOrigin === "user"
-            ? winUtils.USER_SHEET
-            : winUtils.AUTHOR_SHEET;
+            ? windowUtils.USER_SHEET
+            : windowUtils.AUTHOR_SHEET;
 
         for (let url of this.css) {
           this.cssCache.deleteDocument(url, window.document);
 
           if (!window.closed) {
             runSafeSyncWithoutClone(
-              winUtils.removeSheetUsingURIString,
+              windowUtils.removeSheetUsingURIString,
               url,
               type
             );
@@ -414,7 +413,7 @@ class Script {
         if (cssCodeHash && this.cssCodeCache.has(cssCodeHash)) {
           if (!window.closed) {
             this.cssCodeCache.get(cssCodeHash).then(({ uri }) => {
-              runSafeSyncWithoutClone(winUtils.removeSheet, uri, type);
+              runSafeSyncWithoutClone(windowUtils.removeSheet, uri, type);
             });
           }
           this.cssCodeCache.deleteDocument(cssCodeHash, window.document);
@@ -428,8 +427,8 @@ class Script {
     }
   }
 
-  matchesWindow(window) {
-    return this.matcher.matchesWindow(window);
+  matchesWindowGlobal(windowGlobal) {
+    return this.matcher.matchesWindowGlobal(windowGlobal);
   }
 
   async injectInto(window) {
@@ -481,17 +480,19 @@ class Script {
     let cssPromise;
     if (this.css.length || cssCodeHash) {
       let window = context.contentWindow;
-      let winUtils = getWinUtils(window);
+      let { windowUtils } = window;
 
       let type =
-        this.cssOrigin === "user" ? winUtils.USER_SHEET : winUtils.AUTHOR_SHEET;
+        this.cssOrigin === "user"
+          ? windowUtils.USER_SHEET
+          : windowUtils.AUTHOR_SHEET;
 
       if (this.removeCSS) {
         for (let url of this.css) {
           this.cssCache.deleteDocument(url, window.document);
 
           runSafeSyncWithoutClone(
-            winUtils.removeSheetUsingURIString,
+            windowUtils.removeSheetUsingURIString,
             url,
             type
           );
@@ -501,7 +502,7 @@ class Script {
           const { uri } = await this.cssCodeCache.get(cssCodeHash);
           this.cssCodeCache.deleteDocument(cssCodeHash, window.document);
 
-          runSafeSyncWithoutClone(winUtils.removeSheet, uri, type);
+          runSafeSyncWithoutClone(windowUtils.removeSheet, uri, type);
         }
       } else {
         cssPromise = Promise.all(this.loadCSS()).then(sheets => {
@@ -513,7 +514,7 @@ class Script {
           for (let { url, sheet } of sheets) {
             this.cssCache.addDocument(url, window.document);
 
-            runSafeSyncWithoutClone(winUtils.addSheet, sheet, type);
+            runSafeSyncWithoutClone(windowUtils.addSheet, sheet, type);
           }
         });
 
@@ -522,7 +523,7 @@ class Script {
             const { sheet } = await this.cssCodeCache.get(cssCodeHash);
             this.cssCodeCache.addDocument(cssCodeHash, window.document);
 
-            runSafeSyncWithoutClone(winUtils.addSheet, sheet, type);
+            runSafeSyncWithoutClone(windowUtils.addSheet, sheet, type);
           });
         }
 
@@ -629,8 +630,8 @@ class UserScript extends Script {
   /**
    * @param {BrowserExtensionContent} extension
    * @param {WebExtensionContentScript|object} matcher
-   *        An object with a "matchesWindow" method and content script execution
-   *        details.
+   *        An object with a "matchesWindowGlobal" method and content script
+   *        execution details.
    */
   constructor(extension, matcher) {
     super(extension, matcher);
@@ -945,18 +946,7 @@ class ContentScriptContextChild extends BaseContext {
 }
 
 defineLazyGetter(ContentScriptContextChild.prototype, "messenger", function() {
-  // The |sender| parameter is passed directly to the extension.
-  let sender = { id: this.extension.id, frameId: this.frameId, url: this.url };
-  let filter = { extensionId: this.extension.id };
-  let optionalFilter = { frameId: this.frameId };
-
-  return new Messenger(
-    this,
-    [this.messageManager],
-    sender,
-    filter,
-    optionalFilter
-  );
+  return new Messenger(this, { frameId: this.frameId, url: this.url });
 });
 
 defineLazyGetter(
@@ -1111,34 +1101,6 @@ var ExtensionContent = {
     return context;
   },
 
-  handleExtensionCapture(global, width, height, options) {
-    let win = global.content;
-
-    const XHTML_NS = "http://www.w3.org/1999/xhtml";
-    let canvas = win.document.createElementNS(XHTML_NS, "canvas");
-    canvas.width = width;
-    canvas.height = height;
-    canvas.mozOpaque = true;
-
-    let ctx = canvas.getContext("2d");
-
-    // We need to scale the image to the visible size of the browser,
-    // in order for the result to appear as the user sees it when
-    // settings like full zoom come into play.
-    ctx.scale(canvas.width / win.innerWidth, canvas.height / win.innerHeight);
-
-    ctx.drawWindow(
-      win,
-      win.scrollX,
-      win.scrollY,
-      win.innerWidth,
-      win.innerHeight,
-      "#fff"
-    );
-
-    return canvas.toDataURL(`image/${options.format}`, options.quality / 100);
-  },
-
   handleDetectLanguage(global, target) {
     let doc = target.content.document;
 
@@ -1181,59 +1143,40 @@ var ExtensionContent = {
   },
 
   // Used to executeScript, insertCSS and removeCSS.
-  async handleExtensionExecute(global, target, options, script) {
-    let executeInWin = window => {
-      if (script.matchesWindow(window)) {
-        return script.injectInto(window);
+  async handleActorExecute({ options, windows }) {
+    let policy = WebExtensionPolicy.getByID(options.extensionId);
+    let matcher = new WebExtensionContentScript(policy, options);
+
+    Object.assign(matcher, {
+      wantReturnValue: options.wantReturnValue,
+      removeCSS: options.removeCSS,
+      cssOrigin: options.cssOrigin,
+      jsCode: options.jsCode,
+    });
+    let script = contentScripts.get(matcher);
+
+    // Add the cssCode to the script, so that it can be converted into a cached URL.
+    await script.addCSSCode(options.cssCode);
+    delete options.cssCode;
+
+    const executeInWin = innerId => {
+      let wg = WindowGlobalChild.getByInnerWindowId(innerId);
+      if (wg?.isCurrentGlobal && script.matchesWindowGlobal(wg)) {
+        return script.injectInto(wg.browsingContext.window);
       }
-      return null;
     };
 
-    let promises;
-    try {
-      promises = Array.from(
-        this.enumerateWindows(global.docShell),
-        executeInWin
-      ).filter(promise => promise);
-    } catch (e) {
-      Cu.reportError(e);
-      return Promise.reject({ message: "An unexpected error occurred" });
-    }
-
-    if (!promises.length) {
-      if (options.frameID) {
-        return Promise.reject({
-          message: `Frame not found, or missing host permission`,
-        });
-      }
-
-      let frames = options.allFrames ? ", and any iframes" : "";
-      return Promise.reject({
-        message: `Missing host permission for the tab${frames}`,
-      });
-    }
-    if (!options.allFrames && promises.length > 1) {
-      return Promise.reject({
-        message: `Internal error: Script matched multiple windows`,
-      });
-    }
-
-    let result = await Promise.all(promises);
+    let all = Promise.all(windows.map(executeInWin).filter(p => p));
+    let result = await all.catch(e => Promise.reject({ message: e.message }));
 
     try {
-      // Make sure we can structured-clone the result value before
-      // we try to send it back over the message manager.
-      Cu.cloneInto(result, target);
+      // Check if the result can be structured-cloned before sending back.
+      return Cu.cloneInto(result, this);
     } catch (e) {
-      const { jsPaths } = options;
-      const fileName = jsPaths.length
-        ? jsPaths[jsPaths.length - 1]
-        : "<anonymous code>";
-      const message = `Script '${fileName}' result is non-structured-clonable data`;
-      return Promise.reject({ message, fileName });
+      let path = options.jsPaths.slice(-1)[0] ?? "<anonymous code>";
+      let message = `Script '${path}' result is non-structured-clonable data`;
+      return Promise.reject({ message, fileName: path });
     }
-
-    return result;
   },
 
   handleWebNavigationGetFrame(global, { frameId }) {
@@ -1246,39 +1189,8 @@ var ExtensionContent = {
 
   async receiveMessage(global, name, target, data, recipient) {
     switch (name) {
-      case "Extension:Capture":
-        return this.handleExtensionCapture(
-          global,
-          data.width,
-          data.height,
-          data.options
-        );
       case "Extension:DetectLanguage":
         return this.handleDetectLanguage(global, target);
-      case "Extension:Execute":
-        let policy = WebExtensionPolicy.getByID(recipient.extensionId);
-
-        let matcher = new WebExtensionContentScript(policy, data.options);
-
-        Object.assign(matcher, {
-          wantReturnValue: data.options.wantReturnValue,
-          removeCSS: data.options.removeCSS,
-          cssOrigin: data.options.cssOrigin,
-          jsCode: data.options.jsCode,
-        });
-
-        let script = contentScripts.get(matcher);
-
-        // Add the cssCode to the script, so that it can be converted into a cached URL.
-        await script.addCSSCode(data.options.cssCode);
-        delete data.options.cssCode;
-
-        return this.handleExtensionExecute(
-          global,
-          target,
-          data.options,
-          script
-        );
       case "WebNavigation:GetFrame":
         return this.handleWebNavigationGetFrame(global, data.options);
       case "WebNavigation:GetAllFrames":
@@ -1305,3 +1217,18 @@ var ExtensionContent = {
     }
   },
 };
+
+/**
+ * Child side of the ExtensionContent process actor, handles some tabs.* APIs.
+ */
+class ExtensionContentChild extends JSProcessActorChild {
+  receiveMessage({ name, data }) {
+    if (!isContentScriptProcess) {
+      return;
+    }
+    switch (name) {
+      case "Execute":
+        return ExtensionContent.handleActorExecute(data);
+    }
+  }
+}

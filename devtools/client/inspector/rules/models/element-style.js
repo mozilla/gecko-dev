@@ -18,26 +18,14 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   this,
-  "parseDeclarations",
-  "devtools/shared/css/parsing-utils",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "parseNamedDeclarations",
-  "devtools/shared/css/parsing-utils",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "parseSingleValue",
+  ["parseDeclarations", "parseNamedDeclarations", "parseSingleValue"],
   "devtools/shared/css/parsing-utils",
   true
 );
 loader.lazyRequireGetter(
   this,
   "isCssVariable",
-  "devtools/shared/fronts/css-properties",
+  "devtools/client/fronts/css-properties",
   true
 );
 
@@ -188,7 +176,7 @@ class ElementStyle {
 
         // We're done with the previous list of rules.
         for (const r of existingRules) {
-          if (r && r.editor) {
+          if (r?.editor) {
             r.editor.destroy();
           }
 
@@ -231,6 +219,10 @@ class ElementStyle {
   getUsedFontFamilies() {
     return new Promise((resolve, reject) => {
       this.ruleView.styleWindow.requestIdleCallback(async () => {
+        if (this.element.isDestroyed()) {
+          resolve([]);
+          return;
+        }
         try {
           const fonts = await this.pageStyle.getUsedFontFaces(this.element, {
             includePreviews: false,

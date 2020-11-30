@@ -9,6 +9,7 @@
 #include "mozilla/dom/ScriptSettings.h"
 #include "nsCOMPtr.h"
 #include "nsIWindowWatcher.h"
+#include "nsServiceManagerUtils.h"
 
 static const char kOpenDialogParam[] = "centerscreen,chrome,modal,titlebar";
 static const char kOpenWindowParam[] = "centerscreen,chrome,titlebar";
@@ -35,8 +36,9 @@ nsresult nsNSSDialogHelper::openDialog(mozIDOMWindowProxy* window,
   mozilla::dom::AutoNoJSAPI nojsapi;
 
   nsCOMPtr<mozIDOMWindowProxy> newWindow;
-  rv = windowWatcher->OpenWindow(parent, url, "_blank",
-                                 modal ? kOpenDialogParam : kOpenWindowParam,
-                                 params, getter_AddRefs(newWindow));
+  rv = windowWatcher->OpenWindow(
+      parent, nsDependentCString(url), "_blank"_ns,
+      nsDependentCString(modal ? kOpenDialogParam : kOpenWindowParam), params,
+      getter_AddRefs(newWindow));
   return rv;
 }

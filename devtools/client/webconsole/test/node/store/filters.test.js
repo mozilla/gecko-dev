@@ -30,8 +30,8 @@ describe("Filtering", () => {
   let store;
   let numMessages;
   // Number of messages in prepareBaseStore which are not filtered out, i.e. Evaluation
-  // Results, console commands and console.groups .
-  const numUnfilterableMessages = 3;
+  // Results and console commands.
+  const numUnfilterableMessages = 2;
 
   beforeEach(() => {
     store = prepareBaseStore();
@@ -62,7 +62,7 @@ describe("Filtering", () => {
       store.dispatch(actions.filterToggle(FILTERS.LOG));
 
       const messages = getVisibleMessages(store.getState());
-      expect(messages.length).toEqual(numUnfilterableMessages + 5);
+      expect(messages.length).toEqual(numUnfilterableMessages + 6);
     });
 
     it("filters debug messages", () => {
@@ -90,7 +90,7 @@ describe("Filtering", () => {
       store.dispatch(actions.filterToggle(FILTERS.ERROR));
 
       const messages = getVisibleMessages(store.getState());
-      expect(messages.length).toEqual(numUnfilterableMessages + 4);
+      expect(messages.length).toEqual(numUnfilterableMessages + 5);
     });
 
     it("filters css messages", () => {
@@ -120,7 +120,7 @@ describe("Filtering", () => {
     });
 
     it("filters network messages", () => {
-      const message = stubPreparedMessages.get("GET request");
+      const message = stubPreparedMessages.get("GET request update");
       store.dispatch(messagesAdd([message]));
 
       let messages = getVisibleMessages(store.getState());
@@ -318,12 +318,15 @@ function prepareBaseStore() {
     // PageError
     "ReferenceError: asdf is not defined",
     "TypeError longString message",
-    "console.group('bar')",
     "console.debug('debug message');",
     "console.info('info message');",
     "console.error('error message');",
     "console.table(['red', 'green', 'blue']);",
     "console.assert(false, {message: 'foobar'})",
+    // This is a 404 request, it's displayed as an error
+    "GET request update",
+    "console.group('bar')",
+    "console.groupEnd()",
   ]);
 
   // Console Command - never filtered

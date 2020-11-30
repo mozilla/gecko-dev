@@ -10,6 +10,7 @@
 #include "frontend/ErrorReporter.h"
 #include "frontend/FullParseHandler.h"
 #include "frontend/Parser.h"
+#include "frontend/ParserAtom.h"
 
 namespace js {
 namespace frontend {
@@ -21,7 +22,6 @@ struct BCEParserHandle {
   virtual const JS::ReadOnlyCompileOptions& options() const = 0;
 
   virtual FullParseHandler& astGenerator() = 0;
-  virtual ObjectBox* newObjectBox(JSObject* obj) = 0;
 };
 
 }  // namespace frontend

@@ -14,7 +14,6 @@
 #include "OSKeyStore.h"
 #include "OSReauthenticator.h"
 #include "PKCS11ModuleDB.h"
-#include "PSMContentListener.h"
 #include "SecretDecoderRing.h"
 #include "TransportSecurityInfo.h"
 #include "mozilla/MacroArgs.h"
@@ -32,7 +31,7 @@
 #include "nsPK11TokenDB.h"
 #include "nsPKCS11Slot.h"
 #include "nsRandomGenerator.h"
-#include "nsSecureBrowserUIImpl.h"
+#include "nsSecureBrowserUI.h"
 #include "nsSiteSecurityService.h"
 #include "nsXULAppAPI.h"
 

@@ -8,7 +8,10 @@
  */
 
 add_task(async function() {
-  const { tab, monitor } = await initNetMonitor(CONTENT_TYPE_WITHOUT_CACHE_URL);
+  const { tab, monitor } = await initNetMonitor(
+    CONTENT_TYPE_WITHOUT_CACHE_URL,
+    { requestCount: 1 }
+  );
   info("Starting test... ");
 
   const { document, store, windowRequire } = monitor.panelWin;
@@ -151,7 +154,7 @@ add_task(async function() {
   await selectIndexAndWaitForJSONView(3);
   await testResponseTab("json");
 
-  await selectIndexAndWaitForSourceEditor(monitor, 4);
+  await selectIndexAndWaitForHtmlView(4);
   await testResponseTab("html");
 
   await selectIndexAndWaitForImageView(5);
@@ -171,7 +174,8 @@ add_task(async function() {
         true,
         "The response error header doesn't display"
       );
-      const jsonView = tabpanel.querySelector(".tree-section .treeLabel") || {};
+      const jsonView =
+        tabpanel.querySelector(".accordion-item .accordion-header-label") || {};
       is(
         jsonView.textContent !== L10N.getStr("jsonScopeName"),
         box != "json",
@@ -179,7 +183,7 @@ add_task(async function() {
       );
       is(
         tabpanel.querySelector(".CodeMirror-code") === null,
-        box !== "textarea" && box !== "json",
+        box !== "textarea",
         "The response editor doesn't display"
       );
       is(
@@ -230,9 +234,9 @@ add_task(async function() {
         checkVisibility("json");
 
         is(
-          tabpanel.querySelectorAll(".tree-section").length,
+          tabpanel.querySelectorAll(".accordion-item").length,
           2,
-          "There should be 2 tree sections displayed in this tabpanel."
+          "There should be 2 accordion items displayed in this tabpanel."
         );
         is(
           tabpanel.querySelectorAll(".empty-notice").length,
@@ -241,16 +245,17 @@ add_task(async function() {
         );
 
         is(
-          tabpanel.querySelector(".tree-section .treeLabel").textContent,
+          tabpanel.querySelector(".accordion-item .accordion-header-label")
+            .textContent,
           L10N.getStr("jsonScopeName"),
           "The json view section doesn't have the correct title."
         );
 
         const labels = tabpanel.querySelectorAll(
-          "tr:not(.tree-section) .treeLabelCell .treeLabel"
+          "tr .treeLabelCell .treeLabel"
         );
         const values = tabpanel.querySelectorAll(
-          "tr:not(.tree-section) .treeValueCell .objectBox"
+          "tr .treeValueCell .objectBox"
         );
 
         is(
@@ -266,14 +271,13 @@ add_task(async function() {
         break;
       }
       case "html": {
-        checkVisibility("textarea");
+        checkVisibility("html");
 
-        const text = getCodeMirrorValue(monitor);
-
+        const text = document.querySelector(".html-preview iframe").srcdoc;
         is(
           text,
           "<blink>Not Found</blink>",
-          "The text shown in the source editor is incorrect for the html request."
+          "The text shown in the iframe is incorrect for the html request."
         );
         break;
       }
@@ -312,9 +316,20 @@ add_task(async function() {
     }
   }
 
+  async function selectIndexAndWaitForHtmlView(index) {
+    const onResponseContent = monitor.panelWin.api.once(
+      TEST_EVENTS.RECEIVED_RESPONSE_CONTENT
+    );
+    const tabpanel = document.querySelector("#response-panel");
+    const waitDOM = waitForDOM(tabpanel, ".html-preview");
+    store.dispatch(Actions.selectRequestByIndex(index));
+    await waitDOM;
+    await onResponseContent;
+  }
+
   async function selectIndexAndWaitForJSONView(index) {
     const onResponseContent = monitor.panelWin.api.once(
-      EVENTS.RECEIVED_RESPONSE_CONTENT
+      TEST_EVENTS.RECEIVED_RESPONSE_CONTENT
     );
     const tabpanel = document.querySelector("#response-panel");
     const waitDOM = waitForDOM(tabpanel, ".treeTable");
@@ -329,7 +344,7 @@ add_task(async function() {
 
   async function selectIndexAndWaitForImageView(index) {
     const onResponseContent = monitor.panelWin.api.once(
-      EVENTS.RECEIVED_RESPONSE_CONTENT
+      TEST_EVENTS.RECEIVED_RESPONSE_CONTENT
     );
     const tabpanel = document.querySelector("#response-panel");
     const waitDOM = waitForDOM(tabpanel, ".response-image");

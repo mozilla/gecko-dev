@@ -3,12 +3,9 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 DevToolsModules(
-    'Worker.css',
+    'Registration.js',
+    'RegistrationList.js',
+    'RegistrationListEmpty.js',
     'Worker.js',
-    'WorkerList.css',
-    'WorkerList.js',
-    'WorkerListEmpty.css',
-    'WorkerListEmpty.js',
-    'WorkersPage.css',
     'WorkersPage.js',
 )

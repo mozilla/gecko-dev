@@ -17,7 +17,7 @@ job-defaults:
     shipping-phase: promote
     worker-type: b-linux
     worker:
-        docker-image: {in-tree: "debian9-base"}
+        docker-image: {in-tree: "debian10-base"}
         max-run-time: 600
     emails:
         by-project:
@@ -26,8 +26,6 @@ job-defaults:
             default: []
 
 jobs:
-    fennec:
-        shipping-product: fennec
     firefox:
         shipping-product: firefox
     devedition:

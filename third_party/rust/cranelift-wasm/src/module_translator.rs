@@ -1,14 +1,14 @@
 //! Translation skeleton that traverses the whole WebAssembly module and call helper functions
 //! to deal with each part of it.
-use crate::environ::{ModuleEnvironment, WasmError, WasmResult};
+use crate::environ::{ModuleEnvironment, WasmResult};
 use crate::sections_translator::{
-    parse_code_section, parse_data_section, parse_element_section, parse_export_section,
-    parse_function_section, parse_global_section, parse_import_section, parse_memory_section,
-    parse_name_section, parse_start_section, parse_table_section, parse_type_section,
+    parse_data_section, parse_element_section, parse_export_section, parse_function_section,
+    parse_global_section, parse_import_section, parse_memory_section, parse_name_section,
+    parse_start_section, parse_table_section, parse_type_section,
 };
 use crate::state::ModuleTranslationState;
 use cranelift_codegen::timing;
-use wasmparser::{CustomSectionContent, ModuleReader, SectionContent};
+use wasmparser::{NameSectionReader, Parser, Payload, Validator};
 
 /// Translate a sequence of bytes forming a valid Wasm binary into a list of valid Cranelift IR
 /// [`Function`](cranelift_codegen::ir::Function).
@@ -17,78 +17,128 @@ pub fn translate_module<'data>(
     environ: &mut dyn ModuleEnvironment<'data>,
 ) -> WasmResult<ModuleTranslationState> {
     let _tt = timing::wasm_translate_module();
-    let mut reader = ModuleReader::new(data)?;
     let mut module_translation_state = ModuleTranslationState::new();
+    let mut validator = Validator::new();
+    validator.wasm_features(environ.wasm_features());
 
-    while !reader.eof() {
-        let section = reader.read()?;
-        match section.content()? {
-            SectionContent::Type(types) => {
+    for payload in Parser::new(0).parse_all(data) {
+        match payload? {
+            Payload::Version { num, range } => {
+                validator.version(num, &range)?;
+            }
+            Payload::End => {
+                validator.end()?;
+            }
+
+            Payload::TypeSection(types) => {
+                validator.type_section(&types)?;
                 parse_type_section(types, &mut module_translation_state, environ)?;
             }
 
-            SectionContent::Import(imports) => {
+            Payload::ImportSection(imports) => {
+                validator.import_section(&imports)?;
                 parse_import_section(imports, environ)?;
             }
 
-            SectionContent::Function(functions) => {
+            Payload::FunctionSection(functions) => {
+                validator.function_section(&functions)?;
                 parse_function_section(functions, environ)?;
             }
 
-            SectionContent::Table(tables) => {
+            Payload::TableSection(tables) => {
+                validator.table_section(&tables)?;
                 parse_table_section(tables, environ)?;
             }
 
-            SectionContent::Memory(memories) => {
+            Payload::MemorySection(memories) => {
+                validator.memory_section(&memories)?;
                 parse_memory_section(memories, environ)?;
             }
 
-            SectionContent::Global(globals) => {
+            Payload::GlobalSection(globals) => {
+                validator.global_section(&globals)?;
                 parse_global_section(globals, environ)?;
             }
 
-            SectionContent::Export(exports) => {
+            Payload::ExportSection(exports) => {
+                validator.export_section(&exports)?;
                 parse_export_section(exports, environ)?;
             }
 
-            SectionContent::Start(start) => {
-                parse_start_section(start, environ)?;
+            Payload::StartSection { func, range } => {
+                validator.start_section(func, &range)?;
+                parse_start_section(func, environ)?;
             }
 
-            SectionContent::Element(elements) => {
+            Payload::ElementSection(elements) => {
+                validator.element_section(&elements)?;
                 parse_element_section(elements, environ)?;
             }
 
-            SectionContent::Code(code) => {
-                parse_code_section(code, &module_translation_state, environ)?;
+            Payload::CodeSectionStart { count, range, .. } => {
+                validator.code_section_start(count, &range)?;
+                environ.reserve_function_bodies(count, range.start as u64);
             }
 
-            SectionContent::Data(data) => {
+            Payload::CodeSectionEntry(body) => {
+                let func_validator = validator.code_section_entry()?;
+                environ.define_function_body(func_validator, body)?;
+            }
+
+            Payload::DataSection(data) => {
+                validator.data_section(&data)?;
                 parse_data_section(data, environ)?;
             }
 
-            SectionContent::DataCount(_) => {
-                return Err(WasmError::InvalidWebAssembly {
-                    message: "don't know how to handle the data count section yet",
-                    offset: reader.current_position(),
-                });
+            Payload::DataCountSection { count, range } => {
+                validator.data_count_section(count, &range)?;
+                environ.reserve_passive_data(count)?;
             }
 
-            SectionContent::Custom {
-                name,
-                binary,
-                content,
-            } => match content {
-                Some(CustomSectionContent::Name(names)) => {
-                    parse_name_section(names, environ)?;
+            Payload::ModuleSection(s) => {
+                validator.module_section(&s)?;
+                unimplemented!("module linking not implemented yet")
+            }
+            Payload::InstanceSection(s) => {
+                validator.instance_section(&s)?;
+                unimplemented!("module linking not implemented yet")
+            }
+            Payload::AliasSection(s) => {
+                validator.alias_section(&s)?;
+                unimplemented!("module linking not implemented yet")
+            }
+            Payload::ModuleCodeSectionStart {
+                count,
+                range,
+                size: _,
+            } => {
+                validator.module_code_section_start(count, &range)?;
+                unimplemented!("module linking not implemented yet")
+            }
+
+            Payload::ModuleCodeSectionEntry { .. } => {
+                unimplemented!("module linking not implemented yet")
+            }
+
+            Payload::CustomSection {
+                name: "name",
+                data,
+                data_offset,
+            } => {
+                let result = NameSectionReader::new(data, data_offset)
+                    .map_err(|e| e.into())
+                    .and_then(|s| parse_name_section(s, environ));
+                if let Err(e) = result {
+                    log::warn!("failed to parse name section {:?}", e);
                 }
-                _ => {
-                    let mut reader = binary.clone();
-                    let len = reader.bytes_remaining();
-                    let payload = reader.read_bytes(len)?;
-                    environ.custom_section(name, payload)?;
-                }
-            },
+            }
+
+            Payload::CustomSection { name, data, .. } => environ.custom_section(name, data)?,
+
+            Payload::UnknownSection { id, range, .. } => {
+                validator.unknown_section(id, &range)?;
+                unreachable!();
+            }
         }
     }
 

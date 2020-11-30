@@ -105,7 +105,9 @@ Statement::Statement()
       mParamCount(0),
       mResultColumnCount(0),
       mColumnNames(),
-      mExecuting(false) {}
+      mExecuting(false),
+      mQueryStatusRecorded(false),
+      mHasExecuted(false) {}
 
 nsresult Statement::initialize(Connection* aDBConnection,
                                sqlite3* aNativeConnection,
@@ -124,6 +126,9 @@ nsresult Statement::initialize(Connection* aDBConnection,
              ::sqlite3_errmsg(aNativeConnection)));
     MOZ_LOG(gStorageLog, LogLevel::Error,
             ("Statement was: '%s'", PromiseFlatCString(aSQLStatement).get()));
+
+    aDBConnection->RecordQueryStatus(srv);
+    mQueryStatusRecorded = true;
     return NS_ERROR_FAILURE;
   }
 
@@ -148,21 +153,21 @@ nsresult Statement::initialize(Connection* aDBConnection,
   // escapeStringForLIKE instead of just trusting user input.  The idea to
   // check to see if they are binding a parameter after like instead of just
   // using a string.  We only do this in debug builds because it's expensive!
-  const nsCaseInsensitiveCStringComparator c;
+  auto c = nsCaseInsensitiveCStringComparator;
   nsACString::const_iterator start, end, e;
   aSQLStatement.BeginReading(start);
   aSQLStatement.EndReading(end);
   e = end;
-  while (::FindInReadable(NS_LITERAL_CSTRING(" LIKE"), start, e, c)) {
+  while (::FindInReadable(" LIKE"_ns, start, e, c)) {
     // We have a LIKE in here, so we perform our tests
     // FindInReadable moves the iterator, so we have to get a new one for
     // each test we perform.
     nsACString::const_iterator s1, s2, s3;
     s1 = s2 = s3 = start;
 
-    if (!(::FindInReadable(NS_LITERAL_CSTRING(" LIKE ?"), s1, end, c) ||
-          ::FindInReadable(NS_LITERAL_CSTRING(" LIKE :"), s2, end, c) ||
-          ::FindInReadable(NS_LITERAL_CSTRING(" LIKE @"), s3, end, c))) {
+    if (!(::FindInReadable(" LIKE ?"_ns, s1, end, c) ||
+          ::FindInReadable(" LIKE :"_ns, s2, end, c) ||
+          ::FindInReadable(" LIKE @"_ns, s3, end, c))) {
       // At this point, we didn't find a LIKE statement followed by ?, :,
       // or @, all of which are valid characters for binding a parameter.
       // We will warn the consumer that they may not be safely using LIKE.
@@ -215,6 +220,28 @@ mozIStorageBindingParams* Statement::getParams() {
   return *mParamsArray->begin();
 }
 
+void Statement::MaybeRecordQueryStatus(int srv, bool isResetting) {
+  // If the statement hasn't been executed synchronously since it was last reset
+  // or created then there is no need to record anything. Asynchronous
+  // statements have their status tracked and recorded by StatementData.
+  if (!mHasExecuted) {
+    return;
+  }
+
+  if (!isResetting && !isErrorCode(srv)) {
+    // Non-errors will be recorded when finalizing.
+    return;
+  }
+
+  // We only record a status if no status has been recorded previously.
+  if (!mQueryStatusRecorded && mDBConnection) {
+    mDBConnection->RecordQueryStatus(srv);
+  }
+
+  // Allow another status to be recorded if we are resetting this statement.
+  mQueryStatusRecorded = !isResetting;
+}
+
 Statement::~Statement() { (void)internalFinalize(true); }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -250,6 +277,7 @@ int Statement::getAsyncStatement(sqlite3_stmt** _stmt) {
     int rc = mDBConnection->prepareStatement(mNativeConnection, sql,
                                              &mAsyncStatement);
     if (rc != SQLITE_OK) {
+      mDBConnection->RecordQueryStatus(rc);
       *_stmt = nullptr;
       return rc;
     }
@@ -345,6 +373,11 @@ nsresult Statement::internalFinalize(bool aDestructing) {
     }
 #endif  // DEBUG
   }
+
+  // This will be a no-op if the status has already been recorded or if this
+  // statement has not been executed. Async statements have their status
+  // tracked and recorded in StatementData.
+  MaybeRecordQueryStatus(srv, true);
 
   mDBStatement = nullptr;
 
@@ -460,6 +493,12 @@ Statement::Reset() {
 
   mExecuting = false;
 
+  // This will be a no-op if the status has already been recorded or if this
+  // statement has not been executed. Async statements have their status
+  // tracked and recorded in StatementData.
+  MaybeRecordQueryStatus(SQLITE_OK, true);
+  mHasExecuted = false;
+
   return NS_OK;
 }
 
@@ -517,6 +556,8 @@ Statement::ExecuteStep(bool* _moreResults) {
     mParamsArray = nullptr;
   }
   int srv = mDBConnection->stepStatement(mNativeConnection, mDBStatement);
+  mHasExecuted = true;
+  MaybeRecordQueryStatus(srv);
 
   if (srv != SQLITE_ROW && srv != SQLITE_DONE &&
       MOZ_LOG_TEST(gStorageLog, LogLevel::Debug)) {

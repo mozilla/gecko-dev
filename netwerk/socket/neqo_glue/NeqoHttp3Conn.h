@@ -15,9 +15,10 @@ class NeqoHttp3Conn final {
   static nsresult Init(const nsACString& aOrigin, const nsACString& aAlpn,
                        const nsACString& aLocalAddr,
                        const nsACString& aRemoteAddr, uint32_t aMaxTableSize,
-                       uint16_t aMaxBlockedStreams, NeqoHttp3Conn** aConn) {
+                       uint16_t aMaxBlockedStreams, const nsACString& aQlogDir,
+                       NeqoHttp3Conn** aConn) {
     return neqo_http3conn_new(&aOrigin, &aAlpn, &aLocalAddr, &aRemoteAddr,
-                              aMaxTableSize, aMaxBlockedStreams,
+                              aMaxTableSize, aMaxBlockedStreams, &aQlogDir,
                               (const mozilla::net::NeqoHttp3Conn**)aConn);
   }
 
@@ -39,11 +40,7 @@ class NeqoHttp3Conn final {
     neqo_http3conn_process_input(this, aPacket, aLen);
   }
 
-  void ProcessHttp3() { neqo_http3conn_process_http3(this); }
-
   uint64_t ProcessOutput() { return neqo_http3conn_process_output(this); }
-
-  void ProcessTimer() { neqo_http3conn_process_timer(this); }
 
   bool HasDataToSend() { return neqo_http3conn_has_data_to_send(this); }
 
@@ -52,7 +49,9 @@ class NeqoHttp3Conn final {
     return neqo_http3conn_get_data_to_send(this, &aData);
   }
 
-  Http3Event GetEvent() { return neqo_http3conn_event(this); }
+  nsresult GetEvent(Http3Event* aEvent, nsTArray<uint8_t>& aData) {
+    return neqo_http3conn_event(this, aEvent, &aData);
+  }
 
   nsresult Fetch(const nsACString& aMethod, const nsACString& aScheme,
                  const nsACString& aHost, const nsACString& aPath,
@@ -72,12 +71,6 @@ class NeqoHttp3Conn final {
     return neqo_http3conn_close_stream(this, aStreamId);
   }
 
-  nsresult ReadResponseHeaders(uint64_t aStreamId, nsTArray<uint8_t>& aHeaders,
-                               bool* fin) {
-    return neqo_http3conn_read_response_headers(this, aStreamId, &aHeaders,
-                                                fin);
-  }
-
   nsresult ReadResponseData(uint64_t aStreamId, uint8_t* aBuf, uint32_t aLen,
                             uint32_t* aRead, bool* aFin) {
     return neqo_http3conn_read_response_data(this, aStreamId, aBuf, aLen, aRead,
@@ -87,6 +80,12 @@ class NeqoHttp3Conn final {
   void ResetStream(uint64_t aStreamId, uint64_t aError) {
     neqo_http3conn_reset_stream(this, aStreamId, aError);
   }
+
+  void SetResumptionToken(nsTArray<uint8_t>& aToken) {
+    neqo_http3conn_set_resumption_token(this, &aToken);
+  }
+
+  bool IsZeroRtt() { return neqo_http3conn_is_zero_rtt(this); }
 
   nsrefcnt AddRef() { return neqo_http3conn_addref(this); }
   nsrefcnt Release() { return neqo_http3conn_release(this); }

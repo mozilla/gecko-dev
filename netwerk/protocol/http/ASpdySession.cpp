@@ -36,14 +36,14 @@ ASpdySession* ASpdySession::NewSpdySession(net::SpdyVersion version,
   // from a list provided in the SERVER HELLO filtered by our acceptable
   // versions, so there is no risk of the server ignoring our prefs.
 
-  return new Http2Session(aTransport, version, attemptingEarlyData);
+  return Http2Session::CreateSession(aTransport, version, attemptingEarlyData);
 }
 
 SpdyInformation::SpdyInformation() {
   // highest index of enabled protocols is the
   // most preferred for ALPN negotiaton
   Version[0] = SpdyVersion::HTTP_2;
-  VersionString[0] = NS_LITERAL_CSTRING("h2");
+  VersionString[0] = "h2"_ns;
   ALPNCallbacks[0] = Http2Session::ALPNCallback;
 }
 

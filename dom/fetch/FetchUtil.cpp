@@ -49,7 +49,7 @@ nsresult FetchUtil::GetValidRequestMethod(const nsACString& aMethod,
 static bool FindCRLF(nsACString::const_iterator& aStart,
                      nsACString::const_iterator& aEnd) {
   nsACString::const_iterator end(aEnd);
-  return FindInReadable(NS_LITERAL_CSTRING("\r\n"), aStart, end);
+  return FindInReadable("\r\n"_ns, aStart, end);
 }
 
 // Reads over a CRLF and positions start after it.
@@ -111,14 +111,14 @@ bool FetchUtil::ExtractHeader(nsACString::const_iterator& aStart,
 // static
 nsresult FetchUtil::SetRequestReferrer(nsIPrincipal* aPrincipal, Document* aDoc,
                                        nsIHttpChannel* aChannel,
-                                       InternalRequest* aRequest) {
+                                       InternalRequest& aRequest) {
   MOZ_ASSERT(NS_IsMainThread());
 
   nsresult rv = NS_OK;
   nsAutoString referrer;
-  aRequest->GetReferrer(referrer);
+  aRequest.GetReferrer(referrer);
 
-  ReferrerPolicy policy = aRequest->ReferrerPolicy_();
+  ReferrerPolicy policy = aRequest.ReferrerPolicy_();
   nsCOMPtr<nsIReferrerInfo> referrerInfo;
   if (referrer.IsEmpty()) {
     // This is the case request’s referrer is "no-referrer"
@@ -150,7 +150,7 @@ nsresult FetchUtil::SetRequestReferrer(nsIPrincipal* aPrincipal, Document* aDoc,
   // Step 8 https://fetch.spec.whatwg.org/#main-fetch
   // If request’s referrer is not "no-referrer", set request’s referrer to
   // the result of invoking determine request’s referrer.
-  aRequest->SetReferrer(computedReferrerSpec);
+  aRequest.SetReferrer(computedReferrerSpec);
 
   return NS_OK;
 }
@@ -501,8 +501,7 @@ bool FetchUtil::StreamResponseToJS(JSContext* aCx, JS::HandleObject aObj,
       response->GetUrl(url);
 
       nsCString sourceMapUrl;
-      response->GetInternalHeaders()->Get(NS_LITERAL_CSTRING("SourceMap"),
-                                          sourceMapUrl, result);
+      response->GetInternalHeaders()->Get("SourceMap"_ns, sourceMapUrl, result);
       if (NS_WARN_IF(result.Failed())) {
         return ThrowException(aCx, JSMSG_ERROR_CONSUMING_RESPONSE);
       }

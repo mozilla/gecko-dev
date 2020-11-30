@@ -28,8 +28,8 @@ if CONFIG['CC_TYPE'] in ('clang', 'gcc'):
     CXXFLAGS += ['-Wno-error=shadow']
 
 if CONFIG['ENABLE_TESTS']:
-    # We need to use a separate directory for GeckoView gtests. See
-    # the comment below near MOZ_TELEMETRY_GECKOVIEW.
+    # We used to need GeckoView tests as a separate directory. This
+    # is no longer true and we could probably move it to tests/gtest.
     DIRS += [
         'geckoview/gtest',
         'tests/gtest'
@@ -42,7 +42,6 @@ BROWSER_CHROME_MANIFESTS += ['tests/browser/browser.ini']
 
 XPIDL_SOURCES += [
     'core/nsITelemetry.idl',
-    'other/GCTelemetry.idl',
 ]
 
 XPIDL_MODULE = 'telemetry'
@@ -75,7 +74,6 @@ SOURCES += [
     'core/TelemetryOrigin.cpp',
     'core/TelemetryScalar.cpp',
     'geckoview/streaming/GeckoViewStreamingTelemetry.cpp',
-    'geckoview/TelemetryGeckoViewPersistence.cpp',
     'other/CombinedStacks.cpp',
     'other/ProcessedStack.cpp',
     'other/TelemetryIOInterposeObserver.cpp',
@@ -84,12 +82,6 @@ SOURCES += [
 if CONFIG['OS_ARCH'] == 'WINNT':
     SOURCES += [
         'other/UntrustedModules.cpp',
-    ]
-
-# KeyedStackCapturer entirely relies on profiler to be enabled.
-if CONFIG['MOZ_GECKO_PROFILER']:
-    SOURCES += [
-      'other/KeyedStackCapturer.cpp'
     ]
 
 XPCOM_MANIFESTS += [
@@ -105,6 +97,9 @@ EXTRA_JS_MODULES += [
     'app/ClientID.jsm',
     'app/TelemetryArchive.jsm',
     'app/TelemetryController.jsm',
+    'app/TelemetryControllerBase.jsm',
+    'app/TelemetryControllerContent.jsm',
+    'app/TelemetryControllerParent.jsm',
     'app/TelemetryEnvironment.jsm',
     'app/TelemetryReportingPolicy.jsm',
     'app/TelemetryScheduler.jsm',
@@ -112,7 +107,6 @@ EXTRA_JS_MODULES += [
     'app/TelemetryStorage.jsm',
     'app/TelemetryTimestamps.jsm',
     'app/TelemetryUtils.jsm',
-    'other/GCTelemetry.jsm',
     'other/UITelemetry.jsm',
     'pings/CoveragePing.jsm',
     'pings/EcosystemTelemetry.jsm',
@@ -126,11 +120,17 @@ EXTRA_JS_MODULES += [
     'TelemetryStartup.jsm',
 ]
 
+if CONFIG['OS_ARCH'] == 'WINNT':
+    EXTRA_JS_MODULES += [
+        'pings/UninstallPing.jsm',
+    ]
+
 TESTING_JS_MODULES += [
   'tests/unit/TelemetryArchiveTesting.jsm',
 ]
 
 PYTHON_UNITTEST_MANIFESTS += [
+    'tests/integration/tests/python.ini',
     'tests/python/python.ini',
 ]
 
@@ -226,34 +226,7 @@ GeneratedFile('TelemetryProcessData.h',
 GeneratedFile(
     'glean_checks',
     script='build_scripts/run_glean_parser.py',
-    py2=False,
     inputs=['geckoview/streaming/metrics.yaml'])
-
-# Add support for GeckoView: please note that building GeckoView
-# implies having an Android build. The packaging step decides
-# which files to include. As a consequence, we can simply only
-# include the GeckoView files on all Android builds.
-if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
-    # Introduce this define to conditionally enable Telemetry GV code in the various
-    # C++ modules. We need this trick in order to run gtest coverage on Treeherder
-    # on platforms other than Android, since gtests on Android are not supported
-    # yet (see bug 1318091).
-    DEFINES['MOZ_TELEMETRY_GECKOVIEW'] = True
-
-    EXTRA_JS_MODULES += [
-        'geckoview/GeckoViewTelemetryController.jsm',
-    ]
-
-# Include the GeckoView testing IDL if we're building tests
-# as well. This will be used in xpcshell tests.
-if CONFIG['ENABLE_TESTS']:
-    XPIDL_SOURCES += [
-        'geckoview/nsITelemetryGeckoViewTesting.idl'
-    ]
-
-    SOURCES += [
-        'geckoview/TelemetryGeckoViewTesting.cpp'
-    ]
 
 with Files('**'):
     BUG_COMPONENT = ('Toolkit', 'Telemetry')

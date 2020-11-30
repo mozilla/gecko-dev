@@ -23,7 +23,7 @@
           src="../name.js"></script>
 
   <script type="application/javascript">
-    function doTest() {
+    async function doTest() {
       // ////////////////////////////////////////////////////////////////////////
       // HTML:a@href
 
@@ -419,7 +419,16 @@
       // ////////////////////////////////////////////////////////////////////////
       // HTML:dialog
 
-      ok(isAccessible("dialog"), "dialog element is not accessible");
+      // XXX: Remove the pushing of the pref and just run the test once the
+      // dialog element is enabled by default.
+      await SpecialPowers.pushPrefEnv({ set: [["dom.dialog_element.enabled", true]] });
+      obj = {
+        role: ROLE_DIALOG,
+        children: [
+          { role: ROLE_TEXT_LEAF },
+        ],
+      };
+      testElm("dialog", obj);
 
       // ////////////////////////////////////////////////////////////////////////
       // HTML:div
@@ -450,7 +459,7 @@
       testElm("em_container", obj);
 
       // ////////////////////////////////////////////////////////////////////////
-      // HTML:embed (windowless and windowed plugins)
+      // HTML:embed (windowless/windowed plugins and media)
 
       if (WIN) {
         obj = {
@@ -467,17 +476,42 @@
         testElm("embed_plugin_windowed", obj);
       }
 
+      obj = {
+        role: ROLE_GRAPHIC,
+        interfaces: [ nsIAccessibleImage ],
+      };
+      testElm("embed_png", obj);
+
+      obj = {
+        INTERNAL_FRAME: [ {
+          DOCUMENT: [ {
+            role: ROLE_PARAGRAPH,
+          } ],
+        } ],
+      };
+      testElm("embed_html", obj);
+
+      obj = {
+        INTERNAL_FRAME: [ {
+          DOCUMENT: [ {
+          } ],
+        } ],
+      };
+      testElm("embed_pdf", obj);
+
       // ////////////////////////////////////////////////////////////////////////
       // HTML:fieldset and HTML:legend
 
       obj = {
         role: ROLE_GROUPING,
+        name: "legend",
         relations: {
           RELATION_LABELLED_BY: "legend",
         },
         children: [
           {
             role: ROLE_LABEL,
+            name: "legend",
             relations: {
               RELATION_LABEL_FOR: "fieldset",
             },
@@ -846,7 +880,9 @@
       // HTML:input@type="time"
 
       obj = {
-        role: ROLE_GROUPING,
+        role: ROLE_TIME_EDITOR,
+        name: "time label",
+        attributes: { "text-input-type": "time" },
         children: [
           { role: ROLE_SPINBUTTON },
           { role: ROLE_TEXT_LEAF },
@@ -863,6 +899,8 @@
 
       obj = {
         role: ROLE_DATE_EDITOR,
+        name: "date label",
+        attributes: { "text-input-type": "date" },
         children: [
           { role: ROLE_SPINBUTTON },
           { role: ROLE_TEXT_LEAF },
@@ -1015,21 +1053,21 @@
         children: [
           { role: ROLE_LISTITEM,
             children: [ // home
-              { role: ROLE_STATICTEXT },
+              { role: ROLE_LISTITEM_MARKER },
               { role: ROLE_TEXT_LEAF }
             ]
           },
           {
             role: ROLE_LISTITEM,
             children: [
-              { role: ROLE_STATICTEXT },
+              { role: ROLE_LISTITEM_MARKER },
               { role: ROLE_TEXT_LEAF }, // about
               {
                 role: ROLE_LIST, // menu
                 children: [
                   { role: ROLE_LISTITEM,
                     children: [
-                    { role: ROLE_STATICTEXT },
+                    { role: ROLE_LISTITEM_MARKER },
                     { role: ROLE_TEXT_LEAF } // our story
                     ]
                   },
@@ -1047,7 +1085,7 @@
         {
           role: ROLE_LISTITEM,
           children: [
-          { role: ROLE_STATICTEXT },
+          { role: ROLE_LISTITEM_MARKER },
           {
             role: ROLE_PUSHBUTTON,
             children: [
@@ -1060,8 +1098,8 @@
             {
               role: ROLE_LISTITEM,
               children: [
-                { role: ROLE_STATICTEXT },
-                { 
+                { role: ROLE_LISTITEM_MARKER },
+                {
                   role: ROLE_PUSHBUTTON,
                   children: [
                     { role: ROLE_TEXT_LEAF }
@@ -1093,7 +1131,7 @@
       testElm("nav", obj);
 
       // ////////////////////////////////////////////////////////////////////////
-      // HTML:object (windowless and windowed plugins) and HTML:param
+      // HTML:object (windowless/windowed plugins and media) and HTML:param
 
       if (WIN) {
         obj = {
@@ -1109,6 +1147,29 @@
         };
         testElm("object_plugin_windowed", obj);
       }
+
+      obj = {
+        role: ROLE_GRAPHIC,
+        interfaces: [ nsIAccessibleImage ],
+      };
+      testElm("object_png", obj);
+
+      obj = {
+        INTERNAL_FRAME: [ {
+          DOCUMENT: [ {
+            role: ROLE_PARAGRAPH,
+          } ],
+        } ],
+      };
+      testElm("object_html", obj);
+
+      obj = {
+        INTERNAL_FRAME: [ {
+          DOCUMENT: [ {
+          } ],
+        } ],
+      };
+      testElm("object_pdf", obj);
 
       // ////////////////////////////////////////////////////////////////////////
       // HTML:select, HTML:optgroup and HTML:option
@@ -1563,6 +1624,16 @@
   <embed id="embed_plugin_windowed" type="application/x-test" wmode="window"
          width="300" height="300"></embed>
 
+  <embed id="embed_png" type="image/png" src="../moz.png"
+         width="300" height="300">
+  </embed>
+  <embed id="embed_html" type="text/html" src="../longdesc_src.html"
+         width="300" height="300">
+  </embed>
+  <embed id="embed_pdf" type="application/pdf" src="../dummy.pdf"
+         width="300" height="300">
+  </embed>
+
   <fieldset id="fieldset">
     <legend id="legend">legend</legend>
     <input />
@@ -1752,8 +1823,12 @@
   <form>
     <input id="input_reset" type="reset">
   </form>
-  <input id="input_time" type="time" value="23:23">
-  <input id="input_date" type="date" value="2017-11-10">
+  <label>time label
+    <input id="input_time" type="time" value="23:23">
+  </label>
+  <label>date label
+    <input id="input_date" type="date" value="2017-11-10">
+  </label>
 
   <p id="ins_container">normal<ins>Inserted</ins></p>
   <p id="kbd_container">normal<kbd>cmd</kbd></p>
@@ -1847,6 +1922,16 @@
   </object>
   <object id="object_plugin_windowed" type="application/x-test" wmode="window"
          width="300" height="300"></object>
+
+  <object id="object_png" type="image/png" data="../moz.png"
+         width="300" height="300">
+  </object>
+  <object id="object_html" type="text/html" data="../longdesc_src.html"
+         width="300" height="300">
+  </object>
+  <object id="object_pdf" type="application/pdf" data="../dummy.pdf"
+         width="300" height="300">
+  </object>
 
   <select id="select_listbox" size="4">
     <optgroup label="Colors">

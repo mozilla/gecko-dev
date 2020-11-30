@@ -10,7 +10,6 @@
 #define mozilla_dom_BindContext_h__
 
 #include "mozilla/Attributes.h"
-#include "mozilla/AutoRestore.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/ShadowRoot.h"
@@ -19,9 +18,6 @@ namespace mozilla {
 namespace dom {
 
 struct MOZ_STACK_CLASS BindContext final {
-  struct NestingLevel;
-  friend struct NestingLevel;
-
   // The document that owns the tree we're getting bound to.
   //
   // This is mostly an optimization to avoid silly pointer-chases to get the
@@ -47,15 +43,19 @@ struct MOZ_STACK_CLASS BindContext final {
   // Whether our subtree root is changing as a result of this operation.
   bool SubtreeRootChanges() const { return mSubtreeRootChanges; }
 
+  // Autofocus is allowed only if the is in the same origin as the top level
+  // document.
+  // https://html.spec.whatwg.org/multipage/interaction.html#the-autofocus-attribute:same-origin
+  // In addition, the document should not be already loaded and the
+  // "browser.autofocus" preference should be 'true'.
+  bool AllowsAutoFocus() const;
+
   // This constructor should be used for regular appends to content.
   explicit BindContext(nsINode& aParent)
       : mDoc(*aParent.OwnerDoc()),
         mInComposedDoc(aParent.IsInComposedDoc()),
         mInUncomposedDoc(aParent.IsInUncomposedDoc()),
-        mSubtreeRootChanges(true),
-        mCollectingDisplayedNodeDataDuringLoad(
-            ShouldCollectDisplayedNodeDataDuringLoad(mInComposedDoc, mDoc,
-                                                     aParent)) {}
+        mSubtreeRootChanges(true) {}
 
   // When re-binding a shadow host into a tree, we re-bind all the shadow tree
   // from the root. In that case, the shadow tree contents remain within the
@@ -67,10 +67,7 @@ struct MOZ_STACK_CLASS BindContext final {
       : mDoc(*aShadowRoot.OwnerDoc()),
         mInComposedDoc(aShadowRoot.IsInComposedDoc()),
         mInUncomposedDoc(false),
-        mSubtreeRootChanges(false),
-        mCollectingDisplayedNodeDataDuringLoad(
-            ShouldCollectDisplayedNodeDataDuringLoad(mInComposedDoc, mDoc,
-                                                     aShadowRoot)) {}
+        mSubtreeRootChanges(false) {}
 
   // This constructor is meant to be used when inserting native-anonymous
   // children into a subtree.
@@ -79,28 +76,14 @@ struct MOZ_STACK_CLASS BindContext final {
       : mDoc(*aParentElement.OwnerDoc()),
         mInComposedDoc(aParentElement.IsInComposedDoc()),
         mInUncomposedDoc(aParentElement.IsInUncomposedDoc()),
-        mSubtreeRootChanges(true),
-        mCollectingDisplayedNodeDataDuringLoad(
-            ShouldCollectDisplayedNodeDataDuringLoad(mInComposedDoc, mDoc,
-                                                     aParentElement)) {
+        mSubtreeRootChanges(true) {
     MOZ_ASSERT(mInComposedDoc, "Binding NAC in a disconnected subtree?");
   }
 
-  bool CollectingDisplayedNodeDataDuringLoad() const {
-    return mCollectingDisplayedNodeDataDuringLoad;
-  }
-
  private:
-  static bool IsLikelyUndisplayed(const nsINode& aParent) {
-    return aParent.IsAnyOfHTMLElements(nsGkAtoms::style, nsGkAtoms::script);
-  }
-
-  static bool ShouldCollectDisplayedNodeDataDuringLoad(bool aConnected,
-                                                       Document& aDoc,
-                                                       nsINode& aParent) {
-    return aDoc.GetReadyStateEnum() == Document::READYSTATE_LOADING &&
-           aConnected && !IsLikelyUndisplayed(aParent);
-  }
+  // Returns true iff the document is in the same origin as the top level
+  // document.
+  bool IsSameOriginAsTop() const;
 
   Document& mDoc;
 
@@ -110,27 +93,6 @@ struct MOZ_STACK_CLASS BindContext final {
   // Whether the bind operation will change the subtree root of the content
   // we're binding.
   const bool mSubtreeRootChanges;
-
-  // Whether it's likely that we're in an undisplayed part of the DOM.
-  //
-  // NOTE(emilio): We don't inherit this in BindContext's for Shadow DOM or XBL
-  // or such. This means that if you have a shadow tree inside an undisplayed
-  // element it will be incorrectly counted.  But given our current definition
-  // of undisplayed element this is not likely to matter in practice.
-  bool mCollectingDisplayedNodeDataDuringLoad;
-};
-
-struct MOZ_STACK_CLASS BindContext::NestingLevel {
-  explicit NestingLevel(BindContext& aContext, const Element& aParent)
-      : mRestoreCollecting(aContext.mCollectingDisplayedNodeDataDuringLoad) {
-    if (aContext.mCollectingDisplayedNodeDataDuringLoad) {
-      aContext.mCollectingDisplayedNodeDataDuringLoad =
-          BindContext::IsLikelyUndisplayed(aParent);
-    }
-  }
-
- private:
-  AutoRestore<bool> mRestoreCollecting;
 };
 
 }  // namespace dom

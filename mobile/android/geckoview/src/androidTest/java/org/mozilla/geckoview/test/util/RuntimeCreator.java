@@ -1,16 +1,19 @@
 package org.mozilla.geckoview.test.util;
 
+import org.mozilla.geckoview.ContentBlocking;
 import org.mozilla.geckoview.GeckoRuntime;
 import org.mozilla.geckoview.GeckoRuntimeSettings;
 import org.mozilla.geckoview.RuntimeTelemetry;
 import org.mozilla.geckoview.WebExtension;
 import org.mozilla.geckoview.test.TestCrashHandler;
 
+import static org.mozilla.geckoview.ContentBlocking.SafeBrowsingProvider;
+
 import android.os.Looper;
 import android.os.Process;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.UiThread;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.UiThread;
 import androidx.test.platform.app.InstrumentationRegistry;
 import android.util.Log;
 
@@ -22,6 +25,7 @@ public class RuntimeCreator {
     public static final int TEST_SUPPORT_INITIAL = 0;
     public static final int TEST_SUPPORT_OK = 1;
     public static final int TEST_SUPPORT_ERROR = 2;
+    public static final String TEST_SUPPORT_EXTENSION_ID = "test-support@tests.mozilla.org";
     private static final String LOGTAG = "RuntimeCreator";
 
     private static final Environment env = new Environment();
@@ -95,21 +99,16 @@ public class RuntimeCreator {
 
     public static void registerTestSupport() {
         sTestSupport.set(0);
-        sTestSupportExtension =
-                new WebExtension("resource://android/assets/web_extensions/test-support/",
-                        "test-support@mozilla.com",
-                        WebExtension.Flags.ALLOW_CONTENT_MESSAGING,
-                        sRuntime.getWebExtensionController());
 
-        sTestSupportExtension.setMessageDelegate(sMessageDelegate, "browser");
-
-        sRuntime.registerWebExtension(sTestSupportExtension)
-                .accept(value -> {
-                    sTestSupport.set(TEST_SUPPORT_OK);
-                }, exception -> {
-                    Log.e(LOGTAG, "Could not register TestSupport", exception);
-                    sTestSupport.set(TEST_SUPPORT_ERROR);
-                });
+        sRuntime.getWebExtensionController().installBuiltIn(
+                "resource://android/assets/web_extensions/test-support/").accept(extension -> {
+            extension.setMessageDelegate(sMessageDelegate, "browser");
+            sTestSupportExtension = extension;
+            sTestSupport.set(TEST_SUPPORT_OK);
+        }, exception -> {
+            Log.e(LOGTAG, "Could not register TestSupport", exception);
+            sTestSupport.set(TEST_SUPPORT_ERROR);
+        });
     }
 
     /**
@@ -147,8 +146,23 @@ public class RuntimeCreator {
             return sRuntime;
         }
 
+        final SafeBrowsingProvider googleLegacy = SafeBrowsingProvider
+                .from(ContentBlocking.GOOGLE_LEGACY_SAFE_BROWSING_PROVIDER)
+                .getHashUrl("http://mochi.test:8888/safebrowsing-dummy/gethash")
+                .updateUrl("http://mochi.test:8888/safebrowsing-dummy/update")
+                .build();
+
+        final SafeBrowsingProvider google = SafeBrowsingProvider
+                .from(ContentBlocking.GOOGLE_SAFE_BROWSING_PROVIDER)
+                .getHashUrl("http://mochi.test:8888/safebrowsing4-dummy/gethash")
+                .updateUrl("http://mochi.test:8888/safebrowsing4-dummy/update")
+                .build();
+
         final GeckoRuntimeSettings runtimeSettings = new GeckoRuntimeSettings.Builder()
                 .useMultiprocess(env.isMultiprocess())
+                .contentBlocking(new ContentBlocking.Settings.Builder()
+                        .safeBrowsingProviders(googleLegacy, google)
+                        .build())
                 .arguments(new String[]{"-purgecaches"})
                 .extras(InstrumentationRegistry.getArguments())
                 .remoteDebuggingEnabled(true)

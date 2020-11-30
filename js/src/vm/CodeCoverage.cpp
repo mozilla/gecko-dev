@@ -18,6 +18,7 @@
 #  include <unistd.h>
 #endif
 
+#include "frontend/SourceNotes.h"  // SrcNote, SrcNoteType, SrcNoteIterator
 #include "gc/Zone.h"
 #include "util/Text.h"
 #include "vm/BytecodeUtil.h"
@@ -144,9 +145,9 @@ void LCovSource::writeScript(JSScript* script, const char* scriptName) {
   }
 
   jsbytecode* snpc = script->code();
-  jssrcnote* sn = script->notes();
-  if (!SN_IS_TERMINATOR(sn)) {
-    snpc += SN_DELTA(sn);
+  const SrcNote* sn = script->notes();
+  if (!sn->isTerminator()) {
+    snpc += sn->delta();
   }
 
   size_t lineno = script->lineno();
@@ -172,17 +173,19 @@ void LCovSource::writeScript(JSScript* script, const char* scriptName) {
     // current pc.
     if (snpc <= pc || !firstLineHasBeenWritten) {
       size_t oldLine = lineno;
-      while (!SN_IS_TERMINATOR(sn) && snpc <= pc) {
-        SrcNoteType type = SN_TYPE(sn);
-        if (type == SRC_SETLINE) {
-          lineno = size_t(GetSrcNoteOffset(sn, SrcNote::SetLine::Line));
-        } else if (type == SRC_NEWLINE) {
+      SrcNoteIterator iter(sn);
+      while (!iter.atEnd() && snpc <= pc) {
+        sn = *iter;
+        SrcNoteType type = sn->type();
+        if (type == SrcNoteType::SetLine) {
+          lineno = SrcNote::SetLine::getLine(sn);
+        } else if (type == SrcNoteType::NewLine) {
           lineno++;
         }
-
-        sn = SN_NEXT(sn);
-        snpc += SN_DELTA(sn);
+        ++iter;
+        snpc += (*iter)->delta();
       }
+      sn = *iter;
 
       if ((oldLine != lineno || !firstLineHasBeenWritten) &&
           pc >= script->main() && fallsthrough) {
@@ -466,8 +469,7 @@ void LCovRealm::writeRealmName(JS::Realm* realm) {
     {
       // Hazard analysis cannot tell that the callback does not GC.
       JS::AutoSuppressGCAnalysis nogc;
-      Rooted<Realm*> rootedRealm(cx, realm);
-      (*cx->runtime()->realmNameCallback)(cx, rootedRealm, name, sizeof(name));
+      (*cx->runtime()->realmNameCallback)(cx, realm, name, sizeof(name), nogc);
     }
     for (char* s = name; s < name + sizeof(name) && *s; s++) {
       if (('a' <= *s && *s <= 'z') || ('A' <= *s && *s <= 'Z') ||
@@ -593,7 +595,7 @@ void LCovRuntime::writeLCovResult(LCovRealm& realm) {
 
 bool InitScriptCoverage(JSContext* cx, JSScript* script) {
   MOZ_ASSERT(IsLCovEnabled());
-  MOZ_ASSERT(!script->isUncompleted(),
+  MOZ_ASSERT(script->hasBytecode(),
              "Only initialize coverage data for fully initialized scripts.");
 
   // Don't allocate LCovSource if we on helper thread since we will have our
@@ -667,7 +669,7 @@ bool CollectScriptCoverage(JSScript* script, bool finalizing) {
   const char* scriptName;
   mozilla::Tie(source, scriptName) = p->value();
 
-  if (!script->isUncompleted()) {
+  if (script->hasBytecode()) {
     source->writeScript(script, scriptName);
   }
 

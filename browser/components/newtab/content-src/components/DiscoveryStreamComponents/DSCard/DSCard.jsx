@@ -10,6 +10,7 @@ import React from "react";
 import { SafeAnchor } from "../SafeAnchor/SafeAnchor";
 import { DSContextFooter } from "../DSContextFooter/DSContextFooter.jsx";
 import { FluentOrText } from "../../FluentOrText/FluentOrText.jsx";
+import { connect } from "react-redux";
 
 // Default Meta that displays CTA as link if cta_variant in layout is set as "link"
 export const DefaultMeta = ({
@@ -22,6 +23,8 @@ export const DefaultMeta = ({
   cta,
   engagement,
   cta_variant,
+  sponsor,
+  sponsored_by_override,
 }) => (
   <div className="meta">
     <div className="info-wrap">
@@ -37,6 +40,8 @@ export const DefaultMeta = ({
     <DSContextFooter
       context_type={context_type}
       context={context}
+      sponsor={sponsor}
+      sponsored_by_override={sponsored_by_override}
       display_engagement_labels={display_engagement_labels}
       engagement={engagement}
     />
@@ -53,6 +58,7 @@ export const CTAButtonMeta = ({
   cta,
   engagement,
   sponsor,
+  sponsored_by_override,
 }) => (
   <div className="meta">
     <div className="info-wrap">
@@ -76,6 +82,8 @@ export const CTAButtonMeta = ({
       <DSContextFooter
         context_type={context_type}
         context={context}
+        sponsor={sponsor}
+        sponsored_by_override={sponsored_by_override}
         display_engagement_labels={display_engagement_labels}
         engagement={engagement}
       />
@@ -83,7 +91,7 @@ export const CTAButtonMeta = ({
   </div>
 );
 
-export class DSCard extends React.PureComponent {
+export class _DSCard extends React.PureComponent {
   constructor(props) {
     super(props);
 
@@ -95,6 +103,40 @@ export class DSCard extends React.PureComponent {
     this.state = {
       isSeen: false,
     };
+
+    // If this is for the about:home startup cache, then we always want
+    // to render the DSCard, regardless of whether or not its been seen.
+    if (props.App.isForStartupCache) {
+      this.state.isSeen = true;
+    }
+
+    // We want to choose the optimal thumbnail for the underlying DSImage, but
+    // want to do it in a performant way. The breakpoints used in the
+    // CSS of the page are, unfortuntely, not easy to retrieve without
+    // causing a style flush. To avoid that, we hardcode them here.
+    //
+    // The values chosen here were the dimensions of the card thumbnails as
+    // computed by getBoundingClientRect() for each type of viewport width
+    // across both high-density and normal-density displays.
+    this.dsImageSizes = [
+      {
+        mediaMatcher: "(min-width: 1122px)",
+        width: 296,
+        height: 148,
+      },
+
+      {
+        mediaMatcher: "(min-width: 866px)",
+        width: 218,
+        height: 109,
+      },
+
+      {
+        mediaMatcher: "(max-width: 610px)",
+        width: 202,
+        height: 101,
+      },
+    ];
   }
 
   onLinkClick(event) {
@@ -102,7 +144,9 @@ export class DSCard extends React.PureComponent {
       this.props.dispatch(
         ac.UserEvent({
           event: "CLICK",
-          source: this.props.type.toUpperCase(),
+          source: this.props.is_video
+            ? "CARDGRID_VIDEO"
+            : this.props.type.toUpperCase(),
           action_position: this.props.pos,
           value: { card_type: this.props.flightId ? "spoc" : "organic" },
         })
@@ -110,7 +154,9 @@ export class DSCard extends React.PureComponent {
 
       this.props.dispatch(
         ac.ImpressionStats({
-          source: this.props.type.toUpperCase(),
+          source: this.props.is_video
+            ? "CARDGRID_VIDEO"
+            : this.props.type.toUpperCase(),
           click: 0,
           tiles: [
             {
@@ -181,9 +227,10 @@ export class DSCard extends React.PureComponent {
       );
     }
     const isButtonCTA = this.props.cta_variant === "button";
+    const baseClass = `ds-card ${this.props.is_video ? `video-card` : ``}`;
 
     return (
-      <div className="ds-card">
+      <div className={baseClass}>
         <SafeAnchor
           className="ds-card-link"
           dispatch={this.props.dispatch}
@@ -195,7 +242,13 @@ export class DSCard extends React.PureComponent {
               extraClassNames="img"
               source={this.props.image_src}
               rawSource={this.props.raw_image_src}
+              sizes={this.dsImageSizes}
             />
+            {this.props.is_video && (
+              <div className="playhead">
+                <span>Video Content</span>
+              </div>
+            )}
           </div>
           {isButtonCTA ? (
             <CTAButtonMeta
@@ -208,6 +261,7 @@ export class DSCard extends React.PureComponent {
               engagement={this.props.engagement}
               cta={this.props.cta}
               sponsor={this.props.sponsor}
+              sponsored_by_override={this.props.sponsored_by_override}
             />
           ) : (
             <DefaultMeta
@@ -220,6 +274,8 @@ export class DSCard extends React.PureComponent {
               context_type={this.props.context_type}
               cta={this.props.cta}
               cta_variant={this.props.cta_variant}
+              sponsor={this.props.sponsor}
+              sponsored_by_override={this.props.sponsored_by_override}
             />
           )}
           <ImpressionStats
@@ -234,7 +290,7 @@ export class DSCard extends React.PureComponent {
               },
             ]}
             dispatch={this.props.dispatch}
-            source={this.props.type}
+            source={this.props.is_video ? "CARDGRID_VIDEO" : this.props.type}
           />
         </SafeAnchor>
         <DSLinkMenu
@@ -248,15 +304,20 @@ export class DSCard extends React.PureComponent {
           pocket_id={this.props.pocket_id}
           shim={this.props.shim}
           bookmarkGuid={this.props.bookmarkGuid}
-          flightId={this.props.flightId}
+          flightId={!this.props.is_collection ? this.props.flightId : undefined}
+          showPrivacyInfo={!!this.props.flightId}
         />
       </div>
     );
   }
 }
 
-DSCard.defaultProps = {
+_DSCard.defaultProps = {
   windowObj: window, // Added to support unit tests
 };
+
+export const DSCard = connect(state => ({
+  App: state.App,
+}))(_DSCard);
 
 export const PlaceholderDSCard = props => <DSCard placeholder={true} />;

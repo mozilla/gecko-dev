@@ -108,9 +108,9 @@ async function openPrefsFromMenuPanel(expectedPanelId, entryPoint) {
   let tabsUpdatedPromise = promiseObserverNotified(
     "synced-tabs-menu:test:tabs-updated"
   );
+  syncButton.click();
   let syncPanel = document.getElementById("PanelUI-remotetabs");
   let viewShownPromise = BrowserTestUtils.waitForEvent(syncPanel, "ViewShown");
-  syncButton.click();
   await Promise.all([tabsUpdatedPromise, viewShownPromise]);
   ok(syncPanel.getAttribute("visible"), "Sync Panel is in view");
 
@@ -219,8 +219,8 @@ add_task(async function() {
 
   await document.getElementById("nav-bar").overflowable.show();
   let expectedUrl =
-    "https://example.com/connect_another_device?service=sync&context=" +
-    "fx_desktop_v3&entrypoint=synced-tabs&uid=uid&email=foo%40bar.com";
+    "https://example.com/connect_another_device?context=" +
+    "fx_desktop_v3&entrypoint=synced-tabs&service=sync&uid=uid&email=foo%40bar.com";
   let promiseTabOpened = BrowserTestUtils.waitForNewTab(gBrowser, expectedUrl);
   button.click();
   // the panel should have been closed.
@@ -256,7 +256,11 @@ add_task(async function() {
 
   // The widget is still fetching tabs, as we've neutered everything that
   // provides them
-  is(deck.selectedIndex, DECKINDEX_FETCHING, "first deck entry is visible");
+  is(
+    deck.selectedIndex,
+    "" + DECKINDEX_FETCHING,
+    "first deck entry is visible"
+  );
 
   // Tell the widget there are tabs available, but with zero clients.
   mockedInternal.getTabClients = () => {
@@ -267,7 +271,7 @@ add_task(async function() {
   // The UI should be showing the "no clients" pane.
   is(
     deck.selectedIndex,
-    DECKINDEX_NOCLIENTS,
+    "" + DECKINDEX_NOCLIENTS,
     "no-clients deck entry is visible"
   );
 
@@ -318,7 +322,11 @@ add_task(async function() {
   await updateTabsPanel();
 
   // The UI should be showing tabs!
-  is(deck.selectedIndex, DECKINDEX_TABS, "no-clients deck entry is visible");
+  is(
+    deck.selectedIndex,
+    "" + DECKINDEX_TABS,
+    "no-clients deck entry is visible"
+  );
   let tabList = document.getElementById("PanelUI-remotetabs-tabslist");
   let node = tabList.firstElementChild;
   // First entry should be the client with the most-recent tab.
@@ -461,7 +469,7 @@ add_task(async function() {
   let subpanel = document.getElementById("PanelUI-remotetabs-main");
   ok(!subpanel.hidden, "main pane is visible");
   let deck = document.getElementById("PanelUI-remotetabs-deck");
-  is(deck.selectedIndex, DECKINDEX_TABS, "we should be showing tabs");
+  is(deck.selectedIndex, "" + DECKINDEX_TABS, "we should be showing tabs");
 
   function checkTabsPage(tabsShownCount, showMoreLabel) {
     let tabList = document.getElementById("PanelUI-remotetabs-tabslist");

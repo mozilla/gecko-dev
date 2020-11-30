@@ -19,13 +19,13 @@
 //! SSA form
 //!
 //! - Values must be defined by an instruction that exists and that is inserted in
-//!   an block, or be an argument of an existing block.
+//!   a block, or be an argument of an existing block.
 //! - Values used by an instruction must dominate the instruction.
 //!
 //! Control flow graph and dominator tree integrity:
 //!
 //! - All predecessors in the CFG must be branches to the block.
-//! - All branches to an block must be present in the CFG.
+//! - All branches to a block must be present in the CFG.
 //! - A recomputed dominator tree is identical to the existing one.
 //!
 //! Type checking
@@ -65,8 +65,9 @@ use crate::ir;
 use crate::ir::entities::AnyEntity;
 use crate::ir::instructions::{BranchInfo, CallInfo, InstructionFormat, ResolvedConstraint};
 use crate::ir::{
-    types, ArgumentLoc, Block, FuncRef, Function, GlobalValue, Inst, InstructionData, JumpTable,
-    Opcode, SigRef, StackSlot, StackSlotKind, Type, Value, ValueDef, ValueList, ValueLoc,
+    types, ArgumentLoc, ArgumentPurpose, Block, Constant, FuncRef, Function, GlobalValue, Inst,
+    InstructionData, JumpTable, Opcode, SigRef, StackSlot, StackSlotKind, Type, Value, ValueDef,
+    ValueList, ValueLoc,
 };
 use crate::isa::TargetIsa;
 use crate::iterators::IteratorExtras;
@@ -733,26 +734,36 @@ impl<'a> Verifier<'a> {
                     ));
                 }
             }
-
             Unary {
                 opcode: Opcode::Bitcast,
                 arg,
             } => {
                 self.verify_bitcast(inst, arg, errors)?;
             }
+            UnaryConst {
+                opcode: Opcode::Vconst,
+                constant_handle,
+                ..
+            } => {
+                self.verify_constant_size(inst, constant_handle, errors)?;
+            }
 
             // Exhaustive list so we can't forget to add new formats
-            Unary { .. }
+            AtomicCas { .. }
+            | AtomicRmw { .. }
+            | LoadNoOffset { .. }
+            | StoreNoOffset { .. }
+            | Unary { .. }
+            | UnaryConst { .. }
             | UnaryImm { .. }
             | UnaryIeee32 { .. }
             | UnaryIeee64 { .. }
             | UnaryBool { .. }
             | Binary { .. }
-            | BinaryImm { .. }
+            | BinaryImm8 { .. }
+            | BinaryImm64 { .. }
             | Ternary { .. }
-            | InsertLane { .. }
-            | ExtractLane { .. }
-            | UnaryConst { .. }
+            | TernaryImm8 { .. }
             | Shuffle { .. }
             | IntCompare { .. }
             | IntCompareImm { .. }
@@ -961,7 +972,7 @@ impl<'a> Verifier<'a> {
                         format!("{} is defined by invalid instruction {}", v, def_inst),
                     ));
                 }
-                // Defining instruction is inserted in an block.
+                // Defining instruction is inserted in a block.
                 if self.func.layout.inst_block(def_inst) == None {
                     return errors.fatal((
                         loc_inst,
@@ -1068,6 +1079,27 @@ impl<'a> Verifier<'a> {
                     "The bitcast argument {} doesn't fit in a type of {} bits",
                     arg,
                     typ.lane_bits()
+                ),
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
+    fn verify_constant_size(
+        &self,
+        inst: Inst,
+        constant: Constant,
+        errors: &mut VerifierErrors,
+    ) -> VerifierStepResult<()> {
+        let type_size = self.func.dfg.ctrl_typevar(inst).bytes() as usize;
+        let constant_size = self.func.dfg.constants.get(constant).len();
+        if type_size != constant_size {
+            errors.fatal((
+                inst,
+                format!(
+                    "The instruction expects {} to have a size of {} bytes but it has {}",
+                    constant, type_size, constant_size
                 ),
             ))
         } else {
@@ -1445,7 +1477,8 @@ impl<'a> Verifier<'a> {
                             ),
                         ));
                     }
-                    if slot.size != abi.value_type.bytes() {
+                    if abi.purpose == ArgumentPurpose::StructArgument(slot.size) {
+                    } else if slot.size != abi.value_type.bytes() {
                         return errors.fatal((
                             inst,
                             self.context(inst),
@@ -1884,20 +1917,20 @@ impl<'a> Verifier<'a> {
                     Ok(())
                 }
             }
-            ir::InstructionData::ExtractLane {
+            ir::InstructionData::BinaryImm8 {
                 opcode: ir::instructions::Opcode::Extractlane,
-                lane,
+                imm: lane,
                 arg,
                 ..
             }
-            | ir::InstructionData::InsertLane {
+            | ir::InstructionData::TernaryImm8 {
                 opcode: ir::instructions::Opcode::Insertlane,
-                lane,
+                imm: lane,
                 args: [arg, _],
                 ..
             } => {
                 // We must be specific about the opcodes above because other instructions are using
-                // the ExtractLane/InsertLane formats.
+                // the same formats.
                 let ty = self.func.dfg.value_type(arg);
                 if u16::from(lane) >= ty.lane_count() {
                     errors.fatal((
@@ -1956,6 +1989,20 @@ impl<'a> Verifier<'a> {
                     AnyEntity::Function,
                     format!("Return value at position {} has an invalid type", i),
                 ))
+            });
+
+        self.func
+            .signature
+            .returns
+            .iter()
+            .enumerate()
+            .for_each(|(i, ret)| {
+                if let ArgumentPurpose::StructArgument(_) = ret.purpose {
+                    errors.report((
+                        AnyEntity::Function,
+                        format!("Return value at position {} can't be an struct argument", i),
+                    ))
+                }
             });
 
         if errors.has_error() {

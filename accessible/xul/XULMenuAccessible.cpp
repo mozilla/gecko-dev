@@ -14,6 +14,7 @@
 #include "XULFormControlAccessible.h"
 
 #include "nsIDOMXULContainerElement.h"
+#include "nsIDOMXULSelectCntrlEl.h"
 #include "nsIDOMXULSelectCntrlItemEl.h"
 #include "nsIContent.h"
 #include "nsMenuBarFrame.h"
@@ -108,7 +109,7 @@ uint64_t XULMenuitemAccessible::NativeInteractiveState() const {
     if (!menuFrame || !menuFrame->IsOnMenuBar()) {
       skipNavigatingDisabledMenuItem =
           LookAndFeel::GetInt(
-              LookAndFeel::eIntID_SkipNavigatingDisabledMenuItem, 0) != 0;
+              LookAndFeel::IntID::SkipNavigatingDisabledMenuItem, 0) != 0;
     }
 
     if (skipNavigatingDisabledMenuItem) return states::UNAVAILABLE;
@@ -348,12 +349,11 @@ XULMenupopupAccessible::XULMenupopupAccessible(nsIContent* aContent,
   if (menuPopupFrame && menuPopupFrame->IsMenu()) mType = eMenuPopupType;
 
   // May be the anonymous <menupopup> inside <menulist> (a combobox)
-  nsIContent* parent = mContent->GetFlattenedTreeParent();
+  auto* parent = mContent->GetParentElement();
   nsCOMPtr<nsIDOMXULSelectControlElement> selectControl =
-      parent && parent->AsElement() ? parent->AsElement()->AsXULSelectControl()
-                                    : nullptr;
+      parent ? parent->AsXULSelectControl() : nullptr;
   if (selectControl) {
-    mSelectControl = parent->AsElement();
+    mSelectControl = parent;
   } else {
     mSelectControl = nullptr;
     mGenericTypes &= ~eSelect;

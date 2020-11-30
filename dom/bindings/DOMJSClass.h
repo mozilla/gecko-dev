@@ -9,6 +9,7 @@
 
 #include "jsapi.h"
 #include "jsfriendapi.h"
+#include "js/Object.h"  // JS::GetClass, JS::GetReservedSlot
 #include "js/PropertySpec.h"
 #include "js/Wrapper.h"
 #include "mozilla/Assertions.h"
@@ -21,6 +22,7 @@
 #include "mozilla/dom/JSSlots.h"
 
 class nsCycleCollectionParticipant;
+class nsWrapperCache;
 struct JSStructuredCloneReader;
 struct JSStructuredCloneWriter;
 class nsIGlobalObject;
@@ -243,6 +245,67 @@ static_assert(
 // aforementioned assertions in the getters. Upcast() is used to convert
 // specific instances to this "base" type.
 //
+// An example
+// ----------
+// NativeProperties points to various things, and it can be hard to keep track.
+// The following example shows the layout.
+//
+// Imagine an example interface, with:
+// - 10 properties
+//   - 6 methods, 3 with no disablers struct, 2 sharing the same disablers
+//     struct, 1 using a different disablers struct
+//   - 4 attributes, all with no disablers
+// - The property order is such that those using the same disablers structs are
+//   together. (This is not guaranteed, but it makes the example simpler.)
+//
+// Each PropertyInfo also contain indices into sMethods/sMethods_specs (for
+// method infos) and sAttributes/sAttributes_specs (for attributes), which let
+// them find their spec, but these are not shown.
+//
+//   sNativeProperties             sNativeProperties_        sNativeProperties_
+//   ----                          sortedPropertyIndices[10] propertyInfos[10]
+//   - <several scalar fields>     ----                      ----
+//   - sortedPropertyIndices ----> <10 indices>         +--> 0 info (method)
+//   - duos[2]                     ----                 |    1 info (method)
+//     ----(methods)                                    |    2 info (method)
+//     0 - mPrefables -------> points to sMethods below |    3 info (method)
+//       - mPropertyInfos ------------------------------+    4 info (method)
+//     1 - mPrefables -------> points to sAttributes below   5 info (method)
+//       - mPropertyInfos ---------------------------------> 6 info (attr)
+//     ----                                                  7 info (attr)
+//   ----                                                    8 info (attr)
+//                                                           9 info (attr)
+//                                                           ----
+//
+// sMethods has three entries (excluding the terminator) because there are
+// three disablers structs. The {nullptr,nullptr} serves as the terminator.
+// There are also END terminators within sMethod_specs; the need for these
+// terminators (as opposed to a length) is deeply embedded in SpiderMonkey.
+// Disablers structs are suffixed with the index of the first spec they cover.
+//
+//   sMethods                               sMethods_specs
+//   ----                                   ----
+//   0 - nullptr                     +----> 0 spec
+//     - specs ----------------------+      1 spec
+//   1 - disablers ---> disablers4          2 spec
+//     - specs ------------------------+    3 END
+//   2 - disablers ---> disablers7     +--> 4 spec
+//     - specs ----------------------+      5 spec
+//   3 - nullptr                     |      6 END
+//     - nullptr                     +----> 7 spec
+//   ----                                   8 END
+//
+// sAttributes has a single entry (excluding the terminator) because all of the
+// specs lack disablers.
+//
+//   sAttributes                            sAttributes_specs
+//   ----                                   ----
+//   0 - nullptr                     +----> 0 spec
+//     - specs ----------------------+      1 spec
+//   1 - nullptr                            2 spec
+//     - nullptr                            3 spec
+//   ----                                   4 END
+//                                          ----
 template <int N>
 struct NativePropertiesN {
   // Duo structs are stored in the duos[] array, and each element in the array
@@ -413,6 +476,8 @@ typedef JSObject* (*WebIDLDeserializer)(JSContext* aCx,
                                         nsIGlobalObject* aGlobal,
                                         JSStructuredCloneReader* aReader);
 
+typedef nsWrapperCache* (*WrapperCacheGetter)(JS::Handle<JSObject*> aObj);
+
 // Special JSClass for reflected DOM objects.
 struct DOMJSClass {
   // It would be nice to just inherit from JSClass, but that precludes pure
@@ -447,6 +512,10 @@ struct DOMJSClass {
   // Null otherwise.
   WebIDLSerializer mSerializer;
 
+  // A callback to get the wrapper cache for C++ objects that don't inherit from
+  // nsISupports, or null.
+  WrapperCacheGetter mWrapperCacheGetter;
+
   static const DOMJSClass* FromJSClass(const JSClass* base) {
     MOZ_ASSERT(base->flags & JSCLASS_IS_DOMJSCLASS);
     return reinterpret_cast<const DOMJSClass*>(base);
@@ -477,9 +546,9 @@ struct DOMIfaceAndProtoJSClass {
 
   const NativePropertyHooks* mNativeHooks;
 
-  // The value to return for toString() on this interface or interface prototype
+  // The value to return for Function.prototype.toString on this interface
   // object.
-  const char* mToString;
+  const char* mFunToString;
 
   ProtoGetter mGetParentProto;
 
@@ -494,22 +563,22 @@ struct DOMIfaceAndProtoJSClass {
 class ProtoAndIfaceCache;
 
 inline bool DOMGlobalHasProtoAndIFaceCache(JSObject* global) {
-  MOZ_ASSERT(js::GetObjectClass(global)->flags & JSCLASS_DOM_GLOBAL);
+  MOZ_ASSERT(JS::GetClass(global)->flags & JSCLASS_DOM_GLOBAL);
   // This can be undefined if we GC while creating the global
-  return !js::GetReservedSlot(global, DOM_PROTOTYPE_SLOT).isUndefined();
+  return !JS::GetReservedSlot(global, DOM_PROTOTYPE_SLOT).isUndefined();
 }
 
 inline bool HasProtoAndIfaceCache(JSObject* global) {
-  if (!(js::GetObjectClass(global)->flags & JSCLASS_DOM_GLOBAL)) {
+  if (!(JS::GetClass(global)->flags & JSCLASS_DOM_GLOBAL)) {
     return false;
   }
   return DOMGlobalHasProtoAndIFaceCache(global);
 }
 
 inline ProtoAndIfaceCache* GetProtoAndIfaceCache(JSObject* global) {
-  MOZ_ASSERT(js::GetObjectClass(global)->flags & JSCLASS_DOM_GLOBAL);
+  MOZ_ASSERT(JS::GetClass(global)->flags & JSCLASS_DOM_GLOBAL);
   return static_cast<ProtoAndIfaceCache*>(
-      js::GetReservedSlot(global, DOM_PROTOTYPE_SLOT).toPrivate());
+      JS::GetReservedSlot(global, DOM_PROTOTYPE_SLOT).toPrivate());
 }
 
 }  // namespace dom

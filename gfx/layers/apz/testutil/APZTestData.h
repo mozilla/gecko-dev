@@ -17,6 +17,7 @@
 #include "mozilla/StaticPrefs_apz.h"
 #include "mozilla/ToString.h"  // for ToString
 #include "mozilla/gfx/CompositorHitTestInfo.h"
+#include "mozilla/layers/LayersMessageUtils.h"  // for ParamTraits specializations
 #include "mozilla/layers/ScrollableLayerGuid.h"
 #include "ipc/IPCMessageUtils.h"
 #include "js/TypeDecls.h"
@@ -104,7 +105,7 @@ class APZTestData {
  private:
   DataStore mPaints;
   DataStore mRepaintRequests;
-  nsTArray<HitResult> mHitResults;
+  CopyableTArray<HitResult> mHitResults;
   // Additional free-form data that's not grouped paint or scroll frame.
   std::map<std::string, std::string> mAdditionalData;
 
@@ -169,13 +170,15 @@ struct ParamTraits<mozilla::layers::APZTestData> {
     WriteParam(aMsg, aParam.mPaints);
     WriteParam(aMsg, aParam.mRepaintRequests);
     WriteParam(aMsg, aParam.mHitResults);
+    WriteParam(aMsg, aParam.mAdditionalData);
   }
 
   static bool Read(const Message* aMsg, PickleIterator* aIter,
                    paramType* aResult) {
     return (ReadParam(aMsg, aIter, &aResult->mPaints) &&
             ReadParam(aMsg, aIter, &aResult->mRepaintRequests) &&
-            ReadParam(aMsg, aIter, &aResult->mHitResults));
+            ReadParam(aMsg, aIter, &aResult->mHitResults) &&
+            ReadParam(aMsg, aIter, &aResult->mAdditionalData));
   }
 };
 

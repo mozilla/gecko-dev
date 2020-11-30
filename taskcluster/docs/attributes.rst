@@ -23,19 +23,51 @@ run_on_projects
 ===============
 
 The projects where this task should be in the target task set.  This is how
-requirements like "only run this on inbound" get implemented.  These are
-either project names or the aliases
+requirements like "only run this on autoland" get implemented.
 
- * `integration` -- integration repositories (autoland, inbound, etc)
- * `trunk` -- integration repositories plus mozilla-central
- * `release` -- release repositories including mozilla-central
+.. note::
+
+    Please use this configuration. Running a job for all projects can quickly add up
+    in term of cost while not providing any value for some projects.
+
+`run-on-projects` can use either aliases or project names.
+
+These are the aliases:
+
+ * `integration` -- integration repository (autoland)
+ * `trunk` -- integration repository plus mozilla-central
+ * `release` -- release repositories (beta, release, esr) including mozilla-central
  * `all` -- everywhere (the default)
+
+Project names are the repositories.  They can be:
+
+* `autoland`
+* `mozilla-central`
+* `mozilla-beta`
+* `mozilla-release`
+* `mozilla-esr78`
+* ... A partial list can be found in taskcluster/taskgraph/util/attributes.py
 
 For try, this attribute applies only if ``-p all`` is specified.  All jobs can
 be specified by name regardless of ``run_on_projects``.
 
 If ``run_on_projects`` is set to an empty list, then the task will not run
 anywhere, unless its build platform is specified explicitly in try syntax.
+
+
+.. note::
+
+    As `try` pushes don't use filter_for_projects by design, there isn't a way
+    to define that a task will run on `try`.
+
+
+.. note::
+
+    A given task `[taskA]` may not respect `run-on-projects` if there another task
+    `[taskB]` which is scheduled to run (such as via run-on-projects) which depends it
+    `[taskA]`. Because by nature of `TaskB` running we must run `TaskA`.
+
+    See `bug 1640603 <https://bugzilla.mozilla.org/show_bug.cgi?id=1640603#c5>`_ as example.
 
 run_on_hg_branches
 ==================
@@ -208,14 +240,19 @@ fetch-artifact
 
 For fetch jobs, this is the path to the artifact for that fetch operation.
 
+fetch-alias
+===========
+An alias that can be used instead of the real fetch job name in fetch
+stanzas for jobs.
+
 toolchain-artifact
 ==================
 For toolchain jobs, this is the path to the artifact for that toolchain.
 
 toolchain-alias
 ===============
-For toolchain jobs, this optionally gives an alias that can be used instead of the
-real toolchain job name in the toolchains list for build jobs.
+An alias that can be used instead of the real toolchain job name in fetch
+stanzas for jobs.
 
 always_target
 =============
@@ -259,6 +296,11 @@ artifact_map
 For beetmover jobs, this indicates which yaml file should be used to
 generate the upstream artifacts and payload instructions to the task.
 
+batch
+=====
+Used by `perftest` to indicates that a task can be run as a batch.
+
+
 enable-full-crashsymbols
 ========================
 In automation, full crashsymbol package generation is normally disabled.  For
@@ -283,6 +325,13 @@ identify the current version of the artifacts. See :py:mod:`taskgraph.util.cache
        digest: 66dfc2204600b48d92a049b6a18b83972bb9a92f9504c06608a9c20eb4c9d8ae
        name: debian7-base
        type: docker-images.v2
+
+eager_indexes
+=============
+A list of strings of indexes to populate before the task ever completes. Some tasks (e.g. cached tasks) we
+want to exist in the index before they even run/complete. Our current use is to allow us to depend on an
+unfinished cached task in future pushes. This avoids extra overhead from multiple tasks running, and
+can allow us to have our results in just a bit earlier.
 
 required_signoffs
 =================
@@ -317,6 +366,12 @@ review bot, the task will ran for every new Phabricator diff.
 Any supported and detected issue will be automatically reported on the
 Phabricator revision.
 
+resource-monitor
+================
+If a task set this boolean attribute to `true`, it will collect CPU, memory, and
+- if available - Disk and Network IO by running the resource-monitor utility,
+provided through fetches.
+
 retrigger
 =========
 Whether the task can be retriggered, or if it needs to be re-run.
@@ -342,8 +397,33 @@ If set to true, will run the visual metrics task on the provided
 video files.
 
 skip-verify-test-packaging
-==================
+==========================
 If set to true, this task will not be checked to see that
 MOZ_AUTOMATION_PACKAGE_TESTS is set correctly based on whether or not the task
 has dependent tests. This should only be used in very unique situations, such
 as Windows AArch64 builds that copy test packages between build tasks.
+
+geckodriver
+===========
+If non-empty, declares that the (toolchain) task is a `geckodriver`
+task that produces a binary that should be signed.
+
+rebuild-on-release
+==================
+If true, the digest for this task will also depend on if the branch is a
+release branch.  This will cause tasks like toolchains to be rebuilt as they
+move from e.g. autoland to mozilla-central.
+
+local-toolchain
+===============
+This toolchain is used for local development, so should be built on trunk, even
+if it does not have any in-graph consumers.
+
+artifact-build
+==============
+
+This build is an artifact build.
+
+This deliberately excludes builds that are implemented using the artifact build
+machinery, but are not primarily intended to short-circuit build time. In
+particular the Windows aarch64 builds are not marked this way.

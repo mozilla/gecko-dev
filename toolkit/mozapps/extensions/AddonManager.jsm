@@ -42,6 +42,8 @@ const PREF_MIN_WEBEXT_PLATFORM_VERSION =
   "extensions.webExtensionsMinPlatformVersion";
 const PREF_WEBAPI_TESTING = "extensions.webapi.testing";
 const PREF_WEBEXT_PERM_PROMPTS = "extensions.webextPermissionPrompts";
+const PREF_EM_POSTDOWNLOAD_THIRD_PARTY =
+  "extensions.postDownloadThirdPartyPrompt";
 
 const UPDATE_REQUEST_VERSION = 2;
 
@@ -59,6 +61,15 @@ const WEBAPI_TEST_INSTALL_HOSTS = [
   "addons-dev.allizom.org",
   "example.com",
 ];
+
+const AMO_ATTRIBUTION_ALLOWED_SOURCES = ["amo", "disco"];
+const AMO_ATTRIBUTION_DATA_KEYS = [
+  "utm_campaign",
+  "utm_content",
+  "utm_medium",
+  "utm_source",
+];
+const AMO_ATTRIBUTION_DATA_MAX_LENGTH = 40;
 
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
@@ -82,6 +93,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
   this,
   "WEBEXT_PERMISSION_PROMPTS",
   PREF_WEBEXT_PERM_PROMPTS,
+  false
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "WEBEXT_POSTDOWNLOAD_THIRD_PARTY",
+  PREF_EM_POSTDOWNLOAD_THIRD_PARTY,
   false
 );
 
@@ -112,9 +130,6 @@ var formatter = new Log.BasicFormatter();
 // Set parent logger (and its children) to append to
 // the Javascript section of the Browser Console
 parentLogger.addAppender(new Log.ConsoleAppender(formatter));
-// Set parent logger (and its children) to
-// also append to standard out
-parentLogger.addAppender(new Log.DumpAppender(formatter));
 
 // Create a new logger (child of 'addons' logger)
 // for use by the Addons Manager
@@ -366,9 +381,9 @@ BrowserListener.prototype = {
   },
 
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsISupportsWeakReference,
-    Ci.nsIWebProgressListener,
-    Ci.nsIObserver,
+    "nsISupportsWeakReference",
+    "nsIWebProgressListener",
+    "nsIObserver",
   ]),
 };
 
@@ -535,7 +550,6 @@ var gFinalShutdownBarrier = null;
 var gBeforeShutdownBarrier = null;
 var gRepoShutdownState = "";
 var gShutdownInProgress = false;
-var gPluginPageListener = null;
 var gBrowserUpdated = null;
 
 var AMTelemetry;
@@ -823,18 +837,6 @@ var AddonManagerInternal = {
         }
       }
 
-      // Support for remote about:plugins. Note that this module isn't loaded
-      // at the top because Services.appinfo is defined late in tests.
-      let { RemotePages } = ChromeUtils.import(
-        "resource://gre/modules/remotepagemanager/RemotePageManagerParent.jsm"
-      );
-
-      gPluginPageListener = new RemotePages("about:plugins");
-      gPluginPageListener.addMessageListener(
-        "RequestPlugins",
-        this.requestPlugins
-      );
-
       gStartupComplete = true;
       this.recordTimestamp("AMI_startup_end");
     } catch (e) {
@@ -1064,8 +1066,6 @@ var AddonManagerInternal = {
     Services.prefs.removeObserver(PREF_EM_CHECK_UPDATE_SECURITY, this);
     Services.prefs.removeObserver(PREF_EM_UPDATE_ENABLED, this);
     Services.prefs.removeObserver(PREF_EM_AUTOUPDATE_DEFAULT, this);
-    gPluginPageListener.destroy();
-    gPluginPageListener = null;
 
     let savedError = null;
     // Only shut down providers if they've been started.
@@ -1115,30 +1115,6 @@ var AddonManagerInternal = {
     if (savedError) {
       throw savedError;
     }
-  },
-
-  async requestPlugins({ target: port }) {
-    // Lists all the properties that plugins.html needs
-    const NEEDED_PROPS = [
-      "name",
-      "pluginLibraries",
-      "pluginFullpath",
-      "version",
-      "isActive",
-      "blocklistState",
-      "description",
-      "pluginMimeTypes",
-    ];
-    function filterProperties(plugin) {
-      let filtered = {};
-      for (let prop of NEEDED_PROPS) {
-        filtered[prop] = plugin[prop];
-      }
-      return filtered;
-    }
-
-    let aPlugins = await AddonManager.getAddonsByTypes(["plugin"]);
-    port.sendAsyncMessage("PluginList", aPlugins.map(filterProperties));
   },
 
   /**
@@ -1841,9 +1817,11 @@ var AddonManagerInternal = {
    * @param  aTelemetryInfo
    *         An optional object which provides details about the installation source
    *         included in the addon manager telemetry events.
+   * @param  aUseSystemLocation
+   *         If true the addon is installed into the system profile location.
    * @throws if the aFile or aCallback arguments are not specified
    */
-  getInstallForFile(aFile, aMimetype, aTelemetryInfo) {
+  getInstallForFile(aFile, aMimetype, aTelemetryInfo, aUseSystemLocation) {
     if (!gStarted) {
       throw Components.Exception(
         "AddonManager is not initialized",
@@ -1871,7 +1849,8 @@ var AddonManagerInternal = {
           provider,
           "getInstallForFile",
           aFile,
-          aTelemetryInfo
+          aTelemetryInfo,
+          aUseSystemLocation
         );
 
         if (install) {
@@ -1881,6 +1860,25 @@ var AddonManagerInternal = {
 
       return null;
     })();
+  },
+
+  /**
+   * Uninstall an addon from the system profile location.
+   *
+   * @param {string} aID
+   *         The ID of the addon to remove.
+   * @returns A promise that resolves when the addon is uninstalled.
+   */
+  uninstallSystemProfileAddon(aID) {
+    if (!gStarted) {
+      throw Components.Exception(
+        "AddonManager is not initialized",
+        Cr.NS_ERROR_NOT_INITIALIZED
+      );
+    }
+    return AddonManagerInternal._getProviderByName(
+      "XPIProvider"
+    ).uninstallSystemProfileAddon(aID);
   },
 
   /**
@@ -2068,13 +2066,21 @@ var AddonManagerInternal = {
     return !explicit;
   },
 
-  installNotifyObservers(aTopic, aBrowser, aUri, aInstall, aInstallFn) {
+  installNotifyObservers(
+    aTopic,
+    aBrowser,
+    aUri,
+    aInstall,
+    aInstallFn,
+    aCancelFn
+  ) {
     let info = {
       wrappedJSObject: {
         browser: aBrowser,
         originatingURI: aUri,
         installs: [aInstall],
         install: aInstallFn,
+        cancel: aCancelFn,
       },
     };
     Services.obs.notifyObservers(info, aTopic);
@@ -2345,7 +2351,7 @@ var AddonManagerInternal = {
           aInstallingPrincipal.URI,
           aInstall
         );
-      } else {
+      } else if (!WEBEXT_POSTDOWNLOAD_THIRD_PARTY) {
         // Block with prompt
         this.installNotifyObservers(
           "addon-install-blocked",
@@ -2354,6 +2360,10 @@ var AddonManagerInternal = {
           aInstall,
           () => startInstall("other")
         );
+      } else {
+        // We download the addon and validate recommended states prior to
+        // showing the third party install panel.
+        startInstall("other");
       }
     } catch (e) {
       // In the event that the weblistener throws during instantiation or when
@@ -3104,6 +3114,31 @@ var AddonManagerInternal = {
     return aValue;
   },
 
+  _verifyThirdPartyInstall(browser, url, install, info, source) {
+    // If this is an install from a recognized source, or it is a recommended addon, we
+    // skip the third party panel.  The source param was generated based on the installing
+    // principal and checking against site permissions and enterprise policy, so we
+    // can rely on that rather than re-validating against that principal.
+    if (
+      !WEBEXT_POSTDOWNLOAD_THIRD_PARTY ||
+      ["AMO", "local"].includes(source) ||
+      info.addon.canBypassThirdParyInstallPrompt
+    ) {
+      return Promise.resolve();
+    }
+
+    return new Promise((resolve, reject) => {
+      this.installNotifyObservers(
+        "addon-install-blocked",
+        browser,
+        url,
+        install,
+        resolve,
+        reject
+      );
+    });
+  },
+
   setupPromptHandler(browser, url, install, requireConfirm, source) {
     install.promptHandler = info =>
       new Promise((resolve, _reject) => {
@@ -3117,76 +3152,89 @@ var AddonManagerInternal = {
           _reject();
         };
 
-        // All installs end up in this callback when the add-on is available
-        // for installation.  There are numerous different things that can
-        // happen from here though.  For webextensions, if the application
-        // implements webextension permission prompts, those always take
-        // precedence.
-        // If this add-on is not a webextension or if the application does not
-        // implement permission prompts, no confirmation is displayed for
-        // installs created from about:addons (in which case requireConfirm
-        // is false).
-        // In the remaining cases, a confirmation prompt is displayed but the
-        // application may override it either by implementing the
-        // "@mozilla.org/addons/web-install-prompt;1" contract or by setting
-        // the customConfirmationUI preference and responding to the
-        // "addon-install-confirmation" notification.  If the application
-        // does not implement its own prompt, use the built-in xul dialog.
-        if (info.addon.userPermissions && WEBEXT_PERMISSION_PROMPTS) {
-          let subject = {
-            wrappedJSObject: {
-              target: browser,
-              info: Object.assign({ resolve, reject, source }, info),
-            },
-          };
-          subject.wrappedJSObject.info.permissions = info.addon.userPermissions;
-          Services.obs.notifyObservers(
-            subject,
-            "webextension-permission-prompt"
-          );
-        } else if (requireConfirm) {
-          // The methods below all want to call the install() or cancel()
-          // method on the provided AddonInstall object to either accept
-          // or reject the confirmation.  Fit that into our promise-based
-          // control flow by wrapping the install object.  However,
-          // xpInstallConfirm.xul matches the install object it is passed
-          // with the argument passed to an InstallListener, so give it
-          // access to the underlying object through the .wrapped property.
-          let proxy = new Proxy(install, {
-            get(target, property) {
-              if (property == "install") {
-                return resolve;
-              } else if (property == "cancel") {
-                return reject;
-              } else if (property == "wrapped") {
-                return target;
+        this._verifyThirdPartyInstall(browser, url, install, info, source)
+          .then(() => {
+            // All installs end up in this callback when the add-on is available
+            // for installation.  There are numerous different things that can
+            // happen from here though.  For webextensions, if the application
+            // implements webextension permission prompts, those always take
+            // precedence.
+            // If this add-on is not a webextension or if the application does not
+            // implement permission prompts, no confirmation is displayed for
+            // installs created from about:addons (in which case requireConfirm
+            // is false).
+            // In the remaining cases, a confirmation prompt is displayed but the
+            // application may override it either by implementing the
+            // "@mozilla.org/addons/web-install-prompt;1" contract or by setting
+            // the customConfirmationUI preference and responding to the
+            // "addon-install-confirmation" notification.  If the application
+            // does not implement its own prompt, use the built-in xul dialog.
+            if (info.addon.userPermissions && WEBEXT_PERMISSION_PROMPTS) {
+              let subject = {
+                wrappedJSObject: {
+                  target: browser,
+                  info: Object.assign({ resolve, reject, source }, info),
+                },
+              };
+              subject.wrappedJSObject.info.permissions =
+                info.addon.userPermissions;
+              Services.obs.notifyObservers(
+                subject,
+                "webextension-permission-prompt"
+              );
+            } else if (requireConfirm) {
+              // The methods below all want to call the install() or cancel()
+              // method on the provided AddonInstall object to either accept
+              // or reject the confirmation.  Fit that into our promise-based
+              // control flow by wrapping the install object.  However,
+              // xpInstallConfirm.xul matches the install object it is passed
+              // with the argument passed to an InstallListener, so give it
+              // access to the underlying object through the .wrapped property.
+              let proxy = new Proxy(install, {
+                get(target, property) {
+                  if (property == "install") {
+                    return resolve;
+                  } else if (property == "cancel") {
+                    return reject;
+                  } else if (property == "wrapped") {
+                    return target;
+                  }
+                  let result = target[property];
+                  return typeof result == "function"
+                    ? result.bind(target)
+                    : result;
+                },
+              });
+
+              // Check for a custom installation prompt that may be provided by the
+              // applicaton
+              if ("@mozilla.org/addons/web-install-prompt;1" in Cc) {
+                try {
+                  let prompt = Cc[
+                    "@mozilla.org/addons/web-install-prompt;1"
+                  ].getService(Ci.amIWebInstallPrompt);
+                  prompt.confirm(browser, url, [proxy]);
+                  return;
+                } catch (e) {}
               }
-              let result = target[property];
-              return typeof result == "function" ? result.bind(target) : result;
-            },
+
+              this.installNotifyObservers(
+                "addon-install-confirmation",
+                browser,
+                url,
+                proxy
+              );
+            } else {
+              resolve();
+            }
+          })
+          .catch(e => {
+            // Error is undefined if the promise was rejected.
+            if (e) {
+              Cu.reportError(`Install prompt handler error: ${e}`);
+            }
+            reject();
           });
-
-          // Check for a custom installation prompt that may be provided by the
-          // applicaton
-          if ("@mozilla.org/addons/web-install-prompt;1" in Cc) {
-            try {
-              let prompt = Cc[
-                "@mozilla.org/addons/web-install-prompt;1"
-              ].getService(Ci.amIWebInstallPrompt);
-              prompt.confirm(browser, url, [proxy]);
-              return;
-            } catch (e) {}
-          }
-
-          this.installNotifyObservers(
-            "addon-install-confirmation",
-            browser,
-            url,
-            proxy
-          );
-        } else {
-          resolve();
-        }
       });
   },
 
@@ -3725,8 +3773,8 @@ var AddonManager = {
     ["STATE_AVAILABLE", 0],
     // The install is being downloaded.
     ["STATE_DOWNLOADING", 1],
-    // The install is checking for compatibility information.
-    ["STATE_CHECKING", 2],
+    // The install is checking the update for compatibility information.
+    ["STATE_CHECKING_UPDATE", 2],
     // The install is downloaded and ready to install.
     ["STATE_DOWNLOADED", 3],
     // The download failed.
@@ -3999,12 +4047,28 @@ var AddonManager = {
     return AddonManagerInternal.getInstallForURL(aUrl, aOptions);
   },
 
-  getInstallForFile(aFile, aMimetype, aTelemetryInfo) {
+  getInstallForFile(
+    aFile,
+    aMimetype,
+    aTelemetryInfo,
+    aUseSystemLocation = false
+  ) {
     return AddonManagerInternal.getInstallForFile(
       aFile,
       aMimetype,
-      aTelemetryInfo
+      aTelemetryInfo,
+      aUseSystemLocation
     );
+  },
+
+  uninstallSystemProfileAddon(aID) {
+    return AddonManagerInternal.uninstallSystemProfileAddon(aID);
+  },
+
+  stageLangpacksForAppUpdate(appVersion, platformVersion) {
+    return AddonManagerInternal._getProviderByName(
+      "XPIProvider"
+    ).stageLangpacksForAppUpdate(appVersion, platformVersion);
   },
 
   /**
@@ -4307,6 +4371,11 @@ AMTelemetry = {
 
   onInstallEnded(install) {
     this.recordInstallEvent(install, { step: "completed" });
+    // Skip install_stats events for install objects related to.
+    // add-on updates.
+    if (!install.existingAddon) {
+      this.recordInstallStatsEvent(install);
+    }
   },
 
   onDownloadStarted(install) {
@@ -4487,6 +4556,81 @@ AMTelemetry = {
         return value ? "1" : "0";
     }
     return String(value);
+  },
+
+  /**
+   * Return the UTM parameters found in `sourceURL` for AMO attribution data.
+   *
+   * @param {string} sourceURL
+   *        The source URL from where the add-on has been installed.
+   *
+   * @returns {object}
+   *          An object containing the attribution data for AMO if any. Keys
+   *          are defined in `AMO_ATTRIBUTION_DATA_KEYS`. Values are strings.
+   */
+  parseAttributionDataForAMO(sourceURL) {
+    let searchParams;
+
+    try {
+      searchParams = new URL(sourceURL).searchParams;
+    } catch {
+      return {};
+    }
+
+    const utmKeys = [...searchParams.keys()].filter(key =>
+      AMO_ATTRIBUTION_DATA_KEYS.includes(key)
+    );
+
+    return utmKeys.reduce((params, key) => {
+      let value = searchParams.get(key);
+      if (typeof value === "string") {
+        value = value.slice(0, AMO_ATTRIBUTION_DATA_MAX_LENGTH);
+      }
+
+      return { ...params, [key]: value };
+    }, {});
+  },
+
+  /**
+   * Record an "install stats" event when the source is included in
+   * `AMO_ATTRIBUTION_ALLOWED_SOURCES`.
+   *
+   * @param {AddonInstall} install
+   *        The AddonInstall instance to record an install_stats event for.
+   */
+  recordInstallStatsEvent(install) {
+    const telemetryInfo = this.getInstallTelemetryInfo(install);
+
+    if (!AMO_ATTRIBUTION_ALLOWED_SOURCES.includes(telemetryInfo?.source)) {
+      return;
+    }
+
+    const method = "install_stats";
+    const object = this.getEventObjectFromInstall(install);
+    const addonId = this.getAddonIdFromInstall(install);
+
+    if (!addonId) {
+      Cu.reportError(
+        "Missing addonId when trying to record an install_stats event"
+      );
+      return;
+    }
+
+    let extra = {
+      addon_id: this.getTrimmedString(addonId),
+    };
+
+    if (
+      telemetryInfo?.source === "amo" &&
+      typeof telemetryInfo?.sourceURL === "string"
+    ) {
+      extra = {
+        ...extra,
+        ...this.parseAttributionDataForAMO(telemetryInfo.sourceURL),
+      };
+    }
+
+    this.recordEvent({ method, object, value: install.hashedAddonId, extra });
   },
 
   /**

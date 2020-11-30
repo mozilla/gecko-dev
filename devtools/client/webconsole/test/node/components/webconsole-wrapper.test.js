@@ -10,8 +10,7 @@ const {
   stubPackets,
 } = require("devtools/client/webconsole/test/node/fixtures/stubs/index");
 const {
-  getFirstMessage,
-  getLastMessage,
+  clonePacket,
   getMessageAt,
   getPrivatePacket,
   getWebConsoleUiMock,
@@ -69,8 +68,8 @@ describe("WebConsoleWrapper", () => {
       getPrivatePacket("XHR POST request")
     );
 
-    const postId = Symbol();
-    const getId = Symbol();
+    const postId = "pid1";
+    const getId = "gid1";
 
     // Add messages in the store to make sure that update to private requests are
     // removed from the queue.
@@ -95,11 +94,11 @@ describe("WebConsoleWrapper", () => {
       publicNetworkUpdate,
       {
         ...getPrivatePacket("XHR GET request update"),
-        networkInfo: { actor: getId },
+        actor: getId,
       },
       {
         ...getPrivatePacket("XHR POST request update"),
-        networkInfo: { actor: postId },
+        actor: postId,
       }
     );
 
@@ -112,20 +111,21 @@ describe("WebConsoleWrapper", () => {
   it("removes private packets from network request queue on dispatchPrivateMessagesClear", async () => {
     const ncow = await getWebConsoleWrapper();
 
-    ncow
-      .getStore()
-      .dispatch(
-        messagesAdd([
-          stubPackets.get("GET request"),
-          getPrivatePacket("XHR GET request"),
-          getPrivatePacket("XHR POST request"),
-        ])
-      );
+    const packet1 = clonePacket(stubPackets.get("GET request"));
+    const packet2 = clonePacket(getPrivatePacket("XHR GET request"));
+    const packet3 = clonePacket(getPrivatePacket("XHR POST request"));
+
+    // We need to reassign the timeStamp of the packet to guarantee the order.
+    packet1.timeStamp = packet1.timeStamp + 1;
+    packet2.timeStamp = packet2.timeStamp + 2;
+    packet3.timeStamp = packet3.timeStamp + 3;
+
+    ncow.getStore().dispatch(messagesAdd([packet1, packet2, packet3]));
 
     const state = ncow.getStore().getState();
-    const publicId = getFirstMessage(state).id;
+    const publicId = getMessageAt(state, 0).id;
     const privateXhrGetId = getMessageAt(state, 1).id;
-    const privateXhrPostId = getLastMessage(state).id;
+    const privateXhrPostId = getMessageAt(state, 2).id;
     ncow.queuedRequestUpdates.push(
       { id: publicId },
       { id: privateXhrGetId },

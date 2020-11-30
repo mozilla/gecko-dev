@@ -4,19 +4,35 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![allow(non_camel_case_types)]
-include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 use pkcs11::types::*;
 use sha2::{Digest, Sha256};
 use std::convert::TryInto;
-use std::ffi::{CStr, CString};
+use std::ffi::{c_void, CStr, CString};
 use std::ops::Deref;
 use std::slice;
 use winapi::shared::bcrypt::*;
+use winapi::shared::minwindef::{DWORD, PBYTE};
+use winapi::um::errhandlingapi::GetLastError;
 use winapi::um::ncrypt::*;
-use winapi::um::wincrypt::*;
+use winapi::um::wincrypt::{HCRYPTHASH, HCRYPTPROV, *};
 
+use crate::manager::SlotType;
 use crate::util::*;
+
+// winapi has some support for ncrypt.h, but not for this function.
+extern "system" {
+    fn NCryptSignHash(
+        hKey: NCRYPT_KEY_HANDLE,
+        pPaddingInfo: *mut c_void,
+        pbHashValue: PBYTE,
+        cbHashValue: DWORD,
+        pbSignature: PBYTE,
+        cbSignature: DWORD,
+        pcbResult: *mut DWORD,
+        dwFlags: DWORD,
+    ) -> SECURITY_STATUS;
+}
 
 /// Given a `CERT_INFO`, tries to return the bytes of the subject distinguished name as formatted by
 /// `CertNameToStrA` using the flag `CERT_SIMPLE_NAME_STR`. This is used as the label for the
@@ -49,6 +65,17 @@ fn get_cert_subject_dn(cert_info: &CERT_INFO) -> Result<Vec<u8>, ()> {
     Ok(subject_dn_string_bytes)
 }
 
+/// Helper function to determine which slot to expose a certificate/key on.
+/// Certificates with keys that are available via the CNG APIs are exposed on the modern slot.
+/// Certificates with keys that are only available via the CryptoAPI APIs are exposed on the legacy
+/// slot.
+fn get_slot_type_for_cert(cert: &CertContext) -> Result<SlotType, ()> {
+    match KeyHandle::from_cert_no_ui(cert)? {
+        KeyHandle::NCrypt(_) => Ok(SlotType::Modern),
+        KeyHandle::CryptoAPI(_, _) => Ok(SlotType::Legacy),
+    }
+}
+
 /// Represents a certificate for which there exists a corresponding private key.
 pub struct Cert {
     /// PKCS #11 object class. Will be `CKO_CERTIFICATE`.
@@ -67,11 +94,13 @@ pub struct Cert {
     serial_number: Vec<u8>,
     /// The DER bytes of the subject distinguished name of the certificate.
     subject: Vec<u8>,
+    /// Which slot this certificate should be exposed on.
+    slot_type: SlotType,
 }
 
 impl Cert {
-    fn new(cert: PCCERT_CONTEXT) -> Result<Cert, ()> {
-        let cert = unsafe { &*cert };
+    fn new(cert_context: PCCERT_CONTEXT, slot_type: SlotType) -> Result<Cert, ()> {
+        let cert = unsafe { &*cert_context };
         let cert_info = unsafe { &*cert.pCertInfo };
         let value =
             unsafe { slice::from_raw_parts(cert.pbCertEncoded, cert.cbCertEncoded as usize) };
@@ -96,6 +125,7 @@ impl Cert {
             issuer,
             serial_number,
             subject,
+            slot_type,
         })
     }
 
@@ -131,7 +161,10 @@ impl Cert {
         &self.subject
     }
 
-    fn matches(&self, attrs: &[(CK_ATTRIBUTE_TYPE, Vec<u8>)]) -> bool {
+    fn matches(&self, slot_type: SlotType, attrs: &[(CK_ATTRIBUTE_TYPE, Vec<u8>)]) -> bool {
+        if slot_type != self.slot_type {
+            return false;
+        }
         for (attr_type, attr_value) in attrs {
             let comparison = match *attr_type {
                 CKA_CLASS => self.class(),
@@ -191,48 +224,258 @@ impl Deref for CertContext {
     }
 }
 
-struct NCryptKeyHandle(NCRYPT_KEY_HANDLE);
+enum KeyHandle {
+    NCrypt(NCRYPT_KEY_HANDLE),
+    CryptoAPI(HCRYPTPROV, DWORD),
+}
 
-impl NCryptKeyHandle {
-    fn from_cert(cert: &CertContext) -> Result<NCryptKeyHandle, ()> {
+impl KeyHandle {
+    fn from_cert(cert: &CertContext) -> Result<KeyHandle, ()> {
+        KeyHandle::from_cert_common(cert, 0)
+    }
+
+    fn from_cert_no_ui(cert: &CertContext) -> Result<KeyHandle, ()> {
+        KeyHandle::from_cert_common(cert, CRYPT_ACQUIRE_SILENT_FLAG)
+    }
+
+    fn from_cert_common(cert: &CertContext, extra_flags: DWORD) -> Result<KeyHandle, ()> {
         let mut key_handle = 0;
         let mut key_spec = 0;
         let mut must_free = 0;
         unsafe {
             if CryptAcquireCertificatePrivateKey(
                 **cert,
-                CRYPT_ACQUIRE_ONLY_NCRYPT_KEY_FLAG, // currently we only support CNG
+                CRYPT_ACQUIRE_PREFER_NCRYPT_KEY_FLAG | extra_flags,
                 std::ptr::null_mut(),
                 &mut key_handle,
                 &mut key_spec,
                 &mut must_free,
             ) != 1
             {
+                error!(
+                    "CryptAcquireCertificatePrivateKey failed: 0x{:x}",
+                    GetLastError()
+                );
                 return Err(());
             }
-        }
-        if key_spec != CERT_NCRYPT_KEY_SPEC {
-            error!("CryptAcquireCertificatePrivateKey returned non-ncrypt handle");
-            return Err(());
         }
         if must_free == 0 {
             error!("CryptAcquireCertificatePrivateKey returned shared key handle");
             return Err(());
         }
-        Ok(NCryptKeyHandle(key_handle as NCRYPT_KEY_HANDLE))
+        if key_spec == CERT_NCRYPT_KEY_SPEC {
+            Ok(KeyHandle::NCrypt(key_handle as NCRYPT_KEY_HANDLE))
+        } else {
+            Ok(KeyHandle::CryptoAPI(key_handle as HCRYPTPROV, key_spec))
+        }
     }
-}
 
-impl Drop for NCryptKeyHandle {
-    fn drop(&mut self) {
-        unsafe {
-            NCryptFreeObject(self.0 as NCRYPT_HANDLE);
+    fn sign(
+        &self,
+        data: &[u8],
+        params: &Option<CK_RSA_PKCS_PSS_PARAMS>,
+        do_signature: bool,
+        key_type: KeyType,
+    ) -> Result<Vec<u8>, ()> {
+        match &self {
+            KeyHandle::NCrypt(ncrypt_handle) => {
+                sign_ncrypt(ncrypt_handle, data, params, do_signature, key_type)
+            }
+            KeyHandle::CryptoAPI(hcryptprov, key_spec) => {
+                sign_cryptoapi(hcryptprov, key_spec, data, params, do_signature)
+            }
         }
     }
 }
 
-impl Deref for NCryptKeyHandle {
-    type Target = NCRYPT_KEY_HANDLE;
+impl Drop for KeyHandle {
+    fn drop(&mut self) {
+        match self {
+            KeyHandle::NCrypt(ncrypt_handle) => unsafe {
+                let _ = NCryptFreeObject(*ncrypt_handle);
+            },
+            KeyHandle::CryptoAPI(hcryptprov, _) => unsafe {
+                let _ = CryptReleaseContext(*hcryptprov, 0);
+            },
+        }
+    }
+}
+
+fn sign_ncrypt(
+    ncrypt_handle: &NCRYPT_KEY_HANDLE,
+    data: &[u8],
+    params: &Option<CK_RSA_PKCS_PSS_PARAMS>,
+    do_signature: bool,
+    key_type: KeyType,
+) -> Result<Vec<u8>, ()> {
+    let mut sign_params = SignParams::new(key_type, params)?;
+    let params_ptr = sign_params.params_ptr();
+    let flags = sign_params.flags();
+    let mut data = data.to_vec();
+    let mut signature_len = 0;
+    // We call NCryptSignHash twice: the first time to get the size of the buffer we need to
+    // allocate and then again to actually sign the data, if `do_signature` is `true`.
+    let status = unsafe {
+        NCryptSignHash(
+            *ncrypt_handle,
+            params_ptr,
+            data.as_mut_ptr(),
+            data.len().try_into().map_err(|_| ())?,
+            std::ptr::null_mut(),
+            0,
+            &mut signature_len,
+            flags,
+        )
+    };
+    // 0 is "ERROR_SUCCESS" (but "ERROR_SUCCESS" is unsigned, whereas SECURITY_STATUS is signed)
+    if status != 0 {
+        error!(
+            "NCryptSignHash failed trying to get signature buffer length, {}",
+            status
+        );
+        return Err(());
+    }
+    let mut signature = vec![0; signature_len as usize];
+    if !do_signature {
+        return Ok(signature);
+    }
+    let mut final_signature_len = signature_len;
+    let status = unsafe {
+        NCryptSignHash(
+            *ncrypt_handle,
+            params_ptr,
+            data.as_mut_ptr(),
+            data.len().try_into().map_err(|_| ())?,
+            signature.as_mut_ptr(),
+            signature_len,
+            &mut final_signature_len,
+            flags,
+        )
+    };
+    if status != 0 {
+        error!("NCryptSignHash failed signing data {}", status);
+        return Err(());
+    }
+    if final_signature_len != signature_len {
+        error!(
+            "NCryptSignHash: inconsistent signature lengths? {} != {}",
+            final_signature_len, signature_len
+        );
+        return Err(());
+    }
+    Ok(signature)
+}
+
+fn sign_cryptoapi(
+    hcryptprov: &HCRYPTPROV,
+    key_spec: &DWORD,
+    data: &[u8],
+    params: &Option<CK_RSA_PKCS_PSS_PARAMS>,
+    do_signature: bool,
+) -> Result<Vec<u8>, ()> {
+    if params.is_some() {
+        error!("non-None signature params cannot be used with CryptoAPI");
+        return Err(());
+    }
+    // data will be an encoded DigestInfo, which specifies the hash algorithm and bytes of the hash
+    // to sign. However, CryptoAPI requires directly specifying the bytes of the hash, so it must
+    // be extracted first.
+    let hash_bytes = read_digest(data)?;
+    let hash = HCryptHash::new(hcryptprov, hash_bytes)?;
+    let mut signature_len = 0;
+    if unsafe {
+        CryptSignHashW(
+            *hash,
+            *key_spec,
+            std::ptr::null_mut(),
+            0,
+            std::ptr::null_mut(),
+            &mut signature_len,
+        )
+    } != 1
+    {
+        error!(
+            "CryptSignHash failed trying to get signature buffer length: 0x{:x}",
+            unsafe { GetLastError() }
+        );
+        return Err(());
+    }
+    let mut signature = vec![0; signature_len as usize];
+    if !do_signature {
+        return Ok(signature);
+    }
+    let mut final_signature_len = signature_len;
+    if unsafe {
+        CryptSignHashW(
+            *hash,
+            *key_spec,
+            std::ptr::null_mut(),
+            0,
+            signature.as_mut_ptr(),
+            &mut final_signature_len,
+        )
+    } != 1
+    {
+        error!("CryptSignHash failed signing data: 0x{:x}", unsafe {
+            GetLastError()
+        });
+        return Err(());
+    }
+    if final_signature_len != signature_len {
+        error!(
+            "CryptSignHash: inconsistent signature lengths? {} != {}",
+            final_signature_len, signature_len
+        );
+        return Err(());
+    }
+    // CryptoAPI returns the signature with the most significant byte last (little-endian),
+    // whereas PKCS#11 expects the most significant byte first (big-endian).
+    signature.reverse();
+    Ok(signature)
+}
+
+struct HCryptHash(HCRYPTHASH);
+
+impl HCryptHash {
+    fn new(hcryptprov: &HCRYPTPROV, hash_bytes: &[u8]) -> Result<HCryptHash, ()> {
+        let alg = match hash_bytes.len() {
+            20 => CALG_SHA1,
+            32 => CALG_SHA_256,
+            48 => CALG_SHA_384,
+            64 => CALG_SHA_512,
+            _ => {
+                error!(
+                    "HCryptHash::new: invalid hash of length {}",
+                    hash_bytes.len()
+                );
+                return Err(());
+            }
+        };
+        let mut hash: HCRYPTHASH = 0;
+        if unsafe { CryptCreateHash(*hcryptprov, alg, 0, 0, &mut hash) } != 1 {
+            error!("CryptCreateHash failed: 0x{:x}", unsafe { GetLastError() });
+            return Err(());
+        }
+        if unsafe { CryptSetHashParam(hash, HP_HASHVAL, hash_bytes.as_ptr(), 0) } != 1 {
+            error!("CryptSetHashParam failed: 0x{:x}", unsafe {
+                GetLastError()
+            });
+            return Err(());
+        }
+        Ok(HCryptHash(hash))
+    }
+}
+
+impl Drop for HCryptHash {
+    fn drop(&mut self) {
+        unsafe {
+            CryptDestroyHash(self.0);
+        }
+    }
+}
+
+impl Deref for HCryptHash {
+    type Target = HCRYPTHASH;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -346,6 +589,8 @@ pub struct Key {
     ec_params: Option<Vec<u8>>,
     /// An enum identifying this key's type.
     key_type_enum: KeyType,
+    /// Which slot this key should be exposed on.
+    slot_type: SlotType,
 }
 
 impl Key {
@@ -382,8 +627,10 @@ impl Key {
         } else {
             return Err(());
         };
+        let cert = CertContext::new(cert_context);
+        let slot_type = get_slot_type_for_cert(&cert)?;
         Ok(Key {
-            cert: CertContext::new(cert_context),
+            cert,
             class: serialize_uint(CKO_PRIVATE_KEY)?,
             token: serialize_uint(CK_TRUE)?,
             id,
@@ -392,6 +639,7 @@ impl Key {
             modulus,
             ec_params,
             key_type_enum,
+            slot_type,
         })
     }
 
@@ -429,7 +677,10 @@ impl Key {
         }
     }
 
-    fn matches(&self, attrs: &[(CK_ATTRIBUTE_TYPE, Vec<u8>)]) -> bool {
+    fn matches(&self, slot_type: SlotType, attrs: &[(CK_ATTRIBUTE_TYPE, Vec<u8>)]) -> bool {
+        if slot_type != self.slot_type {
+            return false;
+        }
         for (attr_type, attr_value) in attrs {
             let comparison = match *attr_type {
                 CKA_CLASS => self.class(),
@@ -503,63 +754,8 @@ impl Key {
     ) -> Result<Vec<u8>, ()> {
         // Acquiring a handle on the key can cause the OS to show some UI to the user, so we do this
         // as late as possible (i.e. here).
-        let key = NCryptKeyHandle::from_cert(&self.cert)?;
-        let mut sign_params = SignParams::new(self.key_type_enum, params)?;
-        let params_ptr = sign_params.params_ptr();
-        let flags = sign_params.flags();
-        let mut data = data.to_vec();
-        let mut signature_len = 0;
-        // We call NCryptSignHash twice: the first time to get the size of the buffer we need to
-        // allocate and then again to actually sign the data, if `do_signature` is `true`.
-        let status = unsafe {
-            NCryptSignHash(
-                *key,
-                params_ptr,
-                data.as_mut_ptr(),
-                data.len().try_into().map_err(|_| ())?,
-                std::ptr::null_mut(),
-                0,
-                &mut signature_len,
-                flags,
-            )
-        };
-        // 0 is "ERROR_SUCCESS" (but "ERROR_SUCCESS" is unsigned, whereas SECURITY_STATUS is signed)
-        if status != 0 {
-            error!(
-                "NCryptSignHash failed trying to get signature buffer length, {}",
-                status
-            );
-            return Err(());
-        }
-        let mut signature = vec![0; signature_len as usize];
-        if !do_signature {
-            return Ok(signature);
-        }
-        let mut final_signature_len = signature_len;
-        let status = unsafe {
-            NCryptSignHash(
-                *key,
-                params_ptr,
-                data.as_mut_ptr(),
-                data.len().try_into().map_err(|_| ())?,
-                signature.as_mut_ptr(),
-                signature_len,
-                &mut final_signature_len,
-                flags,
-            )
-        };
-        if status != 0 {
-            error!("NCryptSignHash failed signing data {}", status);
-            return Err(());
-        }
-        if final_signature_len != signature_len {
-            error!(
-                "NCryptSignHash: inconsistent signature lengths? {} != {}",
-                final_signature_len, signature_len
-            );
-            return Err(());
-        }
-        Ok(signature)
+        let key = KeyHandle::from_cert(&self.cert)?;
+        key.sign(data, params, do_signature, self.key_type_enum)
     }
 }
 
@@ -571,10 +767,10 @@ pub enum Object {
 }
 
 impl Object {
-    pub fn matches(&self, attrs: &[(CK_ATTRIBUTE_TYPE, Vec<u8>)]) -> bool {
+    pub fn matches(&self, slot_type: SlotType, attrs: &[(CK_ATTRIBUTE_TYPE, Vec<u8>)]) -> bool {
         match self {
-            Object::Cert(cert) => cert.matches(attrs),
-            Object::Key(key) => key.matches(attrs),
+            Object::Cert(cert) => cert.matches(slot_type, attrs),
+            Object::Key(key) => key.matches(slot_type, attrs),
         }
     }
 
@@ -629,6 +825,46 @@ pub const SUPPORTED_ATTRIBUTES: &[CK_ATTRIBUTE_TYPE] = &[
     CKA_EC_PARAMS,
 ];
 
+// Given a pointer to a CERT_CHAIN_CONTEXT, enumerates each chain in the context and each element
+// in each chain to gather every CERT_CONTEXT pointed to by the CERT_CHAIN_CONTEXT.
+// https://docs.microsoft.com/en-us/windows/win32/api/wincrypt/ns-wincrypt-cert_chain_context says
+// that the 0th element of the 0th chain will be the end-entity certificate. This certificate (if
+// present), will be the 0th element of the returned Vec.
+fn gather_cert_contexts(cert_chain_context: *const CERT_CHAIN_CONTEXT) -> Vec<*const CERT_CONTEXT> {
+    let mut cert_contexts = Vec::new();
+    if cert_chain_context.is_null() {
+        return cert_contexts;
+    }
+    let cert_chain_context = unsafe { &*cert_chain_context };
+    let cert_chains = unsafe {
+        std::slice::from_raw_parts(
+            cert_chain_context.rgpChain,
+            cert_chain_context.cChain as usize,
+        )
+    };
+    for cert_chain in cert_chains {
+        // First dereference the borrow.
+        let cert_chain = *cert_chain;
+        if cert_chain.is_null() {
+            continue;
+        }
+        // Then dereference the pointer.
+        let cert_chain = unsafe { &*cert_chain };
+        let chain_elements = unsafe {
+            std::slice::from_raw_parts(cert_chain.rgpElement, cert_chain.cElement as usize)
+        };
+        for chain_element in chain_elements {
+            let chain_element = *chain_element; // dereference borrow
+            if chain_element.is_null() {
+                continue;
+            }
+            let chain_element = unsafe { &*chain_element }; // dereference pointer
+            cert_contexts.push(chain_element.pCertContext);
+        }
+    }
+    cert_contexts
+}
+
 /// Attempts to enumerate certificates with private keys exposed by the OS. Currently only looks in
 /// the "My" cert store of the current user. In the future this may look in more locations.
 pub fn list_objects() -> Vec<Object> {
@@ -656,31 +892,62 @@ pub fn list_objects() -> Vec<Object> {
         error!("CertOpenStore failed");
         return objects;
     }
-    let mut cert_context: PCCERT_CONTEXT = std::ptr::null_mut();
+    let find_params = CERT_CHAIN_FIND_ISSUER_PARA {
+        cbSize: std::mem::size_of::<CERT_CHAIN_FIND_ISSUER_PARA>() as u32,
+        pszUsageIdentifier: std::ptr::null(),
+        dwKeySpec: 0,
+        dwAcquirePrivateKeyFlags: 0,
+        cIssuer: 0,
+        rgIssuer: std::ptr::null_mut(),
+        pfnFindCallback: None,
+        pvFindArg: std::ptr::null_mut(),
+        pdwIssuerChainIndex: std::ptr::null_mut(),
+        pdwIssuerElementIndex: std::ptr::null_mut(),
+    };
+    let mut cert_chain_context: PCCERT_CHAIN_CONTEXT = std::ptr::null_mut();
     loop {
-        cert_context = unsafe {
-            CertFindCertificateInStore(
+        // CertFindChainInStore finds all certificates with private keys in the store. It also
+        // attempts to build a verified certificate chain to a trust anchor for each certificate.
+        // We gather and hold onto these extra certificates so that gecko can use them when
+        // filtering potential client certificates according to the acceptable CAs list sent by
+        // servers when they request client certificates.
+        cert_chain_context = unsafe {
+            CertFindChainInStore(
                 *store,
                 X509_ASN_ENCODING,
-                CERT_FIND_HAS_PRIVATE_KEY,
-                CERT_FIND_ANY,
-                std::ptr::null_mut(),
-                cert_context,
+                CERT_CHAIN_FIND_BY_ISSUER_CACHE_ONLY_FLAG
+                    | CERT_CHAIN_FIND_BY_ISSUER_CACHE_ONLY_URL_FLAG,
+                CERT_CHAIN_FIND_BY_ISSUER,
+                &find_params as *const CERT_CHAIN_FIND_ISSUER_PARA as *const winapi::ctypes::c_void,
+                cert_chain_context,
             )
         };
-        if cert_context.is_null() {
+        if cert_chain_context.is_null() {
             break;
         }
-        let cert = match Cert::new(cert_context) {
-            Ok(cert) => cert,
-            Err(()) => continue,
+        let cert_contexts = gather_cert_contexts(cert_chain_context);
+        // The 0th CERT_CONTEXT is the end-entity (i.e. the certificate with the private key we're
+        // after).
+        match cert_contexts.get(0) {
+            Some(cert_context) => {
+                let key = match Key::new(*cert_context) {
+                    Ok(key) => key,
+                    Err(()) => continue,
+                };
+                let cert = match Cert::new(*cert_context, key.slot_type) {
+                    Ok(cert) => cert,
+                    Err(()) => continue,
+                };
+                objects.push(Object::Cert(cert));
+                objects.push(Object::Key(key));
+            }
+            None => {}
         };
-        let key = match Key::new(cert_context) {
-            Ok(key) => key,
-            Err(()) => continue,
-        };
-        objects.push(Object::Cert(cert));
-        objects.push(Object::Key(key));
+        for cert_context in cert_contexts.iter().skip(1) {
+            if let Ok(cert) = Cert::new(*cert_context, SlotType::Legacy) {
+                objects.push(Object::Cert(cert));
+            }
+        }
     }
     objects
 }

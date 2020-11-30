@@ -34,6 +34,8 @@
 #include "nsIScreenManager.h"
 #include "nsIWidgetListener.h"
 #include "VibrancyManager.h"
+#include "nsPresContext.h"
+#include "nsDocShell.h"
 
 #include "gfxPlatform.h"
 #include "qcms.h"
@@ -44,6 +46,7 @@
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/StaticPrefs_widget.h"
 #include "mozilla/PresShell.h"
+#include "mozilla/layers/CompositorBridgeChild.h"
 #include <algorithm>
 
 namespace mozilla {
@@ -158,7 +161,6 @@ nsCocoaWindow::nsCocoaWindow()
       mInFullScreenTransition(false),
       mModal(false),
       mFakeModal(false),
-      mSupportsNativeFullScreen(false),
       mInNativeFullScreenMode(false),
       mIsAnimationSuppressed(false),
       mInReportMoveEvent(false),
@@ -167,7 +169,8 @@ nsCocoaWindow::nsCocoaWindow()
       mAlwaysOnTop(false),
       mAspectRatioLocked(false),
       mNumModalDescendents(0),
-      mWindowAnimationBehavior(NSWindowAnimationBehaviorDefault) {
+      mWindowAnimationBehavior(NSWindowAnimationBehaviorDefault),
+      mWasShown(false) {
   if ([NSWindow respondsToSelector:@selector(setAllowsAutomaticWindowTabbing:)]) {
     // Disable automatic tabbing on 10.12. We need to do this before we
     // orderFront any of our windows.
@@ -488,15 +491,27 @@ nsresult nsCocoaWindow::CreateNativeWindow(const NSRect& aRect, nsBorderStyle aB
     SetPopupWindowLevel();
     [mWindow setBackgroundColor:[NSColor clearColor]];
     [mWindow setOpaque:NO];
+
+    // When multiple spaces are in use and the browser is assigned to a
+    // particular space, override the "Assign To" space and display popups on
+    // the active space. Does not work with multiple displays. See
+    // NeedsRecreateToReshow() for multi-display with multi-space workaround.
+    if (!mAlwaysOnTop) {
+      NSWindowCollectionBehavior behavior = [mWindow collectionBehavior];
+      behavior |= NSWindowCollectionBehaviorMoveToActiveSpace;
+      [mWindow setCollectionBehavior:behavior];
+    }
   } else {
-    // Make sure that regular windows are opaque from the start, so that
-    // nsChildView::WidgetTypeSupportsAcceleration returns true for them.
+    // Non-popup windows are always opaque.
     [mWindow setOpaque:YES];
   }
 
+  NSWindowCollectionBehavior newBehavior = [mWindow collectionBehavior];
   if (mAlwaysOnTop) {
     [mWindow setLevel:NSFloatingWindowLevel];
+    newBehavior |= NSWindowCollectionBehaviorCanJoinAllSpaces;
   }
+  [mWindow setCollectionBehavior:newBehavior];
 
   [mWindow setContentMinSize:NSMakeSize(60, 60)];
   [mWindow disableCursorRects];
@@ -749,6 +764,9 @@ void nsCocoaWindow::Show(bool bState) {
   if (bState && [mWindow isBeingShown]) return;
 
   [mWindow setBeingShown:bState];
+  if (bState && !mWasShown) {
+    mWasShown = true;
+  }
 
   nsIWidget* parentWidget = mParent;
   nsCOMPtr<nsPIWidgetCocoa> piParentWidget(do_QueryInterface(parentWidget));
@@ -862,7 +880,14 @@ void nsCocoaWindow::Show(bool bState) {
         [mWindow setAnimationBehavior:behavior];
         mWindowAnimationBehavior = behavior;
       }
-      [mWindow makeKeyAndOrderFront:nil];
+
+      // We don't want alwaysontop windows to pull focus when they're opened,
+      // as these tend to be for peripheral indicators and displays.
+      if (mAlwaysOnTop) {
+        [mWindow orderFront:nil];
+      } else {
+        [mWindow makeKeyAndOrderFront:nil];
+      }
       NS_OBJC_END_TRY_ABORT_BLOCK;
       SendSetZLevelEvent();
     }
@@ -950,6 +975,17 @@ void nsCocoaWindow::Show(bool bState) {
   [mWindow setBeingShown:NO];
 
   NS_OBJC_END_TRY_ABORT_BLOCK;
+}
+
+// Work around a problem where with multiple displays and multiple spaces
+// enabled, where the browser is assigned to a single display or space, popup
+// windows that are reshown after being hidden with [NSWindow orderOut] show on
+// the assigned space even when opened from another display. Apply the
+// workaround whenever more than one display is enabled.
+bool nsCocoaWindow::NeedsRecreateToReshow() {
+  // Limit the workaround to popup windows because only they need to override
+  // the "Assign To" setting. i.e., to display where the parent window is.
+  return (mWindowType == eWindowType_popup) && mWasShown && ([[NSScreen screens] count] > 1);
 }
 
 struct ShadowParams {
@@ -1040,15 +1076,16 @@ nsTransparencyMode nsCocoaWindow::GetTransparencyMode() {
   NS_OBJC_END_TRY_ABORT_BLOCK_RETURN(eTransparencyOpaque);
 }
 
-// This is called from nsMenuPopupFrame when making a popup transparent, or
-// from nsChildView::SetTransparencyMode for other window types.
+// This is called from nsMenuPopupFrame when making a popup transparent.
 void nsCocoaWindow::SetTransparencyMode(nsTransparencyMode aMode) {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
-  if (!mWindow) return;
+  // Only respect calls for popup windows.
+  if (!mWindow || mWindowType != eWindowType_popup) {
+    return;
+  }
 
-  // Transparent windows are only supported on popups.
-  BOOL isTransparent = aMode == eTransparencyTransparent && mWindowType == eWindowType_popup;
+  BOOL isTransparent = aMode == eTransparencyTransparent;
   BOOL currentTransparency = ![mWindow isOpaque];
   if (isTransparent != currentTransparency) {
     [mWindow setOpaque:!isTransparent];
@@ -1124,8 +1161,8 @@ void nsCocoaWindow::ConstrainPosition(bool aAllowSlop, int32_t* aX, int32_t* aY)
 void nsCocoaWindow::SetSizeConstraints(const SizeConstraints& aConstraints) {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
-  // Popups can be smaller than (60, 60)
-  NSRect rect = (mWindowType == eWindowType_popup) ? NSZeroRect : NSMakeRect(0.0, 0.0, 60, 60);
+  // Popups can be smaller than (32, 32)
+  NSRect rect = (mWindowType == eWindowType_popup) ? NSZeroRect : NSMakeRect(0.0, 0.0, 32, 32);
   rect = [mWindow frameRectForChildViewRect:rect];
 
   CGFloat scaleFactor = BackingScaleFactor();
@@ -1264,9 +1301,19 @@ static CGSRemoveWindowsFromSpacesFunc GetCGSRemoveWindowsFromSpacesFunc() {
   return func;
 }
 
+void nsCocoaWindow::GetWorkspaceID(nsAString& workspaceID) {
+  workspaceID.Truncate();
+  int32_t sid = GetWorkspaceID();
+  if (sid != 0) {
+    workspaceID.AppendInt(sid);
+  }
+}
+
 int32_t nsCocoaWindow::GetWorkspaceID() {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
+  // Mac OSX space IDs start at '1' (default space), so '0' means 'unknown',
+  // effectively.
   CGSSpaceID sid = 0;
 
   if (!nsCocoaFeatures::OnElCapitanOrLater()) {
@@ -1300,10 +1347,22 @@ int32_t nsCocoaWindow::GetWorkspaceID() {
   NS_OBJC_END_TRY_ABORT_BLOCK;
 }
 
-void nsCocoaWindow::MoveToWorkspace(int32_t workspaceID) {
+void nsCocoaWindow::MoveToWorkspace(const nsAString& workspaceIDStr) {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
   if (!nsCocoaFeatures::OnElCapitanOrLater()) {
+    return;
+  }
+
+  if ([NSScreen screensHaveSeparateSpaces] && [[NSScreen screens] count] > 1) {
+    // We don't support moving to a workspace when the user has this option
+    // enabled in Mission Control.
+    return;
+  }
+
+  nsresult rv = NS_OK;
+  int32_t workspaceID = workspaceIDStr.ToInteger(&rv);
+  if (NS_FAILED(rv)) {
     return;
   }
 
@@ -1553,10 +1612,14 @@ void nsCocoaWindow::UpdateFullscreenState(bool aFullScreen, bool aNativeMode) {
 
 inline bool nsCocoaWindow::ShouldToggleNativeFullscreen(bool aFullScreen,
                                                         bool aUseSystemTransition) {
-  if (!mSupportsNativeFullScreen) {
-    // If we cannot use native fullscreen, don't touch it.
+  // First check if this window supports entering native fullscreen.
+  // This is set based on the macnativefullscreen attribute on the window's
+  // document element.
+  NSWindowCollectionBehavior colBehavior = [mWindow collectionBehavior];
+  if (!(colBehavior & NSWindowCollectionBehaviorFullScreenPrimary)) {
     return false;
   }
+
   if (mInNativeFullScreenMode) {
     // If we are using native fullscreen, go ahead to exit it.
     return true;
@@ -1596,14 +1659,6 @@ nsresult nsCocoaWindow::DoMakeFullScreen(bool aFullScreen, bool aUseSystemTransi
   mInFullScreenTransition = true;
 
   if (ShouldToggleNativeFullscreen(aFullScreen, aUseSystemTransition)) {
-    // If we're using native fullscreen mode and our native window is invisible,
-    // our attempt to go into fullscreen mode will fail with an assertion in
-    // system code, without [WindowDelegate windowDidFailToEnterFullScreen:]
-    // ever getting called.  To pre-empt this we bail here.  See bug 752294.
-    if (aFullScreen && ![mWindow isVisible]) {
-      EnteredFullScreen(false);
-      return NS_OK;
-    }
     MOZ_ASSERT(mInNativeFullScreenMode != aFullScreen,
                "We shouldn't have been in native fullscreen.");
     // Calling toggleFullScreen will result in windowDid(FailTo)?(Enter|Exit)FullScreen
@@ -1611,6 +1666,9 @@ nsresult nsCocoaWindow::DoMakeFullScreen(bool aFullScreen, bool aUseSystemTransi
     // where mInFullScreenMode will be set and a sizemode event will be dispatched.
     [mWindow toggleFullScreen:nil];
   } else {
+    if (mWidgetListener) {
+      mWidgetListener->FullscreenWillChange(aFullScreen);
+    }
     NSDisableScreenUpdates();
     // The order here matters. When we exit full screen mode, we need to show the
     // Dock first, otherwise the newly-created window won't have its minimize
@@ -1793,6 +1851,7 @@ CGFloat nsCocoaWindow::BackingScaleFactor() {
 }
 
 void nsCocoaWindow::BackingScaleFactorChanged() {
+  CGFloat oldScale = mBackingScaleFactor;
   CGFloat newScale = GetBackingScaleFactor(mWindow);
 
   // ignore notification if it hasn't really changed (or maybe we have
@@ -1826,6 +1885,23 @@ void nsCocoaWindow::BackingScaleFactorChanged() {
     presShell->BackingScaleFactorChanged();
   }
   mWidgetListener->UIResolutionChanged();
+
+  if ((mWindowType == eWindowType_popup) && (mBackingScaleFactor == 2.0)) {
+    // Recalculate the size and y-origin for the popup now that the backing
+    // scale factor has changed. After creating the popup window NSWindow,
+    // setting the frame when the menu is moved into the correct location
+    // causes the backing scale factor to change if the window is not on the
+    // menu bar display. Update the dimensions and y-origin here so that the
+    // frame is correct for the following ::Show(). Only do this when the
+    // scale factor changes from 1.0 to 2.0. When the scale factor changes
+    // from 2.0 to 1.0, the view will resize the widget before it is shown.
+    NSRect frame = [mWindow frame];
+    CGFloat previousYOrigin = frame.origin.y + frame.size.height;
+    frame.size.width = mBounds.Width() * (oldScale / newScale);
+    frame.size.height = mBounds.Height() * (oldScale / newScale);
+    frame.origin.y = previousYOrigin - frame.size.height;
+    [mWindow setFrame:frame display:NO animate:NO];
+  }
 }
 
 int32_t nsCocoaWindow::RoundsWidgetCoordinatesTo() {
@@ -1966,6 +2042,13 @@ void nsCocoaWindow::ReportMoveEvent() {
 
   UpdateBounds();
 
+  // The zoomed state can change when we're moving, in which case we need to
+  // update our internal mSizeMode. This can happen either if we're maximized
+  // and then moved, or if we're not maximized and moved back to zoomed state.
+  if (mWindow && ((mSizeMode == nsSizeMode_Maximized) ^ [mWindow isZoomed])) {
+    DispatchSizeModeEvent();
+  }
+
   // Dispatch the move event to Gecko
   NotifyWindowMoved(mBounds.x, mBounds.y);
 
@@ -1991,6 +2074,14 @@ void nsCocoaWindow::DispatchSizeModeEvent() {
   mSizeMode = newMode;
   if (mWidgetListener) {
     mWidgetListener->SizeModeChanged(newMode);
+  }
+
+  if (StaticPrefs::widget_pause_compositor_when_minimized()) {
+    if (newMode == nsSizeMode_Minimized) {
+      PauseCompositor();
+    } else {
+      ResumeCompositor();
+    }
   }
 }
 
@@ -2023,6 +2114,72 @@ void nsCocoaWindow::ReportSizeEvent() {
   }
 
   NS_OBJC_END_TRY_ABORT_BLOCK;
+}
+
+void nsCocoaWindow::PauseCompositor() {
+  nsIWidget* mainChildView = static_cast<nsIWidget*>([[mWindow mainChildView] widget]);
+  if (!mainChildView) {
+    return;
+  }
+  CompositorBridgeChild* remoteRenderer = mainChildView->GetRemoteRenderer();
+  if (!remoteRenderer) {
+    return;
+  }
+  remoteRenderer->SendPause();
+
+  // Now that the compositor has paused, we also try to mark the browser window
+  // docshell inactive to stop any animations. This does not affect docshells
+  // for browsers in other processes, but browser UI code should be managing
+  // their active state appropriately.
+  if (!mWidgetListener) {
+    return;
+  }
+  PresShell* presShell = mWidgetListener->GetPresShell();
+  if (!presShell) {
+    return;
+  }
+  nsPresContext* presContext = presShell->GetPresContext();
+  if (!presContext) {
+    return;
+  }
+  nsDocShell* docShell = presContext->GetDocShell();
+  if (!docShell) {
+    return;
+  }
+  docShell->SetIsActive(false);
+}
+
+void nsCocoaWindow::ResumeCompositor() {
+  nsIWidget* mainChildView = static_cast<nsIWidget*>([[mWindow mainChildView] widget]);
+  if (!mainChildView) {
+    return;
+  }
+  CompositorBridgeChild* remoteRenderer = mainChildView->GetRemoteRenderer();
+  if (!remoteRenderer) {
+    return;
+  }
+  remoteRenderer->SendResume();
+
+  // Now that the compositor has resumed, we also try to mark the browser window
+  // docshell active to restart any animations. This does not affect docshells
+  // for browsers in other processes, but browser UI code should be managing
+  // their active state appropriately.
+  if (!mWidgetListener) {
+    return;
+  }
+  PresShell* presShell = mWidgetListener->GetPresShell();
+  if (!presShell) {
+    return;
+  }
+  nsPresContext* presContext = presShell->GetPresContext();
+  if (!presContext) {
+    return;
+  }
+  nsDocShell* docShell = presContext->GetDocShell();
+  if (!docShell) {
+    return;
+  }
+  docShell->SetIsActive(true);
 }
 
 void nsCocoaWindow::SetMenuBar(nsMenuBarX* aMenuBar) {
@@ -2282,36 +2439,23 @@ void nsCocoaWindow::SetShowsToolbarButton(bool aShow) {
   NS_OBJC_END_TRY_ABORT_BLOCK;
 }
 
-void nsCocoaWindow::SetShowsFullScreenButton(bool aShow) {
+void nsCocoaWindow::SetSupportsNativeFullscreen(bool aSupportsNativeFullscreen) {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
-  if (!mWindow || ![mWindow respondsToSelector:@selector(toggleFullScreen:)] ||
-      mSupportsNativeFullScreen == aShow) {
-    return;
-  }
-
-  // If the window is currently in fullscreen mode, then we're going to
-  // transition out first, then set the collection behavior & toggle
-  // mSupportsNativeFullScreen, then transtion back into fullscreen mode. This
-  // prevents us from getting into a conflicting state with MakeFullScreen
-  // where mSupportsNativeFullScreen would lead us down the wrong path.
-  bool wasFullScreen = mInFullScreenMode;
-
-  if (wasFullScreen) {
-    MakeFullScreen(false);
-  }
-
-  NSWindowCollectionBehavior newBehavior = [mWindow collectionBehavior];
-  if (aShow) {
-    newBehavior |= NSWindowCollectionBehaviorFullScreenPrimary;
-  } else {
-    newBehavior &= ~NSWindowCollectionBehaviorFullScreenPrimary;
-  }
-  [mWindow setCollectionBehavior:newBehavior];
-  mSupportsNativeFullScreen = aShow;
-
-  if (wasFullScreen) {
-    MakeFullScreen(true);
+  if (mWindow) {
+    // This determines whether we tell cocoa that the window supports native
+    // full screen. If we do so, and another window is in native full screen,
+    // this window will also appear in native full screen. We generally only
+    // want to do this for primary application windows. We'll set the
+    // relevant macnativefullscreen attribute on those, which will lead to us
+    // being called with aSupportsNativeFullscreen set to `true` here.
+    NSWindowCollectionBehavior newBehavior = [mWindow collectionBehavior];
+    if (aSupportsNativeFullscreen) {
+      newBehavior |= NSWindowCollectionBehaviorFullScreenPrimary;
+    } else {
+      newBehavior &= ~NSWindowCollectionBehaviorFullScreenPrimary;
+    }
+    [mWindow setCollectionBehavior:newBehavior];
   }
 
   NS_OBJC_END_TRY_ABORT_BLOCK;

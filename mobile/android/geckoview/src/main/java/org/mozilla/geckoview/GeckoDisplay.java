@@ -8,15 +8,13 @@ package org.mozilla.geckoview;
 
 import android.graphics.Bitmap;
 import android.graphics.Rect;
-import android.support.annotation.AnyThread;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.UiThread;
+import androidx.annotation.AnyThread;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.UiThread;
 import android.view.Surface;
 
 import org.mozilla.gecko.util.ThreadUtils;
-
-import java.nio.ByteBuffer;
 
 /**
  * Applications use a GeckoDisplay instance to provide {@link GeckoSession} with a {@link Surface} for
@@ -337,7 +335,7 @@ public class GeckoDisplay {
                 throw new IllegalStateException("Compositor must be ready before pixels can be captured");
             }
 
-            final GeckoResult<ByteBuffer> result = new GeckoResult<>();
+            final GeckoResult<Bitmap> result = new GeckoResult<>();
             final Bitmap target;
             final Rect rect = new Rect();
 
@@ -371,17 +369,22 @@ public class GeckoDisplay {
             }
 
             if (mRecycle == null) {
-                target = Bitmap.createBitmap(mOutWidth, mOutHeight, Bitmap.Config.ARGB_8888);
+                try {
+                    target = Bitmap.createBitmap(mOutWidth, mOutHeight, Bitmap.Config.ARGB_8888);
+                } catch (Throwable e) {
+                    if (e instanceof NullPointerException || e instanceof OutOfMemoryError) {
+                        return GeckoResult.fromException(new OutOfMemoryError("Not enough memory to allocate for bitmap"));
+                    }
+                    return GeckoResult.fromException(new Throwable("Failed to create bitmap", e));
+                }
             } else {
                 target = mRecycle;
             }
 
-            mSession.mCompositor.requestScreenPixels(result, mOffsetX, mOffsetY, mSrcWidth, mSrcHeight, mOutWidth, mOutHeight);
+            mSession.mCompositor.requestScreenPixels(result, target, mOffsetX, mOffsetY,
+                                                     mSrcWidth, mSrcHeight, mOutWidth, mOutHeight);
 
-            return result.then( buffer -> {
-                target.copyPixelsFromBuffer(buffer);
-                return GeckoResult.fromValue(target);
-            });
+            return result;
         }
     }
 

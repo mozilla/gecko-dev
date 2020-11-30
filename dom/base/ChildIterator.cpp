@@ -12,6 +12,7 @@
 #include "nsIAnonymousContentCreator.h"
 #include "nsIFrame.h"
 #include "nsCSSAnonBoxes.h"
+#include "nsLayoutUtils.h"
 
 namespace mozilla {
 namespace dom {
@@ -101,7 +102,7 @@ void FlattenedChildIterator::Init(bool aIgnoreXBL) {
 
 bool ExplicitChildIterator::Seek(const nsIContent* aChildToFind) {
   if (aChildToFind->GetParent() == mParent &&
-      !aChildToFind->IsRootOfAnonymousSubtree()) {
+      !aChildToFind->IsRootOfNativeAnonymousSubtree()) {
     // Fast path: just point ourselves to aChildToFind, which is a
     // normal DOM child of ours.
     mChild = const_cast<nsIContent*>(aChildToFind);

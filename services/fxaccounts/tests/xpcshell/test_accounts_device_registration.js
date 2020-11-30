@@ -534,9 +534,9 @@ add_task(
     const result = await fxa.device.getLocalId();
 
     Assert.equal(spy.count, 1);
-    Assert.equal(spy.args[0].length, 1);
-    Assert.equal(spy.args[0][0].email, credentials.email);
-    Assert.equal(null, spy.args[0][0].device);
+    Assert.equal(spy.args[0].length, 2);
+    Assert.equal(spy.args[0][1].email, credentials.email);
+    Assert.equal(null, spy.args[0][1].device);
     Assert.equal(result, "bar");
     await fxa.signOut(true);
   }
@@ -566,8 +566,8 @@ add_task(
     const result = await fxa.device.getLocalId();
 
     Assert.equal(spy.count, 1);
-    Assert.equal(spy.args[0].length, 1);
-    Assert.equal(spy.args[0][0].device.id, "my id");
+    Assert.equal(spy.args[0].length, 2);
+    Assert.equal(spy.args[0][1].device.id, "my id");
     Assert.equal(result, "wibble");
     await fxa.signOut(true);
   }
@@ -618,8 +618,8 @@ add_task(
     const result = await fxa.device.getLocalId();
 
     Assert.equal(spy.count, 1);
-    Assert.equal(spy.args[0].length, 1);
-    Assert.equal(spy.args[0][0].device.id, "wibble");
+    Assert.equal(spy.args[0].length, 2);
+    Assert.equal(spy.args[0][1].device.id, "wibble");
     Assert.equal(result, "wibble");
     await fxa.signOut(true);
   }
@@ -644,8 +644,11 @@ add_task(async function test_verification_updates_registration() {
     const old_registerOrUpdateDevice = fxa.device._registerOrUpdateDevice.bind(
       fxa.device
     );
-    fxa.device._registerOrUpdateDevice = async function(signedInUser) {
-      await old_registerOrUpdateDevice(signedInUser);
+    fxa.device._registerOrUpdateDevice = async function(
+      currentState,
+      signedInUser
+    ) {
+      await old_registerOrUpdateDevice(currentState, signedInUser);
       fxa.device._registerOrUpdateDevice = old_registerOrUpdateDevice;
       resolve();
     };
@@ -697,14 +700,72 @@ add_task(async function test_devicelist_pushendpointexpired() {
         type: "desktop",
         isCurrentDevice: true,
         pushEndpointExpired: true,
+        pushCallback: "https://example.com",
       },
     ]);
+  };
+  let polledForMissedCommands = false;
+  fxa._internal.commands.pollDeviceCommands = () => {
+    polledForMissedCommands = true;
   };
 
   await fxa.device.refreshDeviceList();
 
   Assert.equal(spy.getDeviceList.count, 1);
   Assert.equal(spy.updateDevice.count, 1);
+  Assert.ok(polledForMissedCommands);
+  await fxa.signOut(true);
+});
+
+add_task(async function test_devicelist_nopushcallback() {
+  const deviceId = "mydeviceid";
+  const credentials = getTestUser("baz");
+  credentials.verified = true;
+  const fxa = await MockFxAccounts(credentials);
+  await updateUserAccountData(fxa, {
+    uid: credentials.uid,
+    device: {
+      id: deviceId,
+      registeredCommandsKeys: [],
+      registrationVersion: 1,
+    },
+  });
+
+  const spy = {
+    updateDevice: { count: 0, args: [] },
+    getDeviceList: { count: 0, args: [] },
+  };
+  const client = fxa._internal.fxAccountsClient;
+  client.updateDevice = function() {
+    spy.updateDevice.count += 1;
+    spy.updateDevice.args.push(arguments);
+    return Promise.resolve({});
+  };
+  client.getDeviceList = function() {
+    spy.getDeviceList.count += 1;
+    spy.getDeviceList.args.push(arguments);
+    return Promise.resolve([
+      {
+        id: "mydeviceid",
+        name: "foo",
+        type: "desktop",
+        isCurrentDevice: true,
+        pushEndpointExpired: false,
+        pushCallback: null,
+      },
+    ]);
+  };
+
+  let polledForMissedCommands = false;
+  fxa._internal.commands.pollDeviceCommands = () => {
+    polledForMissedCommands = true;
+  };
+
+  await fxa.device.refreshDeviceList();
+
+  Assert.equal(spy.getDeviceList.count, 1);
+  Assert.equal(spy.updateDevice.count, 1);
+  Assert.ok(polledForMissedCommands);
   await fxa.signOut(true);
 });
 
@@ -732,13 +793,23 @@ add_task(async function test_refreshDeviceList() {
   })(fxAccountsClient.getDeviceList);
   let fxai = {
     _now: Date.now(),
+    _generation: 0,
     fxAccountsClient,
     now() {
       return this._now;
     },
     withVerifiedAccountState(func) {
-      // Ensure `func` is called asynchronously.
-      return Promise.resolve().then(_ => func(state));
+      // Ensure `func` is called asynchronously, and simulate the possibility
+      // of a different user signng in while the promise is in-flight.
+      const currentGeneration = this._generation;
+      return Promise.resolve()
+        .then(_ => func(state))
+        .then(result => {
+          if (currentGeneration < this._generation) {
+            throw new Error("Another user has signed in");
+          }
+          return result;
+        });
     },
     fxaPushService: null,
   };
@@ -819,9 +890,10 @@ add_task(async function test_refreshDeviceList() {
   let refreshBeforeResetPromise = device.refreshDeviceList({
     ignoreCached: true,
   });
-  device.reset();
+  fxai._generation++;
   await Assert.rejects(refreshBeforeResetPromise, /Another user has signed in/);
 
+  device.reset();
   Assert.equal(
     device.recentDeviceList,
     null,
@@ -849,8 +921,7 @@ function getTestUser(name) {
     email: name + "@example.com",
     uid: "1ad7f502-4cc7-4ec1-a209-071fd2fae348",
     sessionToken: name + "'s session token",
-    keyFetchToken: name + "'s keyfetch token",
-    unwrapBKey: expandHex("44"),
     verified: false,
+    ...MOCK_ACCOUNT_KEYS,
   };
 }

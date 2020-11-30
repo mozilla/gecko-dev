@@ -4,6 +4,7 @@
 
 "use strict";
 
+const { gDevTools } = require("devtools/client/framework/devtools");
 const EventEmitter = require("devtools/shared/event-emitter");
 const Services = require("Services");
 const {
@@ -18,7 +19,7 @@ const { BrowserLoader } = ChromeUtils.import(
 );
 const {
   getAdHocFrontOrPrimitiveGrip,
-} = require("devtools/shared/fronts/object");
+} = require("devtools/client/fronts/object");
 
 loader.lazyRequireGetter(
   this,
@@ -60,11 +61,17 @@ class WebConsoleUI {
     this.hud = hud;
     this.hudId = this.hud.hudId;
     this.isBrowserConsole = this.hud.isBrowserConsole;
+    // Map of all stacktrace resources keyed by network event's channelId
+    this.netEventStackTraces = new Map();
 
     this.isBrowserToolboxConsole =
       this.hud.currentTarget &&
       this.hud.currentTarget.isParentProcess &&
       !this.hud.currentTarget.isAddon;
+    this.fissionSupport = Services.prefs.getBoolPref(
+      constants.PREFS.FEATURES.BROWSER_TOOLBOX_FISSION
+    );
+
     this.window = this.hud.iframeWindow;
 
     this._onPanelSelected = this._onPanelSelected.bind(this);
@@ -73,6 +80,8 @@ class WebConsoleUI {
     );
     this._onTargetAvailable = this._onTargetAvailable.bind(this);
     this._onTargetDestroyed = this._onTargetDestroyed.bind(this);
+    this._onResourceAvailable = this._onResourceAvailable.bind(this);
+    this._onResourceUpdated = this._onResourceUpdated.bind(this);
 
     EventEmitter.decorate(this);
   }
@@ -179,7 +188,7 @@ class WebConsoleUI {
       this.jsterm = null;
     }
 
-    const toolbox = this.hud.toolbox;
+    const { toolbox } = this.hud;
     if (toolbox) {
       toolbox.off("webconsole-selected", this._onPanelSelected);
       toolbox.off("split-console", this._onChangeSplitConsoleState);
@@ -187,12 +196,30 @@ class WebConsoleUI {
     }
 
     // Stop listening for targets
-    const targetList = this.hud.targetList;
+    const { targetList } = this.hud;
     targetList.unwatchTargets(
       targetList.ALL_TYPES,
       this._onTargetAvailable,
       this._onTargetDestroy
     );
+
+    const resourceWatcher = this.hud.resourceWatcher;
+    resourceWatcher.unwatchResources(
+      [
+        resourceWatcher.TYPES.CONSOLE_MESSAGE,
+        resourceWatcher.TYPES.ERROR_MESSAGE,
+        resourceWatcher.TYPES.PLATFORM_MESSAGE,
+        resourceWatcher.TYPES.NETWORK_EVENT,
+        resourceWatcher.TYPES.NETWORK_EVENT_STACKTRACE,
+      ],
+      {
+        onAvailable: this._onResourceAvailable,
+        onUpdated: this._onResourceUpdated,
+      }
+    );
+    resourceWatcher.unwatchResources([resourceWatcher.TYPES.CSS_MESSAGE], {
+      onAvailable: this._onResourceAvailable,
+    });
 
     for (const proxy of this.getAllProxies()) {
       proxy.disconnect();
@@ -222,17 +249,11 @@ class WebConsoleUI {
     if (this.wrapper) {
       this.wrapper.dispatchMessagesClear();
     }
-    this.clearNetworkRequests();
+
     if (clearStorage) {
       this.clearMessagesCache();
     }
     this.emitForTests("messages-cleared");
-  }
-
-  clearNetworkRequests() {
-    for (const proxy of this.getAllProxies()) {
-      proxy.webConsoleFront.clearNetworkRequests();
-    }
   }
 
   clearMessagesCache() {
@@ -254,7 +275,7 @@ class WebConsoleUI {
   }
 
   inspectObjectActor(objectActor) {
-    const webConsoleFront = this.webConsoleFront;
+    const { webConsoleFront } = this;
     this.wrapper.dispatchMessageAdd(
       {
         helperResult: {
@@ -322,6 +343,98 @@ class WebConsoleUI {
       this._onTargetAvailable,
       this._onTargetDestroy
     );
+
+    const resourceWatcher = this.hud.resourceWatcher;
+    await resourceWatcher.watchResources(
+      [
+        resourceWatcher.TYPES.CONSOLE_MESSAGE,
+        resourceWatcher.TYPES.ERROR_MESSAGE,
+        resourceWatcher.TYPES.PLATFORM_MESSAGE,
+        resourceWatcher.TYPES.NETWORK_EVENT,
+        resourceWatcher.TYPES.NETWORK_EVENT_STACKTRACE,
+      ],
+      {
+        onAvailable: this._onResourceAvailable,
+        onUpdated: this._onResourceUpdated,
+      }
+    );
+  }
+
+  async watchCssMessages() {
+    const { resourceWatcher } = this.hud;
+    await resourceWatcher.watchResources([resourceWatcher.TYPES.CSS_MESSAGE], {
+      onAvailable: this._onResourceAvailable,
+    });
+  }
+
+  _onResourceAvailable(resources) {
+    if (!this.hud) {
+      return;
+    }
+    const messages = [];
+    for (const resource of resources) {
+      const { TYPES } = this.hud.resourceWatcher;
+      // Ignore messages forwarded from content processes if we're in fission browser toolbox.
+      if (
+        !this.wrapper ||
+        ((resource.resourceType === TYPES.ERROR_MESSAGE ||
+          resource.resourceType === TYPES.CSS_MESSAGE) &&
+          resource.pageError?.isForwardedFromContentProcess &&
+          (this.isBrowserToolboxConsole || this.isBrowserConsole) &&
+          this.fissionSupport)
+      ) {
+        continue;
+      }
+
+      if (resource.resourceType === TYPES.NETWORK_EVENT_STACKTRACE) {
+        this.netEventStackTraces.set(resource.channelId, resource);
+        continue;
+      }
+
+      if (resource.resourceType === TYPES.NETWORK_EVENT) {
+        // Add the stacktrace
+        if (this.netEventStackTraces.has(resource.channelId)) {
+          const { stacktrace, lastFrame } = this.netEventStackTraces.get(
+            resource.channelId
+          );
+          resource.cause.stacktraceAvailable = stacktrace;
+          resource.cause.lastFrame = lastFrame;
+          this.netEventStackTraces.delete(resource.channelId);
+        }
+      }
+
+      messages.push(resource);
+    }
+    this.wrapper.dispatchMessagesAdd(messages);
+  }
+
+  _onResourceUpdated(updates) {
+    const messages = [];
+    for (const { resource } of updates) {
+      if (
+        resource.resourceType == this.hud.resourceWatcher.TYPES.NETWORK_EVENT
+      ) {
+        // network-message-updated will emit when all the update message arrives.
+        // Since we can't ensure the order of the network update, we check
+        // that message.updates has all we need.
+        // Note that 'requestPostData' is sent only for POST requests, so we need
+        // to count with that.
+        const NUMBER_OF_NETWORK_UPDATE = 8;
+
+        let expectedLength = NUMBER_OF_NETWORK_UPDATE;
+        if (resource.updates.includes("responseCache")) {
+          expectedLength++;
+        }
+        if (resource.updates.includes("requestPostData")) {
+          expectedLength++;
+        }
+
+        if (resource.updates.length === expectedLength) {
+          messages.push(resource);
+        }
+      }
+    }
+    this.wrapper.dispatchMessagesUpdate(messages);
   }
 
   /**
@@ -329,39 +442,29 @@ class WebConsoleUI {
    * i.e. it was already existing or has just been created.
    *
    * @private
-   * @param string type
-   *        One of the string of TargetList.TYPES to describe which
-   *        type of target is available.
    * @param Front targetFront
    *        The Front of the target that is available.
    *        This Front inherits from TargetMixin and is typically
    *        composed of a BrowsingContextTargetFront or ContentProcessTargetFront.
-   * @param boolean isTopLevel
-   *        If true, means that this is the top level target.
-   *        This typically happens on startup, providing the current
-   *        top level target. But also on navigation, when we navigate
-   *        to an URL which has to be loaded in a distinct process.
-   *        A new top level target is created.
    */
-  async _onTargetAvailable({ type, targetFront, isTopLevel }) {
+  async _onTargetAvailable({ targetFront }) {
     const dispatchTargetAvailable = () => {
       const store = this.wrapper && this.wrapper.getStore();
       if (store) {
         this.wrapper.getStore().dispatch({
           type: constants.TARGET_AVAILABLE,
-          targetType: type,
+          targetType: targetFront.targetType,
         });
       }
     };
 
     // This is a top level target. It may update on process switches
     // when navigating to another domain.
-    if (isTopLevel) {
-      const fissionSupport = Services.prefs.getBoolPref(
-        constants.PREFS.FEATURES.BROWSER_TOOLBOX_FISSION
-      );
+    if (targetFront.isTopLevel) {
       const needContentProcessMessagesListener =
-        targetFront.isParentProcess && !targetFront.isAddon && !fissionSupport;
+        targetFront.isParentProcess &&
+        !targetFront.isAddon &&
+        !this.fissionSupport;
       this.proxy = new WebConsoleConnectionProxy(
         this,
         targetFront,
@@ -378,11 +481,11 @@ class WebConsoleUI {
     // Also ignore workers as they are not supported yet. (see bug 1592584)
     const isContentToolbox = this.hud.targetList.targetFront.isLocalTab;
     const listenForFrames =
-      isContentToolbox &&
-      Services.prefs.getBoolPref("devtools.contenttoolbox.fission");
+      isContentToolbox && gDevTools.isFissionContentToolboxEnabled();
     if (
-      type != this.hud.targetList.TYPES.PROCESS &&
-      (type != this.hud.targetList.TYPES.FRAME || !listenForFrames)
+      targetFront.targetType != this.hud.targetList.TYPES.PROCESS &&
+      (targetFront.targetType != this.hud.targetList.TYPES.FRAME ||
+        !listenForFrames)
     ) {
       return;
     }
@@ -398,8 +501,8 @@ class WebConsoleUI {
    * @private
    * See _onTargetAvailable for param's description.
    */
-  _onTargetDestroyed({ type, targetFront, isTopLevel }) {
-    if (isTopLevel) {
+  _onTargetDestroyed({ targetFront }) {
+    if (targetFront.isTopLevel) {
       this.proxy.disconnect();
       this.proxy = null;
     } else {
@@ -415,7 +518,7 @@ class WebConsoleUI {
 
     this.outputNode = this.document.getElementById("app-wrapper");
 
-    const toolbox = this.hud.toolbox;
+    const { toolbox } = this.hud;
 
     // Initialize module loader and load all the WebConsoleWrapper. The entire code-base
     // doesn't need any extra privileges and runs entirely in content scope.
@@ -466,6 +569,17 @@ class WebConsoleUI {
           if (!this.connected) {
             this.connected = true;
             syntaxHighlightNode(this);
+
+            // Highlight Again when the innerText changes
+            // We remove the listener before running codemirror mode and add
+            // it again to capture text changes
+            this.observer = new win.MutationObserver((mutations, observer) => {
+              observer.disconnect();
+              syntaxHighlightNode(this);
+              observer.observe(this, { childList: true });
+            });
+
+            this.observer.observe(this, { childList: true });
           }
         }
       }
@@ -543,13 +657,14 @@ class WebConsoleUI {
    *        Notification packet received from the server.
    */
   async handleTabNavigated(packet) {
+    // Wait for completion of any async dispatch before notifying that the console
+    // is fully updated after a page reload
+    await this.wrapper.waitAsyncDispatches();
+
     if (!packet.nativeConsoleAPI) {
       this.logWarningAboutReplacedAPI();
     }
 
-    // Wait for completion of any async dispatch before notifying that the console
-    // is fully updated after a page reload
-    await this.wrapper.waitAsyncDispatches();
     this.emit("reloaded");
   }
 
@@ -569,8 +684,12 @@ class WebConsoleUI {
     this[id] = node;
   }
 
-  // Retrieves the debugger's currently selected frame front
-  async getFrameActor() {
+  /**
+   * Retrieves the actorID of the debugger's currently selected FrameFront.
+   *
+   * @return {String} actorID of the FrameFront
+   */
+  getFrameActor() {
     const state = this.hud.getDebuggerFrames();
     if (!state) {
       return null;
@@ -595,26 +714,17 @@ class WebConsoleUI {
       return this.webConsoleFront;
     }
 
-    const threadFront = this.hud.toolbox.getSelectedThreadFront();
-    if (!threadFront) {
+    const targetFront = this.hud.toolbox.getSelectedTargetFront();
+    if (!targetFront) {
       return this.webConsoleFront;
     }
 
-    return threadFront.getWebconsoleFront();
+    return targetFront.getFront("console");
   }
 
-  getSelectedNodeActor() {
-    const front = this.getSelectedNodeFront();
-    return front ? front.actorID : null;
-  }
-
-  getSelectedNodeFront() {
+  getSelectedNodeActorID() {
     const inspectorSelection = this.hud.getInspectorSelection();
-    return inspectorSelection ? inspectorSelection.nodeFront : null;
-  }
-
-  onMessageHover(type, message) {
-    this.emit("message-hover", type, message);
+    return inspectorSelection?.nodeFront?.actorID;
   }
 }
 

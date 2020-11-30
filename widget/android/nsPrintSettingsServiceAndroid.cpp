@@ -11,7 +11,7 @@ class nsPrintSettingsAndroid : public nsPrintSettings {
   nsPrintSettingsAndroid() {
     // The aim here is to set up the objects enough that silent printing works
     SetOutputFormat(nsIPrintSettings::kOutputFormatPDF);
-    SetPrinterName(NS_LITERAL_STRING("PDF printer"));
+    SetPrinterName(u"PDF printer"_ns);
   }
 };
 
@@ -23,4 +23,11 @@ nsresult nsPrintSettingsServiceAndroid::_CreatePrintSettings(
   (void)InitPrintSettingsFromPrefs(*_retval, false,
                                    nsIPrintSettings::kInitSaveAll);
   return NS_OK;
+}
+
+already_AddRefed<nsIPrintSettings> CreatePlatformPrintSettings(
+    const mozilla::PrintSettingsInitializer& aSettings) {
+  RefPtr<nsPrintSettings> settings = new nsPrintSettingsAndroid();
+  settings->InitWithInitializer(aSettings);
+  return settings.forget();
 }

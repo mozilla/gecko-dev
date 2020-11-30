@@ -7,5 +7,5 @@ mgh{
             "MZN",
         }
     }
-    Version{"36"}
+    Version{"37"}
 }

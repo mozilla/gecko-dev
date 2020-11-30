@@ -1,6 +1,8 @@
 const OUTER_URL =
   "https://test1.example.com:443" + DIRECTORY_PATH + "form_crossframe.html";
 
+requestLongerTimeout(2);
+
 async function acceptPasswordSave() {
   let notif = await getCaptureDoorhangerThatMayOpen("password-save");
   let promiseNewSavedPassword = TestUtils.topicObserved(
@@ -31,14 +33,19 @@ function checkFormFields(browsingContext, prefix, username, password) {
   );
 }
 
-function listenForNotifications(count) {
+function listenForNotifications(count, expectedFormOrigin) {
   return new Promise(resolve => {
     let notifications = [];
     LoginManagerParent.setListenerForTests((msg, data) => {
       if (msg == "FormProcessed") {
         notifications.push("FormProcessed: " + data.browsingContext.id);
       } else if (msg == "FormSubmit") {
-        notifications.push("FormSubmit: " + data.usernameField.name);
+        is(
+          data.origin,
+          expectedFormOrigin,
+          "Message origin should match expected"
+        );
+        notifications.push("FormSubmit: " + data.data.usernameField.name);
       }
       if (notifications.length == count) {
         resolve(notifications);
@@ -60,6 +67,30 @@ async function verifyNotifications(notifyPromise, expected) {
       ok(false, "Expected notification '" + expectedItem + "' not sent");
     }
   }
+}
+
+// Make sure there is an autocomplete result for the frame's saved login and select it.
+async function autocompleteLoginInIFrame(
+  browser,
+  iframeBrowsingContext,
+  selector
+) {
+  let popup = document.getElementById("PopupAutoComplete");
+  ok(popup, "Got popup");
+
+  await openACPopup(popup, browser, selector, iframeBrowsingContext);
+
+  let autocompleteLoginResult = popup.querySelector(
+    `[originaltype="loginWithOrigin"]`
+  );
+  ok(autocompleteLoginResult, "Got login richlistitem");
+
+  let promiseHidden = BrowserTestUtils.waitForEvent(popup, "popuphidden");
+
+  await EventUtils.synthesizeKey("KEY_ArrowDown");
+  await EventUtils.synthesizeKey("KEY_Enter");
+
+  await promiseHidden;
 }
 
 /*
@@ -91,7 +122,7 @@ async function submitSomeCrossSiteFrames(locationMode) {
 
   // Fill in the username and password for both the outer and inner frame
   // and submit the inner frame.
-  notifyPromise = listenForNotifications(1);
+  notifyPromise = listenForNotifications(1, "https://test2.example.org");
   info("submit page after changing inner form");
 
   await SpecialPowers.spawn(outerFrameBC, [], () => {
@@ -129,11 +160,20 @@ async function submitSomeCrossSiteFrames(locationMode) {
     "FormProcessed: " + innerFrameBC2.id,
   ]);
 
+  // We don't expect the innerFrame to be autofilled with the saved login, since
+  // it is cross-origin with the top level frame, so we autocomplete instead.
+  info("Autocompleting saved login into inner form");
+  await autocompleteLoginInIFrame(
+    secondtab.linkedBrowser,
+    innerFrameBC2,
+    "#inner-username"
+  );
+
   await checkFormFields(outerFrameBC2, "outer", "", "");
   await checkFormFields(innerFrameBC2, "inner", "inner", "innerpass");
 
   // Next, change the username and password fields in the outer frame and submit.
-  notifyPromise = listenForNotifications(1);
+  notifyPromise = listenForNotifications(1, "https://test1.example.com");
   info("submit page after changing outer form");
 
   await SpecialPowers.spawn(outerFrameBC2, [locationMode], doClick => {
@@ -165,6 +205,15 @@ async function submitSomeCrossSiteFrames(locationMode) {
     "FormProcessed: " + outerFrameBC3.id,
     "FormProcessed: " + innerFrameBC3.id,
   ]);
+
+  // We don't expect the innerFrame to be autofilled with the saved login, since
+  // it is cross-origin with the top level frame, so we autocomplete instead.
+  info("Autocompleting saved login into inner form");
+  await autocompleteLoginInIFrame(
+    thirdtab.linkedBrowser,
+    innerFrameBC3,
+    "#inner-username"
+  );
 
   await checkFormFields(outerFrameBC3, "outer", "outer2", "outerpass2");
   await checkFormFields(innerFrameBC3, "inner", "inner", "innerpass");

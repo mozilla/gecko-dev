@@ -6,6 +6,7 @@ include ProtocolTypes;
 
 include protocol PChildToParentStream;
 include protocol PParentToChildStream;
+include protocol PRemoteLazyInputStream;
 
 using struct mozilla::void_t
   from "ipc/IPCMessageUtils.h";
@@ -48,11 +49,17 @@ struct SlicedInputStreamParams
   bool closed;
 };
 
-struct IPCBlobInputStreamParams
+struct RemoteLazyInputStreamRef
 {
   nsID id;
   uint64_t start;
   uint64_t length;
+};
+
+union RemoteLazyInputStreamParams
+{
+  RemoteLazyInputStreamRef;
+  PRemoteLazyInputStream;
 };
 
 union IPCRemoteStreamType
@@ -82,9 +89,17 @@ union InputStreamParams
   MIMEInputStreamParams;
   MultiplexInputStreamParams;
   SlicedInputStreamParams;
-  IPCBlobInputStreamParams;
+  RemoteLazyInputStreamParams;
   InputStreamLengthWrapperParams;
   IPCRemoteStreamParams;
+  EncryptedFileInputStreamParams;
+};
+
+struct EncryptedFileInputStreamParams
+{
+  FileInputStreamParams fileInputStreamParams;
+  uint8_t[] key;
+  uint32_t blockSize;
 };
 
 struct BufferedInputStreamParams

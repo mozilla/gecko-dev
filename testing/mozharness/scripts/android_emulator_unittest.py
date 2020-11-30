@@ -13,7 +13,8 @@ import sys
 import subprocess
 
 # load modules from parent dir
-sys.path.insert(1, os.path.dirname(sys.path[0]))
+here = os.path.abspath(os.path.dirname(__file__))
+sys.path.insert(1, os.path.dirname(here))
 
 from mozharness.base.log import WARNING
 from mozharness.base.script import BaseScript, PreScriptAction
@@ -119,9 +120,9 @@ class AndroidEmulatorTest(TestingMixin, BaseScript, MozbaseMixin, CodeCoverageMi
             config_options=self.config_options,
             all_actions=['clobber',
                          'setup-avds',
-                         'start-emulator',
                          'download-and-extract',
                          'create-virtualenv',
+                         'start-emulator',
                          'verify-device',
                          'install',
                          'run-tests',
@@ -178,7 +179,12 @@ class AndroidEmulatorTest(TestingMixin, BaseScript, MozbaseMixin, CodeCoverageMi
             dirs['abs_test_install_dir'], 'reftest')
         dirs['abs_xpcshell_dir'] = os.path.join(
             dirs['abs_test_install_dir'], 'xpcshell')
-        dirs['abs_avds_dir'] = self.config.get("avds_dir", "/home/cltbld/.android")
+        dirs['abs_avds_dir'] = os.path.join(abs_dirs["abs_work_dir"], ".android")
+        fetches_dir = os.environ.get('MOZ_FETCHES_DIR')
+        if fetches_dir:
+            dirs['abs_sdk_dir'] = os.path.join(fetches_dir, 'android-sdk-linux')
+        else:
+            dirs['abs_sdk_dir'] = os.path.join(abs_dirs['abs_work_dir'], 'android-sdk-linux')
 
         for key in dirs.keys():
             if key not in abs_dirs:
@@ -217,11 +223,9 @@ class AndroidEmulatorTest(TestingMixin, BaseScript, MozbaseMixin, CodeCoverageMi
             ),
         ]
 
-        raw_log_file = os.path.join(dirs['abs_blob_upload_dir'],
-                                    '%s_raw.log' % self.test_suite)
+        raw_log_file, error_summary_file = self.get_indexed_logs(dirs['abs_blob_upload_dir'],
+                                                                 self.test_suite)
 
-        error_summary_file = os.path.join(dirs['abs_blob_upload_dir'],
-                                          '%s_errorsummary.log' % self.test_suite)
         str_format_values = {
             'device_serial': self.device_serial,
             # IP address of the host as seen from the emulator
@@ -398,8 +402,6 @@ class AndroidEmulatorTest(TestingMixin, BaseScript, MozbaseMixin, CodeCoverageMi
         for (per_test_suite, suite) in suites:
             self.test_suite = suite
 
-            cmd = self._build_command()
-
             try:
                 cwd = self._query_tests_dir(self.test_suite)
             except Exception:
@@ -426,6 +428,7 @@ class AndroidEmulatorTest(TestingMixin, BaseScript, MozbaseMixin, CodeCoverageMi
                     # suite categories loops also.
                     return
 
+                cmd = self._build_command()
                 final_cmd = copy.copy(cmd)
                 if len(per_test_args) > 0:
                     # in per-test mode, remove any chunk arguments from command

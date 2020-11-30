@@ -11,7 +11,6 @@
 #include "gfxConfig.h"
 #include "mozilla/StaticPrefs_layers.h"
 #include "gfxUtils.h"
-#include "LayersLogging.h"
 #include "ShaderDefinitionsMLGPU.h"
 #include "SharedBufferMLGPU.h"
 #include "UtilityMLGPU.h"
@@ -313,7 +312,7 @@ void MLGDevice::DrawClearRegion(const ClearRegionHelper& aHelper) {
   // Otherwise, if we have a normal rect list, we wanted to use the faster
   // ClearView.
   if (!aHelper.mRects.IsEmpty()) {
-    Color color(0.0, 0.0, 0.0, 0.0);
+    DeviceColor color(0.0, 0.0, 0.0, 0.0);
     ClearView(mCurrentRT, color, aHelper.mRects.Elements(),
               aHelper.mRects.Length());
   }

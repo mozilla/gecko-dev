@@ -14,6 +14,8 @@ import {
   makePendingLocationId,
 } from "../utils/breakpoint";
 
+import { isPrettyURL } from "../utils/source";
+
 import type { SourcesState } from "./sources";
 import type { PendingBreakpoint, Source } from "../types";
 import type { Action } from "../actions/types";
@@ -23,7 +25,10 @@ export type PendingBreakpointsState = { [string]: PendingBreakpoint };
 function update(state: PendingBreakpointsState = {}, action: Action) {
   switch (action.type) {
     case "SET_BREAKPOINT":
-      return setBreakpoint(state, action);
+      if (action.status === "start") {
+        return setBreakpoint(state, action);
+      }
+      return state;
 
     case "REMOVE_BREAKPOINT":
       if (action.status === "start") {
@@ -46,8 +51,11 @@ function setBreakpoint(state, { breakpoint }) {
   if (breakpoint.options.hidden) {
     return state;
   }
-
-  const locationId = makePendingLocationId(breakpoint.location);
+  const location =
+    !breakpoint.location.sourceUrl || isPrettyURL(breakpoint.location.sourceUrl)
+      ? breakpoint.generatedLocation
+      : breakpoint.location;
+  const locationId = makePendingLocationId(location);
   const pendingBreakpoint = createPendingBreakpoint(breakpoint);
 
   return { ...state, [locationId]: pendingBreakpoint };
@@ -55,8 +63,8 @@ function setBreakpoint(state, { breakpoint }) {
 
 function removeBreakpoint(state, { location }) {
   const locationId = makePendingLocationId(location);
-
   state = { ...state };
+
   delete state[locationId];
   return state;
 }

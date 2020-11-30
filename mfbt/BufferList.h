@@ -10,13 +10,13 @@
 #include <string.h>
 
 #include <algorithm>
+#include <type_traits>
 #include <utility>
 
 #include "mozilla/AllocPolicy.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/ScopeExit.h"
-#include "mozilla/TypeTraits.h"
 #include "mozilla/Types.h"
 #include "mozilla/Vector.h"
 
@@ -82,7 +82,7 @@ class BufferList : private AllocPolicy {
 
     if (aInitialCapacity) {
       MOZ_ASSERT((aInitialSize == 0 ||
-                  IsSame<AllocPolicy, InfallibleAllocPolicy>::value),
+                  std::is_same_v<AllocPolicy, InfallibleAllocPolicy>),
                  "BufferList may only be constructed with an initial size when "
                  "using an infallible alloc policy");
 

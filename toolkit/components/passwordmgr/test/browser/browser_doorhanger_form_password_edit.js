@@ -16,6 +16,7 @@ let testCases = [
   {
     name: "Enter password",
     prefEnabled: true,
+    isLoggedIn: true,
     logins: [],
     formDefaults: {},
     formChanges: {
@@ -39,6 +40,7 @@ let testCases = [
   {
     name: "Change password",
     prefEnabled: true,
+    isLoggedIn: true,
     logins: [],
     formDefaults: {
       [passwordInputSelector]: "pass1",
@@ -64,13 +66,13 @@ let testCases = [
   {
     name: "Change autofilled password",
     prefEnabled: true,
+    isLoggedIn: true,
     logins: [{ username: "user1", password: "autopass" }],
     formDefaults: {},
     formChanges: {
       [passwordInputSelector]: "autopass-changed",
     },
     expected: {
-      formAutofilled: true,
       initialForm: {
         username: "user1",
         password: "autopass",
@@ -87,6 +89,7 @@ let testCases = [
   {
     name: "Change autofilled username and password",
     prefEnabled: true,
+    isLoggedIn: true,
     logins: [{ username: "user1", password: "pass1" }],
     formDefaults: {},
     formChanges: {
@@ -94,7 +97,6 @@ let testCases = [
       [passwordInputSelector]: "pass2",
     },
     expected: {
-      formAutofilled: true,
       initialForm: {
         username: "user1",
         password: "pass1",
@@ -112,6 +114,7 @@ let testCases = [
   {
     name: "Change password pref disabled",
     prefEnabled: false,
+    isLoggedIn: true,
     logins: [],
     formDefaults: {
       [passwordInputSelector]: "pass1",
@@ -130,6 +133,7 @@ let testCases = [
   {
     name: "Change to new username",
     prefEnabled: true,
+    isLoggedIn: true,
     logins: [{ username: "user1", password: "pass1" }],
     formDefaults: {},
     formChanges: {
@@ -150,36 +154,37 @@ let testCases = [
       },
     },
   },
-  // Disabled test tracked in bug 1619030
-  // {
-  //   name: "Change to existing username, different password",
-  //   prefEnabled: true,
-  //   logins: [{ username: "user-saved", password: "pass1" }],
-  //   formDefaults: {
-  //     [usernameInputSelector]: "user-prefilled",
-  //     [passwordInputSelector]: "pass2",
-  //   },
-  //   formChanges: {
-  //     [usernameInputSelector]: "user-saved",
-  //   },
-  //   expected: {
-  //     initialForm: {
-  //       username: "user-prefilled",
-  //       password: "pass2",
-  //     },
-  //     doorhanger: {
-  //       type: "password-change",
-  //       dismissed: true,
-  //       anchorExtraAttr: "",
-  //       username: "user-saved",
-  //       password: "pass2",
-  //       toggle: "visible",
-  //     },
-  //   },
-  // },
+  {
+    name: "Change to existing username, different password",
+    prefEnabled: true,
+    isLoggedIn: true,
+    logins: [{ username: "user-saved", password: "pass1" }],
+    formDefaults: {
+      [usernameInputSelector]: "user-prefilled",
+      [passwordInputSelector]: "pass2",
+    },
+    formChanges: {
+      [usernameInputSelector]: "user-saved",
+    },
+    expected: {
+      initialForm: {
+        username: "user-prefilled",
+        password: "pass2",
+      },
+      doorhanger: {
+        type: "password-change",
+        dismissed: true,
+        anchorExtraAttr: "",
+        username: "user-saved",
+        password: "pass2",
+        toggle: "visible",
+      },
+    },
+  },
   {
     name: "Add username to existing password",
     prefEnabled: true,
+    isLoggedIn: true,
     logins: [{ username: "", password: "pass1" }],
     formDefaults: {},
     formChanges: {
@@ -203,6 +208,7 @@ let testCases = [
   {
     name: "Change to existing username, password",
     prefEnabled: true,
+    isLoggedIn: true,
     logins: [{ username: "user1", password: "pass1" }],
     formDefaults: {
       [usernameInputSelector]: "user",
@@ -217,15 +223,125 @@ let testCases = [
         username: "user",
         password: "pass",
       },
-      // Eventually we'll want to remove the doorhanger in this case
+      doorhanger: null,
+    },
+  },
+  {
+    name:
+      "Ensure a dismissed password-save doorhanger appears on an input event when editing an unsaved password",
+    prefEnabled: true,
+    isLoggedIn: true,
+    logins: [],
+    formDefaults: {},
+    formChanges: {
+      [passwordInputSelector]: "a",
+    },
+    shouldBlur: false,
+    expected: {
+      initialForm: {
+        username: "",
+        password: "",
+      },
+      doorhanger: {
+        type: "password-save",
+        dismissed: true,
+        anchorExtraAttr: "",
+        username: "",
+        password: "a",
+        toggle: "visible",
+      },
+    },
+  },
+  {
+    name:
+      "Ensure a dismissed password-save doorhanger appears with the latest input value upon editing an unsaved password",
+    prefEnabled: true,
+    isLoggedIn: true,
+    logins: [],
+    formDefaults: {},
+    formChanges: {
+      [passwordInputSelector]: "a",
+      [passwordInputSelector]: "ab",
+      [passwordInputSelector]: "abc",
+    },
+    shouldBlur: false,
+    expected: {
+      initialForm: {
+        username: "",
+        password: "",
+      },
+      doorhanger: {
+        type: "password-save",
+        dismissed: true,
+        anchorExtraAttr: "",
+        username: "",
+        password: "abc",
+        toggle: "visible",
+      },
+    },
+  },
+  {
+    name:
+      "Ensure a dismissed password-change doorhanger appears on an input event when editing a saved password",
+    prefEnabled: true,
+    isLoggedIn: true,
+    logins: [{ username: "", password: "pass1" }],
+    formDefaults: {},
+    formChanges: {
+      [passwordInputSelector]: "pass",
+    },
+    shouldBlur: false,
+    expected: {
+      initialForm: {
+        username: "",
+        password: "pass1",
+      },
       doorhanger: {
         type: "password-change",
         dismissed: true,
         anchorExtraAttr: "",
-        username: "user1",
-        password: "pass1",
+        username: "",
+        password: "pass",
         toggle: "visible",
       },
+    },
+  },
+  {
+    name:
+      "Ensure no dismissed doorhanger is shown on 'input' when Primary Password is locked",
+    prefEnabled: true,
+    isLoggedIn: false,
+    logins: [],
+    formDefaults: {},
+    formChanges: {
+      [passwordInputSelector]: "pass",
+    },
+    shouldBlur: false,
+    expected: {
+      initialForm: {
+        username: "",
+        password: "",
+      },
+      doorhanger: null,
+    },
+  },
+  {
+    name:
+      "Ensure no dismissed doorhanger is shown on 'change' when Primary Password is locked",
+    prefEnabled: true,
+    isLoggedIn: false,
+    logins: [],
+    formDefaults: {},
+    formChanges: {
+      [passwordInputSelector]: "pass",
+    },
+    shouldBlur: true,
+    expected: {
+      initialForm: {
+        username: "",
+        password: "",
+      },
+      doorhanger: null,
     },
   },
 ];
@@ -239,8 +355,22 @@ for (let testData of testCases) {
       await SpecialPowers.pushPrefEnv({
         set: [["signon.passwordEditCapture.enabled", testData.prefEnabled]],
       });
-      info("testing with: " + JSON.stringify(testData));
-      await testPasswordChange(testData);
+      if (!testData.isLoggedIn) {
+        // Enable Primary Password
+        LoginTestUtils.masterPassword.enable();
+      }
+      for (let passwordFieldType of ["password", "text"]) {
+        info(
+          "testing with type=" +
+            passwordFieldType +
+            ": " +
+            JSON.stringify(testData)
+        );
+        await testPasswordChange(testData, { passwordFieldType });
+      }
+      if (!testData.isLoggedIn) {
+        LoginTestUtils.masterPassword.disable();
+      }
       await SpecialPowers.popPrefEnv();
     },
   };
@@ -258,12 +388,17 @@ async function waitForPromise(promise, timeoutMs = 5000) {
   await Promise.race([promise, timedOut]);
 }
 
-async function testPasswordChange({
-  logins = [],
-  formDefaults = {},
-  formChanges = {},
-  expected,
-}) {
+async function testPasswordChange(
+  {
+    logins = [],
+    formDefaults = {},
+    formChanges = {},
+    expected,
+    isLoggedIn,
+    shouldBlur = true,
+  },
+  { passwordFieldType }
+) {
   await LoginTestUtils.clearData();
   await cleanupDoorhanger();
 
@@ -276,9 +411,7 @@ async function testPasswordChange({
     info(`Saved login: ${login.username}, ${login.password}, ${login.origin}`);
   }
 
-  let formProcessedPromise = expected.formAutofilled
-    ? listenForTestNotification("FormProcessed")
-    : Promise.resolve();
+  let formProcessedPromise = listenForTestNotification("FormProcessed");
   info("Opening tab with url: " + url);
   await BrowserTestUtils.withNewTab(
     {
@@ -290,7 +423,7 @@ async function testPasswordChange({
       await SimpleTest.promiseFocus(browser.ownerGlobal);
       info("Waiting for form-processed message");
       await formProcessedPromise;
-      await initForm(browser, formDefaults);
+      await initForm(browser, formDefaults, { passwordFieldType });
       await checkForm(browser, expected.initialForm);
       info("form checked");
 
@@ -298,14 +431,15 @@ async function testPasswordChange({
         "PasswordEditedOrGenerated"
       );
 
-      await changeContentFormValues(browser, formChanges);
+      await changeContentFormValues(browser, formChanges, shouldBlur);
       info(
         "form edited, waiting for test notification of PasswordEditedOrGenerated"
       );
 
       try {
         await waitForPromise(passwordEditedMessage, 5000);
-        ok(expected.doorhanger, "Message sent");
+        // A message is still sent to the parent process when Primary Password is enabled
+        ok(expected.doorhanger || !isLoggedIn, "Message sent");
       } catch (ex) {
         ok(!expected.doorhanger, "No message sent");
       }
@@ -360,7 +494,16 @@ async function testPasswordChange({
   );
 }
 
-async function initForm(browser, formDefaults) {
+async function initForm(browser, formDefaults, passwordFieldType) {
+  await ContentTask.spawn(
+    browser,
+    { passwordInputSelector, passwordFieldType },
+    async function({ passwordInputSelector, passwordFieldType }) {
+      content.document.querySelector(
+        passwordInputSelector
+      ).type = passwordFieldType;
+    }
+  );
   await ContentTask.spawn(browser, formDefaults, async function(
     selectorValues
   ) {

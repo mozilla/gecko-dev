@@ -4,71 +4,64 @@
 
 use crate::{
     id::{BindGroupLayoutId, BufferId, DeviceId, SamplerId, TextureViewId},
-    resource::TextureViewDimension,
-    track::{DUMMY_SELECTOR, TrackerSet},
-    BufferAddress,
-    FastHashMap,
-    LifeGuard,
-    RefCount,
-    Stored,
+    track::{TrackerSet, DUMMY_SELECTOR},
+    FastHashMap, LifeGuard, RefCount, Stored, MAX_BIND_GROUPS,
 };
 
 use arrayvec::ArrayVec;
-use rendy_descriptor::{DescriptorRanges, DescriptorSet};
+use gfx_descriptor::{DescriptorCounts, DescriptorSet};
 
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+#[cfg(feature = "replay")]
+use serde::Deserialize;
+#[cfg(feature = "trace")]
+use serde::Serialize;
 use std::borrow::Borrow;
-
-pub const MAX_BIND_GROUPS: usize = 4;
-
-bitflags::bitflags! {
-    #[repr(transparent)]
-    #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-    pub struct ShaderStage: u32 {
-        const NONE = 0;
-        const VERTEX = 1;
-        const FRAGMENT = 2;
-        const COMPUTE = 4;
-    }
-}
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "trace", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
 pub enum BindingType {
     UniformBuffer = 0,
     StorageBuffer = 1,
     ReadonlyStorageBuffer = 2,
     Sampler = 3,
-    SampledTexture = 4,
-    StorageTexture = 5,
+    ComparisonSampler = 4,
+    SampledTexture = 5,
+    ReadonlyStorageTexture = 6,
+    WriteonlyStorageTexture = 7,
 }
 
 #[repr(C)]
 #[derive(Clone, Debug, Hash, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct BindGroupLayoutBinding {
+#[cfg_attr(feature = "trace", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
+pub struct BindGroupLayoutEntry {
     pub binding: u32,
-    pub visibility: ShaderStage,
+    pub visibility: wgt::ShaderStage,
     pub ty: BindingType,
-    pub texture_dimension: TextureViewDimension,
     pub multisampled: bool,
-    pub dynamic: bool,
+    pub has_dynamic_offset: bool,
+    pub view_dimension: wgt::TextureViewDimension,
+    pub texture_component_type: wgt::TextureComponentType,
+    pub storage_texture_format: wgt::TextureFormat,
 }
 
 #[repr(C)]
 #[derive(Debug)]
 pub struct BindGroupLayoutDescriptor {
-    pub bindings: *const BindGroupLayoutBinding,
-    pub bindings_length: usize,
+    pub label: *const std::os::raw::c_char,
+    pub entries: *const BindGroupLayoutEntry,
+    pub entries_length: usize,
 }
 
 #[derive(Debug)]
 pub struct BindGroupLayout<B: hal::Backend> {
     pub(crate) raw: B::DescriptorSetLayout,
-    pub(crate) bindings: FastHashMap<u32, BindGroupLayoutBinding>,
-    pub(crate) desc_ranges: DescriptorRanges,
+    pub(crate) device_id: Stored<DeviceId>,
+    pub(crate) life_guard: LifeGuard,
+    pub(crate) entries: FastHashMap<u32, BindGroupLayoutEntry>,
+    pub(crate) desc_counts: DescriptorCounts,
     pub(crate) dynamic_count: usize,
 }
 
@@ -82,21 +75,25 @@ pub struct PipelineLayoutDescriptor {
 #[derive(Debug)]
 pub struct PipelineLayout<B: hal::Backend> {
     pub(crate) raw: B::PipelineLayout,
-    pub(crate) bind_group_layout_ids: ArrayVec<[BindGroupLayoutId; MAX_BIND_GROUPS]>,
+    pub(crate) device_id: Stored<DeviceId>,
+    pub(crate) life_guard: LifeGuard,
+    pub(crate) bind_group_layout_ids: ArrayVec<[Stored<BindGroupLayoutId>; MAX_BIND_GROUPS]>,
 }
 
 #[repr(C)]
 #[derive(Debug)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "trace", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct BufferBinding {
     pub buffer: BufferId,
-    pub offset: BufferAddress,
-    pub size: BufferAddress,
+    pub offset: wgt::BufferAddress,
+    pub size: wgt::BufferSize,
 }
 
 #[repr(C)]
 #[derive(Debug)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "trace", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
 pub enum BindingResource {
     Buffer(BufferBinding),
     Sampler(SamplerId),
@@ -105,8 +102,9 @@ pub enum BindingResource {
 
 #[repr(C)]
 #[derive(Debug)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct BindGroupBinding {
+#[cfg_attr(feature = "trace", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
+pub struct BindGroupEntry {
     pub binding: u32,
     pub resource: BindingResource,
 }
@@ -114,9 +112,10 @@ pub struct BindGroupBinding {
 #[repr(C)]
 #[derive(Debug)]
 pub struct BindGroupDescriptor {
+    pub label: *const std::os::raw::c_char,
     pub layout: BindGroupLayoutId,
-    pub bindings: *const BindGroupBinding,
-    pub bindings_length: usize,
+    pub entries: *const BindGroupEntry,
+    pub entries_length: usize,
 }
 
 #[derive(Debug)]

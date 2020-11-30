@@ -7,11 +7,19 @@
     "namespace": "manifest",
     "types": [
       {
+        "$extend": "OptionalPermissionNoPrompt",
+        "choices": [{
+          "type": "string",
+          "enum": [
+            "activeTab"
+          ]
+        }]
+      },
+      {
         "$extend": "OptionalPermission",
         "choices": [{
           "type": "string",
           "enum": [
-            "activeTab",
             "tabs",
             "tabHide"
           ]
@@ -634,6 +642,23 @@
             "description": "The ID of the tab which is to be duplicated."
           },
           {
+            "type": "object",
+            "name": "duplicateProperties",
+            "optional": true,
+            "properties": {
+              "index": {
+                "type": "integer",
+                "optional": true,
+                "description": "The position the new tab should take in the window. The provided value will be clamped to between zero and the number of tabs in the window."
+              },
+              "active": {
+                "type": "boolean",
+                "optional": true,
+                "description": "Whether the tab should become the active tab in the window. Does not affect whether the window is focused (see $(ref:windows.update)). Defaults to <var>true</var>."
+              }
+            }
+          },
+          {
             "type": "function",
             "name": "callback",
             "optional": true,
@@ -999,6 +1024,21 @@
         ]
       },
       {
+        "name": "warmup",
+        "type": "function",
+        "description": "Warm up a tab",
+        "async": true,
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "tabId",
+            "minimum": 0,
+            "optional": false,
+            "description": "The ID of the tab to warm up."
+          }
+        ]
+      },
+      {
         "name": "remove",
         "type": "function",
         "description": "Closes one or more tabs.",
@@ -1080,7 +1120,7 @@
       {
         "name": "captureTab",
         "type": "function",
-        "description": "Captures the visible area of a specified tab. You must have $(topic:declare_permissions)[&lt;all_urls&gt;] permission to use this method.",
+        "description": "Captures an area of a specified tab. You must have $(topic:declare_permissions)[&lt;all_urls&gt;] permission to use this method.",
         "permissions": ["<all_urls>"],
         "async": true,
         "parameters": [
@@ -1101,7 +1141,7 @@
       {
         "name": "captureVisibleTab",
         "type": "function",
-        "description": "Captures the visible area of the currently active tab in the specified window. You must have $(topic:declare_permissions)[&lt;all_urls&gt;] permission to use this method.",
+        "description": "Captures an area of the currently active tab in the specified window. You must have $(topic:declare_permissions)[&lt;all_urls&gt;] permission to use this method.",
         "permissions": ["<all_urls>"],
         "async": "callback",
         "parameters": [
@@ -1447,6 +1487,48 @@
                 "description": "Whether to link up the current predecessors or successor (depending on options.append) of tabId to the other side of the chain after it is prepended or appended. If true, one of the following happens: if options.append is false, the first tab in the array is set as the successor of any current predecessors of tabId; if options.append is true, the current successor of tabId is set as the successor of the last tab in the array. Defaults to false."
               }
             }
+          }
+        ]
+      },
+      {
+        "name": "goForward",
+        "type": "function",
+        "description": "Navigate to next page in tab's history, if available",
+        "async": "callback",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "tabId",
+            "minimum": 0,
+            "optional": true,
+            "description": "The ID of the tab to navigate forward."
+          },
+          {
+            "type": "function",
+            "name": "callback",
+            "optional": true,
+            "parameters": []
+          }
+        ]
+      },
+      {
+        "name": "goBack",
+        "type": "function",
+        "description": "Navigate to previous page in tab's history, if available.",
+        "async": "callback",
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "tabId",
+            "minimum": 0,
+            "optional": true,
+            "description": "The ID of the tab to navigate backward."
+          },
+          {
+            "type": "function",
+            "name": "callback",
+            "optional": true,
+            "parameters": []
           }
         ]
       }

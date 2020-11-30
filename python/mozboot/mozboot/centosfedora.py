@@ -7,27 +7,11 @@ from __future__ import absolute_import, print_function, unicode_literals
 import platform
 
 from mozboot.base import BaseBootstrapper
-from mozboot.linux_common import (
-    ClangStaticAnalysisInstall,
-    FixStacksInstall,
-    LucetcInstall,
-    NasmInstall,
-    NodeInstall,
-    SccacheInstall,
-    StyloInstall,
-    WasiSysrootInstall,
-)
+from mozboot.linux_common import LinuxBootstrapper
 
 
 class CentOSFedoraBootstrapper(
-        ClangStaticAnalysisInstall,
-        FixStacksInstall,
-        LucetcInstall,
-        NasmInstall,
-        NodeInstall,
-        SccacheInstall,
-        StyloInstall,
-        WasiSysrootInstall,
+        LinuxBootstrapper,
         BaseBootstrapper):
 
     def __init__(self, distro, version, dist_id, **kwargs):
@@ -97,16 +81,11 @@ class CentOSFedoraBootstrapper(
 
             else:
                 self.packages += [
-                    'python2-devel',
                     'redhat-rpm-config',
                 ]
 
                 self.browser_group_packages = [
                     'Development Tools',
-                ]
-
-                self.browser_packages += [
-                    'python-dbus',
                 ]
 
         elif self.distro == 'fedora':
@@ -116,12 +95,7 @@ class CentOSFedoraBootstrapper(
 
             self.packages += [
                 'npm',
-                'python2-devel',
                 'redhat-rpm-config',
-            ]
-
-            self.browser_packages += [
-                'python-dbus',
             ]
 
             self.mobile_android_packages += [
@@ -132,17 +106,17 @@ class CentOSFedoraBootstrapper(
         self.dnf_groupinstall(*self.group_packages)
         self.dnf_install(*self.packages)
 
-    def install_browser_packages(self):
+    def install_browser_packages(self, mozconfig_builder):
         self.ensure_browser_packages()
 
-    def install_browser_artifact_mode_packages(self):
+    def install_browser_artifact_mode_packages(self, mozconfig_builder):
         self.ensure_browser_packages(artifact_mode=True)
 
-    def install_mobile_android_packages(self):
-        self.ensure_mobile_android_packages(artifact_mode=False)
+    def install_mobile_android_packages(self, mozconfig_builder):
+        self.ensure_mobile_android_packages(mozconfig_builder, artifact_mode=False)
 
-    def install_mobile_android_artifact_mode_packages(self):
-        self.ensure_mobile_android_packages(artifact_mode=True)
+    def install_mobile_android_artifact_mode_packages(self, mozconfig_builder):
+        self.ensure_mobile_android_packages(mozconfig_builder, artifact_mode=True)
 
     def ensure_browser_packages(self, artifact_mode=False):
         # TODO: Figure out what not to install for artifact mode
@@ -158,21 +132,21 @@ class CentOSFedoraBootstrapper(
 
             self.run_as_root(['rpm', '-ivh', yasm])
 
-    def ensure_mobile_android_packages(self, artifact_mode=False):
+    def ensure_mobile_android_packages(self, mozconfig_builder, artifact_mode=False):
         # Install Android specific packages.
         self.dnf_install(*self.mobile_android_packages)
 
-        self.ensure_java()
+        self.ensure_java(mozconfig_builder)
         from mozboot import android
         android.ensure_android('linux', artifact_mode=artifact_mode,
                                no_interactive=self.no_interactive)
 
-    def suggest_mobile_android_mozconfig(self, artifact_mode=False):
+    def generate_mobile_android_mozconfig(self, artifact_mode=False):
         from mozboot import android
-        android.suggest_mozconfig('linux', artifact_mode=artifact_mode)
+        return android.generate_mozconfig('linux', artifact_mode=artifact_mode)
 
-    def suggest_mobile_android_artifact_mode_mozconfig(self):
-        self.suggest_mobile_android_mozconfig(artifact_mode=True)
+    def generate_mobile_android_artifact_mode_mozconfig(self):
+        return self.generate_mobile_android_mozconfig(artifact_mode=True)
 
     def upgrade_mercurial(self, current):
         if current is None:

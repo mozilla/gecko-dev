@@ -85,10 +85,14 @@ macro_rules! entity_impl {
             fn reserved_value() -> $entity {
                 $entity($crate::__core::u32::MAX)
             }
+
+            fn is_reserved_value(&self) -> bool {
+                self.0 == $crate::__core::u32::MAX
+            }
         }
 
         impl $entity {
-            /// Return the underlying index value as a `u32`.
+            /// Create a new instance from a `u32`.
             #[allow(dead_code)]
             pub fn from_u32(x: u32) -> Self {
                 debug_assert!(x < $crate::__core::u32::MAX);

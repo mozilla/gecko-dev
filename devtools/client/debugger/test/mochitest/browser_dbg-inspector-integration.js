@@ -5,12 +5,6 @@
 // Tests that clicking the DOM node button in any ObjectInspect
 // opens the Inspector panel
 
-// Import helpers registering the test-actor in remote targets
-Services.scriptloader.loadSubScript(
-  "chrome://mochitests/content/browser/devtools/client/shared/test/test-actor-registry.js",
-  this
-);
-
 add_task(async function() {
   // Ensures the end panel is wide enough to show the inspector icon
   await pushPref("devtools.debugger.end-panel-size", 600);
@@ -19,7 +13,6 @@ add_task(async function() {
 
   const dbg = await initDebugger("doc-script-switching.html");
   const { toolbox } = dbg;
-  await registerTestActor(toolbox.target.client);
   const testActor = await getTestActor(toolbox);
 
   // Bug 1562165: the WhyPaused element is displayed for a few hundred ms when adding an

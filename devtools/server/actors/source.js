@@ -8,11 +8,17 @@ const { Cu } = require("chrome");
 const {
   setBreakpointAtEntryPoints,
 } = require("devtools/server/actors/breakpoint");
-const { ActorClassWithSpec } = require("devtools/shared/protocol");
+const { ActorClassWithSpec, Actor } = require("devtools/shared/protocol");
 const DevToolsUtils = require("devtools/shared/DevToolsUtils");
 const { assert } = DevToolsUtils;
-const { joinURI } = require("devtools/shared/path");
 const { sourceSpec } = require("devtools/shared/specs/source");
+const {
+  resolveSourceURL,
+  getSourcemapBaseURL,
+} = require("devtools/server/actors/utils/source-map-utils");
+const {
+  getDebuggerSourceURL,
+} = require("devtools/server/actors/utils/source-url");
 
 loader.lazyRequireGetter(
   this,
@@ -34,58 +40,40 @@ loader.lazyGetter(
   () => Cu.getGlobalForObject(Cu).WebExtensionPolicy
 );
 
-function isEvalSource(source) {
-  const introType = source.introductionType;
-
-  // Script elements that are dynamically created are treated as eval sources.
-  // We detect these by looking at whether there was another script on the stack
-  // when the source was created.
-  if (introType == "scriptElement" && source.introductionScript) {
-    return true;
-  }
-
-  // These are all the sources that are essentially eval-ed (either
-  // by calling eval or passing a string to one of these functions).
-  return (
-    introType === "eval" ||
-    introType === "debugger eval" ||
-    introType === "Function" ||
-    introType === "eventHandler" ||
-    introType === "setTimeout" ||
-    introType === "setInterval"
-  );
-}
-
-exports.isEvalSource = isEvalSource;
+const windowsDrive = /^([a-zA-Z]:)/;
 
 function getSourceURL(source, window) {
-  if (isEvalSource(source)) {
-    // Eval sources have no urls, but they might have a `displayURL`
-    // created with the sourceURL pragma. If the introduction script
-    // is a non-eval script, generate an full absolute URL relative to it.
+  // Some eval sources have URLs, but we want to explcitly ignore those because
+  // they are generally useless strings like "eval" or "debugger eval code".
+  const resourceURL =
+    (getDebuggerSourceURL(source) || "").split(" -> ").pop() || null;
 
-    if (source.displayURL && source.introductionScript) {
-      if (source.introductionScript.source.url === "debugger eval code") {
-        if (window) {
-          // If this is a named eval script created from the console, make it
-          // relative to the current page. window is only available
-          // when we care about this.
-          return joinURI(window.location.href, source.displayURL);
-        }
-      } else if (!isEvalSource(source.introductionScript.source)) {
-        return joinURI(source.introductionScript.source.url, source.displayURL);
-      }
+  // A "//# sourceURL=" pragma should basically be treated as a source file's
+  // full URL, so that is what we want to use as the base if it is present.
+  // If this is not an absolute URL, this will mean the maps in the file
+  // will not have a valid base URL, but that is up to tooling that
+  let result = resolveSourceURL(source.displayURL, window);
+  if (!result) {
+    result = resolveSourceURL(resourceURL, window) || resourceURL;
+
+    // In XPCShell tests, the source URL isn't actually a URL, it's a file path.
+    // That causes issues because "C:/folder/file.js" is parsed as a URL with
+    // "c:" as the URL scheme, which causes the drive letter to be unexpectedly
+    // lower-cased when the parsed URL is re-serialized. To avoid that, we
+    // detect that case and re-uppercase it again. This is a bit gross and
+    // ideally it seems like XPCShell tests should use file:// URLs for files,
+    // but alas they do not.
+    if (
+      resourceURL &&
+      resourceURL.match(windowsDrive) &&
+      result.slice(0, 2) == resourceURL.slice(0, 2).toLowerCase()
+    ) {
+      result = resourceURL.slice(0, 2) + result.slice(2);
     }
-
-    return source.displayURL;
-  } else if (source.url === "debugger eval code") {
-    // Treat code evaluated by the console as unnamed eval scripts
-    return null;
   }
-  return source.url;
-}
 
-exports.getSourceURL = getSourceURL;
+  return result;
+}
 
 /**
  * A SourceActor provides information about the source of a script. Source
@@ -95,30 +83,28 @@ exports.getSourceURL = getSourceURL;
  *        The source object we are representing.
  * @param ThreadActor thread
  *        The current thread actor.
- * @param Boolean isInlineSource
- *        Optional. True if this is an inline source from a HTML or XUL page.
- * @param String contentType
- *        Optional. The content type of this source, if immediately available.
  */
 const SourceActor = ActorClassWithSpec(sourceSpec, {
-  typeName: "source",
+  initialize: function({ source, thread }) {
+    Actor.prototype.initialize.call(this, thread.conn);
 
-  initialize: function({ source, thread, isInlineSource, contentType }) {
     this._threadActor = thread;
-    this._url = null;
+    this._url = undefined;
     this._source = source;
-    this._contentType = contentType;
-    this._isInlineSource = isInlineSource;
+    this.__isInlineSource = undefined;
     this._startLineColumnDisplacement = null;
-
-    this.source = this.source.bind(this);
-    this._getSourceText = this._getSourceText.bind(this);
-
-    this._init = null;
   },
 
-  get isInlineSource() {
-    return this._isInlineSource;
+  get _isInlineSource() {
+    const source = this._source;
+    if (this.__isInlineSource === undefined) {
+      // If the source has a usable displayURL, the source is treated as not
+      // inlined because it has its own URL.
+      this.__isInlineSource =
+        source.introductionType === "inlineScript" &&
+        !resolveSourceURL(source.displayURL, this.threadActor._parent.window);
+    }
+    return this.__isInlineSource;
   },
 
   get threadActor() {
@@ -134,7 +120,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
     return this.threadActor.breakpointActorMap;
   },
   get url() {
-    if (!this._url) {
+    if (this._url === undefined) {
       this._url = getSourceURL(this._source, this.threadActor._parent.window);
     }
     return this._url;
@@ -164,86 +150,81 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
     return this._extensionName;
   },
 
+  get internalSourceId() {
+    return this._source.id;
+  },
+
   form: function() {
     const source = this._source;
 
-    let introductionUrl = null;
-    if (source.introductionScript) {
-      introductionUrl = source.introductionScript.source.url;
+    let introductionType = source.introductionType;
+    if (
+      introductionType === "srcScript" ||
+      introductionType === "inlineScript" ||
+      introductionType === "injectedScript"
+    ) {
+      // These three used to be one single type, so here we combine them all
+      // so that clients don't see any change in behavior.
+      introductionType = "scriptElement";
     }
 
     return {
       actor: this.actorID,
       extensionName: this.extensionName,
-      url: this.url ? this.url.split(" -> ").pop() : null,
+      url: this.url,
       isBlackBoxed: this.threadActor.sources.isBlackBoxed(this.url),
-      sourceMapURL: source ? source.sourceMapURL : null,
-      introductionUrl: introductionUrl
-        ? introductionUrl.split(" -> ").pop()
-        : null,
-      introductionType: source ? source.introductionType : null,
+      sourceMapBaseURL: getSourcemapBaseURL(
+        this.url,
+        this.threadActor._parent.window
+      ),
+      sourceMapURL: source.sourceMapURL,
+      introductionType,
     };
   },
 
   destroy: function() {
-    if (this.registeredPool && this.registeredPool.sourceActors) {
-      delete this.registeredPool.sourceActors[this.actorID];
+    const parent = this.getParent();
+    if (parent && parent.sourceActors) {
+      delete parent.sourceActors[this.actorID];
     }
+    Actor.prototype.destroy.call(this);
   },
 
-  get isWasm() {
+  get _isWasm() {
     return this._source.introductionType === "wasm";
   },
 
   _getSourceText: async function() {
-    const toResolvedContent = t => ({
-      content: t,
-      contentType: this._contentType,
-    });
-
-    if (this.isWasm) {
+    if (this._isWasm) {
       const wasm = this._source.binary;
       const buffer = wasm.buffer;
       assert(
         wasm.byteOffset === 0 && wasm.byteLength === buffer.byteLength,
         "Typed array from wasm source binary must cover entire buffer"
       );
-      return toResolvedContent(buffer);
-    }
-
-    // If we are replaying then we can only use source saved during the
-    // original recording. If we try to fetch it now it may have changed or
-    // may no longer exist.
-    if (this.dbg.replaying) {
-      return this.dbg.replayingContent(this.url);
+      return {
+        content: buffer,
+        contentType: "text/wasm",
+      };
     }
 
     // Use `source.text` if it exists, is not the "no source" string, and
-    // the content type of the source is JavaScript or it is synthesized
-    // wasm. It will be "no source" if the Debugger API wasn't able to load
+    // the source isn't one that is inlined into some larger file.
+    // It will be "no source" if the Debugger API wasn't able to load
     // the source because sources were discarded
-    // (javascript.options.discardSystemSource == true). Re-fetch non-JS
-    // sources to get the contentType from the headers.
-    if (
-      this._source &&
-      this._source.text !== "[no source]" &&
-      this._contentType &&
-      (this._contentType.includes("javascript") ||
-        this._contentType === "text/wasm")
-    ) {
-      return toResolvedContent(this.actualText());
+    // (javascript.options.discardSystemSource == true).
+    if (this._source.text !== "[no source]" && !this._isInlineSource) {
+      return {
+        content: this.actualText(),
+        contentType: "text/javascript",
+      };
     }
 
-    const result = await this.sources.urlContents(
+    return this.sources.urlContents(
       this.url,
       /* partial */ false,
-      /* canUseCache */ this.isInlineSource
+      /* canUseCache */ this._isInlineSource
     );
-
-    // Record the contentType we just learned during fetching
-    this._contentType = result.contentType;
-
-    return result;
   },
 
   // Get the actual text of this source, padded so that line numbers will match
@@ -310,7 +291,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
     const fileContents = this.sources.urlContents(
       this.url,
       /* partial */ true,
-      /* canUseCache */ this.isInlineSource
+      /* canUseCache */ this._isInlineSource
     );
     if (fileContents.then) {
       return fileContents.then(contents =>
@@ -398,21 +379,19 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
 
     let scripts = this.dbg.findScripts({ source: this._source });
 
-    if (!this.isWasm) {
-      const topLevel = scripts.filter(script => !script.isFunction);
-      if (topLevel.length) {
-        scripts = topLevel;
-      } else {
-        const allScripts = new Set(scripts);
-
-        for (const script of allScripts) {
-          for (const child of script.getChildScripts()) {
-            allScripts.delete(child);
-          }
+    if (!this._isWasm) {
+      // There is no easier way to get the top-level scripts right now, so
+      // we have to build that up the list manually.
+      // Note: It is not valid to simply look for scripts where
+      // `.isFunction == false` because a source may have executed multiple
+      // where some have been GCed and some have not (bug 1627712).
+      const allScripts = new Set(scripts);
+      for (const script of allScripts) {
+        for (const child of script.getChildScripts()) {
+          allScripts.delete(child);
         }
-
-        scripts = [...allScripts];
       }
+      scripts = [...allScripts];
     }
 
     this._scripts = scripts;
@@ -446,7 +425,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
     // top level non-function script, but if there is a non-function script then
     // it must be at the top level and will keep all other scripts in the source
     // alive.
-    if (!this.isWasm && !scripts.some(script => !script.isFunction)) {
+    if (!this._isWasm && !scripts.some(script => !script.isFunction)) {
       let newScript;
       try {
         newScript = this._source.reparse();
@@ -516,7 +495,9 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
       for (const script of childScripts) {
         if (scriptMatches(script)) {
           rv.push(script);
-          addMatchingScripts(script.getChildScripts());
+          if (script.format === "js") {
+            addMatchingScripts(script.getChildScripts());
+          }
         }
       }
     }
@@ -593,36 +574,34 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
    *         a field `source`. `source` can either be an ArrayBuffer or
    *         a LongString.
    */
-  source: function() {
-    return Promise.resolve(this._init)
-      .then(this._getSourceText)
-      .then(({ content, contentType }) => {
-        if (
-          typeof content === "object" &&
-          content &&
-          content.constructor &&
-          content.constructor.name === "ArrayBuffer"
-        ) {
-          return {
-            source: new ArrayBufferActor(this.threadActor.conn, content),
-            contentType,
-          };
-        }
-
+  source: async function() {
+    try {
+      const { content, contentType } = await this._getSourceText();
+      if (
+        typeof content === "object" &&
+        content &&
+        content.constructor &&
+        content.constructor.name === "ArrayBuffer"
+      ) {
         return {
-          source: new LongStringActor(this.threadActor.conn, content),
+          source: new ArrayBufferActor(this.threadActor.conn, content),
           contentType,
         };
-      })
-      .catch(error => {
-        reportError(error, "Got an exception during SA_onSource: ");
-        throw new Error(
-          "Could not load the source for " +
-            this.url +
-            ".\n" +
-            DevToolsUtils.safeErrorString(error)
-        );
-      });
+      }
+
+      return {
+        source: new LongStringActor(this.threadActor.conn, content),
+        contentType,
+      };
+    } catch (error) {
+      reportError(error, "Got an exception during SA_onSource: ");
+      throw new Error(
+        "Could not load the source for " +
+          this.url +
+          ".\n" +
+          DevToolsUtils.safeErrorString(error)
+      );
+    }
   },
 
   /**

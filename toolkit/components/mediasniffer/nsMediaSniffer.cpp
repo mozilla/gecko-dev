@@ -38,7 +38,9 @@ nsMediaSnifferEntry nsMediaSniffer::sSnifferEntries[] = {
     // mp3 with ID3 tags, the string "ID3".
     PATTERN_ENTRY("\xFF\xFF\xFF", "ID3", AUDIO_MP3),
     // FLAC with standard header
-    PATTERN_ENTRY("\xFF\xFF\xFF\xFF", "fLaC", AUDIO_FLAC)};
+    PATTERN_ENTRY("\xFF\xFF\xFF\xFF", "fLaC", AUDIO_FLAC),
+    PATTERN_ENTRY("\xFF\xFF\xFF\xFF\xFF\xFF\xFF", "#EXTM3U",
+                  APPLICATION_MPEGURL)};
 
 // For a complete list of file types, see http://www.ftyps.com/index.html
 nsMediaSnifferEntry sFtypEntries[] = {
@@ -55,6 +57,7 @@ nsMediaSnifferEntry sFtypEntries[] = {
     PATTERN_ENTRY("\xFF\xFF\xFF\xFF", "qt  ", VIDEO_QUICKTIME),
     PATTERN_ENTRY("\xFF\xFF\xFF", "iso", VIDEO_MP4),  // Could be isom or iso2.
     PATTERN_ENTRY("\xFF\xFF\xFF\xFF", "mmp4", VIDEO_MP4),
+    PATTERN_ENTRY("\xFF\xFF\xFF\xFF", "avif", IMAGE_AVIF),
 };
 
 static bool MatchesBrands(const uint8_t aData[4], nsACString& aSniffedType) {
@@ -82,8 +85,8 @@ static bool MatchesBrands(const uint8_t aData[4], nsACString& aSniffedType) {
 // including MP4 (described at
 // http://mimesniff.spec.whatwg.org/#signature-for-mp4), M4A (Apple iTunes
 // audio), and 3GPP.
-static bool MatchesMP4(const uint8_t* aData, const uint32_t aLength,
-                       nsACString& aSniffedType) {
+bool MatchesMP4(const uint8_t* aData, const uint32_t aLength,
+                nsACString& aSniffedType) {
   if (aLength <= MP4_MIN_BYTES_COUNT) {
     return false;
   }

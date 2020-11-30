@@ -26,14 +26,26 @@
                     "preprocess": "localize"
                   },
                   "keyword": {
-                    "type": "string",
                     "optional": true,
-                    "preprocess": "localize"
+                    "choices": [
+                      {
+                        "type": "string",
+                        "preprocess": "localize"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "preprocess": "localize"
+                        },
+                        "minItems": 1
+                      }
+                    ]
                   },
                   "search_url": {
                     "type": "string",
                     "format": "url",
-                    "pattern": "^https://.*$",
+                    "pattern": "^(https://|http://(localhost|127\\.0\\.0\\.1|\\[::1\\])(:\\d*)?(/|$)).*$",
                     "preprocess": "localize"
                   },
                   "favicon_url": {
@@ -45,7 +57,7 @@
                   "suggest_url": {
                     "type": "string",
                     "optional": true,
-                    "pattern": "^https://.*$|^$",
+                    "pattern": "^(https://|http://(localhost|127\\.0\\.0\\.1|\\[::1\\])(:\\d*)?(/|$)).*$",
                     "preprocess": "localize"
                   },
                   "instant_url": {
@@ -102,7 +114,7 @@
                     "type": "string",
                     "optional": true,
                     "format": "url",
-                    "pattern": "^https://.*$",
+                    "pattern": "^(https://|http://(localhost|127\\.0\\.0\\.1|\\[::1\\])(:\\d*)?(/|$)).*$",
                     "preprocess": "localize"
                   },
                   "alternate_urls": {

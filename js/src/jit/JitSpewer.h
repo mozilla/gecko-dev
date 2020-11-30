@@ -7,15 +7,15 @@
 #ifndef jit_JitSpewer_h
 #define jit_JitSpewer_h
 
+#include "mozilla/Assertions.h"
+#include "mozilla/Attributes.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/IntegerPrintfMacros.h"
 
 #include <stdarg.h>
 
 #include "jit/JSONSpewer.h"
-
-#include "js/RootingAPI.h"
-
+#include "js/TypeDecls.h"
 #include "vm/Printer.h"
 
 namespace js {
@@ -59,8 +59,6 @@ namespace jit {
   _(CacheFlush)                            \
   /* Output a list of MIR expressions */   \
   _(MIRExpressions)                        \
-  /* Print control flow graph */           \
-  _(CFG)                                   \
   /* Spew Tracelogger summary stats */     \
   _(ScriptStats)                           \
                                            \
@@ -100,7 +98,16 @@ namespace jit {
   /* Debug info about snapshots */         \
   _(IonSnapshots)                          \
   /* Generated inline cache stubs */       \
-  _(IonIC)
+  _(IonIC)                                 \
+                                           \
+  /* WARP SPEW */                          \
+                                           \
+  /* Generated WarpSnapshots */            \
+  _(WarpSnapshots)                         \
+  /* CacheIR transpiler logging */         \
+  _(WarpTranspiler)                        \
+  /* Trial inlining for Warp */            \
+  _(WarpTrialInlining)
 
 enum JitSpewChannel {
 #define JITSPEW_CHANNEL(name) JitSpew_##name,
@@ -185,6 +192,13 @@ void DisableChannel(JitSpewChannel channel);
 void EnableIonDebugSyncLogging();
 void EnableIonDebugAsyncLogging();
 
+#  define JitSpewIfEnabled(channel, fmt, ...) \
+    do {                                      \
+      if (JitSpewEnabled(channel)) {          \
+        JitSpew(channel, fmt, __VA_ARGS__);   \
+      }                                       \
+    } while (false);
+
 #else
 
 class GraphSpewer {
@@ -235,6 +249,9 @@ static inline void JitSpewCheckArguments(JitSpewChannel channel,
 #  define JitSpew(...) JitSpewCheckExpandedArgs_((__VA_ARGS__))
 #  define JitSpewStart(...) JitSpewCheckExpandedArgs_((__VA_ARGS__))
 #  define JitSpewCont(...) JitSpewCheckExpandedArgs_((__VA_ARGS__))
+
+#  define JitSpewIfEnabled(channel, fmt, ...) \
+    JitSpewCheckArguments(channel, fmt)
 
 static inline void JitSpewFin(JitSpewChannel channel) {}
 

@@ -10,6 +10,7 @@ const KeyShortcuts = require("devtools/client/shared/key-shortcuts");
 const { parseItemValue } = require("devtools/shared/storage/utils");
 const { KeyCodes } = require("devtools/client/shared/keycodes");
 const { getUnicodeHostname } = require("devtools/client/shared/unicode-url");
+const getStorageTypeURL = require("devtools/client/storage/utils/mdn-utils");
 
 // GUID to be used as a separator in compound keys. This must match the same
 // constant in devtools/server/actors/storage.js,
@@ -57,8 +58,6 @@ const REASON = {
   POPULATE: "populate",
   UPDATE: "update",
 };
-
-const SAFE_HOSTS_PREFIXES_REGEX = /^(about:|https?:|file:|moz-extension:)/;
 
 // Maximum length of item name to show in context menu label - will be
 // trimmed with ellipsis if it's longer.
@@ -131,9 +130,10 @@ class StorageUI {
 
     const tableNode = this._panelDoc.getElementById("storage-table");
     this.table = new TableWidget(tableNode, {
-      emptyText: L10N.getStr("table.emptyText"),
+      emptyText: "storage-table-empty-text",
       highlightUpdated: true,
       cellContextMenuId: "storage-table-popup",
+      l10n: this._panelDoc.l10n,
     });
 
     this.updateObjectSidebar = this.updateObjectSidebar.bind(this);
@@ -164,9 +164,6 @@ class StorageUI {
       event.preventDefault();
       this.searchBox.focus();
     });
-
-    this.onEdit = this.onEdit.bind(this);
-    this.onCleared = this.onCleared.bind(this);
 
     this.handleKeypress = this.handleKeypress.bind(this);
     this._panelDoc.addEventListener("keypress", this.handleKeypress);
@@ -277,41 +274,77 @@ class StorageUI {
       this._onTargetAvailable,
       this._onTargetDestroyed
     );
+
+    this.storageTypes = {};
+
+    this._onResourceListAvailable = this._onResourceListAvailable.bind(this);
+    this._onResourceUpdated = this._onResourceUpdated.bind(this);
+    this._onResourceListUpdated = this._onResourceListUpdated.bind(this);
+    this._onResourceDestroyed = this._onResourceDestroyed.bind(this);
+    this._onResourceListDestroyed = this._onResourceListDestroyed.bind(this);
+
+    const { resourceWatcher } = this._toolbox;
+
+    await this._toolbox.resourceWatcher.watchResources(
+      [
+        // The first item in this list will be the first selected storage item
+        // Tests assume Cookie -- moving cookie will break tests
+        resourceWatcher.TYPES.COOKIE,
+        resourceWatcher.TYPES.CACHE_STORAGE,
+        resourceWatcher.TYPES.EXTENSION_STORAGE,
+        resourceWatcher.TYPES.INDEXED_DB,
+        resourceWatcher.TYPES.LOCAL_STORAGE,
+        resourceWatcher.TYPES.SESSION_STORAGE,
+      ],
+      {
+        onAvailable: this._onResourceListAvailable,
+        onUpdated: this._onResourceListUpdated,
+        onDestroyed: this._onResourceListDestroyed,
+      }
+    );
   }
 
-  async _onTargetAvailable({ type, targetFront, isTopLevel }) {
+  async _onTargetAvailable({ targetFront }) {
     // Only support top level target and navigation to new processes.
     // i.e. ignore additional targets created for remote <iframes>
-    if (!isTopLevel) {
+    if (!targetFront.isTopLevel) {
       return;
     }
 
     this.front = await targetFront.getFront("storage");
-    this.front.on("stores-update", this.onEdit);
-    this.front.on("stores-cleared", this.onCleared);
-    try {
-      const storageTypes = await this.front.listStores();
-      // When we are in the browser console we list indexedDBs internal to
-      // Firefox e.g. defined inside a .jsm. Because there is no way before this
-      // point to know whether or not we are inside the browser toolbox we have
-      // already fetched the hostnames of these databases.
-      //
-      // If we are not inside the browser toolbox we need to delete these
-      // hostnames.
-      if (!targetFront.chrome && storageTypes.indexedDB) {
-        const hosts = storageTypes.indexedDB.hosts;
-        const newHosts = {};
+  }
 
-        for (const [host, dbs] of Object.entries(hosts)) {
-          if (SAFE_HOSTS_PREFIXES_REGEX.test(host)) {
-            newHosts[host] = dbs;
-          }
-        }
+  async _onResourceListAvailable(resources) {
+    const {
+      COOKIE,
+      LOCAL_STORAGE,
+      SESSION_STORAGE,
+      EXTENSION_STORAGE,
+      CACHE_STORAGE,
+      INDEXED_DB,
+    } = this._toolbox.resourceWatcher.TYPES;
 
-        storageTypes.indexedDB.hosts = newHosts;
+    const storages = {};
+
+    for (const resource of resources) {
+      const { resourceType } = resource;
+      if (resourceType == COOKIE) {
+        storages.cookies = resource;
+      } else if (resourceType == LOCAL_STORAGE) {
+        storages.localStorage = resource;
+      } else if (resourceType == SESSION_STORAGE) {
+        storages.sessionStorage = resource;
+      } else if (resourceType == EXTENSION_STORAGE) {
+        storages.extensionStorage = resource;
+      } else if (resourceType == CACHE_STORAGE) {
+        storages.Cache = resource;
+      } else if (resourceType == INDEXED_DB) {
+        storages.indexedDB = resource;
       }
+    }
 
-      this.populateStorageTree(storageTypes);
+    try {
+      await this.populateStorageTree(storages);
     } catch (e) {
       if (!this._toolbox || this._toolbox._destroyer) {
         // The toolbox is in the process of being destroyed... in this case throwing here
@@ -324,19 +357,16 @@ class StorageUI {
     }
   }
 
-  _onTargetDestroyed({ type, targetFront, isTopLevel }) {
+  _onTargetDestroyed({ targetFront }) {
     // Only support top level target and navigation to new processes.
     // i.e. ignore additional targets created for remote <iframes>
-    if (!isTopLevel) {
+    if (!targetFront.isTopLevel) {
       return;
     }
 
     this.table.clear();
     this.hideSidebar();
     this.tree.clear();
-
-    this.front.off("stores-update", this.onEdit);
-    this.front.off("stores-cleared", this.onCleared);
   }
 
   set animationsEnabled(value) {
@@ -480,35 +510,40 @@ class StorageUI {
     await this.updateObjectSidebar();
   }
 
+  async _onResourceListDestroyed(clearedList) {
+    for (const cleared of clearedList) {
+      await this._onResourceDestroyed(cleared);
+    }
+  }
+
   /**
    * Event handler for "stores-cleared" event coming from the storage actor.
    *
-   * @param {object} response
-   *        An object containing which storage types were cleared
+   * @param {object}
+   *        An object containing which hosts/paths are cleared from a
+   *        storage
    */
-  onCleared(response) {
+  _onResourceDestroyed({ resourceKey, clearedHostsOrPaths }) {
     function* enumPaths() {
-      for (const type in response) {
-        if (Array.isArray(response[type])) {
-          // Handle the legacy response with array of hosts
-          for (const host of response[type]) {
-            yield [type, host];
-          }
-        } else {
-          // Handle the new format that supports clearing sub-stores in a host
-          for (const host in response[type]) {
-            const paths = response[type][host];
+      if (Array.isArray(clearedHostsOrPaths)) {
+        // Handle the legacy response with array of hosts
+        for (const host of clearedHostsOrPaths) {
+          yield [host];
+        }
+      } else {
+        // Handle the new format that supports clearing sub-stores in a host
+        for (const host in clearedHostsOrPaths) {
+          const paths = clearedHostsOrPaths[host];
 
-            if (!paths.length) {
-              yield [type, host];
-            } else {
-              for (let path of paths) {
-                try {
-                  path = JSON.parse(path);
-                  yield [type, host, ...path];
-                } catch (ex) {
-                  // ignore
-                }
+          if (!paths.length) {
+            yield [host];
+          } else {
+            for (let path of paths) {
+              try {
+                path = JSON.parse(path);
+                yield [host, ...path];
+              } catch (ex) {
+                // ignore
               }
             }
           }
@@ -518,7 +553,7 @@ class StorageUI {
 
     for (const path of enumPaths()) {
       // Find if the path is selected (there is max one) and clear it
-      if (this.tree.isSelected(path)) {
+      if (this.tree.isSelected([resourceKey, ...path])) {
         this.table.clear();
         this.hideSidebar();
 
@@ -529,6 +564,12 @@ class StorageUI {
         this.emit("store-objects-cleared");
         break;
       }
+    }
+  }
+
+  async _onResourceListUpdated(updates) {
+    for (const update of updates) {
+      await this._onResourceUpdated(update.update);
     }
   }
 
@@ -555,7 +596,7 @@ class StorageUI {
    *        of the changed store objects. This array is empty for deleted object
    *        if the host was completely removed.
    */
-  async onEdit({ changed, added, deleted }) {
+  async _onResourceUpdated({ changed, added, deleted }) {
     if (added) {
       await this.handleAddedItems(added);
     }
@@ -777,24 +818,7 @@ class StorageUI {
           }
         }
 
-        const target = this.currentTarget;
-        this.actorSupportsAddItem = await target.actorHasMethod(
-          type,
-          "addItem"
-        );
-        this.actorSupportsRemoveItem = await target.actorHasMethod(
-          type,
-          "removeItem"
-        );
-        this.actorSupportsRemoveAll = await target.actorHasMethod(
-          type,
-          "removeAll"
-        );
-        this.actorSupportsRemoveAllSessionCookies = await target.actorHasMethod(
-          type,
-          "removeAllSessionCookies"
-        );
-
+        await this._readSupportsTraits(type);
         await this.resetColumns(type, host, subType);
       }
 
@@ -812,6 +836,41 @@ class StorageUI {
       this.emit("store-objects-updated");
     } catch (ex) {
       console.error(ex);
+    }
+  }
+
+  /**
+   * Read the current supports traits for the provided storage type and update
+   * the actorSupports flags on the UI instance.
+   *
+   * Note: setting actorSupportsXYZ properties on the UI instance is incorrect
+   * because the value depends on each storage type. See Bug 1654998.
+   */
+  async _readSupportsTraits(type) {
+    const { traits } = this.storageTypes[type];
+    if (traits.hasSupportsTraits) {
+      this.actorSupportsAddItem = traits.supportsAddItem;
+      this.actorSupportsRemoveItem = traits.supportsRemoveItem;
+      this.actorSupportsRemoveAll = traits.supportsRemoveAll;
+      this.actorSupportsRemoveAllSessionCookies =
+        traits.supportsRemoveAllSessionCookies;
+    } else {
+      // Backward compatibility. This branch can be removed when Firefox 80 is
+      // on the release channel.
+      const target = this.currentTarget;
+      this.actorSupportsAddItem = await target.actorHasMethod(type, "addItem");
+      this.actorSupportsRemoveItem = await target.actorHasMethod(
+        type,
+        "removeItem"
+      );
+      this.actorSupportsRemoveAll = await target.actorHasMethod(
+        type,
+        "removeAll"
+      );
+      this.actorSupportsRemoveAllSessionCookies = await target.actorHasMethod(
+        type,
+        "removeAllSessionCookies"
+      );
     }
   }
 
@@ -843,8 +902,20 @@ class StorageUI {
    *        List of storages and their corresponding hosts returned by the
    *        StorageFront.listStores call.
    */
-  populateStorageTree(storageTypes) {
-    this.storageTypes = {};
+  async populateStorageTree(storageTypes) {
+    // When can we expect the "store-objects-updated" event?
+    //   -> TreeWidget setter `selectedItem` emits a "select" event
+    //   -> on tree "select" event, this module calls `onHostSelect`
+    //   -> finally `onHostSelect` calls `fetchStorageObjects`, which will emit
+    //      "store-objects-updated" at the end of the method.
+    // So if the selection changed, we can wait for "store-objects-updated",
+    // which is emitted at the end of `fetchStorageObjects`.
+    const onStoresObjectsUpdated = this.once("store-objects-updated");
+
+    // Save the initially selected item to check if tree.selected was updated,
+    // see comment above.
+    const initialSelectedItem = this.tree.selectedItem;
+
     for (const type in storageTypes) {
       // Ignore `from` field, which is just a protocol.js implementation
       // artifact.
@@ -857,6 +928,7 @@ class StorageUI {
       } catch (e) {
         console.error("Unable to localize tree label type:" + type);
       }
+
       this.tree.add([{ id: type, label: typeLabel, type: "store" }]);
       if (!storageTypes[type].hosts) {
         continue;
@@ -881,6 +953,10 @@ class StorageUI {
         }
       }
     }
+
+    if (initialSelectedItem !== this.tree.selectedItem) {
+      await onStoresObjectsUpdated;
+    }
   }
 
   /**
@@ -893,7 +969,7 @@ class StorageUI {
     let value;
 
     // Get the string value (async action) and the update the UI synchronously.
-    if (item && item.name && item.valueActor) {
+    if (item?.name && item?.valueActor) {
       value = await item.valueActor.string();
     }
 
@@ -943,7 +1019,7 @@ class StorageUI {
         );
         for (const prop of otherProps) {
           const column = this.table.columns.get(prop);
-          if (column && column.private) {
+          if (column?.private) {
             continue;
           }
 
@@ -958,7 +1034,7 @@ class StorageUI {
       // Case when displaying IndexedDB db/object store properties.
       for (const key in item) {
         const column = this.table.columns.get(key);
-        if (column && column.private) {
+        if (column?.private) {
           continue;
         }
 
@@ -1049,6 +1125,33 @@ class StorageUI {
 
     let names = null;
     if (!host) {
+      let storageTypeHintL10nId = "";
+      switch (type) {
+        case "Cache":
+          storageTypeHintL10nId = "storage-table-type-cache-hint";
+          break;
+        case "cookies":
+          storageTypeHintL10nId = "storage-table-type-cookies-hint";
+          break;
+        case "extensionStorage":
+          storageTypeHintL10nId = "storage-table-type-extensionstorage-hint";
+          break;
+        case "localStorage":
+          storageTypeHintL10nId = "storage-table-type-localstorage-hint";
+          break;
+        case "indexedDB":
+          storageTypeHintL10nId = "storage-table-type-indexeddb-hint";
+          break;
+        case "sessionStorage":
+          storageTypeHintL10nId = "storage-table-type-sessionstorage-hint";
+          break;
+      }
+      this.table.setPlaceholder(
+        storageTypeHintL10nId,
+        getStorageTypeURL(this.table.datatype) +
+          "?utm_source=devtools&utm_medium=storage-inspector"
+      );
+
       // If selected item has no host then reset table headers
       await this.clearHeaders();
       return;

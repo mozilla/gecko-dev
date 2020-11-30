@@ -261,8 +261,7 @@ nsresult nsNPAPIPluginInstance::Start() {
     mCachedParamValues[i] = ToNewUTF8String(attributes[i].mValue);
   }
 
-  mCachedParamNames[attributes.Length()] =
-      ToNewUTF8String(NS_LITERAL_STRING("PARAM"));
+  mCachedParamNames[attributes.Length()] = ToNewUTF8String(u"PARAM"_ns);
   mCachedParamValues[attributes.Length()] = nullptr;
 
   for (uint32_t i = 0, pos = attributes.Length() + 1; i < params.Length();
@@ -773,19 +772,15 @@ nsresult nsNPAPIPluginInstance::PushPopupsEnabledState(bool aEnabled) {
           aEnabled ? PopupBlocker::openAllowed : PopupBlocker::openAbused,
           true);
 
-  if (!mPopupStates.AppendElement(oldState)) {
-    // Appending to our state stack failed, pop what we just pushed.
-    PopupBlocker::PopPopupControlState(oldState);
-    return NS_ERROR_FAILURE;
-  }
+  // XXX(Bug 1631371) Check if this should use a fallible operation as it
+  // pretended earlier.
+  mPopupStates.AppendElement(oldState);
 
   return NS_OK;
 }
 
 nsresult nsNPAPIPluginInstance::PopPopupsEnabledState() {
-  int32_t last = mPopupStates.Length() - 1;
-
-  if (last < 0) {
+  if (mPopupStates.IsEmpty()) {
     // Nothing to pop.
     return NS_OK;
   }
@@ -793,11 +788,7 @@ nsresult nsNPAPIPluginInstance::PopPopupsEnabledState() {
   nsCOMPtr<nsPIDOMWindowOuter> window = GetDOMWindow();
   if (!window) return NS_ERROR_FAILURE;
 
-  PopupBlocker::PopupControlState& oldState = mPopupStates[last];
-
-  PopupBlocker::PopPopupControlState(oldState);
-
-  mPopupStates.RemoveElementAt(last);
+  PopupBlocker::PopPopupControlState(mPopupStates.PopLastElement());
 
   return NS_OK;
 }

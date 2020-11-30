@@ -15,6 +15,7 @@
 #include "nsCOMPtr.h"
 #include "nsGenericHTMLElement.h"
 #include "nsWrapperCache.h"
+#include "js/Object.h"  // JS::GetClass
 
 // Forward declare this before we include TestCodeGenBinding.h, because that
 // header relies on including this one for it, for ParentDict. Hopefully it
@@ -28,11 +29,6 @@ class Promise;
 }  // namespace mozilla
 
 // We don't export TestCodeGenBinding.h, but it's right in our parent dir.
-#ifdef XP_WIN
-// If we're on windows, simulate including windows.h. This step will cause
-// compilation failure if NeedsWindowsUndef is not defined.
-#  define NO_ERROR 0x1
-#endif
 #include "../TestCodeGenBinding.h"
 
 extern bool TestFuncControlledMember(JSContext*, JSObject*);
@@ -678,7 +674,7 @@ class TestInterface : public nsISupports, public nsWrapperCache {
     if (arg.IsNull()) {
     } else if (arg.IsObject()) {
       JS::Rooted<JSObject*> obj(cx, arg.GetAsObject());
-      JS_GetClass(obj);
+      JS::GetClass(obj);
       returnValue.SetAsObject() = obj;
     } else {
       int32_t i = arg.GetAsLong();

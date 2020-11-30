@@ -12,27 +12,20 @@ use serde_json::json;
 use glean_core::metrics::*;
 use glean_core::storage::StorageManager;
 use glean_core::{test_get_num_recorded_errors, ErrorType};
-use glean_core::{CommonMetricData, Glean, Lifetime};
+use glean_core::{CommonMetricData, Lifetime};
 
 // Tests ported from glean-ac
 
 #[test]
 fn serializer_should_correctly_serialize_timing_distribution() {
-    let (_t, tmpname) = tempdir();
+    let (mut tempdir, _) = tempdir();
 
     let duration = 60;
     let time_unit = TimeUnit::Nanosecond;
 
-    let cfg = glean_core::Configuration {
-        data_path: tmpname,
-        application_id: GLOBAL_APPLICATION_ID.into(),
-        upload_enabled: true,
-        max_events: None,
-        delay_ping_lifetime_io: false,
-    };
-
     {
-        let glean = Glean::new(cfg.clone()).unwrap();
+        let (glean, dir) = new_glean(Some(tempdir));
+        tempdir = dir;
 
         let mut metric = TimingDistributionMetric::new(
             CommonMetricData {
@@ -49,17 +42,17 @@ fn serializer_should_correctly_serialize_timing_distribution() {
         let id = metric.set_start(0);
         metric.set_stop_and_accumulate(&glean, id, duration);
 
-        let val = metric
+        let snapshot = metric
             .test_get_value(&glean, "store1")
             .expect("Value should be stored");
 
-        assert_eq!(val.sum(), duration);
+        assert_eq!(snapshot.sum, duration);
     }
 
     // Make a new Glean instance here, which should force reloading of the data from disk
     // so we can ensure it persisted, because it has User lifetime
     {
-        let glean = Glean::new(cfg).unwrap();
+        let (glean, _) = new_glean(Some(tempdir));
         let snapshot = StorageManager
             .snapshot_as_json(glean.storage(), "store1", true)
             .unwrap();
@@ -167,22 +160,21 @@ fn the_accumulate_samples_api_correctly_stores_timing_values() {
     // negative values to not trigger error reporting.
     metric.accumulate_samples_signed(&glean, [1, 2, 3].to_vec());
 
-    let val = metric
+    let snapshot = metric
         .test_get_value(&glean, "store1")
         .expect("Value should be stored");
 
     let seconds_to_nanos = 1000 * 1000 * 1000;
 
     // Check that we got the right sum and number of samples.
-    assert_eq!(val.sum(), 6 * seconds_to_nanos);
-    assert_eq!(val.count(), 3);
+    assert_eq!(snapshot.sum, 6 * seconds_to_nanos);
 
     // We should get a sample in 3 buckets.
     // These numbers are a bit magic, but they correspond to
     // `hist.sample_to_bucket_minimum(i * seconds_to_nanos)` for `i = 1..=3`.
-    assert_eq!(1, val.values()[&984_625_593]);
-    assert_eq!(1, val.values()[&1_969_251_187]);
-    assert_eq!(1, val.values()[&2_784_941_737]);
+    assert_eq!(1, snapshot.values[&984_625_593]);
+    assert_eq!(1, snapshot.values[&1_969_251_187]);
+    assert_eq!(1, snapshot.values[&2_784_941_737]);
 
     // No errors should be reported.
     assert!(test_get_num_recorded_errors(
@@ -213,18 +205,17 @@ fn the_accumulate_samples_api_correctly_handles_negative_values() {
     // Accumulate the samples.
     metric.accumulate_samples_signed(&glean, [-1, 1, 2, 3].to_vec());
 
-    let val = metric
+    let snapshot = metric
         .test_get_value(&glean, "store1")
         .expect("Value should be stored");
 
     // Check that we got the right sum and number of samples.
-    assert_eq!(val.sum(), 6);
-    assert_eq!(val.count(), 3);
+    assert_eq!(snapshot.sum, 6);
 
     // We should get a sample in each of the first 3 buckets.
-    assert_eq!(1, val.values()[&1]);
-    assert_eq!(1, val.values()[&2]);
-    assert_eq!(1, val.values()[&3]);
+    assert_eq!(1, snapshot.values[&1]);
+    assert_eq!(1, snapshot.values[&2]);
+    assert_eq!(1, snapshot.values[&3]);
 
     // 1 error should be reported.
     assert_eq!(
@@ -260,18 +251,17 @@ fn the_accumulate_samples_api_correctly_handles_overflowing_values() {
     // Accumulate the samples.
     metric.accumulate_samples_signed(&glean, [overflowing_val, 1, 2, 3].to_vec());
 
-    let val = metric
+    let snapshot = metric
         .test_get_value(&glean, "store1")
         .expect("Value should be stored");
 
     // Overflowing values are truncated to MAX_SAMPLE_TIME and recorded.
-    assert_eq!(val.sum(), MAX_SAMPLE_TIME + 6);
-    assert_eq!(val.count(), 4);
+    assert_eq!(snapshot.sum, MAX_SAMPLE_TIME + 6);
 
     // We should get a sample in each of the first 3 buckets.
-    assert_eq!(1, val.values()[&1]);
-    assert_eq!(1, val.values()[&2]);
-    assert_eq!(1, val.values()[&3]);
+    assert_eq!(1, snapshot.values[&1]);
+    assert_eq!(1, snapshot.values[&2]);
+    assert_eq!(1, snapshot.values[&3]);
 
     // 1 error should be reported.
     assert_eq!(
@@ -312,5 +302,35 @@ fn large_nanoseconds_values() {
         .expect("Value should be stored");
 
     // Check that we got the right sum and number of samples.
-    assert_eq!(val.sum() as u64, time);
+    assert_eq!(val.sum, time);
+}
+
+#[test]
+fn stopping_non_existing_id_records_an_error() {
+    let (glean, _t) = new_glean(None);
+
+    let mut metric = TimingDistributionMetric::new(
+        CommonMetricData {
+            name: "non_existing_id".into(),
+            category: "test".into(),
+            send_in_pings: vec!["store1".into()],
+            disabled: false,
+            lifetime: Lifetime::Ping,
+            ..Default::default()
+        },
+        TimeUnit::Nanosecond,
+    );
+
+    metric.set_stop_and_accumulate(&glean, 3785, 60);
+
+    // 1 error should be reported.
+    assert_eq!(
+        Ok(1),
+        test_get_num_recorded_errors(
+            &glean,
+            metric.meta(),
+            ErrorType::InvalidState,
+            Some("store1")
+        )
+    );
 }

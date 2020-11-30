@@ -369,8 +369,7 @@ nsFormFillController::SetPopupOpen(bool aPopupOpen) {
       presShell->ScrollContentIntoView(
           content, ScrollAxis(kScrollMinimum, WhenToScroll::IfNotVisible),
           ScrollAxis(kScrollMinimum, WhenToScroll::IfNotVisible),
-          ScrollFlags::ScrollOverflowHidden |
-              ScrollFlags::IgnoreMarginAndPadding);
+          ScrollFlags::ScrollOverflowHidden);
       // mFocusedPopup can be destroyed after ScrollContentIntoView, see bug
       // 420089
       if (mFocusedPopup) {
@@ -598,10 +597,10 @@ nsFormFillController::OnTextEntered(Event* aEvent, bool itemWasSelected,
 
   IgnoredErrorResult ignored;
   RefPtr<Event> event = mFocusedInput->OwnerDoc()->CreateEvent(
-      NS_LITERAL_STRING("Events"), CallerType::System, ignored);
+      u"Events"_ns, CallerType::System, ignored);
   NS_ENSURE_STATE(event);
 
-  event->InitEvent(NS_LITERAL_STRING("DOMAutoComplete"), true, true);
+  event->InitEvent(u"DOMAutoComplete"_ns, true, true);
 
   // XXXjst: We mark this event as a trusted event, it's up to the
   // callers of this to ensure that it's only called from trusted
@@ -647,9 +646,8 @@ nsFormFillController::GetNoRollupOnCaretMove(bool* aNoRollupOnCaretMove) {
 
 NS_IMETHODIMP
 nsFormFillController::GetNoRollupOnEmptySearch(bool* aNoRollupOnEmptySearch) {
-  if (mFocusedInput &&
-      (mPwmgrInputs.Get(mFocusedInput) ||
-       mFocusedInput->ControlType() == NS_FORM_INPUT_PASSWORD)) {
+  if (mFocusedInput && (mPwmgrInputs.Get(mFocusedInput) ||
+                        mFocusedInput->HasBeenTypePassword())) {
     // Don't close the login popup when the field is cleared (bug 1534896).
     *aNoRollupOnEmptySearch = true;
   } else {
@@ -671,7 +669,8 @@ NS_IMETHODIMP
 nsFormFillController::StartSearch(const nsAString& aSearchString,
                                   const nsAString& aSearchParam,
                                   nsIAutoCompleteResult* aPreviousResult,
-                                  nsIAutoCompleteObserver* aListener) {
+                                  nsIAutoCompleteObserver* aListener,
+                                  nsIPropertyBag2* aOptions) {
   MOZ_LOG(sLogger, LogLevel::Debug, ("StartSearch for %p", mFocusedInput));
 
   nsresult rv;
@@ -680,9 +679,8 @@ nsFormFillController::StartSearch(const nsAString& aSearchString,
   // handle the autocomplete. Otherwise, handle with form history.
   // This method is sometimes called in unit tests and from XUL without a
   // focused node.
-  if (mFocusedInput &&
-      (mPwmgrInputs.Get(mFocusedInput) ||
-       mFocusedInput->ControlType() == NS_FORM_INPUT_PASSWORD)) {
+  if (mFocusedInput && (mPwmgrInputs.Get(mFocusedInput) ||
+                        mFocusedInput->HasBeenTypePassword())) {
     MOZ_LOG(sLogger, LogLevel::Debug, ("StartSearch: login field"));
 
     // Handle the case where a password field is focused but
@@ -719,7 +717,7 @@ nsFormFillController::StartSearch(const nsAString& aSearchString,
 
     formAutoComplete->AutoCompleteSearchAsync(aSearchParam, aSearchString,
                                               mFocusedInput, aPreviousResult,
-                                              datalistResult, this);
+                                              datalistResult, this, aOptions);
     mLastFormAutoComplete = formAutoComplete;
   }
 
@@ -826,8 +824,6 @@ nsFormFillController::HandleFormEvent(Event* aEvent) {
       return MouseDown(aEvent);
     case eKeyDown:
       return KeyDown(aEvent);
-    case eKeyPress:
-      return KeyPress(aEvent);
     case eEditorInput: {
       nsCOMPtr<nsINode> input = do_QueryInterface(aEvent->GetComposedTarget());
       if (!IsTextControl(input)) {
@@ -941,8 +937,7 @@ void nsFormFillController::MaybeStartControllingInput(
   bool hasList = !!aInput->GetList();
 
   bool isPwmgrInput = false;
-  if (mPwmgrInputs.Get(aInput) ||
-      aInput->ControlType() == NS_FORM_INPUT_PASSWORD) {
+  if (mPwmgrInputs.Get(aInput) || aInput->HasBeenTypePassword()) {
     isPwmgrInput = true;
   }
 
@@ -958,7 +953,7 @@ void nsFormFillController::MaybeStartControllingInput(
 #ifdef NIGHTLY_BUILD
   // Trigger an asynchronous login reputation query when user focuses on the
   // password field.
-  if (aInput->ControlType() == NS_FORM_INPUT_PASSWORD) {
+  if (aInput->HasBeenTypePassword()) {
     StartQueryLoginReputation(aInput);
   }
 #endif
@@ -972,7 +967,6 @@ nsresult nsFormFillController::HandleFocus(HTMLInputElement* aInput) {
     return NS_OK;
   }
 
-#ifndef ANDROID
   // If this focus doesn't follow a right click within our specified
   // threshold then show the autocomplete popup for all password fields.
   // This is done to avoid showing both the context menu and the popup
@@ -981,7 +975,7 @@ nsresult nsFormFillController::HandleFocus(HTMLInputElement* aInput) {
   // multiple input forms and the fact that a mousedown into an already focused
   // field does not trigger another focus.
 
-  if (mFocusedInput->ControlType() != NS_FORM_INPUT_PASSWORD) {
+  if (!mFocusedInput->HasBeenTypePassword()) {
     return NS_OK;
   }
 
@@ -998,7 +992,6 @@ nsresult nsFormFillController::HandleFocus(HTMLInputElement* aInput) {
     mPasswordPopupAutomaticallyOpened = true;
     ShowPopup();
   }
-#endif
 
   return NS_OK;
 }
@@ -1023,6 +1016,8 @@ nsresult nsFormFillController::KeyDown(Event* aEvent) {
   }
 
   bool cancel = false;
+  bool unused = false;
+
   uint32_t k = keyEvent->KeyCode();
   switch (k) {
     case KeyboardEvent_Binding::DOM_VK_RETURN: {
@@ -1030,40 +1025,6 @@ nsresult nsFormFillController::KeyDown(Event* aEvent) {
       controller->HandleEnter(false, aEvent, &cancel);
       break;
     }
-  }
-
-  if (cancel) {
-    aEvent->PreventDefault();
-    // Don't let the page see the RETURN event when the popup is open
-    // (indicated by cancel=true) so sites don't manually submit forms
-    // (e.g. via submit.click()) without the autocompleted value being filled.
-    // Bug 286933 will fix this for other key events.
-    if (k == KeyboardEvent_Binding::DOM_VK_RETURN) {
-      aEvent->StopPropagation();
-    }
-  }
-  return NS_OK;
-}
-
-nsresult nsFormFillController::KeyPress(Event* aEvent) {
-  NS_ASSERTION(mController, "should have a controller!");
-
-  mPasswordPopupAutomaticallyOpened = false;
-
-  if (!IsFocusedInputControlled()) {
-    return NS_OK;
-  }
-
-  RefPtr<KeyboardEvent> keyEvent = aEvent->AsKeyboardEvent();
-  if (!keyEvent) {
-    return NS_ERROR_FAILURE;
-  }
-
-  bool cancel = false;
-  bool unused = false;
-
-  uint32_t k = keyEvent->KeyCode();
-  switch (k) {
     case KeyboardEvent_Binding::DOM_VK_DELETE:
 #ifndef XP_MACOSX
     {
@@ -1145,6 +1106,13 @@ nsresult nsFormFillController::KeyPress(Event* aEvent) {
 
   if (cancel) {
     aEvent->PreventDefault();
+    // Don't let the page see the RETURN event when the popup is open
+    // (indicated by cancel=true) so sites don't manually submit forms
+    // (e.g. via submit.click()) without the autocompleted value being filled.
+    // Bug 286933 will fix this for other key events.
+    if (k == KeyboardEvent_Binding::DOM_VK_RETURN) {
+      aEvent->StopPropagation();
+    }
   }
 
   return NS_OK;
@@ -1198,7 +1166,7 @@ nsFormFillController::ShowPopup() {
   input->GetTextValue(value);
   if (value.Length() > 0) {
     // Show the popup with a filtered result set
-    controller->SetSearchString(EmptyString());
+    controller->SetSearchString(u""_ns);
     bool unused = false;
     controller->HandleText(&unused);
   } else {

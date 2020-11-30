@@ -38,7 +38,7 @@ public final class Sample implements Parcelable {
     private static Sample sPool = new Sample();
     private static int sPoolSize = 1;
 
-    public Sample() { }
+    private Sample() { }
 
     private void readInfo(final Parcel in) {
         int offset = in.readInt();
@@ -52,6 +52,7 @@ public final class Sample implements Parcelable {
     private void readCrypto(final Parcel in) {
         int hasCryptoInfo = in.readInt();
         if (hasCryptoInfo == 0) {
+            cryptoInfo = null;
             return;
         }
 
@@ -125,6 +126,21 @@ public final class Sample implements Parcelable {
                 ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0);
     }
 
+    public static Sample obtain() {
+        synchronized (CREATOR) {
+            Sample s = null;
+            if (sPoolSize > 0) {
+                s = sPool;
+                sPool = s.mNext;
+                s.mNext = null;
+                sPoolSize--;
+            } else {
+                s = new Sample();
+            }
+            return s;
+        }
+    }
+
     public static final Creator<Sample> CREATOR = new Creator<Sample>() {
         @Override
         public Sample createFromParcel(final Parcel in) {
@@ -136,16 +152,8 @@ public final class Sample implements Parcelable {
             return new Sample[size];
         }
 
-        private synchronized Sample obtainSample(final Parcel in) {
-            Sample s = null;
-            if (sPoolSize > 0) {
-                s = sPool;
-                sPool = s.mNext;
-                s.mNext = null;
-                sPoolSize--;
-            } else {
-                s = new Sample();
-            }
+        private Sample obtainSample(final Parcel in) {
+            Sample s = obtain();
             s.session = in.readLong();
             s.bufferId = in.readInt();
             s.readInfo(in);

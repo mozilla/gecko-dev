@@ -9,10 +9,8 @@
 // TODO: collapse. Well, do tables first.
 ${helpers.single_keyword(
     "visibility",
-    "visible hidden",
+    "visible hidden collapse",
     engines="gecko servo-2013 servo-2020",
-    servo_2020_pref="layout.2020.unimplemented",
-    extra_gecko_values="collapse",
     gecko_ffi_name="mVisible",
     animation_value_type="ComputedValue",
     spec="https://drafts.csswg.org/css-box/#propdef-visibility",
@@ -33,6 +31,7 @@ ${helpers.single_keyword(
     servo_2020_pref="layout.writing-mode.enabled",
     animation_value_type="none",
     spec="https://drafts.csswg.org/css-writing-modes/#propdef-writing-mode",
+    gecko_enum_prefix="StyleWritingModeProperty",
     servo_restyle_damage="rebuild_and_reflow",
 )}
 
@@ -86,6 +85,7 @@ ${helpers.single_keyword(
 ${helpers.single_keyword(
     "image-orientation",
     "none from-image",
+    gecko_pref_controlled_initial_value="layout.css.image-orientation.initial-from-image=from-image",
     engines="gecko",
     gecko_enum_prefix="StyleImageOrientation",
     animation_value_type="discrete",

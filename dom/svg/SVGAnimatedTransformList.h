@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef MOZILLA_SVGANIMATEDTRANSFORMLIST_H__
-#define MOZILLA_SVGANIMATEDTRANSFORMLIST_H__
+#ifndef DOM_SVG_SVGANIMATEDTRANSFORMLIST_H_
+#define DOM_SVG_SVGANIMATEDTRANSFORMLIST_H_
 
 #include "mozilla/Attributes.h"
 #include "mozilla/SMILAttr.h"
@@ -107,7 +107,7 @@ class SVGAnimatedTransformList {
     return mCreatedOrRemovedOnLastChange;
   }
 
-  mozilla::UniquePtr<SMILAttr> ToSMILAttr(dom::SVGElement* aSVGElement);
+  UniquePtr<SMILAttr> ToSMILAttr(dom::SVGElement* aSVGElement);
 
  private:
   // mAnimVal is a pointer to allow us to determine if we're being animated or
@@ -151,4 +151,4 @@ class SVGAnimatedTransformList {
 
 }  // namespace mozilla
 
-#endif  // MOZILLA_SVGANIMATEDTRANSFORMLIST_H__
+#endif  // DOM_SVG_SVGANIMATEDTRANSFORMLIST_H_

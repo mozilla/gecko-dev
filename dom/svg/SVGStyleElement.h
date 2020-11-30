@@ -4,12 +4,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_SVGStyleElement_h
-#define mozilla_dom_SVGStyleElement_h
+#ifndef DOM_SVG_SVGSTYLEELEMENT_H_
+#define DOM_SVG_SVGSTYLEELEMENT_H_
 
 #include "mozilla/Attributes.h"
+#include "mozilla/dom/LinkStyle.h"
 #include "SVGElement.h"
-#include "nsStyleLinkElement.h"
 #include "nsStubMutationObserver.h"
 
 nsresult NS_NewSVGStyleElement(
@@ -18,11 +18,11 @@ nsresult NS_NewSVGStyleElement(
 namespace mozilla {
 namespace dom {
 
-typedef SVGElement SVGStyleElementBase;
+using SVGStyleElementBase = SVGElement;
 
 class SVGStyleElement final : public SVGStyleElementBase,
-                              public nsStyleLinkElement,
-                              public nsStubMutationObserver {
+                              public nsStubMutationObserver,
+                              public LinkStyle {
  protected:
   friend nsresult(::NS_NewSVGStyleElement(
       nsIContent** aResult,
@@ -76,7 +76,9 @@ class SVGStyleElement final : public SVGStyleElementBase,
   // completely optimized away.
   inline nsresult Init() { return NS_OK; }
 
-  // nsStyleLinkElement overrides
+  // LinkStyle overrides
+  nsIContent& AsContent() final { return *this; }
+  const LinkStyle* AsLinkStyle() const final { return this; }
   Maybe<SheetInfo> GetStyleSheetInfo() final;
 
   /**
@@ -90,4 +92,4 @@ class SVGStyleElement final : public SVGStyleElementBase,
 }  // namespace dom
 }  // namespace mozilla
 
-#endif  // mozilla_dom_SVGStyleElement_h
+#endif  // DOM_SVG_SVGSTYLEELEMENT_H_

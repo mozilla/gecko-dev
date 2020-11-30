@@ -16,6 +16,7 @@ CompiledModules(
     'fetchScopes.js',
     'index.js',
     'inlinePreview.js',
+    'mapDisplayNames.js',
     'mapFrames.js',
     'mapScopes.js',
     'paused.js',
@@ -23,7 +24,6 @@ CompiledModules(
     'previewPausedLocation.js',
     'resumed.js',
     'selectFrame.js',
-    'setFramePositions.js',
     'highlightCalls.js',
     'skipPausing.js',
 )

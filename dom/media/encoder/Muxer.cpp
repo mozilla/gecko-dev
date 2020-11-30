@@ -19,6 +19,9 @@ bool Muxer::IsFinished() { return mWriter->IsWritingComplete(); }
 
 nsresult Muxer::SetMetadata(
     const nsTArray<RefPtr<TrackMetadataBase>>& aMetadata) {
+  MOZ_DIAGNOSTIC_ASSERT(!mMetadataSet);
+  MOZ_DIAGNOSTIC_ASSERT(!mHasAudio);
+  MOZ_DIAGNOSTIC_ASSERT(!mHasVideo);
   nsresult rv = mWriter->SetMetadata(aMetadata);
   if (NS_FAILED(rv)) {
     LOG(LogLevel::Error, "%p Setting metadata failed, tracks=%zu", this,
@@ -28,17 +31,7 @@ nsresult Muxer::SetMetadata(
 
   for (const auto& track : aMetadata) {
     switch (track->GetKind()) {
-      case TrackMetadataBase::METADATA_OPUS: {
-        // In the case of Opus we need to calculate the codec delay based on the
-        // pre-skip. For more information see:
-        // https://tools.ietf.org/html/rfc7845#section-4.2
-        // Calculate offset in microseconds
-        OpusMetadata* opusMeta = static_cast<OpusMetadata*>(track.get());
-        mAudioCodecDelay = static_cast<uint64_t>(
-            LittleEndian::readUint16(opusMeta->mIdHeader.Elements() + 10) *
-            PR_USEC_PER_SEC / 48000);
-        [[fallthrough]];
-      }
+      case TrackMetadataBase::METADATA_OPUS:
       case TrackMetadataBase::METADATA_VORBIS:
       case TrackMetadataBase::METADATA_AAC:
       case TrackMetadataBase::METADATA_AMR:
@@ -72,14 +65,11 @@ nsresult Muxer::SetMetadata(
 void Muxer::AddEncodedAudioFrame(EncodedFrame* aFrame) {
   MOZ_ASSERT(mMetadataSet);
   MOZ_ASSERT(mHasAudio);
-  if (aFrame->mFrameType == EncodedFrame::FrameType::OPUS_AUDIO_FRAME) {
-    aFrame->mTime += mAudioCodecDelay;
-  }
   mEncodedAudioFrames.Push(aFrame);
   LOG(LogLevel::Verbose,
-      "%p Added audio frame of type %u, [start %" PRIu64 ", end %" PRIu64 ")",
-      this, aFrame->mFrameType, aFrame->mTime,
-      aFrame->mTime + aFrame->mDuration);
+      "%p Added audio frame of type %u, [start %.2f, end %.2f)", this,
+      aFrame->mFrameType, aFrame->mTime.ToSeconds(),
+      aFrame->GetEndTime().ToSeconds());
 }
 
 void Muxer::AddEncodedVideoFrame(EncodedFrame* aFrame) {
@@ -87,9 +77,9 @@ void Muxer::AddEncodedVideoFrame(EncodedFrame* aFrame) {
   MOZ_ASSERT(mHasVideo);
   mEncodedVideoFrames.Push(aFrame);
   LOG(LogLevel::Verbose,
-      "%p Added video frame of type %u, [start %" PRIu64 ", end %" PRIu64 ")",
-      this, aFrame->mFrameType, aFrame->mTime,
-      aFrame->mTime + aFrame->mDuration);
+      "%p Added audio frame of type %u, [start %.2f, end %.2f)", this,
+      aFrame->mFrameType, aFrame->mTime.ToSeconds(),
+      aFrame->GetEndTime().ToSeconds());
 }
 
 void Muxer::AudioEndOfStream() {
@@ -159,8 +149,8 @@ nsresult Muxer::Mux() {
   // The times at which we expect our next video and audio frames. These are
   // based on the time + duration (GetEndTime()) of the last seen frames.
   // Assumes that the encoders write the correct duration for frames.;
-  uint64_t expectedNextVideoTime = 0;
-  uint64_t expectedNextAudioTime = 0;
+  media::TimeUnit expectedNextVideoTime;
+  media::TimeUnit expectedNextAudioTime;
   // Interleave frames until we're out of audio or video
   while (mEncodedVideoFrames.GetSize() > 0 &&
          mEncodedAudioFrames.GetSize() > 0) {

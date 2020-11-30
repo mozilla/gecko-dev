@@ -10,11 +10,11 @@ llvm_profdata = check_prog('LLVM_PROFDATA', ['llvm-profdata'],
                            allow_missing=True,
                            paths=toolchain_search_path)
 
-js_option('--enable-profile-generate',
-          env='MOZ_PROFILE_GENERATE',
-          nargs='?',
-          choices=('cross',),
-          help='Build a PGO instrumented binary')
+option('--enable-profile-generate',
+       env='MOZ_PROFILE_GENERATE',
+       nargs='?',
+       choices=('cross',),
+       help='Build a PGO instrumented binary')
 
 imply_option('MOZ_PGO',
              depends_if('--enable-profile-generate')(lambda _: True))
@@ -25,15 +25,18 @@ set_config('MOZ_PROFILE_GENERATE',
 set_define('MOZ_PROFILE_GENERATE',
            depends_if('--enable-profile-generate')(lambda _: True))
 
-js_option('--enable-profile-use',
-          env='MOZ_PROFILE_USE',
-          nargs='?',
-          choices=('cross',),
-          help='Use a generated profile during the build')
+add_old_configure_assignment('MOZ_PROFILE_GENERATE', 1,
+                             when='--enable-profile-generate')
 
-js_option('--with-pgo-profile-path',
-          help='Path to the directory with unmerged profile data to use during the build',
-          nargs=1)
+option('--enable-profile-use',
+       env='MOZ_PROFILE_USE',
+       nargs='?',
+       choices=('cross',),
+       help='Use a generated profile during the build')
+
+option('--with-pgo-profile-path',
+       help='Path to the directory with unmerged profile data to use during the build',
+       nargs=1)
 
 imply_option('MOZ_PGO',
              depends_if('--enable-profile-use')(lambda _: True))
@@ -64,10 +67,10 @@ def pgo_profile_path(path, pgo_use, profdata, build_env):
 
 set_config('PGO_PROFILE_PATH', pgo_profile_path)
 
-@depends(c_compiler, target, pgo_profile_path)
+@depends(c_compiler, pgo_profile_path, target_is_windows)
 @imports('multiprocessing')
 @imports(_from='__builtin__', _import='min')
-def pgo_flags(compiler, target, profdata):
+def pgo_flags(compiler, profdata, target_is_windows):
     if compiler.type == 'gcc':
         return namespace(
             gen_cflags=['-fprofile-generate'],
@@ -81,17 +84,19 @@ def pgo_flags(compiler, target, profdata):
         prefix = ''
         if compiler.type == 'clang-cl':
             prefix = '/clang:'
-            if target.cpu == 'x86_64':
-                gen_ldflags = ['clang_rt.profile-x86_64.lib']
-            elif target.cpu == 'x86':
-                gen_ldflags = ['clang_rt.profile-i386.lib']
-            else:
-                gen_ldflags = None
+            gen_ldflags = None
         else:
             gen_ldflags = ['-fprofile-generate']
 
+        gen_cflags = [prefix + '-fprofile-generate']
+        if target_is_windows:
+            # native llvm-profdata.exe on Windows can't read profile data
+            # if name compression is enabled (which cross-compiling enables
+            # by default)
+            gen_cflags += ['-mllvm', '-enable-name-compression=false']
+
         return namespace(
-            gen_cflags=[prefix + '-fprofile-generate'],
+            gen_cflags=gen_cflags,
             gen_ldflags=gen_ldflags,
             use_cflags=[prefix + '-fprofile-use=%s' % profdata,
                         # Some error messages about mismatched profile data
@@ -143,15 +148,15 @@ set_config('MOZ_PGO_RUST', moz_pgo_rust)
 # LTO
 # ==============================================================
 
-js_option('--enable-lto',
-          env='MOZ_LTO',
-          nargs='?',
-          choices=('full', 'thin', 'cross'),
-          help='Enable LTO')
+option('--enable-lto',
+       env='MOZ_LTO',
+       nargs='?',
+       choices=('full', 'thin', 'cross'),
+       help='Enable LTO')
 
-js_option(env='MOZ_LD64_KNOWN_GOOD',
-          nargs=1,
-          help='Indicate that ld64 is free of symbol aliasing bugs.')
+option(env='MOZ_LD64_KNOWN_GOOD',
+       nargs=1,
+       help='Indicate that ld64 is free of symbol aliasing bugs.')
 
 imply_option('MOZ_LD64_KNOWN_GOOD', depends_if('MOZ_AUTOMATION')(lambda _: True))
 
@@ -179,7 +184,7 @@ def lto(value, c_compiler, ld64_known_good, target, instrumented_build):
             value = ['thin']
 
         if target.kernel == 'Darwin' and target.os == 'OSX' \
-           and value[0].lower() == 'cross' and not ld64_known_good:
+           and len(value) and value[0].lower() == 'cross' and not ld64_known_good:
             die('The Mac linker is known to have a bug that affects cross-language '
                 'LTO.  If you know that your linker is free from this bug, please '
                 'set the environment variable `MOZ_LD64_KNOWN_GOOD=1` and re-run '
@@ -227,7 +232,10 @@ def lto(value, c_compiler, ld64_known_good, target, instrumented_build):
             # instruction sets.
         else:
             num_cores = multiprocessing.cpu_count()
-            cflags.append("-flto")
+            if len(value) and value[0].lower() == 'full':
+                cflags.append("-flto")
+            else:
+                cflags.append("-flto=thin")
             cflags.append("-flifetime-dse=1")
 
             ldflags.append("-flto=%s" % num_cores)

@@ -6,77 +6,30 @@
 
 #include "mozilla/TaskQueue.h"
 
-#include "nsISerialEventTarget.h"
 #include "nsThreadUtils.h"
 
 namespace mozilla {
 
-class TaskQueue::EventTargetWrapper final : public nsISerialEventTarget {
-  RefPtr<TaskQueue> mTaskQueue;
-
-  ~EventTargetWrapper() = default;
-
- public:
-  explicit EventTargetWrapper(TaskQueue* aTaskQueue) : mTaskQueue(aTaskQueue) {
-    MOZ_ASSERT(mTaskQueue);
-  }
-
-  NS_IMETHOD
-  DispatchFromScript(nsIRunnable* aEvent, uint32_t aFlags) override {
-    nsCOMPtr<nsIRunnable> ref = aEvent;
-    return Dispatch(ref.forget(), aFlags);
-  }
-
-  NS_IMETHOD
-  Dispatch(already_AddRefed<nsIRunnable> aEvent, uint32_t aFlags) override {
-    nsCOMPtr<nsIRunnable> runnable = aEvent;
-    MonitorAutoLock mon(mTaskQueue->mQueueMonitor);
-    return mTaskQueue->DispatchLocked(/* passed by ref */ runnable, aFlags,
-                                      NormalDispatch);
-  }
-
-  NS_IMETHOD
-  DelayedDispatch(already_AddRefed<nsIRunnable>, uint32_t aFlags) override {
-    return NS_ERROR_NOT_IMPLEMENTED;
-  }
-
-  NS_IMETHOD
-  IsOnCurrentThread(bool* aResult) override {
-    *aResult = mTaskQueue->IsCurrentThreadIn();
-    return NS_OK;
-  }
-
-  NS_IMETHOD_(bool)
-  IsOnCurrentThreadInfallible() override {
-    return mTaskQueue->mTarget->IsOnCurrentThread();
-  }
-
-  NS_DECL_THREADSAFE_ISUPPORTS
-};
-
-NS_IMPL_ISUPPORTS(TaskQueue::EventTargetWrapper, nsIEventTarget,
-                  nsISerialEventTarget)
-
 TaskQueue::TaskQueue(already_AddRefed<nsIEventTarget> aTarget,
-                     const char* aName, bool aRequireTailDispatch,
-                     bool aRetainFlags)
+                     const char* aName, bool aRequireTailDispatch)
     : AbstractThread(aRequireTailDispatch),
       mTarget(aTarget),
       mQueueMonitor("TaskQueue::Queue", /* aOrdered */ true),
       mTailDispatcher(nullptr),
-      mShouldRetainFlags(aRetainFlags),
       mIsRunning(false),
       mIsShutdown(false),
       mName(aName) {}
 
 TaskQueue::TaskQueue(already_AddRefed<nsIEventTarget> aTarget,
-                     bool aSupportsTailDispatch, bool aRetainFlags)
+                     bool aSupportsTailDispatch)
     : TaskQueue(std::move(aTarget), "Unnamed", aSupportsTailDispatch) {}
 
 TaskQueue::~TaskQueue() {
   // No one is referencing this TaskQueue anymore, meaning no tasks can be
   // pending as all Runner hold a reference to this TaskQueue.
 }
+
+NS_IMPL_ISUPPORTS_INHERITED(TaskQueue, AbstractThread, nsIDirectTaskDispatcher);
 
 TaskDispatcher& TaskQueue::TailDispatcher() {
   MOZ_ASSERT(IsCurrentThreadIn());
@@ -95,16 +48,15 @@ nsresult TaskQueue::DispatchLocked(nsCOMPtr<nsIRunnable>& aRunnable,
 
   AbstractThread* currentThread;
   if (aReason != TailDispatch && (currentThread = GetCurrent()) &&
-      RequiresTailDispatch(currentThread)) {
+      RequiresTailDispatch(currentThread) &&
+      currentThread->IsTailDispatcherAvailable()) {
     MOZ_ASSERT(aFlags == NS_DISPATCH_NORMAL,
                "Tail dispatch doesn't support flags");
     return currentThread->TailDispatcher().AddTask(this, aRunnable.forget());
   }
 
-  // If the task queue cares about individual flags, retain them in the struct.
-  uint32_t retainFlags = mShouldRetainFlags ? aFlags : 0;
-
-  mTasks.push({std::move(aRunnable), retainFlags});
+  LogRunnable::LogDispatch(aRunnable);
+  mTasks.push({std::move(aRunnable), aFlags});
 
   if (mIsRunning) {
     return NS_OK;
@@ -176,11 +128,6 @@ bool TaskQueue::IsCurrentThreadIn() const {
   return in;
 }
 
-already_AddRefed<nsISerialEventTarget> TaskQueue::WrapAsEventTarget() {
-  nsCOMPtr<nsISerialEventTarget> ref = new EventTargetWrapper(this);
-  return ref.forget();
-}
-
 nsresult TaskQueue::Runner::Run() {
   TaskStruct event;
   {
@@ -204,15 +151,20 @@ nsresult TaskQueue::Runner::Run() {
   // in this task queue.
   {
     AutoTaskGuard g(mQueue);
-    event.event->Run();
-  }
+    SerialEventTargetGuard tg(mQueue);
+    {
+      LogRunnable::Run log(event.event);
 
-  // Drop the reference to event. The event will hold a reference to the
-  // object it's calling, and we don't want to keep it alive, it may be
-  // making assumptions what holds references to it. This is especially
-  // the case if the object is waiting for us to shutdown, so that it
-  // can shutdown (like in the MediaDecoderStateMachine's SHUTDOWN case).
-  event.event = nullptr;
+      event.event->Run();
+
+      // Drop the reference to event. The event will hold a reference to the
+      // object it's calling, and we don't want to keep it alive, it may be
+      // making assumptions what holds references to it. This is especially
+      // the case if the object is waiting for us to shutdown, so that it
+      // can shutdown (like in the MediaDecoderStateMachine's SHUTDOWN case).
+      event.event = nullptr;
+    }
+  }
 
   {
     MonitorAutoLock mon(mQueue->mQueueMonitor);
@@ -245,6 +197,36 @@ nsresult TaskQueue::Runner::Run() {
     mon.NotifyAll();
   }
 
+  return NS_OK;
+}
+
+//-----------------------------------------------------------------------------
+// nsIDirectTaskDispatcher
+//-----------------------------------------------------------------------------
+
+NS_IMETHODIMP
+TaskQueue::DispatchDirectTask(already_AddRefed<nsIRunnable> aEvent) {
+  if (!IsCurrentThreadIn()) {
+    return NS_ERROR_FAILURE;
+  }
+  mDirectTasks.AddTask(std::move(aEvent));
+  return NS_OK;
+}
+
+NS_IMETHODIMP TaskQueue::DrainDirectTasks() {
+  if (!IsCurrentThreadIn()) {
+    return NS_ERROR_FAILURE;
+  }
+  mDirectTasks.DrainTasks();
+  return NS_OK;
+}
+
+NS_IMETHODIMP TaskQueue::HaveDirectTasks(bool* aValue) {
+  if (!IsCurrentThreadIn()) {
+    return NS_ERROR_FAILURE;
+  }
+
+  *aValue = mDirectTasks.HaveTasks();
   return NS_OK;
 }
 

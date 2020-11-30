@@ -26,6 +26,7 @@
 #include "mozilla/AbstractThread.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Logging.h"
+#include "mozilla/SchedulerGroup.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/SyncRunnable.h"
 #include "mozilla/Telemetry.h"
@@ -117,7 +118,7 @@ class DeleteObjectTask : public Runnable {
 template <class T>
 void DeleteOnMainThread(UniquePtr<T>&& aObject) {
   nsCOMPtr<nsIRunnable> r = new DeleteObjectTask<T>(std::move(aObject));
-  SystemGroup::Dispatch(TaskCategory::Other, r.forget());
+  SchedulerGroup::Dispatch(TaskCategory::Other, r.forget());
 }
 
 LayersBackend GetCompositorBackendType(
@@ -485,8 +486,8 @@ bool WMFVideoMFTManager::InitializeDXVA() {
     event->Run();
   } else {
     // This logic needs to run on the main thread
-    mozilla::SyncRunnable::DispatchToThread(
-        SystemGroup::EventTargetFor(mozilla::TaskCategory::Other), event);
+    mozilla::SyncRunnable::DispatchToThread(GetMainThreadSerialEventTarget(),
+                                            event);
   }
   mDXVA2Manager = std::move(event->mDXVA2Manager);
 
@@ -726,7 +727,7 @@ WMFVideoMFTManager::Input(MediaRawData* aSample) {
     // Check the VP9 profile. the VP9 MFT can only handle correctly profile 0
     // and 2 (yuv420 8/10/12 bits)
     int profile =
-        VPXDecoder::GetVP9Profile(MakeSpan(aSample->Data(), aSample->Size()));
+        VPXDecoder::GetVP9Profile(Span(aSample->Data(), aSample->Size()));
     if (profile != 0 && profile != 2) {
       return E_FAIL;
     }
@@ -804,8 +805,8 @@ bool WMFVideoMFTManager::CanUseDXVA(IMFMediaType* aType, float aFramerate) {
     event->Run();
   } else {
     // This logic needs to run on the main thread
-    mozilla::SyncRunnable::DispatchToThread(
-        SystemGroup::EventTargetFor(mozilla::TaskCategory::Other), event);
+    mozilla::SyncRunnable::DispatchToThread(GetMainThreadSerialEventTarget(),
+                                            event);
   }
 
   return event->mSupportsConfig;
@@ -867,7 +868,6 @@ WMFVideoMFTManager::CreateBasicVideoFrame(IMFSample* aSample,
   b.mPlanes[0].mStride = stride;
   b.mPlanes[0].mHeight = videoHeight;
   b.mPlanes[0].mWidth = videoWidth;
-  b.mPlanes[0].mOffset = 0;
   b.mPlanes[0].mSkip = 0;
 
   MOZ_DIAGNOSTIC_ASSERT(mDecodedImageSize.height % 16 == 0,
@@ -884,7 +884,6 @@ WMFVideoMFTManager::CreateBasicVideoFrame(IMFSample* aSample,
     b.mPlanes[1].mStride = halfStride;
     b.mPlanes[1].mHeight = halfHeight;
     b.mPlanes[1].mWidth = halfWidth;
-    b.mPlanes[1].mOffset = 0;
     b.mPlanes[1].mSkip = 0;
 
     // V plane (Cr)
@@ -892,7 +891,6 @@ WMFVideoMFTManager::CreateBasicVideoFrame(IMFSample* aSample,
     b.mPlanes[2].mStride = halfStride;
     b.mPlanes[2].mHeight = halfHeight;
     b.mPlanes[2].mWidth = halfWidth;
-    b.mPlanes[2].mOffset = 0;
     b.mPlanes[2].mSkip = 0;
   } else {
     // U plane (Cb)
@@ -900,7 +898,6 @@ WMFVideoMFTManager::CreateBasicVideoFrame(IMFSample* aSample,
     b.mPlanes[1].mStride = stride;
     b.mPlanes[1].mHeight = halfHeight;
     b.mPlanes[1].mWidth = halfWidth;
-    b.mPlanes[1].mOffset = 0;
     b.mPlanes[1].mSkip = 1;
 
     // V plane (Cr)
@@ -908,7 +905,6 @@ WMFVideoMFTManager::CreateBasicVideoFrame(IMFSample* aSample,
     b.mPlanes[2].mStride = stride;
     b.mPlanes[2].mHeight = halfHeight;
     b.mPlanes[2].mWidth = halfWidth;
-    b.mPlanes[2].mOffset = 0;
     b.mPlanes[2].mSkip = 1;
   }
 

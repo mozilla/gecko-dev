@@ -1,4 +1,4 @@
-// |jit-test| test-also=--wasm-compiler=ion; skip-if: !wasmDebuggingIsSupported()
+// |jit-test| test-also=--wasm-compiler=optimizing; skip-if: !wasmDebuggingEnabled()
 
 // Checking existence of all frame.offset references during onEnterFrame,
 // onLeaveFrame and onStep events in the source code, and that we can
@@ -8,7 +8,7 @@ load(libdir + "wasm.js");
 
 var offsets;
 wasmRunWithDebugger(
-    '(module (func (nop) (nop)) (export "test" 0))',
+    '(module (func (nop) (nop)) (export "test" (func 0)))',
     undefined,
     function ({dbg}) {
         offsets = [];

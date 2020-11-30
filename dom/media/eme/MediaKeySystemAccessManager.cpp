@@ -83,14 +83,14 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(MediaKeySystemAccessManager)
   for (size_t i = 0; i < tmp->mPendingInstallRequests.Length(); i++) {
     tmp->mPendingInstallRequests[i]->CancelTimer();
     tmp->mPendingInstallRequests[i]->RejectPromiseWithInvalidAccessError(
-        NS_LITERAL_CSTRING(
+        nsLiteralCString(
             "Promise still outstanding at MediaKeySystemAccessManager GC"));
     NS_IMPL_CYCLE_COLLECTION_UNLINK(mPendingInstallRequests[i]->mPromise)
   }
   tmp->mPendingInstallRequests.Clear();
   for (size_t i = 0; i < tmp->mPendingAppApprovalRequests.Length(); i++) {
     tmp->mPendingAppApprovalRequests[i]->RejectPromiseWithInvalidAccessError(
-        NS_LITERAL_CSTRING(
+        nsLiteralCString(
             "Promise still outstanding at MediaKeySystemAccessManager GC"));
     NS_IMPL_CYCLE_COLLECTION_UNLINK(mPendingAppApprovalRequests[i]->mPromise)
   }
@@ -163,7 +163,7 @@ void MediaKeySystemAccessManager::CheckDoesWindowSupportProtectedMedia(
   MKSAM_LOG_DEBUG(
       "Checking with browser if this window supports protected media.");
   browser->DoesWindowSupportProtectedMedia()->Then(
-      GetCurrentThreadSerialEventTarget(), __func__,
+      GetCurrentSerialEventTarget(), __func__,
       [self, request = std::move(aRequest)](
           const BrowserChild::IsWindowSupportingProtectedMediaPromise::
               ResolveOrRejectValue& value) mutable {
@@ -201,7 +201,7 @@ void MediaKeySystemAccessManager::OnDoesWindowSupportProtectedMedia(
 
   if (!aIsSupportedInWindow) {
     aRequest->RejectPromiseWithNotSupportedError(
-        NS_LITERAL_CSTRING("EME is not supported in this window"));
+        "EME is not supported in this window"_ns);
     return;
   }
 
@@ -247,7 +247,7 @@ void MediaKeySystemAccessManager::CheckDoesAppAllowProtectedMedia(
     MKSAM_LOG_DEBUG(
         "Failed to create app approval request! Blocking eme request as "
         "fallback.");
-    aRequest->RejectPromiseWithInvalidAccessError(NS_LITERAL_CSTRING(
+    aRequest->RejectPromiseWithInvalidAccessError(nsLiteralCString(
         "Failed to create approval request to send to app embedding Gecko."));
     return;
   }
@@ -271,7 +271,7 @@ void MediaKeySystemAccessManager::CheckDoesAppAllowProtectedMedia(
   RefPtr<MediaKeySystemAccessPermissionRequest::RequestPromise> p =
       appApprovalRequest->GetPromise();
   p->Then(
-       GetCurrentThreadSerialEventTarget(), __func__,
+       GetCurrentSerialEventTarget(), __func__,
        // Allow callback
        [this,
         self = RefPtr<MediaKeySystemAccessManager>(this)](bool aRequestResult) {
@@ -329,8 +329,8 @@ void MediaKeySystemAccessManager::OnDoesAppAllowProtectedMedia(
                   NS_ConvertUTF16toUTF8(aRequest->mKeySystem).get());
   if (!aIsAllowed) {
     aRequest->RejectPromiseWithNotSupportedError(
-        NS_LITERAL_CSTRING("The application embedding this user agent has "
-                           "blocked MediaKeySystemAccess"));
+        nsLiteralCString("The application embedding this user agent has "
+                         "blocked MediaKeySystemAccess"));
     return;
   }
 
@@ -377,7 +377,7 @@ void MediaKeySystemAccessManager::RequestMediaKeySystemAccess(
     // Not to inform user, because nothing to do if the keySystem is not
     // supported.
     aRequest->RejectPromiseWithNotSupportedError(
-        NS_LITERAL_CSTRING("Key system is unsupported"));
+        "Key system is unsupported"_ns);
     diagnostics.StoreMediaKeySystemAccess(
         mWindow->GetExtantDoc(), aRequest->mKeySystem, false, __func__);
     return;
@@ -388,10 +388,12 @@ void MediaKeySystemAccessManager::RequestMediaKeySystemAccess(
     // EME disabled by user, send notification to chrome so UI can inform user.
     // Clearkey is allowed even when EME is disabled because we want the pref
     // "media.eme.enabled" only taking effect on proprietary DRMs.
-    MediaKeySystemAccess::NotifyObservers(mWindow, aRequest->mKeySystem,
-                                          MediaKeySystemStatus::Api_disabled);
-    aRequest->RejectPromiseWithNotSupportedError(
-        NS_LITERAL_CSTRING("EME has been preffed off"));
+    // We don't show the notification if the pref is locked.
+    if (!Preferences::IsLocked("media.eme.enabled")) {
+      MediaKeySystemAccess::NotifyObservers(mWindow, aRequest->mKeySystem,
+                                            MediaKeySystemStatus::Api_disabled);
+    }
+    aRequest->RejectPromiseWithNotSupportedError("EME has been preffed off"_ns);
     diagnostics.StoreMediaKeySystemAccess(
         mWindow->GetExtantDoc(), aRequest->mKeySystem, false, __func__);
     return;
@@ -427,7 +429,7 @@ void MediaKeySystemAccessManager::RequestMediaKeySystemAccess(
       // but can't service this request! Give up. Chrome will still be showing a
       // "I can't play, updating" notification.
       aRequest->RejectPromiseWithNotSupportedError(
-          NS_LITERAL_CSTRING("Timed out while waiting for a CDM update"));
+          "Timed out while waiting for a CDM update"_ns);
       diagnostics.StoreMediaKeySystemAccess(
           mWindow->GetExtantDoc(), aRequest->mKeySystem, false, __func__);
       return;
@@ -469,9 +471,9 @@ void MediaKeySystemAccessManager::RequestMediaKeySystemAccess(
         if (doc) {
           Unused << doc->GetDocumentURI(uri);
         }
-        nsContentUtils::ReportToConsole(
-            nsIScriptError::warningFlag, NS_LITERAL_CSTRING("Media"), doc,
-            nsContentUtils::eDOM_PROPERTIES, aMsgName, params);
+        nsContentUtils::ReportToConsole(nsIScriptError::warningFlag, "Media"_ns,
+                                        doc, nsContentUtils::eDOM_PROPERTIES,
+                                        aMsgName, params);
       };
 
   bool isPrivateBrowsing =
@@ -506,7 +508,7 @@ void MediaKeySystemAccessManager::RequestMediaKeySystemAccess(
   // Not to inform user, because nothing to do if the corresponding keySystem
   // configuration is not supported.
   aRequest->RejectPromiseWithNotSupportedError(
-      NS_LITERAL_CSTRING("Key system configuration is not supported"));
+      "Key system configuration is not supported"_ns);
   diagnostics.StoreMediaKeySystemAccess(mWindow->GetExtantDoc(),
                                         aRequest->mKeySystem, false, __func__);
 }
@@ -538,7 +540,7 @@ bool MediaKeySystemAccessManager::AwaitInstall(
 
   if (!EnsureObserversAdded()) {
     NS_WARNING("Failed to add pref observer");
-    aRequest->RejectPromiseWithNotSupportedError(NS_LITERAL_CSTRING(
+    aRequest->RejectPromiseWithNotSupportedError(nsLiteralCString(
         "Failed trying to setup CDM update: failed adding observers"));
     return false;
   }
@@ -548,7 +550,7 @@ bool MediaKeySystemAccessManager::AwaitInstall(
                           nsITimer::TYPE_ONE_SHOT);
   if (!timer) {
     NS_WARNING("Failed to create timer to await CDM install.");
-    aRequest->RejectPromiseWithNotSupportedError(NS_LITERAL_CSTRING(
+    aRequest->RejectPromiseWithNotSupportedError(nsLiteralCString(
         "Failed trying to setup CDM update: failed timer creation"));
     return false;
   }
@@ -645,13 +647,13 @@ void MediaKeySystemAccessManager::Shutdown() {
        mPendingInstallRequests) {
     // Cancel all requests; we're shutting down.
     installRequest->CancelTimer();
-    installRequest->RejectPromiseWithInvalidAccessError(NS_LITERAL_CSTRING(
+    installRequest->RejectPromiseWithInvalidAccessError(nsLiteralCString(
         "Promise still outstanding at MediaKeySystemAccessManager shutdown"));
   }
   mPendingInstallRequests.Clear();
   for (const UniquePtr<PendingRequest>& approvalRequest :
        mPendingAppApprovalRequests) {
-    approvalRequest->RejectPromiseWithInvalidAccessError(NS_LITERAL_CSTRING(
+    approvalRequest->RejectPromiseWithInvalidAccessError(nsLiteralCString(
         "Promise still outstanding at MediaKeySystemAccessManager shutdown"));
   }
   mPendingAppApprovalRequests.Clear();

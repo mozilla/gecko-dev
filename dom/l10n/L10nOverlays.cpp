@@ -120,7 +120,7 @@ class AttributeNameValueComparator {
  public:
   bool Equals(const AttributeNameValue& aAttribute,
               const nsAttrName* aAttrName) const {
-    return aAttrName->Equals(aAttribute.mName);
+    return aAttrName->Equals(NS_ConvertUTF8toUTF16(aAttribute.mName));
   }
 };
 
@@ -164,10 +164,9 @@ void L10nOverlays::OverlayAttributes(
   }
 
   for (auto& attribute : aTranslation.Value()) {
-    nsString attrName = attribute.mName;
-    RefPtr<nsAtom> nameAtom = NS_Atomize(attrName);
+    RefPtr<nsAtom> nameAtom = NS_Atomize(attribute.mName);
     if (IsAttrNameLocalizable(nameAtom, aToElement, &explicitlyAllowed)) {
-      nsString value = attribute.mValue;
+      NS_ConvertUTF8toUTF16 value(attribute.mValue);
       if (!aToElement->AttrValueIs(kNameSpaceID_None, nameAtom, value,
                                    eCaseMatters)) {
         aToElement->SetAttr(nameAtom, value, aRv);
@@ -194,8 +193,11 @@ void L10nOverlays::OverlayAttributes(Element* aFromElement, Element* aToElement,
       AttributeNameValue* attr = sequence.AppendElement(fallible);
       MOZ_ASSERT(info.mName->NamespaceEquals(kNameSpaceID_None),
                  "No namespaced attributes allowed.");
-      info.mName->LocalName()->ToString(attr->mName);
-      info.mValue->ToString(attr->mValue);
+      info.mName->LocalName()->ToUTF8String(attr->mName);
+
+      nsAutoString value;
+      info.mValue->ToString(value);
+      attr->mValue.Assign(NS_ConvertUTF16toUTF8(value));
     }
 
     attributes.SetValue(sequence);
@@ -391,7 +393,34 @@ void L10nOverlays::OverlayChildNodes(DocumentFragment* aFromFragment,
   }
 
   while (aToElement->HasChildren()) {
-    aToElement->RemoveChildNode(aToElement->GetLastChild(), true);
+    nsIContent* child = aToElement->GetLastChild();
+#ifdef DEBUG
+    if (child->IsElement()) {
+      if (child->AsElement()->HasAttr(kNameSpaceID_None,
+                                      nsGkAtoms::datal10nid)) {
+        L10nOverlaysError error;
+        error.mCode.Construct(
+            L10nOverlays_Binding::ERROR_TRANSLATED_ELEMENT_DISCONNECTED);
+        nsAutoString id;
+        child->AsElement()->GetAttr(nsGkAtoms::datal10nid, id);
+        error.mL10nName.Construct(id);
+        error.mTranslatedElementName.Construct(
+            aToElement->NodeInfo()->LocalName());
+        aErrors.AppendElement(error);
+      } else if (child->AsElement()->ChildElementCount() > 0) {
+        L10nOverlaysError error;
+        error.mCode.Construct(
+            L10nOverlays_Binding::ERROR_TRANSLATED_ELEMENT_DISALLOWED_DOM);
+        nsAutoString id;
+        aToElement->GetAttr(nsGkAtoms::datal10nid, id);
+        error.mL10nName.Construct(id);
+        error.mTranslatedElementName.Construct(
+            aToElement->NodeInfo()->LocalName());
+        aErrors.AppendElement(error);
+      }
+    }
+#endif
+    aToElement->RemoveChildNode(child, true);
   }
   aToElement->AppendChild(*aFromFragment, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
@@ -414,30 +443,29 @@ void L10nOverlays::TranslateElement(
     errors.AppendElement(error);
   }
   if (!errors.IsEmpty()) {
-    aErrors.SetValue(errors);
+    aErrors.SetValue(std::move(errors));
   }
 }
 
-bool L10nOverlays::ContainsMarkup(const nsAString& aStr) {
+bool L10nOverlays::ContainsMarkup(const nsACString& aStr) {
   // We use our custom ContainsMarkup rather than the
   // one from FragmentOrElement.cpp, because we don't
   // want to trigger HTML parsing on every `Preferences & Options`
   // type of string.
-  const char16_t* start = aStr.BeginReading();
-  const char16_t* end = aStr.EndReading();
+  const char* start = aStr.BeginReading();
+  const char* end = aStr.EndReading();
 
   while (start != end) {
-    char16_t c = *start;
-    if (c == char16_t('<')) {
+    char c = *start;
+    if (c == '<') {
       return true;
     }
     ++start;
 
-    if (c == char16_t('&') && start != end) {
+    if (c == '&' && start != end) {
       c = *start;
-      if (c == char16_t('#') || (c >= char16_t('0') && c <= char16_t('9')) ||
-          (c >= char16_t('a') && c <= char16_t('z')) ||
-          (c >= char16_t('A') && c <= char16_t('Z'))) {
+      if (c == '#' || (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') ||
+          (c >= 'A' && c <= 'Z')) {
         return true;
       }
       ++start;
@@ -456,13 +484,26 @@ void L10nOverlays::TranslateElement(Element& aElement,
     if (nodeInfo->NameAtom() == nsGkAtoms::title &&
         nodeInfo->NamespaceID() == kNameSpaceID_XHTML) {
       // A special case for the HTML title element whose content must be text.
-      aElement.SetTextContent(aTranslation.mValue, aRv);
+      aElement.SetTextContent(NS_ConvertUTF8toUTF16(aTranslation.mValue), aRv);
       if (NS_WARN_IF(aRv.Failed())) {
         return;
       }
     } else if (!ContainsMarkup(aTranslation.mValue)) {
+#ifdef DEBUG
+      if (aElement.ChildElementCount() > 0) {
+        L10nOverlaysError error;
+        error.mCode.Construct(
+            L10nOverlays_Binding::ERROR_TRANSLATED_ELEMENT_DISALLOWED_DOM);
+        nsAutoString id;
+        aElement.GetAttr(nsGkAtoms::datal10nid, id);
+        error.mL10nName.Construct(id);
+        error.mTranslatedElementName.Construct(
+            aElement.GetLastElementChild()->NodeInfo()->LocalName());
+        aErrors.AppendElement(error);
+      }
+#endif
       // If the translation doesn't contain any markup skip the overlay logic.
-      aElement.SetTextContent(aTranslation.mValue, aRv);
+      aElement.SetTextContent(NS_ConvertUTF8toUTF16(aTranslation.mValue), aRv);
       if (NS_WARN_IF(aRv.Failed())) {
         return;
       }
@@ -470,10 +511,11 @@ void L10nOverlays::TranslateElement(Element& aElement,
       // Else parse the translation's HTML into a DocumentFragment,
       // sanitize it and replace the element's content.
       RefPtr<DocumentFragment> fragment =
-          new DocumentFragment(aElement.OwnerDoc()->NodeInfoManager());
-      nsContentUtils::ParseFragmentHTML(aTranslation.mValue, fragment,
-                                        nsGkAtoms::_template,
-                                        kNameSpaceID_XHTML, false, true);
+          new (aElement.OwnerDoc()->NodeInfoManager())
+              DocumentFragment(aElement.OwnerDoc()->NodeInfoManager());
+      nsContentUtils::ParseFragmentHTML(
+          NS_ConvertUTF8toUTF16(aTranslation.mValue), fragment,
+          nsGkAtoms::_template, kNameSpaceID_XHTML, false, true);
       if (NS_WARN_IF(aRv.Failed())) {
         return;
       }

@@ -53,7 +53,7 @@ PresentationControlService.prototype = {
     if (this._isServiceInit()) {
       DEBUG &&
         log("PresentationControlService - server socket has been initialized"); // jshint ignore:line
-      throw Cr.NS_ERROR_FAILURE;
+      throw Components.Exception("", Cr.NS_ERROR_FAILURE);
     }
 
     /**
@@ -94,7 +94,7 @@ PresentationControlService.prototype = {
   _serverSocketInit(aPort, aCert) {
     if (!this._serverSocket) {
       DEBUG && log("PresentationControlService - create server socket fail."); // jshint ignore:line
-      throw Cr.NS_ERROR_FAILURE;
+      throw Components.Exception("", Cr.NS_ERROR_FAILURE);
     }
 
     try {
@@ -112,7 +112,7 @@ PresentationControlService.prototype = {
       // NS_ERROR_SOCKET_ADDRESS_IN_USE
       DEBUG &&
         log("PresentationControlService - init server socket fail: " + e); // jshint ignore:line
-      throw Cr.NS_ERROR_FAILURE;
+      throw Components.Exception("", Cr.NS_ERROR_FAILURE);
     }
 
     this._port = this._serverSocket.port;
@@ -235,7 +235,7 @@ PresentationControlService.prototype = {
     } catch (e) {
       DEBUG && log("PresentationControlService - createTransport throws: " + e); // jshint ignore:line
       // Pop the exception to |TCPDevice.establishControlChannel|
-      throw Cr.NS_ERROR_FAILURE;
+      throw Components.Exception("", Cr.NS_ERROR_FAILURE);
     }
     return socketTransport;
   },
@@ -409,9 +409,9 @@ PresentationControlService.prototype = {
 
   classID: Components.ID("{f4079b8b-ede5-4b90-a112-5b415a931deb}"),
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIServerSocketListener,
-    Ci.nsIPresentationControlService,
-    Ci.nsIObserver,
+    "nsIServerSocketListener",
+    "nsIPresentationControlService",
+    "nsIObserver",
   ]),
 };
 
@@ -461,9 +461,7 @@ ChannelDescription.prototype = {
   },
 
   classID: Components.ID("{82507aea-78a2-487e-904a-858a6c5bf4e1}"),
-  QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIPresentationChannelDescription,
-  ]),
+  QueryInterface: ChromeUtils.generateQI(["nsIPresentationChannelDescription"]),
 };
 
 // Helper function: transfer nsIPresentationChannelDescription to json
@@ -947,7 +945,7 @@ TCPControlChannel.prototype = {
   reconnect(aPresentationId, aUrl) {
     DEBUG && log("TCPControlChannel - reconnect with role: " + this._direction); // jshint ignore:line
     if (this._direction != "sender") {
-      throw Cr.NS_ERROR_FAILURE;
+      throw Components.Exception("", Cr.NS_ERROR_FAILURE);
     }
 
     this._stateMachine.reconnect(aPresentationId, aUrl);
@@ -1048,8 +1046,8 @@ TCPControlChannel.prototype = {
 
   classID: Components.ID("{fefb8286-0bdc-488b-98bf-0c11b485c955}"),
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIPresentationControlChannel,
-    Ci.nsIStreamListener,
+    "nsIPresentationControlChannel",
+    "nsIStreamListener",
   ]),
 };
 

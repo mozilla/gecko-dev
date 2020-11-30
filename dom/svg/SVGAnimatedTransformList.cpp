@@ -122,8 +122,7 @@ nsresult SVGAnimatedTransformList::SetAnimValue(const SVGTransformList& aValue,
   } else {
     modType = MutationEvent_Binding::ADDITION;
   }
-  mCreatedOrRemovedOnLastChange =
-      modType == MutationEvent_Binding::ADDITION;
+  mCreatedOrRemovedOnLastChange = modType == MutationEvent_Binding::ADDITION;
   aElement->DidAnimateTransformList(modType);
   return NS_OK;
 }
@@ -146,8 +145,7 @@ void SVGAnimatedTransformList::ClearAnimValue(SVGElement* aElement) {
   } else {
     modType = MutationEvent_Binding::REMOVAL;
   }
-  mCreatedOrRemovedOnLastChange =
-      modType == MutationEvent_Binding::REMOVAL;
+  mCreatedOrRemovedOnLastChange = modType == MutationEvent_Binding::REMOVAL;
   aElement->DidAnimateTransformList(modType);
 }
 
@@ -200,7 +198,7 @@ void SVGAnimatedTransformList::SMILAnimatedTransformList::ParseValue(
   MOZ_ASSERT(aResult.IsNull(), "Unexpected type for SMIL value");
 
   static_assert(SVGTransformSMILData::NUM_SIMPLE_PARAMS == 3,
-                "nsSVGSMILTransform constructor should be expecting array "
+                "SVGSMILTransform constructor should be expecting array "
                 "with 3 params");
 
   float params[3] = {0.f};

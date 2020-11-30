@@ -28,6 +28,76 @@ class DOM extends ContentProcessDomain {
     }
   }
 
+  /**
+   * Describes node given its id.
+   *
+   * Does not require domain to be enabled. Does not start tracking any objects.
+   *
+   * @param {Object} options
+   * @param {number=} options.backendNodeId [not supported]
+   *     Identifier of the backend node.
+   * @param {number=} options.depth [not supported]
+   *     The maximum depth at which children should be retrieved, defaults to 1.
+   *     Use -1 for the entire subtree or provide an integer larger than 0.
+   * @param {number=} options.nodeId [not supported]
+   *     Identifier of the node.
+   * @param {string} options.objectId
+   *     JavaScript object id of the node wrapper.
+   * @param {boolean=} options.pierce [not supported]
+   *     Whether or not iframes and shadow roots should be traversed
+   *     when returning the subtree, defaults to false.
+   *
+   * @return {DOM.Node}
+   *     Node description.
+   */
+  describeNode(options = {}) {
+    const { objectId } = options;
+
+    // Until nodeId/backendNodeId is supported force usage of the objectId
+    if (!["string"].includes(typeof objectId)) {
+      throw new TypeError("objectId: string value expected");
+    }
+
+    const Runtime = this.session.domains.get("Runtime");
+    const debuggerObj = Runtime._getRemoteObject(objectId);
+    if (!debuggerObj) {
+      throw new Error("Could not find object with given id");
+    }
+
+    if (typeof debuggerObj.nodeId == "undefined") {
+      throw new Error("Object id doesn't reference a Node");
+    }
+
+    const unsafeObj = debuggerObj.unsafeDereference();
+
+    const attributes = [];
+    if (unsafeObj.attributes) {
+      // Flatten the list of attributes for name and value
+      for (const attribute of unsafeObj.attributes) {
+        attributes.push(attribute.name, attribute.value);
+      }
+    }
+
+    let context = this.docShell.browsingContext;
+    if (unsafeObj instanceof HTMLIFrameElement) {
+      context = unsafeObj.contentWindow.docShell.browsingContext;
+    }
+
+    const node = {
+      nodeId: debuggerObj.nodeId,
+      backendNodeId: debuggerObj.nodeId,
+      nodeType: unsafeObj.nodeType,
+      nodeName: unsafeObj.nodeName,
+      localName: unsafeObj.localName,
+      nodeValue: unsafeObj.nodeValue ? unsafeObj.nodeValue.toString() : "",
+      childNodeCount: unsafeObj.childElementCount,
+      attributes: attributes.length > 0 ? attributes : undefined,
+      frameId: context.id.toString(),
+    };
+
+    return { node };
+  }
+
   disable() {
     if (this.enabled) {
       this.enabled = false;
@@ -36,14 +106,11 @@ class DOM extends ContentProcessDomain {
 
   getContentQuads({ objectId }) {
     const Runtime = this.session.domains.get("Runtime");
-    if (!Runtime) {
-      throw new Error("Runtime domain is not instantiated");
+    const debuggerObj = Runtime._getRemoteObject(objectId);
+    if (!debuggerObj) {
+      throw new Error(`Cannot find object with id: ${objectId}`);
     }
-    const obj = Runtime._getRemoteObject(objectId);
-    if (!obj) {
-      throw new Error("Cannot find object with id = " + objectId);
-    }
-    const unsafeObject = obj.unsafeDereference();
+    const unsafeObject = debuggerObj.unsafeDereference();
     if (!unsafeObject.getBoxQuads) {
       throw new Error("RemoteObject is not a node");
     }
@@ -65,8 +132,11 @@ class DOM extends ContentProcessDomain {
 
   getBoxModel({ objectId }) {
     const Runtime = this.session.domains.get("Runtime");
-    const obj = Runtime._getRemoteObject(objectId);
-    const unsafeObject = obj.unsafeDereference();
+    const debuggerObj = Runtime._getRemoteObject(objectId);
+    if (!debuggerObj) {
+      throw new Error(`Cannot find object with id: ${objectId}`);
+    }
+    const unsafeObject = debuggerObj.unsafeDereference();
     const bounding = unsafeObject.getBoundingClientRect();
     const model = {
       width: Math.round(bounding.width),
@@ -120,6 +190,61 @@ class DOM extends ContentProcessDomain {
     }
     return {
       model,
+    };
+  }
+
+  /**
+   * Resolves the JavaScript node object for a given NodeId or BackendNodeId.
+   *
+   * @param {Object} options
+   * @param {number} options.backendNodeId [required for now]
+   *     Backend identifier of the node to resolve.
+   * @param {number=} options.executionContextId
+   *     Execution context in which to resolve the node.
+   * @param {number=} options.nodeId [not supported]
+   *     Id of the node to resolve.
+   * @param {string=} options.objectGroup [not supported]
+   *     Symbolic group name that can be used to release multiple objects.
+   *
+   * @return {Runtime.RemoteObject}
+   *     JavaScript object wrapper for given node.
+   */
+  resolveNode(options = {}) {
+    const { backendNodeId, executionContextId } = options;
+
+    // Until nodeId is supported force usage of the backendNodeId
+    // Bug 1625417 - CDP expects the id as number
+    if (!["string"].includes(typeof backendNodeId)) {
+      throw new TypeError("backendNodeId: string value expected");
+    }
+    if (!["undefined", "number"].includes(typeof executionContextId)) {
+      throw new TypeError("executionContextId: integer value expected");
+    }
+
+    const Runtime = this.session.domains.get("Runtime");
+
+    // Retrieve the node to resolve, and its context
+    const debuggerObj = Runtime._getRemoteObjectByNodeId(backendNodeId);
+
+    if (!debuggerObj) {
+      throw new Error(`No node with given id found`);
+    }
+
+    // If execution context isn't specified use the default one for the node
+    let context;
+    if (typeof executionContextId != "undefined") {
+      context = Runtime.contexts.get(executionContextId);
+      if (!context) {
+        throw new Error(`Node with given id does not belong to the document`);
+      }
+    } else {
+      context = Runtime._getDefaultContextForWindow();
+    }
+
+    Runtime._setRemoteObject(debuggerObj, context);
+
+    return {
+      object: Runtime._serializeRemoteObject(debuggerObj, context.id),
     };
   }
 }

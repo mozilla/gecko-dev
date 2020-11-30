@@ -13,6 +13,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/EventQueue.h"
 #include "mozilla/ThreadEventQueue.h"
+#include "js/Exception.h"
 
 namespace mozilla {
 namespace dom {
@@ -128,7 +129,7 @@ class WorkletJSContext final : public CycleCollectedJSContext {
 
     JSContext* cx = Context();
 
-    js::SetPreserveWrapperCallback(cx, PreserveWrapper);
+    js::SetPreserveWrapperCallbacks(cx, PreserveWrapper, HasReleasedWrapper);
     JS_InitDestroyPrincipalsCallback(cx, WorkletPrincipals::Destroy);
     JS_SetWrapObjectCallbacks(cx, &WrapObjectCallbacks);
     JS_SetFutexCanWait(cx);
@@ -186,16 +187,17 @@ void WorkletJSContext::ReportError(JSErrorReport* aReport,
   RefPtr<AsyncErrorReporter> reporter = new AsyncErrorReporter(xpcReport);
 
   JSContext* cx = Context();
-  JS::Rooted<JS::Value> exn(cx);
-  if (JS_GetPendingException(cx, &exn)) {
-    JS::Rooted<JSObject*> exnStack(cx, JS::GetPendingExceptionStack(cx));
-    JS_ClearPendingException(cx);
-    JS::Rooted<JSObject*> stack(cx);
-    JS::Rooted<JSObject*> stackGlobal(cx);
-    xpc::FindExceptionStackForConsoleReport(nullptr, exn, exnStack, &stack,
-                                            &stackGlobal);
-    if (stack) {
-      reporter->SerializeStack(cx, stack);
+  if (JS_IsExceptionPending(cx)) {
+    JS::ExceptionStack exnStack(cx);
+    if (JS::StealPendingExceptionStack(cx, &exnStack)) {
+      JS::Rooted<JSObject*> stack(cx);
+      JS::Rooted<JSObject*> stackGlobal(cx);
+      xpc::FindExceptionStackForConsoleReport(nullptr, exnStack.exception(),
+                                              exnStack.stack(), &stack,
+                                              &stackGlobal);
+      if (stack) {
+        reporter->SerializeStack(cx, stack);
+      }
     }
   }
 
@@ -247,9 +249,9 @@ class WorkletThread::TerminateRunnable final : public Runnable {
 };
 
 WorkletThread::WorkletThread(WorkletImpl* aWorkletImpl)
-    : nsThread(MakeNotNull<ThreadEventQueue<mozilla::EventQueue>*>(
-                   MakeUnique<mozilla::EventQueue>()),
-               nsThread::NOT_MAIN_THREAD, kWorkletStackSize),
+    : nsThread(
+          MakeNotNull<ThreadEventQueue*>(MakeUnique<mozilla::EventQueue>()),
+          nsThread::NOT_MAIN_THREAD, kWorkletStackSize),
       mWorkletImpl(aWorkletImpl),
       mExitLoop(false),
       mIsTerminating(false) {
@@ -263,7 +265,7 @@ WorkletThread::~WorkletThread() = default;
 already_AddRefed<WorkletThread> WorkletThread::Create(
     WorkletImpl* aWorkletImpl) {
   RefPtr<WorkletThread> thread = new WorkletThread(aWorkletImpl);
-  if (NS_WARN_IF(NS_FAILED(thread->Init(NS_LITERAL_CSTRING("DOM Worklet"))))) {
+  if (NS_WARN_IF(NS_FAILED(thread->Init("DOM Worklet"_ns)))) {
     return nullptr;
   }
 
@@ -346,11 +348,12 @@ void WorkletThread::EnsureCycleCollectedJSContext(JSRuntime* aParentRuntime) {
     return;
   }
 
+  JS_SetGCParameter(context->Context(), JSGC_MAX_BYTES, uint32_t(-1));
+
   // FIXME: JS_SetDefaultLocale
   // FIXME: JSSettings
   // FIXME: JS_SetSecurityCallbacks
   // FIXME: JS::SetAsyncTaskCallbacks
-  // FIXME: JS_AddInterruptCallback
   // FIXME: JS::SetCTypesActivityCallback
   // FIXME: JS_SetGCZeal
 

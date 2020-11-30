@@ -141,15 +141,15 @@ class TempFileWriter final : public mozilla::JSONWriteFunc {
 
   explicit operator bool() const { return !mFailed; }
 
-  void Write(const char* aStr) override {
+  void Write(const mozilla::Span<const char>& aStr) override {
     if (mFailed) {
       return;
     }
 
-    size_t len = strlen(aStr);
     DWORD bytesWritten = 0;
-    if (!::WriteFile(mTempFile, aStr, len, &bytesWritten, nullptr) ||
-        bytesWritten != len) {
+    if (!::WriteFile(mTempFile, aStr.data(), aStr.size(), &bytesWritten,
+                     nullptr) ||
+        bytesWritten != aStr.size()) {
       mFailed = true;
     }
   }
@@ -268,7 +268,7 @@ static bool EnumWSCProductList(RefPtr<IWSCProductList>& aProdList,
       return false;
     }
 
-    aJson.StringElement(buf.get());
+    aJson.StringElement(mozilla::MakeStringSpan(buf.get()));
   }
 
   return true;
@@ -317,7 +317,7 @@ static bool AddWscInfo(mozilla::JSONWriter& aJson) {
       return false;
     }
 
-    aJson.StartArrayProperty(gProvKeys[index].mKey);
+    aJson.StartArrayProperty(mozilla::MakeStringSpan(gProvKeys[index].mKey));
 
     if (!EnumWSCProductList(prodList, aJson)) {
       return false;
@@ -377,7 +377,7 @@ static bool AddModuleInfo(const nsAutoHandle& aSnapshot,
       return false;
     }
 
-    aJson.StartArrayProperty(leafUtf8.get());
+    aJson.StartArrayProperty(mozilla::MakeStringSpan(leafUtf8.get()));
 
     std::string version;
     DWORD verInfoSize = ::GetFileVersionInfoSizeW(module.szExePath, nullptr);
@@ -402,7 +402,7 @@ static bool AddModuleInfo(const nsAutoHandle& aSnapshot,
       }
     }
 
-    aJson.StringElement(version.c_str());
+    aJson.StringElement(version);
 
     mozilla::Maybe<ptrdiff_t> sigIndex;
     auto signedBy = dllServices.GetBinaryOrgName(module.szExePath);
@@ -435,7 +435,7 @@ static bool AddModuleInfo(const nsAutoHandle& aSnapshot,
       continue;
     }
 
-    aJson.StringElement(sigUtf8.get());
+    aJson.StringElement(mozilla::MakeStringSpan(sigUtf8.get()));
   }
 
   aJson.EndArray();
@@ -446,11 +446,14 @@ static bool AddModuleInfo(const nsAutoHandle& aSnapshot,
 namespace {
 
 struct PingThreadContext {
-  explicit PingThreadContext(const mozilla::LauncherError& aError)
+  explicit PingThreadContext(const mozilla::LauncherError& aError,
+                             const char* aProcessType)
       : mLauncherError(aError),
-        mModulesSnapshot(::CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, 0)) {}
+        mModulesSnapshot(::CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, 0)),
+        mProcessType(aProcessType ? aProcessType : "") {}
   mozilla::LauncherError mLauncherError;
   nsAutoHandle mModulesSnapshot;
+  std::string mProcessType;
 };
 
 }  // anonymous namespace
@@ -472,7 +475,7 @@ static bool PrepPing(const PingThreadContext& aContext, const std::wstring& aId,
 
   auto idUtf8 = WideToUTF8(aId);
   if (idUtf8) {
-    aJson.StringProperty("id", idUtf8.get());
+    aJson.StringProperty("id", mozilla::MakeStringSpan(idUtf8.get()));
   }
 
   time_t now;
@@ -489,8 +492,10 @@ static bool PrepPing(const PingThreadContext& aContext, const std::wstring& aId,
   aJson.StringProperty("update_channel", QUOTE_ME(MOZ_UPDATE_CHANNEL));
 
   if (gAppData) {
-    aJson.StringProperty("build_id", gAppData->buildID);
-    aJson.StringProperty("build_version", gAppData->version);
+    aJson.StringProperty("build_id",
+                         mozilla::MakeStringSpan(gAppData->buildID));
+    aJson.StringProperty("build_version",
+                         mozilla::MakeStringSpan(gAppData->version));
   }
 
   OSVERSIONINFOEXW osv = {sizeof(osv)};
@@ -514,7 +519,7 @@ static bool PrepPing(const PingThreadContext& aContext, const std::wstring& aId,
     }
 
     if (oss) {
-      aJson.StringProperty("os_version", oss.str().c_str());
+      aJson.StringProperty("os_version", oss.str());
     }
 
     bool isServer = osv.wProductType == VER_NT_DOMAIN_CONTROLLER ||
@@ -528,7 +533,8 @@ static bool PrepPing(const PingThreadContext& aContext, const std::wstring& aId,
   if (localeNameLen) {
     auto localeNameUtf8 = WideToUTF8(localeName, localeNameLen - 1);
     if (localeNameUtf8) {
-      aJson.StringProperty("os_locale", localeNameUtf8.get());
+      aJson.StringProperty("os_locale",
+                           mozilla::MakeStringSpan(localeNameUtf8.get()));
     }
   }
 
@@ -541,6 +547,10 @@ static bool PrepPing(const PingThreadContext& aContext, const std::wstring& aId,
       mozilla::IsAdminWithoutUac();
   if (isAdminWithoutUac.isOk()) {
     aJson.BoolProperty("is_admin_without_uac", isAdminWithoutUac.unwrap());
+  }
+
+  if (!aContext.mProcessType.empty()) {
+    aJson.StringProperty("process_type", aContext.mProcessType);
   }
 
   MEMORYSTATUSEX memStatus = {sizeof(memStatus)};
@@ -565,10 +575,25 @@ static bool PrepPing(const PingThreadContext& aContext, const std::wstring& aId,
     srcFileLeaf = srcFileLeaf.substr(pos + 1);
   }
 
-  aJson.StringProperty("source_file", srcFileLeaf.c_str());
+  aJson.StringProperty("source_file", srcFileLeaf);
 
   aJson.IntProperty("source_line", aContext.mLauncherError.mLine);
   aJson.IntProperty("hresult", aContext.mLauncherError.mError.AsHResult());
+
+#  if defined(NIGHTLY_BUILD)
+  if (aContext.mLauncherError.mDetourError.isSome()) {
+    static const char* kHexMap = "0123456789abcdef";
+    char hexStr[sizeof(mozilla::DetourError::mOrigBytes) * 2 + 1];
+    int cnt = 0;
+    for (uint8_t byte : aContext.mLauncherError.mDetourError->mOrigBytes) {
+      hexStr[cnt++] = kHexMap[(byte >> 4) & 0x0f];
+      hexStr[cnt++] = kHexMap[byte & 0x0f];
+    }
+    hexStr[cnt] = 0;
+    aJson.StringProperty("detour_orig_bytes", hexStr);
+  }
+#  endif  // defined(NIGHTLY_BUILD)
+
   aJson.EndObject();
 
 #  if !defined(__MINGW32__)
@@ -688,7 +713,8 @@ static unsigned __stdcall SendPingThread(void* aContext) {
 
 #endif  // defined(MOZ_TELEMETRY_REPORTING)
 
-static bool SendPing(const mozilla::LauncherError& aError) {
+static bool SendPing(const mozilla::LauncherError& aError,
+                     const char* aProcessType) {
 #if defined(MOZ_TELEMETRY_REPORTING)
 #  if defined(MOZ_LAUNCHER_PROCESS)
   mozilla::LauncherRegistryInfo regInfo;
@@ -708,7 +734,7 @@ static bool SendPing(const mozilla::LauncherError& aError) {
 
   // Capture aError and our module list into context for processing on another
   // thread.
-  auto thdParam = mozilla::MakeUnique<PingThreadContext>(aError);
+  auto thdParam = mozilla::MakeUnique<PingThreadContext>(aError, aProcessType);
 
   // The ping does a lot of file I/O. Since we want this thread to continue
   // executing browser startup, we should gather that information on a
@@ -732,13 +758,14 @@ static bool SendPing(const mozilla::LauncherError& aError) {
 
 namespace mozilla {
 
-void HandleLauncherError(const LauncherError& aError) {
+void HandleLauncherError(const LauncherError& aError,
+                         const char* aProcessType) {
 #if defined(MOZ_LAUNCHER_PROCESS)
   LauncherRegistryInfo regInfo;
   Unused << regInfo.DisableDueToFailure();
 #endif  // defined(MOZ_LAUNCHER_PROCESS)
 
-  if (SendPing(aError) && !gForceEventLog) {
+  if (SendPing(aError, aProcessType) && !gForceEventLog) {
     return;
   }
 

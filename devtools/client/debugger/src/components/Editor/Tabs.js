@@ -277,7 +277,7 @@ class Tabs extends PureComponent<Props, State> {
   }
 
   renderDropdown() {
-    const hiddenTabs = this.state.hiddenTabs;
+    const { hiddenTabs } = this.state;
     if (!hiddenTabs || hiddenTabs.length == 0) {
       return null;
     }
@@ -343,14 +343,11 @@ const mapStateToProps = state => ({
   isPaused: getIsPaused(state, getCurrentThread(state)),
 });
 
-export default connect<Props, OwnProps, _, _, _, _>(
-  mapStateToProps,
-  {
-    selectSource: actions.selectSource,
-    moveTab: actions.moveTab,
-    moveTabBySourceId: actions.moveTabBySourceId,
-    closeTab: actions.closeTab,
-    togglePaneCollapse: actions.togglePaneCollapse,
-    showSource: actions.showSource,
-  }
-)(Tabs);
+export default connect<Props, OwnProps, _, _, _, _>(mapStateToProps, {
+  selectSource: actions.selectSource,
+  moveTab: actions.moveTab,
+  moveTabBySourceId: actions.moveTabBySourceId,
+  closeTab: actions.closeTab,
+  togglePaneCollapse: actions.togglePaneCollapse,
+  showSource: actions.showSource,
+})(Tabs);

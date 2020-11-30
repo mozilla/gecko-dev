@@ -40,6 +40,8 @@ const EVENT_DOCUMENT_RELOAD = nsIAccessibleEvent.EVENT_DOCUMENT_RELOAD;
 const EVENT_VIRTUALCURSOR_CHANGED =
   nsIAccessibleEvent.EVENT_VIRTUALCURSOR_CHANGED;
 const EVENT_ALERT = nsIAccessibleEvent.EVENT_ALERT;
+const EVENT_TEXT_SELECTION_CHANGED =
+  nsIAccessibleEvent.EVENT_TEXT_SELECTION_CHANGED;
 
 const EventsLogger = {
   enabled: false,
@@ -236,4 +238,23 @@ async function waitForEvents(events, message, ordered = false) {
 
 function waitForOrderedEvents(events, message) {
   return waitForEvents(events, message, true);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Utility functions ported from events.js.
+
+/**
+ * This function selects all text in the passed-in element if it has an editor,
+ * before setting focus to it. This simulates behavio with the keyboard when
+ * tabbing to the element. This does explicitly what synthFocus did implicitly.
+ * This should be called only if you really want this behavior.
+ * @param  {string}  id  The element ID to focus
+ */
+function selectAllTextAndFocus(id) {
+  const elem = getNode(id);
+  if (elem.editor) {
+    elem.selectionStart = elem.selectionEnd = elem.value.length;
+  }
+
+  elem.focus();
 }

@@ -48,6 +48,8 @@ const NS_GRE_DIR = "GreD";
 const CLEARKEY_PLUGIN_ID = "gmp-clearkey";
 const CLEARKEY_VERSION = "0.1";
 
+const FIRST_CONTENT_PROCESS_TOPIC = "ipc:first-content-process-created";
+
 const GMP_LICENSE_INFO = "gmp_license_info";
 const GMP_PRIVACY_INFO = "gmp_privacy_info";
 const GMP_LEARN_MORE = "learn_more_label";
@@ -129,14 +131,14 @@ function GMPWrapper(aPluginInfo, aRawPluginInfo) {
   );
   if (this._plugin.isEME) {
     Services.prefs.addObserver(GMPPrefs.KEY_EME_ENABLED, this, true);
-    Services.mm.addMessageListener("EMEVideo:ContentMediaKeysRequest", this);
+    Services.obs.addObserver(this, "EMEVideo:CDMMissing");
   }
 }
 
 GMPWrapper.prototype = {
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIObserver,
-    Ci.nsISupportsWeakReference,
+    "nsIObserver",
+    "nsISupportsWeakReference",
   ]),
 
   // An active task that checks for plugin updates and installs them.
@@ -408,7 +410,7 @@ GMPWrapper.prototype = {
       try {
         let installManager = new GMPInstallManager();
         let res = await installManager.checkForAddons();
-        let update = res.gmpAddons.find(addon => addon.id === this._plugin.id);
+        let update = res.addons.find(addon => addon.id === this._plugin.id);
         if (update && update.isValid && !update.isInstalled) {
           this._log.trace(
             "findUpdates() - found update for " +
@@ -556,21 +558,6 @@ GMPWrapper.prototype = {
     }, delay);
   },
 
-  receiveMessage({ target: browser, data: data }) {
-    this._log.trace("receiveMessage() data=" + data);
-    let parsedData;
-    try {
-      parsedData = JSON.parse(data);
-    } catch (ex) {
-      this._log.error("Malformed EME video message with data: " + data);
-      return;
-    }
-    let { status } = parsedData;
-    if (status == "cdm-not-installed") {
-      this.checkForUpdates(0);
-    }
-  },
-
   onPrefEnabledChanged() {
     if (!this._plugin.isEME || !this.appDisabled) {
       this._handleEnabledChanged();
@@ -615,8 +602,9 @@ GMPWrapper.prototype = {
     AddonManagerPrivate.callAddonListeners("onInstalled", this);
   },
 
-  observe(subject, topic, pref) {
+  observe(subject, topic, data) {
     if (topic == "nsPref:changed") {
+      let pref = data;
       if (
         pref ==
         GMPPrefs.getPrefKey(GMPPrefs.KEY_PLUGIN_ENABLED, this._plugin.id)
@@ -630,6 +618,8 @@ GMPWrapper.prototype = {
       } else if (pref == GMPPrefs.KEY_EME_ENABLED) {
         this.onPrefEMEGlobalEnabledChanged();
       }
+    } else if (topic == "EMEVideo:CDMMissing") {
+      this.checkForUpdates(0);
     }
   },
 
@@ -658,10 +648,7 @@ GMPWrapper.prototype = {
     );
     if (this._plugin.isEME) {
       Services.prefs.removeObserver(GMPPrefs.KEY_EME_ENABLED, this);
-      Services.mm.removeMessageListener(
-        "EMEVideo:ContentMediaKeysRequest",
-        this
-      );
+      Services.obs.removeObserver(this, "EMEVideo:CDMMissing");
     }
     return this._updateTask;
   },
@@ -880,15 +867,26 @@ var GMPProvider = {
       }
     }
   },
+
+  observe(subject, topic, data) {
+    if (topic == FIRST_CONTENT_PROCESS_TOPIC) {
+      AddonManagerPrivate.registerProvider(GMPProvider, [
+        new AddonManagerPrivate.AddonType(
+          "plugin",
+          URI_EXTENSION_STRINGS,
+          "type.plugin.name",
+          AddonManager.VIEW_TYPE_LIST,
+          6000,
+          AddonManager.TYPE_SUPPORTS_ASK_TO_ACTIVATE
+        ),
+      ]);
+      Services.obs.removeObserver(this, FIRST_CONTENT_PROCESS_TOPIC);
+    }
+  },
+
+  addObserver() {
+    Services.obs.addObserver(this, FIRST_CONTENT_PROCESS_TOPIC);
+  },
 };
 
-AddonManagerPrivate.registerProvider(GMPProvider, [
-  new AddonManagerPrivate.AddonType(
-    "plugin",
-    URI_EXTENSION_STRINGS,
-    "type.plugin.name",
-    AddonManager.VIEW_TYPE_LIST,
-    6000,
-    AddonManager.TYPE_SUPPORTS_ASK_TO_ACTIVATE
-  ),
-]);
+GMPProvider.addObserver();

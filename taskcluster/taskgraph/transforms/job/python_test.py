@@ -10,7 +10,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 from six import text_type
 from taskgraph.transforms.job import run_job_using, configure_taskdesc_for_run
 from taskgraph.util.schema import Schema
-from voluptuous import Required
+from voluptuous import Required, Optional
 
 python_test_schema = Schema({
     Required('using'): 'python-test',
@@ -22,7 +22,7 @@ python_test_schema = Schema({
     Required('subsuite'): text_type,
 
     # Base work directory used to set up the task.
-    Required('workdir'): text_type,
+    Optional('workdir'): text_type,
 })
 
 
@@ -38,15 +38,8 @@ def configure_python_test(config, job, taskdesc):
     run = job['run']
     worker = job['worker']
 
-    if worker['os'] == 'macosx' and run['python-version'] == 3:
-        # OSX hosts can't seem to find python 3 on their own
-        run['python-version'] = '/tools/python37/bin/python3.7'
-        if job['worker-type'].endswith('1014'):
-            run['python-version'] = '/usr/local/bin/python3'
-
     # defer to the mach implementation
-    run['mach'] = 'python-test --python {python-version} --subsuite {subsuite}'.format(**run)
+    run['mach'] = ("python-test --subsuite {subsuite} --run-slow").format(**run)
     run['using'] = 'mach'
-    del run['python-version']
     del run['subsuite']
     configure_taskdesc_for_run(config, job, taskdesc, worker['implementation'])

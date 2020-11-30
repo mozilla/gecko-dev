@@ -20,11 +20,11 @@ async function testSwitchToTarget(client) {
 
   const { mainRoot } = client;
   // Create a first target to switch from, a new tab with an iframe
-  gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser);
   const firstTab = await addTab(
     `data:text/html,<iframe src="data:text/html,foo"></iframe>`
   );
-  const firstTarget = await mainRoot.getTab({ tab: gBrowser.selectedTab });
+  const firstDescriptor = await mainRoot.getTab({ tab: gBrowser.selectedTab });
+  const firstTarget = await firstDescriptor.getTarget();
 
   const targetList = new TargetList(mainRoot, firstTarget);
 
@@ -37,30 +37,27 @@ async function testSwitchToTarget(client) {
   );
 
   // Create a second target to switch to, a new tab with an iframe
-  gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser);
   const secondTab = await addTab(
     `data:text/html,<iframe src="data:text/html,bar"></iframe>`
   );
-  const secondTarget = await mainRoot.getTab({ tab: gBrowser.selectedTab });
+  const secondDescriptor = await mainRoot.getTab({ tab: gBrowser.selectedTab });
+  const secondTarget = await secondDescriptor.getTarget();
 
   const frameTargets = [];
   let currentTarget = firstTarget;
-  const onFrameAvailable = ({
-    type,
-    targetFront,
-    isTopLevel,
-    isTargetSwitching,
-  }) => {
+  const onFrameAvailable = ({ targetFront, isTargetSwitching }) => {
     is(
-      type,
+      targetFront.targetType,
       TargetList.TYPES.FRAME,
       "We are only notified about frame targets"
     );
     ok(
-      targetFront == currentTarget ? isTopLevel : !isTopLevel,
-      "isTopLevel argument is correct"
+      targetFront == currentTarget
+        ? targetFront.isTopLevel
+        : !targetFront.isTopLevel,
+      "isTopLevel property is correct"
     );
-    if (isTopLevel) {
+    if (targetFront.isTopLevel) {
       // When calling watchTargets, this will be false, but it will be true when calling switchToTarget
       is(
         isTargetSwitching,
@@ -73,22 +70,19 @@ async function testSwitchToTarget(client) {
     frameTargets.push(targetFront);
   };
   const destroyedTargets = [];
-  const onFrameDestroyed = ({
-    type,
-    targetFront,
-    isTopLevel,
-    isTargetSwitching,
-  }) => {
+  const onFrameDestroyed = ({ targetFront, isTargetSwitching }) => {
     is(
-      type,
+      targetFront.targetType,
       TargetList.TYPES.FRAME,
       "target-destroyed: We are only notified about frame targets"
     );
     ok(
-      targetFront == firstTarget ? isTopLevel : !isTopLevel,
-      "target-destroyed: isTopLevel argument is correct"
+      targetFront == firstTarget
+        ? targetFront.isTopLevel
+        : !targetFront.isTopLevel,
+      "target-destroyed: isTopLevel property is correct"
     );
-    if (isTopLevel) {
+    if (targetFront.isTopLevel) {
       is(
         isTargetSwitching,
         true,
@@ -146,7 +140,7 @@ async function testSwitchToTarget(client) {
     );
   }
 
-  targetList.stopListening();
+  targetList.destroy();
 
   BrowserTestUtils.removeTab(firstTab);
   BrowserTestUtils.removeTab(secondTab);

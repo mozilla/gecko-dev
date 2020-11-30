@@ -8,12 +8,13 @@
 
 #include "nsCOMPtr.h"
 #include "nsIDeviceContextSpec.h"
-#include "nsIPrinterEnumerator.h"
+#include "nsPrinterListBase.h"
 #include "nsIPrintSettings.h"
 #include <windows.h>
 #include "mozilla/Attributes.h"
 #include "mozilla/RefPtr.h"
 
+class nsIFile;
 class nsIWidget;
 
 class nsDeviceContextSpecWin : public nsIDeviceContextSpec {
@@ -66,30 +67,42 @@ class nsDeviceContextSpecWin : public nsIDeviceContextSpec {
 
   nsString mDriverName;
   nsString mDeviceName;
-  LPDEVMODEW mDevMode;
+  LPDEVMODEW mDevMode = nullptr;
 
   nsCOMPtr<nsIPrintSettings> mPrintSettings;
   int16_t mOutputFormat = nsIPrintSettings::kOutputFormatNative;
 
-#ifdef MOZ_ENABLE_SKIA_PDF
+  // A temporary file to create an "anonymous" print target. See bug 1664253,
+  // this should ideally not be needed.
+  nsCOMPtr<nsIFile> mTempFile;
 
   // This variable is independant of nsIPrintSettings::kOutputFormatPDF.
   // It controls both whether normal printing is done via PDF using Skia and
   // whether print-to-PDF uses Skia.
-  bool mPrintViaSkPDF;
-#endif
+  bool mPrintViaSkPDF = false;
 };
 
 //-------------------------------------------------------------------------
-// Printer Enumerator
+// Printer List
 //-------------------------------------------------------------------------
-class nsPrinterEnumeratorWin final : public nsIPrinterEnumerator {
-  ~nsPrinterEnumeratorWin();
-
+class nsPrinterListWin final : public nsPrinterListBase {
  public:
-  nsPrinterEnumeratorWin();
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIPRINTERENUMERATOR
+  NS_IMETHOD InitPrintSettingsFromPrinter(const nsAString&,
+                                          nsIPrintSettings*) final;
+
+  nsTArray<PrinterInfo> Printers() const final;
+  RefPtr<nsIPrinter> CreatePrinter(PrinterInfo) const final;
+
+  nsPrinterListWin() = default;
+
+ protected:
+  nsresult SystemDefaultPrinterName(nsAString&) const final;
+
+  Maybe<PrinterInfo> PrinterByName(nsString) const final;
+  Maybe<PrinterInfo> PrinterBySystemName(nsString aPrinterName) const final;
+
+ private:
+  ~nsPrinterListWin();
 };
 
 #endif

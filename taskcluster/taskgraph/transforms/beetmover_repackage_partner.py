@@ -13,7 +13,6 @@ from taskgraph.transforms.base import TransformSequence
 from taskgraph.transforms.beetmover import craft_release_properties
 from taskgraph.util.attributes import copy_attributes_from_dependent_job
 from taskgraph.util.partners import (
-    check_if_partners_enabled,
     get_ftp_platform,
     get_partner_config_by_kind,
 )
@@ -36,9 +35,6 @@ logger = logging.getLogger(__name__)
 
 
 beetmover_description_schema = schema.extend({
-    # depname is used in taskref's to identify the taskID of the unsigned things
-    Required('depname', default='build'): text_type,
-
     # unique label to describe this beetmover task, defaults to {dep.label}-beetmover
     Optional('label'): text_type,
 
@@ -53,7 +49,6 @@ beetmover_description_schema = schema.extend({
 })
 
 transforms = TransformSequence()
-transforms.add(check_if_partners_enabled)
 transforms.add_validate(beetmover_description_schema)
 
 

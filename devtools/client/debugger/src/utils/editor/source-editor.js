@@ -12,7 +12,7 @@
 const CodeMirror = require("codemirror");
 
 // $FlowIgnore
-require("codemirror/lib/codemirror.css");
+require("raw!chrome://devtools/content/shared/sourceeditor/codemirror/lib/codemirror.css");
 require("codemirror/mode/javascript/javascript");
 require("codemirror/mode/htmlmixed/htmlmixed");
 require("codemirror/mode/coffeescript/coffeescript");
@@ -32,7 +32,8 @@ require("codemirror/addon/display/placeholder");
 require("codemirror/mode/clike/clike");
 require("codemirror/mode/rust/rust");
 
-require("./source-editor.css");
+// $FlowIgnore
+require("raw!chrome://devtools/content/debugger/src/utils/editor/source-editor.css");
 
 // NOTE: we should eventually use debugger-html context type mode
 type Mode = string | Object;
@@ -61,38 +62,38 @@ export default class SourceEditor {
   opts: SourceEditorOpts;
   editor: any;
 
-  constructor(opts: SourceEditorOpts) {
+  constructor(opts: SourceEditorOpts): void {
     this.opts = opts;
   }
 
-  appendToLocalElement(node: any) {
+  appendToLocalElement(node: any): void {
     this.editor = CodeMirror(node, this.opts);
   }
 
-  destroy() {
+  destroy(): void {
     // Unlink the current document.
     if (this.editor.doc) {
       this.editor.doc.cm = null;
     }
   }
 
-  get codeMirror(): any {
+  get codeMirror(): Object {
     return this.editor;
   }
 
-  get CodeMirror() {
+  get CodeMirror(): Object {
     return CodeMirror;
   }
 
-  setText(str: string) {
+  setText(str: string): void {
     this.editor.setValue(str);
   }
 
-  getText() {
+  getText(): string {
     return this.editor.getValue();
   }
 
-  setMode(value: Mode) {
+  setMode(value: Mode): void {
     this.editor.setOption("mode", value);
   }
 
@@ -100,7 +101,7 @@ export default class SourceEditor {
    * Replaces the current document with a new source document
    * @memberof utils/source-editor
    */
-  replaceDocument(doc: any) {
+  replaceDocument(doc: any): void {
     this.editor.swapDoc(doc);
   }
 
@@ -109,7 +110,7 @@ export default class SourceEditor {
    * @returns CodeMirror.Doc
    * @memberof utils/source-editor
    */
-  createDocument() {
+  createDocument(): Object {
     return new CodeMirror.Doc("");
   }
 
@@ -119,7 +120,7 @@ export default class SourceEditor {
    * bottom.
    * @memberof utils/source-editor
    */
-  alignLine(line: number, align: AlignOpts = "top") {
+  alignLine(line: number, align: AlignOpts = "top"): void {
     const cm = this.editor;
     const editorClientRect = cm.getWrapperElement().getBoundingClientRect();
 
@@ -158,7 +159,7 @@ export default class SourceEditor {
    * Scrolls the view such that the given line number is the first visible line.
    * @memberof utils/source-editor
    */
-  setFirstVisibleLine(line: number) {
+  setFirstVisibleLine(line: number): void {
     const { top } = this.editor.charCoords({ line, ch: 0 }, "local");
     this.editor.scrollTo(0, top);
   }

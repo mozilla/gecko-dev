@@ -5,6 +5,7 @@ requestLongerTimeout(2);
 
 ChromeUtils.import("resource://testing-common/TelemetryTestUtils.jsm", this);
 ChromeUtils.import("resource://testing-common/LoginTestUtils.jsm", this);
+ChromeUtils.import("resource://testing-common/OSKeyStoreTestUtils.jsm", this);
 
 EXPECTED_BREACH = {
   AddedDate: "2018-12-20T23:56:26Z",
@@ -19,10 +20,30 @@ EXPECTED_BREACH = {
   schema: "1541615609018",
 };
 
+let VULNERABLE_TEST_LOGIN2 = new nsLoginInfo(
+  "https://2.example.com",
+  "https://2.example.com",
+  null,
+  "user2",
+  "pass3",
+  "username",
+  "password"
+);
+
 add_task(async function setup() {
   TEST_LOGIN1 = await addLogin(TEST_LOGIN1);
-  TEST_LOGIN2 = await addLogin(TEST_LOGIN2);
+  VULNERABLE_TEST_LOGIN2 = await addLogin(VULNERABLE_TEST_LOGIN2);
   TEST_LOGIN3 = await addLogin(TEST_LOGIN3);
+
+  await TestUtils.waitForCondition(() => {
+    Services.telemetry.clearEvents();
+    let events = Services.telemetry.snapshotEvents(
+      Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
+      true
+    ).content;
+    return !events || !events.length;
+  }, "Waiting for telemetry events to get cleared");
+
   await BrowserTestUtils.openNewForegroundTab({
     gBrowser,
     url: "about:logins",
@@ -34,23 +55,37 @@ add_task(async function setup() {
 });
 
 add_task(async function test_telemetry_events() {
-  await TestUtils.waitForCondition(() => {
-    Services.telemetry.clearEvents();
-    let events = Services.telemetry.snapshotEvents(
-      Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
-      true
-    ).content;
-    return !events || !events.length;
-  }, "Waiting for telemetry events to get cleared");
-
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {
     let loginList = content.document.querySelector("login-list");
     let loginListItem = loginList.shadowRoot.querySelector(
-      ".login-list-item:nth-child(2)"
+      ".login-list-item.breached"
     );
     loginListItem.click();
   });
   await LoginTestUtils.telemetry.waitForEventCount(2);
+
+  // Need to change the learn-more to a local address for testing.
+  const FAKE_LEARN_MORE_URL = "https://learn-more.example.com/";
+  let promiseNewTab = BrowserTestUtils.waitForNewTab(
+    gBrowser,
+    FAKE_LEARN_MORE_URL
+  );
+  await SpecialPowers.spawn(
+    gBrowser.selectedBrowser,
+    [FAKE_LEARN_MORE_URL],
+    async function(fakeLearnMoreUrl) {
+      let loginItem = content.document.querySelector("login-item");
+      let learnMoreLink = loginItem.shadowRoot.querySelector(
+        ".alert-learn-more-link"
+      );
+      learnMoreLink.href = fakeLearnMoreUrl;
+      learnMoreLink.click();
+    }
+  );
+  let newTab = await promiseNewTab;
+  ok(true, "New tab opened to " + FAKE_LEARN_MORE_URL);
+  BrowserTestUtils.removeTab(newTab);
+  await LoginTestUtils.telemetry.waitForEventCount(3);
 
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {
     let loginItem = content.document.querySelector("login-item");
@@ -59,18 +94,28 @@ add_task(async function test_telemetry_events() {
     );
     copyButton.click();
   });
-  await LoginTestUtils.telemetry.waitForEventCount(3);
-
-  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {
-    let loginItem = content.document.querySelector("login-item");
-    let copyButton = loginItem.shadowRoot.querySelector(
-      ".copy-password-button"
-    );
-    copyButton.click();
-  });
   await LoginTestUtils.telemetry.waitForEventCount(4);
 
-  let promiseNewTab = BrowserTestUtils.waitForNewTab(
+  if (OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
+    let reauthObserved = OSKeyStoreTestUtils.waitForOSKeyStoreLogin(true);
+    await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {
+      let loginItem = content.document.querySelector("login-item");
+      let copyButton = loginItem.shadowRoot.querySelector(
+        ".copy-password-button"
+      );
+      copyButton.click();
+    });
+    await reauthObserved;
+    // When reauth is observed an extra telemetry event will be recorded
+    // for the reauth, hence the event count increasing by 2 here, and later
+    // in the test as well.
+    await LoginTestUtils.telemetry.waitForEventCount(6);
+  }
+  let nextTelemetryEventCount = OSKeyStoreTestUtils.canTestOSKeyStoreLogin()
+    ? 7
+    : 5;
+
+  promiseNewTab = BrowserTestUtils.waitForNewTab(
     gBrowser,
     TEST_LOGIN3.origin + "/"
   );
@@ -79,73 +124,61 @@ add_task(async function test_telemetry_events() {
     let originInput = loginItem.shadowRoot.querySelector(".origin-input");
     originInput.click();
   });
-  let newTab = await promiseNewTab;
+  newTab = await promiseNewTab;
   ok(true, "New tab opened to " + TEST_LOGIN3.origin);
   BrowserTestUtils.removeTab(newTab);
-  await LoginTestUtils.telemetry.waitForEventCount(5);
+  await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
 
   // Show the password
-  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {
-    let loginItem = content.document.querySelector("login-item");
-    let revealCheckbox = loginItem.shadowRoot.querySelector(
-      ".reveal-password-checkbox"
-    );
-    revealCheckbox.click();
-  });
-  await LoginTestUtils.telemetry.waitForEventCount(6);
+  if (OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
+    let reauthObserved = forceAuthTimeoutAndWaitForOSKeyStoreLogin({
+      loginResult: true,
+    });
+    nextTelemetryEventCount++; // An extra event is observed for the reauth event.
+    await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {
+      let loginItem = content.document.querySelector("login-item");
+      let revealCheckbox = loginItem.shadowRoot.querySelector(
+        ".reveal-password-checkbox"
+      );
+      revealCheckbox.click();
+    });
+    await reauthObserved;
+    await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
 
-  // Hide the password
-  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {
-    let loginItem = content.document.querySelector("login-item");
-    let revealCheckbox = loginItem.shadowRoot.querySelector(
-      ".reveal-password-checkbox"
-    );
-    revealCheckbox.click();
-  });
-  await LoginTestUtils.telemetry.waitForEventCount(7);
+    // Hide the password
+    await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {
+      let loginItem = content.document.querySelector("login-item");
+      let revealCheckbox = loginItem.shadowRoot.querySelector(
+        ".reveal-password-checkbox"
+      );
+      revealCheckbox.click();
+    });
+    await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
 
-  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {
-    let loginItem = content.document.querySelector("login-item");
-    let editButton = loginItem.shadowRoot.querySelector(".edit-button");
-    editButton.click();
-  });
-  await LoginTestUtils.telemetry.waitForEventCount(8);
+    // Don't force the auth timeout here to check that `auth_skipped: true` is set as
+    // in `extra`.
+    nextTelemetryEventCount++; // An extra event is observed for the reauth event.
+    await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {
+      let loginItem = content.document.querySelector("login-item");
+      let editButton = loginItem.shadowRoot.querySelector(".edit-button");
+      editButton.click();
+    });
+    await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
 
-  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {
-    let loginItem = content.document.querySelector("login-item");
-    let usernameField = loginItem.shadowRoot.querySelector(
-      'input[name="username"]'
-    );
-    usernameField.value = "user1-modified";
+    await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {
+      let loginItem = content.document.querySelector("login-item");
+      let usernameField = loginItem.shadowRoot.querySelector(
+        'input[name="username"]'
+      );
+      usernameField.value = "user1-modified";
 
-    let saveButton = loginItem.shadowRoot.querySelector(".save-changes-button");
-    saveButton.click();
-  });
-  await LoginTestUtils.telemetry.waitForEventCount(9);
-
-  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {
-    let newLoginButton = content.document
-      .querySelector("login-list")
-      .shadowRoot.querySelector(".create-login-button");
-    newLoginButton.click();
-  });
-  await LoginTestUtils.telemetry.waitForEventCount(10);
-
-  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {
-    let loginItem = content.document.querySelector("login-item");
-    let cancelButton = loginItem.shadowRoot.querySelector(".cancel-button");
-    cancelButton.click();
-  });
-  await LoginTestUtils.telemetry.waitForEventCount(11);
-
-  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {
-    let loginList = content.document.querySelector("login-list");
-    let loginListItem = loginList.shadowRoot.querySelector(
-      ".login-list-item[data-guid]"
-    );
-    loginListItem.click();
-  });
-  await LoginTestUtils.telemetry.waitForEventCount(12);
+      let saveButton = loginItem.shadowRoot.querySelector(
+        ".save-changes-button"
+      );
+      saveButton.click();
+    });
+    await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
+  }
 
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {
     let loginItem = content.document.querySelector("login-item");
@@ -159,7 +192,54 @@ add_task(async function test_telemetry_events() {
     );
     confirmDeleteButton.click();
   });
-  await LoginTestUtils.telemetry.waitForEventCount(13);
+  await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
+
+  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {
+    let newLoginButton = content.document
+      .querySelector("login-list")
+      .shadowRoot.querySelector(".create-login-button");
+    newLoginButton.click();
+  });
+  await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
+
+  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {
+    let loginItem = content.document.querySelector("login-item");
+    let cancelButton = loginItem.shadowRoot.querySelector(".cancel-button");
+    cancelButton.click();
+  });
+  await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
+
+  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {
+    let loginList = content.document.querySelector("login-list");
+    let loginListItem = loginList.shadowRoot.querySelector(
+      ".login-list-item.vulnerable"
+    );
+    loginListItem.click();
+  });
+  await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
+
+  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {
+    let loginItem = content.document.querySelector("login-item");
+    let copyButton = loginItem.shadowRoot.querySelector(
+      ".copy-username-button"
+    );
+    copyButton.click();
+  });
+  await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
+
+  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {
+    let loginItem = content.document.querySelector("login-item");
+    let deleteButton = loginItem.shadowRoot.querySelector(".delete-button");
+    deleteButton.click();
+    let confirmDeleteDialog = content.document.querySelector(
+      "confirmation-dialog"
+    );
+    let confirmDeleteButton = confirmDeleteDialog.shadowRoot.querySelector(
+      ".confirm-button"
+    );
+    confirmDeleteButton.click();
+  });
+  await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
 
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {
     let loginSort = content.document
@@ -168,7 +248,7 @@ add_task(async function test_telemetry_events() {
     loginSort.value = "last-used";
     loginSort.dispatchEvent(new content.Event("change", { bubbles: true }));
   });
-  await LoginTestUtils.telemetry.waitForEventCount(14);
+  await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
   registerCleanupFunction(() => {
     Services.prefs.clearUserPref("signon.management.page.sort");
   });
@@ -178,25 +258,42 @@ add_task(async function test_telemetry_events() {
     let input = loginFilter.shadowRoot.querySelector("input");
     input.setUserInput("test");
   });
-  await LoginTestUtils.telemetry.waitForEventCount(15);
+  await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
 
+  const testOSAuth = OSKeyStoreTestUtils.canTestOSKeyStoreLogin();
   let expectedEvents = [
-    ["pwmgr", "open_management", "direct"],
-    ["pwmgr", "select", "existing_login"],
-    ["pwmgr", "copy", "username"],
-    ["pwmgr", "copy", "password"],
-    ["pwmgr", "open_site", "existing_login"],
-    ["pwmgr", "show", "password"],
-    ["pwmgr", "hide", "password"],
-    ["pwmgr", "edit", "existing_login"],
-    ["pwmgr", "save", "existing_login"],
-    ["pwmgr", "new", "new_login"],
-    ["pwmgr", "cancel", "new_login"],
-    ["pwmgr", "select", "existing_login"],
-    ["pwmgr", "delete", "existing_login"],
-    ["pwmgr", "sort", "list"],
-    ["pwmgr", "filter", "list"],
+    [true, "pwmgr", "open_management", "direct"],
+    [true, "pwmgr", "select", "existing_login", null, { breached: "true" }],
+    [
+      true,
+      "pwmgr",
+      "learn_more_breach",
+      "existing_login",
+      null,
+      { breached: "true" },
+    ],
+    [true, "pwmgr", "copy", "username", null, { breached: "true" }],
+    [testOSAuth, "pwmgr", "reauthenticate", "os_auth", "success"],
+    [testOSAuth, "pwmgr", "copy", "password", null, { breached: "true" }],
+    [true, "pwmgr", "open_site", "existing_login", null, { breached: "true" }],
+    [testOSAuth, "pwmgr", "reauthenticate", "os_auth", "success"],
+    [testOSAuth, "pwmgr", "show", "password", null, { breached: "true" }],
+    [testOSAuth, "pwmgr", "hide", "password", null, { breached: "true" }],
+    [testOSAuth, "pwmgr", "reauthenticate", "os_auth", "success_no_prompt"],
+    [testOSAuth, "pwmgr", "edit", "existing_login", null, { breached: "true" }],
+    [testOSAuth, "pwmgr", "save", "existing_login", null, { breached: "true" }],
+    [true, "pwmgr", "delete", "existing_login", null, { breached: "true" }],
+    [true, "pwmgr", "new", "new_login"],
+    [true, "pwmgr", "cancel", "new_login"],
+    [true, "pwmgr", "select", "existing_login", null, { vulnerable: "true" }],
+    [true, "pwmgr", "copy", "username", null, { vulnerable: "true" }],
+    [true, "pwmgr", "delete", "existing_login", null, { vulnerable: "true" }],
+    [true, "pwmgr", "sort", "list"],
+    [true, "pwmgr", "filter", "list"],
   ];
+  expectedEvents = expectedEvents
+    .filter(event => event[0])
+    .map(event => event.slice(1));
 
   TelemetryTestUtils.assertEvents(
     expectedEvents,

@@ -33,15 +33,16 @@
 #include "nsCoreUtils.h"
 #include "nsXULAppAPI.h"
 #include "mozilla/dom/BrowserChild.h"
+#include "xpcAccessibleDocument.h"
 
 using namespace mozilla;
 using namespace mozilla::a11y;
 using namespace mozilla::dom;
 
 StaticAutoPtr<nsTArray<DocAccessibleParent*>> DocManager::sRemoteDocuments;
-nsRefPtrHashtable<nsPtrHashKey<const DocAccessibleParent>,
-                  xpcAccessibleDocument>* DocManager::sRemoteXPCDocumentCache =
-    nullptr;
+StaticAutoPtr<nsRefPtrHashtable<nsPtrHashKey<const DocAccessibleParent>,
+                                xpcAccessibleDocument>>
+    DocManager::sRemoteXPCDocumentCache;
 
 ////////////////////////////////////////////////////////////////////////////////
 // DocManager
@@ -142,8 +143,10 @@ xpcAccessibleDocument* DocManager::GetXPCDocument(DocAccessibleParent* aDoc) {
     sRemoteXPCDocumentCache =
         new nsRefPtrHashtable<nsPtrHashKey<const DocAccessibleParent>,
                               xpcAccessibleDocument>;
+    ClearOnShutdown(&sRemoteXPCDocumentCache);
   }
 
+  MOZ_ASSERT(!aDoc->IsShutdown(), "Adding a shutdown doc to remote XPC cache");
   doc = new xpcAccessibleDocument(aDoc,
                                   Interfaces::DOCUMENT | Interfaces::HYPERTEXT);
   sRemoteXPCDocumentCache->Put(aDoc, RefPtr{doc});
@@ -384,8 +387,7 @@ void DocManager::AddListeners(Document* aDocument,
   nsPIDOMWindowOuter* window = aDocument->GetWindow();
   EventTarget* target = window->GetChromeEventHandler();
   EventListenerManager* elm = target->GetOrCreateListenerManager();
-  elm->AddEventListenerByType(this, NS_LITERAL_STRING("pagehide"),
-                              TrustedEventsAtCapture());
+  elm->AddEventListenerByType(this, u"pagehide"_ns, TrustedEventsAtCapture());
 
 #ifdef A11Y_LOG
   if (logging::IsEnabled(logging::eDocCreate))
@@ -393,7 +395,7 @@ void DocManager::AddListeners(Document* aDocument,
 #endif
 
   if (aAddDOMContentLoadedListener) {
-    elm->AddEventListenerByType(this, NS_LITERAL_STRING("DOMContentLoaded"),
+    elm->AddEventListenerByType(this, u"DOMContentLoaded"_ns,
                                 TrustedEventsAtCapture());
 #ifdef A11Y_LOG
     if (logging::IsEnabled(logging::eDocCreate))
@@ -410,10 +412,10 @@ void DocManager::RemoveListeners(Document* aDocument) {
   if (!target) return;
 
   EventListenerManager* elm = target->GetOrCreateListenerManager();
-  elm->RemoveEventListenerByType(this, NS_LITERAL_STRING("pagehide"),
+  elm->RemoveEventListenerByType(this, u"pagehide"_ns,
                                  TrustedEventsAtCapture());
 
-  elm->RemoveEventListenerByType(this, NS_LITERAL_STRING("DOMContentLoaded"),
+  elm->RemoveEventListenerByType(this, u"DOMContentLoaded"_ns,
                                  TrustedEventsAtCapture());
 }
 

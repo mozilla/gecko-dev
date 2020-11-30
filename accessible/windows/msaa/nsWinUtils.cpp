@@ -49,7 +49,7 @@ already_AddRefed<nsICSSDeclaration> nsWinUtils::GetComputedStyleDeclaration(
   ErrorResult dummy;
   nsCOMPtr<Element> domElement(do_QueryInterface(elm));
   nsCOMPtr<nsICSSDeclaration> cssDecl =
-      window->GetComputedStyle(*domElement, EmptyString(), dummy);
+      window->GetComputedStyle(*domElement, u""_ns, dummy);
   dummy.SuppressException();
   return cssDecl.forget();
 }
@@ -60,7 +60,7 @@ bool nsWinUtils::MaybeStartWindowEmulation() {
   if (IPCAccessibilityActive()) return false;
 
   if (Compatibility::IsJAWS() || Compatibility::IsWE() ||
-      Compatibility::IsDolphin() || XRE_IsContentProcess()) {
+      Compatibility::IsDolphin() || Compatibility::IsVisperoShared()) {
     RegisterNativeWindow(kClassNameTabContent);
     sWindowEmulationStarted = true;
     return true;

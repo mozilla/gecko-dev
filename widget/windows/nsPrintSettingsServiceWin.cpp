@@ -14,8 +14,7 @@
 #include "nsWindowsHelpers.h"
 #include "ipc/IPCMessageUtils.h"
 
-const char kPrinterEnumeratorContractID[] =
-    "@mozilla.org/gfx/printerenumerator;1";
+const char kPrinterListContractID[] = "@mozilla.org/gfx/printerlist;1";
 
 using namespace mozilla::embedding;
 
@@ -42,9 +41,6 @@ nsPrintSettingsServiceWin::SerializeToPrintData(nsIPrintSettings* aSettings,
   // When creating the print dialog on Windows, we only need to send certain
   // print settings information from the parent to the child not vice versa.
   if (XRE_IsParentProcess()) {
-    psWin->GetPrintableWidthInInches(&data->printableWidthInInches());
-    psWin->GetPrintableHeightInInches(&data->printableHeightInInches());
-
     // A DEVMODE can actually be of arbitrary size. If it turns out that it'll
     // make our IPC message larger than the limit, then we'll error out.
     LPDEVMODEW devModeRaw;
@@ -69,7 +65,7 @@ nsPrintSettingsServiceWin::SerializeToPrintData(nsIPrintSettings* aSettings,
       const char* devModeData = reinterpret_cast<const char*>(devMode.get());
       nsTArray<uint8_t> arrayBuf;
       arrayBuf.AppendElements(devModeData, devModeTotalSize);
-      data->devModeData().SwapElements(arrayBuf);
+      data->devModeData() = std::move(arrayBuf);
     }
   }
 
@@ -91,9 +87,6 @@ nsPrintSettingsServiceWin::DeserializeToPrintSettings(
   if (XRE_IsContentProcess()) {
     psWin->SetDeviceName(data.deviceName());
     psWin->SetDriverName(data.driverName());
-
-    psWin->SetPrintableWidthInInches(data.printableWidthInInches());
-    psWin->SetPrintableHeightInInches(data.printableHeightInInches());
 
     if (data.devModeData().IsEmpty()) {
       psWin->SetDevMode(nullptr);

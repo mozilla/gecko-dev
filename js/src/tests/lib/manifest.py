@@ -4,12 +4,15 @@
 
 from __future__ import print_function
 
+import io
 import os
+import posixpath
 import re
 import six
 import sys
 from subprocess import Popen, PIPE
 
+from .remote import init_device
 from .tests import RefTestCase
 
 
@@ -57,7 +60,7 @@ class XULInfo:
 
         path = None
         for dir in dirs:
-            _path = os.path.join(dir, 'config/autoconf.mk')
+            _path = posixpath.join(dir, 'config', 'autoconf.mk')
             if os.path.isfile(_path):
                 path = _path
                 break
@@ -70,7 +73,7 @@ class XULInfo:
         # Read the values.
         val_re = re.compile(r'(TARGET_XPCOM_ABI|OS_TARGET|MOZ_DEBUG)\s*=\s*(.*)')
         kw = {'isdebug': False}
-        for line in open(path):
+        for line in io.open(path, encoding='utf-8'):
             m = val_re.match(line)
             if m:
                 key, val = m.groups()
@@ -85,14 +88,72 @@ class XULInfo:
 
 
 class XULInfoTester:
-    def __init__(self, xulinfo, js_bin, js_args):
+    def __init__(self, xulinfo, options, js_args):
         self.js_prologue = xulinfo.as_js()
-        self.js_bin = js_bin
+        self.js_bin = options.js_shell
         self.js_args = js_args
+        # options here are the command line options
+        self.options = options
         # Maps JS expr to evaluation result.
         self.cache = {}
 
+        if not self.options.remote:
+            return
+        self.device = init_device(options)
+        self.js_bin = posixpath.join(options.remote_test_root, 'bin', 'js')
+
     def test(self, cond, options=[]):
+        if self.options.remote:
+            return self._test_remote(cond, options=options)
+        return self._test_local(cond, options=options)
+
+    def _test_remote(self, cond, options=[]):
+        from mozdevice import ADBDevice, ADBProcessError
+
+        ans = self.cache.get(cond, None)
+        if ans is not None:
+            return ans
+
+        env = {
+            'LD_LIBRARY_PATH': posixpath.join(self.options.remote_test_root, 'bin'),
+        }
+
+        cmd = [
+            self.js_bin
+        ] + self.js_args + options + [
+            # run in safe configuration, since it is hard to debug
+            # crashes when running code here. In particular, msan will
+            # error out if the jit is active.
+            '--no-baseline',
+            '--no-blinterp',
+            '-e', self.js_prologue,
+            '-e', 'print(!!({}))'.format(cond)
+        ]
+        cmd = ADBDevice._escape_command_line(cmd)
+        try:
+            # Allow ADBError or ADBTimeoutError to terminate the test run,
+            # but handle ADBProcessError in order to support the use of
+            # non-zero exit codes in the JavaScript shell tests.
+            out = self.device.shell_output(cmd, env=env,
+                                           cwd=self.options.remote_test_root,
+                                           timeout=None)
+            err = ''
+        except ADBProcessError as e:
+            out = ''
+            err = str(e.adb_process.stdout)
+
+        if out == 'true':
+            ans = True
+        elif out == 'false':
+            ans = False
+        else:
+            raise Exception("Failed to test XUL condition {!r};"
+                            " output was {!r}, stderr was {!r}".format(
+                                cond, out, err))
+        self.cache[cond] = ans
+        return ans
+
+    def _test_local(self, cond, options=[]):
         """Test a XUL predicate condition against this local info."""
         ans = self.cache.get(cond, None)
         if ans is None:
@@ -259,7 +320,7 @@ def _emit_manifest_at(location, relative, test_gen, depth):
     filename = os.path.join(location, 'jstests.list')
     manifest = []
     numTestFiles = 0
-    for k, test_list in six.iteritems(manifests):
+    for k, test_list in manifests.items():
         fullpath = os.path.join(location, k)
         if os.path.isdir(fullpath):
             manifest.append("include " + k + "/jstests.list")
@@ -279,7 +340,7 @@ def _emit_manifest_at(location, relative, test_gen, depth):
         manifest = ["url-prefix {}jsreftest.html?test={}/".format(
             '../' * depth, relative)] + manifest
 
-    fp = open(filename, 'w')
+    fp = io.open(filename, 'w', encoding='utf-8', newline='\n')
     try:
         fp.write('\n'.join(manifest) + '\n')
     finally:
@@ -298,8 +359,52 @@ def _find_all_js_files(location):
                 yield root, fn
 
 
-TEST_HEADER_PATTERN_INLINE = re.compile(r'//\s*\|(.*?)\|\s*(.*?)\s*(--\s*(.*))?$')
-TEST_HEADER_PATTERN_MULTI = re.compile(r'/\*\s*\|(.*?)\|\s*(.*?)\s*(--\s*(.*))?\*/')
+# The pattern for test header lines.
+TEST_HEADER_PATTERN = r'''
+# Ignore any space before the tag.
+\s*
+
+# The reftest tag is enclosed in pipes.
+\|(?P<tag>.*?)\|
+
+# Ignore any space before the options.
+\s*
+
+# Accept some options.
+(?P<options>.*?)
+
+# Ignore space before the comments.
+\s*
+
+# Accept an optional comment starting with "--".
+(?:
+  # Unless "--" is directly preceded by "(".
+  (?<!\()
+  --
+
+  # Ignore more space.
+  \s*
+
+  # The actual comment.
+  (?P<comment>.*)
+)?
+'''
+
+
+TEST_HEADER_PATTERN_INLINE = re.compile(r'''
+# Start a single line comment
+//
+''' + TEST_HEADER_PATTERN + r'''
+# Match the end of line.
+$
+''', re.VERBOSE)
+TEST_HEADER_PATTERN_MULTI = re.compile(r'''
+# Start a multi line comment
+/\*
+''' + TEST_HEADER_PATTERN + r'''
+# Match the end of comment.
+\*/
+''', re.VERBOSE)
 
 
 def _append_terms_and_comment(testcase, terms, comment):
@@ -319,7 +424,10 @@ def _parse_test_header(fullpath, testcase, xul_tester):
     This looks a bit weird.  The reason is that it needs to be efficient, since
     it has to be done on every test
     """
-    fp = open(fullpath, 'r')
+    if six.PY3:
+        fp = open(fullpath, encoding='utf-8')
+    else:
+        fp = open(fullpath)
     try:
         buf = fp.read(512)
     finally:
@@ -338,9 +446,9 @@ def _parse_test_header(fullpath, testcase, xul_tester):
         if not matches:
             return
 
-    testcase.tag = matches.group(1)
-    _append_terms_and_comment(testcase, matches.group(2), matches.group(4))
-    _parse_one(testcase, matches.group(2), xul_tester)
+    testcase.tag = matches.group('tag')
+    _append_terms_and_comment(testcase, matches.group('options'), matches.group('comment'))
+    _parse_one(testcase, matches.group('options'), xul_tester)
 
 
 def _parse_external_manifest(filename, relpath):
@@ -356,7 +464,7 @@ def _parse_external_manifest(filename, relpath):
 
     entries = []
 
-    with open(filename, 'r') as fp:
+    with io.open(filename, 'r', encoding='utf-8') as fp:
         manifest_re = re.compile(r'^\s*(?P<terms>.*)\s+(?P<type>include|script)\s+(?P<path>\S+)$')
         include_re = re.compile(r'^\s*include\s+(?P<path>\S+)$')
         for line in fp:

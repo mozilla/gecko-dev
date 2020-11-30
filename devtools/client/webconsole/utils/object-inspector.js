@@ -10,13 +10,13 @@ const {
 } = require("devtools/client/shared/vendor/react");
 
 loader.lazyGetter(this, "REPS", function() {
-  return require("devtools/client/shared/components/reps/reps").REPS;
+  return require("devtools/client/shared/components/reps/index").REPS;
 });
 loader.lazyGetter(this, "MODE", function() {
-  return require("devtools/client/shared/components/reps/reps").MODE;
+  return require("devtools/client/shared/components/reps/index").MODE;
 });
 loader.lazyGetter(this, "ObjectInspector", function() {
-  const reps = require("devtools/client/shared/components/reps/reps");
+  const reps = require("devtools/client/shared/components/reps/index");
   return createFactory(reps.objectInspector.ObjectInspector);
 });
 
@@ -29,14 +29,14 @@ loader.lazyRequireGetter(
 loader.lazyRequireGetter(
   this,
   "LongStringFront",
-  "devtools/shared/fronts/string",
+  "devtools/client/fronts/string",
   true
 );
 
 loader.lazyRequireGetter(
   this,
   "ObjectFront",
-  "devtools/shared/fronts/object",
+  "devtools/client/fronts/object",
   true
 );
 
@@ -87,7 +87,9 @@ function getObjectInspector(
     onViewSourceInDebugger: serviceContainer.onViewSourceInDebugger,
     recordTelemetryEvent: serviceContainer.recordTelemetryEvent,
     openLink: serviceContainer.openLink,
-    sourceMapService: serviceContainer.sourceMapService,
+    sourceMapURLService: serviceContainer.sourceMapURLService,
+    customFormat: override.customFormat !== false,
+    urlCropLimit: 120,
     renderStacktrace: stacktrace =>
       createElement(SmartTrace, {
         key: "stacktrace",
@@ -98,8 +100,8 @@ function getObjectInspector(
           : null,
         onViewSource: serviceContainer.onViewSource,
         onReady: override.maybeScrollToBottom,
-        sourceMapService: serviceContainer
-          ? serviceContainer.sourceMapService
+        sourceMapURLService: serviceContainer
+          ? serviceContainer.sourceMapURLService
           : null,
       }),
   };

@@ -4,6 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+const PASSWORD_FIELDNAME_HINTS = ["current-password", "new-password"];
+
 function openContextMenu(aMessage, aBrowser, aActor) {
   if (BrowserHandler.kiosk) {
     // Don't display context menus in kiosk mode
@@ -17,10 +19,6 @@ function openContextMenu(aMessage, aBrowser, aActor) {
   let linkReferrerInfo = data.linkReferrerInfo;
   let principal = data.principal;
   let storagePrincipal = data.storagePrincipal;
-
-  if (spellInfo) {
-    spellInfo.target = browser.messageManager;
-  }
 
   let documentURIObject = makeURI(
     data.docLocation,
@@ -53,7 +51,9 @@ function openContextMenu(aMessage, aBrowser, aActor) {
     linkReferrerInfo,
     contentType: data.contentType,
     contentDisposition: data.contentDisposition,
-    frameOuterWindowID: data.frameOuterWindowID,
+    frameID: data.frameID,
+    frameOuterWindowID: data.frameID,
+    frameBrowsingContext: BrowsingContext.get(data.frameBrowsingContextID),
     selectionInfo: data.selectionInfo,
     disableSetDesktopBackground: data.disableSetDesktopBackground,
     loginFillInfo: data.loginFillInfo,
@@ -65,8 +65,8 @@ function openContextMenu(aMessage, aBrowser, aActor) {
   let popup = browser.ownerDocument.getElementById("contentAreaContextMenu");
   let context = nsContextMenu.contentData.context;
 
-  // The event is a CPOW that can't be passed into the native openPopupAtScreen
-  // function. Therefore we synthesize a new MouseEvent to propagate the
+  // We don't have access to the original event here, as that happened in
+  // another process. Therefore we synthesize a new MouseEvent to propagate the
   // inputSource to the subsequently triggered popupshowing event.
   var newEvent = document.createEvent("MouseEvent");
   newEvent.initNSMouseEvent(
@@ -138,7 +138,7 @@ class nsContextMenu {
         selectionText: this.isTextSelected
           ? this.selectionInfo.fullText
           : undefined,
-        frameId: this.frameOuterWindowID,
+        frameId: this.frameID,
         webExtBrowserType: this.webExtBrowserType,
         webExtContextData: this.contentData
           ? this.contentData.webExtContextData
@@ -212,7 +212,6 @@ class nsContextMenu {
     this.onCTPPlugin = context.onCTPPlugin;
     this.onDRMMedia = context.onDRMMedia;
     this.onPiPVideo = context.onPiPVideo;
-    this.onMediaStreamVideo = context.onMediaStreamVideo;
     this.onEditable = context.onEditable;
     this.onImage = context.onImage;
     this.onKeywordField = context.onKeywordField;
@@ -232,7 +231,11 @@ class nsContextMenu {
 
     this.principal = context.principal;
     this.storagePrincipal = context.storagePrincipal;
+    this.frameID = context.frameID;
     this.frameOuterWindowID = context.frameOuterWindowID;
+    this.frameBrowsingContext = BrowsingContext.get(
+      context.frameBrowsingContextID
+    );
 
     this.inSyntheticDoc = context.inSyntheticDoc;
     this.inAboutDevtoolsToolbox = context.inAboutDevtoolsToolbox;
@@ -480,7 +483,16 @@ class nsContextMenu {
     // View source is always OK, unless in directory listing.
     this.showItem(
       "context-viewpartialsource-selection",
-      !this.inAboutDevtoolsToolbox && this.isContentSelected
+      !this.inAboutDevtoolsToolbox &&
+        this.isContentSelected &&
+        this.selectionInfo.isDocumentLevelSelection
+    );
+
+    this.showItem(
+      "context-print-selection",
+      !this.inAboutDevtoolsToolbox &&
+        this.isContentSelected &&
+        this.selectionInfo.isDocumentLevelSelection
     );
 
     var shouldShow = !(
@@ -501,8 +513,7 @@ class nsContextMenu {
 
     var showInspectA11Y =
       showInspect &&
-      // Only when accessibility service started.
-      Services.appinfo.accessibilityEnabled &&
+      Services.prefs.getBoolPref("devtools.accessibility.enabled", false) &&
       this.inTabBrowser &&
       Services.prefs.getBoolPref("devtools.enabled", true) &&
       Services.prefs.getBoolPref("devtools.accessibility.enabled", true) &&
@@ -829,7 +840,6 @@ class nsContextMenu {
           "media.videocontrols.picture-in-picture.enabled"
         ) &&
         this.onVideo &&
-        !this.onMediaStreamVideo &&
         !this.target.ownerDocument.fullscreen;
       this.showItem("context-video-pictureinpicture", shouldDisplay);
     }
@@ -923,7 +933,9 @@ class nsContextMenu {
       if (
         !loginFillInfo ||
         !loginFillInfo.passwordField.found ||
-        documentURI.schemeIs("about")
+        documentURI.schemeIs("about") ||
+        this.browser.contentPrincipal.spec ==
+          "resource://pdf.js/web/viewer.html"
       ) {
         // Both generation and fill will default to disabled.
         return;
@@ -932,25 +944,26 @@ class nsContextMenu {
 
       // Disable the fill option if the user hasn't unlocked with their master password
       // or if the password field or target field are disabled.
-      // XXX: Bug 1529025 to respect signon.rememberSignons
+      // XXX: Bug 1529025 to maybe respect signon.rememberSignons.
       let disableFill =
-        !loginFillInfo ||
-        !Services.logins ||
         !Services.logins.isLoggedIn ||
         loginFillInfo.passwordField.disabled ||
-        (!this.onPassword && loginFillInfo.usernameField.disabled);
-
+        loginFillInfo.activeField.disabled;
       this.setItemAttr("fill-login", "disabled", disableFill);
 
+      let onPasswordLikeField = PASSWORD_FIELDNAME_HINTS.includes(
+        loginFillInfo.activeField.fieldNameHint
+      );
       // Set the correct label for the fill menu
       let fillMenu = document.getElementById("fill-login");
-      if (this.onPassword) {
+      if (onPasswordLikeField) {
         fillMenu.setAttribute("label", fillMenu.getAttribute("label-password"));
         fillMenu.setAttribute(
           "accesskey",
           fillMenu.getAttribute("accesskey-password")
         );
       } else {
+        // On a username field
         fillMenu.setAttribute("label", fillMenu.getAttribute("label-login"));
         fillMenu.setAttribute(
           "accesskey",
@@ -962,7 +975,7 @@ class nsContextMenu {
       let isGeneratedPasswordEnabled =
         LoginHelper.generationAvailable && LoginHelper.generationEnabled;
       showGenerate =
-        this.onPassword &&
+        onPasswordLikeField &&
         isGeneratedPasswordEnabled &&
         Services.logins.getLoginSavingEnabled(formOrigin);
 
@@ -1007,7 +1020,6 @@ class nsContextMenu {
 
   openPasswordManager() {
     LoginHelper.openPasswordManager(window, {
-      filterString: this.contentData.documentURIObject.host,
       entryPoint: "contextmenu",
     });
   }
@@ -1041,7 +1053,7 @@ class nsContextMenu {
       originStoragePrincipal: this.storagePrincipal,
       triggeringPrincipal: this.principal,
       csp: this.csp,
-      frameOuterWindowID: this.contentData.frameOuterWindowID,
+      frameID: this.contentData.frameID,
     };
     for (let p in extra) {
       params[p] = extra[p];
@@ -1303,16 +1315,19 @@ class nsContextMenu {
 
     this.actor.saveVideoFrameAsImage(this.targetIdentifier).then(dataURL => {
       // FIXME can we switch this to a blob URL?
-      saveImageURL(
+      internalSave(
         dataURL,
-        name,
-        "SaveImageTitle",
-        true, // bypass cache
-        false, // don't skip prompt for where to save
-        referrerInfo, // referrer info
         null, // document
-        "image/jpeg", // content type - keep in sync with ContextMenuChild!
+        name,
         null, // content disposition
+        "image/jpeg", // content type - keep in sync with ContextMenuChild!
+        true, // bypass cache
+        "SaveImageTitle",
+        null, // chosen data
+        referrerInfo,
+        null, // initiating doc
+        false, // don't skip prompt for where to save
+        null, // cache key
         isPrivate,
         this.principal
       );
@@ -1333,6 +1348,7 @@ class nsContextMenu {
 
     openUILink(this.bgImageURL, e, {
       referrerInfo: this.contentData.referrerInfo,
+      forceAllowDataURI: true,
       triggeringPrincipal: this.principal,
       csp: this.csp,
     });
@@ -1393,7 +1409,7 @@ class nsContextMenu {
 
   // Save URL of clicked-on frame.
   saveFrame() {
-    saveBrowser(this.browser, false, this.frameOuterWindowID);
+    saveBrowser(this.browser, false, this.frameBrowsingContext);
   }
 
   // Helper function to wait for appropriate MIME-type headers and
@@ -1510,7 +1526,7 @@ class nsContextMenu {
           timer.cancel();
           channel.cancel(NS_ERROR_SAVE_LINK_AS_TIMEOUT);
         }
-        throw Cr.NS_ERROR_NO_INTERFACE;
+        throw Components.Exception("", Cr.NS_ERROR_NO_INTERFACE);
       },
     };
 
@@ -1529,7 +1545,7 @@ class nsContextMenu {
       uri: makeURI(linkURL),
       loadingPrincipal: this.principal,
       contentPolicyType: Ci.nsIContentPolicy.TYPE_SAVEAS_DOWNLOAD,
-      securityFlags: Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_INHERITS,
+      securityFlags: Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_INHERITS_SEC_CONTEXT,
     });
 
     if (linkDownload) {
@@ -1611,32 +1627,38 @@ class nsContextMenu {
     if (this.onCanvas) {
       // Bypass cache, since it's a data: URL.
       this._canvasToBlobURL(this.targetIdentifier).then(function(blobURL) {
-        saveImageURL(
+        internalSave(
           blobURL,
+          null, // document
           "canvas.png",
-          "SaveImageTitle",
-          true,
-          false,
-          referrerInfo,
-          null,
+          null, // content disposition
           "image/png", // _canvasToBlobURL uses image/png by default.
-          null,
+          true, // bypass cache
+          "SaveImageTitle",
+          null, // chosen data
+          referrerInfo,
+          null, // initiating doc
+          false, // don't skip prompt for where to save
+          null, // cache key
           isPrivate,
           document.nodePrincipal /* system, because blob: */
         );
       }, Cu.reportError);
     } else if (this.onImage) {
       urlSecurityCheck(this.mediaURL, this.principal);
-      saveImageURL(
+      internalSave(
         this.mediaURL,
-        null,
-        "SaveImageTitle",
-        false,
-        false,
-        referrerInfo,
-        null,
-        this.contentData.contentType,
+        null, // document
+        null, // file name; we'll take it from the URL
         this.contentData.contentDisposition,
+        this.contentData.contentType,
+        false, // do not bypass the cache
+        "SaveImageTitle",
+        null, // chosen data
+        referrerInfo,
+        null, // initiating doc
+        false, // don't skip prompt for where to save
+        null, // cache key
         isPrivate,
         this.principal
       );
@@ -1690,10 +1712,7 @@ class nsContextMenu {
     // Let's try to unescape it using a character set
     // in case the address is not ASCII.
     try {
-      addresses = Services.textToSubURI.unEscapeURIForUI(
-        this.contentData.charSet,
-        addresses
-      );
+      addresses = Services.textToSubURI.unEscapeURIForUI(addresses);
     } catch (ex) {
       // Do nothing.
     }
@@ -1873,7 +1892,19 @@ class nsContextMenu {
   }
 
   printFrame() {
-    PrintUtils.printWindow(this.actor.browsingContext);
+    PrintUtils.startPrintWindow(
+      "context_print_frame",
+      this.actor.browsingContext
+    );
+  }
+
+  printSelection() {
+    PrintUtils.startPrintWindow(
+      "context_print_selection",
+      this.actor.browsingContext,
+      /* aOpenWindowInfo = */ null,
+      /* aPrintSelectionOnly = */ true
+    );
   }
 
   switchPageDirection() {
@@ -1918,6 +1949,15 @@ class nsContextMenu {
 
   // Formats the 'Search <engine> for "<selection or link text>"' context menu.
   showAndFormatSearchContextItem() {
+    let menuItem = document.getElementById("context-searchselect");
+    let menuItemPrivate = document.getElementById(
+      "context-searchselect-private"
+    );
+    if (!Services.search.isInitialized) {
+      menuItem.hidden = true;
+      menuItemPrivate.hidden = true;
+      return;
+    }
     const docIsPrivate = PrivateBrowsingUtils.isBrowserPrivate(this.browser);
     const privatePref = "browser.search.separatePrivateDefault.ui.enabled";
     let showSearchSelect =
@@ -1931,10 +1971,6 @@ class nsContextMenu {
       !docIsPrivate &&
       Services.prefs.getBoolPref(privatePref);
 
-    let menuItem = document.getElementById("context-searchselect");
-    let menuItemPrivate = document.getElementById(
-      "context-searchselect-private"
-    );
     menuItem.hidden = !showSearchSelect;
     menuItemPrivate.hidden = !showPrivateSearchSelect;
     // If we're not showing the menu items, we can skip formatting the labels.

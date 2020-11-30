@@ -8,6 +8,8 @@
 
 #include "nsDocShell.h"
 
+using namespace mozilla;
+
 nsDocShellEnumerator::nsDocShellEnumerator(
     nsDocShellEnumerator::EnumerationDirection aDirection,
     int32_t aDocShellType, nsDocShell& aRootItem)
@@ -74,7 +76,7 @@ nsresult nsDocShellEnumerator::BuildArrayRecursiveBackwards(
   // add this item to the array
   if (mDocShellType == nsIDocShellTreeItem::typeAll ||
       aItem->ItemType() == mDocShellType) {
-    if (!aItemArray.AppendElement(aItem)) {
+    if (!aItemArray.AppendElement(aItem, fallible)) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
   }

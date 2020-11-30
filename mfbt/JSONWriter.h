@@ -96,11 +96,12 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/PodOperations.h"
+#include "mozilla/Span.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Vector.h"
 
-#include <stdio.h>
+#include <utility>
 
 namespace mozilla {
 
@@ -109,7 +110,7 @@ namespace mozilla {
 // places we don't want it to.
 class JSONWriteFunc {
  public:
-  virtual void Write(const char* aStr) = 0;
+  virtual void Write(const Span<const char>& aStr) = 0;
   virtual ~JSONWriteFunc() = default;
 };
 
@@ -134,16 +135,16 @@ class JSONWriter {
   // six-char escape sequence, e.g. '\u000b' (a.k.a. '\v').
   //
   class EscapedString {
-    // Only one of |mUnownedStr| and |mOwnedStr| are ever non-null. |mIsOwned|
-    // indicates which one is in use. They're not within a union because that
-    // wouldn't work with UniquePtr.
-    bool mIsOwned;
-    const char* mUnownedStr;
+    // `mStringSpan` initially points at the user-provided string. If that
+    // string needs escaping, `mStringSpan` will point at `mOwnedStr` below.
+    Span<const char> mStringSpan;
+    // String storage in case escaping is actually needed, null otherwise.
     UniquePtr<char[]> mOwnedStr;
 
-    void SanityCheck() const {
-      MOZ_ASSERT_IF(mIsOwned, mOwnedStr.get() && !mUnownedStr);
-      MOZ_ASSERT_IF(!mIsOwned, !mOwnedStr.get() && mUnownedStr);
+    void CheckInvariants() const {
+      // Either there was no escaping so `mOwnedStr` is null, or escaping was
+      // needed, in which case `mStringSpan` should point at `mOwnedStr`.
+      MOZ_ASSERT(!mOwnedStr || mStringSpan.data() == mOwnedStr.get());
     }
 
     static char hexDigitToAsciiChar(uint8_t u) {
@@ -152,16 +153,19 @@ class JSONWriter {
     }
 
    public:
-    explicit EscapedString(const char* aStr)
-        : mUnownedStr(nullptr), mOwnedStr(nullptr) {
-      const char* p;
-
+    explicit EscapedString(const Span<const char>& aStr) : mStringSpan(aStr) {
       // First, see if we need to modify the string.
       size_t nExtra = 0;
-      p = aStr;
-      while (true) {
-        uint8_t u = *p;  // ensure it can't be interpreted as negative
+      for (const char& c : aStr) {
+        // ensure it can't be interpreted as negative
+        uint8_t u = static_cast<uint8_t>(c);
         if (u == 0) {
+          // Null terminator within the span, assume we may have been given a
+          // span to a buffer that contains a null-terminated string in it.
+          // We need to truncate the Span so that it doesn't include this null
+          // terminator and anything past it; Either we will return it as-is, or
+          // processing should stop there.
+          mStringSpan = mStringSpan.First(&c - mStringSpan.data());
           break;
         }
         if (detail::gTwoCharEscapes[u]) {
@@ -169,30 +173,25 @@ class JSONWriter {
         } else if (u <= 0x1f) {
           nExtra += 5;
         }
-        p++;
       }
 
+      // Note: Don't use `aStr` anymore, as it could contain a null terminator;
+      // use the correctly-sized `mStringSpan` instead.
+
       if (nExtra == 0) {
-        // No escapes needed. Easy.
-        mIsOwned = false;
-        mUnownedStr = aStr;
+        // No escapes needed. mStringSpan already points at the original string.
+        CheckInvariants();
         return;
       }
 
       // Escapes are needed. We'll create a new string.
-      mIsOwned = true;
-      size_t len = (p - aStr) + nExtra;
-      mOwnedStr = MakeUnique<char[]>(len + 1);
+      mOwnedStr = MakeUnique<char[]>(mStringSpan.Length() + nExtra);
 
-      p = aStr;
       size_t i = 0;
-
-      while (true) {
-        uint8_t u = *p;  // ensure it can't be interpreted as negative
-        if (u == 0) {
-          mOwnedStr[i] = 0;
-          break;
-        }
+      for (const char c : mStringSpan) {
+        // ensure it can't be interpreted as negative
+        uint8_t u = static_cast<uint8_t>(c);
+        MOZ_ASSERT(u != 0, "Null terminator should have been handled above");
         if (detail::gTwoCharEscapes[u]) {
           mOwnedStr[i++] = '\\';
           mOwnedStr[i++] = detail::gTwoCharEscapes[u];
@@ -206,16 +205,15 @@ class JSONWriter {
         } else {
           mOwnedStr[i++] = u;
         }
-        p++;
       }
+      MOZ_ASSERT(i == mStringSpan.Length() + nExtra);
+      mStringSpan = Span<const char>(mOwnedStr.get(), i);
+      CheckInvariants();
     }
 
-    ~EscapedString() { SanityCheck(); }
+    explicit EscapedString(const char* aStr) = delete;
 
-    const char* get() const {
-      SanityCheck();
-      return mIsOwned ? mOwnedStr.get() : mUnownedStr;
-    }
+    const Span<const char>& SpanRef() const { return mStringSpan; }
   };
 
  public:
@@ -230,6 +228,27 @@ class JSONWriter {
   };
 
  protected:
+  static constexpr Span<const char> scArrayBeginString = MakeStringSpan("[");
+  static constexpr Span<const char> scArrayEndString = MakeStringSpan("]");
+  static constexpr Span<const char> scCommaString = MakeStringSpan(",");
+  static constexpr Span<const char> scEmptyString = MakeStringSpan("");
+  static constexpr Span<const char> scFalseString = MakeStringSpan("false");
+  static constexpr Span<const char> scNewLineString = MakeStringSpan("\n");
+  static constexpr Span<const char> scNullString = MakeStringSpan("null");
+  static constexpr Span<const char> scObjectBeginString = MakeStringSpan("{");
+  static constexpr Span<const char> scObjectEndString = MakeStringSpan("}");
+  static constexpr Span<const char> scPropertyBeginString =
+      MakeStringSpan("\"");
+  static constexpr Span<const char> scPropertyEndString =
+      MakeStringSpan("\": ");
+  static constexpr Span<const char> scQuoteString = MakeStringSpan("\"");
+  static constexpr Span<const char> scSpaceString = MakeStringSpan(" ");
+  static constexpr Span<const char> scTopObjectBeginString =
+      MakeStringSpan("{");
+  static constexpr Span<const char> scTopObjectEndString =
+      MakeStringSpan("}\n");
+  static constexpr Span<const char> scTrueString = MakeStringSpan("true");
+
   const UniquePtr<JSONWriteFunc> mWriter;
   Vector<bool, 8> mNeedComma;     // do we need a comma at depth N?
   Vector<bool, 8> mNeedNewlines;  // do we need newlines at depth N?
@@ -237,7 +256,7 @@ class JSONWriter {
 
   void Indent() {
     for (size_t i = 0; i < mDepth; i++) {
-      mWriter->Write(" ");
+      mWriter->Write(scSpaceString);
     }
   }
 
@@ -246,40 +265,41 @@ class JSONWriter {
   // before.
   void Separator() {
     if (mNeedComma[mDepth]) {
-      mWriter->Write(",");
+      mWriter->Write(scCommaString);
     }
     if (mDepth > 0 && mNeedNewlines[mDepth]) {
-      mWriter->Write("\n");
+      mWriter->Write(scNewLineString);
       Indent();
     } else if (mNeedComma[mDepth]) {
-      mWriter->Write(" ");
+      mWriter->Write(scSpaceString);
     }
   }
 
-  void PropertyNameAndColon(const char* aName) {
-    EscapedString escapedName(aName);
-    mWriter->Write("\"");
-    mWriter->Write(escapedName.get());
-    mWriter->Write("\": ");
+  void PropertyNameAndColon(const Span<const char>& aName) {
+    mWriter->Write(scPropertyBeginString);
+    mWriter->Write(EscapedString(aName).SpanRef());
+    mWriter->Write(scPropertyEndString);
   }
 
-  void Scalar(const char* aMaybePropertyName, const char* aStringValue) {
+  void Scalar(const Span<const char>& aMaybePropertyName,
+              const Span<const char>& aStringValue) {
     Separator();
-    if (aMaybePropertyName) {
+    if (!aMaybePropertyName.empty()) {
       PropertyNameAndColon(aMaybePropertyName);
     }
     mWriter->Write(aStringValue);
     mNeedComma[mDepth] = true;
   }
 
-  void QuotedScalar(const char* aMaybePropertyName, const char* aStringValue) {
+  void QuotedScalar(const Span<const char>& aMaybePropertyName,
+                    const Span<const char>& aStringValue) {
     Separator();
-    if (aMaybePropertyName) {
+    if (!aMaybePropertyName.empty()) {
       PropertyNameAndColon(aMaybePropertyName);
     }
-    mWriter->Write("\"");
+    mWriter->Write(scQuoteString);
     mWriter->Write(aStringValue);
-    mWriter->Write("\"");
+    mWriter->Write(scQuoteString);
     mNeedComma[mDepth] = true;
   }
 
@@ -292,10 +312,11 @@ class JSONWriter {
     mNeedNewlines[mDepth] = true;
   }
 
-  void StartCollection(const char* aMaybePropertyName, const char* aStartChar,
+  void StartCollection(const Span<const char>& aMaybePropertyName,
+                       const Span<const char>& aStartChar,
                        CollectionStyle aStyle = MultiLineStyle) {
     Separator();
-    if (aMaybePropertyName) {
+    if (!aMaybePropertyName.empty()) {
       PropertyNameAndColon(aMaybePropertyName);
     }
     mWriter->Write(aStartChar);
@@ -307,10 +328,10 @@ class JSONWriter {
   }
 
   // Adds the whitespace and closing char necessary to end a collection.
-  void EndCollection(const char* aEndChar) {
+  void EndCollection(const Span<const char>& aEndChar) {
     MOZ_ASSERT(mDepth > 0);
     if (mNeedNewlines[mDepth]) {
-      mWriter->Write("\n");
+      mWriter->Write(scNewLineString);
       mDepth--;
       Indent();
     } else {
@@ -337,86 +358,164 @@ class JSONWriter {
 
   // Prints: {
   void Start(CollectionStyle aStyle = MultiLineStyle) {
-    StartCollection(nullptr, "{", aStyle);
+    StartCollection(scEmptyString, scTopObjectBeginString, aStyle);
   }
 
-  // Prints: }
-  void End() { EndCollection("}\n"); }
+  // Prints: } and final newline.
+  void End() { EndCollection(scTopObjectEndString); }
 
   // Prints: "<aName>": null
-  void NullProperty(const char* aName) { Scalar(aName, "null"); }
+  void NullProperty(const Span<const char>& aName) {
+    Scalar(aName, scNullString);
+  }
+
+  template <size_t N>
+  void NullProperty(const char (&aName)[N]) {
+    // Keep null terminator from literal strings, will be removed by
+    // EscapedString. This way C buffer arrays can be used as well.
+    NullProperty(Span<const char>(aName, N));
+  }
 
   // Prints: null
-  void NullElement() { NullProperty(nullptr); }
+  void NullElement() { NullProperty(scEmptyString); }
 
   // Prints: "<aName>": <aBool>
-  void BoolProperty(const char* aName, bool aBool) {
-    Scalar(aName, aBool ? "true" : "false");
+  void BoolProperty(const Span<const char>& aName, bool aBool) {
+    Scalar(aName, aBool ? scTrueString : scFalseString);
+  }
+
+  template <size_t N>
+  void BoolProperty(const char (&aName)[N], bool aBool) {
+    // Keep null terminator from literal strings, will be removed by
+    // EscapedString. This way C buffer arrays can be used as well.
+    BoolProperty(Span<const char>(aName, N), aBool);
   }
 
   // Prints: <aBool>
-  void BoolElement(bool aBool) { BoolProperty(nullptr, aBool); }
+  void BoolElement(bool aBool) { BoolProperty(scEmptyString, aBool); }
 
   // Prints: "<aName>": <aInt>
-  void IntProperty(const char* aName, int64_t aInt) {
+  void IntProperty(const Span<const char>& aName, int64_t aInt) {
     char buf[64];
-    SprintfLiteral(buf, "%" PRId64, aInt);
-    Scalar(aName, buf);
+    int len = SprintfLiteral(buf, "%" PRId64, aInt);
+    MOZ_RELEASE_ASSERT(len > 0);
+    Scalar(aName, Span<const char>(buf, size_t(len)));
+  }
+
+  template <size_t N>
+  void IntProperty(const char (&aName)[N], int64_t aInt) {
+    // Keep null terminator from literal strings, will be removed by
+    // EscapedString. This way C buffer arrays can be used as well.
+    IntProperty(Span<const char>(aName, N), aInt);
   }
 
   // Prints: <aInt>
-  void IntElement(int64_t aInt) { IntProperty(nullptr, aInt); }
+  void IntElement(int64_t aInt) { IntProperty(scEmptyString, aInt); }
 
   // Prints: "<aName>": <aDouble>
-  void DoubleProperty(const char* aName, double aDouble) {
+  void DoubleProperty(const Span<const char>& aName, double aDouble) {
     static const size_t buflen = 64;
     char buf[buflen];
     const double_conversion::DoubleToStringConverter& converter =
         double_conversion::DoubleToStringConverter::EcmaScriptConverter();
     double_conversion::StringBuilder builder(buf, buflen);
     converter.ToShortest(aDouble, &builder);
-    Scalar(aName, builder.Finalize());
+    // TODO: The builder should know the length?!
+    Scalar(aName, MakeStringSpan(builder.Finalize()));
+  }
+
+  template <size_t N>
+  void DoubleProperty(const char (&aName)[N], double aDouble) {
+    // Keep null terminator from literal strings, will be removed by
+    // EscapedString. This way C buffer arrays can be used as well.
+    DoubleProperty(Span<const char>(aName, N), aDouble);
   }
 
   // Prints: <aDouble>
-  void DoubleElement(double aDouble) { DoubleProperty(nullptr, aDouble); }
+  void DoubleElement(double aDouble) { DoubleProperty(scEmptyString, aDouble); }
 
   // Prints: "<aName>": "<aStr>"
-  void StringProperty(const char* aName, const char* aStr) {
-    EscapedString escapedStr(aStr);
-    QuotedScalar(aName, escapedStr.get());
+  void StringProperty(const Span<const char>& aName,
+                      const Span<const char>& aStr) {
+    QuotedScalar(aName, EscapedString(aStr).SpanRef());
+  }
+
+  template <size_t NN>
+  void StringProperty(const char (&aName)[NN], const Span<const char>& aStr) {
+    // Keep null terminator from literal strings, will be removed by
+    // EscapedString. This way C buffer arrays can be used as well.
+    StringProperty(Span<const char>(aName, NN), aStr);
+  }
+
+  template <size_t SN>
+  void StringProperty(const Span<const char>& aName, const char (&aStr)[SN]) {
+    // Keep null terminator from literal strings, will be removed by
+    // EscapedString. This way C buffer arrays can be used as well.
+    StringProperty(aName, Span<const char>(aStr, SN));
+  }
+
+  template <size_t NN, size_t SN>
+  void StringProperty(const char (&aName)[NN], const char (&aStr)[SN]) {
+    // Keep null terminators from literal strings, will be removed by
+    // EscapedString. This way C buffer arrays can be used as well.
+    StringProperty(Span<const char>(aName, NN), Span<const char>(aStr, SN));
   }
 
   // Prints: "<aStr>"
-  void StringElement(const char* aStr) { StringProperty(nullptr, aStr); }
+  void StringElement(const Span<const char>& aStr) {
+    StringProperty(scEmptyString, aStr);
+  }
+
+  template <size_t N>
+  void StringElement(const char (&aName)[N]) {
+    // Keep null terminator from literal strings, will be removed by
+    // EscapedString. This way C buffer arrays can be used as well.
+    StringElement(Span<const char>(aName, N));
+  }
 
   // Prints: "<aName>": [
-  void StartArrayProperty(const char* aName,
+  void StartArrayProperty(const Span<const char>& aName,
                           CollectionStyle aStyle = MultiLineStyle) {
-    StartCollection(aName, "[", aStyle);
+    StartCollection(aName, scArrayBeginString, aStyle);
+  }
+
+  template <size_t N>
+  void StartArrayProperty(const char (&aName)[N],
+                          CollectionStyle aStyle = MultiLineStyle) {
+    // Keep null terminator from literal strings, will be removed by
+    // EscapedString. This way C buffer arrays can be used as well.
+    StartArrayProperty(Span<const char>(aName, N), aStyle);
   }
 
   // Prints: [
   void StartArrayElement(CollectionStyle aStyle = MultiLineStyle) {
-    StartArrayProperty(nullptr, aStyle);
+    StartArrayProperty(scEmptyString, aStyle);
   }
 
   // Prints: ]
-  void EndArray() { EndCollection("]"); }
+  void EndArray() { EndCollection(scArrayEndString); }
 
   // Prints: "<aName>": {
-  void StartObjectProperty(const char* aName,
+  void StartObjectProperty(const Span<const char>& aName,
                            CollectionStyle aStyle = MultiLineStyle) {
-    StartCollection(aName, "{", aStyle);
+    StartCollection(aName, scObjectBeginString, aStyle);
+  }
+
+  template <size_t N>
+  void StartObjectProperty(const char (&aName)[N],
+                           CollectionStyle aStyle = MultiLineStyle) {
+    // Keep null terminator from literal strings, will be removed by
+    // EscapedString. This way C buffer arrays can be used as well.
+    StartObjectProperty(Span<const char>(aName, N), aStyle);
   }
 
   // Prints: {
   void StartObjectElement(CollectionStyle aStyle = MultiLineStyle) {
-    StartObjectProperty(nullptr, aStyle);
+    StartObjectProperty(scEmptyString, aStyle);
   }
 
   // Prints: }
-  void EndObject() { EndCollection("}"); }
+  void EndObject() { EndCollection(scObjectEndString); }
 };
 
 }  // namespace mozilla

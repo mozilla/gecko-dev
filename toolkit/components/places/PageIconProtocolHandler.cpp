@@ -4,6 +4,7 @@
 
 #include "PageIconProtocolHandler.h"
 
+#include "mozilla/NullPrincipal.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Services.h"
 #include "nsFaviconService.h"
@@ -71,7 +72,7 @@ static nsresult MakeDefaultFaviconChannel(nsIURI* aURI, nsILoadInfo* aLoadInfo,
                                           getter_AddRefs(chan));
   NS_ENSURE_SUCCESS(rv, rv);
   chan->SetOriginalURI(aURI);
-  chan->SetContentType(NS_LITERAL_CSTRING(FAVICON_DEFAULT_MIMETYPE));
+  chan->SetContentType(nsLiteralCString(FAVICON_DEFAULT_MIMETYPE));
   chan.forget(aOutChannel);
   return NS_OK;
 }
@@ -89,8 +90,7 @@ static nsresult StreamDefaultFavicon(nsIURI* aURI, nsILoadInfo* aLoadInfo,
                                            aOutputStream, observer);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  aOriginalChannel->SetContentType(
-      NS_LITERAL_CSTRING(FAVICON_DEFAULT_MIMETYPE));
+  aOriginalChannel->SetContentType(nsLiteralCString(FAVICON_DEFAULT_MIMETYPE));
   nsCOMPtr<nsIChannel> defaultIconChannel;
   rv = MakeDefaultFaviconChannel(aURI, aLoadInfo,
                                  getter_AddRefs(defaultIconChannel));
@@ -151,7 +151,7 @@ NS_IMPL_ISUPPORTS(PageIconProtocolHandler, nsIProtocolHandler,
                   nsISupportsWeakReference);
 
 NS_IMETHODIMP PageIconProtocolHandler::GetScheme(nsACString& aScheme) {
-  aScheme.Assign(NS_LITERAL_CSTRING("page-icon"));
+  aScheme.Assign("page-icon"_ns);
   return NS_OK;
 }
 
@@ -196,12 +196,17 @@ nsresult PageIconProtocolHandler::NewChannelInternal(nsIURI* aURI,
 
   // Create our channel.
   nsCOMPtr<nsIChannel> channel;
-  rv = NS_NewInputStreamChannel(
-      getter_AddRefs(channel), aURI, pipeIn.forget(),
-      aLoadInfo->LoadingPrincipal(),
-      nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_IS_BLOCKED,
-      nsIContentPolicy::TYPE_INTERNAL_IMAGE);
-  NS_ENSURE_SUCCESS(rv, rv);
+  {
+    // We override the channel's loadinfo below anyway, so using a null
+    // principal here is alright.
+    nsCOMPtr<nsIPrincipal> loadingPrincipal =
+        NullPrincipal::CreateWithoutOriginAttributes();
+    rv = NS_NewInputStreamChannel(
+        getter_AddRefs(channel), aURI, pipeIn.forget(), loadingPrincipal,
+        nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_IS_BLOCKED,
+        nsIContentPolicy::TYPE_INTERNAL_IMAGE);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   rv = channel->SetLoadInfo(aLoadInfo);
   NS_ENSURE_SUCCESS(rv, rv);

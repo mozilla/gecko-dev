@@ -1,20 +1,18 @@
-%if 0
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-%endif
 
-@import url("chrome://global/skin/");
+@import url("chrome://global/skin/global.css");
 @namespace html url("http://www.w3.org/1999/xhtml");
 
 /* View buttons */
 #viewGroup > radio {
   list-style-image: url("chrome://browser/skin/pageInfo.png");
-  -moz-appearance: none;
+  appearance: none;
   min-width: 4.5em;
   margin: 0;
   padding: 3px;
-  color: -moz-FieldText;
+  color: FieldText;
 }
 
 #viewGroup > radio[selected="true"] {
@@ -29,8 +27,8 @@
 #topBar {
   border-bottom: 1px solid ThreeDShadow;
   padding-inline-start: 10px;
-  background-color: -moz-Field;
-  color: -moz-FieldText;
+  background-color: Field;
+  color: FieldText;
 }
 
 #generalTab {
@@ -50,8 +48,7 @@
 }
 
 #mainDeck {
-  padding-left: 2px;
-  padding-right: 2px;
+  padding-inline: 2px;
 }
 
 #mainDeck {
@@ -101,12 +98,11 @@ html|input:disabled {
 /* Media Tab */
 #imagetree {
   min-height: 10em;
-  margin-top: 2px;
-  margin-bottom: 0;
+  margin-block: 2px 0;
 }
 
 #mediaSplitter {
-  -moz-appearance: none;
+  appearance: none;
   height: .8em;
 }
 
@@ -130,10 +126,11 @@ treechildren::-moz-tree-cell-text(broken) {
 /* Permissions Tab */
 
 #permList {
-  -moz-appearance: listbox;
+  appearance: auto;
+  -moz-default-appearance: listbox;
   margin: .5em;
   overflow: auto;
-  color: -moz-FieldText;
+  color: FieldText;
 }
 
 .permission {

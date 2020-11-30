@@ -23,6 +23,9 @@ const ZOOM_LEVELS = [
   2.0,
   2.4,
   3.0,
+  // TODO(emilio): These should pass.
+  // 0.3,
+  // 3.0,
 ];
 
 info("--- Starting viewport test output ---");
@@ -43,42 +46,28 @@ for (const { content, res_target } of TESTS) {
     `<body><div style="width:100%;background-color:green">${content}</div>` +
     `</body></html>`;
 
-  addRDMTask(
-    TEST_URL,
-    async function({ ui, manager, browser, usingBrowserUI }) {
-      info(
-        `Using meta viewport content "${content}" with new RDM UI ${usingBrowserUI}.`
+  addRDMTask(TEST_URL, async function({ ui, manager, browser }) {
+    await setViewportSize(ui, manager, WIDTH, HEIGHT);
+    await setTouchAndMetaViewportSupport(ui, true);
+
+    // Ensure we've reflowed the page at least once so that MVM has chosen
+    // the initial scale.
+    await promiseContentReflow(ui);
+
+    for (const zoom of ZOOM_LEVELS.concat([...ZOOM_LEVELS].reverse())) {
+      info(`Set zoom to ${zoom}.`);
+      await promiseRDMZoom(ui, browser, zoom);
+
+      const resolution = await spawnViewportTask(ui, {}, () => {
+        return content.windowUtils.getResolution();
+      });
+
+      const res_min = res_target * RESOLUTION_FACTOR_MIN;
+      const res_max = res_target * RESOLUTION_FACTOR_MAX;
+      ok(
+        res_min <= resolution && res_max >= resolution,
+        `${content} zoom ${zoom} resolution should be near ${res_target}, and we got ${resolution}.`
       );
-
-      await setViewportSize(ui, manager, WIDTH, HEIGHT);
-      await setTouchAndMetaViewportSupport(ui, true);
-
-      // Randomize the order that we'll check the zoom levels.
-      const random_zoom_levels = ZOOM_LEVELS.slice();
-      const l = random_zoom_levels.length;
-      for (let i = l - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * l);
-        const temp = random_zoom_levels[i];
-        random_zoom_levels[i] = random_zoom_levels[j];
-        random_zoom_levels[j] = temp;
-      }
-
-      for (const zoom of random_zoom_levels) {
-        info(`Set zoom to ${zoom}.`);
-        await promiseRDMZoom(ui, browser, zoom);
-
-        const resolution = await spawnViewportTask(ui, {}, () => {
-          return content.windowUtils.getResolution();
-        });
-
-        const res_min = res_target * RESOLUTION_FACTOR_MIN;
-        const res_max = res_target * RESOLUTION_FACTOR_MAX;
-        ok(
-          res_min <= resolution && res_max >= resolution,
-          `${content} zoom ${zoom} resolution should be near ${res_target}, and we got ${resolution}.`
-        );
-      }
-    },
-    { usingBrowserUI: true }
-  );
+    }
+  });
 }

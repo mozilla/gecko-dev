@@ -6,18 +6,21 @@
 
 #ifndef jit_JitContext_h
 #define jit_JitContext_h
-#include "mozilla/MemoryReporting.h"
+
+#include "mozilla/Assertions.h"
 #include "mozilla/Result.h"
 
-#include "jit/CompileWrappers.h"
-#include "jit/JitOptions.h"
-#include "vm/JSContext.h"
-#include "vm/Realm.h"
-#include "vm/TypeInference.h"
+#include <stdint.h>
+
+#include "jstypes.h"
+
+struct JS_PUBLIC_API JSContext;
 
 namespace js {
 namespace jit {
 
+class CompileRealm;
+class CompileRuntime;
 class TempAllocator;
 
 enum MethodStatus {
@@ -130,6 +133,10 @@ class JitContext {
 // Process-wide initialization of JIT data structures.
 MOZ_MUST_USE bool InitializeJit();
 
+// Call this after changing hardware parameters via command line flags (on
+// platforms that support that).
+void ComputeJitSupportFlags();
+
 // Get and set the current JIT context.
 JitContext* GetJitContext();
 JitContext* MaybeGetJitContext();
@@ -153,7 +160,7 @@ static inline bool IsErrorStatus(JitExecStatus status) {
   return status == JitExec_Error || status == JitExec_Aborted;
 }
 
-bool JitSupportsSimd();
+bool JitSupportsWasmSimd();
 bool JitSupportsAtomics();
 
 }  // namespace jit

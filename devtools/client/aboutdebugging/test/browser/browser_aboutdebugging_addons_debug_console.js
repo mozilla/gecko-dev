@@ -10,7 +10,7 @@ Services.scriptloader.loadSubScript(CHROME_URL_ROOT + "helper-addons.js", this);
 const { PromiseTestUtils } = ChromeUtils.import(
   "resource://testing-common/PromiseTestUtils.jsm"
 );
-PromiseTestUtils.whitelistRejectionsGlobally(/File closed/);
+PromiseTestUtils.allowMatchingRejectionsGlobally(/File closed/);
 
 // Avoid test timeouts that can occur while waiting for the "addon-console-works" message.
 requestLongerTimeout(2);
@@ -52,46 +52,23 @@ add_task(async function testWebExtensionsToolboxWebConsole() {
   );
   const toolbox = getToolbox(devtoolsWindow);
 
-  const onToolboxClose = gDevTools.once("toolbox-destroyed");
-  toolboxTestScript(toolbox, devtoolsTab);
+  const webconsole = await toolbox.selectTool("webconsole");
+  const { hud } = webconsole;
+  const onMessage = waitUntil(() => {
+    return findMessages(hud, "Background page function called").length > 0;
+  });
+  hud.ui.wrapper.dispatchEvaluateExpression("myWebExtensionAddonFunction()");
+  await onMessage;
 
-  // The test script will not close the toolbox and will timeout if it fails, so reaching
-  // this point in the test is enough to assume the test was successful.
-  info("Wait for the toolbox to close");
-  await onToolboxClose;
-  ok(true, "Addon toolbox closed");
-
+  await closeAboutDevtoolsToolbox(document, devtoolsTab, window);
   await removeTemporaryExtension(ADDON_NAME, document);
   await removeTab(tab);
 });
 
-function toolboxTestScript(toolbox, devtoolsTab) {
-  function findMessages(hud, text, selector = ".message") {
-    const messages = hud.ui.outputNode.querySelectorAll(selector);
-    const elements = Array.prototype.filter.call(messages, el =>
-      el.textContent.includes(text)
-    );
-    return elements;
-  }
-
-  async function waitFor(condition) {
-    while (!condition()) {
-      await new Promise(done => toolbox.win.setTimeout(done, 1000));
-    }
-  }
-
-  toolbox
-    .selectTool("webconsole")
-    .then(async console => {
-      const { hud } = console;
-      const onMessage = waitFor(() => {
-        return findMessages(hud, "Background page function called").length > 0;
-      });
-      hud.ui.wrapper.dispatchEvaluateExpression(
-        "myWebExtensionAddonFunction()"
-      );
-      await onMessage;
-      await removeTab(devtoolsTab);
-    })
-    .catch(e => dump("Exception from browser toolbox process: " + e + "\n"));
+function findMessages(hud, text, selector = ".message") {
+  const messages = hud.ui.outputNode.querySelectorAll(selector);
+  const elements = Array.prototype.filter.call(messages, el =>
+    el.textContent.includes(text)
+  );
+  return elements;
 }

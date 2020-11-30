@@ -11,7 +11,7 @@ SimpleTest.ignoreAllUncaughtExceptions(true);
 const { PromiseTestUtils } = ChromeUtils.import(
   "resource://testing-common/PromiseTestUtils.jsm"
 );
-PromiseTestUtils.whitelistRejectionsGlobally(/Not in fullscreen mode/);
+PromiseTestUtils.allowMatchingRejectionsGlobally(/Not in fullscreen mode/);
 
 SimpleTest.requestCompleteLog();
 
@@ -25,7 +25,10 @@ async function requestCameraPermission(browser) {
   return SpecialPowers.spawn(browser, [], () =>
     content.navigator.mediaDevices
       .getUserMedia({ video: true, fake: true })
-      .then(() => true, () => false)
+      .then(
+        () => true,
+        () => false
+      )
   );
 }
 

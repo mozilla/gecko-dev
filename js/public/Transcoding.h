@@ -25,6 +25,8 @@ class JS_PUBLIC_API JSScript;
 
 namespace JS {
 
+class ReadOnlyCompileOptions;
+
 using TranscodeBuffer = mozilla::Vector<uint8_t>;
 using TranscodeRange = mozilla::Range<uint8_t>;
 
@@ -56,36 +58,79 @@ enum TranscodeResult : uint8_t {
   TranscodeResult_Throw = 0x20
 };
 
+// Encode JSScript into the buffer.
 extern JS_PUBLIC_API TranscodeResult EncodeScript(JSContext* cx,
                                                   TranscodeBuffer& buffer,
                                                   Handle<JSScript*> script);
 
+// Decode JSScript from the buffer.
 extern JS_PUBLIC_API TranscodeResult
-DecodeScript(JSContext* cx, TranscodeBuffer& buffer,
-             MutableHandle<JSScript*> scriptp, size_t cursorIndex = 0);
+DecodeScript(JSContext* cx, const ReadOnlyCompileOptions& options,
+             TranscodeBuffer& buffer, MutableHandle<JSScript*> scriptp,
+             size_t cursorIndex = 0);
 
 extern JS_PUBLIC_API TranscodeResult
-DecodeScript(JSContext* cx, const TranscodeRange& range,
-             MutableHandle<JSScript*> scriptp);
+DecodeScript(JSContext* cx, const ReadOnlyCompileOptions& options,
+             const TranscodeRange& range, MutableHandle<JSScript*> scriptp);
 
-// Register an encoder on the given script source, such that all functions can
-// be encoded as they are parsed. This strategy is used to avoid blocking the
-// main thread in a non-interruptible way.
+// If js::UseOffThreadParseGlobal is true, decode JSScript from the buffer.
 //
-// The |script| argument of |StartIncrementalEncoding| and
-// |FinishIncrementalEncoding| should be the top-level script returned either as
-// an out-param of any of the |Compile| functions, or the result of
-// |FinishOffThreadScript|.
+// If js::UseOffThreadParseGlobal is false, decode CompilationStencil from the
+// buffer and instantiate JSScript from it.
+//
+// options.useOffThreadParseGlobal should match JS::SetUseOffThreadParseGlobal.
+extern JS_PUBLIC_API TranscodeResult DecodeScriptMaybeStencil(
+    JSContext* cx, const ReadOnlyCompileOptions& options,
+    TranscodeBuffer& buffer, MutableHandle<JSScript*> scriptp,
+    size_t cursorIndex = 0);
+
+// If js::UseOffThreadParseGlobal is true, decode JSScript from the buffer.
+//
+// If js::UseOffThreadParseGlobal is false, decode CompilationStencil from the
+// buffer and instantiate JSScript from it.
+//
+// And then register an encoder on its script source, such that all functions
+// can be encoded as they are parsed. This strategy is used to avoid blocking
+// the main thread in a non-interruptible way.
+//
+// See also JS::FinishIncrementalEncoding.
+//
+// options.useOffThreadParseGlobal should match JS::SetUseOffThreadParseGlobal.
+extern JS_PUBLIC_API TranscodeResult DecodeScriptAndStartIncrementalEncoding(
+    JSContext* cx, const ReadOnlyCompileOptions& options,
+    TranscodeBuffer& buffer, MutableHandle<JSScript*> scriptp,
+    size_t cursorIndex = 0);
+
+// Finish incremental encoding started by one of:
+//   * JS::CompileAndStartIncrementalEncoding
+//   * JS::FinishOffThreadScriptAndStartIncrementalEncoding
+//   * JS::DecodeScriptAndStartIncrementalEncoding
+//
+// The |script| argument of |FinishIncrementalEncoding| should be the top-level
+// script returned from one of the above.
 //
 // The |buffer| argument of |FinishIncrementalEncoding| is used for appending
 // the encoded bytecode into the buffer. If any of these functions failed, the
 // content of |buffer| would be undefined.
-extern JS_PUBLIC_API bool StartIncrementalEncoding(JSContext* cx,
-                                                   Handle<JSScript*> script);
-
+//
+// If js::UseOffThreadParseGlobal is true, |buffer| contains encoded JSScript.
+//
+// If js::UseOffThreadParseGlobal is false, |buffer| contains encoded
+// CompilationStencil.
 extern JS_PUBLIC_API bool FinishIncrementalEncoding(JSContext* cx,
                                                     Handle<JSScript*> script,
                                                     TranscodeBuffer& buffer);
+
+// Check if the compile options and script's flag matches.
+//
+// JS::DecodeScript* and JS::DecodeOffThreadScript internally check this.
+//
+// JS::DecodeMultiOffThreadScripts checks some options shared across multiple
+// scripts. Caller is responsible for checking each script with this API when
+// using the decoded script instead of compiling a new script wiht the given
+// options.
+extern JS_PUBLIC_API bool CheckCompileOptionsMatch(
+    const ReadOnlyCompileOptions& options, JSScript* script);
 
 }  // namespace JS
 

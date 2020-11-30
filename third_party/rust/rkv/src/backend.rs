@@ -16,18 +16,39 @@ mod traits;
 pub use common::*;
 pub use traits::*;
 
-pub use impl_lmdb::DatabaseImpl as LmdbDatabase;
-pub use impl_lmdb::EnvironmentBuilderImpl as Lmdb;
-pub use impl_lmdb::EnvironmentImpl as LmdbEnvironment;
-pub use impl_lmdb::ErrorImpl as LmdbError;
-pub use impl_lmdb::RoCursorImpl as LmdbRoCursor;
-pub use impl_lmdb::RoTransactionImpl as LmdbRoTransaction;
-pub use impl_lmdb::RwTransactionImpl as LmdbRwTransaction;
+pub use impl_lmdb::{
+    ArchMigrateError as LmdbArchMigrateError,
+    ArchMigrateResult as LmdbArchMigrateResult,
+    ArchMigrator as LmdbArchMigrator,
+    DatabaseFlagsImpl as LmdbDatabaseFlags,
+    DatabaseImpl as LmdbDatabase,
+    EnvironmentBuilderImpl as Lmdb,
+    EnvironmentFlagsImpl as LmdbEnvironmentFlags,
+    EnvironmentImpl as LmdbEnvironment,
+    ErrorImpl as LmdbError,
+    InfoImpl as LmdbInfo,
+    IterImpl as LmdbIter,
+    RoCursorImpl as LmdbRoCursor,
+    RoTransactionImpl as LmdbRoTransaction,
+    RwCursorImpl as LmdbRwCursor,
+    RwTransactionImpl as LmdbRwTransaction,
+    StatImpl as LmdbStat,
+    WriteFlagsImpl as LmdbWriteFlags,
+};
 
-pub use impl_safe::DatabaseId as SafeModeDatabase;
-pub use impl_safe::EnvironmentBuilderImpl as SafeMode;
-pub use impl_safe::EnvironmentImpl as SafeModeEnvironment;
-pub use impl_safe::ErrorImpl as SafeModeError;
-pub use impl_safe::RoCursorImpl as SafeModeRoCursor;
-pub use impl_safe::RoTransactionImpl as SafeModeRoTransaction;
-pub use impl_safe::RwTransactionImpl as SafeModeRwTransaction;
+pub use impl_safe::{
+    DatabaseFlagsImpl as SafeModeDatabaseFlags,
+    DatabaseImpl as SafeModeDatabase,
+    EnvironmentBuilderImpl as SafeMode,
+    EnvironmentFlagsImpl as SafeModeEnvironmentFlags,
+    EnvironmentImpl as SafeModeEnvironment,
+    ErrorImpl as SafeModeError,
+    InfoImpl as SafeModeInfo,
+    IterImpl as SafeModeIter,
+    RoCursorImpl as SafeModeRoCursor,
+    RoTransactionImpl as SafeModeRoTransaction,
+    RwCursorImpl as SafeModeRwCursor,
+    RwTransactionImpl as SafeModeRwTransaction,
+    StatImpl as SafeModeStat,
+    WriteFlagsImpl as SafeModeWriteFlags,
+};

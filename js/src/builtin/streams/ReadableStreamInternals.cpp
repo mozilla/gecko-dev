@@ -25,22 +25,22 @@
 #include "js/RootingAPI.h"  // JS::Handle, JS::Rooted
 #include "js/Stream.h"  // JS::ReadableStreamUnderlyingSource, JS::ReadableStreamMode
 #include "js/Value.h"  // JS::Value, JS::{Boolean,Object}Value, JS::UndefinedHandleValue
-#include "vm/JSContext.h"      // JSContext
-#include "vm/JSFunction.h"     // JSFunction, js::NewNativeFunction
-#include "vm/NativeObject.h"   // js::NativeObject
-#include "vm/ObjectGroup.h"    // js::GenericObject
-#include "vm/PromiseObject.h"  // js::PromiseObject
+#include "vm/JSContext.h"     // JSContext
+#include "vm/JSFunction.h"    // JSFunction, js::NewNativeFunction
+#include "vm/NativeObject.h"  // js::NativeObject, js::PlainObject
+#include "vm/ObjectGroup.h"   // js::GenericObject
+#include "vm/PromiseObject.h"  // js::PromiseObject, js::PromiseResolvedWithUndefined
 #include "vm/Realm.h"          // JS::Realm
-#include "vm/StringType.h"     // js::PropertyName
+#include "vm/StringType.h"  // js::PropertyName
 
-#include "builtin/streams/MiscellaneousOperations-inl.h"  // js::{Reject,Resolve}UnwrappedPromiseWithUndefined, js::SetSettledPromiseIsHandled
+#include "builtin/Promise-inl.h"  // js::SetSettledPromiseIsHandled
+#include "builtin/streams/MiscellaneousOperations-inl.h"  // js::{Reject,Resolve}UnwrappedPromiseWithUndefined
 #include "builtin/streams/ReadableStreamReader-inl.h"  // js::js::UnwrapReaderFromStream{,NoThrow}
 #include "vm/Compartment-inl.h"                        // JS::Compartment::wrap
 #include "vm/JSContext-inl.h"                          // JSContext::check
 #include "vm/List-inl.h"  // js::ListObject, js::AppendToListInFixedSlot, js::StoreNewListInFixedSlot
-#include "vm/Realm-inl.h"  // JS::Realm
-
-using js::ReadableStream;
+#include "vm/PlainObject-inl.h"  // js::PlainObject::createWithTemplate
+#include "vm/Realm-inl.h"        // JS::Realm
 
 using JS::BooleanValue;
 using JS::CallArgs;
@@ -51,6 +51,9 @@ using JS::ResolvePromise;
 using JS::Rooted;
 using JS::UndefinedHandleValue;
 using JS::Value;
+
+using js::PlainObject;
+using js::ReadableStream;
 
 /*** 3.5. The interface between readable streams and controllers ************/
 
@@ -127,8 +130,7 @@ MOZ_MUST_USE JSObject* js::ReadableStreamCancel(
   // Step 2: If stream.[[state]] is "closed", return a promise resolved with
   //         undefined.
   if (unwrappedStream->closed()) {
-    return PromiseObject::unforgeableResolveWithNonPromise(
-        cx, UndefinedHandleValue);
+    return PromiseResolvedWithUndefined(cx);
   }
 
   // Step 3: If stream.[[state]] is "errored", return a promise rejected with
@@ -248,12 +250,12 @@ MOZ_MUST_USE bool js::ReadableStreamCloseInternal(
  * Streams spec, 3.5.5. ReadableStreamCreateReadResult ( value, done,
  *                                                       forAuthorCode )
  */
-MOZ_MUST_USE JSObject* js::ReadableStreamCreateReadResult(
+MOZ_MUST_USE PlainObject* js::ReadableStreamCreateReadResult(
     JSContext* cx, Handle<Value> value, bool done,
     ForAuthorCodeBool forAuthorCode) {
   // Step 1: Let prototype be null.
   // Step 2: If forAuthorCode is true, set prototype to %ObjectPrototype%.
-  Rooted<JSObject*> templateObject(
+  Rooted<PlainObject*> templateObject(
       cx,
       forAuthorCode == ForAuthorCodeBool::Yes
           ? cx->realm()->getOrCreateIterResultTemplateObject(cx)
@@ -266,9 +268,9 @@ MOZ_MUST_USE JSObject* js::ReadableStreamCreateReadResult(
   // Step 3: Assert: Type(done) is Boolean (implicit).
 
   // Step 4: Let obj be ObjectCreate(prototype).
-  NativeObject* obj;
+  PlainObject* obj;
   JS_TRY_VAR_OR_RETURN_NULL(
-      cx, obj, NativeObject::createWithTemplate(cx, templateObject));
+      cx, obj, PlainObject::createWithTemplate(cx, templateObject));
 
   // Step 5: Perform CreateDataProperty(obj, "value", value).
   obj->setSlot(Realm::IterResultObjectValueSlot, value);
@@ -354,7 +356,7 @@ MOZ_MUST_USE bool js::ReadableStreamErrorInternal(
   // 3.8.5 ReadableStreamReaderGenericRelease step 6 sets
   // stream.[[reader]] to undefined.
   Rooted<JSObject*> closedPromise(cx, unwrappedReader->closedPromise());
-  SetSettledPromiseIsHandled(cx, closedPromise.as<PromiseObject>());
+  js::SetSettledPromiseIsHandled(cx, closedPromise.as<PromiseObject>());
 
   if (unwrappedStream->mode() == JS::ReadableStreamMode::ExternalSource) {
     // Make sure we're in the stream's compartment.
@@ -410,12 +412,12 @@ MOZ_MUST_USE bool js::ReadableStreamFulfillReadOrReadIntoRequest(
   // Step 4: Resolve read{Into}Request.[[promise]] with
   //         ! ReadableStreamCreateReadResult(chunk, done,
   //         readIntoRequest.[[forAuthorCode]]).
-  Rooted<JSObject*> iterResult(
-      cx, ReadableStreamCreateReadResult(cx, chunk, done,
-                                         unwrappedReader->forAuthorCode()));
+  PlainObject* iterResult = ReadableStreamCreateReadResult(
+      cx, chunk, done, unwrappedReader->forAuthorCode());
   if (!iterResult) {
     return false;
   }
+
   Rooted<Value> val(cx, ObjectValue(*iterResult));
   return ResolvePromise(cx, readIntoRequest, val);
 }

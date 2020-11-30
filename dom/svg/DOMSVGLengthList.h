@@ -4,10 +4,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef MOZILLA_DOMSVGLENGTHLIST_H__
-#define MOZILLA_DOMSVGLENGTHLIST_H__
+#ifndef DOM_SVG_DOMSVGLENGTHLIST_H_
+#define DOM_SVG_DOMSVGLENGTHLIST_H_
 
 #include "DOMSVGAnimatedLengthList.h"
+#include "mozAutoDocUpdate.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsDebug.h"
 #include "nsTArray.h"
@@ -16,11 +17,47 @@
 #include "mozilla/ErrorResult.h"
 #include "mozilla/Unused.h"
 
+// {cbecb7a4-d6f3-47b5-b5a3-3e5bdbf5b2f9}
+#define MOZILLA_DOMSVGLENGTHLIST_IID                 \
+  {                                                  \
+    0xcbecb7a4, 0xd6f3, 0xd6f3, {                    \
+      0xb5, 0xa3, 0x3e, 0x5b, 0xdb, 0xf5, 0xb2, 0xf9 \
+    }                                                \
+  }
+
 namespace mozilla {
 
 namespace dom {
 class DOMSVGLength;
 class SVGElement;
+
+//----------------------------------------------------------------------
+// Helper class: AutoChangeLengthListNotifier
+// Stack-based helper class to pair calls to WillChangeLengthList and
+// DidChangeLengthList. Used by DOMSVGLength and DOMSVGLengthList.
+template <class T>
+class MOZ_RAII AutoChangeLengthListNotifier : public mozAutoDocUpdate {
+ public:
+  explicit AutoChangeLengthListNotifier(T* aValue)
+      : mozAutoDocUpdate(aValue->Element()->GetComposedDoc(), true),
+        mValue(aValue) {
+    MOZ_ASSERT(aValue, "Expecting non-null value");
+    mEmptyOrOldValue =
+        mValue->Element()->WillChangeLengthList(mValue->AttrEnum(), *this);
+  }
+
+  ~AutoChangeLengthListNotifier() {
+    mValue->Element()->DidChangeLengthList(mValue->AttrEnum(), mEmptyOrOldValue,
+                                           *this);
+    if (mValue->IsAnimating()) {
+      mValue->Element()->AnimationNeedsResample();
+    }
+  }
+
+ private:
+  T* const mValue;
+  nsAttrValue mEmptyOrOldValue;
+};
 
 /**
  * Class DOMSVGLengthList
@@ -40,6 +77,7 @@ class SVGElement;
  * Our DOM items are created lazily on demand as and when script requests them.
  */
 class DOMSVGLengthList final : public nsISupports, public nsWrapperCache {
+  template <class T>
   friend class AutoChangeLengthListNotifier;
   friend class DOMSVGLength;
 
@@ -53,6 +91,7 @@ class DOMSVGLengthList final : public nsISupports, public nsWrapperCache {
   }
 
  public:
+  NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_DOMSVGLENGTHLIST_IID)
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGLengthList)
 
@@ -122,11 +161,7 @@ class DOMSVGLengthList final : public nsISupports, public nsWrapperCache {
     return InsertItemBefore(newItem, LengthNoFlush(), error);
   }
   void IndexedSetter(uint32_t index, DOMSVGLength& newValue,
-                     ErrorResult& error) {
-    // Need to take a ref to the return value so it does not leak.
-    RefPtr<DOMSVGLength> ignored = ReplaceItem(newValue, index, error);
-    Unused << ignored;
-  }
+                     ErrorResult& error);
   uint32_t Length() const { return NumberOfItems(); }
 
  private:
@@ -166,7 +201,9 @@ class DOMSVGLengthList final : public nsISupports, public nsWrapperCache {
   RefPtr<DOMSVGAnimatedLengthList> mAList;
 };
 
+NS_DEFINE_STATIC_IID_ACCESSOR(DOMSVGLengthList, MOZILLA_DOMSVGLENGTHLIST_IID)
+
 }  // namespace dom
 }  // namespace mozilla
 
-#endif  // MOZILLA_DOMSVGLENGTHLIST_H__
+#endif  // DOM_SVG_DOMSVGLENGTHLIST_H_

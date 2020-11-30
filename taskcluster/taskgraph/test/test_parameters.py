@@ -17,6 +17,7 @@ class TestParameters(unittest.TestCase):
 
     vals = {
         'app_version': 'app_version',
+        'backstop': False,
         'base_repository': 'base_repository',
         'build_date': 0,
         'build_number': 0,
@@ -31,6 +32,7 @@ class TestParameters(unittest.TestCase):
         'message': 'message',
         'moz_build_date': 'moz_build_date',
         'next_version': 'next_version',
+        'optimize_strategies': None,
         'optimize_target_tasks': False,
         'owner': 'owner',
         'phabricator_diff': 'phabricator_diff',
@@ -38,7 +40,8 @@ class TestParameters(unittest.TestCase):
         'pushdate': 0,
         'pushlog_id': 'pushlog_id',
         'release_enable_emefree': False,
-        'release_enable_partners': False,
+        'release_enable_partner_repack': False,
+        'release_enable_partner_attribution': False,
         'release_eta': None,
         'release_history': {},
         'release_partners': [],
@@ -49,6 +52,7 @@ class TestParameters(unittest.TestCase):
         'required_signoffs': [],
         'signoff_urls': {},
         'target_tasks_method': 'target_tasks_method',
+        'test_manifest_loader': 'default',
         'tasks_for': 'tasks_for',
         'try_mode': 'try_mode',
         'try_options': None,
@@ -127,12 +131,12 @@ class TestParameters(unittest.TestCase):
 
 
 class TestCommParameters(unittest.TestCase):
-    vals = dict({
+    vals = dict(list({
         'comm_base_repository': 'comm_base_repository',
         'comm_head_ref': 'comm_head_ref',
         'comm_head_repository': 'comm_head_repository',
         'comm_head_rev': 'comm_head_rev',
-    }.items() + TestParameters.vals.items())
+    }.items()) + list(TestParameters.vals.items()))
 
     def test_Parameters_check(self):
         """

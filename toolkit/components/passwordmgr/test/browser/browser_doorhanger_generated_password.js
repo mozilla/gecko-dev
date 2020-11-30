@@ -13,23 +13,29 @@ const FORM_PAGE_PATH =
 const passwordInputSelector = "#form-basic-password";
 const usernameInputSelector = "#form-basic-username";
 
-async function setup_withOneLogin(username = "username", password = "pass1") {
-  // Reset to a single, known login
+requestLongerTimeout(2);
+
+async function task_setup() {
   Services.logins.removeAllLogins();
   LoginTestUtils.resetGeneratedPasswordsCache();
+  await cleanupPasswordNotifications();
+}
+
+async function setup_withOneLogin(username = "username", password = "pass1") {
+  // Reset to a single, known login
+  await task_setup();
   let login = await LoginTestUtils.addLogin({ username, password });
   return login;
 }
 
 async function setup_withNoLogins() {
   // Reset to a single, known login
-  Services.logins.removeAllLogins();
+  await task_setup();
   is(
     Services.logins.getAllLogins().length,
     0,
     "0 logins at the start of the test"
   );
-  LoginTestUtils.resetGeneratedPasswordsCache();
 }
 
 async function fillGeneratedPasswordFromACPopup(
@@ -93,19 +99,6 @@ async function verifyGeneratedPasswordWasFilled(
   );
 }
 
-async function verifyConfirmationHint(hintElem) {
-  info("verifyConfirmationHint");
-  info("verifyConfirmationHint, hintPromiseShown resolved");
-  is(
-    hintElem.anchorNode.id,
-    "password-notification-icon",
-    "Hint should be anchored on the password notification icon"
-  );
-  info("verifyConfirmationHint, assertion ok, wait for poopuphidden");
-  await BrowserTestUtils.waitForEvent(hintElem, "popuphidden");
-  info("verifyConfirmationHint, /popuphidden");
-}
-
 async function openFormInNewTab(url, formValues, taskFn) {
   let formFilled = listenForTestNotification("FormProcessed");
 
@@ -133,6 +126,11 @@ async function openFormInNewTab(url, formValues, taskFn) {
           if (props) {
             // We'll reuse the form_basic.html, but ensure we'll get the generated password autocomplete option
             let field = doc.querySelector(props.selector);
+            if (props.type) {
+              // Change the type from 'password' to something else.
+              field.type = props.type;
+            }
+
             field.setAttribute("autocomplete", "new-password");
             if (props.hasOwnProperty("expectedValue")) {
               is(
@@ -191,6 +189,9 @@ async function openFormInNewTab(url, formValues, taskFn) {
       }
 
       await taskFn(browser);
+      await closePopup(
+        browser.ownerDocument.getElementById("confirmation-hint")
+      );
     }
   );
 }
@@ -238,6 +239,27 @@ async function openAndVerifyDoorhanger(browser, type, expected) {
   return notif;
 }
 
+async function appendContentInputvalue(browser, selector, str) {
+  await ContentTask.spawn(browser, { selector, str }, async function({
+    selector,
+    str,
+  }) {
+    const EventUtils = ContentTaskUtils.getEventUtils(content);
+    let input = content.document.querySelector(selector);
+    input.focus();
+    input.select();
+    await EventUtils.synthesizeKey("KEY_ArrowRight", {}, content);
+    let changedPromise = ContentTaskUtils.waitForEvent(input, "change");
+    if (str) {
+      await EventUtils.sendString(str, content);
+    }
+    input.blur();
+    await changedPromise;
+  });
+  info("Input value changed");
+  await TestUtils.waitForTick();
+}
+
 async function submitForm(browser) {
   // Submit the form
   info("Now submit the form");
@@ -281,17 +303,20 @@ add_task(async function autocomplete_generated_password_auto_saved() {
         "passwordmgr-storage-changed",
         (_, data) => data == "addLogin"
       );
-      let confirmationHint = document.getElementById("confirmation-hint");
-      let hintPromiseShown = BrowserTestUtils.waitForEvent(
-        confirmationHint,
-        "popupshown"
+      // Let the hint hide itself this first time
+      let forceClosePopup = false;
+      let hintShownAndVerified = verifyConfirmationHint(
+        browser,
+        forceClosePopup
       );
+
       await fillGeneratedPasswordFromACPopup(browser, passwordInputSelector);
       let [{ username, password }] = await storageChangedPromise;
       await verifyGeneratedPasswordWasFilled(browser, passwordInputSelector);
+
       // Make sure confirmation hint was shown
-      await hintPromiseShown;
-      await verifyConfirmationHint(confirmationHint);
+      info("waiting for verifyConfirmationHint");
+      await hintShownAndVerified;
 
       // Check properties of the newly auto-saved login
       is(username, "", "Saved login should have no username");
@@ -340,6 +365,92 @@ add_task(async function autocomplete_generated_password_auto_saved() {
   );
 });
 
+add_task(
+  async function autocomplete_generated_password_with_confirm_field_auto_saved() {
+    // confirm behavior when filling a generated password via autocomplete
+    // when there are no other logins and the form has a confirm password field
+    const FORM_WITH_CONFIRM_FIELD_PAGE_PATH =
+      "/browser/toolkit/components/passwordmgr/test/browser/form_basic_with_confirm_field.html";
+    const confirmPasswordInputSelector = "#form-basic-confirm-password";
+    await setup_withNoLogins();
+    await openFormInNewTab(
+      TEST_ORIGIN + FORM_WITH_CONFIRM_FIELD_PAGE_PATH,
+      {
+        password: { selector: passwordInputSelector, expectedValue: "" },
+        username: { selector: usernameInputSelector, expectedValue: "" },
+      },
+      async function taskFn(browser) {
+        let storageChangedPromise = TestUtils.topicObserved(
+          "passwordmgr-storage-changed",
+          (_, data) => data == "addLogin"
+        );
+        // Let the hint hide itself this first time
+        let forceClosePopup = false;
+        let hintShownAndVerified = verifyConfirmationHint(
+          browser,
+          forceClosePopup
+        );
+
+        await fillGeneratedPasswordFromACPopup(browser, passwordInputSelector);
+        let [{ username, password }] = await storageChangedPromise;
+        await verifyGeneratedPasswordWasFilled(browser, passwordInputSelector);
+        await verifyGeneratedPasswordWasFilled(
+          browser,
+          confirmPasswordInputSelector
+        );
+
+        // Make sure confirmation hint was shown
+        info("waiting for verifyConfirmationHint");
+        await hintShownAndVerified;
+
+        // Check properties of the newly auto-saved login
+        is(username, "", "Saved login should have no username");
+        is(
+          password.length,
+          LoginTestUtils.generation.LENGTH,
+          "Saved login should have generated password"
+        );
+
+        let notif = await openAndVerifyDoorhanger(browser, "password-change", {
+          dismissed: true,
+          anchorExtraAttr: "attention",
+          usernameValue: "",
+          passwordLength: LoginTestUtils.generation.LENGTH,
+        });
+
+        let promiseHidden = BrowserTestUtils.waitForEvent(
+          PopupNotifications.panel,
+          "popuphidden"
+        );
+        clickDoorhangerButton(notif, DONT_CHANGE_BUTTON);
+        await promiseHidden;
+
+        // confirm the extraAttr attribute is removed after opening & dismissing the doorhanger
+        ok(
+          !notif.anchorElement.hasAttribute("extraAttr"),
+          "Check if the extraAttr attribute was removed"
+        );
+        await cleanupDoorhanger(notif);
+
+        storageChangedPromise = TestUtils.topicObserved(
+          "passwordmgr-storage-changed",
+          (_, data) => data == "modifyLogin"
+        );
+        let [autoSavedLogin] = Services.logins.getAllLogins();
+        info("waiting for submitForm");
+        await submitForm(browser);
+        await storageChangedPromise;
+        verifyLogins([
+          {
+            timesUsed: autoSavedLogin.timesUsed + 1,
+            username: "",
+          },
+        ]);
+      }
+    );
+  }
+);
+
 add_task(async function autocomplete_generated_password_saved_empty_username() {
   // confirm behavior when filling a generated password via autocomplete
   // when there is an existing saved login with a "" username
@@ -351,7 +462,7 @@ add_task(async function autocomplete_generated_password_saved_empty_username() {
         selector: passwordInputSelector,
         expectedValue: "xyzpassword",
         setValue: "",
-        expectedMessage: "",
+        expectedMessage: "PasswordEditedOrGenerated",
       },
       username: { selector: usernameInputSelector, expectedValue: "" },
     },
@@ -414,7 +525,7 @@ add_task(async function autocomplete_generated_password_saved_username() {
         selector: passwordInputSelector,
         expectedValue: "xyzpassword",
         setValue: "",
-        expectedMessage: "",
+        expectedMessage: "PasswordEditedOrGenerated",
       },
       username: {
         selector: usernameInputSelector,
@@ -426,18 +537,22 @@ add_task(async function autocomplete_generated_password_saved_username() {
         "passwordmgr-storage-changed",
         (_, data) => data == "addLogin"
       );
-      let confirmationHint = document.getElementById("confirmation-hint");
-      let hintPromiseShown = BrowserTestUtils.waitForEvent(
-        confirmationHint,
-        "popupshown"
+      // We don't need to wait to confirm the hint hides itelf every time
+      let forceClosePopup = true;
+      let hintShownAndVerified = verifyConfirmationHint(
+        browser,
+        forceClosePopup
       );
+
       await fillGeneratedPasswordFromACPopup(browser, passwordInputSelector);
+
+      // Make sure confirmation hint was shown
+      info("waiting for verifyConfirmationHint");
+      await hintShownAndVerified;
+
       info("waiting for addLogin");
       await storageChangedPromise;
       await verifyGeneratedPasswordWasFilled(browser, passwordInputSelector);
-      // Make sure confirmation hint was shown
-      await hintPromiseShown;
-      await verifyConfirmationHint(confirmationHint);
 
       // Check properties of the newly auto-saved login
       let [user1LoginSnapshot, autoSavedLogin] = verifyLogins([
@@ -508,7 +623,7 @@ add_task(async function ac_gen_pw_saved_empty_un_stored_non_empty_un_in_form() {
         selector: passwordInputSelector,
         expectedValue: "xyzpassword",
         setValue: "",
-        expectedMessage: "",
+        expectedMessage: "PasswordEditedOrGenerated",
       },
       username: {
         selector: usernameInputSelector,
@@ -582,7 +697,7 @@ add_task(async function contextfill_generated_password_saved_empty_username() {
         selector: passwordInputSelector,
         expectedValue: "xyzpassword",
         setValue: "",
-        expectedMessage: "",
+        expectedMessage: "PasswordEditedOrGenerated",
       },
       username: { selector: usernameInputSelector, expectedValue: "" },
     },
@@ -637,7 +752,9 @@ add_task(async function contextfill_generated_password_saved_empty_username() {
   );
 });
 
-add_task(async function autocomplete_generated_password_edited_no_auto_save() {
+async function autocomplete_generated_password_edited_no_auto_save(
+  passwordType = "password"
+) {
   // confirm behavior when filling a generated password via autocomplete
   // when there is an existing saved login with a "" username and then editing
   // the password and autocompleting again.
@@ -649,7 +766,8 @@ add_task(async function autocomplete_generated_password_edited_no_auto_save() {
         selector: passwordInputSelector,
         expectedValue: "xyzpassword",
         setValue: "",
-        expectedMessage: "",
+        type: passwordType,
+        expectedMessage: "PasswordEditedOrGenerated",
       },
       username: { selector: usernameInputSelector, expectedValue: "" },
     },
@@ -739,7 +857,15 @@ add_task(async function autocomplete_generated_password_edited_no_auto_save() {
   );
 
   LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().clear();
-});
+}
+
+add_task(autocomplete_generated_password_edited_no_auto_save);
+
+add_task(
+  async function autocomplete_generated_password_edited_no_auto_save_type_text() {
+    await autocomplete_generated_password_edited_no_auto_save("text");
+  }
+);
 
 add_task(async function contextmenu_fill_generated_password_and_set_username() {
   // test when filling with a generated password and editing the username in the form
@@ -754,7 +880,7 @@ add_task(async function contextmenu_fill_generated_password_and_set_username() {
         selector: passwordInputSelector,
         expectedValue: "xyzpassword",
         setValue: "",
-        expectedMessage: "",
+        expectedMessage: "PasswordEditedOrGenerated",
       },
       username: {
         selector: usernameInputSelector,
@@ -769,11 +895,6 @@ add_task(async function contextmenu_fill_generated_password_and_set_username() {
         "passwordmgr-storage-changed",
         (_, data) => data == "addLogin"
       );
-      let confirmationHint = document.getElementById("confirmation-hint");
-      let hintPromiseShown = BrowserTestUtils.waitForEvent(
-        confirmationHint,
-        "popupshown"
-      );
       await SpecialPowers.spawn(
         browser,
         [[passwordInputSelector, usernameInputSelector]],
@@ -785,16 +906,24 @@ add_task(async function contextmenu_fill_generated_password_and_set_username() {
           );
         }
       );
+
+      // Let the hint hide itself this first time
+      let forceClosePopup = false;
+      let hintShownAndVerified = verifyConfirmationHint(
+        browser,
+        forceClosePopup
+      );
+
       info("waiting to fill generated password using context menu");
       await doFillGeneratedPasswordContextMenuItem(
         browser,
         passwordInputSelector
       );
+
+      info("waiting for verifyConfirmationHint");
+      await hintShownAndVerified;
       info("waiting for dismissed password-change notification");
       await waitForDoorhanger(browser, "password-change");
-      // Make sure confirmation hint was shown
-      await hintPromiseShown;
-      await verifyConfirmationHint(confirmationHint);
 
       info("waiting for addLogin");
       await storageChangedPromise;
@@ -878,10 +1007,12 @@ add_task(async function contextmenu_password_change_form_without_username() {
         "passwordmgr-storage-changed",
         (_, data) => data == "addLogin"
       );
-      let confirmationHint = document.getElementById("confirmation-hint");
-      let hintPromiseShown = BrowserTestUtils.waitForEvent(
-        confirmationHint,
-        "popupshown"
+
+      // We don't need to wait to confirm the hint hides itelf every time
+      let forceClosePopup = true;
+      let hintShownAndVerified = verifyConfirmationHint(
+        browser,
+        forceClosePopup
       );
 
       // Make the 2nd field use a generated password
@@ -893,9 +1024,10 @@ add_task(async function contextmenu_password_change_form_without_username() {
 
       info("waiting for dismissed password-change notification");
       await waitForDoorhanger(browser, "password-change");
+
       // Make sure confirmation hint was shown
-      await hintPromiseShown;
-      await verifyConfirmationHint(confirmationHint);
+      info("waiting for verifyConfirmationHint");
+      await hintShownAndVerified;
 
       info("waiting for addLogin");
       await storageChangedPromise;
@@ -982,10 +1114,11 @@ add_task(
           "passwordmgr-storage-changed",
           (_, data) => data == "addLogin"
         );
-        let confirmationHint = document.getElementById("confirmation-hint");
-        let hintPromiseShown = BrowserTestUtils.waitForEvent(
-          confirmationHint,
-          "popupshown"
+        // We don't need to wait to confirm the hint hides itelf every time
+        let forceClosePopup = true;
+        let hintShownAndVerified = verifyConfirmationHint(
+          browser,
+          forceClosePopup
         );
 
         info("waiting to fill generated password using context menu");
@@ -996,9 +1129,10 @@ add_task(
 
         info("waiting for dismissed password-change notification");
         await waitForDoorhanger(browser, "password-change");
+
         // Make sure confirmation hint was shown
-        await hintPromiseShown;
-        await verifyConfirmationHint(confirmationHint);
+        info("waiting for verifyConfirmationHint");
+        await hintShownAndVerified;
 
         info("waiting for addLogin");
         await storageChangedPromise;
@@ -1139,7 +1273,7 @@ add_task(async function autosaved_login_updated_to_existing_login_onsubmit() {
         selector: passwordInputSelector,
         expectedValue: "xyzpassword",
         setValue: "",
-        expectedMessage: "",
+        expectedMessage: "PasswordEditedOrGenerated",
       },
       username: {
         selector: usernameInputSelector,
@@ -1157,10 +1291,11 @@ add_task(async function autosaved_login_updated_to_existing_login_onsubmit() {
         "passwordmgr-storage-changed",
         (_, data) => data == "addLogin"
       );
-      let confirmationHint = document.getElementById("confirmation-hint");
-      let hintPromiseShown = BrowserTestUtils.waitForEvent(
-        confirmationHint,
-        "popupshown"
+      // We don't need to wait to confirm the hint hides itelf every time
+      let forceClosePopup = true;
+      let hintShownAndVerified = verifyConfirmationHint(
+        browser,
+        forceClosePopup
       );
 
       info("waiting to fill generated password using context menu");
@@ -1171,9 +1306,10 @@ add_task(async function autosaved_login_updated_to_existing_login_onsubmit() {
 
       info("waiting for dismissed password-change notification");
       await waitForDoorhanger(browser, "password-change");
+
       // Make sure confirmation hint was shown
-      await hintPromiseShown;
-      await verifyConfirmationHint(confirmationHint);
+      info("waiting for verifyConfirmationHint");
+      await hintShownAndVerified;
 
       info("waiting for addLogin");
       await storageChangedPromise;
@@ -1323,10 +1459,6 @@ add_task(async function form_change_from_autosaved_login_to_existing_login() {
   // * the metadata for the matching login should be updated
   // * the by-origin cache for the password should point at the autosaved login
 
-  await SpecialPowers.pushPrefEnv({
-    set: [["signon.passwordEditCapture.enabled", true]],
-  });
-
   await setup_withOneLogin("user1", "xyzpassword");
   await openFormInNewTab(
     TEST_ORIGIN + FORM_PAGE_PATH,
@@ -1353,10 +1485,11 @@ add_task(async function form_change_from_autosaved_login_to_existing_login() {
         "passwordmgr-storage-changed",
         (_, data) => data == "addLogin"
       );
-      let confirmationHint = document.getElementById("confirmation-hint");
-      let hintPromiseShown = BrowserTestUtils.waitForEvent(
-        confirmationHint,
-        "popupshown"
+      // We don't need to wait to confirm the hint hides itelf every time
+      let forceClosePopup = true;
+      let hintShownAndVerified = verifyConfirmationHint(
+        browser,
+        forceClosePopup
       );
 
       info("Filling generated password from AC menu");
@@ -1364,9 +1497,10 @@ add_task(async function form_change_from_autosaved_login_to_existing_login() {
 
       info("waiting for dismissed password-change notification");
       await waitForDoorhanger(browser, "password-change");
+
       // Make sure confirmation hint was shown
-      await hintPromiseShown;
-      await verifyConfirmationHint(confirmationHint);
+      info("waiting for verifyConfirmationHint");
+      await hintShownAndVerified;
 
       info("waiting for addLogin");
       await storageChangedPromise;
@@ -1431,13 +1565,14 @@ add_task(async function form_change_from_autosaved_login_to_existing_login() {
         "password-change"
       );
       let hintDidShow = false;
-      hintPromiseShown = BrowserTestUtils.waitForPopupEvent(
-        confirmationHint,
+      let hintPromiseShown = BrowserTestUtils.waitForPopupEvent(
+        document.getElementById("confirmation-hint"),
         "shown"
       );
       hintPromiseShown.then(() => (hintDidShow = true));
 
       info("Entering username and password for the previously saved login");
+
       await changeContentFormValues(browser, {
         [passwordInputSelector]: user1LoginSnapshot.password,
         [usernameInputSelector]: user1LoginSnapshot.username,
@@ -1518,5 +1653,182 @@ add_task(async function form_change_from_autosaved_login_to_existing_login() {
       );
     }
   );
-  await SpecialPowers.popPrefEnv();
+});
+
+add_task(async function form_edit_username_and_password_of_generated_login() {
+  // test when changing the username and then the password in a form with a generated password (bug 1625242)
+  // * the toast is not shown for the username change as the auto-saved login is not modified
+  // * the dismissed doorhanger for the username change has the correct username and password
+  // * the toast is shown for the change to the generated password
+  // * the dismissed doorhanger for the password change has the correct username and password
+
+  await setup_withNoLogins();
+  await openFormInNewTab(
+    TEST_ORIGIN + FORM_PAGE_PATH,
+    {},
+    async function taskFn(browser) {
+      await SimpleTest.promiseFocus(browser);
+
+      // first, create an auto-saved login with generated password
+      let storageChangedPromise = TestUtils.topicObserved(
+        "passwordmgr-storage-changed",
+        (_, data) => data == "addLogin"
+      );
+      // We don't need to wait to confirm the hint hides itelf every time
+      let forceClosePopup = true;
+      let hintShownAndVerified = verifyConfirmationHint(
+        browser,
+        forceClosePopup
+      );
+
+      info("Filling generated password from context menu");
+      // there's no new-password field in this form so we'll use the context menu
+      await doFillGeneratedPasswordContextMenuItem(
+        browser,
+        passwordInputSelector
+      );
+
+      info("waiting for dismissed password-change notification");
+      await waitForDoorhanger(browser, "password-change");
+
+      // Make sure confirmation hint was shown
+      info("waiting for verifyConfirmationHint");
+      await hintShownAndVerified;
+
+      info("waiting for addLogin");
+      await storageChangedPromise;
+      info("addLogin promise resolved");
+      // Check properties of the newly auto-saved login
+      let [autoSavedLoginSnapshot] = verifyLogins([
+        {
+          timesUsed: 1,
+          username: "",
+          passwordLength: LoginTestUtils.generation.LENGTH,
+        },
+      ]);
+
+      let notif = await openAndVerifyDoorhanger(browser, "password-change", {
+        dismissed: true,
+        anchorExtraAttr: "attention",
+        usernameValue: "",
+        password: autoSavedLoginSnapshot.password,
+      });
+
+      // close but don't remove the doorhanger, we want to ensure it is updated/replaced on further form edits
+      let promiseHidden = BrowserTestUtils.waitForEvent(
+        PopupNotifications.panel,
+        "popuphidden"
+      );
+      let PN = notif.owner;
+      PN.panel.hidePopup();
+      await promiseHidden;
+      await TestUtils.waitForTick();
+
+      // change the username then the password in the form
+      for (let {
+        fieldSelector,
+        fieldValue,
+        expectedConfirmation,
+        expectedDoorhangerUsername,
+        expectedDoorhangerPassword,
+        expectedDoorhangerType,
+      } of [
+        {
+          fieldSelector: usernameInputSelector,
+          fieldValue: "someuser",
+          expectedConfirmation: false,
+          expectedDoorhangerUsername: "someuser",
+          expectedDoorhangerPassword: autoSavedLoginSnapshot.password,
+          expectedDoorhangerType: "password-change",
+        },
+        {
+          fieldSelector: passwordInputSelector,
+          fieldValue: "!!",
+          expectedConfirmation: true,
+          expectedDoorhangerUsername: "someuser",
+          expectedDoorhangerPassword: autoSavedLoginSnapshot.password + "!!",
+          expectedDoorhangerType: "password-change",
+        },
+      ]) {
+        let loginModifiedPromise = expectedConfirmation
+          ? TestUtils.topicObserved(
+              "passwordmgr-storage-changed",
+              (_, data) => data == "modifyLogin"
+            )
+          : Promise.resolve();
+
+        // now edit the field value
+        let passwordEditedMessage = listenForTestNotification(
+          "PasswordEditedOrGenerated"
+        );
+        let passwordChangeDoorhangerPromise = waitForDoorhanger(
+          browser,
+          expectedDoorhangerType
+        );
+        let hintDidShow = false;
+        let hintPromiseShown = BrowserTestUtils.waitForPopupEvent(
+          document.getElementById("confirmation-hint"),
+          "shown"
+        );
+        hintPromiseShown.then(() => (hintDidShow = true));
+
+        info(`updating form: ${fieldSelector}: ${fieldValue}`);
+        await appendContentInputvalue(browser, fieldSelector, fieldValue);
+        info(
+          "form edited, waiting for test notification of PasswordEditedOrGenerated"
+        );
+        await passwordEditedMessage;
+        info(
+          "Resolved listenForTestNotification promise, waiting for doorhanger"
+        );
+        await passwordChangeDoorhangerPromise;
+        // wait for possible confirmation hint
+        try {
+          info("Waiting for hintDidShow");
+          await TestUtils.waitForCondition(
+            () => hintDidShow,
+            `Waiting for confirmationHint popup`,
+            undefined,
+            25
+          );
+        } catch (ex) {
+          info("Got expected timeout from the waitForCondition: " + ex);
+        } finally {
+          info("confirmationHint check done, assert on hintDidShow");
+          is(hintDidShow, expectedConfirmation, "Confirmation hint shown");
+        }
+        info(
+          "Waiting for loginModifiedPromise, expectedConfirmation? " +
+            expectedConfirmation
+        );
+        await loginModifiedPromise;
+
+        // the previous doorhanger would have old values, verify it was updated/replaced with new values from the form
+        info("Verifying the doorhanger");
+        notif = await openAndVerifyDoorhanger(browser, "password-change", {
+          dismissed: true,
+          anchorExtraAttr: expectedConfirmation ? "attention" : "",
+          usernameValue: expectedDoorhangerUsername,
+          passwordLength: expectedDoorhangerPassword.length,
+        });
+        await cleanupDoorhanger(notif);
+      }
+
+      // submit the form to verify we still get the right doorhanger values
+      let passwordChangeDoorhangerPromise = waitForDoorhanger(
+        browser,
+        "password-change"
+      );
+      await submitForm(browser);
+      info("form submitted, waiting for doorhanger");
+      await passwordChangeDoorhangerPromise;
+      notif = await openAndVerifyDoorhanger(browser, "password-change", {
+        dismissed: false,
+        anchorExtraAttr: "",
+        usernameValue: "someuser",
+        passwordLength: LoginTestUtils.generation.LENGTH + 2,
+      });
+      await cleanupDoorhanger(notif);
+    }
+  );
 });

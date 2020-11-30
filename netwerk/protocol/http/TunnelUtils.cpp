@@ -1157,23 +1157,29 @@ void SpdyConnectTransaction::ForcePlainText() {
   mForcePlainText = true;
 }
 
-void SpdyConnectTransaction::MapStreamToHttpConnection(
+bool SpdyConnectTransaction::MapStreamToHttpConnection(
     nsISocketTransport* aTransport, nsHttpConnectionInfo* aConnInfo,
-    int32_t httpResponseCode) {
+    const nsACString& aFlat407Headers, int32_t aHttpResponseCode) {
   MOZ_ASSERT(OnSocketThread());
 
-  mConnInfo = aConnInfo;
+  if (aHttpResponseCode >= 100 && aHttpResponseCode < 200) {
+    LOG(
+        ("SpdyConnectTransaction::MapStreamToHttpConnection %p skip "
+         "pre-response with response code %d",
+         this, aHttpResponseCode));
+    return false;
+  }
 
   mTunnelTransport = new SocketTransportShim(this, aTransport, mIsWebsocket);
   mTunnelStreamIn = new InputStreamShim(this, mIsWebsocket);
   mTunnelStreamOut = new OutputStreamShim(this, mIsWebsocket);
   mTunneledConn = new nsHttpConnection();
 
-  // If httpResponseCode is -1, it means that proxy connect is not used. We
+  // If aHttpResponseCode is -1, it means that proxy connect is not used. We
   // should not call HttpProxyResponseToErrorCode(), since this will create a
   // shim error.
-  if (httpResponseCode > 0 && httpResponseCode != 200) {
-    nsresult err = HttpProxyResponseToErrorCode(httpResponseCode);
+  if (aHttpResponseCode > 0 && aHttpResponseCode != 200) {
+    nsresult err = HttpProxyResponseToErrorCode(aHttpResponseCode);
     if (NS_FAILED(err)) {
       CreateShimError(err);
     }
@@ -1212,14 +1218,22 @@ void SpdyConnectTransaction::MapStreamToHttpConnection(
       gHttpHandler->ConnMgr()->MakeConnectionHandle(mTunneledConn);
   mDrivingTransaction->SetConnection(wrappedConn);
   mDrivingTransaction->MakeSticky();
-  mDrivingTransaction->OnProxyConnectComplete(httpResponseCode);
 
   if (!mIsWebsocket) {
+    mDrivingTransaction->OnProxyConnectComplete(aHttpResponseCode);
+
+    if (aHttpResponseCode == 407) {
+      mDrivingTransaction->SetFlat407Headers(aFlat407Headers);
+      mDrivingTransaction->SetProxyConnectFailed();
+    }
+
     // jump the priority and start the dispatcher
     Unused << gHttpHandler->InitiateTransaction(
         mDrivingTransaction, nsISupportsPriority::PRIORITY_HIGHEST - 60);
     mDrivingTransaction = nullptr;
   }
+
+  return true;
 }
 
 nsresult SpdyConnectTransaction::Flush(uint32_t count, uint32_t* countRead) {
@@ -1539,7 +1553,7 @@ class WebsocketHasDataToWrite final : public Runnable {
 
   NS_IMETHOD Run() override { return mShim->CallTransactionHasDataToWrite(); }
 
-  MOZ_MUST_USE nsresult Dispatch() {
+  [[nodiscard]] nsresult Dispatch() {
     if (OnSocketThread()) {
       return Run();
     }
@@ -1764,7 +1778,7 @@ class CheckAvailData final : public Runnable {
     return NS_OK;
   }
 
-  MOZ_MUST_USE nsresult Dispatch() {
+  [[nodiscard]] nsresult Dispatch() {
     // Dispatch the event even if we're on socket thread to avoid closing and
     // destructing Http2Session in case this call is comming from
     // Http2Session::ReadSegments() and the callback closes the transaction in
@@ -2048,6 +2062,14 @@ NS_IMETHODIMP
 SocketTransportShim::GetEsniUsed(bool* aEsniUsed) {
   if (mIsWebsocket) {
     LOG3(("WARNING: SocketTransportShim::GetEsniUsed %p", this));
+  }
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+SocketTransportShim::SetEchConfig(const nsACString& aEchConfig) {
+  if (mIsWebsocket) {
+    LOG3(("WARNING: SocketTransportShim::SetEchConfig %p", this));
   }
   return NS_ERROR_NOT_IMPLEMENTED;
 }

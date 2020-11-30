@@ -35,12 +35,12 @@ panelmultiview .toolbaritem-combined-buttons > spacer.before-label {
   margin-inline-start: 18px;
 }
 
-.subviewbutton:not(:-moz-any([image],[targetURI],.bookmark-item)) > .menu-iconic-left {
+.subviewbutton:not(:is([image],[targetURI],.bookmark-item)) > .menu-iconic-left {
   display: none;
 }
 
 #BMB_bookmarksPopup menupopup[placespopup=true]:-moz-lwtheme {
-  -moz-appearance: none;
+  appearance: none;
   background: transparent;
 }
 
@@ -53,11 +53,10 @@ panelmultiview .toolbaritem-combined-buttons > spacer.before-label {
   margin: 1px;
 }
 
-
 /* Override OSX-specific toolkit styles for the bookmarks panel */
 menu.subviewbutton > .menu-right {
   margin-inline-end: -4px;
-  -moz-appearance: none;
+  appearance: none;
 }
 
 .PanelUI-subView menuseparator,
@@ -70,12 +69,12 @@ menu.subviewbutton > .menu-right {
 }
 
 .PanelUI-remotetabs-notabsforclient-label {
-  margin-left: 19px;
+  margin-inline-start: 19px;
   font-size: 13px;
 }
 
 #PanelUI-remotetabs[mainview] .PanelUI-remotetabs-notabsforclient-label {
-  margin-left: 23px;
+  margin-inline-start: 23px;
 }
 
 #PanelUI-remotetabs-tabslist {
@@ -83,7 +82,7 @@ menu.subviewbutton > .menu-right {
 }
 
 .panel-button {
-  -moz-appearance: none;
+  appearance: none;
   border-radius: 2px;
   background-color: var(--arrowpanel-dimmed);
   color: inherit;

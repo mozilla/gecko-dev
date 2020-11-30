@@ -4,11 +4,9 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
-import hashlib
 import json
 import os
 import re
-import shutil
 import sys
 from collections import defaultdict
 
@@ -28,7 +26,6 @@ from taskgraph.taskgraph import TaskGraph
 here = os.path.abspath(os.path.dirname(__file__))
 build = MozbuildObject.from_environment(cwd=here)
 
-
 PARAMETER_MISMATCH = """
 ERROR - The parameters being used to generate tasks differ from those expected
 by your working copy:
@@ -41,36 +38,31 @@ https://firefox-source-docs.mozilla.org/taskcluster/taskcluster/mach.html#parame
 """
 
 
-def invalidate(cache, root):
-    if not os.path.isfile(cache):
-        return
+def invalidate(cache):
+    try:
+        cmod = os.path.getmtime(cache)
+    except OSError as e:
+        # File does not exist. We catch OSError rather than use `isfile`
+        # because the recommended watchman hook could possibly invalidate the
+        # cache in-between the check to `isfile` and the call to `getmtime`
+        # below.
+        if e.errno == 2:
+            return
+        raise
 
-    tc_dir = os.path.join(root, 'taskcluster')
+    tc_dir = os.path.join(build.topsrcdir, 'taskcluster')
     tmod = max(os.path.getmtime(os.path.join(tc_dir, p)) for p, _ in FileFinder(tc_dir))
-    cmod = os.path.getmtime(cache)
 
     if tmod > cmod:
         os.remove(cache)
 
 
-def generate_tasks(params=None, full=False):
-    # TODO: Remove after January 1st, 2020.
-    # Try to delete the old taskgraph cache directories.
-    root = build.topsrcdir
-    root_hash = hashlib.sha256(os.path.abspath(root)).hexdigest()
-    old_cache_dirs = [
-        os.path.join(get_state_dir(), 'cache', 'taskgraph'),
-        os.path.join(get_state_dir(), 'cache', root_hash, 'taskgraph'),
-    ]
-    for cache_dir in old_cache_dirs:
-        if os.path.isdir(cache_dir):
-            shutil.rmtree(cache_dir)
-
+def generate_tasks(params=None, full=False, disable_target_task_filter=False):
     cache_dir = os.path.join(get_state_dir(srcdir=True), 'cache', 'taskgraph')
     attr = 'full_task_set' if full else 'target_task_set'
     cache = os.path.join(cache_dir, attr)
 
-    invalidate(cache, root)
+    invalidate(cache)
     if os.path.isfile(cache):
         with open(cache, 'r') as fh:
             return TaskGraph.from_json(json.load(fh))[1]
@@ -82,10 +74,16 @@ def generate_tasks(params=None, full=False):
 
     taskgraph.fast = True
     cwd = os.getcwd()
-    os.chdir(root)
+    os.chdir(build.topsrcdir)
 
-    root = os.path.join(root, 'taskcluster', 'ci')
-    params = parameters_loader(params, strict=False, overrides={'try_mode': 'try_select'})
+    root = os.path.join(build.topsrcdir, 'taskcluster', 'ci')
+    target_tasks_method = ('try_select_tasks' if not disable_target_task_filter
+                           else 'try_select_tasks_uncommon')
+    params = parameters_loader(
+        params,
+        strict=False,
+        overrides={'try_mode': 'try_select', 'target_tasks_method': target_tasks_method}
+    )
 
     # Cache both full_task_set and target_task_set regardless of whether or not
     # --full was requested. Caching is cheap and can potentially save a lot of

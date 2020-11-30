@@ -44,6 +44,8 @@
 #include "nsIHttpHeaderVisitor.h"
 #include "nsQueryObject.h"
 #include "mozilla/StaticPrefs_network.h"
+#include "mozilla/StaticPrefs_dom.h"
+#include "mozilla/dom/nsHTTPSOnlyUtils.h"
 #include <algorithm>
 
 using namespace mozilla;
@@ -227,10 +229,8 @@ bool nsPreflightCache::CacheEntry::CheckRequest(
 
   struct CheckHeaderToken {
     bool Equals(const TokenTime& e, const nsCString& header) const {
-      return e.token.Equals(header, comparator);
+      return e.token.Equals(header, nsCaseInsensitiveCStringComparator);
     }
-
-    const nsCaseInsensitiveCStringComparator comparator{};
   } checker;
   for (uint32_t i = 0; i < aHeaders.Length(); ++i) {
     if (!mHeaders.Contains(aHeaders[i], checker)) {
@@ -536,8 +536,8 @@ nsresult nsCORSListenerProxy::CheckRequestApproved(nsIRequest* aRequest) {
     return rv;
   }
 
-  rv = http->GetResponseHeader(
-      NS_LITERAL_CSTRING("Access-Control-Allow-Origin"), allowedOriginHeader);
+  rv = http->GetResponseHeader("Access-Control-Allow-Origin"_ns,
+                               allowedOriginHeader);
   if (NS_FAILED(rv)) {
     LogBlockedRequest(aRequest, "CORSMissingAllowOrigin", nullptr,
                       nsILoadInfo::BLOCKING_REASON_CORSMISSINGALLOWORIGIN,
@@ -563,7 +563,7 @@ nsresult nsCORSListenerProxy::CheckRequestApproved(nsIRequest* aRequest) {
   if (mWithCredentials || !allowedOriginHeader.EqualsLiteral("*")) {
     MOZ_ASSERT(!nsContentUtils::IsExpandedPrincipal(mOriginHeaderPrincipal));
     nsAutoCString origin;
-    nsContentUtils::GetASCIIOrigin(mOriginHeaderPrincipal, origin);
+    mOriginHeaderPrincipal->GetAsciiOrigin(origin);
 
     if (!allowedOriginHeader.Equals(origin)) {
       LogBlockedRequest(
@@ -578,9 +578,8 @@ nsresult nsCORSListenerProxy::CheckRequestApproved(nsIRequest* aRequest) {
   // Check Access-Control-Allow-Credentials header
   if (mWithCredentials) {
     nsAutoCString allowCredentialsHeader;
-    rv = http->GetResponseHeader(
-        NS_LITERAL_CSTRING("Access-Control-Allow-Credentials"),
-        allowCredentialsHeader);
+    rv = http->GetResponseHeader("Access-Control-Allow-Credentials"_ns,
+                                 allowCredentialsHeader);
 
     if (!allowCredentialsHeader.EqualsLiteral("true")) {
       LogBlockedRequest(
@@ -736,8 +735,18 @@ nsCORSListenerProxy::AsyncOnChannelRedirect(
       }
     }
 
+    bool rewriteToGET = false;
+    nsCOMPtr<nsIHttpChannel> oldHttpChannel = do_QueryInterface(aOldChannel);
+    if (oldHttpChannel) {
+      nsAutoCString method;
+      Unused << oldHttpChannel->GetRequestMethod(method);
+      Unused << oldHttpChannel->ShouldStripRequestBodyHeader(method,
+                                                             &rewriteToGET);
+    }
+
     rv = UpdateChannel(aNewChannel, DataURIHandling::Disallow,
-                       UpdateType::Default);
+                       rewriteToGET ? UpdateType::StripRequestBodyHeader
+                                    : UpdateType::Default);
     if (NS_FAILED(rv)) {
       NS_WARNING(
           "nsCORSListenerProxy::AsyncOnChannelRedirect: "
@@ -774,17 +783,17 @@ nsCORSListenerProxy::CheckListenerChain() {
   return retargetableListener->CheckListenerChain();
 }
 
-// Please note that the CSP directive 'upgrade-insecure-requests' relies
-// on the promise that channels get updated from http: to https: before
-// the channel fetches any data from the netwerk. Such channels should
-// not be blocked by CORS and marked as cross origin requests. E.g.:
-// toplevel page: https://www.example.com loads
-//           xhr: http://www.example.com/foo which gets updated to
-//                https://www.example.com/foo
+// Please note that the CSP directive 'upgrade-insecure-requests' and the
+// HTTPS-Only Mode are relying on the promise that channels get updated from
+// http: to https: before the channel fetches any data from the netwerk. Such
+// channels should not be blocked by CORS and marked as cross origin requests.
+// E.g.: toplevel page: https://www.example.com loads
+//                 xhr: http://www.example.com/foo which gets updated to
+//                      https://www.example.com/foo
 // In such a case we should bail out of CORS and rely on the promise that
 // nsHttpChannel::Connect() upgrades the request from http to https.
-bool CheckUpgradeInsecureRequestsPreventsCORS(
-    nsIPrincipal* aRequestingPrincipal, nsIChannel* aChannel) {
+bool CheckInsecureUpgradePreventsCORS(nsIPrincipal* aRequestingPrincipal,
+                                      nsIChannel* aChannel) {
   nsCOMPtr<nsIURI> channelURI;
   nsresult rv = NS_GetFinalChannelURI(aChannel, getter_AddRefs(channelURI));
   NS_ENSURE_SUCCESS(rv, false);
@@ -817,11 +826,7 @@ bool CheckUpgradeInsecureRequestsPreventsCORS(
     return false;
   }
 
-  nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
-  // lets see if the loadInfo indicates that the request will
-  // be upgraded before fetching any data from the netwerk.
-  return loadInfo->GetUpgradeInsecureRequests() ||
-         loadInfo->GetBrowserUpgradeInsecureRequests();
+  return true;
 }
 
 nsresult nsCORSListenerProxy::UpdateChannel(nsIChannel* aChannel,
@@ -879,16 +884,24 @@ nsresult nsCORSListenerProxy::UpdateChannel(nsIChannel* aChannel,
     return NS_OK;
   }
 
-  // if the CSP directive 'upgrade-insecure-requests' is used then we should
-  // not incorrectly require CORS if the only difference of a subresource
-  // request and the main page is the scheme.
-  // e.g. toplevel page: https://www.example.com loads
-  //                xhr: http://www.example.com/somefoo,
+  // If the CSP directive 'upgrade-insecure-requests' is used or the HTTPS-Only
+  // Mode is enabled then we should not incorrectly require CORS if the only
+  // difference of a subresource request and the main page is the scheme. e.g.
+  // toplevel page: https://www.example.com loads
+  //           xhr: http://www.example.com/somefoo,
   // then the xhr request will be upgraded to https before it fetches any data
   // from the netwerk, hence we shouldn't require CORS in that specific case.
-  if (CheckUpgradeInsecureRequestsPreventsCORS(mRequestingPrincipal,
-                                               aChannel)) {
-    return NS_OK;
+  if (CheckInsecureUpgradePreventsCORS(mRequestingPrincipal, aChannel)) {
+    // Check if https-only mode upgrades this later anyway
+    nsCOMPtr<nsILoadInfo> loadinfo = aChannel->LoadInfo();
+    if (nsHTTPSOnlyUtils::IsSafeToAcceptCORSOrMixedContent(loadinfo)) {
+      return NS_OK;
+    }
+    // Check if 'upgrade-insecure-requests' is used
+    if (loadInfo->GetUpgradeInsecureRequests() ||
+        loadInfo->GetBrowserUpgradeInsecureRequests()) {
+      return NS_OK;
+    }
   }
 
   // Check if we need to do a preflight, and if so set one up. This must be
@@ -956,7 +969,7 @@ nsresult nsCORSListenerProxy::CheckPreflightNeeded(nsIChannel* aChannel,
   // then we shouldn't initiate preflight for this channel.
   nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
   if (loadInfo->GetSecurityMode() !=
-          nsILoadInfo::SEC_REQUIRE_CORS_DATA_INHERITS ||
+          nsILoadInfo::SEC_REQUIRE_CORS_INHERITS_SEC_CONTEXT ||
       loadInfo->GetIsPreflight()) {
     return NS_OK;
   }
@@ -988,16 +1001,15 @@ nsresult nsCORSListenerProxy::CheckPreflightNeeded(nsIChannel* aChannel,
   // Add Content-Type header if needed
   nsTArray<nsCString> headers;
   nsAutoCString contentTypeHeader;
-  nsresult rv = http->GetRequestHeader(NS_LITERAL_CSTRING("Content-Type"),
-                                       contentTypeHeader);
+  nsresult rv = http->GetRequestHeader("Content-Type"_ns, contentTypeHeader);
   // GetRequestHeader return an error if the header is not set. Don't add
   // "content-type" to the list if that's the case.
   if (NS_SUCCEEDED(rv) &&
       !nsContentUtils::IsAllowedNonCorsContentType(contentTypeHeader) &&
-      !loadInfoHeaders.Contains(NS_LITERAL_CSTRING("content-type"),
+      !loadInfoHeaders.Contains("content-type"_ns,
                                 nsCaseInsensitiveCStringArrayComparator())) {
     headers.AppendElements(loadInfoHeaders);
-    headers.AppendElement(NS_LITERAL_CSTRING("content-type"));
+    headers.AppendElement("content-type"_ns);
     doPreflight = true;
   }
 
@@ -1013,8 +1025,9 @@ nsresult nsCORSListenerProxy::CheckPreflightNeeded(nsIChannel* aChannel,
     return NS_ERROR_DOM_BAD_URI;
   }
 
-  internal->SetCorsPreflightParameters(headers.IsEmpty() ? loadInfoHeaders
-                                                         : headers);
+  internal->SetCorsPreflightParameters(
+      headers.IsEmpty() ? loadInfoHeaders : headers,
+      aUpdateType == UpdateType::StripRequestBodyHeader);
 
   return NS_OK;
 }
@@ -1034,7 +1047,7 @@ class nsCORSPreflightListener final : public nsIStreamListener,
                           const nsCString& aPreflightMethod,
                           const nsTArray<nsCString>& aPreflightHeaders)
       : mPreflightMethod(aPreflightMethod),
-        mPreflightHeaders(aPreflightHeaders),
+        mPreflightHeaders(aPreflightHeaders.Clone()),
         mReferrerPrincipal(aReferrerPrincipal),
         mCallback(aCallback),
         mLoadContext(aLoadContext),
@@ -1072,8 +1085,7 @@ void nsCORSPreflightListener::AddResultToCache(nsIRequest* aRequest) {
   // The "Access-Control-Max-Age" header should return an age in seconds.
   nsAutoCString headerVal;
   uint32_t age = 0;
-  Unused << http->GetResponseHeader(
-      NS_LITERAL_CSTRING("Access-Control-Max-Age"), headerVal);
+  Unused << http->GetResponseHeader("Access-Control-Max-Age"_ns, headerVal);
   if (headerVal.IsEmpty()) {
     age = PREFLIGHT_DEFAULT_EXPIRY_SECONDS;
   } else {
@@ -1116,8 +1128,8 @@ void nsCORSPreflightListener::AddResultToCache(nsIRequest* aRequest) {
 
   // The "Access-Control-Allow-Methods" header contains a comma separated
   // list of method names.
-  Unused << http->GetResponseHeader(
-      NS_LITERAL_CSTRING("Access-Control-Allow-Methods"), headerVal);
+  Unused << http->GetResponseHeader("Access-Control-Allow-Methods"_ns,
+                                    headerVal);
 
   nsCCharSeparatedTokenizer methods(headerVal, ',');
   while (methods.hasMoreTokens()) {
@@ -1145,8 +1157,8 @@ void nsCORSPreflightListener::AddResultToCache(nsIRequest* aRequest) {
 
   // The "Access-Control-Allow-Headers" header contains a comma separated
   // list of method names.
-  Unused << http->GetResponseHeader(
-      NS_LITERAL_CSTRING("Access-Control-Allow-Headers"), headerVal);
+  Unused << http->GetResponseHeader("Access-Control-Allow-Headers"_ns,
+                                    headerVal);
 
   nsCCharSeparatedTokenizer headers(headerVal, ',');
   while (headers.hasMoreTokens()) {
@@ -1258,8 +1270,8 @@ nsresult nsCORSPreflightListener::CheckPreflightRequestApproved(
   nsAutoCString headerVal;
   // The "Access-Control-Allow-Methods" header contains a comma separated
   // list of method names.
-  Unused << http->GetResponseHeader(
-      NS_LITERAL_CSTRING("Access-Control-Allow-Methods"), headerVal);
+  Unused << http->GetResponseHeader("Access-Control-Allow-Methods"_ns,
+                                    headerVal);
   bool foundMethod = mPreflightMethod.EqualsLiteral("GET") ||
                      mPreflightMethod.EqualsLiteral("HEAD") ||
                      mPreflightMethod.EqualsLiteral("POST");
@@ -1292,8 +1304,8 @@ nsresult nsCORSPreflightListener::CheckPreflightRequestApproved(
 
   // The "Access-Control-Allow-Headers" header contains a comma separated
   // list of header names.
-  Unused << http->GetResponseHeader(
-      NS_LITERAL_CSTRING("Access-Control-Allow-Headers"), headerVal);
+  Unused << http->GetResponseHeader("Access-Control-Allow-Headers"_ns,
+                                    headerVal);
   nsTArray<nsCString> headers;
   nsCCharSeparatedTokenizer headerTokens(headerVal, ',');
   bool allowAllHeaders = false;
@@ -1376,10 +1388,10 @@ nsresult nsCORSListenerProxy::StartCORSPreflight(
 
   nsCOMPtr<nsILoadInfo> originalLoadInfo = aRequestChannel->LoadInfo();
   MOZ_ASSERT(originalLoadInfo->GetSecurityMode() ==
-                 nsILoadInfo::SEC_REQUIRE_CORS_DATA_INHERITS,
+                 nsILoadInfo::SEC_REQUIRE_CORS_INHERITS_SEC_CONTEXT,
              "how did we end up here?");
 
-  nsCOMPtr<nsIPrincipal> principal = originalLoadInfo->LoadingPrincipal();
+  nsCOMPtr<nsIPrincipal> principal = originalLoadInfo->GetLoadingPrincipal();
   MOZ_ASSERT(principal && originalLoadInfo->GetExternalContentPolicyType() !=
                               nsIContentPolicy::TYPE_DOCUMENT,
              "Should not do CORS loads for top-level loads, so a "
@@ -1444,11 +1456,11 @@ nsresult nsCORSListenerProxy::StartCORSPreflight(
   nsCOMPtr<nsIHttpChannel> preHttp = do_QueryInterface(preflightChannel);
   NS_ASSERTION(preHttp, "Failed to QI to nsIHttpChannel!");
 
-  rv = preHttp->SetRequestMethod(NS_LITERAL_CSTRING("OPTIONS"));
+  rv = preHttp->SetRequestMethod("OPTIONS"_ns);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = preHttp->SetRequestHeader(
-      NS_LITERAL_CSTRING("Access-Control-Request-Method"), method, false);
+  rv = preHttp->SetRequestHeader("Access-Control-Request-Method"_ns, method,
+                                 false);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Set the CORS preflight channel's warning reporter to be the same as the
@@ -1474,8 +1486,8 @@ nsresult nsCORSListenerProxy::StartCORSPreflight(
       }
       headers += preflightHeaders[i];
     }
-    rv = preHttp->SetRequestHeader(
-        NS_LITERAL_CSTRING("Access-Control-Request-Headers"), headers, false);
+    rv = preHttp->SetRequestHeader("Access-Control-Request-Headers"_ns, headers,
+                                   false);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -1538,19 +1550,19 @@ void nsCORSListenerProxy::LogBlockedCORSRequest(uint64_t aInnerWindowID,
   // the error to the browser console.
   if (aInnerWindowID > 0) {
     rv = scriptError->InitWithSanitizedSource(aMessage,
-                                              EmptyString(),  // sourceName
-                                              EmptyString(),  // sourceLine
-                                              0,              // lineNumber
-                                              0,              // columnNumber
+                                              u""_ns,  // sourceName
+                                              u""_ns,  // sourceLine
+                                              0,       // lineNumber
+                                              0,       // columnNumber
                                               nsIScriptError::errorFlag,
                                               aCategory, aInnerWindowID);
   } else {
     nsCString category = PromiseFlatCString(aCategory);
     rv = scriptError->Init(aMessage,
-                           EmptyString(),  // sourceName
-                           EmptyString(),  // sourceLine
-                           0,              // lineNumber
-                           0,              // columnNumber
+                           u""_ns,  // sourceName
+                           u""_ns,  // sourceLine
+                           0,       // lineNumber
+                           0,       // columnNumber
                            nsIScriptError::errorFlag, category.get(),
                            aPrivateBrowsing,
                            aFromChromeContext);  // From chrome context

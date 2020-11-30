@@ -2,12 +2,63 @@ import json
 import select
 
 from six import text_type, PY3
+from six.moves.collections_abc import Mapping
 from six.moves.http_client import HTTPConnection
 from six.moves.urllib import parse as urlparse
 
 from . import error
 
 """Implements HTTP transport for the WebDriver wire protocol."""
+
+
+missing = object()
+
+
+class ResponseHeaders(Mapping):
+    """Read-only dictionary-like API for accessing response headers.
+
+    This class:
+      * Normalizes the header keys it is built with to lowercase (such that
+        iterating the items will return lowercase header keys).
+      * Has case-insensitive header lookup.
+      * Always returns all header values that have the same name, separated by
+        commas.
+
+    It does not ensure header types (e.g. binary vs string).
+    """
+    def __init__(self, items):
+        self.headers_dict = {}
+        for key, value in items:
+            key = key.lower()
+            if key not in self.headers_dict:
+                self.headers_dict[key] = []
+            self.headers_dict[key].append(value)
+
+    def __getitem__(self, key):
+        """Get all headers of a certain (case-insensitive) name. If there is
+        more than one, the values are returned comma separated"""
+        values = self.headers_dict[key.lower()]
+        if len(values) == 1:
+            return values[0]
+        else:
+            return ", ".join(values)
+
+    def get_list(self, key, default=missing):
+        """Get all the header values for a particular field name as a list"""
+        try:
+            return self.headers_dict[key.lower()]
+        except KeyError:
+            if default is not missing:
+                return default
+            else:
+                raise
+
+    def __iter__(self):
+        for item in self.headers_dict:
+            yield item
+
+    def __len__(self):
+        return len(self.headers_dict)
 
 
 class Response(object):
@@ -40,7 +91,7 @@ class Response(object):
     def from_http(cls, http_response, decoder=json.JSONDecoder, **kwargs):
         try:
             body = json.load(http_response, cls=decoder, **kwargs)
-            headers = dict(http_response.getheaders())
+            headers = ResponseHeaders(http_response.getheaders())
         except ValueError:
             raise ValueError("Failed to decode response body as JSON:\n" +
                 http_response.read())
@@ -103,9 +154,8 @@ class HTTPWireProtocol(object):
             conn_kwargs = {}
             if not PY3:
                 conn_kwargs["strict"] = True
-            # We are not setting an HTTP timeout other than the default
-            # because the timeouts are handled externally by the runner
-            # and can be different for each type of test.
+            # We are not setting an HTTP timeout other than the default when the
+            # connection its created. The send method has a timeout value if needed.
             self._conn = HTTPConnection(self.host, self.port, **conn_kwargs)
 
         return self._conn
@@ -124,6 +174,7 @@ class HTTPWireProtocol(object):
              headers=None,
              encoder=json.JSONEncoder,
              decoder=json.JSONDecoder,
+             timeout=None,
              **codec_kwargs):
         """
         Send a command to the remote.
@@ -179,13 +230,13 @@ class HTTPWireProtocol(object):
         # runner thread. We use the boolean below to check for that and restart
         # the connection in that case.
         self._last_request_is_blocked = True
-        response = self._request(method, uri, payload, headers)
+        response = self._request(method, uri, payload, headers, timeout=None)
         self._last_request_is_blocked = False
         return Response.from_http(response, decoder=decoder, **codec_kwargs)
 
-    def _request(self, method, uri, payload, headers=None):
+    def _request(self, method, uri, payload, headers=None, timeout=None):
         if isinstance(payload, text_type):
-            payload = body.encode("utf-8")
+            payload = payload.encode("utf-8")
 
         if headers is None:
             headers = {}
@@ -195,8 +246,21 @@ class HTTPWireProtocol(object):
 
         if self._last_request_is_blocked or self._has_unread_data():
             self.close()
+
         self.connection.request(method, url, payload, headers)
-        return self.connection.getresponse()
+
+        # timeout for request has to be set just before calling httplib.getresponse()
+        # and the previous value restored just after that, even on exception raised
+        try:
+            if timeout:
+                previous_timeout = self._conn.gettimeout()
+                self._conn.settimeout(timeout)
+            response = self.connection.getresponse()
+        finally:
+            if timeout:
+                self._conn.settimeout(previous_timeout)
+
+        return response
 
     def _has_unread_data(self):
         return self._conn and self._conn.sock and select.select([self._conn.sock], [], [], 0)[0]

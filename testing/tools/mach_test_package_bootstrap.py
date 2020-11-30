@@ -12,6 +12,7 @@ import types
 
 
 SEARCH_PATHS = [
+    'gtest',
     'marionette/client',
     'marionette/harness',
     'mochitest',
@@ -20,6 +21,7 @@ SEARCH_PATHS = [
     'mozbase/mozdebug',
     'mozbase/mozdevice',
     'mozbase/mozfile',
+    'mozbase/mozgeckoprofile',
     'mozbase/mozhttpd',
     'mozbase/mozinfo',
     'mozbase/mozinstall',
@@ -46,6 +48,7 @@ SEARCH_PATHS = [
 
 # Individual files providing mach commands.
 MACH_MODULES = [
+    'gtest/mach_test_package_commands.py',
     'marionette/mach_test_package_commands.py',
     'mochitest/mach_test_package_commands.py',
     'reftest/mach_test_package_commands.py',
@@ -188,17 +191,25 @@ def bootstrap(test_package_root):
     import mach.main
 
     def populate_context(context, key=None):
-        if key is None:
-            context.package_root = test_package_root
-            context.bin_dir = os.path.join(test_package_root, 'bin')
-            context.certs_dir = os.path.join(test_package_root, 'certs')
-            context.module_dir = os.path.join(test_package_root, 'modules')
-            context.ancestors = ancestors
-            context.normalize_test_path = normalize_test_path
-            return
+        # These values will be set lazily, and cached after first being invoked.
+        if key == "package_root":
+            return test_package_root
 
-        # The values for the following 'key's will be set lazily, and cached
-        # after first being invoked.
+        if key == "bin_dir":
+            return os.path.join(test_package_root, 'bin')
+
+        if key == "certs_dir":
+            return os.path.join(test_package_root, 'certs')
+
+        if key == "module_dir":
+            return os.path.join(test_package_root, 'modules')
+
+        if key == "ancestors":
+            return ancestors
+
+        if key == "normalize_test_path":
+            return normalize_test_path
+
         if key == 'firefox_bin':
             return find_firefox(context)
 

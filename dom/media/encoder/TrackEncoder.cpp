@@ -20,11 +20,10 @@ LazyLogModule gTrackEncoderLog("TrackEncoder");
 #define TRACK_LOG(type, msg) MOZ_LOG(gTrackEncoderLog, type, msg)
 
 static const int DEFAULT_CHANNELS = 1;
-static const int DEFAULT_SAMPLING_RATE = 16000;
 static const int DEFAULT_FRAME_WIDTH = 640;
 static const int DEFAULT_FRAME_HEIGHT = 480;
-// 1 second threshold if the audio encoder cannot be initialized.
-static const int AUDIO_INIT_FAILED_DURATION = 1;
+// 10 second threshold if the audio encoder cannot be initialized.
+static const int AUDIO_INIT_FAILED_DURATION = 10;
 // 30 second threshold if the video encoder cannot be initialized.
 static const int VIDEO_INIT_FAILED_DURATION = 30;
 // A maximal key frame interval allowed to set.
@@ -33,7 +32,6 @@ static const unsigned int DEFAULT_KEYFRAME_INTERVAL_MS = 1000;
 
 TrackEncoder::TrackEncoder(TrackRate aTrackRate)
     : mEncodingComplete(false),
-      mEosSetInEncoder(false),
       mInitialized(false),
       mEndOfStream(false),
       mCanceled(false),
@@ -60,8 +58,7 @@ void TrackEncoder::SetInitialized() {
 
   mInitialized = true;
 
-  auto listeners(mListeners);
-  for (auto& l : listeners) {
+  for (auto& l : mListeners.Clone()) {
     l->Initialized(this);
   }
 }
@@ -69,8 +66,7 @@ void TrackEncoder::SetInitialized() {
 void TrackEncoder::OnDataAvailable() {
   MOZ_ASSERT(!mWorkerThread || mWorkerThread->IsCurrentThreadIn());
 
-  auto listeners(mListeners);
-  for (auto& l : listeners) {
+  for (auto& l : mListeners.Clone()) {
     l->DataAvailable(this);
   }
 }
@@ -80,8 +76,7 @@ void TrackEncoder::OnError() {
 
   Cancel();
 
-  auto listeners(mListeners);
-  for (auto& l : listeners) {
+  for (auto& l : mListeners.Clone()) {
     l->Error(this);
   }
 }
@@ -146,7 +141,8 @@ void AudioTrackEncoder::AppendAudioSegment(AudioSegment&& aSegment) {
     mOutgoingBuffer.AppendFrom(&aSegment);
   }
 
-  if (mInitialized && mOutgoingBuffer.GetDuration() >= GetPacketDuration()) {
+  if (mInitialized &&
+      mOutgoingBuffer.GetDuration() >= NumInputFramesPerPacket()) {
     OnDataAvailable();
   }
 }
@@ -182,7 +178,7 @@ void AudioTrackEncoder::TryInit(const AudioSegment& aSegment,
       continue;
     }
 
-    nsresult rv = Init(iter->mChannelData.Length(), mTrackRate);
+    nsresult rv = Init(iter->mChannelData.Length());
 
     if (NS_SUCCEEDED(rv)) {
       TRACK_LOG(LogLevel::Info,
@@ -200,16 +196,15 @@ void AudioTrackEncoder::TryInit(const AudioSegment& aSegment,
 
   mNotInitDuration += aDuration;
   if (!mInitialized &&
-      (mNotInitDuration / mTrackRate > AUDIO_INIT_FAILED_DURATION) &&
+      ((mNotInitDuration - 1) / mTrackRate >= AUDIO_INIT_FAILED_DURATION) &&
       mInitCounter > 1) {
     // Perform a best effort initialization since we haven't gotten any
     // data yet. Motivated by issues like Bug 1336367
     TRACK_LOG(LogLevel::Warning,
-              ("[AudioTrackEncoder]: Initialize failed "
-               "for %ds. Attempting to init with %d "
-               "(default) channels!",
+              ("[AudioTrackEncoder]: Initialize failed for %ds. Attempting to "
+               "init with %d (default) channels!",
                AUDIO_INIT_FAILED_DURATION, DEFAULT_CHANNELS));
-    nsresult rv = Init(DEFAULT_CHANNELS, mTrackRate);
+    nsresult rv = Init(DEFAULT_CHANNELS);
     Telemetry::Accumulate(
         Telemetry::MEDIA_RECORDER_TRACK_ENCODER_INIT_TIMEOUT_TYPE, 0);
     if (NS_FAILED(rv)) {
@@ -235,8 +230,8 @@ void AudioTrackEncoder::NotifyEndOfStream() {
 
   if (!mCanceled && !mInitialized) {
     // If source audio track is completely silent till the end of encoding,
-    // initialize the encoder with default channel counts and sampling rate.
-    Init(DEFAULT_CHANNELS, DEFAULT_SAMPLING_RATE);
+    // initialize the encoder with a default channel count.
+    Init(DEFAULT_CHANNELS);
   }
 
   mEndOfStream = true;

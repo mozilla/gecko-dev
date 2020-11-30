@@ -4,20 +4,33 @@
 
 "use strict";
 
-const CC = Components.Constructor;
+const EXPORTED_SYMBOLS = ["DebuggerTransport"];
 
-const { EventEmitter } = ChromeUtils.import(
-  "resource://gre/modules/EventEmitter.jsm"
+const { XPCOMUtils } = ChromeUtils.import(
+  "resource://gre/modules/XPCOMUtils.jsm"
 );
-const { StreamUtils } = ChromeUtils.import(
-  "chrome://marionette/content/stream-utils.js"
-);
-const { BulkPacket, JSONPacket, Packet } = ChromeUtils.import(
-  "chrome://marionette/content/packets.js"
-);
-const { executeSoon } = ChromeUtils.import(
-  "chrome://marionette/content/sync.js"
-);
+
+XPCOMUtils.defineLazyModuleGetters(this, {
+  EventEmitter: "resource://gre/modules/EventEmitter.jsm",
+
+  BulkPacket: "chrome://marionette/content/packets.js",
+  executeSoon: "chrome://marionette/content/sync.js",
+  JSONPacket: "chrome://marionette/content/packets.js",
+  Packet: "chrome://marionette/content/packets.js",
+  StreamUtils: "chrome://marionette/content/stream-utils.js",
+});
+
+XPCOMUtils.defineLazyGetter(this, "Pipe", () => {
+  return Components.Constructor("@mozilla.org/pipe;1", "nsIPipe", "init");
+});
+
+XPCOMUtils.defineLazyGetter(this, "ScriptableInputStream", () => {
+  return Components.Constructor(
+    "@mozilla.org/scriptableinputstream;1",
+    "nsIScriptableInputStream",
+    "init"
+  );
+});
 
 const flags = { wantVerbose: false, wantLogging: false };
 
@@ -26,16 +39,6 @@ const dumpv = flags.wantVerbose
       dump(msg + "\n");
     }
   : function() {};
-
-const Pipe = CC("@mozilla.org/pipe;1", "nsIPipe", "init");
-
-const ScriptableInputStream = CC(
-  "@mozilla.org/scriptableinputstream;1",
-  "nsIScriptableInputStream",
-  "init"
-);
-
-this.EXPORTED_SYMBOLS = ["DebuggerTransport"];
 
 const PACKET_HEADER_MAX = 200;
 

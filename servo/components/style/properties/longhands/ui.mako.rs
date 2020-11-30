@@ -27,8 +27,6 @@ ${helpers.single_keyword(
     engines="gecko",
     gecko_enum_prefix="StyleScrollbarWidth",
     animation_value_type="discrete",
-    gecko_pref="layout.css.scrollbar-width.enabled",
-    enabled_in="chrome",
     spec="https://drafts.csswg.org/css-scrollbars-1/#scrollbar-width"
 )}
 
@@ -56,7 +54,7 @@ ${helpers.single_keyword(
 
 ${helpers.single_keyword(
     "-moz-window-shadow",
-    "none default menu tooltip sheet",
+    "default none menu tooltip sheet",
     engines="gecko",
     gecko_ffi_name="mWindowShadow",
     gecko_enum_prefix="StyleWindowShadow",

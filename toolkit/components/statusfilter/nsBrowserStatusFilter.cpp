@@ -4,7 +4,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsBrowserStatusFilter.h"
-#include "mozilla/SystemGroup.h"
 #include "nsITimer.h"
 #include "nsString.h"
 #include "nsThreadUtils.h"
@@ -69,20 +68,6 @@ nsBrowserStatusFilter::RemoveProgressListener(
 NS_IMETHODIMP
 nsBrowserStatusFilter::GetDOMWindow(mozIDOMWindowProxy** aResult) {
   MOZ_ASSERT_UNREACHABLE("nsBrowserStatusFilter::GetDOMWindow");
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-nsBrowserStatusFilter::GetDOMWindowID(uint64_t* aResult) {
-  *aResult = 0;
-  MOZ_ASSERT_UNREACHABLE("nsBrowserStatusFilter::GetDOMWindowID");
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-nsBrowserStatusFilter::GetInnerDOMWindowID(uint64_t* aResult) {
-  *aResult = 0;
-  MOZ_ASSERT_UNREACHABLE("nsBrowserStatusFilter::GetInnerDOMWindowID");
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 

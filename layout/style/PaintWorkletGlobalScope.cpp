@@ -22,6 +22,14 @@ PaintWorkletGlobalScope::PaintWorkletGlobalScope(PaintWorkletImpl* aImpl)
 bool PaintWorkletGlobalScope::WrapGlobalObject(
     JSContext* aCx, JS::MutableHandle<JSObject*> aReflector) {
   JS::RealmOptions options;
+
+  // The SharedArrayBuffer global constructor property should not be present in
+  // a fresh global object when shared memory objects aren't allowed (because
+  // COOP/COEP support isn't enabled, or because COOP/COEP don't act to isolate
+  // this worker to a separate process).
+  options.creationOptions().setDefineSharedArrayBufferConstructor(
+      IsSharedMemoryAllowed());
+
   JS::AutoHoldPrincipals principals(aCx, new WorkletPrincipals(mImpl));
   return PaintWorkletGlobalScope_Binding::Wrap(
       aCx, this, this, options, principals.get(), true, aReflector);

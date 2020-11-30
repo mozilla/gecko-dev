@@ -5,6 +5,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/HTMLOptionElement.h"
+
+#include "HTMLOptGroupElement.h"
 #include "mozilla/dom/HTMLOptionElementBinding.h"
 #include "mozilla/dom/HTMLSelectElement.h"
 #include "nsGkAtoms.h"
@@ -133,7 +135,9 @@ nsChangeHint HTMLOptionElement::GetAttributeChangeHint(const nsAtom* aAttribute,
   nsChangeHint retval =
       nsGenericHTMLElement::GetAttributeChangeHint(aAttribute, aModType);
 
-  if (aAttribute == nsGkAtoms::label || aAttribute == nsGkAtoms::text) {
+  if (aAttribute == nsGkAtoms::label) {
+    retval |= nsChangeHint_ReconstructFrame;
+  } else if (aAttribute == nsGkAtoms::text) {
     retval |= NS_STYLE_HINT_REFLOW;
   }
   return retval;
@@ -306,12 +310,14 @@ already_AddRefed<HTMLOptionElement> HTMLOptionElement::Option(
   RefPtr<mozilla::dom::NodeInfo> nodeInfo = doc->NodeInfoManager()->GetNodeInfo(
       nsGkAtoms::option, nullptr, kNameSpaceID_XHTML, ELEMENT_NODE);
 
-  RefPtr<HTMLOptionElement> option = new HTMLOptionElement(nodeInfo.forget());
+  auto* nim = nodeInfo->NodeInfoManager();
+  RefPtr<HTMLOptionElement> option =
+      new (nim) HTMLOptionElement(nodeInfo.forget());
 
   if (!aText.IsEmpty()) {
     // Create a new text node and append it to the option
-    RefPtr<nsTextNode> textContent =
-        new nsTextNode(option->NodeInfo()->NodeInfoManager());
+    RefPtr<nsTextNode> textContent = new (option->NodeInfo()->NodeInfoManager())
+        nsTextNode(option->NodeInfo()->NodeInfoManager());
 
     textContent->SetText(aText, false);
 
@@ -334,8 +340,8 @@ already_AddRefed<HTMLOptionElement> HTMLOptionElement::Option(
   if (aDefaultSelected) {
     // We're calling SetAttr directly because we want to pass
     // aNotify == false.
-    aError = option->SetAttr(kNameSpaceID_None, nsGkAtoms::selected,
-                             EmptyString(), false);
+    aError =
+        option->SetAttr(kNameSpaceID_None, nsGkAtoms::selected, u""_ns, false);
     if (aError.Failed()) {
       return nullptr;
     }

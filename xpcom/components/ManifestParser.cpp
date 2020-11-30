@@ -24,6 +24,7 @@
 
 #ifdef MOZ_WIDGET_ANDROID
 #  include "AndroidBridge.h"
+#  include "mozilla/java/GeckoAppShellWrappers.h"
 #endif
 
 #include "mozilla/Services.h"
@@ -155,11 +156,11 @@ void LogMessageWithContext(FileLocation& aFile, uint32_t aLineNumber,
     return;
   }
 
-  nsresult rv = error->Init(
-      NS_ConvertUTF8toUTF16(formatted.get()), NS_ConvertUTF8toUTF16(file),
-      EmptyString(), aLineNumber, 0, nsIScriptError::warningFlag,
-      "chrome registration", false /* from private window */,
-      true /* from chrome context */);
+  nsresult rv = error->Init(NS_ConvertUTF8toUTF16(formatted.get()),
+                            NS_ConvertUTF8toUTF16(file), u""_ns, aLineNumber, 0,
+                            nsIScriptError::warningFlag, "chrome registration",
+                            false /* from private window */,
+                            true /* from chrome context */);
   if (NS_FAILED(rv)) {
     return;
   }
@@ -269,8 +270,7 @@ static bool CheckOsFlag(const nsAString& aFlag, const nsAString& aData,
   bool result = CheckStringFlag(aFlag, aData, aValue, aResult);
 #if defined(XP_UNIX) && !defined(XP_DARWIN) && !defined(ANDROID)
   if (result && aResult == eBad) {
-    result =
-        CheckStringFlag(aFlag, aData, NS_LITERAL_STRING("likeunix"), aResult);
+    result = CheckStringFlag(aFlag, aData, u"likeunix"_ns, aResult);
   }
 #endif
   return result;
@@ -389,25 +389,25 @@ void ParseManifest(NSLocationType aType, FileLocation& aFile, char* aBuf,
   nsChromeRegistry::ManifestProcessingContext chromecx(aType, aFile);
   nsresult rv;
 
-  NS_NAMED_LITERAL_STRING(kContentAccessible, "contentaccessible");
-  NS_NAMED_LITERAL_STRING(kRemoteEnabled, "remoteenabled");
-  NS_NAMED_LITERAL_STRING(kRemoteRequired, "remoterequired");
-  NS_NAMED_LITERAL_STRING(kApplication, "application");
-  NS_NAMED_LITERAL_STRING(kAppVersion, "appversion");
-  NS_NAMED_LITERAL_STRING(kGeckoVersion, "platformversion");
-  NS_NAMED_LITERAL_STRING(kOs, "os");
-  NS_NAMED_LITERAL_STRING(kOsVersion, "osversion");
-  NS_NAMED_LITERAL_STRING(kABI, "abi");
-  NS_NAMED_LITERAL_STRING(kProcess, "process");
+  constexpr auto kContentAccessible = u"contentaccessible"_ns;
+  constexpr auto kRemoteEnabled = u"remoteenabled"_ns;
+  constexpr auto kRemoteRequired = u"remoterequired"_ns;
+  constexpr auto kApplication = u"application"_ns;
+  constexpr auto kAppVersion = u"appversion"_ns;
+  constexpr auto kGeckoVersion = u"platformversion"_ns;
+  constexpr auto kOs = u"os"_ns;
+  constexpr auto kOsVersion = u"osversion"_ns;
+  constexpr auto kABI = u"abi"_ns;
+  constexpr auto kProcess = u"process"_ns;
 #if defined(MOZ_WIDGET_ANDROID)
-  NS_NAMED_LITERAL_STRING(kTablet, "tablet");
+  constexpr auto kTablet = u"tablet"_ns;
 #endif
 
-  NS_NAMED_LITERAL_STRING(kMain, "main");
-  NS_NAMED_LITERAL_STRING(kContent, "content");
+  constexpr auto kMain = u"main"_ns;
+  constexpr auto kContent = u"content"_ns;
 
   // Obsolete
-  NS_NAMED_LITERAL_STRING(kXPCNativeWrappers, "xpcnativewrappers");
+  constexpr auto kXPCNativeWrappers = u"xpcnativewrappers"_ns;
 
   nsAutoString appID;
   nsAutoString appVersion;
@@ -463,8 +463,8 @@ void ParseManifest(NSLocationType aType, FileLocation& aFile, char* aBuf,
   }
 #  pragma warning(pop)
 #elif defined(MOZ_WIDGET_COCOA)
-  SInt32 majorVersion = nsCocoaFeatures::OSXVersionMajor();
-  SInt32 minorVersion = nsCocoaFeatures::OSXVersionMinor();
+  SInt32 majorVersion = nsCocoaFeatures::macOSVersionMajor();
+  SInt32 minorVersion = nsCocoaFeatures::macOSVersionMinor();
   nsTextFormatter::ssprintf(osVersion, u"%ld.%ld", majorVersion, minorVersion);
 #elif defined(MOZ_WIDGET_GTK)
   nsTextFormatter::ssprintf(osVersion, u"%ld.%ld", gtk_major_version,
@@ -641,8 +641,7 @@ void ParseManifest(NSLocationType aType, FileLocation& aFile, char* aBuf,
       }
 
       if (!nsChromeRegistry::gChromeRegistry) {
-        nsCOMPtr<nsIChromeRegistry> cr =
-            mozilla::services::GetChromeRegistryService();
+        nsCOMPtr<nsIChromeRegistry> cr = mozilla::services::GetChromeRegistry();
         if (!nsChromeRegistry::gChromeRegistry) {
           LogMessageWithContext(aFile, line,
                                 "Chrome registry isn't available yet.");

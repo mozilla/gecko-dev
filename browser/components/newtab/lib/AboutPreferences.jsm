@@ -28,6 +28,16 @@ const PREFS_BEFORE_SECTIONS = [
       feed: "feeds.topsites",
       titleString: "home-prefs-topsites-header",
       descString: "home-prefs-topsites-description",
+      get nestedPrefs() {
+        return Services.prefs.getBoolPref("browser.topsites.useRemoteSetting")
+          ? [
+              {
+                name: "showSponsoredTopSites",
+                titleString: "home-prefs-topsites-by-option-sponsored",
+              },
+            ]
+          : [];
+      },
     },
     icon: "topsites",
     maxRows: 4,
@@ -165,7 +175,7 @@ this.AboutPreferences = class AboutPreferences {
       // Use full icon spec for certain protocols or fall back to packaged icon
       const iconUrl = !icon.search(/^(chrome|moz-extension|resource):/)
         ? icon
-        : `resource://activity-stream/data/content/assets/glyph-${icon}-16.svg`;
+        : `chrome://activity-stream/content/data/content/assets/glyph-${icon}-16.svg`;
 
       // Add the main preference for turning on/off a section
       const sectionVbox = createAppend("vbox", contentsGroup);
@@ -200,7 +210,11 @@ this.AboutPreferences = class AboutPreferences {
       if (descString) {
         const label = createAppend("label", detailVbox);
         label.classList.add("indent");
-        document.l10n.setAttributes(label, getString(descString));
+        document.l10n.setAttributes(
+          label,
+          getString(descString),
+          descString.values
+        );
 
         // Add a rows dropdown if we have a pref to control and a maximum
         if (rowsPref && maxRows) {
@@ -241,6 +255,7 @@ this.AboutPreferences = class AboutPreferences {
         linkPref(subcheck, nested.name, "bool");
         subChecks.push(subcheck);
         subcheck.disabled = !pref._value;
+        subcheck.hidden = nested.hidden;
       });
 
       // Disable any nested checkboxes if the parent pref is not enabled.

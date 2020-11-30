@@ -4,10 +4,6 @@
 
 loadTestSubscript("head_browserAction.js");
 
-add_task(async function testSetup() {
-  Services.prefs.setBoolPref("toolkit.cosmeticAnimations.enabled", false);
-});
-
 add_task(async function testBrowserActionPopupResize() {
   let extension = ExtensionTestUtils.loadExtension({
     manifest: {
@@ -79,8 +75,4 @@ add_task(async function testBrowserActionMenuResizeStandards() {
 
 add_task(async function testBrowserActionMenuResizeQuirks() {
   await testPopupSize(false);
-});
-
-add_task(async function testTeardown() {
-  Services.prefs.clearUserPref("toolkit.cosmeticAnimations.enabled");
 });

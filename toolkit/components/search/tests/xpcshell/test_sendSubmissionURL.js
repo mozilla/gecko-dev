@@ -28,9 +28,7 @@ const SUBMISSION_NO = new Map([
 ]);
 
 add_task(async function setup() {
-  await useTestEngines("data1");
-  installDistributionEngine();
-
+  await SearchTestUtils.useTestEngines("data1");
   await AddonTestUtils.promiseStartupManager();
 });
 
@@ -76,63 +74,5 @@ add_task(async function test_submission_url_built_in() {
     engineInfo.defaultSearchEngineData.submissionURL,
     "https://1.example.com/search?q=",
     "Should have given the submission url for a built-in engine."
-  );
-});
-
-add_task(async function test_submission_url_distribution() {
-  const engine = Services.search.getEngineByName("basic");
-  await Services.search.setDefault(engine);
-
-  const engineInfo = await Services.search.getDefaultEngineInfo();
-  Assert.equal(
-    engineInfo.defaultSearchEngineData.submissionURL,
-    "http://searchtest.local/?search=",
-    "Should have given the submission url for a distribution engine."
-  );
-});
-
-add_task(async function test_submission_url_promoted_by_preference() {
-  const engine = await Services.search.addEngineWithDetails("fakeEngine", {
-    method: "GET",
-    template: "https://fake.example.com/?q={searchTerms}",
-  });
-
-  await Services.search.setDefault(engine);
-
-  let engineInfo = await Services.search.getDefaultEngineInfo();
-  Assert.equal(
-    engineInfo.defaultSearchEngineData.submissionURL,
-    undefined,
-    "Should not have a submission url for a user-based engine"
-  );
-
-  Services.prefs.setCharPref(
-    SearchUtils.BROWSER_SEARCH_PREF + "order.extra.1",
-    "fakeEngine"
-  );
-
-  engineInfo = await Services.search.getDefaultEngineInfo();
-  Assert.equal(
-    engineInfo.defaultSearchEngineData.submissionURL,
-    "https://fake.example.com/?q=",
-    "Should have a submission URL for a pref-promoted user-based engine (extra)"
-  );
-
-  Services.prefs.clearUserPref(
-    SearchUtils.BROWSER_SEARCH_PREF + "order.extra.1"
-  );
-  let localizedStr = Cc["@mozilla.org/pref-localizedstring;1"].createInstance(
-    Ci.nsIPrefLocalizedString
-  );
-  localizedStr.data = "fakeEngine";
-  Services.prefs.setComplexValue(
-    SearchUtils.BROWSER_SEARCH_PREF + "order.1",
-    Ci.nsIPrefLocalizedString,
-    localizedStr
-  );
-  Assert.equal(
-    engineInfo.defaultSearchEngineData.submissionURL,
-    "https://fake.example.com/?q=",
-    "Should have a submission URL for a pref-promoted user-based engine"
   );
 });

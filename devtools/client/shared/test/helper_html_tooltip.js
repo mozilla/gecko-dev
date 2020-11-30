@@ -21,7 +21,11 @@
  */
 async function showTooltip(tooltip, anchor, { position, x, y } = {}) {
   await tooltip.show(anchor, { position, x, y });
-  return waitForReflow(tooltip);
+  await waitForReflow(tooltip);
+
+  // Wait for next tick. Tooltip tests sometimes fail to successively hide and
+  // show tooltips on Win32 debug.
+  await waitForTick();
 }
 
 /**
@@ -37,7 +41,11 @@ async function hideTooltip(tooltip) {
   const onPopupHidden = tooltip.once("hidden");
   tooltip.hide();
   await onPopupHidden;
-  return waitForReflow(tooltip);
+  await waitForReflow(tooltip);
+
+  // Wait for next tick. Tooltip tests sometimes fail to successively hide and
+  // show tooltips on Win32 debug.
+  await waitForTick();
 }
 
 /**
@@ -79,9 +87,17 @@ function checkTooltipGeometry(
   const anchorRect = anchor.getBoundingClientRect();
 
   if (position === "top") {
-    is(tooltipRect.bottom, anchorRect.top, "Tooltip is above the anchor");
+    is(
+      tooltipRect.bottom,
+      Math.round(anchorRect.top),
+      "Tooltip is above the anchor"
+    );
   } else if (position === "bottom") {
-    is(tooltipRect.top, anchorRect.bottom, "Tooltip is below the anchor");
+    is(
+      tooltipRect.top,
+      Math.round(anchorRect.bottom),
+      "Tooltip is below the anchor"
+    );
   } else {
     ok(false, "Invalid position provided to checkTooltipGeometry");
   }
@@ -89,7 +105,7 @@ function checkTooltipGeometry(
   if (leftAligned) {
     is(
       tooltipRect.left,
-      anchorRect.left,
+      Math.round(anchorRect.left),
       "Tooltip left-aligned with the anchor"
     );
   }

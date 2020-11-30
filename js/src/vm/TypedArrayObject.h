@@ -14,7 +14,9 @@
 #include "gc/Barrier.h"
 #include "gc/MaybeRooted.h"
 #include "js/Class.h"
+#include "js/experimental/TypedData.h"  // js::detail::TypedArrayLengthSlot
 #include "js/Result.h"
+#include "js/ScalarType.h"  // js::Scalar::Type
 #include "vm/ArrayBufferObject.h"
 #include "vm/ArrayBufferViewObject.h"
 #include "vm/JSObject.h"
@@ -45,18 +47,8 @@ namespace js {
 
 class TypedArrayObject : public ArrayBufferViewObject {
  public:
-  static constexpr int lengthOffset() {
-    return NativeObject::getFixedSlotOffset(LENGTH_SLOT);
-  }
-  static constexpr int byteOffsetOffset() {
-    return NativeObject::getFixedSlotOffset(BYTEOFFSET_SLOT);
-  }
-  static constexpr int dataOffset() {
-    return NativeObject::getPrivateDataOffset(DATA_SLOT);
-  }
-
   static_assert(js::detail::TypedArrayLengthSlot == LENGTH_SLOT,
-                "bad inlined constant in jsfriendapi.h");
+                "bad inlined constant in TypedData.h");
 
   static bool sameBuffer(Handle<TypedArrayObject*> a,
                          Handle<TypedArrayObject*> b) {
@@ -121,7 +113,7 @@ class TypedArrayObject : public ArrayBufferViewObject {
   bool hasInlineElements() const;
   void setInlineElements();
   uint8_t* elementsRaw() const {
-    return *(uint8_t**)((((char*)this) + js::TypedArrayObject::dataOffset()));
+    return *(uint8_t**)((((char*)this) + ArrayBufferViewObject::dataOffset()));
   }
   uint8_t* elements() const {
     assertZeroLengthArrayData();
@@ -230,7 +222,9 @@ inline Scalar::Type GetTypedArrayClassType(const JSClass* clasp) {
 
 bool IsTypedArrayConstructor(const JSObject* obj);
 
-bool IsTypedArrayConstructor(HandleValue v, uint32_t type);
+bool IsTypedArrayConstructor(HandleValue v, Scalar::Type type);
+
+JSNative TypedArrayConstructorNative(Scalar::Type type);
 
 // In WebIDL terminology, a BufferSource is either an ArrayBuffer or a typed
 // array view. In either case, extract the dataPointer/byteLength.

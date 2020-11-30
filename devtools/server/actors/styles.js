@@ -32,6 +32,12 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   this,
+  ["CSSRuleTypeName", "findCssSelector", "prettifyCSS"],
+  "devtools/shared/inspector/css-logic",
+  true
+);
+loader.lazyRequireGetter(
+  this,
   "getDefinedGeometryProperties",
   "devtools/server/actors/highlighters/geometry-editor",
   true
@@ -56,32 +62,8 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   this,
-  "prettifyCSS",
-  "devtools/shared/inspector/css-logic",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "UPDATE_PRESERVING_RULES",
+  ["UPDATE_PRESERVING_RULES", "UPDATE_GENERAL"],
   "devtools/server/actors/stylesheets",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "UPDATE_GENERAL",
-  "devtools/server/actors/stylesheets",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "findCssSelector",
-  "devtools/shared/inspector/css-logic",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "CSSRuleTypeName",
-  "devtools/shared/inspector/css-logic",
   true
 );
 
@@ -184,11 +166,6 @@ var PageStyleActor = protocol.ActorClassWithSpec(pageStyleSpec, {
     return {
       actor: this.actorID,
       traits: {
-        // Whether the actor has had bug 1103993 fixed, which means that the
-        // getApplied method calls cssLogic.highlight(node) to recreate the
-        // style cache. Clients requesting getApplied from actors that have not
-        // been fixed must make sure cssLogic.highlight(node) was called before.
-        getAppliedCreatesStyleCache: true,
         // Whether the page supports values of font-stretch from CSS Fonts Level 4.
         fontStretchLevel4: CSS.supports("font-stretch: 100%"),
         // Whether the page supports values of font-style from CSS Fonts Level 4.
@@ -202,6 +179,8 @@ var PageStyleActor = protocol.ActorClassWithSpec(pageStyleSpec, {
         // expected support of font-stretch at CSS Fonts Level 4.
         fontWeightLevel4:
           CSS.supports("font-weight: 1") && CSS.supports("font-stretch: 100%"),
+        // Introduced in Firefox 80.
+        getAttributesInOwnerDocument: true,
       },
     };
   },
@@ -697,18 +676,84 @@ var PageStyleActor = protocol.ActorClassWithSpec(pageStyleSpec, {
     // Now any pseudos.
     if (showElementStyles && !options.skipPseudo) {
       for (const readPseudo of PSEUDO_ELEMENTS) {
-        this._getElementRules(
-          bindingElement,
-          readPseudo,
-          inherited,
-          options
-        ).forEach(oneRule => {
-          rules.push(oneRule);
-        });
+        if (this._pseudoIsRelevant(bindingElement, readPseudo)) {
+          this._getElementRules(
+            bindingElement,
+            readPseudo,
+            inherited,
+            options
+          ).forEach(oneRule => {
+            rules.push(oneRule);
+          });
+        }
       }
     }
 
     return rules;
+  },
+
+  _nodeIsTextfieldLike(node) {
+    if (node.nodeName == "TEXTAREA") {
+      return true;
+    }
+    return (
+      node.mozIsTextField &&
+      (node.mozIsTextField(false) || node.type == "number")
+    );
+  },
+
+  _nodeIsButtonLike(node) {
+    if (node.nodeName == "BUTTON") {
+      return true;
+    }
+    return (
+      node.nodeName == "INPUT" &&
+      ["submit", "color", "button"].includes(node.type)
+    );
+  },
+
+  _nodeIsListItem(node) {
+    const display = CssLogic.getComputedStyle(node).getPropertyValue("display");
+    // This is written this way to handle `inline list-item` and such.
+    return display.split(" ").includes("list-item");
+  },
+
+  // eslint-disable-next-line complexity
+  _pseudoIsRelevant(node, pseudo) {
+    switch (pseudo) {
+      case ":after":
+      case ":before":
+      case ":first-letter":
+      case ":first-line":
+      case ":selection":
+        return true;
+      case ":marker":
+        return this._nodeIsListItem(node);
+      case ":backdrop":
+        return node.matches(":fullscreen");
+      case ":cue":
+        return node.nodeName == "VIDEO";
+      case ":file-selector-button":
+        return node.nodeName == "INPUT" && node.type == "file";
+      case ":placeholder":
+      case ":-moz-placeholder":
+        return this._nodeIsTextfieldLike(node);
+      case ":-moz-focus-inner":
+        return this._nodeIsButtonLike(node);
+      case ":-moz-meter-bar":
+        return node.nodeName == "METER";
+      case ":-moz-progress-bar":
+        return node.nodeName == "PROGRESS";
+      case ":-moz-color-swatch":
+        return node.nodeName == "INPUT" && node.type == "color";
+      case ":-moz-range-progress":
+      case ":-moz-range-thumb":
+      case ":-moz-range-track":
+      case ":-moz-focus-outer":
+        return node.nodeName == "INPUT" && node.type == "range";
+      default:
+        throw Error("Unhandled pseudo-element " + pseudo);
+    }
   },
 
   /**
@@ -1041,6 +1086,7 @@ var PageStyleActor = protocol.ActorClassWithSpec(pageStyleSpec, {
     if (!this.styleElements.has(document)) {
       const style = document.createElementNS(XHTML_NS, "style");
       style.setAttribute("type", "text/css");
+      style.setDevtoolsAsTriggeringPrincipal();
       document.documentElement.appendChild(style);
       this.styleElements.set(document, style);
     }
@@ -1129,6 +1175,171 @@ var PageStyleActor = protocol.ActorClassWithSpec(pageStyleSpec, {
   refreshObservedRules() {
     for (const rule of this._observedRules) {
       rule.refresh();
+    }
+  },
+
+  /**
+   * Get an array of existing attribute values in a node document.
+   *
+   * @param {String} search: A string to filter attribute value on.
+   * @param {String} attributeType: The type of attribute we want to retrieve the values.
+   * @param {Element} node: The element we want to get possible attributes for. This will
+   *        be used to get the document where the search is happening.
+   * @returns {Array<String>} An array of strings
+   */
+  getAttributesInOwnerDocument(search, attributeType, node) {
+    if (!search) {
+      throw new Error("search is mandatory");
+    }
+
+    // In a non-fission world, a node from an iframe shares the same `rootNode` as a node
+    // in the top-level document. So here we need to retrieve the document from the node
+    // in parameter in order to retrieve the right document.
+    // This may change once we have a dedicated walker for every target in a tab, as we'll
+    // be able to directly talk to the "right" walker actor.
+    const targetDocument = node.rawNode.ownerDocument;
+
+    // We store the result in a Set which will contain the attribute value
+    const result = new Set();
+    const lcSearch = search.toLowerCase();
+    this._collectAttributesFromDocumentDOM(
+      result,
+      lcSearch,
+      attributeType,
+      targetDocument
+    );
+    this._collectAttributesFromDocumentStyleSheets(
+      result,
+      lcSearch,
+      attributeType,
+      targetDocument
+    );
+
+    return Array.from(result).sort();
+  },
+
+  /**
+   * Collect attribute values from the document DOM tree, matching the passed filter and
+   * type, to the result Set.
+   *
+   * @param {Set<String>} result: A Set to which the results will be added.
+   * @param {String} search: A string to filter attribute value on.
+   * @param {String} attributeType: The type of attribute we want to retrieve the values.
+   * @param {Document} targetDocument: The document the search occurs in.
+   */
+  _collectAttributesFromDocumentDOM(
+    result,
+    search,
+    attributeType,
+    targetDocument
+  ) {
+    // In order to retrieve attributes from DOM elements in the document, we're going to
+    // do a query on the root node using attributes selector, to directly get the elements
+    // matching the attributes we're looking for.
+
+    // For classes, we need something a bit different as the className we're looking
+    // for might not be the first in the attribute value, meaning we can't use the
+    // "attribute starts with X" selector.
+    const attributeSelectorPositionChar = attributeType === "class" ? "*" : "^";
+    const selector = `[${attributeType}${attributeSelectorPositionChar}=${search} i]`;
+
+    const matchingElements = targetDocument.querySelectorAll(selector);
+
+    for (const element of matchingElements) {
+      // For class attribute, we need to add the elements of the classList that match
+      // the filter string.
+      if (attributeType === "class") {
+        for (const cls of element.classList) {
+          if (!result.has(cls) && cls.toLowerCase().startsWith(search)) {
+            result.add(cls);
+          }
+        }
+      } else {
+        const { value } = element.attributes[attributeType];
+        // For other attributes, we can directly use the attribute value.
+        result.add(value);
+      }
+    }
+  },
+
+  /**
+   * Collect attribute values from the document stylesheets, matching the passed filter
+   * and type, to the result Set.
+   *
+   * @param {Set<String>} result: A Set to which the results will be added.
+   * @param {String} search: A string to filter attribute value on.
+   * @param {String} attributeType: The type of attribute we want to retrieve the values.
+   *                       It only supports "class" and "id" at the moment.
+   * @param {Document} targetDocument: The document the search occurs in.
+   */
+  _collectAttributesFromDocumentStyleSheets(
+    result,
+    search,
+    attributeType,
+    targetDocument
+  ) {
+    if (attributeType !== "class" && attributeType !== "id") {
+      return;
+    }
+
+    // We loop through all the stylesheets and their rules, and then use the lexer to only
+    // get the attributes we're looking for.
+    for (const styleSheet of targetDocument.styleSheets) {
+      for (const rule of styleSheet.rules) {
+        this._collectAttributesFromRule(result, rule, search, attributeType);
+      }
+    }
+  },
+
+  /**
+   * Collect attribute values from the rule, matching the passed filter and type, to the
+   * result Set.
+   *
+   * @param {Set<String>} result: A Set to which the results will be added.
+   * @param {Rule} rule: The rule the search occurs in.
+   * @param {String} search: A string to filter attribute value on.
+   * @param {String} attributeType: The type of attribute we want to retrieve the values.
+   *                       It only supports "class" and "id" at the moment.
+   */
+  _collectAttributesFromRule(result, rule, search, attributeType) {
+    const shouldRetrieveClasses = attributeType === "class";
+    const shouldRetrieveIds = attributeType === "id";
+
+    const { selectorText } = rule;
+    // If there's no selectorText, or if the selectorText does not include the
+    // filter, we can bail out.
+    if (!selectorText || !selectorText.toLowerCase().includes(search)) {
+      return;
+    }
+
+    // Check if we should parse the selectorText (do we need to check for class/id and
+    // if so, does the selector contains class/id related chars).
+    const parseForClasses =
+      shouldRetrieveClasses &&
+      selectorText.toLowerCase().includes(`.${search}`);
+    const parseForIds =
+      shouldRetrieveIds && selectorText.toLowerCase().includes(`#${search}`);
+
+    if (!parseForClasses && !parseForIds) {
+      return;
+    }
+
+    const lexer = getCSSLexer(selectorText);
+    let token;
+    while ((token = lexer.nextToken())) {
+      if (
+        token.tokenType === "symbol" &&
+        ((shouldRetrieveClasses && token.text === ".") ||
+          (shouldRetrieveIds && token.text === "#"))
+      ) {
+        token = lexer.nextToken();
+        if (
+          token.tokenType === "ident" &&
+          token.text.toLowerCase().startsWith(search)
+        ) {
+          result.add(token.text);
+        }
+      }
     }
   },
 });
@@ -1349,6 +1560,7 @@ var StyleRuleActor = protocol.ActorClassWithSpec(styleRuleSpec, {
     return "[StyleRuleActor for " + this.rawRule + "]";
   },
 
+  // eslint-disable-next-line complexity
   form: function() {
     const form = {
       actor: this.actorID,
@@ -1441,13 +1653,29 @@ var StyleRuleActor = protocol.ActorClassWithSpec(styleRuleSpec, {
       const el = this.pageStyle.selectedElement;
       const style = this.pageStyle.cssLogic.computedStyle;
 
-      // We need to grab CSS from the window, since calling supports() on the
-      // one from the current global will fail due to not being an HTML global.
-      const CSS = this.pageStyle.inspector.targetActor.window.CSS;
+      // Whether the stylesheet is a user-agent stylesheet. This affects the
+      // validity of some properties and property values.
+      const userAgent =
+        this._parentSheet &&
+        !SharedCssLogic.isAuthorStylesheet(this._parentSheet);
+      // Whether the stylesheet is a chrome stylesheet. Ditto.
+      const chrome =
+        this._parentSheet &&
+        this._parentSheet.href &&
+        this._parentSheet.href.startsWith("chrome:");
+      // Whether the document is in quirks mode. This affects whether stuff
+      // like `width: 10` is valid.
+      const quirks =
+        !userAgent && el && el.ownerDocument.compatMode == "BackCompat";
+      const supportsOptions = { userAgent, chrome, quirks };
       form.declarations = declarations.map(decl => {
-        // Use the 1-arg CSS.supports() call so that we also accept !important
-        // in the value.
-        decl.isValid = CSS.supports(`${decl.name}:${decl.value}`);
+        // InspectorUtils.supports only supports the 1-arg version, but that's
+        // what we want to do anyways so that we also accept !important in the
+        // value.
+        decl.isValid = InspectorUtils.supports(
+          `${decl.name}:${decl.value}`,
+          supportsOptions
+        );
         // TODO: convert from Object to Boolean. See Bug 1574471
         decl.isUsed = inactivePropertyHelper.isPropertyUsed(
           el,
@@ -1456,11 +1684,15 @@ var StyleRuleActor = protocol.ActorClassWithSpec(styleRuleSpec, {
           decl.name
         );
         // Check property name. All valid CSS properties support "initial" as a value.
-        decl.isNameValid = CSS.supports(decl.name, "initial");
+        decl.isNameValid = InspectorUtils.supports(
+          `${decl.name}:initial`,
+          supportsOptions
+        );
         return decl;
       });
+
       // Cache parsed declarations so we don't needlessly re-parse authoredText every time
-      // we need need to check previous property names and values when tracking changes.
+      // we need to check previous property names and values when tracking changes.
       this._declarations = declarations;
     }
 

@@ -29,17 +29,6 @@ MediaDevices::~MediaDevices() {
   mDeviceChangeListener.DisconnectIfExists();
 }
 
-static bool IsSameOriginWithAllParentDocs(nsINode* aDoc) {
-  MOZ_ASSERT(aDoc);
-  nsINode* node = aDoc;
-  while ((node = nsContentUtils::GetCrossDocParentNode(node))) {
-    if (NS_FAILED(nsContentUtils::CheckSameOrigin(aDoc, node))) {
-      return false;
-    }
-  }
-  return true;
-}
-
 already_AddRefed<Promise> MediaDevices::GetUserMedia(
     const MediaStreamConstraints& aConstraints, CallerType aCallerType,
     ErrorResult& aRv) {
@@ -47,9 +36,6 @@ already_AddRefed<Promise> MediaDevices::GetUserMedia(
     if (Document* doc = owner->GetExtantDoc()) {
       if (!owner->IsSecureContext()) {
         doc->SetUseCounter(eUseCounter_custom_GetUserMediaInsec);
-      }
-      if (!IsSameOriginWithAllParentDocs(doc)) {
-        doc->SetUseCounter(eUseCounter_custom_GetUserMediaXOrigin);
       }
       Document* topDoc = doc->GetTopLevelContentDocument();
       IgnoredErrorResult ignored;
@@ -66,7 +52,7 @@ already_AddRefed<Promise> MediaDevices::GetUserMedia(
   MediaManager::Get()
       ->GetUserMedia(GetOwner(), aConstraints, aCallerType)
       ->Then(
-          GetCurrentThreadSerialEventTarget(), __func__,
+          GetCurrentSerialEventTarget(), __func__,
           [this, self, p](RefPtr<DOMMediaStream>&& aStream) {
             if (!GetWindowIfCurrent()) {
               return;  // Leave Promise pending after navigation by design.
@@ -107,7 +93,7 @@ already_AddRefed<Promise> MediaDevices::EnumerateDevices(CallerType aCallerType,
   MediaManager::Get()
       ->EnumerateDevices(GetOwner(), aCallerType)
       ->Then(
-          GetCurrentThreadSerialEventTarget(), __func__,
+          GetCurrentSerialEventTarget(), __func__,
           [this, self,
            p](RefPtr<MediaManager::MediaDeviceSetRefCnt>&& aDevices) {
             nsPIDOMWindowInner* window = GetWindowIfCurrent();
@@ -150,13 +136,6 @@ already_AddRefed<Promise> MediaDevices::EnumerateDevices(CallerType aCallerType,
 already_AddRefed<Promise> MediaDevices::GetDisplayMedia(
     const DisplayMediaStreamConstraints& aConstraints, CallerType aCallerType,
     ErrorResult& aRv) {
-  if (RefPtr<nsPIDOMWindowInner> owner = GetOwner()) {
-    if (Document* doc = owner->GetExtantDoc()) {
-      if (!IsSameOriginWithAllParentDocs(doc)) {
-        doc->SetUseCounter(eUseCounter_custom_GetDisplayMediaXOrigin);
-      }
-    }
-  }
   RefPtr<Promise> p = Promise::Create(GetParentObject(), aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
@@ -165,7 +144,7 @@ already_AddRefed<Promise> MediaDevices::GetDisplayMedia(
   MediaManager::Get()
       ->GetDisplayMedia(GetOwner(), aConstraints, aCallerType)
       ->Then(
-          GetCurrentThreadSerialEventTarget(), __func__,
+          GetCurrentSerialEventTarget(), __func__,
           [this, self, p](RefPtr<DOMMediaStream>&& aStream) {
             if (!GetWindowIfCurrent()) {
               return;  // leave promise pending after navigation.
@@ -222,7 +201,7 @@ void MediaDevices::OnDeviceChange() {
   mFuzzTimer->InitWithNamedFuncCallback(
       [](nsITimer*, void* aClosure) {
         MediaDevices* md = static_cast<MediaDevices*>(aClosure);
-        md->DispatchTrustedEvent(NS_LITERAL_STRING("devicechange"));
+        md->DispatchTrustedEvent(u"devicechange"_ns);
         md->mFuzzTimer = nullptr;
       },
       this, DEVICECHANGE_HOLD_TIME_IN_MS, nsITimer::TYPE_ONE_SHOT,

@@ -2,6 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#![warn(
+    trivial_casts,
+    trivial_numeric_casts,
+    unused_extern_crates,
+    unused_qualifications
+)]
+
 pub mod backend {
     #[cfg(windows)]
     pub use gfx_backend_dx11::Backend as Dx11;
@@ -19,7 +26,7 @@ pub mod backend {
 
 pub mod binding_model;
 pub mod command;
-pub mod conv;
+mod conv;
 pub mod device;
 pub mod hub;
 pub mod id;
@@ -28,38 +35,25 @@ pub mod pipeline;
 pub mod power;
 pub mod resource;
 pub mod swap_chain;
-pub mod track;
-
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+mod track;
 
 pub use hal::pso::read_spirv;
-use peek_poke::{PeekCopy, Poke};
 
-use std::{
-    os::raw::c_char,
-    ptr,
-    sync::atomic::{AtomicUsize, Ordering},
-};
+#[cfg(test)]
+use loom::sync::atomic;
+#[cfg(not(test))]
+use std::sync::atomic;
+
+use atomic::{AtomicUsize, Ordering};
+
+use std::{os::raw::c_char, ptr};
+
+const MAX_BIND_GROUPS: usize = 4;
 
 type SubmissionIndex = usize;
 type Index = u32;
 type Epoch = u32;
 
-#[repr(u8)]
-#[derive(Clone, Copy, Debug, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub enum Backend {
-    Empty = 0,
-    Vulkan = 1,
-    Metal = 2,
-    Dx12 = 3,
-    Dx11 = 4,
-    Gl = 5,
-}
-
-pub type BufferAddress = u64;
-pub type DynamicOffset = u32;
 pub type RawString = *const c_char;
 
 //TODO: make it private. Currently used for swapchain creation impl.
@@ -75,6 +69,27 @@ impl RefCount {
     fn load(&self) -> usize {
         unsafe { self.0.as_ref() }.load(Ordering::Acquire)
     }
+
+    /// This works like `std::mem::drop`, except that it returns a boolean which is true if and only
+    /// if we deallocated the underlying memory, i.e. if this was the last clone of this `RefCount`
+    /// to be dropped. This is useful for loom testing because it allows us to verify that we
+    /// deallocated the underlying memory exactly once.
+    #[cfg(test)]
+    fn rich_drop_outer(self) -> bool {
+        unsafe { std::mem::ManuallyDrop::new(self).rich_drop_inner() }
+    }
+
+    /// This function exists to allow `Self::rich_drop_outer` and `Drop::drop` to share the same
+    /// logic. To use this safely from outside of `Drop::drop`, the calling function must move
+    /// `Self` into a `ManuallyDrop`.
+    unsafe fn rich_drop_inner(&mut self) -> bool {
+        if self.0.as_ref().fetch_sub(1, Ordering::Relaxed) == 1 {
+            let _ = Box::from_raw(self.0.as_ptr());
+            true
+        } else {
+            false
+        }
+    }
 }
 
 impl Clone for RefCount {
@@ -87,10 +102,32 @@ impl Clone for RefCount {
 
 impl Drop for RefCount {
     fn drop(&mut self) {
-        if unsafe { self.0.as_ref() }.fetch_sub(1, Ordering::Relaxed) == 1 {
-            let _ = unsafe { Box::from_raw(self.0.as_ptr()) };
+        unsafe {
+            self.rich_drop_inner();
         }
     }
+}
+
+#[cfg(test)]
+#[test]
+fn loom() {
+    loom::model(move || {
+        let bx = Box::new(AtomicUsize::new(1));
+        let ref_count_main = ptr::NonNull::new(Box::into_raw(bx)).map(RefCount).unwrap();
+        let ref_count_spawned = ref_count_main.clone();
+
+        let join_handle = loom::thread::spawn(move || {
+            let _ = ref_count_spawned.clone();
+            ref_count_spawned.rich_drop_outer()
+        });
+
+        let dropped_in_main = ref_count_main.rich_drop_outer();
+        let dropped_in_spawned = join_handle.join().unwrap();
+        assert_ne!(
+            dropped_in_main, dropped_in_spawned,
+            "must drop exactly once"
+        );
+    });
 }
 
 #[derive(Debug)]
@@ -114,8 +151,7 @@ impl LifeGuard {
 
     /// Returns `true` if the resource is still needed by the user.
     fn use_at(&self, submit_index: SubmissionIndex) -> bool {
-        self.submission_index
-            .store(submit_index, Ordering::Release);
+        self.submission_index.store(submit_index, Ordering::Release);
         self.ref_count.is_some()
     }
 }
@@ -127,84 +163,6 @@ struct Stored<T> {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, PeekCopy, Poke)]
-pub struct Color {
-    pub r: f64,
-    pub g: f64,
-    pub b: f64,
-    pub a: f64,
-}
-
-impl Color {
-    pub const TRANSPARENT: Self = Color {
-        r: 0.0,
-        g: 0.0,
-        b: 0.0,
-        a: 0.0,
-    };
-    pub const BLACK: Self = Color {
-        r: 0.0,
-        g: 0.0,
-        b: 0.0,
-        a: 1.0,
-    };
-    pub const WHITE: Self = Color {
-        r: 1.0,
-        g: 1.0,
-        b: 1.0,
-        a: 1.0,
-    };
-    pub const RED: Self = Color {
-        r: 1.0,
-        g: 0.0,
-        b: 0.0,
-        a: 1.0,
-    };
-    pub const GREEN: Self = Color {
-        r: 0.0,
-        g: 1.0,
-        b: 0.0,
-        a: 1.0,
-    };
-    pub const BLUE: Self = Color {
-        r: 0.0,
-        g: 0.0,
-        b: 1.0,
-        a: 1.0,
-    };
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug)]
-pub struct Origin3d {
-    pub x: u32,
-    pub y: u32,
-    pub z: u32,
-}
-
-impl Origin3d {
-    pub const ZERO: Self = Origin3d {
-        x: 0,
-        y: 0,
-        z: 0,
-    };
-}
-
-impl Default for Origin3d {
-    fn default() -> Self {
-        Origin3d::ZERO
-    }
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug)]
-pub struct Extent3d {
-    pub width: u32,
-    pub height: u32,
-    pub depth: u32,
-}
-
-#[repr(C)]
 #[derive(Debug)]
 pub struct U32Array {
     pub bytes: *const u32,
@@ -212,8 +170,7 @@ pub struct U32Array {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub(crate) struct Features {
-    pub max_bind_groups: u32,
+struct PrivateFeatures {
     pub supports_texture_d24_s8: bool,
 }
 
@@ -222,13 +179,13 @@ macro_rules! gfx_select {
     ($id:expr => $global:ident.$method:ident( $($param:expr),+ )) => {
         match $id.backend() {
             #[cfg(any(not(any(target_os = "ios", target_os = "macos")), feature = "gfx-backend-vulkan"))]
-            $crate::Backend::Vulkan => $global.$method::<$crate::backend::Vulkan>( $($param),+ ),
+            wgt::Backend::Vulkan => $global.$method::<$crate::backend::Vulkan>( $($param),+ ),
             #[cfg(any(target_os = "ios", target_os = "macos"))]
-            $crate::Backend::Metal => $global.$method::<$crate::backend::Metal>( $($param),+ ),
+            wgt::Backend::Metal => $global.$method::<$crate::backend::Metal>( $($param),+ ),
             #[cfg(windows)]
-            $crate::Backend::Dx12 => $global.$method::<$crate::backend::Dx12>( $($param),+ ),
+            wgt::Backend::Dx12 => $global.$method::<$crate::backend::Dx12>( $($param),+ ),
             #[cfg(windows)]
-            $crate::Backend::Dx11 => $global.$method::<$crate::backend::Dx11>( $($param),+ ),
+            wgt::Backend::Dx11 => $global.$method::<$crate::backend::Dx11>( $($param),+ ),
             _ => unreachable!()
         }
     };
@@ -237,3 +194,9 @@ macro_rules! gfx_select {
 /// Fast hash map used internally.
 type FastHashMap<K, V> =
     std::collections::HashMap<K, V, std::hash::BuildHasherDefault<fxhash::FxHasher>>;
+
+#[test]
+fn test_default_limits() {
+    let limits = wgt::Limits::default();
+    assert!(limits.max_bind_groups <= MAX_BIND_GROUPS as u32);
+}

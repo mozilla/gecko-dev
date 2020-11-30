@@ -7,7 +7,6 @@
 #include "ZoomConstraintsClient.h"
 
 #include <inttypes.h>
-#include "LayersLogging.h"
 #include "mozilla/layers/APZCCallbackHelper.h"
 #include "mozilla/layers/ScrollableLayerGuid.h"
 #include "mozilla/layers/ZoomConstraints.h"
@@ -29,20 +28,23 @@ static mozilla::LazyLogModule sApzZoomLog("apz.zoom");
 
 NS_IMPL_ISUPPORTS(ZoomConstraintsClient, nsIDOMEventListener, nsIObserver)
 
-#define DOM_META_ADDED NS_LITERAL_STRING("DOMMetaAdded")
-#define DOM_META_CHANGED NS_LITERAL_STRING("DOMMetaChanged")
-#define FULLSCREEN_CHANGED NS_LITERAL_STRING("fullscreenchange")
-#define BEFORE_FIRST_PAINT NS_LITERAL_CSTRING("before-first-paint")
-#define NS_PREF_CHANGED NS_LITERAL_CSTRING("nsPref:changed")
+#define DOM_META_ADDED u"DOMMetaAdded"_ns
+#define DOM_META_CHANGED u"DOMMetaChanged"_ns
+#define FULLSCREEN_CHANGED u"fullscreenchange"_ns
+#define BEFORE_FIRST_PAINT "before-first-paint"_ns
+#define NS_PREF_CHANGED "nsPref:changed"_ns
 
 using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::layers;
 
 ZoomConstraintsClient::ZoomConstraintsClient()
-    : mDocument(nullptr), mPresShell(nullptr) {}
+    : mDocument(nullptr),
+      mPresShell(nullptr),
+      mZoomConstraints(false, false, CSSToParentLayerScale(1.f),
+                       CSSToParentLayerScale(1.f)) {}
 
-ZoomConstraintsClient::~ZoomConstraintsClient() {}
+ZoomConstraintsClient::~ZoomConstraintsClient() = default;
 
 static nsIWidget* GetWidget(PresShell* aPresShell) {
   if (!aPresShell) {
@@ -186,6 +188,9 @@ static mozilla::layers::ZoomConstraints ComputeZoomConstraintsFromViewportInfo(
 }
 
 void ZoomConstraintsClient::RefreshZoomConstraints() {
+  mZoomConstraints = ZoomConstraints(false, false, CSSToParentLayerScale(1.f),
+                                     CSSToParentLayerScale(1.f));
+
   nsIWidget* widget = GetWidget(mPresShell);
   if (!widget) {
     return;
@@ -209,22 +214,22 @@ void ZoomConstraintsClient::RefreshZoomConstraints() {
   nsViewportInfo viewportInfo = mDocument->GetViewportInfo(ViewAs<ScreenPixel>(
       screenSize, PixelCastJustification::LayoutDeviceIsScreenForBounds));
 
-  mozilla::layers::ZoomConstraints zoomConstraints =
+  mZoomConstraints =
       ComputeZoomConstraintsFromViewportInfo(viewportInfo, mDocument);
 
   if (mDocument->Fullscreen()) {
     ZCC_LOG("%p is in fullscreen, disallowing zooming\n", this);
-    zoomConstraints.mAllowZoom = false;
-    zoomConstraints.mAllowDoubleTapZoom = false;
+    mZoomConstraints.mAllowZoom = false;
+    mZoomConstraints.mAllowDoubleTapZoom = false;
   }
 
-  if (zoomConstraints.mAllowDoubleTapZoom) {
+  if (mZoomConstraints.mAllowDoubleTapZoom) {
     // If the CSS viewport is narrower than the screen (i.e. width <=
     // device-width) then we disable double-tap-to-zoom behaviour.
     CSSToLayoutDeviceScale scale =
         mPresShell->GetPresContext()->CSSToDevPixelScale();
     if ((viewportInfo.GetSize() * scale).width <= screenSize.width) {
-      zoomConstraints.mAllowDoubleTapZoom = false;
+      mZoomConstraints.mAllowDoubleTapZoom = false;
     }
   }
 
@@ -234,8 +239,8 @@ void ZoomConstraintsClient::RefreshZoomConstraints() {
   if (nsIScrollableFrame* rcdrsf =
           mPresShell->GetRootScrollFrameAsScrollable()) {
     ZCC_LOG("Notifying RCD-RSF that it is zoomable: %d\n",
-            zoomConstraints.mAllowZoom);
-    rcdrsf->SetZoomableByAPZ(zoomConstraints.mAllowZoom);
+            mZoomConstraints.mAllowZoom);
+    rcdrsf->SetZoomableByAPZ(mZoomConstraints.mAllowZoom);
   }
 
   ScrollableLayerGuid newGuid(LayersId{0}, presShellId, viewId);
@@ -248,6 +253,6 @@ void ZoomConstraintsClient::RefreshZoomConstraints() {
   }
   mGuid = Some(newGuid);
   ZCC_LOG("Sending constraints %s in %p for { %u, %" PRIu64 " }\n",
-          Stringify(zoomConstraints).c_str(), this, presShellId, viewId);
-  widget->UpdateZoomConstraints(presShellId, viewId, Some(zoomConstraints));
+          ToString(mZoomConstraints).c_str(), this, presShellId, viewId);
+  widget->UpdateZoomConstraints(presShellId, viewId, Some(mZoomConstraints));
 }

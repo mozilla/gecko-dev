@@ -78,7 +78,7 @@ class TestMozbuildReading(unittest.TestCase):
         try:
             config = mb.config_environment
         except Exception as e:
-            if e.message == 'config.status not available. Run configure.':
+            if str(e) == 'config.status not available. Run configure.':
                 raise unittest.SkipTest('failing without config.status')
             raise
 
@@ -102,13 +102,6 @@ class TestMozbuildReading(unittest.TestCase):
                 if not pattern_exists(os.path.join(relsrcdir, p)):
                     self.fail("The pattern '%s' in a Files() entry in "
                               "'%s' corresponds to no files in the tree.\n"
-                              "Please update this entry." %
-                              (p, ctx.main_path))
-            test_files = ctx['IMPACTED_TESTS'].files
-            for p in test_files:
-                if not pattern_exists(os.path.relpath(p.full_path, config.topsrcdir)):
-                    self.fail("The pattern '%s' in a dependent tests entry "
-                              "in '%s' corresponds to no files in the tree.\n"
                               "Please update this entry." %
                               (p, ctx.main_path))
 

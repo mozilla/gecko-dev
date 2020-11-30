@@ -3,200 +3,198 @@
 
 "use strict";
 
-// Test the Runtime execution context events
-
 const TEST_DOC = toDataURL("default-test-page");
 
-add_task(async function({ client }) {
-  await loadURL(TEST_DOC);
-
-  const firstContext = await testRuntimeEnable(client);
-  const contextId = firstContext.id;
-
-  await testEvaluate(client);
-  await testEvaluateWithContextId(client, contextId);
-  await testEvaluateInvalidContextId(client, contextId);
-
-  await testCallFunctionOn(client, contextId);
-  await testCallFunctionOnInvalidContextId(client, contextId);
-
+add_task(async function awaitPromiseInvalidTypes({ client }) {
   const { Runtime } = client;
 
-  // First test Runtime.evaluate, which accepts an JS expression string.
-  // This string may have instructions separated with `;` before ending
-  // with a JS value that is returned as a CDP `RemoteObject`.
-  function runtimeEvaluate(expression) {
-    return Runtime.evaluate({ contextId, expression });
-  }
+  await enableRuntime(client);
 
-  // Then test Runtime.callFunctionOn, which accepts a JS string, but this
-  // time, it has to be a function. In this first test against callFunctionOn,
-  // we only assert the returned type and ignore the arguments.
-  function callFunctionOn(expression, instruction = false) {
-    if (instruction) {
-      return Runtime.callFunctionOn({
-        executionContextId: contextId,
-        functionDeclaration: `() => { ${expression} }`,
+  for (const awaitPromise of [null, 1, "foo", [], {}]) {
+    let errorThrown = "";
+    try {
+      await Runtime.evaluate({
+        expression: "",
+        awaitPromise,
       });
+    } catch (e) {
+      errorThrown = e.message;
     }
-    return Runtime.callFunctionOn({
-      executionContextId: contextId,
-      functionDeclaration: `() => ${expression}`,
-    });
-  }
-
-  // Finally, run another test against Runtime.callFunctionOn in order to assert
-  // the arguments being passed to the executed function.
-  async function callFunctionOnArguments(expression, instruction = false) {
-    // First evaluate the expression via Runtime.evaluate in order to generate the
-    // CDP's `RemoteObject` for the given expression. A previous test already
-    // asserted the returned value of Runtime.evaluate, so we can trust this.
-    const { result } = await Runtime.evaluate({ contextId, expression });
-
-    // We then pass this RemoteObject as an argument to Runtime.callFunctionOn.
-    return Runtime.callFunctionOn({
-      executionContextId: contextId,
-      functionDeclaration: `arg => arg`,
-      arguments: [result],
-    });
-  }
-
-  for (const fun of [
-    runtimeEvaluate,
-    callFunctionOn,
-    callFunctionOnArguments,
-  ]) {
-    info("Test " + fun.name);
-    await testPrimitiveTypes(fun);
-    await testUnserializable(fun);
-    await testObjectTypes(fun);
-
-    // Tests involving an instruction (exception throwing, or errors) are not
-    // using any argument. So ignore these particular tests.
-    if (fun != callFunctionOnArguments) {
-      await testThrowError(fun);
-      await testThrowValue(fun);
-      await testJSError(fun);
-    }
+    ok(errorThrown.includes("awaitPromise: boolean value expected"));
   }
 });
 
-async function testRuntimeEnable({ Runtime }) {
-  // Enable watching for new execution context
-  await Runtime.enable();
-  info("Runtime domain has been enabled");
+add_task(async function awaitPromiseResolve({ client }) {
+  const { Runtime } = client;
 
-  // Calling Runtime.enable will emit executionContextCreated for the existing contexts
-  const { context } = await Runtime.executionContextCreated();
-  ok(!!context.id, "The execution context has an id");
-  ok(context.auxData.isDefault, "The execution context is the default one");
-  ok(!!context.auxData.frameId, "The execution context has a frame id set");
+  await enableRuntime(client);
 
-  return context;
-}
-
-async function testEvaluate({ Runtime }) {
-  const { result } = await Runtime.evaluate({ expression: "location.href" });
-  is(
-    result.value,
-    TEST_DOC,
-    "Runtime.evaluate works against the current document"
-  );
-}
-
-async function testEvaluateWithContextId({ Runtime }, contextId) {
   const { result } = await Runtime.evaluate({
-    contextId,
+    expression: "Promise.resolve(42)",
+    awaitPromise: true,
+  });
+
+  is(result.type, "number", "The type is correct");
+  is(result.subtype, undefined, "The subtype is undefined for numbers");
+  is(result.value, 42, "The result is the promise's resolution");
+});
+
+add_task(async function awaitPromiseReject({ client }) {
+  const { Runtime } = client;
+
+  await enableRuntime(client);
+
+  const { exceptionDetails } = await Runtime.evaluate({
+    expression: "Promise.reject(42)",
+    awaitPromise: true,
+  });
+  // TODO: Implement all values for exceptionDetails (bug 1548480)
+  is(
+    exceptionDetails.exception.value,
+    42,
+    "The result is the promise's rejection"
+  );
+});
+
+add_task(async function awaitPromiseDelayedResolve({ client }) {
+  const { Runtime } = client;
+
+  await enableRuntime(client);
+
+  const { result } = await Runtime.evaluate({
+    expression: "new Promise(r => setTimeout(() => r(42), 0))",
+    awaitPromise: true,
+  });
+  is(result.type, "number", "The type is correct");
+  is(result.subtype, undefined, "The subtype is undefined for numbers");
+  is(result.value, 42, "The result is the promise's resolution");
+});
+
+add_task(async function awaitPromiseDelayedReject({ client }) {
+  const { Runtime } = client;
+
+  await enableRuntime(client);
+
+  const { exceptionDetails } = await Runtime.evaluate({
+    expression: "new Promise((_,r) => setTimeout(() => r(42), 0))",
+    awaitPromise: true,
+  });
+  is(
+    exceptionDetails.exception.value,
+    42,
+    "The result is the promise's rejection"
+  );
+});
+
+add_task(async function awaitPromiseResolveWithoutWait({ client }) {
+  const { Runtime } = client;
+
+  await enableRuntime(client);
+
+  const { result } = await Runtime.evaluate({
+    expression: "Promise.resolve(42)",
+    awaitPromise: false,
+  });
+
+  is(result.type, "object", "The type is correct");
+  is(result.subtype, "promise", "The subtype is promise");
+  ok(!!result.objectId, "We got the object id for the promise");
+  ok(!result.value, "We do not receive any value");
+});
+
+add_task(async function awaitPromiseDelayedResolveWithoutWait({ client }) {
+  const { Runtime } = client;
+
+  await enableRuntime(client);
+
+  const { result } = await Runtime.evaluate({
+    expression: "new Promise(r => setTimeout(() => r(42), 0))",
+    awaitPromise: false,
+  });
+
+  is(result.type, "object", "The type is correct");
+  is(result.subtype, "promise", "The subtype is promise");
+  ok(!!result.objectId, "We got the object id for the promise");
+  ok(!result.value, "We do not receive any value");
+});
+
+add_task(async function awaitPromiseRejectWithoutWait({ client }) {
+  const { Runtime } = client;
+
+  await enableRuntime(client);
+
+  const { result } = await Runtime.evaluate({
+    expression: "Promise.reject(42)",
+    awaitPromise: false,
+  });
+
+  is(result.type, "object", "The type is correct");
+  is(result.subtype, "promise", "The subtype is promise");
+  ok(!!result.objectId, "We got the object id for the promise");
+  ok(!result.exceptionDetails, "We do not receive any exception");
+});
+
+add_task(async function awaitPromiseDelayedRejectWithoutWait({ client }) {
+  const { Runtime } = client;
+
+  await enableRuntime(client);
+
+  const { result } = await Runtime.evaluate({
+    expression: "new Promise((_,r) => setTimeout(() => r(42), 0))",
+    awaitPromise: false,
+  });
+
+  is(result.type, "object", "The type is correct");
+  is(result.subtype, "promise", "The subtype is promise");
+  ok(!!result.objectId, "We got the object id for the promise");
+  ok(!result.exceptionDetails, "We do not receive any exception");
+});
+
+add_task(async function contextIdInvalidValue({ client }) {
+  const { Runtime } = client;
+
+  await enableRuntime(client);
+
+  let errorThrown = "";
+  try {
+    await Runtime.evaluate({ expression: "", contextId: -1 });
+  } catch (e) {
+    errorThrown = e.message;
+  }
+  ok(errorThrown.includes("Cannot find context with specified id"));
+});
+
+add_task(async function contextIdNotSpecified({ client }) {
+  const { Runtime } = client;
+
+  await loadURL(TEST_DOC);
+  await enableRuntime(client);
+
+  const { result } = await Runtime.evaluate({ expression: "location.href" });
+  is(result.value, TEST_DOC, "Works against the current document");
+});
+
+add_task(async function contextIdSpecified({ client }) {
+  const { Runtime } = client;
+
+  await loadURL(TEST_DOC);
+  const { id: contextId } = await enableRuntime(client);
+
+  const { result } = await Runtime.evaluate({
     expression: "location.href",
+    contextId,
   });
-  is(
-    result.value,
-    TEST_DOC,
-    "Runtime.evaluate works against the targetted document"
-  );
-}
+  is(result.value, TEST_DOC, "Works against the targetted document");
+});
 
-async function testEvaluateInvalidContextId({ Runtime }, contextId) {
-  try {
-    await Runtime.evaluate({ contextId: -1, expression: "" });
-    ok(false, "Evaluate shouldn't pass");
-  } catch (e) {
-    ok(
-      e.message.includes("Unable to find execution context with id: -1"),
-      "Throws with the expected error message"
-    );
-  }
-}
+add_task(async function returnAsObjectTypes({ client }) {
+  const { Runtime } = client;
 
-async function testCallFunctionOn({ Runtime }, executionContextId) {
-  const { result } = await Runtime.callFunctionOn({
-    executionContextId,
-    functionDeclaration: "() => location.href",
-  });
-  is(
-    result.value,
-    TEST_DOC,
-    "Runtime.callFunctionOn works and is against the test page"
-  );
-}
+  await enableRuntime(client);
 
-async function testCallFunctionOnInvalidContextId(
-  { Runtime },
-  executionContextId
-) {
-  try {
-    await Runtime.callFunctionOn({
-      executionContextId: -1,
-      functionDeclaration: "",
-    });
-    ok(false, "callFunctionOn shouldn't pass");
-  } catch (e) {
-    ok(
-      e.message.includes("Unable to find execution context with id: -1"),
-      "Throws with the expected error message"
-    );
-  }
-}
-
-async function testPrimitiveTypes(testFunction) {
-  const expressions = [42, "42", true, 4.2];
-  for (const expression of expressions) {
-    const { result } = await testFunction(JSON.stringify(expression));
-    is(result.value, expression, `Evaluating primitive '${expression}' works`);
-    is(result.type, typeof expression, `${expression} type is correct`);
-  }
-
-  // undefined doesn't work with JSON.stringify, so test it independently
-  let { result } = await testFunction("undefined");
-  is(result.value, undefined, "undefined works");
-  is(result.type, "undefined", "undefined type is correct");
-
-  // `null` is special as it has its own subtype, is of type 'object' but is returned as
-  // a value, without an `objectId` attribute
-  ({ result } = await testFunction("null"));
-  is(result.value, null, "Evaluating 'null' works");
-  is(result.type, "object", "'null' type is correct");
-  is(result.subtype, "null", "'null' subtype is correct");
-  ok(!result.objectId, "'null' has no objectId");
-}
-
-async function testUnserializable(testFunction) {
-  const expressions = ["-0", "NaN", "Infinity", "-Infinity"];
-  for (const expression of expressions) {
-    const { result } = await testFunction(expression);
-    is(
-      result.unserializableValue,
-      expression,
-      `Evaluating unserializable '${expression}' works`
-    );
-  }
-}
-
-async function testObjectTypes(testFunction) {
   const expressions = [
-    { expression: "({foo:true})", type: "object", subtype: null },
-    { expression: "Symbol('foo')", type: "symbol", subtype: null },
-    { expression: "BigInt(42)", type: "bigint", subtype: null },
+    { expression: "({foo:true})", type: "object", subtype: undefined },
+    { expression: "Symbol('foo')", type: "symbol", subtype: undefined },
     { expression: "new Promise(()=>{})", type: "object", subtype: "promise" },
     { expression: "new Int8Array(8)", type: "object", subtype: "typedarray" },
     { expression: "new WeakMap()", type: "object", subtype: "weakmap" },
@@ -207,50 +205,302 @@ async function testObjectTypes(testFunction) {
     { expression: "[1, 2]", type: "object", subtype: "array" },
     { expression: "new Proxy({}, {})", type: "object", subtype: "proxy" },
     { expression: "new Date()", type: "object", subtype: "date" },
-    { expression: "document", type: "object", subtype: "node" },
-    { expression: "document.documentElement", type: "object", subtype: "node" },
     {
-      expression: "document.createElement('div')",
+      expression: "document",
       type: "object",
       subtype: "node",
+      className: "HTMLDocument",
+      description: "#document",
+    },
+    {
+      expression: `(() => {{
+        const div = document.createElement('div');
+        div.id = "foo";
+        return div;
+      }})()`,
+      type: "object",
+      subtype: "node",
+      className: "HTMLDivElement",
+      description: "div#foo",
     },
   ];
 
-  for (const { expression, type, subtype } of expressions) {
-    const { result } = await testFunction(expression);
-    is(
-      result.subtype,
-      subtype,
-      `Evaluating '${expression}' has the expected subtype`
-    );
+  for (const entry of expressions) {
+    const { expression, type, subtype, className, description } = entry;
+
+    const { result } = await Runtime.evaluate({ expression });
+
     is(result.type, type, "The type is correct");
+    is(result.subtype, subtype, "The subtype is correct");
     ok(!!result.objectId, "Got an object id");
+    if (className) {
+      is(result.className, className, "The className is correct");
+    }
+    if (description) {
+      is(result.description, description, "The description is correct");
+    }
   }
-}
+});
 
-async function testThrowError(testFunction) {
-  const { exceptionDetails } = await testFunction(
-    "throw new Error('foo')",
-    true
-  );
-  is(exceptionDetails.text, "foo", "Exception message is passed to the client");
-}
+add_task(async function returnAsObjectDifferentObjectIds({ client }) {
+  const { Runtime } = client;
 
-async function testThrowValue(testFunction) {
-  const { exceptionDetails } = await testFunction("throw 'foo'", true);
-  is(exceptionDetails.exception.type, "string", "Exception type is correct");
-  is(
-    exceptionDetails.exception.value,
-    "foo",
-    "Exception value is passed as a RemoteObject"
-  );
-}
+  await enableRuntime(client);
 
-async function testJSError(testFunction) {
-  const { exceptionDetails } = await testFunction("doesNotExists()", true);
-  is(
-    exceptionDetails.text,
-    "doesNotExists is not defined",
-    "Exception message is passed to the client"
+  const expressions = [{}, "document"];
+  for (const expression of expressions) {
+    const { result: result1 } = await Runtime.evaluate({
+      expression: JSON.stringify(expression),
+    });
+    const { result: result2 } = await Runtime.evaluate({
+      expression: JSON.stringify(expression),
+    });
+    is(
+      result1.objectId,
+      result2.objectId,
+      `Different object ids returned for ${expression}`
+    );
+  }
+});
+
+add_task(async function returnAsObjectPrimitiveTypes({ client }) {
+  const { Runtime } = client;
+
+  await enableRuntime(client);
+
+  const expressions = [42, "42", true, 4.2];
+  for (const expression of expressions) {
+    const { result } = await Runtime.evaluate({
+      expression: JSON.stringify(expression),
+    });
+    is(result.value, expression, `Evaluating primitive '${expression}' works`);
+    is(result.type, typeof expression, `${expression} type is correct`);
+  }
+});
+
+add_task(async function returnAsObjectNotSerializable({ client }) {
+  const { Runtime } = client;
+
+  await enableRuntime(client);
+
+  const notSerializableNumbers = {
+    number: ["-0", "NaN", "Infinity", "-Infinity"],
+    bigint: ["42n"],
+  };
+
+  for (const type in notSerializableNumbers) {
+    for (const expression of notSerializableNumbers[type]) {
+      const { result } = await Runtime.evaluate({ expression });
+      Assert.deepEqual(
+        result,
+        {
+          type,
+          unserializableValue: expression,
+          description: expression,
+        },
+        `Evaluating unserializable '${expression}' works`
+      );
+    }
+  }
+});
+
+// `null` is special as it has its own subtype, is of type 'object'
+// but is returned as a value, without an `objectId` attribute
+add_task(async function returnAsObjectNull({ client }) {
+  const { Runtime } = client;
+
+  await enableRuntime(client);
+
+  const { result } = await Runtime.evaluate({
+    expression: "null",
+  });
+  Assert.deepEqual(
+    result,
+    {
+      type: "object",
+      subtype: "null",
+      value: null,
+    },
+    "Null type is correct"
   );
-}
+});
+
+// undefined doesn't work with JSON.stringify, so test it independently
+add_task(async function returnAsObjectUndefined({ client }) {
+  const { Runtime } = client;
+
+  await enableRuntime(client);
+
+  const { result } = await Runtime.evaluate({
+    expression: "undefined",
+  });
+  Assert.deepEqual(
+    result,
+    {
+      type: "undefined",
+    },
+    "Undefined type is correct"
+  );
+});
+
+add_task(async function returnByValueInvalidTypes({ client }) {
+  const { Runtime } = client;
+
+  await enableRuntime(client);
+
+  for (const returnByValue of [null, 1, "foo", [], {}]) {
+    let errorThrown = "";
+    try {
+      await Runtime.evaluate({
+        expression: "",
+        returnByValue,
+      });
+    } catch (e) {
+      errorThrown = e.message;
+    }
+    ok(errorThrown.includes("returnByValue: boolean value expected"));
+  }
+});
+
+add_task(async function returnByValue({ client }) {
+  const { Runtime } = client;
+
+  await enableRuntime(client);
+
+  const values = [
+    null,
+    42,
+    42.0,
+    "42",
+    true,
+    false,
+    { foo: true },
+    { foo: { bar: 42, str: "str", array: [1, 2, 3] } },
+    [42, "42", true],
+    [{ foo: true }],
+  ];
+
+  for (const value of values) {
+    const { result } = await Runtime.evaluate({
+      expression: `(${JSON.stringify(value)})`,
+      returnByValue: true,
+    });
+
+    Assert.deepEqual(
+      result,
+      {
+        type: typeof value,
+        value,
+        description: value != null ? value.toString() : value,
+      },
+      `Returned expected value for ${JSON.stringify(value)}`
+    );
+  }
+});
+
+add_task(async function returnByValueNotSerializable({ client }) {
+  const { Runtime } = client;
+
+  await enableRuntime(client);
+
+  const notSerializableNumbers = {
+    number: ["-0", "NaN", "Infinity", "-Infinity"],
+    bigint: ["42n"],
+  };
+
+  for (const type in notSerializableNumbers) {
+    for (const unserializableValue of notSerializableNumbers[type]) {
+      const { result } = await Runtime.evaluate({
+        expression: `(${unserializableValue})`,
+        returnByValue: true,
+      });
+
+      Assert.deepEqual(
+        result,
+        {
+          type,
+          unserializableValue,
+          description: unserializableValue,
+        },
+        `Returned expected value for ${JSON.stringify(unserializableValue)}`
+      );
+    }
+  }
+});
+
+// Test undefined individually as JSON.stringify doesn't return a string
+add_task(async function returnByValueUndefined({ client }) {
+  const { Runtime } = client;
+
+  await enableRuntime(client);
+
+  const { result } = await Runtime.evaluate({
+    expression: "undefined",
+    returnByValue: true,
+  });
+
+  Assert.deepEqual(
+    result,
+    {
+      type: "undefined",
+    },
+    "Undefined type is correct"
+  );
+});
+
+add_task(async function exceptionDetailsJavascriptError({ client }) {
+  const { Runtime } = client;
+
+  await enableRuntime(client);
+
+  const { exceptionDetails } = await Runtime.evaluate({
+    expression: "doesNotExists()",
+  });
+
+  Assert.deepEqual(
+    exceptionDetails,
+    {
+      text: "doesNotExists is not defined",
+    },
+    "Javascript error is passed to the client"
+  );
+});
+
+add_task(async function exceptionDetailsThrowError({ client }) {
+  const { Runtime } = client;
+
+  await enableRuntime(client);
+
+  const { exceptionDetails } = await Runtime.evaluate({
+    expression: "throw new Error('foo')",
+  });
+
+  Assert.deepEqual(
+    exceptionDetails,
+    {
+      text: "foo",
+    },
+    "Exception details are passed to the client"
+  );
+});
+
+add_task(async function exceptionDetailsThrowValue({ client }) {
+  const { Runtime } = client;
+
+  await enableRuntime(client);
+
+  const { exceptionDetails } = await Runtime.evaluate({
+    expression: "throw 'foo'",
+  });
+
+  Assert.deepEqual(
+    exceptionDetails,
+    {
+      exception: {
+        type: "string",
+        value: "foo",
+      },
+    },
+    "Exception details are passed as a RemoteObject"
+  );
+});

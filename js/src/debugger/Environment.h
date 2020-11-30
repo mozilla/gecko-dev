@@ -52,8 +52,8 @@ class DebuggerEnvironment : public NativeObject {
                               MutableHandleDebuggerEnvironment result) const;
   MOZ_MUST_USE bool getObject(JSContext* cx,
                               MutableHandleDebuggerObject result) const;
-  MOZ_MUST_USE bool getCallee(JSContext* cx,
-                              MutableHandleDebuggerObject result) const;
+  MOZ_MUST_USE bool getCalleeScript(JSContext* cx,
+                                    MutableHandleDebuggerScript result) const;
   bool isDebuggee() const;
   bool isOptimized() const;
 
@@ -71,11 +71,8 @@ class DebuggerEnvironment : public NativeObject {
                                        HandleDebuggerEnvironment environment,
                                        HandleId id, HandleValue value);
 
- private:
-  static const JSClassOps classOps_;
-
-  static const JSPropertySpec properties_[];
-  static const JSFunctionSpec methods_[];
+  bool isInstance() const;
+  Debugger* owner() const;
 
   Env* referent() const {
     Env* env = static_cast<Env*>(getPrivate());
@@ -83,7 +80,11 @@ class DebuggerEnvironment : public NativeObject {
     return env;
   }
 
-  Debugger* owner() const;
+ private:
+  static const JSClassOps classOps_;
+
+  static const JSPropertySpec properties_[];
+  static const JSFunctionSpec methods_[];
 
   bool requireDebuggee(JSContext* cx) const;
 

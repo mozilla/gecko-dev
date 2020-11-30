@@ -9,8 +9,9 @@
 
 #ifdef JS_ION_PERF
 #  include <stdio.h>
-#  include "jit/MacroAssembler.h"
 #endif
+
+#include "jit/Label.h"
 
 namespace {
 struct AutoLockPerfMap;

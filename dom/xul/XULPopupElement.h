@@ -72,6 +72,8 @@ class XULPopupElement : public nsXULElement {
 
   nsINode* GetTriggerNode() const;
 
+  bool IsAnchored() const;
+
   Element* GetAnchorNode() const;
 
   already_AddRefed<DOMRect> GetOuterScreenRect();
@@ -82,10 +84,6 @@ class XULPopupElement : public nsXULElement {
                     int32_t aXPos, int32_t aYPos, bool aAttributesOverride);
 
   void SizeTo(int32_t aWidth, int32_t aHeight);
-
-  void GetAlignmentPosition(nsString& positionStr);
-
-  int32_t AlignmentOffset();
 
   void SetConstraintRect(DOMRectReadOnly& aRect);
 

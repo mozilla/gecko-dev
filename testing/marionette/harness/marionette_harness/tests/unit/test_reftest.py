@@ -4,8 +4,8 @@
 
 from __future__ import absolute_import, print_function
 
-from marionette_driver.errors import InvalidArgumentException, UnsupportedOperationException
-from marionette_harness import MarionetteTestCase
+from marionette_driver.errors import UnsupportedOperationException
+from marionette_harness import MarionetteTestCase, skip
 
 
 class TestReftest(MarionetteTestCase):
@@ -14,7 +14,6 @@ class TestReftest(MarionetteTestCase):
 
         self.original_window = self.marionette.current_window_handle
 
-        self.marionette.set_context(self.marionette.CONTEXT_CHROME)
         self.marionette.set_pref("dom.send_after_paint_to_content", True)
 
     def tearDown(self):
@@ -27,11 +26,11 @@ class TestReftest(MarionetteTestCase):
 
         self.marionette.switch_to_window(self.original_window)
 
-        self.marionette.set_context(self.marionette.CONTEXT_CONTENT)
         self.marionette.clear_pref("dom.send_after_paint_to_content")
 
         super(TestReftest, self).tearDown()
 
+    @skip("Bug 1648444 - Unexpected page unload when refreshing about:blank")
     def test_basic(self):
         self.marionette._send_message("reftest:setup", {"screenshot": "unexpected"})
         rv = self.marionette._send_message("reftest:run",

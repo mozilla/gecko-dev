@@ -19,20 +19,61 @@
  */
 exports.viewSourceInStyleEditor = async function(
   toolbox,
-  sourceURL,
-  sourceLine,
-  sourceColumn
+  stylesheetFrontOrGeneratedURL,
+  generatedLine,
+  generatedColumn
 ) {
   const panel = await toolbox.loadTool("styleeditor");
 
-  try {
-    await panel.selectStyleSheet(sourceURL, sourceLine, sourceColumn);
-    await toolbox.selectTool("styleeditor");
-    return true;
-  } catch (e) {
-    exports.viewSource(toolbox, sourceURL, sourceLine);
-    return false;
+  let stylesheetFront;
+  if (typeof stylesheetFrontOrGeneratedURL === "string") {
+    stylesheetFront = panel.getStylesheetFrontForGeneratedURL(
+      stylesheetFrontOrGeneratedURL
+    );
+  } else {
+    stylesheetFront = stylesheetFrontOrGeneratedURL;
   }
+
+  const originalLocation = stylesheetFront
+    ? await getOriginalLocation(
+        toolbox,
+        stylesheetFront.actorID,
+        generatedLine,
+        generatedColumn
+      )
+    : null;
+
+  try {
+    if (originalLocation) {
+      await panel.selectOriginalSheet(
+        originalLocation.sourceId,
+        originalLocation.line,
+        originalLocation.column
+      );
+      await toolbox.selectTool("styleeditor");
+      return true;
+    } else if (stylesheetFront) {
+      await panel.selectStyleSheet(
+        stylesheetFront,
+        generatedLine,
+        generatedColumn
+      );
+      await toolbox.selectTool("styleeditor");
+      return true;
+    }
+  } catch (e) {
+    console.error("Failed to view source in style editor", e);
+  }
+
+  exports.viewSource(
+    toolbox,
+    typeof stylesheetFrontOrGeneratedURL === "string"
+      ? stylesheetFrontOrGeneratedURL
+      : stylesheetFrontOrGeneratedURL.href ||
+          stylesheetFrontOrGeneratedURL.nodeHref,
+    generatedLine
+  );
+  return false;
 };
 
 /**
@@ -55,41 +96,118 @@ exports.viewSourceInStyleEditor = async function(
  */
 exports.viewSourceInDebugger = async function(
   toolbox,
-  sourceURL,
-  sourceLine,
-  sourceColumn,
-  sourceId,
+  generatedURL,
+  generatedLine,
+  generatedColumn,
+  sourceActorId,
   reason = "unknown"
 ) {
-  const dbg = await toolbox.loadTool("jsdebugger");
-  const source = sourceId
-    ? dbg.getSourceByActorId(sourceId)
-    : dbg.getSourceByURL(sourceURL);
-  if (source && dbg.canLoadSource(source.id)) {
-    await toolbox.selectTool("jsdebugger", reason);
+  const location = await getViewSourceInDebuggerLocation(
+    toolbox,
+    generatedURL,
+    generatedLine,
+    generatedColumn,
+    sourceActorId
+  );
+
+  if (location) {
+    const { id, line, column } = location;
+
+    const dbg = await toolbox.selectTool("jsdebugger", reason);
     try {
-      await dbg.selectSource(source.id, sourceLine, sourceColumn);
+      await dbg.selectSource(id, line, column);
+      return true;
     } catch (err) {
       console.error("Failed to view source in debugger", err);
-      return false;
     }
-    return true;
-  } else if (await toolbox.sourceMapService.hasOriginalURL(sourceURL)) {
-    // We have seen a source map for the URL but no source. The debugger will
-    // still be able to load the source.
-    await toolbox.selectTool("jsdebugger", reason);
-    try {
-      await dbg.selectSourceURL(sourceURL, sourceLine, sourceColumn);
-    } catch (err) {
-      console.error("Failed to view source in debugger", err);
-      return false;
-    }
-    return true;
   }
 
-  exports.viewSource(toolbox, sourceURL, sourceLine, sourceColumn);
+  exports.viewSource(toolbox, generatedURL, generatedLine);
   return false;
 };
+
+async function getViewSourceInDebuggerLocation(
+  toolbox,
+  generatedURL,
+  generatedLine,
+  generatedColumn,
+  sourceActorId
+) {
+  const dbg = await toolbox.loadTool("jsdebugger");
+
+  const generatedSource = sourceActorId
+    ? dbg.getSourceByActorId(sourceActorId)
+    : dbg.getSourceByURL(generatedURL);
+  if (
+    !generatedSource ||
+    // Note: We're not entirely sure when this can happen, so we may want
+    // to revisit that at some point.
+    dbg.getSourceActorsForSource(generatedSource.id).length === 0
+  ) {
+    return null;
+  }
+
+  const generatedLocation = {
+    id: generatedSource.id,
+    line: generatedLine,
+    column: generatedColumn,
+  };
+
+  const originalLocation = await getOriginalLocation(
+    toolbox,
+    generatedLocation.id,
+    generatedLocation.line,
+    generatedLocation.column
+  );
+
+  if (!originalLocation) {
+    return generatedLocation;
+  }
+
+  const originalSource = dbg.getSource(originalLocation.sourceId);
+
+  if (!originalSource) {
+    return generatedLocation;
+  }
+
+  return {
+    id: originalSource.id,
+    line: originalLocation.line,
+    column: originalLocation.column,
+  };
+}
+
+async function getOriginalLocation(
+  toolbox,
+  generatedID,
+  generatedLine,
+  generatedColumn
+) {
+  // If there is no line number, then there's no chance that we'll get back
+  // a useful original location.
+  if (typeof generatedLine !== "number") {
+    return null;
+  }
+
+  let originalLocation = null;
+  try {
+    originalLocation = await toolbox.sourceMapService.getOriginalLocation({
+      sourceId: generatedID,
+      line: generatedLine,
+      column: generatedColumn,
+    });
+    if (originalLocation && originalLocation.sourceId === generatedID) {
+      originalLocation = null;
+    }
+  } catch (err) {
+    console.error(
+      "Failed to resolve sourcemapped location for the given source location",
+      { generatedID, generatedLine, generatedColumn },
+      err
+    );
+  }
+  return originalLocation;
+}
 
 /**
  * Open a link in Firefox's View Source.

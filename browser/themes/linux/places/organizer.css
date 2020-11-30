@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
 /* Toolbar */
+
 #placesToolbar {
-  -moz-appearance: menubar;
+  appearance: auto;
+  -moz-default-appearance: menubar;
 }
 
 @media (-moz-menubar-drag) {
@@ -22,46 +23,47 @@
   color: ButtonText;
 }
 
-#placesToolbar > toolbarbutton[disabled=true] {
+#placesToolbar > toolbarbutton[disabled] {
   color: GrayText;
 }
 
-/* back button */
+/* Back button */
 
 #back-button {
   list-style-image: url("moz-icon://stock/gtk-go-back-ltr?size=toolbar");
 }
-#back-button[disabled="true"] {
+#back-button[disabled] {
   list-style-image: url("moz-icon://stock/gtk-go-back-ltr?size=toolbar&state=disabled");
 }
 
 #back-button:-moz-locale-dir(rtl) {
   list-style-image: url("moz-icon://stock/gtk-go-back-rtl?size=toolbar");
 }
-#back-button[disabled="true"]:-moz-locale-dir(rtl) {
+#back-button[disabled]:-moz-locale-dir(rtl) {
   list-style-image: url("moz-icon://stock/gtk-go-back-rtl?size=toolbar&state=disabled");
 }
 
-/* forward button */
+/* Forward button */
 
 #forward-button {
   list-style-image: url("moz-icon://stock/gtk-go-forward-ltr?size=toolbar");
 }
-#forward-button[disabled="true"] {
+#forward-button[disabled] {
   list-style-image: url("moz-icon://stock/gtk-go-forward-ltr?size=toolbar&state=disabled");
 }
 
 #forward-button:-moz-locale-dir(rtl) {
   list-style-image: url("moz-icon://stock/gtk-go-forward-rtl?size=toolbar");
 }
-#forward-button[disabled="true"]:-moz-locale-dir(rtl) {
+#forward-button[disabled]:-moz-locale-dir(rtl) {
   list-style-image: url("moz-icon://stock/gtk-go-forward-rtl?size=toolbar&state=disabled");
 }
 
-/* Menu */
+/* Menus */
 #placesMenu > menu {
   padding-inline-start: 4px;
-  -moz-appearance: toolbarbutton;
+  appearance: auto;
+  -moz-default-appearance: toolbarbutton;
 }
 
 #placesMenu > menu:hover {
@@ -76,9 +78,11 @@
 #placesMenu > menu::after {
   content: "";
   display: -moz-box;
-  -moz-appearance: toolbarbutton-dropdown;
   width: 12px;
   height: 12px;
+  content: url("chrome://global/skin/icons/arrow-dropdown-12.svg");
+  -moz-context-properties: fill;
+  fill: currentColor;
 }
 
 /* Root View */
@@ -91,14 +95,8 @@
   padding: 5px;
 }
 
-#infoBoxExpanderLabel {
-  padding-inline-start: 2px;
-}
-
-/**
- * Downloads pane
- */
-
+/* Downloads pane */
 #clearDownloadsButton > .toolbarbutton-icon {
   display: none;
 }
+

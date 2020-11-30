@@ -81,7 +81,7 @@ static void SetSortColumnHints(nsIContent* content,
       child->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::sort, value);
       if (value == sortResource) {
         child->AsElement()->SetAttr(kNameSpaceID_None, nsGkAtoms::sortActive,
-                                    NS_LITERAL_STRING("true"), true);
+                                    u"true"_ns, true);
 
         child->AsElement()->SetAttr(kNameSpaceID_None, nsGkAtoms::sortDirection,
                                     sortDirection, true);
@@ -185,7 +185,7 @@ static int32_t CompareValues(const nsAString& aLeft, const nsAString& aRight,
     return result;
   }
 
-  return ::Compare(aLeft, aRight, nsCaseInsensitiveStringComparator());
+  return ::Compare(aLeft, aRight, nsCaseInsensitiveStringComparator);
 }
 
 static int testSortCallback(const void* data1, const void* data2,

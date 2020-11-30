@@ -286,9 +286,10 @@ ScalarResult GetVariantFromIVariant(nsIVariant* aInput, uint32_t aScalarKind,
 /**
  * Write a nsIVariant with a JSONWriter, used for GeckoView persistence.
  */
-nsresult WriteVariantToJSONWriter(uint32_t aScalarType, nsIVariant* aInputValue,
-                                  const char* aPropertyName,
-                                  mozilla::JSONWriter& aWriter) {
+nsresult WriteVariantToJSONWriter(
+    uint32_t aScalarType, nsIVariant* aInputValue,
+    const mozilla::Span<const char>& aPropertyName,
+    mozilla::JSONWriter& aWriter) {
   MOZ_ASSERT(aInputValue);
 
   switch (aScalarType) {
@@ -303,7 +304,7 @@ nsresult WriteVariantToJSONWriter(uint32_t aScalarType, nsIVariant* aInputValue,
       nsCString val;
       nsresult rv = aInputValue->GetAsACString(val);
       NS_ENSURE_SUCCESS(rv, rv);
-      aWriter.StringProperty(aPropertyName, val.get());
+      aWriter.StringProperty(aPropertyName, val);
       break;
     }
     case nsITelemetry::SCALAR_TYPE_BOOLEAN: {
@@ -847,7 +848,7 @@ ScalarBase* internal_ScalarAllocate(const BaseScalarInfo& aInfo) {
  */
 class KeyedScalar {
  public:
-  typedef mozilla::Pair<nsCString, nsCOMPtr<nsIVariant>> KeyValuePair;
+  typedef std::pair<nsCString, nsCOMPtr<nsIVariant>> KeyValuePair;
 
   // We store the name instead of a reference to the BaseScalarInfo because
   // the BaseScalarInfo can move if it's from a dynamic scalar.
@@ -1032,8 +1033,7 @@ nsresult KeyedScalar::GetValue(const nsACString& aStoreName, bool aClearStorage,
     }
 
     // Append it to value list.
-    aValues.AppendElement(
-        mozilla::MakePair(nsCString(iter.Key()), scalarValue));
+    aValues.AppendElement(std::make_pair(nsCString(iter.Key()), scalarValue));
   }
 
   return NS_OK;
@@ -1932,21 +1932,16 @@ void internal_DynamicScalarToIPC(
  * content processes.
  */
 void internal_BroadcastDefinitions(
-    const StaticMutexAutoLock& lock,
-    const nsTArray<DynamicScalarInfo>& scalarInfos) {
+    const nsTArray<DynamicScalarDefinition>& scalarDefs) {
   nsTArray<mozilla::dom::ContentParent*> parents;
   mozilla::dom::ContentParent::GetAll(parents);
   if (!parents.Length()) {
     return;
   }
 
-  // Convert the internal scalar representation to a stripped down IPC one.
-  nsTArray<DynamicScalarDefinition> ipcDefinitions;
-  internal_DynamicScalarToIPC(lock, scalarInfos, ipcDefinitions);
-
   // Broadcast the definitions to the other content processes.
   for (auto parent : parents) {
-    mozilla::Unused << parent->SendAddDynamicScalars(ipcDefinitions);
+    mozilla::Unused << parent->SendAddDynamicScalars(scalarDefs);
   }
 }
 
@@ -2091,8 +2086,8 @@ nsresult internal_KeyedScalarSnapshotter(
           continue;
         }
         // Append it to our list.
-        processScalars.AppendElement(
-            mozilla::MakeTuple(info.name(), scalarKeyedData, info.kind));
+        processScalars.AppendElement(mozilla::MakeTuple(
+            info.name(), std::move(scalarKeyedData), info.kind));
       }
     }
     if (processScalars.Length() == 0) {
@@ -3292,13 +3287,13 @@ nsresult TelemetryScalar::CreateKeyedSnapshots(
         // Convert the value for the key to a JSValue.
         JS::Rooted<JS::Value> keyJsValue(aCx);
         nsresult rv = nsContentUtils::XPConnect()->VariantToJS(
-            aCx, keyedScalarObj, keyData.second(), &keyJsValue);
+            aCx, keyedScalarObj, keyData.second, &keyJsValue);
         if (NS_FAILED(rv)) {
           return rv;
         }
 
         // Add the key to the scalar representation.
-        const NS_ConvertUTF8toUTF16 key(keyData.first());
+        const NS_ConvertUTF8toUTF16 key(keyData.first);
         if (!JS_DefineUCProperty(aCx, keyedScalarObj, key.Data(), key.Length(),
                                  keyJsValue, JSPROP_ENUMERATE)) {
           return NS_ERROR_FAILURE;
@@ -3474,14 +3469,19 @@ nsresult TelemetryScalar::RegisterScalars(const nsACString& aCategoryName,
   }
 
   // Register the dynamic definition on the parent process.
+  nsTArray<DynamicScalarDefinition> ipcDefinitions;
   {
     StaticMutexAutoLock locker(gTelemetryScalarsMutex);
     ::internal_RegisterScalars(locker, newScalarInfos);
 
-    // Propagate the registration to all the content-processes. Please note that
-    // this does not require to hold the mutex.
-    ::internal_BroadcastDefinitions(locker, newScalarInfos);
+    // Convert the internal scalar representation to a stripped down IPC one.
+    ::internal_DynamicScalarToIPC(locker, newScalarInfos, ipcDefinitions);
   }
+
+  // Propagate the registration to all the content-processes.
+  // Do not hold the mutex while calling IPC.
+  ::internal_BroadcastDefinitions(ipcDefinitions);
+
   return NS_OK;
 }
 
@@ -3794,7 +3794,7 @@ nsresult TelemetryScalar::SerializeScalars(mozilla::JSONWriter& aWriter) {
     nsresult rv = internal_GetScalarSnapshot(
         locker, scalarsToReflect, nsITelemetry::DATASET_PRERELEASE_CHANNELS,
         false, /*aClearScalars*/
-        NS_LITERAL_CSTRING("main"));
+        "main"_ns);
     if (NS_FAILED(rv)) {
       return rv;
     }
@@ -3805,13 +3805,14 @@ nsresult TelemetryScalar::SerializeScalars(mozilla::JSONWriter& aWriter) {
     ScalarTupleArray& processScalars = iter.Data();
     const char* processName = GetNameForProcessID(ProcessID(iter.Key()));
 
-    aWriter.StartObjectProperty(processName);
+    aWriter.StartObjectProperty(mozilla::MakeStringSpan(processName));
 
     for (const ScalarDataTuple& scalar : processScalars) {
       nsresult rv = WriteVariantToJSONWriter(
           mozilla::Get<2>(scalar) /*aScalarType*/,
           mozilla::Get<1>(scalar) /*aInputValue*/,
-          mozilla::Get<0>(scalar) /*aPropertyName*/, aWriter /*aWriter*/);
+          mozilla::MakeStringSpan(mozilla::Get<0>(scalar)) /*aPropertyName*/,
+          aWriter /*aWriter*/);
       if (NS_FAILED(rv)) {
         // Skip this scalar if we failed to write it. We don't bail out just
         // yet as we may salvage other scalars. We eventually need to call
@@ -3844,7 +3845,7 @@ nsresult TelemetryScalar::SerializeKeyedScalars(mozilla::JSONWriter& aWriter) {
     nsresult rv = internal_GetKeyedScalarSnapshot(
         locker, keyedScalarsToReflect,
         nsITelemetry::DATASET_PRERELEASE_CHANNELS, false, /*aClearScalars*/
-        NS_LITERAL_CSTRING("main"));
+        "main"_ns);
     if (NS_FAILED(rv)) {
       return rv;
     }
@@ -3855,10 +3856,11 @@ nsresult TelemetryScalar::SerializeKeyedScalars(mozilla::JSONWriter& aWriter) {
     KeyedScalarTupleArray& processScalars = iter.Data();
     const char* processName = GetNameForProcessID(ProcessID(iter.Key()));
 
-    aWriter.StartObjectProperty(processName);
+    aWriter.StartObjectProperty(mozilla::MakeStringSpan(processName));
 
     for (const KeyedScalarDataTuple& keyedScalarData : processScalars) {
-      aWriter.StartObjectProperty(mozilla::Get<0>(keyedScalarData));
+      aWriter.StartObjectProperty(
+          mozilla::MakeStringSpan(mozilla::Get<0>(keyedScalarData)));
 
       // Define a property for each scalar key, then add it to the keyed scalar
       // object.
@@ -3867,9 +3869,8 @@ nsresult TelemetryScalar::SerializeKeyedScalars(mozilla::JSONWriter& aWriter) {
       for (const KeyedScalar::KeyValuePair& keyData : keyProps) {
         nsresult rv = WriteVariantToJSONWriter(
             mozilla::Get<2>(keyedScalarData) /*aScalarType*/,
-            keyData.second() /*aInputValue*/,
-            PromiseFlatCString(keyData.first()).get() /*aOutKey*/,
-            aWriter /*aWriter*/);
+            keyData.second /*aInputValue*/,
+            PromiseFlatCString(keyData.first) /*aOutKey*/, aWriter /*aWriter*/);
         if (NS_FAILED(rv)) {
           // Skip this scalar if we failed to write it. We don't bail out just
           // yet as we may salvage other scalars. We eventually need to call
@@ -3900,7 +3901,7 @@ nsresult TelemetryScalar::DeserializePersistedScalars(JSContext* aCx,
     return NS_ERROR_FAILURE;
   }
 
-  typedef mozilla::Pair<nsCString, nsCOMPtr<nsIVariant>> PersistedScalarPair;
+  typedef std::pair<nsCString, nsCOMPtr<nsIVariant>> PersistedScalarPair;
   typedef nsTArray<PersistedScalarPair> PersistedScalarArray;
   typedef nsDataHashtable<ProcessIDHashKey, PersistedScalarArray>
       PeristedScalarStorage;
@@ -4003,7 +4004,7 @@ nsresult TelemetryScalar::DeserializePersistedScalars(JSContext* aCx,
       // Add the scalar to the map.
       PersistedScalarArray& processScalars =
           scalarsToUpdate.GetOrInsert(static_cast<uint32_t>(processID));
-      processScalars.AppendElement(mozilla::MakePair(
+      processScalars.AppendElement(std::make_pair(
           nsCString(NS_ConvertUTF16toUTF8(scalarName)), unpackedVal));
     }
   }
@@ -4017,9 +4018,8 @@ nsresult TelemetryScalar::DeserializePersistedScalars(JSContext* aCx,
       for (PersistedScalarArray::size_type i = 0; i < processScalars.Length();
            i++) {
         mozilla::Unused << internal_UpdateScalar(
-            lock, processScalars[i].first(), ScalarActionType::eSet,
-            processScalars[i].second(), ProcessID(iter.Key()),
-            true /* aForce */);
+            lock, processScalars[i].first, ScalarActionType::eSet,
+            processScalars[i].second, ProcessID(iter.Key()), true /* aForce */);
       }
     }
   }

@@ -4,7 +4,8 @@
 
 // @flow
 import { memoize } from "lodash";
-import { URL } from "whatwg-url";
+import { URL as URLParser } from "whatwg-url";
+import type { URL } from "../types";
 
 const defaultUrl = {
   hash: "",
@@ -23,21 +24,67 @@ const defaultUrl = {
   username: "",
 };
 
-export const parse = memoize(function parse(url: string): any {
-  try {
-    const urlObj = new URL(url);
-    (urlObj: any).path = urlObj.pathname + urlObj.search;
-    return urlObj;
-  } catch (err) {
-    // If we're given simply a filename...
-    if (url) {
-      return { ...defaultUrl, path: url, pathname: url };
+export const stripQuery = memoize(function stripQueryAndHash(url: URL): URL {
+  let queryStart = url.indexOf("?");
+
+  let before = url;
+  let after = "";
+  if (queryStart >= 0) {
+    const hashStart = url.indexOf("#");
+    if (hashStart >= 0) {
+      if (hashStart < queryStart) {
+        queryStart = hashStart;
+      }
+
+      after = url.slice(hashStart);
     }
 
-    return defaultUrl;
+    before = url.slice(0, queryStart);
   }
+
+  return before + after;
 });
 
-export function sameOrigin(firstUrl: string, secondUrl: string) {
+export const parse = memoize(function parse(url: URL): any {
+  let urlObj;
+  try {
+    urlObj = new URLParser(url);
+  } catch (err) {
+    urlObj = { ...defaultUrl };
+    // If we're given simply a filename...
+    if (url) {
+      const hashStart = url.indexOf("#");
+      if (hashStart >= 0) {
+        urlObj.hash = url.slice(hashStart);
+        url = url.slice(0, hashStart);
+
+        if (urlObj.hash === "#") {
+          // The standard URL parser does not include the ? unless there are
+          // parameters included in the search value.
+          urlObj.hash = "";
+        }
+      }
+
+      const queryStart = url.indexOf("?");
+      if (queryStart >= 0) {
+        urlObj.search = url.slice(queryStart);
+        url = url.slice(0, queryStart);
+
+        if (urlObj.search === "?") {
+          // The standard URL parser does not include the ? unless there are
+          // parameters included in the search value.
+          urlObj.search = "";
+        }
+      }
+
+      urlObj.pathname = url;
+    }
+  }
+  (urlObj: any).path = urlObj.pathname + urlObj.search;
+
+  return urlObj;
+});
+
+export function sameOrigin(firstUrl: URL, secondUrl: URL): boolean {
   return parse(firstUrl).origin == parse(secondUrl).origin;
 }

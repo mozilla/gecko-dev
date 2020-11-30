@@ -7,6 +7,12 @@
  */
 
 add_task(async function() {
+  // This test requires update2.  See also
+  // browser_action_searchengine_alias_legacy.js.
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.update2", true]],
+  });
+
   const ICON_URI =
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAA" +
     "CQkWg2AAABGklEQVQoz2NgGB6AnZ1dUlJSXl4eSDIyMhLW4Ovr%2B%2Fr168uXL69Zs4YoG%2BL" +
@@ -30,6 +36,11 @@ add_task(async function() {
     "about:mozilla"
   );
 
+  // Disable autofill so mozilla.org isn't autofilled below.
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.autoFill", false]],
+  });
+
   registerCleanupFunction(async function() {
     await Services.search.setDefault(originalEngine);
     await Services.search.removeEngine(engine);
@@ -39,26 +50,26 @@ add_task(async function() {
       /* tab may have already been closed in case of failure */
     }
     await PlacesUtils.history.clear();
+    await UrlbarTestUtils.formHistory.clear();
   });
 
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    waitForFocus: SimpleTest.waitForFocus,
     value: "moz",
   });
-  Assert.equal(
-    gURLBar.value,
-    "moz",
-    "Preselected search keyword result shouldn't automatically add a space"
-  );
+  Assert.equal(gURLBar.value, "moz", "Value should be unchanged");
 
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    waitForFocus: SimpleTest.waitForFocus,
     value: "moz open a search",
   });
-  let result = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
-  Assert.equal(result.image, ICON_URI, "Should have the correct image");
+  // Wait for the second new search that starts when search mode is entered.
+  await UrlbarTestUtils.promiseSearchComplete(window);
+  await UrlbarTestUtils.assertSearchMode(window, {
+    engineName: engine.name,
+    entry: "typed",
+  });
+  Assert.equal(gURLBar.value, "open a search", "value should be query");
 
   let tabPromise = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
   EventUtils.synthesizeKey("KEY_Enter");

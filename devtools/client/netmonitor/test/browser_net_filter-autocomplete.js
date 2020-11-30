@@ -38,7 +38,7 @@ function testAutocompleteContents(expected, document) {
 }
 
 add_task(async function() {
-  const { monitor } = await initNetMonitor(FILTERING_URL);
+  const { monitor } = await initNetMonitor(FILTERING_URL, { requestCount: 1 });
   const { document, store, windowRequire } = monitor.panelWin;
   const Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
 
@@ -49,7 +49,6 @@ add_task(async function() {
   // Let the requests load completely before the autocomplete tests begin
   // as autocomplete values also rely on the network requests.
   const waitNetwork = waitForNetworkEvents(monitor, REQUESTS.length);
-  loadFrameScriptUtils();
   await performRequestsInContent(REQUESTS);
   await waitNetwork;
 

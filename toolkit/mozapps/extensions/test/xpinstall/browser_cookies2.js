@@ -17,7 +17,8 @@ function test() {
     true,
     Date.now() / 1000 + 60,
     {},
-    Ci.nsICookie.SAMESITE_NONE
+    Ci.nsICookie.SAMESITE_NONE,
+    Ci.nsICookie.SCHEME_HTTP
   );
 
   PermissionTestUtils.add(
@@ -40,7 +41,7 @@ function test() {
 }
 
 function install_ended(install, addon) {
-  install.cancel();
+  return addon.uninstall();
 }
 
 function finish_test(count) {

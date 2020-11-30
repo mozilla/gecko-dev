@@ -8,32 +8,52 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import json
 import logging
-import six
+import sys
+from functools import partial
 
-import requests
-from requests.exceptions import HTTPError
 
+from taskgraph.util.taskcluster import get_task_definition
 from .registry import register_callback_action
-from .util import create_tasks, combine_task_graph_files, add_args_to_command
-from taskgraph.util.taskcluster import get_artifact_from_index
-from taskgraph.util.taskgraph import find_decision_task
-from taskgraph.taskgraph import TaskGraph
-from taskgraph.util import taskcluster
-
-PUSHLOG_TMPL = '{}/json-pushes?version=2&startID={}&endID={}'
-INDEX_TMPL = 'gecko.v2.{}.pushlog-id.{}.decision'
+from .util import (
+    combine_task_graph_files,
+    create_tasks,
+    fetch_graph_and_labels,
+    get_decision_task_id,
+    get_pushes_from_params_input,
+    trigger_action,
+)
 
 logger = logging.getLogger(__name__)
+
+
+def input_for_support_action(revision, task, times=1):
+    '''Generate input for action to be scheduled.
+
+    Define what label to schedule with 'label'.
+    If it is a test task that uses explicit manifests add that information.
+    '''
+    input = {
+        'label': task['metadata']['name'],
+        'revision': revision,
+        'times': times,
+        # We want the backfilled tasks to share the same symbol as the originating task
+        'symbol': task['extra']['treeherder']['symbol']
+    }
+
+    # Support tasks that are using manifest based scheduling
+    if task['payload']['env'].get('MOZHARNESS_TEST_PATHS'):
+        input['test_manifests'] = json.loads(task['payload']['env']['MOZHARNESS_TEST_PATHS'])
+
+    return input
 
 
 @register_callback_action(
     title='Backfill',
     name='backfill',
-    generic=True,
+    permission='backfill',
     symbol='Bk',
-    description=('Take the label of the current task, '
-                 'and trigger the task with that label '
-                 'on previous pushes in the same project.'),
+    description=('Given a task schedule it '
+                 'on previous pushes in the same project. '),
     order=200,
     context=[{}],  # This will be available for all tasks
     schema={
@@ -55,10 +75,6 @@ logger = logging.getLogger(__name__)
                 'description': ('If true, the backfill will also retrigger the task '
                                 'on the selected push.')
             },
-            'testPath': {
-                'type': 'string',
-                'title': 'Test Path',
-            },
             'times': {
                 'type': 'integer',
                 'default': 1,
@@ -74,169 +90,186 @@ logger = logging.getLogger(__name__)
     available=lambda parameters: True
 )
 def backfill_action(parameters, graph_config, input, task_group_id, task_id):
-    task = taskcluster.get_task_definition(task_id)
-    label = task['metadata']['name']
-    pushes = []
-    inclusive_tweak = 1 if input.get('inclusive') else 0
-    depth = input.get('depth', 9) + inclusive_tweak
-    end_id = int(parameters['pushlog_id']) - (1 - inclusive_tweak)
+    '''
+    This action takes a task ID and schedules it on previous pushes (via support action).
 
-    while True:
-        start_id = max(end_id - depth, 0)
-        pushlog_url = PUSHLOG_TMPL.format(parameters['head_repository'], start_id, end_id)
-        r = requests.get(pushlog_url)
-        r.raise_for_status()
-        pushes = pushes + r.json()['pushes'].keys()
-        if len(pushes) >= depth:
-            break
+    To execute this action locally follow the documentation here:
+    https://firefox-source-docs.mozilla.org/taskcluster/actions.html#testing-the-action-locally
+    '''
+    task = get_task_definition(task_id)
+    pushes = get_pushes_from_params_input(parameters, input)
+    failed = False
+    input_for_action = input_for_support_action(
+        revision=parameters['head_rev'],
+        task=task,
+        times=input.get('times', 1),
+    )
 
-        end_id = start_id - 1
-        start_id -= depth
-        if start_id < 0:
-            break
-
-    pushes = sorted(pushes)[-depth:]
-    backfill_pushes = []
-
-    for push in pushes:
+    for push_id in pushes:
         try:
-            full_task_graph = get_artifact_from_index(
-                    INDEX_TMPL.format(parameters['project'], push),
-                    'public/full-task-graph.json')
-            _, full_task_graph = TaskGraph.from_json(full_task_graph)
-            label_to_taskid = get_artifact_from_index(
-                    INDEX_TMPL.format(parameters['project'], push),
-                    'public/label-to-taskid.json')
-            push_params = get_artifact_from_index(
-                    INDEX_TMPL.format(parameters['project'], push),
-                    'public/parameters.yml')
-            push_decision_task_id = find_decision_task(push_params, graph_config)
-        except HTTPError as e:
-            logger.info('Skipping {} due to missing index artifacts! Error: {}'.format(push, e))
+            # The Gecko decision task can sometimes fail on a push and we need to handle
+            # the exception that this call will produce
+            push_decision_task_id = get_decision_task_id(parameters['project'], push_id)
+        except Exception:
+            logger.warning("Could not find decision task for push {}".format(push_id))
+            # The decision task may have failed, this is common enough that we
+            # don't want to report an error for it.
             continue
 
-        if label in full_task_graph.tasks.keys():
-            def modifier(task):
-                if task.label != label:
-                    return task
+        try:
+            trigger_action(
+                action_name='backfill-task',
+                # This lets the action know on which push we want to add a new task
+                decision_task_id=push_decision_task_id,
+                input=input_for_action,
+            )
+        except Exception:
+            logger.exception("Failed to trigger action for {}".format(push_id))
+            failed = True
 
-                if input.get('testPath', ''):
-                    is_wpttest = 'web-platform' in task.task['metadata']['name']
-                    is_android = 'android' in task.task['metadata']['name']
-                    gpu_required = False
-                    if (not is_wpttest) and \
-                       ('gpu' in task.task['metadata']['name'] or
-                        'webgl' in task.task['metadata']['name'] or
-                        ('reftest' in task.task['metadata']['name'] and
-                         'jsreftest' not in task.task['metadata']['name'])):
-                        gpu_required = True
+    if failed:
+        sys.exit(1)
 
-                    # Create new cmd that runs a test-verify type job
-                    preamble_length = 3
-                    verify_args = ['--e10s',
-                                   '--verify',
-                                   '--total-chunk=1',
-                                   '--this-chunk=1']
-                    if is_android:
-                        # no --e10s; todo, what about future geckoView?
-                        verify_args.remove('--e10s')
 
-                    if gpu_required:
-                        verify_args.append('--gpu-required')
+def test_manifests_modifier(task, label, symbol, revision, test_manifests):
+    '''In the case of test tasks we can modify the test paths they execute.'''
+    if task.label != label:
+        return task
 
-                    if 'testPath' in input:
-                        task.task['payload']['env']['MOZHARNESS_TEST_PATHS'] = six.ensure_text(
-                            json.dumps({
-                                task.task['extra']['suite']['flavor']: [input['testPath']]
-                            }))
+    try:
+        logger.debug('Modifying test_manifests for {}'.format(task.label))
+        test_manifests = test_manifests
+        task.attributes['test_manifests'] = test_manifests
+        task.task['payload']['env']['MOZHARNESS_TEST_PATHS'] = json.dumps(test_manifests)
+        # The name/label might have been modify in new_label, thus, change it here as well
+        task.task['metadata']['name'] = task.label
+        th_info = task.task['extra']['treeherder']
+        # Use a job symbol of the originating task as defined in the backfill action
+        th_info['symbol'] = '{}-{}-bk'.format(
+            symbol,
+            revision[0:11]
+        )
+        if th_info.get('groupSymbol'):
+            # Group all backfilled tasks together
+            th_info['groupSymbol'] = '{}-bk'.format(th_info['groupSymbol'])
+    except KeyError as e:
+        logger.exception(e)
+        logger.warning('The task will be scheduled without intended modifications.')
+    finally:
+        return task
 
-                    cmd_parts = task.task['payload']['command']
-                    keep_args = ['--installer-url', '--download-symbols', '--test-packages-url']
-                    cmd_parts = remove_args_from_command(cmd_parts, preamble_length, keep_args)
-                    cmd_parts = add_args_to_command(cmd_parts, verify_args)
-                    task.task['payload']['command'] = cmd_parts
 
-                    # morph the task label to a test-verify job
-                    pc = task.task['metadata']['name'].split('/')
-                    config = pc[-1].split('-')
-                    subtype = ''
-                    symbol = 'TV-bf'
-                    if gpu_required:
-                        subtype = '-gpu'
-                        symbol = 'TVg-bf'
-                    if is_wpttest:
-                        subtype = '-wpt'
-                        symbol = 'TVw-bf'
-                    if not is_android:
-                        subtype = "%s-e10s" % subtype
-                    newlabel = "%s/%s-test-verify%s" % (pc[0], config[0], subtype)
-                    task.task['metadata']['name'] = newlabel
-                    task.task['tags']['label'] = newlabel
+def do_not_modify(task):
+    return task
 
-                    task.task['extra']['index']['rank'] = 0
-                    task.task['extra']['chunks']['current'] = 1
-                    task.task['extra']['chunks']['total'] = 1
 
-                    task.task['extra']['suite']['name'] = 'test-verify'
-                    task.task['extra']['suite']['flavor'] = 'test-verify'
+def new_label(label, tasks):
+    ''' This is to handle the case when a previous push does not contain a specific task label
+    and we try to find a label we can reuse.
 
-                    task.task['extra']['treeherder']['symbol'] = symbol
-                    del task.task['extra']['treeherder']['groupSymbol']
-                return task
-
-            times = input.get('times', 1)
-            for i in range(times):
-                create_tasks(graph_config, [label], full_task_graph, label_to_taskid,
-                             push_params, push_decision_task_id, push, modifier=modifier)
-            backfill_pushes.append(push)
+    For instance, we try to backfill chunk #3, however, a previous push does not contain such
+    chunk, thus, we try to reuse another task/label.
+    '''
+    begining_label, ending = label.rsplit('-', 1)
+    if ending.isdigit():
+        # We assume that the taskgraph has chunk #1 OR unnumbered chunk and we hijack it
+        if begining_label in tasks:
+            return begining_label
+        elif begining_label + '-1' in tasks:
+            return begining_label + '-1'
         else:
-            logging.info('Could not find {} on {}. Skipping.'.format(label, push))
-    combine_task_graph_files(backfill_pushes)
+            raise Exception('New label ({}) was not found in the task-graph'.format(label))
+    else:
+        raise Exception('{} was not found in the task-graph'.format(label))
 
 
-def remove_args_from_command(cmd_parts, preamble_length=0, args_to_ignore=[]):
-    """
-       We need to remove all extra instances of command line arguments
-       that are suite/job specific, like suite=jsreftest, subsuite=devtools
-       and other ones like --total-chunk=X.
-       args:
-         cmd_parts: the raw command as seen by taskcluster
-         preamble_length: the number of args to skip (usually python -u <name>)
-         args_to_ignore: ignore specific args and their related values
-    """
-    cmd_type = 'default'
-    if len(cmd_parts) == 1 and isinstance(cmd_parts[0], dict):
-        # windows has single cmd part as dict: 'task-reference', with long string
-        preamble_length += 2
-        cmd_parts = cmd_parts[0]['task-reference'].split(' ')
-        cmd_type = 'dict'
-    elif len(cmd_parts) == 1 and isinstance(cmd_parts[0], list):
-        # osx has an single value array with an array inside
-        preamble_length += 2
-        cmd_parts = cmd_parts[0]
-        cmd_type = 'subarray'
+@register_callback_action(
+    name='backfill-task',
+    title='Backfill task on a push.',
+    permission='backfill',
+    symbol='backfill-task',
+    description='This action is normally scheduled by the backfill action. '
+                'The intent is to schedule a task on previous pushes.',
+    order=500,
+    context=[],
+    schema={
+        'type': 'object',
+        'properties': {
+            'label': {
+                'type': 'string',
+                'description': 'A task label'
+            },
+            'revision': {
+                'type': 'string',
+                'description': 'Revision of the original push from where we backfill.'
+            },
+            'symbol': {
+                'type': 'string',
+                'description': 'Symbol to be used by the scheduled task.'
+            },
+            'test_manifests': {
+                'type': 'array',
+                'default': [],
+                'description': 'An array of test manifest paths',
+                'items': {
+                    'type': 'string'
+                }
+            },
+            'times': {
+                'type': 'integer',
+                'default': 1,
+                'minimum': 1,
+                'maximum': 10,
+                'title': 'Times',
+                'description': ('The number of times to execute each job '
+                                'you are backfilling.')
+            }
+        }
+    }
+)
+def add_task_with_original_manifests(parameters, graph_config, input, task_group_id, task_id):
+    '''
+    This action is normally scheduled by the backfill action. The intent is to schedule a test
+    task with the test manifests from the original task (if available).
 
-    idx = preamble_length - 1
-    while idx+1 < len(cmd_parts):
-        idx += 1
-        part = cmd_parts[idx]
+    The push in which we want to schedule a new task is defined by the parameters object.
 
-        # task-reference values need a transform to s/<build>/{taskID}/
-        if isinstance(part, dict):
-            part = cmd_parts[idx]['task-reference']
+    To execute this action locally follow the documentation here:
+    https://firefox-source-docs.mozilla.org/taskcluster/actions.html#testing-the-action-locally
+    '''
+    # This step takes a lot of time when executed locally
+    logger.info("Retreving the full task graph and labels.")
+    decision_task_id, full_task_graph, label_to_taskid = fetch_graph_and_labels(
+        parameters, graph_config)
 
-        if filter(lambda x: x in part, args_to_ignore):
-            # some args are |--arg=val| vs |--arg val|
-            if '=' not in part:
-                idx += 1
-            continue
+    label = input.get('label')
+    if label not in full_task_graph.tasks:
+        label = new_label(label, full_task_graph.tasks)
 
-        # remove job specific arg, and reduce array index as size changes
-        cmd_parts.remove(cmd_parts[idx])
-        idx -= 1
+    modifier = do_not_modify
+    test_manifests = input.get('test_manifests')
+    # If the original task has defined test paths
+    if test_manifests:
+        modifier = partial(
+            test_manifests_modifier,
+            label=label,
+            revision=input.get('revision'),
+            symbol=input.get('symbol'),
+            test_manifests=test_manifests
+        )
 
-    if cmd_type == 'dict':
-        cmd_parts = [{'task-reference': ' '.join(cmd_parts)}]
-    elif cmd_type == 'subarray':
-        cmd_parts = [cmd_parts]
-    return cmd_parts
+    logger.info("Creating tasks...")
+    times = input.get('times', 1)
+    for i in range(times):
+        create_tasks(
+            graph_config,
+            [label],
+            full_task_graph,
+            label_to_taskid,
+            parameters,
+            decision_task_id,
+            suffix=i,
+            modifier=modifier,
+        )
+
+    combine_task_graph_files(list(range(times)))

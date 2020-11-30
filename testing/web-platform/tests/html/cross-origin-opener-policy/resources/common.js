@@ -2,17 +2,41 @@ const SAME_ORIGIN = {origin: get_host_info().HTTPS_ORIGIN, name: "SAME_ORIGIN"};
 const SAME_SITE = {origin: get_host_info().HTTPS_REMOTE_ORIGIN, name: "SAME_SITE"};
 const CROSS_ORIGIN = {origin: get_host_info().HTTPS_NOTSAMESITE_ORIGIN, name: "CROSS_ORIGIN"}
 
-function url_test(t, url, channelName, hasOpener, openerDOMAccess) {
+function verify_window(callback, w, hasOpener) {
+  // If there's no opener, the w must be closed:
+  assert_equals(w.closed, !hasOpener, 'w.closed');
+  // Opener's access on w.length is possible only if hasOpener:
+  assert_equals(w.length, hasOpener? 1: 0, 'w.length');
+  callback();
+}
+
+function validate_results(callback, test, w, channelName, hasOpener, openerDOMAccess, payload) {
+  assert_equals(payload.name, hasOpener ? channelName : "", 'name');
+  assert_equals(payload.opener, hasOpener, 'opener');
+  // TODO(zcorpan): add openerDOMAccess expectations to all tests
+  if (openerDOMAccess !== undefined) {
+    assert_equals(payload.openerDOMAccess, openerDOMAccess, 'openerDOMAccess');
+  }
+
+  // The window proxy in Chromium might still reflect the previous frame,
+  // until its unloaded. This delays the verification of w here.
+  if( !w.closed && w.length == 0) {
+    test.step_timeout( () => {
+        verify_window(callback, w, hasOpener);
+    }, 500);
+  } else {
+    verify_window(callback, w, hasOpener);
+  }
+}
+
+function url_test(t, url, channelName, hasOpener, openerDOMAccess, callback) {
+  if (callback === undefined) {
+    callback = () => { t.done(); };
+  }
   const bc = new BroadcastChannel(channelName);
-  bc.onmessage = t.step_func_done(event => {
+  bc.onmessage = t.step_func(event => {
     const payload = event.data;
-    assert_equals(payload.name, hasOpener ? channelName : "", 'name');
-    assert_equals(payload.opener, hasOpener, 'opener');
-    // TODO(zcorpan): add openerDOMAccess expectations to all tests
-    if (openerDOMAccess !== undefined) {
-      assert_equals(payload.openerDOMAccess, openerDOMAccess, 'openerDOMAccess');
-    }
-    assert_equals(w.closed, !hasOpener, 'Openee browsing context closed');
+    validate_results(callback, t, w, channelName, hasOpener, openerDOMAccess, payload);
   });
 
   const w = window.open(url, channelName);
@@ -25,21 +49,30 @@ function url_test(t, url, channelName, hasOpener, openerDOMAccess) {
   });
 }
 
-function coop_coep_test(t, host, coop, coep, channelName, hasOpener, openerDOMAccess) {
-  url_test(t, `${host.origin}/html/cross-origin-opener-policy/resources/coop-coep.py?coop=${encodeURIComponent(coop)}&coep=${coep}&channel=${channelName}`, channelName, hasOpener, openerDOMAccess);
+function percent_encode(objectOrString) {
+  if (typeof objectOrString === "object") {
+    return objectOrString.percentEncoded;
+  }
+  return encodeURIComponent(objectOrString);
 }
 
-function coop_test(t, host, coop, channelName, hasOpener) {
-  coop_coep_test(t, host, coop, "", channelName, hasOpener);
+function coop_coep_test(t, host, coop, coep, channelName, hasOpener, openerDOMAccess, callback) {
+  const coopPercentEncoded = percent_encode(coop);
+  url_test(t, `${host.origin}/html/cross-origin-opener-policy/resources/coop-coep.py?coop=${coopPercentEncoded}&coep=${coep}&channel=${encodeURIComponent(channelName)}`, channelName, hasOpener, openerDOMAccess, callback);
+}
+
+function coop_test(t, host, coop, channelName, hasOpener, callback) {
+  coop_coep_test(t, host, coop, "", channelName, hasOpener, undefined /* openerDOMAccess */, callback);
 }
 
 function run_coop_tests(documentCOOPValueTitle, testArray) {
   for (const test of testArray) {
+    let coopName = typeof test[1] === "object" ? test[1].percentEncoded : test[1];
     async_test(t => {
       coop_test(t, test[0], test[1],
-                `${documentCOOPValueTitle}_to_${test[0].name}_${test[1].replace(/ /g,"-")}`,
-                test[2]);
-    }, `${documentCOOPValueTitle} document opening popup to ${test[0].origin} with COOP: "${test[1]}"`);
+                `${documentCOOPValueTitle}_to_${test[0].name}_${coopName.replace(/ /g,"-")}`,
+                test[2], () => { t.done(); });
+    }, `${documentCOOPValueTitle} document opening popup to ${test[0].origin} with COOP: ${format_value(coopName)}`);
   }
 }
 
@@ -67,5 +100,19 @@ function run_coop_test_iframe (documentTitle, iframe_origin, popup_origin, popup
               assert_equals(payload.name, expects_name? name:"", 'name');
       });
       document.body.append(frame);
-  }, `${documentTitle} with ${iframe_origin.name} iframe opening popup a ${popup_origin.name} with COOP: ${popup_coop}`);
+  }, `${documentTitle} with ${iframe_origin.name} iframe opening popup a ${popup_origin.name} with COOP: ${format_value(popup_coop)}`);
+}
+
+// Wait until the page is fully loaded before navigating
+// so that it creates a history entry properly.
+function fullyLoaded() {
+  return new Promise((resolve, reject) => {
+    addEventListener('load', () => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          resolve();
+        });
+      });
+    });
+  });
 }

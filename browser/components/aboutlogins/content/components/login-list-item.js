@@ -24,6 +24,7 @@ export default class LoginListItemFactory {
     let username = listItem.querySelector(".username");
     let favicon = listItem.querySelector(".favicon");
     let faviconWrapper = listItem.querySelector(".favicon-wrapper");
+    let alertIcon = listItem.querySelector(".alert-icon");
 
     if (!login.guid) {
       listItem.id = "new-login-list-item";
@@ -60,6 +61,25 @@ export default class LoginListItemFactory {
     if (login.faviconDataURI) {
       faviconWrapper.classList.add("hide-default-favicon");
       favicon.src = login.faviconDataURI;
+    }
+
+    if (listItem.classList.contains("breached")) {
+      alertIcon.src =
+        "chrome://browser/content/aboutlogins/icons/breached-website.svg";
+      document.l10n.setAttributes(
+        alertIcon,
+        "about-logins-list-item-breach-icon"
+      );
+    } else if (listItem.classList.contains("vulnerable")) {
+      alertIcon.src =
+        "chrome://browser/content/aboutlogins/icons/vulnerable-password.svg";
+
+      document.l10n.setAttributes(
+        alertIcon,
+        "about-logins-list-item-vulnerable-password-icon"
+      );
+    } else {
+      alertIcon.src = "";
     }
   }
 }

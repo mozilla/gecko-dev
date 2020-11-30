@@ -5,11 +5,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "RemoteAudioDecoder.h"
 
-#include "RemoteDecoderManagerChild.h"
+#include "MediaDataDecoderProxy.h"
 #include "OpusDecoder.h"
+#include "RemoteDecoderManagerChild.h"
 #include "VorbisDecoder.h"
 #include "WAVDecoder.h"
-
 #include "mozilla/PodOperations.h"
 
 namespace mozilla {
@@ -17,31 +17,20 @@ namespace mozilla {
 RemoteAudioDecoderChild::RemoteAudioDecoderChild() : RemoteDecoderChild() {}
 
 MediaResult RemoteAudioDecoderChild::ProcessOutput(
-    const DecodedOutputIPDL& aDecodedData) {
+    DecodedOutputIPDL&& aDecodedData) {
   AssertOnManagerThread();
-  MOZ_ASSERT(aDecodedData.type() ==
-             DecodedOutputIPDL::TArrayOfRemoteAudioDataIPDL);
-  const nsTArray<RemoteAudioDataIPDL>& arrayData =
-      aDecodedData.get_ArrayOfRemoteAudioDataIPDL();
 
-  for (auto&& data : arrayData) {
-    AlignedAudioBuffer alignedAudioBuffer;
-    // Use std::min to make sure we can't overrun our buffer in case someone is
-    // fibbing about buffer sizes.
-    if (!alignedAudioBuffer.SetLength(
-            std::min((unsigned long)data.audioDataBufferSize(),
-                     (unsigned long)data.buffer().Size<AudioDataValue>()))) {
+  MOZ_ASSERT(aDecodedData.type() == DecodedOutputIPDL::TArrayOfRemoteAudioData);
+  RefPtr<ArrayOfRemoteAudioData> arrayData =
+      aDecodedData.get_ArrayOfRemoteAudioData();
+
+  for (size_t i = 0; i < arrayData->Count(); i++) {
+    RefPtr<AudioData> data = arrayData->ElementAt(i);
+    if (!data) {
       // OOM
       return MediaResult(NS_ERROR_OUT_OF_MEMORY, __func__);
     }
-    PodCopy(alignedAudioBuffer.Data(), data.buffer().get<AudioDataValue>(),
-            alignedAudioBuffer.Length());
-
-    RefPtr<AudioData> audio = new AudioData(
-        data.base().offset(), data.base().time(), std::move(alignedAudioBuffer),
-        data.channels(), data.rate(), data.channelMap());
-
-    mDecodedData.AppendElement(std::move(audio));
+    mDecodedData.AppendElement(data);
   }
   return NS_OK;
 }
@@ -77,22 +66,22 @@ MediaResult RemoteAudioDecoderChild::InitIPDL(
 RemoteAudioDecoderParent::RemoteAudioDecoderParent(
     RemoteDecoderManagerParent* aParent, const AudioInfo& aAudioInfo,
     const CreateDecoderParams::OptionSet& aOptions,
-    TaskQueue* aManagerTaskQueue, TaskQueue* aDecodeTaskQueue, bool* aSuccess,
-    nsCString* aErrorDescription)
-    : RemoteDecoderParent(aParent, aManagerTaskQueue, aDecodeTaskQueue),
+    nsISerialEventTarget* aManagerThread, TaskQueue* aDecodeTaskQueue,
+    bool* aSuccess, nsCString* aErrorDescription)
+    : RemoteDecoderParent(aParent, aManagerThread, aDecodeTaskQueue),
       mAudioInfo(aAudioInfo) {
   CreateDecoderParams params(mAudioInfo);
-  params.mTaskQueue = mDecodeTaskQueue;
   params.mOptions = aOptions;
   MediaResult error(NS_OK);
   params.mError = &error;
 
+  RefPtr<MediaDataDecoder> decoder;
   if (VorbisDataDecoder::IsVorbis(params.mConfig.mMimeType)) {
-    mDecoder = new VorbisDataDecoder(params);
+    decoder = new VorbisDataDecoder(params);
   } else if (OpusDataDecoder::IsOpus(params.mConfig.mMimeType)) {
-    mDecoder = new OpusDataDecoder(params);
+    decoder = new OpusDataDecoder(params);
   } else if (WaveDataDecoder::IsWave(params.mConfig.mMimeType)) {
-    mDecoder = new WaveDataDecoder(params);
+    decoder = new WaveDataDecoder(params);
   }
 
   if (NS_FAILED(error)) {
@@ -100,54 +89,34 @@ RemoteAudioDecoderParent::RemoteAudioDecoderParent(
     *aErrorDescription = error.Description();
   }
 
+  if (decoder) {
+    mDecoder = new MediaDataDecoderProxy(decoder.forget(),
+                                         do_AddRef(mDecodeTaskQueue.get()));
+  }
+
   *aSuccess = !!mDecoder;
 }
 
 MediaResult RemoteAudioDecoderParent::ProcessDecodedData(
-    const MediaDataDecoder::DecodedData& aData,
-    DecodedOutputIPDL& aDecodedData) {
+    MediaDataDecoder::DecodedData&& aData, DecodedOutputIPDL& aDecodedData) {
   MOZ_ASSERT(OnManagerThread());
 
-  nsTArray<RemoteAudioDataIPDL> array;
-
-  for (const auto& data : aData) {
-    MOZ_ASSERT(data->mType == MediaData::Type::AUDIO_DATA,
+  // Converted array to array of RefPtr<AudioData>
+  nsTArray<RefPtr<AudioData>> data(aData.Length());
+  for (auto&& element : aData) {
+    MOZ_ASSERT(element->mType == MediaData::Type::AUDIO_DATA,
                "Can only decode audio using RemoteAudioDecoderParent!");
-    AudioData* audio = static_cast<AudioData*>(data.get());
-
-    MOZ_ASSERT(audio->Data().Elements(),
-               "Decoded audio must output an AlignedAudioBuffer "
-               "to be used with RemoteAudioDecoderParent");
-
-    ShmemBuffer buffer =
-        AllocateBuffer(audio->Data().Length() * sizeof(AudioDataValue));
-    if (!buffer.Valid()) {
-      return MediaResult(NS_ERROR_OUT_OF_MEMORY,
-                         "ShmemBuffer::Get failed in "
-                         "RemoteAudioDecoderParent::ProcessDecodedData");
-    }
-
-    PodCopy(buffer.Get().get<AudioDataValue>(), audio->Data().Elements(),
-            audio->Data().Length());
-
-    RemoteAudioDataIPDL output(
-        MediaDataIPDL(data->mOffset, data->mTime, data->mTimecode,
-                      data->mDuration, data->mKeyframe),
-        audio->mChannels, audio->mRate, audio->mChannelMap,
-        audio->Data().Length(), std::move(buffer.Get()));
-    array.AppendElement(output);
+    AudioData* audio = static_cast<AudioData*>(element.get());
+    data.AppendElement(audio);
   }
-
-  // With the new possiblity of batch decodes, we can't always move the
-  // results directly into DecodedOutputIPDL.  If there are already
-  // elements, we should append the new results.
-  if (aDecodedData.type() == DecodedOutputIPDL::TArrayOfRemoteAudioDataIPDL) {
-    aDecodedData.get_ArrayOfRemoteAudioDataIPDL().AppendElements(
-        std::move(array));
-  } else {
-    aDecodedData = std::move(array);
+  auto array = MakeRefPtr<ArrayOfRemoteAudioData>();
+  if (!array->Fill(std::move(data),
+                   [&](size_t aSize) { return AllocateBuffer(aSize); })) {
+    return MediaResult(
+        NS_ERROR_OUT_OF_MEMORY,
+        "Failed in RemoteAudioDecoderParent::ProcessDecodedData");
   }
-
+  aDecodedData = std::move(array);
   return NS_OK;
 }
 

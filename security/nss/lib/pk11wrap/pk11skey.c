@@ -6,6 +6,8 @@
  * Interfaces.
  */
 
+#include <stddef.h>
+
 #include "seccomon.h"
 #include "secmod.h"
 #include "nssilock.h"
@@ -73,11 +75,11 @@ pk11_getKeyFromList(PK11SlotInfo *slot, PRBool needSession)
          * session could be invalid if the token has been removed or because
          * we got it from the non-owner free list */
         if ((symKey->series != slot->series) ||
-            (symKey->session == CK_INVALID_SESSION)) {
+            (symKey->session == CK_INVALID_HANDLE)) {
             symKey->session = pk11_GetNewSession(slot, &symKey->sessionOwner);
         }
-        PORT_Assert(symKey->session != CK_INVALID_SESSION);
-        if (symKey->session != CK_INVALID_SESSION)
+        PORT_Assert(symKey->session != CK_INVALID_HANDLE);
+        if (symKey->session != CK_INVALID_HANDLE)
             return symKey;
         PK11_FreeSymKey(symKey);
         /* if we are here, we need a session, but couldn't get one, it's
@@ -94,13 +96,13 @@ pk11_getKeyFromList(PK11SlotInfo *slot, PRBool needSession)
     symKey->next = NULL;
     if (needSession) {
         symKey->session = pk11_GetNewSession(slot, &symKey->sessionOwner);
-        PORT_Assert(symKey->session != CK_INVALID_SESSION);
-        if (symKey->session == CK_INVALID_SESSION) {
+        PORT_Assert(symKey->session != CK_INVALID_HANDLE);
+        if (symKey->session == CK_INVALID_HANDLE) {
             PK11_FreeSymKey(symKey);
             symKey = NULL;
         }
     } else {
-        symKey->session = CK_INVALID_SESSION;
+        symKey->session = CK_INVALID_HANDLE;
     }
     return symKey;
 }
@@ -148,7 +150,7 @@ pk11_CreateSymKey(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
     /* if needSession was specified, make sure we have a valid session.
      * callers which specify needSession as false should do their own
      * check of the session before returning the symKey */
-    if (needSession && symKey->session == CK_INVALID_SESSION) {
+    if (needSession && symKey->session == CK_INVALID_HANDLE) {
         PK11_FreeSymKey(symKey);
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return NULL;
@@ -213,16 +215,16 @@ PK11_FreeSymKey(PK11SymKey *symKey)
              *    session must be valid.
              * freeSymKeysHead contain a list of SymKey structures without
              *  valid session.
-             *    session must be CK_INVALID_SESSION.
+             *    session must be CK_INVALID_HANDLE.
              *    though sessionOwner is false, callers should not depend on
              *    this fact.
              */
             if (symKey->sessionOwner) {
-                PORT_Assert(symKey->session != CK_INVALID_SESSION);
+                PORT_Assert(symKey->session != CK_INVALID_HANDLE);
                 symKey->next = slot->freeSymKeysWithSessionHead;
                 slot->freeSymKeysWithSessionHead = symKey;
             } else {
-                symKey->session = CK_INVALID_SESSION;
+                symKey->session = CK_INVALID_HANDLE;
                 symKey->next = slot->freeSymKeysHead;
                 slot->freeSymKeysHead = symKey;
             }
@@ -345,8 +347,8 @@ PK11_SymKeyFromHandle(PK11SlotInfo *slot, PK11SymKey *parent, PK11Origin origin,
         /* This is the only case where pk11_CreateSymKey does not explicitly
          * check symKey->session. We need to assert here to make sure.
          * the session isn't invalid. */
-        PORT_Assert(parent->session != CK_INVALID_SESSION);
-        if (parent->session == CK_INVALID_SESSION) {
+        PORT_Assert(parent->session != CK_INVALID_HANDLE);
+        if (parent->session == CK_INVALID_HANDLE) {
             PK11_FreeSymKey(symKey);
             PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
             return NULL;
@@ -401,15 +403,19 @@ void
 PK11_SetWrapKey(PK11SlotInfo *slot, int wrap, PK11SymKey *wrapKey)
 {
     PK11_EnterSlotMonitor(slot);
-    if (wrap < PR_ARRAY_SIZE(slot->refKeys) &&
-        slot->refKeys[wrap] == CK_INVALID_HANDLE) {
-        /* save the handle and mechanism for the wrapping key */
-        /* mark the key and session as not owned by us so they don't get freed
-         * when the key goes way... that lets us reuse the key later */
-        slot->refKeys[wrap] = wrapKey->objectID;
-        wrapKey->owner = PR_FALSE;
-        wrapKey->sessionOwner = PR_FALSE;
-        slot->wrapMechanism = wrapKey->type;
+    if (wrap >= 0) {
+        size_t uwrap = (size_t)wrap;
+        if (uwrap < PR_ARRAY_SIZE(slot->refKeys) &&
+            slot->refKeys[uwrap] == CK_INVALID_HANDLE) {
+            /* save the handle and mechanism for the wrapping key */
+            /* mark the key and session as not owned by us so they don't get
+             * freed when the key goes way... that lets us reuse the key
+             * later */
+            slot->refKeys[uwrap] = wrapKey->objectID;
+            wrapKey->owner = PR_FALSE;
+            wrapKey->sessionOwner = PR_FALSE;
+            slot->wrapMechanism = wrapKey->type;
+        }
     }
     PK11_ExitSlotMonitor(slot);
 }
@@ -477,6 +483,15 @@ PK11_ImportSymKey(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
     CK_ATTRIBUTE keyTemplate[5];
     CK_ATTRIBUTE *attrs = keyTemplate;
 
+    /* CKA_NSS_MESSAGE is a fake operation to distinguish between
+     * Normal Encrypt/Decrypt and MessageEncrypt/Decrypt. Don't try to set
+     * it as a real attribute */
+    if ((operation & CKA_NSS_MESSAGE_MASK) == CKA_NSS_MESSAGE) {
+        /* Message is or'd with a real Attribute (CKA_ENCRYPT, CKA_DECRYPT),
+         * etc. Strip out the real attribute here */
+        operation &= ~CKA_NSS_MESSAGE_MASK;
+    }
+
     PK11_SETATTRS(attrs, CKA_CLASS, &keyClass, sizeof(keyClass));
     attrs++;
     PK11_SETATTRS(attrs, CKA_KEY_TYPE, &keyType, sizeof(keyType));
@@ -491,10 +506,37 @@ PK11_ImportSymKey(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
                                         keyTemplate, templateCount, key, wincx);
     return symKey;
 }
+/* Import a PKCS #11 data object and return it as a key. This key is
+ * only useful in a limited number of mechanisms, such as HKDF. */
+PK11SymKey *
+PK11_ImportDataKey(PK11SlotInfo *slot, CK_MECHANISM_TYPE type, PK11Origin origin,
+                   CK_ATTRIBUTE_TYPE operation, SECItem *key, void *wincx)
+{
+    CK_OBJECT_CLASS ckoData = CKO_DATA;
+    CK_ATTRIBUTE template[2] = { { CKA_CLASS, (CK_BYTE_PTR)&ckoData, sizeof(ckoData) },
+                                 { CKA_VALUE, (CK_BYTE_PTR)key->data, key->len } };
+    CK_OBJECT_HANDLE handle;
+    PK11GenericObject *genObject;
 
-/*
- * turn key bits into an appropriate key object
- */
+    genObject = PK11_CreateGenericObject(slot, template, PR_ARRAY_SIZE(template), PR_FALSE);
+    if (genObject == NULL) {
+        return NULL;
+    }
+    handle = PK11_GetObjectHandle(PK11_TypeGeneric, genObject, NULL);
+    if (handle == CK_INVALID_HANDLE) {
+        return NULL;
+    }
+    /* A note about ownership of the PKCS #11 handle:
+     * PK11_CreateGenericObject() will not destroy the object it creates
+     * on Free, For that you want PK11_CreateManagedGenericObject().
+     * Below we import the handle into the symKey structure. We pass
+     * PR_TRUE as the owner so that the symKey will destroy the object
+     * once it's freed. This is way it's safe to free now. */
+    PK11_DestroyGenericObject(genObject);
+    return PK11_SymKeyFromHandle(slot, NULL, origin, type, handle, PR_TRUE, wincx);
+}
+
+/* turn key bits into an appropriate key object */
 PK11SymKey *
 PK11_ImportSymKeyWithFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
                            PK11Origin origin, CK_ATTRIBUTE_TYPE operation, SECItem *key,
@@ -507,6 +549,15 @@ PK11_ImportSymKeyWithFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
     CK_BBOOL cktrue = CK_TRUE; /* sigh */
     CK_ATTRIBUTE keyTemplate[MAX_TEMPL_ATTRS];
     CK_ATTRIBUTE *attrs = keyTemplate;
+
+    /* CKA_NSS_MESSAGE is a fake operation to distinguish between
+     * Normal Encrypt/Decrypt and MessageEncrypt/Decrypt. Don't try to set
+     * it as a real attribute */
+    if ((operation & CKA_NSS_MESSAGE_MASK) == CKA_NSS_MESSAGE) {
+        /* Message is or'd with a real Attribute (CKA_ENCRYPT, CKA_DECRYPT),
+         * etc. Strip out the real attribute here */
+        operation &= ~CKA_NSS_MESSAGE_MASK;
+    }
 
     PK11_SETATTRS(attrs, CKA_CLASS, &keyClass, sizeof(keyClass));
     attrs++;
@@ -546,7 +597,7 @@ PK11_FindFixedKey(PK11SlotInfo *slot, CK_MECHANISM_TYPE type, SECItem *keyID,
     CK_ATTRIBUTE *attrs;
     CK_BBOOL ckTrue = CK_TRUE;
     CK_OBJECT_CLASS keyclass = CKO_SECRET_KEY;
-    int tsize = 0;
+    size_t tsize = 0;
     CK_OBJECT_HANDLE key_id;
 
     attrs = findTemp;
@@ -1157,10 +1208,10 @@ PK11_KeyGenWithTemplate(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
         symKey->owner = PR_FALSE;
     } else {
         session = symKey->session;
-        if (session != CK_INVALID_SESSION)
+        if (session != CK_INVALID_HANDLE)
             pk11_EnterKeyMonitor(symKey);
     }
-    if (session == CK_INVALID_SESSION) {
+    if (session == CK_INVALID_HANDLE) {
         PK11_FreeSymKey(symKey);
         PORT_SetError(SEC_ERROR_BAD_DATA);
         return NULL;
@@ -1207,7 +1258,7 @@ PK11_ConvertSessionSymKeyToTokenSymKey(PK11SymKey *symk, void *wincx)
 
     PK11_Authenticate(slot, PR_TRUE, wincx);
     rwsession = PK11_GetRWSession(slot);
-    if (rwsession == CK_INVALID_SESSION) {
+    if (rwsession == CK_INVALID_HANDLE) {
         PORT_SetError(SEC_ERROR_BAD_DATA);
         return NULL;
     }
@@ -1355,15 +1406,123 @@ pk11_HandWrap(PK11SymKey *wrappingKey, SECItem *param, CK_MECHANISM_TYPE type,
 }
 
 /*
+ * helper function which moves two keys into a new slot based on the
+ * desired mechanism.
+ */
+static SECStatus
+pk11_moveTwoKeys(CK_MECHANISM_TYPE mech,
+                 CK_ATTRIBUTE_TYPE preferedOperation,
+                 CK_ATTRIBUTE_TYPE movingOperation,
+                 PK11SymKey *preferedKey, PK11SymKey *movingKey,
+                 PK11SymKey **newPreferedKey, PK11SymKey **newMovingKey)
+{
+    PK11SlotInfo *newSlot;
+    *newMovingKey = NULL;
+    *newPreferedKey = NULL;
+
+    newSlot = PK11_GetBestSlot(mech, preferedKey->cx);
+    if (newSlot == NULL) {
+        return SECFailure;
+    }
+    *newMovingKey = pk11_CopyToSlot(newSlot, movingKey->type,
+                                    movingOperation, movingKey);
+    if (*newMovingKey == NULL) {
+        goto loser;
+    }
+    *newPreferedKey = pk11_CopyToSlot(newSlot, preferedKey->type,
+                                      preferedOperation, preferedKey);
+    if (*newPreferedKey == NULL) {
+        goto loser;
+    }
+
+    PK11_FreeSlot(newSlot);
+    return SECSuccess;
+loser:
+    PK11_FreeSlot(newSlot);
+    PK11_FreeSymKey(*newMovingKey);
+    PK11_FreeSymKey(*newPreferedKey);
+    *newMovingKey = NULL;
+    *newPreferedKey = NULL;
+    return SECFailure;
+}
+
+/*
+ * To do joint operations, we often need two keys in the same slot.
+ * Usually the PKCS #11 wrappers handle this correctly (like for PK11_WrapKey),
+ * but sometimes the wrappers don't know about mechanism specific keys in
+ * the Mechanism params. This function makes sure the two keys are in the
+ * same slot by copying one or both of the keys into a common slot. This
+ * functions makes sure the slot can handle the target mechanism. If the copy
+ * is warranted, this function will prefer to move the movingKey first, then
+ * the preferedKey. If the keys are moved, the new keys are returned in
+ * newMovingKey and/or newPreferedKey. The application is responsible
+ * for freeing those keys once the operation is complete.
+ */
+SECStatus
+PK11_SymKeysToSameSlot(CK_MECHANISM_TYPE mech,
+                       CK_ATTRIBUTE_TYPE preferedOperation,
+                       CK_ATTRIBUTE_TYPE movingOperation,
+                       PK11SymKey *preferedKey, PK11SymKey *movingKey,
+                       PK11SymKey **newPreferedKey, PK11SymKey **newMovingKey)
+{
+    /* usually don't return new keys */
+    *newMovingKey = NULL;
+    *newPreferedKey = NULL;
+    if (movingKey->slot == preferedKey->slot) {
+
+        /* this should be the most common case */
+        if ((preferedKey->slot != NULL) &&
+            PK11_DoesMechanism(preferedKey->slot, mech)) {
+            return SECSuccess;
+        }
+
+        /* we are in the same slot, but it doesn't do the operation,
+         * move both keys to an appropriate target slot */
+        return pk11_moveTwoKeys(mech, preferedOperation, movingOperation,
+                                preferedKey, movingKey,
+                                newPreferedKey, newMovingKey);
+    }
+
+    /* keys are in different slot, try moving the moving key to the prefered
+     * key's slot */
+    if ((preferedKey->slot != NULL) &&
+        PK11_DoesMechanism(preferedKey->slot, mech)) {
+        *newMovingKey = pk11_CopyToSlot(preferedKey->slot, movingKey->type,
+                                        movingOperation, movingKey);
+        if (*newMovingKey != NULL) {
+            return SECSuccess;
+        }
+    }
+    /* couldn't moving the moving key to the prefered slot, try moving
+     * the prefered key */
+    if ((movingKey->slot != NULL) &&
+        PK11_DoesMechanism(movingKey->slot, mech)) {
+        *newPreferedKey = pk11_CopyToSlot(movingKey->slot, preferedKey->type,
+                                          preferedOperation, preferedKey);
+        if (*newPreferedKey != NULL) {
+            return SECSuccess;
+        }
+    }
+    /* Neither succeeded, but that could be that they were not in slots that
+     * supported the operation, try moving both keys into a common slot that
+     * can do the operation. */
+    return pk11_moveTwoKeys(mech, preferedOperation, movingOperation,
+                            preferedKey, movingKey,
+                            newPreferedKey, newMovingKey);
+}
+
+/*
  * This function does a symetric based wrap.
  */
 SECStatus
 PK11_WrapSymKey(CK_MECHANISM_TYPE type, SECItem *param,
-                PK11SymKey *wrappingKey, PK11SymKey *symKey, SECItem *wrappedKey)
+                PK11SymKey *wrappingKey, PK11SymKey *symKey,
+                SECItem *wrappedKey)
 {
     PK11SlotInfo *slot;
     CK_ULONG len = wrappedKey->len;
-    PK11SymKey *newKey = NULL;
+    PK11SymKey *newSymKey = NULL;
+    PK11SymKey *newWrappingKey = NULL;
     SECItem *param_save = NULL;
     CK_MECHANISM mechanism;
     PRBool owner = PR_TRUE;
@@ -1371,44 +1530,32 @@ PK11_WrapSymKey(CK_MECHANISM_TYPE type, SECItem *param,
     CK_RV crv;
     SECStatus rv;
 
-    /* if this slot doesn't support the mechanism, go to a slot that does */
-    /* Force symKey and wrappingKey into the same slot */
-    if ((wrappingKey->slot == NULL) || (symKey->slot != wrappingKey->slot)) {
-        /* first try copying the wrapping Key to the symKey slot */
-        if (symKey->slot && PK11_DoesMechanism(symKey->slot, type)) {
-            newKey = pk11_CopyToSlot(symKey->slot, type, CKA_WRAP, wrappingKey);
-        }
-        /* Nope, try it the other way */
-        if (newKey == NULL) {
-            if (wrappingKey->slot) {
-                newKey = pk11_CopyToSlot(wrappingKey->slot,
-                                         symKey->type, CKA_ENCRYPT, symKey);
+    /* force the keys into same slot */
+    rv = PK11_SymKeysToSameSlot(type, CKA_ENCRYPT, CKA_WRAP,
+                                symKey, wrappingKey,
+                                &newSymKey, &newWrappingKey);
+    if (rv != SECSuccess) {
+        /* Couldn't move the keys as desired, try to hand unwrap if possible */
+        if (symKey->data.data == NULL) {
+            rv = PK11_ExtractKeyValue(symKey);
+            if (rv != SECSuccess) {
+                PORT_SetError(SEC_ERROR_NO_MODULE);
+                return SECFailure;
             }
-            /* just not playing... one last thing, can we get symKey's data?
-             * If it's possible, we it should already be in the
-             * symKey->data.data pointer because pk11_CopyToSlot would have
-             * tried to put it there. */
-            if (newKey == NULL) {
-                /* Can't get symKey's data: Game Over */
-                if (symKey->data.data == NULL) {
-                    PORT_SetError(SEC_ERROR_NO_MODULE);
-                    return SECFailure;
-                }
-                if (param == NULL) {
-                    param_save = param = PK11_ParamFromIV(type, NULL);
-                }
-                rv = pk11_HandWrap(wrappingKey, param, type,
-                                   &symKey->data, wrappedKey);
-                if (param_save)
-                    SECITEM_FreeItem(param_save, PR_TRUE);
-                return rv;
-            }
-            /* we successfully moved the sym Key */
-            symKey = newKey;
-        } else {
-            /* we successfully moved the wrapping Key */
-            wrappingKey = newKey;
         }
+        if (param == NULL) {
+            param_save = param = PK11_ParamFromIV(type, NULL);
+        }
+        rv = pk11_HandWrap(wrappingKey, param, type, &symKey->data, wrappedKey);
+        if (param_save)
+            SECITEM_FreeItem(param_save, PR_TRUE);
+        return rv;
+    }
+    if (newSymKey) {
+        symKey = newSymKey;
+    }
+    if (newWrappingKey) {
+        wrappingKey = newWrappingKey;
     }
 
     /* at this point both keys are in the same token */
@@ -1452,8 +1599,8 @@ PK11_WrapSymKey(CK_MECHANISM_TYPE type, SECItem *param,
     } else {
         wrappedKey->len = len;
     }
-    if (newKey)
-        PK11_FreeSymKey(newKey);
+    PK11_FreeSymKey(newSymKey);
+    PK11_FreeSymKey(newWrappingKey);
     if (param_save)
         SECITEM_FreeItem(param_save, PR_TRUE);
     return rv;
@@ -1532,6 +1679,14 @@ PK11_DeriveWithTemplate(PK11SymKey *baseKey, CK_MECHANISM_TYPE derive,
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return NULL;
     }
+    /* CKA_NSS_MESSAGE is a fake operation to distinguish between
+     * Normal Encrypt/Decrypt and MessageEncrypt/Decrypt. Don't try to set
+     * it as a real attribute */
+    if ((operation & CKA_NSS_MESSAGE_MASK) == CKA_NSS_MESSAGE) {
+        /* Message is or'd with a real Attribute (CKA_ENCRYPT, CKA_DECRYPT),
+         * etc. Strip out the real attribute here */
+        operation &= ~CKA_NSS_MESSAGE_MASK;
+    }
 
     /* first copy caller attributes in. */
     for (templateCount = 0; templateCount < numAttrs; ++templateCount) {
@@ -1606,7 +1761,7 @@ PK11_DeriveWithTemplate(PK11SymKey *baseKey, CK_MECHANISM_TYPE derive,
         pk11_EnterKeyMonitor(symKey);
         session = symKey->session;
     }
-    if (session == CK_INVALID_SESSION) {
+    if (session == CK_INVALID_HANDLE) {
         if (!isPerm)
             pk11_ExitKeyMonitor(symKey);
         crv = CKR_SESSION_HANDLE_INVALID;
@@ -1916,6 +2071,15 @@ PK11_PubDerive(SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey,
         return NULL;
     }
 
+    /* CKA_NSS_MESSAGE is a fake operation to distinguish between
+     * Normal Encrypt/Decrypt and MessageEncrypt/Decrypt. Don't try to set
+     * it as a real attribute */
+    if ((operation & CKA_NSS_MESSAGE_MASK) == CKA_NSS_MESSAGE) {
+        /* Message is or'd with a real Attribute (CKA_ENCRYPT, CKA_DECRYPT),
+         * etc. Strip out the real attribute here */
+        operation &= ~CKA_NSS_MESSAGE_MASK;
+    }
+
     symKey->origin = PK11_OriginDerive;
 
     switch (privKey->keyType) {
@@ -2189,6 +2353,14 @@ pk11_PubDeriveECKeyWithKDF(
     if (symKey == NULL) {
         return NULL;
     }
+    /* CKA_NSS_MESSAGE is a fake operation to distinguish between
+     * Normal Encrypt/Decrypt and MessageEncrypt/Decrypt. Don't try to set
+     * it as a real attribute */
+    if ((operation & CKA_NSS_MESSAGE_MASK) == CKA_NSS_MESSAGE) {
+        /* Message is or'd with a real Attribute (CKA_ENCRYPT, CKA_DECRYPT),
+         * etc. Strip out the real attribute here */
+        operation &= ~CKA_NSS_MESSAGE_MASK;
+    }
 
     symKey->origin = PK11_OriginDerive;
 
@@ -2235,7 +2407,7 @@ pk11_PubDeriveECKeyWithKDF(
                     key_size = SHA512_LENGTH;
                     break;
                 default:
-                    PORT_Assert(!"Invalid CKD");
+                    PORT_AssertNotReached("Invalid CKD");
                     PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
                     return NULL;
             }
@@ -2511,6 +2683,14 @@ pk11_AnyUnwrapKey(PK11SlotInfo *slot, CK_OBJECT_HANDLE wrappingKey,
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return NULL;
     }
+    /* CKA_NSS_MESSAGE is a fake operation to distinguish between
+     * Normal Encrypt/Decrypt and MessageEncrypt/Decrypt. Don't try to set
+     * it as a real attribute */
+    if ((operation & CKA_NSS_MESSAGE_MASK) == CKA_NSS_MESSAGE) {
+        /* Message is or'd with a real Attribute (CKA_ENCRYPT, CKA_DECRYPT),
+         * etc. Strip out the real attribute here */
+        operation &= ~CKA_NSS_MESSAGE_MASK;
+    }
 
     /* first copy caller attributes in. */
     for (templateCount = 0; templateCount < numAttrs; ++templateCount) {
@@ -2619,8 +2799,8 @@ pk11_AnyUnwrapKey(PK11SlotInfo *slot, CK_OBJECT_HANDLE wrappingKey,
         pk11_EnterKeyMonitor(symKey);
         rwsession = symKey->session;
     }
-    PORT_Assert(rwsession != CK_INVALID_SESSION);
-    if (rwsession == CK_INVALID_SESSION)
+    PORT_Assert(rwsession != CK_INVALID_HANDLE);
+    if (rwsession == CK_INVALID_HANDLE)
         crv = CKR_SESSION_HANDLE_INVALID;
     else
         crv = PK11_GETTAB(slot)->C_UnwrapKey(rwsession, &mechanism, wrappingKey,
@@ -2628,7 +2808,7 @@ pk11_AnyUnwrapKey(PK11SlotInfo *slot, CK_OBJECT_HANDLE wrappingKey,
                                              keyTemplate, templateCount,
                                              &symKey->objectID);
     if (isPerm) {
-        if (rwsession != CK_INVALID_SESSION)
+        if (rwsession != CK_INVALID_HANDLE)
             PK11_RestoreROSession(slot, rwsession);
     } else {
         pk11_ExitKeyMonitor(symKey);

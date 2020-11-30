@@ -6,6 +6,9 @@
 [localization] @AB_CD@.jar:
   crashreporter                                    (%crashreporter/**/*.ftl)
   toolkit                                          (%toolkit/**/*.ftl)
+#if defined(NIGHTLY_BUILD)
+  preview/aboutProcesses.ftl                       (../components/aboutprocesses/content/aboutProcesses.ftl)
+#endif
 
 @AB_CD@.jar:
 % locale global @AB_CD@ %locale/@AB_CD@/global/
@@ -36,7 +39,6 @@
   locale/@AB_CD@/global/intl.css                        (%chrome/global/intl.css)
   locale/@AB_CD@/global/intl.properties                 (%chrome/global/intl.properties)
   locale/@AB_CD@/global/keys.properties                 (%chrome/global/keys.properties)
-  locale/@AB_CD@/global/mozilla.dtd                     (%chrome/global/mozilla.dtd)
 #ifndef MOZ_FENNEC
   locale/@AB_CD@/global/narrate.properties              (%chrome/global/narrate.properties)
 #endif
@@ -51,7 +53,6 @@
   locale/@AB_CD@/global/textcontext.dtd                 (%chrome/global/textcontext.dtd)
   locale/@AB_CD@/global/videocontrols.dtd               (%chrome/global/videocontrols.dtd)
   locale/@AB_CD@/global/viewSource.properties           (%chrome/global/viewSource.properties)
-  locale/@AB_CD@/global/wizard.dtd                      (%chrome/global/wizard.dtd)
   locale/@AB_CD@/global/wizard.properties               (%chrome/global/wizard.properties)
 % locale global-platform @AB_CD@ %locale/@AB_CD@/global-platform/unix/ os=LikeUnix os=Android
 % locale global-platform @AB_CD@ %locale/@AB_CD@/global-platform/mac/ os=Darwin
@@ -70,18 +71,11 @@
   locale/@AB_CD@/mozapps/extensions/extensions.dtd                (%chrome/mozapps/extensions/extensions.dtd)
 #ifndef MOZ_FENNEC
   locale/@AB_CD@/mozapps/extensions/extensions.properties         (%chrome/mozapps/extensions/extensions.properties)
-  locale/@AB_CD@/mozapps/extensions/blocklist.dtd                 (%chrome/mozapps/extensions/blocklist.dtd)
 #endif
   locale/@AB_CD@/mozapps/handling/handling.dtd                    (%chrome/mozapps/handling/handling.dtd)
   locale/@AB_CD@/mozapps/handling/handling.properties             (%chrome/mozapps/handling/handling.properties)
-  locale/@AB_CD@/mozapps/profile/createProfileWizard.dtd          (%chrome/mozapps/profile/createProfileWizard.dtd)
   locale/@AB_CD@/mozapps/profile/profileSelection.properties      (%chrome/mozapps/profile/profileSelection.properties)
-  locale/@AB_CD@/mozapps/profile/profileSelection.dtd             (%chrome/mozapps/profile/profileSelection.dtd)
-#ifdef MOZ_BLOCK_PROFILE_DOWNGRADE
-  locale/@AB_CD@/mozapps/profile/profileDowngrade.dtd             (%chrome/mozapps/profile/profileDowngrade.dtd)
-#endif
 #ifndef MOZ_FENNEC
-  locale/@AB_CD@/mozapps/update/updates.dtd                       (%chrome/mozapps/update/updates.dtd)
   locale/@AB_CD@/mozapps/update/updates.properties                (%chrome/mozapps/update/updates.properties)
 #endif
 % locale pluginproblem @AB_CD@ %locale/@AB_CD@/pluginproblem/
@@ -95,4 +89,10 @@
   locale/@AB_CD@/autoconfig/autoconfig.properties   (%chrome/autoconfig/autoconfig.properties)
 % locale places @AB_CD@ %locale/@AB_CD@/places/
   locale/@AB_CD@/places/places.properties                 (%chrome/places/places.properties)
-  locale/@AB_CD@/global/search/search.properties          (%chrome/search/search.properties)
+
+# Pick up l10n files for pdfviewer from browser
+# See https://bugzilla.mozilla.org/show_bug.cgi?id=1618465
+relativesrcdir browser/locales:
+% locale pdf.js @AB_CD@ %locale/pdfviewer/
+    locale/pdfviewer/viewer.properties             (%pdfviewer/viewer.properties)
+    locale/pdfviewer/chrome.properties             (%pdfviewer/chrome.properties)

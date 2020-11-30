@@ -14,7 +14,6 @@
 #include "mozilla/dom/WindowProxyHolder.h"
 #include "nsDeviceContext.h"
 #include "nsDocShell.h"
-#include "nsLayoutUtils.h"
 #include "nsPresContext.h"
 
 class nsINode;
@@ -85,7 +84,7 @@ class UIEvent : public Event {
    * nullptr, you should use GetRangeParentContent() instead.
    */
   MOZ_CAN_RUN_SCRIPT already_AddRefed<nsIContent>
-  GetRangeParentContentAndOffset(int32_t* aOffset);
+  GetRangeParentContentAndOffset(int32_t* aOffset) const;
 
   /**
    * If you also need to compute range parent in C++ code, you should use

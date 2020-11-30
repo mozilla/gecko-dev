@@ -59,6 +59,18 @@ class nsDOMNavigationTiming final : public mozilla::RelativeTimeline {
     return mNavigationStart;
   }
 
+  mozilla::TimeStamp GetLoadEventStartTimeStamp() const {
+    return mLoadEventStart;
+  }
+
+  mozilla::TimeStamp GetDOMContentLoadedEventStartTimeStamp() const {
+    return mDOMContentLoadedEventStart;
+  }
+
+  mozilla::TimeStamp GetFirstContentfulPaintTimeStamp() const {
+    return mContentfulPaint;
+  }
+
   DOMTimeMilliSec GetUnloadEventStart() {
     return TimeStampToDOM(GetUnloadEventStartTimeStamp());
   }
@@ -178,6 +190,18 @@ class nsDOMNavigationTiming final : public mozilla::RelativeTimeline {
   // to the new content process.
   void Anonymize(nsIURI* aFinalURI);
 
+  inline already_AddRefed<nsDOMNavigationTiming> CloneNavigationTime(
+      nsDocShell* aDocShell) const {
+    RefPtr<nsDOMNavigationTiming> timing = new nsDOMNavigationTiming(aDocShell);
+    timing->mNavigationStartHighRes = mNavigationStartHighRes;
+    timing->mNavigationStart = mNavigationStart;
+    return timing.forget();
+  }
+
+  bool DocShellHasBeenActiveSinceNavigationStart() {
+    return mDocShellHasBeenActiveSinceNavigationStart;
+  }
+
  private:
   friend class nsDocShell;
   nsDOMNavigationTiming(nsDocShell* aDocShell, nsDOMNavigationTiming* aOther);
@@ -190,6 +214,8 @@ class nsDOMNavigationTiming final : public mozilla::RelativeTimeline {
   mozilla::TimeStamp GetUnloadEventEndTimeStamp() const;
 
   bool IsTopLevelContentDocumentInContentProcess() const;
+  void MaybeSubmitTimeToLoadEventPreloadTelemetry(
+      mozilla::TimeStamp aLoadEventEnd) const;
 
   // Should those be amended, the IPC serializer should be updated
   // accordingly.
@@ -219,6 +245,8 @@ class nsDOMNavigationTiming final : public mozilla::RelativeTimeline {
   mozilla::TimeStamp mDOMComplete;
 
   mozilla::TimeStamp mTTFI;
+
+  mozilla::TimeStamp mLoadEventStartForTelemetry;
 
   bool mDocShellHasBeenActiveSinceNavigationStart;
 

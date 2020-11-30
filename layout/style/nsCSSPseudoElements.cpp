@@ -116,15 +116,15 @@ bool nsCSSPseudoElements::PseudoElementSupportsUserActionState(
 nsString nsCSSPseudoElements::PseudoTypeAsString(Type aPseudoType) {
   switch (aPseudoType) {
     case PseudoStyleType::before:
-      return NS_LITERAL_STRING("::before");
+      return u"::before"_ns;
     case PseudoStyleType::after:
-      return NS_LITERAL_STRING("::after");
+      return u"::after"_ns;
     case PseudoStyleType::marker:
-      return NS_LITERAL_STRING("::marker");
+      return u"::marker"_ns;
     default:
       MOZ_ASSERT(aPseudoType == PseudoStyleType::NotPseudo,
                  "Unexpected pseudo type");
-      return EmptyString();
+      return u""_ns;
   }
 }
 

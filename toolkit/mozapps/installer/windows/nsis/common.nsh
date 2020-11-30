@@ -3698,6 +3698,18 @@
           ${If} ${FileExists} "$R0\updates"
             RmDir /r "$R0"
           ${EndIf}
+
+          ; Also remove the secure log files that our updater may have created
+          ; inside the maintenance service path. There are several files named
+          ; with the install hash and an extension indicating the kind of file.
+          ; so use a wildcard to delete them all.
+          Delete "$PROGRAMFILES32\Mozilla Maintenance Service\UpdateLogs\$R1.*"
+
+          ; If the UpdateLogs directory is now empty, then delete it.
+          ; The Maintenance Service uninstaller should do this, but it may not
+          ; be up to date enough because of bug 1665193, so doing this here as
+          ; well lets us make sure it really happens.
+          RmDir "$PROGRAMFILES32\Mozilla Maintenance Service\UpdateLogs"
         ${EndIf}
       ${EndIf}
 
@@ -5937,7 +5949,7 @@ end:
 
       finish:
       ${UnloadUAC}
-      System::Call "shell32::SHChangeNotify(i ${SHCNE_ASSOCCHANGED}, i 0, i 0, i 0)"
+      ${RefreshShellIcons}
       Quit ; Nothing initialized so no need to call OnEndCommon
 
       continue:
@@ -7851,6 +7863,86 @@ end:
   !endif
 !macroend
 
+/**
+ * Try to locate the default profile of this install from AppUserModelID
+ * using installs.ini.
+ * FIXME This could instead use the Install<AUMID> entries in profiles.ini?
+ *
+ * - `SetShellVarContext current` must be called before this macro so
+ *   $APPDATA gets the current user's data.
+ * - InitHashAppModelId must have been called before this macro to set
+ *   $AppUserModelID
+ *
+ * @result: Path of the profile directory (not checked for existence),
+ *          or "" if not found, left on top of the stack.
+ */
+!macro FindInstallSpecificProfileMaybeUn _MOZFUNC_UN
+  Push $R0
+  Push $0
+  Push $1
+  Push $2
+
+  StrCpy $R0 ""
+  ; Look for an install-specific profile, which might be listed as
+  ; either a relative or an absolute path (installs.ini doesn't say which).
+  ${If} ${FileExists} "$APPDATA\Mozilla\Firefox\installs.ini"
+    ClearErrors
+    ReadINIStr $1 "$APPDATA\Mozilla\Firefox\installs.ini" "$AppUserModelID" "Default"
+    ${IfNot} ${Errors}
+      ${${_MOZFUNC_UN}GetLongPath} "$APPDATA\Mozilla\Firefox\$1" $2
+      ${If} ${FileExists} $2
+        StrCpy $R0 $2
+      ${Else}
+        ${${_MOZFUNC_UN}GetLongPath} "$1" $2
+        ${If} ${FileExists} $2
+          StrCpy $R0 $2
+        ${EndIf}
+      ${EndIf}
+    ${EndIf}
+  ${EndIf}
+
+  Pop $2
+  Pop $1
+  Pop $0
+  Exch $R0
+!macroend
+!define FindInstallSpecificProfile "!insertmacro FindInstallSpecificProfileMaybeUn ''"
+!define un.FindInstallSpecificProfile "!insertmacro FindInstallSpecificProfileMaybeUn un."
+
+/**
+ * Copy the post-signing data, which was left alongside the installer
+ * by the self-extractor stub, into the global location for this data.
+ *
+ * If the post-signing data file doesn't exist, or is empty, "0" is
+ * pushed on the stack, and nothing is copied.
+ * Otherwise the first line of the post-signing data (including newline,
+ * if any) is pushed on the stack.
+ */
+!macro CopyPostSigningData
+  !ifndef CopyPostSigningData
+    !verbose push
+    !verbose ${_MOZFUNC_VERBOSE}
+    !define CopyPostSigningData "Call CopyPostSigningData"
+
+    Function CopyPostSigningData
+      Push $0   ; Stack: old $0
+
+      ${LineRead} "$EXEDIR\postSigningData" "1" $0
+      ${If} ${Errors}
+        ClearErrors
+        StrCpy $0 "0"
+      ${Else}
+        CreateDirectory "$LOCALAPPDATA\Mozilla\Firefox"
+        CopyFiles /SILENT "$EXEDIR\postSigningData" "$LOCALAPPDATA\Mozilla\Firefox"
+      ${Endif}
+
+      Exch $0   ; Stack: postSigningData
+    FunctionEnd
+
+    !verbose pop
+  !endif
+!macroend
+
 ################################################################################
 # Helpers for taskbar progress
 
@@ -8028,11 +8120,11 @@ end:
   !define DT_NOFULLWIDTHCHARBREAK 0x00080000
 !endif
 
+!define /ifndef GWL_STYLE -16
+!define /ifndef GWL_EXSTYLE -20
+
 !ifndef WS_EX_NOINHERITLAYOUT
   !define WS_EX_NOINHERITLAYOUT 0x00100000
-!endif
-!ifndef WS_EX_LAYOUTRTL
-  !define WS_EX_LAYOUTRTL 0x00400000
 !endif
 
 !ifndef PBS_MARQUEE
@@ -8260,6 +8352,23 @@ end:
 !define RemoveStyle "!insertmacro _RemoveStyle"
 
 /**
+ * Adds a single extended style to a control.
+ *
+ * _HANDLE  the handle of the control
+ * _EXSTYLE the extended style to add
+ */
+!macro _AddExStyle _HANDLE _EXSTYLE
+  Push $0
+
+  System::Call 'user32::GetWindowLongW(i ${_HANDLE}, i ${GWL_EXSTYLE}) i .r0'
+  IntOp $0 $0 | ${_EXSTYLE}
+  System::Call 'user32::SetWindowLongW(i ${_HANDLE}, i ${GWL_EXSTYLE}, i r0)'
+
+  Pop $0
+!macroend
+!define AddExStyle "!insertmacro _AddExStyle"
+
+/**
  * Removes a single extended style from a control.
  *
  * _HANDLE  the handle of the control
@@ -8276,6 +8385,25 @@ end:
   Pop $0
 !macroend
 !define RemoveExStyle "!insertmacro _RemoveExStyle"
+
+/**
+ * Set the necessary styles to configure the given window as right-to-left
+ *
+ * _HANDLE the handle of the control to configure
+ */
+!macro _MakeWindowRTL _HANDLE
+  !define /ifndef WS_EX_RIGHT 0x00001000
+  !define /ifndef WS_EX_LEFT 0x00000000
+  !define /ifndef WS_EX_RTLREADING 0x00002000
+  !define /ifndef WS_EX_LTRREADING 0x00000000
+  !define /ifndef WS_EX_LAYOUTRTL 0x00400000
+
+  ${AddExStyle} ${_HANDLE} ${WS_EX_LAYOUTRTL}
+  ${RemoveExStyle} ${_HANDLE} ${WS_EX_RTLREADING}
+  ${RemoveExStyle} ${_HANDLE} ${WS_EX_RIGHT}
+  ${AddExStyle} ${_HANDLE} ${WS_EX_LEFT}|${WS_EX_LTRREADING}
+!macroend
+!define MakeWindowRTL "!insertmacro _MakeWindowRTL"
 
 /**
  * Gets the extent of the specified text in pixels for sizing a control.

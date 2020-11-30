@@ -10,7 +10,10 @@
 add_task(async function() {
   requestLongerTimeout(4);
 
-  const { tab, monitor } = await initNetMonitor(INFINITE_GET_URL, true);
+  const { tab, monitor } = await initNetMonitor(INFINITE_GET_URL, {
+    enableCache: true,
+    requestCount: 1,
+  });
   const { document, windowRequire, store } = monitor.panelWin;
   const Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
 
@@ -34,8 +37,10 @@ add_task(async function() {
   await waitSomeTime();
   ok(!scrolledToBottom(requestsContainer), "Not scrolled to bottom.");
   // save for comparison later
-  const scrollTop = requestsContainer.scrollTop;
-  await waitForNetworkEvents(monitor, 8);
+  const { scrollTop } = requestsContainer;
+  // As we are scrolled top, new request appended won't be fetching their event timings,
+  // so do not wait for them
+  await waitForNetworkEvents(monitor, 8, { expectedEventTimings: 0 });
   await waitSomeTime();
   is(requestsContainer.scrollTop, scrollTop, "Did not scroll.");
 

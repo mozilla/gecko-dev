@@ -104,7 +104,7 @@ function constructOnePageCmdLine(aURL) {
       if (aIndex == 0 && this._argCount) {
         return this._arg;
       }
-      throw Cr.NS_ERROR_INVALID_ARG;
+      throw Components.Exception("", Cr.NS_ERROR_INVALID_ARG);
     },
 
     findFlag() {
@@ -112,11 +112,11 @@ function constructOnePageCmdLine(aURL) {
     },
 
     removeArguments() {
-      throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+      throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
     },
 
     handleFlag() {
-      throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+      throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
     },
 
     handleFlagWithParam() {
@@ -139,22 +139,22 @@ function constructOnePageCmdLine(aURL) {
     preventDefault: false,
 
     get workingDirectory() {
-      throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+      throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
     },
 
     get windowContext() {
-      throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+      throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
     },
 
     resolveFile() {
-      throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+      throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
     },
 
     resolveURI() {
       return Services.io.newURI(this._arg);
     },
 
-    QueryInterface: ChromeUtils.generateQI([Ci.nsICommandLine]),
+    QueryInterface: ChromeUtils.generateQI(["nsICommandLine"]),
   };
 }
 

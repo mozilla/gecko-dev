@@ -9,6 +9,7 @@
 #include "gfxFontUtils.h"
 #include "gfxFontEntry.h"
 #include "gfxFontVariations.h"
+#include "gfxUtils.h"
 
 #include "nsServiceManagerUtils.h"
 
@@ -1538,6 +1539,7 @@ struct COLRLayerRecord {
   AutoSwap_PRUint16 paletteEntryIndex;
 };
 
+// sRGB color space
 struct CPALColorRecord {
   uint8_t blue;
   uint8_t green;
@@ -1676,11 +1678,10 @@ static COLRBaseGlyphRecord* LookForBaseGlyphRecord(const COLRHeader* aCOLR,
               CompareBaseGlyph));
 }
 
-bool gfxFontUtils::GetColorGlyphLayers(hb_blob_t* aCOLR, hb_blob_t* aCPAL,
-                                       uint32_t aGlyphId,
-                                       const mozilla::gfx::Color& aDefaultColor,
-                                       nsTArray<uint16_t>& aGlyphs,
-                                       nsTArray<mozilla::gfx::Color>& aColors) {
+bool gfxFontUtils::GetColorGlyphLayers(
+    hb_blob_t* aCOLR, hb_blob_t* aCPAL, uint32_t aGlyphId,
+    const mozilla::gfx::DeviceColor& aDefaultColor, nsTArray<uint16_t>& aGlyphs,
+    nsTArray<mozilla::gfx::DeviceColor>& aColors) {
   unsigned int blobLength;
   const COLRHeader* colr =
       reinterpret_cast<const COLRHeader*>(hb_blob_get_data(aCOLR, &blobLength));
@@ -1713,12 +1714,22 @@ bool gfxFontUtils::GetColorGlyphLayers(hb_blob_t* aCOLR, hb_blob_t* aCPAL,
           reinterpret_cast<const uint8_t*>(cpal) + offsetFirstColorRecord +
           sizeof(CPALColorRecord) * uint16_t(layer->paletteEntryIndex));
       aColors.AppendElement(
-          mozilla::gfx::Color(color->red / 255.0, color->green / 255.0,
-                              color->blue / 255.0, color->alpha / 255.0));
+          mozilla::gfx::ToDeviceColor(mozilla::gfx::sRGBColor::FromU8(
+              color->red, color->green, color->blue, color->alpha)));
     }
     layer++;
   }
   return true;
+}
+
+bool gfxFontUtils::HasColorLayersForGlyph(hb_blob_t* aCOLR, uint32_t aGlyphId) {
+  unsigned int blobLength;
+  const COLRHeader* colr =
+      reinterpret_cast<const COLRHeader*>(hb_blob_get_data(aCOLR, &blobLength));
+  MOZ_ASSERT(colr, "Cannot get COLR raw data");
+  MOZ_ASSERT(blobLength, "Found COLR data, but length is 0");
+
+  return LookForBaseGlyphRecord(colr, aGlyphId);
 }
 
 void gfxFontUtils::GetVariationData(
@@ -1810,8 +1821,7 @@ void gfxFontUtils::GetVariationData(
   if (axisCount ==
           0 ||  // no axes?
                 // https://www.microsoft.com/typography/otspec/fvar.htm#axisSize
-      axisSize != 20 ||      // required value for current table version
-      instanceCount == 0 ||  // no instances?
+      axisSize != 20 ||  // required value for current table version
       // https://www.microsoft.com/typography/otspec/fvar.htm#instanceSize
       (instanceSize != axisCount * sizeof(int32_t) + 4 &&
        instanceSize != axisCount * sizeof(int32_t) + 6)) {
@@ -1853,7 +1863,7 @@ void gfxFontUtils::GetVariationData(
                                        int32_t(coords[j]) / 65536.0f};
         instance.mValues.AppendElement(value);
       }
-      aInstances->AppendElement(instance);
+      aInstances->AppendElement(std::move(instance));
     }
   }
   if (aAxes) {

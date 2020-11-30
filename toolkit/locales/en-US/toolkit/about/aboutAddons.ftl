@@ -29,12 +29,20 @@ list-empty-button =
     .label = Learn more about add-ons
 
 help-button = Add-ons Support
+sidebar-help-button-title =
+    .title = Add-ons Support
 
 preferences =
     { PLATFORM() ->
         [windows] { -brand-short-name } Options
        *[other] { -brand-short-name } Preferences
     }
+sidebar-preferences-button-title =
+    .title =
+        { PLATFORM() ->
+            [windows] { -brand-short-name } Options
+           *[other] { -brand-short-name } Preferences
+        }
 
 show-unsigned-extensions-button =
     .label = Some extensions could not be verified
@@ -197,17 +205,30 @@ private-browsing-description2 =
     there. We’ve made this change to keep your private browsing private.
     <label data-l10n-name="private-browsing-learn-more">Learn how to manage extension settings</label>
 
-extensions-view-discopane =
-    .name = Recommendations
-    .tooltiptext = { extensions-view-discopane.name }
-
-extensions-view-recent-updates =
-    .name = Recent Updates
-    .tooltiptext = { extensions-view-recent-updates.name }
-
-extensions-view-available-updates =
-    .name = Available Updates
-    .tooltiptext = { extensions-view-available-updates.name }
+addon-category-discover = Recommendations
+addon-category-discover-title =
+    .title = Recommendations
+addon-category-extension = Extensions
+addon-category-extension-title =
+    .title = Extensions
+addon-category-theme = Themes
+addon-category-theme-title =
+    .title = Themes
+addon-category-plugin = Plugins
+addon-category-plugin-title =
+    .title = Plugins
+addon-category-dictionary = Dictionaries
+addon-category-dictionary-title =
+    .title = Dictionaries
+addon-category-locale = Languages
+addon-category-locale-title =
+    .title = Languages
+addon-category-available-updates = Available Updates
+addon-category-available-updates-title =
+    .title = Available Updates
+addon-category-recent-updates = Recent Updates
+addon-category-recent-updates-title =
+    .title = Recent Updates
 
 ## These are global warnings
 
@@ -271,7 +292,7 @@ shortcuts-no-commands = The following extensions do not have shortcuts:
 shortcuts-input =
   .placeholder = Type a shortcut
 
-shortcuts-browserAction = Activate extension
+shortcuts-browserAction2 = Activate toolbar button
 shortcuts-pageAction = Activate page action
 shortcuts-sidebarAction = Toggle the sidebar
 
@@ -301,8 +322,8 @@ shortcuts-card-expand-button =
 
 shortcuts-card-collapse-button = Show Less
 
-go-back-button =
-    .tooltiptext = Go back
+header-back-button =
+    .title = Go back
 
 ## Recommended add-ons page
 
@@ -389,6 +410,10 @@ addon-detail-last-updated-label = Last Updated
 addon-detail-homepage-label = Homepage
 addon-detail-rating-label = Rating
 
+# Message for add-ons with a staged pending update.
+install-postponed-message = This extension will be updated when { -brand-short-name } restarts.
+install-postponed-button = Update Now
+
 # The average rating that the add-on has received.
 # Variables:
 #   $rating (number) - A number between 0 and 5. The translation should show at most one digit after the comma.
@@ -432,11 +457,20 @@ addon-detail-private-browsing-help = When allowed, the extension will have acces
 addon-detail-private-browsing-allow = Allow
 addon-detail-private-browsing-disallow = Don’t Allow
 
-# This is the tooltip text for the recommended badge for an extension in about:addons. The
-# badge is a small icon displayed next to an extension when it is recommended on AMO.
+## This is the tooltip text for the recommended badges for an extension in about:addons. The
+## badge is a small icon displayed next to an extension when it is recommended on AMO.
+
 addon-badge-recommended2 =
   .title = { -brand-product-name } only recommends extensions that meet our standards for security and performance
   .aria-label = { addon-badge-recommended2.title }
+addon-badge-line =
+  .title = This extension was created by the makers of { -brand-product-name }
+  .aria-label = { addon-badge-line.title }
+addon-badge-verified =
+  .title = This extension has been code-reviewed for safety
+  .aria-label = { addon-badge-verified.title }
+
+##
 
 available-updates-heading = Available Updates
 recent-updates-heading = Recent Updates
@@ -464,8 +498,6 @@ updates-heading = Manage Your Updates
 discover-heading = Personalize Your { -brand-short-name }
 shortcuts-heading = Manage Extension Shortcuts
 
-theme-heading-search-label = Find more themes
-extension-heading-search-label = Find more extensions
 default-heading-search-label = Find more add-ons
 addons-heading-search-input =
     .placeholder = Search addons.mozilla.org

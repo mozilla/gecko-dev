@@ -63,6 +63,8 @@ class ProcessSelector:
     ALLOW_IN_VR_PROCESS = 0x8
     ALLOW_IN_SOCKET_PROCESS = 0x10
     ALLOW_IN_RDD_PROCESS = 0x20
+    ALLOW_IN_GPU_AND_MAIN_PROCESS = (ALLOW_IN_GPU_PROCESS |
+                                     MAIN_PROCESS_ONLY)
     ALLOW_IN_GPU_AND_SOCKET_PROCESS = (ALLOW_IN_GPU_PROCESS |
                                        ALLOW_IN_SOCKET_PROCESS)
     ALLOW_IN_GPU_AND_VR_PROCESS = ALLOW_IN_GPU_PROCESS | ALLOW_IN_VR_PROCESS
@@ -90,6 +92,7 @@ PROCESSES = {
     ProcessSelector.ALLOW_IN_VR_PROCESS: 'ALLOW_IN_VR_PROCESS',
     ProcessSelector.ALLOW_IN_SOCKET_PROCESS: 'ALLOW_IN_SOCKET_PROCESS',
     ProcessSelector.ALLOW_IN_RDD_PROCESS: 'ALLOW_IN_RDD_PROCESS',
+    ProcessSelector.ALLOW_IN_GPU_AND_MAIN_PROCESS: 'ALLOW_IN_GPU_AND_MAIN_PROCESS',
     ProcessSelector.ALLOW_IN_GPU_AND_SOCKET_PROCESS: 'ALLOW_IN_GPU_AND_SOCKET_PROCESS',
     ProcessSelector.ALLOW_IN_GPU_AND_VR_PROCESS: 'ALLOW_IN_GPU_AND_VR_PROCESS',
     ProcessSelector.ALLOW_IN_GPU_VR_AND_SOCKET_PROCESS: 'ALLOW_IN_GPU_VR_AND_SOCKET_PROCESS',
@@ -173,6 +176,8 @@ class StringTable(object):
 
 strings = StringTable()
 
+interfaces = []
+
 
 # Represents a C++ namespace, containing a set of classes and potentially
 # sub-namespaces. This is used to generate pre-declarations for incomplete
@@ -222,6 +227,17 @@ class ModuleEntry(object):
         self.categories = data.get('categories', {})
         self.processes = data.get('processes', 0)
         self.headers = data.get('headers', [])
+
+        self.js_name = data.get('js_name', None)
+        self.interfaces = data.get('interfaces', [])
+
+        if len(self.interfaces) > 255:
+            raise Exception('JS service %s may not have more than 255 '
+                            'interfaces' % self.js_name)
+
+        self.interfaces_offset = len(interfaces)
+        for iface in self.interfaces:
+            interfaces.append(iface)
 
         # If the manifest declares Init or Unload functions, this contains its
         # index, as understood by the `CallInitFunc()` function.
@@ -304,6 +320,19 @@ class ModuleEntry(object):
                      contract_id=contract_id,
                      processes=lower_processes(self.processes))
 
+    # Generates the C++ code for a JSServiceEntry represengin this module.
+    def lower_js_service(self):
+        return """
+        {{
+          {js_name},
+          ModuleID::{name},
+          {{ {iface_offset} }},
+          {iface_count}
+        }}""".format(js_name=strings.entry_to_cxx(self.js_name),
+                     name=self.name,
+                     iface_offset=self.interfaces_offset,
+                     iface_count=len(self.interfaces))
+
     # Generates the C++ code necessary to construct an instance of this
     # component.
     #
@@ -329,7 +358,7 @@ class ModuleEntry(object):
         if self.jsm:
             res += (
                 '      nsCOMPtr<nsISupports> inst;\n'
-                '      MOZ_TRY(ConstructJSMComponent(NS_LITERAL_CSTRING(%s),\n'
+                '      MOZ_TRY(ConstructJSMComponent(nsLiteralCString(%s),\n'
                 '                                    %s,\n'
                 '                                    getter_AddRefs(inst)));'
                 '\n' % (json.dumps(self.jsm), json.dumps(self.constructor)))
@@ -357,7 +386,7 @@ class ModuleEntry(object):
       using T =
           RemoveAlreadyAddRefed<decltype(%(constructor)s())>::Type;
       static_assert(
-          mozilla::IsSame<already_AddRefed<T>, decltype(%(constructor)s())>::value,
+          std::is_same_v<already_AddRefed<T>, decltype(%(constructor)s())>,
           "Singleton constructor must return already_AddRefed");
       static_assert(
           std::is_base_of<%(type)s, T>::value,
@@ -495,6 +524,13 @@ def gen_module_funcs(substs, funcs):
     substs['init_count'] = len(funcs)
 
 
+def gen_interfaces(ifaces):
+    res = []
+    for iface in ifaces:
+        res.append('  nsXPTInterface::%s,\n' % iface)
+    return ''.join(res)
+
+
 # Generates class pre-declarations for any types referenced in `Classes` array
 # entries which do not have corresponding `headers` entries to fully declare
 # their types.
@@ -569,6 +605,7 @@ def gen_substs(manifests):
     headers = set()
 
     modules = []
+    categories = defaultdict(list)
 
     for manifest in manifests:
         headers |= set(manifest.get('Headers', []))
@@ -583,9 +620,18 @@ def gen_substs(manifests):
         for clas in manifest['Classes']:
             modules.append(ModuleEntry(clas, init_idx))
 
+        for category, entries in manifest.get('Categories', {}).items():
+            for key, entry in entries.items():
+                if isinstance(entry, tuple):
+                    value, process = entry
+                else:
+                    value, process = entry, 0
+                categories[category].append((key, value, process))
+
+    cids = set()
     contracts = []
     contract_map = {}
-    categories = defaultdict(list)
+    js_services = {}
 
     jsms = set()
 
@@ -613,11 +659,23 @@ def gen_substs(manifests):
         if mod.jsm:
             jsms.add(mod.jsm)
 
+        if mod.js_name:
+            if mod.js_name in js_services:
+                raise Exception('Duplicate JS service name: %s' % mod.js_name)
+            js_services[mod.js_name] = mod
+
+        if str(mod.cid) in cids:
+            raise Exception('Duplicate cid: %s' % str(mod.cid))
+        cids.add(str(mod.cid))
+
     cid_phf = PerfectHash(modules, PHF_SIZE,
                           key=lambda module: module.cid.bytes)
 
     contract_phf = PerfectHash(contracts, PHF_SIZE,
                                key=lambda entry: entry.contract)
+
+    js_services_phf = PerfectHash(list(js_services.values()), PHF_SIZE,
+                                  key=lambda entry: entry.js_name)
 
     substs = {}
 
@@ -635,6 +693,8 @@ def gen_substs(manifests):
 
     substs['component_jsms'] = '\n'.join(' %s,' % strings.entry_to_cxx(jsm)
                                          for jsm in sorted(jsms)) + '\n'
+
+    substs['interfaces'] = gen_interfaces(interfaces)
 
     substs['decls'] = gen_decls(types)
 
@@ -664,6 +724,19 @@ def gen_substs(manifests):
 
         return_type='const ContractEntry*',
         return_entry='return entry.Matches(aKey) ? &entry : nullptr;',
+
+        key_type='const nsACString&',
+        key_bytes='aKey.BeginReading()',
+        key_length='aKey.Length()')
+
+    substs['js_services_table'] = js_services_phf.cxx_codegen(
+        name='LookupJSService',
+        entry_type='JSServiceEntry',
+        entries_name='gJSServices',
+        lower_entry=lambda entry: entry.lower_js_service(),
+
+        return_type='const JSServiceEntry*',
+        return_entry='return entry.Name() == aKey ? &entry : nullptr;',
 
         key_type='const nsACString&',
         key_bytes='aKey.BeginReading()',

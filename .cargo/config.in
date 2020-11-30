@@ -7,75 +7,80 @@ branch = "r0.13.1"
 git = "https://github.com/shravanrn/nix/"
 replace-with = "vendored-sources"
 
-[source."https://github.com/mozilla/rkv"]
-git = "https://github.com/mozilla/rkv"
-replace-with = "vendored-sources"
-rev = "6a866fdad2ca880df9b87fcbc9921abac1e91914"
-
 [source."https://github.com/mozilla/neqo"]
 git = "https://github.com/mozilla/neqo"
 replace-with = "vendored-sources"
-tag = "v0.2.0"
+tag = "v0.4.13"
+
+[source."https://github.com/mozilla/mp4parse-rust"]
+git = "https://github.com/mozilla/mp4parse-rust"
+replace-with = "vendored-sources"
+rev = "f7c35a30ff25521bebe64c19d3f306569ecb5385"
+
+[source."https://github.com/mozilla/application-services"]
+git = "https://github.com/mozilla/application-services"
+replace-with = "vendored-sources"
+rev = "641353a8648602ce17d23c89b88e2a22d108fb03"
 
 [source."https://github.com/mozilla-spidermonkey/jsparagus"]
 git = "https://github.com/mozilla-spidermonkey/jsparagus"
 replace-with = "vendored-sources"
-rev = "0b248045fda0cc9b7323c73b81cfbcab71f4a9ef"
+rev = "1dc60327164a3f64f87180147b1f3a2a9cc74276"
 
 [source."https://github.com/kvark/spirv_cross"]
-branch = "wgpu"
+branch = "wgpu3"
 git = "https://github.com/kvark/spirv_cross"
 replace-with = "vendored-sources"
 
-[source."https://github.com/kvark/peek-poke"]
-git = "https://github.com/kvark/peek-poke"
+[source."https://github.com/kinetiknz/mio-named-pipes"]
+git = "https://github.com/kinetiknz/mio-named-pipes"
 replace-with = "vendored-sources"
-rev = "969bd7fe2be1a83f87916dc8b388c63cfd457075"
+rev = "21c26326f5f45f415c49eac4ba5bc41a2f961321"
 
 [source."https://github.com/jfkthame/mapped_hyph.git"]
 git = "https://github.com/jfkthame/mapped_hyph.git"
 replace-with = "vendored-sources"
-tag = "v0.3.0"
+tag = "v0.4.2"
 
 [source."https://github.com/hsivonen/packed_simd"]
 git = "https://github.com/hsivonen/packed_simd"
 replace-with = "vendored-sources"
 rev = "3541e3818fdc7c2a24f87e3459151a4ce955a67a"
 
+[source."https://github.com/gfx-rs/naga"]
+git = "https://github.com/gfx-rs/naga"
+replace-with = "vendored-sources"
+rev = "bce6358eb1026c13d2f1c6d365af37afe8869a86"
+
 [source."https://github.com/djg/cubeb-pulse-rs"]
 git = "https://github.com/djg/cubeb-pulse-rs"
 replace-with = "vendored-sources"
-rev = "8069f8f4189982e0b38fa6dc8993dd4fab41f728"
+rev = "3224e2dee65c0726c448484d4c3c43956b9330ec"
 
-[source."https://github.com/bytecodealliance/cranelift"]
-git = "https://github.com/bytecodealliance/cranelift"
+[source."https://github.com/bytecodealliance/wasmtime"]
+git = "https://github.com/bytecodealliance/wasmtime"
 replace-with = "vendored-sources"
-rev = "98c818c129979e98a3db150f8f9698f6451b7ef7"
+rev = "e22e2c3722f2fbccd3c8d3230119fa04c332c69c"
 
 [source."https://github.com/badboy/failure"]
 git = "https://github.com/badboy/failure"
 replace-with = "vendored-sources"
 rev = "64af847bc5fdcb6d2438bec8a6030812a80519a5"
 
-[source."https://github.com/alexcrichton/mio-named-pipes"]
-branch = "master"
-git = "https://github.com/alexcrichton/mio-named-pipes"
-replace-with = "vendored-sources"
-
 [source."https://github.com/PLSysSec/rlbox_lucet_sandbox/"]
 git = "https://github.com/PLSysSec/rlbox_lucet_sandbox/"
 replace-with = "vendored-sources"
-rev = "d510da5999a744c563b0acd18056069d1698273f"
+rev = "ed8bac8812e9f335d5fadd0f4ece96981aba88a3"
 
 [source."https://github.com/PLSysSec/lucet_sandbox_compiler"]
 git = "https://github.com/PLSysSec/lucet_sandbox_compiler"
 replace-with = "vendored-sources"
-rev = "5e870faf6f95d79d11efc813e56370ad124bbed5"
+rev = "477d8fc53a64705a9d3fbcce9de92f4988558525"
 
 [source."https://github.com/ChunMinChang/cubeb-coreaudio-rs"]
+branch = "backport-83"
 git = "https://github.com/ChunMinChang/cubeb-coreaudio-rs"
 replace-with = "vendored-sources"
-rev = "4acd80233efa645ac79769f37b07d495c1b42070"
 
 [source.crates-io]
 replace-with = "vendored-sources"

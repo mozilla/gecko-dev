@@ -29,14 +29,6 @@ XPCOMUtils.defineLazyGetter(this, "OS", function() {
     return OS;
 });
 
-XPCOMUtils.defineLazyGetter(this, "PDFJS", function() {
-    const { require } = Cu.import("resource://gre/modules/commonjs/toolkit/require.js", {});
-    return {
-        main: require('resource://pdf.js/build/pdf.js'),
-        worker: require('resource://pdf.js/build/pdf.worker.js')
-    };
-});
-
 function HasUnexpectedResult()
 {
     return g.testResults.Exception > 0 ||
@@ -170,11 +162,11 @@ function OnRefTestLoad(win)
     var env = Cc["@mozilla.org/process/environment;1"].
               getService(Ci.nsIEnvironment);
 
+    g.browserIsRemote = Services.appinfo.browserTabsRemoteAutostart;
+    g.browserIsFission = Services.appinfo.fissionAutostart;
+
     var prefs = Cc["@mozilla.org/preferences-service;1"].
                 getService(Ci.nsIPrefBranch);
-    g.browserIsRemote = prefs.getBoolPref("browser.tabs.remote.autostart", false);
-    g.browserIsFission = prefs.getBoolPref("fission.autostart", false);
-
     g.browserIsIframe = prefs.getBoolPref("reftest.browser.iframe.enabled", false);
 
     g.logLevel = prefs.getStringPref("reftest.logLevel", "info");
@@ -290,21 +282,21 @@ function InitAndStartRefTests()
     } catch(e) {}
 
     try {
+        g.isCoverageBuild = prefs.getBoolPref("reftest.isCoverageBuild");
+    } catch(e) {}
+
+    try {
         g.compareRetainedDisplayLists = prefs.getBoolPref("reftest.compareRetainedDisplayLists");
     } catch (e) {}
 
-#ifdef MOZ_ENABLE_SKIA_PDF
     try {
-        // We have to disable printing via parent or else silent print operations
-        // (the type that we use here) would be treated as non-silent -- in other
-        // words, a print dialog would appear for each print operation, which
-        // would interrupt the test run.
-        // See http://searchfox.org/mozilla-central/rev/bd39b6170f04afeefc751a23bb04e18bbd10352b/layout/printing/nsPrintEngine.cpp#617
-        prefs.setBoolPref("print.print_via_parent", false);
+        // We have to set print.always_print_silent or a print dialog would
+        // appear for each print operation, which would interrupt the test run.
+        prefs.setBoolPref("print.always_print_silent", true);
     } catch (e) {
         /* uh oh, print reftests may not work... */
+        logger.warning("Failed to set silent printing pref, EXCEPTION: " + e);
     }
-#endif
 
     g.windowUtils = g.containingWindow.windowUtils;
     if (!g.windowUtils || !g.windowUtils.compareCanvases)
@@ -497,7 +489,7 @@ function StartTests()
         // tURLs is a temporary array containing all active tests
         var tURLs = new Array();
         for (var i = 0; i < g.urls.length; ++i) {
-            if (g.urls[i].expected == EXPECTED_DEATH)
+            if (g.urls[i].skip)
                 continue;
 
             if (g.urls[i].needsFocus && !Focus())
@@ -601,7 +593,7 @@ function BuildUseCounts()
     g.uriUseCounts = {};
     for (var i = 0; i < g.urls.length; ++i) {
         var url = g.urls[i];
-        if (url.expected != EXPECTED_DEATH &&
+        if (!url.skip &&
             (url.type == TYPE_REFTEST_EQUAL ||
              url.type == TYPE_REFTEST_NOTEQUAL)) {
             if (url.prefSettings1.length == 0) {
@@ -646,7 +638,7 @@ function StartCurrentTest()
     while (g.urls.length > 0) {
         var test = g.urls[0];
         logger.testStart(test.identifier);
-        if (test.expected == EXPECTED_DEATH) {
+        if (test.skip) {
             ++g.testResults.Skip;
             logger.testEnd(test.identifier, "SKIP");
             g.urls.shift();
@@ -740,35 +732,48 @@ async function StartCurrentURI(aURLTargetType)
         var badPref = undefined;
         try {
             prefSettings.forEach(function(ps) {
-                var oldVal;
-                if (ps.type == PREF_BOOLEAN) {
-                    try {
-                        oldVal = prefs.getBoolPref(ps.name);
-                    } catch (e) {
-                        badPref = "boolean preference '" + ps.name + "'";
-                        throw "bad pref";
-                    }
-                } else if (ps.type == PREF_STRING) {
-                    try {
-                        oldVal = prefs.getStringPref(ps.name);
-                    } catch (e) {
-                        badPref = "string preference '" + ps.name + "'";
-                        throw "bad pref";
-                    }
-                } else if (ps.type == PREF_INTEGER) {
-                    try {
-                        oldVal = prefs.getIntPref(ps.name);
-                    } catch (e) {
-                        badPref = "integer preference '" + ps.name + "'";
-                        throw "bad pref";
-                    }
-                } else {
-                    throw "internal error - unknown preference type";
+                let prefExists = false;
+                try {
+                    let prefType = prefs.getPrefType(ps.name);
+                    prefExists = (prefType != prefs.PREF_INVALID);
+                } catch (e) {
                 }
-                if (oldVal != ps.value) {
+                if (!prefExists) {
+                    logger.info("Pref " + ps.name + " not found, will be added");
+                }
+
+                let oldVal = undefined;
+                if (prefExists) {
+                    if (ps.type == PREF_BOOLEAN) {
+                        try {
+                            oldVal = prefs.getBoolPref(ps.name);
+                        } catch (e) {
+                            badPref = "boolean preference '" + ps.name + "'";
+                            throw "bad pref";
+                        }
+                    } else if (ps.type == PREF_STRING) {
+                        try {
+                            oldVal = prefs.getStringPref(ps.name);
+                        } catch (e) {
+                            badPref = "string preference '" + ps.name + "'";
+                            throw "bad pref";
+                        }
+                    } else if (ps.type == PREF_INTEGER) {
+                        try {
+                            oldVal = prefs.getIntPref(ps.name);
+                        } catch (e) {
+                            badPref = "integer preference '" + ps.name + "'";
+                            throw "bad pref";
+                        }
+                    } else {
+                        throw "internal error - unknown preference type";
+                    }
+                }
+                if (!prefExists || oldVal != ps.value) {
                     g.prefsToRestore.push( { name: ps.name,
                                             type: ps.type,
-                                            value: oldVal } );
+                                            value: oldVal,
+                                            prefExisted: prefExists } );
                     var value = ps.value;
                     if (ps.type == PREF_BOOLEAN) {
                         prefs.setBoolPref(ps.name, value);
@@ -1478,16 +1483,21 @@ function RestoreChangedPreferences()
                     getService(Ci.nsIPrefBranch);
         g.prefsToRestore.reverse();
         g.prefsToRestore.forEach(function(ps) {
-            var value = ps.value;
-            if (ps.type == PREF_BOOLEAN) {
-                prefs.setBoolPref(ps.name, value);
-            } else if (ps.type == PREF_STRING) {
-                prefs.setStringPref(ps.name, value);
-                value = '"' + value + '"';
-            } else if (ps.type == PREF_INTEGER) {
-                prefs.setIntPref(ps.name, value);
+            if (ps.prefExisted) {
+                var value = ps.value;
+                if (ps.type == PREF_BOOLEAN) {
+                    prefs.setBoolPref(ps.name, value);
+                } else if (ps.type == PREF_STRING) {
+                    prefs.setStringPref(ps.name, value);
+                    value = '"' + value + '"';
+                } else if (ps.type == PREF_INTEGER) {
+                    prefs.setIntPref(ps.name, value);
+                }
+                logger.info("RESTORE PREFERENCE pref(" + ps.name + "," + value + ")");
+            } else {
+                prefs.clearUserPref(ps.name);
+                logger.info("RESTORE PREFERENCE pref(" + ps.name + ", <no value set>) (clearing user pref)");
             }
-            logger.info("RESTORE PREFERENCE pref(" + ps.name + "," + value + ")");
         });
         g.prefsToRestore = [];
     }
@@ -1542,6 +1552,10 @@ function RegisterMessageListenersAndLoadContentScript(aReload)
     g.browserMessageManager.addMessageListener(
         "reftest:ScriptResults",
         function (m) { RecvScriptResults(m.json.runtimeMs, m.json.error, m.json.results); }
+    );
+    g.browserMessageManager.addMessageListener(
+        "reftest:StartPrint",
+        function (m) { RecvStartPrint(m.json.isPrintSelection, m.json.printRange); }
     );
     g.browserMessageManager.addMessageListener(
         "reftest:PrintResult",
@@ -1665,6 +1679,44 @@ function RecvScriptResults(runtimeMs, error, results)
     RecordResult(runtimeMs, error, results);
 }
 
+function RecvStartPrint(isPrintSelection, printRange)
+{
+    let fileName =`reftest-print-${Date.now()}-`;
+    crypto.getRandomValues(new Uint8Array(4)).forEach(x => fileName += x.toString(16));
+    fileName += ".pdf"
+    let file = Services.dirsvc.get("TmpD", Ci.nsIFile);
+    file.append(fileName);
+
+    let PSSVC = Cc["@mozilla.org/gfx/printsettings-service;1"].getService(Ci.nsIPrintSettingsService);
+    let ps = PSSVC.newPrintSettings;
+    ps.printSilent = true;
+    ps.showPrintProgress = false;
+    ps.printBGImages = true;
+    ps.printBGColors = true;
+    ps.unwriteableMarginTop = 0;
+    ps.unwriteableMarginRight = 0;
+    ps.unwriteableMarginLeft = 0;
+    ps.unwriteableMarginBottom = 0;
+    ps.printToFile = true;
+    ps.toFileName = file.path;
+    ps.outputFormat = Ci.nsIPrintSettings.kOutputFormatPDF;
+    ps.printSelectionOnly = isPrintSelection;
+    if (printRange) {
+        ps.printRange = Ci.nsIPrintSettings.kRangeSpecifiedPageRange;
+        let range = printRange.split('-');
+        ps.startPageRange = +range[0] || 1;
+        ps.endPageRange = +range[1] || 1;
+    }
+
+    var prefs = Cc["@mozilla.org/preferences-service;1"].
+                getService(Ci.nsIPrefBranch);
+    ps.printInColor = prefs.getBoolPref("print.print_in_color", true);
+
+    g.browser.print(g.browser.outerWindowID, ps)
+        .then(() => SendPrintDone(Cr.NS_OK, file.path))
+        .catch(exception => SendPrintDone(exception.code, file.path));
+}
+
 function RecvPrintResult(runtimeMs, status, fileName)
 {
     if (!Components.isSuccessCode(status)) {
@@ -1758,31 +1810,49 @@ function SendResetRenderingState()
     g.browserMessageManager.sendAsyncMessage("reftest:ResetRenderingState");
 }
 
+function SendPrintDone(status, fileName)
+{
+    g.browserMessageManager.sendAsyncMessage("reftest:PrintDone", { status, fileName });
+}
+
+var pdfjsHasLoaded;
+
+function pdfjsHasLoadedPromise() {
+  if (pdfjsHasLoaded === undefined) {
+    pdfjsHasLoaded = new Promise((resolve, reject) => {
+      let doc = g.containingWindow.document;
+      const script = doc.createElement("script");
+      script.src = "resource://pdf.js/build/pdf.js";
+      script.onload = resolve;
+      script.onerror = () => reject(new Error("PDF.js script load failed."));
+      doc.documentElement.appendChild(script);
+    });
+  }
+
+  return pdfjsHasLoaded;
+}
+
 function readPdf(path, callback) {
     OS.File.open(path, { read: true }).then(function (file) {
-        file.flush().then(function() {
-            file.read().then(function (data) {
-                let fakePort = new PDFJS.main.LoopbackPort(true);
-                PDFJS.worker.WorkerMessageHandler.initializeFromPort(fakePort);
-                let myWorker = new PDFJS.main.PDFWorker("worker", fakePort);
-                PDFJS.main.PDFJS.getDocument({
-                    worker: myWorker,
-                    data: data
-                }).then(function (pdf) {
-                    callback(null, pdf);
-                }, function () {
-                    callback(new Error("Couldn't parse " + path));
-                });
-                return;
-            }, function () {
-                callback(new Error("Couldn't read PDF"));
+        file.read().then(function (data) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = "resource://pdf.js/build/pdf.worker.js";
+            pdfjsLib.getDocument({
+                data: data
+            }).promise.then(function (pdf) {
+                callback(null, pdf);
+            }, function (e) {
+                callback(new Error(`Couldn't parse ${path}, exception: ${e}`));
             });
+            return;
+        }, function (e) {
+            callback(new Error(`Couldn't read PDF ${path}, exception: ${e}`));
         });
     });
 }
 
 function comparePdfs(pathToTestPdf, pathToRefPdf, callback) {
-    Promise.all([pathToTestPdf, pathToRefPdf].map(function(path) {
+    pdfjsHasLoadedPromise().then(() =>
+      Promise.all([pathToTestPdf, pathToRefPdf].map(function(path) {
         return new Promise(function(resolve, reject) {
             readPdf(path, function(error, pdf) {
                 // Resolve or reject outer promise. reject and resolve are
@@ -1795,7 +1865,7 @@ function comparePdfs(pathToTestPdf, pathToRefPdf, callback) {
                 }
             });
         });
-    })).then(function(pdfs) {
+    }))).then(function(pdfs) {
         let numberOfPages = pdfs[1].numPages;
         let sameNumberOfPages = numberOfPages === pdfs[0].numPages;
 

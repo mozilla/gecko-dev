@@ -28,6 +28,7 @@ import mozrunner
 import numbers
 import platform
 import re
+import shlex
 import shutil
 import signal
 import socket
@@ -36,7 +37,6 @@ import sys
 import tempfile
 import time
 import traceback
-import urllib2
 import uuid
 import zipfile
 import bisection
@@ -53,6 +53,7 @@ from manifestparser.filters import (
     subsuite,
     tags,
 )
+from mozgeckoprofiler import symbolicate_profile_json, view_gecko_profile
 
 try:
     from marionette_driver.addons import Addons
@@ -70,9 +71,8 @@ from mochitest_options import (
 from mozprofile import Profile
 from mozprofile.cli import parse_preferences, parse_key_value, KeyValueParseError
 from mozprofile.permissions import ServerLocations
-from urllib import quote_plus as encodeURIComponent
 from mozlog.formatters import TbplFormatter
-from mozlog import commandline
+from mozlog import commandline, get_proxy_logger
 from mozrunner.utils import get_stack_fixer_function, test_environment
 from mozscreenshot import dump_screen
 import mozleak
@@ -85,6 +85,8 @@ except ImportError:
     pass
 
 import six
+from six.moves.urllib.parse import quote_plus as encodeURIComponent
+from six.moves.urllib_request import urlopen
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -168,12 +170,16 @@ class MessageLogger(object):
         self.logger = logger
         self.structured = structured
         self.gecko_id = 'GECKO'
+        self.is_test_running = False
 
         # Even if buffering is enabled, we only want to buffer messages between
         # TEST-START/TEST-END. So it is off to begin, but will be enabled after
         # a TEST-START comes in.
-        self.buffering = False
+        self._buffering = False
         self.restore_buffering = buffering
+
+        # Guard to ensure we never buffer if this value was initially `False`
+        self._buffering_initially_enabled = buffering
 
         # Message buffering
         self.buffered_messages = []
@@ -193,7 +199,7 @@ class MessageLogger(object):
     def _fix_test_name(self, message):
         """Normalize a logged test path to match the relative path from the sourcedir.
         """
-        if 'test' in message:
+        if message.get('test') is not None:
             test = message['test']
             for prefix in MessageLogger.TEST_PATH_PREFIXES:
                 if test.startswith(prefix):
@@ -204,8 +210,8 @@ class MessageLogger(object):
         if 'message' in message:
             if isinstance(message['message'], bytes):
                 message['message'] = message['message'].decode('utf-8', 'replace')
-            elif not isinstance(message['message'], unicode):
-                message['message'] = unicode(message['message'])
+            elif not isinstance(message['message'], six.text_type):
+                message['message'] = six.text_type(message['message'])
 
     def parse_line(self, line):
         """Takes a given line of input (structured or not) and
@@ -245,11 +251,22 @@ class MessageLogger(object):
 
         return messages
 
+    @property
+    def buffering(self):
+        if not self._buffering_initially_enabled:
+            return False
+        return self._buffering
+
+    @buffering.setter
+    def buffering(self, val):
+        self._buffering = val
+
     def process_message(self, message):
         """Processes a structured message. Takes into account buffering, errors, ..."""
         # Activation/deactivating message buffering from the JS side
         if message['action'] == 'buffering_on':
-            self.buffering = True
+            if self.is_test_running:
+                self.buffering = True
             return
         if message['action'] == 'buffering_off':
             self.buffering = False
@@ -257,8 +274,8 @@ class MessageLogger(object):
 
         # Error detection also supports "raw" errors (in log messages) because some tests
         # manually dump 'TEST-UNEXPECTED-FAIL'.
-        if ('expected' in message or (message['action'] == 'log' and message[
-                'message'].startswith('TEST-UNEXPECTED'))):
+        if ('expected' in message or (message['action'] == 'log' and message.get(
+                'message', '').startswith('TEST-UNEXPECTED'))):
             self.restore_buffering = self.restore_buffering or self.buffering
             self.buffering = False
             if self.buffered_messages:
@@ -283,11 +300,13 @@ class MessageLogger(object):
 
         # If a test ended, we clean the buffer
         if message['action'] == 'test_end':
+            self.is_test_running = False
             self.buffered_messages = []
             self.restore_buffering = self.restore_buffering or self.buffering
             self.buffering = False
 
         if message['action'] == 'test_start':
+            self.is_test_running = True
             if self.restore_buffering:
                 self.restore_buffering = False
                 self.buffering = True
@@ -419,7 +438,7 @@ else:
         except OSError as err:
             # Catch the errors we might expect from os.kill/os.waitpid,
             # and re-raise any others
-            if err.errno == errno.ESRCH or err.errno == errno.ECHILD:
+            if err.errno in (errno.ESRCH, errno.ECHILD, errno.EPERM):
                 return False
             raise
 # TODO: ^ upstream isPidAlive to mozprocess
@@ -473,7 +492,7 @@ class MochitestServer(object):
 
         # When running with an ASan build, our xpcshell server will also be ASan-enabled,
         # thus consuming too much resources when running together with the browser on
-        # the test slaves. Try to limit the amount of resources by disabling certain
+        # the test machines. Try to limit the amount of resources by disabling certain
         # features.
         env["ASAN_OPTIONS"] = "quarantine_size=1:redzone=32:malloc_context_size=5"
 
@@ -481,6 +500,9 @@ class MochitestServer(object):
         # also be TSan-enabled. Except that in this case, we don't really
         # care about races in xpcshell. So disable TSan for the server.
         env["TSAN_OPTIONS"] = "report_bugs=0"
+
+        # Don't use socket process for the xpcshell server.
+        env["MOZ_DISABLE_SOCKET_PROCESS"] = "1"
 
         if mozinfo.isWin:
             env["PATH"] = env["PATH"] + ";" + str(self._xrePath)
@@ -541,7 +563,7 @@ class MochitestServer(object):
 
     def stop(self):
         try:
-            with closing(urllib2.urlopen(self.shutdownURL)) as c:
+            with closing(urlopen(self.shutdownURL)) as c:
                 c.read()
 
             # TODO: need ProcessHandler.poll()
@@ -587,8 +609,10 @@ class WebSocketServer(object):
         cmd += ['-H', '127.0.0.1', '-p', str(self.port), '-w', self._scriptdir,
                 '-l', os.path.join(self._scriptdir, "websock.log"),
                 '--log-level=debug', '--allow-handlers-outside-root-dir']
+        env = dict(os.environ)
+        env['PYTHONPATH'] = os.pathsep.join(sys.path)
         # start the process
-        self._process = mozprocess.ProcessHandler(cmd, cwd=SCRIPT_DIR)
+        self._process = mozprocess.ProcessHandler(cmd, cwd=SCRIPT_DIR, env=env)
         self._process.run()
         pid = self._process.pid
         self._log.info("runtests.py | Websocket server pid: %d" % pid)
@@ -677,8 +701,9 @@ class SSLTunnel:
         """ Starts the SSL Tunnel """
 
         # start ssltunnel to provide https:// URLs capability
-        bin_suffix = mozinfo.info.get('bin_suffix', '')
-        ssltunnel = os.path.join(self.utilityPath, "ssltunnel" + bin_suffix)
+        ssltunnel = os.path.join(self.utilityPath, "ssltunnel")
+        if os.name == 'nt':
+            ssltunnel += '.exe'
         if not os.path.exists(ssltunnel):
             self.log.error(
                 "INFO | runtests.py | expected to find ssltunnel at %s" %
@@ -819,7 +844,7 @@ def findTestMediaDevices(log):
         log.error('Could not list currently loaded modules')
         return None
 
-    null_sink = filter(lambda x: 'module-null-sink' in x, o.splitlines())
+    null_sink = [x for x in o.splitlines() if 'module-null-sink' in x]
 
     if not null_sink:
         try:
@@ -899,6 +924,7 @@ class MochitestDesktop(object):
         self._active_tests = None
         self.currentTests = None
         self._locations = None
+        self.browserEnv = None
 
         self.marionette = None
         self.start_script = None
@@ -936,6 +962,9 @@ class MochitestDesktop(object):
         self.result = {}
 
         self.start_script = os.path.join(here, 'start_desktop.js')
+
+        # Used to temporarily serve a performance profile
+        self.profiler_tempdir = None
 
     def environment(self, **kwargs):
         kwargs['log'] = self.log
@@ -1059,6 +1088,11 @@ class MochitestDesktop(object):
                 self.urlOpts.append("jscovDirPrefix=%s" % options.jscov_dir_prefix)
             if options.cleanupCrashes:
                 self.urlOpts.append("cleanupCrashes=true")
+            if "MOZ_XORIGIN_MOCHITEST" in env and \
+                    env["MOZ_XORIGIN_MOCHITEST"] == "1":
+                options.xOriginTests = True
+            if options.xOriginTests:
+                self.urlOpts.append("xOriginTests=true")
 
     def normflavor(self, flavor):
         """
@@ -1102,6 +1136,8 @@ class MochitestDesktop(object):
     def buildTestURL(self, options, scheme='http'):
         if scheme == 'https':
             testHost = "https://example.com:443"
+        elif options.xOriginTests:
+            testHost = "http://mochi.xorigin-test:8888"
         else:
             testHost = "http://mochi.test:8888"
         testURL = "/".join([testHost, self.TEST_PATH])
@@ -1472,8 +1508,11 @@ toolbar#nav-bar {
                         self.log.error("runtime file %s not found!" % runtime_file)
                         sys.exit(1)
 
+                    # Given the mochitest flavor, load the runtimes information
+                    # for only that flavor due to manifest runtime format change in Bug 1637463.
                     with open(runtime_file, 'r') as f:
-                        runtimes = json.loads(f.read())
+                        runtimes = json.load(f).get(options.suite_name, {})
+
                     filters.append(
                         chunk_by_runtime(options.thisChunk,
                                          options.totalChunks,
@@ -1524,8 +1563,6 @@ toolbar#nav-bar {
                 testob['disabled'] = test['disabled']
             if 'expected' in test:
                 testob['expected'] = test['expected']
-            if 'uses-unsafe-cpows' in test:
-                testob['uses-unsafe-cpows'] = test['uses-unsafe-cpows'] == 'true'
             if 'scheme' in test:
                 testob['scheme'] = test['scheme']
             if options.failure_pattern_file:
@@ -1540,26 +1577,21 @@ toolbar#nav-bar {
         # we can't tell what comes from DEFAULT or not. So to validate this, we
         # stash all prefs from tests in the same manifest into a set. If the
         # length of the set > 1, then we know 'prefs' didn't come from DEFAULT.
-        pref_not_default = [m for m, p in self.prefs_by_manifest.iteritems() if len(p) > 1]
+        pref_not_default = [m for m, p in six.iteritems(self.prefs_by_manifest) if len(p) > 1]
         if pref_not_default:
             self.log.error("The 'prefs' key must be set in the DEFAULT section of a "
                            "manifest. Fix the following manifests: {}".format(
                             '\n'.join(pref_not_default)))
             sys.exit(1)
         # The 'environment' key needs to be set in the DEFAULT section too.
-        env_not_default = [m for m, p in self.env_vars_by_manifest.iteritems() if len(p) > 1]
+        env_not_default = [m for m, p in six.iteritems(self.env_vars_by_manifest) if len(p) > 1]
         if env_not_default:
             self.log.error("The 'environment' key must be set in the DEFAULT section of a "
                            "manifest. Fix the following manifests: {}".format(
                             '\n'.join(env_not_default)))
             sys.exit(1)
 
-        def path_sort(ob1, ob2):
-            path1 = ob1['path'].split('/')
-            path2 = ob2['path'].split('/')
-            return cmp(path1, path2)
-
-        paths.sort(path_sort)
+        paths.sort(key=lambda p: p['path'].split('/'))
         if options.dump_tests:
             options.dump_tests = os.path.expanduser(options.dump_tests)
             assert os.path.exists(os.path.dirname(options.dump_tests))
@@ -1617,7 +1649,7 @@ toolbar#nav-bar {
 
         # strip certain unnecessary items to avoid serialization errors in json.dumps()
         d = dict((k, v) for k, v in options.__dict__.items() if (v is None) or
-                 isinstance(v, (basestring, numbers.Number)))
+                 isinstance(v, (six.string_types, numbers.Number)))
         d['testRoot'] = self.testRoot
         if options.jscov_dir_prefix:
             d['jscovDirPrefix'] = options.jscov_dir_prefix
@@ -1684,7 +1716,36 @@ toolbar#nav-bar {
             self.log.error(str(e))
             return None
 
-        browserEnv["XPCOM_MEM_BLOAT_LOG"] = self.leak_report_file
+        if ("MOZ_PROFILER_STARTUP_FEATURES" not in browserEnv or
+            "nativeallocations" not in browserEnv["MOZ_PROFILER_STARTUP_FEATURES"].split(",")):
+            # Only turn on the bloat log if the profiler's native allocation feature is
+            # not enabled. The two are not compatible.
+            browserEnv["XPCOM_MEM_BLOAT_LOG"] = self.leak_report_file
+
+        # If profiling options are enabled, turn on the gecko profiler by using the
+        # profiler environmental variables.
+        if options.profiler:
+            # The user wants to capture a profile, and automatically view it. The
+            # profile will be saved to a temporary folder, then deleted after
+            # opening in profiler.firefox.com.
+            self.profiler_tempdir = tempfile.mkdtemp()
+            browserEnv["MOZ_PROFILER_SHUTDOWN"] = os.path.join(
+                self.profiler_tempdir, "mochitest-profile.json")
+            browserEnv["MOZ_PROFILER_STARTUP"] = "1"
+
+        if options.profilerSaveOnly:
+            # The user wants to capture a profile, but only to save it. This defaults
+            # to the MOZ_UPLOAD_DIR.
+            browserEnv["MOZ_PROFILER_STARTUP"] = "1"
+            if "MOZ_UPLOAD_DIR" in browserEnv:
+                browserEnv["MOZ_PROFILER_SHUTDOWN"] = os.path.join(
+                    browserEnv["MOZ_UPLOAD_DIR"], "mochitest-profile.json")
+            else:
+                self.log.error("--profiler-save-only was specified, but no MOZ_UPLOAD_DIR "
+                               "environment variable was provided. Please set this "
+                               "environment variable to a directory path in order to save "
+                               "a performance profile.")
+                return None
 
         try:
             gmp_path = self.getGMPPluginPath(options)
@@ -1702,11 +1763,6 @@ toolbar#nav-bar {
         self.mozLogs = MOZ_LOG and "MOZ_UPLOAD_DIR" in os.environ
         if self.mozLogs:
             browserEnv["MOZ_LOG"] = MOZ_LOG
-
-        # For e10s, our tests default to suppressing the "unsafe CPOW usage"
-        # warnings that can plague test logs.
-        if not options.enableCPOWWarnings:
-            browserEnv["DISABLE_UNSAFE_CPOW_WARNINGS"] = "1"
 
         if options.enable_webrender:
             browserEnv["MOZ_WEBRENDER"] = "1"
@@ -1740,7 +1796,8 @@ toolbar#nav-bar {
                     self.log.info(line)
 
             process = mozprocess.ProcessHandler(['ps', '-f'],
-                                                processOutputLine=_psInfo)
+                                                processOutputLine=_psInfo,
+                                                universal_newlines=True)
             process.run()
             process.wait()
 
@@ -1757,7 +1814,8 @@ toolbar#nav-bar {
                             self.log.info("NOT killing %s (pid %d) (not an orphan?)" %
                                           (pname, pid))
             process = mozprocess.ProcessHandler(['ps', '-o', 'pid,ppid,comm'],
-                                                processOutputLine=_psKill)
+                                                processOutputLine=_psKill,
+                                                universal_newlines=True)
             process.run()
             process.wait()
 
@@ -1854,13 +1912,20 @@ toolbar#nav-bar {
 
     def merge_base_profiles(self, options, category):
         """Merge extra profile data from testing/profiles."""
-        profile_data_dir = os.path.join(SCRIPT_DIR, 'profile_data')
 
+        # In test packages used in CI, the profile_data directory is installed
+        # in the SCRIPT_DIR.
+        profile_data_dir = os.path.join(SCRIPT_DIR, 'profile_data')
         # If possible, read profile data from topsrcdir. This prevents us from
         # requiring a re-build to pick up newly added extensions in the
         # <profile>/extensions directory.
         if build_obj:
             path = os.path.join(build_obj.topsrcdir, 'testing', 'profiles')
+            if os.path.isdir(path):
+                profile_data_dir = path
+        # Still not found? Look for testing/profiles relative to testing/mochitest.
+        if not os.path.isdir(profile_data_dir):
+            path = os.path.abspath(os.path.join(SCRIPT_DIR, '..', 'profiles'))
             if os.path.isdir(path):
                 profile_data_dir = path
 
@@ -1887,8 +1952,7 @@ toolbar#nav-bar {
         if (platform.system() == "Linux" or
             platform.system() in ("Windows", "Microsoft")):
             # Trailing slashes are needed to indicate directories on Linux and Windows
-            sandbox_whitelist_paths = map(lambda p: os.path.join(p, ""),
-                                          sandbox_whitelist_paths)
+            sandbox_whitelist_paths = [os.path.join(p, "") for p in sandbox_whitelist_paths]
 
         # Create the profile
         self.profile = Profile(profile=options.profilePath,
@@ -2165,7 +2229,7 @@ toolbar#nav-bar {
         if valgrindPath:
             interactive = False
             valgrindArgs_split = ([] if valgrindArgs is None
-                                  else valgrindArgs.split(","))
+                                  else shlex.split(valgrindArgs))
 
             valgrindSuppFiles_final = []
             if valgrindSuppFiles is not None:
@@ -2191,6 +2255,8 @@ toolbar#nav-bar {
 
         # Used to defer a possible IOError exception from Marionette
         marionette_exception = None
+
+        temp_file_paths = []
 
         # make sure we clean up after ourselves.
         try:
@@ -2296,7 +2362,9 @@ toolbar#nav-bar {
                                 "TEST-UNEXPECTED-FAIL | invalid setup: missing extension at %s" %
                                 addon_path)
                             return 1, self.lastTestSeen
-                        addons.install(create_zip(addon_path))
+                        temp_addon_path = create_zip(addon_path)
+                        temp_file_paths.append(temp_addon_path)
+                        addons.install(temp_addon_path)
 
                 self.execute_start_script()
 
@@ -2364,10 +2432,12 @@ toolbar#nav-bar {
             # cleanup
             if os.path.exists(processLog):
                 os.remove(processLog)
+            for p in temp_file_paths:
+                os.remove(p)
 
         if marionette_exception is not None:
             exc, value, tb = marionette_exception
-            raise exc(value).with_traceback(tb)
+            six.reraise(exc, value, tb)
 
         return status, self.lastTestSeen
 
@@ -2471,7 +2541,7 @@ toolbar#nav-bar {
             stepOptions = copy.deepcopy(options)
             stepOptions.repeat = 0
             stepOptions.keep_open = False
-            for i in xrange(VERIFY_REPEAT_SINGLE_BROWSER):
+            for i in range(VERIFY_REPEAT_SINGLE_BROWSER):
                 stepOptions.profilePath = None
                 result = self.runTests(stepOptions)
                 result = result or (-2 if self.countfail > 0 else 0)
@@ -2484,7 +2554,7 @@ toolbar#nav-bar {
             stepOptions = copy.deepcopy(options)
             stepOptions.repeat = VERIFY_REPEAT
             stepOptions.keep_open = False
-            stepOptions.environment.append("MOZ_CHAOSMODE=3")
+            stepOptions.environment.append("MOZ_CHAOSMODE=0xfb")
             stepOptions.profilePath = None
             result = self.runTests(stepOptions)
             result = result or (-2 if self.countfail > 0 else 0)
@@ -2495,8 +2565,8 @@ toolbar#nav-bar {
             stepOptions = copy.deepcopy(options)
             stepOptions.repeat = 0
             stepOptions.keep_open = False
-            stepOptions.environment.append("MOZ_CHAOSMODE=3")
-            for i in xrange(VERIFY_REPEAT_SINGLE_BROWSER):
+            stepOptions.environment.append("MOZ_CHAOSMODE=0xfb")
+            for i in range(VERIFY_REPEAT_SINGLE_BROWSER):
                 stepOptions.profilePath = None
                 result = self.runTests(stepOptions)
                 result = result or (-2 if self.countfail > 0 else 0)
@@ -2505,19 +2575,42 @@ toolbar#nav-bar {
                     break
             return result
 
-        steps = [
-            ("1. Run each test %d times in one browser." % VERIFY_REPEAT,
-             step1),
-            ("2. Run each test %d times in a new browser each time." %
-             VERIFY_REPEAT_SINGLE_BROWSER,
-             step2),
-            ("3. Run each test %d times in one browser, in chaos mode." %
-             VERIFY_REPEAT,
-             step3),
-            ("4. Run each test %d times in a new browser each time, "
-             "in chaos mode." % VERIFY_REPEAT_SINGLE_BROWSER,
-             step4),
-        ]
+        def fission_step(fission_pref):
+            stepOptions = copy.deepcopy(options)
+            stepOptions.extraPrefs.append(fission_pref)
+            stepOptions.keep_open = False
+            stepOptions.runUntilFailure = True
+            stepOptions.profilePath = None
+            result = self.runTests(stepOptions)
+            result = result or (-2 if self.countfail > 0 else 0)
+            self.message_logger.finish()
+            return result
+
+        def fission_step1():
+            return fission_step("fission.autostart=false")
+
+        def fission_step2():
+            return fission_step("fission.autostart=true")
+
+        if options.verify_fission:
+            steps = [
+                ("1. Run each test without fission.", fission_step1),
+                ("2. Run each test with fission.", fission_step2),
+            ]
+        else:
+            steps = [
+                ("1. Run each test %d times in one browser." % VERIFY_REPEAT,
+                 step1),
+                ("2. Run each test %d times in a new browser each time." %
+                 VERIFY_REPEAT_SINGLE_BROWSER,
+                 step2),
+                ("3. Run each test %d times in one browser, in chaos mode." %
+                 VERIFY_REPEAT,
+                 step3),
+                ("4. Run each test %d times in a new browser each time, "
+                 "in chaos mode." % VERIFY_REPEAT_SINGLE_BROWSER,
+                 step4),
+            ]
 
         stepResults = {}
         for (descr, step) in steps:
@@ -2580,8 +2673,12 @@ toolbar#nav-bar {
 
             "socketprocess_e10s": self.extraPrefs.get(
                 'network.process.enabled', False),
+            "socketprocess_networking": self.extraPrefs.get(
+                'network.http.network_access_on_socket_process.enabled', False),
             "verify": options.verify,
+            "verify_fission": options.verify_fission,
             "webrender": options.enable_webrender,
+            "xorigin": options.xOriginTests,
         })
 
         self.setTestRoot(options)
@@ -2670,6 +2767,31 @@ toolbar#nav-bar {
             print("3 INFO Todo:    %s" % self.counttodo)
             print("4 INFO Mode:    %s" % e10s_mode)
             print("5 INFO SimpleTest FINISHED")
+
+        # If shutdown profiling was enabled, then the user will want to access the
+        # performance profile. The following code with display helpful log messages
+        # and automatically open the profile if it is requested.
+        if self.browserEnv and "MOZ_PROFILER_SHUTDOWN" in self.browserEnv:
+            profile_path = self.browserEnv["MOZ_PROFILER_SHUTDOWN"]
+
+            profiler_logger = get_proxy_logger("profiler")
+            profiler_logger.info("Shutdown performance profiling was enabled")
+            profiler_logger.info("Profile saved locally to: %s" % profile_path)
+
+            if options.profilerSaveOnly or options.profiler:
+                # Only do the extra work of symbolicating and viewing the profile if
+                # officially requested through a command line flag. The MOZ_PROFILER_*
+                # flags can be set by a user.
+                symbolicate_profile_json(profile_path, options.topobjdir)
+                view_gecko_profile_from_mochitest(profile_path, options, profiler_logger)
+            else:
+                profiler_logger.info("The profiler was enabled outside of the mochitests. "
+                                     "Use --profiler instead of MOZ_PROFILER_SHUTDOWN to "
+                                     "symbolicate and open the profile automatically.")
+
+            # Clean up the temporary file if it exists.
+            if self.profiler_tempdir:
+                shutil.rmtree(self.profiler_tempdir)
 
         if not result:
             if self.countfail or \
@@ -2760,7 +2882,12 @@ toolbar#nav-bar {
                 options.browserArgs.extend(['--jsconsole'])
 
             if options.jsdebugger:
-                options.browserArgs.extend(['-jsdebugger', '-wait-for-jsdebugger'])
+                options.browserArgs.extend(['-wait-for-jsdebugger', '-jsdebugger'])
+
+            # -jsdebugger takes a binary path as an optional argument.
+            # Append jsdebuggerPath right after `-jsdebugger`.
+            if options.jsdebuggerPath:
+                options.browserArgs.extend([options.jsdebuggerPath])
 
             # Remove the leak detection file so it can't "leak" to the tests run.
             # The file is not there if leak logging was not enabled in the
@@ -2823,6 +2950,8 @@ toolbar#nav-bar {
                 self.log.info("runtests.py | Running with e10s: {}".format(options.e10s))
                 self.log.info("runtests.py | Running with fission: {}".format(
                     mozinfo.info.get('fission', False)))
+                self.log.info("runtests.py | Running with cross-origin iframes: {}".format(
+                    mozinfo.info.get('xorigin', False)))
                 self.log.info("runtests.py | Running with serviceworker_e10s: {}".format(
                     mozinfo.info.get('serviceworker_e10s', False)))
                 self.log.info("runtests.py | Running with socketprocess_e10s: {}".format(
@@ -3056,10 +3185,12 @@ toolbar#nav-bar {
             return message
 
         def countline(self, message):
-            if message['action'] != 'log':
+            if message['action'] == 'log':
+                line = message.get('message', '')
+            elif message['action'] == 'process_output':
+                line = message.get('data', '')
+            else:
                 return message
-
-            line = message['message']
             val = 0
             try:
                 val = int(line.split(':')[-1].strip())
@@ -3109,7 +3240,8 @@ toolbar#nav-bar {
 
         def trackLSANLeaks(self, message):
             if self.lsanLeaks and message['action'] in ('log', 'process_output'):
-                line = message['message'] if message['action'] == 'log' else message['data']
+                line = message.get(
+                    'message', '') if message['action'] == 'log' else message['data']
                 self.lsanLeaks.log(line)
             return message
 
@@ -3119,11 +3251,38 @@ toolbar#nav-bar {
             return message
 
 
+def view_gecko_profile_from_mochitest(profile_path, options, profiler_logger):
+    """Getting shutdown performance profiles from just the command line arguments is
+    difficult. This function makes the developer ergonomics a bit easier by taking the
+    generated Gecko profile, and automatically serving it to profiler.firefox.com. The
+    Gecko profile during shutdown is dumped to disk at:
+
+    {objdir}/_tests/testing/mochitest/{profilename}
+
+    This function takes that file, and launches a local webserver, and then points
+    a browser to profiler.firefox.com to view it. From there it's easy to publish
+    or save the profile.
+    """
+
+    if options.profilerSaveOnly:
+        # The user did not want this to automatically open, only share the location.
+        return
+
+    if not os.path.exists(profile_path):
+        profiler_logger.error("No profile was found at the profile path, cannot "
+                              "launch profiler.firefox.com.")
+        return
+
+    profiler_logger.info('Loading this profile in the Firefox Profiler')
+
+    view_gecko_profile(profile_path)
+
+
 def run_test_harness(parser, options):
     parser.validate(options)
 
     logger_options = {
-        key: value for key, value in vars(options).iteritems()
+        key: value for key, value in six.iteritems(vars(options))
         if key.startswith('log') or key == 'valgrind'}
 
     runner = MochitestDesktop(options.flavor, logger_options, options.stagedAddons,
@@ -3136,7 +3295,7 @@ def run_test_harness(parser, options):
     if options.flavor in ('plain', 'browser', 'chrome'):
         options.runByManifest = True
 
-    if options.verify:
+    if options.verify or options.verify_fission:
         result = runner.verifyTests(options)
     else:
         result = runner.runTests(options)

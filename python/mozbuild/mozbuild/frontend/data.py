@@ -190,7 +190,7 @@ class ComputedFlags(ContextDerived):
             if value:
                 for dest_var in dest_vars:
                     flags[dest_var].extend(value)
-        return flags.items()
+        return sorted(flags.items())
 
 
 class XPIDLModule(ContextDerived):
@@ -584,6 +584,13 @@ class BaseRustProgram(ContextDerived):
         ContextDerived.__init__(self, context)
         self.name = name
         self.cargo_file = cargo_file
+        # Skip setting properties below which depend on cargo
+        # when we don't have a compile environment. The required
+        # config keys won't be available, but the instance variables
+        # that we don't set should never be accessed by the actual
+        # build in that case.
+        if not context.config.substs.get('COMPILE_ENVIRONMENT'):
+            return
         cargo_dir = cargo_output_directory(context, self.TARGET_SUBST_VAR)
         exe_file = '%s%s' % (name, context.config.substs.get(self.SUFFIX_VAR, ''))
         self.location = mozpath.join(cargo_dir, exe_file)
@@ -828,6 +835,9 @@ class SharedLibrary(Library):
             os_target = context.config.substs['OS_TARGET']
             if os_target == 'Darwin':
                 self.symbols_link_arg = '-Wl,-exported_symbols_list,' + self.symbols_file
+            elif os_target == 'SunOS':
+                self.symbols_link_arg = '-z gnu-version-script-compat -Wl,--version-script,' \
+                  + self.symbols_file
             elif os_target == 'WINNT':
                 if context.config.substs.get('GNU_CC'):
                     self.symbols_link_arg = self.symbols_file
@@ -1243,7 +1253,7 @@ class GeneratedFile(ContextDerived):
 
     def __init__(self, context, script, method, outputs, inputs,
                  flags=(), localized=False, force=False,
-                 py2=False):
+                 py2=False, required_during_compile=None):
         ContextDerived.__init__(self, context)
         self.script = script
         self.method = method
@@ -1256,7 +1266,6 @@ class GeneratedFile(ContextDerived):
 
         suffixes = [
             '.h',
-            '.inc',
             '.py',
             '.rs',
             # We need to compile Java to generate JNI wrappers for native code
@@ -1276,10 +1285,16 @@ class GeneratedFile(ContextDerived):
         suffixes = tuple(suffixes)
 
         self.required_before_compile = [
-            f for f in self.outputs if f.endswith(suffixes) or 'stl_wrappers/' in f]
+            f for f in self.outputs if f.endswith(suffixes)
+            or 'stl_wrappers/' in f or 'xpidl.stub' in f
+        ]
 
-        self.required_during_compile = [
-            f for f in self.outputs if f.endswith(('.asm', '.c', '.cpp'))]
+        if required_during_compile is None:
+            self.required_during_compile = [
+                f for f in self.outputs if f.endswith(
+                    ('.asm', '.c', '.cpp', '.inc', '.m', '.mm', '.def', 'symverscript'))]
+        else:
+            self.required_during_compile = required_during_compile
 
 
 class ChromeManifestEntry(ContextDerived):

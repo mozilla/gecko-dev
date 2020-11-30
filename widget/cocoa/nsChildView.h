@@ -154,10 +154,6 @@ class WidgetRenderingContext;
   // beginGestureWithEvent and endGestureWithEvent sequence. We
   // discard the spurious gesture event so as not to confuse Gecko.
   //
-  // mCumulativeMagnification keeps track of the total amount of
-  // magnification peformed during a magnify gesture so that we can
-  // send that value with the final MozMagnifyGesture event.
-  //
   // mCumulativeRotation keeps track of the total amount of rotation
   // performed during a rotate gesture so we can send that value with
   // the final MozRotateGesture event.
@@ -167,7 +163,6 @@ class WidgetRenderingContext;
     eGestureState_MagnifyGesture,
     eGestureState_RotateGesture
   } mGestureState;
-  float mCumulativeMagnification;
   float mCumulativeRotation;
 
 #ifdef __LP64__
@@ -186,6 +181,10 @@ class WidgetRenderingContext;
   // The layer-backed view that hosts our drawing. Always non-null.
   // This is a subview of self so that it can be ordered on top of mVibrancyViewsContainer.
   PixelHostingView* mPixelHostingView;
+
+  // The CALayer that wraps Gecko's rendered contents. It's a sublayer of
+  // mPixelHostingView's backing layer. Always non-null.
+  CALayer* mRootCALayer;  // [STRONG]
 
   // Last pressure stage by trackpad's force click
   NSInteger mLastPressureStage;
@@ -288,9 +287,9 @@ class nsChildView final : public nsBaseWidget {
   nsChildView();
 
   // nsIWidget interface
-  virtual MOZ_MUST_USE nsresult Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
-                                       const LayoutDeviceIntRect& aRect,
-                                       nsWidgetInitData* aInitData = nullptr) override;
+  [[nodiscard]] virtual nsresult Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
+                                        const LayoutDeviceIntRect& aRect,
+                                        nsWidgetInitData* aInitData = nullptr) override;
 
   virtual void Destroy() override;
 
@@ -360,7 +359,7 @@ class nsChildView final : public nsBaseWidget {
 
   virtual nsresult SetTitle(const nsAString& title) override;
 
-  virtual MOZ_MUST_USE nsresult GetAttention(int32_t aCycleCount) override;
+  [[nodiscard]] virtual nsresult GetAttention(int32_t aCycleCount) override;
 
   virtual bool HasPendingInputEvent() override;
 
@@ -368,13 +367,14 @@ class nsChildView final : public nsBaseWidget {
   virtual void PostHandleKeyEvent(mozilla::WidgetKeyboardEvent* aEvent) override;
   virtual nsresult ActivateNativeMenuItemAt(const nsAString& indexString) override;
   virtual nsresult ForceUpdateNativeMenuAt(const nsAString& indexString) override;
-  virtual MOZ_MUST_USE nsresult GetSelectionAsPlaintext(nsAString& aResult) override;
+  [[nodiscard]] virtual nsresult GetSelectionAsPlaintext(nsAString& aResult) override;
 
   virtual void SetInputContext(const InputContext& aContext,
                                const InputContextAction& aAction) override;
   virtual InputContext GetInputContext() override;
   virtual TextEventDispatcherListener* GetNativeTextEventDispatcherListener() override;
-  virtual MOZ_MUST_USE nsresult AttachNativeKeyEvent(mozilla::WidgetKeyboardEvent& aEvent) override;
+  [[nodiscard]] virtual nsresult AttachNativeKeyEvent(
+      mozilla::WidgetKeyboardEvent& aEvent) override;
   virtual bool GetEditCommands(NativeKeyBindingsType aType,
                                const mozilla::WidgetKeyboardEvent& aEvent,
                                nsTArray<mozilla::CommandInt>& aCommands) override;
@@ -383,8 +383,6 @@ class nsChildView final : public nsBaseWidget {
                                nsTArray<mozilla::CommandInt>& aCommands, uint32_t aGeckoKeyCode,
                                uint32_t aCocoaKeyCode);
 
-  virtual nsTransparencyMode GetTransparencyMode() override;
-  virtual void SetTransparencyMode(nsTransparencyMode aMode) override;
   virtual void SuppressAnimation(bool aSuppress) override;
 
   virtual nsresult SynthesizeNativeKeyEvent(int32_t aNativeKeyboardLayout, int32_t aNativeKeyCode,
@@ -428,6 +426,8 @@ class nsChildView final : public nsBaseWidget {
 #endif
 
   virtual void CreateCompositor() override;
+
+  virtual bool WidgetPaintsBackground() override { return true; }
 
   virtual bool PreRender(mozilla::widget::WidgetRenderingContext* aContext) override;
   virtual void PostRender(mozilla::widget::WidgetRenderingContext* aContext) override;
@@ -479,9 +479,9 @@ class nsChildView final : public nsBaseWidget {
     return nsCocoaUtils::DevPixelsToCocoaPoints(aRect, BackingScaleFactor());
   }
 
-  virtual MOZ_MUST_USE nsresult StartPluginIME(const mozilla::WidgetKeyboardEvent& aKeyboardEvent,
-                                               int32_t aPanelX, int32_t aPanelY,
-                                               nsString& aCommitted) override;
+  [[nodiscard]] virtual nsresult StartPluginIME(const mozilla::WidgetKeyboardEvent& aKeyboardEvent,
+                                                int32_t aPanelX, int32_t aPanelY,
+                                                nsString& aCommitted) override;
 
   virtual void SetPluginFocused(bool& aFocused) override;
 
@@ -489,15 +489,10 @@ class nsChildView final : public nsBaseWidget {
 
   virtual LayoutDeviceIntPoint GetClientOffset() override;
 
-  virtual LayoutDeviceIntRegion GetOpaqueWidgetRegion() override;
-
   void DispatchAPZWheelInputEvent(mozilla::InputData& aEvent, bool aCanTriggerSwipe);
   nsEventStatus DispatchAPZInputEvent(mozilla::InputData& aEvent);
 
   void SwipeFinished();
-
-  nsresult SetPrefersReducedMotionOverrideForTest(bool aValue) override;
-  nsresult ResetPrefersReducedMotionOverrideForTest() override;
 
   // Called when the main thread enters a phase during which visual changes
   // are imminent and any layer updates on the compositor thread would interfere
@@ -534,8 +529,6 @@ class nsChildView final : public nsBaseWidget {
   void UpdateVibrancy(const nsTArray<ThemeGeometry>& aThemeGeometries);
   mozilla::VibrancyManager& EnsureVibrancyManager();
 
-  void UpdateInternalOpaqueRegion();
-
   nsIWidget* GetWidgetForListenerEvents();
 
   struct SwipeInfo {
@@ -561,9 +554,10 @@ class nsChildView final : public nsBaseWidget {
   nsWeakPtr mAccessible;
 #endif
 
-  // Protects the view from being teared down while a composition is in
-  // progress on the compositor thread.
-  mozilla::Mutex mViewTearDownLock;
+  // Held while the compositor (or WR renderer) thread is compositing.
+  // Protects from tearing down the view during compositing and from presenting
+  // half-composited layers to the screen.
+  mozilla::Mutex mCompositingLock;
 
   mozilla::ViewRegion mNonDraggableRegion;
 
@@ -596,9 +590,6 @@ class nsChildView final : public nsBaseWidget {
   mozilla::UniquePtr<mozilla::SwipeEventQueue> mSwipeEventQueue;
 
   RefPtr<mozilla::CancelableRunnable> mUnsuspendAsyncCATransactionsRunnable;
-
-  // The widget's opaque region. Written on the main thread, read on any thread.
-  mozilla::DataMutex<mozilla::LayoutDeviceIntRegion> mOpaqueRegion;
 
   // This flag is only used when APZ is off. It indicates that the current pan
   // gesture was processed as a swipe. Sometimes the swipe animation can finish

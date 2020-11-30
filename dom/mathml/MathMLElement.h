@@ -8,10 +8,8 @@
 #define mozilla_dom_MathMLElement_h_
 
 #include "mozilla/Attributes.h"
-#include "mozilla/dom/Element.h"
 #include "nsMappedAttributeElement.h"
 #include "Link.h"
-#include "mozilla/dom/DOMRect.h"
 
 class nsCSSValue;
 
@@ -92,7 +90,7 @@ class MathMLElement final : public MathMLElementBase,
   bool IsEventAttributeNameInternal(nsAtom* aName) final;
 
  protected:
-  virtual ~MathMLElement() {}
+  virtual ~MathMLElement() = default;
 
   virtual JSObject* WrapNode(JSContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;

@@ -43,8 +43,6 @@ browser/components/translation/cld2/
 # Screenshots is imported as a system add-on and has
 # their own lint rules currently.
 browser/extensions/screenshots/
-browser/extensions/pdfjs/content/build
-browser/extensions/pdfjs/content/web
 # generated or library files in pocket
 browser/components/pocket/content/panels/js/tmpl.js
 
@@ -67,9 +65,6 @@ devtools/client/debugger/flow-typed/
 devtools/client/debugger/images/
 devtools/client/debugger/test/
 devtools/client/debugger/index.html
-
-# Ignore devtools imported repositories
-devtools/client/shared/components/reps/
 
 # Ignore devtools preferences files
 devtools/client/preferences/
@@ -120,7 +115,7 @@ dom/base/test/jsmodules/module_badSyntax.js
 dom/base/test/jsmodules/test_syntaxErrorInline.html
 dom/base/test/jsmodules/test_syntaxErrorInlineAsync.html
 dom/base/test/test_bug687859.html
-dom/media/tests/mochitest/identity/idp-bad.js
+dom/media/webrtc/tests/mochitests/identity/idp-bad.js
 dom/serviceworkers/test/file_js_cache_syntax_error.js
 dom/serviceworkers/test/parse_error_worker.js
 dom/tests/mochitest/bugs/test_bug531176.html
@@ -135,7 +130,6 @@ intl/l10n/
 # Exclude everything but self-hosted JS
 js/ductwork/
 js/examples/
-js/ipc/
 js/public/
 js/xpconnect/
 js/src/devtools/
@@ -143,6 +137,9 @@ js/src/jit-test/
 js/src/jsapi-tests/binast/
 js/src/tests/
 js/src/Y.js
+
+# Fuzzing code for testing only, targeting the JS shell
+js/src/fuzz-tests/
 
 # Uses `#filter substitution`
 mobile/android/app/mobile.js
@@ -177,6 +174,7 @@ services/fxaccounts/FxAccountsPairingChannel.js
 servo/
 
 # Test files that we don't want to lint (preprocessed, minified etc)
+testing/condprofile/condprof/tests/profile
 testing/marionette/atom.js
 testing/mozbase/mozprofile/tests/files/prefs_with_comments.js
 testing/talos/talos/scripts/jszip.min.js
@@ -197,6 +195,10 @@ toolkit/components/extensions/profiler_get_symbols.js
 
 # Intentionally invalid JS
 toolkit/components/workerloader/tests/moduleF-syntax-error.js
+
+# Built files
+toolkit/components/pdfjs/content/build
+toolkit/components/pdfjs/content/web
 
 # External code:
 toolkit/components/reader/Readability.js

@@ -80,7 +80,7 @@ validate_stream_params(cubeb_stream_params * input_stream_params,
   }
   if (input_stream_params) {
     if (input_stream_params->rate < 1000 || input_stream_params->rate > 192000 ||
-        input_stream_params->channels < 1 || input_stream_params->channels > 8) {
+        input_stream_params->channels < 1 || input_stream_params->channels > UINT8_MAX) {
       return CUBEB_ERROR_INVALID_FORMAT;
     }
   }
@@ -200,11 +200,11 @@ cubeb_init(cubeb ** context, char const * context_name, char const * backend_nam
 #if defined(USE_ALSA)
     alsa_init,
 #endif
-#if defined(USE_AUDIOUNIT)
-    audiounit_init,
-#endif
 #if defined(USE_AUDIOUNIT_RUST)
     audiounit_rust_init,
+#endif
+#if defined(USE_AUDIOUNIT)
+    audiounit_init,
 #endif
 #if defined(USE_WASAPI)
     wasapi_init,
@@ -418,6 +418,20 @@ cubeb_stream_get_latency(cubeb_stream * stream, uint32_t * latency)
   }
 
   return stream->context->ops->stream_get_latency(stream, latency);
+}
+
+int
+cubeb_stream_get_input_latency(cubeb_stream * stream, uint32_t * latency)
+{
+  if (!stream || !latency) {
+    return CUBEB_ERROR_INVALID_PARAMETER;
+  }
+
+  if (!stream->context->ops->stream_get_input_latency) {
+    return CUBEB_ERROR_NOT_SUPPORTED;
+  }
+
+  return stream->context->ops->stream_get_input_latency(stream, latency);
 }
 
 int

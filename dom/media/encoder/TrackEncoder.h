@@ -144,12 +144,6 @@ class TrackEncoder {
   bool mEncodingComplete;
 
   /**
-   * True if flag of EOS or any form of indicating EOS has set in the codec-
-   * encoder.
-   */
-  bool mEosSetInEncoder;
-
-  /**
    * True if the track encoder has been initialized successfully.
    */
   bool mInitialized;
@@ -175,7 +169,7 @@ class TrackEncoder {
   /**
    * The track rate of source media.
    */
-  TrackRate mTrackRate;
+  const TrackRate mTrackRate;
 
   /**
    * If set we assert that all methods are called on this thread.
@@ -190,7 +184,6 @@ class AudioTrackEncoder : public TrackEncoder {
   explicit AudioTrackEncoder(TrackRate aTrackRate)
       : TrackEncoder(aTrackRate),
         mChannels(0),
-        mSamplingRate(0),
         mNotInitDuration(0),
         mAudioBitrate(0) {}
 
@@ -291,13 +284,13 @@ class AudioTrackEncoder : public TrackEncoder {
    * frame size required by audio encoder, and listeners will be notified when
    * at least this much data has been added to mOutgoingBuffer.
    */
-  virtual int GetPacketDuration() { return 0; }
+  virtual int NumInputFramesPerPacket() const { return 0; }
 
   /**
    * Initializes the audio encoder. The call of this method is delayed until we
    * have received the first valid track from MediaTrackGraph.
    */
-  virtual nsresult Init(int aChannels, int aSamplingRate) = 0;
+  virtual nsresult Init(int aChannels) = 0;
 
   /**
    * The number of channels are used for processing PCM data in the audio
@@ -306,11 +299,6 @@ class AudioTrackEncoder : public TrackEncoder {
    * performed. This value also be used to initialize the audio encoder.
    */
   int mChannels;
-
-  /**
-   * The sampling rate of source audio data.
-   */
-  int mSamplingRate;
 
   /**
    * A segment queue of outgoing audio track data to the encoder.

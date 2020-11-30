@@ -32,7 +32,7 @@ WIN_LIBS=                                       \
 #include "nsReadableUtils.h"
 #include "nsIPrintSettings.h"
 #include "nsIPrintSettingsWin.h"
-#include "nsIPrinterEnumerator.h"
+#include "nsIPrinterList.h"
 
 #include "nsRect.h"
 
@@ -88,7 +88,10 @@ static nsReturnRef<nsHGLOBAL> CreateGlobalDevModeAndInit(
     return nsReturnRef<nsHGLOBAL>();
   }
 
-  // Allocate a buffer of the correct size.
+  // Some drivers do not return the correct size for their DEVMODE, so we
+  // over-allocate to try and compensate.
+  // (See https://bugzilla.mozilla.org/show_bug.cgi?id=1664530#c5)
+  needed *= 2;
   nsAutoDevMode newDevMode(
       (LPDEVMODEW)::HeapAlloc(::GetProcessHeap(), HEAP_ZERO_MEMORY, needed));
   if (!newDevMode) {
@@ -135,11 +138,12 @@ static nsReturnRef<nsHGLOBAL> CreateGlobalDevModeAndInit(
 
 //------------------------------------------------------------------
 // helper
-static void GetDefaultPrinterNameFromGlobalPrinters(nsAString& printerName) {
-  nsCOMPtr<nsIPrinterEnumerator> prtEnum =
-      do_GetService("@mozilla.org/gfx/printerenumerator;1");
-  if (prtEnum) {
-    prtEnum->GetDefaultPrinterName(printerName);
+static void GetDefaultPrinterNameFromGlobalPrinters(nsAString& aPrinterName) {
+  aPrinterName.Truncate();
+  nsCOMPtr<nsIPrinterList> printerList =
+      do_GetService("@mozilla.org/gfx/printerlist;1");
+  if (printerList) {
+    printerList->GetSystemDefaultPrinterName(aPrinterName);
   }
 }
 
@@ -211,10 +215,15 @@ static nsresult ShowNativePrintDialog(HWND aHWnd,
       PD_ALLPAGES | PD_RETURNIC | PD_USEDEVMODECOPIESANDCOLLATE | PD_COLLATE;
 
   // if there is a current selection then enable the "Selection" radio button
-  bool isOn;
-  aPrintSettings->GetPrintOptions(nsIPrintSettings::kEnableSelectionRB, &isOn);
-  if (!isOn) {
+  if (!aPrintSettings->GetIsPrintSelectionRBEnabled()) {
     prntdlg.Flags |= PD_NOSELECTION;
+  }
+
+  int16_t printRangeType = nsIPrintSettings::kRangeAllPages;
+  aPrintSettings->GetPrintRange(&printRangeType);
+  // if there is a specified page range then enable the "Custom" radio button
+  if (printRangeType == nsIPrintSettings::kRangeSpecifiedPageRange) {
+    prntdlg.Flags |= PD_PAGENUMS;
   }
 
   int32_t pg = 1;
@@ -277,7 +286,7 @@ static nsresult ShowNativePrintDialog(HWND aHWnd,
     } else {
       // clear "print to file" info
       aPrintSettings->SetPrintToFile(false);
-      aPrintSettings->SetToFileName(EmptyString());
+      aPrintSettings->SetToFileName(u""_ns);
     }
 
     nsCOMPtr<nsIPrintSettingsWin> psWin(do_QueryInterface(aPrintSettings));
@@ -289,22 +298,15 @@ static nsresult ShowNativePrintDialog(HWND aHWnd,
     psWin->SetDeviceName(nsDependentString(device));
     psWin->SetDriverName(nsDependentString(driver));
 
-#if defined(DEBUG_rods) || defined(DEBUG_dcone)
-    wprintf(L"printer: driver %s, device %s  flags: %d\n", driver, device,
-            prntdlg.Flags);
-#endif
     // fill the print options with the info from the dialog
 
     aPrintSettings->SetPrinterName(nsDependentString(device));
+    aPrintSettings->SetPrintSelectionOnly(prntdlg.Flags & PD_SELECTION);
 
-    if (prntdlg.Flags & PD_SELECTION) {
-      aPrintSettings->SetPrintRange(nsIPrintSettings::kRangeSelection);
-
-    } else if (prntdlg.Flags & PD_PAGENUMS) {
+    if (prntdlg.Flags & PD_PAGENUMS) {
       aPrintSettings->SetPrintRange(nsIPrintSettings::kRangeSpecifiedPageRange);
       aPrintSettings->SetStartPageRange(prntdlg.nFromPage);
       aPrintSettings->SetEndPageRange(prntdlg.nToPage);
-
     } else {  // (prntdlg.Flags & PD_ALLPAGES)
       aPrintSettings->SetPrintRange(nsIPrintSettings::kRangeAllPages);
     }
@@ -321,29 +323,6 @@ static nsresult ShowNativePrintDialog(HWND aHWnd,
     psWin->CopyFromNative(prntdlg.hDC, devMode);
     ::GlobalUnlock(prntdlg.hDevMode);
     ::DeleteDC(prntdlg.hDC);
-
-#if defined(DEBUG_rods) || defined(DEBUG_dcone)
-    bool printSelection = prntdlg.Flags & PD_SELECTION;
-    bool printAllPages = prntdlg.Flags & PD_ALLPAGES;
-    bool printNumPages = prntdlg.Flags & PD_PAGENUMS;
-    int32_t fromPageNum = 0;
-    int32_t toPageNum = 0;
-
-    if (printNumPages) {
-      fromPageNum = prntdlg.nFromPage;
-      toPageNum = prntdlg.nToPage;
-    }
-    if (printSelection) {
-      printf("Printing the selection\n");
-
-    } else if (printAllPages) {
-      printf("Printing all the pages\n");
-
-    } else {
-      printf("Printing from page no. %d to %d\n", fromPageNum, toPageNum);
-    }
-#endif
-
   } else {
     ::SetFocus(aHWnd);
     aPrintSettings->SetIsCancelled(true);

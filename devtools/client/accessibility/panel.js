@@ -10,7 +10,18 @@ const EventEmitter = require("devtools/shared/event-emitter");
 
 const Telemetry = require("devtools/client/shared/telemetry");
 
-const { Picker } = require("devtools/client/accessibility/picker");
+loader.lazyRequireGetter(
+  this,
+  "AccessibilityProxy",
+  "devtools/client/accessibility/accessibility-proxy",
+  true
+);
+loader.lazyRequireGetter(
+  this,
+  "Picker",
+  "devtools/client/accessibility/picker",
+  true
+);
 const {
   A11Y_SERVICE_DURATION,
 } = require("devtools/client/accessibility/constants");
@@ -27,6 +38,11 @@ const EVENTS = {
   // When the accessibility inspector is updated.
   ACCESSIBILITY_INSPECTOR_UPDATED:
     "Accessibility:AccessibilityInspectorUpdated",
+  // When accessibility panel UI is initialized (rendered).
+  INITIALIZED: "Accessibility:Initialized",
+  // When accessibile object properties are updated in the panel sidebar for a
+  // new accessible object.
+  PROPERTIES_UPDATED: "Accessibility:PropertiesUpdated",
 };
 
 /**
@@ -34,12 +50,12 @@ const EVENTS = {
  * render Accessibility Tree of the current debugger target and the sidebar that
  * displays current relevant accessible details.
  */
-function AccessibilityPanel(iframeWindow, toolbox, startup) {
+function AccessibilityPanel(iframeWindow, toolbox) {
   this.panelWin = iframeWindow;
   this._toolbox = toolbox;
-  this.startup = startup;
 
   this.onTabNavigated = this.onTabNavigated.bind(this);
+  this.onTargetUpdated = this.onTargetUpdated.bind(this);
   this.onPanelVisibilityChange = this.onPanelVisibilityChange.bind(this);
   this.onNewAccessibleFrontSelected = this.onNewAccessibleFrontSelected.bind(
     this
@@ -51,6 +67,7 @@ function AccessibilityPanel(iframeWindow, toolbox, startup) {
     this
   );
   this.forceUpdatePickerButton = this.forceUpdatePickerButton.bind(this);
+  this.onLifecycleEvent = this.onLifecycleEvent.bind(this);
 
   EventEmitter.decorate(this);
 }
@@ -73,7 +90,6 @@ AccessibilityPanel.prototype = {
     this._telemetry = new Telemetry();
     this.panelWin.gTelemetry = this._telemetry;
 
-    this.target.on("navigate", this.onTabNavigated);
     this._toolbox.on("select", this.onPanelVisibilityChange);
 
     this.panelWin.EVENTS = EVENTS;
@@ -89,18 +105,27 @@ AccessibilityPanel.prototype = {
 
     this.shouldRefresh = true;
 
-    await this.startup.initAccessibility();
-    await this.accessibilityProxy.ensureReady();
+    this.accessibilityProxy = new AccessibilityProxy(this._toolbox);
+    this.accessibilityProxy.startListeningForTargetUpdated(
+      this.onTargetUpdated
+    );
+    await this.accessibilityProxy.initialize();
+
+    // Enable accessibility service if necessary.
+    if (
+      this.accessibilityProxy.canBeEnabled &&
+      !this.accessibilityProxy.enabled
+    ) {
+      await this.accessibilityProxy.enableAccessibility();
+    }
+
     this.picker = new Picker(this);
     this.fluentBundles = await this.createFluentBundles();
 
     this.updateA11YServiceDurationTimer();
     this.accessibilityProxy.startListeningForLifecycleEvents({
-      init: [this.updateA11YServiceDurationTimer, this.forceUpdatePickerButton],
-      shutdown: [
-        this.updateA11YServiceDurationTimer,
-        this.forceUpdatePickerButton,
-      ],
+      init: this.onLifecycleEvent,
+      shutdown: this.onLifecycleEvent,
     });
 
     this.isReady = true;
@@ -129,6 +154,11 @@ AccessibilityPanel.prototype = {
     return contexts;
   },
 
+  onLifecycleEvent() {
+    this.updateA11YServiceDurationTimer();
+    this.forceUpdatePickerButton();
+  },
+
   onNewAccessibleFrontSelected(selected) {
     this.emit("new-accessible-front-selected", selected);
   },
@@ -145,6 +175,13 @@ AccessibilityPanel.prototype = {
   onTabNavigated() {
     this.shouldRefresh = true;
     this._opening.then(() => this.refresh());
+  },
+
+  onTargetUpdated({ isTargetSwitching }) {
+    this.accessibilityProxy.currentTarget.on("navigate", this.onTabNavigated);
+    if (isTargetSwitching) {
+      this.onTabNavigated();
+    }
   },
 
   /**
@@ -168,25 +205,39 @@ AccessibilityPanel.prototype = {
     }
     // Alright reset the flag we are about to refresh the panel.
     this.shouldRefresh = false;
+    const {
+      supports,
+      getAccessibilityTreeRoot,
+      startListeningForAccessibilityEvents,
+      stopListeningForAccessibilityEvents,
+      audit,
+      simulate,
+      enableAccessibility,
+      resetAccessiblity,
+      startListeningForLifecycleEvents,
+      stopListeningForLifecycleEvents,
+      startListeningForParentLifecycleEvents,
+      stopListeningForParentLifecycleEvents,
+      highlightAccessible,
+      unhighlightAccessible,
+    } = this.accessibilityProxy;
     this.postContentMessage("initialize", {
-      supports: this.supports,
       fluentBundles: this.fluentBundles,
       toolbox: this._toolbox,
-      getAccessibilityTreeRoot: this.accessibilityProxy
-        .getAccessibilityTreeRoot,
-      startListeningForAccessibilityEvents: this.accessibilityProxy
-        .startListeningForAccessibilityEvents,
-      stopListeningForAccessibilityEvents: this.accessibilityProxy
-        .stopListeningForAccessibilityEvents,
-      audit: this.accessibilityProxy.audit,
-      simulate: this.accessibilityProxy.simulate,
-      enableAccessibility: this.accessibilityProxy.enableAccessibility,
-      disableAccessibility: this.accessibilityProxy.disableAccessibility,
-      resetAccessiblity: this.accessibilityProxy.resetAccessiblity,
-      startListeningForLifecycleEvents: this.accessibilityProxy
-        .startListeningForLifecycleEvents,
-      stopListeningForLifecycleEvents: this.accessibilityProxy
-        .stopListeningForLifecycleEvents,
+      supports,
+      getAccessibilityTreeRoot,
+      startListeningForAccessibilityEvents,
+      stopListeningForAccessibilityEvents,
+      audit,
+      simulate,
+      enableAccessibility,
+      resetAccessiblity,
+      startListeningForLifecycleEvents,
+      stopListeningForLifecycleEvents,
+      startListeningForParentLifecycleEvents,
+      stopListeningForParentLifecycleEvents,
+      highlightAccessible,
+      unhighlightAccessible,
     });
   },
 
@@ -255,19 +306,11 @@ AccessibilityPanel.prototype = {
     this.picker && this.picker.stop();
   },
 
-  get accessibilityProxy() {
-    return this.startup.accessibilityProxy;
-  },
-
   /**
    * Return true if the Accessibility panel is currently selected.
    */
   get isVisible() {
     return this._toolbox.currentToolId === "accessibility";
-  },
-
-  get target() {
-    return this._toolbox.target;
   },
 
   destroy() {
@@ -278,7 +321,22 @@ AccessibilityPanel.prototype = {
 
     this.postContentMessage("destroy");
 
-    this.target.off("navigate", this.onTabNavigated);
+    if (this.accessibilityProxy) {
+      this.accessibilityProxy.stopListeningForTargetUpdated(
+        this.onTargetUpdated
+      );
+      this.accessibilityProxy.currentTarget.off(
+        "navigate",
+        this.onTabNavigated
+      );
+      this.accessibilityProxy.stopListeningForLifecycleEvents({
+        init: this.onLifecycleEvent,
+        shutdown: this.onLifecycleEvent,
+      });
+      this.accessibilityProxy.destroy();
+      this.accessibilityProxy = null;
+    }
+
     this._toolbox.off("select", this.onPanelVisibilityChange);
 
     this.panelWin.off(
@@ -295,14 +353,6 @@ AccessibilityPanel.prototype = {
       this.picker.release();
       this.picker = null;
     }
-
-    this.accessibilityProxy.stopListeningForLifecycleEvents({
-      init: [this.updateA11YServiceDurationTimer, this.forceUpdatePickerButton],
-      shutdown: [
-        this.updateA11YServiceDurationTimer,
-        this.forceUpdatePickerButton,
-      ],
-    });
 
     this._telemetry = null;
     this.panelWin.gTelemetry = null;

@@ -18,12 +18,11 @@ const { AddonTestUtils } = ChromeUtils.import(
 
 AddonTestUtils.initMochitest(this);
 
-const MAIN_URL = `https://example.com/${RELATIVE_DIR}discovery.html`;
 const DISCOAPI_URL = `http://example.com/${RELATIVE_DIR}/discovery/api_response_empty.json`;
 
-// Clearing this pref is currently done from a cleanup function registered
-// by the head.js file.
-Services.prefs.setCharPref(PREF_DISCOVERURL, MAIN_URL);
+SpecialPowers.pushPrefEnv({
+  set: [["browser.navigation.requireUserInteraction", false]],
+});
 
 var gProvider = new MockProvider();
 gProvider.createAddons([
@@ -68,9 +67,10 @@ function check_state(canGoBack, canGoForward) {
 
 function is_in_list(aManager, view, canGoBack, canGoForward) {
   var doc = aManager.document;
+  var categoryUtils = new CategoryUtilities(aManager);
 
   is(
-    doc.getElementById("categories").selectedItem.value,
+    categoryUtils.getSelectedViewId(),
     view,
     "Should be on the right category"
   );
@@ -91,9 +91,10 @@ function is_in_list(aManager, view, canGoBack, canGoForward) {
 
 function is_in_detail(aManager, view, canGoBack, canGoForward) {
   var doc = aManager.document;
+  var categoryUtils = new CategoryUtilities(aManager);
 
   is(
-    doc.getElementById("categories").selectedItem.value,
+    categoryUtils.getSelectedViewId(),
     view,
     "Should be on the right category"
   );
@@ -113,7 +114,7 @@ function is_in_detail(aManager, view, canGoBack, canGoForward) {
   check_state(canGoBack, canGoForward);
 }
 
-function is_in_discovery(aManager, url, canGoBack, canGoForward) {
+function is_in_discovery(aManager, canGoBack, canGoForward) {
   is(
     get_current_view(aManager).id,
     "html-view",
@@ -141,14 +142,11 @@ function wait_for_page_load(browser) {
 // category is selected
 add_task(async function test_navigate_history() {
   let aManager = await open_manager("addons://list/extension");
+  let categoryUtils = new CategoryUtilities(aManager);
   info("Part 1");
   is_in_list(aManager, "addons://list/extension", false, false);
 
-  EventUtils.synthesizeMouseAtCenter(
-    aManager.document.getElementById("category-plugin"),
-    {},
-    aManager
-  );
+  EventUtils.synthesizeMouseAtCenter(categoryUtils.get("plugin"), {}, aManager);
 
   aManager = await wait_for_view_load(aManager);
   info("Part 2");
@@ -255,14 +253,11 @@ add_task(async function test_keyboard_history_navigation() {
   }
 
   let aManager = await open_manager("addons://list/extension");
+  let categoryUtils = new CategoryUtilities(aManager);
   info("Part 1");
   is_in_list(aManager, "addons://list/extension", false, false);
 
-  EventUtils.synthesizeMouseAtCenter(
-    aManager.document.getElementById("category-plugin"),
-    {},
-    aManager
-  );
+  EventUtils.synthesizeMouseAtCenter(categoryUtils.get("plugin"), {}, aManager);
 
   aManager = await wait_for_view_load(aManager);
   info("Part 2");
@@ -304,11 +299,12 @@ add_task(async function test_keyboard_history_navigation() {
 // Tests that opening a custom first view only stores a single history entry
 add_task(async function test_single_history_entry() {
   let aManager = await open_manager("addons://list/plugin");
+  let categoryUtils = new CategoryUtilities(aManager);
   info("Part 1");
   is_in_list(aManager, "addons://list/plugin", false, false);
 
   EventUtils.synthesizeMouseAtCenter(
-    aManager.document.getElementById("category-extension"),
+    categoryUtils.get("extension"),
     {},
     aManager
   );
@@ -427,14 +423,11 @@ add_task(async function test_navigate_back_from_website() {
 // Tests that refreshing a list view does not affect the history
 add_task(async function test_refresh_listview_donot_add_history_entries() {
   let aManager = await open_manager("addons://list/extension");
+  let categoryUtils = new CategoryUtilities(aManager);
   info("Part 1");
   is_in_list(aManager, "addons://list/extension", false, false);
 
-  EventUtils.synthesizeMouseAtCenter(
-    aManager.document.getElementById("category-plugin"),
-    {},
-    aManager
-  );
+  EventUtils.synthesizeMouseAtCenter(categoryUtils.get("plugin"), {}, aManager);
 
   aManager = await wait_for_view_load(aManager);
   info("Part 2");
@@ -554,14 +547,11 @@ add_task(async function test_discopane_first_history_entry() {
   });
 
   let aManager = await open_manager("addons://discover/");
+  let categoryUtils = new CategoryUtilities(aManager);
   info("1");
-  is_in_discovery(aManager, MAIN_URL, false, false);
+  is_in_discovery(aManager, false, false);
 
-  EventUtils.synthesizeMouseAtCenter(
-    aManager.document.getElementById("category-plugin"),
-    {},
-    aManager
-  );
+  EventUtils.synthesizeMouseAtCenter(categoryUtils.get("plugin"), {}, aManager);
 
   aManager = await wait_for_view_load(aManager);
   is_in_list(aManager, "addons://list/plugin", true, false);
@@ -569,7 +559,7 @@ add_task(async function test_discopane_first_history_entry() {
   go_back();
   aManager = await wait_for_view_load(aManager);
 
-  is_in_discovery(aManager, MAIN_URL, false, true);
+  is_in_discovery(aManager, false, true);
 
   await close_manager(aManager);
 });
@@ -577,22 +567,19 @@ add_task(async function test_discopane_first_history_entry() {
 // Tests that navigating the discovery page works when that was the second view
 add_task(async function test_discopane_second_history_entry() {
   let aManager = await open_manager("addons://list/plugin");
+  let categoryUtils = new CategoryUtilities(aManager);
   is_in_list(aManager, "addons://list/plugin", false, false);
 
   EventUtils.synthesizeMouseAtCenter(
-    aManager.document.getElementById("category-discover"),
+    categoryUtils.get("discover"),
     {},
     aManager
   );
 
   aManager = await wait_for_view_load(aManager);
-  is_in_discovery(aManager, MAIN_URL, true, false);
+  is_in_discovery(aManager, true, false);
 
-  EventUtils.synthesizeMouseAtCenter(
-    aManager.document.getElementById("category-plugin"),
-    {},
-    aManager
-  );
+  EventUtils.synthesizeMouseAtCenter(categoryUtils.get("plugin"), {}, aManager);
 
   aManager = await wait_for_view_load(aManager);
   is_in_list(aManager, "addons://list/plugin", true, false);
@@ -600,7 +587,7 @@ add_task(async function test_discopane_second_history_entry() {
   go_back();
 
   aManager = await wait_for_view_load(aManager);
-  is_in_discovery(aManager, MAIN_URL, true, true);
+  is_in_discovery(aManager, true, true);
 
   go_back();
 

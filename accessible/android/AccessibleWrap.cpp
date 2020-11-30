@@ -23,6 +23,7 @@
 #include "nsIAccessibleAnnouncementEvent.h"
 #include "nsAccUtils.h"
 #include "nsTextEquivUtils.h"
+#include "nsWhitespaceTokenizer.h"
 #include "RootAccessible.h"
 
 #include "mozilla/a11y/PDocAccessibleChild.h"
@@ -94,13 +95,14 @@ nsresult AccessibleWrap::HandleAccEvent(AccEvent* aEvent) {
         if (accessible != aEvent->Document() && !aEvent->IsFromUserInput()) {
           AccCaretMoveEvent* caretEvent = downcast_accEvent(aEvent);
           HyperTextAccessible* ht = AsHyperText();
-          if ((State() & states::FOCUSABLE) != 0 ||
-              (ht && ht->SelectionCount())) {
+          // Pivot to the caret's position if it has an expanded selection.
+          // This is used mostly for find in page.
+          if ((ht && ht->SelectionCount())) {
             DOMPoint point =
                 AsHyperText()->OffsetToDOMPoint(caretEvent->GetCaretOffset());
             if (Accessible* newPos =
                     doc->GetAccessibleOrContainer(point.node)) {
-              static_cast<AccessibleWrap*>(newPos)->Pivot(
+              static_cast<AccessibleWrap*>(newPos)->PivotTo(
                   java::SessionAccessibility::HTML_GRANULARITY_DEFAULT, true,
                   true);
             }
@@ -109,8 +111,8 @@ nsresult AccessibleWrap::HandleAccEvent(AccEvent* aEvent) {
         break;
       }
       case nsIAccessibleEvent::EVENT_SCROLLING_START: {
-        accessible->Pivot(java::SessionAccessibility::HTML_GRANULARITY_DEFAULT,
-                          true, true);
+        accessible->PivotTo(
+            java::SessionAccessibility::HTML_GRANULARITY_DEFAULT, true, true);
         break;
       }
       default:
@@ -292,12 +294,15 @@ bool AccessibleWrap::GetSelectionBounds(int32_t* aStartOffset,
   return false;
 }
 
-void AccessibleWrap::Pivot(int32_t aGranularity, bool aForward,
-                           bool aInclusive) {
-  a11y::Pivot pivot(RootAccessible());
+void AccessibleWrap::PivotTo(int32_t aGranularity, bool aForward,
+                             bool aInclusive) {
+  AccessibleOrProxy accOrProxyRoot = AccessibleOrProxy(RootAccessible());
+  a11y::Pivot pivot(accOrProxyRoot);
   TraversalRule rule(aGranularity);
-  Accessible* result = aForward ? pivot.Next(this, rule, aInclusive)
-                                : pivot.Prev(this, rule, aInclusive);
+  AccessibleOrProxy accOrProxy = AccessibleOrProxy(this);
+  Accessible* result =
+      aForward ? pivot.Next(accOrProxy, rule, aInclusive).AsAccessible()
+               : pivot.Prev(accOrProxy, rule, aInclusive).AsAccessible();
   if (result && (result != this || aInclusive)) {
     PivotMoveReason reason = aForward ? nsIAccessiblePivot::REASON_NEXT
                                       : nsIAccessiblePivot::REASON_PREV;
@@ -312,7 +317,7 @@ void AccessibleWrap::ExploreByTouch(float aX, float aY) {
   a11y::Pivot pivot(RootAccessible());
   TraversalRule rule;
 
-  Accessible* result = pivot.AtPoint(aX, aY, rule);
+  Accessible* result = pivot.AtPoint(aX, aY, rule).AsAccessible();
 
   if (result && result != this) {
     RefPtr<AccEvent> event =
@@ -536,11 +541,25 @@ void AccessibleWrap::GetRoleDescription(role aRole,
   if (aRole == roles::HEADING && aAttributes) {
     // The heading level is an attribute, so we need that.
     AutoTArray<nsString, 1> formatString;
-    nsresult rv = aAttributes->GetStringProperty(NS_LITERAL_CSTRING("level"),
+    nsresult rv = aAttributes->GetStringProperty("level"_ns,
                                                  *formatString.AppendElement());
     if (NS_SUCCEEDED(rv) &&
         LocalizeString("headingLevel", aRoleDescription, formatString)) {
       return;
+    }
+  }
+
+  if ((aRole == roles::LANDMARK || aRole == roles::REGION) && aAttributes) {
+    nsAutoString xmlRoles;
+    if (NS_SUCCEEDED(
+            aAttributes->GetStringProperty("xml-roles"_ns, xmlRoles))) {
+      nsWhitespaceTokenizer tokenizer(xmlRoles);
+      while (tokenizer.hasMoreTokens()) {
+        if (LocalizeString(NS_ConvertUTF16toUTF8(tokenizer.nextToken()).get(),
+                           aRoleDescription)) {
+          return;
+        }
+      }
     }
   }
 
@@ -563,9 +582,9 @@ AccessibleWrap::AttributeArrayToProperties(
 }
 
 int32_t AccessibleWrap::GetAndroidClass(role aRole) {
-#define ROLE(geckoRole, stringRole, atkRole, macRole, msaaRole, ia2Role, \
-             androidClass, nameRule)                                     \
-  case roles::geckoRole:                                                 \
+#define ROLE(geckoRole, stringRole, atkRole, macRole, macSubrole, msaaRole, \
+             ia2Role, androidClass, nameRule)                               \
+  case roles::geckoRole:                                                    \
     return androidClass;
 
   switch (aRole) {
@@ -782,8 +801,7 @@ mozilla::java::GeckoBundle::LocalRef AccessibleWrap::ToBundle(
     }
 
     nsString posinset;
-    nsresult rv = aAttributes->GetStringProperty(NS_LITERAL_CSTRING("posinset"),
-                                                 posinset);
+    nsresult rv = aAttributes->GetStringProperty("posinset"_ns, posinset);
     if (NS_SUCCEEDED(rv)) {
       int32_t rowIndex;
       if (sscanf(NS_ConvertUTF16toUTF8(posinset).get(), "%d", &rowIndex) > 0) {
@@ -803,8 +821,7 @@ mozilla::java::GeckoBundle::LocalRef AccessibleWrap::ToBundle(
     }
 
     nsString colSize;
-    rv = aAttributes->GetStringProperty(NS_LITERAL_CSTRING("child-item-count"),
-                                        colSize);
+    rv = aAttributes->GetStringProperty("child-item-count"_ns, colSize);
     if (NS_SUCCEEDED(rv)) {
       int32_t rowCount;
       if (sscanf(NS_ConvertUTF16toUTF8(colSize).get(), "%d", &rowCount) > 0) {
@@ -815,8 +832,7 @@ mozilla::java::GeckoBundle::LocalRef AccessibleWrap::ToBundle(
                         java::sdk::Integer::ValueOf(1));
 
         nsString unused;
-        rv = aAttributes->GetStringProperty(NS_LITERAL_CSTRING("hierarchical"),
-                                            unused);
+        rv = aAttributes->GetStringProperty("hierarchical"_ns, unused);
         if (NS_SUCCEEDED(rv)) {
           GECKOBUNDLE_PUT(collectionInfo, "isHierarchical",
                           java::sdk::Boolean::TRUE());
@@ -881,8 +897,7 @@ bool AccessibleWrap::HandleLiveRegionEvent(AccEvent* aEvent) {
 
   nsCOMPtr<nsIPersistentProperties> attributes = Attributes();
   nsString live;
-  nsresult rv =
-      attributes->GetStringProperty(NS_LITERAL_CSTRING("container-live"), live);
+  nsresult rv = attributes->GetStringProperty("container-live"_ns, live);
   if (!NS_SUCCEEDED(rv)) {
     return false;
   }
@@ -892,8 +907,7 @@ bool AccessibleWrap::HandleLiveRegionEvent(AccEvent* aEvent) {
                           : nsIAccessibleAnnouncementEvent::POLITE;
 
   nsString atomic;
-  rv = attributes->GetStringProperty(NS_LITERAL_CSTRING("container-atomic"),
-                                     atomic);
+  rv = attributes->GetStringProperty("container-atomic"_ns, atomic);
 
   Accessible* announcementTarget = this;
   nsAutoString announcement;

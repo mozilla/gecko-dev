@@ -19,10 +19,6 @@ class MemoryReport;
 class MemoryReportRequestHost;
 }  // namespace dom
 
-namespace ipc {
-class CrashReporterHost;
-}  // namespace ipc
-
 namespace net {
 
 class SocketProcessHost;
@@ -42,7 +38,6 @@ class SocketProcessParent final
   static SocketProcessParent* GetSingleton();
 
   mozilla::ipc::IPCResult RecvAddMemoryReport(const MemoryReport& aReport);
-  mozilla::ipc::IPCResult RecvFinishMemoryReport(const uint32_t& aGeneration);
   mozilla::ipc::IPCResult RecvAccumulateChildHistograms(
       nsTArray<HistogramAccumulation>&& aAccumulations);
   mozilla::ipc::IPCResult RecvAccumulateChildKeyedHistograms(
@@ -96,6 +91,33 @@ class SocketProcessParent final
 
   mozilla::ipc::IPCResult RecvInitBackground(
       Endpoint<PBackgroundParent>&& aEndpoint);
+
+  already_AddRefed<PAltServiceParent> AllocPAltServiceParent();
+
+  mozilla::ipc::IPCResult RecvGetTLSClientCert(
+      const nsCString& aHostName, const OriginAttributes& aOriginAttributes,
+      const int32_t& aPort, const uint32_t& aProviderFlags,
+      const uint32_t& aProviderTlsFlags, const ByteArray& aServerCert,
+      Maybe<ByteArray>&& aClientCert, nsTArray<ByteArray>&& aCollectedCANames,
+      bool* aSucceeded, ByteArray* aOutCert, ByteArray* aOutKey,
+      nsTArray<ByteArray>* aBuiltChain);
+
+  already_AddRefed<PProxyConfigLookupParent> AllocPProxyConfigLookupParent(
+      nsIURI* aURI, const uint32_t& aProxyResolveFlags);
+  mozilla::ipc::IPCResult RecvPProxyConfigLookupConstructor(
+      PProxyConfigLookupParent* aActor, nsIURI* aURI,
+      const uint32_t& aProxyResolveFlags) override;
+
+  mozilla::ipc::IPCResult RecvCachePushCheck(
+      nsIURI* aPushedURL, OriginAttributes&& aOriginAttributes,
+      nsCString&& aRequestString, CachePushCheckResolver&& aResolver);
+
+  already_AddRefed<PRemoteLazyInputStreamParent>
+  AllocPRemoteLazyInputStreamParent(const nsID& aID, const uint64_t& aSize);
+
+  mozilla::ipc::IPCResult RecvPRemoteLazyInputStreamConstructor(
+      PRemoteLazyInputStreamParent* aActor, const nsID& aID,
+      const uint64_t& aSize);
 
  private:
   SocketProcessHost* mHost;

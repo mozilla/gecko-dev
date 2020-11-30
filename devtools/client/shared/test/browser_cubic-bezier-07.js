@@ -15,8 +15,16 @@ const {
 
 const TEST_URI = CHROME_URL_ROOT + "doc_cubic-bezier-01.html";
 
+registerCleanupFunction(() => {
+  Services.prefs.clearUserPref("ui.prefersReducedMotion");
+});
+
 add_task(async function() {
   const { host, doc } = await createHost("bottom", TEST_URI);
+  // Unset "prefers reduced motion", otherwise the dot animation preview won't be created.
+  // See Bug 1637842
+  // https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion
+  Services.prefs.setIntPref("ui.prefersReducedMotion", 0);
 
   const container = doc.querySelector("#cubic-bezier-container");
   const w = new CubicBezierWidget(container, PREDEFINED.linear);
@@ -40,9 +48,7 @@ async function previewDotReactsToChanges(widget, coords, expectedEasing) {
   const animations = animatedDot.getAnimations();
 
   if (!expectedEasing) {
-    expectedEasing = `cubic-bezier(${coords[0]}, ${coords[1]}, ${coords[2]}, ${
-      coords[3]
-    })`;
+    expectedEasing = `cubic-bezier(${coords[0]}, ${coords[1]}, ${coords[2]}, ${coords[3]})`;
   }
 
   is(animations.length, 1, "The dot is animated");

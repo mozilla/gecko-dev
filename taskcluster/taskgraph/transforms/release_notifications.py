@@ -35,7 +35,7 @@ def add_notifications(config, jobs):
     for job in jobs:
         label = '{}-{}'.format(config.kind, job['name'])
 
-        notifications = job.pop('notifications')
+        notifications = job.pop('notifications', None)
         if notifications:
             resolve_keyed_by(notifications, 'emails', label, project=config.params['project'])
             emails = notifications['emails']
@@ -48,11 +48,13 @@ def add_notifications(config, jobs):
             message = titleformatter.format(notifications['message'], **format_kwargs)
             emails = [email.format(**format_kwargs) for email in emails]
 
-            # We only send mail on success to avoid messages like 'blah is in the
+            # By default, we only send mail on success to avoid messages like 'blah is in the
             # candidates dir' when cancelling graphs, dummy job failure, etc
-            job.setdefault('routes', []).extend(
-                ['notify.email.{}.on-completed'.format(email) for email in emails]
-            )
+            status_types = notifications.get('status-types', ['on-completed'])
+            for s in status_types:
+                job.setdefault('routes', []).extend(
+                    ['notify.email.{}.{}'.format(email, s) for email in emails]
+                )
 
             # Customize the email subject to include release name and build number
             job.setdefault('extra', {}).update(

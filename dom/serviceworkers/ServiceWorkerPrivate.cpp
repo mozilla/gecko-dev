@@ -494,7 +494,7 @@ class SendMessageEventRunnable final : public ExtendableEventWorkerRunnable {
     // https://w3c.github.io/ServiceWorker/#service-worker-postmessage
     if (!deserializationFailed) {
       init.mData = messageData;
-      init.mPorts = ports;
+      init.mPorts = std::move(ports);
     }
 
     init.mSource.SetValue().SetAsClient() =
@@ -504,9 +504,7 @@ class SendMessageEventRunnable final : public ExtendableEventWorkerRunnable {
     RefPtr<EventTarget> target = aWorkerPrivate->GlobalScope();
     RefPtr<ExtendableMessageEvent> extendableEvent =
         ExtendableMessageEvent::Constructor(
-            target,
-            deserializationFailed ? NS_LITERAL_STRING("messageerror")
-                                  : NS_LITERAL_STRING("message"),
+            target, deserializationFailed ? u"messageerror"_ns : u"message"_ns,
             init);
 
     extendableEvent->SetTrusted(true);
@@ -816,7 +814,7 @@ class SendPushEventRunnable final
       : ExtendableFunctionalEventWorkerRunnable(aWorkerPrivate, aKeepAliveToken,
                                                 aRegistration),
         mMessageId(aMessageId),
-        mData(aData) {
+        mData(aData ? Some(aData->Clone()) : Nothing()) {
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(aWorkerPrivate);
     MOZ_ASSERT(aWorkerPrivate->IsServiceWorker());
@@ -844,8 +842,8 @@ class SendPushEventRunnable final
     pei.mCancelable = false;
 
     ErrorResult result;
-    RefPtr<PushEvent> event = PushEvent::Constructor(
-        globalObj, NS_LITERAL_STRING("push"), pei, result);
+    RefPtr<PushEvent> event =
+        PushEvent::Constructor(globalObj, u"push"_ns, pei, result);
     if (NS_WARN_IF(result.Failed())) {
       result.SuppressException();
       errorReporter->Report();
@@ -885,7 +883,7 @@ class SendPushSubscriptionChangeEventRunnable final
     init.mCancelable = false;
 
     RefPtr<ExtendableEvent> event = ExtendableEvent::Constructor(
-        target, NS_LITERAL_STRING("pushsubscriptionchange"), init);
+        target, u"pushsubscriptionchange"_ns, init);
 
     event->SetTrusted(true);
 
@@ -1241,7 +1239,7 @@ class FetchEventRunnable : public ExtendableFunctionalEventWorkerRunnable,
         mRequestCredentials(RequestCredentials::Same_origin),
         mContentPolicyType(nsIContentPolicy::TYPE_INVALID),
         mUploadStreamContentLength(-1),
-        mReferrer(NS_LITERAL_STRING(kFETCH_CLIENT_REFERRER_STR)),
+        mReferrer(NS_LITERAL_STRING_FROM_CSTRING(kFETCH_CLIENT_REFERRER_STR)),
         mReferrerPolicy(ReferrerPolicy::_empty),
         mIsNonSubresourceRequest(aIsNonSubresourceRequest) {
     MOZ_ASSERT(aWorkerPrivate);
@@ -1288,7 +1286,7 @@ class FetchEventRunnable : public ExtendableFunctionalEventWorkerRunnable,
     MOZ_ASSERT(httpChannel, "How come we don't have an HTTP channel?");
 
     mReferrerPolicy = ReferrerPolicy::_empty;
-    mReferrer = EmptyString();
+    mReferrer.Truncate();
     nsCOMPtr<nsIReferrerInfo> referrerInfo = httpChannel->GetReferrerInfo();
     if (referrerInfo) {
       mReferrerPolicy = referrerInfo->ReferrerPolicy();
@@ -1422,7 +1420,7 @@ class FetchEventRunnable : public ExtendableFunctionalEventWorkerRunnable,
       result.SuppressException();
       return false;
     }
-    RefPtr<InternalRequest> internalReq = new InternalRequest(
+    auto internalReq = MakeSafeRefPtr<InternalRequest>(
         mSpec, mFragment, mMethod, internalHeaders.forget(), mCacheMode,
         mRequestMode, mRequestRedirect, mRequestCredentials, mReferrer,
         mReferrerPolicy, mContentPolicyType, mIntegrity);
@@ -1449,7 +1447,8 @@ class FetchEventRunnable : public ExtendableFunctionalEventWorkerRunnable,
 
     // TODO This request object should be created with a AbortSignal object
     // which should be aborted if the loading is aborted. See bug 1394102.
-    RefPtr<Request> request = new Request(global, internalReq, nullptr);
+    RefPtr<Request> request =
+        new Request(global, internalReq.clonePtr(), nullptr);
 
     MOZ_ASSERT_IF(internalReq->IsNavigationRequest(),
                   request->Redirect() == RequestRedirect::Manual);
@@ -1479,7 +1478,7 @@ class FetchEventRunnable : public ExtendableFunctionalEventWorkerRunnable,
     }
 
     RefPtr<FetchEvent> event =
-        FetchEvent::Constructor(globalObj, NS_LITERAL_STRING("fetch"), init);
+        FetchEvent::Constructor(globalObj, u"fetch"_ns, init);
 
     event->PostInit(mInterceptedChannel, mRegistration, mScriptSpec);
     event->SetTrusted(true);
@@ -1534,8 +1533,7 @@ nsresult ServiceWorkerPrivate::SendFetchEvent(
   if (isNonSubresourceRequest) {
     registration = swm->GetRegistration(mInfo->Principal(), mInfo->Scope());
   } else {
-    nsCOMPtr<nsILoadInfo> loadInfo;
-    channel->GetLoadInfo(getter_AddRefs(loadInfo));
+    nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
 
     // We'll check for a null registration below rather than an error code here.
     Unused << swm->GetClientRegistration(loadInfo->GetClientInfo().ref(),
@@ -1704,12 +1702,15 @@ nsresult ServiceWorkerPrivate::SpawnWorkerIfNeeded(WakeUpReason aWhy,
 
   info.mPrincipal = mInfo->Principal();
   info.mLoadingPrincipal = info.mPrincipal;
-  // StoragePrincipal for ServiceWorkers is equal to mPrincipal because, at the
-  // moment, ServiceWorkers are not exposed in partitioned contexts.
-  info.mStoragePrincipal = info.mPrincipal;
+  // PartitionedPrincipal for ServiceWorkers is equal to mPrincipal because, at
+  // the moment, ServiceWorkers are not exposed in partitioned contexts.
+  info.mPartitionedPrincipal = info.mPrincipal;
 
   info.mCookieJarSettings = mozilla::net::CookieJarSettings::Create();
   MOZ_ASSERT(info.mCookieJarSettings);
+
+  net::CookieJarSettings::Cast(info.mCookieJarSettings)
+      ->SetPartitionKey(info.mResolvedScriptURI);
 
   info.mStorageAccess =
       StorageAllowedForServiceWorker(info.mPrincipal, info.mCookieJarSettings);
@@ -1734,7 +1735,7 @@ nsresult ServiceWorkerPrivate::SpawnWorkerIfNeeded(WakeUpReason aWhy,
   WorkerPrivate::OverrideLoadInfoLoadGroup(info, info.mPrincipal);
 
   rv = info.SetPrincipalsAndCSPOnMainThread(
-      info.mPrincipal, info.mStoragePrincipal, info.mLoadGroup, nullptr);
+      info.mPrincipal, info.mPartitionedPrincipal, info.mLoadGroup, nullptr);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -1748,7 +1749,7 @@ nsresult ServiceWorkerPrivate::SpawnWorkerIfNeeded(WakeUpReason aWhy,
 
   mWorkerPrivate = WorkerPrivate::Constructor(jsapi.cx(), scriptSpec, false,
                                               WorkerTypeService, VoidString(),
-                                              EmptyCString(), &info, error);
+                                              ""_ns, &info, error);
   if (NS_WARN_IF(error.Failed())) {
     return error.StealNSResult();
   }
@@ -1805,8 +1806,8 @@ void ServiceWorkerPrivate::TerminateWorker() {
     // Any pending events are never going to fire on this worker.  Cancel
     // them so that intercepted channels can be reset and other resources
     // cleaned up.
-    nsTArray<RefPtr<WorkerRunnable>> pendingEvents;
-    mPendingFunctionalEvents.SwapElements(pendingEvents);
+    nsTArray<RefPtr<WorkerRunnable>> pendingEvents =
+        std::move(mPendingFunctionalEvents);
     for (uint32_t i = 0; i < pendingEvents.Length(); ++i) {
       pendingEvents[i]->Cancel();
     }
@@ -1866,8 +1867,8 @@ void ServiceWorkerPrivate::UpdateState(ServiceWorkerState aState) {
     return;
   }
 
-  nsTArray<RefPtr<WorkerRunnable>> pendingEvents;
-  mPendingFunctionalEvents.SwapElements(pendingEvents);
+  nsTArray<RefPtr<WorkerRunnable>> pendingEvents =
+      std::move(mPendingFunctionalEvents);
 
   for (uint32_t i = 0; i < pendingEvents.Length(); ++i) {
     RefPtr<WorkerRunnable> r = std::move(pendingEvents[i]);

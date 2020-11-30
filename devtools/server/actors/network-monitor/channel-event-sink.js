@@ -6,7 +6,7 @@
 
 const { Cc, Ci, Cm, Cr, components } = require("chrome");
 const ChromeUtils = require("ChromeUtils");
-const { XPCOMUtils } = require("resource://gre/modules/XPCOMUtils.jsm");
+const { ComponentUtils } = require("resource://gre/modules/ComponentUtils.jsm");
 const Services = require("Services");
 
 /**
@@ -24,7 +24,7 @@ function ChannelEventSink() {
 }
 
 ChannelEventSink.prototype = {
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIChannelEventSink]),
+  QueryInterface: ChromeUtils.generateQI(["nsIChannelEventSink"]),
 
   registerCollector(collector) {
     this.collectors.add(collector);
@@ -54,7 +54,7 @@ ChannelEventSink.prototype = {
   },
 };
 
-const ChannelEventSinkFactory = XPCOMUtils.generateSingletonFactory(
+const ChannelEventSinkFactory = ComponentUtils.generateSingletonFactory(
   ChannelEventSink
 );
 

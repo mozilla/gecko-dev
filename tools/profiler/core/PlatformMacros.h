@@ -22,6 +22,7 @@
 #undef GP_PLAT_arm_linux
 #undef GP_PLAT_mips64_linux
 #undef GP_PLAT_amd64_darwin
+#undef GP_PLAT_arm64_darwin
 #undef GP_PLAT_x86_windows
 #undef GP_PLAT_amd64_windows
 #undef GP_PLAT_arm64_windows
@@ -85,10 +86,25 @@
 #  define GP_ARCH_mips64 1
 #  define GP_OS_linux 1
 
+#elif defined(__APPLE__) && defined(__aarch64__)
+#  define GP_PLAT_arm64_darwin 1
+#  define GP_ARCH_arm64 1
+#  define GP_OS_darwin 1
+
 #elif defined(__APPLE__) && defined(__x86_64__)
 #  define GP_PLAT_amd64_darwin 1
 #  define GP_ARCH_amd64 1
 #  define GP_OS_darwin 1
+
+#elif defined(__FreeBSD__) && defined(__x86_64__)
+#  define GP_PLAT_amd64_freebsd 1
+#  define GP_ARCH_amd64 1
+#  define GP_OS_freebsd 1
+
+#elif defined(__FreeBSD__) && defined(__aarch64__)
+#  define GP_PLAT_arm64_freebsd 1
+#  define GP_ARCH_arm64 1
+#  define GP_OS_freebsd 1
 
 #elif (defined(_MSC_VER) || defined(__MINGW32__)) && \
     (defined(_M_IX86) || defined(__i386__))

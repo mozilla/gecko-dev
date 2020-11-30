@@ -1,15 +1,19 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef nsNativeThemeAndroid_h_
-#define nsNativeThemeAndroid_h_
+#ifndef nsNativeThemeAndroid_h
+#define nsNativeThemeAndroid_h
 
 #include "nsITheme.h"
 #include "nsNativeTheme.h"
 
-class nsNativeThemeAndroid final : private nsNativeTheme, public nsITheme {
+class nsNativeThemeAndroid : private nsNativeTheme, public nsITheme {
  public:
+  nsNativeThemeAndroid() = default;
+
   NS_DECL_ISUPPORTS_INHERITED
 
   // The nsITheme interface.
@@ -17,48 +21,46 @@ class nsNativeThemeAndroid final : private nsNativeTheme, public nsITheme {
                                   StyleAppearance aAppearance,
                                   const nsRect& aRect,
                                   const nsRect& aDirtyRect) override;
-
-  MOZ_MUST_USE LayoutDeviceIntMargin
-  GetWidgetBorder(nsDeviceContext* aContext, nsIFrame* aFrame,
-                  StyleAppearance aAppearance) override;
-
+  /*bool CreateWebRenderCommandsForWidget(mozilla::wr::DisplayListBuilder&
+     aBuilder, mozilla::wr::IpcResourceUpdateQueue& aResources, const
+     mozilla::layers::StackingContextHelper& aSc,
+                                        mozilla::layers::RenderRootStateManager*
+     aManager, nsIFrame* aFrame, StyleAppearance aAppearance, const nsRect&
+     aRect) override;*/
+  [[nodiscard]] LayoutDeviceIntMargin GetWidgetBorder(
+      nsDeviceContext* aContext, nsIFrame* aFrame,
+      StyleAppearance aAppearance) override;
   bool GetWidgetPadding(nsDeviceContext* aContext, nsIFrame* aFrame,
                         StyleAppearance aAppearance,
                         LayoutDeviceIntMargin* aResult) override;
-
-  bool GetWidgetOverflow(nsDeviceContext* aContext, nsIFrame* aFrame,
-                         StyleAppearance aAppearance,
-                         nsRect* aOverflowRect) override;
-
+  virtual bool GetWidgetOverflow(nsDeviceContext* aContext, nsIFrame* aFrame,
+                                 StyleAppearance aAppearance,
+                                 nsRect* aOverflowRect) override;
   NS_IMETHOD GetMinimumWidgetSize(nsPresContext* aPresContext, nsIFrame* aFrame,
                                   StyleAppearance aAppearance,
                                   mozilla::LayoutDeviceIntSize* aResult,
                                   bool* aIsOverridable) override;
-
+  virtual Transparency GetWidgetTransparency(
+      nsIFrame* aFrame, StyleAppearance aAppearance) override;
   NS_IMETHOD WidgetStateChanged(nsIFrame* aFrame, StyleAppearance aAppearance,
                                 nsAtom* aAttribute, bool* aShouldRepaint,
                                 const nsAttrValue* aOldValue) override;
-
   NS_IMETHOD ThemeChanged() override;
-
-  NS_IMETHOD_(bool)
-  ThemeSupportsWidget(nsPresContext* aPresContext, nsIFrame* aFrame,
-                      StyleAppearance aAppearance) override;
-
-  NS_IMETHOD_(bool) WidgetIsContainer(StyleAppearance aAppearance) override;
-
-  NS_IMETHOD_(bool)
-  ThemeDrawsFocusForWidget(StyleAppearance aAppearance) override;
-
+  virtual bool WidgetAppearanceDependsOnWindowFocus(
+      StyleAppearance aAppearance) override;
+  /*virtual bool NeedToClearBackgroundBehindWidget(nsIFrame* aFrame,
+                                                 StyleAppearance aAppearance)
+     override;*/
+  virtual ThemeGeometryType ThemeGeometryTypeForWidget(
+      nsIFrame* aFrame, StyleAppearance aAppearance) override;
+  bool ThemeSupportsWidget(nsPresContext* aPresContext, nsIFrame* aFrame,
+                           StyleAppearance aAppearance) override;
+  bool WidgetIsContainer(StyleAppearance aAppearance) override;
+  bool ThemeDrawsFocusForWidget(StyleAppearance aAppearance) override;
   bool ThemeNeedsComboboxDropmarker() override;
 
-  Transparency GetWidgetTransparency(nsIFrame* aFrame,
-                                     StyleAppearance aAppearance) override;
-
-  nsNativeThemeAndroid() {}
-
  protected:
-  virtual ~nsNativeThemeAndroid() {}
+  virtual ~nsNativeThemeAndroid() = default;
 };
 
-#endif  // nsNativeThemeAndroid_h_
+#endif

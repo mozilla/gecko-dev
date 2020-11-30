@@ -38,11 +38,9 @@ const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 XPCOMUtils.defineLazyModuleGetters(this, {
   NetUtil: "resource://gre/modules/NetUtil.jsm",
   PluralForm: "resource://gre/modules/PluralForm.jsm",
-  AppConstants: "resource://gre/modules/AppConstants.jsm",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
   DownloadHistory: "resource://gre/modules/DownloadHistory.jsm",
   Downloads: "resource://gre/modules/Downloads.jsm",
-  DownloadUIHelper: "resource://gre/modules/DownloadUIHelper.jsm",
   DownloadUtils: "resource://gre/modules/DownloadUtils.jsm",
   PlacesUtils: "resource://gre/modules/PlacesUtils.jsm",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.jsm",
@@ -53,6 +51,7 @@ XPCOMUtils.defineLazyServiceGetters(this, {
     "@mozilla.org/widget/clipboardhelper;1",
     "nsIClipboardHelper",
   ],
+  gMIMEService: ["@mozilla.org/mime;1", "nsIMIMEService"],
 });
 
 XPCOMUtils.defineLazyGetter(this, "DownloadsLogger", () => {
@@ -81,10 +80,143 @@ const kMaxHistoryResultsForLimitedView = 42;
 
 const kPrefBranch = Services.prefs.getBranch("browser.download.");
 
+const kFileExtensions = [
+  "aac",
+  "adt",
+  "adts",
+  "accdb",
+  "accde",
+  "accdr",
+  "accdt",
+  "aif",
+  "aifc",
+  "aiff",
+  "apng",
+  "aspx",
+  "avi",
+  "bat",
+  "bin",
+  "bmp",
+  "cab",
+  "cda",
+  "csv",
+  "dif",
+  "dll",
+  "doc",
+  "docm",
+  "docx",
+  "dot",
+  "dotx",
+  "eml",
+  "eps",
+  "exe",
+  "flac",
+  "flv",
+  "gif",
+  "htm",
+  "html",
+  "ico",
+  "ini",
+  "iso",
+  "jar",
+  "jfif",
+  "jpg",
+  "jpeg",
+  "json",
+  "m4a",
+  "mdb",
+  "mid",
+  "midi",
+  "mov",
+  "mp3",
+  "mp4",
+  "mpeg",
+  "mpg",
+  "msi",
+  "mui",
+  "oga",
+  "ogg",
+  "ogv",
+  "opus",
+  "pdf",
+  "pjpeg",
+  "pjp",
+  "png",
+  "pot",
+  "potm",
+  "potx",
+  "ppam",
+  "pps",
+  "ppsm",
+  "ppsx",
+  "ppt",
+  "pptm",
+  "pptx",
+  "psd",
+  "pst",
+  "pub",
+  "rar",
+  "rdf",
+  "rtf",
+  "shtml",
+  "sldm",
+  "sldx",
+  "svg",
+  "swf",
+  "sys",
+  "tif",
+  "tiff",
+  "tmp",
+  "txt",
+  "vob",
+  "vsd",
+  "vsdm",
+  "vsdx",
+  "vss",
+  "vssm",
+  "vst",
+  "vstm",
+  "vstx",
+  "wav",
+  "wbk",
+  "webm",
+  "webp",
+  "wks",
+  "wma",
+  "wmd",
+  "wmv",
+  "wmz",
+  "wms",
+  "wpd",
+  "wp5",
+  "xht",
+  "xhtml",
+  "xla",
+  "xlam",
+  "xll",
+  "xlm",
+  "xls",
+  "xlsm",
+  "xlsx",
+  "xlt",
+  "xltm",
+  "xltx",
+  "xml",
+  "zip",
+];
+
+const kGenericContentTypes = [
+  "application/octet-stream",
+  "binary/octet-stream",
+  "application/unknown",
+];
+
+const TELEMETRY_EVENT_CATEGORY = "downloads";
+
 var PrefObserver = {
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIObserver,
-    Ci.nsISupportsWeakReference,
+    "nsIObserver",
+    "nsISupportsWeakReference",
   ]),
   getPref(name) {
     try {
@@ -116,6 +248,8 @@ var PrefObserver = {
 PrefObserver.register({
   // prefName: defaultValue
   animateNotifications: true,
+  openInSystemViewerContextMenuItem: true,
+  alwaysOpenInSystemViewerContextMenuItem: true,
 });
 
 // DownloadsCommon
@@ -181,6 +315,20 @@ var DownloadsCommon = {
    */
   get animateNotifications() {
     return PrefObserver.animateNotifications;
+  },
+
+  /**
+   * Indicates whether or not to show the 'Open in system viewer' context menu item when appropriate
+   */
+  get openInSystemViewerItemEnabled() {
+    return PrefObserver.openInSystemViewerContextMenuItem;
+  },
+
+  /**
+   * Indicates whether or not to show the 'Always open...' context menu item when appropriate
+   */
+  get alwaysOpenInSystemViewerItemEnabled() {
+    return PrefObserver.alwaysOpenInSystemViewerContextMenuItem;
   },
 
   /**
@@ -311,6 +459,67 @@ var DownloadsCommon = {
   },
 
   /**
+   * Get a nsIMIMEInfo object for a download
+   */
+  getMimeInfo(download) {
+    if (!download.succeeded) {
+      return null;
+    }
+    let contentType = download.contentType;
+    let url = Cc["@mozilla.org/network/standard-url-mutator;1"]
+      .createInstance(Ci.nsIURIMutator)
+      .setSpec("http://example.com") // construct the URL
+      .setFilePath(download.target.path)
+      .finalize()
+      .QueryInterface(Ci.nsIURL);
+    let fileExtension = url.fileExtension;
+
+    // look at file extension if there's no contentType or it is generic
+    if (!contentType || kGenericContentTypes.includes(contentType)) {
+      try {
+        contentType = gMIMEService.getTypeFromExtension(fileExtension);
+      } catch (ex) {
+        DownloadsCommon.log(
+          "Cant get mimeType from file extension: ",
+          fileExtension
+        );
+      }
+    }
+    if (!(contentType || fileExtension)) {
+      return null;
+    }
+    let mimeInfo = null;
+    try {
+      mimeInfo = gMIMEService.getFromTypeAndExtension(
+        contentType || "",
+        fileExtension || ""
+      );
+    } catch (ex) {
+      DownloadsCommon.log(
+        "Can't get nsIMIMEInfo for contentType: ",
+        contentType,
+        "and fileExtension:",
+        fileExtension
+      );
+    }
+    return mimeInfo;
+  },
+
+  /**
+   * Confirm if the download exists on the filesystem and is a given mime-type
+   */
+  isFileOfType(download, mimeType) {
+    if (!(download.succeeded && download.target?.exists)) {
+      DownloadsCommon.log(
+        `isFileOfType returning false for mimeType: ${mimeType}, succeeded: ${download.succeeded}, exists: ${download.target?.exists}`
+      );
+      return false;
+    }
+    let mimeInfo = DownloadsCommon.getMimeInfo(download);
+    return mimeInfo?.type === mimeType.toLowerCase();
+  },
+
+  /**
    * Copies the source URI of the given Download object to the clipboard.
    */
   copyDownloadLink(download) {
@@ -431,70 +640,26 @@ var DownloadsCommon = {
   /**
    * Opens a downloaded file.
    *
-   * @param aFile
-   *        the downloaded file to be opened.
-   * @param aMimeInfo
-   *        the mime type info object.  May be null.
-   * @param aOwnerWindow
-   *        the window with which this action is associated.
+   * @param downloadProperties
+   *        A Download object or the initial properties of a serialized download
+   * @param options.openWhere
+   *        Optional string indicating how to handle opening a download target file URI.
+   *        One of "window", "tab", "tabshifted".
+   * @param options.useSystemDefault
+   *        Optional value indicating how to handle launching this download,
+   *        this call only. Will override the associated mimeInfo.preferredAction
+   * @return {Promise}
+   * @resolves When the instruction to launch the file has been
+   *           successfully given to the operating system or handled internally
+   * @rejects  JavaScript exception if there was an error trying to launch
+   *           the file.
    */
-  openDownloadedFile(aFile, aMimeInfo, aOwnerWindow) {
-    if (!(aFile instanceof Ci.nsIFile)) {
-      throw new Error("aFile must be a nsIFile object");
+  async openDownload(download, options) {
+    // some download objects got serialized and need reconstituting
+    if (typeof download.launch !== "function") {
+      download = await Downloads.createDownload(download);
     }
-    if (aMimeInfo && !(aMimeInfo instanceof Ci.nsIMIMEInfo)) {
-      throw new Error("Invalid value passed for aMimeInfo");
-    }
-    if (!(aOwnerWindow instanceof Ci.nsIDOMWindow)) {
-      throw new Error("aOwnerWindow must be a dom-window object");
-    }
-
-    let isWindowsExe =
-      AppConstants.platform == "win" &&
-      aFile.leafName.toLowerCase().endsWith(".exe");
-
-    let promiseShouldLaunch;
-    // Don't prompt on Windows for .exe since there will be a native prompt.
-    if (aFile.isExecutable() && !isWindowsExe) {
-      // We get a prompter for the provided window here, even though anchoring
-      // to the most recently active window should work as well.
-      promiseShouldLaunch = DownloadUIHelper.getPrompter(
-        aOwnerWindow
-      ).confirmLaunchExecutable(aFile.path);
-    } else {
-      promiseShouldLaunch = Promise.resolve(true);
-    }
-
-    promiseShouldLaunch
-      .then(shouldLaunch => {
-        if (!shouldLaunch) {
-          return;
-        }
-
-        // Actually open the file.
-        try {
-          if (
-            aMimeInfo &&
-            aMimeInfo.preferredAction == aMimeInfo.useHelperApp
-          ) {
-            aMimeInfo.launchWithFile(aFile);
-            return;
-          }
-        } catch (ex) {}
-
-        // If either we don't have the mime info, or the preferred action failed,
-        // attempt to launch the file directly.
-        try {
-          aFile.launch();
-        } catch (ex) {
-          // If launch fails, try sending it through the system's external "file:"
-          // URL handler.
-          Cc["@mozilla.org/uriloader/external-protocol-service;1"]
-            .getService(Ci.nsIExternalProtocolService)
-            .loadURI(NetUtil.newURI(aFile));
-        }
-      })
-      .catch(Cu.reportError);
+    return download.launch(options).catch(ex => Cu.reportError(ex));
   },
 
   /**
@@ -784,6 +949,26 @@ DownloadsDataCtor.prototype = {
   // Integration with the asynchronous Downloads back-end
 
   onDownloadAdded(download) {
+    let extension = download.target.path.split(".").pop();
+
+    if (!kFileExtensions.includes(extension)) {
+      extension = "other";
+    }
+
+    try {
+      Services.telemetry.recordEvent(
+        TELEMETRY_EVENT_CATEGORY,
+        "added",
+        "fileExtension",
+        extension,
+        {}
+      );
+    } catch (ex) {
+      Cu.reportError(
+        "DownloadsCommon: error recording telemetry event. " + ex.message
+      );
+    }
+
     // Download objects do not store the end time of downloads, as the Downloads
     // API does not need to persist this information for all platforms. Once a
     // download terminates on a Desktop browser, it becomes a history download,
@@ -1078,7 +1263,7 @@ const DownloadsViewPrototype = {
    * @note Subclasses should override this.
    */
   onDownloadStateChanged(download) {
-    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+    throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
   },
 
   /**
@@ -1110,7 +1295,7 @@ const DownloadsViewPrototype = {
    * @note Subclasses should override this.
    */
   onDownloadRemoved(download) {
-    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+    throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
   },
 
   /**
@@ -1120,7 +1305,7 @@ const DownloadsViewPrototype = {
    * @note Subclasses should override this.
    */
   _refreshProperties() {
-    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+    throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
   },
 
   /**
@@ -1129,7 +1314,7 @@ const DownloadsViewPrototype = {
    * @note Subclasses should override this.
    */
   _updateView() {
-    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+    throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
   },
 
   /**

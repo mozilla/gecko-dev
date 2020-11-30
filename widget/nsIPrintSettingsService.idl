@@ -30,35 +30,28 @@ namespace embedding {
 interface nsIPrintSettingsService : nsISupports
 {
   /**
-   * Returns a "global" PrintSettings object
-   * Creates a new the first time, if one doesn't exist.
-   *
-   * Then returns the same object each time after that.
-   *
-   * Initializes the globalPrintSettings from the default printer
+   * Returns the default print settings as used for printing.
    */
-  readonly attribute nsIPrintSettings globalPrintSettings;
+  [noscript] readonly attribute nsIPrintSettings defaultPrintSettingsForPrinting;
 
   /**
    * Returns a new, unique PrintSettings object each time.
    *
-   * For example, if each browser was to have its own unique
-   * PrintSettings, then each browser window would call this to
-   * create its own unique PrintSettings object.
-   *
-   * If each browse window was to use the same PrintSettings object
-   * then it should use "globalPrintSettings"
-   *
    * Initializes the newPrintSettings from the unprefixed printer
    * (Note: this may not happen if there is an OS specific implementation.)
    *
+   * XXX This should really be a function called `createPrintSettings()`.
    */
   readonly attribute nsIPrintSettings newPrintSettings;
 
   /**
-   * The name of the last printer used, or else the system default printer.
+   * The name of the last printer used. Note that this may not be set, or may
+   * no longer be a valid printer. The caller is responsible for checking and
+   * falling back to some other printer (such as the system default printer).
+   *
+   * XXX: make it [infallible] when AString supports that (bug 1491187).
    */
-  readonly attribute AString defaultPrinterName;
+  readonly attribute AString lastUsedPrinterName;
 
   /**
    * Initializes certain settings from the native printer into the PrintSettings

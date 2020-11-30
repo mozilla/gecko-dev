@@ -23,11 +23,15 @@ import type { SourceActorsState } from "./source-actors";
 import type { TabsState } from "./tabs";
 import type { UIState } from "./ui";
 import type { QuickOpenState } from "./quick-open";
+import type { SourceTreeState } from "./source-tree";
 import type { EventListenersState } from "./event-listeners";
+import type { ExceptionState } from "./exceptions";
+import type { URL } from "../types";
 
 export type State = {
   ast: ASTState,
   breakpoints: BreakpointsState,
+  exceptions: ExceptionState,
   expressions: ExpressionState,
   eventListenerBreakpoints: EventListenersState,
   threads: ThreadsState,
@@ -38,6 +42,7 @@ export type State = {
   projectTextSearch: ProjectTextSearchState,
   sources: SourcesState,
   sourceActors: SourceActorsState,
+  sourceTree: SourceTreeState,
   tabs: TabsState,
   ui: UIState,
   quickOpen: QuickOpenState,
@@ -46,7 +51,7 @@ export type State = {
 export type Selector<T> = State => T;
 
 export type PendingSelectedLocation = {
-  url: string,
+  url: URL,
   line?: number,
   column?: number,
 };

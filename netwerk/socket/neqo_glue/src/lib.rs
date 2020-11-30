@@ -2,17 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use neqo_common::Datagram;
+use neqo_common::{self as common, qlog::NeqoQlog, qwarn, Datagram, Role};
+use neqo_common::event::Provider;
 use neqo_crypto::{init, PRErrorCode};
 use neqo_http3::Error as Http3Error;
-use neqo_http3::{Http3Client, Http3ClientEvent, Http3State};
+use neqo_http3::{Http3Client, Http3ClientEvent, Http3Parameters, Http3State};
+use neqo_qpack::QpackSettings;
 use neqo_transport::Error as TransportError;
-use neqo_transport::{FixedConnectionIdManager, Output};
+use neqo_transport::{CongestionControlAlgorithm, FixedConnectionIdManager, Output, QuicVersion};
 use nserror::*;
 use nsstring::*;
+use qlog::QlogStreamer;
 use std::cell::RefCell;
 use std::convert::TryFrom;
+use std::fs::OpenOptions;
 use std::net::SocketAddr;
+use std::path::PathBuf;
 use std::ptr;
 use std::rc::Rc;
 use std::slice;
@@ -36,8 +41,9 @@ impl NeqoHttp3Conn {
         alpn: &nsACString,
         local_addr: &nsACString,
         remote_addr: &nsACString,
-        max_table_size: u32,
+        max_table_size: u64,
         max_blocked_streams: u16,
+        qlog_dir: &nsACString,
     ) -> Result<RefPtr<NeqoHttp3Conn>, nsresult> {
         // Nss init.
         init();
@@ -62,18 +68,68 @@ impl NeqoHttp3Conn {
             Err(_) => return Err(NS_ERROR_INVALID_ARG),
         };
 
-        let conn = match Http3Client::new(
+        let http3_settings = Http3Parameters {
+            qpack_settings: QpackSettings {
+                max_table_size_encoder: max_table_size,
+                max_table_size_decoder: max_table_size,
+                max_blocked_streams,
+            },
+            max_concurrent_push_streams: 0,
+        };
+
+        let quic_version = match alpn_conv {
+            "h3-30" => QuicVersion::Draft30,
+            "h3-29" => QuicVersion::Draft29,
+            "h3-28" => QuicVersion::Draft28,
+            "h3-27" => QuicVersion::Draft27,
+            _ => return Err(NS_ERROR_INVALID_ARG),
+        };
+
+        let mut conn = match Http3Client::new(
             origin_conv,
-            &[alpn_conv],
             Rc::new(RefCell::new(FixedConnectionIdManager::new(3))),
             local,
             remote,
-            max_table_size,
-            max_blocked_streams
+            &CongestionControlAlgorithm::NewReno,
+            quic_version,
+            &http3_settings,
         ) {
             Ok(c) => c,
             Err(_) => return Err(NS_ERROR_INVALID_ARG),
         };
+
+        if !qlog_dir.is_empty() {
+            let qlog_dir_conv = str::from_utf8(qlog_dir).map_err(|_| NS_ERROR_INVALID_ARG)?;
+            let mut qlog_path = PathBuf::from(qlog_dir_conv);
+            qlog_path.push(format!("{}.qlog", origin));
+
+            // Emit warnings but to not return an error if qlog initialization
+            // fails.
+            match OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .open(&qlog_path)
+            {
+                Err(_) => qwarn!("Could not open qlog path: {}", qlog_path.display()),
+                Ok(f) => {
+                    let streamer = QlogStreamer::new(
+                        qlog::QLOG_VERSION.to_string(),
+                        Some("Firefox Client qlog".to_string()),
+                        Some("Firefox Client qlog".to_string()),
+                        None,
+                        std::time::Instant::now(),
+                        common::qlog::new_trace(Role::Client),
+                        Box::new(f),
+                    );
+
+                    match NeqoQlog::enabled(streamer, &qlog_path) {
+                        Err(_) => qwarn!("Could not write to qlog path: {}", qlog_path.display()),
+                        Ok(nq) => conn.set_qlog(nq),
+                    }
+                }
+            }
+        }
 
         let conn = Box::into_raw(Box::new(NeqoHttp3Conn {
             conn,
@@ -117,8 +173,9 @@ pub extern "C" fn neqo_http3conn_new(
     alpn: &nsACString,
     local_addr: &nsACString,
     remote_addr: &nsACString,
-    max_table_size: u32,
+    max_table_size: u64,
     max_blocked_streams: u16,
+    qlog_dir: &nsACString,
     result: &mut *const NeqoHttp3Conn,
 ) -> nsresult {
     *result = ptr::null_mut();
@@ -130,6 +187,7 @@ pub extern "C" fn neqo_http3conn_new(
         remote_addr,
         max_table_size,
         max_blocked_streams,
+        qlog_dir,
     ) {
         Ok(http3_conn) => {
             http3_conn.forget(result);
@@ -155,11 +213,6 @@ pub extern "C" fn neqo_http3conn_process_input(
     );
 }
 
-#[no_mangle]
-pub extern "C" fn neqo_http3conn_process_http3(conn: &mut NeqoHttp3Conn) {
-    conn.conn.process_http3(Instant::now());
-}
-
 /* Process output and store data to be sent into conn.packets_to_send.
  * neqo_http3conn_get_data_to_send will be called to pick up this data.
  */
@@ -173,16 +226,19 @@ pub extern "C" fn neqo_http3conn_process_output(conn: &mut NeqoHttp3Conn) -> u64
             }
             Output::Callback(to) => {
                 let timeout = to.as_millis() as u64;
+                // Necko resolution is in milliseconds whereas neqo resolution
+                // is in nanoseconds. If we called process_output too soon due
+                // to this difference, we might do few unnecessary loops until
+                // we waste the remaining time. To avoid it, we return 1ms when
+                // the timeout is less than 1ms.
+                if timeout == 0 {
+                    break 1;
+                }
                 break timeout;
             }
             Output::None => break std::u64::MAX,
         }
     }
-}
-
-#[no_mangle]
-pub extern "C" fn neqo_http3conn_process_timer(conn: &mut NeqoHttp3Conn) {
-    conn.conn.process_timer(Instant::now());
 }
 
 #[no_mangle]
@@ -210,9 +266,15 @@ pub extern "C" fn neqo_http3conn_close(conn: &mut NeqoHttp3Conn, error: u64) {
 }
 
 fn is_excluded_header(name: &str) -> bool {
-    if (name == "connection") || (name == "host") || (name == "keep-alive") ||
-        (name == "proxy-connection") || (name == "te") || (name == "transfer-encoding") ||
-        (name == "upgrade") || (name == "sec-websocket-key") {
+    if (name == "connection")
+        || (name == "host")
+        || (name == "keep-alive")
+        || (name == "proxy-connection")
+        || (name == "te")
+        || (name == "transfer-encoding")
+        || (name == "upgrade")
+        || (name == "sec-websocket-key")
+    {
         true
     } else {
         false
@@ -234,7 +296,9 @@ pub extern "C" fn neqo_http3conn_fetch(
     // Firefox supplies all headers already prepared for sending over http1.
     // They need to be split into (String, String) pairs.
     match str::from_utf8(headers) {
-        Err(_) => { return NS_ERROR_INVALID_ARG; },
+        Err(_) => {
+            return NS_ERROR_INVALID_ARG;
+        }
         Ok(h) => {
             for elem in h.split("\r\n").skip(1) {
                 if elem.starts_with(':') {
@@ -264,28 +328,41 @@ pub extern "C" fn neqo_http3conn_fetch(
 
     let method_tmp = match str::from_utf8(method) {
         Ok(m) => m,
-        Err(_) => { return NS_ERROR_INVALID_ARG; }
+        Err(_) => {
+            return NS_ERROR_INVALID_ARG;
+        }
     };
     let scheme_tmp = match str::from_utf8(scheme) {
         Ok(s) => s,
-        Err(_) => { return NS_ERROR_INVALID_ARG; }
+        Err(_) => {
+            return NS_ERROR_INVALID_ARG;
+        }
     };
     let host_tmp = match str::from_utf8(host) {
         Ok(h) => h,
-        Err(_) => { return NS_ERROR_INVALID_ARG; }
+        Err(_) => {
+            return NS_ERROR_INVALID_ARG;
+        }
     };
     let path_tmp = match str::from_utf8(path) {
         Ok(p) => p,
-        Err(_) => { return NS_ERROR_INVALID_ARG; }
+        Err(_) => {
+            return NS_ERROR_INVALID_ARG;
+        }
     };
-    match conn.conn.fetch(method_tmp, scheme_tmp, host_tmp, path_tmp, &hdrs) {
+    match conn.conn.fetch(
+        Instant::now(),
+        method_tmp,
+        scheme_tmp,
+        host_tmp,
+        path_tmp,
+        &hdrs,
+    ) {
         Ok(id) => {
             *stream_id = id;
             NS_OK
         }
-        Err(Http3Error::TransportError(TransportError::StreamLimitError)) => {
-            NS_BASE_STREAM_WOULD_BLOCK
-        }
+        Err(Http3Error::StreamLimitError) => NS_BASE_STREAM_WOULD_BLOCK,
         Err(_) => NS_ERROR_UNEXPECTED,
     }
 }
@@ -364,9 +441,11 @@ pub enum Http3Event {
     /// A server has send STOP_SENDING frame.
     StopSending {
         stream_id: u64,
+        error: u64,
     },
     HeaderReady {
         stream_id: u64,
+        fin: bool,
     },
     /// New bytes available for reading.
     DataReadable {
@@ -377,9 +456,23 @@ pub enum Http3Event {
         stream_id: u64,
         error: u64,
     },
-    /// A new push stream
-    NewPushStream {
-        stream_id: u64,
+    /// A PushPromise
+    PushPromise {
+        push_id: u64,
+        request_stream_id: u64,
+    },
+    /// A push response headers are ready.
+    PushHeaderReady {
+        push_id: u64,
+        fin: bool,
+    },
+    /// New bytes are available on a push stream for reading.
+    PushDataReadable {
+        push_id: u64,
+    },
+    /// A push has been canceled.
+    PushCanceled {
+        push_id: u64,
     },
     RequestsCreatable,
     AuthenticationNeeded,
@@ -392,50 +485,116 @@ pub enum Http3Event {
     ConnectionClosed {
         error: CloseError,
     },
+    ResumptionToken {
+        expire_in: u64, // microseconds
+    },
     NoEvent,
 }
 
-#[no_mangle]
-pub extern "C" fn neqo_http3conn_event(conn: &mut NeqoHttp3Conn) -> Http3Event {
-    loop {
-        match conn.conn.next_event() {
-            None => break Http3Event::NoEvent,
-            Some(e) => {
-                let fe: Http3Event = e.into();
-                match fe {
-                    Http3Event::NoEvent => {}
-                    _ => break fe,
-                };
-            }
-        }
+fn convert_h3_to_h1_headers(
+    headers: Vec<(String, String)>,
+    ret_headers: &mut ThinVec<u8>,
+) -> nsresult {
+    if headers.iter().filter(|(k, _)| k == ":status").count() != 1 {
+        return NS_ERROR_ILLEGAL_VALUE;
     }
+
+    let (_, status_val) = headers
+        .iter()
+        .find(|(k, _)| k == ":status")
+        .expect("must be one");
+
+    ret_headers.extend_from_slice(b"HTTP/3 ");
+    ret_headers.extend_from_slice(status_val.as_bytes());
+    ret_headers.extend_from_slice(b"\r\n");
+
+    for (key, value) in headers.iter().filter(|(k, _)| k != ":status") {
+        ret_headers.extend_from_slice(key.as_bytes());
+        ret_headers.extend_from_slice(b": ");
+        ret_headers.extend_from_slice(value.as_bytes());
+        ret_headers.extend_from_slice(b"\r\n");
+    }
+    ret_headers.extend_from_slice(b"\r\n");
+    return NS_OK;
 }
 
-impl From<Http3ClientEvent> for Http3Event {
-    fn from(event: Http3ClientEvent) -> Self {
-        match event {
-            Http3ClientEvent::DataWritable { stream_id } => {
-                Http3Event::DataWritable { stream_id }
+#[no_mangle]
+pub extern "C" fn neqo_http3conn_event(
+    conn: &mut NeqoHttp3Conn,
+    ret_event: &mut Http3Event,
+    data: &mut ThinVec<u8>,
+) -> nsresult {
+    while let Some(evt) = conn.conn.next_event() {
+        let fe = match evt {
+            Http3ClientEvent::DataWritable { stream_id } => Http3Event::DataWritable { stream_id },
+            Http3ClientEvent::StopSending { stream_id, error } => {
+                Http3Event::StopSending { stream_id, error }
             }
-            Http3ClientEvent::StopSending { stream_id, .. } => {
-                Http3Event::StopSending { stream_id }
-            }
-            Http3ClientEvent::HeaderReady { stream_id } => {
-                Http3Event::HeaderReady { stream_id }
-            }
-            Http3ClientEvent::DataReadable { stream_id } => {
-                Http3Event::DataReadable { stream_id }
-            }
-            Http3ClientEvent::Reset { stream_id, error } => Http3Event::Reset {
+            Http3ClientEvent::HeaderReady {
                 stream_id,
-                error,
-            },
-            Http3ClientEvent::NewPushStream { stream_id } => {
-                Http3Event::NewPushStream { stream_id }
+                headers,
+                fin,
+            } => {
+                if let Some(headers) = headers {
+                    let res = convert_h3_to_h1_headers(headers, data);
+                    if res != NS_OK {
+                        return res;
+                    }
+                }
+                Http3Event::HeaderReady { stream_id, fin }
             }
+            Http3ClientEvent::DataReadable { stream_id } => Http3Event::DataReadable { stream_id },
+            Http3ClientEvent::Reset { stream_id, error } => Http3Event::Reset { stream_id, error },
+            Http3ClientEvent::PushPromise {
+                push_id,
+                request_stream_id,
+                headers,
+            } => {
+                let res = convert_h3_to_h1_headers(headers, data);
+                if res != NS_OK {
+                    return res;
+                }
+                Http3Event::PushPromise {
+                    push_id,
+                    request_stream_id,
+                }
+            }
+            Http3ClientEvent::PushHeaderReady {
+                push_id,
+                headers,
+                fin,
+            } => {
+                if let Some(headers) = headers {
+                    let res = convert_h3_to_h1_headers(headers, data);
+                    if res != NS_OK {
+                        return res;
+                    }
+                }
+                Http3Event::PushHeaderReady { push_id, fin }
+            }
+            Http3ClientEvent::PushDataReadable { push_id } => {
+                Http3Event::PushDataReadable { push_id }
+            }
+            Http3ClientEvent::PushCanceled { push_id } => Http3Event::PushCanceled { push_id },
             Http3ClientEvent::RequestsCreatable => Http3Event::RequestsCreatable,
             Http3ClientEvent::AuthenticationNeeded => Http3Event::AuthenticationNeeded,
             Http3ClientEvent::ZeroRttRejected => Http3Event::ZeroRttRejected,
+            Http3ClientEvent::ResumptionToken(token) => {
+                // expiration_time time is Instant, transform it into microseconds it will
+                // be valid for. Necko code will add the value to PR_Now() to get the expiration
+                // time in PRTime.
+                if token.expiration_time() > Instant::now() {
+                    let e = (token.expiration_time() - Instant::now()).as_micros();
+                    if let Ok(expire_in) = u64::try_from(e) {
+                        data.extend_from_slice(token.as_ref());
+                        Http3Event::ResumptionToken { expire_in }
+                    } else {
+                        Http3Event::NoEvent
+                    }
+                } else {
+                    Http3Event::NoEvent
+                }
+            }
             Http3ClientEvent::GoawayReceived => Http3Event::GoawayReceived,
             Http3ClientEvent::StateChange(state) => match state {
                 Http3State::Connected => Http3Event::ConnectionConnected,
@@ -447,42 +606,16 @@ impl From<Http3ClientEvent> for Http3Event {
                 },
                 _ => Http3Event::NoEvent,
             },
+        };
+
+        if !matches!(fe, Http3Event::NoEvent) {
+            *ret_event = fe;
+            return NS_OK;
         }
     }
-}
 
-// Read response headers.
-// Firefox needs these headers to look like http1 heeaders, so we are
-// building that here.
-#[no_mangle]
-pub extern "C" fn neqo_http3conn_read_response_headers(
-    conn: &mut NeqoHttp3Conn,
-    stream_id: u64,
-    headers: &mut ThinVec<u8>,
-    fin: &mut bool,
-) -> nsresult {
-    match conn.conn.read_response_headers(stream_id) {
-        Ok((h, fin_recvd)) => {
-            let status_element: Vec<_> = h.iter().filter(|elem| elem.0 == ":status").collect();
-            if status_element.len() != 1 {
-                return NS_ERROR_ILLEGAL_VALUE;
-            }
-            headers.extend_from_slice("HTTP/3.0 ".as_bytes());
-            headers.extend_from_slice(status_element[0].1.as_bytes());
-            headers.extend_from_slice("\r\n".as_bytes());
-
-            for elem in h.iter().filter(|elem| elem.0 != ":status") {
-                headers.extend_from_slice(&elem.0.as_bytes());
-                headers.extend_from_slice(": ".as_bytes());
-                headers.extend_from_slice(&elem.1.as_bytes());
-                headers.extend_from_slice("\r\n".as_bytes());
-            }
-            headers.extend_from_slice("\r\n".as_bytes());
-            *fin = fin_recvd;
-            NS_OK
-        }
-        Err(_) => NS_ERROR_INVALID_ARG,
-    }
+    *ret_event = Http3Event::NoEvent;
+    NS_OK
 }
 
 // Read response data into buf.
@@ -505,9 +638,9 @@ pub extern "C" fn neqo_http3conn_read_response_data(
             *fin = fin_recvd;
             NS_OK
         }
-        Err(Http3Error::TransportError(TransportError::InvalidStreamId))
+        Err(Http3Error::InvalidStreamId)
         | Err(Http3Error::TransportError(TransportError::NoMoreData)) => NS_ERROR_INVALID_ARG,
-        Err(Http3Error::HttpFrameError) => NS_ERROR_ABORT,
+        Err(Http3Error::HttpFrame) => NS_ERROR_ABORT,
         Err(_) => NS_ERROR_UNEXPECTED,
     }
 }
@@ -602,4 +735,17 @@ pub extern "C" fn neqo_http3conn_peer_certificate_info(
 #[no_mangle]
 pub extern "C" fn neqo_http3conn_authenticated(conn: &mut NeqoHttp3Conn, error: PRErrorCode) {
     conn.conn.authenticated(error.into(), Instant::now());
+}
+
+#[no_mangle]
+pub extern "C" fn neqo_http3conn_set_resumption_token(
+    conn: &mut NeqoHttp3Conn,
+    token: &mut ThinVec<u8>,
+) {
+    let _ = conn.conn.enable_resumption(Instant::now(), token);
+}
+
+#[no_mangle]
+pub extern "C" fn neqo_http3conn_is_zero_rtt(conn: &mut NeqoHttp3Conn) -> bool {
+    conn.conn.state() == Http3State::ZeroRtt
 }

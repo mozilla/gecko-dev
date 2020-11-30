@@ -20,7 +20,7 @@
     #results {
       margin: 5px;
       background-color: window;
-      -moz-user-select: text;
+      user-select: text;
     }
 
     #summary {
@@ -110,7 +110,6 @@
     function browserTest(aTestFile) {
       this.path = aTestFile['url'];
       this.expected = aTestFile['expected'];
-      this.usesUnsafeCPOWs = aTestFile['uses-unsafe-cpows'] || false;
       this.dumper = gDumper;
       this.results = [];
       this.scope = null;
@@ -138,6 +137,8 @@
 
         if (result.info) {
           if (result.msg) {
+            ChromeUtils.addProfilerMarker("browser-test", undefined,
+                                          "TEST-INFO " + result.msg);
             this.dumper.structuredLogger.info(result.msg);
           }
           return;
@@ -148,6 +149,18 @@
                                                 result.status,
                                                 result.expected,
                                                 result.msg);
+        let markerText = "TEST-";
+        if (result.pass) {
+          markerText += result.todo ? "KNOWN-FAIL" : "PASS";
+        }
+        else {
+          markerText += "UNEXPECTED-" + result.status;
+        }
+        markerText += " " + result.name;
+        if (result.msg) {
+          markerText += " - " + result.msg;
+        }
+        ChromeUtils.addProfilerMarker("browser-test", undefined, markerText);
       },
 
       setDuration: function setDuration(duration) {
@@ -309,14 +322,25 @@
     }
 
     function testsFinished(aTests) {
-      // Focus our window, to display the results
-      window.focus();
-
       if (gConfig.closeWhenDone) {
-        let appStartup = Cc["@mozilla.org/toolkit/app-startup;1"].getService(Ci.nsIAppStartup);
-        appStartup.quit(Ci.nsIAppStartup.eForceQuit);
+        const {AppConstants} = ChromeUtils.import("resource://gre/modules/AppConstants.jsm");
+        if (
+          !AppConstants.RELEASE_OR_BETA &&
+          !AppConstants.DEBUG &&
+          !AppConstants.MOZ_CODE_COVERAGE &&
+          !AppConstants.ASAN &&
+          !AppConstants.TSAN
+        ) {
+          Cu.exitIfInAutomation();
+        } else {
+          let appStartup = Cc["@mozilla.org/toolkit/app-startup;1"].getService(Ci.nsIAppStartup);
+          appStartup.quit(Ci.nsIAppStartup.eForceQuit);
+        }
         return;
       }
+
+      // Focus our window, to display the results
+      window.focus();
 
       // UI
       document.getElementById("results").innerHTML = getHTMLLogFromTests(aTests);

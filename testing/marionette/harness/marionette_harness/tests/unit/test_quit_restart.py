@@ -6,7 +6,8 @@ from __future__ import absolute_import, print_function
 
 import sys
 import unittest
-import urllib
+
+from six.moves.urllib.parse import quote
 
 from marionette_driver import errors
 from marionette_driver.by import By
@@ -14,7 +15,7 @@ from marionette_harness import MarionetteTestCase
 
 
 def inline(doc):
-    return "data:text/html;charset=utf-8,{}".format(urllib.quote(doc))
+    return "data:text/html;charset=utf-8,{}".format(quote(doc))
 
 
 class TestServerQuitApplication(MarionetteTestCase):
@@ -198,19 +199,31 @@ class TestQuitRestart(MarionetteTestCase):
 
     @unittest.skipIf(sys.platform.startswith("win"), "Bug 1493796")
     def test_in_app_restart_with_callback_but_process_quit(self):
-        with self.assertRaisesRegexp(IOError, "Process unexpectedly quit without restarting"):
-            self.marionette.restart(in_app=True, callback=lambda: self.shutdown(restart=False))
+        try:
+            timeout_shutdown = self.marionette.shutdown_timeout
+            timeout_startup = self.marionette.startup_timeout
+            self.marionette.shutdown_timeout = 5
+            self.marionette.startup_timeout = 0
+
+            with self.assertRaisesRegexp(IOError, "Process unexpectedly quit without restarting"):
+                self.marionette.restart(in_app=True, callback=lambda: self.shutdown(restart=False))
+        finally:
+            self.marionette.shutdown_timeout = timeout_shutdown
+            self.marionette.startup_timeout = timeout_startup
 
     @unittest.skipIf(sys.platform.startswith("win"), "Bug 1493796")
     def test_in_app_restart_with_callback_missing_shutdown(self):
         try:
             timeout_shutdown = self.marionette.shutdown_timeout
+            timeout_startup = self.marionette.startup_timeout
             self.marionette.shutdown_timeout = 5
+            self.marionette.startup_timeout = 0
 
             with self.assertRaisesRegexp(IOError, "the connection to Marionette server is lost"):
                 self.marionette.restart(in_app=True, callback=lambda: False)
         finally:
             self.marionette.shutdown_timeout = timeout_shutdown
+            self.marionette.startup_timeout = timeout_startup
 
     def test_in_app_restart_safe_mode(self):
 

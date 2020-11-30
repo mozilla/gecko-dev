@@ -9,6 +9,9 @@
 #include "mozilla/ArrayUtils.h"
 #include "FFmpegLog.h"
 #include "prlink.h"
+#ifdef MOZ_WAYLAND
+#  include "gfxPlatformGtk.h"
+#endif
 
 namespace mozilla {
 
@@ -54,18 +57,49 @@ bool FFmpegRuntimeLinker::Init() {
   }
 
 #ifdef MOZ_WAYLAND
-  {
-    const char* lib = "libva.so.2";
+  if (gfxPlatformGtk::GetPlatform()->UseHardwareVideoDecoding()) {
     PRLibSpec lspec;
     lspec.type = PR_LibSpec_Pathname;
-    lspec.value.pathname = lib;
-    sLibAV.mVALib = PR_LoadLibraryWithFlags(lspec, PR_LD_NOW | PR_LD_LOCAL);
-    // Don't use libva when it's missing vaExportSurfaceHandle.
-    if (sLibAV.mVALib &&
-        !PR_FindSymbol(sLibAV.mVALib, "vaExportSurfaceHandle")) {
-      PR_UnloadLibrary(sLibAV.mVALib);
-      sLibAV.mVALib = nullptr;
+
+    if (gfxPlatformGtk::GetPlatform()->UseDRMVAAPIDisplay()) {
+      const char* libDrm = "libva-drm.so.2";
+      lspec.value.pathname = libDrm;
+      sLibAV.mVALibDrm =
+          PR_LoadLibraryWithFlags(lspec, PR_LD_NOW | PR_LD_LOCAL);
+      if (!sLibAV.mVALibDrm) {
+        FFMPEG_LOG("VA-API support: Missing or old %s library.\n", libDrm);
+      }
+    } else {
+      if (gfxPlatformGtk::GetPlatform()->IsWaylandDisplay()) {
+        const char* libWayland = "libva-wayland.so.2";
+        lspec.value.pathname = libWayland;
+        sLibAV.mVALibWayland =
+            PR_LoadLibraryWithFlags(lspec, PR_LD_NOW | PR_LD_LOCAL);
+        if (!sLibAV.mVALibWayland) {
+          FFMPEG_LOG("VA-API support: Missing or old %s library.\n",
+                     libWayland);
+        }
+      } else {
+        FFMPEG_LOG("VA-API X11 display is not implemented.\n");
+      }
     }
+
+    if (sLibAV.mVALibWayland || sLibAV.mVALibDrm) {
+      const char* lib = "libva.so.2";
+      lspec.value.pathname = lib;
+      sLibAV.mVALib = PR_LoadLibraryWithFlags(lspec, PR_LD_NOW | PR_LD_LOCAL);
+      // Don't use libva when it's missing vaExportSurfaceHandle.
+      if (sLibAV.mVALib &&
+          !PR_FindSymbol(sLibAV.mVALib, "vaExportSurfaceHandle")) {
+        PR_UnloadLibrary(sLibAV.mVALib);
+        sLibAV.mVALib = nullptr;
+      }
+      if (!sLibAV.mVALib) {
+        FFMPEG_LOG("VA-API support: Missing or old %s library.\n", lib);
+      }
+    }
+  } else {
+    FFMPEG_LOG("VA-API FFmpeg is disabled by platform");
   }
 #endif
 

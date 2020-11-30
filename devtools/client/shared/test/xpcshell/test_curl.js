@@ -81,6 +81,43 @@ add_task(async function() {
     "content-type header present in curl output"
   );
   ok(!inParams(curlParams, "--data"), "no data param in GET curl output");
+  ok(
+    !inParams(curlParams, "--data-raw"),
+    "no raw data param in GET curl output"
+  );
+});
+
+// Test `Curl.generateCommand` URL glob handling
+add_task(async function() {
+  let request = {
+    url: "https://example.com/",
+    method: "GET",
+    headers: [],
+    httpVersion: "HTTP/2.0",
+  };
+
+  let cmd = Curl.generateCommand(request);
+  let curlParams = parseCurl(cmd);
+
+  ok(
+    !inParams(curlParams, "--globoff"),
+    "no globoff param in curl output when not needed"
+  );
+
+  request = {
+    url: "https://example.com/[]",
+    method: "GET",
+    headers: [],
+    httpVersion: "HTTP/2.0",
+  };
+
+  cmd = Curl.generateCommand(request);
+  curlParams = parseCurl(cmd);
+
+  ok(
+    inParams(curlParams, "--globoff"),
+    "globoff param present in curl output when needed"
+  );
 });
 
 // Test `Curl.generateCommand` data POSTing
@@ -107,9 +144,12 @@ add_task(async function() {
     exactHeaderInParams(curlParams, "Content-Type: text/plain"),
     "content-type header present in curl output"
   );
-  ok(inParams(curlParams, "--data"), '"--data" param present in curl output');
   ok(
-    inParams(curlParams, `--data ${quote(request.postDataText)}`),
+    inParams(curlParams, "--data-raw"),
+    '"--data-raw" param present in curl output'
+  );
+  ok(
+    inParams(curlParams, `--data-raw ${quote(request.postDataText)}`),
     "proper payload data present in output"
   );
 });

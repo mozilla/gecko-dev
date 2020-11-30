@@ -26,6 +26,7 @@
 
 #  include "mozilla/Unused.h"
 #  include "mozilla/ScopeExit.h"
+#  include "ProcessUtils.h"
 
 using namespace mozilla::ipc;
 #endif
@@ -184,6 +185,7 @@ static void ReserveFileDescriptors() {
 void InitForkServerProcess() {
   InstallChildSignalHandler();
   ReserveFileDescriptors();
+  SetThisProcessName("forkserver");
 }
 
 static bool LaunchAppWithForkServer(const std::vector<std::string>& argv,
@@ -228,6 +230,17 @@ bool LaunchApp(const std::vector<std::string>& argv,
     return false;
   }
 
+#ifdef MOZ_CODE_COVERAGE
+  // Before gcc/clang 10 there is a gcda dump before the fork.
+  // This dump mustn't be interrupted by a SIGUSR1 else we may
+  // have a dead lock (see bug 1637377).
+  // So we just remove the handler and restore it after the fork
+  // It's up the child process to set it up.
+  // Once we switch to gcc/clang 10, we could just remove it in the child
+  // process
+  void (*ccovSigHandler)(int) = signal(SIGUSR1, SIG_IGN);
+#endif
+
 #ifdef OS_LINUX
   pid_t pid = options.fork_delegate ? options.fork_delegate->Fork() : fork();
   // WARNING: if pid == 0, only async signal safe operations are permitted from
@@ -269,6 +282,12 @@ bool LaunchApp(const std::vector<std::string>& argv,
   }
 
   // In the parent:
+
+#ifdef MOZ_CODE_COVERAGE
+  // Restore the handler for SIGUSR1
+  signal(SIGUSR1, ccovSigHandler);
+#endif
+
   gProcessLog.print("==> process %d launched child process %d\n",
                     GetCurrentProcId(), pid);
   if (options.wait) HANDLE_EINTR(waitpid(pid, 0, 0));

@@ -3,10 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 SpecialPowers.pushPrefEnv({
-  set: [
-    ["dom.security.featurePolicy.enabled", true],
-    ["permissions.delegation.enabled", true],
-  ],
+  set: [["permissions.delegation.enabled", true]],
 });
 
 let gShouldObserveSubframes = false;
@@ -518,7 +515,7 @@ var gTests = [
 
       for (let t = 0; t < 2; t++) {
         let frame1BC = gShouldObserveSubframes
-          ? gBrowser.selectedBrowser.browsingContext.getChildren()[0]
+          ? gBrowser.selectedBrowser.browsingContext.children[0]
           : undefined;
 
         let observerPromise = expectObserverCalled(

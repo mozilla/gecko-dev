@@ -94,6 +94,7 @@ this.ContentSearchUIController = (function() {
       this._defaultEngine = {
         name: engine.name,
         icon,
+        isAppProvided: engine.isAppProvided,
       };
       this._updateDefaultEngineHeader();
       this._updateDefaultEngineIcon();
@@ -233,7 +234,12 @@ this.ContentSearchUIController = (function() {
     },
 
     addInputValueToFormHistory() {
-      this._sendMsg("AddFormHistoryEntry", this.input.value);
+      let entry = {
+        value: this.input.value,
+        engineName: this.selectedEngineName,
+      };
+      this._sendMsg("AddFormHistoryEntry", entry);
+      return entry;
     },
 
     handleEvent(event) {
@@ -682,13 +688,11 @@ this.ContentSearchUIController = (function() {
     },
 
     _updateDefaultEngineIcon() {
-      let eng = this._engines.find(
-        engine => engine.name === this.defaultEngine.name
-      );
       // We only show the engines icon for default engines, otherwise show
-      // a default; default engines have an identifier
-      let icon =
-        eng && eng.identifier ? this.defaultEngine.icon : DEFAULT_INPUT_ICON;
+      // a default; default engines have isAppProvided
+      let icon = this.defaultEngine.isAppProvided
+        ? this.defaultEngine.icon
+        : DEFAULT_INPUT_ICON;
       document.body.style.setProperty(
         "--newtab-search-icon",
         "url(" + icon + ")"

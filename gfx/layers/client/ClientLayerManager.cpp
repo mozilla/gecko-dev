@@ -13,7 +13,6 @@
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/StaticPrefs_layers.h"
 #include "mozilla/dom/BrowserChild.h"  // for BrowserChild
-#include "mozilla/dom/TabGroup.h"      // for TabGroup
 #include "mozilla/hal_sandbox/PHal.h"  // for ScreenConfiguration
 #include "mozilla/layers/CompositableClient.h"
 #include "mozilla/layers/CompositorBridgeChild.h"  // for CompositorBridgeChild
@@ -29,6 +28,7 @@
 #include "nsAString.h"
 #include "nsDisplayList.h"
 #include "nsIWidgetListener.h"
+#include "nsLayoutUtils.h"
 #include "nsTArray.h"     // for AutoTArray
 #include "nsXULAppAPI.h"  // for XRE_GetProcessType, etc
 #include "TiledLayerBuffer.h"
@@ -140,15 +140,6 @@ void ClientLayerManager::Destroy() {
 
   // Forget the widget pointer in case we outlive our owning widget.
   mWidget = nullptr;
-}
-
-TabGroup* ClientLayerManager::GetTabGroup() {
-  if (mWidget) {
-    if (BrowserChild* browserChild = mWidget->GetOwningBrowserChild()) {
-      return browserChild->TabGroup();
-    }
-  }
-  return nullptr;
 }
 
 int32_t ClientLayerManager::GetMaxTextureSize() const {
@@ -583,16 +574,9 @@ void ClientLayerManager::StartNewRepaintRequest(
 }
 
 void ClientLayerManager::GetFrameUniformity(FrameUniformityData* aOutData) {
-  MOZ_ASSERT(XRE_IsParentProcess(),
-             "Frame Uniformity only supported in parent process");
-
   if (HasShadowManager()) {
-    CompositorBridgeChild* child = GetRemoteRenderer();
-    child->SendGetFrameUniformity(aOutData);
-    return;
+    mForwarder->GetShadowManager()->SendGetFrameUniformity(aOutData);
   }
-
-  return LayerManager::GetFrameUniformity(aOutData);
 }
 
 void ClientLayerManager::MakeSnapshotIfRequired() {

@@ -11,7 +11,6 @@
 #include "ImageContainer.h"    // for ImageContainer, etc
 #include "ImageLayers.h"       // for ImageLayer
 #include "LayerSorter.h"       // for SortLayersBy3DZOrder
-#include "LayersLogging.h"     // for AppendToString
 #include "LayerUserData.h"
 #include "ReadbackLayer.h"   // for ReadbackLayer
 #include "UnitTransforms.h"  // for ViewAs
@@ -24,11 +23,13 @@
 #include "mozilla/StaticPrefs_layers.h"
 #include "mozilla/Telemetry.h"  // for Accumulate
 #include "mozilla/ToString.h"
-#include "mozilla/gfx/2D.h"        // for DrawTarget
-#include "mozilla/gfx/BaseSize.h"  // for BaseSize
-#include "mozilla/gfx/Matrix.h"    // for Matrix4x4
-#include "mozilla/gfx/Polygon.h"   // for Polygon
-#include "mozilla/layers/AsyncCanvasRenderer.h"
+#include "mozilla/dom/Animation.h"              // for dom::Animation
+#include "mozilla/dom/KeyframeEffect.h"         // for dom::Animation
+#include "mozilla/EffectSet.h"                  // for dom::Animation
+#include "mozilla/gfx/2D.h"                     // for DrawTarget
+#include "mozilla/gfx/BaseSize.h"               // for BaseSize
+#include "mozilla/gfx/Matrix.h"                 // for Matrix4x4
+#include "mozilla/gfx/Polygon.h"                // for Polygon
 #include "mozilla/layers/BSPTree.h"             // for BSPTree
 #include "mozilla/layers/CompositableClient.h"  // for CompositableClient
 #include "mozilla/layers/Compositor.h"          // for Compositor
@@ -168,6 +169,44 @@ void LayerManager::PayloadPresented() {
   RecordCompositionPayloadsPresented(mPayload);
 }
 
+void LayerManager::AddPartialPrerenderedAnimation(
+    uint64_t aCompositorAnimationId, dom::Animation* aAnimation) {
+  mPartialPrerenderedAnimations.Put(aCompositorAnimationId, RefPtr{aAnimation});
+  aAnimation->SetPartialPrerendered(aCompositorAnimationId);
+}
+
+void LayerManager::RemovePartialPrerenderedAnimation(
+    uint64_t aCompositorAnimationId, dom::Animation* aAnimation) {
+  MOZ_ASSERT(aAnimation);
+#ifdef DEBUG
+  RefPtr<dom::Animation> animation;
+  if (mPartialPrerenderedAnimations.Remove(aCompositorAnimationId,
+                                           getter_AddRefs(animation)) &&
+      // It may be possible that either animation's effect has already been
+      // nulled out via Animation::SetEffect() so ignore such cases.
+      aAnimation->GetEffect() && aAnimation->GetEffect()->AsKeyframeEffect() &&
+      animation->GetEffect() && animation->GetEffect()->AsKeyframeEffect()) {
+    MOZ_ASSERT(EffectSet::GetEffectSetForEffect(
+                   aAnimation->GetEffect()->AsKeyframeEffect()) ==
+               EffectSet::GetEffectSetForEffect(
+                   animation->GetEffect()->AsKeyframeEffect()));
+  }
+#else
+  mPartialPrerenderedAnimations.Remove(aCompositorAnimationId);
+#endif
+  aAnimation->ResetPartialPrerendered();
+}
+
+void LayerManager::UpdatePartialPrerenderedAnimations(
+    const nsTArray<uint64_t>& aJankedAnimations) {
+  for (uint64_t id : aJankedAnimations) {
+    RefPtr<dom::Animation> animation;
+    if (mPartialPrerenderedAnimations.Remove(id, getter_AddRefs(animation))) {
+      animation->UpdatePartialPrerendered();
+    }
+  }
+}
+
 //--------------------------------------------------
 // Layer
 
@@ -187,13 +226,24 @@ Layer::Layer(LayerManager* aManager, void* aImplData)
 
 Layer::~Layer() = default;
 
+void Layer::SetEventRegions(const EventRegions& aRegions) {
+  if (mEventRegions != aRegions) {
+    MOZ_LAYERS_LOG_IF_SHADOWABLE(
+        this, ("Layer::Mutated(%p) eventregions were %s, now %s", this,
+               ToString(mEventRegions).c_str(), ToString(aRegions).c_str()));
+    mEventRegions = aRegions;
+    Mutated();
+  }
+}
+
 void Layer::SetCompositorAnimations(
+    const LayersId& aLayersId,
     const CompositorAnimations& aCompositorAnimations) {
   MOZ_LAYERS_LOG_IF_SHADOWABLE(
       this, ("Layer::Mutated(%p) SetCompositorAnimations with id=%" PRIu64,
              this, mAnimationInfo.GetCompositorAnimationsId()));
 
-  mAnimationInfo.SetCompositorAnimations(aCompositorAnimations);
+  mAnimationInfo.SetCompositorAnimations(aLayersId, aCompositorAnimations);
 
   Mutated();
 }
@@ -599,10 +649,11 @@ void Layer::ApplyPendingUpdatesForThisTransaction() {
   for (size_t i = 0; i < mScrollMetadata.Length(); i++) {
     FrameMetrics& fm = mScrollMetadata[i].GetMetrics();
     ScrollableLayerGuid::ViewID scrollId = fm.GetScrollId();
-    Maybe<ScrollUpdateInfo> update =
+    Maybe<nsTArray<ScrollPositionUpdate>> update =
         Manager()->GetPendingScrollInfoUpdate(scrollId);
     if (update) {
-      fm.UpdatePendingScrollInfo(update.value());
+      nsTArray<ScrollPositionUpdate> infos = update.extract();
+      mScrollMetadata[i].UpdatePendingScrollInfo(std::move(infos));
       Mutated();
     }
   }
@@ -1156,6 +1207,7 @@ void ContainerLayer::DefaultComputeEffectiveTransforms(
         checkClipRect = true;
         checkMaskLayers = true;
       } else {
+        contTransform.NudgeToIntegers();
 #ifdef MOZ_GFX_OPTIMIZE_MOBILE
         if (!contTransform.PreservesAxisAlignedRectangles()) {
 #else
@@ -1550,8 +1602,10 @@ static void DumpGeometry(std::stringstream& aStream,
   const nsTArray<gfx::Point4D>& points = aGeometry->GetPoints();
   for (size_t i = 0; i < points.Length(); ++i) {
     const gfx::IntPoint point = TruncatedToInt(points[i].As2DPoint());
-    const char* sfx = (i != points.Length() - 1) ? "," : "";
-    AppendToString(aStream, point, "", sfx);
+    aStream << point;
+    if (i != points.Length() - 1) {
+      aStream << ",";
+    }
   }
 
   aStream << "]]";
@@ -1641,14 +1695,14 @@ void Layer::PrintInfo(std::stringstream& aStream, const char* aPrefix) {
   layers::PrintInfo(aStream, AsHostLayer());
 
   if (mClipRect) {
-    AppendToString(aStream, *mClipRect, " [clip=", "]");
+    aStream << " [clip=" << *mClipRect << "]";
   }
   if (mSimpleAttrs.GetScrolledClip()) {
-    AppendToString(aStream, mSimpleAttrs.GetScrolledClip()->GetClipRect(),
-                   " [scrolled-clip=", "]");
+    aStream << " [scrolled-clip="
+            << mSimpleAttrs.GetScrolledClip()->GetClipRect() << "]";
     if (const Maybe<size_t>& ix =
             mSimpleAttrs.GetScrolledClip()->GetMaskLayerIndex()) {
-      AppendToString(aStream, ix.value(), " [scrolled-mask=", "]");
+      aStream << " [scrolled-mask=" << ix.value() << "]";
     }
   }
   if (1.0 != mSimpleAttrs.GetPostXScale() ||
@@ -1659,23 +1713,21 @@ void Layer::PrintInfo(std::stringstream& aStream, const char* aPrefix) {
                    .get();
   }
   if (!GetBaseTransform().IsIdentity()) {
-    AppendToString(aStream, GetBaseTransform(), " [transform=", "]");
+    aStream << " [transform=" << GetBaseTransform() << "]";
   }
   if (!GetEffectiveTransform().IsIdentity()) {
-    AppendToString(aStream, GetEffectiveTransform(),
-                   " [effective-transform=", "]");
+    aStream << " [effective-transform=" << GetEffectiveTransform() << "]";
   }
   if (GetTransformIsPerspective()) {
     aStream << " [perspective]";
   }
   if (!mVisibleRegion.IsEmpty()) {
-    AppendToString(aStream, mVisibleRegion.ToUnknownRegion(),
-                   " [visible=", "]");
+    aStream << " [visible=" << mVisibleRegion << "]";
   } else {
     aStream << " [not visible]";
   }
   if (!mEventRegions.IsEmpty()) {
-    AppendToString(aStream, mEventRegions, " ", "");
+    aStream << " " << mEventRegions;
   }
   if (1.0 != GetOpacity()) {
     aStream << nsPrintfCString(" [opacity=%g]", GetOpacity()).get();
@@ -1750,8 +1802,7 @@ void Layer::PrintInfo(std::stringstream& aStream, const char* aPrefix) {
   }
   for (uint32_t i = 0; i < mScrollMetadata.Length(); i++) {
     if (!mScrollMetadata[i].IsDefault()) {
-      aStream << nsPrintfCString(" [metrics%d=", i).get();
-      AppendToString(aStream, mScrollMetadata[i], "", "]");
+      aStream << " [metrics" << i << "=" << mScrollMetadata[i] << "]";
     }
   }
   // FIXME: On the compositor thread, we don't set mAnimationInfo::mAnimations,
@@ -1942,7 +1993,7 @@ void PaintedLayer::PrintInfo(std::stringstream& aStream, const char* aPrefix) {
   Layer::PrintInfo(aStream, aPrefix);
   nsIntRegion validRegion = GetValidRegion();
   if (!validRegion.IsEmpty()) {
-    AppendToString(aStream, validRegion, " [valid=", "]");
+    aStream << " [valid=" << validRegion << "]";
   }
 }
 
@@ -1986,8 +2037,7 @@ void ContainerLayer::DumpPacket(layerscope::LayersPacket* aPacket,
 
 void ColorLayer::PrintInfo(std::stringstream& aStream, const char* aPrefix) {
   Layer::PrintInfo(aStream, aPrefix);
-  AppendToString(aStream, mColor, " [color=", "]");
-  AppendToString(aStream, mBounds, " [bounds=", "]");
+  aStream << " [color=" << mColor << "] [bounds=" << mBounds << "]";
 }
 
 void ColorLayer::DumpPacket(layerscope::LayersPacket* aPacket,
@@ -2009,7 +2059,7 @@ CanvasLayer::~CanvasLayer() = default;
 void CanvasLayer::PrintInfo(std::stringstream& aStream, const char* aPrefix) {
   Layer::PrintInfo(aStream, aPrefix);
   if (mSamplingFilter != SamplingFilter::GOOD) {
-    AppendToString(aStream, mSamplingFilter, " [filter=", "]");
+    aStream << " [filter=" << mSamplingFilter << "]";
   }
 }
 
@@ -2045,18 +2095,18 @@ void CanvasLayer::DumpPacket(layerscope::LayersPacket* aPacket,
   DumpFilter(layer, mSamplingFilter);
 }
 
-CanvasRenderer* CanvasLayer::CreateOrGetCanvasRenderer() {
+RefPtr<CanvasRenderer> CanvasLayer::CreateOrGetCanvasRenderer() {
   if (!mCanvasRenderer) {
-    mCanvasRenderer.reset(CreateCanvasRendererInternal());
+    mCanvasRenderer = CreateCanvasRendererInternal();
   }
 
-  return mCanvasRenderer.get();
+  return mCanvasRenderer;
 }
 
 void ImageLayer::PrintInfo(std::stringstream& aStream, const char* aPrefix) {
   Layer::PrintInfo(aStream, aPrefix);
   if (mSamplingFilter != SamplingFilter::GOOD) {
-    AppendToString(aStream, mSamplingFilter, " [filter=", "]");
+    aStream << " [filter=" << mSamplingFilter << "]";
   }
 }
 
@@ -2074,7 +2124,7 @@ void ImageLayer::DumpPacket(layerscope::LayersPacket* aPacket,
 void RefLayer::PrintInfo(std::stringstream& aStream, const char* aPrefix) {
   ContainerLayer::PrintInfo(aStream, aPrefix);
   if (mId.IsValid()) {
-    AppendToString(aStream, uint64_t(mId), " [id=", "]");
+    aStream << " [id=" << uint64_t(mId) << "]";
   }
   if (mEventRegionsOverride & EventRegionsOverride::ForceDispatchToContent) {
     aStream << " [force-dtc]";
@@ -2097,12 +2147,13 @@ void RefLayer::DumpPacket(layerscope::LayersPacket* aPacket,
 
 void ReadbackLayer::PrintInfo(std::stringstream& aStream, const char* aPrefix) {
   Layer::PrintInfo(aStream, aPrefix);
-  AppendToString(aStream, mSize, " [size=", "]");
+  aStream << " [size=" << mSize << "]";
   if (mBackgroundLayer) {
-    AppendToString(aStream, mBackgroundLayer, " [backgroundLayer=", "]");
-    AppendToString(aStream, mBackgroundLayerOffset, " [backgroundOffset=", "]");
+    aStream << " [backgroundLayer="
+            << nsPrintfCString("%p", mBackgroundLayer).get() << "]";
+    aStream << " [backgroundOffset=" << mBackgroundLayerOffset << "]";
   } else if (mBackgroundColor.a == 1.f) {
-    AppendToString(aStream, mBackgroundColor, " [backgroundColor=", "]");
+    aStream << " [backgroundColor=" << mBackgroundColor << "]";
   } else {
     aStream << " [nobackground]";
   }
@@ -2217,45 +2268,40 @@ bool LayerManager::IsLogEnabled() {
   return MOZ_LOG_TEST(GetLog(), LogLevel::Debug);
 }
 
-bool LayerManager::SetPendingScrollUpdateForNextTransaction(
-    ScrollableLayerGuid::ViewID aScrollId, const ScrollUpdateInfo& aUpdateInfo,
-    wr::RenderRoot aRenderRoot) {
+bool LayerManager::AddPendingScrollUpdateForNextTransaction(
+    ScrollableLayerGuid::ViewID aScrollId,
+    const ScrollPositionUpdate& aUpdateInfo) {
   Layer* withPendingTransform = DepthFirstSearch<ForwardIterator>(
       GetRoot(), [](Layer* aLayer) { return aLayer->HasPendingTransform(); });
   if (withPendingTransform) {
     return false;
   }
 
-  // If this is called on a LayerManager that's not a WebRenderLayerManager,
-  // then we don't actually need the aRenderRoot information. We force it to
-  // RenderRoot::Default so that we can make assumptions in
-  // GetPendingScrollInfoUpdate.
-  wr::RenderRoot renderRoot = (GetBackendType() == LayersBackend::LAYERS_WR)
-                                  ? aRenderRoot
-                                  : wr::RenderRoot::Default;
-  mPendingScrollUpdates[renderRoot].Put(aScrollId, aUpdateInfo);
+  mPendingScrollUpdates.GetOrInsert(aScrollId).AppendElement(aUpdateInfo);
   return true;
 }
 
-Maybe<ScrollUpdateInfo> LayerManager::GetPendingScrollInfoUpdate(
+Maybe<nsTArray<ScrollPositionUpdate>> LayerManager::GetPendingScrollInfoUpdate(
     ScrollableLayerGuid::ViewID aScrollId) {
-  // This never gets called for WebRenderLayerManager, so we assume that all
-  // pending scroll info updates are stored under the default RenderRoot.
-  MOZ_ASSERT(GetBackendType() != LayersBackend::LAYERS_WR);
-  auto p = mPendingScrollUpdates[wr::RenderRoot::Default].Lookup(aScrollId);
-  return p ? Some(p.Data()) : Nothing();
+  auto p = mPendingScrollUpdates.Lookup(aScrollId);
+  if (!p) {
+    return Nothing();
+  }
+  // We could have this function return a CopyableTArray or something, but it
+  // seems better to avoid implicit copies and just do the one explicit copy
+  // where we need it, here.
+  nsTArray<ScrollPositionUpdate> copy;
+  copy.AppendElements(p.Data());
+  return Some(std::move(copy));
 }
 
 std::unordered_set<ScrollableLayerGuid::ViewID>
 LayerManager::ClearPendingScrollInfoUpdate() {
   std::unordered_set<ScrollableLayerGuid::ViewID> scrollIds;
-  for (auto renderRoot : wr::kRenderRoots) {
-    auto& updates = mPendingScrollUpdates[renderRoot];
-    for (auto it = updates.Iter(); !it.Done(); it.Next()) {
-      scrollIds.insert(it.Key());
-    }
-    updates.Clear();
+  for (auto it = mPendingScrollUpdates.Iter(); !it.Done(); it.Next()) {
+    scrollIds.insert(it.Key());
   }
+  mPendingScrollUpdates.Clear();
   return scrollIds;
 }
 
@@ -2265,17 +2311,16 @@ void PrintInfo(std::stringstream& aStream, HostLayer* aLayerComposite) {
   }
   if (const Maybe<ParentLayerIntRect>& clipRect =
           aLayerComposite->GetShadowClipRect()) {
-    AppendToString(aStream, *clipRect, " [shadow-clip=", "]");
+    aStream << " [shadow-clip=" << *clipRect << "]";
   }
   if (!aLayerComposite->GetShadowBaseTransform().IsIdentity()) {
-    AppendToString(aStream, aLayerComposite->GetShadowBaseTransform(),
-                   " [shadow-transform=", "]");
+    aStream << " [shadow-transform="
+            << aLayerComposite->GetShadowBaseTransform() << "]";
   }
   if (!aLayerComposite->GetLayer()->Extend3DContext() &&
       !aLayerComposite->GetShadowVisibleRegion().IsEmpty()) {
-    AppendToString(aStream,
-                   aLayerComposite->GetShadowVisibleRegion().ToUnknownRegion(),
-                   " [shadow-visible=", "]");
+    aStream << " [shadow-visible=" << aLayerComposite->GetShadowVisibleRegion()
+            << "]";
   }
 }
 
@@ -2312,11 +2357,19 @@ void RecordCompositionPayloadsPresented(
     for (const CompositionPayload& payload : aPayloads) {
 #if MOZ_GECKO_PROFILER
       if (profiler_can_accept_markers()) {
-        nsPrintfCString marker(
-            "Payload Presented, type: %d latency: %dms\n",
-            int32_t(payload.mType),
+        MOZ_RELEASE_ASSERT(payload.mType <= kHighestCompositionPayloadType);
+        nsAutoCString name(
+            kCompositionPayloadTypeNames[uint8_t(payload.mType)]);
+        name.AppendLiteral(" Payload Presented");
+        // This doesn't really need to be a text marker. Once we have a version
+        // of profiler_add_marker that accepts both a start time and an end
+        // time, we could use that here.
+        nsPrintfCString text(
+            "Latency: %dms",
             int32_t((presented - payload.mTimeStamp).ToMilliseconds()));
-        PROFILER_ADD_MARKER(marker.get(), GRAPHICS);
+        PROFILER_MARKER_TEXT(
+            name, GRAPHICS,
+            MarkerTiming::Interval(payload.mTimeStamp, presented), text);
       }
 #endif
 

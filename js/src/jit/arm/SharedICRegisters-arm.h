@@ -7,7 +7,9 @@
 #ifndef jit_arm_SharedICRegisters_arm_h
 #define jit_arm_SharedICRegisters_arm_h
 
-#include "jit/MacroAssembler.h"
+#include "jit/arm/Assembler-arm.h"
+#include "jit/Registers.h"
+#include "jit/RegisterSets.h"
 
 namespace js {
 namespace jit {
@@ -47,6 +49,8 @@ static constexpr Register BaselineSecondScratchReg = r6;
 // FloatReg0 must be equal to ReturnFloatReg.
 static constexpr FloatRegister FloatReg0 = d0;
 static constexpr FloatRegister FloatReg1 = d1;
+static constexpr FloatRegister FloatReg2 = d2;
+static constexpr FloatRegister FloatReg3 = d3;
 
 }  // namespace jit
 }  // namespace js

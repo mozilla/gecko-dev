@@ -290,9 +290,10 @@ class MOZ_STACK_CLASS CallOrNewEmitter {
   }
 
  public:
-  MOZ_MUST_USE bool emitNameCallee(Handle<JSAtom*> name);
+  MOZ_MUST_USE bool emitNameCallee(const ParserAtom* name);
   MOZ_MUST_USE PropOpEmitter& prepareForPropCallee(bool isSuperProp);
-  MOZ_MUST_USE ElemOpEmitter& prepareForElemCallee(bool isSuperElem);
+  MOZ_MUST_USE ElemOpEmitter& prepareForElemCallee(bool isSuperElem,
+                                                   bool isPrivateElem);
   MOZ_MUST_USE bool prepareForFunctionCallee();
   MOZ_MUST_USE bool emitSuperCallee();
   MOZ_MUST_USE bool prepareForOtherCallee();

@@ -14,10 +14,14 @@
 #include "txURIUtils.h"
 #include "txXMLParser.h"
 
+using mozilla::UniquePtr;
+using mozilla::Unused;
+using mozilla::WrapUnique;
+
 const int32_t txExecutionState::kMaxRecursionDepth = 20000;
 
 nsresult txLoadedDocumentsHash::init(const txXPathNode& aSource) {
-  mSourceDocument = txXPathNodeUtils::getOwnerDocument(aSource);
+  mSourceDocument = WrapUnique(txXPathNodeUtils::getOwnerDocument(aSource));
 
   nsAutoString baseURI;
   nsresult rv = txXPathNodeUtils::getBaseURI(*mSourceDocument, baseURI);
@@ -35,8 +39,8 @@ nsresult txLoadedDocumentsHash::init(const txXPathNode& aSource) {
   // txMozillaXSLTProcessor::TransformToFragment) it makes more sense to return
   // the real root of the source tree, which is the node where the transform
   // started.
-  PutEntry(baseURI)->mDocument =
-      txXPathNativeNode::createXPathNode(txXPathNativeNode::getNode(aSource));
+  PutEntry(baseURI)->mDocument = WrapUnique(
+      txXPathNativeNode::createXPathNode(txXPathNativeNode::getNode(aSource)));
   return NS_OK;
 }
 
@@ -47,7 +51,7 @@ txLoadedDocumentsHash::~txLoadedDocumentsHash() {
     if (NS_SUCCEEDED(rv)) {
       txLoadedDocumentEntry* entry = GetEntry(baseURI);
       if (entry) {
-        delete entry->mDocument.forget();
+        delete entry->mDocument.release();
       }
     }
   }
@@ -133,8 +137,7 @@ nsresult txExecutionState::init(
 
   // The actual value here doesn't really matter since noone should use this
   // value. But lets put something errorlike in just in case
-  mGlobalVarPlaceholderValue =
-      new StringResult(NS_LITERAL_STRING("Error"), nullptr);
+  mGlobalVarPlaceholderValue = new StringResult(u"Error"_ns, nullptr);
 
   // Initiate first instruction. This has to be done last since findTemplate
   // might use us.
@@ -239,20 +242,20 @@ nsresult txExecutionState::getVariable(int32_t aNamespace, nsAtom* aLName,
       return rv;
     }
   } else {
-    nsAutoPtr<txRtfHandler> rtfHandler(new txRtfHandler);
+    UniquePtr<txRtfHandler> rtfHandler(new txRtfHandler);
 
-    rv = pushResultHandler(rtfHandler);
+    rv = pushResultHandler(rtfHandler.get());
     if (NS_FAILED(rv)) {
       popAndDeleteEvalContextUntil(mInitialEvalContext);
       return rv;
     }
 
-    rtfHandler.forget();
+    Unused << rtfHandler.release();
 
     txInstruction* prevInstr = mNextInstruction;
     // set return to nullptr to stop execution
     mNextInstruction = nullptr;
-    rv = runTemplate(var->mFirstInstruction);
+    rv = runTemplate(var->mFirstInstruction.get());
     if (NS_FAILED(rv)) {
       popAndDeleteEvalContextUntil(mInitialEvalContext);
       return rv;
@@ -268,7 +271,7 @@ nsresult txExecutionState::getVariable(int32_t aNamespace, nsAtom* aLName,
     popTemplateRule();
 
     mNextInstruction = prevInstr;
-    rtfHandler = (txRtfHandler*)popResultHandler();
+    rtfHandler = WrapUnique((txRtfHandler*)popResultHandler());
     rv = rtfHandler->getAsRTF(&aResult);
     if (NS_FAILED(rv)) {
       popAndDeleteEvalContextUntil(mInitialEvalContext);
@@ -319,18 +322,16 @@ txIEvalContext* txExecutionState::popEvalContext() {
 }
 
 nsresult txExecutionState::pushBool(bool aBool) {
-  return mBoolStack.AppendElement(aBool) ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
+  // XXX(Bug 1631371) Check if this should use a fallible operation as it
+  // pretended earlier, or change the return type to void.
+  mBoolStack.AppendElement(aBool);
+  return NS_OK;
 }
 
 bool txExecutionState::popBool() {
   NS_ASSERTION(mBoolStack.Length(), "popping from empty stack");
-  uint32_t last = mBoolStack.Length() - 1;
-  NS_ENSURE_TRUE(last != (uint32_t)-1, false);
 
-  bool res = mBoolStack.ElementAt(last);
-  mBoolStack.RemoveElementAt(last);
-
-  return res;
+  return mBoolStack.IsEmpty() ? false : mBoolStack.PopLastElement();
 }
 
 nsresult txExecutionState::pushResultHandler(txAXMLEventHandler* aHandler) {
@@ -373,7 +374,7 @@ const txXPathNode* txExecutionState::retrieveDocument(const nsAString& aUri) {
     return nullptr;
   }
 
-  MOZ_LOG(txLog::xslt, LogLevel::Debug,
+  MOZ_LOG(txLog::xslt, mozilla::LogLevel::Debug,
           ("Retrieve Document %s", NS_LossyConvertUTF16toASCII(aUri).get()));
 
   // try to get already loaded document
@@ -392,13 +393,12 @@ const txXPathNode* txExecutionState::retrieveDocument(const nsAString& aUri) {
                                getter_Transfers(entry->mDocument));
 
     if (entry->LoadingFailed()) {
-      receiveError(NS_LITERAL_STRING("Couldn't load document '") + aUri +
-                       NS_LITERAL_STRING("': ") + errMsg,
+      receiveError(u"Couldn't load document '"_ns + aUri + u"': "_ns + errMsg,
                    entry->mLoadResult);
     }
   }
 
-  return entry->mDocument;
+  return entry->mDocument.get();
 }
 
 nsresult txExecutionState::getKeyNodes(const txExpandedName& aKeyName,
@@ -418,7 +418,7 @@ txExecutionState::TemplateRule* txExecutionState::getCurrentTemplateRule() {
 txInstruction* txExecutionState::getNextInstruction() {
   txInstruction* instr = mNextInstruction;
   if (instr) {
-    mNextInstruction = instr->mNext;
+    mNextInstruction = instr->mNext.get();
   }
 
   return instr;

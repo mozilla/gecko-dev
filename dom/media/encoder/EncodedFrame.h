@@ -7,6 +7,8 @@
 #define EncodedFrame_h_
 
 #include "nsISupportsImpl.h"
+#include "mozilla/media/MediaUtils.h"
+#include "TimeUnits.h"
 #include "VideoUtils.h"
 
 namespace mozilla {
@@ -15,55 +17,46 @@ namespace mozilla {
 class EncodedFrame final {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(EncodedFrame)
  public:
-  EncodedFrame() : mTime(0), mDuration(0), mFrameType(UNKNOWN) {}
   enum FrameType {
     VP8_I_FRAME,       // VP8 intraframe
     VP8_P_FRAME,       // VP8 predicted frame
     OPUS_AUDIO_FRAME,  // Opus audio frame
     UNKNOWN            // FrameType not set
   };
-  void SwapInFrameData(nsTArray<uint8_t>& aData) {
-    mFrameData.SwapElements(aData);
+  using ConstFrameData = const media::Refcountable<nsTArray<uint8_t>>;
+  using FrameData = media::Refcountable<nsTArray<uint8_t>>;
+  EncodedFrame(const media::TimeUnit& aTime, uint64_t aDuration,
+               uint64_t aDurationBase, FrameType aFrameType,
+               RefPtr<ConstFrameData> aData)
+      : mTime(aTime),
+        mDuration(aDuration),
+        mDurationBase(aDurationBase),
+        mFrameType(aFrameType),
+        mFrameData(std::move(aData)) {
+    MOZ_ASSERT(mFrameData);
+    MOZ_ASSERT_IF(mFrameType == VP8_I_FRAME, mDurationBase == PR_USEC_PER_SEC);
+    MOZ_ASSERT_IF(mFrameType == VP8_P_FRAME, mDurationBase == PR_USEC_PER_SEC);
+    MOZ_ASSERT_IF(mFrameType == OPUS_AUDIO_FRAME, mDurationBase == 48000);
   }
-  nsresult SwapOutFrameData(nsTArray<uint8_t>& aData) {
-    if (mFrameType != UNKNOWN) {
-      // Reset this frame type to UNKNOWN once the data is swapped out.
-      mFrameData.SwapElements(aData);
-      mFrameType = UNKNOWN;
-      return NS_OK;
-    }
-    return NS_ERROR_FAILURE;
-  }
-  const nsTArray<uint8_t>& GetFrameData() const { return mFrameData; }
   // Timestamp in microseconds
-  uint64_t mTime;
-  // The playback duration of this packet. The unit is determined by the use
-  // case. For VP8 the unit should be microseconds. For opus this is the number
-  // of samples.
-  uint64_t mDuration;
+  const media::TimeUnit mTime;
+  // The playback duration of this packet in mDurationBase.
+  const uint64_t mDuration;
+  // The time base of mDuration.
+  const uint64_t mDurationBase;
   // Represent what is in the FrameData
-  FrameType mFrameType;
+  const FrameType mFrameType;
+  // Encoded data
+  const RefPtr<ConstFrameData> mFrameData;
 
-  uint64_t GetEndTime() const {
-    // Defend against untested types. This assert can be removed but we want
-    // to make sure other types are correctly accounted for.
-    MOZ_ASSERT(mFrameType == OPUS_AUDIO_FRAME || mFrameType == VP8_I_FRAME ||
-               mFrameType == VP8_P_FRAME);
-    if (mFrameType == OPUS_AUDIO_FRAME) {
-      // See bug 1356054 for discussion around standardization of time units
-      // (can remove videoutils import when this goes)
-      return mTime + FramesToUsecs(mDuration, 48000).value();
-    } else {
-      return mTime + mDuration;
-    }
+  // The end time of the frame in microseconds.
+  media::TimeUnit GetEndTime() const {
+    return mTime + FramesToTimeUnit(mDuration, mDurationBase);
   }
 
  private:
   // Private destructor, to discourage deletion outside of Release():
   ~EncodedFrame() = default;
-
-  // Encoded data
-  nsTArray<uint8_t> mFrameData;
 };
 
 }  // namespace mozilla

@@ -21,7 +21,6 @@ impl GlFns {
     }
 }
 
-impl Sealed for GlFns {}
 impl Gl for GlFns {
     fn get_type(&self) -> GlType {
         GlType::Gl
@@ -113,7 +112,16 @@ impl Gl for GlFns {
         dst_buffer: &mut [u8],
     ) {
         // Assumes that the user properly allocated the size for dst_buffer.
-        assert!(calculate_length(width, height, format, pixel_type) == dst_buffer.len());
+        let mut row_length = 0;
+        unsafe {
+            self.ffi_gl_.GetIntegerv(ffi::PACK_ROW_LENGTH, &mut row_length as _);
+        }
+        if row_length == 0 {
+            row_length = width;
+        } else {
+            assert!(row_length >= width);
+        }
+        assert_eq!(calculate_length(row_length, height, format, pixel_type), dst_buffer.len());
 
         unsafe {
             // We don't want any alignment padding on pixel rows.
@@ -2197,5 +2205,45 @@ impl Gl for GlFns {
         _unpack_flip_y: GLboolean, _unpack_premultiply_alpha: GLboolean, _unpack_unmultiply_alpha: GLboolean)
     {
         unimplemented!("This extension is GLES only");
+    }
+
+    // GL_ANGLE_copy_texture_3d
+    fn copy_texture_3d_angle(
+        &self,
+        _source_id: GLuint,
+        _source_level: GLint,
+        _dest_target: GLenum,
+        _dest_id: GLuint,
+        _dest_level: GLint,
+        _internal_format: GLint,
+        _dest_type: GLenum,
+        _unpack_flip_y: GLboolean,
+        _unpack_premultiply_alpha: GLboolean,
+        _unpack_unmultiply_alpha: GLboolean,
+    ) {
+        unimplemented!("This extension is ANGLE only");
+    }
+
+    fn copy_sub_texture_3d_angle(
+        &self,
+        _source_id: GLuint,
+        _source_level: GLint,
+        _dest_target: GLenum,
+        _dest_id: GLuint,
+        _dest_level: GLint,
+        _x_offset: GLint,
+        _y_offset: GLint,
+        _z_offset: GLint,
+        _x: GLint,
+        _y: GLint,
+        _z: GLint,
+        _width: GLsizei,
+        _height: GLsizei,
+        _depth: GLsizei,
+        _unpack_flip_y: GLboolean,
+        _unpack_premultiply_alpha: GLboolean,
+        _unpack_unmultiply_alpha: GLboolean,
+    ) {
+        unimplemented!("This extension is ANGLE only");
     }
 }

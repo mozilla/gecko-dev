@@ -14,10 +14,10 @@
 #include "gfxPlatform.h"              // for gfxPlatform
 #include "gfxRect.h"                  // for gfxRect
 #include "mozilla/MathAlgorithms.h"   // for Abs
-#include "mozilla/StaticPrefs_apz.h"
 #include "mozilla/gfx/Point.h"  // for IntSize
 #include "mozilla/gfx/Rect.h"   // for Rect
 #include "mozilla/gfx/Tools.h"  // for BytesPerPixel
+#include "mozilla/layers/APZUtils.h"  // for AboutToCheckerboard
 #include "mozilla/layers/CompositableForwarder.h"
 #include "mozilla/layers/CompositorBridgeChild.h"  // for CompositorBridgeChild
 #include "mozilla/layers/LayerMetricsWrapper.h"
@@ -27,9 +27,7 @@
 #include "nsISupportsImpl.h"      // for gfxContext::AddRef, etc
 #include "nsExpirationTracker.h"  // for nsExpirationTracker
 #include "nsMathUtils.h"          // for NS_lroundf
-#include "LayersLogging.h"
 #include "UnitTransforms.h"  // for TransformTo
-#include "mozilla/StaticPrefs_apz.h"
 #include "mozilla/StaticPrefs_layers.h"
 #include "mozilla/UniquePtr.h"
 
@@ -105,8 +103,8 @@ static AsyncTransform ComputeViewTransform(
   // used in place of mLastContentPaintMetrics, because they should be
   // equivalent, modulo race conditions while transactions are inflight.
 
-  ParentLayerPoint translation = (aCompositorMetrics.GetScrollOffset() -
-                                  aContentMetrics.GetScrollOffset()) *
+  ParentLayerPoint translation = (aCompositorMetrics.GetVisualScrollOffset() -
+                                  aContentMetrics.GetLayoutScrollOffset()) *
                                  aCompositorMetrics.GetZoom();
   return AsyncTransform(aCompositorMetrics.GetAsyncZoom(), -translation);
 }
@@ -166,10 +164,15 @@ bool SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
   // display-port. If we abort updating when we shouldn't, we can end up
   // with blank regions on the screen and we open up the risk of entering
   // an endless updating cycle.
-  if (fabsf(contentMetrics.GetScrollOffset().x -
-            compositorMetrics.GetScrollOffset().x) <= 2 &&
-      fabsf(contentMetrics.GetScrollOffset().y -
-            compositorMetrics.GetScrollOffset().y) <= 2 &&
+  // XXX Suspicious comparisons between layout and visual scroll offsets.
+  // This may not do the right thing when we're zoomed in.
+  // However, note that the code as written will err on the side of returning
+  // false (whenever we're zoomed in and there's a persistent nonzero offset
+  // between the layout and visual viewports), which is the safer option.
+  if (fabsf(contentMetrics.GetLayoutScrollOffset().x -
+            compositorMetrics.GetVisualScrollOffset().x) <= 2 &&
+      fabsf(contentMetrics.GetLayoutScrollOffset().y -
+            compositorMetrics.GetVisualScrollOffset().y) <= 2 &&
       fabsf(contentMetrics.GetDisplayPort().X() -
             compositorMetrics.GetDisplayPort().X()) <= 2 &&
       fabsf(contentMetrics.GetDisplayPort().Y() -
@@ -184,8 +187,10 @@ bool SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
   // When not a low precision pass and the page is in danger of checker boarding
   // abort update.
   if (!aLowPrecision && !mProgressiveUpdateWasInDanger) {
-    bool scrollUpdatePending = contentMetrics.GetScrollOffsetUpdated() &&
-                               contentMetrics.GetScrollGeneration() !=
+    const nsTArray<ScrollPositionUpdate>& scrollUpdates =
+        aLayer.Metadata().GetScrollUpdates();
+    bool scrollUpdatePending = !scrollUpdates.IsEmpty() &&
+                               scrollUpdates.LastElement().GetGeneration() >
                                    compositorMetrics.GetScrollGeneration();
     // If scrollUpdatePending is true, then that means the content-side
     // metrics has a new scroll offset that is going to be forced into the
@@ -196,7 +201,7 @@ bool SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
     // on the compositor side. To avoid leaving things in a low-precision
     // paint, we need to detect and handle this case (bug 1026756).
     if (!scrollUpdatePending &&
-        AboutToCheckerboard(contentMetrics, compositorMetrics)) {
+        apz::AboutToCheckerboard(contentMetrics, compositorMetrics)) {
       mProgressiveUpdateWasInDanger = true;
       return true;
     }
@@ -210,48 +215,6 @@ bool SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
     return true;
   }
 
-  return false;
-}
-
-bool SharedFrameMetricsHelper::AboutToCheckerboard(
-    const FrameMetrics& aContentMetrics,
-    const FrameMetrics& aCompositorMetrics) {
-  // The size of the painted area is originally computed in layer pixels in
-  // layout, but then converted to app units and then back to CSS pixels before
-  // being put in the FrameMetrics. This process can introduce some rounding
-  // error, so we inflate the rect by one app unit to account for that.
-  CSSRect painted = (aContentMetrics.GetCriticalDisplayPort().IsEmpty()
-                         ? aContentMetrics.GetDisplayPort()
-                         : aContentMetrics.GetCriticalDisplayPort()) +
-                    aContentMetrics.GetScrollOffset();
-  painted.Inflate(CSSMargin::FromAppUnits(nsMargin(1, 1, 1, 1)));
-
-  // Inflate the rect by the danger zone. See the description of the danger zone
-  // prefs in AsyncPanZoomController.cpp for an explanation of this.
-  CSSRect showing =
-      CSSRect(aCompositorMetrics.GetScrollOffset(),
-              aCompositorMetrics.CalculateBoundedCompositedSizeInCssPixels());
-  showing.Inflate(LayerSize(StaticPrefs::apz_danger_zone_x(),
-                            StaticPrefs::apz_danger_zone_y()) /
-                  aCompositorMetrics.LayersPixelsPerCSSPixel());
-
-  // Clamp both rects to the scrollable rect, because having either of those
-  // exceed the scrollable rect doesn't make sense, and could lead to false
-  // positives.
-  painted = painted.Intersect(aContentMetrics.GetScrollableRect());
-  showing = showing.Intersect(aContentMetrics.GetScrollableRect());
-
-  if (!painted.Contains(showing)) {
-    TILING_LOG("TILING: About to checkerboard; content %s\n",
-               Stringify(aContentMetrics).c_str());
-    TILING_LOG("TILING: About to checkerboard; painted %s\n",
-               Stringify(painted).c_str());
-    TILING_LOG("TILING: About to checkerboard; compositor %s\n",
-               Stringify(aCompositorMetrics).c_str());
-    TILING_LOG("TILING: About to checkerboard; showing %s\n",
-               Stringify(showing).c_str());
-    return true;
-  }
   return false;
 }
 

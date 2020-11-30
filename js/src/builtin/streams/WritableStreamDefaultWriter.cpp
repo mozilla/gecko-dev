@@ -22,13 +22,13 @@
 #include "js/CallArgs.h"  // JS::CallArgs{,FromVp}
 #include "js/Class.h"     // js::ClassSpec, JS_NULL_CLASS_OPS
 #include "js/PropertySpec.h"  // JS{Function,Property}Spec, JS_{FS,PS}_END, JS_{FN,PSG}
-#include "js/RootingAPI.h"     // JS::Handle
-#include "js/Value.h"          // JS::Value
-#include "vm/Compartment.h"    // JS::Compartment
-#include "vm/JSContext.h"      // JSContext
-#include "vm/PromiseObject.h"  // js::PromiseObject
+#include "js/RootingAPI.h"   // JS::Handle
+#include "js/Value.h"        // JS::Value
+#include "vm/Compartment.h"  // JS::Compartment
+#include "vm/JSContext.h"    // JSContext
+#include "vm/PromiseObject.h"  // js::PromiseObject, js::PromiseResolvedWithUndefined
 
-#include "builtin/streams/MiscellaneousOperations-inl.h"  // js::SetSettledPromiseIsHandled
+#include "builtin/Promise-inl.h"  // js::SetSettledPromiseIsHandled
 #include "vm/Compartment-inl.h"  // JS::Compartment::wrap, js::UnwrapAndTypeCheck{Argument,This}
 #include "vm/JSObject-inl.h"      // js::NewObjectWithClassProto
 #include "vm/NativeObject-inl.h"  // js::ThrowIfNotConstructing
@@ -42,6 +42,7 @@ using JS::Value;
 
 using js::ClassSpec;
 using js::GetErrorMessage;
+using js::PromiseObject;
 using js::ReturnPromiseRejectedWithPendingError;
 using js::UnwrapAndTypeCheckArgument;
 using js::UnwrapAndTypeCheckThis;
@@ -84,7 +85,7 @@ MOZ_MUST_USE WritableStreamDefaultWriter* js::CreateWritableStreamDefaultWriter(
     // Step 6.a: If ! WritableStreamCloseQueuedOrInFlight(stream) is false and
     //           stream.[[backpressure]] is true, set this.[[readyPromise]] to a
     //           new promise.
-    JSObject* promise;
+    PromiseObject* promise;
     if (!WritableStreamCloseQueuedOrInFlight(unwrappedStream) &&
         unwrappedStream->backpressure()) {
       promise = PromiseObject::createSkippingExecutor(cx);
@@ -92,7 +93,7 @@ MOZ_MUST_USE WritableStreamDefaultWriter* js::CreateWritableStreamDefaultWriter(
     // Step 6.b: Otherwise, set this.[[readyPromise]] to a promise resolved with
     //           undefined.
     else {
-      promise = PromiseObject::unforgeableResolve(cx, UndefinedHandleValue);
+      promise = PromiseResolvedWithUndefined(cx);
     }
     if (!promise) {
       return nullptr;
@@ -110,8 +111,7 @@ MOZ_MUST_USE WritableStreamDefaultWriter* js::CreateWritableStreamDefaultWriter(
   // Step 8: Otherwise, if state is "closed",
   else if (unwrappedStream->closed()) {
     // Step 8.a: Set this.[[readyPromise]] to a promise resolved with undefined.
-    JSObject* readyPromise =
-        PromiseObject::unforgeableResolve(cx, UndefinedHandleValue);
+    PromiseObject* readyPromise = PromiseResolvedWithUndefined(cx);
     if (!readyPromise) {
       return nullptr;
     }
@@ -120,8 +120,7 @@ MOZ_MUST_USE WritableStreamDefaultWriter* js::CreateWritableStreamDefaultWriter(
 
     // Step 8.b: Set this.[[closedPromise]] to a promise resolved with
     //           undefined.
-    JSObject* closedPromise =
-        PromiseObject::unforgeableResolve(cx, UndefinedHandleValue);
+    PromiseObject* closedPromise = PromiseResolvedWithUndefined(cx);
     if (!closedPromise) {
       return nullptr;
     }
@@ -147,7 +146,7 @@ MOZ_MUST_USE WritableStreamDefaultWriter* js::CreateWritableStreamDefaultWriter(
       writer->setReadyPromise(promise);
 
       // Step 7.b: Set this.[[readyPromise]].[[PromiseIsHandled]] to true.
-      SetSettledPromiseIsHandled(cx, promise.as<PromiseObject>());
+      js::SetSettledPromiseIsHandled(cx, promise.as<PromiseObject>());
 
       // Step 7.c: Set this.[[closedPromise]] to a new promise.
       JSObject* closedPromise = PromiseObject::createSkippingExecutor(cx);
@@ -175,7 +174,7 @@ MOZ_MUST_USE WritableStreamDefaultWriter* js::CreateWritableStreamDefaultWriter(
       writer->setReadyPromise(promise);
 
       // Step 9.d: Set this.[[readyPromise]].[[PromiseIsHandled]] to true.
-      SetSettledPromiseIsHandled(cx, promise.as<PromiseObject>());
+      js::SetSettledPromiseIsHandled(cx, promise.as<PromiseObject>());
 
       // Step 9.e: Set this.[[closedPromise]] to a promise rejected with
       //           storedError.
@@ -187,7 +186,7 @@ MOZ_MUST_USE WritableStreamDefaultWriter* js::CreateWritableStreamDefaultWriter(
       writer->setClosedPromise(promise);
 
       // Step 9.f: Set this.[[closedPromise]].[[PromiseIsHandled]] to true.
-      SetSettledPromiseIsHandled(cx, promise.as<PromiseObject>());
+      js::SetSettledPromiseIsHandled(cx, promise.as<PromiseObject>());
     }
   }
 
@@ -504,7 +503,7 @@ static MOZ_MUST_USE bool WritableStreamDefaultWriter_write(JSContext* cx,
   }
 
   // Step 3: Return this.[[readyPromise]].
-  JSObject* promise =
+  PromiseObject* promise =
       WritableStreamDefaultWriterWrite(cx, unwrappedWriter, args.get(0));
   if (!promise) {
     return false;

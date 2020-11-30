@@ -10,6 +10,8 @@ import org.mozilla.gecko.GeckoThread;
 import org.mozilla.gecko.mozglue.JNIObject;
 import org.mozilla.geckoview.BuildConfig;
 
+import androidx.annotation.NonNull;
+
 /**
  * Wrapper for nsIEventTarget, enabling seamless dispatch of java runnables to
  * Gecko event queues.
@@ -37,9 +39,30 @@ public final class XPCOMEventTarget extends JNIObject implements IXPCOMEventTarg
     }
     private static IXPCOMEventTarget mLauncherThread = null;
 
+    /**
+     * Runs the provided runnable on the launcher thread. If this method is called from the launcher
+     * thread itself, the runnable will be executed immediately and synchronously.
+     */
+    public static void runOnLauncherThread(@NonNull final Runnable runnable) {
+        final IXPCOMEventTarget launcherThread = launcherThread();
+        if (launcherThread.isOnCurrentThread()) {
+            // We're already on the launcher thread, just execute the runnable
+            runnable.run();
+            return;
+        }
+
+        launcherThread.execute(runnable);
+    }
+
     public static void assertOnLauncherThread() {
         if (BuildConfig.DEBUG && !launcherThread().isOnCurrentThread()) {
-            throw new IllegalThreadStateException("Expected to be running on XPCOM launcher thread");
+            throw new AssertionError("Expected to be running on XPCOM launcher thread");
+        }
+    }
+
+    public static void assertNotOnLauncherThread() {
+        if (BuildConfig.DEBUG && launcherThread().isOnCurrentThread()) {
+            throw new AssertionError("Expected to not be running on XPCOM launcher thread");
         }
     }
 

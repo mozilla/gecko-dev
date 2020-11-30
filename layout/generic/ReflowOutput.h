@@ -27,11 +27,7 @@ struct ReflowInput;
  * that 2 is a valid value of nsOverflowType for use in
  * NS_FOR_FRAME_OVERFLOW_TYPES.
  */
-enum nsOverflowType {
-  eVisualOverflow,
-  eScrollableOverflow,
-  eOverflowType_LENGTH
-};
+enum nsOverflowType { eInkOverflow, eScrollableOverflow, eOverflowType_LENGTH };
 
 #define NS_FOR_FRAME_OVERFLOW_TYPES(var_)                 \
   for (nsOverflowType var_ = nsOverflowType(0); var_ < 2; \
@@ -51,8 +47,8 @@ struct nsOverflowAreas {
     return mRects[aIndex];
   }
 
-  nsRect& VisualOverflow() { return mRects[eVisualOverflow]; }
-  const nsRect& VisualOverflow() const { return mRects[eVisualOverflow]; }
+  nsRect& InkOverflow() { return mRects[eInkOverflow]; }
+  const nsRect& InkOverflow() const { return mRects[eInkOverflow]; }
 
   nsRect& ScrollableOverflow() { return mRects[eScrollableOverflow]; }
   const nsRect& ScrollableOverflow() const {
@@ -63,9 +59,9 @@ struct nsOverflowAreas {
     // default-initializes to zero due to nsRect's default constructor
   }
 
-  nsOverflowAreas(const nsRect& aVisualOverflow,
+  nsOverflowAreas(const nsRect& aInkOverflow,
                   const nsRect& aScrollableOverflow) {
-    mRects[eVisualOverflow] = aVisualOverflow;
+    mRects[eInkOverflow] = aInkOverflow;
     mRects[eScrollableOverflow] = aScrollableOverflow;
   }
 
@@ -78,9 +74,9 @@ struct nsOverflowAreas {
   }
 
   bool operator==(const nsOverflowAreas& aOther) const {
-    // Scrollable overflow is a point-set rectangle and visual overflow
+    // Scrollable overflow is a point-set rectangle and ink overflow
     // is a pixel-set rectangle.
-    return VisualOverflow().IsEqualInterior(aOther.VisualOverflow()) &&
+    return InkOverflow().IsEqualInterior(aOther.InkOverflow()) &&
            ScrollableOverflow().IsEqualEdges(aOther.ScrollableOverflow());
   }
 
@@ -132,8 +128,7 @@ struct nsCollapsingMargin {
  public:
   nsCollapsingMargin() : mMostPos(0), mMostNeg(0) {}
 
-  nsCollapsingMargin(const nsCollapsingMargin& aOther)
-      : mMostPos(aOther.mMostPos), mMostNeg(aOther.mMostNeg) {}
+  nsCollapsingMargin(const nsCollapsingMargin& aOther) = default;
 
   bool operator==(const nsCollapsingMargin& aOther) {
     return mMostPos == aOther.mMostPos && mMostNeg == aOther.mMostNeg;
@@ -143,11 +138,7 @@ struct nsCollapsingMargin {
     return !(*this == aOther);
   }
 
-  nsCollapsingMargin& operator=(const nsCollapsingMargin& aOther) {
-    mMostPos = aOther.mMostPos;
-    mMostNeg = aOther.mMostNeg;
-    return *this;
-  }
+  nsCollapsingMargin& operator=(const nsCollapsingMargin& aOther) = default;
 
   void Include(nscoord aCoord) {
     if (aCoord > mMostPos)
@@ -270,10 +261,8 @@ class ReflowOutput {
   // width, height}.
   nsOverflowAreas mOverflowAreas;
 
-  nsRect& VisualOverflow() { return mOverflowAreas.VisualOverflow(); }
-  const nsRect& VisualOverflow() const {
-    return mOverflowAreas.VisualOverflow();
-  }
+  nsRect& InkOverflow() { return mOverflowAreas.InkOverflow(); }
+  const nsRect& InkOverflow() const { return mOverflowAreas.InkOverflow(); }
   nsRect& ScrollableOverflow() { return mOverflowAreas.ScrollableOverflow(); }
   const nsRect& ScrollableOverflow() const {
     return mOverflowAreas.ScrollableOverflow();

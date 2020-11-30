@@ -1,4 +1,3 @@
-# %ARG DOCKER_IMAGE_PARENT
 FROM $DOCKER_IMAGE_PARENT
 MAINTAINER Mike Hommey <mhommey@mozilla.com>
 
@@ -8,8 +7,8 @@ VOLUME /builds/worker/tooltool-cache
 
 ENV XZ_OPT=-T0
 
-# %ARG DOCKER_IMAGE_PACKAGES
-# %ARG TASKCLUSTER_ROOT_URL
+ARG DOCKER_IMAGE_PACKAGES
+ARG TASKCLUSTER_ROOT_URL
 RUN /usr/local/sbin/setup_packages.sh $TASKCLUSTER_ROOT_URL $DOCKER_IMAGE_PACKAGES
 
 RUN apt-get update && \
@@ -29,6 +28,7 @@ RUN apt-get update && \
       libbz2-dev \
       libcurl4-openssl-dev \
       libssl-dev \
+      libxml2-dev \
       libtool \
       libucl-dev \
       ninja-build \
@@ -37,6 +37,9 @@ RUN apt-get update && \
       python-pip \
       python-setuptools \
       python-virtualenv \
+      python3-distutils-extra \
+      python3-requests \
+      python3-pytoml \
       subversion \
       tar \
       unzip \

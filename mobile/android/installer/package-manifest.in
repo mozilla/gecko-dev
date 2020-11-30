@@ -24,13 +24,7 @@
 @BINPATH@/hyphenation/*
 @BINPATH@/localization/*
 
-; We want fennec/lib for both Fennec and GeckoView, so we turn
-; geckoview/lib into fennec/lib.
-#ifndef MOZ_GECKOVIEW_JAR
 [lib destdir="lib/@ANDROID_CPU_ARCH@"]
-#else
-[lib destdir="../fennec/lib/@ANDROID_CPU_ARCH@"]
-#endif
 
 #ifdef MOZ_CLANG_RT_ASAN_LIB
 @BINPATH@/@MOZ_CLANG_RT_ASAN_LIB@
@@ -91,9 +85,10 @@
 ; [Base Browser Files]
 @BINPATH@/application.ini
 @BINPATH@/platform.ini
-@BINPATH@/blocklist.xml
 @BINPATH@/defaults/settings/blocklists/addons.json
+; TODO bug 1639050: addons-bloomfilters should be used instead of addons.json
 @BINPATH@/defaults/settings/security-state/onecrl.json
+@BINPATH@/defaults/settings/main/password-recipes.json
 
 ; [Components]
 @BINPATH@/components/components.manifest
@@ -139,7 +134,6 @@
 
 ; [Default Preferences]
 ; All the pref files must be part of base to prevent migration bugs
-#ifdef MOZ_GECKOVIEW_JAR
 #ifndef MOZ_ANDROID_FAT_AAR_ARCHITECTURES
 @BINPATH@/@ANDROID_CPU_ARCH@/greprefs.js
 @BINPATH@/@PREF_DIR@/@ANDROID_CPU_ARCH@/geckoview-prefs.js
@@ -147,10 +141,6 @@
 @BINPATH@/*/greprefs.js
 @BINPATH@/@PREF_DIR@/*/geckoview-prefs.js
 #endif # !MOZ_ANDROID_FAT_AAR_ARCHITECTURES
-#else
-@BINPATH@/@ANDROID_CPU_ARCH@/greprefs.js
-@BINPATH@/@PREF_DIR@/mobile.js
-#endif # MOZ_GECKOVIEW_JAR
 @BINPATH@/@PREF_DIR@/channel-prefs.js
 @BINPATH@/defaults/autoconfig/prefcalls.js
 
@@ -214,17 +204,7 @@
 @BINPATH@/chrome/geckoview@JAREXT@
 @BINPATH@/chrome/geckoview.manifest
 
-#ifdef MOZ_GECKOVIEW_JAR
 @BINPATH@/components/GeckoView.manifest
-@BINPATH@/components/GeckoViewExternalAppService.js
-@BINPATH@/components/GeckoViewPrompt.js
-@BINPATH@/components/GeckoViewPush.js
-@BINPATH@/components/GeckoViewPermission.js
-@BINPATH@/components/GeckoViewStartup.js
-#else
-@BINPATH@/chrome/chrome@JAREXT@
-@BINPATH@/chrome/chrome.manifest
-#endif
 
 ; Remote control protocol
 #ifdef ENABLE_MARIONETTE

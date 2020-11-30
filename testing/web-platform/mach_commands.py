@@ -38,7 +38,16 @@ class WebPlatformTestsRunnerSetup(MozbuildObject):
             sys.path.append(build_path)
 
     def kwargs_common(self, kwargs):
+        """Setup kwargs relevant for all browser products"""
+
         tests_src_path = os.path.join(self._here, "tests")
+
+        if (kwargs["product"] in {"firefox", "firefox_android"} and
+            kwargs["specialpowers_path"] is None):
+            kwargs["specialpowers_path"] = os.path.join(self.distdir,
+                                                        "xpi-stage",
+                                                        "specialpowers@mozilla.org.xpi")
+
         if kwargs["product"] == "firefox_android":
             # package_name may be different in the future
             package_name = kwargs["package_name"]
@@ -47,25 +56,22 @@ class WebPlatformTestsRunnerSetup(MozbuildObject):
 
             # Note that this import may fail in non-firefox-for-android trees
             from mozrunner.devices.android_device import (verify_android_device, InstallIntent)
-            install = InstallIntent.NO if kwargs.pop('no_install') else InstallIntent.PROMPT
+            install = InstallIntent.NO if kwargs.pop('no_install') else InstallIntent.YES
             verify_android_device(self, install=install, verbose=False, xre=True, app=package_name)
 
             if kwargs["certutil_binary"] is None:
-                kwargs["certutil_binary"] = os.path.join(os.environ.get('MOZ_HOST_BIN'), "certutil")
+                kwargs["certutil_binary"] = os.path.join(
+                    os.environ.get('MOZ_HOST_BIN'), "certutil")
 
             if kwargs["install_fonts"] is None:
                 kwargs["install_fonts"] = True
 
         if kwargs["config"] is None:
-            kwargs["config"] = os.path.join(self.topobjdir, '_tests', 'web-platform', 'wptrunner.local.ini')
+            kwargs["config"] = os.path.join(
+                self.topobjdir, '_tests', 'web-platform', 'wptrunner.local.ini')
 
-        if kwargs["prefs_root"] is None:
-            kwargs["prefs_root"] = os.path.join(self.topsrcdir, 'testing', 'profiles')
-
-        if kwargs["stackfix_dir"] is None:
-            kwargs["stackfix_dir"] = self.bindir
-
-        if kwargs["exclude"] is None and kwargs["include"] is None and not sys.platform.startswith("linux"):
+        if (kwargs["exclude"] is None and kwargs["include"] is None
+           and not sys.platform.startswith("linux")):
             kwargs["exclude"] = ["css"]
 
         if kwargs["ssl_type"] in (None, "pregenerated"):
@@ -87,8 +93,10 @@ class WebPlatformTestsRunnerSetup(MozbuildObject):
         return kwargs
 
     def kwargs_firefox(self, kwargs):
+        """Setup kwargs specific to running Firefox and other gecko browsers"""
         import mozinfo
         from wptrunner import wptcommandline
+
         kwargs = self.kwargs_common(kwargs)
 
         if kwargs["binary"] is None:
@@ -100,42 +108,41 @@ class WebPlatformTestsRunnerSetup(MozbuildObject):
         if kwargs["webdriver_binary"] is None:
             kwargs["webdriver_binary"] = self.get_binary_path("geckodriver", validate_exists=False)
 
-
         if kwargs["install_fonts"] is None:
             kwargs["install_fonts"] = True
 
-        if kwargs["install_fonts"] and mozinfo.info["os"] == "win" and mozinfo.info["os_version"] == "6.1":
+        if (kwargs["install_fonts"] and mozinfo.info["os"] == "win"
+           and mozinfo.info["os_version"] == "6.1"):
             # On Windows 7 --install-fonts fails, so fall back to a Firefox-specific codepath
             self.setup_fonts_firefox()
             kwargs["install_fonts"] = False
+
+        if kwargs["preload_browser"] is None:
+            kwargs["preload_browser"] = False
+
+        if kwargs["prefs_root"] is None:
+            kwargs["prefs_root"] = os.path.join(self.topsrcdir, 'testing', 'profiles')
+
+        if kwargs["stackfix_dir"] is None:
+            kwargs["stackfix_dir"] = self.bindir
 
         kwargs = wptcommandline.check_args(kwargs)
 
         return kwargs
 
     def kwargs_wptrun(self, kwargs):
-        from wptrunner import wptcommandline
-
-        if kwargs["metadata_root"] is None:
-            metadir = os.path.join(self._here, "products", kwargs["product"])
-            if not os.path.exists(metadir):
-                os.makedirs(metadir)
-            kwargs["metadata_root"] = metadir
-
-        src_manifest = os.path.join(self._here, "meta", "MANIFEST.json")
-        dest_manifest = os.path.join(kwargs["metadata_root"], "MANIFEST.json")
-
-        if not os.path.exists(dest_manifest) and os.path.exists(src_manifest):
-            with open(src_manifest) as src, open(dest_manifest, "w") as dest:
-                dest.write(src.read())
-
+        """Setup kwargs for wpt-run which is only used for non-gecko browser products"""
         from tools.wpt import run
+
+        kwargs = self.kwargs_common(kwargs)
 
         # Add additional kwargs consumed by the run frontend. Currently we don't
         # have a way to set these through mach
         kwargs["channel"] = None
         kwargs["prompt"] = True
         kwargs["install_browser"] = False
+        kwargs["install_webdriver"] = None
+        kwargs["affected"] = None
 
         # Install the deps
         # We do this explicitly to avoid calling pip with options that aren't
@@ -159,6 +166,15 @@ class WebPlatformTestsRunnerSetup(MozbuildObject):
             print(e.message, file=sys.stderr)
             sys.exit(1)
 
+        # This is kind of a hack; override the metadata paths so we don't use
+        # gecko metadata for non-gecko products
+        for key, value in list(iteritems(kwargs["test_paths"])):
+            meta_suffix = key.strip("/")
+            meta_dir = os.path.join(self._here, "products", kwargs["product"],
+                                    meta_suffix)
+            value["metadata_path"] = meta_dir
+            if not os.path.exists(meta_dir):
+                os.makedirs(meta_dir)
         return kwargs
 
     def setup_fonts_firefox(self):
@@ -166,17 +182,26 @@ class WebPlatformTestsRunnerSetup(MozbuildObject):
         if not sys.platform.startswith("darwin"):
             font_path = os.path.join(os.path.dirname(self.get_binary_path()), "fonts")
         else:
-            font_path = os.path.join(os.path.dirname(self.get_binary_path()), os.pardir, "Resources", "res", "fonts")
-        ahem_src = os.path.join(self.topsrcdir, "testing", "web-platform", "tests", "fonts", "Ahem.ttf")
+            font_path = os.path.join(os.path.dirname(self.get_binary_path()),
+                                     os.pardir,
+                                     "Resources",
+                                     "res",
+                                     "fonts")
+        ahem_src = os.path.join(self.topsrcdir,
+                                "testing",
+                                "web-platform",
+                                "tests",
+                                "fonts",
+                                "Ahem.ttf")
         ahem_dest = os.path.join(font_path, "Ahem.ttf")
         if not os.path.exists(ahem_dest) and os.path.exists(ahem_src):
             with open(ahem_src, "rb") as src, open(ahem_dest, "wb") as dest:
                 dest.write(src.read())
 
 
-
 class WebPlatformTestsUpdater(MozbuildObject):
     """Update web platform tests."""
+
     def setup_logging(self, **kwargs):
         import update
         return update.setup_logging(kwargs, {"mach": sys.stdout})
@@ -195,7 +220,10 @@ class WebPlatformTestsUpdater(MozbuildObject):
         self.update_manifest(logger, **kwargs)
 
         if kwargs["config"] is None:
-            kwargs["config"] = os.path.join(self.topobjdir, '_tests', 'web-platform', 'wptrunner.local.ini')
+            kwargs["config"] = os.path.join(self.topobjdir,
+                                            '_tests',
+                                            'web-platform',
+                                            'wptrunner.local.ini')
         if kwargs["product"] is None:
             kwargs["product"] = "firefox"
 
@@ -206,10 +234,8 @@ class WebPlatformTestsUpdater(MozbuildObject):
         try:
             update.run_update(logger, **kwargs)
         except Exception:
-            import pdb
             import traceback
             traceback.print_exc()
-#            pdb.post_mortem()
 
 
 class WebPlatformTestsUnittestRunner(MozbuildObject):
@@ -220,6 +246,7 @@ class WebPlatformTestsUnittestRunner(MozbuildObject):
 
 class WebPlatformTestsTestPathsRunner(MozbuildObject):
     """Update web platform tests."""
+
     def run(self, **kwargs):
         sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__),
                                                         "tests", "tools")))
@@ -235,7 +262,8 @@ class WebPlatformTestsTestPathsRunner(MozbuildObject):
         src_wpt_dir = os.path.join(src_root, "testing", "web-platform")
 
         config_path = manifestupdate.generate_config(logger, src_root, src_wpt_dir,
-                                                     os.path.join(obj_root, "_tests", "web-platform"),
+                                                     os.path.join(obj_root, "_tests",
+                                                                  "web-platform"),
                                                      False)
 
         test_paths = wptcommandline.get_test_paths(wptcommandline.config.read(config_path))
@@ -262,27 +290,6 @@ def create_parser_update():
     return updatecommandline.create_parser()
 
 
-def create_parser_create():
-    import argparse
-    p = argparse.ArgumentParser()
-    p.add_argument("--no-editor", action="store_true",
-                   help="Don't try to open the test in an editor")
-    p.add_argument("-e", "--editor", action="store", help="Editor to use")
-    p.add_argument("--long-timeout", action="store_true",
-                   help="Test should be given a long timeout (typically 60s rather than 10s, but varies depending on environment)")
-    p.add_argument("--overwrite", action="store_true",
-                   help="Allow overwriting an existing test file")
-    p.add_argument("-r", "--reftest", action="store_true",
-                   help="Create a reftest rather than a testharness (js) test"),
-    p.add_argument("-m", "--reference", dest="ref", help="Path to the reference file")
-    p.add_argument("--mismatch", action="store_true",
-                   help="Create a mismatch reftest")
-    p.add_argument("--wait", action="store_true",
-                   help="Create a reftest that waits until takeScreenshot() is called")
-    p.add_argument("path", action="store", help="Path to the test file")
-    return p
-
-
 def create_parser_manifest_update():
     import manifestupdate
     return manifestupdate.create_parser()
@@ -296,6 +303,7 @@ def create_parser_metadata_summary():
 def create_parser_metadata_merge():
     import metamerge
     return metamerge.get_parser()
+
 
 def create_parser_serve():
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__),
@@ -334,7 +342,7 @@ def create_parser_testpaths():
 @CommandProvider
 class MachCommands(MachCommandBase):
     def setup(self):
-        self._activate_virtualenv()
+        self.activate_virtualenv()
 
     @Command("web-platform-tests",
              category="testing",
@@ -343,12 +351,20 @@ class MachCommands(MachCommandBase):
              parser=create_parser_wpt)
     def run_web_platform_tests(self, **params):
         self.setup()
-        if conditions.is_android(self) and params["product"] != "firefox_android":
-            if params["product"] is None:
+        if params["product"] is None:
+            if conditions.is_android(self):
                 params["product"] = "firefox_android"
+            else:
+                params["product"] = "firefox"
         if "test_objects" in params:
+            include = []
+            test_types = set()
             for item in params["test_objects"]:
-                params["include"].append(item["name"])
+                include.append(item["name"])
+                test_types.add(item.get("subsuite"))
+            if None not in test_types:
+                params["test_types"] = list(test_types)
+            params["include"] = include
             del params["test_objects"]
         if params.get('debugger', None):
             import mozdebug

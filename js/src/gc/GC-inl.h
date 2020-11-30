@@ -12,6 +12,7 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Maybe.h"
 
+#include "gc/IteratorUtils.h"
 #include "gc/Zone.h"
 #include "vm/Runtime.h"
 
@@ -22,60 +23,29 @@ namespace gc {
 
 class AutoAssertEmptyNursery;
 
-class ArenaIter {
+class ArenaListIter {
   Arena* arena;
-  Arena* unsweptArena;
-  Arena* sweptArena;
-  mozilla::DebugOnly<bool> initialized;
 
  public:
-  ArenaIter()
-      : arena(nullptr),
-        unsweptArena(nullptr),
-        sweptArena(nullptr),
-        initialized(false) {}
-
-  ArenaIter(JS::Zone* zone, AllocKind kind) : initialized(false) {
-    init(zone, kind);
-  }
-
-  void init(JS::Zone* zone, AllocKind kind) {
-    MOZ_ASSERT(!initialized);
-    MOZ_ASSERT(zone);
-    initialized = true;
-    arena = zone->arenas.getFirstArena(kind);
-    unsweptArena = zone->arenas.getFirstArenaToSweep(kind);
-    sweptArena = zone->arenas.getFirstSweptArena(kind);
-    if (!unsweptArena) {
-      unsweptArena = sweptArena;
-      sweptArena = nullptr;
-    }
-    if (!arena) {
-      arena = unsweptArena;
-      unsweptArena = sweptArena;
-      sweptArena = nullptr;
-    }
-  }
-
-  bool done() const {
-    MOZ_ASSERT(initialized);
-    return !arena;
-  }
-
+  explicit ArenaListIter(Arena* head) : arena(head) {}
+  bool done() const { return !arena; }
   Arena* get() const {
     MOZ_ASSERT(!done());
     return arena;
   }
-
   void next() {
     MOZ_ASSERT(!done());
     arena = arena->next;
-    if (!arena) {
-      arena = unsweptArena;
-      unsweptArena = sweptArena;
-      sweptArena = nullptr;
-    }
   }
+};
+
+class ArenaIter : public ChainedIterator<ArenaListIter, 4> {
+ public:
+  ArenaIter(JS::Zone* zone, AllocKind kind)
+      : ChainedIterator(zone->arenas.getFirstArena(kind),
+                        zone->arenas.getFirstArenaToSweep(kind),
+                        zone->arenas.getFirstSweptArena(kind),
+                        zone->arenas.getFirstNewArenaInMarkPhase(kind)) {}
 };
 
 class ArenaCellIter {
@@ -84,12 +54,11 @@ class ArenaCellIter {
   Arena* arenaAddr;
   FreeSpan span;
   uint_fast16_t thing;
-  JS::TraceKind traceKind;
-  mozilla::DebugOnly<bool> initialized;
+  mozilla::DebugOnly<JS::TraceKind> traceKind;
 
   // Upon entry, |thing| points to any thing (free or used) and finds the
   // first used thing, which may be |thing|.
-  void moveForwardIfFree() {
+  void settle() {
     MOZ_ASSERT(!done());
     MOZ_ASSERT(thing);
     // Note: if |span| is empty, this test will fail, which is what we want
@@ -103,85 +72,58 @@ class ArenaCellIter {
   }
 
  public:
-  ArenaCellIter()
-      : firstThingOffset(0),
-        thingSize(0),
-        arenaAddr(nullptr),
-        thing(0),
-        traceKind(JS::TraceKind::Null),
-        initialized(false) {
-    span.initAsEmpty();
-  }
-
-  explicit ArenaCellIter(Arena* arena) : initialized(false) { init(arena); }
-
-  void init(Arena* arena) {
-    MOZ_ASSERT(!initialized);
+  explicit ArenaCellIter(Arena* arena) {
     MOZ_ASSERT(arena);
-    initialized = true;
     AllocKind kind = arena->getAllocKind();
     firstThingOffset = Arena::firstThingOffset(kind);
     thingSize = Arena::thingSize(kind);
     traceKind = MapAllocToTraceKind(kind);
-    reset(arena);
-  }
-
-  // Use this to move from an Arena of a particular kind to another Arena of
-  // the same kind.
-  void reset(Arena* arena) {
-    MOZ_ASSERT(initialized);
-    MOZ_ASSERT(arena);
     arenaAddr = arena;
     span = *arena->getFirstFreeSpan();
     thing = firstThingOffset;
-    moveForwardIfFree();
+    settle();
   }
 
   bool done() const {
-    MOZ_ASSERT(initialized);
     MOZ_ASSERT(thing <= ArenaSize);
     return thing == ArenaSize;
   }
 
-  TenuredCell* getCell() const {
+  TenuredCell* get() const {
     MOZ_ASSERT(!done());
     return reinterpret_cast<TenuredCell*>(uintptr_t(arenaAddr) + thing);
   }
 
   template <typename T>
-  T* get() const {
+  T* as() const {
     MOZ_ASSERT(!done());
     MOZ_ASSERT(JS::MapTypeToTraceKind<T>::kind == traceKind);
-    return reinterpret_cast<T*>(getCell());
+    return reinterpret_cast<T*>(get());
   }
 
   void next() {
     MOZ_ASSERT(!done());
     thing += thingSize;
     if (thing < ArenaSize) {
-      moveForwardIfFree();
+      settle();
     }
   }
-};
 
-template <>
-inline JSObject* ArenaCellIter::get<JSObject>() const {
-  MOZ_ASSERT(!done());
-  return reinterpret_cast<JSObject*>(getCell());
-}
+  operator TenuredCell*() const { return get(); }
+  TenuredCell* operator->() const { return get(); }
+};
 
 template <typename T>
 class ZoneAllCellIter;
 
 template <>
 class ZoneAllCellIter<TenuredCell> {
-  ArenaIter arenaIter;
-  ArenaCellIter cellIter;
+  mozilla::Maybe<NestedIterator<ArenaIter, ArenaCellIter>> iter;
   mozilla::Maybe<JS::AutoAssertNoGC> nogc;
 
  protected:
   // For use when a subclass wants to insert some setup before init().
-  ZoneAllCellIter() {}
+  ZoneAllCellIter() = default;
 
   void init(JS::Zone* zone, AllocKind kind) {
     MOZ_ASSERT_IF(IsNurseryAllocable(kind),
@@ -208,11 +150,7 @@ class ZoneAllCellIter<TenuredCell> {
         zone->arenas.needBackgroundFinalizeWait(kind)) {
       rt->gc.waitBackgroundSweepEnd();
     }
-    arenaIter.init(zone, kind);
-    if (!arenaIter.done()) {
-      cellIter.init(arenaIter.get());
-      settle();
-    }
+    iter.emplace(zone, kind);
   }
 
  public:
@@ -233,33 +171,16 @@ class ZoneAllCellIter<TenuredCell> {
     init(zone, kind);
   }
 
-  bool done() const { return arenaIter.done(); }
+  bool done() const { return iter->done(); }
 
   template <typename T>
   T* get() const {
-    MOZ_ASSERT(!done());
-    return cellIter.get<T>();
+    return iter->ref().as<T>();
   }
 
-  TenuredCell* getCell() const {
-    MOZ_ASSERT(!done());
-    return cellIter.getCell();
-  }
+  TenuredCell* getCell() const { return iter->get(); }
 
-  void settle() {
-    while (cellIter.done() && !arenaIter.done()) {
-      arenaIter.next();
-      if (!arenaIter.done()) {
-        cellIter.reset(arenaIter.get());
-      }
-    }
-  }
-
-  void next() {
-    MOZ_ASSERT(!done());
-    cellIter.next();
-    settle();
-  }
+  void next() { iter->next(); }
 };
 
 /* clang-format off */

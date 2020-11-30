@@ -161,17 +161,21 @@ void SVGMotionSMILAnimationFunction::RebuildPathAndVerticesFromBasicAttrs(
     if (HasAttr(nsGkAtoms::from)) {
       const nsAString& fromStr = GetAttr(nsGkAtoms::from)->GetStringValue();
       success = pathGenerator.MoveToAbsolute(fromStr);
-      mPathVertices.AppendElement(0.0, fallible);
+      if (!mPathVertices.AppendElement(0.0, fallible)) {
+        success = false;
+      }
     } else {
       // Create dummy 'from' value at 0,0, if we're doing by-animation.
       // (NOTE: We don't add the dummy 0-point to our list for *to-animation*,
       // because the SMILAnimationFunction logic for to-animation doesn't
       // expect a dummy value. It only expects one value: the final 'to' value.)
       pathGenerator.MoveToOrigin();
-      if (!HasAttr(nsGkAtoms::to)) {
-        mPathVertices.AppendElement(0.0, fallible);
-      }
       success = true;
+      if (!HasAttr(nsGkAtoms::to)) {
+        if (!mPathVertices.AppendElement(0.0, fallible)) {
+          success = false;
+        }
+      }
     }
 
     // Apply 'to' or 'by' value
@@ -187,7 +191,9 @@ void SVGMotionSMILAnimationFunction::RebuildPathAndVerticesFromBasicAttrs(
         success = pathGenerator.LineToRelative(byStr, dist);
       }
       if (success) {
-        mPathVertices.AppendElement(dist, fallible);
+        if (!mPathVertices.AppendElement(dist, fallible)) {
+          success = false;
+        }
       }
     }
   }
@@ -203,18 +209,13 @@ void SVGMotionSMILAnimationFunction::RebuildPathAndVerticesFromMpathElem(
     SVGMPathElement* aMpathElem) {
   mPathSourceType = ePathSourceType_Mpath;
 
-  // Use the path that's the target of our chosen <mpath> child.
-  SVGPathElement* pathElem = aMpathElem->GetReferencedPath();
-  if (pathElem) {
-    const SVGPathData& path = pathElem->GetAnimPathSegList()->GetAnimValue();
-    // Path data must contain of at least one path segment (if the path data
-    // doesn't begin with a valid "M", then it's invalid).
-    if (path.Length()) {
-      bool ok =
-          path.GetDistancesFromOriginToEndsOfVisibleSegments(&mPathVertices);
-      if (ok && mPathVertices.Length()) {
-        mPath = pathElem->GetOrBuildPathForMeasuring();
-      }
+  // Use the shape that's the target of our chosen <mpath> child.
+  SVGGeometryElement* shapeElem = aMpathElem->GetReferencedPath();
+  if (shapeElem && shapeElem->HasValidDimensions()) {
+    bool ok = shapeElem->GetDistancesFromOriginToEndsOfVisibleSegments(
+        &mPathVertices);
+    if (ok && mPathVertices.Length()) {
+      mPath = shapeElem->GetOrBuildPathForMeasuring();
     }
   }
 }

@@ -17,7 +17,7 @@ body {
   padding-top: 0;
   overflow-y: auto;
   margin-bottom: 42px;
-  -moz-user-select: none;
+  user-select: none;
 }
 
 .main-content.search > section > *:not(.data) {
@@ -82,7 +82,7 @@ body {
 #newer-ping,
 #ping-date {
   pointer-events: all;
-  -moz-user-select: none;
+  user-select: none;
   cursor: pointer;
   text-align: center;
 }
@@ -114,6 +114,12 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 42px;
+}
+
+#categories > .category.category-no-icon {
+  margin-inline-start: 0;
+  margin-inline-end: 0;
+  width: auto;
 }
 
 .category-name {
@@ -170,7 +176,7 @@ section:not(.active) {
 }
 
 .no-search-results-image {
-  background-image: url("chrome://browser/skin/preferences/in-content/no-search-results.svg");
+  background-image: url("chrome://browser/skin/preferences/no-search-results.svg");
   width: 380px;
   height: 293px;
 }

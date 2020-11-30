@@ -7,9 +7,10 @@
 #ifndef mozilla_freestanding_SafeThreadLocal_h
 #define mozilla_freestanding_SafeThreadLocal_h
 
+#include <type_traits>
+
 #include "mozilla/NativeNt.h"
 #include "mozilla/ThreadLocal.h"
-#include "mozilla/TypeTraits.h"
 
 namespace mozilla {
 namespace freestanding {
@@ -46,7 +47,7 @@ class SafeThreadLocal final {
 
  public:
   static void set(T aValue) {
-    static_assert(mozilla::IsPointer<T>::value,
+    static_assert(std::is_pointer_v<T>,
                   "SafeThreadLocal must be used with a pointer");
 
     if (sMainThreadId == mozilla::nt::RtlGetCurrentThreadId()) {

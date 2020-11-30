@@ -62,11 +62,8 @@ void RemoteWorkerParent::Initialize(bool aAlreadyRegistered) {
       parent->RegisterRemoteWorkerActor();
     }
 
-    nsCOMPtr<nsIEventTarget> target =
-        SystemGroup::EventTargetFor(TaskCategory::Other);
-
-    NS_ProxyRelease("RemoteWorkerParent::Initialize ContentParent", target,
-                    parent.forget());
+    NS_ReleaseOnMainThread("RemoteWorkerParent::Initialize ContentParent",
+                           parent.forget());
   }
 }
 
@@ -97,9 +94,7 @@ void RemoteWorkerParent::ActorDestroy(IProtocol::ActorDestroyReason) {
     RefPtr<UnregisterActorRunnable> r =
         new UnregisterActorRunnable(parent.forget());
 
-    nsCOMPtr<nsIEventTarget> target =
-        SystemGroup::EventTargetFor(TaskCategory::Other);
-    target->Dispatch(r.forget(), NS_DISPATCH_NORMAL);
+    SchedulerGroup::Dispatch(TaskCategory::Other, r.forget());
   }
 
   if (mController) {
@@ -174,7 +169,7 @@ IPCResult RemoteWorkerParent::RecvSetServiceWorkerSkipWaitingFlag(
 
   if (mController) {
     mController->SetServiceWorkerSkipWaitingFlag()->Then(
-        GetCurrentThreadSerialEventTarget(), __func__,
+        GetCurrentSerialEventTarget(), __func__,
         [resolve = aResolve](bool /* unused */) { resolve(true); },
         [resolve = aResolve](nsresult /* unused */) { resolve(false); });
   } else {

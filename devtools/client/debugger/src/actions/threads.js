@@ -4,84 +4,53 @@
 
 // @flow
 
-import { differenceBy } from "lodash";
+import type { Target } from "../client/firefox/types";
 import type { Action, ThunkArgs } from "./types";
 import { removeSourceActors } from "./source-actors";
-import { newGeneratedSources } from "./sources";
+import { validateContext } from "../utils/context";
 
-import {
-  getContext,
-  getAllThreads,
-  getThreads,
-  getSourceActorsForThread,
-} from "../selectors";
+import { getContext, getThread, getSourceActorsForThread } from "../selectors";
 
-export function updateThreads() {
-  return async function({ dispatch, getState, client }: ThunkArgs) {
+export function addTarget(targetFront: Target) {
+  return async function(args: ThunkArgs) {
+    const { client, getState, dispatch } = args;
     const cx = getContext(getState());
-    const threads = await client.fetchThreads();
+    const thread = await client.addThread(targetFront);
+    validateContext(getState(), cx);
 
-    const currentThreads = getThreads(getState());
-
-    const addedThreads = differenceBy(threads, currentThreads, t => t.actor);
-    const removedThreads = differenceBy(currentThreads, threads, t => t.actor);
-    if (removedThreads.length > 0) {
-      const sourceActors = getSourceActorsForThread(
-        getState(),
-        removedThreads.map(t => t.actor)
-      );
-      dispatch(removeSourceActors(sourceActors));
-      dispatch(
-        ({
-          type: "REMOVE_THREADS",
-          cx,
-          threads: removedThreads.map(t => t.actor),
-        }: Action)
-      );
-    }
-    if (addedThreads.length > 0) {
-      dispatch(({ type: "INSERT_THREADS", cx, threads: addedThreads }: Action));
-
-      // Fetch the sources and install breakpoints on any new workers.
-      // NOTE: This runs in the background and fails quietly because it is
-      // pretty easy for sources to throw during the fetch if their thread
-      // shuts down, which would cause test failures.
-      for (const thread of addedThreads) {
-        client
-          .fetchThreadSources(thread.actor)
-          .then(sources => dispatch(newGeneratedSources(sources)))
-          .catch(e => console.error(e));
-      }
-    }
-
-    // Update the status of any service workers.
-    for (const thread of currentThreads) {
-      if (thread.serviceWorkerStatus) {
-        for (const fetchedThread of threads) {
-          if (
-            fetchedThread.actor == thread.actor &&
-            fetchedThread.serviceWorkerStatus != thread.serviceWorkerStatus
-          ) {
-            dispatch(
-              ({
-                type: "UPDATE_SERVICE_WORKER_STATUS",
-                cx,
-                thread: thread.actor,
-                status: fetchedThread.serviceWorkerStatus,
-              }: Action)
-            );
-          }
-        }
-      }
-    }
+    dispatch(({ type: "INSERT_THREAD", cx, newThread: thread }: Action));
   };
 }
 
-export function ensureHasThread(thread: string) {
-  return async function({ dispatch, getState, client }: ThunkArgs) {
-    const currentThreads = getAllThreads(getState());
-    if (!currentThreads.some(t => t.actor == thread)) {
-      await dispatch(updateThreads());
+export function removeTarget(targetFront: Target) {
+  return async function(args: ThunkArgs) {
+    const { getState, client, dispatch } = args;
+    const cx = getContext(getState());
+    const thread = getThread(getState(), targetFront.targetForm.threadActor);
+
+    if (!thread) {
+      return;
     }
+
+    client.removeThread(thread);
+    const sourceActors = getSourceActorsForThread(getState(), thread.actor);
+    dispatch(removeSourceActors(sourceActors));
+    dispatch(
+      ({
+        type: "REMOVE_THREAD",
+        cx,
+        oldThread: thread,
+      }: Action)
+    );
+  };
+}
+
+export function toggleJavaScriptEnabled(enabled: Boolean) {
+  return async ({ panel, dispatch, client }: ThunkArgs) => {
+    await client.toggleJavaScriptEnabled(enabled);
+    dispatch({
+      type: "TOGGLE_JAVASCRIPT_ENABLED",
+      value: enabled,
+    });
   };
 }

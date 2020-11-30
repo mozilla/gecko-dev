@@ -25,20 +25,18 @@ graph-private-window = { -brand-short-name } continues to  block trackers in Pri
 # Weekly summary of the graph when the graph is empty in Private Mode
 graph-week-summary-private-window = Trackers { -brand-short-name } blocked this week
 
-# The terminology used to refer to categories of Content Blocking is also used in chrome/browser/browser.properties and should be translated consistently.
-# "Standard" in this case is an adjective, meaning "default" or "normal".
-# The category name in the <b> tag will be bold.
-protection-report-header-details-standard = Protection Level is set to <b>Standard</b>
-  .title = Go to Privacy Settings
-protection-report-header-details-strict = Protection Level is set to <b>Strict</b>
-  .title = Go to Privacy Settings
-protection-report-header-details-custom = Protection Level is set to <b>Custom</b>
-  .title = Go to Privacy Settings
-protection-report-page-title = Privacy Protections
-protection-report-content-title = Privacy Protections
+protection-report-webpage-title = Protections Dashboard
+protection-report-page-content-title = Protections Dashboard
+# This message shows when all privacy protections are turned off, which is why we use the word "can", Firefox is able to protect your privacy, but it is currently not.
+protection-report-page-summary = { -brand-short-name } can protect your privacy behind the scenes while you browse. This is a personalized summary of those protections, including tools to take control of your online security.
+# This message shows when at least some protections are turned on, we are more assertive compared to the message above, Firefox is actively protecting you.
+protection-report-page-summary-default = { -brand-short-name } protects your privacy behind the scenes while you browse. This is a personalized summary of those protections, including tools to take control of your online security.
 
-etp-card-title = Enhanced Tracking Protection
-etp-card-content = Trackers follow you around online to collect information about your browsing habits and interests. { -brand-short-name } blocks many of these trackers and other malicious scripts.
+protection-report-settings-link = Manage your privacy and security settings
+
+etp-card-title-always = Enhanced Tracking Protection: Always On
+etp-card-title-custom-not-blocking = Enhanced Tracking Protection: OFF
+etp-card-content-description = { -brand-short-name } automatically stops companies from secretly following you around the web.
 protection-report-etp-card-content-custom-not-blocking = All protections are currently turned off. Choose which trackers to block by managing your { -brand-short-name } protections settings.
 protection-report-manage-protections = Manage Settings
 
@@ -64,48 +62,62 @@ fingerprinter-tab-content = Fingerprinters collect settings from your browser an
 cryptominer-tab-title = Cryptominers
 cryptominer-tab-content = Cryptominers use your system’s computing power to mine digital money. Cryptomining scripts drain your battery, slow down your computer, and can increase your energy bill. <a data-l10n-name="learn-more-link">Learn more</a>
 
+protections-close-button2 =
+  .aria-label = Close
+  .title = Close
+
 mobile-app-title = Block ad trackers across more devices
-mobile-app-card-content = Use the mobile browser with built-in protection against ad tracking. 
+mobile-app-card-content = Use the mobile browser with built-in protection against ad tracking.
 mobile-app-links = { -brand-product-name } Browser for <a data-l10n-name="android-mobile-inline-link">Android</a> and <a data-l10n-name="ios-mobile-inline-link">iOS</a>
 
 lockwise-title = Never forget a password again
-lockwise-title-logged-in = { -lockwise-brand-name }
+lockwise-title-logged-in2 = Password Management
 lockwise-header-content = { -lockwise-brand-name } securely stores your passwords in your browser.
 lockwise-header-content-logged-in = Securely store and sync your passwords to all your devices.
-protection-report-view-logins-button = View Logins
-  .title = Go to Saved Logins
+protection-report-save-passwords-button = Save Passwords
+  .title = Save Passwords on { -lockwise-brand-short-name }
+protection-report-manage-passwords-button = Manage Passwords
+  .title = Manage Passwords on { -lockwise-brand-short-name }
 lockwise-mobile-app-title = Take your passwords everywhere
 lockwise-no-logins-card-content = Use passwords saved in { -brand-short-name } on any device.
 lockwise-app-links = { -lockwise-brand-name } for <a data-l10n-name="lockwise-android-inline-link">Android</a> and <a data-l10n-name="lockwise-ios-inline-link">iOS</a>
 
-# This string is displayed after a large numeral that indicates the total number
-# of email addresses being monitored. Don’t add $count to
-# your localization, because it would result in the number showing twice.
-lockwise-passwords-stored =
+# Variables:
+# $count (Number) - Number of passwords exposed in data breaches.
+lockwise-scanned-text-breached-logins =
   { $count ->
-     [one] Password stored securely <a data-l10n-name="lockwise-how-it-works">How it works</a>
-    *[other] Passwords stored securely <a data-l10n-name="lockwise-how-it-works">How it works</a>
+      [one] 1 password may have been exposed in a data breach.
+     *[other] { $count } passwords may have been exposed in a data breach.
   }
+
+# While English doesn't use the number in the plural form, you can add $count to your language
+# if needed for grammatical reasons.
+# Variables:
+# $count (Number) - Number of passwords stored in Lockwise.
+lockwise-scanned-text-no-breached-logins =
+  { $count ->
+     [one] 1 password stored securely.
+    *[other] Your passwords are being stored securely.
+  }
+lockwise-how-it-works-link = How it works
 
 turn-on-sync = Turn on { -sync-brand-short-name }…
   .title = Go to sync preferences
-
-manage-connected-devices = Manage devices…
-
-# Variables:
-#   $count (Number) - Number of devices connected with sync.
-lockwise-connected-device-status =
-  { $count ->
-     [one] Connected to { $count } device
-    *[other] Connected to { $count } devices
-  }
 
 monitor-title = Look out for data breaches
 monitor-link = How it works
 monitor-header-content-no-account = Check { -monitor-brand-name } to see if you’ve been part of a known data breach, and get alerts about new breaches.
 monitor-header-content-signed-in = { -monitor-brand-name } warns you if your info has appeared in a known data breach.
-monitor-sign-up = Sign Up for Breach Alerts
+monitor-sign-up-link = Sign Up for Breach Alerts
+  .title = Sign up for breach alerts on { -monitor-brand-name }
 auto-scan = Automatically scanned today
+
+monitor-emails-tooltip =
+  .title = View monitored email addresses on { -monitor-brand-short-name }
+monitor-breaches-tooltip =
+  .title = View known data breaches on { -monitor-brand-short-name }
+monitor-passwords-tooltip =
+  .title = View exposed passwords on { -monitor-brand-short-name }
 
 # This string is displayed after a large numeral that indicates the total number
 # of email addresses being monitored. Don’t add $count to
@@ -126,6 +138,15 @@ info-known-breaches-found =
   }
 
 # This string is displayed after a large numeral that indicates the total number
+# of known data breaches that are marked as resolved by the user. Don’t add $count
+# to your localization, because it would result in the number showing twice.
+info-known-breaches-resolved =
+  { $count ->
+     [one] Known data breach marked as resolved
+    *[other] Known data breaches marked as resolved
+  }
+
+# This string is displayed after a large numeral that indicates the total number
 # of exposed passwords. Don’t add $count to
 # your localization, because it would result in the number showing twice.
 info-exposed-passwords-found =
@@ -134,16 +155,44 @@ info-exposed-passwords-found =
     *[other] Passwords exposed across all breaches
   }
 
-full-report-link = View full report on <a data-l10n-name="monitor-inline-link">{ -monitor-brand-name }</a>
-
 # This string is displayed after a large numeral that indicates the total number
-# of saved logins which may have been exposed. Don’t add $count to
-# your localization, because it would result in the number showing twice.
-password-warning =
+# of exposed passwords that are marked as resolved by the user. Don’t add $count
+# to your localization, because it would result in the number showing twice.
+info-exposed-passwords-resolved =
   { $count ->
-     [one] Saved login may have been exposed in a data breach. Change this password for better online security. <a data-l10n-name="lockwise-link">View Saved Logins</a>
-    *[other] Saved logins may have been exposed in a data breach. Change these passwords for better online security. <a data-l10n-name="lockwise-link">View Saved Logins</a>
+     [one] Password exposed in unresolved breaches
+    *[other] Passwords exposed in unresolved breaches
   }
+
+monitor-no-breaches-title = Good news!
+monitor-no-breaches-description = You have no known breaches. If that changes, we will let you know.
+monitor-view-report-link = View Report
+  .title = Resolve breaches on { -monitor-brand-short-name }
+monitor-breaches-unresolved-title = Resolve your breaches
+monitor-breaches-unresolved-description = After reviewing breach details and taking steps to protect your info, you can mark breaches as resolved.
+monitor-manage-breaches-link = Manage Breaches
+  .title = Manage breaches on { -monitor-brand-short-name }
+monitor-breaches-resolved-title = Nice! You’ve resolved all known breaches.
+monitor-breaches-resolved-description = If your email appears in any new breaches, we will let you know.
+
+# Variables:
+# $numBreachesResolved (Number) - Number of breaches marked as resolved by the user on Monitor.
+# $numBreaches (Number) - Number of breaches in which a user's data was involved, detected by Monitor.
+monitor-partial-breaches-title =
+  { $numBreaches ->
+   *[other] { $numBreachesResolved } out of { $numBreaches } breaches marked as resolved
+  }
+
+# Variables:
+# $percentageResolved (Number) - Percentage of breaches marked as resolved by a user on Monitor.
+monitor-partial-breaches-percentage = { $percentageResolved }% complete
+
+monitor-partial-breaches-motivation-title-start = Great start!
+monitor-partial-breaches-motivation-title-middle = Keep it up!
+monitor-partial-breaches-motivation-title-end = Almost done! Keep it up.
+monitor-partial-breaches-motivation-description = Resolve the rest of your breaches on { -monitor-brand-short-name }.
+monitor-resolve-breaches-link = Resolve Breaches
+  .title = Resolve breaches on { -monitor-brand-short-name }
 
 ## The title attribute is used to display the type of protection.
 ## The aria-label is spoken by screen readers to make the visual graph accessible to blind users.

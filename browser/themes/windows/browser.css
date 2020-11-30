@@ -80,7 +80,7 @@
 }
 
 #main-menubar > menu {
-  -moz-appearance: none;
+  appearance: none;
   color: inherit;
 }
 
@@ -129,7 +129,7 @@
 
 #navigator-toolbox,
 .browser-toolbar {
-  -moz-appearance: none;
+  appearance: none;
 }
 
 .browser-toolbar:not(.titlebar-color) {
@@ -223,7 +223,7 @@
           ActiveBorder 2px, ActiveBorder 4px, transparent 4px);
   }
 
-  :root[tabsintitlebar]:not([inFullscreen]) :-moz-any(#TabsToolbar, #toolbar-menubar) toolbarbutton:not(:-moz-lwtheme) {
+  :root[tabsintitlebar]:not([inFullscreen]) :is(#TabsToolbar, #toolbar-menubar) toolbarbutton:not(:-moz-lwtheme) {
     color: inherit;
   }
 }
@@ -243,21 +243,24 @@
 }
 
 #print-preview-toolbar:not(:-moz-lwtheme) {
-  -moz-appearance: toolbox;
+  appearance: auto;
+  -moz-default-appearance: toolbox;
 }
 
 #browser-bottombox:not(:-moz-lwtheme) {
   background-color: -moz-dialog;
 }
 
-/* ::::: titlebar ::::: */
+/* Titlebar */
 
 :root[tabsintitlebar][sizemode="normal"] #titlebar {
-  -moz-appearance: -moz-window-titlebar;
+  appearance: auto;
+  -moz-default-appearance: -moz-window-titlebar;
 }
 
 :root[tabsintitlebar][sizemode="maximized"] #titlebar {
-  -moz-appearance: -moz-window-titlebar-maximized;
+  appearance: auto;
+  -moz-default-appearance: -moz-window-titlebar-maximized;
 }
 
 @media (-moz-windows-compositor: 0) {
@@ -271,8 +274,8 @@
   :root:not([inDOMFullscreen]) #titlebar:-moz-lwtheme {
     visibility: hidden;
   }
-  :root:not([inDOMFullscreen]) #toolbar-menubar:-moz-lwtheme,
-  :root:not([inDOMFullscreen]) #TabsToolbar:-moz-lwtheme {
+  :root:not([inDOMFullscreen]):not([chromehidden~="menubar"]) #toolbar-menubar:-moz-lwtheme,
+  :root:not([inDOMFullscreen]):not([chromehidden~="toolbar"]) #TabsToolbar:-moz-lwtheme {
     visibility: visible;
   }
 }
@@ -285,11 +288,11 @@
 
 .titlebar-buttonbox {
   /* For all Windows configurations except for Windows Aero and Windows Aero Basic,
-   * the default -moz-appearance of -moz-window-button-box and
+   * the default -moz-default-appearance of -moz-window-button-box and
    * -moz-window-button-box-maximized adds unwanted margins to the button box. We
    * special case Windows Aero and Windows Aero Basic in browser-aero.css.
    */
-  -moz-appearance: none;
+  appearance: none;
   /* The button box must appear on top of the navigator-toolbox in order for
    * click and hover mouse events to work properly for the button in the restored
    * window state. Otherwise, elements in the navigator-toolbox, like the menubar,
@@ -311,22 +314,26 @@
   }
 }
 
-/* window control buttons */
+/* Window control buttons */
 
 .titlebar-min {
-  -moz-appearance: -moz-window-button-minimize;
+  appearance: auto;
+  -moz-default-appearance: -moz-window-button-minimize;
 }
 
 .titlebar-max {
-  -moz-appearance: -moz-window-button-maximize;
+  appearance: auto;
+  -moz-default-appearance: -moz-window-button-maximize;
 }
 
-:root[sizemode="maximized"] .titlebar-max {
-  -moz-appearance: -moz-window-button-restore;
+.titlebar-restore {
+  appearance: auto;
+  -moz-default-appearance: -moz-window-button-restore;
 }
 
 .titlebar-close {
-  -moz-appearance: -moz-window-button-close;
+  appearance: auto;
+  -moz-default-appearance: -moz-window-button-close;
 }
 
 @media (-moz-windows-classic: 0) {
@@ -336,11 +343,12 @@
 }
 
 :root[tabletmode] .titlebar-min,
+:root[tabletmode] .titlebar-restore,
 :root[tabletmode] .titlebar-max {
   display: none;
 }
 
-/* ::::: bookmark menus ::::: */
+/* Bookmark menus */
 
 menu.bookmark-item,
 menuitem.bookmark-item {
@@ -349,12 +357,11 @@ menuitem.bookmark-item {
 }
 
 .bookmark-item:not(.subviewbutton) > .menu-iconic-left {
-  margin-top: 0;
-  margin-bottom: 0;
+  margin-block: 0;
 }
 
 .bookmark-item > .menu-iconic-left > .menu-iconic-icon {
-  padding-inline-start: 0px;
+  padding-inline-start: 0;
 }
 
 .bookmark-item[cutting] > .toolbarbutton-icon,
@@ -372,12 +379,12 @@ menuitem.bookmark-item {
 %include ../shared/toolbarbutton-icons.inc.css
 %include ../shared/menupanel.inc.css
 
-/* ::::: fullscreen window controls ::::: */
+/* Fullscreen window controls */
 
 #minimize-button,
 #restore-button,
 #close-button {
-  -moz-appearance: none;
+  appearance: none;
   padding: 6px 12px;
   -moz-context-properties: stroke;
   stroke: currentColor;
@@ -390,6 +397,10 @@ menuitem.bookmark-item {
 
 #restore-button {
   list-style-image: url(chrome://browser/skin/window-controls/restore.svg);
+}
+
+#restore-button > .toolbarbutton-icon:-moz-locale-dir(rtl) {
+  transform: scaleX(-1);
 }
 
 #minimize-button:hover,
@@ -434,7 +445,7 @@ menuitem.bookmark-item {
   #minimize-button,
   #restore-button,
   #close-button {
-    -moz-appearance: none;
+    appearance: none;
     border-style: none;
     margin: 0;
     /* Important to ensure this applies even on toolbar[brighttext] */
@@ -472,9 +483,6 @@ menuitem.bookmark-item {
 
   #close-button {
     -moz-image-region: rect(0, 48px, 16px, 32px);
-    -moz-appearance: none;
-    border-style: none;
-    margin: 2px;
   }
 
   #close-button:hover {
@@ -497,14 +505,16 @@ menuitem.bookmark-item {
     -moz-image-region: rect(32px, 49px, 48px, 32px);
   }
 
-  #minimize-button:-moz-locale-dir(rtl),
-  #restore-button:-moz-locale-dir(rtl),
-  #close-button:-moz-locale-dir(rtl) {
+  /* Normally there's no need to mirror these buttons for RTL,
+     but both have curves at their bottom right/left, and without
+     mirroring them their curves would appear in the wrong spot. */
+  #minimize-button > .toolbarbutton-icon:-moz-locale-dir(rtl),
+  #close-button > .toolbarbutton-icon:-moz-locale-dir(rtl) {
     transform: scaleX(-1);
   }
 }
 
-/* ::::: Location Bar ::::: */
+/* Address bar */
 
 %include ../shared/urlbar-searchbar.inc.css
 
@@ -513,9 +523,14 @@ menuitem.bookmark-item {
   font-size: 1.15em;
 }
 
+@supports -moz-bool-pref("browser.urlbar.experimental.expandTextOnFocus") {
+  #urlbar[breakout-extend] {
+    font-size: 1.25em;
+  }
+}
+
 @media (-moz-windows-default-theme: 0) {
-  #urlbar:not(.megabar):not(:-moz-lwtheme):not([focused="true"]),
-  #urlbar.megabar:not(:-moz-lwtheme):not([focused="true"]) > #urlbar-background,
+  #urlbar:not(:-moz-lwtheme):not([focused="true"]) > #urlbar-background,
   #searchbar:not(:-moz-lwtheme):not(:focus-within) {
     border-color: ThreeDShadow;
   }
@@ -526,11 +541,37 @@ menuitem.bookmark-item {
   list-style-image: url("chrome://browser/skin/share.svg");
 }
 
-/* identity box */
-
 %include ../shared/identity-block/identity-block.inc.css
+%include ../shared/notification-icons.inc.css
+%include ../shared/addon-notification.inc.css
 
-/* autocomplete */
+/* Address bar results view */
+
+%include ../shared/urlbarView.inc.css
+
+:root {
+  --urlbar-popup-url-color: hsl(210, 77%, 47%);
+  --urlbar-popup-action-color: hsl(178, 100%, 28%);
+}
+
+@media (-moz-windows-default-theme: 0) {
+  :root:not(:-moz-lwtheme) {
+    --urlbar-popup-url-color: -moz-nativehyperlinktext;
+    --urlbar-popup-action-color: -moz-nativehyperlinktext;
+
+    --urlbarView-button-text: buttontext;
+    --urlbarView-button-background: buttonface;
+    --urlbarView-button-background-hover: buttonface;
+    --urlbarView-button-background-active: buttonface;
+    --urlbarView-button-border: threedshadow;
+    --urlbarView-primary-button-text: highlighttext;
+    --urlbarView-primary-button-background: highlight;
+    --urlbarView-primary-button-background-hover: highlight;
+    --urlbarView-primary-button-background-active: highlight;
+  }
+}
+
+/* Autocomplete */
 
 %include ../shared/autocomplete.inc.css
 
@@ -538,51 +579,16 @@ menuitem.bookmark-item {
   border-top: 1px solid ThreeDShadow;
 }
 
-%include ../shared/urlbar-autocomplete.inc.css
-
-@media (-moz-windows-default-theme) {
-  :root {
-    --urlbar-popup-url-color: hsl(210, 77%, 47%);
-    --urlbar-popup-action-color: hsl(178, 100%, 28%);
-  }
-}
-
-@media (-moz-windows-default-theme: 0) {
-  :root {
-    --urlbar-popup-url-color: -moz-nativehyperlinktext;
-    --urlbar-popup-action-color: -moz-nativehyperlinktext;
-  }
-}
-
-@supports -moz-bool-pref("browser.urlbar.update2.expandTextOnFocus") {
-  #urlbar[breakout-extend] {
-    font-size: 1.25em;
-  }
-}
-
-/* bookmarking panel */
+/* Bookmarking panel */
 
 %include ../shared/places/editBookmarkPanel.inc.css
 
-/* ::::: content area ::::: */
+/* Content area */
 
 %include ../shared/sidebar.inc.css
 
 #browser {
   --sidebar-border-color: ThreeDLightShadow;
-}
-
-.browserContainer > findbar {
-  background-color: var(--toolbar-non-lwt-bgcolor);
-  color: var(--toolbar-non-lwt-textcolor);
-  text-shadow: none;
-}
-
-:root:not([lwtheme-image]) .browserContainer > findbar:-moz-lwtheme {
-  background-color: var(--lwt-accent-color);
-  background-image: linear-gradient(var(--toolbar-bgcolor), var(--toolbar-bgcolor));
-  border-top-color: var(--chrome-content-separator-color);
-  color: var(--toolbar-color);
 }
 
 /* Tabstrip */
@@ -616,13 +622,10 @@ menuitem.bookmark-item {
 }
 
 toolbarbutton.bookmark-item[dragover="true"][open="true"] {
-  -moz-appearance: none;
+  appearance: none;
   background: Highlight !important;
   color: HighlightText !important;
 }
-
-%include ../shared/notification-icons.inc.css
-%include ../shared/addon-notification.inc.css
 
 /* Translation infobar */
 
@@ -661,9 +664,8 @@ notification[value="translation"] {
 
   notification[value="translation"] button,
   notification[value="translation"] menulist,
-  notification[value="translation"] menulist > .menulist-label-box {
-    margin-inline-start: 1ch;
-    margin-inline-end: 1ch;
+  notification[value="translation"] menulist::part(label-box) {
+    margin-inline: 1ch;
   }
 
   notification[value="translation"] button:hover,
@@ -686,10 +688,10 @@ notification[value="translation"] {
   }
 
   notification[value="translation"] button[type="menu"] > .button-box > .button-menu-dropmarker,
-  notification[value="translation"] menulist > .menulist-dropmarker {
+  notification[value="translation"] menulist::part(dropmarker) {
     list-style-image: url(chrome://global/skin/icons/arrow-dropdown-16.svg);
   }
-  notification[value="translation"] menulist > .menulist-dropmarker::part(icon) {
+  notification[value="translation"] menulist::part(dropmarker-icon) {
     width: 11px;
     height: 11px;
   }
@@ -706,10 +708,11 @@ notification[value="translation"] {
 }
 
 .translation-menupopup {
-  -moz-appearance: none;
+  appearance: none;
 }
 
 /* Bookmarks roots menu-items */
+
 #bookmarksToolbarFolderMenu,
 #BMB_bookmarksToolbar,
 #panelMenu_bookmarksToolbar {
@@ -803,8 +806,7 @@ notification[value="translation"] {
    * Override the --arrowpanel-padding so the background extends
    * to the sides and bottom of the panel.
    */
-  margin-left: -10px;
-  margin-right: -10px;
+  margin-inline: -10px;
   margin-bottom: -10px;
 }
 
@@ -815,19 +817,16 @@ notification[value="translation"] {
 panel[touchmode] .PanelUI-subView .subviewbutton,
 menupopup[touchmode] menu,
 menupopup[touchmode] menuitem {
-  padding-top: 12px;
-  padding-bottom: 12px;
+  padding-block: 12px;
 }
 
 panel[touchmode] .PanelUI-subView #appMenu-edit-controls > .subviewbutton,
 panel[touchmode] .PanelUI-subView #appMenu-zoom-controls > .subviewbutton-iconic {
-  padding-inline-start: 12px;
-  padding-inline-end: 12px;
+  padding-inline: 12px;
 }
 
 #contentAreaContextMenu[touchmode] > #context-navigation > menuitem {
-  padding-top: 7px;
-  padding-bottom: 7px;
+  padding-block: 7px;
 }
 
 #context-navigation {
@@ -871,8 +870,7 @@ panel[touchmode] .PanelUI-subView #appMenu-zoom-controls > .subviewbutton-iconic
 #ContentSelectDropdown > menupopup > menuitem > .menu-iconic-text {
   /* Padding should follow the 4/12 ratio, where 12px is the default font-size
      with 4px being the preferred padding size. */
-  padding-top: .3333em;
-  padding-bottom: .3333em;
+  padding-block: .3333em;
 }
 
 #ContentSelectDropdown > menupopup > menucaption > .menu-iconic-text {
@@ -896,6 +894,5 @@ panel[touchmode] .PanelUI-subView #appMenu-zoom-controls > .subviewbutton-iconic
 #ContentSelectDropdown > .isOpenedViaTouch > menuitem > .menu-iconic-text {
   /* Touch padding should follow the 11/12 ratio, where 12px is the default
      font-size with 11px being the preferred padding size. */
-  padding-top: .9167em;
-  padding-bottom: .9167em;
+  padding-block: .9167em;
 }

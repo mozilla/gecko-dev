@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_SMILTimedElement_h
-#define mozilla_SMILTimedElement_h
+#ifndef DOM_SMIL_SMILTIMEDELEMENT_H_
+#define DOM_SMIL_SMILTIMEDELEMENT_H_
 
 #include <utility>
 
@@ -42,7 +42,7 @@ class SMILTimedElement {
   SMILTimedElement();
   ~SMILTimedElement();
 
-  typedef mozilla::dom::Element Element;
+  using Element = dom::Element;
 
   /*
    * Sets the owning animation element which this class uses to convert between
@@ -87,7 +87,7 @@ class SMILTimedElement {
   nsresult EndElementAt(double aOffsetSeconds);
 
   /**
-   * Methods for supporting the nsSVGAnimationElement interface.
+   * Methods for supporting the SVGAnimationElement interface.
    */
 
   /**
@@ -344,15 +344,15 @@ class SMILTimedElement {
   void Traverse(nsCycleCollectionTraversalCallback* aCallback);
   void Unlink();
 
-  typedef bool (*RemovalTestFunction)(SMILInstanceTime* aInstance);
+  using RemovalTestFunction = bool (*)(SMILInstanceTime* aInstance);
 
  protected:
   // Typedefs
-  typedef nsTArray<UniquePtr<SMILTimeValueSpec>> TimeValueSpecList;
-  typedef nsTArray<RefPtr<SMILInstanceTime>> InstanceTimeList;
-  typedef nsTArray<UniquePtr<SMILInterval>> IntervalList;
-  typedef nsPtrHashKey<SMILTimeValueSpec> TimeValueSpecPtrKey;
-  typedef nsTHashtable<TimeValueSpecPtrKey> TimeValueSpecHashSet;
+  using TimeValueSpecList = nsTArray<UniquePtr<SMILTimeValueSpec>>;
+  using InstanceTimeList = nsTArray<RefPtr<SMILInstanceTime>>;
+  using IntervalList = nsTArray<UniquePtr<SMILInterval>>;
+  using TimeValueSpecPtrKey = nsPtrHashKey<SMILTimeValueSpec>;
+  using TimeValueSpecHashSet = nsTHashtable<TimeValueSpecPtrKey>;
 
   // Helper classes
   class InstanceTimeComparator {
@@ -646,4 +646,4 @@ inline void ImplCycleCollectionTraverse(
 
 }  // namespace mozilla
 
-#endif  // mozilla_SMILTimedElement_h
+#endif  // DOM_SMIL_SMILTIMEDELEMENT_H_

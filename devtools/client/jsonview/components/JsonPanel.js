@@ -20,8 +20,10 @@ define(function(require, exports, module) {
     require("devtools/client/jsonview/components/JsonToolbar")
   );
 
-  const { REPS, MODE } = require("devtools/client/shared/components/reps/reps");
-  const { Rep } = REPS;
+  const {
+    MODE,
+  } = require("devtools/client/shared/components/reps/reps/constants");
+  const { Rep } = require("devtools/client/shared/components/reps/reps/rep");
 
   const { div } = dom;
 

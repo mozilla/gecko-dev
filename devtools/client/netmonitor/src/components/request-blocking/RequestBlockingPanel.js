@@ -23,12 +23,19 @@ const Actions = require("devtools/client/netmonitor/src/actions/index");
 const { L10N } = require("devtools/client/netmonitor/src/utils/l10n");
 const { PANELS } = require("devtools/client/netmonitor/src/constants");
 
+const RequestBlockingContextMenu = require("devtools/client/netmonitor/src/widgets/RequestBlockingContextMenu");
+
 const ENABLE_BLOCKING_LABEL = L10N.getStr(
   "netmonitor.actionbar.enableBlocking"
 );
-const ADD_BUTTON_TOOLTIP = L10N.getStr("netmonitor.actionbar.addBlockedUrl");
 const ADD_URL_PLACEHOLDER = L10N.getStr(
   "netmonitor.actionbar.blockSearchPlaceholder"
+);
+const REQUEST_BLOCKING_USAGE_NOTICE = L10N.getStr(
+  "netmonitor.actionbar.requestBlockingUsageNotice"
+);
+const REQUEST_BLOCKING_ADD_NOTICE = L10N.getStr(
+  "netmonitor.actionbar.requestBlockingAddNotice"
 );
 const REMOVE_URL_TOOLTIP = L10N.getStr("netmonitor.actionbar.removeBlockedUrl");
 
@@ -42,6 +49,9 @@ class RequestBlockingPanel extends Component {
       toggleBlockingEnabled: PropTypes.func.isRequired,
       toggleBlockedUrl: PropTypes.func.isRequired,
       updateBlockedUrl: PropTypes.func.isRequired,
+      removeAllBlockedUrls: PropTypes.func.isRequired,
+      disableAllBlockedUrls: PropTypes.func.isRequired,
+      enableAllBlockedUrls: PropTypes.func.isRequired,
       blockingEnabled: PropTypes.bool.isRequired,
     };
   }
@@ -104,12 +114,7 @@ class RequestBlockingPanel extends Component {
           }),
           span({ className: "request-blocking-label" }, ENABLE_BLOCKING_LABEL)
         )
-      ),
-      button({
-        className: "devtools-button",
-        title: ADD_BUTTON_TOOLTIP,
-        onClick: () => this.refs.addInput.focus(),
-      })
+      )
     );
   }
 
@@ -189,7 +194,13 @@ class RequestBlockingPanel extends Component {
   }
 
   renderBlockedList() {
-    const { blockedUrls, blockingEnabled } = this.props;
+    const {
+      blockedUrls,
+      blockingEnabled,
+      removeAllBlockedUrls,
+      disableAllBlockedUrls,
+      enableAllBlockedUrls,
+    } = this.props;
 
     if (blockedUrls.length === 0) {
       return null;
@@ -205,6 +216,26 @@ class RequestBlockingPanel extends Component {
       {
         className: "request-blocking-contents",
         ref: "contents",
+        onContextMenu: event => {
+          if (!this.contextMenu) {
+            this.contextMenu = new RequestBlockingContextMenu({
+              removeAllBlockedUrls,
+              disableAllBlockedUrls,
+              enableAllBlockedUrls,
+            });
+          }
+
+          const contextMenuOptions = {
+            disableDisableAllBlockedUrls: blockedUrls.every(
+              ({ enabled }) => enabled === false
+            ),
+            disableEnableAllBlockedUrls: blockedUrls.every(
+              ({ enabled }) => enabled === true
+            ),
+          };
+
+          this.contextMenu.open(event, contextMenuOptions);
+        },
       },
       ul(
         {
@@ -254,12 +285,40 @@ class RequestBlockingPanel extends Component {
     );
   }
 
-  render() {
+  renderEmptyListNotice() {
     return div(
-      { className: "request-blocking-panel" },
+      { className: "request-blocking-list-empty-notice" },
+      div(
+        { className: "request-blocking-notice-element" },
+        REQUEST_BLOCKING_USAGE_NOTICE
+      ),
+      div(
+        { className: "request-blocking-notice-element" },
+        REQUEST_BLOCKING_ADD_NOTICE
+      )
+    );
+  }
+
+  render() {
+    const { blockedUrls, addBlockedUrl } = this.props;
+
+    return div(
+      {
+        className: "request-blocking-panel",
+        onDragOver: e => {
+          e.preventDefault();
+        },
+        onDrop: e => {
+          e.preventDefault();
+          const url = e.dataTransfer.getData("text/plain");
+          addBlockedUrl(url);
+          this.scrollToBottom();
+        },
+      },
       this.renderEnableBar(),
       this.renderBlockedList(),
-      this.renderAddForm()
+      this.renderAddForm(),
+      !blockedUrls.length && this.renderEmptyListNotice()
     );
   }
 }
@@ -276,6 +335,9 @@ module.exports = connect(
     addBlockedUrl: url => dispatch(Actions.addBlockedUrl(url)),
     removeBlockedUrl: url => dispatch(Actions.removeBlockedUrl(url)),
     toggleBlockedUrl: url => dispatch(Actions.toggleBlockedUrl(url)),
+    removeAllBlockedUrls: () => dispatch(Actions.removeAllBlockedUrls()),
+    enableAllBlockedUrls: () => dispatch(Actions.enableAllBlockedUrls()),
+    disableAllBlockedUrls: () => dispatch(Actions.disableAllBlockedUrls()),
     updateBlockedUrl: (oldUrl, newUrl) =>
       dispatch(Actions.updateBlockedUrl(oldUrl, newUrl)),
   })

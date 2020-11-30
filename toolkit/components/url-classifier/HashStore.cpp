@@ -252,7 +252,7 @@ nsresult HashStore::Reset() {
   nsresult rv = mStoreDirectory->Clone(getter_AddRefs(storeFile));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = storeFile->AppendNative(mTableName + NS_LITERAL_CSTRING(STORE_SUFFIX));
+  rv = storeFile->AppendNative(mTableName + nsLiteralCString(STORE_SUFFIX));
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = storeFile->Remove(false);
@@ -304,7 +304,7 @@ nsresult HashStore::Open(uint32_t aVersion) {
   nsresult rv = mStoreDirectory->Clone(getter_AddRefs(storeFile));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = storeFile->AppendNative(mTableName + NS_LITERAL_CSTRING(".sbstore"));
+  rv = storeFile->AppendNative(mTableName + ".sbstore"_ns);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIInputStream> origStream;
@@ -766,7 +766,8 @@ static nsresult ByteSliceRead(nsIInputStream* aInStream,
   }
 
   for (uint32_t i = 0; i < count; i++) {
-    aData->AppendElement(
+    // SetCapacity was just called, these cannot fail.
+    (void)aData->AppendElement(
         (slice1[i] << 24) | (slice2[i] << 16) | (slice3[i] << 8) | (slice4[i]),
         fallible);
   }
@@ -912,7 +913,7 @@ nsresult HashStore::WriteFile() {
   nsCOMPtr<nsIFile> storeFile;
   nsresult rv = mStoreDirectory->Clone(getter_AddRefs(storeFile));
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = storeFile->AppendNative(mTableName + NS_LITERAL_CSTRING(".sbstore"));
+  rv = storeFile->AppendNative(mTableName + ".sbstore"_ns);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIOutputStream> out;
@@ -961,7 +962,7 @@ nsresult HashStore::ReadCompletionsLegacyV3(AddCompleteArray& aCompletes) {
   nsresult rv = mStoreDirectory->Clone(getter_AddRefs(storeFile));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = storeFile->AppendNative(mTableName + NS_LITERAL_CSTRING(STORE_SUFFIX));
+  rv = storeFile->AppendNative(mTableName + nsLiteralCString(STORE_SUFFIX));
   NS_ENSURE_SUCCESS(rv, rv);
 
   uint32_t offset = mFileSize -
@@ -982,14 +983,9 @@ nsresult HashStore::ReadCompletionsLegacyV3(AddCompleteArray& aCompletes) {
 
 template <class T>
 static void Erase(FallibleTArray<T>* array,
-                  typename nsTArray<T>::iterator& iterStart,
-                  typename nsTArray<T>::iterator& iterEnd) {
-  uint32_t start = iterStart - array->begin();
-  uint32_t count = iterEnd - iterStart;
-
-  if (count > 0) {
-    array->RemoveElementsAt(start, count);
-  }
+                  typename FallibleTArray<T>::iterator& iterStart,
+                  typename FallibleTArray<T>::iterator& iterEnd) {
+  array->RemoveElementsRange(iterStart, iterEnd);
 }
 
 // Find items matching between |subs| and |adds|, and remove them,

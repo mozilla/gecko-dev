@@ -7,16 +7,18 @@
 #ifndef nsThreadUtils_h__
 #define nsThreadUtils_h__
 
+#include <type_traits>
 #include <utility>
 
 #include "MainThreadUtils.h"
-#include "mozilla/AbstractEventQueue.h"
+#include "mozilla/EventQueue.h"
+#include "mozilla/AbstractThread.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Likely.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/ThreadLocal.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Tuple.h"
-#include "mozilla/TypeTraits.h"
 #include "nsCOMPtr.h"
 #include "nsICancelableRunnable.h"
 #include "nsIIdlePeriod.h"
@@ -30,6 +32,8 @@
 #include "prinrval.h"
 #include "prthread.h"
 #include "xpcpublic.h"
+
+class MessageLoop;
 
 //-----------------------------------------------------------------------------
 // These methods are alternatives to the methods on nsIThreadManager, provided
@@ -56,14 +60,30 @@ extern nsresult NS_NewNamedThread(
     nsIRunnable* aInitialEvent = nullptr,
     uint32_t aStackSize = nsIThreadManager::DEFAULT_STACK_SIZE);
 
+extern nsresult NS_NewNamedThread(
+    const nsACString& aName, nsIThread** aResult,
+    already_AddRefed<nsIRunnable> aInitialEvent,
+    uint32_t aStackSize = nsIThreadManager::DEFAULT_STACK_SIZE);
+
+template <size_t LEN>
+inline nsresult NS_NewNamedThread(
+    const char (&aName)[LEN], nsIThread** aResult,
+    already_AddRefed<nsIRunnable> aInitialEvent,
+    uint32_t aStackSize = nsIThreadManager::DEFAULT_STACK_SIZE) {
+  static_assert(LEN <= 16, "Thread name must be no more than 16 characters");
+  return NS_NewNamedThread(nsDependentCString(aName, LEN - 1), aResult,
+                           std::move(aInitialEvent), aStackSize);
+}
+
 template <size_t LEN>
 inline nsresult NS_NewNamedThread(
     const char (&aName)[LEN], nsIThread** aResult,
     nsIRunnable* aInitialEvent = nullptr,
     uint32_t aStackSize = nsIThreadManager::DEFAULT_STACK_SIZE) {
+  nsCOMPtr<nsIRunnable> event = aInitialEvent;
   static_assert(LEN <= 16, "Thread name must be no more than 16 characters");
   return NS_NewNamedThread(nsDependentCString(aName, LEN - 1), aResult,
-                           aInitialEvent, aStackSize);
+                           event.forget(), aStackSize);
 }
 
 /**
@@ -552,7 +572,7 @@ class RunnableFunction : public Runnable {
       : Runnable(aName), mFunction(std::forward<F>(aFunction)) {}
 
   NS_IMETHOD Run() override {
-    static_assert(IsVoid<decltype(mFunction())>::value,
+    static_assert(std::is_void_v<decltype(mFunction())>,
                   "The lambda must return void!");
     mFunction();
     return NS_OK;
@@ -566,25 +586,25 @@ class RunnableFunction : public Runnable {
 template <typename Function>
 using RunnableFunctionImpl =
     // Make sure we store a non-reference in nsRunnableFunction.
-    typename detail::RunnableFunction<typename RemoveReference<Function>::Type>;
+    typename detail::RunnableFunction<std::remove_reference_t<Function>>;
 }  // namespace detail
 
 namespace detail {
 
 template <typename CVRemoved>
-struct IsRefcountedSmartPointerHelper : FalseType {};
+struct IsRefcountedSmartPointerHelper : std::false_type {};
 
 template <typename Pointee>
-struct IsRefcountedSmartPointerHelper<RefPtr<Pointee>> : TrueType {};
+struct IsRefcountedSmartPointerHelper<RefPtr<Pointee>> : std::true_type {};
 
 template <typename Pointee>
-struct IsRefcountedSmartPointerHelper<nsCOMPtr<Pointee>> : TrueType {};
+struct IsRefcountedSmartPointerHelper<nsCOMPtr<Pointee>> : std::true_type {};
 
 }  // namespace detail
 
 template <typename T>
 struct IsRefcountedSmartPointer
-    : detail::IsRefcountedSmartPointerHelper<typename RemoveCV<T>::Type> {};
+    : detail::IsRefcountedSmartPointerHelper<std::remove_cv_t<T>> {};
 
 namespace detail {
 
@@ -607,7 +627,7 @@ struct RemoveSmartPointerHelper<T, nsCOMPtr<Pointee>> {
 
 template <typename T>
 struct RemoveSmartPointer
-    : detail::RemoveSmartPointerHelper<T, typename RemoveCV<T>::Type> {};
+    : detail::RemoveSmartPointerHelper<T, std::remove_cv_t<T>> {};
 
 namespace detail {
 
@@ -635,7 +655,7 @@ struct RemoveRawOrSmartPointerHelper<T, nsCOMPtr<Pointee>> {
 
 template <typename T>
 struct RemoveRawOrSmartPointer
-    : detail::RemoveRawOrSmartPointerHelper<T, typename RemoveCV<T>::Type> {};
+    : detail::RemoveRawOrSmartPointerHelper<T, std::remove_cv_t<T>> {};
 
 }  // namespace mozilla
 
@@ -671,9 +691,9 @@ already_AddRefed<mozilla::CancelableRunnable> NS_NewCancelableRunnableFunction(
           mFunc{mozilla::Some(std::forward<Function>(aFunc))} {}
 
     NS_IMETHOD Run() override {
-      MOZ_ASSERT(mFunc);
-
-      (*mFunc)();
+      if (mFunc) {
+        (*mFunc)();
+      }
 
       return NS_OK;
     }
@@ -739,24 +759,23 @@ class TimerBehaviour<RunnableKind::IdleWithTimer> {
 template <class ClassType, typename ReturnType = void, bool Owning = true,
           mozilla::RunnableKind Kind = mozilla::RunnableKind::Standard>
 class nsRunnableMethod
-    : public mozilla::Conditional<
+    : public std::conditional_t<
           Kind == mozilla::RunnableKind::Standard, mozilla::Runnable,
-          typename mozilla::Conditional<
-              Kind == mozilla::RunnableKind::Cancelable,
-              mozilla::CancelableRunnable, mozilla::IdleRunnable>::Type>::Type,
+          std::conditional_t<Kind == mozilla::RunnableKind::Cancelable,
+                             mozilla::CancelableRunnable,
+                             mozilla::IdleRunnable>>,
       protected mozilla::detail::TimerBehaviour<Kind> {
-  using BaseType = typename mozilla::Conditional<
+  using BaseType = std::conditional_t<
       Kind == mozilla::RunnableKind::Standard, mozilla::Runnable,
-      typename mozilla::Conditional<Kind == mozilla::RunnableKind::Cancelable,
-                                    mozilla::CancelableRunnable,
-                                    mozilla::IdleRunnable>::Type>::Type;
+      std::conditional_t<Kind == mozilla::RunnableKind::Cancelable,
+                         mozilla::CancelableRunnable, mozilla::IdleRunnable>>;
 
  public:
   nsRunnableMethod(const char* aName) : BaseType(aName) {}
 
   virtual void Revoke() = 0;
 
-  // These ReturnTypeEnforcer classes set up a blacklist for return types that
+  // These ReturnTypeEnforcer classes disallow return types that
   // we know are not safe. The default ReturnTypeEnforcer compiles just fine but
   // already_AddRefed will not.
   template <typename OtherReturnType>
@@ -881,14 +900,14 @@ struct nsRunnableMethodTraits<PtrType, R (NS_STDCALL C::*)() const, Owning,
 // When creating a new storage class, add a specialization for it to be
 // recognized.
 template <typename T>
-struct IsParameterStorageClass : public mozilla::FalseType {};
+struct IsParameterStorageClass : public std::false_type {};
 
 // StoreXPassByY structs used to inform nsRunnableMethodArguments how to
 // store arguments, and how to pass them to the target method.
 
 template <typename T>
 struct StoreCopyPassByValue {
-  typedef typename mozilla::Decay<T>::Type stored_type;
+  using stored_type = std::decay_t<T>;
   typedef stored_type passed_type;
   stored_type m;
   template <typename A>
@@ -897,11 +916,11 @@ struct StoreCopyPassByValue {
 };
 template <typename S>
 struct IsParameterStorageClass<StoreCopyPassByValue<S>>
-    : public mozilla::TrueType {};
+    : public std::true_type {};
 
 template <typename T>
 struct StoreCopyPassByConstLRef {
-  typedef typename mozilla::Decay<T>::Type stored_type;
+  using stored_type = std::decay_t<T>;
   typedef const stored_type& passed_type;
   stored_type m;
   template <typename A>
@@ -910,11 +929,11 @@ struct StoreCopyPassByConstLRef {
 };
 template <typename S>
 struct IsParameterStorageClass<StoreCopyPassByConstLRef<S>>
-    : public mozilla::TrueType {};
+    : public std::true_type {};
 
 template <typename T>
 struct StoreCopyPassByLRef {
-  typedef typename mozilla::Decay<T>::Type stored_type;
+  using stored_type = std::decay_t<T>;
   typedef stored_type& passed_type;
   stored_type m;
   template <typename A>
@@ -922,12 +941,12 @@ struct StoreCopyPassByLRef {
   passed_type PassAsParameter() { return m; }
 };
 template <typename S>
-struct IsParameterStorageClass<StoreCopyPassByLRef<S>>
-    : public mozilla::TrueType {};
+struct IsParameterStorageClass<StoreCopyPassByLRef<S>> : public std::true_type {
+};
 
 template <typename T>
 struct StoreCopyPassByRRef {
-  typedef typename mozilla::Decay<T>::Type stored_type;
+  using stored_type = std::decay_t<T>;
   typedef stored_type&& passed_type;
   stored_type m;
   template <typename A>
@@ -935,8 +954,8 @@ struct StoreCopyPassByRRef {
   passed_type PassAsParameter() { return std::move(m); }
 };
 template <typename S>
-struct IsParameterStorageClass<StoreCopyPassByRRef<S>>
-    : public mozilla::TrueType {};
+struct IsParameterStorageClass<StoreCopyPassByRRef<S>> : public std::true_type {
+};
 
 template <typename T>
 struct StoreRefPassByLRef {
@@ -948,8 +967,8 @@ struct StoreRefPassByLRef {
   passed_type PassAsParameter() { return m; }
 };
 template <typename S>
-struct IsParameterStorageClass<StoreRefPassByLRef<S>>
-    : public mozilla::TrueType {};
+struct IsParameterStorageClass<StoreRefPassByLRef<S>> : public std::true_type {
+};
 
 template <typename T>
 struct StoreConstRefPassByConstLRef {
@@ -962,7 +981,7 @@ struct StoreConstRefPassByConstLRef {
 };
 template <typename S>
 struct IsParameterStorageClass<StoreConstRefPassByConstLRef<S>>
-    : public mozilla::TrueType {};
+    : public std::true_type {};
 
 template <typename T>
 struct StoreRefPtrPassByPtr {
@@ -975,7 +994,7 @@ struct StoreRefPtrPassByPtr {
 };
 template <typename S>
 struct IsParameterStorageClass<StoreRefPtrPassByPtr<S>>
-    : public mozilla::TrueType {};
+    : public std::true_type {};
 
 template <typename T>
 struct StorePtrPassByPtr {
@@ -987,8 +1006,7 @@ struct StorePtrPassByPtr {
   passed_type PassAsParameter() { return m; }
 };
 template <typename S>
-struct IsParameterStorageClass<StorePtrPassByPtr<S>>
-    : public mozilla::TrueType {};
+struct IsParameterStorageClass<StorePtrPassByPtr<S>> : public std::true_type {};
 
 template <typename T>
 struct StoreConstPtrPassByConstPtr {
@@ -1001,7 +1019,7 @@ struct StoreConstPtrPassByConstPtr {
 };
 template <typename S>
 struct IsParameterStorageClass<StoreConstPtrPassByConstPtr<S>>
-    : public mozilla::TrueType {};
+    : public std::true_type {};
 
 template <typename T>
 struct StoreCopyPassByConstPtr {
@@ -1014,7 +1032,7 @@ struct StoreCopyPassByConstPtr {
 };
 template <typename S>
 struct IsParameterStorageClass<StoreCopyPassByConstPtr<S>>
-    : public mozilla::TrueType {};
+    : public std::true_type {};
 
 template <typename T>
 struct StoreCopyPassByPtr {
@@ -1026,75 +1044,85 @@ struct StoreCopyPassByPtr {
   passed_type PassAsParameter() { return &m; }
 };
 template <typename S>
-struct IsParameterStorageClass<StoreCopyPassByPtr<S>>
-    : public mozilla::TrueType {};
+struct IsParameterStorageClass<StoreCopyPassByPtr<S>> : public std::true_type {
+};
 
 namespace detail {
 
 template <typename>
-struct SFINAE1True : mozilla::TrueType {};
+struct SFINAE1True : std::true_type {};
 
 template <class T>
 static auto HasRefCountMethodsTest(int)
-    -> SFINAE1True<decltype(mozilla::DeclVal<T>().AddRef(),
-                            mozilla::DeclVal<T>().Release())>;
+    -> SFINAE1True<decltype(std::declval<T>().AddRef(),
+                            std::declval<T>().Release())>;
 template <class>
-static auto HasRefCountMethodsTest(long) -> mozilla::FalseType;
+static auto HasRefCountMethodsTest(long) -> std::false_type;
 
 template <class T>
 struct HasRefCountMethods : decltype(HasRefCountMethodsTest<T>(0)) {};
 
 template <typename TWithoutPointer>
 struct NonnsISupportsPointerStorageClass
-    : mozilla::Conditional<
-          mozilla::IsConst<TWithoutPointer>::value,
-          StoreConstPtrPassByConstPtr<
-              typename mozilla::RemoveConst<TWithoutPointer>::Type>,
-          StorePtrPassByPtr<TWithoutPointer>> {};
+    : std::conditional<
+          std::is_const_v<TWithoutPointer>,
+          StoreConstPtrPassByConstPtr<std::remove_const_t<TWithoutPointer>>,
+          StorePtrPassByPtr<TWithoutPointer>> {
+  using Type = typename NonnsISupportsPointerStorageClass::conditional::type;
+};
 
 template <typename TWithoutPointer>
 struct PointerStorageClass
-    : mozilla::Conditional<
+    : std::conditional<
           HasRefCountMethods<TWithoutPointer>::value,
           StoreRefPtrPassByPtr<TWithoutPointer>,
-          typename NonnsISupportsPointerStorageClass<TWithoutPointer>::Type> {};
+          typename NonnsISupportsPointerStorageClass<TWithoutPointer>::Type> {
+  using Type = typename PointerStorageClass::conditional::type;
+};
 
 template <typename TWithoutRef>
 struct LValueReferenceStorageClass
-    : mozilla::Conditional<
-          mozilla::IsConst<TWithoutRef>::value,
-          StoreConstRefPassByConstLRef<
-              typename mozilla::RemoveConst<TWithoutRef>::Type>,
-          StoreRefPassByLRef<TWithoutRef>> {};
+    : std::conditional<
+          std::is_const_v<TWithoutRef>,
+          StoreConstRefPassByConstLRef<std::remove_const_t<TWithoutRef>>,
+          StoreRefPassByLRef<TWithoutRef>> {
+  using Type = typename LValueReferenceStorageClass::conditional::type;
+};
 
 template <typename T>
 struct SmartPointerStorageClass
-    : mozilla::Conditional<
+    : std::conditional<
           mozilla::IsRefcountedSmartPointer<T>::value,
           StoreRefPtrPassByPtr<typename mozilla::RemoveSmartPointer<T>::Type>,
-          StoreCopyPassByConstLRef<T>> {};
+          StoreCopyPassByConstLRef<T>> {
+  using Type = typename SmartPointerStorageClass::conditional::type;
+};
 
 template <typename T>
 struct NonLValueReferenceStorageClass
-    : mozilla::Conditional<
-          std::is_rvalue_reference_v<T>,
-          StoreCopyPassByRRef<typename mozilla::RemoveReference<T>::Type>,
-          typename SmartPointerStorageClass<T>::Type> {};
+    : std::conditional<std::is_rvalue_reference_v<T>,
+                       StoreCopyPassByRRef<std::remove_reference_t<T>>,
+                       typename SmartPointerStorageClass<T>::Type> {
+  using Type = typename NonLValueReferenceStorageClass::conditional::type;
+};
 
 template <typename T>
 struct NonPointerStorageClass
-    : mozilla::Conditional<
-          std::is_lvalue_reference_v<T>,
-          typename LValueReferenceStorageClass<
-              typename mozilla::RemoveReference<T>::Type>::Type,
-          typename NonLValueReferenceStorageClass<T>::Type> {};
+    : std::conditional<std::is_lvalue_reference_v<T>,
+                       typename LValueReferenceStorageClass<
+                           std::remove_reference_t<T>>::Type,
+                       typename NonLValueReferenceStorageClass<T>::Type> {
+  using Type = typename NonPointerStorageClass::conditional::type;
+};
 
 template <typename T>
 struct NonParameterStorageClass
-    : mozilla::Conditional<mozilla::IsPointer<T>::value,
-                           typename PointerStorageClass<
-                               typename mozilla::RemovePointer<T>::Type>::Type,
-                           typename NonPointerStorageClass<T>::Type> {};
+    : std::conditional<
+          std::is_pointer_v<T>,
+          typename PointerStorageClass<std::remove_pointer_t<T>>::Type,
+          typename NonPointerStorageClass<T>::Type> {
+  using Type = typename NonParameterStorageClass::conditional::type;
+};
 
 // Choose storage&passing strategy based on preferred storage type:
 // - If IsParameterStorageClass<T>::value is true, use as-is.
@@ -1117,28 +1145,30 @@ struct NonParameterStorageClass
 // clean-up in destructor, and with associated IsParameterStorageClass<>.
 template <typename T>
 struct ParameterStorage
-    : mozilla::Conditional<IsParameterStorageClass<T>::value, T,
-                           typename NonParameterStorageClass<T>::Type> {};
+    : std::conditional<IsParameterStorageClass<T>::value, T,
+                       typename NonParameterStorageClass<T>::Type> {
+  using Type = typename ParameterStorage::conditional::type;
+};
 
 template <class T>
 static auto HasSetDeadlineTest(int) -> SFINAE1True<decltype(
-    mozilla::DeclVal<T>().SetDeadline(mozilla::DeclVal<mozilla::TimeStamp>()))>;
+    std::declval<T>().SetDeadline(std::declval<mozilla::TimeStamp>()))>;
 
 template <class T>
-static auto HasSetDeadlineTest(long) -> mozilla::FalseType;
+static auto HasSetDeadlineTest(long) -> std::false_type;
 
 template <class T>
 struct HasSetDeadline : decltype(HasSetDeadlineTest<T>(0)) {};
 
 template <class T>
-typename mozilla::EnableIf<::detail::HasSetDeadline<T>::value>::Type
-SetDeadlineImpl(T* aObj, mozilla::TimeStamp aTimeStamp) {
+std::enable_if_t<::detail::HasSetDeadline<T>::value> SetDeadlineImpl(
+    T* aObj, mozilla::TimeStamp aTimeStamp) {
   aObj->SetDeadline(aTimeStamp);
 }
 
 template <class T>
-typename mozilla::EnableIf<!::detail::HasSetDeadline<T>::value>::Type
-SetDeadlineImpl(T* aObj, mozilla::TimeStamp aTimeStamp) {}
+std::enable_if_t<!::detail::HasSetDeadline<T>::value> SetDeadlineImpl(
+    T* aObj, mozilla::TimeStamp aTimeStamp) {}
 } /* namespace detail */
 
 namespace mozilla {
@@ -1246,89 +1276,85 @@ class RunnableMethodImpl final
 // Type aliases for NewRunnableMethod.
 template <typename PtrType, typename Method>
 using OwningRunnableMethod =
-    typename ::nsRunnableMethodTraits<typename RemoveReference<PtrType>::Type,
-                                      Method, true,
-                                      RunnableKind::Standard>::base_type;
+    typename ::nsRunnableMethodTraits<std::remove_reference_t<PtrType>, Method,
+                                      true, RunnableKind::Standard>::base_type;
 template <typename PtrType, typename Method, typename... Storages>
 using OwningRunnableMethodImpl =
-    RunnableMethodImpl<typename RemoveReference<PtrType>::Type, Method, true,
+    RunnableMethodImpl<std::remove_reference_t<PtrType>, Method, true,
                        RunnableKind::Standard, Storages...>;
 
 // Type aliases for NewCancelableRunnableMethod.
 template <typename PtrType, typename Method>
 using CancelableRunnableMethod =
-    typename ::nsRunnableMethodTraits<typename RemoveReference<PtrType>::Type,
-                                      Method, true,
+    typename ::nsRunnableMethodTraits<std::remove_reference_t<PtrType>, Method,
+                                      true,
                                       RunnableKind::Cancelable>::base_type;
 template <typename PtrType, typename Method, typename... Storages>
 using CancelableRunnableMethodImpl =
-    RunnableMethodImpl<typename RemoveReference<PtrType>::Type, Method, true,
+    RunnableMethodImpl<std::remove_reference_t<PtrType>, Method, true,
                        RunnableKind::Cancelable, Storages...>;
 
 // Type aliases for NewIdleRunnableMethod.
 template <typename PtrType, typename Method>
 using IdleRunnableMethod =
-    typename ::nsRunnableMethodTraits<typename RemoveReference<PtrType>::Type,
-                                      Method, true,
-                                      RunnableKind::Idle>::base_type;
+    typename ::nsRunnableMethodTraits<std::remove_reference_t<PtrType>, Method,
+                                      true, RunnableKind::Idle>::base_type;
 template <typename PtrType, typename Method, typename... Storages>
 using IdleRunnableMethodImpl =
-    RunnableMethodImpl<typename RemoveReference<PtrType>::Type, Method, true,
+    RunnableMethodImpl<std::remove_reference_t<PtrType>, Method, true,
                        RunnableKind::Idle, Storages...>;
 
 // Type aliases for NewIdleRunnableMethodWithTimer.
 template <typename PtrType, typename Method>
 using IdleRunnableMethodWithTimer =
-    typename ::nsRunnableMethodTraits<typename RemoveReference<PtrType>::Type,
-                                      Method, true,
+    typename ::nsRunnableMethodTraits<std::remove_reference_t<PtrType>, Method,
+                                      true,
                                       RunnableKind::IdleWithTimer>::base_type;
 template <typename PtrType, typename Method, typename... Storages>
 using IdleRunnableMethodWithTimerImpl =
-    RunnableMethodImpl<typename RemoveReference<PtrType>::Type, Method, true,
+    RunnableMethodImpl<std::remove_reference_t<PtrType>, Method, true,
                        RunnableKind::IdleWithTimer, Storages...>;
 
 // Type aliases for NewNonOwningRunnableMethod.
 template <typename PtrType, typename Method>
 using NonOwningRunnableMethod =
-    typename ::nsRunnableMethodTraits<typename RemoveReference<PtrType>::Type,
-                                      Method, false,
-                                      RunnableKind::Standard>::base_type;
+    typename ::nsRunnableMethodTraits<std::remove_reference_t<PtrType>, Method,
+                                      false, RunnableKind::Standard>::base_type;
 template <typename PtrType, typename Method, typename... Storages>
 using NonOwningRunnableMethodImpl =
-    RunnableMethodImpl<typename RemoveReference<PtrType>::Type, Method, false,
+    RunnableMethodImpl<std::remove_reference_t<PtrType>, Method, false,
                        RunnableKind::Standard, Storages...>;
 
 // Type aliases for NonOwningCancelableRunnableMethod
 template <typename PtrType, typename Method>
 using NonOwningCancelableRunnableMethod =
-    typename ::nsRunnableMethodTraits<typename RemoveReference<PtrType>::Type,
-                                      Method, false,
+    typename ::nsRunnableMethodTraits<std::remove_reference_t<PtrType>, Method,
+                                      false,
                                       RunnableKind::Cancelable>::base_type;
 template <typename PtrType, typename Method, typename... Storages>
 using NonOwningCancelableRunnableMethodImpl =
-    RunnableMethodImpl<typename RemoveReference<PtrType>::Type, Method, false,
+    RunnableMethodImpl<std::remove_reference_t<PtrType>, Method, false,
                        RunnableKind::Cancelable, Storages...>;
 
 // Type aliases for NonOwningIdleRunnableMethod
 template <typename PtrType, typename Method>
 using NonOwningIdleRunnableMethod =
-    typename ::nsRunnableMethodTraits<typename RemoveReference<PtrType>::Type,
-                                      Method, false,
-                                      RunnableKind::Idle>::base_type;
+    typename ::nsRunnableMethodTraits<std::remove_reference_t<PtrType>, Method,
+                                      false, RunnableKind::Idle>::base_type;
 template <typename PtrType, typename Method, typename... Storages>
 using NonOwningIdleRunnableMethodImpl =
-    RunnableMethodImpl<typename RemoveReference<PtrType>::Type, Method, false,
+    RunnableMethodImpl<std::remove_reference_t<PtrType>, Method, false,
                        RunnableKind::Idle, Storages...>;
 
 // Type aliases for NewIdleRunnableMethodWithTimer.
 template <typename PtrType, typename Method>
 using NonOwningIdleRunnableMethodWithTimer =
-    typename ::nsRunnableMethodTraits<typename RemoveReference<PtrType>::Type,
-                                      Method, false,
+    typename ::nsRunnableMethodTraits<std::remove_reference_t<PtrType>, Method,
+                                      false,
                                       RunnableKind::IdleWithTimer>::base_type;
 template <typename PtrType, typename Method, typename... Storages>
 using NonOwningIdleRunnableMethodWithTimerImpl =
-    RunnableMethodImpl<typename RemoveReference<PtrType>::Type, Method, false,
+    RunnableMethodImpl<std::remove_reference_t<PtrType>, Method, false,
                        RunnableKind::IdleWithTimer, Storages...>;
 
 }  // namespace detail
@@ -1744,7 +1770,7 @@ extern mozilla::TimeStamp NS_GetTimerDeadlineHintOnCurrentThread(
 extern nsresult NS_DispatchBackgroundTask(
     already_AddRefed<nsIRunnable> aEvent,
     uint32_t aDispatchFlags = NS_DISPATCH_NORMAL);
-extern nsresult NS_DispatchBackgroundTask(
+extern "C" nsresult NS_DispatchBackgroundTask(
     nsIRunnable* aEvent, uint32_t aDispatchFlags = NS_DISPATCH_NORMAL);
 
 /**
@@ -1753,10 +1779,46 @@ extern nsresult NS_DispatchBackgroundTask(
  * own, private thread, and is generally preferred to creating your own,
  * private thread.
  */
-extern nsresult NS_CreateBackgroundTaskQueue(const char* aName,
-                                             nsISerialEventTarget** aTarget);
+extern "C" nsresult NS_CreateBackgroundTaskQueue(
+    const char* aName, nsISerialEventTarget** aTarget);
+
+// Predeclaration for logging function below
+namespace IPC {
+class Message;
+}
+
+class nsTimerImpl;
 
 namespace mozilla {
+
+// RAII class that will set the TLS entry to return the currently running
+// nsISerialEventTarget.
+// It should be used from inner event loop implementation.
+class SerialEventTargetGuard {
+ public:
+  explicit SerialEventTargetGuard(nsISerialEventTarget* aThread)
+      : mLastCurrentThread(sCurrentThreadTLS.get()) {
+    Set(aThread);
+  }
+
+  ~SerialEventTargetGuard() { sCurrentThreadTLS.set(mLastCurrentThread); }
+
+  static void InitTLS();
+  static nsISerialEventTarget* GetCurrentSerialEventTarget() {
+    return sCurrentThreadTLS.get();
+  }
+
+ protected:
+  friend class ::MessageLoop;
+  static void Set(nsISerialEventTarget* aThread) {
+    MOZ_ASSERT(aThread->IsOnCurrentThread());
+    sCurrentThreadTLS.set(aThread);
+  }
+
+ private:
+  static MOZ_THREAD_LOCAL(nsISerialEventTarget*) sCurrentThreadTLS;
+  nsISerialEventTarget* mLastCurrentThread;
+};
 
 // These functions return event targets that can be used to dispatch to the
 // current or main thread. They can also be used to test if you're on those
@@ -1764,7 +1826,7 @@ namespace mozilla {
 // to the nsIThread-based NS_Get{Current,Main}Thread functions since they will
 // return more useful answers in the case of threads sharing an event loop.
 
-nsIEventTarget* GetCurrentThreadEventTarget();
+nsIEventTarget* GetCurrentEventTarget();
 
 nsIEventTarget* GetMainThreadEventTarget();
 
@@ -1772,9 +1834,59 @@ nsIEventTarget* GetMainThreadEventTarget();
 // serial event target (i.e., that it's not part of a thread pool) and returns
 // that.
 
-nsISerialEventTarget* GetCurrentThreadSerialEventTarget();
+nsISerialEventTarget* GetCurrentSerialEventTarget();
 
 nsISerialEventTarget* GetMainThreadSerialEventTarget();
+
+// Returns a wrapper around the current thread which routes normal dispatches
+// through the tail dispatcher.
+// This means that they will run at the end of the current task, rather than
+// after all the subsequent tasks queued. This is useful to allow MozPromise
+// callbacks returned by IPDL methods to avoid an extra trip through the event
+// loop, and thus maintain correct ordering relative to other IPC events. The
+// current thread implementation must support tail dispatch.
+class TailDispatchingTarget : public nsISerialEventTarget {
+ public:
+  NS_DECL_THREADSAFE_ISUPPORTS
+  TailDispatchingTarget()
+#if DEBUG
+      : mOwnerThread(AbstractThread::GetCurrent())
+#endif
+  {
+    MOZ_ASSERT(mOwnerThread, "Must be used with AbstractThreads");
+  }
+
+  NS_IMETHOD
+  Dispatch(already_AddRefed<nsIRunnable> event, uint32_t flags) override {
+    MOZ_ASSERT(flags == DISPATCH_NORMAL);
+    MOZ_ASSERT(
+        AbstractThread::GetCurrent() == mOwnerThread,
+        "TailDispatchingTarget can only be used on the thread upon which it "
+        "was created - see the comment on the class declaration.");
+    AbstractThread::DispatchDirectTask(std::move(event));
+    return NS_OK;
+  }
+  NS_IMETHOD_(bool) IsOnCurrentThreadInfallible(void) override { return true; }
+  NS_IMETHOD IsOnCurrentThread(bool* _retval) override {
+    *_retval = true;
+    return NS_OK;
+  }
+  NS_IMETHOD DispatchFromScript(nsIRunnable* event, uint32_t flags) override {
+    MOZ_ASSERT_UNREACHABLE("not implemented");
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+  NS_IMETHOD DelayedDispatch(already_AddRefed<nsIRunnable> event,
+                             uint32_t delay) override {
+    MOZ_ASSERT_UNREACHABLE("not implemented");
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+
+ private:
+  virtual ~TailDispatchingTarget() = default;
+#if DEBUG
+  const RefPtr<AbstractThread> mOwnerThread;
+#endif
+};
 
 // Returns the number of CPUs, like PR_GetNumberOfProcessors, except
 // that it can return a cached value on platforms where sandboxing
@@ -1782,6 +1894,111 @@ nsISerialEventTarget* GetMainThreadSerialEventTarget();
 // hotplugging is uncommon, so this is unlikely to make a difference
 // in practice.
 size_t GetNumberOfProcessors();
+
+/**
+ * A helper class to log tasks dispatch and run with "MOZ_LOG=events:1".  The
+ * output is more machine readable and creates a link between dispatch and run.
+ *
+ * Usage example for the concrete template type nsIRunnable.
+ * To log a dispatch, which means putting an event to a queue:
+ *   LogRunnable::LogDispatch(event);
+ *   theQueue.putEvent(event);
+ *
+ * To log execution (running) of the event:
+ *   nsCOMPtr<nsIRunnable> event = theQueue.popEvent();
+ *   {
+ *     LogRunnable::Run log(event);
+ *     event->Run();
+ *     event = null;  // to include the destructor code in the span
+ *   }
+ *
+ * The class is a template so that we can support various specific super-types
+ * of tasks in the future.  We can't use void* because it may cast differently
+ * and tracking the pointer in logs would then be impossible.
+ */
+template <typename T>
+class LogTaskBase {
+ public:
+  LogTaskBase() = delete;
+
+  // Adds a simple log about dispatch of this runnable.
+  static void LogDispatch(T* aEvent);
+  // The `aContext` pointer adds another uniqe identifier, nothing more
+  static void LogDispatch(T* aEvent, void* aContext);
+
+  // Logs dispatch of the message and along that also the PID of the target
+  // proccess, purposed for uniquely identifying IPC messages.
+  static void LogDispatchWithPid(T* aEvent, int32_t aPid);
+
+  // This is designed to surround a call to `Run()` or any code representing
+  // execution of the task body.
+  // The constructor adds a simple log about start of the runnable execution and
+  // the destructor adds a log about ending the execution.
+  class MOZ_RAII Run {
+   public:
+    Run() = delete;
+    explicit Run(T* aEvent, bool aWillRunAgain = false);
+    explicit Run(T* aEvent, void* aContext, bool aWillRunAgain = false);
+    ~Run();
+
+    // When this is called, the log in this RAII dtor will only say
+    // "interrupted" expecting that the event will run again.
+    void WillRunAgain() { mWillRunAgain = true; }
+
+   private:
+    bool mWillRunAgain = false;
+  };
+};
+
+class MicroTaskRunnable;
+class Task;  // TaskController
+class PresShell;
+namespace dom {
+class FrameRequestCallback;
+}  // namespace dom
+
+// Specialized methods must be explicitly predeclared.
+template <>
+LogTaskBase<nsIRunnable>::Run::Run(nsIRunnable* aEvent, bool aWillRunAgain);
+template <>
+void LogTaskBase<IPC::Message>::LogDispatchWithPid(IPC::Message* aEvent,
+                                                   int32_t aPid);
+template <>
+LogTaskBase<IPC::Message>::Run::Run(IPC::Message* aMessage, bool aWillRunAgain);
+template <>
+LogTaskBase<nsTimerImpl>::Run::Run(nsTimerImpl* aEvent, bool aWillRunAgain);
+
+typedef LogTaskBase<nsIRunnable> LogRunnable;
+typedef LogTaskBase<MicroTaskRunnable> LogMicroTaskRunnable;
+typedef LogTaskBase<IPC::Message> LogIPCMessage;
+typedef LogTaskBase<nsTimerImpl> LogTimerEvent;
+typedef LogTaskBase<Task> LogTask;
+typedef LogTaskBase<PresShell> LogPresShellObserver;
+typedef LogTaskBase<dom::FrameRequestCallback> LogFrameRequestCallback;
+// If you add new types don't forget to add:
+// `template class LogTaskBase<YourType>;` to nsThreadUtils.cpp
+
+class DelayedRunnable : public mozilla::Runnable, public nsITimerCallback {
+ public:
+  DelayedRunnable(already_AddRefed<nsIEventTarget> aTarget,
+                  already_AddRefed<nsIRunnable> aRunnable, uint32_t aDelay);
+
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_NSIRUNNABLE
+  NS_DECL_NSITIMERCALLBACK
+
+  nsresult Init();
+
+ private:
+  ~DelayedRunnable() = default;
+  nsresult DoRun();
+
+  const nsCOMPtr<nsIEventTarget> mTarget;
+  nsCOMPtr<nsIRunnable> mWrappedRunnable;
+  nsCOMPtr<nsITimer> mTimer;
+  const mozilla::TimeStamp mDelayedFrom;
+  uint32_t mDelay;
+};
 
 }  // namespace mozilla
 

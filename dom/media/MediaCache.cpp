@@ -19,8 +19,8 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPtr.h"
+#include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/StaticPrefs_media.h"
-#include "mozilla/SystemGroup.h"
 #include "mozilla/Telemetry.h"
 #include "nsContentUtils.h"
 #include "nsINetworkLinkService.h"
@@ -174,9 +174,9 @@ class MediaCache {
   void CloseStreamsForPrivateBrowsing();
 
   // Cache-file access methods. These are the lowest-level cache methods.
-  // mReentrantMonitor must be held; these can be called on any thread.
+  // mMonitor must be held; these can be called on any thread.
   // This can return partial reads.
-  // Note mReentrantMonitor will be dropped while doing IO. The caller need
+  // Note mMonitor will be dropped while doing IO. The caller need
   // to handle changes happening when the monitor is not held.
   nsresult ReadCacheFile(AutoLock&, int64_t aOffset, void* aData,
                          int32_t aLength, int32_t* aBytes);
@@ -184,7 +184,7 @@ class MediaCache {
   // The generated IDs are always positive.
   int64_t AllocateResourceID(AutoLock&) { return ++mNextResourceID; }
 
-  // mReentrantMonitor must be held, called on main thread.
+  // mMonitor must be held, called on main thread.
   // These methods are used by the stream to set up and tear down streams,
   // and to handle reads and writes.
   // Add aStream to the list of streams.
@@ -199,7 +199,7 @@ class MediaCache {
       MediaCacheStream::ReadMode aMode, Span<const uint8_t> aData1,
       Span<const uint8_t> aData2 = Span<const uint8_t>());
 
-  // mReentrantMonitor must be held; can be called on any thread
+  // mMonitor must be held; can be called on any thread
   // Notify the cache that a seek has been requested. Some blocks may
   // need to change their class between PLAYED_BLOCK and READAHEAD_BLOCK.
   // This does not trigger channel seeks directly, the next Update()
@@ -303,11 +303,6 @@ class MediaCache {
       LOG("~MediaCache(Global file-backed MediaCache)");
       // This is the file-backed MediaCache, reset the global pointer.
       gMediaCache = nullptr;
-      LOG("MediaCache::~MediaCache(this=%p) MEDIACACHE_WATERMARK_KB=%u", this,
-          unsigned(mIndexWatermark * MediaCache::BLOCK_SIZE / 1024));
-      LOG("MediaCache::~MediaCache(this=%p) "
-          "MEDIACACHE_BLOCKOWNERS_WATERMARK=%u",
-          this, unsigned(mBlockOwnersWatermark));
     } else {
       LOG("~MediaCache(Memory-backed MediaCache %p)", this);
     }
@@ -452,11 +447,7 @@ class MediaCache {
   nsTArray<MediaCacheStream*> mStreams;
   // The Blocks describing the cache entries.
   nsTArray<Block> mIndex;
-  // Keep track for highest number of blocks used, for telemetry purposes.
-  int32_t mIndexWatermark = 0;
-  // Keep track for highest number of blocks owners, for telemetry purposes.
-  uint32_t mBlockOwnersWatermark = 0;
-  // Writer which performs IO, asynchronously writing cache blocks.
+
   RefPtr<MediaBlockCacheBase> mBlockCache;
   // The list of free blocks; they are not ordered.
   BlockList mFreeBlocks;
@@ -736,10 +727,7 @@ void MediaCache::Flush() {
         AutoLock lock(self->mMonitor);
         self->FlushInternal(lock);
         // Ensure MediaCache is deleted on the main thread.
-        NS_ProxyRelease(
-            "MediaCache::Flush",
-            SystemGroup::EventTargetFor(mozilla::TaskCategory::Other),
-            self.forget());
+        NS_ReleaseOnMainThread("MediaCache::Flush", self.forget());
       });
   sThread->Dispatch(r.forget());
 }
@@ -751,17 +739,14 @@ void MediaCache::CloseStreamsForPrivateBrowsing() {
       [self = RefPtr<MediaCache>(this)]() mutable {
         AutoLock lock(self->mMonitor);
         // Copy mStreams since CloseInternal() will change the array.
-        nsTArray<MediaCacheStream*> streams(self->mStreams);
-        for (MediaCacheStream* s : streams) {
+        for (MediaCacheStream* s : self->mStreams.Clone()) {
           if (s->mIsPrivateBrowsing) {
             s->CloseInternal(lock);
           }
         }
         // Ensure MediaCache is deleted on the main thread.
-        NS_ProxyRelease(
-            "MediaCache::CloseStreamsForPrivateBrowsing",
-            SystemGroup::EventTargetFor(mozilla::TaskCategory::Other),
-            self.forget());
+        NS_ReleaseOnMainThread("MediaCache::CloseStreamsForPrivateBrowsing",
+                               self.forget());
       }));
 }
 
@@ -925,8 +910,9 @@ int32_t MediaCache::FindBlockForIncomingData(AutoLock& aLock, TimeStamp aNow,
          PredictNextUseForIncomingData(aLock, aStream) >=
              PredictNextUse(aLock, aNow, blockIndex))) {
       blockIndex = mIndex.Length();
-      if (!mIndex.AppendElement()) return -1;
-      mIndexWatermark = std::max(mIndexWatermark, blockIndex + 1);
+      // XXX(Bug 1631371) Check if this should use a fallible operation as it
+      // pretended earlier.
+      mIndex.AppendElement();
       mFreeBlocks.AddFirstBlock(blockIndex);
       return blockIndex;
     }
@@ -1125,8 +1111,6 @@ void MediaCache::AddBlockOwnerAsReadahead(AutoLock& aLock, int32_t aBlockIndex,
     mFreeBlocks.RemoveBlock(aBlockIndex);
   }
   BlockOwner* bo = block->mOwners.AppendElement();
-  mBlockOwnersWatermark =
-      std::max(mBlockOwnersWatermark, uint32_t(block->mOwners.Length()));
   bo->mStream = aStream;
   bo->mStreamBlock = aStreamBlockIndex;
   aStream->mBlocks[aStreamBlockIndex] = aBlockIndex;
@@ -1527,6 +1511,14 @@ void MediaCache::Update() {
     } else if (!enableReading && !stream->mCacheSuspended) {
       actions[i].mTag = StreamAction::SUSPEND;
     }
+    LOG("Stream %p, mCacheSuspended=%d, enableReading=%d, action=%s", stream,
+        stream->mCacheSuspended, enableReading,
+        actions[i].mTag == StreamAction::SEEK
+            ? "SEEK"
+            : actions[i].mTag == StreamAction::RESUME
+                  ? "RESUME"
+                  : actions[i].mTag == StreamAction::SUSPEND ? "SUSPEND"
+                                                             : "NONE");
   }
 #ifdef DEBUG
   mInUpdate = false;
@@ -1596,9 +1588,7 @@ class UpdateEvent : public Runnable {
   NS_IMETHOD Run() override {
     mMediaCache->Update();
     // Ensure MediaCache is deleted on the main thread.
-    NS_ProxyRelease("UpdateEvent::mMediaCache",
-                    SystemGroup::EventTargetFor(mozilla::TaskCategory::Other),
-                    mMediaCache.forget());
+    NS_ReleaseOnMainThread("UpdateEvent::mMediaCache", mMediaCache.forget());
     return NS_OK;
   }
 
@@ -1718,8 +1708,6 @@ void MediaCache::AllocateAndWriteBlock(AutoLock& aLock,
         block->mOwners.Clear();
         return;
       }
-      mBlockOwnersWatermark =
-          std::max(mBlockOwnersWatermark, uint32_t(block->mOwners.Length()));
       bo->mStream = stream;
     }
 
@@ -1771,7 +1759,10 @@ void MediaCache::AllocateAndWriteBlock(AutoLock& aLock,
 
 void MediaCache::OpenStream(AutoLock& aLock, MediaCacheStream* aStream,
                             bool aIsClone) {
-  LOG("Stream %p opened", aStream);
+  LOG("Stream %p opened, aIsClone=%d, mCacheSuspended=%d, "
+      "mDidNotifyDataEnded=%d",
+      aStream, aIsClone, aStream->mCacheSuspended,
+      aStream->mDidNotifyDataEnded);
   mStreams.AppendElement(aStream);
 
   // A cloned stream should've got the ID from its original.
@@ -2015,13 +2006,13 @@ void MediaCacheStream::NotifyDataReceived(uint32_t aLoadID, uint32_t aCount,
   // True if we commit any blocks to the cache.
   bool cacheUpdated = false;
 
-  auto source = MakeSpan<const uint8_t>(aData, aCount);
+  auto source = Span<const uint8_t>(aData, aCount);
 
   // We process the data one block (or part of a block) at a time
   while (!source.IsEmpty()) {
     // The data we've collected so far in the partial block.
-    auto partial = MakeSpan<const uint8_t>(mPartialBlockBuffer.get(),
-                                           OffsetInBlock(mChannelOffset));
+    auto partial = Span<const uint8_t>(mPartialBlockBuffer.get(),
+                                       OffsetInBlock(mChannelOffset));
 
     if (partial.IsEmpty()) {
       // We've just started filling this buffer so now is a good time
@@ -2043,8 +2034,8 @@ void MediaCacheStream::NotifyDataReceived(uint32_t aLoadID, uint32_t aCount,
       cacheUpdated = true;
     } else {
       // The buffer to be filled in the partial block.
-      auto buf = MakeSpan<uint8_t>(mPartialBlockBuffer.get() + partial.Length(),
-                                   remaining);
+      auto buf = Span<uint8_t>(mPartialBlockBuffer.get() + partial.Length(),
+                               remaining);
       memcpy(buf.Elements(), source.Elements(), source.Length());
       mChannelOffset += source.Length();
       break;
@@ -2084,7 +2075,7 @@ void MediaCacheStream::FlushPartialBlockInternal(AutoLock& aLock,
     // Write back the partial block
     memset(mPartialBlockBuffer.get() + blockOffset, 0,
            BLOCK_SIZE - blockOffset);
-    auto data = MakeSpan<const uint8_t>(mPartialBlockBuffer.get(), BLOCK_SIZE);
+    auto data = Span<const uint8_t>(mPartialBlockBuffer.get(), BLOCK_SIZE);
     mMediaCache->AllocateAndWriteBlock(
         aLock, this, blockIndex,
         mMetadataInPartialBlockBuffer ? MODE_METADATA : MODE_PLAYBACK, data);
@@ -2217,8 +2208,6 @@ MediaCacheStream::~MediaCacheStream() {
   LOG("MediaCacheStream::~MediaCacheStream(this=%p) "
       "MEDIACACHESTREAM_LENGTH_KB=%" PRIu32,
       this, lengthKb);
-  Telemetry::Accumulate(Telemetry::HistogramID::MEDIACACHESTREAM_LENGTH_KB,
-                        lengthKb);
 }
 
 bool MediaCacheStream::AreAllStreamsForResourceSuspended(AutoLock& aLock) {
@@ -2464,7 +2453,7 @@ uint32_t MediaCacheStream::ReadPartialBlock(AutoLock&, int64_t aOffset,
     return 0;
   }
 
-  auto source = MakeSpan<const uint8_t>(
+  auto source = Span<const uint8_t>(
       mPartialBlockBuffer.get() + OffsetInBlock(aOffset),
       OffsetInBlock(mChannelOffset) - OffsetInBlock(aOffset));
   // We have |source.Length() <= BLOCK_SIZE < INT32_MAX| to guarantee
@@ -2535,7 +2524,7 @@ nsresult MediaCacheStream::Read(AutoLock& aLock, char* aBuffer, uint32_t aCount,
   auto streamOffset = mStreamOffset;
 
   // The buffer we are about to fill.
-  auto buffer = MakeSpan<char>(aBuffer, aCount);
+  auto buffer = Span<char>(aBuffer, aCount);
 
   // Read one block (or part of a block) at a time
   while (!buffer.IsEmpty()) {
@@ -2640,7 +2629,7 @@ nsresult MediaCacheStream::ReadFromCache(char* aBuffer, int64_t aOffset,
   AutoLock lock(mMediaCache->Monitor());
 
   // The buffer we are about to fill.
-  auto buffer = MakeSpan<char>(aBuffer, aCount);
+  auto buffer = Span<char>(aBuffer, aCount);
 
   // Read one block (or part of a block) at a time
   int64_t streamOffset = aOffset;
@@ -2729,6 +2718,8 @@ void MediaCacheStream::InitAsClone(MediaCacheStream* aOriginal) {
 void MediaCacheStream::InitAsCloneInternal(MediaCacheStream* aOriginal) {
   MOZ_ASSERT(OwnerThread()->IsOnCurrentThread());
   AutoLock lock(mMediaCache->Monitor());
+  LOG("MediaCacheStream::InitAsCloneInternal(this=%p, original=%p)", this,
+      aOriginal);
 
   // Download data and notify events if necessary. Note the order is important
   // in order to mimic the behavior of data being downloaded from the channel.
@@ -2775,6 +2766,7 @@ void MediaCacheStream::InitAsCloneInternal(MediaCacheStream* aOriginal) {
   mCacheSuspended = true;
   mChannelEnded = true;
   mClient->CacheClientSuspend();
+  mMediaCache->QueueSuspendedStatusUpdate(lock, mResourceID);
 
   // Step 5: add the stream to be managed by the cache.
   mMediaCache->OpenStream(lock, this, true /* aIsClone */);

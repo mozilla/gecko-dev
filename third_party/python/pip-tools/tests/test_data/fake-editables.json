@@ -1,3 +1,0 @@
-{
-  "git+git://example.org/django.git#egg=django": []
-}

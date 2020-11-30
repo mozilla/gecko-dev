@@ -102,6 +102,10 @@ class nsBlockFrame : public nsContainerFrame {
     return mLines.rbegin(aList);
   }
 
+  // Methods declared to be used in 'range-based-for-loop'
+  nsLineList& Lines() { return mLines; }
+  const nsLineList& Lines() const { return mLines; }
+
   friend nsBlockFrame* NS_NewBlockFrame(mozilla::PresShell* aPresShell,
                                         ComputedStyle* aStyle);
 
@@ -158,7 +162,7 @@ class nsBlockFrame : public nsContainerFrame {
 
 #ifdef DEBUG_FRAME_DUMP
   void List(FILE* out = stderr, const char* aPrefix = "",
-            uint32_t aFlags = 0) const override;
+            ListFlags aFlags = ListFlags()) const override;
   nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
@@ -177,10 +181,10 @@ class nsBlockFrame : public nsContainerFrame {
   // as a cache for local computation. Use AutoLineCursorSetup for the
   // latter case so that it wouldn't interact unexpectedly with the
   // former. The basic idea for the former is that we set the cursor
-  // property if the lines' overflowArea.VisualOverflow().ys and
-  // overflowArea.VisualOverflow().yMosts are non-decreasing
-  // (considering only non-empty overflowArea.VisualOverflow()s; empty
-  // overflowArea.VisualOverflow()s never participate in event handling
+  // property if the lines' overflowArea.InkOverflow().ys and
+  // overflowArea.InkOverflow().yMosts are non-decreasing
+  // (considering only non-empty overflowArea.InkOverflow()s; empty
+  // overflowArea.InkOverflow()s never participate in event handling
   // or painting), and the block has sufficient number of lines. The
   // cursor property points to a "recently used" line. If we get a
   // series of requests that work on lines
@@ -324,7 +328,7 @@ class nsBlockFrame : public nsContainerFrame {
    */
   bool DrainSelfOverflowList() override;
 
-  nsresult StealFrame(nsIFrame* aChild) override;
+  void StealFrame(nsIFrame* aChild) override;
 
   void DeleteNextInFlowChild(nsIFrame* aNextInFlow,
                              bool aDeletingEmptyFrames) override;
@@ -423,7 +427,7 @@ class nsBlockFrame : public nsContainerFrame {
 #endif
 
   NS_DECLARE_FRAME_PROPERTY_WITHOUT_DTOR(LineCursorProperty, nsLineBox)
-  bool HasLineCursor() { return GetStateBits() & NS_BLOCK_HAS_LINE_CURSOR; }
+  bool HasLineCursor() { return HasAnyStateBits(NS_BLOCK_HAS_LINE_CURSOR); }
   nsLineBox* GetLineCursor() {
     return HasLineCursor() ? GetProperty(LineCursorProperty()) : nullptr;
   }
@@ -556,7 +560,7 @@ class nsBlockFrame : public nsContainerFrame {
     if (!mFloats.IsEmpty()) {
       // If we have pushed floats, then they should be at the beginning of our
       // float list.
-      if (mFloats.FirstChild()->GetStateBits() & NS_FRAME_IS_PUSHED_FLOAT) {
+      if (mFloats.FirstChild()->HasAnyStateBits(NS_FRAME_IS_PUSHED_FLOAT)) {
         return true;
       }
     }
@@ -566,7 +570,7 @@ class nsBlockFrame : public nsContainerFrame {
     // beginning of our floats list.
     for (nsFrameList::Enumerator e(mFloats); !e.AtEnd(); e.Next()) {
       nsIFrame* f = e.get();
-      NS_ASSERTION(!(f->GetStateBits() & NS_FRAME_IS_PUSHED_FLOAT),
+      NS_ASSERTION(!f->HasAnyStateBits(NS_FRAME_IS_PUSHED_FLOAT),
                    "pushed floats must be at the beginning of the float list");
     }
 #endif
@@ -617,7 +621,7 @@ class nsBlockFrame : public nsContainerFrame {
     }
     // For the OverflowOutOfFlowsProperty I think we do enforce that, but it's
     // a mix of out-of-flow frames, so that's why the method name has "Maybe".
-    return GetStateBits() & NS_BLOCK_HAS_OVERFLOW_OUT_OF_FLOWS;
+    return HasAnyStateBits(NS_BLOCK_HAS_OVERFLOW_OUT_OF_FLOWS);
   }
 
   /**
@@ -841,7 +845,7 @@ class nsBlockFrame : public nsContainerFrame {
 
  public:
   bool HasOverflowLines() const {
-    return 0 != (GetStateBits() & NS_BLOCK_HAS_OVERFLOW_LINES);
+    return HasAnyStateBits(NS_BLOCK_HAS_OVERFLOW_LINES);
   }
   FrameLines* GetOverflowLines() const;
 
@@ -895,7 +899,7 @@ class nsBlockFrame : public nsContainerFrame {
    * @return true if this frame has pushed floats.
    */
   bool HasPushedFloats() const {
-    return 0 != (GetStateBits() & NS_BLOCK_HAS_PUSHED_FLOATS);
+    return HasAnyStateBits(NS_BLOCK_HAS_PUSHED_FLOATS);
   }
 
   // Get the pushed floats list, which is used for *temporary* storage

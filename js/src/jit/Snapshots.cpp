@@ -6,7 +6,6 @@
 
 #include "jit/Snapshots.h"
 
-#include "jit/CompileInfo.h"
 #include "jit/JitSpewer.h"
 #ifdef TRACK_SNAPSHOTS
 #  include "jit/LIR.h"
@@ -218,7 +217,7 @@ const RValueAllocation::Layout& RValueAllocation::layoutFromMode(Mode mode) {
     }
   }
 
-  MOZ_CRASH_UNSAFE_PRINTF("Unexpected mode: 0x%x", mode);
+  MOZ_CRASH_UNSAFE_PRINTF("Unexpected mode: 0x%x", uint32_t(mode));
 }
 
 // Pad serialized RValueAllocations by a multiple of X bytes in the allocation
@@ -418,6 +417,10 @@ static const uint32_t SNAPSHOT_BAILOUTKIND_BITS = 6;
 static const uint32_t SNAPSHOT_BAILOUTKIND_MASK =
     COMPUTE_MASK_(SNAPSHOT_BAILOUTKIND);
 
+static_assert((1 << SNAPSHOT_BAILOUTKIND_BITS) - 1 >=
+                  uint8_t(BailoutKind::Limit),
+              "Not enough bits for BailoutKinds");
+
 static const uint32_t SNAPSHOT_ROFFSET_SHIFT =
     COMPUTE_SHIFT_AFTER_(SNAPSHOT_BAILOUTKIND);
 static const uint32_t SNAPSHOT_ROFFSET_BITS = 32 - SNAPSHOT_ROFFSET_SHIFT;
@@ -445,7 +448,7 @@ void SnapshotReader::readSnapshotHeader() {
   recoverOffset_ = (bits & SNAPSHOT_ROFFSET_MASK) >> SNAPSHOT_ROFFSET_SHIFT;
 
   JitSpew(JitSpew_IonSnapshots, "Read snapshot header with bailout kind %u",
-          bailoutKind_);
+          uint32_t(bailoutKind_));
 
 #ifdef TRACK_SNAPSHOTS
   readTrackSnapshot();
@@ -556,7 +559,7 @@ SnapshotOffset SnapshotWriter::startSnapshot(RecoverOffset recoverOffset,
 
   JitSpew(JitSpew_IonSnapshots,
           "starting snapshot with recover offset %u, bailout kind %u",
-          recoverOffset, kind);
+          recoverOffset, uint32_t(kind));
 
   MOZ_ASSERT(uint32_t(kind) < (1 << SNAPSHOT_BAILOUTKIND_BITS));
   MOZ_ASSERT(recoverOffset < (1 << SNAPSHOT_ROFFSET_BITS));
@@ -596,7 +599,7 @@ bool SnapshotWriter::add(const RValueAllocation& alloc) {
   if (JitSpewEnabled(JitSpew_IonSnapshots)) {
     JitSpewHeader(JitSpew_IonSnapshots);
     Fprinter& out = JitSpewPrinter();
-    out.printf("    slot %u (%d): ", allocWritten_, offset);
+    out.printf("    slot %u (%u): ", allocWritten_, offset);
     alloc.dump(out);
     out.printf("\n");
   }

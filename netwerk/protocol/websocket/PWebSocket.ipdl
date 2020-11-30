@@ -9,7 +9,6 @@ include protocol PNecko;
 include protocol PBrowser;
 include protocol PTransportProvider;
 include IPCStream;
-include URIParams;
 include NeckoChannelParams;
 
 include protocol PFileDescriptorSet; //FIXME: bug #792908
@@ -17,6 +16,7 @@ include protocol PChildToParentStream; //FIXME: bug #792908
 include protocol PParentToChildStream; //FIXME: bug #792908
 
 using class IPC::SerializedLoadContext from "SerializedLoadContext.h";
+using refcounted class nsIURI from "mozilla/ipc/URIUtils.h";
 
 namespace mozilla {
 namespace net {
@@ -27,7 +27,7 @@ async protocol PWebSocket
 
 parent:
   // Forwarded methods corresponding to methods on nsIWebSocketChannel
-  async AsyncOpen(URIParams? aURI,
+  async AsyncOpen(nsIURI aURI,
                   nsCString aOrigin,
                   uint64_t aInnerWindowID,
                   nsCString aProtocol,
@@ -53,8 +53,8 @@ child:
                 nsString aEffectiveURL, bool aEncrypted,
                 uint64_t aHttpChannelId);
   async OnStop(nsresult aStatusCode);
-  async OnMessageAvailable(nsCString aMsg);
-  async OnBinaryMessageAvailable(nsCString aMsg);
+  async OnMessageAvailable(nsDependentCSubstring aMsg, bool aMoreData);
+  async OnBinaryMessageAvailable(nsDependentCSubstring aMsg, bool aMoreData);
   async OnAcknowledge(uint32_t aSize);
   async OnServerClose(uint16_t code, nsCString aReason);
 

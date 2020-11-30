@@ -8,6 +8,34 @@
 // a block to prevent accidentally leaking globals onto `window`.
 {
   class MozTabbrowserTab extends MozElements.MozTab {
+    static get markup() {
+      return `
+      <stack class="tab-stack" flex="1">
+        <vbox class="tab-background">
+          <hbox class="tab-line"/>
+          <spacer flex="1" class="tab-background-inner"/>
+          <hbox class="tab-bottom-line"/>
+        </vbox>
+        <hbox class="tab-loading-burst"/>
+        <hbox class="tab-content" align="center">
+          <hbox class="tab-throbber" layer="true"/>
+          <hbox class="tab-icon-pending"/>
+          <image class="tab-icon-image" validate="never" role="presentation"/>
+          <image class="tab-sharing-icon-overlay" role="presentation"/>
+          <image class="tab-icon-overlay" role="presentation"/>
+          <hbox class="tab-label-container"
+                onoverflow="this.setAttribute('textoverflow', 'true');"
+                onunderflow="this.removeAttribute('textoverflow');"
+                flex="1">
+            <label class="tab-text tab-label" role="presentation"/>
+          </hbox>
+          <image class="tab-icon-sound" role="presentation"/>
+          <image class="tab-close-button close-icon" role="presentation"/>
+        </hbox>
+      </stack>
+      `;
+    }
+
     constructor() {
       super();
 
@@ -55,10 +83,10 @@
         ".tab-icon-pending":
           "fadein,pinned,busy,progress,selected=visuallyselected,pendingicon",
         ".tab-icon-image":
-          "src=image,triggeringprincipal=iconloadingprincipal,requestcontextid,fadein,pinned,selected=visuallyselected,busy,crashed,sharing",
+          "src=image,triggeringprincipal=iconloadingprincipal,requestcontextid,fadein,pinned,selected=visuallyselected,busy,crashed,sharing,pictureinpicture",
         ".tab-sharing-icon-overlay": "sharing,selected=visuallyselected,pinned",
         ".tab-icon-overlay":
-          "crashed,busy,soundplaying,soundplaying-scheduledremoval,pinned,muted,blocked,selected=visuallyselected,activemedia-blocked",
+          "pictureinpicture,crashed,busy,soundplaying,soundplaying-scheduledremoval,pinned,muted,blocked,selected=visuallyselected,activemedia-blocked",
         ".tab-label-container":
           "pinned,selected=visuallyselected,labeldirection",
         ".tab-label":
@@ -67,37 +95,6 @@
           "soundplaying,soundplaying-scheduledremoval,pinned,muted,blocked,selected=visuallyselected,activemedia-blocked,pictureinpicture",
         ".tab-close-button": "fadein,pinned,selected=visuallyselected",
       };
-    }
-
-    get fragment() {
-      if (!this.constructor.hasOwnProperty("_fragment")) {
-        this.constructor._fragment = MozXULElement.parseXULToFragment(`
-        <stack class="tab-stack" flex="1">
-          <vbox class="tab-background">
-            <hbox class="tab-line"/>
-            <spacer flex="1" class="tab-background-inner"/>
-            <hbox class="tab-bottom-line"/>
-          </vbox>
-          <hbox class="tab-loading-burst"/>
-          <hbox class="tab-content" align="center">
-            <hbox class="tab-throbber" layer="true"/>
-            <hbox class="tab-icon-pending"/>
-            <image class="tab-icon-image" validate="never" role="presentation"/>
-            <image class="tab-sharing-icon-overlay" role="presentation"/>
-            <image class="tab-icon-overlay" role="presentation"/>
-            <hbox class="tab-label-container"
-                  onoverflow="this.setAttribute('textoverflow', 'true');"
-                  onunderflow="this.removeAttribute('textoverflow');"
-                  flex="1">
-              <label class="tab-text tab-label" role="presentation"/>
-            </hbox>
-            <image class="tab-icon-sound" role="presentation"/>
-            <image class="tab-close-button close-icon" role="presentation"/>
-          </hbox>
-        </stack>
-      `);
-      }
-      return document.importNode(this.constructor._fragment, true);
     }
 
     connectedCallback() {
@@ -110,7 +107,7 @@
       }
 
       this.textContent = "";
-      this.appendChild(this.fragment);
+      this.appendChild(this.constructor.fragment);
       this.initializeAttributeInheritance();
       this.setAttribute("context", "tabContextMenu");
       this._initialized = true;
@@ -217,7 +214,7 @@
         return false;
       }
 
-      if (!checkEmptyPageOrigin(browser)) {
+      if (!BrowserUtils.checkEmptyPageOrigin(browser)) {
         return false;
       }
 
@@ -295,7 +292,10 @@
     on_dragstart(event) {
       if (event.eventPhase == Event.CAPTURING_PHASE) {
         this.style.MozUserFocus = "";
-      } else if (this.mOverCloseButton) {
+      } else if (
+        this.mOverCloseButton ||
+        gSharedTabWarning.willShowSharedTabWarning(this)
+      ) {
         event.stopPropagation();
       }
     }
@@ -326,7 +326,7 @@
         gBrowser.warmupTab(gBrowser._findTabToBlurTo(this));
       }
 
-      if (event.button == 0 && tabContainer._multiselectEnabled) {
+      if (event.button == 0) {
         let shiftKey = event.shiftKey;
         let accelKey = event.getModifierState("Accel");
         if (shiftKey) {
@@ -355,6 +355,10 @@
         } else if (!this.selected && this.multiselected) {
           gBrowser.lockClearMultiSelectionOnce();
         }
+      }
+
+      if (gSharedTabWarning.willShowSharedTabWarning(this)) {
+        eventMaySelectTab = false;
       }
 
       if (eventMaySelectTab) {
@@ -405,6 +409,16 @@
         if (this.multiselected) {
           gBrowser.toggleMuteAudioOnMultiSelectedTabs(this);
         } else {
+          if (
+            event.target.classList.contains("tab-icon-sound") &&
+            this.pictureinpicture
+          ) {
+            // When Picture-in-Picture is open, we repurpose '.tab-icon-sound' as
+            // an inert Picture-in-Picture indicator, and expose the '.tab-icon-overlay'
+            // as the mechanism for muting the tab, so we don't need to handle clicks on
+            // '.tab-icon-sound' in this case.
+            return;
+          }
           this.toggleMuteAudio();
         }
         return;

@@ -1123,12 +1123,13 @@ ssl_CacheSessionID(sslSocket *ss)
 {
     sslSecurityInfo *sec = &ss->sec;
     PORT_Assert(sec);
+    PORT_Assert(sec->ci.sid->cached == never_cached);
 
     if (sec->ci.sid && !sec->ci.sid->u.ssl3.keys.resumable) {
         return;
     }
 
-    if (!ss->sec.isServer && ss->resumptionTokenCallback) {
+    if (!sec->isServer && ss->resumptionTokenCallback) {
         ssl_CacheExternalToken(ss);
         return;
     }
@@ -1200,14 +1201,15 @@ ssl3_SetSIDSessionTicket(sslSessionID *sid,
      * anything yet, so no locking is needed.
      */
     if (sid->u.ssl3.lock) {
-        PORT_Assert(sid->cached == in_client_cache);
         PR_RWLock_Wlock(sid->u.ssl3.lock);
+        /* Another thread may have evicted, or it may be in external cache. */
+        PORT_Assert(sid->cached != never_cached);
     }
     /* If this was in the client cache, then we might have to free the old
      * ticket.  In TLS 1.3, we might get a replacement ticket if the server
      * sends more than one ticket. */
     if (sid->u.ssl3.locked.sessionTicket.ticket.data) {
-        PORT_Assert(sid->cached == in_client_cache ||
+        PORT_Assert(sid->cached != never_cached ||
                     sid->version >= SSL_LIBRARY_VERSION_TLS_1_3);
         SECITEM_FreeItem(&sid->u.ssl3.locked.sessionTicket.ticket,
                          PR_FALSE);

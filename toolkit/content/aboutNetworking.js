@@ -21,6 +21,9 @@ const gNetLinkSvc =
   Cc["@mozilla.org/network/network-link-service;1"].getService(
     Ci.nsINetworkLinkService
   );
+const gDNSService = Cc["@mozilla.org/network/dns-service;1"].getService(
+  Ci.nsIDNSService
+);
 
 const gRequestNetworkingData = {
   http: gDashboard.requestHttpConnections,
@@ -105,6 +108,14 @@ function displayDns(data) {
   }
   suffixParent.replaceChild(suffix_tbody, suffixContent);
 
+  let trr_url_tbody = document.createElement("tbody");
+  trr_url_tbody.id = "dns_trr_url";
+  let trr_url = document.createElement("tr");
+  trr_url.appendChild(col(gDNSService.currentTrrURI));
+  trr_url_tbody.appendChild(trr_url);
+  let prevURL = document.getElementById("dns_trr_url");
+  prevURL.parentNode.replaceChild(trr_url_tbody, prevURL);
+
   let cont = document.getElementById("dns_content");
   let parent = cont.parentNode;
   let new_cont = document.createElement("tbody");
@@ -124,6 +135,7 @@ function displayDns(data) {
 
     row.appendChild(column);
     row.appendChild(col(data.entries[i].expiration));
+    row.appendChild(col(data.entries[i].originAttributesSuffix));
     new_cont.appendChild(row);
   }
 
@@ -269,6 +281,11 @@ function init() {
   let dnsLookupButton = document.getElementById("dnsLookupButton");
   dnsLookupButton.addEventListener("click", function() {
     doLookup();
+  });
+
+  let clearDNSCache = document.getElementById("clearDNSCache");
+  clearDNSCache.addEventListener("click", function() {
+    gDNSService.clearCache(true);
   });
 
   let setLogButton = document.getElementById("set-log-file-button");
@@ -427,8 +444,10 @@ function setLogModules() {
     } else if (module == "sync") {
       Services.prefs.setBoolPref("logging.config.sync", true);
     } else {
-      let [key, value] = module.split(":");
-      Services.prefs.setIntPref(`logging.${key}`, parseInt(value, 10));
+      let lastColon = module.lastIndexOf(":");
+      let key = module.slice(0, lastColon);
+      let value = parseInt(module.slice(lastColon + 1), 10);
+      Services.prefs.setIntPref(`logging.${key}`, value);
     }
   }
 

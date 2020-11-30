@@ -2,15 +2,17 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import print_function, unicode_literals
+from __future__ import division, print_function, unicode_literals
 
 import errno
 import json
+import math
 import os
 import platform
 import subprocess
 import sys
 import uuid
+
 if sys.version_info[0] < 3:
     import __builtin__ as builtins
 else:
@@ -49,12 +51,13 @@ MACH_MODULES = [
     'python/mozbuild/mozbuild/artifact_commands.py',
     'python/mozbuild/mozbuild/backend/mach_commands.py',
     'python/mozbuild/mozbuild/build_commands.py',
-    'python/mozbuild/mozbuild/code-analysis/mach_commands.py',
+    'python/mozbuild/mozbuild/code_analysis/mach_commands.py',
     'python/mozbuild/mozbuild/compilation/codecomplete.py',
     'python/mozbuild/mozbuild/frontend/mach_commands.py',
+    'python/mozbuild/mozbuild/vendor/mach_commands.py',
     'python/mozbuild/mozbuild/mach_commands.py',
+    'python/mozperftest/mozperftest/mach_commands.py',
     'python/mozrelease/mozrelease/mach_commands.py',
-    'python/safety/mach_commands.py',
     'remote/mach_commands.py',
     'taskcluster/mach_commands.py',
     'testing/awsy/mach_commands.py',
@@ -195,13 +198,54 @@ def bootstrap(topsrcdir, mozilla_dir=None):
     # case. For default behavior, we educate users and give them an opportunity
     # to react. We always exit after creating the directory because users don't
     # like surprises.
-    sys.path[0:0] = [os.path.join(mozilla_dir, path)
-                     for path in search_path(mozilla_dir,
-                                             'build/virtualenv_packages.txt')]
+    sys.path[0:0] = [
+        os.path.join(mozilla_dir, path)
+        for path in search_path(mozilla_dir,
+                                'build/mach_virtualenv_packages.txt')]
     import mach.base
     import mach.main
     from mach.util import setenv
     from mozboot.util import get_state_dir
+
+    # Set a reasonable limit to the number of open files.
+    #
+    # Some linux systems set `ulimit -n` to a very high number, which works
+    # well for systems that run servers, but this setting causes performance
+    # problems when programs close file descriptors before forking, like
+    # Python's `subprocess.Popen(..., close_fds=True)` (close_fds=True is the
+    # default in Python 3), or Rust's stdlib.  In some cases, Firefox does the
+    # same thing when spawning processes.  We would prefer to lower this limit
+    # to avoid such performance problems; processes spawned by `mach` will
+    # inherit the limit set here.
+    #
+    # The Firefox build defaults the soft limit to 1024, except for builds that
+    # do LTO, where the soft limit is 8192.  We're going to default to the
+    # latter, since people do occasionally do LTO builds on their local
+    # machines, and requiring them to discover another magical setting after
+    # setting up an LTO build in the first place doesn't seem good.
+    #
+    # This code mimics the code in taskcluster/scripts/run-task.
+    try:
+        import resource
+        # Keep the hard limit the same, though, allowing processes to change
+        # their soft limit if they need to (Firefox does, for instance).
+        (soft, hard) = resource.getrlimit(resource.RLIMIT_NOFILE)
+        # Permit people to override our default limit if necessary via
+        # MOZ_LIMIT_NOFILE, which is the same variable `run-task` uses.
+        limit = os.environ.get('MOZ_LIMIT_NOFILE')
+        if limit:
+            limit = int(limit)
+        else:
+            # If no explicit limit is given, use our default if it's less than
+            # the current soft limit.  For instance, the default on macOS is
+            # 256, so we'd pick that rather than our default.
+            limit = min(soft, 8192)
+        # Now apply the limit, if it's different from the original one.
+        if limit != soft:
+            resource.setrlimit(resource.RLIMIT_NOFILE, (limit, hard))
+    except ImportError:
+        # The resource module is UNIX only.
+        pass
 
     from mozbuild.util import patch_main
     patch_main()
@@ -223,7 +267,7 @@ def bootstrap(topsrcdir, mozilla_dir=None):
         # the build, tests will be disabled. Instead of trying to run
         # nonexistent tests then reporting a failure, this will prevent mach
         # from progressing beyond this point.
-        if handler.category == 'testing':
+        if handler.category == 'testing' and not handler.ok_if_tests_disabled:
             from mozbuild.base import BuildEnvironmentNotFoundException
             try:
                 from mozbuild.base import MozbuildObject
@@ -240,101 +284,25 @@ def bootstrap(topsrcdir, mozilla_dir=None):
                 # likely automation environment, so do nothing.
                 pass
 
-    def should_skip_telemetry_submission(handler):
-        # The user is performing a maintenance command.
-        if handler.name in ('bootstrap', 'doctor', 'mach-commands', 'vcs-setup',
-                            # We call mach environment in client.mk which would cause the
-                            # data submission to block the forward progress of make.
-                            'environment'):
-            return True
-
-        # Never submit data when running in automation or when running tests.
-        if any(e in os.environ for e in ('MOZ_AUTOMATION', 'TASK_ID', 'MACH_TELEMETRY_NO_SUBMIT')):
-            return True
-
-        return False
-
-    def post_dispatch_handler(context, handler, instance, result,
+    def post_dispatch_handler(context, handler, instance, success,
                               start_time, end_time, depth, args):
         """Perform global operations after command dispatch.
 
 
         For now,  we will use this to handle build system telemetry.
         """
-        # Don't write telemetry data if this mach command was invoked as part of another
-        # mach command.
-        if depth != 1 or os.environ.get('MACH_MAIN_PID') != str(os.getpid()):
+
+        # Don't finalize telemetry data if this mach command was invoked as part of
+        # another mach command.
+        if depth != 1:
             return
 
-        # Don't write telemetry data for 'mach' when 'DISABLE_TELEMETRY' is set.
-        if os.environ.get('DISABLE_TELEMETRY') == '1':
-            return
+        _finalize_telemetry_glean(context.telemetry, handler.name == 'bootstrap',
+                                  success)
+        _finalize_telemetry_legacy(context, instance, handler, success, start_time,
+                                   end_time, topsrcdir)
 
-        # We have not opted-in to telemetry
-        if not context.settings.build.telemetry:
-            return
-
-        from mozbuild.telemetry import gather_telemetry
-        from mozbuild.base import MozbuildObject
-        import mozpack.path as mozpath
-
-        if not isinstance(instance, MozbuildObject):
-            instance = MozbuildObject.from_environment()
-
-        try:
-            substs = instance.substs
-        except Exception:
-            substs = {}
-
-        command_attrs = getattr(context, 'command_attrs', {})
-
-        # We gather telemetry for every operation.
-        paths = {
-            instance.topsrcdir: '$topsrcdir/',
-            instance.topobjdir: '$topobjdir/',
-            mozpath.normpath(os.path.expanduser('~')): '$HOME/',
-        }
-        # This might override one of the existing entries, that's OK.
-        # We don't use a sigil here because we treat all arguments as potentially relative
-        # paths, so we'd like to get them back as they were specified.
-        paths[mozpath.normpath(os.getcwd())] = ''
-        data = gather_telemetry(command=handler.name, success=(result == 0),
-                                start_time=start_time, end_time=end_time,
-                                mach_context=context, substs=substs,
-                                command_attrs=command_attrs, paths=paths)
-        if data:
-            telemetry_dir = os.path.join(get_state_dir(), 'telemetry')
-            try:
-                os.mkdir(telemetry_dir)
-            except OSError as e:
-                if e.errno != errno.EEXIST:
-                    raise
-            outgoing_dir = os.path.join(telemetry_dir, 'outgoing')
-            try:
-                os.mkdir(outgoing_dir)
-            except OSError as e:
-                if e.errno != errno.EEXIST:
-                    raise
-
-            with open(os.path.join(outgoing_dir, str(uuid.uuid4()) + '.json'),
-                      'w') as f:
-                json.dump(data, f, sort_keys=True)
-
-        if should_skip_telemetry_submission(handler):
-            return True
-
-        state_dir = get_state_dir()
-
-        machpath = os.path.join(instance.topsrcdir, 'mach')
-        with open(os.devnull, 'wb') as devnull:
-            subprocess.Popen([sys.executable, machpath, 'python',
-                              '--no-virtualenv',
-                              os.path.join(topsrcdir, 'build',
-                                           'submit_telemetry_data.py'),
-                              state_dir],
-                             stdout=devnull, stderr=devnull)
-
-    def populate_context(context, key=None):
+    def populate_context(key=None):
         if key is None:
             return
         if key == 'state_dir':
@@ -407,6 +375,108 @@ def bootstrap(topsrcdir, mozilla_dir=None):
     return driver
 
 
+def _finalize_telemetry_legacy(context, instance, handler, success, start_time,
+                               end_time, topsrcdir):
+    """Record and submit legacy telemetry.
+
+    Parameterized by the raw gathered telemetry, this function handles persisting and
+    submission of the data.
+
+    This has been designated as "legacy" telemetry because modern telemetry is being
+    submitted with "Glean".
+    """
+    from mozboot.util import get_state_dir
+    from mozbuild.base import MozbuildObject
+    from mozbuild.telemetry import gather_telemetry
+    from mach.telemetry import (
+        is_telemetry_enabled,
+        is_applicable_telemetry_environment
+    )
+
+    if not (is_applicable_telemetry_environment()
+            and is_telemetry_enabled(context.settings)):
+        return
+
+    if not isinstance(instance, MozbuildObject):
+        instance = MozbuildObject.from_environment()
+
+    command_attrs = getattr(context, 'command_attrs', {})
+
+    # We gather telemetry for every operation.
+    data = gather_telemetry(command=handler.name, success=success,
+                            start_time=start_time, end_time=end_time,
+                            mach_context=context, instance=instance,
+                            command_attrs=command_attrs)
+    if data:
+        telemetry_dir = os.path.join(get_state_dir(), 'telemetry')
+        try:
+            os.mkdir(telemetry_dir)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+        outgoing_dir = os.path.join(telemetry_dir, 'outgoing')
+        try:
+            os.mkdir(outgoing_dir)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+
+        with open(os.path.join(outgoing_dir, str(uuid.uuid4()) + '.json'),
+                  'w') as f:
+            json.dump(data, f, sort_keys=True)
+
+    # The user is performing a maintenance command, skip the upload
+    if handler.name in ('bootstrap', 'doctor', 'mach-commands', 'vcs-setup',
+                        'create-mach-environment', 'install-moz-phab',
+                        # We call mach environment in client.mk which would cause the
+                        # data submission to block the forward progress of make.
+                        'environment'):
+        return False
+
+    if 'TEST_MACH_TELEMETRY_NO_SUBMIT' in os.environ:
+        # In our telemetry tests, we want telemetry to be collected for analysis, but
+        # we don't want it submitted.
+        return False
+
+    state_dir = get_state_dir()
+
+    machpath = os.path.join(instance.topsrcdir, 'mach')
+    with open(os.devnull, 'wb') as devnull:
+        subprocess.Popen([sys.executable, machpath, 'python',
+                          '--no-virtualenv',
+                          os.path.join(topsrcdir, 'build',
+                                       'submit_telemetry_data.py'),
+                          state_dir],
+                         stdout=devnull, stderr=devnull)
+
+
+def _finalize_telemetry_glean(telemetry, is_bootstrap, success):
+    """Submit telemetry collected by Glean.
+
+    Finalizes some metrics (command success state and duration, system information) and
+    requests Glean to send the collected data.
+    """
+
+    from mach.telemetry import MACH_METRICS_PATH
+    from mozbuild.telemetry import get_cpu_brand, get_psutil_stats
+
+    mach_metrics = telemetry.metrics(MACH_METRICS_PATH)
+    mach_metrics.mach.duration.stop()
+    mach_metrics.mach.success.set(success)
+    system_metrics = mach_metrics.mach.system
+    system_metrics.cpu_brand.set(get_cpu_brand())
+
+    has_psutil, logical_cores, physical_cores, memory_total = get_psutil_stats()
+    if has_psutil:
+        # psutil may not be available if a successful build hasn't occurred yet.
+        system_metrics.logical_cores.add(logical_cores)
+        system_metrics.physical_cores.add(physical_cores)
+        if memory_total is not None:
+            system_metrics.memory.accumulate(int(
+                math.ceil(float(memory_total) / (1024 * 1024 * 1024))))
+    telemetry.submit(is_bootstrap)
+
+
 # Hook import such that .pyc/.pyo files without a corresponding .py file in
 # the source directory are essentially ignored. See further below for details
 # and caveats.
@@ -474,5 +544,6 @@ class ImportHook(object):
         return module
 
 
-# Install our hook
-builtins.__import__ = ImportHook(builtins.__import__)
+# Install our hook. This can be deleted when the Python 3 migration is complete.
+if sys.version_info[0] < 3:
+    builtins.__import__ = ImportHook(builtins.__import__)

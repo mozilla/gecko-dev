@@ -13,20 +13,19 @@
 #include "nsXULAppAPI.h"
 
 #include "mozilla/Preferences.h"
+#include "mozilla/StaticPrefs_print.h"
+#include "nsPrinterCUPS.h"
 
 using namespace mozilla;
 
 #define MAC_OS_X_PAGE_SETUP_PREFNAME "print.macosx.pagesetup-2"
-#define COCOA_PAPER_UNITS_PER_INCH 72.0
 
 NS_IMPL_ISUPPORTS_INHERITED(nsPrintSettingsX, nsPrintSettings, nsPrintSettingsX)
 
-nsPrintSettingsX::nsPrintSettingsX() : mAdjustedPaperWidth{0.0}, mAdjustedPaperHeight{0.0} {
+nsPrintSettingsX::nsPrintSettingsX() {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
-  mPrintInfo = [[NSPrintInfo sharedPrintInfo] copy];
-  mWidthScale = COCOA_PAPER_UNITS_PER_INCH;
-  mHeightScale = COCOA_PAPER_UNITS_PER_INCH;
+  mDestination = kPMDestinationInvalid;
 
   /*
    * Don't save print settings after the user cancels out of the
@@ -40,87 +39,33 @@ nsPrintSettingsX::nsPrintSettingsX() : mAdjustedPaperWidth{0.0}, mAdjustedPaperH
   NS_OBJC_END_TRY_ABORT_BLOCK;
 }
 
-nsPrintSettingsX::nsPrintSettingsX(const nsPrintSettingsX& src) { *this = src; }
-
-nsPrintSettingsX::~nsPrintSettingsX() {
-  NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
-
-  [mPrintInfo release];
-
-  NS_OBJC_END_TRY_ABORT_BLOCK;
+already_AddRefed<nsIPrintSettings> CreatePlatformPrintSettings(
+    const PrintSettingsInitializer& aSettings) {
+  RefPtr<nsPrintSettings> settings = new nsPrintSettingsX();
+  settings->InitWithInitializer(aSettings);
+  settings->SetDefaultFileName();
+  return settings.forget();
 }
 
 nsPrintSettingsX& nsPrintSettingsX::operator=(const nsPrintSettingsX& rhs) {
-  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_RETURN;
-
   if (this == &rhs) {
     return *this;
   }
 
   nsPrintSettings::operator=(rhs);
 
-  [mPrintInfo release];
-  mPrintInfo = [rhs.mPrintInfo copy];
+  mDestination = rhs.mDestination;
+  mDisposition = rhs.mDisposition;
+
+  // We don't copy mSystemPrintInfo here, so any copied printSettings will start out
+  // without a wrapped printInfo, just using our internal settings. The system
+  // printInfo is used *only* by the nsPrintSettingsX to which it was originally
+  // passed (when the user ran a system print UI dialog).
 
   return *this;
-
-  NS_OBJC_END_TRY_ABORT_BLOCK_RETURN(*this);
 }
 
-nsresult nsPrintSettingsX::Init() {
-  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
-
-  InitUnwriteableMargin();
-  InitAdjustedPaperSize();
-
-  return NS_OK;
-
-  NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
-}
-
-// Should be called whenever the page format changes.
-NS_IMETHODIMP nsPrintSettingsX::InitUnwriteableMargin() {
-  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
-
-  PMPaper paper;
-  PMPaperMargins paperMargin;
-  PMPageFormat pageFormat = GetPMPageFormat();
-  ::PMGetPageFormatPaper(pageFormat, &paper);
-  ::PMPaperGetMargins(paper, &paperMargin);
-  mUnwriteableMargin.top = NS_POINTS_TO_INT_TWIPS(paperMargin.top);
-  mUnwriteableMargin.left = NS_POINTS_TO_INT_TWIPS(paperMargin.left);
-  mUnwriteableMargin.bottom = NS_POINTS_TO_INT_TWIPS(paperMargin.bottom);
-  mUnwriteableMargin.right = NS_POINTS_TO_INT_TWIPS(paperMargin.right);
-
-  return NS_OK;
-
-  NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
-}
-
-NS_IMETHODIMP nsPrintSettingsX::InitAdjustedPaperSize() {
-  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
-
-  PMPageFormat pageFormat = GetPMPageFormat();
-
-  PMRect paperRect;
-  ::PMGetAdjustedPaperRect(pageFormat, &paperRect);
-
-  mAdjustedPaperWidth = paperRect.right - paperRect.left;
-  mAdjustedPaperHeight = paperRect.bottom - paperRect.top;
-
-  return NS_OK;
-
-  NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
-}
-
-void nsPrintSettingsX::SetCocoaPrintInfo(NSPrintInfo* aPrintInfo) {
-  if (mPrintInfo != aPrintInfo) {
-    [mPrintInfo release];
-    mPrintInfo = [aPrintInfo retain];
-  }
-}
-
-NS_IMETHODIMP nsPrintSettingsX::ReadPageFormatFromPrefs() {
+nsresult nsPrintSettingsX::ReadPageFormatFromPrefs() {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 
   nsAutoCString encodedData;
@@ -132,34 +77,51 @@ NS_IMETHODIMP nsPrintSettingsX::ReadPageFormatFromPrefs() {
   // decode the base64
   char* decodedData = PL_Base64Decode(encodedData.get(), encodedData.Length(), nullptr);
   NSData* data = [NSData dataWithBytes:decodedData length:strlen(decodedData)];
-  if (!data) return NS_ERROR_FAILURE;
+  if (!data) {
+    return NS_ERROR_FAILURE;
+  }
 
   PMPageFormat newPageFormat;
   OSStatus status = ::PMPageFormatCreateWithDataRepresentation((CFDataRef)data, &newPageFormat);
   if (status == noErr) {
     SetPMPageFormat(newPageFormat);
   }
-  InitUnwriteableMargin();
 
   return NS_OK;
 
   NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
 }
 
-NS_IMETHODIMP nsPrintSettingsX::WritePageFormatToPrefs() {
+nsresult nsPrintSettingsX::WritePageFormatToPrefs() {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 
-  PMPageFormat pageFormat = GetPMPageFormat();
-  if (pageFormat == kPMNoPageFormat) return NS_ERROR_NOT_INITIALIZED;
+  // XXX See jwatt's comment https://phabricator.services.mozilla.com/D94026#inline-534089:
+  // I feel like we should make WritePageFormatToPrefs a no-op if mSystemPrintInfo isn't set,
+  // but I'm not sure. We'll be saving the other settings to prefs, after all.
+  // But then I guess we have no way to know whether we should call ReadPageFormatFromPrefs or not
+  // in nsPrintSettingsServiceX::ReadPrefs, so I guess we have to set it just to avoid setting that
+  // read reading a stale PMPageFormat.
+
+  NSPrintInfo* printInfo = CreateOrCopyPrintInfo();
+  if (NS_WARN_IF(!printInfo)) {
+    return NS_ERROR_FAILURE;
+  }
+  [printInfo autorelease];
+
+  PMPageFormat pageFormat = static_cast<PMPageFormat>([printInfo PMPageFormat]);
 
   NSData* data = nil;
   OSStatus err = ::PMPageFormatCreateDataRepresentation(pageFormat, (CFDataRef*)&data,
                                                         kPMDataFormatXMLDefault);
-  if (err != noErr) return NS_ERROR_FAILURE;
+  if (err != noErr) {
+    return NS_ERROR_FAILURE;
+  }
 
   nsAutoCString encodedData;
   encodedData.Adopt(PL_Base64Encode((char*)[data bytes], [data length], nullptr));
-  if (!encodedData.get()) return NS_ERROR_OUT_OF_MEMORY;
+  if (!encodedData.get()) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
 
   return Preferences::SetCString(MAC_OS_X_PAGE_SETUP_PREFNAME, encodedData);
 
@@ -168,321 +130,288 @@ NS_IMETHODIMP nsPrintSettingsX::WritePageFormatToPrefs() {
 
 nsresult nsPrintSettingsX::_Clone(nsIPrintSettings** _retval) {
   NS_ENSURE_ARG_POINTER(_retval);
-  *_retval = nullptr;
-
-  nsPrintSettingsX* newSettings = new nsPrintSettingsX(*this);
-  if (!newSettings) return NS_ERROR_FAILURE;
-  *_retval = newSettings;
-  NS_ADDREF(*_retval);
+  auto newSettings = MakeRefPtr<nsPrintSettingsX>();
+  *newSettings = *this;
+  newSettings.forget(_retval);
   return NS_OK;
 }
 
 NS_IMETHODIMP nsPrintSettingsX::_Assign(nsIPrintSettings* aPS) {
   nsPrintSettingsX* printSettingsX = static_cast<nsPrintSettingsX*>(aPS);
-  if (!printSettingsX) return NS_ERROR_UNEXPECTED;
+  if (!printSettingsX) {
+    return NS_ERROR_UNEXPECTED;
+  }
   *this = *printSettingsX;
   return NS_OK;
 }
 
-PMPrintSettings nsPrintSettingsX::GetPMPrintSettings() {
-  return static_cast<PMPrintSettings>([mPrintInfo PMPrintSettings]);
-}
+struct KnownMonochromeSetting {
+  const NSString* mName;
+  const NSString* mValue;
+};
 
-PMPrintSession nsPrintSettingsX::GetPMPrintSession() {
-  return static_cast<PMPrintSession>([mPrintInfo PMPrintSession]);
-}
-
-PMPageFormat nsPrintSettingsX::GetPMPageFormat() {
-  return static_cast<PMPageFormat>([mPrintInfo PMPageFormat]);
-}
+#define DECLARE_KNOWN_MONOCHROME_SETTING(key_, value_) {@key_, @value_},
+static const KnownMonochromeSetting kKnownMonochromeSettings[] = {
+  CUPS_EACH_MONOCHROME_PRINTER_SETTING(DECLARE_KNOWN_MONOCHROME_SETTING)
+};
+#undef DECLARE_KNOWN_MONOCHROME_SETTING
 
 void nsPrintSettingsX::SetPMPageFormat(PMPageFormat aPageFormat) {
-  PMPageFormat oldPageFormat = GetPMPageFormat();
+  // Get a printInfo based on our current properties.
+  NSPrintInfo* printInfo = CreateOrCopyPrintInfo();
+  if (NS_WARN_IF(!printInfo)) {
+    return;
+  }
+  // Apply the given PMPageFormat to it.
+  PMPageFormat oldPageFormat = static_cast<PMPageFormat>([printInfo PMPageFormat]);
   ::PMCopyPageFormat(aPageFormat, oldPageFormat);
-  [mPrintInfo updateFromPMPageFormat];
+  [printInfo updateFromPMPageFormat];
+  // And then update our internal properties to match the updated printInfo.
+  SetPageFormatFromPrintInfo(printInfo);
+  [printInfo release];
 }
 
-void nsPrintSettingsX::SetInchesScale(float aWidthScale, float aHeightScale) {
-  if (aWidthScale > 0 && aHeightScale > 0) {
-    mWidthScale = aWidthScale;
-    mHeightScale = aHeightScale;
-  }
-}
+NSPrintInfo* nsPrintSettingsX::CreateOrCopyPrintInfo(bool aWithScaling) {
+  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_RETURN;
 
-void nsPrintSettingsX::GetInchesScale(float* aWidthScale, float* aHeightScale) {
-  *aWidthScale = mWidthScale;
-  *aHeightScale = mHeightScale;
-}
-
-NS_IMETHODIMP nsPrintSettingsX::SetPaperWidth(double aPaperWidth) {
-  mPaperWidth = aPaperWidth;
-  mAdjustedPaperWidth = aPaperWidth * mWidthScale;
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsPrintSettingsX::SetPaperHeight(double aPaperHeight) {
-  mPaperHeight = aPaperHeight;
-  mAdjustedPaperHeight = aPaperHeight * mHeightScale;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsPrintSettingsX::GetEffectivePageSize(double* aWidth, double* aHeight) {
-  *aWidth = NS_INCHES_TO_TWIPS(mAdjustedPaperWidth / mWidthScale);
-  *aHeight = NS_INCHES_TO_TWIPS(mAdjustedPaperHeight / mHeightScale);
-  return NS_OK;
-}
-
-void nsPrintSettingsX::GetFilePageSize(double* aWidth, double* aHeight) {
-  double height, width;
-  if (kPaperSizeInches == GetCocoaUnit(mPaperSizeUnit)) {
-    width = NS_INCHES_TO_TWIPS(mAdjustedPaperWidth / mWidthScale);
-    height = NS_INCHES_TO_TWIPS(mAdjustedPaperHeight / mHeightScale);
-  } else {
-    width = NS_MILLIMETERS_TO_TWIPS(mAdjustedPaperWidth / mWidthScale);
-    height = NS_MILLIMETERS_TO_TWIPS(mAdjustedPaperHeight / mHeightScale);
-  }
-  width /= TWIPS_PER_POINT_FLOAT;
-  height /= TWIPS_PER_POINT_FLOAT;
-
-  *aWidth = width;
-  *aHeight = height;
-}
-
-void nsPrintSettingsX::SetAdjustedPaperSize(double aWidth, double aHeight) {
-  mAdjustedPaperWidth = aWidth;
-  mAdjustedPaperHeight = aHeight;
-}
-
-void nsPrintSettingsX::GetAdjustedPaperSize(double* aWidth, double* aHeight) {
-  *aWidth = mAdjustedPaperWidth;
-  *aHeight = mAdjustedPaperHeight;
-}
-
-NS_IMETHODIMP
-nsPrintSettingsX::SetScaling(double aScaling) {
-  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
-
-  // Only use NSPrintInfo data in the parent process. The
-  // child process' instance is not needed or used.
-  if (XRE_IsParentProcess()) {
-    NSMutableDictionary* printInfoDict = [mPrintInfo dictionary];
-    [printInfoDict setObject:[NSNumber numberWithFloat:aScaling] forKey:NSPrintScalingFactor];
-  } else {
-    nsPrintSettings::SetScaling(aScaling);
+  // If we have a printInfo that came from the system print UI, use it so that
+  // any printer-specific settings we don't know about will still be used.
+  if (mSystemPrintInfo) {
+    NSPrintInfo* sysPrintInfo = [mSystemPrintInfo copy];
+    // Any required scaling will be done by Gecko, so we don't want it here.
+    [sysPrintInfo setScalingFactor:1.0f];
+    return sysPrintInfo;
   }
 
-  return NS_OK;
-
-  NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
-}
-
-NS_IMETHODIMP
-nsPrintSettingsX::GetScaling(double* aScaling) {
-  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
-
-  // Only use NSPrintInfo data in the parent process. The
-  // child process' instance is not needed or used.
-  if (XRE_IsParentProcess()) {
-    NSDictionary* printInfoDict = [mPrintInfo dictionary];
-
-    *aScaling = [[printInfoDict objectForKey:NSPrintScalingFactor] doubleValue];
-
-    // Limit scaling precision to whole number percent values
-    *aScaling = round(*aScaling * 100.0) / 100.0;
-  } else {
-    nsPrintSettings::GetScaling(aScaling);
-  }
-
-  return NS_OK;
-
-  NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
-}
-
-NS_IMETHODIMP
-nsPrintSettingsX::SetToFileName(const nsAString& aToFileName) {
-  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
-
-  if (XRE_IsContentProcess() && Preferences::GetBool("print.print_via_parent")) {
-    // On content sandbox, NSPrintJobSavingURL will returns error since
-    // sandbox disallows file access.
-    return nsPrintSettings::SetToFileName(aToFileName);
-  }
-
-  NSMutableDictionary* printInfoDict = [mPrintInfo dictionary];
-
-  if (!aToFileName.IsEmpty()) {
-    NSURL* jobSavingURL = [NSURL fileURLWithPath:nsCocoaUtils::ToNSString(aToFileName)];
-    if (jobSavingURL) {
-      [printInfoDict setObject:NSPrintSaveJob forKey:NSPrintJobDisposition];
-      [printInfoDict setObject:jobSavingURL forKey:NSPrintJobSavingURL];
-    }
-    mToFileName = aToFileName;
-  } else {
-    mToFileName.Truncate();
-  }
-  return NS_OK;
-
-  NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
-}
-
-NS_IMETHODIMP
-nsPrintSettingsX::GetOrientation(int32_t* aOrientation) {
-  // Only use NSPrintInfo data in the parent process. The
-  // child process' instance is not needed or used.
-  if (XRE_IsParentProcess()) {
-    if ([mPrintInfo orientation] == NSPaperOrientationPortrait) {
-      *aOrientation = nsIPrintSettings::kPortraitOrientation;
-    } else {
-      *aOrientation = nsIPrintSettings::kLandscapeOrientation;
-    }
-  } else {
-    nsPrintSettings::GetOrientation(aOrientation);
-  }
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsPrintSettingsX::SetOrientation(int32_t aOrientation) {
-  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
-
-  // Only use NSPrintInfo data in the parent process. The
-  // child process' instance is not needed or used.
-  if (XRE_IsParentProcess()) {
-    NSMutableDictionary* printInfoDict = [mPrintInfo dictionary];
-    if (aOrientation == nsIPrintSettings::kPortraitOrientation) {
-      [printInfoDict setObject:[NSNumber numberWithInt:NSPaperOrientationPortrait]
-                        forKey:NSPrintOrientation];
-    } else {
-      [printInfoDict setObject:[NSNumber numberWithInt:NSPaperOrientationLandscape]
-                        forKey:NSPrintOrientation];
-    }
-  } else {
-    nsPrintSettings::SetOrientation(aOrientation);
-  }
-
-  return NS_OK;
-
-  NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
-}
-
-NS_IMETHODIMP
-nsPrintSettingsX::SetUnwriteableMarginTop(double aUnwriteableMarginTop) {
-  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
-
-  nsPrintSettings::SetUnwriteableMarginTop(aUnwriteableMarginTop);
-
-  // Only use NSPrintInfo data in the parent process. The
-  // child process' instance is not needed or used.
-  if (XRE_IsParentProcess()) {
-    NSMutableDictionary* printInfoDict = [mPrintInfo dictionary];
-    [printInfoDict setObject:[NSNumber numberWithDouble:aUnwriteableMarginTop]
-                      forKey:NSPrintTopMargin];
-  }
-
-  return NS_OK;
-
-  NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
-}
-
-NS_IMETHODIMP
-nsPrintSettingsX::SetUnwriteableMarginLeft(double aUnwriteableMarginLeft) {
-  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
-
-  nsPrintSettings::SetUnwriteableMarginLeft(aUnwriteableMarginLeft);
-
-  // Only use NSPrintInfo data in the parent process. The
-  // child process' instance is not needed or used.
-  if (XRE_IsParentProcess()) {
-    NSMutableDictionary* printInfoDict = [mPrintInfo dictionary];
-    [printInfoDict setObject:[NSNumber numberWithDouble:aUnwriteableMarginLeft]
-                      forKey:NSPrintLeftMargin];
-  }
-
-  return NS_OK;
-
-  NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
-}
-
-NS_IMETHODIMP
-nsPrintSettingsX::SetUnwriteableMarginBottom(double aUnwriteableMarginBottom) {
-  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
-
-  nsPrintSettings::SetUnwriteableMarginBottom(aUnwriteableMarginBottom);
-
-  // Only use NSPrintInfo data in the parent process. The
-  // child process' instance is not needed or used.
-  if (XRE_IsParentProcess()) {
-    NSMutableDictionary* printInfoDict = [mPrintInfo dictionary];
-    [printInfoDict setObject:[NSNumber numberWithDouble:aUnwriteableMarginBottom]
-                      forKey:NSPrintBottomMargin];
-  }
-
-  return NS_OK;
-
-  NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
-}
-
-NS_IMETHODIMP
-nsPrintSettingsX::SetUnwriteableMarginRight(double aUnwriteableMarginRight) {
-  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
-
-  nsPrintSettings::SetUnwriteableMarginRight(aUnwriteableMarginRight);
-
-  // Only use NSPrintInfo data in the parent process. The
-  // child process' instance is not needed or used.
-  if (XRE_IsParentProcess()) {
-    NSMutableDictionary* printInfoDict = [mPrintInfo dictionary];
-    [printInfoDict setObject:[NSNumber numberWithDouble:aUnwriteableMarginRight]
-                      forKey:NSPrintRightMargin];
-  }
-
-  return NS_OK;
-
-  NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
-}
-
-int nsPrintSettingsX::GetCocoaUnit(int16_t aGeckoUnit) {
-  if (aGeckoUnit == kPaperSizeMillimeters)
-    return kPaperSizeMillimeters;
-  else
-    return kPaperSizeInches;
-}
-
-nsresult nsPrintSettingsX::SetCocoaPaperSize(double aWidth, double aHeight) {
-  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
+  // Note that the app shared `sharedPrintInfo` object is special!  The system
+  // print dialog and print settings dialog update it with the values chosen
+  // by the user.  Using that object here to initialize new nsPrintSettingsX
+  // objects could mask bugs in our code where we fail to save and/or restore
+  // print settings ourselves (e.g., bug 1636725).  On other platforms we only
+  // initialize new nsPrintSettings objects from the settings that we save to
+  // prefs.  Perhaps we should stop using sharedPrintInfo here for consistency?
+  NSPrintInfo* printInfo = [[NSPrintInfo sharedPrintInfo] copy];
 
   NSSize paperSize;
-  NSMutableDictionary* printInfoDict = [mPrintInfo dictionary];
-  if ([mPrintInfo orientation] == NSPaperOrientationPortrait) {
-    // switch widths and heights
-    paperSize = NSMakeSize(aWidth, aHeight);
-    [printInfoDict setObject:[NSValue valueWithSize:paperSize] forKey:NSPrintPaperSize];
+  if (mOrientation == kPortraitOrientation) {
+    [printInfo setOrientation:NSPaperOrientationPortrait];
+    paperSize.width = CocoaPointsFromPaperSize(mPaperWidth);
+    paperSize.height = CocoaPointsFromPaperSize(mPaperHeight);
+    [printInfo setPaperSize:paperSize];
   } else {
-    paperSize = NSMakeSize(aHeight, aWidth);
-    [printInfoDict setObject:[NSValue valueWithSize:paperSize] forKey:NSPrintPaperSize];
+    [printInfo setOrientation:NSPaperOrientationLandscape];
+    paperSize.width = CocoaPointsFromPaperSize(mPaperHeight);
+    paperSize.height = CocoaPointsFromPaperSize(mPaperWidth);
+    [printInfo setPaperSize:paperSize];
   }
-  return NS_OK;
 
-  NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
+  [printInfo setTopMargin:mUnwriteableMargin.top];
+  [printInfo setRightMargin:mUnwriteableMargin.right];
+  [printInfo setBottomMargin:mUnwriteableMargin.bottom];
+  [printInfo setLeftMargin:mUnwriteableMargin.left];
+
+  // If the name is our pseudo-printer "Mozilla Save to PDF", this will silently fail
+  // as no such printer is known. That's OK, because mPrinter will remain correct
+  // and is our canonical source of truth here.
+  [printInfo setPrinter:[NSPrinter printerWithName:nsCocoaUtils::ToNSString(mPrinter)]];
+
+  // Scaling is handled by gecko, we do NOT want the cocoa printing system to add
+  // a second scaling on top of that. So we only set the true scaling factor here
+  // if the caller explicitly asked for it.
+  [printInfo setScalingFactor:CGFloat(aWithScaling ? mScaling : 1.0f)];
+
+  BOOL allPages = mPrintRange == nsIPrintSettings::kRangeAllPages ? YES : NO;
+
+  NSMutableDictionary* dict = [printInfo dictionary];
+  [dict setObject:[NSNumber numberWithInt:mNumCopies] forKey:NSPrintCopies];
+  [dict setObject:[NSNumber numberWithBool:allPages] forKey:NSPrintAllPages];
+  [dict setObject:[NSNumber numberWithInt:mStartPageNum] forKey:NSPrintFirstPage];
+  [dict setObject:[NSNumber numberWithInt:mEndPageNum] forKey:NSPrintLastPage];
+
+  NSURL* jobSavingURL = nullptr;
+  if (!mToFileName.IsEmpty()) {
+    jobSavingURL = [NSURL fileURLWithPath:nsCocoaUtils::ToNSString(mToFileName)];
+    if (jobSavingURL) {
+      // Note: the PMPrintSettingsSetJobName call in nsPrintDialogServiceX::Show
+      // seems to mean that we get a sensible file name pre-populated in the
+      // dialog there, although our mToFileName is expected to be a full path,
+      // and it's less clear where the rest of the path (the directory to save
+      // to) in nsPrintDialogServiceX::Show comes from (perhaps from the use
+      // of `sharedPrintInfo` to initialize new nsPrintSettingsX objects).
+      [dict setObject:jobSavingURL forKey:NSPrintJobSavingURL];
+    }
+  }
+
+  if (mDisposition.IsEmpty()) {
+    if (mPrintToFile) {
+      [printInfo setJobDisposition:NSPrintSaveJob];
+    } else {
+      [printInfo setJobDisposition:NSPrintSpoolJob];
+    }
+  } else {
+    [printInfo setJobDisposition:nsCocoaUtils::ToNSString(mDisposition)];
+  }
+
+  PMDuplexMode duplexSetting;
+  switch (mDuplex) {
+    default:
+      // This can't happen :) but if it does, we treat it as "none".
+      MOZ_FALLTHROUGH_ASSERT("Unknown duplex value");
+    case kSimplex:
+      duplexSetting = kPMDuplexNone;
+      break;
+    case kDuplexVertical:
+      duplexSetting = kPMDuplexTumble;
+      break;
+    case kDuplexHorizontal:
+      duplexSetting = kPMDuplexNoTumble;
+      break;
+  }
+
+  NSMutableDictionary* printSettings = [printInfo printSettings];
+  [printSettings setObject:[NSNumber numberWithUnsignedShort:duplexSetting]
+                    forKey:@"com_apple_print_PrintSettings_PMDuplexing"];
+
+  if (mDestination != kPMDestinationInvalid) {
+    // Required to support PDF-workflow destinations such as Save to Web Receipts.
+    [printSettings setObject:[NSNumber numberWithUnsignedShort:mDestination]
+                      forKey:@"com_apple_print_PrintSettings_PMDestinationType"];
+    if (jobSavingURL) {
+      [printSettings setObject:[jobSavingURL absoluteString]
+                        forKey:@"com_apple_print_PrintSettings_PMOutputFilename"];
+    }
+  }
+
+  if (StaticPrefs::print_cups_monochrome_enabled() && !GetPrintInColor()) {
+    for (const auto& setting : kKnownMonochromeSettings) {
+      [printSettings setObject:setting.mValue forKey:setting.mName];
+    }
+  }
+
+  return printInfo;
+
+  NS_OBJC_END_TRY_ABORT_BLOCK_RETURN(nullptr);
 }
 
-void nsPrintSettingsX::SetPrinterNameFromPrintInfo() {
+void nsPrintSettingsX::SetPageFormatFromPrintInfo(const NSPrintInfo* aPrintInfo) {
+  NSSize paperSize = [aPrintInfo paperSize];
+  if ([aPrintInfo orientation] == NSPaperOrientationPortrait) {
+    mOrientation = nsIPrintSettings::kPortraitOrientation;
+    SetPaperWidth(PaperSizeFromCocoaPoints(paperSize.width));
+    SetPaperHeight(PaperSizeFromCocoaPoints(paperSize.height));
+  } else {
+    mOrientation = nsIPrintSettings::kLandscapeOrientation;
+    SetPaperWidth(PaperSizeFromCocoaPoints(paperSize.height));
+    SetPaperHeight(PaperSizeFromCocoaPoints(paperSize.width));
+  }
+
+  mUnwriteableMargin.top = [aPrintInfo topMargin];
+  mUnwriteableMargin.right = [aPrintInfo rightMargin];
+  mUnwriteableMargin.bottom = [aPrintInfo bottomMargin];
+  mUnwriteableMargin.left = [aPrintInfo leftMargin];
+
+  SetIsInitializedFromPrinter(true);
+}
+
+void nsPrintSettingsX::SetFromPrintInfo(NSPrintInfo* aPrintInfo, bool aAdoptPrintInfo) {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
-  // Don't attempt to call this from child processes.
-  // Process sandboxing prevents access to the print
-  // server and printer-related settings.
-  MOZ_ASSERT(XRE_IsParentProcess());
-  MOZ_ASSERT(mPrintInfo);
+  // Set page-size/margins. This also ensures the initedFromPrinter flag is set.
+  SetPageFormatFromPrintInfo(aPrintInfo);
 
-  NSMutableDictionary* printInfoDict = [mPrintInfo dictionary];
-  NSString* nsPrinterNameValue = [printInfoDict objectForKey:@"NSPrinterName"];
-  if (nsPrinterNameValue) {
-    nsAutoString printerName;
-    nsCocoaUtils::GetStringForNSString(nsPrinterNameValue, printerName);
-    mPrinter.Assign(printerName);
+  if (aAdoptPrintInfo) {
+    // Keep a reference to the printInfo; it may have settings that we don't know how to handle
+    // otherwise.
+    if (mSystemPrintInfo != aPrintInfo) {
+      if (mSystemPrintInfo) {
+        [mSystemPrintInfo release];
+      }
+      mSystemPrintInfo = aPrintInfo;
+      [mSystemPrintInfo retain];
+    }
+  } else {
+    // Clear any stored printInfo.
+    if (mSystemPrintInfo) {
+      [mSystemPrintInfo release];
+      mSystemPrintInfo = nullptr;
+    }
   }
+
+  nsCocoaUtils::GetStringForNSString([[aPrintInfo printer] name], mPrinter);
+
+  // Only get the scaling value if shrink-to-fit is not selected:
+  bool isShrinkToFitChecked;
+  GetShrinkToFit(&isShrinkToFitChecked);
+  if (!isShrinkToFitChecked) {
+    // Limit scaling precision to whole percentage values.
+    mScaling = round(double([aPrintInfo scalingFactor]) * 100.0) / 100.0;
+  }
+
+  mPrintToFile = [aPrintInfo jobDisposition] == NSPrintSaveJob;
+
+  NSDictionary* dict = [aPrintInfo dictionary];
+  const char* filePath = [[dict objectForKey:NSPrintJobSavingURL] fileSystemRepresentation];
+  if (filePath && *filePath) {
+    CopyUTF8toUTF16(Span(filePath, strlen(filePath)), mToFileName);
+  }
+
+  nsCocoaUtils::GetStringForNSString([aPrintInfo jobDisposition], mDisposition);
+
+  mNumCopies = [[dict objectForKey:NSPrintCopies] intValue];
+  mPrintRange = [[dict objectForKey:NSPrintAllPages] boolValue]
+                    ? nsIPrintSettings::kRangeAllPages
+                    : nsIPrintSettings::kRangeSpecifiedPageRange;
+  mStartPageNum = [[dict objectForKey:NSPrintFirstPage] intValue];
+  mEndPageNum = [[dict objectForKey:NSPrintLastPage] intValue];
+
+  NSDictionary* printSettings = [aPrintInfo printSettings];
+  NSNumber* value = [printSettings objectForKey:@"com_apple_print_PrintSettings_PMDuplexing"];
+  if (value) {
+    PMDuplexMode duplexSetting = [value unsignedShortValue];
+    switch (duplexSetting) {
+      default:
+        // An unknown value is treated as None.
+        MOZ_FALLTHROUGH_ASSERT("Unknown duplex value");
+      case kPMDuplexNone:
+        mDuplex = kSimplex;
+        break;
+      case kPMDuplexNoTumble:
+        mDuplex = kDuplexHorizontal;
+        break;
+      case kPMDuplexTumble:
+        mDuplex = kDuplexVertical;
+        break;
+    }
+  } else {
+    // By default a printSettings dictionary doesn't initially contain the
+    // duplex key at all, so this is not an error; its absence just means no
+    // duplexing has been requested, so we return kSimplex.
+    mDuplex = kSimplex;
+  }
+
+  value = [printSettings objectForKey:@"com_apple_print_PrintSettings_PMDestinationType"];
+  if (value) {
+    mDestination = [value unsignedShortValue];
+  }
+
+  const bool color = [&] {
+    if (StaticPrefs::print_cups_monochrome_enabled()) {
+      for (const auto& setting : kKnownMonochromeSettings) {
+        NSString* value = [printSettings objectForKey:setting.mName];
+        if (!value) {
+          continue;
+        }
+        if ([setting.mValue isEqualToString:value]) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }();
+
+  SetPrintInColor(color);
+
+  SetIsInitializedFromPrinter(true);
 
   NS_OBJC_END_TRY_ABORT_BLOCK;
 }

@@ -9,9 +9,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <title data-localization="addNewCreditCardTitle"/>
-  <link rel="stylesheet" href="resource://formautofill/editDialog-shared.css"/>
-  <link rel="stylesheet" href="resource://formautofill/editCreditCard.css"/>
-  <link rel="stylesheet" href="resource://formautofill/editDialog.css"/>
+  <link rel="stylesheet" href="chrome://formautofill/content/skin/editDialog-shared.css"/>
+  <link rel="stylesheet" href="chrome://formautofill/content/skin/editCreditCard.css"/>
+  <link rel="stylesheet" href="chrome://formautofill/content/skin/editDialog.css"/>
   <script src="chrome://formautofill/content/l10n.js"></script>
   <script src="chrome://formautofill/content/editDialog.js"></script>
   <script src="chrome://formautofill/content/autofillEditForms.js"></script>
@@ -22,10 +22,14 @@
         The <span class="label-text" …/> needs to be after the form field in the same element in
         order to get proper label styling with :focus and :moz-ui-invalid.
       -->
-    <label id="cc-number-container" class="container">
+    <label id="cc-number-container" class="container" role="none">
       <span id="invalidCardNumberString" hidden="hidden" data-localization="invalidCardNumber"></span>
-      <input id="cc-number" type="text" required="required" minlength="9" pattern="[- 0-9]+"/>
-      <span data-localization="cardNumber" class="label-text"/>
+      <!-- Because there is text both before and after the input, a11y will
+          include the value of the input in the label. Therefore, we override
+          with aria-labelledby.
+        -->
+      <input id="cc-number" type="text" required="required" minlength="14" pattern="[- 0-9]+" aria-labelledby="cc-number-label"/>
+      <span id="cc-number-label" data-localization="cardNumber" class="label-text"/>
     </label>
     <label id="cc-exp-month-container" class="container">
       <select id="cc-exp-month" required="required">

@@ -122,9 +122,7 @@ void StorageObserver::RemoveSink(StorageObserverSink* aObs) {
 void StorageObserver::Notify(const char* aTopic,
                              const nsAString& aOriginAttributesPattern,
                              const nsACString& aOriginScope) {
-  nsTObserverArray<StorageObserverSink*>::ForwardIterator iter(mSinks);
-  while (iter.HasMore()) {
-    StorageObserverSink* sink = iter.GetNext();
+  for (auto* sink : mSinks.ForwardRange()) {
     sink->Observe(aTopic, aOriginAttributesPattern, aOriginScope);
   }
 }
@@ -211,7 +209,7 @@ StorageObserver::Observe(nsISupports* aSubject, const char* aTopic,
 
   // Clear everything, caches + database
   if (!strcmp(aTopic, "cookie-changed")) {
-    if (!NS_LITERAL_STRING("cleared").Equals(aData)) {
+    if (!u"cleared"_ns.Equals(aData)) {
       return NS_OK;
     }
 
@@ -244,14 +242,14 @@ StorageObserver::Observe(nsISupports* aSubject, const char* aTopic,
 
     nsAutoCString type;
     perm->GetType(type);
-    if (type != NS_LITERAL_CSTRING("cookie")) {
+    if (type != "cookie"_ns) {
       return NS_OK;
     }
 
     uint32_t cap = 0;
     perm->GetCapability(&cap);
     if (!(cap & nsICookiePermission::ACCESS_SESSION) ||
-        !NS_LITERAL_STRING("deleted").Equals(nsDependentString(aData))) {
+        !u"deleted"_ns.Equals(nsDependentString(aData))) {
       return NS_OK;
     }
 
@@ -305,7 +303,7 @@ StorageObserver::Observe(nsISupports* aSubject, const char* aTopic,
         storageChild->SendClearMatchingOrigin(originScope);
       }
 
-      Notify(topic, EmptyString(), originScope);
+      Notify(topic, u""_ns, originScope);
     } else {
       StorageDBChild* storageChild = StorageDBChild::GetOrCreate();
       if (NS_WARN_IF(!storageChild)) {
@@ -332,9 +330,9 @@ StorageObserver::Observe(nsISupports* aSubject, const char* aTopic,
         return rv;
       }
 
-      Notify(aTopic, EmptyString(), originScope);
+      Notify(aTopic, u""_ns, originScope);
     } else {
-      Notify(aTopic, EmptyString(), EmptyCString());
+      Notify(aTopic, u""_ns, ""_ns);
     }
 
     return NS_OK;

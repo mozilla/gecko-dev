@@ -8,12 +8,14 @@
 #define jit_JitcodeMap_h
 
 #include "jit/CompactBuffer.h"
-#include "jit/CompileInfo.h"
 #include "jit/ExecutableAllocator.h"
 #include "jit/shared/Assembler-shared.h"
+#include "vm/BytecodeLocation.h"  // for BytecodeLocation
 
 namespace js {
 namespace jit {
+
+class InlineScriptTree;
 
 /*
  * The Ion jitcode map implements tables to allow mapping from addresses in ion
@@ -134,12 +136,6 @@ class JitcodeGlobalEntry {
   };
   static_assert(LIMIT <= 8);
 
-  struct BytecodeLocation {
-    JSScript* script;
-    jsbytecode* pc;
-    BytecodeLocation(JSScript* script, jsbytecode* pc)
-        : script(script), pc(pc) {}
-  };
   typedef Vector<BytecodeLocation, 0, SystemAllocPolicy> BytecodeLocationVector;
 
   struct BaseEntry {
@@ -767,7 +763,7 @@ class JitcodeGlobalTable {
       freeTowers_[i] = nullptr;
     }
   }
-  ~JitcodeGlobalTable() {}
+  ~JitcodeGlobalTable() = default;
 
   bool empty() const { return skiplistSize_ == 0; }
 

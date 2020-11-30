@@ -6,7 +6,7 @@
 
 #include "frontend/NameOpEmitter.h"
 
-#include "frontend/AbstractScope.h"
+#include "frontend/AbstractScopePtr.h"
 #include "frontend/BytecodeEmitter.h"
 #include "frontend/SharedContext.h"
 #include "frontend/TDZCheckCache.h"
@@ -17,11 +17,11 @@
 using namespace js;
 using namespace js::frontend;
 
-NameOpEmitter::NameOpEmitter(BytecodeEmitter* bce, Handle<JSAtom*> name,
+NameOpEmitter::NameOpEmitter(BytecodeEmitter* bce, const ParserAtom* name,
                              Kind kind)
     : bce_(bce), kind_(kind), name_(name), loc_(bce_->lookupName(name_)) {}
 
-NameOpEmitter::NameOpEmitter(BytecodeEmitter* bce, Handle<JSAtom*> name,
+NameOpEmitter::NameOpEmitter(BytecodeEmitter* bce, const ParserAtom* name,
                              const NameLocation& loc, Kind kind)
     : bce_(bce), kind_(kind), name_(name), loc_(loc) {}
 
@@ -66,26 +66,28 @@ bool NameOpEmitter::emitGet() {
       }
       break;
     case NameLocation::Kind::FrameSlot:
-      if (loc_.isLexical()) {
-        if (!bce_->emitTDZCheckIfNeeded(name_, loc_)) {
-          return false;
-        }
-      }
       if (!bce_->emitLocalOp(JSOp::GetLocal, loc_.frameSlot())) {
         //          [stack] VAL
         return false;
       }
-      break;
-    case NameLocation::Kind::EnvironmentCoordinate:
       if (loc_.isLexical()) {
-        if (!bce_->emitTDZCheckIfNeeded(name_, loc_)) {
+        if (!bce_->emitTDZCheckIfNeeded(name_, loc_, ValueIsOnStack::Yes)) {
+          //        [stack] VAL
           return false;
         }
       }
+      break;
+    case NameLocation::Kind::EnvironmentCoordinate:
       if (!bce_->emitEnvCoordOp(JSOp::GetAliasedVar,
                                 loc_.environmentCoordinate())) {
         //          [stack] VAL
         return false;
+      }
+      if (loc_.isLexical()) {
+        if (!bce_->emitTDZCheckIfNeeded(name_, loc_, ValueIsOnStack::Yes)) {
+          //        [stack] VAL
+          return false;
+        }
       }
       break;
     case NameLocation::Kind::DynamicAnnexBVar:
@@ -226,6 +228,11 @@ bool NameOpEmitter::prepareForRhs() {
   return true;
 }
 
+#if defined(__clang__) && defined(XP_WIN) && \
+    (defined(_M_X64) || defined(__x86_64__))
+// Work around a CPU bug. See bug 1524257.
+__attribute__((__aligned__(32)))
+#endif
 bool NameOpEmitter::emitAssignment() {
   MOZ_ASSERT(state_ == State::Rhs);
 
@@ -259,7 +266,7 @@ bool NameOpEmitter::emitAssignment() {
       // Assigning to the named lambda is a no-op in sloppy mode but
       // throws in strict mode.
       if (bce_->sc->strict()) {
-        if (!bce_->emit1(JSOp::ThrowSetCallee)) {
+        if (!bce_->emitAtomOp(JSOp::ThrowSetConst, name_)) {
           return false;
         }
       }
@@ -278,14 +285,19 @@ bool NameOpEmitter::emitAssignment() {
           if (loc_.isConst()) {
             op = JSOp::ThrowSetConst;
           }
-
-          if (!bce_->emitTDZCheckIfNeeded(name_, loc_)) {
+          if (!bce_->emitTDZCheckIfNeeded(name_, loc_, ValueIsOnStack::No)) {
             return false;
           }
         }
       }
-      if (!bce_->emitLocalOp(op, loc_.frameSlot())) {
-        return false;
+      if (op == JSOp::ThrowSetConst) {
+        if (!bce_->emitAtomOp(op, name_)) {
+          return false;
+        }
+      } else {
+        if (!bce_->emitLocalOp(op, loc_.frameSlot())) {
+          return false;
+        }
       }
       if (op == JSOp::InitLexical) {
         if (!bce_->innermostTDZCheckCache->noteTDZCheck(bce_, name_,
@@ -302,10 +314,9 @@ bool NameOpEmitter::emitAssignment() {
           op = JSOp::InitAliasedLexical;
         } else {
           if (loc_.isConst()) {
-            op = JSOp::ThrowSetAliasedConst;
+            op = JSOp::ThrowSetConst;
           }
-
-          if (!bce_->emitTDZCheckIfNeeded(name_, loc_)) {
+          if (!bce_->emitTDZCheckIfNeeded(name_, loc_, ValueIsOnStack::No)) {
             return false;
           }
         }
@@ -313,15 +324,21 @@ bool NameOpEmitter::emitAssignment() {
       if (loc_.bindingKind() == BindingKind::NamedLambdaCallee) {
         // Assigning to the named lambda is a no-op in sloppy mode and throws
         // in strict mode.
-        op = JSOp::ThrowSetAliasedConst;
+        op = JSOp::ThrowSetConst;
         if (bce_->sc->strict()) {
-          if (!bce_->emitEnvCoordOp(op, loc_.environmentCoordinate())) {
+          if (!bce_->emitAtomOp(op, name_)) {
             return false;
           }
         }
       } else {
-        if (!bce_->emitEnvCoordOp(op, loc_.environmentCoordinate())) {
-          return false;
+        if (op == JSOp::ThrowSetConst) {
+          if (!bce_->emitAtomOp(op, name_)) {
+            return false;
+          }
+        } else {
+          if (!bce_->emitEnvCoordOp(op, loc_.environmentCoordinate())) {
+            return false;
+          }
         }
       }
       if (op == JSOp::InitAliasedLexical) {

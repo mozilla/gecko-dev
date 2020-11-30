@@ -15,6 +15,7 @@ import six
 import sys
 
 from six.moves.urllib.parse import quote, urlencode, urlunparse
+from six.moves.collections_abc import Mapping
 
 from mozbuild.util import memoize
 from mozpack.files import GeneratedFile
@@ -168,11 +169,10 @@ class VoidWriter(object):
         pass
 
 
-def generate_context_hash(topsrcdir, image_path, image_name, args=None):
+def generate_context_hash(topsrcdir, image_path, image_name, args):
     """Generates a sha256 hash for context directory used to build an image."""
 
-    return stream_context_tar(
-        topsrcdir, image_path, VoidWriter(), image_name, args)
+    return stream_context_tar(topsrcdir, image_path, VoidWriter(), image_name, args=args)
 
 
 class HashingWriter(object):
@@ -190,12 +190,11 @@ class HashingWriter(object):
         return six.ensure_text(self._hash.hexdigest())
 
 
-def create_context_tar(topsrcdir, context_dir, out_path, prefix, args=None):
+def create_context_tar(topsrcdir, context_dir, out_path, image_name, args):
     """Create a context tarball.
 
     A directory ``context_dir`` containing a Dockerfile will be assembled into
-    a gzipped tar file at ``out_path``. Files inside the archive will be
-    prefixed by directory ``prefix``.
+    a gzipped tar file at ``out_path``.
 
     We also scan the source Dockerfile for special syntax that influences
     context generation.
@@ -214,10 +213,12 @@ def create_context_tar(topsrcdir, context_dir, out_path, prefix, args=None):
     Returns the SHA-256 hex digest of the created archive.
     """
     with open(out_path, 'wb') as fh:
-        return stream_context_tar(topsrcdir, context_dir, fh, prefix, args)
+        return stream_context_tar(
+            topsrcdir, context_dir, fh, image_name=image_name, args=args,
+        )
 
 
-def stream_context_tar(topsrcdir, context_dir, out_file, prefix, args=None):
+def stream_context_tar(topsrcdir, context_dir, out_file, image_name, args):
     """Like create_context_tar, but streams the tar file to the `out_file` file
     object."""
     archive_files = {}
@@ -229,8 +230,7 @@ def stream_context_tar(topsrcdir, context_dir, out_file, prefix, args=None):
     for root, dirs, files in os.walk(context_dir):
         for f in files:
             source_path = os.path.join(root, f)
-            rel = source_path[len(context_dir) + 1:]
-            archive_path = os.path.join(prefix, rel)
+            archive_path = source_path[len(context_dir) + 1:]
             archive_files[archive_path] = source_path
 
     # Parse Dockerfile for special syntax of extra files to include.
@@ -268,35 +268,56 @@ def stream_context_tar(topsrcdir, context_dir, out_file, prefix, args=None):
                     for f in files:
                         source_path = os.path.join(root, f)
                         rel = source_path[len(fs_path) + 1:]
-                        archive_path = os.path.join(prefix, 'topsrcdir', p, rel)
+                        archive_path = os.path.join('topsrcdir', p, rel)
                         archive_files[archive_path] = source_path
             else:
-                archive_path = os.path.join(prefix, 'topsrcdir', p)
+                archive_path = os.path.join('topsrcdir', p)
                 archive_files[archive_path] = fs_path
 
-    archive_files[os.path.join(prefix, 'Dockerfile')] = \
-        GeneratedFile(b''.join(six.ensure_binary(s) for s in content))
+    archive_files['Dockerfile'] = GeneratedFile(b''.join(six.ensure_binary(s) for s in content))
 
     writer = HashingWriter(out_file)
-    create_tar_gz_from_files(writer, archive_files, '%s.tar.gz' % prefix)
+    create_tar_gz_from_files(writer, archive_files, "{}.tar".format(image_name))
     return writer.hexdigest()
 
 
-@memoize
-def image_paths():
-    """Return a map of image name to paths containing their Dockerfile.
+class ImagePathsMap(Mapping):
+    """ImagePathsMap contains the mapping of Docker image names to their
+    context location in the filesystem. The register function allows Thunderbird
+    to define additional images under comm/taskcluster.
     """
-    config = load_yaml(GECKO, 'taskcluster', 'ci', 'docker-image', 'kind.yml')
-    return {
-        k: os.path.join(IMAGE_DIR, v.get('definition', k))
-        for k, v in config['jobs'].items()
-    }
+    def __init__(self, config_path, image_dir=IMAGE_DIR):
+        config = load_yaml(GECKO, config_path)
+        self.__update_image_paths(config['jobs'], image_dir)
+
+    def __getitem__(self, key):
+        return self.__dict__[key]
+
+    def __iter__(self):
+        return iter(self.__dict__)
+
+    def __len__(self):
+        return len(self.__dict__)
+
+    def __update_image_paths(self, jobs, image_dir):
+        self.__dict__.update({
+            k: os.path.join(image_dir, v.get('definition', k))
+            for k, v in jobs.items()
+        })
+
+    def register(self, jobs_config_path, image_dir):
+        """Register additional image_paths. In this case, there is no 'jobs'
+        key in the loaded YAML as this file is loaded via jobs-from in kind.yml."""
+        jobs = load_yaml(GECKO, jobs_config_path)
+        self.__update_image_paths(jobs, image_dir)
+
+
+image_paths = ImagePathsMap('taskcluster/ci/docker-image/kind.yml')
 
 
 def image_path(name):
-    paths = image_paths()
-    if name in paths:
-        return paths[name]
+    if name in image_paths:
+        return image_paths[name]
     return os.path.join(IMAGE_DIR, name)
 
 
@@ -319,6 +340,6 @@ def parse_volumes(image):
                 raise ValueError('cannot parse array syntax for VOLUME; '
                                  'convert to multiple entries')
 
-            volumes |= set(v.split())
+            volumes |= set([six.ensure_text(v) for v in v.split()])
 
     return volumes

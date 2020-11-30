@@ -13,14 +13,8 @@ with Files("unit/*macwebapputils*"):
 with Files("unit/*taskbar_jumplistitems*"):
     BUG_COMPONENT = ("Core", "Widget: Win32")
 
-with Files("TestAppShellSteadyState.cpp"):
-    BUG_COMPONENT = ("Core", "Storage: IndexedDB")
-
 with Files("TestChromeMargin.cpp"):
     BUG_COMPONENT = ("Core", "Widget: Win32")
-
-with Files("*1151186*"):
-    BUG_COMPONENT = ("Core", "DOM: UI Events & Focus Handling")
 
 with Files("*413277*"):
     BUG_COMPONENT = ("Core", "Widget: Cocoa")
@@ -77,13 +71,13 @@ with Files("*chrome_context_menus_win*"):
     BUG_COMPONENT = ("Core", "General")
 
 with Files("*composition_text_querycontent*"):
-    BUG_COMPONENT = ("Core", "Internationalization")
+    BUG_COMPONENT = ("Core", "DOM: UI Events & Focus Handling")
 
 with Files("*key_event_counts*"):
     BUG_COMPONENT = ("Core", "Widget: Cocoa")
 
 with Files("*imestate*"):
-    BUG_COMPONENT = ("Core", "Internationalization")
+    BUG_COMPONENT = ("Core", "DOM: UI Events & Focus Handling")
 
 with Files("*mouse_scroll*"):
     BUG_COMPONENT = ("Core", "Widget: Win32")

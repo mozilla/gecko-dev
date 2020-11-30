@@ -47,7 +47,7 @@ HarAutomation.prototype = {
   initialize: function(toolbox) {
     this.toolbox = toolbox;
 
-    const target = toolbox.target;
+    const { target } = toolbox;
     this.startMonitoring(target.client);
   },
 
@@ -88,7 +88,7 @@ HarAutomation.prototype = {
     // data from events sent from the backend.
     this.collector = new HarCollector({
       webConsoleFront: this.webConsoleFront,
-      devToolsClient: this.devToolsClient,
+      resourceWatcher: this.toolbox.resourceWatcher,
     });
 
     this.collector.start();

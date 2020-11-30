@@ -22,6 +22,7 @@ class Compiler(base.Compiler):
                           the class of the output node to use for the current
                           ast node
         """
+
         self._kwargs = kwargs
         self.expr_data = expr_data
 
@@ -54,6 +55,11 @@ class Compiler(base.Compiler):
         for child in node.children:
             value = self.visit(child)(value)
         return value
+
+    def visit_IndexNode(self, node):
+        assert len(node.children) == 1
+        index = self.visit(node.children[0])
+        return lambda x: x[index]
 
     def visit_UnaryExpressionNode(self, node):
         assert len(node.children) == 2

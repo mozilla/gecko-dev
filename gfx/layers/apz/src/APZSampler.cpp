@@ -51,7 +51,7 @@ void APZSampler::SetWebRenderWindowId(const wr::WindowId& aWindowId) {
   if (!sWindowIdMap) {
     sWindowIdMap = new std::unordered_map<uint64_t, RefPtr<APZSampler>>();
     NS_DispatchToMainThread(NS_NewRunnableFunction(
-        "APZUpdater::ClearOnShutdown", [] { ClearOnShutdown(&sWindowIdMap); }));
+        "APZSampler::ClearOnShutdown", [] { ClearOnShutdown(&sWindowIdMap); }));
   }
   (*sWindowIdMap)[wr::AsUint64(aWindowId)] = this;
 }
@@ -65,25 +65,29 @@ void APZSampler::SetSamplerThread(const wr::WrWindowId& aWindowId) {
 }
 
 /*static*/
-void APZSampler::SampleForWebRender(const wr::WrWindowId& aWindowId,
-                                    wr::Transaction* aTransaction,
-                                    const wr::DocumentId& aRenderRootId) {
+void APZSampler::SampleForWebRender(
+    const wr::WrWindowId& aWindowId, wr::Transaction* aTransaction,
+    const wr::WrPipelineIdEpochs* aEpochsBeingRendered) {
   if (RefPtr<APZSampler> sampler = GetSampler(aWindowId)) {
     wr::TransactionWrapper txn(aTransaction);
-    sampler->SampleForWebRender(txn, wr::RenderRootFromId(aRenderRootId));
+    sampler->SampleForWebRender(txn, aEpochsBeingRendered);
   }
 }
 
-void APZSampler::SetSampleTime(const TimeStamp& aSampleTime) {
+void APZSampler::SetSampleTime(const SampleTime& aSampleTime) {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
   MutexAutoLock lock(mSampleTimeLock);
+  // This only gets called with WR, and the time provided is going to be
+  // the time at which the current vsync interval ends. i.e. it is the timestamp
+  // for the next vsync that will occur.
   mSampleTime = aSampleTime;
 }
 
-void APZSampler::SampleForWebRender(wr::TransactionWrapper& aTxn,
-                                    wr::RenderRoot aRenderRoot) {
+void APZSampler::SampleForWebRender(
+    wr::TransactionWrapper& aTxn,
+    const wr::WrPipelineIdEpochs* aEpochsBeingRendered) {
   AssertOnSamplerThread();
-  TimeStamp sampleTime;
+  SampleTime sampleTime;
   {  // scope lock
     MutexAutoLock lock(mSampleTimeLock);
 
@@ -91,31 +95,39 @@ void APZSampler::SampleForWebRender(wr::TransactionWrapper& aTxn,
     // WebRenderBridgeParent hasn't yet provided us with a sample time.
     // If we're that early there probably aren't any APZ animations happening
     // anyway, so using Timestamp::Now() should be fine.
-    sampleTime = mSampleTime.IsNull() ? TimeStamp::Now() : mSampleTime;
+    //
+    // If mSampleTime is in the past, then this is a "delayed sampling", i.e.
+    // we have passed the vsync interval during which SetSampleTime was called.
+    // We know this because SetSampleTime is called with the timestamp for the
+    // next vsync (i.e. the time at which the then-ongoing vsync interval ends)
+    // and we expect that SampleForWebRender gets called within that same vsync
+    // interval. If it does not, then the SampleForWebRender call has been
+    // delayed. This can happen if e.g. there was a very long scene build,
+    // or WR decided to generate a frame after an idle period for whatever
+    // random reason without Gecko requesting it explicitly. In these cases
+    // we shouldn't use mSampleTime, because the current frame will be presented
+    // at the end of the *current* vsync interval rather than the vsync interval
+    // SetSampleTime was called in. Ideally we would be able to know when the
+    // *current* vsync interval ends, and use that timestamp, but plumbing that
+    // here is hard, so instead we use Now() which will at least get us pretty
+    // close.
+    // The exception is if we're in a test situation, where the test is
+    // expecting us to use a specific timestamp and we shouldn't arbitrarily
+    // fiddle with it.
+    SampleTime now = SampleTime::FromNow();
+    sampleTime =
+        (mSampleTime.IsNull() ||
+         (mSampleTime.Type() != SampleTime::eTest && mSampleTime < now))
+            ? now
+            : mSampleTime;
   }
-  mApz->SampleForWebRender(aTxn, sampleTime, aRenderRoot);
+  mApz->SampleForWebRender(aTxn, sampleTime, aEpochsBeingRendered);
 }
 
-bool APZSampler::SampleAnimations(const LayerMetricsWrapper& aLayer,
-                                  const TimeStamp& aSampleTime) {
+bool APZSampler::AdvanceAnimations(const SampleTime& aSampleTime) {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
   AssertOnSamplerThread();
-
-  // TODO: eventually we can drop the aLayer argument and just walk the APZ
-  // tree directly in mApz.
-
-  bool activeAnimations = false;
-
-  ForEachNodePostOrder<ForwardIterator>(
-      aLayer,
-      [&activeAnimations, &aSampleTime](LayerMetricsWrapper aLayerMetrics) {
-        if (AsyncPanZoomController* apzc = aLayerMetrics.GetApzc()) {
-          apzc->ReportCheckerboard(aSampleTime);
-          activeAnimations |= apzc->AdvanceAnimations(aSampleTime);
-        }
-      });
-
-  return activeAnimations;
+  return mApz->AdvanceAnimations(aSampleTime);
 }
 
 LayerToParentLayerMatrix4x4 APZSampler::ComputeTransformForScrollThumb(
@@ -160,6 +172,27 @@ AsyncTransform APZSampler::GetCurrentAsyncTransform(
   MOZ_ASSERT(aLayer.GetApzc());
   return aLayer.GetApzc()->GetCurrentAsyncTransform(
       AsyncPanZoomController::eForCompositing, aComponents);
+}
+
+AsyncTransform APZSampler::GetCurrentAsyncTransform(
+    const LayersId& aLayersId, const ScrollableLayerGuid::ViewID& aScrollId,
+    AsyncTransformComponents aComponents) const {
+  MOZ_ASSERT(!CompositorThreadHolder::IsInCompositorThread());
+  AssertOnSamplerThread();
+
+  RefPtr<AsyncPanZoomController> apzc =
+      mApz->GetTargetAPZC(aLayersId, aScrollId);
+  if (!apzc) {
+    // It's possible that this function can get called even after the target
+    // APZC has been already destroyed because destroying the animation which
+    // triggers this function call is basically processed later than the APZC,
+    // i.e. queue mCompositorAnimationsToDelete in WebRenderBridgeParent and
+    // then remove in WebRenderBridgeParent::RemoveEpochDataPriorTo.
+    return AsyncTransform{};
+  }
+
+  return apzc->GetCurrentAsyncTransform(AsyncPanZoomController::eForCompositing,
+                                        aComponents);
 }
 
 Maybe<CompositionPayload> APZSampler::NotifyScrollSampling(
@@ -220,11 +253,42 @@ ScrollableLayerGuid APZSampler::GetGuid(const LayerMetricsWrapper& aLayer) {
   return aLayer.GetApzc()->GetGuid();
 }
 
+GeckoViewMetrics APZSampler::GetGeckoViewMetrics(
+    const LayerMetricsWrapper& aLayer) const {
+  MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
+  AssertOnSamplerThread();
+
+  MOZ_ASSERT(aLayer.GetApzc());
+  return aLayer.GetApzc()->GetGeckoViewMetrics();
+}
+
 ScreenMargin APZSampler::GetGeckoFixedLayerMargins() const {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
   AssertOnSamplerThread();
 
   return mApz->GetGeckoFixedLayerMargins();
+}
+
+ParentLayerRect APZSampler::GetCompositionBounds(
+    const LayersId& aLayersId,
+    const ScrollableLayerGuid::ViewID& aScrollId) const {
+  // This function can get called on the compositor in case of non WebRender
+  // get called on the sampler thread in case of WebRender.
+  AssertOnSamplerThread();
+
+  RefPtr<AsyncPanZoomController> apzc =
+      mApz->GetTargetAPZC(aLayersId, aScrollId);
+  if (!apzc) {
+    // On WebRender it's possible that this function can get called even after
+    // the target APZC has been already destroyed because destroying the
+    // animation which triggers this function call is basically processed later
+    // than the APZC one, i.e. queue mCompositorAnimationsToDelete in
+    // WebRenderBridgeParent and then remove them in
+    // WebRenderBridgeParent::RemoveEpochDataPriorTo.
+    return ParentLayerRect();
+  }
+
+  return apzc->GetCompositionBounds();
 }
 
 void APZSampler::AssertOnSamplerThread() const {
@@ -266,11 +330,11 @@ void apz_register_sampler(mozilla::wr::WrWindowId aWindowId) {
   mozilla::layers::APZSampler::SetSamplerThread(aWindowId);
 }
 
-void apz_sample_transforms(mozilla::wr::WrWindowId aWindowId,
-                           mozilla::wr::Transaction* aTransaction,
-                           mozilla::wr::DocumentId aDocumentId) {
+void apz_sample_transforms(
+    mozilla::wr::WrWindowId aWindowId, mozilla::wr::Transaction* aTransaction,
+    const mozilla::wr::WrPipelineIdEpochs* aEpochsBeingRendered) {
   mozilla::layers::APZSampler::SampleForWebRender(aWindowId, aTransaction,
-                                                  aDocumentId);
+                                                  aEpochsBeingRendered);
 }
 
 void apz_deregister_sampler(mozilla::wr::WrWindowId aWindowId) {}

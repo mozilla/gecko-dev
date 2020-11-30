@@ -22,20 +22,26 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
+#include <type_traits>
 
 #include "jsapi.h"
 #include "jsnum.h"
 #include "jstypes.h"
 
 #include "frontend/BytecodeCompiler.h"
-#include "frontend/SourceNotes.h"
+#include "frontend/SourceNotes.h"  // SrcNote, SrcNoteType, SrcNoteIterator
 #include "gc/PublicIterators.h"
+#include "jit/IonScript.h"  // IonBlockCounts
 #include "js/CharacterEncoding.h"
+#include "js/experimental/CodeCoverage.h"
+#include "js/friend/DumpFunctions.h"  // js::DumpPC, js::DumpScript
 #include "js/Printf.h"
 #include "js/Symbol.h"
 #include "util/Memory.h"
 #include "util/StringBuffer.h"
 #include "util/Text.h"
+#include "vm/BuiltinObjectKind.h"
+#include "vm/BytecodeIterator.h"  // for AllBytecodesIterable
 #include "vm/BytecodeLocation.h"
 #include "vm/CodeCoverage.h"
 #include "vm/EnvironmentObject.h"
@@ -46,6 +52,7 @@
 #include "vm/JSObject.h"
 #include "vm/JSScript.h"
 #include "vm/Opcodes.h"
+#include "vm/Printer.h"
 #include "vm/Realm.h"
 #include "vm/Shape.h"
 #include "vm/ToSource.h"  // js::ValueToSource
@@ -187,15 +194,12 @@ bool js::DumpRealmPCCounts(JSContext* cx) {
   Rooted<GCVector<JSScript*>> scripts(cx, GCVector<JSScript*>(cx));
   for (auto base = cx->zone()->cellIter<BaseScript>(); !base.done();
        base.next()) {
-    if (base->isLazyScript()) {
+    if (base->realm() != cx->realm()) {
       continue;
     }
-    JSScript* script = base->asJSScript();
-    if (script->realm() != cx->realm()) {
-      continue;
-    }
-    if (script->hasScriptCounts()) {
-      if (!scripts.append(script)) {
+    MOZ_ASSERT_IF(base->hasScriptCounts(), base->hasBytecode());
+    if (base->hasScriptCounts()) {
+      if (!scripts.append(base->asJSScript())) {
         return false;
       }
     }
@@ -227,10 +231,7 @@ bool js::DumpRealmPCCounts(JSContext* cx) {
 
 // Stores the information about the stack slot, where the value comes from.
 // Elements of BytecodeParser::Bytecode.{offsetStack,offsetStackAfter} arrays.
-struct OffsetAndDefIndex {
-  // To make this struct a POD type, keep these properties public.
-  // Use accessors instead of directly accessing them.
-
+class OffsetAndDefIndex {
   // The offset of the PC that pushed the value for this slot.
   uint32_t offset_;
 
@@ -250,6 +251,7 @@ struct OffsetAndDefIndex {
     Merged,
   } type_;
 
+ public:
   uint32_t offset() const {
     MOZ_ASSERT(!isSpecial());
     return offset_;
@@ -290,13 +292,6 @@ struct OffsetAndDefIndex {
     return !(*this == rhs);
   }
 };
-
-namespace mozilla {
-
-template <>
-struct IsPod<OffsetAndDefIndex> : TrueType {};
-
-}  // namespace mozilla
 
 namespace {
 
@@ -595,6 +590,7 @@ uint32_t BytecodeParser::simulateOp(JSOp op, uint32_t offset,
       case JSOp::InitHiddenElem:
       case JSOp::InitHiddenElemGetter:
       case JSOp::InitHiddenElemSetter:
+      case JSOp::InitLockedElem:
         // Keep the third value.
         MOZ_ASSERT(nuses == 3);
         MOZ_ASSERT(ndefs == 1);
@@ -679,7 +675,6 @@ uint32_t BytecodeParser::simulateOp(JSOp op, uint32_t offset,
 
     case JSOp::And:
     case JSOp::CheckIsObj:
-    case JSOp::CheckIsCallable:
     case JSOp::CheckObjCoercible:
     case JSOp::CheckThis:
     case JSOp::CheckThisReinit:
@@ -695,6 +690,8 @@ uint32_t BytecodeParser::simulateOp(JSOp op, uint32_t offset,
     case JSOp::SetLocal:
     case JSOp::InitAliasedLexical:
     case JSOp::IterNext:
+    case JSOp::CheckLexical:
+    case JSOp::CheckAliasedLexical:
       // Keep the top value.
       MOZ_ASSERT(nuses == 1);
       MOZ_ASSERT(ndefs == 1);
@@ -748,6 +745,13 @@ uint32_t BytecodeParser::simulateOp(JSOp op, uint32_t offset,
       MOZ_ASSERT(nuses == 1);
       MOZ_ASSERT(ndefs == 2);
       offsetStack[stackDepth + 1].set(offset, 1);
+      break;
+
+    case JSOp::CheckPrivateField:
+      // Keep the top two values, and push one new value.
+      MOZ_ASSERT(nuses == 2);
+      MOZ_ASSERT(ndefs == 3);
+      offsetStack[stackDepth + 2].set(offset, 2);
       break;
   }
 
@@ -909,15 +913,15 @@ bool BytecodeParser::parse() {
         // by a thrown exception but is not caught by a later handler in the
         // same function: no more code will execute, and it does not matter what
         // is defined.
-        for (const JSTryNote& tn : script_->trynotes()) {
+        for (const TryNote& tn : script_->trynotes()) {
           if (tn.start == offset + JSOpLength_Try) {
             uint32_t catchOffset = tn.start + tn.length;
-            if (tn.kind == JSTRY_CATCH) {
+            if (tn.kind() == TryNoteKind::Catch) {
               if (!addJump(catchOffset, stackDepth, offsetStack, pc,
                            JumpKind::TryCatch)) {
                 return false;
               }
-            } else if (tn.kind == JSTRY_FINALLY) {
+            } else if (tn.kind() == TryNoteKind::Finally) {
               if (!addJump(catchOffset, stackDepth, offsetStack, pc,
                            JumpKind::TryFinally)) {
                 return false;
@@ -1067,18 +1071,22 @@ static MOZ_MUST_USE bool DisassembleAtPC(
       }
     }
     if (showAll) {
-      jssrcnote* sn = GetSrcNote(cx, script, next);
+      const SrcNote* sn = GetSrcNote(cx, script, next);
       if (sn) {
-        MOZ_ASSERT(!SN_IS_TERMINATOR(sn));
-        jssrcnote* next = SN_NEXT(sn);
-        while (!SN_IS_TERMINATOR(next) && SN_DELTA(next) == 0) {
-          if (!sp->jsprintf("%02u\n    ", SN_TYPE(sn))) {
+        MOZ_ASSERT(!sn->isTerminator());
+        SrcNoteIterator iter(sn);
+        while (true) {
+          ++iter;
+          auto next = *iter;
+          if (!(!next->isTerminator() && next->delta() == 0)) {
+            break;
+          }
+          if (!sp->jsprintf("%s\n    ", sn->name())) {
             return false;
           }
-          sn = next;
-          next = SN_NEXT(sn);
+          sn = *iter;
         }
-        if (!sp->jsprintf("%02u ", SN_TYPE(sn))) {
+        if (!sp->jsprintf("%s ", sn->name())) {
           return false;
         }
       } else {
@@ -1420,16 +1428,8 @@ static unsigned Disassemble1(JSContext* cx, HandleScript script, jsbytecode* pc,
       break;
     }
 
-    case JOF_CODE_OFFSET: {
-      ptrdiff_t off = GET_CODE_OFFSET(pc);
-      if (!sp->jsprintf(" %u (%+d)", unsigned(loc + int(off)), int(off))) {
-        return 0;
-      }
-      break;
-    }
-
     case JOF_SCOPE: {
-      RootedScope scope(cx, script->getScope(GET_UINT32_INDEX(pc)));
+      RootedScope scope(cx, script->getScope(pc));
       UniqueChars bytes;
       if (!ToDisassemblySource(cx, scope, &bytes)) {
         return 0;
@@ -1455,7 +1455,7 @@ static unsigned Disassemble1(JSContext* cx, HandleScript script, jsbytecode* pc,
     }
 
     case JOF_ATOM: {
-      RootedValue v(cx, StringValue(script->getAtom(GET_UINT32_INDEX(pc))));
+      RootedValue v(cx, StringValue(script->getAtom(pc)));
       UniqueChars bytes = ToDisassemblySource(cx, v);
       if (!bytes) {
         return 0;
@@ -1495,7 +1495,7 @@ static unsigned Disassemble1(JSContext* cx, HandleScript script, jsbytecode* pc,
         break;
       }
 
-      JSObject* obj = script->getObject(GET_UINT32_INDEX(pc));
+      JSObject* obj = script->getObject(pc);
       {
         RootedValue v(cx, ObjectValue(*obj));
         UniqueChars bytes = ToDisassemblySource(cx, v);
@@ -1583,7 +1583,7 @@ static unsigned Disassemble1(JSContext* cx, HandleScript script, jsbytecode* pc,
       break;
 
     case JOF_CLASS_CTOR: {
-      uint32_t atomIndex = 0;
+      GCThingIndex atomIndex;
       uint32_t classStartOffset = 0, classEndOffset = 0;
       GetClassConstructorOperands(pc, &atomIndex, &classStartOffset,
                                   &classEndOffset);
@@ -1594,6 +1594,18 @@ static unsigned Disassemble1(JSContext* cx, HandleScript script, jsbytecode* pc,
       }
       if (!sp->jsprintf(" %s (off: %u-%u)", bytes.get(), classStartOffset,
                         classEndOffset)) {
+        return 0;
+      }
+      break;
+    }
+    case JOF_TWO_UINT8: {
+      int one = (int)GET_UINT8(pc);
+      int two = (int)GET_UINT8(pc + 1);
+
+      if (!sp->jsprintf(" %d", one)) {
+        return 0;
+      }
+      if (!sp->jsprintf(" %d", two)) {
         return 0;
       }
       break;
@@ -1742,12 +1754,12 @@ bool ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex) {
     // Handle simple cases of binary and unary operators.
     switch (CodeSpec(op).nuses) {
       case 2: {
-        jssrcnote* sn = GetSrcNote(cx, script, pc);
-        if (!sn || SN_TYPE(sn) != SRC_ASSIGNOP) {
-          return write("(") && decompilePCForStackOperand(pc, -2) &&
-                 write(" ") && write(token) && write(" ") &&
-                 decompilePCForStackOperand(pc, -1) && write(")");
-        }
+        const SrcNote* sn = GetSrcNote(cx, script, pc);
+        const char* extra =
+            sn && sn->type() == SrcNoteType::AssignOp ? "=" : "";
+        return write("(") && decompilePCForStackOperand(pc, -2) && write(" ") &&
+               write(token) && write(extra) && write(" ") &&
+               decompilePCForStackOperand(pc, -1) && write(")");
         break;
       }
       case 1:
@@ -1788,6 +1800,10 @@ bool ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex) {
         if (result) {
           return write(result.get());
         }
+
+        // If it fails, do not return parameter name and let the caller
+        // fallback.
+        return write("(intermediate value)");
       }
 
       JSAtom* atom = getArg(slot);
@@ -1886,15 +1902,17 @@ bool ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex) {
     case JSOp::CallIgnoresRv:
     case JSOp::CallIter:
     case JSOp::FunCall:
-    case JSOp::FunApply:
-      return decompilePCForStackOperand(pc, -int32_t(GET_ARGC(pc) + 2)) &&
-             write("(...)");
+    case JSOp::FunApply: {
+      uint16_t argc = GET_ARGC(pc);
+      return decompilePCForStackOperand(pc, -int32_t(argc + 2)) &&
+             write(argc ? "(...)" : "()");
+    }
     case JSOp::SpreadCall:
       return decompilePCForStackOperand(pc, -3) && write("(...)");
     case JSOp::NewArray:
       return write("[]");
     case JSOp::RegExp: {
-      RootedObject obj(cx, script->getObject(GET_UINT32_INDEX(pc)));
+      RootedObject obj(cx, script->getObject(pc));
       JSString* str = obj->as<RegExpObject>().toString(cx);
       if (!str) {
         return false;
@@ -1902,7 +1920,7 @@ bool ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex) {
       return write(str);
     }
     case JSOp::NewArrayCopyOnWrite: {
-      RootedObject obj(cx, script->getObject(GET_UINT32_INDEX(pc)));
+      RootedObject obj(cx, script->getObject(pc));
       Handle<ArrayObject*> aobj = obj.as<ArrayObject>();
       if (!write("[")) {
         return false;
@@ -1923,7 +1941,7 @@ bool ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex) {
       return write("]");
     }
     case JSOp::Object: {
-      JSObject* obj = script->getObject(GET_UINT32_INDEX(pc));
+      JSObject* obj = script->getObject(pc);
       RootedValue objv(cx, ObjectValue(*obj));
       JSString* str = ValueToSource(cx, objv);
       if (!str) {
@@ -1936,6 +1954,10 @@ bool ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex) {
              write(")");
 
     case JSOp::SuperCall:
+      if (GET_ARGC(pc) == 0) {
+        return write("super()");
+      }
+      [[fallthrough]];
     case JSOp::SpreadSuperCall:
       return write("super(...)");
     case JSOp::SuperFun:
@@ -1947,10 +1969,12 @@ bool ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex) {
     case JSOp::StrictSpreadEval:
       return write("eval(...)");
 
-    case JSOp::New:
+    case JSOp::New: {
+      uint16_t argc = GET_ARGC(pc);
       return write("(new ") &&
-             decompilePCForStackOperand(pc, -int32_t(GET_ARGC(pc) + 3)) &&
-             write("(...))");
+             decompilePCForStackOperand(pc, -int32_t(argc + 3)) &&
+             write(argc ? "(...))" : "())");
+    }
 
     case JSOp::SpreadNew:
       return write("(new ") && decompilePCForStackOperand(pc, -4) &&
@@ -1995,6 +2019,11 @@ bool ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex) {
 #else
       return write("[bigint]");
 #endif
+
+    case JSOp::BuiltinObject: {
+      auto kind = BuiltinObjectKind(GET_UINT8(pc));
+      return write(BuiltinObjectName(kind));
+    }
 
     default:
       break;
@@ -2111,8 +2140,8 @@ bool ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex) {
       case JSOp::SuperBase:
         return write("HOMEOBJECTPROTO");
 
-      case JSOp::ToId:
-        return write("TOID(") && decompilePCForStackOperand(pc, -1) &&
+      case JSOp::ToPropertyKey:
+        return write("TOPROPERTYKEY(") && decompilePCForStackOperand(pc, -1) &&
                write(")");
       case JSOp::ToString:
         return write("TOSTRING(") && decompilePCForStackOperand(pc, -1) &&
@@ -2142,6 +2171,9 @@ bool ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex) {
       case JSOp::AsyncAwait:
       case JSOp::AsyncResolve:
         return write("PROMISE");
+
+      case JSOp::CheckPrivateField:
+        return write("HasPrivateField");
 
       default:
         break;
@@ -2594,12 +2626,8 @@ JS_FRIEND_API void js::StopPCCountProfiling(JSContext* cx) {
 
   for (ZonesIter zone(rt, SkipAtoms); !zone.done(); zone.next()) {
     for (auto base = zone->cellIter<BaseScript>(); !base.done(); base.next()) {
-      if (base->isLazyScript()) {
-        continue;
-      }
-      JSScript* script = base->asJSScript();
-      if (script->hasScriptCounts() && script->hasJitScript()) {
-        if (!vec->append(script)) {
+      if (base->hasScriptCounts() && base->hasJitScript()) {
+        if (!vec->append(base->asJSScript())) {
           return;
         }
       }
@@ -2683,9 +2711,9 @@ JS_FRIEND_API JSString* js::GetPCCountScriptSummary(JSContext* cx,
 
   uint64_t total = 0;
 
-  jsbytecode* codeEnd = script->codeEnd();
-  for (jsbytecode* pc = script->code(); pc < codeEnd; pc = GetNextPc(pc)) {
-    if (const PCCounts* counts = sac.maybeGetPCCounts(pc)) {
+  AllBytecodesIterable iter(script);
+  for (BytecodeLocation loc : iter) {
+    if (const PCCounts* counts = sac.maybeGetPCCounts(loc.toRawBytecode())) {
       total += counts->numExec();
     }
   }
@@ -3031,61 +3059,4 @@ JS_FRIEND_API UniqueChars js::GetCodeCoverageSummary(JSContext* cx,
 
   *length = out.getOffset();
   return js::DuplicateString(cx, out.string(), *length);
-}
-
-bool js::GetSuccessorBytecodes(JSScript* script, jsbytecode* pc,
-                               PcVector& successors) {
-  MOZ_ASSERT(script->containsPC(pc));
-
-  JSOp op = (JSOp)*pc;
-  if (BytecodeFallsThrough(op)) {
-    if (!successors.append(GetNextPc(pc))) {
-      return false;
-    }
-  }
-
-  if (CodeSpec(op).type() == JOF_JUMP) {
-    if (!successors.append(pc + GET_JUMP_OFFSET(pc))) {
-      return false;
-    }
-  } else if (op == JSOp::TableSwitch) {
-    if (!successors.append(pc + GET_JUMP_OFFSET(pc))) {
-      return false;
-    }
-    jsbytecode* npc = pc + JUMP_OFFSET_LEN;
-
-    int32_t low = GET_JUMP_OFFSET(npc);
-    npc += JUMP_OFFSET_LEN;
-    int ncases = GET_JUMP_OFFSET(npc) - low + 1;
-    npc += JUMP_OFFSET_LEN;
-
-    for (int i = 0; i < ncases; i++) {
-      if (!successors.append(script->tableSwitchCasePC(pc, i))) {
-        return false;
-      }
-    }
-  }
-
-  return true;
-}
-
-bool js::GetPredecessorBytecodes(JSScript* script, jsbytecode* pc,
-                                 PcVector& predecessors) {
-  MOZ_ASSERT(js::BytecodeLocation(script, pc).isInBounds(script));
-
-  for (const BytecodeLocation& loc : js::AllBytecodesIterable(script)) {
-    PcVector successors;
-    if (!GetSuccessorBytecodes(script, loc.toRawBytecode(), successors)) {
-      return false;
-    }
-    for (size_t i = 0; i < successors.length(); i++) {
-      if (successors[i] == pc) {
-        if (!predecessors.append(loc.toRawBytecode())) {
-          return false;
-        }
-        break;
-      }
-    }
-  }
-  return true;
 }

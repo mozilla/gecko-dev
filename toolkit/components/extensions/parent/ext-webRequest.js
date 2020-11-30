@@ -4,15 +4,13 @@
 
 "use strict";
 
-// This file expects tabTracker to be defined in the global scope (e.g.
-// by ext-utils.js).
-/* global tabTracker */
-
 ChromeUtils.defineModuleGetter(
   this,
   "WebRequest",
   "resource://gre/modules/WebRequest.jsm"
 );
+
+var { parseMatchPatterns } = ExtensionUtils;
 
 // The guts of a WebRequest event handler.  Takes care of converting
 // |details| parameter when invoking listeners.
@@ -25,27 +23,7 @@ function registerEvent(
   remoteTab = null
 ) {
   let listener = async data => {
-    let browserData = { tabId: -1, windowId: -1 };
-    if (data.browser) {
-      browserData = tabTracker.getBrowserData(data.browser);
-    }
-    if (filter.tabId != null && browserData.tabId != filter.tabId) {
-      return;
-    }
-    if (filter.windowId != null && browserData.windowId != filter.windowId) {
-      return;
-    }
-
     let event = data.serialize(eventName);
-    event.tabId = browserData.tabId;
-    if (data.originAttributes) {
-      event.incognito = data.originAttributes.privateBrowsingId > 0;
-      if (extension.hasPermission("cookies")) {
-        event.cookieStoreId = getCookieStoreIdForOriginAttributes(
-          data.originAttributes
-        );
-      }
-    }
     if (data.registerTraceableChannel) {
       // If this is a primed listener, no tabParent was passed in here,
       // but the convert() callback later in this function will be called
@@ -63,11 +41,11 @@ function registerEvent(
   let filter2 = {};
   if (filter.urls) {
     let perms = new MatchPatternSet([
-      ...extension.whiteListedHosts.patterns,
+      ...extension.allowedOrigins.patterns,
       ...extension.optionalOrigins.patterns,
     ]);
 
-    filter2.urls = new MatchPatternSet(filter.urls);
+    filter2.urls = parseMatchPatterns(filter.urls);
 
     if (!perms.overlapsAll(filter2.urls)) {
       Cu.reportError(
@@ -78,10 +56,10 @@ function registerEvent(
   if (filter.types) {
     filter2.types = filter.types;
   }
-  if (filter.tabId) {
+  if (filter.tabId !== undefined) {
     filter2.tabId = filter.tabId;
   }
-  if (filter.windowId) {
+  if (filter.windowId !== undefined) {
     filter2.windowId = filter.windowId;
   }
   if (filter.incognito !== undefined) {

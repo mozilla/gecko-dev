@@ -23,12 +23,31 @@ ChromeUtils.defineModuleGetter(
   "resource://formautofill/FormAutofillUtils.jsm"
 );
 
+XPCOMUtils.defineLazyModuleGetters(this, {
+  CreditCard: "resource://gre/modules/CreditCard.jsm",
+});
+
 this.log = null;
 FormAutofill.defineLazyLogGetter(this, EXPORTED_SYMBOLS[0]);
 
 const PREF_HEURISTICS_ENABLED = "extensions.formautofill.heuristics.enabled";
 const PREF_SECTION_ENABLED = "extensions.formautofill.section.enabled";
 const DEFAULT_SECTION_NAME = "-moz-section-default";
+
+/**
+ * To help us classify sections, we want to know what fields can appear
+ * multiple times in a row.
+ * Such fields, like `address-line{X}`, should not break sections.
+ */
+const MULTI_FIELD_NAMES = [
+  "address-level3",
+  "address-level2",
+  "address-level1",
+  "tel",
+  "postal-code",
+  "email",
+  "street-address",
+];
 
 /**
  * A scanner for traversing all elements in a form and retrieving the field
@@ -137,7 +156,8 @@ class FieldScanner {
       }
       if (
         seenTypes.has(fieldDetail.fieldName) &&
-        previousType != fieldDetail.fieldName
+        (previousType != fieldDetail.fieldName ||
+          !MULTI_FIELD_NAMES.includes(fieldDetail.fieldName))
       ) {
         seenTypes.clear();
         sectionCount++;
@@ -472,7 +492,10 @@ this.FormAutofillHeuristics = {
         options.map(e => +e.value),
         desiredValues
       ) ||
-      this._matchContiguousSubArray(options.map(e => +e.label), desiredValues)
+      this._matchContiguousSubArray(
+        options.map(e => +e.label),
+        desiredValues
+      )
     );
   },
 
@@ -502,7 +525,10 @@ this.FormAutofillHeuristics = {
         options.map(e => +e.value),
         desiredValues
       ) ||
-      this._matchContiguousSubArray(options.map(e => +e.label), desiredValues)
+      this._matchContiguousSubArray(
+        options.map(e => +e.label),
+        desiredValues
+      )
     );
   },
 
@@ -703,25 +729,46 @@ this.FormAutofillHeuristics = {
    *          Return true if there is any field can be recognized in the parser,
    *          otherwise false.
    */
-  _parseCreditCardExpirationDateFields(fieldScanner) {
+  _parseCreditCardFields(fieldScanner) {
     if (fieldScanner.parsingFinished) {
       return false;
     }
 
     const savedIndex = fieldScanner.parsingIndex;
-    const monthAndYearFieldNames = ["cc-exp-month", "cc-exp-year"];
     const detail = fieldScanner.getFieldDetailByIndex(
       fieldScanner.parsingIndex
     );
-    const element = detail.elementWeakRef.get();
 
-    // Respect to autocomplete attr and skip the uninteresting fields
+    // Respect to autocomplete attr
+    if (!detail || (detail._reason && detail._reason == "autocomplete")) {
+      return false;
+    }
+
+    const monthAndYearFieldNames = ["cc-exp-month", "cc-exp-year"];
+    // Skip the uninteresting fields
     if (
-      !detail ||
-      (detail._reason && detail._reason == "autocomplete") ||
-      !["cc-exp", ...monthAndYearFieldNames].includes(detail.fieldName)
+      !["cc-exp", "cc-type", ...monthAndYearFieldNames].includes(
+        detail.fieldName
+      )
     ) {
       return false;
+    }
+
+    const element = detail.elementWeakRef.get();
+
+    // If we didn't auto-discover type field, check every select for options that
+    // match credit card network names in value or label.
+    if (ChromeUtils.getClassName(element) == "HTMLSelectElement") {
+      for (let option of element.querySelectorAll("option")) {
+        if (
+          CreditCard.getNetworkFromName(option.value) ||
+          CreditCard.getNetworkFromName(option.text)
+        ) {
+          fieldScanner.updateFieldName(fieldScanner.parsingIndex, "cc-type");
+          fieldScanner.parsingIndex++;
+          return true;
+        }
+      }
     }
 
     // If the input type is a month picker, then assume it's cc-exp.
@@ -875,7 +922,7 @@ this.FormAutofillHeuristics = {
     while (!fieldScanner.parsingFinished) {
       let parsedPhoneFields = this._parsePhoneFields(fieldScanner);
       let parsedAddressFields = this._parseAddressFields(fieldScanner);
-      let parsedExpirationDateFields = this._parseCreditCardExpirationDateFields(
+      let parsedExpirationDateFields = this._parseCreditCardFields(
         fieldScanner
       );
 
@@ -929,6 +976,7 @@ this.FormAutofillHeuristics = {
       "cc-exp-month",
       "cc-exp-year",
       "cc-exp",
+      "cc-type",
     ];
     let regexps = isAutoCompleteOff
       ? FIELDNAMES_IGNORING_AUTOCOMPLETE_OFF
@@ -948,6 +996,7 @@ this.FormAutofillHeuristics = {
         "cc-exp-month",
         "cc-exp-year",
         "cc-exp",
+        "cc-type",
       ];
       regexps = regexps.filter(name =>
         FIELDNAMES_FOR_SELECT_ELEMENT.includes(name)
@@ -1057,21 +1106,6 @@ this.FormAutofillHeuristics = {
     const getElementStrings = this._getElementStrings(element);
     for (let regexp of regexps) {
       for (let string of getElementStrings) {
-        // The original regexp "(?<!united )state|county|region|province" for
-        // "address-line1" wants to exclude any "united state" string, so the
-        // following code is to remove all "united state" string before applying
-        // "addess-level1" regexp.
-        //
-        // Since "united state" string matches to the regexp of address-line2&3,
-        // the two regexps should be excluded here.
-        if (
-          ["address-level1", "address-line2", "address-line3"].includes(regexp)
-        ) {
-          string = string
-            .toLowerCase()
-            .split("united state")
-            .join("");
-        }
         if (this.RULES[regexp].test(string)) {
           return regexp;
         }

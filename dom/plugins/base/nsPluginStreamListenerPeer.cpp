@@ -226,7 +226,6 @@ nsPluginStreamListenerPeer::OnStartRequest(nsIRequest* request) {
 }
 
 NS_IMETHODIMP nsPluginStreamListenerPeer::OnProgress(nsIRequest* request,
-                                                     nsISupports* aContext,
                                                      int64_t aProgress,
                                                      int64_t aProgressMax) {
   nsresult rv = NS_OK;
@@ -234,7 +233,6 @@ NS_IMETHODIMP nsPluginStreamListenerPeer::OnProgress(nsIRequest* request,
 }
 
 NS_IMETHODIMP nsPluginStreamListenerPeer::OnStatus(nsIRequest* request,
-                                                   nsISupports* aContext,
                                                    nsresult aStatus,
                                                    const char16_t* aStatusArg) {
   return NS_OK;
@@ -438,8 +436,8 @@ nsresult nsPluginStreamListenerPeer::SetUpStreamListener(nsIRequest* request,
     // we require a content len
     // get Last-Modified header for plugin info
     nsAutoCString lastModified;
-    if (NS_SUCCEEDED(httpChannel->GetResponseHeader(
-            NS_LITERAL_CSTRING("last-modified"), lastModified)) &&
+    if (NS_SUCCEEDED(
+            httpChannel->GetResponseHeader("last-modified"_ns, lastModified)) &&
         !lastModified.IsEmpty()) {
       PRTime time64;
       PR_ParseTimeString(lastModified.get(), true,

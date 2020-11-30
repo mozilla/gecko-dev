@@ -5,29 +5,29 @@
 #ifndef CanvasRenderingContext2D_h
 #define CanvasRenderingContext2D_h
 
-#include "mozilla/Attributes.h"
 #include <vector>
-#include "nsICanvasRenderingContextInternal.h"
-#include "mozilla/RefPtr.h"
-#include "nsColor.h"
-#include "mozilla/dom/HTMLCanvasElement.h"
-#include "mozilla/dom/HTMLVideoElement.h"
-#include "mozilla/ErrorResult.h"
 #include "mozilla/dom/BasicRenderingContext2D.h"
 #include "mozilla/dom/CanvasGradient.h"
-#include "mozilla/dom/CanvasRenderingContext2DBinding.h"
 #include "mozilla/dom/CanvasPattern.h"
+#include "mozilla/dom/CanvasRenderingContext2DBinding.h"
+#include "mozilla/dom/HTMLCanvasElement.h"
+#include "mozilla/dom/HTMLVideoElement.h"
 #include "mozilla/gfx/Rect.h"
 #include "mozilla/gfx/2D.h"
-#include "mozilla/PresShell.h"
-#include "mozilla/UniquePtr.h"
-#include "gfx2DGlue.h"
-#include "nsLayoutUtils.h"
+#include "mozilla/Attributes.h"
 #include "mozilla/EnumeratedArray.h"
-#include "FilterSupport.h"
-#include "SVGObserverUtils.h"
+#include "mozilla/ErrorResult.h"
+#include "mozilla/PresShell.h"
+#include "mozilla/RefPtr.h"
+#include "mozilla/SurfaceFromElementResult.h"
+#include "mozilla/SVGObserverUtils.h"
+#include "mozilla/UniquePtr.h"
+#include "FilterDescription.h"
+#include "gfx2DGlue.h"
 #include "Layers.h"
+#include "nsICanvasRenderingContextInternal.h"
 #include "nsBidi.h"
+#include "nsColor.h"
 
 class gfxFontGroup;
 class nsGlobalWindowInner;
@@ -56,7 +56,6 @@ template <typename T>
 class Optional;
 
 struct CanvasBidiProcessor;
-class CanvasRenderingContext2DUserData;
 class CanvasDrawObserver;
 class CanvasShutdownObserver;
 
@@ -85,6 +84,12 @@ class CanvasRenderingContext2D final : public nsICanvasRenderingContextInternal,
 
     // corresponds to changes to the old bindings made in bug 745025
     return mCanvasElement->GetOriginalCanvas();
+  }
+
+  void OnBeforePaintTransaction() override;
+  void OnDidPaintTransaction() override;
+  layers::PersistentBufferProvider* GetBufferProvider() override {
+    return mBufferProvider;
   }
 
   void Save() override;
@@ -491,8 +496,6 @@ class CanvasRenderingContext2D final : public nsICanvasRenderingContextInternal,
     }
   }
 
-  friend class CanvasRenderingContext2DUserData;
-
   virtual UniquePtr<uint8_t[]> GetImageBuffer(int32_t* aFormat) override;
 
   // Given a point, return hit region ID if it exists
@@ -672,15 +675,14 @@ class CanvasRenderingContext2D final : public nsICanvasRenderingContextInternal,
    */
   bool PatternIsOpaque(Style aStyle, bool* aIsColor = nullptr) const;
 
-  nsLayoutUtils::SurfaceFromElementResult CachedSurfaceFromElement(
-      Element* aElement);
+  SurfaceFromElementResult CachedSurfaceFromElement(Element* aElement);
 
   void DrawImage(const CanvasImageSource& aImgElt, double aSx, double aSy,
                  double aSw, double aSh, double aDx, double aDy, double aDw,
                  double aDh, uint8_t aOptional_argc,
                  mozilla::ErrorResult& aError);
 
-  void DrawDirectlyToCanvas(const nsLayoutUtils::DirectDrawInfo& aImage,
+  void DrawDirectlyToCanvas(const DirectDrawInfo& aImage,
                             mozilla::gfx::Rect* aBounds,
                             mozilla::gfx::Rect aDest, mozilla::gfx::Rect aSrc,
                             gfx::IntSize aImgSize);
@@ -719,8 +721,6 @@ class CanvasRenderingContext2D final : public nsICanvasRenderingContextInternal,
   bool mIPC;
 
   bool mHasPendingStableStateCallback;
-
-  nsTArray<CanvasRenderingContext2DUserData*> mUserDatas;
 
   // If mCanvasElement is not provided, then a docshell is
   nsCOMPtr<nsIDocShell> mDocShell;

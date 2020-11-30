@@ -34,10 +34,6 @@
 
 #include <map>
 
-#ifdef MOZ_WIDGET_GTK
-#  include "gtk2xtbin.h"
-#endif
-
 class gfxASurface;
 
 namespace mozilla {
@@ -369,9 +365,6 @@ class PluginInstanceChild : public PPluginInstanceChild {
 
 #if defined(MOZ_X11) && defined(XP_UNIX) && !defined(XP_MACOSX)
   NPSetWindowCallbackStruct mWsInfo;
-#  ifdef MOZ_WIDGET_GTK
-  XtClient mXtClient;
-#  endif
 #elif defined(OS_WIN)
   HWND mPluginWindowHWND;
   WNDPROC mPluginWndProc;
@@ -455,7 +448,7 @@ class PluginInstanceChild : public PPluginInstanceChild {
 
   // Paint plugin content rectangle to surface with bg color filling
   void PaintRectToSurface(const nsIntRect& aRect, gfxASurface* aSurface,
-                          const gfx::Color& aColor);
+                          const gfx::DeviceColor& aColor);
 
   // Render plugin content to surface using
   // white/black image alpha extraction algorithm

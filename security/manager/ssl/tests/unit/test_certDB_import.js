@@ -37,7 +37,7 @@ const gCertificateDialogs = {
     ok(false, "getPKCS12FilePassword() should not have been called");
   },
 
-  QueryInterface: ChromeUtils.generateQI([Ci.nsICertificateDialogs]),
+  QueryInterface: ChromeUtils.generateQI(["nsICertificateDialogs"]),
 };
 
 // Implements nsIInterfaceRequestor. Mostly serves to mock nsIPrompt.
@@ -52,7 +52,7 @@ const gInterfaceRequestor = {
       return this;
     }
 
-    throw new Error(Cr.NS_ERROR_NO_INTERFACE);
+    throw Components.Exception("", Cr.NS_ERROR_NO_INTERFACE);
   },
 };
 

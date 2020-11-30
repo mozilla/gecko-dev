@@ -26,8 +26,8 @@ TASK_TYPES = {
         "repackage-signing-msi-win32-shippable/opt",
         "repackage-signing-msi-win64-shippable/opt",
         "mar-signing-linux64-shippable/opt",
-        "partials-signing-linux64-shippable/opt",
     ],
+    "linux-signing-partial": ["partials-signing-linux64-shippable/opt"],
     "mac-signing": ["build-signing-macosx64-shippable/opt"],
     "beetmover-candidates": ["beetmover-repackage-linux64-shippable/opt"],
     "bouncer-submit": ["release-bouncer-sub-firefox"],
@@ -50,7 +50,7 @@ class ScriptworkerParser(BaseTryParser):
         [
             ["task_type"],
             {
-                "choices": ["list"] + TASK_TYPES.keys(),
+                "choices": ["list"] + list(TASK_TYPES.keys()),
                 "metavar": "TASK-TYPE",
                 "help": "Scriptworker task types to run. (Use `list` to show possibilities)",
             },
@@ -58,7 +58,7 @@ class ScriptworkerParser(BaseTryParser):
         [
             ["--release-type"],
             {
-                "choices": ["nightly"] + RELEASE_TO_BRANCH.keys(),
+                "choices": ["nightly"] + list(RELEASE_TO_BRANCH.keys()),
                 "default": "beta",
                 "help": "Release type to run",
             },
@@ -66,14 +66,14 @@ class ScriptworkerParser(BaseTryParser):
     ]
 
     common_groups = ["push"]
-    task_configs = ["worker-overrides"]
+    task_configs = ["worker-overrides", "routes"]
 
 
 def get_releases(branch):
     response = requests.get(
         "https://shipitapi-public.services.mozilla.com/releases",
         params={"product": "firefox", "branch": branch, "status": "shipped"},
-        headers={"Accept": ["application/json"]},
+        headers={"Accept": "application/json"},
     )
     response.raise_for_status()
     return response.json()

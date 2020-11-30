@@ -6,6 +6,8 @@
 
 #include "DAV1DDecoder.h"
 
+#include "mozilla/TaskQueue.h"
+#include "mozilla/gfx/gfxVars.h"
 #include "nsThreadUtils.h"
 
 #undef LOG
@@ -17,7 +19,9 @@ namespace mozilla {
 
 DAV1DDecoder::DAV1DDecoder(const CreateDecoderParams& aParams)
     : mInfo(aParams.VideoConfig()),
-      mTaskQueue(aParams.mTaskQueue),
+      mTaskQueue(
+          new TaskQueue(GetMediaThreadPool(MediaThreadType::PLATFORM_DECODER),
+                        "Dav1dDecoder")),
       mImageContainer(aParams.mImageContainer) {}
 
 RefPtr<MediaDataDecoder::InitPromise> DAV1DDecoder::Init() {
@@ -161,6 +165,13 @@ int DAV1DDecoder::GetPicture(DecodedData& aData, MediaResult& aResult) {
     return 0;
   }
 
+#ifdef ANDROID
+  if (!gfxVars::UseWebRender() && (*picture).p.bpc != 8) {
+    aResult = MediaResult(NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR, __func__);
+    return -1;
+  }
+#endif
+
   RefPtr<VideoData> v = ConstructImage(*picture);
   if (!v) {
     LOG("Image allocation error: %ux%u"
@@ -196,8 +207,30 @@ already_AddRefed<VideoData> DAV1DDecoder::ConstructImage(
       case DAV1D_MC_BT709:
         b.mYUVColorSpace = YUVColorSpace::BT709;
         break;
-      default:
+      case DAV1D_MC_IDENTITY:
+        b.mYUVColorSpace = gfx::YUVColorSpace::Identity;
         break;
+      case DAV1D_MC_CHROMAT_NCL:
+      case DAV1D_MC_CHROMAT_CL:
+      case DAV1D_MC_UNKNOWN:  // MIAF specific
+        switch (aPicture.seq_hdr->pri) {
+          case DAV1D_COLOR_PRI_BT601:
+            b.mYUVColorSpace = gfx::YUVColorSpace::BT601;
+            break;
+          case DAV1D_COLOR_PRI_BT709:
+            b.mYUVColorSpace = gfx::YUVColorSpace::BT709;
+            break;
+          case DAV1D_COLOR_PRI_BT2020:
+            b.mYUVColorSpace = gfx::YUVColorSpace::BT2020;
+            break;
+          default:
+            b.mYUVColorSpace = gfx::YUVColorSpace::UNKNOWN;
+            break;
+        }
+        break;
+      default:
+        LOG("Unsupported color matrix value: %u", aPicture.seq_hdr->mtrx);
+        b.mYUVColorSpace = gfx::YUVColorSpace::UNKNOWN;
     }
   }
   if (b.mYUVColorSpace == YUVColorSpace::UNKNOWN) {
@@ -210,17 +243,14 @@ already_AddRefed<VideoData> DAV1DDecoder::ConstructImage(
   b.mPlanes[0].mStride = aPicture.stride[0];
   b.mPlanes[0].mHeight = aPicture.p.h;
   b.mPlanes[0].mWidth = aPicture.p.w;
-  b.mPlanes[0].mOffset = 0;
   b.mPlanes[0].mSkip = 0;
 
   b.mPlanes[1].mData = static_cast<uint8_t*>(aPicture.data[1]);
   b.mPlanes[1].mStride = aPicture.stride[1];
-  b.mPlanes[1].mOffset = 0;
   b.mPlanes[1].mSkip = 0;
 
   b.mPlanes[2].mData = static_cast<uint8_t*>(aPicture.data[2]);
   b.mPlanes[2].mStride = aPicture.stride[1];
-  b.mPlanes[2].mOffset = 0;
   b.mPlanes[2].mSkip = 0;
 
   // https://code.videolan.org/videolan/dav1d/blob/master/tools/output/yuv.c#L67
@@ -276,7 +306,7 @@ RefPtr<ShutdownPromise> DAV1DDecoder::Shutdown() {
   RefPtr<DAV1DDecoder> self = this;
   return InvokeAsync(mTaskQueue, __func__, [self]() {
     dav1d_close(&self->mContext);
-    return ShutdownPromise::CreateAndResolve(true, __func__);
+    return self->mTaskQueue->BeginShutdown();
   });
 }
 

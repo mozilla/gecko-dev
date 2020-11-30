@@ -72,6 +72,7 @@ nsFTPDirListingConv::AsyncConvertData(const char* aFromType,
 
 NS_IMETHODIMP
 nsFTPDirListingConv::GetConvertedType(const nsACString& aFromType,
+                                      nsIChannel* aChannel,
                                       nsACString& aToType) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -198,7 +199,7 @@ nsresult nsFTPDirListingConv::GetHeaders(nsACString& headers, nsIURI* uri) {
   uri->GetPassword(pw);
   if (!pw.IsEmpty()) {
     nsCOMPtr<nsIURI> noPassURI;
-    rv = NS_MutateURI(uri).SetPassword(EmptyCString()).Finalize(noPassURI);
+    rv = NS_MutateURI(uri).SetPassword(""_ns).Finalize(noPassURI);
     if (NS_FAILED(rv)) return rv;
     rv = noPassURI->GetAsciiSpec(spec);
     if (NS_FAILED(rv)) return rv;
@@ -335,9 +336,7 @@ nsresult NS_NewFTPDirListingConv(nsFTPDirListingConv** aFTPDirListingConv) {
   MOZ_ASSERT(aFTPDirListingConv != nullptr, "null ptr");
   if (!aFTPDirListingConv) return NS_ERROR_NULL_POINTER;
 
-  *aFTPDirListingConv = new nsFTPDirListingConv();
-  if (!*aFTPDirListingConv) return NS_ERROR_OUT_OF_MEMORY;
-
-  NS_ADDREF(*aFTPDirListingConv);
+  RefPtr<nsFTPDirListingConv> conv = new nsFTPDirListingConv();
+  conv.forget(aFTPDirListingConv);
   return NS_OK;
 }

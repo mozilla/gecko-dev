@@ -50,7 +50,7 @@ WebProgressListener.prototype = {
         aIID.equals(Ci.nsISupportsWeakReference) ||
         aIID.equals(Ci.nsISupports))
       return this;
-    throw Cr.NS_NOINTERFACE;
+    throw Components.Exception("", Cr.NS_NOINTERFACE);
   },
 
   onLocationChange: function(aWebProgress, aRequest, aLocation, aFlags) {
@@ -94,8 +94,9 @@ function step1B(aWebProgress, aRequest, aLocation, aFlags) {
                  .LOCATION_CHANGE_ERROR_PAGE),
      "This page is an error page.");
 
-  ok(!(aWebProgress.QueryInterface(Ci.nsIDocShell)
-                   .securityUI.state &
+  ok(!(document.getElementById("content")
+                   .browsingContext
+                   .secureBrowserUI.state &
        Ci.nsIWebProgressListener.STATE_IS_SECURE),
      "This is not a secure page (1)");
 
@@ -123,8 +124,9 @@ function step2B(aWebProgress, aRequest, aLocation, aFlags) {
                   .LOCATION_CHANGE_ERROR_PAGE),
      "This page is not an error page.");
 
-  ok((aWebProgress.QueryInterface(Ci.nsIDocShell)
-                  .securityUI.state &
+  ok((document.getElementById("content")
+                  .browsingContext
+                  .secureBrowserUI.state &
       Ci.nsIWebProgressListener.STATE_IS_SECURE),
      "This is a secure page (2)");
 
@@ -153,8 +155,9 @@ function step3B(aWebProgress, aRequest, aLocation, aFlags) {
                   .LOCATION_CHANGE_ERROR_PAGE),
      "This page is not an error page.");
 
-  ok((aWebProgress.QueryInterface(Ci.nsIDocShell)
-                  .securityUI.state &
+  ok((document.getElementById("content")
+                  .browsingContext
+                  .secureBrowserUI.state &
       Ci.nsIWebProgressListener.STATE_IS_SECURE),
      "This is a secure page (3)");
 
@@ -183,13 +186,15 @@ function step4B(aWebProgress, aRequest, aLocation, aFlags) {
                  .LOCATION_CHANGE_ERROR_PAGE),
      "This page is an error page.");
 
-  ok(!(aWebProgress.QueryInterface(Ci.nsIDocShell)
-                   .securityUI.state &
+  ok(!(document.getElementById("content")
+                   .browsingContext
+                   .secureBrowserUI.state &
        Ci.nsIWebProgressListener.STATE_IS_SECURE),
      "This is not a secure page (4)");
 
   /* End. */
-  aWebProgress.removeProgressListener(gListener);
+  document.getElementById("content")
+          .webProgress.removeProgressListener(gListener);
   delete(gListener);
   finish();
 }

@@ -22,7 +22,7 @@ add_task(async function test_pip_keyboard_shortcut() {
       // shortcut.
       const VIDEO_ID = "with-controls";
 
-      let domWindowOpened = BrowserTestUtils.domWindowOpened(null);
+      let domWindowOpened = BrowserTestUtils.domWindowOpenedAndLoaded(null);
       let videoReady = SpecialPowers.spawn(
         browser,
         [VIDEO_ID],
@@ -34,25 +34,50 @@ add_task(async function test_pip_keyboard_shortcut() {
         }
       );
 
-      EventUtils.synthesizeKey("]", { accelKey: true, shiftKey: true });
+      if (AppConstants.platform == "macosx") {
+        EventUtils.synthesizeKey("]", {
+          accelKey: true,
+          shiftKey: true,
+          altKey: true,
+        });
+      } else {
+        EventUtils.synthesizeKey("]", { accelKey: true, shiftKey: true });
+      }
 
       let pipWin = await domWindowOpened;
-      await BrowserTestUtils.waitForEvent(pipWin, "load");
       await videoReady;
 
       ok(pipWin, "Got Picture-in-Picture window.");
 
-      try {
-        await assertShowingMessage(browser, VIDEO_ID, true);
-      } finally {
-        let uaWidgetUpdate = BrowserTestUtils.waitForContentEvent(
-          browser,
-          "UAWidgetSetupOrChange",
-          true /* capture */
+      await ensureMessageAndClosePiP(browser, VIDEO_ID, pipWin, false);
+
+      // Reopen PiP Window
+      pipWin = await triggerPictureInPicture(browser, VIDEO_ID);
+      await videoReady;
+
+      ok(pipWin, "Got Picture-in-Picture window.");
+
+      if (AppConstants.platform == "macosx") {
+        EventUtils.synthesizeKey(
+          "]",
+          {
+            accelKey: true,
+            shiftKey: true,
+            altKey: true,
+          },
+          pipWin
         );
-        await BrowserTestUtils.closeWindow(pipWin);
-        await uaWidgetUpdate;
+      } else {
+        EventUtils.synthesizeKey(
+          "]",
+          { accelKey: true, shiftKey: true },
+          pipWin
+        );
       }
+
+      await BrowserTestUtils.windowClosed(pipWin);
+
+      ok(pipWin.closed, "Picture-in-Picture window closed.");
     }
   );
 });

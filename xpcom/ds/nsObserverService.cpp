@@ -98,12 +98,12 @@ nsObserverService::CollectReports(nsIHandleReportCallback* aHandleReport,
     nsPrintfCString suspectPath("observer-service-suspect/referent(topic=%s)",
                                 suspect.mTopic);
     aHandleReport->Callback(
-        /* process */ EmptyCString(), suspectPath, KIND_OTHER, UNITS_COUNT,
+        /* process */ ""_ns, suspectPath, KIND_OTHER, UNITS_COUNT,
         suspect.mReferentCount,
-        NS_LITERAL_CSTRING("A topic with a suspiciously large number of "
-                           "referents.  This may be symptomatic of a leak "
-                           "if the number of referents is high with "
-                           "respect to the number of windows."),
+        nsLiteralCString("A topic with a suspiciously large number of "
+                         "referents.  This may be symptomatic of a leak "
+                         "if the number of referents is high with "
+                         "respect to the number of windows."),
         aData);
   }
 
@@ -190,9 +190,8 @@ nsresult nsObserverService::FilterHttpOnTopics(const char* aTopic) {
         do_GetService(NS_CONSOLESERVICE_CONTRACTID));
     nsCOMPtr<nsIScriptError> error(
         do_CreateInstance(NS_SCRIPTERROR_CONTRACTID));
-    error->Init(NS_LITERAL_STRING(
-                    "http-on-* observers only work in the parent process"),
-                EmptyString(), EmptyString(), 0, 0, nsIScriptError::warningFlag,
+    error->Init(u"http-on-* observers only work in the parent process"_ns,
+                u""_ns, u""_ns, 0, 0, nsIScriptError::warningFlag,
                 "chrome javascript", false /* from private window */,
                 true /* from chrome context */);
     console->LogMessage(error);
@@ -243,10 +242,6 @@ nsObserverService::RemoveObserver(nsIObserver* aObserver, const char* aTopic) {
     return NS_ERROR_FAILURE;
   }
 
-  /* This death grip is needed to protect against consumers who call
-   * RemoveObserver from their Destructor thus potentially thus causing
-   * infinite recursion, see bug 485834/bug 325392. */
-  nsCOMPtr<nsIObserver> kungFuDeathGrip(aObserver);
   return observerList->RemoveObserver(aObserver);
 }
 
@@ -282,8 +277,8 @@ NS_IMETHODIMP nsObserverService::NotifyObservers(nsISupports* aSubject,
 
   mozilla::TimeStamp start = TimeStamp::Now();
 
-  AUTO_PROFILER_TEXT_MARKER_CAUSE("NotifyObservers", nsDependentCString(aTopic),
-                                  OTHER, Nothing(), profiler_get_backtrace());
+  AUTO_PROFILER_MARKER_TEXT("NotifyObservers", OTHER, MarkerStack::Capture(),
+                            nsDependentCString(aTopic));
   AUTO_PROFILER_LABEL_DYNAMIC_CSTR_NONSENSITIVE(
       "nsObserverService::NotifyObservers", OTHER, aTopic);
 

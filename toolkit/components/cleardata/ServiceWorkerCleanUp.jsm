@@ -30,7 +30,7 @@ function unregisterServiceWorker(aSW) {
       unregisterSucceeded: resolve,
       unregisterFailed: resolve, // We don't care about failures.
       QueryInterface: ChromeUtils.generateQI([
-        Ci.nsIServiceWorkerUnregisterCallback,
+        "nsIServiceWorkerUnregisterCallback",
       ]),
     };
     serviceWorkerManager.propagateUnregister(
@@ -50,7 +50,7 @@ this.ServiceWorkerCleanUp = {
         i,
         Ci.nsIServiceWorkerRegistrationInfo
       );
-      if (sw.principal.URI.host == aHost) {
+      if (sw.principal.host == aHost) {
         promises.push(unregisterServiceWorker(sw));
       }
     }

@@ -20,17 +20,18 @@
 const kDumpAllStacks = false;
 
 const startupPhases = {
-  // For app-startup, we have a whitelist of acceptable JS files.
+  // For app-startup, we have an allowlist of acceptable JS files.
   // Anything loaded during app-startup must have a compelling reason
   // to run before we have even selected the user profile.
   // Consider loading your code after first paint instead,
   // eg. from BrowserGlue.jsm' _onFirstWindowLoaded method).
   "before profile selection": {
-    whitelist: {
+    allowlist: {
       modules: new Set([
         "resource:///modules/BrowserGlue.jsm",
         "resource://gre/modules/AppConstants.jsm",
         "resource://gre/modules/ActorManagerParent.jsm",
+        "resource://gre/modules/ComponentUtils.jsm",
         "resource://gre/modules/CustomElementsListener.jsm",
         "resource://gre/modules/ExtensionUtils.jsm",
         "resource://gre/modules/MainProcessSingleton.jsm",
@@ -40,11 +41,13 @@ const startupPhases = {
     },
   },
 
-  // For the following phases of startup we have only a black list for now
+  // For the following phases of startup we have only a list of files that
+  // are **not** allowed to load in this phase, as too many other scripts
+  // load during this time.
 
   // We are at this phase after creating the first browser window (ie. after final-ui-startup).
   "before opening first browser window": {
-    blacklist: {
+    denylist: {
       modules: new Set([]),
     },
   },
@@ -53,7 +56,7 @@ const startupPhases = {
   // This means that anything already loaded at this point has been loaded
   // before first paint and delayed it.
   "before first paint": {
-    blacklist: {
+    denylist: {
       components: new Set(["nsSearchService.js"]),
       modules: new Set([
         "chrome://webcompat/content/data/ua_overrides.jsm",
@@ -77,13 +80,14 @@ const startupPhases = {
   // Anything loaded at this phase or before gets in the way of the user
   // interacting with the first browser window.
   "before handling user events": {
-    blacklist: {
+    denylist: {
       components: new Set([
         "PageIconProtocolHandler.js",
         "PlacesCategoriesStarter.js",
         "nsPlacesExpiration.js",
       ]),
       modules: new Set([
+        "resource://gre/modules/Blocklist.jsm",
         // Bug 1391495 - BrowserWindowTracker.jsm is intermittently used.
         // "resource:///modules/BrowserWindowTracker.jsm",
         "resource://gre/modules/BookmarkHTMLUtils.jsm",
@@ -105,9 +109,9 @@ const startupPhases = {
 
   // Things that are expected to be completely out of the startup path
   // and loaded lazily when used for the first time by the user should
-  // be blacklisted here.
+  // be listed here.
   "before becoming idle": {
-    blacklist: {
+    denylist: {
       components: new Set(["UnifiedComplete.js"]),
       modules: new Set([
         "resource://gre/modules/AsyncPrefs.jsm",
@@ -125,32 +129,9 @@ if (
     "default-theme@mozilla.org"
   ) == "default-theme@mozilla.org"
 ) {
-  startupPhases["before profile selection"].whitelist.modules.add(
+  startupPhases["before profile selection"].allowlist.modules.add(
     "resource://gre/modules/XULStore.jsm"
   );
-}
-
-if (!gBrowser.selectedBrowser.isRemoteBrowser) {
-  // With e10s disabled, Places and BrowserWindowTracker.jsm (from a
-  // SessionSaver.jsm timer) intermittently get loaded earlier. Likely
-  // due to messages from the 'content' process arriving synchronously
-  // instead of crossing a process boundary.
-  info(
-    "merging the 'before handling user events' blacklist into the " +
-      "'before first paint' one when e10s is disabled."
-  );
-  let from = startupPhases["before handling user events"].blacklist;
-  let to = startupPhases["before first paint"].blacklist;
-  for (let scriptType in from) {
-    if (!(scriptType in to)) {
-      to[scriptType] = from[scriptType];
-    } else {
-      for (let item of from[scriptType]) {
-        to[scriptType].add(item);
-      }
-    }
-  }
-  startupPhases["before handling user events"].blacklist = null;
 }
 
 add_task(async function() {
@@ -218,14 +199,14 @@ add_task(async function() {
 
   for (let phase in startupPhases) {
     let loadedList = data[phase];
-    let whitelist = startupPhases[phase].whitelist || null;
-    if (whitelist) {
-      for (let scriptType in whitelist) {
+    let allowlist = startupPhases[phase].allowlist || null;
+    if (allowlist) {
+      for (let scriptType in allowlist) {
         loadedList[scriptType] = loadedList[scriptType].filter(c => {
-          if (!whitelist[scriptType].has(c)) {
+          if (!allowlist[scriptType].has(c)) {
             return true;
           }
-          whitelist[scriptType].delete(c);
+          allowlist[scriptType].delete(c);
           return false;
         });
         is(
@@ -238,19 +219,19 @@ add_task(async function() {
           record(false, message, undefined, getStack(scriptType, script));
         }
         is(
-          whitelist[scriptType].size,
+          allowlist[scriptType].size,
           0,
-          `all ${scriptType} whitelist entries should have been used`
+          `all ${scriptType} allowlist entries should have been used`
         );
-        for (let script of whitelist[scriptType]) {
-          ok(false, `unused ${scriptType} whitelist entry: ${script}`);
+        for (let script of allowlist[scriptType]) {
+          ok(false, `unused ${scriptType} allowlist entry: ${script}`);
         }
       }
     }
-    let blacklist = startupPhases[phase].blacklist || null;
-    if (blacklist) {
-      for (let scriptType in blacklist) {
-        for (let file of blacklist[scriptType]) {
+    let denylist = startupPhases[phase].denylist || null;
+    if (denylist) {
+      for (let scriptType in denylist) {
+        for (let file of denylist[scriptType]) {
           let loaded = loadedList[scriptType].includes(file);
           let message = `${file} is not allowed ${phase}`;
           if (!loaded) {

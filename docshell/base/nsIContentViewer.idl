@@ -32,7 +32,6 @@ class WindowGlobalChild;
 [ptr] native nsPresContextPtr(nsPresContext);
 [ptr] native nsViewPtr(nsView);
 [ptr] native nsDOMNavigationTimingPtr(nsDOMNavigationTiming);
-[ref] native nsIContentViewerTArray(nsTArray<nsCOMPtr<nsIContentViewer> >);
 [ptr] native Encoding(const mozilla::Encoding);
 [ptr] native PresShellPtr(mozilla::PresShell);
 [ptr] native WindowGlobalChildPtr(mozilla::dom::WindowGlobalChild);
@@ -52,19 +51,33 @@ interface nsIContentViewer : nsISupports
 
   [notxpcom,nostdcall] readonly attribute boolean isStopped;
 
-  /**
-   * aPermitUnloadFlags are passed to PermitUnload to indicate what action to take
-   * if a beforeunload handler wants to prompt the user.  It is also used by
-   * permitUnloadInternal to ensure we only prompt once.
+   /**
+   * aAction is passed to PermitUnload to indicate what action to take
+   * if a beforeunload handler wants to prompt the user.
    *
    * ePrompt: Prompt and return the user's choice (default).
    * eDontPromptAndDontUnload: Don't prompt and return false (unload not permitted)
    *                           if the document (or its children) asks us to prompt.
    * eDontPromptAndUnload: Don't prompt and return true (unload permitted) no matter what.
+   *
+   * NOTE: Keep this in sync with PermitUnloadAction in WindowGlobalActors.webidl.
    */
-  const unsigned long ePrompt = 0;
-  const unsigned long eDontPromptAndDontUnload = 1;
-  const unsigned long eDontPromptAndUnload = 2;
+  cenum PermitUnloadAction : 8 {
+    ePrompt = 0,
+    eDontPromptAndDontUnload = 1,
+    eDontPromptAndUnload = 2
+  };
+
+  /**
+   * The result of dispatching a "beforeunload" event. If `eAllowNavigation`,
+   * no "beforeunload" listener requested to prevent the navigation, or its
+   * request was ignored. If `eRequestBlockNavigation`, a listener did request
+   * to block the navigation, and the user should be prompted.
+   */
+  cenum PermitUnloadResult : 8 {
+    eAllowNavigation = 0,
+    eRequestBlockNavigation = 1,
+  };
 
   /**
    * Overload PermitUnload method for C++ consumers with no aPermitUnloadFlags
@@ -78,10 +91,10 @@ interface nsIContentViewer : nsISupports
 
   /**
    * Checks if the document wants to prevent unloading by firing beforeunload on
-   * the document, and if it does, takes action directed by aPermitUnloadFlags.
+   * the document.
    * The result is returned.
    */
-  boolean permitUnload([optional] in unsigned long aPermitUnloadFlags);
+  boolean permitUnload([optional] in nsIContentViewer_PermitUnloadAction aAction);
 
   /**
    * Exposes whether we're blocked in a call to permitUnload.
@@ -89,11 +102,10 @@ interface nsIContentViewer : nsISupports
   readonly attribute boolean inPermitUnload;
 
   /**
-   * As above, but this passes around the aPermitUnloadFlags argument to keep
-   * track of whether the user has responded to a prompt.
-   * Used internally by the scriptable version to ensure we only prompt once.
+   * Dispatches the "beforeunload" event and returns the result, as documented
+   * in the `PermitUnloadResult` enum.
    */
-  [noscript,nostdcall] boolean permitUnloadInternal(inout unsigned long aPermitUnloadFlags);
+  [noscript,nostdcall,notxpcom] nsIContentViewer_PermitUnloadResult dispatchBeforeUnload();
 
   /**
    * Exposes whether we're in the process of firing the beforeunload event.
@@ -167,14 +179,6 @@ interface nsIContentViewer : nsISupports
 
   attribute boolean sticky;
 
-  /*
-   * This is called when the DOM window wants to be closed.  Returns true
-   * if the window can close immediately.  Otherwise, returns false and will
-   * close the DOM window as soon as practical.
-   */
-
-  boolean requestWindowClose();
-
   /**
    * Attach the content viewer to its DOM window and docshell.
    * @param aState A state object that might be useful in attaching the DOM
@@ -239,15 +243,6 @@ interface nsIContentViewer : nsISupports
    */
   [noscript,notxpcom,nostdcall] void setNavigationTiming(in nsDOMNavigationTimingPtr aTiming);
 
-  /** The amount by which to scale all text. Default is 1.0. */
-  attribute float textZoom;
-
-  /** The actual text zoom in effect, as modified by the system font scale. */
-  readonly attribute float effectiveTextZoom;
-
-  /** The amount by which to scale all lengths. Default is 1.0. */
-  attribute float fullZoom;
-
   /**
    * The actual full zoom in effect, as modified by the device context.
    * For a requested full zoom, the device context may choose a slightly
@@ -257,8 +252,10 @@ interface nsIContentViewer : nsISupports
    * of 90% is actually 89.1%, for example. This value is provided primarily to
    * support media queries of dppx values, because those queries are matched
    * against the actual native device pixel ratio and the actual full zoom.
+   *
+   * You should only need this for testing.
    */
-  readonly attribute float deviceFullZoom;
+  readonly attribute float deviceFullZoomForTest;
 
   /**
    * The value used to override devicePixelRatio and media queries dppx.
@@ -267,14 +264,11 @@ interface nsIContentViewer : nsISupports
    */
   attribute float overrideDPPX;
 
-  /** Disable entire author style level (including HTML presentation hints) */
-  attribute boolean authorStyleDisabled;
-
   /**
-   * XXX comm-central only: bug 829543. Not the Character Encoding menu in
-   * browser!
+   * Disable entire author style level (including HTML presentation hints),
+   * for this viewer but not any child viewers.
    */
-  attribute ACString forceCharacterSet;
+  attribute boolean authorStyleDisabled;
 
   /**
    * XXX comm-central only: bug 829543.
@@ -300,12 +294,6 @@ interface nsIContentViewer : nsISupports
    */
   void getContentSizeConstrained(in long maxWidth, in long maxHeight,
                                  out long width, out long height);
-
-  /**
-   * Append |this| and all of its descendants to the given array,
-   * in depth-first pre-order traversal.
-   */
-  [noscript] void appendSubtree(in nsIContentViewerTArray array);
 
   /**
    * Instruct the refresh driver to discontinue painting until further
@@ -335,7 +323,6 @@ interface nsIContentViewer : nsISupports
   cenum PrefersColorScheme : 8 {
     PREFERS_COLOR_SCHEME_LIGHT,
     PREFERS_COLOR_SCHEME_DARK,
-    PREFERS_COLOR_SCHEME_NO_PREFERENCE,
     PREFERS_COLOR_SCHEME_NONE, /* This clears the override. */
   };
 
@@ -347,6 +334,15 @@ interface nsIContentViewer : nsISupports
 
   [noscript, notxpcom] Encoding getHintCharset();
   [noscript, notxpcom] void setHintCharset(in Encoding aEncoding);
-  [noscript, notxpcom] Encoding getForceCharset();
-  [noscript, notxpcom] void setForceCharset(in Encoding aEncoding);
 };
+
+%{C++
+namespace mozilla {
+namespace dom {
+
+using XPCOMPermitUnloadAction = nsIContentViewer::PermitUnloadAction;
+using PermitUnloadResult = nsIContentViewer::PermitUnloadResult;
+
+} // namespace dom
+} // namespace mozilla
+%}

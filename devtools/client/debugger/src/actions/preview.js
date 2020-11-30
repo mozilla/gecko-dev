@@ -20,6 +20,7 @@ import {
   getSymbols,
   getCurrentThread,
   getPreviewCount,
+  getSelectedException,
 } from "../selectors";
 
 import { getMappedExpression } from "./expressions";
@@ -28,7 +29,7 @@ import type { Action, ThunkArgs } from "./types";
 import type { Position, Context } from "../types";
 import type { AstLocation } from "../workers/parser";
 
-function findExpressionMatch(state, codeMirror, tokenPos) {
+function findExpressionMatch(state, codeMirror: any, tokenPos: Object) {
   const source = getSelectedSource(state);
   if (!source) {
     return;
@@ -188,5 +189,43 @@ export function clearPreview(cx: Context) {
         cx,
       }: Action)
     );
+  };
+}
+
+export function setExceptionPreview(
+  cx: Context,
+  target: HTMLElement,
+  tokenPos: Object,
+  codeMirror: any
+) {
+  return async ({ dispatch, getState }: ThunkArgs) => {
+    const cursorPos = target.getBoundingClientRect();
+
+    const match = findExpressionMatch(getState(), codeMirror, tokenPos);
+    if (!match) {
+      return;
+    }
+
+    const tokenColumnStart = match.location.start.column + 1;
+    const exception = getSelectedException(
+      getState(),
+      tokenPos.line,
+      tokenColumnStart
+    );
+    if (!exception) {
+      return;
+    }
+
+    dispatch({
+      type: "SET_PREVIEW",
+      cx,
+      value: {
+        exception,
+        location: match.location,
+        tokenPos,
+        cursorPos,
+        target,
+      },
+    });
   };
 }

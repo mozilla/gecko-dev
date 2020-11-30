@@ -27,6 +27,7 @@ class AccessibleOrProxy {
   MOZ_IMPLICIT AccessibleOrProxy(ProxyAccessible* aProxy)
       : mBits(aProxy ? (reinterpret_cast<uintptr_t>(aProxy) | IS_PROXY) : 0) {}
   MOZ_IMPLICIT AccessibleOrProxy(decltype(nullptr)) : mBits(0) {}
+  MOZ_IMPLICIT AccessibleOrProxy() : mBits(0) {}
 
   bool IsProxy() const { return mBits & IS_PROXY; }
   ProxyAccessible* AsProxy() const {
@@ -53,16 +54,30 @@ class AccessibleOrProxy {
       return AsProxy()->ChildrenCount();
     }
 
+    if (RemoteChildDoc()) {
+      return 1;
+    }
+
     return AsAccessible()->ChildCount();
   }
+
+  /**
+   * Return true if the object has children, false otherwise
+   */
+  bool HasChildren() const { return ChildCount() > 0; }
 
   /**
    * Return the child object either an accessible or a proxied accessible at
    * the given index.
    */
-  AccessibleOrProxy ChildAt(uint32_t aIdx) {
+  AccessibleOrProxy ChildAt(uint32_t aIdx) const {
     if (IsProxy()) {
       return AsProxy()->ChildAt(aIdx);
+    }
+
+    ProxyAccessible* childDoc = RemoteChildDoc();
+    if (childDoc && aIdx == 0) {
+      return childDoc;
     }
 
     return AsAccessible()->GetChildAt(aIdx);
@@ -76,18 +91,50 @@ class AccessibleOrProxy {
       return AsProxy()->FirstChild();
     }
 
+    ProxyAccessible* childDoc = RemoteChildDoc();
+    if (childDoc) {
+      return childDoc;
+    }
+
     return AsAccessible()->FirstChild();
   }
 
   /**
-   * Return the first child object.
+   * Return the last child object.
    */
   AccessibleOrProxy LastChild() {
     if (IsProxy()) {
       return AsProxy()->LastChild();
     }
 
+    ProxyAccessible* childDoc = RemoteChildDoc();
+    if (childDoc) {
+      return childDoc;
+    }
+
     return AsAccessible()->LastChild();
+  }
+
+  /**
+   * Return the next sibling object.
+   */
+  AccessibleOrProxy NextSibling() {
+    if (IsProxy()) {
+      return AsProxy()->NextSibling();
+    }
+
+    return AsAccessible()->NextSibling();
+  }
+
+  /**
+   * Return the prev sibling object.
+   */
+  AccessibleOrProxy PrevSibling() {
+    if (IsProxy()) {
+      return AsProxy()->PrevSibling();
+    }
+
+    return AsAccessible()->PrevSibling();
   }
 
   role Role() const {
@@ -98,13 +145,31 @@ class AccessibleOrProxy {
     return AsAccessible()->Role();
   }
 
+  int32_t IndexInParent() const;
+
   AccessibleOrProxy Parent() const;
+
+  AccessibleOrProxy ChildAtPoint(int32_t aX, int32_t aY,
+                                 Accessible::EWhichChildAtPoint aWhichChild);
+
+  bool operator!=(const AccessibleOrProxy& aOther) const {
+    return mBits != aOther.mBits;
+  }
+
+  bool operator==(const AccessibleOrProxy& aOther) const {
+    return mBits == aOther.mBits;
+  }
 
   // XXX these are implementation details that ideally would not be exposed.
   uintptr_t Bits() const { return mBits; }
   void SetBits(uintptr_t aBits) { mBits = aBits; }
 
  private:
+  /**
+   * If this is an OuterDocAccessible, return the remote child document.
+   */
+  ProxyAccessible* RemoteChildDoc() const;
+
   uintptr_t mBits;
   static const uintptr_t IS_PROXY = 0x1;
 };

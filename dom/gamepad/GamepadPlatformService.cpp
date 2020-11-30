@@ -7,6 +7,7 @@
 #include "mozilla/dom/GamepadPlatformService.h"
 
 #include "mozilla/dom/GamepadEventChannelParent.h"
+#include "mozilla/dom/GamepadTestChannelParent.h"
 #include "mozilla/ipc/BackgroundParent.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/Unused.h"
@@ -26,6 +27,46 @@ namespace {
 StaticRefPtr<GamepadPlatformService> gGamepadPlatformServiceSingleton;
 
 }  // namespace
+
+GamepadPlatformService::MonitoringState::~MonitoringState() {
+  AssertIsOnBackgroundThread();
+  MOZ_RELEASE_ASSERT(mObservers.IsEmpty());
+}
+
+void GamepadPlatformService::MonitoringState::AddObserver(
+    WeakPtr<GamepadTestChannelParent> aParent) {
+  AssertIsOnBackgroundThread();
+  MOZ_ASSERT(aParent);
+  MOZ_ASSERT(!mObservers.Contains(aParent));
+  mObservers.AppendElement(std::move(aParent));
+}
+
+void GamepadPlatformService::MonitoringState::RemoveObserver(
+    GamepadTestChannelParent* aParent) {
+  AssertIsOnBackgroundThread();
+  MOZ_ASSERT(aParent);
+  MOZ_ASSERT(mObservers.Contains(aParent));
+  mObservers.RemoveElement(aParent);
+}
+
+bool GamepadPlatformService::MonitoringState::IsMonitoring() const {
+  AssertIsOnBackgroundThread();
+  return mIsMonitoring;
+}
+
+void GamepadPlatformService::MonitoringState::Set(bool aIsMonitoring) {
+  AssertIsOnBackgroundThread();
+
+  if (mIsMonitoring != aIsMonitoring) {
+    mIsMonitoring = aIsMonitoring;
+    for (auto& observer : mObservers) {
+      // Since each GamepadTestChannelParent removes itself in its dtor, this
+      // should never be nullptr
+      MOZ_RELEASE_ASSERT(observer);
+      observer->OnMonitoringStateChanged(aIsMonitoring);
+    }
+  }
+}
 
 GamepadPlatformService::GamepadPlatformService()
     : mGamepadIndex(0), mMutex("mozilla::dom::GamepadPlatformService") {}
@@ -64,13 +105,6 @@ void GamepadPlatformService::NotifyGamepadChange(uint32_t aIndex,
   // same time, we use mutex to prevent possible race condtion
   MutexAutoLock autoLock(mMutex);
 
-  // Buffer all events if we have no Channel to dispatch, which
-  // may happen when performing Mochitest.
-  if (mChannelParents.IsEmpty()) {
-    mPendingEvents.AppendElement(e);
-    return;
-  }
-
   for (uint32_t i = 0; i < mChannelParents.Length(); ++i) {
     mChannelParents[i]->DispatchUpdateEvent(e);
   }
@@ -92,6 +126,7 @@ uint32_t GamepadPlatformService::AddGamepad(
                  aHand, 0, aNumButtons, aNumAxes, aHaptics, aNumLightIndicator,
                  aNumTouchEvents);
 
+  mGamepadAdded.emplace(index, a);
   NotifyGamepadChange<GamepadAdded>(index, a);
   return index;
 }
@@ -103,6 +138,7 @@ void GamepadPlatformService::RemoveGamepad(uint32_t aIndex) {
   MOZ_ASSERT(!NS_IsMainThread());
   GamepadRemoved a;
   NotifyGamepadChange<GamepadRemoved>(aIndex, a);
+  mGamepadAdded.erase(aIndex);
 }
 
 void GamepadPlatformService::NewButtonEvent(uint32_t aIndex, uint32_t aButton,
@@ -205,27 +241,24 @@ void GamepadPlatformService::AddChannelParent(
   MOZ_ASSERT(!mChannelParents.Contains(aParent));
 
   // We use mutex here to prevent race condition with monitor thread
-  MutexAutoLock autoLock(mMutex);
-  mChannelParents.AppendElement(aParent);
-  FlushPendingEvents();
-}
+  {
+    MutexAutoLock autoLock(mMutex);
+    mChannelParents.AppendElement(aParent);
 
-void GamepadPlatformService::FlushPendingEvents() {
-  AssertIsOnBackgroundThread();
-  MOZ_ASSERT(!mChannelParents.IsEmpty());
-
-  if (mPendingEvents.IsEmpty()) {
-    return;
-  }
-
-  // NOTE: This method must be called with mMutex held because it accesses
-  // mChannelParents.
-  for (uint32_t i = 0; i < mChannelParents.Length(); ++i) {
-    for (uint32_t j = 0; j < mPendingEvents.Length(); ++j) {
-      mChannelParents[i]->DispatchUpdateEvent(mPendingEvents[j]);
+    // For a new GamepadEventChannel, we have to send the exising GamepadAdded
+    // to it to make it can have the same amount of gamepads with others.
+    if (mChannelParents.Length() > 1) {
+      for (const auto& evt : mGamepadAdded) {
+        GamepadChangeEventBody body(evt.second);
+        GamepadChangeEvent e(evt.first, GamepadServiceType::Standard, body);
+        aParent->DispatchUpdateEvent(e);
+      }
     }
   }
-  mPendingEvents.Clear();
+
+  StartGamepadMonitoring();
+
+  mMonitoringState.Set(true);
 }
 
 void GamepadPlatformService::RemoveChannelParent(
@@ -237,23 +270,19 @@ void GamepadPlatformService::RemoveChannelParent(
   MOZ_ASSERT(mChannelParents.Contains(aParent));
 
   // We use mutex here to prevent race condition with monitor thread
-  MutexAutoLock autoLock(mMutex);
-  mChannelParents.RemoveElement(aParent);
-}
-
-bool GamepadPlatformService::HasGamepadListeners() {
-  // mChannelParents may be accessed by background thread in the
-  // same time, we use mutex to prevent possible race condtion
-  AssertIsOnBackgroundThread();
-
-  // We use mutex here to prevent race condition with monitor thread
-  MutexAutoLock autoLock(mMutex);
-  for (uint32_t i = 0; i < mChannelParents.Length(); i++) {
-    if (mChannelParents[i]->HasGamepadListener()) {
-      return true;
+  {
+    MutexAutoLock autoLock(mMutex);
+    mChannelParents.RemoveElement(aParent);
+    if (!mChannelParents.IsEmpty()) {
+      return;
     }
   }
-  return false;
+
+  mMonitoringState.Set(false);
+
+  StopGamepadMonitoring();
+  ResetGamepadIndexes();
+  MaybeShutdown();
 }
 
 void GamepadPlatformService::MaybeShutdown() {
@@ -275,6 +304,7 @@ void GamepadPlatformService::MaybeShutdown() {
     if (isChannelParentEmpty) {
       kungFuDeathGrip = gGamepadPlatformServiceSingleton;
       gGamepadPlatformServiceSingleton = nullptr;
+      mGamepadAdded.clear();
     }
   }
 }

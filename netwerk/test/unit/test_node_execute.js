@@ -1,10 +1,9 @@
 // This test checks that the interaction between NodeServer.execute defined in
 // httpd.js and the node server that we're interacting with defined in
 // moz-http2.js is working properly.
+/* global my_defined_var */
 
 "use strict";
-
-const { NodeServer } = ChromeUtils.import("resource://testing-common/httpd.js");
 
 add_task(async function test_execute() {
   function f() {

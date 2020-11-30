@@ -46,6 +46,7 @@ define(function(require, exports, module) {
     provider: ObjectProvider,
     expandedNodes: new Set(),
     selected: null,
+    defaultSelectFirstNode: true,
     active: null,
     expandableStrings: true,
     columns: [],
@@ -127,6 +128,8 @@ define(function(require, exports, module) {
         expandedNodes: PropTypes.object,
         // Selected node
         selected: PropTypes.string,
+        // Select first node by default
+        defaultSelectFirstNode: PropTypes.bool,
         // The currently active (keyboard) item, if any such item exists.
         active: PropTypes.string,
         // Custom filtering callback
@@ -218,13 +221,15 @@ define(function(require, exports, module) {
         columns: ensureDefaultColumn(props.columns),
         selected: props.selected,
         active: props.active,
-        lastSelectedIndex: 0,
+        lastSelectedIndex: props.defaultSelectFirstNode ? 0 : null,
+        mouseDown: false,
       };
 
       this.treeRef = createRef();
 
       this.toggle = this.toggle.bind(this);
       this.isExpanded = this.isExpanded.bind(this);
+      this.onFocus = this.onFocus.bind(this);
       this.onKeyDown = this.onKeyDown.bind(this);
       this.onClickRow = this.onClickRow.bind(this);
       this.getSelectedRow = this.getSelectedRow.bind(this);
@@ -251,9 +256,29 @@ define(function(require, exports, module) {
       this.setState(Object.assign({}, this.state, state));
     }
 
+    shouldComponentUpdate(nextProps, nextState) {
+      const {
+        expandedNodes,
+        columns,
+        selected,
+        active,
+        lastSelectedIndex,
+        mouseDown,
+      } = this.state;
+
+      return (
+        expandedNodes !== nextState.expandedNodes ||
+        columns !== nextState.columns ||
+        selected !== nextState.selected ||
+        active !== nextState.active ||
+        lastSelectedIndex !== nextState.lastSelectedIndex ||
+        mouseDown === nextState.mouseDown
+      );
+    }
+
     componentDidUpdate() {
       const selected = this.getSelectedRow();
-      if (selected) {
+      if (selected || this.state.active) {
         return;
       }
 
@@ -262,10 +287,14 @@ define(function(require, exports, module) {
         return;
       }
 
-      this.selectRow(
-        rows[Math.min(this.state.lastSelectedIndex, rows.length - 1)],
-        { alignTo: "top" }
-      );
+      // Only select a row if there is a previous lastSelected Index
+      // This mostly happens when the treeview is loaded the first time
+      if (this.state.lastSelectedIndex !== null) {
+        this.selectRow(
+          rows[Math.min(this.state.lastSelectedIndex, rows.length - 1)],
+          { alignTo: "top" }
+        );
+      }
     }
 
     /**
@@ -276,7 +305,7 @@ define(function(require, exports, module) {
     get visibleRows() {
       return this.rows.filter(row => {
         const rowEl = findDOMNode(row);
-        return rowEl && rowEl.offsetParent;
+        return rowEl?.offsetParent;
       });
     }
 
@@ -304,9 +333,26 @@ define(function(require, exports, module) {
 
     // Event Handlers
 
+    onFocus(_event) {
+      if (this.state.mouseDown) {
+        return;
+      }
+      // Set focus to the first element, if none is selected or activated
+      // This is needed because keyboard navigation won't work without an element being selected
+      this.componentDidUpdate();
+    }
+
     // eslint-disable-next-line complexity
     onKeyDown(event) {
-      if (!SUPPORTED_KEYS.includes(event.key)) {
+      const keyEligibleForFirstLetterNavigation =
+        event.key.length === 1 &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey;
+      if (
+        !SUPPORTED_KEYS.includes(event.key) &&
+        !keyEligibleForFirstLetterNavigation
+      ) {
         return;
       }
 
@@ -317,15 +363,25 @@ define(function(require, exports, module) {
 
       const rows = this.visibleRows;
       const index = rows.indexOf(row);
+      const { hasChildren, open } = row.props.member;
+
       switch (event.key) {
         case "ArrowRight":
-          const { hasChildren, open } = row.props.member;
-          if (hasChildren && !open) {
-            this.toggle(this.state.selected);
+          if (hasChildren) {
+            if (open) {
+              const firstChildRow = this.rows
+                .slice(index + 1)
+                .find(r => r.props.member.level > row.props.member.level);
+              if (firstChildRow) {
+                this.selectRow(firstChildRow, { alignTo: "bottom" });
+              }
+            } else {
+              this.toggle(this.state.selected);
+            }
           }
           break;
         case "ArrowLeft":
-          if (row && row.props.member.open) {
+          if (hasChildren && open) {
             this.toggle(this.state.selected);
           } else {
             const parentRow = rows
@@ -386,6 +442,15 @@ define(function(require, exports, module) {
           break;
       }
 
+      if (keyEligibleForFirstLetterNavigation) {
+        const next = rows
+          .slice(index + 1)
+          .find(r => r.props.member.name.startsWith(event.key));
+        if (next) {
+          this.selectRow(next, { alignTo: "bottom" });
+        }
+      }
+
       // Focus should always remain on the tree container itself.
       this.treeRef.current.focus();
       event.preventDefault();
@@ -431,8 +496,7 @@ define(function(require, exports, module) {
     getSelectedRowIndex() {
       const row = this.getSelectedRow();
       if (!row) {
-        // If selected row is not found, return index of the first row.
-        return 0;
+        return this.props.defaultSelectFirstNode ? 0 : null;
       }
 
       return this.visibleRows.indexOf(row);
@@ -601,7 +665,7 @@ define(function(require, exports, module) {
       }
 
       members.forEach(member => {
-        if (decorator && decorator.renderRow) {
+        if (decorator?.renderRow) {
           renderRow = decorator.renderRow(member.object) || renderRow;
         }
 
@@ -673,8 +737,11 @@ define(function(require, exports, module) {
           role: "tree",
           ref: this.treeRef,
           tabIndex: 0,
+          onFocus: this.onFocus,
           onKeyDown: this.onKeyDown,
           onContextMenu: onContextMenuTree && onContextMenuTree.bind(this),
+          onMouseDown: () => this.setState({ mouseDown: true }),
+          onMouseUp: () => this.setState({ mouseDown: false }),
           onClick: () => {
             // Focus should always remain on the tree container itself.
             this.treeRef.current.focus();

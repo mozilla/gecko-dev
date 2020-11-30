@@ -4,7 +4,7 @@
 
 import React, { Component } from "react";
 
-import Reps from "devtools-reps";
+import Reps from "devtools/client/shared/components/reps/index";
 const {
   REPS: { Rep },
   MODE,
@@ -152,15 +152,12 @@ class DomMutationBreakpoints extends Component<Props> {
   }
 }
 
-export default connect(
-  undefined,
-  {
-    // the debugger-specific action bound to the debugger store
-    // since there is no `storeKey`
-    openElementInInspector: actions.openElementInInspectorCommand,
-    highlightDomElement: actions.highlightDomElement,
-    unHighlightDomElement: actions.unHighlightDomElement,
-    setSkipPausing: actions.setSkipPausing,
-    openInspector: actions.openInspector,
-  }
-)(DomMutationBreakpoints);
+export default connect(undefined, {
+  // the debugger-specific action bound to the debugger store
+  // since there is no `storeKey`
+  openElementInInspector: actions.openElementInInspectorCommand,
+  highlightDomElement: actions.highlightDomElement,
+  unHighlightDomElement: actions.unHighlightDomElement,
+  setSkipPausing: actions.setSkipPausing,
+  openInspector: actions.openInspector,
+})(DomMutationBreakpoints);

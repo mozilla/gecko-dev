@@ -15,8 +15,8 @@ ChromeUtils.defineModuleGetter(
 );
 ChromeUtils.defineModuleGetter(
   this,
-  "AddonStudyAction",
-  "resource://normandy/actions/AddonStudyAction.jsm"
+  "BranchedAddonStudyAction",
+  "resource://normandy/actions/BranchedAddonStudyAction.jsm"
 );
 ChromeUtils.defineModuleGetter(
   this,
@@ -27,6 +27,11 @@ ChromeUtils.defineModuleGetter(
   this,
   "RecipeRunner",
   "resource://normandy/lib/RecipeRunner.jsm"
+);
+ChromeUtils.defineModuleGetter(
+  this,
+  "ExperimentManager",
+  "resource://messaging-system/experiments/ExperimentManager.jsm"
 );
 
 var EXPORTED_SYMBOLS = ["AboutPages"];
@@ -73,9 +78,7 @@ class AboutPage {
     return channel;
   }
 }
-AboutPage.prototype.QueryInterface = ChromeUtils.generateQI([
-  Ci.nsIAboutModule,
-]);
+AboutPage.prototype.QueryInterface = ChromeUtils.generateQI(["nsIAboutModule"]);
 
 /**
  * The module exported by this file.
@@ -113,6 +116,10 @@ XPCOMUtils.defineLazyGetter(AboutPages, "aboutStudies", () => {
       return PreferenceExperiments.getAll();
     },
 
+    getMessagingSystemList() {
+      return ExperimentManager.store.getAll();
+    },
+
     /** Add a browsing context to the weak set;
      * this weak set keeps track of all contexts
      * that are housing an about:studies page.
@@ -135,11 +142,12 @@ XPCOMUtils.defineLazyGetter(AboutPages, "aboutStudies", () => {
      * @param {object} data The data object to send.
      */
     _sendToAll(message, data) {
-      ChromeUtils.nondeterministicGetWeakSetKeys(BrowsingContexts).forEach(
-        browser =>
-          browser.currentWindowGlobal
-            .getActor("ShieldFrame")
-            .sendAsyncMessage(message, data)
+      ChromeUtils.nondeterministicGetWeakSetKeys(
+        BrowsingContexts
+      ).forEach(browser =>
+        browser.currentWindowGlobal
+          .getActor("ShieldFrame")
+          .sendAsyncMessage(message, data)
       );
     },
 
@@ -159,7 +167,7 @@ XPCOMUtils.defineLazyGetter(AboutPages, "aboutStudies", () => {
      */
     async removeAddonStudy(recipeId, reason) {
       try {
-        const action = new AddonStudyAction();
+        const action = new BranchedAddonStudyAction();
         await action.unenroll(recipeId, reason);
       } catch (err) {
         // If the exception was that the study was already removed, that's ok.
@@ -197,6 +205,14 @@ XPCOMUtils.defineLazyGetter(AboutPages, "aboutStudies", () => {
           this._sendToAll("Shield:UpdatePreferenceStudyList", list)
         );
       }
+    },
+
+    async removeMessagingSystemExperiment(slug, reason) {
+      ExperimentManager.unenroll(slug, reason);
+      this._sendToAll(
+        "Shield:UpdateMessagingSystemExperimentList",
+        ExperimentManager.store.getAll()
+      );
     },
 
     openDataPreferences() {

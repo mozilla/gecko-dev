@@ -12,6 +12,7 @@ const {
   REMOVE_SELECTED_CUSTOM_REQUEST,
   RIGHT_CLICK_REQUEST,
   SEND_CUSTOM_REQUEST,
+  SET_EVENT_STREAM_FLAG,
   TOGGLE_RECORDING,
   UPDATE_REQUEST,
 } = require("devtools/client/netmonitor/src/constants");
@@ -37,6 +38,14 @@ function updateRequest(id, data, batch) {
     type: UPDATE_REQUEST,
     id,
     data,
+    meta: { batch },
+  };
+}
+
+function setEventStreamFlag(id, batch) {
+  return {
+    type: SET_EVENT_STREAM_FLAG,
+    id,
     meta: { batch },
   };
 }
@@ -76,7 +85,7 @@ function cloneSelectedRequest() {
  * Send a new HTTP request using the data in the custom request form.
  */
 function sendCustomRequest(connector, requestId = null) {
-  return async (dispatch, getState) => {
+  return async ({ dispatch, getState }) => {
     let request;
     if (requestId) {
       request = getRequestById(getState(), requestId);
@@ -155,6 +164,7 @@ module.exports = {
   rightClickRequest,
   removeSelectedCustomRequest,
   sendCustomRequest,
+  setEventStreamFlag,
   toggleRecording,
   updateRequest,
 };

@@ -5,10 +5,11 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import pytest
+import six
 import unittest
 from mozunit import main
 
-from taskgraph.generator import TaskGraphGenerator, Kind
+from taskgraph.generator import TaskGraphGenerator, Kind, load_tasks_for_kind
 from taskgraph.optimize import OptimizationStrategy
 from taskgraph.config import GraphConfig
 from taskgraph.util.templates import merge
@@ -29,8 +30,9 @@ def fake_loader(kind, path, config, parameters, loaded_tasks):
         task = {
             'kind': kind,
             'label': '{}-t-{}'.format(kind, i),
-            'attributes': {'_tasknum': str(i)},
-            'task': {'i': i},
+            'description': '{} task {}'.format(kind, i),
+            'attributes': {'_tasknum': six.text_type(i)},
+            'task': {'i': i, "metadata": {"name": "t-{}".format(i)}},
             'dependencies': dependencies,
         }
         if 'job-defaults' in config:
@@ -43,9 +45,9 @@ class FakeKind(Kind):
     def _get_loader(self):
         return fake_loader
 
-    def load_tasks(self, parameters, loaded_tasks):
+    def load_tasks(self, parameters, loaded_tasks, write_artifacts):
         FakeKind.loaded_kinds.append(self.name)
-        return super(FakeKind, self).load_tasks(parameters, loaded_tasks)
+        return super(FakeKind, self).load_tasks(parameters, loaded_tasks, write_artifacts)
 
 
 class WithFakeKind(TaskGraphGenerator):
@@ -107,10 +109,13 @@ class TestGenerator(unittest.TestCase):
 
         parameters = FakeParameters({
             '_kinds': kinds,
+            'backstop': False,
             'target_tasks_method': 'test_method',
+            'test_manifest_loader': 'default',
             'try_mode': None,
             'try_task_config': {},
             'tasks_for': 'hg-push',
+            'project': 'mozilla-central',
         })
         parameters.update(params)
 
@@ -153,8 +158,8 @@ class TestGenerator(unittest.TestCase):
         self.tgg = self.maketgg(['_fake-t-1'])
         self.assertEqual(self.tgg.target_task_set.graph,
                          graph.Graph({'_fake-t-1'}, set()))
-        self.assertEqual(self.tgg.target_task_set.tasks.keys(),
-                         ['_fake-t-1'])
+        self.assertEqual(set(six.iterkeys(self.tgg.target_task_set.tasks)),
+                         {'_fake-t-1'})
 
     def test_target_task_graph(self):
         "The target_task_graph property has the targeted tasks and deps"
@@ -199,6 +204,21 @@ class TestGenerator(unittest.TestCase):
                 (tid['_fake-t-1'], tid['_fake-t-0'], 'prev'),
                 (tid['_fake-t-2'], tid['_fake-t-1'], 'prev'),
             }))
+
+
+def test_load_tasks_for_kind(monkeypatch):
+    """
+    `load_tasks_for_kinds` will load the tasks for the provided kind
+    """
+    monkeypatch.setattr(generator, "TaskGraphGenerator", WithFakeKind)
+    monkeypatch.setattr(generator, "load_graph_config", fake_load_graph_config)
+
+    tasks = load_tasks_for_kind(
+        {"_kinds": [("_example-kind", []), ("docker-image", [])]},
+        "_example-kind",
+        "/root",
+    )
+    assert "t-1" in tasks and tasks["t-1"].label == "_example-kind-t-1"
 
 
 if __name__ == '__main__':

@@ -7,19 +7,29 @@
 const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
 
 const worker = {
-  active: PropTypes.bool,
-  name: PropTypes.string.isRequired,
-  scope: PropTypes.string.isRequired,
-  lastUpdateTime: PropTypes.number,
+  id: PropTypes.string.isRequired,
+  state: PropTypes.number.isRequired,
+  stateText: PropTypes.string.isRequired,
   url: PropTypes.string.isRequired,
-  // registrationFront can be missing in e10s.
+  workerDescriptorFront: PropTypes.object,
   registrationFront: PropTypes.object,
-  workerTargetFront: PropTypes.object,
 };
 
 const workerArray = PropTypes.arrayOf(PropTypes.shape(worker));
 
+const registration = {
+  id: PropTypes.string.isRequired,
+  lastUpdateTime: PropTypes.number,
+  registrationFront: PropTypes.object.isRequired,
+  scope: PropTypes.string.isRequired,
+  workers: workerArray.isRequired,
+};
+
+const registrationArray = PropTypes.arrayOf(PropTypes.shape(registration));
+
 module.exports = {
+  registration,
+  registrationArray,
   worker,
   workerArray,
 };

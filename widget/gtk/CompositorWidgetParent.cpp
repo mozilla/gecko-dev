@@ -13,12 +13,12 @@ namespace widget {
 CompositorWidgetParent::CompositorWidgetParent(
     const CompositorWidgetInitData& aInitData,
     const layers::CompositorOptions& aOptions)
-    : GtkCompositorWidget(aInitData.get_GtkCompositorWidgetInitData(),
-                          aOptions) {
+    : GtkCompositorWidget(aInitData.get_GtkCompositorWidgetInitData(), aOptions,
+                          nullptr) {
   MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_GPU);
 }
 
-CompositorWidgetParent::~CompositorWidgetParent() {}
+CompositorWidgetParent::~CompositorWidgetParent() = default;
 
 void CompositorWidgetParent::ObserveVsync(VsyncObserver* aObserver) {
   if (aObserver) {

@@ -14,6 +14,7 @@
 #include <stdlib.h>  // getenv
 
 #include "jit/BaselineFrame.h"   // js::jit::BaselineFrame
+#include "jit/JitFrames.h"       // js::jit::EnsureBareExitFrame
 #include "jit/JSJitFrameIter.h"  // js::jit::{FrameType,InlineFrameIterator,JSJitFrameIter,MaybeReadFallback,SnapshotIterator}
 #include "js/GCAPI.h"            // JS::AutoSuppressGCAnalysis
 #include "js/Principals.h"       // JSSubsumesOp
@@ -22,7 +23,7 @@
 #include "vm/EnvironmentObject.h"  // js::CallObject
 #include "vm/JitActivation.h"      // js::jit::JitActivation
 #include "vm/JSContext.h"          // JSContext
-#include "vm/JSFunction.h"  // js::CanReuseScriptForClone, js::FunctionFlags, JSFunction
+#include "vm/JSFunction.h"         // JSFunction
 #include "vm/JSScript.h"  // js::PCToLineNumber, JSScript, js::ScriptSource
 #include "vm/Runtime.h"   // JSRuntime
 #include "vm/Stack.h"  // js::{AbstractFramePtr,InterpreterFrame,MaybeCheckAliasing}
@@ -345,16 +346,7 @@ FrameIter::Data::Data(JSContext* cx, DebuggerEvalOption debuggerEvalOption,
       activations_(cx),
       ionInlineFrameNo_(0) {}
 
-FrameIter::Data::Data(const FrameIter::Data& other)
-    : cx_(other.cx_),
-      debuggerEvalOption_(other.debuggerEvalOption_),
-      principals_(other.principals_),
-      state_(other.state_),
-      pc_(other.pc_),
-      interpFrames_(other.interpFrames_),
-      activations_(other.activations_),
-      jitFrames_(other.jitFrames_),
-      ionInlineFrameNo_(other.ionInlineFrameNo_) {}
+FrameIter::Data::Data(const FrameIter::Data& other) = default;
 
 FrameIter::FrameIter(JSContext* cx, DebuggerEvalOption debuggerEvalOption)
     : data_(cx, debuggerEvalOption, nullptr),
@@ -817,33 +809,32 @@ JSFunction* FrameIter::callee(JSContext* cx) const {
 }
 
 bool FrameIter::matchCallee(JSContext* cx, JS::Handle<JSFunction*> fun) const {
+  // Use the calleeTemplate to rule out a match without needing to invalidate to
+  // find the actual callee. The real callee my be a clone of the template which
+  // should *not* be considered a match.
   Rooted<JSFunction*> currentCallee(cx, calleeTemplate());
 
-  // The more bizarre cases should already be excluded by an earlier check of
-  // IsSloppyNormalFunction.
-  MOZ_ASSERT(fun->hasBaseScript());
-
-  // As we do not know if the calleeTemplate is the real function, or the
-  // template from which it would be cloned, we compare properties which are
-  // stable across the cloning of JSFunctions.
-  if (((currentCallee->flags().toRaw() ^ fun->flags().toRaw()) &
-       FunctionFlags::STABLE_ACROSS_CLONES) != 0 ||
-      currentCallee->nargs() != fun->nargs()) {
+  if (currentCallee->nargs() != fun->nargs()) {
     return false;
   }
 
-  // Use the same condition as |js::CloneFunctionObject|, to know if we should
-  // expect both functions to have the same JSScript. If so, and if they are
-  // different, then they cannot be equal.
-  Rooted<JSObject*> global(cx, &fun->global());
-  bool useSameScript =
-      CanReuseScriptForClone(fun->realm(), currentCallee, global);
-  if (useSameScript && (currentCallee->baseScript() != fun->baseScript())) {
+  if (currentCallee->flags().stableAcrossClones() !=
+      fun->flags().stableAcrossClones()) {
     return false;
   }
 
-  // If none of the previous filters worked, then take the risk of
-  // invalidating the frame to identify the JSFunction.
+  // The calleeTemplate for a callee will always have the same BaseScript. If
+  // the script clones do not use the same script, they also have a different
+  // group and Ion will not inline them interchangeably.
+  //
+  // See: js::jit::InlineFrameIterator::findNextFrame(),
+  //      js::CloneFunctionAndScript()
+  if (currentCallee->hasBaseScript()) {
+    if (currentCallee->baseScript() != fun->baseScript()) {
+      return false;
+    }
+  }
+
   return callee(cx) == fun;
 }
 

@@ -15,37 +15,29 @@
 #include "nsIBaseWindow.h"
 #include "nsCommandLine.h"
 #include "mozIDOMWindow.h"
-#include "nsIDocShellTreeItem.h"
-#include "nsIDocShellTreeOwner.h"
-#include "nsIInterfaceRequestorUtils.h"
 #include "nsIWebNavigation.h"
 #include "nsIWidget.h"
 #include "nsIWindowMediator.h"
+#include "nsPIDOMWindow.h"
+#include "WidgetUtils.h"
 
 // This must be included last:
 #include "nsObjCExceptions.h"
+
+using mozilla::widget::WidgetUtils;
 
 nsresult GetNativeWindowPointerFromDOMWindow(mozIDOMWindowProxy* a_window,
                                              NSWindow** a_nativeWindow) {
   *a_nativeWindow = nil;
   if (!a_window) return NS_ERROR_INVALID_ARG;
 
-  nsCOMPtr<nsIWebNavigation> mruWebNav(do_GetInterface(a_window));
-  if (mruWebNav) {
-    nsCOMPtr<nsIDocShellTreeItem> mruTreeItem(do_QueryInterface(mruWebNav));
-    nsCOMPtr<nsIDocShellTreeOwner> mruTreeOwner = nullptr;
-    mruTreeItem->GetTreeOwner(getter_AddRefs(mruTreeOwner));
-    if (mruTreeOwner) {
-      nsCOMPtr<nsIBaseWindow> mruBaseWindow(do_QueryInterface(mruTreeOwner));
-      if (mruBaseWindow) {
-        nsCOMPtr<nsIWidget> mruWidget = nullptr;
-        mruBaseWindow->GetMainWidget(getter_AddRefs(mruWidget));
-        if (mruWidget) {
-          *a_nativeWindow = (NSWindow*)mruWidget->GetNativeData(NS_NATIVE_WINDOW);
-        }
-      }
-    }
+  nsPIDOMWindowOuter* win = nsPIDOMWindowOuter::From(a_window);
+  nsCOMPtr<nsIWidget> widget = WidgetUtils::DOMWindowToWidget(win);
+  if (!widget) {
+    return NS_ERROR_FAILURE;
   }
+
+  *a_nativeWindow = (NSWindow*)widget->GetNativeData(NS_NATIVE_WINDOW);
 
   return NS_OK;
 }
@@ -79,7 +71,7 @@ NS_IMETHODIMP nsNativeAppSupportCocoa::Start(bool* _retval) {
   // alert here.  But the alert's message and buttons would require custom
   // localization.  So (for now at least) we just log an English message
   // to the console before quitting.
-  if (major < 10 || minor < 6) {
+  if (major < 10 || (major == 10 && minor < 12)) {
     NSLog(@"Minimum OS version requirement not met!");
     return NS_OK;
   }

@@ -118,7 +118,7 @@ static inline D2D1_MATRIX_3X2_F D2DMatrix(const Matrix& aTransform) {
                           aTransform._22, aTransform._31, aTransform._32);
 }
 
-static inline D2D1_COLOR_F D2DColor(const Color& aColor) {
+static inline D2D1_COLOR_F D2DColor(const DeviceColor& aColor) {
   return D2D1::ColorF(aColor.r, aColor.g, aColor.b, aColor.a);
 }
 
@@ -311,6 +311,10 @@ static inline D2D1_PRIMITIVE_BLEND D2DPrimitiveBlendMode(CompositionOp aOp) {
 }
 
 static inline bool IsPatternSupportedByD2D(const Pattern& aPattern) {
+  if (aPattern.GetType() == PatternType::CONIC_GRADIENT) {
+    return false;
+  }
+
   if (aPattern.GetType() != PatternType::RADIAL_GRADIENT) {
     return true;
   }

@@ -1,6 +1,5 @@
-
-"crash" ping
-============
+Crash ping
+==========
 
 This ping is captured after the main Firefox process crashes or after a child process
 process crashes, whether or not the crash report is submitted to
@@ -14,7 +13,11 @@ successfully. The crash reporter client sends crash pings only for main process
 crashes whether or not the user also reports the crash. The crash reporter
 client will not send the crash ping if telemetry has been disabled in Firefox.
 
-The environment block that is sent with this ping varies: if Firefox was running long enough to record the environment block before the crash, then the environment at the time of the crash will be recorded and ``hasCrashEnvironment`` will be true. If Firefox crashed before the environment was recorded, ``hasCrashEnvironment`` will be false and the recorded environment will be the environment at time of submission.
+The environment block that is sent with this ping varies: if Firefox was running
+long enough to record the environment block before the crash, then the environment
+at the time of the crash will be recorded and ``hasCrashEnvironment`` will be true.
+If Firefox crashed before the environment was recorded, ``hasCrashEnvironment`` will
+be false and the recorded environment will be the environment at time of submission.
 
 The client ID is submitted with this ping.
 
@@ -56,7 +59,9 @@ Structure:
           BlocklistInitFailed: "1", // Windows-only, present only if the DLL blocklist initialization failed
           CrashTime: <time>, // Seconds since the Epoch
           ContainsMemoryReport: "1", // Optional, if set indicates that the crash had a memory report attached
+          DOMFissionEnabled: "1", // Optional, if set indicates that a Fission window had been opened
           EventLoopNestingLevel: <levels>, // Optional, present only if >0, indicates the nesting level of the event-loop
+          ExperimentalFeatures: <features>, // Optional, a comma-separated string that specifies the enabled experimental features from about:preferences#experimental
           ipc_channel_error: <error string>, // Optional, contains the string processing error reason for an ipc-based content crash
           IsGarbageCollecting: "1", // Optional, if set indicates that the crash occurred while the garbage collector was running
           LowCommitSpaceEvents: <num>, // Windows-only, present only if >0, number of low commit space events detected by the available memory tracker

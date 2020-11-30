@@ -8,6 +8,7 @@
 
 #include "mozilla/Atomics.h"
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/CondVar.h"
 #include "mozilla/EventQueue.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/Unused.h"
@@ -224,7 +225,7 @@ class ThrottledEventQueue::Inner final : public nsISupports {
 
       // We only dispatch an executor runnable when we know there is something
       // in the queue, so this should never fail.
-      event = mEventQueue.GetEvent(nullptr, lock);
+      event = mEventQueue.GetEvent(lock);
       MOZ_ASSERT(event);
 
       // If there are more events in the queue, then dispatch the next
@@ -249,15 +250,21 @@ class ThrottledEventQueue::Inner final : public nsISupports {
     }
 
     // Execute the event now that we have unlocked.
+    LogRunnable::Run log(event);
     Unused << event->Run();
+
+    // To cover the event's destructor code in the LogRunnable log
+    event = nullptr;
   }
 
  public:
   static already_AddRefed<Inner> Create(nsISerialEventTarget* aBaseTarget,
                                         const char* aName, uint32_t aPriority) {
     MOZ_ASSERT(NS_IsMainThread());
-    MOZ_ASSERT(ClearOnShutdown_Internal::sCurrentShutdownPhase ==
-               ShutdownPhase::NotInShutdown);
+    // FIXME: This assertion only worked when `sCurrentShutdownPhase` was not
+    // being updated.
+    // MOZ_ASSERT(ClearOnShutdown_Internal::sCurrentShutdownPhase ==
+    //            ShutdownPhase::NotInShutdown);
 
     RefPtr<Inner> ref = new Inner(aBaseTarget, aName, aPriority);
     return ref.forget();
@@ -276,7 +283,7 @@ class ThrottledEventQueue::Inner final : public nsISupports {
 
   already_AddRefed<nsIRunnable> GetEvent() {
     MutexAutoLock lock(mMutex);
-    return mEventQueue.GetEvent(nullptr, lock);
+    return mEventQueue.GetEvent(lock);
   }
 
   void AwaitIdle() const {
@@ -342,7 +349,9 @@ class ThrottledEventQueue::Inner final : public nsISupports {
 
     // Only add the event to the underlying queue if are able to
     // dispatch to our base target.
-    mEventQueue.PutEvent(std::move(aEvent), EventQueuePriority::Normal, lock);
+    nsCOMPtr<nsIRunnable> event(aEvent);
+    LogRunnable::LogDispatch(event);
+    mEventQueue.PutEvent(event.forget(), EventQueuePriority::Normal, lock);
     return NS_OK;
   }
 

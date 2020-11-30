@@ -95,12 +95,21 @@ class MacroAssemblerMIPSShared : public Assembler {
   void ma_xor(Register rd, Imm32 imm);
   void ma_xor(Register rd, Register rs, Imm32 imm);
 
+  // word swap byte within halfwords
+  void ma_wsbh(Register rd, Register rt);
+
   void ma_ctz(Register rd, Register rs);
 
   // load
   void ma_load(Register dest, const BaseIndex& src,
                LoadStoreSize size = SizeWord,
                LoadStoreExtension extension = SignExtend);
+  void ma_load_unaligned(Register dest, const BaseIndex& src,
+                         LoadStoreSize size = SizeWord,
+                         LoadStoreExtension extension = SignExtend);
+  void ma_load_unaligned(Register dest, const Address& address,
+                         LoadStoreSize size = SizeWord,
+                         LoadStoreExtension extension = SignExtend);
   void ma_load_unaligned(const wasm::MemoryAccessDesc& access, Register dest,
                          const BaseIndex& src, Register temp,
                          LoadStoreSize size, LoadStoreExtension extension);
@@ -111,6 +120,10 @@ class MacroAssemblerMIPSShared : public Assembler {
                 LoadStoreExtension extension = SignExtend);
   void ma_store(Imm32 imm, const BaseIndex& dest, LoadStoreSize size = SizeWord,
                 LoadStoreExtension extension = SignExtend);
+  void ma_store_unaligned(Register data, const Address& dest,
+                          LoadStoreSize size = SizeWord);
+  void ma_store_unaligned(Register data, const BaseIndex& dest,
+                          LoadStoreSize size = SizeWord);
   void ma_store_unaligned(const wasm::MemoryAccessDesc& access, Register data,
                           const BaseIndex& dest, Register temp,
                           LoadStoreSize size, LoadStoreExtension extension);

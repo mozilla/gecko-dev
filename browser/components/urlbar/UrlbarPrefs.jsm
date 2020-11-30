@@ -9,7 +9,7 @@
  * preferences for the urlbar.
  */
 
-var EXPORTED_SYMBOLS = ["UrlbarPrefs"];
+var EXPORTED_SYMBOLS = ["UrlbarPrefs", "UrlbarPrefsObserver"];
 
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
@@ -27,6 +27,10 @@ const PREF_URLBAR_BRANCH = "browser.urlbar.";
 // value, type]].  In the former case, the getter method name is inferred from
 // the typeof the default value.
 const PREF_URLBAR_DEFAULTS = new Map([
+  // Whether we announce to screen readers when tab-to-search results are
+  // inserted.
+  ["accessibility.tabToSearch.announceResults", true],
+
   // "Autofill" is the name of the feature that automatically completes domains
   // and URLs that the user has visited as the user is typing them in the urlbar
   // textbox.  If false, autofill will be disabled.
@@ -61,18 +65,37 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // but this would mean flushing layout.)
   ["disableExtendForTests", false],
 
+  // Controls when to DNS resolve single word search strings, after they were
+  // searched for. If the string is resolved as a valid host, show a
+  // "Did you mean to go to 'host'" prompt.
+  // 0 - never resolve; 1 - use heuristics (default); 2 - always resolve
+  ["dnsResolveSingleWordsAfterSearch", 1],
+
   // Whether telemetry events should be recorded.
   ["eventTelemetry.enabled", false],
+
+  // Used as an override to update2 that is only available in Firefox 83+.
+  // In Firefox 82 we'll set experiment.update2 to false for the holdback
+  // cohort, so that upgrading to Firefox 83 won't enable the update2 feature.
+  // We must do this because experiment rollout begins one week before the 83
+  // release, and we don't want to touch update2 in Firefox 82.
+  ["experiment.update2", true],
+
+  // Whether we expand the font size when when the urlbar is
+  // focused.
+  ["experimental.expandTextOnFocus", false],
+
+  // Whether the urlbar displays a permanent search button.
+  ["experimental.searchButton", false],
+
+  // Whether we style the search mode indicator's close button on hover.
+  ["experimental.searchModeIndicatorHover", false],
 
   // When true, `javascript:` URLs are not included in search results.
   ["filter.javascript", true],
 
   // Applies URL highlighting and other styling to the text in the urlbar input.
-  ["formatting.enabled", false],
-
-  // Allows results from one search to be reused in the next search.  One of the
-  // INSERTMETHOD values.
-  ["insertMethod", UrlbarUtils.INSERTMETHOD.MERGE_RELATED],
+  ["formatting.enabled", true],
 
   // Controls the composition of search results.
   ["matchBuckets", "suggestion:4,general:Infinity"],
@@ -85,28 +108,23 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // number of characters before fetching results.
   ["maxCharsForSearchSuggestions", 20],
 
-  // May be removed in the future.  Usually (when this pref is at its default of
-  // zero), search engine results do not include results from the user's local
-  // browser history.  This value can be set to include such results.
+  // The maximum number of form history results to include.
   ["maxHistoricalSearchSuggestions", 0],
 
   // The maximum number of results in the urlbar popup.
   ["maxRichResults", 10],
 
-  // One-off search buttons enabled status.
-  ["oneOffSearches", false],
-
   // Whether addresses and search results typed into the address bar
   // should be opened in new tabs by default.
   ["openintab", false],
-
-  // Whether to open the urlbar view when the input field is focused by the user.
-  ["openViewOnFocus", true],
 
   // When true, URLs in the user's history that look like search result pages
   // are styled to look like search engine results instead of the usual history
   // results.
   ["restyleSearches", false],
+
+  // If true, we show tail suggestions when available.
+  ["richSuggestions.tail", true],
 
   // Hidden pref. Disables checks that prevent search tips being shown, thus
   // showing them every time the newtab page or the default search engine
@@ -128,9 +146,27 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // Results will include search suggestions when this is true.
   ["suggest.searches", false],
 
+  // Results will include Top Sites and the view will open on focus when this
+  // is true.
+  ["suggest.topsites", true],
+
   // When using switch to tabs, if set to true this will move the tab into the
   // active window.
   ["switchTabs.adoptIntoActiveWindow", false],
+
+  // If true, we stop showing tab-to-search onboarding results after one is
+  // interacted with.
+  ["tabToSearch.onboard.oneInteraction", true],
+
+  // The maximum number of times we show the larger tip-style tab-to-search
+  // result.
+  // Temporarily set to a high value due to bug 1675611. See bug 1675622.
+  ["tabToSearch.onboard.maxShown", 60],
+
+  // The maximum number of times per session we show the larger tip-style
+  // tab-to-search result.
+  // Temporarily set to a high value due to bug 1675611. See bug 1675622.
+  ["tabToSearch.onboard.maxShownPerSession", 20],
 
   // The number of times the user has been shown the onboarding search tip.
   ["tipShownCount.searchTip_onboard", 0],
@@ -138,32 +174,50 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // The number of times the user has been shown the redirect search tip.
   ["tipShownCount.searchTip_redirect", 0],
 
+  // The number of times the user has been shown the tab-to-search onboarding
+  // tip.
+  ["tipShownCount.tabToSearch", 0],
+
   // Remove redundant portions from URLs.
   ["trimURLs", true],
 
   // Results will include a built-in set of popular domains when this is true.
-  ["usepreloadedtopurls.enabled", true],
+  ["usepreloadedtopurls.enabled", false],
 
   // After this many days from the profile creation date, the built-in set of
   // popular domains will no longer be included in the results.
   ["usepreloadedtopurls.expire_days", 14],
 
-  // Whether the quantum bar displays design update 1.
-  ["update1", true],
+  // Whether aliases are styled as a "chiclet" separated from the Urlbar.
+  // Also controls the other urlbar.update2 prefs.
+  ["update2", true],
 
-  // If true, we show actionable tips in the Urlbar when the user is searching
-  // for those actions.
-  ["update1.interventions", true],
+  // Whether horizontal key navigation with left/right is disabled for urlbar's
+  // one-off buttons.
+  ["update2.disableOneOffsHorizontalKeyNavigation", true],
 
-  // If true, we strip https:// instead of http:// from URLs in the results view.
-  ["update1.view.stripHttps", true],
+  // Controls the empty search behavior in Search Mode:
+  //  0 - Show nothing
+  //  1 - Show search history
+  //  2 - Show search and browsing history
+  ["update2.emptySearchBehavior", 0],
 
-  // If true, we show new users and those about to start an organic search a tip
-  // encouraging them to use the Urlbar.
-  ["update1.searchTips", true],
+  // Whether the urlbar displays one-offs to filter searches to history,
+  // bookmarks, or tabs.
+  ["update2.localOneOffs", true],
 
-  // Whether the urlbar displays a permanent search button in design update 2.
-  ["update2.searchButton", false],
+  // Whether the urlbar one-offs act as search filters instead of executing a
+  // search immediately.
+  ["update2.oneOffsRefresh", true],
+
+  // Whether browsing history that is recognized as a previous search should
+  // be restyled and deduped against form history. This only happens when
+  // search mode is active.
+  ["update2.restyleBrowsingHistoryAsSearch", true],
+
+  // Whether we display a tab-to-complete result when the user types an engine
+  // name.
+  ["update2.tabToComplete", true],
 ]);
 const PREF_OTHER_DEFAULTS = new Map([
   ["keyword.enabled", true],
@@ -224,13 +278,15 @@ class Preferences {
   constructor() {
     this._map = new Map();
     this.QueryInterface = ChromeUtils.generateQI([
-      Ci.nsIObserver,
-      Ci.nsISupportsWeakReference,
+      "nsIObserver",
+      "nsISupportsWeakReference",
     ]);
     Services.prefs.addObserver(PREF_URLBAR_BRANCH, this, true);
     for (let pref of PREF_OTHER_DEFAULTS.keys()) {
       Services.prefs.addObserver(pref, this, true);
     }
+    this._observerWeakRefs = [];
+    this.addObserver(this);
   }
 
   /**
@@ -269,6 +325,20 @@ class Preferences {
   }
 
   /**
+   * Adds a preference observer.  Observers are held weakly.
+   *
+   * @param {object} observer
+   *        An object that must have a method named `onPrefChanged`, which will
+   *        be called when a urlbar preference changes.  It will be passed the
+   *        pref name.  For prefs in the `browser.urlbar.` branch, the name will
+   *        be relative to the branch.  For other prefs, the name will be the
+   *        full name.
+   */
+  addObserver(observer) {
+    this._observerWeakRefs.push(Cu.getWeakReference(observer));
+  }
+
+  /**
    * Observes preference changes.
    *
    * @param {nsISupports} subject
@@ -280,6 +350,26 @@ class Preferences {
     if (!PREF_URLBAR_DEFAULTS.has(pref) && !PREF_OTHER_DEFAULTS.has(pref)) {
       return;
     }
+    for (let i = 0; i < this._observerWeakRefs.length; ) {
+      let observer = this._observerWeakRefs[i].get();
+      if (!observer) {
+        // The observer has been GC'ed, so remove it from our list.
+        this._observerWeakRefs.splice(i, 1);
+      } else {
+        observer.onPrefChanged(pref);
+        ++i;
+      }
+    }
+  }
+
+  /**
+   * Called when a pref tracked by UrlbarPrefs changes.
+   *
+   * @param {string} pref
+   *        The name of the pref, relative to `browser.urlbar.` if the pref is
+   *        in that branch.
+   */
+  onPrefChanged(pref) {
     this._map.delete(pref);
     // Some prefs may influence others.
     if (pref == "matchBuckets") {
@@ -287,7 +377,6 @@ class Preferences {
     }
     if (pref.startsWith("suggest.")) {
       this._map.delete("defaultBehavior");
-      this._map.delete("emptySearchDefaultBehavior");
     }
   }
 
@@ -362,20 +451,15 @@ class Preferences {
         }
         return val;
       }
-      case "emptySearchDefaultBehavior": {
-        // Further restrictions to apply for "empty searches" (searching for
-        // "").  The empty behavior is typed history, if history is enabled.
-        // Otherwise, it is bookmarks, if they are enabled. If both history and
-        // bookmarks are disabled, it defaults to open pages.
-        let val = Ci.mozIPlacesAutoComplete.BEHAVIOR_RESTRICT;
-        if (this.get("suggest.history")) {
-          val |= Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY;
-        } else if (this.get("suggest.bookmark")) {
-          val |= Ci.mozIPlacesAutoComplete.BEHAVIOR_BOOKMARK;
-        } else {
-          val |= Ci.mozIPlacesAutoComplete.BEHAVIOR_OPENPAGE;
+      case "update2": {
+        // The experiment.update2 pref is a partial override to update2. If it
+        // is false, it overrides update2. It was introduced for Firefox 83+ to
+        // run a holdback study on update2 and can be removed when the holdback
+        // study is complete. See bug 1674469.
+        if (!this._readPref("experiment.update2")) {
+          return false;
         }
-        return val;
+        return this._readPref(pref);
       }
     }
     return this._readPref(pref);

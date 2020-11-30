@@ -12,11 +12,17 @@ add_task(async function() {
 
   info("Test `inspect(window)`");
   // Add a global value so we can check it later.
-  execute(hud, "testProp = 'testValue'");
-  execute(hud, "inspect(window)");
-
-  const inspectWindowNode = await waitFor(() =>
-    findInspectResultMessage(hud.ui.outputNode, 1)
+  await executeAndWaitForMessage(
+    hud,
+    "testProp = 'testValue'",
+    "testValue",
+    ".result"
+  );
+  const { node: inspectWindowNode } = await executeAndWaitForMessage(
+    hud,
+    "inspect(window)",
+    "Window",
+    ".result"
   );
 
   const objectInspectors = [...inspectWindowNode.querySelectorAll(".tree")];
@@ -64,7 +70,7 @@ add_task(async function() {
     findInspectResultMessage(hud.ui.outputNode, 2)
   );
   is(
-    inspectPrimitiveNode.textContent,
+    parseInt(inspectPrimitiveNode.textContent, 10),
     1,
     "The primitive is displayed as expected"
   );

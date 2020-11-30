@@ -17,6 +17,7 @@ const App = createFactory(
 );
 const CurrentTimeTimer = require("devtools/client/inspector/animation/current-time-timer");
 
+const animationsReducer = require("devtools/client/inspector/animation/reducers/animations");
 const {
   updateAnimations,
   updateDetailVisibility,
@@ -35,6 +36,8 @@ class AnimationInspector {
   constructor(inspector, win) {
     this.inspector = inspector;
     this.win = win;
+
+    this.inspector.store.injectReducer("animations", animationsReducer);
 
     this.addAnimationsCurrentTimeListener = this.addAnimationsCurrentTimeListener.bind(
       this
@@ -442,8 +445,8 @@ class AnimationInspector {
     this.inspector.store.dispatch(updateSidebarSize(size));
   }
 
-  async onTargetAvailable({ isTopLevel, targetFront }) {
-    if (isTopLevel) {
+  async onTargetAvailable({ targetFront }) {
+    if (targetFront.isTopLevel) {
       this.animationsFront = await targetFront.getFront("animations");
       this.animationsFront.setWalkerActor(this.inspector.walker);
       this.animationsFront.on("mutations", this.onAnimationsMutation);
@@ -598,19 +601,41 @@ class AnimationInspector {
   }
 
   /**
-   * Highlight the given node with the box model highlighter.
-   * If no node is provided, hide the box model highlighter.
+   * Persistently highlight the given node identified with a unique selector.
+   * If no node is provided, hide any persistent highlighter.
    *
    * @param {NodeFront} nodeFront
    */
   async setHighlightedNode(nodeFront) {
-    await this.inspector.highlighters.hideBoxModelHighlighter();
+    await this.inspector.highlighters.hideHighlighterType(
+      this.inspector.highlighters.TYPES.SELECTOR
+    );
 
     if (nodeFront) {
-      await this.inspector.highlighters.showBoxModelHighlighter(nodeFront, {
-        hideInfoBar: true,
-        hideGuides: true,
-      });
+      const selector = await nodeFront.getUniqueSelector();
+      if (!selector) {
+        console.warn(
+          `Couldn't get unique selector for NodeFront: ${nodeFront.actorID}`
+        );
+        return;
+      }
+
+      /**
+       * NOTE: Using a Selector Highlighter here because only one Box Model Highlighter
+       * can be visible at a time. The Box Model Highlighter is shown when hovering nodes
+       * which would cause this persistent highlighter to be hidden unexpectedly.
+       * This limitation of one highlighter type a time should be solved by switching
+       * to a highlighter by role approach (Bug 1663443).
+       */
+      await this.inspector.highlighters.showHighlighterTypeForNode(
+        this.inspector.highlighters.TYPES.SELECTOR,
+        nodeFront,
+        {
+          hideInfoBar: true,
+          hideGuides: true,
+          selector,
+        }
+      );
     }
 
     this.inspector.store.dispatch(updateHighlightedNode(nodeFront));

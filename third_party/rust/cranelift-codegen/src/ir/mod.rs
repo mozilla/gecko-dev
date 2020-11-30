@@ -1,12 +1,12 @@
 //! Representation of Cranelift IR functions.
 
+mod atomic_rmw_op;
 mod builder;
 pub mod constant;
 pub mod dfg;
 pub mod entities;
 mod extfunc;
 mod extname;
-mod framelayout;
 pub mod function;
 mod globalvalue;
 mod heap;
@@ -27,6 +27,7 @@ mod valueloc;
 #[cfg(feature = "enable-serde")]
 use serde::{Deserialize, Serialize};
 
+pub use crate::ir::atomic_rmw_op::AtomicRmwOp;
 pub use crate::ir::builder::{
     InsertBuilder, InstBuilder, InstBuilderBase, InstInserterBase, ReplaceBuilder,
 };
@@ -40,7 +41,6 @@ pub use crate::ir::extfunc::{
     AbiParam, ArgumentExtension, ArgumentPurpose, ExtFuncData, Signature,
 };
 pub use crate::ir::extname::ExternalName;
-pub use crate::ir::framelayout::{FrameLayout, FrameLayoutChange, FrameLayoutChanges};
 pub use crate::ir::function::{DisplayFunctionAnnotations, Function};
 pub use crate::ir::globalvalue::GlobalValueData;
 pub use crate::ir::heap::{HeapData, HeapStyle};

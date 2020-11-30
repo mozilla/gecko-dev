@@ -28,6 +28,7 @@ class SingleTestMixin(object):
         # Map from full test path on the test machine to a relative path in the source checkout.
         # Use self._map_test_path_to_source(test_machine_path, source_path) to add a mapping.
         self.test_src_path = {}
+        self.per_test_log_index = 1
 
     def _map_test_path_to_source(self, test_machine_path, source_path):
         test_machine_path = test_machine_path.replace(os.sep, posixpath.sep)
@@ -226,7 +227,9 @@ class SingleTestMixin(object):
         revision = os.environ.get("GECKO_HEAD_REV")
         if not repository or not revision:
             self.warning("unable to run tests in per-test mode: no repo or revision!")
-            return []
+            self.suites = {}
+            self.tests_downloaded = True
+            return
 
         def get_automationrelevance():
             response = self.load_json_url(url)
@@ -279,7 +282,10 @@ class SingleTestMixin(object):
         total_tests = sum([len(self.suites[x]) for x in self.suites])
 
         if total_tests == 0:
-            self.fatal("No tests to verify: exiting.", 0)
+            self.warning("No tests to verify.")
+            self.suites = {}
+            self.tests_downloaded = True
+            return
 
         files_per_chunk = total_tests / float(self.config.get('total_chunks', 1))
         files_per_chunk = int(math.ceil(files_per_chunk))
@@ -391,3 +397,16 @@ class SingleTestMixin(object):
             test_name = test_name.rstrip(os.path.sep)
         self.log("TinderboxPrint: Per-test run of %s<br/>: %s" %
                  (test_name, tbpl_status), level=log_level)
+
+    def get_indexed_logs(self, dir, test_suite):
+        """
+           Per-test tasks need distinct file names for the raw and errorsummary logs
+           on each run.
+        """
+        index = ''
+        if self.verify_enabled or self.per_test_coverage:
+            index = '-test%d' % self.per_test_log_index
+            self.per_test_log_index += 1
+        raw_log_file = os.path.join(dir, '%s%s_raw.log' % (test_suite, index))
+        error_summary_file = os.path.join(dir, '%s%s_errorsummary.log' % (test_suite, index))
+        return raw_log_file, error_summary_file

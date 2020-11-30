@@ -32,11 +32,12 @@
 
   class MozToolbarbutton extends MozElements.ButtonBase {
     static get inheritedAttributes() {
+      // Note: if you remove 'wrap' or 'label' from the inherited attributes,
+      // you'll need to add them to observedAttributes.
       return {
         ".toolbarbutton-icon":
           "validate,src=image,label,type,consumeanchor,triggeringprincipal=iconloadingprincipal",
-        ".toolbarbutton-text": "value=label,accesskey,crop,dragover-top,wrap",
-        ".toolbarbutton-multiline-text": "text=label,accesskey,wrap",
+        ".toolbarbutton-text": "accesskey,crop,dragover-top,wrap",
         ".toolbarbutton-menu-dropmarker": "disabled,label",
 
         ".toolbarbutton-badge": "text=badge,style=badgeStyle",
@@ -48,8 +49,7 @@
         MozXULElement.parseXULToFragment(`
         <image class="toolbarbutton-icon"></image>
         <label class="toolbarbutton-text" crop="right" flex="1"></label>
-        <label class="toolbarbutton-multiline-text" flex="1"></label>
-        <dropmarker type="menu" class="toolbarbutton-menu-dropmarker"></dropmarker>`),
+        `),
         true
       );
       Object.defineProperty(this, "fragment", { value: frag });
@@ -64,17 +64,62 @@
           <html:label class="toolbarbutton-badge"/>
         </stack>
         <label class="toolbarbutton-text" crop="right" flex="1"/>
-        <label class="toolbarbutton-multiline-text" flex="1"/>
-        <dropmarker anonid="dropmarker" type="menu"
-                    class="toolbarbutton-menu-dropmarker"/>`),
+        `),
         true
       );
       Object.defineProperty(this, "badgedFragment", { value: frag });
       return frag;
     }
 
+    static get dropmarkerFragment() {
+      let frag = document.importNode(
+        MozXULElement.parseXULToFragment(`
+          <dropmarker type="menu" class="toolbarbutton-menu-dropmarker"></dropmarker>
+        `),
+        true
+      );
+      Object.defineProperty(this, "dropmarkerFragment", { value: frag });
+      return frag;
+    }
+
     get _hasRendered() {
       return this.querySelector(":scope > .toolbarbutton-text") != null;
+    }
+
+    get _textNode() {
+      let node = this.getElementForAttrInheritance(".toolbarbutton-text");
+      if (node) {
+        Object.defineProperty(this, "_textNode", { value: node });
+      }
+      return node;
+    }
+
+    _setLabel() {
+      let label = this.getAttribute("label") || "";
+      let hasLabel = this.hasAttribute("label");
+      if (this.getAttribute("wrap") == "true") {
+        this._textNode.removeAttribute("value");
+        this._textNode.textContent = label;
+      } else {
+        this._textNode.textContent = "";
+        if (hasLabel) {
+          this._textNode.setAttribute("value", label);
+        } else {
+          this._textNode.removeAttribute("value");
+        }
+      }
+    }
+
+    attributeChangedCallback(name, oldValue, newValue) {
+      if (oldValue === newValue || !this.initializedAttributeInheritance) {
+        return;
+      }
+      // Deal with single/multiline label inheritance:
+      if (name == "label" || name == "wrap") {
+        this._setLabel();
+      }
+      // The normal implementation will deal with everything else.
+      super.attributeChangedCallback(name, oldValue, newValue);
     }
 
     connectedCallback() {
@@ -109,6 +154,10 @@
 
         this.appendChild(this.constructor.badgedFragment.cloneNode(true));
 
+        if (this.hasAttribute("wantdropmarker")) {
+          this.appendChild(this.constructor.dropmarkerFragment.cloneNode(true));
+        }
+
         if (moveChildren.length) {
           let { badgeStack, icon } = this;
           for (let child of moveChildren) {
@@ -131,6 +180,10 @@
 
         this.appendChild(this.constructor.fragment.cloneNode(true));
 
+        if (this.hasAttribute("wantdropmarker")) {
+          this.appendChild(this.constructor.dropmarkerFragment.cloneNode(true));
+        }
+
         // XBL toolbarbutton explicitly places any <box> children
         // right before the menu marker.
         for (let child of moveChildren) {
@@ -139,6 +192,7 @@
       }
 
       this.initializeAttributeInheritance();
+      this._setLabel();
     }
 
     get icon() {
@@ -154,7 +208,10 @@
     }
 
     get multilineLabel() {
-      return this.querySelector(".toolbarbutton-multiline-text");
+      if (this.getAttribute("wrap") == "true") {
+        return this._textNode;
+      }
+      return null;
     }
 
     get dropmarker() {

@@ -38,7 +38,6 @@ class AudioBlock : private AudioChunk {
   using AudioChunk::ChannelCount;
   using AudioChunk::ChannelData;
   using AudioChunk::GetDuration;
-  using AudioChunk::IsAudible;
   using AudioChunk::IsNull;
   using AudioChunk::SizeOfExcludingThis;
   using AudioChunk::SizeOfExcludingThisIfUnshared;
@@ -130,6 +129,6 @@ class AudioBlock : private AudioChunk {
 
 }  // namespace mozilla
 
-DECLARE_USE_COPY_CONSTRUCTORS(mozilla::AudioBlock)
+MOZ_DECLARE_RELOCATE_USING_MOVE_CONSTRUCTOR(mozilla::AudioBlock)
 
 #endif  // MOZILLA_AUDIOBLOCK_H_

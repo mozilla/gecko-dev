@@ -28,7 +28,10 @@ class txStack : private nsTArray<void*> {
    * top of this stack.
    */
   inline nsresult push(void* aObject) {
-    return AppendElement(aObject) ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
+    // XXX(Bug 1631371) Check if this should use a fallible operation as it
+    // pretended earlier, or change the return type to void.
+    AppendElement(aObject);
+    return NS_OK;
   }
 
   /**
@@ -41,9 +44,7 @@ class txStack : private nsTArray<void*> {
     void* object = nullptr;
     NS_ASSERTION(!isEmpty(), "popping from empty stack");
     if (!isEmpty()) {
-      const uint32_t count = Length() - 1;
-      object = ElementAt(count);
-      RemoveElementAt(count);
+      object = PopLastElement();
     }
     return object;
   }

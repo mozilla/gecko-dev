@@ -12,7 +12,6 @@ const { ELEMENT_STYLE } = require("devtools/shared/specs/styles");
 const OutputParser = require("devtools/client/shared/output-parser");
 const { PrefObserver } = require("devtools/client/shared/prefs");
 const { createChild } = require("devtools/client/inspector/shared/utils");
-const { gDevTools } = require("devtools/client/framework/devtools");
 const {
   VIEW_NODE_SELECTOR_TYPE,
   VIEW_NODE_PROPERTY_TYPE,
@@ -400,7 +399,7 @@ CssComputedView.prototype = {
     ) {
       let selectorText = "";
 
-      for (const child of node.childNodes[0].childNodes) {
+      for (const child of node.childNodes[1].childNodes) {
         if (child.nodeType === node.TEXT_NODE) {
           selectorText += child.textContent;
         }
@@ -934,7 +933,7 @@ function PropertyView(tree, name) {
   this.tree = tree;
   this.name = name;
 
-  this.link = "https://developer.mozilla.org/CSS/" + name;
+  this.link = "https://developer.mozilla.org/docs/Web/CSS/" + name;
 
   this._propertyInfo = new PropertyInfo(tree, name);
 }
@@ -1083,12 +1082,21 @@ PropertyView.prototype = {
     // Build the twisty expand/collapse
     this.matchedExpander = doc.createElementNS(HTML_NS, "div");
     this.matchedExpander.className = "computed-expander theme-twisty";
+    this.matchedExpander.setAttribute("role", "button");
+    this.matchedExpander.setAttribute(
+      "aria-label",
+      STYLE_INSPECTOR_L10N.getStr("rule.twistyExpand.label")
+    );
     this.matchedExpander.addEventListener("click", this.onMatchedToggle);
     nameContainer.appendChild(this.matchedExpander);
 
     // Build the style name element
     this.nameNode = doc.createElementNS(HTML_NS, "span");
     this.nameNode.classList.add("computed-property-name", "theme-fg-color3");
+
+    // Give it a heading role for screen readers.
+    this.nameNode.setAttribute("role", "heading");
+
     // Reset its tabindex attribute otherwise, if an ellipsis is applied
     // it will be reachable via TABing
     this.nameNode.setAttribute("tabindex", "");
@@ -1161,6 +1169,10 @@ PropertyView.prototype = {
       this.matchedSelectorsContainer.parentNode.hidden = true;
       this.matchedSelectorsContainer.textContent = "";
       this.matchedExpander.removeAttribute("open");
+      this.matchedExpander.setAttribute(
+        "aria-label",
+        STYLE_INSPECTOR_L10N.getStr("rule.twistyExpand.label")
+      );
       return;
     }
 
@@ -1209,6 +1221,10 @@ PropertyView.prototype = {
 
           this._buildMatchedSelectors();
           this.matchedExpander.setAttribute("open", "");
+          this.matchedExpander.setAttribute(
+            "aria-label",
+            STYLE_INSPECTOR_L10N.getStr("rule.twistyCollapse.label")
+          );
           this.tree.inspector.emit("computed-view-property-expanded");
         })
         .catch(console.error);
@@ -1216,6 +1232,10 @@ PropertyView.prototype = {
 
     this.matchedSelectorsContainer.innerHTML = "";
     this.matchedExpander.removeAttribute("open");
+    this.matchedExpander.setAttribute(
+      "aria-label",
+      STYLE_INSPECTOR_L10N.getStr("rule.twistyExpand.label")
+    );
     this.tree.inspector.emit("computed-view-property-collapsed");
     return promise.resolve(undefined);
   },
@@ -1251,6 +1271,14 @@ PropertyView.prototype = {
         dir: "ltr",
         class: "rule-text theme-fg-color3 " + selector.statusClass,
         title: selector.statusText,
+      });
+
+      // Add an explicit status text span for screen readers.
+      // They won't pick up the title from the status span.
+      createChild(status, "span", {
+        dir: "ltr",
+        class: "visually-hidden",
+        textContent: selector.statusText + " ",
       });
 
       createChild(status, "div", {
@@ -1355,18 +1383,17 @@ function SelectorView(tree, selectorInfo) {
     const sheet = rule.parentStyleSheet;
     this.source = CssLogic.shortSource(sheet) + ":" + rule.line;
 
-    const url = sheet.href || sheet.nodeHref;
-    this.currentLocation = {
-      href: url,
+    this.generatedLocation = {
+      sheet: sheet,
+      href: sheet.href || sheet.nodeHref,
       line: rule.line,
       column: rule.column,
     };
-    this.generatedLocation = this.currentLocation;
     this.sourceMapURLService = this.tree.inspector.toolbox.sourceMapURLService;
-    this.sourceMapURLService.subscribe(
-      url,
-      rule.line,
-      rule.column,
+    this._unsubscribeCallback = this.sourceMapURLService.subscribeByID(
+      this.generatedLocation.sheet.actorID,
+      this.generatedLocation.line,
+      this.generatedLocation.column,
       this._updateLocation
     );
   }
@@ -1462,38 +1489,27 @@ SelectorView.prototype = {
    * original sources or not.  This is a callback for
    * SourceMapURLService.subscribe, which see.
    *
-   * @param {Boolean} enabled
-   *        True if the passed-in location should be used; this means
-   *        that source mapping is in use and the remaining arguments
-   *        are the original location.  False if the already-known
-   *        (stored) location should be used.
-   * @param {String} url
-   *        The original URL
-   * @param {Number} line
-   *        The original line number
-   * @param {number} column
-   *        The original column number
+   * @param {Object | null} originalLocation
+   *        The original position object (url/line/column) or null.
    */
-  _updateLocation: function(enabled, url, line, column) {
+  _updateLocation: function(originalLocation) {
     if (!this.tree.element) {
       return;
     }
 
     // Update |currentLocation| to be whichever location is being
     // displayed at the moment.
-    if (enabled) {
-      this.currentLocation = { href: url, line, column };
-    } else {
-      this.currentLocation = this.generatedLocation;
+    let currentLocation = this.generatedLocation;
+    if (originalLocation) {
+      const { url, line, column } = originalLocation;
+      currentLocation = { href: url, line, column };
     }
 
     const selector = '[sourcelocation="' + this.source + '"]';
     const link = this.tree.element.querySelector(selector);
     if (link) {
       const text =
-        CssLogic.shortSource(this.currentLocation) +
-        ":" +
-        this.currentLocation.line;
+        CssLogic.shortSource(currentLocation) + ":" + currentLocation.line;
       link.textContent = text;
     }
 
@@ -1523,12 +1539,10 @@ SelectorView.prototype = {
       return;
     }
 
-    const { href, line, column } = this.currentLocation;
+    const { sheet, line, column } = this.generatedLocation;
     const target = inspector.currentTarget;
     if (ToolDefinitions.styleEditor.isTargetSupported(target)) {
-      gDevTools.showToolbox(target, "styleeditor").then(function(toolbox) {
-        toolbox.getCurrentPanel().selectStyleSheet(href, line, column);
-      });
+      inspector.toolbox.viewSourceInStyleEditorByFront(sheet, line, column);
     }
   },
 
@@ -1536,15 +1550,8 @@ SelectorView.prototype = {
    * Destroy this selector view, removing event listeners
    */
   destroy: function() {
-    const rule = this.selectorInfo.rule;
-    if (rule && rule.parentStyleSheet && rule.type != ELEMENT_STYLE) {
-      const url = rule.parentStyleSheet.href || rule.parentStyleSheet.nodeHref;
-      this.sourceMapURLService.unsubscribe(
-        url,
-        rule.line,
-        rule.column,
-        this._updateLocation
-      );
+    if (this._unsubscribeCallback) {
+      this._unsubscribeCallback();
     }
   },
 };

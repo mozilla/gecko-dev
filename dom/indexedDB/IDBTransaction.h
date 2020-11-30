@@ -16,6 +16,7 @@
 #include "nsIRunnable.h"
 #include "nsString.h"
 #include "nsTArray.h"
+#include "SafeRefPtr.h"
 
 namespace mozilla {
 
@@ -121,17 +122,17 @@ class IDBTransaction final
 #endif
 
  public:
-  static MOZ_MUST_USE RefPtr<IDBTransaction> CreateVersionChange(
+  [[nodiscard]] static SafeRefPtr<IDBTransaction> CreateVersionChange(
       IDBDatabase* aDatabase,
       indexedDB::BackgroundVersionChangeTransactionChild* aActor,
-      IDBOpenDBRequest* aOpenRequest, int64_t aNextObjectStoreId,
+      NotNull<IDBOpenDBRequest*> aOpenRequest, int64_t aNextObjectStoreId,
       int64_t aNextIndexId);
 
-  static MOZ_MUST_USE RefPtr<IDBTransaction> Create(
+  [[nodiscard]] static SafeRefPtr<IDBTransaction> Create(
       JSContext* aCx, IDBDatabase* aDatabase,
       const nsTArray<nsString>& aObjectStoreNames, Mode aMode);
 
-  static IDBTransaction* GetCurrent();
+  static Maybe<IDBTransaction&> MaybeCurrent();
 
   void AssertIsOnOwningThread() const
 #ifdef DEBUG
@@ -159,9 +160,10 @@ class IDBTransaction final
   }
 
   indexedDB::BackgroundRequestChild* StartRequest(
-      IDBRequest* aRequest, const indexedDB::RequestParams& aParams);
+      MovingNotNull<RefPtr<mozilla::dom::IDBRequest>> aRequest,
+      const indexedDB::RequestParams& aParams);
 
-  void OpenCursor(indexedDB::PBackgroundIDBCursorChild* aBackgroundActor,
+  void OpenCursor(indexedDB::PBackgroundIDBCursorChild& aBackgroundActor,
                   const indexedDB::OpenCursorParams& aParams);
 
   void RefreshSpec(bool aMayDelete);
@@ -274,7 +276,7 @@ class IDBTransaction final
     return mObjectStoreNames;
   }
 
-  MOZ_MUST_USE RefPtr<IDBObjectStore> CreateObjectStore(
+  [[nodiscard]] RefPtr<IDBObjectStore> CreateObjectStore(
       indexedDB::ObjectStoreSpec& aSpec);
 
   void DeleteObjectStore(int64_t aObjectStoreId);
@@ -330,8 +332,8 @@ class IDBTransaction final
 
   DOMException* GetError() const;
 
-  MOZ_MUST_USE RefPtr<IDBObjectStore> ObjectStore(const nsAString& aName,
-                                                  ErrorResult& aRv);
+  [[nodiscard]] RefPtr<IDBObjectStore> ObjectStore(const nsAString& aName,
+                                                   ErrorResult& aRv);
 
   void Commit(ErrorResult& aRv);
 
@@ -341,7 +343,7 @@ class IDBTransaction final
   IMPL_EVENT_HANDLER(complete)
   IMPL_EVENT_HANDLER(error)
 
-  MOZ_MUST_USE RefPtr<DOMStringList> ObjectStoreNames() const;
+  [[nodiscard]] RefPtr<DOMStringList> ObjectStoreNames() const;
 
   // EventTarget
   void GetEventTargetParent(EventChainPreVisitor& aVisitor) override;
@@ -380,6 +382,14 @@ class IDBTransaction final
 
   bool HasTransactionChild() const;
 };
+
+inline bool ReferenceEquals(const Maybe<IDBTransaction&>& aLHS,
+                            const Maybe<IDBTransaction&>& aRHS) {
+  if (aLHS.isNothing() != aRHS.isNothing()) {
+    return false;
+  }
+  return aLHS.isNothing() || &aLHS.ref() == &aRHS.ref();
+}
 
 }  // namespace dom
 }  // namespace mozilla

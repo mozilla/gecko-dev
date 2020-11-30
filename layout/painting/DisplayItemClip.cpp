@@ -103,7 +103,7 @@ void DisplayItemClip::ApplyRoundedRectClipsTo(gfxContext* aContext, int32_t A2D,
 }
 
 void DisplayItemClip::FillIntersectionOfRoundedRectClips(
-    gfxContext* aContext, const Color& aColor,
+    gfxContext* aContext, const DeviceColor& aColor,
     int32_t aAppUnitsPerDevPixel) const {
   DrawTarget& aDrawTarget = *aContext->GetDrawTarget();
 
@@ -118,8 +118,7 @@ void DisplayItemClip::FillIntersectionOfRoundedRectClips(
   // Now fill the rect at |aEnd - 1|:
   RefPtr<Path> roundedRect = MakeRoundedRectPath(
       aDrawTarget, aAppUnitsPerDevPixel, mRoundedClipRects[end - 1]);
-  ColorPattern color(ToDeviceColor(aColor));
-  aDrawTarget.Fill(roundedRect, color);
+  aDrawTarget.Fill(roundedRect, ColorPattern(aColor));
 
   // Finally, pop any clips that we may have pushed:
   for (uint32_t i = 0; i < end - 1; ++i) {
@@ -378,15 +377,14 @@ static void AccumulateRoundedRectDifference(
     r.Or(r, nsRect(minLeft, highestAdjustedBottom, maxRight - minLeft,
                    lowestBottom - highestAdjustedBottom));
   }
-  // Then, or with the X delta rects, narrow along the Y axis
+  // Then, or with the X delta rects, wide along the Y axis
   if (rect1.X() != rect2.X()) {
-    r.Or(r, nsRect(minLeft, lowestAdjustedTop, maxAdjustedLeft - minLeft,
-                   highestAdjustedBottom - lowestAdjustedTop));
+    r.Or(r, nsRect(minLeft, highestTop, maxAdjustedLeft - minLeft,
+                   lowestBottom - highestTop));
   }
   if (rect1.XMost() != rect2.XMost()) {
-    r.Or(r, nsRect(minAdjustedRight, lowestAdjustedTop,
-                   maxRight - minAdjustedRight,
-                   highestAdjustedBottom - lowestAdjustedTop));
+    r.Or(r, nsRect(minAdjustedRight, highestTop, maxRight - minAdjustedRight,
+                   lowestBottom - highestTop));
   }
 
   r.And(r, aBounds.Union(aOtherBounds));

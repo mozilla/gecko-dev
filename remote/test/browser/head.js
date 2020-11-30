@@ -12,6 +12,9 @@ const { RemoteAgent } = ChromeUtils.import(
   "chrome://remote/content/RemoteAgent.jsm"
 );
 
+const TIMEOUT_MULTIPLIER = SpecialPowers.isDebugBuild ? 4 : 1;
+const TIMEOUT_EVENTS = 1000 * TIMEOUT_MULTIPLIER;
+
 /*
 add_task() is overriden to setup and teardown a test environment
 making it easier to  write browser-chrome tests for the remote
@@ -55,7 +58,9 @@ this.add_task = function(taskFn, opts = {}) {
         const browsingContextId = tab.linkedBrowser.browsingContext.id;
 
         const targets = await CDP.List();
-        target = targets.find(target => target.id === browsingContextId);
+        target = targets.find(
+          target => target.browsingContextId === browsingContextId
+        );
       }
 
       client = await CDP({ target });
@@ -262,6 +267,48 @@ function toDataURL(src, doctype = "html") {
   return `data:${mime},${encodeURIComponent(doc)}`;
 }
 
+function convertArgument(arg) {
+  if (typeof arg === "bigint") {
+    return { unserializableValue: `${arg.toString()}n` };
+  }
+  if (Object.is(arg, -0)) {
+    return { unserializableValue: "-0" };
+  }
+  if (Object.is(arg, Infinity)) {
+    return { unserializableValue: "Infinity" };
+  }
+  if (Object.is(arg, -Infinity)) {
+    return { unserializableValue: "-Infinity" };
+  }
+  if (Object.is(arg, NaN)) {
+    return { unserializableValue: "NaN" };
+  }
+
+  return { value: arg };
+}
+
+async function evaluate(client, contextId, pageFunction, ...args) {
+  const { Runtime } = client;
+
+  if (typeof pageFunction === "string") {
+    return Runtime.evaluate({
+      expression: pageFunction,
+      contextId,
+      returnByValue: true,
+      awaitPromise: true,
+    });
+  } else if (typeof pageFunction === "function") {
+    return Runtime.callFunctionOn({
+      functionDeclaration: pageFunction.toString(),
+      executionContextId: contextId,
+      arguments: args.map(convertArgument),
+      returnByValue: true,
+      awaitPromise: true,
+    });
+  }
+  throw new Error("pageFunction: expected 'string' or 'function'");
+}
+
 /**
  * Load a given URL in the currently selected tab
  */
@@ -269,10 +316,29 @@ async function loadURL(url, expectedURL = undefined) {
   expectedURL = expectedURL || url;
 
   const browser = gBrowser.selectedTab.linkedBrowser;
-  const loaded = BrowserTestUtils.browserLoaded(browser, false, expectedURL);
+  const loaded = BrowserTestUtils.browserLoaded(browser, true, expectedURL);
 
   BrowserTestUtils.loadURI(browser, url);
   await loaded;
+}
+
+/**
+ * Enable the Runtime domain
+ */
+async function enableRuntime(client) {
+  const { Runtime } = client;
+
+  // Enable watching for new execution context
+  await Runtime.enable();
+  info("Runtime domain has been enabled");
+
+  // Calling Runtime.enable will emit executionContextCreated for the existing contexts
+  const { context } = await Runtime.executionContextCreated();
+  ok(!!context.id, "The execution context has an id");
+  ok(context.auxData.isDefault, "The execution context is the default one");
+  ok(!!context.auxData.frameId, "The execution context has a frame id set");
+
+  return context;
 }
 
 /**
@@ -285,6 +351,30 @@ function getContentProperty(prop) {
     [prop],
     _prop => content[_prop]
   );
+}
+
+/**
+ * Retrieve all frames for the current tab as flattened list.
+ *
+ * @return {Map<number, Frame>}
+ *     Flattened list of frames as Map
+ */
+async function getFlattenedFrameTree(client) {
+  const { Page } = client;
+
+  function flatten(frames) {
+    return frames.reduce((result, current) => {
+      result.set(current.frame.id, current.frame);
+      if (current.childFrames) {
+        const frames = flatten(current.childFrames);
+        result = new Map([...result, ...frames]);
+      }
+      return result;
+    }, new Map());
+  }
+
+  const { frameTree } = await Page.getFrameTree();
+  return flatten(Array(frameTree));
 }
 
 /**
@@ -389,18 +479,23 @@ class RecordEvents {
    *     https://github.com/cyrus-and/chrome-remote-interface#clientdomaineventcallback
    * @param {string} options.eventName
    *     Name to use for reporting.
+   * @param {Function=} options.callback
+   *     ({ eventName, payload }) => {} to be called when each event is received
    * @param {function(payload):string=} options.messageFn
    */
   addRecorder(options = {}) {
     const {
       event,
       eventName,
-      messageFn = () => `Received ${eventName}`,
+      messageFn = () => `Recorded ${eventName}`,
+      callback,
     } = options;
+
     const promise = new Promise(resolve => {
       const unsubscribe = event(payload => {
         info(messageFn(payload));
-        this.events.push({ eventName, payload });
+        this.events.push({ eventName, payload, index: this.events.length });
+        callback?.({ eventName, payload, index: this.events.length - 1 });
         if (this.events.length > this.total) {
           this.subscriptions.delete(unsubscribe);
           unsubscribe();
@@ -409,18 +504,46 @@ class RecordEvents {
       });
       this.subscriptions.add(unsubscribe);
     });
+
     this.promises.add(promise);
+  }
+
+  /**
+   * Register a promise to await while recording the timeline. The returned
+   * callback resolves the registered promise and adds `step`
+   * to the timeline, along with an associated payload, if provided.
+   *
+   * @param {string} step
+   * @return {Function} callback
+   */
+  addPromise(step) {
+    let callback;
+    const promise = new Promise(resolve => {
+      callback = value => {
+        resolve();
+        info(`Recorded ${step}`);
+        this.events.push({
+          eventName: step,
+          payload: value,
+          index: this.events.length,
+        });
+        return value;
+      };
+    });
+
+    this.promises.add(promise);
+    return callback;
   }
 
   /**
    * Record events until we hit the timeout or the expected total is exceeded.
    *
    * @param {number=} timeout
-   *     milliseconds
+   *     Timeout in milliseconds. Defaults to 1000.
    *
-   * @return {Array<{ eventName, payload }>} Recorded events
+   * @return {Array<{ eventName, payload, index }>} Recorded events
    */
-  async record(timeout = 1000) {
+  async record(timeout = TIMEOUT_EVENTS) {
     await Promise.race([Promise.all(this.promises), timeoutPromise(timeout)]);
     for (const unsubscribe of this.subscriptions) {
       unsubscribe();
@@ -429,17 +552,56 @@ class RecordEvents {
   }
 
   /**
+   * Filter events based on predicate
+   *
+   * @param {Function} predicate
+   *
+   * @return {Array<{ eventName, payload, index }>}
+   *     The list of events matching the filter.
+   */
+  filter(predicate) {
+    return this.events.filter(predicate);
+  }
+
+  /**
    * Find first occurrence of the given event.
    *
    * @param {string} eventName
    *
-   * @return {object} The event payload, if any.
+   * @return {{ eventName, payload, index }} The event, if any.
    */
   findEvent(eventName) {
     const event = this.events.find(el => el.eventName == eventName);
     if (event) {
-      return event.payload;
+      return event;
     }
     return {};
+  }
+
+  /**
+   * Find given events.
+   *
+   * @param {string} eventName
+   *
+   * @return {Array<{ eventName, payload, index }>}
+   *     The events, if any.
+   */
+  findEvents(eventName) {
+    return this.events.filter(event => event.eventName == eventName);
+  }
+
+  /**
+   * Find index of first occurrence of the given event.
+   *
+   * @param {string} eventName
+   *
+   * @return {number} The event index, -1 if not found.
+   */
+  indexOf(eventName) {
+    const event = this.events.find(el => el.eventName == eventName);
+    if (event) {
+      return event.index;
+    }
+    return -1;
   }
 }

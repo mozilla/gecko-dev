@@ -7,6 +7,7 @@
 #include "InterceptedHttpChannel.h"
 #include "nsContentSecurityManager.h"
 #include "nsEscape.h"
+#include "mozilla/SchedulerGroup.h"
 #include "mozilla/dom/ChannelInfo.h"
 #include "mozilla/dom/PerformanceStorage.h"
 #include "nsHttpChannel.h"
@@ -20,9 +21,7 @@ namespace net {
 NS_IMPL_ISUPPORTS_INHERITED(InterceptedHttpChannel, HttpBaseChannel,
                             nsIInterceptedChannel, nsICacheInfoChannel,
                             nsIAsyncVerifyRedirectCallback, nsIRequestObserver,
-                            nsIStreamListener,
-                            nsIChannelWithDivertableParentListener,
-                            nsIThreadRetargetableRequest,
+                            nsIStreamListener, nsIThreadRetargetableRequest,
                             nsIThreadRetargetableStreamListener)
 
 InterceptedHttpChannel::InterceptedHttpChannel(
@@ -34,8 +33,7 @@ InterceptedHttpChannel::InterceptedHttpChannel(
       mSynthesizedStreamLength(-1),
       mResumeStartPos(0),
       mSynthesizedOrReset(Invalid),
-      mCallingStatusAndProgress(false),
-      mDiverting(false) {
+      mCallingStatusAndProgress(false) {
   // Pre-set the creation and AsyncOpen times based on the original channel
   // we are intercepting.  We don't want our extra internal redirect to mask
   // any time spent processing the channel.
@@ -56,7 +54,6 @@ void InterceptedHttpChannel::ReleaseListeners() {
   mProgressSink = nullptr;
   mBodyCallback = nullptr;
   mPump = nullptr;
-  mParentChannel = nullptr;
 
   MOZ_DIAGNOSTIC_ASSERT(!mIsPending);
 }
@@ -251,8 +248,7 @@ nsresult InterceptedHttpChannel::RedirectForResponseURL(
       CloneLoadInfoForRedirect(aResponseURI, flags);
 
   nsContentPolicyType contentPolicyType =
-      redirectLoadInfo ? redirectLoadInfo->GetExternalContentPolicyType()
-                       : nsIContentPolicy::TYPE_OTHER;
+      redirectLoadInfo->GetExternalContentPolicyType();
 
   rv = newChannel->Init(
       aResponseURI, mCaps, static_cast<nsProxyInfo*>(mProxyInfo.get()),
@@ -326,7 +322,7 @@ nsresult InterceptedHttpChannel::StartPump() {
       nsInputStreamPump::Create(getter_AddRefs(mPump), mBodyReader, 0, 0, true);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = mPump->AsyncRead(this, nullptr);
+  rv = mPump->AsyncRead(this);
   NS_ENSURE_SUCCESS(rv, rv);
 
   uint32_t suspendCount = mSuspendCount;
@@ -379,7 +375,8 @@ void InterceptedHttpChannel::MaybeCallStatusAndProgress() {
     nsCOMPtr<nsIRunnable> r = NewRunnableMethod(
         "InterceptedHttpChannel::MaybeCallStatusAndProgress", this,
         &InterceptedHttpChannel::MaybeCallStatusAndProgress);
-    MOZ_ALWAYS_SUCCEEDS(SystemGroup::Dispatch(TaskCategory::Other, r.forget()));
+    MOZ_ALWAYS_SUCCEEDS(
+        SchedulerGroup::Dispatch(TaskCategory::Other, r.forget()));
 
     return;
   }
@@ -414,10 +411,9 @@ void InterceptedHttpChannel::MaybeCallStatusAndProgress() {
     CopyUTF8toUTF16(host, mStatusHost);
   }
 
-  mProgressSink->OnStatus(this, nullptr, NS_NET_STATUS_READING,
-                          mStatusHost.get());
+  mProgressSink->OnStatus(this, NS_NET_STATUS_READING, mStatusHost.get());
 
-  mProgressSink->OnProgress(this, nullptr, progress, mSynthesizedStreamLength);
+  mProgressSink->OnProgress(this, progress, mSynthesizedStreamLength);
 
   mProgressReported = progress;
 }
@@ -480,15 +476,6 @@ InterceptedHttpChannel::Cancel(nsresult aStatus) {
     mStatus = aStatus;
   }
 
-  // Everything is suspended during diversion until it completes.  Since the
-  // intercepted channel could be a long-running stream, we need to request that
-  // cancellation be triggered in the child, completing the diversion and
-  // allowing cancellation to run to completion.
-  if (mDiverting) {
-    Unused << mParentChannel->CancelDiversion();
-    // (We want the pump to be canceled as well, so don't directly return.)
-  }
-
   if (mPump) {
     return mPump->Cancel(mStatus);
   }
@@ -498,26 +485,20 @@ InterceptedHttpChannel::Cancel(nsresult aStatus) {
 
 NS_IMETHODIMP
 InterceptedHttpChannel::Suspend(void) {
-  nsresult rv = SuspendInternal();
-
-  nsresult rvParentChannel = NS_OK;
-  if (mParentChannel) {
-    rvParentChannel = mParentChannel->SuspendMessageDiversion();
+  ++mSuspendCount;
+  if (mPump) {
+    return mPump->Suspend();
   }
-
-  return NS_FAILED(rv) ? rv : rvParentChannel;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 InterceptedHttpChannel::Resume(void) {
-  nsresult rv = ResumeInternal();
-
-  nsresult rvParentChannel = NS_OK;
-  if (mParentChannel) {
-    rvParentChannel = mParentChannel->ResumeMessageDiversion();
+  --mSuspendCount;
+  if (mPump) {
+    return mPump->Resume();
   }
-
-  return NS_FAILED(rv) ? rv : rvParentChannel;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -568,6 +549,11 @@ NS_IMETHODIMP
 InterceptedHttpChannel::SetupFallbackChannel(const char* aFallbackKey) {
   // AppCache should not be used with service worker intercepted channels.
   // This should never be called.
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+InterceptedHttpChannel::GetIsAuthChannel(bool* aIsAuthChannel) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -699,7 +685,7 @@ InterceptedHttpChannel::SynthesizeHeader(const nsACString& aName,
     mSynthesizedResponseHead.reset(new nsHttpResponseHead());
   }
 
-  nsAutoCString header = aName + NS_LITERAL_CSTRING(": ") + aValue;
+  nsAutoCString header = aName + ": "_ns + aValue;
   // Overwrite any existing header.
   nsresult rv = mSynthesizedResponseHead->ParseHeaderLine(header);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -762,7 +748,7 @@ InterceptedHttpChannel::StartSynthesizedResponse(
   // stream here so later code can be simpler.
   mBodyReader = aBody;
   if (!mBodyReader) {
-    rv = NS_NewCStringInputStream(getter_AddRefs(mBodyReader), EmptyCString());
+    rv = NS_NewCStringInputStream(getter_AddRefs(mBodyReader), ""_ns);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -925,11 +911,10 @@ InterceptedHttpChannel::SaveTimeStamps(void) {
   }
 
   bool isNonSubresourceRequest = nsContentUtils::IsNonSubresourceRequest(this);
-  nsCString navigationOrSubresource = isNonSubresourceRequest
-                                          ? NS_LITERAL_CSTRING("navigation")
-                                          : NS_LITERAL_CSTRING("subresource");
+  nsCString navigationOrSubresource =
+      isNonSubresourceRequest ? "navigation"_ns : "subresource"_ns;
 
-  nsAutoCString subresourceKey(EmptyCString());
+  nsAutoCString subresourceKey(""_ns);
   GetSubresourceTimeStampKey(this, subresourceKey);
 
   // We may have null timestamps if the fetch dispatch runnable was cancelled
@@ -1028,6 +1013,31 @@ InterceptedHttpChannel::OnStartRequest(nsIRequest* aRequest) {
     mPump->PeekStream(CallTypeSniffers, static_cast<nsIChannel*>(this));
   }
 
+  nsresult rv = ProcessCrossOriginEmbedderPolicyHeader();
+  if (NS_FAILED(rv)) {
+    mStatus = NS_ERROR_BLOCKED_BY_POLICY;
+    Cancel(mStatus);
+  }
+
+  rv = ProcessCrossOriginResourcePolicyHeader();
+  if (NS_FAILED(rv)) {
+    mStatus = NS_ERROR_DOM_CORP_FAILED;
+    Cancel(mStatus);
+  }
+
+  rv = ComputeCrossOriginOpenerPolicyMismatch();
+  if (rv == NS_ERROR_BLOCKED_BY_POLICY) {
+    mStatus = NS_ERROR_BLOCKED_BY_POLICY;
+    Cancel(mStatus);
+  }
+
+  rv = ValidateMIMEType();
+  if (NS_FAILED(rv)) {
+    mStatus = rv;
+    Cancel(mStatus);
+  }
+
+  mOnStartRequestCalled = true;
   if (mListener) {
     return mListener->OnStartRequest(this);
   }
@@ -1088,45 +1098,6 @@ InterceptedHttpChannel::OnDataAvailable(nsIRequest* aRequest,
   }
 
   return mListener->OnDataAvailable(this, aInputStream, aOffset, aCount);
-}
-
-NS_IMETHODIMP
-InterceptedHttpChannel::MessageDiversionStarted(
-    ADivertableParentChannel* aParentChannel) {
-  MOZ_ASSERT(!mParentChannel);
-  mParentChannel = aParentChannel;
-  mDiverting = true;
-  uint32_t suspendCount = mSuspendCount;
-  while (suspendCount--) {
-    mParentChannel->SuspendMessageDiversion();
-  }
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-InterceptedHttpChannel::MessageDiversionStop() {
-  MOZ_ASSERT(mParentChannel);
-  mParentChannel = nullptr;
-  mDiverting = false;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-InterceptedHttpChannel::SuspendInternal() {
-  ++mSuspendCount;
-  if (mPump) {
-    return mPump->Suspend();
-  }
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-InterceptedHttpChannel::ResumeInternal() {
-  --mSuspendCount;
-  if (mPump) {
-    return mPump->Resume();
-  }
-  return NS_OK;
 }
 
 NS_IMETHODIMP

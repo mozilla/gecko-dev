@@ -22,45 +22,34 @@
 #include "mozilla/Atomics.h"
 #include "mozilla/UniquePtrExtensions.h"
 #include "prenv.h"
+#include "GeckoProfiler.h"
 
 namespace base {
 
-SharedMemory::SharedMemory()
-    : mapped_file_(-1),
-      frozen_file_(-1),
-      mapped_size_(0),
-      memory_(nullptr),
-      read_only_(false),
-      freezeable_(false),
-      max_size_(0) {}
-
-SharedMemory::SharedMemory(SharedMemory&& other) {
-  if (this == &other) {
-    return;
-  }
-
-  mapped_file_ = other.mapped_file_;
-  mapped_size_ = other.mapped_size_;
-  frozen_file_ = other.frozen_file_;
-  memory_ = other.memory_;
-  read_only_ = other.read_only_;
-  freezeable_ = other.freezeable_;
-  max_size_ = other.max_size_;
-
-  other.mapped_file_ = -1;
-  other.mapped_size_ = 0;
-  other.frozen_file_ = -1;
-  other.memory_ = nullptr;
+void SharedMemory::MappingDeleter::operator()(void* ptr) {
+  // Check that this isn't a default-constructed deleter.  (`munmap`
+  // is specified to fail with `EINVAL` if the length is 0, so this
+  // assertion isn't load-bearing.)
+  DCHECK(mapped_size_ != 0);
+  munmap(ptr, mapped_size_);
+  // Guard against multiple calls of the same deleter, which shouldn't
+  // happen (but could, if `UniquePtr::reset` were used).  Calling
+  // `munmap` with an incorrect non-zero length would be bad.
+  mapped_size_ = 0;
 }
 
-SharedMemory::~SharedMemory() { Close(); }
+SharedMemory::~SharedMemory() {
+  // This is almost equal to the default destructor, except for the
+  // warning message about unfrozen freezable memory.
+  Close();
+}
 
 bool SharedMemory::SetHandle(SharedMemoryHandle handle, bool read_only) {
-  DCHECK(mapped_file_ == -1);
-  DCHECK(frozen_file_ == -1);
+  DCHECK(!mapped_file_);
+  DCHECK(!frozen_file_);
 
   freezeable_ = false;
-  mapped_file_ = handle.fd;
+  mapped_file_.reset(handle.fd);
   read_only_ = read_only;
   return true;
 }
@@ -70,93 +59,8 @@ bool SharedMemory::IsHandleValid(const SharedMemoryHandle& handle) {
   return handle.fd >= 0;
 }
 
-bool SharedMemory::IsValid() const { return mapped_file_ >= 0; }
-
 // static
 SharedMemoryHandle SharedMemory::NULLHandle() { return SharedMemoryHandle(); }
-
-// Workaround for CVE-2018-4435 (https://crbug.com/project-zero/1671);
-// can be removed when minimum OS version is at least 10.12.
-#ifdef OS_MACOSX
-static const char* GetTmpDir() {
-  static const char* const kTmpDir = [] {
-    const char* tmpdir = PR_GetEnv("TMPDIR");
-    if (tmpdir) {
-      return tmpdir;
-    }
-    return "/tmp";
-  }();
-  return kTmpDir;
-}
-
-static int FakeShmOpen(const char* name, int oflag, int mode) {
-  CHECK(name[0] == '/');
-  std::string path(GetTmpDir());
-  path += name;
-  return open(path.c_str(), oflag | O_CLOEXEC | O_NOCTTY, mode);
-}
-
-static int FakeShmUnlink(const char* name) {
-  CHECK(name[0] == '/');
-  std::string path(GetTmpDir());
-  path += name;
-  return unlink(path.c_str());
-}
-
-static bool IsShmOpenSecure() {
-  static const bool kIsSecure = [] {
-    mozilla::UniqueFileHandle rwfd, rofd;
-    std::string name;
-    CHECK(SharedMemory::AppendPosixShmPrefix(&name, getpid()));
-    name += "sectest";
-    // The prefix includes the pid and this will be called at most
-    // once per process, so no need for a counter.
-    rwfd.reset(
-        HANDLE_EINTR(shm_open(name.c_str(), O_RDWR | O_CREAT | O_EXCL, 0600)));
-    // An adversary could steal the name.  Handle this semi-gracefully.
-    DCHECK(rwfd);
-    if (!rwfd) {
-      return false;
-    }
-    rofd.reset(shm_open(name.c_str(), O_RDONLY, 0400));
-    CHECK(rofd);
-    CHECK(shm_unlink(name.c_str()) == 0);
-    CHECK(ftruncate(rwfd.get(), 1) == 0);
-    rwfd = nullptr;
-    void* map = mmap(nullptr, 1, PROT_READ, MAP_SHARED, rofd.get(), 0);
-    CHECK(map != MAP_FAILED);
-    bool ok = mprotect(map, 1, PROT_READ | PROT_WRITE) != 0;
-    munmap(map, 1);
-    return ok;
-  }();
-  return kIsSecure;
-}
-
-static int SafeShmOpen(bool freezeable, const char* name, int oflag, int mode) {
-  if (!freezeable || IsShmOpenSecure()) {
-    return shm_open(name, oflag, mode);
-  } else {
-    return FakeShmOpen(name, oflag, mode);
-  }
-}
-
-static int SafeShmUnlink(bool freezeable, const char* name) {
-  if (!freezeable || IsShmOpenSecure()) {
-    return shm_unlink(name);
-  } else {
-    return FakeShmUnlink(name);
-  }
-}
-
-#elif !defined(ANDROID)
-static int SafeShmOpen(bool freezeable, const char* name, int oflag, int mode) {
-  return shm_open(name, oflag, mode);
-}
-
-static int SafeShmUnlink(bool freezeable, const char* name) {
-  return shm_unlink(name);
-}
-#endif
 
 // static
 bool SharedMemory::AppendPosixShmPrefix(std::string* str, pid_t pid) {
@@ -193,8 +97,8 @@ bool SharedMemory::CreateInternal(size_t size, bool freezeable) {
   read_only_ = false;
 
   DCHECK(size > 0);
-  DCHECK(mapped_file_ == -1);
-  DCHECK(frozen_file_ == -1);
+  DCHECK(!mapped_file_);
+  DCHECK(!frozen_file_);
 
   mozilla::UniqueFileHandle fd;
   mozilla::UniqueFileHandle frozen_fd;
@@ -218,21 +122,20 @@ bool SharedMemory::CreateInternal(size_t size, bool freezeable) {
     CHECK(AppendPosixShmPrefix(&name, getpid()));
     StringAppendF(&name, "%zu", sNameCounter++);
     // O_EXCL means the names being predictable shouldn't be a problem.
-    fd.reset(HANDLE_EINTR(SafeShmOpen(freezeable, name.c_str(),
-                                      O_RDWR | O_CREAT | O_EXCL, 0600)));
+    fd.reset(
+        HANDLE_EINTR(shm_open(name.c_str(), O_RDWR | O_CREAT | O_EXCL, 0600)));
     if (fd) {
       if (freezeable) {
-        frozen_fd.reset(HANDLE_EINTR(
-            SafeShmOpen(freezeable, name.c_str(), O_RDONLY, 0400)));
+        frozen_fd.reset(HANDLE_EINTR(shm_open(name.c_str(), O_RDONLY, 0400)));
         if (!frozen_fd) {
           int open_err = errno;
-          SafeShmUnlink(freezeable, name.c_str());
+          shm_unlink(name.c_str());
           DLOG(FATAL) << "failed to re-open freezeable shm: "
                       << strerror(open_err);
           return false;
         }
       }
-      if (SafeShmUnlink(freezeable, name.c_str()) != 0) {
+      if (shm_unlink(name.c_str()) != 0) {
         // This shouldn't happen, but if it does: assume the file is
         // in fact leaked, and bail out now while it's still 0-length.
         DLOG(FATAL) << "failed to unlink shm: " << strerror(errno);
@@ -248,51 +151,104 @@ bool SharedMemory::CreateInternal(size_t size, bool freezeable) {
   }
 
   if (needs_truncate) {
-    if (HANDLE_EINTR(ftruncate(fd.get(), static_cast<off_t>(size))) != 0) {
-      CHROMIUM_LOG(WARNING) << "failed to set shm size: " << strerror(errno);
+#if defined(HAVE_POSIX_FALLOCATE)
+    // Using posix_fallocate will ensure that there's actually space for this
+    // file. Otherwise we end up with a sparse file that can give SIGBUS if we
+    // run out of space while writing to it.
+    int rv;
+    {
+      // Avoid repeated interruptions of posix_fallocate by the profiler's
+      // SIGPROF sampling signal. Indicating "thread sleep" here means we'll
+      // get up to one interruption but not more. See bug 1658847 for more.
+      // This has to be scoped outside the HANDLE_RV_EINTR retry loop.
+      AUTO_PROFILER_THREAD_SLEEP;
+      rv = HANDLE_RV_EINTR(
+          posix_fallocate(fd.get(), 0, static_cast<off_t>(size)));
+    }
+    if (rv != 0) {
+      if (rv == EOPNOTSUPP || rv == EINVAL || rv == ENODEV) {
+        // Some filesystems have trouble with posix_fallocate. For now, we must
+        // fallback ftruncate and accept the allocation failures like we do
+        // without posix_fallocate.
+        // See https://bugzilla.mozilla.org/show_bug.cgi?id=1618914
+        int fallocate_errno = rv;
+        rv = HANDLE_EINTR(ftruncate(fd.get(), static_cast<off_t>(size)));
+        if (rv != 0) {
+          CHROMIUM_LOG(WARNING) << "fallocate failed to set shm size: "
+                                << strerror(fallocate_errno);
+          CHROMIUM_LOG(WARNING)
+              << "ftruncate failed to set shm size: " << strerror(errno);
+          return false;
+        }
+      } else {
+        CHROMIUM_LOG(WARNING)
+            << "fallocate failed to set shm size: " << strerror(rv);
+        return false;
+      }
+    }
+#else
+    int rv = HANDLE_EINTR(ftruncate(fd.get(), static_cast<off_t>(size)));
+    if (rv != 0) {
+      CHROMIUM_LOG(WARNING)
+          << "ftruncate failed to set shm size: " << strerror(errno);
       return false;
     }
+#endif
   }
 
-  mapped_file_ = fd.release();
-  frozen_file_ = frozen_fd.release();
+  mapped_file_ = std::move(fd);
+  frozen_file_ = std::move(frozen_fd);
   max_size_ = size;
   freezeable_ = freezeable;
   return true;
 }
 
-bool SharedMemory::Freeze() {
+bool SharedMemory::ReadOnlyCopy(SharedMemory* ro_out) {
+  DCHECK(mapped_file_);
   DCHECK(!read_only_);
   CHECK(freezeable_);
-  Unmap();
 
+  if (ro_out == this) {
+    DCHECK(!memory_);
+  }
+
+  mozilla::UniqueFileHandle ro_file;
 #ifdef ANDROID
-  if (mozilla::android::ashmem_setProt(mapped_file_, PROT_READ) != 0) {
-    CHROMIUM_LOG(WARNING) << "failed to freeze shm: " << strerror(errno);
+  ro_file = std::move(mapped_file_);
+  if (mozilla::android::ashmem_setProt(ro_file.get(), PROT_READ) != 0) {
+    CHROMIUM_LOG(WARNING) << "failed to set ashmem read-only: "
+                          << strerror(errno);
     return false;
   }
 #else
-  DCHECK(frozen_file_ >= 0);
-  DCHECK(mapped_file_ >= 0);
-  close(mapped_file_);
-  mapped_file_ = frozen_file_;
-  frozen_file_ = -1;
+  DCHECK(frozen_file_);
+  mapped_file_ = nullptr;
+  ro_file = std::move(frozen_file_);
 #endif
 
-  read_only_ = true;
+  DCHECK(ro_file);
   freezeable_ = false;
+
+  ro_out->Close();
+  ro_out->mapped_file_ = std::move(ro_file);
+  ro_out->max_size_ = max_size_;
+  ro_out->read_only_ = true;
+  ro_out->freezeable_ = false;
+
   return true;
 }
 
 bool SharedMemory::Map(size_t bytes, void* fixed_address) {
-  if (mapped_file_ == -1) return false;
+  if (!mapped_file_) {
+    return false;
+  }
   DCHECK(!memory_);
 
   // Don't use MAP_FIXED when a fixed_address was specified, since that can
   // replace pages that are alread mapped at that address.
   void* mem =
       mmap(fixed_address, bytes, PROT_READ | (read_only_ ? 0 : PROT_WRITE),
-           MAP_SHARED, mapped_file_, 0);
+           MAP_SHARED, mapped_file_.get(), 0);
 
   if (mem == MAP_FAILED) {
     CHROMIUM_LOG(WARNING) << "Call to mmap failed: " << strerror(errno);
@@ -305,17 +261,7 @@ bool SharedMemory::Map(size_t bytes, void* fixed_address) {
     return false;
   }
 
-  memory_ = mem;
-  mapped_size_ = bytes;
-  return true;
-}
-
-bool SharedMemory::Unmap() {
-  if (memory_ == NULL) return false;
-
-  munmap(memory_, mapped_size_);
-  memory_ = NULL;
-  mapped_size_ = 0;
+  memory_ = UniqueMapping(mem, MappingDeleter(bytes));
   return true;
 }
 
@@ -330,7 +276,7 @@ bool SharedMemory::ShareToProcessCommon(ProcessId processId,
                                         SharedMemoryHandle* new_handle,
                                         bool close_self) {
   freezeable_ = false;
-  const int new_fd = dup(mapped_file_);
+  const int new_fd = dup(mapped_file_.get());
   DCHECK(new_fd >= -1);
   new_handle->fd = new_fd;
   new_handle->auto_close = true;
@@ -345,24 +291,11 @@ void SharedMemory::Close(bool unmap_view) {
     Unmap();
   }
 
-  if (mapped_file_ >= 0) {
-    close(mapped_file_);
-    mapped_file_ = -1;
-  }
-  if (frozen_file_ >= 0) {
+  mapped_file_ = nullptr;
+  if (frozen_file_) {
     CHROMIUM_LOG(WARNING) << "freezeable shared memory was never frozen";
-    close(frozen_file_);
-    frozen_file_ = -1;
+    frozen_file_ = nullptr;
   }
-}
-
-mozilla::UniqueFileHandle SharedMemory::TakeHandle() {
-  mozilla::UniqueFileHandle fh(mapped_file_);
-  mapped_file_ = -1;
-  // Now that the main fd is removed, reset everything else: close the
-  // frozen fd if present and unmap the memory if mapped.
-  Close();
-  return fh;
 }
 
 }  // namespace base

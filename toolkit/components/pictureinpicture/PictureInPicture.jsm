@@ -8,6 +8,7 @@ var EXPORTED_SYMBOLS = [
   "PictureInPicture",
   "PictureInPictureParent",
   "PictureInPictureToggleParent",
+  "PictureInPictureLauncherParent",
 ];
 
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
@@ -23,6 +24,7 @@ if (!AppConstants.MOZ_WIDGET_GTK) {
   PLAYER_FEATURES += ",dialog";
 }
 const WINDOW_TYPE = "Toolkit:PictureInPicture";
+const PIP_ENABLED_PREF = "media.videocontrols.picture-in-picture.enabled";
 const TOGGLE_ENABLED_PREF =
   "media.videocontrols.picture-in-picture.video-toggle.enabled";
 
@@ -39,6 +41,18 @@ let gCloseReasons = new WeakMap();
  * player window is given a unique ID.
  */
 let gNextWindowID = 0;
+
+class PictureInPictureLauncherParent extends JSWindowActorParent {
+  receiveMessage(aMessage) {
+    switch (aMessage.name) {
+      case "PictureInPicture:Request": {
+        let videoData = aMessage.data;
+        PictureInPicture.handlePictureInPictureRequest(this.manager, videoData);
+        break;
+      }
+    }
+  }
+}
 
 class PictureInPictureToggleParent extends JSWindowActorParent {
   receiveMessage(aMessage) {
@@ -61,15 +75,7 @@ class PictureInPictureToggleParent extends JSWindowActorParent {
 
 class PictureInPictureParent extends JSWindowActorParent {
   receiveMessage(aMessage) {
-    let browsingContext = aMessage.target.browsingContext;
-    let browser = browsingContext.top.embedderElement;
-
     switch (aMessage.name) {
-      case "PictureInPicture:Request": {
-        let videoData = aMessage.data;
-        PictureInPicture.handlePictureInPictureRequest(browser, videoData);
-        break;
-      }
       case "PictureInPicture:Resize": {
         let videoData = aMessage.data;
         PictureInPicture.resizePictureInPictureWindow(videoData);
@@ -140,9 +146,11 @@ var PictureInPicture = {
         return null;
       }
 
-      if (!playerWin.closed) {
-        return playerWin;
+      if (!playerWin || playerWin.closed) {
+        return null;
       }
+
+      return playerWin;
     }
     return null;
   },
@@ -152,10 +160,14 @@ var PictureInPicture = {
    * the keyboard.
    */
   onCommand(event) {
+    if (!Services.prefs.getBoolPref(PIP_ENABLED_PREF, false)) {
+      return;
+    }
+
     let win = event.target.ownerGlobal;
     let browser = win.gBrowser.selectedBrowser;
     let actor = browser.browsingContext.currentWindowGlobal.getActor(
-      "PictureInPicture"
+      "PictureInPictureLauncher"
     );
     actor.sendAsyncMessage("PictureInPicture:KeyToggle");
   },
@@ -201,8 +213,9 @@ var PictureInPicture = {
    * A request has come up from content to open a Picture in Picture
    * window.
    *
-   * @param browser (xul:browser)
-   *   The browser that is requesting the Picture in Picture window.
+   * @param wgp (WindowGlobalParent)
+   *   The WindowGlobalParent that is requesting the Picture in Picture
+   *   window.
    *
    * @param videoData (object)
    *   An object containing the following properties:
@@ -217,10 +230,11 @@ var PictureInPicture = {
    *   Resolves once the Picture in Picture window has been created, and
    *   the player component inside it has finished loading.
    */
-  async handlePictureInPictureRequest(browser, videoData) {
+  async handlePictureInPictureRequest(wgp, videoData) {
     // If there's a pre-existing PiP window, close it first.
     await this.closePipWindow({ reason: "new-pip" });
 
+    let browser = wgp.browsingContext.top.embedderElement;
     let parentWin = browser.ownerGlobal;
     this.browser = browser;
     let win = await this.openPipWindow(parentWin, videoData);
@@ -232,8 +246,13 @@ var PictureInPicture = {
     let tab = parentWin.gBrowser.getTabForBrowser(browser);
     tab.setAttribute("pictureinpicture", true);
 
-    win.setupPlayer(gNextWindowID.toString(), browser);
+    win.setupPlayer(gNextWindowID.toString(), wgp, videoData.videoRef);
     gNextWindowID++;
+
+    Services.prefs.setBoolPref(
+      "media.videocontrols.picture-in-picture.video-toggle.has-used",
+      true
+    );
   },
 
   /**

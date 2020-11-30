@@ -13,13 +13,10 @@ clippy:
         - gfx/wr/webrender_build/
         - gfx/wr/wr_malloc_size_of/
         - js/src/
-        - js/src/frontend/binast/
+        - js/src/frontend/smoosh/
         - js/src/rust/shared/
         - js/src/wasm/cranelift/
         - media/audioipc/
-        - media/mp4parse-rust/mp4parse/
-        - media/mp4parse-rust/mp4parse_capi/
-        - media/mp4parse-rust/mp4parse_fallible/
         - modules/libpref/init/static_prefs/
         - mozglue/static/rust/
         - netwerk/base/mozurl/
@@ -40,8 +37,10 @@ clippy:
         - testing/mozbase/rust/mozrunner/
         - testing/mozbase/rust/mozversion/
         - testing/webdriver/
+        - third_party/rust/mp4parse/
+        - third_party/rust/mp4parse_capi/
         - toolkit/components/kvstore/
-        - toolkit/components/telemetry/fog/
+        - toolkit/components/glean/
         - toolkit/components/xulstore/tests/gtest/
         - toolkit/library/rust/
         - tools/fuzzing/rust/
@@ -59,11 +58,8 @@ clippy:
         - gfx/wr/examples/
         - gfx/wr/webrender_api/
         - gfx/wr/wrench/
-        - gfx/wgpu/wgpu-native/
         - gfx/wgpu/wgpu-core/
-        - gfx/wgpu/wgpu-remote/
-        # not_unsafe_ptr_arg_deref
-        - gfx/wgpu/
+        - gfx/wgpu_bindings/
         # not_unsafe_ptr_arg_deref
         - modules/libpref/parser/
         - tools/profiler/rust-helper/
@@ -72,7 +68,7 @@ clippy:
         - toolkit/library/gtest/rust/
         # not_unsafe_ptr_arg_deref
         - remote/
-        - media/webrtc/signaling/src/sdp/rsdparsa_capi/
+        - dom/media/webrtc/sdp/rsdparsa_capi/
         - intl/encoding_glue/
         # not_unsafe_ptr_arg_deref
         - js/rust/
@@ -93,7 +89,7 @@ clippy:
         - xpcom/rust/moz_task/
         - xpcom/rust/gkrust_utils/
         - netwerk/socket/neqo_glue/
-        - media/mtransport/mdns_service/
+        - dom/media/webrtc/transport/mdns_service/
         - media/audioipc/client/
         - media/audioipc/audioipc/
         - media/audioipc/server/
@@ -103,7 +99,7 @@ clippy:
         - servo/ports/geckolib/tests/
         - servo/tests/unit/malloc_size_of/
         - servo/components/malloc_size_of/
-        - media/webrtc/signaling/src/sdp/rsdparsa_capi/
+        - dom/media/webrtc/sdp/rsdparsa_capi/
         - servo/components/fallible/
         - testing/geckodriver/marionette/
         - toolkit/components/bitsdownload/bits_client/
@@ -113,5 +109,10 @@ clippy:
         - rs
     support-files:
         - 'tools/lint/clippy/**'
+    # the version of clippy is:
+    # clippy 0.0.212 (d4092ac 2020-05-11)
+    # but 0.0.212 isn't updated. we use the date instead
+    # replacing - by . because Python StrictVersion expects this
+    min_clippy_version: 2020.05.11
     type: external
     payload: clippy:lint

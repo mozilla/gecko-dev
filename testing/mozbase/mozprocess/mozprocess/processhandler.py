@@ -2,9 +2,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import, print_function, unicode_literals
 
+import codecs
 import errno
+import io
 import os
 import signal
 import subprocess
@@ -100,7 +102,8 @@ class ProcessHandlerMixin(object):
                      universal_newlines=False,
                      startupinfo=None,
                      creationflags=0,
-                     ignore_children=False):
+                     ignore_children=False,
+                     encoding='utf-8'):
 
             # Parameter for whether or not we should attempt to track child processes
             self._ignore_children = ignore_children
@@ -115,15 +118,43 @@ class ProcessHandlerMixin(object):
 
                 preexec_fn = setpgidfn
 
+            kwargs = {
+                'bufsize': bufsize,
+                'executable': executable,
+                'stdin': stdin,
+                'stdout': stdout,
+                'stderr': stderr,
+                'preexec_fn': preexec_fn,
+                'close_fds': close_fds,
+                'shell': shell,
+                'cwd': cwd,
+                'env': env,
+                'startupinfo': startupinfo,
+                'creationflags': creationflags,
+            }
+            if six.PY2:
+                kwargs['universal_newlines'] = universal_newlines
+            if six.PY3 and sys.version_info.minor >= 6 and universal_newlines:
+                kwargs['universal_newlines'] = universal_newlines
+                kwargs['encoding'] = encoding
             try:
-                subprocess.Popen.__init__(self, args, bufsize, executable,
-                                          stdin, stdout, stderr,
-                                          preexec_fn, close_fds,
-                                          shell, cwd, env,
-                                          universal_newlines, startupinfo, creationflags)
+                subprocess.Popen.__init__(self, args, **kwargs)
             except OSError:
                 print(args, file=sys.stderr)
                 raise
+            # We need to support Python 3.5 for now, which doesn't support the
+            # "encoding" argument to the Popen constructor. For now, emulate it
+            # by patching the streams so that they return consistent values.
+            # This can be removed once we remove support for Python 3.5.
+            if six.PY3 and sys.version_info.minor == 5 and universal_newlines:
+                if self.stdin is not None:
+                    self.stdin = io.TextIOWrapper(self.stdin, encoding=encoding)
+                if self.stdout is not None:
+                    self.stdout = io.TextIOWrapper(self.stdout,
+                                                   encoding=encoding)
+                if self.stderr is not None:
+                    self.stderr = io.TextIOWrapper(self.stderr,
+                                                   encoding=encoding)
 
         def debug(self, msg):
             if not MOZPROCESS_DEBUG:
@@ -235,7 +266,19 @@ class ProcessHandlerMixin(object):
         if isWin:
             # Redefine the execute child so that we can track process groups
             def _execute_child(self, *args_tuple):
-                if six.PY3:
+                # workaround for bug 1670130
+                if sys.hexversion >= 0x03090000:  # after 3.9.0
+                    (args, executable, preexec_fn, close_fds,
+                     pass_fds, cwd, env,
+                     startupinfo, creationflags, shell,
+                     p2cread, p2cwrite,
+                     c2pread, c2pwrite,
+                     errread, errwrite,
+                     restore_signals,
+                     gid, gids, uid,
+                     umask,
+                     start_new_session) = args_tuple
+                elif six.PY3:
                     (args, executable, preexec_fn, close_fds,
                      pass_fds, cwd, env,
                      startupinfo, creationflags, shell,
@@ -1128,16 +1171,24 @@ class StoreOutput(object):
 class StreamOutput(object):
     """pass output to a stream and flush"""
 
-    def __init__(self, stream):
+    def __init__(self, stream, text=True):
         self.stream = stream
+        self.text = text
 
     def __call__(self, line):
+        ensure = six.ensure_text if self.text else six.ensure_binary
         try:
-            self.stream.write(line + '\n'.encode('utf8'))
-        except UnicodeDecodeError:
-            # TODO: Workaround for bug #991866 to make sure we can display when
-            # when normal UTF-8 display is failing
-            self.stream.write(line.decode('iso8859-1') + '\n')
+            self.stream.write(ensure(line) + ensure('\n'))
+        except TypeError:
+            print("HEY! If you're reading this, you're about to encounter a "
+                  "type error, probably as a result of a conversion from "
+                  "Python 2 to Python 3. This is almost definitely because "
+                  "you're trying to write binary data to a text-encoded "
+                  "stream, or text data to a binary-encoded stream. Check how "
+                  "you're instantiating your ProcessHandler and if the output "
+                  "should be text-encoded, make sure you pass "
+                  "universal_newlines=True.", file=sys.stderr)
+            raise
         self.stream.flush()
 
 
@@ -1146,7 +1197,7 @@ class LogOutput(StreamOutput):
 
     def __init__(self, filename):
         self.file_obj = open(filename, 'a')
-        StreamOutput.__init__(self, self.file_obj)
+        StreamOutput.__init__(self, self.file_obj, True)
 
     def __del__(self):
         if self.file_obj is not None:
@@ -1185,12 +1236,24 @@ class ProcessHandler(ProcessHandlerMixin):
             logoutput = LogOutput(logfile)
             kwargs['processOutputLine'].append(logoutput)
 
+        text = kwargs.get("universal_newlines", False) or kwargs.get("text", False)
+
         if stream is True:
             # Print to standard output only if no outputline provided
+            stdout = sys.stdout
+            if six.PY2 and text:
+                stdout = codecs.getwriter('utf-8')(sys.stdout)
+            elif six.PY3 and text:
+                # The encoding of stdout isn't guaranteed to be utf-8. Fix that.
+                stdout = codecs.getwriter("utf-8")(sys.stdout.buffer)
+            elif six.PY3 and not text:
+                stdout = sys.stdout.buffer
+
             if not kwargs['processOutputLine']:
-                kwargs['processOutputLine'].append(StreamOutput(sys.stdout))
+                kwargs['processOutputLine'].append(
+                    StreamOutput(stdout, text))
         elif stream:
-            streamoutput = StreamOutput(stream)
+            streamoutput = StreamOutput(stream, text)
             kwargs['processOutputLine'].append(streamoutput)
 
         self.output = None

@@ -18,6 +18,7 @@ types = [
     "SSLProtocolVariant",
     "SSLRecordWriteCallback",
     "SSLResumptionTokenCallback",
+    "SSLResumptionTokenInfo",
     "SSLSecretCallback",
     "SSLSignatureScheme",
     "SSLTimeFunc",
@@ -29,12 +30,14 @@ functions = [
     "SSL_CipherPrefSet",
     "SSL_ConfigServerCert",
     "SSL_ConfigServerSessionIDCache",
+    "SSL_DestroyResumptionTokenInfo",
     "SSL_GetChannelInfo",
     "SSL_GetExperimentalAPI",
     "SSL_GetImplementedCiphers",
     "SSL_GetNextProto",
     "SSL_GetNumImplementedCiphers",
     "SSL_GetPreliminaryChannelInfo",
+    "SSL_GetResumptionTokenInfo",
     "SSL_ForceHandshake",
     "SSL_ImportFD",
     "SSL_NamedGroupConfig",
@@ -95,6 +98,7 @@ variables = [
     "SSL_RECORD_SIZE_LIMIT",
     "SSL_ENABLE_TLS13_COMPAT_MODE",
     "SSL_ENABLE_HELLO_DOWNGRADE_CHECK",
+    "SSL_SUPPRESS_END_OF_EARLY_DATA",
 ]
 
 [nss_ciphers]

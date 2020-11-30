@@ -119,7 +119,6 @@ class OpenH264Build(TransferMixin, VCSScript, TooltoolMixin):
         if self.abs_dirs:
             return self.abs_dirs
         dirs = super(OpenH264Build, self).query_abs_dirs()
-        dirs['abs_src_dir'] = os.environ['GECKO_PATH']
         dirs['abs_upload_dir'] = os.path.join(dirs['abs_work_dir'], 'upload')
         self.abs_dirs = dirs
         return self.abs_dirs
@@ -152,7 +151,7 @@ class OpenH264Build(TransferMixin, VCSScript, TooltoolMixin):
             bits = '32'
         version = self.config['revision']
 
-        if sys.platform == 'linux2':
+        if sys.platform in ('linux2', 'linux'):
             if self.config.get('operating_system') == 'android':
                 return 'openh264-android-{arch}-{version}.zip'.format(
                     version=version, arch=self.config['arch'])

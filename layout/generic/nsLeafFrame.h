@@ -10,7 +10,7 @@
 #define nsLeafFrame_h___
 
 #include "mozilla/Attributes.h"
-#include "nsFrame.h"
+#include "nsIFrame.h"
 #include "nsDisplayList.h"
 
 /**
@@ -19,7 +19,7 @@
  * of the GetDesiredSize method. The rendering method knows how to render
  * borders and backgrounds.
  */
-class nsLeafFrame : public nsFrame {
+class nsLeafFrame : public nsIFrame {
  public:
   NS_DECL_ABSTRACT_FRAME(nsLeafFrame)
 
@@ -43,8 +43,9 @@ class nsLeafFrame : public nsFrame {
   virtual mozilla::LogicalSize ComputeAutoSize(
       gfxContext* aRenderingContext, mozilla::WritingMode aWM,
       const mozilla::LogicalSize& aCBSize, nscoord aAvailableISize,
-      const mozilla::LogicalSize& aMargin, const mozilla::LogicalSize& aBorder,
-      const mozilla::LogicalSize& aPadding, ComputeSizeFlags aFlags) override;
+      const mozilla::LogicalSize& aMargin,
+      const mozilla::LogicalSize& aBorderPadding,
+      mozilla::ComputeSizeFlags aFlags) override;
 
   /**
    * Each of our subclasses should provide its own Reflow impl:
@@ -56,12 +57,13 @@ class nsLeafFrame : public nsFrame {
   virtual bool IsFrameOfType(uint32_t aFlags) const override {
     // We don't actually contain a block, but we do always want a
     // computed width, so tell a little white lie here.
-    return nsFrame::IsFrameOfType(aFlags & ~(nsIFrame::eReplacedContainsBlock));
+    return nsIFrame::IsFrameOfType(aFlags &
+                                   ~(nsIFrame::eReplacedContainsBlock));
   }
 
  protected:
   nsLeafFrame(ComputedStyle* aStyle, nsPresContext* aPresContext, ClassID aID)
-      : nsFrame(aStyle, aPresContext, aID) {}
+      : nsIFrame(aStyle, aPresContext, aID) {}
 
   virtual ~nsLeafFrame();
 

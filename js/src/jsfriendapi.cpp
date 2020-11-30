@@ -20,8 +20,15 @@
 #include "gc/PublicIterators.h"
 #include "gc/WeakMap.h"
 #include "js/CharacterEncoding.h"
+#include "js/experimental/CodeCoverage.h"
+#include "js/experimental/Intl.h"  // JS::Add{,Moz}DisplayNamesConstructor, JS::AddMozDateTimeFormatConstructor
+#include "js/friend/StackLimits.h"  // JS_STACK_GROWTH_DIRECTION
+#include "js/friend/WindowProxy.h"  // js::ToWindowIfWindowProxy
+#include "js/Object.h"              // JS::GetClass
 #include "js/Printf.h"
 #include "js/Proxy.h"
+#include "js/shadow/Object.h"  // JS::shadow::Object
+#include "js/String.h"         // JS::detail::StringToLinearStringSlow
 #include "js/Wrapper.h"
 #include "proxy/DeadObjectProxy.h"
 #include "util/Poison.h"
@@ -31,6 +38,7 @@
 #include "vm/FrameIter.h"  // js::FrameIter
 #include "vm/JSContext.h"
 #include "vm/JSObject.h"
+#include "vm/PlainObject.h"  // js::PlainObject
 #include "vm/Printer.h"
 #include "vm/PromiseObject.h"  // js::PromiseObject
 #include "vm/Realm.h"
@@ -38,6 +46,7 @@
 #include "vm/WrapperObject.h"
 
 #include "gc/Nursery-inl.h"
+#include "vm/Compartment-inl.h"  // JS::Compartment::wrap
 #include "vm/EnvironmentObject-inl.h"
 #include "vm/JSObject-inl.h"
 #include "vm/JSScript-inl.h"
@@ -47,10 +56,12 @@ using namespace js;
 
 using mozilla::PodArrayZero;
 
-JS::RootingContext::RootingContext()
-    : autoGCRooters_(nullptr), realm_(nullptr), zone_(nullptr) {
-  for (auto& stackRootPtr : stackRoots_) {
-    stackRootPtr = nullptr;
+JS::RootingContext::RootingContext() : realm_(nullptr), zone_(nullptr) {
+  for (auto& listHead : stackRoots_) {
+    listHead = nullptr;
+  }
+  for (auto& listHead : autoGCRooters_) {
+    listHead = nullptr;
   }
 
   PodArrayZero(nativeStackLimit);
@@ -125,8 +136,7 @@ JS_FRIEND_API JSObject* JS_NewObjectWithUniqueType(JSContext* cx,
    * ObjectGroup attached to our proto with information about our object, since
    * we're not going to be using that ObjectGroup anyway.
    */
-  RootedObject obj(
-      cx, NewObjectWithGivenProto(cx, clasp, nullptr, SingletonObject));
+  RootedObject obj(cx, NewSingletonObjectWithGivenProto(cx, clasp, nullptr));
   if (!obj) {
     return nullptr;
   }
@@ -145,10 +155,6 @@ JS_FRIEND_API JSObject* JS_NewObjectWithoutMetadata(
 
 JS_FRIEND_API bool JS::GetIsSecureContext(JS::Realm* realm) {
   return realm->creationOptions().secureContext();
-}
-
-JS_FRIEND_API void js::AssertCompartmentHasSingleRealm(JS::Compartment* comp) {
-  MOZ_RELEASE_ASSERT(comp->realms().length() == 1);
 }
 
 JS_FRIEND_API JSPrincipals* JS::GetRealmPrincipals(JS::Realm* realm) {
@@ -186,10 +192,6 @@ JS_FRIEND_API void JS::SetRealmPrincipals(JS::Realm* realm,
 
 JS_FRIEND_API JSPrincipals* JS_GetScriptPrincipals(JSScript* script) {
   return script->principals();
-}
-
-JS_FRIEND_API JS::Realm* js::GetScriptRealm(JSScript* script) {
-  return script->realm();
 }
 
 JS_FRIEND_API bool JS_ScriptHasMutedErrors(JSScript* script) {
@@ -262,8 +264,8 @@ JS_FRIEND_API bool JS_DefineFunctionsWithHelp(
   return true;
 }
 
-JS_FRIEND_API bool js::GetBuiltinClass(JSContext* cx, HandleObject obj,
-                                       ESClass* cls) {
+JS_FRIEND_API bool JS::GetBuiltinClass(JSContext* cx, HandleObject obj,
+                                       js::ESClass* cls) {
   if (MOZ_UNLIKELY(obj->is<ProxyObject>())) {
     return Proxy::getBuiltinClass(cx, obj, cls);
   }
@@ -315,11 +317,6 @@ JS_FRIEND_API bool js::IsArgumentsObject(HandleObject obj) {
   return obj->is<ArgumentsObject>();
 }
 
-JS_FRIEND_API const char* js::ObjectClassName(JSContext* cx, HandleObject obj) {
-  cx->check(obj);
-  return GetObjectClassName(cx, obj);
-}
-
 JS_FRIEND_API JS::Zone* js::GetRealmZone(JS::Realm* realm) {
   return realm->zone();
 }
@@ -339,10 +336,6 @@ JS_FRIEND_API bool js::IsSystemRealm(JS::Realm* realm) {
 
 JS_FRIEND_API bool js::IsSystemZone(Zone* zone) { return zone->isSystemZone(); }
 
-JS_FRIEND_API bool js::IsAtomsZone(JS::Zone* zone) {
-  return zone->isAtomsZone();
-}
-
 JS_FRIEND_API bool js::IsFunctionObject(JSObject* obj) {
   return obj->is<JSFunction>();
 }
@@ -353,11 +346,6 @@ JS_FRIEND_API bool js::IsSavedFrame(JSObject* obj) {
 
 JS_FRIEND_API bool js::UninlinedIsCrossCompartmentWrapper(const JSObject* obj) {
   return js::IsCrossCompartmentWrapper(obj);
-}
-
-JS_FRIEND_API JSObject* js::GetPrototypeNoProxy(JSObject* obj) {
-  MOZ_ASSERT(!obj->is<js::ProxyObject>());
-  return obj->staticPrototype();
 }
 
 JS_FRIEND_API void js::AssertSameCompartment(JSContext* cx, JSObject* obj) {
@@ -382,16 +370,12 @@ JS_FRIEND_API void js::NotifyAnimationActivity(JSObject* obj) {
   obj->runtimeFromMainThread()->lastAnimationTime = timeNow;
 }
 
-JS_FRIEND_API uint32_t js::GetObjectSlotSpan(JSObject* obj) {
-  return obj->as<NativeObject>().slotSpan();
-}
-
 JS_FRIEND_API bool js::IsObjectInContextCompartment(JSObject* obj,
                                                     const JSContext* cx) {
   return obj->compartment() == cx->compartment();
 }
 
-JS_FRIEND_API bool js::RunningWithTrustedPrincipals(JSContext* cx) {
+JS_FRIEND_API bool js::detail::RunningWithTrustedPrincipals(JSContext* cx) {
   return cx->runningWithTrustedPrincipals();
 }
 
@@ -469,15 +453,16 @@ JS_FRIEND_API bool js::FunctionHasNativeReserved(JSObject* fun) {
   return fun->as<JSFunction>().isExtended();
 }
 
-JS_FRIEND_API bool js::GetObjectProto(JSContext* cx, JS::Handle<JSObject*> obj,
-                                      JS::MutableHandle<JSObject*> proto) {
+bool js::GetObjectProto(JSContext* cx, JS::Handle<JSObject*> obj,
+                        JS::MutableHandle<JSObject*> proto) {
   cx->check(obj);
 
   if (IsProxy(obj)) {
     return JS_GetPrototype(cx, obj, proto);
   }
 
-  proto.set(reinterpret_cast<const shadow::Object*>(obj.get())->group->proto);
+  proto.set(
+      reinterpret_cast<const JS::shadow::Object*>(obj.get())->group->proto);
   return true;
 }
 
@@ -491,8 +476,8 @@ JS_FRIEND_API bool js::GetRealmOriginalEval(JSContext* cx,
   return GlobalObject::getOrCreateEval(cx, cx->global(), eval);
 }
 
-JS_FRIEND_API void js::SetReservedSlotWithBarrier(JSObject* obj, size_t slot,
-                                                  const js::Value& value) {
+void JS::detail::SetReservedSlotWithBarrier(JSObject* obj, size_t slot,
+                                            const Value& value) {
   if (IsProxy(obj)) {
     obj->as<ProxyObject>().setReservedSlot(slot, value);
   } else {
@@ -500,9 +485,11 @@ JS_FRIEND_API void js::SetReservedSlotWithBarrier(JSObject* obj, size_t slot,
   }
 }
 
-void js::SetPreserveWrapperCallback(JSContext* cx,
-                                    PreserveWrapperCallback callback) {
-  cx->runtime()->preserveWrapperCallback = callback;
+void js::SetPreserveWrapperCallbacks(
+    JSContext* cx, PreserveWrapperCallback preserveWrapper,
+    HasReleasedWrapperCallback hasReleasedWrapper) {
+  cx->runtime()->preserveWrapperCallback = preserveWrapper;
+  cx->runtime()->hasReleasedWrapperCallback = hasReleasedWrapper;
 }
 
 JS_FRIEND_API unsigned JS_PCToLineNumber(JSScript* script, jsbytecode* pc,
@@ -542,467 +529,108 @@ JS_FRIEND_API bool js::IsCompartmentZoneSweepingOrCompacting(
   return comp->zone()->isGCSweepingOrCompacting();
 }
 
-JS_FRIEND_API void js::VisitGrayWrapperTargets(Zone* zone,
-                                               GCThingCallback callback,
-                                               void* closure) {
+JS_FRIEND_API void js::TraceGrayWrapperTargets(JSTracer* trc, Zone* zone) {
+  JS::AutoSuppressGCAnalysis nogc;
+
   for (CompartmentsInZoneIter comp(zone); !comp.done(); comp.next()) {
     for (Compartment::ObjectWrapperEnum e(comp); !e.empty(); e.popFront()) {
       JSObject* target = e.front().key();
       if (target->isMarkedGray()) {
-        JS::AutoSuppressGCAnalysis nogc;
-        callback(closure, JS::GCCellPtr(target));
+        TraceManuallyBarrieredEdge(trc, &target, "gray CCW target");
+        MOZ_ASSERT(target == e.front().key());
       }
     }
   }
 }
 
-JS_FRIEND_API JSLinearString* js::StringToLinearStringSlow(JSContext* cx,
-                                                           JSString* str) {
+JSLinearString* JS::detail::StringToLinearStringSlow(JSContext* cx,
+                                                     JSString* str) {
   return str->ensureLinear(cx);
 }
 
-JS_FRIEND_API void JS_SetAccumulateTelemetryCallback(
-    JSContext* cx, JSAccumulateTelemetryDataCallback callback) {
-  cx->runtime()->setTelemetryCallback(cx->runtime(), callback);
-}
+static bool CopyProxyObject(JSContext* cx, Handle<ProxyObject*> from,
+                            Handle<ProxyObject*> to) {
+  MOZ_ASSERT(from->getClass() == to->getClass());
 
-JS_FRIEND_API void JS_SetSetUseCounterCallback(
-    JSContext* cx, JSSetUseCounterCallback callback) {
-  cx->runtime()->setUseCounterCallback(cx->runtime(), callback);
+  if (from->is<WrapperObject>() &&
+      (Wrapper::wrapperHandler(from)->flags() & Wrapper::CROSS_COMPARTMENT)) {
+    to->setCrossCompartmentPrivate(GetProxyPrivate(from));
+  } else {
+    RootedValue v(cx, GetProxyPrivate(from));
+    if (!cx->compartment()->wrap(cx, &v)) {
+      return false;
+    }
+    to->setSameCompartmentPrivate(v);
+  }
+
+  MOZ_ASSERT(from->numReservedSlots() == to->numReservedSlots());
+
+  RootedValue v(cx);
+  for (size_t n = 0; n < from->numReservedSlots(); n++) {
+    v = GetProxyReservedSlot(from, n);
+    if (!cx->compartment()->wrap(cx, &v)) {
+      return false;
+    }
+    SetProxyReservedSlot(to, n, v);
+  }
+
+  return true;
 }
 
 JS_FRIEND_API JSObject* JS_CloneObject(JSContext* cx, HandleObject obj,
-                                       HandleObject protoArg) {
+                                       HandleObject proto) {
   // |obj| might be in a different compartment.
-  cx->check(protoArg);
-  Rooted<TaggedProto> proto(cx, TaggedProto(protoArg.get()));
-  return CloneObject(cx, obj, proto);
-}
+  cx->check(proto);
 
-// We don't want jsfriendapi.h to depend on GenericPrinter,
-// so these functions are declared directly in the cpp.
-
-namespace js {
-
-extern JS_FRIEND_API void DumpString(JSString* str, js::GenericPrinter& out);
-
-extern JS_FRIEND_API void DumpAtom(JSAtom* atom, js::GenericPrinter& out);
-
-extern JS_FRIEND_API void DumpObject(JSObject* obj, js::GenericPrinter& out);
-
-extern JS_FRIEND_API void DumpChars(const char16_t* s, size_t n,
-                                    js::GenericPrinter& out);
-
-extern JS_FRIEND_API void DumpValue(const JS::Value& val,
-                                    js::GenericPrinter& out);
-
-extern JS_FRIEND_API void DumpId(jsid id, js::GenericPrinter& out);
-
-extern JS_FRIEND_API void DumpInterpreterFrame(
-    JSContext* cx, js::GenericPrinter& out, InterpreterFrame* start = nullptr);
-
-}  // namespace js
-
-JS_FRIEND_API void js::DumpString(JSString* str, js::GenericPrinter& out) {
-#if defined(DEBUG) || defined(JS_JITSPEW)
-  str->dump(out);
-#endif
-}
-
-JS_FRIEND_API void js::DumpAtom(JSAtom* atom, js::GenericPrinter& out) {
-#if defined(DEBUG) || defined(JS_JITSPEW)
-  atom->dump(out);
-#endif
-}
-
-JS_FRIEND_API void js::DumpChars(const char16_t* s, size_t n,
-                                 js::GenericPrinter& out) {
-#if defined(DEBUG) || defined(JS_JITSPEW)
-  out.printf("char16_t * (%p) = ", (void*)s);
-  JSString::dumpChars(s, n, out);
-  out.putChar('\n');
-#endif
-}
-
-JS_FRIEND_API void js::DumpObject(JSObject* obj, js::GenericPrinter& out) {
-#if defined(DEBUG) || defined(JS_JITSPEW)
-  if (!obj) {
-    out.printf("NULL\n");
-    return;
-  }
-  obj->dump(out);
-#endif
-}
-
-JS_FRIEND_API void js::DumpString(JSString* str, FILE* fp) {
-#if defined(DEBUG) || defined(JS_JITSPEW)
-  Fprinter out(fp);
-  js::DumpString(str, out);
-#endif
-}
-
-JS_FRIEND_API void js::DumpAtom(JSAtom* atom, FILE* fp) {
-#if defined(DEBUG) || defined(JS_JITSPEW)
-  Fprinter out(fp);
-  js::DumpAtom(atom, out);
-#endif
-}
-
-JS_FRIEND_API void js::DumpChars(const char16_t* s, size_t n, FILE* fp) {
-#if defined(DEBUG) || defined(JS_JITSPEW)
-  Fprinter out(fp);
-  js::DumpChars(s, n, out);
-#endif
-}
-
-JS_FRIEND_API void js::DumpObject(JSObject* obj, FILE* fp) {
-#if defined(DEBUG) || defined(JS_JITSPEW)
-  Fprinter out(fp);
-  js::DumpObject(obj, out);
-#endif
-}
-
-JS_FRIEND_API void js::DumpId(jsid id, FILE* fp) {
-#if defined(DEBUG) || defined(JS_JITSPEW)
-  Fprinter out(fp);
-  js::DumpId(id, out);
-#endif
-}
-
-JS_FRIEND_API void js::DumpValue(const JS::Value& val, FILE* fp) {
-#if defined(DEBUG) || defined(JS_JITSPEW)
-  Fprinter out(fp);
-  js::DumpValue(val, out);
-#endif
-}
-
-JS_FRIEND_API void js::DumpString(JSString* str) { DumpString(str, stderr); }
-JS_FRIEND_API void js::DumpAtom(JSAtom* atom) { DumpAtom(atom, stderr); }
-JS_FRIEND_API void js::DumpObject(JSObject* obj) { DumpObject(obj, stderr); }
-JS_FRIEND_API void js::DumpChars(const char16_t* s, size_t n) {
-  DumpChars(s, n, stderr);
-}
-JS_FRIEND_API void js::DumpValue(const JS::Value& val) {
-  DumpValue(val, stderr);
-}
-JS_FRIEND_API void js::DumpId(jsid id) { DumpId(id, stderr); }
-JS_FRIEND_API void js::DumpInterpreterFrame(JSContext* cx,
-                                            InterpreterFrame* start) {
-#if defined(DEBUG) || defined(JS_JITSPEW)
-  Fprinter out(stderr);
-  DumpInterpreterFrame(cx, out, start);
-#endif
-}
-JS_FRIEND_API bool js::DumpPC(JSContext* cx) {
-#if defined(DEBUG) || defined(JS_JITSPEW)
-  return DumpPC(cx, stdout);
-#else
-  return true;
-#endif
-}
-JS_FRIEND_API bool js::DumpScript(JSContext* cx, JSScript* scriptArg) {
-#if defined(DEBUG) || defined(JS_JITSPEW)
-  return DumpScript(cx, scriptArg, stdout);
-#else
-  return true;
-#endif
-}
-
-static const char* FormatValue(JSContext* cx, HandleValue v,
-                               UniqueChars& bytes) {
-  if (v.isMagic()) {
-    MOZ_ASSERT(v.whyMagic() == JS_OPTIMIZED_OUT ||
-               v.whyMagic() == JS_UNINITIALIZED_LEXICAL);
-    return "[unavailable]";
-  }
-
-  if (IsCallable(v)) {
-    return "[function]";
-  }
-
-  if (v.isObject() && IsCrossCompartmentWrapper(&v.toObject())) {
-    return "[cross-compartment wrapper]";
-  }
-
-  JSString* str;
-  {
-    mozilla::Maybe<AutoRealm> ar;
-    if (v.isObject()) {
-      ar.emplace(cx, &v.toObject());
-    }
-
-    str = ToString<CanGC>(cx, v);
-    if (!str) {
-      return nullptr;
-    }
-  }
-
-  bytes = QuoteString(cx, str, '"');
-  return bytes.get();
-}
-
-static bool FormatFrame(JSContext* cx, const FrameIter& iter, Sprinter& sp,
-                        int num, bool showArgs, bool showLocals,
-                        bool showThisProps) {
-  MOZ_ASSERT(!cx->isExceptionPending());
-  RootedScript script(cx, iter.script());
-  jsbytecode* pc = iter.pc();
-
-  RootedObject envChain(cx, iter.environmentChain(cx));
-  JSAutoRealm ar(cx, envChain);
-
-  const char* filename = script->filename();
-  unsigned column = 0;
-  unsigned lineno = PCToLineNumber(script, pc, &column);
-  RootedFunction fun(cx, iter.maybeCallee(cx));
-  RootedString funname(cx);
-  if (fun) {
-    funname = fun->displayAtom();
-  }
-
-  RootedValue thisVal(cx);
-  if (iter.hasUsableAbstractFramePtr() && iter.isFunctionFrame() && fun &&
-      !fun->isArrow() && !fun->isDerivedClassConstructor() &&
-      !(fun->isBoundFunction() && iter.isConstructing())) {
-    if (!GetFunctionThis(cx, iter.abstractFramePtr(), &thisVal)) {
-      return false;
-    }
-  }
-
-  // print the frame number and function name
-  if (funname) {
-    UniqueChars funbytes = QuoteString(cx, funname);
-    if (!funbytes) {
-      return false;
-    }
-    if (!sp.printf("%d %s(", num, funbytes.get())) {
-      return false;
-    }
-  } else if (fun) {
-    if (!sp.printf("%d anonymous(", num)) {
-      return false;
-    }
-  } else {
-    if (!sp.printf("%d <TOP LEVEL>", num)) {
-      return false;
-    }
-  }
-
-  if (showArgs && iter.hasArgs()) {
-    PositionalFormalParameterIter fi(script);
-    bool first = true;
-    for (unsigned i = 0; i < iter.numActualArgs(); i++) {
-      RootedValue arg(cx);
-      if (i < iter.numFormalArgs() && fi.closedOver()) {
-        if (iter.hasInitialEnvironment(cx)) {
-          arg = iter.callObj(cx).aliasedBinding(fi);
-        } else {
-          arg = MagicValue(JS_OPTIMIZED_OUT);
-        }
-      } else if (iter.hasUsableAbstractFramePtr()) {
-        if (script->analyzedArgsUsage() && script->argsObjAliasesFormals() &&
-            iter.hasArgsObj()) {
-          arg = iter.argsObj().arg(i);
-        } else {
-          arg = iter.unaliasedActual(i, DONT_CHECK_ALIASING);
-        }
-      } else {
-        arg = MagicValue(JS_OPTIMIZED_OUT);
-      }
-
-      UniqueChars valueBytes;
-      const char* value = FormatValue(cx, arg, valueBytes);
-      if (!value) {
-        if (cx->isThrowingOutOfMemory()) {
-          return false;
-        }
-        cx->clearPendingException();
-      }
-
-      UniqueChars nameBytes;
-      const char* name = nullptr;
-
-      if (i < iter.numFormalArgs()) {
-        MOZ_ASSERT(fi.argumentSlot() == i);
-        if (!fi.isDestructured()) {
-          nameBytes = StringToNewUTF8CharsZ(cx, *fi.name());
-          name = nameBytes.get();
-          if (!name) {
-            return false;
-          }
-        } else {
-          name = "(destructured parameter)";
-        }
-        fi++;
-      }
-
-      if (value) {
-        if (!sp.printf("%s%s%s%s%s%s", !first ? ", " : "", name ? name : "",
-                       name ? " = " : "", arg.isString() ? "\"" : "", value,
-                       arg.isString() ? "\"" : "")) {
-          return false;
-        }
-
-        first = false;
-      } else {
-        if (!sp.put("    <Failed to get argument while inspecting stack "
-                    "frame>\n")) {
-          return false;
-        }
-      }
-    }
-  }
-
-  // print filename, line number and column
-  if (!sp.printf("%s [\"%s\":%d:%d]\n", fun ? ")" : "",
-                 filename ? filename : "<unknown>", lineno, column)) {
-    return false;
-  }
-
-  // Note: Right now we don't dump the local variables anymore, because
-  // that is hard to support across all the JITs etc.
-
-  // print the value of 'this'
-  if (showLocals) {
-    if (!thisVal.isUndefined()) {
-      RootedString thisValStr(cx, ToString<CanGC>(cx, thisVal));
-      if (!thisValStr) {
-        if (cx->isThrowingOutOfMemory()) {
-          return false;
-        }
-        cx->clearPendingException();
-      }
-      if (thisValStr) {
-        UniqueChars thisValBytes = QuoteString(cx, thisValStr);
-        if (!thisValBytes) {
-          return false;
-        }
-        if (!sp.printf("    this = %s\n", thisValBytes.get())) {
-          return false;
-        }
-      } else {
-        if (!sp.put("    <failed to get 'this' value>\n")) {
-          return false;
-        }
-      }
-    }
-  }
-
-  if (showThisProps && thisVal.isObject()) {
-    RootedObject obj(cx, &thisVal.toObject());
-
-    RootedIdVector keys(cx);
-    if (!GetPropertyKeys(cx, obj, JSITER_OWNONLY, &keys)) {
-      if (cx->isThrowingOutOfMemory()) {
-        return false;
-      }
-      cx->clearPendingException();
-    }
-
-    for (size_t i = 0; i < keys.length(); i++) {
-      RootedId id(cx, keys[i]);
-      RootedValue key(cx, IdToValue(id));
-      RootedValue v(cx);
-
-      if (!GetProperty(cx, obj, obj, id, &v)) {
-        if (cx->isThrowingOutOfMemory()) {
-          return false;
-        }
-        cx->clearPendingException();
-        if (!sp.put("    <Failed to fetch property while inspecting stack "
-                    "frame>\n")) {
-          return false;
-        }
-        continue;
-      }
-
-      UniqueChars nameBytes;
-      const char* name = FormatValue(cx, key, nameBytes);
-      if (!name) {
-        if (cx->isThrowingOutOfMemory()) {
-          return false;
-        }
-        cx->clearPendingException();
-      }
-
-      UniqueChars valueBytes;
-      const char* value = FormatValue(cx, v, valueBytes);
-      if (!value) {
-        if (cx->isThrowingOutOfMemory()) {
-          return false;
-        }
-        cx->clearPendingException();
-      }
-
-      if (name && value) {
-        if (!sp.printf("    this.%s = %s%s%s\n", name, v.isString() ? "\"" : "",
-                       value, v.isString() ? "\"" : "")) {
-          return false;
-        }
-      } else {
-        if (!sp.put("    <Failed to format values while inspecting stack "
-                    "frame>\n")) {
-          return false;
-        }
-      }
-    }
-  }
-
-  MOZ_ASSERT(!cx->isExceptionPending());
-  return true;
-}
-
-static bool FormatWasmFrame(JSContext* cx, const FrameIter& iter, Sprinter& sp,
-                            int num) {
-  UniqueChars nameStr;
-  if (JSAtom* functionDisplayAtom = iter.maybeFunctionDisplayAtom()) {
-    nameStr = StringToNewUTF8CharsZ(cx, *functionDisplayAtom);
-    if (!nameStr) {
-      return false;
-    }
-  }
-
-  if (!sp.printf("%d %s()", num, nameStr ? nameStr.get() : "<wasm-function>")) {
-    return false;
-  }
-
-  if (!sp.printf(" [\"%s\":wasm-function[%d]:0x%x]\n",
-                 iter.filename() ? iter.filename() : "<unknown>",
-                 iter.wasmFuncIndex(), iter.wasmBytecodeOffset())) {
-    return false;
-  }
-
-  MOZ_ASSERT(!cx->isExceptionPending());
-  return true;
-}
-
-JS_FRIEND_API JS::UniqueChars JS::FormatStackDump(JSContext* cx, bool showArgs,
-                                                  bool showLocals,
-                                                  bool showThisProps) {
-  int num = 0;
-
-  Sprinter sp(cx);
-  if (!sp.init()) {
+  if (!obj->isNative() && !obj->is<ProxyObject>()) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_CANT_CLONE_OBJECT);
     return nullptr;
   }
 
-  for (AllFramesIter i(cx); !i.done(); ++i) {
-    bool ok = i.hasScript() ? FormatFrame(cx, i, sp, num, showArgs, showLocals,
-                                          showThisProps)
-                            : FormatWasmFrame(cx, i, sp, num);
-    if (!ok) {
+  RootedObject clone(cx);
+  if (obj->isNative()) {
+    // JS_CloneObject is used to create the target object for JSObject::swap().
+    // swap() requires its arguments are tenured, so ensure tenure allocation.
+    clone = NewTenuredObjectWithGivenProto(cx, obj->getClass(), proto);
+    if (!clone) {
       return nullptr;
     }
-    num++;
-  }
 
-  if (num == 0) {
-    if (!sp.put("JavaScript stack is empty\n")) {
+    if (clone->is<JSFunction>() &&
+        (obj->compartment() != clone->compartment())) {
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_CANT_CLONE_OBJECT);
+      return nullptr;
+    }
+
+    if (obj->as<NativeObject>().hasPrivate()) {
+      clone->as<NativeObject>().setPrivate(
+          obj->as<NativeObject>().getPrivate());
+    }
+  } else {
+    auto* handler = GetProxyHandler(obj);
+
+    // Same as above, require tenure allocation of the clone. This means for
+    // proxy objects we need to reject nursery allocatable proxies.
+    if (handler->canNurseryAllocate()) {
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_CANT_CLONE_OBJECT);
+      return nullptr;
+    }
+
+    clone = ProxyObject::New(cx, handler, JS::NullHandleValue,
+                             AsTaggedProto(proto), obj->getClass());
+    if (!clone) {
+      return nullptr;
+    }
+
+    if (!CopyProxyObject(cx, obj.as<ProxyObject>(), clone.as<ProxyObject>())) {
       return nullptr;
     }
   }
 
-  return sp.release();
+  return clone;
 }
 
 extern JS_FRIEND_API bool JS::ForceLexicalInitialization(JSContext* cx,
@@ -1032,127 +660,6 @@ extern JS_FRIEND_API int JS::IsGCPoisoning() {
 #else
   return false;
 #endif
-}
-
-struct DumpHeapTracer final : public JS::CallbackTracer, public WeakMapTracer {
-  const char* prefix;
-  FILE* output;
-  mozilla::MallocSizeOf mallocSizeOf;
-
-  DumpHeapTracer(FILE* fp, JSContext* cx, mozilla::MallocSizeOf mallocSizeOf)
-      : JS::CallbackTracer(cx, DoNotTraceWeakMaps),
-        js::WeakMapTracer(cx->runtime()),
-        prefix(""),
-        output(fp),
-        mallocSizeOf(mallocSizeOf) {}
-
- private:
-  void trace(JSObject* map, JS::GCCellPtr key, JS::GCCellPtr value) override {
-    JSObject* kdelegate = nullptr;
-    if (key.is<JSObject>()) {
-      kdelegate = UncheckedUnwrapWithoutExpose(&key.as<JSObject>());
-    }
-
-    fprintf(output, "WeakMapEntry map=%p key=%p keyDelegate=%p value=%p\n", map,
-            key.asCell(), kdelegate, value.asCell());
-  }
-
-  bool onChild(const JS::GCCellPtr& thing) override;
-};
-
-static char MarkDescriptor(gc::Cell* thing) {
-  gc::TenuredCell* cell = &thing->asTenured();
-  if (cell->isMarkedBlack()) {
-    return 'B';
-  }
-  if (cell->isMarkedGray()) {
-    return 'G';
-  }
-  if (cell->isMarkedAny()) {
-    return 'X';
-  }
-  return 'W';
-}
-
-static void DumpHeapVisitZone(JSRuntime* rt, void* data, Zone* zone) {
-  DumpHeapTracer* dtrc = static_cast<DumpHeapTracer*>(data);
-  fprintf(dtrc->output, "# zone %p\n", (void*)zone);
-}
-
-static void DumpHeapVisitRealm(JSContext* cx, void* data,
-                               Handle<Realm*> realm) {
-  char name[1024];
-  if (auto nameCallback = cx->runtime()->realmNameCallback) {
-    nameCallback(cx, realm, name, sizeof(name));
-  } else {
-    strcpy(name, "<unknown>");
-  }
-
-  DumpHeapTracer* dtrc = static_cast<DumpHeapTracer*>(data);
-  fprintf(dtrc->output, "# realm %s [in compartment %p, zone %p]\n", name,
-          (void*)realm->compartment(), (void*)realm->zone());
-}
-
-static void DumpHeapVisitArena(JSRuntime* rt, void* data, gc::Arena* arena,
-                               JS::TraceKind traceKind, size_t thingSize) {
-  DumpHeapTracer* dtrc = static_cast<DumpHeapTracer*>(data);
-  fprintf(dtrc->output, "# arena allockind=%u size=%u\n",
-          unsigned(arena->getAllocKind()), unsigned(thingSize));
-}
-
-static void DumpHeapVisitCell(JSRuntime* rt, void* data, JS::GCCellPtr cellptr,
-                              size_t thingSize) {
-  DumpHeapTracer* dtrc = static_cast<DumpHeapTracer*>(data);
-  char cellDesc[1024 * 32];
-  JS_GetTraceThingInfo(cellDesc, sizeof(cellDesc), dtrc, cellptr.asCell(),
-                       cellptr.kind(), true);
-
-  fprintf(dtrc->output, "%p %c %s", cellptr.asCell(),
-          MarkDescriptor(cellptr.asCell()), cellDesc);
-  if (dtrc->mallocSizeOf) {
-    auto size = JS::ubi::Node(cellptr).size(dtrc->mallocSizeOf);
-    fprintf(dtrc->output, " SIZE:: %" PRIu64 "\n", size);
-  } else {
-    fprintf(dtrc->output, "\n");
-  }
-
-  js::TraceChildren(dtrc, cellptr.asCell(), cellptr.kind());
-}
-
-bool DumpHeapTracer::onChild(const JS::GCCellPtr& thing) {
-  if (gc::IsInsideNursery(thing.asCell())) {
-    return true;
-  }
-
-  char buffer[1024];
-  getTracingEdgeName(buffer, sizeof(buffer));
-  fprintf(output, "%s%p %c %s\n", prefix, thing.asCell(),
-          MarkDescriptor(thing.asCell()), buffer);
-  return true;
-}
-
-void js::DumpHeap(JSContext* cx, FILE* fp,
-                  js::DumpHeapNurseryBehaviour nurseryBehaviour,
-                  mozilla::MallocSizeOf mallocSizeOf) {
-  if (nurseryBehaviour == js::CollectNurseryBeforeDump) {
-    cx->runtime()->gc.evictNursery(JS::GCReason::API);
-  }
-
-  DumpHeapTracer dtrc(fp, cx, mallocSizeOf);
-
-  fprintf(dtrc.output, "# Roots.\n");
-  TraceRuntimeWithoutEviction(&dtrc);
-
-  fprintf(dtrc.output, "# Weak maps.\n");
-  WeakMapBase::traceAllMappings(&dtrc);
-
-  fprintf(dtrc.output, "==========\n");
-
-  dtrc.prefix = "> ";
-  IterateHeapUnbarriered(cx, &dtrc, DumpHeapVisitZone, DumpHeapVisitRealm,
-                         DumpHeapVisitArena, DumpHeapVisitCell);
-
-  fflush(dtrc.output);
 }
 
 JS_FRIEND_API void JS::NotifyGCRootsRemoved(JSContext* cx) {
@@ -1211,50 +718,6 @@ JS_FRIEND_API const DOMCallbacks* js::GetDOMCallbacks(JSContext* cx) {
   return cx->runtime()->DOMcallbacks;
 }
 
-static const void* gDOMProxyHandlerFamily = nullptr;
-static DOMProxyShadowsCheck gDOMProxyShadowsCheck;
-static const void* gDOMRemoteProxyHandlerFamily = nullptr;
-
-JS_FRIEND_API void js::SetDOMProxyInformation(
-    const void* domProxyHandlerFamily,
-    DOMProxyShadowsCheck domProxyShadowsCheck,
-    const void* domRemoteProxyHandlerFamily) {
-  gDOMProxyHandlerFamily = domProxyHandlerFamily;
-  gDOMProxyShadowsCheck = domProxyShadowsCheck;
-  gDOMRemoteProxyHandlerFamily = domRemoteProxyHandlerFamily;
-}
-
-const void* js::GetDOMProxyHandlerFamily() { return gDOMProxyHandlerFamily; }
-
-DOMProxyShadowsCheck js::GetDOMProxyShadowsCheck() {
-  return gDOMProxyShadowsCheck;
-}
-
-const void* js::GetDOMRemoteProxyHandlerFamily() {
-  return gDOMRemoteProxyHandlerFamily;
-}
-
-JS_FRIEND_API bool js::IsDOMRemoteProxyObject(JSObject* object) {
-  return js::IsProxy(object) && js::GetProxyHandler(object)->family() ==
-                                    js::GetDOMRemoteProxyHandlerFamily();
-}
-
-static XrayJitInfo* gXrayJitInfo = nullptr;
-
-JS_FRIEND_API void js::SetXrayJitInfo(XrayJitInfo* info) {
-  gXrayJitInfo = info;
-}
-
-XrayJitInfo* js::GetXrayJitInfo() { return gXrayJitInfo; }
-
-bool js::detail::IdMatchesAtom(jsid id, JSAtom* atom) {
-  return id == INTERNED_STRING_TO_JSID(nullptr, atom);
-}
-
-bool js::detail::IdMatchesAtom(jsid id, JSString* atom) {
-  return id == INTERNED_STRING_TO_JSID(nullptr, atom);
-}
-
 JS_FRIEND_API void js::PrepareScriptEnvironmentAndInvoke(
     JSContext* cx, HandleObject global,
     ScriptEnvironmentPreparer::Closure& closure) {
@@ -1280,12 +743,10 @@ JS_FRIEND_API void js::SetCTypesActivityCallback(JSContext* cx,
 
 js::AutoCTypesActivityCallback::AutoCTypesActivityCallback(
     JSContext* cx, js::CTypesActivityType beginType,
-    js::CTypesActivityType endType MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
+    js::CTypesActivityType endType)
     : cx(cx),
       callback(cx->runtime()->ctypesActivityCallback),
       endType(endType) {
-  MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-
   if (callback) {
     callback(cx, beginType);
   }
@@ -1311,73 +772,13 @@ JS_FRIEND_API bool js::ReportIsNotFunction(JSContext* cx, HandleValue v) {
 
 #ifdef DEBUG
 bool js::HasObjectMovedOp(JSObject* obj) {
-  return !!GetObjectClass(obj)->extObjectMovedOp();
+  return !!JS::GetClass(obj)->extObjectMovedOp();
 }
 #endif
 
 JS_FRIEND_API bool js::ForwardToNative(JSContext* cx, JSNative native,
                                        const CallArgs& args) {
   return native(cx, args.length(), args.base());
-}
-
-JS_FRIEND_API JSObject* js::ConvertArgsToArray(JSContext* cx,
-                                               const CallArgs& args) {
-  RootedObject argsArray(cx,
-                         NewDenseCopiedArray(cx, args.length(), args.array()));
-  return argsArray;
-}
-
-JS_FRIEND_API JSAtom* js::GetPropertyNameFromPC(JSScript* script,
-                                                jsbytecode* pc) {
-  if (!IsGetPropPC(pc) && !IsSetPropPC(pc)) {
-    return nullptr;
-  }
-  return script->getName(pc);
-}
-
-JS_FRIEND_API void js::SetWindowProxyClass(JSContext* cx,
-                                           const JSClass* clasp) {
-  MOZ_ASSERT(!cx->runtime()->maybeWindowProxyClass());
-  cx->runtime()->setWindowProxyClass(clasp);
-}
-
-JS_FRIEND_API void js::SetWindowProxy(JSContext* cx, HandleObject global,
-                                      HandleObject windowProxy) {
-  AssertHeapIsIdle();
-  CHECK_THREAD(cx);
-
-  cx->check(global, windowProxy);
-  MOZ_ASSERT(IsWindowProxy(windowProxy));
-
-  GlobalObject& globalObj = global->as<GlobalObject>();
-  globalObj.setWindowProxy(windowProxy);
-  globalObj.lexicalEnvironment().setWindowProxyThisValue(windowProxy);
-}
-
-JS_FRIEND_API JSObject* js::ToWindowIfWindowProxy(JSObject* obj) {
-  if (IsWindowProxy(obj)) {
-    return &obj->nonCCWGlobal();
-  }
-  return obj;
-}
-
-JS_FRIEND_API JSObject* js::detail::ToWindowProxyIfWindowSlow(JSObject* obj) {
-  if (JSObject* windowProxy = obj->as<GlobalObject>().maybeWindowProxy()) {
-    return windowProxy;
-  }
-  return obj;
-}
-
-JS_FRIEND_API bool js::IsWindowProxy(JSObject* obj) {
-  // Note: simply checking `obj == obj->global().windowProxy()` is not
-  // sufficient: we may have transplanted the window proxy with a CCW.
-  // Check the Class to ensure we really have a window proxy.
-  return obj->getClass() ==
-         obj->runtimeFromAnyThread()->maybeWindowProxyClass();
-}
-
-JS_FRIEND_API bool js::detail::IsWindowSlow(JSObject* obj) {
-  return obj->as<GlobalObject>().maybeWindowProxy();
 }
 
 AutoAssertNoContentJS::AutoAssertNoContentJS(JSContext* cx)
@@ -1389,41 +790,7 @@ AutoAssertNoContentJS::~AutoAssertNoContentJS() {
   context_->runtime()->allowContentJS_ = prevAllowContentJS_;
 }
 
-JS_FRIEND_API void js::EnableAccessValidation(JSContext* cx, bool enabled) {
-  cx->enableAccessValidation = enabled;
-}
-
-JS_FRIEND_API void js::SetRealmValidAccessPtr(JSContext* cx,
-                                              JS::HandleObject global,
-                                              bool* accessp) {
-  MOZ_ASSERT(global->is<GlobalObject>());
-  global->as<GlobalObject>().realm()->setValidAccessPtr(accessp);
-}
-
-JS_FRIEND_API bool js::SystemZoneAvailable(JSContext* cx) { return true; }
-
-static LogCtorDtor sLogCtor = nullptr;
-static LogCtorDtor sLogDtor = nullptr;
-
-JS_FRIEND_API void js::SetLogCtorDtorFunctions(LogCtorDtor ctor,
-                                               LogCtorDtor dtor) {
-  MOZ_ASSERT(!sLogCtor && !sLogDtor);
-  MOZ_ASSERT(ctor && dtor);
-  sLogCtor = ctor;
-  sLogDtor = dtor;
-}
-
-JS_FRIEND_API void js::LogCtor(void* self, const char* type, uint32_t sz) {
-  if (LogCtorDtor fun = sLogCtor) {
-    fun(self, type, sz);
-  }
-}
-
-JS_FRIEND_API void js::LogDtor(void* self, const char* type, uint32_t sz) {
-  if (LogCtorDtor fun = sLogDtor) {
-    fun(self, type, sz);
-  }
-}
+JS_FRIEND_API void js::EnableCodeCoverage() { js::coverage::EnableLCov(); }
 
 JS_FRIEND_API JS::Value js::MaybeGetScriptPrivate(JSObject* object) {
   if (!object->is<ScriptSourceObject>()) {
@@ -1455,12 +822,20 @@ static bool IntlNotEnabled(JSContext* cx) {
   return false;
 }
 
-bool js::AddMozDateTimeFormatConstructor(JSContext* cx, JS::HandleObject intl) {
+bool JS::AddMozDateTimeFormatConstructor(JSContext* cx, JS::HandleObject intl) {
   return IntlNotEnabled(cx);
 }
 
-bool js::AddListFormatConstructor(JSContext* cx, JS::HandleObject intl) {
+bool JS::AddMozDisplayNamesConstructor(JSContext* cx, JS::HandleObject intl) {
+  return IntlNotEnabled(cx);
+}
+
+bool JS::AddDisplayNamesConstructor(JSContext* cx, JS::HandleObject intl) {
   return IntlNotEnabled(cx);
 }
 
 #endif  // !JS_HAS_INTL_API
+
+JS_FRIEND_API JS::Zone* js::GetObjectZoneFromAnyThread(const JSObject* obj) {
+  return MaybeForwarded(obj)->zoneFromAnyThread();
+}

@@ -64,20 +64,19 @@ use hal::{
 };
 use range_alloc::RangeAllocator;
 
-use cocoa::foundation::NSInteger;
-use core_graphics::base::CGFloat;
-use core_graphics::geometry::CGRect;
+use cocoa_foundation::foundation::NSInteger;
 #[cfg(feature = "dispatch")]
 use dispatch;
 use foreign_types::ForeignTypeRef;
+use lazy_static::lazy_static;
 use metal::MTLFeatureSet;
 use metal::MTLLanguageVersion;
+use metal::{CGFloat, CGSize};
 use objc::{
     declare::ClassDecl,
-    runtime::{Object, BOOL, YES, Sel, Class}
+    runtime::{Class, Object, Sel, BOOL, YES},
 };
 use parking_lot::{Condvar, Mutex};
-use lazy_static::lazy_static;
 
 use std::mem;
 use std::os::raw::c_void;
@@ -98,10 +97,43 @@ pub use crate::window::{AcquireMode, CAMetalLayer, Surface, Swapchain};
 
 pub type GraphicsCommandPool = CommandPool;
 
-
 //TODO: investigate why exactly using `u8` here is slower (~5% total).
 /// A type representing Metal binding's resource index.
 type ResourceIndex = u32;
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct CGPoint {
+    pub x: CGFloat,
+    pub y: CGFloat,
+}
+
+impl CGPoint {
+    #[inline]
+    pub fn new(x: CGFloat, y: CGFloat) -> CGPoint {
+        CGPoint {
+            x,
+            y,
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct CGRect {
+    pub origin: CGPoint,
+    pub size: CGSize
+}
+
+impl CGRect {
+    #[inline]
+    pub fn new(origin: CGPoint, size: CGSize) -> CGRect {
+        CGRect {
+            origin,
+            size,
+        }
+    }
+}
 
 /// Method of recording one-time-submit command buffers.
 #[derive(Clone, Debug, Hash, PartialEq)]
@@ -216,7 +248,7 @@ impl hal::Instance<Backend> for Instance {
     fn create(_: &str, _: u32) -> Result<Self, hal::UnsupportedBackend> {
         Ok(Instance {
             experiments: Experiments::default(),
-            gfx_managed_metal_layer_delegate: GfxManagedMetalLayerDelegate::new()
+            gfx_managed_metal_layer_delegate: GfxManagedMetalLayerDelegate::new(),
         })
     }
 
@@ -292,7 +324,7 @@ extern "C" fn layer_should_inherit_contents_scale_from_window(
     _: Sel,
     _layer: *mut Object,
     _new_scale: CGFloat,
-    _from_window: *mut Object
+    _from_window: *mut Object,
 ) -> BOOL {
     return YES;
 }
@@ -303,7 +335,8 @@ struct GfxManagedMetalLayerDelegate(*mut Object);
 impl GfxManagedMetalLayerDelegate {
     pub fn new() -> Self {
         unsafe {
-            let mut delegate: *mut Object = msg_send![*GFX_MANAGED_METAL_LAYER_DELEGATE_CLASS, alloc];
+            let mut delegate: *mut Object =
+                msg_send![*GFX_MANAGED_METAL_LAYER_DELEGATE_CLASS, alloc];
             delegate = msg_send![delegate, init];
             Self(delegate)
         }
@@ -324,7 +357,7 @@ unsafe impl Sync for GfxManagedMetalLayerDelegate {}
 impl Instance {
     #[cfg(target_os = "ios")]
     unsafe fn create_from_uiview(&self, uiview: *mut c_void) -> window::SurfaceInner {
-        let view: cocoa::base::id = mem::transmute(uiview);
+        let view: cocoa_foundation::base::id = mem::transmute(uiview);
         if view.is_null() {
             panic!("window does not have a valid contentView");
         }
@@ -346,9 +379,9 @@ impl Instance {
             new_layer
         };
 
-        let window: cocoa::base::id = msg_send![view, window];
+        let window: cocoa_foundation::base::id = msg_send![view, window];
         if !window.is_null() {
-            let screen: cocoa::base::id = msg_send![window, screen];
+            let screen: cocoa_foundation::base::id = msg_send![window, screen];
             assert!(!screen.is_null(), "window is not attached to a screen");
 
             let scale_factor: CGFloat = msg_send![screen, nativeScale];
@@ -361,7 +394,7 @@ impl Instance {
 
     #[cfg(target_os = "macos")]
     unsafe fn create_from_nsview(&self, nsview: *mut c_void) -> window::SurfaceInner {
-        let view: cocoa::base::id = mem::transmute(nsview);
+        let view: cocoa_foundation::base::id = mem::transmute(nsview);
         if view.is_null() {
             panic!("window does not have a valid contentView");
         }
@@ -390,7 +423,7 @@ impl Instance {
             let bounds: CGRect = msg_send![view, bounds];
             let () = msg_send![layer, setBounds: bounds];
 
-            let window: cocoa::base::id = msg_send![view, window];
+            let window: cocoa_foundation::base::id = msg_send![view, window];
             if !window.is_null() {
                 let scale_factor: CGFloat = msg_send![window, backingScaleFactor];
                 let () = msg_send![layer, setContentsScale: scale_factor];
@@ -651,6 +684,7 @@ struct PrivateCapabilities {
     shared_textures: bool,
     mutable_comparison_samplers: bool,
     base_instance: bool,
+    base_vertex_instance_drawing: bool,
     dual_source_blending: bool,
     low_power: bool,
     headless: bool,
@@ -713,6 +747,7 @@ struct PrivateCapabilities {
     max_texture_layers: u64,
     max_fragment_input_components: u64,
     sample_count_mask: u8,
+    supports_debug_markers: bool,
 }
 
 impl PrivateCapabilities {
@@ -757,7 +792,9 @@ impl PrivateCapabilities {
             os_is_mac,
             os_version: (major as u32, minor as u32),
             msl_version: if os_is_mac {
-                if Self::version_at_least(major, minor, 10, 14) {
+                if Self::version_at_least(major, minor, 10, 15) {
+                    MTLLanguageVersion::V2_2
+                } else if Self::version_at_least(major, minor, 10, 14) {
                     MTLLanguageVersion::V2_1
                 } else if Self::version_at_least(major, minor, 10, 13) {
                     MTLLanguageVersion::V2_0
@@ -768,6 +805,8 @@ impl PrivateCapabilities {
                 } else {
                     MTLLanguageVersion::V1_0
                 }
+            } else if Self::version_at_least(major, minor, 13, 0) {
+                MTLLanguageVersion::V2_2
             } else if Self::version_at_least(major, minor, 12, 0) {
                 MTLLanguageVersion::V2_1
             } else if Self::version_at_least(major, minor, 11, 0) {
@@ -790,6 +829,17 @@ impl PrivateCapabilities {
                 MUTABLE_COMPARISON_SAMPLER_SUPPORT,
             ),
             base_instance: Self::supports_any(&device, BASE_INSTANCE_SUPPORT),
+            base_vertex_instance_drawing: Self::supports_any(
+                &device,
+                &[
+                    MTLFeatureSet::iOS_GPUFamily3_v1,
+                    MTLFeatureSet::iOS_GPUFamily4_v1,
+                    MTLFeatureSet::iOS_GPUFamily5_v1,
+                    MTLFeatureSet::tvOS_GPUFamily2_v1,
+                    MTLFeatureSet::macOS_GPUFamily1_v1,
+                    MTLFeatureSet::macOS_GPUFamily2_v1,
+                ],
+            ),
             dual_source_blending: Self::supports_any(&device, DUAL_SOURCE_BLEND_SUPPORT),
             low_power: !os_is_mac || device.is_low_power(),
             headless: os_is_mac && device.is_headless(),
@@ -954,6 +1004,20 @@ impl PrivateCapabilities {
             max_texture_layers: 2048,
             max_fragment_input_components: if os_is_mac { 128 } else { 60 },
             sample_count_mask,
+            supports_debug_markers: Self::supports_any(
+                &device,
+                &[
+                    MTLFeatureSet::macOS_GPUFamily1_v2,
+                    MTLFeatureSet::macOS_GPUFamily2_v1,
+                    MTLFeatureSet::iOS_GPUFamily1_v3,
+                    MTLFeatureSet::iOS_GPUFamily2_v3,
+                    MTLFeatureSet::iOS_GPUFamily3_v2,
+                    MTLFeatureSet::iOS_GPUFamily4_v1,
+                    MTLFeatureSet::iOS_GPUFamily5_v1,
+                    MTLFeatureSet::tvOS_GPUFamily1_v2,
+                    MTLFeatureSet::tvOS_GPUFamily2_v1,
+                ],
+            ),
         }
     }
 

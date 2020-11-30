@@ -1,4 +1,4 @@
-# 
+#
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -9,6 +9,7 @@ EXPORTS = \
 	secmodt.h \
 	secpkcs5.h \
 	pk11func.h \
+	pk11hpke.h \
 	pk11pub.h \
 	pk11priv.h \
 	pk11sdr.h \
@@ -17,6 +18,7 @@ EXPORTS = \
 
 PRIVATE_EXPORTS = \
 	secmodi.h \
+	secmodti.h \
 	dev3hack.h \
 	$(NULL)
 
@@ -29,6 +31,7 @@ CSRCS = \
 	pk11cert.c \
 	pk11cxt.c \
 	pk11err.c  \
+	pk11hpke.c \
 	pk11kea.c \
 	pk11list.c \
 	pk11load.c \
@@ -47,11 +50,12 @@ CSRCS = \
 	$(NULL)
 
 LIBRARY_NAME = pk11wrap
+SHARED_LIBRARY = $(NULL)
 
-LIBRARY_VERSION = 3
+NSS_LIBRARY_VERSION = 3
 SOFTOKEN_LIBRARY_VERSION = 3
 DEFINES += -DSHLIB_SUFFIX=\"$(DLL_SUFFIX)\" -DSHLIB_PREFIX=\"$(DLL_PREFIX)\" \
-        -DSHLIB_VERSION=\"$(LIBRARY_VERSION)\" \
+        -DNSS_SHLIB_VERSION=\"$(NSS_LIBRARY_VERSION)\" \
         -DSOFTOKEN_SHLIB_VERSION=\"$(SOFTOKEN_LIBRARY_VERSION)\"
 
 # only add module debugging in opt builds if DEBUG_PKCS11 is set

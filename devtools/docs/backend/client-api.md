@@ -8,7 +8,7 @@ In order to communicate, a client and a server instance must be created and a pr
 
 ```javascript
 const { DevToolsServer } = require("devtools/server/devtools-server");
-const { DevToolsClient } = require("devtools/shared/client/devtools-client");
+const { DevToolsClient } = require("devtools/client/devtools-client");
 
 function start() {
   // Start the server.
@@ -32,7 +32,7 @@ If a TCP socket is required, the function should be split in two parts, a server
 
 ```javascript
 const { DevToolsServer } = require("devtools/server/devtools-server");
-const { DevToolsClient } = require("devtools/shared/client/devtools-client");
+const { DevToolsClient } = require("devtools/client/devtools-client");
 
 function startServer() {
   // Start the server.
@@ -113,7 +113,7 @@ Once the application is attached to a tab, it can attach to its thread in order 
 // Assuming the application is already attached to the tab, and response is the first
 // argument of the attachTarget callback.
 
-client.attachThread(response.threadActor).then(function([response, threadFront]) {
+client.attachThread(response.threadActor).then(function(threadFront) {
   if (!threadFront) {
     return;
   }
@@ -139,7 +139,7 @@ Here is the source code for a complete debugger application:
  * Debugger API demo.
  */
 const { DevToolsServer } = require("devtools/server/devtools-server");
-const { DevToolsClient } = require("devtools/shared/client/devtools-client");
+const { DevToolsClient } = require("devtools/client/devtools-client");
 
 let client;
 let threadFront;
@@ -178,7 +178,7 @@ function debugTab() {
     // Attach to the tab.
     targetFront.attach().then(() => {
       // Attach to the thread (context).
-      targetFront.attachThread().then(([response, threadFront]) => {
+      targetFront.attachThread().then((threadFront) => {
         // Attach listeners for thread events.
         threadFront.on("paused", onPause);
         threadFront.on("resumed", fooListener);

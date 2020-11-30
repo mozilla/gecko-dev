@@ -35,7 +35,7 @@ httpServer.registerPathHandler("/test.js", function(_, response) {
 const TEST_URI = `http://localhost:${httpServer.identity.primaryPort}/`;
 
 add_task(async function() {
-  await pushPref("javascript.options.asyncstack", true);
+  await pushPref("javascript.options.asyncstack_capture_debuggee_only", false);
   const hud = await openNewTabAndConsole(TEST_URI);
 
   info("Call the log function defined in the test page");
@@ -84,5 +84,8 @@ async function copyMessageContent(hud, messageEl) {
   const copyMenuItem = menuPopup.querySelector("#console-menu-copy");
   ok(copyMenuItem, "copy menu item is enabled");
 
-  return waitForClipboardPromise(() => copyMenuItem.click(), data => data);
+  return waitForClipboardPromise(
+    () => copyMenuItem.click(),
+    data => data
+  );
 }

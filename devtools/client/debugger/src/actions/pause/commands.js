@@ -4,27 +4,31 @@
 
 // @flow
 
-import { getSelectedFrame, getThreadContext } from "../../selectors";
+import {
+  getSelectedFrame,
+  getThreadContext,
+  getCurrentThread,
+} from "../../selectors";
 import { PROMISE } from "../utils/middleware/promise";
 import { evaluateExpressions } from "../expressions";
 import { selectLocation } from "../sources";
 import { fetchScopes } from "./fetchScopes";
 import { fetchFrames } from "./fetchFrames";
 import { recordEvent } from "../../utils/telemetry";
+import { features } from "../../utils/prefs";
 import assert from "../../utils/assert";
 
-import type {
-  ThreadId,
-  Context,
-  ThreadContext,
-  ExecutionPoint,
-} from "../../types";
+import type { ThreadId, Context, ThreadContext, Frame } from "../../types";
 
 import type { ThunkArgs } from "../types";
 import type { Command } from "../../reducers/types";
 
 export function selectThread(cx: Context, thread: ThreadId) {
   return async ({ dispatch, getState, client }: ThunkArgs) => {
+    if (getCurrentThread(getState()) === thread) {
+      return;
+    }
+
     await dispatch({ cx, type: "SELECT_THREAD", thread });
 
     // Get a new context now that the current thread has changed.
@@ -53,27 +57,18 @@ export function selectThread(cx: Context, thread: ThreadId) {
  */
 export function command(cx: ThreadContext, type: Command) {
   return async ({ dispatch, getState, client }: ThunkArgs) => {
-    if (type) {
-      return dispatch({
-        type: "COMMAND",
-        command: type,
-        cx,
-        thread: cx.thread,
-        [PROMISE]: client[type](cx.thread),
-      });
+    if (!type) {
+      return;
     }
-  };
-}
 
-export function seekToPosition(position: ExecutionPoint) {
-  return ({ dispatch, getState, client }: ThunkArgs) => {
-    const cx = getThreadContext(getState());
-    client.timeWarp(position);
-    dispatch({
+    const frame = features.frameStep && getSelectedFrame(getState(), cx.thread);
+
+    return dispatch({
       type: "COMMAND",
-      command: "timeWarp",
-      status: "start",
+      command: type,
+      cx,
       thread: cx.thread,
+      [PROMISE]: client[type](cx.thread, frame?.id),
     });
   };
 }
@@ -131,6 +126,25 @@ export function resume(cx: ThreadContext) {
     if (cx.isPaused) {
       recordEvent("continue");
       return dispatch(command(cx, "resume"));
+    }
+  };
+}
+
+/**
+ * restart frame
+ * @memberof actions/pause
+ * @static
+ */
+export function restart(cx: ThreadContext, frame: Frame) {
+  return async ({ dispatch, getState, client }: ThunkArgs) => {
+    if (cx.isPaused) {
+      return dispatch({
+        type: "COMMAND",
+        command: "restart",
+        cx,
+        thread: cx.thread,
+        [PROMISE]: client.restart(cx.thread, frame.id),
+      });
     }
   };
 }

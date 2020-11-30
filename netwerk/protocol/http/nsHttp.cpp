@@ -13,7 +13,7 @@
 #include "mozilla/Mutex.h"
 #include "mozilla/HashFunctions.h"
 #include "mozilla/Preferences.h"
-#include "mozilla/Unused.h"
+#include "mozilla/StaticPrefs_network.h"
 #include "nsCRT.h"
 #include "nsHttpRequestHead.h"
 #include "nsHttpResponseHead.h"
@@ -27,7 +27,9 @@
 namespace mozilla {
 namespace net {
 
-const nsCString kHttp3Version = NS_LITERAL_CSTRING("h3-27");
+const uint32_t kHttp3VersionCount = 4;
+const nsCString kHttp3Versions[] = {"h3-27"_ns, "h3-28"_ns, "h3-29"_ns,
+                                    "h3-30"_ns};
 
 // define storage for all atoms
 namespace nsHttp {
@@ -522,6 +524,43 @@ bool IsBeforeLastActiveTabLoadOptimization(TimeStamp const& when) {
          gHttpHandler->IsBeforeLastActiveTabLoadOptimization(when);
 }
 
+nsCString ConvertRequestHeadToString(nsHttpRequestHead& aRequestHead,
+                                     bool aHasRequestBody,
+                                     bool aRequestBodyHasHeaders,
+                                     bool aUsingConnect) {
+  // Make sure that there is "Content-Length: 0" header in the requestHead
+  // in case of POST and PUT methods when there is no requestBody and
+  // requestHead doesn't contain "Transfer-Encoding" header.
+  //
+  // RFC1945 section 7.2.2:
+  //   HTTP/1.0 requests containing an entity body must include a valid
+  //   Content-Length header field.
+  //
+  // RFC2616 section 4.4:
+  //   For compatibility with HTTP/1.0 applications, HTTP/1.1 requests
+  //   containing a message-body MUST include a valid Content-Length header
+  //   field unless the server is known to be HTTP/1.1 compliant.
+  if ((aRequestHead.IsPost() || aRequestHead.IsPut()) && !aHasRequestBody &&
+      !aRequestHead.HasHeader(nsHttp::Transfer_Encoding)) {
+    DebugOnly<nsresult> rv =
+        aRequestHead.SetHeader(nsHttp::Content_Length, "0"_ns);
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
+  }
+
+  nsCString reqHeaderBuf;
+  reqHeaderBuf.Truncate();
+
+  // make sure we eliminate any proxy specific headers from
+  // the request if we are using CONNECT
+  aRequestHead.Flatten(reqHeaderBuf, aUsingConnect);
+
+  if (!aRequestBodyHasHeaders || !aHasRequestBody) {
+    reqHeaderBuf.AppendLiteral("\r\n");
+  }
+
+  return reqHeaderBuf;
+}
+
 void NotifyActiveTabLoadOptimization() {
   if (gHttpHandler) {
     gHttpHandler->NotifyActiveTabLoadOptimization();
@@ -806,25 +845,14 @@ void LogCallingScriptLocation(void* instance) {
        col));
 }
 
-static bool sSanitize = true;
-
-static bool InitPreferences() {
-  Preferences::AddBoolVarCache(&sSanitize,
-                               "network.http.sanitize-headers-in-logs", true);
-  return true;
-}
-
 void LogHeaders(const char* lineStart) {
-  // The static bool assignment means that AddBoolVarCache is called just once.
-  static bool once = InitPreferences();
-  Unused << once;
-
   nsAutoCString buf;
   char* endOfLine;
   while ((endOfLine = PL_strstr(lineStart, "\r\n"))) {
     buf.Assign(lineStart, endOfLine - lineStart);
-    if (sSanitize && (PL_strcasestr(buf.get(), "authorization: ") ||
-                      PL_strcasestr(buf.get(), "proxy-authorization: "))) {
+    if (StaticPrefs::network_http_sanitize_headers_in_logs() &&
+        (PL_strcasestr(buf.get(), "authorization: ") ||
+         PL_strcasestr(buf.get(), "proxy-authorization: "))) {
       char* p = PL_strchr(buf.get(), ' ');
       while (p && *++p) {
         *p = '*';
@@ -971,6 +999,49 @@ nsresult HttpProxyResponseToErrorCode(uint32_t aStatusCode) {
   }
 
   return rv;
+}
+
+Tuple<nsCString, bool> SelectAlpnFromAlpnList(const nsACString& aAlpnList,
+                                              bool aNoHttp2, bool aNoHttp3) {
+  nsCString h3Value;
+  nsCString h2Value;
+  nsCString h1Value;
+  // aAlpnList is a list of alpn-id and use comma as a delimiter.
+  nsCCharSeparatedTokenizer tokenizer(aAlpnList, ',');
+  nsAutoCString npnStr;
+  while (tokenizer.hasMoreTokens()) {
+    const nsACString& npnToken(tokenizer.nextToken());
+    bool isHttp3 = gHttpHandler->IsHttp3VersionSupported(npnToken);
+    if (isHttp3 && h3Value.IsEmpty()) {
+      h3Value.Assign(npnToken);
+    }
+
+    uint32_t spdyIndex;
+    SpdyInformation* spdyInfo = gHttpHandler->SpdyInfo();
+    if (NS_SUCCEEDED(spdyInfo->GetNPNIndex(npnToken, &spdyIndex)) &&
+        spdyInfo->ProtocolEnabled(spdyIndex) && h2Value.IsEmpty()) {
+      h2Value.Assign(npnToken);
+    }
+
+    if (npnToken.LowerCaseEqualsASCII("http/1.1") && h1Value.IsEmpty()) {
+      h1Value.Assign(npnToken);
+    }
+  }
+
+  if (!h3Value.IsEmpty() && gHttpHandler->IsHttp3Enabled() && !aNoHttp3) {
+    return MakeTuple(h3Value, true);
+  }
+
+  if (!h2Value.IsEmpty() && gHttpHandler->IsSpdyEnabled() && !aNoHttp2) {
+    return MakeTuple(h2Value, false);
+  }
+
+  if (!h1Value.IsEmpty()) {
+    return MakeTuple(h1Value, false);
+  }
+
+  // If we are here, there is no supported alpn can be used.
+  return MakeTuple(EmptyCString(), false);
 }
 
 }  // namespace net

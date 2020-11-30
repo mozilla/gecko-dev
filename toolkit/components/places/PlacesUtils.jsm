@@ -21,6 +21,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   Bookmarks: "resource://gre/modules/Bookmarks.jsm",
   History: "resource://gre/modules/History.jsm",
   PlacesSyncUtils: "resource://gre/modules/PlacesSyncUtils.jsm",
+  PromiseUtils: "resource://gre/modules/PromiseUtils.jsm",
 });
 
 XPCOMUtils.defineLazyGetter(this, "MOZ_ACTION_REGEX", () => {
@@ -827,7 +828,7 @@ var PlacesUtils = {
   SYNC_BOOKMARK_VALIDATORS,
   SYNC_CHANGE_RECORD_VALIDATORS,
 
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIObserver]),
+  QueryInterface: ChromeUtils.generateQI(["nsIObserver"]),
 
   _shutdownFunctions: [],
   registerShutdownFunction: function PU_registerShutdownFunction(aFunc) {
@@ -1199,7 +1200,7 @@ var PlacesUtils = {
         break;
       }
       default:
-        throw Cr.NS_ERROR_INVALID_ARG;
+        throw Components.Exception("", Cr.NS_ERROR_INVALID_ARG);
     }
     return nodes;
   },
@@ -1339,7 +1340,7 @@ var PlacesUtils = {
     aExpandQueries
   ) {
     if (!this.nodeIsContainer(aNode)) {
-      throw Cr.NS_ERROR_INVALID_ARG;
+      throw Components.Exception("", Cr.NS_ERROR_INVALID_ARG);
     }
 
     // excludeItems is inherited by child containers in an excludeItems view.
@@ -1405,6 +1406,13 @@ var PlacesUtils = {
       }
     }
     return found;
+  },
+
+  getChildCountForFolder(guid) {
+    let folder = PlacesUtils.getFolderContents(guid).root;
+    let childCount = folder.childCount;
+    folder.containerOpen = false;
+    return childCount;
   },
 
   /**
@@ -1476,6 +1484,9 @@ var PlacesUtils = {
    * @see promiseDBConnection
    */
   promiseLargeCacheDBConnection: () => gAsyncDBLargeCacheConnPromised,
+  get largeCacheDBConnDeferred() {
+    return gAsyncDBLargeCacheConnDeferred;
+  },
 
   /**
    * Returns a Sqlite.jsm wrapper for the main Places connection. Most callers
@@ -1522,22 +1533,30 @@ var PlacesUtils = {
   /**
    * Gets favicon data for a given page url.
    *
-   * @param aPageUrl url of the page to look favicon for.
+   * @param {string | URL | nsIURI} aPageUrl
+   *   url of the page to look favicon for.
+   * @param {number} preferredWidth
+   *   The preferred width of the favicon in pixels. The default value of 0
+   *   returns the largest icon available.
    * @resolves to an object representing a favicon entry, having the following
    *           properties: { uri, dataLen, data, mimeType }
    * @rejects JavaScript exception if the given url has no associated favicon.
    */
-  promiseFaviconData(aPageUrl) {
+  promiseFaviconData(aPageUrl, preferredWidth = 0) {
     return new Promise((resolve, reject) => {
+      if (!(aPageUrl instanceof Ci.nsIURI)) {
+        aPageUrl = PlacesUtils.toURI(aPageUrl);
+      }
       PlacesUtils.favicons.getFaviconDataForPage(
-        NetUtil.newURI(aPageUrl),
-        function(uri, dataLen, data, mimeType) {
+        aPageUrl,
+        function(uri, dataLen, data, mimeType, size) {
           if (uri) {
-            resolve({ uri, dataLen, data, mimeType });
+            resolve({ uri, dataLen, data, mimeType, size });
           } else {
             reject();
           }
-        }
+        },
+        preferredWidth
       );
     });
   },
@@ -2057,6 +2076,7 @@ XPCOMUtils.defineLazyGetter(this, "gAsyncDBWrapperPromised", () =>
     .catch(Cu.reportError)
 );
 
+var gAsyncDBLargeCacheConnDeferred = PromiseUtils.defer();
 XPCOMUtils.defineLazyGetter(this, "gAsyncDBLargeCacheConnPromised", () =>
   Sqlite.cloneStorageConnection({
     connection: PlacesUtils.history.DBConnection,
@@ -2070,6 +2090,24 @@ XPCOMUtils.defineLazyGetter(this, "gAsyncDBLargeCacheConnPromised", () =>
       // mozStorage value defined as MAX_CACHE_SIZE_BYTES in
       // storage/mozStorageConnection.cpp.
       await conn.execute("PRAGMA cache_size = -6144"); // 6MiB
+      // These should be kept in sync with nsPlacesTables.h.
+      await conn.execute(`
+        CREATE TEMP TABLE IF NOT EXISTS moz_openpages_temp (
+          url TEXT,
+          userContextId INTEGER,
+          open_count INTEGER,
+          PRIMARY KEY (url, userContextId)
+        )`);
+      await conn.execute(`
+        CREATE TEMP TRIGGER IF NOT EXISTS moz_openpages_temp_afterupdate_trigger
+        AFTER UPDATE OF open_count ON moz_openpages_temp FOR EACH ROW
+        WHEN NEW.open_count = 0
+        BEGIN
+          DELETE FROM moz_openpages_temp
+          WHERE url = NEW.url
+            AND userContextId = NEW.userContextId;
+        END`);
+      gAsyncDBLargeCacheConnDeferred.resolve(conn);
       return conn;
     })
     .catch(Cu.reportError)

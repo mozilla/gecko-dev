@@ -17,6 +17,10 @@
 #include "vm/SavedFrame.h"
 #include "vm/Stack.h"
 
+namespace JS {
+enum class SavedFrameSelfHosted;
+}
+
 namespace js {
 
 // # Saved Stacks
@@ -203,13 +207,9 @@ class SavedStacks {
   // reentrancy, just change the behavior of SavedStacks::saveCurrentStack to
   // return a nullptr SavedFrame.
   struct MOZ_RAII AutoReentrancyGuard {
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER;
     SavedStacks& stacks;
 
-    explicit AutoReentrancyGuard(
-        SavedStacks& stacks MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-        : stacks(stacks) {
-      MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    explicit AutoReentrancyGuard(SavedStacks& stacks) : stacks(stacks) {
       stacks.creatingSavedFrame = true;
     }
 
@@ -334,6 +334,11 @@ JS::UniqueChars BuildUTF8StackString(JSContext* cx, JSPrincipals* principals,
                                      HandleObject stack);
 
 uint32_t FixupColumnForDisplay(uint32_t column);
+
+js::SavedFrame* UnwrapSavedFrame(JSContext* cx, JSPrincipals* principals,
+                                 HandleObject obj,
+                                 JS::SavedFrameSelfHosted selfHosted,
+                                 bool& skippedAsync);
 
 } /* namespace js */
 

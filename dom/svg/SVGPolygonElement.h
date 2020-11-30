@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_SVGPolygonElement_h
-#define mozilla_dom_SVGPolygonElement_h
+#ifndef DOM_SVG_SVGPOLYGONELEMENT_H_
+#define DOM_SVG_SVGPOLYGONELEMENT_H_
 
 #include "mozilla/Attributes.h"
 #include "SVGPolyElement.h"
@@ -16,7 +16,7 @@ nsresult NS_NewSVGPolygonElement(
 namespace mozilla {
 namespace dom {
 
-typedef SVGPolyElement SVGPolygonElementBase;
+using SVGPolygonElementBase = SVGPolyElement;
 
 class SVGPolygonElement final : public SVGPolygonElementBase {
  protected:
@@ -39,4 +39,4 @@ class SVGPolygonElement final : public SVGPolygonElementBase {
 }  // namespace dom
 }  // namespace mozilla
 
-#endif  // mozilla_dom_SVGPolygonElement_h
+#endif  // DOM_SVG_SVGPOLYGONELEMENT_H_

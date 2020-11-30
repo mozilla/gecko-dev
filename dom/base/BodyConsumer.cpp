@@ -504,7 +504,7 @@ void BodyConsumer::BeginConsumeBodyMainThread(ThreadSafeWorkerRef* aWorkerRef) {
     rv = GetBodyLocalFile(getter_AddRefs(file));
     if (!NS_WARN_IF(NS_FAILED(rv)) && file) {
       ChromeFilePropertyBag bag;
-      bag.mType = NS_ConvertUTF8toUTF16(mBodyMimeType);
+      CopyUTF8toUTF16(mBodyMimeType, bag.mType);
 
       ErrorResult error;
       RefPtr<Promise> promise =
@@ -544,7 +544,7 @@ void BodyConsumer::BeginConsumeBodyMainThread(ThreadSafeWorkerRef* aWorkerRef) {
     listener = loader;
   }
 
-  rv = pump->AsyncRead(listener, nullptr);
+  rv = pump->AsyncRead(listener);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return;
   }

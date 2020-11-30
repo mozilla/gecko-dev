@@ -30,10 +30,14 @@
  *   The hash of the XPI file.
  * @property {string} extensionHashAlgorithm
  *   The algorithm used to hash the XPI file.
- * @property {string} studyStartDate
+ * @property {Date} studyStartDate
  *   Date when the study was started.
- * @property {Date} studyEndDate
+ * @property {Date|null} studyEndDate
  *   Date when the study was ended.
+ * @property {Date|null} temporaryErrorDeadline
+ *   Date of when temporary errors with this experiment should no longer be
+ *   considered temporary. After this point, further errors will result in
+ *   unenrollment.
  * @property {string} enrollmentId
  *   A random ID generated at time of enrollment. It should be included on all
  *   telemetry related to this study. It should not be re-used by other studies,
@@ -51,6 +55,11 @@ ChromeUtils.defineModuleGetter(
   this,
   "AddonManager",
   "resource://gre/modules/AddonManager.jsm"
+);
+ChromeUtils.defineModuleGetter(
+  this,
+  "BranchedAddonStudyAction",
+  "resource://normandy/actions/BranchedAddonStudyAction.jsm"
 );
 ChromeUtils.defineModuleGetter(
   this,
@@ -195,51 +204,76 @@ var AddonStudies = {
   },
 
   /**
-   * Change from "name" and "description" to "slug", "userFacingName",
-   * and "userFacingDescription".
-   *
-   * This is called as needed by NormandyMigrations.jsm, which handles tracking
-   * if this migration has already been run.
+   * These migrations should only be called from `NormandyMigrations.jsm` and
+   * tests.
    */
-  async migrateAddonStudyFieldsToSlugAndUserFacingFields() {
-    const db = await getDatabase();
-    const studies = await db.objectStore(STORE_NAME, "readonly").getAll();
+  migrations: {
+    /**
+     * Change from "name" and "description" to "slug", "userFacingName",
+     * and "userFacingDescription".
+     */
+    async migration01AddonStudyFieldsToSlugAndUserFacingFields() {
+      const db = await getDatabase();
+      const studies = await db.objectStore(STORE_NAME, "readonly").getAll();
 
-    // If there are no studies, stop here to avoid opening the DB again.
-    if (studies.length === 0) {
-      return;
-    }
-
-    // Object stores expire after `await`, so this method accumulates a bunch of
-    // promises, and then awaits them at the end.
-    const writePromises = [];
-    const objectStore = db.objectStore(STORE_NAME, "readwrite");
-
-    for (const study of studies) {
-      // use existing name as slug
-      if (!study.slug) {
-        study.slug = study.name;
+      // If there are no studies, stop here to avoid opening the DB again.
+      if (studies.length === 0) {
+        return;
       }
 
-      // Rename `name` and `description` as `userFacingName` and `userFacingDescription`
-      if (study.name && !study.userFacingName) {
-        study.userFacingName = study.name;
-      }
-      delete study.name;
-      if (study.description && !study.userFacingDescription) {
-        study.userFacingDescription = study.description;
-      }
-      delete study.description;
+      // Object stores expire after `await`, so this method accumulates a bunch of
+      // promises, and then awaits them at the end.
+      const writePromises = [];
+      const objectStore = db.objectStore(STORE_NAME, "readwrite");
 
-      // Specify that existing recipes don't have branches
-      if (!study.branch) {
-        study.branch = AddonStudies.NO_BRANCHES_MARKER;
+      for (const study of studies) {
+        // use existing name as slug
+        if (!study.slug) {
+          study.slug = study.name;
+        }
+
+        // Rename `name` and `description` as `userFacingName` and `userFacingDescription`
+        if (study.name && !study.userFacingName) {
+          study.userFacingName = study.name;
+        }
+        delete study.name;
+        if (study.description && !study.userFacingDescription) {
+          study.userFacingDescription = study.description;
+        }
+        delete study.description;
+
+        // Specify that existing recipes don't have branches
+        if (!study.branch) {
+          study.branch = AddonStudies.NO_BRANCHES_MARKER;
+        }
+
+        writePromises.push(objectStore.put(study));
       }
 
-      writePromises.push(objectStore.put(study));
-    }
+      await Promise.all(writePromises);
+    },
 
-    await Promise.all(writePromises);
+    async migration02RemoveOldAddonStudyAction() {
+      const studies = await AddonStudies.getAllActive({
+        branched: AddonStudies.FILTER_NOT_BRANCHED,
+      });
+      if (!studies.length) {
+        return;
+      }
+      const action = new BranchedAddonStudyAction();
+      for (const study of studies) {
+        try {
+          await action.unenroll(
+            study.recipeId,
+            "migration-removing-unbranched-action"
+          );
+        } catch (e) {
+          log.error(
+            `Stopping add-on study ${study.slug} during migration failed: ${e}`
+          );
+        }
+      }
+    },
   },
 
   /**
@@ -278,7 +312,7 @@ var AddonStudies = {
   /**
    * Fetch a study from storage.
    * @param {Number} recipeId
-   * @return {Study}
+   * @return {Study} The requested study, or null if none with that ID exist.
    */
   async get(recipeId) {
     const db = await getDatabase();
@@ -393,6 +427,7 @@ var AddonStudies = {
     }
 
     study.active = false;
+    study.temporaryErrorDeadline = null;
     study.studyEndDate = new Date();
     const db = await getDatabase();
     await getStore(db, "readwrite").put(study);

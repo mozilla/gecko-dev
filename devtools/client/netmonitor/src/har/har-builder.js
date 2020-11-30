@@ -86,7 +86,7 @@ HarBuilder.prototype = {
   },
 
   getPage: function(log, file) {
-    const id = this._options.id;
+    const { id } = this._options;
     let page = this._pageMap[id];
     if (page) {
       return page;
@@ -105,7 +105,7 @@ HarBuilder.prototype = {
     entry.pageref = page.id;
     entry.startedDateTime = dateToJSON(new Date(file.startedMs));
 
-    let eventTimings = file.eventTimings;
+    let { eventTimings } = file;
     if (!eventTimings && this._options.requestData) {
       eventTimings = await this._options.requestData(file.id, "eventTimings");
     }
@@ -156,7 +156,7 @@ HarBuilder.prototype = {
       onLoad: -1,
     };
 
-    const getTimingMarker = this._options.getTimingMarker;
+    const { getTimingMarker } = this._options;
     if (getTimingMarker) {
       timings.onContentLoad = getTimingMarker(
         "firstDocumentDOMContentLoadedTimestamp"
@@ -172,7 +172,7 @@ HarBuilder.prototype = {
     // and requestCookies, but when we use it from netmonitor, FirefoxDataProvider
     // should fetch it itself lazily, via requestData.
 
-    let requestHeaders = file.requestHeaders;
+    let { requestHeaders } = file;
     if (!requestHeaders && this._options.requestData) {
       requestHeaders = await this._options.requestData(
         file.id,
@@ -180,7 +180,7 @@ HarBuilder.prototype = {
       );
     }
 
-    let requestCookies = file.requestCookies;
+    let { requestCookies } = file;
     if (!requestCookies && this._options.requestData) {
       requestCookies = await this._options.requestData(
         file.id,
@@ -201,7 +201,7 @@ HarBuilder.prototype = {
     request.headersSize = requestHeaders.headersSize;
     request.postData = await this.buildPostData(file);
 
-    if (request.postData && request.postData.text) {
+    if (request.postData?.text) {
       request.bodySize = request.postData.text.length;
     }
 
@@ -271,8 +271,8 @@ HarBuilder.prototype = {
     // When using HarAutomation, HarCollector will automatically fetch requestPostData
     // and requestHeaders, but when we use it from netmonitor, FirefoxDataProvider
     // should fetch it itself lazily, via requestData.
-    let requestPostData = file.requestPostData;
-    let requestHeaders = file.requestHeaders;
+    let { requestPostData } = file;
+    let { requestHeaders } = file;
     let requestHeadersFromUploadStream;
 
     if (!requestPostData && this._options.requestData) {
@@ -337,7 +337,7 @@ HarBuilder.prototype = {
     // and responseCookies, but when we use it from netmonitor, FirefoxDataProvider
     // should fetch it itself lazily, via requestData.
 
-    let responseHeaders = file.responseHeaders;
+    let { responseHeaders } = file;
     if (!responseHeaders && this._options.requestData) {
       responseHeaders = await this._options.requestData(
         file.id,
@@ -345,7 +345,7 @@ HarBuilder.prototype = {
       );
     }
 
-    let responseCookies = file.responseCookies;
+    let { responseCookies } = file;
     if (!responseCookies && this._options.requestData) {
       responseCookies = await this._options.requestData(
         file.id,
@@ -395,14 +395,14 @@ HarBuilder.prototype = {
     // When using HarAutomation, HarCollector will automatically fetch responseContent,
     // but when we use it from netmonitor, FirefoxDataProvider should fetch it itself
     // lazily, via requestData.
-    let responseContent = file.responseContent;
+    let { responseContent } = file;
     if (!responseContent && this._options.requestData) {
       responseContent = await this._options.requestData(
         file.id,
         "responseContent"
       );
     }
-    if (responseContent && responseContent.content) {
+    if (responseContent?.content) {
       content.size = responseContent.content.size;
       content.encoding = responseContent.content.encoding;
     }
@@ -420,7 +420,7 @@ HarBuilder.prototype = {
     }
 
     if (responseContent) {
-      const text = responseContent.content.text;
+      const { text } = responseContent.content;
       this.fetchData(text).then(value => {
         content.text = value;
       });
@@ -445,7 +445,7 @@ HarBuilder.prototype = {
       if (responseCache.cache) {
         cache.afterRequest = this.buildCacheEntry(responseCache.cache);
       }
-    } else if (file.responseCache && file.responseCache.cache) {
+    } else if (file.responseCache?.cache) {
       cache.afterRequest = this.buildCacheEntry(file.responseCache.cache);
     } else {
       cache.afterRequest = null;
@@ -515,20 +515,28 @@ HarBuilder.prototype = {
 /**
  * Find specified keys within an object.
  * Searches object for keys passed in, returns first value returned,
- * Will return false if none found.
+ * or an empty string.
  *
  * @param obj (object)
  * @param keys (array)
- * @returns {boolean}
+ * @returns {string}
  */
 function findKeys(obj, keys) {
   if (!keys) {
-    return false;
+    return "";
   }
 
-  const keyFound = keys.filter(key => obj.key);
+  const keyFound = keys.filter(key => obj[key]);
+  if (!keys.length) {
+    return "";
+  }
 
-  return keyFound.length !== 0 ? keyFound[0] : false;
+  const value = obj[keyFound[0]];
+  if (typeof value === "undefined" || typeof value === "object") {
+    return "";
+  }
+
+  return String(value);
 }
 
 /**

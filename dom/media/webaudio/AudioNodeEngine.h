@@ -233,11 +233,16 @@ void AudioBlockPanStereoToStereo(const float aInputL[WEBAUDIO_BLOCK_SIZE],
                                  float aOutputR[WEBAUDIO_BLOCK_SIZE]);
 void AudioBlockPanStereoToStereo(const float aInputL[WEBAUDIO_BLOCK_SIZE],
                                  const float aInputR[WEBAUDIO_BLOCK_SIZE],
-                                 float aGainL[WEBAUDIO_BLOCK_SIZE],
-                                 float aGainR[WEBAUDIO_BLOCK_SIZE],
-                                 bool aIsOnTheLeft[WEBAUDIO_BLOCK_SIZE],
+                                 const float aGainL[WEBAUDIO_BLOCK_SIZE],
+                                 const float aGainR[WEBAUDIO_BLOCK_SIZE],
+                                 const bool aIsOnTheLeft[WEBAUDIO_BLOCK_SIZE],
                                  float aOutputL[WEBAUDIO_BLOCK_SIZE],
                                  float aOutputR[WEBAUDIO_BLOCK_SIZE]);
+
+/**
+ * Replace NaN by zeros in aSamples.
+ */
+void NaNToZeroInPlace(float* aSamples, size_t aCount);
 
 /**
  * Return the sum of squares of all of the samples in the input.
@@ -280,7 +285,7 @@ class AudioNodeEngine {
   }
   // This consumes the contents of aData.  aData will be emptied after this
   // returns.
-  virtual void SetRawArrayData(nsTArray<float>& aData) {
+  virtual void SetRawArrayData(nsTArray<float>&& aData) {
     NS_ERROR("SetRawArrayData called on an engine that doesn't support it");
   }
 
@@ -324,7 +329,7 @@ class AudioNodeEngine {
    * The numbers of AudioBlocks in aInput and aOutput are always guaranteed to
    * match the numbers of inputs and outputs for the node.
    */
-  virtual void ProcessBlocksOnPorts(AudioNodeTrack* aTrack,
+  virtual void ProcessBlocksOnPorts(AudioNodeTrack* aTrack, GraphTime aFrom,
                                     Span<const AudioBlock> aInput,
                                     Span<AudioBlock> aOutput, bool* aFinished);
 

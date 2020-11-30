@@ -7,11 +7,15 @@
 UNIFIED_SOURCES += [
     'TestBuffer.cpp',
     'TestLinkedList.cpp',
+    'TestReverseIterator.cpp',
     'TestSpan.cpp',
 ]
 
 SOURCES += [
+    'TestAlgorithm.cpp',
     'TestInitializedOnce.cpp',
+    'TestMainThreadWeakPtr.cpp',
+    'TestResultExtensions.cpp',
 ]
 
 if not CONFIG['MOZILLA_OFFICIAL']:

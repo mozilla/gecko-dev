@@ -7,12 +7,14 @@
 #ifndef mozilla_dom_serviceworkerprivate_h
 #define mozilla_dom_serviceworkerprivate_h
 
+#include <type_traits>
+
 #include "nsCOMPtr.h"
 #include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/MozPromise.h"
 
-#define NOTIFICATION_CLICK_EVENT_NAME "notificationclick"
-#define NOTIFICATION_CLOSE_EVENT_NAME "notificationclose"
+#define NOTIFICATION_CLICK_EVENT_NAME u"notificationclick"
+#define NOTIFICATION_CLOSE_EVENT_NAME u"notificationclose"
 
 class nsIInterceptedChannel;
 class nsIWorkerDebugger;
@@ -96,7 +98,7 @@ class ServiceWorkerPrivate final {
   NS_IMETHOD_(MozExternalRefCountType) Release();
   NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(ServiceWorkerPrivate)
 
-  typedef mozilla::FalseType HasThreadSafeRefCnt;
+  using HasThreadSafeRefCnt = std::false_type;
 
  protected:
   nsCycleCollectingAutoRefCnt mRefCnt;

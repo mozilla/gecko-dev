@@ -17,8 +17,7 @@
 #include "mozilla/layers/ISurfaceAllocator.h"
 #include "mozilla/webrender/RenderEGLImageTextureHost.h"
 #include "mozilla/webrender/WebRenderAPI.h"
-#include "nsRegion.h"  // for nsIntRegion
-#include "AndroidSurfaceTexture.h"
+#include "nsRegion.h"             // for nsIntRegion
 #include "GfxTexturesReporter.h"  // for GfxTexturesReporter
 #include "GLBlitTextureImageHelper.h"
 #include "GeckoProfiler.h"
@@ -28,11 +27,13 @@
 #endif
 
 #ifdef MOZ_WIDGET_ANDROID
-#  include "mozilla/webrender/RenderAndroidSurfaceTextureHostOGL.h"
+#  include "mozilla/layers/AndroidHardwareBuffer.h"
+#  include "mozilla/webrender/RenderAndroidHardwareBufferTextureHost.h"
+#  include "mozilla/webrender/RenderAndroidSurfaceTextureHost.h"
 #endif
 
 #ifdef MOZ_WAYLAND
-#  include "mozilla/layers/WaylandDMABUFTextureHostOGL.h"
+#  include "mozilla/layers/DMABUFTextureHostOGL.h"
 #endif
 
 using namespace mozilla::gl;
@@ -71,6 +72,12 @@ already_AddRefed<TextureHost> CreateTextureHostOGL(
                                       desc.ignoreTransform());
       break;
     }
+    case SurfaceDescriptor::TSurfaceDescriptorAndroidHardwareBuffer: {
+      const SurfaceDescriptorAndroidHardwareBuffer& desc =
+          aDesc.get_SurfaceDescriptorAndroidHardwareBuffer();
+      result = AndroidHardwareBufferTextureHost::Create(aFlags, desc);
+      break;
+    }
 #endif
 
     case SurfaceDescriptor::TEGLImageDescriptor: {
@@ -83,7 +90,7 @@ already_AddRefed<TextureHost> CreateTextureHostOGL(
 
 #ifdef MOZ_WAYLAND
     case SurfaceDescriptor::TSurfaceDescriptorDMABuf: {
-      result = new WaylandDMABUFTextureHostOGL(aFlags, aDesc);
+      result = new DMABUFTextureHostOGL(aFlags, aDesc);
       break;
     }
 #endif
@@ -278,7 +285,13 @@ void TextureImageTextureSourceOGL::BindTexture(
 GLTextureSource::GLTextureSource(TextureSourceProvider* aProvider,
                                  GLuint aTextureHandle, GLenum aTarget,
                                  gfx::IntSize aSize, gfx::SurfaceFormat aFormat)
-    : mGL(aProvider->GetGLContext()),
+    : GLTextureSource(aProvider->GetGLContext(), aTextureHandle, aTarget, aSize,
+                      aFormat) {}
+
+GLTextureSource::GLTextureSource(GLContext* aGL, GLuint aTextureHandle,
+                                 GLenum aTarget, gfx::IntSize aSize,
+                                 gfx::SurfaceFormat aFormat)
+    : mGL(aGL),
       mTextureHandle(aTextureHandle),
       mTextureTarget(aTarget),
       mSize(aSize),
@@ -333,15 +346,19 @@ bool GLTextureSource::IsValid() const { return !!gl() && mTextureHandle != 0; }
 ////////////////////////////////////////////////////////////////////////
 // DirectMapTextureSource
 
-DirectMapTextureSource::DirectMapTextureSource(TextureSourceProvider* aProvider,
+DirectMapTextureSource::DirectMapTextureSource(gl::GLContext* aContext,
                                                gfx::DataSourceSurface* aSurface)
-    : GLTextureSource(aProvider, 0, LOCAL_GL_TEXTURE_RECTANGLE_ARB,
+    : GLTextureSource(aContext, 0, LOCAL_GL_TEXTURE_RECTANGLE_ARB,
                       aSurface->GetSize(), aSurface->GetFormat()),
       mSync(0) {
   MOZ_ASSERT(aSurface);
 
   UpdateInternal(aSurface, nullptr, nullptr, true);
 }
+
+DirectMapTextureSource::DirectMapTextureSource(TextureSourceProvider* aProvider,
+                                               gfx::DataSourceSurface* aSurface)
+    : DirectMapTextureSource(aProvider->GetGLContext(), aSurface) {}
 
 DirectMapTextureSource::~DirectMapTextureSource() {
   if (!mSync || !gl() || !gl()->MakeCurrent() || gl()->IsDestroyed()) {
@@ -640,16 +657,17 @@ void SurfaceTextureHost::DeallocateDeviceData() {
 void SurfaceTextureHost::CreateRenderTexture(
     const wr::ExternalImageId& aExternalImageId) {
   RefPtr<wr::RenderTextureHost> texture =
-      new wr::RenderAndroidSurfaceTextureHostOGL(mSurfTex, mSize, mFormat,
-                                                 mContinuousUpdate);
+      new wr::RenderAndroidSurfaceTextureHost(mSurfTex, mSize, mFormat,
+                                              mContinuousUpdate);
   wr::RenderThread::Get()->RegisterExternalImage(wr::AsUint64(aExternalImageId),
                                                  texture.forget());
 }
 
+uint32_t SurfaceTextureHost::NumSubTextures() { return mSurfTex ? 1 : 0; }
+
 void SurfaceTextureHost::PushResourceUpdates(
     wr::TransactionBuilder& aResources, ResourceUpdateOp aOp,
-    const Range<wr::ImageKey>& aImageKeys, const wr::ExternalImageId& aExtID,
-    const bool aPreferCompositorSurface) {
+    const Range<wr::ImageKey>& aImageKeys, const wr::ExternalImageId& aExtID) {
   auto method = aOp == TextureHost::ADD_IMAGE
                     ? &wr::TransactionBuilder::AddExternalImage
                     : &wr::TransactionBuilder::UpdateExternalImage;
@@ -666,8 +684,7 @@ void SurfaceTextureHost::PushResourceUpdates(
       auto format = GetFormat() == gfx::SurfaceFormat::R8G8B8A8
                         ? gfx::SurfaceFormat::B8G8R8A8
                         : gfx::SurfaceFormat::B8G8R8X8;
-      wr::ImageDescriptor descriptor(GetSize(), format,
-                                     aPreferCompositorSurface);
+      wr::ImageDescriptor descriptor(GetSize(), format);
       (aResources.*method)(aImageKeys[0], descriptor, aExtID, imageType, 0);
       break;
     }
@@ -677,18 +694,319 @@ void SurfaceTextureHost::PushResourceUpdates(
   }
 }
 
-void SurfaceTextureHost::PushDisplayItems(
-    wr::DisplayListBuilder& aBuilder, const wr::LayoutRect& aBounds,
-    const wr::LayoutRect& aClip, wr::ImageRendering aFilter,
-    const Range<wr::ImageKey>& aImageKeys) {
+void SurfaceTextureHost::PushDisplayItems(wr::DisplayListBuilder& aBuilder,
+                                          const wr::LayoutRect& aBounds,
+                                          const wr::LayoutRect& aClip,
+                                          wr::ImageRendering aFilter,
+                                          const Range<wr::ImageKey>& aImageKeys,
+                                          PushDisplayItemFlagSet aFlags) {
   switch (GetFormat()) {
     case gfx::SurfaceFormat::R8G8B8X8:
     case gfx::SurfaceFormat::R8G8B8A8:
     case gfx::SurfaceFormat::B8G8R8A8:
     case gfx::SurfaceFormat::B8G8R8X8: {
       MOZ_ASSERT(aImageKeys.length() == 1);
-      aBuilder.PushImage(aBounds, aClip, true, aFilter, aImageKeys[0],
-                         !(mFlags & TextureFlags::NON_PREMULTIPLIED));
+      aBuilder.PushImage(
+          aBounds, aClip, true, aFilter, aImageKeys[0],
+          !(mFlags & TextureFlags::NON_PREMULTIPLIED),
+          wr::ColorF{1.0f, 1.0f, 1.0f, 1.0f},
+          aFlags.contains(PushDisplayItemFlag::PREFER_COMPOSITOR_SURFACE));
+      break;
+    }
+    default: {
+      MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+    }
+  }
+}
+
+////////////////////////////////////////////////////////////////////////
+// AndroidHardwareBufferTextureHost
+
+/* static */
+already_AddRefed<AndroidHardwareBufferTextureHost>
+AndroidHardwareBufferTextureHost::Create(
+    TextureFlags aFlags, const SurfaceDescriptorAndroidHardwareBuffer& aDesc) {
+  RefPtr<AndroidHardwareBuffer> buffer =
+      AndroidHardwareBuffer::FromFileDescriptor(
+          const_cast<ipc::FileDescriptor&>(aDesc.handle()), aDesc.bufferId(),
+          aDesc.size(), aDesc.format());
+  if (!buffer) {
+    return nullptr;
+  }
+  RefPtr<AndroidHardwareBufferTextureHost> host =
+      new AndroidHardwareBufferTextureHost(aFlags, buffer);
+  return host.forget();
+}
+
+AndroidHardwareBufferTextureHost::AndroidHardwareBufferTextureHost(
+    TextureFlags aFlags, AndroidHardwareBuffer* aAndroidHardwareBuffer)
+    : TextureHost(aFlags),
+      mAndroidHardwareBuffer(aAndroidHardwareBuffer),
+      mEGLImage(EGL_NO_IMAGE) {}
+
+AndroidHardwareBufferTextureHost::~AndroidHardwareBufferTextureHost() {
+  DestroyEGLImage();
+}
+
+void AndroidHardwareBufferTextureHost::DestroyEGLImage() {
+  if (mEGLImage && gl()) {
+    const auto& gle = gl::GLContextEGL::Cast(gl());
+    const auto& egl = gle->mEgl;
+    egl->fDestroyImage(mEGLImage);
+    mEGLImage = EGL_NO_IMAGE;
+  }
+}
+
+void AndroidHardwareBufferTextureHost::PrepareTextureSource(
+    CompositableTextureSourceRef& aTextureSource) {
+  MOZ_ASSERT(mAndroidHardwareBuffer);
+
+  if (!mAndroidHardwareBuffer) {
+    mTextureSource = nullptr;
+    return;
+  }
+
+  if (mTextureSource) {
+    // We are already attached to a TextureSource, nothing to do except tell
+    // the compositable to use it.
+    aTextureSource = mTextureSource;
+    return;
+  }
+
+  if (!gl() || !gl()->MakeCurrent()) {
+    mTextureSource = nullptr;
+    return;
+  }
+
+  if (!mEGLImage) {
+    // XXX add crop handling for video
+    // Should only happen the first time.
+    const auto& gle = gl::GLContextEGL::Cast(gl());
+    const auto& egl = gle->mEgl;
+
+    const EGLint attrs[] = {
+        LOCAL_EGL_IMAGE_PRESERVED,
+        LOCAL_EGL_TRUE,
+        LOCAL_EGL_NONE,
+        LOCAL_EGL_NONE,
+    };
+
+    EGLClientBuffer clientBuffer = egl->mLib->fGetNativeClientBufferANDROID(
+        mAndroidHardwareBuffer->GetNativeBuffer());
+    mEGLImage = egl->fCreateImage(
+        EGL_NO_CONTEXT, LOCAL_EGL_NATIVE_BUFFER_ANDROID, clientBuffer, attrs);
+  }
+
+  GLenum textureTarget = LOCAL_GL_TEXTURE_EXTERNAL;
+  GLTextureSource* glSource =
+      aTextureSource ? aTextureSource->AsSourceOGL()->AsGLTextureSource()
+                     : nullptr;
+
+  bool shouldCreateTextureSource =
+      !glSource || !glSource->IsValid() ||
+      glSource->NumCompositableRefs() > 1 ||
+      glSource->GetTextureTarget() != textureTarget;
+
+  if (shouldCreateTextureSource) {
+    GLuint textureHandle;
+    gl()->fGenTextures(1, &textureHandle);
+    gl()->fBindTexture(textureTarget, textureHandle);
+    gl()->fTexParameteri(textureTarget, LOCAL_GL_TEXTURE_WRAP_T,
+                         LOCAL_GL_CLAMP_TO_EDGE);
+    gl()->fTexParameteri(textureTarget, LOCAL_GL_TEXTURE_WRAP_S,
+                         LOCAL_GL_CLAMP_TO_EDGE);
+    gl()->fEGLImageTargetTexture2D(textureTarget, mEGLImage);
+
+    mTextureSource = new GLTextureSource(mProvider, textureHandle,
+                                         textureTarget, GetSize(), GetFormat());
+    aTextureSource = mTextureSource;
+  } else {
+    gl()->fBindTexture(textureTarget, glSource->GetTextureHandle());
+    gl()->fEGLImageTargetTexture2D(textureTarget, mEGLImage);
+    glSource->SetSize(GetSize());
+    glSource->SetFormat(GetFormat());
+    mTextureSource = glSource;
+  }
+}
+
+bool AndroidHardwareBufferTextureHost::BindTextureSource(
+    CompositableTextureSourceRef& aTextureSource) {
+  // This happens at composition time.
+
+  // If mTextureSource is null it means PrepareTextureSource failed.
+  if (!mTextureSource) {
+    return false;
+  }
+
+  // If Prepare didn't fail, we expect our TextureSource to be the same as
+  // aTextureSource, otherwise it means something has fiddled with the
+  // TextureSource between Prepare and now.
+  MOZ_ASSERT(mTextureSource == aTextureSource);
+  aTextureSource = mTextureSource;
+
+  // XXX Acquire Fence Handling
+  return true;
+}
+
+gl::GLContext* AndroidHardwareBufferTextureHost::gl() const {
+  return mProvider ? mProvider->GetGLContext() : nullptr;
+}
+
+bool AndroidHardwareBufferTextureHost::Lock() {
+  if (!mAndroidHardwareBuffer) {
+    return false;
+  }
+
+  auto fenceFd = mAndroidHardwareBuffer->GetAndResetAcquireFence();
+  if (fenceFd.IsValid()) {
+    const auto& gle = gl::GLContextEGL::Cast(gl());
+    const auto& egl = gle->mEgl;
+
+    auto rawFD = fenceFd.TakePlatformHandle();
+    const EGLint attribs[] = {LOCAL_EGL_SYNC_NATIVE_FENCE_FD_ANDROID,
+                              rawFD.get(), LOCAL_EGL_NONE};
+
+    EGLSync sync =
+        egl->fCreateSync(LOCAL_EGL_SYNC_NATIVE_FENCE_ANDROID, attribs);
+    if (sync) {
+      // Release fd here, since it is owned by EGLSync
+      Unused << rawFD.release();
+
+      if (egl->IsExtensionSupported(gl::EGLExtension::KHR_wait_sync)) {
+        egl->fWaitSync(sync, 0);
+      } else {
+        egl->fClientWaitSync(sync, 0, LOCAL_EGL_FOREVER);
+      }
+      egl->fDestroySync(sync);
+    } else {
+      gfxCriticalNote << "Failed to create EGLSync from acquire fence fd";
+    }
+  }
+
+  return mTextureSource && mTextureSource->IsValid();
+}
+
+void AndroidHardwareBufferTextureHost::SetTextureSourceProvider(
+    TextureSourceProvider* aProvider) {
+  if (mProvider != aProvider) {
+    if (!aProvider || !aProvider->GetGLContext()) {
+      DeallocateDeviceData();
+      return;
+    }
+    mProvider = aProvider;
+  }
+
+  if (mTextureSource) {
+    mTextureSource->SetTextureSourceProvider(aProvider);
+  }
+}
+
+void AndroidHardwareBufferTextureHost::NotifyNotUsed() {
+  // XXX Add android fence handling
+  TextureHost::NotifyNotUsed();
+}
+
+gfx::SurfaceFormat AndroidHardwareBufferTextureHost::GetFormat() const {
+  if (mAndroidHardwareBuffer) {
+    return mAndroidHardwareBuffer->mFormat;
+  }
+  return gfx::SurfaceFormat::UNKNOWN;
+}
+
+gfx::IntSize AndroidHardwareBufferTextureHost::GetSize() const {
+  if (mAndroidHardwareBuffer) {
+    return mAndroidHardwareBuffer->mSize;
+  }
+  return gfx::IntSize();
+}
+
+void AndroidHardwareBufferTextureHost::DeallocateDeviceData() {
+  if (mTextureSource) {
+    mTextureSource = nullptr;
+  }
+  DestroyEGLImage();
+}
+
+void AndroidHardwareBufferTextureHost::SetAcquireFence(
+    mozilla::ipc::FileDescriptor&& aFenceFd) {
+  if (!mAndroidHardwareBuffer) {
+    return;
+  }
+  mAndroidHardwareBuffer->SetAcquireFence(std::move(aFenceFd));
+}
+
+void AndroidHardwareBufferTextureHost::SetReleaseFence(
+    mozilla::ipc::FileDescriptor&& aFenceFd) {
+  if (!mAndroidHardwareBuffer) {
+    return;
+  }
+  mAndroidHardwareBuffer->SetReleaseFence(std::move(aFenceFd));
+}
+
+mozilla::ipc::FileDescriptor
+AndroidHardwareBufferTextureHost::GetAndResetReleaseFence() {
+  if (!mAndroidHardwareBuffer) {
+    return mozilla::ipc::FileDescriptor();
+  }
+  return mAndroidHardwareBuffer->GetAndResetReleaseFence();
+}
+
+void AndroidHardwareBufferTextureHost::CreateRenderTexture(
+    const wr::ExternalImageId& aExternalImageId) {
+  RefPtr<wr::RenderTextureHost> texture =
+      new wr::RenderAndroidHardwareBufferTextureHost(mAndroidHardwareBuffer);
+  wr::RenderThread::Get()->RegisterExternalImage(wr::AsUint64(aExternalImageId),
+                                                 texture.forget());
+}
+
+uint32_t AndroidHardwareBufferTextureHost::NumSubTextures() {
+  return mAndroidHardwareBuffer ? 1 : 0;
+}
+
+void AndroidHardwareBufferTextureHost::PushResourceUpdates(
+    wr::TransactionBuilder& aResources, ResourceUpdateOp aOp,
+    const Range<wr::ImageKey>& aImageKeys, const wr::ExternalImageId& aExtID) {
+  auto method = aOp == TextureHost::ADD_IMAGE
+                    ? &wr::TransactionBuilder::AddExternalImage
+                    : &wr::TransactionBuilder::UpdateExternalImage;
+  auto imageType =
+      wr::ExternalImageType::TextureHandle(wr::TextureTarget::External);
+
+  switch (GetFormat()) {
+    case gfx::SurfaceFormat::R8G8B8X8:
+    case gfx::SurfaceFormat::R8G8B8A8: {
+      MOZ_ASSERT(aImageKeys.length() == 1);
+
+      // XXX Add RGBA handling. Temporary hack to avoid crash
+      // With BGRA format setting, rendering works without problem.
+      auto format = GetFormat() == gfx::SurfaceFormat::R8G8B8A8
+                        ? gfx::SurfaceFormat::B8G8R8A8
+                        : gfx::SurfaceFormat::B8G8R8X8;
+      wr::ImageDescriptor descriptor(GetSize(), format);
+      (aResources.*method)(aImageKeys[0], descriptor, aExtID, imageType, 0);
+      break;
+    }
+    default: {
+      MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+    }
+  }
+}
+
+void AndroidHardwareBufferTextureHost::PushDisplayItems(
+    wr::DisplayListBuilder& aBuilder, const wr::LayoutRect& aBounds,
+    const wr::LayoutRect& aClip, wr::ImageRendering aFilter,
+    const Range<wr::ImageKey>& aImageKeys, PushDisplayItemFlagSet aFlags) {
+  switch (GetFormat()) {
+    case gfx::SurfaceFormat::R8G8B8X8:
+    case gfx::SurfaceFormat::R8G8B8A8:
+    case gfx::SurfaceFormat::B8G8R8A8:
+    case gfx::SurfaceFormat::B8G8R8X8: {
+      MOZ_ASSERT(aImageKeys.length() == 1);
+      aBuilder.PushImage(
+          aBounds, aClip, true, aFilter, aImageKeys[0],
+          !(mFlags & TextureFlags::NON_PREMULTIPLIED),
+          wr::ColorF{1.0f, 1.0f, 1.0f, 1.0f},
+          aFlags.contains(PushDisplayItemFlag::PREFER_COMPOSITOR_SURFACE));
       break;
     }
     default: {
@@ -731,7 +1049,8 @@ void EGLImageTextureSource::BindTexture(GLenum aTextureUnit,
     const auto& gle = GLContextEGL::Cast(gl);
     const auto& egl = gle->mEgl;
 
-    return egl->HasKHRImageBase() && egl->HasKHRImageTexture2D() &&
+    return egl->HasKHRImageBase() &&
+           egl->IsExtensionSupported(EGLExtension::KHR_gl_texture_2D_image) &&
            gl->IsExtensionSupported(GLContext::OES_EGL_image);
   }();
   MOZ_ASSERT(supportsEglImage, "EGLImage not supported or disabled in runtime");
@@ -794,13 +1113,15 @@ bool EGLImageTextureHost::Lock() {
   if (!gl || !gl->MakeCurrent()) {
     return false;
   }
+  const auto& gle = GLContextEGL::Cast(gl);
+  const auto& egl = gle->mEgl;
 
-  auto* egl = gl::GLLibraryEGL::Get();
   EGLint status = LOCAL_EGL_CONDITION_SATISFIED;
 
   if (mSync) {
-    MOZ_ASSERT(egl->IsExtensionSupported(GLLibraryEGL::KHR_fence_sync));
-    status = egl->fClientWaitSync(egl->Display(), mSync, 0, LOCAL_EGL_FOREVER);
+    MOZ_ASSERT(egl->IsExtensionSupported(EGLExtension::KHR_fence_sync));
+    // XXX eglWaitSyncKHR() is better api. Bug 1660434 is going to fix it.
+    status = egl->fClientWaitSync(mSync, 0, LOCAL_EGL_FOREVER);
   }
 
   if (status != LOCAL_EGL_CONDITION_SATISFIED) {
@@ -856,8 +1177,7 @@ void EGLImageTextureHost::CreateRenderTexture(
 
 void EGLImageTextureHost::PushResourceUpdates(
     wr::TransactionBuilder& aResources, ResourceUpdateOp aOp,
-    const Range<wr::ImageKey>& aImageKeys, const wr::ExternalImageId& aExtID,
-    const bool aPreferCompositorSurface) {
+    const Range<wr::ImageKey>& aImageKeys, const wr::ExternalImageId& aExtID) {
   auto method = aOp == TextureHost::ADD_IMAGE
                     ? &wr::TransactionBuilder::AddExternalImage
                     : &wr::TransactionBuilder::UpdateExternalImage;
@@ -873,18 +1193,20 @@ void EGLImageTextureHost::PushResourceUpdates(
   auto formatTmp = format == gfx::SurfaceFormat::R8G8B8A8
                        ? gfx::SurfaceFormat::B8G8R8A8
                        : gfx::SurfaceFormat::B8G8R8X8;
-  wr::ImageDescriptor descriptor(GetSize(), formatTmp,
-                                 aPreferCompositorSurface);
+  wr::ImageDescriptor descriptor(GetSize(), formatTmp);
   (aResources.*method)(aImageKeys[0], descriptor, aExtID, imageType, 0);
 }
 
 void EGLImageTextureHost::PushDisplayItems(
     wr::DisplayListBuilder& aBuilder, const wr::LayoutRect& aBounds,
     const wr::LayoutRect& aClip, wr::ImageRendering aFilter,
-    const Range<wr::ImageKey>& aImageKeys) {
+    const Range<wr::ImageKey>& aImageKeys, PushDisplayItemFlagSet aFlags) {
   MOZ_ASSERT(aImageKeys.length() == 1);
-  aBuilder.PushImage(aBounds, aClip, true, aFilter, aImageKeys[0],
-                     !(mFlags & TextureFlags::NON_PREMULTIPLIED));
+  aBuilder.PushImage(
+      aBounds, aClip, true, aFilter, aImageKeys[0],
+      !(mFlags & TextureFlags::NON_PREMULTIPLIED),
+      wr::ColorF{1.0f, 1.0f, 1.0f, 1.0f},
+      aFlags.contains(PushDisplayItemFlag::PREFER_COMPOSITOR_SURFACE));
 }
 
 //

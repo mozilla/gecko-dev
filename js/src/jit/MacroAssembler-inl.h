@@ -13,6 +13,14 @@
 #include "mozilla/MathAlgorithms.h"
 
 #include "gc/Zone.h"
+#include "jit/CalleeToken.h"
+#include "jit/CompileWrappers.h"
+#include "jit/JitFrames.h"
+#include "jit/JSJitFrameIter.h"
+#include "vm/ProxyObject.h"
+#include "vm/Runtime.h"
+
+#include "jit/ABIFunctionList-inl.h"
 
 #if defined(JS_CODEGEN_X86)
 #  include "jit/x86/MacroAssembler-x86-inl.h"
@@ -34,6 +42,40 @@
 
 namespace js {
 namespace jit {
+
+template <typename Sig>
+DynFn DynamicFunction(Sig fun) {
+  ABIFunctionSignature<Sig> sig;
+  return DynFn{sig.address(fun)};
+}
+
+// Helper for generatePreBarrier.
+inline DynFn JitMarkFunction(MIRType type) {
+  switch (type) {
+    case MIRType::Value: {
+      using Fn = void (*)(JSRuntime * rt, Value * vp);
+      return DynamicFunction<Fn>(MarkValueFromJit);
+    }
+    case MIRType::String: {
+      using Fn = void (*)(JSRuntime * rt, JSString * *stringp);
+      return DynamicFunction<Fn>(MarkStringFromJit);
+    }
+    case MIRType::Object: {
+      using Fn = void (*)(JSRuntime * rt, JSObject * *objp);
+      return DynamicFunction<Fn>(MarkObjectFromJit);
+    }
+    case MIRType::Shape: {
+      using Fn = void (*)(JSRuntime * rt, Shape * *shapep);
+      return DynamicFunction<Fn>(MarkShapeFromJit);
+    }
+    case MIRType::ObjectGroup: {
+      using Fn = void (*)(JSRuntime * rt, ObjectGroup * *groupp);
+      return DynamicFunction<Fn>(MarkObjectGroupFromJit);
+    }
+    default:
+      MOZ_CRASH();
+  }
+}
 
 //{{{ check_macroassembler_style
 // ===============================================================
@@ -96,6 +138,20 @@ void MacroAssembler::callWithABI(void* fun, MoveOp::Type result,
                                  CheckUnsafeCallWithABI check) {
   AutoProfilerCallInstrumentation profiler(*this);
   callWithABINoProfiler(fun, result, check);
+}
+
+void MacroAssembler::callWithABI(DynFn fun, MoveOp::Type result,
+                                 CheckUnsafeCallWithABI check) {
+  AutoProfilerCallInstrumentation profiler(*this);
+  callWithABINoProfiler(fun.address, result, check);
+}
+
+template <typename Sig, Sig fun>
+void MacroAssembler::callWithABI(MoveOp::Type result,
+                                 CheckUnsafeCallWithABI check) {
+  ABIFunction<Sig, fun> abiFun;
+  AutoProfilerCallInstrumentation profiler(*this);
+  callWithABINoProfiler(abiFun.address(), result, check);
 }
 
 void MacroAssembler::callWithABI(Register fun, MoveOp::Type result) {
@@ -362,22 +418,33 @@ void MacroAssembler::branchTestFunctionFlags(Register fun, uint32_t flags,
   branchTest32(cond, address, Imm32(bit), label);
 }
 
+void MacroAssembler::branchIfNotFunctionIsNonBuiltinCtor(Register fun,
+                                                         Register scratch,
+                                                         Label* label) {
+  // Guard the function has the BASESCRIPT and CONSTRUCTOR flags and does NOT
+  // have the SELF_HOSTED flag.
+  // This is equivalent to JSFunction::isNonBuiltinConstructor.
+  constexpr uint32_t mask = FunctionFlags::BASESCRIPT |
+                            FunctionFlags::SELF_HOSTED |
+                            FunctionFlags::CONSTRUCTOR;
+  constexpr uint32_t expected =
+      FunctionFlags::BASESCRIPT | FunctionFlags::CONSTRUCTOR;
+  load16ZeroExtend(Address(fun, JSFunction::offsetOfFlags()), scratch);
+  and32(Imm32(mask), scratch);
+  branch32(Assembler::NotEqual, scratch, Imm32(expected), label);
+}
+
 void MacroAssembler::branchIfFunctionHasNoJitEntry(Register fun,
                                                    bool isConstructing,
                                                    Label* label) {
-  int32_t flags = FunctionFlags::BASESCRIPT | FunctionFlags::SELFHOSTLAZY;
-  if (!isConstructing) {
-    flags |= FunctionFlags::WASM_JIT_ENTRY;
-  }
+  uint16_t flags = FunctionFlags::HasJitEntryFlags(isConstructing);
   branchTestFunctionFlags(fun, flags, Assembler::Zero, label);
 }
 
-void MacroAssembler::branchIfInterpreted(Register fun, bool isConstructing,
-                                         Label* label) {
-  int32_t flags = FunctionFlags::BASESCRIPT | FunctionFlags::SELFHOSTLAZY;
-  if (!isConstructing) {
-    flags |= FunctionFlags::WASM_JIT_ENTRY;
-  }
+void MacroAssembler::branchIfFunctionHasJitEntry(Register fun,
+                                                 bool isConstructing,
+                                                 Label* label) {
+  uint16_t flags = FunctionFlags::HasJitEntryFlags(isConstructing);
   branchTestFunctionFlags(fun, flags, Assembler::NonZero, label);
 }
 
@@ -393,6 +460,10 @@ void MacroAssembler::branchIfScriptHasNoJitScript(Register script,
                                                   Label* label) {
   static_assert(ScriptWarmUpData::JitScriptTag == 0,
                 "Code below depends on tag value");
+  static_assert(BaseScript::offsetOfWarmUpData() ==
+                    SelfHostedLazyScript::offsetOfWarmUpData(),
+                "SelfHostedLazyScript and BaseScript must use same layout for "
+                "warmUpData_");
   branchTestPtr(Assembler::NonZero,
                 Address(script, JSScript::offsetOfWarmUpData()),
                 Imm32(ScriptWarmUpData::TagMask), label);
@@ -626,6 +697,14 @@ void MacroAssembler::branchTestProxyHandlerFamily(Condition cond,
                                                   Register scratch,
                                                   const void* handlerp,
                                                   Label* label) {
+#ifdef DEBUG
+  Label ok;
+  loadObjClassUnsafe(proxy, scratch);
+  branchTestClassIsProxy(true, scratch, &ok);
+  assumeUnreachable("Expected ProxyObject in branchTestProxyHandlerFamily");
+  bind(&ok);
+#endif
+
   Address handlerAddr(proxy, ProxyObject::offsetOfHandler());
   loadPtr(handlerAddr, scratch);
   Address familyAddr(scratch, BaseProxyHandler::offsetOfFamily());
@@ -784,6 +863,46 @@ template void MacroAssembler::storeFloat32(FloatRegister src,
                                            const Address& dest);
 template void MacroAssembler::storeFloat32(FloatRegister src,
                                            const BaseIndex& dest);
+
+template <typename T>
+void MacroAssembler::fallibleUnboxInt32(const T& src, Register dest,
+                                        Label* fail) {
+  // Int32Value can be unboxed efficiently with unboxInt32, so use that.
+  branchTestInt32(Assembler::NotEqual, src, fail);
+  unboxInt32(src, dest);
+}
+
+template <typename T>
+void MacroAssembler::fallibleUnboxBoolean(const T& src, Register dest,
+                                          Label* fail) {
+  // BooleanValue can be unboxed efficiently with unboxBoolean, so use that.
+  branchTestBoolean(Assembler::NotEqual, src, fail);
+  unboxBoolean(src, dest);
+}
+
+template <typename T>
+void MacroAssembler::fallibleUnboxObject(const T& src, Register dest,
+                                         Label* fail) {
+  fallibleUnboxPtr(src, dest, JSVAL_TYPE_OBJECT, fail);
+}
+
+template <typename T>
+void MacroAssembler::fallibleUnboxString(const T& src, Register dest,
+                                         Label* fail) {
+  fallibleUnboxPtr(src, dest, JSVAL_TYPE_STRING, fail);
+}
+
+template <typename T>
+void MacroAssembler::fallibleUnboxSymbol(const T& src, Register dest,
+                                         Label* fail) {
+  fallibleUnboxPtr(src, dest, JSVAL_TYPE_SYMBOL, fail);
+}
+
+template <typename T>
+void MacroAssembler::fallibleUnboxBigInt(const T& src, Register dest,
+                                         Label* fail) {
+  fallibleUnboxPtr(src, dest, JSVAL_TYPE_BIGINT, fail);
+}
 
 //}}} check_macroassembler_style
 // ===============================================================

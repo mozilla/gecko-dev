@@ -41,6 +41,7 @@ const {
   ON_ACCOUNT_STATE_CHANGE_NOTIFICATION,
   ONLOGIN_NOTIFICATION,
   ONLOGOUT_NOTIFICATION,
+  ON_PRELOGOUT_NOTIFICATION,
   ONVERIFIED_NOTIFICATION,
   ON_DEVICE_DISCONNECTED_NOTIFICATION,
   POLL_SESSION,
@@ -49,6 +50,7 @@ const {
   SERVER_ERRNO_TO_ERROR,
   log,
   logPII,
+  logManager,
 } = ChromeUtils.import("resource://gre/modules/FxAccountsCommon.js");
 
 ChromeUtils.defineModuleGetter(
@@ -116,6 +118,12 @@ XPCOMUtils.defineLazyPreferenceGetter(
   true
 );
 
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "USE_SESSION_TOKENS_FOR_OAUTH",
+  "identity.fxaccounts.useSessionTokensForOAuth"
+);
+
 // An AccountState object holds all state related to one specific account.
 // It is considered "private" to the FxAccounts modules.
 // Only one AccountState is ever "current" in the FxAccountsInternal object -
@@ -168,7 +176,7 @@ AccountState.prototype = {
     }
     if (this.whenKeysReadyDeferred) {
       this.whenKeysReadyDeferred.reject(
-        new Error("Verification aborted; Another user signing in")
+        new Error("Key fetching aborted; Another user signing in")
       );
       this.whenKeysReadyDeferred = null;
     }
@@ -207,7 +215,19 @@ AccountState.prototype = {
     });
   },
 
-  updateUserAccountData(updatedFields) {
+  async updateUserAccountData(updatedFields) {
+    if ("uid" in updatedFields) {
+      const existing = await this.getUserAccountData(["uid"]);
+      if (existing.uid != updatedFields.uid) {
+        throw new Error(
+          "The specified credentials aren't for the current user"
+        );
+      }
+      // We need to nuke uid as storage will complain if we try and
+      // update it (even when the value is the same)
+      updatedFields = Cu.cloneInto(updatedFields, {}); // clone it first
+      delete updatedFields.uid;
+    }
     if (!this.isCurrent) {
       return Promise.reject(new Error("Another user has signed in"));
     }
@@ -473,54 +493,14 @@ class FxAccounts {
   }
 
   /**
-   * Retrieves an OAuth authorization code.
-   *
-   * @param {Object} options
-   * @param options.client_id
-   * @param options.state
-   * @param options.scope
-   * @param options.access_type
-   * @param options.code_challenge_method
-   * @param options.code_challenge
-   * @param [options.keys_jwe]
-   * @returns {Promise<Object>} Object containing "code" and "state" properties.
-   */
-  authorizeOAuthCode(options) {
-    return this._withVerifiedAccountState(async state => {
-      const { sessionToken } = await state.getUserAccountData(["sessionToken"]);
-      const params = { ...options };
-      if (params.keys_jwk) {
-        const jwk = JSON.parse(
-          new TextDecoder().decode(
-            ChromeUtils.base64URLDecode(params.keys_jwk, { padding: "reject" })
-          )
-        );
-        params.keys_jwe = await this._internal.createKeysJWE(
-          params.client_id,
-          params.scope,
-          jwk
-        );
-        delete params.keys_jwk;
-      }
-      try {
-        return await this._internal.fxAccountsClient.oauthAuthorize(
-          sessionToken,
-          params
-        );
-      } catch (err) {
-        throw this._internal._errorToErrorClass(err);
-      }
-    });
-  }
-
-  /**
-   * Get an OAuth token for the user
+   * Get an OAuth token for the user.
    *
    * @param options
    *        {
    *          scope: (string/array) the oauth scope(s) being requested. As a
    *                 convenience, you may pass a string if only one scope is
    *                 required, or an array of strings if multiple are needed.
+   *          ttl: (number) OAuth token TTL in seconds.
    *        }
    *
    * @return Promise.<string | Error>
@@ -542,7 +522,7 @@ class FxAccounts {
   }
 
   /**
-   * Remove an OAuth token from the token cache.  Callers should call this
+   * Remove an OAuth token from the token cache. Callers should call this
    * after they determine a token is invalid, so a new token will be fetched
    * on the next call to getOAuthToken().
    *
@@ -723,6 +703,20 @@ class FxAccounts {
       return this._internal.whenVerified(data);
     });
   }
+
+  /**
+   * Generate a log file for the FxA action that just completed
+   * and refresh the input & output streams.
+   */
+  async flushLogFile() {
+    const logType = await logManager.resetFileLog();
+    if (logType == logManager.ERROR_LOG_WRITTEN) {
+      Cu.reportError(
+        "FxA encountered an error - see about:sync-log for the log file."
+      );
+    }
+    Services.obs.notifyObservers(null, "service:log-manager:flush-log-file");
+  }
 }
 
 var FxAccountsInternal = function() {};
@@ -768,6 +762,14 @@ FxAccountsInternal.prototype = {
           let scope = {};
           ChromeUtils.import("resource://services-sync/main.js", scope);
           return scope.Weave.Service.promiseInitialized;
+        },
+        // Telemetry, so ecosystem telemetry doesn't miss logouts.
+        async () => {
+          const { EcosystemTelemetry } = ChromeUtils.import(
+            "resource://gre/modules/EcosystemTelemetry.jsm",
+            {}
+          );
+          await EcosystemTelemetry.prepareForFxANotification();
         },
       ];
     }
@@ -1025,22 +1027,12 @@ FxAccountsInternal.prototype = {
       log.debug("updateUserAccountData called with data", credentials);
     }
     let currentAccountState = this.currentAccountState;
-    return currentAccountState.promiseInitialized
-      .then(() => {
-        return currentAccountState.getUserAccountData(["uid"]);
-      })
-      .then(existing => {
-        if (existing.uid != credentials.uid) {
-          throw new Error(
-            "The specified credentials aren't for the current user"
-          );
-        }
-        // We need to nuke uid as storage will complain if we try and
-        // update it (even when the value is the same)
-        credentials = Cu.cloneInto(credentials, {}); // clone it first
-        delete credentials.uid;
-        return currentAccountState.updateUserAccountData(credentials);
-      });
+    return currentAccountState.promiseInitialized.then(() => {
+      if (!credentials.uid) {
+        throw new Error("The specified credentials have no uid");
+      }
+      return currentAccountState.updateUserAccountData(credentials);
+    });
   },
 
   /**
@@ -1136,6 +1128,7 @@ FxAccountsInternal.prototype = {
       sessionToken = data.sessionToken;
       tokensToRevoke = data.oauthTokens;
     }
+    await this.notifyObservers(ON_PRELOGOUT_NOTIFICATION);
     await this._signOutLocal();
     if (!localOnly) {
       // Do this in the background so *any* slow request won't
@@ -1525,10 +1518,17 @@ FxAccountsInternal.prototype = {
     delete currentState.whenVerifiedDeferred;
   },
 
-  // Does the actual fetch of an oauth token for getOAuthToken()
-  async _doTokenFetch(scopeString) {
-    // Ideally, we would auth this call directly with our `sessionToken` rather than
-    // going via a BrowserID assertion. Before we can do so we need to resolve some
+  /**
+   * Does the actual fetch of an oauth token for getOAuthToken()
+   * @param scopeString
+   * @param ttl
+   * @returns {Promise<string>}
+   * @private
+   */
+  async _doTokenFetch(scopeString, ttl) {
+    // Ideally, we would auth this call directly with our `sessionToken`
+    // using the `_doTokenFetchWithSessionToken` method rather than going
+    // via a BrowserID assertion. Before we can do so we need to resolve some
     // data-volume processing issues in the server-side FxA metrics pipeline.
     let token;
     let oAuthURL = this.fxAccountsOAuthGrantClient.serverURL.href;
@@ -1536,7 +1536,8 @@ FxAccountsInternal.prototype = {
     try {
       let result = await this.fxAccountsOAuthGrantClient.getTokenFromAssertion(
         assertion,
-        scopeString
+        scopeString,
+        ttl
       );
       token = result.access_token;
     } catch (err) {
@@ -1552,11 +1553,32 @@ FxAccountsInternal.prototype = {
       assertion = await this.getAssertion(oAuthURL);
       let result = await this.fxAccountsOAuthGrantClient.getTokenFromAssertion(
         assertion,
-        scopeString
+        scopeString,
+        ttl
       );
       token = result.access_token;
     }
     return token;
+  },
+
+  /**
+   * Does the actual fetch of an oauth token for getOAuthToken()
+   * using the account session token.
+   * @param {String} scopeString
+   * @param {Number} ttl
+   * @returns {Promise<string>}
+   * @private
+   */
+  async _doTokenFetchWithSessionToken(scopeString, ttl) {
+    return this.withSessionToken(async sessionToken => {
+      const result = await this.fxAccountsClient.accessTokenWithSessionToken(
+        sessionToken,
+        FX_OAUTH_CLIENT_ID,
+        scopeString,
+        ttl
+      );
+      return result.access_token;
+    });
   },
 
   getOAuthToken(options = {}) {
@@ -1594,10 +1616,13 @@ FxAccountsInternal.prototype = {
         log.debug("getOAuthToken has an in-flight request for this scope");
         return maybeInFlight;
       }
-
+      let fetchFunction = this._doTokenFetch.bind(this);
+      if (USE_SESSION_TOKENS_FOR_OAUTH) {
+        fetchFunction = this._doTokenFetchWithSessionToken.bind(this);
+      }
       // We need to start a new fetch and stick the promise in our in-flight map
       // and remove it when it resolves.
-      let promise = this._doTokenFetch(scopeString)
+      let promise = fetchFunction(scopeString, options.ttl)
         .then(token => {
           // As a sanity check, ensure something else hasn't raced getting a token
           // of the same scope. If something has we just make noise rather than
@@ -1624,6 +1649,17 @@ FxAccountsInternal.prototype = {
     });
   },
 
+  /**
+   * Remove an OAuth token from the token cache
+   * and makes a network request to FxA server to destroy the token.
+   *
+   * @param options
+   *        {
+   *          token: (string) A previously fetched token.
+   *        }
+   * @return Promise.<undefined> This function will always resolve, even if
+   *         an unknown token is passed.
+   */
   removeCachedOAuthToken(options) {
     if (!options.token || typeof options.token !== "string") {
       throw this._error(
@@ -1650,18 +1686,6 @@ FxAccountsInternal.prototype = {
     return this.withCurrentAccountState(async currentState => {
       await currentState.updateUserAccountData({ cert: null });
     });
-  },
-
-  /**
-   *
-   * @param {String} clientId
-   * @param {String} scope Space separated requested scopes
-   * @param {Object} jwk
-   */
-  async createKeysJWE(clientId, scope, jwk) {
-    let scopedKeys = await this.keys.getScopedKeys(scope, clientId);
-    scopedKeys = new TextEncoder().encode(JSON.stringify(scopedKeys));
-    return jwcrypto.generateJWE(jwk, scopedKeys);
   },
 
   async _getVerifiedAccountOrReject() {

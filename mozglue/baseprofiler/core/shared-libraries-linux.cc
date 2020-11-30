@@ -4,49 +4,48 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "BaseProfiler.h"
+#include "BaseProfilerSharedLibraries.h"
 
-#ifdef MOZ_BASE_PROFILER
+#define PATH_MAX_TOSTRING(x) #x
+#define PATH_MAX_STRING(x) PATH_MAX_TOSTRING(x)
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <limits.h>
+#include <unistd.h>
+#include <fstream>
+#include "platform.h"
+#include "mozilla/Sprintf.h"
+#include "mozilla/Unused.h"
 
-#  include "BaseProfilerSharedLibraries.h"
-
-#  define PATH_MAX_TOSTRING(x) #  x
-#  define PATH_MAX_STRING(x) PATH_MAX_TOSTRING(x)
-#  include <stdlib.h>
-#  include <stdio.h>
-#  include <string.h>
-#  include <limits.h>
-#  include <unistd.h>
-#  include <fstream>
-#  include "platform.h"
-#  include "mozilla/Sprintf.h"
-#  include "mozilla/Unused.h"
-
-#  include <algorithm>
-#  include <arpa/inet.h>
-#  include <dlfcn.h>
-#  include <elf.h>
-#  include <fcntl.h>
+#include <algorithm>
+#include <arpa/inet.h>
+#include <dlfcn.h>
+#include <elf.h>
+#include <fcntl.h>
+#if defined(GP_OS_linux) || defined(GP_OS_android)
 #  include <features.h>
-#  include <sys/mman.h>
-#  include <sys/stat.h>
-#  include <sys/types.h>
-#  include <vector>
+#endif
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <vector>
 
-#  if defined(MOZ_LINKER)
-#    include "AutoObjectMapper.h"
-#    include "Linker.h"  // dl_phdr_info
-#  elif defined(GP_OS_linux) || defined(GP_OS_android)
-#    include <link.h>  // dl_phdr_info
-#  else
-#    error "Unexpected configuration"
-#  endif
+#if defined(GP_OS_linux) || defined(GP_OS_android) || defined(GP_OS_freebsd)
+#  include <link.h>  // dl_phdr_info, ElfW()
+#else
+#  error "Unexpected configuration"
+#endif
 
-#  if defined(GP_OS_android)
+#if defined(GP_OS_android)
 extern "C" MOZ_EXPORT __attribute__((weak)) int dl_iterate_phdr(
     int (*callback)(struct dl_phdr_info* info, size_t size, void* data),
     void* data);
-#  endif
+#endif
+
+#if defined(GP_OS_freebsd) && !defined(ElfW)
+#  define ElfW(type) Elf_##type
+#endif
 
 // ----------------------------------------------------------------------------
 // Starting imports from toolkit/crashreporter/google-breakpad/, as needed by
@@ -182,15 +181,16 @@ class MemoryMappedFile {
       return false;
     }
 
-#  if defined(__x86_64__) || defined(__aarch64__) || \
-      (defined(__mips__) && _MIPS_SIM == _ABI64)
+#if defined(__x86_64__) || defined(__aarch64__) || \
+    (defined(__mips__) && _MIPS_SIM == _ABI64) ||  \
+    !(defined(GP_OS_linux) || defined(GP_OS_android))
 
     struct stat st;
     if (fstat(fd, &st) == -1 || st.st_size < 0) {
-#  else
+#else
     struct stat64 st;
     if (fstat64(fd, &st) == -1 || st.st_size < 0) {
-#  endif
+#endif
       close(fd);
       return false;
     }
@@ -357,7 +357,7 @@ class FileID {
   }
 
 // ELF note name and desc are 32-bits word padded.
-#  define NOTE_PADDING(a) ((a + 3) & ~3)
+#define NOTE_PADDING(a) ((a + 3) & ~3)
 
   static bool ElfClassBuildIDNoteIdentifier(const void* section, size_t length,
                                             std::vector<uint8_t>& identifier) {
@@ -651,11 +651,6 @@ struct LoadedLibraryInfo {
   unsigned long mLastMappingEnd;
 };
 
-#  if defined(MOZ_LINKER)
-static void outputMapperLog(const char* aBuf) { /* LOG("%s", aBuf); */
-}
-#  endif
-
 static std::string IDtoUUIDString(const std::vector<uint8_t>& aIdentifier) {
   std::string uuid = FileID::ConvertIdentifierToUUIDString(aIdentifier);
   // This is '0', not '\0', since it represents the breakpad id age.
@@ -667,19 +662,6 @@ static std::string IDtoUUIDString(const std::vector<uint8_t>& aIdentifier) {
 static std::string getId(const char* bin_name) {
   std::vector<uint8_t> identifier;
   identifier.reserve(kDefaultBuildIdSize);
-
-#  if defined(MOZ_LINKER)
-  if (nsDependentCString(bin_name).Find("!/") != kNotFound) {
-    AutoObjectMapperFaultyLib mapper(outputMapperLog);
-    void* image = nullptr;
-    size_t size = 0;
-    if (mapper.Map(&image, &size, bin_name) && image && size) {
-      if (FileID::ElfFileIdentifierFromMappedFile(image, identifier)) {
-        return IDtoUUIDString(identifier);
-      }
-    }
-  }
-#  endif
 
   FileID file_id(bin_name);
   if (file_id.ElfFileIdentifier(identifier)) {
@@ -736,7 +718,7 @@ static int dl_iterate_callback(struct dl_phdr_info* dl_info, size_t size,
 SharedLibraryInfo SharedLibraryInfo::GetInfoForSelf() {
   SharedLibraryInfo info;
 
-#  if defined(GP_OS_linux)
+#if defined(GP_OS_linux)
   // We need to find the name of the executable (exeName, exeNameLen) and the
   // address of its executable section (exeExeAddr) in the running image.
   char exeName[PATH_MAX];
@@ -755,9 +737,9 @@ SharedLibraryInfo SharedLibraryInfo::GetInfoForSelf() {
   }
 
   unsigned long exeExeAddr = 0;
-#  endif
+#endif
 
-#  if defined(GP_OS_android)
+#if defined(GP_OS_android)
   // If dl_iterate_phdr doesn't exist, we give up immediately.
   if (!dl_iterate_phdr) {
     // On ARM Android, dl_iterate_phdr is provided by the custom linker.
@@ -766,8 +748,9 @@ SharedLibraryInfo SharedLibraryInfo::GetInfoForSelf() {
     // not call it.
     return info;
   }
-#  endif
+#endif
 
+#if defined(GP_OS_linux) || defined(GP_OS_android)
   // Read info from /proc/self/maps. We ignore most of it.
   pid_t pid = mozilla::baseprofiler::profiler_current_process_id();
   char path[PATH_MAX];
@@ -813,6 +796,7 @@ SharedLibraryInfo SharedLibraryInfo::GetInfoForSelf() {
     }
 #  endif
   }
+#endif
 
   std::vector<LoadedLibraryInfo> libInfoList;
 
@@ -826,14 +810,15 @@ SharedLibraryInfo SharedLibraryInfo::GetInfoForSelf() {
                             libInfo.mFirstMappingStart - libInfo.mBaseAddress));
   }
 
-#  if defined(GP_OS_linux)
+#if defined(GP_OS_linux)
   // Make another pass over the information we just harvested from
   // dl_iterate_phdr.  If we see a nameless object mapped at what we earlier
   // established to be the main executable's load address, attach the
   // executable's name to that entry.
   for (size_t i = 0; i < info.GetSize(); i++) {
     SharedLibrary& lib = info.GetMutableEntry(i);
-    if (lib.GetStart() == exeExeAddr && lib.GetDebugPath().empty()) {
+    if (lib.GetStart() <= exeExeAddr && exeExeAddr <= lib.GetEnd() &&
+        lib.GetDebugPath().empty()) {
       lib = SharedLibraryAtPath(exeName, lib.GetStart(), lib.GetEnd(),
                                 lib.GetOffset());
 
@@ -841,12 +826,10 @@ SharedLibraryInfo SharedLibraryInfo::GetInfoForSelf() {
       break;
     }
   }
-#  endif
+#endif
 
   return info;
 }
 
 void SharedLibraryInfo::Initialize() { /* do nothing */
 }
-
-#endif  // MOZ_BASE_PROFILER

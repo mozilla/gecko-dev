@@ -91,10 +91,10 @@ NS_IMPL_ISUPPORTS_INHERITED0(AccessibleWrap, Accessible)
 void AccessibleWrap::Shutdown() {
   if (mID != kNoID) {
     auto doc = static_cast<DocAccessibleWrap*>(mDoc.get());
-    MOZ_ASSERT(doc);
+    // Accessibles can be shut down twice in some cases. When this happens,
+    // doc will be null.
     if (doc) {
       doc->RemoveID(mID);
-      mID = kNoID;
     }
   }
 
@@ -114,6 +114,10 @@ void AccessibleWrap::Shutdown() {
     // bug 1440267 is fixed.
     unk = static_cast<IAccessibleHyperlink*>(this);
     mscom::Interceptor::DisconnectRemotesForTarget(unk);
+    for (auto& assocUnk : mAssociatedCOMObjectsForDisconnection) {
+      mscom::Interceptor::DisconnectRemotesForTarget(assocUnk);
+    }
+    mAssociatedCOMObjectsForDisconnection.Clear();
   }
 
   Accessible::Shutdown();
@@ -198,22 +202,6 @@ AccessibleWrap::get_accParent(IDispatch __RPC_FAR* __RPC_FAR* ppdispParent) {
   *ppdispParent = nullptr;
 
   if (IsDefunct()) return CO_E_OBJNOTCONNECTED;
-
-  DocAccessible* doc = AsDoc();
-  if (doc) {
-    // Return window system accessible object for root document and tab document
-    // accessibles.
-    if (!doc->ParentDocument() ||
-        (nsWinUtils::IsWindowEmulationStarted() &&
-         nsCoreUtils::IsTabDocument(doc->DocumentNode()))) {
-      HWND hwnd = static_cast<HWND>(doc->GetNativeWindow());
-      if (hwnd &&
-          SUCCEEDED(::AccessibleObjectFromWindow(
-              hwnd, OBJID_WINDOW, IID_IAccessible, (void**)ppdispParent))) {
-        return S_OK;
-      }
-    }
-  }
 
   Accessible* xpParentAcc = Parent();
   if (!xpParentAcc) return S_FALSE;
@@ -435,10 +423,10 @@ AccessibleWrap::get_accRole(
 
   uint32_t msaaRole = 0;
 
-#define ROLE(_geckoRole, stringRole, atkRole, macRole, _msaaRole, ia2Role, \
-             androidClass, nameRule)                                       \
-  case roles::_geckoRole:                                                  \
-    msaaRole = _msaaRole;                                                  \
+#define ROLE(_geckoRole, stringRole, atkRole, macRole, macSubrole, _msaaRole, \
+             ia2Role, androidClass, nameRule)                                 \
+  case roles::_geckoRole:                                                     \
+    msaaRole = _msaaRole;                                                     \
     break;
 
   switch (geckoRole) {
@@ -490,7 +478,7 @@ AccessibleWrap::get_accRole(
       if (!nodeInfo->NamespaceEquals(document->GetDefaultNamespaceID())) {
         nsAutoString nameSpaceURI;
         nodeInfo->GetNamespaceURI(nameSpaceURI);
-        roleString += NS_LITERAL_STRING(", ") + nameSpaceURI;
+        roleString += u", "_ns + nameSpaceURI;
       }
     }
 
@@ -630,9 +618,9 @@ AccessibleWrap::get_accFocus(
 class AccessibleEnumerator final : public IEnumVARIANT {
  public:
   explicit AccessibleEnumerator(const nsTArray<Accessible*>& aArray)
-      : mArray(aArray), mCurIndex(0) {}
+      : mArray(aArray.Clone()), mCurIndex(0) {}
   AccessibleEnumerator(const AccessibleEnumerator& toCopy)
-      : mArray(toCopy.mArray), mCurIndex(toCopy.mCurIndex) {}
+      : mArray(toCopy.mArray.Clone()), mCurIndex(toCopy.mCurIndex) {}
   ~AccessibleEnumerator() {}
 
   // IUnknown
@@ -752,6 +740,7 @@ AccessibleWrap::get_accSelection(VARIANT __RPC_FAR* pvarChildren) {
   } else if (count > 1) {
     RefPtr<AccessibleEnumerator> pEnum =
         new AccessibleEnumerator(selectedItems);
+    AssociateCOMObjectForDisconnection(pEnum);
     pvarChildren->vt =
         VT_UNKNOWN;  // this must be VT_UNKNOWN for an IEnumVARIANT
     NS_ADDREF(pvarChildren->punkVal = pEnum);
@@ -1760,7 +1749,7 @@ bool AccessibleWrap::DispatchTextChangeToHandler(bool aIsInsert,
   VARIANT_BOOL isInsert = aIsInsert ? VARIANT_TRUE : VARIANT_FALSE;
 
   IA2TextSegment textSegment{::SysAllocStringLen(aText.get(), aText.Length()),
-                             aStart, static_cast<long>(aLen)};
+                             aStart, aStart + static_cast<long>(aLen)};
 
   ASYNC_INVOKER_FOR(IHandlerControl)
   invoker(controller.mCtrl, Some(controller.mIsProxy));

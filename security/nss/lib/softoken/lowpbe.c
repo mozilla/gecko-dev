@@ -889,6 +889,7 @@ nsspkcs5_FillInParam(SECOidTag algorithm, HASH_HashType hashType,
             pbe_param->encAlg = SEC_OID_DES_CBC;
             break;
 
+#ifndef NSS_DISABLE_DEPRECATED_RC2
         /* RC2 Algorithms */
         case SEC_OID_PKCS12_V2_PBE_WITH_SHA1_AND_128_BIT_RC2_CBC:
             pbe_param->keyLen = 16;
@@ -901,6 +902,7 @@ nsspkcs5_FillInParam(SECOidTag algorithm, HASH_HashType hashType,
         /* fall through */
         case SEC_OID_PKCS12_PBE_WITH_SHA1_AND_40_BIT_RC2_CBC:
             break;
+#endif
 
         /* RC4 algorithms */
         case SEC_OID_PKCS12_PBE_WITH_SHA1_AND_128_BIT_RC4:
@@ -1237,8 +1239,8 @@ sec_pkcs5_des(SECItem *key, SECItem *iv, SECItem *src, PRBool triple_des,
     /* remove padding */
     if ((encrypt == PR_FALSE) && (rv == SECSuccess)) {
         crv = sftk_CheckCBCPadding(dest->data, dest->len, DES_BLOCK_SIZE, &pad);
-        dest->len = CT_SEL(sftk_CKRVToMask(crv), dest->len - pad, dest->len);
-        PORT_SetError(CT_SEL(sftk_CKRVToMask(crv), error, SEC_ERROR_BAD_PASSWORD));
+        dest->len = PORT_CT_SEL(sftk_CKRVToMask(crv), dest->len - pad, dest->len);
+        PORT_SetError(PORT_CT_SEL(sftk_CKRVToMask(crv), error, SEC_ERROR_BAD_PASSWORD));
     }
     DES_DestroyContext(ctxt, PR_TRUE);
 
@@ -1312,8 +1314,8 @@ sec_pkcs5_aes(SECItem *key, SECItem *iv, SECItem *src, PRBool triple_des,
     /* remove padding */
     if ((encrypt == PR_FALSE) && (rv == SECSuccess)) {
         crv = sftk_CheckCBCPadding(dest->data, dest->len, AES_BLOCK_SIZE, &pad);
-        dest->len = CT_SEL(sftk_CKRVToMask(crv), dest->len - pad, dest->len);
-        PORT_SetError(CT_SEL(sftk_CKRVToMask(crv), error, SEC_ERROR_BAD_PASSWORD));
+        dest->len = PORT_CT_SEL(sftk_CKRVToMask(crv), dest->len - pad, dest->len);
+        PORT_SetError(PORT_CT_SEL(sftk_CKRVToMask(crv), error, SEC_ERROR_BAD_PASSWORD));
     }
     AES_DestroyContext(ctxt, PR_TRUE);
 
@@ -1388,8 +1390,8 @@ sec_pkcs5_aes_key_wrap(SECItem *key, SECItem *iv, SECItem *src, PRBool triple_de
     /* remove padding */
     if ((encrypt == PR_FALSE) && (rv == SECSuccess)) {
         crv = sftk_CheckCBCPadding(dest->data, dest->len, AES_BLOCK_SIZE, &pad);
-        dest->len = CT_SEL(sftk_CKRVToMask(crv), dest->len - pad, dest->len);
-        PORT_SetError(CT_SEL(sftk_CKRVToMask(crv), error, SEC_ERROR_BAD_PASSWORD));
+        dest->len = PORT_CT_SEL(sftk_CKRVToMask(crv), dest->len - pad, dest->len);
+        PORT_SetError(PORT_CT_SEL(sftk_CKRVToMask(crv), error, SEC_ERROR_BAD_PASSWORD));
     }
     AESKeyWrap_DestroyContext(ctxt, PR_TRUE);
 
@@ -1408,6 +1410,7 @@ loser:
     return dest;
 }
 
+#ifndef NSS_DISABLE_DEPRECATED_RC2
 /* perform rc2 encryption/decryption if an error occurs, NULL is returned
  */
 static SECItem *
@@ -1485,6 +1488,7 @@ sec_pkcs5_rc2(SECItem *key, SECItem *iv, SECItem *src, PRBool dummy,
 
     return dest;
 }
+#endif /* NSS_DISABLE_DEPRECATED_RC2 */
 
 /* perform rc4 encryption and decryption */
 static SECItem *
@@ -1580,9 +1584,11 @@ nsspkcs5_CipherData(NSSPKCS5PBEParameter *pbe_param, SECItem *pwitem,
             cryptof = sec_pkcs5_des;
             tripleDES = PR_FALSE;
             break;
+#ifndef NSS_DISABLE_DEPRECATED_RC2
         case SEC_OID_RC2_CBC:
             cryptof = sec_pkcs5_rc2;
             break;
+#endif
         case SEC_OID_RC4:
             cryptof = sec_pkcs5_rc4;
             break;
@@ -1736,4 +1742,68 @@ nsspkcs5_CreateAlgorithmID(PLArenaPool *arena, SECOidTag algorithm,
 loser:
 
     return ret_algid;
+}
+
+#define TEST_KEY "pbkdf test key"
+SECStatus
+sftk_fips_pbkdf_PowerUpSelfTests(void)
+{
+    SECItem *result;
+    SECItem inKey;
+    NSSPKCS5PBEParameter pbe_params;
+    unsigned char iteration_count = 5;
+    unsigned char keyLen = 64;
+    char *inKeyData = TEST_KEY;
+    static const unsigned char saltData[] =
+        { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
+    static const unsigned char pbkdf_known_answer[] = {
+        0x31, 0xf0, 0xe5, 0x39, 0x9f, 0x39, 0xb9, 0x29,
+        0x68, 0xac, 0xf2, 0xe9, 0x53, 0x9b, 0xb4, 0x9c,
+        0x28, 0x59, 0x8b, 0x5c, 0xd8, 0xd4, 0x02, 0x37,
+        0x18, 0x22, 0xc1, 0x92, 0xd0, 0xfa, 0x72, 0x90,
+        0x2c, 0x8d, 0x19, 0xd4, 0x56, 0xfb, 0x16, 0xfa,
+        0x8d, 0x5c, 0x06, 0x33, 0xd1, 0x5f, 0x17, 0xb1,
+        0x22, 0xd9, 0x9c, 0xaf, 0x5e, 0x3f, 0xf3, 0x66,
+        0xc6, 0x14, 0xfe, 0x83, 0xfa, 0x1a, 0x2a, 0xc5
+    };
+
+    sftk_PBELockInit();
+
+    inKey.data = (unsigned char *)inKeyData;
+    inKey.len = sizeof(TEST_KEY) - 1;
+
+    pbe_params.salt.data = (unsigned char *)saltData;
+    pbe_params.salt.len = sizeof(saltData);
+    /* the interation and keyLength are used as intermediate
+     * values when decoding the Algorithm ID, set them for completeness,
+     * but they are not used */
+    pbe_params.iteration.data = &iteration_count;
+    pbe_params.iteration.len = 1;
+    pbe_params.keyLength.data = &keyLen;
+    pbe_params.keyLength.len = 1;
+    /* pkcs5v2 stores the key in the AlgorithmID, so we don't need to
+     * generate it here */
+    pbe_params.ivLen = 0;
+    pbe_params.ivData = NULL;
+    /* keyID is only used by pkcs12 extensions to pkcs5v1 */
+    pbe_params.keyID = pbeBitGenCipherKey;
+    /* Algorithm is used by the decryption code after get get our key */
+    pbe_params.encAlg = SEC_OID_AES_256_CBC;
+    /* these are the fields actually used in nsspkcs5_ComputeKeyAndIV
+     * for NSSPKCS5_PBKDF2 */
+    pbe_params.iter = iteration_count;
+    pbe_params.keyLen = keyLen;
+    pbe_params.hashType = HASH_AlgSHA256;
+    pbe_params.pbeType = NSSPKCS5_PBKDF2;
+    pbe_params.is2KeyDES = PR_FALSE;
+
+    result = nsspkcs5_ComputeKeyAndIV(&pbe_params, &inKey, NULL, PR_FALSE);
+    if ((result == NULL) || (result->len != sizeof(pbkdf_known_answer)) ||
+        (PORT_Memcmp(result->data, pbkdf_known_answer, sizeof(pbkdf_known_answer)) != 0)) {
+        SECITEM_FreeItem(result, PR_TRUE);
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
+    SECITEM_FreeItem(result, PR_TRUE);
+    return SECSuccess;
 }

@@ -14,6 +14,7 @@
 #include "base/macros.h"
 #include "base/memory/free_deleter.h"
 #include "base/numerics/safe_conversions.h"
+#include "base/process/environment_internal.h"
 #include "base/win/startup_information.h"
 #include "base/win/windows_version.h"
 #include "sandbox/win/src/crosscall_client.h"
@@ -156,7 +157,7 @@ ResultCode TargetProcess::Create(
   if (startup_info.has_extended_startup_info())
     flags |= EXTENDED_STARTUPINFO_PRESENT;
 
-  if (job_ && base::win::GetVersion() < base::win::VERSION_WIN8) {
+  if (job_ && base::win::GetVersion() < base::win::Version::WIN8) {
     // Windows 8 implements nested jobs, but for older systems we need to
     // break out of any job we're in to enforce our restrictions.
     flags |= CREATE_BREAKAWAY_FROM_JOB;
@@ -164,7 +165,7 @@ ResultCode TargetProcess::Create(
 
   LPTCH original_environment = GetEnvironmentStrings();
   base::NativeEnvironmentString new_environment =
-    base::AlterEnvironment(original_environment, env_changes);
+    base::internal::AlterEnvironment(original_environment, env_changes);
   // Ignore return value? What can we do?
   FreeEnvironmentStrings(original_environment);
   LPVOID new_env_ptr = (void*)new_environment.data();
@@ -242,13 +243,13 @@ ResultCode TargetProcess::TransferVariable(const char* name,
 #if SANDBOX_EXPORTS
   HMODULE module = ::LoadLibrary(exe_name_.get());
   if (!module)
-    return SBOX_ERROR_GENERIC;
+    return SBOX_ERROR_CANNOT_LOADLIBRARY_EXECUTABLE;
 
   child_var = reinterpret_cast<void*>(::GetProcAddress(module, name));
   ::FreeLibrary(module);
 
   if (!child_var)
-    return SBOX_ERROR_GENERIC;
+    return SBOX_ERROR_CANNOT_FIND_VARIABLE_ADDRESS;
 
   size_t offset =
       reinterpret_cast<char*>(child_var) - reinterpret_cast<char*>(module);
@@ -258,10 +259,10 @@ ResultCode TargetProcess::TransferVariable(const char* name,
   SIZE_T written;
   if (!::WriteProcessMemory(sandbox_process_info_.process_handle(), child_var,
                             address, size, &written))
-    return SBOX_ERROR_GENERIC;
+    return SBOX_ERROR_CANNOT_WRITE_VARIABLE_VALUE;
 
   if (written != size)
-    return SBOX_ERROR_GENERIC;
+    return SBOX_ERROR_INVALID_WRITE_VARIABLE_SIZE;
 
   return SBOX_ALL_OK;
 }

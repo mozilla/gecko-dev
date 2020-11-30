@@ -7,7 +7,6 @@
 #include "ServiceWorkerScriptCache.h"
 
 #include "js/Array.h"  // JS::GetArrayLength
-#include "mozilla/SystemGroup.h"
 #include "mozilla/Unused.h"
 #include "mozilla/dom/CacheBinding.h"
 #include "mozilla/dom/cache/CacheStorage.h"
@@ -19,6 +18,7 @@
 #include "mozilla/ipc/BackgroundUtils.h"
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
 #include "mozilla/net/CookieJarSettings.h"
+#include "mozilla/StaticPrefs_extensions.h"
 #include "nsICacheInfoChannel.h"
 #include "nsIStreamLoader.h"
 #include "nsIThreadRetargetableRequest.h"
@@ -302,7 +302,7 @@ class CompareManager final : public PromiseNativeHandler {
     if (mAreScriptsEqual) {
       MOZ_ASSERT(mCallback);
       mCallback->ComparisonResult(aStatus, true /* aSameScripts */, mOnFailure,
-                                  EmptyString(), mMaxScope, mLoadFlags);
+                                  u""_ns, mMaxScope, mLoadFlags);
       Cleanup();
       return;
     }
@@ -543,8 +543,7 @@ class CompareManager final : public PromiseNativeHandler {
       return rv;
     }
 
-    RefPtr<InternalResponse> ir =
-        new InternalResponse(200, NS_LITERAL_CSTRING("OK"));
+    RefPtr<InternalResponse> ir = new InternalResponse(200, "OK"_ns);
     ir->SetBody(body, aCN->Buffer().Length());
     ir->SetURLList(aCN->URLList());
 
@@ -652,9 +651,9 @@ nsresult CompareNetwork::Initialize(nsIPrincipal* aPrincipal,
 
   // Different settings are needed for fetching imported scripts, since they
   // might be cross-origin scripts.
-  uint32_t secFlags = mIsMainScript
-                          ? nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_IS_BLOCKED
-                          : nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_INHERITS;
+  uint32_t secFlags =
+      mIsMainScript ? nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_IS_BLOCKED
+                    : nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_INHERITS_SEC_CONTEXT;
 
   nsContentPolicyType contentPolicyType =
       mIsMainScript ? nsIContentPolicy::TYPE_INTERNAL_SERVICE_WORKER
@@ -663,6 +662,8 @@ nsresult CompareNetwork::Initialize(nsIPrincipal* aPrincipal,
   // Create a new cookieJarSettings.
   nsCOMPtr<nsICookieJarSettings> cookieJarSettings =
       mozilla::net::CookieJarSettings::Create();
+
+  net::CookieJarSettings::Cast(cookieJarSettings)->SetPartitionKey(uri);
 
   // Note that because there is no "serviceworker" RequestContext type, we can
   // use the TYPE_INTERNAL_SCRIPT content policy types when loading a service
@@ -683,8 +684,7 @@ nsresult CompareNetwork::Initialize(nsIPrincipal* aPrincipal,
       MOZ_ASSERT(NS_SUCCEEDED(rv));
     }
 
-    rv = httpChannel->SetRequestHeader(NS_LITERAL_CSTRING("Service-Worker"),
-                                       NS_LITERAL_CSTRING("script"),
+    rv = httpChannel->SetRequestHeader("Service-Worker"_ns, "script"_ns,
                                        /* merge */ false);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
   }
@@ -881,6 +881,58 @@ CompareNetwork::OnStreamComplete(nsIStreamLoader* aLoader,
     return NS_OK;
   }
 
+  nsCOMPtr<nsIChannel> channel = do_QueryInterface(request);
+  MOZ_ASSERT(channel, "How come we don't have any channel?");
+
+  nsCOMPtr<nsIURI> uri;
+  channel->GetOriginalURI(getter_AddRefs(uri));
+  bool isExtension = uri->SchemeIs("moz-extension");
+
+  if (isExtension &&
+      !StaticPrefs::extensions_backgroundServiceWorker_enabled_AtStartup()) {
+    // Return earlier with error is the worker script is a moz-extension url
+    // but the feature isn't enabled by prefs.
+    return NS_ERROR_FAILURE;
+  }
+
+  if (isExtension) {
+    // NOTE: trying to register any moz-extension use that doesn't ends
+    // with .js/.jsm/.mjs seems to be already completing with an error
+    // in aStatus and they never reach this point.
+
+    // TODO: look into avoid duplicated parts that could be shared with the HTTP
+    // channel scenario.
+    nsCOMPtr<nsIURI> channelURL;
+    rv = channel->GetURI(getter_AddRefs(channelURL));
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+
+    nsCString channelURLSpec;
+    MOZ_ALWAYS_SUCCEEDS(channelURL->GetSpec(channelURLSpec));
+
+    // Append the final URL (which for an extension worker script is going to
+    // be a file or jar url).
+    MOZ_DIAGNOSTIC_ASSERT(!mURLList.IsEmpty());
+    if (channelURLSpec != mURLList[0]) {
+      mURLList.AppendElement(channelURLSpec);
+    }
+
+    char16_t* buffer = nullptr;
+    size_t len = 0;
+
+    rv = ScriptLoader::ConvertToUTF16(channel, aString, aLen, u"UTF-8"_ns,
+                                      nullptr, buffer, len);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+
+    mBuffer.Adopt(buffer, len);
+
+    rv = NS_OK;
+    return NS_OK;
+  }
+
   nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(request);
   MOZ_ASSERT(httpChannel, "How come we don't have an HTTP channel?");
 
@@ -910,8 +962,8 @@ CompareNetwork::OnStreamComplete(nsIStreamLoader* aLoader,
 
   // Note: we explicitly don't check for the return value here, because the
   // absence of the header is not an error condition.
-  Unused << httpChannel->GetResponseHeader(
-      NS_LITERAL_CSTRING("Service-Worker-Allowed"), mMaxScope);
+  Unused << httpChannel->GetResponseHeader("Service-Worker-Allowed"_ns,
+                                           mMaxScope);
 
   // [9.2 Update]4.13, If response's cache state is not "local",
   // set registration's last update check time to the current time
@@ -960,9 +1012,8 @@ CompareNetwork::OnStreamComplete(nsIStreamLoader* aLoader,
   char16_t* buffer = nullptr;
   size_t len = 0;
 
-  rv = ScriptLoader::ConvertToUTF16(httpChannel, aString, aLen,
-                                    NS_LITERAL_STRING("UTF-8"), nullptr, buffer,
-                                    len);
+  rv = ScriptLoader::ConvertToUTF16(httpChannel, aString, aLen, u"UTF-8"_ns,
+                                    nullptr, buffer, len);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -1040,8 +1091,8 @@ CompareCache::OnStreamComplete(nsIStreamLoader* aLoader, nsISupports* aContext,
   char16_t* buffer = nullptr;
   size_t len = 0;
 
-  nsresult rv = ScriptLoader::ConvertToUTF16(
-      nullptr, aString, aLen, NS_LITERAL_STRING("UTF-8"), nullptr, buffer, len);
+  nsresult rv = ScriptLoader::ConvertToUTF16(nullptr, aString, aLen,
+                                             u"UTF-8"_ns, nullptr, buffer, len);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     Finish(rv, false);
     return rv;
@@ -1114,7 +1165,7 @@ void CompareCache::ManageValueResult(JSContext* aCx,
                              0,     /* default segsize */
                              0,     /* default segcount */
                              false, /* default closeWhenDone */
-                             SystemGroup::EventTargetFor(TaskCategory::Other));
+                             GetMainThreadSerialEventTarget());
   if (NS_WARN_IF(NS_FAILED(rv))) {
     Finish(rv, false);
     return;
@@ -1127,7 +1178,7 @@ void CompareCache::ManageValueResult(JSContext* aCx,
     return;
   }
 
-  rv = mPump->AsyncRead(loader, nullptr);
+  rv = mPump->AsyncRead(loader);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     mPump = nullptr;
     Finish(rv, false);
@@ -1261,8 +1312,8 @@ void CompareManager::RejectedCallback(JSContext* aCx,
 
 void CompareManager::Fail(nsresult aStatus) {
   MOZ_ASSERT(NS_IsMainThread());
-  mCallback->ComparisonResult(aStatus, false /* aIsEqual */, mOnFailure,
-                              EmptyString(), EmptyCString(), mLoadFlags);
+  mCallback->ComparisonResult(aStatus, false /* aIsEqual */, mOnFailure, u""_ns,
+                              ""_ns, mLoadFlags);
   Cleanup();
 }
 

@@ -4,8 +4,11 @@
 
 // @flow
 
+import { prefs } from "../../utils/prefs";
 import { workerUtils } from "devtools-utils";
 const { WorkerDispatcher } = workerUtils;
+
+import type { URL } from "../../types";
 
 let dispatcher;
 let workerPath;
@@ -23,7 +26,7 @@ export const stop = () => {
 
 type PrettyPrintOpts = {
   text: string,
-  url: string,
+  url: URL,
 };
 
 export async function prettyPrint({ text, url }: PrettyPrintOpts) {
@@ -34,7 +37,7 @@ export async function prettyPrint({ text, url }: PrettyPrintOpts) {
 
   return dispatcher.invoke("prettyPrint", {
     url,
-    indent: 2,
+    indent: prefs.indentSize,
     sourceText: text,
   });
 }

@@ -9,7 +9,7 @@
 
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/SystemGroup.h"
+#include "mozilla/SchedulerGroup.h"
 #include "mozilla/ThreadLocal.h"
 #include "mozilla/TimeStamp.h"
 
@@ -41,8 +41,10 @@ class FlushRejections : public CancelableRunnable {
       return;
     }
     sDispatched.set(true);
-    SystemGroup::Dispatch(TaskCategory::Other,
-                          do_AddRef(new FlushRejections()));
+
+    // Dispatch the runnable to the current thread where
+    // the Promise was rejected, e.g. workers or worklets.
+    NS_DispatchToCurrentThread(new FlushRejections());
   }
 
   static void FlushSync() {
@@ -165,7 +167,7 @@ void PromiseDebugging::Init() {
   FlushRejections::Init();
 
   // Generate a prefix for identifiers: "PromiseDebugging.$processid."
-  sIDPrefix = NS_LITERAL_STRING("PromiseDebugging.");
+  sIDPrefix = u"PromiseDebugging."_ns;
   if (XRE_IsContentProcess()) {
     sIDPrefix.AppendInt(ContentChild::GetSingleton()->GetID());
     sIDPrefix.Append('.');

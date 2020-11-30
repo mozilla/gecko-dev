@@ -161,6 +161,10 @@ exclude-multi-locale = [
     l10n = "{l}toolkit/toolkit/about/*About.ftl"
 
 [[paths]]
+    reference = "toolkit/locales/en-US/toolkit/about/*Mozilla.ftl"
+    l10n = "{l}toolkit/toolkit/about/*Mozilla.ftl"
+
+[[paths]]
     reference = "toolkit/locales/en-US/chrome/global/aboutAbout.dtd"
     l10n = "{l}toolkit/chrome/global/aboutAbout.dtd"
 
@@ -195,10 +199,6 @@ exclude-multi-locale = [
 [[paths]]
     reference = "toolkit/locales/en-US/chrome/global/intl.css"
     l10n = "{l}toolkit/chrome/global/intl.css"
-
-[[paths]]
-    reference = "toolkit/locales/en-US/chrome/search/search.properties"
-    l10n = "{l}toolkit/chrome/search/search.properties"
 
 [[paths]]
     reference = "toolkit/locales/en-US/chrome/pluginproblem/pluginproblem.dtd"

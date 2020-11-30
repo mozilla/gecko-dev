@@ -29,7 +29,14 @@ add_task(async function() {
 
   await testProcesses(targetList, mainProcess);
 
-  await targetList.stopListening();
+  await targetList.destroy();
+  // Wait for all the targets to be fully attached so we don't have pending requests.
+  await Promise.all(
+    targetList
+      .getAllTargets(targetList.ALL_TYPES)
+      .map(t => t.attachAndInitThread(targetList))
+  );
+
   await client.close();
 });
 
@@ -38,14 +45,14 @@ async function testProcesses(targetList, target) {
 
   // Note that ppmm also includes the parent process, which is considered as a frame rather than a process
   const originalProcessesCount = Services.ppmm.childCount - 1;
-  const processes = await targetList.getAllTargets(TargetList.TYPES.PROCESS);
+  const processes = await targetList.getAllTargets([TargetList.TYPES.PROCESS]);
   is(
     processes.length,
     originalProcessesCount,
     "Get a target for all content processes"
   );
 
-  const processes2 = await targetList.getAllTargets(TargetList.TYPES.PROCESS);
+  const processes2 = await targetList.getAllTargets([TargetList.TYPES.PROCESS]);
   is(
     processes2.length,
     originalProcessesCount,
@@ -62,22 +69,22 @@ async function testProcesses(targetList, target) {
 
   // Assert that watchTargets will call the create callback for all existing frames
   const targets = new Set();
-  const onAvailable = ({ type, targetFront, isTopLevel }) => {
+  const onAvailable = ({ targetFront }) => {
     if (targets.has(targetFront)) {
       ok(false, "The same target is notified multiple times via onAvailable");
     }
     is(
-      type,
+      targetFront.targetType,
       TargetList.TYPES.PROCESS,
       "We are only notified about process targets"
     );
     ok(
-      targetFront == target ? isTopLevel : !isTopLevel,
-      "isTopLevel argument is correct"
+      targetFront == target ? targetFront.isTopLevel : !targetFront.isTopLevel,
+      "isTopLevel property is correct"
     );
     targets.add(targetFront);
   };
-  const onDestroyed = ({ type, targetFront, isTopLevel }) => {
+  const onDestroyed = ({ targetFront }) => {
     if (!targets.has(targetFront)) {
       ok(
         false,
@@ -85,12 +92,12 @@ async function testProcesses(targetList, target) {
       );
     }
     is(
-      type,
+      targetFront.targetType,
       TargetList.TYPES.PROCESS,
       "We are only notified about process targets"
     );
     ok(
-      !isTopLevel,
+      !targetFront.isTopLevel,
       "We are never notified about the top level target destruction"
     );
     targets.delete(targetFront);
@@ -115,7 +122,7 @@ async function testProcesses(targetList, target) {
   const previousTargets = new Set(targets);
   // Assert that onAvailable is called for processes created *after* the call to watchTargets
   const onProcessCreated = new Promise(resolve => {
-    const onAvailable2 = ({ type, targetFront, isTopLevel }) => {
+    const onAvailable2 = ({ targetFront }) => {
       if (previousTargets.has(targetFront)) {
         return;
       }
@@ -139,7 +146,7 @@ async function testProcesses(targetList, target) {
   // Assert that onDestroyed is called for destroyed processes
   const onProcessDestroyed = new Promise(resolve => {
     const onAvailable3 = () => {};
-    const onDestroyed3 = ({ type, targetFront, isTopLevel }) => {
+    const onDestroyed3 = ({ targetFront }) => {
       resolve(targetFront);
       targetList.unwatchTargets(
         [TargetList.TYPES.PROCESS],
@@ -172,14 +179,14 @@ async function testProcesses(targetList, target) {
     "The destroyed target is the one that has been reported as created"
   );
 
-  await targetList.unwatchTargets(
+  targetList.unwatchTargets(
     [TargetList.TYPES.PROCESS],
     onAvailable,
     onDestroyed
   );
 
   // Ensure that getAllTargets still works after the call to unwatchTargets
-  const processes3 = await targetList.getAllTargets(TargetList.TYPES.PROCESS);
+  const processes3 = await targetList.getAllTargets([TargetList.TYPES.PROCESS]);
   is(
     processes3.length,
     processCountAfterTabOpen - 1,

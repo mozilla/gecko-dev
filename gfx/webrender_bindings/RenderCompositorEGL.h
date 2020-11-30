@@ -17,7 +17,7 @@ namespace wr {
 class RenderCompositorEGL : public RenderCompositor {
  public:
   static UniquePtr<RenderCompositor> Create(
-      RefPtr<widget::CompositorWidget> aWidget);
+      RefPtr<widget::CompositorWidget> aWidget, nsACString& aError);
 
   explicit RenderCompositorEGL(RefPtr<widget::CompositorWidget> aWidget);
   virtual ~RenderCompositorEGL();
@@ -37,6 +37,17 @@ class RenderCompositorEGL : public RenderCompositor {
 
   CompositorCapabilities GetCompositorCapabilities() override;
 
+  // Interface for partial present
+  bool UsePartialPresent() override;
+  bool RequestFullRender() override;
+  uint32_t GetMaxPartialPresentRects() override;
+  bool ShouldDrawPreviousPartialPresentRegions() override;
+  size_t GetBufferAge() const override;
+  void SetBufferDamageRegion(const wr::DeviceIntRect* aRects,
+                             size_t aNumRects) override;
+
+  ipc::FileDescriptor GetAndResetReleaseFence() override;
+
  protected:
   EGLSurface CreateEGLSurface();
 
@@ -47,6 +58,12 @@ class RenderCompositorEGL : public RenderCompositor {
   // On android we must track our own surface size.
   LayoutDeviceIntSize mEGLSurfaceSize;
 #endif
+
+  // FileDescriptor of release fence.
+  // Release fence is a fence that is used for waiting until usage/composite of
+  // AHardwareBuffer is ended. The fence is delivered to client side via
+  // ImageBridge. It is used only on android.
+  ipc::FileDescriptor mReleaseFenceFd;
 };
 
 }  // namespace wr

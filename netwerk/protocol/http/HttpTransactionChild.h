@@ -6,11 +6,13 @@
 #ifndef HttpTransactionChild_h__
 #define HttpTransactionChild_h__
 
+#include "mozilla/Atomics.h"
 #include "mozilla/net/NeckoChannelParams.h"
 #include "mozilla/net/PHttpTransactionChild.h"
 #include "nsHttpRequestHead.h"
 #include "nsIRequest.h"
 #include "nsIStreamListener.h"
+#include "nsIThreadRetargetableStreamListener.h"
 #include "nsIThrottledInputChannel.h"
 #include "nsITransport.h"
 
@@ -19,6 +21,7 @@ class nsInputStreamPump;
 namespace mozilla {
 namespace net {
 
+class BackgroundDataBridgeParent;
 class InputChannelThrottleQueueChild;
 class nsHttpConnectionInfo;
 class nsHttpTransaction;
@@ -31,13 +34,15 @@ class nsProxyInfo;
 class HttpTransactionChild final : public PHttpTransactionChild,
                                    public nsIStreamListener,
                                    public nsITransportEventSink,
-                                   public nsIThrottledInputChannel {
+                                   public nsIThrottledInputChannel,
+                                   public nsIThreadRetargetableStreamListener {
  public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIREQUESTOBSERVER
   NS_DECL_NSISTREAMLISTENER
   NS_DECL_NSITRANSPORTEVENTSINK
   NS_DECL_NSITHROTTLEDINPUTCHANNEL
+  NS_DECL_NSITHREADRETARGETABLESTREAMLISTENER
 
   explicit HttpTransactionChild();
 
@@ -52,7 +57,9 @@ class HttpTransactionChild final : public PHttpTransactionChild,
       const bool& aResponseTimeoutEnabled, const uint64_t& aChannelId,
       const bool& aHasTransactionObserver,
       const Maybe<H2PushedStreamArg>& aPushedStreamArg,
-      const mozilla::Maybe<PInputChannelThrottleQueueChild*>& aThrottleQueue);
+      const mozilla::Maybe<PInputChannelThrottleQueueChild*>& aThrottleQueue,
+      const bool& aIsDocumentLoad, const TimeStamp& aRedirectStart,
+      const TimeStamp& aRedirectEnd);
   mozilla::ipc::IPCResult RecvUpdateClassOfService(
       const uint32_t& classOfService);
   mozilla::ipc::IPCResult RecvCancelPump(const nsresult& aStatus);
@@ -74,7 +81,7 @@ class HttpTransactionChild final : public PHttpTransactionChild,
       const HttpConnectionInfoCloneArgs& aInfoArgs);
   // Initialize the *real* nsHttpTransaction. See |nsHttpTransaction::Init|
   // for the parameters.
-  MOZ_MUST_USE nsresult InitInternal(
+  [[nodiscard]] nsresult InitInternal(
       uint32_t caps, const HttpConnectionInfoCloneArgs& aArgs,
       nsHttpRequestHead* reqHeaders,
       nsIInputStream* reqBody,  // use the trick in bug 1277681
@@ -85,16 +92,31 @@ class HttpTransactionChild final : public PHttpTransactionChild,
       bool aHasTransactionObserver,
       const Maybe<H2PushedStreamArg>& aPushedStreamArg);
 
-  bool mCanceled;
-  nsresult mStatus;
+  void CancelInternal(nsresult aStatus);
+
+  bool CanSendODAToContentProcessDirectly(
+      const Maybe<nsHttpResponseHead>& aHead);
+
+  ResourceTimingStructArgs GetTimingAttributes();
+
+  // Use Release-Acquire ordering to ensure the OMT ODA is ignored while
+  // transaction is canceled on main thread.
+  Atomic<bool, ReleaseAcquire> mCanceled;
+  Atomic<nsresult, ReleaseAcquire> mStatus;
   uint64_t mChannelId;
   nsHttpRequestHead mRequestHead;
+  bool mIsDocumentLoad;
+  uint64_t mLogicalOffset;
+  TimeStamp mRedirectStart;
+  TimeStamp mRedirectEnd;
+  nsCString mProtocolVersion;
 
   nsCOMPtr<nsIInputStream> mUploadStream;
   RefPtr<nsHttpTransaction> mTransaction;
   nsCOMPtr<nsIRequest> mTransactionPump;
   Maybe<TransactionObserverResult> mTransactionObserverResult;
   RefPtr<InputChannelThrottleQueueChild> mThrottleQueue;
+  RefPtr<BackgroundDataBridgeParent> mDataBridgeParent;
 };
 
 }  // namespace net

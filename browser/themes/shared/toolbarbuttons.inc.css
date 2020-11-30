@@ -55,8 +55,8 @@ toolbar[brighttext] {
 
 /* ::::: primary toolbar buttons ::::: */
 
-.tabbrowser-arrowscrollbox[scrolledtostart=true]::part(scrollbutton-up),
-.tabbrowser-arrowscrollbox[scrolledtoend=true]::part(scrollbutton-down),
+#tabbrowser-arrowscrollbox[scrolledtostart=true]::part(scrollbutton-up),
+#tabbrowser-arrowscrollbox[scrolledtoend=true]::part(scrollbutton-down),
 :root:not([customizing]) .toolbarbutton-1[disabled=true],
 /* specialcase the overflow and the hamburger button so they show up disabled in customize mode. */
 #nav-bar-overflow-button[disabled=true],
@@ -74,32 +74,32 @@ toolbar[brighttext] {
 }
 
 #TabsToolbar .toolbarbutton-1,
-.tabbrowser-arrowscrollbox::part(scrollbutton-up),
-.tabbrowser-arrowscrollbox::part(scrollbutton-down) {
+#tabbrowser-arrowscrollbox::part(scrollbutton-up),
+#tabbrowser-arrowscrollbox::part(scrollbutton-down) {
   margin: 0 0 var(--tabs-navbar-shadow-size) !important;
 }
 
-.tabbrowser-arrowscrollbox::part(scrollbutton-up),
-.tabbrowser-arrowscrollbox::part(scrollbutton-down) {
-  -moz-appearance: none;
+#tabbrowser-arrowscrollbox::part(scrollbutton-up),
+#tabbrowser-arrowscrollbox::part(scrollbutton-down) {
+  appearance: none;
   padding: 0 var(--toolbarbutton-inner-padding) !important;
 }
 
-#navigator-toolbox:not(:hover) .tabbrowser-arrowscrollbox:not([highlight])::part(scrollbutton-down) {
+#navigator-toolbox:not(:hover) #tabbrowser-arrowscrollbox:not([highlight])::part(scrollbutton-down) {
   transition: 1s background-color ease-out;
 }
 
-.tabbrowser-arrowscrollbox[highlight]::part(scrollbutton-down) {
+#tabbrowser-arrowscrollbox[highlight]::part(scrollbutton-down) {
   background-color: Highlight;
 }
 
 .findbar-button {
-  -moz-appearance: none;
+  appearance: none;
   color: inherit;
 }
 
 toolbar .toolbarbutton-1 {
-  -moz-appearance: none;
+  appearance: none;
   margin: 0;
   padding: 0 var(--toolbarbutton-outer-padding);
   -moz-box-pack: center;
@@ -132,11 +132,6 @@ toolbar .toolbarbutton-1 > .toolbarbutton-icon {
   height: calc(2 * var(--toolbarbutton-inner-padding) + 16px);
 }
 
-.bookmark-item > .toolbarbutton-menu-dropmarker,
-toolbar .toolbarbutton-1 > .toolbarbutton-menu-dropmarker {
-  display: none;
-}
-
 toolbar .toolbarbutton-1 > .toolbarbutton-text {
   padding-top: var(--toolbarbutton-vertical-text-padding);
   padding-bottom: 0;
@@ -148,13 +143,11 @@ toolbar .toolbarbutton-1 > .toolbarbutton-text {
 }
 
 toolbar .toolbaritem-combined-buttons {
-  margin-left: 2px;
-  margin-right: 2px;
+  margin-inline: 2px;
 }
 
 toolbar .toolbaritem-combined-buttons > .toolbarbutton-1 {
-  padding-left: 0;
-  padding-right: 0;
+  padding-inline: 0;
 }
 
 toolbar .toolbaritem-combined-buttons:not(:hover) > separator {
@@ -175,9 +168,9 @@ toolbar[brighttext] .toolbaritem-combined-buttons > separator {
 }
 
 #PersonalToolbar .toolbarbutton-1:not([disabled=true]):not([checked]):not([open]):not(:active):hover,
-.tabbrowser-arrowscrollbox:not([scrolledtostart=true])::part(scrollbutton-up):hover,
-.tabbrowser-arrowscrollbox:not([scrolledtoend=true])::part(scrollbutton-down):hover,
-.findbar-button:not(:-moz-any([checked="true"],[disabled="true"])):hover,
+#tabbrowser-arrowscrollbox:not([scrolledtostart=true])::part(scrollbutton-up):hover,
+#tabbrowser-arrowscrollbox:not([scrolledtoend=true])::part(scrollbutton-down):hover,
+.findbar-button:not(:is([checked="true"],[disabled="true"])):hover,
 toolbarbutton.bookmark-item:not(.subviewbutton):hover:not([disabled="true"]):not([open]),
 toolbar .toolbarbutton-1:not([disabled=true]):not([checked]):not([open]):not(:active):hover > .toolbarbutton-icon,
 toolbar .toolbarbutton-1:not([disabled=true]):not([checked]):not([open]):not(:active):hover > .toolbarbutton-text,
@@ -186,13 +179,13 @@ toolbar .toolbarbutton-1:not([disabled=true]):not([checked]):not([open]):not(:ac
   color: inherit;
 }
 
-#PersonalToolbar .toolbarbutton-1:not([disabled=true]):-moz-any([open],[checked],:hover:active),
-.findbar-button:not([disabled=true]):-moz-any([checked="true"],:hover:active),
+#PersonalToolbar .toolbarbutton-1:not([disabled=true]):is([open],[checked],:hover:active),
+.findbar-button:not([disabled=true]):is([checked="true"],:hover:active),
 toolbarbutton.bookmark-item:not(.subviewbutton):hover:active:not([disabled="true"]),
 toolbarbutton.bookmark-item[open="true"],
-toolbar .toolbarbutton-1:not([disabled=true]):-moz-any([open],[checked],:hover:active) > .toolbarbutton-icon,
-toolbar .toolbarbutton-1:not([disabled=true]):-moz-any([open],[checked],:hover:active) > .toolbarbutton-text,
-toolbar .toolbarbutton-1:not([disabled=true]):-moz-any([open],[checked],:hover:active) > .toolbarbutton-badge-stack {
+toolbar .toolbarbutton-1:not([disabled=true]):is([open],[checked],:hover:active) > .toolbarbutton-icon,
+toolbar .toolbarbutton-1:not([disabled=true]):is([open],[checked],:hover:active) > .toolbarbutton-text,
+toolbar .toolbarbutton-1:not([disabled=true]):is([open],[checked],:hover:active) > .toolbarbutton-badge-stack {
   background-color: var(--toolbarbutton-active-background);
   color: inherit;
 }
@@ -234,10 +227,8 @@ toolbar .toolbarbutton-1:-moz-focusring {
 }
 
 :root:not([uidensity=compact]) #back-button {
-  padding-top: 3px;
-  padding-bottom: 3px;
-  padding-inline-start: 3px;
-  padding-inline-end: 0;
+  padding-block: 3px;
+  padding-inline: 3px 0;
   position: relative !important;
   z-index: 1 !important;
   border-radius: 0 10000px 10000px 0;
@@ -284,8 +275,7 @@ toolbar .toolbarbutton-1:-moz-focusring {
 }
 
 :root[uidensity=touch] #back-button {
-  padding-top: 1px;
-  padding-bottom: 1px;
+  padding-block: 1px;
   padding-inline-start: 1px;
 }
 
@@ -311,39 +301,32 @@ toolbar .toolbarbutton-1:-moz-focusring {
 
 #BMB_bookmarksPopup[side="top"],
 #BMB_bookmarksPopup[side="bottom"] {
-  margin-left: -20px;
-  margin-right: -20px;
+  margin-inline: -20px;
 }
 
 #BMB_bookmarksPopup[side="left"],
 #BMB_bookmarksPopup[side="right"] {
-  margin-top: -20px;
-  margin-bottom: -20px;
+  margin-block: -20px;
 }
 
 /* ::::: bookmark buttons ::::: */
 
 toolbarbutton.bookmark-item:not(.subviewbutton) {
+  max-width: 13em;
   margin: 0 2px;
-  padding: 2px 4px;
-  -moz-appearance: none;
+  padding: 4px;
+  appearance: none;
 }
 
 :root[uidensity=compact] toolbarbutton.bookmark-item:not(.subviewbutton) {
-  margin: 0 1px;
-  padding: 1px 4px;
+  margin-inline: 1px;
+  padding-block: 1px;
 }
 
 :root[uidensity=touch] toolbarbutton.bookmark-item:not(.subviewbutton) {
-  padding: 4px;
+  padding-block: 7px;
 }
 
-toolbarbutton.bookmark-item {
-  max-width: 13em;
-}
-
-/* Not in a :not(...) clause in the rule above to avoid unduly increasing
- * that rule's specificity. */
 #bookmarks-toolbar-placeholder {
   max-width: unset;
 }
@@ -364,6 +347,7 @@ toolbarbutton.bookmark-item {
   margin-inline-end: 0;
 }
 
+#managed-bookmarks > .toolbarbutton-icon,
 #bookmarks-toolbar-placeholder > .toolbarbutton-icon,
 #PlacesToolbarItems > .bookmark-item > .toolbarbutton-icon[label]:not([label=""]) {
   margin-inline-end: 4px;

@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef __NS_SVGBOOLEAN_H__
-#define __NS_SVGBOOLEAN_H__
+#ifndef DOM_SVG_SVGANIMATEDBOOLEAN_H_
+#define DOM_SVG_SVGANIMATEDBOOLEAN_H_
 
 #include "nsError.h"
 #include "mozilla/SMILAttr.h"
@@ -27,7 +27,8 @@ class SVGElement;
 
 class SVGAnimatedBoolean {
  public:
-  typedef mozilla::dom::SVGElement SVGElement;
+  friend class AutoChangeBooleanNotifier;
+  using SVGElement = dom::SVGElement;
 
   void Init(uint8_t aAttrEnum = 0xff, bool aValue = false) {
     mAnimVal = mBaseVal = aValue;
@@ -44,7 +45,7 @@ class SVGAnimatedBoolean {
   void SetAnimValue(bool aValue, SVGElement* aSVGElement);
   bool GetAnimValue() const { return mAnimVal; }
 
-  already_AddRefed<mozilla::dom::DOMSVGAnimatedBoolean> ToDOMAnimatedBoolean(
+  already_AddRefed<dom::DOMSVGAnimatedBoolean> ToDOMAnimatedBoolean(
       SVGElement* aSVGElement);
   UniquePtr<SMILAttr> ToSMILAttr(SVGElement* aSVGElement);
 
@@ -78,4 +79,4 @@ class SVGAnimatedBoolean {
 
 }  // namespace mozilla
 
-#endif  //__NS_SVGBOOLEAN_H__
+#endif  // DOM_SVG_SVGANIMATEDBOOLEAN_H_

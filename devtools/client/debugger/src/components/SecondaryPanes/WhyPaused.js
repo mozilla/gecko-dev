@@ -8,7 +8,8 @@ import { connect } from "../../utils/connect";
 import AccessibleImage from "../shared/AccessibleImage";
 import actions from "../../actions";
 
-import Reps from "devtools-reps";
+// $FlowIgnore
+import Reps from "devtools/client/shared/components/reps/index";
 const {
   REPS: { Rep },
   MODE,
@@ -147,12 +148,12 @@ class WhyPaused extends PureComponent<Props, State> {
     return (
       <div className="pane why-paused">
         <div>
+          <div className="info icon">
+            <AccessibleImage className="info" />
+          </div>
           <div className="pause reason">
             {L10N.getStr(reason)}
             {this.renderMessage(why)}
-          </div>
-          <div className="info icon">
-            <AccessibleImage className="info" />
           </div>
         </div>
       </div>
@@ -165,11 +166,8 @@ const mapStateToProps = state => ({
   why: getWhy(state, getCurrentThread(state)),
 });
 
-export default connect<Props, OwnProps, _, _, _, _>(
-  mapStateToProps,
-  {
-    openElementInInspector: actions.openElementInInspectorCommand,
-    highlightDomElement: actions.highlightDomElement,
-    unHighlightDomElement: actions.unHighlightDomElement,
-  }
-)(WhyPaused);
+export default connect<Props, OwnProps, _, _, _, _>(mapStateToProps, {
+  openElementInInspector: actions.openElementInInspectorCommand,
+  highlightDomElement: actions.highlightDomElement,
+  unHighlightDomElement: actions.unHighlightDomElement,
+})(WhyPaused);

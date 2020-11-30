@@ -11,15 +11,23 @@ EXTRA_JS_MODULES += [
     'UrlbarInput.jsm',
     'UrlbarMuxerUnifiedComplete.jsm',
     'UrlbarPrefs.jsm',
+    'UrlbarProviderAutofill.jsm',
     'UrlbarProviderExtension.jsm',
+    'UrlbarProviderHeuristicFallback.jsm',
     'UrlbarProviderInterventions.jsm',
+    'UrlbarProviderOmnibox.jsm',
     'UrlbarProviderOpenTabs.jsm',
     'UrlbarProviderPrivateSearch.jsm',
+    'UrlbarProviderSearchSuggestions.jsm',
     'UrlbarProviderSearchTips.jsm',
     'UrlbarProvidersManager.jsm',
+    'UrlbarProviderTabToSearch.jsm',
+    'UrlbarProviderTokenAliasEngines.jsm',
     'UrlbarProviderTopSites.jsm',
     'UrlbarProviderUnifiedComplete.jsm',
     'UrlbarResult.jsm',
+    'UrlbarSearchOneOffs.jsm',
+    'UrlbarSearchUtils.jsm',
     'UrlbarTokenizer.jsm',
     'UrlbarUtils.jsm',
     'UrlbarValueFormatter.jsm',
@@ -30,10 +38,9 @@ TESTING_JS_MODULES += [
     'tests/UrlbarTestUtils.jsm',
 ]
 BROWSER_CHROME_MANIFESTS += [
+    'tests/browser-tips/browser.ini',
     'tests/browser/browser.ini',
-    'tests/browser/tips/browser.ini',
     'tests/ext/browser/browser.ini',
-    'tests/ext/browser/update/browser.ini',
 ]
 XPCSHELL_TESTS_MANIFESTS += ['tests/unit/xpcshell.ini']
 

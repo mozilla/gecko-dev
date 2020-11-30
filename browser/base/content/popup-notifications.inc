@@ -10,8 +10,7 @@
 
     <popupnotification id="webRTC-shareDevices-notification" hidden="true">
       <popupnotificationcontent id="webRTC-selectCamera" orient="vertical">
-        <label value="&getUserMedia.selectCamera.label;"
-               accesskey="&getUserMedia.selectCamera.accesskey;"
+        <label data-l10n-id="popup-select-camera"
                control="webRTC-selectCamera-menulist"/>
         <menulist id="webRTC-selectCamera-menulist">
           <menupopup id="webRTC-selectCamera-menupopup"/>
@@ -25,11 +24,11 @@
                   oncommand="webrtcUI.updateWarningLabel(this);">
           <menupopup id="webRTC-selectWindow-menupopup"/>
         </menulist>
-        <description id="webRTC-all-windows-shared" hidden="true">&getUserMedia.allWindowsShared.message;</description>
+        <description id="webRTC-all-windows-shared" hidden="true" data-l10n-id="popup-all-windows-shared"></description>
       </popupnotificationcontent>
 
       <popupnotificationcontent id="webRTC-preview" hidden="true">
-        <html:video id="webRTC-previewVideo"/>
+        <html:video id="webRTC-previewVideo" tabindex="-1"/>
         <vbox id="webRTC-previewWarningBox">
           <spacer flex="1"/>
           <description id="webRTC-previewWarning"/>
@@ -37,8 +36,7 @@
       </popupnotificationcontent>
 
       <popupnotificationcontent id="webRTC-selectMicrophone" orient="vertical">
-        <label value="&getUserMedia.selectMicrophone.label;"
-               accesskey="&getUserMedia.selectMicrophone.accesskey;"
+        <label data-l10n-id="popup-select-microphone"
                control="webRTC-selectMicrophone-menulist"/>
         <menulist id="webRTC-selectMicrophone-menulist">
           <menupopup id="webRTC-selectMicrophone-menupopup"/>
@@ -54,12 +52,26 @@
 
     <popupnotification id="password-notification" hidden="true">
       <popupnotificationcontent orient="vertical">
-        <html:input id="password-notification-username"/>
-        <html:input id="password-notification-password" type="password"/>
+        <stack>
+          <html:input id="password-notification-username" 
+                      class="ac-has-end-icon"
+                      autocompletesearch="login-doorhanger-username"
+                      autocompletepopup="PopupAutoComplete"
+                      is="autocomplete-input"
+                      maxrows="10"
+                      maxdropmarkerrows="10"/>
+          <dropmarker id="password-notification-username-dropmarker"
+                      class="ac-dropmarker"/>
+        </stack>
+        <stack>
+          <html:input id="password-notification-password" type="password"/>
+          <dropmarker id="password-notification-password-dropmarker"
+                      class="ac-dropmarker"
+                      hidden="true"/>
+        </stack>
         <checkbox id="password-notification-visibilityToggle" hidden="true"/>
       </popupnotificationcontent>
     </popupnotification>
-
 
     <popupnotification id="addon-progress-notification" is="addon-progress-notification" hidden="true">
       <popupnotificationcontent orient="vertical">

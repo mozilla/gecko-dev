@@ -84,9 +84,11 @@ static const struct option long_opts[] = {
 
 #if ARCH_AARCH64 || ARCH_ARM
 #define ALLOWED_CPU_MASKS " or 'neon'"
+#elif ARCH_PPC64LE
+#define ALLOWED_CPU_MASKS " or 'vsx'"
 #elif ARCH_X86
 #define ALLOWED_CPU_MASKS \
-    ", 'sse2', 'ssse3', 'sse41', 'avx2' or 'avx512'"
+    ", 'sse2', 'ssse3', 'sse41', 'avx2' or 'avx512icl'"
 #else
 #define ALLOWED_CPU_MASKS "not yet implemented for this architecture"
 #endif
@@ -102,9 +104,9 @@ static void usage(const char *const app, const char *const reason, ...) {
     }
     fprintf(stderr, "Usage: %s [options]\n\n", app);
     fprintf(stderr, "Supported options:\n"
-            " --input/-i  $file:    input file\n"
+            " --input/-i $file:     input file\n"
             " --output/-o $file:    output file\n"
-            " --demuxer $name:      force demuxer type ('ivf', 'section5' or 'annexb'; default: detect from extension)\n"
+            " --demuxer $name:      force demuxer type ('ivf', 'section5' or 'annexb'; default: detect from content)\n"
             " --muxer $name:        force muxer type ('md5', 'yuv', 'yuv4mpeg2' or 'null'; default: detect from extension)\n"
             " --quiet/-q:           disable status messages\n"
             " --frametimes $file:   dump frame times to file\n"
@@ -116,7 +118,7 @@ static void usage(const char *const app, const char *const reason, ...) {
             " --framethreads $num:  number of frame threads (default: 1)\n"
             " --tilethreads $num:   number of tile threads (default: 1)\n"
             " --filmgrain $num:     enable film grain application (default: 1, except if muxer is md5)\n"
-            " --oppoint $num:       select an operating point of a scalable AV1 bitstream (0 - 32)\n"
+            " --oppoint $num:       select an operating point of a scalable AV1 bitstream (0 - 31)\n"
             " --alllayers $num:     output all spatial layers of a scalable AV1 bitstream (default: 1)\n"
             " --sizelimit $num:     stop decoding if the frame size exceeds the specified limit\n"
             " --verify $md5:        verify decoded md5. implies --muxer md5, no output\n"
@@ -176,27 +178,25 @@ typedef struct EnumParseTable {
 
 #if ARCH_X86
 enum CpuMask {
-    X86_CPU_MASK_SSE    = DAV1D_X86_CPU_FLAG_SSE,
-    X86_CPU_MASK_SSE2   = DAV1D_X86_CPU_FLAG_SSE2   | X86_CPU_MASK_SSE,
-    X86_CPU_MASK_SSE3   = DAV1D_X86_CPU_FLAG_SSE3   | X86_CPU_MASK_SSE2,
-    X86_CPU_MASK_SSSE3  = DAV1D_X86_CPU_FLAG_SSSE3  | X86_CPU_MASK_SSE3,
-    X86_CPU_MASK_SSE41  = DAV1D_X86_CPU_FLAG_SSE41  | X86_CPU_MASK_SSSE3,
-    X86_CPU_MASK_SSE42  = DAV1D_X86_CPU_FLAG_SSE42  | X86_CPU_MASK_SSE41,
-    X86_CPU_MASK_AVX    = DAV1D_X86_CPU_FLAG_AVX    | X86_CPU_MASK_SSE42,
-    X86_CPU_MASK_AVX2   = DAV1D_X86_CPU_FLAG_AVX2   | X86_CPU_MASK_AVX,
-    X86_CPU_MASK_AVX512 = DAV1D_X86_CPU_FLAG_AVX512 | X86_CPU_MASK_AVX2,
+    X86_CPU_MASK_SSE2      = DAV1D_X86_CPU_FLAG_SSE2,
+    X86_CPU_MASK_SSSE3     = DAV1D_X86_CPU_FLAG_SSSE3     | X86_CPU_MASK_SSE2,
+    X86_CPU_MASK_SSE41     = DAV1D_X86_CPU_FLAG_SSE41     | X86_CPU_MASK_SSSE3,
+    X86_CPU_MASK_AVX2      = DAV1D_X86_CPU_FLAG_AVX2      | X86_CPU_MASK_SSE41,
+    X86_CPU_MASK_AVX512ICL = DAV1D_X86_CPU_FLAG_AVX512ICL | X86_CPU_MASK_AVX2,
 };
 #endif
 
 static const EnumParseTable cpu_mask_tbl[] = {
 #if ARCH_AARCH64 || ARCH_ARM
     { "neon", DAV1D_ARM_CPU_FLAG_NEON },
+#elif ARCH_PPC64LE
+    { "vsx", DAV1D_PPC_CPU_FLAG_VSX },
 #elif ARCH_X86
-    { "sse2",   X86_CPU_MASK_SSE2 },
-    { "ssse3",  X86_CPU_MASK_SSSE3 },
-    { "sse41",  X86_CPU_MASK_SSE41 },
-    { "avx2",   X86_CPU_MASK_AVX2 },
-    { "avx512", X86_CPU_MASK_AVX512 },
+    { "sse2",      X86_CPU_MASK_SSE2 },
+    { "ssse3",     X86_CPU_MASK_SSSE3 },
+    { "sse41",     X86_CPU_MASK_SSE41 },
+    { "avx2",      X86_CPU_MASK_AVX2 },
+    { "avx512icl", X86_CPU_MASK_AVX512ICL },
 #endif
     { 0 },
 };

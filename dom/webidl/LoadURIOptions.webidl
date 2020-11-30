@@ -63,6 +63,18 @@ dictionary LoadURIOptions {
   URI? baseURI = null;
 
   /**
+   * Set to indicate that the URI to be loaded was triggered by a user
+   * action. (Mostly used in the context of Sec-Fetch-User).
+   */
+  boolean hasValidUserGestureActivation = false;
+
+
+  /**
+  * The SandboxFlags of the entity thats
+  * responsible for causing the load.
+  */
+  unsigned long triggeringSandboxFlags = 0;
+  /**
    * If non-0, a value to pass to nsIDocShell::setCancelContentJSEpoch
    * when initiating the load.
    */

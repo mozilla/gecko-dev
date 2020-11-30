@@ -12,7 +12,7 @@ fuzzy-if(webrender&&winWidget,117-129,47-54) == element-paint-simple.html elemen
 == element-paint-recursion.html element-paint-recursion-ref.html
 == element-paint-continuation.html element-paint-continuation-ref.html
 == element-paint-transform-01.html element-paint-transform-01-ref.html
-random-if(d2d) fuzzy-if(webrender,255-255,39-39) == element-paint-transform-02.html element-paint-transform-02-ref.html # bug 587133
+random-if(d2d) fuzzy-if(webrender,255-255,39-42) == element-paint-transform-02.html element-paint-transform-02-ref.html # bug 587133
 fuzzy-if(d2d&&/^Windows\x20NT\x206\.1/.test(http.oscpu),0-16,0-90) == element-paint-background-size-01.html element-paint-background-size-01-ref.html
 == element-paint-background-size-02.html element-paint-background-size-02-ref.html
 fuzzy-if(skiaContent,0-255,0-4) random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == element-paint-transform-repeated.html element-paint-transform-repeated-ref.html # Bug 1475907
@@ -49,5 +49,5 @@ HTTP == invalidate-1.html invalidate-1-ref.html
 == empty-src.html no-src.html
 == broken-icon.html invalid-src.html
 fails == invalid-src.html invalid-src-2.html # bug 1506804
-
 fuzzy-if(skiaContent,0-1,0-30000) == mask-image-element.html mask-image-element-ref.html
+pref(image.honor-orientation-metadata,true) pref(layout.css.image-orientation.initial-from-image,true) == orientation-1.html orientation-1-ref.html

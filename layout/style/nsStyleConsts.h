@@ -286,6 +286,12 @@ enum class StyleUserModify : uint8_t {
   WriteOnly,
 };
 
+// -moz-inert
+enum class StyleInert : uint8_t {
+  None,
+  Inert,
+};
+
 // -moz-window-dragging
 enum class StyleWindowDragging : uint8_t {
   Default,
@@ -338,21 +344,21 @@ enum class StyleDirection : uint8_t { Ltr, Rtl };
 
 // See nsStyleVisibility
 // NOTE: WritingModes.h depends on the particular values used here.
-#define NS_STYLE_WRITING_MODE_HORIZONTAL_TB 0
-#define NS_STYLE_WRITING_MODE_VERTICAL_RL 1
-// #define NS_STYLE_WRITING_MODE_HORIZONTAL_BT  2  // hypothetical
-#define NS_STYLE_WRITING_MODE_VERTICAL_LR 3
 
-// Single-bit flag, used in combination with VERTICAL_LR and _RL to specify
-// the corresponding SIDEWAYS_* modes.
+// Single-bit flag, used in combination with VerticalLR and RL to specify
+// the corresponding Sideways* modes.
 // (To avoid ambiguity, this bit must be high enough such that no other
 // values here accidentally use it in their binary representation.)
-#define NS_STYLE_WRITING_MODE_SIDEWAYS_MASK 4
+static constexpr uint8_t kWritingModeSidewaysMask = 4;
 
-#define NS_STYLE_WRITING_MODE_SIDEWAYS_RL \
-  (NS_STYLE_WRITING_MODE_VERTICAL_RL | NS_STYLE_WRITING_MODE_SIDEWAYS_MASK)
-#define NS_STYLE_WRITING_MODE_SIDEWAYS_LR \
-  (NS_STYLE_WRITING_MODE_VERTICAL_LR | NS_STYLE_WRITING_MODE_SIDEWAYS_MASK)
+enum class StyleWritingModeProperty : uint8_t {
+  HorizontalTb = 0,
+  VerticalRl = 1,
+  // HorizontalBT = 2,    // hypothetical
+  VerticalLr = 3,
+  SidewaysRl = VerticalRl | kWritingModeSidewaysMask,
+  SidewaysLr = VerticalLr | kWritingModeSidewaysMask,
+};
 
 // See nsStylePosition
 enum class StyleFlexDirection : uint8_t {
@@ -374,20 +380,10 @@ enum class StyleFlexWrap : uint8_t {
 // (rather than an internal numerical representation of some keyword).
 #define NS_STYLE_ORDER_INITIAL 0
 
-// See nsStyleFont
-#define NS_STYLE_FONT_SIZE_XXSMALL 0
-#define NS_STYLE_FONT_SIZE_XSMALL 1
-#define NS_STYLE_FONT_SIZE_SMALL 2
-#define NS_STYLE_FONT_SIZE_MEDIUM 3
-#define NS_STYLE_FONT_SIZE_LARGE 4
-#define NS_STYLE_FONT_SIZE_XLARGE 5
-#define NS_STYLE_FONT_SIZE_XXLARGE 6
-#define NS_STYLE_FONT_SIZE_XXXLARGE \
-  7  // Only used by <font size="7">. Not specifiable in CSS.
-#define NS_STYLE_FONT_SIZE_LARGER 8
-#define NS_STYLE_FONT_SIZE_SMALLER 9
-#define NS_STYLE_FONT_SIZE_NO_KEYWORD \
-  10  // Used by Servo to track the "no keyword" case
+#define NS_STYLE_MASONRY_PLACEMENT_PACK (1 << 0)
+#define NS_STYLE_MASONRY_ORDER_DEFINITE_FIRST (1 << 1)
+#define NS_STYLE_MASONRY_AUTO_FLOW_INITIAL_VALUE \
+  (NS_STYLE_MASONRY_PLACEMENT_PACK | NS_STYLE_MASONRY_ORDER_DEFINITE_FIRST)
 
 // 'subgrid' keyword in grid-template-{columns,rows}
 #define NS_STYLE_GRID_TEMPLATE_SUBGRID 0
@@ -424,9 +420,9 @@ enum class StyleGridTrackBreadth : uint8_t {
 #define NS_MATHML_MATHVARIANT_LOOPED 17
 #define NS_MATHML_MATHVARIANT_STRETCHED 18
 
-// See nsStyleFont::mMathDisplay
-#define NS_MATHML_DISPLAYSTYLE_INLINE 0
-#define NS_MATHML_DISPLAYSTYLE_BLOCK 1
+// See nsStyleFont::mMathStyle
+#define NS_STYLE_MATH_STYLE_COMPACT 0
+#define NS_STYLE_MATH_STYLE_NORMAL 1
 
 // See nsStyleDisplay.mPosition
 enum class StylePositionProperty : uint8_t {
@@ -761,53 +757,38 @@ enum class StyleColorInterpolation : uint8_t {
 enum class StyleVectorEffect : uint8_t { None = 0, NonScalingStroke = 1 };
 
 // 3d Transforms - Backface visibility
-#define NS_STYLE_BACKFACE_VISIBILITY_VISIBLE 1
-#define NS_STYLE_BACKFACE_VISIBILITY_HIDDEN 0
+enum class StyleBackfaceVisibility : uint8_t { Hidden = 0, Visible = 1 };
 
 // blending
-#define NS_STYLE_BLEND_NORMAL 0
-#define NS_STYLE_BLEND_MULTIPLY 1
-#define NS_STYLE_BLEND_SCREEN 2
-#define NS_STYLE_BLEND_OVERLAY 3
-#define NS_STYLE_BLEND_DARKEN 4
-#define NS_STYLE_BLEND_LIGHTEN 5
-#define NS_STYLE_BLEND_COLOR_DODGE 6
-#define NS_STYLE_BLEND_COLOR_BURN 7
-#define NS_STYLE_BLEND_HARD_LIGHT 8
-#define NS_STYLE_BLEND_SOFT_LIGHT 9
-#define NS_STYLE_BLEND_DIFFERENCE 10
-#define NS_STYLE_BLEND_EXCLUSION 11
-#define NS_STYLE_BLEND_HUE 12
-#define NS_STYLE_BLEND_SATURATION 13
-#define NS_STYLE_BLEND_COLOR 14
-#define NS_STYLE_BLEND_LUMINOSITY 15
+enum class StyleBlend : uint8_t {
+  Normal = 0,
+  Multiply,
+  Screen,
+  Overlay,
+  Darken,
+  Lighten,
+  ColorDodge,
+  ColorBurn,
+  HardLight,
+  SoftLight,
+  Difference,
+  Exclusion,
+  Hue,
+  Saturation,
+  Color,
+  Luminosity,
+};
 
 // composite
-#define NS_STYLE_MASK_COMPOSITE_ADD 0
-#define NS_STYLE_MASK_COMPOSITE_SUBTRACT 1
-#define NS_STYLE_MASK_COMPOSITE_INTERSECT 2
-#define NS_STYLE_MASK_COMPOSITE_EXCLUDE 3
+enum class StyleMaskComposite : uint8_t {
+  Add = 0,
+  Subtract,
+  Intersect,
+  Exclude
+};
 
 // See nsStyleText::mControlCharacterVisibility
-#define NS_STYLE_CONTROL_CHARACTER_VISIBILITY_HIDDEN 0
-#define NS_STYLE_CONTROL_CHARACTER_VISIBILITY_VISIBLE 1
-
-// counter system
-#define NS_STYLE_COUNTER_SYSTEM_CYCLIC 0
-#define NS_STYLE_COUNTER_SYSTEM_NUMERIC 1
-#define NS_STYLE_COUNTER_SYSTEM_ALPHABETIC 2
-#define NS_STYLE_COUNTER_SYSTEM_SYMBOLIC 3
-#define NS_STYLE_COUNTER_SYSTEM_ADDITIVE 4
-#define NS_STYLE_COUNTER_SYSTEM_FIXED 5
-#define NS_STYLE_COUNTER_SYSTEM_EXTENDS 6
-
-#define NS_STYLE_COUNTER_RANGE_INFINITE 0
-
-#define NS_STYLE_COUNTER_SPEAKAS_BULLETS 0
-#define NS_STYLE_COUNTER_SPEAKAS_NUMBERS 1
-#define NS_STYLE_COUNTER_SPEAKAS_WORDS 2
-#define NS_STYLE_COUNTER_SPEAKAS_SPELL_OUT 3
-#define NS_STYLE_COUNTER_SPEAKAS_OTHER 255  // refer to another style
+enum class StyleControlCharacterVisibility : uint8_t { Hidden = 0, Visible };
 
 // scroll-behavior
 enum class StyleScrollBehavior : uint8_t {

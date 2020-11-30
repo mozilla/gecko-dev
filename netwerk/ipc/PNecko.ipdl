@@ -16,7 +16,6 @@ include protocol PTCPSocket;
 include protocol PTCPServerSocket;
 include protocol PUDPSocket;
 include protocol PDNSRequest;
-include protocol PChannelDiverter;
 include protocol PFileDescriptorSet;
 include protocol PDataChannel;
 include protocol PSimpleChannel;
@@ -31,9 +30,7 @@ include protocol PSocketProcessBridge;
 include protocol PDocumentChannel;
 
 include IPCStream;
-include URIParams;
 include NeckoChannelParams;
-include PBrowserOrId;
 include protocol PAltDataOutputStream;
 
 using mozilla::dom::MaybeDiscardedBrowsingContext from "mozilla/dom/BrowsingContext.h";
@@ -63,7 +60,6 @@ nested(upto inside_cpow) sync protocol PNecko
   manages PDataChannel;
   manages PSimpleChannel;
   manages PFileChannel;
-  manages PChannelDiverter;
   manages PTransportProvider;
   manages PAltDataOutputStream;
   manages PStunAddrsRequest;
@@ -75,13 +71,13 @@ parent:
   async __delete__();
 
   nested(inside_cpow) async PCookieService();
-  async PHttpChannel(PBrowserOrId browser,
+  async PHttpChannel(nullable PBrowser browser,
                      SerializedLoadContext loadContext,
                      HttpChannelCreationArgs args);
-  async PFTPChannel(PBrowserOrId browser, SerializedLoadContext loadContext,
+  async PFTPChannel(nullable PBrowser browser, SerializedLoadContext loadContext,
                     FTPChannelCreationArgs args);
 
-  async PWebSocket(PBrowserOrId browser, SerializedLoadContext loadContext,
+  async PWebSocket(nullable PBrowser browser, SerializedLoadContext loadContext,
                    uint32_t aSerialID);
   async PTCPServerSocket(uint16_t localPort, uint16_t backlog, bool useArrayBuffers);
   async PUDPSocket(nsIPrincipal principal, nsCString filter);
@@ -89,9 +85,7 @@ parent:
   async PDNSRequest(nsCString hostName, nsCString trrServer, uint16_t type,
                     OriginAttributes originAttributes, uint32_t flags);
 
-  async PDocumentChannel(PBrowser browser,
-                         MaybeDiscardedBrowsingContext browsingContext,
-                         SerializedLoadContext loadContext,
+  async PDocumentChannel(MaybeDiscardedBrowsingContext browsingContext,
                          DocumentChannelCreationArgs args);
 
   async PWebSocketEventListener(uint64_t aInnerWindowID);
@@ -104,7 +98,7 @@ parent:
                   uint32_t reason, OriginAttributes originAttributes);
   async PredReset();
 
-  async SpeculativeConnect(URIParams uri, nsIPrincipal principal, bool anonymous);
+  async SpeculativeConnect(nsIURI uri, nsIPrincipal principal, bool anonymous);
   async HTMLDNSPrefetch(nsString hostname, bool isHttps,
                         OriginAttributes originAttributes, uint32_t flags);
   async CancelHTMLDNSPrefetch(nsString hostname, bool isHttps,
@@ -119,10 +113,7 @@ parent:
   async PSimpleChannel(uint32_t channelId);
   async PFileChannel(uint32_t channelId);
 
-  async PChannelDiverter(ChannelDiverterArgs channel);
-
   async PClassifierDummyChannel(nsIURI uri, nsIURI aTopWindowURI,
-                                nsIPrincipal contentBlockingAllowListPrincipal,
                                 nsresult aTopWindowURIResult,
                                 LoadInfoArgs? loadInfo);
 
@@ -149,14 +140,19 @@ parent:
   /**
    * WebExtension-specific remote resource loading
    */
-  async GetExtensionStream(URIParams uri) returns (nsIInputStream stream);
-  async GetExtensionFD(URIParams uri) returns (FileDescriptor fd);
+  async GetExtensionStream(nsIURI uri) returns (nsIInputStream stream);
+  async GetExtensionFD(nsIURI uri) returns (FileDescriptor fd);
 
   async InitSocketProcessBridge()
     returns (Endpoint<PSocketProcessBridgeChild> endpoint);
 
   async EnsureHSTSData()
     returns (bool result);
+
+  /**
+   * Page thumbnails remote resource loading
+   */
+  async GetPageThumbStream(nsIURI uri) returns (nsIInputStream stream);
 
 child:
   /*

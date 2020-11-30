@@ -23,7 +23,6 @@ import attr
 from mozbuild.util import memoize
 from taskgraph.util.attributes import TRUNK_PROJECTS
 from taskgraph.util.hash import hash_path
-from taskgraph.util.taskcluster import get_root_url
 from taskgraph.util.treeherder import split_symbol
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.keyed_by import evaluate_keyed_by
@@ -32,9 +31,9 @@ from taskgraph.util.schema import (
     Schema,
     optionally_keyed_by,
     resolve_keyed_by,
-    OptimizationSchema,
     taskref_or_string,
 )
+from taskgraph.optimize.schema import OptimizationSchema
 from taskgraph.util.partners import get_partners_to_be_published
 from taskgraph.util.scriptworker import (
     BALROG_ACTIONS,
@@ -42,7 +41,7 @@ from taskgraph.util.scriptworker import (
 )
 from taskgraph.util.signed_artifacts import get_signed_artifacts
 from taskgraph.util.workertypes import worker_type_implementation
-from voluptuous import Any, Required, Optional, Extra, Match
+from voluptuous import Any, Required, Optional, Extra, Match, All, NotIn
 from taskgraph import GECKO, MAX_DEPENDENCIES
 from ..util import docker as dockerutil
 from ..util.workertypes import get_worker_type
@@ -83,10 +82,18 @@ task_description_schema = Schema({
     # dependencies of this task, keyed by name; these are passed through
     # verbatim and subject to the interpretation of the Task's get_dependencies
     # method.
-    Optional('dependencies'): {text_type: object},
+    Optional('dependencies'): {
+        All(
+            text_type,
+            NotIn(["self", "decision"], "Can't use 'self` or 'decision' as depdency names."),
+        ): object,
+    },
 
     # Soft dependencies of this task, as a list of tasks labels
     Optional('soft-dependencies'): [text_type],
+
+    # Dependencies that must be scheduled in order for this task to run.
+    Optional('if-dependencies'): [text_type],
 
     Optional('requires'): Any('all-completed', 'all-resolved'),
 
@@ -142,9 +149,10 @@ task_description_schema = Schema({
         'job-name': text_type,
 
         # Type of gecko v2 index to use
-        'type': Any('generic', 'nightly', 'l10n', 'nightly-with-multi-l10n',
-                    'nightly-l10n', 'shippable', 'shippable-l10n',
-                    'android-nightly', 'android-nightly-with-multi-l10n'),
+        'type': Any('generic', 'l10n',
+                    'shippable', 'shippable-l10n',
+                    'android-shippable', 'android-shippable-with-multi-l10n',
+                    'shippable-with-multi-l10n'),
 
         # The rank that the task will receive in the TaskCluster
         # index.  A newly completed task supercedes the currently
@@ -209,7 +217,7 @@ task_description_schema = Schema({
     'worker-type': text_type,
 
     # Whether the job should use sccache compiler caching.
-    Required('needs-sccache'): bool,
+    Required('use-sccache'): bool,
 
     # Set of artifacts relevant to release tasks
     Optional('release-artifacts'): [text_type],
@@ -245,25 +253,11 @@ V2_TRUNK_ROUTE_TEMPLATES = [
     "index.{trust-domain}.v2.trunk.revision.{branch_rev}.{product}.{job-name}",
 ]
 
-V2_NIGHTLY_TEMPLATES = [
-    "index.{trust-domain}.v2.{project}.nightly.latest.{product}.{job-name}",
-    "index.{trust-domain}.v2.{project}.nightly.{build_date}.revision.{branch_rev}.{product}.{job-name}",  # noqa - too long
-    "index.{trust-domain}.v2.{project}.nightly.{build_date}.latest.{product}.{job-name}",
-    "index.{trust-domain}.v2.{project}.nightly.revision.{branch_rev}.{product}.{job-name}",
-]
-
 V2_SHIPPABLE_TEMPLATES = [
     "index.{trust-domain}.v2.{project}.shippable.latest.{product}.{job-name}",
     "index.{trust-domain}.v2.{project}.shippable.{build_date}.revision.{branch_rev}.{product}.{job-name}",  # noqa - too long
     "index.{trust-domain}.v2.{project}.shippable.{build_date}.latest.{product}.{job-name}",
     "index.{trust-domain}.v2.{project}.shippable.revision.{branch_rev}.{product}.{job-name}",
-]
-
-V2_NIGHTLY_L10N_TEMPLATES = [
-    "index.{trust-domain}.v2.{project}.nightly.latest.{product}-l10n.{job-name}.{locale}",
-    "index.{trust-domain}.v2.{project}.nightly.{build_date}.revision.{branch_rev}.{product}-l10n.{job-name}.{locale}",  # noqa - too long
-    "index.{trust-domain}.v2.{project}.nightly.{build_date}.latest.{product}-l10n.{job-name}.{locale}",  # noqa - too long
-    "index.{trust-domain}.v2.{project}.nightly.revision.{branch_rev}.{product}-l10n.{job-name}.{locale}",  # noqa - too long
 ]
 
 V2_SHIPPABLE_L10N_TEMPLATES = [
@@ -454,7 +448,7 @@ def build_docker_worker_payload(config, task, task_def):
     if isinstance(image, dict):
         if 'in-tree' in image:
             name = image['in-tree']
-            docker_image_task = 'build-docker-image-' + image['in-tree']
+            docker_image_task = 'docker-image-' + image['in-tree']
             task.setdefault('dependencies', {})['docker-image'] = docker_image_task
 
             image = {
@@ -498,7 +492,7 @@ def build_docker_worker_payload(config, task, task_def):
     if worker.get('docker-in-docker'):
         features['dind'] = True
 
-    if task.get('needs-sccache'):
+    if task.get('use-sccache'):
         features['taskclusterProxy'] = True
         task_def['scopes'].append(
             'assume:project:taskcluster:{trust_domain}:level-{level}-sccache-buckets'.format(
@@ -564,12 +558,9 @@ def build_docker_worker_payload(config, task, task_def):
 
     if isinstance(worker.get('docker-image'), text_type):
         out_of_tree_image = worker['docker-image']
-        run_task = run_task or out_of_tree_image.startswith(
-            'taskcluster/image_builder')
     else:
         out_of_tree_image = None
         image = worker.get('docker-image', {}).get('in-tree')
-        run_task = run_task or image == 'image_builder'
 
     if 'caches' in worker:
         caches = {}
@@ -770,7 +761,7 @@ def build_generic_worker_payload(config, task, task_def):
 
     env = worker.get('env', {})
 
-    if task.get('needs-sccache'):
+    if task.get('use-sccache'):
         features['taskclusterProxy'] = True
         task_def['scopes'].append(
             'assume:project:taskcluster:{trust_domain}:level-{level}-sccache-buckets'.format(
@@ -909,7 +900,7 @@ def notarization_poller_payload(config, task, task_def):
 
 @payload_builder('beetmover', schema={
     # the maximum time to run, in seconds
-    Required('max-run-time', default=600): int,
+    Required('max-run-time'): int,
 
     # locale key, if this is a locale beetmover job
     Optional('locale'): text_type,
@@ -989,7 +980,7 @@ def build_beetmover_push_to_release_payload(config, task, task_def):
 
 
 @payload_builder('beetmover-maven', schema={
-    Required('max-run-time', default=600): int,
+    Required('max-run-time'): int,
     Required('release-properties'): {
         'app-name': text_type,
         'app-version': text_type,
@@ -1004,7 +995,7 @@ def build_beetmover_push_to_release_payload(config, task, task_def):
         Required('taskId'): taskref_or_string,
         Required('taskType'): text_type,
         Required('paths'): [text_type],
-        Required('zipExtract', default=False): bool,
+        Optional('zipExtract'): bool,
     }],
     Optional('artifact-map'): object,
 })
@@ -1061,7 +1052,7 @@ def build_balrog_payload(config, task, task_def):
     if 'b' in release_config['version']:
         beta_number = release_config['version'].split('b')[-1]
 
-    if worker['balrog-action'] == 'submit-locale':
+    if worker['balrog-action'] == 'submit-locale' or worker['balrog-action'] == 'v2-submit-locale':
         task_def['payload'] = {
             'upstreamArtifacts':  worker['upstream-artifacts'],
             'suffixes': worker['suffixes'],
@@ -1088,7 +1079,8 @@ def build_balrog_payload(config, task, task_def):
                      'complete-mar-bouncer-product-pattern'):
             if prop in worker:
                 task_def['payload'][prop.replace('-', '_')] = worker[prop]
-        if worker['balrog-action'] == 'submit-toplevel':
+        if worker['balrog-action'] == 'submit-toplevel' or \
+                worker['balrog-action'] == 'v2-submit-toplevel':
             task_def['payload'].update({
                 'app_version': release_config['appVersion'],
                 'archive_domain': worker['archive-domain'],
@@ -1149,32 +1141,6 @@ def build_bouncer_submission_payload(config, task, task_def):
         'locales':  worker['locales'],
         'submission_entries': worker['entries']
     }
-
-
-@payload_builder('push-apk', schema={
-    Required('upstream-artifacts'): [{
-        Required('taskId'): taskref_or_string,
-        Required('taskType'): text_type,
-        Required('paths'): [text_type],
-        Optional('optional', default=False): bool,
-    }],
-
-    # "Invalid" is a noop for try and other non-supported branches
-    Required('google-play-track'): Any('production', 'beta', 'alpha', 'rollout', 'internal'),
-    Required('commit'): bool,
-    Optional('rollout-percentage'): Any(int, None),
-})
-def build_push_apk_payload(config, task, task_def):
-    worker = task['worker']
-
-    task_def['payload'] = {
-        'commit': worker['commit'],
-        'upstreamArtifacts': worker['upstream-artifacts'],
-        'google_play_track': worker['google-play-track'],
-    }
-
-    if worker.get('rollout-percentage', None):
-        task_def['payload']['rollout_percentage'] = worker['rollout-percentage']
 
 
 @payload_builder('push-snap', schema={
@@ -1264,15 +1230,15 @@ def build_push_addons_payload(config, task, task_def):
     Optional('repo-param-prefix'): text_type,
     Optional('dontbuild'): bool,
     Optional('ignore-closed-tree'): bool,
-    Required('force-dry-run', default=True): bool,
-    Required('push', default=False): bool,
+    Optional('force-dry-run'): bool,
+    Optional('push'): bool,
     Optional('source-repo'): text_type,
     Optional('ssh-user'): text_type,
     Optional('l10n-bump-info'): {
         Required('name'): text_type,
         Required('path'): text_type,
         Required('version-path'): text_type,
-        Optional('revision-url'): text_type,
+        Optional('l10n-repo-url'): text_type,
         Optional('ignore-config'): object,
         Required('platform-configs'): [{
             Required('platforms'): [text_type],
@@ -1325,12 +1291,21 @@ def build_treescript_payload(config, task, task_def):
         task_def['payload']['l10n_bump_info'] = [l10n_bump_info]
         actions.append('l10n_bump')
 
-    if worker.get('merge-info'):
-        merge_info = {}
-        for k, v in worker['merge-info'].items():
-            merge_info[k.replace('-', '_')] = worker['merge-info'][k]
-        task_def['payload']['merge_info'] = merge_info
-        actions.append('merge_day')
+    if worker.get("merge-info"):
+        merge_info = {
+            merge_param_name.replace("-", "_"): merge_param_value
+            for merge_param_name, merge_param_value in worker["merge-info"].items()
+            if merge_param_name != "version-files"
+        }
+        merge_info["version_files"] = [
+            {
+                file_param_name.replace("-", "_"): file_param_value
+                for file_param_name, file_param_value in file_entry.items()
+            }
+            for file_entry in worker["merge-info"]["version-files"]
+        ]
+        task_def["payload"]["merge_info"] = merge_info
+        actions.append("merge_day")
 
     if worker['push']:
         actions.append('push')
@@ -1369,58 +1344,6 @@ def build_dummy_payload(config, task, task_def):
     task_def['payload'] = {}
 
 
-@payload_builder('script-engine-autophone', schema={
-    Required('os'): Any('macosx', 'linux'),
-
-    # A link for an executable to download
-    Optional('context'): text_type,
-
-    # Tells the worker whether machine should reboot
-    # after the task is finished.
-    Optional('reboot'):
-    Any(False, 'always', 'never', 'on-exception', 'on-failure'),
-
-    # the command to run
-    Optional('command'): [taskref_or_string],
-
-    # environment variables
-    Optional('env'): {text_type: taskref_or_string},
-
-    # artifacts to extract from the task image after completion
-    Optional('artifacts'): [{
-        # type of artifact -- simple file, or recursive directory
-        Required('type'): Any('file', 'directory'),
-
-        # task image path from which to read artifact
-        Required('path'): text_type,
-
-        # name of the produced artifact (root of the names for
-        # type=directory)
-        Required('name'): text_type,
-    }],
-})
-def build_script_engine_autophone_payload(config, task, task_def):
-    worker = task['worker']
-    artifacts = map(lambda artifact: {
-        'name': artifact['name'],
-        'path': artifact['path'],
-        'type': artifact['type'],
-        'expires': task_def['expires'],
-    }, worker.get('artifacts', []))
-
-    task_def['payload'] = {
-        'context': worker['context'],
-        'command': worker['command'],
-        'env': worker['env'],
-        'artifacts': artifacts,
-    }
-    if worker.get('reboot'):
-        task_def['payload'] = worker['reboot']
-
-    if task.get('needs-sccache'):
-        raise Exception('needs-sccache not supported in taskcluster-worker')
-
-
 transforms = TransformSequence()
 
 
@@ -1455,13 +1378,13 @@ def set_defaults(config, tasks):
         task.setdefault('shipping-product', None)
         task.setdefault('always-target', False)
         task.setdefault('optimization', None)
-        task.setdefault('needs-sccache', False)
+        task.setdefault('use-sccache', False)
 
         worker = task['worker']
         if worker['implementation'] in ('docker-worker',):
             worker.setdefault('chain-of-trust', False)
             worker.setdefault('taskcluster-proxy', False)
-            worker.setdefault('allow-ptrace', False)
+            worker.setdefault('allow-ptrace', True)
             worker.setdefault('loopback-video', False)
             worker.setdefault('loopback-audio', False)
             worker.setdefault('docker-in-docker', False)
@@ -1557,32 +1480,6 @@ def add_generic_index_routes(config, task):
     return task
 
 
-@index_builder('nightly')
-def add_nightly_index_routes(config, task):
-    index = task.get('index')
-    routes = task.setdefault('routes', [])
-
-    verify_index(config, index)
-
-    subs = config.params.copy()
-    subs['job-name'] = index['job-name']
-    subs['build_date_long'] = time.strftime("%Y.%m.%d.%Y%m%d%H%M%S",
-                                            time.gmtime(config.params['build_date']))
-    subs['build_date'] = time.strftime("%Y.%m.%d",
-                                       time.gmtime(config.params['build_date']))
-    subs['product'] = index['product']
-    subs['trust-domain'] = config.graph_config['trust-domain']
-    subs['branch_rev'] = get_branch_rev(config)
-
-    for tpl in V2_NIGHTLY_TEMPLATES:
-        routes.append(tpl.format(**subs))
-
-    # Also add routes for en-US
-    task = add_l10n_index_routes(config, task, force_locale="en-US")
-
-    return task
-
-
 @index_builder('shippable')
 def add_shippable_index_routes(config, task):
     index = task.get('index')
@@ -1606,16 +1503,12 @@ def add_shippable_index_routes(config, task):
     # Also add routes for en-US
     task = add_shippable_l10n_index_routes(config, task, force_locale="en-US")
 
-    # For nightly-compat index:
-    if 'nightly' in config.params['target_tasks_method']:
-        add_nightly_index_routes(config, task)
-
     return task
 
 
-@index_builder('nightly-with-multi-l10n')
-def add_nightly_multi_index_routes(config, task):
-    task = add_nightly_index_routes(config, task)
+@index_builder('shippable-with-multi-l10n')
+def add_shippable_multi_index_routes(config, task):
+    task = add_shippable_index_routes(config, task)
     task = add_l10n_index_routes(config, task, force_locale="multi")
     return task
 
@@ -1697,47 +1590,6 @@ def add_shippable_l10n_index_routes(config, task, force_locale=None):
         for tpl in V2_SHIPPABLE_L10N_TEMPLATES:
             routes.append(tpl.format(locale=locale, **subs))
 
-    # For nightly-compat index:
-    if 'nightly' in config.params['target_tasks_method']:
-        add_nightly_l10n_index_routes(config, task, force_locale)
-
-    return task
-
-
-@index_builder('nightly-l10n')
-def add_nightly_l10n_index_routes(config, task, force_locale=None):
-    index = task.get('index')
-    routes = task.setdefault('routes', [])
-
-    verify_index(config, index)
-
-    subs = config.params.copy()
-    subs['job-name'] = index['job-name']
-    subs['build_date_long'] = time.strftime("%Y.%m.%d.%Y%m%d%H%M%S",
-                                            time.gmtime(config.params['build_date']))
-    subs['build_date'] = time.strftime("%Y.%m.%d",
-                                       time.gmtime(config.params['build_date']))
-    subs['product'] = index['product']
-    subs['trust-domain'] = config.graph_config['trust-domain']
-    subs['branch_rev'] = get_branch_rev(config)
-
-    locales = task['attributes'].get('chunk_locales',
-                                     task['attributes'].get('all_locales'))
-    # Some tasks has only one locale set
-    if task['attributes'].get('locale'):
-        locales = [task['attributes']['locale']]
-
-    if force_locale:
-        # Used for en-US and multi-locale
-        locales = [force_locale]
-
-    if not locales:
-        raise Exception("Error: Unable to use l10n index for tasks without locales")
-
-    for locale in locales:
-        for tpl in V2_NIGHTLY_L10N_TEMPLATES:
-            routes.append(tpl.format(locale=locale, **subs))
-
     return task
 
 
@@ -1761,17 +1613,17 @@ def add_geckoview_index_routes(config, task):
     return task
 
 
-@index_builder('android-nightly')
-def add_android_nightly_index_routes(config, task):
-    task = add_nightly_index_routes(config, task)
+@index_builder('android-shippable')
+def add_android_shippable_index_routes(config, task):
+    task = add_shippable_index_routes(config, task)
     task = add_geckoview_index_routes(config, task)
 
     return task
 
 
-@index_builder('android-nightly-with-multi-l10n')
-def add_android_nightly_multi_index_routes(config, task):
-    task = add_nightly_multi_index_routes(config, task)
+@index_builder('android-shippable-with-multi-l10n')
+def add_android_shippable_multi_index_routes(config, task):
+    task = add_shippable_multi_index_routes(config, task)
     task = add_geckoview_index_routes(config, task)
 
     return task
@@ -1831,6 +1683,17 @@ def try_task_config_chemspill_prio(config, tasks):
 
 
 @transforms.add
+def try_task_config_routes(config, tasks):
+    """Set routes in the task."""
+    routes = config.params['try_task_config'].get('routes')
+    for task in tasks:
+        if routes:
+            task_routes = task.setdefault('routes', [])
+            task_routes.extend(routes)
+        yield task
+
+
+@transforms.add
 def build_task(config, tasks):
     for task in tasks:
         level = str(config.params['level'])
@@ -1855,7 +1718,7 @@ def build_task(config, tasks):
 
         # set up extra
         extra = task.get('extra', {})
-        extra['parent'] = os.environ.get('TASK_ID', '')
+        extra['parent'] = {'task-reference': '<decision>'}
         task_th = task.get('treeherder')
         if task_th:
             extra.setdefault('treeherder-platform', task_th['platform'])
@@ -1886,10 +1749,9 @@ def build_task(config, tasks):
             branch_rev = get_branch_rev(config)
 
             routes.append(
-                '{}.v2.{}.{}.{}'.format(TREEHERDER_ROUTE_ROOT,
-                                        config.params['project'],
-                                        branch_rev,
-                                        config.params['pushlog_id'])
+                "{}.v2.{}.{}".format(
+                    TREEHERDER_ROUTE_ROOT, config.params["project"], branch_rev,
+                )
             )
 
         if 'expires-after' not in task:
@@ -1935,10 +1797,15 @@ def build_task(config, tasks):
 
         if task_th:
             # link back to treeherder in description
-            th_push_link = 'https://treeherder.mozilla.org/#/jobs?repo={}&revision={}'.format(
-                config.params['project'], branch_rev)
-            task_def['metadata']['description'] += ' ([Treeherder push]({}))'.format(
-                th_push_link)
+            th_job_link = (
+                'https://treeherder.mozilla.org/#/jobs?repo={}&revision={}&selectedTaskRun=<self>'
+            ).format(config.params['project'], branch_rev)
+            task_def['metadata']['description'] = {
+                'task-reference': '{description} ([Treeherder job]({th_job_link}))'.format(
+                    description=task_def['metadata']['description'],
+                    th_job_link=th_job_link
+                )
+            }
 
         # add the payload and adjust anything else as required (e.g., scopes)
         payload_builders[task['worker']['implementation']].builder(config, task, task_def)
@@ -1980,14 +1847,24 @@ def build_task(config, tasks):
                 env = payload.setdefault('env', {})
                 env['MOZ_AUTOMATION'] = '1'
 
-                # Set TASKCLUSTER_ROOT_URL on workers that don't set it
-                if provisioner_id == 'terraform-packet':
-                    env['TASKCLUSTER_ROOT_URL'] = get_root_url(False)
+        dependencies = task.get('dependencies', {})
+        if_dependencies = task.get('if-dependencies', [])
+        if if_dependencies:
+            for i, dep in enumerate(if_dependencies):
+                if dep in dependencies:
+                    if_dependencies[i] = dependencies[dep]
+                    continue
+
+                raise Exception("{label} specifies '{dep}' in if-dependencies, "
+                                "but {dep} is not a dependency!".format(
+                                    label=task['label'], dep=dep))
 
         yield {
             'label': task['label'],
+            'description': task['description'],
             'task': task_def,
-            'dependencies': task.get('dependencies', {}),
+            'dependencies': dependencies,
+            'if-dependencies': if_dependencies,
             'soft-dependencies': task.get('soft-dependencies', []),
             'attributes': attributes,
             'optimization': task.get('optimization', None),

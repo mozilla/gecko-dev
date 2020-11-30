@@ -21,12 +21,18 @@
 #include <windows.h>
 #endif
 
+#if defined(DARWIN)
+#include <TargetConditionals.h>
+#endif
+
 static PRCallOnceType coFreeblInit;
 
 /* State variables. */
 static PRBool aesni_support_ = PR_FALSE;
 static PRBool clmul_support_ = PR_FALSE;
+static PRBool sha_support_ = PR_FALSE;
 static PRBool avx_support_ = PR_FALSE;
+static PRBool avx2_support_ = PR_FALSE;
 static PRBool ssse3_support_ = PR_FALSE;
 static PRBool sse4_1_support_ = PR_FALSE;
 static PRBool sse4_2_support_ = PR_FALSE;
@@ -75,28 +81,46 @@ check_xcr0_ymm()
 #define ECX_XSAVE (1 << 26)
 #define ECX_OSXSAVE (1 << 27)
 #define ECX_AVX (1 << 28)
+#define EBX_AVX2 (1 << 5)
+#define EBX_BMI1 (1 << 3)
+#define EBX_BMI2 (1 << 8)
+#define EBX_SHA (1 << 29)
+#define ECX_FMA (1 << 12)
+#define ECX_MOVBE (1 << 22)
 #define ECX_SSSE3 (1 << 9)
 #define ECX_SSE4_1 (1 << 19)
 #define ECX_SSE4_2 (1 << 20)
 #define AVX_BITS (ECX_XSAVE | ECX_OSXSAVE | ECX_AVX)
+#define AVX2_EBX_BITS (EBX_AVX2 | EBX_BMI1 | EBX_BMI2)
+#define AVX2_ECX_BITS (ECX_FMA | ECX_MOVBE)
 
 void
 CheckX86CPUSupport()
 {
     unsigned long eax, ebx, ecx, edx;
+    unsigned long eax7, ebx7, ecx7, edx7;
     char *disable_hw_aes = PR_GetEnvSecure("NSS_DISABLE_HW_AES");
     char *disable_pclmul = PR_GetEnvSecure("NSS_DISABLE_PCLMUL");
+    char *disable_hw_sha = PR_GetEnvSecure("NSS_DISABLE_HW_SHA");
     char *disable_avx = PR_GetEnvSecure("NSS_DISABLE_AVX");
+    char *disable_avx2 = PR_GetEnvSecure("NSS_DISABLE_AVX2");
     char *disable_ssse3 = PR_GetEnvSecure("NSS_DISABLE_SSSE3");
     char *disable_sse4_1 = PR_GetEnvSecure("NSS_DISABLE_SSE4_1");
     char *disable_sse4_2 = PR_GetEnvSecure("NSS_DISABLE_SSE4_2");
     freebl_cpuid(1, &eax, &ebx, &ecx, &edx);
+    freebl_cpuid(7, &eax7, &ebx7, &ecx7, &edx7);
     aesni_support_ = (PRBool)((ecx & ECX_AESNI) != 0 && disable_hw_aes == NULL);
     clmul_support_ = (PRBool)((ecx & ECX_CLMUL) != 0 && disable_pclmul == NULL);
+    sha_support_ = (PRBool)((ebx7 & EBX_SHA) != 0 && disable_hw_sha == NULL);
     /* For AVX we check AVX, OSXSAVE, and XSAVE
      * as well as XMM and YMM state. */
     avx_support_ = (PRBool)((ecx & AVX_BITS) == AVX_BITS) && check_xcr0_ymm() &&
                    disable_avx == NULL;
+    /* For AVX2 we check AVX2, BMI1, BMI2, FMA, MOVBE.
+     * We do not check for AVX above. */
+    avx2_support_ = (PRBool)((ebx7 & AVX2_EBX_BITS) == AVX2_EBX_BITS &&
+                             (ecx & AVX2_ECX_BITS) == AVX2_ECX_BITS &&
+                             disable_avx2 == NULL);
     ssse3_support_ = (PRBool)((ecx & ECX_SSSE3) != 0 &&
                               disable_ssse3 == NULL);
     sse4_1_support_ = (PRBool)((ecx & ECX_SSE4_1) != 0 &&
@@ -107,7 +131,7 @@ CheckX86CPUSupport()
 #endif /* NSS_X86_OR_X64 */
 
 /* clang-format off */
-#if defined(__aarch64__) || defined(__arm__)
+#if (defined(__aarch64__) || defined(__arm__)) && !defined(TARGET_OS_IPHONE)
 #ifndef __has_include
 #define __has_include(x) 0
 #endif
@@ -212,6 +236,8 @@ CheckARMSupport()
     arm_neon_support_ = PR_GetEnvSecure("NSS_DISABLE_ARM_NEON") == NULL;
     arm_aes_support_ &= PR_GetEnvSecure("NSS_DISABLE_HW_AES") == NULL;
     arm_pmull_support_ &= PR_GetEnvSecure("NSS_DISABLE_PMULL") == NULL;
+    arm_sha1_support_ &= PR_GetEnvSecure("NSS_DISABLE_HW_SHA1") == NULL;
+    arm_sha2_support_ &= PR_GetEnvSecure("NSS_DISABLE_HW_SHA2") == NULL;
 }
 #endif /* defined(__aarch64__) */
 
@@ -335,6 +361,8 @@ CheckARMSupport()
         arm_sha2_support_ = hwcaps & HWCAP2_SHA2;
     }
     arm_neon_support_ = GetNeonSupport();
+    arm_sha1_support_ &= PR_GetEnvSecure("NSS_DISABLE_HW_SHA1") == NULL;
+    arm_sha2_support_ &= PR_GetEnvSecure("NSS_DISABLE_HW_SHA2") == NULL;
 }
 #endif /* defined(__arm__) */
 
@@ -379,9 +407,19 @@ clmul_support()
     return clmul_support_;
 }
 PRBool
+sha_support()
+{
+    return sha_support_;
+}
+PRBool
 avx_support()
 {
     return avx_support_;
+}
+PRBool
+avx2_support()
+{
+    return avx2_support_;
 }
 PRBool
 ssse3_support()

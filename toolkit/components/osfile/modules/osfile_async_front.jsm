@@ -625,7 +625,7 @@ if (SharedAll.Config.DEBUG && Scheduler.launched) {
 const PREF_OSFILE_TEST_SHUTDOWN_OBSERVER =
   "toolkit.osfile.test.shutdown.observer";
 
-AsyncShutdown.webWorkersShutdown.addBlocker(
+AsyncShutdown.xpcomWillShutdown.addBlocker(
   "OS.File: flush pending requests, warn about unclosed files, shut down service.",
   async function() {
     // Give clients a last chance to enqueue requests.
@@ -1518,10 +1518,10 @@ DirectoryIterator.prototype = {
     if (this._isClosed) {
       return { value: undefined, done: true };
     }
-    let { value, done } = await Scheduler.post(
-      "DirectoryIterator_prototype_next",
-      [iterator]
-    );
+    let {
+      value,
+      done,
+    } = await Scheduler.post("DirectoryIterator_prototype_next", [iterator]);
     if (done) {
       this.close();
       return { value: undefined, done: true };

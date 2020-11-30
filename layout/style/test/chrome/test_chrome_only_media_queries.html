@@ -46,6 +46,7 @@ function testToggle(toggle) {
 
 const TOGGLES = [
   "-moz-is-glyph",
+  "-moz-print-preview",
   "-moz-scrollbar-start-backward",
   "-moz-scrollbar-start-forward",
   "-moz-scrollbar-end-backward",
@@ -61,10 +62,6 @@ const TOGGLES = [
   "-moz-swipe-animation-enabled",
 ];
 
-if (SpecialPowers.getBoolPref("layout.css.moz-touch-enabled.enabled")) {
-  TOGGLES.push("-moz-touch-enabled");
-}
-
 for (let i = 0; i < TOGGLES.length; ++i) {
   testToggle(TOGGLES[i])
 }
@@ -73,4 +70,10 @@ expectParseable("(-moz-os-version: windows-win7)");
 expectParseable("(-moz-os-version: windows-win8)");
 expectParseable("(-moz-os-version: windows-win10)");
 expectNonParseable("(-moz-os-version: )");
+
+expectParseable("(prefers-contrast: more)")
+expectParseable("(prefers-contrast: forced)")
+expectParseable("(prefers-contrast: no-preference)")
+expectParseable("(prefers-contrast: less)");
+expectParseable("(prefers-contrast)")
 </script>

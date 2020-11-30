@@ -9,7 +9,7 @@
 #include "txCore.h"
 #include "nsAtom.h"
 
-#define kTXNameSpaceURI "http://www.mozilla.org/TransforMiix"
+#define kTXNameSpaceURI u"http://www.mozilla.org/TransforMiix"
 #define kTXWrapper "transformiix:result"
 
 class txOutputFormat;
@@ -26,7 +26,7 @@ class Document;
 
 class txAXMLEventHandler {
  public:
-  virtual ~txAXMLEventHandler() {}
+  virtual ~txAXMLEventHandler() = default;
 
   /**
    * Signals to receive the start of an attribute.
@@ -153,7 +153,7 @@ class txAOutputXMLEventHandler : public txAXMLEventHandler {
  */
 class txAOutputHandlerFactory {
  public:
-  virtual ~txAOutputHandlerFactory() {}
+  virtual ~txAOutputHandlerFactory() = default;
 
   /**
    * Creates an outputhandler for the specified format.

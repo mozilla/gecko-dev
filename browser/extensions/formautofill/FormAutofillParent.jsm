@@ -47,7 +47,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
     "resource://formautofill/FormAutofillPreferences.jsm",
   FormAutofillDoorhanger: "resource://formautofill/FormAutofillDoorhanger.jsm",
   FormAutofillUtils: "resource://formautofill/FormAutofillUtils.jsm",
-  OSKeyStore: "resource://formautofill/OSKeyStore.jsm",
+  OSKeyStore: "resource://gre/modules/OSKeyStore.jsm",
 });
 
 this.log = null;
@@ -97,6 +97,8 @@ let FormAutofillStatus = {
       this.injectElements(win.document);
     }
     Services.wm.addListener(this);
+
+    Services.telemetry.setEventRecordingEnabled("creditcard", true);
   },
 
   /**
@@ -302,6 +304,7 @@ class FormAutofillParent extends JSWindowActorParent {
         return FormAutofillParent._getRecords(data);
       }
       case "FormAutofill:OnFormSubmit": {
+        this.notifyMessageObservers("onFormSubmitted", data);
         await this._onFormSubmit(data);
         break;
       }
@@ -312,6 +315,10 @@ class FormAutofillParent extends JSWindowActorParent {
       }
       case "FormAutofill:GetDecryptedString": {
         let { cipherText, reauth } = data;
+        if (!FormAutofillUtils._reauthEnabledByUser) {
+          log.debug("Reauth is disabled");
+          reauth = false;
+        }
         let string;
         try {
           string = await OSKeyStore.decrypt(cipherText, reauth);
@@ -341,7 +348,7 @@ class FormAutofillParent extends JSWindowActorParent {
         break;
       }
       case "FormAutofill:SaveCreditCard": {
-        if (!(await OSKeyStore.ensureLoggedIn())) {
+        if (!(await FormAutofillUtils.ensureLoggedIn()).authenticated) {
           log.warn("User canceled encryption login");
           return undefined;
         }
@@ -367,7 +374,10 @@ class FormAutofillParent extends JSWindowActorParent {
     for (let observer of gMessageObservers) {
       try {
         if (callbackName in observer) {
-          observer[callbackName](data);
+          observer[callbackName](
+            data,
+            this.manager.browsingContext.topChromeWindow
+          );
         }
       } catch (ex) {
         Cu.reportError(ex);
@@ -445,6 +455,9 @@ class FormAutofillParent extends JSWindowActorParent {
 
   async _onAddressSubmit(address, browser, timeStartedFillingMS) {
     let showDoorhanger = null;
+    if (!FormAutofill.isAutofillAddressesCaptureEnabled) {
+      return showDoorhanger;
+    }
     if (address.guid) {
       // Avoid updating the fields that users don't modify.
       let originalAddress = await gFormAutofillStorage.addresses.get(
@@ -568,6 +581,10 @@ class FormAutofillParent extends JSWindowActorParent {
   }
 
   async _onCreditCardSubmit(creditCard, browser, timeStartedFillingMS) {
+    if (FormAutofill.isAutofillCreditCardsHideUI) {
+      return false;
+    }
+
     // Updates the used status for shield/heartbeat to recognize users who have
     // used Credit Card Autofill.
     let setUsedStatus = status => {
@@ -584,12 +601,12 @@ class FormAutofillParent extends JSWindowActorParent {
       creditCard.record["cc-type"] &&
       !CreditCard.isValidNetwork(creditCard.record["cc-type"])
     ) {
-      delete creditCard.record["cc-type"];
+      // Let's reset the credit card to empty, and then network auto-detect will
+      // pick it up.
+      creditCard.record["cc-type"] = "";
     }
 
-    // We'll show the credit card doorhanger if:
-    //   - User applys autofill and changed
-    //   - User fills form manually and the filling data is not duplicated to storage
+    // If `guid` is present, the form has been autofilled.
     if (creditCard.guid) {
       // Indicate that the user has used Credit Card Autofill to fill in a form.
       setUsedStatus(3);
@@ -637,26 +654,48 @@ class FormAutofillParent extends JSWindowActorParent {
         timeStartedFillingMS
       );
     } else {
-      // Indicate that the user neither sees the doorhanger nor uses Autofill
-      // but somehow has a duplicate record in the storage. Will be reset to 2
-      // if the doorhanger actually shows below.
-      setUsedStatus(1);
-
       // Add the probe to record credit card manual filling.
       Services.telemetry.scalarAdd(
         "formautofill.creditCards.fill_type_manual",
         1
       );
       this._recordFormFillingTime("creditCard", "manual", timeStartedFillingMS);
-    }
 
-    // Early return if it's a duplicate data
-    let dupGuid = await gFormAutofillStorage.creditCards.getDuplicateGuid(
-      creditCard.record
-    );
-    if (dupGuid) {
-      gFormAutofillStorage.creditCards.notifyUsed(dupGuid);
-      return false;
+      let existingGuid = await gFormAutofillStorage.creditCards.getDuplicateGuid(
+        creditCard.record
+      );
+
+      if (existingGuid) {
+        creditCard.guid = existingGuid;
+
+        let originalCCData = await gFormAutofillStorage.creditCards.get(
+          creditCard.guid
+        );
+
+        gFormAutofillStorage.creditCards._normalizeRecord(creditCard.record);
+
+        // If the credit card record is a duplicate, check if the fields match the
+        // record.
+        let recordUnchanged = true;
+        for (let field in creditCard.record) {
+          if (field == "cc-number") {
+            continue;
+          }
+          if (creditCard.record[field] != originalCCData[field]) {
+            recordUnchanged = false;
+            break;
+          }
+        }
+
+        if (recordUnchanged) {
+          // Indicate that the user neither sees the doorhanger nor uses Autofill
+          // but somehow has a duplicate record in the storage. Will be reset to 2
+          // if the doorhanger actually shows below.
+          setUsedStatus(1);
+          gFormAutofillStorage.creditCards.notifyUsed(creditCard.guid);
+          return false;
+        }
+      }
     }
 
     // Indicate that the user has seen the doorhanger.
@@ -673,12 +712,30 @@ class FormAutofillParent extends JSWindowActorParent {
         creditCard.record["cc-number-decrypted"];
       let name = creditCard.record["cc-name"];
       const description = await CreditCard.getLabel({ name, number });
+
+      const telemetryObject = creditCard.guid
+        ? "update_doorhanger"
+        : "capture_doorhanger";
+      Services.telemetry.recordEvent(
+        "creditcard",
+        "show",
+        telemetryObject,
+        creditCard.flowId
+      );
+
       const state = await FormAutofillDoorhanger.show(
         browser,
         creditCard.guid ? "updateCreditCard" : "addCreditCard",
         description
       );
       if (state == "cancel") {
+        Services.telemetry.recordEvent(
+          "creditcard",
+          "cancel",
+          telemetryObject,
+          creditCard.flowId
+        );
+        FormAutofillDoorhanger.incrementCcUsageCount("cancelCcSave");
         return;
       }
 
@@ -687,17 +744,31 @@ class FormAutofillParent extends JSWindowActorParent {
           "extensions.formautofill.creditCards.enabled",
           false
         );
+        Services.telemetry.recordEvent(
+          "creditcard",
+          "disable",
+          telemetryObject,
+          creditCard.flowId
+        );
         return;
       }
 
-      if (!(await OSKeyStore.ensureLoggedIn())) {
+      if (!(await FormAutofillUtils.ensureLoggedIn()).authenticated) {
         log.warn("User canceled encryption login");
         return;
       }
 
+      FormAutofillDoorhanger.incrementCcUsageCount("saveCc");
+
       let changedGUIDs = [];
       if (creditCard.guid) {
         if (state == "update") {
+          Services.telemetry.recordEvent(
+            "creditcard",
+            "update",
+            telemetryObject,
+            creditCard.flowId
+          );
           await gFormAutofillStorage.creditCards.update(
             creditCard.guid,
             creditCard.record,
@@ -705,6 +776,12 @@ class FormAutofillParent extends JSWindowActorParent {
           );
           changedGUIDs.push(creditCard.guid);
         } else if ("create") {
+          Services.telemetry.recordEvent(
+            "creditcard",
+            "save",
+            telemetryObject,
+            creditCard.flowId
+          );
           changedGUIDs.push(
             await gFormAutofillStorage.creditCards.add(creditCard.record)
           );
@@ -716,6 +793,12 @@ class FormAutofillParent extends JSWindowActorParent {
           ))
         );
         if (!changedGUIDs.length) {
+          Services.telemetry.recordEvent(
+            "creditcard",
+            "save",
+            telemetryObject,
+            creditCard.flowId
+          );
           changedGUIDs.push(
             await gFormAutofillStorage.creditCards.add(creditCard.record)
           );
@@ -743,10 +826,6 @@ class FormAutofillParent extends JSWindowActorParent {
     }
 
     let browser = this.manager.browsingContext.top.embedderElement;
-    if (browser && browser.outerBrowser) {
-      // Responsive design mode check
-      browser = browser.outerBrowser;
-    }
 
     // Transmit the telemetry immediately in the meantime form submitted, and handle these pending
     // doorhangers at a later.

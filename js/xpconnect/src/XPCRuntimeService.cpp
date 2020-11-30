@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "xpcprivate.h"
+#include "xpc_make_class.h"
 
 #include "nsContentUtils.h"
 #include "BackstagePass.h"
@@ -16,6 +17,9 @@ using namespace mozilla::dom;
 NS_IMPL_ISUPPORTS(BackstagePass, nsIXPCScriptable, nsIGlobalObject,
                   nsIClassInfo, nsIScriptObjectPrincipal,
                   nsISupportsWeakReference)
+
+BackstagePass::BackstagePass()
+    : mPrincipal(nsContentUtils::GetSystemPrincipal()), mWrapper(nullptr) {}
 
 // XXX(nika): It appears we don't have support for mayresolve hooks in
 // nsIXPCScriptable, and I don't really want to add it because I'd rather just
@@ -142,12 +146,5 @@ BackstagePass::PreCreate(nsISupports* nativeObj, JSContext* cx,
   if (jsglobal) {
     *parentObj = jsglobal;
   }
-  return NS_OK;
-}
-
-nsresult NS_NewBackstagePass(BackstagePass** ret) {
-  RefPtr<BackstagePass> bsp =
-      new BackstagePass(nsContentUtils::GetSystemPrincipal());
-  bsp.forget(ret);
   return NS_OK;
 }

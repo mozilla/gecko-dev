@@ -18,7 +18,7 @@ const { TelemetryController } = ChromeUtils.import(
 ChromeUtils.import("resource://gre/modules/Timer.jsm", this);
 ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm", this);
 
-var EXPORTED_SYMBOLS = ["CrashManager"];
+var EXPORTED_SYMBOLS = ["CrashManager", "getCrashManager"];
 
 /**
  * How long to wait after application startup before crash event files are
@@ -965,7 +965,7 @@ function CrashStore(storeDir, telemetrySizeKey) {
 CrashStore.prototype = Object.freeze({
   // Maximum number of events to store per day. This establishes a
   // ceiling on the per-type/per-day records that will be stored.
-  HIGH_WATER_DAILY_THRESHOLD: 100,
+  HIGH_WATER_DAILY_THRESHOLD: 500,
 
   /**
    * Reset all data.
@@ -1545,3 +1545,7 @@ XPCOMUtils.defineLazyGetter(CrashManager, "Singleton", function() {
 
   return gCrashManager;
 });
+
+function getCrashManager() {
+  return CrashManager.Singleton;
+}

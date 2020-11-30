@@ -19,7 +19,6 @@
 #include "nsComponentManagerUtils.h"
 #include "nsServiceManagerUtils.h"
 #include "nsCOMPtr.h"
-#include "nsAutoPtr.h"
 #include "nsString.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsDirectoryServiceDefs.h"
@@ -57,7 +56,7 @@ MOZ_FORMAT_PRINTF(1, 2) void fail(const char* msg, ...) {
 
 //-----------------------------------------------------------------------------
 
-class ScopedXPCOM : public nsIDirectoryServiceProvider2 {
+class ScopedXPCOM final : public nsIDirectoryServiceProvider2 {
  public:
   NS_DECL_ISUPPORTS
 
@@ -129,7 +128,7 @@ class ScopedXPCOM : public nsIDirectoryServiceProvider2 {
                                          getter_AddRefs(profD));
     NS_ENSURE_SUCCESS(rv, nullptr);
 
-    rv = profD->Append(NS_LITERAL_STRING("cpp-unit-profd"));
+    rv = profD->Append(u"cpp-unit-profd"_ns);
     NS_ENSURE_SUCCESS(rv, nullptr);
 
     rv = profD->CreateUnique(nsIFile::DIRECTORY_TYPE, 0755);
@@ -171,7 +170,7 @@ class ScopedXPCOM : public nsIDirectoryServiceProvider2 {
     nsAutoCString leafName;
     mGREBinD->GetNativeLeafName(leafName);
     if (leafName.EqualsLiteral("Resources")) {
-      mGREBinD->SetNativeLeafName(NS_LITERAL_CSTRING("MacOS"));
+      mGREBinD->SetNativeLeafName("MacOS"_ns);
     }
 #endif
 

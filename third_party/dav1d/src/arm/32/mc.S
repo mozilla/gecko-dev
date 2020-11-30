@@ -753,7 +753,7 @@ L(blend_v_tbl):
         add             r12, r0,  r1
         lsl             r1,  r1,  #1
         vsub.i8         d5,  d22, d4
-        sub             r1,  r1,  #3
+        sub             r1,  r1,  #2
 4:
         vld1.u8         {d2},     [r2,  :64]!
         vld1.32         {d0[]},   [r0,  :32]
@@ -764,10 +764,8 @@ L(blend_v_tbl):
         vrshrn.i16      d20, q3,  #6
         vst1.16         {d20[0]}, [r0,  :16]!
         vst1.16         {d20[2]}, [r12, :16]!
-        vst1.8          {d20[2]}, [r0]!
-        vst1.8          {d20[6]}, [r12]!
-        add             r0,  r0,  r1
-        add             r12, r12, r1
+        vst1.8          {d20[2]}, [r0],  r1
+        vst1.8          {d20[6]}, [r12], r1
         bgt             4b
         pop             {r4-r5,pc}
 80:
@@ -776,7 +774,7 @@ L(blend_v_tbl):
         add             r12, r0,  r1
         lsl             r1,  r1,  #1
         vsub.i8         d17, d16, d2
-        sub             r1,  r1,  #6
+        sub             r1,  r1,  #4
 8:
         vld1.u8         {d4,  d5},  [r2,  :128]!
         vld1.u8         {d0},  [r0,  :64]
@@ -790,10 +788,8 @@ L(blend_v_tbl):
         vrshrn.i16      d23, q10, #6
         vst1.32         {d22[0]}, [r0,  :32]!
         vst1.32         {d23[0]}, [r12, :32]!
-        vst1.16         {d22[2]}, [r0,  :16]!
-        vst1.16         {d23[2]}, [r12, :16]!
-        add             r0,  r0,  r1
-        add             r12, r12, r1
+        vst1.16         {d22[2]}, [r0,  :16], r1
+        vst1.16         {d23[2]}, [r12, :16], r1
         bgt             8b
         pop             {r4-r5,pc}
 160:
@@ -802,7 +798,7 @@ L(blend_v_tbl):
         add             r12, r0,  r1
         lsl             r1,  r1,  #1
         vsub.i8         q11, q12, q14
-        sub             r1,  r1,  #12
+        sub             r1,  r1,  #8
 16:
         vld1.u8         {q1,  q2},  [r2,  :128]!
         vld1.u8         {q0},  [r0,  :128]
@@ -822,20 +818,18 @@ L(blend_v_tbl):
         vrshrn.i16      d21, q8,  #6
         vst1.u8         {d18},    [r0,  :64]!
         vst1.u8         {d20},    [r12, :64]!
-        vst1.32         {d19[0]}, [r0,  :32]!
-        vst1.32         {d21[0]}, [r12, :32]!
-        add             r0,  r0,  r1
-        add             r12, r12, r1
+        vst1.32         {d19[0]}, [r0,  :32], r1
+        vst1.32         {d21[0]}, [r12, :32], r1
         bgt             16b
         pop             {r4-r5,pc}
 320:
         vmov.i8         q10, #64
         vld1.u8         {q2,  q3},  [r5,  :128]
         vsub.i8         q11, q10, q2
-        vsub.i8         q12, q10, q3
+        vsub.i8         d24, d20, d6
 32:
         vld1.u8         {q8,  q9},  [r2,  :128]!
-        vld1.u8         {q0,  q1},  [r0,  :128]
+        vld1.u8         {d0,  d1,  d2},  [r0,  :64]
         subs            r4,  r4,  #1
         vmull.u8        q15, d16, d4
         vmlal.u8        q15, d0,  d22
@@ -1409,12 +1403,12 @@ L(\type\()_8tap_h_tbl):
         vld1.8          {d24}, [\sr2], \s_strd
         vmovl.u8        q8,  d16
         vmovl.u8        q12, d24
-        vext.8          q9,  q8,  q8,  #2
-        vext.8          q10, q8,  q8,  #4
-        vext.8          q11, q8,  q8,  #6
-        vext.8          q13, q12, q12, #2
-        vext.8          q14, q12, q12, #4
-        vext.8          q15, q12, q12, #6
+        vext.8          d18, d16, d17, #2
+        vext.8          d20, d16, d17, #4
+        vext.8          d22, d16, d17, #6
+        vext.8          d26, d24, d25, #2
+        vext.8          d28, d24, d25, #4
+        vext.8          d30, d24, d25, #6
         subs            \h,  \h,  #2
         vmul.s16        d4,  d16, d0[0]
         vmla.s16        d4,  d18, d0[1]
@@ -1437,7 +1431,7 @@ L(\type\()_8tap_h_tbl):
         pop             {r4-r11,pc}
 
 80:     // 8xN h
-        vld1.8          {d0}, [\mx]
+        vld1.8          {d0}, [\mx, :64]
         sub             \src,  \src,  #3
         add             \ds2,  \dst,  \d_strd
         add             \sr2,  \src,  \s_strd
@@ -1488,7 +1482,7 @@ L(\type\()_8tap_h_tbl):
         // one temporary for vext in the loop. That's slower on A7 and A53,
         // (but surprisingly, marginally faster on A8 and A73).
         vpush           {q4-q6}
-        vld1.8          {d0}, [\mx]
+        vld1.8          {d0}, [\mx, :64]
         sub             \src,  \src,  #3
         add             \ds2,  \dst,  \d_strd
         add             \sr2,  \src,  \s_strd
@@ -1635,7 +1629,7 @@ L(\type\()_8tap_v_tbl):
 
 28:     // 2x8, 2x16 v
         vpush           {q4-q7}
-        vld1.8          {d0}, [\my]
+        vld1.8          {d0}, [\my, :64]
         sub             \sr2,  \src,  \s_strd, lsl #1
         add             \ds2,  \dst,  \d_strd
         sub             \src,  \sr2,  \s_strd
@@ -1715,7 +1709,7 @@ L(\type\()_8tap_v_tbl):
 
 480:    // 4x8, 4x16 v
         vpush           {q4}
-        vld1.8          {d0}, [\my]
+        vld1.8          {d0}, [\my, :64]
         sub             \sr2, \src, \s_strd, lsl #1
         add             \ds2, \dst, \d_strd
         sub             \src, \sr2, \s_strd
@@ -1788,7 +1782,7 @@ L(\type\()_8tap_v_tbl):
 640:
 1280:
         vpush           {q4}
-        vld1.8          {d0}, [\my]
+        vld1.8          {d0}, [\my, :64]
         sub             \src, \src, \s_strd
         sub             \src, \src, \s_strd, lsl #1
         vmovl.s8        q0,  d0
@@ -1957,11 +1951,10 @@ L(\type\()_8tap_hv_tbl):
         bl              L(\type\()_8tap_filter_2)
 
         vext.8          d18, d17, d26, #4
-        vmov            d19, d26
         vmull.s16       q2,  d16, d2[0]
         vmlal.s16       q2,  d17, d2[1]
         vmlal.s16       q2,  d18, d2[2]
-        vmlal.s16       q2,  d19, d2[3]
+        vmlal.s16       q2,  d26, d2[3]
 
         vqrshrn.s32     d4,  q2,  #\shift_hv
         vqmovun.s16     d4,  q2
@@ -1970,11 +1963,11 @@ L(\type\()_8tap_hv_tbl):
         vst1.16         {d4[1]}, [\ds2, :16], \d_strd
         ble             0f
         vmov            d16, d18
-        vmov            d17, d19
+        vmov            d17, d26
         b               2b
 
 280:    // 2x8, 2x16, 2x32 hv
-        vld1.8          {d2},  [\my]
+        vld1.8          {d2},  [\my, :64]
         sub             \src, \src, #1
         sub             \sr2, \src, \s_strd, lsl #1
         sub             \src, \sr2, \s_strd
@@ -2007,7 +2000,6 @@ L(\type\()_8tap_hv_tbl):
 28:
         bl              L(\type\()_8tap_filter_2)
         vext.8          d22, d21, d26, #4
-        vmov            d23, d26
         vmull.s16       q2,  d16, d2[0]
         vmlal.s16       q2,  d17, d2[1]
         vmlal.s16       q2,  d18, d2[2]
@@ -2015,7 +2007,7 @@ L(\type\()_8tap_hv_tbl):
         vmlal.s16       q2,  d20, d3[0]
         vmlal.s16       q2,  d21, d3[1]
         vmlal.s16       q2,  d22, d3[2]
-        vmlal.s16       q2,  d23, d3[3]
+        vmlal.s16       q2,  d26, d3[3]
 
         vqrshrn.s32     d4,  q2,  #\shift_hv
         vqmovun.s16     d4,  q2
@@ -2028,7 +2020,7 @@ L(\type\()_8tap_hv_tbl):
         vmov            d18, d20
         vmov            d19, d21
         vmov            d20, d22
-        vmov            d21, d23
+        vmov            d21, d26
         b               28b
 
 0:
@@ -2114,7 +2106,7 @@ L(\type\()_8tap_filter_2):
         b               4b
 
 480:    // 4x8, 4x16, 4x32 hv
-        vld1.8          {d2},  [\my]
+        vld1.8          {d2},  [\my, :64]
         sub             \src, \src, #1
         sub             \sr2, \src, \s_strd, lsl #1
         sub             \src, \sr2, \s_strd
@@ -2217,7 +2209,7 @@ L(\type\()_8tap_filter_4):
         bgt             880f
         vpush           {q4-q7}
         add             \my,  \my,  #2
-        vld1.8          {d0},  [\mx]
+        vld1.8          {d0},  [\mx, :64]
         vld1.32         {d2[]},  [\my]
         sub             \src,  \src,  #3
         sub             \src,  \src,  \s_strd
@@ -2307,8 +2299,8 @@ L(\type\()_8tap_filter_4):
 640:
 1280:
         vpush           {q4-q7}
-        vld1.8          {d0},  [\mx]
-        vld1.8          {d2},  [\my]
+        vld1.8          {d0},  [\mx, :64]
+        vld1.8          {d2},  [\my, :64]
         sub             \src,  \src,  #3
         sub             \src,  \src,  \s_strd
         sub             \src,  \src,  \s_strd, lsl #1
@@ -3174,3 +3166,184 @@ endfunc
 
 warp  , 11
 warp t, 7
+
+// void dav1d_emu_edge_8bpc_neon(
+//         const intptr_t bw, const intptr_t bh,
+//         const intptr_t iw, const intptr_t ih,
+//         const intptr_t x, const intptr_t y,
+//         pixel *dst, const ptrdiff_t dst_stride,
+//         const pixel *ref, const ptrdiff_t ref_stride)
+function emu_edge_8bpc_neon, export=1
+        push            {r4-r11,lr}
+        ldrd            r4,  r5,  [sp, #36]
+        ldrd            r6,  r7,  [sp, #44]
+        ldrd            r8,  r9,  [sp, #52]
+
+        // ref += iclip(y, 0, ih - 1) * PXSTRIDE(ref_stride)
+        // ref += iclip(x, 0, iw - 1)
+        sub             r12, r3,  #1           // ih - 1
+        cmp             r5,  r3
+        sub             lr,  r2,  #1           // iw - 1
+        it              lt
+        movlt           r12, r5                // min(y, ih - 1)
+        cmp             r4,  r2
+        bic             r12, r12, r12, asr #31 // max(min(y, ih - 1), 0)
+        it              lt
+        movlt           lr,  r4                // min(x, iw - 1)
+        bic             lr,  lr,  lr,  asr #31 // max(min(x, iw - 1), 0)
+        mla             r8,  r12, r9,  r8      // ref += iclip() * stride
+        add             r8,  r8,  lr           // ref += iclip()
+
+        // bottom_ext = iclip(y + bh - ih, 0, bh - 1)
+        // top_ext = iclip(-y, 0, bh - 1)
+        add             r10, r5,  r1           // y + bh
+        neg             r5,  r5                // -y
+        sub             r10, r10, r3           // y + bh - ih
+        sub             r12, r1,  #1           // bh - 1
+        cmp             r10, r1
+        bic             r5,  r5,  r5,  asr #31 // max(-y, 0)
+        it              ge
+        movge           r10, r12               // min(y + bh - ih, bh-1)
+        cmp             r5,  r1
+        bic             r10, r10, r10, asr #31 // max(min(y + bh - ih, bh-1), 0)
+        it              ge
+        movge           r5,  r12               // min(max(-y, 0), bh-1)
+
+        // right_ext = iclip(x + bw - iw, 0, bw - 1)
+        // left_ext = iclip(-x, 0, bw - 1)
+        add             r11, r4,  r0           // x + bw
+        neg             r4,  r4                // -x
+        sub             r11, r11, r2           // x + bw - iw
+        sub             lr,  r0,  #1           // bw - 1
+        cmp             r11, r0
+        bic             r4,  r4,  r4,  asr #31 // max(-x, 0)
+        it              ge
+        movge           r11, lr                // min(x + bw - iw, bw-1)
+        cmp             r4,  r0
+        bic             r11, r11, r11, asr #31 // max(min(x + bw - iw, bw-1), 0)
+        it              ge
+        movge           r4,  lr                // min(max(-x, 0), bw - 1)
+
+        // center_h = bh - top_ext - bottom_ext
+        // dst += top_ext * PXSTRIDE(dst_stride)
+        // center_w = bw - left_ext - right_ext
+        sub             r1,  r1,  r5           // bh - top_ext
+        mla             r6,  r5,  r7,  r6
+        sub             r2,  r0,  r4           // bw - left_ext
+        sub             r1,  r1,  r10          // center_h = bh - top_ext - bottom_ext
+        sub             r2,  r2,  r11          // center_w = bw - left_ext - right_ext
+
+        mov             r0,  r6                // backup of dst
+
+.macro v_loop need_left, need_right
+0:
+.if \need_left
+        vld1.8          {d0[]}, [r8]
+        mov             r12, r6                // out = dst
+        mov             r3,  r4
+        vmov            d1,  d0
+1:
+        subs            r3,  r3,  #16
+        vst1.8          {q0}, [r12, :128]!
+        bgt             1b
+.endif
+        mov             lr,  r8
+        add             r12, r6,  r4           // out = dst + left_ext
+        mov             r3,  r2
+1:
+        vld1.8          {q0, q1}, [lr]!
+        subs            r3,  r3,  #32
+.if \need_left
+        vst1.8          {q0, q1}, [r12]!
+.else
+        vst1.8          {q0, q1}, [r12, :128]!
+.endif
+        bgt             1b
+.if \need_right
+        add             r3,  r8,  r2           // in + center_w
+        sub             r3,  r3,  #1           // in + center_w - 1
+        add             r12, r6,  r4           // dst + left_ext
+        vld1.8          {d0[]}, [r3]
+        add             r12, r12, r2           // out = dst + left_ext + center_w
+        mov             r3,  r11
+        vmov            d1,  d0
+1:
+        subs            r3,  r3,  #16
+        vst1.8          {q0}, [r12]!
+        bgt             1b
+.endif
+
+        subs            r1,  r1,  #1           // center_h--
+        add             r6,  r6,  r7
+        add             r8,  r8,  r9
+        bgt             0b
+.endm
+
+        cmp             r4,  #0
+        beq             2f
+        // need_left
+        cmp             r11, #0
+        beq             3f
+        // need_left + need_right
+        v_loop          1,   1
+        b               5f
+
+2:
+        // !need_left
+        cmp             r11, #0
+        beq             4f
+        // !need_left + need_right
+        v_loop          0,   1
+        b               5f
+
+3:
+        // need_left + !need_right
+        v_loop          1,   0
+        b               5f
+
+4:
+        // !need_left + !need_right
+        v_loop          0,   0
+
+5:
+        cmp             r10, #0
+        // Storing the original dst in r0 overwrote bw, recalculate it here
+        add             r2,  r2,  r4           // center_w + left_ext
+        add             r2,  r2,  r11          // bw = center_w + left_ext + right_ext
+
+        beq             3f
+        // need_bottom
+        sub             r8,  r6,  r7           // ref = dst - stride
+        mov             r4,  r2
+1:
+        vld1.8          {q0, q1}, [r8, :128]!
+        mov             r3,  r10
+2:
+        subs            r3,  r3,  #1
+        vst1.8          {q0, q1}, [r6, :128], r7
+        bgt             2b
+        mls             r6,  r7,  r10,  r6     // dst -= bottom_ext * stride
+        subs            r4,  r4,  #32          // bw -= 32
+        add             r6,  r6,  #32          // dst += 32
+        bgt             1b
+
+3:
+        cmp             r5,  #0
+        beq             3f
+        // need_top
+        mls             r6,  r7,  r5,  r0      // dst = stored_dst - top_ext * stride
+1:
+        vld1.8          {q0, q1}, [r0, :128]!
+        mov             r3,  r5
+2:
+        subs            r3,  r3,  #1
+        vst1.8          {q0, q1}, [r6, :128], r7
+        bgt             2b
+        mls             r6,  r7,  r5,  r6      // dst -= top_ext * stride
+        subs            r2,  r2,  #32          // bw -= 32
+        add             r6,  r6,  #32          // dst += 32
+        bgt             1b
+
+3:
+        pop             {r4-r11,pc}
+endfunc

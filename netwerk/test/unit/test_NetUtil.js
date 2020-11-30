@@ -8,6 +8,8 @@
  * This file tests the methods on NetUtil.jsm.
  */
 
+"use strict";
+
 const { HttpServer } = ChromeUtils.import("resource://testing-common/httpd.js");
 
 // We need the profile directory so the test harness will clean up our test
@@ -353,7 +355,7 @@ function test_asyncFetch_with_nsIURI() {
     null, // aLoadingNode
     Services.scriptSecurityManager.getSystemPrincipal(),
     null, // aTriggeringPrincipal
-    Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+    Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
     Ci.nsIContentPolicy.TYPE_OTHER
   );
 }
@@ -394,7 +396,7 @@ function test_asyncFetch_with_string() {
     null, // aLoadingNode
     Services.scriptSecurityManager.getSystemPrincipal(),
     null, // aTriggeringPrincipal
-    Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+    Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
     Ci.nsIContentPolicy.TYPE_OTHER
   );
 }
@@ -444,7 +446,7 @@ function test_asyncFetch_with_nsIFile() {
     null, // aLoadingNode
     Services.scriptSecurityManager.getSystemPrincipal(),
     null, // aTriggeringPrincipal
-    Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+    Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
     Ci.nsIContentPolicy.TYPE_OTHER
   );
 }
@@ -475,7 +477,7 @@ function test_asyncFetch_with_nsIInputString() {
     null, // aLoadingNode
     Services.scriptSecurityManager.getSystemPrincipal(),
     null, // aTriggeringPrincipal
-    Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+    Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
     Ci.nsIContentPolicy.TYPE_OTHER
   );
 }
@@ -533,7 +535,7 @@ function test_newChannel_with_string() {
     null, // aLoadingNode
     Services.scriptSecurityManager.getSystemPrincipal(),
     null, // aTriggeringPrincipal
-    Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+    Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
     Ci.nsIContentPolicy.TYPE_OTHER
   );
   let NetUtilChannel = NetUtil.newChannel({
@@ -556,7 +558,7 @@ function test_newChannel_with_nsIURI() {
     null, // aLoadingNode
     Services.scriptSecurityManager.getSystemPrincipal(),
     null, // aTriggeringPrincipal
-    Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+    Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
     Ci.nsIContentPolicy.TYPE_OTHER
   );
   let NetUtilChannel = NetUtil.newChannel({
@@ -576,7 +578,7 @@ function test_newChannel_with_options() {
     null, // aLoadingNode
     Services.scriptSecurityManager.getSystemPrincipal(),
     null, // aTriggeringPrincipal
-    Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+    Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
     Ci.nsIContentPolicy.TYPE_OTHER
   );
 
@@ -588,7 +590,7 @@ function test_newChannel_with_options() {
     NetUtil.newChannel({
       uri,
       loadingPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
-      securityFlags: Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+      securityFlags: Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
       contentPolicyType: Ci.nsIContentPolicy.TYPE_OTHER,
     })
   );

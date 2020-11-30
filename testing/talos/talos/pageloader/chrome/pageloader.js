@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /* import-globals-from report.js */
-/* eslint mozilla/avoid-Date-timing: "off" */
 
 var { AppConstants } = ChromeUtils.import(
   "resource://gre/modules/AppConstants.jsm"
@@ -110,7 +109,7 @@ SingleTimeout.prototype.clear = function() {
 
 var failTimeout = new SingleTimeout();
 
-function plInit() {
+async function plInit() {
   if (running) {
     return;
   }
@@ -212,118 +211,52 @@ function plInit() {
     // get our window out of the way
     window.resizeTo(10, 10);
 
-    var browserLoadFunc = function(ev) {
-      browserWindow.removeEventListener("load", browserLoadFunc, true);
+    await new Promise(resolve => {
+      browserWindow.addEventListener("load", resolve, {
+        capture: true,
+        once: true,
+      });
+    });
 
-      // do this half a second after load, because we need to be
-      // able to resize the window and not have it get clobbered
-      // by the persisted values
-      setTimeout(function() {
-        // Since bug 1261842, the initial browser is remote unless it attempts
-        // to browse to a URI that should be non-remote (landed at bug 1047603).
-        //
-        // However, when it loads a URI that requires a different remote type,
-        // we lose the load listener and the injected tpRecordTime.remote,
-        //
-        // It also probably means that per test (or, in fact, per pageloader browser
-        // instance which adds the load listener and injects tpRecordTime), all the
-        // pages should be able to load in the same mode as the initial page - due
-        // to this reinitialization on the switch.
-        let remoteType = E10SUtils.getRemoteTypeForURI(
-          pageUrls[0],
-          /* remote */ true,
-          /* fission */ Services.prefs.getBoolPref("fission.autostart")
-        );
-        let tabbrowser = browserWindow.gBrowser;
-        if (remoteType) {
-          tabbrowser.updateBrowserRemoteness(tabbrowser.selectedBrowser, {
-            remoteType,
-          });
-        } else {
-          tabbrowser.updateBrowserRemoteness(tabbrowser.selectedBrowser, {
-            remoteType: E10SUtils.NOT_REMOTE,
-          });
-        }
+    // do this half a second after load, because we need to be
+    // able to resize the window and not have it get clobbered
+    // by the persisted values
+    await new Promise(resolve => setTimeout(resolve, 500));
 
-        browserWindow.resizeTo(winWidth, winHeight);
-        browserWindow.moveTo(0, 0);
-        browserWindow.focus();
-        content = browserWindow.gBrowser;
-        content.selectedBrowser.messageManager.loadFrameScript(
-          "chrome://pageloader/content/utils.js",
-          false,
-          true
-        );
+    browserWindow.resizeTo(winWidth, winHeight);
+    browserWindow.moveTo(0, 0);
+    browserWindow.focus();
+    content = browserWindow.gBrowser;
 
-        // pick the right load handler
-        if (useFNBPaint) {
-          content.selectedBrowser.messageManager.loadFrameScript(
-            "chrome://pageloader/content/lh_fnbpaint.js",
-            false,
-            true
-          );
-        } else if (useMozAfterPaint) {
-          content.selectedBrowser.messageManager.loadFrameScript(
-            "chrome://pageloader/content/lh_moz.js",
-            false,
-            true
-          );
-        } else if (useHero) {
-          content.selectedBrowser.messageManager.loadFrameScript(
-            "chrome://pageloader/content/lh_hero.js",
-            false,
-            true
-          );
-        } else if (usePDFPaint) {
-          content.selectedBrowser.messageManager.loadFrameScript(
-            "chrome://pageloader/content/lh_pdfpaint.js",
-            false,
-            true
-          );
-        } else {
-          content.selectedBrowser.messageManager.loadFrameScript(
-            "chrome://pageloader/content/lh_dummy.js",
-            false,
-            true
-          );
-        }
-        content.selectedBrowser.messageManager.loadFrameScript(
-          "chrome://pageloader/content/talos-content.js",
-          false
-        );
-        content.selectedBrowser.messageManager.loadFrameScript(
-          "resource://talos-powers/TalosContentProfiler.js",
-          false,
-          true
-        );
-        content.selectedBrowser.messageManager.loadFrameScript(
-          "chrome://pageloader/content/tscroll.js",
-          false,
-          true
-        );
-        content.selectedBrowser.messageManager.loadFrameScript(
-          "chrome://pageloader/content/Profiler.js",
-          false,
-          true
-        );
-        if (useA11y) {
-          content.selectedBrowser.messageManager.loadFrameScript(
-            "chrome://pageloader/content/a11y.js",
-            false,
-            true
-          );
-        }
+    // Since bug 1261842, the initial browser is remote unless it attempts
+    // to browse to a URI that should be non-remote (landed at bug 1047603).
+    //
+    // However, when it loads a URI that requires a different remote type,
+    // we lose the load listener and the injected tpRecordTime.remote,
+    //
+    // This listener will listen for when one of these process switches has
+    // happened, and re-install these listeners and injected methods into
+    // the new browser tab.
+    //
+    // It also probably means that per test (or, in fact, per pageloader browser
+    // instance which adds the load listener and injects tpRecordTime), all the
+    // pages should be able to load in the same mode as the initial page - due
+    // to this reinitialization on the switch.
+    let tab = content.selectedTab;
+    tab.addEventListener("TabRemotenessChange", function(evt) {
+      loadFrameScripts(tab.linkedBrowser);
+    });
+    loadFrameScripts(tab.linkedBrowser);
 
-        // Ensure that any webextensions that need to do setup have a chance
-        // to do so. e.g. the 'tabswitch' talos test registers a about:tabswitch
-        // handler during initialization, and if we don't wait for that, then
-        // attempting to load that URL will result in an error and hang the
-        // test.
-        setTimeout(plLoadPage, 2000);
-      }, 500);
-    };
-
-    browserWindow.addEventListener("load", browserLoadFunc, true);
+    // Ensure that any webextensions that need to do setup have a chance
+    // to do so. e.g. the 'tabswitch' talos test registers a about:tabswitch
+    // handler during initialization, and if we don't wait for that, then
+    // attempting to load that URL will result in an error and hang the
+    // test.
+    for (let extension of WebExtensionPolicy.getActiveExtensions()) {
+      await extension.readyPromise;
+    }
+    plLoadPage();
   } catch (e) {
     dumpLine("pageloader exception: " + e);
     plStop(true);
@@ -368,8 +301,30 @@ function plLoadPage() {
     removeLastAddedMsgListener = null;
   }
 
+  let tab = content.selectedTab;
+  tab.addEventListener("TabRemotenessChange", evt => {
+    addMsgListeners(tab.linkedBrowser);
+  });
+  addMsgListeners(tab.linkedBrowser);
+
+  failTimeout.register(loadFail, timeout);
+  // record which page we are about to open
+  TalosParentProfiler.mark("Opening " + pages[pageIndex].url.pathQueryRef);
+
+  if (useFNBPaint) {
+    isFNBPaintPending = true;
+  }
+
+  if (usePDFPaint) {
+    isPDFPaintPending = true;
+  }
+
+  startAndLoadURI(pageName);
+}
+
+function addMsgListeners(browser) {
+  let mm = browser.messageManager;
   // messages to watch for page load
-  let mm = content.selectedBrowser.messageManager;
   mm.addMessageListener("PageLoader:LoadEvent", ContentListener);
   mm.addMessageListener("PageLoader:RecordTime", ContentListener);
   mm.addMessageListener("PageLoader:IdleCallbackSet", ContentListener);
@@ -386,19 +341,45 @@ function plLoadPage() {
     );
     mm.removeMessageListener("PageLoader:Error", ContentListener);
   };
-  failTimeout.register(loadFail, timeout);
-  // record which page we are about to open
-  TalosParentProfiler.mark("Opening " + pages[pageIndex].url.pathQueryRef);
+}
 
+function loadFrameScripts(browser) {
+  let mm = browser.messageManager;
+
+  // Load our frame scripts.
+  mm.loadFrameScript("chrome://pageloader/content/utils.js", false, true);
+
+  // pick the right load handler
   if (useFNBPaint) {
-    isFNBPaintPending = true;
+    mm.loadFrameScript(
+      "chrome://pageloader/content/lh_fnbpaint.js",
+      false,
+      true
+    );
+  } else if (useMozAfterPaint) {
+    mm.loadFrameScript("chrome://pageloader/content/lh_moz.js", false, true);
+  } else if (useHero) {
+    mm.loadFrameScript("chrome://pageloader/content/lh_hero.js", false, true);
+  } else if (usePDFPaint) {
+    mm.loadFrameScript(
+      "chrome://pageloader/content/lh_pdfpaint.js",
+      false,
+      true
+    );
+  } else {
+    mm.loadFrameScript("chrome://pageloader/content/lh_dummy.js", false, true);
   }
-
-  if (usePDFPaint) {
-    isPDFPaintPending = true;
+  mm.loadFrameScript("chrome://pageloader/content/talos-content.js", false);
+  mm.loadFrameScript(
+    "resource://talos-powers/TalosContentProfiler.js",
+    false,
+    true
+  );
+  mm.loadFrameScript("chrome://pageloader/content/tscroll.js", false, true);
+  mm.loadFrameScript("chrome://pageloader/content/Profiler.js", false, true);
+  if (useA11y) {
+    mm.loadFrameScript("chrome://pageloader/content/a11y.js", false, true);
   }
-
-  startAndLoadURI(pageName);
 }
 
 function startAndLoadURI(pageName) {
@@ -409,7 +390,7 @@ function startAndLoadURI(pageName) {
     TalosParentProfiler.resume("Starting to load URI " + pageName);
   }
 
-  start_time = Date.now();
+  start_time = window.performance.now();
   if (loadNoCache) {
     content.loadURI(pageName, {
       triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
@@ -532,9 +513,9 @@ var plNextPage = async function() {
 
   if (doNextPage) {
     if (forceCC) {
-      var tccstart = new Date();
+      var tccstart = window.performance.now();
       window.windowUtils.garbageCollect();
-      var tccend = new Date();
+      var tccend = window.performance.now();
       report.recordCCTime(tccend - tccstart);
 
       // Now asynchronously trigger GC / CC in the content process
@@ -733,7 +714,10 @@ function _loadHandlerCapturing() {
 
   if (useMozAfterPaint) {
     if (gStartTime != null && gStartTime >= 0) {
-      gTime = new Date() - gStartTime;
+      gTime =
+        window.performance.timing.navigationStart +
+        window.performance.now() -
+        gStartTime;
       gStartTime = -1;
     }
   }
@@ -786,9 +770,18 @@ function _loadHandler(paint_time = 0) {
   if (paint_time !== 0) {
     // window.performance.timing.timeToNonBlankPaint is a timestamp
     // this may have a value for hero element (also a timestamp)
-    end_time = paint_time;
+
+    let minDate = new Date("2001");
+
+    if (paint_time < minDate) {
+      //paint_time is a performance.now() value
+      end_time = paint_time;
+    } else {
+      //paint_time is a UNIX timestamp
+      end_time = paint_time - window.performance.timing.navigationStart;
+    }
   } else {
-    end_time = Date.now();
+    end_time = window.performance.now();
   }
 
   var duration;
@@ -843,7 +836,7 @@ function plLoadHandlerMessage(message) {
     }
     if (gTime !== -1) {
       if (useMozAfterPaint && gStartTime >= 0) {
-        time = Date.now() - gStartTime;
+        time = window.performance.now() - gStartTime;
         gStartTime = -1;
       } else if (!useMozAfterPaint) {
         time = gTime;

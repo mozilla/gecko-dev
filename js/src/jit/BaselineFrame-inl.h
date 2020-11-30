@@ -9,12 +9,12 @@
 
 #include "jit/BaselineFrame.h"
 
-#include "vm/EnvironmentObject.h"
 #include "vm/JSContext.h"
 #include "vm/Realm.h"
 
 #include "vm/EnvironmentObject-inl.h"
 #include "vm/JSScript-inl.h"
+#include "vm/NativeObject-inl.h"  // js::NativeObject::initDenseElementsFromRange
 
 namespace js {
 namespace jit {
@@ -38,6 +38,17 @@ inline void BaselineFrame::replaceInnermostEnvironment(EnvironmentObject& env) {
   MOZ_ASSERT(env.enclosingEnvironment() ==
              envChain_->as<EnvironmentObject>().enclosingEnvironment());
   envChain_ = &env;
+}
+
+inline bool BaselineFrame::saveGeneratorSlots(JSContext* cx, unsigned nslots,
+                                              ArrayObject* dest) const {
+  // By convention, generator slots are stored in interpreter order,
+  // which is the reverse of BaselineFrame order.
+
+  MOZ_ASSERT(nslots == numValueSlots(debugFrameSize()) - 1);
+  const Value* end = reinterpret_cast<const Value*>(this);
+  mozilla::Span<const Value> span{end - nslots, end};
+  return dest->initDenseElementsFromRange(cx, span.rbegin(), span.rend());
 }
 
 inline bool BaselineFrame::pushLexicalEnvironment(JSContext* cx,
@@ -87,6 +98,20 @@ inline CallObject& BaselineFrame::callObj() const {
     obj = obj->enclosingEnvironment();
   }
   return obj->as<CallObject>();
+}
+
+inline ICScript* BaselineFrame::icScript() const {
+  if (JitOptions.warpBuilder) {
+    return icScript_;
+  }
+  return script()->jitScript()->icScript();
+}
+
+inline JSScript* BaselineFrame::invalidationScript() const {
+  if (!icScript()->isInlined()) {
+    return script();
+  }
+  return icScript()->inliningRoot()->owningScript();
 }
 
 inline void BaselineFrame::unsetIsDebuggee() {

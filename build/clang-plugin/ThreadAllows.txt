@@ -17,10 +17,10 @@ Cameras IPC
 ChainedPipePump
 ChainedPipeRecv
 Checker Test
+Compositor
 Cookie
 CrashRep Inject
 DDMediaLogs
-DOM File
 DOMCacheThread
 DataChannel IO
 DataStorage
@@ -41,6 +41,7 @@ IMAP
 IPC Launch
 IPDL Background
 IdentityCrypto
+ImageBridgeChld
 LS Thread
 LayerScope
 MDCDMThread
@@ -55,15 +56,16 @@ Netlink Monitor
 OSKeyStore
 OutputDrain
 PaintThread
+Permission
 PlayEventSound
 ProcessHangMon
 ProfSymbolTable
 ProfilerChild
 ProxyResolution
+RemoteLzyStream
 RWLockTester
 RacingServMan
 RemVidChild
-RemVidParent
 Sandbox Testing
 SaveScripts
 Socket Thread
@@ -85,6 +87,7 @@ ToastBgThread
 TRR Background
 URL Classifier
 Update Watcher
+VRService
 VsyncIOThread
 Wifi Monitor
 Worker Launcher

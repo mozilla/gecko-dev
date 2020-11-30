@@ -16,31 +16,24 @@
 #include "nsDeviceContext.h"
 #include "nsIBaseWindow.h"
 #include "nsIDocShell.h"
+#include "nsIPrintSettings.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/DocumentInlines.h"
+#include "mozilla/dom/BrowsingContextBinding.h"
 #include "nsIWidget.h"
 #include "nsContentUtils.h"
+#include "mozilla/RelativeLuminanceUtils.h"
+#include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/StyleSheet.h"
 #include "mozilla/StyleSheetInlines.h"
 #include "mozilla/GeckoBindings.h"
+#include "PreferenceSheet.h"
+#include "nsGlobalWindowOuter.h"
 
 using namespace mozilla;
 using mozilla::dom::Document;
 
 static nsTArray<const nsStaticAtom*>* sSystemMetrics = nullptr;
-
-#ifdef XP_WIN
-struct OperatingSystemVersionInfo {
-  LookAndFeel::OperatingSystemVersion mId;
-  nsStaticAtom* const mName;
-};
-
-// Os version identities used in the -moz-os-version media query.
-const OperatingSystemVersionInfo kOsVersionStrings[] = {
-    {LookAndFeel::eOperatingSystemVersion_Windows7, nsGkAtoms::windows_win7},
-    {LookAndFeel::eOperatingSystemVersion_Windows8, nsGkAtoms::windows_win8},
-    {LookAndFeel::eOperatingSystemVersion_Windows10, nsGkAtoms::windows_win10}};
-#endif
 
 // A helper for four features below
 static nsSize GetSize(const Document* aDocument) {
@@ -122,14 +115,38 @@ void Gecko_MediaFeatures_GetDeviceSize(const Document* aDocument,
   *aHeight = size.height;
 }
 
+uint32_t Gecko_MediaFeatures_GetMonochromeBitsPerPixel(
+    const Document* aDocument) {
+  // The default bits per pixel for a monochrome device. We could propagate this
+  // further to nsIPrintSettings, but Gecko doesn't actually know this value
+  // from the hardware, so it seems silly to do so.
+  static constexpr uint32_t kDefaultMonochromeBpp = 8;
+
+  nsPresContext* pc = aDocument->GetPresContext();
+  if (!pc) {
+    return 0;
+  }
+  nsIPrintSettings* ps = pc->GetPrintSettings();
+  if (!ps) {
+    return 0;
+  }
+  bool color = true;
+  ps->GetPrintInColor(&color);
+  return color ? 0 : kDefaultMonochromeBpp;
+}
+
 uint32_t Gecko_MediaFeatures_GetColorDepth(const Document* aDocument) {
+  if (Gecko_MediaFeatures_GetMonochromeBitsPerPixel(aDocument) != 0) {
+    // If we're a monochrome device, then the color depth is zero.
+    return 0;
+  }
+
   // Use depth of 24 when resisting fingerprinting, or when we're not being
   // rendered.
   uint32_t depth = 24;
 
   if (!nsContentUtils::ShouldResistFingerprinting(aDocument)) {
     if (nsDeviceContext* dx = GetDeviceContextFor(aDocument)) {
-      // FIXME: On a monochrome device, return 0!
       dx->GetDepth(depth);
     }
   }
@@ -182,21 +199,21 @@ StyleDisplayMode Gecko_MediaFeatures_GetDisplayMode(const Document* aDocument) {
     }
   }
 
-  static_assert(nsIDocShell::DISPLAY_MODE_BROWSER ==
+  static_assert(static_cast<int32_t>(DisplayMode::Browser) ==
                         static_cast<int32_t>(StyleDisplayMode::Browser) &&
-                    nsIDocShell::DISPLAY_MODE_MINIMAL_UI ==
+                    static_cast<int32_t>(DisplayMode::Minimal_ui) ==
                         static_cast<int32_t>(StyleDisplayMode::MinimalUi) &&
-                    nsIDocShell::DISPLAY_MODE_STANDALONE ==
+                    static_cast<int32_t>(DisplayMode::Standalone) ==
                         static_cast<int32_t>(StyleDisplayMode::Standalone) &&
-                    nsIDocShell::DISPLAY_MODE_FULLSCREEN ==
+                    static_cast<int32_t>(DisplayMode::Fullscreen) ==
                         static_cast<int32_t>(StyleDisplayMode::Fullscreen),
-                "nsIDocShell display modes must mach nsStyleConsts.h");
+                "DisplayMode must mach nsStyleConsts.h");
 
-  nsIDocShell* docShell = rootDocument->GetDocShell();
-  if (!docShell) {
+  BrowsingContext* browsingContext = aDocument->GetBrowsingContext();
+  if (!browsingContext) {
     return StyleDisplayMode::Browser;
   }
-  return static_cast<StyleDisplayMode>(docShell->GetDisplayMode());
+  return static_cast<StyleDisplayMode>(browsingContext->DisplayMode());
 }
 
 bool Gecko_MediaFeatures_HasSystemMetric(const Document* aDocument,
@@ -213,31 +230,36 @@ bool Gecko_MediaFeatures_HasSystemMetric(const Document* aDocument,
 
 nsAtom* Gecko_MediaFeatures_GetOperatingSystemVersion(
     const Document* aDocument) {
+  using OperatingSystemVersion = LookAndFeel::OperatingSystemVersion;
+
   if (nsContentUtils::ShouldResistFingerprinting(aDocument)) {
     return nullptr;
   }
 
-#ifdef XP_WIN
   int32_t metricResult;
-  if (NS_SUCCEEDED(LookAndFeel::GetInt(
-          LookAndFeel::eIntID_OperatingSystemVersionIdentifier,
+  if (NS_FAILED(LookAndFeel::GetInt(
+          LookAndFeel::IntID::OperatingSystemVersionIdentifier,
           &metricResult))) {
-    for (const auto& osVersion : kOsVersionStrings) {
-      if (metricResult == osVersion.mId) {
-        return osVersion.mName;
-      }
-    }
+    return nullptr;
   }
-#endif
 
-  return nullptr;
+  switch (OperatingSystemVersion(metricResult)) {
+    case OperatingSystemVersion::Windows7:
+      return nsGkAtoms::windows_win7;
+    case OperatingSystemVersion::Windows8:
+      return nsGkAtoms::windows_win8;
+    case OperatingSystemVersion::Windows10:
+      return nsGkAtoms::windows_win10;
+    default:
+      return nullptr;
+  }
 }
 
 bool Gecko_MediaFeatures_PrefersReducedMotion(const Document* aDocument) {
   if (nsContentUtils::ShouldResistFingerprinting(aDocument)) {
     return false;
   }
-  return LookAndFeel::GetInt(LookAndFeel::eIntID_PrefersReducedMotion, 0) == 1;
+  return LookAndFeel::GetInt(LookAndFeel::IntID::PrefersReducedMotion, 0) == 1;
 }
 
 StylePrefersColorScheme Gecko_MediaFeatures_PrefersColorScheme(
@@ -245,10 +267,30 @@ StylePrefersColorScheme Gecko_MediaFeatures_PrefersColorScheme(
   return aDocument->PrefersColorScheme();
 }
 
+StyleContrastPref Gecko_MediaFeatures_PrefersContrast(
+    const Document* aDocument, const bool aForcedColors) {
+  if (nsContentUtils::ShouldResistFingerprinting(aDocument)) {
+    return StyleContrastPref::NoPreference;
+  }
+  // Neither Linux, Windows, nor Mac have a way to indicate that low
+  // contrast is prefered so the presence of an accessibility theme
+  // implies that high contrast is prefered.
+  //
+  // Note that MacOS does not expose whether or not high contrast is
+  // enabled so for MacOS users this will always evaluate to
+  // false. For more information and discussion see:
+  // https://github.com/w3c/csswg-drafts/issues/3856#issuecomment-642313572
+  // https://github.com/w3c/csswg-drafts/issues/2943
+  if (!!LookAndFeel::GetInt(LookAndFeel::IntID::UseAccessibilityTheme, 0)) {
+    return StyleContrastPref::More;
+  }
+  return StyleContrastPref::NoPreference;
+}
+
 static PointerCapabilities GetPointerCapabilities(const Document* aDocument,
                                                   LookAndFeel::IntID aID) {
-  MOZ_ASSERT(aID == LookAndFeel::eIntID_PrimaryPointerCapabilities ||
-             aID == LookAndFeel::eIntID_AllPointerCapabilities);
+  MOZ_ASSERT(aID == LookAndFeel::IntID::PrimaryPointerCapabilities ||
+             aID == LookAndFeel::IntID::AllPointerCapabilities);
   MOZ_ASSERT(aDocument);
 
   if (nsIDocShell* docShell = aDocument->GetDocShell()) {
@@ -285,13 +327,13 @@ static PointerCapabilities GetPointerCapabilities(const Document* aDocument,
 PointerCapabilities Gecko_MediaFeatures_PrimaryPointerCapabilities(
     const Document* aDocument) {
   return GetPointerCapabilities(aDocument,
-                                LookAndFeel::eIntID_PrimaryPointerCapabilities);
+                                LookAndFeel::IntID::PrimaryPointerCapabilities);
 }
 
 PointerCapabilities Gecko_MediaFeatures_AllPointerCapabilities(
     const Document* aDocument) {
   return GetPointerCapabilities(aDocument,
-                                LookAndFeel::eIntID_AllPointerCapabilities);
+                                LookAndFeel::IntID::AllPointerCapabilities);
 }
 
 /* static */
@@ -307,7 +349,7 @@ void nsMediaFeatures::InitSystemMetrics() {
    ***************************************************************************/
 
   int32_t metricResult =
-      LookAndFeel::GetInt(LookAndFeel::eIntID_ScrollArrowStyle);
+      LookAndFeel::GetInt(LookAndFeel::IntID::ScrollArrowStyle);
   if (metricResult & LookAndFeel::eScrollArrow_StartBackward) {
     sSystemMetrics->AppendElement(
         (nsStaticAtom*)nsGkAtoms::_moz_scrollbar_start_backward);
@@ -325,106 +367,101 @@ void nsMediaFeatures::InitSystemMetrics() {
         (nsStaticAtom*)nsGkAtoms::_moz_scrollbar_end_forward);
   }
 
-  metricResult = LookAndFeel::GetInt(LookAndFeel::eIntID_ScrollSliderStyle);
+  metricResult = LookAndFeel::GetInt(LookAndFeel::IntID::ScrollSliderStyle);
   if (metricResult != LookAndFeel::eScrollThumbStyle_Normal) {
     sSystemMetrics->AppendElement(
         (nsStaticAtom*)nsGkAtoms::_moz_scrollbar_thumb_proportional);
   }
 
-  metricResult = LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars);
+  metricResult = LookAndFeel::GetInt(LookAndFeel::IntID::UseOverlayScrollbars);
   if (metricResult) {
     sSystemMetrics->AppendElement(
         (nsStaticAtom*)nsGkAtoms::_moz_overlay_scrollbars);
   }
 
-  metricResult = LookAndFeel::GetInt(LookAndFeel::eIntID_MenuBarDrag);
+  metricResult = LookAndFeel::GetInt(LookAndFeel::IntID::MenuBarDrag);
   if (metricResult) {
     sSystemMetrics->AppendElement((nsStaticAtom*)nsGkAtoms::_moz_menubar_drag);
   }
 
-  nsresult rv = LookAndFeel::GetInt(LookAndFeel::eIntID_WindowsDefaultTheme,
+  nsresult rv = LookAndFeel::GetInt(LookAndFeel::IntID::WindowsDefaultTheme,
                                     &metricResult);
   if (NS_SUCCEEDED(rv) && metricResult) {
     sSystemMetrics->AppendElement(
         (nsStaticAtom*)nsGkAtoms::_moz_windows_default_theme);
   }
 
-  rv = LookAndFeel::GetInt(LookAndFeel::eIntID_MacGraphiteTheme, &metricResult);
+  rv = LookAndFeel::GetInt(LookAndFeel::IntID::MacGraphiteTheme, &metricResult);
   if (NS_SUCCEEDED(rv) && metricResult) {
     sSystemMetrics->AppendElement(
         (nsStaticAtom*)nsGkAtoms::_moz_mac_graphite_theme);
   }
 
-  rv = LookAndFeel::GetInt(LookAndFeel::eIntID_MacYosemiteTheme, &metricResult);
+  rv = LookAndFeel::GetInt(LookAndFeel::IntID::MacYosemiteTheme, &metricResult);
   if (NS_SUCCEEDED(rv) && metricResult) {
     sSystemMetrics->AppendElement(
         (nsStaticAtom*)nsGkAtoms::_moz_mac_yosemite_theme);
   }
 
-  rv = LookAndFeel::GetInt(LookAndFeel::eIntID_WindowsAccentColorInTitlebar,
+  rv = LookAndFeel::GetInt(LookAndFeel::IntID::WindowsAccentColorInTitlebar,
                            &metricResult);
   if (NS_SUCCEEDED(rv) && metricResult) {
     sSystemMetrics->AppendElement(
         (nsStaticAtom*)nsGkAtoms::_moz_windows_accent_color_in_titlebar);
   }
 
-  rv = LookAndFeel::GetInt(LookAndFeel::eIntID_DWMCompositor, &metricResult);
+  rv = LookAndFeel::GetInt(LookAndFeel::IntID::DWMCompositor, &metricResult);
   if (NS_SUCCEEDED(rv) && metricResult) {
     sSystemMetrics->AppendElement(
         (nsStaticAtom*)nsGkAtoms::_moz_windows_compositor);
   }
 
-  rv = LookAndFeel::GetInt(LookAndFeel::eIntID_WindowsGlass, &metricResult);
+  rv = LookAndFeel::GetInt(LookAndFeel::IntID::WindowsGlass, &metricResult);
   if (NS_SUCCEEDED(rv) && metricResult) {
     sSystemMetrics->AppendElement((nsStaticAtom*)nsGkAtoms::_moz_windows_glass);
   }
 
-  rv = LookAndFeel::GetInt(LookAndFeel::eIntID_WindowsClassic, &metricResult);
+  rv = LookAndFeel::GetInt(LookAndFeel::IntID::WindowsClassic, &metricResult);
   if (NS_SUCCEEDED(rv) && metricResult) {
     sSystemMetrics->AppendElement(
         (nsStaticAtom*)nsGkAtoms::_moz_windows_classic);
   }
 
-  rv = LookAndFeel::GetInt(LookAndFeel::eIntID_TouchEnabled, &metricResult);
-  if (NS_SUCCEEDED(rv) && metricResult) {
-    sSystemMetrics->AppendElement((nsStaticAtom*)nsGkAtoms::_moz_touch_enabled);
-  }
-
-  rv = LookAndFeel::GetInt(LookAndFeel::eIntID_SwipeAnimationEnabled,
+  rv = LookAndFeel::GetInt(LookAndFeel::IntID::SwipeAnimationEnabled,
                            &metricResult);
   if (NS_SUCCEEDED(rv) && metricResult) {
     sSystemMetrics->AppendElement(
         (nsStaticAtom*)nsGkAtoms::_moz_swipe_animation_enabled);
   }
 
-  rv = LookAndFeel::GetInt(LookAndFeel::eIntID_GTKCSDAvailable, &metricResult);
+  rv = LookAndFeel::GetInt(LookAndFeel::IntID::GTKCSDAvailable, &metricResult);
   if (NS_SUCCEEDED(rv) && metricResult) {
     sSystemMetrics->AppendElement(
         (nsStaticAtom*)nsGkAtoms::_moz_gtk_csd_available);
   }
 
-  rv = LookAndFeel::GetInt(LookAndFeel::eIntID_GTKCSDHideTitlebarByDefault,
+  rv = LookAndFeel::GetInt(LookAndFeel::IntID::GTKCSDHideTitlebarByDefault,
                            &metricResult);
   if (NS_SUCCEEDED(rv) && metricResult) {
     sSystemMetrics->AppendElement(
         (nsStaticAtom*)nsGkAtoms::_moz_gtk_csd_hide_titlebar_by_default);
   }
 
-  rv = LookAndFeel::GetInt(LookAndFeel::eIntID_GTKCSDTransparentBackground,
+  rv = LookAndFeel::GetInt(LookAndFeel::IntID::GTKCSDTransparentBackground,
                            &metricResult);
   if (NS_SUCCEEDED(rv) && metricResult) {
     sSystemMetrics->AppendElement(
         (nsStaticAtom*)nsGkAtoms::_moz_gtk_csd_transparent_background);
   }
 
-  rv = LookAndFeel::GetInt(LookAndFeel::eIntID_GTKCSDMinimizeButton,
+  rv = LookAndFeel::GetInt(LookAndFeel::IntID::GTKCSDMinimizeButton,
                            &metricResult);
   if (NS_SUCCEEDED(rv) && metricResult) {
     sSystemMetrics->AppendElement(
         (nsStaticAtom*)nsGkAtoms::_moz_gtk_csd_minimize_button);
   }
 
-  rv = LookAndFeel::GetInt(LookAndFeel::eIntID_GTKCSDMaximizeButton,
+  rv = LookAndFeel::GetInt(LookAndFeel::IntID::GTKCSDMaximizeButton,
                            &metricResult);
   if (NS_SUCCEEDED(rv) && metricResult) {
     sSystemMetrics->AppendElement(
@@ -432,20 +469,20 @@ void nsMediaFeatures::InitSystemMetrics() {
   }
 
   rv =
-      LookAndFeel::GetInt(LookAndFeel::eIntID_GTKCSDCloseButton, &metricResult);
+      LookAndFeel::GetInt(LookAndFeel::IntID::GTKCSDCloseButton, &metricResult);
   if (NS_SUCCEEDED(rv) && metricResult) {
     sSystemMetrics->AppendElement(
         (nsStaticAtom*)nsGkAtoms::_moz_gtk_csd_close_button);
   }
 
-  rv = LookAndFeel::GetInt(LookAndFeel::eIntID_GTKCSDReversedPlacement,
+  rv = LookAndFeel::GetInt(LookAndFeel::IntID::GTKCSDReversedPlacement,
                            &metricResult);
   if (NS_SUCCEEDED(rv) && metricResult) {
     sSystemMetrics->AppendElement(
         (nsStaticAtom*)nsGkAtoms::_moz_gtk_csd_reversed_placement);
   }
 
-  rv = LookAndFeel::GetInt(LookAndFeel::eIntID_SystemUsesDarkTheme,
+  rv = LookAndFeel::GetInt(LookAndFeel::IntID::SystemUsesDarkTheme,
                            &metricResult);
   if (NS_SUCCEEDED(rv) && metricResult) {
     sSystemMetrics->AppendElement(

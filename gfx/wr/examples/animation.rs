@@ -22,6 +22,7 @@ mod boilerplate;
 use crate::boilerplate::{Example, HandyDandyRectBuilder};
 use euclid::Angle;
 use webrender::api::*;
+use webrender::render_api::*;
 use webrender::api::units::*;
 
 
@@ -84,7 +85,10 @@ impl App {
             radii: BorderRadius::uniform(30.0),
             mode: ClipMode::Clip,
         };
-        let clip_id = builder.define_clip(&space_and_clip, clip_bounds, vec![complex_clip], None);
+        let clip_id = builder.define_clip_rounded_rect(
+            &space_and_clip,
+            complex_clip,
+        );
 
         // Fill it with a white rect
         builder.push_rect(
@@ -95,6 +99,7 @@ impl App {
                     clip_id,
                 }
             ),
+            LayoutRect::new(LayoutPoint::zero(), bounds.size),
             color,
         );
 
@@ -109,7 +114,7 @@ impl Example for App {
 
     fn render(
         &mut self,
-        _api: &RenderApi,
+        _api: &mut RenderApi,
         builder: &mut DisplayListBuilder,
         _txn: &mut Transaction,
         _device_size: DeviceIntSize,
@@ -131,7 +136,7 @@ impl Example for App {
         self.add_rounded_rect(bounds, ColorF::new(0.0, 0.0, 1.0, 0.5), builder, pipeline_id, key2, None);
     }
 
-    fn on_event(&mut self, win_event: winit::WindowEvent, api: &RenderApi, document_id: DocumentId) -> bool {
+    fn on_event(&mut self, win_event: winit::WindowEvent, api: &mut RenderApi, document_id: DocumentId) -> bool {
         let mut rebuild_display_list = false;
 
         match win_event {
@@ -161,9 +166,9 @@ impl Example for App {
                 self.angle0 += delta_angle * 0.1;
                 self.angle1 += delta_angle * 0.2;
                 self.angle2 -= delta_angle * 0.15;
-                let xf0 = LayoutTransform::create_rotation(0.0, 0.0, 1.0, Angle::radians(self.angle0));
-                let xf1 = LayoutTransform::create_rotation(0.0, 0.0, 1.0, Angle::radians(self.angle1));
-                let xf2 = LayoutTransform::create_rotation(0.0, 0.0, 1.0, Angle::radians(self.angle2));
+                let xf0 = LayoutTransform::rotation(0.0, 0.0, 1.0, Angle::radians(self.angle0));
+                let xf1 = LayoutTransform::rotation(0.0, 0.0, 1.0, Angle::radians(self.angle1));
+                let xf2 = LayoutTransform::rotation(0.0, 0.0, 1.0, Angle::radians(self.angle2));
                 let mut txn = Transaction::new();
                 txn.update_dynamic_properties(
                     DynamicProperties {

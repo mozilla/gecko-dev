@@ -26,7 +26,7 @@ add_task(async function() {
     });
     await BrowserTestUtils.browserLoaded(browser);
     let identityMode = window.document.getElementById("identity-box").className;
-    is(identityMode, "unknownIdentity", "identity should be 'unknown'");
+    is(identityMode, "localResource", "identity should be 'localResource'");
   });
 });
 
@@ -129,7 +129,7 @@ add_task(async function() {
   );
   // Configure Firefox to use the proxy.
   let systemProxySettings = {
-    QueryInterface: ChromeUtils.generateQI([Ci.nsISystemProxySettings]),
+    QueryInterface: ChromeUtils.generateQI(["nsISystemProxySettings"]),
     mainThreadOnly: true,
     PACURI: null,
     getProxyForURI: (aSpec, aScheme, aHost, aPort) => {

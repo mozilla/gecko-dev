@@ -8,6 +8,12 @@
   --drag-drop-transition-duration: .3s;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --drag-drop-transition-duration: 0s;
+  }
+}
+
 :root[customizing] .customization-target:not(#widget-overflow-fixed-list) {
   min-width: 100px;
 }
@@ -60,7 +66,7 @@
   border: 1px solid #b1b1b1;
   border-radius: 2px;
   background-color: #fcfcfd;
-  -moz-appearance: none;
+  appearance: none;
 }
 
 .customizationmode-checkbox,
@@ -96,8 +102,6 @@
 .customizationmode-button > .box-inherit {
   border-width: 0;
   padding: 3px 0;
-  padding-inline-start: 0;
-  padding-inline-end: 0;
 }
 
 /* We use a smaller padding to ensure images don't have padding.
@@ -127,13 +131,13 @@
   list-style-image: url(chrome://global/skin/icons/arrow-dropdown-16.svg);
 }
 
-.customizationmode-button:-moz-any(:active,:hover):not([disabled]),
+.customizationmode-button:is(:active,:hover):not([disabled]),
 .customizationmode-button[open],
 .customizationmode-button[checked] {
   background-color: #e1e1e5;
 }
 
-#customization-done-button:-moz-any(:active,:hover):not([disabled]) {
+#customization-done-button:is(:active,:hover):not([disabled]) {
   background-color: #0060df;
 }
 
@@ -165,24 +169,24 @@
 }
 
 #customization-lwtheme-button > .box-inherit > .box-inherit > .button-icon {
-  background-image: url("resource://gre/modules/themes/default/icon.svg");
+  background-image: url("chrome://mozapps/content/extensions/default-theme/icon.svg");
 }
 
 #customization-uidensity-button > .box-inherit > .box-inherit > .button-icon {
   background-image: url("chrome://browser/skin/customizableui/density-normal.svg");
 }
 
-#widget-overflow-fixed-list > toolbarpaletteitem[place="menu-panel"],
-toolbarpaletteitem[place="toolbar"] {
-  transition: border-width 250ms ease-in-out;
+#widget-overflow-fixed-list > toolbarpaletteitem:not([notransition])[place="menu-panel"],
+toolbarpaletteitem:not([notransition])[place="toolbar"] {
+  transition: border-width var(--drag-drop-transition-duration) ease-in-out;
 }
 
 toolbarpaletteitem[mousedown] {
   cursor: -moz-grabbing;
 }
 
-toolbarpaletteitem[place="palette"],
-toolbarpaletteitem[place="menu-panel"] {
+toolbarpaletteitem:not([notransition])[place="palette"],
+toolbarpaletteitem:not([notransition])[place="menu-panel"] {
   transition: transform var(--drag-drop-transition-duration) ease-in-out;
 }
 
@@ -197,13 +201,6 @@ toolbarpaletteitem[place="menu-panel"] {
 
 toolbarpaletteitem toolbarbutton[disabled] {
   color: inherit !important;
-}
-
-#widget-overflow-fixed-list > toolbarpaletteitem[notransition][place="menu-panel"],
-toolbarpaletteitem[notransition][place="toolbar"],
-toolbarpaletteitem[notransition][place="palette"],
-toolbarpaletteitem[notransition][place="menu-panel"] {
-  transition: none;
 }
 
 toolbarpaletteitem > toolbarbutton > .toolbarbutton-icon,
@@ -225,14 +222,11 @@ toolbarpaletteitem[mousedown] > toolbaritem.toolbaritem-combined-buttons {
 
 /* Override the toolkit styling for items being dragged over. */
 toolbarpaletteitem[place="toolbar"] {
-  border-left-width: 0;
-  border-right-width: 0;
-  margin-right: 0;
-  margin-left: 0;
+  border-inline-width: 0;
+  margin-inline: 0;
 }
 #widget-overflow-fixed-list > toolbarpaletteitem[place="menu-panel"] {
-  border-top: 0px solid transparent;
-  border-bottom: 0px solid transparent;
+  border-block: 0 solid transparent;
 }
 
 #customization-palette:not([hidden]) {
@@ -282,8 +276,7 @@ toolbarpaletteitem[place=toolbar] > toolbarspring {
   outline: 1px solid;
   outline-offset: -2px;
   opacity: .6;
-  margin-top: 5px;
-  margin-bottom: 5px;
+  margin-block: 5px;
 }
 
 toolbarpaletteitem > #search-container > #searchbar > .searchbar-textbox {
@@ -345,13 +338,11 @@ toolbarpaletteitem > #search-container > #searchbar > .searchbar-textbox {
 
 .customization-uidensity-menuitem,
 .customization-lwtheme-menu-theme {
-  -moz-appearance: none;
+  appearance: none;
   border: 1px solid transparent;
   margin: 0 -5px 5px;
-  padding-top: 0;
-  padding-inline-end: 5px;
-  padding-bottom: 0;
-  padding-inline-start: 0;
+  padding-block: 0;
+  padding-inline: 0 5px;
 }
 
 .customization-uidensity-menuitem {
@@ -402,8 +393,7 @@ toolbarpaletteitem > #search-container > #searchbar > .searchbar-textbox {
 #customization-lwtheme-menu-header,
 #customization-lwtheme-menu-recommended,
 #customization-lwtheme-menu-footer {
-  margin-right: -10px;
-  margin-left: -10px;
+  margin-inline: -10px;
 }
 
 #customization-lwtheme-menu-header {
@@ -421,13 +411,12 @@ toolbarpaletteitem > #search-container > #searchbar > .searchbar-textbox {
 }
 
 .customization-lwtheme-menu-footeritem {
-  -moz-appearance: none;
+  appearance: none;
   -moz-box-flex: 1;
   color: inherit;
   border-style: none;
   padding: 10px;
-  margin-left: 0;
-  margin-right: 0;
+  margin-inline: 0;
 }
 
 .customization-lwtheme-menu-footeritem:hover {
@@ -448,7 +437,6 @@ toolbarpaletteitem > #search-container > #searchbar > .searchbar-textbox {
   transform: scaleX(-1);
 }
 
-
 #customization-panelWrapper > .panel-arrowcontent {
   color: var(--arrowpanel-color);
   background: var(--arrowpanel-background);
@@ -457,7 +445,7 @@ toolbarpaletteitem > #search-container > #searchbar > .searchbar-textbox {
   /* Native styling adds more 'oompf' to the popup box-shadow, so simulate that
    * as best as we can here: */
   box-shadow: 0 0 1px hsla(0,0%,0%,.3), 0 4px 10px hsla(0,0%,0%,.3);
-  -moz-appearance: none;
+  appearance: none;
   border-radius: var(--arrowpanel-border-radius);
 %else
   border: 1px solid var(--arrowpanel-border-color);
@@ -606,8 +594,7 @@ toolbarpaletteitem > #search-container > #searchbar > .searchbar-textbox {
 #customization-pong-arena {
   width: 300px;
   height: 300px;
-  border-left: 1px solid currentColor;
-  border-right: 1px solid currentColor;
+  border-inline: 1px solid currentColor;
   margin: 16px auto 0;
   box-sizing: content-box;
 }

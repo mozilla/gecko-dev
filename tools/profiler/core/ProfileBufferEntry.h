@@ -7,14 +7,14 @@
 #ifndef ProfileBufferEntry_h
 #define ProfileBufferEntry_h
 
-#include "ProfileJSONWriter.h"
-
 #include "gtest/MozGtestFriend.h"
 #include "js/ProfilingCategory.h"
 #include "js/ProfilingFrameIterator.h"
 #include "mozilla/HashFunctions.h"
 #include "mozilla/HashTable.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/ProfileBufferEntryKinds.h"
+#include "mozilla/ProfileJSONWriter.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Variant.h"
 #include "mozilla/Vector.h"
@@ -22,79 +22,14 @@
 
 class ProfilerCodeAddressService;
 
-// NOTE!  If you add entries, you need to verify if they need to be added to the
-// switch statement in DuplicateLastSample!
-// This will evaluate the MACRO with (KIND, TYPE, SIZE)
-#define FOR_EACH_PROFILE_BUFFER_ENTRY_KIND(MACRO)                    \
-  MACRO(CategoryPair, int, sizeof(int))                              \
-  MACRO(CollectionStart, double, sizeof(double))                     \
-  MACRO(CollectionEnd, double, sizeof(double))                       \
-  MACRO(Label, const char*, sizeof(const char*))                     \
-  MACRO(FrameFlags, uint64_t, sizeof(uint64_t))                      \
-  MACRO(DynamicStringFragment, char*, ProfileBufferEntry::kNumChars) \
-  MACRO(JitReturnAddr, void*, sizeof(void*))                         \
-  MACRO(InnerWindowID, uint64_t, sizeof(uint64_t))                   \
-  MACRO(LineNumber, int, sizeof(int))                                \
-  MACRO(ColumnNumber, int, sizeof(int))                              \
-  MACRO(NativeLeafAddr, void*, sizeof(void*))                        \
-  MACRO(Pause, double, sizeof(double))                               \
-  MACRO(Resume, double, sizeof(double))                              \
-  MACRO(ThreadId, int, sizeof(int))                                  \
-  MACRO(Time, double, sizeof(double))                                \
-  MACRO(TimeBeforeCompactStack, double, sizeof(double))              \
-  MACRO(CounterId, void*, sizeof(void*))                             \
-  MACRO(CounterKey, uint64_t, sizeof(uint64_t))                      \
-  MACRO(Number, uint64_t, sizeof(uint64_t))                          \
-  MACRO(Count, int64_t, sizeof(int64_t))                             \
-  MACRO(ProfilerOverheadTime, double, sizeof(double))                \
-  MACRO(ProfilerOverheadDuration, double, sizeof(double))
-
 class ProfileBufferEntry {
  public:
-  // The `Kind` is a single byte identifying the type of data that is actually
-  // stored in a `ProfileBufferEntry`, as per the list in
-  // `FOR_EACH_PROFILE_BUFFER_ENTRY_KIND`.
-  //
-  // This byte is also used to identify entries in BlocksRingBuffer blocks, for
-  // both "legacy" entries that do contain a `ProfileBufferEntry`, and for new
-  // types of entries that may carry more data of different types.
-  // TODO: Eventually each type of "legacy" entry should be replaced with newer,
-  // more efficient kinds of entries (e.g., stack frames could be stored in one
-  // bigger entry, instead of multiple `ProfileBufferEntry`s); then we could
-  // discard `ProfileBufferEntry` and move this enum to a more appropriate spot.
-  using KindUnderlyingType = uint8_t;
-  enum class Kind : KindUnderlyingType {
-    INVALID = 0,
-#define KIND(KIND, TYPE, SIZE) KIND,
-    FOR_EACH_PROFILE_BUFFER_ENTRY_KIND(KIND)
-#undef KIND
-
-    // Any value under `LEGACY_LIMIT` represents a `ProfileBufferEntry`.
-    LEGACY_LIMIT,
-
-    // Any value starting here does *not* represent a `ProfileBufferEntry` and
-    // requires separate decoding and handling.
-
-    // Marker data, including payload.
-    MarkerData = LEGACY_LIMIT,
-
-    // Optional between TimeBeforeCompactStack and CompactStack.
-    UnresponsiveDurationMs,
-
-    // Collection of legacy stack entries, must follow a ThreadId and
-    // TimeBeforeCompactStack (which are not included in the CompactStack;
-    // TimeBeforeCompactStack is equivalent to Time, but indicates that a
-    // CompactStack follows shortly afterwards).
-    CompactStack,
-
-    MODERN_LIMIT
-  };
+  using KindUnderlyingType = mozilla::ProfileBufferEntryKindUnderlyingType;
+  using Kind = mozilla::ProfileBufferEntryKind;
 
   ProfileBufferEntry();
 
-  // This is equal to sizeof(double), which is the largest non-char variant in
-  // |u|.
-  static const size_t kNumChars = 8;
+  static constexpr size_t kNumChars = mozilla::ProfileBufferEntryNumChars;
 
  private:
   // aString must be a static string.
@@ -150,12 +85,12 @@ class UniqueJSONStrings {
   explicit UniqueJSONStrings(const UniqueJSONStrings& aOther);
 
   void SpliceStringTableElements(SpliceableJSONWriter& aWriter) {
-    aWriter.TakeAndSplice(mStringTableWriter.WriteFunc());
+    aWriter.TakeAndSplice(mStringTableWriter.TakeChunkedWriteFunc());
   }
 
   void WriteProperty(mozilla::JSONWriter& aWriter, const char* aName,
                      const char* aStr) {
-    aWriter.IntProperty(aName, GetOrAddIndex(aStr));
+    aWriter.IntProperty(mozilla::MakeStringSpan(aName), GetOrAddIndex(aStr));
   }
 
   void WriteElement(mozilla::JSONWriter& aWriter, const char* aStr) {
@@ -267,15 +202,16 @@ class UniqueStacks {
  public:
   struct FrameKey {
     explicit FrameKey(const char* aLocation)
-        : mData(NormalFrameData{nsCString(aLocation), false, 0,
+        : mData(NormalFrameData{nsCString(aLocation), false, false, 0,
                                 mozilla::Nothing(), mozilla::Nothing()}) {}
 
-    FrameKey(nsCString&& aLocation, bool aRelevantForJS,
+    FrameKey(nsCString&& aLocation, bool aRelevantForJS, bool aBaselineInterp,
              uint64_t aInnerWindowID, const mozilla::Maybe<unsigned>& aLine,
              const mozilla::Maybe<unsigned>& aColumn,
              const mozilla::Maybe<JS::ProfilingCategoryPair>& aCategoryPair)
-        : mData(NormalFrameData{aLocation, aRelevantForJS, aInnerWindowID,
-                                aLine, aColumn, aCategoryPair}) {}
+        : mData(NormalFrameData{aLocation, aRelevantForJS, aBaselineInterp,
+                                aInnerWindowID, aLine, aColumn,
+                                aCategoryPair}) {}
 
     FrameKey(void* aJITAddress, uint32_t aJITDepth, uint32_t aRangeIndex)
         : mData(JITFrameData{aJITAddress, aJITDepth, aRangeIndex}) {}
@@ -292,6 +228,7 @@ class UniqueStacks {
 
       nsCString mLocation;
       bool mRelevantForJS;
+      bool mBaselineInterp;
       uint64_t mInnerWindowID;
       mozilla::Maybe<unsigned> mLine;
       mozilla::Maybe<unsigned> mColumn;
@@ -320,6 +257,7 @@ class UniqueStacks {
                                     mozilla::HashString(data.mLocation.get()));
         }
         hash = mozilla::AddToHash(hash, data.mRelevantForJS);
+        hash = mozilla::AddToHash(hash, data.mBaselineInterp);
         hash = mozilla::AddToHash(hash, data.mInnerWindowID);
         if (data.mLine.isSome()) {
           hash = mozilla::AddToHash(hash, *data.mLine);
@@ -393,23 +331,23 @@ class UniqueStacks {
   explicit UniqueStacks(JITFrameInfo&& aJITFrameInfo);
 
   // Return a StackKey for aFrame as the stack's root frame (no prefix).
-  MOZ_MUST_USE StackKey BeginStack(const FrameKey& aFrame);
+  [[nodiscard]] StackKey BeginStack(const FrameKey& aFrame);
 
   // Return a new StackKey that is obtained by appending aFrame to aStack.
-  MOZ_MUST_USE StackKey AppendFrame(const StackKey& aStack,
-                                    const FrameKey& aFrame);
+  [[nodiscard]] StackKey AppendFrame(const StackKey& aStack,
+                                     const FrameKey& aFrame);
 
   // Look up frame keys for the given JIT address, and ensure that our frame
   // table has entries for the returned frame keys. The JSON for these frames
   // is taken from mJITInfoRanges.
   // aBufferPosition is needed in order to look up the correct JIT frame info
   // object in mJITInfoRanges.
-  MOZ_MUST_USE mozilla::Maybe<mozilla::Vector<UniqueStacks::FrameKey>>
+  [[nodiscard]] mozilla::Maybe<mozilla::Vector<UniqueStacks::FrameKey>>
   LookupFramesForJITAddressFromBufferPos(void* aJITAddress,
                                          uint64_t aBufferPosition);
 
-  MOZ_MUST_USE uint32_t GetOrAddFrameIndex(const FrameKey& aFrame);
-  MOZ_MUST_USE uint32_t GetOrAddStackIndex(const StackKey& aStack);
+  [[nodiscard]] uint32_t GetOrAddFrameIndex(const FrameKey& aFrame);
+  [[nodiscard]] uint32_t GetOrAddStackIndex(const StackKey& aStack);
 
   void SpliceFrameTableElements(SpliceableJSONWriter& aWriter);
   void SpliceStackTableElements(SpliceableJSONWriter& aWriter);
@@ -513,7 +451,7 @@ class UniqueStacks {
 //     "data":
 //     [
 //       [ 0 ],               /* { location: '(root)' } */
-//       [ 1, 2 ]             /* { location: 'foo.js',
+//       [ 1, null, null, 2 ] /* { location: 'foo.js',
 //                                 implementation: 'baseline' } */
 //     ]
 //   },

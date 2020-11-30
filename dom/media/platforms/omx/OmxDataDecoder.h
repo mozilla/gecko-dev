@@ -7,17 +7,14 @@
 #if !defined(OmxDataDecoder_h_)
 #  define OmxDataDecoder_h_
 
-#  include "mozilla/Monitor.h"
-#  include "mozilla/StateWatching.h"
-
 #  include "AudioCompactor.h"
 #  include "ImageContainer.h"
 #  include "MediaInfo.h"
-#  include "PlatformDecoderModule.h"
-
 #  include "OMX_Component.h"
-
 #  include "OmxPromiseLayer.h"
+#  include "PlatformDecoderModule.h"
+#  include "mozilla/Monitor.h"
+#  include "mozilla/StateWatching.h"
 
 namespace mozilla {
 
@@ -64,7 +61,7 @@ class OmxDataDecoder : public MediaDataDecoder,
   virtual ~OmxDataDecoder();
 
  public:
-  OmxDataDecoder(const TrackInfo& aTrackInfo, TaskQueue* aTaskQueue,
+  OmxDataDecoder(const TrackInfo& aTrackInfo,
                  layers::ImageContainer* aImageContainer);
 
   RefPtr<InitPromise> Init() override;
@@ -73,9 +70,7 @@ class OmxDataDecoder : public MediaDataDecoder,
   RefPtr<FlushPromise> Flush() override;
   RefPtr<ShutdownPromise> Shutdown() override;
 
-  nsCString GetDescriptionName() const override {
-    return NS_LITERAL_CSTRING("omx decoder");
-  }
+  nsCString GetDescriptionName() const override { return "omx decoder"_ns; }
 
   ConversionRequired NeedsConversion() const override {
     return ConversionRequired::kNeedAnnexB;
@@ -156,8 +151,7 @@ class OmxDataDecoder : public MediaDataDecoder,
   // The Omx TaskQueue.
   RefPtr<TaskQueue> mOmxTaskQueue;
 
-  RefPtr<TaskQueue> mTaskQueue;
-
+  nsCOMPtr<nsISerialEventTarget> mThread;
   RefPtr<layers::ImageContainer> mImageContainer;
 
   WatchManager<OmxDataDecoder> mWatchManager;

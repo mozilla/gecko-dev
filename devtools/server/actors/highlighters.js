@@ -9,24 +9,11 @@ const { Ci, Cu } = require("chrome");
 const ChromeUtils = require("ChromeUtils");
 const EventEmitter = require("devtools/shared/event-emitter");
 const protocol = require("devtools/shared/protocol");
-const Services = require("Services");
 const {
   highlighterSpec,
   customHighlighterSpec,
 } = require("devtools/shared/specs/highlighters");
 
-loader.lazyRequireGetter(
-  this,
-  "isWindowIncluded",
-  "devtools/shared/layout/utils",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "isRemoteFrame",
-  "devtools/shared/layout/utils",
-  true
-);
 loader.lazyRequireGetter(
   this,
   "isXUL",
@@ -35,8 +22,8 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   this,
-  "SimpleOutlineHighlighter",
-  "devtools/server/actors/highlighters/simple-outline",
+  "isDocumentReady",
+  "devtools/server/actors/inspector/utils",
   true
 );
 loader.lazyRequireGetter(
@@ -45,15 +32,6 @@ loader.lazyRequireGetter(
   "devtools/server/actors/highlighters/box-model",
   true
 );
-loader.lazyRequireGetter(
-  this,
-  "BoxModelHighlighterObserver",
-  "devtools/server/actors/highlighters/box-model-observer",
-  true
-);
-
-const HIGHLIGHTER_PICKED_TIMER = 1000;
-const IS_OSX = Services.appinfo.OS === "Darwin";
 
 /**
  * The registration mechanism for highlighters provide a quick way to
@@ -115,26 +93,15 @@ exports.register = register;
  * The HighlighterActor class
  */
 exports.HighlighterActor = protocol.ActorClassWithSpec(highlighterSpec, {
-  initialize: function(inspector, autohide, useNewBoxModelHighlighter = false) {
+  initialize: function(inspector, autohide) {
     protocol.Actor.prototype.initialize.call(this, null);
 
-    this._autohide = autohide;
     this._inspector = inspector;
-    this._walker = this._inspector.walker;
     this._targetActor = this._inspector.targetActor;
     this._highlighterEnv = new HighlighterEnvironment();
     this._highlighterEnv.initFromTargetActor(this._targetActor);
-    this._useNewBoxModelHighlighter = useNewBoxModelHighlighter;
 
     this._onNavigate = this._onNavigate.bind(this);
-
-    const doc = this._targetActor.window.document;
-    // Only try to create the highlighter when the document is loaded,
-    // otherwise, wait for the navigate event to fire.
-    if (doc.documentElement && doc.readyState != "uninitialized") {
-      this._createHighlighter();
-    }
-
     // Listen to navigation events to switch from the BoxModelHighlighter to the
     // SimpleOutlineHighlighter, and back, if the top level window changes.
     this._targetActor.on("navigate", this._onNavigate);
@@ -144,32 +111,41 @@ exports.HighlighterActor = protocol.ActorClassWithSpec(highlighterSpec, {
     return this._inspector && this._inspector.conn;
   },
 
+  /**
+   * Get an instance of the box model highlighter.
+   */
+  get instance() {
+    return this._highlighter;
+  },
+
   form: function() {
     return {
       actor: this.actorID,
     };
   },
 
+  initializeInstance() {
+    // _createHighlighter will resolve this promise once the highlighter
+    // instance is created.
+    const onInitialized = new Promise(resolve => {
+      this._initialized = resolve;
+    });
+    // Only try to create the highlighter instance when the document is loaded,
+    // otherwise, wait for the navigate event to fire.
+    const doc = this._targetActor.window.document;
+    if (doc.documentElement && isDocumentReady(doc)) {
+      this._createHighlighter();
+    }
+
+    return onInitialized;
+  },
+
   _createHighlighter: function() {
-    this._isPreviousWindowXUL = isXUL(this._targetActor.window);
-
-    if (this._useNewBoxModelHighlighter) {
-      this._highlighter = new BoxModelHighlighterObserver(
-        this._highlighterEnv,
-        this.conn
-      );
-
-      return;
-    }
-
-    if (!this._isPreviousWindowXUL) {
-      this._highlighter = new BoxModelHighlighter(
-        this._highlighterEnv,
-        this._inspector
-      );
-    } else {
-      this._highlighter = new SimpleOutlineHighlighter(this._highlighterEnv);
-    }
+    this._highlighter = new BoxModelHighlighter(
+      this._highlighterEnv,
+      this._inspector
+    );
+    this._initialized();
   },
 
   _destroyHighlighter: function() {
@@ -186,27 +162,21 @@ exports.HighlighterActor = protocol.ActorClassWithSpec(highlighterSpec, {
       return;
     }
 
-    // Only rebuild the highlighter if the window type changed.
-    if (isXUL(this._targetActor.window) !== this._isPreviousWindowXUL) {
-      this._destroyHighlighter();
-      this._createHighlighter();
-    }
+    this._destroyHighlighter();
+    this._createHighlighter();
   },
 
   destroy: function() {
     protocol.Actor.prototype.destroy.call(this);
 
     this.hideBoxModel();
-    this.cancelPick();
     this._destroyHighlighter();
     this._targetActor.off("navigate", this._onNavigate);
 
     this._highlighterEnv.destroy();
     this._highlighterEnv = null;
 
-    this._autohide = null;
     this._inspector = null;
-    this._walker = null;
     this._targetActor = null;
   },
 
@@ -232,302 +202,6 @@ exports.HighlighterActor = protocol.ActorClassWithSpec(highlighterSpec, {
   hideBoxModel: function() {
     if (this._highlighter) {
       this._highlighter.hide();
-    }
-
-    // Since the node-picker works independently in each remote frame, the inspector
-    // front-end decides which highlighter to show and hide while picking.
-    // If we're being asked to hide here, we should also reset the current hovered node so
-    // we can start highlighting correctly again later.
-    this._hoveredNode = null;
-  },
-
-  /**
-   * Returns `true` if the event was dispatched from a window included in
-   * the current highlighter environment; or if the highlighter environment has
-   * chrome privileges
-   *
-   * The method is specifically useful on B2G, where we do not want that events
-   * from app or main process are processed if we're inspecting the content.
-   *
-   * @param {Event} event
-   *          The event to allow
-   * @return {Boolean}
-   */
-  _isEventAllowed: function({ view }) {
-    const { window } = this._highlighterEnv;
-
-    return (
-      window instanceof Ci.nsIDOMChromeWindow || isWindowIncluded(window, view)
-    );
-  },
-
-  /**
-   * Pick a node on click, and highlight hovered nodes in the process.
-   *
-   * This method doesn't respond anything interesting, however, it starts
-   * mousemove, and click listeners on the content document to fire
-   * events and let connected clients know when nodes are hovered over or
-   * clicked.
-   *
-   * Once a node is picked, events will cease, and listeners will be removed.
-   */
-  _isPicking: false,
-  _hoveredNode: null,
-  _currentNode: null,
-
-  pick: function() {
-    if (this._targetActor.threadActor) {
-      this._targetActor.threadActor.hideOverlay();
-    }
-
-    if (this._isPicking) {
-      return null;
-    }
-    this._isPicking = true;
-
-    // In most cases, we need to prevent content events from reaching the content. This is
-    // needed to avoid triggering actions such as submitting forms or following links.
-    // In the case where the event happens on a remote frame however, we do want to let it
-    // through. That is because otherwise the pickers started in nested remote frames will
-    // never have a chance of picking their own elements.
-    this._preventContentEvent = event => {
-      if (isRemoteFrame(event.target)) {
-        return;
-      }
-      event.stopPropagation();
-      event.preventDefault();
-    };
-
-    this._onPick = event => {
-      // If the picked node is a remote frame, then we need to let the event through
-      // since there's a highlighter actor in that sub-frame also picking.
-      if (isRemoteFrame(event.target)) {
-        return;
-      }
-
-      this._preventContentEvent(event);
-
-      if (!this._isEventAllowed(event)) {
-        return;
-      }
-
-      // If shift is pressed, this is only a preview click, send the event to
-      // the client, but don't stop picking.
-      if (event.shiftKey) {
-        this._walker.emit(
-          "picker-node-previewed",
-          this._findAndAttachElement(event)
-        );
-        return;
-      }
-      this._stopPickerListeners();
-      this._isPicking = false;
-      if (this._autohide) {
-        this._targetActor.window.setTimeout(() => {
-          this._highlighter.hide();
-        }, HIGHLIGHTER_PICKED_TIMER);
-      }
-      if (!this._currentNode) {
-        this._currentNode = this._findAndAttachElement(event);
-      }
-      this._walker.emit("picker-node-picked", this._currentNode);
-    };
-
-    this._onHovered = event => {
-      // If the hovered node is a remote frame, then we need to let the event through
-      // since there's a highlighter actor in that sub-frame also picking.
-      if (isRemoteFrame(event.target)) {
-        return;
-      }
-
-      this._preventContentEvent(event);
-      if (!this._isEventAllowed(event)) {
-        return;
-      }
-
-      this._currentNode = this._findAndAttachElement(event);
-      if (this._hoveredNode !== this._currentNode.node) {
-        this._highlighter.show(this._currentNode.node.rawNode);
-        this._walker.emit("picker-node-hovered", this._currentNode);
-        this._hoveredNode = this._currentNode.node;
-      }
-    };
-
-    this._onKey = event => {
-      if (!this._currentNode || !this._isPicking) {
-        return;
-      }
-
-      this._preventContentEvent(event);
-
-      if (!this._isEventAllowed(event)) {
-        return;
-      }
-
-      let currentNode = this._currentNode.node.rawNode;
-
-      /**
-       * KEY: Action/scope
-       * LEFT_KEY: wider or parent
-       * RIGHT_KEY: narrower or child
-       * ENTER/CARRIAGE_RETURN: Picks currentNode
-       * ESC/CTRL+SHIFT+C: Cancels picker, picks currentNode
-       */
-      switch (event.keyCode) {
-        // Wider.
-        case event.DOM_VK_LEFT:
-          if (!currentNode.parentElement) {
-            return;
-          }
-          currentNode = currentNode.parentElement;
-          break;
-
-        // Narrower.
-        case event.DOM_VK_RIGHT:
-          if (!currentNode.children.length) {
-            return;
-          }
-
-          // Set firstElementChild by default
-          let child = currentNode.firstElementChild;
-          // If currentNode is parent of hoveredNode, then
-          // previously selected childNode is set
-          const hoveredNode = this._hoveredNode.rawNode;
-          for (const sibling of currentNode.children) {
-            if (sibling.contains(hoveredNode) || sibling === hoveredNode) {
-              child = sibling;
-            }
-          }
-
-          currentNode = child;
-          break;
-
-        // Select the element.
-        case event.DOM_VK_RETURN:
-          this._onPick(event);
-          return;
-
-        // Cancel pick mode.
-        case event.DOM_VK_ESCAPE:
-          this.cancelPick();
-          this._walker.emit("picker-node-canceled");
-          return;
-        case event.DOM_VK_C:
-          const { altKey, ctrlKey, metaKey, shiftKey } = event;
-
-          if (
-            (IS_OSX && metaKey && altKey | shiftKey) ||
-            (!IS_OSX && ctrlKey && shiftKey)
-          ) {
-            this.cancelPick();
-            this._walker.emit("picker-node-canceled");
-          }
-          return;
-        default:
-          return;
-      }
-
-      // Store currently attached element
-      this._currentNode = this._walker.attachElement(currentNode);
-      this._highlighter.show(this._currentNode.node.rawNode);
-      this._walker.emit("picker-node-hovered", this._currentNode);
-    };
-
-    this._startPickerListeners();
-
-    return null;
-  },
-
-  /**
-   * This pick method also focuses the highlighter's target window.
-   */
-  pickAndFocus: function() {
-    // Go ahead and pass on the results to help future-proof this method.
-    const pickResults = this.pick();
-    this._highlighterEnv.window.focus();
-    return pickResults;
-  },
-
-  _findAndAttachElement: function(event) {
-    // originalTarget allows access to the "real" element before any retargeting
-    // is applied, such as in the case of XBL anonymous elements.  See also
-    // https://developer.mozilla.org/docs/XBL/XBL_1.0_Reference/Anonymous_Content#Event_Flow_and_Targeting
-    const node = event.originalTarget || event.target;
-    return this._walker.attachElement(node);
-  },
-
-  _onSuppressedEvent(event) {
-    if (event.type == "mousemove") {
-      this._onHovered(event);
-    } else if (event.type == "mouseup") {
-      // Suppressed mousedown/mouseup events will be sent to us before they have
-      // been converted into click events. Just treat any mouseup as a click.
-      this._onPick(event);
-    }
-  },
-
-  /**
-   * When the debugger pauses execution in a page, events will not be delivered
-   * to any handlers added to elements on that page. This method uses the
-   * document's setSuppressedEventListener interface to bypass this restriction:
-   * events will be delivered to the callback at times when they would
-   * otherwise be suppressed. The set of events delivered this way is currently
-   * limited to mouse events.
-   *
-   * @param callback The function to call with suppressed events, or null.
-   */
-  _setSuppressedEventListener(callback) {
-    const document = this._targetActor.window.document;
-
-    // Pass the callback to setSuppressedEventListener as an EventListener.
-    document.setSuppressedEventListener(
-      callback ? { handleEvent: callback } : null
-    );
-  },
-
-  _startPickerListeners: function() {
-    const target = this._highlighterEnv.pageListenerTarget;
-    target.addEventListener("mousemove", this._onHovered, true);
-    target.addEventListener("click", this._onPick, true);
-    target.addEventListener("mousedown", this._preventContentEvent, true);
-    target.addEventListener("mouseup", this._preventContentEvent, true);
-    target.addEventListener("dblclick", this._preventContentEvent, true);
-    target.addEventListener("keydown", this._onKey, true);
-    target.addEventListener("keyup", this._preventContentEvent, true);
-
-    this._setSuppressedEventListener(this._onSuppressedEvent.bind(this));
-  },
-
-  _stopPickerListeners: function() {
-    const target = this._highlighterEnv.pageListenerTarget;
-
-    if (!target) {
-      return;
-    }
-
-    target.removeEventListener("mousemove", this._onHovered, true);
-    target.removeEventListener("click", this._onPick, true);
-    target.removeEventListener("mousedown", this._preventContentEvent, true);
-    target.removeEventListener("mouseup", this._preventContentEvent, true);
-    target.removeEventListener("dblclick", this._preventContentEvent, true);
-    target.removeEventListener("keydown", this._onKey, true);
-    target.removeEventListener("keyup", this._preventContentEvent, true);
-
-    this._setSuppressedEventListener(null);
-  },
-
-  cancelPick: function() {
-    if (this._targetActor.threadActor) {
-      this._targetActor.threadActor.showOverlay();
-    }
-
-    if (this._isPicking) {
-      if (this._highlighter) {
-        this._highlighter.hide();
-      }
-      this._stopPickerListeners();
-      this._isPicking = false;
-      this._hoveredNode = null;
     }
   },
 });
@@ -622,7 +296,7 @@ exports.CustomHighlighterActor = protocol.ActorClassWithSpec(
         return null;
       }
 
-      const rawNode = node && node.rawNode;
+      const rawNode = node?.rawNode;
 
       return this._highlighter.show(rawNode, options);
     },
@@ -709,8 +383,8 @@ HighlighterEnvironment.prototype = {
     const self = this;
     this.listener = {
       QueryInterface: ChromeUtils.generateQI([
-        Ci.nsIWebProgressListener,
-        Ci.nsISupportsWeakReference,
+        "nsIWebProgressListener",
+        "nsISupportsWeakReference",
       ]),
 
       onStateChange: function(progress, request, flag) {
@@ -764,7 +438,12 @@ HighlighterEnvironment.prototype = {
     }
     const win = this._targetActor ? this._targetActor.window : this._win;
 
-    return Cu.isDeadWrapper(win) ? null : win;
+    try {
+      return Cu.isDeadWrapper(win) ? null : win;
+    } catch (e) {
+      // win is null
+      return null;
+    }
   },
 
   get document() {

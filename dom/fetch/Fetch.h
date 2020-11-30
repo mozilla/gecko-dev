@@ -7,8 +7,6 @@
 #ifndef mozilla_dom_Fetch_h
 #define mozilla_dom_Fetch_h
 
-#include "nsAutoPtr.h"
-
 #include "nsCOMPtr.h"
 #include "nsError.h"
 #include "nsProxyRelease.h"
@@ -124,6 +122,9 @@ nsresult ExtractByteStreamFromBody(const fetch::ResponseBodyInit& aBodyInit,
 template <class Derived>
 class FetchBody : public BodyStreamHolder, public AbortFollower {
  public:
+  using BodyStreamHolder::AddRef;
+  using BodyStreamHolder::Release;
+
   bool GetBodyUsed(ErrorResult& aRv) const;
 
   // For use in assertions. On success, returns true if the body is used, false

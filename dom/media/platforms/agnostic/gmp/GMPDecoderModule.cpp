@@ -4,8 +4,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "DecoderDoctorDiagnostics.h"
 #include "GMPDecoderModule.h"
+
+#include "DecoderDoctorDiagnostics.h"
 #include "GMPService.h"
 #include "GMPUtils.h"
 #include "GMPVideoDecoder.h"
@@ -26,18 +27,20 @@ GMPDecoderModule::GMPDecoderModule() = default;
 
 GMPDecoderModule::~GMPDecoderModule() = default;
 
-static already_AddRefed<MediaDataDecoderProxy> CreateDecoderWrapper() {
+static already_AddRefed<MediaDataDecoderProxy> CreateDecoderWrapper(
+    GMPVideoDecoderParams&& aParams) {
   RefPtr<gmp::GeckoMediaPluginService> s(
       gmp::GeckoMediaPluginService::GetGeckoMediaPluginService());
   if (!s) {
     return nullptr;
   }
-  RefPtr<AbstractThread> thread(s->GetAbstractGMPThread());
+  nsCOMPtr<nsISerialEventTarget> thread(s->GetGMPThread());
   if (!thread) {
     return nullptr;
   }
-  RefPtr<MediaDataDecoderProxy> decoder(
-      new MediaDataDecoderProxy(thread.forget()));
+
+  RefPtr<MediaDataDecoderProxy> decoder(new MediaDataDecoderProxy(
+      do_AddRef(new GMPVideoDecoder(std::move(aParams))), thread.forget()));
   return decoder.forget();
 }
 
@@ -49,10 +52,7 @@ already_AddRefed<MediaDataDecoder> GMPDecoderModule::CreateVideoDecoder(
     return nullptr;
   }
 
-  RefPtr<MediaDataDecoderProxy> wrapper = CreateDecoderWrapper();
-  auto params = GMPVideoDecoderParams(aParams);
-  wrapper->SetProxyTarget(new GMPVideoDecoder(params));
-  return wrapper.forget();
+  return CreateDecoderWrapper(GMPVideoDecoderParams(aParams));
 }
 
 already_AddRefed<MediaDataDecoder> GMPDecoderModule::CreateAudioDecoder(
@@ -67,18 +67,18 @@ bool GMPDecoderModule::SupportsMimeType(const nsACString& aMimeType,
     return false;
   }
 
-  nsCString api = NS_LITERAL_CSTRING(CHROMIUM_CDM_API);
+  nsCString api = nsLiteralCString(CHROMIUM_CDM_API);
 
   if (MP4Decoder::IsH264(aMimeType)) {
-    return HaveGMPFor(api, {NS_LITERAL_CSTRING("h264"), aGMP.value()});
+    return HaveGMPFor(api, {"h264"_ns, aGMP.value()});
   }
 
   if (VPXDecoder::IsVP9(aMimeType)) {
-    return HaveGMPFor(api, {NS_LITERAL_CSTRING("vp9"), aGMP.value()});
+    return HaveGMPFor(api, {"vp9"_ns, aGMP.value()});
   }
 
   if (VPXDecoder::IsVP8(aMimeType)) {
-    return HaveGMPFor(api, {NS_LITERAL_CSTRING("vp8"), aGMP.value()});
+    return HaveGMPFor(api, {"vp8"_ns, aGMP.value()});
   }
 
   return false;

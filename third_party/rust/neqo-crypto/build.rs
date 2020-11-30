@@ -14,7 +14,6 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use toml;
 
 const BINDINGS_DIR: &str = "bindings";
 const BINDINGS_CONFIG: &str = "bindings.toml";
@@ -22,25 +21,31 @@ const BINDINGS_CONFIG: &str = "bindings.toml";
 // This is the format of a single section of the configuration file.
 #[derive(Deserialize)]
 struct Bindings {
-    // types that are explicitly included
-    types: Option<Vec<String>>,
-    // functions that are explicitly included
-    functions: Option<Vec<String>>,
-    // variables (and `#define`s) that are explicitly included
-    variables: Option<Vec<String>>,
-    // types that should be explicitly marked as opaque
-    opaque: Option<Vec<String>>,
-    // enumerations that are turned into a module (without this, the enum is
-    // mapped using the default, which means that the individual values are
-    // formed with an underscore as <enum_type>_<enum_value_name>).
-    enums: Option<Vec<String>>,
+    /// types that are explicitly included
+    #[serde(default)]
+    types: Vec<String>,
+    /// functions that are explicitly included
+    #[serde(default)]
+    functions: Vec<String>,
+    /// variables (and `#define`s) that are explicitly included
+    #[serde(default)]
+    variables: Vec<String>,
+    /// types that should be explicitly marked as opaque
+    #[serde(default)]
+    opaque: Vec<String>,
+    /// enumerations that are turned into a module (without this, the enum is
+    /// mapped using the default, which means that the individual values are
+    /// formed with an underscore as <enum_type>_<enum_value_name>).
+    #[serde(default)]
+    enums: Vec<String>,
 
-    // Any item that is specifically excluded; if none of the types, functions,
-    // or variables fields are specified, everything defined will be mapped,
-    // so this can be used to limit that.
-    exclude: Option<Vec<String>>,
+    /// Any item that is specifically excluded; if none of the types, functions,
+    /// or variables fields are specified, everything defined will be mapped,
+    /// so this can be used to limit that.
+    #[serde(default)]
+    exclude: Vec<String>,
 
-    // Whether the file is to be interpreted as C++
+    /// Whether the file is to be interpreted as C++
     #[serde(default)]
     cplusplus: bool,
 }
@@ -94,6 +99,8 @@ fn nss_dir() -> PathBuf {
             Command::new("hg")
                 .args(&[
                     "clone",
+                    "-u",
+                    "NSS_3_53_RTM",
                     "https://hg.mozilla.org/projects/nss",
                     dir.to_str().unwrap(),
                 ])
@@ -105,13 +112,15 @@ fn nss_dir() -> PathBuf {
             Command::new("hg")
                 .args(&[
                     "clone",
+                    "-u",
+                    "NSPR_4_25_RTM",
                     "https://hg.mozilla.org/projects/nspr",
                     nspr_dir.to_str().unwrap(),
                 ])
                 .status()
                 .expect("can't clone nspr");
         }
-        dir.to_path_buf()
+        dir
     };
     assert!(dir.is_dir());
     // Note that this returns a relative path because UNC
@@ -226,7 +235,7 @@ fn build_bindings(base: &str, bindings: &Bindings, flags: &[String], gecko: bool
 
     let mut builder = Builder::default().header(header);
     builder = builder.generate_comments(false);
-    builder = builder.derive_debug(false); // https://github.com/rust-lang/rust-bindgen/issues/372
+    builder = builder.size_t_is_usize(true);
 
     builder = builder.clang_arg("-v");
 
@@ -250,23 +259,22 @@ fn build_bindings(base: &str, bindings: &Bindings, flags: &[String], gecko: bool
     builder = builder.clang_args(flags);
 
     // Apply the configuration.
-    let empty: Vec<String> = vec![];
-    for v in bindings.types.as_ref().unwrap_or_else(|| &empty).iter() {
+    for v in &bindings.types {
         builder = builder.whitelist_type(v);
     }
-    for v in bindings.functions.as_ref().unwrap_or_else(|| &empty).iter() {
+    for v in &bindings.functions {
         builder = builder.whitelist_function(v);
     }
-    for v in bindings.variables.as_ref().unwrap_or_else(|| &empty).iter() {
+    for v in &bindings.variables {
         builder = builder.whitelist_var(v);
     }
-    for v in bindings.exclude.as_ref().unwrap_or_else(|| &empty).iter() {
+    for v in &bindings.exclude {
         builder = builder.blacklist_item(v);
     }
-    for v in bindings.opaque.as_ref().unwrap_or_else(|| &empty).iter() {
+    for v in &bindings.opaque {
         builder = builder.opaque_type(v);
     }
-    for v in bindings.enums.as_ref().unwrap_or_else(|| &empty).iter() {
+    for v in &bindings.enums {
         builder = builder.constified_enum_module(v);
     }
 
@@ -384,7 +392,7 @@ fn main() {
     let config_file = PathBuf::from(BINDINGS_DIR).join(BINDINGS_CONFIG);
     println!("cargo:rerun-if-changed={}", config_file.to_str().unwrap());
     let config = fs::read_to_string(config_file).expect("unable to read binding configuration");
-    let config: HashMap<String, Bindings> = toml::from_str(&config).unwrap();
+    let config: HashMap<String, Bindings> = ::toml::from_str(&config).unwrap();
 
     for (k, v) in &config {
         build_bindings(k, v, &flags[..], cfg!(feature = "gecko"));

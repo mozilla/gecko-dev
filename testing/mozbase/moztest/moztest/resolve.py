@@ -42,7 +42,7 @@ TEST_SUITES = {
     'cppunittest': {
         'aliases': ('cpp',),
         'mach_command': 'cppunittest',
-        'kwargs': {'test_file': None},
+        'kwargs': {'test_files': None},
     },
     'crashtest': {
         'aliases': ('c', 'rc'),
@@ -50,6 +50,14 @@ TEST_SUITES = {
         'mach_command': 'crashtest',
         'kwargs': {'test_file': None},
         'task_regex': ['crashtest($|.*(-1|[^0-9])$)',
+                       'test-verify($|.*(-1|[^0-9])$)'],
+    },
+    'crashtest-qr': {
+        'aliases': ('c', 'rc'),
+        'build_flavor': 'crashtest',
+        'mach_command': 'crashtest',
+        'kwargs': {'test_file': None},
+        'task_regex': ['crashtest-qr($|.*(-1|[^0-9])$)',
                        'test-verify($|.*(-1|[^0-9])$)'],
     },
     'firefox-ui-functional': {
@@ -83,7 +91,7 @@ TEST_SUITES = {
         'aliases': ('a11y', 'ally'),
         'build_flavor': 'a11y',
         'mach_command': 'mochitest',
-        'kwargs': {'flavor': 'a11y', 'test_paths': None, 'e10s': False},
+        'kwargs': {'flavor': 'a11y', 'test_paths': None, 'e10s': False, 'enable_fission': False},
         'task_regex': ['mochitest-a11y($|.*(-1|[^0-9])$)',
                        'test-verify($|.*(-1|[^0-9])$)'],
     },
@@ -106,7 +114,7 @@ TEST_SUITES = {
         'aliases': ('mc',),
         'build_flavor': 'chrome',
         'mach_command': 'mochitest',
-        'kwargs': {'flavor': 'chrome', 'test_paths': None, 'e10s': False},
+        'kwargs': {'flavor': 'chrome', 'test_paths': None, 'e10s': False, 'enable_fission': False},
         'task_regex': ['mochitest-chrome($|.*(-1|[^0-9])$)',
                        'test-verify($|.*(-1|[^0-9])$)'],
     },
@@ -114,7 +122,8 @@ TEST_SUITES = {
         'aliases': ('gpu',),
         'build_flavor': 'chrome',
         'mach_command': 'mochitest',
-        'kwargs': {'flavor': 'chrome', 'subsuite': 'gpu', 'test_paths': None, 'e10s': False},
+        'kwargs': {'flavor': 'chrome', 'subsuite': 'gpu', 'test_paths': None, 'e10s': False,
+                   'enable_fission': False},
         'task_regex': ['mochitest-gpu($|.*(-1|[^0-9])$)',
                        'test-verify($|.*(-1|[^0-9])$)'],
     },
@@ -189,6 +198,14 @@ TEST_SUITES = {
         'task_regex': ['(opt|debug)-reftest($|.*(-1|[^0-9])$)',
                        'test-verify-gpu($|.*(-1|[^0-9])$)'],
     },
+    'reftest-qr': {
+        'aliases': ('rr',),
+        'build_flavor': 'reftest',
+        'mach_command': 'reftest',
+        'kwargs': {'tests': None},
+        'task_regex': ['(opt|debug)-reftest-qr($|.*(-1|[^0-9])$)',
+                       'test-verify-gpu($|.*(-1|[^0-9])$)'],
+    },
     'robocop': {
         'mach_command': 'robocop',
         'kwargs': {'test_paths': None},
@@ -197,35 +214,40 @@ TEST_SUITES = {
     'web-platform-tests': {
         'aliases': ('wpt',),
         'mach_command': 'web-platform-tests',
-        'kwargs': {'include': []},
-        'task_regex': ['web-platform-tests($|.*(-1|[^0-9])$)',
+        'build_flavor': 'web-platform-tests',
+        'kwargs': {'subsuite': 'testharness'},
+        'task_regex': ['web-platform-tests(?!-crashtest|-reftest|-wdspec|-print)'
+                       '($|.*(-1|[^0-9])$)',
                        'test-verify-wpt'],
     },
     'web-platform-tests-crashtest': {
         'aliases': ('wpt',),
         'mach_command': 'web-platform-tests',
-        'kwargs': {'include': []},
-        'task_regex': ['web-platform-tests-crashtests($|.*(-1|[^0-9])$)',
+        'build_flavor': 'web-platform-tests',
+        'kwargs': {'subsuite': 'crashtest'},
+        'task_regex': ['web-platform-tests-crashtest($|.*(-1|[^0-9])$)',
                        'test-verify-wpt'],
     },
-    'web-platform-tests-testharness': {
+    'web-platform-tests-print-reftest': {
         'aliases': ('wpt',),
         'mach_command': 'web-platform-tests',
         'kwargs': {'include': []},
-        'task_regex': ['web-platform-tests(?!-reftest|-wdspec)($|.*(-1|[^0-9])$)',
+        'task_regex': ['web-platform-tests-print-reftest($|.*(-1|[^0-9])$)',
                        'test-verify-wpt'],
     },
     'web-platform-tests-reftest': {
         'aliases': ('wpt',),
         'mach_command': 'web-platform-tests',
-        'kwargs': {'include': []},
-        'task_regex': ['web-platform-tests-reftests($|.*(-1|[^0-9])$)',
+        'build_flavor': 'web-platform-tests',
+        'kwargs': {'subsuite': 'reftest'},
+        'task_regex': ['web-platform-tests-reftest($|.*(-1|[^0-9])$)',
                        'test-verify-wpt'],
     },
     'web-platform-tests-wdspec': {
         'aliases': ('wpt',),
         'mach_command': 'web-platform-tests',
-        'kwargs': {'include': []},
+        'build_flavor': 'web-platform-tests',
+        'kwargs': {'subsuite': 'wdspec'},
         'task_regex': ['web-platform-tests-wdspec($|.*(-1|[^0-9])$)',
                        'test-verify-wpt'],
     },
@@ -282,7 +304,6 @@ _test_flavors = {
     'puppeteer': 'puppeteer',
     'python': 'python',
     'reftest': 'reftest',
-    'steeplechase': '',
     'telemetry-tests-client': 'telemetry-tests-client',
     'web-platform-tests': 'web-platform-tests',
     'xpcshell': 'xpcshell',
@@ -290,7 +311,6 @@ _test_flavors = {
 
 _test_subsuites = {
     ('browser-chrome', 'devtools'): 'mochitest-devtools-chrome',
-    ('browser-chrome', 'gpu'): 'mochitest-browser-chrome-gpu',
     ('browser-chrome', 'remote'): 'mochitest-remote',
     ('browser-chrome', 'screenshots'): 'mochitest-browser-chrome-screenshots',
     ('chrome', 'gpu'): 'mochitest-chrome-gpu',
@@ -303,7 +323,7 @@ _test_subsuites = {
     ('mochitest', 'webgl2-ext'): 'mochitest-webgl2-ext',
     ('mochitest', 'webgl2-deqp'): 'mochitest-webgl2-deqp',
     ('mochitest', 'webgpu'): 'mochitest-webgpu',
-    ('web-platform-tests', 'testharness'): 'web-platform-tests-testharness',
+    ('web-platform-tests', 'testharness'): 'web-platform-tests',
     ('web-platform-tests', 'crashtest'): 'web-platform-tests-crashtest',
     ('web-platform-tests', 'reftest'): 'web-platform-tests-reftest',
     ('web-platform-tests', 'wdspec'): 'web-platform-tests-wdspec',
@@ -390,6 +410,10 @@ class BuildBackendLoader(TestLoader):
         with open(test_defaults, 'rb') as fh:
             defaults = pickle.load(fh)
 
+        # The keys in defaults use platform-specific path separators.
+        # self.topsrcdir was normalized to use /, revert back to \ if needed.
+        topsrcdir = os.path.normpath(self.topsrcdir)
+
         for path, tests in six.iteritems(test_data):
             for metadata in tests:
                 defaults_manifests = [metadata['manifest']]
@@ -399,7 +423,7 @@ class BuildBackendLoader(TestLoader):
                     # The (ancestor manifest, included manifest) tuple
                     # contains the defaults of the included manifest, so
                     # use it instead of [metadata['manifest']].
-                    ancestor_manifest = os.path.join(self.topsrcdir, ancestor_manifest)
+                    ancestor_manifest = os.path.join(topsrcdir, ancestor_manifest)
                     defaults_manifests[0] = (ancestor_manifest, metadata['manifest'])
                     defaults_manifests.append(ancestor_manifest)
 
@@ -433,7 +457,7 @@ class TestManifestLoader(TestLoader):
         manifest = reftest.ReftestManifest(finder=self.finder)
         manifest.load(mpath)
 
-        for test in sorted(manifest.tests):
+        for test in sorted(manifest.tests, key=lambda x: x.get('path')):
             test['manifest_relpath'] = test['manifest'][len(self.topsrcdir)+1:]
             yield test
 
@@ -487,6 +511,7 @@ class TestResolver(MozbuildObject):
     def _reset_state(self):
         self._tests_by_path = OrderedDefaultDict(list)
         self._tests_by_flavor = defaultdict(set)
+        self._tests_by_manifest = defaultdict(list)
         self._test_dirs = set()
 
     @property
@@ -513,17 +538,57 @@ class TestResolver(MozbuildObject):
         return self._tests_by_flavor
 
     @property
+    def tests_by_manifest(self):
+        if not self._tests_by_manifest:
+            for test in self.tests:
+                if test['flavor'] == "web-platform-tests":
+                    # Use test ids instead of paths for WPT.
+                    self._tests_by_manifest[test['manifest']].append(test['name'])
+                else:
+                    relpath = mozpath.relpath(test['path'], mozpath.dirname(test['manifest']))
+                    self._tests_by_manifest[test['manifest_relpath']].append(relpath)
+        return self._tests_by_manifest
+
+    @property
     def test_dirs(self):
         if not self._test_dirs:
             for test in self.tests:
                 self._test_dirs.add(test['dir_relpath'])
         return self._test_dirs
 
-    def _resolve(self, paths=None, flavor=None, subsuite=None, under_path=None, tags=None):
+    def _resolve(self, paths=None, flavor='', subsuite=None, under_path=None, tags=None):
+        """Given parameters, resolve them to produce an appropriate list of tests.
+
+        Args:
+            paths (list):
+                By default, set to None. If provided as a list of paths, then
+                this method will attempt to load the appropriate set of tests
+                that live in this path.
+
+            flavor (string):
+                By default, an empty string. If provided as a string, then this
+                method will attempt to load tests that belong to this flavor.
+                Additional filtering also takes the flavor into consideration.
+
+            subsuite (string):
+                By default, set to None. If provided as a string, then this value
+                is used to perform filtering of a candidate set of tests.
+        """
         if tags:
             tags = set(tags)
 
         def fltr(tests):
+            """Filters tests based on several criteria.
+
+            Args:
+                tests (list):
+                    List of tests that belong to the same candidate path.
+
+            Returns:
+                test (dict):
+                    If the test survived the filtering process, it is returned
+                    as a valid test.
+            """
             for test in tests:
                 if flavor:
                     if flavor == 'devtools' and test.get('flavor') != 'browser-chrome':
@@ -548,13 +613,15 @@ class TestResolver(MozbuildObject):
         if not paths:
             paths = [None]
 
-        candidate_paths = set()
-
-        if flavor in (None, 'puppeteer') and any(self.is_puppeteer_path(p) for p in paths):
+        if (flavor in ('', 'puppeteer', None) and
+            (any(self.is_puppeteer_path(p) for p in paths) or paths == [None])):
             self.add_puppeteer_manifest_data()
 
-        if flavor in (None, 'web-platform-tests') and any(self.is_wpt_path(p) for p in paths):
+        if (flavor in ('', 'web-platform-tests', None) and
+            (any(self.is_wpt_path(p) for p in paths) or paths == [None])):
             self.add_wpt_manifest_data()
+
+        candidate_paths = set()
 
         for path in sorted(paths):
             if path is None:
@@ -586,7 +653,6 @@ class TestResolver(MozbuildObject):
 
         for p in sorted(candidate_paths):
             tests = self.tests_by_path[p]
-
             for test in fltr(tests):
                 yield test
 
@@ -622,6 +688,16 @@ class TestResolver(MozbuildObject):
         self._puppeteer_loaded = True
 
     def is_wpt_path(self, path):
+        """Checks if path forms part of the known web-platform-test paths.
+
+        Args:
+            path (str or None):
+                Path to check against the list of known web-platform-test paths.
+
+        Returns:
+            Boolean value. True if path is part of web-platform-tests path, or
+            path is None. False otherwise.
+        """
         if path is None:
             return True
         if mozpath.match(path, "testing/web-platform/tests/**"):
@@ -630,7 +706,37 @@ class TestResolver(MozbuildObject):
             return True
         return False
 
+    def get_wpt_group(self, test, depth=3):
+        """Given a test object set the group (aka manifest) that it belongs to.
+
+        If a custom value for `depth` is provided, it will override the default
+        value of 3 path components.
+
+        Args:
+            test (dict): Test object for the particular suite and subsuite.
+            depth (int, optional): Custom number of path elements.
+
+        Returns:
+            str: The group the given test belongs to.
+        """
+        # This takes into account that for mozilla-specific WPT tests, the path
+        # contains an extra '/_mozilla' prefix that must be accounted for.
+        depth = depth + 1 if test['name'].startswith('/_mozilla') else depth
+
+        group = os.path.dirname(test['name'])
+        while group.count('/') > depth:
+            group = os.path.dirname(group)
+        return group
+
     def add_wpt_manifest_data(self):
+        """Adds manifest data for web-platform-tests into the list of available tests.
+
+        Upon invocation, this method will download from firefox-ci the most recent
+        version of the web-platform-tests manifests.
+
+        Once manifest is downloaded, this method will add details about each test
+        into the list of available tests.
+        """
         if self._wpt_loaded:
             return
 
@@ -640,10 +746,9 @@ class TestResolver(MozbuildObject):
         sys.path = [wpt_path] + sys.path
 
         import manifestupdate
-        # Set up a logger that will drop all the output
         import logging
         logger = logging.getLogger("manifestupdate")
-        logger.propogate = False
+        logger.disabled = True
 
         manifests = manifestupdate.run(self.topsrcdir, self.topobjdir, rebuild=False,
                                        download=True, config_path=None, rewrite_config=True,
@@ -653,26 +758,41 @@ class TestResolver(MozbuildObject):
             return
 
         for manifest, data in six.iteritems(manifests):
-            tests_root = data["tests_path"]
+            tests_root = data["tests_path"]  # full path on disk until web-platform tests directory
+
             for test_type, path, tests in manifest:
-                full_path = os.path.join(tests_root, path)
-                src_path = os.path.relpath(full_path, self.topsrcdir)
+                full_path = mozpath.join(tests_root, path)
+                src_path = mozpath.relpath(full_path, self.topsrcdir)
                 if test_type not in ["testharness", "reftest", "wdspec", "crashtest"]:
                     continue
+
+                full_path = mozpath.join(tests_root, path)  # absolute path on disk
+                src_path = mozpath.relpath(full_path, self.topsrcdir)
+
                 for test in tests:
-                    self._tests.append({
-                        "path": full_path,
-                        "flavor": "web-platform-tests",
-                        "here": os.path.dirname(path),
-                        "manifest": data["manifest_path"],
-                        "name": test.id,
-                        "file_relpath": src_path,
+                    testobj = {
                         "head": "",
                         "support-files": "",
+                        "path": full_path,
+                        "flavor": "web-platform-tests",
                         "subsuite": test_type,
-                        "dir_relpath": os.path.dirname(src_path),
+                        "here": mozpath.dirname(path),
+                        "name": test.id,
+                        "file_relpath": src_path,
                         "srcdir_relpath": src_path,
-                    })
+                        "dir_relpath": mozpath.dirname(src_path),
+                    }
+                    group = self.get_wpt_group(testobj)
+                    testobj["manifest"] = group
+
+                    test_root = "tests"
+                    if group.startswith("/_mozilla"):
+                        test_root = os.path.join("mozilla", "tests")
+                        group = group[len("/_mozilla"):]
+
+                    group = group.lstrip("/")
+                    testobj["manifest_relpath"] = os.path.join(wpt_path, test_root, group)
+                    self._tests.append(testobj)
 
         self._wpt_loaded = True
 
@@ -743,24 +863,6 @@ class TestResolver(MozbuildObject):
             else:
                 yield test
 
-    def get_outgoing_metadata(self):
-        paths, tags, flavors = set(), set(), set()
-        changed_files = self.repository.get_outgoing_files('AM')
-        if changed_files:
-            reader = self.mozbuild_reader(config_mode='empty')
-            files_info = reader.files_info(changed_files)
-
-            for path, info in six.iteritems(files_info):
-                paths |= info.test_files
-                tags |= info.test_tags
-                flavors |= info.test_flavors
-
-        return {
-            'paths': paths,
-            'tags': tags,
-            'flavors': flavors,
-        }
-
     def resolve_metadata(self, what):
         """Resolve tests based on the given metadata. If not specified, metadata
         from outgoing files will be used instead.
@@ -790,24 +892,5 @@ class TestResolver(MozbuildObject):
 
             if not tests:
                 print('UNKNOWN TEST: %s' % entry, file=sys.stderr)
-
-        if not what:
-            res = self.get_outgoing_metadata()
-            paths, tags, flavors = (res[key] for key in ('paths', 'tags', 'flavors'))
-
-            # This requires multiple calls to resolve_tests, because the test
-            # resolver returns tests that match every condition, while we want
-            # tests that match any condition. Bug 1210213 tracks implementing
-            # more flexible querying.
-            if tags:
-                run_tests = list(self.resolve_tests(tags=tags))
-            if paths:
-                run_tests += [t for t in self.resolve_tests(paths=paths)
-                              if not (tags & set(t.get('tags', '').split()))]
-            if flavors:
-                run_tests = [
-                    t for t in run_tests if t['flavor'] not in flavors]
-                for flavor in flavors:
-                    run_tests += list(self.resolve_tests(flavor=flavor))
 
         return run_suites, run_tests

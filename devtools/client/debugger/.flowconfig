@@ -3,11 +3,6 @@
 <PROJECT_ROOT>/firefox/.*
 .*flow-coverage-report/.*
 .*custom_format_broken.json
-.*packages/devtools-reps/src/object-inspector/components
-.*packages/devtools-reps/src/object-inspector/utils
-.*packages/devtools-reps/src/object-inspector/tests
-.*packages/devtools-reps/src/object-inspector/reducer.js
-.*packages/devtools-reps/src/object-inspector/actions.js
 <PROJECT_ROOT>/webpack-stats/.*
 
 [include]
@@ -20,3 +15,4 @@
 suppress_comment=\\(.\\|\n\\)*\\$FlowIgnore
 suppress_comment=\\(.\\|\n\\)*\\$FlowFixMe
 module.name_mapper='^debugger-html$' -> '<PROJECT_ROOT>/src/types.js'
+esproposal.optional_chaining=enable

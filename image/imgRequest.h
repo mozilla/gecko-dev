@@ -62,17 +62,21 @@ class imgRequest final : public nsIStreamListener,
   NS_DECL_NSIINTERFACEREQUESTOR
   NS_DECL_NSIASYNCVERIFYREDIRECTCALLBACK
 
-  MOZ_MUST_USE nsresult Init(nsIURI* aURI, nsIURI* aFinalURI,
-                             bool aHadInsecureRedirect, nsIRequest* aRequest,
-                             nsIChannel* aChannel, imgCacheEntry* aCacheEntry,
-                             nsISupports* aCX,
-                             nsIPrincipal* aTriggeringPrincipal,
-                             int32_t aCORSMode, nsIReferrerInfo* aReferrerInfo);
+      [[nodiscard]] nsresult
+      Init(nsIURI* aURI, nsIURI* aFinalURI, bool aHadInsecureRedirect,
+           nsIRequest* aRequest, nsIChannel* aChannel,
+           imgCacheEntry* aCacheEntry, mozilla::dom::Document* aLoadingDocument,
+           nsIPrincipal* aTriggeringPrincipal, int32_t aCORSMode,
+           nsIReferrerInfo* aReferrerInfo);
 
   void ClearLoader();
 
   // Callers must call imgRequestProxy::Notify later.
   void AddProxy(imgRequestProxy* proxy);
+
+  // Whether a given document is allowed to reuse this request without any
+  // revalidation.
+  bool CanReuseWithoutValidation(mozilla::dom::Document*) const;
 
   nsresult RemoveProxy(imgRequestProxy* proxy, nsresult aStatus);
 
@@ -201,6 +205,12 @@ class imgRequest final : public nsIStreamListener,
 
   bool ImageAvailable() const;
 
+  bool IsDeniedCrossSiteCORSRequest() const {
+    return mIsDeniedCrossSiteCORSRequest;
+  }
+
+  bool IsCrossSiteNoCORSRequest() const { return mIsCrossSiteNoCORSRequest; }
+
  private:
   friend class FinishPreparingForNewPartRunnable;
 
@@ -276,6 +286,8 @@ class imgRequest final : public nsIStreamListener,
 
   // If we've called OnImageAvailable.
   bool mImageAvailable;
+  bool mIsDeniedCrossSiteCORSRequest;
+  bool mIsCrossSiteNoCORSRequest;
 
   mutable mozilla::Mutex mMutex;
 

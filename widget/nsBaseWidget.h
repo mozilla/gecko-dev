@@ -114,7 +114,8 @@ class WidgetShutdownObserver final : public nsIObserver {
  */
 
 class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
-  friend class DispatchWheelEventOnMainThread;
+  template <class EventType, class InputType>
+  friend class DispatchEventOnMainThread;
   friend class mozilla::widget::InProcessCompositorWidget;
   friend class mozilla::layers::RemoteCompositorSession;
 
@@ -128,7 +129,6 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   typedef mozilla::layers::CompositorBridgeParent CompositorBridgeParent;
   typedef mozilla::layers::IAPZCTreeManager IAPZCTreeManager;
   typedef mozilla::layers::GeckoContentController GeckoContentController;
-  typedef mozilla::layers::SLGuidAndRenderRoot SLGuidAndRenderRoot;
   typedef mozilla::layers::ScrollableLayerGuid ScrollableLayerGuid;
   typedef mozilla::layers::APZEventState APZEventState;
   typedef mozilla::layers::SetAllowedTouchBehaviorCallback
@@ -168,8 +168,8 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
 
   virtual void SetSizeMode(nsSizeMode aMode) override;
   virtual nsSizeMode SizeMode() override { return mSizeMode; }
-  virtual int32_t GetWorkspaceID() override;
-  virtual void MoveToWorkspace(int32_t workspaceID) override;
+  virtual void GetWorkspaceID(nsAString& workspaceID) override;
+  virtual void MoveToWorkspace(const nsAString& workspaceID) override;
   virtual bool IsTiled() const override { return mIsTiled; }
 
   virtual bool IsFullyOccluded() const override { return mIsFullyOccluded; }
@@ -184,7 +184,8 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   virtual void SetWindowShadowStyle(
       mozilla::StyleWindowShadow aStyle) override {}
   virtual void SetShowsToolbarButton(bool aShow) override {}
-  virtual void SetShowsFullScreenButton(bool aShow) override {}
+  virtual void SetSupportsNativeFullscreen(
+      bool aSupportsNativeFullscreen) override {}
   virtual void SetWindowAnimationType(WindowAnimationType aType) override {}
   virtual void HideWindowChrome(bool aShouldHide) override {}
   virtual bool PrepareForFullscreenTransition(nsISupports** aData) override {
@@ -250,22 +251,20 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
 
   virtual void ConstrainPosition(bool aAllowSlop, int32_t* aX,
                                  int32_t* aY) override {}
-  virtual void MoveClient(double aX, double aY) override;
-  virtual void ResizeClient(double aWidth, double aHeight,
-                            bool aRepaint) override;
-  virtual void ResizeClient(double aX, double aY, double aWidth, double aHeight,
-                            bool aRepaint) override;
+  virtual void MoveClient(const DesktopPoint& aOffset) override;
+  virtual void ResizeClient(const DesktopSize& aSize, bool aRepaint) override;
+  virtual void ResizeClient(const DesktopRect& aRect, bool aRepaint) override;
   virtual LayoutDeviceIntRect GetBounds() override;
   virtual LayoutDeviceIntRect GetClientBounds() override;
   virtual LayoutDeviceIntRect GetScreenBounds() override;
-  virtual MOZ_MUST_USE nsresult
-  GetRestoredBounds(LayoutDeviceIntRect& aRect) override;
+  [[nodiscard]] virtual nsresult GetRestoredBounds(
+      LayoutDeviceIntRect& aRect) override;
   virtual nsresult SetNonClientMargins(
       LayoutDeviceIntMargin& aMargins) override;
   virtual LayoutDeviceIntPoint GetClientOffset() override;
   virtual void EnableDragDrop(bool aEnable) override{};
   virtual nsresult AsyncEnableDragDrop(bool aEnable) override;
-  virtual MOZ_MUST_USE nsresult GetAttention(int32_t aCycleCount) override {
+  [[nodiscard]] virtual nsresult GetAttention(int32_t aCycleCount) override {
     return NS_OK;
   }
   virtual bool HasPendingInputEvent() override;
@@ -273,9 +272,9 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   virtual void SetDrawsInTitlebar(bool aState) override {}
   virtual bool ShowsResizeIndicator(LayoutDeviceIntRect* aResizerRect) override;
   virtual void FreeNativeData(void* data, uint32_t aDataType) override {}
-  virtual MOZ_MUST_USE nsresult BeginResizeDrag(mozilla::WidgetGUIEvent* aEvent,
-                                                int32_t aHorizontal,
-                                                int32_t aVertical) override {
+  [[nodiscard]] virtual nsresult BeginResizeDrag(
+      mozilla::WidgetGUIEvent* aEvent, int32_t aHorizontal,
+      int32_t aVertical) override {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
   virtual nsresult ActivateNativeMenuItemAt(
@@ -287,7 +286,7 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
   nsresult NotifyIME(const IMENotification& aIMENotification) final;
-  virtual MOZ_MUST_USE nsresult StartPluginIME(
+  [[nodiscard]] virtual nsresult StartPluginIME(
       const mozilla::WidgetKeyboardEvent& aKeyboardEvent, int32_t aPanelX,
       int32_t aPanelY, nsString& aCommitted) override {
     return NS_ERROR_NOT_IMPLEMENTED;
@@ -297,14 +296,14 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
       const mozilla::widget::CandidateWindowPosition& aPosition) override {}
   virtual void DefaultProcOfPluginEvent(
       const mozilla::WidgetPluginEvent& aEvent) override {}
-  virtual MOZ_MUST_USE nsresult
-  AttachNativeKeyEvent(mozilla::WidgetKeyboardEvent& aEvent) override {
+  [[nodiscard]] virtual nsresult AttachNativeKeyEvent(
+      mozilla::WidgetKeyboardEvent& aEvent) override {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
   bool ComputeShouldAccelerate();
   virtual bool WidgetTypeSupportsAcceleration() { return true; }
-  virtual MOZ_MUST_USE nsresult
-  OnDefaultButtonLoaded(const LayoutDeviceIntRect& aButtonRect) override {
+  [[nodiscard]] virtual nsresult OnDefaultButtonLoaded(
+      const LayoutDeviceIntRect& aButtonRect) override {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
   virtual already_AddRefed<nsIWidget> CreateChild(
@@ -330,7 +329,7 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
 
   void SetConfirmedTargetAPZC(
       uint64_t aInputBlockId,
-      const nsTArray<SLGuidAndRenderRoot>& aTargets) const override;
+      const nsTArray<ScrollableLayerGuid>& aTargets) const override;
 
   void UpdateZoomConstraints(
       const uint32_t& aPresShellId, const ScrollableLayerGuid::ViewID& aViewId,
@@ -350,7 +349,6 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
 
   // Should be called by derived implementations to notify on system color and
   // theme changes.
-  void NotifySysColorChanged();
   void NotifyThemeChanged();
   void NotifyUIStateChanged(UIStateChangeType aShowFocusRings);
 
@@ -386,9 +384,9 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
       const AsyncDragMetrics& aDragMetrics) override;
 
   virtual bool StartAsyncAutoscroll(const ScreenPoint& aAnchorLocation,
-                                    const SLGuidAndRenderRoot& aGuid) override;
+                                    const ScrollableLayerGuid& aGuid) override;
 
-  virtual void StopAsyncAutoscroll(const SLGuidAndRenderRoot& aGuid) override;
+  virtual void StopAsyncAutoscroll(const ScrollableLayerGuid& aGuid) override;
 
   /**
    * Use this when GetLayerManager() returns a BasicLayerManager
@@ -436,8 +434,8 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   void RecvToolbarAnimatorMessageFromCompositor(int32_t) override{};
   void UpdateRootFrameMetrics(const ScreenPoint& aScrollOffset,
                               const CSSToScreenScale& aZoom) override{};
-  void RecvScreenPixels(mozilla::ipc::Shmem&& aMem,
-                        const ScreenIntSize& aSize) override{};
+  void RecvScreenPixels(mozilla::ipc::Shmem&& aMem, const ScreenIntSize& aSize,
+                        bool aNeedsYFlip) override{};
 #endif
 
  protected:
@@ -468,9 +466,6 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   }
   virtual uint32_t GetGLFrameBufferFormat();
   virtual bool CompositorInitiallyPaused() { return false; }
-#ifdef XP_MACOSX
-  virtual LayoutDeviceIntRegion GetOpaqueWidgetRegion() { return {}; }
-#endif
 
  protected:
   void ResolveIconName(const nsAString& aIconName, const nsAString& aIconSuffix,
@@ -580,6 +575,8 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   }
 
   virtual CompositorBridgeChild* GetRemoteRenderer() override;
+
+  virtual void ClearCachedWebrenderResources() override;
 
   /**
    * Notify the widget that this window is being used with OMTC.

@@ -23,7 +23,7 @@ This code style currently applies to the components living in the following dire
 * ``dom/workers``
 
 In the long-term, the code is intended to use the
-`Mozilla Coding Style <https://developer.mozilla.org/en-US/docs/Mozilla/Developer_guide/Coding_Style>`_,
+:ref:`Mozilla Coding Style <Coding style>`,
 which references the `Google C++ Coding Style <https://google.github.io/styleguide/cppguide.html>`_.
 
 However, large parts of the code were written before rules and in particular
@@ -62,7 +62,7 @@ Deviations from the Mozilla C++ Coding Style
 |                                             Mozilla style                                              |                                    Prevalent WAS style                                     | Deviation scope |                                      Evolution                                      |
 +========================================================================================================+============================================================================================+=================+=====================================================================================+
 | `We prefer using "static", instead of anonymous C++ namespaces.                                        | Place all symbols that should have internal linkage in a single anonymous                  | All files       | Unclear. The recommendation in the Mozilla code style says this might change in the |
-| <https://developer.mozilla.org/en-US/docs/Mozilla/Developer_guide/Coding_Style#Anonymous_namespaces>`_ | namespace block at the top of an implementation file, rather than declarating them static. |                 | future depending on debugger support, so this deviation might become obsolete.      |
+|                                                                                                        | namespace block at the top of an implementation file, rather than declarating them static. |                 | future depending on debugger support, so this deviation might become obsolete.      |
 |                                                                                                        |                                                                                            |                 |                                                                                     |
 +--------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------+-----------------+-------------------------------------------------------------------------------------+
 | `All parameters passed by lvalue reference must be labeled const. [...] Input parameters may be const  | Non-const reference parameters may be used.                                                | All files       | Unclear. Maybe at least restrict the use of non-const reference parameters to       |
@@ -234,6 +234,7 @@ should block the meta-bug
 `1586788 <https://bugzilla.mozilla.org/show_bug.cgi?id=1586788>`.
 
 When you take on to work on a code style evolution task:
+
 - The task may already include a sketch of a resolution. If no preferred
   solution is obvious, discuss options to resolve it via comments on the bug
   first.
@@ -282,6 +283,7 @@ the code style from the review process, so that it does not block progress on
 the underlying bug.
 
 The following should be considered when performing a review:
+
 - Remind yourself of the code style, maybe skim through the document before
   starting the review, or have it open side-by-side while doing the review.
 - If you find a violation of an existing rule, add an inline comment.

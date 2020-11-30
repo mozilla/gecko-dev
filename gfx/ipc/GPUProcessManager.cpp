@@ -6,6 +6,7 @@
 
 #include "GPUProcessManager.h"
 
+#include "gfxConfig.h"
 #include "GPUProcessHost.h"
 #include "GPUProcessListener.h"
 #include "mozilla/MemoryReportingProcess.h"
@@ -17,9 +18,13 @@
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/RemoteDecoderManagerChild.h"
 #include "mozilla/RemoteDecoderManagerParent.h"
+#include "mozilla/Telemetry.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/gfx/gfxVars.h"
+#include "mozilla/gfx/GPUChild.h"
 #include "mozilla/layers/APZCTreeManagerChild.h"
+#include "mozilla/layers/APZInputBridgeChild.h"
+#include "mozilla/layers/CompositorBridgeChild.h"
 #include "mozilla/layers/CompositorBridgeParent.h"
 #include "mozilla/layers/CompositorManagerChild.h"
 #include "mozilla/layers/CompositorManagerParent.h"
@@ -130,7 +135,7 @@ void GPUProcessManager::OnXPCOMShutdown() {
 }
 
 void GPUProcessManager::OnPreferenceChange(const char16_t* aData) {
-  // A pref changed. If it's not on the blacklist, inform child processes.
+  // A pref changed. If it is useful to do so, inform child processes.
   if (!dom::ContentParent::ShouldSyncPreference(aData)) {
     return;
   }
@@ -364,8 +369,8 @@ void GPUProcessManager::OnProcessLaunchComplete(GPUProcessHost* aHost) {
   mGPUChild = mProcess->GetActor();
   mProcessToken = mProcess->GetProcessToken();
 
-  Endpoint<PVsyncBridgeParent> vsyncParent;
-  Endpoint<PVsyncBridgeChild> vsyncChild;
+  ipc::Endpoint<PVsyncBridgeParent> vsyncParent;
+  ipc::Endpoint<PVsyncBridgeChild> vsyncChild;
   nsresult rv = PVsyncBridge::CreateEndpoints(mGPUChild->OtherPid(),
                                               base::GetCurrentProcId(),
                                               &vsyncParent, &vsyncChild);
@@ -386,8 +391,7 @@ void GPUProcessManager::OnProcessLaunchComplete(GPUProcessHost* aHost) {
   mQueuedPrefs.Clear();
 
   CrashReporter::AnnotateCrashReport(
-      CrashReporter::Annotation::GPUProcessStatus,
-      NS_LITERAL_CSTRING("Running"));
+      CrashReporter::Annotation::GPUProcessStatus, "Running"_ns);
 
   CrashReporter::AnnotateCrashReport(
       CrashReporter::Annotation::GPUProcessLaunchCount,
@@ -442,36 +446,36 @@ void GPUProcessManager::SimulateDeviceReset() {
   }
 }
 
-void GPUProcessManager::DisableWebRender(wr::WebRenderError aError) {
+void GPUProcessManager::DisableWebRender(wr::WebRenderError aError,
+                                         const nsCString& aMsg) {
   if (!gfx::gfxVars::UseWebRender()) {
     return;
   }
   // Disable WebRender
   if (aError == wr::WebRenderError::INITIALIZE) {
     gfx::gfxConfig::GetFeature(gfx::Feature::WEBRENDER)
-        .ForceDisable(
-            gfx::FeatureStatus::Unavailable, "WebRender initialization failed",
-            NS_LITERAL_CSTRING("FEATURE_FAILURE_WEBRENDER_INITIALIZE"));
+        .ForceDisable(gfx::FeatureStatus::Unavailable,
+                      "WebRender initialization failed", aMsg);
   } else if (aError == wr::WebRenderError::MAKE_CURRENT) {
     gfx::gfxConfig::GetFeature(gfx::Feature::WEBRENDER)
-        .ForceDisable(
-            gfx::FeatureStatus::Unavailable,
-            "Failed to make render context current",
-            NS_LITERAL_CSTRING("FEATURE_FAILURE_WEBRENDER_MAKE_CURRENT"));
+        .ForceDisable(gfx::FeatureStatus::Unavailable,
+                      "Failed to make render context current",
+                      "FEATURE_FAILURE_WEBRENDER_MAKE_CURRENT"_ns);
   } else if (aError == wr::WebRenderError::RENDER) {
     gfx::gfxConfig::GetFeature(gfx::Feature::WEBRENDER)
         .ForceDisable(gfx::FeatureStatus::Unavailable,
                       "Failed to render WebRender",
-                      NS_LITERAL_CSTRING("FEATURE_FAILURE_WEBRENDER_RENDER"));
+                      "FEATURE_FAILURE_WEBRENDER_RENDER"_ns);
   } else if (aError == wr::WebRenderError::NEW_SURFACE) {
     gfx::gfxConfig::GetFeature(gfx::Feature::WEBRENDER)
-        .ForceDisable(
-            gfx::FeatureStatus::Unavailable, "Failed to create new surface",
-            NS_LITERAL_CSTRING("FEATURE_FAILURE_WEBRENDER_NEW_SURFACE"));
+        .ForceDisable(gfx::FeatureStatus::Unavailable,
+                      "Failed to create new surface",
+                      "FEATURE_FAILURE_WEBRENDER_NEW_SURFACE"_ns);
   } else {
     MOZ_ASSERT_UNREACHABLE("Invalid value");
   }
   gfx::gfxVars::SetUseWebRender(false);
+  gfx::gfxVars::SetUseWebRenderDCompVideoOverlayWin(false);
 
 #if defined(MOZ_WIDGET_ANDROID)
   // If aError is not wr::WebRenderError::INITIALIZE, nsWindow does not
@@ -490,7 +494,15 @@ void GPUProcessManager::DisableWebRender(wr::WebRenderError aError) {
 }
 
 void GPUProcessManager::NotifyWebRenderError(wr::WebRenderError aError) {
-  DisableWebRender(aError);
+  if (aError == wr::WebRenderError::VIDEO_OVERLAY) {
+#ifdef XP_WIN
+    gfxVars::SetUseWebRenderDCompVideoOverlayWin(false);
+#else
+    MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+#endif
+    return;
+  }
+  DisableWebRender(aError, nsCString());
 }
 
 void GPUProcessManager::OnInProcessDeviceReset() {
@@ -525,11 +537,12 @@ void GPUProcessManager::OnRemoteProcessDeviceReset(GPUProcessHost* aHost) {
 
 void GPUProcessManager::FallbackToSoftware(const char* aMessage) {
   gfxConfig::SetFailed(Feature::HW_COMPOSITING, FeatureStatus::Blocked,
-                       aMessage);
+                       aMessage, "GPU_PROCESS_FALLBACK_TO_SOFTWARE"_ns);
 #ifdef XP_WIN
   gfxConfig::SetFailed(Feature::D3D11_COMPOSITING, FeatureStatus::Blocked,
-                       aMessage);
-  gfxConfig::SetFailed(Feature::DIRECT2D, FeatureStatus::Blocked, aMessage);
+                       aMessage, "GPU_PROCESS_FALLBACK_TO_SOFTWARE"_ns);
+  gfxConfig::SetFailed(Feature::DIRECT2D, FeatureStatus::Blocked, aMessage,
+                       "GPU_PROCESS_FALLBACK_TO_SOFTWARE"_ns);
 #endif
 }
 
@@ -541,6 +554,10 @@ void GPUProcessManager::NotifyListenersOnCompositeDeviceReset() {
 
 void GPUProcessManager::OnProcessUnexpectedShutdown(GPUProcessHost* aHost) {
   MOZ_ASSERT(mProcess && mProcess == aHost);
+
+  if (StaticPrefs::layers_gpu_process_crash_also_crashes_browser()) {
+    MOZ_CRASH("GPU process crashed and pref is set to crash the browser.");
+  }
 
   CompositorManagerChild::OnGPUProcessLost(aHost->GetProcessToken());
   DestroyProcess();
@@ -737,8 +754,7 @@ void GPUProcessManager::DestroyProcess() {
   }
 
   CrashReporter::AnnotateCrashReport(
-      CrashReporter::Annotation::GPUProcessStatus,
-      NS_LITERAL_CSTRING("Destroyed"));
+      CrashReporter::Annotation::GPUProcessStatus, "Destroyed"_ns);
 }
 
 already_AddRefed<CompositorSession> GPUProcessManager::CreateTopLevelCompositor(
@@ -789,7 +805,7 @@ RefPtr<CompositorSession> GPUProcessManager::CreateRemoteSession(
     const CompositorOptions& aOptions, bool aUseExternalSurfaceSize,
     const gfx::IntSize& aSurfaceSize) {
 #ifdef MOZ_WIDGET_SUPPORTS_OOP_COMPOSITING
-  CompositorWidgetInitData initData;
+  widget::CompositorWidgetInitData initData;
   aWidget->GetCompositorWidgetInitData(&initData);
 
   RefPtr<CompositorBridgeChild> child =
@@ -803,11 +819,11 @@ RefPtr<CompositorSession> GPUProcessManager::CreateRemoteSession(
 
   RefPtr<CompositorVsyncDispatcher> dispatcher =
       aWidget->GetCompositorVsyncDispatcher();
-  RefPtr<CompositorWidgetVsyncObserver> observer =
-      new CompositorWidgetVsyncObserver(mVsyncBridge, aRootLayerTreeId);
+  RefPtr<widget::CompositorWidgetVsyncObserver> observer =
+      new widget::CompositorWidgetVsyncObserver(mVsyncBridge, aRootLayerTreeId);
 
-  CompositorWidgetChild* widget =
-      new CompositorWidgetChild(dispatcher, observer, initData);
+  widget::CompositorWidgetChild* widget =
+      new widget::CompositorWidgetChild(dispatcher, observer, initData);
   if (!child->SendPCompositorWidgetConstructor(widget, initData)) {
     return nullptr;
   }
@@ -1122,10 +1138,10 @@ class GPUMemoryReporter : public MemoryReportingProcess {
     return false;
   }
 
-  bool SendRequestMemoryReport(const uint32_t& aGeneration,
-                               const bool& aAnonymize,
-                               const bool& aMinimizeMemoryUsage,
-                               const Maybe<FileDescriptor>& aDMDFile) override {
+  bool SendRequestMemoryReport(
+      const uint32_t& aGeneration, const bool& aAnonymize,
+      const bool& aMinimizeMemoryUsage,
+      const Maybe<ipc::FileDescriptor>& aDMDFile) override {
     GPUChild* child = GetChild();
     if (!child) {
       return false;

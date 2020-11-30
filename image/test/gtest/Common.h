@@ -16,6 +16,7 @@
 #include "mozilla/gfx/2D.h"
 #include "Decoder.h"
 #include "gfxColor.h"
+#include "gfxPlatform.h"
 #include "nsCOMPtr.h"
 #include "SurfaceFlags.h"
 #include "SurfacePipe.h"
@@ -34,12 +35,13 @@ struct BGRAColor {
   BGRAColor() : BGRAColor(0, 0, 0, 0) {}
 
   BGRAColor(uint8_t aBlue, uint8_t aGreen, uint8_t aRed, uint8_t aAlpha,
-            bool aPremultiplied = false)
+            bool aPremultiplied = false, bool asRGB = true)
       : mBlue(aBlue),
         mGreen(aGreen),
         mRed(aRed),
         mAlpha(aAlpha),
-        mPremultiplied(aPremultiplied) {}
+        mPremultiplied(aPremultiplied),
+        msRGB(asRGB) {}
 
   static BGRAColor Green() { return BGRAColor(0x00, 0xFF, 0x00, 0xFF); }
   static BGRAColor Red() { return BGRAColor(0x00, 0x00, 0xFF, 0xFF); }
@@ -53,6 +55,25 @@ struct BGRAColor {
     b = (aPixel >> gfx::SurfaceFormatBit::OS_B) & 0xFF;
     a = (aPixel >> gfx::SurfaceFormatBit::OS_A) & 0xFF;
     return BGRAColor(b, g, r, a, true);
+  }
+
+  BGRAColor DeviceColor() const {
+    MOZ_ASSERT(!mPremultiplied);
+    if (msRGB) {
+      gfx::DeviceColor color = gfx::ToDeviceColor(
+          gfx::sRGBColor(float(mRed) / 255.0f, float(mGreen) / 255.0f,
+                         float(mBlue) / 255.0f, 1.0));
+      return BGRAColor(uint8_t(color.b * 255.0f), uint8_t(color.g * 255.0f),
+                       uint8_t(color.r * 255.0f), mAlpha, mPremultiplied,
+                       /* asRGB */ false);
+    }
+    return *this;
+  }
+
+  BGRAColor sRGBColor() const {
+    MOZ_ASSERT(msRGB);
+    MOZ_ASSERT(!mPremultiplied);
+    return *this;
   }
 
   BGRAColor Premultiply() const {
@@ -76,6 +97,7 @@ struct BGRAColor {
   uint8_t mRed;
   uint8_t mAlpha;
   bool mPremultiplied;
+  bool msRGB;
 };
 
 enum TestCaseFlags {
@@ -85,6 +107,7 @@ enum TestCaseFlags {
   TEST_CASE_IS_TRANSPARENT = 1 << 2,
   TEST_CASE_IS_ANIMATED = 1 << 3,
   TEST_CASE_IGNORE_OUTPUT = 1 << 4,
+  TEST_CASE_ASSUME_SRGB_OUTPUT = 1 << 5,
 };
 
 struct ImageTestCase {
@@ -108,6 +131,42 @@ struct ImageTestCase {
         mFlags(aFlags),
         mSurfaceFlags(DefaultSurfaceFlags()),
         mColor(BGRAColor::Green()) {}
+
+  ImageTestCase WithSurfaceFlags(SurfaceFlags aSurfaceFlags) const {
+    ImageTestCase self = *this;
+    self.mSurfaceFlags = aSurfaceFlags;
+    return self;
+  }
+
+  ImageTestCase WithFlags(uint32_t aFlags) const {
+    ImageTestCase self = *this;
+    self.mFlags = aFlags;
+    return self;
+  }
+
+  BGRAColor ChooseColor(const BGRAColor& aColor) const {
+    // If we are forcing the output to be sRGB via the surface flag, or the
+    // test case is marked as assuming sRGB (used when the image itself is not
+    // explicitly tagged, and as a result, imagelib won't perform any color
+    // conversion), we should use the sRGB presentation of the color.
+    if ((mSurfaceFlags & SurfaceFlags::TO_SRGB_COLORSPACE) ||
+        (mFlags & TEST_CASE_ASSUME_SRGB_OUTPUT)) {
+      return aColor.sRGBColor();
+    }
+    return aColor.DeviceColor();
+  }
+
+  BGRAColor Color() const { return ChooseColor(mColor); }
+
+  uint8_t Fuzz() const {
+    // If we are using device space, there can easily be off by 1 channel errors
+    // depending on the color profile and how the rounding went.
+    if (mFlags & TEST_CASE_IS_FUZZY ||
+        !(mSurfaceFlags & SurfaceFlags::TO_SRGB_COLORSPACE)) {
+      return 1;
+    }
+    return 0;
+  }
 
   const char* mPath;
   const char* mMimeType;
@@ -416,6 +475,9 @@ ImageTestCase GreenBMPTestCase();
 ImageTestCase GreenICOTestCase();
 ImageTestCase GreenIconTestCase();
 ImageTestCase GreenWebPTestCase();
+ImageTestCase GreenAVIFTestCase();
+
+ImageTestCase StackCheckAVIFTestCase();
 
 ImageTestCase LargeWebPTestCase();
 ImageTestCase GreenWebPIccSrgbTestCase();

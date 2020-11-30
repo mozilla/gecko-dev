@@ -404,10 +404,6 @@ var AddonTestUtils = {
       "http://127.0.0.1/updateBackgroundURL"
     );
     Services.prefs.setCharPref(
-      "extensions.blocklist.url",
-      "http://127.0.0.1/blocklistURL"
-    );
-    Services.prefs.setCharPref(
       "services.settings.server",
       "http://localhost/dummy-kinto/v1"
     );
@@ -417,19 +413,6 @@ var AddonTestUtils = {
 
     // Ensure signature checks are enabled by default
     Services.prefs.setBoolPref("xpinstall.signatures.required", true);
-
-    // Write out an empty blocklist.xml file to the profile to ensure nothing
-    // is blocklisted by default
-    var blockFile = OS.Path.join(this.profileDir.path, "blocklist.xml");
-
-    var data =
-      '<?xml version="1.0" encoding="UTF-8"?>\n' +
-      '<blocklist xmlns="http://www.mozilla.org/2006/addons-blocklist">\n' +
-      "</blocklist>\n";
-
-    this.awaitPromise(
-      OS.File.writeAtomic(blockFile, new TextEncoder().encode(data))
-    );
 
     // Make sure that a given path does not exist
     function pathShouldntExist(file) {
@@ -597,7 +580,7 @@ var AddonTestUtils = {
           null
         ),
 
-        applyFilter(service, channel, defaultProxyInfo, callback) {
+        applyFilter(channel, defaultProxyInfo, callback) {
           if (hosts.has(channel.URI.host)) {
             callback.onProxyFilterResult(this.proxyInfo);
           } else {
@@ -703,9 +686,6 @@ var AddonTestUtils = {
       version,
       platformVersion,
       crashReporter: true,
-      extraProps: {
-        browserTabsRemoteAutostart: false,
-      },
     });
     this.appInfo = AppInfo.getAppInfo();
   },
@@ -832,7 +812,7 @@ var AddonTestUtils = {
         );
       },
 
-      QueryInterface: ChromeUtils.generateQI([Ci.nsIX509CertDB]),
+      QueryInterface: ChromeUtils.generateQI(["nsIX509CertDB"]),
     };
 
     // Unregister the real database. This only works because the add-ons manager
@@ -908,8 +888,24 @@ var AddonTestUtils = {
     );
     const blocklistMapping = {
       extensions: bsPass.ExtensionBlocklistRS,
+      extensionsMLBF: bsPass.ExtensionBlocklistMLBF,
       plugins: bsPass.PluginBlocklistRS,
     };
+
+    // Since we load the specified test data, we shouldn't let the
+    // packaged JSON dumps to interfere.
+    const pref = "services.settings.load_dump";
+    const backup = Services.prefs.getBoolPref(pref, null);
+    Services.prefs.setBoolPref(pref, false);
+    if (this.testScope) {
+      this.testScope.registerCleanupFunction(() => {
+        if (backup === null) {
+          Services.prefs.clearUserPref(pref);
+        } else {
+          Services.prefs.setBoolPref(pref, backup);
+        }
+      });
+    }
 
     for (const [dataProp, blocklistObj] of Object.entries(blocklistMapping)) {
       let newData = data[dataProp];
@@ -932,9 +928,13 @@ var AddonTestUtils = {
         }
       }
       blocklistObj.ensureInitialized();
-      let collection = await blocklistObj._client.openCollection();
-      await collection.clear();
-      await collection.loadDump(newData);
+      let db = await blocklistObj._client.db;
+      const collectionTimestamp = Math.max(
+        ...newData.map(r => r.last_modified)
+      );
+      await db.importChanges({}, collectionTimestamp, newData, {
+        clear: true,
+      });
       // We manually call _onUpdate... which is evil, but at the moment kinto doesn't have
       // a better abstraction unless you want to mock your own http server to do the update.
       await blocklistObj._onUpdate();
@@ -947,8 +947,12 @@ var AddonTestUtils = {
    * @param {string} [newVersion]
    *        If provided, the application version is changed to this string
    *        before the AddonManager is started.
+   * @param {string} [newPlatformVersion]
+   *        If provided, the platform version is changed to this string
+   *        before the AddonManager is started.  It will default to the appVersion
+   *        as that is how Firefox currently builds (app === platform).
    */
-  async promiseStartupManager(newVersion) {
+  async promiseStartupManager(newVersion, newPlatformVersion = newVersion) {
     if (this.addonIntegrationService) {
       throw new Error(
         "Attempting to startup manager that was already started."
@@ -957,16 +961,12 @@ var AddonTestUtils = {
 
     if (newVersion) {
       this.appInfo.version = newVersion;
-      if (Cu.isModuleLoaded("resource://gre/modules/Blocklist.jsm")) {
-        let bsPassBlocklist = ChromeUtils.import(
-          "resource://gre/modules/Blocklist.jsm",
-          null
-        );
-        Object.defineProperty(bsPassBlocklist, "gAppVersion", {
-          value: newVersion,
-        });
-      }
     }
+
+    if (newPlatformVersion) {
+      this.appInfo.platformVersion = newPlatformVersion;
+    }
+
     // AddonListeners are removed when the addonManager is shutdown,
     // ensure the Extension observer is added.  We call uninit in
     // promiseShutdown to allow re-initialization.
@@ -1443,7 +1443,7 @@ var AddonTestUtils = {
   },
 
   async promiseSetExtensionModifiedTime(path, time) {
-    await OS.File.setDates(path, time, time);
+    await IOUtils.touch(path, time);
 
     let iterator = new OS.File.DirectoryIterator(path);
     try {
@@ -1470,7 +1470,7 @@ var AddonTestUtils = {
         return null;
       },
 
-      QueryInterface: ChromeUtils.generateQI([Ci.nsIDirectoryServiceProvider]),
+      QueryInterface: ChromeUtils.generateQI(["nsIDirectoryServiceProvider"]),
     };
     Services.dirsvc.registerProvider(dirProvider);
 
@@ -1492,14 +1492,22 @@ var AddonTestUtils = {
    * @param {string} event
    *        The name of the AddonListener event handler method for which
    *        an event is expected.
+   * @param {function} checkFn [optional]
+   *        A function to check if this is the right event. Should return true
+   *        for the event that it wants, false otherwise. Will be passed
+   *        all the relevant arguments.
+   *        If not passed, any event will do to resolve the promise.
    * @returns {Promise<Array>}
    *        Resolves to an array containing the event handler's
    *        arguments the first time it is called.
    */
-  promiseAddonEvent(event) {
+  promiseAddonEvent(event, checkFn) {
     return new Promise(resolve => {
       let listener = {
         [event](...args) {
+          if (typeof checkFn == "function" && !checkFn(...args)) {
+            return;
+          }
           AddonManager.removeAddonListener(listener);
           resolve(args);
         },
@@ -1640,7 +1648,9 @@ var AddonTestUtils = {
     reason = AddonTestUtils.updateReason,
     ...args
   ) {
-    let equal = this.testScope.equal;
+    // Retrieve the test assertion helper from the testScope
+    // (which is `equal` in xpcshell-test and `is` in mochitest)
+    let equal = this.testScope.equal || this.testScope.is;
     return new Promise((resolve, reject) => {
       let result = {};
       addon.findUpdates(

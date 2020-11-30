@@ -11,20 +11,18 @@
 #include "mozilla/a11y/Role.h"
 #include "mozilla/a11y/States.h"
 
+#include "mozilla/dom/Element.h"
+
 #include "mozilla/UniquePtr.h"
 
 #include "nsIContent.h"
-#include "nsIContentInlines.h"
-#include "nsString.h"
 #include "nsTArray.h"
 #include "nsRefPtrHashtable.h"
 #include "nsRect.h"
 
 struct nsRoleMapEntry;
 
-struct nsRect;
 class nsIFrame;
-class nsAtom;
 class nsIPersistentProperties;
 
 namespace mozilla {
@@ -39,6 +37,7 @@ class EmbeddedObjCollector;
 class EventTree;
 class HTMLImageMapAccessible;
 class HTMLLIAccessible;
+class HTMLLinkAccessible;
 class HyperTextAccessible;
 class ImageAccessible;
 class KeyBinding;
@@ -275,15 +274,6 @@ class Accessible : public nsISupports {
     uint64_t state = NativeLinkState();
     ApplyARIAState(&state);
     return state;
-  }
-
-  /**
-   * Return if accessible is unavailable.
-   */
-  bool Unavailable() const {
-    uint64_t state = NativelyUnavailable() ? states::UNAVAILABLE : 0;
-    ApplyARIAState(&state);
-    return state & states::UNAVAILABLE;
   }
 
   /**
@@ -592,6 +582,9 @@ class Accessible : public nsISupports {
 
   bool IsHTMLListItem() const { return mType == eHTMLLiType; }
   HTMLLIAccessible* AsHTMLListItem();
+
+  bool IsHTMLLink() const { return mType == eHTMLLinkType; }
+  HTMLLinkAccessible* AsHTMLLink();
 
   bool IsHTMLOptGroup() const { return mType == eHTMLOptGroupType; }
 
@@ -988,6 +981,12 @@ class Accessible : public nsISupports {
   void SetHideEventTarget(bool aTarget) { mHideEventTarget = aTarget; }
 
   void Announce(const nsAString& aAnnouncement, uint16_t aPriority);
+
+  /**
+   * Fire a focusable state change event if the previous state
+   * was different.
+   */
+  void MaybeFireFocusableStateChange(bool aPreviouslyFocusable);
 
  protected:
   virtual ~Accessible();

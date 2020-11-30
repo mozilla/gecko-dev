@@ -7,14 +7,12 @@
 #include "MemoryTelemetry.h"
 #include "nsMemoryReporterManager.h"
 
-#include "GCTelemetry.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Result.h"
 #include "mozilla/ResultExtensions.h"
 #include "mozilla/Services.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/SimpleEnumerator.h"
-#include "mozilla/SystemGroup.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/dom/ContentParent.h"
@@ -47,19 +45,6 @@ static constexpr const char* kTopicCycleCollectorBegin =
 
 // How long to wait in millis for all the child memory reports to come in
 static constexpr uint32_t kTotalMemoryCollectorTimeout = 200;
-
-static Result<nsCOMPtr<mozIGCTelemetry>, nsresult> GetGCTelemetry() {
-  nsresult rv;
-
-  nsCOMPtr<mozIGCTelemetryJSM> jsm =
-      do_ImportModule("resource://gre/modules/GCTelemetry.jsm", &rv);
-  MOZ_TRY(rv);
-
-  nsCOMPtr<mozIGCTelemetry> gcTelemetry;
-  MOZ_TRY(jsm->GetGCTelemetry(getter_AddRefs(gcTelemetry)));
-
-  return std::move(gcTelemetry);
-}
 
 namespace {
 
@@ -142,13 +127,6 @@ nsresult MemoryTelemetry::DelayedInit() {
 
   GatherReports();
 
-  if (Telemetry::CanRecordExtended()) {
-    nsCOMPtr<mozIGCTelemetry> gcTelemetry;
-    MOZ_TRY_VAR(gcTelemetry, GetGCTelemetry());
-
-    MOZ_TRY(gcTelemetry->Init());
-  }
-
   return NS_OK;
 }
 
@@ -157,13 +135,6 @@ nsresult MemoryTelemetry::Shutdown() {
   MOZ_RELEASE_ASSERT(obs);
 
   obs->RemoveObserver(this, kTopicCycleCollectorBegin);
-
-  if (Telemetry::CanRecordExtended()) {
-    nsCOMPtr<mozIGCTelemetry> gcTelemetry;
-    MOZ_TRY_VAR(gcTelemetry, GetGCTelemetry());
-
-    MOZ_TRY(gcTelemetry->Shutdown());
-  }
 
   return NS_OK;
 }
@@ -341,8 +312,7 @@ NS_IMPL_ISUPPORTS(MemoryTelemetry::TotalMemoryGatherer, nsITimerCallback)
  * results.
  */
 void MemoryTelemetry::TotalMemoryGatherer::Begin(nsIEventTarget* aThreadPool) {
-  nsCOMPtr<nsISerialEventTarget> target =
-      SystemGroup::EventTargetFor(TaskCategory::Other);
+  nsCOMPtr<nsISerialEventTarget> target = GetMainThreadSerialEventTarget();
 
   nsTArray<ContentParent*> parents;
   ContentParent::GetAll(parents);

@@ -18,7 +18,7 @@ from taskgraph.util.schema import (
     resolve_keyed_by,
 )
 from taskgraph.util.taskcluster import get_artifact_prefix
-from taskgraph.util.partners import check_if_partners_enabled, get_partner_config_by_kind
+from taskgraph.util.partners import get_partner_config_by_kind
 from taskgraph.util.platforms import archive_format, executable_extension
 from taskgraph.util.workertypes import worker_type_implementation
 from taskgraph.transforms.task import task_description_schema
@@ -37,9 +37,6 @@ PACKAGE_FORMATS['installer-stub']['inputs']['package'] = 'target-stub{archive_fo
 PACKAGE_FORMATS['installer-stub']['args'].extend(["--package-name", "{package-name}"])
 
 packaging_description_schema = schema.extend({
-    # depname is used in taskref's to identify the taskID of the signed things
-    Required('depname', default='build'): text_type,
-
     # unique label to describe this repackaging task
     Optional('label'): text_type,
 
@@ -66,7 +63,7 @@ packaging_description_schema = schema.extend({
 
         # if true, perform a checkout of a comm-central based branch inside the
         # gecko checkout
-        Required('comm-checkout', default=False): bool,
+        Optional('comm-checkout'): bool,
     },
 
     # Override the default priority for the project
@@ -74,7 +71,6 @@ packaging_description_schema = schema.extend({
 })
 
 transforms = TransformSequence()
-transforms.add(check_if_partners_enabled)
 transforms.add_validate(packaging_description_schema)
 
 
@@ -182,7 +178,7 @@ def make_job_description(config, jobs):
         }
 
         worker_type = 'b-linux'
-        worker['docker-image'] = {"in-tree": "debian7-amd64-build"}
+        worker['docker-image'] = {"in-tree": "debian8-amd64-build"}
 
         worker['artifacts'] = _generate_task_output_files(
             dep_job, worker_type_implementation(config.graph_config, worker_type),

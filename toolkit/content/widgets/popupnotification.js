@@ -23,6 +23,7 @@
           "text=secondname,popupid",
         ".popup-notification-description > span:last-of-type":
           "text=secondendlabel,popupid",
+        ".popup-notification-hint-text": "text=hinttext",
         ".popup-notification-closebutton":
           "oncommand=closebuttoncommand,hidden=closebuttonhidden",
         ".popup-notification-learnmore-link":
@@ -64,14 +65,8 @@
       this.hidden = false;
     }
 
-    slotContents() {
-      if (this._hasSlotted) {
-        return;
-      }
-      this._hasSlotted = true;
-      this.appendChild(
-        MozXULElement.parseXULToFragment(
-          `
+    static get markup() {
+      return `
       <hbox class="popup-notification-header-container"></hbox>
       <hbox align="start" class="popup-notification-body-container">
         <image class="popup-notification-icon"/>
@@ -83,6 +78,7 @@
                   whitespace between them (whitespace is added in the
                   localization file, if necessary). -->
               <description class="popup-notification-description"><html:span></html:span><html:b></html:b><html:span></html:span><html:b></html:b><html:span></html:span></description>
+              <description class="popup-notification-hint-text"></description>
             </vbox>
             <toolbarbutton class="messageCloseButton close-icon popup-notification-closebutton tabbable" tooltiptext="&closeNotification.tooltip;"></toolbarbutton>
           </hbox>
@@ -101,10 +97,19 @@
         </button>
         <button class="popup-notification-button popup-notification-primary-button" label="&defaultButton.label;" accesskey="&defaultButton.accesskey;"></button>
       </hbox>
-    `,
-          ["chrome://global/locale/notification.dtd"]
-        )
-      );
+      `;
+    }
+
+    static get entities() {
+      return ["chrome://global/locale/notification.dtd"];
+    }
+
+    slotContents() {
+      if (this._hasSlotted) {
+        return;
+      }
+      this._hasSlotted = true;
+      this.appendChild(this.constructor.fragment);
 
       this.button = this.querySelector(".popup-notification-primary-button");
       this.secondaryButton = this.querySelector(

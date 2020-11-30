@@ -1,7 +1,6 @@
 # Definitions for jobs that run periodically.  For details on the format, see
-# `taskcluster/taskgraph/cron/schema.py`.  For documentation, see
-# `taskcluster/docs/cron.rst`.
-
+# `https://hg.mozilla.org/ci/ci-admin/file/default/build-decision/src/build_decision/cron/schema.yml`.
+# For documentation, see `taskcluster/docs/cron.rst`.
 ---
 
 jobs:
@@ -16,9 +15,9 @@ jobs:
           by-project:
               # No default
               mozilla-beta:
-                  - {weekday: 'Monday', hour: 2, minute: 0}
-                  - {weekday: 'Wednesday', hour: 2, minute: 0}
-                  - {weekday: 'Friday', hour: 2, minute: 0}
+                  - {weekday: 'Sunday', hour: 21, minute: 0}
+                  - {weekday: 'Tuesday', hour: 21, minute: 0}
+                  - {weekday: 'Thursday', hour: 21, minute: 0}
 
     - name: nightly-desktop
       job:
@@ -107,6 +106,17 @@ jobs:
       when:
           - {weekday: 'Saturday', hour: 5, minute: 0}
 
+    - name: live-site-perf-testing
+      job:
+          type: decision-task
+          treeherder-symbol: lst
+          target-tasks-method: live_site_perf_testing
+          include-push-tasks: true
+      run-on-projects:
+          - mozilla-central
+      when:
+          - {weekday: 'Sunday', hour: 5, minute: 0}
+
     - name: general-perf-testing
       job:
           type: decision-task
@@ -129,7 +139,17 @@ jobs:
           - mozilla-central
           - mozilla-beta
           - mozilla-release
-          - mozilla-esr68
+          - mozilla-esr78
+      when:
+          - {hour: 10, minute: 0}
+
+    - name: coverity-tree-analysis
+      job:
+          type: decision-task
+          treeherder-symbol: CoverityTA
+          target-tasks-method: coverity_static_analysis_full
+      run-on-projects:
+          - mozilla-central
       when:
           - {hour: 10, minute: 0}
 
@@ -166,7 +186,7 @@ jobs:
           - mozilla-central
           - mozilla-beta
           - mozilla-release
-          - mozilla-esr68
+          - mozilla-esr78
       when:
           by-project:
               # No default branch
@@ -179,7 +199,7 @@ jobs:
               mozilla-release:
                   - {hour: 7, minute: 0}
                   - {hour: 19, minute: 0}
-              mozilla-esr68:
+              mozilla-esr78:
                   - {hour: 7, minute: 0}
                   - {hour: 19, minute: 0}
 
@@ -192,7 +212,7 @@ jobs:
           - mozilla-central
           - mozilla-beta
           - mozilla-release
-          - mozilla-esr68
+          - mozilla-esr78
       when:
           - {weekday: 'Monday', hour: 10, minute: 0}
           - {weekday: 'Thursday', hour: 10, minute: 0}
@@ -227,11 +247,31 @@ jobs:
           - {weekday: 'Saturday', hour: 3, minute: 0}
           - {weekday: 'Sunday', hour: 3, minute: 0}
 
+    - name: raptor-tp6-windows10-64-ref-hw-2017
+      job:
+          type: decision-task
+          treeherder-symbol: tp6
+          target-tasks-method: raptor_tp6_windows10_64_ref_hw_2017
+          include-push-tasks: true
+      run-on-projects:
+          - mozilla-central
+      when:
+          - {weekday: 'Monday', hour: 3, minute: 0}
+          - {weekday: 'Tuesday', hour: 3, minute: 0}
+          - {weekday: 'Wednesday', hour: 3, minute: 0}
+          - {weekday: 'Thursday', hour: 3, minute: 0}
+          - {weekday: 'Friday', hour: 3, minute: 0}
+          - {weekday: 'Saturday', hour: 3, minute: 0}
+          - {weekday: 'Sunday', hour: 3, minute: 0}
+
+
     - name: condprof
       job:
           type: decision-task
           treeherder-symbol: condprof
           target-tasks-method: condprof
+          include-push-tasks: true
+          optimize-target-tasks: false
       run-on-projects:
           - mozilla-central
       when:
@@ -244,8 +284,6 @@ jobs:
           target-tasks-method: l10n_bump
       run-on-projects:
           - mozilla-central
-          - mozilla-beta
-          - mozilla-esr68
       when:
           - {minute: 45}
 
@@ -258,3 +296,30 @@ jobs:
           - mozilla-central
       when:
           - {hour: 0, minute: 0}
+
+    - name: perftest
+      job:
+          type: decision-task
+          treeherder-symbol: perftest
+          target-tasks-method: perftest
+      run-on-projects:
+          - mozilla-central
+      when:
+          - {hour: 4, minute: 00}
+
+    - name: perftest-on-autoland
+      job:
+          type: decision-task
+          treeherder-symbol: perftest-auto
+          target-tasks-method: perftest-on-autoland
+      run-on-projects:
+          - autoland
+      when:
+          - {hour: 4, minute: 00}
+
+    - name: scriptworker-canary
+      job:
+          type: trigger-action
+          action-name: scriptworker-canary
+          include-cron-input: true
+      when: []  # never (hook only)

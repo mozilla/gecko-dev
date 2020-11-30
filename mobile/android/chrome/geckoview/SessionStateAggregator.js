@@ -86,7 +86,7 @@ class StateChangeNotifier extends Handler {
    * @param method (string)
    */
   notifyObservers(method) {
-    for (let obs of this._observers) {
+    for (const obs of this._observers) {
       if (typeof obs[method] == "function") {
         obs[method]();
       }
@@ -120,8 +120,8 @@ class StateChangeNotifier extends Handler {
   }
 }
 StateChangeNotifier.prototype.QueryInterface = ChromeUtils.generateQI([
-  Ci.nsIWebProgressListener,
-  Ci.nsISupportsWeakReference,
+  "nsIWebProgressListener",
+  "nsISupportsWeakReference",
 ]);
 
 /**
@@ -199,7 +199,7 @@ class SessionHistoryListener extends Handler {
         return null;
       }
 
-      let history = SessionHistory.collect(this.mm.docShell, this._fromIdx);
+      const history = SessionHistory.collect(this.mm.docShell, this._fromIdx);
       this._fromIdx = NO_INDEX;
       return history;
     });
@@ -245,8 +245,8 @@ class SessionHistoryListener extends Handler {
   }
 }
 SessionHistoryListener.prototype.QueryInterface = ChromeUtils.generateQI([
-  Ci.nsISHistoryListener,
-  Ci.nsISupportsWeakReference,
+  "nsISHistoryListener",
+  "nsISupportsWeakReference",
 ]);
 
 /**
@@ -567,9 +567,9 @@ class MessageQueue extends Handler {
 
     this.cleanupTimers();
 
-    let data = {};
-    for (let [key, func] of this._data) {
-      let value = func();
+    const data = {};
+    for (const [key, func] of this._data) {
+      const value = func();
 
       if (value || (key != "storagechange" && key != "historychange")) {
         data[key] = value;
@@ -633,7 +633,7 @@ class SessionStateAggregator extends GeckoViewChildModule {
     // the parent and flush all data currently held in the child.
     this.messageQueue.send({ isFinal: true });
 
-    for (let handler of this.handlers) {
+    for (const handler of this.handlers) {
       if (handler.uninit) {
         handler.uninit();
       }
@@ -646,5 +646,5 @@ class SessionStateAggregator extends GeckoViewChildModule {
 
 const { debug, warn } = SessionStateAggregator.initLogging(
   "SessionStateAggregator"
-); // eslint-disable-line no-unused-vars
+);
 const module = SessionStateAggregator.create(this);

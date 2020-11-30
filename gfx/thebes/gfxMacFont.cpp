@@ -17,6 +17,7 @@
 #include "gfxMacPlatformFontList.h"
 #include "gfxFontConstants.h"
 #include "gfxTextRun.h"
+#include "gfxUtils.h"
 #include "nsCocoaFeatures.h"
 #include "cairo-quartz.h"
 
@@ -101,7 +102,7 @@ gfxMacFont::gfxMacFont(const RefPtr<UnscaledFontMac>& aUnscaledFont,
     }
 
     mCGFont = UnscaledFontMac::CreateCGFontWithVariations(
-        baseFont, vars.Length(), vars.Elements());
+        baseFont, aUnscaledFont->AxesCache(), vars.Length(), vars.Elements());
     if (!mCGFont) {
       ::CFRetain(baseFont);
       mCGFont = baseFont;
@@ -532,7 +533,7 @@ already_AddRefed<ScaledFont> gfxMacFont::GetScaledFont(DrawTarget* aTarget) {
   if (!mAzureScaledFont) {
     mAzureScaledFont = Factory::CreateScaledFontForMacFont(
         GetCGFontRef(), GetUnscaledFont(), GetAdjustedSize(),
-        Color::FromABGR(mFontSmoothingBackgroundColor),
+        ToDeviceColor(mFontSmoothingBackgroundColor),
         !mStyle.useGrayscaleAntialiasing, IsSyntheticBold());
     if (!mAzureScaledFont) {
       return nullptr;

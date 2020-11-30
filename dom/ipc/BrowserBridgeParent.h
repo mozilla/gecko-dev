@@ -10,6 +10,7 @@
 #include "mozilla/dom/PBrowserBridgeParent.h"
 #include "mozilla/Tuple.h"
 #include "mozilla/dom/ipc/IdType.h"
+#include "mozilla/dom/WindowGlobalTypes.h"
 
 namespace mozilla {
 
@@ -31,8 +32,8 @@ class BrowserBridgeParent : public PBrowserBridgeParent {
 
   BrowserBridgeParent();
 
-  nsresult InitWithProcess(ContentParent* aContentParent,
-                           const nsString& aPresentationURL,
+  nsresult InitWithProcess(BrowserParent* aParentBrowser,
+                           ContentParent* aContentParent,
                            const WindowGlobalInit& aWindowInit,
                            uint32_t aChromeFlags, TabId aTabId);
 
@@ -63,7 +64,7 @@ class BrowserBridgeParent : public PBrowserBridgeParent {
 
   mozilla::ipc::IPCResult RecvShow(const OwnerShowInfo&);
   mozilla::ipc::IPCResult RecvScrollbarPreferenceChanged(ScrollbarPreference);
-  mozilla::ipc::IPCResult RecvLoadURL(const nsCString& aUrl);
+  mozilla::ipc::IPCResult RecvLoadURL(nsDocShellLoadState* aLoadState);
   mozilla::ipc::IPCResult RecvResumeLoad(uint64_t aPendingSwitchID);
   mozilla::ipc::IPCResult RecvUpdateDimensions(const nsIntRect& aRect,
                                                const ScreenIntSize& aSize);

@@ -11,6 +11,7 @@
 #include "mozilla/gfx/Tools.h"
 #include "mozilla/gfx/Rect.h"
 #include "mozilla/gfx/Point.h"
+#include "mozilla/ipc/ProcessChild.h"
 #include "mozilla/layers/CanvasDrawEventRecorder.h"
 #include "nsIObserverService.h"
 #include "RecordedCanvasEventImpl.h"
@@ -27,7 +28,8 @@ class RingBufferWriterServices final
   ~RingBufferWriterServices() final = default;
 
   bool ReaderClosed() final {
-    return !mCanvasChild->GetIPCChannel()->CanSend();
+    return !mCanvasChild->GetIPCChannel()->CanSend() ||
+           ipc::ProcessChild::ExpectingShutdown();
   }
 
   void ResumeReader() final { mCanvasChild->ResumeTranslation(); }
@@ -113,13 +115,24 @@ CanvasChild::CanvasChild(Endpoint<PCanvasChild>&& aEndpoint) {
 
 CanvasChild::~CanvasChild() = default;
 
-ipc::IPCResult CanvasChild::RecvNotifyDeviceChanged() {
-  nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
+static void NotifyCanvasDeviceReset() {
+  nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
   if (obs) {
     obs->NotifyObservers(nullptr, "canvas-device-reset", nullptr);
   }
+}
 
+ipc::IPCResult CanvasChild::RecvNotifyDeviceChanged() {
+  NotifyCanvasDeviceReset();
   mRecorder->RecordEvent(RecordedDeviceChangeAcknowledged());
+  return IPC_OK();
+}
+
+/* static */ bool CanvasChild::mDeactivated = false;
+
+ipc::IPCResult CanvasChild::RecvDeactivate() {
+  mDeactivated = true;
+  NotifyCanvasDeviceReset();
   return IPC_OK();
 }
 
@@ -211,8 +224,13 @@ void CanvasChild::EndTransaction() {
 }
 
 bool CanvasChild::ShouldBeCleanedUp() const {
+  // Always return true if we've been deactivated.
+  if (Deactivated()) {
+    return true;
+  }
+
   // We can only be cleaned up if nothing else references our recorder.
-  if (!mRecorder->hasOneRef()) {
+  if (mRecorder && !mRecorder->hasOneRef()) {
     return false;
   }
 

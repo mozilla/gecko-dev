@@ -30,6 +30,17 @@ ${helpers.single_keyword(
 )}
 
 ${helpers.single_keyword(
+    "-moz-inert",
+    "none inert",
+    engines="gecko",
+    gecko_ffi_name="mInert",
+    gecko_enum_prefix="StyleInert",
+    animation_value_type="discrete",
+    enabled_in="ua",
+    spec="Nonstandard (https://html.spec.whatwg.org/multipage/interaction.html#inert-subtrees)",
+)}
+
+${helpers.single_keyword(
     "-moz-user-input",
     "auto none",
     engines="gecko",
@@ -77,13 +88,7 @@ ${helpers.predefined_type(
     "Default::default()",
     engines="gecko",
     spec="https://drafts.csswg.org/css-scrollbars-1/#scrollbar-color",
-    gecko_pref="layout.css.scrollbar-color.enabled",
-    # Surprisingly, yes the computed value of scrollbar-color has no effect on
-    # Gecko scrollbar elements, since the value only matters on the scrollable
-    # element itself.
-    has_effect_on_gecko_scrollbars=False,
     animation_value_type="ScrollbarColor",
     boxed=True,
     ignored_when_colors_disabled=True,
-    enabled_in="chrome",
 )}

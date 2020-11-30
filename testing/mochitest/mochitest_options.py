@@ -7,10 +7,11 @@ from argparse import ArgumentParser, SUPPRESS
 from distutils.util import strtobool
 from distutils import spawn
 from itertools import chain
-from urlparse import urlparse
+from six.moves.urllib.parse import urlparse
 import json
 import os
 import tempfile
+import sys
 
 from mozprofile import DEFAULT_PORTS
 import mozinfo
@@ -393,6 +394,12 @@ class MochitestArguments(ArgumentContainer):
           "default": False,
           "help": "Start the browser JS debugger before running the test. Implies --no-autorun.",
           }],
+        [["--jsdebugger-path"],
+         {"default": None,
+          "dest": "jsdebuggerPath",
+          "help": "Path to a Firefox binary that will be used to run the toolbox. Should "
+                  "be used together with --jsdebugger."
+          }],
         [["--debug-on-failure"],
          {"action": "store_true",
           "default": False,
@@ -410,6 +417,12 @@ class MochitestArguments(ArgumentContainer):
          {"action": "store_true",
           "default": False,
           "help": "Run tests with fission (site isolation) enabled.",
+          }],
+        [["--enable-xorigin-tests"],
+         {"action": "store_true",
+          "default": False,
+          "dest": "xOriginTests",
+          "help": "Run tests in a cross origin iframe.",
           }],
         [["--store-chrome-manifest"],
          {"action": "store",
@@ -539,12 +552,6 @@ class MochitestArguments(ArgumentContainer):
           "help": "Filter out tests that don't have the given tag. Can be used multiple "
                   "times in which case the test must contain at least one of the given tags.",
           }],
-        [["--enable-cpow-warnings"],
-         {"action": "store_true",
-          "dest": "enableCPOWWarnings",
-          "help": "Enable logging of unsafe CPOW usage, which is disabled by default for tests",
-          "suppress": True,
-          }],
         [["--marionette"],
          {"default": None,
           "help": "host:port to use when connecting to Marionette",
@@ -590,6 +597,11 @@ class MochitestArguments(ArgumentContainer):
           "help": "Run tests in verification mode: Run many times in different "
                   "ways, to see if there are intermittent failures.",
           }],
+        [["--verify-fission"],
+         {"action": "store_true",
+          "default": False,
+          "help": "Run tests once without Fission, once with Fission",
+          }],
         [["--verify-max-time"],
          {"type": int,
           "default": 3600,
@@ -600,6 +612,22 @@ class MochitestArguments(ArgumentContainer):
           "dest": "enable_webrender",
           "default": False,
           "help": "Enable the WebRender compositor in Gecko.",
+          }],
+        [["--profiler"],
+         {"action": "store_true",
+          "dest": "profiler",
+          "default": False,
+          "help": "Run the Firefox Profiler and get a performance profile of the "
+                  "mochitest. This is useful to find performance issues, and also "
+                  "to see what exactly the test is doing. To get profiler options run: "
+                  "`MOZ_PROFILER_HELP=1 ./mach run`"
+          }],
+        [["--profiler-save-only"],
+         {"action": "store_true",
+          "dest": "profilerSaveOnly",
+          "default": False,
+          "help": "Run the Firefox Profiler and save it to the path specified by the "
+                  "MOZ_UPLOAD_DIR environment variable."
           }],
     ]
 
@@ -626,7 +654,12 @@ class MochitestArguments(ArgumentContainer):
         if parser.app != 'android':
             if options.app is None:
                 if build_obj:
-                    options.app = build_obj.get_binary_path()
+                    from mozbuild.base import BinaryNotFoundException
+                    try:
+                        options.app = build_obj.get_binary_path()
+                    except BinaryNotFoundException as e:
+                        print('{}\n\n{}\n'.format(e, e.help()))
+                        sys.exit(1)
                 else:
                     parser.error(
                         "could not find the application path, --appname must be specified")
@@ -716,6 +749,10 @@ class MochitestArguments(ArgumentContainer):
         if options.debugOnFailure and not options.jsdebugger:
             parser.error(
                 "--debug-on-failure requires --jsdebugger.")
+
+        if options.jsdebuggerPath and not options.jsdebugger:
+            parser.error(
+                "--jsdebugger-path requires --jsdebugger.")
 
         if options.debuggerArgs and not options.debugger:
             parser.error(
@@ -828,7 +865,6 @@ class MochitestArguments(ArgumentContainer):
         if options.enable_fission:
             options.extraPrefs.append("fission.autostart=true")
             options.extraPrefs.append("dom.serviceWorkers.parent_intercept=true")
-            options.extraPrefs.append("browser.tabs.documentchannel=true")
 
         options.leakThresholds = {
             "default": options.defaultLeakThreshold,
@@ -898,7 +934,7 @@ class AndroidArguments(ArgumentContainer):
          {"dest": "remoteTestRoot",
           "default": None,
           "help": "Remote directory to use as test root "
-                  "(eg. /mnt/sdcard/tests or /data/local/tests).",
+                  "(eg. /data/local/tmp/test_root).",
           "suppress": True,
           }],
         [["--enable-coverage"],

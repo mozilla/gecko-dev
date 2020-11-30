@@ -10,6 +10,7 @@
 #include "mozilla/Preferences.h"
 #include "nsCharSeparatedTokenizer.h"
 #include "nsEffectiveTLDService.h"
+#include "nsIURI.h"
 #include "nsIURIMutator.h"
 
 namespace {
@@ -61,7 +62,7 @@ nsresult URLDecorationStripper::StripTrackingIdentifiers(nsIURI* aURI,
 nsresult URLDecorationStripper::StripToRegistrableDomain(nsIURI* aURI,
                                                          nsACString& aOutSpec) {
   NS_MutateURI mutator(aURI);
-  mutator.SetPathQueryRef(EmptyCString()).SetUserPass(EmptyCString());
+  mutator.SetPathQueryRef(""_ns).SetUserPass(""_ns);
 
   RefPtr<nsEffectiveTLDService> etldService =
       nsEffectiveTLDService::GetInstance();

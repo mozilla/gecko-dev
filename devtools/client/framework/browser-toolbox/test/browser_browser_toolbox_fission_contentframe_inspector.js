@@ -6,7 +6,7 @@
 const { PromiseTestUtils } = ChromeUtils.import(
   "resource://testing-common/PromiseTestUtils.jsm"
 );
-PromiseTestUtils.whitelistRejectionsGlobally(/File closed/);
+PromiseTestUtils.allowMatchingRejectionsGlobally(/File closed/);
 
 /* import-globals-from ../../../inspector/test/shared-head.js */
 Services.scriptloader.loadSubScript(
@@ -14,7 +14,7 @@ Services.scriptloader.loadSubScript(
   this
 );
 
-// On debug test slave, it takes about 50s to run the test.
+// On debug test machine, it takes about 50s to run the test.
 requestLongerTimeout(4);
 
 /**

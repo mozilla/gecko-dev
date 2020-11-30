@@ -149,7 +149,7 @@ class nsBidiPresUtils {
    */
   class BidiProcessor {
    public:
-    virtual ~BidiProcessor() {}
+    virtual ~BidiProcessor() = default;
 
     /**
      * Sets the current text with the given length and the given direction.
@@ -322,7 +322,7 @@ class nsBidiPresUtils {
   /**
    * Get the bidi base level of the given (inline) frame.
    */
-  static nsBidiLevel GetFrameBaseLevel(nsIFrame* aFrame);
+  static nsBidiLevel GetFrameBaseLevel(const nsIFrame* aFrame);
 
   /**
    * Get an nsBidiDirection representing the direction implied by the
@@ -330,7 +330,7 @@ class nsBidiPresUtils {
    * @return NSBIDI_LTR (left-to-right) or NSBIDI_RTL (right-to-left)
    *  NSBIDI_MIXED will never be returned.
    */
-  static nsBidiDirection ParagraphDirection(nsIFrame* aFrame) {
+  static nsBidiDirection ParagraphDirection(const nsIFrame* aFrame) {
     return DIRECTION_FROM_LEVEL(GetFrameBaseLevel(aFrame));
   }
 
@@ -346,6 +346,14 @@ class nsBidiPresUtils {
 
   static bool IsFrameInParagraphDirection(nsIFrame* aFrame) {
     return ParagraphDirection(aFrame) == FrameDirection(aFrame);
+  }
+
+  // This is faster than nsBidiPresUtils::IsFrameInParagraphDirection,
+  // because it uses the frame pointer passed in without drilling down to
+  // the leaf frame.
+  static bool IsReversedDirectionFrame(nsIFrame* aFrame) {
+    mozilla::FrameBidiData bidiData = aFrame->GetBidiData();
+    return !IS_SAME_DIRECTION(bidiData.embeddingLevel, bidiData.baseLevel);
   }
 
   enum Mode { MODE_DRAW, MODE_MEASURE };

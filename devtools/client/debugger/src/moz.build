@@ -7,6 +7,7 @@ DIRS += [
     'actions',
     'client',
     'components',
+    'context-menu',
     'reducers',
     'selectors',
     'utils',
@@ -17,8 +18,4 @@ CompiledModules(
     'main.development.js',
     'main.js',
     'vendors.js',
-)
-
-DevToolsModules(
-    'debugger.css',
 )

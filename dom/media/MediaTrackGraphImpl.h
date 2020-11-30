@@ -29,6 +29,7 @@ namespace media {
 class ShutdownBlocker;
 }
 
+class AudioContextOperationControlMessage;
 template <typename T>
 class LinkedList;
 class GraphRunner;
@@ -115,6 +116,7 @@ class MediaTrackGraphImpl : public MediaTrackGraph,
   explicit MediaTrackGraphImpl(GraphDriverType aGraphDriverRequested,
                                GraphRunType aRunTypeRequested,
                                TrackRate aSampleRate, uint32_t aChannelCount,
+                               CubebUtils::AudioDeviceID aOutputDeviceID,
                                AbstractThread* aWindow);
 
   // Intended only for assertions, either on graph thread or not running (in
@@ -173,7 +175,8 @@ class MediaTrackGraphImpl : public MediaTrackGraph,
    * Make this MediaTrackGraph enter forced-shutdown state. This state
    * will be noticed by the media graph thread, which will shut down all tracks
    * and other state controlled by the media graph thread.
-   * This is called during application shutdown.
+   * This is called during application shutdown, and on document unload if an
+   * AudioContext is using the graph.
    */
   void ForceShutDown();
 
@@ -307,7 +310,11 @@ class MediaTrackGraphImpl : public MediaTrackGraph,
    */
   void RunMessageAfterProcessing(UniquePtr<ControlMessage> aMessage);
 
-  void NotifyWhenGraphStarted(RefPtr<AudioNodeTrack> aTrack,
+  /**
+   * Resolve the GraphStartedPromise when the driver has started processing on
+   * the audio thread after the device has started.
+   */
+  void NotifyWhenGraphStarted(RefPtr<MediaTrack> aTrack,
                               MozPromiseHolder<GraphStartedPromise>&& aHolder);
 
   /**
@@ -315,27 +322,7 @@ class MediaTrackGraphImpl : public MediaTrackGraph,
    * thread.
    */
   void ApplyAudioContextOperationImpl(
-      MediaTrack* aDestinationTrack, const nsTArray<MediaTrack*>& aTracks,
-      dom::AudioContextOperation aOperation,
-      MozPromiseHolder<AudioContextOperationPromise>&& aHolder);
-
-  /**
-   * Increment suspend count on aTrack and move it to mSuspendedTracks if
-   * necessary.
-   */
-  void IncrementSuspendCount(MediaTrack* aTrack);
-  /**
-   * Increment suspend count on aTrack and move it to mTracks if
-   * necessary.
-   */
-  void DecrementSuspendCount(MediaTrack* aTrack);
-
-  /*
-   * Move tracks from mTracks to mSuspendedTracks if suspending/closing an
-   * AudioContext, or the inverse when resuming an AudioContext.
-   */
-  void SuspendOrResumeTracks(dom::AudioContextOperation aAudioContextOperation,
-                             const nsTArray<MediaTrack*>& aTrackSet);
+      AudioContextOperationControlMessage* aMessage);
 
   /**
    * Determine if we have any audio tracks, or are about to add any audiotracks.
@@ -343,9 +330,13 @@ class MediaTrackGraphImpl : public MediaTrackGraph,
   bool AudioTrackPresent();
 
   /**
+   * Schedules a replacement GraphDriver in mNextDriver, if necessary.
+   */
+  void CheckDriver();
+
+  /**
    * Sort mTracks so that every track not in a cycle is after any tracks
    * it depends on, and every track in a cycle is marked as being in a cycle.
-   * Also sets mIsConsumed on every track.
    */
   void UpdateTrackOrder();
 
@@ -614,6 +605,12 @@ class MediaTrackGraphImpl : public MediaTrackGraph,
 
   Watchable<GraphTime>& CurrentTime() override;
 
+  /**
+   * Interrupt any JS running on the graph thread.
+   * Called on the main thread when shutting down the graph.
+   */
+  void InterruptJS();
+
   class TrackSet {
    public:
     class iterator {
@@ -764,10 +761,13 @@ class MediaTrackGraphImpl : public MediaTrackGraph,
    * If `mInputDeviceUsers.Count() != 0`, this MediaTrackGraph wants audio
    * input.
    *
+   * All mInputDeviceID access is on the graph thread except for reads via
+   * InputDeviceID(), which are racy but used only for comparison.
+   *
    * In any case, the number of channels to use can be queried (on the graph
    * thread) by AudioInputChannelCount() and AudioOutputChannelCount().
    */
-  CubebUtils::AudioDeviceID mInputDeviceID;
+  std::atomic<CubebUtils::AudioDeviceID> mInputDeviceID;
   CubebUtils::AudioDeviceID mOutputDeviceID;
   // Maps AudioDeviceID to an array of their users (that are listeners). This is
   // used to deliver audio input frames and to notify the listeners that the
@@ -775,6 +775,24 @@ class MediaTrackGraphImpl : public MediaTrackGraph,
   // This is only touched on the graph thread.
   nsDataHashtable<nsVoidPtrHashKey, nsTArray<RefPtr<AudioDataListener>>>
       mInputDeviceUsers;
+
+  /**
+   * List of resume operations waiting for a switch to an AudioCallbackDriver.
+   */
+  class PendingResumeOperation {
+   public:
+    explicit PendingResumeOperation(
+        AudioContextOperationControlMessage* aMessage);
+    void Apply(MediaTrackGraphImpl* aGraph);
+    void Abort();
+    MediaTrack* DestinationTrack() const { return mDestinationTrack; }
+
+   private:
+    RefPtr<MediaTrack> mDestinationTrack;
+    nsTArray<RefPtr<MediaTrack>> mTracks;
+    MozPromiseHolder<AudioContextOperationPromise> mHolder;
+  };
+  AutoTArray<PendingResumeOperation, 1> mPendingResumeOperations;
 
   // mMonitor guards the data below.
   // MediaTrackGraph normally does its work without holding mMonitor, so it is
@@ -826,13 +844,13 @@ class MediaTrackGraphImpl : public MediaTrackGraph,
    * creation after this point will create a new graph. An async event is
    * dispatched to Shutdown() the graph's threads and then delete the graph
    * object.
-   * 2) Forced shutdown at application shutdown, or completion of a
-   * non-realtime graph. A flag is set, RunThread() detects the flag and
-   * exits, the next RunInStableState() detects the flag, and dispatches the
-   * async event to Shutdown() the graph's threads. However the graph object
-   * is not deleted. New messages for the graph are processed synchronously on
-   * the main thread if necessary. When the last track is destroyed, the
-   * graph object is deleted.
+   * 2) Forced shutdown at application shutdown, completion of a non-realtime
+   * graph, or document unload. A flag is set, RunThread() detects the flag
+   * and exits, the next RunInStableState() detects the flag, and dispatches
+   * the async event to Shutdown() the graph's threads. However the graph
+   * object is not deleted. New messages for the graph are processed
+   * synchronously on the main thread if necessary. When the last track is
+   * destroyed, the graph object is deleted.
    *
    * This should be kept in sync with the LifecycleState_str array in
    * MediaTrackGraph.cpp
@@ -887,13 +905,21 @@ class MediaTrackGraphImpl : public MediaTrackGraph,
   }
 
   /**
-   * True when we need to do a forced shutdown, during application shutdown or
-   * when shutting down a non-realtime graph.
+   * True once the graph thread has received the message from ForceShutDown().
+   * This is checked in the decision to shut down the
+   * graph thread so that control messages dispatched before forced shutdown
+   * are processed on the graph thread.
    * Only set on the graph thread.
    * Can be read safely on the thread currently owning the graph, as indicated
    * by mLifecycleState.
    */
-  bool mForceShutDown;
+  bool mForceShutDownReceived = false;
+  /**
+   * true when InterruptJS() has been called, because shutdown (normal or
+   * forced) has commenced.  Set on the main thread under mMonitor and read on
+   * the graph thread under mMonitor.
+   **/
+  bool mInterruptJSCalled = false;
 
   /**
    * Remove this blocker to unblock shutdown.
@@ -907,6 +933,14 @@ class MediaTrackGraphImpl : public MediaTrackGraph,
    * Accessed on both main and MTG thread, mMonitor must be held.
    */
   bool mPostedRunInStableStateEvent;
+
+  /**
+   * The JSContext of the graph thread.  Set under mMonitor on only the graph
+   * or GraphRunner thread.  Once set this does not change until reset when
+   * the thread is about to exit.  Read under mMonitor on the main thread to
+   * interrupt running JS for forced shutdown.
+   **/
+  JSContext* mJSContext = nullptr;
 
   // Main thread only
 

@@ -357,23 +357,6 @@ function isWasmSupported() {
   return testingFunctions.wasmIsSupported();
 }
 
-function getWasmBinarySync(text) {
-  let testingFunctions = SpecialPowers.Cu.getJSTestingFunctions();
-  let wasmTextToBinary = SpecialPowers.unwrap(
-    testingFunctions.wasmTextToBinary
-  );
-  let binary = wasmTextToBinary(text);
-  return binary;
-}
-
-// (Async versions to imitate the on-worker behavior where getWasmBinarySync is
-// not available.)
-function getWasmBinary(text) {
-  let binary = getWasmBinarySync(text);
-  SimpleTest.executeSoon(function() {
-    testGenerator.next(binary);
-  });
-}
 function getWasmModule(_binary_) {
   let module = new WebAssembly.Module(_binary_);
   return module;
@@ -415,6 +398,7 @@ function expectingError(request, errorName) {
   return new Promise(function(resolve, reject) {
     request.onerror = function(event) {
       is(errorName, event.target.error.name, "Correct exception type");
+      event.stopPropagation();
       resolve(event);
     };
     request.onsuccess = function(event) {
@@ -671,14 +655,6 @@ function workerScript() {
     return self.wasmSupported;
   };
 
-  self.getWasmBinarySync = function(_text_) {
-    self.ok(false, "This can't be used on workers");
-  };
-
-  self.getWasmBinary = function(_text_) {
-    self.postMessage({ op: "getWasmBinary", text: _text_ });
-  };
-
   self.getWasmModule = function(_binary_) {
     let module = new WebAssembly.Module(_binary_);
     return module;
@@ -727,11 +703,6 @@ function workerScript() {
         if (self._clearAllDatabasesCallback) {
           self._clearAllDatabasesCallback();
         }
-        break;
-
-      case "getWasmBinaryDone":
-        info("Worker: get wasm binary done");
-        testGenerator.next(message.wasmBinary);
         break;
 
       default:
@@ -843,13 +814,6 @@ async function executeWorkerTestAndCleanUp(testScriptPath) {
           case "clearAllDatabases":
             clearAllDatabases(function() {
               worker.postMessage({ op: "clearAllDatabasesDone" });
-            });
-            break;
-
-          case "getWasmBinary":
-            worker.postMessage({
-              op: "getWasmBinaryDone",
-              wasmBinary: getWasmBinarySync(message.text),
             });
             break;
 

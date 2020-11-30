@@ -26,8 +26,10 @@ using mozilla::wr::BlobImageKey from "mozilla/webrender/WebRenderTypes.h";
 using mozilla::wr::PipelineId from "mozilla/webrender/WebRenderTypes.h";
 using mozilla::gfx::MaybeIntSize from "mozilla/gfx/Point.h";
 using mozilla::LayoutDeviceRect from "Units.h";
+using mozilla::LayoutDeviceSize from "Units.h";
 using mozilla::ImageIntRect from "Units.h";
 using mozilla::gfx::Rect from "mozilla/gfx/Rect.h";
+using mozilla::VideoInfo::Rotation from "MediaInfo.h";
 using class mozilla::gfx::Matrix4x4 from "mozilla/gfx/Matrix.h";
 using struct mozilla::void_t from "ipc/IPCMessageUtils.h";
 
@@ -38,7 +40,13 @@ struct RefCountedShmem {
   Shmem buffer;
 };
 
-struct OpAddExternalImage {
+struct OpAddPrivateExternalImage {
+  ExternalImageId externalImageId;
+  ImageKey key;
+  ImageDescriptor descriptor;
+};
+
+struct OpAddSharedExternalImage {
   ExternalImageId externalImageId;
   ImageKey key;
 };
@@ -71,8 +79,7 @@ struct OpReleaseTextureOfImage {
 struct OpUpdateAsyncImagePipeline {
   PipelineId pipelineId;
   LayoutDeviceRect scBounds;
-  Matrix4x4 scTransform;
-  MaybeIntSize scaleToSize;
+  Rotation rotation;
   ImageRendering filter;
   MixBlendMode mixBlendMode;
 };
@@ -131,7 +138,14 @@ struct OpSetBlobImageVisibleArea {
   BlobImageKey key;
 };
 
-struct OpUpdateExternalImage {
+struct OpUpdatePrivateExternalImage {
+  ExternalImageId externalImageId;
+  ImageKey key;
+  ImageDescriptor descriptor;
+  ImageIntRect dirtyRect;
+};
+
+struct OpUpdateSharedExternalImage {
   ExternalImageId externalImageId;
   ImageKey key;
   ImageIntRect dirtyRect;
@@ -187,9 +201,11 @@ union OpUpdateResource {
   OpDeleteFont;
   OpAddFontInstance;
   OpDeleteFontInstance;
-  OpAddExternalImage;
+  OpAddPrivateExternalImage;
+  OpAddSharedExternalImage;
   OpPushExternalImageForTexture;
-  OpUpdateExternalImage;
+  OpUpdatePrivateExternalImage;
+  OpUpdateSharedExternalImage;
 };
 
 } // namespace

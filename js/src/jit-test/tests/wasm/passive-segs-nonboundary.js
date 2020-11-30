@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmBulkMemSupported()
-
 load(libdir + "wasm-binary.js");
 
 const v2vSig = {args:[], ret:VoidCode};
@@ -43,11 +41,11 @@ function gen_tab_impmod_t(insn)
      (elem (i32.const 12) 7 5 2 3 6)
      (elem func 5 9 2 7 6)
      ;; -------- Imports --------
-     (import "a" "if0" (result i32))    ;; index 0
-     (import "a" "if1" (result i32))
-     (import "a" "if2" (result i32))
-     (import "a" "if3" (result i32))
-     (import "a" "if4" (result i32))    ;; index 4
+     (import "a" "if0" (func (result i32)))    ;; index 0
+     (import "a" "if1" (func (result i32)))
+     (import "a" "if2" (func (result i32)))
+     (import "a" "if3" (func (result i32)))
+     (import "a" "if4" (func (result i32)))    ;; index 4
      ;; -------- Functions --------
      (func (result i32) (i32.const 5))  ;; index 5
      (func (result i32) (i32.const 6))
@@ -61,7 +59,7 @@ function gen_tab_impmod_t(insn)
        ;; call the selected table entry, which will either return a value,
        ;; or will cause an exception.
        local.get 0      ;; callIx
-       call_indirect 0  ;; and its return value is our return value.
+       call_indirect (type 0)  ;; and its return value is our return value.
      )
    )`;
    return t;
@@ -260,23 +258,24 @@ mem_test("(memory.init 1 (i32.const 7) (i32.const 0) (i32.const 4)) \n" +
          "(memory.copy (i32.const 19) (i32.const 20) (i32.const 5))",
          [e,e,3,1,4, 1,e,2,7,1, 8,e,7,e,7, 5,2,7,e,9, e,7,e,8,8, e,e,e,e,e]);
 
-// DataCount section is present but value is too low for the number of data segments
-assertErrorMessage(() => wasmEvalText(
-    `(module
-       (datacount 1)
-       (data "")
-       (data ""))`),
-                   WebAssembly.CompileError,
-                   /number of data segments does not match declared count/);
+function checkDataCount(count, err) {
+    let binary = moduleWithSections(
+        [v2vSigSection,
+         dataCountSection(count),
+         dataSection([
+           {offset: 0, elems: []},
+           {offset: 0, elems: []},
+         ])
+        ]);
+    assertErrorMessage(() => new WebAssembly.Module(binary),
+                       WebAssembly.CompileError,
+                       err);
+}
 
+// DataCount section is present but value is too low for the number of data segments
+checkDataCount(1, /number of data segments does not match declared count/);
 // DataCount section is present but value is too high for the number of data segments
-assertErrorMessage(() => wasmEvalText(
-    `(module
-       (datacount 3)
-       (data "")
-       (data ""))`),
-                   WebAssembly.CompileError,
-                   /number of data segments does not match declared count/);
+checkDataCount(3, /number of data segments does not match declared count/);
 
 // DataCount section is not present but memory.init or data.drop uses it
 function checkNoDataCount(body, err) {
@@ -295,10 +294,10 @@ checkNoDataCount([I32ConstCode, 0,
                   I32ConstCode, 0,
                   I32ConstCode, 0,
                   MiscPrefix, MemoryInitCode, 0, 0],
-                /memory.init requires a DataCount section/);
+                /(memory.init requires a DataCount section)|(unknown data segment)/);
 
 checkNoDataCount([MiscPrefix, DataDropCode, 0],
-                 /data.drop requires a DataCount section/);
+                 /(data.drop requires a DataCount section)|(unknown data segment)/);
 
 //---------------------------------------------------------------------//
 //---------------------------------------------------------------------//
@@ -319,7 +318,7 @@ function checkMiscPrefixed(opcode, expect_failure) {
                            MiscPrefix, ...opcode]})])]);
     if (expect_failure) {
         assertErrorMessage(() => new WebAssembly.Module(binary),
-                           WebAssembly.CompileError, /unrecognized opcode/);
+                           WebAssembly.CompileError, /(unrecognized opcode)|(Unknown.*subopcode)/);
     } else {
         assertEq(WebAssembly.validate(binary), true);
     }
@@ -371,7 +370,7 @@ checkMiscPrefixed([0x13], true);        // table.size+1, which is currently unas
         )`;
         assertErrorMessage(() => wasmEvalText(text1),
                            WebAssembly.CompileError,
-                           /popping value from empty stack/);
+                           /(popping value from empty stack)|(expected Some\(I32\) but nothing on stack)/);
         let text2 =
         `(module
           (memory (export "memory") 1 1)
@@ -385,7 +384,7 @@ checkMiscPrefixed([0x13], true);        // table.size+1, which is currently unas
         )`;
         assertErrorMessage(() => wasmEvalText(text2),
                            WebAssembly.CompileError,
-                           /unused values not explicitly dropped by end of block/);
+                           /(unused values not explicitly dropped by end of block)|(values remaining on stack at end of block)/);
     }
 }
 
@@ -400,7 +399,7 @@ checkMiscPrefixed([0x13], true);        // table.size+1, which is currently unas
         )`;
         assertErrorMessage(() => wasmEvalText(text),
                            WebAssembly.CompileError,
-                           /can't touch memory without memory/);
+                           /(can't touch memory without memory)|(unknown memory)/);
     }
 }
 

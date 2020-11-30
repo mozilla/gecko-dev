@@ -11,6 +11,7 @@
 
 #include "APZUtils.h"
 #include "AxisPhysicsMSDModel.h"
+#include "mozilla/DataMutex.h"  // for DataMutex
 #include "mozilla/gfx/Types.h"  // for Side
 #include "mozilla/TimeStamp.h"  // for TimeDuration
 #include "nsTArray.h"           // for nsTArray
@@ -46,24 +47,14 @@ class VelocityTracker {
    * Start tracking velocity along this axis, starting with the given
    * initial position and corresponding timestamp.
    */
-  virtual void StartTracking(ParentLayerCoord aPos, uint32_t aTimestamp) = 0;
+  virtual void StartTracking(ParentLayerCoord aPos, TimeStamp aTimestamp) = 0;
   /**
    * Record a new position along this axis, at the given timestamp.
    * Returns the average velocity between the last sample and this one, or
    * or Nothing() if a reasonable average cannot be computed.
    */
   virtual Maybe<float> AddPosition(ParentLayerCoord aPos,
-                                   uint32_t aTimestampMs) = 0;
-  /**
-   * Record movement of the dynamic toolbar along this axis by |aDelta|
-   * over the given time range. Movement of the dynamic toolbar means
-   * that physical movement by |aDelta| has occurred, but this will not
-   * be reflected in future positions passed to AddPosition().
-   * Returns the velocity of the dynamic toolbar movement.
-   */
-  virtual float HandleDynamicToolbarMovement(uint32_t aStartTimestampMs,
-                                             uint32_t aEndTimestampMs,
-                                             ParentLayerCoord aDelta) = 0;
+                                   TimeStamp aTimestamp) = 0;
   /**
    * Compute an estimate of the axis's current velocity, based on recent
    * position samples. It's up to implementation how many samples to consider
@@ -71,7 +62,7 @@ class VelocityTracker {
    * If the tracker doesn't have enough samples to compute a result, it
    * may return Nothing{}.
    */
-  virtual Maybe<float> ComputeVelocity(uint32_t aTimestampMs) = 0;
+  virtual Maybe<float> ComputeVelocity(TimeStamp aTimestamp) = 0;
   /**
    * Clear all state in the velocity tracker.
    */
@@ -95,24 +86,20 @@ class Axis {
    * accumulated displacements over the course of the pan gesture.
    */
   void UpdateWithTouchAtDevicePoint(ParentLayerCoord aPos,
-                                    uint32_t aTimestampMs);
+                                    TimeStamp aTimestamp);
 
  public:
-  void HandleDynamicToolbarMovement(uint32_t aStartTimestampMs,
-                                    uint32_t aEndTimestampMs,
-                                    ParentLayerCoord aDelta);
-
   /**
    * Notify this Axis that a touch has begun, i.e. the user has put their finger
    * on the screen but has not yet tried to pan.
    */
-  void StartTouch(ParentLayerCoord aPos, uint32_t aTimestampMs);
+  void StartTouch(ParentLayerCoord aPos, TimeStamp aTimestamp);
 
   /**
    * Notify this Axis that a touch has ended gracefully. This may perform
    * recalculations of the axis velocity.
    */
-  void EndTouch(uint32_t aTimestampMs);
+  void EndTouch(TimeStamp aTimestamp);
 
   /**
    * Notify this Axis that the gesture has ended forcefully. Useful for stopping
@@ -315,7 +302,11 @@ class Axis {
   ParentLayerCoord mPos;
 
   ParentLayerCoord mStartPos;
-  float mVelocity;   // Units: ParentLayerCoords per millisecond
+  // The velocity can be accessed from multiple threads (e.g. APZ
+  // controller thread and APZ sampler thread), so needs to be
+  // protected by a mutex.
+  // Units: ParentLayerCoords per millisecond
+  mutable DataMutex<float> mVelocity;
   bool mAxisLocked;  // Whether movement on this axis is locked.
   AsyncPanZoomController* mAsyncPanZoomController;
 
@@ -329,6 +320,9 @@ class Axis {
   // a resulting velocity to use for e.g. starting a fling animation.
   // This member can only be accessed on the controller/UI thread.
   UniquePtr<VelocityTracker> mVelocityTracker;
+
+  float DoGetVelocity() const;
+  void DoSetVelocity(float aVelocity);
 
   const FrameMetrics& GetFrameMetrics() const;
   const ScrollMetadata& GetScrollMetadata() const;

@@ -13,8 +13,11 @@ import os
 import re
 import sys
 import subprocess
+import tempfile
 
-from shutil import copyfile
+from shutil import copyfile, rmtree
+
+from six import string_types
 
 import mozharness
 
@@ -23,6 +26,7 @@ from mozharness.base.log import OutputParser, DEBUG, ERROR, CRITICAL, INFO
 from mozharness.mozilla.automation import (
     EXIT_STATUS_DICT, TBPL_SUCCESS, TBPL_RETRY, TBPL_WORST_LEVEL_TUPLE
 )
+from mozharness.base.python import Python3Virtualenv
 from mozharness.mozilla.testing.android import AndroidMixin
 from mozharness.mozilla.testing.errors import HarnessErrorList, TinderBoxPrintRe
 from mozharness.mozilla.testing.testbase import TestingMixin, testing_config_options
@@ -49,7 +53,7 @@ RaptorErrorList = PythonErrorList + HarnessErrorList + [
 ]
 
 
-class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
+class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin, Python3Virtualenv):
     """
     Install and run Raptor tests
     """
@@ -63,6 +67,11 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
         }],
         [["--browsertime-browsertimejs"], {
             "dest": "browsertime_browsertimejs",
+            "default": None,
+            "help": argparse.SUPPRESS
+        }],
+        [["--browsertime-vismet-script"], {
+            "dest": "browsertime_vismet_script",
             "default": None,
             "help": argparse.SUPPRESS
         }],
@@ -87,6 +96,18 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
             "default": False,
             "help": argparse.SUPPRESS
         }],
+        [["--browsertime-visualmetrics"], {
+            "dest": "browsertime_visualmetrics",
+            "action": "store_true",
+            "default": False,
+            "help": argparse.SUPPRESS
+        }],
+        [["--browsertime-no-ffwindowrecorder"], {
+            "dest": "browsertime_no_ffwindowrecorder",
+            "action": "store_true",
+            "default": False,
+            "help": argparse.SUPPRESS
+        }],
         [["--browsertime"], {
             "dest": "browsertime",
             "action": "store_true",
@@ -103,7 +124,16 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
           }],
         [["--app"],
          {"default": "firefox",
-          "choices": ["firefox", "chrome", "chromium", "fennec", "geckoview", "refbrow", "fenix"],
+          "choices": [
+            "firefox",
+            "chrome",
+            "chrome-m",
+            "chromium",
+            "fennec",
+            "geckoview",
+            "refbrow",
+            "fenix"
+          ],
           "dest": "app",
           "help": "Name of the application we are testing (default: firefox)."
           }],
@@ -195,6 +225,13 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
             "help": "The number of times a cold load test is repeated (for cold load tests only, "
                     "where the browser is shutdown and restarted between test iterations)."
         }],
+        [["--project"], {
+            "action": "store",
+            "dest": "project",
+            "default": "mozilla-central",
+            "type": "str",
+            "help": "Name of the project (try, mozilla-central, etc.)"
+        }],
         [["--test-url-params"], {
             "action": "store",
             "dest": "test_url_params",
@@ -228,6 +265,30 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
             "default": False,
             "help": "Use Raptor to measure CPU usage."
         }],
+        [["--disable-perf-tuning"], {
+            "action": "store_true",
+            "dest": "disable_perf_tuning",
+            "default": False,
+            "help": "Disable performance tuning on android.",
+        }],
+        [["--conditioned-profile-scenario"], {
+            "dest": "conditioned_profile_scenario",
+            "type": "str",
+            "default": "settled",
+            "help": "Name of profile scenario.",
+        }],
+        [["--live-sites"], {
+            "dest": "live_sites",
+            "action": "store_true",
+            "default": False,
+            "help": "Run tests using live sites instead of recorded sites.",
+        }],
+        [["--chimera"], {
+            "dest": "chimera",
+            "action": "store_true",
+            "default": False,
+            "help": "Run tests in chimera mode. Each browser cycle will run a cold and warm test.",
+        }],
         [["--debug-mode"], {
             "dest": "debug_mode",
             "action": "store_true",
@@ -254,15 +315,22 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
         }],
         [["--setpref"], {
             "action": "append",
+            "metavar": "PREF=VALUE",
             "dest": "extra_prefs",
             "default": [],
-            "help": "A preference to set. Must be a key-value pair separated by a ':'."
+            "help": "Set a browser preference. May be used multiple times."
         }],
         [["--cold"], {
             "action": "store_true",
             "dest": "cold",
             "default": False,
             "help": "Enable cold page-load for browsertime tp6",
+        }],
+        [["--verbose"], {
+            "action": "store_true",
+            "dest": "verbose",
+            "default": False,
+            "help": "Verbose output",
         }],
 
     ] + testing_config_options + \
@@ -274,16 +342,17 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
         kwargs.setdefault('all_actions', ['clobber',
                                           'download-and-extract',
                                           'populate-webroot',
-                                          'install-chromium-distribution',
                                           'create-virtualenv',
+                                          'install-chrome-android',
+                                          'install-chromium-distribution',
                                           'install',
                                           'run-tests',
                                           ])
         kwargs.setdefault('default_actions', ['clobber',
                                               'download-and-extract',
                                               'populate-webroot',
-                                              'install-chromium-distribution',
                                               'create-virtualenv',
+                                              'install-chromium-distribution',
                                               'install',
                                               'run-tests',
                                               ])
@@ -350,16 +419,28 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
         self.power_test = self.config.get('power_test')
         self.memory_test = self.config.get('memory_test')
         self.cpu_test = self.config.get('cpu_test')
+        self.live_sites = self.config.get('live_sites')
+        self.chimera = self.config.get('chimera')
+        self.disable_perf_tuning = self.config.get('disable_perf_tuning')
+        self.conditioned_profile_scenario = self.config.get('conditioned_profile_scenario',
+                                                            'settled')
         self.extra_prefs = self.config.get('extra_prefs')
         self.is_release_build = self.config.get('is_release_build')
         self.debug_mode = self.config.get('debug_mode', False)
+        self.chromium_dist_path = None
         self.firefox_android_browsers = ["fennec", "geckoview", "refbrow", "fenix"]
+        self.android_browsers = self.firefox_android_browsers + ["chrome-m"]
+        self.browsertime_visualmetrics = False
+        self.browsertime_video = False
 
         for (arg,), details in Raptor.browsertime_options:
             # Allow overriding defaults on the `./mach raptor-test ...` command-line.
             value = self.config.get(details['dest'])
             if value and arg not in self.config.get("raptor_cmd_line_args", []):
                 setattr(self, details['dest'], value)
+
+        if not self.run_local and self.browsertime_visualmetrics and self.browsertime_video:
+            self.error("Cannot run visual metrics in the same CI task as the test.")
 
     # We accept some configuration options from the try commit message in the
     # format mozharness: <options>. Example try commit message: mozharness:
@@ -389,6 +470,48 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
 
         self.abs_dirs = abs_dirs
         return self.abs_dirs
+
+    def install_chrome_android(self):
+        '''Install Google Chrome for Android in production from tooltool'''
+        if self.app != "chrome-m":
+            self.info("Google Chrome for Android not required")
+            return
+        if self.config.get("run_local"):
+            self.info(
+                "Google Chrome for Android will not be installed "
+                "from tooltool when running locally"
+            )
+            return
+        self.info("Fetching and installing Google Chrome for Android")
+
+        # Fetch the APK
+        tmpdir = tempfile.mkdtemp()
+        self.tooltool_fetch(
+            os.path.join(
+                self.raptor_path,
+                "raptor",
+                "tooltool-manifests",
+                "chrome-android",
+                "chrome85.manifest"
+            ),
+            output_dir=tmpdir
+        )
+
+        # Find the downloaded APK
+        files = os.listdir(tmpdir)
+        if len(files) > 1:
+            raise Exception("Found more than one chrome APK file after tooltool download")
+        chromeapk = os.path.join(tmpdir, files[0])
+
+        # Disable verification and install the APK
+        self.device.shell_output("settings put global verifier_verify_adb_installs 0")
+        self.install_apk(chromeapk, replace=True)
+
+        # Re-enable verification and delete the temporary directory
+        self.device.shell_output("settings put global verifier_verify_adb_installs 1")
+        rmtree(tmpdir)
+
+        self.info("Google Chrome for Android successfully installed")
 
     def install_chromium_distribution(self):
         '''Install Google Chromium distribution in production'''
@@ -489,7 +612,7 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
                 # When running locally we already set the Chromium binary above, in init.
                 # In production, we already installed Chromium, so set the binary path
                 # to our install.
-                kw_options['binary'] = self.chromium_dist_path
+                kw_options['binary'] = self.chromium_dist_path or ""
 
         # Options overwritten from **kw
         if 'test' in self.config:
@@ -506,6 +629,9 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
             kw_options['device-name'] = self.config['device_name']
         if self.config.get('activity') is not None:
             kw_options['activity'] = self.config['activity']
+        if self.config.get('conditioned_profile_scenario') is not None:
+            kw_options['conditioned-profile-scenario'] = \
+                self.config['conditioned_profile_scenario']
 
         kw_options.update(kw)
         if self.host:
@@ -529,6 +655,12 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
             options.extend(['--memory-test'])
         if self.config.get('cpu_test', False):
             options.extend(['--cpu-test'])
+        if self.config.get('live_sites', False):
+            options.extend(['--live-sites'])
+        if self.config.get('chimera', False):
+            options.extend(['--chimera'])
+        if self.config.get('disable_perf_tuning', False):
+            options.extend(['--disable-perf-tuning'])
         if self.config.get('cold', False):
             options.extend(['--cold'])
         if self.config.get('enable_webrender', False):
@@ -537,6 +669,8 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
             options.extend(['--no-conditioned-profile'])
         if self.config.get('enable_fission', False):
             options.extend(['--enable-fission'])
+        if self.config.get('verbose', False):
+            options.extend(['--verbose'])
         if self.config.get('extra_prefs'):
             options.extend(['--setpref={}'.format(i) for i in self.config.get('extra_prefs')])
 
@@ -544,7 +678,7 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
             # Allow overriding defaults on the `./mach raptor-test ...` command-line
             value = self.config.get(details['dest'])
             if value and arg not in self.config.get("raptor_cmd_line_args", []):
-                if isinstance(value, basestring):
+                if isinstance(value, string_types):
                     options.extend([arg, os.path.expandvars(value)])
                 else:
                     options.extend([arg])
@@ -555,7 +689,7 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
         return options
 
     def populate_webroot(self):
-        """Populate the production test slaves' webroots"""
+        """Populate the production test machines' webroots"""
         self.raptor_path = os.path.join(
             self.query_abs_dirs()['abs_test_install_dir'], 'raptor'
         )
@@ -570,13 +704,13 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
         if not os.path.isdir(upload_dir):
             self.mkdir_p(upload_dir)
 
-    def install_apk(self, apk):
+    def install_apk(self, apk, replace=False):
         # Override AndroidMixin's install_apk in order to capture
         # logcat during the installation. If the installation fails,
         # the logcat file will be left in the upload directory.
         self.logcat_start()
         try:
-            super(Raptor, self).install_apk(apk)
+            super(Raptor, self).install_apk(apk, replace=replace)
         finally:
             self.logcat_stop()
 
@@ -607,10 +741,6 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
                                      os.path.basename(_python_interp),
                                      'site-packages')
 
-            # If running gecko profiling, install its requirements
-            if self.gecko_profile:
-                self._install_view_gecko_profile_req()
-
             sys.path.append(_path)
             return
 
@@ -633,37 +763,33 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
             two_pass=True,
             editable=True,
         )
+
+        modules = ['pip>=1.5']
+        if self.run_local:
+            # Add modules required for visual metrics
+            modules.extend([
+                'numpy==1.16.1',
+                'Pillow==6.1.0',
+                'scipy==1.2.3',
+                'pyssim==0.4'
+            ])
+
         # Require pip >= 1.5 so pip will prefer .whl files to install
-        super(Raptor, self).create_virtualenv(
-            modules=['pip>=1.5']
-        )
+        super(Raptor, self).create_virtualenv(modules=modules)
+
         # Install Raptor dependencies
         self.install_module(
             requirements=[os.path.join(self.raptor_path,
                                        'requirements.txt')]
         )
 
-        # If we're running gecko profiling, install its requirements
-        if self.gecko_profile:
-            self._install_view_gecko_profile_req()
-
     def install(self):
-        if self.app in self.firefox_android_browsers:
-            self.device.uninstall_app(self.binary_path)
-            self.install_apk(self.installer_path)
-        else:
-            super(Raptor, self).install()
-
-    def _install_view_gecko_profile_req(self):
-        # If running locally and gecko profiing is on, we will be using the
-        # view-gecko-profile tool which has its own requirements too
-        if self.gecko_profile and self.run_local:
-            tools = os.path.join(self.config['repo_path'], 'testing', 'tools')
-            view_gecko_profile_req = os.path.join(tools,
-                                                  'view_gecko_profile',
-                                                  'requirements.txt')
-            self.info("Installing requirements for the view-gecko-profile tool")
-            self.install_module(requirements=[view_gecko_profile_req])
+        if not self.config.get('noinstall', False):
+            if self.app in self.firefox_android_browsers:
+                self.device.uninstall_app(self.binary_path)
+                self.install_apk(self.installer_path)
+            else:
+                super(Raptor, self).install()
 
     def _artifact_perf_data(self, src, dest):
         if not os.path.isdir(os.path.dirname(dest)):
@@ -740,7 +866,7 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
 
             return bool(debug_opts.intersection(cmdline))
 
-        if self.app in self.firefox_android_browsers:
+        if self.app in self.android_browsers:
             self.logcat_start()
 
         command = [python, run_tests] + options + mozlog_opts
@@ -753,7 +879,7 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
                                                 output_parser=parser,
                                                 env=env)
 
-        if self.app in self.firefox_android_browsers:
+        if self.app in self.android_browsers:
             self.logcat_stop()
 
         if parser.minidump_output:

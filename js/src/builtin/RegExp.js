@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// ES6 draft rev34 (2015/02/20) 21.2.5.3 get RegExp.prototype.flags
+// ECMAScript 2020 draft (2020/03/12) 21.2.5.4 get RegExp.prototype.flags
+// https://tc39.es/ecma262/#sec-get-regexp.prototype.flags
 // Uncloned functions with `$` prefix are allocated as extended function
 // to store the original name in `_SetCanonicalName`.
 function $RegExpFlagsGetter() {
@@ -14,27 +15,31 @@ function $RegExpFlagsGetter() {
     // Step 3.
     var result = "";
 
-    // Steps 4-6.
+    // Steps 4-5.
     if (R.global)
         result += "g";
 
-    // Steps 7-9.
+    // Steps 6-7.
     if (R.ignoreCase)
         result += "i";
 
-    // Steps 10-12.
+    // Steps 8-9.
     if (R.multiline)
         result += "m";
 
-    // Steps 13-15.
+    // Steps 10-11.
+    if (R.dotAll)
+        result += "s";
+
+    // Steps 12-13.
     if (R.unicode)
          result += "u";
 
-    // Steps 16-18.
+    // Steps 14-15.
     if (R.sticky)
         result += "y";
 
-    // Step 19.
+    // Step 16.
     return result;
 }
 _SetCanonicalName($RegExpFlagsGetter, "get flags");
@@ -227,6 +232,7 @@ function RegExpGlobalMatchOpt(rx, S, fullUnicode) {
 //   * global
 //   * ignoreCase
 //   * multiline
+//   * dotAll
 //   * sticky
 //   * unicode
 //   * exec
@@ -391,7 +397,7 @@ function RegExpReplaceSlowPath(rx, S, lengthS, replaceValue,
 
         var n, capN, replacement;
         if (functionalReplace || firstDollarIndex !== -1) {
-            // Steps 14.g-j.
+            // Steps 14.g-k.
             replacement = RegExpGetComplexReplacement(result, matched, S, position,
                                                       nCaptures, replaceValue,
                                                       functionalReplace, firstDollarIndex);
@@ -406,16 +412,22 @@ function RegExpReplaceSlowPath(rx, S, lengthS, replaceValue,
                 if (capN !== undefined)
                     ToString(capN);
             }
+            // Step 14.j, 14.l., GetSubstitution Step 11.
+            // We don't need namedCaptures, but ToObject is visible to script.
+            var namedCaptures = result.groups;
+            if (namedCaptures !== undefined)
+                ToObject(namedCaptures);
+
             replacement = replaceValue;
         }
 
-        // Step 14.l.
+        // Step 14.m.
         if (position >= nextSourcePosition) {
-            // Step 14.l.ii.
+            // Step 14.m.ii.
             accumulatedResult += Substring(S, nextSourcePosition,
                                            position - nextSourcePosition) + replacement;
 
-            // Step 14.l.iii.
+            // Step 14.m.iii.
             nextSourcePosition = position + matchLength;
         }
     }
@@ -428,8 +440,9 @@ function RegExpReplaceSlowPath(rx, S, lengthS, replaceValue,
     return accumulatedResult + Substring(S, nextSourcePosition, lengthS - nextSourcePosition);
 }
 
-// ES 2017 draft rev 03bfda119d060aca4099d2b77cf43f6d4f11cfa2 21.2.5.8
-// steps 14.g-k.
+// ES 2021 draft 21.2.5.10
+// https://tc39.es/ecma262/#sec-regexp.prototype-@@replace
+// steps 14.g-l.
 // Calculates functional/substitution replacement from match result.
 // Used in the following functions:
 //   * RegExpReplaceSlowPath
@@ -441,7 +454,7 @@ function RegExpGetComplexReplacement(result, matched, S, position,
     var captures = [];
     var capturesLength = 0;
 
-    // Step 14.j.i (reordered).
+    // Step 14.k.i (reordered).
     _DefineDataProperty(captures, capturesLength++, matched);
 
     // Step 14.g, 14.i, 14.i.iv.
@@ -458,34 +471,46 @@ function RegExpGetComplexReplacement(result, matched, S, position,
     }
 
     // Step 14.j.
+    var namedCaptures = result.groups;
+
+    // Step 14.k.
     if (functionalReplace) {
         // For `nCaptures` <= 4 case, call `replaceValue` directly, otherwise
         // use `std_Function_apply` with all arguments stored in `captures`.
-        switch (nCaptures) {
-          case 0:
-            return ToString(replaceValue(SPREAD(captures, 1), position, S));
-          case 1:
-            return ToString(replaceValue(SPREAD(captures, 2), position, S));
-          case 2:
-            return ToString(replaceValue(SPREAD(captures, 3), position, S));
-          case 3:
-            return ToString(replaceValue(SPREAD(captures, 4), position, S));
-          case 4:
-            return ToString(replaceValue(SPREAD(captures, 5), position, S));
-          default:
-            // Steps 14.j.ii-v.
-            _DefineDataProperty(captures, capturesLength++, position);
-            _DefineDataProperty(captures, capturesLength++, S);
-            return ToString(callFunction(std_Function_apply, replaceValue, undefined, captures));
+        if (namedCaptures === undefined) {
+            switch (nCaptures) {
+              case 0:
+                return ToString(replaceValue(SPREAD(captures, 1), position, S));
+              case 1:
+                return ToString(replaceValue(SPREAD(captures, 2), position, S));
+              case 2:
+                return ToString(replaceValue(SPREAD(captures, 3), position, S));
+              case 3:
+                return ToString(replaceValue(SPREAD(captures, 4), position, S));
+              case 4:
+                return ToString(replaceValue(SPREAD(captures, 5), position, S));
+            }
         }
+        // Steps 14.k.ii-v.
+        _DefineDataProperty(captures, capturesLength++, position);
+        _DefineDataProperty(captures, capturesLength++, S);
+        if (namedCaptures !== undefined) {
+            _DefineDataProperty(captures, capturesLength++, namedCaptures);
+        }
+        return ToString(callFunction(std_Function_apply, replaceValue, undefined, captures));
     }
 
-    // Steps 14.k.i.
-    return RegExpGetSubstitution(captures, S, position, replaceValue, firstDollarIndex);
+    // Step 14.l.
+    if (namedCaptures !== undefined) {
+        namedCaptures = ToObject(namedCaptures);
+    }
+    return RegExpGetSubstitution(captures, S, position, replaceValue, firstDollarIndex,
+                                 namedCaptures);
 }
 
-// ES 2017 draft rev 03bfda119d060aca4099d2b77cf43f6d4f11cfa2 21.2.5.8
-// steps 14.g-j.
+// ES 2021 draft 21.2.5.10
+// https://tc39.es/ecma262/#sec-regexp.prototype-@@replace
+// steps 14.g-k.
 // Calculates functional replacement from match result.
 // Used in the following functions:
 //   * RegExpGlobalReplaceOptFunc
@@ -497,20 +522,25 @@ function RegExpGetFunctionalReplacement(result, S, position, replaceValue) {
     assert(result.length >= 1, "RegExpMatcher doesn't return an empty array");
     var nCaptures = result.length - 1;
 
-    switch (nCaptures) {
-      case 0:
-        return ToString(replaceValue(SPREAD(result, 1), position, S));
-      case 1:
-        return ToString(replaceValue(SPREAD(result, 2), position, S));
-      case 2:
-        return ToString(replaceValue(SPREAD(result, 3), position, S));
-      case 3:
-        return ToString(replaceValue(SPREAD(result, 4), position, S));
-      case 4:
-        return ToString(replaceValue(SPREAD(result, 5), position, S));
+    // Step 14.j (reordered)
+    var namedCaptures = result.groups;
+
+    if (namedCaptures === undefined) {
+        switch (nCaptures) {
+          case 0:
+            return ToString(replaceValue(SPREAD(result, 1), position, S));
+          case 1:
+            return ToString(replaceValue(SPREAD(result, 2), position, S));
+          case 2:
+            return ToString(replaceValue(SPREAD(result, 3), position, S));
+          case 3:
+            return ToString(replaceValue(SPREAD(result, 4), position, S));
+          case 4:
+            return ToString(replaceValue(SPREAD(result, 5), position, S));
+        }
     }
 
-    // Steps 14.g-i, 14.j.i-ii.
+    // Steps 14.g-i, 14.k.i-ii.
     var captures = [];
     for (var n = 0; n <= nCaptures; n++) {
         assert(typeof result[n] === "string" || result[n] === undefined,
@@ -518,11 +548,16 @@ function RegExpGetFunctionalReplacement(result, S, position, replaceValue) {
         _DefineDataProperty(captures, n, result[n]);
     }
 
-    // Step 14.j.iii.
+    // Step 14.k.iii.
     _DefineDataProperty(captures, nCaptures + 1, position);
     _DefineDataProperty(captures, nCaptures + 2, S);
 
-    // Steps 14.j.iv-v.
+    // Step 14.k.iv.
+    if (namedCaptures !== undefined) {
+        _DefineDataProperty(captures, nCaptures + 3, namedCaptures);
+    }
+
+    // Steps 14.k.v-vi.
     return ToString(callFunction(std_Function_apply, replaceValue, undefined, captures));
 }
 
@@ -977,7 +1012,7 @@ function RegExpExec(R, S, forTest) {
     var result = callContentFunction(exec, R, S);
 
     // Step 5.c.
-    if (typeof result !== "object")
+    if (result !== null && !IsObject(result))
         ThrowTypeError(JSMSG_EXEC_NOT_OBJORNULL);
 
     // Step 5.d.

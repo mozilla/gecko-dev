@@ -29,6 +29,7 @@ use std::ffi::CStr;
 use std::mem::{size_of, ManuallyDrop};
 use std::os::raw::{c_long, c_void};
 use std::rc::Rc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::{panic, slice};
 use tokio::reactor;
 use tokio::runtime::current_thread;
@@ -147,12 +148,64 @@ impl CubebDeviceCollectionManager {
     }
 }
 
+struct DevIdMap {
+    devices: Vec<usize>,
+}
+
+// A cubeb_devid is an opaque type which may be implemented with a stable
+// pointer in a cubeb backend.  cubeb_devids received remotely must be
+// validated before use, so DevIdMap provides a simple 1:1 mapping between a
+// cubeb_devid and an IPC-transportable value suitable for use as a unique
+// handle.
+impl DevIdMap {
+    fn new() -> DevIdMap {
+        let mut d = DevIdMap {
+            devices: Vec::with_capacity(32),
+        };
+        // A null cubeb_devid is used for selecting the default device.
+        // Pre-populate the mapping with 0 -> 0 to handle nulls.
+        d.devices.push(0);
+        d
+    }
+
+    // Given a cubeb_devid, return a unique stable value suitable for use
+    // over IPC.
+    fn to_handle(&mut self, devid: usize) -> usize {
+        if let Some(i) = self.devices.iter().position(|&d| d == devid) {
+            return i;
+        }
+        self.devices.push(devid);
+        self.devices.len() - 1
+    }
+
+    // Given a handle produced by `to_handle`, return the associated
+    // cubeb_devid.  Invalid handles result in a panic.
+    fn from_handle(&self, handle: usize) -> usize {
+        self.devices[handle]
+    }
+}
+
 struct CubebContextState {
     context: cubeb::Result<cubeb::Context>,
     manager: CubebDeviceCollectionManager,
 }
 
 thread_local!(static CONTEXT_KEY: RefCell<Option<CubebContextState>> = RefCell::new(None));
+
+fn cubeb_init_from_context_params() -> cubeb::Result<cubeb::Context> {
+    let params = super::G_CUBEB_CONTEXT_PARAMS.lock().unwrap();
+    let context_name = Some(params.context_name.as_c_str());
+    let backend_name = if let Some(ref name) = params.backend_name {
+        Some(name.as_c_str())
+    } else {
+        None
+    };
+    let r = cubeb::Context::init(context_name, backend_name);
+    r.map_err(|e| {
+        info!("cubeb::Context::init failed r={:?}", e);
+        e
+    })
+}
 
 fn with_local_context<T, F>(f: F) -> T
 where
@@ -161,20 +214,17 @@ where
     CONTEXT_KEY.with(|k| {
         let mut state = k.borrow_mut();
         if state.is_none() {
-            let params = super::G_CUBEB_CONTEXT_PARAMS.lock().unwrap();
-            let context_name = Some(params.context_name.as_c_str());
-            let backend_name = if let Some(ref name) = params.backend_name {
-                Some(name.as_c_str())
-            } else {
-                None
-            };
-            audioipc::server_platform_init();
-            let context = cubeb::Context::init(context_name, backend_name);
-            let manager = CubebDeviceCollectionManager::new();
-            *state = Some(CubebContextState { context, manager });
+            *state = Some(CubebContextState {
+                context: cubeb_init_from_context_params(),
+                manager: CubebDeviceCollectionManager::new(),
+            });
         }
-        let state = state.as_mut().unwrap();
-        f(&state.context, &mut state.manager)
+        let CubebContextState { context, manager } = state.as_mut().unwrap();
+        // Always reattempt to initialize cubeb, OS config may have changed.
+        if context.is_err() {
+            *context = cubeb_init_from_context_params();
+        }
+        f(context, manager)
     })
 }
 
@@ -274,6 +324,20 @@ impl ServerStreamCallbacks {
     }
 }
 
+static SHM_ID: AtomicUsize = AtomicUsize::new(0);
+
+// Generate a temporary shm_id fragment that is unique to the process.  This
+// path is used temporarily to create a shm segment, which is then
+// immediately deleted from the filesystem while retaining handles to the
+// shm to be shared between the server and client.
+fn get_shm_id() -> String {
+    format!(
+        "cubeb-shm-{}-{}",
+        std::process::id(),
+        SHM_ID.fetch_add(1, Ordering::SeqCst)
+    )
+}
+
 struct ServerStream {
     stream: ManuallyDrop<cubeb::Stream>,
     cbs: ManuallyDrop<Box<ServerStreamCallbacks>>,
@@ -314,6 +378,7 @@ pub struct CubebServer {
     streams: StreamSlab,
     remote_pid: Option<u32>,
     cbs: Option<Rc<RefCell<CubebServerCallbacks>>>,
+    devidmap: DevIdMap,
 }
 
 impl rpc::Server for CubebServer {
@@ -326,6 +391,9 @@ impl rpc::Server for CubebServer {
     >;
 
     fn process(&mut self, req: Self::Request) -> Self::Future {
+        if let ServerMessage::ClientConnect(pid) = req {
+            self.remote_pid = Some(pid);
+        }
         let resp = with_local_context(|context, manager| match *context {
             Err(_) => error(cubeb::Error::error()),
             Ok(ref context) => self.process_msg(context, manager, &req),
@@ -340,7 +408,13 @@ macro_rules! try_stream {
         if $self.streams.contains($stm_tok) {
             &mut $self.streams[$stm_tok]
         } else {
-            error!("{}:{}:{} - Stream({}): invalid token", file!(), line!(), column!(), $stm_tok);
+            error!(
+                "{}:{}:{} - Stream({}): invalid token",
+                file!(),
+                line!(),
+                column!(),
+                $stm_tok
+            );
             return error(cubeb::Error::invalid_parameter());
         }
     };
@@ -353,6 +427,7 @@ impl CubebServer {
             streams: StreamSlab::with_capacity(STREAM_CONN_CHUNK_SIZE),
             remote_pid: None,
             cbs: None,
+            devidmap: DevIdMap::new(),
         }
     }
 
@@ -364,8 +439,9 @@ impl CubebServer {
         msg: &ServerMessage,
     ) -> ClientMessage {
         let resp: ClientMessage = match *msg {
-            ServerMessage::ClientConnect(pid) => {
-                self.remote_pid = Some(pid);
+            ServerMessage::ClientConnect(_) => {
+                // remote_pid is set before cubeb initialization, just verify here.
+                assert!(self.remote_pid.is_some());
                 ClientMessage::ClientConnected
             }
 
@@ -409,7 +485,15 @@ impl CubebServer {
             ServerMessage::ContextGetDeviceEnumeration(device_type) => context
                 .enumerate_devices(cubeb::DeviceType::from_bits_truncate(device_type))
                 .map(|devices| {
-                    let v: Vec<DeviceInfo> = devices.iter().map(|i| i.as_ref().into()).collect();
+                    let v: Vec<DeviceInfo> = devices
+                        .iter()
+                        .map(|i| {
+                            let mut tmp: DeviceInfo = i.as_ref().into();
+                            // Replace each cubeb_devid with a unique handle suitable for IPC.
+                            tmp.devid = self.devidmap.to_handle(tmp.devid);
+                            tmp
+                        })
+                        .collect();
                     ClientMessage::ContextEnumeratedDevices(v)
                 })
                 .unwrap_or_else(error),
@@ -460,6 +544,12 @@ impl CubebServer {
                 .map(ClientMessage::StreamLatency)
                 .unwrap_or_else(error),
 
+            ServerMessage::StreamGetInputLatency(stm_tok) => try_stream!(self, stm_tok)
+                .stream
+                .input_latency()
+                .map(ClientMessage::StreamInputLatency)
+                .unwrap_or_else(error),
+
             ServerMessage::StreamSetVolume(stm_tok, volume) => try_stream!(self, stm_tok)
                 .stream
                 .set_volume(volume)
@@ -472,19 +562,24 @@ impl CubebServer {
                 .map(|device| ClientMessage::StreamCurrentDevice(Device::from(device)))
                 .unwrap_or_else(error),
 
-            ServerMessage::StreamRegisterDeviceChangeCallback(stm_tok, enable) => try_stream!(self, stm_tok)
-                .stream
-                .register_device_changed_callback(if enable {
-                    Some(device_change_cb_c)
-                } else {
-                    None
-                })
-                .map(|_| ClientMessage::StreamRegisterDeviceChangeCallback)
-                .unwrap_or_else(error),
+            ServerMessage::StreamRegisterDeviceChangeCallback(stm_tok, enable) => {
+                try_stream!(self, stm_tok)
+                    .stream
+                    .register_device_changed_callback(if enable {
+                        Some(device_change_cb_c)
+                    } else {
+                        None
+                    })
+                    .map(|_| ClientMessage::StreamRegisterDeviceChangeCallback)
+                    .unwrap_or_else(error)
+            }
 
             ServerMessage::ContextSetupDeviceCollectionCallback => {
                 if let Ok((ipc_server, ipc_client)) = MessageStream::anonymous_ipc_pair() {
-                    debug!("Created device collection RPC pair: {:?}-{:?}", ipc_server, ipc_client);
+                    debug!(
+                        "Created device collection RPC pair: {:?}-{:?}",
+                        ipc_server, ipc_client
+                    );
 
                     // This code is currently running on the Client/Server RPC
                     // handling thread.  We need to move the registration of the
@@ -615,11 +710,11 @@ impl CubebServer {
 
         let (ipc_server, ipc_client) = MessageStream::anonymous_ipc_pair()?;
         debug!("Created callback pair: {:?}-{:?}", ipc_server, ipc_client);
-        let mut shm_path = audioipc::get_shm_path();
-        shm_path.set_extension("input");
-        let (input_shm, input_file) = SharedMemWriter::new(&shm_path, audioipc::SHM_AREA_SIZE)?;
-        shm_path.set_extension("output");
-        let (output_shm, output_file) = SharedMemReader::new(&shm_path, audioipc::SHM_AREA_SIZE)?;
+        let shm_id = get_shm_id();
+        let (input_shm, input_file) =
+            SharedMemWriter::new(&format!("{}-input", shm_id), audioipc::SHM_AREA_SIZE)?;
+        let (output_shm, output_file) =
+            SharedMemReader::new(&format!("{}-output", shm_id), audioipc::SHM_AREA_SIZE)?;
 
         // This code is currently running on the Client/Server RPC
         // handling thread.  We need to move the registration of the
@@ -657,12 +752,14 @@ impl CubebServer {
             .as_ref()
             .and_then(|name| CStr::from_bytes_with_nul(name).ok());
 
-        let input_device = params.input_device as *const _;
+        // Map IPC handle back to cubeb_devid.
+        let input_device = self.devidmap.from_handle(params.input_device) as *const _;
         let input_stream_params = params.input_stream_params.as_ref().map(|isp| unsafe {
             cubeb::StreamParamsRef::from_ptr(isp as *const StreamParams as *mut _)
         });
 
-        let output_device = params.output_device as *const _;
+        // Map IPC handle back to cubeb_devid.
+        let output_device = self.devidmap.from_handle(params.output_device) as *const _;
         let output_stream_params = params.output_stream_params.as_ref().map(|osp| unsafe {
             cubeb::StreamParamsRef::from_ptr(osp as *const StreamParams as *mut _)
         });

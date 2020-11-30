@@ -11,16 +11,17 @@
 
 #include <algorithm>
 
+#include "jit/CompileWrappers.h"
 #include "jit/JitAllocPolicy.h"
 #include "jit/JitFrames.h"
 #include "jit/Registers.h"
-#include "vm/EnvironmentObject.h"
+#include "vm/JSAtomState.h"
 #include "vm/JSFunction.h"
 
 namespace js {
 namespace jit {
 
-class TrackedOptimizations;
+class InlineScriptTree;
 
 inline unsigned StartArgSlot(JSScript* script) {
   // Reserved slots:
@@ -45,99 +46,6 @@ inline unsigned CountArgSlots(JSScript* script, JSFunction* fun) {
   // SnapshotWriter::startFrame
   return StartArgSlot(script) + (fun ? fun->nargs() + 1 : 0);
 }
-
-// The compiler at various points needs to be able to store references to the
-// current inline path (the sequence of scripts and call-pcs that lead to the
-// current function being inlined).
-//
-// To support this, the top-level IonBuilder keeps a tree that records the
-// inlinings done during compilation.
-class InlineScriptTree {
-  // InlineScriptTree for the caller
-  InlineScriptTree* caller_;
-
-  // PC in the caller corresponding to this script.
-  jsbytecode* callerPc_;
-
-  // Script for this entry.
-  JSScript* script_;
-
-  // Child entries (linked together by nextCallee pointer)
-  InlineScriptTree* children_;
-  InlineScriptTree* nextCallee_;
-
- public:
-  InlineScriptTree(InlineScriptTree* caller, jsbytecode* callerPc,
-                   JSScript* script)
-      : caller_(caller),
-        callerPc_(callerPc),
-        script_(script),
-        children_(nullptr),
-        nextCallee_(nullptr) {}
-
-  static InlineScriptTree* New(TempAllocator* allocator,
-                               InlineScriptTree* caller, jsbytecode* callerPc,
-                               JSScript* script);
-
-  InlineScriptTree* addCallee(TempAllocator* allocator, jsbytecode* callerPc,
-                              JSScript* calleeScript);
-
-  InlineScriptTree* caller() const { return caller_; }
-
-  bool isOutermostCaller() const { return caller_ == nullptr; }
-  bool hasCaller() const { return caller_ != nullptr; }
-  InlineScriptTree* outermostCaller() {
-    if (isOutermostCaller()) {
-      return this;
-    }
-    return caller_->outermostCaller();
-  }
-
-  jsbytecode* callerPc() const { return callerPc_; }
-
-  JSScript* script() const { return script_; }
-
-  bool hasChildren() const { return children_ != nullptr; }
-  InlineScriptTree* firstChild() const {
-    MOZ_ASSERT(hasChildren());
-    return children_;
-  }
-
-  bool hasNextCallee() const { return nextCallee_ != nullptr; }
-  InlineScriptTree* nextCallee() const {
-    MOZ_ASSERT(hasNextCallee());
-    return nextCallee_;
-  }
-
-  unsigned depth() const {
-    if (isOutermostCaller()) {
-      return 1;
-    }
-    return 1 + caller_->depth();
-  }
-};
-
-class BytecodeSite : public TempObject {
-  // InlineScriptTree identifying innermost active function at site.
-  InlineScriptTree* tree_;
-
-  // Bytecode address within innermost active function.
-  jsbytecode* pc_;
-
- public:
-  BytecodeSite() : tree_(nullptr), pc_(nullptr) {}
-
-  BytecodeSite(InlineScriptTree* tree, jsbytecode* pc) : tree_(tree), pc_(pc) {
-    MOZ_ASSERT(tree_ != nullptr);
-    MOZ_ASSERT(pc_ != nullptr);
-  }
-
-  InlineScriptTree* tree() const { return tree_; }
-
-  jsbytecode* pc() const { return pc_; }
-
-  JSScript* script() const { return tree_ ? tree_->script() : nullptr; }
-};
 
 enum AnalysisMode {
   /* JavaScript execution, not analysis. */
@@ -171,6 +79,7 @@ class CompileInfo {
         hadFrequentBailouts_(script->hadFrequentBailouts()),
         mayReadFrameArgsDirectly_(script->mayReadFrameArgsDirectly()),
         trackRecordReplayProgressScript_(script->trackRecordReplayProgress() ? script : nullptr),
+        isDerivedClassConstructor_(script->isDerivedClassConstructor()),
         inlineScriptTree_(inlineScriptTree) {
     MOZ_ASSERT_IF(osrPc, JSOp(*osrPc) == JSOp::LoopHead);
 
@@ -254,9 +163,6 @@ class CompileInfo {
     return pc == osrPc();
   }
 
-  jsbytecode* startPC() const { return script_->code(); }
-  jsbytecode* limitPC() const { return script_->codeEnd(); }
-
   const char* filename() const { return script_->filename(); }
 
   unsigned lineno() const { return script_->lineno(); }
@@ -264,19 +170,13 @@ class CompileInfo {
 
   // Script accessors based on PC.
 
-  JSAtom* getAtom(jsbytecode* pc) const {
-    return script_->getAtom(GET_UINT32_INDEX(pc));
-  }
+  JSAtom* getAtom(jsbytecode* pc) const { return script_->getAtom(pc); }
 
-  PropertyName* getName(jsbytecode* pc) const {
-    return script_->getName(GET_UINT32_INDEX(pc));
-  }
+  PropertyName* getName(jsbytecode* pc) const { return script_->getName(pc); }
 
   inline RegExpObject* getRegExp(jsbytecode* pc) const;
 
-  JSObject* getObject(jsbytecode* pc) const {
-    return script_->getObject(GET_UINT32_INDEX(pc));
-  }
+  JSObject* getObject(jsbytecode* pc) const { return script_->getObject(pc); }
 
   inline JSFunction* getFunction(jsbytecode* pc) const;
 
@@ -471,6 +371,8 @@ class CompileInfo {
   bool mayReadFrameArgsDirectly() const { return mayReadFrameArgsDirectly_; }
   void* trackRecordReplayProgressScript() const { return trackRecordReplayProgressScript_; }
 
+  bool isDerivedClassConstructor() const { return isDerivedClassConstructor_; }
+
  private:
   unsigned nimplicit_;
   unsigned nargs_;
@@ -495,6 +397,8 @@ class CompileInfo {
 
   bool mayReadFrameArgsDirectly_;
   void* trackRecordReplayProgressScript_;
+
+  bool isDerivedClassConstructor_;
 
   InlineScriptTree* inlineScriptTree_;
 

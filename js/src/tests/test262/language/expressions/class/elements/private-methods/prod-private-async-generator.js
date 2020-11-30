@@ -1,4 +1,4 @@
-// |reftest| skip async -- class-methods-private is not supported
+// |reftest| shell-option(--enable-private-methods) skip-if(!xulRuntime.shell) async -- requires shell-options
 // This file was procedurally generated from the following sources:
 // - src/class-elements/prod-private-async-generator.case
 // - src/class-elements/private-methods/cls-expr.template
@@ -132,4 +132,4 @@ ctorPromise.then(() => {
         assert.sameValue(value, 42, 'return from generator method');
         assert.sameValue(done, true, 'iterator is done');
     });
-}, $DONE).then($DONE, $DONE);
+}).then($DONE, $DONE);

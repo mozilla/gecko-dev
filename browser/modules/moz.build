@@ -58,9 +58,6 @@ with Files("*Telemetry.jsm"):
 with Files("ContentCrashHandlers.jsm"):
     BUG_COMPONENT = ("Toolkit", "Crash Reporting")
 
-with Files("ContentSearch.jsm"):
-    BUG_COMPONENT = ("Firefox", "Search")
-
 with Files("EveryWindow.jsm"):
     BUG_COMPONENT = ("Firefox", "General")
 
@@ -76,14 +73,14 @@ with Files("LiveBookmarkMigrator.jsm"):
 with Files("OpenInTabsUtils.jsm"):
     BUG_COMPONENT = ("Firefox", "Tabbed Browser")
 
+with Files("PartnerLinkAttribution.jsm"):
+    BUG_COMPONENT = ("Firefox", "Search")
+
 with Files("PermissionUI.jsm"):
    BUG_COMPONENT = ("Firefox", "Site Permissions")
 
 with Files("ProcessHangMonitor.jsm"):
     BUG_COMPONENT = ("Core", "DOM: Content Processes")
-
-with Files("ReaderParent.jsm"):
-    BUG_COMPONENT = ("Toolkit", "Reader Mode")
 
 with Files("Sanitizer.jsm"):
     BUG_COMPONENT = ("Firefox", "Preferences")
@@ -121,7 +118,6 @@ with Files("webrtcUI.jsm"):
 with Files("ZoomUI.jsm"):
     BUG_COMPONENT = ("Firefox", "Toolbars and Customization")
 
-
 BROWSER_CHROME_MANIFESTS += [
     'test/browser/browser.ini',
     'test/browser/formValidation/browser.ini',
@@ -135,8 +131,6 @@ EXTRA_JS_MODULES += [
     'BrowserUsageTelemetry.jsm',
     'BrowserWindowTracker.jsm',
     'ContentCrashHandlers.jsm',
-    'ContentObservers.js',
-    'ContentSearch.jsm',
     'Discovery.jsm',
     'EveryWindow.jsm',
     'ExtensionsUI.jsm',
@@ -147,10 +141,10 @@ EXTRA_JS_MODULES += [
     'NewTabPagePreloading.jsm',
     'OpenInTabsUtils.jsm',
     'PageActions.jsm',
+    'PartnerLinkAttribution.jsm',
     'PermissionUI.jsm',
     'PingCentre.jsm',
     'ProcessHangMonitor.jsm',
-    'ReaderParent.jsm',
     'Sanitizer.jsm',
     'SelectionChangedMenulist.jsm',
     'SiteDataManager.jsm',

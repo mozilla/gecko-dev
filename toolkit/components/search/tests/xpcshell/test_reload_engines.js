@@ -3,30 +3,44 @@
 
 "use strict";
 
+const { SearchEngineSelector } = ChromeUtils.import(
+  "resource://gre/modules/SearchEngineSelector.jsm"
+);
+const { MockRegistrar } = ChromeUtils.import(
+  "resource://testing-common/MockRegistrar.jsm"
+);
+
 const SEARCH_SERVICE_TOPIC = "browser-search-service";
 const SEARCH_ENGINE_TOPIC = "browser-search-engine-modified";
 
 const CONFIG = [
   {
+    // Engine initially default, but the defaults will be changed to engine-pref.
     webExtension: {
       id: "engine@search.mozilla.org",
     },
-    orderHint: 30,
     appliesTo: [
       {
         included: { everywhere: true },
-        excluded: { regions: ["FR"] },
         default: "yes",
         defaultPrivate: "yes",
+      },
+      {
+        included: { regions: ["FR"] },
+        default: "no",
+        defaultPrivate: "no",
       },
     ],
   },
   {
+    // This will become defaults when region is changed to FR.
     webExtension: {
       id: "engine-pref@search.mozilla.org",
     },
-    orderHint: 20,
     appliesTo: [
+      {
+        included: { everywhere: true },
+      },
       {
         included: { regions: ["FR"] },
         default: "yes",
@@ -34,12 +48,85 @@ const CONFIG = [
       },
     ],
   },
+  {
+    // This engine will get an update when region is changed to FR.
+    webExtension: {
+      id: "engine-chromeicon@search.mozilla.org",
+    },
+    appliesTo: [
+      {
+        included: { everywhere: true },
+      },
+      {
+        included: { regions: ["FR"] },
+        extraParams: [
+          { name: "c", value: "my-test" },
+          { name: "q1", value: "{searchTerms}" },
+        ],
+      },
+    ],
+  },
+  {
+    // This engine will be removed when the region is changed to FR.
+    webExtension: {
+      id: "engine-rel-searchform-purpose@search.mozilla.org",
+    },
+    appliesTo: [
+      {
+        included: { everywhere: true },
+        excluded: { regions: ["FR"] },
+      },
+    ],
+  },
+  {
+    // This engine will be added when the region is changed to FR.
+    webExtension: {
+      id: "engine-reordered@search.mozilla.org",
+    },
+    appliesTo: [
+      {
+        included: { regions: ["FR"] },
+      },
+    ],
+  },
+  {
+    // This engine will be re-ordered and have a changed name, when moved to FR.
+    webExtension: {
+      id: "engine-resourceicon@search.mozilla.org",
+    },
+    appliesTo: [
+      {
+        included: { everywhere: true },
+        excluded: { regions: ["FR"] },
+      },
+      {
+        included: { regions: ["FR"] },
+        webExtension: {
+          locales: ["gd"],
+        },
+        orderHint: 30,
+      },
+    ],
+  },
+  {
+    // This engine has the same name, but still should be replaced correctly.
+    webExtension: {
+      id: "engine-same-name@search.mozilla.org",
+    },
+    appliesTo: [
+      {
+        included: { everywhere: true },
+        excluded: { regions: ["FR"] },
+      },
+      {
+        included: { regions: ["FR"] },
+        webExtension: {
+          locales: ["gd"],
+        },
+      },
+    ],
+  },
 ];
-
-// Default engine with no region defined.
-const DEFAULT = "Test search engine";
-// Default engine with region set to FR.
-const FR_DEFAULT = "engine-pref";
 
 function listenFor(name, key) {
   let notifyObserved = false;
@@ -58,88 +145,156 @@ function listenFor(name, key) {
 
 add_task(async function setup() {
   Services.prefs.setBoolPref("browser.search.separatePrivateDefault", true);
-  Services.prefs.setBoolPref("browser.search.geoSpecificDefaults", true);
+  Services.prefs.setBoolPref(
+    SearchUtils.BROWSER_SEARCH_PREF + "separatePrivateDefault.ui.enabled",
+    true
+  );
 
-  await useTestEngines("data", null, CONFIG);
+  SearchTestUtils.useMockIdleService();
+  await SearchTestUtils.useTestEngines("data", null, CONFIG);
   await AddonTestUtils.promiseStartupManager();
 });
 
-add_task(async function test_regular_init() {
-  let reloadObserved = listenFor(SEARCH_SERVICE_TOPIC, "engines-reloaded");
-  let geoUrl = `data:application/json,{"country_code": "FR"}`;
-  Services.prefs.setCharPref("geo.provider-country.network.url", geoUrl);
+// This is to verify that the loaded configuration matches what we expect for
+// the test.
+add_task(async function test_initial_config_correct() {
+  Region._setHomeRegion("", false);
 
-  await Promise.all([
-    Services.search.init(true),
-    SearchTestUtils.promiseSearchNotification("ensure-known-region-done"),
-    promiseAfterCache(),
-  ]);
+  await Services.search.init();
 
-  Assert.equal(
-    Services.search.defaultEngine.name,
-    FR_DEFAULT,
-    "Geo defined default should be set"
+  const installedEngines = await Services.search.getDefaultEngines();
+  Assert.deepEqual(
+    installedEngines.map(e => e.identifier),
+    [
+      "engine",
+      "engine-chromeicon",
+      "engine-pref",
+      "engine-rel-searchform-purpose",
+      "engine-resourceicon",
+      "engine-same-name",
+    ],
+    "Should have the correct list of engines installed."
   );
 
-  Assert.ok(
-    !reloadObserved(),
-    "Engines don't reload with immediate region fetch"
+  Assert.equal(
+    (await Services.search.getDefault()).identifier,
+    "engine",
+    "Should have loaded the expected default engine"
+  );
+
+  Assert.equal(
+    (await Services.search.getDefaultPrivate()).identifier,
+    "engine",
+    "Should have loaded the expected private default engine"
   );
 });
 
-add_task(async function test_init_with_slow_region_lookup() {
-  let reloadObserved = listenFor(SEARCH_SERVICE_TOPIC, "engines-reloaded");
-  let initPromise;
-
-  // Ensure the region lookup completes after init so the
-  // engines are reloaded
-  Services.prefs.setCharPref("browser.search.region", "");
-  let srv = useHttpServer();
-  srv.registerPathHandler("/fetch_region", async (req, res) => {
-    res.processAsync();
-    await initPromise;
-    res.setStatusLine("1.1", 200, "OK");
-    res.write(JSON.stringify({ country_code: "FR" }));
-    res.finish();
-  });
-
-  Services.prefs.setCharPref(
-    "geo.provider-country.network.url",
-    `http://localhost:${srv.identity.primaryPort}/fetch_region`
+add_task(async function test_config_updated_engine_changes() {
+  // Update the config.
+  const reloadObserved = SearchTestUtils.promiseSearchNotification(
+    "engines-reloaded"
+  );
+  const defaultEngineChanged = SearchTestUtils.promiseSearchNotification(
+    SearchUtils.MODIFIED_TYPE.DEFAULT,
+    SearchUtils.TOPIC_ENGINE_MODIFIED
+  );
+  const defaultPrivateEngineChanged = SearchTestUtils.promiseSearchNotification(
+    SearchUtils.MODIFIED_TYPE.DEFAULT_PRIVATE,
+    SearchUtils.TOPIC_ENGINE_MODIFIED
   );
 
-  // Kick off a re-init.
-  initPromise = asyncReInit();
-  await initPromise;
+  const enginesAdded = [];
+  const enginesModified = [];
+  const enginesRemoved = [];
 
-  let otherPromises = [
-    SearchTestUtils.promiseSearchNotification("ensure-known-region-done"),
-    promiseAfterCache(),
-    SearchTestUtils.promiseSearchNotification(
-      "engine-default",
-      SEARCH_ENGINE_TOPIC
-    ),
-  ];
+  function enginesObs(subject, topic, data) {
+    if (data == SearchUtils.MODIFIED_TYPE.ADDED) {
+      enginesAdded.push(subject.QueryInterface(Ci.nsISearchEngine).identifier);
+    } else if (data == SearchUtils.MODIFIED_TYPE.CHANGED) {
+      enginesModified.push(
+        subject.QueryInterface(Ci.nsISearchEngine).identifier
+      );
+    } else if (data == SearchUtils.MODIFIED_TYPE.REMOVED) {
+      enginesRemoved.push(subject.QueryInterface(Ci.nsISearchEngine).name);
+    }
+  }
+  Services.obs.addObserver(enginesObs, SearchUtils.TOPIC_ENGINE_MODIFIED);
+
+  Region._setHomeRegion("FR", false);
+
+  await Services.search.wrappedJSObject._maybeReloadEngines();
+
+  await reloadObserved;
+  Services.obs.removeObserver(enginesObs, SearchUtils.TOPIC_ENGINE_MODIFIED);
+
+  Assert.deepEqual(
+    enginesAdded,
+    ["engine-resourceicon-gd", "engine-reordered"],
+    "Should have added the correct engines"
+  );
+
+  Assert.deepEqual(
+    enginesModified.sort(),
+    ["engine", "engine-chromeicon", "engine-pref", "engine-same-name-gd"],
+    "Should have modified the expected engines"
+  );
+
+  Assert.deepEqual(
+    enginesRemoved,
+    ["engine-rel-searchform-purpose", "engine-resourceicon"],
+    "Should have removed the expected engine"
+  );
+
+  const installedEngines = await Services.search.getDefaultEngines();
+
+  Assert.deepEqual(
+    installedEngines.map(e => e.identifier),
+    [
+      "engine-pref",
+      "engine-resourceicon-gd",
+      "engine-chromeicon",
+      "engine-same-name-gd",
+      "engine",
+      "engine-reordered",
+    ],
+    "Should have the correct list of engines installed in the expected order."
+  );
+
+  const newDefault = await defaultEngineChanged;
+  Assert.equal(
+    newDefault.QueryInterface(Ci.nsISearchEngine).name,
+    "engine-pref",
+    "Should have correctly notified the new default engine"
+  );
+
+  const newDefaultPrivate = await defaultPrivateEngineChanged;
+  Assert.equal(
+    newDefaultPrivate.QueryInterface(Ci.nsISearchEngine).name,
+    "engine-pref",
+    "Should have correctly notified the new default private engine"
+  );
+
+  const engineWithParams = await Services.search.getEngineByName(
+    "engine-chromeicon"
+  );
+  Assert.equal(
+    engineWithParams.getSubmission("test").uri.spec,
+    "https://www.google.com/search?c=my-test&q1=test",
+    "Should have updated the parameters"
+  );
+
+  const engineWithSameName = await Services.search.getEngineByName(
+    "engine-same-name"
+  );
+  Assert.equal(
+    engineWithSameName.getSubmission("test").uri.spec,
+    "https://www.example.com/search?q=test",
+    "Should have correctly switched to the engine of the same name"
+  );
 
   Assert.equal(
-    Services.search.defaultEngine.name,
-    DEFAULT,
-    "Test engine shouldn't be the default anymore"
+    Services.search.wrappedJSObject._settings.getAttribute("useSavedOrder"),
+    false,
+    "Should not have set the useSavedOrder preference"
   );
-
-  await Promise.all(otherPromises);
-
-  // Ensure that correct engine is being reported as the default.
-  Assert.equal(
-    Services.search.defaultEngine.name,
-    FR_DEFAULT,
-    "engine-pref should be the default in FR"
-  );
-  Assert.equal(
-    (await Services.search.getDefaultPrivate()).name,
-    FR_DEFAULT,
-    "engine-pref should be the private default in FR"
-  );
-
-  Assert.ok(reloadObserved(), "Engines do reload with delayed region fetch");
 });

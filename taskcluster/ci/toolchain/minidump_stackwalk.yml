@@ -4,6 +4,8 @@
 ---
 job-defaults:
     description: "minidump_stackwalk toolchain build"
+    attributes:
+        local-toolchain: true
     worker-type: b-linux
     worker:
         max-run-time: 1800
@@ -15,7 +17,6 @@ job-defaults:
             - 'config/external/zlib'
             - 'mfbt'
             - 'moz.configure'
-            - 'testing/tools/fileid'
             - 'toolkit/crashreporter'
             - 'toolkit/crashreporter/google-breakpad/src/common'
             - 'toolkit/crashreporter/google-breakpad/src/processor'
@@ -24,7 +25,6 @@ job-defaults:
         toolchain-artifact: public/build/minidump_stackwalk.tar.xz
     run-on-projects:
         - trunk
-        - try
 
 linux64-minidump-stackwalk:
     treeherder:
@@ -40,7 +40,7 @@ macosx64-minidump-stackwalk:
         symbol: TM(stackwalk)
     worker:
         env:
-            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/macosx64/cross-clang.manifest"
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/macosx64/cross-releng.manifest"
     run:
         arguments: ['macosx64']
         resources:
@@ -48,7 +48,7 @@ macosx64-minidump-stackwalk:
         tooltool-downloads: internal
     fetches:
         toolchain:
-            - linux64-cctools-port
+            - linux64-cctools-port-clang-9
             - linux64-clang-9
             - linux64-rust-macos-1.41
 

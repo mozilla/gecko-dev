@@ -7,16 +7,18 @@
 #if !defined(MozPromise_h_)
 #  define MozPromise_h_
 
+#  include <type_traits>
+#  include <utility>
+
 #  include "mozilla/Logging.h"
 #  include "mozilla/Maybe.h"
 #  include "mozilla/Monitor.h"
 #  include "mozilla/Mutex.h"
 #  include "mozilla/RefPtr.h"
 #  include "mozilla/Tuple.h"
-#  include "mozilla/TypeTraits.h"
 #  include "mozilla/UniquePtr.h"
 #  include "mozilla/Variant.h"
-
+#  include "nsIDirectTaskDispatcher.h"
 #  include "nsISerialEventTarget.h"
 #  include "nsTArray.h"
 #  include "nsThreadUtils.h"
@@ -35,6 +37,10 @@
 #    define PROMISE_ASSERT(...) \
       do {                      \
       } while (0)
+#  endif
+
+#  if DEBUG
+#    include "nsPrintfCString.h"
 #  endif
 
 namespace mozilla {
@@ -72,28 +78,28 @@ struct MethodTraitsHelper<Ret (ThisType::*)(ArgTypes...) const volatile> {
   static const size_t ArgSize = sizeof...(ArgTypes);
 };
 template <typename T>
-struct MethodTrait : MethodTraitsHelper<typename RemoveReference<T>::Type> {};
+struct MethodTrait : MethodTraitsHelper<std::remove_reference_t<T>> {};
 
 }  // namespace detail
 
 template <typename MethodType>
 using TakesArgument =
-    IntegralConstant<bool, detail::MethodTrait<MethodType>::ArgSize != 0>;
+    std::integral_constant<bool, detail::MethodTrait<MethodType>::ArgSize != 0>;
 
 template <typename MethodType, typename TargetType>
 using ReturnTypeIs =
-    IsConvertible<typename detail::MethodTrait<MethodType>::ReturnType,
-                  TargetType>;
+    std::is_convertible<typename detail::MethodTrait<MethodType>::ReturnType,
+                        TargetType>;
 
 template <typename ResolveValueT, typename RejectValueT, bool IsExclusive>
 class MozPromise;
 
 template <typename Return>
-struct IsMozPromise : FalseType {};
+struct IsMozPromise : std::false_type {};
 
 template <typename ResolveValueT, typename RejectValueT, bool IsExclusive>
 struct IsMozPromise<MozPromise<ResolveValueT, RejectValueT, IsExclusive>>
-    : TrueType {};
+    : std::true_type {};
 
 /*
  * A promise manages an asynchronous request that may or may not be able to be
@@ -164,7 +170,7 @@ class MozPromise : public MozPromiseBase {
   // Return a |T&&| to enable move when IsExclusive is true or
   // a |const T&| to enforce copy otherwise.
   template <typename T,
-            typename R = typename Conditional<IsExclusive, T&&, const T&>::Type>
+            typename R = std::conditional_t<IsExclusive, T&&, const T&>>
   static R MaybeMove(T& aX) {
     return static_cast<R>(aX);
   }
@@ -251,9 +257,9 @@ class MozPromise : public MozPromiseBase {
   class Private;
 
   template <typename ResolveValueType_>
-  static MOZ_MUST_USE RefPtr<MozPromise> CreateAndResolve(
+  [[nodiscard]] static RefPtr<MozPromise> CreateAndResolve(
       ResolveValueType_&& aResolveValue, const char* aResolveSite) {
-    static_assert(IsConvertible<ResolveValueType_, ResolveValueT>::value,
+    static_assert(std::is_convertible_v<ResolveValueType_, ResolveValueT>,
                   "Resolve() argument must be implicitly convertible to "
                   "MozPromise's ResolveValueT");
     RefPtr<typename MozPromise::Private> p =
@@ -263,9 +269,9 @@ class MozPromise : public MozPromiseBase {
   }
 
   template <typename RejectValueType_>
-  static MOZ_MUST_USE RefPtr<MozPromise> CreateAndReject(
+  [[nodiscard]] static RefPtr<MozPromise> CreateAndReject(
       RejectValueType_&& aRejectValue, const char* aRejectSite) {
-    static_assert(IsConvertible<RejectValueType_, RejectValueT>::value,
+    static_assert(std::is_convertible_v<RejectValueType_, RejectValueT>,
                   "Reject() argument must be implicitly convertible to "
                   "MozPromise's RejectValueT");
     RefPtr<typename MozPromise::Private> p =
@@ -275,14 +281,15 @@ class MozPromise : public MozPromiseBase {
   }
 
   template <typename ResolveOrRejectValueType_>
-  static MOZ_MUST_USE RefPtr<MozPromise> CreateAndResolveOrReject(
+  [[nodiscard]] static RefPtr<MozPromise> CreateAndResolveOrReject(
       ResolveOrRejectValueType_&& aValue, const char* aSite) {
     RefPtr<typename MozPromise::Private> p = new MozPromise::Private(aSite);
     p->ResolveOrReject(std::forward<ResolveOrRejectValueType_>(aValue), aSite);
     return p;
   }
 
-  typedef MozPromise<nsTArray<ResolveValueType>, RejectValueType, IsExclusive>
+  typedef MozPromise<CopyableTArray<ResolveValueType>, RejectValueType,
+                     IsExclusive>
       AllPromiseType;
 
  private:
@@ -335,12 +342,12 @@ class MozPromise : public MozPromiseBase {
   };
 
  public:
-  static MOZ_MUST_USE RefPtr<AllPromiseType> All(
+  [[nodiscard]] static RefPtr<AllPromiseType> All(
       nsISerialEventTarget* aProcessingTarget,
       nsTArray<RefPtr<MozPromise>>& aPromises) {
     if (aPromises.Length() == 0) {
-      return AllPromiseType::CreateAndResolve(nsTArray<ResolveValueType>(),
-                                              __func__);
+      return AllPromiseType::CreateAndResolve(
+          CopyableTArray<ResolveValueType>(), __func__);
     }
 
     RefPtr<AllPromiseHolder> holder = new AllPromiseHolder(aPromises.Length());
@@ -448,9 +455,43 @@ class MozPromise : public MozPromiseBase {
 
       nsCOMPtr<nsIRunnable> r = new ResolveOrRejectRunnable(this, aPromise);
       PROMISE_LOG(
-          "%s Then() call made from %s [Runnable=%p, Promise=%p, ThenValue=%p]",
+          "%s Then() call made from %s [Runnable=%p, Promise=%p, ThenValue=%p] "
+          "%s dispatch",
           aPromise->mValue.IsResolve() ? "Resolving" : "Rejecting", mCallSite,
-          r.get(), aPromise, this);
+          r.get(), aPromise, this,
+          aPromise->mUseSynchronousTaskDispatch
+              ? "synchronous"
+              : aPromise->mUseDirectTaskDispatch ? "directtask" : "normal");
+
+      if (aPromise->mUseSynchronousTaskDispatch &&
+          mResponseTarget->IsOnCurrentThread()) {
+        PROMISE_LOG("ThenValue::Dispatch running task synchronously [this=%p]",
+                    this);
+        r->Run();
+        return;
+      }
+
+      if (aPromise->mUseDirectTaskDispatch &&
+          mResponseTarget->IsOnCurrentThread()) {
+        PROMISE_LOG(
+            "ThenValue::Dispatch dispatch task via direct task queue [this=%p]",
+            this);
+        nsCOMPtr<nsIDirectTaskDispatcher> dispatcher =
+            do_QueryInterface(mResponseTarget);
+        if (dispatcher) {
+          dispatcher->DispatchDirectTask(r.forget());
+          return;
+        }
+        NS_WARNING(
+            nsPrintfCString(
+                "Direct Task dispatching not available for thread \"%s\"",
+                PR_GetThreadName(PR_GetCurrentThread()))
+                .get());
+        MOZ_DIAGNOSTIC_ASSERT(
+            false,
+            "mResponseTarget must implement nsIDirectTaskDispatcher for direct "
+            "task dispatching");
+      }
 
       // Promise consumers are allowed to disconnect the Request object and
       // then shut down the thread or task queue that the promise result would
@@ -506,17 +547,15 @@ class MozPromise : public MozPromiseBase {
    * make the resolve/reject value argument "optional".
    */
   template <typename ThisType, typename MethodType, typename ValueType>
-  static typename EnableIf<
-      TakesArgument<MethodType>::value,
-      typename detail::MethodTrait<MethodType>::ReturnType>::Type
+  static std::enable_if_t<TakesArgument<MethodType>::value,
+                          typename detail::MethodTrait<MethodType>::ReturnType>
   InvokeMethod(ThisType* aThisVal, MethodType aMethod, ValueType&& aValue) {
     return (aThisVal->*aMethod)(std::forward<ValueType>(aValue));
   }
 
   template <typename ThisType, typename MethodType, typename ValueType>
-  static typename EnableIf<
-      !TakesArgument<MethodType>::value,
-      typename detail::MethodTrait<MethodType>::ReturnType>::Type
+  static std::enable_if_t<!TakesArgument<MethodType>::value,
+                          typename detail::MethodTrait<MethodType>::ReturnType>
   InvokeMethod(ThisType* aThisVal, MethodType aMethod, ValueType&& aValue) {
     return (aThisVal->*aMethod)();
   }
@@ -524,7 +563,7 @@ class MozPromise : public MozPromiseBase {
   // Called when promise chaining is supported.
   template <bool SupportChaining, typename ThisType, typename MethodType,
             typename ValueType, typename CompletionPromiseType>
-  static typename EnableIf<SupportChaining, void>::Type InvokeCallbackMethod(
+  static std::enable_if_t<SupportChaining, void> InvokeCallbackMethod(
       ThisType* aThisVal, MethodType aMethod, ValueType&& aValue,
       CompletionPromiseType&& aCompletionPromise) {
     auto p = InvokeMethod(aThisVal, aMethod, std::forward<ValueType>(aValue));
@@ -536,7 +575,7 @@ class MozPromise : public MozPromiseBase {
   // Called when promise chaining is not supported.
   template <bool SupportChaining, typename ThisType, typename MethodType,
             typename ValueType, typename CompletionPromiseType>
-  static typename EnableIf<!SupportChaining, void>::Type InvokeCallbackMethod(
+  static std::enable_if_t<!SupportChaining, void> InvokeCallbackMethod(
       ThisType* aThisVal, MethodType aMethod, ValueType&& aValue,
       CompletionPromiseType&& aCompletionPromise) {
     MOZ_DIAGNOSTIC_ASSERT(
@@ -561,13 +600,14 @@ class MozPromise : public MozPromiseBase {
         typename detail::MethodTrait<ResolveMethodType>::ReturnType>::Type;
     using R2 = typename RemoveSmartPointer<
         typename detail::MethodTrait<RejectMethodType>::ReturnType>::Type;
-    using SupportChaining = IntegralConstant<bool, IsMozPromise<R1>::value &&
-                                                       IsSame<R1, R2>::value>;
+    using SupportChaining =
+        std::integral_constant<bool, IsMozPromise<R1>::value &&
+                                         std::is_same_v<R1, R2>>;
 
     // Fall back to MozPromise when promise chaining is not supported to make
     // code compile.
     using PromiseType =
-        typename Conditional<SupportChaining::value, R1, MozPromise>::Type;
+        std::conditional_t<SupportChaining::value, R1, MozPromise>;
 
    public:
     ThenValue(nsISerialEventTarget* aResponseTarget, ThisType* aThisVal,
@@ -625,12 +665,13 @@ class MozPromise : public MozPromiseBase {
 
     using R1 = typename RemoveSmartPointer<typename detail::MethodTrait<
         ResolveRejectMethodType>::ReturnType>::Type;
-    using SupportChaining = IntegralConstant<bool, IsMozPromise<R1>::value>;
+    using SupportChaining =
+        std::integral_constant<bool, IsMozPromise<R1>::value>;
 
     // Fall back to MozPromise when promise chaining is not supported to make
     // code compile.
     using PromiseType =
-        typename Conditional<SupportChaining::value, R1, MozPromise>::Type;
+        std::conditional_t<SupportChaining::value, R1, MozPromise>;
 
    public:
     ThenValue(nsISerialEventTarget* aResponseTarget, ThisType* aThisVal,
@@ -684,13 +725,14 @@ class MozPromise : public MozPromiseBase {
         typename detail::MethodTrait<ResolveFunction>::ReturnType>::Type;
     using R2 = typename RemoveSmartPointer<
         typename detail::MethodTrait<RejectFunction>::ReturnType>::Type;
-    using SupportChaining = IntegralConstant<bool, IsMozPromise<R1>::value &&
-                                                       IsSame<R1, R2>::value>;
+    using SupportChaining =
+        std::integral_constant<bool, IsMozPromise<R1>::value &&
+                                         std::is_same_v<R1, R2>>;
 
     // Fall back to MozPromise when promise chaining is not supported to make
     // code compile.
     using PromiseType =
-        typename Conditional<SupportChaining::value, R1, MozPromise>::Type;
+        std::conditional_t<SupportChaining::value, R1, MozPromise>;
 
    public:
     ThenValue(nsISerialEventTarget* aResponseTarget,
@@ -755,12 +797,13 @@ class MozPromise : public MozPromiseBase {
 
     using R1 = typename RemoveSmartPointer<
         typename detail::MethodTrait<ResolveRejectFunction>::ReturnType>::Type;
-    using SupportChaining = IntegralConstant<bool, IsMozPromise<R1>::value>;
+    using SupportChaining =
+        std::integral_constant<bool, IsMozPromise<R1>::value>;
 
     // Fall back to MozPromise when promise chaining is not supported to make
     // code compile.
     using PromiseType =
-        typename Conditional<SupportChaining::value, R1, MozPromise>::Type;
+        std::conditional_t<SupportChaining::value, R1, MozPromise>;
 
    public:
     ThenValue(nsISerialEventTarget* aResponseTarget,
@@ -884,8 +927,8 @@ class MozPromise : public MozPromiseBase {
     }
 
     template <typename... Ts>
-    auto Then(Ts&&... aArgs)
-        -> decltype(DeclVal<PromiseType>().Then(std::forward<Ts>(aArgs)...)) {
+    auto Then(Ts&&... aArgs) -> decltype(
+        std::declval<PromiseType>().Then(std::forward<Ts>(aArgs)...)) {
       return static_cast<RefPtr<PromiseType>>(*this)->Then(
           std::forward<Ts>(aArgs)...);
     }
@@ -937,6 +980,22 @@ class MozPromise : public MozPromiseBase {
     PROMISE_LOG(
         "%s invoking Chain() [this=%p, chainedPromise=%p, isPending=%d]",
         aCallSite, this, chainedPromise.get(), (int)IsPending());
+
+    // We want to use the same type of dispatching method with the chained
+    // promises.
+
+    // We need to ensure that the UseSynchronousTaskDispatch branch isn't taken
+    // at compilation time to ensure we're not triggering the static_assert in
+    // UseSynchronousTaskDispatch method. if constexpr (IsExclusive) ensures
+    // that.
+    if (mUseDirectTaskDispatch) {
+      chainedPromise->UseDirectTaskDispatch(aCallSite);
+    } else if constexpr (IsExclusive) {
+      if (mUseSynchronousTaskDispatch) {
+        chainedPromise->UseSynchronousTaskDispatch(aCallSite);
+      }
+    }
+
     if (!IsPending()) {
       ForwardTo(chainedPromise);
     } else {
@@ -946,7 +1005,7 @@ class MozPromise : public MozPromiseBase {
 
 #  ifdef MOZ_WIDGET_ANDROID
   // Creates a C++ MozPromise from its Java counterpart, GeckoResult.
-  static MOZ_MUST_USE RefPtr<MozPromise> FromGeckoResult(
+  [[nodiscard]] static RefPtr<MozPromise> FromGeckoResult(
       java::GeckoResult::Param aGeckoResult) {
     using jni::GeckoResultCallback;
     RefPtr<Private> p = new Private("GeckoResult Glue", false);
@@ -1041,6 +1100,8 @@ class MozPromise : public MozPromiseBase {
   const char* mCreationSite;  // For logging
   Mutex mMutex;
   ResolveOrRejectValue mValue;
+  bool mUseSynchronousTaskDispatch = false;
+  bool mUseDirectTaskDispatch = false;
 #  ifdef PROMISE_DEBUG
   uint32_t mMagic1 = sMagic;
 #  endif
@@ -1121,6 +1182,43 @@ class MozPromise<ResolveValueT, RejectValueT, IsExclusive>::Private
     mValue = std::forward<ResolveOrRejectValue_>(aValue);
     DispatchAll();
   }
+
+  // If the caller and target are both on the same thread, run the the resolve
+  // or reject callback synchronously. Otherwise, the task will be dispatched
+  // via the target Dispatch method.
+  void UseSynchronousTaskDispatch(const char* aSite) {
+    static_assert(
+        IsExclusive,
+        "Synchronous dispatch can only be used with exclusive promises");
+    PROMISE_ASSERT(mMagic1 == sMagic && mMagic2 == sMagic &&
+                   mMagic3 == sMagic && mMagic4 == &mMutex);
+    MutexAutoLock lock(mMutex);
+    PROMISE_LOG("%s UseSynchronousTaskDispatch MozPromise (%p created at %s)",
+                aSite, this, mCreationSite);
+    MOZ_ASSERT(IsPending(),
+               "A Promise must not have been already resolved or rejected to "
+               "set dispatch state");
+    mUseSynchronousTaskDispatch = true;
+  }
+
+  // If the caller and target are both on the same thread, run the
+  // resolve/reject callback off the direct task queue instead. This avoids a
+  // full trip to the back of the event queue for each additional asynchronous
+  // step when using MozPromise, and is similar (but not identical to) the
+  // microtask semantics of JS promises.
+  void UseDirectTaskDispatch(const char* aSite) {
+    PROMISE_ASSERT(mMagic1 == sMagic && mMagic2 == sMagic &&
+                   mMagic3 == sMagic && mMagic4 == &mMutex);
+    MutexAutoLock lock(mMutex);
+    PROMISE_LOG("%s UseDirectTaskDispatch MozPromise (%p created at %s)", aSite,
+                this, mCreationSite);
+    MOZ_ASSERT(IsPending(),
+               "A Promise must not have been already resolved or rejected to "
+               "set dispatch state");
+    MOZ_ASSERT(!mUseSynchronousTaskDispatch,
+               "Promise already set for synchronous dispatch");
+    mUseDirectTaskDispatch = true;
+  }
 };
 
 // A generic promise type that does the trick for simple use cases.
@@ -1166,8 +1264,8 @@ class MozPromiseHolderBase {
 
   template <typename ResolveValueType_>
   void Resolve(ResolveValueType_&& aResolveValue, const char* aMethodName) {
-    static_assert(IsConvertible<ResolveValueType_,
-                                typename PromiseType::ResolveValueType>::value,
+    static_assert(std::is_convertible_v<ResolveValueType_,
+                                        typename PromiseType::ResolveValueType>,
                   "Resolve() argument must be implicitly convertible to "
                   "MozPromise's ResolveValueT");
 
@@ -1188,8 +1286,8 @@ class MozPromiseHolderBase {
 
   template <typename RejectValueType_>
   void Reject(RejectValueType_&& aRejectValue, const char* aMethodName) {
-    static_assert(IsConvertible<RejectValueType_,
-                                typename PromiseType::RejectValueType>::value,
+    static_assert(std::is_convertible_v<RejectValueType_,
+                                        typename PromiseType::RejectValueType>,
                   "Reject() argument must be implicitly convertible to "
                   "MozPromise's RejectValueT");
 
@@ -1224,6 +1322,16 @@ class MozPromiseHolderBase {
       ResolveOrReject(std::forward<ResolveOrRejectValueType_>(aValue),
                       aMethodName);
     }
+  }
+
+  void UseSynchronousTaskDispatch(const char* aSite) {
+    MOZ_ASSERT(mPromise);
+    mPromise->UseSynchronousTaskDispatch(aSite);
+  }
+
+  void UseDirectTaskDispatch(const char* aSite) {
+    MOZ_ASSERT(mPromise);
+    mPromise->UseDirectTaskDispatch(aSite);
   }
 
  private:
@@ -1408,7 +1516,7 @@ constexpr bool Any(T1 a, Ts... aOthers) {
 // See ParameterStorage in nsThreadUtils.h for help.
 template <typename... Storages, typename PromiseType, typename ThisType,
           typename... ArgTypes, typename... ActualArgTypes,
-          typename EnableIf<sizeof...(Storages) != 0, int>::Type = 0>
+          std::enable_if_t<sizeof...(Storages) != 0, int> = 0>
 static RefPtr<PromiseType> InvokeAsync(
     nsISerialEventTarget* aTarget, ThisType* aThisVal, const char* aCallerName,
     RefPtr<PromiseType> (ThisType::*aMethod)(ArgTypes...),
@@ -1427,20 +1535,20 @@ static RefPtr<PromiseType> InvokeAsync(
 // then move them out of the runnable into the target method parameters.
 template <typename... Storages, typename PromiseType, typename ThisType,
           typename... ArgTypes, typename... ActualArgTypes,
-          typename EnableIf<sizeof...(Storages) == 0, int>::Type = 0>
+          std::enable_if_t<sizeof...(Storages) == 0, int> = 0>
 static RefPtr<PromiseType> InvokeAsync(
     nsISerialEventTarget* aTarget, ThisType* aThisVal, const char* aCallerName,
     RefPtr<PromiseType> (ThisType::*aMethod)(ArgTypes...),
     ActualArgTypes&&... aArgs) {
   static_assert(
       !detail::Any(
-          IsPointer<typename RemoveReference<ActualArgTypes>::Type>::value...),
+          std::is_pointer_v<std::remove_reference_t<ActualArgTypes>>...),
       "Cannot pass pointer types through InvokeAsync, Storages must be "
       "provided");
   static_assert(sizeof...(ArgTypes) == sizeof...(ActualArgTypes),
                 "Method's ArgTypes and ActualArgTypes should have equal sizes");
   return detail::InvokeAsyncImpl<
-      StoreCopyPassByRRef<typename Decay<ActualArgTypes>::Type>...>(
+      StoreCopyPassByRRef<std::decay_t<ActualArgTypes>>...>(
       aTarget, aThisVal, aCallerName, aMethod,
       std::forward<ActualArgTypes>(aArgs)...);
 }
@@ -1449,7 +1557,7 @@ namespace detail {
 
 template <typename Function, typename PromiseType>
 class ProxyFunctionRunnable : public CancelableRunnable {
-  typedef typename Decay<Function>::Type FunctionStorage;
+  using FunctionStorage = std::decay_t<Function>;
 
  public:
   template <typename F>

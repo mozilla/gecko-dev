@@ -12,6 +12,7 @@
 #include "jit/MIRGenerator.h"
 
 #include "js/Utility.h"
+#include "vm/HelperThreadTask.h"
 
 namespace js {
 
@@ -21,9 +22,10 @@ namespace jit {
 
 class CodeGenerator;
 class MRootList;
+class WarpSnapshot;
 
 // IonCompileTask represents a single off-thread Ion compilation task.
-class IonCompileTask final : public RunnableTask,
+class IonCompileTask final : public HelperThreadTask,
                              public mozilla::LinkedListElement<IonCompileTask> {
   MIRGenerator& mirGen_;
 
@@ -51,6 +53,7 @@ class IonCompileTask final : public RunnableTask,
   TempAllocator& alloc() { return mirGen_.alloc(); }
   bool scriptHasIonScript() const { return scriptHasIonScript_; }
   CompilerConstraintList* constraints() { return constraints_; }
+  WarpSnapshot* snapshot() { return snapshot_; }
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf);
   void trace(JSTracer* trc);
@@ -65,7 +68,20 @@ class IonCompileTask final : public RunnableTask,
   }
 
   ThreadType threadType() override { return THREAD_TYPE_ION; }
-  void runTask() override;
+  void runTask();
+  void runHelperThreadTask(AutoLockHelperThreadState& locked) override;
+};
+
+class IonFreeTask : public HelperThreadTask {
+ public:
+  explicit IonFreeTask(IonCompileTask* task) : task_(task) {}
+  IonCompileTask* compileTask() { return task_; }
+
+  ThreadType threadType() override { return THREAD_TYPE_ION_FREE; }
+  void runHelperThreadTask(AutoLockHelperThreadState& locked) override;
+
+ private:
+  IonCompileTask* task_;
 };
 
 void AttachFinishedCompilations(JSContext* cx);

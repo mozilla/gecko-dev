@@ -6,6 +6,7 @@
 #define GCM_H 1
 
 #include "blapii.h"
+#include "pkcs11t.h"
 #include <stdint.h>
 
 #ifdef NSS_X86_OR_X64
@@ -30,26 +31,8 @@
 #include <arm_neon.h>
 #endif
 
-#if defined(__powerpc64__) && !defined(NSS_DISABLE_ALTIVEC)
-#include "altivec-types.h"
-
-/* The ghash freebl test tries to use this in C++, and gcc defines conflict. */
-#ifdef __cplusplus
-#undef pixel
-#undef vector
-#undef bool
-#endif
-
-/*
- * PPC CRYPTO requires at least gcc 8 or clang. The LE check is purely
- * because it's only been tested on LE. If you're interested in BE,
- * please send a patch.
- */
-#if (defined(__clang__) || (defined(__GNUC__) && __GNUC__ >= 8)) && \
-    defined(IS_LITTLE_ENDIAN)
-#define USE_PPC_CRYPTO
-#endif
-
+#if defined(__powerpc64__)
+#include "ppc-crypto.h"
 #endif
 
 SEC_BEGIN_PROTOS
@@ -78,6 +61,18 @@ SECStatus GCM_DecryptUpdate(GCMContext *gcm, unsigned char *outbuf,
                             unsigned int *outlen, unsigned int maxout,
                             const unsigned char *inbuf, unsigned int inlen,
                             unsigned int blocksize);
+SECStatus GCM_EncryptAEAD(GCMContext *gcm, unsigned char *outbuf,
+                          unsigned int *outlen, unsigned int maxout,
+                          const unsigned char *inbuf, unsigned int inlen,
+                          void *params, unsigned int paramLen,
+                          const unsigned char *aad, unsigned int aadLen,
+                          unsigned int blocksize);
+SECStatus GCM_DecryptAEAD(GCMContext *gcm, unsigned char *outbuf,
+                          unsigned int *outlen, unsigned int maxout,
+                          const unsigned char *inbuf, unsigned int inlen,
+                          void *params, unsigned int paramLen,
+                          const unsigned char *aad, unsigned int aadLen,
+                          unsigned int blocksize);
 
 /* These functions are here only so we can test them */
 #define GCM_HASH_LEN_LEN 8 /* gcm hash defines lengths to be 64 bits */
@@ -102,6 +97,15 @@ pre_align struct gcmHashContextStr {
     gcmHashContext *mem;
 } post_align;
 
+typedef struct gcmIVContextStr gcmIVContext;
+struct gcmIVContextStr {
+    PRUint64 counter;
+    PRUint64 max_count;
+    CK_GENERATOR_FUNCTION ivGen;
+    unsigned int fixedBits;
+    unsigned int ivLen;
+};
+
 SECStatus gcmHash_Update(gcmHashContext *ghash, const unsigned char *buf,
                          unsigned int len);
 SECStatus gcmHash_InitContext(gcmHashContext *ghash, const unsigned char *H,
@@ -110,6 +114,11 @@ SECStatus gcmHash_Reset(gcmHashContext *ghash, const unsigned char *AAD,
                         unsigned int AADLen);
 SECStatus gcmHash_Final(gcmHashContext *ghash, unsigned char *outbuf,
                         unsigned int *outlen, unsigned int maxout);
+
+void gcm_InitIVContext(gcmIVContext *gcmiv);
+SECStatus gcm_GenerateIV(gcmIVContext *gcmIv, unsigned char *iv,
+                         unsigned int ivLen, unsigned int fixedBits,
+                         CK_GENERATOR_FUNCTION ivGen);
 
 SEC_END_PROTOS
 

@@ -24,7 +24,7 @@ ContentProcessController::ContentProcessController(
 }
 
 void ContentProcessController::NotifyLayerTransforms(
-    const nsTArray<MatrixMessage>& aTransforms) {
+    nsTArray<MatrixMessage>&& aTransforms) {
   // This should never get called
   MOZ_ASSERT(false);
 }
@@ -47,7 +47,8 @@ void ContentProcessController::HandleTap(TapType aType,
 
 void ContentProcessController::NotifyPinchGesture(
     PinchGestureInput::PinchGestureType aType, const ScrollableLayerGuid& aGuid,
-    LayoutDeviceCoord aSpanChange, Modifiers aModifiers) {
+    const LayoutDevicePoint& aFocusPoint, LayoutDeviceCoord aSpanChange,
+    Modifiers aModifiers) {
   // This should never get called
   MOZ_ASSERT_UNREACHABLE("Unexpected message to content process");
 }
@@ -94,12 +95,6 @@ void ContentProcessController::CancelAutoscroll(
     const ScrollableLayerGuid& aGuid) {
   // This should never get called
   MOZ_ASSERT_UNREACHABLE("Unexpected message to content process");
-}
-
-void ContentProcessController::PostDelayedTask(
-    already_AddRefed<Runnable> aRunnable, int aDelayMs) {
-  MOZ_ASSERT_UNREACHABLE(
-      "ContentProcessController should only be used remotely.");
 }
 
 bool ContentProcessController::IsRepaintThread() { return NS_IsMainThread(); }

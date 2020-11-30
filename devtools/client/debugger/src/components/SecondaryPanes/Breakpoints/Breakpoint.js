@@ -129,7 +129,7 @@ class Breakpoint extends PureComponent<Props> {
     const { source } = this.props;
     const { column, line } = this.selectedLocation;
 
-    const isWasm = source && source.isWasm;
+    const isWasm = source?.isWasm;
     const columnVal = features.columnBreakpoints && column ? `:${column}` : "";
     const bpLocation = isWasm
       ? `0x${line.toString(16).toUpperCase()}`
@@ -223,19 +223,16 @@ const mapStateToProps = (state, p: OwnProps) => ({
   frame: getFormattedFrame(state, getCurrentThread(state)),
 });
 
-export default connect<Props, OwnProps, _, _, _, _>(
-  mapStateToProps,
-  {
-    enableBreakpoint: actions.enableBreakpoint,
-    removeBreakpoint: actions.removeBreakpoint,
-    removeBreakpoints: actions.removeBreakpoints,
-    removeAllBreakpoints: actions.removeAllBreakpoints,
-    disableBreakpoint: actions.disableBreakpoint,
-    selectSpecificLocation: actions.selectSpecificLocation,
-    setBreakpointOptions: actions.setBreakpointOptions,
-    toggleAllBreakpoints: actions.toggleAllBreakpoints,
-    toggleBreakpoints: actions.toggleBreakpoints,
-    toggleDisabledBreakpoint: actions.toggleDisabledBreakpoint,
-    openConditionalPanel: actions.openConditionalPanel,
-  }
-)(Breakpoint);
+export default connect<Props, OwnProps, _, _, _, _>(mapStateToProps, {
+  enableBreakpoint: actions.enableBreakpoint,
+  removeBreakpoint: actions.removeBreakpoint,
+  removeBreakpoints: actions.removeBreakpoints,
+  removeAllBreakpoints: actions.removeAllBreakpoints,
+  disableBreakpoint: actions.disableBreakpoint,
+  selectSpecificLocation: actions.selectSpecificLocation,
+  setBreakpointOptions: actions.setBreakpointOptions,
+  toggleAllBreakpoints: actions.toggleAllBreakpoints,
+  toggleBreakpoints: actions.toggleBreakpoints,
+  toggleDisabledBreakpoint: actions.toggleDisabledBreakpoint,
+  openConditionalPanel: actions.openConditionalPanel,
+})(Breakpoint);

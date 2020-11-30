@@ -20,11 +20,11 @@ var ok = window.arguments[0].ok;
 var todo = window.arguments[0].todo;
 var SimpleTest = window.arguments[0].SimpleTest;
 var gWbp;
+var gPrintPreviewWin;
 function printpreview() {
-  gWbp = frameElts[1].contentWindow.docShell.initOrReusePrintPreviewViewer();
   var listener = {
     onLocationChange: function(webProgress, request, location, flags) { },
-    onProgressChange: function(webProgress, request, curSelfProgress, 
+    onProgressChange: function(webProgress, request, curSelfProgress,
                                maxSelfProgress, curTotalProgress,
                                maxTotalProgress) { },
     onSecurityChange: function(webProgress, request, state) { },
@@ -35,20 +35,22 @@ function printpreview() {
       if (iid.equals(Ci.nsIWebProgessListener) ||
           iid.equals(Ci.nsISupportsWeakReference))
             return this;
-      throw Cr.NS_NOINTERFACE;
+      throw Components.Exception("", Cr.NS_NOINTERFACE);
     }
   }
-  var prefs = Cc["@mozilla.org/preferences-service;1"]
-                .getService(Ci.nsIPrefBranch);
-  prefs.setBoolPref('print.show_print_progress', false);
-  //XXX I would have thought this would work, instead I'm forced to use prefs service
-  gWbp.globalPrintSettings.showPrintProgress = false; 
-  gWbp.printPreview(gWbp.globalPrintSettings, frameElts[0].contentWindow, listener);
-  prefs.clearUserPref('print.show_print_progress');
+
+  let settings = Cc["@mozilla.org/gfx/printsettings-service;1"]
+                       .getService(Ci.nsIPrintSettingsService).newPrintSettings;
+  settings.showPrintProgress = false;
+
+  gPrintPreviewWin = frameElts[0].contentWindow.printPreview(settings, listener);
+  gWbp = gPrintPreviewWin.docShell.contentViewer;
+  gWbp.QueryInterface(Ci.nsIWebBrowserPrint);
 }
 
 function exitprintpreview() {
-  frameElts[1].contentWindow.docShell.exitPrintPreview();
+  gPrintPreviewWin.docShell.exitPrintPreview();
+  gPrintPreviewWin.close();
 }
 
 function finish() {
@@ -56,29 +58,11 @@ function finish() {
   window.close();
 }
 
-function run1()
-{
-/** Test for Bug 482976 **/
-  var printService = Cc["@mozilla.org/gfx/printsettings-service;1"]
-                       .getService(Ci.nsIPrintSettingsService);
-
-  try {
-    Cc["@mozilla.org/gfx/printerenumerator;1"]
-      .getService(Ci.nsIPrinterEnumerator);
-  } catch(e) {
-    todo(false, "Test skipped on MacOSX, as the print preview code doesn't work there");
-    finish();
-    return;
-  }
-
-  if (printService.defaultPrinterName != '') {
-    printpreview();
-    ok(gWbp.doingPrintPreview, "Should be doing print preview");
-    exitprintpreview();
-    ok(!gWbp.doingPrintPreview, "Should not be doing print preview anymore");
-  } else {
-    todo(false, "No printer seems installed on this machine, that is necessary for this test");
-  }
+async function run1() {
+  printpreview();
+  ok(gWbp.doingPrintPreview, "Should be doing print preview");
+  exitprintpreview();
+  ok(!gWbp.doingPrintPreview, "Should not be doing print preview anymore");
   finish();
 }
 ]]></script>

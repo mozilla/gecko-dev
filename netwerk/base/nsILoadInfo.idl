@@ -71,11 +71,11 @@ interface nsILoadInfo : nsISupports
    * The following five flags determine the security mode and hence what kind of
    * security checks should be performed throughout the lifetime of the channel.
    *
-   *    * SEC_REQUIRE_SAME_ORIGIN_DATA_INHERITS
+   *    * SEC_REQUIRE_SAME_ORIGIN_INHERITS_SEC_CONTEXT
    *    * SEC_REQUIRE_SAME_ORIGIN_DATA_IS_BLOCKED
-   *    * SEC_ALLOW_CROSS_ORIGIN_DATA_INHERITS
-   *    * SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL
-   *    * SEC_REQUIRE_CORS_DATA_INHERITS
+   *    * SEC_ALLOW_CROSS_ORIGIN_INHERITS_SEC_CONTEXT
+   *    * SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL
+   *    * SEC_REQUIRE_CORS_INHERITS_SEC_CONTEXT
    *
    * Exactly one of these flags are required to be set in order to allow
    * the channel to perform the correct security checks (SOP, CORS, ...) and
@@ -94,25 +94,25 @@ interface nsILoadInfo : nsISupports
   const unsigned long SEC_ONLY_FOR_EXPLICIT_CONTENTSEC_CHECK = 0;
 
   /*
-   * Enforce the same origin policy where data: loads inherit the principal.
+   * Enforce the same origin policy where loads inherit the principal.
    * See the documentation for principalToInherit, which describes exactly what
    * principal is inherited.
    */
-  const unsigned long SEC_REQUIRE_SAME_ORIGIN_DATA_INHERITS = (1<<0);
+  const unsigned long SEC_REQUIRE_SAME_ORIGIN_INHERITS_SEC_CONTEXT = (1<<0);
 
   /*
-   * Enforce the same origin policy but data: loads are blocked.
+   * Enforce the same origin policy and data: loads are blocked.
    */
   const unsigned long SEC_REQUIRE_SAME_ORIGIN_DATA_IS_BLOCKED = (1<<1);
 
   /**
-   * Allow loads from other origins. Loads from data: will inherit the
-   * principal.  See the documentation for principalToInherit, which describes
-   * exactly what principal is inherited.
+   * Allow loads from other origins. Loads which inherit the principal should
+   * see the documentation for principalToInherit, which describes exactly what
+   * principal is inherited.
    *
    * Commonly used by plain <img>, <video>, <link rel=stylesheet> etc.
    */
-   const unsigned long SEC_ALLOW_CROSS_ORIGIN_DATA_INHERITS = (1<<2);
+  const unsigned long SEC_ALLOW_CROSS_ORIGIN_INHERITS_SEC_CONTEXT = (1 << 2);
 
   /**
    * Allow loads from other origins. Loads from data: will be allowed,
@@ -120,23 +120,22 @@ interface nsILoadInfo : nsISupports
    * Used in blink/webkit for <iframe>s. Likely also the mode
    * that should be used by most Chrome code.
    */
-  const unsigned long SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL = (1<<3);
+  const unsigned long SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL = (1<<3);
 
   /**
    * Allow loads from any origin, but require CORS for cross-origin loads.
-   * Loads from data: are allowed and the result will inherit the principal.
    * See the documentation for principalToInherit, which describes exactly what
    * principal is inherited.
    *
    * Commonly used by <img crossorigin>, <video crossorigin>,
    * XHR, fetch(), etc.
    */
-  const unsigned long SEC_REQUIRE_CORS_DATA_INHERITS = (1<<4);
+  const unsigned long SEC_REQUIRE_CORS_INHERITS_SEC_CONTEXT = (1<<4);
 
   /**
    * Choose cookie policy. The default policy is equivalent to "INCLUDE" for
    * SEC_REQUIRE_SAME_ORIGIN_* and SEC_ALLOW_CROSS_ORIGIN_* modes, and
-   * equivalent to "SAME_ORIGIN" for SEC_REQUIRE_CORS_DATA_INHERITS mode.
+   * equivalent to "SAME_ORIGIN" for SEC_REQUIRE_CORS_INHERITS_SEC_CONTEXT mode.
    *
    * This means that if you want to perform a CORS load with credentials, pass
    * SEC_COOKIES_INCLUDE.
@@ -254,10 +253,19 @@ interface nsILoadInfo : nsISupports
   readonly attribute nsIPrincipal loadingPrincipal;
 
   /**
-   * A C++-friendly version of loadingPrincipal.
+   * A C++-friendly version of triggeringPrincipal.
+   *
+   * This is a bit awkward because we can't use
+   * binaryname(GetLoadingPrincipal).
    */
-  [noscript, notxpcom, nostdcall, binaryname(LoadingPrincipal)]
-  nsIPrincipal binaryLoadingPrincipal();
+  [noscript, notxpcom, nostdcall]
+  nsIPrincipal virtualGetLoadingPrincipal();
+
+%{C++
+  nsIPrincipal* GetLoadingPrincipal() {
+    return VirtualGetLoadingPrincipal();
+  }
+%}
 
   /**
    * This is the principal which caused the network load to start. I.e.
@@ -403,10 +411,15 @@ interface nsILoadInfo : nsISupports
   [infallible] readonly attribute unsigned long sandboxFlags;
 
   /**
+  *   The TriggingSandboxFlags are the SandboxFlags of the entity
+  *   responsible for causing the load to occur.
+  */
+  [infallible] attribute unsigned long triggeringSandboxFlags;
+
+  /**
    * Allows to query only the security mode bits from above.
    */
   [infallible] readonly attribute unsigned long securityMode;
-
 
   /**
    * This flag is used for any browsing context where we should not sniff
@@ -417,12 +430,96 @@ interface nsILoadInfo : nsISupports
   [infallible] attribute boolean skipContentSniffing;
 
   /**
+   * (default) If this flag is set, it has not yet been determined if the
+   * HTTPS-Only mode will upgrade the request.
+   */
+  const unsigned long HTTPS_ONLY_UNINITIALIZED = (1 << 0);
+
+  /**
+   * Indicates that the request will get upgraded, and the HTTPS-Only
+   * StreamListener got registered.
+   */
+  const unsigned long HTTPS_ONLY_UPGRADED_LISTENER_NOT_REGISTERED = (1 << 1);
+
+  /**
+   * Indicates that this is the first time the request gets upgraded, and thus
+   * the HTTPS-Only StreamListener hasn't been registered yet. Even though there
+   * might be multiple channels per request that have to be upgraded (e.g.,
+   * because of redirects), the StreamListener only has to be attached to one
+   * channel.
+   */
+  const unsigned long HTTPS_ONLY_UPGRADED_LISTENER_REGISTERED = (1 << 2);
+
+  /**
+   * This flag can be manually set if the HTTPS-Only mode should exempt the
+   * request and not upgrade it. (e.g in the case of OCSP.
+   */
+  const unsigned long HTTPS_ONLY_EXEMPT = (1 << 3);
+
+  /**
+   * This flag can only ever be set on top-level loads. It indicates
+   * that the top-level https connection succeeded. This flag is mostly
+   * used to counter time-outs which allows to cancel the channel
+   * if the https load has not started.
+   */
+  const unsigned long HTTPS_ONLY_TOP_LEVEL_LOAD_IN_PROGRESS = (1 << 4);
+
+  /**
+   * This flag indicates that the request should not be logged to the
+   * console.
+   */
+  const unsigned long HTTPS_ONLY_DO_NOT_LOG_TO_CONSOLE = (1 << 5);
+
+  /**
+   * Upgrade state of HTTPS-Only Mode. The flag HTTPS_ONLY_EXEMPT can get
+   * set on requests that should be excempt from an upgrade.
+   */
+  [infallible] attribute unsigned long httpsOnlyStatus;
+
+  /**
+   * Returns true if at the time of the loadinfo construction the document
+   * that triggered this load has the bit hasValidTransientUserGestureActivation
+   * set or the load was triggered from External. (Mostly this bool is used
+   * in the context of Sec-Fetch-User.)
+   */
+  [infallible] attribute boolean hasValidUserGestureActivation;
+
+  /**
+   * We disallow the SystemPrincipal to initiate requests to
+   * the public web. This flag is to allow exceptions.
+   */
+  [infallible] attribute boolean allowDeprecatedSystemRequests;
+
+  /**
+   * Only ever returns true if the loadinfo is of TYPE_SCRIPT and
+   * the script was created by the HTML parser.
+   */
+  [infallible] attribute boolean parserCreatedScript;
+
+  /**
+   * True if this request is from DevTools.
+   */
+  [infallible] attribute boolean isInDevToolsContext;
+
+  /**
    * True if this request is embedded in a context that can't be third-party
    * (i.e. an iframe embedded in a cross-origin parent window). If this is
    * false, then this request may be third-party if it's a third-party to
    * loadingPrincipal.
    */
-  [infallible] readonly attribute boolean isInThirdPartyContext;
+  [infallible] attribute boolean isInThirdPartyContext;
+
+  /**
+   * True if this request is a third party in respect to the top-level window.
+   *
+   * Note that this doesn't consider the parent window. I.e. It will still
+   * return false even in the case that the parent is cross-origin but the
+   * top-level is same-origin.
+   *
+   * This value would be set during opening the channel in parent and propagate
+   * to the channel in the content.
+   */
+  [infallible] attribute boolean isThirdPartyContextToTopWindow;
 
   /**
    * See the SEC_COOKIES_* flags above. This attribute will never return
@@ -437,6 +534,12 @@ interface nsILoadInfo : nsISupports
    * It cannot be null.
    */
   attribute nsICookieJarSettings cookieJarSettings;
+
+  /**
+   * True if the loading document has the storage permission. This value would
+   * be set during opening the channel.
+   */
+  [infallible] attribute boolean hasStoragePermission;
 
   /**
    * If forceInheritPrincipal is true, the data coming from the channel should
@@ -552,8 +655,10 @@ interface nsILoadInfo : nsISupports
    * _INTERNAL_ values.  Please use the contentPolicyType attribute above
    * for that purpose.
    */
-  [noscript, notxpcom]
-  nsContentPolicyType internalContentPolicyType();
+  [noscript, notxpcom, nostdcall, binaryname(InternalContentPolicyType)]
+  nsContentPolicyType binaryInternalContentPolicyType();
+
+  readonly attribute nsContentPolicyType internalContentPolicyType;
 
   /**
    * Returns true if document or any of the documents ancestors
@@ -625,42 +730,30 @@ interface nsILoadInfo : nsISupports
   [infallible] readonly attribute boolean forceInheritPrincipalDropped;
 
   /**
-   * These are the window IDs of the window in which the element being
-   * loaded lives. parentOuterWindowID is the window ID of this window's
-   * parent. topOuterWindowID is the ID of the top-level window of the same
-   * docShell type.
+   * This is the inner window ID of the window in which the element being
+   * loaded lives.
    *
-   * Note that these window IDs can be 0 if the window is not
-   * available. parentOuterWindowID and topOuterWindowID will be the same as
-   * outerWindowID if the window has no parent.
+   * Note that this window ID can be 0 if the window is not
+   * available.
    */
   [infallible] readonly attribute unsigned long long innerWindowID;
-  [infallible] readonly attribute unsigned long long outerWindowID;
-  [infallible] readonly attribute unsigned long long parentOuterWindowID;
-  [infallible] readonly attribute unsigned long long topOuterWindowID;
-
-  /**
-   * Only when the element being loaded is <frame src="foo.html">
-   * (or, more generally, if the element QIs to nsFrameLoaderOwner),
-   * the frameOuterWindowID is the outer window containing the
-   * foo.html document.
-   *
-   * Note: For other cases, frameOuterWindowID is 0.
-   */
-  [infallible] readonly attribute unsigned long long frameOuterWindowID;
 
   /**
    * The BrowsingContext performing the load for this nsILoadInfo object.
    */
   [infallible] readonly attribute unsigned long long browsingContextID;
-  readonly attribute BrowsingContext browsingContext;
+  [infallible] readonly attribute BrowsingContext browsingContext;
 
   /**
-   * Like `frameOuterWindowID`, however returning the BrowsingContextID
-   * instead.
+   * Only when the element being loaded is <frame src="foo.html">
+   * (or, more generally, if the element QIs to nsFrameLoaderOwner),
+   * the frameBrowsingContext is the browsing context containing the
+   * foo.html document.
+   *
+   * Note: For other cases, frameBrowsingContextID is 0.
    */
   [infallible] readonly attribute unsigned long long frameBrowsingContextID;
-  readonly attribute BrowsingContext frameBrowsingContext;
+  [infallible] readonly attribute BrowsingContext frameBrowsingContext;
 
   /**
    * If the element being loaded is a nsFrameLoaderOwner,
@@ -669,7 +762,7 @@ interface nsILoadInfo : nsISupports
    * Browsing Context performing the load (see `browsingContext`).
    */
   [infallible] readonly attribute unsigned long long targetBrowsingContextID;
-  readonly attribute BrowsingContext targetBrowsingContext;
+  [infallible] readonly attribute BrowsingContext targetBrowsingContext;
 
   /**
    * Resets the PrincipalToInherit to a freshly created NullPrincipal
@@ -785,34 +878,44 @@ interface nsILoadInfo : nsISupports
   nsIRedirectHistoryEntryArray binaryRedirectChain();
 
   /**
-   * An array of nsIPrincipals which stores the principals of the parent frames,
-   * not including the frame loading this request.  The closest ancestor is at
-   * index zero and the top level ancestor is at the last index.
+   * This array is only filled out when we are in the parent process and we are
+   * creating a loadInfo object or deserializing LoadInfoArgs into LoadInfo,
+   * as we ever only need in the parent process.
    *
-   * The ancestorPrincipals[0] entry for an iframe load will be the principal of
-   * the iframe element's owner document.
-   * The ancestorPrincipals[0] entry for an image loaded in an iframe will be the
-   * principal of the iframe element's owner document.
+   * The array is meant to be a list of principals of the documents that the
+   * browsing context, corresponding to this loadInfo object, is "nested through" in
+   * the sense of
+   * <https://html.spec.whatwg.org/multipage/browsers.html#browsing-context-nested-through>.
+   * Note that the array does not include the principal corresponding to the frame
+   * loading this request. The closest ancestor is at index zero and the top level
+   * ancestor is at the last index.
    *
-   * See Document::AncestorPrincipals for more information.
+   * If this is a toplevel content browsing context (i.e. toplevel document in spec
+   * terms), the list is empty.
    *
-   * Please note that this array has the same lifetime as the
-   * loadInfo object - use with caution!
+   * Otherwise the array is a list for the document we're nested through (again in
+   * the spec sense), with the principal of that document prepended. The
+   * ancestorPrincipals[0] entry for an iframe load will be the principal of the
+   * iframe element's owner document. The ancestorPrincipals[0] entry for an image
+   * loaded in an iframe will be the principal of the iframe element's owner
+   * document. This matches the ordering specified for Location.ancestorOrigins.
+   *
+   * Please note that this array has the same lifetime as the loadInfo object - use
+   * with caution!
    */
   [noscript, notxpcom, nostdcall]
   PrincipalArrayRef AncestorPrincipals();
 
-
   /**
-   * An array of outerWindowIDs which correspond to nsILoadInfo::AncestorPrincipals
-   * above.  AncestorOuterWindowIDs[0] is the outerWindowID of the frame
+   * An array of BrowsingContext IDs which correspond to nsILoadInfo::AncestorPrincipals
+   * above.  AncestorBrowsingContextIDs[0] is the BrowsingContext ID of the frame
    * associated with the principal at ancestorPrincipals[0], and so forth.
    *
    * Please note that this array has the same lifetime as the
    * loadInfo object - use with caution!
    */
   [noscript, notxpcom, nostdcall]
-  Uint64ArrayRef AncestorOuterWindowIDs();
+  Uint64ArrayRef AncestorBrowsingContextIDs();
 
   /**
    * Sets the list of unsafe headers according to CORS spec, as well as
@@ -820,7 +923,7 @@ interface nsILoadInfo : nsISupports
    * Note that you do not need to set the Content-Type header. That will be
    * automatically detected as needed.
    *
-   * Only call this function when using the SEC_REQUIRE_CORS_DATA_INHERITS mode.
+   * Only call this function when using the SEC_REQUIRE_CORS_INHERITS_SEC_CONTEXT mode.
    */
   [noscript, notxpcom, nostdcall]
   void setCorsPreflightInfo(in CStringArrayRef unsafeHeaders,
@@ -1234,4 +1337,14 @@ interface nsILoadInfo : nsISupports
     EMBEDDER_POLICY_NULL = 0,
     EMBEDDER_POLICY_REQUIRE_CORP = 1,
   };
+
+  /**
+   * This attribute is the loading context's cross origin embedder policy.
+   * The value is initialized with corresponding WindowContext which get by
+   * innerWindowIID in the nsILoadInfo.
+   * It also could be set by workers when fetch is called under
+   * the workers' scope.
+   */
+  [infallible] attribute nsILoadInfo_CrossOriginEmbedderPolicy
+        loadingEmbedderPolicy;
 };

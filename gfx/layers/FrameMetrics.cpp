@@ -6,19 +6,58 @@
 
 #include "FrameMetrics.h"
 
+#include <ostream>
+
+#include "gfxUtils.h"
 #include "nsStyleConsts.h"
 #include "nsStyleStruct.h"
 #include "mozilla/WritingModes.h"
+#include "mozilla/gfx/Types.h"
 
 namespace mozilla {
 namespace layers {
 
 const ScrollableLayerGuid::ViewID ScrollableLayerGuid::NULL_SCROLL_ID = 0;
 
+std::ostream& operator<<(std::ostream& aStream, const FrameMetrics& aMetrics) {
+  aStream << "{ [cb=" << aMetrics.GetCompositionBounds()
+          << "] [sr=" << aMetrics.GetScrollableRect()
+          << "] [s=" << aMetrics.GetVisualScrollOffset();
+  if (aMetrics.GetVisualScrollUpdateType() != FrameMetrics::eNone) {
+    aStream << "] [vd=" << aMetrics.GetVisualDestination();
+  }
+  aStream << "] [dp=" << aMetrics.GetDisplayPort()
+          << "] [cdp=" << aMetrics.GetCriticalDisplayPort()
+          << "] [rcs=" << aMetrics.GetRootCompositionSize()
+          << "] [v=" << aMetrics.GetLayoutViewport()
+          << nsPrintfCString("] [z=(ld=%.3f r=%.3f",
+                             aMetrics.GetDevPixelsPerCSSPixel().scale,
+                             aMetrics.GetPresShellResolution())
+                 .get()
+          << " cr=" << aMetrics.GetCumulativeResolution()
+          << " z=" << aMetrics.GetZoom()
+          << " er=" << aMetrics.GetExtraResolution()
+          << nsPrintfCString(")] [u=(%d %" PRIu32 ")",
+                             aMetrics.GetVisualScrollUpdateType(),
+                             aMetrics.GetScrollGeneration())
+                 .get()
+          << "] scrollId=" << aMetrics.GetScrollId();
+  if (aMetrics.IsRootContent()) {
+    aStream << " [rcd]";
+  }
+  aStream << " }";
+  return aStream;
+}
+
 void FrameMetrics::RecalculateLayoutViewportOffset() {
+  // For subframes, the visual and layout viewports coincide, so just
+  // keep the layout viewport offset in sync with the visual one.
   if (!mIsRootContent) {
+    mLayoutViewport.MoveTo(GetVisualScrollOffset());
     return;
   }
+  // For the root, the two viewports can diverge, but the layout
+  // viewport needs to keep enclosing the visual viewport.
   KeepLayoutViewportEnclosingVisualViewport(GetVisualViewport(),
                                             mScrollableRect, mLayoutViewport);
 }
@@ -86,6 +125,35 @@ void FrameMetrics::KeepLayoutViewportEnclosingVisualViewport(
   aLayoutViewport = aLayoutViewport.MoveInsideAndClamp(aScrollableRect);
 }
 
+void FrameMetrics::ApplyScrollUpdateFrom(const ScrollPositionUpdate& aUpdate) {
+  // In applying a main-thread scroll update, try to preserve the relative
+  // offset between the visual and layout viewports.
+  CSSPoint relativeOffset = GetVisualScrollOffset() - GetLayoutScrollOffset();
+  MOZ_ASSERT(IsRootContent() || relativeOffset == CSSPoint());
+  // We need to set the two offsets together, otherwise a subsequent
+  // RecalculateLayoutViewportOffset() could see divergent layout and
+  // visual offsets.
+  SetLayoutScrollOffset(aUpdate.GetDestination());
+  ClampAndSetVisualScrollOffset(aUpdate.GetDestination() + relativeOffset);
+}
+
+CSSPoint FrameMetrics::ApplyRelativeScrollUpdateFrom(
+    const ScrollPositionUpdate& aUpdate) {
+  MOZ_ASSERT(aUpdate.GetType() == ScrollUpdateType::Relative);
+  CSSPoint origin = GetVisualScrollOffset();
+  CSSPoint delta = (aUpdate.GetDestination() - aUpdate.GetSource());
+  ClampAndSetVisualScrollOffset(origin + delta);
+  return GetVisualScrollOffset() - origin;
+}
+
+CSSPoint FrameMetrics::ApplyPureRelativeScrollUpdateFrom(
+    const ScrollPositionUpdate& aUpdate) {
+  MOZ_ASSERT(aUpdate.GetType() == ScrollUpdateType::PureRelative);
+  CSSPoint origin = GetVisualScrollOffset();
+  ClampAndSetVisualScrollOffset(origin + aUpdate.GetDelta());
+  return GetVisualScrollOffset() - origin;
+}
+
 ScrollSnapInfo::ScrollSnapInfo()
     : mScrollSnapStrictnessX(StyleScrollSnapStrictness::None),
       mScrollSnapStrictnessY(StyleScrollSnapStrictness::None) {}
@@ -139,6 +207,29 @@ void ScrollSnapInfo::InitializeScrollSnapStrictness(
   }
 }
 
+std::ostream& operator<<(std::ostream& aStream,
+                         const OverscrollBehavior& aBehavior) {
+  switch (aBehavior) {
+    case OverscrollBehavior::Auto: {
+      aStream << "auto";
+      break;
+    }
+    case OverscrollBehavior::Contain: {
+      aStream << "contain";
+      break;
+    }
+    case OverscrollBehavior::None: {
+      aStream << "none";
+      break;
+    }
+  }
+  return aStream;
+}
+
+OverscrollBehaviorInfo::OverscrollBehaviorInfo()
+    : mBehaviorX(OverscrollBehavior::Auto),
+      mBehaviorY(OverscrollBehavior::Auto) {}
+
 static OverscrollBehavior ToOverscrollBehavior(
     StyleOverscrollBehavior aBehavior) {
   switch (aBehavior) {
@@ -159,6 +250,45 @@ OverscrollBehaviorInfo OverscrollBehaviorInfo::FromStyleConstants(
   result.mBehaviorX = ToOverscrollBehavior(aBehaviorX);
   result.mBehaviorY = ToOverscrollBehavior(aBehaviorY);
   return result;
+}
+
+bool OverscrollBehaviorInfo::operator==(
+    const OverscrollBehaviorInfo& aOther) const {
+  return mBehaviorX == aOther.mBehaviorX && mBehaviorY == aOther.mBehaviorY;
+}
+
+std::ostream& operator<<(std::ostream& aStream,
+                         const OverscrollBehaviorInfo& aInfo) {
+  if (aInfo.mBehaviorX == aInfo.mBehaviorY) {
+    aStream << aInfo.mBehaviorX;
+  } else {
+    aStream << "{ x=" << aInfo.mBehaviorX << ", y=" << aInfo.mBehaviorY << " }";
+  }
+  return aStream;
+}
+
+std::ostream& operator<<(std::ostream& aStream,
+                         const ScrollMetadata& aMetadata) {
+  aStream << "{ [metrics=" << aMetadata.GetMetrics()
+          << "] [color=" << aMetadata.GetBackgroundColor();
+  if (aMetadata.GetScrollParentId() != ScrollableLayerGuid::NULL_SCROLL_ID) {
+    aStream << "] [scrollParent=" << aMetadata.GetScrollParentId();
+  }
+  if (aMetadata.HasScrollClip()) {
+    aStream << "] [clip=" << aMetadata.ScrollClip().GetClipRect();
+  }
+  if (aMetadata.HasMaskLayer()) {
+    aStream << "] [mask=" << aMetadata.ScrollClip().GetMaskLayerIndex().value();
+  }
+  aStream << "] [overscroll=" << aMetadata.GetOverscrollBehavior() << "] ["
+          << aMetadata.GetScrollUpdates().Length() << " scrollupdates"
+          << "] }";
+  return aStream;
+}
+
+void ScrollMetadata::SetBackgroundColor(
+    const gfx::sRGBColor& aBackgroundColor) {
+  mBackgroundColor = gfx::ToDeviceColor(aBackgroundColor);
 }
 
 StaticAutoPtr<const ScrollMetadata> ScrollMetadata::sNullMetadata;

@@ -209,8 +209,8 @@ TEST_F(APZScrollHandoffTester, DeferredInputEventProcessing) {
   childApzc->ConfirmTarget(blockId);
 
   // Make sure overscroll was handed off correctly.
-  EXPECT_EQ(50, childApzc->GetFrameMetrics().GetScrollOffset().y);
-  EXPECT_EQ(10, rootApzc->GetFrameMetrics().GetScrollOffset().y);
+  EXPECT_EQ(50, childApzc->GetFrameMetrics().GetVisualScrollOffset().y);
+  EXPECT_EQ(10, rootApzc->GetFrameMetrics().GetVisualScrollOffset().y);
 }
 #endif
 
@@ -253,9 +253,9 @@ TEST_F(APZScrollHandoffTester, LayerStructureChangesWhileEventsArePending) {
 
   // Make sure things have scrolled according to the handoff chain in
   // place at the time the touch-start of the first pan was queued.
-  EXPECT_EQ(50, childApzc->GetFrameMetrics().GetScrollOffset().y);
-  EXPECT_EQ(10, rootApzc->GetFrameMetrics().GetScrollOffset().y);
-  EXPECT_EQ(0, middleApzc->GetFrameMetrics().GetScrollOffset().y);
+  EXPECT_EQ(50, childApzc->GetFrameMetrics().GetVisualScrollOffset().y);
+  EXPECT_EQ(10, rootApzc->GetFrameMetrics().GetVisualScrollOffset().y);
+  EXPECT_EQ(0, middleApzc->GetFrameMetrics().GetVisualScrollOffset().y);
 
   // Allow the second pan to be processed.
   childApzc->ContentReceivedInputBlock(secondBlockId, false);
@@ -263,9 +263,9 @@ TEST_F(APZScrollHandoffTester, LayerStructureChangesWhileEventsArePending) {
 
   // Make sure things have scrolled according to the handoff chain in
   // place at the time the touch-start of the second pan was queued.
-  EXPECT_EQ(0, childApzc->GetFrameMetrics().GetScrollOffset().y);
-  EXPECT_EQ(10, rootApzc->GetFrameMetrics().GetScrollOffset().y);
-  EXPECT_EQ(-10, middleApzc->GetFrameMetrics().GetScrollOffset().y);
+  EXPECT_EQ(0, childApzc->GetFrameMetrics().GetVisualScrollOffset().y);
+  EXPECT_EQ(10, rootApzc->GetFrameMetrics().GetVisualScrollOffset().y);
+  EXPECT_EQ(-10, middleApzc->GetFrameMetrics().GetVisualScrollOffset().y);
 }
 #endif
 
@@ -288,8 +288,8 @@ TEST_F(APZScrollHandoffTester, StuckInOverscroll_Bug1073250) {
   EXPECT_TRUE(rootApzc->IsOverscrolled());
 
   // Put a second finger down.
-  MultiTouchInput secondFingerDown(MultiTouchInput::MULTITOUCH_START, 0,
-                                   TimeStamp(), 0);
+  MultiTouchInput secondFingerDown =
+      CreateMultiTouchInput(MultiTouchInput::MULTITOUCH_START, mcc->Time());
   // Use the same touch identifier for the first touch (0) as Pan(). (A bit
   // hacky.)
   secondFingerDown.mTouches.AppendElement(
@@ -333,8 +333,8 @@ TEST_F(APZScrollHandoffTester, StuckInOverscroll_Bug1231228) {
   EXPECT_TRUE(rootApzc->IsOverscrolled());
 
   // Put a second finger down.
-  MultiTouchInput secondFingerDown(MultiTouchInput::MULTITOUCH_START, 0,
-                                   TimeStamp(), 0);
+  MultiTouchInput secondFingerDown =
+      CreateMultiTouchInput(MultiTouchInput::MULTITOUCH_START, mcc->Time());
   // Use the same touch identifier for the first touch (0) as Pan(). (A bit
   // hacky.)
   secondFingerDown.mTouches.AppendElement(
@@ -485,7 +485,7 @@ TEST_F(APZScrollHandoffTester, PartialFlingHandoff) {
   // Advance the child's fling animation once to give the partial handoff
   // a chance to occur.
   mcc->AdvanceByMillis(10);
-  child->AdvanceAnimations(mcc->Time());
+  child->AdvanceAnimations(mcc->GetSampleTime());
 
   // Assert that partial handoff has occurred.
   child->AssertStateIsFling();
@@ -544,8 +544,8 @@ TEST_F(APZScrollHandoffTester, Scrollgrab) {
   Pan(childApzc, 80, 45);
 
   // Check that the parent and child have scrolled as much as we expect.
-  EXPECT_EQ(20, rootApzc->GetFrameMetrics().GetScrollOffset().y);
-  EXPECT_EQ(15, childApzc->GetFrameMetrics().GetScrollOffset().y);
+  EXPECT_EQ(20, rootApzc->GetFrameMetrics().GetVisualScrollOffset().y);
+  EXPECT_EQ(15, childApzc->GetFrameMetrics().GetVisualScrollOffset().y);
 }
 #endif
 
@@ -602,15 +602,15 @@ TEST_F(APZScrollHandoffTester, ImmediateHandoffDisallowed_Pan) {
   Pan(childApzc, 60, 5);
 
   // Verify that the parent has not scrolled.
-  EXPECT_EQ(50, childApzc->GetFrameMetrics().GetScrollOffset().y);
-  EXPECT_EQ(0, parentApzc->GetFrameMetrics().GetScrollOffset().y);
+  EXPECT_EQ(50, childApzc->GetFrameMetrics().GetVisualScrollOffset().y);
+  EXPECT_EQ(0, parentApzc->GetFrameMetrics().GetVisualScrollOffset().y);
 
   // Pan again on the child. This time, since the child was scrolled to
   // its end when the gesture began, we expect the scroll to be handed off.
   Pan(childApzc, 60, 50);
 
   // Verify that the parent scrolled.
-  EXPECT_EQ(10, parentApzc->GetFrameMetrics().GetScrollOffset().y);
+  EXPECT_EQ(10, parentApzc->GetFrameMetrics().GetVisualScrollOffset().y);
 }
 
 #ifndef MOZ_WIDGET_ANDROID  // Currently fails on Android
@@ -635,9 +635,9 @@ TEST_F(APZScrollHandoffTester, ImmediateHandoffDisallowed_Fling) {
   // The first comparison needs to be an ASSERT_NEAR because the fling
   // computations are such that the final scroll position can be within
   // COORDINATE_EPSILON of the end rather than right at the end.
-  ASSERT_NEAR(50, childApzc->GetFrameMetrics().GetScrollOffset().y,
+  ASSERT_NEAR(50, childApzc->GetFrameMetrics().GetVisualScrollOffset().y,
               COORDINATE_EPSILON);
-  EXPECT_EQ(0, parentApzc->GetFrameMetrics().GetScrollOffset().y);
+  EXPECT_EQ(0, parentApzc->GetFrameMetrics().GetVisualScrollOffset().y);
 
   // Pan again on the child. This time, since the child was scrolled to
   // its end when the gesture began, we expect the scroll to be handed off.
@@ -648,7 +648,7 @@ TEST_F(APZScrollHandoffTester, ImmediateHandoffDisallowed_Fling) {
   parentApzc->AdvanceAnimationsUntilEnd();
 
   // Verify that the parent scrolled from the fling.
-  EXPECT_GT(parentApzc->GetFrameMetrics().GetScrollOffset().y, 10);
+  EXPECT_GT(parentApzc->GetFrameMetrics().GetVisualScrollOffset().y, 10);
 }
 #endif
 

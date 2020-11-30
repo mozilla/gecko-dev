@@ -15,7 +15,10 @@ const Message = createFactory(
   require("devtools/client/webconsole/components/Output/Message")
 );
 const actions = require("devtools/client/webconsole/actions/index");
-const { l10n } = require("devtools/client/webconsole/utils/messages");
+const {
+  isMessageNetworkError,
+  l10n,
+} = require("devtools/client/webconsole/utils/messages");
 
 loader.lazyRequireGetter(
   this,
@@ -25,6 +28,13 @@ loader.lazyRequireGetter(
 const {
   getHTTPStatusCodeURL,
 } = require("devtools/client/netmonitor/src/utils/mdn-utils");
+loader.lazyRequireGetter(
+  this,
+  "BLOCKED_REASON_MESSAGES",
+  "devtools/client/netmonitor/src/constants",
+  true
+);
+
 const LEARN_MORE = l10n.getStr("webConsoleMoreInfoLabel");
 
 const Services = require("Services");
@@ -73,6 +83,7 @@ function NetworkEventMessage({
     request,
     isXHR,
     timeStamp,
+    blockedReason,
   } = message;
 
   const { response = {}, totalTime } = networkMessageUpdate;
@@ -80,6 +91,10 @@ function NetworkEventMessage({
   const { httpVersion, status, statusText } = response;
 
   const topLevelClasses = ["cm-s-mozilla"];
+  if (isMessageNetworkError(message)) {
+    topLevelClasses.push("error");
+  }
+
   let statusCode, statusInfo;
 
   if (
@@ -111,6 +126,14 @@ function NetworkEventMessage({
       statusCode,
       ` ${statusText} ${totalTime}ms]`
     );
+  }
+
+  if (blockedReason) {
+    statusInfo = dom.span(
+      { className: "status-info" },
+      BLOCKED_REASON_MESSAGES[blockedReason]
+    );
+    topLevelClasses.push("network-message-blocked");
   }
 
   const onToggle = (messageId, e) => {
@@ -152,7 +175,6 @@ function NetworkEventMessage({
       return serviceContainer.getLongString(grip);
     },
     getTabTarget: () => {},
-    getNetworkRequest: () => {},
     sendHTTPRequest: () => {},
     setPreferences: () => {},
     triggerActivity: () => {},
@@ -173,7 +195,7 @@ function NetworkEventMessage({
         connector,
         activeTabId: networkMessageActiveTabId,
         request: networkMessageUpdate,
-        sourceMapService: serviceContainer.sourceMapService,
+        sourceMapURLService: serviceContainer.sourceMapURLService,
         openLink: serviceContainer.openLink,
         selectTab: tabId => {
           dispatch(actions.selectNetworkMessageTab(tabId));
@@ -184,7 +206,7 @@ function NetworkEventMessage({
           }
         },
         hideToggleButton: true,
-        showWebSocketsTab: false,
+        showMessagesView: false,
       })
     );
 
@@ -205,6 +227,7 @@ function NetworkEventMessage({
     serviceContainer,
     request,
     timestampsVisible,
+    isBlockedNetworkMessage: !!blockedReason,
     message,
   });
 }

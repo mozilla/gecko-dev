@@ -8,6 +8,7 @@
 
 #include "mozilla/dom/MutationEventBinding.h"
 #include "mozilla/dom/MutationObservers.h"
+#include "mozilla/dom/CSSRuleBinding.h"
 #include "mozilla/dom/SVGElementBinding.h"
 #include "mozilla/dom/SVGGeometryElement.h"
 #include "mozilla/dom/SVGLengthBinding.h"
@@ -69,8 +70,10 @@ static_assert(sizeof(void*) == sizeof(nullptr),
 
 nsresult NS_NewSVGElement(
     Element** aResult, already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo) {
+  RefPtr<mozilla::dom::NodeInfo> nodeInfo(aNodeInfo);
+  auto* nim = nodeInfo->NodeInfoManager();
   RefPtr<mozilla::dom::SVGElement> it =
-      new mozilla::dom::SVGElement(std::move(aNodeInfo));
+      new (nim) mozilla::dom::SVGElement(nodeInfo.forget());
   nsresult rv = it->Init();
 
   if (NS_FAILED(rv)) {
@@ -86,6 +89,11 @@ namespace dom {
 using namespace SVGUnitTypes_Binding;
 
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGElement)
+
+// Use the CC variant of this, even though this class does not define
+// a new CC participant, to make QIing to the CC interfaces faster.
+NS_IMPL_QUERY_INTERFACE_CYCLE_COLLECTION_INHERITED(SVGElement, SVGElementBase,
+                                                   SVGElement)
 
 SVGEnumMapping SVGElement::sSVGUnitTypesMap[] = {
     {nsGkAtoms::userSpaceOnUse, SVG_UNIT_TYPE_USERSPACEONUSE},
@@ -254,34 +262,9 @@ nsresult SVGElement::BindToTree(BindContext& aContext, nsINode& aParent) {
         [self = RefPtr<SVGElement>(this)]() {
           nsAutoString nonce;
           self->GetNonce(nonce);
-          self->SetAttr(kNameSpaceID_None, nsGkAtoms::nonce, EmptyString(),
-                        true);
+          self->SetAttr(kNameSpaceID_None, nsGkAtoms::nonce, u""_ns, true);
           self->SetNonce(nonce);
         }));
-  }
-
-  if (!MayHaveStyle()) {
-    return NS_OK;
-  }
-  const nsAttrValue* oldVal = mAttrs.GetAttr(nsGkAtoms::style);
-
-  if (oldVal && oldVal->Type() == nsAttrValue::eCSSDeclaration) {
-    // we need to force a reparse because the baseURI of the document
-    // may have changed, and in particular because we may be clones of
-    // XBL anonymous content now being bound to the document we should
-    // render in and due to the hacky way in which we implement the
-    // interaction of XBL and SVG resources.  Once we have a sane
-    // ownerDocument on XBL anonymous content, this can all go away.
-    nsAttrValue attrValue;
-    nsAutoString stringValue;
-    oldVal->ToString(stringValue);
-    // Force in data doc, since we already have a style rule
-    ParseStyleAttribute(stringValue, nullptr, attrValue, true);
-    // Don't bother going through SetInlineStyleDeclaration; we don't
-    // want to fire off mutation events or document notifications anyway
-    bool oldValueSet;
-    rv = mAttrs.SetAndSwapAttr(nsGkAtoms::style, attrValue, &oldValueSet);
-    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   return NS_OK;
@@ -962,6 +945,7 @@ const Element::MappedAttributeEntry SVGElement::sGraphicsMap[] = {
     {nsGkAtoms::pointer_events},
     {nsGkAtoms::shape_rendering},
     {nsGkAtoms::text_rendering},
+    {nsGkAtoms::transform_origin},
     {nsGkAtoms::visibility},
     {nullptr}};
 
@@ -1164,12 +1148,13 @@ void MappedAttrParser::ParseMappedAttrValue(nsAtom* aMappedAttrName,
     nsCOMPtr<nsIReferrerInfo> referrerInfo =
         ReferrerInfo::CreateForSVGResources(mElement->OwnerDoc());
 
-    RefPtr<URLExtraData> data =
-        new URLExtraData(mBaseURI, referrerInfo, mElement->NodePrincipal());
+    auto data = MakeRefPtr<URLExtraData>(mBaseURI, referrerInfo,
+                                         mElement->NodePrincipal());
     changed = Servo_DeclarationBlock_SetPropertyById(
         mDecl->Raw(), propertyID, &value, false, data,
         ParsingMode::AllowUnitlessLength,
-        mElement->OwnerDoc()->GetCompatibilityMode(), mLoader, {});
+        mElement->OwnerDoc()->GetCompatibilityMode(), mLoader,
+        CSSRule_Binding::STYLE_RULE, {});
 
     // TODO(emilio): If we want to record these from CSSOM more generally, we
     // can pass the document use counters down the FFI call. For now manually
@@ -1403,13 +1388,11 @@ void SVGElement::MaybeSerializeAttrBeforeRemoval(nsAtom* aName, bool aNotify) {
   mAttrs.SetAndSwapAttr(aName, oldAttrValue, &oldValueSet);
 }
 
-/* static */
 nsAtom* SVGElement::GetEventNameForAttr(nsAtom* aAttr) {
-  if (aAttr == nsGkAtoms::onload) return nsGkAtoms::onSVGLoad;
-  if (aAttr == nsGkAtoms::onunload) return nsGkAtoms::onSVGUnload;
-  if (aAttr == nsGkAtoms::onresize) return nsGkAtoms::onSVGResize;
-  if (aAttr == nsGkAtoms::onscroll) return nsGkAtoms::onSVGScroll;
-  if (aAttr == nsGkAtoms::onzoom) return nsGkAtoms::onSVGZoom;
+  if (IsSVGElement(nsGkAtoms::svg)) {
+    if (aAttr == nsGkAtoms::onload) return nsGkAtoms::onSVGLoad;
+    if (aAttr == nsGkAtoms::onscroll) return nsGkAtoms::onSVGScroll;
+  }
   if (aAttr == nsGkAtoms::onbegin) return nsGkAtoms::onbeginEvent;
   if (aAttr == nsGkAtoms::onrepeat) return nsGkAtoms::onrepeatEvent;
   if (aAttr == nsGkAtoms::onend) return nsGkAtoms::onendEvent;
@@ -1482,9 +1465,13 @@ void SVGElement::DidAnimateLength(uint8_t aAttrEnum) {
     nsCSSPropertyID propId =
         SVGGeometryProperty::AttrEnumToCSSPropId(this, aAttrEnum);
 
-    SMILOverrideStyle()->SetSMILValue(propId,
-                                      GetLengthInfo().mLengths[aAttrEnum]);
-    return;
+    // We don't map use element width/height currently. We can remove this
+    // test when we do.
+    if (propId != eCSSProperty_UNKNOWN) {
+      SMILOverrideStyle()->SetSMILValue(propId,
+                                        GetLengthInfo().mLengths[aAttrEnum]);
+      return;
+    }
   }
 
   nsIFrame* frame = GetPrimaryFrame();
@@ -1495,6 +1482,15 @@ void SVGElement::DidAnimateLength(uint8_t aAttrEnum) {
                             info.mLengthInfo[aAttrEnum].mName,
                             MutationEvent_Binding::SMIL);
   }
+}
+
+SVGAnimatedLength* SVGElement::GetAnimatedLength(uint8_t aAttrEnum) {
+  LengthAttributesInfo info = GetLengthInfo();
+  if (aAttrEnum < info.mLengthCount) {
+    return &info.mLengths[aAttrEnum];
+  }
+  MOZ_ASSERT_UNREACHABLE("Bad attrEnum");
+  return nullptr;
 }
 
 SVGAnimatedLength* SVGElement::GetAnimatedLength(const nsAtom* aAttrName) {

@@ -18,6 +18,8 @@ ChromeUtils.defineModuleGetter(
   "resource://gre/modules/Timer.jsm"
 );
 
+XPCOMUtils.defineLazyGlobalGetters(this, ["fetch", "btoa"]);
+
 // xpcshell doesn't handle idle callbacks well.
 XPCOMUtils.defineLazyGetter(this, "idleTimeout", () =>
   Services.appinfo.name === "XPCShell" ? 500 : undefined
@@ -108,13 +110,8 @@ class DefaultMap extends Map {
   }
 }
 
-const _winUtils = new DefaultWeakMap(win => {
-  return win.windowUtils;
-});
-const getWinUtils = win => _winUtils.get(win);
-
 function getInnerWindowID(window) {
-  return getWinUtils(window).currentInnerWindowID;
+  return window.windowGlobalChild?.innerWindowId;
 }
 
 /**
@@ -287,6 +284,43 @@ function getMessageManager(target) {
 function flushJarCache(jarPath) {
   Services.obs.notifyObservers(null, "flush-cache-entry", jarPath);
 }
+function parseMatchPatterns(patterns, options) {
+  try {
+    return new MatchPatternSet(patterns, options);
+  } catch (e) {
+    let pattern;
+    for (pattern of patterns) {
+      try {
+        new MatchPattern(pattern, options);
+      } catch (e) {
+        throw new ExtensionError(`Invalid url pattern: ${pattern}`);
+      }
+    }
+    // Unexpectedly MatchPatternSet threw, but MatchPattern did not.
+    throw e;
+  }
+}
+
+/**
+ * Fetch icon content and convert it to a data: URI.
+ * @param {string} iconUrl Icon url to fetch.
+ * @returns {Promise<string>}
+ */
+async function makeDataURI(iconUrl) {
+  let response;
+  try {
+    response = await fetch(iconUrl);
+  } catch (e) {
+    // Failed to fetch, ignore engine's favicon.
+    Cu.reportError(e);
+    return;
+  }
+  let buffer = await response.arrayBuffer();
+  let contentType = response.headers.get("content-type");
+  let bytes = new Uint8Array(buffer);
+  let str = String.fromCharCode.apply(null, bytes);
+  return `data:${contentType};base64,${btoa(str)}`;
+}
 
 var ExtensionUtils = {
   flushJarCache,
@@ -294,7 +328,8 @@ var ExtensionUtils = {
   getMessageManager,
   getUniqueId,
   filterStack,
-  getWinUtils,
+  makeDataURI,
+  parseMatchPatterns,
   promiseDocumentIdle,
   promiseDocumentLoaded,
   promiseDocumentReady,

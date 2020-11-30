@@ -56,25 +56,6 @@ static nsresult sniff_mimetype_callback(nsIInputStream* in, void* data,
   return NS_ERROR_FAILURE;
 }
 
-// Provides WeakPtr for imgINotificationObserver
-class NotificationObserverWrapper
-    : public imgINotificationObserver,
-      public mozilla::SupportsWeakPtr<NotificationObserverWrapper> {
- public:
-  NS_DECL_ISUPPORTS
-  NS_FORWARD_IMGINOTIFICATIONOBSERVER(mObserver->)
-  MOZ_DECLARE_WEAKREFERENCE_TYPENAME(nsGeolocationRequest)
-
-  explicit NotificationObserverWrapper(imgINotificationObserver* observer)
-      : mObserver(observer) {}
-
- private:
-  virtual ~NotificationObserverWrapper() = default;
-  nsCOMPtr<imgINotificationObserver> mObserver;
-};
-
-NS_IMPL_ISUPPORTS(NotificationObserverWrapper, imgINotificationObserver)
-
 class ImageDecoderListener final : public nsIStreamListener,
                                    public IProgressObserver,
                                    public imgIContainer {
@@ -86,8 +67,7 @@ class ImageDecoderListener final : public nsIStreamListener,
       : mURI(aURI),
         mImage(nullptr),
         mCallback(aCallback),
-        mObserver(aObserver ? new NotificationObserverWrapper(aObserver)
-                            : nullptr) {
+        mObserver(aObserver) {
     MOZ_ASSERT(NS_IsMainThread());
   }
 
@@ -130,17 +110,14 @@ class ImageDecoderListener final : public nsIStreamListener,
 
   NS_IMETHOD
   OnStopRequest(nsIRequest* aRequest, nsresult aStatus) override {
-    // Depending on the error, we might not have received any data yet, in which
-    // case we would not have an |mImage|
-    if (mImage) {
-      mImage->OnImageDataComplete(aRequest, nullptr, aStatus, true);
+    // Encouter a fetch error, or no data could be fetched.
+    if (!mImage || NS_FAILED(aStatus)) {
+      mCallback->OnImageReady(nullptr, mImage ? aStatus : NS_ERROR_FAILURE);
+      return NS_OK;
     }
 
-    nsCOMPtr<imgIContainer> container;
-    if (NS_SUCCEEDED(aStatus)) {
-      container = this;
-    }
-
+    mImage->OnImageDataComplete(aRequest, nullptr, aStatus, true);
+    nsCOMPtr<imgIContainer> container = this;
     mCallback->OnImageReady(container, aStatus);
     return NS_OK;
   }
@@ -177,7 +154,7 @@ class ImageDecoderListener final : public nsIStreamListener,
   nsCOMPtr<nsIURI> mURI;
   RefPtr<image::Image> mImage;
   nsCOMPtr<imgIContainerCallback> mCallback;
-  WeakPtr<NotificationObserverWrapper> mObserver;
+  nsCOMPtr<imgINotificationObserver> mObserver;
 };
 
 NS_IMPL_ISUPPORTS(ImageDecoderListener, nsIStreamListener, imgIContainer)
@@ -284,10 +261,8 @@ class ImageDecoderHelper final : public Runnable,
   ~ImageDecoderHelper() {
     // Avoid posting runnables at non-deterministic points when recording/replaying.
     if (!recordreplay::IsRecordingOrReplaying()) {
-      NS_ReleaseOnMainThreadSystemGroup("ImageDecoderHelper::mImage",
-                                        mImage.forget());
-      NS_ReleaseOnMainThreadSystemGroup("ImageDecoderHelper::mCallback",
-                                        mCallback.forget());
+      SurfaceCache::ReleaseImageOnMainThread(mImage.forget());
+      NS_ReleaseOnMainThread("ImageDecoderHelper::mCallback", mCallback.forget());
     }
   }
 
@@ -362,7 +337,7 @@ imgTools::DecodeImageFromBuffer(const char* aBuffer, uint32_t aSize,
   // Let's create a temporary inputStream.
   nsCOMPtr<nsIInputStream> stream;
   nsresult rv = NS_NewByteInputStream(
-      getter_AddRefs(stream), MakeSpan(aBuffer, aSize), NS_ASSIGNMENT_DEPEND);
+      getter_AddRefs(stream), Span(aBuffer, aSize), NS_ASSIGNMENT_DEPEND);
   NS_ENSURE_SUCCESS(rv, rv);
   MOZ_ASSERT(stream);
   MOZ_ASSERT(NS_InputStreamIsBuffered(stream));
@@ -458,8 +433,7 @@ static nsresult EncodeImageData(DataSourceSurface* aDataSurface,
              "We're assuming B8G8R8A8/X8");
 
   // Get an image encoder for the media type
-  nsAutoCString encoderCID(
-      NS_LITERAL_CSTRING("@mozilla.org/image/encoder;2?type=") + aMimeType);
+  nsAutoCString encoderCID("@mozilla.org/image/encoder;2?type="_ns + aMimeType);
 
   nsCOMPtr<imgIEncoder> encoder = do_CreateInstance(encoderCID.get());
   if (!encoder) {

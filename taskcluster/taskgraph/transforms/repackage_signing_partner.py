@@ -11,18 +11,17 @@ from six import text_type
 from taskgraph.loader.single_dep import schema
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.attributes import copy_attributes_from_dependent_job
-from taskgraph.util.partners import check_if_partners_enabled, get_partner_config_by_kind
+from taskgraph.util.partners import get_partner_config_by_kind
 from taskgraph.util.scriptworker import (
     get_signing_cert_scope_per_platform,
 )
 from taskgraph.util.taskcluster import get_artifact_path
 from taskgraph.transforms.task import task_description_schema
-from voluptuous import Required, Optional
+from voluptuous import Optional
 
 transforms = TransformSequence()
 
 repackage_signing_description_schema = schema.extend({
-    Required('depname', default='repackage'): text_type,
     Optional('label'): text_type,
     Optional('extra'): object,
     Optional('shipping-product'): task_description_schema['shipping-product'],
@@ -30,7 +29,6 @@ repackage_signing_description_schema = schema.extend({
     Optional('priority'): task_description_schema['priority'],
 })
 
-transforms.add(check_if_partners_enabled)
 transforms.add_validate(repackage_signing_description_schema)
 
 
@@ -41,7 +39,7 @@ def make_repackage_signing_description(config, jobs):
         repack_id = dep_job.task['extra']['repack_id']
         attributes = dep_job.attributes
         build_platform = dep_job.attributes.get('build_platform')
-        is_nightly = dep_job.attributes.get('nightly', dep_job.attributes.get('shippable'))
+        is_shippable = dep_job.attributes.get('shippable')
 
         # Mac & windows
         label = dep_job.label.replace("repackage-", "repackage-signing-")
@@ -70,7 +68,7 @@ def make_repackage_signing_description(config, jobs):
         attributes['repackage_type'] = 'repackage-signing'
 
         signing_cert_scope = get_signing_cert_scope_per_platform(
-            build_platform, is_nightly, config
+            build_platform, is_shippable, config
         )
         scopes = [signing_cert_scope]
 

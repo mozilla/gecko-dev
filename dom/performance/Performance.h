@@ -96,7 +96,9 @@ class Performance : public DOMEventTargetHelper {
 
   virtual TimeStamp CreationTimeStamp() const = 0;
 
-  uint64_t IsSystemPrincipal() { return mSystemPrincipal; }
+  bool IsSystemPrincipal() const { return mSystemPrincipal; }
+
+  DOMHighResTimeStamp TimeStampToDOMHighResForRendering(TimeStamp) const;
 
   virtual uint64_t GetRandomTimelineSeed() = 0;
 
@@ -108,6 +110,12 @@ class Performance : public DOMEventTargetHelper {
   void InsertResourceEntry(PerformanceEntry* aEntry);
 
   virtual void QueueNavigationTimingEntry() = 0;
+
+  virtual void UpdateNavigationTimingEntry() = 0;
+
+  virtual bool CrossOriginIsolated() const = 0;
+
+  void QueueNotificationObserversTask();
 
  protected:
   explicit Performance(bool aSystemPrincipal);

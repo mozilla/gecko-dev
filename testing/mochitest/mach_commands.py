@@ -6,8 +6,10 @@ from __future__ import absolute_import, unicode_literals
 
 from argparse import Namespace
 from collections import defaultdict
+import functools
 import logging
 import os
+import six
 import sys
 import warnings
 
@@ -120,6 +122,7 @@ class MochitestRunner(MozbuildObject):
 
         options = Namespace(**kwargs)
         options.topsrcdir = self.topsrcdir
+        options.topobjdir = self.topobjdir
 
         from manifestparser import TestManifest
         if tests and not options.manifestFile:
@@ -255,33 +258,21 @@ def setup_junit_argument_parser():
     return parser
 
 
-# condition filters
-
-def is_buildapp_in(*apps):
-    def is_buildapp_supported(cls):
-        for a in apps:
-            c = getattr(conditions, 'is_{}'.format(a), None)
-            if c and c(cls):
-                return True
-        return False
-
-    is_buildapp_supported.__doc__ = 'Must have a {} build.'.format(
-        ' or '.join(apps))
-    return is_buildapp_supported
-
-
 def verify_host_bin():
     # validate MOZ_HOST_BIN environment variables for Android tests
+    xpcshell_binary = 'xpcshell'
+    if os.name == 'nt':
+        xpcshell_binary = 'xpcshell.exe'
     MOZ_HOST_BIN = os.environ.get('MOZ_HOST_BIN')
     if not MOZ_HOST_BIN:
         print('environment variable MOZ_HOST_BIN must be set to a directory containing host '
-              'xpcshell')
+              '%s' % xpcshell_binary)
         return 1
     elif not os.path.isdir(MOZ_HOST_BIN):
         print('$MOZ_HOST_BIN does not specify a directory')
         return 1
-    elif not os.path.isfile(os.path.join(MOZ_HOST_BIN, 'xpcshell')):
-        print('$MOZ_HOST_BIN/xpcshell does not exist')
+    elif not os.path.isfile(os.path.join(MOZ_HOST_BIN, xpcshell_binary)):
+        print('$MOZ_HOST_BIN/%s does not exist' % xpcshell_binary)
         return 1
     return 0
 
@@ -289,7 +280,7 @@ def verify_host_bin():
 @CommandProvider
 class MachCommands(MachCommandBase):
     @Command('mochitest', category='testing',
-             conditions=[is_buildapp_in(*SUPPORTED_APPS)],
+             conditions=[functools.partial(conditions.is_buildapp_in, apps=SUPPORTED_APPS)],
              description='Run any flavor of mochitest (integration test).',
              parser=setup_argument_parser)
     def run_mochitest_general(self, flavor=None, test_objects=None, resolve_tests=True, **kwargs):
@@ -298,22 +289,26 @@ class MachCommands(MachCommandBase):
         from mozlog.handlers import StreamHandler
         from moztest.resolve import get_suite_definition
 
+        # TODO: This is only strictly necessary while mochitest is using Python
+        # 2 and can be removed once the command is migrated to Python 3.
+        self.activate_virtualenv()
+
         buildapp = None
         for app in SUPPORTED_APPS:
-            if is_buildapp_in(app)(self):
+            if conditions.is_buildapp_in(self, apps=[app]):
                 buildapp = app
                 break
 
         flavors = None
         if flavor:
-            for fname, fobj in ALL_FLAVORS.iteritems():
+            for fname, fobj in six.iteritems(ALL_FLAVORS):
                 if flavor in fobj['aliases']:
                     if buildapp not in fobj['enabled_apps']:
                         continue
                     flavors = [fname]
                     break
         else:
-            flavors = [f for f, v in ALL_FLAVORS.iteritems() if buildapp in v['enabled_apps']]
+            flavors = [f for f, v in six.iteritems(ALL_FLAVORS) if buildapp in v['enabled_apps']]
 
         from mozbuild.controller.building import BuildDriver
         self._ensure_state_subdir_exists('.')
@@ -346,7 +341,7 @@ class MachCommands(MachCommandBase):
                     handler.formatter.inner.summary_on_shutdown = True
 
         driver = self._spawn(BuildDriver)
-        driver.install_tests(tests)
+        driver.install_tests()
 
         subsuite = kwargs.get('subsuite')
         if subsuite == 'default':
@@ -377,7 +372,7 @@ class MachCommands(MachCommandBase):
 
         if ('mochitest', 'media') in suites:
             req = os.path.join('testing', 'tools', 'websocketprocessbridge',
-                               'websocketprocessbridge_requirements.txt')
+                               'websocketprocessbridge_requirements_3.txt')
             self.virtualenv_manager.activate()
             self.virtualenv_manager.install_pip_requirements(req, require_hashes=False)
 
@@ -423,7 +418,7 @@ class MachCommands(MachCommandBase):
             if not app:
                 app = "org.mozilla.geckoview.test"
             device_serial = kwargs.get('deviceSerial')
-            install = InstallIntent.NO if kwargs.get('no_install') else InstallIntent.PROMPT
+            install = InstallIntent.NO if kwargs.get('no_install') else InstallIntent.YES
 
             # verify installation
             verify_android_device(self, install=install, xre=False, network=True,
@@ -434,12 +429,16 @@ class MachCommands(MachCommandBase):
 
         overall = None
         for (flavor, subsuite), tests in sorted(suites.items()):
-            _, suite = get_suite_definition(flavor, subsuite)
+            suite_name, suite = get_suite_definition(flavor, subsuite)
             if 'test_paths' in suite['kwargs']:
                 del suite['kwargs']['test_paths']
 
             harness_args = kwargs.copy()
             harness_args.update(suite['kwargs'])
+            # Pass in the full suite name as defined in moztest/resolve.py in case
+            # chunk-by-runtime is called, in which case runtime information for
+            # specific mochitest suite has to be loaded. See Bug 1637463.
+            harness_args.update({'suite_name': suite_name})
 
             result = run_mochitest(
                 self._mach_context,
@@ -481,7 +480,7 @@ class GeckoviewJunitCommands(MachCommandBase):
         app = kwargs.get('app')
         device_serial = kwargs.get('deviceSerial')
         verify_android_device(self,
-                              install=InstallIntent.NO if no_install else InstallIntent.PROMPT,
+                              install=InstallIntent.NO if no_install else InstallIntent.YES,
                               xre=False, app=app,
                               device_serial=device_serial)
 
@@ -497,50 +496,3 @@ class GeckoviewJunitCommands(MachCommandBase):
 
         mochitest = self._spawn(MochitestRunner)
         return mochitest.run_geckoview_junit_test(self._mach_context, **kwargs)
-
-
-# NOTE python/mach/mach/commands/commandinfo.py references this function
-#      by name. If this function is renamed or removed, that file should
-#      be updated accordingly as well.
-def REMOVED(cls):
-    """Command no longer exists! Use |mach mochitest| instead.
-
-    The |mach mochitest| command will automatically detect which flavors and
-    subsuites exist in a given directory. If desired, flavors and subsuites
-    can be restricted using `--flavor` and `--subsuite` respectively. E.g:
-
-        $ ./mach mochitest dom/indexedDB
-
-    will run all of the plain, chrome and browser-chrome mochitests in that
-    directory. To only run the plain mochitests:
-
-        $ ./mach mochitest -f plain dom/indexedDB
-    """
-    return False
-
-
-@CommandProvider
-class DeprecatedCommands(MachCommandBase):
-    @Command('mochitest-plain', category='testing', conditions=[REMOVED])
-    def mochitest_plain(self):
-        pass
-
-    @Command('mochitest-chrome', category='testing', conditions=[REMOVED])
-    def mochitest_chrome(self):
-        pass
-
-    @Command('mochitest-browser', category='testing', conditions=[REMOVED])
-    def mochitest_browser(self):
-        pass
-
-    @Command('mochitest-devtools', category='testing', conditions=[REMOVED])
-    def mochitest_devtools(self):
-        pass
-
-    @Command('mochitest-a11y', category='testing', conditions=[REMOVED])
-    def mochitest_a11y(self):
-        pass
-
-    @Command('robocop', category='testing', conditions=[REMOVED])
-    def robocop(self):
-        pass

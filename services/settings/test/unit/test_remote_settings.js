@@ -6,8 +6,10 @@ const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { AppConstants } = ChromeUtils.import(
   "resource://gre/modules/AppConstants.jsm"
 );
-
-const IS_ANDROID = AppConstants.platform == "android";
+const { ObjectUtils } = ChromeUtils.import(
+  "resource://gre/modules/ObjectUtils.jsm"
+);
+const { setTimeout } = ChromeUtils.import("resource://gre/modules/Timer.jsm");
 
 const { RemoteSettings } = ChromeUtils.import(
   "resource://services-settings/remote-settings.js"
@@ -19,6 +21,8 @@ const { UptakeTelemetry } = ChromeUtils.import(
 const { TelemetryTestUtils } = ChromeUtils.import(
   "resource://testing-common/TelemetryTestUtils.jsm"
 );
+
+const IS_ANDROID = AppConstants.platform == "android";
 
 const BinaryInputStream = CC(
   "@mozilla.org/binaryinputstream;1",
@@ -35,13 +39,11 @@ async function clear_state() {
   clientWithDump.verifySignature = false;
 
   // Clear local DB.
-  const collection = await client.openCollection();
-  await collection.clear();
+  await client.db.clear();
   // Reset event listeners.
   client._listeners.set("sync", []);
 
-  const collectionWithDump = await clientWithDump.openCollection();
-  await collectionWithDump.clear();
+  await clientWithDump.db.clear();
 
   Services.prefs.clearUserPref("services.settings.default_bucket");
 
@@ -71,27 +73,15 @@ function run_test() {
     handleResponse
   );
   server.registerPathHandler(
-    "/v1/buckets/main/collections/password-fields",
+    "/v1/buckets/main/collections/password-fields/changeset",
     handleResponse
   );
   server.registerPathHandler(
-    "/v1/buckets/main/collections/password-fields/records",
+    "/v1/buckets/main/collections/language-dictionaries/changeset",
     handleResponse
   );
   server.registerPathHandler(
-    "/v1/buckets/main/collections/language-dictionaries",
-    handleResponse
-  );
-  server.registerPathHandler(
-    "/v1/buckets/main/collections/language-dictionaries/records",
-    handleResponse
-  );
-  server.registerPathHandler(
-    "/v1/buckets/main/collections/with-local-fields",
-    handleResponse
-  );
-  server.registerPathHandler(
-    "/v1/buckets/main/collections/with-local-fields/records",
+    "/v1/buckets/main/collections/with-local-fields/changeset",
     handleResponse
   );
   server.registerPathHandler("/fake-x5u", handleResponse);
@@ -112,6 +102,12 @@ add_task(async function test_records_obtained_from_server_are_stored_in_db() {
   // Our test data has a single record; it should be in the local collection
   const list = await client.get();
   equal(list.length, 1);
+
+  const timestamp = await client.db.getLastModified();
+  equal(timestamp, 3000, "timestamp was stored");
+
+  const { signature } = await client.db.getMetadata();
+  equal(signature.signature, "abcdef", "metadata was stored");
 });
 add_task(clear_state);
 
@@ -129,7 +125,7 @@ add_task(
     await clientWithDump.maybeSync(timestamp);
 
     const list = await clientWithDump.get();
-    ok(list.length > 20, "The dump was loaded");
+    ok(list.length > 20, `The dump was loaded (${list.length} records)`);
     equal(received.created[0].id, "xx", "Record from the sync come first.");
 
     const createdById = received.created.reduce((acc, r) => {
@@ -188,13 +184,18 @@ add_task(async function test_sync_event_is_sent_even_if_up_to_date() {
     // Skip test: we don't ship remote settings dumps on Android (see package-manifest).
     return;
   }
+  // First, determine what is the dump timestamp. Sync will load it.
+  // Use a timestamp inferior to latest record in dump.
+  await clientWithDump._importJSONDump();
+  const uptodateTimestamp = await clientWithDump.db.getLastModified();
+  await clear_state();
+
+  // Now, simulate that server data wasn't changed since dump was released.
   const startHistogram = getUptakeTelemetrySnapshot(clientWithDump.identifier);
   let received;
   clientWithDump.on("sync", ({ data }) => (received = data));
-  // Use a timestamp inferior to latest record in dump.
-  const timestamp = 1000000000000; // Sun Sep 09 2001
 
-  await clientWithDump.maybeSync(timestamp);
+  await clientWithDump.maybeSync(uptodateTimestamp);
 
   ok(received.current.length > 0, "Dump records are listed as created");
   equal(received.current.length, received.created.length);
@@ -211,8 +212,7 @@ add_task(async function test_records_can_have_local_fields() {
 
   await c.maybeSync(2000);
 
-  const col = await c.openCollection();
-  await col.update({
+  await c.db.update({
     id: "c74279ce-fb0a-42a6-ae11-386b567a6119",
     accepted: true,
   });
@@ -223,14 +223,10 @@ add_task(clear_state);
 add_task(
   async function test_records_changes_are_overwritten_by_server_changes() {
     // Create some local conflicting data, and make sure it syncs without error.
-    const collection = await client.openCollection();
-    await collection.create(
-      {
-        website: "",
-        id: "9d500963-d80e-3a91-6e74-66f3811b99cc",
-      },
-      { useRecordId: true }
-    );
+    await client.db.create({
+      website: "",
+      id: "9d500963-d80e-3a91-6e74-66f3811b99cc",
+    });
 
     await client.maybeSync(2000);
 
@@ -253,6 +249,83 @@ add_task(
     // No synchronization happened (responses are not mocked).
   }
 );
+add_task(clear_state);
+
+add_task(async function test_get_does_not_load_dump_when_pref_is_false() {
+  Services.prefs.setBoolPref("services.settings.load_dump", false);
+
+  const data = await clientWithDump.get();
+
+  equal(data.map(r => r.id).join(", "), "pt-BR, xx"); // No dump, 2 pulled from test server.
+  Services.prefs.clearUserPref("services.settings.load_dump");
+});
+add_task(clear_state);
+
+add_task(async function test_get_loads_dump_only_once_if_called_in_parallel() {
+  const backup = clientWithDump._importJSONDump;
+  let callCount = 0;
+  clientWithDump._importJSONDump = async () => {
+    callCount++;
+    // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return 42;
+  };
+  await Promise.all([clientWithDump.get(), clientWithDump.get()]);
+  equal(callCount, 1, "JSON dump was called more than once");
+  clientWithDump._importJSONDump = backup;
+});
+add_task(clear_state);
+
+add_task(async function test_get_falls_back_to_dump_if_db_fails() {
+  if (IS_ANDROID) {
+    // Skip test: we don't ship remote settings dumps on Android (see package-manifest).
+    return;
+  }
+  const backup = clientWithDump.db.getLastModified;
+  clientWithDump.db.getLastModified = () => {
+    throw new Error("Unknown error");
+  };
+
+  const records = await clientWithDump.get({ dumpFallback: true });
+  ok(records.length > 0, "dump content is returned");
+
+  // If fallback is disabled, error is thrown.
+  let error;
+  try {
+    await clientWithDump.get({ dumpFallback: false });
+  } catch (e) {
+    error = e;
+  }
+  equal(error.message, "Unknown error");
+
+  clientWithDump.db.getLastModified = backup;
+});
+add_task(clear_state);
+
+add_task(async function test_get_falls_back_to_dump_if_db_fails_later() {
+  if (IS_ANDROID) {
+    // Skip test: we don't ship remote settings dumps on Android (see package-manifest).
+    return;
+  }
+  const backup = clientWithDump.db.list;
+  clientWithDump.db.list = () => {
+    throw new Error("Unknown error");
+  };
+
+  const records = await clientWithDump.get({ dumpFallback: true });
+  ok(records.length > 0, "dump content is returned");
+
+  // If fallback is disabled, error is thrown.
+  let error;
+  try {
+    await clientWithDump.get({ dumpFallback: false });
+  } catch (e) {
+    error = e;
+  }
+  equal(error.message, "Unknown error");
+
+  clientWithDump.db.list = backup;
+});
 add_task(clear_state);
 
 add_task(async function test_get_does_not_sync_if_empty_dump_is_provided() {
@@ -301,8 +374,8 @@ add_task(async function test_get_ignores_synchronization_errors() {
 });
 add_task(clear_state);
 
-add_task(async function test_get_can_verify_signature() {
-  // No signature in metadata.
+add_task(async function test_get_verify_signature_no_sync() {
+  // No signature in metadata, and no sync if empty.
   let error;
   try {
     await client.get({ verifySignature: true, syncIfEmpty: false });
@@ -310,7 +383,36 @@ add_task(async function test_get_can_verify_signature() {
     error = e;
   }
   equal(error.message, "Missing signature (main/password-fields)");
+});
+add_task(clear_state);
 
+add_task(async function test_get_can_verify_signature_pulled() {
+  // Populate the local DB (only records, eg. loaded from dump previously)
+  await client._importJSONDump();
+
+  let calledSignature;
+  client._verifier = {
+    async asyncVerifyContentSignature(serialized, signature) {
+      calledSignature = signature;
+      return true;
+    },
+  };
+  client.verifySignature = true;
+
+  // No metadata in local DB, but gets pulled and then verifies.
+  ok(ObjectUtils.isEmpty(await client.db.getMetadata()), "Metadata is empty");
+
+  await client.get({ verifySignature: true });
+
+  ok(
+    !ObjectUtils.isEmpty(await client.db.getMetadata()),
+    "Metadata was pulled"
+  );
+  ok(calledSignature.endsWith("some-sig"), "Signature was verified");
+});
+add_task(clear_state);
+
+add_task(async function test_get_can_verify_signature() {
   // Populate the local DB (record and metadata)
   await client.maybeSync(2000);
 
@@ -322,12 +424,14 @@ add_task(async function test_get_can_verify_signature() {
       return JSON.parse(serialized).data.length == 1;
     },
   };
+  ok(await Utils.hasLocalData(client), "Local data was populated");
   await client.get({ verifySignature: true });
-  ok(calledSignature.endsWith("abcdef"));
+
+  ok(calledSignature.endsWith("abcdef"), "Signature was verified");
 
   // It throws when signature does not verify.
-  const col = await client.openCollection();
-  await col.delete("9d500963-d80e-3a91-6e74-66f3811b99cc");
+  await client.db.delete("9d500963-d80e-3a91-6e74-66f3811b99cc");
+  let error = null;
   try {
     await client.get({ verifySignature: true });
   } catch (e) {
@@ -372,10 +476,30 @@ add_task(async function test_get_does_not_verify_signature_if_load_dump() {
 
   // If metadata is missing locally, it is fetched by default (`syncIfEmpty: true`)
   await clientWithDump.get({ verifySignature: true });
-  const metadata = await (await clientWithDump.openCollection()).metadata();
+  const metadata = await clientWithDump.db.getMetadata();
   ok(Object.keys(metadata).length > 0, "metadata was fetched");
   ok(called, "signature was verified for the data that was in dump");
 });
+add_task(clear_state);
+
+add_task(
+  async function test_get_does_verify_signature_if_json_loaded_in_parallel() {
+    const backup = clientWithDump._verifier;
+    let callCount = 0;
+    clientWithDump._verifier = {
+      async asyncVerifyContentSignature(serialized, signature) {
+        callCount++;
+        return true;
+      },
+    };
+    await Promise.all([
+      clientWithDump.get({ verifySignature: true }),
+      clientWithDump.get({ verifySignature: true }),
+    ]);
+    equal(callCount, 0, "No need to verify signatures if JSON dump is loaded");
+    clientWithDump._verifier = backup;
+  }
+);
 add_task(clear_state);
 
 add_task(async function test_sync_runs_once_only() {
@@ -414,11 +538,12 @@ add_task(
     ok(records.length > 0, "dump is loaded");
     ok(!called, "signature is missing but not verified");
 
-    // Synchronize the collection (local data is up-to-date, collection last modified > 42)
+    // Synchronize the collection (local data is up-to-date).
     // Signature verification is disabled (see `clear_state()`), so we don't bother with
     // fetching metadata.
-    await clientWithDump.maybeSync(42);
-    let metadata = await (await clientWithDump.openCollection()).metadata();
+    const uptodateTimestamp = await clientWithDump.db.getLastModified();
+    await clientWithDump.maybeSync(uptodateTimestamp);
+    let metadata = await clientWithDump.db.getMetadata();
     ok(!metadata, "metadata was not fetched");
 
     // Synchronize again the collection (up-to-date, since collection last modified still > 42)
@@ -426,7 +551,7 @@ add_task(
     await clientWithDump.maybeSync(42);
 
     // With signature verification, metadata was fetched.
-    metadata = await (await clientWithDump.openCollection()).metadata();
+    metadata = await clientWithDump.db.getMetadata();
     ok(Object.keys(metadata).length > 0, "metadata was fetched");
     ok(called, "signature was verified for the data that was in dump");
 
@@ -644,8 +769,7 @@ add_task(async function test_telemetry_reports_if_application_fails() {
 add_task(clear_state);
 
 add_task(async function test_telemetry_reports_if_sync_fails() {
-  const collection = await client.openCollection();
-  await collection.db.saveLastModified(9999);
+  await client.db.importChanges({}, 9999);
 
   const startHistogram = getUptakeTelemetrySnapshot(client.identifier);
 
@@ -660,8 +784,7 @@ add_task(async function test_telemetry_reports_if_sync_fails() {
 add_task(clear_state);
 
 add_task(async function test_telemetry_reports_if_parsing_fails() {
-  const collection = await client.openCollection();
-  await collection.db.saveLastModified(10000);
+  await client.db.importChanges({}, 10000);
 
   const startHistogram = getUptakeTelemetrySnapshot(client.identifier);
 
@@ -676,8 +799,7 @@ add_task(async function test_telemetry_reports_if_parsing_fails() {
 add_task(clear_state);
 
 add_task(async function test_telemetry_reports_if_fetching_signature_fails() {
-  const collection = await client.openCollection();
-  await collection.db.saveLastModified(11000);
+  await client.db.importChanges({}, 11000);
 
   const startHistogram = getUptakeTelemetrySnapshot(client.identifier);
 
@@ -692,8 +814,8 @@ add_task(async function test_telemetry_reports_if_fetching_signature_fails() {
 add_task(clear_state);
 
 add_task(async function test_telemetry_reports_unknown_errors() {
-  const backup = client.openCollection;
-  client.openCollection = () => {
+  const backup = client.db.list;
+  client.db.list = () => {
     throw new Error("Internal");
   };
   const startHistogram = getUptakeTelemetrySnapshot(client.identifier);
@@ -702,7 +824,7 @@ add_task(async function test_telemetry_reports_unknown_errors() {
     await client.maybeSync(2000);
   } catch (e) {}
 
-  client.openCollection = backup;
+  client.db.list = backup;
   const endHistogram = getUptakeTelemetrySnapshot(client.identifier);
   const expectedIncrements = { [UptakeTelemetry.STATUS.UNKNOWN_ERROR]: 1 };
   checkUptakeTelemetry(startHistogram, endHistogram, expectedIncrements);
@@ -710,10 +832,10 @@ add_task(async function test_telemetry_reports_unknown_errors() {
 add_task(clear_state);
 
 add_task(async function test_telemetry_reports_indexeddb_as_custom_1() {
-  const backup = client.openCollection;
+  const backup = client.db.getLastModified;
   const msg =
     "IndexedDB getLastModified() The operation failed for reasons unrelated to the database itself";
-  client.openCollection = () => {
+  client.db.getLastModified = () => {
     throw new Error(msg);
   };
   const startHistogram = getUptakeTelemetrySnapshot(client.identifier);
@@ -722,7 +844,7 @@ add_task(async function test_telemetry_reports_indexeddb_as_custom_1() {
     await client.maybeSync(2000);
   } catch (e) {}
 
-  client.openCollection = backup;
+  client.db.getLastModified = backup;
   const endHistogram = getUptakeTelemetrySnapshot(client.identifier);
   const expectedIncrements = { [UptakeTelemetry.STATUS.CUSTOM_1_ERROR]: 1 };
   checkUptakeTelemetry(startHistogram, endHistogram, expectedIncrements);
@@ -730,8 +852,8 @@ add_task(async function test_telemetry_reports_indexeddb_as_custom_1() {
 add_task(clear_state);
 
 add_task(async function test_telemetry_reports_error_name_as_event_nightly() {
-  const backup = client.openCollection;
-  client.openCollection = () => {
+  const backup = client.db.list;
+  client.db.list = () => {
     const e = new Error("Some unknown error");
     e.name = "ThrownError";
     throw e;
@@ -758,7 +880,7 @@ add_task(async function test_telemetry_reports_error_name_as_event_nightly() {
     ]);
   });
 
-  client.openCollection = backup;
+  client.db.list = backup;
 });
 add_task(clear_state);
 
@@ -772,6 +894,24 @@ add_task(async function test_bucketname_changes_when_bucket_pref_changes() {
 
   equal(client.bucketName, "main-preview");
 });
+add_task(clear_state);
+
+add_task(
+  async function test_get_loads_default_records_from_a_local_dump_if_preview_collection() {
+    if (IS_ANDROID) {
+      // Skip test: we don't ship remote settings dumps on Android (see package-manifest).
+      return;
+    }
+    Services.prefs.setCharPref(
+      "services.settings.default_bucket",
+      "main-preview"
+    );
+    // When collection has a dump in services/settings/dumps/{bucket}/{collection}.json
+    const data = await clientWithDump.get();
+    notEqual(data.length, 0);
+    // No synchronization happened (responses are not mocked).
+  }
+);
 add_task(clear_state);
 
 add_task(
@@ -917,26 +1057,6 @@ function getSampleResponse(req, port) {
         ],
       },
     },
-    "GET:/v1/buckets/main/collections/password-fields": {
-      sampleHeaders: [
-        "Access-Control-Allow-Origin: *",
-        "Access-Control-Expose-Headers: Retry-After, Content-Length, Alert, Backoff",
-        "Content-Type: application/json; charset=UTF-8",
-        "Server: waitress",
-        'Etag: "1234"',
-      ],
-      status: { status: 200, statusText: "OK" },
-      responseBody: JSON.stringify({
-        data: {
-          id: "password-fields",
-          last_modified: 1234,
-          signature: {
-            signature: "abcdef",
-            x5u: `http://localhost:${port}/fake-x5u`,
-          },
-        },
-      }),
-    },
     "GET:/fake-x5u": {
       sampleHeaders: ["Content-Type: application/octet-stream"],
       status: { status: 200, statusText: "OK" },
@@ -947,7 +1067,7 @@ ZARKjbu1TuYQHf0fs+GwID8zeLc2zJL7UzcHFwwQ6Nda9OJN4uPAuC/BKaIpxCLL
 wNuvFqc=
 -----END CERTIFICATE-----`,
     },
-    "GET:/v1/buckets/main/collections/password-fields/records?_expected=2000&_sort=-last_modified": {
+    "GET:/v1/buckets/main/collections/password-fields/changeset?_expected=2000": {
       sampleHeaders: [
         "Access-Control-Allow-Origin: *",
         "Access-Control-Expose-Headers: Retry-After, Content-Length, Alert, Backoff",
@@ -957,7 +1077,16 @@ wNuvFqc=
       ],
       status: { status: 200, statusText: "OK" },
       responseBody: {
-        data: [
+        timestamp: 3000,
+        metadata: {
+          id: "password-fields",
+          last_modified: 1234,
+          signature: {
+            signature: "abcdef",
+            x5u: `http://localhost:${port}/fake-x5u`,
+          },
+        },
+        changes: [
           {
             id: "9d500963-d80e-3a91-6e74-66f3811b99cc",
             last_modified: 3000,
@@ -967,7 +1096,7 @@ wNuvFqc=
         ],
       },
     },
-    "GET:/v1/buckets/main/collections/password-fields/records?_expected=3001&_sort=-last_modified&_since=3000": {
+    "GET:/v1/buckets/main/collections/password-fields/changeset?_expected=3001&_since=%223000%22": {
       sampleHeaders: [
         "Access-Control-Allow-Origin: *",
         "Access-Control-Expose-Headers: Retry-After, Content-Length, Alert, Backoff",
@@ -977,7 +1106,11 @@ wNuvFqc=
       ],
       status: { status: 200, statusText: "OK" },
       responseBody: {
-        data: [
+        metadata: {
+          signature: {},
+        },
+        timestamp: 4000,
+        changes: [
           {
             id: "aabad965-e556-ffe7-4191-074f5dee3df3",
             last_modified: 4000,
@@ -993,7 +1126,7 @@ wNuvFqc=
         ],
       },
     },
-    "GET:/v1/buckets/main/collections/password-fields/records?_expected=4001&_sort=-last_modified&_since=4000": {
+    "GET:/v1/buckets/main/collections/password-fields/changeset?_expected=4001&_since=%224000%22": {
       sampleHeaders: [
         "Access-Control-Allow-Origin: *",
         "Access-Control-Expose-Headers: Retry-After, Content-Length, Alert, Backoff",
@@ -1003,7 +1136,11 @@ wNuvFqc=
       ],
       status: { status: 200, statusText: "OK" },
       responseBody: {
-        data: [
+        metadata: {
+          signature: {},
+        },
+        timestamp: 5000,
+        changes: [
           {
             id: "aabad965-e556-ffe7-4191-074f5dee3df3",
             deleted: true,
@@ -1011,7 +1148,7 @@ wNuvFqc=
         ],
       },
     },
-    "GET:/v1/buckets/main/collections/password-fields/records?_expected=10000&_sort=-last_modified&_since=9999": {
+    "GET:/v1/buckets/main/collections/password-fields/changeset?_expected=10000&_since=%229999%22": {
       sampleHeaders: [
         "Access-Control-Allow-Origin: *",
         "Access-Control-Expose-Headers: Retry-After, Content-Length, Alert, Backoff",
@@ -1025,7 +1162,7 @@ wNuvFqc=
         error: "Service Unavailable",
       },
     },
-    "GET:/v1/buckets/main/collections/password-fields/records?_expected=10001&_sort=-last_modified&_since=10000": {
+    "GET:/v1/buckets/main/collections/password-fields/changeset?_expected=10001&_since=%2210000%22": {
       sampleHeaders: [
         "Access-Control-Allow-Origin: *",
         "Access-Control-Expose-Headers: Retry-After, Content-Length, Alert, Backoff",
@@ -1036,7 +1173,7 @@ wNuvFqc=
       status: { status: 200, statusText: "OK" },
       responseBody: "<invalid json",
     },
-    "GET:/v1/buckets/main/collections/password-fields/records?_expected=11001&_sort=-last_modified&_since=11000": {
+    "GET:/v1/buckets/main/collections/password-fields/changeset?_expected=11001&_since=%2211000%22": {
       sampleHeaders: [
         "Access-Control-Allow-Origin: *",
         "Access-Control-Expose-Headers: Retry-After, Content-Length, Alert, Backoff",
@@ -1045,7 +1182,7 @@ wNuvFqc=
       ],
       status: { status: 503, statusText: "Service Unavailable" },
       responseBody: {
-        data: [
+        changes: [
           {
             id: "c4f021e3-f68c-4269-ad2a-d4ba87762b35",
             last_modified: 4000,
@@ -1090,7 +1227,7 @@ wNuvFqc=
         ],
       },
     },
-    "GET:/v1/buckets/main/collections/password-fields/records?_expected=1337&_sort=-last_modified": {
+    "GET:/v1/buckets/main/collections/password-fields/changeset?_expected=1337": {
       sampleHeaders: [
         "Access-Control-Allow-Origin: *",
         "Access-Control-Expose-Headers: Retry-After, Content-Length, Alert, Backoff",
@@ -1100,7 +1237,14 @@ wNuvFqc=
       ],
       status: { status: 200, statusText: "OK" },
       responseBody: {
-        data: [
+        metadata: {
+          signature: {
+            signature: "some-sig",
+            x5u: `http://localhost:${port}/fake-x5u`,
+          },
+        },
+        timestamp: 3000,
+        changes: [
           {
             id: "312cc78d-9c1f-4291-a4fa-a1be56f6cc69",
             last_modified: 3000,
@@ -1110,27 +1254,7 @@ wNuvFqc=
         ],
       },
     },
-    "GET:/v1/buckets/main/collections/language-dictionaries": {
-      sampleHeaders: [
-        "Access-Control-Allow-Origin: *",
-        "Access-Control-Expose-Headers: Retry-After, Content-Length, Alert, Backoff",
-        "Content-Type: application/json; charset=UTF-8",
-        "Server: waitress",
-        'Etag: "1234"',
-      ],
-      status: { status: 200, statusText: "OK" },
-      responseBody: JSON.stringify({
-        data: {
-          id: "language-dictionaries",
-          last_modified: 1234,
-          signature: {
-            signature: "xyz",
-            x5u: `http://localhost:${port}/fake-x5u`,
-          },
-        },
-      }),
-    },
-    "GET:/v1/buckets/main/collections/language-dictionaries/records": {
+    "GET:/v1/buckets/main/collections/language-dictionaries/changeset": {
       sampleHeaders: [
         "Access-Control-Allow-Origin: *",
         "Access-Control-Expose-Headers: Retry-After, Content-Length, Alert, Backoff",
@@ -1140,7 +1264,16 @@ wNuvFqc=
       ],
       status: { status: 200, statusText: "OK" },
       responseBody: {
-        data: [
+        timestamp: 5000000000000,
+        metadata: {
+          id: "language-dictionaries",
+          last_modified: 1234,
+          signature: {
+            signature: "xyz",
+            x5u: `http://localhost:${port}/fake-x5u`,
+          },
+        },
+        changes: [
           {
             id: "xx",
             last_modified: 5000000000000,
@@ -1159,27 +1292,7 @@ wNuvFqc=
         ],
       },
     },
-    "GET:/v1/buckets/main/collections/with-local-fields": {
-      sampleHeaders: [
-        "Access-Control-Allow-Origin: *",
-        "Access-Control-Expose-Headers: Retry-After, Content-Length, Alert, Backoff",
-        "Content-Type: application/json; charset=UTF-8",
-        "Server: waitress",
-        'Etag: "1234"',
-      ],
-      status: { status: 200, statusText: "OK" },
-      responseBody: JSON.stringify({
-        data: {
-          id: "with-local-fields",
-          last_modified: 1234,
-          signature: {
-            signature: "xyz",
-            x5u: `http://localhost:${port}/fake-x5u`,
-          },
-        },
-      }),
-    },
-    "GET:/v1/buckets/main/collections/with-local-fields/records?_expected=2000&_sort=-last_modified": {
+    "GET:/v1/buckets/main/collections/with-local-fields/changeset?_expected=2000": {
       sampleHeaders: [
         "Access-Control-Allow-Origin: *",
         "Access-Control-Expose-Headers: Retry-After, Content-Length, Alert, Backoff",
@@ -1189,7 +1302,16 @@ wNuvFqc=
       ],
       status: { status: 200, statusText: "OK" },
       responseBody: {
-        data: [
+        timestamp: 2000,
+        metadata: {
+          id: "with-local-fields",
+          last_modified: 1234,
+          signature: {
+            signature: "xyz",
+            x5u: `http://localhost:${port}/fake-x5u`,
+          },
+        },
+        changes: [
           {
             id: "c74279ce-fb0a-42a6-ae11-386b567a6119",
             last_modified: 2000,
@@ -1197,7 +1319,7 @@ wNuvFqc=
         ],
       },
     },
-    "GET:/v1/buckets/main/collections/with-local-fields/records?_expected=3000&_sort=-last_modified&_since=2000": {
+    "GET:/v1/buckets/main/collections/with-local-fields/changeset?_expected=3000&_since=%222000%22": {
       sampleHeaders: [
         "Access-Control-Allow-Origin: *",
         "Access-Control-Expose-Headers: Retry-After, Content-Length, Alert, Backoff",
@@ -1207,7 +1329,11 @@ wNuvFqc=
       ],
       status: { status: 200, statusText: "OK" },
       responseBody: {
-        data: [
+        timestamp: 3000,
+        metadata: {
+          signature: {},
+        },
+        changes: [
           {
             id: "1f5c98b9-6d93-4c13-aa26-978b38695096",
             last_modified: 3000,

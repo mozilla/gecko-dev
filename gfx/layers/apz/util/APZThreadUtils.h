@@ -7,9 +7,11 @@
 #ifndef mozilla_layers_APZThreadUtils_h
 #define mozilla_layers_APZThreadUtils_h
 
-#include "base/message_loop.h"
 #include "nsINamed.h"
 #include "nsITimer.h"
+#include "nsString.h"
+
+class nsISerialEventTarget;
 
 namespace mozilla {
 
@@ -30,7 +32,7 @@ class APZThreadUtils {
   /**
    * Set the controller thread.
    */
-  static void SetControllerThread(MessageLoop* aLoop);
+  static void SetControllerThread(nsISerialEventTarget* aThread);
 
   /**
    * This can be used to assert that the current thread is the
@@ -50,6 +52,18 @@ class APZThreadUtils {
    * Returns true if currently on APZ "controller thread".
    */
   static bool IsControllerThread();
+
+  /**
+   * Returns true if the controller thread is still alive.
+   */
+  static bool IsControllerThreadAlive();
+
+  /**
+   * Schedules a runnable to run on the controller thread at some time
+   * in the future.
+   */
+  static void DelayedDispatch(already_AddRefed<Runnable> aRunnable,
+                              int aDelayMs);
 };
 
 // A base class for GenericNamedTimerCallback<Function>.

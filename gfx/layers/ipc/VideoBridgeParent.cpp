@@ -48,7 +48,7 @@ void VideoBridgeParent::Open(Endpoint<PVideoBridgeParent>&& aEndpoint,
                              VideoBridgeSource aSource) {
   RefPtr<VideoBridgeParent> parent = new VideoBridgeParent(aSource);
 
-  CompositorThreadHolder::Loop()->PostTask(
+  CompositorThread()->Dispatch(
       NewRunnableMethod<Endpoint<PVideoBridgeParent>&&>(
           "gfx::layers::VideoBridgeParent::Bind", parent,
           &VideoBridgeParent::Bind, std::move(aEndpoint)));
@@ -63,7 +63,7 @@ void VideoBridgeParent::Bind(Endpoint<PVideoBridgeParent>&& aEndpoint) {
 
 /* static */
 VideoBridgeParent* VideoBridgeParent::GetSingleton(
-    Maybe<VideoBridgeSource>& aSource) {
+    const Maybe<VideoBridgeSource>& aSource) {
   MOZ_ASSERT(aSource.isSome());
   switch (aSource.value()) {
     default:
@@ -78,6 +78,8 @@ VideoBridgeParent* VideoBridgeParent::GetSingleton(
 }
 
 TextureHost* VideoBridgeParent::LookupTexture(uint64_t aSerial) {
+  MOZ_DIAGNOSTIC_ASSERT(CompositorThread() &&
+                        CompositorThread()->IsOnCurrentThread());
   return TextureHost::AsTextureHost(mTextureMap[aSerial]);
 }
 

@@ -3,8 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const { XPCOMUtils } = ChromeUtils.import(
-  "resource://gre/modules/XPCOMUtils.jsm"
+const { ComponentUtils } = ChromeUtils.import(
+  "resource://gre/modules/ComponentUtils.jsm"
 );
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { PlacesUtils } = ChromeUtils.import(
@@ -460,12 +460,12 @@ TaggingService.prototype = {
 
   classID: Components.ID("{bbc23860-2553-479d-8b78-94d9038334f7}"),
 
-  _xpcom_factory: XPCOMUtils.generateSingletonFactory(TaggingService),
+  _xpcom_factory: ComponentUtils.generateSingletonFactory(TaggingService),
 
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsITaggingService,
-    Ci.nsINavBookmarkObserver,
-    Ci.nsIObserver,
+    "nsITaggingService",
+    "nsINavBookmarkObserver",
+    "nsIObserver",
   ]),
 };
 
@@ -586,7 +586,7 @@ TagAutoCompleteSearch.prototype = {
   },
 
   classID: Components.ID("{1dcc23b0-d4cb-11dc-9ad6-479d56d89593}"),
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIAutoCompleteSearch]),
+  QueryInterface: ChromeUtils.generateQI(["nsIAutoCompleteSearch"]),
 };
 
 var EXPORTED_SYMBOLS = ["TaggingService", "TagAutoCompleteSearch"];

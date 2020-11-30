@@ -9,11 +9,11 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/TypeTraits.h"
 
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
+#include <type_traits>
 
 static MOZ_ALWAYS_INLINE void* js_memcpy(void* dst_, const void* src_,
                                          size_t len) {
@@ -29,33 +29,16 @@ namespace js {
 
 template <typename T, typename U>
 static constexpr U ComputeByteAlignment(T bytes, U alignment) {
-  static_assert(mozilla::IsUnsigned<U>::value,
-                "alignment amount must be unsigned");
+  static_assert(std::is_unsigned_v<U>, "alignment amount must be unsigned");
 
   return (alignment - (bytes % alignment)) % alignment;
 }
 
 template <typename T, typename U>
 static constexpr T AlignBytes(T bytes, U alignment) {
-  static_assert(mozilla::IsUnsigned<U>::value,
-                "alignment amount must be unsigned");
+  static_assert(std::is_unsigned_v<U>, "alignment amount must be unsigned");
 
   return bytes + ComputeByteAlignment(bytes, alignment);
-}
-
-/*****************************************************************************/
-
-// Placement-new elements of an array. This should optimize away for types with
-// trivial default initiation.
-template <typename T>
-static void DefaultInitializeElements(void* arrayPtr, size_t length) {
-  uintptr_t elem = reinterpret_cast<uintptr_t>(arrayPtr);
-  MOZ_ASSERT(elem % alignof(T) == 0);
-
-  for (size_t i = 0; i < length; ++i) {
-    new (reinterpret_cast<void*>(elem)) T;
-    elem += sizeof(T);
-  }
 }
 
 } /* namespace js */

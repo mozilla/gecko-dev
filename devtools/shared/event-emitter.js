@@ -333,6 +333,10 @@ class EventEmitter {
       EventEmitter.emit(this, ...args);
     }
   }
+
+  count(...args) {
+    return EventEmitter.count(this, ...args);
+  }
 }
 
 module.exports = EventEmitter;
@@ -345,12 +349,23 @@ const { getNthPathExcluding } = require("devtools/shared/platform/stack");
 let loggingEnabled = false;
 
 if (!isWorker) {
-  loggingEnabled = Services.prefs.getBoolPref("devtools.dump.emit");
-  Services.prefs.addObserver("devtools.dump.emit", {
+  loggingEnabled = Services.prefs.getBoolPref("devtools.dump.emit", false);
+  const observer = {
     observe: () => {
       loggingEnabled = Services.prefs.getBoolPref("devtools.dump.emit");
     },
-  });
+  };
+  Services.prefs.addObserver("devtools.dump.emit", observer);
+
+  // Also listen for Loader unload to unregister the pref observer and
+  // prevent leaking
+  const unloadObserver = function(subject) {
+    if (subject.wrappedJSObject == require("@loader/unload")) {
+      Services.prefs.removeObserver("devtools.dump.emit", observer);
+      Services.obs.removeObserver(unloadObserver, "devtools:loader:destroy");
+    }
+  };
+  Services.obs.addObserver(unloadObserver, "devtools:loader:destroy");
 }
 
 function serialize(target) {
@@ -395,11 +410,7 @@ function serialize(target) {
   }
 
   // Window
-  if (
-    target.constructor &&
-    target.constructor.name &&
-    target.constructor.name === "Window"
-  ) {
+  if (target?.constructor?.name === "Window") {
     return `window (${target.location.origin})`;
   }
 

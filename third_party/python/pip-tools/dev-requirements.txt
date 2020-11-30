@@ -1,4 +1,0 @@
--e .
-mock
-pytest
-wheel

@@ -72,12 +72,8 @@ class nsXPLookAndFeel : public mozilla::LookAndFeel {
 
   virtual uint32_t GetPasswordMaskDelayImpl() { return 600; }
 
-  virtual nsTArray<LookAndFeelInt> GetIntCacheImpl();
-  virtual void SetIntCacheImpl(
-      const nsTArray<LookAndFeelInt>& aLookAndFeelIntCache) {}
-  void SetShouldRetainCacheImplForTest(bool aValue) {
-    mShouldRetainCacheForTest = aValue;
-  }
+  virtual LookAndFeelCache GetCacheImpl();
+  virtual void SetCacheImpl(const LookAndFeelCache& aCache) {}
 
   virtual void NativeInit() = 0;
 
@@ -87,7 +83,6 @@ class nsXPLookAndFeel : public mozilla::LookAndFeel {
   static void IntPrefChanged(nsLookAndFeelIntPref* data);
   static void FloatPrefChanged(nsLookAndFeelFloatPref* data);
   static void ColorPrefChanged(unsigned int index, const char* prefName);
-  static void NotifyPrefChanged();
   void InitFromPref(nsLookAndFeelIntPref* aPref);
   void InitFromPref(nsLookAndFeelFloatPref* aPref);
   void InitColorFromPref(int32_t aIndex);
@@ -96,6 +91,7 @@ class nsXPLookAndFeel : public mozilla::LookAndFeel {
   bool ColorIsNotCSSAccessible(ColorID aID);
   nscolor GetStandinForNativeColor(ColorID aID);
   void RecordTelemetry();
+  virtual void RecordLookAndFeelSpecificTelemetry() {}
 
   static void OnPrefChanged(const char* aPref, void* aClosure);
 
@@ -111,12 +107,6 @@ class nsXPLookAndFeel : public mozilla::LookAndFeel {
 
   static nsXPLookAndFeel* sInstance;
   static bool sShutdown;
-
-  int32_t mPrefersReducedMotion = -1;
-  bool mPrefersReducedMotionCached = false;
-  // True if we shouldn't clear the cache value in RefreshImpl().
-  // NOTE: This should be used only for testing.
-  bool mShouldRetainCacheForTest = false;
 };
 
 #endif

@@ -17,25 +17,12 @@ const {
 
 loader.lazyRequireGetter(
   this,
-  "flashElementOn",
-  "devtools/client/inspector/markup/utils",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "flashElementOff",
-  "devtools/client/inspector/markup/utils",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "getAutocompleteMaxWidth",
-  "devtools/client/inspector/markup/utils",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "parseAttributeValues",
+  [
+    "flashElementOn",
+    "flashElementOff",
+    "getAutocompleteMaxWidth",
+    "parseAttributeValues",
+  ],
   "devtools/client/inspector/markup/utils",
   true
 );
@@ -102,6 +89,16 @@ function ElementEditor(container, node) {
   this.highlighters = this.markup.highlighters;
   this._cssProperties = this.inspector.cssProperties;
 
+  this.isOverflowDebuggingEnabled = Services.prefs.getBoolPref(
+    "devtools.overflow.debugging.enabled"
+  );
+
+  // If this is a scrollable element, this specifies whether or not its overflow causing
+  // elements are highlighted. Otherwise, it is null if the element is not scrollable.
+  this.highlightingOverflowCausingElements = this.node.isScrollable
+    ? false
+    : null;
+
   this.attrElements = new Map();
   this.animationTimers = {};
 
@@ -114,6 +111,7 @@ function ElementEditor(container, node) {
 
   this.onCustomBadgeClick = this.onCustomBadgeClick.bind(this);
   this.onDisplayBadgeClick = this.onDisplayBadgeClick.bind(this);
+  this.onScrollableBadgeClick = this.onScrollableBadgeClick.bind(this);
   this.onExpandBadgeClick = this.onExpandBadgeClick.bind(this);
   this.onFlexboxHighlighterChange = this.onFlexboxHighlighterChange.bind(this);
   this.onGridHighlighterChange = this.onGridHighlighterChange.bind(this);
@@ -325,6 +323,8 @@ ElementEditor.prototype = {
     this.updateCustomBadge();
     this.updateScrollableBadge();
     this.updateTextEditor();
+    this.updateOverflowBadge();
+    this.updateOverflowHighlight();
   },
 
   updateEventBadge: function() {
@@ -363,14 +363,33 @@ ElementEditor.prototype = {
   },
 
   _createScrollableBadge: function() {
+    const isInteractive =
+      this.isOverflowDebuggingEnabled &&
+      this.node.walkerFront.traits.supportsOverflowDebugging2 &&
+      // Document elements cannot have interative scrollable badges since retrieval of their
+      // overflow causing elements is not supported.
+      !this.node.isDocumentElement;
+
     this._scrollableBadge = this.doc.createElement("div");
-    this._scrollableBadge.className = "inspector-badge scrollable-badge";
+    this._scrollableBadge.className = `inspector-badge scrollable-badge ${
+      isInteractive ? "interactive" : ""
+    }`;
+    this._scrollableBadge.dataset.scrollable = "true";
     this._scrollableBadge.textContent = INSPECTOR_L10N.getStr(
       "markupView.scrollableBadge.label"
     );
     this._scrollableBadge.title = INSPECTOR_L10N.getStr(
-      "markupView.scrollableBadge.tooltip"
+      isInteractive
+        ? "markupView.scrollableBadge.interactive.tooltip"
+        : "markupView.scrollableBadge.tooltip"
     );
+
+    if (isInteractive) {
+      this._scrollableBadge.addEventListener(
+        "click",
+        this.onScrollableBadgeClick
+      );
+    }
     this.elt.insertBefore(this._scrollableBadge, this._customBadge);
   },
 
@@ -428,6 +447,31 @@ ElementEditor.prototype = {
     }
   },
 
+  updateOverflowBadge: function() {
+    if (!this.isOverflowDebuggingEnabled) {
+      return;
+    }
+
+    if (this.node.causesOverflow && !this._overflowBadge) {
+      this._createOverflowBadge();
+    } else if (!this.node.causesOverflow && this._overflowBadge) {
+      this._overflowBadge.remove();
+      this._overflowBadge = null;
+    }
+  },
+
+  _createOverflowBadge: function() {
+    this._overflowBadge = this.doc.createElement("div");
+    this._overflowBadge.className = "inspector-badge overflow-badge";
+    this._overflowBadge.textContent = INSPECTOR_L10N.getStr(
+      "markupView.overflowBadge.label"
+    );
+    this._overflowBadge.title = INSPECTOR_L10N.getStr(
+      "markupView.overflowBadge.tooltip"
+    );
+    this.elt.insertBefore(this._overflowBadge, this._customBadge);
+  },
+
   /**
    * Update the markup custom element badge.
    */
@@ -452,6 +496,53 @@ ElementEditor.prototype = {
     this._customBadge.addEventListener("click", this.onCustomBadgeClick);
     // Badges order is [event][display][custom], insert custom badge at the end.
     this.elt.appendChild(this._customBadge);
+  },
+
+  /**
+   * If node causes overflow, toggle its overflow highlight if its scrollable ancestor's
+   * scrollable badge is active/inactive.
+   */
+  updateOverflowHighlight: async function() {
+    if (
+      !this.isOverflowDebuggingEnabled ||
+      !this.node.walkerFront.traits.supportsOverflowDebugging2
+    ) {
+      return;
+    }
+
+    let showOverflowHighlight = false;
+
+    if (this.node.causesOverflow) {
+      try {
+        const scrollableAncestor = await this.node.walkerFront.getScrollableAncestorNode(
+          this.node
+        );
+        const markupContainer = scrollableAncestor
+          ? this.markup.getContainer(scrollableAncestor)
+          : null;
+
+        showOverflowHighlight = !!markupContainer?.editor
+          .highlightingOverflowCausingElements;
+      } catch (e) {
+        // This call might fail if called asynchrously after the toolbox is finished
+        // closing.
+        return;
+      }
+    }
+
+    this.setOverflowHighlight(showOverflowHighlight);
+  },
+
+  /**
+   * Show overflow highlight if showOverflowHighlight is true, otherwise hide it.
+   *
+   * @param {Boolean} showOverflowHighlight
+   */
+  setOverflowHighlight: function(showOverflowHighlight) {
+    this.container.tagState.classList.toggle(
+      "overflow-causing-highlighted",
+      showOverflowHighlight
+    );
   },
 
   /**
@@ -908,15 +999,7 @@ ElementEditor.prototype = {
   },
 
   onCustomBadgeClick: async function() {
-    let { url, line, column } = this.node.customElementLocation;
-    const originalLocation = await this.markup.toolbox.sourceMapURLService.originalPositionFor(
-      url,
-      line,
-      column
-    );
-    if (originalLocation) {
-      ({ sourceUrl: url, line, column } = originalLocation);
-    }
+    const { url, line, column } = this.node.customElementLocation;
 
     this.markup.toolbox.viewSourceInDebugger(
       url,
@@ -929,6 +1012,39 @@ ElementEditor.prototype = {
 
   onExpandBadgeClick: function() {
     this.container.expandContainer();
+  },
+
+  /**
+   * Called when the scrollable badge is clicked. Shows the overflow causing elements and
+   * highlights their container if the scroll badge is active.
+   */
+  onScrollableBadgeClick: async function() {
+    this.highlightingOverflowCausingElements = this._scrollableBadge.classList.toggle(
+      "active"
+    );
+
+    const { nodes } = await this.node.walkerFront.getOverflowCausingElements(
+      this.node
+    );
+
+    for (const node of nodes) {
+      if (this.highlightingOverflowCausingElements) {
+        await this.markup.showNode(node);
+      }
+
+      const markupContainer = this.markup.getContainer(node);
+
+      if (markupContainer) {
+        markupContainer.editor.setOverflowHighlight(
+          this.highlightingOverflowCausingElements
+        );
+      }
+    }
+
+    this.markup.telemetry.scalarAdd(
+      "devtools.markup.scrollable.badge.clicked",
+      1
+    );
   },
 
   /**
@@ -998,6 +1114,13 @@ ElementEditor.prototype = {
 
     if (this._customBadge) {
       this._customBadge.removeEventListener("click", this.onCustomBadgeClick);
+    }
+
+    if (this._scrollableBadge) {
+      this._scrollableBadge.removeEventListener(
+        "click",
+        this.onScrollableBadgeClick
+      );
     }
 
     this.expandBadge.removeEventListener("click", this.onExpandBadgeClick);

@@ -45,7 +45,7 @@ static void LimitStringLength(nsAString& aStr, size_t aMaxFieldLength) {
     return;
   }
 
-  NS_NAMED_LITERAL_STRING(kEllipsis, "...");
+  constexpr auto kEllipsis = u"..."_ns;
 
   if (aMaxFieldLength <= (kEllipsis.Length() + 3)) {
     // An ellipsis is useless in this case, as it would obscure the string to
@@ -90,7 +90,7 @@ static JSString* ModuleVersionToJSString(JSContext* aCx,
 
   Tie(major, minor, patch, build) = aVersion.AsTuple();
 
-  NS_NAMED_LITERAL_STRING(dot, ".");
+  constexpr auto dot = u"."_ns;
 
   nsAutoString strVer;
   strVer.AppendInt(major);
@@ -245,7 +245,7 @@ static bool SerializeEvent(JSContext* aCx, JS::MutableHandleValue aElement,
 
   nsDependentCString effectiveThreadName;
   if (aEvent.mThreadId == ::GetCurrentThreadId()) {
-    effectiveThreadName.Rebind(NS_LITERAL_CSTRING("Main Thread"), 0);
+    effectiveThreadName.Rebind("Main Thread"_ns, 0);
   } else {
     effectiveThreadName.Rebind(aEvent.mThreadName, 0);
   }
@@ -263,7 +263,7 @@ static bool SerializeEvent(JSContext* aCx, JS::MutableHandleValue aElement,
   // the associated module's mSanitizedDllName
   if (!aEvent.mRequestedDllName.IsEmpty() &&
       !aEvent.mRequestedDllName.Equals(aEvent.mModule->mSanitizedDllName,
-                                       nsCaseInsensitiveStringComparator())) {
+                                       nsCaseInsensitiveStringComparator)) {
     if (!AddLengthLimitedStringProp(aCx, obj, "requestedDllName",
                                     aEvent.mRequestedDllName)) {
       return false;
@@ -293,6 +293,13 @@ static bool SerializeEvent(JSContext* aCx, JS::MutableHandleValue aElement,
     return false;
   }
 
+  JS::RootedValue jsIsDependent(aCx);
+  jsIsDependent.setBoolean(aEvent.mIsDependent);
+  if (!JS_DefineProperty(aCx, obj, "isDependent", jsIsDependent,
+                         JSPROP_ENUMERATE)) {
+    return false;
+  }
+
   aElement.setObject(*obj);
 
   return true;
@@ -303,7 +310,7 @@ static nsresult GetPerProcObject(JSContext* aCx, const IndexMap& aModuleIndices,
                                  JS::MutableHandleObject aObj) {
   nsDependentCString strProcType;
   if (aData.mProcessType == GeckoProcessType_Default) {
-    strProcType.Rebind(NS_LITERAL_CSTRING("browser"), 0);
+    strProcType.Rebind("browser"_ns, 0);
   } else {
     strProcType.Rebind(XRE_GeckoProcessTypeToString(aData.mProcessType));
   }

@@ -42,9 +42,11 @@ interface nsIProfiler : nsISupports
                      [optional] in double aDuration);
   void StopProfiler();
   boolean IsPaused();
+  void Pause();
+  void Resume();
+  boolean IsSamplingPaused();
   void PauseSampling();
   void ResumeSampling();
-  void AddMarker(in string aMarker);
 
   /*
    * Resolves the returned promise after at least one full periodic sampling.
@@ -170,7 +172,7 @@ interface nsIProfiler : nsISupports
    * (new TextDecoder()).decode(buffer.subarray(index[i], index[i + 1]))
    */
   [implicit_jscontext]
-  nsISupports getSymbolTable(in ACString aDebugPath, in ACString aBreakpadID);
+  Promise getSymbolTable(in ACString aDebugPath, in ACString aBreakpadID);
 
   /**
    * Dump the collected profile to a file.

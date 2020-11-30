@@ -6,6 +6,16 @@
 
 var EXPORTED_SYMBOLS = ["SyncTelemetry"];
 
+// Support for Sync-and-FxA-related telemetry, which is submitted in a special-purpose
+// telemetry ping called the "sync ping", documented here:
+//
+//  ../../../toolkit/components/telemetry/docs/data/sync-ping.rst
+//
+// The sync ping contains identifiers that are linked to the user's Firefox Account
+// and are separate from the main telemetry client_id, so this file is also responsible
+// for ensuring that we can delete those pings upon user request, by plumbing its
+// identifiers into the "deletion-request" ping.
+
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
@@ -13,6 +23,8 @@ const { XPCOMUtils } = ChromeUtils.import(
 XPCOMUtils.defineLazyModuleGetters(this, {
   Async: "resource://services-common/async.js",
   AuthenticationError: "resource://services-sync/browserid_identity.js",
+  fxAccounts: "resource://gre/modules/FxAccounts.jsm",
+  FxAccounts: "resource://gre/modules/FxAccounts.jsm",
   Log: "resource://gre/modules/Log.jsm",
   ObjectUtils: "resource://gre/modules/ObjectUtils.jsm",
   Observers: "resource://services-common/observers.js",
@@ -36,11 +48,7 @@ XPCOMUtils.defineLazyServiceGetter(
   "@mozilla.org/base/telemetry;1",
   "nsITelemetry"
 );
-ChromeUtils.defineModuleGetter(
-  this,
-  "fxAccounts",
-  "resource://gre/modules/FxAccounts.jsm"
-);
+
 XPCOMUtils.defineLazyGetter(
   this,
   "WeaveService",
@@ -50,10 +58,19 @@ const log = Log.repository.getLogger("Sync.Telemetry");
 
 const TOPICS = [
   "profile-before-change",
+
+  // For tracking change to account/device identifiers.
+  "fxaccounts:new_device_id",
+  "fxaccounts:onlogout",
+  "weave:service:ready",
+  "weave:service:login:change",
+
+  // For whole-of-sync metrics.
   "weave:service:sync:start",
   "weave:service:sync:finish",
   "weave:service:sync:error",
 
+  // For individual engine metrics.
   "weave:engine:sync:start",
   "weave:engine:sync:finish",
   "weave:engine:sync:error",
@@ -63,10 +80,12 @@ const TOPICS = [
   "weave:engine:validate:finish",
   "weave:engine:validate:error",
 
+  // For ad-hoc telemetry events.
   "weave:telemetry:event",
   "weave:telemetry:histogram",
-  // and we are now used by FxA, so a custom event for that.
   "fxa:telemetry:event",
+
+  "weave:telemetry:migration",
 ];
 
 const PING_FORMAT_VERSION = 1;
@@ -319,13 +338,14 @@ class EngineRecord {
   }
 }
 
-class TelemetryRecord {
+// The record of a single "sync" - typically many of these are submitted in
+// a single ping (ie, as a 'syncs' array)
+class SyncRecord {
   constructor(allowedEngines, why) {
     this.allowedEngines = allowedEngines;
     // Our failure reason. This property only exists in the generated ping if an
     // error actually occurred.
     this.failureReason = undefined;
-    this.uid = "";
     this.syncNodeType = null;
     this.when = Date.now();
     this.startTime = tryGetMonotonicTimestamp();
@@ -370,12 +390,6 @@ class TelemetryRecord {
     }
     if (error) {
       this.failureReason = SyncTelemetry.transformError(error);
-    }
-
-    try {
-      this.uid = Weave.Service.identity.hashedUID();
-    } catch (e) {
-      this.uid = EMPTY_UID;
     }
 
     this.syncNodeType = Weave.Service.identity.telemetryNodeType;
@@ -535,6 +549,8 @@ function cleanErrorMessage(error) {
   return error;
 }
 
+// The entire "sync ping" - it includes all the syncs, events etc recorded in
+// the ping.
 class SyncTelemetryImpl {
   constructor(allowedEngines) {
     log.manageLevelFromPref("services.sync.log.logger.telemetry");
@@ -547,6 +563,7 @@ class SyncTelemetryImpl {
     this.discarded = 0;
     this.events = [];
     this.histograms = {};
+    this.migrations = [];
     this.maxEventsCount = Svc.Prefs.get("telemetry.maxEventsCount", 1000);
     this.maxPayloadCount = Svc.Prefs.get("telemetry.maxPayloadCount");
     this.submissionInterval =
@@ -554,6 +571,7 @@ class SyncTelemetryImpl {
     this.lastSubmissionTime = Telemetry.msSinceProcessStart();
     this.lastUID = EMPTY_UID;
     this.lastSyncNodeType = null;
+    this.currentSyncNodeType = null;
     // Note that the sessionStartDate is somewhat arbitrary - the telemetry
     // modules themselves just use `new Date()`. This means that our startDate
     // isn't going to be the same as the sessionStartDate in the main pings,
@@ -566,45 +584,10 @@ class SyncTelemetryImpl {
   }
 
   sanitizeFxaDeviceId(deviceId) {
-    if (!this.syncIsEnabled()) {
-      return null;
-    }
-    try {
-      return Weave.Service.identity.hashedDeviceID(deviceId);
-    } catch {
-      // sadly this can happen in various scenarios, so don't complain.
-    }
-    return null;
+    return fxAccounts.telemetry.sanitizeDeviceId(deviceId);
   }
 
   prepareFxaDevices(devices) {
-    // The recentDevicesList contains very many duplicates, so we trim out ones
-    // that another service has already deemed expired, onces which are
-    // duplicates (by name), and ones that haven't been used recently enough.
-    let devicesList = devices.filter(
-      d => !d.pushEndpointExpired && d.lastAccessTime != null
-    );
-    // Discard entries with duplicate names, taking the entry which has been
-    // used more recently.
-    devicesList.sort((a, b) => a.lastAccessTime - b.lastAccessTime);
-    let seenNames = new Map();
-    for (let device of devicesList) {
-      seenNames.set(device.name, device);
-    }
-    devicesList = Array.from(seenNames.values());
-    // And now prune based on the threshold, which defaults to 2 months, but can
-    // be configured (or disabled) if it turns out to be a problem. This range
-    // is arbitrary, but has been given a thumbs up by our data scientist.
-    //
-    // Note that without this, my list contained devices well over two years old D:
-    let threshold = Services.prefs.getIntPref(
-      "identity.fxaccounts.telemetry.staleDeviceThreshold",
-      1000 * 60 * 60 * 24 * 30 * 2
-    );
-    if (threshold != -1) {
-      let limit = Date.now() - threshold;
-      devicesList = devicesList.filter(d => d.lastAccessTime >= limit);
-    }
     // For non-sync users, the data per device is limited -- just an id and a
     // type (and not even the id yet). For sync users, if we can correctly map
     // the fxaDevice to a sync device, then we can get os and version info,
@@ -622,7 +605,7 @@ class SyncTelemetryImpl {
       }
     }
     // Finally, sanitize and convert to the proper format.
-    return devicesList.map(d => {
+    return devices.map(d => {
       let { os, version, syncID } = extraInfoMap.get(d.id) || {
         os: undefined,
         version: undefined,
@@ -678,9 +661,29 @@ class SyncTelemetryImpl {
       deviceID,
       sessionStartDate: this.sessionStartDate,
       events: this.events.length == 0 ? undefined : this.events,
+      migrations: this.migrations.length == 0 ? undefined : this.migrations,
       histograms:
         Object.keys(this.histograms).length == 0 ? undefined : this.histograms,
     };
+  }
+
+  _addMigrationRecord(type, info) {
+    log.debug("Saw telemetry migration info", type, info);
+    // Updates to this need to be documented in `sync-ping.rst`
+    switch (type) {
+      case "webext-storage":
+        this.migrations.push({
+          type: "webext-storage",
+          entries: +info.entries,
+          entriesSuccessful: +info.entries_successful,
+          extensions: +info.extensions,
+          extensionsSuccessful: +info.extensions_successful,
+          openFailure: !!info.open_failure,
+        });
+        break;
+      default:
+        throw new Error("Bug: Unknown migration record type " + type);
+    }
   }
 
   finish(reason) {
@@ -690,6 +693,7 @@ class SyncTelemetryImpl {
     this.payloads = [];
     this.discarded = 0;
     this.events = [];
+    this.migrations = [];
     this.histograms = {};
     this.submit(result);
   }
@@ -708,27 +712,41 @@ class SyncTelemetryImpl {
   }
 
   submit(record) {
-    if (
-      Services.prefs.prefHasUserValue("identity.sync.tokenserver.uri") ||
-      Services.prefs.prefHasUserValue("services.sync.tokenServerURI")
-    ) {
-      log.trace(`Not sending telemetry ping for self-hosted Sync user`);
+    if (!this.isProductionSyncUser()) {
       return false;
     }
     // We still call submit() with possibly illegal payloads so that tests can
     // know that the ping was built. We don't end up submitting them, however.
     let numEvents = record.events ? record.events.length : 0;
-    if (record.syncs.length || numEvents) {
+    let numMigrations = record.migrations ? record.migrations.length : 0;
+    if (record.syncs.length || numEvents || numMigrations) {
       log.trace(
         `submitting ${record.syncs.length} sync record(s) and ` +
           `${numEvents} event(s) to telemetry`
       );
       TelemetryController.submitExternalPing("sync", record, {
         usePingSender: true,
+      }).catch(err => {
+        log.error("failed to submit ping", err);
       });
       return true;
     }
     return false;
+  }
+
+  isProductionSyncUser() {
+    // If FxA isn't production then we treat sync as not being production.
+    // Further, there's the deprecated "services.sync.tokenServerURI" pref we
+    // need to consider - fxa doesn't consider that as if that's the only
+    // pref set, they *are* running a production fxa, just not production sync.
+    if (
+      !FxAccounts.config.isProductionConfig() ||
+      Services.prefs.prefHasUserValue("services.sync.tokenServerURI")
+    ) {
+      log.trace(`Not sending telemetry ping for self-hosted Sync user`);
+      return false;
+    }
+    return true;
   }
 
   onSyncStarted(data) {
@@ -740,7 +758,50 @@ class SyncTelemetryImpl {
       // Just discard the old record, consistent with our handling of engines, above.
       this.current = null;
     }
-    this.current = new TelemetryRecord(this.allowedEngines, why);
+    this.current = new SyncRecord(this.allowedEngines, why);
+  }
+
+  // We need to ensure that the telemetry `deletion-request` ping always contains the user's
+  // current sync device ID, because if the user opts out of telemetry then the deletion ping
+  // will be immediately triggered for sending, and we won't have a chance to fill it in later.
+  // This keeps the `deletion-ping` up-to-date when the user's account state changes.
+  onAccountInitOrChange() {
+    // We don't submit sync pings for self-hosters, so don't need to collect their device ids either.
+    if (!this.isProductionSyncUser()) {
+      return;
+    }
+    // Awkwardly async, but no need to await. If the user's account state changes while
+    // this promise is in flight, it will reject and we won't record any data in the ping.
+    // (And a new notification will trigger us to try again with the new state).
+    fxAccounts.device
+      .getLocalId()
+      .then(deviceId => {
+        let sanitizedDeviceId = fxAccounts.telemetry.sanitizeDeviceId(deviceId);
+        // In the past we did not persist the FxA metrics identifiers to disk,
+        // so this might be missing until we can fetch it from the server for the
+        // first time. There will be a fresh notification tirggered when it's available.
+        if (sanitizedDeviceId) {
+          // Sanitized device ids are 64 characters long, but telemetry limits scalar strings to 50.
+          // The first 32 chars are sufficient to uniquely identify the device, so just send those.
+          // It's hard to change the sync ping itself to only send 32 chars, to b/w compat reasons.
+          sanitizedDeviceId = sanitizedDeviceId.substr(0, 32);
+          Services.telemetry.scalarSet(
+            "deletion.request.sync_device_id",
+            sanitizedDeviceId
+          );
+        }
+      })
+      .catch(err => {
+        log.warn(
+          `Failed to set sync identifiers in the deletion-request ping: ${err}`
+        );
+      });
+  }
+
+  // This keeps the `deletion-request` ping up-to-date when the user signs out,
+  // clearing the now-nonexistent sync device id.
+  onAccountLogout() {
+    Services.telemetry.scalarSet("deletion.request.sync_device_id", "");
   }
 
   _checkCurrent(topic) {
@@ -753,8 +814,8 @@ class SyncTelemetryImpl {
     return true;
   }
 
-  shouldSubmitForDataChange() {
-    let newID = this.current.uid;
+  _shouldSubmitForDataChange() {
+    let newID = fxAccounts.telemetry.getSanitizedUID() || EMPTY_UID;
     let oldID = this.lastUID;
     if (
       newID != EMPTY_UID &&
@@ -762,6 +823,9 @@ class SyncTelemetryImpl {
       // Both are "real" uids, so we care if they've changed.
       newID != oldID
     ) {
+      log.trace(
+        `shouldSubmitForDataChange - uid from '${oldID}' -> '${newID}'`
+      );
       return true;
     }
     // We've gone from knowing one of the ids to not knowing it (which we
@@ -769,14 +833,35 @@ class SyncTelemetryImpl {
     // Now check the node type because a change there also means we should
     // submit.
     if (
-      this.current.syncNodeType &&
       this.lastSyncNodeType &&
-      this.current.syncNodeType != this.lastSyncNodeType
+      this.currentSyncNodeType != this.lastSyncNodeType
     ) {
+      log.trace(
+        `shouldSubmitForDataChange - nodeType from '${this.lastSyncNodeType}' -> '${this.currentSyncNodeType}'`
+      );
       return true;
     }
-    // We don't need to submit.
+    log.trace("shouldSubmitForDataChange - no need to submit");
     return false;
+  }
+
+  maybeSubmitForDataChange() {
+    if (this._shouldSubmitForDataChange()) {
+      log.info(
+        "Early submission of sync telemetry due to changed IDs/NodeType"
+      );
+      this.finish("idchange"); // this actually submits.
+      this.lastSubmissionTime = Telemetry.msSinceProcessStart();
+    }
+
+    // Only update the last UIDs if we actually know them.
+    let current_uid = fxAccounts.telemetry.getSanitizedUID();
+    if (current_uid) {
+      this.lastUID = current_uid;
+    }
+    if (this.currentSyncNodeType) {
+      this.lastSyncNodeType = this.currentSyncNodeType;
+    }
   }
 
   maybeSubmitForInterval() {
@@ -799,26 +884,19 @@ class SyncTelemetryImpl {
       return;
     }
     this.current.finished(error);
-    if (this.payloads.length) {
-      if (this.shouldSubmitForDataChange()) {
-        log.info("Early submission of sync telemetry due to changed IDs");
-        this.finish("idchange");
-        this.lastSubmissionTime = Telemetry.msSinceProcessStart();
-      }
-    }
-    // Only update the last UIDs if we actually know them.
-    if (this.current.uid !== EMPTY_UID) {
-      this.lastUID = this.current.uid;
-    }
-    if (this.current.syncNodeType) {
-      this.lastSyncNodeType = this.current.syncNodeType;
-    }
+    this.currentSyncNodeType = this.current.syncNodeType;
+    // We check for "data change" before appending the current sync to payloads,
+    // as it is the current sync which has the data with the new data, and thus
+    // must go in the *next* submission.
+    this.maybeSubmitForDataChange();
     if (this.payloads.length < this.maxPayloadCount) {
       this.payloads.push(this.current.toJSON());
     } else {
       ++this.discarded;
     }
     this.current = null;
+    // If we are submitting due to timing, it's desirable that the most recent
+    // sync is included, so we check after appending `this.current`.
     this.maybeSubmitForInterval();
   }
 
@@ -829,6 +907,8 @@ class SyncTelemetryImpl {
   }
 
   _recordEvent(eventDetails) {
+    this.maybeSubmitForDataChange();
+
     if (this.events.length >= this.maxEventsCount) {
       log.warn("discarding event - already queued our maximum", eventDetails);
       return;
@@ -874,6 +954,16 @@ class SyncTelemetryImpl {
     switch (topic) {
       case "profile-before-change":
         this.shutdown();
+        break;
+
+      case "weave:service:ready":
+      case "weave:service:login:change":
+      case "fxaccounts:new_device_id":
+        this.onAccountInitOrChange();
+        break;
+
+      case "fxaccounts:onlogout":
+        this.onAccountLogout();
         break;
 
       /* sync itself state changes */
@@ -949,6 +1039,10 @@ class SyncTelemetryImpl {
 
       case "weave:telemetry:histogram":
         this._addHistogram(data);
+        break;
+
+      case "weave:telemetry:migration":
+        this._addMigrationRecord(data, subject);
         break;
 
       default:

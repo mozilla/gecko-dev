@@ -5,16 +5,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #ifndef include_dom_media_ipc_RemoteDecoderParent_h
 #define include_dom_media_ipc_RemoteDecoderParent_h
-#include "mozilla/PRemoteDecoderParent.h"
 
-#include "mozilla/ShmemPool.h"
+#include "mozilla/PRemoteDecoderParent.h"
+#include "mozilla/ShmemRecycleAllocator.h"
 
 namespace mozilla {
 
 class RemoteDecoderManagerParent;
 using mozilla::ipc::IPCResult;
 
-class RemoteDecoderParent : public PRemoteDecoderParent {
+class RemoteDecoderParent : public ShmemRecycleAllocator<RemoteDecoderParent>,
+                            public PRemoteDecoderParent {
   friend class PRemoteDecoderParent;
 
  public:
@@ -23,14 +24,14 @@ class RemoteDecoderParent : public PRemoteDecoderParent {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RemoteDecoderParent)
 
   RemoteDecoderParent(RemoteDecoderManagerParent* aParent,
-                      TaskQueue* aManagerTaskQueue,
+                      nsISerialEventTarget* aManagerThread,
                       TaskQueue* aDecodeTaskQueue);
 
   void Destroy();
 
   // PRemoteDecoderParent
   IPCResult RecvInit(InitResolver&& aResolver);
-  IPCResult RecvDecode(nsTArray<MediaRawDataIPDL>&& aData,
+  IPCResult RecvDecode(ArrayOfRemoteMediaRawData* aData,
                        DecodeResolver&& aResolver);
   IPCResult RecvFlush(FlushResolver&& aResolver);
   IPCResult RecvDrain(DrainResolver&& aResolver);
@@ -43,27 +44,20 @@ class RemoteDecoderParent : public PRemoteDecoderParent {
   virtual ~RemoteDecoderParent();
 
   bool OnManagerThread();
-  void Error(const MediaResult& aError);
 
-  virtual MediaResult ProcessDecodedData(
-      const MediaDataDecoder::DecodedData& aDatam,
-      DecodedOutputIPDL& aDecodedData) = 0;
-  ShmemBuffer AllocateBuffer(size_t aLength);
+  virtual MediaResult ProcessDecodedData(MediaDataDecoder::DecodedData&& aData,
+                                         DecodedOutputIPDL& aDecodedData) = 0;
 
   const RefPtr<RemoteDecoderManagerParent> mParent;
   const RefPtr<TaskQueue> mDecodeTaskQueue;
   RefPtr<MediaDataDecoder> mDecoder;
 
  private:
-  void DecodeNextSample(nsTArray<MediaRawDataIPDL>&& aData,
-                        DecodedOutputIPDL&& aOutput,
+  void DecodeNextSample(const RefPtr<ArrayOfRemoteMediaRawData>& aData,
+                        size_t aIndex, MediaDataDecoder::DecodedData&& aOutput,
                         DecodeResolver&& aResolver);
-  void ReleaseBuffer(ShmemBuffer&& aBuffer);
-  void ReleaseUsedShmems();
   RefPtr<RemoteDecoderParent> mIPDLSelfRef;
-  const RefPtr<TaskQueue> mManagerTaskQueue;
-  ShmemPool mDecodedFramePool;
-  AutoTArray<ShmemBuffer, 4> mUsedShmems;
+  const RefPtr<nsISerialEventTarget> mManagerThread;
 };
 
 }  // namespace mozilla

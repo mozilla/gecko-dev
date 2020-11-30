@@ -4,12 +4,50 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 interface nsIDocShell;
+interface nsISecureBrowserUI;
+interface nsIWebProgress;
+
+interface mixin LoadContextMixin {
+  readonly attribute WindowProxy? associatedWindow;
+
+  readonly attribute WindowProxy? topWindow;
+
+  readonly attribute Element? topFrameElement;
+
+  readonly attribute boolean isContent;
+
+  [SetterThrows]
+  attribute boolean usePrivateBrowsing;
+
+  readonly attribute boolean useRemoteTabs;
+
+  readonly attribute boolean useRemoteSubframes;
+
+  [BinaryName="useTrackingProtectionWebIDL", SetterThrows]
+  attribute boolean useTrackingProtection;
+
+  [NewObject, Throws]
+  readonly attribute any originAttributes;
+};
+
+/**
+ * Allowed CSS display modes. This needs to be kept in
+ * sync with similar values in ServoStyleConsts.h
+ */
+enum DisplayMode {
+  "browser",
+  "minimal-ui",
+  "standalone",
+  "fullscreen",
+};
 
 [Exposed=Window, ChromeOnly]
 interface BrowsingContext {
   static BrowsingContext? get(unsigned long long aId);
 
   static BrowsingContext? getFromWindow(WindowProxy window);
+
+  sequence<BrowsingContext> getAllBrowsingContextsInSubtree();
 
   BrowsingContext? findChildWithName(DOMString name, BrowsingContext accessor);
   BrowsingContext? findWithName(DOMString name);
@@ -35,7 +73,19 @@ interface BrowsingContext {
 
   readonly attribute WindowProxy? window;
 
-  attribute [TreatNullAs=EmptyString] DOMString customUserAgent;
+  readonly attribute WindowContext? currentWindowContext;
+
+  readonly attribute WindowContext? parentWindowContext;
+
+  readonly attribute WindowContext? topWindowContext;
+
+  readonly attribute boolean ancestorsAreCurrent;
+
+  [SetterThrows] attribute [TreatNullAs=EmptyString] DOMString customPlatform;
+
+  [SetterThrows] attribute [TreatNullAs=EmptyString] DOMString customUserAgent;
+
+  readonly attribute DOMString embedderElementType;
 
   /**
    * The sandbox flags on the browsing context. These reflect the value of the
@@ -49,16 +99,58 @@ interface BrowsingContext {
    * browsing context and of its parent document, if any.
    * See nsSandboxFlags.h for the possible flags.
    */
-  attribute unsigned long sandboxFlags;
+  [SetterThrows] attribute unsigned long sandboxFlags;
 
   // The inRDMPane flag indicates whether or not Responsive Design Mode is
   // active for the browsing context.
-  attribute boolean inRDMPane;
+  [SetterThrows] attribute boolean inRDMPane;
+
+  [SetterThrows] attribute float fullZoom;
+
+  [SetterThrows] attribute float textZoom;
+
+  // Default value for nsIContentViewer::authorStyleDisabled in any new
+  // browsing contexts created as a descendant of this one.
+  //
+  // Valid only for top browsing contexts.
+  [SetterThrows] attribute boolean authorStyleDisabledDefault;
+
+  /**
+   * Whether this docshell should save entries in global history.
+   */
+  [SetterThrows] attribute boolean useGlobalHistory;
 
   // Extension to give chrome JS the ability to set the window screen
   // orientation while in RDM.
-  void setRDMPaneOrientation(OrientationType type, float rotationAngle);
+  [Throws] void setRDMPaneOrientation(OrientationType type, float rotationAngle);
+
+  // Extension to give chrome JS the ability to set a maxTouchPoints override
+  // while in RDM.
+  [Throws] void setRDMPaneMaxTouchPoints(octet maxTouchPoints);
+
+  // The watchedByDevTools flag indicates whether or not DevTools are currently
+  // debugging this browsing context.
+  [SetterThrows] attribute boolean watchedByDevTools;
+
+  /**
+   * A unique identifier for the browser element that is hosting this
+   * BrowsingContext tree. Every BrowsingContext in the element's tree will
+   * return the same ID in all processes and it will remain stable regardless of
+   * process changes. When a browser element's frameloader is switched to
+   * another browser element this ID will remain the same but hosted under the
+   * under the new browser element.
+   */
+  [SetterThrows] attribute unsigned long long browserId;
+
+  [SetterThrows] attribute DisplayMode displayMode;
+
+  readonly attribute ChildSHistory? childSessionHistory;
+
+  // Resets the location change rate limit. Used for testing.
+  void resetLocationChangeRateLimit();
 };
+
+BrowsingContext includes LoadContextMixin;
 
 [Exposed=Window, ChromeOnly]
 interface CanonicalBrowsingContext : BrowsingContext {
@@ -66,16 +158,29 @@ interface CanonicalBrowsingContext : BrowsingContext {
 
   readonly attribute WindowGlobalParent? currentWindowGlobal;
 
+  readonly attribute WindowProxy? topChromeWindow;
+
   // XXX(nika): This feels kinda hacky, but will do for now while we don't
   // synchronously create WindowGlobalParent. It can throw if somehow the
   // content process has died.
   [Throws]
-  readonly attribute DOMString? currentRemoteType;
+  readonly attribute UTF8String? currentRemoteType;
 
   readonly attribute WindowGlobalParent? embedderWindowGlobal;
 
   void notifyStartDelayedAutoplayMedia();
-  void notifyMediaMutedChanged(boolean muted);
+  [Throws] void notifyMediaMutedChanged(boolean muted);
+
+  readonly attribute nsISecureBrowserUI? secureBrowserUI;
+
+  /**
+   * Returns an nsIWebProgress object for this BrowsingContext, if this
+   * is a top-level content BC.
+   *
+   * Progress listeners attached to this will get notifications filtered by
+   * nsBrowserStatusFilter, and don't get any notifications from sub frames.
+   */
+  readonly attribute nsIWebProgress? webProgress;
 
   static unsigned long countSiteOrigins(sequence<BrowsingContext> roots);
 
@@ -96,14 +201,25 @@ interface CanonicalBrowsingContext : BrowsingContext {
   [Throws]
   void loadURI(DOMString aURI, optional LoadURIOptions aOptions = {});
 
-  [Throws]
-  Promise<unsigned long long> changeFrameRemoteness(
-      DOMString remoteType, unsigned long long pendingSwitchId);
+  /**
+   * These methods implement the nsIWebNavigation methods of the same names
+   */
+  void goBack(optional long aCancelContentJSEpoch, optional boolean aRequireUserInteraction = false);
+  void goForward(optional long aCancelContentJSEpoch, optional boolean aRequireUserInteraction  = false);
+  void goToIndex(long aIndex, optional long aCancelContentJSEpoch);
+  void reload(unsigned long aReloadFlags);
+  void stop(unsigned long aStopFlags);
 
   readonly attribute nsISHistory? sessionHistory;
+
+  readonly attribute MediaController? mediaController;
+
+  void resetScalingZoom();
 };
 
 [Exposed=Window, ChromeOnly]
 interface BrowsingContextGroup {
   sequence<BrowsingContext> getToplevels();
+
+  readonly attribute unsigned long long id;
 };

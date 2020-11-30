@@ -14,7 +14,7 @@ import zipfile
 
 import mozfile
 from mozlog import get_proxy_logger
-from talos.profiler import symbolication, profiling
+from mozgeckoprofiler import ProfileSymbolicator, save_gecko_profile
 
 LOG = get_proxy_logger()
 
@@ -25,7 +25,7 @@ class GeckoProfile(object):
 
     This allow to collect Gecko profiling data and to zip results in one file.
     """
-    def __init__(self, upload_dir, browser_config, test_config, webrender_enabled):
+    def __init__(self, upload_dir, browser_config, test_config):
         self.upload_dir = upload_dir
         self.browser_config, self.test_config = browser_config, test_config
         self.cleanup = True
@@ -38,7 +38,7 @@ class GeckoProfile(object):
         gecko_profile_interval = test_config.get('gecko_profile_interval', 1)
         gecko_profile_entries = test_config.get('gecko_profile_entries', 1000000)
         gecko_profile_threads = 'GeckoMain,Compositor'
-        if webrender_enabled:
+        if browser_config['enable_webrender']:
             gecko_profile_threads += ',WR,Renderer'
 
         # Make sure no archive already exists in the location where
@@ -83,6 +83,9 @@ class GeckoProfile(object):
         # itself, not by Talos JS code.
         env.update({
             'MOZ_PROFILER_STARTUP': '1',
+            # Temporary: Don't run Base Profiler, see bug 1630448.
+            # TODO: Remove when fix lands in bug 1648324 or bug 1648325.
+            'MOZ_PROFILER_STARTUP_NO_BASE': '1',
             'MOZ_PROFILER_STARTUP_INTERVAL': str(self.option('interval')),
             'MOZ_PROFILER_STARTUP_ENTRIES': str(self.option('entries')),
             'MOZ_PROFILER_STARTUP_FILTERS': str(self.option('threads'))
@@ -97,7 +100,7 @@ class GeckoProfile(object):
                 profile,
                 missing_symbols_zip)
             symbolicator.symbolicate_profile(profile)
-            profiling.save_profile(profile, profile_path)
+            save_gecko_profile(profile, profile_path)
         except MemoryError:
             LOG.critical(
                 "Ran out of memory while trying"
@@ -117,7 +120,7 @@ class GeckoProfile(object):
 
         :param cycle: the number of the cycle of the test currently run.
         """
-        symbolicator = symbolication.ProfileSymbolicator({
+        symbolicator = ProfileSymbolicator({
             # Trace-level logging (verbose)
             "enableTracing": 0,
             # Fallback server if symbol is not found locally

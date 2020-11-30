@@ -2,7 +2,11 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
-add_task(async function tabsSendMessageReply() {
+const server = createHttpServer();
+server.registerDirectory("/data/", do_get_file("data"));
+const BASE_URL = `http://localhost:${server.identity.primaryPort}/data`;
+
+add_task(async function runtimeSendMessageReply() {
   function background() {
     browser.runtime.onMessage.addListener((msg, sender, respond) => {
       if (msg == "respond-now") {
@@ -14,12 +18,26 @@ add_task(async function tabsSendMessageReply() {
         return true;
       } else if (msg == "respond-promise") {
         return Promise.resolve(msg);
+      } else if (msg == "respond-promise-false") {
+        return Promise.resolve(false);
+      } else if (msg == "respond-false") {
+        // return false means that respond() is not expected to be called.
+        setTimeout(() => respond("should be ignored"));
+        return false;
       } else if (msg == "respond-never") {
         return undefined;
       } else if (msg == "respond-error") {
         return Promise.reject(new Error(msg));
       } else if (msg == "throw-error") {
         throw new Error(msg);
+      } else if (msg === "respond-uncloneable") {
+        return Promise.resolve(window);
+      } else if (msg === "reject-uncloneable") {
+        return Promise.reject(window);
+      } else if (msg == "reject-undefined") {
+        return Promise.reject();
+      } else if (msg == "throw-undefined") {
+        throw undefined; // eslint-disable-line no-throw-literal
       }
     });
 
@@ -28,6 +46,16 @@ add_task(async function tabsSendMessageReply() {
         respond("hello");
       } else if (msg == "respond-now-2") {
         respond(msg);
+      }
+    });
+
+    browser.runtime.onMessage.addListener((msg, sender, respond) => {
+      if (msg == "respond-now") {
+        // If a response from another listener is received first, this
+        // exception should be ignored.  Test fails if it is not.
+
+        // All this is of course stupid, but some extensions depend on it.
+        msg.blah.this.throws();
       }
     });
 
@@ -44,6 +72,8 @@ add_task(async function tabsSendMessageReply() {
         browser.runtime.sendMessage("respond-soon", resolve)
       ),
       browser.runtime.sendMessage("respond-promise"),
+      browser.runtime.sendMessage("respond-promise-false"),
+      browser.runtime.sendMessage("respond-false"),
       browser.runtime.sendMessage("respond-never"),
       new Promise(resolve => {
         browser.runtime.sendMessage("respond-never", response => {
@@ -57,6 +87,19 @@ add_task(async function tabsSendMessageReply() {
       browser.runtime
         .sendMessage("throw-error")
         .catch(error => Promise.resolve({ error })),
+
+      browser.runtime
+        .sendMessage("respond-uncloneable")
+        .catch(error => Promise.resolve({ error })),
+      browser.runtime
+        .sendMessage("reject-uncloneable")
+        .catch(error => Promise.resolve({ error })),
+      browser.runtime
+        .sendMessage("reject-undefined")
+        .catch(error => Promise.resolve({ error })),
+      browser.runtime
+        .sendMessage("throw-undefined")
+        .catch(error => Promise.resolve({ error })),
     ])
       .then(
         ([
@@ -64,10 +107,16 @@ add_task(async function tabsSendMessageReply() {
           respondNow2,
           respondSoon,
           respondPromise,
+          respondPromiseFalse,
+          respondFalse,
           respondNever,
           respondNever2,
           respondError,
           throwError,
+          respondUncloneable,
+          rejectUncloneable,
+          rejectUndefined,
+          throwUndefined,
         ]) => {
           browser.test.assertEq(
             "respond-now",
@@ -90,6 +139,16 @@ add_task(async function tabsSendMessageReply() {
             "Got the expected promise response"
           );
           browser.test.assertEq(
+            false,
+            respondPromiseFalse,
+            "Got the expected false value as a promise result"
+          );
+          browser.test.assertEq(
+            undefined,
+            respondFalse,
+            "Got the expected no-response when onMessage returns false"
+          );
+          browser.test.assertEq(
             undefined,
             respondNever,
             "Got the expected no-response resolution"
@@ -109,6 +168,27 @@ add_task(async function tabsSendMessageReply() {
             "throw-error",
             throwError.error.message,
             "Got the expected thrown error response"
+          );
+
+          browser.test.assertEq(
+            "Could not establish connection. Receiving end does not exist.",
+            respondUncloneable.error.message,
+            "An uncloneable response should be ignored"
+          );
+          browser.test.assertEq(
+            "An unexpected error occurred",
+            rejectUncloneable.error.message,
+            "Got the expected error for a rejection with an uncloneable value"
+          );
+          browser.test.assertEq(
+            "An unexpected error occurred",
+            rejectUndefined.error.message,
+            "Got the expected error for a void rejection"
+          );
+          browser.test.assertEq(
+            "An unexpected error occurred",
+            throwUndefined.error.message,
+            "Got the expected error for a void throw"
           );
 
           browser.test.notifyPass("sendMessage");
@@ -133,7 +213,7 @@ add_task(async function tabsSendMessageReply() {
   await extension.unload();
 });
 
-add_task(async function tabsSendMessageBlob() {
+add_task(async function runtimeSendMessageBlob() {
   function background() {
     browser.runtime.onMessage.addListener(msg => {
       browser.test.assertTrue(msg.blob instanceof Blob, "Message is a blob");
@@ -287,5 +367,86 @@ add_task(async function sendMessageResponseGC() {
   await extension.awaitMessage("saved-respond");
 
   ok("Long running tasks responded");
+  await extension.unload();
+});
+
+add_task(async function sendMessage_async_response_multiple_contexts() {
+  let extension = ExtensionTestUtils.loadExtension({
+    background() {
+      browser.runtime.onMessage.addListener((msg, _, respond) => {
+        browser.test.log(`Background got request: ${msg}`);
+
+        switch (msg) {
+          case "ask-bg-fast":
+            respond("bg-respond");
+            return true;
+
+          case "ask-bg-slow":
+            return new Promise(r => setTimeout(() => r("bg-promise")), 1000);
+        }
+      });
+      browser.test.sendMessage("bg-ready");
+    },
+
+    manifest: {
+      content_scripts: [
+        {
+          matches: ["http://localhost/*/file_sample.html"],
+          js: ["cs.js"],
+        },
+      ],
+    },
+
+    files: {
+      "page.html":
+        "<!DOCTYPE html><meta charset=utf-8><script src=page.js></script>",
+      "page.js"() {
+        browser.runtime.onMessage.addListener((msg, _, respond) => {
+          browser.test.log(`Page got request: ${msg}`);
+
+          switch (msg) {
+            case "ask-page-fast":
+              respond("page-respond");
+              return true;
+
+            case "ask-page-slow":
+              return new Promise(r => setTimeout(() => r("page-promise")), 500);
+          }
+        });
+        browser.test.sendMessage("page-ready");
+      },
+
+      "cs.js"() {
+        Promise.all([
+          browser.runtime.sendMessage("ask-bg-fast"),
+          browser.runtime.sendMessage("ask-bg-slow"),
+          browser.runtime.sendMessage("ask-page-fast"),
+          browser.runtime.sendMessage("ask-page-slow"),
+        ]).then(responses => {
+          browser.test.assertEq(
+            responses.join(),
+            ["bg-respond", "bg-promise", "page-respond", "page-promise"].join(),
+            "Got all expected responses from correct contexts"
+          );
+          browser.test.notifyPass("cs-done");
+        });
+      },
+    },
+  });
+
+  await extension.startup();
+  await extension.awaitMessage("bg-ready");
+
+  let url = `moz-extension://${extension.uuid}/page.html`;
+  let page = await ExtensionTestUtils.loadContentPage(url, { extension });
+  await extension.awaitMessage("page-ready");
+
+  let content = await ExtensionTestUtils.loadContentPage(
+    BASE_URL + "/file_sample.html"
+  );
+  await extension.awaitFinish("cs-done");
+  await content.close();
+
+  await page.close();
   await extension.unload();
 });

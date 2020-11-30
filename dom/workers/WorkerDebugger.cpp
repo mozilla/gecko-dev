@@ -8,6 +8,7 @@
 
 #include "mozilla/dom/MessageEvent.h"
 #include "mozilla/dom/MessageEventBinding.h"
+#include "mozilla/AbstractThread.h"
 #include "mozilla/PerformanceUtils.h"
 #include "nsProxyRelease.h"
 #include "nsQueryObject.h"
@@ -53,9 +54,8 @@ class DebuggerMessageEventRunnable : public WorkerDebuggerRunnable {
 
     RefPtr<MessageEvent> event =
         new MessageEvent(globalScope, nullptr, nullptr);
-    event->InitMessageEvent(nullptr, NS_LITERAL_STRING("message"),
-                            CanBubble::eNo, Cancelable::eYes, data,
-                            EmptyString(), EmptyString(), nullptr,
+    event->InitMessageEvent(nullptr, u"message"_ns, CanBubble::eNo,
+                            Cancelable::eYes, data, u""_ns, u""_ns, nullptr,
                             Sequence<OwningNonNull<MessagePort>>());
     event->SetTrusted(true);
 
@@ -84,18 +84,9 @@ class CompileDebuggerScriptRunnable final : public WorkerDebuggerRunnable {
       return false;
     }
 
-    if (NS_WARN_IF(!aWorkerPrivate->EnsureClientSource())) {
-      return false;
-    }
-
     if (NS_WARN_IF(!aWorkerPrivate->EnsureCSPEventListener())) {
       return false;
     }
-
-    // Initialize performance state which might be used on the main thread, as
-    // in CompileScriptRunnable. This runnable might execute first.
-    aWorkerPrivate->EnsurePerformanceStorage();
-    aWorkerPrivate->EnsurePerformanceCounter();
 
     JS::Rooted<JSObject*> global(aCx, globalScope->GetWrapper());
 
@@ -183,9 +174,8 @@ WorkerDebugger::~WorkerDebugger() {
   MOZ_ASSERT(!mWorkerPrivate);
 
   if (!NS_IsMainThread()) {
-    for (size_t index = 0; index < mListeners.Length(); ++index) {
-      NS_ReleaseOnMainThreadSystemGroup("WorkerDebugger::mListeners",
-                                        mListeners[index].forget());
+    for (auto& listener : mListeners) {
+      NS_ReleaseOnMainThread("WorkerDebugger::mListeners", listener.forget());
     }
   }
 }
@@ -403,9 +393,8 @@ void WorkerDebugger::Close() {
   MOZ_ASSERT(mWorkerPrivate);
   mWorkerPrivate = nullptr;
 
-  nsTArray<nsCOMPtr<nsIWorkerDebuggerListener>> listeners(mListeners);
-  for (size_t index = 0; index < listeners.Length(); ++index) {
-    listeners[index]->OnClose();
+  for (const auto& listener : mListeners.Clone()) {
+    listener->OnClose();
   }
 }
 
@@ -424,9 +413,8 @@ void WorkerDebugger::PostMessageToDebuggerOnMainThread(
     const nsAString& aMessage) {
   AssertIsOnMainThread();
 
-  nsTArray<nsCOMPtr<nsIWorkerDebuggerListener>> listeners(mListeners);
-  for (size_t index = 0; index < listeners.Length(); ++index) {
-    listeners[index]->OnMessage(aMessage);
+  for (const auto& listener : mListeners.Clone()) {
+    listener->OnMessage(aMessage);
   }
 }
 
@@ -447,16 +435,19 @@ void WorkerDebugger::ReportErrorToDebuggerOnMainThread(
     const nsAString& aFilename, uint32_t aLineno, const nsAString& aMessage) {
   AssertIsOnMainThread();
 
-  nsTArray<nsCOMPtr<nsIWorkerDebuggerListener>> listeners(mListeners);
-  for (size_t index = 0; index < listeners.Length(); ++index) {
-    listeners[index]->OnError(aFilename, aLineno, aMessage);
+  for (const auto& listener : mListeners.Clone()) {
+    listener->OnError(aFilename, aLineno, aMessage);
   }
 
-  // We need a JSContext to be able to read any stack associated with the error.
-  // This will not run any scripts.
   AutoJSAPI jsapi;
-  DebugOnly<bool> ok = jsapi.Init(xpc::UnprivilegedJunkScope());
-  MOZ_ASSERT(ok, "UnprivilegedJunkScope should exist");
+  // We're only using this context to deserialize a stack to report to the
+  // console, so the scope we use doesn't matter. Stack frame filtering happens
+  // based on the principal encoded into the frame and the caller compartment,
+  // not the compartment of the frame object, and the console reporting code
+  // will not be using our context, and therefore will not care what compartment
+  // it has entered.
+  DebugOnly<bool> ok = jsapi.Init(xpc::PrivilegedJunkScope());
+  MOZ_ASSERT(ok, "PrivilegedJunkScope should exist");
 
   WorkerErrorReport report;
   report.mMessage = aMessage;
@@ -490,7 +481,7 @@ RefPtr<PerformanceInfoPromise> WorkerDebugger::ReportPerformanceInfo() {
       top = outer->GetInProcessTop();
       if (top) {
         windowID = top->WindowID();
-        isTopLevel = outer->IsTopLevelWindow();
+        isTopLevel = outer->GetBrowsingContext()->IsTop();
       }
     }
   }
@@ -503,25 +494,21 @@ RefPtr<PerformanceInfoPromise> WorkerDebugger::ReportPerformanceInfo() {
   }
   nsCString url = scriptURI->GetSpecOrDefault();
 
+  const auto& perf = mWorkerPrivate->PerformanceCounterRef();
+  uint64_t perfId = perf.GetID();
+  uint16_t count = perf.GetTotalDispatchCount();
+  uint64_t duration = perf.GetExecutionDuration();
+
   // Workers only produce metrics for a single category -
   // DispatchCategory::Worker. We still return an array of CategoryDispatch so
   // the PerformanceInfo struct is common to all performance counters throughout
   // Firefox.
   FallibleTArray<CategoryDispatch> items;
-  uint64_t duration = 0;
-  uint16_t count = 0;
-  uint64_t perfId = 0;
 
-  RefPtr<PerformanceCounter> perf = mWorkerPrivate->GetPerformanceCounter();
-  if (perf) {
-    perfId = perf->GetID();
-    count = perf->GetTotalDispatchCount();
-    duration = perf->GetExecutionDuration();
-    CategoryDispatch item =
-        CategoryDispatch(DispatchCategory::Worker.GetValue(), count);
-    if (!items.AppendElement(item, fallible)) {
-      NS_ERROR("Could not complete the operation");
-    }
+  CategoryDispatch item =
+      CategoryDispatch(DispatchCategory::Worker.GetValue(), count);
+  if (!items.AppendElement(item, fallible)) {
+    NS_ERROR("Could not complete the operation");
   }
 
   if (!isTopLevel) {
@@ -534,14 +521,13 @@ RefPtr<PerformanceInfoPromise> WorkerDebugger::ReportPerformanceInfo() {
   // We need to keep a ref on workerPrivate, passed to the promise,
   // to make sure it's still aloive when collecting the info.
   RefPtr<WorkerPrivate> workerRef = mWorkerPrivate;
-  RefPtr<AbstractThread> mainThread =
-      SystemGroup::AbstractMainThreadFor(TaskCategory::Performance);
+  RefPtr<AbstractThread> mainThread = AbstractThread::MainThread();
 
   return CollectMemoryInfo(top, mainThread)
       ->Then(
           mainThread, __func__,
           [workerRef, url, pid, perfId, windowID, duration, isTopLevel,
-           items](const PerformanceMemoryInfo& aMemoryInfo) {
+           items = std::move(items)](const PerformanceMemoryInfo& aMemoryInfo) {
             return PerformanceInfoPromise::CreateAndResolve(
                 PerformanceInfo(url, pid, windowID, duration, perfId, true,
                                 isTopLevel, aMemoryInfo, items),

@@ -79,6 +79,8 @@ customElements.define(
         return;
       }
 
+      // Set min. time delta to avoid division by zero in the upcoming speed calculation
+      delta = Math.max(delta, 400);
       delta /= 1000;
 
       // This algorithm is the same used by the downloads code.
@@ -586,6 +588,17 @@ var gXPInstallObserver = {
         break;
       }
       case "addon-install-blocked": {
+        // Dismiss the progress notification.  Note that this is bad if
+        // there are multiple simultaneous installs happening, see
+        // bug 1329884 for a longer explanation.
+        let progressNotification = PopupNotifications.getNotification(
+          "addon-progress",
+          browser
+        );
+        if (progressNotification) {
+          progressNotification.remove();
+        }
+
         let hasHost = !!options.displayURI;
         if (hasHost) {
           messageString = gNavigatorBundle.getFormattedString(
@@ -661,6 +674,9 @@ var gXPInstallObserver = {
                 install.cancel();
               }
             }
+            if (installInfo.cancel) {
+              installInfo.cancel();
+            }
           },
         };
         let neverAllowAction = {
@@ -680,6 +696,9 @@ var gXPInstallObserver = {
               if (install.state != AddonManager.STATE_CANCELLED) {
                 install.cancel();
               }
+            }
+            if (installInfo.cancel) {
+              installInfo.cancel();
             }
           },
         };
@@ -1003,6 +1022,89 @@ var gExtensionsNotifications = {
         PanelUI.hide();
         ExtensionsUI.showSideloaded(gBrowser, addon);
       });
+    }
+  },
+};
+
+var BrowserAddonUI = {
+  promptRemoveExtension(addon) {
+    let { name } = addon;
+    let brand = document
+      .getElementById("bundle_brand")
+      .getString("brandShorterName");
+    let { getFormattedString, getString } = gNavigatorBundle;
+    let title = getFormattedString("webext.remove.confirmation.title", [name]);
+    let message = getFormattedString("webext.remove.confirmation.message", [
+      name,
+      brand,
+    ]);
+    let btnTitle = getString("webext.remove.confirmation.button");
+    let {
+      BUTTON_TITLE_IS_STRING: titleString,
+      BUTTON_TITLE_CANCEL: titleCancel,
+      BUTTON_POS_0,
+      BUTTON_POS_1,
+      confirmEx,
+    } = Services.prompt;
+    let btnFlags = BUTTON_POS_0 * titleString + BUTTON_POS_1 * titleCancel;
+    let checkboxState = { value: false };
+    let checkboxMessage = null;
+
+    // Enable abuse report checkbox in the remove extension dialog,
+    // if enabled by the about:config prefs and the addon type
+    // is currently supported.
+    if (
+      gAddonAbuseReportEnabled &&
+      ["extension", "theme"].includes(addon.type)
+    ) {
+      checkboxMessage = getFormattedString(
+        "webext.remove.abuseReportCheckbox.message",
+        [document.getElementById("bundle_brand").getString("vendorShortName")]
+      );
+    }
+    const result = confirmEx(
+      null,
+      title,
+      message,
+      btnFlags,
+      btnTitle,
+      null,
+      null,
+      checkboxMessage,
+      checkboxState
+    );
+    return { remove: result === 0, report: checkboxState.value };
+  },
+
+  async reportAddon(addonId, reportEntryPoint) {
+    const win = await BrowserOpenAddonsMgr("addons://list/extension");
+
+    win.openAbuseReport({ addonId, reportEntryPoint });
+  },
+
+  async removeAddon(addonId, eventObject) {
+    let addon = addonId && (await AddonManager.getAddonByID(addonId));
+    if (!addon || !(addon.permissions & AddonManager.PERM_CAN_UNINSTALL)) {
+      return;
+    }
+
+    let { remove, report } = this.promptRemoveExtension(addon);
+
+    AMTelemetry.recordActionEvent({
+      object: eventObject,
+      action: "uninstall",
+      value: remove ? "accepted" : "cancelled",
+      extra: { addonId },
+    });
+
+    if (remove) {
+      // Leave the extension in pending uninstall if we are also reporting the
+      // add-on.
+      await addon.uninstall(report);
+
+      if (report) {
+        await this.reportAddon(addon.id, "uninstall");
+      }
     }
   },
 };

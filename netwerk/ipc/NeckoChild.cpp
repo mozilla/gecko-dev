@@ -5,7 +5,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "necko-config.h"
 #include "nsHttp.h"
 #include "mozilla/net/NeckoChild.h"
 #include "mozilla/dom/ContentChild.h"
@@ -18,7 +17,6 @@
 #include "mozilla/net/WebSocketChannelChild.h"
 #include "mozilla/net/WebSocketEventListenerChild.h"
 #include "mozilla/net/DNSRequestChild.h"
-#include "mozilla/net/ChannelDiverterChild.h"
 #include "mozilla/net/IPCTransportProvider.h"
 #include "mozilla/dom/network/TCPSocketChild.h"
 #include "mozilla/dom/network/TCPServerSocketChild.h"
@@ -128,15 +126,8 @@ bool NeckoChild::DeallocPAltDataOutputStreamChild(
   return true;
 }
 
-already_AddRefed<PDocumentChannelChild> NeckoChild::AllocPDocumentChannelChild(
-    const PBrowserOrId& aBrowser, const SerializedLoadContext& aSerialized,
-    const DocumentChannelCreationArgs& args) {
-  MOZ_ASSERT_UNREACHABLE("AllocPDocumentChannelChild should not be called");
-  return nullptr;
-}
-
 PFTPChannelChild* NeckoChild::AllocPFTPChannelChild(
-    const PBrowserOrId& aBrowser, const SerializedLoadContext& aSerialized,
+    PBrowserChild* aBrowser, const SerializedLoadContext& aSerialized,
     const FTPChannelCreationArgs& aOpenArgs) {
   // We don't allocate here: see FTPChannelChild::AsyncOpen()
   MOZ_CRASH("AllocPFTPChannelChild should not be called");
@@ -152,7 +143,7 @@ bool NeckoChild::DeallocPFTPChannelChild(PFTPChannelChild* channel) {
 }
 
 PCookieServiceChild* NeckoChild::AllocPCookieServiceChild() {
-  // We don't allocate here: see nsCookieService::GetSingleton()
+  // We don't allocate here: see CookieService::GetSingleton()
   MOZ_ASSERT_UNREACHABLE("AllocPCookieServiceChild should not be called");
   return nullptr;
 }
@@ -167,7 +158,7 @@ bool NeckoChild::DeallocPCookieServiceChild(PCookieServiceChild* cs) {
 }
 
 PWebSocketChild* NeckoChild::AllocPWebSocketChild(
-    const PBrowserOrId& browser, const SerializedLoadContext& aSerialized,
+    PBrowserChild* browser, const SerializedLoadContext& aSerialized,
     const uint32_t& aSerial) {
   MOZ_ASSERT_UNREACHABLE("AllocPWebSocketChild should not be called");
   return nullptr;
@@ -181,7 +172,7 @@ bool NeckoChild::DeallocPWebSocketChild(PWebSocketChild* child) {
 
 PWebSocketEventListenerChild* NeckoChild::AllocPWebSocketEventListenerChild(
     const uint64_t& aInnerWindowID) {
-  nsCOMPtr<nsIEventTarget> target;
+  nsCOMPtr<nsISerialEventTarget> target;
   if (nsGlobalWindowInner* win =
           nsGlobalWindowInner::GetInnerWindowWithId(aInnerWindowID)) {
     target = win->EventTargetFor(TaskCategory::Other);
@@ -251,17 +242,6 @@ PUDPSocketChild* NeckoChild::AllocPUDPSocketChild(nsIPrincipal* aPrincipal,
 bool NeckoChild::DeallocPUDPSocketChild(PUDPSocketChild* child) {
   UDPSocketChild* p = static_cast<UDPSocketChild*>(child);
   p->ReleaseIPDLReference();
-  return true;
-}
-
-PChannelDiverterChild* NeckoChild::AllocPChannelDiverterChild(
-    const ChannelDiverterArgs& channel) {
-  return new ChannelDiverterChild();
-  ;
-}
-
-bool NeckoChild::DeallocPChannelDiverterChild(PChannelDiverterChild* child) {
-  delete static_cast<ChannelDiverterChild*>(child);
   return true;
 }
 
@@ -365,9 +345,8 @@ mozilla::ipc::IPCResult NeckoChild::RecvNetworkChangeNotification(
 }
 
 PClassifierDummyChannelChild* NeckoChild::AllocPClassifierDummyChannelChild(
-    nsIURI* aURI, nsIURI* aTopWindowURI,
-    nsIPrincipal* aContentBlockingAllowListPrincipal,
-    const nsresult& aTopWindowURIResult, const Maybe<LoadInfoArgs>& aLoadInfo) {
+    nsIURI* aURI, nsIURI* aTopWindowURI, const nsresult& aTopWindowURIResult,
+    const Maybe<LoadInfoArgs>& aLoadInfo) {
   return new ClassifierDummyChannelChild();
 }
 

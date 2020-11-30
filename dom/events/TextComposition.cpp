@@ -43,7 +43,7 @@ using namespace mozilla::widget;
 
 namespace mozilla {
 
-#define IDEOGRAPHIC_SPACE (NS_LITERAL_STRING(u"\x3000"))
+#define IDEOGRAPHIC_SPACE (u"\x3000"_ns)
 
 /******************************************************************************
  * TextComposition
@@ -151,9 +151,7 @@ void TextComposition::DispatchEvent(
     const WidgetCompositionEvent* aOriginalEvent) {
   nsPluginInstanceOwner::GeneratePluginEvent(aOriginalEvent, aDispatchEvent);
 
-  if (aDispatchEvent->mMessage == eCompositionChange &&
-      StaticPrefs::
-          dom_compositionevent_text_dispatch_only_system_group_in_content()) {
+  if (aDispatchEvent->mMessage == eCompositionChange) {
     aDispatchEvent->mFlags.mOnlySystemGroupDispatchInContent = true;
   }
   EventDispatcher::Dispatch(mNode, mPresContext, aDispatchEvent, nullptr,
@@ -565,7 +563,7 @@ nsresult TextComposition::RequestToCommit(nsIWidget* aWidget, bool aDiscard) {
   RefPtr<TextComposition> kungFuDeathGrip(this);
   const nsAutoString lastData(mLastData);
 
-  {
+  if (IMEStateManager::CanSendNotificationToWidget()) {
     AutoRestore<bool> saveRequestingCancel(mIsRequestingCancel);
     AutoRestore<bool> saveRequestingCommit(mIsRequestingCommit);
     if (aDiscard) {
@@ -595,8 +593,7 @@ nsresult TextComposition::RequestToCommit(nsIWidget* aWidget, bool aDiscard) {
   // Otherwise, synthesize the commit in content.
   nsAutoString data(aDiscard ? EmptyString() : lastData);
   if (data == mLastData) {
-    DispatchCompositionEventRunnable(eCompositionCommitAsIs, EmptyString(),
-                                     true);
+    DispatchCompositionEventRunnable(eCompositionCommitAsIs, u""_ns, true);
   } else {
     DispatchCompositionEventRunnable(eCompositionCommit, data, true);
   }
@@ -680,7 +677,7 @@ RawRangeBoundary TextComposition::GetStartRef() const {
     return RawRangeBoundary();
   }
 
-  nsRange* firstRange = nullptr;
+  const nsRange* firstRange = nullptr;
   static const SelectionType kIMESelectionTypes[] = {
       SelectionType::eIMERawClause, SelectionType::eIMESelectedRawClause,
       SelectionType::eIMEConvertedClause, SelectionType::eIMESelectedClause};
@@ -691,7 +688,7 @@ RawRangeBoundary TextComposition::GetStartRef() const {
       continue;
     }
     for (uint32_t i = 0; i < selection->RangeCount(); i++) {
-      nsRange* range = selection->GetRangeAt(i);
+      const nsRange* range = selection->GetRangeAt(i);
       if (NS_WARN_IF(!range) || NS_WARN_IF(!range->GetStartContainer())) {
         continue;
       }
@@ -737,7 +734,7 @@ RawRangeBoundary TextComposition::GetEndRef() const {
     return RawRangeBoundary();
   }
 
-  nsRange* lastRange = nullptr;
+  const nsRange* lastRange = nullptr;
   static const SelectionType kIMESelectionTypes[] = {
       SelectionType::eIMERawClause, SelectionType::eIMESelectedRawClause,
       SelectionType::eIMEConvertedClause, SelectionType::eIMESelectedClause};
@@ -748,7 +745,7 @@ RawRangeBoundary TextComposition::GetEndRef() const {
       continue;
     }
     for (uint32_t i = 0; i < selection->RangeCount(); i++) {
-      nsRange* range = selection->GetRangeAt(i);
+      const nsRange* range = selection->GetRangeAt(i);
       if (NS_WARN_IF(!range) || NS_WARN_IF(!range->GetEndContainer())) {
         continue;
       }
@@ -810,6 +807,8 @@ TextComposition::CompositionEventDispatcher::Run() {
   }
 
   RefPtr<nsPresContext> presContext = mTextComposition->mPresContext;
+  nsCOMPtr<nsINode> eventTarget = mEventTarget;
+  RefPtr<BrowserParent> browserParent = mTextComposition->mBrowserParent;
   nsEventStatus status = nsEventStatus_eIgnore;
   switch (mEventMessage) {
     case eCompositionStart: {
@@ -823,8 +822,8 @@ TextComposition::CompositionEventDispatcher::Run() {
       compStart.mFlags.mIsSynthesizedForTests =
           mTextComposition->IsSynthesizedForTests();
       IMEStateManager::DispatchCompositionEvent(
-          mEventTarget, presContext, mTextComposition->mBrowserParent,
-          &compStart, &status, nullptr, mIsSynthesizedEvent);
+          eventTarget, presContext, browserParent, &compStart, &status, nullptr,
+          mIsSynthesizedEvent);
       break;
     }
     case eCompositionChange:
@@ -838,8 +837,8 @@ TextComposition::CompositionEventDispatcher::Run() {
       compEvent.mFlags.mIsSynthesizedForTests =
           mTextComposition->IsSynthesizedForTests();
       IMEStateManager::DispatchCompositionEvent(
-          mEventTarget, presContext, mTextComposition->mBrowserParent,
-          &compEvent, &status, nullptr, mIsSynthesizedEvent);
+          eventTarget, presContext, browserParent, &compEvent, &status, nullptr,
+          mIsSynthesizedEvent);
       break;
     }
     default:

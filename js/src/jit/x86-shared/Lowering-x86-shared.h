@@ -45,6 +45,8 @@ class LIRGeneratorX86Shared : public LIRGeneratorShared {
   void lowerUDiv(MDiv* div);
   void lowerUMod(MMod* mod);
   void lowerUrshD(MUrsh* mir);
+  void lowerPowOfTwoI(MPow* mir);
+  void lowerWasmBuiltinTruncateToInt32(MWasmBuiltinTruncateToInt32* ins);
   void lowerTruncateDToInt32(MTruncateToInt32* ins);
   void lowerTruncateFToInt32(MTruncateToInt32* ins);
   void lowerCompareExchangeTypedArrayElement(
@@ -53,6 +55,11 @@ class LIRGeneratorX86Shared : public LIRGeneratorShared {
       MAtomicExchangeTypedArrayElement* ins, bool useI386ByteRegisters);
   void lowerAtomicTypedArrayElementBinop(MAtomicTypedArrayElementBinop* ins,
                                          bool useI386ByteRegisters);
+
+#ifdef ENABLE_WASM_SIMD
+  bool canFoldReduceSimd128AndBranch(wasm::SimdOp op);
+  bool canEmitWasmReduceSimd128AtUses(MWasmReduceSimd128* ins);
+#endif
 };
 
 }  // namespace jit

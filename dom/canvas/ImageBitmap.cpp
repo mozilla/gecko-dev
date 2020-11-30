@@ -6,10 +6,17 @@
 
 #include "mozilla/dom/ImageBitmap.h"
 #include "mozilla/CheckedInt.h"
+#include "mozilla/dom/CanvasRenderingContext2D.h"
+#include "mozilla/dom/CanvasUtils.h"
+#include "mozilla/dom/HTMLCanvasElement.h"
+#include "mozilla/dom/HTMLImageElement.h"
 #include "mozilla/dom/HTMLMediaElementBinding.h"
+#include "mozilla/dom/HTMLVideoElement.h"
 #include "mozilla/dom/ImageBitmapBinding.h"
+#include "mozilla/dom/OffscreenCanvas.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/StructuredCloneTags.h"
+#include "mozilla/dom/SVGImageElement.h"
 #include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/dom/WorkerRef.h"
 #include "mozilla/dom/WorkerRunnable.h"
@@ -17,7 +24,10 @@
 #include "mozilla/gfx/Swizzle.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/ScopeExit.h"
+#include "nsGlobalWindowInner.h"
+#include "nsIAsyncInputStream.h"
 #include "nsNetUtil.h"
+#include "nsLayoutUtils.h"
 #include "nsStreamUtils.h"
 #include "ImageUtils.h"
 #include "imgLoader.h"
@@ -373,7 +383,7 @@ class CreateImageFromRawDataInMainThreadSyncTask final
       const Maybe<IntRect>& aCropRect, layers::Image** aImage)
       : WorkerMainThreadRunnable(
             GetCurrentThreadWorkerPrivate(),
-            NS_LITERAL_CSTRING("ImageBitmap :: Create Image from Raw Data")),
+            "ImageBitmap :: Create Image from Raw Data"_ns),
         mImage(aImage),
         mBuffer(aBuffer),
         mBufferLength(aBufferLength),
@@ -417,9 +427,8 @@ template <class ElementType>
 static already_AddRefed<SourceSurface> GetSurfaceFromElement(
     nsIGlobalObject* aGlobal, ElementType& aElement, bool* aWriteOnly,
     ErrorResult& aRv) {
-  nsLayoutUtils::SurfaceFromElementResult res =
-      nsLayoutUtils::SurfaceFromElement(
-          &aElement, nsLayoutUtils::SFE_WANT_FIRST_FRAME_IF_IMAGE);
+  SurfaceFromElementResult res = nsLayoutUtils::SurfaceFromElement(
+      &aElement, nsLayoutUtils::SFE_WANT_FIRST_FRAME_IF_IMAGE);
 
   RefPtr<SourceSurface> surface = res.GetSourceSurface();
   if (NS_WARN_IF(!surface)) {
@@ -438,7 +447,7 @@ ImageBitmap::ImageBitmap(nsIGlobalObject* aGlobal, layers::Image* aData,
       mData(aData),
       mSurface(nullptr),
       mDataWrapper(new ImageUtils(mData)),
-      mPictureRect(0, 0, aData->GetSize().width, aData->GetSize().height),
+      mPictureRect(aData->GetPictureRect()),
       mAlphaType(aAlphaType),
       mAllocatedImageData(false),
       mWriteOnly(aWriteOnly) {
@@ -660,9 +669,8 @@ already_AddRefed<ImageBitmap> ImageBitmap::CreateFromOffscreenCanvas(
   // Check write-only mode.
   bool writeOnly = aOffscreenCanvas.IsWriteOnly();
 
-  nsLayoutUtils::SurfaceFromElementResult res =
-      nsLayoutUtils::SurfaceFromOffscreenCanvas(
-          &aOffscreenCanvas, nsLayoutUtils::SFE_WANT_FIRST_FRAME_IF_IMAGE);
+  SurfaceFromElementResult res = nsLayoutUtils::SurfaceFromOffscreenCanvas(
+      &aOffscreenCanvas, nsLayoutUtils::SFE_WANT_FIRST_FRAME_IF_IMAGE);
 
   RefPtr<SourceSurface> surface = res.GetSourceSurface();
 
@@ -777,8 +785,8 @@ already_AddRefed<ImageBitmap> ImageBitmap::CreateInternal(
   nsCOMPtr<nsIPrincipal> principal = aVideoEl.GetCurrentVideoPrincipal();
   bool hadCrossOriginRedirects = aVideoEl.HadCrossOriginRedirects();
   bool CORSUsed = aVideoEl.GetCORSMode() != CORS_NONE;
-  bool writeOnly =
-      CheckWriteOnlySecurity(CORSUsed, principal, hadCrossOriginRedirects);
+  bool writeOnly = CanvasUtils::CheckWriteOnlySecurity(CORSUsed, principal,
+                                                       hadCrossOriginRedirects);
 
   // Create ImageBitmap.
   RefPtr<layers::Image> data = aVideoEl.GetCurrentImage();
@@ -821,12 +829,14 @@ already_AddRefed<ImageBitmap> ImageBitmap::CreateInternal(
   RefPtr<SourceSurface> croppedSurface;
   IntRect cropRect = aCropRect.valueOr(IntRect());
 
-  // If the HTMLCanvasElement's rendering context is WebGL, then the snapshot
-  // we got from the HTMLCanvasElement is a DataSourceSurface which is a copy
-  // of the rendering context. We handle cropping in this case.
+  // If the HTMLCanvasElement's rendering context is WebGL/WebGPU,
+  // then the snapshot we got from the HTMLCanvasElement is
+  // a DataSourceSurface which is a copy of the rendering context.
+  // We handle cropping in this case.
   bool needToReportMemoryAllocation = false;
   if ((aCanvasEl.GetCurrentContextType() == CanvasContextType::WebGL1 ||
-       aCanvasEl.GetCurrentContextType() == CanvasContextType::WebGL2) &&
+       aCanvasEl.GetCurrentContextType() == CanvasContextType::WebGL2 ||
+       aCanvasEl.GetCurrentContextType() == CanvasContextType::WebGPU) &&
       aCropRect.isSome()) {
     RefPtr<DataSourceSurface> dataSurface = surface->GetDataSurface();
     croppedSurface = CropAndCopyDataSourceSurface(dataSurface, cropRect);

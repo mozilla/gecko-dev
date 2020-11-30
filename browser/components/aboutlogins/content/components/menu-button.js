@@ -35,12 +35,15 @@ export default class MenuButton extends HTMLElement {
   handleEvent(event) {
     switch (event.type) {
       case "blur": {
-        if (
-          event.explicitOriginalTarget &&
-          event.explicitOriginalTarget.closest(".menu") == this._menu
-        ) {
-          // Only hide the menu if focus has left the menu-button.
-          return;
+        if (event.explicitOriginalTarget) {
+          let node = event.explicitOriginalTarget;
+          if (node.nodeType == Node.TEXT_NODE) {
+            node = node.parentElement;
+          }
+          if (node.closest(".menu") == this._menu) {
+            // Only hide the menu if focus has left the menu-button.
+            return;
+          }
         }
         this._hideMenu();
         break;
@@ -74,8 +77,11 @@ export default class MenuButton extends HTMLElement {
               detail: linkTrackingSource,
             })
           );
+
+          // Bug 1645365: Only hide the menu when the buttons are clicked
+          // So that the menu isn't closed when non-buttons (e.g. separators, paddings) are clicked
+          this._hideMenu();
         }
-        this._hideMenu();
         break;
       }
       case "keydown": {
@@ -132,6 +138,9 @@ export default class MenuButton extends HTMLElement {
   }
 
   _showMenu() {
+    this._menu.querySelector(".menuitem-import-file").hidden = !window
+      .AboutLoginsUtils.fileImportEnabled;
+
     this._menu.hidden = false;
 
     // Add a catch-all event listener to close the menu.

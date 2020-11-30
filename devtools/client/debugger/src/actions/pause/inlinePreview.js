@@ -8,6 +8,7 @@ import {
   getOriginalFrameScope,
   getGeneratedFrameScope,
   getInlinePreviews,
+  getSelectedLocation,
 } from "../../selectors";
 import { features } from "../../utils/prefs";
 import { validateThreadContext } from "../../utils/context";
@@ -15,10 +16,11 @@ import { validateThreadContext } from "../../utils/context";
 import type { OriginalScope } from "../../utils/pause/mapScopes";
 import type { ThreadContext, Frame, Scope, Preview } from "../../types";
 import type { ThunkArgs } from "../types";
+import type { SourceScope } from "../../workers/parser/getScopes";
 
 // We need to display all variables in the current functional scope so
 // include all data for block scopes until the first functional scope
-function getLocalScopeLevels(originalAstScopes): number {
+function getLocalScopeLevels(originalAstScopes: SourceScope[]): number {
   let levels = 0;
   while (
     originalAstScopes[levels] &&
@@ -56,21 +58,27 @@ export function generateInlinePreview(cx: ThreadContext, frame: ?Frame) {
     );
 
     let scopes: ?OriginalScope | Scope | null =
-      (originalFrameScopes && originalFrameScopes.scope) ||
-      (generatedFrameScopes && generatedFrameScopes.scope);
+      originalFrameScopes?.scope || generatedFrameScopes?.scope;
 
     if (!scopes || !scopes.bindings) {
       return;
     }
 
-    const originalAstScopes = await parser.getScopes(frame.location);
+    // It's important to use selectedLocation, because we don't know
+    // if we'll be viewing the original or generated frame location
+    const selectedLocation = getSelectedLocation(getState());
+    if (!selectedLocation) {
+      return;
+    }
+
+    const originalAstScopes = await parser.getScopes(selectedLocation);
     validateThreadContext(getState(), cx);
     if (!originalAstScopes) {
       return;
     }
 
     const allPreviews = [];
-    const pausedOnLine: number = frame.location.line;
+    const pausedOnLine: number = selectedLocation.line;
     const levels: number = getLocalScopeLevels(originalAstScopes);
 
     for (
@@ -145,8 +153,7 @@ function getBindingValues(
 ): Array<Preview> {
   const previews = [];
 
-  const binding =
-    originalAstScopes[curLevel] && originalAstScopes[curLevel].bindings[name];
+  const binding = originalAstScopes[curLevel]?.bindings[name];
   if (!binding) {
     return previews;
   }
@@ -212,13 +219,9 @@ function getExpressionNameAndValue(
         const property: Object = properties.find(
           prop => prop.name === meta.property
         );
-        displayValue = property && property.contents.value;
+        displayValue = property?.contents.value;
         displayName += `.${meta.property}`;
-      } else if (
-        displayValue &&
-        displayValue.preview &&
-        displayValue.preview.ownProperties
-      ) {
+      } else if (displayValue?.preview?.ownProperties) {
         const { ownProperties } = displayValue.preview;
         Object.keys(ownProperties).forEach(prop => {
           if (prop === meta.property) {

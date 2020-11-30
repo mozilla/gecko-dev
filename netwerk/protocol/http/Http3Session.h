@@ -39,38 +39,34 @@ class Http3Session final : public nsAHttpTransaction,
  public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_HTTP3SESSION_IID)
 
-  NS_DECL_ISUPPORTS
+  NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSAHTTPTRANSACTION
   NS_DECL_NSAHTTPCONNECTION(mConnection)
   NS_DECL_NSAHTTPSEGMENTREADER
   NS_DECL_NSAHTTPSEGMENTWRITER
 
   Http3Session();
-  nsresult Init(const nsACString& aOrigin, nsISocketTransport* aSocketTransport,
+  nsresult Init(const nsACString& aOrigin, const nsACString& aAlpnToken,
+                nsISocketTransport* aSocketTransport,
                 HttpConnectionUDP* readerWriter);
 
   bool IsConnected() const { return mState == CONNECTED; }
+  bool CanSandData() const {
+    return (mState == CONNECTED) || (mState == ZERORTT);
+  }
   bool IsClosing() const { return (mState == CLOSING || mState == CLOSED); }
-  nsresult GetError() const { return mError; }
-
-  nsresult Process();
+  bool IsClosed() const { return mState == CLOSED; }
 
   bool AddStream(nsAHttpTransaction* aHttpTransaction, int32_t aPriority,
                  nsIInterfaceRequestor* aCallbacks);
 
   bool CanReuse();
 
-  // TODO: use this.
-  bool RoomForMoreStreams() { return mQueuedStreams.GetSize() == 0; }
-
-  // We will let neqo-transport handle connection timeouts.
-  uint32_t ReadTimeoutTick(PRIntervalTime now) { return UINT32_MAX; }
-
   // overload of nsAHttpTransaction
-  MOZ_MUST_USE nsresult ReadSegmentsAgain(nsAHttpSegmentReader*, uint32_t,
-                                          uint32_t*, bool*) final;
-  MOZ_MUST_USE nsresult WriteSegmentsAgain(nsAHttpSegmentWriter*, uint32_t,
+  [[nodiscard]] nsresult ReadSegmentsAgain(nsAHttpSegmentReader*, uint32_t,
                                            uint32_t*, bool*) final;
+  [[nodiscard]] nsresult WriteSegmentsAgain(nsAHttpSegmentWriter*, uint32_t,
+                                            uint32_t*, bool*) final;
 
   // The folowing functions are used by Http3Stream:
   nsresult TryActivating(const nsACString& aMethod, const nsACString& aScheme,
@@ -85,20 +81,17 @@ class Http3Session final : public nsAHttpTransaction,
   nsresult ReadResponseData(uint64_t aStreamId, char* aBuf, uint32_t aCount,
                             uint32_t* aCountWritten, bool* aFin);
 
-  const static uint32_t kDefaultReadAmount = 2048;
-
   void CloseStream(Http3Stream* aStream, nsresult aResult);
 
   void SetCleanShutdown(bool aCleanShutdown) {
     mCleanShutdown = aCleanShutdown;
   }
 
-  PRIntervalTime IdleTime();
-
   bool TestJoinConnection(const nsACString& hostname, int32_t port);
   bool JoinConnection(const nsACString& hostname, int32_t port);
 
   void TransactionHasDataToWrite(nsAHttpTransaction* caller) override;
+  void TransactionHasDataToRecv(nsAHttpTransaction* caller) override;
 
   nsISocketTransport* SocketTransport() { return mSocketTransport; }
 
@@ -107,6 +100,10 @@ class Http3Session final : public nsAHttpTransaction,
   void Authenticated(int32_t aError);
 
   nsresult ProcessOutputAndEvents();
+
+  const nsCString& GetAlpnToken() { return mAlpnToken; }
+
+  void ReportHttp3Connection();
 
  private:
   ~Http3Session();
@@ -118,8 +115,15 @@ class Http3Session final : public nsAHttpTransaction,
                           bool justKidding);
 
   nsresult ProcessOutput();
-  nsresult ProcessInput();
-  nsresult ProcessEvents(uint32_t count, uint32_t* countWritten, bool* again);
+  nsresult ProcessInput(uint32_t* aCountRead);
+  nsresult ProcessEvents(uint32_t count);
+
+  nsresult ProcessTransactionRead(uint64_t stream_id, uint32_t count,
+                                  uint32_t* countWritten);
+  nsresult ProcessTransactionRead(Http3Stream* stream, uint32_t count,
+                                  uint32_t* countWritten);
+  nsresult ProcessSlowConsumers();
+  void ConnectSlowConsumer(Http3Stream* stream);
 
   void SetupTimer(uint64_t aTimeout);
 
@@ -132,9 +136,11 @@ class Http3Session final : public nsAHttpTransaction,
   void CallCertVerification();
   void SetSecInfo();
 
+  void StreamReadyToWrite(Http3Stream* aStream);
   void MaybeResumeSend();
 
   void CloseConnectionTelemetry(CloseError& aError, bool aClosing);
+  void Finish0Rtt(bool aRestart);
 
   RefPtr<NeqoHttp3Conn> mHttp3Connection;
   RefPtr<nsAHttpConnection> mConnection;
@@ -142,20 +148,30 @@ class Http3Session final : public nsAHttpTransaction,
   nsRefPtrHashtable<nsPtrHashKey<nsAHttpTransaction>, Http3Stream>
       mStreamTransactionHash;
 
-  nsDeque mReadyForWrite;
+  nsDeque<Http3Stream> mReadyForWrite;
   nsTArray<uint64_t> mReadyForWriteButBlocked;
-  nsDeque mQueuedStreams;
+  nsTArray<RefPtr<Http3Stream>> mSlowConsumersReadyForRead;
+  nsDeque<Http3Stream> mQueuedStreams;
 
-  enum State { INITIALIZING, CONNECTED, CLOSING, CLOSED } mState;
+  enum State { INITIALIZING, ZERORTT, CONNECTED, CLOSING, CLOSED } mState;
 
   bool mAuthenticationStarted;
   bool mCleanShutdown;
   bool mGoawayReceived;
   bool mShouldClose;
   bool mIsClosedByNeqo;
+  bool mHttp3ConnectionReported = false;
+  // mError is neqo error (a protocol error) and that may mean that we will
+  // send some packets after that.
   nsresult mError;
+  // This is a socket error, there is no poioint in sending anything on that
+  // socket.
+  nsresult mSocketError;
   bool mBeforeConnectedError;
   uint64_t mCurrentForegroundTabOuterContentWindowId;
+
+  // True if the mTimer is inited and waiting for firing.
+  bool mTimerActive;
 
   nsTArray<uint8_t> mPacketToSend;
 
@@ -169,6 +185,28 @@ class Http3Session final : public nsAHttpTransaction,
   nsDataHashtable<nsCStringHashKey, bool> mJoinConnectionCache;
 
   RefPtr<QuicSocketControl> mSocketControl;
+  nsCString mAlpnToken;
+
+  uint64_t mTransactionCount = 0;
+
+  // The stream(s) that we are getting 0RTT data from.
+  nsTArray<WeakPtr<Http3Stream>> m0RTTStreams;
+  // The stream(s) that are not able to send 0RTT data. We need to
+  // remember them put them into mReadyForWrite queue when 0RTT finishes.
+  nsTArray<WeakPtr<Http3Stream>> mCannotDo0RTTStreams;
+
+  // The following variables are needed for telemetry.
+  TimeStamp mConnectionIdleStart;
+  TimeStamp mConnectionIdleEnd;
+  Maybe<uint64_t> mFirstStreamIdReuseIdleConnection;
+  TimeStamp mTimerShouldTrigger;
+  uint64_t mBlockedByStreamLimitCount = 0;
+  uint64_t mTransactionsBlockedByStreamLimitCount = 0;
+  uint64_t mTransactionsSenderBlockedByFlowControlCount = 0;
+
+  // NS_NET_STATUS_CONNECTED_TO event will be created by the Http3Session.
+  // We want to  propagate it to the first transaction.
+  RefPtr<nsHttpTransaction> mFirstHttpTransaction;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(Http3Session, NS_HTTP3SESSION_IID);

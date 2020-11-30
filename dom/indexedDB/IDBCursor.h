@@ -9,13 +9,13 @@
 
 #include "IDBCursorType.h"
 #include "IndexedDatabase.h"
-#include "InitializedOnce.h"
 #include "js/RootingAPI.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/IDBCursorBinding.h"
 #include "mozilla/dom/IDBTransaction.h"
 #include "mozilla/dom/indexedDB/Key.h"
 #include "mozilla/dom/quota/CheckedUnsafePtr.h"
+#include "mozilla/InitializedOnce.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsWrapperCache.h"
 
@@ -46,13 +46,13 @@ class BackgroundCursorChild;
 class IDBCursor : public nsISupports, public nsWrapperCache {
  public:
   using Key = indexedDB::Key;
-  using StructuredCloneReadInfo = indexedDB::StructuredCloneReadInfo;
+  using StructuredCloneReadInfoChild = indexedDB::StructuredCloneReadInfoChild;
 
   using Direction = IDBCursorDirection;
   using Type = IDBCursorType;
 
  protected:
-  InitializedOnceMustBeTrue<indexedDB::BackgroundCursorChildBase* const>
+  InitializedOnce<const NotNull<indexedDB::BackgroundCursorChildBase*>>
       mBackgroundActor;
 
   // TODO: mRequest could be made const if Bug 1575173 is resolved. It is
@@ -78,19 +78,19 @@ class IDBCursor : public nsISupports, public nsWrapperCache {
   bool mHaveValue : 1;
 
  public:
-  static MOZ_MUST_USE RefPtr<IDBObjectStoreCursor> Create(
+  [[nodiscard]] static RefPtr<IDBObjectStoreCursor> Create(
       indexedDB::BackgroundCursorChild<Type::ObjectStore>* aBackgroundActor,
-      Key aKey, StructuredCloneReadInfo&& aCloneInfo);
+      Key aKey, StructuredCloneReadInfoChild&& aCloneInfo);
 
-  static MOZ_MUST_USE RefPtr<IDBObjectStoreKeyCursor> Create(
+  [[nodiscard]] static RefPtr<IDBObjectStoreKeyCursor> Create(
       indexedDB::BackgroundCursorChild<Type::ObjectStoreKey>* aBackgroundActor,
       Key aKey);
 
-  static MOZ_MUST_USE RefPtr<IDBIndexCursor> Create(
+  [[nodiscard]] static RefPtr<IDBIndexCursor> Create(
       indexedDB::BackgroundCursorChild<Type::Index>* aBackgroundActor, Key aKey,
-      Key aSortKey, Key aPrimaryKey, StructuredCloneReadInfo&& aCloneInfo);
+      Key aSortKey, Key aPrimaryKey, StructuredCloneReadInfoChild&& aCloneInfo);
 
-  static MOZ_MUST_USE RefPtr<IDBIndexKeyCursor> Create(
+  [[nodiscard]] static RefPtr<IDBIndexKeyCursor> Create(
       indexedDB::BackgroundCursorChild<Type::IndexKey>* aBackgroundActor,
       Key aKey, Key aSortKey, Key aPrimaryKey);
 
@@ -113,6 +113,8 @@ class IDBCursor : public nsISupports, public nsWrapperCache {
 
   IDBCursorDirection GetDirection() const;
 
+  RefPtr<IDBRequest> Request() const;
+
   virtual void GetKey(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
                       ErrorResult& aRv) = 0;
 
@@ -134,17 +136,17 @@ class IDBCursor : public nsISupports, public nsWrapperCache {
 
   virtual void Advance(uint32_t aCount, ErrorResult& aRv) = 0;
 
-  virtual MOZ_MUST_USE RefPtr<IDBRequest> Update(JSContext* aCx,
-                                                 JS::Handle<JS::Value> aValue,
-                                                 ErrorResult& aRv) = 0;
+  [[nodiscard]] virtual RefPtr<IDBRequest> Update(JSContext* aCx,
+                                                  JS::Handle<JS::Value> aValue,
+                                                  ErrorResult& aRv) = 0;
 
-  virtual MOZ_MUST_USE RefPtr<IDBRequest> Delete(JSContext* aCx,
-                                                 ErrorResult& aRv) = 0;
+  [[nodiscard]] virtual RefPtr<IDBRequest> Delete(JSContext* aCx,
+                                                  ErrorResult& aRv) = 0;
 
   void ClearBackgroundActor() {
     AssertIsOnOwningThread();
 
-    mBackgroundActor.reset();
+    mBackgroundActor.destroy();
   }
 
   virtual void InvalidateCachedResponses() = 0;
@@ -194,12 +196,12 @@ class IDBTypedCursor : public IDBCursor {
 
   void Advance(uint32_t aCount, ErrorResult& aRv) final;
 
-  MOZ_MUST_USE RefPtr<IDBRequest> Update(JSContext* aCx,
-                                         JS::Handle<JS::Value> aValue,
-                                         ErrorResult& aRv) final;
+  [[nodiscard]] RefPtr<IDBRequest> Update(JSContext* aCx,
+                                          JS::Handle<JS::Value> aValue,
+                                          ErrorResult& aRv) final;
 
-  MOZ_MUST_USE RefPtr<IDBRequest> Delete(JSContext* aCx,
-                                         ErrorResult& aRv) final;
+  [[nodiscard]] RefPtr<IDBRequest> Delete(JSContext* aCx,
+                                          ErrorResult& aRv) final;
 
   // nsWrapperCache
   JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
@@ -239,7 +241,7 @@ class IDBTypedCursor : public IDBCursor {
     // initialized that in the constructor from that type. We just want to avoid
     // having a second typed field.
     return *static_cast<indexedDB::BackgroundCursorChild<CursorType>*>(
-        *mBackgroundActor);
+        mBackgroundActor->get());
   }
 
   bool IsSourceDeleted() const;

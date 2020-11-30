@@ -36,7 +36,7 @@ loader.lazyRequireGetter(
 loader.lazyRequireGetter(
   this,
   "reps",
-  "devtools/client/shared/components/reps/reps"
+  "devtools/client/shared/components/reps/index"
 );
 loader.lazyRequireGetter(
   this,
@@ -77,6 +77,7 @@ class SideBar extends Component {
       mode: reps.MODE.SHORT,
       autoFocusRoot: true,
       pathPrefix: "WebConsoleSidebar",
+      customFormat: false,
     });
 
     return [

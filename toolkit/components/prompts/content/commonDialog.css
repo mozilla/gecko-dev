@@ -26,7 +26,7 @@
 
 #infoBody {
   -moz-user-focus: normal;
-  -moz-user-select: text;
+  user-select: text;
   cursor: text !important;
   white-space: pre-wrap;
   unicode-bidi: plaintext;
@@ -34,4 +34,9 @@
 
 #loginLabel, #password1Label {
   text-align: end;
+}
+
+#loginTextbox,
+#password1Textbox {
+  text-align: match-parent;
 }

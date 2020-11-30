@@ -14,6 +14,7 @@ function zzyzx2() {
   x = 10;
 }
 var obj = {propA: "A", propB: "B"};
+var array = [1, 2, 3];
 </script>
 `;
 
@@ -220,6 +221,21 @@ add_task(async function() {
 
   setInputValue(hud, "Reflect.setPrototypeOf({}, null)");
   await waitForNoEagerEvaluationResult(hud);
+
+  setInputValue(hud, "[] instanceof Array");
+  await waitForEagerEvaluationResult(hud, "true");
+
+  setInputValue(hud, "Int8Array.from({length: 1})[0]");
+  await waitForEagerEvaluationResult(hud, "0");
+
+  setInputValue(hud, "Float64Array.of(1)[0]");
+  await waitForEagerEvaluationResult(hud, "1");
+
+  setInputValue(hud, "array.fill()");
+  await waitForNoEagerEvaluationResult(hud);
+
+  setInputValue(hud, "array");
+  await waitForEagerEvaluationResult(hud, "Array(3) [ 1, 2, 3 ]");
 
   // go back to inline layout.
   await toggleLayout(hud);

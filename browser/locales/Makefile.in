@@ -11,7 +11,7 @@ SUBMAKEFILES += \
 	$(DEPTH)/$(MOZ_BRANDING_DIRECTORY)/locales/Makefile \
 	$(NULL)
 
-# This makefile uses variable overrides from the libs-% target to
+# This makefile uses variable overrides from the l10n-% target to
 # build non-default locales to non-default dist/ locations. Be aware!
 
 PWD := $(CURDIR)
@@ -51,11 +51,11 @@ include $(topsrcdir)/config/rules.mk
 
 include $(topsrcdir)/toolkit/locales/l10n.mk
 
-libs-%: AB_CD=$*
-libs-%:
+l10n-%: AB_CD=$*
+l10n-%:
 	$(if $(filter en-US,$(AB_CD)),, @$(MAKE) merge-$*)
 	$(NSINSTALL) -D $(DIST)/install
-	@$(MAKE) -C ../../toolkit/locales libs-$* XPI_ROOT_APPID='$(XPI_ROOT_APPID)'
+	@$(MAKE) -C ../../toolkit/locales l10n-$* XPI_ROOT_APPID='$(XPI_ROOT_APPID)'
 	@$(MAKE) -C ../../services/sync/locales AB_CD=$* XPI_NAME=locale-$*
 	@$(MAKE) -C ../../extensions/spellcheck/locales AB_CD=$* XPI_NAME=locale-$*
 ifneq (,$(wildcard ../extensions/formautofill/locales))
@@ -64,7 +64,7 @@ endif
 	@$(MAKE) -C ../extensions/report-site-issue/locales AB_CD=$* XPI_NAME=locale-$*
 	@$(MAKE) -C ../../devtools/client/locales AB_CD=$* XPI_NAME=locale-$* XPI_ROOT_APPID='$(XPI_ROOT_APPID)'
 	@$(MAKE) -C ../../devtools/startup/locales AB_CD=$* XPI_NAME=locale-$* XPI_ROOT_APPID='$(XPI_ROOT_APPID)'
-	@$(MAKE) libs AB_CD=$* XPI_NAME=locale-$* PREF_DIR=$(PREF_DIR)
+	@$(MAKE) l10n AB_CD=$* XPI_NAME=locale-$* PREF_DIR=$(PREF_DIR)
 	@$(MAKE) multilocale.txt-$* AB_CD=$* XPI_NAME=locale-$*
 	@$(MAKE) -C $(DEPTH)/$(MOZ_BRANDING_DIRECTORY)/locales AB_CD=$* XPI_NAME=locale-$*
 
@@ -96,7 +96,7 @@ langpack: langpack-$(AB_CD)
 installers-%: IS_LANGUAGE_REPACK=1
 installers-%:
 	@$(MAKE) clobber-$*
-	@$(MAKE) libs-$*
+	@$(MAKE) l10n-$*
 	@$(MAKE) package-langpack-$*
 	@$(MAKE) repackage-zip-$*
 ifeq (WINNT,$(OS_ARCH))
@@ -106,24 +106,8 @@ endif
 
 ident:
 	@printf 'fx_revision '
-	@$(PYTHON) $(topsrcdir)/config/printconfigsetting.py \
+	@$(PYTHON3) $(topsrcdir)/config/printconfigsetting.py \
 	    '$(STAGEDIST)'/application.ini App SourceStamp
 	@printf 'buildid '
-	@$(PYTHON) $(topsrcdir)/config/printconfigsetting.py \
+	@$(PYTHON3) $(topsrcdir)/config/printconfigsetting.py \
 	    '$(STAGEDIST)'/application.ini App BuildID
-
-# test target, depends on make package
-# try to repack x-test, with just toolkit/defines.inc being there
-l10n-check:: INNER_UNMAKE_PACKAGE=true
-l10n-check::
-	$(RM) -rf x-test
-	$(NSINSTALL) -D x-test/toolkit
-	echo '#define MOZ_LANG_TITLE Just testing' > x-test/toolkit/defines.inc
-	@# ZIP_IN='$(ZIP_IN)' will pass down the *current* value of ZIP_IN, and
-	@# we do the same for WIN32_INSTALLER_IN, which are based on MOZ_SIMPLE_PACKAGE_NAME
-	@# not being reset, overwriting the value they would get with MOZ_SIMPLE_PACKAGE_NAME
-	@# reset.
-	$(MAKE) installers-x-test L10NBASEDIR='$(PWD)' \
-	    ZIP_IN='$(ZIP_IN)' MOZ_SIMPLE_PACKAGE_NAME=
-	$(PYTHON) $(topsrcdir)/toolkit/mozapps/installer/unpack.py $(DIST)/l10n-stage/$(MOZ_PKG_DIR)$(_RESPATH)
-	cd $(DIST)/l10n-stage && test $$(cat $(MOZ_PKG_DIR)$(_RESPATH)/update.locale) = x-test

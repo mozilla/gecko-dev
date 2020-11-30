@@ -22,7 +22,10 @@ namespace gfx {
 class SourceSurfaceOffset : public SourceSurface {
  public:
   SourceSurfaceOffset(RefPtr<SourceSurface> aSurface, IntPoint aOffset)
-      : mSurface(aSurface), mOffset(aOffset) {}
+      : mSurface(aSurface), mOffset(aOffset) {
+    MOZ_RELEASE_ASSERT(mSurface);
+  }
+
   virtual SurfaceType GetType() const override { return SurfaceType::OFFSET; }
   virtual IntSize GetSize() const override { return mSurface->GetSize(); }
   virtual IntRect GetRect() const override {
@@ -79,7 +82,7 @@ class DrawTargetOffset : public DrawTarget {
                           const Point& aDestPoint,
                           const DrawOptions& aOptions = DrawOptions()) override;
   virtual void DrawSurfaceWithShadow(
-      SourceSurface* aSurface, const Point& aDest, const Color& aColor,
+      SourceSurface* aSurface, const Point& aDest, const DeviceColor& aColor,
       const Point& aOffset, Float aSigma,
       CompositionOp aOperator) override { /* Not implemented */
     MOZ_CRASH("GFX: DrawSurfaceWithShadow");

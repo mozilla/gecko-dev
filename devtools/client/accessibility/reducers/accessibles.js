@@ -38,7 +38,7 @@ function accessibles(state = getInitialState(), action) {
 }
 
 function getActorID(accessible) {
-  return accessible.actorID || (accessible._form && accessible._form.actor);
+  return accessible.actorID || accessible._form?.actor;
 }
 
 /**
@@ -122,8 +122,8 @@ function onReceiveChildren(cache, action) {
     return updateChildrenCache(new Map(cache), accessible, children);
   }
 
-  if (accessible.actorID) {
-    console.warn(`Error fetching children: `, accessible, error);
+  if (!accessible.isDestroyed()) {
+    console.warn(`Error fetching children: `, error);
     return cache;
   }
 

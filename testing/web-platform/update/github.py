@@ -3,8 +3,9 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import json
-from urlparse import urljoin
+from six.moves.urllib.parse import urljoin
 requests = None
+
 
 class GitHubError(Exception):
     def __init__(self, status, data):

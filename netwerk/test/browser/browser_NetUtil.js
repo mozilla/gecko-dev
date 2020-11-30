@@ -2,6 +2,7 @@
 Any copyright is dedicated to the Public Domain.
 http://creativecommons.org/publicdomain/zero/1.0/
 */
+"use strict";
 
 function test() {
   waitForExplicitFinish();
@@ -41,8 +42,8 @@ function test_asyncFetchBadCert() {
       });
       channel.notificationCallbacks = {
         QueryInterface: ChromeUtils.generateQI([
-          Ci.nsIProgressEventSink,
-          Ci.nsIInterfaceRequestor,
+          "nsIProgressEventSink",
+          "nsIInterfaceRequestor",
         ]),
         getInterface(aIID) {
           return this.QueryInterface(aIID);

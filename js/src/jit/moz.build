@@ -22,6 +22,7 @@ lir_inputs = ['LIR.h', 'shared/LIR-shared.h']
 UNIFIED_SOURCES += [
     'AliasAnalysis.cpp',
     'AlignmentMaskAnalysis.cpp',
+    'AutoDetectInvalidation.cpp',
     'BacktrackingAllocator.cpp',
     'Bailouts.cpp',
     'BaselineBailouts.cpp',
@@ -37,6 +38,7 @@ UNIFIED_SOURCES += [
     'BytecodeAnalysis.cpp',
     'CacheIR.cpp',
     'CacheIRCompiler.cpp',
+    'CacheIRHealth.cpp',
     'CacheIRSpewer.cpp',
     'CodeGenerator.cpp',
     'CompileWrappers.cpp',
@@ -45,6 +47,7 @@ UNIFIED_SOURCES += [
     'EffectiveAddressAnalysis.cpp',
     'ExecutableAllocator.cpp',
     'FoldLinearArithConstants.cpp',
+    'InlinableNatives.cpp',
     'InstructionReordering.cpp',
     'Ion.cpp',
     'IonAnalysis.cpp',
@@ -62,6 +65,8 @@ UNIFIED_SOURCES += [
     'JitSpewer.cpp',
     'JSJitFrameIter.cpp',
     'JSONSpewer.cpp',
+    'KnownClass.cpp',
+    'Label.cpp',
     'LICM.cpp',
     'Linker.cpp',
     'LIR.cpp',
@@ -77,6 +82,7 @@ UNIFIED_SOURCES += [
     'Recover.cpp',
     'RegisterAllocator.cpp',
     'RematerializedFrame.cpp',
+    'SafepointIndex.cpp',
     'Safepoints.cpp',
     'ScalarReplacement.cpp',
     'shared/CodeGenerator-shared.cpp',
@@ -85,15 +91,20 @@ UNIFIED_SOURCES += [
     'Sink.cpp',
     'Snapshots.cpp',
     'TIOracle.cpp',
+    'TrialInlining.cpp',
     'TypePolicy.cpp',
     'ValueNumbering.cpp',
     'VMFunctions.cpp',
     'WarpBuilder.cpp',
+    'WarpBuilderShared.cpp',
+    'WarpCacheIRTranspiler.cpp',
     'WarpOracle.cpp',
+    'WarpSnapshot.cpp',
     'WasmBCE.cpp',
+    'XrayJitInfo.cpp',
 ]
 
-if not CONFIG['ENABLE_ION']:
+if CONFIG['JS_CODEGEN_NONE']:
     lir_inputs += ['none/LIR-none.h']
     UNIFIED_SOURCES += [
         'none/Trampoline-none.cpp'
@@ -107,6 +118,7 @@ elif CONFIG['JS_CODEGEN_X86'] or CONFIG['JS_CODEGEN_X64']:
         'x86-shared/AssemblerBuffer-x86-shared.cpp',
         'x86-shared/CodeGenerator-x86-shared.cpp',
         'x86-shared/Lowering-x86-shared.cpp',
+        'x86-shared/MacroAssembler-x86-shared-SIMD-unused.cpp',
         'x86-shared/MacroAssembler-x86-shared-SIMD.cpp',
         'x86-shared/MacroAssembler-x86-shared.cpp',
         'x86-shared/MoveEmitter-x86-shared.cpp',
@@ -238,15 +250,21 @@ elif CONFIG['JS_CODEGEN_MIPS32'] or CONFIG['JS_CODEGEN_MIPS64']:
             ]
 
 
-# Generate jit/MOpcodes.h from jit/MIR.h
-GeneratedFile('MOpcodes.h',
+# Generate jit/MOpcodesGenerated.h from jit/MIR.h
+GeneratedFile('MOpcodesGenerated.h',
               script='GenerateOpcodeFiles.py',
               entry_point='generate_mir_header',
               inputs=['MIR.h'])
 
-# Generate jit/LOpcodes.h from jit/LIR.h, jit/shared/LIR-shared.h, and
+# Generate jit/LOpcodesGenerated.h from jit/LIR.h, jit/shared/LIR-shared.h, and
 # platform-specific LIR files.
-GeneratedFile('LOpcodes.h',
+GeneratedFile('LOpcodesGenerated.h',
               script='GenerateOpcodeFiles.py',
               entry_point='generate_lir_header',
               inputs=lir_inputs)
+
+# Generate jit/CacheIROpsGenerated.h from jit/CacheIROps.yaml
+GeneratedFile('CacheIROpsGenerated.h',
+              script='GenerateCacheIRFiles.py',
+              entry_point='generate_cacheirops_header',
+              inputs=['CacheIROps.yaml'])

@@ -4,13 +4,13 @@
 const { Service } = ChromeUtils.import("resource://services-sync/service.js");
 const { WBORecord } = ChromeUtils.import("resource://services-sync/record.js");
 const { Resource } = ChromeUtils.import("resource://services-sync/resource.js");
-const { BookmarksEngine } = ChromeUtils.import(
-  "resource://services-sync/engines/bookmarks.js"
-);
 const { RotaryEngine } = ChromeUtils.import(
   "resource://testing-common/services/sync/rotaryengine.js"
 );
 const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
+const { fxAccounts } = ChromeUtils.import(
+  "resource://gre/modules/FxAccounts.jsm"
+);
 
 function SteamStore(engine) {
   Store.call(this, "Steam", engine);
@@ -21,12 +21,11 @@ SteamStore.prototype = {
 };
 
 function SteamTracker(name, engine) {
-  Tracker.call(this, name || "Steam", engine);
+  LegacyTracker.call(this, name || "Steam", engine);
 }
 
 SteamTracker.prototype = {
-  __proto__: Tracker.prototype,
-  persistChangedIDs: false,
+  __proto__: LegacyTracker.prototype,
 };
 
 function SteamEngine(service) {
@@ -146,7 +145,7 @@ add_task(async function test_basic() {
 });
 
 add_task(async function test_processIncoming_error() {
-  let engine = new BookmarksEngine(Service);
+  let engine = Service.engineManager.get("bookmarks");
   await engine.initialize();
   let store = engine._store;
   let server = await serverForFoo(engine);
@@ -189,10 +188,7 @@ add_task(async function test_processIncoming_error() {
 
     equal(pingPayload.engines.length, 1);
 
-    let engineName = bufferedBookmarksEnabled()
-      ? "bookmarks-buffered"
-      : "bookmarks";
-    equal(pingPayload.engines[0].name, engineName);
+    equal(pingPayload.engines[0].name, "bookmarks-buffered");
     deepEqual(pingPayload.engines[0].failureReason, {
       name: "httperror",
       code: 500,
@@ -204,7 +200,7 @@ add_task(async function test_processIncoming_error() {
 });
 
 add_task(async function test_uploading() {
-  let engine = new BookmarksEngine(Service);
+  let engine = Service.engineManager.get("bookmarks");
   await engine.initialize();
   let store = engine._store;
   let server = await serverForFoo(engine);
@@ -217,14 +213,10 @@ add_task(async function test_uploading() {
   });
 
   try {
-    let engineName = bufferedBookmarksEnabled()
-      ? "bookmarks-buffered"
-      : "bookmarks";
-
     let ping = await sync_engine_and_validate_telem(engine, false);
     ok(!!ping);
     equal(ping.engines.length, 1);
-    equal(ping.engines[0].name, engineName);
+    equal(ping.engines[0].name, "bookmarks-buffered");
     ok(!!ping.engines[0].outgoing);
     greater(ping.engines[0].outgoing[0].sent, 0);
     ok(!ping.engines[0].incoming);
@@ -236,10 +228,13 @@ add_task(async function test_uploading() {
 
     await store.wipe();
     await engine.resetClient();
+    // We don't sync via the service, so don't re-hit info/collections, so
+    // lastModified remaning at zero breaks things subtly...
+    engine.lastModified = null;
 
     ping = await sync_engine_and_validate_telem(engine, false);
     equal(ping.engines.length, 1);
-    equal(ping.engines[0].name, engineName);
+    equal(ping.engines[0].name, "bookmarks-buffered");
     equal(ping.engines[0].outgoing.length, 1);
     ok(!!ping.engines[0].incoming);
   } finally {
@@ -612,12 +607,7 @@ add_task(async function test_initial_sync_engines() {
   let engine = Service.engineManager.get("steam");
   engine.enabled = true;
   // These are the only ones who actually have things to sync at startup.
-  let telemetryEngineNames = ["clients", "prefs", "tabs"];
-  if (bufferedBookmarksEnabled()) {
-    telemetryEngineNames.push("bookmarks-buffered");
-  } else {
-    telemetryEngineNames.push("bookmarks");
-  }
+  let telemetryEngineNames = ["clients", "prefs", "tabs", "bookmarks-buffered"];
   let server = await serverForEnginesWithKeys(
     { foo: "password" },
     ["bookmarks", "prefs", "tabs"].map(name => Service.engineManager.get(name))
@@ -1050,7 +1040,6 @@ add_task(async function test_fxa_device_telem() {
     let keep2Sync = Utils.makeGUID();
     let curdevSync = Utils.makeGUID();
     let fxaDevices = [
-      // current device. First for easy access later
       {
         id: curdev,
         isCurrentDevice: true,
@@ -1059,58 +1048,13 @@ add_task(async function test_fxa_device_telem() {
         type: "desktop",
         name: "current device",
       },
-      // Valid but push expired
       {
-        id: Utils.makeGUID(),
-        isCurrentDevice: false,
-        lastAccessTime: Date.now() - 1000 * 60 * 60 * 24 * 15,
-        pushEndpointExpired: true,
-        type: "desktop",
-        name: "push expired",
-      },
-      // three with same name, should ignore older.
-      {
-        id: Utils.makeGUID(),
-        isCurrentDevice: false,
-        lastAccessTime: Date.now() - 1000 * 60 * 60 * 24 * 15,
-        pushEndpointExpired: false,
-        type: "mobile",
-        name: "dupe",
-      },
-      {
-        // should keep
         id: keep0,
         isCurrentDevice: false,
         lastAccessTime: Date.now() - 1000 * 60 * 60 * 24 * 10,
         pushEndpointExpired: false,
         type: "mobile",
         name: "dupe",
-      },
-      {
-        id: Utils.makeGUID(),
-        isCurrentDevice: false,
-        lastAccessTime: Date.now() - 1000 * 60 * 60 * 24 * 12,
-        pushEndpointExpired: false,
-        type: "mobile",
-        name: "dupe",
-      },
-      // Valid but too old.
-      {
-        id: Utils.makeGUID(),
-        isCurrentDevice: false,
-        lastAccessTime: Date.now() - 1000 * 60 * 60 * 24 * 90,
-        pushEndpointExpired: false,
-        type: "desktop",
-        name: "too old",
-      },
-      // Valid but null date (saw locally).
-      {
-        id: Utils.makeGUID(),
-        isCurrentDevice: false,
-        lastAccessTime: null,
-        pushEndpointExpired: false,
-        type: "desktop",
-        name: "null date",
       },
       // Valid 2
       {
@@ -1222,6 +1166,7 @@ add_task(async function test_fxa_device_telem() {
     // Reset this, as our override doesn't check for sync being enabled.
     t.sanitizeFxaDeviceId = oldSanitizeFxaDeviceId;
     syncEnabled = false;
+    fxAccounts.telemetry._setHashedUID(false);
     devInfo = t.updateFxaDevices(fxaDevices);
     equal(devInfo.deviceID, undefined);
     equal(devInfo.devices.length, 5);
@@ -1237,6 +1182,23 @@ add_task(async function test_fxa_device_telem() {
     t.getFxaDevices = oldGetFxaDevices;
     t.syncIsEnabled = oldSyncIsEnabled;
     t.sanitizeFxaDeviceId = oldSanitizeFxaDeviceId;
+  }
+});
+
+add_task(async function test_sanitize_fxa_device_id() {
+  let t = get_sync_test_telemetry();
+  fxAccounts.telemetry._setHashedUID(false);
+  sinon.stub(t, "syncIsEnabled").callsFake(() => true);
+  const rawDeviceId = "raw one two three";
+  try {
+    equal(t.sanitizeFxaDeviceId(rawDeviceId), null);
+    fxAccounts.telemetry._setHashedUID("mock uid");
+    const sanitizedDeviceId = t.sanitizeFxaDeviceId(rawDeviceId);
+    ok(sanitizedDeviceId);
+    notEqual(sanitizedDeviceId, rawDeviceId);
+  } finally {
+    t.syncIsEnabled.restore();
+    fxAccounts.telemetry._setHashedUID(false);
   }
 });
 
@@ -1270,6 +1232,8 @@ add_task(async function test_node_type_change() {
   // Default to submitting each hour - we should still submit on node change.
   let telem = get_sync_test_telemetry();
   telem.submissionInterval = 60 * 60 * 1000;
+  // reset the node type from previous test or our first sync will submit.
+  telem.lastSyncNodeType = null;
   // do 2 syncs with the same node type.
   await Service.sync();
   await Service.sync();
@@ -1286,4 +1250,69 @@ add_task(async function test_node_type_change() {
   equal(pings[1].syncs.length, 1, "1 sync in second ping");
   equal(pings[1].syncNodeType, "second-node-type");
   await promiseStopServer(server);
+});
+
+add_task(async function test_ids() {
+  let telem = get_sync_test_telemetry();
+  Assert.ok(!telem._shouldSubmitForDataChange());
+  fxAccounts.telemetry._setHashedUID("new_uid");
+  Assert.ok(telem._shouldSubmitForDataChange());
+  telem.maybeSubmitForDataChange();
+  // now it's been submitted the new uid is current.
+  Assert.ok(!telem._shouldSubmitForDataChange());
+});
+
+add_task(async function test_deletion_request_ping() {
+  async function assertRecordedSyncDeviceID(expected) {
+    // The scalar gets updated asynchronously, so wait a tick before checking.
+    await Promise.resolve();
+    const scalars =
+      Services.telemetry.getSnapshotForScalars("deletion-request").parent || {};
+    equal(scalars["deletion.request.sync_device_id"], expected);
+  }
+
+  const MOCK_HASHED_UID = "00112233445566778899aabbccddeeff";
+  const MOCK_DEVICE_ID1 = "ffeeddccbbaa99887766554433221100";
+  const MOCK_DEVICE_ID2 = "aabbccddeeff99887766554433221100";
+
+  // Calculated by hand using SHA256(DEVICE_ID + HASHED_UID)[:32]
+  const SANITIZED_DEVICE_ID1 = "dd7c845006df9baa1c6d756926519c8c";
+  const SANITIZED_DEVICE_ID2 = "0d06919a736fc029007e1786a091882c";
+
+  let currentDeviceID = null;
+  sinon.stub(fxAccounts.device, "getLocalId").callsFake(() => {
+    return Promise.resolve(currentDeviceID);
+  });
+  let telem = get_sync_test_telemetry();
+  sinon.stub(telem, "isProductionSyncUser").callsFake(() => true);
+  fxAccounts.telemetry._setHashedUID(false);
+  try {
+    // The scalar should start out undefined, since no user is actually logged in.
+    await assertRecordedSyncDeviceID(undefined);
+
+    // If we start up without knowing the hashed UID, it should stay undefined.
+    telem.observe(null, "weave:service:ready");
+    await assertRecordedSyncDeviceID(undefined);
+
+    // But now let's say we've discovered the hashed UID from the server.
+    fxAccounts.telemetry._setHashedUID(MOCK_HASHED_UID);
+    currentDeviceID = MOCK_DEVICE_ID1;
+
+    // Now when we load up, we'll record the sync device id.
+    telem.observe(null, "weave:service:ready");
+    await assertRecordedSyncDeviceID(SANITIZED_DEVICE_ID1);
+
+    // When the device-id changes we'll update it.
+    currentDeviceID = MOCK_DEVICE_ID2;
+    telem.observe(null, "fxaccounts:new_device_id");
+    await assertRecordedSyncDeviceID(SANITIZED_DEVICE_ID2);
+
+    // When the user signs out we'll clear it.
+    telem.observe(null, "fxaccounts:onlogout");
+    await assertRecordedSyncDeviceID("");
+  } finally {
+    fxAccounts.telemetry._setHashedUID(false);
+    telem.isProductionSyncUser.restore();
+    fxAccounts.device.getLocalId.restore();
+  }
 });

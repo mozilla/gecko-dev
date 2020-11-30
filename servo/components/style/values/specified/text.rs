@@ -41,11 +41,16 @@ impl Parse for InitialLetter {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("normal")).is_ok() {
+        if input
+            .try_parse(|i| i.expect_ident_matching("normal"))
+            .is_ok()
+        {
             return Ok(GenericInitialLetter::Normal);
         }
         let size = Number::parse_at_least_one(context, input)?;
-        let sink = input.try(|i| Integer::parse_positive(context, i)).ok();
+        let sink = input
+            .try_parse(|i| Integer::parse_positive(context, i))
+            .ok();
         Ok(GenericInitialLetter::Specified(size, sink))
     }
 }
@@ -122,7 +127,19 @@ impl ToComputedValue for LineHeight {
 }
 
 /// A generic value for the `text-overflow` property.
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[derive(
+    Clone,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    Parse,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
 #[repr(C, u8)]
 pub enum TextOverflowSide {
     /// Clip inline content.
@@ -131,30 +148,6 @@ pub enum TextOverflowSide {
     Ellipsis,
     /// Render a given string to represent clipped inline content.
     String(crate::OwnedStr),
-}
-
-impl Parse for TextOverflowSide {
-    fn parse<'i, 't>(
-        _context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<TextOverflowSide, ParseError<'i>> {
-        let location = input.current_source_location();
-        match *input.next()? {
-            Token::Ident(ref ident) => {
-                match_ignore_ascii_case! { ident,
-                    "clip" => Ok(TextOverflowSide::Clip),
-                    "ellipsis" => Ok(TextOverflowSide::Ellipsis),
-                    _ => Err(location.new_custom_error(
-                        SelectorParseErrorKind::UnexpectedIdent(ident.clone())
-                    ))
-                }
-            },
-            Token::QuotedString(ref v) => {
-                Ok(TextOverflowSide::String(v.as_ref().to_owned().into()))
-            },
-            ref t => Err(location.new_unexpected_token_error(t.clone())),
-        }
-    }
 }
 
 #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
@@ -173,7 +166,7 @@ impl Parse for TextOverflow {
     ) -> Result<TextOverflow, ParseError<'i>> {
         let first = TextOverflowSide::parse(context, input)?;
         let second = input
-            .try(|input| TextOverflowSide::parse(context, input))
+            .try_parse(|input| TextOverflowSide::parse(context, input))
             .ok();
         Ok(TextOverflow { first, second })
     }
@@ -217,7 +210,7 @@ impl ToComputedValue for TextOverflow {
 }
 
 bitflags! {
-    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
+    #[derive(MallocSizeOf, Serialize, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
     #[value_info(other_values = "none,underline,overline,line-through,blink")]
     #[repr(C)]
     /// Specified keyword values for the text-decoration-line property.
@@ -244,6 +237,12 @@ bitflags! {
     }
 }
 
+impl Default for TextDecorationLine {
+    fn default() -> Self {
+        TextDecorationLine::NONE
+    }
+}
+
 impl Parse for TextDecorationLine {
     /// none | [ underline || overline || line-through || blink ]
     fn parse<'i, 't>(
@@ -257,7 +256,7 @@ impl Parse for TextDecorationLine {
         // ensure we don't return an error if we don't consume the whole thing
         // because we find an invalid identifier or other kind of token.
         loop {
-            let flag: Result<_, ParseError<'i>> = input.try(|input| {
+            let flag: Result<_, ParseError<'i>> = input.try_parse(|input| {
                 let flag = try_match_ident_ignore_ascii_case! { input,
                     "none" if result.is_empty() => TextDecorationLine::NONE,
                     "underline" => TextDecorationLine::UNDERLINE,
@@ -681,7 +680,19 @@ pub enum TextEmphasisStyle {
 }
 
 /// Fill mode for the text-emphasis-style property
-#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
 #[repr(u8)]
 pub enum TextEmphasisFillMode {
     /// `filled`
@@ -700,7 +711,18 @@ impl TextEmphasisFillMode {
 
 /// Shape keyword for the text-emphasis-style property
 #[derive(
-    Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[repr(u8)]
 pub enum TextEmphasisShapeKeyword {
@@ -774,22 +796,22 @@ impl Parse for TextEmphasisStyle {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         if input
-            .try(|input| input.expect_ident_matching("none"))
+            .try_parse(|input| input.expect_ident_matching("none"))
             .is_ok()
         {
             return Ok(TextEmphasisStyle::None);
         }
 
-        if let Ok(s) = input.try(|i| i.expect_string().map(|s| s.as_ref().to_owned())) {
+        if let Ok(s) = input.try_parse(|i| i.expect_string().map(|s| s.as_ref().to_owned())) {
             // Handle <string>
             return Ok(TextEmphasisStyle::String(s.into()));
         }
 
         // Handle a pair of keywords
-        let mut shape = input.try(TextEmphasisShapeKeyword::parse).ok();
-        let fill = input.try(TextEmphasisFillMode::parse).ok();
+        let mut shape = input.try_parse(TextEmphasisShapeKeyword::parse).ok();
+        let fill = input.try_parse(TextEmphasisFillMode::parse).ok();
         if shape.is_none() {
-            shape = input.try(TextEmphasisShapeKeyword::parse).ok();
+            shape = input.try_parse(TextEmphasisShapeKeyword::parse).ok();
         }
 
         if shape.is_none() && fill.is_none() {
@@ -905,7 +927,7 @@ impl Parse for TextEmphasisPosition {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         if let Ok(horizontal) =
-            input.try(|input| TextEmphasisHorizontalWritingModeValue::parse(input))
+            input.try_parse(|input| TextEmphasisHorizontalWritingModeValue::parse(input))
         {
             let vertical = TextEmphasisVerticalWritingModeValue::parse(input)?;
             Ok(TextEmphasisPosition(horizontal, vertical))

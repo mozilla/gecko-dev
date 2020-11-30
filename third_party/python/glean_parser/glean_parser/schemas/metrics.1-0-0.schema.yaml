@@ -83,28 +83,29 @@ definitions:
 
             - `counter`: A numeric value that can only be incremented.
 
-            - `quantity`: A numeric value that is set directly. Only allowed for
-              metrics coming from GeckoView.
+            - `quantity`: A numeric value that is set directly.
 
             - `timespan`: Represents a time interval. Additional properties:
-              `time_unit`_.
+              `time_unit`.
 
             - `timing_distribution`: Record the distribution of multiple
-              timings. Additional properties: `time_unit`_.
+              timings. Additional properties: `time_unit`.
 
             - `datetime`: A date/time value. Represented as an ISO datetime in
-              UTC. Additional properties: `time_unit`_.
+              UTC. Additional properties: `time_unit`.
 
             - `uuid`: Record a UUID v4.
 
+            - `jwe`: Record a [JWE](https://tools.ietf.org/html/rfc7516) value.
+
             - `memory_distribution`: A histogram for recording memory usage
-              values. Additional properties: `memory_unit`_.
+              values. Additional properties: `memory_unit`.
 
             - `custom_distribution`: A histogram with a custom range and number
               of buckets. This metric type is for legacy support only and is
               only allowed for metrics coming from GeckoView. Additional
-              properties: `range_min`_, `range_max`_, `bucket_count`_,
-              `histogram_type`_.
+              properties: `range_min`, `range_max`, `bucket_count`,
+              `histogram_type`.
 
             - Additionally, labeled versions of many metric types are supported.
               These support the `labels`_ parameter, allowing multiple instances
@@ -127,6 +128,7 @@ definitions:
           - memory_distribution
           - datetime
           - uuid
+          - jwe
           - labeled_boolean
           - labeled_string
           - labeled_counter
@@ -237,15 +239,17 @@ definitions:
         description: |
           **Required.**
 
-          May be one of the following values:
+          By default it may be one of the following values:
             - `<build date>`: An ISO date `yyyy-mm-dd` in UTC on which the
               metric expires. For example, `2019-03-13`. This date is checked at
               build time. Except in special cases, this form should be used so
               that the metric automatically "sunsets" after a period of time.
             - `never`: This metric never expires.
             - `expired`: This metric is manually expired.
+
+          The default may be overriden in certain applications by the
+          `custom_validate_expires` and `custom_is_expired` configs.
         type: string
-        pattern: "(never)|(expired)|([0-9]{4}-[0-9]{2}-[0-9]{2})"
 
       version:
         title: Metric version
@@ -256,12 +260,21 @@ definitions:
       time_unit:
         title: Time unit
         description: |
-          Specifies the unit that the metric will be stored and displayed in. If
-          not provided, it defaults to milliseconds. Time values are sent to the
-          backend as integers, so `time_unit`_ determines the maximum resolution
-          at which timespans are recorded. Times are always truncated, not
-          rounded, to the nearest time unit. For example, a measurement of 25 ns
-          will be returned as 0 ms if `time_unit` is `"millisecond"`.
+          For timespans and datetimes, specifies the unit that the metric will
+          be stored and displayed in. If not provided, it defaults to
+          "millisecond". Time values are sent to the backend as integers, so
+          `time_unit`_ determines the maximum resolution at which timespans are
+          recorded. Times are always truncated, not rounded, to the nearest time
+          unit. For example, a measurement of 25 ns will be returned as 0 ms if
+          `time_unit` is `"millisecond"`.
+
+          For timing distributions, times are always recorded and sent in
+          nanoseconds, but `time_unit` controls the minimum and maximum values.
+          If not provided, it defaults to "nanosecond".
+
+          - nanosecond: 1ns <= x <= 10 minutes
+          - microsecond: 1μs <= x <= ~6.94 days
+          - millisecond: 1ms <= x <= ~19 years
 
           Valid when `type`_ is `timespan`, `timing_distribution` or `datetime`.
         enum:
@@ -299,9 +312,9 @@ definitions:
         description: |
           A list of labels for a labeled metric.  If provided, the labels are
           enforced at run time, and recording to an unknown label is recorded
-          to the special label ``__other__``.  If not provided, the labels
+          to the special label `__other__`.  If not provided, the labels
           may be anything, but using too many unique labels will put some
-          labels in the special label ``__other__``.
+          labels in the special label `__other__`.
 
           Valid with any of the labeled metric types.
         anyOf:
@@ -317,6 +330,7 @@ definitions:
         description: |
           The acceptable keys on the "extra" object sent with events. This is an
           object mapping the key to an object containing metadata about the key.
+          A maximum of 10 extra keys is allowed.
           This metadata object has the following keys:
 
             - `description`: **Required.** A description of the key.
@@ -332,6 +346,7 @@ definitions:
               type: string
           required:
             - description
+        maxProperties: 10
         default: {}
 
       gecko_datapoint:
@@ -400,6 +415,62 @@ definitions:
         type: array
         items:
           type: string
+
+      decrypted_name:
+        title: Decrypted name
+        description: |
+          Name of the column where to persist the decrypted value
+          stored in the JWE after processing.
+
+          Required when `type`_ is `jwe`.
+        type: string
+        pattern: "^[a-z_][a-z0-9_]{0,29}(\\.[a-z_][a-z0-9_]{0,29})*$"
+
+      data_sensitivity:
+        title: The level of data sensitivity
+        description: |
+          There are four data collection categories related to data sensitivity
+          [defined here](https://wiki.mozilla.org/Firefox/Data_Collection):
+
+          - **Category 1: Technical Data:** (`technical`) Information about the
+            machine or Firefox itself. Examples include OS, available memory,
+            crashes and errors, outcome of automated processes like updates,
+            safebrowsing, activation, version \#s, and buildid. This also
+            includes compatibility information about features and APIs used by
+            websites, addons, and other 3rd-party software that interact with
+            Firefox during usage.
+
+          - **Category 2: Interaction Data:** (`interaction`) Information about
+            the user’s direct engagement with Firefox. Examples include how many
+            tabs, addons, or windows a user has open; uses of specific Firefox
+            features; session length, scrolls and clicks; and the status of
+            discrete user preferences.
+
+          - **Category 3: Web activity data:** (`web_activity`) Information
+            about user web browsing that could be considered sensitive. Examples
+            include users’ specific web browsing history; general information
+            about their web browsing history (such as TLDs or categories of
+            webpages visited over time); and potentially certain types of
+            interaction data about specific webpages visited.
+
+          - **Category 4: Highly sensitive data:** (`highly_sensitive`)
+            Information that directly identifies a person, or if combined with
+            other data could identify a person. Examples include e-mail,
+            usernames, identifiers such as google ad id, apple id, fxaccount,
+            city or country (unless small ones are explicitly filtered out), or
+            certain cookies. It may be embedded within specific website content,
+            such as memory contents, dumps, captures of screen data, or DOM
+            data.
+        type: array
+        items:
+          enum:
+            - technical
+            - interaction
+            - web_activity
+            - highly_sensitive
+          type: string
+        minLength: 1
+        uniqueItems: true
 
     required:
       - type
@@ -478,12 +549,11 @@ additionalProperties:
             type:
               enum:
                 - custom_distribution
-                - quantity
         then:
           required:
             - gecko_datapoint
           description: |
-            `custom_distribution` and `quantity` is only allowed for Gecko
+            `custom_distribution` is only allowed for Gecko
             metrics.
       -
         if:
@@ -518,3 +588,13 @@ additionalProperties:
             - unit
           description: |
             `quantity` is missing required parameter `unit`.
+      -
+        if:
+          properties:
+            type:
+              const: jwe
+        then:
+          required:
+            - decrypted_name
+          description: |
+            `jwe` is missing required parameter `decrypted_name`.

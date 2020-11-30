@@ -1,6 +1,4 @@
 TOOLTOOL_DIR=${topsrcdir}
-export MAKECAB=$TOOLTOOL_DIR/makecab.exe
-export LLVM_CONFIG="${MOZ_FETCHES_DIR}/clang/bin/llvm-config"
 export DUMP_SYMS="${MOZ_FETCHES_DIR}/dump_syms/dump_syms.exe"
 
 RUSTC="${MOZ_FETCHES_DIR}/rustc/bin/rustc"
@@ -11,6 +9,7 @@ CBINDGEN="${MOZ_FETCHES_DIR}/cbindgen/cbindgen"
 
 NASM="${MOZ_FETCHES_DIR}/nasm/nasm.exe"
 NODEJS="${MOZ_FETCHES_DIR}/node/node.exe"
+WINCHECKSEC="${MOZ_FETCHES_DIR}/winchecksec/winchecksec.exe"
 
 ac_add_options --target=x86_64-pc-mingw32
 

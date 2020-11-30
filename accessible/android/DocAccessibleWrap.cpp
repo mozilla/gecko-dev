@@ -5,9 +5,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "Accessible-inl.h"
+#include "AccessibleOrProxy.h"
 #include "DocAccessibleChild.h"
 #include "DocAccessibleWrap.h"
 #include "nsIDocShell.h"
+#include "nsIScrollableFrame.h"
 #include "nsLayoutUtils.h"
 #include "nsAccessibilityService.h"
 #include "nsAccUtils.h"
@@ -99,7 +101,7 @@ void DocAccessibleWrap::CacheViewportCallback(nsITimer* aTimer,
   nsRect scrollPort = sf ? sf->GetScrollPortRect() : rootFrame->GetRect();
 
   nsLayoutUtils::GetFramesForArea(
-      presShell->GetRootFrame(), scrollPort, frames,
+      RelativeTo{presShell->GetRootFrame()}, scrollPort, frames,
       nsLayoutUtils::FrameForPointOption::OnlyVisible);
   AccessibleHashtable inViewAccs;
   for (size_t i = 0; i < frames.Length(); i++) {
@@ -145,7 +147,7 @@ void DocAccessibleWrap::CacheViewportCallback(nsITimer* aTimer,
     }
 
     ipcDoc->SendBatch(eBatch_Viewport, cacheData);
-  } else if (SessionAccessibility* sessionAcc =
+  } else if (RefPtr<SessionAccessibility> sessionAcc =
                  SessionAccessibility::GetInstanceFor(docAcc)) {
     nsTArray<AccessibleWrap*> accessibles(inViewAccs.Count());
     for (auto iter = inViewAccs.Iter(); !iter.Done(); iter.Next()) {
@@ -157,18 +159,26 @@ void DocAccessibleWrap::CacheViewportCallback(nsITimer* aTimer,
   }
 
   if (docAcc->mCachePivotBoundaries) {
-    a11y::Pivot pivot(docAcc);
+    AccessibleOrProxy accOrProxy = AccessibleOrProxy(docAcc);
+    a11y::Pivot pivot(accOrProxy);
     TraversalRule rule(java::SessionAccessibility::HTML_GRANULARITY_DEFAULT);
-    Accessible* first = pivot.First(rule);
-    Accessible* last = pivot.Last(rule);
+    Accessible* first = pivot.First(rule).AsAccessible();
+    Accessible* last = pivot.Last(rule).AsAccessible();
 
     // If first/last are null, pass the root document as pivot boundary.
     if (IPCAccessibilityActive()) {
       DocAccessibleChild* ipcDoc = docAcc->IPCDoc();
-      ipcDoc->GetPlatformExtension()->SendSetPivotBoundaries(
-          first ? first->Document()->IPCDoc() : ipcDoc, UNIQUE_ID(first),
-          last ? last->Document()->IPCDoc() : ipcDoc, UNIQUE_ID(last));
-    } else if (SessionAccessibility* sessionAcc =
+      DocAccessibleChild* firstDoc =
+          first ? first->Document()->IPCDoc() : ipcDoc;
+      DocAccessibleChild* lastDoc = last ? last->Document()->IPCDoc() : ipcDoc;
+      if (ipcDoc && firstDoc && lastDoc) {
+        // One or more of the documents may not have recieved an IPC doc yet.
+        // In that case, just throw away this update. We will get a new one soon
+        // enough.
+        ipcDoc->GetPlatformExtension()->SendSetPivotBoundaries(
+            firstDoc, UNIQUE_ID(first), lastDoc, UNIQUE_ID(last));
+      }
+    } else if (RefPtr<SessionAccessibility> sessionAcc =
                    SessionAccessibility::GetInstanceFor(docAcc)) {
       sessionAcc->UpdateAccessibleFocusBoundaries(
           first ? static_cast<AccessibleWrap*>(first) : docAcc,
@@ -234,7 +244,7 @@ void DocAccessibleWrap::CacheFocusPath(AccessibleWrap* aAccessible) {
     }
 
     ipcDoc->SendBatch(eBatch_FocusPath, cacheData);
-  } else if (SessionAccessibility* sessionAcc =
+  } else if (RefPtr<SessionAccessibility> sessionAcc =
                  SessionAccessibility::GetInstanceFor(this)) {
     nsTArray<AccessibleWrap*> accessibles;
     for (AccessibleWrap* acc = aAccessible; acc && acc != this->Parent();
@@ -271,7 +281,7 @@ void DocAccessibleWrap::UpdateFocusPathBounds() {
     }
 
     ipcDoc->SendBatch(eBatch_BoundsUpdate, boundsData);
-  } else if (SessionAccessibility* sessionAcc =
+  } else if (RefPtr<SessionAccessibility> sessionAcc =
                  SessionAccessibility::GetInstanceFor(this)) {
     nsTArray<AccessibleWrap*> accessibles(mFocusPath.Count());
     for (auto iter = mFocusPath.Iter(); !iter.Done(); iter.Next()) {

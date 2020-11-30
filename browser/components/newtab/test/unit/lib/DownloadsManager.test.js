@@ -25,7 +25,7 @@ describe("Downloads Manager", () => {
       }),
       copyDownloadLink: sinon.stub(),
       deleteDownload: sinon.stub().returns(Promise.resolve()),
-      openDownloadedFile: sinon.stub(),
+      openDownload: sinon.stub(),
       showDownloadedFile: sinon.stub(),
     });
 
@@ -78,8 +78,9 @@ describe("Downloads Manager", () => {
       downloadsManager.onAction({
         type: at.OPEN_DOWNLOAD_FILE,
         data: { url: DOWNLOAD_URL, type: "download" },
+        _target: { browser: {} },
       });
-      assert.calledOnce(global.DownloadsCommon.openDownloadedFile);
+      assert.calledOnce(global.DownloadsCommon.openDownload);
     });
     it("should copy the file on UNINIT", () => {
       // DownloadsManager._downloadData needs to exist first

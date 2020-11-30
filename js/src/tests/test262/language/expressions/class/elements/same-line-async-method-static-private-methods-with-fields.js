@@ -1,4 +1,4 @@
-// |reftest| skip async -- class-static-methods-private,class-static-fields-private is not supported
+// |reftest| shell-option(--enable-private-fields) shell-option(--enable-private-methods) skip-if(!xulRuntime.shell) async -- requires shell-options
 // This file was procedurally generated from the following sources:
 // - src/class-elements/static-private-methods-with-fields.case
 // - src/class-elements/productions/cls-expr-after-same-line-async-method.template
@@ -94,4 +94,4 @@ c.m().then(function(v) {
   }
 
   return Promise.resolve(assertions());
-}, $DONE).then($DONE, $DONE);
+}).then($DONE, $DONE);

@@ -7,6 +7,7 @@
 /* Sharable code and data for wrapper around JSObjects. */
 
 #include "xpcprivate.h"
+#include "js/Object.h"  // JS::GetClass
 #include "js/Printf.h"
 #include "nsArrayEnumerator.h"
 #include "nsINamed.h"
@@ -20,7 +21,6 @@
 #include "mozilla/dom/DOMException.h"
 #include "mozilla/dom/DOMExceptionBinding.h"
 #include "mozilla/dom/MozQueryInterface.h"
-#include "mozilla/jsipc/CrossProcessObjectWrappers.h"
 
 #include "jsapi.h"
 #include "jsfriendapi.h"
@@ -207,7 +207,7 @@ namespace {
 class WrappedJSNamed final : public nsINamed {
   nsCString mName;
 
-  ~WrappedJSNamed() {}
+  ~WrappedJSNamed() = default;
 
  public:
   NS_DECL_ISUPPORTS
@@ -332,6 +332,9 @@ nsresult nsXPCWrappedJS::DelegatedQueryInterface(REFNSIID aIID,
   nsIGlobalObject* nativeGlobal = NativeGlobal(js::UncheckedUnwrap(obj));
   NS_ENSURE_TRUE(nativeGlobal, NS_ERROR_FAILURE);
   NS_ENSURE_TRUE(nativeGlobal->HasJSGlobal(), NS_ERROR_FAILURE);
+
+  AutoAllowLegacyScriptExecution exemption;
+
   AutoEntryScript aes(nativeGlobal, "XPCWrappedJS QueryInterface",
                       /* aIsMainThread = */ true);
   XPCCallContext ccx(aes.cx());
@@ -558,6 +561,11 @@ void nsXPCWrappedJS::CleanupOutparams(const nsXPTMethodInfo* info,
 
     MOZ_ASSERT(param.IsIndirect(), "Outparams are always indirect");
 
+    // Don't try to clear optional out params that are not set.
+    if (param.IsOptional() && !nativeParams[i].val.p) {
+      continue;
+    }
+
     // Call 'CleanupValue' on parameters which we know to be initialized:
     //  1. Complex parameters (initialized by caller)
     //  2. 'inout' parameters (initialized by caller)
@@ -602,7 +610,7 @@ nsresult nsXPCWrappedJS::CheckForException(XPCCallContext& ccx,
   RootedValue js_exception(cx);
   bool is_js_exception = JS_GetPendingException(cx, &js_exception);
 
-  /* JS might throw an expection whether the reporter was called or not */
+  /* JS might throw an exception whether the reporter was called or not */
   if (is_js_exception) {
     if (!xpc_exception) {
       XPCConvert::JSValToXPCException(cx, &js_exception, anInterfaceName,
@@ -709,7 +717,7 @@ nsresult nsXPCWrappedJS::CheckForException(XPCCallContext& ccx,
             }
 
             nsresult rv = scriptError->InitWithWindowID(
-                NS_ConvertUTF8toUTF16(newMessage), sourceName, EmptyString(),
+                NS_ConvertUTF8toUTF16(newMessage), sourceName, u""_ns,
                 lineNumber, 0, 0, "XPConnect JavaScript",
                 nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(cx));
             if (NS_FAILED(rv)) {
@@ -769,6 +777,9 @@ nsXPCWrappedJS::CallMethod(uint16_t methodIndex, const nsXPTMethodInfo* info,
   // definitely will be when we turn off XPConnect for the web.
   RootedObject obj(RootingCx(), GetJSObject());
   nsIGlobalObject* nativeGlobal = NativeGlobal(js::UncheckedUnwrap(obj));
+
+  AutoAllowLegacyScriptExecution exemption;
+
   AutoEntryScript aes(nativeGlobal, "XPCWrappedJS method call",
                       /* aIsMainThread = */ true);
   XPCCallContext ccx(aes.cx());
@@ -892,8 +903,8 @@ nsXPCWrappedJS::CallMethod(uint16_t methodIndex, const nsXPTMethodInfo* info,
     uint32_t array_count;
     RootedValue val(cx, NullValue());
 
-    // verify that null was not passed for 'out' param
-    if (param.IsOut() && !nativeParams[i].val.p) {
+    // Verify that null was not passed for a non-optional 'out' param.
+    if (param.IsOut() && !nativeParams[i].val.p && !param.IsOptional()) {
       retval = NS_ERROR_INVALID_ARG;
       goto pre_call_clean_up;
     }
@@ -998,7 +1009,7 @@ pre_call_clean_up:
   for (i = 0; i < paramCount; i++) {
     const nsXPTParamInfo& param = info->GetParam(i);
     MOZ_ASSERT(!param.IsShared(), "[shared] implies [noscript]!");
-    if (!param.IsOut()) {
+    if (!param.IsOut() || !nativeParams[i].val.p) {
       continue;
     }
 
@@ -1092,7 +1103,7 @@ pre_call_clean_up:
 static const JSClass XPCOutParamClass = {"XPCOutParam", 0, JS_NULL_CLASS_OPS};
 
 bool xpc::IsOutObject(JSContext* cx, JSObject* obj) {
-  return js::GetObjectClass(obj) == &XPCOutParamClass;
+  return JS::GetClass(obj) == &XPCOutParamClass;
 }
 
 JSObject* xpc::NewOutObject(JSContext* cx) {

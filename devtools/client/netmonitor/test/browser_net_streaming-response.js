@@ -9,7 +9,9 @@
  */
 
 add_task(async function() {
-  const { tab, monitor } = await initNetMonitor(CUSTOM_GET_URL);
+  const { tab, monitor } = await initNetMonitor(CUSTOM_GET_URL, {
+    requestCount: 1,
+  });
 
   info("Starting test... ");
   const { document, store, windowRequire } = monitor.panelWin;
@@ -20,7 +22,10 @@ add_task(async function() {
 
   store.dispatch(Actions.batchEnable(false));
 
-  const REQUESTS = [["hls-m3u8", /^#EXTM3U/], ["mpeg-dash", /^<\?xml/]];
+  const REQUESTS = [
+    ["hls-m3u8", /^#EXTM3U/],
+    ["mpeg-dash", /^<\?xml/],
+  ];
 
   let wait = waitForNetworkEvents(monitor, REQUESTS.length);
   for (const [fmt] of REQUESTS) {

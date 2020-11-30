@@ -6,7 +6,7 @@
 
 #include "PageInformation.h"
 
-#include "ProfileJSONWriter.h"
+#include "mozilla/ProfileJSONWriter.h"
 
 PageInformation::PageInformation(uint64_t aBrowsingContextID,
                                  uint64_t aInnerWindowID, const nsCString& aUrl,
@@ -30,7 +30,7 @@ void PageInformation::StreamJSON(SpliceableJSONWriter& aWriter) const {
   aWriter.StartObjectElement();
   aWriter.DoubleProperty("browsingContextID", BrowsingContextID());
   aWriter.DoubleProperty("innerWindowID", InnerWindowID());
-  aWriter.StringProperty("url", Url().get());
+  aWriter.StringProperty("url", Url());
   aWriter.DoubleProperty("embedderInnerWindowID", EmbedderInnerWindowID());
   aWriter.EndObject();
 }

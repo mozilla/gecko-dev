@@ -2,8 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-MOZ_AUTOMATION_L10N_CHECK=0
-
 . "$topsrcdir/build/mozconfig.common"
 
 # cctools for ld, ar, and other related tools ; dsymutil for rust.
@@ -25,13 +23,13 @@ export CC="$MOZ_FETCHES_DIR/clang/bin/clang"
 export CXX="$MOZ_FETCHES_DIR/clang/bin/clang++"
 export CFLAGS="$CFLAGS -fcrash-diagnostics-dir=${UPLOAD_PATH}"
 export CXXFLAGS="$CXXFLAGS -fcrash-diagnostics-dir=${UPLOAD_PATH}"
-export LLVMCONFIG=$MOZ_FETCHES_DIR/clang/bin/llvm-config
 export BINDGEN_CFLAGS="-isysroot $CROSS_SYSROOT"
 export DSYMUTIL=$topsrcdir/build/macosx/llvm-dsymutil
 mk_add_options "export REAL_DSYMUTIL=$MOZ_FETCHES_DIR/llvm-dsymutil/bin/dsymutil"
 export MKFSHFS=$MOZ_FETCHES_DIR/hfsplus-tools/newfs_hfs
 export DMG_TOOL=$MOZ_FETCHES_DIR/dmg/dmg
 export HFS_TOOL=$MOZ_FETCHES_DIR/dmg/hfsplus
+export DUMP_SYMS="$MOZ_FETCHES_DIR/dump_syms/dump_syms"
 
 export HOST_CFLAGS="-g"
 export HOST_CXXFLAGS="-g"

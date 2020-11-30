@@ -49,7 +49,8 @@ VRFieldOfView::VRFieldOfView(nsISupports* aParent,
       mLeftDegrees(aSrc.leftDegrees) {}
 
 bool VRDisplayCapabilities::HasPosition() const {
-  return bool(mFlags & gfx::VRDisplayCapabilityFlags::Cap_Position);
+  return bool(mFlags & gfx::VRDisplayCapabilityFlags::Cap_Position) ||
+         bool(mFlags & gfx::VRDisplayCapabilityFlags::Cap_PositionEmulated);
 }
 
 bool VRDisplayCapabilities::HasOrientation() const {
@@ -110,7 +111,7 @@ void VRDisplay::UpdateVRDisplays(nsTArray<RefPtr<VRDisplay>>& aDisplays,
     }
   }
 
-  aDisplays = displays;
+  aDisplays = std::move(displays);
 }
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(VRFieldOfView, mParent)
@@ -266,7 +267,9 @@ void VRPose::GetLinearVelocity(JSContext* aCx,
                                JS::MutableHandle<JSObject*> aRetval,
                                ErrorResult& aRv) {
   const bool valid =
-      bool(mVRState.flags & gfx::VRDisplayCapabilityFlags::Cap_Position);
+      bool(mVRState.flags & gfx::VRDisplayCapabilityFlags::Cap_Position) ||
+      bool(mVRState.flags &
+           gfx::VRDisplayCapabilityFlags::Cap_PositionEmulated);
   SetFloat32Array(aCx, this, aRetval, mLinearVelocity,
                   valid ? mVRState.pose.linearVelocity : nullptr, 3, aRv);
 }
@@ -376,7 +379,7 @@ uint32_t VRDisplay::DisplayId() const {
 
 void VRDisplay::GetDisplayName(nsAString& aDisplayName) const {
   const gfx::VRDisplayInfo& info = mClient->GetDisplayInfo();
-  aDisplayName = NS_ConvertUTF8toUTF16(info.GetDisplayName());
+  CopyUTF8toUTF16(MakeStringSpan(info.GetDisplayName()), aDisplayName);
 }
 
 void VRDisplay::UpdateFrameInfo() {
@@ -482,6 +485,7 @@ already_AddRefed<Promise> VRDisplay::RequestPresent(
   uint32_t presentationGroup =
       isChromePresentation ? gfx::kVRGroupChrome : gfx::kVRGroupContent;
 
+  mClient->SetXRAPIMode(gfx::VRAPIMode::WebVR);
   if (!UserActivation::IsHandlingUserInput() && !isChromePresentation &&
       !IsHandlingVRNavigationEvent() && StaticPrefs::dom_vr_require_gesture() &&
       !IsPresenting()) {

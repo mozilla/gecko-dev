@@ -19,7 +19,9 @@ add_task(async function() {
     { status: 200 },
   ];
 
-  const { tab, monitor } = await initNetMonitor(CUSTOM_GET_URL);
+  const { tab, monitor } = await initNetMonitor(CUSTOM_GET_URL, {
+    requestCount: 1,
+  });
   const { store, windowRequire, connector } = monitor.panelWin;
   const Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
   const { getSortedRequests } = windowRequire(
@@ -43,7 +45,11 @@ add_task(async function() {
   EXPECTED_REQUESTS.forEach(({ status }, i) => {
     const item = getSortedRequests(store.getState())[i];
 
-    is(item.status, status, `Request #${i} has the expected status`);
+    is(
+      parseInt(item.status, 10),
+      status,
+      `Request #${i} has the expected status`
+    );
 
     const { stacktrace } = item;
     const stackLen = stacktrace ? stacktrace.length : 0;

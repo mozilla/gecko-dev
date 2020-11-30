@@ -5,7 +5,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/layers/ContentHost.h"
-#include "LayersLogging.h"                  // for AppendToString
 #include "gfx2DGlue.h"                      // for ContentForFormat
 #include "mozilla/gfx/Point.h"              // for IntSize
 #include "mozilla/Assertions.h"             // for MOZ_ASSERT, etc
@@ -414,10 +413,9 @@ bool ContentHostDoubleBuffered::UpdateThebes(
 void ContentHostTexture::PrintInfo(std::stringstream& aStream,
                                    const char* aPrefix) {
   aStream << aPrefix;
-  aStream << nsPrintfCString("ContentHost (0x%p)", this).get();
-
-  AppendToString(aStream, mBufferRect, " [buffer-rect=", "]");
-  AppendToString(aStream, mBufferRotation, " [buffer-rotation=", "]");
+  aStream << nsPrintfCString("ContentHost (0x%p)", this).get()
+          << " [buffer-rect=" << mBufferRect << "]"
+          << " [buffer-rotation=" << mBufferRotation << "]";
   if (PaintWillResample()) {
     aStream << " [paint-will-resample]";
   }

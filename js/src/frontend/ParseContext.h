@@ -11,10 +11,12 @@
 #include "frontend/BytecodeCompiler.h"
 #include "frontend/CompilationInfo.h"
 #include "frontend/ErrorReporter.h"
-#include "frontend/FunctionTree.h"
+#include "frontend/NameAnalysisTypes.h"  // DeclaredNameInfo
 #include "frontend/NameCollections.h"
 #include "frontend/SharedContext.h"
 #include "frontend/UsedNameTracker.h"
+#include "vm/GeneratorAndAsyncKind.h"  // js::GeneratorKind, js::FunctionAsyncKind
+#include "vm/GeneratorObject.h"  // js::AbstractGeneratorObject::FixedSlotLimit
 
 namespace js {
 
@@ -28,9 +30,6 @@ const char* DeclarationKindString(DeclarationKind kind);
 bool DeclarationKindIsVar(DeclarationKind kind);
 
 bool DeclarationKindIsParameter(DeclarationKind kind);
-
-class FunctionTree;
-class FunctionTreeHolder;
 
 /*
  * The struct ParseContext stores information about the current parsing context,
@@ -72,13 +71,13 @@ class ParseContext : public Nestable<ParseContext> {
   };
 
   class LabelStatement : public Statement {
-    RootedAtom label_;
+    const ParserAtom* label_;
 
    public:
-    LabelStatement(ParseContext* pc, JSAtom* label)
-        : Statement(pc, StatementKind::Label), label_(pc->sc_->cx_, label) {}
+    LabelStatement(ParseContext* pc, const ParserAtom* label)
+        : Statement(pc, StatementKind::Label), label_(label) {}
 
-    HandleAtom label() const { return label_; }
+    const ParserAtom* label() const { return label_; }
   };
 
   struct ClassStatement : public Statement {
@@ -110,6 +109,13 @@ class ParseContext : public Nestable<ParseContext> {
 
     // Monotonically increasing id.
     uint32_t id_;
+
+    // Scope size info, relevant for scopes in generators and async functions
+    // only. During parsing, this is the estimated number of slots needed for
+    // nested scopes inside this one. When the parser leaves a scope, this is
+    // set to UINT32_MAX if there are too many bindings overrall to store them
+    // in stack frames, and 0 otherwise.
+    uint32_t sizeBits_ = 0;
 
     bool maybeReportOOM(ParseContext* pc, bool result) {
       if (!result) {
@@ -143,19 +149,26 @@ class ParseContext : public Nestable<ParseContext> {
 
     bool isEmpty() const { return declared_->all().empty(); }
 
-    DeclaredNamePtr lookupDeclaredName(JSAtom* name) {
+    uint32_t declaredCount() const {
+      size_t count = declared_->count();
+      MOZ_ASSERT(count <= UINT32_MAX);
+      return uint32_t(count);
+    }
+
+    DeclaredNamePtr lookupDeclaredName(const ParserAtom* name) {
       return declared_->lookup(name);
     }
 
-    AddDeclaredNamePtr lookupDeclaredNameForAdd(JSAtom* name) {
+    AddDeclaredNamePtr lookupDeclaredNameForAdd(const ParserAtom* name) {
       return declared_->lookupForAdd(name);
     }
 
     MOZ_MUST_USE bool addDeclaredName(ParseContext* pc, AddDeclaredNamePtr& p,
-                                      JSAtom* name, DeclarationKind kind,
-                                      uint32_t pos) {
+                                      const ParserAtom* name,
+                                      DeclarationKind kind, uint32_t pos,
+                                      ClosedOver closedOver = ClosedOver::No) {
       return maybeReportOOM(
-          pc, declared_->add(p, name, DeclaredNameInfo(kind, pos)));
+          pc, declared_->add(p, name, DeclaredNameInfo(kind, pos, closedOver)));
     }
 
     // Add a FunctionBox as a possible candidate for Annex B.3.3 semantics.
@@ -174,6 +187,35 @@ class ParseContext : public Nestable<ParseContext> {
     void useAsVarScope(ParseContext* pc) {
       MOZ_ASSERT(!pc->varScope_);
       pc->varScope_ = this;
+    }
+
+    // This is called as we leave a function, var, or lexical scope in a
+    // generator or async function. `ownSlotCount` is the number of `bindings_`
+    // that are not closed over.
+    void setOwnStackSlotCount(uint32_t ownSlotCount) {
+      // Determine if this scope is too big to optimize bindings into stack
+      // slots. The meaning of sizeBits_ changes from "maximum nested slot
+      // count" to "UINT32_MAX if too big".
+      uint32_t slotCount = ownSlotCount + sizeBits_;
+      if (slotCount > AbstractGeneratorObject::FixedSlotLimit) {
+        slotCount = sizeBits_;
+        sizeBits_ = UINT32_MAX;
+      } else {
+        sizeBits_ = 0;
+      }
+
+      // Propagate total size to enclosing scope.
+      if (Scope* parent = enclosing()) {
+        if (slotCount > parent->sizeBits_) {
+          parent->sizeBits_ = slotCount;
+        }
+      }
+    }
+
+    bool tooBigToOptimize() const {
+      MOZ_ASSERT(sizeBits_ == 0 || sizeBits_ == UINT32_MAX,
+                 "call this only after the parser leaves the scope");
+      return sizeBits_ != 0;
     }
 
     // An iterator for the set of names a scope binds: the set of all
@@ -215,7 +257,7 @@ class ParseContext : public Nestable<ParseContext> {
 
       explicit operator bool() const { return !done(); }
 
-      JSAtom* name() {
+      const ParserAtom* name() {
         MOZ_ASSERT(!done());
         return declaredRange_.front().key();
       }
@@ -262,9 +304,6 @@ class ParseContext : public Nestable<ParseContext> {
   };
 
  private:
-  // Not all contexts are Function contexts, hence the maybe
-  mozilla::Maybe<AutoPushTree> tree;
-
   // Trace logging of parsing time.
   AutoFrontendTraceLog traceLog_;
 
@@ -308,10 +347,10 @@ class ParseContext : public Nestable<ParseContext> {
   PooledVectorPtr<AtomVector> closedOverBindingsForLazy_;
 
  public:
-  // All inner FunctionBoxes in this context. Only used when syntax parsing.
-  // The FunctionBoxes are traced as part of the TraceList on the parser,
-  // (see TraceListNode::TraceList)
-  FunctionBoxVector innerFunctionBoxesForLazy;
+  // All inner functions in this context. Only used when syntax parsing.
+  // The Functions (or FunctionCreateionDatas) are traced as part of the
+  // CompilationInfo function vector.
+  Vector<FunctionIndex> innerFunctionIndexesForLazy;
 
   // In a function context, points to a Directive struct that can be updated
   // to reflect new directives encountered in the Directive Prologue that
@@ -334,17 +373,13 @@ class ParseContext : public Nestable<ParseContext> {
   // Monotonically increasing id.
   uint32_t scriptId_;
 
-  // Set when compiling a function using Parser::standaloneFunctionBody via
-  // the Function or Generator constructor.
-  bool isStandaloneFunctionBody_;
-
   // Set when encountering a super.property inside a method. We need to mark
   // the nearest super scope as needing a home object.
   bool superScopeNeedsHomeObject_;
 
  public:
   ParseContext(JSContext* cx, ParseContext*& parent, SharedContext* sc,
-               ErrorReporter& errorReporter, CompilationInfo& compilationInfo,
+               ErrorReporter& errorReporter, CompilationState& compilationState,
                Directives* newDirectives, bool isFull);
 
   MOZ_MUST_USE bool init();
@@ -418,14 +453,14 @@ class ParseContext : public Nestable<ParseContext> {
   // Return Err(true) if we have encountered at least one loop,
   // Err(false) otherwise.
   MOZ_MUST_USE inline JS::Result<Ok, BreakStatementError> checkBreakStatement(
-      PropertyName* label);
+      const ParserName* label);
 
   enum class ContinueStatementError {
     NotInALoop,
     LabelNotFound,
   };
   MOZ_MUST_USE inline JS::Result<Ok, ContinueStatementError>
-  checkContinueStatement(PropertyName* label);
+  checkContinueStatement(const ParserName* label);
 
   // True if we are at the topmost level of a entire script or function body.
   // For example, while parsing this code we would encounter f1 and f2 at
@@ -446,10 +481,6 @@ class ParseContext : public Nestable<ParseContext> {
   // and the outermost |if (cond)| at top level, and everything else would not
   // be at top level.
   bool atTopLevel() { return atBodyLevel() && sc_->isTopLevelContext(); }
-
-  void setIsStandaloneFunctionBody() { isStandaloneFunctionBody_ = true; }
-
-  bool isStandaloneFunctionBody() const { return isStandaloneFunctionBody_; }
 
   void setSuperScopeNeedsHomeObject() {
     MOZ_ASSERT(sc_->allowSuperProperty());
@@ -476,7 +507,9 @@ class ParseContext : public Nestable<ParseContext> {
     return sc_->isFunctionBox() && sc_->asFunctionBox()->isAsync();
   }
 
-  bool needsDotGeneratorName() const { return isGenerator() || isAsync(); }
+  bool isGeneratorOrAsync() const { return isGenerator() || isAsync(); }
+
+  bool needsDotGeneratorName() const { return isGeneratorOrAsync(); }
 
   FunctionAsyncKind asyncKind() const {
     return isAsync() ? FunctionAsyncKind::AsyncFunction
@@ -498,16 +531,17 @@ class ParseContext : public Nestable<ParseContext> {
 
   uint32_t scriptId() const { return scriptId_; }
 
-  bool annexBAppliesToLexicalFunctionInInnermostScope(FunctionBox* funbox);
+  bool computeAnnexBAppliesToLexicalFunctionInInnermostScope(
+      FunctionBox* funbox, bool* annexBApplies);
 
-  bool tryDeclareVar(HandlePropertyName name, DeclarationKind kind,
+  bool tryDeclareVar(const ParserName* name, DeclarationKind kind,
                      uint32_t beginPos,
                      mozilla::Maybe<DeclarationKind>* redeclaredKind,
                      uint32_t* prevPos);
 
-  bool hasUsedName(const UsedNameTracker& usedNames, HandlePropertyName name);
+  bool hasUsedName(const UsedNameTracker& usedNames, const ParserName* name);
   bool hasUsedFunctionSpecialName(const UsedNameTracker& usedNames,
-                                  HandlePropertyName name);
+                                  const ParserName* name);
 
   bool declareFunctionThis(const UsedNameTracker& usedNames,
                            bool canSkipLazyClosedOverBindings);
@@ -516,14 +550,17 @@ class ParseContext : public Nestable<ParseContext> {
   bool declareDotGeneratorName();
 
  private:
-  mozilla::Maybe<DeclarationKind> isVarRedeclaredInInnermostScope(
-      HandlePropertyName name, DeclarationKind kind);
-  mozilla::Maybe<DeclarationKind> isVarRedeclaredInEval(HandlePropertyName name,
-                                                        DeclarationKind kind);
+  MOZ_MUST_USE bool isVarRedeclaredInInnermostScope(
+      const ParserName* name, DeclarationKind kind,
+      mozilla::Maybe<DeclarationKind>* out);
+
+  MOZ_MUST_USE bool isVarRedeclaredInEval(const ParserName* name,
+                                          DeclarationKind kind,
+                                          mozilla::Maybe<DeclarationKind>* out);
 
   enum DryRunOption { NotDryRun, DryRunInnermostScopeOnly };
   template <DryRunOption dryRunOption>
-  bool tryDeclareVarHelper(HandlePropertyName name, DeclarationKind kind,
+  bool tryDeclareVarHelper(const ParserName* name, DeclarationKind kind,
                            uint32_t beginPos,
                            mozilla::Maybe<DeclarationKind>* redeclaredKind,
                            uint32_t* prevPos);

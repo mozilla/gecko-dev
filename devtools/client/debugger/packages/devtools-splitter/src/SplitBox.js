@@ -136,33 +136,57 @@ class SplitBox extends Component {
    * orientation we either remember the width or height of
    * the splitter box.
    */
-  onMove({ movementX, movementY }) {
+  onMove({ clientX, movementY }) {
     const node = ReactDOM.findDOMNode(this);
     const doc = node.ownerDocument;
+    let targetWidth;
 
     if (this.props.endPanelControl) {
       // For the end panel we need to increase the width/height when the
       // movement is towards the left/top.
-      movementX = -movementX;
+      targetWidth = node.clientWidth - clientX;
       movementY = -movementY;
+    } else {
+      targetWidth = this.calcStartPanelWidth({
+        node,
+        clientX,
+        doc,
+      });
     }
 
     if (this.state.vert) {
       const isRtl = doc.dir === "rtl";
-      if (isRtl) {
+
+      if (isRtl && this.props.endPanelControl) {
         // In RTL we need to reverse the movement again -- but only for vertical
         // splitters
-        movementX = -movementX;
+        const fullWidth = node.clientWidth + node.offsetLeft;
+        targetWidth = fullWidth - targetWidth;
       }
 
       this.setState((state, props) => ({
-        width: state.width + movementX,
+        width: targetWidth,
       }));
     } else {
       this.setState((state, props) => ({
         height: state.height + movementY,
       }));
     }
+  }
+
+  calcStartPanelWidth(options) {
+    const { node, clientX, doc } = options;
+    const availableWidth = node.clientWidth;
+    const maxSize = parseInt(this.props.maxSize, 10) / 100;
+    const maxPossibleWidth = Math.ceil(availableWidth * maxSize);
+
+    if (doc.dir === "rtl") {
+      const fullWidth = node.clientWidth + node.offsetLeft;
+      const targetWidth = fullWidth - clientX;
+      return targetWidth > maxPossibleWidth ? maxPossibleWidth : targetWidth;
+    }
+
+    return clientX > maxPossibleWidth ? maxPossibleWidth : clientX;
   }
 
   // Rendering

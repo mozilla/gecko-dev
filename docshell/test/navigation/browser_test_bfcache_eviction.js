@@ -15,7 +15,7 @@ add_task(async function() {
     browser
   ) {
     let testDone = {};
-    if (!SpecialPowers.getBoolPref("fission.sessionHistoryInParent")) {
+    if (!SpecialPowers.Services.appinfo.sessionHistoryInParent) {
       // 2.  Add a promise that will be resolved when the 'content viewer evicted' event goes off
       testDone.promise = SpecialPowers.spawn(browser, [], async function() {
         return new Promise(resolve => {
@@ -36,8 +36,8 @@ add_task(async function() {
               resolve();
             },
             QueryInterface: ChromeUtils.generateQI([
-              Ci.nsISHistoryListener,
-              Ci.nsISupportsWeakReference,
+              "nsISHistoryListener",
+              "nsISupportsWeakReference",
             ]),
           };
           legacySHistory.addSHistoryListener(historyListener);
@@ -50,7 +50,7 @@ add_task(async function() {
       testDone.promise = new Promise(resolve => {
         testDone.resolve = resolve;
       });
-      let legacySHistory = browser.browsingContext.sessionHistory;
+      let shistory = browser.browsingContext.sessionHistory;
       // 3. Register a session history listener to listen for a 'content viewer evicted' event.
       let historyListener = {
         OnContentViewerEvicted() {
@@ -58,17 +58,17 @@ add_task(async function() {
             true,
             "History listener got called after a content viewer was evicted"
           );
-          legacySHistory.removeSHistoryListener(historyListener);
+          shistory.removeSHistoryListener(historyListener);
           delete window._testListener;
           // 6. Resolve the promise when we got our 'content viewer evicted' event
           testDone.resolve();
         },
         QueryInterface: ChromeUtils.generateQI([
-          Ci.nsISHistoryListener,
-          Ci.nsISupportsWeakReference,
+          "nsISHistoryListener",
+          "nsISupportsWeakReference",
         ]),
       };
-      legacySHistory.addSHistoryListener(historyListener);
+      shistory.addSHistoryListener(historyListener);
       // Keep the weak shistory listener alive
       window._testListener = historyListener;
     }

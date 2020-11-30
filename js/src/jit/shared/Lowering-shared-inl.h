@@ -291,23 +291,31 @@ void LIRGeneratorShared::defineReturn(LInstruction* lir, MDefinition* mir) {
       lir->setDef(0, LDefinition(vreg, LDefinition::DOUBLE,
                                  LFloatReg(ReturnDoubleReg)));
       break;
-    case MIRType::Int8x16:
-    case MIRType::Int16x8:
-    case MIRType::Int32x4:
-    case MIRType::Bool8x16:
-    case MIRType::Bool16x8:
-    case MIRType::Bool32x4:
-      lir->setDef(0, LDefinition(vreg, LDefinition::SIMD128INT,
+    case MIRType::Simd128:
+#ifdef ENABLE_WASM_SIMD
+      lir->setDef(0, LDefinition(vreg, LDefinition::SIMD128,
                                  LFloatReg(ReturnSimd128Reg)));
       break;
-    case MIRType::Float32x4:
-      lir->setDef(0, LDefinition(vreg, LDefinition::SIMD128FLOAT,
-                                 LFloatReg(ReturnSimd128Reg)));
-      break;
+#else
+      MOZ_CRASH("No SIMD support");
+#endif
     default:
       LDefinition::Type type = LDefinition::TypeFrom(mir->type());
-      MOZ_ASSERT(type != LDefinition::DOUBLE && type != LDefinition::FLOAT32);
-      lir->setDef(0, LDefinition(vreg, type, LGeneralReg(ReturnReg)));
+      switch (type) {
+        case LDefinition::GENERAL:
+        case LDefinition::INT32:
+        case LDefinition::OBJECT:
+        case LDefinition::SLOTS:
+        case LDefinition::STACKRESULTS:
+          lir->setDef(0, LDefinition(vreg, type, LGeneralReg(ReturnReg)));
+          break;
+        case LDefinition::DOUBLE:
+        case LDefinition::FLOAT32:
+        case LDefinition::SIMD128:
+          MOZ_CRASH("Float cases must have been handled earlier");
+        default:
+          MOZ_CRASH("Unexpected type");
+      }
       break;
   }
 
@@ -565,6 +573,20 @@ LDefinition LIRGeneratorShared::tempFixed(Register reg) {
   return t;
 }
 
+LInt64Definition LIRGeneratorShared::tempInt64Fixed(Register64 reg) {
+#if JS_BITS_PER_WORD == 32
+  LDefinition high = temp(LDefinition::GENERAL);
+  LDefinition low = temp(LDefinition::GENERAL);
+  high.setOutput(LGeneralReg(reg.high));
+  low.setOutput(LGeneralReg(reg.low));
+  return LInt64Definition(high, low);
+#else
+  LDefinition t = temp(LDefinition::GENERAL);
+  t.setOutput(LGeneralReg(reg.reg));
+  return LInt64Definition(t);
+#endif
+}
+
 LDefinition LIRGeneratorShared::tempFixed(FloatRegister reg) {
   LDefinition t = temp(LDefinition::DOUBLE);
   t.setOutput(LFloatReg(reg));
@@ -578,6 +600,12 @@ LDefinition LIRGeneratorShared::tempFloat32() {
 LDefinition LIRGeneratorShared::tempDouble() {
   return temp(LDefinition::DOUBLE);
 }
+
+#ifdef ENABLE_WASM_SIMD
+LDefinition LIRGeneratorShared::tempSimd128() {
+  return temp(LDefinition::SIMD128);
+}
+#endif
 
 LDefinition LIRGeneratorShared::tempCopy(MDefinition* input,
                                          uint32_t reusedInput) {

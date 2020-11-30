@@ -15,7 +15,7 @@ const {
 
 const {
   MESSAGE_OPEN,
-  NETWORK_MESSAGE_UPDATE,
+  NETWORK_MESSAGES_UPDATE,
 } = require("devtools/client/webconsole/constants");
 
 /**
@@ -38,45 +38,41 @@ function enableNetProvider(webConsoleUI) {
         return reducer(state, action);
       }
 
-      const type = action.type;
+      const { type } = action;
       const newState = reducer(state, action);
 
       // If network message has been opened, fetch all HTTP details
       // from the backend. It can happen (especially in test) that
       // the message is opened before all network event updates are
       // received. The rest of updates will be handled below, see:
-      // NETWORK_MESSAGE_UPDATE action handler.
+      // NETWORK_MESSAGES_UPDATE action handler.
       if (type == MESSAGE_OPEN) {
         const updates = getAllNetworkMessagesUpdateById(newState);
         const message = updates[action.id];
         if (message && !message.openedOnce && message.source == "network") {
-          dataProvider.onNetworkEvent(message);
+          dataProvider.onNetworkResourceAvailable(message);
           message.updates.forEach(updateType => {
-            dataProvider.onNetworkEventUpdate({
-              packet: { updateType: updateType },
-              networkInfo: message,
-            });
+            dataProvider.onNetworkResourceUpdated(message, { updateType });
           });
         }
       }
 
       // Process all incoming HTTP details packets. Note that
       // Network event update packets are sent in batches from:
-      // `WebConsoleOutputWrapper.dispatchMessageUpdate` using
-      // NETWORK_MESSAGE_UPDATE action.
-      // Make sure to call `dataProvider.onNetworkEventUpdate`
+      // `WebConsoleOutputWrapper.dispatchMessagesUpdate` using
+      // NETWORK_MESSAGES_UPDATE action.
+      // Make sure to call `dataProvider.onNetworkResourceUpdated`
       // to fetch data from the backend.
-      if (type == NETWORK_MESSAGE_UPDATE) {
-        const actor = action.response.networkInfo.actor;
-        const open = getAllMessagesUiById(state).includes(actor);
-        if (open) {
-          const message = getMessage(state, actor);
-          message.updates.forEach(updateType => {
-            dataProvider.onNetworkEventUpdate({
-              packet: { updateType },
-              networkInfo: message,
+      if (type == NETWORK_MESSAGES_UPDATE) {
+        const allMessages = getAllMessagesUiById(newState);
+        for (const { actor } of action.messages) {
+          const open = allMessages.includes(actor);
+          if (open) {
+            const message = getMessage(newState, actor);
+            message.updates.forEach(updateType => {
+              dataProvider.onNetworkResourceUpdated(message, { updateType });
             });
-          });
+          }
         }
       }
 

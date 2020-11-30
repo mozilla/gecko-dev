@@ -14,6 +14,7 @@ use crate::boilerplate::{Example, HandyDandyRectBuilder};
 use gleam::gl;
 use std::mem;
 use webrender::api::*;
+use webrender::render_api::*;
 use webrender::api::units::*;
 
 
@@ -89,7 +90,7 @@ struct App {
 impl Example for App {
     fn render(
         &mut self,
-        api: &RenderApi,
+        api: &mut RenderApi,
         builder: &mut DisplayListBuilder,
         txn: &mut Transaction,
         _device_size: DeviceIntSize,
@@ -192,8 +193,8 @@ impl Example for App {
     fn on_event(
         &mut self,
         event: winit::WindowEvent,
-        api: &RenderApi,
-        _document_id: DocumentId,
+        api: &mut RenderApi,
+        document_id: DocumentId,
     ) -> bool {
         match event {
             winit::WindowEvent::KeyboardInput {
@@ -292,7 +293,7 @@ impl Example for App {
                     _ => {}
                 }
 
-                api.update_resources(txn.resource_updates);
+                api.send_transaction(document_id, txn);
                 return true;
             }
             _ => {}
@@ -301,12 +302,11 @@ impl Example for App {
         false
     }
 
-    fn get_image_handlers(
+    fn get_image_handler(
         &mut self,
         _gl: &dyn gl::Gl,
-    ) -> (Option<Box<dyn ExternalImageHandler>>,
-          Option<Box<dyn OutputImageHandler>>) {
-        (Some(Box::new(ImageGenerator::new())), None)
+    ) -> Option<Box<dyn ExternalImageHandler>> {
+        Some(Box::new(ImageGenerator::new()))
     }
 }
 

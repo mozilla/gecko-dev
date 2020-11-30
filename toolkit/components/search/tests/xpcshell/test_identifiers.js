@@ -10,7 +10,7 @@
 const SEARCH_APP_DIR = 1;
 
 add_task(async function setup() {
-  await useTestEngines("simple-engines");
+  await SearchTestUtils.useTestEngines("simple-engines");
   await AddonTestUtils.promiseStartupManager();
 
   const result = await Services.search.init();
@@ -49,12 +49,7 @@ add_task(async function test_from_profile() {
 });
 
 add_task(async function test_from_telemetry_id() {
-  // The telemetryId check isn't applicable to the legacy config.
-  if (gModernConfig) {
-    checkIdentifier("basic", "telemetry", "telemetry");
-  } else {
-    checkIdentifier("basic", "basic", "basic");
-  }
+  checkIdentifier("basic", "telemetry", "telemetry");
 });
 
 add_task(async function test_from_webextension_id() {

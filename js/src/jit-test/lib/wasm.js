@@ -21,7 +21,12 @@ function wasmEvalText(str, imports) {
 }
 
 function wasmValidateText(str) {
-    assertEq(WebAssembly.validate(wasmTextToBinary(str)), true);
+    let binary = wasmTextToBinary(str);
+    let valid = WebAssembly.validate(binary);
+    if (!valid) {
+        new WebAssembly.Module(binary);
+    }
+    assertEq(valid, true);
 }
 
 function wasmFailValidateText(str, pattern) {
@@ -54,20 +59,34 @@ function wasmCompilationShouldFail(bin, compile_error_regex) {
     }
 }
 
+function typeToCraneliftName(ty) {
+    switch(ty) {
+        case 'externref':
+            return 'ExternRef';
+        case 'funcref':
+            return 'FuncRef';
+        default:
+            return ty.toUpperCase();
+    }
+}
+
 function mismatchError(actual, expect) {
-    var str = `type mismatch: expression has type ${actual} but expected ${expect}`;
+    let actualCL = typeToCraneliftName(actual);
+    let expectCL = typeToCraneliftName(expect);
+    var str = `(type mismatch: expression has type ${actual} but expected ${expect})|` +
+              `(type mismatch: expected Some\\(${expectCL}\\), found Some\\(${actualCL}\\))`;
     return RegExp(str);
 }
 
-const emptyStackError = /from empty stack/;
-const unusedValuesError = /unused values not explicitly dropped by end of block/;
+const emptyStackError = /(from empty stack)|(nothing on stack)/;
+const unusedValuesError = /(unused values not explicitly dropped by end of block)|(values remaining on stack at end of block)/;
 
 function jsify(wasmVal) {
     if (wasmVal === 'nan')
         return NaN;
-    if (wasmVal === 'infinity')
+    if (wasmVal === 'inf')
         return Infinity;
-    if (wasmVal === '-infinity')
+    if (wasmVal === '-inf')
         return Infinity;
     if (wasmVal === '-0')
         return -0;
@@ -88,12 +107,26 @@ function _augmentSrc(src, assertions) {
                 case 'f32':
                     newSrc += `
          i32.reinterpret/f32
+         ${(function () {
+             if (expected == 'nan:arithmetic') {
+               expected = '0x7FC00000';
+               return '(i32.const 0x7FC00000) i32.and';
+             }
+             return '';
+         })()}
          i32.const ${expected}
          i32.eq`;
                     break;
                 case 'f64':
                     newSrc += `
          i64.reinterpret/f64
+         ${(function () {
+             if (expected == 'nan:arithmetic') {
+               expected = '0x7FF8000000000000';
+               return '(i64.const 0x7FF8000000000000) i64.and';
+             }
+             return '';
+         })()}
          i64.const ${expected}
          i64.eq`;
                     break;
@@ -106,6 +139,12 @@ function _augmentSrc(src, assertions) {
                     newSrc += `
          i64.const ${expected}
          i64.eq`;
+                    break;
+                case 'v128':
+                    newSrc += `
+         v128.const ${expected}
+         i8x16.eq
+         i8x16.all_true`;
                     break;
                 default:
                     throw new Error("unexpected usage of wasmAssert");
@@ -121,8 +160,10 @@ function _augmentSrc(src, assertions) {
     return newSrc;
 }
 
-function wasmAssert(src, assertions, maybeImports = {}) {
+function wasmAssert(src, assertions, maybeImports = {}, exportBox = null) {
     let { exports } = wasmEvalText(_augmentSrc(src, assertions), maybeImports);
+    if (exportBox !== null)
+        exportBox.exports = exports;
     for (let i = 0; i < assertions.length; i++) {
         let { func, expected, params } = assertions[i];
         let paramText = params ? params.join(', ') : '';
@@ -190,13 +231,19 @@ const WasmHelpers = {};
     WasmHelpers.isSingleStepProfilingEnabled = enabled;
 })();
 
+// The cache of matched and unmatched strings seriously speeds up matching on
+// the emulators and makes tests time out less often.
+
+var matched = {};
+var unmatched = {};
+
 WasmHelpers._normalizeStack = (stack, preciseStacks) => {
     var wasmFrameTypes = [
-        {re:/^jit call to int64 wasm function$/,                          sub:"i64>"},
+        {re:/^jit call to int64(?: or v128)? wasm function$/,             sub:"i64>"},
         {re:/^out-of-line coercion for jit entry arguments \(in wasm\)$/, sub:"ool>"},
         {re:/^wasm-function\[(\d+)\] \(.*\)$/,                            sub:"$1"},
-        {re:/^(fast|slow) exit trampoline (to native )?\(in wasm\)$/,     sub:"<"},
-        {re:/^call to[ asm.js]? native (.*) \(in wasm\)$/,                sub:"$1"},
+        {re:/^(fast|slow) exit trampoline (?:to native )?\(in wasm\)$/,   sub:"<"},
+        {re:/^call to(?: asm.js)? native (.*) \(in wasm\)$/,              sub:"$1"},
         {re:/ \(in wasm\)$/,                                              sub:""}
     ];
 
@@ -215,13 +262,24 @@ WasmHelpers._normalizeStack = (stack, preciseStacks) => {
 
     var framesIn = stack.split(',');
     var framesOut = [];
+  outer:
     for (let frame of framesIn) {
+        if (unmatched[frame])
+            continue;
+        let probe = matched[frame];
+        if (probe !== undefined) {
+            framesOut.push(probe);
+            continue;
+        }
         for (let {re, sub} of wasmFrameTypes) {
             if (re.test(frame)) {
-                framesOut.push(frame.replace(re, sub));
-                break;
+                let repr = frame.replace(re, sub);
+                framesOut.push(repr);
+                matched[frame] = repr;
+                continue outer;
             }
         }
+        unmatched[frame] = true;
     }
 
     return framesOut.join(',');
@@ -322,3 +380,41 @@ WasmHelpers.assertEqPreciseStacks = (observed, expectedStacks) => {
 Expected one of:
 ${expectedStacks.map(stacks => stacks.join("/")).join('\n')}`);
 }
+
+function fuzzingSafe() {
+    return typeof getErrorNotes == 'undefined';
+}
+
+// Common instantiations of wasm values for dynamic type check testing
+
+let WasmNonNullEqrefValues = [];
+let WasmEqrefValues = [];
+if (wasmGcEnabled()) {
+    let { newStruct } = wasmEvalText(`
+      (module
+        (type $s (struct))
+        (func (export "newStruct") (result eqref) struct.new $s)
+      )`).exports;
+    WasmNonNullEqrefValues.push(newStruct());
+    WasmEqrefValues.push(null, ...WasmNonNullEqrefValues);
+}
+let WasmNonEqrefValues = [
+    undefined,
+    true,
+    false,
+    {x:1337},
+    ["abracadabra"],
+    1337,
+    13.37,
+    "hi",
+    37n,
+    new Number(42),
+    new Boolean(true),
+    Symbol("status"),
+    () => 1337
+];
+let WasmNonNullExternrefValues = [
+    ...WasmNonEqrefValues,
+    ...WasmNonNullEqrefValues
+];
+let WasmExternrefValues = [null, ...WasmNonNullExternrefValues];

@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsLayoutDebugCLH.h"
+#include "mozIDOMWindow.h"
 #include "nsArray.h"
 #include "nsString.h"
 #include "plstr.h"
@@ -16,9 +17,9 @@
 #include "nsIURI.h"
 #include "nsServiceManagerUtils.h"
 
-nsLayoutDebugCLH::nsLayoutDebugCLH() {}
+nsLayoutDebugCLH::nsLayoutDebugCLH() = default;
 
-nsLayoutDebugCLH::~nsLayoutDebugCLH() {}
+nsLayoutDebugCLH::~nsLayoutDebugCLH() = default;
 
 NS_IMPL_ISUPPORTS(nsLayoutDebugCLH, ICOMMANDLINEHANDLER)
 
@@ -27,7 +28,7 @@ static nsresult HandleFlagWithOptionalArgument(nsICommandLine* aCmdLine,
                                                const nsAString& aDefaultValue,
                                                nsAString& aValue,
                                                bool& aFlagPresent) {
-  aValue = EmptyString();
+  aValue.Truncate();
   aFlagPresent = false;
 
   nsresult rv;
@@ -49,7 +50,7 @@ static nsresult HandleFlagWithOptionalArgument(nsICommandLine* aCmdLine,
     NS_ENSURE_SUCCESS(rv, rv);
 
     if (!aValue.IsEmpty() && aValue.CharAt(0) == '-') {
-      aValue = EmptyString();
+      aValue.Truncate();
     } else {
       argPresent = true;
     }
@@ -70,8 +71,8 @@ static nsresult HandleFlagWithOptionalArgument(nsICommandLine* aCmdLine,
   nsresult rv;
   nsString s;
 
-  rv = HandleFlagWithOptionalArgument(aCmdLine, aName, NS_LITERAL_STRING("0"),
-                                      s, aFlagPresent);
+  rv =
+      HandleFlagWithOptionalArgument(aCmdLine, aName, u"0"_ns, s, aFlagPresent);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (!aFlagPresent) {
@@ -103,25 +104,24 @@ nsLayoutDebugCLH::Handle(nsICommandLine* aCmdLine) {
   nsString profileFilename;
   bool paged = false;
 
-  rv = HandleFlagWithOptionalArgument(
-      aCmdLine, NS_LITERAL_STRING("layoutdebug"),
-      NS_LITERAL_STRING("about:blank"), url, flagPresent);
+  rv = HandleFlagWithOptionalArgument(aCmdLine, u"layoutdebug"_ns,
+                                      u"about:blank"_ns, url, flagPresent);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (!flagPresent) {
     return NS_OK;
   }
 
-  rv = HandleFlagWithOptionalArgument(aCmdLine, NS_LITERAL_STRING("autoclose"),
-                                      0.0, delay, autoclose);
+  rv = HandleFlagWithOptionalArgument(aCmdLine, u"autoclose"_ns, 0.0, delay,
+                                      autoclose);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = HandleFlagWithOptionalArgument(
-      aCmdLine, NS_LITERAL_STRING("capture-profile"),
-      NS_LITERAL_STRING("profile.json"), profileFilename, captureProfile);
+  rv = HandleFlagWithOptionalArgument(aCmdLine, u"capture-profile"_ns,
+                                      u"profile.json"_ns, profileFilename,
+                                      captureProfile);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = aCmdLine->HandleFlag(NS_LITERAL_STRING("paged"), false, &paged);
+  rv = aCmdLine->HandleFlag(u"paged"_ns, false, &paged);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIMutableArray> argsArray = nsArray::Create();
@@ -156,7 +156,7 @@ nsLayoutDebugCLH::Handle(nsICommandLine* aCmdLine) {
   }
 
   if (paged) {
-    rv = AppendArg(argsArray, NS_LITERAL_STRING("paged"));
+    rv = AppendArg(argsArray, u"paged"_ns);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -165,9 +165,9 @@ nsLayoutDebugCLH::Handle(nsICommandLine* aCmdLine) {
   NS_ENSURE_TRUE(wwatch, NS_ERROR_FAILURE);
 
   nsCOMPtr<mozIDOMWindowProxy> opened;
-  wwatch->OpenWindow(nullptr, "chrome://layoutdebug/content/layoutdebug.xhtml",
-                     "_blank", "chrome,dialog=no,all", argsArray,
-                     getter_AddRefs(opened));
+  wwatch->OpenWindow(
+      nullptr, "chrome://layoutdebug/content/layoutdebug.xhtml"_ns, "_blank"_ns,
+      "chrome,dialog=no,all"_ns, argsArray, getter_AddRefs(opened));
   aCmdLine->SetPreventDefault(true);
   return NS_OK;
 }

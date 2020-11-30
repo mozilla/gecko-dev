@@ -54,6 +54,9 @@ class CubebDeviceEnumerator final {
     return mOnOutputDeviceListChange;
   }
 
+  // Return the default device for a particular side.
+  RefPtr<AudioDeviceInfo> DefaultDevice(Side aSide);
+
  private:
   CubebDeviceEnumerator();
   ~CubebDeviceEnumerator();
@@ -77,8 +80,6 @@ class CubebDeviceEnumerator final {
   bool mManualOutputInvalidation;
   MediaEventProducer<void> mOnInputDeviceListChange;
   MediaEventProducer<void> mOnOutputDeviceListChange;
-  // The singleton instance.
-  static StaticRefPtr<CubebDeviceEnumerator> sInstance;
 };
 
 typedef CubebDeviceEnumerator Enumerator;

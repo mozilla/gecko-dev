@@ -1,4 +1,10 @@
+/* global arguments */
+
+"use strict";
+
 var CC = Components.Constructor;
+
+var dns = Cc["@mozilla.org/network/dns-service;1"].getService(Ci.nsIDNSService);
 
 const BinaryInputStream = CC(
   "@mozilla.org/binaryinputstream;1",
@@ -47,7 +53,7 @@ function launchConnection(socks_vers, socks_port, dest_host, dest_port, dns) {
 
 for (var arg of arguments) {
   print("client: running test", arg);
-  test = arg.split("|");
+  let test = arg.split("|");
   launchConnection(
     test[0],
     parseInt(test[1]),

@@ -9,12 +9,13 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/WindowBinding.h"  // For FrameRequestCallback
+#include "mozilla/dom/WebXRBinding.h"
+#include "mozilla/dom/XRFrame.h"
 #include "mozilla/gfx/PVRManagerChild.h"
 #include "mozilla/ipc/SharedMemory.h"  // for SharedMemory, etc
 #include "ThreadSafeRefcountingWithMainThreadDestruction.h"
 #include "mozilla/layers/ISurfaceAllocator.h"  // for ISurfaceAllocator
 #include "mozilla/layers/LayersTypes.h"        // for LayersBackend
-#include "mozilla/layers/TextureForwarder.h"
 
 namespace mozilla {
 namespace dom {
@@ -22,6 +23,7 @@ class Promise;
 class GamepadManager;
 class Navigator;
 class VRDisplay;
+class FrameRequestCallback;
 }  // namespace dom
 namespace layers {
 class SyncObjectClient;
@@ -63,12 +65,14 @@ class VRManagerChild : public PVRManagerChild {
   void StopActivity();
   bool RuntimeSupportsVR() const;
   bool RuntimeSupportsAR() const;
+  bool RuntimeSupportsInline() const;
 
   void GetVRDisplays(nsTArray<RefPtr<VRDisplayClient>>& aDisplays);
   bool RefreshVRDisplaysWithCallback(uint64_t aWindowId);
   bool EnumerateVRDisplays();
   void DetectRuntimes();
   void AddPromise(const uint32_t& aID, dom::Promise* aPromise);
+  gfx::VRAPIMode GetVRAPIMode(uint32_t aDisplayID) const;
 
   static void InitSameProcess();
   static void InitWithGPUProcess(Endpoint<PVRManagerChild>&& aEndpoint);
@@ -77,17 +81,18 @@ class VRManagerChild : public PVRManagerChild {
 
   static bool IsCreated();
   static bool IsPresenting();
+  static TimeStamp GetIdleDeadlineHint(TimeStamp aDefault);
 
-  PVRLayerChild* CreateVRLayer(uint32_t aDisplayID, nsIEventTarget* aTarget,
-                               uint32_t aGroup);
+  PVRLayerChild* CreateVRLayer(uint32_t aDisplayID,
+                               nsISerialEventTarget* aTarget, uint32_t aGroup);
 
   static void IdentifyTextureHost(
       const layers::TextureFactoryIdentifier& aIdentifier);
   layers::LayersBackend GetBackendType() const;
   layers::SyncObjectClient* GetSyncObject() { return mSyncObject; }
 
-  nsresult ScheduleFrameRequestCallback(
-      mozilla::dom::FrameRequestCallback& aCallback, int32_t* aHandle);
+  nsresult ScheduleFrameRequestCallback(dom::FrameRequestCallback& aCallback,
+                                        int32_t* aHandle);
   void CancelFrameRequestCallback(int32_t aHandle);
   MOZ_CAN_RUN_SCRIPT
   void RunFrameRequestCallbacks();
@@ -153,11 +158,29 @@ class VRManagerChild : public PVRManagerChild {
   bool mDisplaysInitialized;
   nsTArray<uint64_t> mNavigatorCallbacks;
 
-  MessageLoop* mMessageLoop;
+  struct XRFrameRequest {
+    XRFrameRequest(mozilla::dom::FrameRequestCallback& aCallback,
+                   int32_t aHandle)
+        : mCallback(&aCallback), mHandle(aHandle) {}
 
-  struct FrameRequest;
+    XRFrameRequest(mozilla::dom::XRFrameRequestCallback& aCallback,
+                   mozilla::dom::XRFrame& aFrame, int32_t aHandle)
+        : mXRCallback(&aCallback), mXRFrame(&aFrame), mHandle(aHandle) {}
+    MOZ_CAN_RUN_SCRIPT
+    void Call(const DOMHighResTimeStamp& aTimeStamp);
 
-  nsTArray<FrameRequest> mFrameRequestCallbacks;
+    // Comparator operators to allow RemoveElementSorted with an
+    // integer argument on arrays of XRFrameRequest
+    bool operator==(int32_t aHandle) const { return mHandle == aHandle; }
+    bool operator<(int32_t aHandle) const { return mHandle < aHandle; }
+
+    RefPtr<mozilla::dom::FrameRequestCallback> mCallback;
+    RefPtr<mozilla::dom::XRFrameRequestCallback> mXRCallback;
+    RefPtr<mozilla::dom::XRFrame> mXRFrame;
+    int32_t mHandle;
+  };
+
+  nsTArray<XRFrameRequest> mFrameRequestCallbacks;
   /**
    * The current frame request callback handle
    */

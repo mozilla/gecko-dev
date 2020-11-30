@@ -1,3 +1,7 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 # This module contains functionality for adding formatted, opaque "code" blocks
 # into the IPDL ast. These code objects follow IPDL C++ ast patterns, and
 # perform lowering in much the same way.
@@ -7,7 +11,6 @@
 # API are often easier to read than users of the AST APIs in these cases.
 
 import re
-import sys
 import math
 import textwrap
 
@@ -136,7 +139,7 @@ def _line(raw, skip_indent, lineno, context):
             values = eval(expr, context, {})
         except Exception as e:
             msg = "%s in substitution on line %d" % (repr(e), lineno)
-            raise ValueError(msg), None, sys.exc_traceback
+            raise ValueError(msg) from e
 
         # If we aren't dealing with lists, wrap the result into a
         # single-element list.

@@ -12,7 +12,7 @@
         # chromium uses pymod_do_main, but gyp doesn't set a sensible
         # Python sys.path (gyp_chromium does).
         'python%': '<(python)',
-        'host_arch%': '<!(<(python) <(DEPTH)/coreconf/detect_host_arch.py)',
+        'host_arch%': '<!("<(python)" <(DEPTH)/coreconf/detect_host_arch.py)',
       },
       'python%': '<(python)',
       'host_arch%': '<(host_arch)',
@@ -66,12 +66,12 @@
           ],
         }],
         ['"<(GENERATOR)"=="ninja"', {
-          'cc_is_clang%': '<!(<(python) <(DEPTH)/coreconf/check_cc.py clang)',
+          'cc_is_clang%': '<!("<(python)" <(DEPTH)/coreconf/check_cc.py clang)',
         }, {
           'cc_is_clang%': '0',
         }],
         ['"<(GENERATOR)"=="ninja"', {
-          'cc_is_gcc%': '<!(<(python) <(DEPTH)/coreconf/check_cc.py gcc)',
+          'cc_is_gcc%': '<!("<(python)" <(DEPTH)/coreconf/check_cc.py gcc)',
         }, {
           'cc_is_gcc%': '0',
         }],
@@ -97,12 +97,17 @@
     'cc_use_gnu_ld%': '<(cc_use_gnu_ld)',
     # Some defaults
     'disable_arm_hw_aes%': 0,
+    'disable_arm_hw_sha1%': 0,
+    'disable_arm_hw_sha2%': 0,
     'disable_tests%': 0,
     'disable_chachapoly%': 0,
+    'disable_deprecated_seed%': 0,
+    'disable_deprecated_rc2%': 0,
     'disable_dbm%': 1,
     'disable_libpkix%': 1,
     'disable_werror%': 0,
     'disable_altivec%': 0,
+    'disable_arm32_neon%': 0,
     'mozilla_client%': 0,
     'comm_client%': 0,
     'moz_fold_libs%': 0,
@@ -127,6 +132,7 @@
     'mozpkix_only%': 0,
     'coverage%': 0,
     'softfp_cflags%': '',
+    'enable_draft_hpke%': 0,
   },
   'target_defaults': {
     # Settings specific to targets should go here.
@@ -201,7 +207,7 @@
           },
         },
       }],
-      [ 'target_arch=="arm64" or target_arch=="aarch64" or target_arch=="sparc64" or target_arch=="ppc64" or target_arch=="ppc64le" or target_arch=="s390x" or target_arch=="mips64"', {
+      [ 'target_arch=="arm64" or target_arch=="aarch64" or target_arch=="sparc64" or target_arch=="ppc64" or target_arch=="ppc64le" or target_arch=="s390x" or target_arch=="mips64" or target_arch=="e2k"', {
         'defines': [
           'NSS_USE_64',
         ],
@@ -361,6 +367,7 @@
               '_DEFAULT_SOURCE', # for <endian.h> functions, strdup, realpath, and getentropy
               '_BSD_SOURCE', # for the above in glibc <= 2.19
               '_POSIX_SOURCE', # for <signal.h>
+              'SQL_MEASURE_USE_TEMP_DIR', # use tmpdir for the access calls
             ],
           }],
           [ 'OS=="dragonfly" or OS=="freebsd"', {
@@ -435,11 +442,11 @@
           }],
           [ 'disable_werror==0 and OS!="android" and OS!="win"', {
             'cflags': [
-              '<!@(<(python) <(DEPTH)/coreconf/werror.py)',
+              '<!@("<(python)" <(DEPTH)/coreconf/werror.py)',
             ],
             'xcode_settings': {
               'OTHER_CFLAGS': [
-                '<!@(<(python) <(DEPTH)/coreconf/werror.py)',
+                '<!@("<(python)" <(DEPTH)/coreconf/werror.py)',
               ],
             },
           }],
@@ -562,9 +569,24 @@
               'NSS_DISABLE_DBM',
             ],
           }],
+          [ 'enable_draft_hpke==1', {
+            'defines': [
+              'NSS_ENABLE_DRAFT_HPKE',
+            ],
+          }],
           [ 'disable_libpkix==1', {
             'defines': [
               'NSS_DISABLE_LIBPKIX',
+            ],
+          }],
+          [ 'disable_deprecated_seed==1', {
+            'defines': [
+              'NSS_DISABLE_DEPRECATED_SEED',
+            ],
+          }],
+          [ 'disable_deprecated_rc2==1', {
+            'defines': [
+              'NSS_DISABLE_DEPRECATED_RC2',
             ],
           }],
         ],
@@ -593,9 +615,11 @@
             'Optimization': '<(debug_optimization_level)',
             'BasicRuntimeChecks': '3',
             'RuntimeLibrary': '2', # /MD
+            'DebugInformationFormat': '3',
           },
           'VCLinkerTool': {
             'LinkIncremental': '1',
+            'GenerateDebugInformation' : 'true',
           },
           'VCResourceCompilerTool': {
             'PreprocessorDefinitions': ['DEBUG'],

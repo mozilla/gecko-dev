@@ -7,7 +7,6 @@
 #include "FileDescriptor.h"
 
 #include "mozilla/Assertions.h"
-#include "mozilla/TypeTraits.h"
 #include "nsDebug.h"
 
 #ifdef XP_WIN
@@ -106,7 +105,7 @@ FileDescriptor::UniquePlatformHandle FileDescriptor::Clone(
   FileDescriptor::PlatformHandleType newHandle;
 
 #ifdef XP_WIN
-  if (aHandle == INVALID_HANDLE_VALUE) {
+  if (aHandle == INVALID_HANDLE_VALUE || aHandle == nullptr) {
     return UniqueFileHandle();
   }
   if (::DuplicateHandle(GetCurrentProcess(), aHandle, GetCurrentProcess(),

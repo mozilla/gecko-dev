@@ -25,6 +25,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsIChannel.h"
 #include "nsIHttpChannel.h"
+#include "nsIMultiPartChannel.h"
 #include "nsIStreamListener.h"
 #include "nsIRemoteTab.h"
 #include "nsIThreadRetargetableStreamListener.h"
@@ -110,11 +111,10 @@ struct ChannelHolder {
 class WebRequestChannelEntry;
 
 class ChannelWrapper final : public DOMEventTargetHelper,
-                             public SupportsWeakPtr<ChannelWrapper>,
+                             public SupportsWeakPtr,
                              public LinkedListElement<ChannelWrapper>,
                              private detail::ChannelHolder {
  public:
-  MOZ_DECLARE_WEAKREFERENCE_TYPENAME(ChannelWrapper)
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(ChannelWrapper,
                                                          DOMEventTargetHelper)
@@ -141,8 +141,8 @@ class ChannelWrapper final : public DOMEventTargetHelper,
   void UpgradeToSecure(ErrorResult& aRv);
 
   bool Suspended() const { return mSuspended; }
-
-  void SetSuspended(bool aSuspended, ErrorResult& aRv);
+  void Suspend(ErrorResult& aRv);
+  void Resume(const nsCString& aText, ErrorResult& aRv);
 
   void GetContentType(nsCString& aContentType) const;
   void SetContentType(const nsACString& aContentType);
@@ -189,9 +189,9 @@ class ChannelWrapper final : public DOMEventTargetHelper,
     return nullptr;
   }
 
-  int64_t WindowId() const;
+  int64_t FrameId() const;
 
-  int64_t ParentWindowId() const;
+  int64_t ParentFrameId() const;
 
   void GetFrameAncestors(
       dom::Nullable<nsTArray<dom::MozFrameAncestorInfo>>& aFrameAncestors,
@@ -221,6 +221,8 @@ class ChannelWrapper final : public DOMEventTargetHelper,
 
   void GetRequestHeaders(nsTArray<dom::MozHTTPHeader>& aRetVal,
                          ErrorResult& aRv) const;
+  void GetRequestHeader(const nsCString& aHeader, nsCString& aResult,
+                        ErrorResult& aRv) const;
 
   void GetResponseHeaders(nsTArray<dom::MozHTTPHeader>& aRetVal,
                           ErrorResult& aRv) const;
@@ -266,7 +268,7 @@ class ChannelWrapper final : public DOMEventTargetHelper,
   const URLInfo& FinalURLInfo() const;
   const URLInfo* DocumentURLInfo() const;
 
-  uint64_t WindowId(nsILoadInfo* aLoadInfo) const;
+  uint64_t BrowsingContextId(nsILoadInfo* aLoadInfo) const;
 
   nsresult GetFrameAncestors(
       nsILoadInfo* aLoadInfo,
@@ -316,12 +318,16 @@ class ChannelWrapper final : public DOMEventTargetHelper,
 
   nsInterfaceHashtable<nsPtrHashKey<const nsAtom>, nsIRemoteTab> mAddonEntries;
 
+  mozilla::TimeStamp mSuspendTime;
+
   class RequestListener final : public nsIStreamListener,
+                                public nsIMultiPartChannelListener,
                                 public nsIThreadRetargetableStreamListener {
    public:
     NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSIREQUESTOBSERVER
     NS_DECL_NSISTREAMLISTENER
+    NS_DECL_NSIMULTIPARTCHANNELLISTENER
     NS_DECL_NSITHREADRETARGETABLESTREAMLISTENER
 
     explicit RequestListener(ChannelWrapper* aWrapper)

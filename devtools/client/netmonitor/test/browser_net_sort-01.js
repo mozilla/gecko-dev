@@ -10,7 +10,7 @@
 add_task(async function() {
   const { L10N } = require("devtools/client/netmonitor/src/utils/l10n");
 
-  const { monitor } = await initNetMonitor(SORTING_URL);
+  const { monitor } = await initNetMonitor(SORTING_URL, { requestCount: 1 });
   info("Starting test... ");
 
   // It seems that this test may be slow on debug builds. This could be because
@@ -29,7 +29,6 @@ add_task(async function() {
 
   // Loading the frame script and preparing the xhr request URLs so we can
   // generate some requests later.
-  loadFrameScriptUtils();
   const requests = [
     {
       url: "sjs_sorting-test-server.sjs?index=1&" + Math.random(),
@@ -70,7 +69,7 @@ add_task(async function() {
     "The first item should be selected in the requests menu."
   );
   is(
-    !!document.querySelector(".network-details-panel"),
+    !!document.querySelector(".network-details-bar"),
     true,
     "The network details panel should be visible after toggle button was pressed."
   );
@@ -195,7 +194,7 @@ add_task(async function() {
       "The first item should be still selected after sorting."
     );
     is(
-      !!document.querySelector(".network-details-panel"),
+      !!document.querySelector(".network-details-bar"),
       true,
       "The network details panel should still be visible after sorting."
     );

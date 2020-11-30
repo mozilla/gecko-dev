@@ -279,6 +279,17 @@ const POSTPROCESSORS = {
 
     return string;
   },
+  requireBackgroundServiceWorkerEnabled(value, context) {
+    if (WebExtensionPolicy.backgroundServiceWorkerEnabled) {
+      return value;
+    }
+
+    // Add an error to the manifest validations and throw the
+    // same error.
+    const msg = "background.service_worker is currently disabled";
+    context.logError(context.makeError(msg));
+    throw new Error(msg);
+  },
 };
 
 // Parses a regular expression, with support for the Python extended
@@ -3545,6 +3556,32 @@ this.Schemas = {
    */
   checkPermissions(namespace, wrapperFuncs) {
     return this.rootSchema.checkPermissions(namespace, wrapperFuncs);
+  },
+
+  /**
+   * Returns a sorted array of permission names for the given permission types.
+   *
+   * @param {Array} types An array of permission types, defaults to all permissions.
+   * @returns {Array} sorted array of permission names
+   */
+  getPermissionNames(
+    types = [
+      "Permission",
+      "OptionalPermission",
+      "PermissionNoPrompt",
+      "OptionalPermissionNoPrompt",
+    ]
+  ) {
+    const ns = this.getNamespace("manifest");
+    let names = [];
+    for (let typeName of types) {
+      for (let choice of ns
+        .get(typeName)
+        .choices.filter(choice => choice.enumeration)) {
+        names = names.concat(choice.enumeration);
+      }
+    }
+    return names.sort();
   },
 
   exportLazyGetter,

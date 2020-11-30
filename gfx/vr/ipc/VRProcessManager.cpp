@@ -86,7 +86,7 @@ void VRProcessManager::DestroyProcess() {
   mVRChild = nullptr;
 
   CrashReporter::AnnotateCrashReport(CrashReporter::Annotation::VRProcessStatus,
-                                     NS_LITERAL_CSTRING("Destroyed"));
+                                     "Destroyed"_ns);
 }
 
 bool VRProcessManager::EnsureVRReady() {
@@ -133,7 +133,7 @@ void VRProcessManager::OnProcessLaunchComplete(VRProcessParent* aParent) {
   mQueuedPrefs.Clear();
 
   CrashReporter::AnnotateCrashReport(CrashReporter::Annotation::VRProcessStatus,
-                                     NS_LITERAL_CSTRING("Running"));
+                                     "Running"_ns);
 }
 
 void VRProcessManager::OnProcessUnexpectedShutdown(VRProcessParent* aParent) {
@@ -211,7 +211,7 @@ void VRProcessManager::OnXPCOMShutdown() {
 }
 
 void VRProcessManager::OnPreferenceChange(const char16_t* aData) {
-  // A pref changed. If it's not on the blacklist, inform child processes.
+  // A pref changed. If it is useful to do so, inform child processes.
   if (!dom::ContentParent::ShouldSyncPreference(aData)) {
     return;
   }
@@ -242,10 +242,10 @@ class VRMemoryReporter : public MemoryReportingProcess {
     return false;
   }
 
-  bool SendRequestMemoryReport(const uint32_t& aGeneration,
-                               const bool& aAnonymize,
-                               const bool& aMinimizeMemoryUsage,
-                               const Maybe<FileDescriptor>& aDMDFile) override {
+  bool SendRequestMemoryReport(
+      const uint32_t& aGeneration, const bool& aAnonymize,
+      const bool& aMinimizeMemoryUsage,
+      const Maybe<ipc::FileDescriptor>& aDMDFile) override {
     VRChild* child = GetChild();
     if (!child) {
       return false;

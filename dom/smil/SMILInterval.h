@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_SMILInterval_h
-#define mozilla_SMILInterval_h
+#ifndef DOM_SMIL_SMILINTERVAL_H_
+#define DOM_SMIL_SMILINTERVAL_H_
 
 #include "mozilla/SMILInstanceTime.h"
 #include "nsTArray.h"
@@ -52,7 +52,7 @@ class SMILInterval {
   void FixBegin();
   void FixEnd();
 
-  typedef nsTArray<RefPtr<SMILInstanceTime> > InstanceTimeList;
+  using InstanceTimeList = nsTArray<RefPtr<SMILInstanceTime>>;
 
   void AddDependentTime(SMILInstanceTime& aTime);
   void RemoveDependentTime(const SMILInstanceTime& aTime);
@@ -83,4 +83,4 @@ class SMILInterval {
 
 }  // namespace mozilla
 
-#endif  // mozilla_SMILInterval_h
+#endif  // DOM_SMIL_SMILINTERVAL_H_

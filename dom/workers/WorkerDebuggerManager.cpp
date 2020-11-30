@@ -8,6 +8,7 @@
 
 #include "nsSimpleEnumerator.h"
 
+#include "mozilla/dom/JSExecutionManager.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/StaticPtr.h"
 
@@ -75,7 +76,7 @@ class WorkerDebuggerEnumerator final : public nsSimpleEnumerator {
  public:
   explicit WorkerDebuggerEnumerator(
       const nsTArray<RefPtr<WorkerDebugger>>& aDebuggers)
-      : mDebuggers(aDebuggers), mIndex(0) {}
+      : mDebuggers(aDebuggers.Clone()), mIndex(0) {}
 
   NS_DECL_NSISIMPLEENUMERATOR
 
@@ -277,15 +278,8 @@ void WorkerDebuggerManager::RegisterDebuggerMainThread(
   aWorkerPrivate->SetDebugger(debugger);
 
   if (aNotifyListeners) {
-    nsTArray<nsCOMPtr<nsIWorkerDebuggerManagerListener>> listeners;
-    {
-      MutexAutoLock lock(mMutex);
-
-      listeners = mListeners;
-    }
-
-    for (size_t index = 0; index < listeners.Length(); ++index) {
-      listeners[index]->OnRegister(debugger);
+    for (const auto& listener : CloneListeners()) {
+      listener->OnRegister(debugger);
     }
   }
 
@@ -309,15 +303,8 @@ void WorkerDebuggerManager::UnregisterDebuggerMainThread(
 
   aWorkerPrivate->SetDebugger(nullptr);
 
-  nsTArray<nsCOMPtr<nsIWorkerDebuggerManagerListener>> listeners;
-  {
-    MutexAutoLock lock(mMutex);
-
-    listeners = mListeners;
-  }
-
-  for (size_t index = 0; index < listeners.Length(); ++index) {
-    listeners[index]->OnUnregister(debugger);
+  for (const auto& listener : CloneListeners()) {
+    listener->OnUnregister(debugger);
   }
 
   debugger->Close();
@@ -330,6 +317,13 @@ uint32_t WorkerDebuggerManager::GetDebuggersLength() const {
 
 WorkerDebugger* WorkerDebuggerManager::GetDebuggerAt(uint32_t aIndex) const {
   return mDebuggers.SafeElementAt(aIndex, nullptr);
+}
+
+nsTArray<nsCOMPtr<nsIWorkerDebuggerManagerListener>>
+WorkerDebuggerManager::CloneListeners() {
+  MutexAutoLock lock(mMutex);
+
+  return mListeners.Clone();
 }
 
 }  // namespace dom

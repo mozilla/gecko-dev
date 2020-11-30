@@ -4,6 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsISupports.idl"
+#include "nsICookie.idl"
 
 %{ C++
 namespace mozilla {
@@ -12,9 +13,6 @@ class OriginAttributes;
 %}
 
 [ptr] native OriginAttributesPtr(mozilla::OriginAttributes);
-
-interface nsICookie;
-interface nsIFile;
 
 /**
  * An optional interface for accessing or removing the cookies
@@ -45,6 +43,14 @@ interface nsICookieManager : nsISupports
    * This array only contains non-private browsing cookies.
    */
   readonly attribute Array<nsICookie> sessionCookies;
+
+  /**
+   * Returns current effective value of the "network.cookie.cookieBehavior".
+   */
+  readonly attribute uint32_t cookieBehavior;
+  %{C++
+    static uint32_t GetCookieBehavior();
+  %}
 
   /**
    * Called to remove an individual cookie from the cookie list, specified
@@ -119,7 +125,8 @@ interface nsICookieManager : nsISupports
            in boolean     aIsSession,
            in int64_t     aExpiry,
            in jsval aOriginAttributes,
-           in int32_t aSameSite);
+           in int32_t aSameSite,
+           in nsICookie_schemeType aSchemeMap);
 
   [notxpcom]
   nsresult addNative(in AUTF8String aHost,
@@ -131,7 +138,8 @@ interface nsICookieManager : nsISupports
                      in boolean     aIsSession,
                      in int64_t     aExpiry,
                      in OriginAttributesPtr aOriginAttributes,
-                     in int32_t aSameSite);
+                     in int32_t aSameSite,
+                     in nsICookie_schemeType aSchemeMap);
 
   /**
    * Find whether a given cookie already exists.
@@ -198,15 +206,6 @@ interface nsICookieManager : nsISupports
                                       in jsval aOriginAttributes);
 
   /**
-   * Import an old-style cookie file. Imported cookies will be added to the
-   * existing database. If the database contains any cookies the same as those
-   * being imported (i.e. domain, name, and path match), they will be replaced.
-   *
-   * @param aCookieFile the file to import, usually cookies.txt
-   */
-  void importCookies(in nsIFile aCookieFile);
-
-  /**
    * Returns an array of all cookies whose origin attributes matches aPattern
    *
    * @param aPattern origin attribute pattern in JSON format
@@ -247,4 +246,9 @@ interface nsICookieManager : nsISupports
    */
   [implicit_jscontext]
   Promise removeAllSince(in int64_t aSinceWhen);
+
+  /**
+   * Retrieves all the cookies that were created on or after aSinceWhen, order
+   * by creation time */
+  Array<nsICookie> getCookiesSince(in int64_t aSinceWhen);
 };

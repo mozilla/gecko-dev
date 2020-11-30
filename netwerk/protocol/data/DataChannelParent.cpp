@@ -6,6 +6,8 @@
 
 #include "DataChannelParent.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/dom/ContentParent.h"
+#include "mozilla/net/NeckoParent.h"
 #include "nsNetUtil.h"
 #include "nsIChannel.h"
 
@@ -14,10 +16,10 @@ namespace net {
 
 NS_IMPL_ISUPPORTS(DataChannelParent, nsIParentChannel, nsIStreamListener)
 
-bool DataChannelParent::Init(const uint32_t& channelId) {
+bool DataChannelParent::Init(const uint64_t& aChannelId) {
   nsCOMPtr<nsIChannel> channel;
   MOZ_ALWAYS_SUCCEEDS(
-      NS_LinkRedirectChannels(channelId, this, getter_AddRefs(channel)));
+      NS_LinkRedirectChannels(aChannelId, this, getter_AddRefs(channel)));
 
   return true;
 }
@@ -60,6 +62,17 @@ DataChannelParent::SetClassifierMatchedTrackingInfo(
 NS_IMETHODIMP
 DataChannelParent::Delete() {
   // Nothing to do.
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+DataChannelParent::GetRemoteType(nsACString& aRemoteType) {
+  if (!CanSend()) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  dom::PContentParent* pcp = Manager()->Manager();
+  aRemoteType = static_cast<dom::ContentParent*>(pcp)->GetRemoteType();
   return NS_OK;
 }
 

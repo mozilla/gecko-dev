@@ -340,7 +340,7 @@ export class QuickOpenModal extends Component<Props, State> {
   };
 
   getResultCount = () => {
-    const results = this.state.results;
+    const { results } = this.state;
     return results && results.length ? results.length : 0;
   };
 
@@ -481,12 +481,9 @@ function mapStateToProps(state) {
 }
 
 /* istanbul ignore next: ignoring testing of redux connection stuff */
-export default connect<Props, OwnProps, _, _, _, _>(
-  mapStateToProps,
-  {
-    selectSpecificLocation: actions.selectSpecificLocation,
-    setQuickOpenQuery: actions.setQuickOpenQuery,
-    highlightLineRange: actions.highlightLineRange,
-    closeQuickOpen: actions.closeQuickOpen,
-  }
-)(QuickOpenModal);
+export default connect<Props, OwnProps, _, _, _, _>(mapStateToProps, {
+  selectSpecificLocation: actions.selectSpecificLocation,
+  setQuickOpenQuery: actions.setQuickOpenQuery,
+  highlightLineRange: actions.highlightLineRange,
+  closeQuickOpen: actions.closeQuickOpen,
+})(QuickOpenModal);

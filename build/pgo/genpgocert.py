@@ -16,7 +16,7 @@ import subprocess
 import sys
 import distutils
 
-from mozbuild.base import MozbuildObject
+from mozbuild.base import MozbuildObject, BinaryNotFoundException
 from mozfile import NamedTemporaryFile, TemporaryDirectory
 from mozprofile.permissions import ServerLocations
 
@@ -55,7 +55,8 @@ def runUtil(util, args, inputdata=None, outputstream=None):
             env[pathvar] = app_path
     proc = subprocess.Popen([util] + args, env=env,
                             stdin=subprocess.PIPE if inputdata else None,
-                            stdout=outputstream)
+                            stdout=outputstream,
+                            universal_newlines=True)
     proc.communicate(inputdata)
     return proc.returncode
 
@@ -89,15 +90,19 @@ def writeCertspecForServerLocations(fd):
 
 
 def constructCertDatabase(build, srcDir):
-    certutil = build.get_binary_path(what="certutil")
-    pk12util = build.get_binary_path(what="pk12util")
+    try:
+        certutil = build.get_binary_path(what="certutil")
+        pk12util = build.get_binary_path(what="pk12util")
+    except BinaryNotFoundException as e:
+        print('{}\n\n{}\n'.format(e, e.help()))
+        return 1
     openssl = distutils.spawn.find_executable("openssl")
     pycert = os.path.join(build.topsrcdir, "security", "manager", "ssl", "tests",
                           "unit", "pycert.py")
     pykey = os.path.join(build.topsrcdir, "security", "manager", "ssl", "tests",
                          "unit", "pykey.py")
 
-    with NamedTemporaryFile() as pwfile, TemporaryDirectory() as pemfolder:
+    with NamedTemporaryFile(mode="wt+") as pwfile, TemporaryDirectory() as pemfolder:
         pwfile.write("\n")
         pwfile.flush()
 

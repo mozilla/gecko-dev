@@ -4,7 +4,7 @@
 "use strict";
 
 // The ext-* files are imported into the same scopes.
-/* import-globals-from ext-utils.js */
+/* import-globals-from ext-android.js */
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   GeckoViewWebExtension: "resource://gre/modules/GeckoViewWebExtension.jsm",
@@ -44,14 +44,15 @@ class PageAction extends PageActionBase {
     const action = tab
       ? this.getContextData(tab)
       : this.helper.extractProperties(this.globals);
-    this.helper.sendRequestForResult(tabId, {
+    this.helper.sendRequest(tabId, {
       action,
       type: "GeckoView:PageAction:Update",
     });
   }
 
   openPopup() {
-    const action = this.getContextData(tabTracker.activeTab);
+    const actionObject = this.getContextData(tabTracker.activeTab);
+    const action = this.helper.extractProperties(actionObject);
     this.helper.sendRequest(tabTracker.activeTab.id, {
       action,
       type: "GeckoView:PageAction:OpenPopup",

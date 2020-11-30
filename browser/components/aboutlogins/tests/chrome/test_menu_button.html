@@ -29,7 +29,7 @@ let gMenuButton;
 add_task(async function setup() {
   let templateFrame = document.getElementById("templateFrame");
   let displayEl = document.getElementById("display");
-  importDependencies(templateFrame, displayEl);
+  await importDependencies(templateFrame, displayEl);
 
   gMenuButton = document.createElement("menu-button");
   displayEl.appendChild(gMenuButton);
@@ -39,6 +39,25 @@ add_task(async function setup() {
     sendKey("TAB");
     await new Promise(resolve => requestAnimationFrame(resolve));
   }
+});
+
+add_task(async function test_menu_clicks () {
+  let menu = gMenuButton.shadowRoot.querySelector(".menu");
+  let menuButton = gMenuButton.shadowRoot.querySelector(".menu-button");
+  ok(menu.hidden, "menu should be hidden before being clicked");
+  menuButton.click();
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  ok(!menu.hidden, "menu should be visible after clicked");
+
+  let menuListSeparators = gMenuButton.shadowRoot.querySelectorAll(".menuitem-separator");
+  menuListSeparators[0].click();
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  ok(!menu.hidden, "menu should still be visible after menu separator has been clicked");
+
+  let menuListButtons = gMenuButton.shadowRoot.querySelectorAll(".menuitem-button");
+  menuListButtons[0].click();
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  ok(menu.hidden, "menu should be hidden after a button has been clicked");
 });
 
 add_task(async function test_menu_open_close() {
@@ -57,7 +76,6 @@ add_task(async function test_menu_open_close() {
     "the .menu-button should be focused after closing the menu via keyboard");
 
   sendKey("RETURN");
-
   let firstVisibleItem = gMenuButton.shadowRoot.querySelector(".menuitem-button:not([hidden])");
   await SimpleTest.promiseWaitForCondition(() => firstVisibleItem.matches(":focus"),
     "waiting for firstVisibleItem to get focus");
@@ -73,6 +91,10 @@ add_task(async function test_menu_open_close() {
   await SimpleTest.promiseWaitForCondition(() => firstVisibleItem.matches(":focus"),
     "waiting for firstVisibleItem to get focus again");
   ok(firstVisibleItem.matches(":focus"), "firstVisibleItem should be focused after tabbing to it again");
+  if (SpecialPowers.getBoolPref("signon.management.page.fileImport.enabled")) {
+    sendKey("TAB"); // Import from file
+  }
+  sendKey("TAB"); // Export
 
   if (navigator.platform == "Win32" || navigator.platform == "MacIntel") {
     // The Import menuitem is only visible on Windows/macOS, where we will need another Tab
@@ -122,13 +144,17 @@ add_task(async function test_menu_keyboard_cycling() {
   }
 
   let allItems = [
+    "menuitem-export",
     "menuitem-preferences",
     "menuitem-help",
     "menuitem-mobile-android",
     "menuitem-mobile-ios",
   ];
+  if (SpecialPowers.getBoolPref("signon.management.page.fileImport.enabled")) {
+    allItems = ["menuitem-import-file", ...allItems];
+  }
   if (navigator.platform == "Win32" || navigator.platform == "MacIntel") {
-    allItems = ["menuitem-import", ...allItems];
+    allItems = ["menuitem-import-browser", ...allItems];
   }
 
   let menu = gMenuButton.shadowRoot.querySelector(".menu");

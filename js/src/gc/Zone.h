@@ -20,7 +20,7 @@
 #include "gc/ZoneAllocator.h"
 #include "js/GCHashTable.h"
 #include "vm/AtomsTable.h"
-#include "vm/JSScript.h"
+#include "vm/JSFunction.h"
 #include "vm/TypeInference.h"
 
 namespace js {
@@ -59,9 +59,13 @@ using FinalizationRecordVector = GCVector<HeapPtrObject, 1, ZoneAllocPolicy>;
 
 }  // namespace gc
 
+// If two different nursery strings are wrapped into the same zone, and have
+// the same contents, then deduplication may make them duplicates.
+// `DuplicatesPossible` will allow this and map both wrappers to the same (now
+// tenured) source string.
 using StringWrapperMap =
     NurseryAwareHashMap<JSString*, JSString*, DefaultHasher<JSString*>,
-                        ZoneAllocPolicy>;
+                        ZoneAllocPolicy, DuplicatesPossible>;
 
 class MOZ_NON_TEMPORARY_CLASS ExternalStringCache {
   static const size_t NumEntries = 4;
@@ -121,7 +125,7 @@ class WeakRefMap
   using GCHashMap::GCHashMap;
   using Base = GCHashMap<HeapPtrObject, WeakRefHeapPtrVector,
                          MovableCellHasher<HeapPtrObject>, ZoneAllocPolicy>;
-  void sweep();
+  void sweep(gc::StoreBuffer* sbToLock);
 };
 
 }  // namespace js
@@ -277,8 +281,7 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
   // Bitmap of atoms marked by this zone.
   js::ZoneOrGCTaskData<js::SparseBitmap> markedAtoms_;
 
-  // Set of atoms recently used by this Zone. Purged on GC unless
-  // keepAtomsCount is non-zero.
+  // Set of atoms recently used by this Zone. Purged on GC.
   js::ZoneOrGCTaskData<js::AtomSet> atomCache_;
 
   // Cache storing allocated external strings. Purged on GC.
@@ -286,21 +289,6 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
 
   // Cache for Function.prototype.toString. Purged on GC.
   js::ZoneOrGCTaskData<js::FunctionToStringCache> functionToStringCache_;
-
-  // Count of AutoKeepAtoms instances for this zone. When any instances exist,
-  // atoms in the runtime will be marked from this zone's atom mark bitmap,
-  // rather than when traced in the normal way. Threads parsing off the main
-  // thread do not increment this value, but the presence of any such threads
-  // also inhibits collection of atoms. We don't scan the stacks of exclusive
-  // threads, so we need to avoid collecting their objects in another way. The
-  // only GC thing pointers they have are to their exclusive compartment
-  // (which is not collected) or to the atoms compartment. Therefore, we avoid
-  // collecting the atoms zone when exclusive threads are running.
-  js::ZoneOrGCTaskData<unsigned> keepAtomsCount;
-
-  // Whether purging atoms was deferred due to keepAtoms being set. If this
-  // happen then the cache will be purged when keepAtoms drops to zero.
-  js::ZoneOrGCTaskData<bool> purgeAtomsDeferred;
 
   // Shared Shape property tree.
   js::ZoneData<js::PropertyTree> propertyTree_;
@@ -319,9 +307,15 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
       js::Vector<js::AccessorShape*, 0, js::SystemAllocPolicy>;
   js::ZoneData<NurseryShapeVector> nurseryShapes_;
 
-  // A map from finalization group targets to a list of finalization records
-  // representing groups that the target is registered with and their associated
-  // held values.
+  // The set of all finalization registries in this zone.
+  using FinalizationRegistrySet =
+      GCHashSet<js::HeapPtrObject, js::MovableCellHasher<js::HeapPtrObject>,
+                js::ZoneAllocPolicy>;
+  js::ZoneOrGCTaskData<FinalizationRegistrySet> finalizationRegistries_;
+
+  // A map from finalization registry targets to a list of finalization records
+  // representing registries that the target is registered with and their
+  // associated held values.
   using FinalizationRecordMap =
       GCHashMap<js::HeapPtrObject, js::gc::FinalizationRecordVector,
                 js::MovableCellHasher<js::HeapPtrObject>, js::ZoneAllocPolicy>;
@@ -438,8 +432,7 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
   void setPreservingCode(bool preserving) { gcPreserveCode_ = preserving; }
   bool isPreservingCode() const { return gcPreserveCode_; }
 
-  // Whether this zone can currently be collected. This doesn't take account
-  // of AutoKeepAtoms for the atoms zone.
+  // Whether this zone can currently be collected.
   bool canCollect();
 
   void changeGCState(GCState prev, GCState next) {
@@ -544,12 +537,31 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
     weakCaches().insertBack(cachep);
   }
 
+  void beforeClearDelegate(JSObject* wrapper, JSObject* delegate) {
+    if (needsIncrementalBarrier()) {
+      beforeClearDelegateInternal(wrapper, delegate);
+    }
+  }
+
+  void afterAddDelegate(JSObject* wrapper) {
+    if (needsIncrementalBarrier()) {
+      afterAddDelegateInternal(wrapper);
+    }
+  }
+
+  void beforeClearDelegateInternal(JSObject* wrapper, JSObject* delegate);
+  void afterAddDelegateInternal(JSObject* wrapper);
   js::gc::WeakKeyTable& gcWeakKeys() { return gcWeakKeys_.ref(); }
   js::gc::WeakKeyTable& gcNurseryWeakKeys() { return gcNurseryWeakKeys_.ref(); }
 
+  js::gc::WeakKeyTable& gcWeakKeys(const js::gc::Cell* cell) {
+    return cell->isTenured() ? gcWeakKeys() : gcNurseryWeakKeys();
+  }
+
   // Perform all pending weakmap entry marking for this zone after
   // transitioning to weak marking mode.
-  void enterWeakMarkingMode(js::GCMarker* marker);
+  js::gc::IncrementalProgress enterWeakMarkingMode(js::GCMarker* marker,
+                                                   js::SliceBudget& budget);
   void checkWeakMarkingMode();
 
   // A set of edges from this zone to other zones used during GC to calculate
@@ -574,16 +586,10 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
 
   bool addTypeDescrObject(JSContext* cx, HandleObject obj);
 
-  void keepAtoms() { keepAtomsCount++; }
-  void releaseAtoms();
-  bool hasKeptAtoms() const { return keepAtomsCount; }
-
   js::SparseBitmap& markedAtoms() { return markedAtoms_.ref(); }
 
   js::AtomSet& atomCache() { return atomCache_.ref(); }
 
-  void traceAtomCache(JSTracer* trc);
-  void purgeAtomCacheOrDefer();
   void purgeAtomCache();
 
   js::ExternalStringCache& externalStringCache() {
@@ -684,6 +690,10 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
   bool isQueuedForBackgroundSweep() { return isOnList(); }
 
   void sweepWeakKeysAfterMinorGC();
+
+  FinalizationRegistrySet& finalizationRegistries() {
+    return finalizationRegistries_.ref();
+  }
 
   FinalizationRecordMap& finalizationRecordMap() {
     return finalizationRecordMap_.ref();

@@ -5,11 +5,12 @@
 
 const {
   STUBS_UPDATE_ENV,
+  createResourceWatcherForTab,
   getStubFile,
   getCleanedPacket,
   getSerializedPacket,
   writeStubsToFile,
-} = require("chrome://mochitests/content/browser/devtools/client/webconsole/test/browser/stub-generator-helpers");
+} = require(`${CHROME_URL_ROOT}stub-generator-helpers`);
 
 const TEST_URI =
   "http://example.com/browser/devtools/client/webconsole/test/browser/test-console-api.html";
@@ -28,10 +29,9 @@ add_task(async function() {
   }
   const existingStubs = getStubFile(STUB_FILE);
   const FAILURE_MSG =
-    "The consoleApi stubs file needs to be updated by running " +
-    "`mach test devtools/client/webconsole/test/browser/" +
-    "browser_webconsole_stubs_console_api.js --headless " +
-    "--setenv WEBCONSOLE_STUBS_UPDATE=true`";
+    "The consoleApi stubs file needs to be updated by running `" +
+    `mach test ${getCurrentTestFilePath()} --headless --setenv WEBCONSOLE_STUBS_UPDATE=true` +
+    "`";
 
   if (generatedStubs.size !== existingStubs.rawPackets.size) {
     ok(false, FAILURE_MSG);
@@ -40,9 +40,10 @@ add_task(async function() {
 
   let failed = false;
   for (const [key, packet] of generatedStubs) {
-    const packetStr = getSerializedPacket(packet);
+    const packetStr = getSerializedPacket(packet, { sortKeys: true });
     const existingPacketStr = getSerializedPacket(
-      existingStubs.rawPackets.get(key)
+      existingStubs.rawPackets.get(key),
+      { sortKeys: true }
     );
 
     is(packetStr, existingPacketStr, `"${key}" packet has expected value`);
@@ -61,24 +62,38 @@ add_task(async function() {
 async function generateConsoleApiStubs() {
   const stubs = new Map();
 
-  const hud = await openNewTabAndConsole(TEST_URI);
-  const target = hud.currentTarget;
-  const webConsoleFront = await target.getFront("console");
+  const tab = await addTab(TEST_URI);
+  const resourceWatcher = await createResourceWatcherForTab(tab);
+
+  // The resource-watcher only supports a single call to watch/unwatch per
+  // instance, so we attach a unique watch callback, which will forward the
+  // resource to `handleConsoleMessage`, dynamically updated for each command.
+  let handleConsoleMessage = function() {};
+
+  const onConsoleMessage = resources => {
+    for (const resource of resources) {
+      handleConsoleMessage(resource);
+    }
+  };
+  await resourceWatcher.watchResources(
+    [resourceWatcher.TYPES.CONSOLE_MESSAGE],
+    {
+      onAvailable: onConsoleMessage,
+    }
+  );
 
   for (const { keys, code } of getCommands()) {
     const received = new Promise(resolve => {
       let i = 0;
-      const listener = async res => {
+      handleConsoleMessage = async res => {
         const callKey = keys[i];
 
         stubs.set(callKey, getCleanedPacket(callKey, res));
 
         if (++i === keys.length) {
-          webConsoleFront.off("consoleAPICall", listener);
           resolve();
         }
       };
-      webConsoleFront.on("consoleAPICall", listener);
     });
 
     await SpecialPowers.spawn(gBrowser.selectedBrowser, [code], function(
@@ -96,12 +111,9 @@ async function generateConsoleApiStubs() {
     await received;
   }
 
-  // We have everything we want, we can freeze the console to avoid communication
-  // with the server.
-  const {
-    START_IGNORE_ACTION,
-  } = require("devtools/client/shared/redux/middleware/ignore");
-  await hud.ui.wrapper.getStore().dispatch(START_IGNORE_ACTION);
+  resourceWatcher.unwatchResources([resourceWatcher.TYPES.CONSOLE_MESSAGE], {
+    onAvailable: onConsoleMessage,
+  });
 
   return stubs;
 }

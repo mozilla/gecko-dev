@@ -26,27 +26,23 @@ add_task(async function test_with_rs_messages() {
   );
   const initialMessageCount = ASRouter.state.messages.length;
   const client = RemoteSettings("whats-new-panel");
-  const collection = await client.openCollection();
-  await collection.clear();
-  for (const record of msgs) {
-    await collection.create(
+  await client.db.importChanges(
+    {},
+    42,
+    msgs.map(record => ({
       // Modify targeting to ensure the messages always show up
-      { ...record, targeting: "true" },
-      { useRecordId: true }
-    );
-  }
-  await collection.db.saveLastModified(42); // Prevent from loading JSON dump.
+      ...record,
+      targeting: "true",
+    })),
+    { clear: true }
+  );
+
+  UITour.showMenu(window, "appMenu");
+  await BrowserTestUtils.waitForEvent(window.PanelUI.mainView, "ViewShown");
+  const mainView = document.getElementById("appMenu-mainView");
 
   const whatsNewBtn = document.getElementById("appMenu-whatsnew-button");
   Assert.equal(whatsNewBtn.hidden, true, "What's New btn doesn't exist");
-
-  const mainView = document.getElementById("appMenu-mainView");
-  UITour.showMenu(window, "appMenu");
-  await BrowserTestUtils.waitForEvent(
-    mainView,
-    "ViewShown",
-    "Panel did not open"
-  );
 
   // Reload the provider
   await ASRouter._updateMessageProviders();
@@ -79,10 +75,18 @@ add_task(async function test_with_rs_messages() {
     "The message container was not populated with the expected number of msgs"
   );
 
+  await BrowserTestUtils.waitForCondition(
+    () =>
+      document.querySelector(
+        "#PanelUI-whatsNew-message-container .whatsNew-message-body remote-text"
+      ).shadowRoot.innerHTML,
+    "Ensure messages have content"
+  );
+
   UITour.hideMenu(window, "appMenu");
   // Clean up and remove messages
   ToolbarPanelHub.disableAppmenuButton();
-  await collection.clear();
+  await client.db.clear();
   // Wait to reset the WNPanel messages from state
   const previousMessageCount = ASRouter.state.messages.length;
   await BrowserTestUtils.waitForCondition(async () => {

@@ -18,12 +18,16 @@ TextureView::TextureView(Texture* const aParent, RawId aId)
 
 TextureView::~TextureView() { Cleanup(); }
 
+dom::HTMLCanvasElement* TextureView::GetTargetCanvasElement() const {
+  return mParent->mTargetCanvasElement;
+}  // namespace webgpu
+
 void TextureView::Cleanup() {
-  if (mValid && mParent && mParent->mParent) {
+  if (mValid && mParent && mParent->GetParentDevice()) {
     mValid = false;
-    WebGPUChild* bridge = mParent->mParent->mBridge;
+    auto bridge = mParent->GetParentDevice()->GetBridge();
     if (bridge && bridge->IsOpen()) {
-      bridge->DestroyTextureView(mId);
+      bridge->SendTextureViewDestroy(mId);
     }
   }
 }

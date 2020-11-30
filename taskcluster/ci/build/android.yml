@@ -39,6 +39,7 @@ job-defaults:
             - linux64-rust-android
             - linux64-rust-size
             - linux64-cbindgen
+            - linux64-dump-syms
             - linux64-nasm
             - linux64-node
 
@@ -60,6 +61,7 @@ android-api-16/debug:
         actions: [get-secrets, build]
         config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: api-16-debug
+    use-sccache: true
     fetches:
         toolchain:
             - linux64-clang
@@ -74,6 +76,7 @@ android-x86/opt:
     treeherder:
         platform: android-4-2-x86/opt
         symbol: B
+    run-on-projects: ['integration']
     worker-type: b-linux
     worker:
         env:
@@ -82,6 +85,7 @@ android-x86/opt:
         actions: [get-secrets, build]
         config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: x86
+    use-sccache: true
     fetches:
         toolchain:
             - linux64-clang
@@ -102,29 +106,28 @@ android-x86-fuzzing/debug:
         actions: [get-secrets, build]
         config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: x86-fuzzing-debug
+    use-sccache: true
     fetches:
         toolchain:
             - linux64-clang
             - linux64-sccache
     optimization:
-        fuzzing-builds:
-            - android
+        skip-unless-expanded: null
 
-android-x86-nightly/opt:
-    description: "Android 4.2 x86 Nightly"
+android-x86-shippable/opt:
+    description: "Android 4.2 x86 Shippable"
     attributes:
         enable-full-crashsymbols: true
-        nightly: true
-        # Android nightlies don't run tests in gecko, but are needed for github projects
-        skip-verify-test-packaging: true
+        shippable: true
     shipping-phase: build
     shipping-product: fennec
     index:
         job-name: android-x86-opt
-        type: android-nightly
+        type: android-shippable
     treeherder:
-        platform: android-4-2-x86/opt
-        symbol: N
+        platform: android-4-2-x86-shippable/opt
+        symbol: B
+    run-on-projects: ['release']
     worker-type: b-linux
     worker:
         env:
@@ -149,6 +152,7 @@ android-api-16/opt:
     treeherder:
         platform: android-4-0-armv7-api16/opt
         symbol: B
+    run-on-projects: ['integration']
     worker-type: b-linux
     worker:
         env:
@@ -158,50 +162,27 @@ android-api-16/opt:
         actions: [get-secrets, build]
         config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: api-16
+    use-sccache: true
     fetches:
         toolchain:
             - linux64-clang
             - linux64-sccache
 
-android-api-16/pgo:
-    description: "Android 4.0 api-16+ PGO"
+android-api-16-shippable/opt:
+    description: "Android 4.0 api-16+ Shippable"
     use-pgo: true
-    index:
-        job-name: android-api-16-pgo
     attributes:
         enable-full-crashsymbols: true
-    treeherder:
-        platform: android-4-0-armv7-api16/pgo
-        symbol: Bpgo(B)
-    worker-type: b-linux
-    worker:
-        env:
-            TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
-            MOZ_AUTOMATION_PACKAGE_TESTS: "1"
-    run:
-        actions: [get-secrets, build]
-        config: ["builds/releng_base_android_64_builds.py"]
-        custom-build-variant-cfg: api-16
-    fetches:
-        toolchain:
-            - linux64-clang
-
-android-api-16-nightly/opt:
-    description: "Android 4.0 api-16+ Nightly"
-    use-pgo: android-api-16/pgo
-    attributes:
-        enable-full-crashsymbols: true
-        nightly: true
-        # Android nightlies don't run tests in gecko, but are needed for github projects
-        skip-verify-test-packaging: true
+        shippable: true
     shipping-phase: build
     shipping-product: fennec
     index:
         job-name: android-api-16-opt
-        type: android-nightly-with-multi-l10n
+        type: android-shippable-with-multi-l10n
     treeherder:
-        platform: android-4-0-armv7-api16/opt
-        symbol: N
+        platform: android-4-0-armv7-api16-shippable/opt
+        symbol: Bpgo(B)
+    run-on-projects: ['release']
     worker-type: b-linux
     worker:
         env:
@@ -226,6 +207,7 @@ android-aarch64/opt:
     treeherder:
         platform: android-5-0-aarch64/opt
         symbol: B
+    run-on-projects: ['integration']
     worker-type: b-linux
     worker:
         env:
@@ -235,33 +217,11 @@ android-aarch64/opt:
         actions: [get-secrets, build]
         config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: aarch64
+    use-sccache: true
     fetches:
         toolchain:
             - linux64-clang
             - linux64-sccache
-
-android-aarch64/pgo:
-    description: "Android 5.0 AArch64 PGO"
-    use-pgo: android-api-16/pgo
-    index:
-        job-name: android-aarch64-pgo
-    attributes:
-        enable-full-crashsymbols: true
-    treeherder:
-        platform: android-5-0-aarch64/pgo
-        symbol: Bpgo(B)
-    worker-type: b-linux
-    worker:
-        env:
-            TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
-            MOZ_AUTOMATION_PACKAGE_TESTS: "1"
-    run:
-        actions: [get-secrets, build]
-        config: ["builds/releng_base_android_64_builds.py"]
-        custom-build-variant-cfg: aarch64
-    fetches:
-        toolchain:
-            - linux64-clang
 
 android-aarch64/debug:
     description: "Android 5.0 AArch64 Debug"
@@ -281,27 +241,27 @@ android-aarch64/debug:
         actions: [get-secrets, build]
         config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: aarch64-debug
+    use-sccache: true
     fetches:
         toolchain:
             - linux64-clang
             - linux64-sccache
 
-android-aarch64-nightly/opt:
-    description: "Android 5.0 AArch64 Nightly"
-    use-pgo: android-api-16/pgo
+android-aarch64-shippable/opt:
+    description: "Android 5.0 AArch64 Shippable"
+    use-pgo: android-api-16-shippable/opt
     attributes:
         enable-full-crashsymbols: true
-        nightly: true
-        # Android nightlies don't run tests in gecko, but are needed for github projects
-        skip-verify-test-packaging: true
+        shippable: true
     shipping-phase: build
     shipping-product: fennec
     index:
         job-name: android-aarch64-opt
-        type: android-nightly
+        type: android-shippable
     treeherder:
-        platform: android-5-0-aarch64/opt
-        symbol: N
+        platform: android-5-0-aarch64-shippable/opt
+        symbol: Bpgo(B)
+    run-on-projects: ['release']
     worker-type: b-linux
     worker:
         env:
@@ -326,6 +286,7 @@ android-x86_64/opt:
     treeherder:
         platform: android-5-0-x86_64/opt
         symbol: B
+    run-on-projects: ['integration']
     worker-type: b-linux
     worker:
         env:
@@ -335,26 +296,26 @@ android-x86_64/opt:
         actions: [get-secrets, build]
         config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: x86_64
+    use-sccache: true
     fetches:
         toolchain:
             - linux64-clang
             - linux64-sccache
 
-android-x86_64-nightly/opt:
-    description: "Android 5.0 x86-64 Nightly"
+android-x86_64-shippable/opt:
+    description: "Android 5.0 x86-64 Shippable"
     attributes:
         enable-full-crashsymbols: true
-        nightly: true
-        # Android nightlies don't run tests in gecko, but are needed for github projects
-        skip-verify-test-packaging: true
+        shippable: true
     shipping-phase: build
     shipping-product: fennec
     index:
         job-name: android-x86_64-opt
-        type: android-nightly
+        type: android-shippable
     treeherder:
-        platform: android-5-0-x86_64/opt
-        symbol: N
+        platform: android-5-0-x86_64-shippable/opt
+        symbol: B
+    run-on-projects: ['release']
     worker-type: b-linux
     worker:
         env:
@@ -388,6 +349,7 @@ android-x86_64/debug:
         actions: [get-secrets, build]
         config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: x86_64-debug
+    use-sccache: true
     fetches:
         toolchain:
             - linux64-clang
@@ -413,10 +375,13 @@ android-api-16-gcp/debug:
         actions: [get-secrets, build]
         config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: api-16-debug
+    use-sccache: true
     fetches:
         toolchain:
             - linux64-clang
             - linux64-sccache
+    optimization:
+        skip-unless-backstop: null
 
 
 android-x86-gcp/opt:
@@ -438,10 +403,13 @@ android-x86-gcp/opt:
         actions: [get-secrets, build]
         config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: x86
+    use-sccache: true
     fetches:
         toolchain:
             - linux64-clang
             - linux64-sccache
+    optimization:
+        skip-unless-backstop: null
 
 android-api-16-gcp/opt:
     description: "Android 4.0 api-16+ Opt - built on GCP"
@@ -462,10 +430,13 @@ android-api-16-gcp/opt:
         actions: [get-secrets, build]
         config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: api-16
+    use-sccache: true
     fetches:
         toolchain:
             - linux64-clang
             - linux64-sccache
+    optimization:
+        skip-unless-backstop: null
 
 android-aarch64-gcp/opt:
     description: "Android 5.0 AArch64 Opt - built on GCP"
@@ -486,10 +457,13 @@ android-aarch64-gcp/opt:
         actions: [get-secrets, build]
         config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: aarch64
+    use-sccache: true
     fetches:
         toolchain:
             - linux64-clang
             - linux64-sccache
+    optimization:
+        skip-unless-backstop: null
 
 android-aarch64-gcp/debug:
     description: "Android 5.0 AArch64 Debug - built on GCP"
@@ -510,10 +484,13 @@ android-aarch64-gcp/debug:
         actions: [get-secrets, build]
         config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: aarch64-debug
+    use-sccache: true
     fetches:
         toolchain:
             - linux64-clang
             - linux64-sccache
+    optimization:
+        skip-unless-backstop: null
 
 android-x86_64-gcp/opt:
     description: "Android 5.0 x86-64 Opt - built on GCP"
@@ -534,10 +511,13 @@ android-x86_64-gcp/opt:
         actions: [get-secrets, build]
         config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: x86_64
+    use-sccache: true
     fetches:
         toolchain:
             - linux64-clang
             - linux64-sccache
+    optimization:
+        skip-unless-backstop: null
 
 android-x86_64-gcp/debug:
     description: "Android 5.0 x86-64 Debug - built on GCP"
@@ -561,6 +541,8 @@ android-x86_64-gcp/debug:
     fetches:
         toolchain:
             - linux64-clang
+    optimization:
+        skip-unless-backstop: null
 
 android-x86_64-asan-fuzzing/opt:
     description: "Android 5.0 x86-64 Fuzzing Opt ASAN"
@@ -577,10 +559,10 @@ android-x86_64-asan-fuzzing/opt:
         actions: [get-secrets, build]
         config: ["builds/releng_base_android_64_builds.py"]
         custom-build-variant-cfg: x86_64-fuzzing-asan
+    use-sccache: true
     fetches:
         toolchain:
             - linux64-clang-android-cross
             - linux64-sccache
     optimization:
-        fuzzing-builds:
-            - android
+        skip-unless-expanded: null

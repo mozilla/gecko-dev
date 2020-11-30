@@ -7,6 +7,8 @@
 #define nsDeviceContextSpecX_h_
 
 #include "nsIDeviceContextSpec.h"
+#include "nsIPrinter.h"
+#include "nsIPrinterList.h"
 
 #include "nsCOMPtr.h"
 

@@ -27,6 +27,8 @@ async function enableServiceWorkerDebugging() {
 
   // Enable service workers in the debugger
   await pushPref("devtools.debugger.features.windowless-service-workers", true);
+  // Disable randomly spawning processes during tests
+  await pushPref("dom.ipc.processPrelaunch.enabled", false);
 
   // Wait for dom.ipc.processCount to be updated before releasing processes.
   Services.ppmm.releaseCachedProcesses();
@@ -37,7 +39,7 @@ async function enableApplicationPanel() {
   const { PromiseTestUtils } = ChromeUtils.import(
     "resource://testing-common/PromiseTestUtils.jsm"
   );
-  PromiseTestUtils.whitelistRejectionsGlobally(
+  PromiseTestUtils.allowMatchingRejectionsGlobally(
     /this._frontCreationListeners is null/
   );
 
@@ -49,6 +51,42 @@ async function enableApplicationPanel() {
 
   // Enable application panel in DevTools.
   await pushPref("devtools.application.enabled", true);
+}
+
+function setupTelemetryTest() {
+  // Reset all the counts
+  Services.telemetry.clearEvents();
+
+  // Ensure no events have been logged
+  const ALL_CHANNELS = Ci.nsITelemetry.DATASET_ALL_CHANNELS;
+  const snapshot = Services.telemetry.snapshotEvents(ALL_CHANNELS, true);
+  ok(!snapshot.parent, "No events have been logged for the main process");
+}
+
+function getTelemetryEvents(objectName) {
+  // read the requested events only
+  const ALL_CHANNELS = Ci.nsITelemetry.DATASET_ALL_CHANNELS;
+  const snapshot = Services.telemetry.snapshotEvents(ALL_CHANNELS, true);
+  // filter and transform the event data so the relevant info is in a single object:
+  // { method: "...", extraField: "...", anotherExtraField: "...", ... }
+  const events = snapshot.parent
+    .filter(event => event[1] === "devtools.main" && event[3] === objectName)
+    .map(event => ({ method: event[2], ...event[5] }));
+
+  return events;
+}
+
+function checkTelemetryEvent(expectedEvent, objectName = "application") {
+  info("Check telemetry event");
+  const events = getTelemetryEvents(objectName);
+
+  // assert we only got 1 event with a valid session ID
+  is(events.length, 1, "There was only 1 event logged");
+  const [event] = events;
+  ok(event.session_id > 0, "There is a valid session_id in the event");
+
+  // assert expected data
+  Assert.deepEqual(event, { ...expectedEvent, session_id: event.session_id });
 }
 
 function getWorkerContainers(doc) {
@@ -64,21 +102,12 @@ async function openNewTabAndApplicationPanel(url) {
   return { panel, tab, target, toolbox };
 }
 
-async function unregisterAllWorkers(client) {
-  info("Wait until all workers have a valid registrationFront");
-  let workers;
-  await asyncWaitUntil(async function() {
-    workers = await client.mainRoot.listAllWorkers();
-    const allWorkersRegistered = workers.service.every(
-      worker => !!worker.registrationFront
-    );
-    return allWorkersRegistered;
-  });
+async function unregisterAllWorkers(client, doc) {
+  // This method is declared in shared-head.js
+  await unregisterAllServiceWorkers(client);
 
-  info("Unregister all service workers");
-  for (const worker of workers.service) {
-    await worker.registrationFront.unregister();
-  }
+  info("Wait for service workers to disappear from the UI");
+  waitUntil(() => getWorkerContainers(doc).length === 0);
 }
 
 async function waitForWorkerRegistration(swTab) {

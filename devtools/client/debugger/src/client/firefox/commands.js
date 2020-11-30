@@ -4,12 +4,17 @@
 
 // @flow
 
-import { prepareSourcePayload, createThread, createFrame } from "./create";
-import { updateTargets } from "./targets";
-import { clientEvents } from "./events";
+import { createThread, createFrame } from "./create";
+import {
+  addThreadEventListeners,
+  clientEvents,
+  removeThreadEventListeners,
+  ensureSourceActor,
+} from "./events";
+import { makePendingLocationId } from "../../utils/breakpoint";
 
-import Reps from "devtools-reps";
-import type { Node } from "devtools-reps";
+// $FlowIgnore
+import Reps from "devtools/client/shared/components/reps/index";
 
 import type {
   ActorId,
@@ -18,53 +23,54 @@ import type {
   PendingLocation,
   Frame,
   FrameId,
-  GeneratedSourceData,
+  OINode,
   Script,
   SourceId,
   SourceActor,
   Range,
-  ExecutionPoint,
+  URL,
+  Thread,
 } from "../../types";
 
 import type {
   Target,
   DevToolsClient,
+  TargetList,
   Grip,
   ThreadFront,
   ObjectFront,
   ExpressionResult,
-  SourcesPacket,
 } from "./types";
 
-import type {
-  EventListenerCategoryList,
-  EventListenerActiveList,
-} from "../../actions/types";
+import type { EventListenerCategoryList } from "../../actions/types";
 
 let targets: { [string]: Target };
-let currentThreadFront: ThreadFront;
-let currentTarget: Target;
 let devToolsClient: DevToolsClient;
+let targetList: TargetList;
 let sourceActors: { [ActorId]: SourceId };
 let breakpoints: { [string]: Object };
-let eventBreakpoints: ?EventListenerActiveList;
 
 const CALL_STACK_PAGE_SIZE = 1000;
 
 type Dependencies = {
   devToolsClient: DevToolsClient,
+  targetList: TargetList,
 };
 
-function setupCommands(dependencies: Dependencies) {
+function setupCommands(dependencies: Dependencies): void {
   devToolsClient = dependencies.devToolsClient;
+  targetList = dependencies.targetList;
   targets = {};
   sourceActors = {};
   breakpoints = {};
 }
 
-function setupCommandsTopTarget(targetFront: Target) {
-  currentTarget = targetFront;
-  currentThreadFront = targetFront.threadFront;
+function currentTarget(): Target {
+  return targetList.targetFront;
+}
+
+function currentThreadFront(): ThreadFront {
+  return currentTarget().threadFront;
 }
 
 function createObjectFront(grip: Grip): ObjectFront {
@@ -72,11 +78,11 @@ function createObjectFront(grip: Grip): ObjectFront {
     throw new Error("Actor is missing");
   }
 
-  return devToolsClient.createObjectFront(grip, currentThreadFront);
+  return devToolsClient.createObjectFront(grip, currentThreadFront());
 }
 
-async function loadObjectProperties(root: Node) {
-  const utils = Reps.objectInspector.utils;
+async function loadObjectProperties(root: OINode) {
+  const { utils } = Reps.objectInspector;
   const properties = await utils.loadProperties.loadItemProperties(
     root,
     devToolsClient
@@ -108,8 +114,8 @@ function getTargetsMap(): { string: Target } {
 }
 
 function lookupTarget(thread: string) {
-  if (thread == currentThreadFront.actor) {
-    return currentTarget;
+  if (thread == currentThreadFront().actor) {
+    return currentTarget();
   }
 
   const targetsMap = getTargetsMap();
@@ -126,8 +132,8 @@ function lookupThreadFront(thread: string) {
 }
 
 function listThreadFronts() {
-  const targetList = (Object.values(getTargetsMap()): any);
-  return targetList.map(target => target.threadFront).filter(t => !!t);
+  const list = (Object.values(getTargetsMap()): any);
+  return list.map(target => target.threadFront).filter(t => !!t);
 }
 
 function forEachThread(iteratee) {
@@ -137,7 +143,7 @@ function forEachThread(iteratee) {
   // resolve in FIFO order, and this could result in client and server state
   // going out of sync.
 
-  const promises = [currentThreadFront, ...listThreadFronts()].map(
+  const promises = [currentThreadFront(), ...listThreadFronts()].map(
     // If a thread shuts down while sending the message then it will
     // throw. Ignore these exceptions.
     t => iteratee(t).catch(e => console.log(e))
@@ -146,20 +152,24 @@ function forEachThread(iteratee) {
   return Promise.all(promises);
 }
 
-function resume(thread: string): Promise<*> {
+function resume(thread: string, frameId: ?FrameId): Promise<*> {
   return lookupThreadFront(thread).resume();
 }
 
-function stepIn(thread: string): Promise<*> {
-  return lookupThreadFront(thread).stepIn();
+function stepIn(thread: string, frameId: ?FrameId): Promise<*> {
+  return lookupThreadFront(thread).stepIn(frameId);
 }
 
-function stepOver(thread: string): Promise<*> {
-  return lookupThreadFront(thread).stepOver();
+function stepOver(thread: string, frameId: ?FrameId): Promise<*> {
+  return lookupThreadFront(thread).stepOver(frameId);
 }
 
-function stepOut(thread: string): Promise<*> {
-  return lookupThreadFront(thread).stepOut();
+function stepOut(thread: string, frameId: ?FrameId): Promise<*> {
+  return lookupThreadFront(thread).stepOut(frameId);
+}
+
+function restart(thread: string, frameId: FrameId): Promise<*> {
+  return lookupThreadFront(thread).restart(frameId);
 }
 
 function breakOnNext(thread: string): Promise<*> {
@@ -177,11 +187,19 @@ async function sourceContents({
 }
 
 function setXHRBreakpoint(path: string, method: string) {
-  return currentThreadFront.setXHRBreakpoint(path, method);
+  return currentThreadFront().setXHRBreakpoint(path, method);
 }
 
 function removeXHRBreakpoint(path: string, method: string) {
-  return currentThreadFront.removeXHRBreakpoint(path, method);
+  return currentThreadFront().removeXHRBreakpoint(path, method);
+}
+
+export function toggleJavaScriptEnabled(enabled: Boolean) {
+  return currentTarget().reconfigure({
+    options: {
+      javascriptEnabled: enabled,
+    },
+  });
 }
 
 function addWatchpoint(
@@ -190,43 +208,34 @@ function addWatchpoint(
   label: string,
   watchpointType: string
 ) {
-  if (currentTarget.traits.watchpoints) {
+  if (currentTarget().traits.watchpoints) {
     const objectFront = createObjectFront(object);
     return objectFront.addWatchpoint(property, label, watchpointType);
   }
 }
 
 async function removeWatchpoint(object: Grip, property: string) {
-  if (currentTarget.traits.watchpoints) {
+  if (currentTarget().traits.watchpoints) {
     const objectFront = createObjectFront(object);
     await objectFront.removeWatchpoint(property);
   }
 }
 
-// Get the string key to use for a breakpoint location.
-// See also duplicate code in breakpoint-actor-map.js :(
-function locationKey(location: BreakpointLocation) {
-  const { sourceUrl, line, column } = location;
-  const sourceId = location.sourceId || "";
-  // $FlowIgnore
-  return `${sourceUrl}:${sourceId}:${line}:${column}`;
-}
-
 function hasBreakpoint(location: BreakpointLocation) {
-  return !!breakpoints[locationKey(location)];
+  return !!breakpoints[makePendingLocationId(location)];
 }
 
 function setBreakpoint(
   location: BreakpointLocation,
   options: BreakpointOptions
 ) {
-  breakpoints[locationKey(location)] = { location, options };
+  breakpoints[makePendingLocationId(location)] = { location, options };
 
   return forEachThread(thread => thread.setBreakpoint(location, options));
 }
 
 function removeBreakpoint(location: PendingLocation) {
-  delete breakpoints[locationKey((location: any))];
+  delete breakpoints[makePendingLocationId((location: any))];
 
   return forEachThread(thread => thread.removeBreakpoint(location));
 }
@@ -249,11 +258,11 @@ async function evaluate(
   { thread, frameId }: EvaluateParam = {}
 ): Promise<{ result: ExpressionResult }> {
   const params = { thread, frameActor: frameId };
-  if (!currentTarget || !script) {
+  if (!currentTarget() || !script) {
     return { result: null };
   }
 
-  const target = thread ? lookupTarget(thread) : currentTarget;
+  const target = thread ? lookupTarget(thread) : currentTarget();
   const consoleFront = await target.getFront("console");
   if (!consoleFront) {
     return { result: null };
@@ -267,10 +276,10 @@ async function autocomplete(
   cursor: number,
   frameId: ?string
 ): Promise<mixed> {
-  if (!currentTarget || !input) {
+  if (!currentTarget() || !input) {
     return {};
   }
-  const consoleFront = await currentTarget.getFront("console");
+  const consoleFront = await currentTarget().getFront("console");
   if (!consoleFront) {
     return {};
   }
@@ -285,12 +294,12 @@ async function autocomplete(
   });
 }
 
-function navigate(url: string): Promise<*> {
-  return currentTarget.navigateTo({ url });
+function navigate(url: URL): Promise<*> {
+  return currentTarget().navigateTo({ url });
 }
 
 function reload(): Promise<*> {
-  return currentTarget.reload();
+  return currentTarget().reload();
 }
 
 function getProperties(thread: string, grip: Grip): Promise<*> {
@@ -309,13 +318,20 @@ function getProperties(thread: string, grip: Grip): Promise<*> {
 async function getFrames(thread: string) {
   const threadFront = lookupThreadFront(thread);
   const response = await threadFront.getFrames(0, CALL_STACK_PAGE_SIZE);
+
+  // Ensure that each frame has its source already available.
+  // Because of throttling, the source may be available a bit late.
+  await Promise.all(
+    response.frames.map(frame => ensureSourceActor(frame.where.actor))
+  );
+
   return response.frames.map<?Frame>((frame, i) =>
     createFrame(thread, frame, i)
   );
 }
 
 async function getFrameScopes(frame: Frame): Promise<*> {
-  const frameFront = lookupThreadFront(frame.thread).get(frame.id);
+  const frameFront = lookupThreadFront(frame.thread).getActorByID(frame.id);
   return frameFront.getEnvironment();
 }
 
@@ -338,7 +354,7 @@ async function blackBox(
   isBlackBoxed: boolean,
   range?: Range
 ): Promise<*> {
-  const sourceFront = currentThreadFront.source({ actor: sourceActor.actor });
+  const sourceFront = currentThreadFront().source({ actor: sourceActor.actor });
   if (isBlackBoxed) {
     await sourceFront.unblackBox(range);
   } else {
@@ -355,8 +371,6 @@ function interrupt(thread: string): Promise<*> {
 }
 
 function setEventListenerBreakpoints(ids: string[]) {
-  eventBreakpoints = ids;
-
   return forEachThread(thread => thread.setActiveEventBreakpoints(ids));
 }
 
@@ -364,7 +378,7 @@ function setEventListenerBreakpoints(ids: string[]) {
 async function getEventListenerBreakpointTypes(): Promise<EventListenerCategoryList> {
   let categories;
   try {
-    categories = await currentThreadFront.getAvailableEventBreakpoints();
+    categories = await currentThreadFront().getAvailableEventBreakpoints();
 
     if (!Array.isArray(categories)) {
       // When connecting to older browser that had our placeholder
@@ -389,41 +403,18 @@ function registerSourceActor(sourceActorId: string, sourceId: SourceId) {
   sourceActors[sourceActorId] = sourceId;
 }
 
-async function getSources(
-  client: ThreadFront
-): Promise<Array<GeneratedSourceData>> {
-  const { sources }: SourcesPacket = await client.getSources();
-
-  return sources.map(source => prepareSourcePayload(client, source));
-}
-
 async function toggleEventLogging(logEventBreakpoints: boolean) {
   return forEachThread(thread =>
     thread.toggleEventLogging(logEventBreakpoints)
   );
 }
 
-function getAllThreadFronts() {
-  const fronts = [currentThreadFront];
+function getAllThreadFronts(): ThreadFront[] {
+  const fronts = [currentThreadFront()];
   for (const { threadFront } of (Object.values(targets): any)) {
     fronts.push(threadFront);
   }
   return fronts;
-}
-
-// Fetch the sources for all the targets
-async function fetchSources(): Promise<Array<GeneratedSourceData>> {
-  let sources = [];
-  for (const threadFront of getAllThreadFronts()) {
-    sources = sources.concat(await getSources(threadFront));
-  }
-  return sources;
-}
-
-async function fetchThreadSources(
-  thread: string
-): Promise<Array<GeneratedSourceData>> {
-  return getSources(lookupThreadFront(thread));
 }
 
 // Check if any of the targets were paused before we opened
@@ -445,28 +436,28 @@ function getSourceForActor(actor: ActorId) {
   return sourceActors[actor];
 }
 
-async function fetchThreads() {
-  const options = {
-    breakpoints,
-    eventBreakpoints,
-    observeAsmJS: true,
-  };
+async function addThread(targetFront: Target) {
+  const threadActorID = targetFront.targetForm.threadActor;
+  if (!targets[threadActorID]) {
+    targets[threadActorID] = targetFront;
+    addThreadEventListeners(targetFront.threadFront);
+  }
+  return createThread(threadActorID, targetFront);
+}
 
-  await updateTargets({
-    currentTarget,
-    devToolsClient,
-    targets,
-    options,
-  });
+function removeThread(thread: Thread) {
+  const targetFront = targets[thread.actor];
+  if (targetFront) {
+    // Note that if the target is already fully destroyed, threadFront will be
+    // null, but event listeners will already have been removed.
+    removeThreadEventListeners(targetFront.threadFront);
+  }
 
-  // eslint-disable-next-line
-  return (Object.entries(targets).map: any)(([actor, target]) =>
-    createThread((actor: any), (target: any))
-  );
+  delete targets[thread.actor];
 }
 
 function getMainThread() {
-  return currentThreadFront.actor;
+  return currentThreadFront().actor;
 }
 
 async function getSourceActorBreakpointPositions(
@@ -509,12 +500,8 @@ function getFrontByID(actorID: String) {
   return devToolsClient.getFrontByID(actorID);
 }
 
-function timeWarp(position: ExecutionPoint) {
-  currentThreadFront.timeWarp(position);
-}
-
 function fetchAncestorFramePositions(index: number) {
-  currentThreadFront.fetchAncestorFramePositions(index);
+  currentThreadFront().fetchAncestorFramePositions(index);
 }
 
 const clientCommands = {
@@ -529,6 +516,7 @@ const clientCommands = {
   stepIn,
   stepOut,
   stepOver,
+  restart,
   breakOnNext,
   sourceContents,
   getSourceForActor,
@@ -551,11 +539,10 @@ const clientCommands = {
   getFrames,
   pauseOnExceptions,
   toggleEventLogging,
-  fetchSources,
-  fetchThreadSources,
   checkIfAlreadyPaused,
   registerSourceActor,
-  fetchThreads,
+  addThread,
+  removeThread,
   getMainThread,
   sendPacket,
   setSkipPausing,
@@ -563,8 +550,8 @@ const clientCommands = {
   getEventListenerBreakpointTypes,
   lookupTarget,
   getFrontByID,
-  timeWarp,
   fetchAncestorFramePositions,
+  toggleJavaScriptEnabled,
 };
 
-export { setupCommands, setupCommandsTopTarget, clientCommands };
+export { setupCommands, clientCommands };

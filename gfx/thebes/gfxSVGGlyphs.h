@@ -14,7 +14,7 @@
 #include "gfxPattern.h"
 #include "mozilla/gfx/UserData.h"
 #include "mozilla/SVGContextPaint.h"
-#include "nsRefreshDriver.h"
+#include "nsRefreshObservers.h"
 
 class nsIContentViewer;
 class gfxSVGGlyphs;
@@ -177,7 +177,7 @@ class gfxSVGGlyphs {
  */
 class SimpleTextContextPaint : public mozilla::SVGContextPaint {
  private:
-  static const mozilla::gfx::Color sZero;
+  static const mozilla::gfx::DeviceColor sZero;
 
   static gfxMatrix SetupDeviceToPatternMatrix(gfxPattern* aPattern,
                                               const gfxMatrix& aCTM) {

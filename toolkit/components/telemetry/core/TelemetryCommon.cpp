@@ -115,9 +115,8 @@ void LogToBrowserConsole(uint32_t aLogLevel, const nsAString& aMsg) {
   }
 
   nsCOMPtr<nsIScriptError> error(do_CreateInstance(NS_SCRIPTERROR_CONTRACTID));
-  error->Init(aMsg, EmptyString(), EmptyString(), 0, 0, aLogLevel,
-              "chrome javascript", false /* from private window */,
-              true /* from chrome context */);
+  error->Init(aMsg, u""_ns, u""_ns, 0, 0, aLogLevel, "chrome javascript",
+              false /* from private window */, true /* from chrome context */);
   console->LogMessage(error);
 }
 
@@ -185,8 +184,6 @@ SupportedProduct GetCurrentProduct() {
 #if defined(MOZ_WIDGET_ANDROID)
   if (mozilla::StaticPrefs::toolkit_telemetry_geckoview_streaming()) {
     return SupportedProduct::GeckoviewStreaming;
-  } else if (mozilla::StaticPrefs::toolkit_telemetry_isGeckoViewMode()) {
-    return SupportedProduct::Geckoview;
   } else {
     return SupportedProduct::Fennec;
   }

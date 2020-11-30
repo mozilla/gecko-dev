@@ -24,11 +24,11 @@ amContentHandler.prototype = {
    */
   handleContent(aMimetype, aContext, aRequest) {
     if (aMimetype != XPI_CONTENT_TYPE) {
-      throw Cr.NS_ERROR_WONT_HANDLE_CONTENT;
+      throw Components.Exception("", Cr.NS_ERROR_WONT_HANDLE_CONTENT);
     }
 
     if (!(aRequest instanceof Ci.nsIChannel)) {
-      throw Cr.NS_ERROR_WONT_HANDLE_CONTENT;
+      throw Components.Exception("", Cr.NS_ERROR_WONT_HANDLE_CONTENT);
     }
 
     let uri = aRequest.URI;
@@ -41,12 +41,14 @@ amContentHandler.prototype = {
 
     let sourceHost;
     let sourceURL;
+
     try {
-      sourceURL = triggeringPrincipal.URI.spec;
-      sourceHost = triggeringPrincipal.URI.host;
-    } catch (err) {
-      // Ignore errors when retrieving the host for the principal (e.g. null principals raise
-      // an NS_ERROR_FAILURE when principal.URI.host is accessed).
+      sourceURL =
+        triggeringPrincipal.spec != "" ? triggeringPrincipal.spec : undefined;
+      sourceHost = triggeringPrincipal.host;
+    } catch (error) {
+      // Ignore errors when retrieving the host for the principal (e.g. data URIs return
+      // an NS_ERROR_FAILURE when principal.host is accessed).
     }
 
     let install = {
@@ -67,7 +69,7 @@ amContentHandler.prototype = {
   },
 
   classID: Components.ID("{7beb3ba8-6ec3-41b4-b67c-da89b8518922}"),
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIContentHandler]),
+  QueryInterface: ChromeUtils.generateQI(["nsIContentHandler"]),
 
   log(aMsg) {
     let msg = "amContentHandler.js: " + (aMsg.join ? aMsg.join("") : aMsg);

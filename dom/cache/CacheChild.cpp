@@ -10,6 +10,7 @@
 #include "mozilla/dom/cache/ActorUtils.h"
 #include "mozilla/dom/cache/Cache.h"
 #include "mozilla/dom/cache/CacheOpChild.h"
+#include "CacheWorkerRef.h"
 
 namespace mozilla {
 namespace dom {
@@ -53,8 +54,10 @@ void CacheChild::ClearListener() {
 void CacheChild::ExecuteOp(nsIGlobalObject* aGlobal, Promise* aPromise,
                            nsISupports* aParent, const CacheOpArgs& aArgs) {
   mNumChildActors += 1;
-  MOZ_ALWAYS_TRUE(SendPCacheOpConstructor(
-      new CacheOpChild(GetWorkerRef(), aGlobal, aParent, aPromise), aArgs));
+  MOZ_ALWAYS_TRUE(
+      SendPCacheOpConstructor(new CacheOpChild(GetWorkerRefPtr().clonePtr(),
+                                               aGlobal, aParent, aPromise),
+                              aArgs));
 }
 
 void CacheChild::StartDestroyFromListener() {

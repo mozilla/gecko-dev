@@ -219,7 +219,17 @@ template <typename T>
 struct UnusedZero;
 template <>
 struct UnusedZero<nsresult> {
-  static const bool value = true;
+  using StorageType = nsresult;
+
+  static constexpr bool value = true;
+  static constexpr StorageType nullValue = NS_OK;
+
+  static constexpr void AssertValid(StorageType aValue) {}
+  static constexpr const nsresult& Inspect(const StorageType& aValue) {
+    return aValue;
+  }
+  static constexpr nsresult Unwrap(StorageType aValue) { return aValue; }
+  static constexpr StorageType Store(nsresult aValue) { return aValue; }
 };
 }  // namespace detail
 

@@ -9,6 +9,7 @@ import { CollapsibleSection } from "content-src/components/CollapsibleSection/Co
 import { connect } from "react-redux";
 import { DSMessage } from "content-src/components/DiscoveryStreamComponents/DSMessage/DSMessage";
 import { DSPrivacyModal } from "content-src/components/DiscoveryStreamComponents/DSPrivacyModal/DSPrivacyModal";
+import { DSSignup } from "content-src/components/DiscoveryStreamComponents/DSSignup/DSSignup";
 import { DSTextPromo } from "content-src/components/DiscoveryStreamComponents/DSTextPromo/DSTextPromo";
 import { Hero } from "content-src/components/DiscoveryStreamComponents/Hero/Hero";
 import { Highlights } from "content-src/components/DiscoveryStreamComponents/Highlights/Highlights";
@@ -144,6 +145,14 @@ export class _DiscoveryStreamBase extends React.PureComponent {
             data={component.data}
           />
         );
+      case "Signup":
+        return (
+          <DSSignup
+            dispatch={this.props.dispatch}
+            type={component.type}
+            data={component.data}
+          />
+        );
       case "Message":
         return (
           <DSMessage
@@ -159,8 +168,11 @@ export class _DiscoveryStreamBase extends React.PureComponent {
       case "Navigation":
         return (
           <Navigation
+            dispatch={this.props.dispatch}
             links={component.properties.links}
             alignment={component.properties.alignment}
+            display_variant={component.properties.display_variant}
+            explore_topics={component.properties.explore_topics}
             header={component.header}
           />
         );
@@ -184,7 +196,11 @@ export class _DiscoveryStreamBase extends React.PureComponent {
       case "CardGrid":
         return (
           <CardGrid
+            enable_video_playheads={
+              !!component.properties.enable_video_playheads
+            }
             title={component.header && component.header.title}
+            display_variant={component.properties.display_variant}
             data={component.data}
             feed={component.feed}
             border={component.properties.border}

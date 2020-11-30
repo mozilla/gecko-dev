@@ -49,7 +49,7 @@ SOURCES += [
     'TestStackClass.cpp',
     'TestStaticLocalClass.cpp',
     'TestTemporaryClass.cpp',
-    'TestTempRefPtr.cpp',
+    'TestTemporaryLifetimeBound.cpp',
     'TestTrivialCtorDtor.cpp',
     'TestTrivialDtor.cpp',
 ]
@@ -61,6 +61,10 @@ if CONFIG['OS_ARCH'] == 'WINNT':
     ]
 
 include('../external/tests/sources.mozbuild')
+
+if CONFIG['ENABLE_CLANG_PLUGIN_ALPHA']:
+    DEFINES["MOZ_CLANG_PLUGIN_ALPHA"] = "1"
+    include('../alpha/tests/sources.mozbuild')
 
 DisableStlWrapping()
 NoVisibilityFlags()

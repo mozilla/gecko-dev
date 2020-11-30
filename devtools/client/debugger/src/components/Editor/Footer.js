@@ -134,7 +134,7 @@ class SourceFooter extends PureComponent<Props, State> {
 
   blackBoxButton() {
     const { cx, selectedSource, toggleBlackBox } = this.props;
-    const sourceLoaded = selectedSource && selectedSource.content;
+    const sourceLoaded = selectedSource?.content;
 
     if (!selectedSource) {
       return;
@@ -147,8 +147,8 @@ class SourceFooter extends PureComponent<Props, State> {
     const blackboxed = selectedSource.isBlackBoxed;
 
     const tooltip = blackboxed
-      ? L10N.getStr("sourceFooter.unblackbox")
-      : L10N.getStr("sourceFooter.blackbox");
+      ? L10N.getStr("sourceFooter.unignore")
+      : L10N.getStr("sourceFooter.ignore");
 
     const type = "black-box";
 
@@ -287,12 +287,9 @@ const mapStateToProps = state => {
   };
 };
 
-export default connect<Props, OwnProps, _, _, _, _>(
-  mapStateToProps,
-  {
-    togglePrettyPrint: actions.togglePrettyPrint,
-    toggleBlackBox: actions.toggleBlackBox,
-    jumpToMappedLocation: actions.jumpToMappedLocation,
-    togglePaneCollapse: actions.togglePaneCollapse,
-  }
-)(SourceFooter);
+export default connect<Props, OwnProps, _, _, _, _>(mapStateToProps, {
+  togglePrettyPrint: actions.togglePrettyPrint,
+  toggleBlackBox: actions.toggleBlackBox,
+  jumpToMappedLocation: actions.jumpToMappedLocation,
+  togglePaneCollapse: actions.togglePaneCollapse,
+})(SourceFooter);

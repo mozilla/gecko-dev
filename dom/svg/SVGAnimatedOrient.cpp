@@ -49,11 +49,9 @@ static SVGAttrTearoffTable<SVGAnimatedOrient, DOMSVGAngle>
 // DidChangeOrient with mozAutoDocUpdate.
 class MOZ_RAII AutoChangeOrientNotifier {
  public:
-  explicit AutoChangeOrientNotifier(
-      SVGAnimatedOrient* aOrient, SVGElement* aSVGElement,
-      bool aDoSetAttr = true MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+  AutoChangeOrientNotifier(SVGAnimatedOrient* aOrient, SVGElement* aSVGElement,
+                           bool aDoSetAttr = true)
       : mOrient(aOrient), mSVGElement(aSVGElement), mDoSetAttr(aDoSetAttr) {
-    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
     MOZ_ASSERT(mOrient, "Expecting non-null orient");
     if (mSVGElement && mDoSetAttr) {
       mUpdateBatch.emplace(mSVGElement->GetComposedDoc(), true);
@@ -78,7 +76,6 @@ class MOZ_RAII AutoChangeOrientNotifier {
   SVGElement* const mSVGElement;
   nsAttrValue mEmptyOrOldValue;
   bool mDoSetAttr;
-  MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 static bool IsValidAngleUnitType(uint16_t unit) {
@@ -219,7 +216,8 @@ already_AddRefed<DOMSVGAngle> SVGAnimatedOrient::ToDOMBaseVal(
     SVGElement* aSVGElement) {
   RefPtr<DOMSVGAngle> domBaseVal = sBaseSVGAngleTearoffTable.GetTearoff(this);
   if (!domBaseVal) {
-    domBaseVal = new DOMSVGAngle(this, aSVGElement, DOMSVGAngle::BaseValue);
+    domBaseVal =
+        new DOMSVGAngle(this, aSVGElement, DOMSVGAngle::AngleType::BaseValue);
     sBaseSVGAngleTearoffTable.AddTearoff(this, domBaseVal);
   }
 
@@ -230,7 +228,8 @@ already_AddRefed<DOMSVGAngle> SVGAnimatedOrient::ToDOMAnimVal(
     SVGElement* aSVGElement) {
   RefPtr<DOMSVGAngle> domAnimVal = sAnimSVGAngleTearoffTable.GetTearoff(this);
   if (!domAnimVal) {
-    domAnimVal = new DOMSVGAngle(this, aSVGElement, DOMSVGAngle::AnimValue);
+    domAnimVal =
+        new DOMSVGAngle(this, aSVGElement, DOMSVGAngle::AngleType::AnimValue);
     sAnimSVGAngleTearoffTable.AddTearoff(this, domAnimVal);
   }
 
@@ -238,12 +237,15 @@ already_AddRefed<DOMSVGAngle> SVGAnimatedOrient::ToDOMAnimVal(
 }
 
 DOMSVGAngle::~DOMSVGAngle() {
-  if (mType == BaseValue) {
-    sBaseSVGAngleTearoffTable.RemoveTearoff(mVal);
-  } else if (mType == AnimValue) {
-    sAnimSVGAngleTearoffTable.RemoveTearoff(mVal);
-  } else {
-    delete mVal;
+  switch (mType) {
+    case AngleType::BaseValue:
+      sBaseSVGAngleTearoffTable.RemoveTearoff(mVal);
+      break;
+    case AngleType::AnimValue:
+      sAnimSVGAngleTearoffTable.RemoveTearoff(mVal);
+      break;
+    default:
+      delete mVal;
   }
 }
 

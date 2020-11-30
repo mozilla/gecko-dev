@@ -26,8 +26,11 @@ async function callRequestStorageAccess(callback, expectFail) {
     ].includes(
       SpecialPowers.Services.prefs.getIntPref("network.cookie.cookieBehavior")
     ) && !isOnContentBlockingAllowList();
+  const TEST_ANOTHER_3RD_PARTY_ORIGIN = SpecialPowers.useRemoteSubframes
+    ? "http://another-tracking.example.net"
+    : "https://another-tracking.example.net";
   // With another-tracking.example.net, we're same-eTLD+1, so the first try succeeds.
-  if (origin != "https://another-tracking.example.net") {
+  if (origin != TEST_ANOTHER_3RD_PARTY_ORIGIN) {
     if (rejectTrackers) {
       let p;
       let threw = false;
@@ -129,10 +132,12 @@ async function callRequestStorageAccess(callback, expectFail) {
     success &&
     rejectTrackers &&
     window.location.search != "?disableWaitUntilPermission" &&
-    origin != "https://another-tracking.example.net"
+    origin != TEST_ANOTHER_3RD_PARTY_ORIGIN
   ) {
-    // Wait until the permission is visible in our process to avoid race
-    // conditions.
+    // Wait until the permission is visible in parent process to avoid race
+    // conditions. We don't need to wait the permission to be visible in content
+    // processes since the content process doesn't rely on the permission to
+    // know the storage access is updated.
     await waitUntilPermission(
       "http://example.net/browser/toolkit/components/antitracking/test/browser/page.html",
       "3rdPartyStorage^" + window.origin
@@ -142,27 +147,21 @@ async function callRequestStorageAccess(callback, expectFail) {
   return [threw, rejected];
 }
 
-// Creates principal with private browsing id OA where applicable
-function createPrincipal(url) {
-  let oa = {};
-  if (SpecialPowers.isContentWindowPrivate(window)) {
-    oa.privateBrowsingId = 1;
-  }
-  return SpecialPowers.Services.scriptSecurityManager.createContentPrincipal(
-    SpecialPowers.Services.io.newURI(url),
-    oa
-  );
-}
-
 async function waitUntilPermission(url, name) {
-  let principal = createPrincipal(url);
+  let originAttributes = SpecialPowers.isContentWindowPrivate(window)
+    ? { privateBrowsingId: 1 }
+    : {};
   await new Promise(resolve => {
-    let id = setInterval(_ => {
+    let id = setInterval(async _ => {
       if (
-        SpecialPowers.Services.perms.testPermissionFromPrincipal(
-          principal,
-          name
-        ) == SpecialPowers.Services.perms.ALLOW_ACTION
+        await SpecialPowers.testPermission(
+          name,
+          SpecialPowers.Services.perms.ALLOW_ACTION,
+          {
+            url,
+            originAttributes,
+          }
+        )
       ) {
         clearInterval(id);
         resolve();
@@ -173,7 +172,11 @@ async function waitUntilPermission(url, name) {
 
 async function interactWithTracker() {
   await new Promise(resolve => {
-    onmessage = resolve;
+    let orionmessage = onmessage;
+    onmessage = _ => {
+      onmessage = orionmessage;
+      resolve();
+    };
 
     info("Let's interact with the tracker");
     window.open(
@@ -186,15 +189,9 @@ async function interactWithTracker() {
 }
 
 function isOnContentBlockingAllowList() {
-  let url = new URL(SpecialPowers.wrap(top).location.href);
-  let principal = createPrincipal("https://" + url.host);
-  let types = ["trackingprotection", "trackingprotection-pb"];
-  return types.some(type => {
-    return (
-      SpecialPowers.Services.perms.testPermissionFromPrincipal(
-        principal,
-        type
-      ) == SpecialPowers.Services.perms.ALLOW_ACTION
-    );
-  });
+  // We directly check the window.allowListed here instead of checking the
+  // permission. The allow list permission might not be available since it is
+  // not in the preload list.
+
+  return window.allowListed;
 }

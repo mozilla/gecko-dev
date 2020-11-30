@@ -4,12 +4,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_SVGFEOffsetElement_h
-#define mozilla_dom_SVGFEOffsetElement_h
+#ifndef DOM_SVG_SVGFEOFFSETELEMENT_H_
+#define DOM_SVG_SVGFEOFFSETELEMENT_H_
 
 #include "SVGAnimatedNumber.h"
 #include "SVGAnimatedString.h"
-#include "SVGFilters.h"
+#include "mozilla/dom/SVGFilters.h"
 
 nsresult NS_NewSVGFEOffsetElement(
     nsIContent** aResult, already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
@@ -17,7 +17,7 @@ nsresult NS_NewSVGFEOffsetElement(
 namespace mozilla {
 namespace dom {
 
-typedef SVGFE SVGFEOffsetElementBase;
+using SVGFEOffsetElementBase = SVGFE;
 
 class SVGFEOffsetElement : public SVGFEOffsetElementBase {
   friend nsresult(::NS_NewSVGFEOffsetElement(
@@ -33,7 +33,7 @@ class SVGFEOffsetElement : public SVGFEOffsetElementBase {
 
  public:
   virtual FilterPrimitiveDescription GetPrimitiveDescription(
-      nsSVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
+      SVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
       const nsTArray<bool>& aInputsAreTainted,
       nsTArray<RefPtr<SourceSurface>>& aInputImages) override;
   virtual bool AttributeAffectsRendering(int32_t aNameSpaceID,
@@ -66,4 +66,4 @@ class SVGFEOffsetElement : public SVGFEOffsetElementBase {
 }  // namespace dom
 }  // namespace mozilla
 
-#endif  // mozilla_dom_SVGFEOffsetElement_h
+#endif  // DOM_SVG_SVGFEOFFSETELEMENT_H_

@@ -62,6 +62,12 @@ define_passes! {
     gvn: "Global value numbering",
     licm: "Loop invariant code motion",
     unreachable_code: "Remove unreachable blocks",
+    remove_constant_phis: "Remove constant phi-nodes",
+
+    vcode_lower: "VCode lowering",
+    vcode_post_ra: "VCode post-register allocation finalization",
+    vcode_emit: "VCode emission",
+    vcode_emit_finish: "VCode emission finalization",
 
     regalloc: "Register allocation",
     ra_liveness: "RA liveness analysis",

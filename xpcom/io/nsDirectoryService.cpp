@@ -12,6 +12,7 @@
 #include "nsDebug.h"
 #include "nsGkAtoms.h"
 #include "nsEnumeratorUtils.h"
+#include "nsThreadUtils.h"
 
 #include "mozilla/SimpleEnumerator.h"
 #include "nsICategoryManager.h"
@@ -315,7 +316,7 @@ static nsresult GetLowIntegrityTempBase(nsIFile** aLowIntegrityTempBase) {
     return rv;
   }
 
-  rv = localFile->Append(NS_LITERAL_STRING(MOZ_USER_DIR));
+  rv = localFile->Append(NS_LITERAL_STRING_FROM_CSTRING(MOZ_USER_DIR));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }

@@ -44,6 +44,9 @@ const { FxAccounts } = ChromeUtils.import(
 const { FxAccountsClient } = ChromeUtils.import(
   "resource://gre/modules/FxAccountsClient.jsm"
 );
+const { SCOPE_OLD_SYNC, LEGACY_SCOPE_WEBEXT_SYNC } = ChromeUtils.import(
+  "resource://gre/modules/FxAccountsCommon.js"
+);
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 // and grab non-exported stuff via a backstage pass.
@@ -150,9 +153,23 @@ var makeIdentityConfig = function(overrides) {
         assertion: "assertion",
         email: "foo",
         kSync: "a".repeat(128),
-        kXCS: "a".repeat(32),
-        kExtSync: "a".repeat(128),
-        kExtKbHash: "a".repeat(32),
+        kXCS: "b".repeat(32),
+        kExtSync: "c".repeat(128),
+        kExtKbHash: "d".repeat(64),
+        scopedKeys: {
+          [SCOPE_OLD_SYNC]: {
+            kid: "1234567890123-u7u7u7u7u7u7u7u7u7u7uw",
+            k:
+              "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqg",
+            kty: "oct",
+          },
+          [LEGACY_SCOPE_WEBEXT_SYNC]: {
+            kid: "1234567890123-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d0",
+            k:
+              "zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzA",
+            kty: "oct",
+          },
+        },
         sessionToken: "sessionToken",
         uid: "a".repeat(32),
         verified: true,
@@ -200,6 +217,18 @@ var makeFxAccountsInternalMock = function(config) {
     _getAssertion(audience) {
       return Promise.resolve(config.fxaccount.user.assertion);
     },
+    getOAuthToken: () => Promise.resolve("some-access-token"),
+    keys: {
+      getScopedKeys: () =>
+        Promise.resolve({
+          "https://identity.mozilla.com/apps/oldsync": {
+            identifier: "https://identity.mozilla.com/apps/oldsync",
+            keyRotationSecret:
+              "0000000000000000000000000000000000000000000000000000000000000000",
+            keyRotationTimestamp: 1510726317123,
+          },
+        }),
+    },
     profile: {
       getProfile() {
         return null;
@@ -241,6 +270,15 @@ var configureFxAccountIdentity = function(
         Services.prefs.getStringPref("identity.sync.tokenserver.uri")
       );
       Assert.equal(assertion, config.fxaccount.user.assertion);
+      config.fxaccount.token.uid = config.username;
+      return config.fxaccount.token;
+    },
+    async getTokenFromOAuthToken(url, oauthToken) {
+      Assert.equal(
+        url,
+        Services.prefs.getStringPref("identity.sync.tokenserver.uri")
+      );
+      Assert.ok(oauthToken, "oauth token present");
       config.fxaccount.token.uid = config.username;
       return config.fxaccount.token;
     },

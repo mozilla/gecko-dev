@@ -14,18 +14,19 @@
 #include "mozilla/RefPtr.h"      // for RefPtr
 #include "mozilla/StaticPrefs_apz.h"
 #include "mozilla/StaticPrefs_layers.h"
-#include "mozilla/UniquePtr.h"               // for UniquePtr
-#include "mozilla/gfx/BaseRect.h"            // for BaseRect
-#include "mozilla/gfx/Matrix.h"              // for Matrix4x4
-#include "mozilla/gfx/Point.h"               // for Point, IntPoint
-#include "mozilla/gfx/Rect.h"                // for IntRect, Rect
-#include "mozilla/layers/APZSampler.h"       // for APZSampler
-#include "mozilla/layers/Compositor.h"       // for Compositor, etc
+#include "mozilla/UniquePtr.h"                      // for UniquePtr
+#include "mozilla/gfx/BaseRect.h"                   // for BaseRect
+#include "mozilla/gfx/Matrix.h"                     // for Matrix4x4
+#include "mozilla/gfx/Point.h"                      // for Point, IntPoint
+#include "mozilla/gfx/Rect.h"                       // for IntRect, Rect
+#include "mozilla/layers/APZSampler.h"              // for APZSampler
+#include "mozilla/layers/Compositor.h"              // for Compositor, etc
+#include "mozilla/layers/CompositorBridgeParent.h"  // for CompositorBridgeParent
 #include "mozilla/layers/CompositorTypes.h"  // for DiagnosticFlags::CONTAINER
 #include "mozilla/layers/Effects.h"          // for Effect, EffectChain, etc
 #include "mozilla/layers/TextureHost.h"      // for CompositingRenderTarget
-#include "mozilla/layers/AsyncCompositionManager.h"  // for ViewTransform
-#include "mozilla/layers/LayerMetricsWrapper.h"      // for LayerMetricsWrapper
+#include "mozilla/layers/APZUtils.h"         // for AsyncTransform
+#include "mozilla/layers/LayerMetricsWrapper.h"  // for LayerMetricsWrapper
 #include "mozilla/layers/LayersHelpers.h"
 #include "mozilla/mozalloc.h"  // for operator delete, etc
 #include "mozilla/RefPtr.h"    // for nsRefPtr
@@ -309,14 +310,14 @@ void RenderMinimap(ContainerT* aContainer, const RefPtr<APZSampler>& aSampler,
   // Options
   const int verticalPadding = 10;
   const int horizontalPadding = 5;
-  gfx::Color backgroundColor(0.3f, 0.3f, 0.3f, 0.3f);
-  gfx::Color tileActiveColor(1, 1, 1, 0.4f);
-  gfx::Color tileBorderColor(0, 0, 0, 0.1f);
-  gfx::Color pageBorderColor(0, 0, 0);
-  gfx::Color criticalDisplayPortColor(1.f, 1.f, 0);
-  gfx::Color displayPortColor(0, 1.f, 0);
-  gfx::Color layoutPortColor(1.f, 0, 0);
-  gfx::Color visualPortColor(0, 0, 1.f, 0.3f);
+  gfx::DeviceColor backgroundColor(0.3f, 0.3f, 0.3f, 0.3f);
+  gfx::DeviceColor tileActiveColor(1, 1, 1, 0.4f);
+  gfx::DeviceColor tileBorderColor(0, 0, 0, 0.1f);
+  gfx::DeviceColor pageBorderColor(0, 0, 0);
+  gfx::DeviceColor criticalDisplayPortColor(1.f, 1.f, 0);
+  gfx::DeviceColor displayPortColor(0, 1.f, 0);
+  gfx::DeviceColor layoutPortColor(1.f, 0, 0);
+  gfx::DeviceColor visualPortColor(0, 0, 1.f, 0.3f);
 
   // Rects
   ParentLayerRect compositionBounds = fm.GetCompositionBounds();
@@ -324,7 +325,7 @@ void RenderMinimap(ContainerT* aContainer, const RefPtr<APZSampler>& aSampler,
   LayerRect visualRect =
       ParentLayerRect(scrollOffset, compositionBounds.Size()) /
       LayerToParentLayerScale(1);
-  LayerRect dp = (fm.GetDisplayPort() + fm.GetScrollOffset()) *
+  LayerRect dp = (fm.GetDisplayPort() + fm.GetLayoutScrollOffset()) *
                  fm.LayersPixelsPerCSSPixel();
   Maybe<LayerRect> layoutRect;
   Maybe<LayerRect> cdp;
@@ -333,7 +334,7 @@ void RenderMinimap(ContainerT* aContainer, const RefPtr<APZSampler>& aSampler,
     layoutRect = Some(viewport * fm.LayersPixelsPerCSSPixel());
   }
   if (!fm.GetCriticalDisplayPort().IsEmpty()) {
-    cdp = Some((fm.GetCriticalDisplayPort() + fm.GetScrollOffset()) *
+    cdp = Some((fm.GetCriticalDisplayPort() + fm.GetLayoutScrollOffset()) *
                fm.LayersPixelsPerCSSPixel());
   }
 

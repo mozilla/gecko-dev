@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 """Generator of the mapping from OpenType tags to BCP 47 tags and vice
 versa.
@@ -16,37 +16,30 @@ back to BCP 47 tags. Ambiguous OpenType tags (those that correspond to
 multiple BCP 47 tags) are listed here, except when the alphabetically
 first BCP 47 tag happens to be the chosen disambiguated tag. In that
 case, the fallback behavior will choose the right tag anyway.
+
+usage: ./gen-tag-table.py languagetags language-subtag-registry
+
+Input files:
+* https://docs.microsoft.com/en-us/typography/opentype/spec/languagetags
+* https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry
 """
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import collections
-try:
-	from HTMLParser import HTMLParser
-	def write (s):
-		print (s.encode ('utf-8'), end='')
-except ImportError:
-	from html.parser import HTMLParser
-	def write (s):
-		sys.stdout.flush ()
-		sys.stdout.buffer.write (s.encode ('utf-8'))
-import io
+from html.parser import HTMLParser
+def write (s):
+	sys.stdout.flush ()
+	sys.stdout.buffer.write (s.encode ('utf-8'))
 import itertools
 import re
 import sys
 import unicodedata
 
 if len (sys.argv) != 3:
-	print ('usage: ./gen-tag-table.py languagetags language-subtag-registry', file=sys.stderr)
-	sys.exit (1)
+	sys.exit (__doc__)
 
-try:
-	from html import unescape
-	def html_unescape (parser, entity):
-		return unescape (entity)
-except ImportError:
-	def html_unescape (parser, entity):
-		return parser.unescape (entity)
+from html import unescape
+def html_unescape (parser, entity):
+	return unescape (entity)
 
 def expect (condition, message=None):
 	if not condition:
@@ -54,7 +47,7 @@ def expect (condition, message=None):
 			raise AssertionError
 		raise AssertionError (message)
 
-# from http://www-01.sil.org/iso639-3/iso-639-3.tab
+# from https://www-01.sil.org/iso639-3/iso-639-3.tab
 ISO_639_3_TO_1 = {
 	'aar': 'aa',
 	'abk': 'ab',
@@ -399,7 +392,7 @@ class OpenTypeRegistryParser (HTMLParser):
 		Args:
 			filename (str): The file name of the registry.
 		"""
-		with io.open (filename, encoding='utf-8') as f:
+		with open (filename, encoding='utf-8') as f:
 			self.feed (f.read ())
 		expect (self.header)
 		for tag, iso_codes in self.to_bcp_47.items ():
@@ -541,7 +534,7 @@ class BCP47Parser (object):
 		Args:
 			filename (str): The file name of the registry.
 		"""
-		with io.open (filename, encoding='utf-8') as f:
+		with open (filename, encoding='utf-8') as f:
 			subtag_type = None
 			subtag = None
 			deprecated = False
@@ -754,7 +747,7 @@ ot.add_language ('und-Syre', 'SYRE')
 ot.add_language ('und-Syrj', 'SYRJ')
 ot.add_language ('und-Syrn', 'SYRN')
 
-bcp_47.names['xst'] = u"Silt'e"
+bcp_47.names['xst'] = "Silt'e"
 bcp_47.scopes['xst'] = ' (retired code)'
 bcp_47.macrolanguages['xst'] = {'stv', 'wle'}
 
@@ -814,6 +807,7 @@ disambiguation = {
 	'HAL': 'cfm',
 	'HND': 'hnd',
 	'KIS': 'kqs',
+	'KUI': 'uki',
 	'LRC': 'bqi',
 	'NDB': 'nd',
 	'NIS': 'njz',
@@ -861,7 +855,7 @@ def hb_tag (tag):
 	Returns:
 		A snippet of C++ representing ``tag``.
 	"""
-	return u"HB_TAG('%s','%s','%s','%s')" % tuple (('%-4s' % tag)[:4])
+	return "HB_TAG('%s','%s','%s','%s')" % tuple (('%-4s' % tag)[:4])
 
 def get_variant_set (name):
 	"""Return a set of variant language names from a name.
@@ -873,7 +867,7 @@ def get_variant_set (name):
 	Returns:
 		A set of normalized language names.
 	"""
-	return set (unicodedata.normalize ('NFD', n.replace ('\u2019', u"'"))
+	return set (unicodedata.normalize ('NFD', n.replace ('\u2019', "'"))
 			.encode ('ASCII', 'ignore')
 			.strip ()
 			for n in re.split ('[\n(),]', name) if n)

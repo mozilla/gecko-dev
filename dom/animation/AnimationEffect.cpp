@@ -12,6 +12,7 @@
 #include "mozilla/dom/MutationObservers.h"
 #include "mozilla/AnimationUtils.h"
 #include "mozilla/FloatingPoint.h"
+#include "nsDOMMutationObserver.h"
 
 namespace mozilla {
 namespace dom {
@@ -87,8 +88,8 @@ void AnimationEffect::SetSpecifiedTiming(TimingParams&& aTiming) {
       AsKeyframeEffect()->RequestRestyle(EffectCompositor::RestyleType::Layer);
     }
   }
-  // For keyframe effects, NotifyEffectTimingUpdated above will eventually cause
-  // KeyframeEffect::NotifyAnimationTimingUpdated to be called so it can
+  // For keyframe effects, NotifyEffectTimingUpdated above will eventually
+  // cause KeyframeEffect::NotifyAnimationTimingUpdated to be called so it can
   // update its registration with the target element as necessary.
 }
 
@@ -207,8 +208,8 @@ ComputedTiming AnimationEffect::GetComputedTimingAt(
       result.mActiveTime == result.mActiveDuration &&
       result.mIterations != 0.0) {
     // The only way we can reach the end of the active interval and have
-    // a progress of zero and a current iteration of zero, is if we have a zero
-    // iteration count -- something we should have detected above.
+    // a progress of zero and a current iteration of zero, is if we have a
+    // zero iteration count -- something we should have detected above.
     MOZ_ASSERT(result.mCurrentIteration != 0,
                "Should not have zero current iteration");
     progress = 1.0;

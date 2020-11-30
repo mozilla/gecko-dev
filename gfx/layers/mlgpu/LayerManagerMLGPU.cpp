@@ -9,6 +9,7 @@
 #include "PaintedLayerMLGPU.h"
 #include "ImageLayerMLGPU.h"
 #include "CanvasLayerMLGPU.h"
+#include "ContainerLayerMLGPU.h"
 #include "GeckoProfiler.h"  // for profiler_*
 #include "gfxEnv.h"         // for gfxEnv
 #include "MLGDevice.h"
@@ -20,12 +21,12 @@
 #include "TextureSourceProviderMLGPU.h"
 #include "TreeTraversal.h"
 #include "FrameBuilder.h"
-#include "LayersLogging.h"
 #include "UtilityMLGPU.h"
 #include "CompositionRecorder.h"
 #include "mozilla/layers/Diagnostics.h"
 #include "mozilla/layers/TextRenderer.h"
 #include "mozilla/StaticPrefs_layers.h"
+#include "mozilla/ToString.h"
 
 #ifdef XP_WIN
 #  include "mozilla/widget/WinCompositorWidget.h"
@@ -211,7 +212,6 @@ void LayerManagerMLGPU::BeginTransactionWithDrawTarget(
 
   mTarget = aTarget;
   mTargetRect = aRect;
-  return;
 }
 
 // Helper class for making sure textures are unlocked.
@@ -228,8 +228,6 @@ void LayerManagerMLGPU::EndTransaction(const TimeStamp& aTimeStamp,
                                        EndTransactionFlags aFlags) {
   AUTO_PROFILER_LABEL("LayerManager::EndTransaction", GRAPHICS);
 
-  SetCompositionTime(aTimeStamp);
-
   TextureSourceProvider::AutoReadUnlockTextures unlock(mTextureSourceProvider);
 
   if (!mRoot || (aFlags & END_NO_IMMEDIATE_REDRAW) || !mWidget) {
@@ -240,6 +238,9 @@ void LayerManagerMLGPU::EndTransaction(const TimeStamp& aTimeStamp,
     // Waiting device reset handling.
     return;
   }
+
+  mCompositionOpportunityId = mCompositionOpportunityId.Next();
+  SetCompositionTime(aTimeStamp);
 
   mCompositionStartTime = TimeStamp::Now();
 
@@ -448,7 +449,7 @@ void LayerManagerMLGPU::DrawDebugOverlay() {
       (texture->GetSize().width > kDebugOverlayMaxWidth ||
        texture->GetSize().height > kDebugOverlayMaxHeight)) {
     gfxCriticalNote << "Diagnostic overlay exceeds invalidation area: %s"
-                    << Stringify(texture->GetSize()).c_str();
+                    << ToString(texture->GetSize()).c_str();
   }
 
   struct DebugRect {

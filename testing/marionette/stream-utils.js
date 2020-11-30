@@ -4,21 +4,31 @@
 
 "use strict";
 
-const CC = Components.Constructor;
+const EXPORTED_SYMBOLS = ["StreamUtils"];
 
-const { EventEmitter } = ChromeUtils.import(
-  "resource://gre/modules/EventEmitter.jsm"
-);
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
-
-const IOUtil = Cc["@mozilla.org/io-util;1"].getService(Ci.nsIIOUtil);
-const ScriptableInputStream = CC(
-  "@mozilla.org/scriptableinputstream;1",
-  "nsIScriptableInputStream",
-  "init"
+const { XPCOMUtils } = ChromeUtils.import(
+  "resource://gre/modules/XPCOMUtils.jsm"
 );
 
-this.EXPORTED_SYMBOLS = ["StreamUtils"];
+XPCOMUtils.defineLazyModuleGetters(this, {
+  EventEmitter: "resource://gre/modules/EventEmitter.jsm",
+});
+
+XPCOMUtils.defineLazyServiceGetter(
+  this,
+  "IOUtil",
+  "@mozilla.org/io-util;1",
+  "nsIIOUtil"
+);
+
+XPCOMUtils.defineLazyGetter(this, "ScriptableInputStream", () => {
+  return Components.Constructor(
+    "@mozilla.org/scriptableinputstream;1",
+    "nsIScriptableInputStream",
+    "init"
+  );
+});
 
 const BUFFER_SIZE = 0x8000;
 

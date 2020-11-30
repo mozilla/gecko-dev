@@ -45,7 +45,7 @@ pub trait Configurable {
 }
 
 /// Collect settings values based on a template.
-#[derive(Clone)]
+#[derive(Clone, Hash)]
 pub struct Builder {
     template: &'static detail::Template,
     bytes: Box<[u8]>,
@@ -212,8 +212,10 @@ impl<'a> PredicateView<'a> {
 pub mod detail {
     use crate::constant_hash;
     use core::fmt;
+    use core::hash::Hash;
 
     /// An instruction group template.
+    #[derive(Hash)]
     pub struct Template {
         /// Name of the instruction group.
         pub name: &'static str,
@@ -281,6 +283,7 @@ pub mod detail {
     /// A setting descriptor holds the information needed to generically set and print a setting.
     ///
     /// Each settings group will be represented as a constant DESCRIPTORS array.
+    #[derive(Hash)]
     pub struct Descriptor {
         /// Lower snake-case name of setting as defined in meta.
         pub name: &'static str,
@@ -293,7 +296,7 @@ pub mod detail {
     }
 
     /// The different kind of settings along with descriptor bits that depend on the kind.
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, Hash)]
     pub enum Detail {
         /// A boolean setting only uses one bit, numbered from LSB.
         Bool {
@@ -377,26 +380,30 @@ mod tests {
         let f = Flags::new(b);
         assert_eq!(
             f.to_string(),
-            "[shared]\n\
-             opt_level = \"none\"\n\
-             libcall_call_conv = \"isa_default\"\n\
-             baldrdash_prologue_words = 0\n\
-             probestack_size_log2 = 12\n\
-             enable_verifier = true\n\
-             is_pic = false\n\
-             use_colocated_libcalls = false\n\
-             avoid_div_traps = false\n\
-             enable_float = true\n\
-             enable_nan_canonicalization = false\n\
-             enable_pinned_reg = false\n\
-             use_pinned_reg_as_heap_base = false\n\
-             enable_simd = false\n\
-             enable_atomics = true\n\
-             enable_safepoints = false\n\
-             emit_all_ones_funcaddrs = false\n\
-             enable_probestack = true\n\
-             probestack_func_adjusts_sp = false\n\
-             enable_jump_tables = true\n"
+            r#"[shared]
+regalloc = "backtracking"
+opt_level = "none"
+tls_model = "none"
+libcall_call_conv = "isa_default"
+baldrdash_prologue_words = 0
+probestack_size_log2 = 12
+enable_verifier = true
+is_pic = false
+use_colocated_libcalls = false
+avoid_div_traps = false
+enable_float = true
+enable_nan_canonicalization = false
+enable_pinned_reg = false
+use_pinned_reg_as_heap_base = false
+enable_simd = false
+enable_atomics = true
+enable_safepoints = false
+emit_all_ones_funcaddrs = false
+enable_probestack = true
+probestack_func_adjusts_sp = false
+enable_jump_tables = true
+enable_heap_access_spectre_mitigation = true
+"#
         );
         assert_eq!(f.opt_level(), super::OptLevel::None);
         assert_eq!(f.enable_simd(), false);

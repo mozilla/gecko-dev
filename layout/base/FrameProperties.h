@@ -137,7 +137,7 @@ class FrameProperties {
   template <typename T>
   using PropertyType = typename detail::FramePropertyTypeHelper<T>::Type;
 
-  explicit FrameProperties() {}
+  explicit FrameProperties() = default;
 
   ~FrameProperties() {
     MOZ_ASSERT(mProperties.Length() == 0, "forgot to delete properties");
@@ -185,11 +185,6 @@ class FrameProperties {
    *
    *   - Calling Has() before Set() in cases where we don't want to overwrite
    *     an existing value for the frame property.
-   *
-   * The HasSkippingBitCheck variant doesn't test NS_FRAME_HAS_PROPERTIES
-   * on aFrame, so it is safe to call after aFrame has been destroyed as
-   * long as, since that destruction happened, it isn't possible for a
-   * new frame to have been created and the same property added.
    */
   template <typename T>
   bool Has(Descriptor<T> aProperty) const {
@@ -262,8 +257,7 @@ class FrameProperties {
    * Remove and destroy all property values for the frame.
    */
   void RemoveAll(const nsIFrame* aFrame) {
-    nsTArray<PropertyValue> toDelete;
-    toDelete.SwapElements(mProperties);
+    nsTArray<PropertyValue> toDelete = std::move(mProperties);
     for (auto& prop : toDelete) {
       prop.DestroyValueFor(aFrame);
     }

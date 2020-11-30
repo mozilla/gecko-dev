@@ -21,9 +21,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.StringTokenizer;
-import java.util.TreeMap;
 
 import org.mozilla.gecko.annotation.JNITarget;
 import org.mozilla.gecko.annotation.RobocopTarget;
@@ -77,9 +75,9 @@ import android.os.Looper;
 import android.os.PowerManager;
 import android.os.Vibrator;
 import android.provider.Settings;
-import android.support.annotation.Nullable;
-import android.support.v4.content.res.ResourcesCompat;
-import android.support.v4.util.SimpleArrayMap;
+import androidx.annotation.Nullable;
+import androidx.core.content.res.ResourcesCompat;
+import androidx.collection.SimpleArrayMap;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.Log;
@@ -114,24 +112,6 @@ public class GeckoAppShell {
         @Override
         protected Context getAppContext() {
             return getApplicationContext();
-        }
-
-        @Override
-        protected Bundle getCrashExtras(final Thread thread, final Throwable exc) {
-            final Bundle extras = super.getCrashExtras(thread, exc);
-
-            extras.putString("ProductName", BuildConfig.MOZ_APP_BASENAME);
-            extras.putString("ProductID", BuildConfig.MOZ_APP_ID);
-            extras.putString("Version", BuildConfig.MOZ_APP_VERSION);
-            extras.putString("BuildID", BuildConfig.MOZ_APP_BUILDID);
-            extras.putString("Vendor", BuildConfig.MOZ_APP_VENDOR);
-            extras.putString("ReleaseChannel", BuildConfig.MOZ_UPDATE_CHANNEL);
-
-            final String appNotes = getAppNotes();
-            if (appNotes != null) {
-                extras.putString("Notes", appNotes);
-            }
-            return extras;
         }
 
         @Override
@@ -229,7 +209,7 @@ public class GeckoAppShell {
 
     /*
      * Keep in sync with constants found here:
-     * http://dxr.mozilla.org/mozilla-central/source/uriloader/base/nsIWebProgressListener.idl
+     * http://searchfox.org/mozilla-central/source/uriloader/base/nsIWebProgressListener.idl
     */
     static public final int WPL_STATE_START = 0x00000001;
     static public final int WPL_STATE_STOP = 0x00000010;
@@ -237,7 +217,7 @@ public class GeckoAppShell {
     static public final int WPL_STATE_IS_NETWORK = 0x00040000;
 
     /* Keep in sync with constants found here:
-      http://dxr.mozilla.org/mozilla-central/source/netwerk/base/nsINetworkLinkService.idl
+      http://searchfox.org/mozilla-central/source/netwerk/base/nsINetworkLinkService.idl
     */
     static public final int LINK_TYPE_UNKNOWN = 0;
     static public final int LINK_TYPE_ETHERNET = 1;
@@ -260,6 +240,9 @@ public class GeckoAppShell {
 
     @WrapForJNI(stubName = "NotifyObservers", dispatchTo = "gecko")
     private static native void nativeNotifyObservers(String topic, String data);
+
+    @WrapForJNI(stubName = "AppendAppNotesToCrashReport", dispatchTo = "gecko")
+    public static native void nativeAppendAppNotesToCrashReport(final String notes);
 
     @RobocopTarget
     public static void notifyObservers(final String topic, final String data) {
@@ -1148,12 +1131,20 @@ public class GeckoAppShell {
         }
     }
 
+    private static ConnectivityManager sConnectivityManager;
+
+    private static void ensureConnectivityManager() {
+        if (sConnectivityManager == null) {
+            sConnectivityManager = (ConnectivityManager)
+                getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+        }
+    }
+
     @WrapForJNI(calledFrom = "gecko")
     private static boolean isNetworkLinkUp() {
-        ConnectivityManager cm = (ConnectivityManager)
-                getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+        ensureConnectivityManager();
         try {
-            NetworkInfo info = cm.getActiveNetworkInfo();
+            NetworkInfo info = sConnectivityManager.getActiveNetworkInfo();
             if (info == null || !info.isConnected())
                 return false;
         } catch (SecurityException se) {
@@ -1164,10 +1155,9 @@ public class GeckoAppShell {
 
     @WrapForJNI(calledFrom = "gecko")
     private static boolean isNetworkLinkKnown() {
-        ConnectivityManager cm = (ConnectivityManager)
-            getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+        ensureConnectivityManager();
         try {
-            if (cm.getActiveNetworkInfo() == null)
+            if (sConnectivityManager.getActiveNetworkInfo() == null)
                 return false;
         } catch (SecurityException se) {
             return false;
@@ -1177,9 +1167,8 @@ public class GeckoAppShell {
 
     @WrapForJNI(calledFrom = "gecko")
     private static int getNetworkLinkType() {
-        ConnectivityManager cm = (ConnectivityManager)
-            getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo info = cm.getActiveNetworkInfo();
+        ensureConnectivityManager();
+        NetworkInfo info = sConnectivityManager.getActiveNetworkInfo();
         if (info == null) {
             return LINK_TYPE_UNKNOWN;
         }
@@ -1240,14 +1229,13 @@ public class GeckoAppShell {
             return "";
         }
 
-        ConnectivityManager cm = (ConnectivityManager)
-            getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
-        Network net = cm.getActiveNetwork();
+        ensureConnectivityManager();
+        Network net = sConnectivityManager.getActiveNetwork();
         if (net == null) {
             return "";
         }
 
-        LinkProperties lp = cm.getLinkProperties(net);
+        LinkProperties lp = sConnectivityManager.getLinkProperties(net);
         if (lp == null) {
             return "";
         }
@@ -1259,7 +1247,6 @@ public class GeckoAppShell {
     private static int[] getSystemColors() {
         // attrsAppearance[] must correspond to AndroidSystemColors structure in android/AndroidBridge.h
         final int[] attrsAppearance = {
-            android.R.attr.textColor,
             android.R.attr.textColorPrimary,
             android.R.attr.textColorPrimaryInverse,
             android.R.attr.textColorSecondary,
@@ -1377,61 +1364,6 @@ public class GeckoAppShell {
             return "";
         } finally {
             IOUtils.safeStreamClose(cmdlineReader);
-        }
-    }
-
-    public static void listOfOpenFiles() {
-        int pidColumn = -1;
-        int nameColumn = -1;
-
-        // run lsof and parse its output
-        Process process = null;
-        InputStreamReader inputStreamReader = null;
-        BufferedReader in = null;
-        try {
-            String filter = GeckoProfile.get(getApplicationContext()).getDir().toString();
-            Log.d(LOGTAG, "[OPENFILE] Filter: " + filter);
-
-            process = Runtime.getRuntime().exec("lsof");
-            inputStreamReader = new InputStreamReader(process.getInputStream());
-            in = new BufferedReader(inputStreamReader, 2048);
-
-            String headerOutput = in.readLine();
-            StringTokenizer st = new StringTokenizer(headerOutput);
-            int token = 0;
-            while (st.hasMoreTokens()) {
-                String next = st.nextToken();
-                if (next.equalsIgnoreCase("PID"))
-                    pidColumn = token;
-                else if (next.equalsIgnoreCase("NAME"))
-                    nameColumn = token;
-                token++;
-            }
-
-            // alright, the rest are open file entries.
-            Map<Integer, String> pidNameMap = new TreeMap<Integer, String>();
-            String output = null;
-            while ((output = in.readLine()) != null) {
-                String[] split = output.split("\\s+");
-                if (split.length <= pidColumn || split.length <= nameColumn)
-                    continue;
-                final Integer pid = Integer.valueOf(split[pidColumn]);
-                String name = pidNameMap.get(pid);
-                if (name == null) {
-                    name = getAppNameByPID(pid.intValue());
-                    pidNameMap.put(pid, name);
-                }
-                String file = split[nameColumn];
-                if (!TextUtils.isEmpty(name) && !TextUtils.isEmpty(file) && file.startsWith(filter))
-                    Log.d(LOGTAG, "[OPENFILE] " + name + "(" + split[pidColumn] + ") : " + file);
-            }
-        } catch (Exception e) {
-        } finally {
-            IOUtils.safeStreamClose(in);
-            IOUtils.safeStreamClose(inputStreamReader);
-            if (process != null) {
-                process.destroy();
-            }
         }
     }
 
@@ -1674,7 +1606,7 @@ public class GeckoAppShell {
 
     @WrapForJNI(calledFrom = "gecko")
     private static void enableNetworkNotifications() {
-        ThreadUtils.postToUiThread(new Runnable() {
+        ThreadUtils.runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 GeckoNetworkManager.getInstance().enableNotifications();
@@ -1684,7 +1616,7 @@ public class GeckoAppShell {
 
     @WrapForJNI(calledFrom = "gecko")
     private static void disableNetworkNotifications() {
-        ThreadUtils.postToUiThread(new Runnable() {
+        ThreadUtils.runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 GeckoNetworkManager.getInstance().disableNotifications();

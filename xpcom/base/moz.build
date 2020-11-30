@@ -52,9 +52,7 @@ EXPORTS += [
     '!ErrorList.h',
     '!ErrorNamesInternal.h',
     'CodeAddressService.h',
-    'nsAgg.h',
     'nsAlgorithm.h',
-    'nsAutoPtr.h',
     'nsAutoRef.h',
     'nsCom.h',
     'nsCOMPtr.h',
@@ -83,6 +81,7 @@ EXPORTS += [
     'nsIWeakReferenceUtils.h',
     'nsMaybeWeakPtr.h',
     'nsMemory.h',
+    'nsMemoryReporterManager.h',
     'nsObjCExceptions.h',
     'nsQueryObject.h',
     'nsSystemInfo.h',
@@ -222,9 +221,8 @@ if CONFIG['COMPILE_ENVIRONMENT']:
         '!gk_rust_utils_ffi_generated.h',
     ]
 
-    GeneratedFile('gk_rust_utils_ffi_generated.h',
-                  script='/build/RunCbindgen.py',
-                  entry_point='generate', inputs=['/xpcom/rust/gkrust_utils'])
+    CbindgenHeader('gk_rust_utils_ffi_generated.h',
+                   inputs=['/xpcom/rust/gkrust_utils'])
 
 include('/ipc/chromium/chromium-config.mozbuild')
 

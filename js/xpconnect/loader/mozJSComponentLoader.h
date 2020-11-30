@@ -89,19 +89,15 @@ class mozJSComponentLoader final {
  private:
   static mozilla::StaticRefPtr<mozJSComponentLoader> sSelf;
 
-  nsresult ReallyInit();
   void UnloadModules();
 
   void CreateLoaderGlobal(JSContext* aCx, const nsACString& aLocation,
                           JS::MutableHandleObject aGlobal);
 
-  bool ReuseGlobal(nsIURI* aComponent);
-
   JSObject* GetSharedGlobal(JSContext* aCx);
 
   JSObject* PrepareObjectForLocation(JSContext* aCx, nsIFile* aComponentFile,
-                                     nsIURI* aComponent, bool* aReuseGlobal,
-                                     bool* aRealFile);
+                                     nsIURI* aComponent, bool* aRealFile);
 
   nsresult ObjectForLocation(ComponentLoaderInfo& aInfo,
                              nsIFile* aComponentFile,
@@ -192,7 +188,6 @@ class mozJSComponentLoader final {
   nsClassHashtable<nsCStringHashKey, nsCString> mLocations;
 
   bool mInitialized;
-  bool mShareLoaderGlobal;
   JS::PersistentRooted<JSObject*> mLoaderGlobal;
 };
 

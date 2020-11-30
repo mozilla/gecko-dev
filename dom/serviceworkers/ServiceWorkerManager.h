@@ -7,33 +7,30 @@
 #ifndef mozilla_dom_workers_serviceworkermanager_h
 #define mozilla_dom_workers_serviceworkermanager_h
 
-#include "nsIServiceWorkerManager.h"
-#include "nsCOMPtr.h"
-
+#include <cstdint>
+#include "ErrorList.h"
 #include "ServiceWorkerShutdownState.h"
-#include "ipc/IPCMessageUtils.h"
-#include "mozilla/Attributes.h"
-#include "mozilla/AutoRestore.h"
-#include "mozilla/ConsoleReportCollector.h"
+#include "js/ErrorReport.h"
+#include "mozilla/AlreadyAddRefed.h"
+#include "mozilla/Assertions.h"
 #include "mozilla/HashTable.h"
-#include "mozilla/LinkedList.h"
 #include "mozilla/MozPromise.h"
-#include "mozilla/Preferences.h"
-#include "mozilla/TypedEnumBits.h"
+#include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
-#include "mozilla/WeakPtr.h"
-#include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/ClientHandle.h"
-#include "mozilla/dom/Promise.h"
-#include "mozilla/dom/ServiceWorkerRegistrar.h"
-#include "mozilla/dom/ServiceWorkerRegistrarTypes.h"
+#include "mozilla/dom/ClientOpPromise.h"
+#include "mozilla/dom/ServiceWorkerRegistrationBinding.h"
 #include "mozilla/dom/ServiceWorkerRegistrationInfo.h"
 #include "mozilla/dom/ServiceWorkerUtils.h"
-#include "mozilla/ipc/BackgroundUtils.h"
+#include "mozilla/mozalloc.h"
 #include "nsClassHashtable.h"
-#include "nsDataHashtable.h"
-#include "nsRefPtrHashtable.h"
-#include "nsTArrayForwardDeclare.h"
+#include "nsContentUtils.h"
+#include "nsHashKeys.h"
+#include "nsIObserver.h"
+#include "nsIServiceWorkerManager.h"
+#include "nsISupports.h"
+#include "nsStringFwd.h"
+#include "nsTArray.h"
 
 class nsIConsoleReportCollector;
 
@@ -116,25 +113,14 @@ class ServiceWorkerManager final : public nsIServiceWorkerManager,
   NS_DECL_NSISERVICEWORKERMANAGER
   NS_DECL_NSIOBSERVER
 
-  bool IsAvailable(nsIPrincipal* aPrincipal, nsIURI* aURI);
-
-  // Return true if the given content process could potentially be executing
-  // service worker code with the given principal.  At the current time, this
-  // just means that we have any registration for the origin, regardless of
-  // scope.  This is a very weak guarantee but is the best we can do when push
-  // notifications can currently spin up a service worker in content processes
-  // without our involvement in the parent process.
-  //
-  // In the future when there is only a single ServiceWorkerManager in the
-  // parent process that is entirely in control of spawning and running service
-  // worker code, we will be able to authoritatively indicate whether there is
-  // an activate service worker in the given content process.  At that time we
-  // will rename this method HasActiveServiceWorkerInstance and provide
-  // semantics that ensure this method returns true until the worker is known to
-  // have shut down in order to allow the caller to induce a crash for security
-  // reasons without having to worry about shutdown races with the worker.
-  bool MayHaveActiveServiceWorkerInstance(ContentParent* aContent,
-                                          nsIPrincipal* aPrincipal);
+  // Return true if the given principal and URI matches a registered service
+  // worker which handles fetch event.
+  // If there is a matched service worker but doesn't handle fetch events, this
+  // method will try to set the matched service worker as the controller of the
+  // passed in channel. Then also schedule a soft-update job for the service
+  // worker.
+  bool IsAvailable(nsIPrincipal* aPrincipal, nsIURI* aURI,
+                   nsIChannel* aChannel);
 
   void DispatchFetchEvent(nsIInterceptedChannel* aChannel, ErrorResult& aRv);
 
@@ -156,11 +142,7 @@ class ServiceWorkerManager final : public nsIServiceWorkerManager,
   void PropagateSoftUpdate(const OriginAttributes& aOriginAttributes,
                            const nsAString& aScope);
 
-  void PropagateRemove(const nsACString& aHost);
-
   void Remove(const nsACString& aHost);
-
-  void PropagateRemoveAll();
 
   void RemoveAll();
 
@@ -191,8 +173,6 @@ class ServiceWorkerManager final : public nsIServiceWorkerManager,
   void StoreRegistration(nsIPrincipal* aPrincipal,
                          ServiceWorkerRegistrationInfo* aRegistration);
 
-  void FinishFetch(ServiceWorkerRegistrationInfo* aRegistration);
-
   /**
    * Report an error for the given scope to any window we think might be
    * interested, failing over to the Browser Console if we couldn't find any.
@@ -215,7 +195,7 @@ class ServiceWorkerManager final : public nsIServiceWorkerManager,
    * so that argument might look like: nsTArray<nsString> { some_nsString,
    * PromiseFlatString(some_nsSubString_aka_nsAString),
    * NS_ConvertUTF8toUTF16(some_nsCString_or_nsCSubString),
-   * NS_LITERAL_STRING("some literal") }.  If you have anything else, like a
+   * u"some literal"_ns }.  If you have anything else, like a
    * number, you can use an nsAutoString with AppendInt/friends.
    *
    * @param [aFlags]
@@ -226,9 +206,8 @@ class ServiceWorkerManager final : public nsIServiceWorkerManager,
   static void LocalizeAndReportToAllClients(
       const nsCString& aScope, const char* aStringKey,
       const nsTArray<nsString>& aParamArray, uint32_t aFlags = 0x0,
-      const nsString& aFilename = EmptyString(),
-      const nsString& aLine = EmptyString(), uint32_t aLineNumber = 0,
-      uint32_t aColumnNumber = 0);
+      const nsString& aFilename = u""_ns, const nsString& aLine = u""_ns,
+      uint32_t aLineNumber = 0, uint32_t aColumnNumber = 0);
 
   // Always consumes the error by reporting to consoles of all controlled
   // documents.
@@ -238,11 +217,11 @@ class ServiceWorkerManager final : public nsIServiceWorkerManager,
                    const nsString& aLine, uint32_t aLineNumber,
                    uint32_t aColumnNumber, uint32_t aFlags, JSExnType aExnType);
 
-  MOZ_MUST_USE RefPtr<GenericErrorResultPromise> MaybeClaimClient(
+  [[nodiscard]] RefPtr<GenericErrorResultPromise> MaybeClaimClient(
       const ClientInfo& aClientInfo,
       ServiceWorkerRegistrationInfo* aWorkerRegistration);
 
-  MOZ_MUST_USE RefPtr<GenericErrorResultPromise> MaybeClaimClient(
+  [[nodiscard]] RefPtr<GenericErrorResultPromise> MaybeClaimClient(
       const ClientInfo& aClientInfo,
       const ServiceWorkerDescriptor& aServiceWorker);
 
@@ -366,9 +345,6 @@ class ServiceWorkerManager final : public nsIServiceWorkerManager,
   void UpdateClientControllers(ServiceWorkerRegistrationInfo* aRegistration);
 
   void MaybeRemoveRegistration(ServiceWorkerRegistrationInfo* aRegistration);
-
-  // Removes all service worker registrations that matches the given pattern.
-  void RemoveAllRegistrations(OriginAttributesPattern* aPattern);
 
   RefPtr<ServiceWorkerManagerChild> mActor;
 

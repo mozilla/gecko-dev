@@ -5,38 +5,45 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "MediaBufferDecoder.h"
-#include "mozilla/dom/AudioContextBinding.h"
-#include "mozilla/dom/BaseAudioContextBinding.h"
-#include "mozilla/dom/DOMException.h"
-#include "mozilla/dom/ScriptSettings.h"
-#include "mozilla/AbstractThread.h"
-#include "mozilla/StaticPrefs_media.h"
+
 #include <speex/speex_resampler.h>
-#include "nsXPCOMCIDInternal.h"
-#include "nsComponentManagerUtils.h"
-#include "MediaQueue.h"
+
+#include "AudioBuffer.h"
+#include "AudioContext.h"
+#include "AudioNodeEngine.h"
 #include "BufferMediaResource.h"
 #include "DecoderTraits.h"
-#include "AudioContext.h"
-#include "AudioBuffer.h"
-#include "js/MemoryFunctions.h"
 #include "MediaContainerType.h"
+#include "MediaDataDecoderProxy.h"
 #include "MediaDataDemuxer.h"
-#include "nsContentUtils.h"
-#include "nsIScriptObjectPrincipal.h"
-#include "nsIScriptError.h"
-#include "nsMimeTypes.h"
+#include "MediaQueue.h"
 #include "PDMFactory.h"
 #include "VideoUtils.h"
 #include "WebAudioUtils.h"
-#include "mozilla/dom/Promise.h"
+#include "js/MemoryFunctions.h"
+#include "mozilla/AbstractThread.h"
+#include "mozilla/Logging.h"
+#include "mozilla/StaticPrefs_media.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/dom/AudioContextBinding.h"
+#include "mozilla/dom/BaseAudioContextBinding.h"
+#include "mozilla/dom/DOMException.h"
+#include "mozilla/dom/Promise.h"
+#include "mozilla/dom/ScriptSettings.h"
+#include "nsComponentManagerUtils.h"
+#include "nsContentUtils.h"
+#include "nsIScriptError.h"
+#include "nsIScriptObjectPrincipal.h"
+#include "nsMimeTypes.h"
 #include "nsPrintfCString.h"
-#include "AudioNodeEngine.h"
+#include "nsXPCOMCIDInternal.h"
 
 namespace mozilla {
 
 extern LazyLogModule gMediaDecoderLog;
+
+#define LOG(x, ...) \
+  MOZ_LOG(gMediaDecoderLog, LogLevel::Debug, (x, ##__VA_ARGS__))
 
 using namespace dom;
 
@@ -92,8 +99,10 @@ class MediaDecodeTask final : public Runnable {
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
   NS_IMETHOD Run() override;
   bool Init();
-  TaskQueue* PDecoderTaskQueue() { return mPDecoderTaskQueue; }
-  bool OnPDecoderTaskQueue() { return mPDecoderTaskQueue->IsCurrentThreadIn(); }
+  TaskQueue* PControllerTaskQueue() { return mPControllerTaskQueue; }
+  bool OnPControllerTaskQueue() const {
+    return mPControllerTaskQueue->IsCurrentThreadIn();
+  }
 
  private:
   MOZ_CAN_RUN_SCRIPT
@@ -150,6 +159,7 @@ class MediaDecodeTask final : public Runnable {
     }
     mTrackDemuxer = nullptr;
     mDemuxer = nullptr;
+    mPControllerTaskQueue = nullptr;
     mPDecoderTaskQueue = nullptr;
   }
 
@@ -160,6 +170,7 @@ class MediaDecodeTask final : public Runnable {
   const uint32_t mBatchSize;
   WebAudioDecodeJob& mDecodeJob;
   PhaseEnum mPhase;
+  RefPtr<TaskQueue> mPControllerTaskQueue;
   RefPtr<TaskQueue> mPDecoderTaskQueue;
   RefPtr<MediaDataDemuxer> mDemuxer;
   RefPtr<MediaTrackDemuxer> mTrackDemuxer;
@@ -195,6 +206,9 @@ bool MediaDecodeTask::Init() {
   mMainThread = mDecodeJob.mContext->GetOwnerGlobal()->AbstractMainThreadFor(
       TaskCategory::Other);
 
+  mPControllerTaskQueue =
+      new TaskQueue(GetMediaThreadPool(MediaThreadType::CONTROLLER),
+                    "MediaBufferDecoder::mPControllerTaskQueue");
   mPDecoderTaskQueue =
       new TaskQueue(GetMediaThreadPool(MediaThreadType::PLATFORM_DECODER),
                     "MediaBufferDecoder::mPDecoderTaskQueue");
@@ -228,20 +242,20 @@ class AutoResampler final {
 };
 
 void MediaDecodeTask::Decode() {
-  MOZ_ASSERT(!NS_IsMainThread());
-  MOZ_ASSERT(OnPDecoderTaskQueue());
+  MOZ_ASSERT(OnPControllerTaskQueue());
 
-  mDemuxer->Init()->Then(PDecoderTaskQueue(), __func__, this,
+  mDemuxer->Init()->Then(PControllerTaskQueue(), __func__, this,
                          &MediaDecodeTask::OnInitDemuxerCompleted,
                          &MediaDecodeTask::OnInitDemuxerFailed);
 }
 
 void MediaDecodeTask::OnInitDemuxerCompleted() {
-  MOZ_ASSERT(OnPDecoderTaskQueue());
+  MOZ_ASSERT(OnPControllerTaskQueue());
 
   if (!!mDemuxer->GetNumberTracks(TrackInfo::kAudioTrack)) {
     mTrackDemuxer = mDemuxer->GetTrackDemuxer(TrackInfo::kAudioTrack, 0);
     if (!mTrackDemuxer) {
+      LOG("MediaDecodeTask: Could not get a track demuxer.");
       ReportFailureOnMainThread(WebAudioDecodeJob::UnknownContent);
       return;
     }
@@ -256,6 +270,7 @@ void MediaDecodeTask::OnInitDemuxerCompleted() {
   }
 
   if (NS_FAILED(CreateDecoder(*mMediaInfo.mAudio.GetAsAudioInfo()))) {
+    LOG("MediaDecodeTask: Could not create a decoder.");
     ReportFailureOnMainThread(WebAudioDecodeJob::UnknownContent);
     return;
   }
@@ -263,13 +278,14 @@ void MediaDecodeTask::OnInitDemuxerCompleted() {
 }
 
 void MediaDecodeTask::OnInitDemuxerFailed(const MediaResult& aError) {
-  MOZ_ASSERT(OnPDecoderTaskQueue());
+  MOZ_ASSERT(OnPControllerTaskQueue());
 
+  LOG("MediaDecodeTask: Could not initialize the demuxer.");
   ReportFailureOnMainThread(WebAudioDecodeJob::InvalidContent);
 }
 
 MediaResult MediaDecodeTask::CreateDecoder(const AudioInfo& info) {
-  MOZ_ASSERT(OnPDecoderTaskQueue());
+  MOZ_ASSERT(OnPControllerTaskQueue());
 
   RefPtr<PDMFactory> pdm = new PDMFactory();
   // result may not be updated by PDMFactory::CreateDecoder, as such it must be
@@ -278,10 +294,12 @@ MediaResult MediaDecodeTask::CreateDecoder(const AudioInfo& info) {
       MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
                   nsPrintfCString("error creating %s decoder",
                                   TrackTypeToStr(TrackInfo::kAudioTrack)));
-  mDecoder = pdm->CreateDecoder(
-      {info, mPDecoderTaskQueue, &result, TrackInfo::kAudioTrack});
+  RefPtr<MediaDataDecoder> decoder =
+      pdm->CreateDecoder({info, &result, TrackInfo::kAudioTrack});
 
-  if (mDecoder) {
+  if (decoder) {
+    mDecoder = new MediaDataDecoderProxy(decoder.forget(),
+                                         do_AddRef(mPDecoderTaskQueue.get()));
     return NS_OK;
   }
 
@@ -291,38 +309,39 @@ MediaResult MediaDecodeTask::CreateDecoder(const AudioInfo& info) {
 }
 
 void MediaDecodeTask::InitDecoder() {
-  MOZ_ASSERT(OnPDecoderTaskQueue());
+  MOZ_ASSERT(OnPControllerTaskQueue());
 
-  mDecoder->Init()->Then(PDecoderTaskQueue(), __func__, this,
+  mDecoder->Init()->Then(PControllerTaskQueue(), __func__, this,
                          &MediaDecodeTask::OnInitDecoderCompleted,
                          &MediaDecodeTask::OnInitDecoderFailed);
 }
 
 void MediaDecodeTask::OnInitDecoderCompleted() {
-  MOZ_ASSERT(OnPDecoderTaskQueue());
+  MOZ_ASSERT(OnPControllerTaskQueue());
 
   DoDemux();
 }
 
 void MediaDecodeTask::OnInitDecoderFailed() {
-  MOZ_ASSERT(OnPDecoderTaskQueue());
+  MOZ_ASSERT(OnPControllerTaskQueue());
 
   ShutdownDecoder();
+  LOG("MediaDecodeTask: Could not initialize the decoder");
   ReportFailureOnMainThread(WebAudioDecodeJob::InvalidContent);
 }
 
 void MediaDecodeTask::DoDemux() {
-  MOZ_ASSERT(OnPDecoderTaskQueue());
+  MOZ_ASSERT(OnPControllerTaskQueue());
 
   mTrackDemuxer->GetSamples(mBatchSize)
-      ->Then(PDecoderTaskQueue(), __func__, this,
+      ->Then(PControllerTaskQueue(), __func__, this,
              &MediaDecodeTask::OnAudioDemuxCompleted,
              &MediaDecodeTask::OnAudioDemuxFailed);
 }
 
 void MediaDecodeTask::OnAudioDemuxCompleted(
     RefPtr<MediaTrackDemuxer::SamplesHolder> aSamples) {
-  MOZ_ASSERT(OnPDecoderTaskQueue());
+  MOZ_ASSERT(OnPControllerTaskQueue());
 
   mRawSamples.AppendElements(aSamples->GetSamples());
 
@@ -330,18 +349,19 @@ void MediaDecodeTask::OnAudioDemuxCompleted(
 }
 
 void MediaDecodeTask::OnAudioDemuxFailed(const MediaResult& aError) {
-  MOZ_ASSERT(OnPDecoderTaskQueue());
+  MOZ_ASSERT(OnPControllerTaskQueue());
 
   if (aError.Code() == NS_ERROR_DOM_MEDIA_END_OF_STREAM) {
     DoDecode();
   } else {
     ShutdownDecoder();
+    LOG("MediaDecodeTask: Audio demux failed");
     ReportFailureOnMainThread(WebAudioDecodeJob::InvalidContent);
   }
 }
 
 void MediaDecodeTask::DoDecode() {
-  MOZ_ASSERT(OnPDecoderTaskQueue());
+  MOZ_ASSERT(OnPControllerTaskQueue());
 
   if (mRawSamples.IsEmpty()) {
     DoDrain();
@@ -357,7 +377,7 @@ void MediaDecodeTask::DoDecode() {
     }
 
     mDecoder->DecodeBatch(std::move(rawSampleBatch))
-        ->Then(PDecoderTaskQueue(), __func__, this,
+        ->Then(PControllerTaskQueue(), __func__, this,
                &MediaDecodeTask::OnAudioDecodeCompleted,
                &MediaDecodeTask::OnAudioDecodeFailed);
 
@@ -365,7 +385,7 @@ void MediaDecodeTask::DoDecode() {
   } else {
     RefPtr<MediaRawData> sample = std::move(mRawSamples[0]);
 
-    mDecoder->Decode(sample)->Then(PDecoderTaskQueue(), __func__, this,
+    mDecoder->Decode(sample)->Then(PControllerTaskQueue(), __func__, this,
                                    &MediaDecodeTask::OnAudioDecodeCompleted,
                                    &MediaDecodeTask::OnAudioDecodeFailed);
 
@@ -375,7 +395,7 @@ void MediaDecodeTask::DoDecode() {
 
 void MediaDecodeTask::OnAudioDecodeCompleted(
     MediaDataDecoder::DecodedData&& aResults) {
-  MOZ_ASSERT(OnPDecoderTaskQueue());
+  MOZ_ASSERT(OnPControllerTaskQueue());
 
   for (auto&& sample : aResults) {
     MOZ_ASSERT(sample->mType == MediaData::Type::AUDIO_DATA);
@@ -391,23 +411,24 @@ void MediaDecodeTask::OnAudioDecodeCompleted(
 }
 
 void MediaDecodeTask::OnAudioDecodeFailed(const MediaResult& aError) {
-  MOZ_ASSERT(OnPDecoderTaskQueue());
+  MOZ_ASSERT(OnPControllerTaskQueue());
 
   ShutdownDecoder();
+  LOG("MediaDecodeTask: decode audio failed.");
   ReportFailureOnMainThread(WebAudioDecodeJob::InvalidContent);
 }
 
 void MediaDecodeTask::DoDrain() {
-  MOZ_ASSERT(OnPDecoderTaskQueue());
+  MOZ_ASSERT(OnPControllerTaskQueue());
 
-  mDecoder->Drain()->Then(PDecoderTaskQueue(), __func__, this,
+  mDecoder->Drain()->Then(PControllerTaskQueue(), __func__, this,
                           &MediaDecodeTask::OnAudioDrainCompleted,
                           &MediaDecodeTask::OnAudioDrainFailed);
 }
 
 void MediaDecodeTask::OnAudioDrainCompleted(
     MediaDataDecoder::DecodedData&& aResults) {
-  MOZ_ASSERT(OnPDecoderTaskQueue());
+  MOZ_ASSERT(OnPControllerTaskQueue());
 
   if (aResults.IsEmpty()) {
     FinishDecode();
@@ -424,14 +445,15 @@ void MediaDecodeTask::OnAudioDrainCompleted(
 }
 
 void MediaDecodeTask::OnAudioDrainFailed(const MediaResult& aError) {
-  MOZ_ASSERT(OnPDecoderTaskQueue());
+  MOZ_ASSERT(OnPControllerTaskQueue());
 
   ShutdownDecoder();
+  LOG("MediaDecodeTask: Drain audio failed");
   ReportFailureOnMainThread(WebAudioDecodeJob::InvalidContent);
 }
 
 void MediaDecodeTask::ShutdownDecoder() {
-  MOZ_ASSERT(OnPDecoderTaskQueue());
+  MOZ_ASSERT(OnPControllerTaskQueue());
 
   if (!mDecoder) {
     return;
@@ -443,7 +465,7 @@ void MediaDecodeTask::ShutdownDecoder() {
 }
 
 void MediaDecodeTask::FinishDecode() {
-  MOZ_ASSERT(OnPDecoderTaskQueue());
+  MOZ_ASSERT(OnPControllerTaskQueue());
 
   ShutdownDecoder();
 
@@ -452,6 +474,8 @@ void MediaDecodeTask::FinishDecode() {
   uint32_t sampleRate = mMediaInfo.mAudio.mRate;
 
   if (!frameCount || !channelCount || !sampleRate) {
+    LOG("MediaDecodeTask: invalid content frame count, channel count or "
+        "sample-rate");
     ReportFailureOnMainThread(WebAudioDecodeJob::InvalidContent);
     return;
   }
@@ -483,6 +507,7 @@ void MediaDecodeTask::FinishDecode() {
       ThreadSharedFloatArrayBufferList::Create(channelCount, resampledFrames,
                                                fallible);
   if (!buffer) {
+    LOG("MediaDecodeTask: Could not create final buffer (f32)");
     ReportFailureOnMainThread(WebAudioDecodeJob::UnknownError);
     return;
   }
@@ -495,6 +520,7 @@ void MediaDecodeTask::FinishDecode() {
   bufferSize *= channelCount;
   RefPtr<SharedBuffer> buffer = SharedBuffer::Create(bufferSize);
   if (!buffer) {
+    LOG("MediaDecodeTask: Could not create final buffer (i16)");
     ReportFailureOnMainThread(WebAudioDecodeJob::UnknownError);
     return;
   }
@@ -581,6 +607,7 @@ void MediaDecodeTask::AllocateBuffer() {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (!mDecodeJob.AllocateBuffer()) {
+    LOG("MediaDecodeTask: Could not allocate final buffer");
     ReportFailureOnMainThread(WebAudioDecodeJob::UnknownError);
     return;
   }
@@ -632,12 +659,7 @@ void AsyncDecodeWebAudio(const char* aContentType, uint8_t* aBuffer,
                              WebAudioDecodeJob::UnknownError);
     aDecodeJob.mContext->Dispatch(event.forget());
   } else {
-    // If we did this without a temporary:
-    //   task->PDecoderTaskQueue()->Dispatch(task.forget())
-    // we might evaluate the task.forget() before calling PDecoderTaskQueue().
-    // Enforce a non-crashy order-of-operations.
-    TaskQueue* taskQueue = task->PDecoderTaskQueue();
-    nsresult rv = taskQueue->Dispatch(task.forget());
+    nsresult rv = task->PControllerTaskQueue()->Dispatch(task.forget());
     MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv));
     Unused << rv;
   }
@@ -682,13 +704,18 @@ void WebAudioDecodeJob::OnFailure(ErrorCode aErrorCode) {
   const char* errorMessage;
   switch (aErrorCode) {
     case UnknownContent:
-      errorMessage = "MediaDecodeAudioDataUnknownContentType";
+      errorMessage =
+          "The buffer passed to decodeAudioData contains an unknown content "
+          "type.";
       break;
     case InvalidContent:
-      errorMessage = "MediaDecodeAudioDataInvalidContent";
+      errorMessage =
+          "The buffer passed to decodeAudioData contains invalid content which "
+          "cannot be decoded successfully.";
       break;
     case NoAudio:
-      errorMessage = "MediaDecodeAudioDataNoAudio";
+      errorMessage =
+          "The buffer passed to decodeAudioData does not contain any audio.";
       break;
     case NoError:
       MOZ_FALLTHROUGH_ASSERT("Who passed NoError to OnFailure?");
@@ -697,29 +724,22 @@ void WebAudioDecodeJob::OnFailure(ErrorCode aErrorCode) {
     case UnknownError:
       [[fallthrough]];
     default:
-      errorMessage = "MediaDecodeAudioDataUnknownError";
+      errorMessage =
+          "An unknown error occurred while processing decodeAudioData.";
       break;
   }
 
-  Document* doc = nullptr;
-  if (nsPIDOMWindowInner* pWindow = mContext->GetParentObject()) {
-    doc = pWindow->GetExtantDoc();
-  }
-  nsContentUtils::ReportToConsole(
-      nsIScriptError::errorFlag, NS_LITERAL_CSTRING("Media"), doc,
-      nsContentUtils::eDOM_PROPERTIES, errorMessage);
-
   // Ignore errors in calling the callback, since there is not much that we can
   // do about it here.
+  nsAutoCString errorString(errorMessage);
   if (mFailureCallback) {
-    nsAutoCString errorString(errorMessage);
     RefPtr<DOMException> exception = DOMException::Create(
         NS_ERROR_DOM_ENCODING_NOT_SUPPORTED_ERR, errorString);
     RefPtr<DecodeErrorCallback> callback(mFailureCallback);
     callback->Call(*exception);
   }
 
-  mPromise->MaybeReject(NS_ERROR_DOM_ENCODING_NOT_SUPPORTED_ERR);
+  mPromise->MaybeRejectWithEncodingError(errorString);
 
   mContext->RemoveFromDecodeQueue(this);
 }

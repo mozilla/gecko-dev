@@ -4,6 +4,25 @@
 
 "use strict";
 
+const EXPORTED_SYMBOLS = ["RawPacket", "Packet", "JSONPacket", "BulkPacket"];
+
+const { XPCOMUtils } = ChromeUtils.import(
+  "resource://gre/modules/XPCOMUtils.jsm"
+);
+
+XPCOMUtils.defineLazyModuleGetters(this, {
+  StreamUtils: "chrome://marionette/content/stream-utils.js",
+});
+
+XPCOMUtils.defineLazyGetter(this, "unicodeConverter", () => {
+  const unicodeConverter = Cc[
+    "@mozilla.org/intl/scriptableunicodeconverter"
+  ].createInstance(Ci.nsIScriptableUnicodeConverter);
+  unicodeConverter.charset = "UTF-8";
+
+  return unicodeConverter;
+});
+
 /**
  * Packets contain read / write functionality for the different packet types
  * supported by the debugging protocol, so that a transport can focus on
@@ -24,15 +43,6 @@
  *     Called to clean up at the end of use
  */
 
-const { StreamUtils } = ChromeUtils.import(
-  "chrome://marionette/content/stream-utils.js"
-);
-
-const unicodeConverter = Cc[
-  "@mozilla.org/intl/scriptableunicodeconverter"
-].createInstance(Ci.nsIScriptableUnicodeConverter);
-unicodeConverter.charset = "UTF-8";
-
 const defer = function() {
   let deferred = {
     promise: new Promise((resolve, reject) => {
@@ -42,8 +52,6 @@ const defer = function() {
   };
   return deferred;
 };
-
-this.EXPORTED_SYMBOLS = ["RawPacket", "Packet", "JSONPacket", "BulkPacket"];
 
 // The transport's previous check ensured the header length did not
 // exceed 20 characters.  Here, we opt for the somewhat smaller, but still

@@ -10,6 +10,7 @@ const { setTimeout } = ChromeUtils.import("resource://gre/modules/Timer.jsm");
 
 let delay = () => new Promise(resolve => setTimeout(resolve, 0));
 
+const kSearchFormURL = "https://example.com/searchform";
 const kSearchEngineURL = "https://example.com/?search={searchTerms}";
 const kSearchSuggestURL = "https://example.com/?suggest={searchTerms}";
 const kSearchTerm = "foo";
@@ -43,6 +44,7 @@ add_task(async function test_extension_adding_engine() {
         search_provider: {
           name: "MozSearch",
           keyword: "MozSearch",
+          search_form: kSearchFormURL,
           search_url: kSearchEngineURL,
           suggest_url: kSearchSuggestURL,
         },
@@ -89,6 +91,7 @@ add_task(async function test_extension_adding_engine() {
     "Suggest URLs should match"
   );
 
+  equal(engine.searchForm, kSearchFormURL, "Search form URLs should match");
   await ext1.unload();
   await delay();
 
@@ -187,6 +190,57 @@ add_task(async function test_upgrade_default_position_engine() {
 
   engine = Services.search.getEngineByName("MozSearch");
   ok(!engine, "Engine should not exist");
+});
+
+add_task(async function test_extension_get_params() {
+  let ext1 = ExtensionTestUtils.loadExtension({
+    manifest: {
+      chrome_settings_overrides: {
+        search_provider: {
+          name: "MozSearch",
+          keyword: "MozSearch",
+          search_url: kSearchEngineURL,
+          search_url_get_params: "foo=bar&bar=foo",
+          suggest_url: kSearchSuggestURL,
+          suggest_url_get_params: "foo=bar&bar=foo",
+        },
+      },
+    },
+    useAddonManager: "temporary",
+  });
+
+  await ext1.startup();
+  await AddonTestUtils.waitForSearchProviderStartup(ext1);
+
+  let engine = Services.search.getEngineByName("MozSearch");
+  ok(engine, "Engine should exist.");
+
+  let url = engine.wrappedJSObject._getURLOfType("text/html");
+  equal(url.method, "GET", "Search URLs method is GET");
+
+  let expectedURL = kSearchEngineURL.replace("{searchTerms}", kSearchTerm);
+  let submission = engine.getSubmission(kSearchTerm);
+  equal(
+    submission.uri.spec,
+    `${expectedURL}&foo=bar&bar=foo`,
+    "Search URLs should match"
+  );
+
+  let expectedSuggestURL = kSearchSuggestURL.replace(
+    "{searchTerms}",
+    kSearchTerm
+  );
+  let submissionSuggest = engine.getSubmission(
+    kSearchTerm,
+    URLTYPE_SUGGEST_JSON
+  );
+  equal(
+    submissionSuggest.uri.spec,
+    `${expectedSuggestURL}&foo=bar&bar=foo`,
+    "Suggest URLs should match"
+  );
+
+  await ext1.unload();
 });
 
 add_task(async function test_extension_post_params() {
@@ -293,4 +347,96 @@ add_task(async function test_extension_no_query_params() {
 
   engine = Services.search.getEngineByName("MozSearch");
   ok(!engine, "Engine should not exist");
+});
+
+async function checkBadUrl(searchProviderKey, urlValue) {
+  let normalized = await ExtensionTestUtils.normalizeManifest({
+    chrome_settings_overrides: {
+      search_provider: {
+        name: "MozSearch",
+        keyword: "MozSearch",
+        search_url: "https://example.com/",
+        [searchProviderKey]: urlValue,
+      },
+    },
+  });
+
+  ok(
+    /Error processing chrome_settings_overrides\.search_provider[^:]*: .* must match/.test(
+      normalized.error
+    ),
+    `Expected error for ${searchProviderKey}:${urlValue} "${normalized.error}"`
+  );
+}
+
+async function checkValidUrl(urlValue) {
+  let normalized = await ExtensionTestUtils.normalizeManifest({
+    chrome_settings_overrides: {
+      search_provider: {
+        name: "MozSearch",
+        keyword: "MozSearch",
+        search_form: urlValue,
+        search_url: urlValue,
+        suggest_url: urlValue,
+      },
+    },
+  });
+  equal(normalized.error, undefined, `Valid search_provider url: ${urlValue}`);
+}
+
+add_task(async function test_extension_not_allow_http() {
+  await checkBadUrl("search_form", "http://example.com/{searchTerms}");
+  await checkBadUrl("search_url", "http://example.com/{searchTerms}");
+  await checkBadUrl("suggest_url", "http://example.com/{searchTerms}");
+});
+
+add_task(async function test_manifest_disallows_http_localhost_prefix() {
+  await checkBadUrl("search_url", "http://localhost.example.com");
+  await checkBadUrl("search_url", "http://localhost.example.com/");
+  await checkBadUrl("search_url", "http://127.0.0.1.example.com/");
+  await checkBadUrl("search_url", "http://localhost:1234@example.com/");
+});
+
+add_task(async function test_manifest_allow_http_for_localhost() {
+  await checkValidUrl("http://localhost");
+  await checkValidUrl("http://localhost/");
+  await checkValidUrl("http://localhost:/");
+  await checkValidUrl("http://localhost:1/");
+  await checkValidUrl("http://localhost:65535/");
+
+  await checkValidUrl("http://127.0.0.1");
+  await checkValidUrl("http://127.0.0.1:");
+  await checkValidUrl("http://127.0.0.1:/");
+  await checkValidUrl("http://127.0.0.1/");
+  await checkValidUrl("http://127.0.0.1:80/");
+
+  await checkValidUrl("http://[::1]");
+  await checkValidUrl("http://[::1]:");
+  await checkValidUrl("http://[::1]:/");
+  await checkValidUrl("http://[::1]/");
+  await checkValidUrl("http://[::1]:80/");
+});
+
+add_task(async function test_extension_allow_http_for_localhost() {
+  let ext1 = ExtensionTestUtils.loadExtension({
+    manifest: {
+      chrome_settings_overrides: {
+        search_provider: {
+          name: "MozSearch",
+          keyword: "MozSearch",
+          search_url: "http://localhost/{searchTerms}",
+          suggest_url: "http://localhost/suggest/{searchTerms}",
+        },
+      },
+    },
+    useAddonManager: "temporary",
+  });
+
+  await ext1.startup();
+  await AddonTestUtils.waitForSearchProviderStartup(ext1);
+
+  let engine = Services.search.getEngineByName("MozSearch");
+  ok(engine, "Engine should exist.");
+
+  await ext1.unload();
 });

@@ -4,26 +4,28 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-include('/media/webrtc/webrtc.mozbuild')
+include('/dom/media/webrtc/third_party_build/webrtc.mozbuild')
 
 DEFINES['ENABLE_SET_CUBEB_BACKEND'] = True
 
 LOCAL_INCLUDES += [
-    '/media/webrtc/signaling/src/common',
-    '/media/webrtc/trunk',
-    '/media/webrtc/trunk/webrtc'
+    '/dom/media/webrtc/common/',
+    '/third_party/libwebrtc',
+    '/third_party/libwebrtc/webrtc',
 ]
 
 UNIFIED_SOURCES += [
-    'AudioGenerator.cpp',
     'MockMediaResource.cpp',
     'TestAudioBuffers.cpp',
     'TestAudioCallbackDriver.cpp',
     'TestAudioCompactor.cpp',
+    'TestAudioDriftCorrection.cpp',
     'TestAudioMixer.cpp',
     'TestAudioPacketizer.cpp',
+    'TestAudioRingBuffer.cpp',
     'TestAudioSegment.cpp',
     'TestAudioTrackEncoder.cpp',
+    'TestAudioTrackGraph.cpp',
     'TestBenchmarkStorage.cpp',
     'TestBitWriter.cpp',
     'TestBlankVideoDataCreator.cpp',
@@ -31,6 +33,7 @@ UNIFIED_SOURCES += [
     'TestDataMutex.cpp',
     'TestDecoderBenchmark.cpp',
     'TestDriftCompensation.cpp',
+    'TestDynamicResampler.cpp',
     'TestGMPUtils.cpp',
     'TestGroupId.cpp',
     'TestIntervalSet.cpp',
@@ -109,6 +112,7 @@ LOCAL_INCLUDES += [
     '/dom/media/mp4',
     '/dom/media/platforms',
     '/dom/media/platforms/agnostic',
+    '/dom/media/webrtc',
     '/security/certverifier',
 ]
 

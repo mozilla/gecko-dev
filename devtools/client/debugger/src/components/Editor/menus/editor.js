@@ -28,6 +28,7 @@ import type {
   ThreadContext,
 } from "../../../types";
 
+// Menu Items
 export const continueToHereItem = (
   cx: ThreadContext,
   location: SourceLocation,
@@ -41,31 +42,28 @@ export const continueToHereItem = (
   label: L10N.getStr("editor.continueToHere.label"),
 });
 
-// menu items
-
 const copyToClipboardItem = (
-  selectedContent: SourceContent,
+  selectionText: string,
   editorActions: EditorItemActions
 ) => ({
   id: "node-menu-copy-to-clipboard",
   label: L10N.getStr("copyToClipboard.label"),
   accesskey: L10N.getStr("copyToClipboard.accesskey"),
-  disabled: false,
-  click: () =>
-    selectedContent.type === "text" &&
-    copyToTheClipboard(selectedContent.value),
+  disabled: selectionText.length === 0,
+  click: () => copyToTheClipboard(selectionText),
 });
 
 const copySourceItem = (
-  selectedSource: Source,
-  selectionText: string,
+  selectedContent: SourceContent,
   editorActions: EditorItemActions
 ) => ({
   id: "node-menu-copy-source",
   label: L10N.getStr("copySource.label"),
   accesskey: L10N.getStr("copySource.accesskey"),
-  disabled: selectionText.length === 0,
-  click: () => copyToTheClipboard(selectionText),
+  disabled: false,
+  click: () =>
+    selectedContent.type === "text" &&
+    copyToTheClipboard(selectedContent.value),
 });
 
 const copySourceUri2Item = (
@@ -117,11 +115,11 @@ const blackBoxMenuItem = (
 ) => ({
   id: "node-menu-blackbox",
   label: selectedSource.isBlackBoxed
-    ? L10N.getStr("blackboxContextItem.unblackbox")
-    : L10N.getStr("blackboxContextItem.blackbox"),
+    ? L10N.getStr("ignoreContextItem.unignore")
+    : L10N.getStr("ignoreContextItem.ignore"),
   accesskey: selectedSource.isBlackBoxed
-    ? L10N.getStr("blackboxContextItem.unblackbox.accesskey")
-    : L10N.getStr("blackboxContextItem.blackbox.accesskey"),
+    ? L10N.getStr("ignoreContextItem.unignore.accesskey")
+    : L10N.getStr("ignoreContextItem.ignore.accesskey"),
   disabled: !shouldBlackbox(selectedSource),
   click: () => editorActions.toggleBlackBox(cx, selectedSource),
 });
@@ -167,6 +165,17 @@ const inlinePreviewItem = (editorActions: EditorItemActions) => ({
   click: () => editorActions.toggleInlinePreview(!features.inlinePreview),
 });
 
+const editorWrappingItem = (
+  editorActions: EditorItemActions,
+  editorWrappingEnabled: boolean
+) => ({
+  id: "node-menu-editor-wrapping",
+  label: editorWrappingEnabled
+    ? L10N.getStr("editorWrapping.hide.label")
+    : L10N.getStr("editorWrapping.show.label"),
+  click: () => editorActions.toggleEditorWrapping(!editorWrappingEnabled),
+});
+
 export function editorMenuItems({
   cx,
   editorActions,
@@ -176,6 +185,7 @@ export function editorMenuItems({
   hasMappedLocation,
   isTextSelected,
   isPaused,
+  editorWrappingEnabled,
 }: {
   cx: ThreadContext,
   editorActions: EditorItemActions,
@@ -185,6 +195,7 @@ export function editorMenuItems({
   hasMappedLocation: boolean,
   isTextSelected: boolean,
   isPaused: boolean,
+  editorWrappingEnabled: boolean,
 }) {
   const items = [];
 
@@ -203,10 +214,10 @@ export function editorMenuItems({
     ),
     continueToHereItem(cx, location, isPaused, editorActions),
     { type: "separator" },
-    ...(content ? [copyToClipboardItem(content, editorActions)] : []),
+    copyToClipboardItem(selectionText, editorActions),
     ...(!selectedSource.isWasm
       ? [
-          copySourceItem(selectedSource, selectionText, editorActions),
+          ...(content ? [copySourceItem(content, editorActions)] : []),
           copySourceUri2Item(selectedSource, editorActions),
         ]
       : []),
@@ -226,7 +237,11 @@ export function editorMenuItems({
     );
   }
 
-  items.push({ type: "separator" }, inlinePreviewItem(editorActions));
+  items.push(
+    { type: "separator" },
+    inlinePreviewItem(editorActions),
+    editorWrappingItem(editorActions, editorWrappingEnabled)
+  );
 
   return items;
 }
@@ -240,6 +255,7 @@ export type EditorItemActions = {
   showSource: typeof actions.showSource,
   toggleBlackBox: typeof actions.toggleBlackBox,
   toggleInlinePreview: typeof actions.toggleInlinePreview,
+  toggleEditorWrapping: typeof actions.toggleEditorWrapping,
 };
 
 export function editorItemActions(dispatch: Function) {
@@ -253,6 +269,7 @@ export function editorItemActions(dispatch: Function) {
       showSource: actions.showSource,
       toggleBlackBox: actions.toggleBlackBox,
       toggleInlinePreview: actions.toggleInlinePreview,
+      toggleEditorWrapping: actions.toggleEditorWrapping,
     },
     dispatch
   );

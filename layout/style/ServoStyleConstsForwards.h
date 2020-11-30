@@ -83,6 +83,7 @@ struct PropertyStyleAnimationValuePair;
 using ComputedKeyframeValues = nsTArray<PropertyStyleAnimationValuePair>;
 
 class ComputedStyle;
+enum LogicalAxis : uint8_t;
 class SeenPtrs;
 class SharedFontList;
 class StyleSheet;
@@ -93,6 +94,7 @@ template <typename T>
 struct StyleForgottenArcSlicePtr;
 
 struct AnimationPropertySegment;
+struct AspectRatio;
 struct ComputedTiming;
 struct URLExtraData;
 

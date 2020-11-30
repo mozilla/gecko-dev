@@ -38,28 +38,9 @@
   ]);
   const TOPIC_MAC_APP_ACTIVATE = "mac_app_activate";
 
-  class MozFindbar extends XULElement {
-    constructor() {
-      super();
-      MozXULElement.insertFTLIfNeeded("toolkit/main-window/findbar.ftl");
-      this.destroy = this.destroy.bind(this);
-
-      // We have to guard against `this.close` being |null| due to an unknown
-      // issue, which is tracked in bug 957999.
-      this.addEventListener(
-        "keypress",
-        event => {
-          if (event.keyCode == event.DOM_VK_ESCAPE) {
-            if (this.close) {
-              this.close();
-            }
-            event.preventDefault();
-          }
-        },
-        true
-      );
-
-      this.content = MozXULElement.parseXULToFragment(`
+  class MozFindbar extends MozXULElement {
+    static get markup() {
+      return `
       <hbox anonid="findbar-container" class="findbar-container" flex="1" align="center">
         <hbox anonid="findbar-textbox-wrapper" align="stretch">
           <html:input anonid="findbar-textbox" class="findbar-textbox findbar-find-fast" />
@@ -86,7 +67,28 @@
       </hbox>
       <toolbarbutton anonid="find-closebutton" class="findbar-closebutton close-icon"
         data-l10n-id="findbar-find-button-close" oncommand="close();" />
-    `);
+      `;
+    }
+
+    constructor() {
+      super();
+      MozXULElement.insertFTLIfNeeded("toolkit/main-window/findbar.ftl");
+      this.destroy = this.destroy.bind(this);
+
+      // We have to guard against `this.close` being |null| due to an unknown
+      // issue, which is tracked in bug 957999.
+      this.addEventListener(
+        "keypress",
+        event => {
+          if (event.keyCode == event.DOM_VK_ESCAPE) {
+            if (this.close) {
+              this.close();
+            }
+            event.preventDefault();
+          }
+        },
+        true
+      );
     }
 
     connectedCallback() {
@@ -95,7 +97,7 @@
       // findbar into a new window).
       this.setAttribute("noanim", "true");
       this.hidden = true;
-      this.appendChild(document.importNode(this.content, true));
+      this.appendChild(this.constructor.fragment);
 
       /**
        * Please keep in sync with toolkit/modules/FindBarContent.jsm
@@ -337,8 +339,6 @@
         setFindbarInActor(this._browser, this);
 
         this._browser.finder.addResultListener(this);
-
-        this._findField.value = this._browser._lastSearchString;
       }
       return val;
     }
@@ -548,6 +548,7 @@
       if (highlight !== this._highlightAll) {
         this._highlightAll = highlight;
         if (!fromPrefObserver) {
+          Services.telemetry.scalarAdd("findbar.highlight_all", 1);
           Services.prefs.setBoolPref("findbar.highlightAll", highlight);
         }
       }
@@ -603,6 +604,7 @@
       this._find();
 
       this._dispatchFindEvent("casesensitivitychange");
+      Services.telemetry.scalarAdd("findbar.match_case", 1);
     }
 
     /**
@@ -652,6 +654,8 @@
       this._find();
 
       this._dispatchFindEvent("diacriticmatchingchange");
+
+      Services.telemetry.scalarAdd("findbar.match_diacritics", 1);
     }
 
     /**
@@ -684,6 +688,8 @@
       if (!fromPrefObserver) {
         // Just set the pref; our observer will change the find bar behavior.
         Services.prefs.setBoolPref("findbar.entireword", entireWord);
+
+        Services.telemetry.scalarAdd("findbar.whole_words", 1);
         return;
       }
 
@@ -723,6 +729,7 @@
 
       this._updateFindUI();
       if (this.hidden) {
+        Services.telemetry.scalarAdd("findbar.shown", 1);
         this.removeAttribute("noanim");
         this.hidden = false;
 
@@ -1181,6 +1188,12 @@
      *                               otherwise.
      */
     onFindAgainCommand(findPrevious) {
+      if (findPrevious) {
+        Services.telemetry.scalarAdd("findbar.find_prev", 1);
+      } else {
+        Services.telemetry.scalarAdd("findbar.find_next", 1);
+      }
+
       let findString =
         this._browser.finder.searchString || this._findField.value;
       if (!findString) {

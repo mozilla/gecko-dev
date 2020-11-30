@@ -13,8 +13,12 @@ SimpleTest.waitForExplicitFinish();
 const ACTIONS = [
   "play",
   "pause",
+  "seekbackward",
+  "seekforward",
   "previoustrack",
   "nexttrack",
+  "skipad",
+  "seekto",
   "stop",
 ];
 
@@ -55,6 +59,11 @@ function generateAction(action) {
 
 function generateActionDetails(action) {
   let details = { action };
+  if (action == "seekbackward" || action == "seekforward") {
+    details.seekOffset = 3.14159;
+  } else if (action == "seekto") {
+    details.seekTime = 1.618;
+  }
   return details;
 }
 

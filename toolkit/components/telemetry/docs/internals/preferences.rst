@@ -168,6 +168,15 @@ Preferences
   Whether :doc:`../data/ecosystem-telemetry` is enabled.
   Default is false. Change requires restart.
 
+``toolkit.telemetry.ecosystemtelemetry.allowForNonProductionFx``
+
+  Whether :doc:`../data/ecosystem-telemetry` will be submitted if Firefox is
+  configured to use non-production FxA servers. Non-production servers includes
+  servers run by Mozilla (eg, the "staging" or "dev" instances) and servers run
+  externally (eg, self-hosted users). The expectation is that this will
+  primarily be used for QA.
+  Default is false. Change requires restart.
+
 ``toolkit.telemetry.overrideUpdateChannel``
 
   Override the ``channel`` value that is reported via Telemetry.
@@ -178,6 +187,10 @@ Preferences
   How long, in milliseconds, we batch accumulations from child processes before
   sending them to the parent process.
   Default is 2000 (milliseconds).
+
+``toolkit.telemetry.pioneerId``
+
+  If a user has opted into the Pioneer program, this will contain their Pioneer ID.
 
 ``toolkit.telemetry.prioping.enabled``
 
@@ -230,14 +243,6 @@ Data-choices notification
 
 GeckoView
 ---------
-
-``toolkit.telemetry.isGeckoViewMode``
-
-   Whether or not Telemetry needs to run in :doc:`GeckoView <../internals/geckoview>` mode. If true, and ``toolkit.telemetry.geckoview.streaming`` is false,  measurements persistence is enabled. Defaults to false on all products except GeckoView.
-
-``toolkit.telemetry.geckoPersistenceTimeout``
-
-   The interval that governs how frequently measurements are saved to disk, in milliseconds. Defaults to 60000 (60 seconds).
 
 ``toolkit.telemetry.geckoview.streaming``
 

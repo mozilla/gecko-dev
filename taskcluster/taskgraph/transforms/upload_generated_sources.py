@@ -28,8 +28,6 @@ def add_task_info(config, jobs):
         dep_th = dep_task.task['extra']['treeherder']
         job.setdefault('attributes', {})
         job['attributes']['build_platform'] = dep_task.attributes.get('build_platform')
-        if dep_task.attributes.get('nightly'):
-            job['attributes']['nightly'] = True
         if dep_task.attributes.get('shippable'):
             job['attributes']['shippable'] = True
         plat = '{}/{}'.format(dep_th['machine']['platform'], dep_task.attributes.get('build_type'))
@@ -38,5 +36,6 @@ def add_task_info(config, jobs):
         if dep_th['symbol'] != "N":
             job['treeherder']['symbol'] = "Ugs{}".format(dep_th['symbol'])
         job['run-on-projects'] = dep_task.attributes.get('run_on_projects')
+        job['optimization'] = dep_task.optimization
 
         yield job

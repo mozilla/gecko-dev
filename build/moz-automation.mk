@@ -47,7 +47,6 @@ endif
 # Helper variables to convert from MOZ_AUTOMATION_* variables to the
 # corresponding the make target
 tier_MOZ_AUTOMATION_BUILD_SYMBOLS = buildsymbols
-tier_MOZ_AUTOMATION_L10N_CHECK = l10n-check
 tier_MOZ_AUTOMATION_PACKAGE = package
 tier_MOZ_AUTOMATION_PACKAGE_TESTS = package-tests
 tier_MOZ_AUTOMATION_PACKAGE_GENERATED_SOURCES = package-generated-sources
@@ -61,20 +60,22 @@ tier_MOZ_AUTOMATION_CHECK = check
 # dependencies between them).
 moz_automation_symbols = \
   MOZ_AUTOMATION_PACKAGE_TESTS \
+  MOZ_AUTOMATION_UPLOAD \
+  $(NULL)
+
+ifneq (,$(COMPILE_ENVIRONMENT)$(MOZ_ARTIFACT_BUILDS))
+moz_automation_symbols += \
   MOZ_AUTOMATION_BUILD_SYMBOLS \
   MOZ_AUTOMATION_UPLOAD_SYMBOLS \
   MOZ_AUTOMATION_PACKAGE \
   MOZ_AUTOMATION_PACKAGE_GENERATED_SOURCES \
-  MOZ_AUTOMATION_L10N_CHECK \
-  MOZ_AUTOMATION_UPLOAD \
   MOZ_AUTOMATION_CHECK \
   $(NULL)
+endif
 MOZ_AUTOMATION_TIERS := $(foreach sym,$(moz_automation_symbols),$(if $(filter 1,$($(sym))),$(tier_$(sym))))
 
 # Dependencies between automation build steps
 automation-start/uploadsymbols: automation/buildsymbols
-
-automation-start/l10n-check: automation/package
 
 automation-start/upload: automation/package
 automation-start/upload: automation/package-tests
@@ -87,9 +88,6 @@ automation-start/check: $(addprefix automation/,$(filter-out check,$(MOZ_AUTOMAT
 automation/build: $(addprefix automation/,$(MOZ_AUTOMATION_TIERS))
 	@echo Automation steps completed.
 
-# Note: We have to force -j1 here, at least until bug 1036563 is fixed.
-AUTOMATION_EXTRA_CMDLINE-l10n-check = -j1
-
 # Run as many tests as possible, even in case of one of them failing.
 AUTOMATION_EXTRA_CMDLINE-check = --keep-going
 
@@ -99,7 +97,7 @@ AUTOMATION_EXTRA_CMDLINE-check = --keep-going
 # However, the target automation/buildsymbols will still be executed in this
 # case because it is a prerequisite of automation/upload.
 define automation_commands
-@+$(PYTHON) $(topsrcdir)/config/run-and-prefix.py $1 $(MAKE) $1 $(AUTOMATION_EXTRA_CMDLINE-$1)
+@+$(PYTHON3) $(topsrcdir)/config/run-and-prefix.py $1 $(MAKE) $1 $(AUTOMATION_EXTRA_CMDLINE-$1)
 $(call BUILDSTATUS,TIER_FINISH $1)
 endef
 

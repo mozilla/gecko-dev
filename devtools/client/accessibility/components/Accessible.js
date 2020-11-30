@@ -41,7 +41,7 @@ const Tree = createFactory(
   require("devtools/client/shared/components/VirtualizedTree")
 );
 // Reps
-const { REPS, MODE } = require("devtools/client/shared/components/reps/reps");
+const { REPS, MODE } = require("devtools/client/shared/components/reps/index");
 const { Rep, ElementNode, Accessible: AccessibleRep, Obj } = REPS;
 
 const {
@@ -118,6 +118,8 @@ class Accessible extends Component {
       parents: PropTypes.object,
       relations: PropTypes.object,
       toolbox: PropTypes.object.isRequired,
+      highlightAccessible: PropTypes.func.isRequired,
+      unhighlightAccessible: PropTypes.func.isRequired,
     };
   }
 
@@ -164,6 +166,16 @@ class Accessible extends Component {
     }
   }
 
+  componentDidUpdate(prevProps) {
+    if (
+      this.props.accessibleFront &&
+      !this.props.accessibleFront.isDestroyed() &&
+      this.props.accessibleFront !== prevProps.accessibleFront
+    ) {
+      window.emit(EVENTS.PROPERTIES_UPDATED);
+    }
+  }
+
   componentWillUnmount() {
     window.off(
       EVENTS.NEW_ACCESSIBLE_FRONT_INSPECTED,
@@ -187,7 +199,7 @@ class Accessible extends Component {
 
   update() {
     const { dispatch, accessibleFront } = this.props;
-    if (!accessibleFront.actorID) {
+    if (accessibleFront.isDestroyed()) {
       return;
     }
 
@@ -226,42 +238,12 @@ class Accessible extends Component {
 
   showAccessibleHighlighter(accessibleFront) {
     this.props.dispatch(unhighlight());
-    if (!accessibleFront) {
-      return;
-    }
-
-    const accessibleWalkerFront = accessibleFront.parent();
-    if (!accessibleWalkerFront) {
-      return;
-    }
-
-    accessibleWalkerFront.highlightAccessible(accessibleFront).catch(error => {
-      // Only report an error where there's still a toolbox. Ignore cases
-      // where toolbox is already destroyed.
-      if (this.props.toolbox) {
-        console.error(error);
-      }
-    });
+    this.props.highlightAccessible(accessibleFront);
   }
 
   hideAccessibleHighlighter(accessibleFront) {
     this.props.dispatch(unhighlight());
-    if (!accessibleFront) {
-      return;
-    }
-
-    const accessibleWalkerFront = accessibleFront.parent();
-    if (!accessibleWalkerFront) {
-      return;
-    }
-
-    accessibleWalkerFront.unhighlight().catch(error => {
-      // Only report an error where there's still a toolbox. Ignore cases where
-      // toolbox is already destroyed.
-      if (this.props.toolbox) {
-        console.error(error);
-      }
-    });
+    this.props.unhighlightAccessible(accessibleFront);
   }
 
   async selectNode(nodeFront, reason = "accessibility") {

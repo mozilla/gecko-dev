@@ -6,7 +6,6 @@
 
 #include <string.h>
 #include "mozilla/Telemetry.h"
-#include "mozilla/Preferences.h"
 #include "sqlite3.h"
 #include "nsThreadUtils.h"
 #include "mozilla/dom/quota/PersistenceType.h"
@@ -15,29 +14,17 @@
 #include "mozilla/net/IOActivityMonitor.h"
 #include "mozilla/IOInterposer.h"
 #include "nsEscape.h"
+#include "mozilla/StaticPrefs_storage.h"
+
+#ifdef XP_WIN
+#  include "mozilla/StaticPrefs_dom.h"
+#endif
 
 // The last VFS version for which this file has been updated.
 #define LAST_KNOWN_VFS_VERSION 3
 
 // The last io_methods version for which this file has been updated.
 #define LAST_KNOWN_IOMETHODS_VERSION 3
-
-/**
- * By default use the unix-excl VFS, for the following reasons:
- * 1. It improves compatibility with NFS shares, whose implementation
- *    is incompatible with SQLite's locking requirements.
- *    Bug 433129 attempted to automatically identify such file-systems,
- *    but a reliable way was not found and the fallback locking is slower than
- *    POSIX locking, so we do not want to do it by default.
- * 2. It allows wal mode to avoid the memory mapped -shm file, reducing the
- *    likelihood of SIGBUS failures when disk space is exhausted.
- * 3. It provides some protection from third party database tampering while a
- *    connection is open.
- * This preference allows to revert to the "unix" VFS, that is not exclusive,
- * thus it can be used by developers to query a database through the Sqlite
- * command line while it's already in use.
- */
-#define PREF_MULTI_PROCESS_ACCESS "storage.multiProcessAccess.enabled"
 
 namespace {
 
@@ -276,7 +263,9 @@ int xWrite(sqlite3_file* pFile, const void* zBuf, int iAmt,
         "update its current size...");
     sqlite_int64 currentSize;
     if (xFileSize(pFile, &currentSize) == SQLITE_OK) {
-      p->quotaObject->MaybeUpdateSize(currentSize, /* aTruncate */ true);
+      DebugOnly<bool> res =
+          p->quotaObject->MaybeUpdateSize(currentSize, /* aTruncate */ true);
+      MOZ_ASSERT(res);
     }
   }
   return rc;
@@ -315,7 +304,9 @@ int xTruncate(sqlite3_file* pFile, sqlite_int64 size) {
           "xTruncate failed on a quota-controlled file, attempting to "
           "update its current size...");
       if (xFileSize(pFile, &size) == SQLITE_OK) {
-        p->quotaObject->MaybeUpdateSize(size, /* aTruncate */ true);
+        DebugOnly<bool> res =
+            p->quotaObject->MaybeUpdateSize(size, /* aTruncate */ true);
+        MOZ_ASSERT(res);
       }
     }
   }
@@ -548,7 +539,7 @@ int xDelete(sqlite3_vfs* vfs, const char* zName, int syncDir) {
   int rc;
   RefPtr<QuotaObject> quotaObject;
 
-  if (StringEndsWith(nsDependentCString(zName), NS_LITERAL_CSTRING("-wal"))) {
+  if (StringEndsWith(nsDependentCString(zName), "-wal"_ns)) {
     quotaObject = GetQuotaObjectFromName(zName);
   }
 
@@ -566,6 +557,43 @@ int xAccess(sqlite3_vfs* vfs, const char* zName, int flags, int* pResOut) {
 }
 
 int xFullPathname(sqlite3_vfs* vfs, const char* zName, int nOut, char* zOut) {
+#if defined(XP_WIN)
+  // SQLite uses GetFullPathnameW which also normailizes file path. If a file
+  // component ends with a dot, it would be removed. However, it's not desired.
+  //
+  // And that would result SQLite uses wrong database and quotaObject.
+  // Note that we are safe to avoid the GetFullPathnameW call for \\?\ prefixed
+  // paths.
+  // And note that this hack will be removed once the issue is fixed directly in
+  // SQLite.
+
+  // zName that starts with "//?/" is the case when a file URI was passed and
+  // zName that starts with "\\?\" is the case when a normal path was passed
+  // (not file URI).
+  if (StaticPrefs::dom_quotaManager_overrideXFullPathname() &&
+      ((zName[0] == '/' && zName[1] == '/' && zName[2] == '?' &&
+        zName[3] == '/') ||
+       (zName[0] == '\\' && zName[1] == '\\' && zName[2] == '?' &&
+        zName[3] == '\\'))) {
+    MOZ_ASSERT(nOut >= vfs->mxPathname);
+    MOZ_ASSERT(nOut > strlen(zName));
+
+    size_t index = 0;
+    while (zName[index] != '\0') {
+      if (zName[index] == '/') {
+        zOut[index] = '\\';
+      } else {
+        zOut[index] = zName[index];
+      }
+
+      index++;
+    }
+    zOut[index] = '\0';
+
+    return SQLITE_OK;
+  }
+#endif
+
   sqlite3_vfs* orig_vfs = static_cast<sqlite3_vfs*>(vfs->pAppData);
   return orig_vfs->xFullPathname(orig_vfs, zName, nOut, zOut);
 }
@@ -636,9 +664,11 @@ static const char* xNextSystemCall(sqlite3_vfs* vfs, const char* zName) {
 namespace mozilla {
 namespace storage {
 
-const char* GetVFSName() { return "telemetry-vfs"; }
+const char* GetVFSName(bool exclusive) {
+  return exclusive ? "telemetry-vfs-excl" : "telemetry-vfs";
+}
 
-sqlite3_vfs* ConstructTelemetryVFS() {
+sqlite3_vfs* ConstructTelemetryVFS(bool exclusive) {
 #if defined(XP_WIN)
 #  define EXPECTED_VFS "win32"
 #  define EXPECTED_VFS_EXCL "win32"
@@ -649,7 +679,7 @@ sqlite3_vfs* ConstructTelemetryVFS() {
 
   bool expected_vfs;
   sqlite3_vfs* vfs;
-  if (Preferences::GetBool(PREF_MULTI_PROCESS_ACCESS, false)) {
+  if (!exclusive) {
     // Use the non-exclusive VFS.
     vfs = sqlite3_vfs_find(nullptr);
     expected_vfs = vfs->zName && !strcmp(vfs->zName, EXPECTED_VFS);
@@ -671,7 +701,7 @@ sqlite3_vfs* ConstructTelemetryVFS() {
   tvfs->szOsFile =
       sizeof(telemetry_file) - sizeof(sqlite3_file) + vfs->szOsFile;
   tvfs->mxPathname = vfs->mxPathname;
-  tvfs->zName = GetVFSName();
+  tvfs->zName = GetVFSName(exclusive);
   tvfs->pAppData = vfs;
   tvfs->xOpen = xOpen;
   tvfs->xDelete = xDelete;

@@ -22,7 +22,7 @@
       testRole(docAcc, role);
     }
 
-    function doTest() {
+    async function doTest() {
       // ARIA role map.
       testRole("aria_alert", ROLE_ALERT);
       testRole("aria_alertdialog", ROLE_DIALOG);
@@ -32,6 +32,7 @@
       testRole("aria_button", ROLE_PUSHBUTTON);
       testRole("aria_caption", ROLE_CAPTION);
       testRole("aria_checkbox", ROLE_CHECKBUTTON);
+      testRole("aria_code", ROLE_CODE);
       testRole("aria_columnheader", ROLE_COLUMNHEADER);
       testRole("aria_combobox", ROLE_EDITCOMBOBOX);
       testRole("aria_comment", ROLE_COMMENT);
@@ -139,8 +140,8 @@
 
       // ////////////////////////////////////////////////////////////////////////
       // test gEmptyRoleMap
-      testRole("buttontable_row", ROLE_NOTHING);
-      testRole("buttontable_cell", ROLE_NOTHING);
+      testRole("buttontable_row", ROLE_TEXT_CONTAINER);
+      testRole("buttontable_cell", ROLE_TEXT_CONTAINER);
 
       // abstract roles
       var abstract_roles = ["composite", "landmark", "structure", "widget",
@@ -189,10 +190,23 @@
       // Test initial ARIA roles on the body element.
       testBodyRole("iframe_aria_application", ROLE_APPLICATION);
       testBodyRole("iframe_aria_dialog", ROLE_DIALOG);
+      // role="alert" is valid on the body of chrome documents.
+      let win = Services.ww.openWindow(
+        null,
+        "chrome://mochitests/content/a11y/accessible/tests/mochitest/role/chrome_body_role_alert.xhtml",
+        "_blank",
+        "chrome",
+        []
+      );
+      await new Promise(resolve => addA11yLoadEvent(resolve, win));
+      testRole(win.document, ROLE_ALERT);
+      win.close();
       // Other roles aren't valid on body elements.
       testBodyRole("iframe_aria_document", ROLE_DOCUMENT);
       testBodyRole("iframe_aria_button", ROLE_DOCUMENT);
-      testBodyRole("iframe_aria_button", ROLE_DOCUMENT);
+      testBodyRole("iframe_aria_main", ROLE_DOCUMENT);
+      // role="alert" is not valid on the body of content documents.
+      testBodyRole("iframe_aria_alert", ROLE_DOCUMENT);
 
       SimpleTest.finish();
     }
@@ -248,6 +262,7 @@
   <span id="aria_button" role="button"></span>
   <span id="aria_caption" role="caption"></span>
   <span id="aria_checkbox" role="checkbox"></span>
+  <span id="aria_code" role="code"></span>
   <span id="aria_columnheader" role="columnheader"></span>
   <span id="aria_combobox" role="combobox"></span>
   <span id="aria_comment" role="comment"></span>
@@ -418,5 +433,7 @@
     src="data:text/html,<body role='button'>"></iframe>
   <iframe id="iframe_aria_main"
     src="data:text/html,<body role='main'>"></iframe>
+  <iframe id="iframe_aria_alert"
+    src="data:text/html,<body role='alert'>"></iframe>
 </body>
 </html>

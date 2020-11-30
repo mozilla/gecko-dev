@@ -16,6 +16,7 @@
 #include "mozilla/dom/ClientIPCTypes.h"
 #include "mozilla/dom/DOMMozPromiseRequestHolder.h"
 #include "mozilla/dom/ipc/StructuredCloneData.h"
+#include "mozilla/dom/JSExecutionManager.h"
 #include "mozilla/dom/MessageEvent.h"
 #include "mozilla/dom/MessageEventBinding.h"
 #include "mozilla/dom/Navigator.h"
@@ -25,6 +26,7 @@
 #include "mozilla/dom/ServiceWorker.h"
 #include "mozilla/dom/ServiceWorkerContainer.h"
 #include "mozilla/dom/ServiceWorkerManager.h"
+#include "mozilla/SchedulerGroup.h"
 #include "mozilla/StorageAccess.h"
 #include "nsIContentSecurityPolicy.h"
 #include "nsContentUtils.h"
@@ -210,10 +212,12 @@ void ClientSource::WorkerExecutionReady(WorkerPrivate* aWorkerPrivate) {
   // execution ready.  We can't reliably determine what our storage policy
   // is before execution ready, unfortunately.
   if (mController.isSome()) {
-    MOZ_DIAGNOSTIC_ASSERT(aWorkerPrivate->StorageAccess() >
-                              StorageAccess::ePrivateBrowsing ||
-                          StringBeginsWith(aWorkerPrivate->ScriptURL(),
-                                           NS_LITERAL_STRING("blob:")));
+    MOZ_DIAGNOSTIC_ASSERT(
+        aWorkerPrivate->StorageAccess() > StorageAccess::ePrivateBrowsing ||
+        (ShouldPartitionStorage(aWorkerPrivate->StorageAccess()) &&
+         StoragePartitioningEnabled(aWorkerPrivate->StorageAccess(),
+                                    aWorkerPrivate->CookieJarSettings())) ||
+        StringBeginsWith(aWorkerPrivate->ScriptURL(), u"blob:"_ns));
   }
 
   // Its safe to store the WorkerPrivate* here because the ClientSource
@@ -230,8 +234,8 @@ void ClientSource::WorkerExecutionReady(WorkerPrivate* aWorkerPrivate) {
 nsresult ClientSource::WindowExecutionReady(nsPIDOMWindowInner* aInnerWindow) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_DIAGNOSTIC_ASSERT(aInnerWindow);
-  MOZ_DIAGNOSTIC_ASSERT(aInnerWindow->IsCurrentInnerWindow());
-  MOZ_DIAGNOSTIC_ASSERT(aInnerWindow->HasActiveDocument());
+  MOZ_ASSERT(aInnerWindow->IsCurrentInnerWindow());
+  MOZ_ASSERT(aInnerWindow->HasActiveDocument());
 
   if (IsShutdown()) {
     return NS_OK;
@@ -260,17 +264,16 @@ nsresult ClientSource::WindowExecutionReady(nsPIDOMWindowInner* aInnerWindow) {
   // continue to inherit the SW as well.  We need to avoid triggering the
   // assertion in this corner case.
   if (mController.isSome()) {
-    MOZ_DIAGNOSTIC_ASSERT(spec.LowerCaseEqualsLiteral("about:blank") ||
-                          StringBeginsWith(spec, NS_LITERAL_CSTRING("blob:")) ||
-                          StorageAllowedForWindow(aInnerWindow) ==
-                              StorageAccess::eAllow);
+    MOZ_ASSERT(spec.LowerCaseEqualsLiteral("about:blank") ||
+               StringBeginsWith(spec, "blob:"_ns) ||
+               StorageAllowedForWindow(aInnerWindow) == StorageAccess::eAllow);
   }
 
   nsPIDOMWindowOuter* outer = aInnerWindow->GetOuterWindow();
   NS_ENSURE_TRUE(outer, NS_ERROR_UNEXPECTED);
 
   FrameType frameType = FrameType::Top_level;
-  if (!outer->IsTopLevelWindow()) {
+  if (!outer->GetBrowsingContext()->IsTop()) {
     frameType = FrameType::Nested;
   } else if (outer->HadOriginalOpener()) {
     frameType = FrameType::Auxiliary;
@@ -312,7 +315,7 @@ nsresult ClientSource::DocShellExecutionReady(nsIDocShell* aDocShell) {
 
   // TODO: dedupe this with WindowExecutionReady
   FrameType frameType = FrameType::Top_level;
-  if (!outer->IsTopLevelWindow()) {
+  if (!outer->GetBrowsingContext()->IsTop()) {
     frameType = FrameType::Nested;
   } else if (outer->HadOriginalOpener()) {
     frameType = FrameType::Auxiliary;
@@ -324,8 +327,7 @@ nsresult ClientSource::DocShellExecutionReady(nsIDocShell* aDocShell) {
   // nsDocShell::Destroy() deletes the ClientSource.
   mOwner = AsVariant(nsCOMPtr<nsIDocShell>(aDocShell));
 
-  ClientSourceExecutionReadyArgs args(NS_LITERAL_CSTRING("about:blank"),
-                                      frameType);
+  ClientSourceExecutionReadyArgs args("about:blank"_ns, frameType);
   ExecutionReady(args);
 
   return NS_OK;
@@ -348,6 +350,9 @@ void ClientSource::WorkerSyncPing(WorkerPrivate* aWorkerPrivate) {
   if (IsShutdown()) {
     return;
   }
+
+  // We need to make sure the mainthread is unblocked.
+  AutoYieldJSThreadExecution yield;
 
   MOZ_DIAGNOSTIC_ASSERT(aWorkerPrivate == mManager->GetWorkerPrivate());
   aWorkerPrivate->AssertIsOnWorkerThread();
@@ -378,15 +383,14 @@ void ClientSource::SetController(
   // service workers from their parent.  This basically means blob: URLs
   // and about:blank windows.
   if (GetInnerWindow()) {
-    MOZ_DIAGNOSTIC_ASSERT(
-        Info().URL().LowerCaseEqualsLiteral("about:blank") ||
-        StringBeginsWith(Info().URL(), NS_LITERAL_CSTRING("blob:")) ||
-        StorageAllowedForWindow(GetInnerWindow()) == StorageAccess::eAllow);
+    MOZ_DIAGNOSTIC_ASSERT(Info().URL().LowerCaseEqualsLiteral("about:blank") ||
+                          StringBeginsWith(Info().URL(), "blob:"_ns) ||
+                          StorageAllowedForWindow(GetInnerWindow()) ==
+                              StorageAccess::eAllow);
   } else if (GetWorkerPrivate()) {
-    MOZ_DIAGNOSTIC_ASSERT(GetWorkerPrivate()->StorageAccess() >
-                              StorageAccess::ePrivateBrowsing ||
-                          StringBeginsWith(GetWorkerPrivate()->ScriptURL(),
-                                           NS_LITERAL_STRING("blob:")));
+    MOZ_DIAGNOSTIC_ASSERT(
+        GetWorkerPrivate()->StorageAccess() > StorageAccess::ePrivateBrowsing ||
+        StringBeginsWith(GetWorkerPrivate()->ScriptURL(), u"blob:"_ns));
   }
 
   if (mController.isSome() && mController.ref() == aServiceWorker) {
@@ -434,14 +438,13 @@ RefPtr<ClientOpPromise> ClientSource::Control(
     // Local URL windows and windows with access to storage can be controlled.
     controlAllowed =
         Info().URL().LowerCaseEqualsLiteral("about:blank") ||
-        StringBeginsWith(Info().URL(), NS_LITERAL_CSTRING("blob:")) ||
+        StringBeginsWith(Info().URL(), "blob:"_ns) ||
         StorageAllowedForWindow(GetInnerWindow()) == StorageAccess::eAllow;
   } else if (GetWorkerPrivate()) {
     // Local URL workers and workers with access to storage cna be controlled.
     controlAllowed =
         GetWorkerPrivate()->StorageAccess() > StorageAccess::ePrivateBrowsing ||
-        StringBeginsWith(GetWorkerPrivate()->ScriptURL(),
-                         NS_LITERAL_STRING("blob:"));
+        StringBeginsWith(GetWorkerPrivate()->ScriptURL(), u"blob:"_ns);
   }
 
   if (NS_WARN_IF(!controlAllowed)) {
@@ -628,7 +631,8 @@ RefPtr<ClientOpPromise> ClientSource::Claim(const ClientClaimArgs& aArgs) {
   if (NS_IsMainThread()) {
     r->Run();
   } else {
-    MOZ_ALWAYS_SUCCEEDS(SystemGroup::Dispatch(TaskCategory::Other, r.forget()));
+    MOZ_ALWAYS_SUCCEEDS(
+        SchedulerGroup::Dispatch(TaskCategory::Other, r.forget()));
   }
 
   RefPtr<ClientOpPromise::Private> outerPromise =

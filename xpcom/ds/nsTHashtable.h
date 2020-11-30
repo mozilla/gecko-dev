@@ -11,6 +11,7 @@
 #define nsTHashtable_h__
 
 #include <new>
+#include <type_traits>
 #include <utility>
 
 #include "PLDHashTable.h"
@@ -19,9 +20,83 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/OperatorNewExtensions.h"
 #include "mozilla/PodOperations.h"
-#include "mozilla/TypeTraits.h"
 #include "mozilla/fallible.h"
 #include "nsPointerHashKeys.h"
+
+namespace detail {
+// STL-style iterators to allow the use in range-based for loops, e.g.
+template <typename T>
+class nsTHashtable_base_iterator
+    : public std::iterator<std::forward_iterator_tag, T, int32_t> {
+ public:
+  using
+      typename std::iterator<std::forward_iterator_tag, T, int32_t>::value_type;
+  using typename std::iterator<std::forward_iterator_tag, T,
+                               int32_t>::difference_type;
+
+  using iterator_type = nsTHashtable_base_iterator;
+  using const_iterator_type = nsTHashtable_base_iterator<const T>;
+
+  using EndIteratorTag = PLDHashTable::Iterator::EndIteratorTag;
+
+  nsTHashtable_base_iterator(nsTHashtable_base_iterator&& aOther) = default;
+
+  nsTHashtable_base_iterator& operator=(nsTHashtable_base_iterator&& aOther) {
+    // User-defined because the move assignment operator is deleted in
+    // PLDHashtable::Iterator.
+    return operator=(static_cast<const nsTHashtable_base_iterator&>(aOther));
+  }
+
+  nsTHashtable_base_iterator(const nsTHashtable_base_iterator& aOther)
+      : mIterator{aOther.mIterator.Clone()} {}
+  nsTHashtable_base_iterator& operator=(
+      const nsTHashtable_base_iterator& aOther) {
+    // Since PLDHashTable::Iterator has no assignment operator, we destroy and
+    // recreate mIterator.
+    mIterator.~Iterator();
+    new (&mIterator) PLDHashTable::Iterator(aOther.mIterator.Clone());
+    return *this;
+  }
+
+  explicit nsTHashtable_base_iterator(PLDHashTable::Iterator aFrom)
+      : mIterator{std::move(aFrom)} {}
+
+  explicit nsTHashtable_base_iterator(const PLDHashTable& aTable)
+      : mIterator{&const_cast<PLDHashTable&>(aTable)} {}
+
+  nsTHashtable_base_iterator(const PLDHashTable& aTable, EndIteratorTag aTag)
+      : mIterator{&const_cast<PLDHashTable&>(aTable), aTag} {}
+
+  bool operator==(const iterator_type& aRhs) const {
+    return mIterator == aRhs.mIterator;
+  }
+  bool operator!=(const iterator_type& aRhs) const { return !(*this == aRhs); }
+
+  value_type* operator->() const {
+    return static_cast<value_type*>(mIterator.Get());
+  }
+  value_type& operator*() const {
+    return *static_cast<value_type*>(mIterator.Get());
+  }
+
+  iterator_type& operator++() {
+    mIterator.Next();
+    return *this;
+  }
+  iterator_type operator++(int) {
+    iterator_type it = *this;
+    ++*this;
+    return it;
+  }
+
+  operator const_iterator_type() const {
+    return const_iterator_type{mIterator.Clone()};
+  }
+
+ private:
+  PLDHashTable::Iterator mIterator;
+};
+}  // namespace detail
 
 /**
  * a base class for templated hashtables.
@@ -78,7 +153,7 @@
 template <class EntryType>
 class MOZ_NEEDS_NO_VTABLE_TYPE nsTHashtable {
   typedef mozilla::fallible_t fallible_t;
-  static_assert(mozilla::IsPointer<typename EntryType::KeyTypePointer>::value,
+  static_assert(std::is_pointer_v<typename EntryType::KeyTypePointer>,
                 "KeyTypePointer should be a pointer");
 
  public:
@@ -158,8 +233,7 @@ class MOZ_NEEDS_NO_VTABLE_TYPE nsTHashtable {
    * @return    pointer to the entry retrieved; nullptr only if memory can't
    *            be allocated
    */
-  MOZ_MUST_USE
-  EntryType* PutEntry(KeyType aKey, const fallible_t&) {
+  [[nodiscard]] EntryType* PutEntry(KeyType aKey, const fallible_t&) {
     return static_cast<EntryType*>(
         mTable.Add(EntryType::KeyToPointer(aKey), mozilla::fallible));
   }
@@ -173,8 +247,8 @@ class MOZ_NEEDS_NO_VTABLE_TYPE nsTHashtable {
    * @return    true if a new entry was created, or false if an existing entry
    *            was found
    */
-  MOZ_MUST_USE
-  bool EnsureInserted(KeyType aKey, EntryType** aEntry = nullptr) {
+  [[nodiscard]] bool EnsureInserted(KeyType aKey,
+                                    EntryType** aEntry = nullptr) {
     auto oldCount = Count();
     EntryType* entry = PutEntry(aKey);
     if (aEntry) {
@@ -252,6 +326,20 @@ class MOZ_NEEDS_NO_VTABLE_TYPE nsTHashtable {
   Iterator ConstIter() const {
     return Iterator(const_cast<nsTHashtable*>(this));
   }
+
+  using const_iterator = ::detail::nsTHashtable_base_iterator<const EntryType>;
+  using iterator = ::detail::nsTHashtable_base_iterator<EntryType>;
+
+  iterator begin() { return iterator{mTable}; }
+  const_iterator begin() const { return const_iterator{mTable}; }
+  const_iterator cbegin() const { return begin(); }
+  iterator end() {
+    return iterator{mTable, typename iterator::EndIteratorTag{}};
+  }
+  const_iterator end() const {
+    return const_iterator{mTable, typename const_iterator::EndIteratorTag{}};
+  }
+  const_iterator cend() const { return end(); }
 
   /**
    * Remove all entries, return hashtable to "pristine" state. It's
@@ -410,8 +498,8 @@ template <class EntryType>
 void nsTHashtable<EntryType>::s_CopyEntry(PLDHashTable* aTable,
                                           const PLDHashEntryHdr* aFrom,
                                           PLDHashEntryHdr* aTo) {
-  EntryType* fromEntry =
-      const_cast<EntryType*>(static_cast<const EntryType*>(aFrom));
+  auto* fromEntry = const_cast<std::remove_const_t<EntryType>*>(
+      static_cast<const EntryType*>(aFrom));
 
   new (mozilla::KnownNotNull, aTo) EntryType(std::move(*fromEntry));
 
@@ -523,14 +611,12 @@ class nsTHashtable<nsPtrHashKey<T>>
     return reinterpret_cast<EntryType*>(Base::PutEntry(aKey));
   }
 
-  MOZ_MUST_USE
-  EntryType* PutEntry(T* aKey, const mozilla::fallible_t&) {
+  [[nodiscard]] EntryType* PutEntry(T* aKey, const mozilla::fallible_t&) {
     return reinterpret_cast<EntryType*>(
         Base::PutEntry(aKey, mozilla::fallible));
   }
 
-  MOZ_MUST_USE
-  bool EnsureInserted(T* aKey, EntryType** aEntry = nullptr) {
+  [[nodiscard]] bool EnsureInserted(T* aKey, EntryType** aEntry = nullptr) {
     return Base::EnsureInserted(
         aKey, reinterpret_cast<::detail::VoidPtrHashKey**>(aEntry));
   }
@@ -569,6 +655,20 @@ class nsTHashtable<nsPtrHashKey<T>>
   Iterator ConstIter() const {
     return Iterator(const_cast<nsTHashtable*>(this));
   }
+
+  using const_iterator = ::detail::nsTHashtable_base_iterator<const EntryType>;
+  using iterator = ::detail::nsTHashtable_base_iterator<EntryType>;
+
+  iterator begin() { return iterator{mTable}; }
+  const_iterator begin() const { return const_iterator{mTable}; }
+  const_iterator cbegin() const { return begin(); }
+  iterator end() {
+    return iterator{mTable, typename iterator::EndIteratorTag{}};
+  }
+  const_iterator end() const {
+    return const_iterator{mTable, typename const_iterator::EndIteratorTag{}};
+  }
+  const_iterator cend() const { return end(); }
 
   void SwapElements(nsTHashtable& aOther) { Base::SwapElements(aOther); }
 };

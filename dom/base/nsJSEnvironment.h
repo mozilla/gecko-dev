@@ -71,6 +71,9 @@ class nsJSContext : public nsIScriptContext {
 
   static void CycleCollectNow(nsICycleCollectorListener* aListener = nullptr);
 
+  // Finish up any in-progress incremental GC.
+  static void PrepareForCycleCollectionSlice(mozilla::TimeStamp aDeadline);
+
   // Run a cycle collector slice, using a heuristic to decide how long to run
   // it.
   static void RunCycleCollectorSlice(mozilla::TimeStamp aDeadline);
@@ -113,7 +116,7 @@ class nsJSContext : public nsIScriptContext {
   // Calling LikelyShortLivingObjectCreated() makes a GC more likely.
   static void LikelyShortLivingObjectCreated();
 
-  static uint32_t CleanupsSinceLastGC();
+  static bool HasHadCleanupSinceLastGC();
 
   nsIScriptGlobalObject* GetCachedGlobalObject() {
     // Verify that we have a global so that this
@@ -165,8 +168,16 @@ class AsyncErrorReporter final : public mozilla::Runnable {
   // See https://bugzilla.mozilla.org/show_bug.cgi?id=1578968
   void SerializeStack(JSContext* aCx, JS::Handle<JSObject*> aStack);
 
+  // Set the exception value associated with this error report.
+  // Should only be called from the main thread.
+  void SetException(JSContext* aCx, JS::Handle<JS::Value> aException);
+
  protected:
   NS_IMETHOD Run() override;
+
+  // This is only used on main thread!
+  JS::PersistentRootedValue mException;
+  bool mHasException = false;
 
   RefPtr<xpc::ErrorReport> mReport;
   // This may be used to marshal a stack from an arbitrary thread/runtime into

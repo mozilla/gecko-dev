@@ -6,17 +6,18 @@
 
 var EXPORTED_SYMBOLS = ["Runtime"];
 
-const { ContentProcessDomain } = ChromeUtils.import(
-  "chrome://remote/content/domains/ContentProcessDomain.jsm"
-);
-const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
-const { ExecutionContext } = ChromeUtils.import(
-  "chrome://remote/content/domains/content/runtime/ExecutionContext.jsm"
-);
 const { addDebuggerToGlobal } = ChromeUtils.import(
   "resource://gre/modules/jsdebugger.jsm",
   {}
 );
+
+const { ContentProcessDomain } = ChromeUtils.import(
+  "chrome://remote/content/domains/ContentProcessDomain.jsm"
+);
+const { ExecutionContext } = ChromeUtils.import(
+  "chrome://remote/content/domains/content/runtime/ExecutionContext.jsm"
+);
+const { executeSoon } = ChromeUtils.import("chrome://remote/content/Sync.jsm");
 
 // Import the `Debugger` constructor in the current scope
 addDebuggerToGlobal(Cu.getGlobalForObject(this));
@@ -56,19 +57,25 @@ class Runtime extends ContentProcessDomain {
     // [id (Number) => ExecutionContext instance]
     this.contexts = new Map();
     // [innerWindowId (Number) => Set of ExecutionContext instances]
-    this.contextsByWindow = new SetMap();
+    this.innerWindowIdToContexts = new SetMap();
 
     this._onContextCreated = this._onContextCreated.bind(this);
     this._onContextDestroyed = this._onContextDestroyed.bind(this);
     // TODO Bug 1602083
-    this.contextObserver.on("context-created", this._onContextCreated);
-    this.contextObserver.on("context-destroyed", this._onContextDestroyed);
+    this.session.contextObserver.on("context-created", this._onContextCreated);
+    this.session.contextObserver.on(
+      "context-destroyed",
+      this._onContextDestroyed
+    );
   }
 
   destructor() {
     this.disable();
-    this.contextObserver.off("context-created", this._onContextCreated);
-    this.contextObserver.off("context-destroyed", this._onContextDestroyed);
+    this.session.contextObserver.off("context-created", this._onContextCreated);
+    this.session.contextObserver.off(
+      "context-destroyed",
+      this._onContextDestroyed
+    );
     super.destructor();
   }
 
@@ -80,9 +87,9 @@ class Runtime extends ContentProcessDomain {
 
       // Spin the event loop in order to send the `executionContextCreated` event right
       // after we replied to `enable` request.
-      Services.tm.dispatchToMainThread(() => {
+      executeSoon(() => {
         this._onContextCreated("context-created", {
-          windowId: this.content.windowUtils.currentInnerWindowID,
+          windowId: this.content.windowGlobalChild.innerWindowId,
           window: this.content,
           isDefault: true,
         });
@@ -96,29 +103,6 @@ class Runtime extends ContentProcessDomain {
     }
   }
 
-  evaluate({ expression, contextId = null } = {}) {
-    let context;
-    if (contextId) {
-      context = this.contexts.get(contextId);
-      if (!context) {
-        throw new Error(
-          `Unable to find execution context with id: ${contextId}`
-        );
-      }
-    } else {
-      context = this._getDefaultContextForWindow();
-    }
-
-    if (typeof expression != "string") {
-      throw new Error(
-        `Expecting 'expression' attribute to be a string. ` +
-          `But was: ${typeof expression}`
-      );
-    }
-
-    return context.evaluate(expression);
-  }
-
   releaseObject({ objectId }) {
     let context = null;
     for (const ctx of this.contexts.values()) {
@@ -128,62 +112,160 @@ class Runtime extends ContentProcessDomain {
       }
     }
     if (!context) {
-      throw new Error(`Unable to get execution context by ID: ${objectId}`);
+      throw new Error(
+        `Unable to get execution context by object ID: ${objectId}`
+      );
     }
     context.releaseObject(objectId);
   }
 
-  callFunctionOn(request) {
+  /**
+   * Calls function with given declaration on the given object.
+   *
+   * Object group of the result is inherited from the target object.
+   *
+   * @param {Object} options
+   * @param {string} options.functionDeclaration
+   *     Declaration of the function to call.
+   * @param {Array.<Object>=} options.arguments
+   *     Call arguments. All call arguments must belong to the same
+   *     JavaScript world as the target object.
+   * @param {boolean=} options.awaitPromise
+   *     Whether execution should `await` for resulting value
+   *     and return once awaited promise is resolved.
+   * @param {number=} options.executionContextId
+   *     Specifies execution context which global object will be used
+   *     to call function on. Either executionContextId or objectId
+   *     should be specified.
+   * @param {string=} options.objectId
+   *     Identifier of the object to call function on.
+   *     Either objectId or executionContextId should be specified.
+   * @param {boolean=} options.returnByValue
+   *     Whether the result is expected to be a JSON object
+   *     which should be sent by value.
+   *
+   * @return {Object.<RemoteObject, ExceptionDetails>}
+   */
+  callFunctionOn(options = {}) {
+    if (typeof options.functionDeclaration != "string") {
+      throw new TypeError("functionDeclaration: string value expected");
+    }
+    if (
+      typeof options.arguments != "undefined" &&
+      !Array.isArray(options.arguments)
+    ) {
+      throw new TypeError("arguments: array value expected");
+    }
+    if (!["undefined", "boolean"].includes(typeof options.awaitPromise)) {
+      throw new TypeError("awaitPromise: boolean value expected");
+    }
+    if (!["undefined", "number"].includes(typeof options.executionContextId)) {
+      throw new TypeError("executionContextId: number value expected");
+    }
+    if (!["undefined", "string"].includes(typeof options.objectId)) {
+      throw new TypeError("objectId: string value expected");
+    }
+    if (!["undefined", "boolean"].includes(typeof options.returnByValue)) {
+      throw new TypeError("returnByValue: boolean value expected");
+    }
+
+    if (
+      typeof options.executionContextId == "undefined" &&
+      typeof options.objectId == "undefined"
+    ) {
+      throw new Error(
+        "Either objectId or executionContextId must be specified"
+      );
+    }
+
     let context = null;
     // When an `objectId` is passed, we want to execute the function of a given object
     // So we first have to find its ExecutionContext
-    if (request.objectId) {
+    if (options.objectId) {
       for (const ctx of this.contexts.values()) {
-        if (ctx.hasRemoteObject(request.objectId)) {
+        if (ctx.hasRemoteObject(options.objectId)) {
           context = ctx;
           break;
         }
       }
       if (!context) {
         throw new Error(
-          `Unable to get the context for object with id: ${request.objectId}`
+          `Unable to get the context for object with id: ${options.objectId}`
         );
       }
     } else {
-      context = this.contexts.get(request.executionContextId);
+      context = this.contexts.get(options.executionContextId);
       if (!context) {
-        throw new Error(
-          `Unable to find execution context with id: ${request.executionContextId}`
-        );
+        throw new Error("Cannot find context with specified id");
       }
     }
-    if (typeof request.functionDeclaration != "string") {
-      throw new Error(
-        "Expect 'functionDeclaration' attribute to be passed and be a string"
-      );
-    }
-    if (request.arguments && !Array.isArray(request.arguments)) {
-      throw new Error("Expect 'arguments' to be an array");
-    }
-    if (request.returnByValue && typeof request.returnByValue != "boolean") {
-      throw new Error("Expect 'returnByValue' to be a boolean");
-    }
-    if (request.awaitPromise && typeof request.awaitPromise != "boolean") {
-      throw new Error("Expect 'awaitPromise' to be a boolean");
-    }
+
     return context.callFunctionOn(
-      request.functionDeclaration,
-      request.arguments,
-      request.returnByValue,
-      request.awaitPromise,
-      request.objectId
+      options.functionDeclaration,
+      options.arguments,
+      options.returnByValue,
+      options.awaitPromise,
+      options.objectId
     );
+  }
+
+  /**
+   * Evaluate expression on global object.
+   *
+   * @param {Object} options
+   * @param {string} options.expression
+   *     Expression to evaluate.
+   * @param {boolean=} options.awaitPromise
+   *     Whether execution should `await` for resulting value
+   *     and return once awaited promise is resolved.
+   * @param {number=} options.contextId
+   *     Specifies in which execution context to perform evaluation.
+   *     If the parameter is omitted the evaluation will be performed
+   *     in the context of the inspected page.
+   * @param {boolean=} options.returnByValue
+   *     Whether the result is expected to be a JSON object
+   *     that should be sent by value. Defaults to false.
+   * @param {boolean=} options.userGesture [unsupported]
+   *     Whether execution should be treated as initiated by user in the UI.
+   *
+   * @return {Object<RemoteObject, exceptionDetails>}
+   *     The evaluation result, and optionally exception details.
+   */
+  evaluate(options = {}) {
+    const {
+      expression,
+      awaitPromise = false,
+      contextId,
+      returnByValue = false,
+    } = options;
+
+    if (typeof expression != "string") {
+      throw new Error("expression: string value expected");
+    }
+    if (!["undefined", "boolean"].includes(typeof options.awaitPromise)) {
+      throw new TypeError("awaitPromise: boolean value expected");
+    }
+    if (typeof returnByValue != "boolean") {
+      throw new Error("returnByValue: boolean value expected");
+    }
+
+    let context;
+    if (typeof contextId != "undefined") {
+      context = this.contexts.get(contextId);
+      if (!context) {
+        throw new Error("Cannot find context with specified id");
+      }
+    } else {
+      context = this._getDefaultContextForWindow();
+    }
+
+    return context.evaluate(expression, awaitPromise, returnByValue);
   }
 
   getProperties({ objectId, ownProperties }) {
     for (const ctx of this.contexts.values()) {
-      const obj = ctx.getRemoteObject(objectId);
-      if (typeof obj != "undefined") {
+      const debuggerObj = ctx.getRemoteObject(objectId);
+      if (debuggerObj) {
         return ctx.getProperties({ objectId, ownProperties });
       }
     }
@@ -205,20 +287,47 @@ class Runtime extends ContentProcessDomain {
 
   _getRemoteObject(objectId) {
     for (const ctx of this.contexts.values()) {
-      const obj = ctx.getRemoteObject(objectId);
-      if (typeof obj != "undefined") {
-        return obj;
+      const debuggerObj = ctx.getRemoteObject(objectId);
+      if (debuggerObj) {
+        return debuggerObj;
       }
     }
     return null;
   }
 
+  _serializeRemoteObject(debuggerObj, executionContextId) {
+    const ctx = this.contexts.get(executionContextId);
+    return ctx._toRemoteObject(debuggerObj);
+  }
+
+  _getRemoteObjectByNodeId(nodeId, executionContextId) {
+    let debuggerObj = null;
+
+    if (typeof executionContextId != "undefined") {
+      const ctx = this.contexts.get(executionContextId);
+      debuggerObj = ctx.getRemoteObjectByNodeId(nodeId);
+    } else {
+      for (const ctx of this.contexts.values()) {
+        const obj = ctx.getRemoteObjectByNodeId(nodeId);
+        if (obj) {
+          debuggerObj = obj;
+          break;
+        }
+      }
+    }
+
+    return debuggerObj;
+  }
+
+  _setRemoteObject(debuggerObj, context) {
+    return context.setRemoteObject(debuggerObj);
+  }
+
   _getDefaultContextForWindow(innerWindowId) {
     if (!innerWindowId) {
-      const { windowUtils } = this.content;
-      innerWindowId = windowUtils.currentInnerWindowID;
+      innerWindowId = this.content.windowGlobalChild.innerWindowId;
     }
-    const curContexts = this.contextsByWindow.get(innerWindowId);
+    const curContexts = this.innerWindowIdToContexts.get(innerWindowId);
     if (curContexts) {
       for (const ctx of curContexts) {
         if (ctx.isDefault) {
@@ -266,9 +375,8 @@ class Runtime extends ContentProcessDomain {
       windowId,
       window,
       contextName = "",
-      isDefault = options.window == this.content,
-      contextType = options.contextType ||
-        (options.window == this.content ? "default" : ""),
+      isDefault = true,
+      contextType = "default",
     } = options;
 
     if (windowId === undefined) {
@@ -276,8 +384,8 @@ class Runtime extends ContentProcessDomain {
     }
 
     // allow only one default context per inner window
-    if (isDefault && this.contextsByWindow.has(windowId)) {
-      for (const ctx of this.contextsByWindow.get(windowId)) {
+    if (isDefault && this.innerWindowIdToContexts.has(windowId)) {
+      for (const ctx of this.innerWindowIdToContexts.get(windowId)) {
         if (ctx.isDefault) {
           return null;
         }
@@ -287,11 +395,11 @@ class Runtime extends ContentProcessDomain {
     const context = new ExecutionContext(
       this._debugger,
       window,
-      this.contextsByWindow.count,
+      this.innerWindowIdToContexts.count,
       isDefault
     );
     this.contexts.set(context.id, context);
-    this.contextsByWindow.set(windowId, context);
+    this.innerWindowIdToContexts.set(windowId, context);
 
     if (this.enabled) {
       this.emit("Runtime.executionContextCreated", {
@@ -325,7 +433,7 @@ class Runtime extends ContentProcessDomain {
    *     The execution context id to destroy.
    * @param {number} windowId
    *     The inner-window id of the execution context to destroy.
-   * @param {string} frameId
+   * @param {number} frameId
    *     The frame id of execution context to destroy.
    * Either `id` or `frameId` or `windowId` is passed.
    */
@@ -340,21 +448,30 @@ class Runtime extends ContentProcessDomain {
     } else if (frameId) {
       contexts = this._getContextsForFrame(frameId);
     } else {
-      contexts = this.contextsByWindow.get(windowId) || [];
+      contexts = this.innerWindowIdToContexts.get(windowId) || [];
     }
 
     for (const ctx of contexts) {
+      const isFrame = !!BrowsingContext.get(ctx.frameId).parent;
+
       ctx.destructor();
       this.contexts.delete(ctx.id);
-      this.contextsByWindow.get(ctx.windowId).delete(ctx);
+      this.innerWindowIdToContexts.get(ctx.windowId).delete(ctx);
+
       if (this.enabled) {
         this.emit("Runtime.executionContextDestroyed", {
           executionContextId: ctx.id,
         });
       }
-      if (this.contextsByWindow.get(ctx.windowId).size == 0) {
-        this.contextsByWindow.delete(ctx.windowId);
-        this.emit("Runtime.executionContextsCleared");
+
+      if (this.innerWindowIdToContexts.get(ctx.windowId).size == 0) {
+        this.innerWindowIdToContexts.delete(ctx.windowId);
+        // Only emit when all the exeuction contexts were cleared for the
+        // current browser / target, which means it should only be emitted
+        // for a top-level browsing context reference.
+        if (this.enabled && !isFrame) {
+          this.emit("Runtime.executionContextsCleared");
+        }
       }
     }
   }

@@ -3,7 +3,7 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+<?xml-stylesheet href="chrome://global/skin/global.css" type="text/css"?>
 <?xml-stylesheet href="chrome://mochikit/content/tests/SimpleTest/test.css" type="text/css"?>
 
 <window xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
@@ -20,7 +20,7 @@
     function waitForErrorPage(frame) {
       return new Promise(resolve => {
         let progressListener = {
-          onLocationChange: function(aWebProgress, aRequest, aLocation, aFlags) {
+          onLocationChange(aWebProgress, aRequest, aLocation, aFlags) {
             if (aFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_ERROR_PAGE) {
               frame.docShell.QueryInterface(Ci.nsIInterfaceRequestor)
                             .getInterface(Ci.nsIWebProgress)
@@ -31,8 +31,8 @@
             }
           },
 
-          QueryInterface: ChromeUtils.generateQI([Ci.nsIWebProgressListener,
-                                                  Ci.nsISupportsWeakReference])
+          QueryInterface: ChromeUtils.generateQI(["nsIWebProgressListener",
+                                                  "nsISupportsWeakReference"])
         };
 
         frame.docShell.QueryInterface(Ci.nsIInterfaceRequestor)
@@ -57,7 +57,7 @@
       frame1.docShell.chromeEventHandler.removeAttribute("crashedPageTitle");
 
       SimpleTest.is(frame1.contentDocument.documentURI,
-                    "about:tabcrashed?e=tabcrashed&u=http%3A//www.example.com/1&c=UTF-8&f=regular&d=pageTitle",
+                    "about:tabcrashed?e=tabcrashed&u=http%3A//www.example.com/1&c=UTF-8&d=pageTitle",
                     "Correct about:tabcrashed displayed for page with title.");
 
       errorPageReady = waitForErrorPage(frame2);
@@ -66,7 +66,7 @@
       await errorPageReady;
 
       SimpleTest.is(frame2.contentDocument.documentURI,
-                    "about:tabcrashed?e=tabcrashed&u=http%3A//www.example.com/2&c=UTF-8&f=regular&d=%20",
+                    "about:tabcrashed?e=tabcrashed&u=http%3A//www.example.com/2&c=UTF-8&d=%20",
                     "Correct about:tabcrashed displayed for page with no title.");
 
       SimpleTest.finish();

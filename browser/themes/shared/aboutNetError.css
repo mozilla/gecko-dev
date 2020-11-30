@@ -59,6 +59,10 @@ button:disabled {
   display: none;
 }
 
+#openInNewWindowContainer {
+  display: none;
+}
+
 #certErrorAndCaptivePortalButtonContainer {
   display: none;
 }
@@ -108,7 +112,8 @@ body:not(.neterror) #advancedButton {
   display: block;
 }
 
-#certificateErrorReporting {
+#certificateErrorReporting,
+#blockingErrorReporting {
   display: none;
   padding-bottom: 10px;
 }
@@ -205,19 +210,19 @@ body:not(.neterror) #advancedButton {
 .netTimeout #errorPageContainer,
 .netReset #errorPageContainer,
 .netOffline #errorPageContainer {
-  background-image: url("chrome://browser/content/illustrations/error-connection-failure.svg");
+  background-image: url("chrome://browser/skin/illustrations/error-connection-failure.svg");
 }
 
 .dnsNotFound #errorPageContainer {
-  background-image: url("chrome://browser/content/illustrations/error-server-not-found.svg");
+  background-image: url("chrome://browser/skin/illustrations/error-server-not-found.svg");
 }
 
 .malformedURI #errorPageContainer {
-  background-image: url("chrome://browser/content/illustrations/error-malformed-url.svg");
+  background-image: url("chrome://browser/skin/illustrations/error-malformed-url.svg");
 }
 
 .clockSkewError #errorPageContainer {
-  background-image: url("chrome://browser/content/illustrations/blue-berror.svg");
+  background-image: url("chrome://browser/skin/illustrations/blue-berror.svg");
   background-size: 18.5em;
 }
 

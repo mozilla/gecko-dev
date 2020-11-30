@@ -16,12 +16,13 @@
 #include "mozilla/LinkedList.h"
 #include "mozilla/Monitor.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/StaticPrefs_toolkit.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPtr.h"
-#include "mozilla/SystemGroup.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/ThreadLocal.h"
 #include "mozilla/Unused.h"
+#include "mozilla/dom/RemoteType.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
@@ -142,7 +143,7 @@ BackgroundHangManager::Observe(nsISupports* aSubject, const char* aTopic,
     nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR,
                                          getter_AddRefs(mPermahangFile));
     if (NS_SUCCEEDED(rv)) {
-      mPermahangFile->AppendNative(NS_LITERAL_CSTRING("last_permahang.bin"));
+      mPermahangFile->AppendNative("last_permahang.bin"_ns);
     } else {
       mPermahangFile = nullptr;
     }
@@ -505,7 +506,7 @@ void BackgroundHangThread::ReportHang(TimeDuration aHangTime,
 
   HangDetails hangDetails(aHangTime,
                           nsDependentCString(XRE_GetProcessTypeString()),
-                          VoidString(), mThreadName, mRunnableName,
+                          NOT_REMOTE_TYPE, mThreadName, mRunnableName,
                           std::move(mHangStack), std::move(mAnnotations));
 
   PersistedToDisk persistedToDisk = aPersistedToDisk;
@@ -538,7 +539,7 @@ void BackgroundHangThread::ReportHang(TimeDuration aHangTime,
     AUTO_PROFILER_STATS(add_marker_with_HangMarkerPayload);
     profiler_add_marker_for_thread(
         mStackHelper.GetThreadId(), JS::ProfilingCategoryPair::OTHER,
-        "BHR-detected hang", MakeUnique<HangMarkerPayload>(startTime, endTime));
+        "BHR-detected hang", HangMarkerPayload(startTime, endTime));
   }
 #endif
 }
@@ -608,18 +609,6 @@ bool BackgroundHangMonitor::ShouldDisableOnBeta(const nsCString& clientID) {
   return strtol(suffix, NULL, 16) % BHR_BETA_MOD;
 }
 
-bool BackgroundHangMonitor::IsDisabled() {
-  static bool sPrefCached = false;
-  static bool sPrefCacheValue = false;
-  if (!sPrefCached) {
-    sPrefCached = true;
-    Preferences::AddBoolVarCache(
-        &sPrefCacheValue, "toolkit.content-background-hang-monitor.disabled");
-  }
-
-  return sPrefCacheValue;
-}
-
 bool BackgroundHangMonitor::DisableOnBeta() {
   nsAutoCString clientID;
   nsresult rv =
@@ -644,7 +633,8 @@ void BackgroundHangMonitor::Startup() {
 #ifdef MOZ_ENABLE_BACKGROUND_HANG_MONITOR
   MOZ_ASSERT(!BackgroundHangManager::sInstance, "Already initialized");
 
-  if (XRE_IsContentProcess() && IsDisabled()) {
+  if (XRE_IsContentProcess() &&
+      StaticPrefs::toolkit_content_background_hang_monitor_disabled()) {
     BackgroundHangManager::sDisabled = true;
     return;
   }
@@ -742,7 +732,7 @@ BackgroundHangMonitor::BackgroundHangMonitor()
 #endif
 }
 
-BackgroundHangMonitor::~BackgroundHangMonitor() {}
+BackgroundHangMonitor::~BackgroundHangMonitor() = default;
 
 void BackgroundHangMonitor::NotifyActivity() {
 #ifdef MOZ_ENABLE_BACKGROUND_HANG_MONITOR

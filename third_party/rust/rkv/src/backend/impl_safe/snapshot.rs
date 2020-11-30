@@ -8,11 +8,13 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-use std::collections::{
-    BTreeMap,
-    BTreeSet,
+use std::{
+    collections::{
+        BTreeMap,
+        BTreeSet,
+    },
+    sync::Arc,
 };
-use std::sync::Arc;
 
 use serde_derive::{
     Deserialize,
@@ -104,8 +106,8 @@ impl Snapshot {
         }
     }
 
-    pub(crate) fn iter(&self) -> impl Iterator<Item = (&[u8], &[u8])> {
-        self.map.iter().flat_map(|(key, values)| values.iter().map(move |value| (key.as_ref(), value.as_ref())))
+    pub(crate) fn iter(&self) -> impl Iterator<Item = (&[u8], impl Iterator<Item = &[u8]>)> {
+        self.map.iter().map(|(key, values)| (key.as_ref(), values.iter().map(|value| value.as_ref())))
     }
 }
 

@@ -20,21 +20,37 @@
     <script type="module" src="chrome://browser/content/lockwise-card.js"></script>
     <script type="module" src="chrome://browser/content/monitor-card.js"></script>
     <script type="module" src="chrome://browser/content/proxy-card.js"></script>
-    <title data-l10n-id="protection-report-page-title"></title>
+    <script type="module" src="chrome://browser/content/vpn-card.js"></script>
+    <title data-l10n-id="protection-report-webpage-title"></title>
   </head>
 
   <body>
+    <div class="new-banner vpn-banner hidden">
+      <div class=banner-wrapper>
+        <img class="icon light" src="chrome://browser/content/logos/vpn-light.svg"/>
+        <img class="icon dark" src="chrome://browser/content/logos/vpn-dark.svg"/>
+        <div class="wrapper">
+          <div>
+            <h3 class="banner-title" data-l10n-id="vpn-banner-header"></h3>
+            <span class="content" data-l10n-id="vpn-banner-content"></span>
+          </div>
+          <a target="_blank" id="vpn-banner-link" data-l10n-id="get-vpn-link"></a>
+          <button class="exit-icon" data-l10n-id="protections-close-button2"></button>
+        </div>
+      </div>
+    </div>
     <div id="report-content">
-      <h1 id="report-title" data-l10n-id="protection-report-content-title"></h1>
+      <h1 id="report-title" data-l10n-id="protection-report-page-content-title"></h1>
+      <p id="report-summary" data-l10n-id="protection-report-page-summary-default"></p>
+      <p id="protection-settings" data-l10n-id="protection-report-settings-link" role="link" tabindex="0"></p>
       <div class="card card-no-hover etp-card">
         <div class="card-header">
           <img class="icon light" src="chrome://browser/content/logos/tracking-protection.svg"/>
           <img class="icon dark" src="chrome://browser/content/logos/tracking-protection-dark-theme.svg"/>
           <div class="wrapper">
             <div>
-              <h2 class="card-title" data-l10n-id="etp-card-title"></h2>
-              <p id="etp-card-content" class="content" data-l10n-id="etp-card-content"></p>
-              <p id="protection-details" role="link" tabindex="0"></p>
+              <h2 class="card-title" data-l10n-id="etp-card-title-always"></h2>
+              <p id="etp-card-content" class="content" data-l10n-id="etp-card-content-description"></p>
             </div>
             <a target="_blank" id="manage-protections" data-l10n-id="protection-report-manage-protections"></a>
           </div>
@@ -116,10 +132,9 @@
         </div>
         <div id="mobile-hanger" class="card-body hidden">
           <div class="body-wrapper">
-            <span class="exit-icon" aria-label="close"></span>
+            <button class="exit-icon" data-l10n-id="protections-close-button2"></button>
             <div id="etp-mobile-content">
-              <img class="mobile-app-icon light" src="chrome://browser/content/logos/etp-mobile-light.svg"/>
-              <img class="mobile-app-icon dark" src="chrome://browser/content/logos/etp-mobile-dark.svg"/>
+              <img class="mobile-app-icon" src="chrome://browser/content/logos/etp-mobile.svg"/>
               <span>
                 <h2 class="card-title" data-l10n-id="mobile-app-title"></h2>
                 <p class="content">
@@ -162,43 +177,67 @@
               <div id="monitor-body-content">
                 <div class="monitor-info-wrapper">
                   <div class="monitor-block email">
-                    <span class="monitor-stat">
-                      <img class="icon-med" src="chrome://browser/skin/mail.svg"/>
-                      <span data-type="stored-emails">
-                        <!-- Display number of stored emails here. -->
+                    <a target="_blank" id="monitor-stored-emails-link" data-l10n-id="monitor-emails-tooltip">
+                      <span class="monitor-stat">
+                        <img class="icon-med" src="chrome://browser/skin/mail.svg"/>
+                        <span data-type="stored-emails">
+                          <!-- Display number of stored emails here. -->
+                        </span>
                       </span>
-                    </span>
-                    <span id="info-monitored-addresses" class="info-text"></span>
+                      <span id="info-monitored-addresses" class="info-text"></span>
+                    </a>
                   </div>
                   <div class="monitor-block breaches">
-                    <span class="monitor-stat">
-                      <img class="icon-med" src="chrome://browser/skin/fxa/avatar.svg"/>
-                      <span data-type="known-breaches">
-                        <!-- Display number of known breaches here. -->
+                    <a target="_blank" id="monitor-known-breaches-link" data-l10n-id="monitor-breaches-tooltip">
+                      <span class="monitor-stat">
+                        <img class="icon-med" src="chrome://browser/skin/fxa/avatar.svg"/>
+                        <span data-type="known-breaches">
+                          <!-- Display number of known breaches here. -->
+                        </span>
                       </span>
-                    </span>
-                    <span id="info-known-breaches" class="info-text"></span>
+                      <span id="info-known-breaches" class="info-text"></span>
+                    </a>
                   </div>
                   <div class="monitor-block passwords">
-                    <span class="monitor-stat">
+                    <a target="_blank" id="monitor-exposed-passwords-link" data-l10n-id="monitor-passwords-tooltip">
+                      <span class="monitor-stat">
                         <img class="icon-med" src="chrome://browser/skin/login.svg"/>
                         <span data-type="exposed-passwords">
                           <!-- Display number of exposed passwords here. -->
                         </span>
-                    </span>
-                    <span id="info-exposed-passwords" class="info-text"></span>
+                      </span>
+                      <span id="info-exposed-passwords" class="info-text"></span>
+                    </a>
                   </div>
                 </div>
-                <div id="full-report-link" class="monitor-view-full-report" data-l10n-id="full-report-link">
-                  <a target="_blank" id="monitor-inline-link" data-l10n-name="monitor-inline-link" href=""></a>
+                <div class="monitor-breaches-wrapper">
+                  <div class="monitor-breaches-header">
+                    <img id="monitor-breaches-icon"/>
+                    <span id="monitor-breaches-title"/>
+                  </div>
+                  <div class="monitor-breaches-description-wrapper">
+                    <span id="monitor-breaches-description" class="content"></span>
+                    <div class="monitor-breaches-link-wrapper">
+                      <a id="monitor-breaches-link" target="_blank"></a>
+                    </div>
+                  </div>
                 </div>
-                <div class="monitor-breached-passwords hidden">
-                  <span data-type="breached-lockwise-passwords" class="number-of-breaches block">
-                    <!-- Display number of exposed stored passwords here. -->
-                  </span>
-                  <span id="password-warning">
-                    <a target="_blank" href="about:logins?entryPoint=aboutprotections" id="lockwise-link" data-l10n-name="lockwise-link"></a>
-                  </span>
+                <div class="monitor-partial-breaches-wrapper">
+                  <div class="monitor-partial-breaches-header">
+                    <img id="monitor-partial-breaches-icon" src="chrome://browser/skin/protections/resolved-breach-gray.svg"/>
+                    <span id="monitor-partial-breaches-title"></span>
+                    <span id="monitor-partial-breaches-percentage"></span>
+                  </div>
+                  <progress class="progress-bar" max="100"></progress>
+                  <div class="monitor-partial-breaches-motivation-text">
+                    <span id="monitor-partial-breaches-motivation-title"></span>
+                    <div class="monitor-partial-breaches-motivation-wrapper">
+                      <span id="monitor-partial-breaches-motivation-desc" class="content" data-l10n-id="monitor-partial-breaches-motivation-description"></span>
+                      <div class="monitor-partial-breaches-link-wrapper">
+                        <a id="monitor-partial-breaches-link" target="_blank" data-l10n-id="monitor-resolve-breaches-link"></a>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -214,18 +253,27 @@
                 <!-- Insert Lockwise card title here. -->
               </h2>
               <p id="lockwise-header-content" class="content">
-                <!-- Insert Lockwise header content here. -->
+                <span>
+                  <!-- Insert Lockwise header content here. -->
+                </span>
+                <a target="_blank" id="lockwise-how-it-works" data-l10n-id="lockwise-how-it-works-link" href=""></a>
               </p>
             </div>
-            <button id="open-about-logins-button" class="primary" data-l10n-id="protection-report-view-logins-button"></button>
+            <button id="save-passwords-button" class="primary" data-l10n-id="protection-report-save-passwords-button"></button>
+            <div class="lockwise-scanned-wrapper">
+                <img id="lockwise-scanned-icon" />
+                <span id="lockwise-scanned-text" class="content">
+                  <!-- Display message for stored logins here. -->
+                </span>
+              </div>
+            <button id="manage-passwords-button" class="primary" data-l10n-id="protection-report-manage-passwords-button"></button>
           </div>
         </div>
         <div class="card-body hidden">
           <div id="lockwise-body-content" class="body-wrapper">
             <div class="no-logins hidden">
-              <span class="exit-icon" aria-label="close"></span>
-              <img class="mobile-app-icon light" src="chrome://browser/content/logos/lockwise-light.svg"/>
-              <img class="mobile-app-icon dark" src="chrome://browser/content/logos/lockwise-dark.svg"/>
+              <button class="exit-icon" data-l10n-id="protections-close-button2"></button>
+              <img class="mobile-app-icon" src="chrome://browser/content/logos/lockwise-mobile.svg"/>
               <span>
                 <h2 class="card-title" data-l10n-id="lockwise-mobile-app-title"></h2>
                 <p class="content">
@@ -237,42 +285,41 @@
                 </p>
               </span>
             </div>
-            <div class="has-logins hidden">
-              <span class="number-of-logins block">
-                <!-- Display number of stored logins here. -->
-              </span>
-              <span class="passwords-stored-text">
-                <img class="icon-small" src= "chrome://browser/skin/login.svg"/>
-                <span id="lockwise-passwords-stored">
-                  <!-- Display message for stored logins here. -->
-                  <a target="_blank" id="lockwise-how-it-works" data-l10n-name="lockwise-how-it-works" href=""></a>
-                </span>
-              </span>
-              <span class="number-of-synced-devices block">
-                <!-- Display number of synced devices here. -->
-              </span>
-              <span class="synced-devices-text">
-                <img class="icon-small" src="chrome://browser/skin/sync.svg"/>
-                <span>
-                  <!-- Display message for status of synced devices here. -->
-                </span>
-                <a id="turn-on-sync" tabindex="0" class="hidden" href="" data-l10n-id="turn-on-sync"></a>
-                <a id="manage-devices" target="_blank" class="hidden" href="" data-l10n-id="manage-connected-devices"></a>
-              </span>
-            </div>
           </div>
         </div>
       </section>
       <!-- Markup for Proxy card -->
       <section class="card card-no-hover proxy-card hidden">
         <div class="card-header">
-          <img class="icon" src="chrome://browser/content/logos/proxy.svg" />
+          <img class="icon light" src="chrome://browser/content/logos/proxy-light.svg"/>
+          <img class="icon dark" src="chrome://browser/content/logos/proxy-dark.svg"/>
           <div class="wrapper">
             <div>
               <h3 class="card-title" data-l10n-id="proxy-title"></h3>
               <p class="content" data-l10n-id="proxy-header-content"></p>
             </div>
             <a target="_blank" id="get-proxy-extension-link" data-l10n-id="get-proxy-extension-link"></a>
+          </div>
+         </div>
+       </section>
+
+       <section class="card card-no-hover vpn-card hidden">
+        <div class="card-header">
+          <img class="icon light" src="chrome://browser/content/logos/vpn-light.svg"/>
+          <img class="icon dark" src="chrome://browser/content/logos/vpn-dark.svg"/>
+          <div class="wrapper">
+            <div>
+              <div class="title-wrapper">
+                <img id="check-icon" src="chrome://browser/skin/protections/resolved-breach.svg">
+                <h3 class="card-title" data-l10n-id="vpn-title"></h3>
+              </div>
+              <p class="content" data-l10n-id="vpn-header-content"></p>
+              <p class="content subscribed" data-l10n-id="vpn-header-content-subscribed">
+                <a target="_blank" id="vpn-google-playstore-link" data-l10n-name="vpn-google-playstore-link"></a>
+                <a target="_blank" id="vpn-app-store-link" data-l10n-name="vpn-app-store-link"></a>
+              </p>
+            </div>
+            <a target="_blank" id="get-vpn-link" data-l10n-id="get-vpn-link"></a>
           </div>
          </div>
        </section>

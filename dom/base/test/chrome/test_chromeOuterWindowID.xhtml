@@ -28,7 +28,7 @@ windows.
   const TEST_PAGE_2 = "http://example.com/browser";
 
   function getOuterWindowID(win) {
-    return win.windowUtils.outerWindowID;
+    return win.docShell.outerWindowID;
   }
 
   /**
@@ -41,13 +41,17 @@ windows.
        "Both browsers should belong to the same document.");
     let winID = getOuterWindowID(browser1.ownerGlobal);
 
-    let browser1ID = await ContentTask.spawn(browser1, null, () => {
-      return chromeOuterWindowID;
-    });
+    let getChildRootOuterId = browser => { 
+      try {
+        return docShell.browserChild?.chromeOuterWindowID;
+      } catch(ex) { }
 
-    let browser2ID = await ContentTask.spawn(browser2, null, () => {
-      return chromeOuterWindowID;
-    });
+      // Not a remote tab
+      return content.top.windowRoot.ownerGlobal.docShell.outerWindowID;
+    };
+
+    let browser1ID = await SpecialPowers.spawn(browser1, [], getChildRootOuterId);
+    let browser2ID = await SpecialPowers.spawn(browser2, [], getChildRootOuterId);
 
     is(browser1ID, winID,
        "Browser 1 frame script environment should have the correct chromeOuterWindowID");
@@ -72,7 +76,7 @@ windows.
    *        nonRemote<num>: a reference to the non-remote browser in the window
    */
   async function prepareWindow(num, page) {
-    let win = docShell.rootTreeItem.domWindow.open(BROWSER_DOC, "bug1474662-" + num, "chrome,width=200,height=200");
+    let win = window.browsingContext.topChromeWindow.open(BROWSER_DOC, "bug1474662-" + num, "chrome,width=200,height=200");
     await BrowserTestUtils.waitForEvent(win, "load");
     let remote = win.document.getElementById("remote");
     let nonRemote = win.document.getElementById("non-remote");

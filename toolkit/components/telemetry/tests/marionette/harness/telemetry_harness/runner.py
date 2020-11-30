@@ -25,13 +25,14 @@ class TelemetryTestRunner(BaseMarionetteTestRunner):
         # Set Firefox Client Telemetry specific preferences
         prefs.update(
             {
-                # Fake the geoip lookup to always return Germany to:
+                # Clear the region detection url to
                 #   * avoid net access in tests
-                #   * stabilize browser.search.region to avoid an extra subsession (bug 1545207)
-                "browser.search.geoip.url": "data:application/json,{\"country_code\": \"DE\"}",
+                #   * stabilize browser.search.region to avoid extra subsessions (bug 1579840#c40)
+                "browser.region.network.url": "",
                 # Disable smart sizing because it changes prefs at startup. (bug 1547750)
                 "browser.cache.disk.smart_size.enabled": False,
                 "toolkit.telemetry.server": "{}/pings".format(SERVER_URL),
+                "telemetry.fog.test.localhost_port": -1,
                 "toolkit.telemetry.initDelay": 1,
                 "toolkit.telemetry.minSubsessionLength": 0,
                 "datareporting.healthreport.uploadEnabled": True,
@@ -41,6 +42,9 @@ class TelemetryTestRunner(BaseMarionetteTestRunner):
                 "toolkit.telemetry.log.dump": True,
                 "toolkit.telemetry.send.overrideOfficialCheck": True,
                 "toolkit.telemetry.testing.disableFuzzingDelay": True,
+                # Disable Normandy to avoid extra subsessions due to Experiment
+                # activation in tests (bug 1641571)
+                "app.normandy.enabled": False,
             }
         )
 

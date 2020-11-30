@@ -13,15 +13,15 @@ DIRS += [
 
 DevToolsModules(
     'accessibility.js',
-    'actor-registry.js',
     'animation.js',
     'array-buffer.js',
     'changes.js',
+    'compatibility.js',
     'content-viewer.js',
     'css-properties.js',
     'device.js',
-    'emulation.js',
     'environment.js',
+    'eventsource.js',
     'frame.js',
     'framerate.js',
     'heap-snapshot-file.js',
@@ -54,6 +54,7 @@ DevToolsModules(
     'thread.js',
     'timeline.js',
     'walker.js',
+    'watcher.js',
     'webconsole.js',
     'websocket.js',
 )

@@ -19,13 +19,13 @@
   <link rel="stylesheet" href="chrome://devtools/skin/boxmodel.css"/>
   <link rel="stylesheet" href="chrome://devtools/skin/layout.css"/>
   <link rel="stylesheet" href="chrome://devtools/skin/animation.css"/>
-  <link rel="stylesheet" href="resource://devtools/client/shared/components/tabs/Tabs.css"/>
-  <link rel="stylesheet" href="resource://devtools/client/shared/components/SidebarToggle.css"/>
-  <link rel="stylesheet" href="resource://devtools/client/inspector/components/InspectorTabPanel.css"/>
-  <link rel="stylesheet" href="resource://devtools/client/shared/components/splitter/SplitBox.css"/>
-  <link rel="stylesheet" href="resource://devtools/client/shared/components/Accordion.css"/>
-  <link rel="stylesheet" href="resource://devtools/client/shared/components/reps/reps.css"/>
-  <link rel="stylesheet" href="resource://devtools/client/shared/components/tree/TreeView.css"/>
+  <link rel="stylesheet" href="chrome://devtools/content/shared/components/tabs/Tabs.css"/>
+  <link rel="stylesheet" href="chrome://devtools/content/shared/components/SidebarToggle.css"/>
+  <link rel="stylesheet" href="chrome://devtools/content/inspector/components/InspectorTabPanel.css"/>
+  <link rel="stylesheet" href="chrome://devtools/content/shared/components/splitter/SplitBox.css"/>
+  <link rel="stylesheet" href="chrome://devtools/content/shared/components/Accordion.css"/>
+  <link rel="stylesheet" href="chrome://devtools/content/shared/components/reps/reps.css"/>
+  <link rel="stylesheet" href="chrome://devtools/content/shared/components/tree/TreeView.css"/>
 
   <script src="chrome://devtools/content/shared/theme-switching.js"></script>
   <script>
@@ -112,7 +112,7 @@
           <div id="ruleview-class-panel" class="theme-toolbar ruleview-reveal-panel" hidden="true"></div>
         </div>
 
-        <div id="ruleview-container" class="ruleview">
+        <div id="ruleview-container" class="ruleview" role="document">
           <div id="ruleview-container-focusable" tabindex="-1">
           </div>
         </div>
@@ -135,7 +135,7 @@
                  data-localization="content=inspector.browserStyles.label"></label>
         </div>
 
-        <div id="computed-container">
+        <div id="computed-container" role="document">
           <div id="computed-container-focusable" tabindex="-1">
             <div id="computed-property-container" class="devtools-monospace" tabindex="0" dir="ltr"></div>
             <div id="computed-no-results" class="devtools-sidepanel-no-result" hidden="" data-localization="content=inspector.noProperties"></div>

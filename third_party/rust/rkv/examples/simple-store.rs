@@ -11,14 +11,14 @@ use std::fs;
 
 use tempfile::Builder;
 
-use rkv::backend::{
-    BackendStat,
-    Lmdb,
-    LmdbDatabase,
-    LmdbEnvironment,
-    LmdbRwTransaction,
-};
 use rkv::{
+    backend::{
+        BackendStat,
+        Lmdb,
+        LmdbDatabase,
+        LmdbEnvironment,
+        LmdbRwTransaction,
+    },
     Manager,
     Rkv,
     StoreOptions,
@@ -26,16 +26,16 @@ use rkv::{
 };
 
 type MultiStore = rkv::MultiStore<LmdbDatabase>;
-type Writer<'env> = rkv::Writer<LmdbRwTransaction<'env>>;
+type Writer<'w> = rkv::Writer<LmdbRwTransaction<'w>>;
 
-fn getput<'env, 's>(store: MultiStore, writer: &'env mut Writer, ids: &'s mut Vec<String>) {
+fn getput<'w, 's>(store: MultiStore, writer: &'w mut Writer, ids: &'s mut Vec<String>) {
     let keys = vec!["str1", "str2", "str3"];
     // we convert the writer into a cursor so that we can safely read
     for k in keys.iter() {
         // this is a multi-valued database, so get returns an iterator
         let mut iter = store.get(writer, k).unwrap();
         while let Some(Ok((_key, val))) = iter.next() {
-            if let Value::Str(s) = val.unwrap() {
+            if let Value::Str(s) = val {
                 ids.push(s.to_owned());
             } else {
                 panic!("didn't get a string back!");

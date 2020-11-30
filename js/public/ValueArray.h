@@ -11,7 +11,6 @@
 
 #include "mozilla/Assertions.h"  // MOZ_ASSERT
 #include "mozilla/Attributes.h"  // MOZ_IMPLICIT, MOZ_RAII
-#include "mozilla/GuardObjects.h"  // MOZ_GUARD_OBJECT_NOTIFIER_{INIT,PARAM}, MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 
 #include <stdint.h>  // size_t
 
@@ -20,37 +19,30 @@
 #include "js/RootingAPI.h"  // JS::AutoGCRooter, JS::{,Mutable}Handle
 #include "js/Value.h"       // JS::Value
 
+namespace js {
+JS_PUBLIC_API void TraceValueArray(JSTracer* trc, size_t length,
+                                   JS::Value* elements);
+}  // namespace js
+
 namespace JS {
 
-/** AutoValueArray roots an internal fixed-size array of Values. */
+/* A fixed-size array of values, for use inside Rooted<>. */
 template <size_t N>
-class MOZ_RAII AutoValueArray : public AutoGCRooter {
-  const size_t length_;
-  Value elements_[N];
-
- public:
-  explicit AutoValueArray(JSContext* cx MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, AutoGCRooter::Tag::ValueArray), length_(N) {
-    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-  }
-
-  unsigned length() const { return length_; }
-  const Value* begin() const { return elements_; }
-  Value* begin() { return elements_; }
-
-  Handle<Value> operator[](unsigned i) const {
-    MOZ_ASSERT(i < N);
-    return Handle<Value>::fromMarkedLocation(&elements_[i]);
-  }
-  MutableHandle<Value> operator[](unsigned i) {
-    MOZ_ASSERT(i < N);
-    return MutableHandleValue::fromMarkedLocation(&elements_[i]);
-  }
-
-  MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+struct ValueArray {
+  Value elements[N];
+  void trace(JSTracer* trc) { js::TraceValueArray(trc, N, elements); }
 };
 
-/** A handle to an array of rooted values. */
+/** RootedValueArray roots an internal fixed-size array of Values. */
+template <size_t N>
+using RootedValueArray = Rooted<ValueArray<N>>;
+
+/**
+ * A generic handle to an array of rooted values.
+ *
+ * The rooted array refernced can take several forms, therfore this is not the
+ * same as Handle<js::ValueArray>.
+ */
 class HandleValueArray {
   const size_t length_;
   const Value* const elements_;
@@ -66,7 +58,7 @@ class HandleValueArray {
       : length_(values.length()), elements_(values.begin()) {}
 
   template <size_t N>
-  MOZ_IMPLICIT HandleValueArray(const AutoValueArray<N>& values)
+  MOZ_IMPLICIT HandleValueArray(const RootedValueArray<N>& values)
       : length_(N), elements_(values.begin()) {}
 
   /** CallArgs must already be rooted somewhere up the stack. */
@@ -97,5 +89,42 @@ class HandleValueArray {
 };
 
 }  // namespace JS
+
+namespace js {
+
+template <size_t N, typename Container>
+class WrappedPtrOperations<JS::ValueArray<N>, Container> {
+  const JS::ValueArray<N>& array() const {
+    return static_cast<const Container*>(this)->get();
+  }
+
+ public:
+  size_t length() const { return N; }
+  const JS::Value* begin() const { return array().elements; }
+
+  JS::HandleValue operator[](size_t i) const {
+    MOZ_ASSERT(i < N);
+    return JS::HandleValue::fromMarkedLocation(&array().elements[i]);
+  }
+};
+
+template <size_t N, typename Container>
+class MutableWrappedPtrOperations<JS::ValueArray<N>, Container>
+    : public WrappedPtrOperations<JS::ValueArray<N>, Container> {
+  using Base = WrappedPtrOperations<JS::ValueArray<N>, Container>;
+  JS::ValueArray<N>& array() { return static_cast<Container*>(this)->get(); }
+
+ public:
+  using Base::begin;
+  JS::Value* begin() { return array().elements; }
+
+  using Base::operator[];
+  JS::MutableHandleValue operator[](size_t i) {
+    MOZ_ASSERT(i < N);
+    return JS::MutableHandleValue::fromMarkedLocation(&array().elements[i]);
+  }
+};
+
+}  // namespace js
 
 #endif  // js_ValueArray_h

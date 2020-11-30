@@ -36,17 +36,13 @@ class NeckoChild : public PNeckoChild {
       PHttpChannelChild* channel);
   bool DeallocPAltDataOutputStreamChild(PAltDataOutputStreamChild* aActor);
 
-  already_AddRefed<PDocumentChannelChild> AllocPDocumentChannelChild(
-      const PBrowserOrId& aBrowser, const SerializedLoadContext& aSerialized,
-      const DocumentChannelCreationArgs& args);
-
   PCookieServiceChild* AllocPCookieServiceChild();
   bool DeallocPCookieServiceChild(PCookieServiceChild*);
   PFTPChannelChild* AllocPFTPChannelChild(
-      const PBrowserOrId& aBrowser, const SerializedLoadContext& aSerialized,
+      PBrowserChild* aBrowser, const SerializedLoadContext& aSerialized,
       const FTPChannelCreationArgs& aOpenArgs);
   bool DeallocPFTPChannelChild(PFTPChannelChild*);
-  PWebSocketChild* AllocPWebSocketChild(const PBrowserOrId&,
+  PWebSocketChild* AllocPWebSocketChild(PBrowserChild*,
                                         const SerializedLoadContext&,
                                         const uint32_t&);
   bool DeallocPWebSocketChild(PWebSocketChild*);
@@ -62,9 +58,6 @@ class NeckoChild : public PNeckoChild {
   bool DeallocPUDPSocketChild(PUDPSocketChild*);
   PSimpleChannelChild* AllocPSimpleChannelChild(const uint32_t& channelId);
   bool DeallocPSimpleChannelChild(PSimpleChannelChild* child);
-  PChannelDiverterChild* AllocPChannelDiverterChild(
-      const ChannelDiverterArgs& channel);
-  bool DeallocPChannelDiverterChild(PChannelDiverterChild* actor);
   PTransportProviderChild* AllocPTransportProviderChild();
   bool DeallocPTransportProviderChild(PTransportProviderChild* aActor);
   mozilla::ipc::IPCResult RecvAsyncAuthPromptForNestedFrame(
@@ -84,9 +77,7 @@ class NeckoChild : public PNeckoChild {
   mozilla::ipc::IPCResult RecvNetworkChangeNotification(nsCString const& type);
 
   PClassifierDummyChannelChild* AllocPClassifierDummyChannelChild(
-      nsIURI* aURI, nsIURI* aTopWindowURI,
-      nsIPrincipal* aContentBlockingAllowListPrincipal,
-      const nsresult& aTopWindowURIResult,
+      nsIURI* aURI, nsIURI* aTopWindowURI, const nsresult& aTopWindowURIResult,
       const Maybe<LoadInfoArgs>& aLoadInfo);
 
   bool DeallocPClassifierDummyChannelChild(

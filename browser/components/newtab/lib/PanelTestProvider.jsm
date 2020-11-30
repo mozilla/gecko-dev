@@ -73,7 +73,7 @@ const MESSAGES = () => [
       title: { string_id: "cfr-whatsnew-searchbar-title" },
       icon_url: "chrome://browser/skin/search-glass.svg",
       icon_alt: { string_id: "cfr-whatsnew-searchbar-icon-alt-text" },
-      body: { string_id: "cfr-whatsnew-searchbar-body-enginename" },
+      body: { string_id: "cfr-whatsnew-searchbar-body-topsites" },
       cta_url:
         "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/address-bar-search",
       cta_type: "OPEN_URL",
@@ -83,23 +83,42 @@ const MESSAGES = () => [
     trigger: { id: "whatsNewPanelOpened" },
   },
   {
-    id: "WHATS_NEW_PIP_72",
+    id: "WHATS_NEW_PIP_76",
     template: "whatsnew_panel_message",
-    order: 4,
+    order: 3,
     content: {
-      bucket_id: "WHATS_NEW_72",
-      published_date: 1574776601000,
-      title: { string_id: "cfr-whatsnew-pip-header" },
+      bucket_id: "WHATS_NEW_76",
+      published_date: 1586859903200,
+      title: { string_id: "cfr-whatsnew-pip-fullscreen-header" },
       icon_url:
-        "resource://activity-stream/data/content/assets/remote/pip-message-icon.svg",
-      icon_alt: "",
-      body: { string_id: "cfr-whatsnew-pip-body" },
+        "chrome://activity-stream/content/data/content/assets/remote/pip-message-icon.svg",
+      icon_alt: { string_id: "cfr-whatsnew-pip-fullscreen-icon-alt" },
+      body: { string_id: "cfr-whatsnew-pip-fullscreen-body" },
       cta_url:
-        "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/whats-new-notifications",
+        "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/about-p2p",
       cta_type: "OPEN_URL",
       link_text: { string_id: "cfr-whatsnew-pip-cta" },
     },
-    targeting: `firefoxVersion >= 72`,
+    targeting: `firefoxVersion >= 76`,
+    trigger: { id: "whatsNewPanelOpened" },
+  },
+  {
+    id: "WHATS_NEW_VULNERABLE_PASSWORDS",
+    template: "whatsnew_panel_message",
+    order: 2,
+    content: {
+      bucket_id: "WHATS_NEW_76",
+      published_date: 1586859903200,
+      title: { string_id: "cfr-whatsnew-passwords-header" },
+      icon_url: "chrome://browser/content/logos/lockwise.svg",
+      icon_alt: { string_id: "cfr-whatsnew-passwords-icon-alt" },
+      body: { string_id: "cfr-whatsnew-passwords-body" },
+      cta_url:
+        "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/lockwise-alerts",
+      cta_type: "OPEN_URL",
+      link_text: { string_id: "cfr-whatsnew-pip-cta" },
+    },
+    targeting: `firefoxVersion >= 76`,
     trigger: { id: "whatsNewPanelOpened" },
   },
   {
@@ -131,12 +150,12 @@ const MESSAGES = () => [
       title: { string_id: "cfr-whatsnew-fingerprinter-counter-header" },
       subtitle: { string_id: "cfr-whatsnew-tracking-blocked-subtitle" },
       icon_url:
-        "resource://activity-stream/data/content/assets/protection-report-icon.png",
+        "chrome://activity-stream/content/data/content/assets/protection-report-icon.png",
       icon_alt: "",
       body: { string_id: "cfr-whatsnew-fingerprinter-counter-body" },
       link_text: { string_id: "cfr-whatsnew-tracking-blocked-link-text" },
-      cta_url: "protections",
-      cta_type: "OPEN_ABOUT_PAGE",
+      cta_url: "",
+      cta_type: "OPEN_PROTECTION_REPORT",
     },
     targeting: `firefoxVersion >= 72`,
     trigger: { id: "whatsNewPanelOpened" },
@@ -150,12 +169,12 @@ const MESSAGES = () => [
       published_date: 1574776601000,
       title: { string_id: "cfr-whatsnew-fingerprinter-counter-header-alt" },
       icon_url:
-        "resource://activity-stream/data/content/assets/protection-report-icon.png",
+        "chrome://activity-stream/content/data/content/assets/protection-report-icon.png",
       icon_alt: "",
       body: { string_id: "cfr-whatsnew-fingerprinter-counter-body-alt" },
       link_text: { string_id: "cfr-whatsnew-tracking-blocked-link-text" },
-      cta_url: "protections",
-      cta_type: "OPEN_ABOUT_PAGE",
+      cta_url: "",
+      cta_type: "OPEN_PROTECTION_REPORT",
     },
     targeting: `firefoxVersion >= 72`,
     trigger: { id: "whatsNewPanelOpened" },
@@ -169,7 +188,7 @@ const MESSAGES = () => [
       published_date: 1560969794394,
       title: "Protection Is Our Focus",
       icon_url:
-        "resource://activity-stream/data/content/assets/whatsnew-send-icon.png",
+        "chrome://activity-stream/content/data/content/assets/whatsnew-send-icon.png",
       icon_alt: "Firefox Send Logo",
       body:
         "The New Enhanced Tracking Protection, gives you the best level of protection and performance. Discover how this version is the safest version of firefox ever made.",
@@ -225,12 +244,12 @@ const MESSAGES = () => [
       title: { string_id: "cfr-whatsnew-tracking-blocked-title" },
       subtitle: { string_id: "cfr-whatsnew-tracking-blocked-subtitle" },
       icon_url:
-        "resource://activity-stream/data/content/assets/protection-report-icon.png",
+        "chrome://activity-stream/content/data/content/assets/protection-report-icon.png",
       icon_alt: "Protection Report icon",
       body: { string_id: "cfr-whatsnew-tracking-protect-body" },
       link_text: { string_id: "cfr-whatsnew-tracking-blocked-link-text" },
-      cta_url: "protections",
-      cta_type: "OPEN_ABOUT_PAGE",
+      cta_url: "",
+      cta_type: "OPEN_PROTECTION_REPORT",
     },
     targeting: `firefoxVersion > 69 && totalBlockedCount > 0`,
     trigger: { id: "whatsNewPanelOpened" },
@@ -238,7 +257,7 @@ const MESSAGES = () => [
   {
     id: "BOOKMARK_CFR",
     template: "cfr_doorhanger",
-    groups: ["cfr-fxa"],
+    groups: ["cfr"],
     content: {
       layout: "icon_and_message",
       category: "cfrFeatures",
@@ -288,6 +307,7 @@ const MESSAGES = () => [
   {
     id: "PDF_URL_FFX_SEND",
     template: "cfr_doorhanger",
+    groups: ["cfr"],
     content: {
       layout: "icon_and_message",
       category: "cfrFeatures",
@@ -342,6 +362,7 @@ const MESSAGES = () => [
   {
     id: "SEND_TAB_CFR",
     template: "cfr_doorhanger",
+    groups: ["cfr"],
     content: {
       layout: "icon_and_message",
       category: "cfrFeatures",
@@ -396,6 +417,7 @@ const MESSAGES = () => [
     // Higher priority because this has the same targeting rules as
     // SEND_TAB_CFR but is more specific
     priority: 1,
+    groups: ["cfr"],
     content: {
       layout: "icon_and_message",
       category: "cfrFeatures",
@@ -446,6 +468,7 @@ const MESSAGES = () => [
   {
     id: "PERSONALIZED_CFR_MESSAGE",
     template: "cfr_doorhanger",
+    groups: ["cfr"],
     content: {
       layout: "icon_and_message",
       category: "cfrFeatures",

@@ -3,10 +3,10 @@
 
 "use strict";
 
-const SHARED_DATA_KEY = "PictureInPicture:ToggleOverrides";
+const SHARED_DATA_KEY = "PictureInPicture:SiteOverrides";
 
 const { TOGGLE_POLICIES } = ChromeUtils.import(
-  "resource://gre/modules/PictureInPictureTogglePolicy.jsm"
+  "resource://gre/modules/PictureInPictureControls.jsm"
 );
 
 /**
@@ -24,7 +24,7 @@ add_task(async () => {
 
   for (let policy of positionPolicies) {
     Services.ppmm.sharedData.set(SHARED_DATA_KEY, {
-      "*://example.com/*": policy,
+      "*://example.com/*": { policy },
     });
     Services.ppmm.sharedData.flush();
 
@@ -59,7 +59,7 @@ add_task(async () => {
  */
 add_task(async () => {
   Services.ppmm.sharedData.set(SHARED_DATA_KEY, {
-    "*://example.com/*": TOGGLE_POLICIES.HIDDEN,
+    "*://example.com/*": { policy: TOGGLE_POLICIES.HIDDEN },
   });
   Services.ppmm.sharedData.flush();
 
@@ -73,6 +73,59 @@ add_task(async () => {
     "with-controls": { canToggle: true },
     "no-controls": { canToggle: true },
   });
+
+  Services.ppmm.sharedData.set(SHARED_DATA_KEY, {});
+  Services.ppmm.sharedData.flush();
+});
+
+/**
+ * Tests that policies are re-evaluated if the page URI is transitioned
+ * via the history API.
+ */
+add_task(async () => {
+  Services.ppmm.sharedData.set(SHARED_DATA_KEY, {
+    "*://example.com/*/test-page.html": { policy: TOGGLE_POLICIES.HIDDEN },
+  });
+  Services.ppmm.sharedData.flush();
+
+  await BrowserTestUtils.withNewTab(
+    {
+      gBrowser,
+      url: TEST_PAGE,
+    },
+    async browser => {
+      await ensureVideosReady(browser);
+      await SimpleTest.promiseFocus(browser);
+
+      await testToggleHelper(
+        browser,
+        "no-controls",
+        false,
+        TOGGLE_POLICIES.HIDDEN
+      );
+
+      await SpecialPowers.spawn(browser, [], async function() {
+        content.history.pushState({}, "2", "otherpage.html");
+      });
+
+      // Since we no longer match the policy URI, we should be able
+      // to use the Picture-in-Picture toggle.
+      await testToggleHelper(browser, "no-controls", true);
+
+      // Now use the history API to put us back at the original location,
+      // which should have the HIDDEN policy re-applied.
+      await SpecialPowers.spawn(browser, [], async function() {
+        content.history.pushState({}, "Return", "test-page.html");
+      });
+
+      await testToggleHelper(
+        browser,
+        "no-controls",
+        false,
+        TOGGLE_POLICIES.HIDDEN
+      );
+    }
+  );
 
   Services.ppmm.sharedData.set(SHARED_DATA_KEY, {});
   Services.ppmm.sharedData.flush();

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 :root {
+  --player-bg-color: #000;
   --btn-bg-color: rgba(50,50,50,0.55);
   --close-btn-bg-color: rgb(211,216,220);
   --resize-margin: 5px;
@@ -14,6 +15,11 @@ button::-moz-focus-inner {
 
 body {
   margin: 0;
+  background-color: var(--player-bg-color);
+}
+
+body:fullscreen {
+  -moz-window-dragging: no-drag;
 }
 
 .player-holder {
@@ -38,7 +44,7 @@ browser {
 }
 
 #controls button {
-  -moz-appearance: none;
+  appearance: none;
   border: 0;
 }
 
@@ -101,6 +107,11 @@ browser {
   position: absolute;
   right: 10px;
   top: 10px;
+}
+
+#close[mac="true"] {
+  right: auto;
+  left: 10px;
 }
 
 #playpause {

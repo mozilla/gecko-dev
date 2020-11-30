@@ -38,25 +38,19 @@ class FFmpegDecoderModule : public PlatformDecoderModule {
     if (aParams.VideoConfig().HasAlpha()) {
       return nullptr;
     }
-    if (VPXDecoder::IsVPX(aParams.mConfig.mMimeType) &&
-        aParams.mOptions.contains(CreateDecoderParams::Option::LowLatency) &&
-        !StaticPrefs::media_ffmpeg_low_latency_enabled()) {
-      // We refuse to create a decoder with low latency enabled if it's VP8 or
-      // VP9 unless specifically allowed: this will fallback to libvpx later.
-      // We do allow it for h264.
-      return nullptr;
-    }
     RefPtr<MediaDataDecoder> decoder = new FFmpegVideoDecoder<V>(
-        mLib, aParams.mTaskQueue, aParams.VideoConfig(),
-        aParams.mKnowsCompositor, aParams.mImageContainer,
-        aParams.mOptions.contains(CreateDecoderParams::Option::LowLatency));
+        mLib, aParams.VideoConfig(), aParams.mKnowsCompositor,
+        aParams.mImageContainer,
+        aParams.mOptions.contains(CreateDecoderParams::Option::LowLatency),
+        aParams.mOptions.contains(
+            CreateDecoderParams::Option::HardwareDecoderNotAllowed));
     return decoder.forget();
   }
 
   already_AddRefed<MediaDataDecoder> CreateAudioDecoder(
       const CreateDecoderParams& aParams) override {
-    RefPtr<MediaDataDecoder> decoder = new FFmpegAudioDecoder<V>(
-        mLib, aParams.mTaskQueue, aParams.AudioConfig());
+    RefPtr<MediaDataDecoder> decoder =
+        new FFmpegAudioDecoder<V>(mLib, aParams.AudioConfig());
     return decoder.forget();
   }
 

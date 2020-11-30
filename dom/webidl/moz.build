@@ -13,6 +13,12 @@ with Files("APZTestData.webidl"):
 with Files("AccessibleNode.webidl"):
     BUG_COMPONENT = ("Core", "Disability Access APIs")
 
+with Files("AccessibilityRole.webidl"):
+    BUG_COMPONENT = ("Core", "Disability Access APIs")
+
+with Files("AriaAttributes.webidl"):
+    BUG_COMPONENT = ("Core", "Disability Access APIs")
+
 with Files("Addon*"):
     BUG_COMPONENT = ("Toolkit", "Add-ons Manager")
 
@@ -42,9 +48,6 @@ with Files("Blob*"):
 
 with Files("BroadcastChannel.webidl"):
     BUG_COMPONENT = ("Core", "DOM: postMessage")
-
-with Files("BrowserElement*"):
-    BUG_COMPONENT = ("Core", "DOM: Core & HTML")
 
 with Files("CSP*"):
     BUG_COMPONENT = ("Core", "DOM: Security")
@@ -274,6 +277,9 @@ with Files("RTC*"):
 with Files("SVG*"):
     BUG_COMPONENT = ("Core", "SVG")
 
+with Files("Sanitizer.webidl"):
+    BUG_COMPONENT = ("Core", "DOM: Security")
+
 with Files("ScriptProcessorNode.webidl"):
     BUG_COMPONENT = ("Core", "Web Audio")
 
@@ -352,6 +358,12 @@ with Files("WebGPU*"):
 with Files("Webrtc*"):
     BUG_COMPONENT = ("Core", "WebRTC")
 
+with Files("WebXR.webidl"):
+    BUG_COMPONENT = ("Core", "WebVR")
+
+with Files("XR*"):
+    BUG_COMPONENT = ("Core", "WebVR")
+
 with Files("WheelEvent.webidl"):
     BUG_COMPONENT = ("Core", "DOM: UI Events & Focus Handling")
 
@@ -379,6 +391,7 @@ WEBIDL_FILES = [
     'AbortSignal.webidl',
     'AbstractRange.webidl',
     'AbstractWorker.webidl',
+    'AccessibilityRole.webidl',
     'AddonManager.webidl',
     'AnalyserNode.webidl',
     'Animatable.webidl',
@@ -389,6 +402,7 @@ WEBIDL_FILES = [
     'AppInfo.webidl',
     'AppNotificationServiceOptions.webidl',
     'APZTestData.webidl',
+    'AriaAttributes.webidl',
     'Attr.webidl',
     'AudioBuffer.webidl',
     'AudioBufferSourceNode.webidl',
@@ -417,7 +431,6 @@ WEBIDL_FILES = [
     'BiquadFilterNode.webidl',
     'Blob.webidl',
     'BroadcastChannel.webidl',
-    'BrowserElement.webidl',
     'BrowserElementDictionaries.webidl',
     'Cache.webidl',
     'CacheStorage.webidl',
@@ -486,6 +499,7 @@ WEBIDL_FILES = [
     'DocumentType.webidl',
     'DOMException.webidl',
     'DOMImplementation.webidl',
+    'DOMLocalization.webidl',
     'DOMMatrix.webidl',
     'DOMParser.webidl',
     'DOMPoint.webidl',
@@ -523,12 +537,12 @@ WEBIDL_FILES = [
     'FileSystemDirectoryReader.webidl',
     'FileSystemEntry.webidl',
     'FileSystemFileEntry.webidl',
+    'FinalizationRegistry.webidl',
     'FocusEvent.webidl',
     'FontFace.webidl',
     'FontFaceSet.webidl',
     'FontFaceSource.webidl',
     'FormData.webidl',
-    'FrameLoader.webidl',
     'Function.webidl',
     'GainNode.webidl',
     'Gamepad.webidl',
@@ -655,6 +669,7 @@ WEBIDL_FILES = [
     'KeyIdsInitData.webidl',
     'LinkStyle.webidl',
     'LoadURIOptions.webidl',
+    'Localization.webidl',
     'Location.webidl',
     'MathMLElement.webidl',
     'MediaCapabilities.webidl',
@@ -769,6 +784,7 @@ WEBIDL_FILES = [
     'Request.webidl',
     'ResizeObserver.webidl',
     'Response.webidl',
+    'Sanitizer.webidl',
     'Screen.webidl',
     'ScreenOrientation.webidl',
     'ScriptProcessorNode.webidl',
@@ -950,6 +966,7 @@ WEBIDL_FILES = [
     'WebGLRenderingContext.webidl',
     'WebGPU.webidl',
     'WebSocket.webidl',
+    'WebXR.webidl',
     'WheelEvent.webidl',
     'WidevineCDMManifest.webidl',
     'WindowOrWorkerGlobalScope.webidl',
@@ -984,6 +1001,7 @@ if CONFIG['MOZ_WEBRTC']:
         'RTCCertificate.webidl',
         'RTCConfiguration.webidl',
         'RTCDataChannel.webidl',
+        'RTCDtlsTransport.webidl',
         'RTCDTMFSender.webidl',
         'RTCIceCandidate.webidl',
         'RTCIdentityAssertion.webidl',
@@ -1078,6 +1096,8 @@ GENERATED_EVENTS_WEBIDL_FILES = [
     'PluginCrashedEvent.webidl',
     'PopStateEvent.webidl',
     'PopupBlockedEvent.webidl',
+    'PopupPositionedEvent.webidl',
+    'PositionStateEvent.webidl',
     'PresentationConnectionAvailableEvent.webidl',
     'PresentationConnectionCloseEvent.webidl',
     'ProgressEvent.webidl',
@@ -1093,6 +1113,10 @@ GENERATED_EVENTS_WEBIDL_FILES = [
     'UDPMessageEvent.webidl',
     'UserProximityEvent.webidl',
     'WebGLContextEvent.webidl',
+    'XRInputSourceEvent.webidl',
+    'XRInputSourcesChangeEvent.webidl',
+    'XRReferenceSpaceEvent.webidl',
+    'XRSessionEvent.webidl',
 ]
 
 if CONFIG['MOZ_WEBRTC']:

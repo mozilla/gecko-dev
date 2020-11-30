@@ -717,6 +717,12 @@ var gTests = [
   {
     desc: "test showControlCenter",
     run: async function checkShowControlCenter() {
+      if (!USING_LEGACY_INDICATOR) {
+        // The indicator only links to the control center for the
+        // legacy indicator.
+        return;
+      }
+
       let observerPromise = expectObserverCalled("getUserMedia:request");
       let promise = promisePopupNotificationShown("webRTC-shareDevices");
       await promiseRequestDevice(false, true);
@@ -743,29 +749,26 @@ var gTests = [
       await indicator;
       await checkSharingUI({ video: true });
 
-      ok(
-        gIdentityHandler._identityPopup.hidden,
-        "control center should be hidden"
-      );
-      if ("nsISystemStatusBar" in Ci) {
+      ok(identityPopupHidden(), "control center should be hidden");
+      if (IS_MAC) {
         let activeStreams = webrtcUI.getActiveStreams(true, false, false);
         webrtcUI.showSharingDoorhanger(activeStreams[0]);
       } else {
         let win = Services.wm.getMostRecentWindow(
           "Browser:WebRTCGlobalIndicator"
         );
+
         let elt = win.document.getElementById("audioVideoButton");
         EventUtils.synthesizeMouseAtCenter(elt, {}, win);
-        await TestUtils.waitForCondition(
-          () => !gIdentityHandler._identityPopup.hidden
-        );
       }
-      ok(
-        !gIdentityHandler._identityPopup.hidden,
-        "control center should be open"
-      );
 
-      gIdentityHandler._identityPopup.hidden = true;
+      await TestUtils.waitForCondition(
+        () => !identityPopupHidden(),
+        "wait for control center to open"
+      );
+      ok(!identityPopupHidden(), "control center should be open");
+
+      gIdentityHandler._identityPopup.hidePopup();
 
       await closeStream();
     },

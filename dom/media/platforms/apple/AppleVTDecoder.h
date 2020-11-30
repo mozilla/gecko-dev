@@ -10,6 +10,8 @@
 #include <CoreFoundation/CFDictionary.h>  // For CFDictionaryRef
 #include <CoreMedia/CoreMedia.h>          // For CMVideoFormatDescriptionRef
 #include <VideoToolbox/VideoToolbox.h>    // For VTDecompressionSessionRef
+
+#include "AppleDecoderModule.h"
 #include "PlatformDecoderModule.h"
 #include "ReorderQueue.h"
 #include "TimeUnits.h"
@@ -23,9 +25,10 @@ DDLoggedTypeDeclNameAndBase(AppleVTDecoder, MediaDataDecoder);
 class AppleVTDecoder : public MediaDataDecoder,
                        public DecoderDoctorLifeLogger<AppleVTDecoder> {
  public:
-  AppleVTDecoder(const VideoInfo& aConfig, TaskQueue* aTaskQueue,
+  AppleVTDecoder(const VideoInfo& aConfig,
                  layers::ImageContainer* aImageContainer,
-                 CreateDecoderParams::OptionSet aOptions);
+                 CreateDecoderParams::OptionSet aOptions,
+                 layers::KnowsCompositor* aKnowsCompositor);
 
   class AppleFrameRef {
    public:
@@ -55,9 +58,8 @@ class AppleVTDecoder : public MediaDataDecoder,
   }
 
   nsCString GetDescriptionName() const override {
-    return mIsHardwareAccelerated
-               ? NS_LITERAL_CSTRING("apple hardware VT decoder")
-               : NS_LITERAL_CSTRING("apple software VT decoder");
+    return mIsHardwareAccelerated ? "apple hardware VT decoder"_ns
+                                  : "apple software VT decoder"_ns;
   }
 
   ConversionRequired NeedsConversion() const override {
@@ -67,17 +69,18 @@ class AppleVTDecoder : public MediaDataDecoder,
   // Access from the taskqueue and the decoder's thread.
   // OutputFrame is thread-safe.
   void OutputFrame(CVPixelBufferRef aImage, AppleFrameRef aFrameRef);
+  void OnDecodeError(OSStatus aError);
 
  private:
+  friend class AppleDecoderModule;  // To access InitializeSession.
   virtual ~AppleVTDecoder();
   RefPtr<FlushPromise> ProcessFlush();
   RefPtr<DecodePromise> ProcessDrain();
   void ProcessShutdown();
   void ProcessDecode(MediaRawData* aSample);
+  void MaybeResolveBufferedFrames();
 
-  void AssertOnTaskQueueThread() {
-    MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn());
-  }
+  void AssertOnTaskQueue() { MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn()); }
 
   AppleFrameRef* CreateAppleFrameRef(const MediaRawData* aSample);
   CFDictionaryRef CreateOutputConfiguration();
@@ -96,14 +99,16 @@ class AppleVTDecoder : public MediaDataDecoder,
   CFDictionaryRef CreateDecoderSpecification();
   CFDictionaryRef CreateDecoderExtensions();
 
+  enum class StreamType { Unknown, H264, VP9 };
+  const StreamType mStreamType;
   const RefPtr<TaskQueue> mTaskQueue;
   const uint32_t mMaxRefFrames;
   const RefPtr<layers::ImageContainer> mImageContainer;
+  const RefPtr<layers::KnowsCompositor> mKnowsCompositor;
   const bool mUseSoftwareImages;
 
   // Set on reader/decode thread calling Flush() to indicate that output is
   // not required and so input samples on mTaskQueue need not be processed.
-  // Cleared on mTaskQueue in ProcessDrain().
   Atomic<bool> mIsFlushing;
   // Protects mReorderQueue and mPromise.
   Monitor mMonitor;

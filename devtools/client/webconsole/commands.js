@@ -5,10 +5,9 @@
 "use strict";
 
 class ConsoleCommands {
-  constructor({ devToolsClient, hud, threadFront }) {
+  constructor({ devToolsClient, hud }) {
     this.devToolsClient = devToolsClient;
     this.hud = hud;
-    this.threadFront = threadFront;
   }
 
   getFrontByID(id) {
@@ -17,47 +16,28 @@ class ConsoleCommands {
 
   async evaluateJSAsync(expression, options = {}) {
     const {
-      selectedNodeFront,
-      selectedThreadFront,
-      frameActor,
       selectedObjectActor,
+      selectedNodeActor,
+      frameActor,
+      selectedTargetFront,
     } = options;
-    let front = await this.hud.currentTarget.getFront("console");
 
-    // Defer to the selected paused thread front
-    if (frameActor) {
-      const frameFront = this.getFrontByID(frameActor);
-      if (frameFront) {
-        front = await frameFront.targetFront.getFront("console");
+    let targetFront = this.hud.currentTarget;
+
+    const selectedActor =
+      selectedObjectActor || selectedNodeActor || frameActor;
+
+    if (selectedTargetFront) {
+      targetFront = selectedTargetFront;
+    } else if (selectedActor) {
+      const selectedFront = this.getFrontByID(selectedActor);
+      if (selectedFront) {
+        targetFront = selectedFront.targetFront;
       }
     }
 
-    // NOTE: once we handle the other tasks in console evaluation,
-    // all of the implicit actions like pausing, selecting a frame in the inspector,
-    // etc will update the selected thread and we will no longer need to support these other
-    // cases.
-    if (selectedThreadFront) {
-      front = await selectedThreadFront.targetFront.getFront("console");
-
-      // If there's a selectedObjectActor option, this means the user intend to do a
-      // given action on a specific object, so it should take precedence over selected
-      // node front.
-    } else if (selectedObjectActor) {
-      const objectFront = this.getFrontByID(selectedObjectActor);
-      if (objectFront) {
-        front = await objectFront.targetFront.getFront("console");
-      }
-    } else if (selectedNodeFront) {
-      // Defer to the selected node's thread console front
-      front = await selectedNodeFront.targetFront.getFront("console");
-      options.selectedNodeActor = selectedNodeFront.actorID;
-    }
-
+    const front = await targetFront.getFront("console");
     return front.evaluateJSAsync(expression, options);
-  }
-
-  timeWarp(executionPoint) {
-    return this.threadFront.timeWarp(executionPoint);
   }
 }
 

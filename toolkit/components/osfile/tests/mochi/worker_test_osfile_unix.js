@@ -2,8 +2,9 @@
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 /* eslint-env mozilla/chrome-worker, node */
+/* global finish, log */
 
-importScripts("worker_test_osfile_shared.js");
+importScripts("chrome://mochikit/content/tests/SimpleTest/WorkerSimpleTest.js");
 
 self.onmessage = function(msg) {
   log("received message " + JSON.stringify(msg.data));
@@ -30,15 +31,14 @@ function test_open_close() {
   is(typeof OS.Unix.File.open, "function", "OS.Unix.File.open is a function");
   let file = OS.Unix.File.open(
     "chrome/toolkit/components/osfile/tests/mochi/worker_test_osfile_unix.js",
-    OS.Constants.libc.O_RDONLY,
-    0
+    OS.Constants.libc.O_RDONLY
   );
   isnot(file, -1, "test_open_close: opening succeeded");
   info("Close: " + OS.Unix.File.close.toSource());
   let result = OS.Unix.File.close(file);
   is(result, 0, "test_open_close: close succeeded");
 
-  file = OS.Unix.File.open("/i do not exist", OS.Constants.libc.O_RDONLY, 0);
+  file = OS.Unix.File.open("/i do not exist", OS.Constants.libc.O_RDONLY);
   is(file, -1, "test_open_close: opening of non-existing file failed");
   is(
     ctypes.errno,
@@ -54,7 +54,7 @@ function test_create_file() {
     OS.Constants.libc.O_RDWR |
       OS.Constants.libc.O_CREAT |
       OS.Constants.libc.O_TRUNC,
-    OS.Constants.libc.S_IRWXU
+    ctypes.int(OS.Constants.libc.S_IRWXU)
   );
   isnot(file, -1, "test_create_file: file created");
   OS.Unix.File.close(file);
@@ -67,7 +67,7 @@ function test_access() {
     OS.Constants.libc.O_RDWR |
       OS.Constants.libc.O_CREAT |
       OS.Constants.libc.O_TRUNC,
-    OS.Constants.libc.S_IRWXU
+    ctypes.int(OS.Constants.libc.S_IRWXU)
   );
   let result = OS.Unix.File.access(
     "test1.tmp",
@@ -84,7 +84,7 @@ function test_access() {
     OS.Constants.libc.O_WRONLY |
       OS.Constants.libc.O_CREAT |
       OS.Constants.libc.O_TRUNC,
-    OS.Constants.libc.S_IWUSR
+    ctypes.int(OS.Constants.libc.S_IWUSR)
   );
 
   info("test_access: preparing second call to access()");
@@ -131,8 +131,7 @@ function test_read_write() {
   // Copy file
   let input = OS.Unix.File.open(
     "chrome/toolkit/components/osfile/tests/mochi/worker_test_osfile_unix.js",
-    OS.Constants.libc.O_RDONLY,
-    0
+    OS.Constants.libc.O_RDONLY
   );
   isnot(input, -1, "test_read_write: input file opened");
   let output = OS.Unix.File.open(
@@ -140,7 +139,7 @@ function test_read_write() {
     OS.Constants.libc.O_RDWR |
       OS.Constants.libc.O_CREAT |
       OS.Constants.libc.O_TRUNC,
-    OS.Constants.libc.S_IRWXU
+    ctypes.int(OS.Constants.libc.S_IRWXU)
   );
   isnot(output, -1, "test_read_write: output file opened");
 
@@ -243,7 +242,7 @@ function test_passing_undefined() {
       OS.Constants.libc.O_RDWR |
         OS.Constants.libc.O_CREAT |
         OS.Constants.libc.O_TRUNC,
-      OS.Constants.libc.S_IRWXU
+      ctypes.int(OS.Constants.libc.S_IRWXU)
     );
   } catch (e) {
     if (e instanceof TypeError && e.message.indexOf("open") > -1) {

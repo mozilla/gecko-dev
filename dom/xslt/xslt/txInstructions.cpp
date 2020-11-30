@@ -21,6 +21,8 @@
 #include "txTextHandler.h"
 #include "txXSLTNumber.h"
 
+using mozilla::UniquePtr;
+
 nsresult txApplyDefaultElementTemplate::execute(txExecutionState& aEs) {
   txExecutionState::TemplateRule* rule = aEs.getCurrentTemplateRule();
   txExpandedName mode(rule->mModeNsId, rule->mModeLocalName);
@@ -89,14 +91,14 @@ nsresult txApplyTemplates::execute(txExecutionState& aEs) {
   return aEs.runTemplate(templ);
 }
 
-txAttribute::txAttribute(nsAutoPtr<Expr>&& aName, nsAutoPtr<Expr>&& aNamespace,
+txAttribute::txAttribute(UniquePtr<Expr>&& aName, UniquePtr<Expr>&& aNamespace,
                          txNamespaceMap* aMappings)
     : mName(std::move(aName)),
       mNamespace(std::move(aNamespace)),
       mMappings(aMappings) {}
 
 nsresult txAttribute::execute(txExecutionState& aEs) {
-  nsAutoPtr<txTextHandler> handler(
+  UniquePtr<txTextHandler> handler(
       static_cast<txTextHandler*>(aEs.popResultHandler()));
 
   nsAutoString name;
@@ -167,7 +169,7 @@ nsresult txCheckParam::execute(txExecutionState& aEs) {
   return NS_OK;
 }
 
-txConditionalGoto::txConditionalGoto(nsAutoPtr<Expr>&& aCondition,
+txConditionalGoto::txConditionalGoto(UniquePtr<Expr>&& aCondition,
                                      txInstruction* aTarget)
     : mCondition(std::move(aCondition)), mTarget(aTarget) {}
 
@@ -184,7 +186,7 @@ nsresult txConditionalGoto::execute(txExecutionState& aEs) {
 }
 
 nsresult txComment::execute(txExecutionState& aEs) {
-  nsAutoPtr<txTextHandler> handler(
+  UniquePtr<txTextHandler> handler(
       static_cast<txTextHandler*>(aEs.popResultHandler()));
   uint32_t length = handler->mValue.Length();
   int32_t pos = 0;
@@ -285,10 +287,8 @@ nsresult txCopy::execute(txExecutionState& aEs) {
   switch (txXPathNodeUtils::getNodeType(node)) {
     case txXPathNodeType::DOCUMENT_NODE:
     case txXPathNodeType::DOCUMENT_FRAGMENT_NODE: {
-      const nsString& empty = EmptyString();
-
       // "close" current element to ensure that no attributes are added
-      rv = aEs.mResultHandler->characters(empty, false);
+      rv = aEs.mResultHandler->characters(u""_ns, false);
       NS_ENSURE_SUCCESS(rv, rv);
 
       rv = aEs.pushBool(false);
@@ -321,7 +321,7 @@ nsresult txCopy::execute(txExecutionState& aEs) {
   return NS_OK;
 }
 
-txCopyOf::txCopyOf(nsAutoPtr<Expr>&& aSelect) : mSelect(std::move(aSelect)) {}
+txCopyOf::txCopyOf(UniquePtr<Expr>&& aSelect) : mSelect(std::move(aSelect)) {}
 
 nsresult txCopyOf::execute(txExecutionState& aEs) {
   RefPtr<txAExprResult> exprRes;
@@ -413,7 +413,7 @@ nsresult txLoopNodeSet::execute(txExecutionState& aEs) {
 }
 
 txLREAttribute::txLREAttribute(int32_t aNamespaceID, nsAtom* aLocalName,
-                               nsAtom* aPrefix, nsAutoPtr<Expr>&& aValue)
+                               nsAtom* aPrefix, UniquePtr<Expr>&& aValue)
     : mNamespaceID(aNamespaceID),
       mLocalName(aLocalName),
       mPrefix(aPrefix),
@@ -443,13 +443,13 @@ nsresult txLREAttribute::execute(txExecutionState& aEs) {
 txMessage::txMessage(bool aTerminate) : mTerminate(aTerminate) {}
 
 nsresult txMessage::execute(txExecutionState& aEs) {
-  nsAutoPtr<txTextHandler> handler(
+  UniquePtr<txTextHandler> handler(
       static_cast<txTextHandler*>(aEs.popResultHandler()));
 
   nsCOMPtr<nsIConsoleService> consoleSvc =
       do_GetService("@mozilla.org/consoleservice;1");
   if (consoleSvc) {
-    nsAutoString logString(NS_LITERAL_STRING("xsl:message - "));
+    nsAutoString logString(u"xsl:message - "_ns);
     logString.Append(handler->mValue);
     consoleSvc->LogStringMessage(logString.get());
   }
@@ -458,10 +458,10 @@ nsresult txMessage::execute(txExecutionState& aEs) {
 }
 
 txNumber::txNumber(txXSLTNumber::LevelType aLevel,
-                   nsAutoPtr<txPattern>&& aCount, nsAutoPtr<txPattern>&& aFrom,
-                   nsAutoPtr<Expr>&& aValue, nsAutoPtr<Expr>&& aFormat,
-                   nsAutoPtr<Expr>&& aGroupingSeparator,
-                   nsAutoPtr<Expr>&& aGroupingSize)
+                   UniquePtr<txPattern>&& aCount, UniquePtr<txPattern>&& aFrom,
+                   UniquePtr<Expr>&& aValue, UniquePtr<Expr>&& aFormat,
+                   UniquePtr<Expr>&& aGroupingSeparator,
+                   UniquePtr<Expr>&& aGroupingSize)
     : mLevel(aLevel),
       mCount(std::move(aCount)),
       mFrom(std::move(aFrom)),
@@ -472,9 +472,9 @@ txNumber::txNumber(txXSLTNumber::LevelType aLevel,
 
 nsresult txNumber::execute(txExecutionState& aEs) {
   nsAutoString res;
-  nsresult rv = txXSLTNumber::createNumber(mValue, mCount, mFrom, mLevel,
-                                           mGroupingSize, mGroupingSeparator,
-                                           mFormat, aEs.getEvalContext(), res);
+  nsresult rv = txXSLTNumber::createNumber(
+      mValue.get(), mCount.get(), mFrom.get(), mLevel, mGroupingSize.get(),
+      mGroupingSeparator.get(), mFormat.get(), aEs.getEvalContext(), res);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return aEs.mResultHandler->characters(res, false);
@@ -486,11 +486,11 @@ nsresult txPopParams::execute(txExecutionState& aEs) {
   return NS_OK;
 }
 
-txProcessingInstruction::txProcessingInstruction(nsAutoPtr<Expr>&& aName)
+txProcessingInstruction::txProcessingInstruction(UniquePtr<Expr>&& aName)
     : mName(std::move(aName)) {}
 
 nsresult txProcessingInstruction::execute(txExecutionState& aEs) {
-  nsAutoPtr<txTextHandler> handler(
+  UniquePtr<txTextHandler> handler(
       static_cast<txTextHandler*>(aEs.popResultHandler()));
   XMLUtils::normalizePIValue(handler->mValue);
 
@@ -509,10 +509,10 @@ nsresult txProcessingInstruction::execute(txExecutionState& aEs) {
   return aEs.mResultHandler->processingInstruction(name, handler->mValue);
 }
 
-txPushNewContext::txPushNewContext(nsAutoPtr<Expr>&& aSelect)
+txPushNewContext::txPushNewContext(UniquePtr<Expr>&& aSelect)
     : mSelect(std::move(aSelect)), mBailTarget(nullptr) {}
 
-txPushNewContext::~txPushNewContext() {}
+txPushNewContext::~txPushNewContext() = default;
 
 nsresult txPushNewContext::execute(txExecutionState& aEs) {
   RefPtr<txAExprResult> exprRes;
@@ -538,9 +538,9 @@ nsresult txPushNewContext::execute(txExecutionState& aEs) {
   uint32_t i, count = mSortKeys.Length();
   for (i = 0; i < count; ++i) {
     SortKey& sort = mSortKeys[i];
-    rv = sorter.addSortElement(sort.mSelectExpr, sort.mLangExpr,
-                               sort.mDataTypeExpr, sort.mOrderExpr,
-                               sort.mCaseOrderExpr, aEs.getEvalContext());
+    rv = sorter.addSortElement(sort.mSelectExpr.get(), sort.mLangExpr.get(),
+                               sort.mDataTypeExpr.get(), sort.mOrderExpr.get(),
+                               sort.mCaseOrderExpr.get(), aEs.getEvalContext());
     NS_ENSURE_SUCCESS(rv, rv);
   }
   RefPtr<txNodeSet> sortedNodes;
@@ -561,11 +561,11 @@ nsresult txPushNewContext::execute(txExecutionState& aEs) {
   return NS_OK;
 }
 
-nsresult txPushNewContext::addSort(nsAutoPtr<Expr>&& aSelectExpr,
-                                   nsAutoPtr<Expr>&& aLangExpr,
-                                   nsAutoPtr<Expr>&& aDataTypeExpr,
-                                   nsAutoPtr<Expr>&& aOrderExpr,
-                                   nsAutoPtr<Expr>&& aCaseOrderExpr) {
+nsresult txPushNewContext::addSort(UniquePtr<Expr>&& aSelectExpr,
+                                   UniquePtr<Expr>&& aLangExpr,
+                                   UniquePtr<Expr>&& aDataTypeExpr,
+                                   UniquePtr<Expr>&& aOrderExpr,
+                                   UniquePtr<Expr>&& aCaseOrderExpr) {
   if (SortKey* key = mSortKeys.AppendElement()) {
     // workaround for not triggering the Copy Constructor
     key->mSelectExpr = std::move(aSelectExpr);
@@ -629,7 +629,7 @@ nsresult txReturn::execute(txExecutionState& aEs) {
   return NS_OK;
 }
 
-txSetParam::txSetParam(const txExpandedName& aName, nsAutoPtr<Expr>&& aValue)
+txSetParam::txSetParam(const txExpandedName& aName, UniquePtr<Expr>&& aValue)
     : mName(aName), mValue(std::move(aValue)) {}
 
 nsresult txSetParam::execute(txExecutionState& aEs) {
@@ -643,7 +643,7 @@ nsresult txSetParam::execute(txExecutionState& aEs) {
     rv = mValue->evaluate(aEs.getEvalContext(), getter_AddRefs(exprRes));
     NS_ENSURE_SUCCESS(rv, rv);
   } else {
-    nsAutoPtr<txRtfHandler> rtfHandler(
+    UniquePtr<txRtfHandler> rtfHandler(
         static_cast<txRtfHandler*>(aEs.popResultHandler()));
     rv = rtfHandler->getAsRTF(getter_AddRefs(exprRes));
     NS_ENSURE_SUCCESS(rv, rv);
@@ -656,7 +656,7 @@ nsresult txSetParam::execute(txExecutionState& aEs) {
 }
 
 txSetVariable::txSetVariable(const txExpandedName& aName,
-                             nsAutoPtr<Expr>&& aValue)
+                             UniquePtr<Expr>&& aValue)
     : mName(aName), mValue(std::move(aValue)) {}
 
 nsresult txSetVariable::execute(txExecutionState& aEs) {
@@ -666,7 +666,7 @@ nsresult txSetVariable::execute(txExecutionState& aEs) {
     rv = mValue->evaluate(aEs.getEvalContext(), getter_AddRefs(exprRes));
     NS_ENSURE_SUCCESS(rv, rv);
   } else {
-    nsAutoPtr<txRtfHandler> rtfHandler(
+    UniquePtr<txRtfHandler> rtfHandler(
         static_cast<txRtfHandler*>(aEs.popResultHandler()));
     rv = rtfHandler->getAsRTF(getter_AddRefs(exprRes));
     NS_ENSURE_SUCCESS(rv, rv);
@@ -675,8 +675,8 @@ nsresult txSetVariable::execute(txExecutionState& aEs) {
   return aEs.bindVariable(mName, exprRes);
 }
 
-txStartElement::txStartElement(nsAutoPtr<Expr>&& aName,
-                               nsAutoPtr<Expr>&& aNamespace,
+txStartElement::txStartElement(UniquePtr<Expr>&& aName,
+                               UniquePtr<Expr>&& aNamespace,
                                txNamespaceMap* aMappings)
     : mName(std::move(aName)),
       mNamespace(std::move(aNamespace)),
@@ -726,7 +726,7 @@ nsresult txStartElement::execute(txExecutionState& aEs) {
     success = false;
     // we call characters with an empty string to "close" any element to
     // make sure that no attributes are added
-    rv = aEs.mResultHandler->characters(EmptyString(), false);
+    rv = aEs.mResultHandler->characters(u""_ns, false);
   }
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -761,7 +761,7 @@ nsresult txText::execute(txExecutionState& aEs) {
   return aEs.mResultHandler->characters(mStr, mDOE);
 }
 
-txValueOf::txValueOf(nsAutoPtr<Expr>&& aExpr, bool aDOE)
+txValueOf::txValueOf(UniquePtr<Expr>&& aExpr, bool aDOE)
     : mExpr(std::move(aExpr)), mDOE(aDOE) {}
 
 nsresult txValueOf::execute(txExecutionState& aEs) {

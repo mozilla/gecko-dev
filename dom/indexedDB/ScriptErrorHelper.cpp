@@ -7,13 +7,14 @@
 #include "ScriptErrorHelper.h"
 
 #include "MainThreadUtils.h"
-#include "mozilla/SystemGroup.h"
 #include "nsCOMPtr.h"
 #include "nsContentUtils.h"
 #include "nsIConsoleService.h"
 #include "nsIScriptError.h"
 #include "nsString.h"
 #include "nsThreadUtils.h"
+
+#include "mozilla/SchedulerGroup.h"
 
 namespace {
 
@@ -107,13 +108,13 @@ class ScriptErrorRunnable final : public mozilla::Runnable {
     if (aInnerWindowID) {
       MOZ_ALWAYS_SUCCEEDS(scriptError->InitWithWindowID(
           aMessage, aFilename,
-          /* aSourceLine */ EmptyString(), aLineNumber, aColumnNumber,
-          aSeverityFlag, category, aInnerWindowID));
+          /* aSourceLine */ u""_ns, aLineNumber, aColumnNumber, aSeverityFlag,
+          category, aInnerWindowID));
     } else {
       MOZ_ALWAYS_SUCCEEDS(scriptError->Init(
           aMessage, aFilename,
-          /* aSourceLine */ EmptyString(), aLineNumber, aColumnNumber,
-          aSeverityFlag, category.get(),
+          /* aSourceLine */ u""_ns, aLineNumber, aColumnNumber, aSeverityFlag,
+          category.get(),
           /* IDB doesn't run on Private browsing mode */ false,
           /* from chrome context */ aIsChrome));
     }
@@ -165,7 +166,7 @@ void ScriptErrorHelper::Dump(const nsAString& aMessage,
         new ScriptErrorRunnable(aMessage, aFilename, aLineNumber, aColumnNumber,
                                 aSeverityFlag, aIsChrome, aInnerWindowID);
     MOZ_ALWAYS_SUCCEEDS(
-        SystemGroup::Dispatch(TaskCategory::Other, runnable.forget()));
+        SchedulerGroup::Dispatch(TaskCategory::Other, runnable.forget()));
   }
 }
 
@@ -183,7 +184,7 @@ void ScriptErrorHelper::DumpLocalizedMessage(
         aMessageName, aFilename, aLineNumber, aColumnNumber, aSeverityFlag,
         aIsChrome, aInnerWindowID);
     MOZ_ALWAYS_SUCCEEDS(
-        SystemGroup::Dispatch(TaskCategory::Other, runnable.forget()));
+        SchedulerGroup::Dispatch(TaskCategory::Other, runnable.forget()));
   }
 }
 

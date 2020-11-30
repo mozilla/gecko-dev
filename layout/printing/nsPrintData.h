@@ -21,10 +21,6 @@ class nsPrintObject;
 class nsIPrintProgressParams;
 class nsIWebProgressListener;
 
-namespace mozilla {
-class PrintPreviewUserEventSuppressor;
-}  // namespace mozilla
-
 //------------------------------------------------------------------------
 // nsPrintData Class
 //
@@ -33,9 +29,6 @@ class PrintPreviewUserEventSuppressor;
 //   off right before we go to the timer.
 //------------------------------------------------------------------------
 class nsPrintData {
-  typedef mozilla::PrintPreviewUserEventSuppressor
-      PrintPreviewUserEventSuppressor;
-
  public:
   typedef enum { eIsPrinting, eIsPrintPreview } ePrintDataType;
 
@@ -59,26 +52,25 @@ class nsPrintData {
   nsCOMArray<nsIWebProgressListener> mPrintProgressListeners;
   nsCOMPtr<nsIPrintProgressParams> mPrintProgressParams;
 
-  nsCOMPtr<nsPIDOMWindowOuter> mCurrentFocusWin;  // cache a pointer to the
-                                                  // currently focused window
+  // If there is a focused iframe, mSelectionRoot is set to its nsPrintObject.
+  // Otherwise, if there is a selection, it is set to the root nsPrintObject.
+  // Otherwise, it is unset.
+  nsPrintObject* mSelectionRoot = nullptr;
 
   // Array of non-owning pointers to all the nsPrintObjects owned by this
   // nsPrintData. This includes this->mPrintObject, as well as all of its
   // mKids (and their mKids, etc.)
   nsTArray<nsPrintObject*> mPrintDocList;
 
-  bool mIsIFrameSelected;
   bool mIsParentAFrameSet;
   bool mOnStartSent;
   bool mIsAborted;          // tells us the document is being aborted
   bool mPreparingForPrint;  // see comments above
   bool mShrinkToFit;
   int32_t mNumPrintablePages;
-  int32_t mNumPagesPrinted;
   float mShrinkRatio;
 
   nsCOMPtr<nsIPrintSettings> mPrintSettings;
-  RefPtr<PrintPreviewUserEventSuppressor> mPPEventSuppressor;
 
  private:
   nsPrintData() = delete;

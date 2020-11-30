@@ -1,10 +1,10 @@
 "use strict";
 
 /**
- * WHOA THERE: We should never be adding new things to EXPECTED_*_REFLOWS. This
- * is a whitelist that should slowly go away as we improve the performance of
- * the front-end. Instead of adding more reflows to the whitelist, you should
- * be modifying your code to avoid the reflow.
+ * WHOA THERE: We should never be adding new things to EXPECTED_*_REFLOWS.
+ * This is a (now empty) list of known reflows.
+ * Instead of adding more reflows to the lists, you should be modifying your
+ * code to avoid the reflow.
  *
  * See https://developer.mozilla.org/en-US/Firefox/Performance_best_practices_for_Firefox_fe_engineers
  * for tips on how to do that.
@@ -29,30 +29,35 @@ const EXPECTED_UNDERFLOW_REFLOWS = [
  * underflow.
  */
 add_task(async function() {
+  // Force-enable tab animations
+  gReduceMotionOverride = false;
+
   await ensureNoPreloadedBrowser();
 
   const TAB_COUNT_FOR_OVERFLOW = computeMaxTabCount();
 
   await createTabs(TAB_COUNT_FOR_OVERFLOW);
 
-  await ensureFocusedUrlbar();
+  gURLBar.focus();
+  await disableFxaBadge();
 
   let tabStripRect = gBrowser.tabContainer.arrowScrollbox.getBoundingClientRect();
   let textBoxRect = gURLBar
     .querySelector("moz-input-box")
     .getBoundingClientRect();
-  let urlbarDropmarkerRect = gURLBar.dropmarker.getBoundingClientRect();
 
   let ignoreTabstripRects = {
     filter: rects =>
       rects.filter(
         r =>
-          !// We expect plenty of changed rects within the tab strip.
-          (
-            r.y1 >= tabStripRect.top &&
-            r.y2 <= tabStripRect.bottom &&
-            r.x1 >= tabStripRect.left &&
-            r.x2 <= tabStripRect.right
+          !(
+            // We expect plenty of changed rects within the tab strip.
+            (
+              r.y1 >= tabStripRect.top &&
+              r.y2 <= tabStripRect.bottom &&
+              r.x1 >= tabStripRect.left &&
+              r.x2 <= tabStripRect.right
+            )
           )
       ),
     exceptions: [
@@ -71,15 +76,6 @@ add_task(async function() {
           r.y1 >=
           document.getElementById("appcontent").getBoundingClientRect().top,
       },
-      {
-        name: "bug 1520032 - the urlbar dropmarker disappears periodically",
-        condition: r =>
-          AppConstants.DEBUG &&
-          r.x1 >= urlbarDropmarkerRect.left &&
-          r.x2 <= urlbarDropmarkerRect.right &&
-          r.y1 >= urlbarDropmarkerRect.top &&
-          r.y2 <= urlbarDropmarkerRect.bottom,
-      },
     ],
   };
 
@@ -92,7 +88,7 @@ add_task(async function() {
         "TabAnimationEnd"
       );
       await switchDone;
-      await BrowserTestUtils.waitForCondition(() => {
+      await TestUtils.waitForCondition(() => {
         return gBrowser.tabContainer.arrowScrollbox.hasAttribute(
           "scrolledtoend"
         );
@@ -113,7 +109,7 @@ add_task(async function() {
       let switchDone = BrowserTestUtils.waitForEvent(window, "TabSwitchDone");
       BrowserOpenTab();
       await switchDone;
-      await BrowserTestUtils.waitForCondition(() => {
+      await TestUtils.waitForCondition(() => {
         return gBrowser.tabContainer.arrowScrollbox.hasAttribute(
           "scrolledtoend"
         );
@@ -149,7 +145,7 @@ add_task(async function() {
     async function() {
       let firstTab = gBrowser.tabs[0];
       await BrowserTestUtils.switchTab(gBrowser, firstTab);
-      await BrowserTestUtils.waitForCondition(() => {
+      await TestUtils.waitForCondition(() => {
         return gBrowser.tabContainer.arrowScrollbox.hasAttribute(
           "scrolledtostart"
         );
@@ -183,7 +179,7 @@ add_task(async function() {
         let switchDone = BrowserTestUtils.waitForEvent(window, "TabSwitchDone");
         BrowserTestUtils.removeTab(lastTab, { animate: true });
         await switchDone;
-        await BrowserTestUtils.waitForCondition(() => !lastTab.isConnected);
+        await TestUtils.waitForCondition(() => !lastTab.isConnected);
       },
       {
         expectedReflows: EXPECTED_UNDERFLOW_REFLOWS,

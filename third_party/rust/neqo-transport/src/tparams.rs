@@ -8,7 +8,7 @@
 
 #![allow(dead_code)]
 use crate::{Error, Res};
-use neqo_common::{hex, matches, qdebug, qinfo, qtrace, Decoder, Encoder};
+use neqo_common::{hex, qdebug, qinfo, qtrace, Decoder, Encoder};
 use neqo_crypto::constants::{TLS_HS_CLIENT_HELLO, TLS_HS_ENCRYPTED_EXTENSIONS};
 use neqo_crypto::ext::{ExtensionHandler, ExtensionHandlerResult, ExtensionWriterResult};
 use neqo_crypto::{HandshakeMessage, ZeroRttCheckResult, ZeroRttChecker};
@@ -27,20 +27,24 @@ macro_rules! tpids {
         };
     }
 tpids! {
-    ORIGINAL_CONNECTION_ID = 0,
-    IDLE_TIMEOUT = 1,
-    STATELESS_RESET_TOKEN = 2,
-    MAX_PACKET_SIZE = 3,
-    INITIAL_MAX_DATA = 4,
-    INITIAL_MAX_STREAM_DATA_BIDI_LOCAL = 5,
-    INITIAL_MAX_STREAM_DATA_BIDI_REMOTE = 6,
-    INITIAL_MAX_STREAM_DATA_UNI = 7,
-    INITIAL_MAX_STREAMS_BIDI = 8,
-    INITIAL_MAX_STREAMS_UNI = 9,
-    ACK_DELAY_EXPONENT = 10,
-    MAX_ACK_DELAY = 11,
-    DISABLE_MIGRATION = 12,
-    PREFERRED_ADDRESS = 13,
+    ORIGINAL_DESTINATION_CONNECTION_ID = 0x00,
+    IDLE_TIMEOUT = 0x01,
+    STATELESS_RESET_TOKEN = 0x02,
+    MAX_UDP_PAYLOAD_SIZE = 0x03,
+    INITIAL_MAX_DATA = 0x04,
+    INITIAL_MAX_STREAM_DATA_BIDI_LOCAL = 0x05,
+    INITIAL_MAX_STREAM_DATA_BIDI_REMOTE = 0x06,
+    INITIAL_MAX_STREAM_DATA_UNI = 0x07,
+    INITIAL_MAX_STREAMS_BIDI = 0x08,
+    INITIAL_MAX_STREAMS_UNI = 0x09,
+    ACK_DELAY_EXPONENT = 0x0a,
+    MAX_ACK_DELAY = 0x0b,
+    DISABLE_MIGRATION = 0x0c,
+    PREFERRED_ADDRESS = 0x0d,
+    ACTIVE_CONNECTION_ID_LIMIT = 0x0e,
+    INITIAL_SOURCE_CONNECTION_ID = 0x0f,
+    RETRY_SOURCE_CONNECTION_ID = 0x10,
+    GREASE_QUIC_BIT = 0x2ab2,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -52,6 +56,7 @@ pub enum TransportParameter {
 
 impl TransportParameter {
     fn encode(&self, enc: &mut Encoder, tp: TransportParameterId) {
+        qdebug!("TP encoded; type 0x{:02x} val {:?}", tp, self);
         enc.encode_varint(tp);
         match self {
             Self::Bytes(a) => {
@@ -80,7 +85,9 @@ impl TransportParameter {
         qtrace!("TP {:x} length {:x}", tp, content.len());
         let mut d = Decoder::from(content);
         let value = match tp {
-            ORIGINAL_CONNECTION_ID => Self::Bytes(d.decode_remainder().to_vec()),
+            ORIGINAL_DESTINATION_CONNECTION_ID
+            | INITIAL_SOURCE_CONNECTION_ID
+            | RETRY_SOURCE_CONNECTION_ID => Self::Bytes(d.decode_remainder().to_vec()),
             STATELESS_RESET_TOKEN => {
                 if d.remaining() != 16 {
                     return Err(Error::TransportParameterError);
@@ -92,14 +99,17 @@ impl TransportParameter {
             | INITIAL_MAX_STREAM_DATA_BIDI_LOCAL
             | INITIAL_MAX_STREAM_DATA_BIDI_REMOTE
             | INITIAL_MAX_STREAM_DATA_UNI
-            | INITIAL_MAX_STREAMS_BIDI
-            | INITIAL_MAX_STREAMS_UNI
             | MAX_ACK_DELAY => match d.decode_varint() {
                 Some(v) => Self::Integer(v),
                 None => return Err(Error::TransportParameterError),
             },
 
-            MAX_PACKET_SIZE => match d.decode_varint() {
+            INITIAL_MAX_STREAMS_BIDI | INITIAL_MAX_STREAMS_UNI => match d.decode_varint() {
+                Some(v) if v <= (1 << 60) => Self::Integer(v),
+                _ => return Err(Error::StreamLimitError),
+            },
+
+            MAX_UDP_PAYLOAD_SIZE => match d.decode_varint() {
                 Some(v) if v >= 1200 => Self::Integer(v),
                 _ => return Err(Error::TransportParameterError),
             },
@@ -108,15 +118,19 @@ impl TransportParameter {
                 Some(v) if v <= 20 => Self::Integer(v),
                 _ => return Err(Error::TransportParameterError),
             },
+            ACTIVE_CONNECTION_ID_LIMIT => match d.decode_varint() {
+                Some(v) if v >= 2 => Self::Integer(v),
+                _ => return Err(Error::TransportParameterError),
+            },
 
-            DISABLE_MIGRATION => Self::Empty,
+            DISABLE_MIGRATION | GREASE_QUIC_BIT => Self::Empty,
             // Skip.
             _ => return Ok(None),
         };
         if d.remaining() > 0 {
             return Err(Error::TooMuchData);
         }
-        qtrace!("TP decoded; type {:x} val {:?}", tp, value);
+        qdebug!("TP decoded; type 0x{:02x} val {:?}", tp, value);
         Ok(Some((tp, value)))
     }
 }
@@ -171,9 +185,10 @@ impl TransportParameters {
             | INITIAL_MAX_STREAM_DATA_UNI
             | INITIAL_MAX_STREAMS_BIDI
             | INITIAL_MAX_STREAMS_UNI => 0,
-            MAX_PACKET_SIZE => 65527,
+            MAX_UDP_PAYLOAD_SIZE => 65527,
             ACK_DELAY_EXPONENT => 3,
             MAX_ACK_DELAY => 25,
+            ACTIVE_CONNECTION_ID_LIMIT => 2,
             _ => panic!("Transport parameter not known or not an Integer"),
         };
         match self.params.get(&tp) {
@@ -183,7 +198,7 @@ impl TransportParameters {
         }
     }
 
-    // Get an integer type or a default.
+    // Set an integer type or a default.
     pub fn set_integer(&mut self, tp: TransportParameterId, value: u64) {
         match tp {
             IDLE_TIMEOUT
@@ -193,31 +208,38 @@ impl TransportParameters {
             | INITIAL_MAX_STREAM_DATA_UNI
             | INITIAL_MAX_STREAMS_BIDI
             | INITIAL_MAX_STREAMS_UNI
-            | MAX_PACKET_SIZE
+            | MAX_UDP_PAYLOAD_SIZE
             | ACK_DELAY_EXPONENT
-            | MAX_ACK_DELAY => {
+            | MAX_ACK_DELAY
+            | ACTIVE_CONNECTION_ID_LIMIT => {
                 self.set(tp, TransportParameter::Integer(value));
             }
             _ => panic!("Transport parameter not known"),
         }
     }
 
-    pub fn get_bytes(&self, tp: TransportParameterId) -> Option<Vec<u8>> {
+    pub fn get_bytes(&self, tp: TransportParameterId) -> Option<&[u8]> {
         match tp {
-            ORIGINAL_CONNECTION_ID | STATELESS_RESET_TOKEN => {}
+            ORIGINAL_DESTINATION_CONNECTION_ID
+            | INITIAL_SOURCE_CONNECTION_ID
+            | RETRY_SOURCE_CONNECTION_ID
+            | STATELESS_RESET_TOKEN => {}
             _ => panic!("Transport parameter not known or not type bytes"),
         }
 
         match self.params.get(&tp) {
             None => None,
-            Some(TransportParameter::Bytes(x)) => Some(x.to_vec()),
+            Some(TransportParameter::Bytes(x)) => Some(&x),
             _ => panic!("Internal error"),
         }
     }
 
     pub fn set_bytes(&mut self, tp: TransportParameterId, value: Vec<u8>) {
         match tp {
-            ORIGINAL_CONNECTION_ID | STATELESS_RESET_TOKEN => {
+            ORIGINAL_DESTINATION_CONNECTION_ID
+            | INITIAL_SOURCE_CONNECTION_ID
+            | RETRY_SOURCE_CONNECTION_ID
+            | STATELESS_RESET_TOKEN => {
                 self.set(tp, TransportParameter::Bytes(value));
             }
             _ => panic!("Transport parameter not known or not type bytes"),
@@ -226,10 +248,18 @@ impl TransportParameters {
 
     pub fn set_empty(&mut self, tp: TransportParameterId) {
         match tp {
-            DISABLE_MIGRATION => {
+            DISABLE_MIGRATION | GREASE_QUIC_BIT => {
                 self.set(tp, TransportParameter::Empty);
             }
             _ => panic!("Transport parameter not known or not type empty"),
+        }
+    }
+
+    pub fn get_empty(&self, tipe: TransportParameterId) -> bool {
+        match self.params.get(&tipe) {
+            None => false,
+            Some(TransportParameter::Empty) => true,
+            _ => panic!("Internal error"),
         }
     }
 
@@ -241,11 +271,14 @@ impl TransportParameters {
             // Skip checks for these, which don't affect 0-RTT.
             if matches!(
                 *k,
-                ORIGINAL_CONNECTION_ID
+                ORIGINAL_DESTINATION_CONNECTION_ID
+                    | INITIAL_SOURCE_CONNECTION_ID
+                    | RETRY_SOURCE_CONNECTION_ID
                     | STATELESS_RESET_TOKEN
                     | IDLE_TIMEOUT
                     | ACK_DELAY_EXPONENT
                     | MAX_ACK_DELAY
+                    | ACTIVE_CONNECTION_ID_LIMIT
             ) {
                 continue;
             }
@@ -325,17 +358,30 @@ impl ExtensionHandler for TransportParametersHandler {
 }
 
 #[derive(Debug)]
-pub(crate) struct TpZeroRttChecker {
+pub(crate) struct TpZeroRttChecker<T> {
     handler: Rc<RefCell<TransportParametersHandler>>,
+    app_checker: T,
 }
 
-impl TpZeroRttChecker {
-    pub fn wrap(handler: Rc<RefCell<TransportParametersHandler>>) -> Box<dyn ZeroRttChecker> {
-        Box::new(Self { handler })
+impl<T> TpZeroRttChecker<T>
+where
+    T: ZeroRttChecker + 'static,
+{
+    pub fn wrap(
+        handler: Rc<RefCell<TransportParametersHandler>>,
+        app_checker: T,
+    ) -> Box<dyn ZeroRttChecker> {
+        Box::new(Self {
+            handler,
+            app_checker,
+        })
     }
 }
 
-impl ZeroRttChecker for TpZeroRttChecker {
+impl<T> ZeroRttChecker for TpZeroRttChecker<T>
+where
+    T: ZeroRttChecker,
+{
     fn check(&self, token: &[u8]) -> ZeroRttCheckResult {
         // Reject 0-RTT if there is no token.
         if token.is_empty() {
@@ -357,8 +403,8 @@ impl ZeroRttChecker for TpZeroRttChecker {
             return ZeroRttCheckResult::Fail;
         };
         if self.handler.borrow().local.ok_for_0rtt(&remembered) {
-            qinfo!("0-RTT: transport parameters OK, accepting");
-            ZeroRttCheckResult::Accept
+            qinfo!("0-RTT: transport parameters OK, passing to application checker");
+            self.app_checker.check(dec.decode_remainder())
         } else {
             qinfo!("0-RTT: transport parameters bad, rejecting");
             ZeroRttCheckResult::Reject
@@ -373,11 +419,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_basic_tps() {
+    fn basic_tps() {
+        const RESET_TOKEN: &[u8] = &[1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8];
         let mut tps = TransportParameters::default();
         tps.set(
             STATELESS_RESET_TOKEN,
-            TransportParameter::Bytes(vec![1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8]),
+            TransportParameter::Bytes(RESET_TOKEN.to_vec()),
         );
         tps.params
             .insert(INITIAL_MAX_STREAMS_BIDI, TransportParameter::Integer(10));
@@ -391,13 +438,15 @@ mod tests {
         println!("TPS = {:?}", tps);
         assert_eq!(tps2.get_integer(IDLE_TIMEOUT), 0); // Default
         assert_eq!(tps2.get_integer(MAX_ACK_DELAY), 25); // Default
+        assert_eq!(tps2.get_integer(ACTIVE_CONNECTION_ID_LIMIT), 2); // Default
         assert_eq!(tps2.get_integer(INITIAL_MAX_STREAMS_BIDI), 10); // Sent
-        assert_eq!(
-            tps2.get_bytes(STATELESS_RESET_TOKEN),
-            Some(vec![1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8])
-        );
-        assert_eq!(tps2.get_bytes(ORIGINAL_CONNECTION_ID), None);
-        assert_eq!(tps2.was_sent(ORIGINAL_CONNECTION_ID), false);
+        assert_eq!(tps2.get_bytes(STATELESS_RESET_TOKEN), Some(RESET_TOKEN));
+        assert_eq!(tps2.get_bytes(ORIGINAL_DESTINATION_CONNECTION_ID), None);
+        assert_eq!(tps2.get_bytes(INITIAL_SOURCE_CONNECTION_ID), None);
+        assert_eq!(tps2.get_bytes(RETRY_SOURCE_CONNECTION_ID), None);
+        assert_eq!(tps2.was_sent(ORIGINAL_DESTINATION_CONNECTION_ID), false);
+        assert_eq!(tps2.was_sent(INITIAL_SOURCE_CONNECTION_ID), false);
+        assert_eq!(tps2.was_sent(RETRY_SOURCE_CONNECTION_ID), false);
         assert_eq!(tps2.was_sent(STATELESS_RESET_TOKEN), true);
 
         let mut enc = Encoder::default();
@@ -415,6 +464,7 @@ mod tests {
         );
         tps_a.set(IDLE_TIMEOUT, TransportParameter::Integer(10));
         tps_a.set(MAX_ACK_DELAY, TransportParameter::Integer(22));
+        tps_a.set(ACTIVE_CONNECTION_ID_LIMIT, TransportParameter::Integer(33));
 
         let mut tps_b = TransportParameters::default();
         assert!(tps_a.ok_for_0rtt(&tps_b));
@@ -426,6 +476,7 @@ mod tests {
         );
         tps_b.set(IDLE_TIMEOUT, TransportParameter::Integer(100));
         tps_b.set(MAX_ACK_DELAY, TransportParameter::Integer(2));
+        tps_b.set(ACTIVE_CONNECTION_ID_LIMIT, TransportParameter::Integer(44));
         assert!(tps_a.ok_for_0rtt(&tps_b));
         assert!(tps_b.ok_for_0rtt(&tps_a));
     }
@@ -440,7 +491,7 @@ mod tests {
             INITIAL_MAX_STREAM_DATA_UNI,
             INITIAL_MAX_STREAMS_BIDI,
             INITIAL_MAX_STREAMS_UNI,
-            MAX_PACKET_SIZE,
+            MAX_UDP_PAYLOAD_SIZE,
         ];
         for i in INTEGER_KEYS {
             tps_a.set(*i, TransportParameter::Integer(12));

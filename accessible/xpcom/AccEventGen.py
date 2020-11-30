@@ -5,19 +5,12 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from __future__ import absolute_import
-import sys
 import os
 
 import buildconfig
 import mozpack.path as mozpath
 
-# The xpidl parser is not incorporated in the in-tree virtualenv.
-xpidl_dir = mozpath.join(buildconfig.topsrcdir, 'xpcom', 'idl-parser',
-                         'xpidl')
-xpidl_cachedir = mozpath.join(buildconfig.topobjdir, 'xpcom', 'idl-parser',
-                              'xpidl')
-sys.path.extend([xpidl_dir, xpidl_cachedir])
-import xpidl
+from xpidl import xpidl
 
 # Load the webidl configuration file.
 glbl = {}
@@ -241,7 +234,7 @@ def get_conf(conf_file):
     return conf, inc_dir
 
 
-def gen_files(fd, conf_file, xpidllex, xpidlyacc):
+def gen_files(fd, conf_file):
     deps = set()
     conf, inc_dir = get_conf(conf_file)
     deps.update(print_header_file(fd, conf, inc_dir))

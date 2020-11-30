@@ -39,24 +39,23 @@ XDRResult XDRBigInt(XDRState<mode>* xdr, MutableHandle<JS::BigInt*> bi);
 
 namespace JS {
 
-class BigInt final : public js::gc::CellWithLengthAndFlags<js::gc::Cell> {
-  using Base = js::gc::CellWithLengthAndFlags<js::gc::Cell>;
-
+class BigInt final : public js::gc::CellWithLengthAndFlags {
  public:
   using Digit = uintptr_t;
 
-  static constexpr uintptr_t TYPE_FLAGS = js::gc::Cell::BIGINT_BIT;
-
  private:
-  // The low NumFlagBitsReservedForGC flag bits are reserved.
-  static constexpr uintptr_t SignBit = js::Bit(Base::NumFlagBitsReservedForGC);
+  // The low CellFlagBitsReservedForGC flag bits are reserved.
+  static constexpr uintptr_t SignBit =
+      js::Bit(js::gc::CellFlagBitsReservedForGC);
 
   static constexpr size_t InlineDigitsLength =
-      (js::gc::MinCellSize - sizeof(Base)) / sizeof(Digit);
+      (js::gc::MinCellSize - sizeof(CellWithLengthAndFlags)) / sizeof(Digit);
 
-  // Note: 32-bit length and flags fields are inherited from
-  // CellWithLengthAndFlags.
+ public:
+  // The number of digits and the flags are stored in the cell header.
+  size_t digitLength() const { return headerLengthField(); }
 
+ private:
   // The digit storage starts with the least significant digit (little-endian
   // digit order).  Byte order within a digit is of course native endian.
   union {
@@ -64,39 +63,20 @@ class BigInt final : public js::gc::CellWithLengthAndFlags<js::gc::Cell> {
     Digit inlineDigits_[InlineDigitsLength];
   };
 
-  // Shadow Base::setLengthAndFlags to automatically set TYPE_FLAGS.
   void setLengthAndFlags(uint32_t len, uint32_t flags) {
-    Base::setLengthAndFlags(len, flags | TYPE_FLAGS);
+    setHeaderLengthAndFlags(len, flags);
   }
 
  public:
   static const JS::TraceKind TraceKind = JS::TraceKind::BigInt;
 
-  JS::Zone* zone() const {
-    if (isTenured()) {
-      return asTenured().zone();
-    }
-    return js::Nursery::getBigIntZone(this);
-  }
-
-  // Implement TenuredZone members needed for template instantiations.
-
-  JS::Zone* zoneFromAnyThread() const {
-    if (isTenured()) {
-      return asTenured().zoneFromAnyThread();
-    }
-    return js::Nursery::getBigIntZone(this);
-  }
-
   void fixupAfterMovingGC() {}
 
   js::gc::AllocKind getAllocKind() const { return js::gc::AllocKind::BIGINT; }
 
-  size_t digitLength() const { return lengthField(); }
-
   // Offset for direct access from JIT code.
   static constexpr size_t offsetOfDigitLength() {
-    return Base::offsetOfLength();
+    return offsetOfHeaderLength();
   }
 
   bool hasInlineDigits() const { return digitLength() <= InlineDigitsLength; }
@@ -116,48 +96,21 @@ class BigInt final : public js::gc::CellWithLengthAndFlags<js::gc::Cell> {
   void setDigit(size_t idx, Digit digit) { digits()[idx] = digit; }
 
   bool isZero() const { return digitLength() == 0; }
-  bool isNegative() const { return flagsField() & SignBit; }
+  bool isNegative() const { return headerFlagsField() & SignBit; }
 
   void initializeDigitsToZero();
 
   void traceChildren(JSTracer* trc);
 
-  static MOZ_ALWAYS_INLINE void readBarrier(BigInt* thing) {
-    if (js::gc::IsInsideNursery(thing)) {
-      return;
-    }
-    js::gc::TenuredCell::readBarrier(&thing->asTenured());
-  }
-
-  static MOZ_ALWAYS_INLINE void writeBarrierPre(BigInt* thing) {
-    if (!thing || js::gc::IsInsideNursery(thing)) {
-      return;
-    }
-
-    js::gc::TenuredCell::writeBarrierPre(&thing->asTenured());
-  }
-
-  static void writeBarrierPost(void* cellp, BigInt* prev, BigInt* next) {
-    // See JSObject::writeBarrierPost for a description of the logic here.
-    MOZ_ASSERT(cellp);
-
-    js::gc::StoreBuffer* buffer;
-    if (next && (buffer = next->storeBuffer())) {
-      if (prev && prev->storeBuffer()) {
-        return;
-      }
-      buffer->putCell(static_cast<BigInt**>(cellp));
-      return;
-    }
-
-    if (prev && (buffer = prev->storeBuffer())) {
-      buffer->unputCell(static_cast<BigInt**>(cellp));
-    }
+  static MOZ_ALWAYS_INLINE void postWriteBarrier(void* cellp, BigInt* prev,
+                                                 BigInt* next) {
+    js::gc::PostWriteBarrierImpl<BigInt>(cellp, prev, next);
   }
 
   void finalize(JSFreeOp* fop);
   js::HashNumber hash() const;
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
+  size_t sizeOfExcludingThisInNursery(mozilla::MallocSizeOf mallocSizeOf) const;
 
   static BigInt* createUninitialized(
       JSContext* cx, size_t digitLength, bool isNegative,
@@ -463,9 +416,8 @@ class BigInt final : public js::gc::CellWithLengthAndFlags<js::gc::Cell> {
   // call the methods below.
   friend class js::jit::MacroAssembler;
 
-  // Make offset accessors accessible to the MacroAssembler.
-  using Base::offsetOfFlags;
-  using Base::offsetOfLength;
+  static constexpr size_t offsetOfFlags() { return offsetOfHeaderFlags(); }
+  static constexpr size_t offsetOfLength() { return offsetOfHeaderLength(); }
 
   static size_t offsetOfInlineDigits() {
     return offsetof(BigInt, inlineDigits_);
@@ -500,7 +452,7 @@ extern JS::BigInt* NumberToBigInt(JSContext* cx, double d);
 
 // Parse a BigInt from a string, using the method specified for StringToBigInt.
 // Used by the BigInt constructor among other places.
-extern JS::Result<JS::BigInt*, JS::OOM&> StringToBigInt(
+extern JS::Result<JS::BigInt*, JS::OOM> StringToBigInt(
     JSContext* cx, JS::Handle<JSString*> str);
 
 // Parse a BigInt from an already-validated numeric literal.  Used by the

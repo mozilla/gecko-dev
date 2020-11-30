@@ -10,7 +10,7 @@
 # OS_TEST	(from uname -m)
 # OS_RELEASE	(from uname -v and/or -r)
 # OS_TARGET	User defined, or set to OS_ARCH
-# CPU_ARCH  	(from unmame -m or -p, ONLY on WINNT)
+# CPU_ARCH  	(from uname -m or -p, ONLY on WINNT)
 # OS_CONFIG	OS_TARGET + OS_RELEASE
 # OBJDIR_TAG    (uses GCOV_TAG, 64BIT_TAG)
 # OBJDIR_NAME
@@ -116,6 +116,7 @@ ifeq ($(OS_ARCH),Linux)
 	OS_RELEASE := $(word 1,$(OS_RELEASE)).$(word 2,$(OS_RELEASE))
     endif
     KERNEL = Linux
+    include $(CORE_DEPTH)/coreconf/Linux.mk
 endif
 
 # Since all uses of OS_ARCH that follow affect only userland, we can

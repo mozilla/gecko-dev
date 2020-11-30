@@ -20,8 +20,9 @@
 
 namespace mozilla {
 namespace ipc {
-class PrincipalInfo;
 class AutoIPCStream;
+class PBackgroundChild;
+class PrincipalInfo;
 }  // namespace ipc
 
 namespace dom {
@@ -42,9 +43,10 @@ class InternalResponse final {
   static RefPtr<InternalResponse> FromIPC(
       const IPCInternalResponse& aIPCResponse);
 
-  template <typename M>
+  // Note: the AutoIPCStreams must outlive the IPCInternalResponse.
   void ToIPC(
-      IPCInternalResponse* aIPCResponse, M* aManager,
+      IPCInternalResponse* aIPCResponse,
+      mozilla::ipc::PBackgroundChild* aManager,
       UniquePtr<mozilla::ipc::AutoIPCStream>& aAutoBodyStream,
       UniquePtr<mozilla::ipc::AutoIPCStream>& aAutoAlternativeBodyStream);
 
@@ -57,7 +59,7 @@ class InternalResponse final {
 
   static already_AddRefed<InternalResponse> NetworkError(nsresult aRv) {
     MOZ_DIAGNOSTIC_ASSERT(NS_FAILED(aRv));
-    RefPtr<InternalResponse> response = new InternalResponse(0, EmptyCString());
+    RefPtr<InternalResponse> response = new InternalResponse(0, ""_ns);
     ErrorResult result;
     response->Headers()->SetGuard(HeadersGuardEnum::Immutable, result);
     MOZ_ASSERT(!result.Failed());
@@ -111,12 +113,18 @@ class InternalResponse final {
     return GetURLList(aURLList);
   }
 
+  nsTArray<nsCString> GetUnfilteredURLList() const {
+    nsTArray<nsCString> list;
+    GetUnfilteredURLList(list);
+    return list;
+  }
+
   void SetURLList(const nsTArray<nsCString>& aURLList) {
     mURLList.Assign(aURLList);
 
 #ifdef DEBUG
     for (uint32_t i = 0; i < mURLList.Length(); ++i) {
-      MOZ_ASSERT(mURLList[i].Find(NS_LITERAL_CSTRING("#")) == kNotFound);
+      MOZ_ASSERT(mURLList[i].Find("#"_ns) == kNotFound);
     }
 #endif
   }
@@ -331,7 +339,6 @@ class InternalResponse final {
   already_AddRefed<InternalResponse> CreateIncompleteCopy();
 
   ResponseType mType;
-  nsCString mTerminationReason;
   // A response has an associated url list (a list of zero or more fetch URLs).
   // Unless stated otherwise, it is the empty list. The current url is the last
   // element in mURLlist

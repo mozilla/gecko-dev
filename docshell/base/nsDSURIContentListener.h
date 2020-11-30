@@ -17,7 +17,7 @@ class nsIInterfaceRequestor;
 class nsIWebNavigationInfo;
 class nsPIDOMWindowOuter;
 
-// Helper Class to eventually close an already openend window
+// Helper Class to eventually close an already opened window
 class MaybeCloseWindowHelper final : public nsITimerCallback {
  public:
   NS_DECL_ISUPPORTS
@@ -27,9 +27,12 @@ class MaybeCloseWindowHelper final : public nsITimerCallback {
       mozilla::dom::BrowsingContext* aContentContext);
 
   /**
-   * Closes the provided window async (if mShouldCloseWindow is true)
-   * and returns its opener if the window was just opened. Otherwise
-   * returns the BrowsingContext provided in the constructor.
+   * Closes the provided window async (if mShouldCloseWindow is true) and
+   * returns a valid browsingContext to be used instead as parent for dialogs or
+   * similar things.
+   * In case mShouldCloseWindow is true, the returned BrowsingContext will be
+   * the window's opener (or original cross-group opener in the case of a
+   * `noopener` popup).
    */
   mozilla::dom::BrowsingContext* MaybeCloseWindow();
 
@@ -39,6 +42,9 @@ class MaybeCloseWindowHelper final : public nsITimerCallback {
   ~MaybeCloseWindowHelper();
 
  private:
+  already_AddRefed<mozilla::dom::BrowsingContext> ChooseNewBrowsingContext(
+      mozilla::dom::BrowsingContext* aBC);
+
   /**
    * The dom window associated to handle content.
    */

@@ -64,7 +64,7 @@ pub(crate) fn define(shared_defs: &SharedDefinitions, regs: &IsaRegs) -> RecipeG
 
     // R-type with an immediate shift amount instead of rs2.
     recipes.push(
-        EncodingRecipeBuilder::new("Rshamt", &formats.binary_imm, 4)
+        EncodingRecipeBuilder::new("Rshamt", &formats.binary_imm64, 4)
             .operands_in(vec![gpr])
             .operands_out(vec![gpr])
             .emit("put_rshamt(bits, in_reg0, imm.into(), out_reg0, sink);"),
@@ -79,11 +79,11 @@ pub(crate) fn define(shared_defs: &SharedDefinitions, regs: &IsaRegs) -> RecipeG
     );
 
     recipes.push(
-        EncodingRecipeBuilder::new("Ii", &formats.binary_imm, 4)
+        EncodingRecipeBuilder::new("Ii", &formats.binary_imm64, 4)
             .operands_in(vec![gpr])
             .operands_out(vec![gpr])
             .inst_predicate(InstructionPredicate::new_is_signed_int(
-                &*formats.binary_imm,
+                &*formats.binary_imm64,
                 "imm",
                 12,
                 0,
@@ -205,7 +205,8 @@ pub(crate) fn define(shared_defs: &SharedDefinitions, regs: &IsaRegs) -> RecipeG
 
     recipes.push(EncodingRecipeBuilder::new("UJcall", &formats.call, 4).emit(
         r#"
-                    sink.reloc_external(Reloc::RiscvCall,
+                    sink.reloc_external(func.srclocs[inst],
+                                        Reloc::RiscvCall,
                                         &func.dfg.ext_funcs[func_ref].name,
                                         0);
                     // rd=%x1 is the standard link register.

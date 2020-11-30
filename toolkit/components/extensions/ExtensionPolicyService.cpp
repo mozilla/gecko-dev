@@ -66,11 +66,9 @@ static mozIExtensionProcessScript& ProcessScript() {
   static nsCOMPtr<mozIExtensionProcessScript> sProcessScript;
 
   if (MOZ_UNLIKELY(!sProcessScript)) {
-    nsCOMPtr<mozIExtensionProcessScriptJSM> jsm =
-        do_ImportModule("resource://gre/modules/ExtensionProcessScript.jsm");
-    MOZ_RELEASE_ASSERT(jsm);
-
-    Unused << jsm->GetExtensionProcessScript(getter_AddRefs(sProcessScript));
+    sProcessScript =
+        do_ImportModule("resource://gre/modules/ExtensionProcessScript.jsm",
+                        "ExtensionProcessScript");
     MOZ_RELEASE_ASSERT(sProcessScript);
     ClearOnShutdown(&sProcessScript);
   }
@@ -119,7 +117,7 @@ bool ExtensionPolicyService::IsExtensionProcess() const {
 
   if (isRemote && XRE_IsContentProcess()) {
     auto& remoteType = dom::ContentChild::GetSingleton()->GetRemoteType();
-    return remoteType.EqualsLiteral(EXTENSION_REMOTE_TYPE);
+    return remoteType == EXTENSION_REMOTE_TYPE;
   }
   return !isRemote && XRE_IsParentProcess();
 }
@@ -201,7 +199,7 @@ ExtensionPolicyService::CollectReports(nsIHandleReportCallback* aHandleReport,
     name.ReplaceSubstring("\\", "");
 
     nsString url;
-    MOZ_TRY_VAR(url, ext->GetURL(NS_LITERAL_STRING("")));
+    MOZ_TRY_VAR(url, ext->GetURL(u""_ns));
 
     nsPrintfCString desc("Extension(id=%s, name=\"%s\", baseURL=%s)", id.get(),
                          name.get(), NS_ConvertUTF16toUTF8(url).get());
@@ -210,10 +208,9 @@ ExtensionPolicyService::CollectReports(nsIHandleReportCallback* aHandleReport,
     nsCString path("extensions/");
     path.Append(desc);
 
-    aHandleReport->Callback(
-        EmptyCString(), path, KIND_NONHEAP, UNITS_COUNT, 1,
-        NS_LITERAL_CSTRING("WebExtensions that are active in this session"),
-        aData);
+    aHandleReport->Callback(""_ns, path, KIND_NONHEAP, UNITS_COUNT, 1,
+                            "WebExtensions that are active in this session"_ns,
+                            aData);
   }
 
   return NS_OK;
@@ -267,7 +264,7 @@ nsresult ExtensionPolicyService::Observe(nsISupports* aSubject,
 
     mMessageManagers.PutEntry(mm);
 
-    mm->AddSystemEventListener(NS_LITERAL_STRING("unload"), this, false, false);
+    mm->AddSystemEventListener(u"unload"_ns, this, false, false);
   } else if (!strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID)) {
     const nsCString converted = NS_ConvertUTF16toUTF8(aData);
     const char* pref = converted.get();
@@ -428,9 +425,13 @@ static bool CheckParentFrames(nsPIDOMWindowOuter* aWindow,
     return false;
   }
 
-  auto* piWin = aWindow;
-  while ((piWin = piWin->GetInProcessScriptableParentOrNull())) {
-    auto* win = nsGlobalWindowOuter::Cast(piWin);
+  dom::WindowContext* wc = aWindow->GetCurrentInnerWindow()->GetWindowContext();
+  while ((wc = wc->GetParentWindowContext())) {
+    if (!wc->IsInProcess()) {
+      return false;
+    }
+
+    nsGlobalWindowInner* win = wc->GetInnerWindow();
 
     auto* principal = BasePrincipal::Cast(win->GetPrincipal());
     if (principal->IsSystemPrincipal()) {
@@ -460,7 +461,18 @@ void ExtensionPolicyService::CheckDocument(Document* aDocument) {
   if (win) {
     nsIDocShell* docShell = win->GetDocShell();
     RefPtr<ContentFrameMessageManager> mm = docShell->GetMessageManager();
-    if (!mm || !mMessageManagers.Contains(mm)) {
+    nsString group = win->GetBrowsingContext()->Top()->GetMessageManagerGroup();
+
+    // Currently, we use frame scripts to select specific kinds of browsers
+    // where we want to run content scripts.
+    if ((!mm || !mMessageManagers.Contains(mm)) &&
+        // With Fission, OOP iframes don't have a frame message manager, so we
+        // use the browser's MessageManagerGroup attribute to decide if content
+        // scripts should run.  The "browsers" group includes iframes from tabs,
+        // and the "webext-browsers" group includes custom browsers for
+        // extension popups/sidebars and xpcshell tests.
+        !group.EqualsLiteral("browsers") &&
+        !group.EqualsLiteral("webext-browsers")) {
       return;
     }
 
@@ -487,6 +499,8 @@ void ExtensionPolicyService::CheckContentScripts(const DocInfo& aDocInfo,
     win = aDocInfo.GetWindow()->GetCurrentInnerWindow();
   }
 
+  nsTArray<RefPtr<WebExtensionContentScript>> scriptsToLoad;
+
   for (auto iter = mExtensions.Iter(); !iter.Done(); iter.Next()) {
     RefPtr<WebExtensionPolicy> policy = iter.Data();
 
@@ -495,15 +509,26 @@ void ExtensionPolicyService::CheckContentScripts(const DocInfo& aDocInfo,
         if (aIsPreload) {
           ProcessScript().PreloadContentScript(script);
         } else {
-          if (!win->IsCurrentInnerWindow()) {
-            break;
-          }
-          RefPtr<Promise> promise;
-          ProcessScript().LoadContentScript(script, win,
-                                            getter_AddRefs(promise));
+          // Collect the content scripts to load instead of loading them
+          // right away (to prevent a loaded content script from being
+          // able to invalidate the iterator by triggering a call to
+          // policy->UnregisterContentScript while we are still iterating
+          // over all its content scripts). See Bug 1593240.
+          scriptsToLoad.AppendElement(script);
         }
       }
     }
+
+    for (auto& script : scriptsToLoad) {
+      if (!win->IsCurrentInnerWindow()) {
+        break;
+      }
+
+      RefPtr<Promise> promise;
+      ProcessScript().LoadContentScript(script, win, getter_AddRefs(promise));
+    }
+
+    scriptsToLoad.ClearAndRetainStorage();
   }
 
   for (auto iter = mObservers.Iter(); !iter.Done(); iter.Next()) {

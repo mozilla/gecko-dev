@@ -192,7 +192,7 @@ Tasks of the ``docker-image`` kind build the Docker images in which other
 Docker tasks run.
 
 The tasks to generate each docker image have predictable labels:
-``build-docker-image-<name>``.
+``docker-image-<name>``.
 
 Docker images are built from subdirectories of ``taskcluster/docker``, using
 ``docker build``.  There is currently no capability for one Docker image to
@@ -270,15 +270,9 @@ Beetmover, takes source specific artifact checksums and pushes it to a location 
 of Taskcluster's task artifacts (archive.mozilla.org as one place) and in the
 process determines the final location and "pretty" names it (version product name)
 
-push-apk
+perftest
 --------
-PushApk publishes Android packages onto Google Play Store. Jobs of this kind take
-all the signed multi-locales (aka "multi") APKs for a given release and upload them
-all at once.
-
-push-apk-checks
----------------
-Runs the checks done in push-apk to ensure APKs are sane before submitting them
+Runs performance tests using mozperftest.
 
 release-balrog-submit-toplevel
 ------------------------------
@@ -329,6 +323,11 @@ release-secondary-snap-push
 Performs the same function as `release-snap-push`, except for the beta channel as part of RC
 Releases.
 
+release-secondary-flatpak-push
+------------------------------
+Performs the same function as `release-flatpak-push`, except for the beta channel as part of RC
+Releases.
+
 release-notify-av-announce
 --------------------------
 Notify anti-virus vendors when a release is likely shipping.
@@ -355,11 +354,7 @@ Notify when a release has been started.
 
 release-bouncer-sub
 -------------------
-Submits bouncer updates for releases.
-
-release-bouncer-sub-nazgul
---------------------------
-Submits bouncer updates for releases, using new implementation of bouncer-admin (Nazgul).
+Submits bouncer information for releases.
 
 release-mark-as-shipped
 -----------------------
@@ -375,7 +370,7 @@ Checks Bouncer (download.mozilla.org) uptake.
 
 bouncer-locations
 -----------------
-Updates nightly bouncer locations for version bump
+Updates nightly bouncer locations for version bump.
 
 release-bouncer-check
 ---------------------
@@ -456,6 +451,10 @@ release-partner-repack
 ----------------------
 Generates customized versions of releases for partners.
 
+release-partner-attribution
+---------------------------
+Generates attributed versions of releases for partners.
+
 release-partner-repack-chunking-dummy
 -------------------------------------
 Chunks the partner repacks by locale.
@@ -488,10 +487,13 @@ release-partner-repack-beetmover
 --------------------------------
 Moves the partner repacks to S3 buckets.
 
+release-partner-attribution-beetmover
+-------------------------------------
+Moves the partner attributions to S3 buckets.
+
 release-partner-repack-bouncer-sub
 ----------------------------------
 Sets up bouncer products for partners.
-
 
 release-early-tagging
 ---------------------
@@ -664,11 +666,6 @@ Tasks that take a build configured for PGO and run the binary against a sample
 set to generate profile data. This is the 2nd stage of the full 3-step PGO
 process.
 
-geckodriver-repack
-------------------
-Tasks to repackage the geckodriver binary from a build tasks's common
-test archive into it's own archive.
-
 geckodriver-signing
 -------------------
 Signing for geckodriver binary.
@@ -711,3 +708,11 @@ Generate missing macOS and windows system symbols from crash reports.
 system-symbols-upload
 ---------------------
 Upload macOS and windows system symbols to tecken.
+
+scriptworker-canary
+-------------------
+Push tasks to try to test new scriptworker deployments.
+
+updatebot
+------------------
+Check for updates to (supported) third party libraries, and manage their lifecycle.

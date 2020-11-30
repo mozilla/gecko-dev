@@ -4,6 +4,8 @@
 
 "use strict";
 
+const EXPORTED_SYMBOLS = ["evaluate", "sandbox", "Sandboxes"];
+
 const { clearTimeout, setTimeout } = ChromeUtils.import(
   "resource://gre/modules/Timer.jsm"
 );
@@ -11,18 +13,15 @@ const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
-const { assert } = ChromeUtils.import("chrome://marionette/content/assert.js");
-const { element, WebElement } = ChromeUtils.import(
-  "chrome://marionette/content/element.js"
-);
-const { JavaScriptError, ScriptTimeoutError } = ChromeUtils.import(
-  "chrome://marionette/content/error.js"
-);
-const { Log } = ChromeUtils.import("chrome://marionette/content/log.js");
+XPCOMUtils.defineLazyModuleGetters(this, {
+  assert: "chrome://marionette/content/assert.js",
+  element: "chrome://marionette/content/element.js",
+  error: "chrome://marionette/content/error.js",
+  Log: "chrome://marionette/content/log.js",
+  WebElement: "chrome://marionette/content/element.js",
+});
 
-XPCOMUtils.defineLazyGetter(this, "log", Log.get);
-
-this.EXPORTED_SYMBOLS = ["evaluate", "sandbox", "Sandboxes"];
+XPCOMUtils.defineLazyGetter(this, "logger", () => Log.get());
 
 const ARGUMENTS = "__webDriverArguments";
 const CALLBACK = "__webDriverCallback";
@@ -98,7 +97,6 @@ evaluate.sandbox = function(
   } = {}
 ) {
   let unloadHandler;
-
   let marionetteSandbox = sandbox.create(sb.window);
 
   // timeout handler
@@ -106,7 +104,7 @@ evaluate.sandbox = function(
   if (timeout !== null) {
     timeoutPromise = new Promise((resolve, reject) => {
       scriptTimeoutID = setTimeout(() => {
-        reject(new ScriptTimeoutError(`Timed out after ${timeout} ms`));
+        reject(new error.ScriptTimeoutError(`Timed out after ${timeout} ms`));
       }, timeout);
     });
   }
@@ -129,7 +127,7 @@ evaluate.sandbox = function(
     }).apply(null, ${ARGUMENTS})`;
 
     unloadHandler = sandbox.cloneInto(
-      () => reject(new JavaScriptError("Document was unloaded")),
+      () => reject(new error.JavaScriptError("Document was unloaded")),
       marionetteSandbox
     );
     marionetteSandbox.window.addEventListener("unload", unloadHandler);
@@ -167,10 +165,10 @@ evaluate.sandbox = function(
   return Promise.race([promise, timeoutPromise])
     .catch(err => {
       // Only raise valid errors for both the sync and async scripts.
-      if (err instanceof ScriptTimeoutError) {
+      if (err instanceof error.ScriptTimeoutError) {
         throw err;
       }
-      throw new JavaScriptError(err);
+      throw new error.JavaScriptError(err);
     })
     .finally(() => {
       clearTimeout(scriptTimeoutID);
@@ -180,13 +178,20 @@ evaluate.sandbox = function(
 
 /**
  * Convert any web elements in arbitrary objects to DOM elements by
- * looking them up in the seen element store.
+ * looking them up in the seen element store. For ElementIdentifiers a new
+ * entry in the seen element reference store gets added when running in the
+ * parent process, otherwise ContentDOMReference is used to retrieve the DOM
+ * node.
  *
  * @param {Object} obj
- *     Arbitrary object containing web elements.
- * @param {element.Store=} seenEls
- *     Known element store to look up web elements from.  If undefined,
- *     the web element references are returned instead.
+ *     Arbitrary object containing web elements or ElementIdentifiers.
+ * @param {(element.Store|element.ReferenceStore)=} seenEls
+ *     Known element store to look up web elements from. If `seenEls` is an
+ *     instance of `element.ReferenceStore`, return WebElement. If `seenEls`
+ *     is an instance of `element.Store`, return Element. If `seenEls` is
+ *     `undefined` the Element from the ContentDOMReference cache is returned
+ *     when executed in the child process, in the parent process the WebElement
+ *     is passed-through.
  * @param {WindowProxy=} win
  *     Current browsing context, if `seenEls` is provided.
  *
@@ -195,12 +200,12 @@ evaluate.sandbox = function(
  *     replaced by DOM elements.
  *
  * @throws {NoSuchElementError}
- *     If `seenEls` is given and the web element reference has not
+ *     If `seenEls` is an `element.Store` and the web element reference has not
  *     been seen before.
  * @throws {StaleElementReferenceError}
- *     If `seenEls` is given and the element has gone stale, indicating
- *     it is no longer attached to the DOM, or its node document
- *     is no longer the active document.
+ *     If `seenEls` is an `element.ReferenceStore` or `element.Store` and the
+ *     element has gone stale, indicating it is no longer attached to the DOM,
+ *     or its node document is no longer the active document.
  */
 evaluate.fromJSON = function(obj, seenEls = undefined, win = undefined) {
   switch (typeof obj) {
@@ -218,13 +223,28 @@ evaluate.fromJSON = function(obj, seenEls = undefined, win = undefined) {
       } else if (Array.isArray(obj)) {
         return obj.map(e => evaluate.fromJSON(e, seenEls, win));
 
-        // web elements
-      } else if (WebElement.isReference(obj)) {
-        let webEl = WebElement.fromJSON(obj);
-        if (seenEls) {
-          return seenEls.get(webEl, win);
+        // ElementIdentifier and ReferenceStore (used by JSWindowActor)
+      } else if (WebElement.isReference(obj.webElRef)) {
+        if (seenEls instanceof element.ReferenceStore) {
+          // Parent: Store web element reference in the cache
+          return seenEls.add(obj);
+        } else if (!seenEls) {
+          // Child: Resolve ElementIdentifier by using ContentDOMReference
+          return element.resolveElement(obj);
         }
-        return webEl;
+        throw new TypeError("seenEls is not an instance of ReferenceStore");
+
+        // WebElement and Store (used by framescript)
+      } else if (WebElement.isReference(obj)) {
+        const webEl = WebElement.fromJSON(obj);
+        if (seenEls instanceof element.Store) {
+          // Child: Get web element from the store
+          return seenEls.get(webEl, win);
+        } else if (!seenEls) {
+          // Parent: No conversion. Just return the web element
+          return webEl;
+        }
+        throw new TypeError("seenEls is not an instance of Store");
       }
 
       // arbitrary objects
@@ -238,7 +258,7 @@ evaluate.fromJSON = function(obj, seenEls = undefined, win = undefined) {
 
 /**
  * Marshal arbitrary objects to JSON-safe primitives that can be
- * transported over the Marionette protocol.
+ * transported over the Marionette protocol or across processes.
  *
  * The marshaling rules are as follows:
  *
@@ -247,9 +267,12 @@ evaluate.fromJSON = function(obj, seenEls = undefined, win = undefined) {
  * - Collections, such as `Array<`, `NodeList`, `HTMLCollection`
  *   et al. are expanded to arrays and then recursed.
  *
- * - Elements that are not known web elements are added to the
- *   `seenEls` element store.  Once known, the elements' associated
- *   web element representation is returned.
+ * - Elements that are not known web elements are added to the `seenEls` element
+ *   store, or the ContentDOMReference registry. Once known, the elements'
+ *   associated web element representation is returned.
+ *
+ * - WebElements are transformed to the corresponding ElementIdentifier
+ *   for use in the content process, if an `element.ReferenceStore` is provided.
  *
  * - Objects with custom JSON representations, i.e. if they have
  *   a callable `toJSON` function, are returned verbatim.  This means
@@ -260,7 +283,8 @@ evaluate.fromJSON = function(obj, seenEls = undefined, win = undefined) {
  *
  * @param {Object} obj
  *     Object to be marshaled.
- * @param {element.Store} seenEls
+ *
+ * @param {(element.Store|element.ReferenceStore)=} seenEls
  *     Element store to use for lookup of web element references.
  *
  * @return {Object}
@@ -292,11 +316,40 @@ evaluate.toJSON = function(obj, seenEls) {
 
     // WebElement
   } else if (WebElement.isReference(obj)) {
+    // Parent: Convert to ElementIdentifier for use in child actor
+    if (seenEls instanceof element.ReferenceStore) {
+      return seenEls.get(WebElement.fromJSON(obj));
+    }
+
     return obj;
+
+    // ElementIdentifier
+  } else if (WebElement.isReference(obj.webElRef)) {
+    // Parent: Pass-through ElementIdentifiers to the child
+    if (seenEls instanceof element.ReferenceStore) {
+      return obj;
+    }
+
+    // Parent: Otherwise return the web element
+    return WebElement.fromJSON(obj.webElRef);
 
     // Element (HTMLElement, SVGElement, XULElement, et al.)
   } else if (element.isElement(obj)) {
-    return seenEls.add(obj);
+    // Parent
+    if (seenEls instanceof element.ReferenceStore) {
+      throw new TypeError(`ReferenceStore can't be used with Element`);
+
+      // Child: Add element to the Store, return as WebElement
+    } else if (seenEls instanceof element.Store) {
+      return seenEls.add(obj);
+    }
+
+    // If no storage has been specified assume we are in a child process.
+    // Evaluation of code will take place in mutable sandboxes, which are
+    // created to waive xrays by default. As such DOM nodes have to be unwaived
+    // before accessing the ownerGlobal is possible, which is needed by
+    // ContentDOMReference.
+    return element.getElementId(Cu.unwaiveXrays(obj));
 
     // custom JSON representation
   } else if (typeof obj.toJSON == "function") {
@@ -313,7 +366,7 @@ evaluate.toJSON = function(obj, seenEls) {
       rv[prop] = evaluate.toJSON(obj[prop], seenEls);
     } catch (e) {
       if (e.result == Cr.NS_ERROR_NOT_IMPLEMENTED) {
-        log.debug(`Skipping ${prop}: ${e.message}`);
+        logger.debug(`Skipping ${prop}: ${e.message}`);
       } else {
         throw e;
       }

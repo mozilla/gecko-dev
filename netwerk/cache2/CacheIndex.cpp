@@ -24,7 +24,7 @@
 #define kMinUnwrittenChanges 300
 #define kMinDumpInterval 20000  // in milliseconds
 #define kMaxBufSize 16384
-#define kIndexVersion 0x00000009
+#define kIndexVersion 0x0000000A
 #define kUpdateIndexStartDelay 50000  // in milliseconds
 #define kTelemetryReportBytesLimit (2U * 1024U * 1024U * 1024U)  // 2GB
 
@@ -305,9 +305,6 @@ nsresult CacheIndex::InitInternal(nsIFile* aCacheDirectory) {
 
   mStartTime = TimeStamp::NowLoRes();
 
-  mTotalBytesWritten = CacheObserver::CacheAmountWritten();
-  mTotalBytesWritten <<= 10;
-
   ReadIndexFromDisk();
 
   return NS_OK;
@@ -424,8 +421,6 @@ nsresult CacheIndex::Shutdown() {
   }
 
   bool sanitize = CacheObserver::ClearCacheOnShutdown();
-
-  CacheObserver::SetCacheAmountWritten(index->mTotalBytesWritten >> 10);
 
   LOG(
       ("CacheIndex::Shutdown() - [state=%d, indexOnDiskIsValid=%d, "
@@ -1102,7 +1097,7 @@ nsresult CacheIndex::RemoveAll() {
     } else {
       // We don't have a handle to index file, so get the file here, but delete
       // it outside the lock. Ignore the result since this is not fatal.
-      index->GetFile(NS_LITERAL_CSTRING(INDEX_NAME), getter_AddRefs(file));
+      index->GetFile(nsLiteralCString(INDEX_NAME), getter_AddRefs(file));
     }
 
     if (index->mJournalHandle) {
@@ -1691,7 +1686,7 @@ void CacheIndex::WriteIndexToDisk() {
 
   mIndexFileOpener = new FileOpenHelper(this);
   rv = CacheFileIOManager::OpenFile(
-      NS_LITERAL_CSTRING(TEMP_INDEX_NAME),
+      nsLiteralCString(TEMP_INDEX_NAME),
       CacheFileIOManager::SPECIAL_FILE | CacheFileIOManager::CREATE,
       mIndexFileOpener);
   if (NS_FAILED(rv)) {
@@ -1717,6 +1712,10 @@ void CacheIndex::WriteIndexToDisk() {
   mRWBufPos += sizeof(uint32_t);
   // dirty flag
   NetworkEndian::writeUint32(mRWBuf + mRWBufPos, 1);
+  mRWBufPos += sizeof(uint32_t);
+  // amount of data written to the cache
+  NetworkEndian::writeUint32(mRWBuf + mRWBufPos,
+                             static_cast<uint32_t>(mTotalBytesWritten >> 10));
   mRWBufPos += sizeof(uint32_t);
 
   mSkipEntries = 0;
@@ -1887,44 +1886,34 @@ nsresult CacheIndex::GetFile(const nsACString& aName, nsIFile** _retval) {
   return NS_OK;
 }
 
-nsresult CacheIndex::RemoveFile(const nsACString& aName) {
+void CacheIndex::RemoveFile(const nsACString& aName) {
   MOZ_ASSERT(mState == SHUTDOWN);
 
   nsresult rv;
 
   nsCOMPtr<nsIFile> file;
   rv = GetFile(aName, getter_AddRefs(file));
-  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_SUCCESS_VOID(rv);
 
-  bool exists;
-  rv = file->Exists(&exists);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (exists) {
-    rv = file->Remove(false);
-    if (NS_FAILED(rv)) {
-      LOG(
-          ("CacheIndex::RemoveFile() - Cannot remove old entry file from disk."
-           "[name=%s]",
-           PromiseFlatCString(aName).get()));
-      NS_WARNING("Cannot remove old entry file from the disk");
-      return rv;
-    }
+  rv = file->Remove(false);
+  if (NS_FAILED(rv) && rv != NS_ERROR_FILE_NOT_FOUND) {
+    LOG(
+        ("CacheIndex::RemoveFile() - Cannot remove old entry file from disk "
+         "[rv=0x%08" PRIx32 ", name=%s]",
+         static_cast<uint32_t>(rv), PromiseFlatCString(aName).get()));
   }
-
-  return NS_OK;
 }
 
 void CacheIndex::RemoveAllIndexFiles() {
   LOG(("CacheIndex::RemoveAllIndexFiles()"));
-  RemoveFile(NS_LITERAL_CSTRING(INDEX_NAME));
+  RemoveFile(nsLiteralCString(INDEX_NAME));
   RemoveJournalAndTempFile();
 }
 
 void CacheIndex::RemoveJournalAndTempFile() {
   LOG(("CacheIndex::RemoveJournalAndTempFile()"));
-  RemoveFile(NS_LITERAL_CSTRING(TEMP_INDEX_NAME));
-  RemoveFile(NS_LITERAL_CSTRING(JOURNAL_NAME));
+  RemoveFile(nsLiteralCString(TEMP_INDEX_NAME));
+  RemoveFile(nsLiteralCString(JOURNAL_NAME));
 }
 
 class WriteLogHelper {
@@ -2015,14 +2004,14 @@ nsresult CacheIndex::WriteLogToDisk() {
     return NS_ERROR_FAILURE;
   }
 
-  RemoveFile(NS_LITERAL_CSTRING(TEMP_INDEX_NAME));
+  RemoveFile(nsLiteralCString(TEMP_INDEX_NAME));
 
   nsCOMPtr<nsIFile> indexFile;
-  rv = GetFile(NS_LITERAL_CSTRING(INDEX_NAME), getter_AddRefs(indexFile));
+  rv = GetFile(nsLiteralCString(INDEX_NAME), getter_AddRefs(indexFile));
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIFile> logFile;
-  rv = GetFile(NS_LITERAL_CSTRING(JOURNAL_NAME), getter_AddRefs(logFile));
+  rv = GetFile(nsLiteralCString(JOURNAL_NAME), getter_AddRefs(logFile));
   NS_ENSURE_SUCCESS(rv, rv);
 
   mIndexStats.Log();
@@ -2081,7 +2070,7 @@ void CacheIndex::ReadIndexFromDisk() {
 
   mIndexFileOpener = new FileOpenHelper(this);
   rv = CacheFileIOManager::OpenFile(
-      NS_LITERAL_CSTRING(INDEX_NAME),
+      nsLiteralCString(INDEX_NAME),
       CacheFileIOManager::SPECIAL_FILE | CacheFileIOManager::OPEN,
       mIndexFileOpener);
   if (NS_FAILED(rv)) {
@@ -2095,7 +2084,7 @@ void CacheIndex::ReadIndexFromDisk() {
 
   mJournalFileOpener = new FileOpenHelper(this);
   rv = CacheFileIOManager::OpenFile(
-      NS_LITERAL_CSTRING(JOURNAL_NAME),
+      nsLiteralCString(JOURNAL_NAME),
       CacheFileIOManager::SPECIAL_FILE | CacheFileIOManager::OPEN,
       mJournalFileOpener);
   if (NS_FAILED(rv)) {
@@ -2108,7 +2097,7 @@ void CacheIndex::ReadIndexFromDisk() {
 
   mTmpFileOpener = new FileOpenHelper(this);
   rv = CacheFileIOManager::OpenFile(
-      NS_LITERAL_CSTRING(TEMP_INDEX_NAME),
+      nsLiteralCString(TEMP_INDEX_NAME),
       CacheFileIOManager::SPECIAL_FILE | CacheFileIOManager::OPEN,
       mTmpFileOpener);
   if (NS_FAILED(rv)) {
@@ -2209,6 +2198,11 @@ void CacheIndex::ParseRecords() {
       }
     }
     pos += sizeof(uint32_t);
+
+    uint64_t dataWritten = NetworkEndian::readUint32(mRWBuf + pos);
+    pos += sizeof(uint32_t);
+    dataWritten <<= 10;
+    mTotalBytesWritten += dataWritten;
   }
 
   uint32_t hashOffset = pos;
@@ -2492,8 +2486,8 @@ void CacheIndex::FinishRead(bool aSucceeded) {
   MOZ_ASSERT(!mRWPending || (!aSucceeded && (mShuttingDown || mRemovingAll)));
 
   if (mState == SHUTDOWN) {
-    RemoveFile(NS_LITERAL_CSTRING(TEMP_INDEX_NAME));
-    RemoveFile(NS_LITERAL_CSTRING(JOURNAL_NAME));
+    RemoveFile(nsLiteralCString(TEMP_INDEX_NAME));
+    RemoveFile(nsLiteralCString(JOURNAL_NAME));
   } else {
     if (mIndexHandle && !mIndexOnDiskIsValid) {
       CacheFileIOManager::DoomFile(mIndexHandle, nullptr);
@@ -2631,7 +2625,7 @@ nsresult CacheIndex::SetupDirectoryEnumerator() {
   rv = mCacheDirectory->Clone(getter_AddRefs(file));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = file->AppendNative(NS_LITERAL_CSTRING(ENTRIES_DIR));
+  rv = file->AppendNative(nsLiteralCString(ENTRIES_DIR));
   NS_ENSURE_SUCCESS(rv, rv);
 
   bool exists;
@@ -3280,11 +3274,6 @@ void CacheIndex::ChangeState(EState aNewState) {
     return;
   }
 
-  if ((mState == READING || mState == BUILDING || mState == UPDATING) &&
-      aNewState == READY) {
-    ReportHashStats();
-  }
-
   // Try to evict entries over limit everytime we're leaving state READING,
   // BUILDING or UPDATING, but not during shutdown or when removing all
   // entries.
@@ -3574,7 +3563,7 @@ void CacheIndex::OnFileOpenedInternal(FileOpenHelper* aOpener,
         // Rename journal to make sure we update index on next start in case
         // firefox crashes
         rv = CacheFileIOManager::RenameFile(
-            mJournalHandle, NS_LITERAL_CSTRING(TEMP_INDEX_NAME), this);
+            mJournalHandle, nsLiteralCString(TEMP_INDEX_NAME), this);
         if (NS_FAILED(rv)) {
           LOG(
               ("CacheIndex::OnFileOpenedInternal() - CacheFileIOManager::"
@@ -3626,7 +3615,7 @@ nsresult CacheIndex::OnDataWritten(CacheFileHandle* aHandle, const char* aBuf,
       } else {
         if (mSkipEntries == mProcessEntries) {
           rv = CacheFileIOManager::RenameFile(
-              mIndexHandle, NS_LITERAL_CSTRING(INDEX_NAME), this);
+              mIndexHandle, nsLiteralCString(INDEX_NAME), this);
           if (NS_FAILED(rv)) {
             LOG(
                 ("CacheIndex::OnDataWritten() - CacheFileIOManager::"
@@ -3813,73 +3802,6 @@ size_t CacheIndex::SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) {
   return mallocSizeOf(gInstance) + SizeOfExcludingThis(mallocSizeOf);
 }
 
-namespace {
-
-class HashComparator {
- public:
-  bool Equals(CacheIndexRecord* a, CacheIndexRecord* b) const {
-    return memcmp(&a->mHash, &b->mHash, sizeof(SHA1Sum::Hash)) == 0;
-  }
-  bool LessThan(CacheIndexRecord* a, CacheIndexRecord* b) const {
-    return memcmp(&a->mHash, &b->mHash, sizeof(SHA1Sum::Hash)) < 0;
-  }
-};
-
-void ReportHashSizeMatch(const SHA1Sum::Hash* aHash1,
-                         const SHA1Sum::Hash* aHash2) {
-  const uint32_t* h1 = reinterpret_cast<const uint32_t*>(aHash1);
-  const uint32_t* h2 = reinterpret_cast<const uint32_t*>(aHash2);
-
-  for (uint32_t i = 0; i < 5; ++i) {
-    if (h1[i] != h2[i]) {
-      uint32_t bitsDiff = h1[i] ^ h2[i];
-      bitsDiff = NetworkEndian::readUint32(&bitsDiff);
-
-      // count leading zeros in bitsDiff
-      static const uint8_t debruijn32[32] = {
-          0, 31, 9, 30, 3, 8,  13, 29, 2,  5,  7,  21, 12, 24, 28, 19,
-          1, 10, 4, 14, 6, 22, 25, 20, 11, 15, 23, 26, 16, 27, 17, 18};
-
-      bitsDiff |= bitsDiff >> 1;
-      bitsDiff |= bitsDiff >> 2;
-      bitsDiff |= bitsDiff >> 4;
-      bitsDiff |= bitsDiff >> 8;
-      bitsDiff |= bitsDiff >> 16;
-      bitsDiff++;
-
-      uint8_t hashSizeMatch =
-          debruijn32[bitsDiff * 0x076be629 >> 27] + (i << 5);
-      Telemetry::Accumulate(Telemetry::NETWORK_CACHE_HASH_STATS, hashSizeMatch);
-
-      return;
-    }
-  }
-
-  MOZ_ASSERT(false, "Found a collision in the index!");
-}
-
-}  // namespace
-
-void CacheIndex::ReportHashStats() {
-  // We're gathering the hash stats only once, exclude too small caches.
-  if (CacheObserver::HashStatsReported() || mFrecencyArray.Length() < 15000) {
-    return;
-  }
-
-  nsTArray<CacheIndexRecord*> records;
-  for (auto iter = mFrecencyArray.Iter(); !iter.Done(); iter.Next()) {
-    records.AppendElement(iter.Get());
-  }
-
-  records.Sort(HashComparator());
-
-  for (uint32_t i = 1; i < records.Length(); i++) {
-    ReportHashSizeMatch(&records[i - 1]->mHash, &records[i]->mHash);
-  }
-
-  CacheObserver::SetHashStatsReported();
-}
-
 // static
 void CacheIndex::UpdateTotalBytesWritten(uint32_t aBytesWritten) {
   StaticMutexAutoLock lock(sLock);
@@ -3898,26 +3820,16 @@ void CacheIndex::UpdateTotalBytesWritten(uint32_t aBytesWritten) {
       index->mState == READY && !index->mIndexNeedsUpdate &&
       !index->mShuttingDown) {
     index->DoTelemetryReport();
-
     index->mTotalBytesWritten = 0;
-    CacheObserver::SetCacheAmountWritten(0);
     return;
-  }
-
-  uint64_t writtenKB = index->mTotalBytesWritten >> 10;
-  // Store number of written kilobytes to prefs after writing at least 10MB.
-  if ((writtenKB - CacheObserver::CacheAmountWritten()) > (10 * 1024)) {
-    CacheObserver::SetCacheAmountWritten(writtenKB);
   }
 }
 
 void CacheIndex::DoTelemetryReport() {
   static const nsLiteralCString
       contentTypeNames[nsICacheEntry::CONTENT_TYPE_LAST] = {
-          NS_LITERAL_CSTRING("UNKNOWN"),    NS_LITERAL_CSTRING("OTHER"),
-          NS_LITERAL_CSTRING("JAVASCRIPT"), NS_LITERAL_CSTRING("IMAGE"),
-          NS_LITERAL_CSTRING("MEDIA"),      NS_LITERAL_CSTRING("STYLESHEET"),
-          NS_LITERAL_CSTRING("WASM")};
+          "UNKNOWN"_ns, "OTHER"_ns,      "JAVASCRIPT"_ns, "IMAGE"_ns,
+          "MEDIA"_ns,   "STYLESHEET"_ns, "WASM"_ns};
 
   for (uint32_t i = 0; i < nsICacheEntry::CONTENT_TYPE_LAST; ++i) {
     if (mIndexStats.Size() > 0) {
@@ -3937,9 +3849,9 @@ void CacheIndex::DoTelemetryReport() {
 
   nsCString probeKey;
   if (CacheObserver::SmartCacheSizeEnabled()) {
-    probeKey = NS_LITERAL_CSTRING("SMARTSIZE");
+    probeKey = "SMARTSIZE"_ns;
   } else {
-    probeKey = NS_LITERAL_CSTRING("USERDEFINEDSIZE");
+    probeKey = "USERDEFINEDSIZE"_ns;
   }
   Telemetry::Accumulate(Telemetry::NETWORK_CACHE_ENTRY_COUNT, probeKey,
                         mIndexStats.Count());

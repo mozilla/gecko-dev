@@ -33,8 +33,6 @@ class EvalOptions;
 class GlobalObject;
 class PromiseObject;
 
-enum { JSSLOT_DEBUGOBJECT_OWNER, JSSLOT_DEBUGOBJECT_COUNT };
-
 class DebuggerObject : public NativeObject {
  public:
   static const JSClass class_;
@@ -51,9 +49,6 @@ class DebuggerObject : public NativeObject {
   static MOZ_MUST_USE bool getClassName(JSContext* cx,
                                         HandleDebuggerObject object,
                                         MutableHandleString result);
-  static MOZ_MUST_USE bool getParameterNames(
-      JSContext* cx, HandleDebuggerObject object,
-      MutableHandle<StringVector> result);
   static MOZ_MUST_USE bool getBoundTargetFunction(
       JSContext* cx, HandleDebuggerObject object,
       MutableHandleDebuggerObject result);
@@ -169,11 +164,21 @@ class DebuggerObject : public NativeObject {
   bool isGlobal() const;
   bool isScriptedProxy() const;
   bool isPromise() const;
+  bool isError() const;
   JSAtom* name(JSContext* cx) const;
   JSAtom* displayName(JSContext* cx) const;
   JS::PromiseState promiseState() const;
   double promiseLifetime() const;
   double promiseTimeToResolution() const;
+
+  bool isInstance() const;
+  Debugger* owner() const;
+
+  JSObject* referent() const {
+    JSObject* obj = (JSObject*)getPrivate();
+    MOZ_ASSERT(obj);
+    return obj;
+  }
 
  private:
   enum { OWNER_SLOT };
@@ -186,13 +191,6 @@ class DebuggerObject : public NativeObject {
   static const JSPropertySpec promiseProperties_[];
   static const JSFunctionSpec methods_[];
 
-  JSObject* referent() const {
-    JSObject* obj = (JSObject*)getPrivate();
-    MOZ_ASSERT(obj);
-    return obj;
-  }
-
-  Debugger* owner() const;
   PromiseObject* promise() const;
 
   static MOZ_MUST_USE bool requireGlobal(JSContext* cx,

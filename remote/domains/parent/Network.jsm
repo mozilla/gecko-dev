@@ -18,10 +18,6 @@ const { Domain } = ChromeUtils.import(
   "chrome://remote/content/domains/Domain.jsm"
 );
 
-const { NetworkObserver } = ChromeUtils.import(
-  "chrome://remote/content/domains/parent/network/NetworkObserver.jsm"
-);
-
 const MAX_COOKIE_EXPIRY = Number.MAX_SAFE_INTEGER;
 
 const LOAD_CAUSE_STRINGS = {
@@ -34,7 +30,6 @@ const LOAD_CAUSE_STRINGS = {
   [Ci.nsIContentPolicy.TYPE_DOCUMENT]: "Document",
   [Ci.nsIContentPolicy.TYPE_SUBDOCUMENT]: "Subdocument",
   [Ci.nsIContentPolicy.TYPE_REFRESH]: "Refresh",
-  [Ci.nsIContentPolicy.TYPE_XBL]: "Xbl",
   [Ci.nsIContentPolicy.TYPE_PING]: "Ping",
   [Ci.nsIContentPolicy.TYPE_XMLHTTPREQUEST]: "Xhr",
   [Ci.nsIContentPolicy.TYPE_OBJECT_SUBREQUEST]: "ObjectSubdoc",
@@ -56,6 +51,7 @@ class Network extends Domain {
     this.enabled = false;
 
     this._onRequest = this._onRequest.bind(this);
+    this._onResponse = this._onResponse.bind(this);
   }
 
   destructor() {
@@ -69,20 +65,22 @@ class Network extends Domain {
       return;
     }
     this.enabled = true;
-    this._networkObserver = new NetworkObserver();
-    const { browser } = this.session.target;
-    this._networkObserver.startTrackingBrowserNetwork(browser);
-    this._networkObserver.on("request", this._onRequest);
+    this.session.networkObserver.startTrackingBrowserNetwork(
+      this.session.target.browser
+    );
+    this.session.networkObserver.on("request", this._onRequest);
+    this.session.networkObserver.on("response", this._onResponse);
   }
 
   disable() {
     if (!this.enabled) {
       return;
     }
-    const { browser } = this.session.target;
-    this._networkObserver.stopTrackingBrowserNetwork(browser);
-    this._networkObserver.off("request", this._onRequest);
-    this._networkObserver.dispose();
+    this.session.networkObserver.stopTrackingBrowserNetwork(
+      this.session.target.browser
+    );
+    this.session.networkObserver.off("request", this._onRequest);
+    this.session.networkObserver.off("response", this._onResponse);
     this.enabled = false;
   }
 
@@ -141,6 +139,42 @@ class Network extends Domain {
   }
 
   /**
+   * Activates emulation of network conditions.
+   *
+   * @param {Object} options
+   * @param {boolean} offline
+   *     True to emulate internet disconnection.
+   */
+  emulateNetworkConditions(options = {}) {
+    const { offline } = options;
+
+    if (typeof offline != "boolean") {
+      throw new TypeError("offline: boolean value expected");
+    }
+
+    Services.io.offline = offline;
+  }
+
+  /**
+   * Returns all browser cookies.
+   *
+   * Depending on the backend support, will return detailed cookie information in the cookies field.
+   *
+   * @param {Object} options
+   *
+   * @return {Array<Cookie>}
+   *     Array of cookie objects.
+   */
+  async getAllCookies(options = {}) {
+    const cookies = [];
+    for (const cookie of Services.cookies.cookies) {
+      cookies.push(_buildCookie(cookie));
+    }
+
+    return { cookies };
+  }
+
+  /**
    * Returns all browser cookies for the current URL.
    *
    * @param {Object} options
@@ -177,29 +211,7 @@ class Network extends Domain {
           continue;
         }
 
-        const data = {
-          name: cookie.name,
-          value: cookie.value,
-          domain: cookie.host,
-          path: cookie.path,
-          expires: cookie.isSession ? -1 : cookie.expiry,
-          // The size is the combined length of both the cookie name and value
-          size: cookie.name.length + cookie.value.length,
-          httpOnly: cookie.isHttpOnly,
-          secure: cookie.isSecure,
-          session: cookie.isSession,
-        };
-
-        if (cookie.sameSite) {
-          const sameSiteMap = new Map([
-            [Ci.nsICookie.SAMESITE_LAX, "Lax"],
-            [Ci.nsICookie.SAMESITE_STRICT, "Strict"],
-          ]);
-
-          data.sameSite = sameSiteMap.get(cookie.sameSite);
-        }
-
-        cookies.push(data);
+        cookies.push(_buildCookie(cookie));
       }
     }
 
@@ -257,6 +269,7 @@ class Network extends Domain {
     // Retrieve host. Check domain first because it has precedence.
     let hostname = cookie.domain || "";
     let cookieURL;
+    let schemeType = Ci.nsICookie.SCHEME_UNSET;
     if (hostname.length == 0) {
       try {
         cookieURL = new URL(cookie.url);
@@ -270,6 +283,9 @@ class Network extends Domain {
 
       if (cookieURL.protocol == "https:") {
         cookie.secure = true;
+        schemeType = Ci.nsICookie.SCHEME_HTTPS;
+      } else {
+        schemeType = Ci.nsICookie.SCHEME_HTTP;
       }
 
       hostname = cookieURL.hostname;
@@ -303,7 +319,8 @@ class Network extends Domain {
         isSession,
         cookie.expires,
         {} /* originAttributes */,
-        sameSiteMap.get(cookie.sameSite)
+        sameSiteMap.get(cookie.sameSite),
+        schemeType
       );
     } catch (e) {
       success = false;
@@ -365,12 +382,13 @@ class Network extends Domain {
   }
 
   _onRequest(eventName, httpChannel, data) {
-    const topFrame = getLoadContext(httpChannel).topFrameElement;
+    const wrappedChannel = ChannelWrapper.get(httpChannel);
+
     const request = {
       url: httpChannel.URI.spec,
       urlFragment: undefined,
       method: httpChannel.requestMethod,
-      headers: [],
+      headers: headersAsObject(data.headers),
       postData: undefined,
       hasPostData: false,
       mixedContentType: undefined,
@@ -378,52 +396,118 @@ class Network extends Domain {
       referrerPolicy: undefined,
       isLinkPreload: false,
     };
-    let loaderId = undefined;
-    let causeType = Ci.nsIContentPolicy.TYPE_OTHER;
-    let causeUri = topFrame.currentURI.spec;
-    if (httpChannel.loadInfo) {
-      causeType = httpChannel.loadInfo.externalContentPolicyType;
-      const { loadingPrincipal } = httpChannel.loadInfo;
-      if (loadingPrincipal && loadingPrincipal.URI) {
-        causeUri = loadingPrincipal.URI.spec;
-      }
-      if (causeType == Ci.nsIContentPolicy.TYPE_DOCUMENT) {
-        // Puppeteer expect this specialy of CDP where loaderId = requestId
-        // for the toplevel document request
-        loaderId = String(httpChannel.channelId);
-      }
-    }
     this.emit("Network.requestWillBeSent", {
-      requestId: String(httpChannel.channelId),
-      loaderId,
-      documentURL: causeUri,
+      requestId: data.requestId,
+      loaderId: data.loaderId,
+      documentURL: wrappedChannel.documentURL || httpChannel.URI.spec,
       request,
-      timestamp: undefined,
+      timestamp: Date.now() / 1000,
       wallTime: undefined,
       initiator: undefined,
       redirectResponse: undefined,
-      type: LOAD_CAUSE_STRINGS[causeType] || "unknown",
-      frameId: topFrame.browsingContext.id.toString(),
+      type: LOAD_CAUSE_STRINGS[data.cause] || "unknown",
+      frameId: data.frameId.toString(),
       hasUserGesture: undefined,
+    });
+  }
+
+  _onResponse(eventName, httpChannel, data) {
+    const wrappedChannel = ChannelWrapper.get(httpChannel);
+    const headers = headersAsObject(data.headers);
+
+    this.emit("Network.responseReceived", {
+      requestId: data.requestId,
+      loaderId: data.loaderId,
+      timestamp: Date.now() / 1000,
+      type: LOAD_CAUSE_STRINGS[data.cause] || "unknown",
+      response: {
+        url: httpChannel.URI.spec,
+        status: data.status,
+        statusText: data.statusText,
+        headers,
+        mimeType: wrappedChannel.contentType,
+        requestHeaders: headersAsObject(data.requestHeaders),
+        connectionReused: undefined,
+        connectionId: undefined,
+        remoteIPAddress: data.remoteIPAddress,
+        remotePort: data.remotePort,
+        fromDiskCache: data.fromCache,
+        encodedDataLength: undefined,
+        protocol: httpChannel.protocolVersion,
+        securityDetails: data.securityDetails,
+        // unknown, neutral, insecure, secure, info, insecure-broken
+        securityState: "unknown",
+      },
+      frameId: data.frameId.toString(),
     });
   }
 }
 
-function getLoadContext(httpChannel) {
-  let loadContext = null;
-  try {
-    if (httpChannel.notificationCallbacks) {
-      loadContext = httpChannel.notificationCallbacks.getInterface(
-        Ci.nsILoadContext
-      );
+/**
+ * Creates a CDP Network.Cookie from our internal cookie values
+ *
+ * @param {nsICookie} cookie
+ *
+ * @returns {Network.Cookie}
+ *      A CDP Cookie
+ */
+function _buildCookie(cookie) {
+  const data = {
+    name: cookie.name,
+    value: cookie.value,
+    domain: cookie.host,
+    path: cookie.path,
+    expires: cookie.isSession ? -1 : cookie.expiry,
+    // The size is the combined length of both the cookie name and value
+    size: cookie.name.length + cookie.value.length,
+    httpOnly: cookie.isHttpOnly,
+    secure: cookie.isSecure,
+    session: cookie.isSession,
+  };
+
+  if (cookie.sameSite) {
+    const sameSiteMap = new Map([
+      [Ci.nsICookie.SAMESITE_LAX, "Lax"],
+      [Ci.nsICookie.SAMESITE_STRICT, "Strict"],
+    ]);
+
+    data.sameSite = sameSiteMap.get(cookie.sameSite);
+  }
+
+  return data;
+}
+
+/**
+ * Given a array of possibly repeating header names, merge the values for
+ * duplicate headers into a comma-separated list, or in some cases a
+ * newline-separated list.
+ *
+ * e.g. { "Cache-Control": "no-cache,no-store" }
+ *
+ * Based on
+ * https://hg.mozilla.org/mozilla-central/file/56c09d42f411246e407fe30418c27e67a6a44d29/netwerk/protocol/http/nsHttpHeaderArray.h
+ *
+ * @param {Array} headers
+ *    Array of {name, value}
+ * @returns {Object}
+ *    Object where each key is a header name.
+ */
+function headersAsObject(headers) {
+  const rv = {};
+  headers.forEach(({ name, value }) => {
+    name = name.toLowerCase();
+    if (rv[name]) {
+      const separator = [
+        "set-cookie",
+        "www-authenticate",
+        "proxy-authenticate",
+      ].includes(name)
+        ? "\n"
+        : ",";
+      rv[name] += `${separator}${value}`;
+    } else {
+      rv[name] = value;
     }
-  } catch (e) {}
-  try {
-    if (!loadContext && httpChannel.loadGroup) {
-      loadContext = httpChannel.loadGroup.notificationCallbacks.getInterface(
-        Ci.nsILoadContext
-      );
-    }
-  } catch (e) {}
-  return loadContext;
+  });
+  return rv;
 }

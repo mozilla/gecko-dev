@@ -23,9 +23,14 @@ interface nsICookieJarSettings : nsISupports
   [infallible] readonly attribute unsigned long cookieBehavior;
 
   /**
-   * Whether our cookie behavior mandates rejecting third-party trackers.
+   * First-Party Isolation state at the loading of the document.
    */
-  [infallible] readonly attribute boolean rejectThirdPartyTrackers;
+  [infallible] readonly attribute boolean isFirstPartyIsolated;
+
+  /**
+   * Whether our cookie behavior mandates rejecting third-party contexts.
+   */
+  [infallible] readonly attribute boolean rejectThirdPartyContexts;
 
   [infallible] readonly attribute boolean limitForeignContexts;
 
@@ -33,6 +38,16 @@ interface nsICookieJarSettings : nsISupports
    * Whether our cookie behavior mandates partitioning third-party content.
    */
   [infallible] attribute boolean partitionForeign;
+
+  /**
+   * Whether the top-level document is on the content blocking allow list.
+   */
+  [infallible] readonly attribute boolean isOnContentBlockingAllowList;
+
+  /**
+   * The key used for partitioning.
+   */
+  readonly attribute AString partitionKey;
 
   /**
    * CookiePermission at the loading of the document for a particular

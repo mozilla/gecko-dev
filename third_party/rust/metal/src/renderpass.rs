@@ -7,10 +7,10 @@
 
 use super::*;
 
-use cocoa::foundation::NSUInteger;
+use cocoa_foundation::foundation::NSUInteger;
 
 #[repr(u64)]
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum MTLLoadAction {
     DontCare = 0,
     Load = 1,
@@ -18,7 +18,7 @@ pub enum MTLLoadAction {
 }
 
 #[repr(u64)]
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum MTLStoreAction {
     DontCare = 0,
     Store = 1,
@@ -29,18 +29,18 @@ pub enum MTLStoreAction {
 }
 
 #[repr(C)]
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct MTLClearColor {
-    red: f64,
-    green: f64,
-    blue: f64,
-    alpha: f64,
+    pub red: f64,
+    pub green: f64,
+    pub blue: f64,
+    pub alpha: f64,
 }
 
 impl MTLClearColor {
     #[inline]
     pub fn new(red: f64, green: f64, blue: f64, alpha: f64) -> Self {
-        MTLClearColor {
+        Self {
             red,
             green,
             blue,
@@ -232,13 +232,13 @@ foreign_obj_type! {
 }
 
 impl RenderPassColorAttachmentDescriptorArrayRef {
-    pub fn object_at(&self, index: usize) -> Option<&RenderPassColorAttachmentDescriptorRef> {
+    pub fn object_at(&self, index: NSUInteger) -> Option<&RenderPassColorAttachmentDescriptorRef> {
         unsafe { msg_send![self, objectAtIndexedSubscript: index] }
     }
 
     pub fn set_object_at(
         &self,
-        index: usize,
+        index: NSUInteger,
         attachment: Option<&RenderPassColorAttachmentDescriptorRef>,
     ) {
         unsafe {
@@ -306,5 +306,29 @@ impl RenderPassDescriptorRef {
 
     pub fn set_render_target_array_length(&self, length: NSUInteger) {
         unsafe { msg_send![self, setRenderTargetArrayLength: length] }
+    }
+
+    pub fn render_target_width(&self) -> NSUInteger {
+        unsafe { msg_send![self, renderTargetWidth] }
+    }
+
+    pub fn set_render_target_width(&self, size: NSUInteger) {
+        unsafe { msg_send![self, setRenderTargetWidth: size] }
+    }
+
+    pub fn render_target_height(&self) -> NSUInteger {
+        unsafe { msg_send![self, renderTargetHeight] }
+    }
+
+    pub fn set_render_target_height(&self, size: NSUInteger) {
+        unsafe { msg_send![self, setRenderTargetHeight: size] }
+    }
+
+    pub fn default_raster_sample_count(&self) -> NSUInteger {
+        unsafe { msg_send![self, defaultRasterSampleCount] }
+    }
+
+    pub fn set_default_raster_sample_count(&self, count: NSUInteger) {
+        unsafe { msg_send![self, setDefaultRasterSampleCount: count] }
     }
 }

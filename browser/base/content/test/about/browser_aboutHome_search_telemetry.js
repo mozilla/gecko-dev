@@ -13,16 +13,13 @@ add_task(async function() {
     { gBrowser, url: "about:home" },
     async function(browser) {
       let currEngine = await Services.search.getDefault();
-      let engine = await promiseNewEngine("searchSuggestionEngine.xml");
-      // Make this actually work in healthreport by giving it an ID:
-      Object.defineProperty(engine.wrappedJSObject, "identifier", {
-        value: "org.mozilla.testsearchsuggestions",
-      });
 
-      await Promise.all([
-        promiseContentSearchChange(browser, engine.name),
-        Services.search.setDefault(engine),
-      ]);
+      let engine;
+      await promiseContentSearchChange(browser, async () => {
+        engine = await promiseNewEngine("searchSuggestionEngine.xml");
+        await Services.search.setDefault(engine);
+        return engine.name;
+      });
 
       await SpecialPowers.spawn(
         browser,
@@ -40,7 +37,7 @@ add_task(async function() {
 
       let numSearchesBefore = 0;
       // Get the current number of recorded searches.
-      let histogramKey = engine.identifier + ".abouthome";
+      let histogramKey = `other-${engine.name}.abouthome`;
       try {
         let hs = Services.telemetry
           .getKeyedHistogramById("SEARCH_COUNTS")

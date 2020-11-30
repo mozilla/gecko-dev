@@ -10,9 +10,14 @@ interface nsIURI;
 interface nsICancelable;
 interface nsIMIMEInfo;
 interface nsIFile;
+webidl BrowsingContext;
 
 [scriptable, uuid(37ec75d3-97ad-4da8-afaa-eabe5b4afd73)]
 interface nsITransfer : nsIWebProgressListener2 {
+
+    const unsigned long DOWNLOAD_ACCEPTABLE = 0;
+    const unsigned long DOWNLOAD_FORBIDDEN = 1;
+    const unsigned long DOWNLOAD_POTENTIALLY_UNSAFE = 2;
 
     /**
      * Initializes the transfer with certain properties.  This function must
@@ -49,6 +54,9 @@ interface nsITransfer : nsIWebProgressListener2 {
      * @param aIsPrivate Used to determine the privacy status of the new transfer.
      *                   If true, indicates that the transfer was initiated from
      *                   a source that desires privacy.
+     *
+     * @param aDownloadClassification Indicates wheter the dowload is unwanted,
+     *                                should be considered dangerous or insecure. 
      */
     void init(in nsIURI aSource,
               in nsIURI aTarget,
@@ -57,7 +65,30 @@ interface nsITransfer : nsIWebProgressListener2 {
               in PRTime startTime,
               in nsIFile aTempFile,
               in nsICancelable aCancelable,
-              in boolean aIsPrivate);
+              in boolean aIsPrivate,
+              in long aDownloadClassification);
+
+    /**
+     * Same as init, but allows for passing the browsingContext
+     * which will allow for opening the download with the same
+     * userContextId
+     *
+     * @param aBrowsingContext BrowsingContext of the initiating document.
+     *
+     * @param aHandleInternally Set to true if the download should be opened within
+     *                          the browser.
+     */
+    void initWithBrowsingContext(in nsIURI aSource,
+                                 in nsIURI aTarget,
+                                 in AString aDisplayName,
+                                 in nsIMIMEInfo aMIMEInfo,
+                                 in PRTime startTime,
+                                 in nsIFile aTempFile,
+                                 in nsICancelable aCancelable,
+                                 in boolean aIsPrivate,
+                                 in long aDownloadClassification,
+                                 in BrowsingContext aBrowsingContext,
+                                 in boolean aHandleInternally);
 
     /*
      * Used to notify the transfer object of the hash of the downloaded file.

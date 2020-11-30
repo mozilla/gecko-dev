@@ -38,7 +38,7 @@ class HTMLAnchorElement final : public nsGenericHTMLElement, public Link {
   virtual bool Draggable() const override;
 
   // Element
-  virtual bool IsInteractiveHTMLContent(bool aIgnoreTabindex) const override;
+  virtual bool IsInteractiveHTMLContent() const override;
 
   // DOM memory reporter participant
   NS_DECL_ADDSIZEOFEXCLUDINGTHIS
@@ -102,7 +102,7 @@ class HTMLAnchorElement final : public nsGenericHTMLElement, public Link {
     SetHTMLAttr(nsGkAtoms::referrerpolicy, aValue, rv);
   }
   void GetReferrerPolicy(DOMString& aPolicy) {
-    GetEnumAttr(nsGkAtoms::referrerpolicy, EmptyCString().get(), aPolicy);
+    GetEnumAttr(nsGkAtoms::referrerpolicy, "", aPolicy);
   }
   nsDOMTokenList* RelList();
   void GetHreflang(DOMString& aValue) {

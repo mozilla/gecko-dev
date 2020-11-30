@@ -31,16 +31,19 @@ def load_commands():
                     "script": props["script"],
                     "parser": props.get("parser"),
                     "parse_known": props.get("parse_known", False),
+                    "py3only": props.get("py3only", False),
                     "help": props.get("help"),
                     "virtualenv": props.get("virtualenv", True),
                     "install": props.get("install", []),
                     "requirements": [os.path.join(base_dir, item)
                                      for item in props.get("requirements", [])]
                 }
+                if rv[command]["install"] or rv[command]["requirements"]:
+                    assert rv[command]["virtualenv"]
     return rv
 
 
-def parse_args(argv, commands = load_commands()):
+def parse_args(argv, commands=load_commands()):
     parser = argparse.ArgumentParser()
     parser.add_argument("--venv", action="store", help="Path to an existing virtualenv to use")
     parser.add_argument("--skip-venv-setup", action="store_true",
@@ -94,7 +97,8 @@ def create_complete_parser():
     for command in commands:
         props = commands[command]
 
-        if props["virtualenv"]:
+        if (props["virtualenv"] and
+            (not props["py3only"] or sys.version_info.major == 3)):
             setup_virtualenv(None, False, props)
 
         subparser = import_command('wpt', command, props)[1]
@@ -109,12 +113,16 @@ def create_complete_parser():
     return parser
 
 
+def venv_dir():
+    return "_venv" + str(sys.version_info[0])
+
+
 def setup_virtualenv(path, skip_venv_setup, props):
     if skip_venv_setup and path is None:
         raise ValueError("Must set --venv when --skip-venv-setup is used")
     should_skip_setup = path is not None and skip_venv_setup
     if path is None:
-        path = os.path.join(wpt_root, "_venv")
+        path = os.path.join(wpt_root, venv_dir())
     venv = virtualenv.Virtualenv(path, should_skip_setup)
     if not should_skip_setup:
         venv.start()

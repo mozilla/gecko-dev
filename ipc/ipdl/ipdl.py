@@ -3,11 +3,11 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 from __future__ import print_function
 
+from io import StringIO
 import optparse
 import os
 import sys
-from cStringIO import StringIO
-from ConfigParser import RawConfigParser
+from configparser import RawConfigParser
 
 import ipdl
 
@@ -72,7 +72,7 @@ def normalizedFilename(f):
 
 log(2, 'Reading sync message list')
 parser = RawConfigParser()
-parser.readfp(open(options.syncMsgList))
+parser.read_file(open(options.syncMsgList))
 syncMsgList = parser.sections()
 
 for section in syncMsgList:
@@ -84,7 +84,7 @@ for section in syncMsgList:
 # for the standard segment size used for serialization.
 log(2, 'Reading message metadata...')
 msgMetadataConfig = RawConfigParser()
-msgMetadataConfig.readfp(open(options.msgMetadata))
+msgMetadataConfig.read_file(open(options.msgMetadata))
 
 segmentCapacityDict = {}
 for msgName in msgMetadataConfig.sections():

@@ -5,6 +5,7 @@
  * This file manages object type indepentent functions.
  */
 #include <limits.h>
+#include <stddef.h>
 
 #include "seccomon.h"
 #include "secmod.h"
@@ -70,7 +71,7 @@ PK11_DestroyTokenObject(PK11SlotInfo *slot, CK_OBJECT_HANDLE object)
     CK_SESSION_HANDLE rwsession;
 
     rwsession = PK11_GetRWSession(slot);
-    if (rwsession == CK_INVALID_SESSION) {
+    if (rwsession == CK_INVALID_HANDLE) {
         PORT_SetError(SEC_ERROR_BAD_DATA);
         return SECFailure;
     }
@@ -203,7 +204,7 @@ PK11_GetAttributes(PLArenaPool *arena, PK11SlotInfo *slot,
     /* make pedantic happy... note that it's only used arena != NULL */
     void *mark = NULL;
     CK_RV crv;
-    if (slot->session == CK_INVALID_SESSION)
+    if (slot->session == CK_INVALID_HANDLE)
         return CKR_SESSION_HANDLE_INVALID;
 
     /*
@@ -317,7 +318,7 @@ PK11_SetObjectNickname(PK11SlotInfo *slot, CK_OBJECT_HANDLE id,
 
     PK11_SETATTRS(&setTemplate, CKA_LABEL, (CK_CHAR *)nickname, len);
     rwsession = PK11_GetRWSession(slot);
-    if (rwsession == CK_INVALID_SESSION) {
+    if (rwsession == CK_INVALID_HANDLE) {
         PORT_SetError(SEC_ERROR_BAD_DATA);
         return SECFailure;
     }
@@ -394,12 +395,12 @@ PK11_CreateNewObject(PK11SlotInfo *slot, CK_SESSION_HANDLE session,
     rwsession = session;
     if (token) {
         rwsession = PK11_GetRWSession(slot);
-    } else if (rwsession == CK_INVALID_SESSION) {
+    } else if (rwsession == CK_INVALID_HANDLE) {
         rwsession = slot->session;
-        if (rwsession != CK_INVALID_SESSION)
+        if (rwsession != CK_INVALID_HANDLE)
             PK11_EnterSlotMonitor(slot);
     }
-    if (rwsession == CK_INVALID_SESSION) {
+    if (rwsession == CK_INVALID_HANDLE) {
         PORT_SetError(SEC_ERROR_BAD_DATA);
         return SECFailure;
     }
@@ -412,7 +413,7 @@ PK11_CreateNewObject(PK11SlotInfo *slot, CK_SESSION_HANDLE session,
     }
     if (token) {
         PK11_RestoreROSession(slot, rwsession);
-    } else if (session == CK_INVALID_SESSION) {
+    } else if (session == CK_INVALID_HANDLE) {
         PK11_ExitSlotMonitor(slot);
     }
 
@@ -1243,7 +1244,7 @@ PK11_UnwrapPrivKey(PK11SlotInfo *slot, PK11SymKey *wrappingKey,
     }
 
     if (PK11_IsInternal(slot)) {
-        PK11_SETATTRS(attrs, CKA_NETSCAPE_DB, idValue->data,
+        PK11_SETATTRS(attrs, CKA_NSS_DB, idValue->data,
                       idValue->len);
         attrs++;
     }
@@ -1275,13 +1276,13 @@ PK11_UnwrapPrivKey(PK11SlotInfo *slot, PK11SymKey *wrappingKey,
             rwsession = PK11_GetRWSession(slot);
         } else {
             rwsession = slot->session;
-            if (rwsession != CK_INVALID_SESSION)
+            if (rwsession != CK_INVALID_HANDLE)
                 PK11_EnterSlotMonitor(slot);
         }
         /* This is a lot a work to deal with fussy PKCS #11 modules
          * that can't bother to return BAD_DATA when presented with an
          * invalid session! */
-        if (rwsession == CK_INVALID_SESSION) {
+        if (rwsession == CK_INVALID_HANDLE) {
             PORT_SetError(SEC_ERROR_BAD_DATA);
             goto loser;
         }
@@ -1692,18 +1693,12 @@ PK11_CreateManagedGenericObject(PK11SlotInfo *slot,
                                           !token);
 }
 
-/*
- * Change an attribute on a raw object
- */
-SECStatus
-PK11_WriteRawAttribute(PK11ObjectType objType, void *objSpec,
-                       CK_ATTRIBUTE_TYPE attrType, SECItem *item)
+CK_OBJECT_HANDLE
+PK11_GetObjectHandle(PK11ObjectType objType, void *objSpec,
+                     PK11SlotInfo **slotp)
 {
+    CK_OBJECT_HANDLE handle = CK_INVALID_HANDLE;
     PK11SlotInfo *slot = NULL;
-    CK_OBJECT_HANDLE handle = 0;
-    CK_ATTRIBUTE setTemplate;
-    CK_RV crv;
-    CK_SESSION_HANDLE rwsession;
 
     switch (objType) {
         case PK11_TypeGeneric:
@@ -1724,16 +1719,42 @@ PK11_WriteRawAttribute(PK11ObjectType objType, void *objSpec,
             break;
         case PK11_TypeCert: /* don't handle cert case for now */
         default:
+            PORT_SetError(SEC_ERROR_UNKNOWN_OBJECT_TYPE);
             break;
     }
+    if (slotp) {
+        *slotp = slot;
+    }
+    /* paranoia. If the object doesn't have a slot, then it's handle isn't
+     * valid either */
     if (slot == NULL) {
+        handle = CK_INVALID_HANDLE;
+    }
+    return handle;
+}
+
+/*
+ * Change an attribute on a raw object
+ */
+SECStatus
+PK11_WriteRawAttribute(PK11ObjectType objType, void *objSpec,
+                       CK_ATTRIBUTE_TYPE attrType, SECItem *item)
+{
+    PK11SlotInfo *slot = NULL;
+    CK_OBJECT_HANDLE handle = 0;
+    CK_ATTRIBUTE setTemplate;
+    CK_RV crv;
+    CK_SESSION_HANDLE rwsession;
+
+    handle = PK11_GetObjectHandle(objType, objSpec, &slot);
+    if (handle == CK_INVALID_HANDLE) {
         PORT_SetError(SEC_ERROR_UNKNOWN_OBJECT_TYPE);
         return SECFailure;
     }
 
     PK11_SETATTRS(&setTemplate, attrType, (CK_CHAR *)item->data, item->len);
     rwsession = PK11_GetRWSession(slot);
-    if (rwsession == CK_INVALID_SESSION) {
+    if (rwsession == CK_INVALID_HANDLE) {
         PORT_SetError(SEC_ERROR_BAD_DATA);
         return SECFailure;
     }
@@ -1754,28 +1775,8 @@ PK11_ReadRawAttribute(PK11ObjectType objType, void *objSpec,
     PK11SlotInfo *slot = NULL;
     CK_OBJECT_HANDLE handle = 0;
 
-    switch (objType) {
-        case PK11_TypeGeneric:
-            slot = ((PK11GenericObject *)objSpec)->slot;
-            handle = ((PK11GenericObject *)objSpec)->objectID;
-            break;
-        case PK11_TypePrivKey:
-            slot = ((SECKEYPrivateKey *)objSpec)->pkcs11Slot;
-            handle = ((SECKEYPrivateKey *)objSpec)->pkcs11ID;
-            break;
-        case PK11_TypePubKey:
-            slot = ((SECKEYPublicKey *)objSpec)->pkcs11Slot;
-            handle = ((SECKEYPublicKey *)objSpec)->pkcs11ID;
-            break;
-        case PK11_TypeSymKey:
-            slot = ((PK11SymKey *)objSpec)->slot;
-            handle = ((PK11SymKey *)objSpec)->objectID;
-            break;
-        case PK11_TypeCert: /* don't handle cert case for now */
-        default:
-            break;
-    }
-    if (slot == NULL) {
+    handle = PK11_GetObjectHandle(objType, objSpec, &slot);
+    if (handle == CK_INVALID_HANDLE) {
         PORT_SetError(SEC_ERROR_UNKNOWN_OBJECT_TYPE);
         return SECFailure;
     }
@@ -1783,11 +1784,31 @@ PK11_ReadRawAttribute(PK11ObjectType objType, void *objSpec,
     return PK11_ReadAttribute(slot, handle, attrType, NULL, item);
 }
 
+SECStatus
+PK11_ReadRawAttributes(PLArenaPool *arena, PK11ObjectType objType, void *objSpec,
+                       CK_ATTRIBUTE *pTemplate, unsigned int count)
+{
+    PK11SlotInfo *slot = NULL;
+    CK_OBJECT_HANDLE handle = 0;
+
+    handle = PK11_GetObjectHandle(objType, objSpec, &slot);
+    if (handle == CK_INVALID_HANDLE) {
+        PORT_SetError(SEC_ERROR_UNKNOWN_OBJECT_TYPE);
+        return SECFailure;
+    }
+    CK_RV crv = PK11_GetAttributes(arena, slot, handle, pTemplate, count);
+    if (crv != CKR_OK) {
+        PORT_SetError(PK11_MapError(crv));
+        return SECFailure;
+    }
+    return SECSuccess;
+}
+
 /*
  * return the object handle that matches the template
  */
 CK_OBJECT_HANDLE
-pk11_FindObjectByTemplate(PK11SlotInfo *slot, CK_ATTRIBUTE *theTemplate, int tsize)
+pk11_FindObjectByTemplate(PK11SlotInfo *slot, CK_ATTRIBUTE *theTemplate, size_t tsize)
 {
     CK_OBJECT_HANDLE object;
     CK_RV crv = CKR_SESSION_HANDLE_INVALID;
@@ -1797,7 +1818,7 @@ pk11_FindObjectByTemplate(PK11SlotInfo *slot, CK_ATTRIBUTE *theTemplate, int tsi
      * issue the find
      */
     PK11_EnterSlotMonitor(slot);
-    if (slot->session != CK_INVALID_SESSION) {
+    if (slot->session != CK_INVALID_HANDLE) {
         crv = PK11_GETTAB(slot)->C_FindObjectsInit(slot->session,
                                                    theTemplate, tsize);
     }
@@ -1826,7 +1847,7 @@ pk11_FindObjectByTemplate(PK11SlotInfo *slot, CK_ATTRIBUTE *theTemplate, int tsi
  */
 CK_OBJECT_HANDLE *
 pk11_FindObjectsByTemplate(PK11SlotInfo *slot, CK_ATTRIBUTE *findTemplate,
-                           int templCount, int *object_count)
+                           size_t templCount, int *object_count)
 {
     CK_OBJECT_HANDLE *objID = NULL;
     CK_ULONG returned_count = 0;
@@ -1840,7 +1861,7 @@ pk11_FindObjectsByTemplate(PK11SlotInfo *slot, CK_ATTRIBUTE *findTemplate,
     if (haslock) {
         PK11_EnterSlotMonitor(slot);
     }
-    if (session != CK_INVALID_SESSION) {
+    if (session != CK_INVALID_HANDLE) {
         crv = PK11_GETTAB(slot)->C_FindObjectsInit(session,
                                                    findTemplate, templCount);
     }
@@ -1921,7 +1942,7 @@ PK11_FindRawCertsWithSubject(PK11SlotInfo *slot, SECItem *derSubject,
         { CKA_CLASS, &cko_certificate, sizeof(cko_certificate) },
         { CKA_SUBJECT, derSubject->data, derSubject->len },
     };
-    int templateCount = sizeof(subjectTemplate) / sizeof(subjectTemplate[0]);
+    const size_t templateCount = sizeof(subjectTemplate) / sizeof(subjectTemplate[0]);
     int handleCount = 0;
     CK_OBJECT_HANDLE *handles =
         pk11_FindObjectsByTemplate(slot, subjectTemplate, templateCount,
@@ -2001,7 +2022,7 @@ PK11_MatchItem(PK11SlotInfo *slot, CK_OBJECT_HANDLE searchID,
     };
     /* if you change the array, change the variable below as well */
     CK_ATTRIBUTE *keyclass = &theTemplate[1];
-    int tsize = sizeof(theTemplate) / sizeof(theTemplate[0]);
+    const size_t tsize = sizeof(theTemplate) / sizeof(theTemplate[0]);
     /* if you change the array, change the variable below as well */
     CK_OBJECT_HANDLE peerID;
     PORTCheapArenaPool tmpArena;
@@ -2050,7 +2071,7 @@ PK11_NumberObjectsFor(PK11SlotInfo *slot, CK_ATTRIBUTE *findTemplate,
     CK_RV crv = CKR_SESSION_HANDLE_INVALID;
 
     PK11_EnterSlotMonitor(slot);
-    if (slot->session != CK_INVALID_SESSION) {
+    if (slot->session != CK_INVALID_HANDLE) {
         crv = PK11_GETTAB(slot)->C_FindObjectsInit(slot->session,
                                                    findTemplate, templCount);
     }
@@ -2155,7 +2176,7 @@ PK11_FindObjectsFromNickname(char *nickname, PK11SlotInfo **slotptr,
         { CKA_LABEL, NULL, 0 },
         { CKA_CLASS, NULL, 0 },
     };
-    int findCount = sizeof(findTemplate) / sizeof(findTemplate[0]);
+    const size_t findCount = sizeof(findTemplate) / sizeof(findTemplate[0]);
     SECStatus rv;
     PK11_SETATTRS(&findTemplate[1], CKA_CLASS, &objclass, sizeof(objclass));
 

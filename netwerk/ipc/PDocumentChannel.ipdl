@@ -8,7 +8,6 @@
 include protocol PNecko;
 include protocol PStreamFilter;
 include InputStreamParams;
-include URIParams;
 include PBackgroundSharedTypes;
 include NeckoChannelParams;
 include IPCServiceWorkerDescriptor;
@@ -39,8 +38,6 @@ child:
   // AsyncOpen of nsHttpChannel on the parent.
   async FailedAsyncOpen(nsresult status);
 
-  async AttachStreamFilter(Endpoint<PStreamFilterParent> aEndpoint);
-
   // This message is sent to a child that has been redirected to another process.
   // As a consequence, it should cleanup the channel listeners and remove the
   // request from the loadGroup.
@@ -49,19 +46,19 @@ child:
   // the loadgroup (but aStatus is passed as the parameter to RemoveRequest).
   // We do this so we can remove using NS_BINDING_RETARGETED, but still have the
   // channel not be in an error state.
-  async DisconnectChildListeners(nsresult aStatus, nsresult aLoadGroupReason);
+  async DisconnectChildListeners(nsresult aStatus, nsresult aLoadGroupReason, bool aSwitchedProcess);
 
   // Triggers replacing this DocumentChannel with a 'real' channel (like PHttpChannel),
   // and notifies the listener via a redirect to the new channel.
-  async RedirectToRealChannel(RedirectToRealChannelArgs args)
+  async RedirectToRealChannel(RedirectToRealChannelArgs args, Endpoint<PStreamFilterParent>[] aEndpoint)
       returns (nsresult rv);
 
-  async ConfirmRedirect(LoadInfoArgs aLoadInfo, nsIURI aNewURI) returns(nsresult rv, nsresult? cancelCode);
-
-  // Tell child to delete channel (all IPDL deletes must be done from child to
-  // avoid races: see bug 591708).
-  async DeleteSelf();
-
+  // May only be called on a DocumentChannel created by nsObjectLoadingContent
+  // for an object or embed element load.
+  //
+  // Promotes the load from an object load to a proper document load, and
+  // returns the `BrowsingContext` which should be used to host the final load.
+  async UpgradeObjectLoad() returns (MaybeDiscardedBrowsingContext frameContext);
 };
 
 } // namespace net

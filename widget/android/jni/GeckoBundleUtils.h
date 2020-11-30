@@ -7,6 +7,8 @@
 #ifndef mozilla_jni_GeckoBundleUtils_h
 #define mozilla_jni_GeckoBundleUtils_h
 
+#include "mozilla/java/GeckoBundleWrappers.h"
+
 namespace mozilla {
 namespace jni {
 
@@ -14,8 +16,9 @@ namespace jni {
   nsTArray<jni::String::LocalRef> _##name##_keys; \
   nsTArray<jni::Object::LocalRef> _##name##_values;
 
-#define GECKOBUNDLE_PUT(name, key, value)                                 \
-  _##name##_keys.AppendElement(jni::StringParam(NS_LITERAL_STRING(key))); \
+#define GECKOBUNDLE_PUT(name, key, value)                     \
+  _##name##_keys.AppendElement(                               \
+      jni::StringParam(NS_LITERAL_STRING_FROM_CSTRING(key))); \
   _##name##_values.AppendElement(value);
 
 #define GECKOBUNDLE_FINISH(name)                                            \

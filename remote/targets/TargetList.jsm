@@ -9,9 +9,6 @@ var EXPORTED_SYMBOLS = ["TargetList"];
 const { EventEmitter } = ChromeUtils.import(
   "resource://gre/modules/EventEmitter.jsm"
 );
-const { MessagePromise } = ChromeUtils.import(
-  "chrome://remote/content/Sync.jsm"
-);
 const { TabTarget } = ChromeUtils.import(
   "chrome://remote/content/targets/TabTarget.jsm"
 );
@@ -19,7 +16,7 @@ const { MainProcessTarget } = ChromeUtils.import(
   "chrome://remote/content/targets/MainProcessTarget.jsm"
 );
 const { TabObserver } = ChromeUtils.import(
-  "chrome://remote/content/targets/TabObserver.jsm"
+  "chrome://remote/content/observers/TargetObserver.jsm"
 );
 
 class TargetList {
@@ -52,15 +49,7 @@ class TargetList {
     }
     this.tabObserver = new TabObserver({ registerExisting: true });
     this.tabObserver.on("open", async (eventName, tab) => {
-      const browser = tab.linkedBrowser;
-      // The tab may just have been created and not fully initialized yet.
-      // Target class expects BrowserElement.browsingContext to be defined
-      // whereas it is asynchronously set by the custom element class.
-      // At least ensure that this property is set before instantiating the target.
-      if (!browser.browsingContext) {
-        await new MessagePromise(browser.messageManager, "Browser:Init");
-      }
-      const target = new TabTarget(this, browser);
+      const target = new TabTarget(this, tab.linkedBrowser);
       this.registerTarget(target);
     });
     this.tabObserver.on("close", (eventName, tab) => {
@@ -69,7 +58,7 @@ class TargetList {
       if (!browser.browsingContext) {
         return;
       }
-      const target = this.getById(browser.browsingContext.id);
+      const target = this.getByBrowsingContext(browser.browsingContext.id);
       if (target) {
         this.destroyTarget(target);
       }
@@ -128,10 +117,32 @@ class TargetList {
   /**
    * Get Target instance by target id
    *
-   * @param int id Target id
+   * @param {string} id
+   *     Target id
+   *
+   * @return {Target}
    */
   getById(id) {
     return this._targets.get(id);
+  }
+
+  /**
+   * Get Target instance by browsing context id
+   *
+   * @param {number} id
+   *     browsing context id
+   *
+   * @return {Target}
+   */
+  getByBrowsingContext(id) {
+    let rv;
+    for (const target of this._targets.values()) {
+      if (target.browsingContext && target.browsingContext.id === id) {
+        rv = target;
+        break;
+      }
+    }
+    return rv;
   }
 
   /**

@@ -14,21 +14,23 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/dom/ipc/StructuredCloneData.h"
+#include "mozilla/BitSet.h"
 #include "mozilla/EnumSet.h"
 #include "mozilla/EnumTypeTraits.h"
+#include "mozilla/IntegerRange.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/net/WebSocketFrame.h"
 #include "mozilla/TimeStamp.h"
 #ifdef XP_WIN
 #  include "mozilla/TimeStamp_windows.h"
 #endif
-#include "mozilla/TypeTraits.h"
 #include "mozilla/IntegerTypeTraits.h"
 #include "mozilla/Vector.h"
 
 #include <limits>
 #include <stdint.h>
 #include <type_traits>
+#include <unordered_map>
 #include <vector>
 
 #include "nsDebug.h"
@@ -130,13 +132,11 @@ struct EnumSerializer {
     uintParamType value;
     if (!ReadParam(aMsg, aIter, &value)) {
       CrashReporter::AnnotateCrashReport(
-          CrashReporter::Annotation::IPCReadErrorReason,
-          NS_LITERAL_CSTRING("Bad iter"));
+          CrashReporter::Annotation::IPCReadErrorReason, "Bad iter"_ns);
       return false;
     } else if (!EnumValidator::IsLegalValue(paramType(value))) {
       CrashReporter::AnnotateCrashReport(
-          CrashReporter::Annotation::IPCReadErrorReason,
-          NS_LITERAL_CSTRING("Illegal value"));
+          CrashReporter::Annotation::IPCReadErrorReason, "Illegal value"_ns);
       return false;
     }
     *aResult = paramType(value);
@@ -252,8 +252,10 @@ struct BitFlagsEnumSerializer
  */
 template <typename T>
 struct PlainOldDataSerializer {
-  // TODO: Once the mozilla::IsPod trait is in good enough shape (bug 900042),
-  //       static_assert that mozilla::IsPod<T>::value is true.
+  static_assert(
+      std::is_trivially_copyable<T>::value,
+      "PlainOldDataSerializer can only be used with trivially copyable types!");
+
   typedef T paramType;
 
   static void Write(Message* aMsg, const paramType& aParam) {
@@ -543,7 +545,7 @@ struct ParamTraits<nsTArray<E>> {
   // a data structure T for which IsPod<T>::value is true, yet also have a
   // ParamTraits<T> specialization.
   static const bool sUseWriteBytes =
-      (mozilla::IsIntegral<E>::value || mozilla::IsFloatingPoint<E>::value);
+      (std::is_integral_v<E> || std::is_floating_point_v<E>);
 
   static void Write(Message* aMsg, const paramType& aParam) {
     uint32_t length = aParam.Length();
@@ -609,6 +611,9 @@ struct ParamTraits<nsTArray<E>> {
 };
 
 template <typename E>
+struct ParamTraits<CopyableTArray<E>> : ParamTraits<nsTArray<E>> {};
+
+template <typename E>
 struct ParamTraits<FallibleTArray<E>> {
   typedef FallibleTArray<E> paramType;
 
@@ -622,7 +627,7 @@ struct ParamTraits<FallibleTArray<E>> {
     nsTArray<E> temp;
     if (!ReadParam(aMsg, aIter, &temp)) return false;
 
-    aResult->SwapElements(temp);
+    *aResult = std::move(temp);
     return true;
   }
 
@@ -636,6 +641,9 @@ struct ParamTraits<AutoTArray<E, N>> : ParamTraits<nsTArray<E>> {
   typedef AutoTArray<E, N> paramType;
 };
 
+template <typename E, size_t N>
+struct ParamTraits<CopyableAutoTArray<E, N>> : ParamTraits<AutoTArray<E, N>> {};
+
 template <typename E, size_t N, typename AP>
 struct ParamTraits<mozilla::Vector<E, N, AP>> {
   typedef mozilla::Vector<E, N, AP> paramType;
@@ -646,7 +654,7 @@ struct ParamTraits<mozilla::Vector<E, N, AP>> {
   // a data structure T for which IsPod<T>::value is true, yet also have a
   // ParamTraits<T> specialization.
   static const bool sUseWriteBytes =
-      (mozilla::IsIntegral<E>::value || mozilla::IsFloatingPoint<E>::value);
+      (std::is_integral_v<E> || std::is_floating_point_v<E>);
 
   static void Write(Message* aMsg, const paramType& aParam) {
     uint32_t length = aParam.length();
@@ -727,7 +735,7 @@ struct ParamTraits<std::vector<E>> {
   // a data structure T for which IsPod<T>::value is true, yet also have a
   // ParamTraits<T> specialization.
   static const bool sUseWriteBytes =
-      (mozilla::IsIntegral<E>::value || mozilla::IsFloatingPoint<E>::value);
+      (std::is_integral_v<E> || std::is_floating_point_v<E>);
 
   static void Write(Message* aMsg, const paramType& aParam) {
     uint32_t length = aParam.size();
@@ -789,6 +797,38 @@ struct ParamTraits<std::vector<E>> {
       }
       LogParam(aParam[index], aLog);
     }
+  }
+};
+
+template <typename K, typename V>
+struct ParamTraits<std::unordered_map<K, V>> final {
+  using T = std::unordered_map<K, V>;
+
+  static void Write(Message* const msg, const T& in) {
+    WriteParam(msg, in.size());
+    for (const auto& pair : in) {
+      WriteParam(msg, pair.first);
+      WriteParam(msg, pair.second);
+    }
+  }
+
+  static bool Read(const Message* const msg, PickleIterator* const itr,
+                   T* const out) {
+    size_t size = 0;
+    if (!ReadParam(msg, itr, &size)) return false;
+    T map;
+    map.reserve(size);
+    for (const auto i : mozilla::IntegerRange(size)) {
+      std::pair<K, V> pair;
+      mozilla::Unused << i;
+      if (!ReadParam(msg, itr, &(pair.first)) ||
+          !ReadParam(msg, itr, &(pair.second))) {
+        return false;
+      }
+      map.insert(std::move(pair));
+    }
+    *out = std::move(map);
+    return true;
   }
 };
 
@@ -1220,28 +1260,40 @@ struct BitfieldHelper {
   }
 };
 
+template <size_t N, typename Word>
+struct ParamTraits<mozilla::BitSet<N, Word>> {
+  typedef mozilla::BitSet<N, Word> paramType;
+
+  static void Write(Message* aMsg, const paramType& aParam) {
+    for (Word word : aParam.Storage()) {
+      WriteParam(aMsg, word);
+    }
+  }
+
+  static bool Read(const Message* aMsg, PickleIterator* aIter,
+                   paramType* aResult) {
+    for (Word& word : aResult->Storage()) {
+      if (!ReadParam(aMsg, aIter, &word)) {
+        return false;
+      }
+    }
+    return true;
+  }
+};
+
 // A couple of recursive helper functions, allows syntax like:
 // WriteParams(aMsg, aParam.foo, aParam.bar, aParam.baz)
 // ReadParams(aMsg, aIter, aParam.foo, aParam.bar, aParam.baz)
 
-// Base case
-void WriteParams(Message* aMsg);
-
-template <typename T0, typename... Tn>
-static void WriteParams(Message* aMsg, const T0& aArg,
-                        const Tn&... aRemainingArgs) {
-  WriteParam(aMsg, aArg);                // Write first arg
-  WriteParams(aMsg, aRemainingArgs...);  // Recurse for the rest
+template <typename... Ts>
+static void WriteParams(Message* aMsg, const Ts&... aArgs) {
+  (WriteParam(aMsg, aArgs), ...);
 }
 
-// Base case
-bool ReadParams(const Message* aMsg, PickleIterator* aIter);
-
-template <typename T0, typename... Tn>
-static bool ReadParams(const Message* aMsg, PickleIterator* aIter, T0& aArg,
-                       Tn&... aRemainingArgs) {
-  return ReadParam(aMsg, aIter, &aArg) &&             // Read first arg
-         ReadParams(aMsg, aIter, aRemainingArgs...);  // Recurse for the rest
+template <typename... Ts>
+static bool ReadParams(const Message* aMsg, PickleIterator* aIter,
+                       Ts&... aArgs) {
+  return (ReadParam(aMsg, aIter, &aArgs) && ...);
 }
 
 // Macros that allow syntax like:
@@ -1273,5 +1325,25 @@ static bool ReadParams(const Message* aMsg, PickleIterator* aIter, T0& aArg,
   struct ParamTraits<Type> : public EmptyStructSerializer<Type> {};
 
 } /* namespace IPC */
+
+#define DEFINE_IPC_SERIALIZER_WITH_SUPER_CLASS_AND_FIELDS(Type, Super, ...)  \
+  template <>                                                                \
+  struct ParamTraits<Type> {                                                 \
+    typedef Type paramType;                                                  \
+    static void Write(Message* aMsg, const paramType& aParam) {              \
+      WriteParam(aMsg, static_cast<const Super&>(aParam));                   \
+      WriteParams(aMsg, MOZ_FOR_EACH_SEPARATED(ACCESS_PARAM_FIELD, (, ), (), \
+                                               (__VA_ARGS__)));              \
+    }                                                                        \
+                                                                             \
+    static bool Read(const Message* aMsg, PickleIterator* aIter,             \
+                     paramType* aResult) {                                   \
+      paramType& aParam = *aResult;                                          \
+      return ReadParam(aMsg, aIter, static_cast<Super*>(aResult)) &&         \
+             ReadParams(aMsg, aIter,                                         \
+                        MOZ_FOR_EACH_SEPARATED(ACCESS_PARAM_FIELD, (, ), (), \
+                                               (__VA_ARGS__)));              \
+    }                                                                        \
+  };
 
 #endif /* __IPC_GLUE_IPCMESSAGEUTILS_H__ */

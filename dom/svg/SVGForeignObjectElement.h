@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_SVGForeignObjectElement_h
-#define mozilla_dom_SVGForeignObjectElement_h
+#ifndef DOM_SVG_SVGFOREIGNOBJECTELEMENT_H_
+#define DOM_SVG_SVGFOREIGNOBJECTELEMENT_H_
 
 #include "mozilla/dom/SVGGraphicsElement.h"
 #include "nsCSSPropertyID.h"
@@ -14,13 +14,13 @@
 nsresult NS_NewSVGForeignObjectElement(
     nsIContent** aResult, already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
 
-class nsSVGForeignObjectFrame;
-
 namespace mozilla {
+class SVGForeignObjectFrame;
+
 namespace dom {
 
 class SVGForeignObjectElement final : public SVGGraphicsElement {
-  friend class ::nsSVGForeignObjectFrame;
+  friend class mozilla::SVGForeignObjectFrame;
 
  protected:
   friend nsresult(::NS_NewSVGForeignObjectElement(
@@ -62,4 +62,4 @@ class SVGForeignObjectElement final : public SVGGraphicsElement {
 }  // namespace dom
 }  // namespace mozilla
 
-#endif  // mozilla_dom_SVGForeignObjectElement_h
+#endif  // DOM_SVG_SVGFOREIGNOBJECTELEMENT_H_

@@ -1,5 +1,6 @@
 // This file tests async handling of a channel suspended in DoAuthRetry
 // notifying http-on-modify-request and http-on-before-connect observers.
+"use strict";
 
 var CC = Components.Constructor;
 
@@ -119,7 +120,7 @@ Requestor.prototype = {
       return this.prompt;
     }
 
-    throw Cr.NS_ERROR_NO_INTERFACE;
+    throw Components.Exception("", Cr.NS_ERROR_NO_INTERFACE);
   },
 
   prompt: null,
@@ -144,7 +145,7 @@ var listener = {
     } catch (e) {
       do_throw("Unexpected exception: " + e);
     }
-    throw Cr.NS_ERROR_ABORT;
+    throw Components.Exception("", Cr.NS_ERROR_ABORT);
   },
 
   onDataAvailable: function test_ODA() {
@@ -180,7 +181,7 @@ function makeChan(url, loadingUrl) {
   return NetUtil.newChannel({
     uri: url,
     loadingPrincipal: principal,
-    securityFlags: Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+    securityFlags: Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
     contentPolicyType: Ci.nsIContentPolicy.TYPE_OTHER,
   });
 }

@@ -57,10 +57,7 @@
   display: none;
 }
 
-#font-editor details[open] .label-close {
-  display: inline-block;
-}
-
+#font-editor details[open] .label-close,
 #font-editor details:not([open]) .label-open {
   display: inline-block;
 }
@@ -221,8 +218,7 @@
 .font-control-used-fonts {
   align-items: flex-start;
   border-bottom: 1px solid var(--theme-splitter-color);
-  margin-top: 0;
-  margin-bottom: 1em;
+  margin-block: 0 1em;
   padding-top: 1em;
 }
 
@@ -297,7 +293,7 @@
 
 /* Make native number steppers disappear by treating it as text field*/
 .font-value-input[type=number] {
-  -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 /* Swap around order of value input and unit dropdown for RTL */
@@ -308,8 +304,7 @@
 .font-value-label {
   /* Combined width of .font-value-input and .font-value-select */
   width: calc(60px + 3.8em);
-  padding-top: 2px;
-  padding-bottom: 4px;
+  padding-block: 2px 4px;
 }
 
 /* Mock separator because inputs don't have distinguishable borders in dark theme */
@@ -327,18 +322,18 @@
   background-position: right 4px center;
   fill: var(--theme-icon-color);
   -moz-context-properties: fill;
-  -moz-appearance: none;
+  appearance: none;
   box-shadow: none;
   padding: 1px 10px 1px 2px;
   min-width: 3.8em;
 }
 
-.font-value-input + .font-value-select:dir(ltr){
+.font-value-input + .font-value-select:dir(ltr) {
   border-inline-start: none;
 }
 
 /* Swap around order of value input and unit dropdown for RTL */
-.font-value-input + .font-value-select:dir(rtl){
+.font-value-input + .font-value-select:dir(rtl) {
   border-inline-end: none;
   order: 2;
   text-align: left;
@@ -376,7 +371,7 @@
 .font-control-input:hover .font-value-slider-container::before,
 .font-control-input:hover .font-value-slider-container::after,
 .font-control-input:focus-within .font-value-slider-container::before,
-.font-control-input:focus-within .font-value-slider-container::after{
+.font-control-input:focus-within .font-value-slider-container::after {
   visibility: visible;
 }
 
@@ -417,10 +412,6 @@
   outline: none;
 }
 
-.font-value-slider::-moz-focus-outer {
-  border: 0;
-}
-
 .font-value-slider::-moz-range-thumb {
   background-color: var(--slider-thumb-color);
   border: 0;
@@ -454,6 +445,7 @@
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
+  direction: ltr;
 }
 
 .font-origin .copy-icon {

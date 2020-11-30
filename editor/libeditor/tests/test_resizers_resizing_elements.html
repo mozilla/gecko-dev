@@ -147,8 +147,12 @@ SimpleTest.waitForFocus(async () => {
       // Move the mouse delta more pixels to the same direction to make sure that the
       // resize operation has stopped.
       synthesizeMouse(target, basePosX + deltaX * 2, basePosY + deltaY * 2, {type: "mousemove"});
+
       // Click outside of the editor to hide the resizers
+      ok(true, "waiting selectionchange to select outside the target element");
+      let promiseSelectionExitEvent = waitForSelectionChange();
       synthesizeMouseAtCenter(outOfEditor, {});
+      await promiseSelectionExitEvent;
 
       // Get the new dimensions for the target
       // XXX I don't know why we need 2px margin to check this on Android.
@@ -268,17 +272,17 @@ SimpleTest.waitForFocus(async () => {
   }
 
   const kTests = [
-    { description: "Resiziers for <img>",
+    { description: "Resizers for <img>",
       innerHTML: "<img id=\"target\" src=\"green.png\">",
       mayPreserveRatio: true,
       isAbsolutePosition: false,
     },
-    { description: "Resiziers for <table>",
+    { description: "Resizers for <table>",
       innerHTML: "<table id=\"target\" border><tr><td>cell</td><td>cell</td></tr></table>",
       mayPreserveRatio: false,
       isAbsolutePosition: false,
     },
-    { description: "Resiziers for absolute positioned <div>",
+    { description: "Resizers for absolute positioned <div>",
       innerHTML: "<div id=\"target\" style=\"position: absolute; top: 50px; left: 50px;\">positioned</div>",
       mayPreserveRatio: false,
       isAbsolutePosition: true,

@@ -71,11 +71,15 @@ extern unsigned NotifyGCPreSwap(JSObject* a, JSObject* b);
 
 extern void NotifyGCPostSwap(JSObject* a, JSObject* b, unsigned preResult);
 
-using IterateChunkCallback = void (*)(JSRuntime*, void*, gc::Chunk*);
-using IterateZoneCallback = void (*)(JSRuntime*, void*, JS::Zone*);
+using IterateChunkCallback = void (*)(JSRuntime*, void*, gc::Chunk*,
+                                      const JS::AutoRequireNoGC&);
+using IterateZoneCallback = void (*)(JSRuntime*, void*, JS::Zone*,
+                                     const JS::AutoRequireNoGC&);
 using IterateArenaCallback = void (*)(JSRuntime*, void*, gc::Arena*,
-                                      JS::TraceKind, size_t);
-using IterateCellCallback = void (*)(JSRuntime*, void*, JS::GCCellPtr, size_t);
+                                      JS::TraceKind, size_t,
+                                      const JS::AutoRequireNoGC&);
+using IterateCellCallback = void (*)(JSRuntime*, void*, JS::GCCellPtr, size_t,
+                                     const JS::AutoRequireNoGC&);
 
 /*
  * This function calls |zoneCallback| on every zone, |realmCallback| on
@@ -110,12 +114,10 @@ using IterateScriptCallback = void (*)(JSRuntime*, void*, BaseScript*,
 
 /*
  * Invoke scriptCallback on every in-use script for the given realm or for all
- * realms if it is null.
+ * realms if it is null. The scripts may or may not have bytecode.
  */
 extern void IterateScripts(JSContext* cx, JS::Realm* realm, void* data,
                            IterateScriptCallback scriptCallback);
-extern void IterateLazyScripts(JSContext* cx, JS::Realm* realm, void* data,
-                               IterateScriptCallback lazyScriptCallback);
 
 JS::Realm* NewRealm(JSContext* cx, JSPrincipals* principals,
                     const JS::RealmOptions& options);
@@ -123,6 +125,8 @@ JS::Realm* NewRealm(JSContext* cx, JSPrincipals* principals,
 namespace gc {
 
 void FinishGC(JSContext* cx, JS::GCReason = JS::GCReason::FINISH_GC);
+
+void WaitForBackgroundTasks(JSContext* cx);
 
 /*
  * Merge all contents of source into target. This can only be used if source is
@@ -154,11 +158,25 @@ static inline void MaybeVerifyBarriers(JSContext* cx, bool always = false) {}
 #endif
 
 /*
- * Instances of this class prevent GC while they are live by updating the
- * |JSContext::suppressGC| counter. Use of this class is highly
- * discouraged. Please carefully read the comment in vm/JSContext.h above
- * |suppressGC| and take all appropriate precautions before instantiating this
- * class.
+ * Instances of this class prevent GC from happening while they are live. If an
+ * allocation causes a heap threshold to be exceeded, no GC will be performed
+ * and the allocation will succeed. Allocation may still fail for other reasons.
+ *
+ * Use of this class is highly discouraged, since without GC system memory can
+ * become exhausted and this can cause crashes at places where we can't handle
+ * allocation failure.
+ *
+ * Use of this is permissible in situations where it would be impossible (or at
+ * least very difficult) to tolerate GC and where only a fixed number of objects
+ * are allocated, such as:
+ *
+ *  - error reporting
+ *  - JIT bailout handling
+ *  - brain transplants (JSObject::swap)
+ *  - debugging utilities not exposed to the browser
+ *
+ * This works by updating the |JSContext::suppressGC| counter which is checked
+ * at the start of GC.
  */
 class MOZ_RAII JS_HAZ_GC_SUPPRESSED AutoSuppressGC {
   int32_t& suppressGC_;

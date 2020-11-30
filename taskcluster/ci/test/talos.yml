@@ -32,23 +32,41 @@ job-defaults:
                     - talos/linux64_config_taskcluster.py
                 default:
                     - talos/linux_config.py
+    test-manifest-loader: null  # don't load tests in the taskgraph
+    run-on-projects:
+        by-test-name:
+            talos-.*-profiling:
+                by-test-platform:
+                    (linux|windows|macos)(?!.*shippable).*: []
+                    .*(?:shippable-qr).*: []
+                    windows.*(?!shippable-qr)shippable.*: []
+                    default: ['mozilla-central']
+            default:
+                by-test-platform:
+                    (linux|windows|macos)(?!.*shippable).*: []
+                    macosx1014-64-shippable-qr/opt: ['mozilla-central']
+                    default: ['mozilla-beta', 'trunk']
     fission-run-on-projects:
         by-test-platform:
-            linux64-shippable-qr/opt: ['mozilla-central']
-            windows10-64-shippable-qr/opt: ['mozilla-central']
+            (linux64|windows10-64|macosx1014-64)-shippable-qr/opt: ['mozilla-central']
             default: []
 
 talos-bcv:
     description: "Talos basic compositor video"
     try-name: bcv
     treeherder-symbol: T(bcv)
+    variants:
+        by-test-platform:
+            linux64.*-qr.*: ['fission', 'webrender-sw']
+            default: ['fission']
     run-on-projects:
         by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            .*-qr/.*: []  # this test is not useful with webrender
-            (?:windows10-64|windows7-32|linux64)/opt: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'trunk', 'try']
+            .*(?:shippable-qr|-qr)/.*:
+                by-variant:
+                    webrender-sw: ['trunk']
+                    default: []
+            (linux|windows|macos)(?!.*shippable)(?!.*-qr).*: []
+            default: ['mozilla-beta', 'trunk']
     tier:
         by-test-platform:
             .*-qr/.*: 3  # this should be disabled but might run via try syntax anyway, so explicitly downgrade to tier-3
@@ -65,11 +83,10 @@ talos-bcv-profiling:
     tier: 2
     run-on-projects:
         by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            .*-qr/.*: []  # this test is not useful with webrender
-            (?:windows10-64|windows7-32|linux64)/opt: ['mozilla-central', 'try']
-            default: ['mozilla-central', 'try']
+            .*(?:shippable-qr|-qr)/.*: []
+            (linux|windows|macos)(?!.*shippable)(?!.*-qr).*: []
+            windows10-64-shippable/opt: []
+            default: ['mozilla-central']
     max-run-time: 1800
     mozharness:
         extra-options:
@@ -80,12 +97,6 @@ talos-chrome:
     description: "Talos chrome"
     try-name: chromez
     treeherder-symbol: T(c)
-    run-on-projects:
-        by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'trunk', 'try']
     max-run-time: 1800
     mozharness:
         extra-options:
@@ -96,12 +107,6 @@ talos-chrome-profiling:
     try-name: chromez-prof
     treeherder-symbol: T-Prof(c)
     tier: 2
-    run-on-projects:
-        by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-central', 'try']
     max-run-time: 1200
     mozharness:
         extra-options:
@@ -115,11 +120,16 @@ talos-damp:
     max-run-time: 5400
     run-on-projects:
         by-test-platform:
-            linux64-ccov/.*: ['try']  # Bug 1407593
-            windows10-64-ccov/.*: ['try']
-            windows7-32(?:-shippable)?/.*: ['try']
-            (?:windows10-64|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'trunk', 'try']
+            windows7-32-shippable/.*: []
+            macosx1014-64-shippable-qr/opt: ['mozilla-central']
+            (linux|windows|macos)(?!.*shippable).*: []
+            default: ['mozilla-beta', 'trunk']
+    fission-run-on-projects:
+        by-test-platform:
+            (linux64|windows10-64)-shippable-qr/opt: ['mozilla-central']
+            # Bug 1657864 - Disabled on macos for high frequency intermittents
+            default: []
+
     mozharness:
         extra-options:
             - --suite=damp
@@ -132,11 +142,9 @@ talos-damp-profiling:
     max-run-time: 5400
     run-on-projects:
         by-test-platform:
-            linux64-ccov/.*: ['try']  # Bug 1407593
-            windows10-64-ccov/.*: ['try']
-            windows7-32(?:-shippable)?/.*: ['try']
-            (?:windows10-64|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-central', 'try']
+            windows7-32-shippable/.*: []
+            (linux|windows|macos)(?!.*shippable).*: []
+            default: ['mozilla-central']
     mozharness:
         extra-options:
             - --suite=damp
@@ -146,12 +154,6 @@ talos-dromaeojs:
     description: "Talos dromaeojs"
     try-name: dromaeojs
     treeherder-symbol: T(d)
-    run-on-projects:
-        by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'trunk', 'try']
     max-run-time: 2100
     mozharness:
         extra-options:
@@ -162,12 +164,6 @@ talos-dromaeojs-profiling:
     try-name: dromaeojs-prof
     treeherder-symbol: T-Prof(d)
     tier: 2
-    run-on-projects:
-        by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-central', 'try']
     max-run-time: 2100
     mozharness:
         extra-options:
@@ -179,7 +175,10 @@ talos-flex:
     try-name: flex
     treeherder-symbol: T(f)
     tier: 3
-    run-on-projects: ['mozilla-central', 'try']
+    run-on-projects:
+        by-test-platform:
+            (linux|windows|macos)(?!.*shippable).*: []
+            default: ['mozilla-central']
     max-run-time: 1800
     mozharness:
         extra-options:
@@ -190,7 +189,10 @@ talos-flex-profiling:
     try-name: flex-prof
     treeherder-symbol: T-Prof(f)
     tier: 3
-    run-on-projects: ['mozilla-central', 'try']
+    run-on-projects:
+        by-test-platform:
+            (linux|windows|macos)(?!.*shippable).*: []
+            default: ['mozilla-central']
     max-run-time: 1800
     mozharness:
         extra-options:
@@ -201,12 +203,10 @@ talos-g1:
     description: "Talos g1"
     try-name: g1
     treeherder-symbol: T(g1)
-    run-on-projects:
+    variants:
         by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'trunk', 'try']
+            linux64.*-qr.*: ['fission', 'webrender-sw']
+            default: ['fission']
     max-run-time:
         by-test-platform:
             linux64.*: 3600
@@ -220,12 +220,6 @@ talos-g1-profiling:
     try-name: g1-prof
     treeherder-symbol: T-Prof(g1)
     tier: 2
-    run-on-projects:
-        by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-central', 'try']
     max-run-time:
         by-test-platform:
             linux64.*: 3600
@@ -239,12 +233,6 @@ talos-g3:
     description: "Talos g3"
     try-name: g3
     treeherder-symbol: T(g3)
-    run-on-projects:
-        by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'trunk', 'try']
     max-run-time: 900
     mozharness:
         extra-options:
@@ -255,12 +243,6 @@ talos-g3-profiling:
     try-name: g3-prof
     treeherder-symbol: T-Prof(g3)
     tier: 2
-    run-on-projects:
-        by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-central', 'try']
     max-run-time: 900
     mozharness:
         extra-options:
@@ -271,13 +253,16 @@ talos-g4:
     description: "Talos g4"
     try-name: g4
     treeherder-symbol: T(g4)
+    variants:
+        by-test-platform:
+            linux64.*-qr.*: ['fission', 'webrender-sw']
+            default: ['fission']
     run-on-projects:
         by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            windows10-64-ref-hw-2017/opt: ['try', 'mozilla-central']
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'trunk', 'try']
+            windows10-64-ref-hw-2017/opt: ['mozilla-central']
+            macosx1014-64-shippable-qr/opt: ['mozilla-central']
+            (linux|windows|macos)(?!.*shippable).*: []
+            default: ['mozilla-beta', 'trunk']
     max-run-time:
         by-test-platform:
             linux64.*: 1500
@@ -291,13 +276,6 @@ talos-g4-profiling:
     try-name: g4-prof
     treeherder-symbol: T-Prof(g4)
     tier: 2
-    run-on-projects:
-        by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            windows10-64-ref-hw-2017/opt: []
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-central', 'try']
     max-run-time:
         by-test-platform:
             linux64.*: 1500
@@ -311,12 +289,6 @@ talos-g5:
     description: "Talos g5"
     try-name: g5
     treeherder-symbol: T(g5)
-    run-on-projects:
-        by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'trunk', 'try']
     mozharness:
         extra-options:
             - --suite=g5
@@ -331,12 +303,6 @@ talos-g5-profiling:
     try-name: g5-prof
     treeherder-symbol: T-Prof(g5)
     tier: 2
-    run-on-projects:
-        by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-central', 'try']
     mozharness:
         extra-options:
             - --suite=g5
@@ -350,10 +316,6 @@ talos-h1:
     description: "Talos h1"
     try-name: h1
     treeherder-symbol: T(h1)
-    run-on-projects:
-        by-test-platform:
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'trunk', 'try']
     mozharness:
         extra-options:
             - --suite=h1
@@ -366,10 +328,6 @@ talos-h2:
     description: "Talos h2"
     try-name: h2
     treeherder-symbol: T(h2)
-    run-on-projects:
-        by-test-platform:
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'trunk', 'try']
     max-run-time:
         by-test-platform:
             linux64.*: 900
@@ -382,7 +340,10 @@ talos-motionmark:
     description: "Talos motionmark"
     try-name: motionmark
     treeherder-symbol: T(mm)
-    run-on-projects: ['mozilla-central', 'try']
+    run-on-projects:
+        by-test-platform:
+            (linux|windows|macos)(?!.*shippable).*: []
+            default: ['mozilla-central']
     max-run-time: 3600
     tier:
         by-test-platform:
@@ -397,7 +358,6 @@ talos-motionmark-profiling:
     description: "Talos motionmark with gecko profiling"
     try-name: motionmark-prof
     treeherder-symbol: T-Prof(mm)
-    run-on-projects: ['mozilla-central', 'try']
     max-run-time: 3600
     tier:
         by-test-platform:
@@ -413,12 +373,10 @@ talos-other:
     description: "Talos other"
     try-name: other
     treeherder-symbol: T(o)
-    run-on-projects:
+    variants:
         by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'trunk', 'try']
+            linux64.*-qr.*: ['fission', 'webrender-sw']
+            default: ['fission']
     max-run-time: 1500
     mozharness:
         extra-options:
@@ -429,12 +387,6 @@ talos-other-profiling:
     try-name: other-prof
     treeherder-symbol: T-Prof(o)
     tier: 2
-    run-on-projects:
-        by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-central', 'try']
     max-run-time: 1500
     mozharness:
         extra-options:
@@ -447,9 +399,8 @@ talos-sessionrestore-many-windows:
     treeherder-symbol: T(smw)
     run-on-projects:
         by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            default: ['mozilla-central', 'try']
+            (linux|windows|macos)(?!.*shippable).*: []
+            default: ['mozilla-central']
     max-run-time: 1500
     mozharness:
         extra-options:
@@ -460,11 +411,6 @@ talos-sessionrestore-many-windows-profiling:
     try-name: sessionrestore-many-windows-prof
     treeherder-symbol: T-Prof(smw)
     tier: 2
-    run-on-projects:
-        by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            default: ['mozilla-central', 'try']
     max-run-time: 1500
     mozharness:
         extra-options:
@@ -475,12 +421,6 @@ talos-perf-reftest:
     description: "Talos perf-reftest"
     try-name: perf-reftest
     treeherder-symbol: T(p)
-    run-on-projects:
-        by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'trunk', 'try']
     max-run-time: 1200
     mozharness:
         extra-options:
@@ -491,12 +431,6 @@ talos-perf-reftest-profiling:
     try-name: perf-reftest-prof
     treeherder-symbol: T-Prof(p)
     tier: 2
-    run-on-projects:
-        by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-central', 'try']
     max-run-time: 1200
     mozharness:
         extra-options:
@@ -507,12 +441,6 @@ talos-perf-reftest-singletons:
     description: "Talos perf-reftest singletons"
     try-name: perf-reftest-singletons
     treeherder-symbol: T(ps)
-    run-on-projects:
-        by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'trunk', 'try']
     max-run-time: 1500
     mozharness:
         extra-options:
@@ -523,12 +451,6 @@ talos-perf-reftest-singletons-profiling:
     try-name: perf-reftest-singletons-prof
     treeherder-symbol: T-Prof(ps)
     tier: 2
-    run-on-projects:
-        by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-central', 'try']
     max-run-time: 1500
     mozharness:
         extra-options:
@@ -539,12 +461,10 @@ talos-svgr:
     description: "Talos svgr"
     try-name: svgr
     treeherder-symbol: T(s)
-    run-on-projects:
+    variants:
         by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'trunk', 'try']
+            linux64.*-qr.*: ['fission', 'webrender-sw']
+            default: ['fission']
     max-run-time: 1800
     mozharness:
         extra-options:
@@ -555,12 +475,6 @@ talos-svgr-profiling:
     try-name: svgr-prof
     treeherder-symbol: T-Prof(s)
     tier: 2
-    run-on-projects:
-        by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-central', 'try']
     max-run-time: 1800
     mozharness:
         extra-options:
@@ -571,12 +485,6 @@ talos-tp5o:
     description: "Talos tp5o"
     try-name: tp5o
     treeherder-symbol: T(tp)
-    run-on-projects:
-        by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'trunk', 'try']
     max-run-time: 1800
     mozharness:
         extra-options:
@@ -587,12 +495,6 @@ talos-tp5o-profiling:
     try-name: tp5o-prof
     treeherder-symbol: T-Prof(tp)
     tier: 2
-    run-on-projects:
-        by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-central', 'try']
     max-run-time: 1800
     mozharness:
         extra-options:
@@ -604,12 +506,6 @@ talos-tabswitch:
     try-name: tabswitch
     treeherder-symbol: T(tabswitch)
     max-run-time: 1200
-    run-on-projects:
-        by-test-platform:
-            windows10-64-ccov/.*: ['try']
-            linux64-ccov/.*: ['try']  # Bug 1407593
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'trunk', 'try']
     mozharness:
         extra-options:
             - --suite=tabswitch
@@ -620,12 +516,6 @@ talos-tabswitch-profiling:
     treeherder-symbol: T-Prof(tabswitch)
     tier: 2
     max-run-time: 1200
-    run-on-projects:
-        by-test-platform:
-            windows10-64-ccov/.*: ['try']
-            linux64-ccov/.*: ['try']  # Bug 1407593
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-central', 'try']
     mozharness:
         extra-options:
             - --suite=tabswitch
@@ -635,13 +525,16 @@ talos-webgl:
     description: "Talos WebGL"
     try-name: webgl
     treeherder-symbol: T(webgl)
+    variants:
+        by-test-platform:
+            android.*: []
+            default: ['webgl-ipc']
     run-on-projects:
         by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            windows10-64-ref-hw-2017/opt: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'trunk', 'try']
+            windows10-64-ref-hw-2017/opt: ['mozilla-central']
+            macosx1014-64-shippable-qr/opt: ['mozilla-central']
+            (linux|windows|macos)(?!.*shippable).*: []
+            default: ['mozilla-beta', 'trunk']
     max-run-time: 1800
     mozharness:
         extra-options:
@@ -652,7 +545,11 @@ talos-webgl-profiling:
     try-name: webgl
     treeherder-symbol: T-Prof(webgl)
     tier: 2
-    run-on-projects: ['try']
+    run-on-projects: []
+    variants:
+        by-test-platform:
+            android.*: []
+            default: ['webgl-ipc']
     max-run-time: 1800
     mozharness:
         extra-options:
@@ -671,9 +568,8 @@ talos-xperf:
             windows10-64.*: true
     run-on-projects:
         by-test-platform:
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            windows7-32-(?:pgo|shippable)(?:-qr)?/.*: ['mozilla-beta', 'trunk', 'try']
-            windows10-64-(?:pgo|shippable)(?:-qr)?/.*: ['mozilla-beta', 'trunk', 'try']
+            windows7-32-shippable(?:-qr)?/.*: ['mozilla-beta', 'trunk']
+            windows10-64-shippable(?:-qr)?/.*: ['mozilla-beta', 'trunk']
             default: []
     tier:
         by-test-platform:
@@ -691,12 +587,6 @@ talos-realworld-webextensions:
     description: "Talos tests with realworld WebExtensions"
     try-name: "realworld-webextensions"
     treeherder-symbol: T(realwebext)
-    run-on-projects:
-        by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'trunk', 'try']
     max-run-time: 1500
     mozharness:
         extra-options:
@@ -707,12 +597,6 @@ talos-realworld-webextensions-profiling:
     try-name: "realworld-webextensions-prof"
     treeherder-symbol: T-Prof(realwebext)
     tier: 2
-    run-on-projects:
-        by-test-platform:
-            linux64-ccov/.*: ['try']
-            windows10-64-ccov/.*: ['try']
-            (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try']
-            default: ['mozilla-central', 'try']
     max-run-time: 1500
     mozharness:
         extra-options:

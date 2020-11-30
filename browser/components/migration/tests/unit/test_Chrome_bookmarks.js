@@ -3,6 +3,13 @@
 const { AppConstants } = ChromeUtils.import(
   "resource://gre/modules/AppConstants.jsm"
 );
+const { CustomizableUI } = ChromeUtils.import(
+  "resource:///modules/CustomizableUI.jsm"
+);
+
+const { PlacesUIUtils } = ChromeUtils.import(
+  "resource:///modules/PlacesUIUtils.jsm"
+);
 
 let rootDir = do_get_file("chromefiles/", true);
 
@@ -16,6 +23,23 @@ add_task(async function setup_fakePaths() {
     pathId = "Home";
   }
   registerFakePath(pathId, rootDir);
+});
+
+add_task(async function setup_initialBookmarks() {
+  let bookmarks = [];
+  for (let i = 0; i < PlacesUIUtils.NUM_TOOLBAR_BOOKMARKS_TO_UNHIDE + 1; i++) {
+    bookmarks.push({ url: "https://example.com/" + i, title: "" + i });
+  }
+
+  // Ensure we have enough items in both the menu and toolbar to trip creating a "from" folder.
+  await PlacesUtils.bookmarks.insertTree({
+    guid: PlacesUtils.bookmarks.toolbarGuid,
+    children: bookmarks,
+  });
+  await PlacesUtils.bookmarks.insertTree({
+    guid: PlacesUtils.bookmarks.menuGuid,
+    children: bookmarks,
+  });
 });
 
 async function testBookmarks(migratorKey, subDirs, folderName) {
@@ -93,6 +117,7 @@ async function testBookmarks(migratorKey, subDirs, folderName) {
   Assert.ok(await migrator.isSourceAvailable());
 
   let itemsSeen = { bookmarks: 0, folders: 0 };
+  let gotImportedFolderWrapper = false;
   let listener = events => {
     for (let event of events) {
       // "From " comes from the string `importedBookmarksFolder`
@@ -101,6 +126,7 @@ async function testBookmarks(migratorKey, subDirs, folderName) {
         event.itemType == PlacesUtils.bookmarks.TYPE_FOLDER
       ) {
         Assert.equal(event.title, folderName, "Bookmark folder name");
+        gotImportedFolderWrapper = true;
       } else {
         itemsSeen[
           event.itemType == PlacesUtils.bookmarks.TYPE_FOLDER
@@ -116,6 +142,21 @@ async function testBookmarks(migratorKey, subDirs, folderName) {
     id: "Default",
     name: "Default",
   };
+  let observerNotified = false;
+  Services.obs.addObserver((aSubject, aTopic, aData) => {
+    let [toolbar, visibility] = JSON.parse(aData);
+    Assert.equal(
+      toolbar,
+      CustomizableUI.AREA_BOOKMARKS,
+      "Notification should be received for bookmarks toolbar"
+    );
+    Assert.equal(
+      visibility,
+      "true",
+      "Notification should say to reveal the bookmarks toolbar"
+    );
+    observerNotified = true;
+  }, "browser-set-toolbar-visibility");
   await promiseMigration(
     migrator,
     MigrationUtils.resourceTypes.BOOKMARKS,
@@ -126,10 +167,16 @@ async function testBookmarks(migratorKey, subDirs, folderName) {
   Assert.equal(itemsSeen.bookmarks, 200, "Should have seen 200 bookmarks.");
   Assert.equal(itemsSeen.folders, 10, "Should have seen 10 folders.");
   Assert.equal(
+    gotImportedFolderWrapper,
+    !Services.prefs.getBoolPref("browser.toolbars.bookmarks.2h2020"),
+    "Should only get a 'From BrowserX' folder when the 2h2020 pref is disabled"
+  );
+  Assert.equal(
     MigrationUtils._importQuantities.bookmarks,
     itemsSeen.bookmarks + itemsSeen.folders,
     "Telemetry reporting correct."
   );
+  Assert.ok(observerNotified, "The observer should be notified upon migration");
 }
 
 add_task(async function test_Chrome() {

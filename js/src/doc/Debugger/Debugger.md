@@ -168,6 +168,11 @@ debugger evaluation associated with the debugger that has the `onNativeCall`
 hook.  Such evaluation methods include `Debugger.Object.executeInGlobal`,
 `Debugger.Frame.eval`, and associated methods.
 
+Separately, any Debugger hooks triggered during calls to
+`Debugger.Object.executeInGlobal`, `Debugger.Frame.eval`, and associated methods
+will only be triggered on Debugger objects owned by the Debugger performing
+the evaluation.
+
 ### `onExceptionUnwind(frame, value)`
 The exception <i>value</i> has been thrown, and has propagated to
 <i>frame</i>; <i>frame</i> is the youngest remaining stack frame, and is a
@@ -501,6 +506,12 @@ If `value` is a primitive value, return it unchanged. If `value` is a
 `Debugger.Object` owned by this `Debugger`. Otherwise, if `value` is some
 other kind of object, and hence not a proper debuggee value, throw a
 TypeError instead.
+
+### `adoptFrame(frame)`
+Given `frame` of type `Debugger.Frame` which is owned by an arbitrary
+`Debugger`, return an equivalent `Debugger.Frame` owned by this `Debugger`.
+If the `frame` is associated with a debuggee that is _not_ a debuggee of
+the adopting debugger, this method will throw.
 
 ### `adoptSource(source)`
 Given `source` of type `Debugger.Source` which is owned by an arbitrary

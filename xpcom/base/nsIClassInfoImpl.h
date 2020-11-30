@@ -155,14 +155,34 @@ class GenericClassInfo : public nsIClassInfo {
   MOZ_FOR_EACH(NS_CLASSINFO_HELPER_ENTRY, (), (__VA_ARGS__))           \
   NS_CLASSINFO_HELPER_END
 
-#define NS_IMPL_QUERY_INTERFACE_CI(aClass, ...)                           \
+#define NS_IMPL_CI_INTERFACE_GETTER0(aClass) \
+  NS_CLASSINFO_HELPER_BEGIN(aClass, 0)       \
+  NS_CLASSINFO_HELPER_END
+
+// Note that this macro is an internal implementation of this header and
+// should not be used outside it. It does not end the interface map as this
+// is done in NS_IMPL_QUERY_INTERFACE_CI or the _INHERITED variant.
+#define NS_IMPL_QUERY_INTERFACE_CI_GUTS(aClass, ...)                      \
   static_assert(MOZ_ARG_COUNT(__VA_ARGS__) > 0,                           \
                 "Need more arguments to NS_IMPL_QUERY_INTERFACE_CI");     \
   NS_INTERFACE_MAP_BEGIN(aClass)                                          \
     MOZ_FOR_EACH(NS_INTERFACE_MAP_ENTRY, (), (__VA_ARGS__))               \
     NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, MOZ_ARG_1(__VA_ARGS__)) \
-    NS_IMPL_QUERY_CLASSINFO(aClass)                                       \
+    NS_IMPL_QUERY_CLASSINFO(aClass)
+
+#define NS_IMPL_QUERY_INTERFACE_CI(aClass, ...)        \
+  NS_IMPL_QUERY_INTERFACE_CI_GUTS(aClass, __VA_ARGS__) \
   NS_INTERFACE_MAP_END
+
+#define NS_IMPL_QUERY_INTERFACE_CI_INHERITED(aClass, aSuper, ...) \
+  NS_IMPL_QUERY_INTERFACE_CI_GUTS(aClass, __VA_ARGS__)            \
+  NS_INTERFACE_MAP_END_INHERITING                                 \
+  (aSuper)
+
+#define NS_IMPL_QUERY_INTERFACE_CI_INHERITED0(aClass, aSuper) \
+  NS_INTERFACE_MAP_BEGIN(aClass)                              \
+    NS_IMPL_QUERY_CLASSINFO(aClass)                           \
+  NS_INTERFACE_MAP_END_INHERITING(aSuper)
 
 #define NS_IMPL_ISUPPORTS_CI(aClass, ...)         \
   NS_IMPL_ADDREF(aClass)                          \

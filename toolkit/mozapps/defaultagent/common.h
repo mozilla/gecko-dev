@@ -7,8 +7,12 @@
 #ifndef __DEFAULT_BROWSER_AGENT_COMMON_H__
 #define __DEFAULT_BROWSER_AGENT_COMMON_H__
 
-#define AGENT_REGKEY_NAME      \
-  L"SOFTWARE\\" MOZ_APP_VENDOR \
-  "\\" MOZ_APP_BASENAME "\\Default Browser Agent"
+#define AGENT_REGKEY_NAME \
+  L"SOFTWARE\\" MOZ_APP_VENDOR "\\" MOZ_APP_BASENAME "\\Default Browser Agent"
+
+ULONGLONG GetCurrentTimestamp();
+// Passing a zero as the second argument (or omitting it) causes the function
+// to get the current time rather than using a passed value.
+ULONGLONG SecondsPassedSince(ULONGLONG initialTime, ULONGLONG currentTime = 0);
 
 #endif  // __DEFAULT_BROWSER_AGENT_COMMON_H__

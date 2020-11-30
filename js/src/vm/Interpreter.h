@@ -13,19 +13,21 @@
 
 #include "jspubtd.h"
 
+#include "vm/BuiltinObjectKind.h"
+#include "vm/CheckIsObjectKind.h"  // CheckIsObjectKind
 #include "vm/Iteration.h"
 #include "vm/Stack.h"
 
 namespace js {
 
 class EnvironmentIter;
+class PlainObject;
 
 /*
- * Convert null/undefined |thisv| into the current global object for the
- * compartment, and replace other primitives with boxed versions.
+ * Convert null/undefined |thisv| into the global lexical's |this| object, and
+ * replace other primitives with boxed versions.
  */
-extern bool BoxNonStrictThis(JSContext* cx, HandleValue thisv,
-                             MutableHandleValue vp);
+extern JSObject* BoxNonStrictThis(JSContext* cx, HandleValue thisv);
 
 extern bool GetFunctionThis(JSContext* cx, AbstractFramePtr frame,
                             MutableHandleValue res);
@@ -178,18 +180,18 @@ extern bool InternalConstructWithProvidedThis(JSContext* cx, HandleValue fval,
                                               MutableHandleValue rval);
 
 /*
- * Executes a script with the given scopeChain/this. The 'type' indicates
- * whether this is eval code or global code. To support debugging, the
- * evalFrame parameter can point to an arbitrary frame in the context's call
+ * Executes a script with the given envChain. To support debugging, the
+ * evalInFrame parameter can point to an arbitrary frame in the context's call
  * stack to simulate executing an eval in that frame.
  */
 extern bool ExecuteKernel(JSContext* cx, HandleScript script,
-                          JSObject& scopeChain, const Value& newTargetVal,
-                          AbstractFramePtr evalInFrame, Value* result);
+                          HandleObject envChainArg, HandleValue newTargetValue,
+                          AbstractFramePtr evalInFrame,
+                          MutableHandleValue result);
 
-/* Execute a script with the given scopeChain as global code. */
-extern bool Execute(JSContext* cx, HandleScript script, JSObject& scopeChain,
-                    Value* rval);
+/* Execute a script with the given envChain as global code. */
+extern bool Execute(JSContext* cx, HandleScript script, HandleObject envChain,
+                    MutableHandleValue rval);
 
 class ExecuteState;
 class InvokeState;
@@ -197,7 +199,7 @@ class InvokeState;
 // RunState is passed to RunScript and RunScript then either passes it to the
 // interpreter or to the JITs. RunState contains all information we need to
 // construct an interpreter or JIT frame.
-class RunState {
+class MOZ_RAII RunState {
  protected:
   enum Kind { Execute, Invoke };
   Kind kind_;
@@ -233,24 +235,24 @@ class RunState {
 };
 
 // Eval or global script.
-class ExecuteState : public RunState {
+class MOZ_RAII ExecuteState : public RunState {
   RootedValue newTargetValue_;
-  RootedObject envChain_;
+  HandleObject envChain_;
 
   AbstractFramePtr evalInFrame_;
-  Value* result_;
+  MutableHandleValue result_;
 
  public:
-  ExecuteState(JSContext* cx, JSScript* script, const Value& newTargetValue,
-               JSObject& envChain, AbstractFramePtr evalInFrame, Value* result)
+  ExecuteState(JSContext* cx, JSScript* script, HandleValue newTargetValue,
+               HandleObject envChain, AbstractFramePtr evalInFrame,
+               MutableHandleValue result)
       : RunState(cx, Execute, script),
         newTargetValue_(cx, newTargetValue),
-        envChain_(cx, &envChain),
+        envChain_(envChain),
         evalInFrame_(evalInFrame),
         result_(result) {}
 
   Value newTarget() const { return newTargetValue_; }
-  void setNewTarget(const Value& v) { newTargetValue_ = v; }
   Value* addressOfNewTarget() { return newTargetValue_.address(); }
 
   JSObject* environmentChain() const { return envChain_; }
@@ -258,15 +260,11 @@ class ExecuteState : public RunState {
 
   InterpreterFrame* pushInterpreterFrame(JSContext* cx);
 
-  void setReturnValue(const Value& v) {
-    if (result_) {
-      *result_ = v;
-    }
-  }
+  void setReturnValue(const Value& v) { result_.set(v); }
 };
 
 // Data to invoke a function.
-class InvokeState final : public RunState {
+class MOZ_RAII InvokeState final : public RunState {
   const CallArgs& args_;
   MaybeConstruct construct_;
 
@@ -312,16 +310,17 @@ extern void UnwindAllEnvironmentsInFrame(JSContext* cx, EnvironmentIter& ei);
 // Compute the pc needed to unwind the scope to the beginning of the block
 // pointed to by the try note.
 extern jsbytecode* UnwindEnvironmentToTryPc(JSScript* script,
-                                            const JSTryNote* tn);
+                                            const TryNote* tn);
+
+namespace detail {
 
 template <class TryNoteFilter>
-class MOZ_STACK_CLASS TryNoteIter {
-  RootedScript script_;
+class MOZ_STACK_CLASS BaseTryNoteIter {
   uint32_t pcOffset_;
   TryNoteFilter isTryNoteValid_;
 
-  const JSTryNote* tn_;
-  const JSTryNote* tnEnd_;
+  const TryNote* tn_;
+  const TryNote* tnEnd_;
 
   void settle() {
     for (; tn_ != tnEnd_; ++tn_) {
@@ -346,7 +345,7 @@ class MOZ_STACK_CLASS TryNoteIter {
        *  should not be. If IteratorClose throws, we don't want to
        *  catch it here.
        *
-       *  To make this work, we use JSTRY_FOR_OF_ITERCLOSE try-notes,
+       *  To make this work, we use TryNoteKind::ForOfIterClose try-notes,
        *  which cover the range of the abnormal completion. When
        *  looking up trynotes, a for-of iterclose note indicates that
        *  the enclosing for-of has just been terminated. As a result,
@@ -387,15 +386,15 @@ class MOZ_STACK_CLASS TryNoteIter {
        *    the outer try-catch. (This occurs if an exception is thrown while
        *    closing the outer iterator.)
        */
-      if (tn_->kind == JSTRY_FOR_OF_ITERCLOSE) {
+      if (tn_->kind() == TryNoteKind::ForOfIterClose) {
         uint32_t iterCloseDepth = 1;
         do {
           ++tn_;
           MOZ_ASSERT(tn_ != tnEnd_);
           if (pcInRange()) {
-            if (tn_->kind == JSTRY_FOR_OF_ITERCLOSE) {
+            if (tn_->kind() == TryNoteKind::ForOfIterClose) {
               iterCloseDepth++;
-            } else if (tn_->kind == JSTRY_FOR_OF) {
+            } else if (tn_->kind() == TryNoteKind::ForOf) {
               iterCloseDepth--;
             }
           }
@@ -431,11 +430,9 @@ class MOZ_STACK_CLASS TryNoteIter {
   }
 
  public:
-  TryNoteIter(JSContext* cx, JSScript* script, jsbytecode* pc,
-              TryNoteFilter isTryNoteValid)
-      : script_(cx, script),
-        pcOffset_(script->pcToOffset(pc)),
-        isTryNoteValid_(isTryNoteValid) {
+  BaseTryNoteIter(JSScript* script, jsbytecode* pc,
+                  TryNoteFilter isTryNoteValid)
+      : pcOffset_(script->pcToOffset(pc)), isTryNoteValid_(isTryNoteValid) {
     // NOTE: The Span is a temporary so we can't use begin()/end()
     // here or the iterator will outlive the span.
     auto trynotes = script->trynotes();
@@ -459,19 +456,42 @@ class MOZ_STACK_CLASS TryNoteIter {
     return offset - start < length;
   }
   bool done() const { return tn_ == tnEnd_; }
-  const JSTryNote* operator*() const { return tn_; }
+  const TryNote* operator*() const { return tn_; }
+};
+
+}  // namespace detail
+
+template <class TryNoteFilter>
+class MOZ_STACK_CLASS TryNoteIter
+    : public detail::BaseTryNoteIter<TryNoteFilter> {
+  using Base = detail::BaseTryNoteIter<TryNoteFilter>;
+
+  // Keep the script alive as long as the iterator is live.
+  RootedScript script_;
+
+ public:
+  TryNoteIter(JSContext* cx, JSScript* script, jsbytecode* pc,
+              TryNoteFilter isTryNoteValid)
+      : Base(script, pc, isTryNoteValid), script_(cx, script) {}
 };
 
 class NoOpTryNoteFilter {
  public:
   explicit NoOpTryNoteFilter() = default;
-  bool operator()(const JSTryNote*) { return true; }
+  bool operator()(const TryNote*) { return true; }
 };
 
-class TryNoteIterAll : public TryNoteIter<NoOpTryNoteFilter> {
+// Iterator over all try notes. Code using this iterator is not allowed to
+// trigger GC to make sure the script stays alive. See TryNoteIter above for the
+// can-GC version.
+class MOZ_STACK_CLASS TryNoteIterAllNoGC
+    : public detail::BaseTryNoteIter<NoOpTryNoteFilter> {
+  using Base = detail::BaseTryNoteIter<NoOpTryNoteFilter>;
+  JS::AutoCheckCannotGC nogc;
+
  public:
-  TryNoteIterAll(JSContext* cx, JSScript* script, jsbytecode* pc)
-      : TryNoteIter(cx, script, pc, NoOpTryNoteFilter()) {}
+  TryNoteIterAllNoGC(JSScript* script, jsbytecode* pc)
+      : Base(script, pc, NoOpTryNoteFilter()) {}
 };
 
 bool HandleClosingGeneratorReturn(JSContext* cx, AbstractFramePtr frame,
@@ -502,7 +522,7 @@ bool SetObjectElement(JSContext* cx, HandleObject obj, HandleValue index,
                       HandleValue value, HandleValue receiver, bool strict,
                       HandleScript script, jsbytecode* pc);
 
-bool InitElementArray(JSContext* cx, jsbytecode* pc, HandleObject obj,
+bool InitElementArray(JSContext* cx, jsbytecode* pc, HandleArrayObject arr,
                       uint32_t index, HandleValue value);
 
 bool AddValues(JSContext* cx, MutableHandleValue lhs, MutableHandleValue rhs,
@@ -523,18 +543,47 @@ bool ModValues(JSContext* cx, MutableHandleValue lhs, MutableHandleValue rhs,
 bool PowValues(JSContext* cx, MutableHandleValue lhs, MutableHandleValue rhs,
                MutableHandleValue res);
 
+bool BitNot(JSContext* cx, MutableHandleValue in, MutableHandleValue res);
+
+bool BitXor(JSContext* cx, MutableHandleValue lhs, MutableHandleValue rhs,
+            MutableHandleValue res);
+
+bool BitOr(JSContext* cx, MutableHandleValue lhs, MutableHandleValue rhs,
+           MutableHandleValue res);
+
+bool BitAnd(JSContext* cx, MutableHandleValue lhs, MutableHandleValue rhs,
+            MutableHandleValue res);
+
+bool BitLsh(JSContext* cx, MutableHandleValue lhs, MutableHandleValue rhs,
+            MutableHandleValue res);
+
+bool BitRsh(JSContext* cx, MutableHandleValue lhs, MutableHandleValue rhs,
+            MutableHandleValue res);
+
 bool UrshValues(JSContext* cx, MutableHandleValue lhs, MutableHandleValue rhs,
                 MutableHandleValue res);
+
+bool LessThan(JSContext* cx, MutableHandleValue lhs, MutableHandleValue rhs,
+              bool* res);
+
+bool LessThanOrEqual(JSContext* cx, MutableHandleValue lhs,
+                     MutableHandleValue rhs, bool* res);
+
+bool GreaterThan(JSContext* cx, MutableHandleValue lhs, MutableHandleValue rhs,
+                 bool* res);
+
+bool GreaterThanOrEqual(JSContext* cx, MutableHandleValue lhs,
+                        MutableHandleValue rhs, bool* res);
 
 bool AtomicIsLockFree(JSContext* cx, HandleValue in, int* out);
 
 template <bool strict>
-bool DeletePropertyJit(JSContext* ctx, HandleValue val, HandlePropertyName name,
-                       bool* bv);
+bool DelPropOperation(JSContext* cx, HandleValue val, HandlePropertyName name,
+                      bool* res);
 
 template <bool strict>
-bool DeleteElementJit(JSContext* cx, HandleValue val, HandleValue index,
-                      bool* bv);
+bool DelElemOperation(JSContext* cx, HandleValue val, HandleValue index,
+                      bool* res);
 
 JSObject* BindVarOperation(JSContext* cx, JSObject* envChain);
 
@@ -552,9 +601,9 @@ JSObject* SingletonObjectLiteralOperation(JSContext* cx, HandleScript script,
 
 JSObject* ImportMetaOperation(JSContext* cx, HandleScript script);
 
-JSObject* BuiltinProtoOperation(JSContext* cx, jsbytecode* pc);
+JSObject* BuiltinObjectOperation(JSContext* cx, BuiltinObjectKind kind);
 
-bool ThrowMsgOperation(JSContext* cx, const unsigned errorNum);
+bool ThrowMsgOperation(JSContext* cx, const unsigned throwMsgKind);
 
 bool GetAndClearException(JSContext* cx, MutableHandleValue res);
 
@@ -593,12 +642,12 @@ JSObject* NewObjectOperationWithTemplate(JSContext* cx,
                                          HandleObject templateObject);
 JSObject* CreateThisWithTemplate(JSContext* cx, HandleObject templateObject);
 
-JSObject* NewArrayOperation(JSContext* cx, HandleScript script, jsbytecode* pc,
-                            uint32_t length,
-                            NewObjectKind newKind = GenericObject);
+ArrayObject* NewArrayOperation(JSContext* cx, HandleScript script,
+                               jsbytecode* pc, uint32_t length,
+                               NewObjectKind newKind = GenericObject);
 
-JSObject* NewArrayOperationWithTemplate(JSContext* cx,
-                                        HandleObject templateObject);
+ArrayObject* NewArrayOperationWithTemplate(JSContext* cx,
+                                           HandleObject templateObject);
 
 ArrayObject* NewArrayCopyOnWriteOperation(JSContext* cx, HandleScript script,
                                           jsbytecode* pc);
@@ -625,19 +674,7 @@ void ReportInNotObjectError(JSContext* cx, HandleValue lref, int lindex,
 void ReportRuntimeRedeclaration(JSContext* cx, HandlePropertyName name,
                                 const char* redeclKind);
 
-enum class CheckIsObjectKind : uint8_t {
-  IteratorNext,
-  IteratorReturn,
-  IteratorThrow,
-  GetIterator,
-  GetAsyncIterator
-};
-
 bool ThrowCheckIsObject(JSContext* cx, CheckIsObjectKind kind);
-
-enum class CheckIsCallableKind : uint8_t { IteratorReturn };
-
-bool ThrowCheckIsCallable(JSContext* cx, CheckIsCallableKind kind);
 
 bool ThrowUninitializedThis(JSContext* cx);
 
@@ -653,7 +690,7 @@ bool Debug_CheckSelfHosted(JSContext* cx, HandleValue v);
 
 bool CheckClassHeritageOperation(JSContext* cx, HandleValue heritage);
 
-JSObject* ObjectWithProtoOperation(JSContext* cx, HandleValue proto);
+PlainObject* ObjectWithProtoOperation(JSContext* cx, HandleValue proto);
 
 JSObject* FunWithProtoOperation(JSContext* cx, HandleFunction fun,
                                 HandleObject parent, HandleObject proto);

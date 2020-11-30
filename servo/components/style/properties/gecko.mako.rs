@@ -29,6 +29,7 @@ use crate::gecko_bindings::bindings::Gecko_nsStyleFont_CopyLangFrom;
 use crate::gecko_bindings::structs;
 use crate::gecko_bindings::structs::nsCSSPropertyID;
 use crate::gecko_bindings::structs::mozilla::PseudoStyleType;
+use crate::gecko::data::PerDocumentStyleData;
 use crate::gecko::values::round_border_to_device_pixels;
 use crate::logical_geometry::WritingMode;
 use crate::media_queries::Device;
@@ -375,18 +376,6 @@ def set_gecko_property(ffi_name, expr):
 <%call expr="impl_simple_clone(ident, gecko_ffi_name)"></%call>
 </%def>
 
-<%def name="impl_absolute_length(ident, gecko_ffi_name)">
-    #[allow(non_snake_case)]
-    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        ${set_gecko_property(gecko_ffi_name, "v.to_i32_au()")}
-    }
-    <%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
-    #[allow(non_snake_case)]
-    pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        Au(self.gecko.${gecko_ffi_name}).into()
-    }
-</%def>
-
 <%def name="impl_non_negative_length(ident, gecko_ffi_name, inherit_from=None,
                                      round_to_pixels=False)">
     #[allow(non_snake_case)]
@@ -592,11 +581,6 @@ impl Clone for ${style_struct.gecko_struct_name} {
     longhands = [x for x in style_struct.longhands
                 if not (skip_longhands == "*" or x.name in skip_longhands.split())]
 
-    # Types used with predefined_type()-defined properties that we can auto-generate.
-    predefined_types = {
-        "MozScriptMinSize": impl_absolute_length,
-    }
-
     def longhand_method(longhand):
         args = dict(ident=longhand.ident, gecko_ffi_name=longhand.gecko_ffi_name)
 
@@ -609,8 +593,6 @@ impl Clone for ${style_struct.gecko_struct_name} {
             args.update(keyword=longhand.keyword)
             if "font" in longhand.ident:
                 args.update(cast_type=longhand.cast_type)
-        elif longhand.predefined_type in predefined_types:
-            method = predefined_types[longhand.predefined_type]
         else:
             method = impl_simple
 
@@ -801,7 +783,8 @@ fn static_assert() {
 
 <% skip_position_longhands = " ".join(x.ident for x in SIDES) %>
 <%self:impl_trait style_struct_name="Position"
-                  skip_longhands="${skip_position_longhands}">
+                  skip_longhands="${skip_position_longhands}
+                                  masonry-auto-flow">
     % for side in SIDES:
     <% impl_split_style_coord(side.ident, "mOffset", side.index) %>
     % endfor
@@ -810,6 +793,7 @@ fn static_assert() {
         self.gecko.mJustifyItems.computed = v;
     }
 
+    ${impl_simple_type_with_conversion("masonry_auto_flow", "mMasonryAutoFlow")}
 </%self:impl_trait>
 
 <% skip_outline_longhands = " ".join("outline-style outline-width".split() +
@@ -917,9 +901,10 @@ fn static_assert() {
     }
 
     pub fn unzoom_fonts(&mut self, device: &Device) {
-        self.gecko.mSize = device.unzoom_text(Au(self.gecko.mSize)).0;
-        self.gecko.mScriptUnconstrainedSize = device.unzoom_text(Au(self.gecko.mScriptUnconstrainedSize)).0;
-        self.gecko.mFont.size = device.unzoom_text(Au(self.gecko.mFont.size)).0;
+        use crate::values::generics::NonNegative;
+        self.gecko.mSize = NonNegative(device.unzoom_text(self.gecko.mSize.0));
+        self.gecko.mScriptUnconstrainedSize = NonNegative(device.unzoom_text(self.gecko.mScriptUnconstrainedSize.0));
+        self.gecko.mFont.size = NonNegative(device.unzoom_text(self.gecko.mFont.size.0));
     }
 
     pub fn copy_font_size_from(&mut self, other: &Self) {
@@ -939,62 +924,28 @@ fn static_assert() {
     }
 
     pub fn set_font_size(&mut self, v: FontSize) {
-        use crate::values::specified::font::KeywordSize;
-
-        let size = Au::from(v.size());
-        self.gecko.mScriptUnconstrainedSize = size.0;
+        let size = v.size;
+        self.gecko.mScriptUnconstrainedSize = size;
 
         // These two may be changed from Cascade::fixup_font_stuff.
-        self.gecko.mSize = size.0;
-        self.gecko.mFont.size = size.0;
+        self.gecko.mSize = size;
+        self.gecko.mFont.size = size;
 
-        if let Some(info) = v.keyword_info {
-            self.gecko.mFontSizeKeyword = match info.kw {
-                KeywordSize::XXSmall => structs::NS_STYLE_FONT_SIZE_XXSMALL,
-                KeywordSize::XSmall => structs::NS_STYLE_FONT_SIZE_XSMALL,
-                KeywordSize::Small => structs::NS_STYLE_FONT_SIZE_SMALL,
-                KeywordSize::Medium => structs::NS_STYLE_FONT_SIZE_MEDIUM,
-                KeywordSize::Large => structs::NS_STYLE_FONT_SIZE_LARGE,
-                KeywordSize::XLarge => structs::NS_STYLE_FONT_SIZE_XLARGE,
-                KeywordSize::XXLarge => structs::NS_STYLE_FONT_SIZE_XXLARGE,
-                KeywordSize::XXXLarge => structs::NS_STYLE_FONT_SIZE_XXXLARGE,
-            } as u8;
-            self.gecko.mFontSizeFactor = info.factor;
-            self.gecko.mFontSizeOffset = info.offset.to_i32_au();
-        } else {
-            self.gecko.mFontSizeKeyword = structs::NS_STYLE_FONT_SIZE_NO_KEYWORD as u8;
-            self.gecko.mFontSizeFactor = 1.;
-            self.gecko.mFontSizeOffset = 0;
-        }
+        self.gecko.mFontSizeKeyword = v.keyword_info.kw;
+        self.gecko.mFontSizeFactor = v.keyword_info.factor;
+        self.gecko.mFontSizeOffset = v.keyword_info.offset;
     }
 
     pub fn clone_font_size(&self) -> FontSize {
-        use crate::values::specified::font::{KeywordInfo, KeywordSize};
-        let size = Au(self.gecko.mSize).into();
-        let kw = match self.gecko.mFontSizeKeyword as u32 {
-            structs::NS_STYLE_FONT_SIZE_XXSMALL => KeywordSize::XXSmall,
-            structs::NS_STYLE_FONT_SIZE_XSMALL => KeywordSize::XSmall,
-            structs::NS_STYLE_FONT_SIZE_SMALL => KeywordSize::Small,
-            structs::NS_STYLE_FONT_SIZE_MEDIUM => KeywordSize::Medium,
-            structs::NS_STYLE_FONT_SIZE_LARGE => KeywordSize::Large,
-            structs::NS_STYLE_FONT_SIZE_XLARGE => KeywordSize::XLarge,
-            structs::NS_STYLE_FONT_SIZE_XXLARGE => KeywordSize::XXLarge,
-            structs::NS_STYLE_FONT_SIZE_XXXLARGE => KeywordSize::XXXLarge,
-            structs::NS_STYLE_FONT_SIZE_NO_KEYWORD => {
-                return FontSize {
-                    size,
-                    keyword_info: None,
-                }
-            }
-            _ => unreachable!("mFontSizeKeyword should be an absolute keyword or NO_KEYWORD")
-        };
+        use crate::values::specified::font::KeywordInfo;
+
         FontSize {
-            size,
-            keyword_info: Some(KeywordInfo {
-                kw,
+            size: self.gecko.mSize,
+            keyword_info: KeywordInfo {
+                kw: self.gecko.mFontSizeKeyword,
                 factor: self.gecko.mFontSizeFactor,
-                offset: Au(self.gecko.mFontSizeOffset).into()
-            })
+                offset: self.gecko.mFontSizeOffset,
+            }
         }
     }
 
@@ -1105,12 +1056,12 @@ fn static_assert() {
 
     #[allow(non_snake_case)]
     pub fn set__x_text_zoom(&mut self, v: longhands::_x_text_zoom::computed_value::T) {
-        self.gecko.mAllowZoom = v.0;
+        self.gecko.mAllowZoomAndMinSize = v.0;
     }
 
     #[allow(non_snake_case)]
     pub fn copy__x_text_zoom_from(&mut self, other: &Self) {
-        self.gecko.mAllowZoom = other.gecko.mAllowZoom;
+        self.gecko.mAllowZoomAndMinSize = other.gecko.mAllowZoomAndMinSize;
     }
 
     #[allow(non_snake_case)]
@@ -1120,7 +1071,7 @@ fn static_assert() {
 
     #[allow(non_snake_case)]
     pub fn clone__x_text_zoom(&self) -> longhands::_x_text_zoom::computed_value::T {
-        longhands::_x_text_zoom::computed_value::T(self.gecko.mAllowZoom)
+        longhands::_x_text_zoom::computed_value::T(self.gecko.mAllowZoomAndMinSize)
     }
 
     <% impl_simple_type_with_conversion("font_language_override", "mFont.languageOverride") %>
@@ -2128,3 +2079,43 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
 ${declare_style_struct(style_struct)}
 ${impl_style_struct(style_struct)}
 % endfor
+
+/// Assert that the initial values set in Gecko style struct constructors
+/// match the values returned by `get_initial_value()` for each longhand.
+#[cfg(feature = "gecko")]
+#[inline]
+pub fn assert_initial_values_match(data: &PerDocumentStyleData) {
+    if cfg!(debug_assertions) {
+        let data = data.borrow();
+        let cv = data.stylist.device().default_computed_values();
+        <%
+            # Skip properties with initial values that change at computed
+            # value time, or whose initial value depends on the document
+            # / other prefs.
+            SKIPPED = [
+                "border-top-width",
+                "border-bottom-width",
+                "border-left-width",
+                "border-right-width",
+                "font-family",
+                "font-size",
+                "outline-width",
+                "color",
+            ]
+            TO_TEST = [p for p in data.longhands if p.enabled_in != "" and not p.logical and not p.name in SKIPPED]
+        %>
+        % for property in TO_TEST:
+        assert_eq!(
+            cv.clone_${property.ident}(),
+            longhands::${property.ident}::get_initial_value(),
+            concat!(
+                "initial value in Gecko style struct for ",
+                stringify!(${property.ident}),
+                " must match longhands::",
+                stringify!(${property.ident}),
+                "::get_initial_value()"
+            )
+        );
+        % endfor
+    }
+}

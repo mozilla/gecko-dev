@@ -29,8 +29,6 @@ class gfx3DMatrix;
 
 namespace mozilla {
 
-class ComputedStyle;
-
 namespace css {
 class StyleRule;
 }  // namespace css
@@ -51,22 +49,11 @@ struct AnimationValue {
       : mServo(aValue) {}
   AnimationValue() = default;
 
-  AnimationValue(const AnimationValue& aOther) : mServo(aOther.mServo) {}
-  AnimationValue(AnimationValue&& aOther) : mServo(std::move(aOther.mServo)) {}
+  AnimationValue(const AnimationValue& aOther) = default;
+  AnimationValue(AnimationValue&& aOther) = default;
 
-  AnimationValue& operator=(const AnimationValue& aOther) {
-    if (this != &aOther) {
-      mServo = aOther.mServo;
-    }
-    return *this;
-  }
-  AnimationValue& operator=(AnimationValue&& aOther) {
-    MOZ_ASSERT(this != &aOther, "Do not move itself");
-    if (this != &aOther) {
-      mServo = std::move(aOther.mServo);
-    }
-    return *this;
-  }
+  AnimationValue& operator=(const AnimationValue& aOther) = default;
+  AnimationValue& operator=(AnimationValue&& aOther) = default;
 
   bool operator==(const AnimationValue& aOther) const;
   bool operator!=(const AnimationValue& aOther) const;
@@ -108,11 +95,8 @@ struct AnimationValue {
                           const AnimationValue& aToValue) const;
 
   // Compute the distance between *this and aOther.
-  // If |aComputedStyle| is nullptr, we will return 0.0 if we have mismatched
-  // transform lists.
   double ComputeDistance(nsCSSPropertyID aProperty,
-                         const AnimationValue& aOther,
-                         ComputedStyle* aComputedStyle) const;
+                         const AnimationValue& aOther) const;
 
   // Create an AnimaitonValue from a string. This method flushes style, so we
   // should use this carefully. Now, it is only used by

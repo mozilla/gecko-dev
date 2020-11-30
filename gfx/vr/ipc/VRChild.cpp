@@ -5,12 +5,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "VRChild.h"
+#include "VRProcessManager.h"
 #include "VRProcessParent.h"
 #include "gfxConfig.h"
 
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/ClearOnShutdown.h"
-#include "mozilla/SystemGroup.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/VsyncDispatcher.h"
 #include "mozilla/dom/MemoryReportRequest.h"
@@ -27,7 +27,7 @@ class OpenVRControllerManifestManager {
     mAction = aPath;
   }
 
-  void SetOpenVRControllerManifestPath(OpenVRControllerType aType,
+  void SetOpenVRControllerManifestPath(VRControllerType aType,
                                        const nsCString& aPath) {
     mManifest.Put(static_cast<uint32_t>(aType), aPath);
   }
@@ -40,7 +40,7 @@ class OpenVRControllerManifestManager {
     return false;
   }
 
-  bool GetManifestPath(OpenVRControllerType aType, nsCString* aPath) {
+  bool GetManifestPath(VRControllerType aType, nsCString* aPath) {
     return mManifest.Get(static_cast<uint32_t>(aType), aPath);
   }
 
@@ -62,7 +62,11 @@ class OpenVRControllerManifestManager {
 
   nsCString mAction;
   nsDataHashtable<nsUint32HashKey, nsCString> mManifest;
-  DISALLOW_COPY_AND_ASSIGN(OpenVRControllerManifestManager);
+  OpenVRControllerManifestManager(const OpenVRControllerManifestManager&) =
+      delete;
+
+  const OpenVRControllerManifestManager& operator=(
+      const OpenVRControllerManifestManager&) = delete;
 };
 
 StaticRefPtr<OpenVRControllerManifestManager> sOpenVRControllerManifestManager;
@@ -75,15 +79,6 @@ mozilla::ipc::IPCResult VRChild::RecvAddMemoryReport(
     const MemoryReport& aReport) {
   if (mMemoryReportRequest) {
     mMemoryReportRequest->RecvReport(aReport);
-  }
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult VRChild::RecvFinishMemoryReport(
-    const uint32_t& aGeneration) {
-  if (mMemoryReportRequest) {
-    mMemoryReportRequest->Finish(aGeneration);
-    mMemoryReportRequest = nullptr;
   }
   return IPC_OK();
 }
@@ -127,17 +122,16 @@ void VRChild::Init() {
     SendOpenVRControllerActionPathToVR(output);
   }
   if (sOpenVRControllerManifestManager->GetManifestPath(
-          OpenVRControllerType::Vive, &output)) {
-    SendOpenVRControllerManifestPathToVR(OpenVRControllerType::Vive, output);
+          VRControllerType::HTCVive, &output)) {
+    SendOpenVRControllerManifestPathToVR(VRControllerType::HTCVive, output);
+  }
+  if (sOpenVRControllerManifestManager->GetManifestPath(VRControllerType::MSMR,
+                                                        &output)) {
+    SendOpenVRControllerManifestPathToVR(VRControllerType::MSMR, output);
   }
   if (sOpenVRControllerManifestManager->GetManifestPath(
-          OpenVRControllerType::WMR, &output)) {
-    SendOpenVRControllerManifestPathToVR(OpenVRControllerType::WMR, output);
-  }
-  if (sOpenVRControllerManifestManager->GetManifestPath(
-          OpenVRControllerType::Knuckles, &output)) {
-    SendOpenVRControllerManifestPathToVR(OpenVRControllerType::Knuckles,
-                                         output);
+          VRControllerType::ValveIndex, &output)) {
+    SendOpenVRControllerManifestPathToVR(VRControllerType::ValveIndex, output);
   }
   gfxVars::AddReceiver(this);
 }
@@ -157,7 +151,7 @@ mozilla::ipc::IPCResult VRChild::RecvOpenVRControllerActionPathToParent(
 }
 
 mozilla::ipc::IPCResult VRChild::RecvOpenVRControllerManifestPathToParent(
-    const OpenVRControllerType& aType, const nsCString& aPath) {
+    const VRControllerType& aType, const nsCString& aPath) {
   sOpenVRControllerManifestManager->SetOpenVRControllerManifestPath(aType,
                                                                     aPath);
   return IPC_OK();
@@ -174,8 +168,27 @@ bool VRChild::SendRequestMemoryReport(const uint32_t& aGeneration,
                                       const bool& aMinimizeMemoryUsage,
                                       const Maybe<FileDescriptor>& aDMDFile) {
   mMemoryReportRequest = MakeUnique<MemoryReportRequestHost>(aGeneration);
-  Unused << PVRChild::SendRequestMemoryReport(aGeneration, aAnonymize,
-                                              aMinimizeMemoryUsage, aDMDFile);
+
+  PVRChild::SendRequestMemoryReport(
+      aGeneration, aAnonymize, aMinimizeMemoryUsage, aDMDFile,
+      [&](const uint32_t& aGeneration2) {
+        if (VRProcessManager* vpm = VRProcessManager::Get()) {
+          if (VRChild* child = vpm->GetVRChild()) {
+            if (child->mMemoryReportRequest) {
+              child->mMemoryReportRequest->Finish(aGeneration2);
+              child->mMemoryReportRequest = nullptr;
+            }
+          }
+        }
+      },
+      [&](mozilla::ipc::ResponseRejectReason) {
+        if (VRProcessManager* vpm = VRProcessManager::Get()) {
+          if (VRChild* child = vpm->GetVRChild()) {
+            child->mMemoryReportRequest = nullptr;
+          }
+        }
+      });
+
   return true;
 }
 

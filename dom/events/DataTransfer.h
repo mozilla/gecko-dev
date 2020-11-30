@@ -48,6 +48,9 @@ class Optional;
     }                                                \
   }
 
+/**
+ * See <https://html.spec.whatwg.org/multipage/dnd.html#datatransfer>.
+ */
 class DataTransfer final : public nsISupports, public nsWrapperCache {
  public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_DATATRANSFER_IID)
@@ -202,7 +205,7 @@ class DataTransfer final : public nsISupports, public nsWrapperCache {
   bool HasFile() const;
 
   void GetData(const nsAString& aFormat, nsAString& aData,
-               nsIPrincipal& aSubjectPrincipal, ErrorResult& aRv);
+               nsIPrincipal& aSubjectPrincipal, ErrorResult& aRv) const;
 
   void SetData(const nsAString& aFormat, const nsAString& aData,
                nsIPrincipal& aSubjectPrincipal, ErrorResult& aRv);
@@ -281,7 +284,7 @@ class DataTransfer final : public nsISupports, public nsWrapperCache {
   mozilla::dom::Element* GetDragTarget() const { return mDragTarget; }
 
   nsresult GetDataAtNoSecurityCheck(const nsAString& aFormat, uint32_t aIndex,
-                                    nsIVariant** aData);
+                                    nsIVariant** aData) const;
 
   DataTransferItemList* Items() const { return mItems; }
 
@@ -392,12 +395,6 @@ class DataTransfer final : public nsISupports, public nsWrapperCache {
                                              bool aPlainTextOnly,
                                              nsTArray<nsCString>* aResult);
 
-  // Returns true if moz* APIs should be exposed (true for chrome code or if
-  // dom.datatransfer.moz pref is enabled).
-  // The affected moz* APIs are mozItemCount, mozTypesAt, mozClearDataAt,
-  // mozSetDataAt, mozGetDataAt
-  static bool MozAtAPIsEnabled(JSContext* cx, JSObject* obj);
-
  protected:
   // caches text and uri-list data formats that exist in the drag service or
   // clipboard for retrieval later.
@@ -421,7 +418,7 @@ class DataTransfer final : public nsISupports, public nsWrapperCache {
   FileList* GetFilesInternal(ErrorResult& aRv, nsIPrincipal* aSubjectPrincipal);
   nsresult GetDataAtInternal(const nsAString& aFormat, uint32_t aIndex,
                              nsIPrincipal* aSubjectPrincipal,
-                             nsIVariant** aData);
+                             nsIVariant** aData) const;
 
   nsresult SetDataAtInternal(const nsAString& aFormat, nsIVariant* aData,
                              uint32_t aIndex, nsIPrincipal* aSubjectPrincipal);

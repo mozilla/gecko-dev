@@ -44,7 +44,7 @@ class EvalContextImpl : public txIEvalContext {
   RefPtr<txResultRecycler> mRecycler;
 };
 
-XPathExpression::XPathExpression(nsAutoPtr<Expr>&& aExpression,
+XPathExpression::XPathExpression(UniquePtr<Expr>&& aExpression,
                                  txResultRecycler* aRecycler,
                                  Document* aDocument)
     : mExpression(std::move(aExpression)),
@@ -52,7 +52,7 @@ XPathExpression::XPathExpression(nsAutoPtr<Expr>&& aExpression,
       mDocument(do_GetWeakReference(aDocument)),
       mCheckDocument(aDocument != nullptr) {}
 
-XPathExpression::~XPathExpression() {}
+XPathExpression::~XPathExpression() = default;
 
 already_AddRefed<XPathResult> XPathExpression::EvaluateWithContext(
     JSContext* aCx, nsINode& aContextNode, uint32_t aContextPosition,
@@ -122,7 +122,7 @@ already_AddRefed<XPathResult> XPathExpression::EvaluateWithContext(
     return nullptr;
   }
 
-  nsAutoPtr<txXPathNode> contextNode(
+  UniquePtr<txXPathNode> contextNode(
       txXPathNativeNode::createXPathNode(&aContextNode));
   if (!contextNode) {
     aRv.Throw(NS_ERROR_FAILURE);

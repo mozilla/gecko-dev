@@ -12,12 +12,6 @@ using namespace mozilla::net;
 
 NS_IMPL_ISUPPORTS(nsNetAddr, nsINetAddr)
 
-/* Makes a copy of |addr| */
-nsNetAddr::nsNetAddr(NetAddr* addr) {
-  NS_ASSERTION(addr, "null addr");
-  mAddr = *addr;
-}
-
 NS_IMETHODIMP nsNetAddr::GetFamily(uint16_t* aFamily) {
   switch (mAddr.raw.family) {
     case AF_INET:
@@ -43,12 +37,12 @@ NS_IMETHODIMP nsNetAddr::GetAddress(nsACString& aAddress) {
     /* PR_NetAddrToString can handle INET and INET6, but not LOCAL. */
     case AF_INET:
       aAddress.SetLength(kIPv4CStrBufSize);
-      NetAddrToString(&mAddr, aAddress.BeginWriting(), kIPv4CStrBufSize);
+      mAddr.ToStringBuffer(aAddress.BeginWriting(), kIPv4CStrBufSize);
       aAddress.SetLength(strlen(aAddress.BeginReading()));
       break;
     case AF_INET6:
       aAddress.SetLength(kIPv6CStrBufSize);
-      NetAddrToString(&mAddr, aAddress.BeginWriting(), kIPv6CStrBufSize);
+      mAddr.ToStringBuffer(aAddress.BeginWriting(), kIPv6CStrBufSize);
       aAddress.SetLength(strlen(aAddress.BeginReading()));
       break;
 #if defined(XP_UNIX)

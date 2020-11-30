@@ -43,7 +43,7 @@ using mozilla::ipc::StringInputStreamParams;
 // This enables LogLevel::Debug level information and places all output in
 // the file storage.log.
 //
-static LazyLogModule sStorageStreamLog("nsStorageStream");
+static mozilla::LazyLogModule sStorageStreamLog("nsStorageStream");
 #ifdef LOG
 #  undef LOG
 #endif
@@ -573,12 +573,12 @@ void nsStorageInputStream::SerializeInternal(InputStreamParams& aParams,
   *aSizeUsed = 0;
 
   uint64_t remaining = 0;
-  nsresult rv = Available(&remaining);
+  DebugOnly<nsresult> rv = Available(&remaining);
   MOZ_ASSERT(NS_SUCCEEDED(rv));
 
   if (remaining >= aMaxSize) {
-    InputStreamHelper::SerializeInputStreamAsPipe(this, aParams, aDelayedStart,
-                                                  aManager);
+    mozilla::ipc::InputStreamHelper::SerializeInputStreamAsPipe(
+        this, aParams, aDelayedStart, aManager);
     return;
   }
 
@@ -589,8 +589,10 @@ void nsStorageInputStream::SerializeInternal(InputStreamParams& aParams,
   rv = Tell(&offset);
   MOZ_ASSERT(NS_SUCCEEDED(rv));
 
-  auto handle = combined.BulkWrite(remaining, 0, false, rv);
-  MOZ_ASSERT(NS_SUCCEEDED(rv));
+  auto handleOrErr = combined.BulkWrite(remaining, 0, false);
+  MOZ_ASSERT(!handleOrErr.isErr());
+
+  auto handle = handleOrErr.unwrap();
 
   uint32_t numRead = 0;
 

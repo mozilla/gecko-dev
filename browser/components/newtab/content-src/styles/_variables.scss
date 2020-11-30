@@ -66,10 +66,12 @@ $black-30: rgba($black, 0.3);
 
 // Other colors
 $white: #FFF;
+$white-0: rgba($white, 0);
 $white-10: rgba($white, 0.1);
 $white-50: rgba($white, 0.5);
 $white-60: rgba($white, 0.6);
 $white-70: rgba($white, 0.7);
+$white-100: rgba($white, 1);
 $ghost-white: #FAFAFC;
 $pocket-teal: #50BCB6;
 $pocket-red: #EF4056;
@@ -122,6 +124,8 @@ $wrapper-max-width-widest: $grid-unit * 8 + $base-gutter * 7 + $section-horizont
 $scrollbar-width: 16px;
 
 // Breakpoints
+// If updating these breakpoints, don't forget to update uses of DSImage, which
+// might choose the right image src to use depending on the viewport size.
 $break-point-medium: $wrapper-max-width-medium + $base-gutter * 2 + $scrollbar-width; // 610px
 $break-point-large: $wrapper-max-width-large + $base-gutter * 2 + $scrollbar-width; // 866px
 $break-point-widest: $wrapper-max-width-widest + $base-gutter * 2 + $scrollbar-width; // 1122px
@@ -154,7 +158,7 @@ $context-menu-item-padding: 3px 12px;
 $error-fallback-font-size: 12px;
 $error-fallback-line-height: 1.5;
 
-$image-path: '../data/content/assets/';
+$image-path: 'chrome://activity-stream/content/data/content/assets/';
 
 $snippets-container-height: 120px;
 
@@ -191,7 +195,7 @@ $textbox-shadow-size: 4px;
     transition-property: transform, opacity;
     width: $context-menu-button-size;
 
-    &:-moz-any(:active, :focus) {
+    &:is(:active, :focus) {
       opacity: 1;
       transform: scale(1);
     }

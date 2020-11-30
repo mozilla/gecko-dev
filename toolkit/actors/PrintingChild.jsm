@@ -83,10 +83,14 @@ class PrintingChild extends ActorChild {
     switch (message.name) {
       case "Printing:Preview:Enter": {
         this.enterPrintPreview(
-          Services.wm.getOuterWindowWithId(data.windowID),
+          BrowsingContext.get(data.browsingContextId),
           data.simplifiedMode,
           data.changingBrowsers,
-          data.defaultPrinterName
+          data.lastUsedPrinterName,
+          data.outputFormat,
+          data.startPageRange,
+          data.endPageRange,
+          data.printRange
         );
         break;
       }
@@ -108,27 +112,18 @@ class PrintingChild extends ActorChild {
         );
         break;
       }
-
-      case "Printing:Print": {
-        this.print(
-          Services.wm.getOuterWindowWithId(data.windowID),
-          data.simplifiedMode,
-          data.defaultPrinterName
-        );
-        break;
-      }
     }
   }
 
-  getPrintSettings(defaultPrinterName) {
+  getPrintSettings(lastUsedPrinterName) {
     try {
       let PSSVC = Cc["@mozilla.org/gfx/printsettings-service;1"].getService(
         Ci.nsIPrintSettingsService
       );
 
-      let printSettings = PSSVC.globalPrintSettings;
+      let printSettings = PSSVC.newPrintSettings;
       if (!printSettings.printerName) {
-        printSettings.printerName = defaultPrinterName;
+        printSettings.printerName = lastUsedPrinterName;
       }
       // First get any defaults from the printer
       PSSVC.initPrintSettingsFromPrinter(
@@ -186,9 +181,9 @@ class PrintingChild extends ActorChild {
         },
 
         QueryInterface: ChromeUtils.generateQI([
-          Ci.nsIWebProgressListener,
-          Ci.nsISupportsWeakReference,
-          Ci.nsIObserver,
+          "nsIWebProgressListener",
+          "nsISupportsWeakReference",
+          "nsIObserver",
         ]),
       };
 
@@ -316,14 +311,36 @@ class PrintingChild extends ActorChild {
   }
 
   enterPrintPreview(
-    contentWindow,
+    browsingContext,
     simplifiedMode,
     changingBrowsers,
-    defaultPrinterName
+    lastUsedPrinterName,
+    outputFormat,
+    startPageRange,
+    endPageRange,
+    printRange
   ) {
     const { docShell } = this;
+
     try {
-      let printSettings = this.getPrintSettings(defaultPrinterName);
+      let contentWindow = browsingContext.window;
+      let printSettings = this.getPrintSettings(lastUsedPrinterName);
+
+      // Disable the progress dialog for generating previews.
+      printSettings.showPrintProgress = !Services.prefs.getBoolPref(
+        "print.tab_modal.enabled",
+        false
+      );
+
+      if (outputFormat == printSettings.kOutputFormatPDF) {
+        printSettings.outputFormat = printSettings.kOutputFormatPDF;
+        printSettings.printToFile = true;
+      }
+
+      // TODO: waiting on the print preview to be updated in Bug 1659005
+      printSettings.startPageRange = startPageRange;
+      printSettings.endPageRange = endPageRange;
+      printSettings.printRange = printRange;
 
       // If we happen to be on simplified mode, we need to set docURL in order
       // to generate header/footer content correctly, since simplified tab has
@@ -336,13 +353,21 @@ class PrintingChild extends ActorChild {
       // printPreviewInitialize must be run in a separate runnable to avoid
       // touching a different TabGroup in our own runnable.
       let printPreviewInitialize = () => {
+        // During dispatching this function to the main-thread, the docshell
+        // might be destroyed, for example the print preview window gets closed
+        // soon after it's opened, in such case we should just simply bail out.
+        if (docShell.isBeingDestroyed()) {
+          this.mm.sendAsyncMessage("Printing:Preview:Entered", {
+            failed: true,
+          });
+          return;
+        }
+
         try {
           let listener = new PrintingListener(this.mm);
 
           this.printPreviewInitializingInfo = { changingBrowsers };
-          docShell
-            .initOrReusePrintPreviewViewer()
-            .printPreview(printSettings, contentWindow, listener);
+          contentWindow.printPreview(printSettings, listener, docShell);
         } catch (error) {
           // This might fail if we, for example, attempt to print a XUL document.
           // In that case, we inform the parent to bail out of print preview.
@@ -376,87 +401,34 @@ class PrintingChild extends ActorChild {
 
   exitPrintPreview(glo) {
     this.printPreviewInitializingInfo = null;
-    this.docShell.initOrReusePrintPreviewViewer().exitPrintPreview();
-  }
-
-  print(contentWindow, simplifiedMode, defaultPrinterName) {
-    let printSettings = this.getPrintSettings(defaultPrinterName);
-    // Set the title so that the print dialog can pick it up and
-    // use it to generate the filename for save-to-PDF.
-    printSettings.title = contentWindow.document.title;
-    let printCancelled = false;
-
-    // If we happen to be on simplified mode, we need to set docURL in order
-    // to generate header/footer content correctly, since simplified tab has
-    // "about:blank" as its URI.
-    if (printSettings && simplifiedMode) {
-      printSettings.docURL = contentWindow.document.baseURI;
-    }
-
-    try {
-      contentWindow
-        .getInterface(Ci.nsIWebBrowserPrint)
-        .print(printSettings, null);
-    } catch (e) {
-      // Pressing cancel is expressed as an NS_ERROR_ABORT return value,
-      // causing an exception to be thrown which we catch here.
-      if (e.result == Cr.NS_ERROR_ABORT) {
-        printCancelled = true;
-      } else {
-        Cu.reportError(`In Printing:Print:Done handler, got unexpected rv
-                        ${e.result}.`);
-        this.mm.sendAsyncMessage("Printing:Error", {
-          isPrinting: true,
-          nsresult: e.result,
-        });
-      }
-    }
-
-    if (
-      (!printCancelled || printSettings.saveOnCancel) &&
-      this.shouldSavePrintSettings
-    ) {
-      let PSSVC = Cc["@mozilla.org/gfx/printsettings-service;1"].getService(
-        Ci.nsIPrintSettingsService
-      );
-
-      PSSVC.savePrintSettingsToPrefs(
-        printSettings,
-        true,
-        printSettings.kInitSaveAll
-      );
-      PSSVC.savePrintSettingsToPrefs(
-        printSettings,
-        false,
-        printSettings.kInitSavePrinterName
-      );
-    }
+    this.docShell.exitPrintPreview();
   }
 
   updatePageCount() {
-    let numPages = this.docShell.initOrReusePrintPreviewViewer()
-      .printPreviewNumPages;
+    let cv = this.docShell.contentViewer;
+    cv.QueryInterface(Ci.nsIWebBrowserPrint);
     this.mm.sendAsyncMessage("Printing:Preview:UpdatePageCount", {
-      numPages,
+      numPages: cv.printPreviewNumPages,
+      totalPages: cv.rawNumPages,
     });
   }
 
   navigate(navType, pageNum) {
-    this.docShell
-      .initOrReusePrintPreviewViewer()
-      .printPreviewScrollToPage(navType, pageNum);
+    let cv = this.docShell.contentViewer;
+    cv.QueryInterface(Ci.nsIWebBrowserPrint);
+    cv.printPreviewScrollToPage(navType, pageNum);
   }
 }
 
 PrintingChild.prototype.QueryInterface = ChromeUtils.generateQI([
-  Ci.nsIPrintingPromptService,
+  "nsIPrintingPromptService",
 ]);
 
 function PrintingListener(global) {
   this.global = global;
 }
 PrintingListener.prototype = {
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIWebProgressListener]),
+  QueryInterface: ChromeUtils.generateQI(["nsIWebProgressListener"]),
 
   onStateChange(aWebProgress, aRequest, aStateFlags, aStatus) {
     this.global.sendAsyncMessage("Printing:Preview:StateChange", {

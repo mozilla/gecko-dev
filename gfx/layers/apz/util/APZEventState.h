@@ -11,9 +11,9 @@
 
 #include "Units.h"
 #include "mozilla/EventForwards.h"
-#include "mozilla/layers/GeckoContentController.h"  // for APZStateChange
-#include "mozilla/layers/ScrollableLayerGuid.h"     // for ScrollableLayerGuid
-#include "mozilla/layers/TouchCounter.h"            // for TouchCounter
+#include "mozilla/layers/GeckoContentControllerTypes.h"  // for APZStateChange
+#include "mozilla/layers/ScrollableLayerGuid.h"  // for ScrollableLayerGuid
+#include "mozilla/layers/TouchCounter.h"         // for TouchCounter
 #include "mozilla/RefPtr.h"
 #include "nsCOMPtr.h"
 #include "nsISupportsImpl.h"        // for NS_INLINE_DECL_REFCOUNTING
@@ -43,7 +43,7 @@ typedef std::function<void(uint64_t /* input block id */,
  * gestures and sending APZ notifications.
  */
 class APZEventState final {
-  typedef GeckoContentController::APZStateChange APZStateChange;
+  typedef GeckoContentController_APZStateChange APZStateChange;
   typedef ScrollableLayerGuid::ViewID ViewID;
 
  public:
@@ -66,7 +66,8 @@ class APZEventState final {
   void ProcessTouchEvent(const WidgetTouchEvent& aEvent,
                          const ScrollableLayerGuid& aGuid,
                          uint64_t aInputBlockId, nsEventStatus aApzResponse,
-                         nsEventStatus aContentResponse);
+                         nsEventStatus aContentResponse,
+                         nsTArray<TouchBehaviorFlags>&& aAllowedTouchBehaviors);
   void ProcessWheelEvent(const WidgetWheelEvent& aEvent,
                          uint64_t aInputBlockId);
   void ProcessMouseEvent(const WidgetMouseEvent& aEvent,
@@ -84,6 +85,7 @@ class APZEventState final {
                              const nsCOMPtr<nsIWidget>& aWidget);
   already_AddRefed<nsIWidget> GetWidget() const;
   already_AddRefed<nsIContent> GetTouchRollup() const;
+  bool MainThreadAgreesEventsAreConsumableByAPZ() const;
 
  private:
   nsWeakPtr mWidget;
@@ -97,6 +99,7 @@ class APZEventState final {
   bool mFirstTouchCancelled;
   bool mTouchEndCancelled;
   int32_t mLastTouchIdentifier;
+  nsTArray<TouchBehaviorFlags> mTouchBlockAllowedBehaviors;
 
   // Because touch-triggered mouse events (e.g. mouse events from a tap
   // gesture) happen asynchronously from the touch events themselves, we

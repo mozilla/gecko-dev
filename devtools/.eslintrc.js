@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 "use strict";
 
 module.exports = {
@@ -82,16 +86,9 @@ module.exports = {
       },
     },
     {
-      // For all server files, prevent requiring devtools/client modules.
-      files: [
-        "server/**",
-        // The rule also applies to all `shared` files, with the exception of
-        // shared/fronts.
-        // This first pattern matches files in a shared subfolder other than "fronts".
-        "shared/!(fronts)/**",
-        // This second pattern matches files directly under shared.
-        "shared/*.**",
-      ],
+      // For all server and shared files, prevent requiring devtools/client
+      // modules.
+      files: ["server/**", "shared/**"],
       rules: {
         "mozilla/reject-some-requires": [
           "error",
@@ -108,12 +105,6 @@ module.exports = {
         "**/test/**/head.js",
         "**/test/**/shared-head.js",
         "client/debugger/test/mochitest/code_frame-script.js",
-        "client/inspector/animation-old/test/doc_frame_script.js",
-        "client/inspector/animation/test/doc_frame_script.js",
-        "client/inspector/rules/test/doc_frame_script.js",
-        "client/inspector/shared/test/doc_frame_script.js",
-        "client/jsonview/converter-observer.js",
-        "client/jsonview/test/doc_frame_script.js",
         "client/responsive.html/browser/content.js",
         "client/shared/browser-loader.js",
         "server/actors/webconsole/content-process-forward.js",
@@ -152,16 +143,10 @@ module.exports = {
     // devtools coding style.
 
     // Rules from the mozilla plugin
+    "mozilla/balanced-observers": "error",
     "mozilla/no-aArgs": "error",
     // See bug 1224289.
     "mozilla/reject-importGlobalProperties": ["error", "everything"],
-    // devtools/shared/platform is special; see the README.md in that
-    // directory for details.  We reject requires using explicit
-    // subdirectories of this directory.
-    "mozilla/reject-some-requires": [
-      "error",
-      "^devtools/shared/platform/(chome|content)/",
-    ],
     "mozilla/var-only-at-top-level": "error",
     "mozilla/use-chromeutils-import": ["error", { allowCu: true }],
 

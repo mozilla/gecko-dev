@@ -22,7 +22,7 @@ const CLASSES_TO_PRESERVE = [
   "caption",
   "emoji",
   "hidden",
-  "invisble",
+  "invisible",
   "sr-only",
   "visually-hidden",
   "visuallyhidden",
@@ -81,17 +81,21 @@ var ReaderMode = {
   enterReaderMode(docShell, win) {
     let url = win.document.location.href;
     let readerURL = "about:reader?url=" + encodeURIComponent(url);
-    let webNav = docShell.QueryInterface(Ci.nsIWebNavigation);
-    let sh = webNav.sessionHistory;
-    if (webNav.canGoForward) {
-      let forwardEntry = sh.legacySHistory.getEntryAtIndex(sh.index + 1);
-      let forwardURL = forwardEntry.URI.spec;
-      if (forwardURL && (forwardURL == readerURL || !readerURL)) {
-        webNav.goForward();
-        return;
+
+    if (!Services.appinfo.sessionHistoryInParent) {
+      let webNav = docShell.QueryInterface(Ci.nsIWebNavigation);
+      let sh = webNav.sessionHistory;
+      if (webNav.canGoForward) {
+        let forwardEntry = sh.legacySHistory.getEntryAtIndex(sh.index + 1);
+        let forwardURL = forwardEntry.URI.spec;
+        if (forwardURL && (forwardURL == readerURL || !readerURL)) {
+          webNav.goForward();
+          return;
+        }
       }
     }
 
+    // This could possibly move to the parent. See bug 1664982.
     win.document.location = readerURL;
   },
 
@@ -101,15 +105,18 @@ var ReaderMode = {
    */
   leaveReaderMode(docShell, win) {
     let url = win.document.location.href;
-    let originalURL = this.getOriginalUrl(url);
+    let originalURL = ReaderMode.getOriginalUrl(url);
     let webNav = docShell.QueryInterface(Ci.nsIWebNavigation);
-    let sh = webNav.sessionHistory;
-    if (webNav.canGoBack) {
-      let prevEntry = sh.legacySHistory.getEntryAtIndex(sh.index - 1);
-      let prevURL = prevEntry.URI.spec;
-      if (prevURL && (prevURL == originalURL || !originalURL)) {
-        webNav.goBack();
-        return;
+
+    if (!Services.appinfo.sessionHistoryInParent) {
+      let sh = webNav.sessionHistory;
+      if (webNav.canGoBack) {
+        let prevEntry = sh.legacySHistory.getEntryAtIndex(sh.index - 1);
+        let prevURL = prevEntry.URI.spec;
+        if (prevURL && (prevURL == originalURL || !originalURL)) {
+          webNav.goBack();
+          return;
+        }
       }
     }
 
@@ -139,6 +146,7 @@ var ReaderMode = {
         referrerURI
       ),
     };
+    // This could possibly move to the parent. See bug 1664982.
     webNav.loadURI(originalURL, loadURIOptions);
   },
 
@@ -181,19 +189,16 @@ var ReaderMode = {
   },
 
   getOriginalUrlObjectForDisplay(url) {
-    let originalUrl = this.getOriginalUrl(url);
+    let originalUrl = ReaderMode.getOriginalUrl(url);
     if (originalUrl) {
       let uriObj;
       try {
-        uriObj = Services.uriFixup.createFixupURI(
-          originalUrl,
-          Services.uriFixup.FIXUP_FLAG_NONE
-        );
+        uriObj = Services.uriFixup.getFixupURIInfo(originalUrl).preferredURI;
       } catch (ex) {
         return null;
       }
       try {
-        return Services.uriFixup.createExposableURI(uriObj);
+        return Services.io.createExposableURI(uriObj);
       } catch (ex) {
         return null;
       }
@@ -459,6 +464,9 @@ var ReaderMode = {
 
     let serializer = new XMLSerializer();
     let serializedDoc = serializer.serializeToString(doc);
+    // Explicitly null out doc to make it clear it might not be available from this
+    // point on.
+    doc = null;
 
     let options = {
       classesToPreserve: CLASSES_TO_PRESERVE,
@@ -475,10 +483,6 @@ var ReaderMode = {
       Cu.reportError("Error in ReaderWorker: " + e);
       histogram.add(PARSE_ERROR_WORKER);
     }
-
-    // Explicitly null out doc to make it clear it might not be available from this
-    // point on.
-    doc = null;
 
     if (!article) {
       this.log("Worker did not return an article");
@@ -660,8 +664,11 @@ var ReaderMode = {
       }
       docFrag.append(pElem);
     }
-    preTag.parentNode.replaceChild(docFrag, preTag);
-    return doc;
+    // Clone the document to avoid the original document being affected
+    // (which shows up when exiting reader mode again).
+    let clone = doc.documentElement.cloneNode(true);
+    clone.querySelector("pre").replaceWith(docFrag);
+    return clone;
   },
 };
 

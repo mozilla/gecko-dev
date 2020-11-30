@@ -8,7 +8,6 @@
 #define js_Promise_h
 
 #include "mozilla/Attributes.h"
-#include "mozilla/GuardObjects.h"
 
 #include "jspubtd.h"
 #include "js/RootingAPI.h"
@@ -136,7 +135,7 @@ extern JS_PUBLIC_API void SetJobQueue(JSContext* cx, JobQueue* queue);
  * interruption began must wait for the debuggee to be continued - and thus run
  * after microtasks enqueued after they were.
  *
- * Fortunately, this reordering is visible olny at the global level: when
+ * Fortunately, this reordering is visible only at the global level: when
  * implemented correctly, it is not detectable by an individual debuggee. Note
  * that a debuggee should generally be a complete unit of similar-origin related
  * browsing contexts. Since non-debuggee activity falls outside that unit, it
@@ -223,8 +222,7 @@ extern JS_PUBLIC_API void SetJobQueue(JSContext* cx, JobQueue* queue);
  */
 class MOZ_RAII JS_PUBLIC_API AutoDebuggerJobQueueInterruption {
  public:
-  explicit AutoDebuggerJobQueueInterruption(
-      MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM);
+  explicit AutoDebuggerJobQueueInterruption();
   ~AutoDebuggerJobQueueInterruption();
 
   bool init(JSContext* cx);
@@ -252,7 +250,6 @@ class MOZ_RAII JS_PUBLIC_API AutoDebuggerJobQueueInterruption {
   void runJobs();
 
  private:
-  MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER;
   JSContext* cx;
   js::UniquePtr<JobQueue::SavedJobQueue> saved;
 };
@@ -354,6 +351,14 @@ extern JS_PUBLIC_API JS::Value GetPromiseResult(JS::HandleObject promise);
  * handled or not.
  */
 extern JS_PUBLIC_API bool GetPromiseIsHandled(JS::HandleObject promise);
+
+/*
+ * Given a settled (i.e. fulfilled or rejected, not pending) promise, sets
+ * |promise.[[PromiseIsHandled]]| to true and removes it from the list of
+ * unhandled rejected promises.
+ */
+extern JS_PUBLIC_API void SetSettledPromiseIsHandled(JSContext* cx,
+                                                     JS::HandleObject promise);
 
 /**
  * Returns a js::SavedFrame linked list of the stack that lead to the given

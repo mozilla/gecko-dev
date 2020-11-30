@@ -101,7 +101,7 @@ class WaitForTopicSpinner final : public nsIObserver {
   }
 
  private:
-  ~WaitForTopicSpinner() {}
+  ~WaitForTopicSpinner() = default;
 
   bool mTopicReceived;
   PRIntervalTime mStartTime;
@@ -121,7 +121,7 @@ class PlacesAsyncStatementSpinner final : public mozIStorageStatementCallback {
   uint16_t completionReason;
 
  protected:
-  ~PlacesAsyncStatementSpinner() {}
+  ~PlacesAsyncStatementSpinner() = default;
 
   volatile bool mCompleted;
 };
@@ -209,7 +209,7 @@ void do_get_place(nsIURI* aURI, PlaceRecord& result) {
   do_check_success(rv);
 
   rv = dbConn->CreateStatement(
-      NS_LITERAL_CSTRING(
+      nsLiteralCString(
           "SELECT id, hidden, typed, visit_count, guid FROM moz_places "
           "WHERE url_hash = hash(?1) AND url = ?1"),
       getter_AddRefs(stmt));
@@ -249,7 +249,7 @@ void do_get_lastVisit(int64_t placeId, VisitRecord& result) {
   nsCOMPtr<mozIStorageStatement> stmt;
 
   nsresult rv = dbConn->CreateStatement(
-      NS_LITERAL_CSTRING(
+      nsLiteralCString(
           "SELECT id, from_visit, visit_type FROM moz_historyvisits "
           "WHERE place_id=?1 "
           "LIMIT 1"),
@@ -280,12 +280,11 @@ void do_wait_async_updates() {
   nsCOMPtr<mozIStorageConnection> db = do_get_db();
   nsCOMPtr<mozIStorageAsyncStatement> stmt;
 
-  db->CreateAsyncStatement(NS_LITERAL_CSTRING("BEGIN EXCLUSIVE"),
-                           getter_AddRefs(stmt));
+  db->CreateAsyncStatement("BEGIN EXCLUSIVE"_ns, getter_AddRefs(stmt));
   nsCOMPtr<mozIStoragePendingStatement> pending;
   (void)stmt->ExecuteAsync(nullptr, getter_AddRefs(pending));
 
-  db->CreateAsyncStatement(NS_LITERAL_CSTRING("COMMIT"), getter_AddRefs(stmt));
+  db->CreateAsyncStatement("COMMIT"_ns, getter_AddRefs(stmt));
   RefPtr<PlacesAsyncStatementSpinner> spinner =
       new PlacesAsyncStatementSpinner();
   (void)stmt->ExecuteAsync(spinner, getter_AddRefs(pending));
@@ -315,7 +314,7 @@ static const char TOPIC_PLACES_CONNECTION_CLOSED[] = "places-connection-closed";
 class WaitForConnectionClosed final : public nsIObserver {
   RefPtr<WaitForTopicSpinner> mSpinner;
 
-  ~WaitForConnectionClosed() {}
+  ~WaitForConnectionClosed() = default;
 
  public:
   NS_DECL_ISUPPORTS

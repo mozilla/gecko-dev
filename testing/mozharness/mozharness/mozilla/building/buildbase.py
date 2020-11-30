@@ -314,7 +314,6 @@ class BuildOptionParser(object):
         'aarch64-debug': 'builds/releng_sub_%s_configs/%s_aarch64_debug.py',
         'android-geckoview-docs': 'builds/releng_sub_%s_configs/%s_geckoview_docs.py',
         'valgrind': 'builds/releng_sub_%s_configs/%s_valgrind.py',
-        'tup': 'builds/releng_sub_%s_configs/%s_tup.py',
     }
     build_pool_cfg_file = 'builds/build_pool_specifics.py'
 
@@ -983,17 +982,22 @@ items from that key's value."
             self.info('%s does not exist; not loading build resources' % p)
             return None
 
-        with open(p, 'rb') as fh:
+        with open(p, 'r') as fh:
             resources = json.load(fh)
 
         if 'duration' not in resources:
             self.info('resource usage lacks duration; ignoring')
             return None
 
+        # We want to always collect metrics. But alerts with sccache enabled
+        # we should disable automatic alerting
+        should_alert = False if os.environ.get('USE_SCCACHE') == '1' else True
+
         data = {
             'name': 'build times',
             'value': resources['duration'],
             'extraOptions': self.perfherder_resource_options(),
+            'shouldAlert': should_alert,
             'subtests': [],
         }
 
@@ -1017,7 +1021,7 @@ items from that key's value."
                 stats_file)
             return
 
-        with open(stats_file, 'rb') as fh:
+        with open(stats_file, 'r') as fh:
             stats = json.load(fh)
 
         def get_stat(key):
@@ -1038,7 +1042,10 @@ items from that key's value."
             'value': hits,
             'subtests': [],
             'alertThreshold': 50.0,
-            'lowerIsBetter': False
+            'lowerIsBetter': False,
+            # We want to always collect metrics.
+            # But disable automatic alerting on it
+            'shouldAlert': False
         }
 
         yield {

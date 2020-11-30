@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_SVGGElement_h
-#define mozilla_dom_SVGGElement_h
+#ifndef DOM_SVG_SVGGELEMENT_H_
+#define DOM_SVG_SVGGELEMENT_H_
 
 #include "mozilla/dom/SVGGraphicsElement.h"
 
@@ -27,10 +27,11 @@ class SVGGElement final : public SVGGraphicsElement {
   // nsIContent
   NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
 
+  bool IsNodeOfType(uint32_t aFlags) const override;
   nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
 };
 
 }  // namespace dom
 }  // namespace mozilla
 
-#endif  // mozilla_dom_SVGGElement_h
+#endif  // DOM_SVG_SVGGELEMENT_H_

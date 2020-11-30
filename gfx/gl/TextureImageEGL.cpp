@@ -6,6 +6,7 @@
 #include "TextureImageEGL.h"
 #include "GLLibraryEGL.h"
 #include "GLContext.h"
+#include "GLContextEGL.h"
 #include "GLUploadHelpers.h"
 #include "gfxPlatform.h"
 #include "mozilla/gfx/Types.h"
@@ -103,7 +104,7 @@ bool TextureImageEGL::DirectUpdate(
   size_t uploadSize = 0;
   mTextureFormat = UploadSurfaceToTexture(mGLContext, aSurf, region, mTexture,
                                           mSize, &uploadSize, needInit, aFrom);
-  if (mTextureFormat == SurfaceFormat::UNKNOWN) {
+  if (mTextureFormat == gfx::SurfaceFormat::UNKNOWN) {
     return false;
   }
 
@@ -145,8 +146,8 @@ bool TextureImageEGL::BindTexImage() {
 
   const auto& gle = GLContextEGL::Cast(mGLContext);
   const auto& egl = gle->mEgl;
-  EGLBoolean success = egl->fBindTexImage(egl->Display(), (EGLSurface)mSurface,
-                                          LOCAL_EGL_BACK_BUFFER);
+  EGLBoolean success =
+      egl->fBindTexImage((EGLSurface)mSurface, LOCAL_EGL_BACK_BUFFER);
 
   if (success == LOCAL_EGL_FALSE) return false;
 
@@ -159,8 +160,8 @@ bool TextureImageEGL::ReleaseTexImage() {
 
   const auto& gle = GLContextEGL::Cast(mGLContext);
   const auto& egl = gle->mEgl;
-  EGLBoolean success = egl->fReleaseTexImage(
-      egl->Display(), (EGLSurface)mSurface, LOCAL_EGL_BACK_BUFFER);
+  EGLBoolean success =
+      egl->fReleaseTexImage((EGLSurface)mSurface, LOCAL_EGL_BACK_BUFFER);
 
   if (success == LOCAL_EGL_FALSE) return false;
 
@@ -173,7 +174,7 @@ void TextureImageEGL::DestroyEGLSurface(void) {
 
   const auto& gle = GLContextEGL::Cast(mGLContext);
   const auto& egl = gle->mEgl;
-  egl->fDestroySurface(egl->Display(), mSurface);
+  egl->fDestroySurface(mSurface);
   mSurface = nullptr;
 }
 

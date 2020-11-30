@@ -9,14 +9,21 @@ flat varying vec4 vUvRect;
 
 #ifdef WR_VERTEX_SHADER
 
-in vec4 aScaleTargetRect;
-in ivec4 aScaleSourceRect;
-in int aScaleSourceLayer;
+PER_INSTANCE in vec4 aScaleTargetRect;
+PER_INSTANCE in ivec4 aScaleSourceRect;
+PER_INSTANCE in int aScaleSourceLayer;
 
 void main(void) {
     RectWithSize src_rect = RectWithSize(vec2(aScaleSourceRect.xy), vec2(aScaleSourceRect.zw));
 
-    vec2 texture_size = vec2(textureSize(sColor0, 0).xy);
+    // If this is in WR_FEATURE_TEXTURE_RECT mode, the rect and size use
+    // non-normalized texture coordinates.
+#ifdef WR_FEATURE_TEXTURE_RECT
+    vec2 texture_size = vec2(1, 1);
+#else
+    vec2 texture_size = vec2(textureSize(sColor0, 0));
+#endif
+
     vUv.z = float(aScaleSourceLayer);
 
     vUvRect = vec4(src_rect.p0 + vec2(0.5),
@@ -34,7 +41,7 @@ void main(void) {
 
 void main(void) {
     vec2 st = clamp(vUv.xy, vUvRect.xy, vUvRect.zw);
-    oFragColor = texture(sColor0, vec3(st, vUv.z));
+    oFragColor = TEX_SAMPLE(sColor0, vec3(st, vUv.z));
 }
 
 #endif

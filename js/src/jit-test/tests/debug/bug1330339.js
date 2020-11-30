@@ -1,11 +1,11 @@
-// |jit-test| test-also=--wasm-compiler=ion; error: TestComplete
+// |jit-test| test-also=--wasm-compiler=optimizing; error: TestComplete
 
-if (!wasmDebuggingIsSupported())
+if (!wasmDebuggingEnabled())
      throw "TestComplete";
 
 let module = new WebAssembly.Module(wasmTextToBinary(`
     (module
-        (import "global" "func")
+        (import "global" "func" (func))
         (func (export "test")
          call 0 ;; calls the import, which is func #0
         )

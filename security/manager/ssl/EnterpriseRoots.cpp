@@ -12,6 +12,10 @@
 #include "mozpkix/Result.h"
 #include "nsThreadUtils.h"
 
+#ifdef MOZ_WIDGET_ANDROID
+#  include "mozilla/java/EnterpriseRootsWrappers.h"
+#endif  // MOZ_WIDGET_ANDROID
+
 #ifdef XP_MACOSX
 #  include <Security/Security.h>
 #  include "KeychainSecret.h"  // for ScopedCFType
@@ -44,9 +48,9 @@ nsresult EnterpriseCert::Init(const EnterpriseCert& orig) {
 
 nsresult EnterpriseCert::CopyBytes(nsTArray<uint8_t>& dest) const {
   dest.Clear();
-  if (!dest.AppendElements(mDER.begin(), mDER.length())) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
+  // XXX(Bug 1631371) Check if this should use a fallible operation as it
+  // pretended earlier, or change the return type to void.
+  dest.AppendElements(mDER.begin(), mDER.length());
   return NS_OK;
 }
 
@@ -326,6 +330,28 @@ OSStatus GatherEnterpriseCertsMacOS(Vector<EnterpriseCert>& certs) {
 }
 #endif  // XP_MACOSX
 
+#ifdef MOZ_WIDGET_ANDROID
+void GatherEnterpriseCertsAndroid(Vector<EnterpriseCert>& certs) {
+  if (!jni::IsAvailable()) {
+    MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("JNI not available"));
+    return;
+  }
+  jni::ObjectArray::LocalRef roots =
+      java::EnterpriseRoots::GatherEnterpriseRoots();
+  for (size_t i = 0; i < roots->Length(); i++) {
+    jni::ByteArray::LocalRef root = roots->GetElement(i);
+    EnterpriseCert cert;
+    // Currently we treat all certificates gleaned from the Android
+    // CA store as roots.
+    if (NS_SUCCEEDED(cert.Init(
+            reinterpret_cast<uint8_t*>(root->GetElements().Elements()),
+            root->Length(), true))) {
+      Unused << certs.append(std::move(cert));
+    }
+  }
+}
+#endif  // MOZ_WIDGET_ANDROID
+
 nsresult GatherEnterpriseCerts(Vector<EnterpriseCert>& certs) {
   MOZ_ASSERT(!NS_IsMainThread());
   if (NS_IsMainThread()) {
@@ -342,5 +368,8 @@ nsresult GatherEnterpriseCerts(Vector<EnterpriseCert>& certs) {
     return NS_ERROR_FAILURE;
   }
 #endif  // XP_MACOSX
+#ifdef MOZ_WIDGET_ANDROID
+  GatherEnterpriseCertsAndroid(certs);
+#endif  // MOZ_WIDGET_ANDROID
   return NS_OK;
 }

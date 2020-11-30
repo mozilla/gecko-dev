@@ -23,14 +23,20 @@
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsAppRunner.h"
 #include "nsDirectoryServiceUtils.h"
+#include "nsICertStorage.h"
+#include "nsThreadUtils.h"
 #include "prenv.h"
+
+#ifdef MOZ_NEW_XULSTORE
+#  include "mozilla/XULStore.h"
+#endif
 
 namespace mozilla {
 
 static ShutdownPhase sFastShutdownPhase = ShutdownPhase::NotInShutdown;
 static ShutdownPhase sLateWriteChecksPhase = ShutdownPhase::NotInShutdown;
 static AppShutdownMode sShutdownMode = AppShutdownMode::Normal;
-static bool sIsShuttingDown = false;
+static Atomic<bool, MemoryOrdering::Relaxed> sIsShuttingDown;
 
 // These environment variable strings are all deliberately copied and leaked
 // due to requirements of PR_SetEnv and similar.
@@ -49,6 +55,8 @@ ShutdownPhase GetShutdownPhaseFromPrefValue(int32_t aPrefValue) {
       return ShutdownPhase::ShutdownPostLastCycleCollection;
     case 2:
       return ShutdownPhase::ShutdownThreads;
+    case 3:
+      return ShutdownPhase::Shutdown;
       // NOTE: the remaining values from the ShutdownPhase enum will be added
       // when we're at least reasonably confident that the world won't come
       // crashing down if we do a fast shutdown at that point.
@@ -140,6 +148,34 @@ void AppShutdown::Init(AppShutdownMode aMode) {
 }
 
 void AppShutdown::MaybeFastShutdown(ShutdownPhase aPhase) {
+  // For writes which we want to ensure are recorded, we don't want to trip
+  // the late write checking code. Anything that writes to disk and which
+  // we don't want to skip should be listed out explicitly in this section.
+  if (aPhase == sFastShutdownPhase || aPhase == sLateWriteChecksPhase) {
+    if (auto* cache = scache::StartupCache::GetSingletonNoInit()) {
+      cache->EnsureShutdownWriteComplete();
+    }
+
+    nsresult rv;
+#ifdef MOZ_NEW_XULSTORE
+    rv = XULStore::Shutdown();
+    NS_ASSERTION(NS_SUCCEEDED(rv), "XULStore::Shutdown() failed.");
+#endif
+
+    nsCOMPtr<nsICertStorage> certStorage =
+        do_GetService("@mozilla.org/security/certstorage;1", &rv);
+    NS_ASSERTION(NS_SUCCEEDED(rv), "Could not get nsICertStorage");
+    if (NS_SUCCEEDED(rv)) {
+      SpinEventLoopUntil([&]() {
+        int32_t remainingOps;
+        nsresult rv = certStorage->GetRemainingOperationCount(&remainingOps);
+        NS_ASSERTION(NS_SUCCEEDED(rv),
+                     "nsICertStorage::getRemainingOperationCount failed during "
+                     "shutdown");
+        return NS_FAILED(rv) || remainingOps <= 0;
+      });
+    }
+  }
   if (aPhase == sFastShutdownPhase) {
     StopLateWriteChecks();
     RecordShutdownEndTimeStamp();

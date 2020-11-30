@@ -6,6 +6,7 @@
 
 #include "L10nMutations.h"
 #include "mozilla/dom/DocumentInlines.h"
+#include "nsRefreshDriver.h"
 
 using namespace mozilla::dom;
 
@@ -34,16 +35,23 @@ L10nMutations::L10nMutations(DOMLocalization* aDOMLocalization)
   mObserving = true;
 }
 
+L10nMutations::~L10nMutations() {
+  StopRefreshObserver();
+  MOZ_ASSERT(!mDOMLocalization,
+             "DOMLocalization<-->L10nMutations cycle should be broken.");
+}
+
 void L10nMutations::AttributeChanged(Element* aElement, int32_t aNameSpaceID,
                                      nsAtom* aAttribute, int32_t aModType,
                                      const nsAttrValue* aOldValue) {
   if (!mObserving) {
     return;
   }
-  if (aElement->IsInComposedDoc()) {
-    if (aNameSpaceID == kNameSpaceID_None &&
-        (aAttribute == nsGkAtoms::datal10nid ||
-         aAttribute == nsGkAtoms::datal10nargs)) {
+
+  if (aNameSpaceID == kNameSpaceID_None &&
+      (aAttribute == nsGkAtoms::datal10nid ||
+       aAttribute == nsGkAtoms::datal10nargs)) {
+    if (IsInRoots(aElement)) {
       L10nElementChanged(aElement);
     }
   }
@@ -53,17 +61,17 @@ void L10nMutations::ContentAppended(nsIContent* aChild) {
   if (!mObserving) {
     return;
   }
-  ErrorResult rv;
-  Sequence<OwningNonNull<Element>> elements;
 
   nsINode* node = aChild;
+  if (!IsInRoots(node)) {
+    return;
+  }
+
+  ErrorResult rv;
+  Sequence<OwningNonNull<Element>> elements;
   while (node) {
     if (node->IsElement()) {
-      Element* elem = node->AsElement();
-
-      if (elem->IsInComposedDoc()) {
-        DOMLocalization::GetTranslatables(*node, elements, rv);
-      }
+      DOMLocalization::GetTranslatables(*node, elements, rv);
     }
 
     node = node->GetNextSibling();
@@ -86,7 +94,7 @@ void L10nMutations::ContentInserted(nsIContent* aChild) {
   }
   Element* elem = aChild->AsElement();
 
-  if (!elem->IsInComposedDoc()) {
+  if (!IsInRoots(elem)) {
     return;
   }
   DOMLocalization::GetTranslatables(*aChild, elements, rv);
@@ -130,7 +138,9 @@ void L10nMutations::FlushPendingTranslations() {
       continue;
     }
 
-    elements.AppendElement(*elem, fallible);
+    if (!elements.AppendElement(*elem, fallible)) {
+      mozalloc_handle_oom(0);
+    }
   }
 
   mPendingElementsHash.Clear();
@@ -166,7 +176,8 @@ void L10nMutations::StartRefreshObserver() {
   // In that case, we'll trigger the flush of pending
   // elements in Document::CreatePresShell.
   if (mRefreshDriver) {
-    mRefreshDriver->AddRefreshObserver(this, FlushType::Style);
+    mRefreshDriver->AddRefreshObserver(this, FlushType::Style,
+                                       "L10n mutations");
     mRefreshObserver = true;
   } else {
     NS_WARNING("[l10n][mutations] Failed to start a refresh observer.");
@@ -188,4 +199,20 @@ void L10nMutations::OnCreatePresShell() {
   if (!mPendingElements.IsEmpty()) {
     StartRefreshObserver();
   }
+}
+
+bool L10nMutations::IsInRoots(nsINode* aNode) {
+  // If the root of the mutated element is in the light DOM,
+  // we know it must be covered by our observer directly.
+  //
+  // Otherwise, we need to check if its subtree root is the same
+  // as any of the `DOMLocalization::mRoots` subtree roots.
+  nsINode* root = aNode->SubtreeRoot();
+
+  // If element is in light DOM, it must be covered by one of
+  // the DOMLocalization roots to end up here.
+  MOZ_ASSERT_IF(!root->IsShadowRoot(),
+                mDOMLocalization->SubtreeRootInRoots(root));
+
+  return !root->IsShadowRoot() || mDOMLocalization->SubtreeRootInRoots(root);
 }

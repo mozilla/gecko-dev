@@ -17,11 +17,13 @@
 #include "gc/Policy.h"
 #include "gc/StoreBuffer.h"
 #include "js/CharacterEncoding.h"
+#include "js/friend/WindowProxy.h"  // js::IsWindow
 #include "js/UniquePtr.h"
 #include "vm/ArrayObject.h"
 #include "vm/ErrorObject.h"
 #include "vm/GlobalObject.h"
 #include "vm/JSObject.h"
+#include "vm/PlainObject.h"  // js::PlainObject
 #include "vm/RegExpObject.h"
 #include "vm/Shape.h"
 #include "vm/TaggedProto.h"
@@ -40,7 +42,10 @@ using namespace js;
 
 ObjectGroup::ObjectGroup(const JSClass* clasp, TaggedProto proto,
                          JS::Realm* realm, ObjectGroupFlags initialFlags)
-    : clasp_(clasp), proto_(proto), realm_(realm), flags_(initialFlags) {
+    : TenuredCellWithNonGCPointer(clasp),
+      proto_(proto),
+      realm_(realm),
+      flags_(initialFlags) {
   /* Windows may not appear on prototype chains. */
   MOZ_ASSERT_IF(proto.isObject(), !IsWindow(proto.toObject()));
   MOZ_ASSERT(JS::StringIsASCII(clasp->name));
@@ -112,11 +117,11 @@ void ObjectGroup::setAddendum(AddendumKind kind, void* addendum,
     AutoSweepObjectGroup sweep(this);
     switch (addendumKind()) {
       case Addendum_PreliminaryObjects:
-        PreliminaryObjectArrayWithTemplate::writeBarrierPre(
+        PreliminaryObjectArrayWithTemplate::preWriteBarrier(
             maybePreliminaryObjects(sweep));
         break;
       case Addendum_NewScript:
-        TypeNewScript::writeBarrierPre(newScript(sweep));
+        TypeNewScript::preWriteBarrier(newScript(sweep));
         break;
       case Addendum_None:
         break;
@@ -246,9 +251,9 @@ bool ObjectGroup::useSingletonForAllocationSite(JSScript* script,
 
   uint32_t offset = script->pcToOffset(pc);
 
-  for (const JSTryNote& tn : script->trynotes()) {
-    if (tn.kind != JSTRY_FOR_IN && tn.kind != JSTRY_FOR_OF &&
-        tn.kind != JSTRY_LOOP) {
+  for (const TryNote& tn : script->trynotes()) {
+    if (tn.kind() != TryNoteKind::ForIn && tn.kind() != TryNoteKind::ForOf &&
+        tn.kind() != TryNoteKind::Loop) {
       continue;
     }
 
@@ -354,7 +359,7 @@ ObjectGroup* JSObject::makeLazyGroup(JSContext* cx, HandleObject obj) {
     group->setInterpretedFunction(&obj->as<JSFunction>());
   }
 
-  obj->group_ = group;
+  obj->setGroupRaw(group);
 
   return group;
 }
@@ -554,7 +559,8 @@ ObjectGroup* ObjectGroup::defaultNewGroup(JSContext* cx, const JSClass* clasp,
     // that their type information can be tracked more precisely. Limit
     // this group change to plain objects, to avoid issues with other types
     // of singletons like typed arrays.
-    if (protoObj->is<PlainObject>() && !protoObj->isSingleton()) {
+    if (protoObj->is<PlainObject>() && !protoObj->isSingleton() &&
+        IsTypeInferenceEnabled()) {
       if (!JSObject::changeToSingleton(cx, protoObj)) {
         return nullptr;
       }
@@ -638,12 +644,10 @@ ObjectGroup* ObjectGroup::defaultNewGroup(JSContext* cx, const JSClass* clasp,
 
 /* static */
 ObjectGroup* ObjectGroup::lazySingletonGroup(JSContext* cx,
-                                             ObjectGroup* oldGroup,
+                                             ObjectGroupRealm& realm,
+                                             JS::Realm* objectRealm,
                                              const JSClass* clasp,
                                              TaggedProto proto) {
-  ObjectGroupRealm& realm = oldGroup ? ObjectGroupRealm::get(oldGroup)
-                                     : ObjectGroupRealm::getForNewObject(cx);
-
   MOZ_ASSERT_IF(proto.isObject(),
                 cx->compartment() == proto.toObject()->compartment());
 
@@ -669,7 +673,7 @@ ObjectGroup* ObjectGroup::lazySingletonGroup(JSContext* cx,
 
   Rooted<TaggedProto> protoRoot(cx, proto);
   ObjectGroup* group = ObjectGroupRealm::makeGroup(
-      cx, oldGroup ? oldGroup->realm() : cx->realm(), clasp, protoRoot,
+      cx, objectRealm, clasp, protoRoot,
       OBJECT_FLAG_SINGLETON | OBJECT_FLAG_LAZY_SINGLETON);
   if (!group) {
     return nullptr;
@@ -1323,11 +1327,7 @@ struct ObjectGroupRealm::AllocationSiteKey {
     MOZ_ASSERT(offset_ < OFFSET_LIMIT);
   }
 
-  AllocationSiteKey(const AllocationSiteKey& key)
-      : script(key.script),
-        offset(key.offset),
-        kind(key.kind),
-        proto(key.proto) {}
+  AllocationSiteKey(const AllocationSiteKey& key) = default;
 
   AllocationSiteKey(AllocationSiteKey&& key)
       : script(std::move(key.script)),
@@ -1348,8 +1348,9 @@ struct ObjectGroupRealm::AllocationSiteKey {
   }
 
   bool needsSweep() {
-    return IsAboutToBeFinalizedUnbarriered(script.unsafeGet()) ||
-           (proto && IsAboutToBeFinalizedUnbarriered(proto.unsafeGet()));
+    return IsAboutToBeFinalizedUnbarriered(script.unbarrieredAddress()) ||
+           (proto &&
+            IsAboutToBeFinalizedUnbarriered(proto.unbarrieredAddress()));
   }
 
   bool operator==(const AllocationSiteKey& other) const {
@@ -1490,11 +1491,14 @@ ObjectGroup* ObjectGroup::callingAllocationSiteGroup(JSContext* cx,
                                                      HandleObject proto) {
   MOZ_ASSERT_IF(proto, key == JSProto_Array);
 
-  jsbytecode* pc;
-  RootedScript script(cx, cx->currentScript(&pc));
-  if (script) {
-    return allocationSiteGroup(cx, script, pc, key, proto);
+  if (IsTypeInferenceEnabled()) {
+    jsbytecode* pc;
+    RootedScript script(cx, cx->currentScript(&pc));
+    if (script) {
+      return allocationSiteGroup(cx, script, pc, key, proto);
+    }
   }
+
   if (proto) {
     return defaultNewGroup(cx, GetClassForProtoKey(key), TaggedProto(proto));
   }
@@ -1506,6 +1510,8 @@ bool ObjectGroup::setAllocationSiteObjectGroup(JSContext* cx,
                                                HandleScript script,
                                                jsbytecode* pc, HandleObject obj,
                                                bool singleton) {
+  MOZ_ASSERT(IsTypeInferenceEnabled());
+
   JSProtoKey key = JSCLASS_CACHED_PROTO_KEY(obj->getClass());
   MOZ_ASSERT(key != JSProto_Null);
   MOZ_ASSERT(singleton == useSingletonForAllocationSite(script, pc, key));
@@ -1527,10 +1533,11 @@ bool ObjectGroup::setAllocationSiteObjectGroup(JSContext* cx,
 ArrayObject* ObjectGroup::getOrFixupCopyOnWriteObject(JSContext* cx,
                                                       HandleScript script,
                                                       jsbytecode* pc) {
+  MOZ_ASSERT(IsTypeInferenceEnabled());
+
   // Make sure that the template object for script/pc has a type indicating
   // that the object and its copies have copy on write elements.
-  RootedArrayObject obj(
-      cx, &script->getObject(GET_UINT32_INDEX(pc))->as<ArrayObject>());
+  RootedArrayObject obj(cx, &script->getObject(pc)->as<ArrayObject>());
   MOZ_ASSERT(obj->denseElementsAreCopyOnWrite());
 
   {
@@ -1572,8 +1579,7 @@ ArrayObject* ObjectGroup::getCopyOnWriteObject(JSScript* script,
   // COPY_ON_WRITE flag. We don't assert this here, due to a corner case
   // where this property doesn't hold. See jsop_newarray_copyonwrite in
   // IonBuilder.
-  ArrayObject* obj =
-      &script->getObject(GET_UINT32_INDEX(pc))->as<ArrayObject>();
+  ArrayObject* obj = &script->getObject(pc)->as<ArrayObject>();
   MOZ_ASSERT(obj->denseElementsAreCopyOnWrite());
 
   return obj;

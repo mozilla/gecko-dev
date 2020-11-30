@@ -16,7 +16,7 @@ add_task(
     );
     Assert.equal(
       await FxAccounts.config.promiseConnectAccountURI("test"),
-      "http://example.com/?service=sync&context=null&entrypoint=test&action=email"
+      "http://example.com/?context=null&entrypoint=test&action=email&service=sync"
     );
 
     Services.prefs.clearUserPref("identity.fxaccounts.remote.root");
@@ -34,4 +34,22 @@ add_task(async function test_non_https_remote_server_uri() {
     /Firefox Accounts server must use HTTPS/
   );
   Services.prefs.clearUserPref("identity.fxaccounts.remote.root");
+});
+
+add_task(async function test_is_production_config() {
+  // should start with no auto-config URL.
+  Assert.ok(!FxAccounts.config.getAutoConfigURL());
+  // which means we are using prod.
+  Assert.ok(FxAccounts.config.isProductionConfig());
+
+  // Set an auto-config URL.
+  Services.prefs.setCharPref("identity.fxaccounts.autoconfig.uri", "http://x");
+  Assert.equal(FxAccounts.config.getAutoConfigURL(), "http://x");
+  Assert.ok(!FxAccounts.config.isProductionConfig());
+
+  // Clear the auto-config URL, but set one of the other config params.
+  Services.prefs.clearUserPref("identity.fxaccounts.autoconfig.uri");
+  Services.prefs.setCharPref("identity.sync.tokenserver.uri", "http://t");
+  Assert.ok(!FxAccounts.config.isProductionConfig());
+  Services.prefs.clearUserPref("identity.sync.tokenserver.uri");
 });

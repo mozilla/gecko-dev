@@ -4,6 +4,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsPrintSettingsImpl.h"
+
+#include "nsCoord.h"
+#include "nsPaper.h"
 #include "nsReadableUtils.h"
 #include "nsIPrintSession.h"
 #include "mozilla/RefPtr.h"
@@ -13,8 +16,7 @@
 NS_IMPL_ISUPPORTS(nsPrintSettings, nsIPrintSettings)
 
 nsPrintSettings::nsPrintSettings()
-    : mPrintOptions(0L),
-      mPrintRange(kRangeAllPages),
+    : mPrintRange(kRangeAllPages),
       mStartPageNum(1),
       mEndPageNum(1),
       mScaling(1.0),
@@ -25,8 +27,11 @@ nsPrintSettings::nsPrintSettings()
       mPrintSilent(false),
       mShrinkToFit(true),
       mShowPrintProgress(true),
+      mShowMarginGuides(false),
+      mHonorPageRuleMargins(true),
+      mIsPrintSelectionRBEnabled(false),
+      mPrintSelectionOnly(false),
       mPrintPageDelay(50),
-      mPaperData(0),
       mPaperWidth(8.5),
       mPaperHeight(11.0),
       mPaperSizeUnit(kPaperSizeInches),
@@ -36,6 +41,7 @@ nsPrintSettings::nsPrintSettings()
       mResolution(0),
       mDuplex(0),
       mNumCopies(1),
+      mNumPagesPerSheet(1),
       mPrintToFile(false),
       mOutputFormat(kOutputFormatNative),
       mIsInitedFromPrinter(false),
@@ -46,8 +52,6 @@ nsPrintSettings::nsPrintSettings()
   mEdge.SizeTo(0, 0, 0, 0);
   mUnwriteableMargin.SizeTo(0, 0, 0, 0);
 
-  mPrintOptions = kPrintOddPages | kPrintEvenPages;
-
   mHeaderStrs[0].AssignLiteral("&T");
   mHeaderStrs[2].AssignLiteral("&U");
 
@@ -56,9 +60,37 @@ nsPrintSettings::nsPrintSettings()
   mFooterStrs[2].AssignLiteral("&D");
 }
 
+void nsPrintSettings::InitWithInitializer(
+    const PrintSettingsInitializer& aSettings) {
+  const double kInchesPerPoint = 1.0 / 72.0;
+
+  SetPrinterName(aSettings.mPrinter);
+  SetPrintInColor(aSettings.mPrintInColor);
+  SetResolution(aSettings.mResolution);
+  // The paper ID used by nsPrintSettings is the non-localizable identifier
+  // exposed as "id" by the paper, not the potentially localized human-friendly
+  // "name", which could change, e.g. if the user changes their system locale.
+  SetPaperId(aSettings.mPaperInfo.mId);
+  SetPaperWidth(aSettings.mPaperInfo.mSize.Width() * kInchesPerPoint);
+  SetPaperHeight(aSettings.mPaperInfo.mSize.Height() * kInchesPerPoint);
+  SetPaperSizeUnit(nsIPrintSettings::kPaperSizeInches);
+
+  if (aSettings.mPaperInfo.mUnwriteableMargin) {
+    const auto& margin = aSettings.mPaperInfo.mUnwriteableMargin.value();
+    // Margins are stored internally in TWIPS, but the setters expect inches.
+    SetUnwriteableMarginTop(margin.top * kInchesPerPoint);
+    SetUnwriteableMarginRight(margin.right * kInchesPerPoint);
+    SetUnwriteableMarginBottom(margin.bottom * kInchesPerPoint);
+    SetUnwriteableMarginLeft(margin.left * kInchesPerPoint);
+  }
+
+  // Set this last because other setters may overwrite its value.
+  SetIsInitializedFromPrinter(true);
+}
+
 nsPrintSettings::nsPrintSettings(const nsPrintSettings& aPS) { *this = aPS; }
 
-nsPrintSettings::~nsPrintSettings() {}
+nsPrintSettings::~nsPrintSettings() = default;
 
 NS_IMETHODIMP nsPrintSettings::GetPrintSession(
     nsIPrintSession** aPrintSession) {
@@ -181,8 +213,18 @@ NS_IMETHODIMP nsPrintSettings::SetNumCopies(int32_t aNumCopies) {
   return NS_OK;
 }
 
+NS_IMETHODIMP nsPrintSettings::GetNumPagesPerSheet(int32_t* aNumPagesPerSheet) {
+  NS_ENSURE_ARG_POINTER(aNumPagesPerSheet);
+  *aNumPagesPerSheet = mNumPagesPerSheet;
+  return NS_OK;
+}
+NS_IMETHODIMP nsPrintSettings::SetNumPagesPerSheet(int32_t aNumPagesPerSheet) {
+  mNumPagesPerSheet = aNumPagesPerSheet;
+  return NS_OK;
+}
+
 NS_IMETHODIMP nsPrintSettings::GetPrintToFile(bool* aPrintToFile) {
-  // NS_ENSURE_ARG_POINTER(aPrintToFile);
+  NS_ENSURE_ARG_POINTER(aPrintToFile);
   *aPrintToFile = mPrintToFile;
   return NS_OK;
 }
@@ -222,24 +264,24 @@ NS_IMETHODIMP nsPrintSettings::SetPrintPageDelay(int32_t aPrintPageDelay) {
 NS_IMETHODIMP nsPrintSettings::GetIsInitializedFromPrinter(
     bool* aIsInitializedFromPrinter) {
   NS_ENSURE_ARG_POINTER(aIsInitializedFromPrinter);
-  *aIsInitializedFromPrinter = (bool)mIsInitedFromPrinter;
+  *aIsInitializedFromPrinter = mIsInitedFromPrinter;
   return NS_OK;
 }
 NS_IMETHODIMP nsPrintSettings::SetIsInitializedFromPrinter(
     bool aIsInitializedFromPrinter) {
-  mIsInitedFromPrinter = (bool)aIsInitializedFromPrinter;
+  mIsInitedFromPrinter = aIsInitializedFromPrinter;
   return NS_OK;
 }
 
 NS_IMETHODIMP nsPrintSettings::GetIsInitializedFromPrefs(
     bool* aInitializedFromPrefs) {
   NS_ENSURE_ARG_POINTER(aInitializedFromPrefs);
-  *aInitializedFromPrefs = (bool)mIsInitedFromPrefs;
+  *aInitializedFromPrefs = mIsInitedFromPrefs;
   return NS_OK;
 }
 NS_IMETHODIMP nsPrintSettings::SetIsInitializedFromPrefs(
     bool aInitializedFromPrefs) {
-  mIsInitedFromPrefs = (bool)aInitializedFromPrefs;
+  mIsInitedFromPrefs = aInitializedFromPrefs;
   return NS_OK;
 }
 
@@ -439,47 +481,6 @@ NS_IMETHODIMP nsPrintSettings::SetDocURL(const nsAString& aDocURL) {
   return NS_OK;
 }
 
-/** ---------------------------------------------------
- *  See documentation in nsPrintSettingsImpl.h
- *	@update 1/12/01 rods
- */
-NS_IMETHODIMP
-nsPrintSettings::GetPrintOptions(int32_t aType, bool* aTurnOnOff) {
-  NS_ENSURE_ARG_POINTER(aTurnOnOff);
-  *aTurnOnOff = mPrintOptions & aType ? true : false;
-  return NS_OK;
-}
-/** ---------------------------------------------------
- *  See documentation in nsPrintSettingsImpl.h
- *	@update 1/12/01 rods
- */
-NS_IMETHODIMP
-nsPrintSettings::SetPrintOptions(int32_t aType, bool aTurnOnOff) {
-  if (aTurnOnOff) {
-    mPrintOptions |= aType;
-  } else {
-    mPrintOptions &= ~aType;
-  }
-  return NS_OK;
-}
-
-/** ---------------------------------------------------
- *  See documentation in nsPrintSettingsImpl.h
- *	@update 1/12/01 rods
- */
-NS_IMETHODIMP
-nsPrintSettings::GetPrintOptionsBits(int32_t* aBits) {
-  NS_ENSURE_ARG_POINTER(aBits);
-  *aBits = mPrintOptions;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsPrintSettings::SetPrintOptionsBits(int32_t aBits) {
-  mPrintOptions = aBits;
-  return NS_OK;
-}
-
 NS_IMETHODIMP nsPrintSettings::GetHeaderStrLeft(nsAString& aTitle) {
   aTitle = mHeaderStrs[0];
   return NS_OK;
@@ -564,12 +565,53 @@ NS_IMETHODIMP nsPrintSettings::SetShowPrintProgress(bool aShowPrintProgress) {
   return NS_OK;
 }
 
-NS_IMETHODIMP nsPrintSettings::GetPaperName(nsAString& aPaperName) {
-  aPaperName = mPaperName;
+NS_IMETHODIMP nsPrintSettings::GetShowMarginGuides(bool* aShowMarginGuides) {
+  *aShowMarginGuides = mShowMarginGuides;
   return NS_OK;
 }
-NS_IMETHODIMP nsPrintSettings::SetPaperName(const nsAString& aPaperName) {
-  mPaperName = aPaperName;
+
+NS_IMETHODIMP nsPrintSettings::SetShowMarginGuides(bool aShowMarginGuides) {
+  mShowMarginGuides = aShowMarginGuides;
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsPrintSettings::GetHonorPageRuleMargins(bool* aResult) {
+  *aResult = mHonorPageRuleMargins;
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsPrintSettings::SetHonorPageRuleMargins(bool aHonor) {
+  mHonorPageRuleMargins = aHonor;
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsPrintSettings::GetIsPrintSelectionRBEnabled(
+    bool* aIsPrintSelectionRBEnabled) {
+  *aIsPrintSelectionRBEnabled = mIsPrintSelectionRBEnabled;
+  return NS_OK;
+}
+NS_IMETHODIMP nsPrintSettings::SetIsPrintSelectionRBEnabled(
+    bool aIsPrintSelectionRBEnabled) {
+  mIsPrintSelectionRBEnabled = aIsPrintSelectionRBEnabled;
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsPrintSettings::GetPrintSelectionOnly(bool* aResult) {
+  *aResult = mPrintSelectionOnly;
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsPrintSettings::SetPrintSelectionOnly(bool aSelectionOnly) {
+  mPrintSelectionOnly = aSelectionOnly;
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsPrintSettings::GetPaperId(nsAString& aPaperId) {
+  aPaperId = mPaperId;
+  return NS_OK;
+}
+NS_IMETHODIMP nsPrintSettings::SetPaperId(const nsAString& aPaperId) {
+  mPaperId = aPaperId;
   return NS_OK;
 }
 
@@ -618,16 +660,6 @@ NS_IMETHODIMP nsPrintSettings::SetPaperSizeUnit(int16_t aPaperSizeUnit) {
   return NS_OK;
 }
 
-NS_IMETHODIMP nsPrintSettings::GetPaperData(int16_t* aPaperData) {
-  NS_ENSURE_ARG_POINTER(aPaperData);
-  *aPaperData = mPaperData;
-  return NS_OK;
-}
-NS_IMETHODIMP nsPrintSettings::SetPaperData(int16_t aPaperData) {
-  mPaperData = aPaperData;
-  return NS_OK;
-}
-
 /** ---------------------------------------------------
  *  See documentation in nsPrintSettingsService.h
  *	@update 6/21/00 dwc
@@ -665,26 +697,12 @@ nsPrintSettings::SetUnwriteableMarginInTwips(nsIntMargin& aUnwriteableMargin) {
   return NS_OK;
 }
 
-/** ---------------------------------------------------
- *  See documentation in nsPrintSettingsService.h
- *	@update 6/21/00 dwc
- */
-NS_IMETHODIMP
-nsPrintSettings::GetMarginInTwips(nsIntMargin& aMargin) {
-  aMargin = mMargin;
-  return NS_OK;
-}
+nsIntMargin nsPrintSettings::GetMarginInTwips() { return mMargin; }
 
-NS_IMETHODIMP
-nsPrintSettings::GetEdgeInTwips(nsIntMargin& aEdge) {
-  aEdge = mEdge;
-  return NS_OK;
-}
+nsIntMargin nsPrintSettings::GetEdgeInTwips() { return mEdge; }
 
-NS_IMETHODIMP
-nsPrintSettings::GetUnwriteableMarginInTwips(nsIntMargin& aUnwriteableMargin) {
-  aUnwriteableMargin = mUnwriteableMargin;
-  return NS_OK;
+nsIntMargin nsPrintSettings::GetUnwriteableMarginInTwips() {
+  return mUnwriteableMargin;
 }
 
 /** ---------------------------------------------------
@@ -761,22 +779,31 @@ nsPrintSettings& nsPrintSettings::operator=(const nsPrintSettings& rhs) {
   mTitle = rhs.mTitle;
   mURL = rhs.mURL;
   mIsCancelled = rhs.mIsCancelled;
+  mSaveOnCancel = rhs.mSaveOnCancel;
   mPrintSilent = rhs.mPrintSilent;
   mShrinkToFit = rhs.mShrinkToFit;
   mShowPrintProgress = rhs.mShowPrintProgress;
-  mPaperName = rhs.mPaperName;
-  mPaperData = rhs.mPaperData;
+  mShowMarginGuides = rhs.mShowMarginGuides;
+  mHonorPageRuleMargins = rhs.mHonorPageRuleMargins;
+  mIsPrintSelectionRBEnabled = rhs.mIsPrintSelectionRBEnabled;
+  mPrintSelectionOnly = rhs.mPrintSelectionOnly;
+  mPaperId = rhs.mPaperId;
   mPaperWidth = rhs.mPaperWidth;
   mPaperHeight = rhs.mPaperHeight;
   mPaperSizeUnit = rhs.mPaperSizeUnit;
   mPrintReversed = rhs.mPrintReversed;
   mPrintInColor = rhs.mPrintInColor;
   mOrientation = rhs.mOrientation;
+  mResolution = rhs.mResolution;
+  mDuplex = rhs.mDuplex;
   mNumCopies = rhs.mNumCopies;
+  mNumPagesPerSheet = rhs.mNumPagesPerSheet;
   mPrinter = rhs.mPrinter;
   mPrintToFile = rhs.mPrintToFile;
   mToFileName = rhs.mToFileName;
   mOutputFormat = rhs.mOutputFormat;
+  mIsInitedFromPrinter = rhs.mIsInitedFromPrinter;
+  mIsInitedFromPrefs = rhs.mIsInitedFromPrefs;
   mPrintPageDelay = rhs.mPrintPageDelay;
 
   for (int32_t i = 0; i < NUM_HEAD_FOOT; i++) {
@@ -785,4 +812,24 @@ nsPrintSettings& nsPrintSettings::operator=(const nsPrintSettings& rhs) {
   }
 
   return *this;
+}
+
+void nsPrintSettings::SetDefaultFileName() {
+  nsAutoString filename;
+  nsresult rv = GetToFileName(filename);
+  if (NS_FAILED(rv) || filename.IsEmpty()) {
+    const char* path = PR_GetEnv("PWD");
+    if (!path) {
+      path = PR_GetEnv("HOME");
+    }
+
+    if (path) {
+      CopyUTF8toUTF16(mozilla::MakeStringSpan(path), filename);
+      filename.AppendLiteral("/mozilla.pdf");
+    } else {
+      filename.AssignLiteral("mozilla.pdf");
+    }
+
+    SetToFileName(filename);
+  }
 }

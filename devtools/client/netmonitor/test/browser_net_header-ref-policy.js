@@ -7,7 +7,9 @@
  * Tests if "Referrer Policy" is displayed in the header panel.
  */
 add_task(async function() {
-  const { tab, monitor } = await initNetMonitor(POST_RAW_URL);
+  const { tab, monitor } = await initNetMonitor(POST_RAW_URL, {
+    requestCount: 1,
+  });
   info("Starting test... ");
 
   const { document, store, windowRequire } = monitor.panelWin;
@@ -27,7 +29,7 @@ add_task(async function() {
   );
   await wait;
 
-  const referrerPolicyIndex = 5;
+  const referrerPolicyIndex = 3;
   const referrerPolicyHeader = document.querySelectorAll(
     ".tabpanel-summary-label"
   )[referrerPolicyIndex];
@@ -36,7 +38,7 @@ add_task(async function() {
   )[referrerPolicyIndex];
 
   is(
-    referrerPolicyHeader.textContent === "Referrer Policy:",
+    referrerPolicyHeader.textContent === "Referrer Policy",
     true,
     '"Referrer Policy" header is displayed in the header panel.'
   );

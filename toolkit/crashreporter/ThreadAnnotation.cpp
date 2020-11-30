@@ -8,7 +8,6 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/StaticMutex.h"
-#include "mozilla/TypeTraits.h"
 #include "mozilla/UniquePtr.h"
 
 #include "prthread.h"
@@ -116,9 +115,9 @@ class ThreadAnnotationSpan {
 // the crash annotation file.
 class ThreadAnnotationData {
  public:
-  ThreadAnnotationData() {}
+  ThreadAnnotationData() = default;
 
-  ~ThreadAnnotationData() {}
+  ~ThreadAnnotationData() = default;
 
   // Adds <pre> tid:"thread name",</pre> annotation to the current annotations.
   // Returns an instance of ThreadAnnotationSpan for cleanup on thread

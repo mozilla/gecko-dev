@@ -89,25 +89,38 @@ const SCORES = {
 
 // List of simulation types.
 const SIMULATION_TYPE = {
-  // Low red color blindness
-  PROTANOMALY: "PROTANOMALY",
-  // Low green color blindness
-  DEUTERANOMALY: "DEUTERANOMALY",
-  // Low blue color blindness
-  TRITANOMALY: "TRITANOMALY",
   // No red color blindness
   PROTANOPIA: "PROTANOPIA",
   // No green color blindness
   DEUTERANOPIA: "DEUTERANOPIA",
   // No blue color blindness
   TRITANOPIA: "TRITANOPIA",
+  // Absense of color vision
+  ACHROMATOPSIA: "ACHROMATOPSIA",
   // Low contrast
   CONTRAST_LOSS: "CONTRAST_LOSS",
 };
 
-exports.accessibility = {
-  AUDIT_TYPE,
-  ISSUE_TYPE,
-  SCORES,
-  SIMULATION_TYPE,
+/* Compatibility Panel ====================================================== */
+
+const COMPATIBILITY_ISSUE_TYPE = {
+  CSS_PROPERTY: "CSS_PROPERTY",
+  CSS_PROPERTY_ALIASES: "CSS_PROPERTY_ALIASES",
+};
+
+/* WebConsole Panel ====================================================== */
+
+const MESSAGE_CATEGORY = {
+  CSS_PARSER: "CSS Parser",
+};
+
+module.exports = {
+  accessibility: {
+    AUDIT_TYPE,
+    ISSUE_TYPE,
+    SCORES,
+    SIMULATION_TYPE,
+  },
+  COMPATIBILITY_ISSUE_TYPE,
+  MESSAGE_CATEGORY,
 };

@@ -4,13 +4,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_SVGFEMorphologyElement_h
-#define mozilla_dom_SVGFEMorphologyElement_h
+#ifndef DOM_SVG_SVGFEMORPHOLOGYELEMENT_H_
+#define DOM_SVG_SVGFEMORPHOLOGYELEMENT_H_
 
 #include "SVGAnimatedEnumeration.h"
 #include "SVGAnimatedNumberPair.h"
 #include "SVGAnimatedString.h"
-#include "SVGFilters.h"
+#include "mozilla/dom/SVGFilters.h"
 
 nsresult NS_NewSVGFEMorphologyElement(
     nsIContent** aResult, already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
@@ -18,7 +18,7 @@ nsresult NS_NewSVGFEMorphologyElement(
 namespace mozilla {
 namespace dom {
 
-typedef SVGFE SVGFEMorphologyElementBase;
+using SVGFEMorphologyElementBase = SVGFE;
 
 class SVGFEMorphologyElement : public SVGFEMorphologyElementBase {
   friend nsresult(::NS_NewSVGFEMorphologyElement(
@@ -34,7 +34,7 @@ class SVGFEMorphologyElement : public SVGFEMorphologyElementBase {
 
  public:
   virtual FilterPrimitiveDescription GetPrimitiveDescription(
-      nsSVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
+      SVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
       const nsTArray<bool>& aInputsAreTainted,
       nsTArray<RefPtr<SourceSurface>>& aInputImages) override;
   virtual bool AttributeAffectsRendering(int32_t aNameSpaceID,
@@ -54,7 +54,7 @@ class SVGFEMorphologyElement : public SVGFEMorphologyElementBase {
   void SetRadius(float rx, float ry);
 
  protected:
-  void GetRXY(int32_t* aRX, int32_t* aRY, const nsSVGFilterInstance& aInstance);
+  void GetRXY(int32_t* aRX, int32_t* aRY, const SVGFilterInstance& aInstance);
 
   virtual NumberPairAttributesInfo GetNumberPairInfo() override;
   virtual EnumAttributesInfo GetEnumInfo() override;
@@ -77,4 +77,4 @@ class SVGFEMorphologyElement : public SVGFEMorphologyElementBase {
 }  // namespace dom
 }  // namespace mozilla
 
-#endif  // mozilla_dom_SVGFEMorphologyElement_h
+#endif  // DOM_SVG_SVGFEMORPHOLOGYELEMENT_H_

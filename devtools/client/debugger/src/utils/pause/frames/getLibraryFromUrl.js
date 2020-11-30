@@ -13,6 +13,10 @@ const libraryMap = [
     pattern: /backbone/i,
   },
   {
+    label: "Babel",
+    pattern: /node_modules\/@babel/i,
+  },
+  {
     label: "jQuery",
     pattern: /jquery/i,
   },
@@ -22,7 +26,7 @@ const libraryMap = [
   },
   {
     label: "React",
-    pattern: /(node_modules\/(?:react|react-dom)\/)|(react(-dom)?(\.[a-z]+)*\.js$)/,
+    pattern: /(node_modules\/(?:react(-dom)?(-dev)?\/))|(react(-dom)?(-dev)?(\.[a-z]+)*\.js$)/,
   },
   {
     label: "Immutable",
@@ -103,7 +107,10 @@ const libraryMap = [
   },
 ];
 
-export function getLibraryFromUrl(frame: Frame, callStack: Array<Frame> = []) {
+export function getLibraryFromUrl(
+  frame: Frame,
+  callStack: Array<Frame> = []
+): ?string | void {
   // @TODO each of these fns calls getFrameUrl, just call it once
   // (assuming there's not more complex logic to identify a lib)
   const frameUrl = getFrameUrl(frame);

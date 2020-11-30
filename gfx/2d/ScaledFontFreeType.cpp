@@ -95,7 +95,7 @@ bool ScaledFontFreeType::GetWRFontInstanceOptions(
     options.flags |= wr::FontInstanceFlags::SUBPIXEL_POSITION;
   }
   options.flags |= wr::FontInstanceFlags::EMBEDDED_BITMAPS;
-  options.bg_color = wr::ToColorU(Color());
+  options.bg_color = wr::ToColorU(DeviceColor());
   options.synthetic_italics =
       wr::DegreesToSyntheticItalics(GetSyntheticObliqueAngle());
 
@@ -179,6 +179,18 @@ bool ScaledFontFreeType::HasVariationSettings() {
          mFace->GetFace()->face_flags & FT_FACE_FLAG_MULTIPLE_MASTERS &&
          mFace !=
              static_cast<UnscaledFontFreeType*>(mUnscaledFont.get())->GetFace();
+}
+
+already_AddRefed<UnscaledFont> UnscaledFontFreeType::CreateFromFontDescriptor(
+    const uint8_t* aData, uint32_t aDataLength, uint32_t aIndex) {
+  if (aDataLength == 0) {
+    gfxWarning() << "FreeType font descriptor is truncated.";
+    return nullptr;
+  }
+  const char* path = reinterpret_cast<const char*>(aData);
+  RefPtr<UnscaledFont> unscaledFont =
+      new UnscaledFontFreeType(std::string(path, aDataLength), aIndex);
+  return unscaledFont.forget();
 }
 
 }  // namespace gfx

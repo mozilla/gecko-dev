@@ -4,14 +4,15 @@
 
 "use strict";
 
-/* exported ObjectFront, attachConsole, attachConsoleToTab, attachConsoleToWorker,
+/* exported attachConsole, attachConsoleToTab, attachConsoleToWorker,
    closeDebugger, checkConsoleAPICalls, checkRawHeaders, runTests, nextTest, Ci, Cc,
    withActiveServiceWorker, Services, consoleAPICall */
 
 const { require } = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
 const { DevToolsServer } = require("devtools/server/devtools-server");
-const { DevToolsClient } = require("devtools/shared/client/devtools-client");
-const { ObjectFront } = require("devtools/shared/fronts/object");
+// eslint-disable-next-line mozilla/reject-some-requires
+const { DevToolsClient } = require("devtools/client/devtools-client");
+
 const Services = require("Services");
 
 function initCommon() {
@@ -62,7 +63,8 @@ var _attachConsole = async function(listeners, attachToTab, attachToWorker) {
       const targetDescriptor = await client.mainRoot.getMainProcess();
       target = await targetDescriptor.getTarget();
     } else {
-      target = await client.mainRoot.getTab();
+      const targetDescriptor = await client.mainRoot.getTab();
+      target = await targetDescriptor.getTarget();
       if (attachToWorker) {
         const workerName = "console-test-worker.js#" + new Date().getTime();
         worker = new Worker(workerName);
@@ -83,7 +85,7 @@ var _attachConsole = async function(listeners, attachToTab, attachToWorker) {
 
     // Attach the Target and the target thread in order to instantiate the console client.
     await target.attach();
-    const [, threadFront] = await target.attachThread();
+    const threadFront = await target.attachThread();
     await threadFront.resume();
 
     const webConsoleFront = await target.getFront("console");
@@ -136,9 +138,11 @@ function checkConsoleAPICalls(consoleCalls, expectedConsoleCalls) {
 }
 
 function checkConsoleAPICall(call, expected) {
-  if (expected.level != "trace" && expected.arguments) {
-    is(call.arguments.length, expected.arguments.length, "number of arguments");
-  }
+  is(
+    call.arguments?.length || 0,
+    expected.arguments?.length || 0,
+    "number of arguments"
+  );
 
   checkObject(call, expected);
 }

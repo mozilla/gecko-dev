@@ -20,19 +20,19 @@ const {
   REPS: { Grip },
   MODE,
   objectInspector: { ObjectInspector: ObjectInspectorClass },
-} = require("devtools/client/shared/components/reps/reps");
+} = require("devtools/client/shared/components/reps/index");
 
 loader.lazyRequireGetter(
   this,
   "LongStringFront",
-  "devtools/shared/fronts/string",
+  "devtools/client/fronts/string",
   true
 );
 
 loader.lazyRequireGetter(
   this,
   "ObjectFront",
-  "devtools/shared/fronts/object",
+  "devtools/client/fronts/object",
   true
 );
 
@@ -68,16 +68,14 @@ class ObjectValueGripView extends PureComponent {
       disabledFocus: true,
       roots: [
         {
-          path:
-            (expressionResult && expressionResult.actorID) ||
-            JSON.stringify(expressionResult),
+          path: expressionResult?.actorID || JSON.stringify(expressionResult),
           contents: { value: grip, front: isFront ? expressionResult : null },
         },
       ],
       // TODO: evaluate if there should also be a serviceContainer.openLink.
     };
 
-    if (expressionResult && expressionResult.actorID) {
+    if (expressionResult?.actorID) {
       Object.assign(objectInspectorProps, {
         onDOMNodeMouseOver: serviceContainer.highlightDomElement,
         onDOMNodeMouseOut: serviceContainer.unHighlightDomElement,

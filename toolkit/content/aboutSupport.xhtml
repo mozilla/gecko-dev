@@ -24,6 +24,9 @@
     <link rel="localization" href="toolkit/about/aboutSupport.ftl"/>
     <link rel="localization" href="toolkit/global/resetProfile.ftl"/>
     <link rel="localization" href="toolkit/global/processTypes.ftl"/>
+#ifndef ANDROID
+    <link rel="localization" href="toolkit/featuregates/features.ftl"/>
+#endif
   </head>
 
   <body class="wide-container">
@@ -37,6 +40,10 @@
       <div id="safe-mode-box">
         <h3 data-l10n-id="safe-mode-title"/>
         <button id="restart-in-safe-mode-button" data-l10n-id="restart-in-safe-mode-label"/>
+      </div>
+      <div id="clear-startup-cache-box">
+        <h3 data-l10n-id="clear-startup-cache-title"/>
+        <button id="clear-startup-cache-button" data-l10n-id="clear-startup-cache-label"/>
       </div>
     </div>
 #endif
@@ -77,6 +84,11 @@
           <tr>
             <th class="column" data-l10n-id="app-basics-build-id"/>
             <td id="buildid-box"></td>
+          </tr>
+
+          <tr>
+            <th class="column" data-l10n-id="app-basics-distribution-id"/>
+            <td id="distributionid-box"></td>
           </tr>
 
 #ifndef ANDROID
@@ -193,7 +205,15 @@
 
             <td id="multiprocess-box">
               <span id="multiprocess-box-process-count"/>
-              <span id="multiprocess-box-status"/>
+            </td>
+          </tr>
+
+          <tr>
+            <th class="column" data-l10n-id="app-basics-fission-support"/>
+
+            <td id="fission-box">
+              <span id="fission-box-process-count"/>
+              <span id="fission-box-status"/>
             </td>
           </tr>
 
@@ -308,18 +328,19 @@
 
       <!-- - - - - - - - - - - - - - - - - - - - - -->
 
-      <h2 class="major-section" data-l10n-id="extensions-title"/>
+      <h2 class="major-section" data-l10n-id="support-addons-title"/>
 
       <table>
         <thead>
           <tr>
-            <th data-l10n-id="extensions-name"/>
-            <th data-l10n-id="extensions-version"/>
-            <th data-l10n-id="extensions-enabled"/>
-            <th data-l10n-id="extensions-id"/>
+            <th data-l10n-id="support-addons-name"/>
+            <th data-l10n-id="support-addons-type"/>
+            <th data-l10n-id="support-addons-version"/>
+            <th data-l10n-id="support-addons-enabled"/>
+            <th data-l10n-id="support-addons-id"/>
           </tr>
         </thead>
-        <tbody id="extensions-tbody">
+        <tbody id="addons-tbody">
         </tbody>
       </table>
 
@@ -469,6 +490,38 @@
 
       <!-- - - - - - - - - - - - - - - - - - - - - -->
 
+      <h2 class="major-section" data-l10n-id="environment-variables-title"/>
+
+      <table class="prefs-table">
+        <thead class="no-copy">
+          <th class="name" data-l10n-id="environment-variables-name"/>
+
+          <th class="value" data-l10n-id="environment-variables-value"/>
+        </thead>
+
+        <tbody id="environment-variables-tbody">
+        </tbody>
+      </table>
+
+
+#ifndef ANDROID
+      <!-- - - - - - - - - - - - - - - - - - - - - -->
+
+      <h2 class="major-section" data-l10n-id="experimental-features-title"/>
+
+      <table class="prefs-table">
+        <thead class="no-copy">
+          <th class="name" data-l10n-id="experimental-features-name"/>
+
+          <th class="value" data-l10n-id="experimental-features-value"/>
+        </thead>
+
+        <tbody id="experimental-features-tbody">
+        </tbody>
+      </table>
+#endif
+      <!-- - - - - - - - - - - - - - - - - - - - - -->
+
       <h2 class="major-section" data-l10n-id="modified-key-prefs-title"/>
 
       <table class="prefs-table">
@@ -520,20 +573,6 @@
         </tr>
       </table>
 #endif
-
-      <!-- - - - - - - - - - - - - - - - - - - - - -->
-      <h2 class="major-section" data-l10n-id="js-title"/>
-
-      <table>
-        <tbody>
-          <tr>
-            <th class="column" data-l10n-id="js-incremental-gc"/>
-
-            <td id="javascript-incremental-gc">
-            </td>
-          </tr>
-        </tbody>
-      </table>
 
       <!-- - - - - - - - - - - - - - - - - - - - - -->
       <h2 class="major-section" data-l10n-id="a11y-title"/>
@@ -608,6 +647,37 @@
 #endif
 #endif
 
+      <h2 class="major-section" data-l10n-id="startup-cache-title"/>
+
+      <table>
+        <tbody>
+          <tr>
+            <th class="column" data-l10n-id="startup-cache-disk-cache-path"/>
+
+            <td id="startup-cache-disk-cache-path">
+            </td>
+          </tr>
+          <tr>
+            <th class="column" data-l10n-id="startup-cache-ignore-disk-cache"/>
+
+            <td id="startup-cache-ignore-disk-cache">
+            </td>
+          </tr>
+          <tr>
+            <th class="column" data-l10n-id="startup-cache-found-disk-cache-on-init"/>
+
+            <td id="startup-cache-found-disk-cache-on-init">
+            </td>
+          </tr>
+          <tr>
+            <th class="column" data-l10n-id="startup-cache-wrote-to-disk-cache"/>
+
+            <td id="startup-cache-wrote-to-disk-cache">
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
       <h2 class="major-section" data-l10n-id="intl-title"/>
 
       <table>
@@ -673,6 +743,34 @@
             <th class="column" data-l10n-id="remote-debugging-url"/>
             <td id="remote-debugging-url"></td>
           </tr>
+        </tbody>
+      </table>
+#endif
+
+#ifndef ANDROID
+      <!-- - - - - - - - - - - - - - - - - - - - - -->
+
+      <h2 class="major-section" data-l10n-id="support-printing-title"/>
+
+      <table>
+        <tr class="no-copy">
+          <th class="column" data-l10n-id="support-printing-troubleshoot"/>
+          <td>
+            <button id="support-printing-clear-settings-button" data-l10n-id="support-printing-clear-settings-button"/>
+          </td>
+        </tr>
+      </table>
+
+      <h3 data-l10n-id="support-printing-modified-settings"/>
+
+      <table class="prefs-table">
+        <thead class="no-copy">
+          <th class="name" data-l10n-id="support-printing-prefs-name"/>
+
+          <th class="value" data-l10n-id="support-printing-prefs-value"/>
+        </thead>
+
+        <tbody id="support-printing-prefs-tbody">
         </tbody>
       </table>
 #endif

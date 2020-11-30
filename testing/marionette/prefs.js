@@ -4,11 +4,16 @@
 
 "use strict";
 
-const { Log } = ChromeUtils.import("resource://gre/modules/Log.jsm");
+const EXPORTED_SYMBOLS = ["Branch", "MarionettePrefs"];
+
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
+
+XPCOMUtils.defineLazyModuleGetters(this, {
+  Log: "resource://gre/modules/Log.jsm",
+});
 
 XPCOMUtils.defineLazyServiceGetter(
   this,
@@ -18,8 +23,6 @@ XPCOMUtils.defineLazyServiceGetter(
 );
 
 const { PREF_BOOL, PREF_INT, PREF_INVALID, PREF_STRING } = Ci.nsIPrefBranch;
-
-this.EXPORTED_SYMBOLS = ["Branch", "MarionettePrefs"];
 
 class Branch {
   /**
@@ -135,6 +138,10 @@ class MarionetteBranch extends Branch {
     return this.get("enabled", false);
   }
 
+  set enabled(isEnabled) {
+    this.set("enabled", isEnabled);
+  }
+
   /**
    * The `marionette.debugging.clicktostart` preference delays
    * server startup until a modal dialogue has been clicked to allow
@@ -198,6 +205,7 @@ class MarionetteBranch extends Branch {
         return Log.Level.Trace;
       case "info":
       default:
+        dump(`*** log: ${Log}\n\n`);
         return Log.Level.Info;
     }
   }
@@ -222,6 +230,14 @@ class MarionetteBranch extends Branch {
    */
   get recommendedPrefs() {
     return this.get("prefs.recommended", true);
+  }
+
+  /**
+   * Temporary preference to enable the usage of the JSWindowActor
+   * implementation for commands that already support Fission.
+   */
+  get useActors() {
+    return this.get("actors.enabled", false);
   }
 }
 

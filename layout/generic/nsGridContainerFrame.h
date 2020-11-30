@@ -9,6 +9,7 @@
 #ifndef nsGridContainerFrame_h___
 #define nsGridContainerFrame_h___
 
+#include "mozilla/CSSOrderAwareFrameIterator.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/HashTable.h"
 #include "nsContainerFrame.h"
@@ -26,14 +27,6 @@ nsContainerFrame* NS_NewGridContainerFrame(mozilla::PresShell* aPresShell,
 
 namespace mozilla {
 
-// Forward-declare typedefs for grid item iterator helper-class:
-template <typename Iterator>
-class CSSOrderAwareFrameIteratorT;
-typedef CSSOrderAwareFrameIteratorT<nsFrameList::iterator>
-    CSSOrderAwareFrameIterator;
-typedef CSSOrderAwareFrameIteratorT<nsFrameList::reverse_iterator>
-    ReverseCSSOrderAwareFrameIterator;
-
 /**
  * The number of implicit / explicit tracks and their sizes.
  */
@@ -45,18 +38,19 @@ struct ComputedGridTrackInfo {
       nsTArray<uint32_t>&& aStates, nsTArray<bool>&& aRemovedRepeatTracks,
       uint32_t aRepeatFirstTrack,
       nsTArray<nsTArray<StyleCustomIdent>>&& aResolvedLineNames,
-      bool aIsSubgrid)
+      bool aIsSubgrid, bool aIsMasonry)
       : mNumLeadingImplicitTracks(aNumLeadingImplicitTracks),
         mNumExplicitTracks(aNumExplicitTracks),
         mStartFragmentTrack(aStartFragmentTrack),
         mEndFragmentTrack(aEndFragmentTrack),
-        mPositions(aPositions),
-        mSizes(aSizes),
-        mStates(aStates),
-        mRemovedRepeatTracks(aRemovedRepeatTracks),
+        mPositions(std::move(aPositions)),
+        mSizes(std::move(aSizes)),
+        mStates(std::move(aStates)),
+        mRemovedRepeatTracks(std::move(aRemovedRepeatTracks)),
         mResolvedLineNames(std::move(aResolvedLineNames)),
         mRepeatFirstTrack(aRepeatFirstTrack),
-        mIsSubgrid(aIsSubgrid) {}
+        mIsSubgrid(aIsSubgrid),
+        mIsMasonry(aIsMasonry) {}
   uint32_t mNumLeadingImplicitTracks;
   uint32_t mNumExplicitTracks;
   uint32_t mStartFragmentTrack;
@@ -74,6 +68,7 @@ struct ComputedGridTrackInfo {
   nsTArray<nsTArray<StyleCustomIdent>> mResolvedLineNames;
   uint32_t mRepeatFirstTrack;
   bool mIsSubgrid;
+  bool mIsMasonry;
 };
 
 struct ComputedGridLineInfo {
@@ -82,10 +77,10 @@ struct ComputedGridLineInfo {
       const nsTArray<RefPtr<nsAtom>>& aNamesBefore,
       const nsTArray<RefPtr<nsAtom>>& aNamesAfter,
       nsTArray<RefPtr<nsAtom>>&& aNamesFollowingRepeat)
-      : mNames(aNames),
-        mNamesBefore(aNamesBefore),
-        mNamesAfter(aNamesAfter),
-        mNamesFollowingRepeat(aNamesFollowingRepeat) {}
+      : mNames(std::move(aNames)),
+        mNamesBefore(aNamesBefore.Clone()),
+        mNamesAfter(aNamesAfter.Clone()),
+        mNamesFollowingRepeat(std::move(aNamesFollowingRepeat)) {}
   nsTArray<nsTArray<RefPtr<nsAtom>>> mNames;
   nsTArray<RefPtr<nsAtom>> mNamesBefore;
   nsTArray<RefPtr<nsAtom>> mNamesAfter;
@@ -156,6 +151,7 @@ class nsGridContainerFrame final : public nsContainerFrame {
 
 #ifdef DEBUG_FRAME_DUMP
   nsresult GetFrameName(nsAString& aResult) const override;
+  void ExtraContainerFrameInfo(nsACString& aTo) const override;
 #endif
 
   // nsContainerFrame overrides
@@ -242,6 +238,14 @@ class nsGridContainerFrame final : public nsContainerFrame {
     return GetProperty(ExplicitNamedAreasProperty());
   }
 
+  using nsContainerFrame::IsMasonry;
+
+  /** Return true if this frame has masonry layout in any axis. */
+  bool IsMasonry() const {
+    return HasAnyStateBits(NS_STATE_GRID_IS_ROW_MASONRY |
+                           NS_STATE_GRID_IS_COL_MASONRY);
+  }
+
   /** Return true if this frame is subgridded in its aAxis. */
   bool IsSubgrid(LogicalAxis aAxis) const {
     return HasAnyStateBits(aAxis == mozilla::eLogicalAxisBlock
@@ -297,16 +301,18 @@ class nsGridContainerFrame final : public nsContainerFrame {
   /** Return our parent grid container; |this| MUST be a subgrid. */
   nsGridContainerFrame* ParentGridContainerForSubgrid() const;
 
+  // https://drafts.csswg.org/css-sizing/#constraints
+  enum class SizingConstraint {
+    MinContent,   // sizing under min-content constraint
+    MaxContent,   // sizing under max-content constraint
+    NoConstraint  // no constraint, used during Reflow
+  };
+
  protected:
   typedef mozilla::LogicalPoint LogicalPoint;
   typedef mozilla::LogicalRect LogicalRect;
   typedef mozilla::LogicalSize LogicalSize;
-  typedef mozilla::CSSOrderAwareFrameIterator CSSOrderAwareFrameIterator;
-  typedef mozilla::ReverseCSSOrderAwareFrameIterator
-      ReverseCSSOrderAwareFrameIterator;
   typedef mozilla::WritingMode WritingMode;
-  typedef mozilla::layout::AutoFrameListPtr AutoFrameListPtr;
-  typedef nsLayoutUtils::IntrinsicISizeType IntrinsicISizeType;
   struct Grid;
   struct GridArea;
   class LineNameMap;
@@ -342,8 +348,6 @@ class nsGridContainerFrame final : public nsContainerFrame {
       const mozilla::StyleOwnedSlice<mozilla::StyleCustomIdent>;
   void AddImplicitNamedAreas(mozilla::Span<LineNameList>);
 
-  void NormalizeChildLists();
-
   /**
    * Reflow and place our children.
    * @return the consumed size of all of this grid container's continuations
@@ -351,21 +355,14 @@ class nsGridContainerFrame final : public nsContainerFrame {
    */
   nscoord ReflowChildren(GridReflowInput& aState,
                          const LogicalRect& aContentArea,
+                         const nsSize& aContainerSize,
                          ReflowOutput& aDesiredSize, nsReflowStatus& aStatus);
 
   /**
    * Helper for GetMinISize / GetPrefISize.
    */
   nscoord IntrinsicISize(gfxContext* aRenderingContext,
-                         IntrinsicISizeType aConstraint);
-
-  // Helper for AppendFrames / InsertFrames.
-  void NoteNewChildren(ChildListID aListID, const nsFrameList& aFrameList);
-
-  // Helper to move child frames into the kOverflowList.
-  void MergeSortedOverflow(nsFrameList& aList);
-  // Helper to move child frames into the kExcessOverflowContainersList:.
-  void MergeSortedExcessOverflowContainers(nsFrameList& aList);
+                         mozilla::IntrinsicISizeType aConstraint);
 
   bool GetBBaseline(BaselineSharingGroup aBaselineGroup,
                     nscoord* aResult) const {
@@ -395,7 +392,7 @@ class nsGridContainerFrame final : public nsContainerFrame {
     eBoth = eFirst | eLast,
   };
   void CalculateBaselines(BaselineSet aBaselineSet,
-                          CSSOrderAwareFrameIterator* aIter,
+                          mozilla::CSSOrderAwareFrameIterator* aIter,
                           const nsTArray<GridItemInfo>* aGridItems,
                           const Tracks& aTracks, uint32_t aFragmentStartTrack,
                           uint32_t aFirstExcludedTrack, WritingMode aWM,
@@ -417,7 +414,7 @@ class nsGridContainerFrame final : public nsContainerFrame {
    * axis as aMajor.  Pass zero if that's not the axis we're fragmenting in.
    */
   static FindItemInGridOrderResult FindFirstItemInGridOrder(
-      CSSOrderAwareFrameIterator& aIter,
+      mozilla::CSSOrderAwareFrameIterator& aIter,
       const nsTArray<GridItemInfo>& aGridItems, LineRange GridArea::*aMajor,
       LineRange GridArea::*aMinor, uint32_t aFragmentStartTrack);
   /**
@@ -429,14 +426,10 @@ class nsGridContainerFrame final : public nsContainerFrame {
    * Pass the number of tracks if that's not the axis we're fragmenting in.
    */
   static FindItemInGridOrderResult FindLastItemInGridOrder(
-      ReverseCSSOrderAwareFrameIterator& aIter,
+      mozilla::ReverseCSSOrderAwareFrameIterator& aIter,
       const nsTArray<GridItemInfo>& aGridItems, LineRange GridArea::*aMajor,
       LineRange GridArea::*aMinor, uint32_t aFragmentStartTrack,
       uint32_t aFirstExcludedTrack);
-
-#ifdef DEBUG
-  void SanityCheckGridItemsBeforeReflow() const;
-#endif  // DEBUG
 
   /**
    * Update our NS_STATE_GRID_IS_COL/ROW_SUBGRID bits and related subgrid state
@@ -447,11 +440,12 @@ class nsGridContainerFrame final : public nsContainerFrame {
   void UpdateSubgridFrameState();
 
   /**
-   * Return the NS_STATE_GRID_IS_COL/ROW_SUBGRID bits we ought to have.
+   * Return the NS_STATE_GRID_IS_COL/ROW_SUBGRID and
+   * NS_STATE_GRID_IS_ROW/COL_MASONRY bits we ought to have.
    */
-  nsFrameState ComputeSelfSubgridBits() const;
+  nsFrameState ComputeSelfSubgridMasonryBits() const;
 
-  /** Helper for ComputeSelfSubgridBits(). */
+  /** Helper for ComputeSelfSubgridMasonryBits(). */
   bool WillHaveAtLeastOneTrackInAxis(LogicalAxis aAxis) const;
 
  private:
@@ -509,6 +503,21 @@ class nsGridContainerFrame final : public nsContainerFrame {
                          const LogicalRect& aContentArea,
                          ReflowOutput& aDesiredSize, nsReflowStatus& aStatus);
 
+  /**
+   * Places and reflows items when we have masonry layout.
+   * It handles unconstrained reflow and also fragmentation when the row axis
+   * is the masonry axis.  ReflowInFragmentainer handles the case when we're
+   * fragmenting and our row axis is a grid axis and it handles masonry layout
+   * in the column axis in that case.
+   * @return the intrinsic size in the masonry axis
+   */
+  nscoord MasonryLayout(GridReflowInput& aState,
+                        const LogicalRect& aContentArea,
+                        SizingConstraint aConstraint,
+                        ReflowOutput& aDesiredSize, nsReflowStatus& aStatus,
+                        Fragmentainer* aFragmentainer,
+                        const nsSize& aContainerSize);
+
   // Return the stored UsedTrackSizes, if any.
   UsedTrackSizes* GetUsedTrackSizes() const;
 
@@ -524,13 +533,6 @@ class nsGridContainerFrame final : public nsContainerFrame {
 
   // Our baselines, one per BaselineSharingGroup per axis.
   PerLogicalAxis<PerBaseline<nscoord>> mBaseline;
-
-#ifdef DEBUG
-  // If true, NS_STATE_GRID_DID_PUSH_ITEMS may be set even though all pushed
-  // frames may have been removed.  This is used to suppress an assertion
-  // in case RemoveFrame removed all associated child frames.
-  bool mDidPushItemsBitMayLie{false};
-#endif
 };
 
 #endif /* nsGridContainerFrame_h___ */

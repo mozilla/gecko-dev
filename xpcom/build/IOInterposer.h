@@ -8,7 +8,6 @@
 #define mozilla_IOInterposer_h
 
 #include "mozilla/Attributes.h"
-#include "mozilla/GuardObjects.h"
 #include "mozilla/TimeStamp.h"
 #include "nsString.h"
 
@@ -92,6 +91,8 @@ class IOInterposeObserver {
      * I.e. typically the platform specific function that did the IO.
      */
     const char* Reference() const { return mReference; }
+
+    virtual const char* FileType() const { return "File"; }
 
     /** Request filename associated with the I/O operation, empty if unknown */
     virtual void Filename(nsAString& aString) { aString.Truncate(); }
@@ -256,13 +257,13 @@ void EnteringNextStage();
 class IOInterposerInit {
  public:
   IOInterposerInit() {
-#if !defined(RELEASE_OR_BETA)
+#if defined(EARLY_BETA_OR_EARLIER)
     IOInterposer::Init();
 #endif
   }
 
   ~IOInterposerInit() {
-#if !defined(RELEASE_OR_BETA)
+#if defined(EARLY_BETA_OR_EARLIER)
     IOInterposer::Clear();
 #endif
   }
@@ -270,14 +271,10 @@ class IOInterposerInit {
 
 class MOZ_RAII AutoIOInterposerDisable final {
  public:
-  explicit AutoIOInterposerDisable(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM) {
-    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    IOInterposer::Disable();
-  }
+  explicit AutoIOInterposerDisable() { IOInterposer::Disable(); }
   ~AutoIOInterposerDisable() { IOInterposer::Enable(); }
 
  private:
-  MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 }  // namespace mozilla

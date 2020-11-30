@@ -10,12 +10,12 @@
 #define nsGenConList_h___
 
 #include "mozilla/LinkedList.h"
-#include "nsIFrame.h"
 #include "nsStyleStruct.h"
 #include "nsCSSPseudoElements.h"
 #include "nsTextNode.h"
 
 class nsGenConList;
+class nsIFrame;
 
 struct nsGenConNode : public mozilla::LinkedListElement<nsGenConNode> {
   using StyleContentType = mozilla::StyleContentItem::Tag;
@@ -59,7 +59,7 @@ struct nsGenConNode : public mozilla::LinkedListElement<nsGenConNode> {
     return false;
   }
 
-  virtual ~nsGenConNode() {}  // XXX Avoid, perhaps?
+  virtual ~nsGenConNode() = default;  // XXX Avoid, perhaps?
 
  protected:
   void CheckFrameAssertions() {
@@ -84,7 +84,7 @@ struct nsGenConNode : public mozilla::LinkedListElement<nsGenConNode> {
                          mozilla::PseudoStyleType::marker,
                  "not CSS generated content and not counter change");
     NS_ASSERTION(mContentIndex < 0 ||
-                     mPseudoFrame->GetStateBits() & NS_FRAME_GENERATED_CONTENT,
+                     mPseudoFrame->HasAnyStateBits(NS_FRAME_GENERATED_CONTENT),
                  "not generated content and not counter change");
   }
 };

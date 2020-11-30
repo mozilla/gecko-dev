@@ -1,11 +1,8 @@
 "use strict";
 
-// Disable extra warnings "Reference to undefined property".
-options("strict"); // eslint-disable-line
-
 /* exported createHttpServer, cleanupDir, clearCache, promiseConsoleOutput,
             promiseQuotaManagerServiceReset, promiseQuotaManagerServiceClear,
-            runWithPrefs, testEnv, withHandlingUserInput */
+            runWithPrefs, testEnv, withHandlingUserInput, resetHandlingUserInput */
 
 var { AppConstants } = ChromeUtils.import(
   "resource://gre/modules/AppConstants.jsm"
@@ -40,10 +37,13 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   Schemas: "resource://gre/modules/Schemas.jsm",
 });
 
-PromiseTestUtils.whitelistRejectionsGlobally(/Message manager disconnected/);
+PromiseTestUtils.allowMatchingRejectionsGlobally(
+  /Message manager disconnected/
+);
 
 // These values may be changed in later head files and tested in check_remote
 // below.
+Services.prefs.setBoolPref("browser.tabs.remote.autostart", false);
 Services.prefs.setBoolPref("extensions.webextensions.remote", false);
 const testEnv = {
   expectRemote: false,
@@ -225,6 +225,12 @@ function handlingUserInputFrameScript() {
       }
     },
   });
+}
+
+// If you use withHandlingUserInput then restart the addon manager,
+// you need to reset this before using withHandlingUserInput again.
+function resetHandlingUserInput() {
+  extensionHandlers = new WeakSet();
 }
 
 async function withHandlingUserInput(extension, fn) {

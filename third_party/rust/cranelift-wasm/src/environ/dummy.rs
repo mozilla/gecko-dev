@@ -6,13 +6,13 @@
 //! [Wasmtime]: https://github.com/bytecodealliance/wasmtime
 
 use crate::environ::{
-    FuncEnvironment, GlobalVariable, ModuleEnvironment, ReturnMode, TargetEnvironment, WasmResult,
+    FuncEnvironment, GlobalVariable, ModuleEnvironment, ReturnMode, TargetEnvironment,
+    WasmFuncType, WasmResult,
 };
 use crate::func_translator::FuncTranslator;
-use crate::state::ModuleTranslationState;
 use crate::translation_utils::{
-    DefinedFuncIndex, FuncIndex, Global, GlobalIndex, Memory, MemoryIndex, SignatureIndex, Table,
-    TableIndex,
+    DataIndex, DefinedFuncIndex, ElemIndex, FuncIndex, Global, GlobalIndex, Memory, MemoryIndex,
+    SignatureIndex, Table, TableIndex,
 };
 use core::convert::TryFrom;
 use cranelift_codegen::cursor::FuncCursor;
@@ -21,9 +21,11 @@ use cranelift_codegen::ir::types::*;
 use cranelift_codegen::ir::{self, InstBuilder};
 use cranelift_codegen::isa::TargetFrontendConfig;
 use cranelift_entity::{EntityRef, PrimaryMap, SecondaryMap};
+use cranelift_frontend::FunctionBuilder;
 use std::boxed::Box;
 use std::string::String;
 use std::vec::Vec;
+use wasmparser::{FuncValidator, FunctionBody, ValidatorResources, WasmFeatures};
 
 /// Compute a `ir::ExternalName` for a given wasm function index.
 fn get_func_name(func_index: FuncIndex) -> ir::ExternalName {
@@ -128,6 +130,9 @@ pub struct DummyEnvironment {
     /// Instructs to collect debug data during translation.
     debug_info: bool,
 
+    /// Name of the module from the wasm file.
+    pub module_name: Option<String>,
+
     /// Function names.
     function_names: SecondaryMap<FuncIndex, String>,
 }
@@ -141,6 +146,7 @@ impl DummyEnvironment {
             func_bytecode_sizes: Vec::new(),
             return_mode,
             debug_info,
+            module_name: None,
             function_names: SecondaryMap::new(),
         }
     }
@@ -191,6 +197,14 @@ impl<'dummy_environment> DummyFuncEnvironment<'dummy_environment> {
             ir::ArgumentPurpose::VMContext,
         ));
         sig
+    }
+
+    fn reference_type(&self) -> ir::Type {
+        match self.pointer_type() {
+            ir::types::I32 => ir::types::R32,
+            ir::types::I64 => ir::types::R64,
+            _ => panic!("unsupported pointer type"),
+        }
     }
 }
 
@@ -429,7 +443,8 @@ impl<'dummy_environment> FuncEnvironment for DummyFuncEnvironment<'dummy_environ
     fn translate_table_grow(
         &mut self,
         mut pos: FuncCursor,
-        _table_index: u32,
+        _table_index: TableIndex,
+        _table: ir::Table,
         _delta: ir::Value,
         _init_value: ir::Value,
     ) -> WasmResult<ir::Value> {
@@ -438,17 +453,19 @@ impl<'dummy_environment> FuncEnvironment for DummyFuncEnvironment<'dummy_environ
 
     fn translate_table_get(
         &mut self,
-        mut pos: FuncCursor,
-        _table_index: u32,
+        builder: &mut FunctionBuilder,
+        _table_index: TableIndex,
+        _table: ir::Table,
         _index: ir::Value,
     ) -> WasmResult<ir::Value> {
-        Ok(pos.ins().null(self.reference_type()))
+        Ok(builder.ins().null(self.reference_type()))
     }
 
     fn translate_table_set(
         &mut self,
-        _pos: FuncCursor,
-        _table_index: u32,
+        _builder: &mut FunctionBuilder,
+        _table_index: TableIndex,
+        _table: ir::Table,
         _value: ir::Value,
         _index: ir::Value,
     ) -> WasmResult<()> {
@@ -472,7 +489,7 @@ impl<'dummy_environment> FuncEnvironment for DummyFuncEnvironment<'dummy_environ
     fn translate_table_fill(
         &mut self,
         _pos: FuncCursor,
-        _table_index: u32,
+        _table_index: TableIndex,
         _dst: ir::Value,
         _val: ir::Value,
         _len: ir::Value,
@@ -500,7 +517,7 @@ impl<'dummy_environment> FuncEnvironment for DummyFuncEnvironment<'dummy_environ
     fn translate_ref_func(
         &mut self,
         mut pos: FuncCursor,
-        _func_index: u32,
+        _func_index: FuncIndex,
     ) -> WasmResult<ir::Value> {
         Ok(pos.ins().null(self.reference_type()))
     }
@@ -521,6 +538,29 @@ impl<'dummy_environment> FuncEnvironment for DummyFuncEnvironment<'dummy_environ
     ) -> WasmResult<()> {
         Ok(())
     }
+
+    fn translate_atomic_wait(
+        &mut self,
+        mut pos: FuncCursor,
+        _index: MemoryIndex,
+        _heap: ir::Heap,
+        _addr: ir::Value,
+        _expected: ir::Value,
+        _timeout: ir::Value,
+    ) -> WasmResult<ir::Value> {
+        Ok(pos.ins().iconst(I32, -1))
+    }
+
+    fn translate_atomic_notify(
+        &mut self,
+        mut pos: FuncCursor,
+        _index: MemoryIndex,
+        _heap: ir::Heap,
+        _addr: ir::Value,
+        _count: ir::Value,
+    ) -> WasmResult<ir::Value> {
+        Ok(pos.ins().iconst(I32, 0))
+    }
 }
 
 impl TargetEnvironment for DummyEnvironment {
@@ -530,7 +570,7 @@ impl TargetEnvironment for DummyEnvironment {
 }
 
 impl<'data> ModuleEnvironment<'data> for DummyEnvironment {
-    fn declare_signature(&mut self, sig: ir::Signature) -> WasmResult<()> {
+    fn declare_signature(&mut self, _wasm: WasmFuncType, sig: ir::Signature) -> WasmResult<()> {
         self.info.signatures.push(sig);
         Ok(())
     }
@@ -602,6 +642,22 @@ impl<'data> ModuleEnvironment<'data> for DummyEnvironment {
         _elements: Box<[FuncIndex]>,
     ) -> WasmResult<()> {
         // We do nothing
+        Ok(())
+    }
+
+    fn declare_passive_element(
+        &mut self,
+        _elem_index: ElemIndex,
+        _segments: Box<[FuncIndex]>,
+    ) -> WasmResult<()> {
+        Ok(())
+    }
+
+    fn declare_passive_data(
+        &mut self,
+        _elem_index: DataIndex,
+        _segments: &'data [u8],
+    ) -> WasmResult<()> {
         Ok(())
     }
 
@@ -682,10 +738,11 @@ impl<'data> ModuleEnvironment<'data> for DummyEnvironment {
 
     fn define_function_body(
         &mut self,
-        module_translation_state: &ModuleTranslationState,
-        body_bytes: &'data [u8],
-        body_offset: usize,
+        mut validator: FuncValidator<ValidatorResources>,
+        body: FunctionBody<'data>,
     ) -> WasmResult<()> {
+        self.func_bytecode_sizes
+            .push(body.get_binary_reader().bytes_remaining());
         let func = {
             let mut func_environ = DummyFuncEnvironment::new(&self.info, self.return_mode);
             let func_index =
@@ -696,22 +753,29 @@ impl<'data> ModuleEnvironment<'data> for DummyEnvironment {
             if self.debug_info {
                 func.collect_debug_info();
             }
-            self.trans.translate(
-                module_translation_state,
-                body_bytes,
-                body_offset,
-                &mut func,
-                &mut func_environ,
-            )?;
+            self.trans
+                .translate_body(&mut validator, body, &mut func, &mut func_environ)?;
             func
         };
-        self.func_bytecode_sizes.push(body_bytes.len());
         self.info.function_bodies.push(func);
         Ok(())
     }
 
-    fn declare_func_name(&mut self, func_index: FuncIndex, name: &'data str) -> WasmResult<()> {
+    fn declare_module_name(&mut self, name: &'data str) {
+        self.module_name = Some(String::from(name));
+    }
+
+    fn declare_func_name(&mut self, func_index: FuncIndex, name: &'data str) {
         self.function_names[func_index] = String::from(name);
-        Ok(())
+    }
+
+    fn wasm_features(&self) -> WasmFeatures {
+        WasmFeatures {
+            multi_value: true,
+            simd: true,
+            reference_types: true,
+            bulk_memory: true,
+            ..WasmFeatures::default()
+        }
     }
 }

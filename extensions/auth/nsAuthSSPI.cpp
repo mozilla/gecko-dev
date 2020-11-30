@@ -120,11 +120,15 @@ nsresult nsAuthSSPI::MakeSN(const char* principal, nsCString& result) {
                                   nsIDNSService::RESOLVE_CANONICAL_NAME, attrs,
                                   getter_AddRefs(record));
   if (NS_FAILED(rv)) return rv;
+  nsCOMPtr<nsIDNSAddrRecord> rec = do_QueryInterface(record);
+  if (!rec) {
+    return NS_ERROR_UNEXPECTED;
+  }
 
   nsAutoCString cname;
-  rv = record->GetCanonicalName(cname);
+  rv = rec->GetCanonicalName(cname);
   if (NS_SUCCEEDED(rv)) {
-    result = StringHead(buf, index) + NS_LITERAL_CSTRING("/") + cname;
+    result = StringHead(buf, index) + "/"_ns + cname;
     LOG(("Using SPN of [%s]\n", result.get()));
   }
   return rv;

@@ -169,6 +169,12 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin,
             "help": "Repeat the tests the given number of times. Supported "
                     "by mochitest, reftest, crashtest, ignored otherwise."}
          ],
+        [["--enable-xorigin-tests"], {
+            "action": "store_true",
+            "dest": "enable_xorigin_tests",
+            "default": False,
+            "help": "Run tests in a cross origin iframe."}
+         ],
     ] + copy.deepcopy(testing_config_options) + \
         copy.deepcopy(code_coverage_config_options)
 
@@ -381,11 +387,9 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin,
             abs_app_dir = self.query_abs_app_dir()
             abs_res_dir = self.query_abs_res_dir()
 
-            raw_log_file = os.path.join(dirs['abs_blob_upload_dir'],
-                                        '%s_raw.log' % suite)
+            raw_log_file, error_summary_file = self.get_indexed_logs(
+                dirs['abs_blob_upload_dir'], suite)
 
-            error_summary_file = os.path.join(dirs['abs_blob_upload_dir'],
-                                              '%s_errorsummary.log' % suite)
             str_format_values = {
                 'binary_path': self.binary_path,
                 'symbols_path': self._query_symbols_url(),
@@ -436,6 +440,9 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin,
             if c['enable_webrender']:
                 base_cmd.append('--enable-webrender')
 
+            if c['enable_xorigin_tests']:
+                base_cmd.append('--enable-xorigin-tests')
+
             if c['extra_prefs']:
                 base_cmd.extend(['--setpref={}'.format(p) for p in c['extra_prefs']])
 
@@ -481,32 +488,31 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin,
                        " '--binary-path' flag")
 
     def _query_specified_suites(self, category):
-        # logic goes: if at least one '--{category}-suite' was given,
-        # then run only that(those) given suite(s). Elif no suites were
-        # specified and the --run-all-suites flag was given,
-        # run all {category} suites. Anything else, run no suites.
+        """Checks if the provided suite does indeed exist.
+
+        If at least one suite was given and if it does exist, return the suite
+        as legitimate and line it up for execution.
+
+        Otherwise, do not run any suites and return a fatal error.
+        """
         c = self.config
-        all_suites = c.get('all_%s_suites' % (category))
-        specified_suites = c.get('specified_%s_suites' % (category))  # list
-        suites = None
+        all_suites = c.get('all_{}_suites'.format(category), None)
+        specified_suites = c.get('specified_{}_suites'.format(category), None)
 
-        if specified_suites:
-            if 'all' in specified_suites:
-                # useful if you want a quick way of saying run all suites
-                # of a specific category.
-                suites = all_suites
-            else:
-                # suites gets a dict of everything from all_suites where a key
-                # is also in specified_suites
-                suites = dict((key, all_suites.get(key)) for key in
-                              specified_suites if key in all_suites.keys())
-        else:
-            if c.get('run_all_suites'):  # needed if you dont specify any suites
-                suites = all_suites
-            else:
-                suites = self.query_per_test_category_suites(category, all_suites)
+        # Bug 1603842 - disallow selection of more than 1 suite at at time
+        if specified_suites is None:
+            # Path taken by test-verify
+            return self.query_per_test_category_suites(category, all_suites)
+        if specified_suites and len(specified_suites) > 1:
+            self.fatal("""Selection of multiple suites is not permitted. \
+                       Please select at most 1 test suite.""")
+            return
 
-        return suites
+        # Normal path taken by most test suites as only one suite is specified
+        suite = specified_suites[0]
+        if suite not in all_suites:
+            self.fatal("""Selected suite does not exist!""")
+        return {suite: all_suites[suite]}
 
     def _query_try_flavor(self, category, suite):
         flavors = {
@@ -623,7 +629,7 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin,
             if suites and stage:
                 stage(suites)
 
-    def _stage_files(self, bin_name=None):
+    def _stage_files(self, bin_name=None, fail_if_not_exists=True):
         dirs = self.query_abs_dirs()
         abs_app_dir = self.query_abs_app_dir()
 
@@ -635,11 +641,12 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin,
         abs_res_extensions_dir = os.path.join(abs_res_dir, 'extensions')
 
         if bin_name:
-            self.info('copying %s to %s' % (os.path.join(dirs['abs_test_bin_dir'],
-                      bin_name), os.path.join(abs_app_dir, bin_name)))
-            shutil.copy2(os.path.join(dirs['abs_test_bin_dir'], bin_name),
-                         os.path.join(abs_app_dir, bin_name))
-
+            src = os.path.join(dirs['abs_test_bin_dir'], bin_name)
+            if os.path.exists(src):
+                self.info('copying %s to %s' % (src, os.path.join(abs_app_dir, bin_name)))
+                shutil.copy2(src, os.path.join(abs_app_dir, bin_name))
+            elif fail_if_not_exists:
+                raise OSError('File %s not found' % src)
         self.copytree(dirs['abs_test_bin_components_dir'],
                       abs_res_components_dir,
                       overwrite='overwrite_if_exists')
@@ -655,6 +662,12 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin,
 
     def _stage_xpcshell(self, suites):
         self._stage_files(self.config['xpcshell_name'])
+        # http3server isn't built for Windows tests or Linux asan/tsan
+        # builds. Only stage if the `http3server_name` config is set and if
+        # the file actually exists.
+        if self.config.get('http3server_name'):
+            self._stage_files(self.config['http3server_name'],
+                              fail_if_not_exists=False)
 
     def _stage_cppunittest(self, suites):
         abs_res_dir = self.query_abs_res_dir()
@@ -818,8 +831,6 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin,
                 if executed_too_many_tests and not self.per_test_coverage:
                     return False
 
-                abs_base_cmd = self._query_abs_base_cmd(suite_category, suite)
-                cmd = abs_base_cmd[:]
                 replace_dict = {
                     'abs_app_dir': abs_app_dir,
 
@@ -846,13 +857,6 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin,
 
                 flavor = self._query_try_flavor(suite_category, suite)
                 try_options, try_tests = self.try_args(flavor)
-
-                cmd.extend(self.query_options(options_list,
-                                              try_options,
-                                              str_format_values=replace_dict))
-                cmd.extend(self.query_tests_args(tests_list,
-                                                 try_tests,
-                                                 str_format_values=replace_dict))
 
                 suite_name = suite_category + '-' + suite
                 tbpl_status, log_level = None, None
@@ -918,6 +922,15 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin,
                             executed_too_many_tests = True
 
                         executed_tests = executed_tests + 1
+
+                    abs_base_cmd = self._query_abs_base_cmd(suite_category, suite)
+                    cmd = abs_base_cmd[:]
+                    cmd.extend(self.query_options(options_list,
+                                                  try_options,
+                                                  str_format_values=replace_dict))
+                    cmd.extend(self.query_tests_args(tests_list,
+                                                     try_tests,
+                                                     str_format_values=replace_dict))
 
                     final_cmd = copy.copy(cmd)
                     final_cmd.extend(per_test_args)

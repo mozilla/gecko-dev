@@ -37,7 +37,7 @@ class MozbuildFileCommands(MachCommandBase):
     def reference(self, symbol, name_only=False):
         # mozbuild.sphinx imports some Sphinx modules, so we need to be sure
         # the optional Sphinx package is installed.
-        self._activate_virtualenv()
+        self.activate_virtualenv()
         self.virtualenv_manager.install_pip_package('Sphinx==1.1.3')
 
         from mozbuild.sphinx import (
@@ -128,16 +128,15 @@ class MozbuildFileCommands(MachCommandBase):
             json.dump(data, sys.stdout, sort_keys=True, indent=2)
             return
         elif fmt == 'plain':
-            data = sorted(components.items(),
-                          key=lambda x: (x is None, x))
-            for component, files in data:
-                if component:
-                    s = '%s :: %s' % (component.product, component.component)
-                else:
-                    s = 'UNKNOWN'
-
-                print(s)
-                for f in sorted(files):
+            comp_to_file = sorted(
+                ('UNKNOWN' if component is None
+                 else '%s :: %s' % (component.product, component.component),
+                 sorted(files))
+                for component, files in components.items()
+            )
+            for component, files in comp_to_file:
+                print(component)
+                for f in files:
                     print('  %s' % f)
         else:
             print('unhandled output format: %s' % fmt)
@@ -228,18 +227,18 @@ class MozbuildFileCommands(MachCommandBase):
 
         components_json = os.path.join(out_dir, 'components.json')
         print('Writing %s' % components_json)
-        with open(components_json, 'wb') as fh:
+        with open(components_json, 'w') as fh:
             json.dump(component_by_path, fh, sort_keys=True, indent=2)
 
         missing_json = os.path.join(out_dir, 'missing.json')
         print('Writing %s' % missing_json)
-        with open(missing_json, 'wb') as fh:
+        with open(missing_json, 'w') as fh:
             json.dump({'missing': sorted(missing_component)}, fh, indent=2)
 
         indexed_components_json = os.path.join(out_dir,
                                                'components-normalized.json')
         print('Writing %s' % indexed_components_json)
-        with open(indexed_components_json, 'wb') as fh:
+        with open(indexed_components_json, 'w') as fh:
             # Don't indent so file is as small as possible.
             json.dump(normalized_component, fh, sort_keys=True)
 
@@ -256,33 +255,6 @@ class MozbuildFileCommands(MachCommandBase):
 
         # Causes CI task to fail if files are missing Bugzilla annotation.
         if missing_component:
-            return 1
-
-    @SubCommand('file-info', 'dep-tests',
-                'Show test files marked as dependencies of these source files.')
-    @CommandArgument('-r', '--rev',
-                     help='Version control revision to look up info from')
-    @CommandArgument('paths', nargs='+',
-                     help='Paths whose data to query')
-    def file_info_test_deps(self, paths, rev=None):
-        try:
-            for p, m in self._get_files_info(paths, rev=rev).items():
-                print('%s:' % mozpath.relpath(p, self.topsrcdir))
-                if m.test_files:
-                    print('\tTest file patterns:')
-                    for p in m.test_files:
-                        print('\t\t%s' % p)
-                if m.test_tags:
-                    print('\tRelevant tags:')
-                    for p in m.test_tags:
-                        print('\t\t%s' % p)
-                if m.test_flavors:
-                    print('\tRelevant flavors:')
-                    for p in m.test_flavors:
-                        print('\t\t%s' % p)
-
-        except InvalidPathException as e:
-            print(e.message)
             return 1
 
     def _get_files_info(self, paths, rev=None):

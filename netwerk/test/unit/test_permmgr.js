@@ -1,5 +1,7 @@
 // tests nsIPermissionManager
 
+"use strict";
+
 var hosts = [
   // format: [host, type, permission]
   ["http://mozilla.org", "cookie", 1],
@@ -108,7 +110,7 @@ function run_test() {
   pm.addFromPrincipal(principal, "utf8", 1);
   Assert.notEqual(Services.perms.all.length, 0);
   var ace = Services.perms.all[0];
-  Assert.equal(ace.principal.URI.asciiHost, aceref);
+  Assert.equal(ace.principal.asciiHost, aceref);
   Assert.equal(Services.perms.all.length > 1, false);
 
   // test removeAll()

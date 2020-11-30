@@ -72,11 +72,16 @@ Result<Ok, nsresult> AnnexB::ConvertSampleToAnnexB(
     // will fail.
     if (aSample->mCrypto.IsEncrypted()) {
       if (aSample->mCrypto.mPlainSizes.Length() == 0) {
-        samplewriter->mCrypto.mPlainSizes.AppendElement(annexB->Length());
+        CheckedUint32 plainSize{annexB->Length()};
+        CheckedUint32 encryptedSize{samplewriter->Size()};
+        encryptedSize -= annexB->Length();
+        samplewriter->mCrypto.mPlainSizes.AppendElement(plainSize.value());
         samplewriter->mCrypto.mEncryptedSizes.AppendElement(
-            samplewriter->Size() - annexB->Length());
+            encryptedSize.value());
       } else {
-        samplewriter->mCrypto.mPlainSizes[0] += annexB->Length();
+        CheckedUint32 newSize{samplewriter->mCrypto.mPlainSizes[0]};
+        newSize += annexB->Length();
+        samplewriter->mCrypto.mPlainSizes[0] = newSize.value();
       }
     }
   }
@@ -293,9 +298,9 @@ bool AnnexB::ConvertSampleToAVCC(mozilla::MediaRawData* aSample,
       0xe0 /* num SPS (0) */,
       0 /* num PPS (0) */
   };
-  if (!extradata->AppendElements(kFakeExtraData, ArrayLength(kFakeExtraData))) {
-    return false;
-  }
+  // XXX(Bug 1631371) Check if this should use a fallible operation as it
+  // pretended earlier.
+  extradata->AppendElements(kFakeExtraData, ArrayLength(kFakeExtraData));
   aSample->mExtraData = std::move(extradata);
   return true;
 }

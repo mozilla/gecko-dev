@@ -70,84 +70,6 @@ MOZ_END_EXTERN_C
 #  include <android/log.h>
 #endif
 
-/*
- * MOZ_STATIC_ASSERT may be used to assert a condition *at compile time* in C.
- * In C++11, static_assert is provided by the compiler to the same effect.
- * This can be useful when you make certain assumptions about what must hold for
- * optimal, or even correct, behavior.  For example, you might assert that the
- * size of a struct is a multiple of the target architecture's word size:
- *
- *   struct S { ... };
- *   // C
- *   MOZ_STATIC_ASSERT(sizeof(S) % sizeof(size_t) == 0,
- *                     "S should be a multiple of word size for efficiency");
- *   // C++11
- *   static_assert(sizeof(S) % sizeof(size_t) == 0,
- *                 "S should be a multiple of word size for efficiency");
- *
- * This macro can be used in any location where both an extern declaration and a
- * typedef could be used.
- */
-#ifndef __cplusplus
-/*
- * Some of the definitions below create an otherwise-unused typedef.  This
- * triggers compiler warnings with some versions of gcc, so mark the typedefs
- * as permissibly-unused to disable the warnings.
- */
-#  if defined(__GNUC__)
-#    define MOZ_STATIC_ASSERT_UNUSED_ATTRIBUTE __attribute__((unused))
-#  else
-#    define MOZ_STATIC_ASSERT_UNUSED_ATTRIBUTE /* nothing */
-#  endif
-#  define MOZ_STATIC_ASSERT_GLUE1(x, y) x##y
-#  define MOZ_STATIC_ASSERT_GLUE(x, y) MOZ_STATIC_ASSERT_GLUE1(x, y)
-#  if defined(__SUNPRO_CC)
-/*
- * The Sun Studio C++ compiler is buggy when declaring, inside a function,
- * another extern'd function with an array argument whose length contains a
- * sizeof, triggering the error message "sizeof expression not accepted as
- * size of array parameter".  This bug (6688515, not public yet) would hit
- * defining moz_static_assert as a function, so we always define an extern
- * array for Sun Studio.
- *
- * We include the line number in the symbol name in a best-effort attempt
- * to avoid conflicts (see below).
- */
-#    define MOZ_STATIC_ASSERT(cond, reason)                 \
-      extern char MOZ_STATIC_ASSERT_GLUE(moz_static_assert, \
-                                         __LINE__)[(cond) ? 1 : -1]
-#  elif defined(__COUNTER__)
-/*
- * If there was no preferred alternative, use a compiler-agnostic version.
- *
- * Note that the non-__COUNTER__ version has a bug in C++: it can't be used
- * in both |extern "C"| and normal C++ in the same translation unit.  (Alas
- * |extern "C"| isn't allowed in a function.)  The only affected compiler
- * we really care about is gcc 4.2.  For that compiler and others like it,
- * we include the line number in the function name to do the best we can to
- * avoid conflicts.  These should be rare: a conflict would require use of
- * MOZ_STATIC_ASSERT on the same line in separate files in the same
- * translation unit, *and* the uses would have to be in code with
- * different linkage, *and* the first observed use must be in C++-linkage
- * code.
- */
-#    define MOZ_STATIC_ASSERT(cond, reason) \
-      typedef int MOZ_STATIC_ASSERT_GLUE(   \
-          moz_static_assert,                \
-          __COUNTER__)[(cond) ? 1 : -1] MOZ_STATIC_ASSERT_UNUSED_ATTRIBUTE
-#  else
-#    define MOZ_STATIC_ASSERT(cond, reason)                            \
-      extern void MOZ_STATIC_ASSERT_GLUE(moz_static_assert, __LINE__)( \
-          int arg[(cond) ? 1 : -1]) MOZ_STATIC_ASSERT_UNUSED_ATTRIBUTE
-#  endif
-
-#  define MOZ_STATIC_ASSERT_IF(cond, expr, reason) \
-    MOZ_STATIC_ASSERT(!(cond) || (expr), reason)
-#else
-#  define MOZ_STATIC_ASSERT_IF(cond, expr, reason) \
-    static_assert(!(cond) || (expr), reason)
-#endif
-
 MOZ_BEGIN_EXTERN_C
 
 /*
@@ -415,20 +337,20 @@ MOZ_END_EXTERN_C
  */
 
 #ifdef __cplusplus
-#  include "mozilla/TypeTraits.h"
+#  include <type_traits>
 namespace mozilla {
 namespace detail {
 
 template <typename T>
 struct AssertionConditionType {
-  typedef typename RemoveReference<T>::Type ValueT;
-  static_assert(!IsArray<ValueT>::value,
+  using ValueT = std::remove_reference_t<T>;
+  static_assert(!std::is_array_v<ValueT>,
                 "Expected boolean assertion condition, got an array or a "
                 "string!");
-  static_assert(!IsFunction<ValueT>::value,
+  static_assert(!std::is_function_v<ValueT>,
                 "Expected boolean assertion condition, got a function! Did "
                 "you intend to call that function?");
-  static_assert(!IsFloatingPoint<ValueT>::value,
+  static_assert(!std::is_floating_point_v<ValueT>,
                 "It's often a bad idea to assert that a floating-point number "
                 "is nonzero, because such assertions tend to intermittently "
                 "fail. Shouldn't your code gracefully handle this case instead "
@@ -664,81 +586,23 @@ struct AssertionConditionType {
 #endif
 
 /*
- * MOZ_ALWAYS_TRUE(expr) and MOZ_ALWAYS_FALSE(expr) always evaluate the provided
- * expression, in debug builds and in release builds both.  Then, in debug
- * builds only, the value of the expression is asserted either true or false
- * using MOZ_ASSERT.
+ * MOZ_ALWAYS_TRUE(expr) and friends always evaluate the provided expression,
+ * in debug builds and in release builds both.  Then, in debug builds and
+ * Nightly and DevEdition release builds, the value of the expression is
+ * asserted either true or false using MOZ_DIAGNOSTIC_ASSERT.
  */
-#ifdef DEBUG
-#  define MOZ_ALWAYS_TRUE(expr)   \
-    do {                          \
-      if ((expr)) {               \
-        /* Do nothing. */         \
-      } else {                    \
-        MOZ_ASSERT(false, #expr); \
-      }                           \
-    } while (false)
-#  define MOZ_ALWAYS_FALSE(expr)  \
-    do {                          \
-      if ((expr)) {               \
-        MOZ_ASSERT(false, #expr); \
-      } else {                    \
-        /* Do nothing. */         \
-      }                           \
-    } while (false)
-#  define MOZ_ALWAYS_OK(expr) MOZ_ASSERT((expr).isOk())
-#  define MOZ_ALWAYS_ERR(expr) MOZ_ASSERT((expr).isErr())
-#else
-#  define MOZ_ALWAYS_TRUE(expr)     \
-    do {                            \
-      if ((expr)) {                 \
-        /* Silence MOZ_MUST_USE. */ \
-      }                             \
-    } while (false)
-#  define MOZ_ALWAYS_FALSE(expr)    \
-    do {                            \
-      if ((expr)) {                 \
-        /* Silence MOZ_MUST_USE. */ \
-      }                             \
-    } while (false)
-#  define MOZ_ALWAYS_OK(expr)       \
-    do {                            \
-      if ((expr).isOk()) {          \
-        /* Silence MOZ_MUST_USE. */ \
-      }                             \
-    } while (false)
-#  define MOZ_ALWAYS_ERR(expr)      \
-    do {                            \
-      if ((expr).isErr()) {         \
-        /* Silence MOZ_MUST_USE. */ \
-      }                             \
-    } while (false)
-#endif
+#define MOZ_ALWAYS_TRUE(expr)              \
+  do {                                     \
+    if (MOZ_LIKELY(expr)) {                \
+      /* Silence MOZ_MUST_USE. */          \
+    } else {                               \
+      MOZ_DIAGNOSTIC_ASSERT(false, #expr); \
+    }                                      \
+  } while (false)
 
-/*
- * MOZ_DIAGNOSTIC_ALWAYS_TRUE is like MOZ_ALWAYS_TRUE, but using
- * MOZ_DIAGNOSTIC_ASSERT as the underlying assert.
- *
- * See the block comment for MOZ_DIAGNOSTIC_ASSERT above for more details on how
- * diagnostic assertions work and how to use them.
- */
-#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-#  define MOZ_DIAGNOSTIC_ALWAYS_TRUE(expr)   \
-    do {                                     \
-      if ((expr)) {                          \
-        /* Do nothing. */                    \
-      } else {                               \
-        MOZ_DIAGNOSTIC_ASSERT(false, #expr); \
-      }                                      \
-    } while (false)
-#else
-#  define MOZ_DIAGNOSTIC_ALWAYS_TRUE(expr) \
-    do {                                   \
-      if ((expr)) {                        \
-        /* Silence MOZ_MUST_USE. */        \
-      }                                    \
-    } while (false)
-#endif
+#define MOZ_ALWAYS_FALSE(expr) MOZ_ALWAYS_TRUE(!(expr))
+#define MOZ_ALWAYS_OK(expr) MOZ_ALWAYS_TRUE((expr).isOk())
+#define MOZ_ALWAYS_ERR(expr) MOZ_ALWAYS_TRUE((expr).isErr())
 
 #undef MOZ_DUMP_ASSERTION_STACK
 #undef MOZ_CRASH_CRASHREPORT

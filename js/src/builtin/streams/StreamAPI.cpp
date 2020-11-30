@@ -11,9 +11,9 @@
 
 #include <stdint.h>  // uint32_t, uintptr_t
 
-#include "jsapi.h"        // js::AssertHeapIsIdle, JS_ReportErrorNumberASCII
-#include "jsfriendapi.h"  // JS_GetArrayBufferViewData, js::IsObjectInContextCompartment, js::GetErrorMessage, JSMSG_*
-#include "jstypes.h"      // JS_{FRIEND,PUBLIC}_API
+#include "jsapi.h"  // js::AssertHeapIsIdle, JS_ReportErrorNumberASCII
+#include "jsfriendapi.h"  // js::GetErrorMessage, js::IsObjectInContextCompartment, JSMSG_*
+#include "jstypes.h"  // JS_{FRIEND,PUBLIC}_API
 
 #include "builtin/Stream.h"  // js::ReadableByteStreamController{,Close}, js::ReadableStreamDefaultController{,Close}, js::StreamController
 #include "builtin/streams/ReadableStream.h"  // js::ReadableStream
@@ -24,14 +24,17 @@
 #include "builtin/streams/ReadableStreamReader.h"  // js::ReadableStream{,Default}Reader, js::ForAuthorCodeBool
 #include "builtin/streams/StreamController.h"  // js::StreamController
 #include "gc/Zone.h"                           // JS::Zone
+#include "js/experimental/TypedData.h"  // JS_GetArrayBufferViewData, JS_NewUint8Array
 #include "js/GCAPI.h"       // JS::AutoCheckCannotGC, JS::AutoSuppressGCAnalysis
+#include "js/Object.h"      // JS::SetPrivate
 #include "js/RootingAPI.h"  // JS::{,Mutable}Handle, JS::Rooted
 #include "js/Stream.h"      // JS::ReadableStreamUnderlyingSource
 #include "js/Value.h"       // JS::{,Object,Undefined}Value
 #include "vm/ArrayBufferViewObject.h"  // js::ArrayBufferViewObject
 #include "vm/JSContext.h"              // JSContext, CHECK_THREAD
 #include "vm/JSObject.h"               // JSObject
-#include "vm/NativeObject.h"           // js::PlainObject
+#include "vm/PlainObject.h"            // js::PlainObject
+#include "vm/PromiseObject.h"          // js::PromiseObject
 
 #include "builtin/streams/ReadableStreamReader-inl.h"  // js::UnwrapStreamFromReader
 #include "vm/Compartment-inl.h"  // JS::Compartment::wrap, js::UnwrapAndDowncastObject
@@ -220,7 +223,8 @@ JS_PUBLIC_API JSObject* JS::ReadableStreamGetReader(
     return nullptr;
   }
 
-  JSObject* result = CreateReadableStreamDefaultReader(cx, unwrappedStream);
+  JSObject* result = CreateReadableStreamDefaultReader(cx, unwrappedStream,
+                                                       ForAuthorCodeBool::No);
   MOZ_ASSERT_IF(result, IsObjectInContextCompartment(result, cx));
   return result;
 }
@@ -395,7 +399,7 @@ JS_PUBLIC_API bool JS::ReadableStreamUpdateDataAvailableFromSource(
 
 JS_PUBLIC_API void JS::ReadableStreamReleaseCCObject(JSObject* streamObj) {
   MOZ_ASSERT(JS::IsReadableStream(streamObj));
-  JS_SetPrivate(streamObj, nullptr);
+  JS::SetPrivate(streamObj, nullptr);
 }
 
 JS_PUBLIC_API bool JS::ReadableStreamTee(JSContext* cx,
@@ -599,4 +603,10 @@ JS_PUBLIC_API JSObject* JS::ReadableStreamDefaultReaderRead(
              "C++ code should not touch readers created by scripts");
 
   return js::ReadableStreamDefaultReaderRead(cx, unwrappedReader);
+}
+
+void JS::InitAbortSignalHandling(const JSClass* clasp,
+                                 AbortSignalIsAborted isAborted,
+                                 JSContext* cx) {
+  cx->runtime()->initAbortSignalHandling(clasp, isAborted);
 }

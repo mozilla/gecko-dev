@@ -24,7 +24,6 @@
 #include "mozilla/CheckedInt.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Likely.h"
-#include "mozilla/Pair.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPrefs_image.h"
@@ -277,7 +276,7 @@ class ImageSurfaceCache {
     return bytes;
   }
 
-  MOZ_MUST_USE bool Insert(NotNull<CachedSurface*> aSurface) {
+  [[nodiscard]] bool Insert(NotNull<CachedSurface*> aSurface) {
     MOZ_ASSERT(!mLocked || aSurface->IsPlaceholder() || aSurface->IsLocked(),
                "Inserting an unlocked surface for a locked image");
     return mSurfaces.Put(aSurface->GetSurfaceKey(),
@@ -568,6 +567,10 @@ class ImageSurfaceCache {
       // may have a default size of 0x0, and those are not yet supported.
       MOZ_ASSERT_UNREACHABLE("Expected valid native size!");
       return aSize;
+    }
+    if (image->GetOrientation().SwapsWidthAndHeight() &&
+        image->HandledOrientation()) {
+      std::swap(factorSize.width, factorSize.height);
     }
 
     if (mIsVectorImage) {
@@ -1327,6 +1330,32 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
     MaybeRemoveEmptyCache(aImageKey, cache);
   }
 
+  void ReleaseImageOnMainThread(already_AddRefed<image::Image>&& aImage,
+                                const StaticMutexAutoLock& aAutoLock) {
+    RefPtr<image::Image> image = aImage;
+    if (!image) {
+      return;
+    }
+
+    bool needsDispatch = mReleasingImagesOnMainThread.IsEmpty();
+    mReleasingImagesOnMainThread.AppendElement(image);
+
+    if (!needsDispatch) {
+      // There is already a ongoing task for ClearReleasingImages().
+      return;
+    }
+
+    NS_DispatchToMainThread(NS_NewRunnableFunction(
+        "SurfaceCacheImpl::ReleaseImageOnMainThread",
+        []() -> void { SurfaceCache::ClearReleasingImages(); }));
+  }
+
+  void TakeReleasingImages(nsTArray<RefPtr<image::Image>>& aImage,
+                           const StaticMutexAutoLock& aAutoLock) {
+    MOZ_ASSERT(NS_IsMainThread());
+    aImage.SwapElements(mReleasingImagesOnMainThread);
+  }
+
  private:
   already_AddRefed<ImageSurfaceCache> GetImageCache(const ImageKey aImageKey) {
     RefPtr<ImageSurfaceCache> imageCache;
@@ -1423,8 +1452,7 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
     explicit SurfaceTracker(uint32_t aSurfaceCacheExpirationTimeMS)
         : ExpirationTrackerImpl<CachedSurface, 2, OrderedStaticMutex,
                                 OrderedStaticMutexAutoLock>(
-              aSurfaceCacheExpirationTimeMS, "SurfaceTracker",
-              SystemGroup::EventTargetFor(TaskCategory::Other)) {}
+              aSurfaceCacheExpirationTimeMS, "SurfaceTracker") {}
 
    protected:
     void NotifyExpiredLocked(CachedSurface* aSurface,
@@ -1472,6 +1500,7 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
   nsTArray<RefPtr<CachedSurface>> mCachedSurfacesDiscard;
   SurfaceTracker mExpirationTracker;
   RefPtr<MemoryPressureObserver> mMemoryPressureObserver;
+  nsTArray<RefPtr<image::Image>> mReleasingImagesOnMainThread;
   const uint32_t mDiscardFactor;
   const Cost mMaxCost;
   Cost mAvailableCost;
@@ -1786,6 +1815,36 @@ IntSize SurfaceCache::ClampSize(ImageKey aImageKey, const IntSize& aSize) {
   }
 
   return ClampVectorSize(aSize);
+}
+
+/* static */
+void SurfaceCache::ReleaseImageOnMainThread(
+    already_AddRefed<image::Image> aImage, bool aAlwaysProxy) {
+  if (NS_IsMainThread() && !aAlwaysProxy) {
+    RefPtr<image::Image> image = std::move(aImage);
+    return;
+  }
+
+  StaticMutexAutoLock lock(sInstanceMutex);
+  if (sInstance) {
+    sInstance->ReleaseImageOnMainThread(std::move(aImage), lock);
+  } else {
+    NS_ReleaseOnMainThread("SurfaceCache::ReleaseImageOnMainThread",
+                           std::move(aImage), /* aAlwaysProxy */ true);
+  }
+}
+
+/* static */
+void SurfaceCache::ClearReleasingImages() {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  nsTArray<RefPtr<image::Image>> images;
+  {
+    StaticMutexAutoLock lock(sInstanceMutex);
+    if (sInstance) {
+      sInstance->TakeReleasingImages(images, lock);
+    }
+  }
 }
 
 }  // namespace image

@@ -56,6 +56,8 @@ extern "C"
         bool point_coord_compat;
         bool vertex_transform_clip_space;
         bool vertex_invert_y;
+        bool force_storage_buffer_as_uav;
+        bool nonwritable_uav_texture_as_srv;
     } ScHlslCompilerOptions;
 
     typedef struct ScMslCompilerOptions
@@ -85,6 +87,7 @@ extern "C"
         bool vertex_invert_y;
         uint32_t version;
         bool es;
+        bool enable_420_pack_extension;
     } ScGlslCompilerOptions;
 
     typedef struct ScResource
@@ -125,6 +128,8 @@ extern "C"
     typedef struct ScType
     {
         spirv_cross::SPIRType::BaseType type;
+        uint32_t vecsize;
+        uint32_t columns;
         uint32_t *member_types;
         size_t member_types_size;
         uint32_t *array;
@@ -140,11 +145,11 @@ extern "C"
 #endif
 
 #ifdef SPIRV_CROSS_WRAPPER_MSL
-    typedef struct MslConstSamplerMapping {
+    typedef struct ScMslConstSamplerMapping {
         uint32_t desc_set;
         uint32_t binding;
         spirv_cross::MSLConstexprSampler sampler;
-    } MslConstSamplerMapping;
+    } ScMslConstSamplerMapping;
 
     ScInternalResult sc_internal_compiler_msl_new(ScInternalCompilerMsl **compiler, const uint32_t *ir, const size_t size);
     ScInternalResult sc_internal_compiler_msl_set_options(const ScInternalCompilerMsl *compiler, const ScMslCompilerOptions *options);
@@ -152,7 +157,7 @@ extern "C"
     ScInternalResult sc_internal_compiler_msl_compile(const ScInternalCompilerBase *compiler, const char **shader,
                                                       const spirv_cross::MSLVertexAttr *p_vat_overrides, const size_t vat_override_count,
                                                       const spirv_cross::MSLResourceBinding *p_res_overrides, const size_t res_override_count,
-                                                      const MslConstSamplerMapping *p_const_samplers, const size_t const_sampler_count);
+                                                      const ScMslConstSamplerMapping *p_const_samplers, const size_t const_sampler_count);
 #endif
 
 #ifdef SPIRV_CROSS_WRAPPER_GLSL

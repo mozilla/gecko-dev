@@ -46,6 +46,10 @@ void CheckThreadLocal::check() const {
 }
 
 void CheckContextLocal::check() const {
+  if (!cx_->isInitialized()) {
+    return;
+  }
+
   JSContext* cx = TlsContext.get();
   MOZ_ASSERT(cx);
   MOZ_ASSERT_IF(cx->isMainThreadContext(),
@@ -103,7 +107,7 @@ void CheckGlobalLock<Lock, Helper>::check() const {
           TlsContext.get()->runtime()->currentThreadHasScriptDataAccess());
       break;
     case GlobalLock::HelperThreadLock:
-      MOZ_ASSERT(HelperThreadState().isLockedByCurrentThread());
+      MOZ_ASSERT(gHelperThreadLock.ownedByCurrentThread());
       break;
   }
 }

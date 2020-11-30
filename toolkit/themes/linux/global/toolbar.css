@@ -9,32 +9,36 @@
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
 
 toolbox {
-  -moz-appearance: toolbox;
+  appearance: auto;
+  -moz-default-appearance: toolbox;
 }
 
 toolbar {
-  -moz-appearance: toolbar;
+  appearance: auto;
+  -moz-default-appearance: toolbar;
   min-width: 1px;
   min-height: 20px;
-  padding: 2px 0px;
+  padding: 2px 0;
 }
 
 toolbar[type="menubar"] {
-  -moz-appearance: menubar;
+  appearance: auto;
+  -moz-default-appearance: menubar;
   color: -moz-menubartext;
   min-width: 1px;
   min-height: 20px;
-  padding: 1px 0px;
+  padding: 1px 0;
 }
 
 toolbar:-moz-lwtheme {
-  -moz-appearance: none;
+  appearance: none;
   color: inherit;
 }
 
 toolbarseparator {
-  -moz-appearance: separator;
-  margin : 0;
+  appearance: auto;
+  -moz-default-appearance: separator;
+  margin: 0;
   min-width: 2px;
 }
 
@@ -46,13 +50,11 @@ toolbarpaletteitem {
   cursor: grab;
 }
 
-/* ..... drag and drop feedback ..... */
+/* Drag and drop feedback */
 
 toolbarpaletteitem[place="toolbar"] {
-  margin-left: -2px;
-  margin-right: -2px;
-  border-left: 2px solid transparent;
-  border-right: 2px solid transparent;
+  margin-inline: -2px;
+  border-inline: 2px solid transparent;
 }
 
 toolbarpaletteitem[dragover="left"] {

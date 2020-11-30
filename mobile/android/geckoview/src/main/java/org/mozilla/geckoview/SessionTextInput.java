@@ -6,14 +6,13 @@
 package org.mozilla.geckoview;
 
 import android.annotation.TargetApi;
-import android.app.Activity;
 import android.content.Context;
 import android.graphics.RectF;
 import android.os.Handler;
-import android.support.annotation.AnyThread;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.UiThread;
+import androidx.annotation.AnyThread;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.UiThread;
 import android.text.Editable;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -29,7 +28,6 @@ import org.mozilla.gecko.IGeckoEditableParent;
 import org.mozilla.gecko.InputMethods;
 import org.mozilla.gecko.NativeQueue;
 import org.mozilla.gecko.annotation.WrapForJNI;
-import org.mozilla.gecko.util.ActivityUtils;
 import org.mozilla.gecko.util.ThreadUtils;
 
 /**
@@ -121,16 +119,6 @@ public final class SessionTextInput {
         public void restartInput(@NonNull final GeckoSession session, final int reason) {
             ThreadUtils.assertOnUiThread();
             final View view = session.getTextInput().getView();
-
-            if (reason == RESTART_REASON_FOCUS) {
-                final Context context = (view != null) ? view.getContext() : null;
-                if ((context instanceof Activity) &&
-                        !ActivityUtils.isFullScreen((Activity) context)) {
-                    // Bug 1293463: show the toolbar to prevent spoofing.
-                    session.getDynamicToolbarAnimator()
-                           .showToolbar(/* immediately */ true);
-                }
-            }
 
             final InputMethodManager imm = getInputMethodManager(view);
             if (imm == null) {

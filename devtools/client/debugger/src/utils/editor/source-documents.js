@@ -22,7 +22,7 @@ import type { SymbolDeclarations } from "../../workers/parser";
 
 let sourceDocs: SourceDocuments = {};
 
-export function getDocument(key: string) {
+export function getDocument(key: string): Object {
   return sourceDocs[key];
 }
 
@@ -30,26 +30,29 @@ export function hasDocument(key: string): boolean {
   return !!getDocument(key);
 }
 
-export function setDocument(key: string, doc: any) {
+export function setDocument(key: string, doc: any): void {
   sourceDocs[key] = doc;
 }
 
-export function removeDocument(key: string) {
+export function removeDocument(key: string): void {
   delete sourceDocs[key];
 }
 
-export function clearDocuments() {
+export function clearDocuments(): void {
   sourceDocs = {};
 }
 
-function resetLineNumberFormat(editor: SourceEditor) {
+function resetLineNumberFormat(editor: SourceEditor): void {
   const cm = editor.codeMirror;
   cm.setOption("lineNumberFormatter", number => number);
   resizeBreakpointGutter(cm);
   resizeToggleButton(cm);
 }
 
-export function updateLineNumberFormat(editor: SourceEditor, sourceId: string) {
+export function updateLineNumberFormat(
+  editor: SourceEditor,
+  sourceId: SourceId
+): void {
   if (!isWasm(sourceId)) {
     return resetLineNumberFormat(editor);
   }
@@ -60,7 +63,7 @@ export function updateLineNumberFormat(editor: SourceEditor, sourceId: string) {
   resizeToggleButton(cm);
 }
 
-export function updateDocument(editor: SourceEditor, source: Source) {
+export function updateDocument(editor: SourceEditor, source: Source): void {
   if (!source) {
     return;
   }
@@ -72,6 +75,17 @@ export function updateDocument(editor: SourceEditor, source: Source) {
   updateLineNumberFormat(editor, sourceId);
 }
 
+/* used to apply the context menu wrap line option change to all the docs */
+export function updateDocuments(updater: Function) {
+  for (const key in sourceDocs) {
+    if (sourceDocs[key].cm == null) {
+      continue;
+    } else {
+      updater(sourceDocs[key]);
+    }
+  }
+}
+
 export function clearEditor(editor: SourceEditor) {
   const doc = editor.createDocument();
   editor.replaceDocument(doc);
@@ -80,7 +94,7 @@ export function clearEditor(editor: SourceEditor) {
   resetLineNumberFormat(editor);
 }
 
-export function showLoading(editor: SourceEditor) {
+export function showLoading(editor: SourceEditor): void {
   let doc = getDocument("loading");
 
   if (doc) {
@@ -94,7 +108,7 @@ export function showLoading(editor: SourceEditor) {
   }
 }
 
-export function showErrorMessage(editor: Object, msg: string) {
+export function showErrorMessage(editor: Object, msg: string): void {
   let error;
   if (msg.includes("WebAssembly binary source is not available")) {
     error = L10N.getStr("wasmIsNotAvailable");
@@ -112,7 +126,7 @@ function setEditorText(
   editor: Object,
   sourceId: SourceId,
   content: SourceContent
-) {
+): void {
   if (content.type === "wasm") {
     const wasmLines = renderWasmText(sourceId, content);
     // cm will try to split into lines anyway, saving memory
@@ -128,7 +142,7 @@ function setMode(
   source: SourceWithContent,
   content: SourceContent,
   symbols
-) {
+): void {
   // Disable modes for minified files with 1+ million characters Bug 1569829
   if (
     content.type === "text" &&
@@ -154,7 +168,7 @@ export function showSourceText(
   source: SourceWithContent,
   content: SourceContent,
   symbols?: SymbolDeclarations
-) {
+): void {
   if (hasDocument(source.id)) {
     const doc = getDocument(source.id);
     if (editor.codeMirror.doc === doc) {

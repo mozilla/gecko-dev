@@ -17,7 +17,6 @@
 #include "mozilla/dom/indexedDB/PBackgroundIDBDatabaseParent.h"
 #include "mozilla/dom/IPCBlobUtils.h"
 #include "mozilla/dom/quota/MemoryOutputStream.h"
-#include "nsAutoPtr.h"
 #include "nsComponentManagerUtils.h"
 #include "nsDebug.h"
 #include "nsError.h"
@@ -142,7 +141,7 @@ class FileHandleThreadPool::DirectoryInfo {
 };
 
 struct FileHandleThreadPool::StoragesCompleteCallback final {
-  friend class nsAutoPtr<StoragesCompleteCallback>;
+  friend class DefaultDelete<StoragesCompleteCallback>;
 
   nsTArray<nsCString> mDirectoryIds;
   nsCOMPtr<nsIRunnable> mCallback;
@@ -336,7 +335,7 @@ class FileHandleOp {
 
  protected:
   FileHandleOp(FileHandle* aFileHandle)
-      : mOwningEventTarget(GetCurrentThreadSerialEventTarget()),
+      : mOwningEventTarget(GetCurrentSerialEventTarget()),
         mFileHandle(aFileHandle)
 #ifdef DEBUG
         ,
@@ -609,7 +608,7 @@ nsresult ClampResultCode(nsresult aResultCode) {
  ******************************************************************************/
 
 FileHandleThreadPool::FileHandleThreadPool()
-    : mOwningEventTarget(GetCurrentThreadSerialEventTarget()),
+    : mOwningEventTarget(GetCurrentSerialEventTarget()),
       mShutdownRequested(false),
       mShutdownComplete(false) {
   AssertIsOnBackgroundThread();
@@ -673,11 +672,8 @@ void FileHandleThreadPool::Enqueue(FileHandle* aFileHandle,
 
   DirectoryInfo* directoryInfo;
   if (!mDirectoryInfos.Get(directoryId, &directoryInfo)) {
-    nsAutoPtr<DirectoryInfo> newDirectoryInfo(new DirectoryInfo(this));
-
-    mDirectoryInfos.Put(directoryId, newDirectoryInfo);
-
-    directoryInfo = newDirectoryInfo.forget();
+    directoryInfo = new DirectoryInfo(this);
+    mDirectoryInfos.Put(directoryId, directoryInfo);
   }
 
   FileHandleQueue* existingFileHandleQueue =
@@ -726,11 +722,11 @@ void FileHandleThreadPool::WaitForDirectoriesToComplete(
   MOZ_ASSERT(!aDirectoryIds.IsEmpty());
   MOZ_ASSERT(aCallback);
 
-  nsAutoPtr<StoragesCompleteCallback> callback(
-      new StoragesCompleteCallback(std::move(aDirectoryIds), aCallback));
+  auto callback =
+      MakeUnique<StoragesCompleteCallback>(std::move(aDirectoryIds), aCallback);
 
-  if (!MaybeFireCallback(callback)) {
-    mCompleteCallbacks.AppendElement(callback.forget());
+  if (!MaybeFireCallback(callback.get())) {
+    mCompleteCallbacks.AppendElement(std::move(callback));
   }
 }
 
@@ -764,7 +760,7 @@ nsresult FileHandleThreadPool::Init() {
 
   mThreadPool = new nsThreadPool();
 
-  nsresult rv = mThreadPool->SetName(NS_LITERAL_CSTRING("FileHandles"));
+  nsresult rv = mThreadPool->SetName("FileHandles"_ns);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -800,8 +796,8 @@ void FileHandleThreadPool::Cleanup() {
     // Run all callbacks manually now.
     for (uint32_t count = mCompleteCallbacks.Length(), index = 0; index < count;
          index++) {
-      nsAutoPtr<StoragesCompleteCallback> completeCallback(
-          mCompleteCallbacks[index].forget());
+      UniquePtr<StoragesCompleteCallback> completeCallback =
+          std::move(mCompleteCallbacks[index]);
       MOZ_ASSERT(completeCallback);
       MOZ_ASSERT(completeCallback->mCallback);
 
@@ -839,14 +835,10 @@ void FileHandleThreadPool::FinishFileHandle(FileHandle* aFileHandle) {
     mDirectoryInfos.Remove(directoryId);
 
     // See if we need to fire any complete callbacks.
-    uint32_t index = 0;
-    while (index < mCompleteCallbacks.Length()) {
-      if (MaybeFireCallback(mCompleteCallbacks[index])) {
-        mCompleteCallbacks.RemoveElementAt(index);
-      } else {
-        index++;
-      }
-    }
+    mCompleteCallbacks.RemoveElementsBy(
+        [this](const UniquePtr<StoragesCompleteCallback>& callback) {
+          return MaybeFireCallback(callback.get());
+        });
 
     if (mShutdownRequested && !mDirectoryInfos.Count()) {
       Cleanup();
@@ -1015,8 +1007,8 @@ void FileHandleThreadPool::DirectoryInfo::RemoveFileHandleQueue(
   MOZ_ASSERT(mFileHandleQueues.Length() == fileHandleCount - 1,
              "Didn't find the file handle we were looking for!");
 
-  nsTArray<DelayedEnqueueInfo> delayedEnqueueInfos;
-  delayedEnqueueInfos.SwapElements(mDelayedEnqueueInfos);
+  nsTArray<DelayedEnqueueInfo> delayedEnqueueInfos =
+      std::move(mDelayedEnqueueInfos);
 
   for (uint32_t index = 0; index < delayedEnqueueInfos.Length(); index++) {
     DelayedEnqueueInfo& delayedEnqueueInfo = delayedEnqueueInfos[index];
@@ -2141,6 +2133,25 @@ nsresult TruncateOp::DoFileWork(FileHandle* aFileHandle) {
   nsCOMPtr<nsISeekableStream> sstream = do_QueryInterface(mFileStream);
   MOZ_ASSERT(sstream);
 
+  if (mParams.offset()) {
+    nsCOMPtr<nsIFileMetadata> fileMetadata = do_QueryInterface(mFileStream);
+    MOZ_ASSERT(fileMetadata);
+
+    int64_t size;
+    nsresult rv = fileMetadata->GetSize(&size);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+    MOZ_ASSERT(size >= 0);
+
+    if (mParams.offset() > static_cast<uint64_t>(size)) {
+      // Cannot extend the size of a file through truncate.
+      return NS_ERROR_DOM_INVALID_MODIFICATION_ERR;
+    }
+  }
+
+  // XXX If we allowed truncate to extend the file size, we would to ensure that
+  // the quota limit is checked, e.g. by making FileQuotaStream override Seek.
   nsresult rv = sstream->Seek(nsISeekableStream::NS_SEEK_SET, mParams.offset());
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;

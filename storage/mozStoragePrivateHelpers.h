@@ -14,7 +14,6 @@
 #include "sqlite3.h"
 #include "nsIVariant.h"
 #include "nsError.h"
-#include "nsAutoPtr.h"
 #include "js/TypeDecls.h"
 #include "Variant.h"
 
@@ -32,6 +31,15 @@ namespace storage {
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Functions
+
+/**
+ * Returns true if the given SQLite result is an error of come kind.
+ *
+ * @param aSQLiteResultCode
+ *        The SQLite return code to check.
+ * @returns true if the result represents an error.
+ */
+bool isErrorCode(int aSQLiteResultCode);
 
 /**
  * Converts a SQLite return code to an nsresult return code.

@@ -11,6 +11,7 @@ add_task(async function() {
       ["privacy.trackingprotection.enabled", false],
       ["privacy.trackingprotection.pbmode.enabled", false],
       ["privacy.trackingprotection.annotate_channels", true],
+      ["privacy.partition.network_state", false],
       [
         "privacy.restrict3rdpartystorage.userInteractionRequiredForHosts",
         "tracking.example.com,tracking.example.org",
@@ -79,7 +80,7 @@ add_task(async function() {
   )
     .then(r => r.text())
     .then(text => {
-      is(text, 0, "Cookies received for images");
+      is(text, "0", "Cookies received for images");
     });
 
   await fetch(
@@ -87,7 +88,7 @@ add_task(async function() {
   )
     .then(r => r.text())
     .then(text => {
-      is(text, 0, "Cookies received for scripts");
+      is(text, "0", "Cookies received for scripts");
     });
 
   info("Creating a 3rd party content");
@@ -186,7 +187,7 @@ add_task(async function() {
   )
     .then(r => r.text())
     .then(text => {
-      is(text, 1, "One cookie received for images.");
+      is(text, "1", "One cookie received for images.");
     });
 
   await fetch(
@@ -194,7 +195,7 @@ add_task(async function() {
   )
     .then(r => r.text())
     .then(text => {
-      is(text, 1, "One cookie received received for scripts.");
+      is(text, "1", "One cookie received received for scripts.");
     });
 
   let expectTrackerBlocked = (item, blocked) => {

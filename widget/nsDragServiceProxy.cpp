@@ -15,15 +15,17 @@
 using mozilla::CSSIntRegion;
 using mozilla::LayoutDeviceIntRect;
 using mozilla::Maybe;
+using mozilla::Nothing;
+using mozilla::Some;
 using mozilla::dom::BrowserChild;
 using mozilla::gfx::DataSourceSurface;
 using mozilla::gfx::SourceSurface;
 using mozilla::gfx::SurfaceFormat;
 using mozilla::ipc::Shmem;
 
-nsDragServiceProxy::nsDragServiceProxy() {}
+nsDragServiceProxy::nsDragServiceProxy() = default;
 
-nsDragServiceProxy::~nsDragServiceProxy() {}
+nsDragServiceProxy::~nsDragServiceProxy() = default;
 
 nsresult nsDragServiceProxy::InvokeDragSessionImpl(
     nsIArray* aArrayTransferables, const Maybe<CSSIntRegion>& aRegion,

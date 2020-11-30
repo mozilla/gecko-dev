@@ -8,9 +8,10 @@ extern crate clap;
 extern crate log;
 #[macro_use]
 extern crate serde;
+#[macro_use]
+extern crate tracy_rs;
 
 mod angle;
-mod binary_frame_reader;
 mod blob;
 mod egl;
 mod parse_function;
@@ -19,17 +20,13 @@ mod png;
 mod premultiply;
 mod rawtest;
 mod reftest;
-mod ron_frame_writer;
-mod scene;
 mod wrench;
 mod yaml_frame_reader;
-mod yaml_frame_writer;
 mod yaml_helper;
-#[cfg(target_os = "macos")]
-mod cgfont_to_data;
 
-use crate::binary_frame_reader::BinaryFrameReader;
 use gleam::gl;
+#[cfg(feature = "software")]
+use gleam::gl::Gl;
 use crate::perf::PerfHarness;
 use crate::png::save_flipped;
 use crate::rawtest::RawtestHarness;
@@ -44,13 +41,16 @@ use std::path::{Path, PathBuf};
 use std::process;
 use std::ptr;
 use std::rc::Rc;
+#[cfg(feature = "software")]
+use std::slice;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use webrender::DebugFlags;
 use webrender::api::*;
+use webrender::render_api::*;
 use webrender::api::units::*;
 use winit::dpi::{LogicalPosition, LogicalSize};
 use winit::VirtualKeyCode;
-use crate::wrench::{Wrench, WrenchThing};
+use crate::wrench::{CapturedSequence, Wrench, WrenchThing};
 use crate::yaml_frame_reader::YamlFrameReader;
 
 pub const PLATFORM_DEFAULT_FACE_NAME: &str = "Arial";
@@ -129,22 +129,58 @@ impl HeadlessContext {
     }
 }
 
+#[cfg(not(feature = "software"))]
+mod swgl {
+    pub struct Context;
+}
+
 pub enum WindowWrapper {
-    WindowedContext(glutin::WindowedContext<glutin::PossiblyCurrent>, Rc<dyn gl::Gl>),
-    Angle(winit::Window, angle::Context, Rc<dyn gl::Gl>),
-    Headless(HeadlessContext, Rc<dyn gl::Gl>),
+    WindowedContext(glutin::WindowedContext<glutin::PossiblyCurrent>, Rc<dyn gl::Gl>, Option<swgl::Context>),
+    Angle(winit::Window, angle::Context, Rc<dyn gl::Gl>, Option<swgl::Context>),
+    Headless(HeadlessContext, Rc<dyn gl::Gl>, Option<swgl::Context>),
 }
 
 pub struct HeadlessEventIterater;
 
 impl WindowWrapper {
+    #[cfg(feature = "software")]
+    fn upload_software_to_native(&self) {
+        match *self {
+            WindowWrapper::Headless(..) => return,
+            _ => {}
+        }
+        let swgl = match self.software_gl() {
+            Some(swgl) => swgl,
+            None => return,
+        };
+        swgl.finish();
+        let gl = self.native_gl();
+        let tex = gl.gen_textures(1)[0];
+        gl.bind_texture(gl::TEXTURE_2D, tex);
+        let (data_ptr, w, h, stride) = swgl.get_color_buffer(0, true);
+        assert!(stride == w * 4);
+        let buffer = unsafe { slice::from_raw_parts(data_ptr as *const u8, w as usize * h as usize * 4) };
+        gl.tex_image_2d(gl::TEXTURE_2D, 0, gl::RGBA8 as gl::GLint, w, h, 0, gl::BGRA, gl::UNSIGNED_BYTE, Some(buffer));
+        let fb = gl.gen_framebuffers(1)[0];
+        gl.bind_framebuffer(gl::READ_FRAMEBUFFER, fb);
+        gl.framebuffer_texture_2d(gl::READ_FRAMEBUFFER, gl::COLOR_ATTACHMENT0, gl::TEXTURE_2D, tex, 0);
+        gl.blit_framebuffer(0, 0, w, h, 0, 0, w, h, gl::COLOR_BUFFER_BIT, gl::NEAREST);
+        gl.delete_framebuffers(&[fb]);
+        gl.delete_textures(&[tex]);
+        gl.finish();
+    }
+
+    #[cfg(not(feature = "software"))]
+    fn upload_software_to_native(&self) {
+    }
+
     fn swap_buffers(&self) {
         match *self {
-            WindowWrapper::WindowedContext(ref windowed_context, _) => {
+            WindowWrapper::WindowedContext(ref windowed_context, _, _) => {
                 windowed_context.swap_buffers().unwrap()
             }
-            WindowWrapper::Angle(_, ref context, _) => context.swap_buffers().unwrap(),
-            WindowWrapper::Headless(_, _) => {}
+            WindowWrapper::Angle(_, ref context, _, _) => context.swap_buffers().unwrap(),
+            WindowWrapper::Headless(_, _, _) => {}
         }
     }
 
@@ -157,62 +193,126 @@ impl WindowWrapper {
             DeviceIntSize::new(size.width as i32, size.height as i32)
         }
         match *self {
-            WindowWrapper::WindowedContext(ref windowed_context, _) => {
+            WindowWrapper::WindowedContext(ref windowed_context, ..) => {
                 inner_size(windowed_context.window())
             }
             WindowWrapper::Angle(ref window, ..) => inner_size(window),
-            WindowWrapper::Headless(ref context, _) => DeviceIntSize::new(context.width, context.height),
+            WindowWrapper::Headless(ref context, ..) => DeviceIntSize::new(context.width, context.height),
         }
     }
 
     fn hidpi_factor(&self) -> f32 {
         match *self {
-            WindowWrapper::WindowedContext(ref windowed_context, _) => {
+            WindowWrapper::WindowedContext(ref windowed_context, ..) => {
                 windowed_context.window().get_hidpi_factor() as f32
             }
             WindowWrapper::Angle(ref window, ..) => window.get_hidpi_factor() as f32,
-            WindowWrapper::Headless(_, _) => 1.0,
+            WindowWrapper::Headless(..) => 1.0,
         }
     }
 
     fn resize(&mut self, size: DeviceIntSize) {
         match *self {
-            WindowWrapper::WindowedContext(ref mut windowed_context, _) => {
+            WindowWrapper::WindowedContext(ref mut windowed_context, ..) => {
                 windowed_context.window()
                     .set_inner_size(LogicalSize::new(size.width as f64, size.height as f64))
             },
             WindowWrapper::Angle(ref mut window, ..) => {
                 window.set_inner_size(LogicalSize::new(size.width as f64, size.height as f64))
             },
-            WindowWrapper::Headless(_, _) => unimplemented!(), // requites Glutin update
+            WindowWrapper::Headless(..) => unimplemented!(), // requites Glutin update
         }
     }
 
     fn set_title(&mut self, title: &str) {
         match *self {
-            WindowWrapper::WindowedContext(ref windowed_context, _) => {
+            WindowWrapper::WindowedContext(ref windowed_context, ..) => {
                 windowed_context.window().set_title(title)
             }
             WindowWrapper::Angle(ref window, ..) => window.set_title(title),
-            WindowWrapper::Headless(_, _) => (),
+            WindowWrapper::Headless(..) => (),
         }
     }
 
-    pub fn gl(&self) -> &dyn gl::Gl {
+    pub fn software_gl(&self) -> Option<&swgl::Context> {
         match *self {
-            WindowWrapper::WindowedContext(_, ref gl) |
-            WindowWrapper::Angle(_, _, ref gl) |
-            WindowWrapper::Headless(_, ref gl) => &**gl,
+            WindowWrapper::WindowedContext(_, _, ref swgl) |
+            WindowWrapper::Angle(_, _, _, ref swgl) |
+            WindowWrapper::Headless(_, _, ref swgl) => swgl.as_ref(),
         }
+    }
+
+    pub fn native_gl(&self) -> &dyn gl::Gl {
+        match *self {
+            WindowWrapper::WindowedContext(_, ref gl, _) |
+            WindowWrapper::Angle(_, _, ref gl, _) |
+            WindowWrapper::Headless(_, ref gl, _) => &**gl,
+        }
+    }
+
+    #[cfg(feature = "software")]
+    pub fn gl(&self) -> &dyn gl::Gl {
+        if let Some(swgl) = self.software_gl() {
+            swgl
+        } else {
+            self.native_gl()
+        }
+    }
+
+    pub fn is_software(&self) -> bool {
+        self.software_gl().is_some()
+    }
+
+    #[cfg(not(feature = "software"))]
+    pub fn gl(&self) -> &dyn gl::Gl {
+        self.native_gl()
     }
 
     pub fn clone_gl(&self) -> Rc<dyn gl::Gl> {
         match *self {
-            WindowWrapper::WindowedContext(_, ref gl) |
-            WindowWrapper::Angle(_, _, ref gl) |
-            WindowWrapper::Headless(_, ref gl) => gl.clone(),
+            WindowWrapper::WindowedContext(_, ref gl, ref swgl) |
+            WindowWrapper::Angle(_, _, ref gl, ref swgl) |
+            WindowWrapper::Headless(_, ref gl, ref swgl) => {
+                match swgl {
+                    #[cfg(feature = "software")]
+                    Some(ref swgl) => Rc::new(swgl.clone()),
+                    None => gl.clone(),
+                    #[cfg(not(feature = "software"))]
+                    _ => panic!(),
+                }
+            }
         }
     }
+
+
+    #[cfg(feature = "software")]
+    fn update_software(&self, dim: DeviceIntSize) {
+        if let Some(swgl) = self.software_gl() {
+            swgl.init_default_framebuffer(dim.width, dim.height, 0, std::ptr::null_mut());
+        }
+    }
+
+    #[cfg(not(feature = "software"))]
+    fn update_software(&self, _dim: DeviceIntSize) {
+    }
+
+    fn update(&self, wrench: &mut Wrench) {
+        let dim = self.get_inner_size();
+        self.update_software(dim);
+        wrench.update(dim);
+    }
+}
+
+#[cfg(feature = "software")]
+fn make_software_context() -> Option<swgl::Context> {
+    let ctx = swgl::Context::create();
+    ctx.make_current();
+    Some(ctx)
+}
+
+#[cfg(not(feature = "software"))]
+fn make_software_context() -> Option<swgl::Context> {
+    None
 }
 
 fn make_window(
@@ -222,7 +322,14 @@ fn make_window(
     events_loop: &Option<winit::EventsLoop>,
     angle: bool,
     gl_request: glutin::GlRequest,
+    software: bool,
 ) -> WindowWrapper {
+    let sw_ctx = if software {
+        make_software_context()
+    } else {
+        None
+    };
+
     let wrapper = match *events_loop {
         Some(ref events_loop) => {
             let context_builder = glutin::ContextBuilder::new()
@@ -254,7 +361,7 @@ fn make_window(
                     glutin::Api::WebGl => unimplemented!(),
                 };
 
-                WindowWrapper::Angle(_window, _context, gl)
+                WindowWrapper::Angle(_window, _context, gl, sw_ctx)
             } else {
                 let windowed_context = context_builder
                     .build_windowed(window_builder, events_loop)
@@ -280,30 +387,40 @@ fn make_window(
                     glutin::Api::WebGl => unimplemented!(),
                 };
 
-                WindowWrapper::WindowedContext(windowed_context, gl)
+                WindowWrapper::WindowedContext(windowed_context, gl, sw_ctx)
             }
         }
         None => {
-            let gl = match gl::GlType::default() {
-                gl::GlType::Gl => unsafe {
-                    gl::GlFns::load_with(|symbol| {
-                        HeadlessContext::get_proc_address(symbol) as *const _
-                    })
-                },
-                gl::GlType::Gles => unsafe {
-                    gl::GlesFns::load_with(|symbol| {
-                        HeadlessContext::get_proc_address(symbol) as *const _
-                    })
-                },
+            let gl = match sw_ctx {
+                #[cfg(feature = "software")]
+                Some(ref sw_ctx) => Rc::new(sw_ctx.clone()),
+                None => {
+                    match gl::GlType::default() {
+                        gl::GlType::Gl => unsafe {
+                            gl::GlFns::load_with(|symbol| {
+                                HeadlessContext::get_proc_address(symbol) as *const _
+                            })
+                        },
+                        gl::GlType::Gles => unsafe {
+                            gl::GlesFns::load_with(|symbol| {
+                                HeadlessContext::get_proc_address(symbol) as *const _
+                            })
+                        },
+                    }
+                }
+                #[cfg(not(feature = "software"))]
+                _ => panic!(),
             };
-            WindowWrapper::Headless(HeadlessContext::new(size.width, size.height), gl)
+            WindowWrapper::Headless(HeadlessContext::new(size.width, size.height), gl, sw_ctx)
         }
     };
 
-    wrapper.gl().clear_color(0.3, 0.0, 0.0, 1.0);
+    let gl = wrapper.gl();
 
-    let gl_version = wrapper.gl().get_string(gl::VERSION);
-    let gl_renderer = wrapper.gl().get_string(gl::RENDERER);
+    gl.clear_color(0.3, 0.0, 0.0, 1.0);
+
+    let gl_version = gl.get_string(gl::VERSION);
+    let gl_renderer = gl.get_string(gl::RENDERER);
 
     let dp_ratio = dp_ratio.unwrap_or(wrapper.hidpi_factor());
     println!("OpenGL version {}, {}", gl_version, gl_renderer);
@@ -440,12 +557,6 @@ fn main() {
     // handle some global arguments
     let res_path = args.value_of("shaders").map(|s| PathBuf::from(s));
     let dp_ratio = args.value_of("dp_ratio").map(|v| v.parse::<f32>().unwrap());
-    let save_type = args.value_of("save").map(|s| match s {
-        "yaml" => wrench::SaveType::Yaml,
-        "ron" => wrench::SaveType::Ron,
-        "binary" => wrench::SaveType::Binary,
-        _ => panic!("Save type must be ron, yaml, or binary")
-    });
     let size = args.value_of("size")
         .map(|s| if s == "720p" {
             DeviceIntSize::new(1280, 720)
@@ -512,6 +623,8 @@ fn main() {
         }
     };
 
+    let software = args.is_present("software");
+
     let mut window = make_window(
         size,
         dp_ratio,
@@ -519,6 +632,7 @@ fn main() {
         &events_loop,
         args.is_present("angle"),
         gl_request,
+        software,
     );
     let dp_ratio = dp_ratio.unwrap_or(window.hidpi_factor());
     let dim = window.get_inner_size();
@@ -537,12 +651,11 @@ fn main() {
         &mut window,
         events_loop.as_mut().map(|el| el.create_proxy()),
         res_path,
+        !args.is_present("use_unoptimized_shaders"),
         dp_ratio,
-        save_type,
         dim,
         args.is_present("rebuild"),
         args.is_present("no_subpixel_aa"),
-        args.is_present("no_picture_caching"),
         args.is_present("verbose"),
         args.is_present("no_scissor"),
         args.is_present("no_batch"),
@@ -553,6 +666,7 @@ fn main() {
         dump_shader_source,
         notifier,
     );
+    window.update(&mut wrench);
 
     if let Some(window_title) = wrench.take_title() {
         if !cfg!(windows) {
@@ -578,7 +692,7 @@ fn main() {
             Some("gpu-cache") => png::ReadSurface::GpuCache,
             _ => panic!("Unknown surface argument value")
         };
-        let output_path = subargs.value_of("OUTPUT").map(|s| PathBuf::from(s));
+        let output_path = subargs.value_of("OUTPUT").map(PathBuf::from);
         let reader = YamlFrameReader::new_from_args(subargs);
         png::png(&mut wrench, surface, &mut window, reader, rx.unwrap(), output_path);
     } else if let Some(subargs) = args.subcommand_matches("reftest") {
@@ -591,10 +705,35 @@ fn main() {
         // Perf mode wants to benchmark the total cost of drawing
         // a new displaty list each frame.
         wrench.rebuild_display_lists = true;
-        let harness = PerfHarness::new(&mut wrench, &mut window, rx.unwrap());
-        let base_manifest = Path::new("benchmarks/benchmarks.list");
-        let filename = subargs.value_of("filename").unwrap();
-        harness.run(base_manifest, filename);
+
+        let as_csv = subargs.is_present("csv");
+        let auto_filename = subargs.is_present("auto-filename");
+
+        let warmup_frames = subargs.value_of("warmup_frames").map(|s| s.parse().unwrap());
+        let sample_count = subargs.value_of("sample_count").map(|s| s.parse().unwrap());
+
+        let harness = PerfHarness::new(&mut wrench,
+                                       &mut window,
+                                       rx.unwrap(),
+                                       warmup_frames,
+                                       sample_count);
+
+        let benchmark = match subargs.value_of("benchmark") {
+            Some(path) => path,
+            None => "benchmarks/benchmarks.list"
+        };
+        println!("Benchmark: {}", benchmark);
+        let base_manifest = Path::new(benchmark);
+
+        let mut filename = subargs.value_of("filename").unwrap().to_string();
+        if auto_filename {
+            let timestamp = chrono::Local::now().format("%Y-%m-%d-%H-%M-%S");
+            filename.push_str(
+                &format!("/wrench-perf-{}.{}",
+                            timestamp,
+                            if as_csv { "csv" } else { "json" }));
+        }
+        harness.run(base_manifest, &filename, as_csv);
         return;
     } else if let Some(subargs) = args.subcommand_matches("compare_perf") {
         let first_filename = subargs.value_of("first_filename").unwrap();
@@ -620,13 +759,18 @@ fn render<'a>(
     let input_path = subargs.value_of("INPUT").map(PathBuf::from).unwrap();
 
     // If the input is a directory, we are looking at a capture.
-    let mut thing = if input_path.as_path().is_dir() {
-        let mut documents = wrench.api.load_capture(input_path);
+    let mut thing = if input_path.join("scenes").as_path().is_dir() {
+        let scene_id = subargs.value_of("scene-id").map(|z| z.parse::<u32>().unwrap());
+        let frame_id = subargs.value_of("frame-id").map(|z| z.parse::<u32>().unwrap());
+        Box::new(CapturedSequence::new(
+            input_path,
+            scene_id.unwrap_or(1),
+            frame_id.unwrap_or(1),
+        ))
+    } else if input_path.as_path().is_dir() {
+        let mut documents = wrench.api.load_capture(input_path, None);
         println!("loaded {:?}", documents.iter().map(|cd| cd.document_id).collect::<Vec<_>>());
         let captured = documents.swap_remove(0);
-        if let Some(fb_size) = wrench.renderer.device_size() {
-            window.resize(fb_size);
-        }
         wrench.document_id = captured.document_id;
         Box::new(captured) as Box<dyn WrenchThing>
     } else {
@@ -638,19 +782,20 @@ fn render<'a>(
 
         match extension {
             "yaml" => Box::new(YamlFrameReader::new_from_args(subargs)) as Box<dyn WrenchThing>,
-            "bin" => Box::new(BinaryFrameReader::new_from_args(subargs)) as Box<dyn WrenchThing>,
             _ => panic!("Tried to render with an unknown file type."),
         }
     };
 
     let mut show_help = false;
     let mut do_loop = false;
-    let mut cpu_profile_index = 0;
     let mut cursor_position = WorldPoint::zero();
 
-    let dim = window.get_inner_size();
-    wrench.update(dim);
+    window.update(wrench);
     thing.do_frame(wrench);
+
+    if let Some(fb_size) = wrench.renderer.device_size() {
+        window.resize(fb_size);
+    }
 
     let mut debug_flags = DebugFlags::empty();
     debug_flags.set(DebugFlags::DISABLE_BATCHING, no_batch);
@@ -698,11 +843,6 @@ fn render<'a>(
                     } => match vk {
                         VirtualKeyCode::Escape => {
                             return winit::ControlFlow::Break;
-                        }
-                        VirtualKeyCode::A => {
-                            debug_flags.toggle(DebugFlags::DISABLE_PICTURE_CACHING);
-                            wrench.api.send_debug_cmd(DebugCommand::SetFlags(debug_flags));
-                            do_render = true;
                         }
                         VirtualKeyCode::B => {
                             debug_flags.toggle(DebugFlags::INVALIDATION_DBG);
@@ -779,29 +919,9 @@ fn render<'a>(
                             show_help = !show_help;
                             do_render = true;
                         }
-                        VirtualKeyCode::T => {
-                            let file_name = format!("profile-{}.json", cpu_profile_index);
-                            wrench.renderer.save_cpu_profile(&file_name);
-                            cpu_profile_index += 1;
-                        }
                         VirtualKeyCode::C => {
                             let path = PathBuf::from("../captures/wrench");
                             wrench.api.save_capture(path, CaptureBits::all());
-                        }
-                        VirtualKeyCode::Up | VirtualKeyCode::Down => {
-                            let mut txn = Transaction::new();
-
-                            let offset = match vk {
-                                winit::VirtualKeyCode::Up => LayoutVector2D::new(0.0, 10.0),
-                                winit::VirtualKeyCode::Down => LayoutVector2D::new(0.0, -10.0),
-                                _ => unreachable!("Should not see non directional keys here.")
-                            };
-
-                            txn.scroll(ScrollLocation::Delta(offset), cursor_position);
-                            txn.generate_frame();
-                            wrench.api.send_transaction(wrench.document_id, txn);
-
-                            do_frame = true;
                         }
                         VirtualKeyCode::Add => {
                             let current_zoom = wrench.get_page_zoom();
@@ -820,7 +940,6 @@ fn render<'a>(
                                 wrench.document_id,
                                 None,
                                 cursor_position,
-                                HitTestFlags::FIND_ALL
                             );
 
                             println!("Hit test results:");
@@ -847,8 +966,7 @@ fn render<'a>(
             }
         }
 
-        let dim = window.get_inner_size();
-        wrench.update(dim);
+        window.update(wrench);
 
         if do_frame {
             let frame_num = thing.do_frame(wrench);
@@ -863,6 +981,7 @@ fn render<'a>(
             }
 
             wrench.render();
+            window.upload_software_to_native();
             window.swap_buffers();
 
             if do_loop {

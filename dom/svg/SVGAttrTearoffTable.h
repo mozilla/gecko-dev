@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef NS_SVGATTRTEAROFFTABLE_H_
-#define NS_SVGATTRTEAROFFTABLE_H_
+#ifndef DOM_SVG_SVGATTRTEAROFFTABLE_H_
+#define DOM_SVG_SVGATTRTEAROFFTABLE_H_
 
 #include "nsDataHashtable.h"
 #include "nsDebug.h"
@@ -37,8 +37,8 @@ class SVGAttrTearoffTable {
   void RemoveTearoff(SimpleType* aSimple);
 
  private:
-  typedef nsPtrHashKey<SimpleType> SimpleTypePtrKey;
-  typedef nsDataHashtable<SimpleTypePtrKey, TearoffType*> TearoffTable;
+  using SimpleTypePtrKey = nsPtrHashKey<SimpleType>;
+  using TearoffTable = nsDataHashtable<SimpleTypePtrKey, TearoffType*>;
 
   TearoffTable* mTable;
 };
@@ -95,4 +95,4 @@ void SVGAttrTearoffTable<SimpleType, TearoffType>::RemoveTearoff(
 
 }  // namespace mozilla
 
-#endif  // NS_SVGATTRTEAROFFTABLE_H_
+#endif  // DOM_SVG_SVGATTRTEAROFFTABLE_H_

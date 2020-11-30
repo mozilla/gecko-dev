@@ -25,10 +25,10 @@ const TreeView = createFactory(TreeViewClass);
 const PropertiesViewContextMenu = require("devtools/client/netmonitor/src/widgets/PropertiesViewContextMenu");
 
 loader.lazyGetter(this, "Rep", function() {
-  return require("devtools/client/shared/components/reps/reps").REPS.Rep;
+  return require("devtools/client/shared/components/reps/index").REPS.Rep;
 });
 loader.lazyGetter(this, "MODE", function() {
-  return require("devtools/client/shared/components/reps/reps").MODE;
+  return require("devtools/client/shared/components/reps/index").MODE;
 });
 
 // Constants
@@ -50,7 +50,7 @@ const { div } = dom;
 class PropertiesView extends Component {
   static get propTypes() {
     return {
-      object: PropTypes.object,
+      object: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
       provider: PropTypes.object,
       enableInput: PropTypes.bool,
       expandableStrings: PropTypes.bool,
@@ -59,6 +59,12 @@ class PropertiesView extends Component {
       cropLimit: PropTypes.number,
       targetSearchResult: PropTypes.object,
       resetTargetSearchResult: PropTypes.func,
+      selectPath: PropTypes.func,
+      mode: PropTypes.symbol,
+      defaultSelectFirstNode: PropTypes.bool,
+      useQuotes: PropTypes.bool,
+      onClickRow: PropTypes.func,
+      contextMenuFormatters: PropTypes.object,
     };
   }
 
@@ -68,6 +74,8 @@ class PropertiesView extends Component {
       enableFilter: true,
       expandableStrings: false,
       cropLimit: 1024,
+      useQuotes: true,
+      contextMenuFormatters: {},
     };
   }
 
@@ -119,12 +127,19 @@ class PropertiesView extends Component {
    * which happens when the user clicks on a search result.
    */
   scrollSelectedIntoView() {
-    const { targetSearchResult, resetTargetSearchResult } = this.props;
+    const {
+      targetSearchResult,
+      resetTargetSearchResult,
+      selectPath,
+    } = this.props;
     if (!targetSearchResult) {
       return;
     }
 
-    const path = this.getSelectedPath(targetSearchResult);
+    const path =
+      typeof selectPath == "function"
+        ? selectPath(targetSearchResult)
+        : this.getSelectedPath(targetSearchResult);
     const element = document.getElementById(path);
     if (element) {
       element.scrollIntoView({ block: "center" });
@@ -144,9 +159,14 @@ class PropertiesView extends Component {
     // if data exists and can be copied, then show the contextmenu
     if (typeof object === "object") {
       if (!this.contextMenu) {
-        this.contextMenu = new PropertiesViewContextMenu({});
+        this.contextMenu = new PropertiesViewContextMenu({
+          customFormatters: this.props.contextMenuFormatters,
+        });
       }
-      this.contextMenu.open(evt, { member, object: this.props.object });
+      this.contextMenu.open(evt, window.getSelection(), {
+        member,
+        object: this.props.object,
+      });
     }
   }
 
@@ -156,11 +176,7 @@ class PropertiesView extends Component {
     /* Hide strings with following conditions
      * - the `value` object has a `value` property (only happens in Cookies panel)
      */
-    if (
-      typeof member.value === "object" &&
-      member.value &&
-      member.value.value
-    ) {
+    if (typeof member.value === "object" && member.value?.value) {
       return null;
     }
 
@@ -169,7 +185,7 @@ class PropertiesView extends Component {
         // FIXME: A workaround for the issue in StringRep
         // Force StringRep to crop the text every time
         member: Object.assign({}, member, { open: false }),
-        mode: MODE.TINY,
+        mode: this.props.mode || MODE.TINY,
         cropLimit: this.props.cropLimit,
         noGrip: true,
       })
@@ -178,16 +194,11 @@ class PropertiesView extends Component {
 
   render() {
     const {
-      decorator,
-      enableInput,
-      expandableStrings,
       expandedNodes,
       object,
-      renderRow,
       renderValue,
-      provider,
       targetSearchResult,
-      cropLimit,
+      selectPath,
     } = this.props;
 
     return div(
@@ -195,14 +206,9 @@ class PropertiesView extends Component {
       div(
         { className: "tree-container" },
         TreeView({
+          ...this.props,
           ref: () => this.scrollSelectedIntoView(),
-          object,
-          provider,
           columns: [{ id: "value", width: "100%" }],
-          decorator,
-          enableInput,
-          expandableStrings,
-          useQuotes: true,
           expandedNodes:
             expandedNodes ||
             TreeViewClass.getExpandedNodes(object, {
@@ -210,20 +216,18 @@ class PropertiesView extends Component {
               maxNodes: AUTO_EXPAND_MAX_NODES,
             }),
           onFilter: props => this.onFilter(props),
-          renderRow,
           renderValue: renderValue || this.renderValueWithRep,
           onContextMenuRow: this.onContextMenuRow,
-          selected: this.getSelectedPath(targetSearchResult),
-          cropLimit,
+          selected:
+            typeof selectPath == "function"
+              ? selectPath(targetSearchResult)
+              : this.getSelectedPath(targetSearchResult),
         })
       )
     );
   }
 }
 
-module.exports = connect(
-  null,
-  dispatch => ({
-    resetTargetSearchResult: () => dispatch(setTargetSearchResult(null)),
-  })
-)(PropertiesView);
+module.exports = connect(null, dispatch => ({
+  resetTargetSearchResult: () => dispatch(setTargetSearchResult(null)),
+}))(PropertiesView);

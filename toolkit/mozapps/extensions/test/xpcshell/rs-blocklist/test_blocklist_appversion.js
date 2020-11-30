@@ -3,6 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+// useMLBF=true does not offer special support for filtering by application ID.
+// The same functionality is offered through filter_expression, which is tested
+// by services/settings/test/unit/test_remote_settings_jexl_filters.js and
+// test_blocklistchange.js.
+Services.prefs.setBoolPref("extensions.blocklist.useMLBF", false);
+
 const Cm = Components.manager.QueryInterface(Ci.nsIComponentRegistrar);
 
 var ADDONS = [
@@ -261,7 +267,7 @@ var BlocklistPrompt = {
   QueryInterface: ChromeUtils.generateQI([]),
 };
 
-let factory = XPCOMUtils.generateSingletonFactory(function() {
+let factory = ComponentUtils.generateSingletonFactory(function() {
   return BlocklistPrompt;
 });
 Cm.registerFactory(

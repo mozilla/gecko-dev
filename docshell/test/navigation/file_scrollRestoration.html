@@ -4,6 +4,13 @@
       var oldHistoryObject = null;
 
       function test(event) {
+        // Disable the subtest for now since it relies on the bfcache.
+        if (opener.SpecialPowers.Services.appinfo.sessionHistoryInParent) {
+          opener.nextTest();
+          window.close();
+          return;
+        }
+
         if (!opener.scrollRestorationTest) {
           opener.scrollRestorationTest = 0;
         }
@@ -39,7 +46,7 @@
             opener.is(history.scrollRestoration, "manual", "Should have the same scrollRestoration as before reload.");
             document.getElementById("bottom").scrollIntoView();
             window.onunload = null; // Should get bfcache behavior.
-            opener.setTimeout("SpecialPowers.wrap(testWindow).history.back();", 250);
+            window.opener.case3WaitForBlank();
             window.location.href = "about:blank";
             break;
           }
@@ -55,8 +62,9 @@
           case 5: {
             opener.isnot(Math.round(window.scrollY), 0, "Should have scrolled to #hash.");
             opener.is(history.scrollRestoration, "manual", "Should have the same scrollRestoration mode as before fragment navigation.");
-            window.onunload = function() {}; // Disable bfcache.
-            opener.setTimeout("is(SpecialPowers.wrap(testWindow).history.scrollRestoration, 'auto'); SpecialPowers.wrap(testWindow).history.back();", 250);
+            window.onunload = function() {
+              opener.setTimeout("is(SpecialPowers.wrap(testWindow).history.scrollRestoration, 'auto'); SpecialPowers.wrap(testWindow).history.back();", 250);
+            }; // Disable bfcache.
             window.location.href = "about:blank";
             break;
           }

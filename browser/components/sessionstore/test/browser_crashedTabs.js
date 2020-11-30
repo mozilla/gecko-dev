@@ -15,11 +15,7 @@ const PAGE_2 =
 
 // Turn off tab animations for testing and use a single content process
 // for these tests since we want to test tabs within the crashing process here.
-add_task(async function test_initialize() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["toolkit.cosmeticAnimations.enabled", false]],
-  });
-});
+gReduceMotionOverride = true;
 
 // Allow tabs to restore on demand so we can test pending states
 Services.prefs.clearUserPref("browser.sessionstore.restore_on_demand");
@@ -239,7 +235,8 @@ add_task(async function test_revive_tab_from_session_store() {
   await promiseBrowserLoaded(browser);
 
   let newTab2 = BrowserTestUtils.addTab(gBrowser, "about:blank", {
-    sameProcessAsFrameLoader: browser.frameLoader,
+    remoteType: browser.remoteType,
+    initialBrowsingContextGroupId: browser.browsingContext.group.id,
   });
   let browser2 = newTab2.linkedBrowser;
   ok(browser2.isRemoteBrowser, "Should be a remote browser");
@@ -302,7 +299,8 @@ add_task(async function test_revive_all_tabs_from_session_store() {
   // about:tabcrashed.
   let win2 = await BrowserTestUtils.openNewBrowserWindow();
   let newTab2 = BrowserTestUtils.addTab(win2.gBrowser, PAGE_1, {
-    sameProcessAsFrameLoader: browser.frameLoader,
+    remoteType: browser.remoteType,
+    initialBrowsingContextGroupId: browser.browsingContext.group.id,
   });
   win2.gBrowser.selectedTab = newTab2;
   let browser2 = newTab2.linkedBrowser;
@@ -431,7 +429,8 @@ add_task(async function test_hide_restore_all_button() {
   // about:tabcrashed
   let win2 = await BrowserTestUtils.openNewBrowserWindow();
   let newTab3 = BrowserTestUtils.addTab(win2.gBrowser, PAGE_2, {
-    sameProcessAsFrameLoader: browser.frameLoader,
+    remoteType: browser.remoteType,
+    initialBrowsingContextGroupId: browser.browsingContext.group.id,
   });
   win2.gBrowser.selectedTab = newTab3;
   let otherWinBrowser = newTab3.linkedBrowser;

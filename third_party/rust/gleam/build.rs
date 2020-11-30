@@ -29,6 +29,8 @@ fn main() {
         "GL_KHR_debug",
         "GL_KHR_blend_equation_advanced",
         "GL_KHR_blend_equation_advanced_coherent",
+        "GL_KHR_blend_equation_advanced_coherent",
+        "GL_ARB_shader_storage_buffer_object",
     ];
     let gl_reg = Registry::new(
         Api::Gl,
@@ -60,10 +62,12 @@ fn main() {
         "GL_KHR_debug",
         "GL_KHR_blend_equation_advanced",
         "GL_KHR_blend_equation_advanced_coherent",
+        "GL_ANGLE_copy_texture_3d",
     ];
     let gles_reg = Registry::new(
         Api::Gles2,
-        (3, 0),
+        // using 3.1 to get SSBO support
+        (3, 1),
         Profile::Core,
         Fallbacks::All,
         gles_extensions,

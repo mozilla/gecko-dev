@@ -110,7 +110,7 @@ In this example, the test DIV will be inserted in the page, and will be displaye
 
 ### The AnonymousContent API
 
-In the previous example, the returned `insertedEl` object isn't a DOM node, and it certainly is not `el`. It is a new object, whose type is `AnonymousContent` ([see the WebIDL here](https://dxr.mozilla.org/mozilla-central/source/dom/webidl/AnonymousContent.webidl)).
+In the previous example, the returned `insertedEl` object isn't a DOM node, and it certainly is not `el`. It is a new object, whose type is `AnonymousContent` ([see the WebIDL here](https://searchfox.org/mozilla-central/source/dom/webidl/AnonymousContent.webidl)).
 
 Because of the way content is inserted into the page, it isn't wanted to give consumers a direct reference to the inserted DOM node. This is why `document.insertAnonymousContent(el)` actually **clones** `el` and returns a new object whose API lets consumers make changes to the inserted element in a way that never gives back a reference to the inserted DOM node.
 
@@ -118,12 +118,13 @@ Because of the way content is inserted into the page, it isn't wanted to give co
 
 In order to help with the API described in the previous section, the `CanvasFrameAnonymousContentHelper` class was introduced.
 
-Its goal is to provide a simple way for highlighters to insert their content into the page and modify it dynamically later. One of its goal is also to re-insert the highlighters' content on page navigation. Indeed, the frame tree is destroyed when the page is navigated away from since it represents the document element.
+Its goal is to provide a simple way for highlighters to insert their content into the page and modify it dynamically later. One of its goal is also to re-insert the highlighters' content on page navigation. Indeed, the frame tree is destroyed when the page is navigated away from since it represents the document element. One thing to note is that highlighter content insertion is asynchronous and `CanvasFrameAnonymousContentHelper` users must call and wait for its `initialize` method to resolve.
 
 Using this helper is quite simple:
 
 ```js
 let helper = new CanvasFrameAnonymousContentHelper(targetActor, this.buildMarkup.bind(this));
+await helper.initialize();
 ```
 
 It only requires a `targetActor`, which highlighters get when they are instantiated, and a callback function that will be used to create and insert the content the first time the highlighter is shown, and every time there's a page navigation.
@@ -142,7 +143,7 @@ The returned object provides the following API:
 
   ### Creating a new highlighter class
 
-A good way to get started is by taking a look at [existing highlighters here](https://dxr.mozilla.org/mozilla-central/source/devtools/server/actors/highlighters.js#697-727).
+A good way to get started is by taking a look at [existing highlighters here](https://searchfox.org/mozilla-central/rev/1a973762afcbc5066f73f1508b0c846872fe3952/devtools/server/actors/highlighters.js#519-530).
 
 Here is some boilerplate code for a new highlighter class:
 
@@ -150,6 +151,7 @@ Here is some boilerplate code for a new highlighter class:
  function MyNewHighlighter(targetActor) {
    this.doc = targetActor.window.document;
    this.markup = new CanvasFrameAnonymousContentHelper(targetActor, this._buildMarkup.bind(this));
+   this.markup.initialize();
  }
 
  MyNewHighlighter.prototype = {
@@ -159,7 +161,7 @@ Here is some boilerplate code for a new highlighter class:
    },
 
    _buildMarkup: function() {
-     let container = this.doc.createElement("div");
+     let container = this.markup.anonymousContentDocument.createElement("div");
      container.innerHTML = '<div id="new-highlighted-" style="display:none;">';
      return container;
    },

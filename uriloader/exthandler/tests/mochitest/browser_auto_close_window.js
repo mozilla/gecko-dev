@@ -1,6 +1,10 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
+const { ComponentUtils } = ChromeUtils.import(
+  "resource://gre/modules/ComponentUtils.jsm"
+);
+
 const ROOT = getRootDirectory(gTestPath).replace(
   "chrome://mochitests/content",
   "https://example.com"
@@ -29,7 +33,7 @@ HelperAppLauncherDialog.prototype = {
       aLauncher.cancel(Cr.NS_ERROR_ABORT);
     });
   },
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIHelperAppLauncherDialog]),
+  QueryInterface: ChromeUtils.generateQI(["nsIHelperAppLauncherDialog"]),
 };
 
 function promiseHelperAppDialog() {
@@ -42,7 +46,7 @@ let mockHelperAppService;
 
 add_task(async function setup() {
   // Replace the real helper app dialog with our own.
-  mockHelperAppService = XPCOMUtils._getFactory(HelperAppLauncherDialog);
+  mockHelperAppService = ComponentUtils._getFactory(HelperAppLauncherDialog);
   registrar.registerFactory(
     MOCK_HELPERAPP_DIALOG_CID,
     "",
@@ -100,6 +104,62 @@ add_task(async function target_blank() {
   });
 });
 
+add_task(async function target_blank_no_opener() {
+  // Tests that a link with target=_blank and no opener opens a new tab
+  // and closes it, returning the window that we're using for navigation.
+  await BrowserTestUtils.withNewTab({ gBrowser, url: PAGE_URL }, async function(
+    browser
+  ) {
+    let dialogAppeared = promiseHelperAppDialog();
+    let tabOpened = BrowserTestUtils.waitForEvent(
+      gBrowser.tabContainer,
+      "TabOpen"
+    ).then(event => {
+      return [event.target, BrowserTestUtils.waitForTabClosing(event.target)];
+    });
+
+    await BrowserTestUtils.synthesizeMouseAtCenter(
+      "#target_blank_no_opener",
+      {},
+      browser
+    );
+
+    let windowContext = await dialogAppeared;
+    is(windowContext, browser.ownerGlobal, "got the right windowContext");
+    let [tab, closingPromise] = await tabOpened;
+    await closingPromise;
+    is(tab.linkedBrowser, null, "tab was opened and closed");
+  });
+});
+
+add_task(async function open_in_new_tab_no_opener() {
+  // Tests that a link with target=_blank and no opener opens a new tab
+  // and closes it, returning the window that we're using for navigation.
+  await BrowserTestUtils.withNewTab({ gBrowser, url: PAGE_URL }, async function(
+    browser
+  ) {
+    let dialogAppeared = promiseHelperAppDialog();
+    let tabOpened = BrowserTestUtils.waitForEvent(
+      gBrowser.tabContainer,
+      "TabOpen"
+    ).then(event => {
+      return [event.target, BrowserTestUtils.waitForTabClosing(event.target)];
+    });
+
+    await BrowserTestUtils.synthesizeMouseAtCenter(
+      "#open_in_new_tab_no_opener",
+      {},
+      browser
+    );
+
+    let windowContext = await dialogAppeared;
+    is(windowContext, browser.ownerGlobal, "got the right windowContext");
+    let [tab, closingPromise] = await tabOpened;
+    await closingPromise;
+    is(tab.linkedBrowser, null, "tab was opened and closed");
+  });
+});
+
 add_task(async function new_window() {
   // Tests that a link that forces us to open a new window (by specifying a
   // width and a height in window.open) opens a new window for the load,
@@ -122,6 +182,46 @@ add_task(async function new_window() {
     // The window should close on its own. If not, this test will time out.
     await BrowserTestUtils.domWindowClosed(win);
     ok(win.closed, "window was opened and closed");
+
+    is(
+      await fetch(SJS_URL + "?reset").then(r => r.text()),
+      "OK",
+      "Test reseted"
+    );
+  });
+});
+
+add_task(async function new_window_no_opener() {
+  // Tests that a link that forces us to open a new window (by specifying a
+  // width and a height in window.open) opens a new window for the load,
+  // realizes that we need to close that window and returns the *original*
+  // window as the window context.
+  await BrowserTestUtils.withNewTab({ gBrowser, url: PAGE_URL }, async function(
+    browser
+  ) {
+    let dialogAppeared = promiseHelperAppDialog();
+    let windowOpened = BrowserTestUtils.waitForNewWindow();
+
+    await BrowserTestUtils.synthesizeMouseAtCenter(
+      "#new_window_no_opener",
+      {},
+      browser
+    );
+    let win = await windowOpened;
+    // Now allow request to complete:
+    fetch(SJS_URL + "?finish");
+
+    await dialogAppeared;
+
+    // The window should close on its own. If not, this test will time out.
+    await BrowserTestUtils.domWindowClosed(win);
+    ok(win.closed, "window was opened and closed");
+
+    is(
+      await fetch(SJS_URL + "?reset").then(r => r.text()),
+      "OK",
+      "Test reseted"
+    );
   });
 });
 

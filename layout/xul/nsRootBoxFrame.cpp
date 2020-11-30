@@ -13,7 +13,9 @@
 #include "nsIPopupContainer.h"
 #include "nsIContent.h"
 #include "nsFrameManager.h"
+#include "nsLayoutUtils.h"
 #include "mozilla/BasicEvents.h"
+#include "mozilla/DisplayPortUtils.h"
 #include "mozilla/PresShell.h"
 
 using namespace mozilla;
@@ -168,7 +170,7 @@ void nsRootBoxFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
     // base rect.
     nsRect displayPortBase =
         aBuilder->GetVisibleRect().Intersect(nsRect(nsPoint(0, 0), GetSize()));
-    nsLayoutUtils::SetDisplayPortBase(mContent, displayPortBase);
+    DisplayPortUtils::SetDisplayPortBase(mContent, displayPortBase);
   }
 
   // root boxes don't need a debug border/outline or a selection overlay...
@@ -188,7 +190,7 @@ nsresult nsRootBoxFrame::HandleEvent(nsPresContext* aPresContext,
   }
 
   if (aEvent->mMessage == eMouseUp) {
-    nsFrame::HandleEvent(aPresContext, aEvent, aEventStatus);
+    nsIFrame::HandleEvent(aPresContext, aEvent, aEventStatus);
   }
 
   return NS_OK;
@@ -222,6 +224,6 @@ NS_QUERYFRAME_TAIL_INHERITING(nsBoxFrame)
 
 #ifdef DEBUG_FRAME_DUMP
 nsresult nsRootBoxFrame::GetFrameName(nsAString& aResult) const {
-  return MakeFrameName(NS_LITERAL_STRING("RootBox"), aResult);
+  return MakeFrameName(u"RootBox"_ns, aResult);
 }
 #endif

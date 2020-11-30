@@ -12,3 +12,6 @@ files'
 thru
 referer
 dur
+ue
+tring
+

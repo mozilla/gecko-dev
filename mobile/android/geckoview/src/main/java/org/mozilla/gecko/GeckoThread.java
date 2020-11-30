@@ -27,14 +27,12 @@ import android.os.Message;
 import android.os.MessageQueue;
 import android.os.Process;
 import android.os.SystemClock;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.UiThread;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.UiThread;
 import android.text.TextUtils;
 import android.util.Log;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -140,8 +138,6 @@ public class GeckoThread extends Thread {
     public static final int FLAG_PRELOAD_CHILD = 1 << 1; // Preload child during main thread start.
     public static final int FLAG_ENABLE_NATIVE_CRASHREPORTER = 1 << 2; // Enable native crash reporting.
 
-    public static final long DEFAULT_TIMEOUT = 5000;
-
     /* package */ static final String EXTRA_ARGS = "args";
     private static final String EXTRA_PREFS_FD = "prefsFd";
     private static final String EXTRA_PREF_MAP_FD = "prefMapFd";
@@ -226,36 +222,6 @@ public class GeckoThread extends Thread {
         mInitialized = true;
         notifyAll();
         return true;
-    }
-
-    private static boolean canUseProfile(final Context context, final GeckoProfile profile,
-                                         final String profileName, final File profileDir) {
-        if (profileDir != null && !profileDir.isDirectory()) {
-            return false;
-        }
-
-        if (profile == null) {
-            // We haven't initialized; any profile is okay as long as we follow the guest mode setting.
-            return GeckoProfile.shouldUseGuestMode(context) ==
-                    GeckoProfile.isGuestProfile(context, profileName, profileDir);
-        }
-
-        // We already initialized and have a profile; see if it matches ours.
-        try {
-            return profileDir == null ? profileName.equals(profile.getName()) :
-                    profile.getDir().getCanonicalPath().equals(profileDir.getCanonicalPath());
-        } catch (final IOException e) {
-            Log.e(LOGTAG, "Cannot compare profile " + profileName);
-            return false;
-        }
-    }
-
-    public static boolean canUseProfile(final String profileName, final File profileDir) {
-        if (profileName == null) {
-            throw new IllegalArgumentException("Null profile name");
-        }
-        return canUseProfile(GeckoAppShell.getApplicationContext(), getActiveProfile(),
-                             profileName, profileDir);
     }
 
     public static boolean launch() {
@@ -452,6 +418,10 @@ public class GeckoThread extends Thread {
         // mozglue loading process.
         maybeWaitForJavaDebugger(context, env);
 
+        // Start the profiler before even loading mozglue, so we can capture more
+        // things that are happening on the JVM side.
+        maybeStartGeckoProfiler(env);
+
         GeckoLoader.loadMozGlue(context);
         setState(State.MOZGLUE_READY);
 
@@ -521,6 +491,78 @@ public class GeckoThread extends Thread {
                     }
                 }
             }
+        }
+    }
+
+    // This may start the gecko profiler early by looking at the environment variables.
+    // Refer to the platform side for more information about the environment variables:
+    // https://searchfox.org/mozilla-central/rev/2f9eacd9d3d995c937b4251a5557d95d494c9be1/tools/profiler/core/platform.cpp#2969-3072
+    private static void maybeStartGeckoProfiler(final @NonNull List<String> env) {
+        final String startupEnv = "MOZ_PROFILER_STARTUP=";
+        final String intervalEnv = "MOZ_PROFILER_STARTUP_INTERVAL=";
+        final String capacityEnv = "MOZ_PROFILER_STARTUP_ENTRIES=";
+        boolean isStartupProfiling = false;
+        // Putting default values for now, but they can be overwritten.
+        // Keep these values in sync with profiler defaults.
+        int interval = 1;
+        // 8M entries. Keep this in sync with `PROFILER_DEFAULT_STARTUP_ENTRIES`.
+        int capacity = 8 * 1024 * 1024;
+        // We have a default 8M of entries but user can actually put less entries
+        // with environment variables. But even though user can put anything, we
+        // have a hard cap on the minimum value count, because if it's lower than
+        // this value, profiler could not capture anything meaningful.
+        // This value is kept in `scMinimumBufferEntries` variable in the cpp side:
+        // https://searchfox.org/mozilla-central/rev/fa7f47027917a186fb2052dee104cd06c21dd76f/tools/profiler/core/platform.cpp#749
+        // This number is not clear in the cpp code at first, so lets calculate:
+        // scMinimumBufferEntries = scMinimumBufferSize / scBytesPerEntry
+        // expands into
+        // scMinimumNumberOfChunks * 2 * scExpectedMaximumStackSize / scBytesPerEntry
+        // and this is: 4 * 2 * 64 * 1024 / 8 = 65536 (~512 kb)
+        final int minCapacity = 65536;
+
+        // Looping the environment variable list to check known variable names.
+        for (final String envItem : env) {
+            if (envItem == null) {
+                continue;
+            }
+
+            if (envItem.startsWith(startupEnv)) {
+                // Check the environment variable value to see if it's positive.
+                String value = envItem.substring(startupEnv.length());
+                if (value.isEmpty() || value.equals("0") || value.equals("n") || value.equals("N")) {
+                    // ''/'0'/'n'/'N' values mean do not start the startup profiler.
+                    // There's no need to inspect other environment variables,
+                    // so let's break out of the loop
+                    break;
+                }
+
+                isStartupProfiling = true;
+            } else if (envItem.startsWith(intervalEnv)) {
+                // Parse the interval environment variable if present
+                String value = envItem.substring(intervalEnv.length());
+
+                try {
+                    int intValue = Integer.parseInt(value);
+                    interval = Math.max(intValue, interval);
+                } catch (NumberFormatException err) {
+                    // Failed to parse. Do nothing and just use the default value.
+                }
+            } else if (envItem.startsWith(capacityEnv)) {
+                // Parse the capacity environment variable if present
+                String value = envItem.substring(capacityEnv.length());
+
+                try {
+                    int intValue = Integer.parseInt(value);
+                    // See `scMinimumBufferEntries` variable for this value on the platform side.
+                    capacity = Math.max(intValue, minCapacity);
+                } catch (NumberFormatException err) {
+                    // Failed to parse. Do nothing and just use the default value.
+                }
+            }
+        }
+
+        if (isStartupProfiling) {
+            GeckoJavaSampler.start(interval, capacity);
         }
     }
 

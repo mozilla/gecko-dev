@@ -5,6 +5,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "DrawEventRecorder.h"
+
+#include "mozilla/UniquePtrExtensions.h"
 #include "PathRecording.h"
 #include "RecordingTypes.h"
 #include "RecordedEventImpl.h"
@@ -24,7 +26,12 @@ void DrawEventRecorderPrivate::StoreSourceSurfaceRecording(
     SourceSurface* aSurface, const char* aReason) {
   RefPtr<DataSourceSurface> dataSurf = aSurface->GetDataSurface();
   IntSize surfaceSize = aSurface->GetSize();
-  if (!dataSurf || !Factory::AllowedSurfaceSize(surfaceSize)) {
+  Maybe<DataSourceSurface::ScopedMap> map;
+  if (dataSurf) {
+    map.emplace(dataSurf, DataSourceSurface::READ);
+  }
+  if (!dataSurf || !map->IsMapped() ||
+      !Factory::AllowedSurfaceSize(surfaceSize)) {
     gfxWarning() << "Recording failed to record SourceSurface for " << aReason;
 
     // If surface size is not allowed, replace with reasonable size.
@@ -35,17 +42,43 @@ void DrawEventRecorderPrivate::StoreSourceSurfaceRecording(
 
     // Insert a dummy source surface.
     int32_t stride = surfaceSize.width * BytesPerPixel(aSurface->GetFormat());
-    UniquePtr<uint8_t[]> sourceData(new uint8_t[stride * surfaceSize.height]());
+    UniquePtr<uint8_t[]> sourceData =
+        MakeUniqueFallible<uint8_t[]>(stride * surfaceSize.height);
+    if (!sourceData) {
+      // If the surface is too big just create a 1 x 1 dummy.
+      surfaceSize.width = 1;
+      surfaceSize.height = 1;
+      stride = surfaceSize.width * BytesPerPixel(aSurface->GetFormat());
+      sourceData = MakeUnique<uint8_t[]>(stride * surfaceSize.height);
+    }
+
     RecordEvent(RecordedSourceSurfaceCreation(aSurface, sourceData.get(),
                                               stride, surfaceSize,
                                               aSurface->GetFormat()));
     return;
   }
 
-  DataSourceSurface::ScopedMap map(dataSurf, DataSourceSurface::READ);
   RecordEvent(RecordedSourceSurfaceCreation(
-      aSurface, map.GetData(), map.GetStride(), dataSurf->GetSize(),
+      aSurface, map->GetData(), map->GetStride(), dataSurf->GetSize(),
       dataSurf->GetFormat()));
+}
+
+void DrawEventRecorderPrivate::RecordSourceSurfaceDestruction(void* aSurface) {
+  RemoveSourceSurface(static_cast<SourceSurface*>(aSurface));
+  RemoveStoredObject(aSurface);
+  RecordEvent(RecordedSourceSurfaceDestruction(ReferencePtr(aSurface)));
+}
+
+void DrawEventRecorderPrivate::DecrementUnscaledFontRefCount(
+    const ReferencePtr aUnscaledFont) {
+  auto element = mUnscaledFontRefs.find(aUnscaledFont);
+  MOZ_DIAGNOSTIC_ASSERT(element != mUnscaledFontRefs.end(),
+                        "DecrementUnscaledFontRefCount calls should balance "
+                        "with IncrementUnscaledFontRefCount calls");
+  if (--(element->second) <= 0) {
+    RecordEvent(RecordedUnscaledFontDestruction(aUnscaledFont));
+    mUnscaledFontRefs.erase(aUnscaledFont);
+  }
 }
 
 void DrawEventRecorderFile::RecordEvent(const RecordedEvent& aEvent) {

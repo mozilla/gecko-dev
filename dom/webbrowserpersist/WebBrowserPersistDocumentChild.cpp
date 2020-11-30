@@ -13,12 +13,11 @@
 #include "WebBrowserPersistLocalDocument.h"
 #include "WebBrowserPersistResourcesChild.h"
 #include "WebBrowserPersistSerializeChild.h"
-#include "SHEntryChild.h"
 #include "mozilla/StaticPrefs_fission.h"
 
 namespace mozilla {
 
-WebBrowserPersistDocumentChild::WebBrowserPersistDocumentChild() {}
+WebBrowserPersistDocumentChild::WebBrowserPersistDocumentChild() = default;
 
 WebBrowserPersistDocumentChild::~WebBrowserPersistDocumentChild() = default;
 
@@ -58,15 +57,7 @@ void WebBrowserPersistDocumentChild::Start(
   ENSURE(aDocument->GetTitle(attrs.title()));
   ENSURE(aDocument->GetContentDisposition(attrs.contentDisposition()));
 
-  // shEntryChild needs to remain in scope until after the SendAttributes call,
-  // to keep the actor alive.
-  RefPtr<dom::SHEntryChild> shEntryChild;
-  if (StaticPrefs::fission_sessionHistoryInParent()) {
-    shEntryChild = aDocument->GetHistory().downcast<dom::SHEntryChild>();
-    attrs.sessionHistoryEntryOrCacheKey() = shEntryChild;
-  } else {
-    attrs.sessionHistoryEntryOrCacheKey() = aDocument->GetCacheKey();
-  }
+  attrs.sessionHistoryCacheKey() = aDocument->GetCacheKey();
 
   ENSURE(aDocument->GetPersistFlags(&(attrs.persistFlags())));
 

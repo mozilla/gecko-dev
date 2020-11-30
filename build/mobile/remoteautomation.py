@@ -3,19 +3,36 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import datetime
-import time
+import logging
+import os
 import re
 import posixpath
-import tempfile
 import shutil
+import sys
+import tempfile
+import time
 
 import six
 
-from automation import Automation
 from mozdevice import ADBTimeoutError
 from mozlog import get_default_logger
 from mozscreenshot import dump_screen, dump_device_screen
 import mozcrash
+
+
+def resetGlobalLog(log):
+    while _log.handlers:
+        _log.removeHandler(_log.handlers[0])
+    handler = logging.StreamHandler(log)
+    _log.setLevel(logging.INFO)
+    _log.addHandler(handler)
+
+
+# We use the logging system here primarily because it'll handle multiple
+# threads, which is needed to process the output of the server and application
+# processes simultaneously.
+_log = logging.getLogger()
+resetGlobalLog(sys.stdout)
 
 # signatures for logcat messages that we don't care about much
 fennecLogcatFilters = ["The character encoding of the HTML document was not declared",
@@ -23,7 +40,7 @@ fennecLogcatFilters = ["The character encoding of the HTML document was not decl
                        "Unexpected value from nativeGetEnabledTags: 0"]
 
 
-class RemoteAutomation(Automation):
+class RemoteAutomation(object):
 
     def __init__(self, device, appName='', remoteProfile=None, remoteLog=None,
                  processArgs=None):
@@ -34,6 +51,7 @@ class RemoteAutomation(Automation):
         self.remoteLog = remoteLog
         self.processArgs = processArgs or {}
         self.lastTestSeen = "remoteautomation.py"
+        self.log = _log
 
     def runApp(self, testURL, env, app, profileDir, extraArgs,
                utilityPath=None, xrePath=None, debuggerInfo=None, symbolsPath=None,
@@ -44,13 +62,9 @@ class RemoteAutomation(Automation):
         for |timeout| seconds.
         """
         if self.device.is_file(self.remoteLog):
-            self.device.rm(self.remoteLog, root=True)
+            self.device.rm(self.remoteLog)
             self.log.info("remoteautomation.py | runApp deleted %s" % self.remoteLog)
 
-        if utilityPath is None:
-            utilityPath = self.DIST_BIN
-        if xrePath is None:
-            xrePath = self.DIST_BIN
         if timeout == -1:
             timeout = self.DEFAULT_TIMEOUT
         self.utilityPath = utilityPath
@@ -63,10 +77,10 @@ class RemoteAutomation(Automation):
                        env=self.environment(env=env, crashreporter=not debuggerInfo),
                        e10s=e10s, **self.processArgs)
 
-        self.log.info("remoteautomation.py | Application pid: %d", self.pid)
+        self.log.info("remoteautomation.py | Application pid: %d" % self.pid)
 
         status = self.waitForFinish(timeout, maxTime)
-        self.log.info("remoteautomation.py | Application ran for: %s",
+        self.log.info("remoteautomation.py | Application ran for: %s" %
                       str(datetime.datetime.now() - startTime))
 
         crashed = self.checkForCrashes(symbolsPath)
@@ -138,11 +152,6 @@ class RemoteAutomation(Automation):
         return status
 
     def checkForCrashes(self, symbolsPath):
-        # If crash reporting is disabled (MOZ_CRASHREPORTER!=1), we can't say
-        # anything.
-        if not self.CRASHREPORTER:
-            return False
-
         try:
             dumpDir = tempfile.mkdtemp()
             remoteCrashDir = posixpath.join(self.remoteProfile, 'minidumps')
@@ -172,8 +181,22 @@ class RemoteAutomation(Automation):
         if app == "am" and extraArgs[0] in ('instrument', 'start'):
             return app, extraArgs
 
-        cmd, args = Automation.buildCommandLine(
-            self, app, debuggerInfo, profileDir, testURL, extraArgs)
+        cmd = os.path.abspath(app)
+
+        args = []
+
+        if debuggerInfo:
+            args.extend(debuggerInfo.args)
+            args.append(cmd)
+            cmd = os.path.abspath(debuggerInfo.path)
+
+        profileDirectory = profileDir + "/"
+
+        args.extend(("-no-remote", "-profile", profileDirectory))
+        if testURL is not None:
+            args.append((testURL))
+        args.extend(extraArgs)
+
         try:
             args.remove('-foreground')
         except Exception:
@@ -186,7 +209,7 @@ class RemoteAutomation(Automation):
 
         if self.appName and self.device.process_exist(self.appName):
             print("remoteautomation.py %s is already running. Stopping..." % self.appName)
-            self.device.stop_application(self.appName, root=True)
+            self.device.stop_application(self.appName)
 
         self.counts = counts
         if self.counts is not None:
@@ -198,7 +221,7 @@ class RemoteAutomation(Automation):
             cmd = ' '.join(cmd)
             self.procName = self.appName
             if not self.device.shell_bool(cmd):
-                print("remote_automation.py failed to launch %s" % cmd)
+                print("remoteautomation.py failed to launch %s" % cmd)
         else:
             self.procName = cmd[0].split(posixpath.sep)[-1]
             args = cmd
@@ -245,12 +268,13 @@ class RemoteAutomation(Automation):
         except ADBTimeoutError:
             raise
         except Exception as e:
-            self.log.info("remoteautomation.py | exception reading log: %s" % str(e))
+            self.log.exception("remoteautomation.py | exception reading log: %s" % str(e))
             return False
         if not newLogContent:
             return False
 
         self.stdoutlen += len(newLogContent)
+        newLogContent = six.ensure_str(newLogContent, errors='replace')
 
         if self.messageLogger is None:
             testStartFilenames = re.findall(r"TEST-START \| ([^\s]*)", newLogContent)
@@ -285,25 +309,31 @@ class RemoteAutomation(Automation):
                 parsed_messages = self.messageLogger.write(line)
 
             for message in parsed_messages:
-                if isinstance(message, dict) and message.get('action') == 'test_start':
-                    self.lastTestSeen = message['test']
-                if isinstance(message, dict) and message.get('action') == 'log':
-                    line = message['message'].strip()
-                    if self.counts:
-                        m = re.match(".*:\s*(\d*)", line)
-                        if m:
-                            try:
-                                val = int(m.group(1))
-                                if "Passed:" in line:
-                                    self.counts['pass'] += val
-                                elif "Failed:" in line:
-                                    self.counts['fail'] += val
-                                elif "Todo:" in line:
-                                    self.counts['todo'] += val
-                            except ADBTimeoutError:
-                                raise
-                            except Exception:
-                                pass
+                if isinstance(message, dict):
+                    if message.get('action') == 'test_start':
+                        self.lastTestSeen = message['test']
+                    elif message.get('action') == 'test_end':
+                        self.lastTestSeen = '{} (finished)'.format(message['test'])
+                    elif message.get('action') == 'suite_end':
+                        self.lastTestSeen = "Last test finished"
+                    elif message.get('action') == 'log':
+                        line = message['message'].strip()
+                        if self.counts:
+                            m = re.match(".*:\s*(\d*)", line)
+                            if m:
+                                try:
+                                    val = int(m.group(1))
+                                    if "Passed:" in line:
+                                        self.counts['pass'] += val
+                                        self.lastTestSeen = "Last test finished"
+                                    elif "Failed:" in line:
+                                        self.counts['fail'] += val
+                                    elif "Todo:" in line:
+                                        self.counts['todo'] += val
+                                except ADBTimeoutError:
+                                    raise
+                                except Exception:
+                                    pass
 
         return True
 
@@ -328,7 +358,10 @@ class RemoteAutomation(Automation):
         while retries < 20 and not self.device.is_file(self.remoteLog):
             retries += 1
             time.sleep(1)
-        if not self.device.is_file(self.remoteLog):
+        if self.device.is_file(self.remoteLog):
+            # We must change the remote log's permissions so that the shell can read it.
+            self.device.chmod(self.remoteLog, mask="666")
+        else:
             print("Failed wait for remote log: %s missing?" % self.remoteLog)
         while top == self.procName:
             # Get log updates on each interval, but if it is taking
@@ -376,7 +409,7 @@ class RemoteAutomation(Automation):
         if stagedShutdown:
             # Trigger an ANR report with "kill -3" (SIGQUIT)
             try:
-                self.device.pkill(self.procName, sig=3, attempts=1, root=True)
+                self.device.pkill(self.procName, sig=3, attempts=1)
             except ADBTimeoutError:
                 raise
             except:  # NOQA: E722
@@ -384,7 +417,7 @@ class RemoteAutomation(Automation):
             time.sleep(3)
             # Trigger a breakpad dump with "kill -6" (SIGABRT)
             try:
-                self.device.pkill(self.procName, sig=6, attempts=1, root=True)
+                self.device.pkill(self.procName, sig=6, attempts=1)
             except ADBTimeoutError:
                 raise
             except:  # NOQA: E722
@@ -400,7 +433,7 @@ class RemoteAutomation(Automation):
                 retries += 1
             if self.device.process_exist(self.procName):
                 try:
-                    self.device.pkill(self.procName, sig=9, attempts=1, root=True)
+                    self.device.pkill(self.procName, sig=9, attempts=1)
                 except ADBTimeoutError:
                     raise
                 except:  # NOQA: E722
@@ -416,10 +449,15 @@ class RemoteAutomation(Automation):
         if self.device.process_exist(crashreporter):
             print("Warning: %s unexpectedly found running. Killing..." % crashreporter)
             try:
-                self.device.pkill(crashreporter, root=True)
+                self.device.pkill(crashreporter)
             except ADBTimeoutError:
                 raise
             except:  # NOQA: E722
                 pass
         if self.device.process_exist(crashreporter):
             print("ERROR: %s still running!!" % crashreporter)
+
+    @staticmethod
+    def elf_arm(filename):
+        data = open(filename, 'rb').read(20)
+        return data[:4] == "\x7fELF" and ord(data[18]) == 40  # EM_ARM

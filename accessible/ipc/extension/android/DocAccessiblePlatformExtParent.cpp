@@ -20,18 +20,24 @@ mozilla::ipc::IPCResult DocAccessiblePlatformExtParent::RecvSetPivotBoundaries(
   MOZ_ASSERT(aFirstDoc);
   MOZ_ASSERT(aLastDoc);
 
-  SessionAccessibility* sessionAcc = SessionAccessibility::GetInstanceFor(
-      static_cast<DocAccessibleParent*>(Manager()));
+  RefPtr<SessionAccessibility> sessionAcc =
+      SessionAccessibility::GetInstanceFor(
+          static_cast<DocAccessibleParent*>(Manager()));
   if (!sessionAcc) {
     return IPC_OK();
   }
 
-  AccessibleWrap* first = WrapperFor(
-      static_cast<DocAccessibleParent*>(aFirstDoc)->GetAccessible(aFirst));
-  AccessibleWrap* last = WrapperFor(
-      static_cast<DocAccessibleParent*>(aLastDoc)->GetAccessible(aLast));
+  ProxyAccessible* first =
+      static_cast<DocAccessibleParent*>(aFirstDoc)->GetAccessible(aFirst);
+  ProxyAccessible* last =
+      static_cast<DocAccessibleParent*>(aLastDoc)->GetAccessible(aLast);
 
-  sessionAcc->UpdateAccessibleFocusBoundaries(first, last);
+  // We may not have proxy accessibles available yet for those accessibles
+  // in the parent process.
+  if (first && last) {
+    sessionAcc->UpdateAccessibleFocusBoundaries(WrapperFor(first),
+                                                WrapperFor(last));
+  }
 
   return IPC_OK();
 }

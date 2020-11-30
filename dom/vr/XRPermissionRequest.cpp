@@ -5,7 +5,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "XRPermissionRequest.h"
-#include "nsIGlobalObject.h"
+#include "nsGlobalWindowInner.h"
 #include "mozilla/Preferences.h"
 #include "nsContentUtils.h"
 
@@ -25,8 +25,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(XRPermissionRequest,
 XRPermissionRequest::XRPermissionRequest(nsPIDOMWindowInner* aWindow,
                                          uint64_t aWindowId)
     : ContentPermissionRequestBase(aWindow->GetDoc()->NodePrincipal(), aWindow,
-                                   NS_LITERAL_CSTRING("dom.vr"),
-                                   NS_LITERAL_CSTRING("xr")),
+                                   "dom.vr"_ns, "xr"_ns),
       mWindowId(aWindowId) {
   MOZ_ASSERT(aWindow);
   MOZ_ASSERT(aWindow->GetDoc());
@@ -59,6 +58,9 @@ XRPermissionRequest::Allow(JS::HandleValue aChoices) {
 
 nsresult XRPermissionRequest::Start() {
   MOZ_ASSERT(NS_IsMainThread());
+  if (!CheckPermissionDelegate()) {
+    return Cancel();
+  }
   PromptResult pr = CheckPromptPrefs();
   if (pr == PromptResult::Granted) {
     return Allow(JS::UndefinedHandleValue);

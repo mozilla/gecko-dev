@@ -39,7 +39,7 @@
 #define VK_OEM_102 0xE2
 #define VK_OEM_CLEAR 0xFE
 
-class nsIIdleServiceInternal;
+class nsIUserIdleServiceInternal;
 
 namespace mozilla {
 namespace widget {
@@ -124,7 +124,7 @@ class MOZ_STACK_CLASS UniCharsAndModifiers final {
   nsAutoString mChars;
   // 5 is enough number for normal keyboard layout handling.  On Windows,
   // a dead key sequence may cause inputting up to 5 characters per key press.
-  AutoTArray<Modifiers, 5> mModifiers;
+  CopyableAutoTArray<Modifiers, 5> mModifiers;
 };
 
 struct DeadKeyEntry {
@@ -955,7 +955,7 @@ class KeyboardLayout {
   ~KeyboardLayout();
 
   static KeyboardLayout* sInstance;
-  static nsIIdleServiceInternal* sIdleService;
+  static nsIUserIdleServiceInternal* sIdleService;
 
   struct DeadKeyTableListEntry {
     DeadKeyTableListEntry* next;

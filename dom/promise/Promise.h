@@ -7,19 +7,19 @@
 #ifndef mozilla_dom_Promise_h
 #define mozilla_dom_Promise_h
 
+#include <type_traits>
 #include <utility>
 
+#include "js/Promise.h"
 #include "js/TypeDecls.h"
 #include "jspubtd.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/TimeStamp.h"
-#include "mozilla/TypeTraits.h"
 #include "mozilla/WeakPtr.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/PromiseBinding.h"
 #include "mozilla/dom/ToJSValue.h"
-#include "nsAutoPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsWrapperCache.h"
 
@@ -35,23 +35,14 @@ class PromiseInit;
 class PromiseNativeHandler;
 class PromiseDebugging;
 
-#define NS_PROMISE_IID                               \
-  {                                                  \
-    0x1b8d6215, 0x3e67, 0x43ba, {                    \
-      0x8a, 0xf9, 0x31, 0x5e, 0x8f, 0xce, 0x75, 0x65 \
-    }                                                \
-  }
-
-class Promise : public nsISupports, public SupportsWeakPtr<Promise> {
+class Promise : public SupportsWeakPtr {
   friend class PromiseTask;
   friend class PromiseWorkerProxy;
   friend class PromiseWorkerProxyRunnable;
 
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_PROMISE_IID)
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS_FINAL
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(Promise)
-  MOZ_DECLARE_WEAKREFERENCE_TYPENAME(Promise)
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(Promise)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(Promise)
 
   enum PropagateUserInteraction {
     eDontPropagateUserInteraction,
@@ -180,6 +171,16 @@ class Promise : public nsISupports, public SupportsWeakPtr<Promise> {
                                             // specializations in the .cpp for
                                             // the T values we support.
 
+  // Mark a settled promise as already handled so that rejections will not
+  // be reported as unhandled.
+  void SetSettledPromiseIsHandled() {
+    AutoAllowLegacyScriptExecution exemption;
+    AutoEntryScript aes(mGlobal, "Set settled promise handled");
+    JSContext* cx = aes.cx();
+    JS::RootedObject promiseObj(cx, mPromiseObj);
+    JS::SetSettledPromiseIsHandled(cx, promiseObj);
+  }
+
   // WebIDL
 
   nsIGlobalObject* GetParentObject() const { return GetGlobalObject(); }
@@ -225,15 +226,16 @@ class Promise : public nsISupports, public SupportsWeakPtr<Promise> {
 
   template <typename Callback, typename... Args>
   using IsHandlerCallback =
-      IsSame<already_AddRefed<Promise>,
-             decltype(DeclVal<Callback>()((JSContext*)(nullptr),
-                                          DeclVal<JS::Handle<JS::Value>>(),
-                                          DeclVal<Args>()...))>;
+      std::is_same<already_AddRefed<Promise>,
+                   decltype(std::declval<Callback>()(
+                       (JSContext*)(nullptr),
+                       std::declval<JS::Handle<JS::Value>>(),
+                       std::declval<Args>()...))>;
 
   template <typename Callback, typename... Args>
   using ThenResult =
-      typename EnableIf<IsHandlerCallback<Callback, Args...>::value,
-                        Result<RefPtr<Promise>, nsresult>>::Type;
+      std::enable_if_t<IsHandlerCallback<Callback, Args...>::value,
+                       Result<RefPtr<Promise>, nsresult>>;
 
   // Similar to the JavaScript Then() function. Accepts a single lambda function
   // argument, which it attaches as a native resolution handler, and returns a
@@ -314,6 +316,7 @@ class Promise : public nsISupports, public SupportsWeakPtr<Promise> {
   void MaybeSomething(T&& aArgument, MaybeFunc aFunc) {
     MOZ_ASSERT(PromiseObj());  // It was preserved!
 
+    AutoAllowLegacyScriptExecution exemption;
     AutoEntryScript aes(mGlobal, "Promise resolution or rejection");
     JSContext* cx = aes.cx();
 
@@ -334,8 +337,6 @@ class Promise : public nsISupports, public SupportsWeakPtr<Promise> {
 
   JS::Heap<JSObject*> mPromiseObj;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(Promise, NS_PROMISE_IID)
 
 }  // namespace dom
 }  // namespace mozilla

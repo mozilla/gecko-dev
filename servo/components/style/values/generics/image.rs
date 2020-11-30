@@ -7,6 +7,7 @@
 //! [images]: https://drafts.csswg.org/css-images/#image-values
 
 use crate::custom_properties;
+use crate::values::generics::position::PositionComponent;
 use crate::values::serialize_atom_identifier;
 use crate::Atom;
 use crate::Zero;
@@ -21,7 +22,7 @@ use style_traits::{CssWriter, ToCss};
     Clone, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem,
 )]
 #[repr(C, u8)]
-pub enum GenericImage<G, MozImageRect, ImageUrl> {
+pub enum GenericImage<G, MozImageRect, ImageUrl, Color, Percentage> {
     /// `none` variant.
     None,
     /// A `<url()>` image.
@@ -44,9 +45,95 @@ pub enum GenericImage<G, MozImageRect, ImageUrl> {
     /// <https://drafts.css-houdini.org/css-paint-api/>
     #[cfg(feature = "servo-layout-2013")]
     PaintWorklet(PaintWorklet),
+
+    /// A `<cross-fade()>` image. Storing this directly inside of
+    /// GenericImage increases the size by 8 bytes so we box it here
+    /// and store images directly inside of cross-fade instead of
+    /// boxing them there.
+    CrossFade(Box<GenericCrossFade<Self, Color, Percentage>>),
 }
 
 pub use self::GenericImage as Image;
+
+/// <https://drafts.csswg.org/css-images-4/#cross-fade-function>
+#[css(comma, function = "cross-fade")]
+#[derive(
+    Clone, Debug, MallocSizeOf, PartialEq, ToResolvedValue, ToShmem, ToCss, ToComputedValue,
+)]
+#[repr(C)]
+pub struct GenericCrossFade<Image, Color, Percentage> {
+    /// All of the image percent pairings passed as arguments to
+    /// cross-fade.
+    #[css(iterable)]
+    pub elements: crate::OwnedSlice<GenericCrossFadeElement<Image, Color, Percentage>>,
+}
+
+/// A `<percent> | none` value. Represents optional percentage values
+/// assosicated with cross-fade images.
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+    ToCss,
+)]
+#[repr(C, u8)]
+pub enum PercentOrNone<Percentage> {
+    /// `none` variant.
+    #[css(skip)]
+    None,
+    /// A percentage variant.
+    Percent(Percentage),
+}
+
+/// An optional percent and a cross fade image.
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+    ToCss,
+)]
+#[repr(C)]
+pub struct GenericCrossFadeElement<Image, Color, Percentage> {
+    /// The percent of the final image that `image` will be.
+    pub percent: PercentOrNone<Percentage>,
+    /// A color or image that will be blended when cross-fade is
+    /// evaluated.
+    pub image: GenericCrossFadeImage<Image, Color>,
+}
+
+/// An image or a color. `cross-fade` takes either when blending
+/// images together.
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+    ToCss,
+    Parse,
+)]
+#[repr(C, u8)]
+pub enum GenericCrossFadeImage<I, C> {
+    /// A boxed image value. Boxing provides indirection so images can
+    /// be cross-fades and cross-fades can be images.
+    Image(I),
+    /// A color value.
+    Color(C),
+}
+
+pub use self::GenericCrossFade as CrossFade;
+pub use self::GenericCrossFadeElement as CrossFadeElement;
+pub use self::GenericCrossFadeImage as CrossFadeImage;
 
 /// A CSS gradient.
 /// <https://drafts.csswg.org/css-images/#gradients>
@@ -237,6 +324,8 @@ pub struct PaintWorklet {
     /// The arguments for the worklet.
     /// TODO: store a parsed representation of the arguments.
     #[cfg_attr(feature = "servo", ignore_malloc_size_of = "Arc")]
+    #[compute(no_field_bound)]
+    #[resolve(no_field_bound)]
     pub arguments: Vec<Arc<custom_properties::SpecifiedValue>>,
 }
 
@@ -284,22 +373,26 @@ pub struct GenericMozImageRect<NumberOrPercentage, MozImageRectUrl> {
 
 pub use self::GenericMozImageRect as MozImageRect;
 
-impl<G, R, U> fmt::Debug for Image<G, R, U>
+impl<G, R, U, C, P> fmt::Debug for Image<G, R, U, C, P>
 where
     G: ToCss,
     R: ToCss,
     U: ToCss,
+    C: ToCss,
+    P: ToCss,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.to_css(&mut CssWriter::new(f))
     }
 }
 
-impl<G, R, U> ToCss for Image<G, R, U>
+impl<G, R, U, C, P> ToCss for Image<G, R, U, C, P>
 where
     G: ToCss,
     R: ToCss,
     U: ToCss,
+    C: ToCss,
+    P: ToCss,
 {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
@@ -318,6 +411,7 @@ where
                 serialize_atom_identifier(selector, dest)?;
                 dest.write_str(")")
             },
+            Image::CrossFade(ref cf) => cf.to_css(dest),
         }
     }
 }
@@ -328,7 +422,7 @@ where
     LP: ToCss,
     NL: ToCss,
     NLP: ToCss,
-    P: ToCss,
+    P: PositionComponent + ToCss,
     A: ToCss,
     AoP: ToCss,
     C: ToCss,
@@ -338,8 +432,16 @@ where
         W: Write,
     {
         let (compat_mode, repeating) = match *self {
-            Gradient::Linear { compat_mode, repeating, .. } => (compat_mode, repeating),
-            Gradient::Radial { compat_mode, repeating, .. } => (compat_mode, repeating),
+            Gradient::Linear {
+                compat_mode,
+                repeating,
+                ..
+            } => (compat_mode, repeating),
+            Gradient::Radial {
+                compat_mode,
+                repeating,
+                ..
+            } => (compat_mode, repeating),
             Gradient::Conic { repeating, .. } => (GradientCompatMode::Modern, repeating),
         };
 
@@ -354,7 +456,12 @@ where
         }
 
         match *self {
-            Gradient::Linear { ref direction, ref items, compat_mode, .. } => {
+            Gradient::Linear {
+                ref direction,
+                ref items,
+                compat_mode,
+                ..
+            } => {
                 dest.write_str("linear-gradient(")?;
                 let mut skip_comma = if !direction.points_downwards(compat_mode) {
                     direction.to_css(dest, compat_mode)?;
@@ -370,43 +477,77 @@ where
                     item.to_css(dest)?;
                 }
             },
-            Gradient::Radial { ref shape, ref position, ref items, compat_mode, .. } => {
+            Gradient::Radial {
+                ref shape,
+                ref position,
+                ref items,
+                compat_mode,
+                ..
+            } => {
                 dest.write_str("radial-gradient(")?;
                 let omit_shape = match *shape {
                     EndingShape::Ellipse(Ellipse::Extent(ShapeExtent::Cover)) |
                     EndingShape::Ellipse(Ellipse::Extent(ShapeExtent::FarthestCorner)) => true,
                     _ => false,
                 };
+                let omit_position = position.is_center();
                 if compat_mode == GradientCompatMode::Modern {
                     if !omit_shape {
                         shape.to_css(dest)?;
-                        dest.write_str(" ")?;
+                        if !omit_position {
+                            dest.write_str(" ")?;
+                        }
                     }
-                    dest.write_str("at ")?;
-                    position.to_css(dest)?;
+                    if !omit_position {
+                        dest.write_str("at ")?;
+                        position.to_css(dest)?;
+                    }
                 } else {
-                    position.to_css(dest)?;
+                    if !omit_position {
+                        position.to_css(dest)?;
+                        if !omit_shape {
+                            dest.write_str(", ")?;
+                        }
+                    }
                     if !omit_shape {
-                        dest.write_str(", ")?;
                         shape.to_css(dest)?;
                     }
                 }
+                let mut skip_comma = omit_shape && omit_position;
                 for item in &**items {
-                    dest.write_str(", ")?;
+                    if !skip_comma {
+                        dest.write_str(", ")?;
+                    }
+                    skip_comma = false;
                     item.to_css(dest)?;
                 }
             },
-            Gradient::Conic { ref angle, ref position, ref items, .. } => {
+            Gradient::Conic {
+                ref angle,
+                ref position,
+                ref items,
+                ..
+            } => {
                 dest.write_str("conic-gradient(")?;
-                if !angle.is_zero() {
+                let omit_angle = angle.is_zero();
+                let omit_position = position.is_center();
+                if !omit_angle {
                     dest.write_str("from ")?;
                     angle.to_css(dest)?;
-                    dest.write_str(" ")?;
+                    if !omit_position {
+                        dest.write_str(" ")?;
+                    }
                 }
-                dest.write_str("at ")?;
-                position.to_css(dest)?;
+                if !omit_position {
+                    dest.write_str("at ")?;
+                    position.to_css(dest)?;
+                }
+                let mut skip_comma = omit_angle && omit_position;
                 for item in &**items {
-                    dest.write_str(", ")?;
+                    if !skip_comma {
+                        dest.write_str(", ")?;
+                    }
+                    skip_comma = false;
                     item.to_css(dest)?;
                 }
             },

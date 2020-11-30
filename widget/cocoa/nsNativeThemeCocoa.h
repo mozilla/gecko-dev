@@ -226,9 +226,7 @@ class nsNativeThemeCocoa : private nsNativeTheme, public nsITheme {
   };
 
   enum Widget : uint8_t {
-    eColorFill,  // mozilla::gfx::Color
-    eSheetBackground,
-    eDialogBackground,
+    eColorFill,       // mozilla::gfx::sRGBColor
     eMenuBackground,  // MenuBackgroundParams
     eMenuIcon,        // MenuIconParams
     eMenuItem,        // MenuItemParams
@@ -268,11 +266,9 @@ class nsNativeThemeCocoa : private nsNativeTheme, public nsITheme {
   };
 
   struct WidgetInfo {
-    static WidgetInfo ColorFill(const mozilla::gfx::Color& aParams) {
+    static WidgetInfo ColorFill(const mozilla::gfx::sRGBColor& aParams) {
       return WidgetInfo(Widget::eColorFill, aParams);
     }
-    static WidgetInfo SheetBackground() { return WidgetInfo(Widget::eSheetBackground, false); }
-    static WidgetInfo DialogBackground() { return WidgetInfo(Widget::eDialogBackground, false); }
     static WidgetInfo MenuBackground(const MenuBackgroundParams& aParams) {
       return WidgetInfo(Widget::eMenuBackground, aParams);
     }
@@ -374,7 +370,7 @@ class nsNativeThemeCocoa : private nsNativeTheme, public nsITheme {
     template <typename T>
     WidgetInfo(enum Widget aWidget, const T& aParams) : mVariant(aParams), mWidget(aWidget) {}
 
-    mozilla::Variant<mozilla::gfx::Color, MenuBackgroundParams, MenuIconParams, MenuItemParams,
+    mozilla::Variant<mozilla::gfx::sRGBColor, MenuBackgroundParams, MenuIconParams, MenuItemParams,
                      CheckboxOrRadioParams, ButtonParams, DropdownParams, SpinButtonParams,
                      SegmentParams, UnifiedToolbarParams, TextBoxParams, SearchFieldParams,
                      ProgressParams, MeterParams, TreeHeaderCellParams, ScaleParams,
@@ -398,8 +394,8 @@ class nsNativeThemeCocoa : private nsNativeTheme, public nsITheme {
                                         mozilla::layers::RenderRootStateManager* aManager,
                                         nsIFrame* aFrame, StyleAppearance aAppearance,
                                         const nsRect& aRect) override;
-  MOZ_MUST_USE LayoutDeviceIntMargin GetWidgetBorder(nsDeviceContext* aContext, nsIFrame* aFrame,
-                                                     StyleAppearance aAppearance) override;
+  [[nodiscard]] LayoutDeviceIntMargin GetWidgetBorder(nsDeviceContext* aContext, nsIFrame* aFrame,
+                                                      StyleAppearance aAppearance) override;
 
   bool GetWidgetPadding(nsDeviceContext* aContext, nsIFrame* aFrame, StyleAppearance aAppearance,
                         LayoutDeviceIntMargin* aResult) override;
@@ -420,8 +416,6 @@ class nsNativeThemeCocoa : private nsNativeTheme, public nsITheme {
   bool ThemeDrawsFocusForWidget(StyleAppearance aAppearance) override;
   bool ThemeNeedsComboboxDropmarker() override;
   virtual bool WidgetAppearanceDependsOnWindowFocus(StyleAppearance aAppearance) override;
-  virtual bool NeedToClearBackgroundBehindWidget(nsIFrame* aFrame,
-                                                 StyleAppearance aAppearance) override;
   virtual ThemeGeometryType ThemeGeometryTypeForWidget(nsIFrame* aFrame,
                                                        StyleAppearance aAppearance) override;
   virtual Transparency GetWidgetTransparency(nsIFrame* aFrame,
@@ -455,8 +449,6 @@ class nsNativeThemeCocoa : private nsNativeTheme, public nsITheme {
   MeterParams ComputeMeterParams(nsIFrame* aFrame);
   TreeHeaderCellParams ComputeTreeHeaderCellParams(nsIFrame* aFrame,
                                                    mozilla::EventStates aEventState);
-  ScaleParams ComputeXULScaleParams(nsIFrame* aFrame, mozilla::EventStates aEventState,
-                                    bool aIsHorizontal);
   mozilla::Maybe<ScaleParams> ComputeHTMLScaleParams(nsIFrame* aFrame,
                                                      mozilla::EventStates aEventState);
   ScrollbarParams ComputeScrollbarParams(nsIFrame* aFrame, bool aIsHorizontal);
@@ -465,6 +457,8 @@ class nsNativeThemeCocoa : private nsNativeTheme, public nsITheme {
   void DrawTextBox(CGContextRef context, const HIRect& inBoxRect, TextBoxParams aParams);
   void DrawMeter(CGContextRef context, const HIRect& inBoxRect, const MeterParams& aParams);
   void DrawSegment(CGContextRef cgContext, const HIRect& inBoxRect, const SegmentParams& aParams);
+  void DrawSegmentBackground(CGContextRef cgContext, const HIRect& inBoxRect,
+                             const SegmentParams& aParams);
   void DrawTabPanel(CGContextRef context, const HIRect& inBoxRect, bool aIsInsideActiveWindow);
   void DrawScale(CGContextRef context, const HIRect& inBoxRect, const ScaleParams& aParams);
   void DrawCheckboxOrRadio(CGContextRef cgContext, bool inCheckbox, const HIRect& inBoxRect,
@@ -512,6 +506,8 @@ class nsNativeThemeCocoa : private nsNativeTheme, public nsITheme {
   void DrawScrollCorner(CGContextRef cgContext, const CGRect& inBoxRect, ScrollbarParams aParams);
   void DrawMultilineTextField(CGContextRef cgContext, const CGRect& inBoxRect, bool aIsFocused);
   void DrawSourceList(CGContextRef cgContext, const CGRect& inBoxRect, bool aIsActive);
+  void DrawSourceListSelection(CGContextRef aContext, const CGRect& aRect, bool aWindowIsActive,
+                               bool aSelectionIsActive);
 
   // Scrollbars
   bool IsParentScrollbarRolledOver(nsIFrame* aFrame);

@@ -108,8 +108,8 @@ interface WebGLShaderPrecisionFormat {
     readonly attribute GLint precision;
 };
 
-typedef (Float32Array or sequence<GLfloat>) Float32List;
-typedef (Int32Array or sequence<GLint>) Int32List;
+typedef ([AllowShared] Float32Array or sequence<GLfloat>) Float32List;
+typedef ([AllowShared] Int32Array or sequence<GLint>) Int32List;
 
 // Shared mixin for the things that WebGLRenderingContext and
 // WebGL2RenderingContext have in common.  This doesn't have all the things they
@@ -226,7 +226,6 @@ interface mixin WebGLRenderingContextBase {
     const GLenum SAMPLE_COVERAGE                = 0x80A0;
 
     /* ErrorCode */
-    [NeedsWindowsUndef]
     const GLenum NO_ERROR                       = 0;
     const GLenum INVALID_ENUM                   = 0x0500;
     const GLenum INVALID_VALUE                  = 0x0501;
@@ -835,6 +834,20 @@ interface EXT_texture_compression_rgtc {
     const GLenum COMPRESSED_SIGNED_RED_RGTC1_EXT = 0x8DBC;
     const GLenum COMPRESSED_RED_GREEN_RGTC2_EXT = 0x8DBD;
     const GLenum COMPRESSED_SIGNED_RED_GREEN_RGTC2_EXT = 0x8DBE;
+};
+
+// https://www.khronos.org/registry/webgl/extensions/EXT_texture_norm16/
+[NoInterfaceObject,
+ Exposed=Window]
+interface EXT_texture_norm16 {
+  const GLenum R16_EXT = 0x822A;
+  const GLenum RG16_EXT = 0x822C;
+  const GLenum RGB16_EXT = 0x8054;
+  const GLenum RGBA16_EXT = 0x805B;
+  const GLenum R16_SNORM_EXT = 0x8F98;
+  const GLenum RG16_SNORM_EXT = 0x8F99;
+  const GLenum RGB16_SNORM_EXT = 0x8F9A;
+  const GLenum RGBA16_SNORM_EXT = 0x8F9B;
 };
 
 [NoInterfaceObject,

@@ -92,7 +92,7 @@ TEST_BREACHES_MAP.set(TEST_LOGIN_1.guid, TEST_BREACH);
 add_task(async function setup() {
   let templateFrame = document.getElementById("templateFrame");
   let displayEl = document.getElementById("display");
-  importDependencies(templateFrame, displayEl);
+  await importDependencies(templateFrame, displayEl);
 
   gLoginList = document.createElement("login-list");
   displayEl.appendChild(gLoginList);
@@ -247,17 +247,32 @@ add_task(async function test_populated_list() {
 });
 
 add_task(async function test_breach_indicator() {
+  gLoginList.setLogins([TEST_LOGIN_1, TEST_LOGIN_2, Object.assign({}, TEST_LOGIN_3, {password: TEST_LOGIN_1.password})]);
   gLoginList.setBreaches(TEST_BREACHES_MAP);
+  let vulnerableLogins = new Map();
+  vulnerableLogins.set(TEST_LOGIN_1.guid, true);
+  vulnerableLogins.set(TEST_LOGIN_3.guid, true);
+  gLoginList.setVulnerableLogins(vulnerableLogins);
   let loginListItems = gLoginList.shadowRoot.querySelectorAll(".login-list-item:not(#new-login-list-item):not([hidden])");
-  let warningIcon = loginListItems[0].querySelector(".list-item-warning-icon");
-  let hiddenWarningIcon = loginListItems[1].querySelector(".list-item-warning-icon");
+  let alertIcon = loginListItems[0].querySelector(".alert-icon");
+  is(loginListItems[0].dataset.guid, TEST_LOGIN_1.guid, "The first login should be TEST_LOGIN_1");
+  ok(!loginListItems[0].classList.contains("vulnerable"), "The first login should not have the .vulnerable class");
   ok(loginListItems[0].classList.contains("breached"), "The first login should have the .breached class.");
-  ok(!isHidden(warningIcon), "The warning icon for a breached login should not be hidden.");
+  is(alertIcon.src, "chrome://browser/content/aboutlogins/icons/breached-website.svg", "The alert icon should be the breach warning icon");
+  is(loginListItems[1].dataset.guid, TEST_LOGIN_3.guid, "The second login should be TEST_LOGIN_3");
+  ok(loginListItems[1].classList.contains("vulnerable"), "The second login should have the .vulnerable class");
   ok(!loginListItems[1].classList.contains("breached"), "The second login should not have the .breached class");
-  ok(isHidden(hiddenWarningIcon), "The warning icon for a login without an associated breach should be hidden.");
+  alertIcon = loginListItems[1].querySelector(".alert-icon");
+  is(alertIcon.src, "chrome://browser/content/aboutlogins/icons/vulnerable-password.svg", "The alert icon should be the vulnerable password icon");
+  is(loginListItems[2].dataset.guid, TEST_LOGIN_2.guid, "The third login should be TEST_LOGIN_2");
+  alertIcon = loginListItems[2].querySelector(".alert-icon");
+  ok(!loginListItems[2].classList.contains("vulnerable"), "The third login should not have the .vulnerable class");
+  ok(!loginListItems[2].classList.contains("breached"), "The third login should not have the .breached class");
+  is(alertIcon.src, "chrome://mochitests/content/chrome/browser/components/aboutlogins/tests/chrome/test_login_list.html",  "The alert icon src should be empty");
 });
 
 add_task(async function test_filtered_list() {
+  gLoginList.setLogins([TEST_LOGIN_1, TEST_LOGIN_2]);
   let emptySearchText = gLoginList.shadowRoot.querySelector(".empty-search-message");
   ok(isHidden(emptySearchText), "The empty search text should be hidden when there are results in the list");
   is(gLoginList.shadowRoot.querySelectorAll(".login-list-item:not(#new-login-list-item):not([hidden])").length, 2, "Both logins should be visible");
@@ -505,7 +520,9 @@ add_task(async function test_sorted_list() {
 
   // sort by breached when there are breached logins
   gLoginList.setBreaches(TEST_BREACHES_MAP);
-  loginSort.value = "breached";
+  loginSort.value = "alerts";
+  let vulnerableLogins = new Map();
+  gLoginList.setVulnerableLogins(vulnerableLogins);
   dispatchChangeEvent(loginSort);
   loginListItems = gLoginList.shadowRoot.querySelectorAll(".login-list-item:not(#new-login-list-item):not([hidden])");
   is(loginListItems[0].classList.contains("breached"), true, "Breached login should be displayed at top of list");
@@ -513,7 +530,7 @@ add_task(async function test_sorted_list() {
 
   // sort by name when there are no breached logins
   gLoginList.setBreaches(new Map());
-  loginSort.value = "breached";
+  loginSort.value = "alerts";
   dispatchChangeEvent(loginSort);
   loginListItems = gLoginList.shadowRoot.querySelectorAll(".login-list-item:not(#new-login-list-item):not([hidden])");
   title1 = gLoginList._logins[loginListItems[0].dataset.guid].login.title;

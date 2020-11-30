@@ -40,10 +40,10 @@ endif
 endif
 
 check-js-msg::
-	(cd $(topsrcdir) && $(PYTHON) $(topsrcdir)/config/check_js_msg_encoding.py);
+	(cd $(topsrcdir) && $(PYTHON3) $(topsrcdir)/config/check_js_msg_encoding.py);
 
 check-jit-test::
-	$(JITTEST_SANITIZER_ENV) $(wildcard $(RUN_TEST_PROGRAM)) $(PYTHON) -u $(srcdir)/jit-test/jit_test.py \
+	$(JITTEST_SANITIZER_ENV) $(wildcard $(RUN_TEST_PROGRAM)) $(PYTHON3) -u $(srcdir)/jit-test/jit_test.py \
 	        --no-slow --no-progress --format=automation --jitflags=all \
 			$(JITTEST_VALGRIND_FLAG) \
 			$(JITTEST_EXTRA_ARGS) \
@@ -52,7 +52,7 @@ check-jit-test::
 check:: check-js-msg
 
 check-jstests:
-	$(wildcard $(RUN_TEST_PROGRAM)) $(PYTHON) -u $(srcdir)/tests/jstests.py \
+	$(wildcard $(RUN_TEST_PROGRAM)) $(PYTHON3) -u $(srcdir)/tests/jstests.py \
 		--no-progress --format=automation --timeout 300 \
 		$(JSTESTS_EXTRA_ARGS) \
 		$(DIST)/bin/$(JS_SHELL_NAME)$(BIN_SUFFIX)
@@ -73,18 +73,6 @@ ifndef HAVE_DTRACE
 #check:: check-jstests
 endif
 endif
-
-GARBAGE_DIRS += config.statusd
-DIST_GARBAGE = config.cache config.log config.status \
-   config/autoconf.mk config/emptyvars.mk \
-   js-config.h js-confdefs.h \
-   backend.mk config/backend.mk devtools/backend.mk editline/backend.mk \
-   gdb/backend.mk jsapi-tests/backend.mk shell/backend.mk tests/backend.mk \
-   backend.RecursiveMakeBackend backend.RecursiveMakeBackend.pp \
-   devtools/rootAnalysis/Makefile
-
-distclean::
-	$(RM) $(DIST_GARBAGE)
 
 CFLAGS += $(MOZ_ZLIB_CFLAGS)
 
@@ -137,7 +125,7 @@ $(LIBRARY): $(DTRACE_PROBE_OBJ)
 $(DTRACE_PROBE_OBJ): $(srcdir)/devtools/javascript-trace.d $(OBJS)
 	dtrace -x nolibs -G -C -s $< -o $@ $(filter-out $<, $^)
 
-OBJS += $(DTRACE_PROBE_OBJ) # for "make clean"
+OBJS += $(DTRACE_PROBE_OBJ)
 endif # OS_ARCH != Darwin
 endif # HAVE_DTRACE
 
@@ -157,13 +145,5 @@ source-package:
 	MOZJS_PATCH_VERSION=$(MOZJS_PATCH_VERSION) \
 	MOZJS_ALPHA=$(MOZJS_ALPHA) \
 	$(srcdir)/make-source-package.sh
-
-clean::
-	DIST=$(DIST) \
-	MOZJS_MAJOR_VERSION=$(MOZJS_MAJOR_VERSION) \
-	MOZJS_MINOR_VERSION=$(MOZJS_MINOR_VERSION) \
-	MOZJS_PATCH_VERSION=$(MOZJS_PATCH_VERSION) \
-	MOZJS_ALPHA=$(MOZJS_ALPHA) \
-	$(srcdir)/make-source-package.sh clean
 
 endif

@@ -10,6 +10,8 @@
  * <copied from="test_authentication.js"/>
  */
 
+"use strict";
+
 const { HttpServer } = ChromeUtils.import("resource://testing-common/httpd.js");
 
 const FLAG_RETURN_FALSE = 1 << 0;
@@ -146,7 +148,7 @@ Requestor.prototype = {
   getInterface: function requestor_gi(iid) {
     if (iid.equals(Ci.nsIAuthPrompt)) {
       dump("authprompt1 not implemented\n");
-      throw Cr.NS_ERROR_NO_INTERFACE;
+      throw Components.Exception("", Cr.NS_ERROR_NO_INTERFACE);
     }
     if (iid.equals(Ci.nsIAuthPrompt2)) {
       try {
@@ -159,7 +161,7 @@ Requestor.prototype = {
         do_throw(e);
       }
     }
-    throw Cr.NS_ERROR_NO_INTERFACE;
+    throw Components.Exception("", Cr.NS_ERROR_NO_INTERFACE);
   },
 
   prompt2: null,
@@ -195,7 +197,7 @@ var listener = {
       do_throw("Unexpected exception: " + e);
     }
 
-    throw Cr.NS_ERROR_ABORT;
+    throw Components.Exception("", Cr.NS_ERROR_ABORT);
   },
 
   onDataAvailable: function test_ODA() {

@@ -18,10 +18,17 @@
 
 struct ID3D11Device;
 struct ID3D11DeviceContext;
+struct ID3D11VideoDevice;
+struct ID3D11VideoContext;
+struct ID3D11VideoProcessor;
+struct ID3D11VideoProcessorEnumerator;
+struct ID3D11VideoProcessorOutputView;
 struct IDCompositionDevice2;
 struct IDCompositionSurface;
 struct IDCompositionTarget;
 struct IDCompositionVisual2;
+struct IDXGIDecodeSwapChain;
+struct IDXGIResource;
 struct IDXGISwapChain1;
 struct IDCompositionVirtualSurface;
 
@@ -33,14 +40,14 @@ class GLContext;
 
 namespace wr {
 
-#define USE_VIRTUAL_SURFACES
-
 // The size of the virtual surface. This is large enough such that we
 // will never render a surface larger than this.
 #define VIRTUAL_SURFACE_SIZE (1024 * 1024)
 
-class DCLayer;
+class DCTile;
 class DCSurface;
+class DCSurfaceVideo;
+class RenderTextureHost;
 
 /**
  * DCLayerTree manages direct composition layers.
@@ -49,9 +56,11 @@ class DCSurface;
 class DCLayerTree {
  public:
   static UniquePtr<DCLayerTree> Create(gl::GLContext* aGL, EGLConfig aEGLConfig,
-                                       ID3D11Device* aDevice, HWND aHwnd);
+                                       ID3D11Device* aDevice,
+                                       ID3D11DeviceContext* aCtx, HWND aHwnd,
+                                       nsACString& aError);
   explicit DCLayerTree(gl::GLContext* aGL, EGLConfig aEGLConfig,
-                       ID3D11Device* aDevice,
+                       ID3D11Device* aDevice, ID3D11DeviceContext* aCtx,
                        IDCompositionDevice2* aCompositionDevice);
   ~DCLayerTree();
 
@@ -69,11 +78,16 @@ class DCLayerTree {
   void Unbind();
   void CreateSurface(wr::NativeSurfaceId aId, wr::DeviceIntPoint aVirtualOffset,
                      wr::DeviceIntSize aTileSize, bool aIsOpaque);
+  void CreateExternalSurface(wr::NativeSurfaceId aId, bool aIsOpaque);
   void DestroySurface(NativeSurfaceId aId);
   void CreateTile(wr::NativeSurfaceId aId, int32_t aX, int32_t aY);
   void DestroyTile(wr::NativeSurfaceId aId, int32_t aX, int32_t aY);
-  void AddSurface(wr::NativeSurfaceId aId, wr::DeviceIntPoint aPosition,
-                  wr::DeviceIntRect aClipRect);
+  void AttachExternalImage(wr::NativeSurfaceId aId,
+                           wr::ExternalImageId aExternalImage);
+  void AddSurface(wr::NativeSurfaceId aId,
+                  const wr::CompositorSurfaceTransform& aTransform,
+                  wr::DeviceIntRect aClipRect,
+                  wr::ImageRendering aImageRendering);
 
   gl::GLContext* GetGLContext() const { return mGL; }
   EGLConfig GetEGLConfig() const { return mEGLConfig; }
@@ -81,13 +95,22 @@ class DCLayerTree {
   IDCompositionDevice2* GetCompositionDevice() const {
     return mCompositionDevice;
   }
+  ID3D11VideoDevice* GetVideoDevice() const { return mVideoDevice; }
+  ID3D11VideoContext* GetVideoContext() const { return mVideoContext; }
+  ID3D11VideoProcessor* GetVideoProcessor() const { return mVideoProcessor; }
+  ID3D11VideoProcessorEnumerator* GetVideoProcessorEnumerator() const {
+    return mVideoProcessorEnumerator;
+  }
+  bool EnsureVideoProcessor(const gfx::IntSize& aVideoSize);
+
   DCSurface* GetSurface(wr::NativeSurfaceId aId) const;
 
   // Get or create an FBO with depth buffer suitable for specified dimensions
   GLuint GetOrCreateFbo(int aWidth, int aHeight);
 
  protected:
-  bool Initialize(HWND aHwnd);
+  bool Initialize(HWND aHwnd, nsACString& aError);
+  bool InitializeVideoOverlaySupport();
   bool MaybeUpdateDebugCounter();
   bool MaybeUpdateDebugVisualRedrawRegions();
   void DestroyEGLSurface();
@@ -101,11 +124,20 @@ class DCLayerTree {
   EGLConfig mEGLConfig;
 
   RefPtr<ID3D11Device> mDevice;
+  RefPtr<ID3D11DeviceContext> mCtx;
 
   RefPtr<IDCompositionDevice2> mCompositionDevice;
   RefPtr<IDCompositionTarget> mCompositionTarget;
   RefPtr<IDCompositionVisual2> mRootVisual;
   RefPtr<IDCompositionVisual2> mDefaultSwapChainVisual;
+
+  RefPtr<ID3D11VideoDevice> mVideoDevice;
+  RefPtr<ID3D11VideoContext> mVideoContext;
+  RefPtr<ID3D11VideoProcessor> mVideoProcessor;
+  RefPtr<ID3D11VideoProcessorEnumerator> mVideoProcessorEnumerator;
+  gfx::IntSize mVideoSize;
+
+  bool mVideoOverlaySupported;
 
   bool mDebugCounter;
   bool mDebugVisualRedrawRegions;
@@ -141,12 +173,14 @@ class DCLayerTree {
     int height;
     GLuint fboId;
     GLuint depthRboId;
+    int lastFrameUsed;
   };
 
   // A cache of FBOs, containing a depth buffer allocated to a specific size.
   // TODO(gw): Might be faster as a hashmap? The length is typically much less
   // than 10.
-  std::vector<CachedFrameBuffer> mFrameBuffers;
+  nsTArray<CachedFrameBuffer> mFrameBuffers;
+  int mCurrentFrame = 0;
 
   bool mPendingCommit;
 };
@@ -163,14 +197,14 @@ class DCSurface {
   explicit DCSurface(wr::DeviceIntSize aTileSize,
                      wr::DeviceIntPoint aVirtualOffset, bool aIsOpaque,
                      DCLayerTree* aDCLayerTree);
-  ~DCSurface();
+  virtual ~DCSurface();
 
   bool Initialize();
   void CreateTile(int32_t aX, int32_t aY);
   void DestroyTile(int32_t aX, int32_t aY);
 
   IDCompositionVisual2* GetVisual() const { return mVisual; }
-  DCLayer* GetLayer(int32_t aX, int32_t aY) const;
+  DCTile* GetTile(int32_t aX, int32_t aY) const;
 
   struct TileKey {
     TileKey(int32_t aX, int32_t aY) : mX(aX), mY(aY) {}
@@ -179,7 +213,6 @@ class DCSurface {
     int32_t mY;
   };
 
-#ifdef USE_VIRTUAL_SURFACES
   wr::DeviceIntSize GetTileSize() const { return mTileSize; }
   wr::DeviceIntPoint GetVirtualOffset() const { return mVirtualOffset; }
 
@@ -189,7 +222,8 @@ class DCSurface {
 
   void UpdateAllocatedRect();
   void DirtyAllocatedRect();
-#endif
+
+  virtual DCSurfaceVideo* AsDCSurfaceVideo() { return nullptr; }
 
  protected:
   DCLayerTree* mDCLayerTree;
@@ -209,39 +243,40 @@ class DCSurface {
   wr::DeviceIntSize mTileSize;
   bool mIsOpaque;
   bool mAllocatedRectDirty;
-  std::unordered_map<TileKey, UniquePtr<DCLayer>, TileKeyHashFn> mDCLayers;
+  std::unordered_map<TileKey, UniquePtr<DCTile>, TileKeyHashFn> mDCTiles;
   wr::DeviceIntPoint mVirtualOffset;
-
-#ifdef USE_VIRTUAL_SURFACES
   RefPtr<IDCompositionVirtualSurface> mVirtualSurface;
-#endif
 };
 
-/**
- Represents a tile within a surface.
- TODO(gw): We should probably rename this to DCTile as a follow up.
- */
-class DCLayer {
+class DCSurfaceVideo : public DCSurface {
  public:
-  explicit DCLayer(DCLayerTree* aDCLayerTree);
-  ~DCLayer();
-  bool Initialize(int aX, int aY, wr::DeviceIntSize aSize, bool aIsOpaque);
+  DCSurfaceVideo(bool aIsOpaque, DCLayerTree* aDCLayerTree);
 
-#ifdef USE_VIRTUAL_SURFACES
-  gfx::IntRect mValidRect;
-#else
-  IDCompositionSurface* GetCompositionSurface() const {
-    return mCompositionSurface;
-  }
-  IDCompositionVisual2* GetVisual() const { return mVisual; }
+  void AttachExternalImage(wr::ExternalImageId aExternalImage);
+
+  DCSurfaceVideo* AsDCSurfaceVideo() override { return this; }
 
  protected:
-  RefPtr<IDCompositionSurface> CreateCompositionSurface(wr::DeviceIntSize aSize,
-                                                        bool aIsOpaque);
+  bool CreateVideoSwapChain(RenderTextureHost* aTexture);
+  bool CallVideoProcessorBlt(RenderTextureHost* aTexture);
+  void ReleaseDecodeSwapChainResources();
 
-  RefPtr<IDCompositionSurface> mCompositionSurface;
-  RefPtr<IDCompositionVisual2> mVisual;
-#endif
+  RefPtr<ID3D11VideoProcessorOutputView> mOutputView;
+  RefPtr<IDXGIResource> mDecodeResource;
+  RefPtr<IDXGISwapChain1> mVideoSwapChain;
+  RefPtr<IDXGIDecodeSwapChain> mDecodeSwapChain;
+  HANDLE mSwapChainSurfaceHandle;
+  gfx::IntSize mSwapChainSize;
+  RefPtr<RenderTextureHost> mPrevTexture;
+};
+
+class DCTile {
+ public:
+  explicit DCTile(DCLayerTree* aDCLayerTree);
+  ~DCTile();
+  bool Initialize(int aX, int aY, wr::DeviceIntSize aSize, bool aIsOpaque);
+
+  gfx::IntRect mValidRect;
 
   DCLayerTree* mDCLayerTree;
 };

@@ -9,10 +9,14 @@ use peek_poke::PeekPoke;
 use std::ops::{Add, Sub};
 use std::sync::Arc;
 // local imports
-use crate::api::{IdNamespace, PipelineId, TileSize};
+use crate::{IdNamespace, TileSize};
 use crate::display_item::ImageRendering;
 use crate::font::{FontInstanceKey, FontInstanceData, FontKey, FontTemplate};
 use crate::units::*;
+
+/// The default tile size for blob images and regular images larger than
+/// the maximum texture size.
+pub const DEFAULT_TILE_SIZE: TileSize = 512;
 
 /// An opaque identifier describing an image registered with WebRender.
 /// This is used as a handle to reference images, and is used as the
@@ -94,16 +98,6 @@ pub trait ExternalImageHandler {
     /// Unlock the external image. WR should not read the image content
     /// after this call.
     fn unlock(&mut self, key: ExternalImageId, channel_index: u8);
-}
-
-/// Allows callers to receive a texture with the contents of a specific
-/// pipeline copied to it.
-pub trait OutputImageHandler {
-    /// Return the native texture handle and the size of the texture.
-    fn lock(&mut self, pipeline_id: PipelineId) -> Option<(u32, FramebufferIntSize)>;
-    /// Unlock will only be called if the lock() call succeeds, when WR has issued
-    /// the GL commands to copy the output to the texture handle.
-    fn unlock(&mut self, pipeline_id: PipelineId);
 }
 
 /// Specifies the type of texture target in driver terms.
@@ -379,6 +373,11 @@ pub trait BlobImageHandler: Send {
     /// Creates a snapshot of the current state of blob images in the handler.
     fn create_blob_rasterizer(&mut self) -> Box<dyn AsyncBlobImageRasterizer>;
 
+    /// Creates an empty blob handler of the same type.
+    ///
+    /// This is used to allow creating new API endpoints with blob handlers installed on them.
+    fn create_similar(&self) -> Box<dyn BlobImageHandler>;
+
     /// A hook to let the blob image handler update any state related to resources that
     /// are not bundled in the blob recording itself.
     fn prepare_resources(
@@ -389,7 +388,7 @@ pub trait BlobImageHandler: Send {
 
     /// Register a blob image.
     fn add(&mut self, key: BlobImageKey, data: Arc<BlobImageData>, visible_rect: &DeviceIntRect,
-           tiling: Option<TileSize>);
+           tile_size: TileSize);
 
     /// Update an already registered blob image.
     fn update(&mut self, key: BlobImageKey, data: Arc<BlobImageData>, visible_rect: &DeviceIntRect,
@@ -507,8 +506,9 @@ where
 
         match (*self, *other) {
             (All, rect) | (rect, All)  => rect,
-            (Partial(rect1), Partial(rect2)) => Partial(rect1.intersection(&rect2)
-                                                                   .unwrap_or_else(Rect::zero))
+            (Partial(rect1), Partial(rect2)) => {
+                Partial(rect1.intersection(&rect2).unwrap_or_else(Rect::zero))
+            }
         }
     }
 
@@ -517,9 +517,10 @@ where
         use crate::DirtyRect::*;
 
         match *self {
-            All              => *rect,
-            Partial(dirty_rect) => dirty_rect.intersection(rect)
-                                               .unwrap_or_else(Rect::zero),
+            All => *rect,
+            Partial(dirty_rect) => {
+                dirty_rect.intersection(rect).unwrap_or_else(Rect::zero)
+            }
         }
     }
 }
@@ -579,8 +580,6 @@ pub enum BlobImageError {
 pub struct BlobImageRequest {
     /// Unique handle to the image.
     pub key: BlobImageKey,
-    /// Tiling offset in number of tiles, if applicable.
-    ///
-    /// `None` if the image will not be tiled.
-    pub tile: Option<TileOffset>,
+    /// Tiling offset in number of tiles.
+    pub tile: TileOffset,
 }

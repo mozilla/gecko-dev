@@ -65,7 +65,7 @@ ChromeUtils.defineModuleGetter(
 
 var gMigrators = null;
 var gProfileStartup = null;
-var gMigrationBundle = null;
+var gL10n = null;
 var gPreviousDefaultBrowserKey = "";
 
 let gForceExitSpinResolve = false;
@@ -104,13 +104,11 @@ XPCOMUtils.defineLazyGetter(this, "gAvailableMigratorKeys", function() {
   return [];
 });
 
-function getMigrationBundle() {
-  if (!gMigrationBundle) {
-    gMigrationBundle = Services.strings.createBundle(
-      "chrome://browser/locale/migration/migration.properties"
-    );
+function getL10n() {
+  if (!gL10n) {
+    gL10n = new Localization(["browser/migration.ftl"]);
   }
-  return gMigrationBundle;
+  return gL10n;
 }
 
 /**
@@ -128,7 +126,7 @@ function getMigrationBundle() {
  * 6. For startup-only migrators, override |startupOnlyMigrator|.
  */
 var MigratorPrototype = {
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIBrowserProfileMigrator]),
+  QueryInterface: ChromeUtils.generateQI(["nsIBrowserProfileMigrator"]),
 
   /**
    * OVERRIDE IF AND ONLY IF the source supports multiple profiles.
@@ -529,9 +527,8 @@ var MigratorPrototype = {
   },
 };
 
-var MigrationUtils = Object.freeze({
+var MigrationUtils = Object.seal({
   resourceTypes: {
-    SETTINGS: Ci.nsIBrowserProfileMigrator.SETTINGS,
     COOKIES: Ci.nsIBrowserProfileMigrator.COOKIES,
     HISTORY: Ci.nsIBrowserProfileMigrator.HISTORY,
     FORMDATA: Ci.nsIBrowserProfileMigrator.FORMDATA,
@@ -593,83 +590,54 @@ var MigrationUtils = Object.freeze({
   },
 
   /**
-   * Gets a string from the migration bundle.  Shorthand for
-   * nsIStringBundle.GetStringFromName, if aReplacements isn't passed, or for
-   * nsIStringBundle.formatStringFromName if it is.
-   *
-   * This method also takes care of "bumped" keys (See bug 737381 comment 8 for
-   * details).
+   * Gets localized string corresponding to l10n-id
    *
    * @param aKey
-   *        The key of the string to retrieve.
-   * @param aReplacements
-   *        [optioanl] Array of replacements to run on the retrieved string.
-   * @return the retrieved string.
-   *
-   * @see nsIStringBundle
+   *        The key of the id of the localization to retrieve.
+   * @param aArgs
+   *        [optional] map of arguments to the id.
+   * @return A promise that resolves to the retrieved localization.
    */
-  getLocalizedString: function MU_getLocalizedString(aKey, aReplacements) {
-    aKey = aKey.replace(
-      /_(canary|chromium|chrome-beta|chrome-dev)$/,
-      "_chrome"
-    );
-    aKey = aKey.replace(/_(chromium-edge-beta|chromium-edge)$/, "_edge");
-
-    const OVERRIDES = {
-      "4_firefox": "4_firefox_history_and_bookmarks",
-      "64_firefox": "64_firefox_other",
-    };
-    aKey = OVERRIDES[aKey] || aKey;
-
-    if (aReplacements === undefined) {
-      return getMigrationBundle().GetStringFromName(aKey);
-    }
-    return getMigrationBundle().formatStringFromName(aKey, aReplacements);
+  getLocalizedString: function MU_getLocalizedString(aKey, aArgs) {
+    let l10n = getL10n();
+    return l10n.formatValue(aKey, aArgs);
   },
 
   _getLocalePropertyForBrowser(browserId) {
     switch (browserId) {
       case "chromium-edge":
       case "edge":
-        return "sourceNameEdge";
+        return "source-name-edge";
       case "ie":
-        return "sourceNameIE";
+        return "source-name-ie";
       case "safari":
-        return "sourceNameSafari";
+        return "source-name-safari";
       case "canary":
-        return "sourceNameCanary";
+        return "source-name-canary";
       case "chrome":
-        return "sourceNameChrome";
+        return "source-name-chrome";
       case "chrome-beta":
-        return "sourceNameChromeBeta";
+        return "source-name-chrome-beta";
       case "chrome-dev":
-        return "sourceNameChromeDev";
+        return "source-name-chrome-dev";
       case "chromium":
-        return "sourceNameChromium";
+        return "source-name-chromium";
       case "chromium-edge-beta":
-        return "sourceNameEdgeBeta";
+        return "source-name-chromium-edge-beta";
       case "firefox":
-        return "sourceNameFirefox";
+        return "source-name-firefox";
       case "360se":
-        return "sourceName360se";
-    }
-    return null;
-  },
-
-  getBrowserName(browserId) {
-    let prop = this._getLocalePropertyForBrowser(browserId);
-    if (prop) {
-      return this.getLocalizedString(prop);
+        return "source-name-360se";
     }
     return null;
   },
 
   /**
    * Helper for creating a folder for imported bookmarks from a particular
-   * migration source.  The folder is created at the end of the given folder.
+   * migration source. The folder is created at the end of the given folder.
    *
    * @param sourceNameStr
-   *        the source name (first letter capitalized).  This is used
+   *        the source name (first letter capitalized). This is used
    *        for reading the localized source name from the migration
    *        bundle (e.g. if aSourceNameStr is Mosaic, this will try to read
    *        sourceNameMosaic from the migration bundle).
@@ -678,13 +646,19 @@ var MigrationUtils = Object.freeze({
    * @return the GUID of the new folder.
    */
   async createImportedBookmarksFolder(sourceNameStr, parentGuid) {
-    let source = this.getLocalizedString("sourceName" + sourceNameStr);
-    let title = this.getLocalizedString("importedBookmarksFolder", [source]);
-    return (await PlacesUtils.bookmarks.insert({
-      type: PlacesUtils.bookmarks.TYPE_FOLDER,
-      parentGuid,
-      title,
-    })).guid;
+    let source = await this.getLocalizedString(
+      "source-name-" + sourceNameStr.toLowerCase()
+    );
+    let title = await this.getLocalizedString("imported-bookmarks-source", {
+      source,
+    });
+    return (
+      await PlacesUtils.bookmarks.insert({
+        type: PlacesUtils.bookmarks.TYPE_FOLDER,
+        parentGuid,
+        title,
+      })
+    ).guid;
   },
 
   /**
@@ -1210,7 +1184,11 @@ var MigrationUtils = Object.freeze({
 
   initializeUndoData() {
     gKeepUndoData = true;
-    gUndoData = new Map([["bookmarks", []], ["visits", []], ["logins", []]]);
+    gUndoData = new Map([
+      ["bookmarks", []],
+      ["visits", []],
+      ["logins", []],
+    ]);
   },
 
   async _postProcessUndoData(state) {
@@ -1225,9 +1203,10 @@ var MigrationUtils = Object.freeze({
     let bmPromises = bookmarkFolders.map(({ guid }) => {
       // Ignore bookmarks where the promise doesn't resolve (ie that are missing)
       // Also check that the bookmark fetch returns isn't null before adding it.
-      return PlacesUtils.bookmarks
-        .fetch(guid)
-        .then(bm => bm && bookmarkFolderData.push(bm), () => {});
+      return PlacesUtils.bookmarks.fetch(guid).then(
+        bm => bm && bookmarkFolderData.push(bm),
+        () => {}
+      );
     });
 
     await Promise.all(bmPromises);
@@ -1295,7 +1274,7 @@ var MigrationUtils = Object.freeze({
   finishMigration: function MU_finishMigration() {
     gMigrators = null;
     gProfileStartup = null;
-    gMigrationBundle = null;
+    gL10n = null;
   },
 
   gAvailableMigratorKeys,
@@ -1307,6 +1286,7 @@ var MigrationUtils = Object.freeze({
   MIGRATION_ENTRYPOINT_PASSWORDS: 4,
   MIGRATION_ENTRYPOINT_NEWTAB: 5,
   MIGRATION_ENTRYPOINT_FILE_MENU: 6,
+  MIGRATION_ENTRYPOINT_HELP_MENU: 7,
 
   _sourceNameToIdMapping: {
     nothing: 1,
@@ -1326,4 +1306,11 @@ var MigrationUtils = Object.freeze({
   getSourceIdForTelemetry(sourceName) {
     return this._sourceNameToIdMapping[sourceName] || 0;
   },
+
+  /* Enum of locations where bookmarks were found in the
+     source browser that we import from */
+  SOURCE_BOOKMARK_ROOTS_BOOKMARKS_TOOLBAR: 1,
+  SOURCE_BOOKMARK_ROOTS_BOOKMARKS_MENU: 2,
+  SOURCE_BOOKMARK_ROOTS_READING_LIST: 4,
+  SOURCE_BOOKMARK_ROOTS_UNFILED: 8,
 });

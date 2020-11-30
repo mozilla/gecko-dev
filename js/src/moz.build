@@ -113,7 +113,6 @@ if CONFIG['HAVE_DTRACE']:
 # doing!
 EXPORTS += [
     '!js-config.h',
-    'js.msg',
     'jsapi.h',
     'jsfriendapi.h',
     'jspubtd.h',
@@ -121,17 +120,19 @@ EXPORTS += [
 ]
 
 EXPORTS.js += [
+    '../public/AllocationLogging.h',
     '../public/AllocationRecording.h',
     '../public/AllocPolicy.h',
     '../public/Array.h',
     '../public/ArrayBuffer.h',
     '../public/ArrayBufferMaybeShared.h',
-    '../public/BinASTFormat.h',
+    '../public/BigInt.h',
     '../public/BuildId.h',
     '../public/CallArgs.h',
     '../public/CallNonGenericMethod.h',
     '../public/CharacterEncoding.h',
     '../public/Class.h',
+    '../public/ComparisonOperators.h',
     '../public/CompilationAndEvaluation.h',
     '../public/CompileOptions.h',
     '../public/ContextOptions.h',
@@ -140,6 +141,7 @@ EXPORTS.js += [
     '../public/Debug.h',
     '../public/Equality.h',
     '../public/ErrorReport.h',
+    '../public/Exception.h',
     '../public/ForOfIterator.h',
     '../public/GCAnnotations.h',
     '../public/GCAPI.h',
@@ -157,6 +159,7 @@ EXPORTS.js += [
     '../public/MemoryFunctions.h',
     '../public/MemoryMetrics.h',
     '../public/Modules.h',
+    '../public/Object.h',
     '../public/OffThreadScriptCompilation.h',
     '../public/Principals.h',
     '../public/Printf.h',
@@ -177,11 +180,13 @@ EXPORTS.js += [
     '../public/Result.h',
     '../public/RootingAPI.h',
     '../public/SavedFrameAPI.h',
+    '../public/ScalarType.h',
     '../public/SharedArrayBuffer.h',
     '../public/SliceBudget.h',
     '../public/SourceText.h',
     '../public/StableStringChars.h',
     '../public/Stream.h',
+    '../public/String.h',
     '../public/StructuredClone.h',
     '../public/SweepingAPI.h',
     '../public/Symbol.h',
@@ -203,12 +208,68 @@ EXPORTS.js += [
     '../public/ValueArray.h',
     '../public/Vector.h',
     '../public/Warnings.h',
+    '../public/WasmModule.h',
     '../public/WeakMapPtr.h',
     '../public/Wrapper.h',
 ]
 
+# This lives in mozglue/baseprofiler but we re-publish ourselves to support
+# standalone SpiderMonkey configurations.
+EXPORTS.js += [
+    '../../mozglue/baseprofiler/public/ProfilingCategoryList.h',
+]
+
+# Public APIs that are experimental: the precise contour of the APIs may still
+# change, but they're at least plausible first passes at designing something.
+# We expose them as-is, buyer beware.
 EXPORTS.js.experimental += [
+    '../public/experimental/CodeCoverage.h',
+    '../public/experimental/Intl.h',
+    '../public/experimental/JitInfo.h',
     '../public/experimental/SourceHook.h',
+    '../public/experimental/TypedData.h',
+]
+
+# Friend APIs are APIs that either basically SpiderMonkey-internal, or their
+# contours are gross and terrible -- but the functionality is too important to
+# some embedder (often, Gecko) to just not expose anything or to agonize through
+# a clean design.  Use this only if you absolutely must, and feel free to
+# propose clean APIs to replace what's here!
+EXPORTS.js.friend += [
+    '../public/friend/DOMProxy.h',
+    '../public/friend/DumpFunctions.h',
+    '../public/friend/ErrorMessages.h',
+    '../public/friend/ErrorNumbers.msg',
+    '../public/friend/JSMEnvironment.h',
+    '../public/friend/StackLimits.h',
+    '../public/friend/UsageStatistics.h',
+    '../public/friend/WindowProxy.h',
+    '../public/friend/XrayJitInfo.h',
+]
+
+# "Shadow" API defines the internal layout of public JSAPI types like |JSObject|
+# and |JSString|, so that other *inline* public functions can efficiently access
+# their internal fields.
+#
+# Embedders must never include these headers themselves or use their contents.
+# These internal layout details are publicly exposed for access *only* so that
+# other public API definitions may use them.
+#
+# When adding new shadow structure definitions (or new fields/static constants
+# to existing structures) for access by inline methods, make sure to add static
+# asserts to the original header file to ensure that offsets and duplicated
+# constants are consistent.  (Long term, it might be worth figuring out some way
+# to back actual implementations *with* these shadow definitions to eliminate
+# this requirement.)
+EXPORTS.js.shadow += [
+    '../public/shadow/Function.h',
+    '../public/shadow/Object.h',
+    '../public/shadow/ObjectGroup.h',
+    '../public/shadow/Realm.h',
+    '../public/shadow/Shape.h',
+    '../public/shadow/String.h',
+    '../public/shadow/Symbol.h',
+    '../public/shadow/Zone.h',
 ]
 
 UNIFIED_SOURCES += [
@@ -218,7 +279,7 @@ UNIFIED_SOURCES += [
     'builtin/Boolean.cpp',
     'builtin/DataViewObject.cpp',
     'builtin/Eval.cpp',
-    'builtin/FinalizationGroupObject.cpp',
+    'builtin/FinalizationRegistryObject.cpp',
     'builtin/JSON.cpp',
     'builtin/MapObject.cpp',
     'builtin/ModuleObject.cpp',
@@ -252,21 +313,12 @@ UNIFIED_SOURCES += [
     'builtin/String.cpp',
     'builtin/Symbol.cpp',
     'builtin/TestingFunctions.cpp',
-    'builtin/TypedObject.cpp',
     'builtin/WeakMapObject.cpp',
     'builtin/WeakRefObject.cpp',
     'builtin/WeakSetObject.cpp',
     'ds/Bitmap.cpp',
     'ds/LifoAlloc.cpp',
     'ds/MemoryProtectionExceptionHandler.cpp',
-    'irregexp/NativeRegExpMacroAssembler.cpp',
-    'irregexp/RegExpAST.cpp',
-    'irregexp/RegExpCharacters.cpp',
-    'irregexp/RegExpEngine.cpp',
-    'irregexp/RegExpInterpreter.cpp',
-    'irregexp/RegExpMacroAssembler.cpp',
-    'irregexp/RegExpParser.cpp',
-    'irregexp/RegExpStack.cpp',
     'jsapi.cpp',
     'jsdate.cpp',
     'jsexn.cpp',
@@ -275,6 +327,7 @@ UNIFIED_SOURCES += [
     'proxy/BaseProxyHandler.cpp',
     'proxy/CrossCompartmentWrapper.cpp',
     'proxy/DeadObjectProxy.cpp',
+    'proxy/DOMProxy.cpp',
     'proxy/OpaqueCrossCompartmentWrapper.cpp',
     'proxy/Proxy.cpp',
     'proxy/ScriptedProxyHandler.cpp',
@@ -283,8 +336,10 @@ UNIFIED_SOURCES += [
     'threading/Mutex.cpp',
     'threading/ProtectedData.cpp',
     'threading/Thread.cpp',
+    'util/AllocationLogging.cpp',
     'util/AllocPolicy.cpp',
     'util/CompleteFile.cpp',
+    'util/DumpFunctions.cpp',
     'util/NativeStack.cpp',
     'util/Printf.cpp',
     'util/StringBuffer.cpp',
@@ -300,6 +355,8 @@ UNIFIED_SOURCES += [
     'vm/AsyncIteration.cpp',
     'vm/BigIntType.cpp',
     'vm/BuildId.cpp',
+    'vm/BuiltinObjectKind.cpp',
+    'vm/BytecodeLocation.cpp',
     'vm/BytecodeUtil.cpp',
     'vm/Caches.cpp',
     'vm/CallNonGenericMethod.cpp',
@@ -311,10 +368,13 @@ UNIFIED_SOURCES += [
     'vm/DateTime.cpp',
     'vm/EnvironmentObject.cpp',
     'vm/EqualityOperations.cpp',
+    'vm/ErrorMessages.cpp',
     'vm/ErrorObject.cpp',
     'vm/ErrorReporting.cpp',
+    'vm/Exception.cpp',
     'vm/ForOfIterator.cpp',
     'vm/FrameIter.cpp',
+    'vm/FunctionFlags.cpp',
     'vm/GeckoProfiler.cpp',
     'vm/GeneratorObject.cpp',
     'vm/GlobalObject.cpp',
@@ -339,6 +399,7 @@ UNIFIED_SOURCES += [
     'vm/OffThreadPromiseRuntimeState.cpp',
     'vm/OffThreadScriptCompilation.cpp',
     'vm/PIC.cpp',
+    'vm/PlainObject.cpp',
     'vm/Printer.cpp',
     'vm/Probes.cpp',
     'vm/PromiseLookup.cpp',
@@ -359,6 +420,7 @@ UNIFIED_SOURCES += [
     'vm/StringType.cpp',
     'vm/SymbolType.cpp',
     'vm/TaggedProto.cpp',
+    'vm/ThrowMsgKind.cpp',
     'vm/Time.cpp',
     'vm/ToSource.cpp',
     'vm/TypedArrayObject.cpp',
@@ -366,8 +428,10 @@ UNIFIED_SOURCES += [
     'vm/UbiNode.cpp',
     'vm/UbiNodeCensus.cpp',
     'vm/UbiNodeShortestPaths.cpp',
+    'vm/UsageStatistics.cpp',
     'vm/Value.cpp',
     'vm/Warnings.cpp',
+    'vm/WindowProxy.cpp',
     'vm/Xdr.cpp',
 ]
 
@@ -395,6 +459,7 @@ if CONFIG['JS_HAS_INTL_API']:
         'builtin/intl/Collator.cpp',
         'builtin/intl/CommonFunctions.cpp',
         'builtin/intl/DateTimeFormat.cpp',
+        'builtin/intl/DisplayNames.cpp',
         'builtin/intl/IntlObject.cpp',
         'builtin/intl/LanguageTag.cpp',
         'builtin/intl/LanguageTagGenerated.cpp',
@@ -460,9 +525,9 @@ DIRS += [
     'debugger',
     'frontend',
     'gc',
+    'irregexp',
     'jit',
-    'wasm',
-] + (['new-regexp'] if CONFIG['ENABLE_NEW_REGEXP'] else [])
+    'wasm']
 
 if CONFIG['JS_JITSPEW']:
     DIRS += ['zydis']
@@ -470,8 +535,8 @@ if CONFIG['JS_JITSPEW']:
 FINAL_LIBRARY = 'js'
 
 selfhosted_inputs = [
-    'js.msg',
-    'builtin/TypedObjectConstants.h',
+    '../public/friend/ErrorNumbers.msg',
+    'builtin/TypedArrayConstants.h',
     'builtin/SelfHostingDefines.h',
     'builtin/Utilities.js',
     'builtin/Array.js',
@@ -497,19 +562,21 @@ selfhosted_inputs = [
     'builtin/Set.js',
     'builtin/Sorting.js',
     'builtin/TypedArray.js',
-    'builtin/TypedObject.js',
     'builtin/WeakMap.js',
     'builtin/WeakSet.js'
 ] + ([
+    'builtin/intl/NumberingSystemsGenerated.h',
     'builtin/intl/Collator.js',
     'builtin/intl/CommonFunctions.js',
     'builtin/intl/CurrencyDataGenerated.js',
     'builtin/intl/DateTimeFormat.js',
+    'builtin/intl/DisplayNames.js',
     'builtin/intl/IntlObject.js',
     'builtin/intl/ListFormat.js',
     'builtin/intl/NumberFormat.js',
     'builtin/intl/PluralRules.js',
     'builtin/intl/RelativeTimeFormat.js',
+    'builtin/intl/SanctionedSimpleUnitIdentifiersGenerated.js',
 ] if CONFIG['JS_HAS_INTL_API'] else [])
 
 # Prepare self-hosted JS code for embedding

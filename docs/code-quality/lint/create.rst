@@ -82,6 +82,8 @@ Each ``.yml`` file must have at least one linter defined in it. Here are the sup
 * extensions - A list of file extensions to be considered (optional)
 * setup - A function that sets up external dependencies (optional)
 * support-files - A list of glob patterns matching configuration files (optional)
+* find-dotfiles - If set to ``true``, run on dot files (.*) (optional)
+* ignore-case - If set to ``true`` and ``type`` is regex, ignore the case (optional)
 
 In addition to the above, some ``.yml`` files correspond to a single lint rule. For these, the
 following additional keys may be specified:
@@ -320,4 +322,8 @@ For example, for flake8, the configuration is the following:
 If the linter requires an external program, you will have to install it in the `setup script <https://searchfox.org/mozilla-central/source/taskcluster/docker/lint/system-setup.sh>`_
 and maybe install the necessary files in the `Docker configuration <https://searchfox.org/mozilla-central/source/taskcluster/docker/lint/Dockerfile>`_.
 
+.. note::
 
+    If the defect found by the linter is minor, make sure that it is run as `tier 2 <https://wiki.mozilla.org/Sheriffing/Job_Visibility_Policy#Overview_of_the_Job_Visibility_Tiers>`_.
+    This prevents the tree from closing because of a tiny issue.
+    For example, the typo detection is run as tier-2.

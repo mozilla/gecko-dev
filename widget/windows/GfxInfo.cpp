@@ -78,6 +78,28 @@ GfxInfo::GetHasBattery(bool* aHasBattery) {
   return NS_OK;
 }
 
+int32_t GfxInfo::GetMaxRefreshRate(bool* aMixed) {
+  int32_t maxRefreshRate = -1;
+  if (aMixed) {
+    *aMixed = false;
+  }
+
+  for (auto displayInfo : mDisplayInfo) {
+    int32_t refreshRate = int32_t(displayInfo.mRefreshRate);
+    if (aMixed && maxRefreshRate > 0 && maxRefreshRate != refreshRate) {
+      *aMixed = true;
+    }
+    maxRefreshRate = std::max(maxRefreshRate, refreshRate);
+  }
+  return maxRefreshRate;
+}
+
+NS_IMETHODIMP
+GfxInfo::GetEmbeddedInFirefoxReality(bool* aEmbeddedInFirefoxReality) {
+  *aEmbeddedInFirefoxReality = gfxVars::FxREmbedded();
+  return NS_OK;
+}
+
 #define PIXEL_STRUCT_RGB 1
 #define PIXEL_STRUCT_BGR 2
 
@@ -294,7 +316,7 @@ uint32_t ParseIDFromDeviceID(const nsAString& key, const char* prefix,
     id.Cut(0, start + strlen(prefix));
     id.Truncate(length);
   }
-  if (id.Equals(L"QCOM", nsCaseInsensitiveStringComparator())) {
+  if (id.Equals(L"QCOM", nsCaseInsensitiveStringComparator)) {
     // String format assumptions are broken, so use a Qualcomm PCI Vendor ID
     // for now. See also GfxDriverInfo::GetDeviceVendor.
     return 0x5143;
@@ -454,11 +476,11 @@ nsresult GfxInfo::Init() {
     }
   }
 
-  mDeviceKeyDebug = NS_LITERAL_STRING("PrimarySearch");
+  mDeviceKeyDebug = u"PrimarySearch"_ns;
 
   while (EnumDisplayDevicesW(nullptr, deviceIndex, &displayDevice, 0)) {
     if (displayDevice.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE) {
-      mDeviceKeyDebug = NS_LITERAL_STRING("NullSearch");
+      mDeviceKeyDebug = u"NullSearch"_ns;
       break;
     }
     deviceIndex++;
@@ -477,12 +499,22 @@ nsresult GfxInfo::Init() {
   /* check that DeviceKey begins with DEVICE_KEY_PREFIX */
   /* some systems have a DeviceKey starting with \REGISTRY\Machine\ so we need
    * to compare case insenstively */
-  if (_wcsnicmp(displayDevice.DeviceKey, DEVICE_KEY_PREFIX,
-                ArrayLength(DEVICE_KEY_PREFIX) - 1) != 0)
-    return rv;
+  /* If the device key is empty, we are most likely in a remote desktop
+   * environment. In this case we set the devicekey to an empty string so
+   * it can be handled later.
+   */
+  if (displayDevice.DeviceKey[0] != '\0') {
+    if (_wcsnicmp(displayDevice.DeviceKey, DEVICE_KEY_PREFIX,
+                  ArrayLength(DEVICE_KEY_PREFIX) - 1) != 0) {
+      return rv;
+    }
 
-  // chop off DEVICE_KEY_PREFIX
-  mDeviceKey[0] = displayDevice.DeviceKey + ArrayLength(DEVICE_KEY_PREFIX) - 1;
+    // chop off DEVICE_KEY_PREFIX
+    mDeviceKey[0] =
+        displayDevice.DeviceKey + ArrayLength(DEVICE_KEY_PREFIX) - 1;
+  } else {
+    mDeviceKey[0].Truncate();
+  }
 
   mDeviceID[0] = displayDevice.DeviceID;
   mDeviceString[0] = displayDevice.DeviceString;
@@ -526,8 +558,8 @@ nsresult GfxInfo::Init() {
     DWORD memberIndex = 0;
 
     devinfoData.cbSize = sizeof(devinfoData);
-    NS_NAMED_LITERAL_STRING(driverKeyPre,
-                            "System\\CurrentControlSet\\Control\\Class\\");
+    constexpr auto driverKeyPre =
+        u"System\\CurrentControlSet\\Control\\Class\\"_ns;
     /* enumerate device information elements in the device information set */
     while (SetupDiEnumDeviceInfo(devinfo, memberIndex++, &devinfoData)) {
       /* get a string that identifies the device's driver key */
@@ -607,8 +639,8 @@ nsresult GfxInfo::Init() {
       nsAutoString driverVersion2;
       nsAutoString driverDate2;
 
-      NS_NAMED_LITERAL_STRING(driverKeyPre,
-                              "System\\CurrentControlSet\\Control\\Class\\");
+      constexpr auto driverKeyPre =
+          u"System\\CurrentControlSet\\Control\\Class\\"_ns;
       /* enumerate device information elements in the device information set */
       while (SetupDiEnumDeviceInfo(devinfo, memberIndex++, &devinfoData)) {
         /* get a string that identifies the device's driver key */
@@ -764,12 +796,12 @@ nsresult GfxInfo::Init() {
     nsAutoString eligibleDLLs;
     if (NS_SUCCEEDED(GetAdapterDriver(eligibleDLLs))) {
       if (FindInReadable(dllFileName, eligibleDLLs)) {
-        dllFileName += NS_LITERAL_STRING(".dll");
+        dllFileName += u".dll"_ns;
         gfxWindowsPlatform::GetDLLVersion(dllFileName.get(), dllVersion);
         ParseDriverVersion(dllVersion, &dllNumericVersion);
       }
       if (FindInReadable(dllFileName2, eligibleDLLs)) {
-        dllFileName2 += NS_LITERAL_STRING(".dll");
+        dllFileName2 += u".dll"_ns;
         gfxWindowsPlatform::GetDLLVersion(dllFileName2.get(), dllVersion2);
         ParseDriverVersion(dllVersion2, &dllNumericVersion2);
       }
@@ -800,8 +832,7 @@ nsresult GfxInfo::Init() {
     }
 
     ParseDriverVersion(mDriverVersion[mActiveGPUIndex], &driverNumericVersion);
-    ParseDriverVersion(NS_LITERAL_STRING("9.17.10.0"),
-                       &knownSafeMismatchVersion);
+    ParseDriverVersion(u"9.17.10.0"_ns, &knownSafeMismatchVersion);
 
     // If there's a driver version mismatch, consider this harmful only when
     // the driver version is less than knownSafeMismatchVersion.  See the
@@ -1075,8 +1106,7 @@ static void CheckForCiscoVPN() {
                     0, KEY_QUERY_VALUE, &key);
   if (result == ERROR_SUCCESS) {
     RegCloseKey(key);
-    CrashReporter::AppendAppNotesToCrashReport(
-        NS_LITERAL_CSTRING("Cisco VPN\n"));
+    CrashReporter::AppendAppNotesToCrashReport("Cisco VPN\n"_ns);
   }
 }
 
@@ -1084,8 +1114,7 @@ void GfxInfo::AddCrashReportAnnotations() {
   CheckForCiscoVPN();
 
   if (mHasDriverVersionMismatch) {
-    CrashReporter::AppendAppNotesToCrashReport(
-        NS_LITERAL_CSTRING("DriverVersionMismatch\n"));
+    CrashReporter::AppendAppNotesToCrashReport("DriverVersionMismatch\n"_ns);
   }
 
   nsString deviceID, vendorID, driverVersion, subsysID;
@@ -1220,7 +1249,7 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
      * It should be noted here that more specialized rules on certain features
      * should be inserted -before- more generalized restriction. As the first
      * match for feature/OS/device found in the list will be used for the final
-     * blacklisting call.
+     * blocklisting call.
      */
 
     /*
@@ -1279,7 +1308,7 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
     // There are a several reports of strange rendering corruptions with this
     // driver version, with and without webrender. We weren't able to
     // reproduce these problems, but the users were able to update their
-    // drivers and it went away. So just to be safe, let's blacklist all
+    // drivers and it went away. So just to be safe, let's blocklist all
     // gpu use with this particular (very old) driver, restricted
     // to Win10 since we only have reports from that platform.
     APPEND_TO_DRIVER_BLOCKLIST2(
@@ -1443,7 +1472,7 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
      * 4578. See bug 1432610
      */
     APPEND_TO_DRIVER_BLOCKLIST2(OperatingSystem::Windows7,
-                                DeviceFamily::IntelHDGraphicsToHaswell,
+                                DeviceFamily::IntelHaswell,
                                 nsIGfxInfo::FEATURE_DIRECT2D,
                                 nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
                                 DRIVER_BUILD_ID_LESS_THAN_OR_EQUAL, 4578,
@@ -1509,7 +1538,7 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
     // Bug 1548410. Disable hardware accelerated video decoding on
     // Qualcomm drivers used on Windows on ARM64 which are known to
     // cause BSOD's and output suprious green frames while decoding video.
-    // Bug 1592826 expands the blacklist.
+    // Bug 1592826 expands the blocklist.
     APPEND_TO_DRIVER_BLOCKLIST2(
         OperatingSystem::Windows10, DeviceFamily::QualcommAll,
         nsIGfxInfo::FEATURE_HARDWARE_VIDEO_DECODING,
@@ -1732,138 +1761,40 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
         DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions,
         "FEATURE_UNQUALIFIED_WEBRENDER_NVIDIA_BLOCKED");
 
-    // Block all Windows versions other than Windows 10.
-    APPEND_TO_DRIVER_BLOCKLIST2(
-        OperatingSystem::Windows7, DeviceFamily::All,
-        nsIGfxInfo::FEATURE_WEBRENDER, nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
-        DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions,
-        "FEATURE_UNQUALIFIED_WEBRENDER_WINDOWS_7");
-    APPEND_TO_DRIVER_BLOCKLIST2(
-        OperatingSystem::Windows8, DeviceFamily::All,
-        nsIGfxInfo::FEATURE_WEBRENDER, nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
-        DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions,
-        "FEATURE_UNQUALIFIED_WEBRENDER_WINDOWS_8");
-    APPEND_TO_DRIVER_BLOCKLIST2(
-        OperatingSystem::Windows8_1, DeviceFamily::All,
-        nsIGfxInfo::FEATURE_WEBRENDER, nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
-        DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions,
-        "FEATURE_UNQUALIFIED_WEBRENDER_WINDOWS_8_1");
-
-    // Bug 1525084 - Window jumps with certain Intel drivers
-    // On nightly, we use a more conversative range of drivers that we have
-    // confirmed the issue occurs with. On beta/release, we block everything
-    // earlier to minimize the probability of missing a particular driver.
-#ifdef NIGHTLY_BUILD
-    APPEND_TO_DRIVER_BLOCKLIST_RANGE(
-        OperatingSystem::Windows, DeviceFamily::IntelAll,
-        nsIGfxInfo::FEATURE_WEBRENDER,
-        nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION, DRIVER_BETWEEN_INCLUSIVE,
-        V(10, 18, 15, 4256), V(10, 18, 15, 4281),
-        "FEATURE_FAILURE_WEBRENDER_INTEL_BAD_DRIVER",
-        "Intel driver >= 21.20.16.4590");
-    APPEND_TO_DRIVER_BLOCKLIST_RANGE(
-        OperatingSystem::Windows, DeviceFamily::IntelAll,
-        nsIGfxInfo::FEATURE_WEBRENDER,
-        nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION, DRIVER_BETWEEN_INCLUSIVE,
-        V(20, 19, 15, 4285), V(20, 19, 15, 4835),
-        "FEATURE_FAILURE_WEBRENDER_INTEL_BAD_DRIVER",
-        "Intel driver >= 21.20.16.4590");
-    APPEND_TO_DRIVER_BLOCKLIST_RANGE(
-        OperatingSystem::Windows, DeviceFamily::IntelAll,
-        nsIGfxInfo::FEATURE_WEBRENDER,
-        nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION, DRIVER_BETWEEN_INCLUSIVE,
-        V(21, 20, 16, 4471), V(21, 20, 16, 4565),
-        "FEATURE_FAILURE_WEBRENDER_INTEL_BAD_DRIVER",
-        "Intel driver >= 21.20.16.4590");
-#else
-    APPEND_TO_DRIVER_BLOCKLIST2(
-        OperatingSystem::Windows, DeviceFamily::IntelAll,
-        nsIGfxInfo::FEATURE_WEBRENDER,
-        nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION, DRIVER_LESS_THAN,
-        V(21, 20, 16, 4590), "Intel driver >= 21.20.16.4590");
-#endif
-
+#ifndef NIGHTLY_BUILD
     // Bug 1615421 / 1607860 - Playing videos appear to crash with WebRender
-    // with this particular driver.
+    // with this particular driver. Bug 1671253 enabled this on nightly only.
     APPEND_TO_DRIVER_BLOCKLIST2(
         OperatingSystem::Windows, DeviceFamily::IntelAll,
         nsIGfxInfo::FEATURE_WEBRENDER,
         nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION, DRIVER_EQUAL,
-        V(23, 20, 16, 4973), "Intel driver > 23.20.16.4973");
+        V(23, 20, 16, 4973),
+        "FEATURE_FAILURE_WEBRENDER_VIDEO_CRASH_INTEL_23.20.16.4973");
+#endif
 
     ////////////////////////////////////
     // FEATURE_WEBRENDER - ALLOWLIST
 
     APPEND_TO_DRIVER_BLOCKLIST2_EXT(
-        OperatingSystem::RecentWindows10, ScreenSizeStatus::Small,
-        BatteryStatus::Present, DesktopEnvironment::All, WindowProtocol::All,
-        DriverVendor::All, DeviceFamily::NvidiaRolloutWebRender,
-        nsIGfxInfo::FEATURE_WEBRENDER, nsIGfxInfo::FEATURE_ALLOW_ALWAYS,
-        DRIVER_GREATER_THAN_OR_EQUAL, V(26, 21, 14, 3200),
-        "FEATURE_ROLLOUT_BATTERY_S_SCRN_NV_RECENT");
-
-    APPEND_TO_DRIVER_BLOCKLIST2_EXT(
-        OperatingSystem::Windows10, ScreenSizeStatus::Small,
-        BatteryStatus::None, DesktopEnvironment::All, WindowProtocol::All,
-        DriverVendor::All, DeviceFamily::IntelRolloutWebRender,
-        nsIGfxInfo::FEATURE_WEBRENDER, nsIGfxInfo::FEATURE_ALLOW_ALWAYS,
-        DRIVER_COMPARISON_IGNORED, V(0, 0, 0, 0),
-        "FEATURE_ROLLOUT_DESKTOP_INTEL_S_SCRN");
-
-    APPEND_TO_DRIVER_BLOCKLIST2_EXT(
-        OperatingSystem::Windows10, ScreenSizeStatus::All, BatteryStatus::None,
+        OperatingSystem::Windows, ScreenSizeStatus::All, BatteryStatus::All,
         DesktopEnvironment::All, WindowProtocol::All, DriverVendor::All,
         DeviceFamily::AtiRolloutWebRender, nsIGfxInfo::FEATURE_WEBRENDER,
         nsIGfxInfo::FEATURE_ALLOW_ALWAYS, DRIVER_COMPARISON_IGNORED,
         V(0, 0, 0, 0), "FEATURE_ROLLOUT_DESKTOP_AMD");
 
     APPEND_TO_DRIVER_BLOCKLIST2_EXT(
-        OperatingSystem::Windows10, ScreenSizeStatus::All, BatteryStatus::None,
+        OperatingSystem::Windows, ScreenSizeStatus::All, BatteryStatus::All,
         DesktopEnvironment::All, WindowProtocol::All, DriverVendor::All,
         DeviceFamily::NvidiaRolloutWebRender, nsIGfxInfo::FEATURE_WEBRENDER,
         nsIGfxInfo::FEATURE_ALLOW_ALWAYS, DRIVER_COMPARISON_IGNORED,
-        V(0, 0, 0, 0), "FEATURE_ROLLOUT_DESKTOP_NV");
-
-#ifdef EARLY_BETA_OR_EARLIER
-    APPEND_TO_DRIVER_BLOCKLIST2_EXT(
-        OperatingSystem::Windows10, ScreenSizeStatus::Small,
-        BatteryStatus::Present, DesktopEnvironment::All, WindowProtocol::All,
-        DriverVendor::All, DeviceFamily::AtiRolloutWebRender,
-        nsIGfxInfo::FEATURE_WEBRENDER, nsIGfxInfo::FEATURE_ALLOW_ALWAYS,
-        DRIVER_COMPARISON_IGNORED, V(0, 0, 0, 0),
-        "FEATURE_ROLLOUT_NIGHTLY_BATTERY_AMD_S_SCRN");
+        V(0, 0, 0, 0), "FEATURE_ROLLOUT_NV");
 
     APPEND_TO_DRIVER_BLOCKLIST2_EXT(
-        OperatingSystem::Windows10, ScreenSizeStatus::Small,
-        BatteryStatus::Present, DesktopEnvironment::All, WindowProtocol::All,
-        DriverVendor::All, DeviceFamily::IntelRolloutWebRender,
-        nsIGfxInfo::FEATURE_WEBRENDER, nsIGfxInfo::FEATURE_ALLOW_ALWAYS,
-        DRIVER_COMPARISON_IGNORED, V(0, 0, 0, 0),
-        "FEATURE_ROLLOUT_NIGHTLY_BATTERY_INTEL_S_SCRN");
-#endif
-
-#ifdef NIGHTLY_BUILD
-    APPEND_TO_DRIVER_BLOCKLIST2_EXT(
-        OperatingSystem::Windows10, ScreenSizeStatus::All, BatteryStatus::All,
-        DesktopEnvironment::All, WindowProtocol::All, DriverVendor::All,
-        DeviceFamily::NvidiaRolloutWebRender, nsIGfxInfo::FEATURE_WEBRENDER,
-        nsIGfxInfo::FEATURE_ALLOW_QUALIFIED, DRIVER_COMPARISON_IGNORED,
-        V(0, 0, 0, 0), "FEATURE_ROLLOUT_NIGHTLY_LISTED_NVIDIA");
-
-    APPEND_TO_DRIVER_BLOCKLIST2_EXT(
-        OperatingSystem::Windows10, ScreenSizeStatus::All, BatteryStatus::All,
-        DesktopEnvironment::All, WindowProtocol::All, DriverVendor::All,
-        DeviceFamily::AtiRolloutWebRender, nsIGfxInfo::FEATURE_WEBRENDER,
-        nsIGfxInfo::FEATURE_ALLOW_QUALIFIED, DRIVER_COMPARISON_IGNORED,
-        V(0, 0, 0, 0), "FEATURE_ROLLOUT_NIGHTLY_LISTED_AMD");
-
-    APPEND_TO_DRIVER_BLOCKLIST2_EXT(
-        OperatingSystem::Windows10, ScreenSizeStatus::All, BatteryStatus::All,
+        OperatingSystem::Windows, ScreenSizeStatus::All, BatteryStatus::All,
         DesktopEnvironment::All, WindowProtocol::All, DriverVendor::All,
         DeviceFamily::IntelRolloutWebRender, nsIGfxInfo::FEATURE_WEBRENDER,
-        nsIGfxInfo::FEATURE_ALLOW_QUALIFIED, DRIVER_COMPARISON_IGNORED,
-        V(0, 0, 0, 0), "FEATURE_ROLLOUT_NIGHTLY_LISTED_INTEL");
-#endif
+        nsIGfxInfo::FEATURE_ALLOW_ALWAYS, DRIVER_COMPARISON_IGNORED,
+        V(0, 0, 0, 0), "FEATURE_ROLLOUT_INTEL");
 
     ////////////////////////////////////
     // FEATURE_WEBRENDER_COMPOSITOR
@@ -1873,29 +1804,22 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
     APPEND_TO_DRIVER_BLOCKLIST2(
         OperatingSystem::Windows, DeviceFamily::IntelAll,
         nsIGfxInfo::FEATURE_WEBRENDER_COMPOSITOR,
-        nsIGfxInfo::FEATURE_BLOCKED_DEVICE, DRIVER_LESS_THAN_OR_EQUAL,
-        V(25, 20, 100, 6472), "FEATURE_FAILURE_BUG_1602511");
+        nsIGfxInfo::FEATURE_BLOCKED_DEVICE, DRIVER_EQUAL, V(24, 20, 100, 6293),
+        "FEATURE_FAILURE_BUG_1602511");
 
-    APPEND_TO_DRIVER_BLOCKLIST2(
-        OperatingSystem::Windows, DeviceFamily::AtiAll,
-        nsIGfxInfo::FEATURE_WEBRENDER_COMPOSITOR,
-        nsIGfxInfo::FEATURE_BLOCKED_DEVICE, DRIVER_EQUAL,
-        V(8, 17, 10, 1129), "FEATURE_FAILURE_CHROME_BUG_800950");
-
-    // Block all AMD for now
-    APPEND_TO_DRIVER_BLOCKLIST2(
-        OperatingSystem::Windows, DeviceFamily::AtiAll,
-        nsIGfxInfo::FEATURE_WEBRENDER_COMPOSITOR,
-        nsIGfxInfo::FEATURE_BLOCKED_DEVICE, DRIVER_COMPARISON_IGNORED,
-        V(0, 0, 0, 0), "FEATURE_FAILURE_ALL_AMD");
-
-    // Block all non-recent Win10
-    APPEND_TO_DRIVER_BLOCKLIST2(
-        OperatingSystem::NotRecentWindows10, DeviceFamily::All,
-        nsIGfxInfo::FEATURE_WEBRENDER_COMPOSITOR,
-        nsIGfxInfo::FEATURE_BLOCKED_OS_VERSION, DRIVER_COMPARISON_IGNORED,
-        V(0, 0, 0, 0), "FEATURE_FAILURE_NOT_RECENT_WIN10");
+    APPEND_TO_DRIVER_BLOCKLIST2(OperatingSystem::Windows, DeviceFamily::AtiAll,
+                                nsIGfxInfo::FEATURE_WEBRENDER_COMPOSITOR,
+                                nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
+                                DRIVER_LESS_THAN_OR_EQUAL, V(8, 17, 10, 1129),
+                                "FEATURE_FAILURE_CHROME_BUG_800950");
 #endif
+
+    // WebRender is unable to use scissored clears in some cases
+    APPEND_TO_DRIVER_BLOCKLIST2(
+        OperatingSystem::Windows, DeviceFamily::IntelAll,
+        nsIGfxInfo::FEATURE_WEBRENDER_SCISSORED_CACHE_CLEARS,
+        nsIGfxInfo::FEATURE_BLOCKED_DEVICE, DRIVER_COMPARISON_IGNORED,
+        V(0, 0, 0, 0), "FEATURE_FAILURE_BUG_1603515");
   }
   return *sDriverInfo;
 }
@@ -1930,22 +1854,22 @@ nsresult GfxInfo::GetFeatureStatusImpl(
     if (OnlyAllowFeatureOnWhitelistedVendor(aFeature) &&
         !adapterVendorID.Equals(
             GfxDriverInfo::GetDeviceVendor(DeviceVendor::Intel),
-            nsCaseInsensitiveStringComparator()) &&
+            nsCaseInsensitiveStringComparator) &&
         !adapterVendorID.Equals(
             GfxDriverInfo::GetDeviceVendor(DeviceVendor::NVIDIA),
-            nsCaseInsensitiveStringComparator()) &&
+            nsCaseInsensitiveStringComparator) &&
         !adapterVendorID.Equals(
             GfxDriverInfo::GetDeviceVendor(DeviceVendor::ATI),
-            nsCaseInsensitiveStringComparator()) &&
+            nsCaseInsensitiveStringComparator) &&
         !adapterVendorID.Equals(
             GfxDriverInfo::GetDeviceVendor(DeviceVendor::Microsoft),
-            nsCaseInsensitiveStringComparator()) &&
+            nsCaseInsensitiveStringComparator) &&
         !adapterVendorID.Equals(
             GfxDriverInfo::GetDeviceVendor(DeviceVendor::Parallels),
-            nsCaseInsensitiveStringComparator()) &&
+            nsCaseInsensitiveStringComparator) &&
         !adapterVendorID.Equals(
             GfxDriverInfo::GetDeviceVendor(DeviceVendor::Qualcomm),
-            nsCaseInsensitiveStringComparator()) &&
+            nsCaseInsensitiveStringComparator) &&
         // FIXME - these special hex values are currently used in xpcshell tests
         // introduced by bug 625160 patch 8/8. Maybe these tests need to be
         // adjusted now that we're only whitelisting intel/ati/nvidia.
@@ -1953,7 +1877,25 @@ nsresult GfxInfo::GetFeatureStatusImpl(
         !adapterVendorID.LowerCaseEqualsLiteral("0xdcba") &&
         !adapterVendorID.LowerCaseEqualsLiteral("0xabab") &&
         !adapterVendorID.LowerCaseEqualsLiteral("0xdcdc")) {
-      aFailureId = "FEATURE_FAILURE_UNKNOWN_DEVICE_VENDOR";
+      if (adapterVendorID.Equals(
+              GfxDriverInfo::GetDeviceVendor(DeviceVendor::MicrosoftHyperV),
+              nsCaseInsensitiveStringComparator) ||
+          adapterVendorID.Equals(
+              GfxDriverInfo::GetDeviceVendor(DeviceVendor::VMWare),
+              nsCaseInsensitiveStringComparator) ||
+          adapterVendorID.Equals(
+              GfxDriverInfo::GetDeviceVendor(DeviceVendor::VirtualBox),
+              nsCaseInsensitiveStringComparator)) {
+        aFailureId = "FEATURE_FAILURE_VM_VENDOR";
+      } else if (adapterVendorID.Equals(GfxDriverInfo::GetDeviceVendor(
+                                            DeviceVendor::MicrosoftBasic),
+                                        nsCaseInsensitiveStringComparator)) {
+        aFailureId = "FEATURE_FAILURE_MICROSOFT_BASIC_VENDOR";
+      } else if (adapterVendorID.IsEmpty()) {
+        aFailureId = "FEATURE_FAILURE_EMPTY_DEVICE_VENDOR";
+      } else {
+        aFailureId = "FEATURE_FAILURE_UNKNOWN_DEVICE_VENDOR";
+      }
       *aStatus = FEATURE_BLOCKED_DEVICE;
       return NS_OK;
     }
@@ -2008,11 +1950,11 @@ void GfxInfo::DescribeFeatures(JSContext* aCx, JS::Handle<JSObject*> aObj) {
 
   JS::Rooted<JSObject*> obj(aCx);
 
-  gfx::FeatureStatus d3d11 = gfxConfig::GetValue(Feature::D3D11_COMPOSITING);
+  gfx::FeatureState& d3d11 = gfxConfig::GetFeature(Feature::D3D11_COMPOSITING);
   if (!InitFeatureObject(aCx, aObj, "d3d11", d3d11, &obj)) {
     return;
   }
-  if (d3d11 == gfx::FeatureStatus::Available) {
+  if (d3d11.GetValue() == gfx::FeatureStatus::Available) {
     DeviceManagerDx* dm = DeviceManagerDx::Get();
     JS::Rooted<JS::Value> val(aCx,
                               JS::Int32Value(dm->GetCompositorFeatureLevel()));
@@ -2024,22 +1966,22 @@ void GfxInfo::DescribeFeatures(JSContext* aCx, JS::Handle<JSObject*> aObj) {
     val = JS::BooleanValue(dm->TextureSharingWorks());
     JS_SetProperty(aCx, obj, "textureSharing", val);
 
-    bool blacklisted = false;
+    bool blocklisted = false;
     if (nsCOMPtr<nsIGfxInfo> gfxInfo = services::GetGfxInfo()) {
       int32_t status;
       nsCString discardFailureId;
       if (SUCCEEDED(
               gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_DIRECT3D_11_LAYERS,
                                         discardFailureId, &status))) {
-        blacklisted = (status != nsIGfxInfo::FEATURE_STATUS_OK);
+        blocklisted = (status != nsIGfxInfo::FEATURE_STATUS_OK);
       }
     }
 
-    val = JS::BooleanValue(blacklisted);
-    JS_SetProperty(aCx, obj, "blacklisted", val);
+    val = JS::BooleanValue(blocklisted);
+    JS_SetProperty(aCx, obj, "blocklisted", val);
   }
 
-  gfx::FeatureStatus d2d = gfxConfig::GetValue(Feature::DIRECT2D);
+  gfx::FeatureState& d2d = gfxConfig::GetFeature(Feature::DIRECT2D);
   if (!InitFeatureObject(aCx, aObj, "d2d", d2d, &obj)) {
     return;
   }

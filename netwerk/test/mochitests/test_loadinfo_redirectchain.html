@@ -46,7 +46,7 @@ function checkLoadInfoWithoutRedirects() {
 
     // try to pop an element from redirectChain
     try {
-      loadInfo.popRedirectedPrincipal(false);
+      loadinfo.popRedirectedPrincipal(false);
       ok(false, "should not be possible to pop from redirectChain");
     }
     catch(e) {
@@ -55,7 +55,7 @@ function checkLoadInfoWithoutRedirects() {
 
     // try to pop an element from redirectChainIncludingInternalRedirects
     try {
-      loadInfo.popRedirectedPrincipal(true);
+      loadinfo.popRedirectedPrincipal(true);
       ok(false, "should not be possible to pop from redirectChainIncludingInternalRedirects");
     }
     catch(e) {
@@ -102,10 +102,10 @@ function checkLoadInfoWithTwoRedirects() {
        "two redirect, chainInternal should have length 2");
 
     for (var i = 0; i < redirectChain.length; i++) {
-      is(redirectChain[i].principal.URI.spec,
+      is(redirectChain[i].principal.spec,
         EXPECTED_REDIRECT_CHAIN[i],
          "redirectChain at index [" + i + "] should match");
-      is(redirectChainIncludingInternalRedirects[i].principal.URI.spec,
+      is(redirectChainIncludingInternalRedirects[i].principal.spec,
          EXPECTED_REDIRECT_CHAIN[i],
          "redirectChainIncludingInternalRedirects at index [" + i + "] should match");
       is(redirectChain[i].referrerURI.spec,

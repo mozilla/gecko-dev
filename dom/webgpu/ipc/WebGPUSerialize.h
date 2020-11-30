@@ -13,6 +13,27 @@
 
 namespace IPC {
 
+// Special handling of the raw strings serialization.
+// We are carrying the strings through IPC separately from the containing
+// structs. So this implementation always reads nullptr for the char pointer.
+template <>
+struct ParamTraits<mozilla::webgpu::ffi::WGPURawString> {
+  typedef mozilla::webgpu::ffi::WGPURawString paramType;
+
+  static void Write(Message* aMsg, const paramType& aParam) {
+    mozilla::Unused << aMsg;
+    mozilla::Unused << aParam;
+  }
+
+  static bool Read(const Message* aMsg, PickleIterator* aIter,
+                   paramType* aResult) {
+    mozilla::Unused << aMsg;
+    mozilla::Unused << aIter;
+    *aResult = nullptr;
+    return true;
+  }
+};
+
 #define DEFINE_IPC_SERIALIZER_ENUM_GUARD(something, guard) \
   template <>                                              \
   struct ParamTraits<something>                            \
@@ -24,7 +45,7 @@ namespace IPC {
   DEFINE_IPC_SERIALIZER_ENUM_GUARD(something, something##_Sentinel)
 
 DEFINE_IPC_SERIALIZER_DOM_ENUM(mozilla::dom::GPUPowerPreference);
-DEFINE_IPC_SERIALIZER_DOM_ENUM(mozilla::webgpu::SerialBindGroupBindingType);
+DEFINE_IPC_SERIALIZER_DOM_ENUM(mozilla::webgpu::SerialBindGroupEntryType);
 
 DEFINE_IPC_SERIALIZER_FFI_ENUM(mozilla::webgpu::ffi::WGPUAddressMode);
 DEFINE_IPC_SERIALIZER_FFI_ENUM(mozilla::webgpu::ffi::WGPUBindingType);
@@ -39,6 +60,7 @@ DEFINE_IPC_SERIALIZER_FFI_ENUM(mozilla::webgpu::ffi::WGPUInputStepMode);
 DEFINE_IPC_SERIALIZER_FFI_ENUM(mozilla::webgpu::ffi::WGPUPrimitiveTopology);
 DEFINE_IPC_SERIALIZER_FFI_ENUM(mozilla::webgpu::ffi::WGPUStencilOperation);
 DEFINE_IPC_SERIALIZER_FFI_ENUM(mozilla::webgpu::ffi::WGPUTextureAspect);
+DEFINE_IPC_SERIALIZER_FFI_ENUM(mozilla::webgpu::ffi::WGPUTextureComponentType);
 DEFINE_IPC_SERIALIZER_FFI_ENUM(mozilla::webgpu::ffi::WGPUTextureDimension);
 DEFINE_IPC_SERIALIZER_FFI_ENUM(mozilla::webgpu::ffi::WGPUTextureFormat);
 DEFINE_IPC_SERIALIZER_FFI_ENUM(mozilla::webgpu::ffi::WGPUTextureViewDimension);
@@ -54,22 +76,22 @@ DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::dom::GPUExtensions,
 DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::dom::GPULimits, mMaxBindGroups);
 DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::dom::GPUDeviceDescriptor,
                                   mExtensions, mLimits);
-DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::dom::GPUBufferDescriptor, mSize,
-                                  mUsage);
-DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::webgpu::ffi::WGPUExtent3d, width,
-                                  height, depth);
+DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::webgpu::ffi::WGPUBufferDescriptor,
+                                  label, size, usage);
 DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::webgpu::ffi::WGPUTextureDescriptor,
-                                  size, array_layer_count, mip_level_count,
-                                  sample_count, dimension, format, usage);
-DEFINE_IPC_SERIALIZER_WITH_FIELDS(
-    mozilla::webgpu::ffi::WGPUTextureViewDescriptor, format, dimension, aspect,
-    base_mip_level, level_count, base_array_layer, array_layer_count);
+                                  label, size, mip_level_count, sample_count,
+                                  dimension, format, usage);
 DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::webgpu::ffi::WGPUSamplerDescriptor,
-                                  address_mode_u, address_mode_v,
+                                  label, address_mode_u, address_mode_v,
                                   address_mode_w, mag_filter, min_filter,
                                   mipmap_filter, lod_min_clamp, lod_max_clamp,
-                                  compare_function);
-
+                                  compare, anisotropy_clamp);
+DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::webgpu::ffi::WGPUExtent3d, width,
+                                  height, depth);
+DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::webgpu::ffi::WGPUOrigin3d, x, y, z);
+DEFINE_IPC_SERIALIZER_WITH_FIELDS(
+    mozilla::webgpu::ffi::WGPUTextureViewDescriptor, label, format, dimension,
+    aspect, base_mip_level, level_count, base_array_layer, array_layer_count);
 DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::webgpu::ffi::WGPUBlendDescriptor,
                                   src_factor, dst_factor, operation);
 DEFINE_IPC_SERIALIZER_WITH_FIELDS(
@@ -89,31 +111,40 @@ DEFINE_IPC_SERIALIZER_WITH_FIELDS(
     mozilla::webgpu::ffi::WGPUVertexAttributeDescriptor, offset, format,
     shader_location);
 
+DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::webgpu::ffi::WGPUTextureDataLayout,
+                                  offset, bytes_per_row, rows_per_image);
+DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::webgpu::ffi::WGPUBufferCopyView,
+                                  buffer, layout);
+DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::webgpu::ffi::WGPUTextureCopyView,
+                                  texture, mip_level, origin);
+
 DEFINE_IPC_SERIALIZER_WITH_FIELDS(
-    mozilla::webgpu::ffi::WGPUBindGroupLayoutBinding, binding, visibility, ty,
-    texture_dimension, multisampled, dynamic);
+    mozilla::webgpu::ffi::WGPUBindGroupLayoutEntry, binding, visibility, ty,
+    multisampled, has_dynamic_offset, view_dimension, texture_component_type,
+    storage_texture_format);
 DEFINE_IPC_SERIALIZER_WITH_FIELDS(
-    mozilla::webgpu::SerialBindGroupLayoutDescriptor, mBindings);
+    mozilla::webgpu::SerialBindGroupLayoutDescriptor, mLabel, mEntries);
 DEFINE_IPC_SERIALIZER_WITH_FIELDS(
     mozilla::webgpu::SerialPipelineLayoutDescriptor, mBindGroupLayouts);
-DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::webgpu::SerialBindGroupBinding,
+DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::webgpu::SerialBindGroupEntry,
                                   mBinding, mType, mValue, mBufferOffset,
                                   mBufferSize);
 DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::webgpu::SerialBindGroupDescriptor,
-                                  mLayout, mBindings);
+                                  mLabel, mLayout, mEntries);
 
 DEFINE_IPC_SERIALIZER_WITH_FIELDS(
     mozilla::webgpu::SerialProgrammableStageDescriptor, mModule, mEntryPoint);
-DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::webgpu::SerialVertexBufferDescriptor,
-                                  mStride, mStepMode, mAttributes);
-DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::webgpu::SerialVertexInputDescriptor,
+DEFINE_IPC_SERIALIZER_WITH_FIELDS(
+    mozilla::webgpu::SerialVertexBufferLayoutDescriptor, mArrayStride,
+    mStepMode, mAttributes);
+DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::webgpu::SerialVertexStateDescriptor,
                                   mIndexFormat, mVertexBuffers);
 DEFINE_IPC_SERIALIZER_WITH_FIELDS(
     mozilla::webgpu::SerialComputePipelineDescriptor, mLayout, mComputeStage);
 DEFINE_IPC_SERIALIZER_WITH_FIELDS(
     mozilla::webgpu::SerialRenderPipelineDescriptor, mLayout, mVertexStage,
     mFragmentStage, mPrimitiveTopology, mRasterizationState, mColorStates,
-    mDepthStencilState, mVertexInput, mSampleCount, mSampleMask,
+    mDepthStencilState, mVertexState, mSampleCount, mSampleMask,
     mAlphaToCoverageEnabled);
 
 #undef DEFINE_IPC_SERIALIZER_FFI_ENUM

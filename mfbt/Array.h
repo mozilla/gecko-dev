@@ -11,12 +11,12 @@
 
 #include <stddef.h>
 
+#include <iterator>
 #include <ostream>
 #include <utility>
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/ReverseIterator.h"
 
 namespace mozilla {
 
@@ -59,8 +59,8 @@ class Array {
 
   typedef T* iterator;
   typedef const T* const_iterator;
-  typedef ReverseIterator<T*> reverse_iterator;
-  typedef ReverseIterator<const T*> const_reverse_iterator;
+  typedef std::reverse_iterator<T*> reverse_iterator;
+  typedef std::reverse_iterator<const T*> const_reverse_iterator;
 
   // Methods for range-based for loops.
   iterator begin() { return mArr; }
@@ -97,7 +97,7 @@ class Array<T, 0> {
 
 template <typename T, size_t Length>
 std::ostream& operator<<(std::ostream& aOut, const Array<T, Length>& aArray) {
-  return aOut << MakeSpan(aArray);
+  return aOut << Span(aArray);
 }
 
 } /* namespace mozilla */

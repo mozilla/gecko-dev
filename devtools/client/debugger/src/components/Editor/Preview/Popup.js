@@ -7,7 +7,8 @@
 import React, { Component } from "react";
 import { connect } from "../../../utils/connect";
 
-import Reps from "devtools-reps";
+// $FlowIgnore
+import Reps from "devtools/client/shared/components/reps/index";
 const {
   REPS: { Rep },
   MODE,
@@ -20,6 +21,8 @@ const {
   node: { nodeIsPrimitive, nodeIsFunction, nodeIsObject },
 } = utils;
 
+import ExceptionPopup from "./ExceptionPopup";
+
 import actions from "../../../actions";
 import { getThreadContext } from "../../../selectors";
 import Popover from "../../shared/Popover";
@@ -27,7 +30,7 @@ import PreviewFunction from "../../shared/PreviewFunction";
 
 import "./Popup.css";
 
-import type { ThreadContext } from "../../../types";
+import type { ThreadContext, Exception } from "../../../types";
 import type { Preview } from "../../../reducers/types";
 
 type OwnProps = {|
@@ -53,6 +56,7 @@ export class Popup extends Component<Props> {
   marker: any;
   pos: any;
   popover: ?React$ElementRef<typeof Popover>;
+  isExceptionStactraceOpen: ?boolean;
 
   constructor(props: Props) {
     super(props);
@@ -67,7 +71,7 @@ export class Popup extends Component<Props> {
   }
 
   addHighlightToToken() {
-    const target = this.props.preview.target;
+    const { target } = this.props.preview;
     if (target) {
       target.classList.add("preview-token");
       addHighlightToTargetSiblings(target, this.props);
@@ -75,7 +79,7 @@ export class Popup extends Component<Props> {
   }
 
   removeHighlightFromToken() {
-    const target = this.props.preview.target;
+    const { target } = this.props.preview;
     if (target) {
       target.classList.remove("preview-token");
       removeHighlightForTargetSiblings(target);
@@ -178,13 +182,22 @@ export class Popup extends Component<Props> {
     );
   }
 
+  renderExceptionPreview(exception: Exception) {
+    return (
+      <ExceptionPopup
+        exception={exception}
+        mouseout={this.onMouseOutException}
+      />
+    );
+  }
+
   renderPreview() {
     // We don't have to check and
     // return on `false`, `""`, `0`, `undefined` etc,
     // these falsy simple typed value because we want to
     // do `renderSimplePreview` on these values below.
     const {
-      preview: { root },
+      preview: { root, exception },
     } = this.props;
 
     if (nodeIsFunction(root)) {
@@ -195,14 +208,19 @@ export class Popup extends Component<Props> {
       return <div>{this.renderObjectPreview()}</div>;
     }
 
+    if (exception) {
+      return this.renderExceptionPreview(exception);
+    }
+
     return this.renderSimplePreview();
   }
 
   getPreviewType() {
     const {
-      preview: { root, properties },
+      preview: { root, properties, exception },
     } = this.props;
     if (
+      exception ||
       nodeIsPrimitive(root) ||
       nodeIsFunction(root) ||
       !Array.isArray(properties) ||
@@ -216,18 +234,40 @@ export class Popup extends Component<Props> {
 
   onMouseOut = () => {
     const { clearPreview, cx } = this.props;
+
     clearPreview(cx);
+  };
+
+  onMouseOutException = (
+    shouldClearOnMouseout: ?boolean,
+    isExceptionStactraceOpen: ?boolean
+  ) => {
+    // onMouseOutException can be called:
+    // a. when the mouse leaves Popover element
+    // b. when the mouse leaves ExceptionPopup element
+    // We want to prevent closing the popup when the stacktrace
+    // is expanded and the mouse leaves either the Popover element
+    // or the ExceptionPopup element.
+    const { clearPreview, cx } = this.props;
+
+    if (shouldClearOnMouseout) {
+      this.isExceptionStactraceOpen = isExceptionStactraceOpen;
+    }
+
+    if (!this.isExceptionStactraceOpen) {
+      clearPreview(cx);
+    }
   };
 
   render() {
     const {
-      preview: { cursorPos, resultGrip },
+      preview: { cursorPos, resultGrip, exception },
       editorRef,
     } = this.props;
 
     if (
-      typeof resultGrip == "undefined" ||
-      (resultGrip && resultGrip.optimizedOut)
+      !exception &&
+      (typeof resultGrip == "undefined" || resultGrip?.optimizedOut)
     ) {
       return null;
     }
@@ -239,7 +279,7 @@ export class Popup extends Component<Props> {
         type={type}
         editorRef={editorRef}
         target={this.props.preview.target}
-        mouseout={this.onMouseOut}
+        mouseout={exception ? this.onMouseOutException : this.onMouseOut}
       >
         {this.renderPreview()}
       </Popover>
@@ -264,6 +304,7 @@ export function addHighlightToTargetSiblings(target: Element, props: Object) {
   ) {
     let nextSibling = target.nextSibling;
     let nextElementSibling = target.nextElementSibling;
+
     // Note: Declaring previous/next ELEMENT siblings as well because
     // properties like innerHTML can't be checked on nextSibling
     // without creating a flow error even if the node is an element type.

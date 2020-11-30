@@ -20,18 +20,19 @@
 #include "mozilla/DebuggerOnGCRunnable.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Sprintf.h"
-#include "mozilla/SystemGroup.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TimelineConsumers.h"
 #include "mozilla/TimelineMarker.h"
 #include "mozilla/Unused.h"
 #include "mozilla/dom/DOMException.h"
 #include "mozilla/dom/DOMJSClass.h"
+#include "mozilla/dom/FinalizationRegistryBinding.h"
 #include "mozilla/dom/ProfileTimelineMarkerBinding.h"
 #include "mozilla/dom/PromiseBinding.h"
 #include "mozilla/dom/PromiseDebugging.h"
 #include "mozilla/dom/PromiseRejectionEvent.h"
 #include "mozilla/dom/PromiseRejectionEventBinding.h"
+#include "mozilla/dom/RootedDictionary.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/UserActivation.h"
 #include "nsContentUtils.h"
@@ -60,12 +61,9 @@ CycleCollectedJSContext::CycleCollectedJSContext()
       mTargetedMicroTaskRecursionDepth(0),
       mMicroTaskLevel(0),
       mDebuggerRecursionDepth(0),
-      mMicroTaskRecursionDepth(0) {
+      mMicroTaskRecursionDepth(0),
+      mFinalizationRegistryCleanup(this) {
   MOZ_COUNT_CTOR(CycleCollectedJSContext);
-
-  // Reinitialize PerThreadAtomCache because dom/bindings/Codegen.py compares
-  // against zero rather than JSID_VOID to detect uninitialized jsid members.
-  memset(static_cast<PerThreadAtomCache*>(this), 0, sizeof(PerThreadAtomCache));
 
   nsCOMPtr<nsIThread> thread = do_GetCurrentThread();
   mOwningThread = thread.forget().downcast<nsThread>().take();
@@ -79,8 +77,7 @@ CycleCollectedJSContext::~CycleCollectedJSContext() {
     return;
   }
 
-  JS::SetHostCleanupFinalizationGroupCallback(mJSContext, nullptr, nullptr);
-  mFinalizationGroupsToCleanUp.reset();
+  JS::SetHostCleanupFinalizationRegistryCallback(mJSContext, nullptr, nullptr);
 
   JS_SetContextPrivate(mJSContext, nullptr);
 
@@ -105,6 +102,8 @@ CycleCollectedJSContext::~CycleCollectedJSContext() {
 
   mAboutToBeNotifiedRejectedPromises.Clear();
   mPendingUnhandledRejections.Clear();
+
+  mFinalizationRegistryCleanup.Destroy();
 
   JS_DestroyContext(mJSContext);
   mJSContext = nullptr;
@@ -149,9 +148,7 @@ nsresult CycleCollectedJSContext::Initialize(JSRuntime* aParentRuntime,
                            JS::GCVector<JSObject*, 0, js::SystemAllocPolicy>(
                                js::SystemAllocPolicy()));
 
-  mFinalizationGroupsToCleanUp.init(mJSContext);
-  JS::SetHostCleanupFinalizationGroupCallback(
-      mJSContext, CleanupFinalizationGroupCallback, this);
+  mFinalizationRegistryCleanup.Init();
 
   // Cast to PerThreadAtomCache for dom::GetAtomCache(JSContext*).
   JS_SetContextPrivate(mJSContext, static_cast<PerThreadAtomCache*>(this));
@@ -357,8 +354,8 @@ void CycleCollectedJSContext::PromiseRejectionTrackerCallback(
         init.mReason = JS::GetPromiseResult(aPromise);
 
         RefPtr<PromiseRejectionEvent> event =
-            PromiseRejectionEvent::Constructor(
-                owner, NS_LITERAL_STRING("rejectionhandled"), init);
+            PromiseRejectionEvent::Constructor(owner, u"rejectionhandled"_ns,
+                                               init);
 
         RefPtr<AsyncEventDispatcher> asyncDispatcher =
             new AsyncEventDispatcher(owner, event);
@@ -417,7 +414,8 @@ void CycleCollectedJSContext::CleanupIDBTransactions(uint32_t aRecursionDepth) {
   nsTArray<PendingIDBTransactionData> localQueue =
       std::move(mPendingIDBTransactions);
 
-  localQueue.RemoveElementsAt(
+  localQueue.RemoveLastElements(
+      localQueue.end() -
       std::remove_if(localQueue.begin(), localQueue.end(),
                      [aRecursionDepth](PendingIDBTransactionData& data) {
                        if (data.mRecursionDepth != aRecursionDepth) {
@@ -431,8 +429,7 @@ void CycleCollectedJSContext::CleanupIDBTransactions(uint32_t aRecursionDepth) {
                        }
 
                        return true;
-                     }),
-      localQueue.end());
+                     }));
 
   // If mPendingIDBTransactions has events in it now, they were added from
   // something we called, so they belong at the end of the queue.
@@ -564,6 +561,8 @@ void CycleCollectedJSContext::DispatchToMicroTask(
   MOZ_ASSERT(runnable);
 
   JS::JobQueueMayNotBeEmpty(Context());
+
+  LogMicroTaskRunnable::LogDispatch(runnable.get());
   mPendingMicroTaskRunnables.push(std::move(runnable));
 }
 
@@ -642,7 +641,10 @@ bool CycleCollectedJSContext::PerformMicroTaskCheckPoint(bool aForce) {
         JS::JobQueueIsEmpty(Context());
       }
       didProcess = true;
+
+      LogMicroTaskRunnable::Run log(runnable.get());
       runnable->Run(aso);
+      runnable = nullptr;
     }
   }
 
@@ -675,6 +677,8 @@ void CycleCollectedJSContext::PerformDebuggerMicroTaskCheckpoint() {
     RefPtr<MicroTaskRunnable> runnable = std::move(microtaskQueue->front());
     MOZ_ASSERT(runnable);
 
+    LogMicroTaskRunnable::Run log(runnable.get());
+
     // This function can re-enter, so we remove the element before calling.
     microtaskQueue->pop();
 
@@ -682,6 +686,7 @@ void CycleCollectedJSContext::PerformDebuggerMicroTaskCheckpoint() {
       JS::JobQueueIsEmpty(Context());
     }
     runnable->Run(aso);
+    runnable = nullptr;
   }
 
   AfterProcessMicrotasks();
@@ -709,8 +714,8 @@ NS_IMETHODIMP CycleCollectedJSContext::NotifyUnhandledRejections::Run() {
         init.mCancelable = true;
 
         RefPtr<PromiseRejectionEvent> event =
-            PromiseRejectionEvent::Constructor(
-                target, NS_LITERAL_STRING("unhandledrejection"), init);
+            PromiseRejectionEvent::Constructor(target, u"unhandledrejection"_ns,
+                                               init);
         // We don't use the result of dispatching event here to check whether to
         // report the Promise to console.
         target->DispatchEvent(*event);
@@ -744,54 +749,96 @@ nsresult CycleCollectedJSContext::NotifyUnhandledRejections::Cancel() {
   return NS_OK;
 }
 
-class CleanupFinalizationGroupsRunnable : public CancelableRunnable {
+class FinalizationRegistryCleanup::CleanupRunnable : public CancelableRunnable {
  public:
-  explicit CleanupFinalizationGroupsRunnable(CycleCollectedJSContext* aContext)
-      : CancelableRunnable("CleanupFinalizationGroupsRunnable"),
-        mContext(aContext) {}
-  NS_DECL_NSIRUNNABLE
+  explicit CleanupRunnable(FinalizationRegistryCleanup* aCleanupWork)
+      : CancelableRunnable("CleanupRunnable"), mCleanupWork(aCleanupWork) {}
+
+  // MOZ_CAN_RUN_SCRIPT_BOUNDARY until Runnable::Run is MOZ_CAN_RUN_SCRIPT.  See
+  // bug 1535398.
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY
+  NS_IMETHODIMP Run() {
+    mCleanupWork->DoCleanup();
+    return NS_OK;
+  }
+
  private:
-  CycleCollectedJSContext* mContext;
+  FinalizationRegistryCleanup* mCleanupWork;
 };
 
-NS_IMETHODIMP
-CleanupFinalizationGroupsRunnable::Run() {
-  if (mContext->mFinalizationGroupsToCleanUp.empty()) {
-    return NS_OK;
+FinalizationRegistryCleanup::FinalizationRegistryCleanup(
+    CycleCollectedJSContext* aContext)
+    : mContext(aContext) {}
+
+void FinalizationRegistryCleanup::Destroy() {
+  // This must happen before the CycleCollectedJSContext destructor calls
+  // JS_DestroyContext().
+  mCallbacks.reset();
+}
+
+void FinalizationRegistryCleanup::Init() {
+  JSContext* cx = mContext->Context();
+  mCallbacks.init(cx);
+  JS::SetHostCleanupFinalizationRegistryCallback(cx, QueueCallback, this);
+}
+
+/* static */
+void FinalizationRegistryCleanup::QueueCallback(JSFunction* aDoCleanup,
+                                                JSObject* aIncumbentGlobal,
+                                                void* aData) {
+  FinalizationRegistryCleanup* cleanup =
+      static_cast<FinalizationRegistryCleanup*>(aData);
+  cleanup->QueueCallback(aDoCleanup, aIncumbentGlobal);
+}
+
+void FinalizationRegistryCleanup::QueueCallback(JSFunction* aDoCleanup,
+                                                JSObject* aIncumbentGlobal) {
+  bool firstCallback = mCallbacks.empty();
+
+  MOZ_ALWAYS_TRUE(mCallbacks.append(Callback{aDoCleanup, aIncumbentGlobal}));
+
+  if (firstCallback) {
+    RefPtr<CleanupRunnable> cleanup = new CleanupRunnable(this);
+    NS_DispatchToCurrentThread(cleanup.forget());
+  }
+}
+
+void FinalizationRegistryCleanup::DoCleanup() {
+  if (mCallbacks.empty()) {
+    return;
   }
 
   JS::RootingContext* cx = mContext->RootingCx();
 
-  JS::Rooted<CycleCollectedJSContext::ObjectVector> groups(cx);
-  std::swap(groups.get(), mContext->mFinalizationGroupsToCleanUp.get());
+  JS::Rooted<CallbackVector> callbacks(cx);
+  std::swap(callbacks.get(), mCallbacks.get());
 
-  JS::Rooted<JSObject*> group(cx);
-  for (const auto& g : groups) {
-    group = g;
+  for (const Callback& callback : callbacks) {
+    JS::RootedObject functionObj(
+        cx, JS_GetFunctionObject(callback.mCallbackFunction));
+    JS::RootedObject globalObj(cx, JS::GetNonCCWObjectGlobal(functionObj));
 
-    AutoEntryScript aes(group, "cleanupFinalizationGroup");
-    mozilla::Unused << JS::CleanupQueuedFinalizationGroup(aes.cx(), group);
+    nsIGlobalObject* incumbentGlobal =
+        xpc::NativeGlobal(callback.mIncumbentGlobal);
+    if (!incumbentGlobal) {
+      continue;
+    }
+
+    RefPtr<FinalizationRegistryCleanupCallback> cleanupCallback(
+        new FinalizationRegistryCleanupCallback(functionObj, globalObj, nullptr,
+                                                incumbentGlobal));
+
+    nsIGlobalObject* global =
+        xpc::NativeGlobal(cleanupCallback->CallbackPreserveColor());
+    if (global) {
+      cleanupCallback->Call("FinalizationRegistryCleanup::DoCleanup");
+    }
   }
-
-  return NS_OK;
 }
 
-/* static */
-void CycleCollectedJSContext::CleanupFinalizationGroupCallback(JSObject* aGroup,
-                                                               void* aData) {
-  CycleCollectedJSContext* ccjs = static_cast<CycleCollectedJSContext*>(aData);
-  ccjs->QueueFinalizationGroupForCleanup(aGroup);
-}
-
-void CycleCollectedJSContext::QueueFinalizationGroupForCleanup(
-    JSObject* aGroup) {
-  bool firstGroup = mFinalizationGroupsToCleanUp.empty();
-  MOZ_ALWAYS_TRUE(mFinalizationGroupsToCleanUp.append(aGroup));
-  if (firstGroup) {
-    RefPtr<CleanupFinalizationGroupsRunnable> cleanup =
-        new CleanupFinalizationGroupsRunnable(this);
-    NS_DispatchToCurrentThread(cleanup.forget());
-  }
+void FinalizationRegistryCleanup::Callback::trace(JSTracer* trc) {
+  JS::UnsafeTraceRoot(trc, &mCallbackFunction, "mCallbackFunction");
+  JS::UnsafeTraceRoot(trc, &mIncumbentGlobal, "mIncumbentGlobal");
 }
 
 }  // namespace mozilla

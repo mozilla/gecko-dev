@@ -1,9 +1,13 @@
 use criterion::criterion_group;
 use criterion::criterion_main;
 use criterion::Criterion;
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use bumpalo::Bump;
+use jsparagus_ast::source_atom_set::SourceAtomSet;
+use jsparagus_ast::source_slice_list::SourceSliceList;
 use jsparagus_parser::{parse_script, ParseOptions};
 
 fn parser_bench(c: &mut Criterion) {
@@ -23,7 +27,9 @@ fn parser_bench(c: &mut Criterion) {
             b.iter(|| {
                 let allocator = &Bump::new();
                 let options = ParseOptions::new();
-                let _ = parse_script(allocator, program, &options);
+                let atoms = Rc::new(RefCell::new(SourceAtomSet::new()));
+                let slices = Rc::new(RefCell::new(SourceSliceList::new()));
+                let _ = parse_script(allocator, program, &options, atoms, slices);
             });
         },
         tests,

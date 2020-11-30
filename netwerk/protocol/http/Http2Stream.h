@@ -14,6 +14,7 @@
 #include "nsAHttpTransaction.h"
 #include "nsISupportsPriority.h"
 #include "SimpleBuffer.h"
+#include "nsISupportsImpl.h"
 
 class nsIInputStream;
 class nsIOutputStream;
@@ -31,11 +32,11 @@ class Http2Decompressor;
 
 class Http2Stream : public nsAHttpSegmentReader,
                     public nsAHttpSegmentWriter,
-                    public SupportsWeakPtr<Http2Stream> {
+                    public SupportsWeakPtr {
  public:
-  MOZ_DECLARE_WEAKREFERENCE_TYPENAME(Http2Stream)
   NS_DECL_NSAHTTPSEGMENTREADER
   NS_DECL_NSAHTTPSEGMENTWRITER
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Http2Stream, override)
 
   enum stateType {
     IDLE,
@@ -61,10 +62,10 @@ class Http2Stream : public nsAHttpSegmentReader,
   stateType HTTPState() { return mState; }
   void SetHTTPState(stateType val) { mState = val; }
 
-  virtual MOZ_MUST_USE nsresult ReadSegments(nsAHttpSegmentReader*, uint32_t,
-                                             uint32_t*);
-  virtual MOZ_MUST_USE nsresult WriteSegments(nsAHttpSegmentWriter*, uint32_t,
+  [[nodiscard]] virtual nsresult ReadSegments(nsAHttpSegmentReader*, uint32_t,
                                               uint32_t*);
+  [[nodiscard]] virtual nsresult WriteSegments(nsAHttpSegmentWriter*, uint32_t,
+                                               uint32_t*);
   virtual bool DeferCleanup(nsresult status);
 
   // The consumer stream is the synthetic pull stream hooked up to this stream
@@ -118,12 +119,12 @@ class Http2Stream : public nsAHttpSegmentReader,
   void UpdateTransportReadEvents(uint32_t count);
 
   // NS_ERROR_ABORT terminates stream, other failure terminates session
-  MOZ_MUST_USE nsresult ConvertResponseHeaders(Http2Decompressor*, nsACString&,
-                                               nsACString&, int32_t&);
-  MOZ_MUST_USE nsresult ConvertPushHeaders(Http2Decompressor*, nsACString&,
-                                           nsACString&);
-  MOZ_MUST_USE nsresult ConvertResponseTrailers(Http2Decompressor*,
-                                                nsACString&);
+  [[nodiscard]] nsresult ConvertResponseHeaders(Http2Decompressor*, nsACString&,
+                                                nsACString&, int32_t&);
+  [[nodiscard]] nsresult ConvertPushHeaders(Http2Decompressor*, nsACString&,
+                                            nsACString&);
+  [[nodiscard]] nsresult ConvertResponseTrailers(Http2Decompressor*,
+                                                 nsACString&);
 
   bool AllowFlowControlledWrite();
   void UpdateServerReceiveWindow(int32_t delta);
@@ -160,16 +161,14 @@ class Http2Stream : public nsAHttpSegmentReader,
   // This is a no-op on pull streams. Pushed streams override this.
   virtual void SetPushComplete(){};
 
-  virtual ~Http2Stream();
-
   Http2Session* Session() { return mSession; }
 
-  static MOZ_MUST_USE nsresult MakeOriginURL(const nsACString& origin,
-                                             nsCOMPtr<nsIURI>& url);
+  [[nodiscard]] static nsresult MakeOriginURL(const nsACString& origin,
+                                              nsCOMPtr<nsIURI>& url);
 
-  static MOZ_MUST_USE nsresult MakeOriginURL(const nsACString& scheme,
-                                             const nsACString& origin,
-                                             nsCOMPtr<nsIURI>& url);
+  [[nodiscard]] static nsresult MakeOriginURL(const nsACString& scheme,
+                                              const nsACString& origin,
+                                              nsCOMPtr<nsIURI>& url);
 
   // Mirrors nsAHttpTransaction
   bool Do0RTT();
@@ -182,6 +181,7 @@ class Http2Stream : public nsAHttpSegmentReader,
       uint64_t windowId);  // For use by pushed streams only
 
  protected:
+  virtual ~Http2Stream();
   static void CreatePushHashKey(
       const nsCString& scheme, const nsCString& hostHeader,
       const mozilla::OriginAttributes& originAttributes, uint64_t serial,
@@ -236,8 +236,8 @@ class Http2Stream : public nsAHttpSegmentReader,
   void ChangeState(enum upstreamStateType);
 
   virtual void AdjustInitialWindow();
-  MOZ_MUST_USE nsresult TransmitFrame(const char*, uint32_t*,
-                                      bool forceCommitment);
+  [[nodiscard]] nsresult TransmitFrame(const char*, uint32_t*,
+                                       bool forceCommitment);
 
   // The underlying socket transport object is needed to propogate some events
   nsISocketTransport* mSocketTransport;
@@ -250,14 +250,14 @@ class Http2Stream : public nsAHttpSegmentReader,
  private:
   friend class mozilla::DefaultDelete<Http2Stream>;
 
-  MOZ_MUST_USE nsresult ParseHttpRequestHeaders(const char*, uint32_t,
-                                                uint32_t*);
-  MOZ_MUST_USE nsresult GenerateOpen();
+  [[nodiscard]] nsresult ParseHttpRequestHeaders(const char*, uint32_t,
+                                                 uint32_t*);
+  [[nodiscard]] nsresult GenerateOpen();
 
   void AdjustPushedPriority();
   void GenerateDataFrameHeader(uint32_t, bool);
 
-  MOZ_MUST_USE nsresult BufferInput(uint32_t, uint32_t*);
+  [[nodiscard]] nsresult BufferInput(uint32_t, uint32_t*);
 
   // The underlying HTTP transaction. This pointer is used as the key
   // in the Http2Session mStreamTransactionHash so it is important to
@@ -374,7 +374,8 @@ class Http2Stream : public nsAHttpSegmentReader,
  private:
   void ClearTransactionsBlockedOnTunnel();
   void MapStreamToPlainText();
-  void MapStreamToHttpConnection(int32_t httpResponseCode = -1);
+  bool MapStreamToHttpConnection(const nsACString& aFlat407Headers,
+                                 int32_t aHttpResponseCode = -1);
 
   bool mIsTunnel;
   bool mPlainTextTunnel;

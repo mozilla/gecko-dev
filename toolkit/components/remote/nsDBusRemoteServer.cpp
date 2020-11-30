@@ -23,7 +23,7 @@
 
 #include <dlfcn.h>
 
-const char* introspect_template =
+static const char* introspect_template =
     "<!DOCTYPE node PUBLIC \"-//freedesktop//DTD D-BUS Object Introspection "
     "1.0//EN\"\n"
     "\"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd\";>\n"
@@ -155,7 +155,8 @@ nsresult nsDBusRemoteServer::Startup(const char* aAppName,
   // D-Bus names can contain only [a-z][A-Z][0-9]_
   // characters so adjust the profile string properly.
   nsAutoCString profileName;
-  nsresult rv = mozilla::Base64Encode(nsAutoCString(aProfileName), profileName);
+  nsresult rv =
+      mozilla::Base64Encode(aProfileName, strlen(aProfileName), profileName);
   NS_ENSURE_SUCCESS(rv, rv);
 
   profileName.ReplaceChar("+/=-", '_');

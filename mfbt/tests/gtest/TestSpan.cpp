@@ -24,41 +24,49 @@
 #include "nsString.h"
 #include "nsTArray.h"
 #include "mozilla/Range.h"
-#include "mozilla/TypeTraits.h"
+
+#include <type_traits>
 
 #define SPAN_TEST(name) TEST(SpanTest, name)
 #define CHECK_THROW(a, b)
 
 using namespace mozilla;
 
-static_assert(IsConvertible<Range<int>, Span<const int>>::value,
+static_assert(std::is_convertible_v<Range<int>, Span<const int>>,
               "Range should convert into const");
-static_assert(IsConvertible<Range<const int>, Span<const int>>::value,
+static_assert(std::is_convertible_v<Range<const int>, Span<const int>>,
               "const Range should convert into const");
-static_assert(!IsConvertible<Range<const int>, Span<int>>::value,
+static_assert(!std::is_convertible_v<Range<const int>, Span<int>>,
               "Range should not drop const in conversion");
-static_assert(IsConvertible<Span<int>, Range<const int>>::value,
+static_assert(std::is_convertible_v<Span<int>, Range<const int>>,
               "Span should convert into const");
-static_assert(IsConvertible<Span<const int>, Range<const int>>::value,
+static_assert(std::is_convertible_v<Span<const int>, Range<const int>>,
               "const Span should convert into const");
-static_assert(!IsConvertible<Span<const int>, Range<int>>::value,
+static_assert(!std::is_convertible_v<Span<const int>, Range<int>>,
               "Span should not drop const in conversion");
-static_assert(IsConvertible<Span<const int>, Span<const int>>::value,
+static_assert(std::is_convertible_v<Span<const int>, Span<const int>>,
               "const Span should convert into const");
-static_assert(IsConvertible<Span<int>, Span<const int>>::value,
+static_assert(std::is_convertible_v<Span<int>, Span<const int>>,
               "Span should convert into const");
-static_assert(!IsConvertible<Span<const int>, Span<int>>::value,
+static_assert(!std::is_convertible_v<Span<const int>, Span<int>>,
               "Span should not drop const in conversion");
-static_assert(IsConvertible<const nsTArray<int>, Span<const int>>::value,
+static_assert(std::is_convertible_v<const nsTArray<int>, Span<const int>>,
               "const nsTArray should convert into const");
-static_assert(IsConvertible<nsTArray<int>, Span<const int>>::value,
+static_assert(std::is_convertible_v<nsTArray<int>, Span<const int>>,
               "nsTArray should convert into const");
-static_assert(!IsConvertible<const nsTArray<int>, Span<int>>::value,
+static_assert(!std::is_convertible_v<const nsTArray<int>, Span<int>>,
               "nsTArray should not drop const in conversion");
-static_assert(IsConvertible<nsTArray<const int>, Span<const int>>::value,
+static_assert(std::is_convertible_v<nsTArray<const int>, Span<const int>>,
               "nsTArray should convert into const");
-static_assert(!IsConvertible<nsTArray<const int>, Span<int>>::value,
+static_assert(!std::is_convertible_v<nsTArray<const int>, Span<int>>,
               "nsTArray should not drop const in conversion");
+
+static_assert(std::is_convertible_v<const std::vector<int>, Span<const int>>,
+              "const std::vector should convert into const");
+static_assert(std::is_convertible_v<std::vector<int>, Span<const int>>,
+              "std::vector should convert into const");
+static_assert(!std::is_convertible_v<const std::vector<int>, Span<int>>,
+              "std::vector should not drop const in conversion");
 
 /**
  * Rust slice-compatible nullptr replacement value.
@@ -306,7 +314,7 @@ SPAN_TEST(from_pointer_length_constructor) {
 #endif
 
   {
-    auto s = MakeSpan(&arr[0], 2);
+    auto s = Span(&arr[0], 2);
     ASSERT_EQ(s.Length(), 2U);
     ASSERT_EQ(s.data(), &arr[0]);
     ASSERT_EQ(s[0], 1);
@@ -315,7 +323,7 @@ SPAN_TEST(from_pointer_length_constructor) {
 
   {
     int* p = nullptr;
-    auto s = MakeSpan(p, static_cast<Span<int>::index_type>(0));
+    auto s = Span(p, static_cast<Span<int>::index_type>(0));
     ASSERT_EQ(s.Length(), 0U);
     ASSERT_EQ(s.data(), SLICE_INT_PTR);
   }
@@ -323,7 +331,7 @@ SPAN_TEST(from_pointer_length_constructor) {
 #if 0
         {
             int* p = nullptr;
-            auto workaround_macro = [=]() { MakeSpan(p, 2); };
+            auto workaround_macro = [=]() { Span(p, 2); };
             CHECK_THROW(workaround_macro(), fail_fast);
         }
 #endif
@@ -398,7 +406,7 @@ SPAN_TEST(from_pointer_pointer_constructor) {
   //}
 
   {
-    auto s = MakeSpan(&arr[0], &arr[2]);
+    auto s = Span(&arr[0], &arr[2]);
     ASSERT_EQ(s.Length(), 2U);
     ASSERT_EQ(s.data(), &arr[0]);
     ASSERT_EQ(s[0], 1);
@@ -406,14 +414,14 @@ SPAN_TEST(from_pointer_pointer_constructor) {
   }
 
   {
-    auto s = MakeSpan(&arr[0], &arr[0]);
+    auto s = Span(&arr[0], &arr[0]);
     ASSERT_EQ(s.Length(), 0U);
     ASSERT_EQ(s.data(), &arr[0]);
   }
 
   {
     int* p = nullptr;
-    auto s = MakeSpan(p, p);
+    auto s = Span(p, p);
     ASSERT_EQ(s.Length(), 0U);
     ASSERT_EQ(s.data(), SLICE_INT_PTR);
   }
@@ -501,19 +509,19 @@ SPAN_TEST(from_array_constructor) {
   }
 
   {
-    auto s = MakeSpan(arr);
+    auto s = Span(arr);
     ASSERT_EQ(s.Length(), 5U);
     ASSERT_EQ(s.data(), &arr[0]);
   }
 
   {
-    auto s = MakeSpan(&(arr2d[0]), 1);
+    auto s = Span(&(arr2d[0]), 1);
     ASSERT_EQ(s.Length(), 1U);
     ASSERT_EQ(s.data(), &arr2d[0]);
   }
 
   {
-    auto s = MakeSpan(&arr3d[0], 1);
+    auto s = Span(&arr3d[0], 1);
     ASSERT_EQ(s.Length(), 1U);
     ASSERT_EQ(s.data(), &arr3d[0]);
   }
@@ -529,7 +537,7 @@ SPAN_TEST(from_dynamic_array_constructor) {
   }
 
   {
-    auto s = MakeSpan(&arr[0][0][0], 10);
+    auto s = Span(&arr[0][0][0], 10);
     ASSERT_EQ(s.Length(), 10U);
     ASSERT_EQ(s.data(), &arr[0][0][0]);
   }
@@ -599,7 +607,7 @@ SPAN_TEST(from_std_array_constructor) {
   }
 
   {
-    auto s = MakeSpan(arr);
+    auto s = Span(arr);
     ASSERT_EQ(s.size(), narrow_cast<size_t>(arr.size()));
     ASSERT_EQ(s.data(), arr.data());
   }
@@ -646,7 +654,7 @@ SPAN_TEST(from_const_std_array_constructor) {
   }
 
   {
-    auto s = MakeSpan(arr);
+    auto s = Span(arr);
     ASSERT_EQ(s.size(), narrow_cast<size_t>(arr.size()));
     ASSERT_EQ(s.data(), arr.data());
   }
@@ -686,7 +694,7 @@ SPAN_TEST(from_std_array_const_constructor) {
 #endif
 
   {
-    auto s = MakeSpan(arr);
+    auto s = Span(arr);
     ASSERT_EQ(s.size(), narrow_cast<size_t>(arr.size()));
     ASSERT_EQ(s.data(), arr.data());
   }
@@ -754,7 +762,7 @@ SPAN_TEST(from_mozilla_array_constructor) {
   }
 
   {
-    auto s = MakeSpan(arr);
+    auto s = Span(arr);
     ASSERT_EQ(s.size(), narrow_cast<size_t>(arr.cend() - arr.cbegin()));
     ASSERT_EQ(s.data(), &arr[0]);
   }
@@ -803,7 +811,7 @@ SPAN_TEST(from_const_mozilla_array_constructor) {
 #endif
 
   {
-    auto s = MakeSpan(arr);
+    auto s = Span(arr);
     ASSERT_EQ(s.size(), narrow_cast<size_t>(arr.cend() - arr.cbegin()));
     ASSERT_EQ(s.data(), &arr[0]);
   }
@@ -843,7 +851,7 @@ SPAN_TEST(from_mozilla_array_const_constructor) {
 #endif
 
   {
-    auto s = MakeSpan(arr);
+    auto s = Span(arr);
     ASSERT_EQ(s.size(), narrow_cast<size_t>(arr.cend() - arr.cbegin()));
     ASSERT_EQ(s.data(), &arr[0]);
   }
@@ -938,11 +946,11 @@ SPAN_TEST(from_container_constructor) {
   }
 
   {
-    auto s = MakeSpan(v);
+    auto s = Span(v);
     ASSERT_EQ(s.size(), narrow_cast<size_t>(v.size()));
     ASSERT_EQ(s.data(), v.data());
 
-    auto cs = MakeSpan(cv);
+    auto cs = Span(cv);
     ASSERT_EQ(cs.size(), narrow_cast<size_t>(cv.size()));
     ASSERT_EQ(cs.data(), cv.data());
   }
@@ -975,7 +983,7 @@ SPAN_TEST(from_xpcom_collections) {
 
     AssertSpanOfThreeInts(v);
 
-    auto s = MakeSpan(v);
+    auto s = Span(v);
     ASSERT_EQ(s.size(), narrow_cast<size_t>(v.Length()));
     ASSERT_EQ(s.data(), v.Elements());
     ASSERT_EQ(s[2], 3);
@@ -1006,7 +1014,7 @@ SPAN_TEST(from_xpcom_collections) {
 
     AssertSpanOfThreeInts(v);
 
-    auto s = MakeSpan(v);
+    auto s = Span(v);
     ASSERT_EQ(s.size(), narrow_cast<size_t>(v.Length()));
     ASSERT_EQ(s.data(), v.Elements());
     ASSERT_EQ(s[2], 3);
@@ -1037,7 +1045,7 @@ SPAN_TEST(from_xpcom_collections) {
 
     AssertSpanOfThreeInts(v);
 
-    auto s = MakeSpan(v);
+    auto s = Span(v);
     ASSERT_EQ(s.size(), narrow_cast<size_t>(v.Length()));
     ASSERT_EQ(s.data(), v.Elements());
     ASSERT_EQ(s[2], 3);
@@ -1066,7 +1074,7 @@ SPAN_TEST(from_xpcom_collections) {
     AssertSpanOfThreeChar16s(str);
     AssertSpanOfThreeChar16sViaString(str);
 
-    auto s = MakeSpan(str);
+    auto s = Span(str);
     ASSERT_EQ(s.size(), narrow_cast<size_t>(str.Length()));
     ASSERT_EQ(s.data(), str.BeginWriting());
     ASSERT_EQ(s[2], 'c');
@@ -1095,7 +1103,7 @@ SPAN_TEST(from_xpcom_collections) {
     AssertSpanOfThreeChars(str);
     AssertSpanOfThreeCharsViaString(str);
 
-    auto s = MakeSpan(str);
+    auto s = Span(str);
     ASSERT_EQ(s.size(), narrow_cast<size_t>(str.Length()));
     ASSERT_EQ(s.data(), str.BeginWriting());
     ASSERT_EQ(s[2], 'c');
@@ -1130,7 +1138,7 @@ SPAN_TEST(from_xpcom_collections) {
 
     AssertSpanOfThreeInts(r);
 
-    auto s = MakeSpan(r);
+    auto s = Span(r);
     ASSERT_EQ(s.size(), narrow_cast<size_t>(v.Length()));
     ASSERT_EQ(s.data(), v.Elements());
     ASSERT_EQ(s[2], 3);
@@ -1151,13 +1159,16 @@ SPAN_TEST(from_cstring) {
     ASSERT_EQ(cs.data(), str);
     ASSERT_EQ(cs[2], 'c');
 
+    static_assert(MakeStringSpan("abc").size() == 3U);
+    static_assert(MakeStringSpan("abc")[2] == 'c');
+
 #ifdef CONFIRM_COMPILATION_ERRORS
     Span<const char> scccl("literal");  // error
 
     Span<const char> sccel;
     sccel = "literal";  // error
 
-    cs = MakeSpan("literal");  // error
+    cs = Span("literal");  // error
 #endif
   }
   {
@@ -1168,7 +1179,7 @@ SPAN_TEST(from_cstring) {
     ASSERT_EQ(cs.data(), arr);
     ASSERT_EQ(cs[2], 'c');
 
-    cs = MakeSpan(arr);
+    cs = Span(arr);
     ASSERT_EQ(cs.size(), 4U);  // zero terminator is part of the array span.
     ASSERT_EQ(cs.data(), arr);
     ASSERT_EQ(cs[2], 'c');
@@ -1196,12 +1207,15 @@ SPAN_TEST(from_cstring) {
     ASSERT_EQ(cs.data(), str);
     ASSERT_EQ(cs[2], 'c');
 
+    static_assert(MakeStringSpan(u"abc").size() == 3U);
+    static_assert(MakeStringSpan(u"abc")[2] == u'c');
+
     cs = MakeStringSpan(arr);
     ASSERT_EQ(cs.size(), 3U);
     ASSERT_EQ(cs.data(), str);
     ASSERT_EQ(cs[2], 'c');
 
-    cs = MakeSpan(arr);
+    cs = Span(arr);
     ASSERT_EQ(cs.size(), 4U);  // zero terminator is part of the array span.
     ASSERT_EQ(cs.data(), str);
     ASSERT_EQ(cs[2], 'c');
@@ -1218,7 +1232,7 @@ SPAN_TEST(from_cstring) {
     Span<const char16_t>* sccel;
     *sccel = u"literal";  // error
 
-    cs = MakeSpan(u"literal");  // error
+    cs = Span(u"literal");  // error
 #endif
   }
 }
@@ -1966,7 +1980,7 @@ SPAN_TEST(as_writable_bytes) {
 
 SPAN_TEST(as_chars) {
   const uint8_t a[] = {1, 2, 3, 4};
-  Span<const uint8_t> u = MakeSpan(a);
+  Span<const uint8_t> u = Span(a);
   Span<const char> c = AsChars(u);
   ASSERT_EQ(static_cast<const void*>(u.data()),
             static_cast<const void*>(c.data()));
@@ -1975,7 +1989,7 @@ SPAN_TEST(as_chars) {
 
 SPAN_TEST(as_writable_chars) {
   uint8_t a[] = {1, 2, 3, 4};
-  Span<uint8_t> u = MakeSpan(a);
+  Span<uint8_t> u = Span(a);
   Span<char> c = AsWritableChars(u);
   ASSERT_EQ(static_cast<void*>(u.data()), static_cast<void*>(c.data()));
   ASSERT_EQ(u.size(), c.size());
@@ -2104,4 +2118,242 @@ SPAN_TEST(default_constructible) {
   ASSERT_TRUE((std::is_default_constructible<Span<int>>::value));
   ASSERT_TRUE((std::is_default_constructible<Span<int, 0>>::value));
   ASSERT_TRUE((!std::is_default_constructible<Span<int, 42>>::value));
+}
+
+SPAN_TEST(type_inference) {
+  static constexpr int arr[5] = {1, 2, 3, 4, 5};
+  constexpr auto s = Span{arr};
+  static_assert(std::is_same_v<const Span<const int, 5>, decltype(s)>);
+  static_assert(arr == s.Elements());
+}
+
+SPAN_TEST(split_at_dynamic_with_dynamic_extent) {
+  static constexpr int arr[5] = {1, 2, 3, 4, 5};
+  constexpr Span<const int> s = Span{arr};
+
+  {  // Split at begin.
+    constexpr auto splitAt0Result = s.SplitAt(0);
+    static_assert(
+        std::is_same_v<Span<const int>, decltype(splitAt0Result.first)>);
+    static_assert(
+        std::is_same_v<Span<const int>, decltype(splitAt0Result.second)>);
+    ASSERT_EQ(s.Elements(), splitAt0Result.second.Elements());
+    ASSERT_EQ(0u, splitAt0Result.first.Length());
+    ASSERT_EQ(5u, splitAt0Result.second.Length());
+  }
+
+  {  // Split at end.
+    constexpr auto splitAt5Result = s.SplitAt(s.Length());
+    static_assert(
+        std::is_same_v<Span<const int>, decltype(splitAt5Result.first)>);
+    static_assert(
+        std::is_same_v<Span<const int>, decltype(splitAt5Result.second)>);
+    ASSERT_EQ(s.Elements(), splitAt5Result.first.Elements());
+    ASSERT_EQ(5u, splitAt5Result.first.Length());
+    ASSERT_EQ(0u, splitAt5Result.second.Length());
+  }
+
+  {
+    // Split inside.
+    constexpr auto splitAt3Result = s.SplitAt(3);
+    static_assert(
+        std::is_same_v<Span<const int>, decltype(splitAt3Result.first)>);
+    static_assert(
+        std::is_same_v<Span<const int>, decltype(splitAt3Result.second)>);
+    ASSERT_EQ(s.Elements(), splitAt3Result.first.Elements());
+    ASSERT_EQ(s.Elements() + 3, splitAt3Result.second.Elements());
+    ASSERT_EQ(3u, splitAt3Result.first.Length());
+    ASSERT_EQ(2u, splitAt3Result.second.Length());
+  }
+}
+
+SPAN_TEST(split_at_dynamic_with_static_extent) {
+  static constexpr int arr[5] = {1, 2, 3, 4, 5};
+  constexpr auto s = Span{arr};
+
+  {
+    // Split at begin.
+    constexpr auto splitAt0Result = s.SplitAt(0);
+    static_assert(
+        std::is_same_v<Span<const int>, decltype(splitAt0Result.first)>);
+    static_assert(
+        std::is_same_v<Span<const int>, decltype(splitAt0Result.second)>);
+    ASSERT_EQ(s.Elements(), splitAt0Result.second.Elements());
+  }
+
+  {
+    // Split at end.
+    constexpr auto splitAt5Result = s.SplitAt(s.Length());
+    static_assert(
+        std::is_same_v<Span<const int>, decltype(splitAt5Result.first)>);
+    static_assert(
+        std::is_same_v<Span<const int>, decltype(splitAt5Result.second)>);
+    ASSERT_EQ(s.Elements(), splitAt5Result.first.Elements());
+  }
+
+  {
+    // Split inside.
+    constexpr auto splitAt3Result = s.SplitAt(3);
+    static_assert(
+        std::is_same_v<Span<const int>, decltype(splitAt3Result.first)>);
+    static_assert(
+        std::is_same_v<Span<const int>, decltype(splitAt3Result.second)>);
+    ASSERT_EQ(s.Elements(), splitAt3Result.first.Elements());
+    ASSERT_EQ(s.Elements() + 3, splitAt3Result.second.Elements());
+  }
+}
+
+SPAN_TEST(split_at_static) {
+  static constexpr int arr[5] = {1, 2, 3, 4, 5};
+  constexpr auto s = Span{arr};
+
+  // Split at begin.
+  constexpr auto splitAt0Result = s.SplitAt<0>();
+  static_assert(
+      std::is_same_v<Span<const int, 0>, decltype(splitAt0Result.first)>);
+  static_assert(
+      std::is_same_v<Span<const int, 5>, decltype(splitAt0Result.second)>);
+  static_assert(splitAt0Result.second.Elements() == s.Elements());
+
+  // Split at end.
+  constexpr auto splitAt5Result = s.SplitAt<s.Length()>();
+  static_assert(std::is_same_v<Span<const int, s.Length()>,
+                               decltype(splitAt5Result.first)>);
+  static_assert(
+      std::is_same_v<Span<const int, 0>, decltype(splitAt5Result.second)>);
+  static_assert(splitAt5Result.first.Elements() == s.Elements());
+
+  // Split inside.
+  constexpr auto splitAt3Result = s.SplitAt<3>();
+  static_assert(
+      std::is_same_v<Span<const int, 3>, decltype(splitAt3Result.first)>);
+  static_assert(
+      std::is_same_v<Span<const int, 2>, decltype(splitAt3Result.second)>);
+  static_assert(splitAt3Result.first.Elements() == s.Elements());
+  static_assert(splitAt3Result.second.Elements() == s.Elements() + 3);
+}
+
+SPAN_TEST(as_const_dynamic) {
+  static int arr[5] = {1, 2, 3, 4, 5};
+  auto span = Span{arr, 5};
+  auto constSpan = span.AsConst();
+  static_assert(std::is_same_v<Span<const int>, decltype(constSpan)>);
+}
+
+SPAN_TEST(as_const_static) {
+  {
+    static constexpr int constArr[5] = {1, 2, 3, 4, 5};
+    constexpr auto span = Span{constArr};  // is already a Span<const int>
+    constexpr auto constSpan = span.AsConst();
+
+    static_assert(
+        std::is_same_v<const Span<const int, 5>, decltype(constSpan)>);
+  }
+
+  {
+    static int arr[5] = {1, 2, 3, 4, 5};
+    auto span = Span{arr};
+    auto constSpan = span.AsConst();
+    static_assert(std::is_same_v<Span<const int, 5>, decltype(constSpan)>);
+  }
+}
+
+SPAN_TEST(construct_from_iterators_dynamic) {
+  const int constArr[5] = {1, 2, 3, 4, 5};
+  auto constSpan = Span{constArr};
+
+  // const from const
+  {
+    const auto wholeSpan = Span{constSpan.cbegin(), constSpan.cend()};
+    static_assert(std::is_same_v<decltype(wholeSpan), const Span<const int>>);
+    ASSERT_TRUE(constSpan == wholeSpan);
+
+    const auto emptyBeginSpan = Span{constSpan.cbegin(), constSpan.cbegin()};
+    ASSERT_TRUE(emptyBeginSpan.IsEmpty());
+
+    const auto emptyEndSpan = Span{constSpan.cend(), constSpan.cend()};
+    ASSERT_TRUE(emptyEndSpan.IsEmpty());
+
+    const auto subSpan = Span{constSpan.cbegin() + 1, constSpan.cend() - 1};
+    ASSERT_EQ(constSpan.Length() - 2, subSpan.Length());
+    ASSERT_EQ(constSpan.Elements() + 1, subSpan.Elements());
+  }
+
+  int arr[5] = {1, 2, 3, 4, 5};
+  auto span = Span{arr};
+
+  // const from non-const
+  {
+    const auto wholeSpan = Span{span.cbegin(), span.cend()};
+    static_assert(std::is_same_v<decltype(wholeSpan), const Span<const int>>);
+    // XXX Can't use span == wholeSpan because of difference in constness.
+    ASSERT_EQ(span.Elements(), wholeSpan.Elements());
+    ASSERT_EQ(span.Length(), wholeSpan.Length());
+
+    const auto emptyBeginSpan = Span{span.cbegin(), span.cbegin()};
+    ASSERT_TRUE(emptyBeginSpan.IsEmpty());
+
+    const auto emptyEndSpan = Span{span.cend(), span.cend()};
+    ASSERT_TRUE(emptyEndSpan.IsEmpty());
+
+    const auto subSpan = Span{span.cbegin() + 1, span.cend() - 1};
+    ASSERT_EQ(span.Length() - 2, subSpan.Length());
+    ASSERT_EQ(span.Elements() + 1, subSpan.Elements());
+  }
+
+  // non-const from non-const
+  {
+    const auto wholeSpan = Span{span.begin(), span.end()};
+    static_assert(std::is_same_v<decltype(wholeSpan), const Span<int>>);
+    ASSERT_TRUE(span == wholeSpan);
+
+    const auto emptyBeginSpan = Span{span.begin(), span.begin()};
+    ASSERT_TRUE(emptyBeginSpan.IsEmpty());
+
+    const auto emptyEndSpan = Span{span.end(), span.end()};
+    ASSERT_TRUE(emptyEndSpan.IsEmpty());
+
+    const auto subSpan = Span{span.begin() + 1, span.end() - 1};
+    ASSERT_EQ(span.Length() - 2, subSpan.Length());
+  }
+}
+
+SPAN_TEST(construct_from_iterators_static) {
+  static constexpr int arr[5] = {1, 2, 3, 4, 5};
+  constexpr auto constSpan = Span{arr};
+
+  // const
+  {
+    const auto wholeSpan = Span{constSpan.cbegin(), constSpan.cend()};
+    static_assert(std::is_same_v<decltype(wholeSpan), const Span<const int>>);
+    ASSERT_TRUE(constSpan == wholeSpan);
+
+    const auto emptyBeginSpan = Span{constSpan.cbegin(), constSpan.cbegin()};
+    ASSERT_TRUE(emptyBeginSpan.IsEmpty());
+
+    const auto emptyEndSpan = Span{constSpan.cend(), constSpan.cend()};
+    ASSERT_TRUE(emptyEndSpan.IsEmpty());
+
+    const auto subSpan = Span{constSpan.cbegin() + 1, constSpan.cend() - 1};
+    ASSERT_EQ(constSpan.Length() - 2, subSpan.Length());
+    ASSERT_EQ(constSpan.Elements() + 1, subSpan.Elements());
+  }
+}
+
+SPAN_TEST(construct_from_container_with_type_deduction) {
+  std::vector<int> vec = {1, 2, 3, 4, 5};
+
+  // from const
+  {
+    const auto& constVecRef = vec;
+
+    auto span = Span{constVecRef};
+    static_assert(std::is_same_v<decltype(span), Span<const int>>);
+  }
+
+  // from non-const
+  {
+    auto span = Span{vec};
+    static_assert(std::is_same_v<decltype(span), Span<int>>);
+  }
 }

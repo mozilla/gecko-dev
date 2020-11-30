@@ -22,9 +22,9 @@ PipelineLayout::~PipelineLayout() { Cleanup(); }
 void PipelineLayout::Cleanup() {
   if (mValid && mParent) {
     mValid = false;
-    WebGPUChild* bridge = mParent->mBridge;
+    auto bridge = mParent->GetBridge();
     if (bridge && bridge->IsOpen()) {
-      bridge->DestroyPipelineLayout(mId);
+      bridge->SendPipelineLayoutDestroy(mId);
     }
   }
 }

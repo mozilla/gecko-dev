@@ -9,6 +9,7 @@
 
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/StoragePrincipalHelper.h"
 #include "nsHttpChannelAuthProvider.h"
 #include "nsNetUtil.h"
 #include "nsHttpHandler.h"
@@ -21,7 +22,7 @@
 #include "nsEscape.h"
 #include "nsAuthInformationHolder.h"
 #include "nsIStringBundle.h"
-#include "nsIPrompt.h"
+#include "nsIPromptService.h"
 #include "netCore.h"
 #include "nsIHttpAuthenticableChannel.h"
 #include "nsIURI.h"
@@ -33,6 +34,7 @@
 #include "nsServiceManagerUtils.h"
 #include "nsIURL.h"
 #include "mozilla/StaticPrefs_network.h"
+#include "mozilla/StaticPrefs_prompts.h"
 #include "mozilla/Telemetry.h"
 #include "nsIProxiedChannel.h"
 #include "nsIProxyInfo.h"
@@ -65,7 +67,7 @@ static void GetOriginAttributesSuffix(nsIChannel* aChan, nsACString& aSuffix) {
 
   // Deliberately ignoring the result and going with defaults
   if (aChan) {
-    NS_GetOriginAttributes(aChan, oa);
+    StoragePrincipalHelper::GetOriginAttributesForNetworkState(aChan, oa);
   }
 
   oa.CreateSuffix(aSuffix);
@@ -446,6 +448,13 @@ nsresult nsHttpChannelAuthProvider::UpdateCache(
   return rv;
 }
 
+NS_IMETHODIMP nsHttpChannelAuthProvider::ClearProxyIdent() {
+  LOG(("nsHttpChannelAuthProvider::ClearProxyIdent [this=%p]\n", this));
+
+  mProxyIdent.Clear();
+  return NS_OK;
+}
+
 nsresult nsHttpChannelAuthProvider::PrepareForAuthentication(bool proxyAuth) {
   LOG(
       ("nsHttpChannelAuthProvider::PrepareForAuthentication "
@@ -481,7 +490,7 @@ nsresult nsHttpChannelAuthProvider::PrepareForAuthentication(bool proxyAuth) {
     if (NS_FAILED(rv)) {
       // delete the proxy authorization header because we weren't
       // asked to authenticate
-      rv = mAuthChannel->SetProxyCredentials(EmptyCString());
+      rv = mAuthChannel->SetProxyCredentials(""_ns);
       if (NS_FAILED(rv)) return rv;
       LOG(("  cleared proxy authorization header"));
     }
@@ -740,7 +749,7 @@ nsresult nsHttpChannelAuthProvider::GetCredentialsForChallenge(
       // - if we didn't clear the proxy identity, it would be considered
       //   as non-valid and we would ask the user again ; clearing it forces
       //   use of the cached identity and not asking the user again
-      mProxyIdent.Clear();
+      ClearProxyIdent();
     }
   }
 
@@ -800,21 +809,19 @@ nsresult nsHttpChannelAuthProvider::GetCredentialsForChallenge(
       // Collect statistics on how frequently the various types of HTTP
       // authentication are used over SSL and non-SSL connections.
       if (Telemetry::CanRecordPrereleaseData()) {
-        if (NS_LITERAL_CSTRING("basic").LowerCaseEqualsASCII(authType)) {
+        if ("basic"_ns.LowerCaseEqualsASCII(authType)) {
           Telemetry::Accumulate(
               Telemetry::HTTP_AUTH_TYPE_STATS,
               UsingSSL() ? HTTP_AUTH_BASIC_SECURE : HTTP_AUTH_BASIC_INSECURE);
-        } else if (NS_LITERAL_CSTRING("digest").LowerCaseEqualsASCII(
-                       authType)) {
+        } else if ("digest"_ns.LowerCaseEqualsASCII(authType)) {
           Telemetry::Accumulate(
               Telemetry::HTTP_AUTH_TYPE_STATS,
               UsingSSL() ? HTTP_AUTH_DIGEST_SECURE : HTTP_AUTH_DIGEST_INSECURE);
-        } else if (NS_LITERAL_CSTRING("ntlm").LowerCaseEqualsASCII(authType)) {
+        } else if ("ntlm"_ns.LowerCaseEqualsASCII(authType)) {
           Telemetry::Accumulate(
               Telemetry::HTTP_AUTH_TYPE_STATS,
               UsingSSL() ? HTTP_AUTH_NTLM_SECURE : HTTP_AUTH_NTLM_INSECURE);
-        } else if (NS_LITERAL_CSTRING("negotiate")
-                       .LowerCaseEqualsASCII(authType)) {
+        } else if ("negotiate"_ns.LowerCaseEqualsASCII(authType)) {
           Telemetry::Accumulate(Telemetry::HTTP_AUTH_TYPE_STATS,
                                 UsingSSL() ? HTTP_AUTH_NEGOTIATE_SECURE
                                            : HTTP_AUTH_NEGOTIATE_INSECURE);
@@ -931,17 +938,14 @@ bool nsHttpChannelAuthProvider::BlockPrompt(bool proxyAuth) {
   if (!topDoc && !xhr) {
     nsCOMPtr<nsIURI> topURI;
     Unused << chanInternal->GetTopWindowURI(getter_AddRefs(topURI));
-
-    if (!topURI) {
-      // If we do not have topURI try the loadingPrincipal.
-      nsCOMPtr<nsIPrincipal> loadingPrinc = loadInfo->LoadingPrincipal();
-      if (loadingPrinc) {
-        loadingPrinc->GetURI(getter_AddRefs(topURI));
-      }
-    }
-
-    if (!NS_SecurityCompareURIs(topURI, mURI, true)) {
-      mCrossOrigin = true;
+    if (topURI) {
+      mCrossOrigin = !NS_SecurityCompareURIs(topURI, mURI, true);
+    } else {
+      nsIPrincipal* loadingPrinc = loadInfo->GetLoadingPrincipal();
+      MOZ_ASSERT(loadingPrinc);
+      bool sameOrigin = false;
+      loadingPrinc->IsSameOrigin(mURI, false, &sameOrigin);
+      mCrossOrigin = !sameOrigin;
     }
   }
 
@@ -1513,27 +1517,42 @@ bool nsHttpChannelAuthProvider::ConfirmAuth(const char* bundleKey,
   rv = mAuthChannel->GetLoadGroup(getter_AddRefs(loadGroup));
   if (NS_FAILED(rv)) return true;
 
-  nsCOMPtr<nsIPrompt> prompt;
-  NS_QueryNotificationCallbacks(callbacks, loadGroup, NS_GET_IID(nsIPrompt),
-                                getter_AddRefs(prompt));
-  if (!prompt) return true;
+  nsCOMPtr<nsIPromptService> promptSvc =
+      do_GetService("@mozilla.org/embedcomp/prompt-service;1", &rv);
+  if (NS_FAILED(rv) || !promptSvc) {
+    return true;
+  }
 
   // do not prompt again
   mSuppressDefensiveAuth = true;
+
+  // Get current browsing context to use as prompt parent
+  nsCOMPtr<nsIChannel> chan = do_QueryInterface(mAuthChannel);
+  if (!chan) {
+    return true;
+  }
+
+  nsCOMPtr<nsILoadInfo> loadInfo = chan->LoadInfo();
+  RefPtr<mozilla::dom::BrowsingContext> browsingContext;
+  loadInfo->GetBrowsingContext(getter_AddRefs(browsingContext));
 
   bool confirmed;
   if (doYesNoPrompt) {
     int32_t choice;
     bool checkState = false;
-    rv = prompt->ConfirmEx(
-        nullptr, msg.get(),
-        nsIPrompt::BUTTON_POS_1_DEFAULT + nsIPrompt::STD_YES_NO_BUTTONS,
+    rv = promptSvc->ConfirmExBC(
+        browsingContext, StaticPrefs::prompts_modalType_confirmAuth(), nullptr,
+        msg.get(),
+        nsIPromptService::BUTTON_POS_1_DEFAULT +
+            nsIPromptService::STD_YES_NO_BUTTONS,
         nullptr, nullptr, nullptr, nullptr, &checkState, &choice);
     if (NS_FAILED(rv)) return true;
 
     confirmed = choice == 0;
   } else {
-    rv = prompt->Confirm(nullptr, msg.get(), &confirmed);
+    rv = promptSvc->ConfirmBC(browsingContext,
+                              StaticPrefs::prompts_modalType_confirmAuth(),
+                              nullptr, msg.get(), &confirmed);
     if (NS_FAILED(rv)) return true;
   }
 

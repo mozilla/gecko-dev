@@ -14,9 +14,9 @@ RefPtr<MediaDataDecoder::InitPromise> MediaDataDecoderProxy::Init() {
   if (!mProxyThread) {
     return mProxyDecoder->Init();
   }
-  RefPtr<MediaDataDecoderProxy> self = this;
-  return InvokeAsync(mProxyThread, __func__,
-                     [self]() { return self->mProxyDecoder->Init(); });
+  return InvokeAsync(mProxyThread, __func__, [self = RefPtr{this}] {
+    return self->mProxyDecoder->Init();
+  });
 }
 
 RefPtr<MediaDataDecoder::DecodePromise> MediaDataDecoderProxy::Decode(
@@ -26,11 +26,27 @@ RefPtr<MediaDataDecoder::DecodePromise> MediaDataDecoderProxy::Decode(
   if (!mProxyThread) {
     return mProxyDecoder->Decode(aSample);
   }
-  RefPtr<MediaDataDecoderProxy> self = this;
   RefPtr<MediaRawData> sample = aSample;
-  return InvokeAsync(mProxyThread, __func__, [self, sample]() {
+  return InvokeAsync(mProxyThread, __func__, [self = RefPtr{this}, sample] {
     return self->mProxyDecoder->Decode(sample);
   });
+}
+
+bool MediaDataDecoderProxy::CanDecodeBatch() const {
+  return mProxyDecoder->CanDecodeBatch();
+}
+
+RefPtr<MediaDataDecoder::DecodePromise> MediaDataDecoderProxy::DecodeBatch(
+    nsTArray<RefPtr<MediaRawData>>&& aSamples) {
+  MOZ_ASSERT(!mIsShutdown);
+  if (!mProxyThread) {
+    return mProxyDecoder->DecodeBatch(std::move(aSamples));
+  }
+  return InvokeAsync(
+      mProxyThread, __func__,
+      [self = RefPtr{this}, samples = std::move(aSamples)]() mutable {
+        return self->mProxyDecoder->DecodeBatch(std::move(samples));
+      });
 }
 
 RefPtr<MediaDataDecoder::FlushPromise> MediaDataDecoderProxy::Flush() {
@@ -39,9 +55,9 @@ RefPtr<MediaDataDecoder::FlushPromise> MediaDataDecoderProxy::Flush() {
   if (!mProxyThread) {
     return mProxyDecoder->Flush();
   }
-  RefPtr<MediaDataDecoderProxy> self = this;
-  return InvokeAsync(mProxyThread, __func__,
-                     [self]() { return self->mProxyDecoder->Flush(); });
+  return InvokeAsync(mProxyThread, __func__, [self = RefPtr{this}] {
+    return self->mProxyDecoder->Flush();
+  });
 }
 
 RefPtr<MediaDataDecoder::DecodePromise> MediaDataDecoderProxy::Drain() {
@@ -50,9 +66,9 @@ RefPtr<MediaDataDecoder::DecodePromise> MediaDataDecoderProxy::Drain() {
   if (!mProxyThread) {
     return mProxyDecoder->Drain();
   }
-  RefPtr<MediaDataDecoderProxy> self = this;
-  return InvokeAsync(mProxyThread, __func__,
-                     [self]() { return self->mProxyDecoder->Drain(); });
+  return InvokeAsync(mProxyThread, __func__, [self = RefPtr{this}] {
+    return self->mProxyDecoder->Drain();
+  });
 }
 
 RefPtr<ShutdownPromise> MediaDataDecoderProxy::Shutdown() {
@@ -65,9 +81,17 @@ RefPtr<ShutdownPromise> MediaDataDecoderProxy::Shutdown() {
   if (!mProxyThread) {
     return mProxyDecoder->Shutdown();
   }
-  RefPtr<MediaDataDecoderProxy> self = this;
-  return InvokeAsync(mProxyThread, __func__,
-                     [self]() { return self->mProxyDecoder->Shutdown(); });
+  // We chain another promise to ensure that the proxied decoder gets destructed
+  // on the proxy thread.
+  return InvokeAsync(mProxyThread, __func__, [self = RefPtr{this}] {
+    RefPtr<ShutdownPromise> p = self->mProxyDecoder->Shutdown()->Then(
+        self->mProxyThread, __func__,
+        [self](const ShutdownPromise::ResolveOrRejectValue& aResult) {
+          self->mProxyDecoder = nullptr;
+          return ShutdownPromise::CreateAndResolveOrReject(aResult, __func__);
+        });
+    return p;
+  });
 }
 
 nsCString MediaDataDecoderProxy::GetDescriptionName() const {
@@ -90,11 +114,11 @@ void MediaDataDecoderProxy::SetSeekThreshold(const media::TimeUnit& aTime) {
     mProxyDecoder->SetSeekThreshold(aTime);
     return;
   }
-  RefPtr<MediaDataDecoderProxy> self = this;
   media::TimeUnit time = aTime;
   mProxyThread->Dispatch(NS_NewRunnableFunction(
-      "MediaDataDecoderProxy::SetSeekThreshold",
-      [self, time] { self->mProxyDecoder->SetSeekThreshold(time); }));
+      "MediaDataDecoderProxy::SetSeekThreshold", [self = RefPtr{this}, time] {
+        self->mProxyDecoder->SetSeekThreshold(time);
+      }));
 }
 
 bool MediaDataDecoderProxy::SupportDecoderRecycling() const {

@@ -111,6 +111,9 @@ class CompositorBridgeChild final : public PCompositorBridgeChild,
 
   mozilla::ipc::IPCResult RecvHideAllPlugins(const uintptr_t& aParentWidget);
 
+  mozilla::ipc::IPCResult RecvNotifyJankedAnimations(
+      const LayersId& aLayersId, nsTArray<uint64_t>&& aJankedAnimations);
+
   PTextureChild* AllocPTextureChild(
       const SurfaceDescriptor& aSharedData, const ReadLockDescriptor& aReadLock,
       const LayersBackend& aLayersBackend, const TextureFlags& aFlags,
@@ -126,7 +129,7 @@ class CompositorBridgeChild final : public PCompositorBridgeChild,
                                LayersBackend aLayersBackend,
                                TextureFlags aFlags, uint64_t aSerial,
                                wr::MaybeExternalImageId& aExternalImageId,
-                               nsIEventTarget* aTarget) override;
+                               nsISerialEventTarget* aTarget) override;
 
   already_AddRefed<CanvasChild> GetCanvasChild() final;
 
@@ -200,7 +203,7 @@ class CompositorBridgeChild final : public PCompositorBridgeChild,
 
   void HandleMemoryPressure();
 
-  MessageLoop* GetMessageLoop() const override { return mMessageLoop; }
+  nsISerialEventTarget* GetThread() const override { return mThread; }
 
   base::ProcessId GetParentPid() const override { return OtherPid(); }
 
@@ -373,7 +376,7 @@ class CompositorBridgeChild final : public PCompositorBridgeChild,
   std::unordered_map<uint64_t, RefPtr<TextureClient>>
       mTexturesWaitingNotifyNotUsed;
 
-  MessageLoop* mMessageLoop;
+  nsCOMPtr<nsISerialEventTarget> mThread;
 
   AutoTArray<RefPtr<TextureClientPool>, 2> mTexturePools;
 

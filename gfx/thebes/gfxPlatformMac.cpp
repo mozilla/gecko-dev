@@ -127,14 +127,6 @@ already_AddRefed<gfxASurface> gfxPlatformMac::CreateOffscreenSurface(
   return newSurface.forget();
 }
 
-gfxFontGroup* gfxPlatformMac::CreateFontGroup(
-    const FontFamilyList& aFontFamilyList, const gfxFontStyle* aStyle,
-    gfxTextPerfMetrics* aTextPerf, gfxUserFontSet* aUserFontSet,
-    gfxFloat aDevToCssSize) {
-  return new gfxFontGroup(aFontFamilyList, aStyle, aTextPerf, aUserFontSet,
-                          aDevToCssSize);
-}
-
 bool gfxPlatformMac::IsFontFormatSupported(uint32_t aFormatFlags) {
   if (gfxPlatform::IsFontFormatSupported(aFormatFlags)) {
     return true;
@@ -159,6 +151,7 @@ static const char kFontGeneva[] = "Geneva";
 static const char kFontGeezaPro[] = "Geeza Pro";
 static const char kFontGujaratiSangamMN[] = "Gujarati Sangam MN";
 static const char kFontGurmukhiMN[] = "Gurmukhi MN";
+static const char kFontHelvetica[] = "Helvetica";
 static const char kFontHiraginoKakuGothic[] = "Hiragino Kaku Gothic ProN";
 static const char kFontHiraginoSansGB[] = "Hiragino Sans GB";
 static const char kFontKefa[] = "Kefa";
@@ -178,17 +171,11 @@ static const char kFontSTIXGeneral[] = "STIXGeneral";
 static const char kFontTamilMN[] = "Tamil MN";
 static const char kFontZapfDingbats[] = "Zapf Dingbats";
 
-void gfxPlatformMac::GetCommonFallbackFonts(uint32_t aCh, uint32_t aNextCh,
-                                            Script aRunScript,
+void gfxPlatformMac::GetCommonFallbackFonts(uint32_t aCh, Script aRunScript,
+                                            eFontPresentation aPresentation,
                                             nsTArray<const char*>& aFontList) {
-  EmojiPresentation emoji = GetEmojiPresentation(aCh);
-  if (emoji != EmojiPresentation::TextOnly) {
-    if (aNextCh == kVariationSelector16 ||
-        (aNextCh != kVariationSelector15 &&
-         emoji == EmojiPresentation::EmojiDefault)) {
-      // if char is followed by VS16, try for a color emoji glyph
-      aFontList.AppendElement(kFontAppleColorEmoji);
-    }
+  if (PrefersColor(aPresentation)) {
+    aFontList.AppendElement(kFontAppleColorEmoji);
   }
 
   aFontList.AppendElement(kFontLucidaGrande);
@@ -232,6 +219,7 @@ void gfxPlatformMac::GetCommonFallbackFonts(uint32_t aCh, uint32_t aNextCh,
         aFontList.AppendElement(kFontSongtiSC);
         break;
       case 0x10:
+        aFontList.AppendElement(kFontHelvetica);
         aFontList.AppendElement(kFontMenlo);
         aFontList.AppendElement(kFontMyanmarMN);
         break;
@@ -367,9 +355,9 @@ static CVReturn VsyncCallback(CVDisplayLinkRef aDisplayLink,
 
 class OSXVsyncSource final : public VsyncSource {
  public:
-  OSXVsyncSource() {}
+  OSXVsyncSource() : mGlobalDisplay(new OSXDisplay()) {}
 
-  Display& GetGlobalDisplay() override { return mGlobalDisplay; }
+  Display& GetGlobalDisplay() override { return *mGlobalDisplay; }
 
   class OSXDisplay final : public VsyncSource::Display {
    public:
@@ -513,7 +501,7 @@ class OSXVsyncSource final : public VsyncSource {
  private:
   virtual ~OSXVsyncSource() = default;
 
-  OSXDisplay mGlobalDisplay;
+  RefPtr<OSXDisplay> mGlobalDisplay;
 };  // OSXVsyncSource
 
 static CVReturn VsyncCallback(CVDisplayLinkRef aDisplayLink,
@@ -524,10 +512,10 @@ static CVReturn VsyncCallback(CVDisplayLinkRef aDisplayLink,
   // Executed on OS X hardware vsync thread
   OSXVsyncSource::OSXDisplay* display =
       (OSXVsyncSource::OSXDisplay*)aDisplayLinkContext;
-  int64_t nextVsyncTimestamp = aOutputTime->hostTime;
 
-  mozilla::TimeStamp nextVsync =
-      mozilla::TimeStamp::FromSystemTime(nextVsyncTimestamp);
+  mozilla::TimeStamp outputTime =
+      mozilla::TimeStamp::FromSystemTime(aOutputTime->hostTime);
+  mozilla::TimeStamp nextVsync = outputTime;
   mozilla::TimeStamp previousVsync = display->mPreviousTimestamp;
   mozilla::TimeStamp now = TimeStamp::Now();
 
@@ -546,7 +534,7 @@ static CVReturn VsyncCallback(CVDisplayLinkRef aDisplayLink,
 
   display->mPreviousTimestamp = nextVsync;
 
-  display->NotifyVsync(previousVsync);
+  display->NotifyVsync(previousVsync, outputTime);
   return kCVReturnSuccess;
 }
 
@@ -566,6 +554,11 @@ gfxPlatformMac::CreateHardwareVsyncSource() {
 }
 
 nsTArray<uint8_t> gfxPlatformMac::GetPlatformCMSOutputProfileData() {
+  nsTArray<uint8_t> prefProfileData = GetPrefCMSOutputProfileData();
+  if (!prefProfileData.IsEmpty()) {
+    return prefProfileData;
+  }
+
   CGColorSpaceRef cspace = ::CGDisplayCopyColorSpace(::CGMainDisplayID());
   if (!cspace) {
     cspace = ::CGColorSpaceCreateDeviceRGB();
@@ -608,5 +601,5 @@ void gfxPlatformMac::InitPlatformGPUProcessPrefs() {
   FeatureState& gpuProc = gfxConfig::GetFeature(Feature::GPU_PROCESS);
   gpuProc.ForceDisable(FeatureStatus::Blocked,
                        "GPU process does not work on Mac",
-                       NS_LITERAL_CSTRING("FEATURE_FAILURE_MAC_GPU_PROC"));
+                       "FEATURE_FAILURE_MAC_GPU_PROC"_ns);
 }

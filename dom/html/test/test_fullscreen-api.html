@@ -29,7 +29,8 @@ SimpleTest.requestFlakyTimeout("untriaged");
 // attribute set, so full-screen won't work.
 var gTestWindows = [
   { test: "file_fullscreen-multiple.html",
-    prefs: [["full-screen-api.exit-on.windowRaise", false], ["full-screen-api.exit-on.windowOpen", false]] },
+    prefs: [["full-screen-api.exit-on.windowRaise", false],
+            ["full-screen-api.exit-on.windowOpen", false]] },
   { test: "file_fullscreen-rollback.html" },
   { test: "file_fullscreen-esc-exit.html" },
   { test: "file_fullscreen-denied.html" },
@@ -49,8 +50,7 @@ var gTestWindows = [
   { test: "file_fullscreen-table.html" },
   { test: "file_fullscreen-event-order.html" },
   { test: "file_fullscreen-featurePolicy.html",
-    prefs: [["dom.security.featurePolicy.enabled", true],
-            ["dom.security.featurePolicy.header.enabled", true],
+    prefs: [["dom.security.featurePolicy.header.enabled", true],
             ["dom.security.featurePolicy.webidl.enabled", true]] },
   { test: "file_fullscreen-async.html" },
   { test: "file_fullscreen-sub-iframe.html" },
@@ -78,13 +78,10 @@ function nextTest() {
 
 var gHeadlessSkipList = [
   { test: "file_fullscreen-plugins.html", reason: "bug 1409805" },
-  { test: "file_fullscreen-scrollbar.html", reason: "bug 1468648" },
 ];
 
 var gLinuxE10sSkipList = [
   { "test": "file_fullscreen-plugins.html", "reason": "bug 1330553" },
-  { "test": "file_fullscreen-api.html", "reason": "bug 1332040" },
-  { "test": "file_fullscreen-scrollbar.html", "reason": "bug 1350875" }
 ];
 
 function shouldSkipTest(test) {

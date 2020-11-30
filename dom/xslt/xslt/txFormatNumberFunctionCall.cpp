@@ -14,8 +14,7 @@
 
 #include "prdtoa.h"
 
-#define INVALID_PARAM_VALUE \
-  NS_LITERAL_STRING("invalid parameter value for function")
+#define INVALID_PARAM_VALUE u"invalid parameter value for function"_ns
 
 const char16_t txFormatNumberFunctionCall::FORMAT_QUOTE = '\'';
 
@@ -74,7 +73,7 @@ nsresult txFormatNumberFunctionCall::evaluate(txIEvalContext* aContext,
 
   txDecimalFormat* format = mStylesheet->getDecimalFormat(formatName);
   if (!format) {
-    nsAutoString err(NS_LITERAL_STRING("unknown decimal format"));
+    nsAutoString err(u"unknown decimal format"_ns);
 #ifdef TX_TO_STRING
     err.AppendLiteral(" for: ");
     toString(err);
@@ -254,7 +253,7 @@ nsresult txFormatNumberFunctionCall::evaluate(txIEvalContext* aContext,
   else
     bufsize = 1 + 30;
 
-  auto buf = MakeUnique<char[]>(bufsize);
+  auto buf = mozilla::MakeUnique<char[]>(bufsize);
   int bufIntDigits, sign;
   char* endp;
   PR_dtoa(value, 0, 0, &bufIntDigits, &sign, &endp, buf.get(), bufsize - 1);
@@ -276,7 +275,7 @@ nsresult txFormatNumberFunctionCall::evaluate(txIEvalContext* aContext,
   bool hasFraction = false;
 
   // The number of characters in res that we haven't filled in.
-  CheckedUint32 resRemain = CheckedUint32(res.Length());
+  mozilla::CheckedUint32 resRemain = mozilla::CheckedUint32(res.Length());
 
 #define CHECKED_SET_CHAR(c)                                           \
   --resRemain;                                                        \
@@ -385,7 +384,7 @@ void txFormatNumberFunctionCall::appendName(nsAString& aDest) {
  */
 
 txDecimalFormat::txDecimalFormat()
-    : mInfinity(NS_LITERAL_STRING("Infinity")), mNaN(NS_LITERAL_STRING("NaN")) {
+    : mInfinity(u"Infinity"_ns), mNaN(u"NaN"_ns) {
   mDecimalSeparator = '.';
   mGroupingSeparator = ',';
   mMinusSign = '-';

@@ -11,7 +11,6 @@ import os
 
 from .registry import register_callback_action
 
-from taskgraph.util.hg import find_hg_revision_push_info
 from taskgraph.util.taskcluster import get_artifact
 from taskgraph.util.taskgraph import find_decision_task, find_existing_tasks_from_previous_kinds
 from taskgraph.util.partials import populate_release_history
@@ -79,7 +78,7 @@ def get_flavors(graph_config, param):
     title='Release Promotion',
     symbol='${input.release_promotion_flavor}',
     description="Promote a release.",
-    generic=False,
+    permission='release-promotion',
     order=500,
     context=[],
     available=is_release_promotion_available,
@@ -107,9 +106,8 @@ def get_flavors(graph_config, param):
                 'type': 'string',
                 'title': 'Optional: revision to promote',
                 'description': ('Optional: the revision to promote. If specified, '
-                                'and if neither `pushlog_id` nor `previous_graph_kinds` '
-                                'is specified, find the `pushlog_id using the '
-                                'revision.'),
+                                'and `previous_graph_kinds is not specified, find the '
+                                'push graph to promote based on the revision.'),
             },
             'release_promotion_flavor': {
                 'type': 'string',
@@ -189,9 +187,13 @@ def get_flavors(graph_config, param):
                 'type': 'string',
                 'default': '',
             },
-            'release_enable_partners': {
+            'release_enable_partner_repack': {
                 'type': 'boolean',
                 'description': 'Toggle for creating partner repacks',
+            },
+            'release_enable_partner_attribution': {
+                'type': 'boolean',
+                'description': 'Toggle for creating partner attribution',
             },
             'release_partner_build_number': {
                 'type': 'integer',
@@ -259,7 +261,7 @@ def release_promotion_action(parameters, graph_config, input, task_group_id, tas
                 "target.".format(release_promotion_flavor)
             )
         balrog_prefix = product.title()
-        os.environ['PARTIAL_UPDATES'] = json.dumps(partial_updates)
+        os.environ['PARTIAL_UPDATES'] = json.dumps(partial_updates, sort_keys=True)
         release_history = populate_release_history(
             balrog_prefix, parameters['project'],
             partial_updates=partial_updates
@@ -275,19 +277,20 @@ def release_promotion_action(parameters, graph_config, input, task_group_id, tas
         'do_not_optimize', promotion_config.get('do-not-optimize', [])
     )
 
-    # make parameters read-write
-    parameters = dict(parameters)
-    # Build previous_graph_ids from ``previous_graph_ids``, ``pushlog_id``,
-    # or ``revision``.
+    # Build previous_graph_ids from ``previous_graph_ids``, ``revision``,
+    # or the action parameters.
     previous_graph_ids = input.get('previous_graph_ids')
     if not previous_graph_ids:
         revision = input.get('revision')
-        if not parameters['pushlog_id']:
-            repo_param = '{}head_repository'.format(graph_config['project-repo-param-prefix'])
-            push_info = find_hg_revision_push_info(
-                repository=parameters[repo_param], revision=revision)
-            parameters['pushlog_id'] = push_info['pushid']
-        previous_graph_ids = [find_decision_task(parameters, graph_config)]
+        if revision:
+            head_rev_param = '{}head_rev'.format(graph_config['project-repo-param-prefix'])
+            push_parameters = {
+                head_rev_param: revision,
+                'project': parameters['project'],
+            }
+        else:
+            push_parameters = parameters
+        previous_graph_ids = [find_decision_task(push_parameters, graph_config)]
 
     # Download parameters from the first decision task
     parameters = get_artifact(previous_graph_ids[0], "public/parameters.yml")
@@ -317,24 +320,36 @@ def release_promotion_action(parameters, graph_config, input, task_group_id, tas
     # previous graphs.
     parameters['optimize_target_tasks'] = True
 
-    # Partner/EMEfree are enabled by default when get_partner_url_config() returns a non-null url
-    # The action input may override by sending False. It's an error to send True with no url found
-    partner_url_config = get_partner_url_config(parameters, graph_config)
-    release_enable_partners = partner_url_config['release-partner-repack'] is not None
-    release_enable_emefree = partner_url_config['release-eme-free-repack'] is not None
-    if input.get('release_enable_partners') is False:
-        release_enable_partners = False
-    elif input.get('release_enable_partners') is True and not release_enable_partners:
-        raise Exception("Can't enable partner repacks when no config url found")
-    if input.get('release_enable_emefree') is False:
+    if release_promotion_flavor == 'promote_firefox_partner_repack':
+        release_enable_partner_repack = True
+        release_enable_partner_attribution = False
         release_enable_emefree = False
-    elif input.get('release_enable_emefree') is True and not release_enable_emefree:
-        raise Exception("Can't enable EMEfree when no config url found")
-    parameters['release_enable_partners'] = release_enable_partners
+    elif release_promotion_flavor == 'promote_firefox_partner_attribution':
+        release_enable_partner_repack = False
+        release_enable_partner_attribution = True
+        release_enable_emefree = False
+    else:
+        # for promotion or ship phases, we use the action input to turn the repacks/attribution off
+        release_enable_partner_repack = input.get('release_enable_partner_repack', True)
+        release_enable_partner_attribution = input.get('release_enable_partner_attribution', True)
+        release_enable_emefree = input.get('release_enable_emefree', True)
+
+    partner_url_config = get_partner_url_config(parameters, graph_config)
+    if release_enable_partner_repack and not partner_url_config['release-partner-repack']:
+        raise Exception("Can't enable partner repacks when no config url found")
+    if release_enable_partner_attribution and \
+            not partner_url_config['release-partner-attribution']:
+        raise Exception("Can't enable partner attribution when no config url found")
+    if release_enable_emefree and not partner_url_config['release-eme-free-repack']:
+        raise Exception("Can't enable EMEfree repacks when no config url found")
+    parameters['release_enable_partner_repack'] = release_enable_partner_repack
+    parameters['release_enable_partner_attribution'] = release_enable_partner_attribution
     parameters['release_enable_emefree'] = release_enable_emefree
 
     partner_config = input.get('release_partner_config')
-    if not partner_config and (release_enable_emefree or release_enable_partners):
+    if not partner_config and any([release_enable_partner_repack,
+                                   release_enable_partner_attribution,
+                                   release_enable_emefree]):
         github_token = get_token(parameters)
         partner_config = get_partner_config(partner_url_config, github_token)
     if partner_config:

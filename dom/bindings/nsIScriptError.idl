@@ -44,13 +44,6 @@ interface nsIScriptError : nsIConsoleMessage
     /** message is warning */
     const unsigned long warningFlag = 0x1;
 
-    /** exception was thrown for this case - exception-aware hosts can ignore */
-    const unsigned long exceptionFlag = 0x2;
-
-    // XXX check how strict is implemented these days.
-    /** error or warning is due to strict option */
-    const unsigned long strictFlag = 0x4;
-
     /** just a log message */
     const unsigned long infoFlag = 0x8;
 
@@ -95,6 +88,23 @@ interface nsIScriptError : nsIConsoleMessage
 
     readonly attribute boolean isFromChromeContext;
 
+    attribute boolean isForwardedFromContentProcess;
+
+    // Error created from a Promise rejection.
+    readonly attribute boolean isPromiseRejection;
+
+    [noscript] void initIsPromiseRejection(in bool isPromiseRejection);
+
+    // The "exception" value generated when an uncaught exception is thrown
+    // by JavaScript. This can be any value, e.g.
+    // - an Error object (`throw new Error("foobar"`)
+    // - some primitive (`throw "hello"`)
+    attribute jsval exception;
+
+    // The hasException attribute is used to differentiate between no thrown
+    // exception and `throw undefined`.
+    readonly attribute boolean hasException;
+
     attribute jsval stack;
 
     /**
@@ -107,8 +117,8 @@ interface nsIScriptError : nsIConsoleMessage
     [noscript] readonly attribute jsval stackGlobal;
 
     /**
-     * The name of a template string, as found in js.msg, associated with the
-     * error message.
+     * The name of a template string associated with the error message.  See
+     * js/public/friend/ErrorNumbers.msg.
      */
     attribute AString errorMessageName;
 

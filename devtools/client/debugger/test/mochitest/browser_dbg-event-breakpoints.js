@@ -2,17 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
-function assertPauseLocation(dbg, line) {
-  const { location } = dbg.selectors.getVisibleSelectedFrame();
-
-  const source = findSource(dbg, "event-breakpoints.js");
-
-  is(location.sourceId, source.id, `correct sourceId`);
-  is(location.line, line, `correct line`);
-
-  assertPausedLocation(dbg);
-}
-
 add_task(async function() {
   await pushPref(
     "devtools.debugger.features.event-listeners-breakpoints",
@@ -31,6 +20,7 @@ add_task(async function() {
     "event.xhr.load",
     "timer.timeout.set",
     "timer.timeout.fire",
+    "script.source.firstStatement",
   ]);
 
   invokeInTab("clickHandler");
@@ -52,6 +42,11 @@ add_task(async function() {
   assertPauseLocation(dbg, 28);
   await resume(dbg);
 
+  invokeInTab("evalHandler");
+  await waitForPaused(dbg);
+  assertPauseLocation(dbg, 2, "http://example.com/eval-test.js");
+  await resume(dbg);
+
   // Test that we don't pause on event breakpoints when source is blackboxed.
   await clickElement(dbg, "blackbox");
   await waitForDispatch(dbg, "BLACKBOX");
@@ -69,3 +64,14 @@ add_task(async function() {
   await clickElement(dbg, "blackbox");
   await waitForDispatch(dbg, "BLACKBOX");
 });
+
+function assertPauseLocation(dbg, line, url = "event-breakpoints.js") {
+  const { location } = dbg.selectors.getVisibleSelectedFrame();
+
+  const source = findSource(dbg, url);
+
+  is(location.sourceId, source.id, `correct sourceId`);
+  is(location.line, line, `correct line`);
+
+  assertPausedLocation(dbg);
+}

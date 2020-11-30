@@ -9,22 +9,54 @@ import os
 import re
 import sys
 import time
-import types
 import unittest
 import warnings
 import weakref
 
-from unittest.case import (
-    _ExpectedFailure,
-    _UnexpectedSuccess,
-    SkipTest,
-)
+from unittest.case import SkipTest
+
+import six
 
 from marionette_driver.errors import (
     TimeoutException,
     UnresponsiveInstanceException
 )
 from mozlog import get_default_logger
+
+
+# ExpectedFailure and UnexpectedSuccess are adapted from the Python 2
+# private classes _ExpectedFailure and _UnexpectedSuccess in
+# unittest/case.py which are no longer available in Python 3.
+class ExpectedFailure(Exception):
+    """
+    Raise this when a test is expected to fail.
+
+    This is an implementation detail.
+    """
+
+    def __init__(self, exc_info):
+        super(ExpectedFailure, self).__init__()
+        self.exc_info = exc_info
+
+
+class UnexpectedSuccess(Exception):
+    """
+    The test was supposed to fail, but it didn't!
+    """
+    pass
+
+
+try:
+    # Since these errors can be thrown during execution under Python 2
+    # we must support them until Marionette completes its transition
+    # from Python 2 to Python 3.
+    from unittest.case import (
+        _ExpectedFailure,
+        _UnexpectedSuccess,
+    )
+except ImportError:
+    _ExpectedFailure = ExpectedFailure
+    _UnexpectedSuccess = UnexpectedSuccess
 
 
 def _wraps_parameterized(func, func_suffix, args, kwargs):
@@ -47,7 +79,7 @@ class MetaParameterized(type):
     RE_ESCAPE_BAD_CHARS = re.compile(r'[\.\(\) -/]')
 
     def __new__(cls, name, bases, attrs):
-        for k, v in attrs.items():
+        for k, v in list(attrs.items()):
             if callable(v) and hasattr(v, 'metaparameters'):
                 for func_suffix, args, kwargs in v.metaparameters:
                     func_suffix = cls.RE_ESCAPE_BAD_CHARS.sub('_', func_suffix)
@@ -61,9 +93,9 @@ class MetaParameterized(type):
         return type.__new__(cls, name, bases, attrs)
 
 
+@six.add_metaclass(MetaParameterized)
 class CommonTestCase(unittest.TestCase):
 
-    __metaclass__ = MetaParameterized
     match_re = None
     failureException = AssertionError
     pydebugger = None
@@ -92,6 +124,11 @@ class CommonTestCase(unittest.TestCase):
             warnings.warn("TestResult has no addSkip method, skips not reported",
                           RuntimeWarning, 2)
             result.addSuccess(self)
+
+    def assertRaisesRegxp(self, expected_exception, expected_regexp, callable_obj=None,
+                          *args, **kwargs):
+        return six.assertRaisesRegex(self, expected_exception, expected_regexp,
+                                     callable_obj=None, *args, **kwargs)
 
     def run(self, result=None):
         # Bug 967566 suggests refactoring run, which would hopefully
@@ -319,7 +356,7 @@ class MarionetteTestCase(CommonTestCase):
 
         for name in dir(test_mod):
             obj = getattr(test_mod, name)
-            if (isinstance(obj, (type, types.ClassType)) and
+            if (isinstance(obj, six.class_types) and
                     issubclass(obj, unittest.TestCase)):
                 testnames = testloader.getTestCaseNames(obj)
                 for testname in testnames:

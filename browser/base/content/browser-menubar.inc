@@ -11,7 +11,8 @@
             <menu id="file-menu" data-l10n-id="menu-file">
               <menupopup id="menu_FilePopup"
                          onpopupshowing="updateFileMenuUserContextUIVisibility('menu_newUserContext');
-                                         updateFileMenuImportUIVisibility('cmd_importFromAnotherBrowser');">
+                                         updateImportCommandEnabledState();
+                                         PrintUtils.updatePrintPreviewMenuHiddenState();">
                 <menuitem id="menu_newNavigatorTab"
                           command="cmd_newNavigatorTab"
                           key="key_newNavigatorTab" data-l10n-id="menu-file-new-tab"/>
@@ -58,18 +59,18 @@
                 <menuseparator/>
 #if !defined(MOZ_WIDGET_GTK)
                 <menuitem id="menu_printSetup"
-                          command="cmd_pageSetup" data-l10n-id="menu-file-print-setup"/>
+                          command="cmd_pageSetup" data-l10n-id="menu-file-print-setup" hidden="true"/>
 #endif
 #ifndef XP_MACOSX
                 <menuitem id="menu_printPreview"
-                          command="cmd_printPreview" data-l10n-id="menu-file-print-preview"/>
+                          command="cmd_printPreview" data-l10n-id="menu-file-print-preview" hidden="true"/>
 #endif
                 <menuitem id="menu_print"
                           key="printKb"
                           command="cmd_print" data-l10n-id="menu-file-print"/>
                 <menuseparator/>
                 <menuitem id="menu_importFromAnotherBrowser"
-                          command="cmd_importFromAnotherBrowser" data-l10n-id="menu-file-import-from-another-browser"/>
+                          command="cmd_file_importFromAnotherBrowser" data-l10n-id="menu-file-import-from-another-browser"/>
                 <menuseparator/>
                 <menuitem id="goOfflineMenuitem"
                           type="checkbox"
@@ -144,7 +145,7 @@
               <menupopup id="menu_viewPopup"
                          onpopupshowing="updateCharacterEncodingMenuState();">
                 <menu id="viewToolbarsMenu" data-l10n-id="menu-view-toolbars-menu">
-                  <menupopup onpopupshowing="onViewToolbarsPopupShowing(event);">
+                  <menupopup id="view-menu-popup" onpopupshowing="onViewToolbarsPopupShowing(event);">
                     <menuseparator/>
                     <menuitem id="menu_customizeToolbars"
                               command="cmd_CustomizeToolbars" data-l10n-id="menu-view-customize-toolbar"/>
@@ -193,7 +194,7 @@
                               oncommand="gPageStyleMenu.disableStyle();"
                               type="radio" data-l10n-id="menu-view-page-style-no-style"/>
                     <menuitem id="menu_pageStylePersistentOnly"
-                              oncommand="gPageStyleMenu.switchStyleSheet('');"
+                              oncommand="gPageStyleMenu.switchStyleSheet(null);"
                               type="radio"
                               checked="true" data-l10n-id="menu-view-page-basic-style"/>
                     <menuseparator/>
@@ -252,9 +253,7 @@
                          tooltip="bhTooltip"
                          popupsinherittooltip="true">
                 <menuitem id="menu_showAllHistory"
-#ifndef XP_MACOSX
                           key="showAllHistoryKb"
-#endif
                           command="Browser:ShowAllHistory" data-l10n-id="menu-history-show-all-history"/>
                 <menuitem id="sanitizeItem"
                           key="key_sanitize"
@@ -266,7 +265,7 @@
                 <menuitem id="historyRestoreLastSession"
                           command="Browser:RestoreLastSession" data-l10n-id="menu-history-restore-last-session"/>
                 <menuitem id="hiddenTabsMenu"
-                          oncommand="gTabsPanel.showHiddenTabsPanel();"
+                          oncommand="gTabsPanel.showHiddenTabsPanel(event);"
                           hidden="true" data-l10n-id="menu-history-hidden-tabs"/>
                 <menu id="historyUndoMenu"
                       disabled="true" data-l10n-id="menu-history-undo-menu">
@@ -284,7 +283,18 @@
                              placespopup="true"
                              is="places-popup"
 #endif
-                             onpopupshowing="document.getElementById('history-menu')._placesView.populateUndoWindowSubmenu();"/>
+                             onpopupshowing="document.getElementById('history-menu')._placesView.populateUndoWindowSubmenu();">
+#ifdef HIDDEN_WINDOW
+# This entry is never visible. It's here to make the cmd-shift-n
+# shortcut work in the hidden window when the last window is closed.
+# If the menu is actually opened, we'll clear this out and replace
+# it with a "real" entry.
+# See bug 492320 for the nasty details.
+                    <menuitem key="key_undoCloseWindow"
+                              oncommand="undoCloseWindow(0)"
+                              />
+#endif
+                  </menupopup>
                 </menu>
                 <menuseparator id="startHistorySeparator"
                                class="hide-if-empty-places-result"/>
@@ -466,6 +476,8 @@
 #endif
                 <menuitem id="menu_openTour"
                           oncommand="openTourPage();" data-l10n-id="menu-help-show-tour"/>
+                <menuitem id="help_importFromAnotherBrowser"
+                          command="cmd_help_importFromAnotherBrowser" data-l10n-id="menu-help-import-from-another-browser"/>
                 <menuitem id="menu_keyboardShortcuts"
                           oncommand="openHelpLink('keyboard-shortcuts')"
                           onclick="checkForMiddleClick(this, event);" data-l10n-id="menu-help-keyboard-shortcuts"/>

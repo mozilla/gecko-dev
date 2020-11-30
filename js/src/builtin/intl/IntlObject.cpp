@@ -41,6 +41,7 @@
 #include "vm/JSAtom.h"
 #include "vm/JSContext.h"
 #include "vm/JSObject.h"
+#include "vm/PlainObject.h"  // js::PlainObject
 #include "vm/StringType.h"
 
 #include "vm/JSObject-inl.h"
@@ -619,6 +620,8 @@ bool js::intl_BestAvailableLocale(JSContext* cx, unsigned argc, Value* vp) {
       kind = SupportedLocaleKind::Collator;
     } else if (StringEqualsLiteral(typeStr, "DateTimeFormat")) {
       kind = SupportedLocaleKind::DateTimeFormat;
+    } else if (StringEqualsLiteral(typeStr, "DisplayNames")) {
+      kind = SupportedLocaleKind::DisplayNames;
     } else if (StringEqualsLiteral(typeStr, "ListFormat")) {
       kind = SupportedLocaleKind::ListFormat;
     } else if (StringEqualsLiteral(typeStr, "NumberFormat")) {
@@ -791,6 +794,9 @@ static const JSFunctionSpec intl_static_methods[] = {
     JS_SELF_HOSTED_FN("getCanonicalLocales", "Intl_getCanonicalLocales", 1, 0),
     JS_FS_END};
 
+static const JSPropertySpec intl_static_properties[] = {
+    JS_STRING_SYM_PS(toStringTag, "Intl", JSPROP_READONLY), JS_PS_END};
+
 static JSObject* CreateIntlObject(JSContext* cx, JSProtoKey key) {
   Handle<GlobalObject*> global = cx->global();
   RootedObject proto(cx, GlobalObject::getOrCreateObjectPrototype(cx, global));
@@ -800,7 +806,7 @@ static JSObject* CreateIntlObject(JSContext* cx, JSProtoKey key) {
 
   // The |Intl| object is just a plain object with some "static" function
   // properties and some constructor properties.
-  return NewObjectWithGivenProto(cx, &IntlClass, proto, SingletonObject);
+  return NewSingletonObjectWithGivenProto(cx, &IntlClass, proto);
 }
 
 /**
@@ -813,8 +819,8 @@ static bool IntlClassFinish(JSContext* cx, HandleObject intl,
   RootedId ctorId(cx);
   RootedValue ctorValue(cx);
   for (const auto& protoKey :
-       {JSProto_Collator, JSProto_DateTimeFormat, JSProto_Locale,
-        JSProto_NumberFormat, JSProto_PluralRules,
+       {JSProto_Collator, JSProto_DateTimeFormat, JSProto_ListFormat,
+        JSProto_Locale, JSProto_NumberFormat, JSProto_PluralRules,
         JSProto_RelativeTimeFormat}) {
     JSObject* ctor = GlobalObject::getOrCreateConstructor(cx, protoKey);
     if (!ctor) {
@@ -832,9 +838,8 @@ static bool IntlClassFinish(JSContext* cx, HandleObject intl,
 }
 
 static const ClassSpec IntlClassSpec = {
-    CreateIntlObject, nullptr, intl_static_methods, nullptr,
+    CreateIntlObject, nullptr, intl_static_methods, intl_static_properties,
     nullptr,          nullptr, IntlClassFinish};
 
-const JSClass js::IntlClass = {js_Object_str,
-                               JSCLASS_HAS_CACHED_PROTO(JSProto_Intl),
+const JSClass js::IntlClass = {"Intl", JSCLASS_HAS_CACHED_PROTO(JSProto_Intl),
                                JS_NULL_CLASS_OPS, &IntlClassSpec};

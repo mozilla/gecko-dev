@@ -8,6 +8,7 @@
 
 #include "mozilla/RefPtr.h"
 #include "mozilla/gfx/PGPUParent.h"
+#include "mozilla/media/MediaUtils.h"
 
 namespace mozilla {
 
@@ -25,6 +26,8 @@ class GPUParent final : public PGPUParent {
 
   static GPUParent* GetSingleton();
 
+  AsyncBlockers& AsyncShutdownService() { return mShutdownBlockers; }
+
   // Gets the name of the GPU process, in the format expected by about:memory.
   // There must be a GPU process active, and the caller must be either in that
   // process or the parent process.
@@ -39,7 +42,8 @@ class GPUParent final : public PGPUParent {
 
   mozilla::ipc::IPCResult RecvInit(nsTArray<GfxVarUpdate>&& vars,
                                    const DevicePrefs& devicePrefs,
-                                   nsTArray<LayerTreeIdMapping>&& mappings);
+                                   nsTArray<LayerTreeIdMapping>&& mappings,
+                                   nsTArray<GfxInfoFeatureStatus>&& features);
   mozilla::ipc::IPCResult RecvInitCompositorManager(
       Endpoint<PCompositorManagerParent>&& aEndpoint);
   mozilla::ipc::IPCResult RecvInitVsyncBridge(
@@ -76,7 +80,8 @@ class GPUParent final : public PGPUParent {
   mozilla::ipc::IPCResult RecvRequestMemoryReport(
       const uint32_t& generation, const bool& anonymize,
       const bool& minimizeMemoryUsage,
-      const Maybe<ipc::FileDescriptor>& DMDFile);
+      const Maybe<ipc::FileDescriptor>& DMDFile,
+      const RequestMemoryReportResolver& aResolver);
   mozilla::ipc::IPCResult RecvShutdownVR();
 
   mozilla::ipc::IPCResult RecvUpdatePerfStatsCollectionMask(
@@ -97,6 +102,7 @@ class GPUParent final : public PGPUParent {
 #ifdef MOZ_GECKO_PROFILER
   RefPtr<ChildProfilerController> mProfilerController;
 #endif
+  AsyncBlockers mShutdownBlockers;
 };
 
 }  // namespace gfx

@@ -10,6 +10,7 @@
 #include "mozilla/dom/HeadersBinding.h"
 #include "mozilla/dom/InternalHeaders.h"
 #include "mozilla/dom/RequestBinding.h"
+#include "mozilla/dom/SafeRefPtr.h"
 #include "mozilla/LoadTainting.h"
 #include "mozilla/UniquePtr.h"
 
@@ -25,7 +26,6 @@ namespace mozilla {
 
 namespace ipc {
 class PrincipalInfo;
-class AutoIPCStream;
 }  // namespace ipc
 
 namespace dom {
@@ -38,21 +38,23 @@ namespace dom {
  * RequestDestination| nsContentPolicyType
  * ------------------+--------------------
  * audio             | TYPE_INTERNAL_AUDIO
- * audioworklet      | TODO
+ * audioworklet      | TYPE_INTERNAL_AUDIOWORKLET
  * document          | TYPE_DOCUMENT, TYPE_INTERNAL_IFRAME, TYPE_SUBDOCUMENT
  * embed             | TYPE_INTERNAL_EMBED
- * font              | TYPE_FONT
+ * font              | TYPE_FONT, TYPE_INTERNAL_FONT_PRELOAD
  * image             | TYPE_INTERNAL_IMAGE, TYPE_INTERNAL_IMAGE_PRELOAD,
  *                   | TYPE_IMAGE, TYPE_INTERNAL_IMAGE_FAVICON, TYPE_IMAGESET
  * manifest          | TYPE_WEB_MANIFEST
  * object            | TYPE_INTERNAL_OBJECT, TYPE_OBJECT
- * "paintworklet"    | TODO
+ * "paintworklet"    | TYPE_INTERNAL_PAINTWORKLET
  * report"           | TODO
  * script            | TYPE_INTERNAL_SCRIPT, TYPE_INTERNAL_SCRIPT_PRELOAD,
  *                   | TYPE_INTERNAL_MODULE, TYPE_INTERNAL_MODULE_PRELOAD,
  *                   | TYPE_SCRIPT,
  *                   | TYPE_INTERNAL_SERVICE_WORKER,
- *                   | TYPE_INTERNAL_WORKER_IMPORT_SCRIPTS
+ *                   | TYPE_INTERNAL_WORKER_IMPORT_SCRIPTS,
+ *                   | TYPE_INTERNAL_CHROMEUTILS_COMPILED_SCRIPT
+ *                   | TYPE_INTERNAL_FRAME_MESSAGEMANAGER_SCRIPT
  * sharedworker      | TYPE_INTERNAL_SHARED_WORKER
  * serviceworker     | The spec lists this as a valid value for the enum,
  *                   | however it is impossible to observe a request with this
@@ -72,11 +74,11 @@ class IPCInternalRequest;
 class Request;
 
 #define kFETCH_CLIENT_REFERRER_STR "about:client"
-class InternalRequest final {
+class InternalRequest final : public AtomicSafeRefCounted<InternalRequest> {
   friend class Request;
 
  public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(InternalRequest)
+  MOZ_DECLARE_REFCOUNTED_TYPENAME(InternalRequest)
   InternalRequest(const nsACString& aURL, const nsACString& aFragment);
   InternalRequest(const nsACString& aURL, const nsACString& aFragment,
                   const nsACString& aMethod,
@@ -90,11 +92,7 @@ class InternalRequest final {
 
   explicit InternalRequest(const IPCInternalRequest& aIPCRequest);
 
-  template <typename M>
-  void ToIPC(IPCInternalRequest* aIPCRequest, M* aManager,
-             UniquePtr<mozilla::ipc::AutoIPCStream>& aAutoStream);
-
-  already_AddRefed<InternalRequest> Clone();
+  SafeRefPtr<InternalRequest> Clone();
 
   void GetMethod(nsCString& aMethod) const { aMethod.Assign(mMethod); }
 
@@ -240,8 +238,8 @@ class InternalRequest final {
   }
 
   const nsString& GetIntegrity() const { return mIntegrity; }
+
   void SetIntegrity(const nsAString& aIntegrity) {
-    MOZ_ASSERT(mIntegrity.IsEmpty());
     mIntegrity.Assign(aIntegrity);
   }
 
@@ -264,7 +262,7 @@ class InternalRequest final {
 
   void SetUnsafeRequest() { mUnsafeRequest = true; }
 
-  InternalHeaders* Headers() { return mHeaders; }
+  InternalHeaders* Headers() const { return mHeaders; }
 
   void SetHeaders(InternalHeaders* aHeaders) {
     MOZ_ASSERT(aHeaders);
@@ -280,7 +278,7 @@ class InternalRequest final {
 
   // Will return the original stream!
   // Use a tee or copy if you don't want to erase the original.
-  void GetBody(nsIInputStream** aStream, int64_t* aBodyLength = nullptr) {
+  void GetBody(nsIInputStream** aStream, int64_t* aBodyLength = nullptr) const {
     nsCOMPtr<nsIInputStream> s = mBodyStream;
     s.forget(aStream);
 
@@ -300,7 +298,7 @@ class InternalRequest final {
   const nsAString& BodyLocalPath() const { return mBodyLocalPath; }
 
   // The global is used as the client for the new object.
-  already_AddRefed<InternalRequest> GetRequestConstructorCopy(
+  SafeRefPtr<InternalRequest> GetRequestConstructorCopy(
       nsIGlobalObject* aGlobal, ErrorResult& aRv) const;
 
   bool IsNavigationRequest() const;
@@ -335,12 +333,26 @@ class InternalRequest final {
     mPreferredAlternativeDataType = aDataType;
   }
 
- private:
-  // Does not copy mBodyStream.  Use fallible Clone() for complete copy.
-  explicit InternalRequest(const InternalRequest& aOther);
-
   ~InternalRequest();
 
+  InternalRequest(const InternalRequest& aOther) = delete;
+
+  void SetEmbedderPolicy(nsILoadInfo::CrossOriginEmbedderPolicy aPolicy) {
+    mEmbedderPolicy = aPolicy;
+  }
+
+  nsILoadInfo::CrossOriginEmbedderPolicy GetEmbedderPolicy() const {
+    return mEmbedderPolicy;
+  }
+
+ private:
+  struct ConstructorGuard {};
+
+ public:
+  // Does not copy mBodyStream.  Use fallible Clone() for complete copy.
+  InternalRequest(const InternalRequest& aOther, ConstructorGuard);
+
+ private:
   // Map the content policy type to the associated fetch destination, as defined
   // by the spec at https://fetch.spec.whatwg.org/#concept-request-destination.
   // Note that while the HTML spec for the "Link" element and its "as" attribute
@@ -405,6 +417,8 @@ class InternalRequest final {
   // It is illegal to pass such a Request object to a fetch() method unless
   // if the caller has chrome privileges.
   bool mContentPolicyTypeOverridden = false;
+  nsILoadInfo::CrossOriginEmbedderPolicy mEmbedderPolicy =
+      nsILoadInfo::EMBEDDER_POLICY_NULL;
 
   UniquePtr<mozilla::ipc::PrincipalInfo> mPrincipalInfo;
 };

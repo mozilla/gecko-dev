@@ -27,16 +27,16 @@
 #include "nsMenuUtilsX.h"
 #include "nsToolkit.h"
 #include "nsCRT.h"
-#include "SVGImageContext.h"
 #include "mozilla/ClearOnShutdown.h"
-#include "mozilla/dom/Promise.h"
-#include "mozilla/gfx/2D.h"
 #include "mozilla/Logging.h"
 #include "mozilla/MiscEvents.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPrefs_media.h"
+#include "mozilla/SVGImageContext.h"
+#include "mozilla/dom/Promise.h"
+#include "mozilla/gfx/2D.h"
 
 using namespace mozilla;
 using namespace mozilla::widget;
@@ -571,7 +571,8 @@ void nsCocoaUtils::GetStringForNSString(const NSString* aSrc, nsAString& aDist) 
   }
 
   aDist.SetLength([aSrc length]);
-  [aSrc getCharacters:reinterpret_cast<unichar*>(aDist.BeginWriting())];
+  [aSrc getCharacters:reinterpret_cast<unichar*>(aDist.BeginWriting())
+                range:NSMakeRange(0, [aSrc length])];
 
   NS_OBJC_END_TRY_ABORT_BLOCK;
 }
@@ -1254,7 +1255,7 @@ nsresult nsCocoaUtils::GetScreenCapturePermissionState(uint16_t& aPermissionStat
     // screen. We use the window name, window level, and owning PID as
     // heuristics to determine if we have screen recording permission.
     AutoCFRelease<CFArrayRef> windowArray =
-        CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly, kCGNullWindowID);
+        CGWindowListCopyWindowInfo(kCGWindowListOptionAll, kCGNullWindowID);
     if (!windowArray) {
       LOG("GetScreenCapturePermissionState() ERROR: got NULL window info list");
       return NS_ERROR_UNEXPECTED;
@@ -1420,8 +1421,7 @@ void nsCocoaUtils::ResolveMediaCapturePromises(bool aGranted, PromiseArray& aPro
 
   // Remove each promise from the list and resolve it.
   while (aPromiseList->Length() > 0) {
-    RefPtr<Promise> promise = aPromiseList->LastElement();
-    aPromiseList->RemoveLastElement();
+    RefPtr<Promise> promise = aPromiseList->PopLastElement();
 
     // Resolve on main thread
     nsCOMPtr<nsIRunnable> runnable(NS_NewRunnableFunction(
@@ -1449,6 +1449,7 @@ void nsCocoaUtils::ResolveAudioCapturePromises(bool aGranted) {
 // in which case macOS does not display the dialog again.
 //
 nsresult nsCocoaUtils::MaybeRequestScreenCapturePermission() {
+  LOG("MaybeRequestScreenCapturePermission()");
   AutoCFRelease<CGImageRef> image =
       CGDisplayCreateImageForRect(kCGDirectMainDisplay, CGRectMake(0, 0, 1, 1));
   return NS_OK;

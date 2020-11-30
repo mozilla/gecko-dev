@@ -42,8 +42,6 @@ exports[`Frame getFrameTitle 1`] = `
         "source": Object {
           "extensionName": null,
           "id": "source",
-          "introductionType": undefined,
-          "introductionUrl": null,
           "isBlackBoxed": false,
           "isExtension": false,
           "isOriginal": false,
@@ -55,6 +53,7 @@ exports[`Frame getFrameTitle 1`] = `
         "state": "on-stack",
         "this": Object {},
         "thread": "FakeThread",
+        "type": "call",
       }
     }
     options={
@@ -99,8 +98,6 @@ exports[`Frame getFrameTitle 1`] = `
         "source": Object {
           "extensionName": null,
           "id": "source",
-          "introductionType": undefined,
-          "introductionUrl": null,
           "isBlackBoxed": false,
           "isExtension": false,
           "isOriginal": false,
@@ -112,6 +109,7 @@ exports[`Frame getFrameTitle 1`] = `
         "state": "on-stack",
         "this": Object {},
         "thread": "FakeThread",
+        "type": "call",
       }
     }
   />
@@ -163,8 +161,6 @@ exports[`Frame library frame 1`] = `
         "source": Object {
           "extensionName": null,
           "id": "source",
-          "introductionType": undefined,
-          "introductionUrl": null,
           "isBlackBoxed": false,
           "isExtension": false,
           "isOriginal": false,
@@ -176,6 +172,7 @@ exports[`Frame library frame 1`] = `
         "state": "on-stack",
         "this": Object {},
         "thread": "FakeThread",
+        "type": "call",
       }
     }
     options={
@@ -221,8 +218,6 @@ exports[`Frame library frame 1`] = `
         "source": Object {
           "extensionName": null,
           "id": "source",
-          "introductionType": undefined,
-          "introductionUrl": null,
           "isBlackBoxed": false,
           "isExtension": false,
           "isOriginal": false,
@@ -234,6 +229,7 @@ exports[`Frame library frame 1`] = `
         "state": "on-stack",
         "this": Object {},
         "thread": "FakeThread",
+        "type": "call",
       }
     }
   />
@@ -284,8 +280,6 @@ exports[`Frame user frame (not selected) 1`] = `
         "source": Object {
           "extensionName": null,
           "id": "source",
-          "introductionType": undefined,
-          "introductionUrl": null,
           "isBlackBoxed": false,
           "isExtension": false,
           "isOriginal": false,
@@ -297,6 +291,7 @@ exports[`Frame user frame (not selected) 1`] = `
         "state": "on-stack",
         "this": Object {},
         "thread": "FakeThread",
+        "type": "call",
       }
     }
     options={
@@ -341,8 +336,6 @@ exports[`Frame user frame (not selected) 1`] = `
         "source": Object {
           "extensionName": null,
           "id": "source",
-          "introductionType": undefined,
-          "introductionUrl": null,
           "isBlackBoxed": false,
           "isExtension": false,
           "isOriginal": false,
@@ -354,6 +347,7 @@ exports[`Frame user frame (not selected) 1`] = `
         "state": "on-stack",
         "this": Object {},
         "thread": "FakeThread",
+        "type": "call",
       }
     }
   />
@@ -404,8 +398,6 @@ exports[`Frame user frame 1`] = `
         "source": Object {
           "extensionName": null,
           "id": "source",
-          "introductionType": undefined,
-          "introductionUrl": null,
           "isBlackBoxed": false,
           "isExtension": false,
           "isOriginal": false,
@@ -417,6 +409,7 @@ exports[`Frame user frame 1`] = `
         "state": "on-stack",
         "this": Object {},
         "thread": "FakeThread",
+        "type": "call",
       }
     }
     options={
@@ -461,8 +454,6 @@ exports[`Frame user frame 1`] = `
         "source": Object {
           "extensionName": null,
           "id": "source",
-          "introductionType": undefined,
-          "introductionUrl": null,
           "isBlackBoxed": false,
           "isExtension": false,
           "isOriginal": false,
@@ -474,6 +465,7 @@ exports[`Frame user frame 1`] = `
         "state": "on-stack",
         "this": Object {},
         "thread": "FakeThread",
+        "type": "call",
       }
     }
   />

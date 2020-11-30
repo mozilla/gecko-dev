@@ -16,7 +16,7 @@
 #include "mozilla/MouseEvents.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/TextEditor.h"
-#include "mozilla/StaticPrefs_browser.h"
+#include "mozilla/StaticPrefs_html5.h"
 #include "mozilla/StaticPrefs_layout.h"
 
 #include "nscore.h"
@@ -103,6 +103,62 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 
+static const uint8_t NS_INPUTMODE_NONE = 1;
+static const uint8_t NS_INPUTMODE_TEXT = 2;
+static const uint8_t NS_INPUTMODE_TEL = 3;
+static const uint8_t NS_INPUTMODE_URL = 4;
+static const uint8_t NS_INPUTMODE_EMAIL = 5;
+static const uint8_t NS_INPUTMODE_NUMERIC = 6;
+static const uint8_t NS_INPUTMODE_DECIMAL = 7;
+static const uint8_t NS_INPUTMODE_SEARCH = 8;
+
+static const nsAttrValue::EnumTable kInputmodeTable[] = {
+    {"none", NS_INPUTMODE_NONE},
+    {"text", NS_INPUTMODE_TEXT},
+    {"tel", NS_INPUTMODE_TEL},
+    {"url", NS_INPUTMODE_URL},
+    {"email", NS_INPUTMODE_EMAIL},
+    {"numeric", NS_INPUTMODE_NUMERIC},
+    {"decimal", NS_INPUTMODE_DECIMAL},
+    {"search", NS_INPUTMODE_SEARCH},
+    {nullptr, 0}};
+
+static const uint8_t NS_ENTERKEYHINT_ENTER = 1;
+static const uint8_t NS_ENTERKEYHINT_DONE = 2;
+static const uint8_t NS_ENTERKEYHINT_GO = 3;
+static const uint8_t NS_ENTERKEYHINT_NEXT = 4;
+static const uint8_t NS_ENTERKEYHINT_PREVIOUS = 5;
+static const uint8_t NS_ENTERKEYHINT_SEARCH = 6;
+static const uint8_t NS_ENTERKEYHINT_SEND = 7;
+
+static const nsAttrValue::EnumTable kEnterKeyHintTable[] = {
+    {"enter", NS_ENTERKEYHINT_ENTER},
+    {"done", NS_ENTERKEYHINT_DONE},
+    {"go", NS_ENTERKEYHINT_GO},
+    {"next", NS_ENTERKEYHINT_NEXT},
+    {"previous", NS_ENTERKEYHINT_PREVIOUS},
+    {"search", NS_ENTERKEYHINT_SEARCH},
+    {"send", NS_ENTERKEYHINT_SEND},
+    {nullptr, 0}};
+
+static const uint8_t NS_AUTOCAPITALIZE_NONE = 1;
+static const uint8_t NS_AUTOCAPITALIZE_SENTENCES = 2;
+static const uint8_t NS_AUTOCAPITALIZE_WORDS = 3;
+static const uint8_t NS_AUTOCAPITALIZE_CHARACTERS = 4;
+
+static const nsAttrValue::EnumTable kAutocapitalizeTable[] = {
+    {"none", NS_AUTOCAPITALIZE_NONE},
+    {"sentences", NS_AUTOCAPITALIZE_SENTENCES},
+    {"words", NS_AUTOCAPITALIZE_WORDS},
+    {"characters", NS_AUTOCAPITALIZE_CHARACTERS},
+    {"off", NS_AUTOCAPITALIZE_NONE},
+    {"on", NS_AUTOCAPITALIZE_SENTENCES},
+    {"", 0},
+    {nullptr, 0}};
+
+static const nsAttrValue::EnumTable* kDefaultAutocapitalize =
+    &kAutocapitalizeTable[1];
+
 nsresult nsGenericHTMLElement::CopyInnerTo(Element* aDst) {
   MOZ_ASSERT(!aDst->GetUncomposedDoc(),
              "Should not CopyInnerTo an Element in a document");
@@ -126,7 +182,7 @@ static const nsAttrValue::EnumTable kDirTable[] = {
 void nsGenericHTMLElement::AddToNameTable(nsAtom* aName) {
   MOZ_ASSERT(HasName(), "Node doesn't have name?");
   Document* doc = GetUncomposedDoc();
-  if (doc && !IsInAnonymousSubtree()) {
+  if (doc && !IsInNativeAnonymousSubtree()) {
     doc->AddToNameTable(this, aName);
   }
 }
@@ -403,8 +459,7 @@ nsresult nsGenericHTMLElement::BindToTree(BindContext& aContext,
         [self = RefPtr<nsGenericHTMLElement>(this)]() {
           nsAutoString nonce;
           self->GetNonce(nonce);
-          self->SetAttr(kNameSpaceID_None, nsGkAtoms::nonce, EmptyString(),
-                        true);
+          self->SetAttr(kNameSpaceID_None, nsGkAtoms::nonce, u""_ns, true);
           self->SetNonce(nonce);
         }));
   }
@@ -636,23 +691,29 @@ nsresult nsGenericHTMLElement::AfterSetAttr(
       SetDirectionalityOnDescendants(this, dir, aNotify);
     } else if (aName == nsGkAtoms::contenteditable) {
       int32_t editableCountDelta = 0;
-      if (aOldValue &&
-          (aOldValue->Equals(NS_LITERAL_STRING("true"), eIgnoreCase) ||
-           aOldValue->Equals(EmptyString(), eIgnoreCase))) {
+      if (aOldValue && (aOldValue->Equals(u"true"_ns, eIgnoreCase) ||
+                        aOldValue->Equals(u""_ns, eIgnoreCase))) {
         editableCountDelta = -1;
       }
-      if (aValue && (aValue->Equals(NS_LITERAL_STRING("true"), eIgnoreCase) ||
-                     aValue->Equals(EmptyString(), eIgnoreCase))) {
+      if (aValue && (aValue->Equals(u"true"_ns, eIgnoreCase) ||
+                     aValue->Equals(u""_ns, eIgnoreCase))) {
         ++editableCountDelta;
       }
       ChangeEditableState(editableCountDelta);
     } else if (aName == nsGkAtoms::accesskey) {
-      if (aValue && !aValue->Equals(EmptyString(), eIgnoreCase)) {
+      if (aValue && !aValue->Equals(u""_ns, eIgnoreCase)) {
         SetFlags(NODE_HAS_ACCESSKEY);
         RegAccessKey();
       }
+    } else if (aName == nsGkAtoms::inert &&
+               StaticPrefs::html5_inert_enabled()) {
+      if (aValue) {
+        AddStates(NS_EVENT_STATE_MOZINERT);
+      } else {
+        RemoveStates(NS_EVENT_STATE_MOZINERT);
+      }
     } else if (aName == nsGkAtoms::name) {
-      if (aValue && !aValue->Equals(EmptyString(), eIgnoreCase)) {
+      if (aValue && !aValue->Equals(u""_ns, eIgnoreCase)) {
         // This may not be quite right because we can have subclass code run
         // before here. But in practice subclasses don't care about this flag,
         // and in particular selector matching does not care.  Otherwise we'd
@@ -834,6 +895,18 @@ bool nsGenericHTMLElement::ParseAttribute(int32_t aNamespaceID,
       aResult.ParseAtomArray(aValue);
       return true;
     }
+
+    if (aAttribute == nsGkAtoms::inputmode) {
+      return aResult.ParseEnumValue(aValue, kInputmodeTable, false);
+    }
+
+    if (aAttribute == nsGkAtoms::enterkeyhint) {
+      return aResult.ParseEnumValue(aValue, kEnterKeyHintTable, false);
+    }
+
+    if (aAttribute == nsGkAtoms::autocapitalize) {
+      return aResult.ParseEnumValue(aValue, kAutocapitalizeTable, false);
+    }
   }
 
   return nsGenericHTMLElementBase::ParseAttribute(
@@ -874,25 +947,24 @@ nsMapRuleToAttributesFunc nsGenericHTMLElement::GetAttributeMappingFunction()
 
 nsIFormControlFrame* nsGenericHTMLElement::GetFormControlFrame(
     bool aFlushFrames) {
-  if (aFlushFrames && IsInComposedDoc()) {
-    // Cause a flush of the frames, so we get up-to-date frame information
-    GetComposedDoc()->FlushPendingNotifications(FlushType::Frames);
+  auto flushType = aFlushFrames ? FlushType::Frames : FlushType::None;
+  nsIFrame* frame = GetPrimaryFrame(flushType);
+  if (!frame) {
+    return nullptr;
   }
-  nsIFrame* frame = GetPrimaryFrame();
-  if (frame) {
-    nsIFormControlFrame* form_frame = do_QueryFrame(frame);
-    if (form_frame) {
-      return form_frame;
-    }
 
-    // If we have generated content, the primary frame will be a
-    // wrapper frame..  out real frame will be in its child list.
-    for (frame = frame->PrincipalChildList().FirstChild(); frame;
-         frame = frame->GetNextSibling()) {
-      form_frame = do_QueryFrame(frame);
-      if (form_frame) {
-        return form_frame;
-      }
+  if (nsIFormControlFrame* f = do_QueryFrame(frame)) {
+    return f;
+  }
+
+  // If we have generated content, the primary frame will be a wrapper frame...
+  // Our real frame will be in its child list.
+  //
+  // FIXME(emilio): I don't think that's true... See bug 155957 for test-cases
+  // though, we should figure out whether this is still needed.
+  for (nsIFrame* kid : frame->PrincipalChildList()) {
+    if (nsIFormControlFrame* f = do_QueryFrame(kid)) {
+      return f;
     }
   }
 
@@ -1301,7 +1373,7 @@ void nsGenericHTMLElement::MapImageSizeAttributesInto(
     }
 
     if (w && h && *w != 0 && *h != 0) {
-      aDecls.SetNumberValue(eCSSProperty_aspect_ratio, *w / *h);
+      aDecls.SetAspectRatio(*w, *h);
     }
   }
 }
@@ -1522,12 +1594,6 @@ already_AddRefed<nsINodeList> nsGenericHTMLElement::Labels() {
   return labels.forget();
 }
 
-bool nsGenericHTMLElement::IsInteractiveHTMLContent(
-    bool aIgnoreTabindex) const {
-  return IsAnyOfHTMLElements(nsGkAtoms::embed) ||
-         (!aIgnoreTabindex && HasAttr(kNameSpaceID_None, nsGkAtoms::tabindex));
-}
-
 // static
 bool nsGenericHTMLElement::LegacyTouchAPIEnabled(JSContext* aCx,
                                                  JSObject* aGlobal) {
@@ -1641,44 +1707,13 @@ nsIContent::IMEState nsGenericHTMLFormElement::GetDesiredIMEState() {
   return state;
 }
 
-static bool IsSameOriginAsTop(const BindContext& aContext,
-                              const nsGenericHTMLFormElement* aElement) {
-  MOZ_ASSERT(aElement);
-
-  BrowsingContext* browsingContext = aContext.OwnerDoc().GetBrowsingContext();
-  if (!browsingContext) {
-    return false;
-  }
-
-  nsPIDOMWindowOuter* topWindow = browsingContext->Top()->GetDOMWindow();
-  if (!topWindow) {
-    // If we don't have a DOMWindow, We are not in same origin.
-    return false;
-  }
-
-  Document* topLevelDocument = topWindow->GetExtantDoc();
-  if (!topLevelDocument) {
-    return false;
-  }
-
-  return NS_SUCCEEDED(
-      nsContentUtils::CheckSameOrigin(topLevelDocument, aElement));
-}
-
 nsresult nsGenericHTMLFormElement::BindToTree(BindContext& aContext,
                                               nsINode& aParent) {
   nsresult rv = nsGenericHTMLElement::BindToTree(aContext, aParent);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // An autofocus event has to be launched if the autofocus attribute is
-  // specified and the element accepts the autofocus attribute and only if the
-  // target document is in the same origin as the top level document.
-  // https://html.spec.whatwg.org/multipage/interaction.html#the-autofocus-attribute:same-origin
-  // In addition, the document should not be already loaded and the
-  // "browser.autofocus" preference should be 'true'.
-  if (IsAutofocusable() && HasAttr(kNameSpaceID_None, nsGkAtoms::autofocus) &&
-      StaticPrefs::browser_autofocus() && IsInUncomposedDoc() &&
-      IsSameOriginAsTop(aContext, this)) {
+  if (IsAutofocusable() && HasAttr(nsGkAtoms::autofocus) &&
+      aContext.AllowsAutoFocus()) {
     aContext.OwnerDoc().SetAutoFocusElement(this);
   }
 
@@ -1959,10 +1994,10 @@ EventStates nsGenericHTMLFormElement::IntrinsicState() const {
   }
 
   // Make the text controls read-write
-  if (!state.HasState(NS_EVENT_STATE_MOZ_READWRITE) && DoesReadOnlyApply()) {
-    if (!GetBoolAttr(nsGkAtoms::readonly)) {
-      state |= NS_EVENT_STATE_MOZ_READWRITE;
-      state &= ~NS_EVENT_STATE_MOZ_READONLY;
+  if (!state.HasState(NS_EVENT_STATE_READWRITE) && DoesReadOnlyApply()) {
+    if (!GetBoolAttr(nsGkAtoms::readonly) && !IsDisabled()) {
+      state |= NS_EVENT_STATE_READWRITE;
+      state &= ~NS_EVENT_STATE_READONLY;
     }
   }
 
@@ -2184,23 +2219,21 @@ void nsGenericHTMLFormElement::UpdateDisabledState(bool aNotify) {
     return;
   }
 
-  bool isDisabled = HasAttr(kNameSpaceID_None, nsGkAtoms::disabled);
-  if (!isDisabled && mFieldSet) {
-    isDisabled = mFieldSet->IsDisabled();
-  }
+  const bool isDisabled =
+      HasAttr(nsGkAtoms::disabled) || (mFieldSet && mFieldSet->IsDisabled());
 
-  EventStates disabledStates;
-  if (isDisabled) {
-    disabledStates |= NS_EVENT_STATE_DISABLED;
-  } else {
-    disabledStates |= NS_EVENT_STATE_ENABLED;
-  }
+  const EventStates disabledStates =
+      isDisabled ? NS_EVENT_STATE_DISABLED : NS_EVENT_STATE_ENABLED;
 
   EventStates oldDisabledStates = State() & DISABLED_STATES;
   EventStates changedStates = disabledStates ^ oldDisabledStates;
 
   if (!changedStates.IsEmpty()) {
     ToggleStates(changedStates, aNotify);
+    if (DoesReadOnlyApply()) {
+      // :disabled influences :read-only / :read-write.
+      UpdateState(aNotify);
+    }
   }
 }
 
@@ -2317,6 +2350,7 @@ bool nsGenericHTMLElement::IsHTMLFocusable(bool aWithMouse, bool* aIsFocusable,
   int32_t tabIndex = TabIndex();
   bool disabled = false;
   bool disallowOverridingFocusability = true;
+  Maybe<int32_t> attrVal = GetTabIndexAttrValue();
 
   if (IsEditableRoot()) {
     // Editable roots should always be focusable.
@@ -2324,7 +2358,7 @@ bool nsGenericHTMLElement::IsHTMLFocusable(bool aWithMouse, bool* aIsFocusable,
 
     // Ignore the disabled attribute in editable contentEditable/designMode
     // roots.
-    if (!HasAttr(kNameSpaceID_None, nsGkAtoms::tabindex)) {
+    if (attrVal.isNothing()) {
       // The default value for tabindex should be 0 for editable
       // contentEditable roots.
       tabIndex = 0;
@@ -2345,9 +2379,7 @@ bool nsGenericHTMLElement::IsHTMLFocusable(bool aWithMouse, bool* aIsFocusable,
 
   // If a tabindex is specified at all, or the default tabindex is 0, we're
   // focusable
-  *aIsFocusable =
-      (tabIndex >= 0 ||
-       (!disabled && HasAttr(kNameSpaceID_None, nsGkAtoms::tabindex)));
+  *aIsFocusable = (tabIndex >= 0 || (!disabled && attrVal.isSome()));
 
   return disallowOverridingFocusability;
 }
@@ -2384,14 +2416,15 @@ bool nsGenericHTMLElement::PerformAccesskey(bool aKeyCausesActivation,
 
   // It's hard to say what HTML4 wants us to do in all cases.
   bool focused = true;
-  nsFocusManager* fm = nsFocusManager::GetFocusManager();
-  if (fm) {
-    fm->SetFocus(this, nsIFocusManager::FLAG_BYKEY |
-                           nsIFocusManager::FLAG_BYELEMENTFOCUS);
+  if (nsFocusManager* fm = nsFocusManager::GetFocusManager()) {
+    fm->SetFocus(this, nsIFocusManager::FLAG_BYKEY);
 
     // Return true if the element became the current focus within its window.
+    //
+    // FIXME(emilio): Shouldn't this check `window->GetFocusedElement() == this`
+    // based on the above comment?
     nsPIDOMWindowOuter* window = OwnerDoc()->GetWindow();
-    focused = (window && window->GetFocusedElement());
+    focused = window && window->GetFocusedElement();
   }
 
   if (aKeyCausesActivation) {
@@ -2654,44 +2687,6 @@ void nsGenericHTMLFormElementWithState::NodeInfoChanged(Document* aOldDoc) {
   mStateKey.SetIsVoid(true);
 }
 
-nsSize nsGenericHTMLElement::GetWidthHeightForImage(
-    RefPtr<imgRequestProxy>& aImageRequest) {
-  nsSize size(0, 0);
-
-  nsIFrame* frame = GetPrimaryFrame(FlushType::Layout);
-
-  if (frame) {
-    size = frame->GetContentRect().Size();
-
-    size.width = nsPresContext::AppUnitsToIntCSSPixels(size.width);
-    size.height = nsPresContext::AppUnitsToIntCSSPixels(size.height);
-  } else {
-    const nsAttrValue* value;
-    nsCOMPtr<imgIContainer> image;
-    if (aImageRequest) {
-      aImageRequest->GetImage(getter_AddRefs(image));
-    }
-
-    if ((value = GetParsedAttr(nsGkAtoms::width)) &&
-        value->Type() == nsAttrValue::eInteger) {
-      size.width = value->GetIntegerValue();
-    } else if (image) {
-      image->GetWidth(&size.width);
-    }
-
-    if ((value = GetParsedAttr(nsGkAtoms::height)) &&
-        value->Type() == nsAttrValue::eInteger) {
-      size.height = value->GetIntegerValue();
-    } else if (image) {
-      image->GetHeight(&size.height);
-    }
-  }
-
-  NS_ASSERTION(size.width >= 0, "negative width");
-  NS_ASSERTION(size.height >= 0, "negative height");
-  return size;
-}
-
 bool nsGenericHTMLElement::IsEventAttributeNameInternal(nsAtom* aName) {
   return nsContentUtils::IsEventAttributeName(aName, EventNameType_HTML);
 }
@@ -2814,8 +2809,8 @@ void nsGenericHTMLElement::SetInnerText(const nsAString& aValue) {
     }
     if (s == end || *s == '\r' || *s == '\n') {
       if (!str.IsEmpty()) {
-        RefPtr<nsTextNode> textContent =
-            new nsTextNode(NodeInfo()->NodeInfoManager());
+        RefPtr<nsTextNode> textContent = new (NodeInfo()->NodeInfoManager())
+            nsTextNode(NodeInfo()->NodeInfoManager());
         textContent->SetText(str, true);
         AppendChildTo(textContent, true);
       }
@@ -2826,7 +2821,8 @@ void nsGenericHTMLElement::SetInnerText(const nsAString& aValue) {
       RefPtr<mozilla::dom::NodeInfo> ni =
           NodeInfo()->NodeInfoManager()->GetNodeInfo(
               nsGkAtoms::br, nullptr, kNameSpaceID_XHTML, ELEMENT_NODE);
-      RefPtr<HTMLBRElement> br = new HTMLBRElement(ni.forget());
+      auto* nim = ni->NodeInfoManager();
+      RefPtr<HTMLBRElement> br = new (nim) HTMLBRElement(ni.forget());
       AppendChildTo(br, true);
     } else {
       str.Append(*s);
@@ -2901,4 +2897,28 @@ already_AddRefed<ElementInternals> nsGenericHTMLElement::AttachInternals(
 
   // 7. Create a new ElementInternals instance targeting element, and return it.
   return MakeAndAddRef<ElementInternals>(this);
+}
+
+void nsGenericHTMLElement::GetAutocapitalize(nsAString& aValue) {
+  GetEnumAttr(nsGkAtoms::autocapitalize, nullptr, kDefaultAutocapitalize->tag,
+              aValue);
+}
+
+bool nsGenericHTMLFormElement::IsAutocapitalizeInheriting() const {
+  uint32_t type = ControlType();
+  return (type & NS_FORM_INPUT_ELEMENT) || (type & NS_FORM_BUTTON_ELEMENT) ||
+         type == NS_FORM_FIELDSET || type == NS_FORM_OUTPUT ||
+         type == NS_FORM_SELECT || type == NS_FORM_TEXTAREA;
+}
+
+void nsGenericHTMLFormElement::GetAutocapitalize(nsAString& aValue) {
+  if (nsContentUtils::HasNonEmptyAttr(this, kNameSpaceID_None,
+                                      nsGkAtoms::autocapitalize)) {
+    nsGenericHTMLElement::GetAutocapitalize(aValue);
+    return;
+  }
+
+  if (mForm && IsAutocapitalizeInheriting()) {
+    mForm->GetAutocapitalize(aValue);
+  }
 }

@@ -3,7 +3,7 @@
     "namespace": "manifest",
     "types": [
       {
-        "$extend": "Permission",
+        "$extend": "PermissionNoPrompt",
         "choices": [{
           "type": "string",
           "enum": [
@@ -27,20 +27,22 @@
           "js",
           "leaf",
           "mainthreadio",
-          "privacy",
           "responsiveness",
           "screenshots",
           "seqstyle",
           "stackwalk",
           "tasktracer",
           "threads",
-          "trackopts",
           "jstracer",
           "jsallocations",
           "nostacksampling",
           "nativeallocations",
           "preferencereads",
-          "ipcmessages"
+          "ipcmessages",
+          "fileio",
+          "fileioall",
+          "noiostacks",
+          "audiocallbacktracing"
         ]
       },
       {

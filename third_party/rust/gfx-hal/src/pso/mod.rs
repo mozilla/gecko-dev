@@ -40,6 +40,28 @@ impl From<device::OutOfMemory> for CreationError {
     }
 }
 
+impl std::fmt::Display for CreationError {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CreationError::OutOfMemory(err) => write!(fmt, "Failed to create pipeline: {}", err),
+            CreationError::Other => write!(fmt, "Failed to create pipeline: Unsupported usage: Implementation specific error occurred"),
+            CreationError::InvalidSubpass(subpass) => write!(fmt, "Failed to create pipeline: Invalid subpass: {}", subpass),
+            CreationError::Shader(err) => write!(fmt, "Failed to create pipeline: {}", err),
+        }
+    }
+}
+
+impl std::error::Error for CreationError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            CreationError::OutOfMemory(err) => Some(err),
+            CreationError::Shader(err) => Some(err),
+            CreationError::InvalidSubpass(_) => None,
+            CreationError::Other => None,
+        }
+    }
+}
+
 bitflags!(
     /// Stages of the logical pipeline.
     ///
@@ -100,8 +122,8 @@ bitflags!(
         /// All graphics pipeline shader stages.
         const GRAPHICS = Self::VERTEX.bits | Self::HULL.bits |
             Self::DOMAIN.bits | Self::GEOMETRY.bits | Self::FRAGMENT.bits;
-        /// All shader stages.
-        const ALL      = Self::GRAPHICS.bits | Self::COMPUTE.bits;
+        /// All shader stages (matches Vulkan).
+        const ALL      = 0x7FFFFFFF;
     }
 );
 
@@ -230,7 +252,6 @@ impl<T> State<T> {
         !self.is_static()
     }
 }
-
 
 /// Safely read SPIR-V
 ///

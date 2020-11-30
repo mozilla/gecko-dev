@@ -32,6 +32,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 def MakeCustomHandlerClass(
     results_handler,
     error_handler,
+    startup_handler,
     shutdown_browser,
     handle_gecko_profile,
     background_app,
@@ -118,6 +119,7 @@ def MakeCustomHandlerClass(
         def __init__(self, *args, **kwargs):
             self.results_handler = results_handler
             self.error_handler = error_handler
+            self.startup_handler = startup_handler
             self.shutdown_browser = shutdown_browser
             self.handle_gecko_profile = handle_gecko_profile
             self.background_app = background_app
@@ -140,7 +142,7 @@ def MakeCustomHandlerClass(
                         self.send_header("Access-Control-Allow-Origin", "*")
                         self.send_header("Content-type", "application/json")
                         self.end_headers()
-                        self.wfile.write(json.dumps(json.load(json_settings)))
+                        self.wfile.write(json.dumps(json.load(json_settings)).encode("utf-8"))
                         self.wfile.close()
                         LOG.info("sent test settings to webext runner")
                 except Exception as ex:
@@ -212,11 +214,12 @@ def MakeCustomHandlerClass(
             elif data["type"] == "webext_raptor-page-timeout":
                 LOG.info("received " + data["type"] + ": " + str(data["data"]))
 
-                if len(data["data"]) == 2:
+                if len(data["data"]) == 3:
                     data["data"].append("")
                 # pageload test has timed out; record it as a failure
                 self.results_handler.add_page_timeout(
-                    str(data["data"][0]), str(data["data"][1]), dict(data["data"][2])
+                    str(data["data"][0]), str(data["data"][1]), str(data["data"][2]),
+                    dict(data["data"][3])
                 )
             elif data["type"] == "webext_shutdownBrowser":
                 LOG.info("received request to shutdown the browser")
@@ -234,6 +237,9 @@ def MakeCustomHandlerClass(
                 )
             elif data["type"] == "webext_status":
                 LOG.info("received " + data["type"] + ": " + str(data["data"]))
+            elif data["type"] == "webext_loaded":
+                LOG.info("received " + data["type"] + ": raptor runner.js is loaded!")
+                self.startup_handler(True)
             elif data["type"] == "wait-set":
                 LOG.info("received " + data["type"] + ": " + str(data["data"]))
                 MyHandler.wait_after_messages[str(data["data"])] = True
@@ -310,12 +316,14 @@ class RaptorControlServer:
         self.results_handler = results_handler
         self.browser_proc = None
         self._finished = False
+        self._is_shutting_down = False
         self._runtime_error = None
         self.device = None
         self.app_name = None
         self.gecko_profile_dir = None
         self.debug_mode = debug_mode
         self.user_profile = None
+        self.is_webextension_loaded = False
 
     def start(self):
         config_dir = os.path.join(here, "tests")
@@ -332,10 +340,11 @@ class RaptorControlServer:
         handler_class = MakeCustomHandlerClass(
             self.results_handler,
             self.error_handler,
+            self.startup_handler,
             self.shutdown_browser,
             self.handle_gecko_profile,
             self.background_app,
-            self.foreground_app,
+            self.foreground_app
         )
 
         httpd = server_class(server_address, handler_class)
@@ -348,6 +357,9 @@ class RaptorControlServer:
 
     def error_handler(self, error, stack):
         self._runtime_error = {"error": error, "stack": stack}
+
+    def startup_handler(self, value):
+        self.is_webextension_loaded = value
 
     def shutdown_browser(self):
         # if debug-mode enabled, leave the browser running - require manual shutdown
@@ -399,14 +411,24 @@ class RaptorControlServer:
     def wait_for_quit(self, timeout=15):
         """Wait timeout seconds for the process to exit. If it hasn't
         exited by then, kill it.
+
+        The sleep calls are required to give those new values enough time
+        to sync-up between threads. It would be better to maybe use signals
+        for synchronization (bug 1633975)
         """
+        self._is_shutting_down = True
+        time.sleep(.25)
+
         if self.device is not None:
             self.device.stop_application(self.app_name)
         else:
             self.browser_proc.wait(timeout)
             if self.browser_proc.poll() is None:
                 self.browser_proc.kill()
+
         self._finished = True
+        time.sleep(.25)
+        self._is_shutting_down = False
 
     def submit_supporting_data(self, supporting_data):
         """

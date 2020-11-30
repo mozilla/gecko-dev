@@ -2,29 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
-function assertClass(dbg, selector, className, ...args) {
-  ok(
-    findElement(dbg, selector, ...args).classList.contains(className),
-    `${className} class exists`
-  );
-}
-
-function threadIsPaused(dbg, index) {
-  return ok(findElement(dbg, "threadsPaneItemPause", index));
-}
-
-function threadIsSelected(dbg, index) {
-  return assertClass(dbg, "threadsPaneItem", "selected", index);
-}
-
-function getLabel(dbg, index) {
-  return findElement(dbg, "expressionNode", index).innerText;
-}
-
-function getValue(dbg, index) {
-  return findElement(dbg, "expressionValue", index).innerText;
-}
-
 // Test basic windowless worker functionality: the main thread and worker can be
 // separately controlled from the same debugger.
 add_task(async function() {
@@ -34,7 +11,8 @@ add_task(async function() {
   const dbg = await initDebugger("doc-windowless-workers.html");
   const mainThread = dbg.toolbox.threadFront.actor;
 
-  const workers = await getThreads(dbg);
+  await waitForThreadCount(dbg, 2);
+  const workers = dbg.selectors.getThreads();
   ok(workers.length == 2, "Got two workers");
   const thread1 = workers[0].actor;
   const thread2 = workers[1].actor;
@@ -117,3 +95,26 @@ add_task(async function() {
   await dbg.actions.selectThread(getContext(dbg), thread1);
   assertPausedAtSourceAndLine(dbg, workerSource.id, 10);
 });
+
+function assertClass(dbg, selector, className, ...args) {
+  ok(
+    findElement(dbg, selector, ...args).classList.contains(className),
+    `${className} class exists`
+  );
+}
+
+function threadIsPaused(dbg, index) {
+  return ok(findElement(dbg, "threadsPaneItemPause", index));
+}
+
+function threadIsSelected(dbg, index) {
+  return assertClass(dbg, "threadsPaneItem", "selected", index);
+}
+
+function getLabel(dbg, index) {
+  return findElement(dbg, "expressionNode", index).innerText;
+}
+
+function getValue(dbg, index) {
+  return findElement(dbg, "expressionValue", index).innerText;
+}

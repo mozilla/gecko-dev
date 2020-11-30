@@ -6,6 +6,8 @@
 
 #include "nsArray.h"
 #include "nsContentSecurityManager.h"
+#include "nsContentSecurityUtils.h"
+#include "nsContentPolicyUtils.h"
 #include "nsEscape.h"
 #include "nsDataHandler.h"
 #include "nsIChannel.h"
@@ -19,18 +21,24 @@
 #include "nsIStreamListener.h"
 #include "nsIRedirectHistoryEntry.h"
 #include "nsReadableUtils.h"
+#include "nsIXPConnect.h"
 
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/CmdLineAndEnvUtils.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/nsMixedContentBlocker.h"
 #include "mozilla/dom/BrowserChild.h"
+#include "mozilla/dom/ContentChild.h"
+#include "mozilla/dom/ContentParent.h"
 #include "mozilla/Components.h"
 #include "mozilla/Logging.h"
 #include "mozilla/StaticPrefs_dom.h"
+#include "mozilla/StaticPrefs_security.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TelemetryComms.h"
 #include "xpcpublic.h"
+#include "nsMimeTypes.h"
 
 #include "jsapi.h"
 #include "js/RegExp.h"
@@ -55,7 +63,7 @@ bool nsContentSecurityManager::AllowTopLevelNavigationToDataURI(
   // we don't want to block those loads. Only exception, loads coming
   // from an external applicaton (e.g. Thunderbird) don't load
   // using a contentPrincipal, but we want to block those loads.
-  if (!mozilla::net::nsIOService::BlockToplevelDataUriNavigations()) {
+  if (!StaticPrefs::security_data_uri_block_toplevel_data_uri_navigations()) {
     return true;
   }
   nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
@@ -84,14 +92,15 @@ bool nsContentSecurityManager::AllowTopLevelNavigationToDataURI(
   rv = nsDataHandler::ParseURI(spec, contentType, nullptr, base64, nullptr);
   NS_ENSURE_SUCCESS(rv, true);
 
-  // Whitelist data: images as long as they are not SVGs
-  if (StringBeginsWith(contentType, NS_LITERAL_CSTRING("image/")) &&
+  // Allow data: images as long as they are not SVGs
+  if (StringBeginsWith(contentType, "image/"_ns) &&
       !contentType.EqualsLiteral("image/svg+xml")) {
     return true;
   }
-  // Whitelist all plain text types as well as data: PDFs.
-  if (nsContentUtils::IsPlainTextType(contentType) ||
-      contentType.EqualsLiteral("application/pdf")) {
+  // Allow all data: PDFs. or JSON documents
+  if (contentType.EqualsLiteral(APPLICATION_JSON) ||
+      contentType.EqualsLiteral(TEXT_JSON) ||
+      contentType.EqualsLiteral(APPLICATION_PDF)) {
     return true;
   }
   // Redirecting to a toplevel data: URI is not allowed, hence we make
@@ -117,7 +126,7 @@ bool nsContentSecurityManager::AllowTopLevelNavigationToDataURI(
   AutoTArray<nsString, 1> params;
   CopyUTF8toUTF16(NS_UnescapeURL(dataSpec), *params.AppendElement());
   nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-                                  NS_LITERAL_CSTRING("DATA_URI_BLOCKED"), doc,
+                                  "DATA_URI_BLOCKED"_ns, doc,
                                   nsContentUtils::eSECURITY_PROPERTIES,
                                   "BlockTopLevelDataURINavigation", params);
   return false;
@@ -162,7 +171,7 @@ bool nsContentSecurityManager::AllowInsecureRedirectToDataURI(
   AutoTArray<nsString, 1> params;
   CopyUTF8toUTF16(NS_UnescapeURL(dataSpec), *params.AppendElement());
   nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-                                  NS_LITERAL_CSTRING("DATA_URI_BLOCKED"), doc,
+                                  "DATA_URI_BLOCKED"_ns, doc,
                                   nsContentUtils::eSECURITY_PROPERTIES,
                                   "BlockSubresourceRedirectToData", params);
   return false;
@@ -215,7 +224,7 @@ nsresult nsContentSecurityManager::CheckFTPSubresourceLoad(
   CopyUTF8toUTF16(NS_UnescapeURL(spec), *params.AppendElement());
 
   nsContentUtils::ReportToConsole(
-      nsIScriptError::warningFlag, NS_LITERAL_CSTRING("FTP_URI_BLOCKED"), doc,
+      nsIScriptError::warningFlag, "FTP_URI_BLOCKED"_ns, doc,
       nsContentUtils::eSECURITY_PROPERTIES, "BlockSubresourceFTP", params);
 
   return NS_ERROR_CONTENT_BLOCKED;
@@ -228,11 +237,13 @@ static nsresult ValidateSecurityFlags(nsILoadInfo* aLoadInfo) {
   // SEC_ONLY_FOR_EXPLICIT_CONTENTSEC_CHECK, because that is only used for
   // temporary loadInfos used for explicit nsIContentPolicy checks, but never be
   // set as a security flag on an actual channel.
-  if (securityMode != nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_INHERITS &&
+  if (securityMode !=
+          nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_INHERITS_SEC_CONTEXT &&
       securityMode != nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_IS_BLOCKED &&
-      securityMode != nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_INHERITS &&
-      securityMode != nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL &&
-      securityMode != nsILoadInfo::SEC_REQUIRE_CORS_DATA_INHERITS) {
+      securityMode !=
+          nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_INHERITS_SEC_CONTEXT &&
+      securityMode != nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL &&
+      securityMode != nsILoadInfo::SEC_REQUIRE_CORS_INHERITS_SEC_CONTEXT) {
     MOZ_ASSERT(
         false,
         "need one securityflag from nsILoadInfo to perform security checks");
@@ -287,11 +298,11 @@ static nsresult DoCheckLoadURIChecks(nsIURI* aURI, nsILoadInfo* aLoadInfo) {
       nsIContentPolicy::TYPE_INTERNAL_DTD) {
     RefPtr<Document> doc;
     aLoadInfo->GetLoadingDocument(getter_AddRefs(doc));
-    return nsContentUtils::PrincipalAllowsL10n(
-               *aLoadInfo->TriggeringPrincipal(),
-               doc ? doc->GetDocumentURI() : nullptr)
-               ? NS_OK
-               : NS_ERROR_DOM_BAD_URI;
+    bool allowed = false;
+    aLoadInfo->TriggeringPrincipal()->IsL10nAllowed(
+        doc ? doc->GetDocumentURI() : nullptr, &allowed);
+
+    return allowed ? NS_OK : NS_ERROR_DOM_BAD_URI;
   }
 
   // This is used in order to allow a privileged DOMParser to parse documents
@@ -346,8 +357,6 @@ static nsresult DoCORSChecks(nsIChannel* aChannel, nsILoadInfo* aLoadInfo,
                      "can not perform CORS checks without a listener");
 
   // No need to set up CORS if TriggeringPrincipal is the SystemPrincipal.
-  // For example, allow user stylesheets to load XBL from external files
-  // without requiring CORS.
   if (aLoadInfo->TriggeringPrincipal()->IsSystemPrincipal()) {
     return NS_OK;
   }
@@ -383,37 +392,37 @@ static nsresult DoContentSecurityChecks(nsIChannel* aChannel,
 
   switch (contentPolicyType) {
     case nsIContentPolicy::TYPE_OTHER: {
-      mimeTypeGuess = EmptyCString();
+      mimeTypeGuess.Truncate();
       break;
     }
 
     case nsIContentPolicy::TYPE_SCRIPT: {
-      mimeTypeGuess = NS_LITERAL_CSTRING("application/javascript");
+      mimeTypeGuess = "application/javascript"_ns;
       break;
     }
 
     case nsIContentPolicy::TYPE_IMAGE: {
-      mimeTypeGuess = EmptyCString();
+      mimeTypeGuess.Truncate();
       break;
     }
 
     case nsIContentPolicy::TYPE_STYLESHEET: {
-      mimeTypeGuess = NS_LITERAL_CSTRING("text/css");
+      mimeTypeGuess = "text/css"_ns;
       break;
     }
 
     case nsIContentPolicy::TYPE_OBJECT: {
-      mimeTypeGuess = EmptyCString();
+      mimeTypeGuess.Truncate();
       break;
     }
 
     case nsIContentPolicy::TYPE_DOCUMENT: {
-      mimeTypeGuess = EmptyCString();
+      mimeTypeGuess.Truncate();
       break;
     }
 
     case nsIContentPolicy::TYPE_SUBDOCUMENT: {
-      mimeTypeGuess = NS_LITERAL_CSTRING("text/html");
+      mimeTypeGuess = "text/html"_ns;
       break;
     }
 
@@ -422,13 +431,8 @@ static nsresult DoContentSecurityChecks(nsIChannel* aChannel,
       break;
     }
 
-    case nsIContentPolicy::TYPE_XBL: {
-      mimeTypeGuess = EmptyCString();
-      break;
-    }
-
     case nsIContentPolicy::TYPE_PING: {
-      mimeTypeGuess = EmptyCString();
+      mimeTypeGuess.Truncate();
       break;
     }
 
@@ -446,18 +450,18 @@ static nsresult DoContentSecurityChecks(nsIChannel* aChannel,
       if (internalContentPolicyType ==
               nsIContentPolicy::TYPE_INTERNAL_XMLHTTPREQUEST ||
           internalContentPolicyType == nsIContentPolicy::TYPE_XMLHTTPREQUEST) {
-        mimeTypeGuess = EmptyCString();
+        mimeTypeGuess.Truncate();
       } else {
         MOZ_ASSERT(internalContentPolicyType ==
                        nsIContentPolicy::TYPE_INTERNAL_EVENTSOURCE,
                    "can not set mime type guess for unexpected internal type");
-        mimeTypeGuess = NS_LITERAL_CSTRING(TEXT_EVENT_STREAM);
+        mimeTypeGuess = nsLiteralCString(TEXT_EVENT_STREAM);
       }
       break;
     }
 
     case nsIContentPolicy::TYPE_OBJECT_SUBREQUEST: {
-      mimeTypeGuess = EmptyCString();
+      mimeTypeGuess.Truncate();
 #ifdef DEBUG
       {
         nsCOMPtr<nsINode> node = aLoadInfo->LoadingNode();
@@ -470,7 +474,7 @@ static nsresult DoContentSecurityChecks(nsIChannel* aChannel,
     }
 
     case nsIContentPolicy::TYPE_DTD: {
-      mimeTypeGuess = EmptyCString();
+      mimeTypeGuess.Truncate();
 #ifdef DEBUG
       {
         nsCOMPtr<nsINode> node = aLoadInfo->LoadingNode();
@@ -482,15 +486,15 @@ static nsresult DoContentSecurityChecks(nsIChannel* aChannel,
     }
 
     case nsIContentPolicy::TYPE_FONT: {
-      mimeTypeGuess = EmptyCString();
+      mimeTypeGuess.Truncate();
       break;
     }
 
     case nsIContentPolicy::TYPE_MEDIA: {
       if (internalContentPolicyType == nsIContentPolicy::TYPE_INTERNAL_TRACK) {
-        mimeTypeGuess = NS_LITERAL_CSTRING("text/vtt");
+        mimeTypeGuess = "text/vtt"_ns;
       } else {
-        mimeTypeGuess = EmptyCString();
+        mimeTypeGuess.Truncate();
       }
 #ifdef DEBUG
       {
@@ -512,17 +516,17 @@ static nsresult DoContentSecurityChecks(nsIChannel* aChannel,
         rv = httpChannelInternal->GetProxyURI(getter_AddRefs(uri));
         MOZ_ASSERT(NS_SUCCEEDED(rv));
       }
-      mimeTypeGuess = EmptyCString();
+      mimeTypeGuess.Truncate();
       break;
     }
 
     case nsIContentPolicy::TYPE_CSP_REPORT: {
-      mimeTypeGuess = EmptyCString();
+      mimeTypeGuess.Truncate();
       break;
     }
 
     case nsIContentPolicy::TYPE_XSLT: {
-      mimeTypeGuess = NS_LITERAL_CSTRING("application/xml");
+      mimeTypeGuess = "application/xml"_ns;
 #ifdef DEBUG
       {
         nsCOMPtr<nsINode> node = aLoadInfo->LoadingNode();
@@ -534,7 +538,7 @@ static nsresult DoContentSecurityChecks(nsIChannel* aChannel,
     }
 
     case nsIContentPolicy::TYPE_BEACON: {
-      mimeTypeGuess = EmptyCString();
+      mimeTypeGuess.Truncate();
 #ifdef DEBUG
       {
         nsCOMPtr<nsINode> node = aLoadInfo->LoadingNode();
@@ -546,27 +550,27 @@ static nsresult DoContentSecurityChecks(nsIChannel* aChannel,
     }
 
     case nsIContentPolicy::TYPE_FETCH: {
-      mimeTypeGuess = EmptyCString();
+      mimeTypeGuess.Truncate();
       break;
     }
 
     case nsIContentPolicy::TYPE_IMAGESET: {
-      mimeTypeGuess = EmptyCString();
+      mimeTypeGuess.Truncate();
       break;
     }
 
     case nsIContentPolicy::TYPE_WEB_MANIFEST: {
-      mimeTypeGuess = NS_LITERAL_CSTRING("application/manifest+json");
+      mimeTypeGuess = "application/manifest+json"_ns;
       break;
     }
 
     case nsIContentPolicy::TYPE_SAVEAS_DOWNLOAD: {
-      mimeTypeGuess = EmptyCString();
+      mimeTypeGuess.Truncate();
       break;
     }
 
     case nsIContentPolicy::TYPE_SPECULATIVE: {
-      mimeTypeGuess = EmptyCString();
+      mimeTypeGuess.Truncate();
       break;
     }
 
@@ -584,11 +588,16 @@ static nsresult DoContentSecurityChecks(nsIChannel* aChannel,
     NS_SetRequestBlockingReasonIfNull(
         aLoadInfo, nsILoadInfo::BLOCKING_REASON_CONTENT_POLICY_GENERAL);
 
-    if ((NS_SUCCEEDED(rv) && shouldLoad == nsIContentPolicy::REJECT_TYPE) &&
+    if (NS_SUCCEEDED(rv) &&
         (contentPolicyType == nsIContentPolicy::TYPE_DOCUMENT ||
          contentPolicyType == nsIContentPolicy::TYPE_SUBDOCUMENT)) {
-      // for docshell loads we might have to return SHOW_ALT.
-      return NS_ERROR_CONTENT_BLOCKED_SHOW_ALT;
+      if (shouldLoad == nsIContentPolicy::REJECT_TYPE) {
+        // for docshell loads we might have to return SHOW_ALT.
+        return NS_ERROR_CONTENT_BLOCKED_SHOW_ALT;
+      }
+      if (shouldLoad == nsIContentPolicy::REJECT_POLICY) {
+        return NS_ERROR_BLOCKED_BY_POLICY;
+      }
     }
     return NS_ERROR_CONTENT_BLOCKED;
   }
@@ -597,17 +606,20 @@ static nsresult DoContentSecurityChecks(nsIChannel* aChannel,
 }
 
 static void LogPrincipal(nsIPrincipal* aPrincipal,
-                         const nsAString& aPrincipalName) {
+                         const nsAString& aPrincipalName,
+                         const uint8_t& aNestingLevel) {
+  nsPrintfCString aIndentationString("%*s", aNestingLevel * 2, "");
+
   if (aPrincipal && aPrincipal->IsSystemPrincipal()) {
     MOZ_LOG(sCSMLog, LogLevel::Debug,
-            ("  %s: SystemPrincipal\n",
+            ("%s%s: SystemPrincipal\n", aIndentationString.get(),
              NS_ConvertUTF16toUTF8(aPrincipalName).get()));
     return;
   }
   if (aPrincipal) {
     if (aPrincipal->GetIsNullPrincipal()) {
       MOZ_LOG(sCSMLog, LogLevel::Debug,
-              ("  %s: NullPrincipal\n",
+              ("%s%s: NullPrincipal\n", aIndentationString.get(),
                NS_ConvertUTF16toUTF8(aPrincipalName).get()));
       return;
     }
@@ -629,19 +641,20 @@ static void LogPrincipal(nsIPrincipal* aPrincipal,
       origin.AppendLiteral("]]");
 
       MOZ_LOG(sCSMLog, LogLevel::Debug,
-              ("  %s: %s\n", NS_ConvertUTF16toUTF8(aPrincipalName).get(),
-               origin.get()));
+              ("%s%s: %s\n", aIndentationString.get(),
+               NS_ConvertUTF16toUTF8(aPrincipalName).get(), origin.get()));
       return;
     }
     nsAutoCString principalSpec;
     aPrincipal->GetAsciiSpec(principalSpec);
     MOZ_LOG(sCSMLog, LogLevel::Debug,
-            ("  %s: %s\n", NS_ConvertUTF16toUTF8(aPrincipalName).get(),
-             principalSpec.get()));
+            ("%s%s: %s\n", aIndentationString.get(),
+             NS_ConvertUTF16toUTF8(aPrincipalName).get(), principalSpec.get()));
     return;
   }
   MOZ_LOG(sCSMLog, LogLevel::Debug,
-          ("  %s: nullptr\n", NS_ConvertUTF16toUTF8(aPrincipalName).get()));
+          ("%s%s: nullptr\n", aIndentationString.get(),
+           NS_ConvertUTF16toUTF8(aPrincipalName).get()));
 }
 
 static void LogSecurityFlags(nsSecurityFlags securityFlags) {
@@ -652,16 +665,16 @@ static void LogSecurityFlags(nsSecurityFlags securityFlags) {
   static const DebugSecFlagType secTypes[] = {
       {nsILoadInfo::SEC_ONLY_FOR_EXPLICIT_CONTENTSEC_CHECK,
        "SEC_ONLY_FOR_EXPLICIT_CONTENTSEC_CHECK"},
-      {nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_INHERITS,
-       "SEC_REQUIRE_SAME_ORIGIN_DATA_INHERITS"},
+      {nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_INHERITS_SEC_CONTEXT,
+       "SEC_REQUIRE_SAME_ORIGIN_INHERITS_SEC_CONTEXT"},
       {nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_IS_BLOCKED,
        "SEC_REQUIRE_SAME_ORIGIN_DATA_IS_BLOCKED"},
-      {nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_INHERITS,
-       "SEC_ALLOW_CROSS_ORIGIN_DATA_INHERITS"},
-      {nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
-       "SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL"},
-      {nsILoadInfo::SEC_REQUIRE_CORS_DATA_INHERITS,
-       "SEC_REQUIRE_CORS_DATA_INHERITS"},
+      {nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_INHERITS_SEC_CONTEXT,
+       "SEC_ALLOW_CROSS_ORIGIN_INHERITS_SEC_CONTEXT"},
+      {nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
+       "SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL"},
+      {nsILoadInfo::SEC_REQUIRE_CORS_INHERITS_SEC_CONTEXT,
+       "SEC_REQUIRE_CORS_INHERITS_SEC_CONTEXT"},
       {nsILoadInfo::SEC_COOKIES_DEFAULT, "SEC_COOKIES_DEFAULT"},
       {nsILoadInfo::SEC_COOKIES_INCLUDE, "SEC_COOKIES_INCLUDE"},
       {nsILoadInfo::SEC_COOKIES_SAME_ORIGIN, "SEC_COOKIES_SAME_ORIGIN"},
@@ -677,13 +690,17 @@ static void LogSecurityFlags(nsSecurityFlags securityFlags) {
 
   for (const DebugSecFlagType& flag : secTypes) {
     if (securityFlags & flag.secFlag) {
-      MOZ_LOG(sCSMLog, LogLevel::Debug, ("    %s,\n", flag.secTypeStr));
+      // the logging level should be in sync with the logging level in
+      // DebugDoContentSecurityCheck()
+      MOZ_LOG(sCSMLog, LogLevel::Verbose, ("    - %s\n", flag.secTypeStr));
     }
   }
 }
 static void DebugDoContentSecurityCheck(nsIChannel* aChannel,
                                         nsILoadInfo* aLoadInfo) {
   nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(aChannel));
+
+  MOZ_LOG(sCSMLog, LogLevel::Debug, ("\n#DebugDoContentSecurityCheck Begin\n"));
 
   // we only log http channels, unless loglevel is 5.
   if (httpChannel || MOZ_LOG_TEST(sCSMLog, LogLevel::Verbose)) {
@@ -695,9 +712,10 @@ static void DebugDoContentSecurityCheck(nsIChannel* aChannel,
       channelURI->GetSpec(channelSpec);
     }
 
-    MOZ_LOG(sCSMLog, LogLevel::Verbose, ("doContentSecurityCheck {\n"));
+    MOZ_LOG(sCSMLog, LogLevel::Verbose, ("doContentSecurityCheck:\n"));
+
     MOZ_LOG(sCSMLog, LogLevel::Verbose,
-            ("  channelURI: %s\n", channelSpec.get()));
+            ("  - channelURI: %s\n", channelSpec.get()));
 
     // Log HTTP-specific things
     if (httpChannel) {
@@ -705,59 +723,116 @@ static void DebugDoContentSecurityCheck(nsIChannel* aChannel,
       rv = httpChannel->GetRequestMethod(channelMethod);
       if (!NS_FAILED(rv)) {
         MOZ_LOG(sCSMLog, LogLevel::Verbose,
-                ("  HTTP Method: %s\n", channelMethod.get()));
+                ("  - httpMethod: %s\n", channelMethod.get()));
       }
     }
 
     // Log Principals
     nsCOMPtr<nsIPrincipal> requestPrincipal = aLoadInfo->TriggeringPrincipal();
-    LogPrincipal(aLoadInfo->LoadingPrincipal(),
-                 NS_LITERAL_STRING("loadingPrincipal"));
-    LogPrincipal(requestPrincipal, NS_LITERAL_STRING("triggeringPrincipal"));
-    LogPrincipal(aLoadInfo->PrincipalToInherit(),
-                 NS_LITERAL_STRING("principalToInherit"));
+    LogPrincipal(aLoadInfo->GetLoadingPrincipal(), u"- loadingPrincipal"_ns, 1);
+    LogPrincipal(requestPrincipal, u"- triggeringPrincipal"_ns, 1);
+    LogPrincipal(aLoadInfo->PrincipalToInherit(), u"- principalToInherit"_ns,
+                 1);
 
     // Log Redirect Chain
-    MOZ_LOG(sCSMLog, LogLevel::Verbose, ("  RedirectChain:\n"));
+    MOZ_LOG(sCSMLog, LogLevel::Verbose, ("  - redirectChain:\n"));
     for (nsIRedirectHistoryEntry* redirectHistoryEntry :
          aLoadInfo->RedirectChain()) {
       nsCOMPtr<nsIPrincipal> principal;
       redirectHistoryEntry->GetPrincipal(getter_AddRefs(principal));
-      LogPrincipal(principal, NS_LITERAL_STRING("->"));
+      LogPrincipal(principal, u"-"_ns, 2);
     }
 
     MOZ_LOG(sCSMLog, LogLevel::Verbose,
-            ("  internalContentPolicyType: %d\n",
-             aLoadInfo->InternalContentPolicyType()));
+            ("  - internalContentPolicyType: %s\n",
+             NS_CP_ContentTypeName(aLoadInfo->InternalContentPolicyType())));
     MOZ_LOG(sCSMLog, LogLevel::Verbose,
-            ("  externalContentPolicyType: %d\n",
-             aLoadInfo->GetExternalContentPolicyType()));
+            ("  - externalContentPolicyType: %s\n",
+             NS_CP_ContentTypeName(aLoadInfo->GetExternalContentPolicyType())));
     MOZ_LOG(sCSMLog, LogLevel::Verbose,
-            ("  upgradeInsecureRequests: %s\n",
+            ("  - upgradeInsecureRequests: %s\n",
              aLoadInfo->GetUpgradeInsecureRequests() ? "true" : "false"));
     MOZ_LOG(sCSMLog, LogLevel::Verbose,
-            ("  initalSecurityChecksDone: %s\n",
+            ("  - initialSecurityChecksDone: %s\n",
              aLoadInfo->GetInitialSecurityCheckDone() ? "true" : "false"));
+    MOZ_LOG(sCSMLog, LogLevel::Verbose,
+            ("  - allowDeprecatedSystemRequests: %s\n",
+             aLoadInfo->GetAllowDeprecatedSystemRequests() ? "true" : "false"));
 
     // Log CSPrequestPrincipal
     nsCOMPtr<nsIContentSecurityPolicy> csp = aLoadInfo->GetCsp();
+    MOZ_LOG(sCSMLog, LogLevel::Debug, ("  - CSP:"));
     if (csp) {
       nsAutoString parsedPolicyStr;
       uint32_t count = 0;
       csp->GetPolicyCount(&count);
-      MOZ_LOG(sCSMLog, LogLevel::Debug, ("  CSP (%d): ", count));
       for (uint32_t i = 0; i < count; ++i) {
         csp->GetPolicyString(i, parsedPolicyStr);
         MOZ_LOG(sCSMLog, LogLevel::Debug,
-                ("    %s\n", NS_ConvertUTF16toUTF8(parsedPolicyStr).get()));
+                ("    - %s\n", NS_ConvertUTF16toUTF8(parsedPolicyStr).get()));
       }
     }
 
     // Security Flags
-    MOZ_LOG(sCSMLog, LogLevel::Verbose, ("  securityFlags: "));
+    MOZ_LOG(sCSMLog, LogLevel::Verbose, ("  - securityFlags:"));
     LogSecurityFlags(aLoadInfo->GetSecurityFlags());
-    MOZ_LOG(sCSMLog, LogLevel::Verbose, ("}\n\n"));
+    MOZ_LOG(sCSMLog, LogLevel::Debug, ("\n#DebugDoContentSecurityCheck End\n"));
   }
+}
+
+/* static */
+void nsContentSecurityManager::MeasureUnexpectedPrivilegedLoads(
+    nsIURI* aFinalURI, nsContentPolicyType aContentPolicyType,
+    const nsACString& aRemoteType) {
+  if (!StaticPrefs::dom_security_unexpected_system_load_telemetry_enabled()) {
+    return;
+  }
+  nsAutoCString uriString;
+  if (aFinalURI) {
+    aFinalURI->GetAsciiSpec(uriString);
+  } else {
+    uriString.AssignLiteral("");
+  }
+  FilenameTypeAndDetails fileNameTypeAndDetails =
+      nsContentSecurityUtils::FilenameToFilenameType(
+          NS_ConvertUTF8toUTF16(uriString), false);
+
+  nsCString loggedFileDetails = "unknown"_ns;
+  if (fileNameTypeAndDetails.second.isSome()) {
+    loggedFileDetails.Assign(
+        NS_ConvertUTF16toUTF8(fileNameTypeAndDetails.second.value()));
+  }
+  // sanitize remoteType because it may contain sensitive
+  // info, like URLs. e.g. `webIsolated=https://example.com`
+  nsAutoCString loggedRemoteType(dom::RemoteTypePrefix(aRemoteType));
+  nsAutoCString loggedContentType(NS_CP_ContentTypeName(aContentPolicyType));
+
+  MOZ_LOG(sCSMLog, LogLevel::Debug, ("UnexpectedPrivilegedLoadTelemetry:\n"));
+  MOZ_LOG(sCSMLog, LogLevel::Debug,
+          ("- contentType: %s\n", loggedContentType.get()));
+  MOZ_LOG(sCSMLog, LogLevel::Debug,
+          ("- URL (not to be reported): %s\n", uriString.get()));
+  MOZ_LOG(sCSMLog, LogLevel::Debug,
+          ("- remoteType: %s\n", loggedRemoteType.get()));
+  MOZ_LOG(sCSMLog, LogLevel::Debug,
+          ("- fileInfo: %s\n", fileNameTypeAndDetails.first.get()));
+  MOZ_LOG(sCSMLog, LogLevel::Debug,
+          ("- fileDetails: %s\n\n", loggedFileDetails.get()));
+
+  // Send Telemetry
+  auto extra = Some<nsTArray<EventExtraEntry>>(
+      {EventExtraEntry{"contenttype"_ns, loggedContentType},
+       EventExtraEntry{"remotetype"_ns, loggedRemoteType},
+       EventExtraEntry{"filedetails"_ns, loggedFileDetails}});
+
+  if (!sTelemetryEventEnabled.exchange(true)) {
+    Telemetry::SetEventRecordingEnabled("security"_ns, true);
+  }
+
+  Telemetry::EventID eventType =
+      Telemetry::EventID::Security_Unexpectedload_Systemprincipal;
+  Telemetry::RecordEvent(eventType, mozilla::Some(fileNameTypeAndDetails.first),
+                         extra);
 }
 
 /* static */
@@ -769,55 +844,101 @@ nsresult nsContentSecurityManager::CheckAllowLoadInSystemPrivilegedContext(
 
   // nothing to do here if we are not loading a resource into a
   // system prvileged context.
-  if (!loadInfo->LoadingPrincipal() ||
-      !loadInfo->LoadingPrincipal()->IsSystemPrincipal()) {
+  if (!loadInfo->GetLoadingPrincipal() ||
+      !loadInfo->GetLoadingPrincipal()->IsSystemPrincipal()) {
     return NS_OK;
   }
-
-  nsCOMPtr<nsIURI> finalURI;
-  NS_GetFinalChannelURI(aChannel, getter_AddRefs(finalURI));
-
-  // nothing to do here if we are not loading a resource using http:, https:,
-  // etc.
-  if (!nsContentUtils::SchemeIs(finalURI, "http") &&
-      !nsContentUtils::SchemeIs(finalURI, "https") &&
-      !nsContentUtils::SchemeIs(finalURI, "ftp")) {
+  // loads with the allow flag are waived through
+  // until refactored (e.g., Shavar, OCSP)
+  if (loadInfo->GetAllowDeprecatedSystemRequests()) {
     return NS_OK;
   }
 
   nsContentPolicyType contentPolicyType =
       loadInfo->GetExternalContentPolicyType();
 
-  // We distinguish between 2 cases:
-  // a) remote scripts
-  //    which should never be loaded into system privileged contexts
-  // b) remote documents/frames
-  //    which generally should also never be loaded into system
-  //    privileged contexts but with some exceptions.
-  if (contentPolicyType == nsIContentPolicy::TYPE_SCRIPT) {
-    if (StaticPrefs::
-            dom_security_skip_remote_script_assertion_in_system_priv_context()) {
+  // allowing some fetches due to their lowered risk
+  // i.e., data & downloads fetches do limited parsing, no rendering
+  // remote images are too widely used (favicons, about:addons etc.)
+  if ((contentPolicyType == nsIContentPolicy::TYPE_FETCH) ||
+      (contentPolicyType == nsIContentPolicy::TYPE_XMLHTTPREQUEST) ||
+      (contentPolicyType == nsIContentPolicy::TYPE_WEBSOCKET) ||
+      (contentPolicyType == nsIContentPolicy::TYPE_SAVEAS_DOWNLOAD) ||
+      (contentPolicyType == nsIContentPolicy::TYPE_IMAGE)) {
+    return NS_OK;
+  }
+
+  // Allow the user interface (e.g., schemes like chrome, resource)
+  nsCOMPtr<nsIURI> finalURI;
+  NS_GetFinalChannelURI(aChannel, getter_AddRefs(finalURI));
+  bool isUiResource = false;
+  if (NS_SUCCEEDED(NS_URIChainHasFlags(
+          finalURI, nsIProtocolHandler::URI_IS_UI_RESOURCE, &isUiResource)) &&
+      isUiResource) {
+    return NS_OK;
+  }
+  // For about: and extension-based URIs, which don't get
+  // URI_IS_UI_RESOURCE, first remove layers of view-source:, if present.
+  while (finalURI && finalURI->SchemeIs("view-source")) {
+    nsCOMPtr<nsINestedURI> nested = do_QueryInterface(finalURI);
+    if (nested) {
+      nested->GetInnerURI(getter_AddRefs(finalURI));
+    }
+  }
+
+  nsAutoCString remoteType;
+  if (XRE_IsParentProcess()) {
+    nsCOMPtr<nsIParentChannel> parentChannel;
+    NS_QueryNotificationCallbacks(aChannel, parentChannel);
+    if (parentChannel) {
+      parentChannel->GetRemoteType(remoteType);
+    }
+  } else {
+    remoteType.Assign(
+        mozilla::dom::ContentChild::GetSingleton()->GetRemoteType());
+  }
+
+  // This is our escape hatch, if things break in release.
+  // We expect to remove the pref in bug 1638770
+  bool cancelNonLocalSystemPrincipal = StaticPrefs::
+      security_cancel_non_local_loads_triggered_by_systemprincipal();
+
+  // GetInnerURI can return null for malformed nested URIs like moz-icon:trash
+  if (!finalURI) {
+    MeasureUnexpectedPrivilegedLoads(finalURI, contentPolicyType, remoteType);
+    if (cancelNonLocalSystemPrincipal) {
+      aChannel->Cancel(NS_ERROR_CONTENT_BLOCKED);
+      return NS_ERROR_CONTENT_BLOCKED;
+    }
+  }
+  // loads of userContent.css during startup and tests that show up as file:
+  if (finalURI->SchemeIs("file")) {
+    if ((contentPolicyType == nsIContentPolicy::TYPE_STYLESHEET) ||
+        (contentPolicyType == nsIContentPolicy::TYPE_OTHER)) {
       return NS_OK;
     }
-    nsAutoCString scriptSpec;
-    finalURI->GetSpec(scriptSpec);
-    MOZ_LOG(
-        sCSMLog, LogLevel::Warning,
-        ("Do not load remote scripts into system privileged contexts, url: %s",
-         scriptSpec.get()));
-    MOZ_ASSERT(false,
-               "Do not load remote scripts into system privileged contexts");
-    // Bug 1607673: Do not only assert but cancel the channel and
-    // return NS_ERROR_CONTENT_BLOCKED.
+  }
+  // (1)loads from within omni.ja and system add-ons use jar:
+  // this is safe to allow, because we do not support remote jar.
+  // (2) about: resources are always allowed: they are part of the build.
+  // (3) extensions are signed or the user has made bad decisions.
+  if (finalURI->SchemeIs("jar") || finalURI->SchemeIs("about") ||
+      finalURI->SchemeIs("moz-extension")) {
     return NS_OK;
   }
-
-  if ((contentPolicyType != nsIContentPolicy::TYPE_DOCUMENT) &&
-      (contentPolicyType != nsIContentPolicy::TYPE_SUBDOCUMENT)) {
-    return NS_OK;
+  // Telemetry for unexpected privileged loads.
+  // pref check & data sanitization happens in the called function
+  if (finalURI) {
+    MeasureUnexpectedPrivilegedLoads(finalURI, contentPolicyType, remoteType);
   }
 
-  if (xpc::AreNonLocalConnectionsDisabled()) {
+  // Relaxing restrictions for our test suites:
+  // (1) AreNonLocalConnectionsDisabled() disables network, so http://mochitest
+  // is actually local and allowed. (2) The marionette test framework uses
+  // injections and data URLs to execute scripts, checking for the environment
+  // variable breaks the attack but not the tests.
+  if (xpc::AreNonLocalConnectionsDisabled() ||
+      mozilla::EnvHasValue("MOZ_MARIONETTE")) {
     bool disallowSystemPrincipalRemoteDocuments = Preferences::GetBool(
         "security.disallow_non_local_systemprincipal_in_tests");
     if (disallowSystemPrincipalRemoteDocuments) {
@@ -832,12 +953,66 @@ nsresult nsContentSecurityManager::CheckAllowLoadInSystemPrivilegedContext(
 
   nsAutoCString requestedURL;
   finalURI->GetAsciiSpec(requestedURL);
-  MOZ_LOG(
-      sCSMLog, LogLevel::Warning,
-      ("SystemPrincipal must not load remote documents. URL: %s", requestedURL)
-          .get());
-  MOZ_ASSERT(false, "SystemPrincipal must not load remote documents.");
-  aChannel->Cancel(NS_ERROR_CONTENT_BLOCKED);
+  MOZ_LOG(sCSMLog, LogLevel::Warning,
+          ("SystemPrincipal must not load remote documents. URL: %s, type %d",
+           requestedURL.get(), contentPolicyType));
+
+  if (cancelNonLocalSystemPrincipal) {
+    MOZ_ASSERT(false, "SystemPrincipal must not load remote documents.");
+    aChannel->Cancel(NS_ERROR_CONTENT_BLOCKED);
+    return NS_ERROR_CONTENT_BLOCKED;
+  }
+  return NS_OK;
+}
+
+/*
+ * Every protocol handler must set one of the five security flags
+ * defined in nsIProtocolHandler - if not - deny the load.
+ */
+nsresult nsContentSecurityManager::CheckChannelHasProtocolSecurityFlag(
+    nsIChannel* aChannel) {
+  nsCOMPtr<nsIURI> uri;
+  nsresult rv = NS_GetFinalChannelURI(aChannel, getter_AddRefs(uri));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsAutoCString scheme;
+  rv = uri->GetScheme(scheme);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIIOService> ios = do_GetIOService(&rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIProtocolHandler> handler;
+  rv = ios->GetProtocolHandler(scheme.get(), getter_AddRefs(handler));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  uint32_t flags;
+  rv = handler->DoGetProtocolFlags(uri, &flags);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  uint32_t securityFlagsSet = 0;
+  if (flags & nsIProtocolHandler::URI_LOADABLE_BY_ANYONE) {
+    securityFlagsSet += 1;
+  }
+  if (flags & nsIProtocolHandler::URI_DANGEROUS_TO_LOAD) {
+    securityFlagsSet += 1;
+  }
+  if (flags & nsIProtocolHandler::URI_IS_UI_RESOURCE) {
+    securityFlagsSet += 1;
+  }
+  if (flags & nsIProtocolHandler::URI_IS_LOCAL_FILE) {
+    securityFlagsSet += 1;
+  }
+  if (flags & nsIProtocolHandler::URI_LOADABLE_BY_SUBSUMERS) {
+    securityFlagsSet += 1;
+  }
+
+  // Ensure that only "1" valid security flags is set.
+  if (securityFlagsSet == 1) {
+    return NS_OK;
+  }
+
+  MOZ_ASSERT(false, "protocol must use one valid security flag");
   return NS_ERROR_CONTENT_BLOCKED;
 }
 
@@ -870,6 +1045,9 @@ nsresult nsContentSecurityManager::doContentSecurityCheck(
   nsresult rv = CheckAllowLoadInSystemPrivilegedContext(aChannel);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  rv = CheckChannelHasProtocolSecurityFlag(aChannel);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   // if dealing with a redirected channel then we have already installed
   // streamlistener and redirect proxies and so we are done.
   if (loadInfo->GetInitialSecurityCheckDone()) {
@@ -882,7 +1060,7 @@ nsresult nsContentSecurityManager::doContentSecurityCheck(
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (loadInfo->GetSecurityMode() ==
-      nsILoadInfo::SEC_REQUIRE_CORS_DATA_INHERITS) {
+      nsILoadInfo::SEC_REQUIRE_CORS_INHERITS_SEC_CONTEXT) {
     rv = DoCORSChecks(aChannel, loadInfo, aInAndOutListener);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -898,7 +1076,7 @@ nsresult nsContentSecurityManager::doContentSecurityCheck(
   rv = CheckFTPSubresourceLoad(aChannel);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // now lets set the initalSecurityFlag for subsequent calls
+  // now lets set the initialSecurityFlag for subsequent calls
   loadInfo->SetInitialSecurityCheckDone(true);
 
   // all security checks passed - lets allow the load
@@ -979,7 +1157,7 @@ nsresult nsContentSecurityManager::CheckChannel(nsIChannel* aChannel) {
     // We shouldn't have the SEC_COOKIES_SAME_ORIGIN flag for top level loads
     MOZ_ASSERT(loadInfo->GetExternalContentPolicyType() !=
                nsIContentPolicy::TYPE_DOCUMENT);
-    nsIPrincipal* loadingPrincipal = loadInfo->LoadingPrincipal();
+    nsIPrincipal* loadingPrincipal = loadInfo->GetLoadingPrincipal();
 
     // It doesn't matter what we pass for the second, data-inherits, argument.
     // Any protocol which inherits won't pay attention to cookies anyway.
@@ -994,7 +1172,7 @@ nsresult nsContentSecurityManager::CheckChannel(nsIChannel* aChannel) {
   nsSecurityFlags securityMode = loadInfo->GetSecurityMode();
 
   // CORS mode is handled by nsCORSListenerProxy
-  if (securityMode == nsILoadInfo::SEC_REQUIRE_CORS_DATA_INHERITS) {
+  if (securityMode == nsILoadInfo::SEC_REQUIRE_CORS_INHERITS_SEC_CONTEXT) {
     if (NS_HasBeenCrossOrigin(aChannel)) {
       loadInfo->MaybeIncreaseTainting(LoadTainting::CORS);
     }
@@ -1002,7 +1180,6 @@ nsresult nsContentSecurityManager::CheckChannel(nsIChannel* aChannel) {
   }
 
   // Allow subresource loads if TriggeringPrincipal is the SystemPrincipal.
-  // For example, allow user stylesheets to load XBL from external files.
   if (loadInfo->TriggeringPrincipal()->IsSystemPrincipal() &&
       loadInfo->GetExternalContentPolicyType() !=
           nsIContentPolicy::TYPE_DOCUMENT &&
@@ -1012,22 +1189,25 @@ nsresult nsContentSecurityManager::CheckChannel(nsIChannel* aChannel) {
   }
 
   // if none of the REQUIRE_SAME_ORIGIN flags are set, then SOP does not apply
-  if ((securityMode == nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_INHERITS) ||
+  if ((securityMode ==
+       nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_INHERITS_SEC_CONTEXT) ||
       (securityMode == nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_IS_BLOCKED)) {
     rv = DoSOPChecks(uri, loadInfo, aChannel);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  if ((securityMode == nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_INHERITS) ||
-      (securityMode == nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL)) {
+  if ((securityMode ==
+       nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_INHERITS_SEC_CONTEXT) ||
+      (securityMode ==
+       nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL)) {
     if (NS_HasBeenCrossOrigin(aChannel)) {
       NS_ENSURE_FALSE(loadInfo->GetDontFollowRedirects(), NS_ERROR_DOM_BAD_URI);
       loadInfo->MaybeIncreaseTainting(LoadTainting::Opaque);
     }
     // Please note that DoCheckLoadURIChecks should only be enforced for
-    // cross origin requests. If the flag SEC_REQUIRE_CORS_DATA_INHERITS is set
-    // within the loadInfo, then then CheckLoadURIWithPrincipal is performed
-    // within nsCorsListenerProxy
+    // cross origin requests. If the flag SEC_REQUIRE_CORS_INHERITS_SEC_CONTEXT
+    // is set within the loadInfo, then then CheckLoadURIWithPrincipal is
+    // performed within nsCorsListenerProxy
     rv = DoCheckLoadURIChecks(uri, loadInfo);
     NS_ENSURE_SUCCESS(rv, rv);
     // TODO: Bug 1371237

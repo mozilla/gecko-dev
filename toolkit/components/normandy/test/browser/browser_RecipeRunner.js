@@ -289,27 +289,25 @@ decorate_task(
       filter_expression: "true",
     };
 
-    const rsCollection = await RecipeRunner._remoteSettingsClientForTesting.openCollection();
-    await rsCollection.clear();
+    const db = await RecipeRunner._remoteSettingsClientForTesting.db;
     const fakeSig = { signature: "abc" };
-    await rsCollection.create(
+    await db.importChanges({}, 42, [
       { id: "match", recipe: matchRecipe, signature: fakeSig },
-      { synced: true }
-    );
-    await rsCollection.create(
-      { id: "noMatch", recipe: noMatchRecipe, signature: fakeSig },
-      { synced: true }
-    );
-    await rsCollection.create(
-      { id: "missing", recipe: missingRecipe, signature: fakeSig },
-      { synced: true }
-    );
-    await rsCollection.db.saveLastModified(42);
-    rsCollection.db.close();
+      {
+        id: "noMatch",
+        recipe: noMatchRecipe,
+        signature: fakeSig,
+      },
+      {
+        id: "missing",
+        recipe: missingRecipe,
+        signature: fakeSig,
+      },
+    ]);
 
-    let recipesFromRS = (await RecipeRunner._remoteSettingsClientForTesting.get()).map(
-      ({ recipe, signature }) => recipe
-    );
+    let recipesFromRS = (
+      await RecipeRunner._remoteSettingsClientForTesting.get()
+    ).map(({ recipe, signature }) => recipe);
     // Sort the records by id so that they match the order in the assertion
     recipesFromRS.sort((a, b) => a.id - b.id);
     Assert.deepEqual(
@@ -367,19 +365,27 @@ decorate_task(
       capabilities: ["incompatible"],
     };
 
-    const rsCollection = await RecipeRunner._remoteSettingsClientForTesting.openCollection();
-    await rsCollection.clear();
+    const db = await RecipeRunner._remoteSettingsClientForTesting.db;
     const fakeSig = { signature: "abc" };
-    await rsCollection.create(
-      { id: "match", recipe: compatibleRecipe, signature: fakeSig },
-      { synced: true }
+    await db.importChanges(
+      {},
+      42,
+      [
+        {
+          id: "match",
+          recipe: compatibleRecipe,
+          signature: fakeSig,
+        },
+        {
+          id: "noMatch",
+          recipe: incompatibleRecipe,
+          signature: fakeSig,
+        },
+      ],
+      {
+        clear: true,
+      }
     );
-    await rsCollection.create(
-      { id: "noMatch", recipe: incompatibleRecipe, signature: fakeSig },
-      { synced: true }
-    );
-    await rsCollection.db.saveLastModified(42);
-    rsCollection.db.close();
 
     await RecipeRunner.run();
 
@@ -442,7 +448,7 @@ decorate_task(
     await RecipeRunner.init();
     ok(
       !runStub.called,
-      "RecipeRunner.run is called immediately when not in dev mode or first run"
+      "RecipeRunner.run should not be called immediately when not in dev mode or first run"
     );
     ok(registerTimerStub.called, "RecipeRunner.init registers a timer");
   }
@@ -507,31 +513,6 @@ decorate_task(
     // tries to change them. Settings this back to true here allows
     // that to happen. Not doing this causes popPrefEnv to hang forever.
     Services.prefs.setBoolPref("app.normandy.first_run", true);
-  }
-);
-
-// Test that new build IDs trigger immediate recipe runs
-decorate_task(
-  withPrefEnv({
-    set: [
-      ["datareporting.healthreport.uploadEnabled", true], // telemetry enabled
-      ["app.normandy.last_seen_buildid", "not-the-current-buildid"],
-    ],
-  }),
-  withStub(RecipeRunner, "run"),
-  withStub(RecipeRunner, "registerTimer"),
-  withStub(RecipeRunner, "watchPrefs"),
-  async function testInitFirstRun(runStub, registerTimerStub, watchPrefsStub) {
-    await RecipeRunner.init();
-    Assert.deepEqual(
-      runStub.args,
-      [[{ trigger: "newBuildID" }]],
-      "RecipeRunner.run is called immediately on a new build ID"
-    );
-    ok(
-      registerTimerStub.called,
-      "RecipeRunner.registerTimer registers a timer"
-    );
   }
 );
 

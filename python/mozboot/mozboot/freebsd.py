@@ -6,6 +6,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 import sys
 
 from mozboot.base import BaseBootstrapper
+from mozfile import which
 
 
 class FreeBSDBootstrapper(BaseBootstrapper):
@@ -20,7 +21,6 @@ class FreeBSDBootstrapper(BaseBootstrapper):
             'gtar',
             'pkgconf',
             'py%s%s-sqlite3' % sys.version_info[0:2],
-            'python3',
             'rust',
             'watchman',
             'zip',
@@ -38,10 +38,10 @@ class FreeBSDBootstrapper(BaseBootstrapper):
             'yasm',
         ]
 
-        if not self.which('as'):
+        if not which('as'):
             self.packages.append('binutils')
 
-        if not self.which('unzip'):
+        if not which('unzip'):
             self.packages.append('unzip')
 
     def pkg_install(self, *packages):
@@ -55,10 +55,10 @@ class FreeBSDBootstrapper(BaseBootstrapper):
     def install_system_packages(self):
         self.pkg_install(*self.packages)
 
-    def install_browser_packages(self):
+    def install_browser_packages(self, mozconfig_builder):
         self.ensure_browser_packages()
 
-    def install_browser_artifact_mode_packages(self):
+    def install_browser_artifact_mode_packages(self, mozconfig_builder):
         self.ensure_browser_packages(artifact_mode=True)
 
     def ensure_browser_packages(self, artifact_mode=False):

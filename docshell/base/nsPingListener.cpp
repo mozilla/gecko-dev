@@ -97,7 +97,7 @@ static void SendPing(void* aClosure, nsIContent* aContent, nsIURI* aURI,
   NS_NewChannel(getter_AddRefs(chan), aURI, doc,
                 info->requireSameHost
                     ? nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_IS_BLOCKED
-                    : nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+                    : nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
                 nsIContentPolicy::TYPE_PING,
                 nullptr,                  // PerformanceStorage
                 nullptr,                  // aLoadGroup
@@ -126,25 +126,21 @@ static void SendPing(void* aClosure, nsIContent* aContent, nsIURI* aURI,
     MOZ_ASSERT(NS_SUCCEEDED(rv));
   }
 
-  rv = httpChan->SetRequestMethod(NS_LITERAL_CSTRING("POST"));
+  rv = httpChan->SetRequestMethod("POST"_ns);
   MOZ_ASSERT(NS_SUCCEEDED(rv));
 
   // Remove extraneous request headers (to reduce request size)
-  rv = httpChan->SetRequestHeader(NS_LITERAL_CSTRING("accept"), EmptyCString(),
-                                  false);
+  rv = httpChan->SetRequestHeader("accept"_ns, ""_ns, false);
   MOZ_ASSERT(NS_SUCCEEDED(rv));
-  rv = httpChan->SetRequestHeader(NS_LITERAL_CSTRING("accept-language"),
-                                  EmptyCString(), false);
+  rv = httpChan->SetRequestHeader("accept-language"_ns, ""_ns, false);
   MOZ_ASSERT(NS_SUCCEEDED(rv));
-  rv = httpChan->SetRequestHeader(NS_LITERAL_CSTRING("accept-encoding"),
-                                  EmptyCString(), false);
+  rv = httpChan->SetRequestHeader("accept-encoding"_ns, ""_ns, false);
   MOZ_ASSERT(NS_SUCCEEDED(rv));
 
   // Always send a Ping-To header.
   nsAutoCString pingTo;
   if (NS_SUCCEEDED(info->target->GetSpec(pingTo))) {
-    rv = httpChan->SetRequestHeader(NS_LITERAL_CSTRING("Ping-To"), pingTo,
-                                    false);
+    rv = httpChan->SetRequestHeader("Ping-To"_ns, pingTo, false);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
   }
 
@@ -178,8 +174,7 @@ static void SendPing(void* aClosure, nsIContent* aContent, nsIURI* aURI,
     if (sameOrigin || !referrerIsSecure) {
       nsAutoCString pingFrom;
       if (NS_SUCCEEDED(referrer->GetSpec(pingFrom))) {
-        rv = httpChan->SetRequestHeader(NS_LITERAL_CSTRING("Ping-From"),
-                                        pingFrom, false);
+        rv = httpChan->SetRequestHeader("Ping-From"_ns, pingFrom, false);
         MOZ_ASSERT(NS_SUCCEEDED(rv));
       }
     }
@@ -198,7 +193,7 @@ static void SendPing(void* aClosure, nsIContent* aContent, nsIURI* aURI,
     return;
   }
 
-  NS_NAMED_LITERAL_CSTRING(uploadData, "PING");
+  constexpr auto uploadData = "PING"_ns;
 
   nsCOMPtr<nsIInputStream> uploadStream;
   rv = NS_NewCStringInputStream(getter_AddRefs(uploadStream), uploadData);
@@ -206,9 +201,8 @@ static void SendPing(void* aClosure, nsIContent* aContent, nsIURI* aURI,
     return;
   }
 
-  uploadChan->ExplicitSetUploadStream(
-      uploadStream, NS_LITERAL_CSTRING("text/ping"), uploadData.Length(),
-      NS_LITERAL_CSTRING("POST"), false);
+  uploadChan->ExplicitSetUploadStream(uploadStream, "text/ping"_ns,
+                                      uploadData.Length(), "POST"_ns, false);
 
   // The channel needs to have a loadgroup associated with it, so that we can
   // cancel the channel and any redirected channels it may create.

@@ -6,18 +6,23 @@
 
 #include "mozilla/ScopeExit.h"
 
+#include "builtin/ModuleObject.h"
 #include "debugger/DebugAPI.h"
 #include "jit/arm/Simulator-arm.h"
 #include "jit/BaselineFrame.h"
 #include "jit/BaselineIC.h"
 #include "jit/BaselineJIT.h"
-#include "jit/CompileInfo.h"
+#include "jit/CalleeToken.h"
 #include "jit/Ion.h"
+#include "jit/IonScript.h"
+#include "jit/JitFrames.h"
+#include "jit/JitRuntime.h"
 #include "jit/JitSpewer.h"
 #include "jit/mips32/Simulator-mips32.h"
 #include "jit/mips64/Simulator-mips64.h"
 #include "jit/Recover.h"
 #include "jit/RematerializedFrame.h"
+#include "js/friend/StackLimits.h"  // js::CheckRecursionLimitWithStackPointerDontReport, js::ReportOverRecursed
 #include "js/Utility.h"
 #include "util/Memory.h"
 #include "vm/ArgumentsObject.h"
@@ -29,6 +34,8 @@
 
 using namespace js;
 using namespace js::jit;
+
+using mozilla::Maybe;
 
 // BaselineStackBuilder may reallocate its buffer if the current one is too
 // small. To avoid dangling pointers, BufferPointer represents a pointer into
@@ -83,27 +90,41 @@ class BufferPointer {
  * The lowest region of the allocated memory contains a BaselineBailoutInfo
  * structure that points to the start and end of the written data.
  */
-struct BaselineStackBuilder {
+class MOZ_STACK_CLASS BaselineStackBuilder {
   JSContext* cx_;
-  const JSJitFrameIter& iter_;
   JitFrameLayout* frame_ = nullptr;
+  SnapshotIterator& iter_;
+  RootedValueVector outermostFrameFormals_;
 
-  size_t bufferTotal_ = 0;
+  size_t bufferTotal_ = 1024;
   size_t bufferAvail_ = 0;
   size_t bufferUsed_ = 0;
   size_t framePushed_ = 0;
 
   UniquePtr<BaselineBailoutInfo> header_;
 
-  BaselineStackBuilder(JSContext* cx, const JSJitFrameIter& iter,
-                       size_t initialSize)
-      : cx_(cx),
-        iter_(iter),
-        frame_(static_cast<JitFrameLayout*>(iter.current())),
-        bufferTotal_(initialSize) {
-    MOZ_ASSERT(bufferTotal_ >= sizeof(BaselineBailoutInfo));
-    MOZ_ASSERT(iter.isBailoutJS());
-  }
+  JSScript* script_;
+  JSFunction* fun_;
+  const ExceptionBailoutInfo* excInfo_;
+  ICScript* icScript_;
+
+  jsbytecode* pc_ = nullptr;
+  JSOp op_ = JSOp::Nop;
+  uint32_t exprStackSlots_ = 0;
+  void* prevFramePtr_ = nullptr;
+  Maybe<BufferPointer<BaselineFrame>> blFrame_;
+
+  size_t frameNo_ = 0;
+  JSFunction* nextCallee_ = nullptr;
+
+  // The baseline frames we will reconstruct on the heap are not
+  // rooted, so GC must be suppressed.
+  gc::AutoSuppressGC suppress_;
+
+ public:
+  BaselineStackBuilder(JSContext* cx, const JSJitFrameIter& frameIter,
+                       SnapshotIterator& iter,
+                       const ExceptionBailoutInfo* excInfo);
 
   MOZ_MUST_USE bool init() {
     MOZ_ASSERT(!header_);
@@ -120,6 +141,87 @@ struct BaselineStackBuilder {
     header_->copyStackTop = bufferRaw + bufferTotal_;
     header_->copyStackBottom = header_->copyStackTop;
     return true;
+  }
+
+  MOZ_MUST_USE bool buildOneFrame();
+  bool done();
+  void nextFrame();
+
+  JSScript* script() const { return script_; }
+  size_t frameNo() const { return frameNo_; }
+  bool isOutermostFrame() const { return frameNo_ == 0; }
+  MutableHandleValueVector outermostFrameFormals() {
+    return &outermostFrameFormals_;
+  }
+
+  inline JitFrameLayout* startFrame() { return frame_; }
+
+  BaselineBailoutInfo* info() {
+    MOZ_ASSERT(header_);
+    return header_.get();
+  }
+
+  BaselineBailoutInfo* takeBuffer() {
+    MOZ_ASSERT(header_);
+    return header_.release();
+  }
+
+ private:
+  MOZ_MUST_USE bool initFrame();
+  MOZ_MUST_USE bool buildBaselineFrame();
+  MOZ_MUST_USE bool buildArguments();
+  MOZ_MUST_USE bool buildFixedSlots();
+  MOZ_MUST_USE bool fixUpCallerArgs(MutableHandleValueVector savedCallerArgs,
+                                    bool* fixedUp);
+  MOZ_MUST_USE bool buildExpressionStack();
+  MOZ_MUST_USE bool finishLastFrame();
+
+  MOZ_MUST_USE bool prepareForNextFrame(HandleValueVector savedCallerArgs);
+  MOZ_MUST_USE bool finishOuterFrame(uint32_t frameSize);
+  MOZ_MUST_USE bool buildStubFrame(uint32_t frameSize,
+                                   HandleValueVector savedCallerArgs);
+  MOZ_MUST_USE bool buildRectifierFrame(uint32_t actualArgc,
+                                        size_t endOfBaselineStubArgs);
+
+#ifdef DEBUG
+  MOZ_MUST_USE bool validateFrame();
+#endif
+
+#ifdef DEBUG
+  bool envChainSlotCanBeOptimized();
+#endif
+
+  bool hasLiveStackValueAtDepth(uint32_t stackSlotIndex);
+  bool isPrologueBailout();
+  jsbytecode* getResumePC();
+  void* getStubReturnAddress();
+
+  uint32_t exprStackSlots() const { return exprStackSlots_; }
+
+  // Returns true if we're bailing out to a catch or finally block in this frame
+  bool catchingException() const {
+    return excInfo_ && excInfo_->catchingException() &&
+           excInfo_->frameNo() == frameNo_;
+  }
+
+  // Returns true if we're bailing out in place for debug mode
+  bool propagatingIonExceptionForDebugMode() const {
+    return excInfo_ && excInfo_->propagatingIonExceptionForDebugMode();
+  }
+
+  void* prevFramePtr() const { return prevFramePtr_; }
+  BufferPointer<BaselineFrame>& blFrame() { return blFrame_.ref(); }
+
+  void setNextCallee(JSFunction* nextCallee);
+  JSFunction* nextCallee() const { return nextCallee_; }
+
+  jsbytecode* pc() const { return pc_; }
+  bool resumeAfter() const {
+    return !catchingException() && iter_.resumeAfter();
+  }
+
+  bool needToSaveCallerArgs() const {
+    return op_ == JSOp::FunApply || IsIonInlinableGetterOrSetterOp(op_);
   }
 
   MOZ_MUST_USE bool enlarge() {
@@ -161,16 +263,6 @@ struct BaselineStackBuilder {
     bufferAvail_ = newSize - (sizeof(BaselineBailoutInfo) + bufferUsed_);
     header_ = std::move(newHeader);
     return true;
-  }
-
-  BaselineBailoutInfo* info() {
-    MOZ_ASSERT(header_);
-    return header_.get();
-  }
-
-  BaselineBailoutInfo* takeBuffer() {
-    MOZ_ASSERT(header_);
-    return header_.release();
   }
 
   void resetFramePushed() { framePushed_ = 0; }
@@ -268,17 +360,6 @@ struct BaselineStackBuilder {
     return true;
   }
 
-  Value popValue() {
-    MOZ_ASSERT(bufferUsed_ >= sizeof(Value));
-    MOZ_ASSERT(framePushed_ >= sizeof(Value));
-    bufferAvail_ += sizeof(Value);
-    bufferUsed_ -= sizeof(Value);
-    framePushed_ -= sizeof(Value);
-    Value result = *((Value*)header_->copyStackBottom);
-    header_->copyStackBottom += sizeof(Value);
-    return result;
-  }
-
   void setResumeFramePtr(void* resumeFramePtr) {
     header_->resumeFramePtr = resumeFramePtr;
   }
@@ -313,13 +394,10 @@ struct BaselineStackBuilder {
     return reinterpret_cast<uint8_t*>(frame_) + (offset - bufferUsed_);
   }
 
-  inline JitFrameLayout* startFrame() { return frame_; }
-
   BufferPointer<JitFrameLayout> topFrameAddress() {
     return pointerAtStackOffset<JitFrameLayout>(0);
   }
 
-  //
   // This method should only be called when the builder is in a state where it
   // is starting to construct the stack frame for the next callee.  This means
   // that the lowest value on the constructed stack is the return address for
@@ -405,11 +483,23 @@ struct BaselineStackBuilder {
 #  error "Bad architecture!"
 #endif
   }
-
-  void setCheckGlobalDeclarationConflicts() {
-    header_->checkGlobalDeclarationConflicts = true;
-  }
 };
+
+BaselineStackBuilder::BaselineStackBuilder(JSContext* cx,
+                                           const JSJitFrameIter& frameIter,
+                                           SnapshotIterator& iter,
+                                           const ExceptionBailoutInfo* excInfo)
+    : cx_(cx),
+      frame_(static_cast<JitFrameLayout*>(frameIter.current())),
+      iter_(iter),
+      outermostFrameFormals_(cx),
+      script_(frameIter.script()),
+      fun_(frameIter.maybeCallee()),
+      excInfo_(excInfo),
+      icScript_(script_->jitScript()->icScript()),
+      suppress_(cx) {
+  MOZ_ASSERT(bufferTotal_ >= sizeof(BaselineBailoutInfo));
+}
 
 #ifdef DEBUG
 static inline bool IsInlinableFallback(ICFallbackStub* icEntry) {
@@ -418,457 +508,41 @@ static inline bool IsInlinableFallback(ICFallbackStub* icEntry) {
 }
 #endif
 
-static inline void* GetStubReturnAddress(JSContext* cx, JSOp op) {
-  const BaselineICFallbackCode& code =
-      cx->runtime()->jitRuntime()->baselineICFallbackCode();
-
-  if (IsGetPropOp(op)) {
-    return code.bailoutReturnAddr(BailoutReturnKind::GetProp);
-  }
-  if (IsSetPropOp(op)) {
-    return code.bailoutReturnAddr(BailoutReturnKind::SetProp);
-  }
-  if (IsGetElemOp(op)) {
-    return code.bailoutReturnAddr(BailoutReturnKind::GetElem);
-  }
-
-  // This should be a call op of some kind, now.
-  MOZ_ASSERT(IsInvokeOp(op) && !IsSpreadOp(op));
-  if (IsConstructOp(op)) {
-    return code.bailoutReturnAddr(BailoutReturnKind::New);
-  }
-  return code.bailoutReturnAddr(BailoutReturnKind::Call);
-}
-
-static inline jsbytecode* GetNextNonLoopHeadPc(jsbytecode* pc,
-                                               jsbytecode** skippedLoopHead) {
-  JSOp op = JSOp(*pc);
-  switch (op) {
-    case JSOp::Goto:
-      return pc + GET_JUMP_OFFSET(pc);
-
-    case JSOp::LoopHead:
-      *skippedLoopHead = pc;
-      return GetNextPc(pc);
-
-    case JSOp::Nop:
-      return GetNextPc(pc);
-
-    default:
-      return pc;
-  }
-}
-
-// Returns the pc to resume execution at in Baseline after a bailout.
-static jsbytecode* GetResumePC(JSScript* script, jsbytecode* pc,
-                               bool resumeAfter) {
-  if (resumeAfter) {
-    return GetNextPc(pc);
-  }
-
-  // If we are resuming at a LoopHead op, resume at the next op to avoid
-  // a bailout -> enter Ion -> bailout loop with --ion-eager.
-  //
-  // The algorithm below is the "tortoise and the hare" algorithm. See bug
-  // 994444 for more explanation.
-  jsbytecode* skippedLoopHead = nullptr;
-  jsbytecode* fasterPc = pc;
-  while (true) {
-    pc = GetNextNonLoopHeadPc(pc, &skippedLoopHead);
-    fasterPc = GetNextNonLoopHeadPc(fasterPc, &skippedLoopHead);
-    fasterPc = GetNextNonLoopHeadPc(fasterPc, &skippedLoopHead);
-    if (fasterPc == pc) {
-      break;
-    }
-  }
-
-  return pc;
-}
-
-static bool HasLiveStackValueAtDepth(JSContext* cx, HandleScript script,
-                                     jsbytecode* pc, uint32_t stackSlotIndex,
-                                     uint32_t stackDepth) {
-  // Return true iff stackSlotIndex is a stack value that's part of an active
-  // iterator loop instead of a normal expression stack slot.
-
-  MOZ_ASSERT(stackSlotIndex < stackDepth);
-
-  for (TryNoteIterAll tni(cx, script, pc); !tni.done(); ++tni) {
-    const JSTryNote& tn = **tni;
-
-    switch (tn.kind) {
-      case JSTRY_FOR_IN:
-      case JSTRY_FOR_OF:
-      case JSTRY_DESTRUCTURING:
-        MOZ_ASSERT(tn.stackDepth <= stackDepth);
-        if (stackSlotIndex < tn.stackDepth) {
-          return true;
-        }
-        break;
-
-      default:
-        break;
-    }
-  }
-
-  return false;
-}
-
-static bool IsPrologueBailout(const SnapshotIterator& iter,
-                              const ExceptionBailoutInfo* excInfo) {
-  // If we are propagating an exception for debug mode, we will not resume
-  // into baseline code, but instead into HandleExceptionBaseline (i.e.,
-  // never before the prologue).
-  return iter.pcOffset() == 0 && !iter.resumeAfter() &&
-         (!excInfo || !excInfo->propagatingIonExceptionForDebugMode());
-}
-
-/* clang-format off */
-// For every inline frame, we write out the following data:
-//
-//                      |      ...      |
-//                      +---------------+
-//                      |  Descr(???)   |  --- Descr size here is (PREV_FRAME_SIZE)
-//                      +---------------+
-//                      |  ReturnAddr   |
-//             --       +===============+  --- OVERWRITE STARTS HERE  (START_STACK_ADDR)
-//             |        | PrevFramePtr  |
-//             |    +-> +---------------+
-//             |    |   |   Baseline    |
-//             |    |   |    Frame      |
-//             |    |   +---------------+
-//             |    |   |    Fixed0     |
-//             |    |   +---------------+
-//         +--<     |   |     ...       |
-//         |   |    |   +---------------+
-//         |   |    |   |    FixedF     |
-//         |   |    |   +---------------+
-//         |   |    |   |    Stack0     |
-//         |   |    |   +---------------+
-//         |   |    |   |     ...       |
-//         |   |    |   +---------------+
-//         |   |    |   |    StackS     |
-//         |   --   |   +---------------+  --- IF NOT LAST INLINE FRAME,
-//         +------------|  Descr(BLJS)  |  --- CALLING INFO STARTS HERE
-//                  |   +---------------+
-//                  |   |  ReturnAddr   | <-- return into main jitcode after IC
-//             --   |   +===============+
-//             |    |   |    StubPtr    |
-//             |    |   +---------------+
-//             |    +---|   FramePtr    |
-//             |        +---------------+  --- The inlined frame might OSR in Ion
-//             |        |   Padding?    |  --- Thus the return address should be aligned.
-//             |        +---------------+
-//         +--<         |     ArgA      |
-//         |   |        +---------------+
-//         |   |        |     ...       |
-//         |   |        +---------------+
-//         |   |        |     Arg0      |
-//         |   |        +---------------+
-//         |   |        |     ThisV     |
-//         |   --       +---------------+
-//         |            |  ActualArgC   |
-//         |            +---------------+
-//         |            |  CalleeToken  |
-//         |            +---------------+
-//         +------------| Descr(BLStub) |
-//                      +---------------+
-//                      |  ReturnAddr   | <-- return into ICCall_Scripted IC
-//             --       +===============+ --- IF CALLEE FORMAL ARGS > ActualArgC
-//             |        |   Padding?    |
-//             |        +---------------+
-//             |        |  UndefinedU   |
-//             |        +---------------+
-//             |        |     ...       |
-//             |        +---------------+
-//             |        |  Undefined0   |
-//         +--<         +---------------+
-//         |   |        |     ArgA      |
-//         |   |        +---------------+
-//         |   |        |     ...       |
-//         |   |        +---------------+
-//         |   |        |     Arg0      |
-//         |   |        +---------------+
-//         |   |        |     ThisV     |
-//         |   --       +---------------+
-//         |            |  ActualArgC   |
-//         |            +---------------+
-//         |            |  CalleeToken  |
-//         |            +---------------+
-//         +------------|  Descr(Rect)  |
-//                      +---------------+
-//                      |  ReturnAddr   | <-- return into ArgumentsRectifier after call
-//                      +===============+
-/* clang-format on */
-static bool InitFromBailout(JSContext* cx, size_t frameNo, HandleFunction fun,
-                            HandleScript script, SnapshotIterator& iter,
-                            bool invalidate, BaselineStackBuilder& builder,
-                            MutableHandle<GCVector<Value>> startFrameFormals,
-                            MutableHandleFunction nextCallee,
-                            const ExceptionBailoutInfo* excInfo) {
-  // The Baseline frames we will reconstruct on the heap are not rooted, so GC
-  // must be suppressed here.
-  MOZ_ASSERT(cx->suppressGC);
-
-  MOZ_ASSERT(script->hasBaselineScript());
-
-  // Are we catching an exception?
-  bool catchingException = excInfo && excInfo->catchingException();
-
+bool BaselineStackBuilder::initFrame() {
   // If we are catching an exception, we are bailing out to a catch or
   // finally block and this is the frame where we will resume. Usually the
   // expression stack should be empty in this case but there can be
   // iterators on the stack.
-  uint32_t exprStackSlots;
-  if (catchingException) {
-    exprStackSlots = excInfo->numExprSlots();
+  if (catchingException()) {
+    exprStackSlots_ = excInfo_->numExprSlots();
   } else {
-    exprStackSlots =
-        iter.numAllocations() - (script->nfixed() + CountArgSlots(script, fun));
+    uint32_t totalFrameSlots = iter_.numAllocations();
+    uint32_t fixedSlots = script_->nfixed();
+    uint32_t argSlots = CountArgSlots(script_, fun_);
+    exprStackSlots_ = totalFrameSlots - fixedSlots - argSlots;
   }
 
-  builder.resetFramePushed();
-
-  // Build first baseline frame:
-  // +===============+
-  // | PrevFramePtr  |
-  // +---------------+
-  // |   Baseline    |
-  // |    Frame      |
-  // +---------------+
-  // |    Fixed0     |
-  // +---------------+
-  // |     ...       |
-  // +---------------+
-  // |    FixedF     |
-  // +---------------+
-  // |    Stack0     |
-  // +---------------+
-  // |     ...       |
-  // +---------------+
-  // |    StackS     |
-  // +---------------+  --- IF NOT LAST INLINE FRAME,
-  // |  Descr(BLJS)  |  --- CALLING INFO STARTS HERE
-  // +---------------+
-  // |  ReturnAddr   | <-- return into main jitcode after IC
-  // +===============+
+  resetFramePushed();
 
   JitSpew(JitSpew_BaselineBailouts, "      Unpacking %s:%u:%u",
-          script->filename(), script->lineno(), script->column());
+          script_->filename(), script_->lineno(), script_->column());
   JitSpew(JitSpew_BaselineBailouts, "      [BASELINE-JS FRAME]");
 
   // Calculate and write the previous frame pointer value.
   // Record the virtual stack offset at this location.  Later on, if we end up
   // writing out a BaselineStub frame for the next callee, we'll need to save
   // the address.
-  void* prevFramePtr = builder.calculatePrevFramePtr();
-  if (!builder.writePtr(prevFramePtr, "PrevFramePtr")) {
+  void* prevFramePtr = calculatePrevFramePtr();
+  if (!writePtr(prevFramePtr, "PrevFramePtr")) {
     return false;
   }
-  prevFramePtr = builder.virtualPointerAtStackOffset(0);
-
-  // Write struct BaselineFrame.
-  if (!builder.subtract(BaselineFrame::Size(), "BaselineFrame")) {
-    return false;
-  }
-  BufferPointer<BaselineFrame> blFrame =
-      builder.pointerAtStackOffset<BaselineFrame>(0);
-
-  uint32_t flags = BaselineFrame::RUNNING_IN_INTERPRETER;
-
-  // If we are bailing to a script whose execution is observed, mark the
-  // baseline frame as a debuggee frame. This is to cover the case where we
-  // don't rematerialize the Ion frame via the Debugger.
-  if (script->isDebuggee()) {
-    flags |= BaselineFrame::DEBUGGEE;
-  }
-
-  const bool isPrologueBailout = IsPrologueBailout(iter, excInfo);
-
-  // Initialize BaselineFrame's envChain and argsObj
-  JSObject* envChain = nullptr;
-  Value returnValue = UndefinedValue();
-  ArgumentsObject* argsObj = nullptr;
-  BailoutKind bailoutKind = iter.bailoutKind();
-  if (bailoutKind == Bailout_ArgumentCheck) {
-    // Skip the (unused) envChain, because it could be bogus (we can fail before
-    // the env chain slot is set) and use the function's initial environment.
-    // This will be fixed up later if needed in |FinishBailoutToBaseline|, which
-    // calls |EnsureHasEnvironmentObjects|.
-    JitSpew(JitSpew_BaselineBailouts,
-            "      Bailout_ArgumentCheck! (using function's environment)");
-    iter.skip();
-    envChain = fun->environment();
-
-    // skip |return value|
-    iter.skip();
-
-    // Scripts with |argumentsHasVarBinding| have an extra slot.
-    if (script->argumentsHasVarBinding()) {
-      JitSpew(
-          JitSpew_BaselineBailouts,
-          "      Bailout_ArgumentCheck for script with argumentsHasVarBinding!"
-          "Using empty arguments object");
-      iter.skip();
-    }
-  } else {
-    Value v = iter.read();
-    if (v.isObject()) {
-      envChain = &v.toObject();
-
-      // If Ion has updated env slot from UndefinedValue, it will be the
-      // complete initial environment, so we can set the HAS_INITIAL_ENV
-      // flag if needed.
-      if (fun && fun->needsFunctionEnvironmentObjects()) {
-        MOZ_ASSERT(fun->nonLazyScript()->initialEnvironmentShape());
-        MOZ_ASSERT(!fun->needsExtraBodyVarEnvironment());
-        flags |= BaselineFrame::HAS_INITIAL_ENV;
-      }
-    } else {
-      MOZ_ASSERT(v.isUndefined() || v.isMagic(JS_OPTIMIZED_OUT));
-
-#ifdef DEBUG
-      // The |envChain| slot must not be optimized out if the currently
-      // active scope requires any EnvironmentObjects beyond what is
-      // available at body scope. This checks that scope chain does not
-      // require any such EnvironmentObjects.
-      // See also: |CompileInfo::isObservableFrameSlot|
-      jsbytecode* pc = script->offsetToPC(iter.pcOffset());
-      Scope* scopeIter = script->innermostScope(pc);
-      while (scopeIter != script->bodyScope()) {
-        MOZ_ASSERT(scopeIter);
-        MOZ_ASSERT(!scopeIter->hasEnvironment());
-        scopeIter = scopeIter->enclosing();
-      }
-#endif
-
-      // Get env chain from function or script.
-      if (fun) {
-        envChain = fun->environment();
-      } else if (script->module()) {
-        envChain = script->module()->environment();
-      } else {
-        // For global scripts without a non-syntactic env the env
-        // chain is the script's global lexical environment (Ion does
-        // not compile scripts with a non-syntactic global scope).
-        // Also note that it's invalid to resume into the prologue in
-        // this case because the prologue expects the env chain in R1
-        // for eval and global scripts.
-        MOZ_ASSERT(!script->isForEval());
-        MOZ_ASSERT(!script->hasNonSyntacticScope());
-        envChain = &(script->global().lexicalEnvironment());
-
-        // We have possibly bailed out before Ion could do the global
-        // declaration conflicts check. Since it's invalid to resume
-        // into the prologue, set a flag so FinishBailoutToBaseline
-        // can do the conflict check.
-        if (isPrologueBailout) {
-          builder.setCheckGlobalDeclarationConflicts();
-        }
-      }
-    }
-
-    if (script->noScriptRval()) {
-      // Don't use the return value (likely a JS_OPTIMIZED_OUT MagicValue) to
-      // not confuse Baseline.
-      iter.skip();
-    } else {
-      // Make sure to add HAS_RVAL to |flags| and not blFrame->flags because
-      // blFrame->setFlags(flags) below clobbers all frame flags.
-      flags |= BaselineFrame::HAS_RVAL;
-      returnValue = iter.read();
-    }
-
-    // If script maybe has an arguments object, the third slot will hold it.
-    if (script->argumentsHasVarBinding()) {
-      v = iter.read();
-      MOZ_ASSERT(v.isObject() || v.isUndefined() ||
-                 v.isMagic(JS_OPTIMIZED_OUT));
-      if (v.isObject()) {
-        argsObj = &v.toObject().as<ArgumentsObject>();
-      }
-    }
-  }
-
-  MOZ_ASSERT(envChain);
-
-  JitSpew(JitSpew_BaselineBailouts, "      EnvChain=%p", envChain);
-  blFrame->setEnvironmentChain(envChain);
-  JitSpew(JitSpew_BaselineBailouts, "      ReturnValue=%016" PRIx64,
-          *((uint64_t*)&returnValue));
-  blFrame->setReturnValue(returnValue);
-
-  // Do not need to initialize scratchValue field in BaselineFrame.
-  blFrame->setFlags(flags);
-
-  // initArgsObjUnchecked modifies the frame's flags, so call it after setFlags.
-  if (argsObj) {
-    blFrame->initArgsObjUnchecked(*argsObj);
-  }
-
-  if (fun) {
-    // The unpacked thisv and arguments should overwrite the pushed args present
-    // in the calling frame.
-    Value thisv = iter.read();
-    JitSpew(JitSpew_BaselineBailouts, "      Is function!");
-    JitSpew(JitSpew_BaselineBailouts, "      thisv=%016" PRIx64,
-            *((uint64_t*)&thisv));
-
-    size_t thisvOffset = builder.framePushed() + JitFrameLayout::offsetOfThis();
-    builder.valuePointerAtStackOffset(thisvOffset).set(thisv);
-
-    MOZ_ASSERT(iter.numAllocations() >= CountArgSlots(script, fun));
-    JitSpew(JitSpew_BaselineBailouts,
-            "      frame slots %u, nargs %zu, nfixed %zu",
-            iter.numAllocations(), fun->nargs(), script->nfixed());
-
-    bool argsObjAliasesFormals = script->argsObjAliasesFormals();
-    if (frameNo == 0 && !argsObjAliasesFormals) {
-      // This is the first (outermost) frame and we don't have an
-      // arguments object aliasing the formals. Store the formals in a
-      // Vector until we are done. Due to UCE and phi elimination, we
-      // could store an UndefinedValue() here for formals we think are
-      // unused, but locals may still reference the original argument slot
-      // (MParameter/LArgument) and expect the original Value.
-      MOZ_ASSERT(startFrameFormals.empty());
-      if (!startFrameFormals.resize(fun->nargs())) {
-        return false;
-      }
-    }
-
-    for (uint32_t i = 0; i < fun->nargs(); i++) {
-      Value arg = iter.read();
-      JitSpew(JitSpew_BaselineBailouts, "      arg %d = %016" PRIx64, (int)i,
-              *((uint64_t*)&arg));
-      if (frameNo > 0) {
-        size_t argOffset =
-            builder.framePushed() + JitFrameLayout::offsetOfActualArg(i);
-        builder.valuePointerAtStackOffset(argOffset).set(arg);
-      } else if (argsObjAliasesFormals) {
-        // When the arguments object aliases the formal arguments, then
-        // JSOp::SetArg mutates the argument object. In such cases, the
-        // list of arguments reported by the snapshot are only aliases
-        // of argument object slots which are optimized to only store
-        // differences compared to arguments which are on the stack.
-      } else {
-        startFrameFormals[i].set(arg);
-      }
-    }
-  }
-
-  for (uint32_t i = 0; i < script->nfixed(); i++) {
-    Value slot = iter.read();
-    if (!builder.writeValue(slot, "FixedValue")) {
-      return false;
-    }
-  }
+  prevFramePtr_ = virtualPointerAtStackOffset(0);
 
   // Get the pc. If we are handling an exception, resume at the pc of the
   // catch or finally block.
-  jsbytecode* const pc = catchingException
-                             ? excInfo->resumePC()
-                             : script->offsetToPC(iter.pcOffset());
-  const bool resumeAfter = catchingException ? false : iter.resumeAfter();
+  pc_ = catchingException() ? excInfo_->resumePC()
+                            : script_->offsetToPC(iter_.pcOffset());
+  op_ = JSOp(*pc_);
 
   // When pgo is enabled, increment the counter of the block in which we
   // resume, as Ion does not keep track of the code coverage.
@@ -877,127 +551,378 @@ static bool InitFromBailout(JSContext* cx, size_t frameNo, HandleFunction fun,
   // FirstExecution bailouts, we invalidate and recompile the script with
   // IonMonkey. Failing to increment the counter of the current basic block
   // might lead to repeated bailouts and invalidations.
-  if (!JitOptions.disablePgo && script->hasScriptCounts()) {
-    script->incHitCount(pc);
+  if (!JitOptions.disablePgo && script_->hasScriptCounts()) {
+    script_->incHitCount(pc_);
   }
 
-  const JSOp op = JSOp(*pc);
+  return true;
+}
+
+void BaselineStackBuilder::setNextCallee(JSFunction* nextCallee) {
+  nextCallee_ = nextCallee;
+
+  if (JitOptions.warpBuilder) {
+    // Update icScript_ to point to the icScript of nextCallee
+    const uint32_t pcOff = script_->pcToOffset(pc_);
+    icScript_ = icScript_->findInlinedChild(pcOff);
+  }
+}
+
+bool BaselineStackBuilder::done() {
+  if (!iter_.moreFrames()) {
+    MOZ_ASSERT(!nextCallee_);
+    return true;
+  }
+  return catchingException();
+}
+
+void BaselineStackBuilder::nextFrame() {
+  MOZ_ASSERT(nextCallee_);
+  fun_ = nextCallee_;
+  script_ = fun_->nonLazyScript();
+  nextCallee_ = nullptr;
+
+  // Scripts with an IonScript must also have a BaselineScript.
+  MOZ_ASSERT(script_->hasBaselineScript());
+
+  frameNo_++;
+  iter_.nextInstruction();
+}
+
+// Build the BaselineFrame struct
+bool BaselineStackBuilder::buildBaselineFrame() {
+  if (!subtract(BaselineFrame::Size(), "BaselineFrame")) {
+    return false;
+  }
+  blFrame_.reset();
+  blFrame_.emplace(pointerAtStackOffset<BaselineFrame>(0));
+
+  uint32_t flags = BaselineFrame::RUNNING_IN_INTERPRETER;
+
+  // If we are bailing to a script whose execution is observed, mark the
+  // baseline frame as a debuggee frame. This is to cover the case where we
+  // don't rematerialize the Ion frame via the Debugger.
+  if (script_->isDebuggee()) {
+    flags |= BaselineFrame::DEBUGGEE;
+  }
+
+  JSObject* envChain = nullptr;
+  Value returnValue = UndefinedValue();
+  ArgumentsObject* argsObj = nullptr;
+
+  BailoutKind bailoutKind = iter_.bailoutKind();
+  if (bailoutKind == BailoutKind::ArgumentCheck) {
+    // We may fail before the envChain slot is set. Skip it and use
+    // the function's initial environment.  This will be fixed up
+    // later if needed in |FinishBailoutToBaseline|, which calls
+    // |EnsureHasEnvironmentObjects|.
+    JitSpew(JitSpew_BaselineBailouts,
+            "      BailoutKind::ArgumentCheck! Using function's environment");
+    envChain = fun_->environment();
+
+    // Skip envChain.
+    iter_.skip();
+
+    // Skip return value.
+    iter_.skip();
+
+    // Scripts with |argumentsHasVarBinding| have an extra slot.
+    // Skip argsObj if present.
+    if (script_->argumentsHasVarBinding()) {
+      JitSpew(JitSpew_BaselineBailouts,
+              "      BailoutKind::ArgumentCheck for script with "
+              "argumentsHasVarBinding! "
+              "Using empty arguments object");
+      iter_.skip();
+    }
+  } else {
+    // Get |envChain|.
+    Value envChainSlot = iter_.read();
+    if (envChainSlot.isObject()) {
+      // The env slot has been updated from UndefinedValue. It must be the
+      // complete initial environment.
+      envChain = &envChainSlot.toObject();
+
+      // Set the HAS_INITIAL_ENV flag if needed.
+      if (fun_ && fun_->needsFunctionEnvironmentObjects()) {
+        MOZ_ASSERT(fun_->nonLazyScript()->initialEnvironmentShape());
+        MOZ_ASSERT(!fun_->needsExtraBodyVarEnvironment());
+        flags |= BaselineFrame::HAS_INITIAL_ENV;
+      }
+    } else {
+      MOZ_ASSERT(envChainSlot.isUndefined() ||
+                 envChainSlot.isMagic(JS_OPTIMIZED_OUT));
+      MOZ_ASSERT(envChainSlotCanBeOptimized());
+
+      // The env slot has been optimized out.
+      // Get it from the function or script.
+      if (fun_) {
+        envChain = fun_->environment();
+      } else if (script_->module()) {
+        envChain = script_->module()->environment();
+      } else {
+        // For global scripts without a non-syntactic env the env
+        // chain is the script's global lexical environment. (We do
+        // not compile scripts with a non-syntactic global scope).
+        // Also note that it's invalid to resume into the prologue in
+        // this case because the prologue expects the env chain in R1
+        // for eval and global scripts.
+        MOZ_ASSERT(!script_->isForEval());
+        MOZ_ASSERT(!script_->hasNonSyntacticScope());
+        envChain = &(script_->global().lexicalEnvironment());
+      }
+    }
+
+    // Get |returnValue| if present.
+    if (script_->noScriptRval()) {
+      // Don't use the return value (likely a JS_OPTIMIZED_OUT MagicValue) to
+      // not confuse Baseline.
+      iter_.skip();
+    } else {
+      returnValue = iter_.read();
+      flags |= BaselineFrame::HAS_RVAL;
+    }
+
+    // Get |argsObj| if present.
+    if (script_->argumentsHasVarBinding()) {
+      Value maybeArgsObj = iter_.read();
+      MOZ_ASSERT(maybeArgsObj.isObject() || maybeArgsObj.isUndefined() ||
+                 maybeArgsObj.isMagic(JS_OPTIMIZED_OUT));
+      if (maybeArgsObj.isObject()) {
+        argsObj = &maybeArgsObj.toObject().as<ArgumentsObject>();
+      }
+    }
+  }
+  MOZ_ASSERT(envChain);
+
+  // Write |envChain|.
+  JitSpew(JitSpew_BaselineBailouts, "      EnvChain=%p", envChain);
+  blFrame()->setEnvironmentChain(envChain);
+
+  // Write |returnValue|.
+  JitSpew(JitSpew_BaselineBailouts, "      ReturnValue=%016" PRIx64,
+          *((uint64_t*)&returnValue));
+  blFrame()->setReturnValue(returnValue);
+
+  // Note: we do not need to initialize the scratchValue field in BaselineFrame.
+
+  // Write |flags|.
+  blFrame()->setFlags(flags);
+
+  // Write |icScript|.
+  if (JitOptions.warpBuilder) {
+    JitSpew(JitSpew_BaselineBailouts, "      ICScript=%p", icScript_);
+    blFrame()->setICScript(icScript_);
+  }
+
+  // initArgsObjUnchecked modifies the frame's flags, so call it after setFlags.
+  if (argsObj) {
+    blFrame()->initArgsObjUnchecked(*argsObj);
+  }
+  return true;
+}
+
+// Overwrite the pushed args present in the calling frame with
+// the unpacked |thisv| and argument values.
+bool BaselineStackBuilder::buildArguments() {
+  Value thisv = iter_.read();
+  JitSpew(JitSpew_BaselineBailouts, "      Is function!");
+  JitSpew(JitSpew_BaselineBailouts, "      thisv=%016" PRIx64,
+          *((uint64_t*)&thisv));
+
+  size_t thisvOffset = framePushed() + JitFrameLayout::offsetOfThis();
+  valuePointerAtStackOffset(thisvOffset).set(thisv);
+
+  MOZ_ASSERT(iter_.numAllocations() >= CountArgSlots(script_, fun_));
+  JitSpew(JitSpew_BaselineBailouts,
+          "      frame slots %u, nargs %zu, nfixed %zu", iter_.numAllocations(),
+          fun_->nargs(), script_->nfixed());
+
+  bool shouldStoreOutermostFormals =
+      isOutermostFrame() && !script_->argsObjAliasesFormals();
+  if (shouldStoreOutermostFormals) {
+    // This is the first (outermost) frame and we don't have an
+    // arguments object aliasing the formals. Due to UCE and phi
+    // elimination, we could store an UndefinedValue() here for
+    // formals we think are unused, but locals may still reference the
+    // original argument slot (MParameter/LArgument) and expect the
+    // original Value. To avoid this problem, store the formals in a
+    // Vector until we are done.
+    MOZ_ASSERT(outermostFrameFormals().empty());
+    if (!outermostFrameFormals().resize(fun_->nargs())) {
+      return false;
+    }
+  }
+
+  for (uint32_t i = 0; i < fun_->nargs(); i++) {
+    Value arg = iter_.read();
+    JitSpew(JitSpew_BaselineBailouts, "      arg %d = %016" PRIx64, (int)i,
+            *((uint64_t*)&arg));
+    if (!isOutermostFrame()) {
+      size_t argOffset = framePushed() + JitFrameLayout::offsetOfActualArg(i);
+      valuePointerAtStackOffset(argOffset).set(arg);
+    } else if (shouldStoreOutermostFormals) {
+      outermostFrameFormals()[i].set(arg);
+    } else {
+      // When the arguments object aliases the formal arguments, then
+      // JSOp::SetArg mutates the argument object. In such cases, the
+      // list of arguments reported by the snapshot are only aliases
+      // of argument object slots which are optimized to only store
+      // differences compared to arguments which are on the stack.
+    }
+  }
+  return true;
+}
+
+bool BaselineStackBuilder::buildFixedSlots() {
+  for (uint32_t i = 0; i < script_->nfixed(); i++) {
+    Value slot = iter_.read();
+    if (!writeValue(slot, "FixedValue")) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// The caller side of inlined JSOp::FunCall, JSOp::FunApply, and
+// accessors must look like the function wasn't inlined.
+bool BaselineStackBuilder::fixUpCallerArgs(
+    MutableHandleValueVector savedCallerArgs, bool* fixedUp) {
+  MOZ_ASSERT(!*fixedUp);
 
   // Inlining of SpreadCall-like frames not currently supported.
-  MOZ_ASSERT_IF(IsSpreadOp(op), !iter.moreFrames());
+  MOZ_ASSERT(!IsSpreadOp(op_));
 
-  // Fixup inlined JSOp::FunCall, JSOp::FunApply, and accessors on the caller
-  // side. On the caller side this must represent like the function wasn't
-  // inlined.
-  uint32_t pushedSlots = 0;
-  RootedValueVector savedCallerArgs(cx);
-  bool needToSaveArgs =
-      op == JSOp::FunApply || IsIonInlinableGetterOrSetterOp(op);
-  if (iter.moreFrames() && (op == JSOp::FunCall || needToSaveArgs)) {
-    uint32_t inlined_args = 0;
-    if (op == JSOp::FunCall) {
-      inlined_args = 2 + GET_ARGC(pc) - 1;
-    } else if (op == JSOp::FunApply) {
-      inlined_args = 2 + blFrame->numActualArgs();
-    } else {
-      MOZ_ASSERT(IsIonInlinableGetterOrSetterOp(op));
-      inlined_args = 2 + IsSetPropOp(op);
-    }
+  if (op_ != JSOp::FunCall && !needToSaveCallerArgs()) {
+    return true;
+  }
 
-    MOZ_ASSERT(exprStackSlots >= inlined_args);
-    pushedSlots = exprStackSlots - inlined_args;
-
-    JitSpew(JitSpew_BaselineBailouts,
-            "      pushing %u expression stack slots before fixup",
-            pushedSlots);
-    for (uint32_t i = 0; i < pushedSlots; i++) {
-      Value v = iter.read();
-      if (!builder.writeValue(v, "StackValue")) {
-        return false;
-      }
-    }
-
-    if (op == JSOp::FunCall) {
-      // When funcall got inlined and the native js_fun_call was bypassed,
-      // the stack state is incorrect. To restore correctly it must look like
-      // js_fun_call was actually called. This means transforming the stack
-      // from |target, this, args| to |js_fun_call, target, this, args|
-      // The js_fun_call is never read, so just pushing undefined now.
-      JitSpew(JitSpew_BaselineBailouts,
-              "      pushing undefined to fixup funcall");
-      if (!builder.writeValue(UndefinedValue(), "StackValue")) {
-        return false;
-      }
-    }
-
-    if (needToSaveArgs) {
-      // When an accessor is inlined, the whole thing is a lie. There
-      // should never have been a call there. Fix the caller's stack to
-      // forget it ever happened.
-
-      // When funapply gets inlined we take all arguments out of the
-      // arguments array. So the stack state is incorrect. To restore
-      // correctly it must look like js_fun_apply was actually called.
-      // This means transforming the stack from |target, this, arg1, ...|
-      // to |js_fun_apply, target, this, argObject|.
-      // Since the information is never read, we can just push undefined
-      // for all values.
-      if (op == JSOp::FunApply) {
-        JitSpew(JitSpew_BaselineBailouts,
-                "      pushing 4x undefined to fixup funapply");
-        if (!builder.writeValue(UndefinedValue(), "StackValue")) {
-          return false;
-        }
-        if (!builder.writeValue(UndefinedValue(), "StackValue")) {
-          return false;
-        }
-        if (!builder.writeValue(UndefinedValue(), "StackValue")) {
-          return false;
-        }
-        if (!builder.writeValue(UndefinedValue(), "StackValue")) {
-          return false;
-        }
-      }
-      // Save the actual arguments. They are needed on the callee side
-      // as the arguments. Else we can't recover them.
-      if (!savedCallerArgs.resize(inlined_args)) {
-        return false;
-      }
-      for (uint32_t i = 0; i < inlined_args; i++) {
-        savedCallerArgs[i].set(iter.read());
-      }
-
-      if (IsSetPropOp(op)) {
-        // We would love to just save all the arguments and leave them
-        // in the stub frame pushed below, but we will lose the inital
-        // argument which the function was called with, which we must
-        // leave on the stack. It's pushed as the result of the SetProp.
-        Value initialArg = savedCallerArgs[inlined_args - 1];
-        JitSpew(JitSpew_BaselineBailouts,
-                "     pushing setter's initial argument");
-        if (!builder.writeValue(initialArg, "StackValue")) {
-          return false;
-        }
-      }
-      pushedSlots = exprStackSlots;
+  // Calculate how many arguments are consumed by the inlined call.
+  // All calls pass |callee| and |this|.
+  uint32_t inlinedArgs = 2;
+  if (op_ == JSOp::FunCall) {
+    // The first argument to an inlined FunCall becomes |this|,
+    // if it exists. The rest are passed normally.
+    inlinedArgs += GET_ARGC(pc_) > 0 ? GET_ARGC(pc_) - 1 : 0;
+  } else if (op_ == JSOp::FunApply) {
+    // We currently only support FunApplyArgs. The number of arguments
+    // passed to the inlined function is the number of arguments to the
+    // current frame.
+    inlinedArgs += blFrame()->numActualArgs();
+  } else {
+    MOZ_ASSERT(IsIonInlinableGetterOrSetterOp(op_));
+    // Setters are passed one argument. Getters are passed none.
+    if (IsSetPropOp(op_)) {
+      inlinedArgs++;
     }
   }
 
+  // Calculate how many values are live on the stack across the call,
+  // and push them.
+  MOZ_ASSERT(inlinedArgs <= exprStackSlots());
+  uint32_t liveStackSlots = exprStackSlots() - inlinedArgs;
+
+  JitSpew(JitSpew_BaselineBailouts,
+          "      pushing %u expression stack slots before fixup",
+          liveStackSlots);
+  for (uint32_t i = 0; i < liveStackSlots; i++) {
+    Value v = iter_.read();
+    if (!writeValue(v, "StackValue")) {
+      return false;
+    }
+  }
+
+  // When we inline JSOp::FunCall or JSOp::FunApply, we bypass the
+  // native and inline the target directly. When rebuilding the stack,
+  // we need to fill in the right number of slots to make it look like
+  // the js_native was actually called.
+  if (op_ == JSOp::FunCall) {
+    // We must transform the stack from |target, this, args| to
+    // |js_fun_call, target, this, args|. The value of |js_fun_call|
+    // will never be observed, so we push |undefined| for it, followed
+    // by the remaining arguments.
+    JitSpew(JitSpew_BaselineBailouts,
+            "      pushing undefined to fixup funcall");
+    if (!writeValue(UndefinedValue(), "StackValue")) {
+      return false;
+    }
+    if (GET_ARGC(pc_) > 0) {
+      JitSpew(JitSpew_BaselineBailouts,
+              "      pushing %u expression stack slots", inlinedArgs);
+      for (uint32_t i = 0; i < inlinedArgs; i++) {
+        Value arg = iter_.read();
+        if (!writeValue(arg, "StackValue")) {
+          return false;
+        }
+      }
+    } else {
+      // When we inline FunCall with no arguments, we push an extra
+      // |undefined| value for |this|. That value should not appear
+      // in the rebuilt baseline frame.
+      JitSpew(JitSpew_BaselineBailouts, "      pushing target of funcall");
+      Value target = iter_.read();
+      if (!writeValue(target, "StackValue")) {
+        return false;
+      }
+      // Skip |this|.
+      iter_.skip();
+    }
+  } else if (op_ == JSOp::FunApply) {
+    // We currently only support FunApplyArgs. We must transform the
+    // stack from |target, this, arg1, ...| to |js_fun_apply, target,
+    // this, argObject|. These values will never be observed, so we
+    // can just push |undefined|.
+    JitSpew(JitSpew_BaselineBailouts,
+            "      pushing 4x undefined to fixup funapply");
+    if (!writeValue(UndefinedValue(), "StackValue") ||
+        !writeValue(UndefinedValue(), "StackValue") ||
+        !writeValue(UndefinedValue(), "StackValue") ||
+        !writeValue(UndefinedValue(), "StackValue")) {
+      return false;
+    }
+  }
+
+  if (needToSaveCallerArgs()) {
+    // Save the actual arguments. They are needed to rebuild the callee frame.
+    if (!savedCallerArgs.resize(inlinedArgs)) {
+      return false;
+    }
+    for (uint32_t i = 0; i < inlinedArgs; i++) {
+      savedCallerArgs[i].set(iter_.read());
+    }
+
+    if (IsSetPropOp(op_)) {
+      // The RHS argument to SetProp remains on the stack after the
+      // operation and is observable, so we have to fill it in.
+      Value initialArg = savedCallerArgs[inlinedArgs - 1];
+      JitSpew(JitSpew_BaselineBailouts,
+              "     pushing setter's initial argument");
+      if (!writeValue(initialArg, "StackValue")) {
+        return false;
+      }
+    }
+  }
+
+  *fixedUp = true;
+  return true;
+}
+
+bool BaselineStackBuilder::buildExpressionStack() {
   JitSpew(JitSpew_BaselineBailouts, "      pushing %u expression stack slots",
-          exprStackSlots - pushedSlots);
-  for (uint32_t i = pushedSlots; i < exprStackSlots; i++) {
+          exprStackSlots());
+  for (uint32_t i = 0; i < exprStackSlots(); i++) {
     Value v;
 
-    if (!iter.moreFrames() && i == exprStackSlots - 1 &&
-        cx->hasIonReturnOverride()) {
+    if (!iter_.moreFrames() && i == exprStackSlots() - 1 &&
+        cx_->hasIonReturnOverride()) {
       // If coming from an invalidation bailout, and this is the topmost
       // value, and a value override has been specified, don't read from the
       // iterator. Otherwise, we risk using a garbage value.
-      MOZ_ASSERT(invalidate);
-      iter.skip();
+      // TODO(post-Warp): Remove value overrides and AutoDetectInvalidation.
+      iter_.skip();
       JitSpew(JitSpew_BaselineBailouts, "      [Return Override]");
-      v = cx->takeIonReturnOverride();
-    } else if (excInfo && excInfo->propagatingIonExceptionForDebugMode()) {
+      v = cx_->takeIonReturnOverride();
+    } else if (propagatingIonExceptionForDebugMode()) {
       // If we are in the middle of propagating an exception from Ion by
       // bailing to baseline due to debug mode, we might not have all
       // the stack if we are at the newest frame.
@@ -1007,167 +932,63 @@ static bool InitFromBailout(JSContext* cx, size_t frameNo, HandleFunction fun,
       // possible nothing was pushed before we threw. We can't drop
       // iterators, however, so read them out. They will be closed by
       // HandleExceptionBaseline.
-      MOZ_ASSERT(cx->realm()->isDebuggee());
-      if (iter.moreFrames() ||
-          HasLiveStackValueAtDepth(cx, script, pc, i, exprStackSlots)) {
-        v = iter.read();
+      MOZ_ASSERT(cx_->realm()->isDebuggee() ||
+                 cx_->isPropagatingForcedReturn());
+      if (iter_.moreFrames() || hasLiveStackValueAtDepth(i)) {
+        v = iter_.read();
       } else {
-        iter.skip();
+        iter_.skip();
         v = MagicValue(JS_OPTIMIZED_OUT);
       }
     } else {
-      v = iter.read();
+      v = iter_.read();
     }
-    if (!builder.writeValue(v, "StackValue")) {
+    if (!writeValue(v, "StackValue")) {
       return false;
     }
   }
 
-  // BaselineFrame::frameSize is the size of everything pushed since
-  // the builder.resetFramePushed() call.
-  const uint32_t frameSize = builder.framePushed();
-#ifdef DEBUG
-  blFrame->setDebugFrameSize(frameSize);
-#endif
-  JitSpew(JitSpew_BaselineBailouts, "      FrameSize=%u", frameSize);
+  return true;
+}
 
-  // debugNumValueSlots() is based on the frame size, do some sanity checks.
-  MOZ_ASSERT(blFrame->debugNumValueSlots() >= script->nfixed());
-  MOZ_ASSERT(blFrame->debugNumValueSlots() <= script->nslots());
+bool BaselineStackBuilder::prepareForNextFrame(
+    HandleValueVector savedCallerArgs) {
+  const uint32_t frameSize = framePushed();
 
-  const uint32_t pcOff = script->pcToOffset(pc);
-  JitScript* jitScript = script->jitScript();
-
-#ifdef DEBUG
-  uint32_t expectedDepth;
-  bool reachablePC;
-  if (!ReconstructStackDepth(cx, script, resumeAfter ? GetNextPc(pc) : pc,
-                             &expectedDepth, &reachablePC)) {
+  // Write out descriptor and return address for the baseline frame.
+  // The icEntry in question MUST have an inlinable fallback stub.
+  if (!finishOuterFrame(frameSize)) {
     return false;
   }
 
-  if (reachablePC) {
-    if (op != JSOp::FunApply || !iter.moreFrames() || resumeAfter) {
-      if (op == JSOp::FunCall) {
-        // For fun.call(this, ...); the reconstructStackDepth will
-        // include the this. When inlining that is not included.
-        // So the exprStackSlots will be one less.
-        MOZ_ASSERT(expectedDepth - exprStackSlots <= 1);
-      } else if (iter.moreFrames() && IsIonInlinableGetterOrSetterOp(op)) {
-        // Accessors coming out of ion are inlined via a complete
-        // lie perpetrated by the compiler internally. Ion just rearranges
-        // the stack, and pretends that it looked like a call all along.
-        // This means that the depth is actually one *more* than expected
-        // by the interpreter, as there is now a JSFunction, |this| and [arg],
-        // rather than the expected |this| and [arg].
-        // If the inlined accessor is a getelem operation, the numbers do match,
-        // but that's just because getelem expects one more item on the stack.
-        // Note that none of that was pushed, but it's still reflected
-        // in exprStackSlots.
-        MOZ_ASSERT(exprStackSlots - expectedDepth == (IsGetElemOp(op) ? 0 : 1));
-      } else {
-        // For fun.apply({}, arguments) the reconstructStackDepth will
-        // have stackdepth 4, but it could be that we inlined the
-        // funapply. In that case exprStackSlots, will have the real
-        // arguments in the slots and not be 4.
-        MOZ_ASSERT(exprStackSlots == expectedDepth);
-      }
-    }
-  }
-#endif
+  return buildStubFrame(frameSize, savedCallerArgs);
+}
 
-#ifdef JS_JITSPEW
-  JitSpew(JitSpew_BaselineBailouts,
-          "      Resuming %s pc offset %d (op %s) (line %d) of %s:%u:%u",
-          resumeAfter ? "after" : "at", (int)pcOff, CodeName(op),
-          PCToLineNumber(script, pc), script->filename(), script->lineno(),
-          script->column());
-  JitSpew(JitSpew_BaselineBailouts, "      Bailout kind: %s",
-          BailoutKindString(bailoutKind));
-#endif
+bool BaselineStackBuilder::finishOuterFrame(uint32_t frameSize) {
+  // .               .
+  // |  Descr(BLJS)  |
+  // +---------------+
+  // |  ReturnAddr   |
+  // +===============+
 
   const BaselineInterpreter& baselineInterp =
-      cx->runtime()->jitRuntime()->baselineInterpreter();
+      cx_->runtime()->jitRuntime()->baselineInterpreter();
 
-  // If this was the last inline frame, or we are bailing out to a catch or
-  // finally block in this frame, then unpacking is almost done.
-  if (!iter.moreFrames() || catchingException) {
-    builder.setResumeFramePtr(prevFramePtr);
-    builder.setFrameSizeOfInnerMostFrame(frameSize);
-
-    // Compute the native address (within the Baseline Interpreter) that we will
-    // resume at and initialize the frame's interpreter fields.
-    uint8_t* resumeAddr;
-    if (isPrologueBailout) {
-      JitSpew(JitSpew_BaselineBailouts, "      Resuming into prologue.");
-      MOZ_ASSERT(pc == script->code());
-      blFrame->setInterpreterFieldsForPrologue(script);
-      resumeAddr = baselineInterp.bailoutPrologueEntryAddr();
-    } else if (excInfo && excInfo->propagatingIonExceptionForDebugMode()) {
-      // When propagating an exception for debug mode, set the
-      // resume pc to the throwing pc, so that Debugger hooks report
-      // the correct pc offset of the throwing op instead of its
-      // successor.
-      jsbytecode* throwPC = script->offsetToPC(iter.pcOffset());
-      blFrame->setInterpreterFields(script, throwPC);
-      resumeAddr = baselineInterp.interpretOpAddr().value;
-    } else {
-      // If the opcode is monitored we should monitor the top stack value when
-      // we finish the bailout in FinishBailoutToBaseline.
-      if (resumeAfter && BytecodeOpHasTypeSet(op)) {
-        builder.setMonitorPC(pc);
-      }
-      jsbytecode* resumePC = GetResumePC(script, pc, resumeAfter);
-      blFrame->setInterpreterFields(script, resumePC);
-      resumeAddr = baselineInterp.interpretOpAddr().value;
-    }
-    builder.setResumeAddr(resumeAddr);
-    JitSpew(JitSpew_BaselineBailouts, "      Set resumeAddr=%p", resumeAddr);
-
-    if (cx->runtime()->geckoProfiler().enabled()) {
-      // Register bailout with profiler.
-      const char* filename = script->filename();
-      if (filename == nullptr) {
-        filename = "<unknown>";
-      }
-      unsigned len = strlen(filename) + 200;
-      UniqueChars buf(js_pod_malloc<char>(len));
-      if (buf == nullptr) {
-        ReportOutOfMemory(cx);
-        return false;
-      }
-      snprintf(buf.get(), len, "%s %s %s on line %u of %s:%u",
-               BailoutKindString(bailoutKind), resumeAfter ? "after" : "at",
-               CodeName(op), PCToLineNumber(script, pc), filename,
-               script->lineno());
-      cx->runtime()->geckoProfiler().markEvent(buf.get());
-    }
-
-    return true;
-  }
-
-  // This is an outer frame for an inlined getter/setter/call.
-
-  blFrame->setInterpreterFields(script, pc);
+  blFrame()->setInterpreterFields(script_, pc_);
 
   // Write out descriptor of BaselineJS frame.
   size_t baselineFrameDescr = MakeFrameDescriptor(
-      (uint32_t)builder.framePushed(), FrameType::BaselineJS,
-      BaselineStubFrameLayout::Size());
-  if (!builder.writeWord(baselineFrameDescr, "Descriptor")) {
+      frameSize, FrameType::BaselineJS, BaselineStubFrameLayout::Size());
+  if (!writeWord(baselineFrameDescr, "Descriptor")) {
     return false;
   }
 
-  // Calculate and write out return address.
-  // The icEntry in question MUST have an inlinable fallback stub.
-  ICEntry& icEntry = jitScript->icEntryFromPCOffset(pcOff);
-  MOZ_ASSERT(IsInlinableFallback(icEntry.fallbackStub()));
+  uint8_t* retAddr = baselineInterp.retAddrForIC(op_);
+  return writePtr(retAddr, "ReturnAddr");
+}
 
-  uint8_t* retAddr = baselineInterp.retAddrForIC(JSOp(*pc));
-  if (!builder.writePtr(retAddr, "ReturnAddr")) {
-    return false;
-  }
-
+bool BaselineStackBuilder::buildStubFrame(uint32_t frameSize,
+                                          HandleValueVector savedCallerArgs) {
   // Build baseline stub frame:
   // +===============+
   // |    StubPtr    |
@@ -1195,96 +1016,118 @@ static bool InitFromBailout(JSContext* cx, size_t frameNo, HandleFunction fun,
 
   JitSpew(JitSpew_BaselineBailouts, "      [BASELINE-STUB FRAME]");
 
-  size_t startOfBaselineStubFrame = builder.framePushed();
+  size_t startOfBaselineStubFrame = framePushed();
 
   // Write stub pointer.
+  uint32_t pcOff = script_->pcToOffset(pc_);
+  ICEntry& icEntry = script_->jitScript()->icEntryFromPCOffset(pcOff);
   MOZ_ASSERT(IsInlinableFallback(icEntry.fallbackStub()));
-  if (!builder.writePtr(icEntry.fallbackStub(), "StubPtr")) {
+  if (!writePtr(icEntry.fallbackStub(), "StubPtr")) {
     return false;
   }
 
   // Write previous frame pointer (saved earlier).
-  if (!builder.writePtr(prevFramePtr, "PrevFramePtr")) {
+  if (!writePtr(prevFramePtr(), "PrevFramePtr")) {
     return false;
   }
-  prevFramePtr = builder.virtualPointerAtStackOffset(0);
+  prevFramePtr_ = virtualPointerAtStackOffset(0);
 
-  // Write out actual arguments (and thisv), copied from unpacked stack of
-  // BaselineJS frame. Arguments are reversed on the BaselineJS frame's stack
+  // Write out the arguments, copied from the baseline frame. The order
+  // of the arguments is reversed relative to the baseline frame's stack
   // values.
-  MOZ_ASSERT(IsIonInlinableOp(op));
-  bool pushedNewTarget = IsConstructPC(pc);
+  MOZ_ASSERT(IsIonInlinableOp(op_));
+  bool pushedNewTarget = IsConstructPC(pc_);
   unsigned actualArgc;
   Value callee;
-  if (needToSaveArgs) {
+  if (needToSaveCallerArgs()) {
     // For FunApply or an accessor, the arguments are not on the stack anymore,
     // but they are copied in a vector and are written here.
-    if (op == JSOp::FunApply) {
-      actualArgc = blFrame->numActualArgs();
+    if (op_ == JSOp::FunApply) {
+      actualArgc = blFrame()->numActualArgs();
     } else {
-      actualArgc = IsSetPropOp(op);
+      actualArgc = IsSetPropOp(op_);
     }
     callee = savedCallerArgs[0];
 
     // Align the stack based on the number of arguments.
     size_t afterFrameSize =
         (actualArgc + 1) * sizeof(Value) + JitFrameLayout::Size();
-    if (!builder.maybeWritePadding(JitStackAlignment, afterFrameSize,
-                                   "Padding")) {
+    if (!maybeWritePadding(JitStackAlignment, afterFrameSize, "Padding")) {
       return false;
     }
 
     // Push arguments.
-    MOZ_ASSERT(actualArgc + 2 <= exprStackSlots);
+    MOZ_ASSERT(actualArgc + 2 <= exprStackSlots());
     MOZ_ASSERT(savedCallerArgs.length() == actualArgc + 2);
     for (unsigned i = 0; i < actualArgc + 1; i++) {
       size_t arg = savedCallerArgs.length() - (i + 1);
-      if (!builder.writeValue(savedCallerArgs[arg], "ArgVal")) {
+      if (!writeValue(savedCallerArgs[arg], "ArgVal")) {
         return false;
       }
     }
+  } else if (op_ == JSOp::FunCall && GET_ARGC(pc_) == 0) {
+    // When calling FunCall with 0 arguments, we push |undefined|
+    // for this. See BaselineCacheIRCompiler::pushFunCallArguments.
+    MOZ_ASSERT(!pushedNewTarget);
+    actualArgc = 0;
+    // Align the stack based on pushing |this| and 0 arguments.
+    size_t afterFrameSize = sizeof(Value) + JitFrameLayout::Size();
+    if (!maybeWritePadding(JitStackAlignment, afterFrameSize, "Padding")) {
+      return false;
+    }
+    // Push an undefined value for |this|.
+    if (!writeValue(UndefinedValue(), "ThisValue")) {
+      return false;
+    }
+    size_t calleeSlot = blFrame()->numValueSlots(frameSize) - 1;
+    callee = *blFrame()->valueSlot(calleeSlot);
+
   } else {
-    actualArgc = GET_ARGC(pc);
-    if (op == JSOp::FunCall) {
+    actualArgc = GET_ARGC(pc_);
+    if (op_ == JSOp::FunCall) {
+      // See BaselineCacheIRCompiler::pushFunCallArguments.
       MOZ_ASSERT(actualArgc > 0);
       actualArgc--;
     }
 
+    // In addition to the formal arguments, we must also push |this|.
+    // When calling a constructor, we must also push |newTarget|.
+    uint32_t numArguments = actualArgc + 1 + pushedNewTarget;
+
     // Align the stack based on the number of arguments.
-    size_t afterFrameSize = (actualArgc + 1 + pushedNewTarget) * sizeof(Value) +
-                            JitFrameLayout::Size();
-    if (!builder.maybeWritePadding(JitStackAlignment, afterFrameSize,
-                                   "Padding")) {
+    size_t afterFrameSize =
+        numArguments * sizeof(Value) + JitFrameLayout::Size();
+    if (!maybeWritePadding(JitStackAlignment, afterFrameSize, "Padding")) {
       return false;
     }
 
     // Copy the arguments and |this| from the BaselineFrame, in reverse order.
-    size_t valueSlot = blFrame->numValueSlots(frameSize) - 1;
-    size_t calleeSlot = valueSlot - actualArgc - 1 - pushedNewTarget;
+    size_t valueSlot = blFrame()->numValueSlots(frameSize) - 1;
+    size_t calleeSlot = valueSlot - numArguments;
 
     for (size_t i = valueSlot; i > calleeSlot; i--) {
-      Value v = *blFrame->valueSlot(i);
-      if (!builder.writeValue(v, "ArgVal")) {
+      Value v = *blFrame()->valueSlot(i);
+      if (!writeValue(v, "ArgVal")) {
         return false;
       }
     }
 
-    callee = *blFrame->valueSlot(calleeSlot);
+    callee = *blFrame()->valueSlot(calleeSlot);
   }
 
   // In case these arguments need to be copied on the stack again for a
   // rectifier frame, save the framePushed values here for later use.
-  size_t endOfBaselineStubArgs = builder.framePushed();
+  size_t endOfBaselineStubArgs = framePushed();
 
   // Calculate frame size for descriptor.
   size_t baselineStubFrameSize =
-      builder.framePushed() - startOfBaselineStubFrame;
+      endOfBaselineStubArgs - startOfBaselineStubFrame;
   size_t baselineStubFrameDescr =
       MakeFrameDescriptor((uint32_t)baselineStubFrameSize,
                           FrameType::BaselineStub, JitFrameLayout::Size());
 
   // Push actual argc
-  if (!builder.writeWord(actualArgc, "ActualArgc")) {
+  if (!writeWord(actualArgc, "ActualArgc")) {
     return false;
   }
 
@@ -1293,41 +1136,45 @@ static bool InitFromBailout(JSContext* cx, size_t frameNo, HandleFunction fun,
           callee.asRawBits());
 
   JSFunction* calleeFun = &callee.toObject().as<JSFunction>();
-  if (!builder.writePtr(CalleeToToken(calleeFun, pushedNewTarget),
-                        "CalleeToken")) {
+  if (!writePtr(CalleeToToken(calleeFun, pushedNewTarget), "CalleeToken")) {
     return false;
   }
-  nextCallee.set(calleeFun);
+  setNextCallee(calleeFun);
 
   // Push BaselineStub frame descriptor
-  if (!builder.writeWord(baselineStubFrameDescr, "Descriptor")) {
+  if (!writeWord(baselineStubFrameDescr, "Descriptor")) {
     return false;
   }
 
   // Ensure we have a TypeMonitor fallback stub so we don't crash in JIT code
   // when we try to enter it. See callers of offsetOfFallbackMonitorStub.
-  if (BytecodeOpHasTypeSet(JSOp(*pc))) {
+  if (BytecodeOpHasTypeSet(op_) && IsTypeInferenceEnabled()) {
     ICFallbackStub* fallbackStub = icEntry.fallbackStub();
     if (!fallbackStub->toMonitoredFallbackStub()->getFallbackMonitorStub(
-            cx, script)) {
+            cx_, script_)) {
       return false;
     }
   }
 
   // Push return address into ICCall_Scripted stub, immediately after the call.
-  void* baselineCallReturnAddr = GetStubReturnAddress(cx, op);
+  void* baselineCallReturnAddr = getStubReturnAddress();
   MOZ_ASSERT(baselineCallReturnAddr);
-  if (!builder.writePtr(baselineCallReturnAddr, "ReturnAddr")) {
+  if (!writePtr(baselineCallReturnAddr, "ReturnAddr")) {
     return false;
   }
-  MOZ_ASSERT(builder.framePushed() % JitStackAlignment == 0);
+  MOZ_ASSERT(framePushed() % JitStackAlignment == 0);
 
-  // If actualArgc >= fun->nargs, then we are done.  Otherwise, we need to push
-  // on a reconstructed rectifier frame.
-  if (actualArgc >= calleeFun->nargs()) {
-    return true;
+  // Build a rectifier frame if necessary
+  if (actualArgc < calleeFun->nargs() &&
+      !buildRectifierFrame(actualArgc, endOfBaselineStubArgs)) {
+    return false;
   }
 
+  return true;
+}
+
+bool BaselineStackBuilder::buildRectifierFrame(uint32_t actualArgc,
+                                               size_t endOfBaselineStubArgs) {
   // Push a reconstructed rectifier frame.
   // +===============+
   // |   Padding?    |
@@ -1356,94 +1203,406 @@ static bool InitFromBailout(JSContext* cx, size_t frameNo, HandleFunction fun,
   // +===============+
 
   JitSpew(JitSpew_BaselineBailouts, "      [RECTIFIER FRAME]");
+  bool pushedNewTarget = IsConstructPC(pc_);
 
-  size_t startOfRectifierFrame = builder.framePushed();
+  size_t startOfRectifierFrame = framePushed();
 
   // On x86-only, the frame pointer is saved again in the rectifier frame.
 #if defined(JS_CODEGEN_X86)
-  if (!builder.writePtr(prevFramePtr, "PrevFramePtr-X86Only")) {
+  if (!writePtr(prevFramePtr(), "PrevFramePtr-X86Only")) {
     return false;
   }
   // Follow the same logic as in JitRuntime::generateArgumentsRectifier.
-  prevFramePtr = builder.virtualPointerAtStackOffset(0);
-  if (!builder.writePtr(prevFramePtr, "Padding-X86Only")) {
+  prevFramePtr_ = virtualPointerAtStackOffset(0);
+  if (!writePtr(prevFramePtr(), "Padding-X86Only")) {
     return false;
   }
 #endif
 
   // Align the stack based on the number of arguments.
   size_t afterFrameSize =
-      (calleeFun->nargs() + 1 + pushedNewTarget) * sizeof(Value) +
+      (nextCallee()->nargs() + 1 + pushedNewTarget) * sizeof(Value) +
       RectifierFrameLayout::Size();
-  if (!builder.maybeWritePadding(JitStackAlignment, afterFrameSize,
-                                 "Padding")) {
+  if (!maybeWritePadding(JitStackAlignment, afterFrameSize, "Padding")) {
     return false;
   }
 
   // Copy new.target, if necessary.
   if (pushedNewTarget) {
-    size_t newTargetOffset = (builder.framePushed() - endOfBaselineStubArgs) +
+    size_t newTargetOffset = (framePushed() - endOfBaselineStubArgs) +
                              (actualArgc + 1) * sizeof(Value);
-    Value newTargetValue = *builder.valuePointerAtStackOffset(newTargetOffset);
-    if (!builder.writeValue(newTargetValue, "CopiedNewTarget")) {
+    Value newTargetValue = *valuePointerAtStackOffset(newTargetOffset);
+    if (!writeValue(newTargetValue, "CopiedNewTarget")) {
       return false;
     }
   }
 
   // Push undefined for missing arguments.
-  for (unsigned i = 0; i < (calleeFun->nargs() - actualArgc); i++) {
-    if (!builder.writeValue(UndefinedValue(), "FillerVal")) {
+  for (unsigned i = 0; i < (nextCallee()->nargs() - actualArgc); i++) {
+    if (!writeValue(UndefinedValue(), "FillerVal")) {
       return false;
     }
   }
 
   // Copy arguments + thisv from BaselineStub frame.
-  if (!builder.subtract((actualArgc + 1) * sizeof(Value), "CopiedArgs")) {
+  if (!subtract((actualArgc + 1) * sizeof(Value), "CopiedArgs")) {
     return false;
   }
-  BufferPointer<uint8_t> stubArgsEnd = builder.pointerAtStackOffset<uint8_t>(
-      builder.framePushed() - endOfBaselineStubArgs);
+  BufferPointer<uint8_t> stubArgsEnd =
+      pointerAtStackOffset<uint8_t>(framePushed() - endOfBaselineStubArgs);
   JitSpew(JitSpew_BaselineBailouts, "      MemCpy from %p", stubArgsEnd.get());
-  memcpy(builder.pointerAtStackOffset<uint8_t>(0).get(), stubArgsEnd.get(),
+  memcpy(pointerAtStackOffset<uint8_t>(0).get(), stubArgsEnd.get(),
          (actualArgc + 1) * sizeof(Value));
 
   // Calculate frame size for descriptor.
-  size_t rectifierFrameSize = builder.framePushed() - startOfRectifierFrame;
+  size_t rectifierFrameSize = framePushed() - startOfRectifierFrame;
   size_t rectifierFrameDescr =
       MakeFrameDescriptor((uint32_t)rectifierFrameSize, FrameType::Rectifier,
                           JitFrameLayout::Size());
 
   // Push actualArgc
-  if (!builder.writeWord(actualArgc, "ActualArgc")) {
+  if (!writeWord(actualArgc, "ActualArgc")) {
     return false;
   }
 
   // Push calleeToken again.
-  if (!builder.writePtr(CalleeToToken(calleeFun, pushedNewTarget),
-                        "CalleeToken")) {
+  if (!writePtr(CalleeToToken(nextCallee(), pushedNewTarget), "CalleeToken")) {
     return false;
   }
 
   // Push rectifier frame descriptor
-  if (!builder.writeWord(rectifierFrameDescr, "Descriptor")) {
+  if (!writeWord(rectifierFrameDescr, "Descriptor")) {
     return false;
   }
 
   // Push return address into the ArgumentsRectifier code, immediately after the
   // ioncode call.
   void* rectReturnAddr =
-      cx->runtime()->jitRuntime()->getArgumentsRectifierReturnAddr().value;
+      cx_->runtime()->jitRuntime()->getArgumentsRectifierReturnAddr().value;
   MOZ_ASSERT(rectReturnAddr);
-  if (!builder.writePtr(rectReturnAddr, "ReturnAddr")) {
+  if (!writePtr(rectReturnAddr, "ReturnAddr")) {
     return false;
   }
-  MOZ_ASSERT(builder.framePushed() % JitStackAlignment == 0);
+  MOZ_ASSERT(framePushed() % JitStackAlignment == 0);
 
   return true;
 }
 
+bool BaselineStackBuilder::finishLastFrame() {
+  const BaselineInterpreter& baselineInterp =
+      cx_->runtime()->jitRuntime()->baselineInterpreter();
+
+  setResumeFramePtr(prevFramePtr());
+  setFrameSizeOfInnerMostFrame(framePushed());
+
+  // Compute the native address (within the Baseline Interpreter) that we will
+  // resume at and initialize the frame's interpreter fields.
+  uint8_t* resumeAddr;
+  if (isPrologueBailout()) {
+    JitSpew(JitSpew_BaselineBailouts, "      Resuming into prologue.");
+    MOZ_ASSERT(pc_ == script_->code());
+    blFrame()->setInterpreterFieldsForPrologue(script_);
+    resumeAddr = baselineInterp.bailoutPrologueEntryAddr();
+  } else if (propagatingIonExceptionForDebugMode()) {
+    // When propagating an exception for debug mode, set the
+    // resume pc to the throwing pc, so that Debugger hooks report
+    // the correct pc offset of the throwing op instead of its
+    // successor.
+    jsbytecode* throwPC = script_->offsetToPC(iter_.pcOffset());
+    blFrame()->setInterpreterFields(script_, throwPC);
+    resumeAddr = baselineInterp.interpretOpAddr().value;
+  } else {
+    // If the opcode is monitored we should monitor the top stack value when
+    // we finish the bailout in FinishBailoutToBaseline.
+    if (resumeAfter() && BytecodeOpHasTypeSet(op_)) {
+      setMonitorPC(pc_);
+    }
+    jsbytecode* resumePC = getResumePC();
+    blFrame()->setInterpreterFields(script_, resumePC);
+    resumeAddr = baselineInterp.interpretOpAddr().value;
+  }
+  setResumeAddr(resumeAddr);
+  JitSpew(JitSpew_BaselineBailouts, "      Set resumeAddr=%p", resumeAddr);
+
+  if (cx_->runtime()->geckoProfiler().enabled()) {
+    // Register bailout with profiler.
+    const char* filename = script_->filename();
+    if (filename == nullptr) {
+      filename = "<unknown>";
+    }
+    unsigned len = strlen(filename) + 200;
+    UniqueChars buf(js_pod_malloc<char>(len));
+    if (buf == nullptr) {
+      ReportOutOfMemory(cx_);
+      return false;
+    }
+    snprintf(buf.get(), len, "%s %s %s on line %u of %s:%u",
+             BailoutKindString(iter_.bailoutKind()),
+             resumeAfter() ? "after" : "at", CodeName(op_),
+             PCToLineNumber(script_, pc_), filename, script_->lineno());
+    cx_->runtime()->geckoProfiler().markEvent("Bailout", buf.get());
+  }
+
+  return true;
+}
+
+#ifdef DEBUG
+// The |envChain| slot must not be optimized out if the currently
+// active scope requires any EnvironmentObjects beyond what is
+// available at body scope. This checks that scope chain does not
+// require any such EnvironmentObjects.
+// See also: |CompileInfo::isObservableFrameSlot|
+bool BaselineStackBuilder::envChainSlotCanBeOptimized() {
+  jsbytecode* pc = script_->offsetToPC(iter_.pcOffset());
+  Scope* scopeIter = script_->innermostScope(pc);
+  while (scopeIter != script_->bodyScope()) {
+    if (!scopeIter || scopeIter->hasEnvironment()) {
+      return false;
+    }
+    scopeIter = scopeIter->enclosing();
+  }
+  return true;
+}
+
+bool BaselineStackBuilder::validateFrame() {
+  const uint32_t frameSize = framePushed();
+  blFrame()->setDebugFrameSize(frameSize);
+  JitSpew(JitSpew_BaselineBailouts, "      FrameSize=%u", frameSize);
+
+  // debugNumValueSlots() is based on the frame size, do some sanity checks.
+  MOZ_ASSERT(blFrame()->debugNumValueSlots() >= script_->nfixed());
+  MOZ_ASSERT(blFrame()->debugNumValueSlots() <= script_->nslots());
+
+  uint32_t expectedDepth;
+  bool reachablePC;
+  jsbytecode* pcForStackDepth = resumeAfter() ? GetNextPc(pc_) : pc_;
+  if (!ReconstructStackDepth(cx_, script_, pcForStackDepth, &expectedDepth,
+                             &reachablePC)) {
+    return false;
+  }
+  if (!reachablePC) {
+    return true;
+  }
+
+  // For FunApplyArgs, the reconstructed stack depth will be 4, but we
+  // may have inlined the funapply. In that case, exprStackSlots will
+  // have the real arguments in the slots, and the stack depth may not
+  // be 4. Don't assert.
+  if (op_ == JSOp::FunApply && iter_.moreFrames() && !resumeAfter()) {
+    return true;
+  }
+  if (op_ == JSOp::FunCall) {
+    // For fun.call(this, ...); the reconstructed stack depth will
+    // include the this. When inlining that is not included.
+    // So the exprStackSlots will be one less.
+    MOZ_ASSERT(expectedDepth - exprStackSlots() <= 1);
+  } else if (iter_.moreFrames() && IsIonInlinableGetterOrSetterOp(op_)) {
+    // Accessors coming out of ion are inlined via a complete
+    // lie perpetrated by the compiler internally. Ion just rearranges
+    // the stack, and pretends that it looked like a call all along.
+    // This means that the depth is actually one *more* than expected
+    // by the interpreter, as there is now a JSFunction, |this| and [arg],
+    // rather than the expected |this| and [arg].
+    // If the inlined accessor is a getelem operation, the numbers do match,
+    // but that's just because getelem expects one more item on the stack.
+    // Note that none of that was pushed, but it's still reflected
+    // in exprStackSlots.
+    MOZ_ASSERT(exprStackSlots() - expectedDepth == (IsGetElemOp(op_) ? 0 : 1));
+  } else {
+    MOZ_ASSERT(exprStackSlots() == expectedDepth);
+  }
+  return true;
+}
+#endif
+
+void* BaselineStackBuilder::getStubReturnAddress() {
+  const BaselineICFallbackCode& code =
+      cx_->runtime()->jitRuntime()->baselineICFallbackCode();
+
+  if (IsGetPropOp(op_)) {
+    return code.bailoutReturnAddr(BailoutReturnKind::GetProp);
+  }
+  if (IsSetPropOp(op_)) {
+    return code.bailoutReturnAddr(BailoutReturnKind::SetProp);
+  }
+  if (IsGetElemOp(op_)) {
+    return code.bailoutReturnAddr(BailoutReturnKind::GetElem);
+  }
+
+  // This should be a call op of some kind, now.
+  MOZ_ASSERT(IsInvokeOp(op_) && !IsSpreadOp(op_));
+  if (IsConstructOp(op_)) {
+    return code.bailoutReturnAddr(BailoutReturnKind::New);
+  }
+  return code.bailoutReturnAddr(BailoutReturnKind::Call);
+}
+
+static inline jsbytecode* GetNextNonLoopHeadPc(jsbytecode* pc,
+                                               jsbytecode** skippedLoopHead) {
+  JSOp op = JSOp(*pc);
+  switch (op) {
+    case JSOp::Goto:
+      return pc + GET_JUMP_OFFSET(pc);
+
+    case JSOp::LoopHead:
+      *skippedLoopHead = pc;
+      return GetNextPc(pc);
+
+    case JSOp::Nop:
+      return GetNextPc(pc);
+
+    default:
+      return pc;
+  }
+}
+
+// Returns the pc to resume execution at in Baseline after a bailout.
+jsbytecode* BaselineStackBuilder::getResumePC() {
+  if (resumeAfter()) {
+    return GetNextPc(pc_);
+  }
+
+  // If we are resuming at a LoopHead op, resume at the next op to avoid
+  // a bailout -> enter Ion -> bailout loop with --ion-eager.
+  //
+  // The algorithm below is the "tortoise and the hare" algorithm. See bug
+  // 994444 for more explanation.
+  jsbytecode* skippedLoopHead = nullptr;
+  jsbytecode* slowerPc = pc_;
+  jsbytecode* fasterPc = pc_;
+  while (true) {
+    slowerPc = GetNextNonLoopHeadPc(slowerPc, &skippedLoopHead);
+    fasterPc = GetNextNonLoopHeadPc(fasterPc, &skippedLoopHead);
+    fasterPc = GetNextNonLoopHeadPc(fasterPc, &skippedLoopHead);
+    if (fasterPc == slowerPc) {
+      break;
+    }
+  }
+
+  return slowerPc;
+}
+
+bool BaselineStackBuilder::hasLiveStackValueAtDepth(uint32_t stackSlotIndex) {
+  // Return true iff stackSlotIndex is a stack value that's part of an active
+  // iterator loop instead of a normal expression stack slot.
+
+  MOZ_ASSERT(stackSlotIndex < exprStackSlots());
+
+  for (TryNoteIterAllNoGC tni(script_, pc_); !tni.done(); ++tni) {
+    const TryNote& tn = **tni;
+
+    switch (tn.kind()) {
+      case TryNoteKind::ForIn:
+      case TryNoteKind::ForOf:
+      case TryNoteKind::Destructuring:
+        MOZ_ASSERT(tn.stackDepth <= exprStackSlots());
+        if (stackSlotIndex < tn.stackDepth) {
+          return true;
+        }
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  return false;
+}
+
+bool BaselineStackBuilder::isPrologueBailout() {
+  // If we are propagating an exception for debug mode, we will not resume
+  // into baseline code, but instead into HandleExceptionBaseline (i.e.,
+  // never before the prologue).
+  return iter_.pcOffset() == 0 && !iter_.resumeAfter() &&
+         !propagatingIonExceptionForDebugMode();
+}
+
+// Build a baseline stack frame.
+bool BaselineStackBuilder::buildOneFrame() {
+  // Build a baseline frame:
+  // +===============+
+  // | PrevFramePtr  | <-- initFrame()
+  // +---------------+
+  // |   Baseline    | <-- buildBaselineFrame()
+  // |    Frame      |
+  // +---------------+
+  // |    Fixed0     | <-- buildFixedSlots()
+  // +---------------+
+  // |     ...       |
+  // +---------------+
+  // |    FixedF     |
+  // +---------------+
+  // |    Stack0     | <-- buildExpressionStack() -or- fixupCallerArgs()
+  // +---------------+
+  // |     ...       |
+  // +---------------+     If we are building the frame in which we will
+  // |    StackS     | <-- resume, we stop here.
+  // +---------------+     finishLastFrame() sets up the interpreter fields.
+  // .               .
+  // .               .
+  // .               . <-- If there are additional frames inlined into this
+  // |  Descr(BLJS)  |     one, we finish this frame. We generate a stub
+  // +---------------+     frame (and maybe also a rectifier frame) between
+  // |  ReturnAddr   |     this frame and the inlined frame.
+  // +===============+     See: prepareForNextFrame()
+
+  if (!initFrame()) {
+    return false;
+  }
+
+  if (!buildBaselineFrame()) {
+    return false;
+  }
+
+  if (fun_ && !buildArguments()) {
+    return false;
+  }
+
+  if (!buildFixedSlots()) {
+    return false;
+  }
+
+  bool fixedUp = false;
+  RootedValueVector savedCallerArgs(cx_);
+  if (iter_.moreFrames() && !fixUpCallerArgs(&savedCallerArgs, &fixedUp)) {
+    return false;
+  }
+
+  if (!fixedUp && !buildExpressionStack()) {
+    return false;
+  }
+
+#ifdef DEBUG
+  if (!validateFrame()) {
+    return false;
+  }
+#endif
+
+#ifdef JS_JITSPEW
+  const uint32_t pcOff = script_->pcToOffset(pc());
+  JitSpew(JitSpew_BaselineBailouts,
+          "      Resuming %s pc offset %d (op %s) (line %u) of %s:%u:%u",
+          resumeAfter() ? "after" : "at", (int)pcOff, CodeName(op_),
+          PCToLineNumber(script_, pc()), script_->filename(), script_->lineno(),
+          script_->column());
+  JitSpew(JitSpew_BaselineBailouts, "      Bailout kind: %s",
+          BailoutKindString(iter_.bailoutKind()));
+#endif
+
+  // If this was the last inline frame, or we are bailing out to a catch or
+  // finally block in this frame, then unpacking is almost done.
+  if (done()) {
+    return finishLastFrame();
+  }
+
+  // Otherwise, this is an outer frame for an inlined call or
+  // accessor. We will be building an inner frame. Before that,
+  // we must create a stub frame, and potentially a rectifier frame.
+  return prepareForNextFrame(savedCallerArgs);
+}
+
 bool jit::BailoutIonToBaseline(JSContext* cx, JitActivation* activation,
-                               const JSJitFrameIter& iter, bool invalidate,
+                               const JSJitFrameIter& iter,
                                BaselineBailoutInfo** bailoutInfo,
                                const ExceptionBailoutInfo* excInfo) {
   MOZ_ASSERT(bailoutInfo != nullptr);
@@ -1510,23 +1669,13 @@ bool jit::BailoutIonToBaseline(JSContext* cx, JitActivation* activation,
           iter.script()->filename(), iter.script()->lineno(),
           iter.script()->column(), (void*)iter.ionScript(), (int)prevFrameType);
 
-  bool catchingException;
-  bool propagatingExceptionForDebugMode;
   if (excInfo) {
-    catchingException = excInfo->catchingException();
-    propagatingExceptionForDebugMode =
-        excInfo->propagatingIonExceptionForDebugMode();
-
-    if (catchingException) {
+    if (excInfo->catchingException()) {
       JitSpew(JitSpew_BaselineBailouts, "Resuming in catch or finally block");
     }
-
-    if (propagatingExceptionForDebugMode) {
+    if (excInfo->propagatingIonExceptionForDebugMode()) {
       JitSpew(JitSpew_BaselineBailouts, "Resuming in-place for debug mode");
     }
-  } else {
-    catchingException = false;
-    propagatingExceptionForDebugMode = false;
   }
 
   JitSpew(JitSpew_BaselineBailouts,
@@ -1537,14 +1686,6 @@ bool jit::BailoutIonToBaseline(JSContext* cx, JitActivation* activation,
     iter.ionScript()->incNumBailouts();
   }
   iter.script()->updateJitCodeRaw(cx->runtime());
-
-  // Allocate buffer to hold stack replacement data.
-  BaselineStackBuilder builder(cx, iter, 1024);
-  if (!builder.init()) {
-    return false;
-  }
-  JitSpew(JitSpew_BaselineBailouts, "  Incoming frame ptr = %p",
-          builder.startFrame());
 
   // Under a bailout, there is no need to invalidate the frame after
   // evaluating the recover instruction, as the invalidation is only needed in
@@ -1565,11 +1706,17 @@ bool jit::BailoutIonToBaseline(JSContext* cx, JitActivation* activation,
   snapIter.spewBailingFrom();
 #endif
 
-  RootedFunction callee(cx, iter.maybeCallee());
-  RootedScript scr(cx, iter.script());
-  if (callee) {
+  BaselineStackBuilder builder(cx, iter, snapIter, excInfo);
+  if (!builder.init()) {
+    return false;
+  }
+
+  JitSpew(JitSpew_BaselineBailouts, "  Incoming frame ptr = %p",
+          builder.startFrame());
+  if (iter.maybeCallee()) {
     JitSpew(JitSpew_BaselineBailouts, "  Callee function (%s:%u:%u)",
-            scr->filename(), scr->lineno(), scr->column());
+            iter.script()->filename(), iter.script()->lineno(),
+            iter.script()->column());
   } else {
     JitSpew(JitSpew_BaselineBailouts, "  No callee!");
   }
@@ -1581,72 +1728,43 @@ bool jit::BailoutIonToBaseline(JSContext* cx, JitActivation* activation,
   }
 
   JitSpew(JitSpew_BaselineBailouts, "  Restoring frames:");
-  size_t frameNo = 0;
-
-  // Reconstruct baseline frames using the builder.
-  RootedFunction fun(cx, callee);
-  Rooted<GCVector<Value>> startFrameFormals(cx, GCVector<Value>(cx));
-
-  gc::AutoSuppressGC suppress(cx);
 
   while (true) {
     // Skip recover instructions as they are already recovered by
     // |initInstructionResults|.
     snapIter.settleOnFrame();
 
-    if (frameNo > 0) {
+    if (!builder.isOutermostFrame()) {
       // TraceLogger doesn't create entries for inlined frames. But we
       // see them in Baseline. Here we create the start events of those
       // entries. So they correspond to what we will see in Baseline.
-      TraceLoggerEvent scriptEvent(TraceLogger_Scripts, scr);
+      TraceLoggerEvent scriptEvent(TraceLogger_Scripts, builder.script());
       TraceLogStartEvent(logger, scriptEvent);
       TraceLogStartEvent(logger, TraceLogger_Baseline);
     }
 
-    JitSpew(JitSpew_BaselineBailouts, "    FrameNo %zu", frameNo);
+    JitSpew(JitSpew_BaselineBailouts, "    FrameNo %zu", builder.frameNo());
 
-    // If we are bailing out to a catch or finally block in this frame,
-    // pass excInfo to InitFromBailout and don't unpack any other frames.
-    bool handleException = (catchingException && excInfo->frameNo() == frameNo);
-
-    // We also need to pass excInfo if we're bailing out in place for
-    // debug mode.
-    bool passExcInfo = handleException || propagatingExceptionForDebugMode;
-
-    RootedFunction nextCallee(cx, nullptr);
-    if (!InitFromBailout(cx, frameNo, fun, scr, snapIter, invalidate, builder,
-                         &startFrameFormals, &nextCallee,
-                         passExcInfo ? excInfo : nullptr)) {
+    if (!builder.buildOneFrame()) {
       MOZ_ASSERT(cx->isExceptionPending());
       return false;
     }
 
-    if (!snapIter.moreFrames()) {
-      MOZ_ASSERT(!nextCallee);
+    if (builder.done()) {
       break;
     }
 
-    if (handleException) {
-      break;
-    }
-
-    MOZ_ASSERT(nextCallee);
-    fun = nextCallee;
-    scr = fun->existingScript();
-
-    frameNo++;
-
-    snapIter.nextInstruction();
+    builder.nextFrame();
   }
   JitSpew(JitSpew_BaselineBailouts, "  Done restoring frames");
 
   BailoutKind bailoutKind = snapIter.bailoutKind();
 
-  if (!startFrameFormals.empty()) {
+  if (!builder.outermostFrameFormals().empty()) {
     // Set the first frame's formals, see the comment in InitFromBailout.
     Value* argv = builder.startFrame()->argv() + 1;  // +1 to skip |this|.
-    mozilla::PodCopy(argv, startFrameFormals.begin(),
-                     startFrameFormals.length());
+    mozilla::PodCopy(argv, builder.outermostFrameFormals().begin(),
+                     builder.outermostFrameFormals().length());
   }
 
   // Do stack check.
@@ -1672,7 +1790,7 @@ bool jit::BailoutIonToBaseline(JSContext* cx, JitActivation* activation,
   // Take the reconstructed baseline stack so it doesn't get freed when builder
   // destructs.
   info = builder.takeBuffer();
-  info->numFrames = frameNo + 1;
+  info->numFrames = builder.frameNo() + 1;
   info->bailoutKind.emplace(bailoutKind);
   *bailoutInfo = info;
   guardRemoveRematerializedFramesFromDebugger.release();
@@ -1719,6 +1837,11 @@ static void HandleBoundsCheckFailure(JSContext* cx, HandleScript outerScript,
 
 static void HandleShapeGuardFailure(JSContext* cx, HandleScript outerScript,
                                     HandleScript innerScript) {
+  if (JitOptions.warpBuilder) {
+    // Warp handles this by invalidating when the IC stub changes.
+    return;
+  }
+
   JitSpew(JitSpew_IonBailouts,
           "Shape guard failure %s:%u:%u, inlined into %s:%u:%u",
           innerScript->filename(), innerScript->lineno(), innerScript->column(),
@@ -1735,6 +1858,11 @@ static void HandleShapeGuardFailure(JSContext* cx, HandleScript outerScript,
 
 static void HandleBaselineInfoBailout(JSContext* cx, HandleScript outerScript,
                                       HandleScript innerScript) {
+  if (JitOptions.warpBuilder) {
+    // Warp handles this by invalidating when the IC stub changes.
+    return;
+  }
+
   JitSpew(JitSpew_IonBailouts,
           "Baseline info failure %s:%u:%u, inlined into %s:%u:%u",
           innerScript->filename(), innerScript->lineno(), innerScript->column(),
@@ -1834,17 +1962,6 @@ bool jit::FinishBailoutToBaseline(BaselineBailoutInfo* bailoutInfoArg) {
   // Ensure the frame has a call object if it needs one.
   if (!EnsureHasEnvironmentObjects(cx, topFrame)) {
     return false;
-  }
-
-  // Check for global declaration conflicts if necessary.
-  if (bailoutInfo->checkGlobalDeclarationConflicts) {
-    Rooted<LexicalEnvironmentObject*> lexicalEnv(
-        cx, &cx->global()->lexicalEnvironment());
-    RootedScript script(cx, topFrame->script());
-    if (!CheckGlobalDeclarationConflicts(cx, script, lexicalEnv,
-                                         cx->global())) {
-      return false;
-    }
   }
 
   // Monitor the top stack value if we are resuming after a JOF_TYPESET op.
@@ -1998,60 +2115,94 @@ bool jit::FinishBailoutToBaseline(BaselineBailoutInfo* bailoutInfoArg) {
 
   switch (bailoutKind) {
     // Normal bailouts.
-    case Bailout_Inevitable:
-    case Bailout_DuringVMCall:
-    case Bailout_TooManyArguments:
-    case Bailout_DynamicNameNotFound:
-    case Bailout_StringArgumentsEval:
-    case Bailout_Overflow:
-    case Bailout_Round:
-    case Bailout_NonPrimitiveInput:
-    case Bailout_PrecisionLoss:
-    case Bailout_TypeBarrierO:
-    case Bailout_TypeBarrierV:
-    case Bailout_MonitorTypes:
-    case Bailout_Hole:
-    case Bailout_NegativeIndex:
-    case Bailout_NonInt32Input:
-    case Bailout_NonNumericInput:
-    case Bailout_NonBooleanInput:
-    case Bailout_NonObjectInput:
-    case Bailout_NonStringInput:
-    case Bailout_NonSymbolInput:
-    case Bailout_NonBigIntInput:
-    case Bailout_NonSharedTypedArrayInput:
-    case Bailout_Debugger:
+    case BailoutKind::Inevitable:
+    case BailoutKind::DuringVMCall:
+    case BailoutKind::TooManyArguments:
+    case BailoutKind::DynamicNameNotFound:
+    case BailoutKind::Overflow:
+    case BailoutKind::Round:
+    case BailoutKind::NonPrimitiveInput:
+    case BailoutKind::PrecisionLoss:
+    case BailoutKind::TypeBarrierO:
+    case BailoutKind::TypeBarrierV:
+    case BailoutKind::ValueGuard:
+    case BailoutKind::NullOrUndefinedGuard:
+    case BailoutKind::Hole:
+    case BailoutKind::NoDenseElementsGuard:
+    case BailoutKind::NegativeIndex:
+    case BailoutKind::NonInt32Input:
+    case BailoutKind::NonNumericInput:
+    case BailoutKind::NonBooleanInput:
+    case BailoutKind::NonObjectInput:
+    case BailoutKind::NonStringInput:
+    case BailoutKind::NonSymbolInput:
+    case BailoutKind::NonBigIntInput:
+    case BailoutKind::Debugger:
+    case BailoutKind::SpecificAtomGuard:
+    case BailoutKind::SpecificSymbolGuard:
+    case BailoutKind::StringToIndexGuard:
+    case BailoutKind::StringToInt32Guard:
+    case BailoutKind::StringToDoubleGuard:
+    case BailoutKind::NonInt32ArrayLength:
+    case BailoutKind::FunctionLength:
+    case BailoutKind::FunctionName:
+    case BailoutKind::InvalidCodePoint:
+    case BailoutKind::ProtoGuard:
+    case BailoutKind::ProxyGuard:
+    case BailoutKind::NotProxyGuard:
+    case BailoutKind::NotDOMProxyGuard:
+    case BailoutKind::NotArrayBufferMaybeSharedGuard:
+    case BailoutKind::TypedArrayGuard:
+    case BailoutKind::MegamorphicAccess:
+    case BailoutKind::ArgumentsObjectAccess:
+    case BailoutKind::ArrayPopShift:
+    case BailoutKind::ArraySlice:
+    case BailoutKind::TagNotEqualGuard:
+    case BailoutKind::FunctionFlagsGuard:
+    case BailoutKind::FunctionIsNonBuiltinCtorGuard:
+    case BailoutKind::FunctionKindGuard:
+    case BailoutKind::FunctionScriptGuard:
+    case BailoutKind::PackedArrayGuard:
+    case BailoutKind::HasGetterSetterGuard:
+    case BailoutKind::DOMExpandoValueGenerationGuard:
+    case BailoutKind::DOMExpandoMissingOrShapeGuard:
       // Do nothing.
       break;
 
-    case Bailout_FirstExecution:
+    case BailoutKind::FirstExecution:
       // Do not return directly, as this was not frequent in the first place,
       // thus rely on the check for frequent bailouts to recompile the current
       // script.
       break;
 
     // Invalid assumption based on baseline code.
-    case Bailout_OverflowInvalidate:
+    case BailoutKind::OverflowInvalidate:
       outerScript->setHadOverflowBailout();
       [[fallthrough]];
-    case Bailout_DoubleOutput:
-    case Bailout_ObjectIdentityOrTypeGuard:
+    case BailoutKind::DoubleOutput:
+    case BailoutKind::ObjectIdentityOrTypeGuard:
       HandleBaselineInfoBailout(cx, outerScript, innerScript);
       break;
 
-    case Bailout_ArgumentCheck:
+    case BailoutKind::NotOptimizedArgumentsGuard:
+      // Optimized-arguments escaped to a slow path. Disable the optimization to
+      // prevent bailout loops.
+      JSScript::argumentsOptimizationFailed(cx, innerScript);
+      break;
+
+    case BailoutKind::ArgumentCheck:
       // Do nothing, bailout will resume before the argument monitor ICs.
       break;
-    case Bailout_BoundsCheck:
+    case BailoutKind::BoundsCheck:
       HandleBoundsCheckFailure(cx, outerScript, innerScript);
       break;
-    case Bailout_ShapeGuard:
+    case BailoutKind::ShapeGuard:
       HandleShapeGuardFailure(cx, outerScript, innerScript);
       break;
-    case Bailout_UninitializedLexical:
+    case BailoutKind::UninitializedLexical:
       HandleLexicalCheckFailure(cx, outerScript, innerScript);
       break;
-    case Bailout_IonExceptionDebugMode:
+    case BailoutKind::IonExceptionDebugMode:
       // Return false to resume in HandleException with reconstructed
       // baseline frame.
       return false;

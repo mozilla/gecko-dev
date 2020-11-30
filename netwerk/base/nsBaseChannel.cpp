@@ -22,6 +22,7 @@
 #include "LoadInfo.h"
 #include "nsServiceManagerUtils.h"
 #include "nsRedirectHistoryEntry.h"
+#include "mozilla/AntiTrackingUtils.h"
 #include "mozilla/BasePrincipal.h"
 
 using namespace mozilla;
@@ -70,8 +71,7 @@ nsBaseChannel::nsBaseChannel()
 }
 
 nsBaseChannel::~nsBaseChannel() {
-  NS_ReleaseOnMainThreadSystemGroup("nsBaseChannel::mLoadInfo",
-                                    mLoadInfo.forget());
+  NS_ReleaseOnMainThread("nsBaseChannel::mLoadInfo", mLoadInfo.forget());
 }
 
 nsresult nsBaseChannel::Redirect(nsIChannel* newChannel, uint32_t redirectFlags,
@@ -102,7 +102,7 @@ nsresult nsBaseChannel::Redirect(nsIChannel* newChannel, uint32_t redirectFlags,
   // nsBaseChannel hst no thing to do with HttpBaseChannel, we would not care
   // about referrer and remote address in this case
   nsCOMPtr<nsIRedirectHistoryEntry> entry =
-      new net::nsRedirectHistoryEntry(uriPrincipal, nullptr, EmptyCString());
+      new net::nsRedirectHistoryEntry(uriPrincipal, nullptr, ""_ns);
 
   newLoadInfo->AppendRedirectHistoryEntry(entry, isInternalRedirect);
 
@@ -255,7 +255,7 @@ nsresult nsBaseChannel::BeginPumpingData() {
 
   mPumpingData = true;
   mRequest = mPump;
-  rv = mPump->AsyncRead(this, nullptr);
+  rv = mPump->AsyncRead(this);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -466,8 +466,8 @@ nsBaseChannel::SetLoadGroup(nsILoadGroup* aLoadGroup) {
 
 NS_IMETHODIMP
 nsBaseChannel::GetOriginalURI(nsIURI** aURI) {
-  *aURI = OriginalURI();
-  NS_ADDREF(*aURI);
+  RefPtr<nsIURI> uri = OriginalURI();
+  uri.forget(aURI);
   return NS_OK;
 }
 
@@ -605,6 +605,12 @@ nsBaseChannel::SetContentDispositionFilename(
     const nsAString& aContentDispositionFilename) {
   mContentDispositionFilename =
       MakeUnique<nsString>(aContentDispositionFilename);
+
+  // For safety reasons ensure the filename doesn't contain null characters and
+  // replace them with underscores. We may later pass the extension to system
+  // MIME APIs that expect null terminated strings.
+  mContentDispositionFilename->ReplaceChar(char16_t(0), '_');
+
   return NS_OK;
 }
 
@@ -667,12 +673,12 @@ nsBaseChannel::AsyncOpen(nsIStreamListener* aListener) {
   }
 
   MOZ_ASSERT(
-      !mLoadInfo || mLoadInfo->GetSecurityMode() == 0 ||
+      mLoadInfo->GetSecurityMode() == 0 ||
           mLoadInfo->GetInitialSecurityCheckDone() ||
           (mLoadInfo->GetSecurityMode() ==
-               nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL &&
-           mLoadInfo->LoadingPrincipal() &&
-           mLoadInfo->LoadingPrincipal()->IsSystemPrincipal()),
+               nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL &&
+           mLoadInfo->GetLoadingPrincipal() &&
+           mLoadInfo->GetLoadingPrincipal()->IsSystemPrincipal()),
       "security flags in loadInfo but doContentSecurityCheck() not called");
 
   NS_ENSURE_TRUE(mURI, NS_ERROR_NOT_INITIALIZED);
@@ -695,6 +701,8 @@ nsBaseChannel::AsyncOpen(nsIStreamListener* aListener) {
     mCallbacks = nullptr;
     return rv;
   }
+
+  AntiTrackingUtils::UpdateAntiTrackingInfoForChannel(this);
 
   // Store the listener and context early so that OpenContentStream and the
   // stream's AsyncWait method (called by AsyncRead) can have access to them
@@ -757,12 +765,12 @@ nsBaseChannel::OnTransportStatus(nsITransport* transport, nsresult status,
   if (!HasLoadFlag(LOAD_BACKGROUND)) {
     nsAutoString statusArg;
     if (GetStatusArg(status, statusArg)) {
-      mProgressSink->OnStatus(this, nullptr, status, statusArg.get());
+      mProgressSink->OnStatus(this, status, statusArg.get());
     }
   }
 
   if (progress) {
-    mProgressSink->OnProgress(this, nullptr, progress, progressMax);
+    mProgressSink->OnProgress(this, progress, progressMax);
   }
 
   return NS_OK;

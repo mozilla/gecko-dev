@@ -13,7 +13,16 @@ add_task(async function setup() {
 
   // make sure userContext is enabled.
   await SpecialPowers.pushPrefEnv({
-    set: [["privacy.userContext.enabled", true]],
+    set: [
+      ["privacy.userContext.enabled", true],
+      // This test does a redirect from https to http and it checks the
+      // cookies. This is incompatible with the cookie SameSite schemeful
+      // feature and we need to disable it.
+      ["network.cookie.sameSite.schemeful", false],
+      // This Test trys to download mixed content
+      // so we need to make sure that this is not blocked
+      ["dom.block_download_insecure", false],
+    ],
   });
 });
 

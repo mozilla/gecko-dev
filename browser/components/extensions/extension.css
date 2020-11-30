@@ -17,7 +17,7 @@ body {
   font: caption;
   margin: 0;
   padding: 0;
-  -moz-user-select: none;
+  user-select: none;
 }
 
 body * {
@@ -26,7 +26,7 @@ body * {
 }
 
 .browser-style {
-  -moz-appearance: none;
+  appearance: none;
   margin-bottom: 6px;
   text-align: left;
 }
@@ -139,7 +139,7 @@ button.browser-style.default.focused {
 }
 
 .browser-style > label {
-  -moz-user-select: none;
+  user-select: none;
 }
 
 .browser-style.disabled > label {
@@ -149,7 +149,7 @@ button.browser-style.default.focused {
 
 /* Radio Buttons */
 .browser-style > input[type="radio"] {
-  -moz-appearance: none;
+  appearance: none;
   background-color: #fff;
   background-position: center;
   border: 1px solid #b1b1b1;
@@ -203,7 +203,7 @@ button.browser-style.default.focused {
 
 /* Checkboxes */
 .browser-style > input[type="checkbox"] {
-  -moz-appearance: none;
+  appearance: none;
   background-color: #fff;
   background-position: center;
   border: 1px solid #b1b1b1;
@@ -394,8 +394,7 @@ textarea.browser-style:invalid:not(:focus) {
 
 .panel-list-item:not(.disabled):hover {
   background-color: rgba(0, 0, 0, 0.06);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  border-block: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .panel-list-item:not(.disabled):hover:active {

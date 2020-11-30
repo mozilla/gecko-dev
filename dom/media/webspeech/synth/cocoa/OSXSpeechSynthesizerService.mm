@@ -101,7 +101,7 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(SpeechTaskCallback)
 
 SpeechTaskCallback::SpeechTaskCallback(nsISpeechTask* aTask, NSSpeechSynthesizer* aSynth,
                                        const nsTArray<size_t>& aOffsets)
-    : mTask(aTask), mSpeechSynthesizer(aSynth), mCurrentIndex(0), mOffsets(aOffsets) {
+    : mTask(aTask), mSpeechSynthesizer(aSynth), mCurrentIndex(0), mOffsets(aOffsets.Clone()) {
   mDelegate = [[SpeechDelegate alloc] initWithCallback:this];
   [mSpeechSynthesizer setDelegate:mDelegate];
   mStartingTime = TimeStamp::Now();
@@ -177,8 +177,7 @@ void SpeechTaskCallback::OnWillSpeakWord(uint32_t aIndex, uint32_t aLength) {
   if (!mTask) {
     return;
   }
-  mTask->DispatchBoundary(NS_LITERAL_STRING("word"), GetTimeDurationFromStart(), mCurrentIndex,
-                          aLength, 1);
+  mTask->DispatchBoundary(u"word"_ns, GetTimeDurationFromStart(), mCurrentIndex, aLength, 1);
 }
 
 void SpeechTaskCallback::OnError(uint32_t aIndex) {
@@ -337,7 +336,7 @@ OSXSpeechSynthesizerService::Speak(const nsAString& aText, const nsAString& aUri
                                    float aRate, float aPitch, nsISpeechTask* aTask) {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 
-  MOZ_ASSERT(StringBeginsWith(aUri, NS_LITERAL_STRING("urn:moz-tts:osx:")),
+  MOZ_ASSERT(StringBeginsWith(aUri, u"urn:moz-tts:osx:"_ns),
              "OSXSpeechSynthesizerService doesn't allow this voice URI");
 
   NSSpeechSynthesizer* synth = [[NSSpeechSynthesizer alloc] init];

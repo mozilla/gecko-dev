@@ -7,12 +7,12 @@
 #include "UrlClassifierFeatureTrackingAnnotation.h"
 
 #include "Classifier.h"
-#include "mozilla/AntiTrackingCommon.h"
 #include "mozilla/Logging.h"
 #include "mozilla/StaticPrefs_privacy.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/net/UrlClassifierCommon.h"
 #include "nsIClassifiedChannel.h"
+#include "nsIWebProgressListener.h"
 #include "nsContentUtils.h"
 
 namespace mozilla {
@@ -22,18 +22,18 @@ namespace {
 
 #define TRACKING_ANNOTATION_FEATURE_NAME "tracking-annotation"
 
-#define URLCLASSIFIER_ANNOTATION_BLACKLIST \
+#define URLCLASSIFIER_ANNOTATION_BLOCKLIST \
   "urlclassifier.trackingAnnotationTable"
-#define URLCLASSIFIER_ANNOTATION_BLACKLIST_TEST_ENTRIES \
+#define URLCLASSIFIER_ANNOTATION_BLOCKLIST_TEST_ENTRIES \
   "urlclassifier.trackingAnnotationTable.testEntries"
-#define URLCLASSIFIER_ANNOTATION_WHITELIST \
+#define URLCLASSIFIER_ANNOTATION_ENTITYLIST \
   "urlclassifier.trackingAnnotationWhitelistTable"
-#define URLCLASSIFIER_ANNOTATION_WHITELIST_TEST_ENTRIES \
+#define URLCLASSIFIER_ANNOTATION_ENTITYLIST_TEST_ENTRIES \
   "urlclassifier.trackingAnnotationWhitelistTable.testEntries"
-#define URLCLASSIFIER_TRACKING_ANNOTATION_SKIP_URLS \
+#define URLCLASSIFIER_TRACKING_ANNOTATION_EXCEPTION_URLS \
   "urlclassifier.trackingAnnotationSkipURLs"
-#define TABLE_ANNOTATION_BLACKLIST_PREF "annotation-blacklist-pref"
-#define TABLE_ANNOTATION_WHITELIST_PREF "annotation-whitelist-pref"
+#define TABLE_ANNOTATION_BLOCKLIST_PREF "annotation-blacklist-pref"
+#define TABLE_ANNOTATION_ENTITYLIST_PREF "annotation-whitelist-pref"
 
 StaticRefPtr<UrlClassifierFeatureTrackingAnnotation> gFeatureTrackingAnnotation;
 
@@ -41,14 +41,14 @@ StaticRefPtr<UrlClassifierFeatureTrackingAnnotation> gFeatureTrackingAnnotation;
 
 UrlClassifierFeatureTrackingAnnotation::UrlClassifierFeatureTrackingAnnotation()
     : UrlClassifierFeatureBase(
-          NS_LITERAL_CSTRING(TRACKING_ANNOTATION_FEATURE_NAME),
-          NS_LITERAL_CSTRING(URLCLASSIFIER_ANNOTATION_BLACKLIST),
-          NS_LITERAL_CSTRING(URLCLASSIFIER_ANNOTATION_WHITELIST),
-          NS_LITERAL_CSTRING(URLCLASSIFIER_ANNOTATION_BLACKLIST_TEST_ENTRIES),
-          NS_LITERAL_CSTRING(URLCLASSIFIER_ANNOTATION_WHITELIST_TEST_ENTRIES),
-          NS_LITERAL_CSTRING(TABLE_ANNOTATION_BLACKLIST_PREF),
-          NS_LITERAL_CSTRING(TABLE_ANNOTATION_WHITELIST_PREF),
-          NS_LITERAL_CSTRING(URLCLASSIFIER_TRACKING_ANNOTATION_SKIP_URLS)) {}
+          nsLiteralCString(TRACKING_ANNOTATION_FEATURE_NAME),
+          nsLiteralCString(URLCLASSIFIER_ANNOTATION_BLOCKLIST),
+          nsLiteralCString(URLCLASSIFIER_ANNOTATION_ENTITYLIST),
+          nsLiteralCString(URLCLASSIFIER_ANNOTATION_BLOCKLIST_TEST_ENTRIES),
+          nsLiteralCString(URLCLASSIFIER_ANNOTATION_ENTITYLIST_TEST_ENTRIES),
+          nsLiteralCString(TABLE_ANNOTATION_BLOCKLIST_PREF),
+          nsLiteralCString(TABLE_ANNOTATION_ENTITYLIST_PREF),
+          nsLiteralCString(URLCLASSIFIER_TRACKING_ANNOTATION_EXCEPTION_URLS)) {}
 
 /* static */ const char* UrlClassifierFeatureTrackingAnnotation::Name() {
   return TRACKING_ANNOTATION_FEATURE_NAME;
@@ -57,7 +57,7 @@ UrlClassifierFeatureTrackingAnnotation::UrlClassifierFeatureTrackingAnnotation()
 /* static */
 void UrlClassifierFeatureTrackingAnnotation::MaybeInitialize() {
   MOZ_ASSERT(XRE_IsParentProcess());
-  UC_LOG(("UrlClassifierFeatureTrackingAnnotation: MaybeInitialize"));
+  UC_LOG_LEAK(("UrlClassifierFeatureTrackingAnnotation::MaybeInitialize"));
 
   if (!gFeatureTrackingAnnotation) {
     gFeatureTrackingAnnotation = new UrlClassifierFeatureTrackingAnnotation();
@@ -67,7 +67,7 @@ void UrlClassifierFeatureTrackingAnnotation::MaybeInitialize() {
 
 /* static */
 void UrlClassifierFeatureTrackingAnnotation::MaybeShutdown() {
-  UC_LOG(("UrlClassifierFeatureTrackingAnnotation: MaybeShutdown"));
+  UC_LOG_LEAK(("UrlClassifierFeatureTrackingAnnotation::MaybeShutdown"));
 
   if (gFeatureTrackingAnnotation) {
     gFeatureTrackingAnnotation->ShutdownPreferences();
@@ -80,14 +80,11 @@ already_AddRefed<UrlClassifierFeatureTrackingAnnotation>
 UrlClassifierFeatureTrackingAnnotation::MaybeCreate(nsIChannel* aChannel) {
   MOZ_ASSERT(aChannel);
 
-  UC_LOG(("UrlClassifierFeatureTrackingAnnotation: MaybeCreate for channel %p",
-          aChannel));
+  UC_LOG_LEAK(
+      ("UrlClassifierFeatureTrackingAnnotation::MaybeCreate - channel %p",
+       aChannel));
 
   if (!StaticPrefs::privacy_trackingprotection_annotate_channels()) {
-    return nullptr;
-  }
-
-  if (!UrlClassifierCommon::ShouldEnableClassifier(aChannel)) {
     return nullptr;
   }
 
@@ -125,19 +122,21 @@ UrlClassifierFeatureTrackingAnnotation::ProcessChannel(
   // This is not a blocking feature.
   *aShouldContinue = true;
 
+  UC_LOG(
+      ("UrlClassifierFeatureTrackingAnnotation::ProcessChannel - "
+       "annotating channel %p",
+       aChannel));
+
   static std::vector<UrlClassifierCommon::ClassificationData>
       sClassificationData = {
-          {NS_LITERAL_CSTRING("ads-track-"),
+          {"ads-track-"_ns,
            nsIClassifiedChannel::ClassificationFlags::CLASSIFIED_TRACKING_AD},
-          {NS_LITERAL_CSTRING("analytics-track-"),
-           nsIClassifiedChannel::ClassificationFlags::
-               CLASSIFIED_TRACKING_ANALYTICS},
-          {NS_LITERAL_CSTRING("social-track-"),
-           nsIClassifiedChannel::ClassificationFlags::
-               CLASSIFIED_TRACKING_SOCIAL},
-          {NS_LITERAL_CSTRING("content-track-"),
-           nsIClassifiedChannel::ClassificationFlags::
-               CLASSIFIED_TRACKING_CONTENT},
+          {"analytics-track-"_ns, nsIClassifiedChannel::ClassificationFlags::
+                                      CLASSIFIED_TRACKING_ANALYTICS},
+          {"social-track-"_ns, nsIClassifiedChannel::ClassificationFlags::
+                                   CLASSIFIED_TRACKING_SOCIAL},
+          {"content-track-"_ns, nsIClassifiedChannel::ClassificationFlags::
+                                    CLASSIFIED_TRACKING_CONTENT},
       };
 
   uint32_t flags = UrlClassifierCommon::TablesToClassificationFlags(
@@ -165,15 +164,15 @@ UrlClassifierFeatureTrackingAnnotation::GetURIByListType(
   NS_ENSURE_ARG_POINTER(aURIType);
   NS_ENSURE_ARG_POINTER(aURI);
 
-  if (aListType == nsIUrlClassifierFeature::blacklist) {
-    *aURIType = nsIUrlClassifierFeature::blacklistURI;
+  if (aListType == nsIUrlClassifierFeature::blocklist) {
+    *aURIType = nsIUrlClassifierFeature::blocklistURI;
     return aChannel->GetURI(aURI);
   }
 
-  MOZ_ASSERT(aListType == nsIUrlClassifierFeature::whitelist);
+  MOZ_ASSERT(aListType == nsIUrlClassifierFeature::entitylist);
 
-  *aURIType = nsIUrlClassifierFeature::pairwiseWhitelistURI;
-  return UrlClassifierCommon::CreatePairwiseWhiteListURI(aChannel, aURI);
+  *aURIType = nsIUrlClassifierFeature::pairwiseEntitylistURI;
+  return UrlClassifierCommon::CreatePairwiseEntityListURI(aChannel, aURI);
 }
 
 }  // namespace net

@@ -3,10 +3,10 @@
 
 "use strict";
 
-const { ThreadFront } = require("devtools/shared/fronts/thread");
+const { ThreadFront } = require("devtools/client/fronts/thread");
 const {
   BrowsingContextTargetFront,
-} = require("devtools/shared/fronts/targets/browsing-context");
+} = require("devtools/client/fronts/targets/browsing-context");
 
 /**
  * Very naive test that checks threadClearTest helper.
@@ -18,9 +18,9 @@ add_task(
     ok(threadFront instanceof ThreadFront, "Thread Front is valid");
     Assert.equal(threadFront.state, "attached", "Thread Front is resumed");
     Assert.equal(
-      String(debuggee),
-      "[object Sandbox]",
-      "Debuggee client is valid"
+      Cu.getSandboxMetadata(debuggee),
+      undefined,
+      "Debuggee client is valid (getSandboxMetadata did not fail)"
     );
     ok(client instanceof DevToolsClient, "Client is valid");
     ok(

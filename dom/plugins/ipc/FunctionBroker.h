@@ -13,7 +13,7 @@
 #include "base/task.h"
 #include "mozilla/ipc/ProcessChild.h"
 #include "FunctionBrokerChild.h"
-#include "mtransport/runnable_utils.h"
+#include "transport/runnable_utils.h"
 #include "PluginMessageUtils.h"
 #include "mozilla/Logging.h"
 #include "FunctionHook.h"
@@ -152,6 +152,19 @@
  * the function.  See GetSaveFileNameWFB for an example that does more.
  *
  */
+
+#if defined(XP_WIN) && defined(__clang__)
+#  if __has_declspec_attribute(guard)
+// Workaround for https://bugs.llvm.org/show_bug.cgi?id=47617
+// Some of the brokered function thunks don't get properly marked as call
+// targets, so we have to disable CFG when returning to the original function.
+#    define BROKER_DISABLE_CFGUARD __declspec(guard(nocf))
+#  else
+#    define BROKER_DISABLE_CFGUARD /* nothing */
+#  endif
+#else
+#  define BROKER_DISABLE_CFGUARD /* nothing */
+#endif
 
 namespace mozilla {
 namespace plugins {
@@ -1236,8 +1249,9 @@ class FunctionBroker<functionId, ResultType HOOK_CALL(ParamTypes...),
   };
 
   template <typename... VarParams>
-  ResultType RunFunction(FunctionType* aFunction, base::ProcessId aClientId,
-                         VarParams&... aParams) const {
+  BROKER_DISABLE_CFGUARD ResultType RunFunction(FunctionType* aFunction,
+                                                base::ProcessId aClientId,
+                                                VarParams&... aParams) const {
     return aFunction(aParams...);
   };
 

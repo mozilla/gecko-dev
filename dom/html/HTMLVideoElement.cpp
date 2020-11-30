@@ -5,6 +5,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/HTMLVideoElement.h"
+
+#include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/dom/HTMLVideoElementBinding.h"
 #include "nsGenericHTMLElement.h"
 #include "nsGkAtoms.h"
@@ -38,8 +40,10 @@
 nsGenericHTMLElement* NS_NewHTMLVideoElement(
     already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo,
     mozilla::dom::FromParser aFromParser) {
+  RefPtr<mozilla::dom::NodeInfo> nodeInfo(aNodeInfo);
+  auto* nim = nodeInfo->NodeInfoManager();
   mozilla::dom::HTMLVideoElement* element =
-      new mozilla::dom::HTMLVideoElement(std::move(aNodeInfo));
+      new (nim) mozilla::dom::HTMLVideoElement(nodeInfo.forget());
   element->Init();
   return element;
 }
@@ -47,40 +51,12 @@ nsGenericHTMLElement* NS_NewHTMLVideoElement(
 namespace mozilla {
 namespace dom {
 
-class HTMLVideoElement::SecondaryVideoOutput : public VideoOutput {
-  // Main thread only.
-  WeakPtr<HTMLMediaElement> mElement;
-
- public:
-  SecondaryVideoOutput(HTMLMediaElement* aElement,
-                       VideoFrameContainer* aContainer,
-                       AbstractThread* aMainThread)
-      : VideoOutput(aContainer, aMainThread), mElement(aElement) {}
-
-  void Forget() {
-    MOZ_ASSERT(NS_IsMainThread());
-    mElement = nullptr;
-  }
-
-  void NotifyDirectListenerInstalled(InstallationResult aResult) override {
-    if (aResult == InstallationResult::SUCCESS) {
-      mMainThread->Dispatch(NS_NewRunnableFunction(
-          "HTMLMediaElement::OnSecondaryVideoContainerInstalled",
-          [self = RefPtr<SecondaryVideoOutput>(this), this] {
-            if (mElement) {
-              mElement->OnSecondaryVideoContainerInstalled(
-                  mVideoFrameContainer);
-            }
-          }));
-    }
-  }
-};
-
 nsresult HTMLVideoElement::Clone(mozilla::dom::NodeInfo* aNodeInfo,
                                  nsINode** aResult) const {
   *aResult = nullptr;
   RefPtr<mozilla::dom::NodeInfo> ni(aNodeInfo);
-  HTMLVideoElement* it = new HTMLVideoElement(ni.forget());
+  auto* nim = ni->NodeInfoManager();
+  HTMLVideoElement* it = new (nim) HTMLVideoElement(ni.forget());
   it->Init();
   nsCOMPtr<nsINode> kungFuDeathGrip = it;
   nsresult rv = const_cast<HTMLVideoElement*>(this)->CopyInnerTo(it);
@@ -98,14 +74,8 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(HTMLVideoElement)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(HTMLVideoElement)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mVisualCloneTarget)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mVisualCloneTargetPromise)
-  if (tmp->mSecondaryVideoOutput) {
-    MOZ_DIAGNOSTIC_ASSERT(tmp->mSelectedVideoStreamTrack);
-    tmp->mSelectedVideoStreamTrack->RemoveVideoOutput(
-        tmp->mSecondaryVideoOutput);
-    tmp->mSecondaryVideoOutput->Forget();
-    tmp->mSecondaryVideoOutput = nullptr;
-  }
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mVisualCloneSource)
+  tmp->mSecondaryVideoOutput = nullptr;
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END_INHERITED(HTMLMediaElement)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(HTMLVideoElement,
@@ -116,11 +86,14 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(HTMLVideoElement,
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 HTMLVideoElement::HTMLVideoElement(already_AddRefed<NodeInfo>&& aNodeInfo)
-    : HTMLMediaElement(std::move(aNodeInfo)), mIsOrientationLocked(false) {
+    : HTMLMediaElement(std::move(aNodeInfo)),
+      mIsOrientationLocked(false),
+      mVideoWatchManager(this, mAbstractMainThread) {
   DecoderDoctorLogger::LogConstruction(this);
 }
 
 HTMLVideoElement::~HTMLVideoElement() {
+  mVideoWatchManager.Shutdown();
   DecoderDoctorLogger::LogDestruction(this);
 }
 
@@ -212,9 +185,9 @@ void HTMLVideoElement::UnbindFromTree(bool aNullParent) {
   if (mVisualCloneSource) {
     mVisualCloneSource->EndCloningVisually();
   } else if (mVisualCloneTarget) {
-    RefPtr<AsyncEventDispatcher> asyncDispatcher = new AsyncEventDispatcher(
-        this, NS_LITERAL_STRING("MozStopPictureInPicture"), CanBubble::eNo,
-        ChromeOnlyDispatch::eYes);
+    RefPtr<AsyncEventDispatcher> asyncDispatcher =
+        new AsyncEventDispatcher(this, u"MozStopPictureInPicture"_ns,
+                                 CanBubble::eNo, ChromeOnlyDispatch::eYes);
     asyncDispatcher->RunDOMEventWhenSafe();
 
     EndCloningVisually();
@@ -231,12 +204,12 @@ nsresult HTMLVideoElement::SetAcceptHeader(nsIHttpChannel* aChannel) {
       "application/ogg;q=0.7,"
       "audio/*;q=0.6,*/*;q=0.5");
 
-  return aChannel->SetRequestHeader(NS_LITERAL_CSTRING("Accept"), value, false);
+  return aChannel->SetRequestHeader("Accept"_ns, value, false);
 }
 
-bool HTMLVideoElement::IsInteractiveHTMLContent(bool aIgnoreTabindex) const {
+bool HTMLVideoElement::IsInteractiveHTMLContent() const {
   return HasAttr(kNameSpaceID_None, nsGkAtoms::controls) ||
-         HTMLMediaElement::IsInteractiveHTMLContent(aIgnoreTabindex);
+         HTMLMediaElement::IsInteractiveHTMLContent();
 }
 
 uint32_t HTMLVideoElement::MozParsedFrames() const {
@@ -385,10 +358,16 @@ void HTMLVideoElement::UpdateWakeLock() {
 }
 
 bool HTMLVideoElement::ShouldCreateVideoWakeLock() const {
-  // Make sure we only request wake lock for video with audio track, because
-  // video without audio track is often used as background image which seems no
-  // need to hold a wakelock.
-  return HasVideo() && HasAudio();
+  // Only request wake lock for video with audio or video from media stream,
+  // because non-stream video without audio is often used as a background image.
+  //
+  // Some web conferencing sites route audio outside the video element, and
+  // would not be detected unless we check for media stream, so do that below.
+  //
+  // Media streams generally aren't used as background images, though if they
+  // were we'd get false positives. If this is an issue, we could check for
+  // media stream AND document has audio playing (but that was tricky to do).
+  return HasVideo() && (mSrcStream || HasAudio());
 }
 
 void HTMLVideoElement::CreateVideoWakeLockIfNeeded() {
@@ -398,7 +377,7 @@ void HTMLVideoElement::CreateVideoWakeLockIfNeeded() {
     NS_ENSURE_TRUE_VOID(pmService);
 
     ErrorResult rv;
-    mScreenWakeLock = pmService->NewWakeLock(NS_LITERAL_STRING("video-playing"),
+    mScreenWakeLock = pmService->NewWakeLock(u"video-playing"_ns,
                                              OwnerDoc()->GetInnerWindow(), rv);
   }
 }
@@ -544,20 +523,23 @@ void HTMLVideoElement::MaybeBeginCloningVisually() {
   }
 
   if (mDecoder) {
-    VideoFrameContainer* container =
-        mVisualCloneTarget->GetVideoFrameContainer();
-    if (container) {
-      mDecoder->SetSecondaryVideoContainer(container);
-    }
+    mDecoder->SetSecondaryVideoContainer(
+        mVisualCloneTarget->GetVideoFrameContainer());
+    UpdateMediaControlAfterPictureInPictureModeChanged();
+    OwnerDoc()->EnableChildElementInPictureInPictureMode();
   } else if (mSrcStream) {
     VideoFrameContainer* container =
         mVisualCloneTarget->GetVideoFrameContainer();
-    if (container && mSelectedVideoStreamTrack) {
-      MOZ_DIAGNOSTIC_ASSERT(!mSecondaryVideoOutput);
-      mSecondaryVideoOutput = MakeRefPtr<SecondaryVideoOutput>(
-          this, container, mAbstractMainThread);
-      mSelectedVideoStreamTrack->AddVideoOutput(mSecondaryVideoOutput);
+    if (container) {
+      mSecondaryVideoOutput =
+          MakeRefPtr<FirstFrameVideoOutput>(container, mAbstractMainThread);
+      mVideoWatchManager.Watch(
+          mSecondaryVideoOutput->mFirstFrameRendered,
+          &HTMLVideoElement::OnSecondaryVideoOutputFirstFrameRendered);
+      SetSecondaryMediaStreamRenderer(container, mSecondaryVideoOutput);
     }
+    UpdateMediaControlAfterPictureInPictureModeChanged();
+    OwnerDoc()->EnableChildElementInPictureInPictureMode();
   }
 }
 
@@ -566,18 +548,22 @@ void HTMLVideoElement::EndCloningVisually() {
 
   if (mDecoder) {
     mDecoder->SetSecondaryVideoContainer(nullptr);
+    OwnerDoc()->DisableChildElementInPictureInPictureMode();
   } else if (mSrcStream) {
-    if (mSecondaryVideoOutput &&
-        mVisualCloneTarget->mSelectedVideoStreamTrack) {
-      mVisualCloneTarget->mSelectedVideoStreamTrack->RemoveVideoOutput(
-          mSecondaryVideoOutput);
-      mSecondaryVideoOutput->Forget();
+    if (mSecondaryVideoOutput) {
+      mVideoWatchManager.Unwatch(
+          mSecondaryVideoOutput->mFirstFrameRendered,
+          &HTMLVideoElement::OnSecondaryVideoOutputFirstFrameRendered);
       mSecondaryVideoOutput = nullptr;
     }
+    SetSecondaryMediaStreamRenderer(nullptr);
+    OwnerDoc()->DisableChildElementInPictureInPictureMode();
   }
 
   Unused << mVisualCloneTarget->SetVisualCloneSource(nullptr);
   Unused << SetVisualCloneTarget(nullptr);
+
+  UpdateMediaControlAfterPictureInPictureModeChanged();
 
   if (IsInComposedDoc() && !StaticPrefs::media_cloneElementVisually_testing()) {
     NotifyUAWidgetSetupOrChange();
@@ -603,6 +589,11 @@ void HTMLVideoElement::OnSecondaryVideoContainerInstalled(
       "Promise::MaybeResolveWithUndefined", mVisualCloneTargetPromise,
       &Promise::MaybeResolveWithUndefined));
   mVisualCloneTargetPromise = nullptr;
+}
+
+void HTMLVideoElement::OnSecondaryVideoOutputFirstFrameRendered() {
+  OnSecondaryVideoContainerInstalled(
+      mVisualCloneTarget->GetVideoFrameContainer());
 }
 
 }  // namespace dom

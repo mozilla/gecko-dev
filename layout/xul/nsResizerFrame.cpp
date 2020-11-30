@@ -63,7 +63,7 @@ nsresult nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
     case eMouseDown: {
       if (aEvent->mClass == eTouchEventClass ||
           (aEvent->mClass == eMouseEventClass &&
-           aEvent->AsMouseEvent()->mButton == MouseButton::eLeft)) {
+           aEvent->AsMouseEvent()->mButton == MouseButton::ePrimary)) {
         nsCOMPtr<nsIBaseWindow> window;
         mozilla::PresShell* presShell = aPresContext->GetPresShell();
         nsIContent* contentToResize =
@@ -121,7 +121,7 @@ nsresult nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
     case eMouseUp: {
       if (aEvent->mClass == eTouchEventClass ||
           (aEvent->mClass == eMouseEventClass &&
-           aEvent->AsMouseEvent()->mButton == MouseButton::eLeft)) {
+           aEvent->AsMouseEvent()->mButton == MouseButton::ePrimary)) {
         // we're done tracking.
         mTrackingMouseMove = false;
 
@@ -285,13 +285,20 @@ nsresult nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
 
     case eMouseClick: {
       WidgetMouseEvent* mouseEvent = aEvent->AsMouseEvent();
-      if (mouseEvent->IsLeftClickEvent()) {
+      if (mouseEvent->IsLeftClickEvent()
+#ifdef XP_MACOSX
+          // On Mac, ctrl-click will send a context menu event from the widget,
+          // so we don't want to dispatch widget command if it is redispatched
+          // from the mouse event with ctrl key is pressed.
+          && !mouseEvent->IsControl()
+#endif
+      ) {
         MouseClicked(mouseEvent);
       }
       break;
     }
     case eMouseDoubleClick:
-      if (aEvent->AsMouseEvent()->mButton == MouseButton::eLeft) {
+      if (aEvent->AsMouseEvent()->mButton == MouseButton::ePrimary) {
         nsCOMPtr<nsIBaseWindow> window;
         mozilla::PresShell* presShell = aPresContext->GetPresShell();
         nsIContent* contentToResize =
@@ -416,37 +423,30 @@ void nsResizerFrame::ResizeContent(nsIContent* aContent,
       aContent->AsElement()->SetAttr(kNameSpaceID_None, nsGkAtoms::height,
                                      aSizeInfo.height, true);
     }
-  } else {
-    nsCOMPtr<nsStyledElement> inlineStyleContent = do_QueryInterface(aContent);
-    if (inlineStyleContent) {
-      nsICSSDeclaration* decl = inlineStyleContent->Style();
+  } else if (RefPtr<nsStyledElement> inlineStyleContent =
+                 nsStyledElement::FromNode(aContent)) {
+    nsICSSDeclaration* decl = inlineStyleContent->Style();
 
-      if (aOriginalSizeInfo) {
-        decl->GetPropertyValue(NS_LITERAL_CSTRING("width"),
-                               aOriginalSizeInfo->width);
-        decl->GetPropertyValue(NS_LITERAL_CSTRING("height"),
-                               aOriginalSizeInfo->height);
-      }
+    if (aOriginalSizeInfo) {
+      decl->GetPropertyValue("width"_ns, aOriginalSizeInfo->width);
+      decl->GetPropertyValue("height"_ns, aOriginalSizeInfo->height);
+    }
 
-      // only set the property if the element could have changed in that
-      // direction
-      if (aDirection.mHorizontal) {
-        NS_ConvertUTF16toUTF8 widthstr(aSizeInfo.width);
-        if (!widthstr.IsEmpty() &&
-            !Substring(widthstr, widthstr.Length() - 2, 2).EqualsLiteral("px"))
-          widthstr.AppendLiteral("px");
-        decl->SetProperty(NS_LITERAL_CSTRING("width"), widthstr, EmptyString(),
-                          IgnoreErrors());
-      }
-      if (aDirection.mVertical) {
-        NS_ConvertUTF16toUTF8 heightstr(aSizeInfo.height);
-        if (!heightstr.IsEmpty() &&
-            !Substring(heightstr, heightstr.Length() - 2, 2)
-                 .EqualsLiteral("px"))
-          heightstr.AppendLiteral("px");
-        decl->SetProperty(NS_LITERAL_CSTRING("height"), heightstr,
-                          EmptyString(), IgnoreErrors());
-      }
+    // only set the property if the element could have changed in that
+    // direction
+    if (aDirection.mHorizontal) {
+      NS_ConvertUTF16toUTF8 widthstr(aSizeInfo.width);
+      if (!widthstr.IsEmpty() &&
+          !Substring(widthstr, widthstr.Length() - 2, 2).EqualsLiteral("px"))
+        widthstr.AppendLiteral("px");
+      decl->SetProperty("width"_ns, widthstr, u""_ns, IgnoreErrors());
+    }
+    if (aDirection.mVertical) {
+      NS_ConvertUTF16toUTF8 heightstr(aSizeInfo.height);
+      if (!heightstr.IsEmpty() &&
+          !Substring(heightstr, heightstr.Length() - 2, 2).EqualsLiteral("px"))
+        heightstr.AppendLiteral("px");
+      decl->SetProperty("height"_ns, heightstr, u""_ns, IgnoreErrors());
     }
   }
 }

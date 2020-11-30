@@ -211,6 +211,28 @@ void MacroAssembler::xorPtr(Imm32 imm, Register dest) {
 }
 
 // ===============================================================
+// Swap instructions
+
+void MacroAssembler::byteSwap16SignExtend(Register reg) { as_revsh(reg, reg); }
+
+void MacroAssembler::byteSwap16ZeroExtend(Register reg) {
+  as_rev16(reg, reg);
+  as_uxth(reg, reg, 0);
+}
+
+void MacroAssembler::byteSwap32(Register reg) { as_rev(reg, reg); }
+
+void MacroAssembler::byteSwap64(Register64 reg) {
+  as_rev(reg.high, reg.high);
+  as_rev(reg.low, reg.low);
+
+  ScratchRegisterScope scratch(*this);
+  ma_mov(reg.high, scratch);
+  ma_mov(reg.low, reg.high);
+  ma_mov(scratch, reg.low);
+}
+
+// ===============================================================
 // Arithmetic functions
 
 void MacroAssembler::add32(Register src, Register dest) {
@@ -597,7 +619,9 @@ void MacroAssembler::lshift32(Register src, Register dest) {
 }
 
 void MacroAssembler::flexibleLshift32(Register src, Register dest) {
-  lshift32(src, dest);
+  ScratchRegisterScope scratch(*this);
+  as_and(scratch, src, Imm8(0x1F));
+  lshift32(scratch, dest);
 }
 
 void MacroAssembler::lshift32(Imm32 imm, Register dest) {
@@ -617,7 +641,9 @@ void MacroAssembler::rshift32(Register src, Register dest) {
 }
 
 void MacroAssembler::flexibleRshift32(Register src, Register dest) {
-  rshift32(src, dest);
+  ScratchRegisterScope scratch(*this);
+  as_and(scratch, src, Imm8(0x1F));
+  rshift32(scratch, dest);
 }
 
 void MacroAssembler::rshift32(Imm32 imm, Register dest) {
@@ -687,7 +713,9 @@ void MacroAssembler::rshift32Arithmetic(Imm32 imm, Register dest) {
 }
 
 void MacroAssembler::flexibleRshift32Arithmetic(Register src, Register dest) {
-  rshift32Arithmetic(src, dest);
+  ScratchRegisterScope scratch(*this);
+  as_and(scratch, src, Imm8(0x1F));
+  rshift32Arithmetic(scratch, dest);
 }
 
 void MacroAssembler::rshift64(Imm32 imm, Register64 dest) {
@@ -1428,6 +1456,20 @@ void MacroAssembler::branchMul32(Condition cond, T src, Register dest,
   j(overflow_cond, label);
 }
 
+template <typename T>
+void MacroAssembler::branchRshift32(Condition cond, T src, Register dest,
+                                    Label* label) {
+  MOZ_ASSERT(cond == Zero || cond == NonZero);
+  rshift32(src, dest);
+  branch32(cond == Zero ? Equal : NotEqual, dest, Imm32(0), label);
+}
+
+void MacroAssembler::branchNeg32(Condition cond, Register reg, Label* label) {
+  MOZ_ASSERT(cond == Overflow);
+  neg32(reg);
+  j(cond, label);
+}
+
 void MacroAssembler::decBranchPtr(Condition cond, Register lhs, Imm32 rhs,
                                   Label* label) {
   ScratchRegisterScope scratch(*this);
@@ -1692,6 +1734,11 @@ void MacroAssembler::branchTestSymbol(Condition cond, Register tag,
   branchTestSymbolImpl(cond, tag, label);
 }
 
+void MacroAssembler::branchTestSymbol(Condition cond, const Address& address,
+                                      Label* label) {
+  branchTestSymbolImpl(cond, address, label);
+}
+
 void MacroAssembler::branchTestSymbol(Condition cond, const BaseIndex& address,
                                       Label* label) {
   branchTestSymbolImpl(cond, address, label);
@@ -1805,6 +1852,12 @@ void MacroAssembler::branchTestGCThing(Condition cond, const Address& address,
 void MacroAssembler::branchTestGCThing(Condition cond, const BaseIndex& address,
                                        Label* label) {
   branchTestGCThingImpl(cond, address, label);
+}
+
+void MacroAssembler::branchTestGCThing(Condition cond,
+                                       const ValueOperand& value,
+                                       Label* label) {
+  branchTestGCThingImpl(cond, value, label);
 }
 
 template <typename T>
@@ -2014,13 +2067,6 @@ void MacroAssembler::storeUncanonicalizedFloat32(FloatRegister src,
           addr.offset);
 }
 
-void MacroAssembler::storeFloat32x3(FloatRegister src, const Address& dest) {
-  MOZ_CRASH("NYI");
-}
-void MacroAssembler::storeFloat32x3(FloatRegister src, const BaseIndex& dest) {
-  MOZ_CRASH("NYI");
-}
-
 void MacroAssembler::memoryBarrier(MemoryBarrierBits barrier) {
   // On ARMv6 the optional argument (BarrierST, etc) is ignored.
   if (barrier == (MembarStoreStore | MembarSynchronizing)) {
@@ -2044,6 +2090,44 @@ void MacroAssembler::clampIntToUint8(Register reg) {
   as_mov(scratch, asr(reg, 8), SetCC);
   ma_mov(Imm32(0xff), reg, NotEqual);
   ma_mov(Imm32(0), reg, Signed);
+}
+
+template <typename T>
+void MacroAssemblerARMCompat::fallibleUnboxPtrImpl(const T& src, Register dest,
+                                                   JSValueType type,
+                                                   Label* fail) {
+  switch (type) {
+    case JSVAL_TYPE_OBJECT:
+      asMasm().branchTestObject(Assembler::NotEqual, src, fail);
+      break;
+    case JSVAL_TYPE_STRING:
+      asMasm().branchTestString(Assembler::NotEqual, src, fail);
+      break;
+    case JSVAL_TYPE_SYMBOL:
+      asMasm().branchTestSymbol(Assembler::NotEqual, src, fail);
+      break;
+    case JSVAL_TYPE_BIGINT:
+      asMasm().branchTestBigInt(Assembler::NotEqual, src, fail);
+      break;
+    default:
+      MOZ_CRASH("Unexpected type");
+  }
+  unboxNonDouble(src, dest, type);
+}
+
+void MacroAssembler::fallibleUnboxPtr(const ValueOperand& src, Register dest,
+                                      JSValueType type, Label* fail) {
+  fallibleUnboxPtrImpl(src, dest, type, fail);
+}
+
+void MacroAssembler::fallibleUnboxPtr(const Address& src, Register dest,
+                                      JSValueType type, Label* fail) {
+  fallibleUnboxPtrImpl(src, dest, type, fail);
+}
+
+void MacroAssembler::fallibleUnboxPtr(const BaseIndex& src, Register dest,
+                                      JSValueType type, Label* fail) {
+  fallibleUnboxPtrImpl(src, dest, type, fail);
 }
 
 //}}} check_macroassembler_style

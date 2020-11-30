@@ -17,7 +17,7 @@ PYTHON_UNITTEST_MANIFESTS += ['python.ini']
 with Files("**"):
     SCHEDULES.exclusive = [
         'web-platform-tests',
-        'web-platform-tests-reftests',
+        'web-platform-tests-reftest',
         'web-platform-tests-wdspec',
     ]
 
@@ -94,12 +94,6 @@ with Files("tests/**"):
     BUG_COMPONENT = ("Testing", "web-platform-tests")
     SCHEDULES.inclusive += ['test-verify-wpt']
 
-with Files("tests/LICENSE"):
-    BUG_COMPONENT = ("Testing", "web-platform-tests")
-
-with Files("tests/lint.whitelist"):
-    BUG_COMPONENT = ("Testing", "web-platform-tests")
-
 with Files("tests/testharness_runner.html"):
     BUG_COMPONENT = ("Testing", "web-platform-tests")
 
@@ -112,9 +106,6 @@ with Files("tests/wpt"):
 with Files("tests/wpt.py"):
     BUG_COMPONENT = ("Testing", "web-platform-tests")
 
-
-with Files("tests/2dcontext/**"):
-    BUG_COMPONENT = ("Core", "Canvas: 2D")
 
 with Files("tests/FileAPI/**"):
     BUG_COMPONENT = ("Core", "DOM: File")
@@ -457,7 +448,7 @@ with Files("tests/eventsource/**"):
     BUG_COMPONENT = ("Core", "DOM: Events")
 
 with Files("tests/feature-policy/**"):
-    BUG_COMPONENT = ("Core", "DOM: Core & HTML")
+    BUG_COMPONENT = ("Core", "DOM: Security")
 
 with Files("tests/fetch/**"):
     BUG_COMPONENT = ("Core", "DOM: Networking")
@@ -565,10 +556,6 @@ with Files("tests/netinfo/**"):
 with Files("tests/notifications/**"):
     BUG_COMPONENT = ("Toolkit", "Notifications and Alerts")
 
-with Files("tests/offscreen-canvas/**"):
-    BUG_COMPONENT = ("Core", "Canvas: 2D")
-
-# No tests are run here
 with Files("tests/old-tests/submission/Microsoft/foreigncontent/**"):
     BUG_COMPONENT = ("Core", "SVG")
 
@@ -647,6 +634,9 @@ with Files("tests/resource-timing/**"):
 
 with Files("tests/resources/**"):
     BUG_COMPONENT = ("Testing", "web-platform-tests")
+
+with Files("tests/sanitizer-api/**"):
+    BUG_COMPONENT = ("Core", "DOM: Security")
 
 with Files("tests/screen-capture/**"):
     BUG_COMPONENT = ("Core", "WebRTC: Audio/Video")
@@ -742,6 +732,21 @@ with Files("tests/web-nfc/**"):
     BUG_COMPONENT = ("Core", "DOM: Device Interfaces")
 
 with Files("tests/webrtc/**"):
+    BUG_COMPONENT = ("Core", "WebRTC")
+
+with Files("tests/webrtc-extensions/**"):
+    BUG_COMPONENT = ("Core", "WebRTC")
+
+with Files("tests/webrtc-identity/**"):
+    BUG_COMPONENT = ("Core", "WebRTC")
+
+with Files("tests/webrtc-insertable-streams/**"):
+    BUG_COMPONENT = ("Core", "WebRTC")
+
+with Files("tests/webrtc-stats/**"):
+    BUG_COMPONENT = ("Core", "WebRTC")
+
+with Files("tests/webrtc-svc/**"):
     BUG_COMPONENT = ("Core", "WebRTC")
 
 with Files("tests/web-share/**"):

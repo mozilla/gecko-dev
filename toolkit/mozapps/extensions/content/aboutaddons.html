@@ -8,15 +8,13 @@
     <title data-l10n-id="addons-page-title"></title>
 
     <!-- Bug 1571346 Remove 'unsafe-inline' from style-src within about:addons -->
-    <!-- @CSP the 'onclick' handler for the searchButtonIcon within the file search-textbox.js, using: sha512-kSDNX67wegjpcf8CSj/L6h46a0QUKm2CyijGxC5PhSWVvPU9gdd28QVBBFq9t8N5UGKUFdDcZsjYbGSlYG0y3g== -->
-    <meta http-equiv="Content-Security-Policy" content="default-src chrome:; script-src chrome: 'sha512-kSDNX67wegjpcf8CSj/L6h46a0QUKm2CyijGxC5PhSWVvPU9gdd28QVBBFq9t8N5UGKUFdDcZsjYbGSlYG0y3g=='; style-src chrome: 'unsafe-inline'; img-src chrome: file: jar: https: http:; connect-src chrome: data: https: http:; object-src 'none'">
+    <meta http-equiv="Content-Security-Policy" content="default-src chrome:; style-src chrome: 'unsafe-inline'; img-src chrome: file: jar: https: http:; connect-src chrome: data: https: http:; object-src 'none'">
     <link rel="stylesheet" href="chrome://global/content/tabprompts.css">
     <link rel="stylesheet" href="chrome://global/skin/tabprompts.css">
-    <link rel="stylesheet" href="chrome://global/skin/textbox.css">
 
     <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
+    <link rel="stylesheet" href="chrome://global/skin/in-content/toggle-button.css">
     <link rel="stylesheet" href="chrome://mozapps/content/extensions/aboutaddons.css">
-    <link rel="stylesheet" href="chrome://mozapps/content/extensions/toggle-button.css">
     <link rel="stylesheet" href="chrome://mozapps/content/extensions/shortcuts.css">
 
     <link rel="localization" href="branding/brand.ftl">
@@ -29,16 +27,36 @@
     <script defer src="chrome://mozapps/content/extensions/message-bar.js"></script>
     <script defer src="chrome://mozapps/content/extensions/abuse-reports.js"></script>
     <script defer src="chrome://mozapps/content/extensions/shortcuts.js"></script>
+    <script defer src="chrome://mozapps/content/extensions/drag-drop-addon-installer.js"></script>
     <script defer src="chrome://mozapps/content/extensions/aboutaddons.js"></script>
   </head>
   <body>
-    <addon-page-header id="page-header" page-options-id="page-options"></addon-page-header>
-    <addon-page-options id="page-options"></addon-page-options>
+    <drag-drop-addon-installer></drag-drop-addon-installer>
+    <div id="full">
+      <div id="sidebar">
+        <categories-box id="categories" orientation="vertical">
+          <button is="discover-button" viewid="addons://discover/" class="category" role="tab" name="discover"></button>
+          <button is="category-button" viewid="addons://list/extension" class="category" role="tab" name="extension"></button>
+          <button is="category-button" viewid="addons://list/theme" class="category" role="tab" name="theme"></button>
+          <button is="category-button" viewid="addons://list/plugin" class="category" role="tab" name="plugin"></button>
+          <button is="category-button" viewid="addons://list/dictionary" class="category" role="tab" name="dictionary" hidden default-hidden></button>
+          <button is="category-button" viewid="addons://list/locale" class="category" role="tab" name="locale" hidden default-hidden></button>
+          <button is="category-button" viewid="addons://updates/available" class="category" role="tab" name="available-updates" hidden default-hidden></button>
+          <button is="category-button" viewid="addons://updates/recent" class="category" role="tab" name="recent-updates" hidden default-hidden></button>
+        </categories-box>
+        <div class="spacer"></div>
+        <sidebar-footer></sidebar-footer>
+      </div>
+      <div id="content">
+        <addon-page-header id="page-header" page-options-id="page-options"></addon-page-header>
+        <addon-page-options id="page-options"></addon-page-options>
 
-    <message-bar-stack id="abuse-reports-messages" reverse max-message-bar-count="3">
-    </message-bar-stack>
+        <message-bar-stack id="abuse-reports-messages" reverse max-message-bar-count="3">
+        </message-bar-stack>
 
-    <div id="main"></div>
+        <div id="main"></div>
+      </div>
+    </div>
 
     <!-- Include helpers for the inline options browser select and context menus. -->
     <content-select-dropdown></content-select-dropdown>
@@ -47,11 +65,11 @@
     <template name="addon-page-header">
       <div class="sticky-container">
         <div class="main-search">
-          <label for="search-addons" class="search-label"></label>
+          <label for="search-addons" class="search-label" data-l10n-id="default-heading-search-label"></label>
           <search-addons data-l10n-id="search-header-shortcut" data-l10n-attrs="key"></search-addons>
         </div>
         <div class="main-heading">
-          <button class="back-button" action="go-back" data-l10n-id="go-back-button" hidden></button>
+          <button class="back-button" action="go-back" data-l10n-id="header-back-button" hidden></button>
           <h1 class="header-name"></h1>
           <div class="spacer"></div>
           <addon-updates-message id="updates-message" hidden></addon-updates-message>
@@ -111,8 +129,23 @@
             <div class="addon-name-container">
               <a class="addon-badge addon-badge-recommended"
                  is="support-link"
-                 support-page="recommended-extensions-program"
+                 support-page="add-on-badges"
+                 utmcontent="promoted-addon-badge"
                  data-l10n-id="addon-badge-recommended2"
+                 hidden>
+              </a>
+              <a class="addon-badge addon-badge-line"
+                 is="support-link"
+                 support-page="add-on-badges"
+                 utmcontent="promoted-addon-badge"
+                 data-l10n-id="addon-badge-line"
+                 hidden>
+              </a>
+              <a class="addon-badge addon-badge-verified"
+                 is="support-link"
+                 support-page="add-on-badges"
+                 utmcontent="promoted-addon-badge"
+                 data-l10n-id="addon-badge-verified"
                  hidden>
               </a>
               <a class="addon-badge addon-badge-private-browsing-allowed"
@@ -135,6 +168,10 @@
             <span class="addon-description" tabindex="-1"></span>
           </div>
         </div>
+        <message-bar class="update-postponed-bar" align="center" hidden>
+          <span class="description" data-l10n-id="install-postponed-message"></span>
+          <button action="install-postponed" data-l10n-id="install-postponed-button"></button>
+        </message-bar>
         <message-bar class="addon-card-message" align="center" hidden>
           <span></span>
           <button action="link"></button>
@@ -163,14 +200,12 @@
     </template>
 
     <template name="addon-details">
-      <div class="deck-tab-group">
-        <named-deck-button-group>
-          <named-deck-button deck="details-deck" name="details" data-l10n-id="details-addon-button"></named-deck-button>
-          <named-deck-button deck="details-deck" name="preferences" data-l10n-id="preferences-addon-button"></named-deck-button>
-          <named-deck-button deck="details-deck" name="permissions" data-l10n-id="permissions-addon-button"></named-deck-button>
-          <named-deck-button deck="details-deck" name="release-notes" data-l10n-id="release-notes-addon-button"></named-deck-button>
-        </named-deck-button-group>
-      </div>
+      <button-group class="tab-group">
+        <button is="named-deck-button" deck="details-deck" name="details" data-l10n-id="details-addon-button" class="tab-button"></button>
+        <button is="named-deck-button" deck="details-deck" name="preferences" data-l10n-id="preferences-addon-button" class="tab-button"></button>
+        <button is="named-deck-button" deck="details-deck" name="permissions" data-l10n-id="permissions-addon-button" class="tab-button"></button>
+        <button is="named-deck-button" deck="details-deck" name="release-notes" data-l10n-id="release-notes-addon-button" class="tab-button"></button>
+      </button-group>
       <named-deck id="details-deck">
         <section name="details">
           <div class="addon-detail-description"></div>
@@ -316,19 +351,22 @@
       <h2 data-l10n-id="recommended-extensions-heading" class="header-name recommended-heading"></h2>
       <taar-notice></taar-notice>
       <recommended-addon-list type="extension" hide-installed></recommended-addon-list>
-      <footer is="recommended-footer" class="view-footer hide-amo-link"></footer>
+      <footer is="recommended-footer" class="view-footer"></footer>
+    </template>
+
+    <template name="recommended-themes-footer">
+      <p data-l10n-id="recommended-theme-1" class="theme-recommendation">
+          <a data-l10n-name="link" target="_blank"></a>
+      </p>
+      <div class="amo-link-container view-footer-item">
+        <button class="primary" action="open-amo" data-l10n-id="find-more-addons"></button>
+      </div>
     </template>
 
     <template name="recommended-themes-section">
       <h2 data-l10n-id="recommended-themes-heading" class="header-name recommended-heading"></h2>
       <recommended-addon-list type="theme" hide-installed></recommended-addon-list>
-      <footer>
-        <div>
-          <p data-l10n-id="recommended-theme-1" class="theme-recommendation">
-            <a data-l10n-name="link" target="_blank"></a>
-          </p>
-        </div>
-      </footer>
+      <footer is="recommended-themes-footer" class="view-footer"></footer>
     </template>
 
     <template id="shortcut-view">

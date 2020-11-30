@@ -21,7 +21,7 @@ const REQUESTS_WITH_MEDIA = BASIC_REQUESTS.concat([
 ]);
 
 add_task(async function() {
-  const { monitor } = await initNetMonitor(FILTERING_URL);
+  const { monitor } = await initNetMonitor(FILTERING_URL, { requestCount: 1 });
   info("Starting test... ");
 
   // It seems that this test may be slow on Ubuntu builds running on ec2.
@@ -43,8 +43,6 @@ add_task(async function() {
   const newres = "res=<p>" + new Array(10).join(Math.random(10)) + "</p>";
   requests[0].url = requests[0].url.replace("res=undefined", newres);
 
-  loadFrameScriptUtils();
-
   let wait = waitForNetworkEvents(monitor, 7);
   await performRequestsInContent(requests);
   await wait;
@@ -65,7 +63,7 @@ add_task(async function() {
     "The first item should be selected in the requests menu."
   );
   is(
-    !!document.querySelector(".network-details-panel"),
+    !!document.querySelector(".network-details-bar"),
     true,
     "The network details panel should be visible after toggle button was pressed."
   );
@@ -90,7 +88,8 @@ add_task(async function() {
   testContents([6, 4, 5, 0, 1, 2, 3], 1, 6);
 
   info("Performing more requests.");
-  wait = waitForNetworkEvents(monitor, 7);
+  // As the view is filtered and there is only one request for which we fetch event timings
+  wait = waitForNetworkEvents(monitor, 7, { expectedEventTimings: 1 });
   performRequestsInContent(REQUESTS_WITH_MEDIA);
   await wait;
 
@@ -100,8 +99,10 @@ add_task(async function() {
   testContents([8, 13, 9, 11, 10, 12, 0, 4, 1, 5, 2, 6, 3, 7], 2, 13);
 
   info("Performing more requests.");
+  // As the view is filtered and there is only one request for which we fetch event timings
+  wait = waitForNetworkEvents(monitor, 7, { expectedEventTimings: 1 });
   performRequestsInContent(REQUESTS_WITH_MEDIA);
-  await waitForNetworkEvents(monitor, 7);
+  await wait;
 
   info("Testing html filtering again.");
   resetSorting();
@@ -117,7 +118,7 @@ add_task(async function() {
   function resetSorting() {
     EventUtils.sendMouseEvent(
       { type: "click" },
-      document.querySelector("#requests-list-cause-button")
+      document.querySelector("#requests-list-initiator-button")
     );
     EventUtils.sendMouseEvent(
       { type: "click" },
@@ -146,7 +147,7 @@ add_task(async function() {
       "The first item should be still selected after filtering."
     );
     is(
-      !!document.querySelector(".network-details-panel"),
+      !!document.querySelector(".network-details-bar"),
       true,
       "The network details panel should still be visible after filtering."
     );

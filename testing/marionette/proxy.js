@@ -4,26 +4,22 @@
 
 "use strict";
 
+const EXPORTED_SYMBOLS = ["proxy"];
+
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
-const { error, WebDriverError } = ChromeUtils.import(
-  "chrome://marionette/content/error.js"
-);
-const { evaluate } = ChromeUtils.import(
-  "chrome://marionette/content/evaluate.js"
-);
-const { Log } = ChromeUtils.import("chrome://marionette/content/log.js");
-const { modal } = ChromeUtils.import("chrome://marionette/content/modal.js");
-const { MessageManagerDestroyedPromise } = ChromeUtils.import(
-  "chrome://marionette/content/sync.js"
-);
+XPCOMUtils.defineLazyModuleGetters(this, {
+  Log: "chrome://marionette/content/log.js",
+  error: "chrome://marionette/content/error.js",
+  evaluate: "chrome://marionette/content/evaluate.js",
+  MessageManagerDestroyedPromise: "chrome://marionette/content/sync.js",
+  modal: "chrome://marionette/content/modal.js",
+});
 
-this.EXPORTED_SYMBOLS = ["proxy"];
-
-XPCOMUtils.defineLazyGetter(this, "log", Log.get);
+XPCOMUtils.defineLazyGetter(this, "logger", () => Log.get());
 XPCOMUtils.defineLazyServiceGetter(
   this,
   "uuidgen",
@@ -139,7 +135,7 @@ proxy.AsyncMessageChannel = class {
             break;
 
           case proxy.AsyncMessageChannel.ReplyType.Error:
-            let err = WebDriverError.fromJSON(data);
+            let err = error.WebDriverError.fromJSON(data);
             reject(err);
             break;
 
@@ -151,7 +147,7 @@ proxy.AsyncMessageChannel = class {
       // The currently selected tab or window is closing. Make sure to wait
       // until it's fully gone.
       this.closeHandler = async ({ type, target }) => {
-        log.trace(`Received DOM event ${type} for ${target}`);
+        logger.trace(`Received DOM event ${type} for ${target}`);
 
         let messageManager;
         switch (type) {
@@ -248,7 +244,7 @@ proxy.AsyncMessageChannel = class {
    *         messageManager, sendAsyncMessage.bind(this));
    *
    *     // throws in requester:
-   *     channel.reply(uuid, new WebDriverError());
+   *     channel.reply(uuid, new error.WebDriverError());
    *
    *     // returns with value:
    *     channel.reply(uuid, "hello world!");

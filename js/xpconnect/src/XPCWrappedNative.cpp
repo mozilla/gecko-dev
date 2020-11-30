@@ -7,11 +7,12 @@
 /* Wrapper object for reflecting native xpcom objects into JavaScript. */
 
 #include "xpcprivate.h"
-#include "mozilla/jsipc/CrossProcessObjectWrappers.h"
 #include "nsWrapperCacheInlines.h"
 #include "XPCLog.h"
-#include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
+#include "js/Array.h"                   // JS::GetArrayLength, JS::IsArrayObject
+#include "js/experimental/TypedData.h"  // JS_GetTypedArrayLength, JS_IsTypedArrayObject
 #include "js/MemoryFunctions.h"
+#include "js/Object.h"  // JS::GetPrivate, JS::SetPrivate, JS::SetReservedSlot
 #include "js/Printf.h"
 #include "jsfriendapi.h"
 #include "AccessCheck.h"
@@ -226,7 +227,7 @@ nsresult XPCWrappedNative::WrapNewGlobal(JSContext* cx,
   wrapper->SetFlatJSObject(global);
 
   // Set the private to the XPCWrappedNative.
-  JS_SetPrivate(global, wrapper);
+  JS::SetPrivate(global, wrapper);
 
   // There are dire comments elsewhere in the code about how a GC can
   // happen somewhere after wrapper initialization but before the wrapper is
@@ -653,7 +654,7 @@ bool XPCWrappedNative::Init(JSContext* cx, nsIXPCScriptable* aScriptable) {
 
   SetFlatJSObject(object);
 
-  JS_SetPrivate(mFlatJSObject, this);
+  JS::SetPrivate(mFlatJSObject, this);
 
   return FinishInit(cx);
 }
@@ -748,7 +749,7 @@ void XPCWrappedNative::FlatJSObjectFinalized() {
        to = to->GetNextTearOff()) {
     JSObject* jso = to->GetJSObjectPreserveColor();
     if (jso) {
-      JS_SetPrivate(jso, nullptr);
+      JS::SetPrivate(jso, nullptr);
       to->JSObjectFinalized();
     }
 
@@ -811,7 +812,7 @@ void XPCWrappedNative::SystemIsBeingShutDown() {
   // We leak mIdentity (see above).
 
   // Short circuit future finalization.
-  JS_SetPrivate(mFlatJSObject, nullptr);
+  JS::SetPrivate(mFlatJSObject, nullptr);
   UnsetFlatJSObject();
 
   XPCWrappedNativeProto* proto = GetProto();
@@ -826,7 +827,7 @@ void XPCWrappedNative::SystemIsBeingShutDown() {
   for (XPCWrappedNativeTearOff* to = &mFirstTearOff; to;
        to = to->GetNextTearOff()) {
     if (JSObject* jso = to->GetJSObjectPreserveColor()) {
-      JS_SetPrivate(jso, nullptr);
+      JS::SetPrivate(jso, nullptr);
       to->SetJSObject(nullptr);
     }
     // We leak the tearoff mNative
@@ -843,12 +844,12 @@ class MOZ_STACK_CLASS AutoClonePrivateGuard {
  public:
   AutoClonePrivateGuard(JSContext* cx, JSObject* aOld, JSObject* aNew)
       : mOldReflector(cx, aOld), mNewReflector(cx, aNew) {
-    MOZ_ASSERT(JS_GetPrivate(aOld) == JS_GetPrivate(aNew));
+    MOZ_ASSERT(JS::GetPrivate(aOld) == JS::GetPrivate(aNew));
   }
 
   ~AutoClonePrivateGuard() {
-    if (JS_GetPrivate(mOldReflector)) {
-      JS_SetPrivate(mNewReflector, nullptr);
+    if (JS::GetPrivate(mOldReflector)) {
+      JS::SetPrivate(mNewReflector, nullptr);
     }
   }
 
@@ -1037,10 +1038,10 @@ bool XPCWrappedNative::InitTearOffJSObject(JSContext* cx,
     return false;
   }
 
-  JS_SetPrivate(obj, to);
+  JS::SetPrivate(obj, to);
   to->SetJSObject(obj);
 
-  js::SetReservedSlot(obj, XPC_WN_TEAROFF_FLAT_OBJECT_SLOT,
+  JS::SetReservedSlot(obj, XPC_WN_TEAROFF_FLAT_OBJECT_SLOT,
                       JS::ObjectValue(*mFlatJSObject));
   return true;
 }
@@ -1425,11 +1426,9 @@ bool CallMethodHelper::InitializeDispatchParams() {
   mJSContextIndex = mMethodInfo->IndexOfJSContext();
 
   // Allocate enough space in mDispatchParams up-front.
-  if (!mDispatchParams.AppendElements(paramCount + wantsJSContext +
-                                      wantsOptArgc)) {
-    Throw(NS_ERROR_OUT_OF_MEMORY, mCallContext);
-    return false;
-  }
+  // XXX(Bug 1631371) Check if this should use a fallible operation as it
+  // pretended earlier.
+  mDispatchParams.AppendElements(paramCount + wantsJSContext + wantsOptArgc);
 
   // Initialize each parameter to a valid state (for safe cleanup later).
   for (uint8_t i = 0, paramIdx = 0; i < mDispatchParams.Length(); i++) {
@@ -1541,19 +1540,6 @@ bool CallMethodHelper::ConvertIndependentParam(uint8_t i) {
                            mCallContext);
     }
     param_iid = inner.GetInterface()->IID();
-  }
-
-  // Don't allow CPOWs to be passed to native code (in case they try to cast
-  // to a concrete type).
-  if (src.isObject() && jsipc::IsWrappedCPOW(&src.toObject()) &&
-      type.Tag() == nsXPTType::T_INTERFACE &&
-      !param_iid.Equals(NS_GET_IID(nsISupports))) {
-    // Allow passing CPOWs to XPCWrappedJS.
-    nsCOMPtr<nsIXPConnectWrappedJS> wrappedJS(do_QueryInterface(mCallee));
-    if (!wrappedJS) {
-      ThrowBadParam(NS_ERROR_XPC_CANT_PASS_CPOW_TO_NATIVE, i, mCallContext);
-      return false;
-    }
   }
 
   nsresult err;

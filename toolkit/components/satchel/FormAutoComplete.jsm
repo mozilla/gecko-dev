@@ -184,8 +184,8 @@ function FormAutoComplete() {
 FormAutoComplete.prototype = {
   classID: Components.ID("{c11c21b2-71c9-4f87-a0f8-5e13f50495fd}"),
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIFormAutoComplete,
-    Ci.nsISupportsWeakReference,
+    "nsIFormAutoComplete",
+    "nsISupportsWeakReference",
   ]),
 
   _prefBranch: null,
@@ -226,8 +226,8 @@ FormAutoComplete.prototype = {
     _self: null,
 
     QueryInterface: ChromeUtils.generateQI([
-      Ci.nsIObserver,
-      Ci.nsISupportsWeakReference,
+      "nsIObserver",
+      "nsISupportsWeakReference",
     ]),
 
     observe(subject, topic, data) {
@@ -293,13 +293,16 @@ FormAutoComplete.prototype = {
   /*
    * autoCompleteSearchAsync
    *
-   * aInputName    -- |name| attribute from the form input being autocompleted.
+   * aInputName -- |name| or |id| attribute value from the form input being
+   *               autocompleted
    * aUntrimmedSearchString -- current value of the input
    * aField -- HTMLInputElement being autocompleted (may be null if from chrome)
    * aPreviousResult -- previous search result, if any.
    * aDatalistResult -- results from list=datalist for aField.
    * aListener -- nsIFormAutoCompleteObserver that listens for the nsIAutoCompleteResult
    *              that may be returned asynchronously.
+   *  options -- an optional nsIPropertyBag2 containing additional search
+   *             parameters.
    */
   autoCompleteSearchAsync(
     aInputName,
@@ -307,12 +310,9 @@ FormAutoComplete.prototype = {
     aField,
     aPreviousResult,
     aDatalistResult,
-    aListener
+    aListener,
+    aOptions
   ) {
-    function sortBytotalScore(a, b) {
-      return b.totalScore - a.totalScore;
-    }
-
     // Guard against void DOM strings filtering into this code.
     if (typeof aInputName === "object") {
       aInputName = "";
@@ -320,11 +320,28 @@ FormAutoComplete.prototype = {
     if (typeof aUntrimmedSearchString === "object") {
       aUntrimmedSearchString = "";
     }
+    let params = {};
+    if (aOptions) {
+      try {
+        aOptions.QueryInterface(Ci.nsIPropertyBag2);
+        for (let { name, value } of aOptions.enumerator) {
+          params[name] = value;
+        }
+      } catch (ex) {
+        Cu.reportError("Invalid options object: " + ex);
+      }
+    }
 
     let client = new FormHistoryClient({
       formField: aField,
       inputName: aInputName,
     });
+
+    function maybeNotifyListener(result) {
+      if (aListener) {
+        aListener.onSearchCompletion(result);
+      }
+    }
 
     // If we have datalist results, they become our "empty" result.
     let emptyResult =
@@ -333,32 +350,26 @@ FormAutoComplete.prototype = {
         client,
         [],
         aInputName,
-        aUntrimmedSearchString,
-        null
+        aUntrimmedSearchString
       );
     if (!this._enabled) {
-      if (aListener) {
-        aListener.onSearchCompletion(emptyResult);
-      }
+      maybeNotifyListener(emptyResult);
       return;
     }
 
-    // don't allow form inputs (aField != null) to get results from search bar history
+    // Don't allow form inputs (aField != null) to get results from
+    // search bar history.
     if (aInputName == "searchbar-history" && aField) {
       this.log(
         'autoCompleteSearch for input name "' + aInputName + '" is denied'
       );
-      if (aListener) {
-        aListener.onSearchCompletion(emptyResult);
-      }
+      maybeNotifyListener(emptyResult);
       return;
     }
 
     if (aField && isAutocompleteDisabled(aField)) {
       this.log("autoCompleteSearch not allowed due to autcomplete=off");
-      if (aListener) {
-        aListener.onSearchCompletion(emptyResult);
-      }
+      maybeNotifyListener(emptyResult);
       return;
     }
 
@@ -436,7 +447,7 @@ FormAutoComplete.prototype = {
         );
         filteredEntries.push(entry);
       }
-      filteredEntries.sort(sortBytotalScore);
+      filteredEntries.sort((a, b) => b.totalScore - a.totalScore);
       wrappedResult.entries = filteredEntries;
 
       // If we had datalistResults, re-merge them back into the filtered
@@ -460,9 +471,7 @@ FormAutoComplete.prototype = {
         wrappedResult._comments = comments;
       }
 
-      if (aListener) {
-        aListener.onSearchCompletion(result);
-      }
+      maybeNotifyListener(result);
     } else {
       this.log("Creating new autocomplete search result.");
 
@@ -472,8 +481,7 @@ FormAutoComplete.prototype = {
             client,
             [],
             aInputName,
-            aUntrimmedSearchString,
-            null
+            aUntrimmedSearchString
           )
         : emptyResult;
 
@@ -490,15 +498,14 @@ FormAutoComplete.prototype = {
           result = this.mergeResults(result, aDatalistResult);
         }
 
-        if (aListener) {
-          aListener.onSearchCompletion(result);
-        }
+        maybeNotifyListener(result);
       };
 
       this.getAutoCompleteValues(
         client,
         aInputName,
         searchString,
+        params,
         processEntry
       );
     }
@@ -554,21 +561,26 @@ FormAutoComplete.prototype = {
    *  client - a FormHistoryClient instance to perform the search with
    *  fieldName - fieldname field within form history (the form input name)
    *  searchString - string to search for
+   *  params - object containing additional properties to query autocomplete.
    *  callback - called when the values are available. Passed an array of objects,
    *             containing properties for each result. The callback is only called
    *             when successful.
    */
-  getAutoCompleteValues(client, fieldName, searchString, callback) {
-    let params = {
-      agedWeight: this._agedWeight,
-      bucketSize: this._bucketSize,
-      expiryDate: 1000 * (Date.now() - this._expireDays * 24 * 60 * 60 * 1000),
-      fieldname: fieldName,
-      maxTimeGroupings: this._maxTimeGroupings,
-      timeGroupingSize: this._timeGroupingSize,
-      prefixWeight: this._prefixWeight,
-      boundaryWeight: this._boundaryWeight,
-    };
+  getAutoCompleteValues(client, fieldName, searchString, params, callback) {
+    params = Object.assign(
+      {
+        agedWeight: this._agedWeight,
+        bucketSize: this._bucketSize,
+        expiryDate:
+          1000 * (Date.now() - this._expireDays * 24 * 60 * 60 * 1000),
+        fieldname: fieldName,
+        maxTimeGroupings: this._maxTimeGroupings,
+        timeGroupingSize: this._timeGroupingSize,
+        prefixWeight: this._prefixWeight,
+        boundaryWeight: this._boundaryWeight,
+      },
+      params
+    );
 
     this.stopAutoCompleteSearch();
     client.requestAutoCompleteResults(searchString, params, entries => {
@@ -609,24 +621,17 @@ FormAutoComplete.prototype = {
 }; // end of FormAutoComplete implementation
 
 // nsIAutoCompleteResult implementation
-function FormAutoCompleteResult(
-  client,
-  entries,
-  fieldName,
-  searchString,
-  messageManager
-) {
+function FormAutoCompleteResult(client, entries, fieldName, searchString) {
   this.client = client;
   this.entries = entries;
   this.fieldName = fieldName;
   this.searchString = searchString;
-  this.messageManager = messageManager;
 }
 
 FormAutoCompleteResult.prototype = {
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIAutoCompleteResult,
-    Ci.nsISupportsWeakReference,
+    "nsIAutoCompleteResult",
+    "nsISupportsWeakReference",
   ]),
 
   // private
@@ -696,14 +701,12 @@ FormAutoCompleteResult.prototype = {
     return this.getValueAt(index);
   },
 
-  removeValueAt(index, removeFromDB) {
+  removeValueAt(index) {
     this._checkIndexBounds(index);
 
     let [removedEntry] = this.entries.splice(index, 1);
 
-    if (removeFromDB) {
-      this.client.remove(removedEntry.text, removedEntry.guid);
-    }
+    this.client.remove(removedEntry.text, removedEntry.guid);
   },
 };
 

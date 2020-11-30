@@ -14,12 +14,18 @@
 
 #include "mozilla/Char16.h"
 
-#define NS_LITERAL_STRING(s) \
-  static_cast<const nsLiteralString&>(nsLiteralString(u"" s))
-#define NS_NAMED_LITERAL_STRING(n, s) const nsLiteralString n(u"" s)
+#define NS_CSTRING_LITERAL_AS_STRING_LITERAL(s) u"" s
 
-#define NS_LITERAL_CSTRING(s) \
-  static_cast<const nsLiteralCString&>(nsLiteralCString("" s))
-#define NS_NAMED_LITERAL_CSTRING(n, s) const nsLiteralCString n("" s)
+#define NS_LITERAL_STRING_FROM_CSTRING(s) \
+  static_cast<const nsLiteralString&>(    \
+      nsLiteralString(NS_CSTRING_LITERAL_AS_STRING_LITERAL(s)))
+
+constexpr auto operator""_ns(const char* aStr, std::size_t aLen) {
+  return nsLiteralCString{aStr, aLen};
+}
+
+constexpr auto operator""_ns(const char16_t* aStr, std::size_t aLen) {
+  return nsLiteralString{aStr, aLen};
+}
 
 #endif /* !defined(nsLiteralString_h___) */

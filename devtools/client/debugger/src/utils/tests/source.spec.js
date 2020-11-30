@@ -16,6 +16,7 @@ import {
   underRoot,
   isUrlExtension,
   isExtensionDirectoryPath,
+  getLineText,
 } from "../source.js";
 
 import {
@@ -23,6 +24,8 @@ import {
   makeMockSourceWithContent,
   makeMockSourceAndContent,
   makeMockWasmSourceWithContent,
+  makeMockThread,
+  makeFullfilledMockSourceContent,
 } from "../test-mockup";
 import { isFulfilled } from "../async-value.js";
 
@@ -47,7 +50,6 @@ const defaultSymbolDeclarations = {
 describe("sources", () => {
   const unicode = "\u6e2c";
   const encodedUnicode = encodeURIComponent(unicode);
-  const punycode = "xn--g6w";
 
   describe("getFilename", () => {
     it("should give us a default of (index)", () => {
@@ -213,15 +215,6 @@ describe("sources", () => {
           makeMockSource("http://localhost.com:7999/increment/hello.html")
         )
       ).toBe("http://localhost.com:7999/increment/hello.html");
-    });
-    it("should give us the readable Unicode file URL if encoded", () => {
-      expect(
-        getFileURL(
-          makeMockSource(
-            `http://${punycode}.${punycode}:7999/increment/${encodedUnicode}.html`
-          )
-        )
-      ).toBe(`http://${unicode}.${unicode}:7999/increment/${unicode}.html`);
     });
     it("should truncate the file url when it is more than 50 chars", () => {
       expect(
@@ -508,31 +501,33 @@ describe("sources", () => {
   });
 
   describe("underRoot", () => {
-    const threadActors = ["server0.conn1.child1/thread19"];
+    const threads = [
+      makeMockThread({ actor: "server0.conn1.child1/thread19" }),
+    ];
 
     it("should detect normal source urls", () => {
       const source = makeMockSource(
         "resource://activity-stream/vendor/react.js"
       );
-      expect(
-        underRoot(source, "resource://activity-stream", threadActors)
-      ).toBe(true);
+      expect(underRoot(source, "resource://activity-stream", threads)).toBe(
+        true
+      );
     });
 
     it("should detect source urls under chrome:// as root", () => {
       const source = makeMockSource(
         "chrome://browser/content/contentSearchUI.js"
       );
-      expect(underRoot(source, "chrome://", threadActors)).toBe(true);
+      expect(underRoot(source, "chrome://", threads)).toBe(true);
     });
 
     it("should detect source urls if root is a thread actor Id", () => {
       const source = makeMockSource(
         "resource://activity-stream/vendor/react-dom.js"
       );
-      expect(
-        underRoot(source, "server0.conn1.child1/thread19", threadActors)
-      ).toBe(true);
+      expect(underRoot(source, "server0.conn1.child1/thread19", threads)).toBe(
+        true
+      );
     });
   });
 
@@ -559,6 +554,49 @@ describe("sources", () => {
       expect(isExtensionDirectoryPath("moz-extension://id/js/content.js")).toBe(
         false
       );
+    });
+  });
+
+  describe("getLineText", () => {
+    it("first line", () => {
+      const text = getLineText(
+        "fake-source",
+        makeFullfilledMockSourceContent("aaa\nbbb\nccc"),
+        1
+      );
+
+      expect(text).toEqual("aaa");
+    });
+
+    it("last line", () => {
+      const text = getLineText(
+        "fake-source",
+        makeFullfilledMockSourceContent("aaa\nbbb\nccc"),
+        3
+      );
+
+      expect(text).toEqual("ccc");
+    });
+
+    it("one line", () => {
+      const text = getLineText(
+        "fake-source",
+        makeFullfilledMockSourceContent("aaa"),
+        1
+      );
+
+      expect(text).toEqual("aaa");
+    });
+
+    it("bad line", () => {
+      const text = getLineText(
+        "fake-source",
+        makeFullfilledMockSourceContent("aaa\nbbb\nccc"),
+
+        5
+      );
+
+      expect(text).toEqual("");
     });
   });
 });

@@ -53,7 +53,7 @@ using namespace mozilla;
 
 #define DEV_EDITION_NAME "dev-edition-default"
 #define DEFAULT_NAME "default"
-#define COMPAT_FILE NS_LITERAL_STRING("compatibility.ini")
+#define COMPAT_FILE u"compatibility.ini"_ns
 #define PROFILE_DB_VERSION "2"
 #define INSTALL_PREFIX "Install"
 #define INSTALL_PREFIX_LENGTH 7
@@ -114,8 +114,8 @@ void RemoveProfileFiles(nsIToolkitProfile* aProfile, bool aInBackground) {
         lock->Unlock();
         // nsIProfileLock is not threadsafe so release our reference to it on
         // the main thread.
-        NS_ReleaseOnMainThreadSystemGroup(
-            "nsToolkitProfile::RemoveProfileFiles::Unlock", lock.forget());
+        NS_ReleaseOnMainThread("nsToolkitProfile::RemoveProfileFiles::Unlock",
+                               lock.forget());
 
         rv = rootDir->Remove(true);
         NS_ENSURE_SUCCESS_VOID(rv);
@@ -388,7 +388,7 @@ nsToolkitProfileService::nsToolkitProfileService()
       mUseDedicatedProfile(false),
 #endif
       mCreatedAlternateProfile(false),
-      mStartupReason(NS_LITERAL_STRING("unknown")),
+      mStartupReason(u"unknown"_ns),
       mMaybeLockProfile(false),
       mUpdateChannel(MOZ_STRINGIFY(MOZ_UPDATE_CHANNEL)),
       mProfileDBExists(false),
@@ -480,7 +480,7 @@ bool nsToolkitProfileService::IsProfileForCurrentInstall(
   }
 
   nsCOMPtr<nsIFile> lastGreDir;
-  rv = NS_NewNativeLocalFile(EmptyCString(), false, getter_AddRefs(lastGreDir));
+  rv = NS_NewNativeLocalFile(""_ns, false, getter_AddRefs(lastGreDir));
   NS_ENSURE_SUCCESS(rv, false);
 
   rv = lastGreDir->SetPersistentDescriptor(lastGreDirStr);
@@ -492,7 +492,7 @@ bool nsToolkitProfileService::IsProfileForCurrentInstall(
   lastGreDirPath = lastGreDir->NativePath();
   currentGreDirPath = currentGreDir->NativePath();
   if (lastGreDirPath.Equals(currentGreDirPath,
-                            nsCaseInsensitiveStringComparator())) {
+                            nsCaseInsensitiveStringComparator)) {
     return true;
   }
 
@@ -504,12 +504,12 @@ bool nsToolkitProfileService::IsProfileForCurrentInstall(
   if (SUCCEEDED(hres)) {
     nsDependentString strPathX86(pathX86);
     if (!StringBeginsWith(currentGreDirPath, strPathX86,
-                          nsCaseInsensitiveStringComparator())) {
+                          nsCaseInsensitiveStringComparator)) {
       PWSTR path = nullptr;
       hres = SHGetKnownFolderPath(FOLDERID_ProgramFiles, 0, nullptr, &path);
       if (SUCCEEDED(hres)) {
         if (StringBeginsWith(currentGreDirPath, nsDependentString(path),
-                             nsCaseInsensitiveStringComparator())) {
+                             nsCaseInsensitiveStringComparator)) {
           currentGreDirPath.Replace(0, wcslen(path), strPathX86);
         }
       }
@@ -519,7 +519,7 @@ bool nsToolkitProfileService::IsProfileForCurrentInstall(
   CoTaskMemFree(pathX86);
 
   return lastGreDirPath.Equals(currentGreDirPath,
-                               nsCaseInsensitiveStringComparator());
+                               nsCaseInsensitiveStringComparator);
 #  endif
 #endif
 
@@ -732,13 +732,13 @@ nsresult nsToolkitProfileService::Init() {
   rv = mAppData->Clone(getter_AddRefs(mProfileDBFile));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = mProfileDBFile->AppendNative(NS_LITERAL_CSTRING("profiles.ini"));
+  rv = mProfileDBFile->AppendNative("profiles.ini"_ns);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = mAppData->Clone(getter_AddRefs(mInstallDBFile));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = mInstallDBFile->AppendNative(NS_LITERAL_CSTRING("installs.ini"));
+  rv = mInstallDBFile->AppendNative("installs.ini"_ns);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsAutoCString buffer;
@@ -823,8 +823,7 @@ nsresult nsToolkitProfileService::Init() {
     return rv;
   }
 
-  rv = ignoreDevEditionProfile->AppendNative(
-      NS_LITERAL_CSTRING("ignore-dev-edition-profile"));
+  rv = ignoreDevEditionProfile->AppendNative("ignore-dev-edition-profile"_ns);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -866,7 +865,7 @@ nsresult nsToolkitProfileService::Init() {
     }
 
     nsCOMPtr<nsIFile> rootDir;
-    rv = NS_NewNativeLocalFile(EmptyCString(), true, getter_AddRefs(rootDir));
+    rv = NS_NewNativeLocalFile(""_ns, true, getter_AddRefs(rootDir));
     NS_ENSURE_SUCCESS(rv, rv);
 
     if (isRelative) {
@@ -878,8 +877,7 @@ nsresult nsToolkitProfileService::Init() {
 
     nsCOMPtr<nsIFile> localDir;
     if (isRelative) {
-      rv =
-          NS_NewNativeLocalFile(EmptyCString(), true, getter_AddRefs(localDir));
+      rv = NS_NewNativeLocalFile(""_ns, true, getter_AddRefs(localDir));
       NS_ENSURE_SUCCESS(rv, rv);
 
       rv = localDir->SetRelativeDescriptor(mTempData, filePath);
@@ -1236,7 +1234,7 @@ nsresult nsToolkitProfileService::SelectStartupProfile(
         rv = MaybeMakeDefaultDedicatedProfile(profile, &result);
         NS_ENSURE_SUCCESS(rv, rv);
         if (result) {
-          mStartupReason = NS_LITERAL_STRING("restart-claimed-default");
+          mStartupReason = u"restart-claimed-default"_ns;
 
           mCurrent = profile;
         } else {
@@ -1249,7 +1247,7 @@ nsresult nsToolkitProfileService::SelectStartupProfile(
           rv = Flush();
           NS_ENSURE_SUCCESS(rv, rv);
 
-          mStartupReason = NS_LITERAL_STRING("restart-skipped-default");
+          mStartupReason = u"restart-skipped-default"_ns;
           *aDidCreate = true;
           mCreatedAlternateProfile = true;
         }
@@ -1263,11 +1261,11 @@ nsresult nsToolkitProfileService::SelectStartupProfile(
     }
 
     if (EnvHasValue("XRE_RESTARTED_BY_PROFILE_MANAGER")) {
-      mStartupReason = NS_LITERAL_STRING("profile-manager");
+      mStartupReason = u"profile-manager"_ns;
     } else if (aIsResetting) {
-      mStartupReason = NS_LITERAL_STRING("profile-reset");
+      mStartupReason = u"profile-reset"_ns;
     } else {
-      mStartupReason = NS_LITERAL_STRING("restart");
+      mStartupReason = u"restart"_ns;
     }
 
     mCurrent = profile;
@@ -1308,7 +1306,7 @@ nsresult nsToolkitProfileService::SelectStartupProfile(
       }
     }
 
-    mStartupReason = NS_LITERAL_STRING("argument-profile");
+    mStartupReason = u"argument-profile"_ns;
 
     GetProfileByDir(lf, nullptr, getter_AddRefs(mCurrent));
     NS_ADDREF(*aRootDir = lf);
@@ -1385,7 +1383,7 @@ nsresult nsToolkitProfileService::SelectStartupProfile(
 
     rv = GetProfileByName(nsDependentCString(arg), getter_AddRefs(mCurrent));
     if (NS_SUCCEEDED(rv)) {
-      mStartupReason = NS_LITERAL_STRING("argument-p");
+      mStartupReason = u"argument-p"_ns;
 
       mCurrent->GetRootDir(aRootDir);
       mCurrent->GetLocalDir(aLocalDir);
@@ -1484,7 +1482,7 @@ nsresult nsToolkitProfileService::SelectStartupProfile(
           rv = MaybeMakeDefaultDedicatedProfile(profile, &result);
           NS_ENSURE_SUCCESS(rv, rv);
           if (result) {
-            mStartupReason = NS_LITERAL_STRING("firstrun-claimed-default");
+            mStartupReason = u"firstrun-claimed-default"_ns;
 
             mCurrent = profile;
             rootDir.forget(aRootDir);
@@ -1511,7 +1509,7 @@ nsresult nsToolkitProfileService::SelectStartupProfile(
       if ((mUseDedicatedProfile || mUseDevEditionProfile) &&
           mProfiles.getFirst() == mProfiles.getLast()) {
         nsCOMPtr<nsIToolkitProfile> newProfile;
-        CreateProfile(nullptr, NS_LITERAL_CSTRING(DEFAULT_NAME),
+        CreateProfile(nullptr, nsLiteralCString(DEFAULT_NAME),
                       getter_AddRefs(newProfile));
         SetNormalDefault(newProfile);
       }
@@ -1520,9 +1518,9 @@ nsresult nsToolkitProfileService::SelectStartupProfile(
       NS_ENSURE_SUCCESS(rv, rv);
 
       if (mCreatedAlternateProfile) {
-        mStartupReason = NS_LITERAL_STRING("firstrun-skipped-default");
+        mStartupReason = u"firstrun-skipped-default"_ns;
       } else {
-        mStartupReason = NS_LITERAL_STRING("firstrun-created-default");
+        mStartupReason = u"firstrun-created-default"_ns;
       }
 
       // Use the new profile.
@@ -1545,7 +1543,7 @@ nsresult nsToolkitProfileService::SelectStartupProfile(
 
   // Let the caller know that the profile was selected by default.
   *aWasDefaultSelection = true;
-  mStartupReason = NS_LITERAL_STRING("default");
+  mStartupReason = u"default"_ns;
 
   // Use the selected profile.
   mCurrent->GetRootDir(aRootDir);
@@ -1758,7 +1756,7 @@ nsToolkitProfileService::CreateProfile(nsIFile* aRootDir,
     rv = rootDir->GetRelativeDescriptor(mAppData, path);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = NS_NewNativeLocalFile(EmptyCString(), true, getter_AddRefs(localDir));
+    rv = NS_NewNativeLocalFile(""_ns, true, getter_AddRefs(localDir));
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = localDir->SetRelativeDescriptor(mTempData, path);
@@ -1892,7 +1890,7 @@ nsresult nsToolkitProfileService::CreateTimesInternal(nsIFile* aProfileDir) {
   rv = aProfileDir->Clone(getter_AddRefs(creationLog));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = creationLog->AppendNative(NS_LITERAL_CSTRING("times.json"));
+  rv = creationLog->AppendNative("times.json"_ns);
   NS_ENSURE_SUCCESS(rv, rv);
 
   bool exists = false;
@@ -2047,7 +2045,7 @@ nsresult XRE_GetFileFromPath(const char* aPath, nsIFile** aResult) {
   if (!fullPath) return NS_ERROR_FAILURE;
 
   nsCOMPtr<nsIFile> lf;
-  nsresult rv = NS_NewNativeLocalFile(EmptyCString(), true, getter_AddRefs(lf));
+  nsresult rv = NS_NewNativeLocalFile(""_ns, true, getter_AddRefs(lf));
   if (NS_SUCCEEDED(rv)) {
     nsCOMPtr<nsILocalFileMac> lfMac = do_QueryInterface(lf, &rv);
     if (NS_SUCCEEDED(rv)) {

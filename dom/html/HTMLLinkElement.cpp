@@ -26,11 +26,9 @@
 #include "mozilla/dom/Document.h"
 #include "nsINode.h"
 #include "nsIPrefetchService.h"
-#include "nsIStyleSheetLinkingElement.h"
 #include "nsPIDOMWindow.h"
 #include "nsReadableUtils.h"
 #include "nsStyleConsts.h"
-#include "nsStyleLinkElement.h"
 #include "nsUnicharUtils.h"
 #include "nsWindowSizes.h"
 #include "nsIContentPolicy.h"
@@ -73,39 +71,29 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(HTMLLinkElement)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(HTMLLinkElement,
                                                   nsGenericHTMLElement)
-  tmp->nsStyleLinkElement::Traverse(cb);
+  tmp->LinkStyle::Traverse(cb);
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mRelList)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSizes)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(HTMLLinkElement,
                                                 nsGenericHTMLElement)
-  tmp->nsStyleLinkElement::Unlink();
+  tmp->LinkStyle::Unlink();
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mRelList)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mSizes)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED(HTMLLinkElement,
-                                             nsGenericHTMLElement,
-                                             nsIStyleSheetLinkingElement, Link)
+                                             nsGenericHTMLElement, Link)
 
 NS_IMPL_ELEMENT_CLONE(HTMLLinkElement)
 
 bool HTMLLinkElement::Disabled() const {
-  if (StaticPrefs::dom_link_disabled_attribute_enabled()) {
-    return GetBoolAttr(nsGkAtoms::disabled);
-  }
-  StyleSheet* ss = GetSheet();
-  return ss && ss->Disabled();
+  return GetBoolAttr(nsGkAtoms::disabled);
 }
 
 void HTMLLinkElement::SetDisabled(bool aDisabled, ErrorResult& aRv) {
-  if (StaticPrefs::dom_link_disabled_attribute_enabled()) {
-    return SetHTMLBoolAttr(nsGkAtoms::disabled, aDisabled, aRv);
-  }
-  if (StyleSheet* ss = GetSheet()) {
-    ss->SetDisabled(aDisabled);
-  }
+  return SetHTMLBoolAttr(nsGkAtoms::disabled, aDisabled, aRv);
 }
 
 void HTMLLinkElement::OnDNSPrefetchRequested() {
@@ -149,11 +137,11 @@ nsresult HTMLLinkElement::BindToTree(BindContext& aContext, nsINode& aParent) {
 }
 
 void HTMLLinkElement::LinkAdded() {
-  CreateAndDispatchEvent(OwnerDoc(), NS_LITERAL_STRING("DOMLinkAdded"));
+  CreateAndDispatchEvent(OwnerDoc(), u"DOMLinkAdded"_ns);
 }
 
 void HTMLLinkElement::LinkRemoved() {
-  CreateAndDispatchEvent(OwnerDoc(), NS_LITERAL_STRING("DOMLinkRemoved"));
+  CreateAndDispatchEvent(OwnerDoc(), u"DOMLinkRemoved"_ns);
 }
 
 void HTMLLinkElement::UnbindFromTree(bool aNullParent) {
@@ -182,7 +170,7 @@ void HTMLLinkElement::UnbindFromTree(bool aNullParent) {
     oldDoc->LocalizationLinkRemoved(this);
   }
 
-  CreateAndDispatchEvent(oldDoc, NS_LITERAL_STRING("DOMLinkRemoved"));
+  CreateAndDispatchEvent(oldDoc, u"DOMLinkRemoved"_ns);
   nsGenericHTMLElement::UnbindFromTree(aNullParent);
 
   Unused << UpdateStyleSheetInternal(oldDoc, oldShadowRoot);
@@ -272,7 +260,7 @@ nsresult HTMLLinkElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
     bool hasHref = aValue;
     Link::ResetLinkState(!!aNotify, hasHref);
     if (IsInUncomposedDoc()) {
-      CreateAndDispatchEvent(OwnerDoc(), NS_LITERAL_STRING("DOMLinkChanged"));
+      CreateAndDispatchEvent(OwnerDoc(), u"DOMLinkChanged"_ns);
     }
   }
 
@@ -319,9 +307,7 @@ nsresult HTMLLinkElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
         (aName == nsGkAtoms::href || aName == nsGkAtoms::rel ||
          aName == nsGkAtoms::title || aName == nsGkAtoms::media ||
          aName == nsGkAtoms::type || aName == nsGkAtoms::as ||
-         aName == nsGkAtoms::crossorigin ||
-         (aName == nsGkAtoms::disabled &&
-          StaticPrefs::dom_link_disabled_attribute_enabled()))) {
+         aName == nsGkAtoms::crossorigin || aName == nsGkAtoms::disabled)) {
       bool dropSheet = false;
       if (aName == nsGkAtoms::rel) {
         nsAutoString value;
@@ -352,17 +338,14 @@ nsresult HTMLLinkElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
     }
   } else {
     if (aNameSpaceID == kNameSpaceID_None) {
-      if (aName == nsGkAtoms::disabled &&
-          StaticPrefs::dom_link_disabled_attribute_enabled()) {
+      if (aName == nsGkAtoms::disabled) {
         mExplicitlyEnabled = true;
       }
       // Since removing href or rel makes us no longer link to a stylesheet,
       // force updates for those too.
       if (aName == nsGkAtoms::href || aName == nsGkAtoms::rel ||
           aName == nsGkAtoms::title || aName == nsGkAtoms::media ||
-          aName == nsGkAtoms::type ||
-          (aName == nsGkAtoms::disabled &&
-           StaticPrefs::dom_link_disabled_attribute_enabled())) {
+          aName == nsGkAtoms::type || aName == nsGkAtoms::disabled) {
         Unused << UpdateStyleSheetInternal(nullptr, nullptr, ForceUpdate::Yes);
       }
       if ((aName == nsGkAtoms::as || aName == nsGkAtoms::type ||
@@ -396,21 +379,20 @@ void HTMLLinkElement::GetLinkTarget(nsAString& aTarget) {
 
 static const DOMTokenListSupportedToken sSupportedRelValues[] = {
     // Keep this and the one below in sync with ToLinkMask in
-    // nsStyleLinkElement.cpp.
+    // LinkStyle.cpp.
     // "preload" must come first because it can be disabled.
     "preload",   "prefetch",   "dns-prefetch", "stylesheet", "next",
     "alternate", "preconnect", "icon",         "search",     nullptr};
 
 static const DOMTokenListSupportedToken sSupportedRelValuesWithManifest[] = {
-    // Keep this in sync with ToLinkMask in nsStyleLinkElement.cpp.
+    // Keep this in sync with ToLinkMask in LinkStyle.cpp.
     // "preload" and "manifest" must come first because they can be disabled.
     "preload",   "manifest",   "prefetch", "dns-prefetch", "stylesheet", "next",
     "alternate", "preconnect", "icon",     "search",       nullptr};
 
 nsDOMTokenList* HTMLLinkElement::RelList() {
   if (!mRelList) {
-    auto preload = Preferences::GetBool("network.preload") ||
-                   StaticPrefs::network_preload_experimental();
+    auto preload = StaticPrefs::network_preload();
     auto manifest = StaticPrefs::dom_manifest_enabled();
     if (manifest && preload) {
       mRelList = new nsDOMTokenList(this, nsGkAtoms::rel,
@@ -432,7 +414,7 @@ already_AddRefed<nsIURI> HTMLLinkElement::GetHrefURI() const {
   return GetHrefURIForAnchors();
 }
 
-Maybe<nsStyleLinkElement::SheetInfo> HTMLLinkElement::GetStyleSheetInfo() {
+Maybe<LinkStyle::SheetInfo> HTMLLinkElement::GetStyleSheetInfo() {
   nsAutoString rel;
   GetAttr(kNameSpaceID_None, nsGkAtoms::rel, rel);
   uint32_t linkTypes = ParseLinkTypes(rel);
@@ -444,7 +426,7 @@ Maybe<nsStyleLinkElement::SheetInfo> HTMLLinkElement::GetStyleSheetInfo() {
     return Nothing();
   }
 
-  if (StaticPrefs::dom_link_disabled_attribute_enabled() && Disabled()) {
+  if (Disabled()) {
     return Nothing();
   }
 
@@ -469,8 +451,6 @@ Maybe<nsStyleLinkElement::SheetInfo> HTMLLinkElement::GetStyleSheetInfo() {
 
   nsCOMPtr<nsIURI> uri = Link::GetURI();
   nsCOMPtr<nsIPrincipal> prin = mTriggeringPrincipal;
-  nsCOMPtr<nsIReferrerInfo> referrerInfo = new ReferrerInfo();
-  referrerInfo->InitWithNode(this);
 
   nsAutoString nonce;
   nsString* cspNonce = static_cast<nsString*>(GetProperty(nsGkAtoms::nonce));
@@ -483,7 +463,7 @@ Maybe<nsStyleLinkElement::SheetInfo> HTMLLinkElement::GetStyleSheetInfo() {
       this,
       uri.forget(),
       prin.forget(),
-      referrerInfo.forget(),
+      MakeAndAddRef<ReferrerInfo>(*this),
       GetCORSMode(),
       title,
       media,
@@ -511,7 +491,7 @@ JSObject* HTMLLinkElement::WrapNode(JSContext* aCx,
 }
 
 void HTMLLinkElement::GetAs(nsAString& aResult) {
-  GetEnumAttr(nsGkAtoms::as, EmptyCString().get(), aResult);
+  GetEnumAttr(nsGkAtoms::as, "", aResult);
 }
 
 static const nsAttrValue::EnumTable kAsAttributeTable[] = {
@@ -554,7 +534,7 @@ nsContentPolicyType HTMLLinkElement::AsValueToContentPolicy(
     case DESTINATION_STYLE:
       return nsIContentPolicy::TYPE_STYLESHEET;
     case DESTINATION_FETCH:
-      return nsIContentPolicy::TYPE_OTHER;
+      return nsIContentPolicy::TYPE_INTERNAL_FETCH_PRELOAD;
   }
   return nsIContentPolicy::TYPE_INVALID;
 }
@@ -593,42 +573,41 @@ void HTMLLinkElement::
 
   uint32_t linkTypes = ParseLinkTypes(rel);
 
-  if ((linkTypes & ePREFETCH) || (linkTypes & eNEXT) ||
-      (linkTypes & ePRELOAD)) {
+  if ((linkTypes & ePREFETCH) || (linkTypes & eNEXT)) {
     nsCOMPtr<nsIPrefetchService> prefetchService(
         components::Prefetch::Service());
     if (prefetchService) {
       nsCOMPtr<nsIURI> uri(GetURI());
       if (uri) {
-        bool preload = !!(linkTypes & ePRELOAD);
-        nsContentPolicyType policyType;
-
-        if (preload) {
-          nsAttrValue asAttr;
-          nsAutoString mimeType;
-          nsAutoString media;
-          GetContentPolicyMimeTypeMedia(asAttr, policyType, mimeType, media);
-
-          if (policyType == nsIContentPolicy::TYPE_INVALID) {
-            // Ignore preload with a wrong or empty as attribute.
-            return;
-          }
-
-          if (!CheckPreloadAttrs(asAttr, mimeType, media, OwnerDoc())) {
-            policyType = nsIContentPolicy::TYPE_INVALID;
-          }
-        }
-
-        nsCOMPtr<nsIReferrerInfo> referrerInfo = new ReferrerInfo();
-        referrerInfo->InitWithNode(this);
-        if (preload) {
-          prefetchService->PreloadURI(uri, referrerInfo, this, policyType);
-        } else {
-          prefetchService->PrefetchURI(uri, referrerInfo, this,
-                                       linkTypes & ePREFETCH);
-        }
+        auto referrerInfo = MakeRefPtr<ReferrerInfo>(*this);
+        prefetchService->PrefetchURI(uri, referrerInfo, this,
+                                     linkTypes & ePREFETCH);
         return;
       }
+    }
+  }
+
+  if (linkTypes & ePRELOAD) {
+    nsCOMPtr<nsIURI> uri(GetURI());
+    if (uri) {
+      nsContentPolicyType policyType;
+
+      nsAttrValue asAttr;
+      nsAutoString mimeType;
+      nsAutoString media;
+      GetContentPolicyMimeTypeMedia(asAttr, policyType, mimeType, media);
+
+      if (policyType == nsIContentPolicy::TYPE_INVALID) {
+        // Ignore preload with a wrong or empty as attribute.
+        return;
+      }
+
+      if (!CheckPreloadAttrs(asAttr, mimeType, media, OwnerDoc())) {
+        policyType = nsIContentPolicy::TYPE_INVALID;
+      }
+
+      StartPreload(policyType);
+      return;
     }
   }
 
@@ -670,11 +649,6 @@ void HTMLLinkElement::UpdatePreload(nsAtom* aName, const nsAttrValue* aValue,
     return;
   }
 
-  nsCOMPtr<nsIPrefetchService> prefetchService(components::Prefetch::Service());
-  if (!prefetchService) {
-    return;
-  }
-
   nsCOMPtr<nsIURI> uri(GetURI());
   if (!uri) {
     return;
@@ -689,7 +663,7 @@ void HTMLLinkElement::UpdatePreload(nsAtom* aName, const nsAttrValue* aValue,
   if (asPolicyType == nsIContentPolicy::TYPE_INVALID) {
     // Ignore preload with a wrong or empty as attribute, but be sure to cancel
     // the old one.
-    prefetchService->CancelPrefetchPreloadURI(uri, this);
+    CancelPrefetchOrPreload();
     return;
   }
 
@@ -702,11 +676,8 @@ void HTMLLinkElement::UpdatePreload(nsAtom* aName, const nsAttrValue* aValue,
     CORSMode corsMode = AttrValueToCORSMode(aValue);
     CORSMode oldCorsMode = AttrValueToCORSMode(aOldValue);
     if (corsMode != oldCorsMode) {
-      prefetchService->CancelPrefetchPreloadURI(uri, this);
-
-      nsCOMPtr<nsIReferrerInfo> referrerInfo = new ReferrerInfo();
-      referrerInfo->InitWithNode(this);
-      prefetchService->PreloadURI(uri, referrerInfo, this, policyType);
+      CancelPrefetchOrPreload();
+      StartPreload(policyType);
     }
     return;
   }
@@ -727,8 +698,6 @@ void HTMLLinkElement::UpdatePreload(nsAtom* aName, const nsAttrValue* aValue,
     nsAutoString notUsed;
     if (aOldValue) {
       aOldValue->ToString(oldType);
-    } else {
-      oldType = EmptyString();
     }
     nsAutoString oldMimeType;
     nsContentUtils::SplitMimeType(oldType, oldMimeType, notUsed);
@@ -742,8 +711,6 @@ void HTMLLinkElement::UpdatePreload(nsAtom* aName, const nsAttrValue* aValue,
     nsAutoString oldMedia;
     if (aOldValue) {
       aOldValue->ToString(oldMedia);
-    } else {
-      oldMedia = EmptyString();
     }
     if (CheckPreloadAttrs(asAttr, mimeType, oldMedia, OwnerDoc())) {
       oldPolicyType = asPolicyType;
@@ -754,7 +721,7 @@ void HTMLLinkElement::UpdatePreload(nsAtom* aName, const nsAttrValue* aValue,
 
   if ((policyType != oldPolicyType) &&
       (oldPolicyType != nsIContentPolicy::TYPE_INVALID)) {
-    prefetchService->CancelPrefetchPreloadURI(uri, this);
+    CancelPrefetchOrPreload();
   }
 
   // Trigger a new preload if the policy type has changed.
@@ -762,18 +729,37 @@ void HTMLLinkElement::UpdatePreload(nsAtom* aName, const nsAttrValue* aValue,
   // trigger an error event.
   if ((policyType != oldPolicyType) ||
       (policyType == nsIContentPolicy::TYPE_INVALID)) {
-    nsCOMPtr<nsIReferrerInfo> referrerInfo = new ReferrerInfo();
-    referrerInfo->InitWithNode(this);
-    prefetchService->PreloadURI(uri, referrerInfo, this, policyType);
+    StartPreload(policyType);
   }
 }
 
 void HTMLLinkElement::CancelPrefetchOrPreload() {
+  CancelPreload();
+
   nsCOMPtr<nsIPrefetchService> prefetchService(components::Prefetch::Service());
   if (prefetchService) {
     if (nsCOMPtr<nsIURI> uri = GetURI()) {
       prefetchService->CancelPrefetchPreloadURI(uri, this);
     }
+  }
+}
+
+void HTMLLinkElement::StartPreload(nsContentPolicyType policyType) {
+  MOZ_ASSERT(!mPreload, "Forgot to cancel the running preload");
+
+  auto referrerInfo = MakeRefPtr<ReferrerInfo>(*this);
+  RefPtr<PreloaderBase> preload =
+      OwnerDoc()->Preloads().PreloadLinkElement(this, policyType, referrerInfo);
+  mPreload = preload.get();
+}
+
+void HTMLLinkElement::CancelPreload() {
+  if (mPreload) {
+    // This will cancel the loading channel if this was the last referred node
+    // and the preload is not used up until now to satisfy a regular tag load
+    // request.
+    mPreload->RemoveLinkPreloadNode(this);
+    mPreload = nullptr;
   }
 }
 
@@ -821,16 +807,12 @@ bool HTMLLinkElement::CheckPreloadAttrs(const nsAttrValue& aAs,
   nsString type = nsString(aType);
   ToLowerCase(type);
 
-  if (policyType == nsIContentPolicy::TYPE_OTHER) {
+  if (policyType == nsIContentPolicy::TYPE_INTERNAL_FETCH_PRELOAD) {
     return true;
-
-  } else if (policyType == nsIContentPolicy::TYPE_MEDIA) {
+  }
+  if (policyType == nsIContentPolicy::TYPE_MEDIA) {
     if (aAs.GetEnumValue() == DESTINATION_TRACK) {
-      if (type.EqualsASCII("text/vtt")) {
-        return true;
-      } else {
-        return false;
-      }
+      return type.EqualsASCII("text/vtt");
     }
     Maybe<MediaContainerType> mimeType = MakeMediaContainerType(aType);
     if (!mimeType) {
@@ -840,41 +822,21 @@ bool HTMLLinkElement::CheckPreloadAttrs(const nsAttrValue& aAs,
     CanPlayStatus status =
         DecoderTraits::CanHandleContainerType(*mimeType, &diagnostics);
     // Preload if this return CANPLAY_YES and CANPLAY_MAYBE.
-    if (status == CANPLAY_NO) {
-      return false;
-    } else {
-      return true;
-    }
-
-  } else if (policyType == nsIContentPolicy::TYPE_FONT) {
-    if (IsFontMimeType(type)) {
-      return true;
-    } else {
-      return false;
-    }
-
-  } else if (policyType == nsIContentPolicy::TYPE_IMAGE) {
-    if (imgLoader::SupportImageWithMimeType(
-            NS_ConvertUTF16toUTF8(type).get(),
-            AcceptedMimeTypes::IMAGES_AND_DOCUMENTS)) {
-      return true;
-    } else {
-      return false;
-    }
-
-  } else if (policyType == nsIContentPolicy::TYPE_SCRIPT) {
-    if (nsContentUtils::IsJavascriptMIMEType(type)) {
-      return true;
-    } else {
-      return false;
-    }
-
-  } else if (policyType == nsIContentPolicy::TYPE_STYLESHEET) {
-    if (type.EqualsASCII("text/css")) {
-      return true;
-    } else {
-      return false;
-    }
+    return status != CANPLAY_NO;
+  }
+  if (policyType == nsIContentPolicy::TYPE_FONT) {
+    return IsFontMimeType(type);
+  }
+  if (policyType == nsIContentPolicy::TYPE_IMAGE) {
+    return imgLoader::SupportImageWithMimeType(
+        NS_ConvertUTF16toUTF8(type).get(),
+        AcceptedMimeTypes::IMAGES_AND_DOCUMENTS);
+  }
+  if (policyType == nsIContentPolicy::TYPE_SCRIPT) {
+    return nsContentUtils::IsJavascriptMIMEType(type);
+  }
+  if (policyType == nsIContentPolicy::TYPE_STYLESHEET) {
+    return type.EqualsASCII("text/css");
   }
   return false;
 }

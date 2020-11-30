@@ -21,6 +21,25 @@
       };
     }
 
+    static get markup() {
+      return `
+        <stringbundle src="chrome://browser/locale/search.properties"></stringbundle>
+        <hbox class="searchbar-search-button" tooltiptext="&searchIcon.tooltip;">
+          <image class="searchbar-search-icon"></image>
+          <image class="searchbar-search-icon-overlay"></image>
+        </hbox>
+        <html:input class="searchbar-textbox" is="autocomplete-input" type="search" placeholder="&searchInput.placeholder;" autocompletepopup="PopupSearchAutoComplete" autocompletesearch="search-autocomplete" autocompletesearchparam="searchbar-history" maxrows="10" completeselectedindex="true" minresultsforpopup="0"/>
+        <menupopup class="textbox-contextmenu"></menupopup>
+        <hbox class="search-go-container">
+          <image class="search-go-button urlbar-icon" hidden="true" onclick="handleSearchCommand(event);" tooltiptext="&contentSearchSubmit.tooltip;"></image>
+        </hbox>
+      `;
+    }
+
+    static get entities() {
+      return ["chrome://browser/locale/browser.dtd"];
+    }
+
     constructor() {
       super();
 
@@ -41,24 +60,8 @@
             searchbar.updateDisplay();
           }
         },
-        QueryInterface: ChromeUtils.generateQI([Ci.nsIObserver]),
+        QueryInterface: ChromeUtils.generateQI(["nsIObserver"]),
       };
-
-      this.content = MozXULElement.parseXULToFragment(
-        `
-        <stringbundle src="chrome://browser/locale/search.properties"></stringbundle>
-        <hbox class="searchbar-search-button" tooltiptext="&searchIcon.tooltip;">
-          <image class="searchbar-search-icon"></image>
-          <image class="searchbar-search-icon-overlay"></image>
-        </hbox>
-        <html:input class="searchbar-textbox" is="autocomplete-input" type="search" placeholder="&searchInput.placeholder;" autocompletepopup="PopupSearchAutoComplete" autocompletesearch="search-autocomplete" autocompletesearchparam="searchbar-history" maxrows="10" completeselectedindex="true" minresultsforpopup="0"/>
-        <menupopup class="textbox-contextmenu"></menupopup>
-        <hbox class="search-go-container">
-          <image class="search-go-button urlbar-icon" hidden="true" onclick="handleSearchCommand(event);" tooltiptext="&contentSearchSubmit.tooltip;"></image>
-        </hbox>
-        `,
-        ["chrome://browser/locale/browser.dtd"]
-      );
 
       this._ignoreFocus = false;
       this._engines = null;
@@ -70,12 +73,22 @@
         return;
       }
 
-      this.appendChild(document.importNode(this.content, true));
+      this.appendChild(this.constructor.fragment);
       this.initializeAttributeInheritance();
 
       // Don't go further if in Customize mode.
       if (this.parentNode.parentNode.localName == "toolbarpaletteitem") {
         return;
+      }
+
+      // Ensure we get persisted widths back, if we've been in the palette:
+      let storedWidth = Services.xulStore.getValue(
+        document.documentURI,
+        this.parentNode.id,
+        "width"
+      );
+      if (storedWidth) {
+        this.parentNode.setAttribute("width", storedWidth);
       }
 
       this._stringBundle = this.querySelector("stringbundle");
@@ -224,9 +237,6 @@
     }
 
     updateDisplay() {
-      let uri = this.currentEngine.iconURI;
-      this.setIcon(this, uri ? uri.spec : "");
-
       this._textbox.title = this._stringBundle.getFormattedString("searchtip", [
         this.currentEngine.name,
       ]);
@@ -284,6 +294,7 @@
     handleSearchCommand(aEvent, aEngine, aForceNewTab) {
       let where = "current";
       let params;
+      const newTabPref = Services.prefs.getBoolPref("browser.search.openintab");
 
       // Open ctrl/cmd clicks on one-off buttons in a new background tab.
       if (
@@ -294,13 +305,21 @@
           return;
         }
         where = whereToOpenLink(aEvent, false, true);
+        if (
+          newTabPref &&
+          !aEvent.altKey &&
+          !aEvent.getModifierState("AltGraph") &&
+          where == "current" &&
+          !gBrowser.selectedTab.isEmpty
+        ) {
+          where = "tab";
+        }
       } else if (aForceNewTab) {
         where = "tab";
         if (Services.prefs.getBoolPref("browser.tabs.loadInBackground")) {
           where += "-background";
         }
       } else {
-        let newTabPref = Services.prefs.getBoolPref("browser.search.openintab");
         if (
           (aEvent instanceof KeyboardEvent &&
             (aEvent.altKey || aEvent.getModifierState("AltGraph"))) ^
@@ -319,7 +338,6 @@
           };
         }
       }
-
       this.handleSearchCommandWhere(aEvent, aEngine, where, params);
     }
 
@@ -375,6 +393,7 @@
 
     doSearch(aData, aWhere, aEngine, aParams, aOneOff) {
       let textBox = this._textbox;
+      let engine = aEngine || this.currentEngine;
 
       // Save the current value in the form history
       if (
@@ -387,6 +406,7 @@
             op: "bump",
             fieldname: textBox.getAttribute("autocompletesearchparam"),
             value: aData,
+            source: engine.name,
           },
           {
             handleError(aError) {
@@ -398,7 +418,6 @@
         );
       }
 
-      let engine = aEngine || this.currentEngine;
       let submission = engine.getSubmission(aData, null, "searchbar");
       let telemetrySearchDetails = this.telemetrySearchDetails;
       this.telemetrySearchDetails = null;
@@ -410,6 +429,7 @@
         isOneOff: aOneOff,
         isSuggestion: !aOneOff && telemetrySearchDetails,
         selection: telemetrySearchDetails,
+        url: submission.uri,
       };
       BrowserSearch.recordSearchInTelemetry(engine, "searchbar", details);
       // null parameter below specifies HTML response for search
@@ -448,27 +468,6 @@
     _setupEventListeners() {
       this.addEventListener("click", event => {
         this._maybeSelectAll();
-      });
-
-      this.addEventListener("command", event => {
-        const target = event.originalTarget;
-        if (target.engine) {
-          this.currentEngine = target.engine;
-        } else if (target.classList.contains("addengine-item")) {
-          // Select the installed engine if the installation succeeds.
-          Services.search
-            .addEngine(
-              target.getAttribute("uri"),
-              target.getAttribute("src"),
-              false
-            )
-            .then(engine => (this.currentEngine = engine));
-        } else {
-          return;
-        }
-
-        this.focus();
-        this.select();
       });
 
       this.addEventListener(
@@ -571,76 +570,6 @@
         this.textbox.popup.removeAttribute("showonlysettings");
       });
 
-      this.textbox.addEventListener(
-        "keypress",
-        event => {
-          // accel + up/down changes the default engine and shouldn't affect
-          // the selection on the one-off buttons.
-          let popup = this.textbox.popup;
-          if (!popup.popupOpen || event.getModifierState("Accel")) {
-            return;
-          }
-
-          let suggestionsHidden =
-            popup.richlistbox.getAttribute("collapsed") == "true";
-          let numItems = suggestionsHidden ? 0 : popup.matchCount;
-          popup.oneOffButtons.handleKeyPress(event, numItems, true);
-        },
-        true
-      );
-
-      this.textbox.addEventListener(
-        "keypress",
-        event => {
-          if (
-            event.keyCode == KeyEvent.DOM_VK_UP &&
-            event.getModifierState("Accel")
-          ) {
-            this.selectEngine(event, false);
-          }
-        },
-        true
-      );
-
-      this.textbox.addEventListener(
-        "keypress",
-        event => {
-          if (
-            event.keyCode == KeyEvent.DOM_VK_DOWN &&
-            event.getModifierState("Accel")
-          ) {
-            this.selectEngine(event, true);
-          }
-        },
-        true
-      );
-
-      this.textbox.addEventListener(
-        "keypress",
-        event => {
-          if (
-            event.getModifierState("Alt") &&
-            (event.keyCode == KeyEvent.DOM_VK_DOWN ||
-              event.keyCode == KeyEvent.DOM_VK_UP)
-          ) {
-            this.textbox.openSearch();
-          }
-        },
-        true
-      );
-
-      if (AppConstants.platform == "macosx") {
-        this.textbox.addEventListener(
-          "keypress",
-          event => {
-            if (event.keyCode == KeyEvent.DOM_VK_F4) {
-              this.textbox.openSearch();
-            }
-          },
-          true
-        );
-      }
-
       this.textbox.addEventListener("dragover", event => {
         let types = event.dataTransfer.types;
         if (
@@ -671,6 +600,12 @@
 
         BrowserSearch.searchBar._textbox.closePopup();
 
+        // Make sure the context menu isn't opened via keyboard shortcut. Check for text selection
+        // before updating the state of any menu items.
+        if (event.button) {
+          this._maybeSelectAll();
+        }
+
         // Update disabled state of menu items
         for (let item of this._menupopup.querySelectorAll("menuitem[cmd]")) {
           let command = item.getAttribute("cmd");
@@ -687,10 +622,6 @@
 
         this._menupopup.openPopupAtScreen(event.screenX, event.screenY, true);
 
-        // Make sure the context menu isn't opened via keyboard shortcut.
-        if (event.button) {
-          this._maybeSelectAll();
-        }
         event.preventDefault();
       });
     }
@@ -734,8 +665,48 @@
       // This is implemented so that when textbox.value is set directly (e.g.,
       // by tests), the one-off query is updated.
       this.textbox.onBeforeValueSet = aValue => {
-        this.textbox.popup.oneOffButtons.query = aValue;
+        if (this.textbox.popup._oneOffButtons) {
+          this.textbox.popup.oneOffButtons.query = aValue;
+        }
         return aValue;
+      };
+
+      // Returns true if the event is handled by us, false otherwise.
+      this.textbox.onBeforeHandleKeyDown = aEvent => {
+        if (aEvent.getModifierState("Accel")) {
+          if (
+            aEvent.keyCode == KeyEvent.DOM_VK_DOWN ||
+            aEvent.keyCode == KeyEvent.DOM_VK_UP
+          ) {
+            this.selectEngine(aEvent, aEvent.keyCode == KeyEvent.DOM_VK_DOWN);
+            return true;
+          }
+          return false;
+        }
+
+        if (
+          (AppConstants.platform == "macosx" &&
+            aEvent.keyCode == KeyEvent.DOM_VK_F4) ||
+          (aEvent.getModifierState("Alt") &&
+            (aEvent.keyCode == KeyEvent.DOM_VK_DOWN ||
+              aEvent.keyCode == KeyEvent.DOM_VK_UP))
+        ) {
+          if (!this.textbox.openSearch()) {
+            aEvent.preventDefault();
+            aEvent.stopPropagation();
+            return true;
+          }
+        }
+
+        let popup = this.textbox.popup;
+        if (!popup.popupOpen) {
+          return false;
+        }
+
+        let suggestionsHidden =
+          popup.richlistbox.getAttribute("collapsed") == "true";
+        let numItems = suggestionsHidden ? 0 : popup.matchCount;
+        return popup.oneOffButtons.handleKeyDown(aEvent, numItems, true);
       };
 
       // This method overrides the autocomplete binding's openPopup (essentially

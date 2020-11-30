@@ -7,24 +7,27 @@
 
 var gClient, gActorId;
 
-function TestActor(conn) {
-  this.conn = conn;
-}
-TestActor.prototype = {
-  actorPrefix: "test",
+const { Actor } = require("devtools/shared/protocol/Actor");
 
-  hello: function() {
+class TestActor extends Actor {
+  constructor(conn) {
+    super(conn);
+
+    this.typeName = "test";
+    this.requestTypes = {
+      hello: this.hello,
+      error: this.error,
+    };
+  }
+
+  hello() {
     return { hello: "world" };
-  },
+  }
 
-  error: function() {
+  error() {
     return { error: "code", message: "human message" };
-  },
-};
-TestActor.prototype.requestTypes = {
-  hello: TestActor.prototype.hello,
-  error: TestActor.prototype.error,
-};
+  }
+}
 
 function run_test() {
   ActorRegistry.addGlobalActor(
@@ -61,11 +64,6 @@ function init() {
 }
 
 function checkStack(expectedName) {
-  if (!Services.prefs.getBoolPref("javascript.options.asyncstack")) {
-    info("Async stacks are disabled.");
-    return;
-  }
-
   let stack = Components.stack;
   while (stack) {
     info(stack.name);

@@ -6,6 +6,7 @@
 
 extern crate geckoservo;
 
+extern crate app_services_logger;
 #[cfg(feature = "cubeb-remoting")]
 extern crate audioipc_client;
 #[cfg(feature = "cubeb-remoting")]
@@ -15,6 +16,7 @@ extern crate authenticator;
 extern crate bitsdownload;
 #[cfg(feature = "moz_places")]
 extern crate bookmark_sync;
+extern crate cascade_bloom_filter;
 #[cfg(feature = "new_cert_storage")]
 extern crate cert_storage;
 extern crate chardetng_c;
@@ -24,13 +26,14 @@ extern crate cubeb_coreaudio;
 #[cfg(feature = "cubeb_pulse_rust")]
 extern crate cubeb_pulse;
 extern crate encoding_glue;
-extern crate env_logger;
-#[cfg(feature = "fogotype")]
-extern crate fog;
+#[cfg(feature = "rust_fxa_client")]
+extern crate firefox_accounts_bridge;
+#[cfg(feature = "glean")]
+extern crate fog_control;
 extern crate gkrust_utils;
+extern crate http_sfv;
 extern crate jsrust_shared;
 extern crate kvstore;
-extern crate log;
 extern crate mapped_hyph;
 extern crate mozurl;
 extern crate mp4parse_capi;
@@ -38,6 +41,7 @@ extern crate netwerk_helper;
 extern crate nserror;
 extern crate nsstring;
 extern crate prefs_parser;
+extern crate processtools;
 #[cfg(feature = "gecko_profiler")]
 extern crate profiler_helper;
 extern crate rsdparsa_capi;
@@ -52,14 +56,19 @@ extern crate xulstore;
 
 extern crate audio_thread_priority;
 
+#[cfg(not(target_os = "android"))]
+extern crate webext_storage_bridge;
+
 #[cfg(feature = "webrtc")]
 extern crate mdns_service;
 extern crate neqo_glue;
 #[cfg(feature = "webgpu")]
-extern crate wgpu_remote;
+extern crate wgpu_bindings;
 
 #[cfg(feature = "wasm_library_sandboxing")]
 extern crate rlbox_lucet_sandbox;
+
+extern crate qcms;
 
 extern crate unic_langid;
 extern crate unic_langid_ffi;
@@ -67,107 +76,23 @@ extern crate unic_langid_ffi;
 extern crate fluent_langneg;
 extern crate fluent_langneg_ffi;
 
+extern crate fluent;
+extern crate fluent_ffi;
+
+#[cfg(not(target_os = "android"))]
+extern crate viaduct;
+
 #[cfg(feature = "remote")]
 extern crate remote;
 
-#[cfg(target_os = "android")]
-use log::Level;
-#[cfg(not(target_os = "android"))]
-use log::Log;
-use std::boxed::Box;
-use std::env;
-use std::ffi::{CStr, CString};
-use std::os::raw::c_char;
-#[cfg(target_os = "android")]
-use std::os::raw::c_int;
+extern crate gecko_logger;
 
-extern "C" {
-    fn gfx_critical_note(msg: *const c_char);
-    #[cfg(target_os = "android")]
-    fn __android_log_write(prio: c_int, tag: *const c_char, text: *const c_char) -> c_int;
-}
+extern crate log;
+use log::info;
 
-struct GeckoLogger {
-    logger: env_logger::Logger,
-}
+use std::{ffi::CStr, os::raw::c_char};
 
-impl GeckoLogger {
-    fn new() -> GeckoLogger {
-        let mut builder = env_logger::Builder::new();
-        let default_level = if cfg!(debug_assertions) {
-            "warn"
-        } else {
-            "error"
-        };
-        let logger = match env::var("RUST_LOG") {
-            Ok(v) => builder.parse_filters(&v).build(),
-            _ => builder.parse_filters(default_level).build(),
-        };
-
-        GeckoLogger { logger }
-    }
-
-    fn init() -> Result<(), log::SetLoggerError> {
-        let gecko_logger = Self::new();
-
-        log::set_max_level(gecko_logger.logger.filter());
-        log::set_boxed_logger(Box::new(gecko_logger))
-    }
-
-    fn should_log_to_gfx_critical_note(record: &log::Record) -> bool {
-        if record.level() == log::Level::Error && record.target().contains("webrender") {
-            true
-        } else {
-            false
-        }
-    }
-
-    fn maybe_log_to_gfx_critical_note(&self, record: &log::Record) {
-        if Self::should_log_to_gfx_critical_note(record) {
-            let msg = CString::new(format!("{}", record.args())).unwrap();
-            unsafe {
-                gfx_critical_note(msg.as_ptr());
-            }
-        }
-    }
-
-    #[cfg(not(target_os = "android"))]
-    fn log_out(&self, record: &log::Record) {
-        self.logger.log(record);
-    }
-
-    #[cfg(target_os = "android")]
-    fn log_out(&self, record: &log::Record) {
-        let msg = CString::new(format!("{}", record.args())).unwrap();
-        let tag = CString::new(record.module_path().unwrap()).unwrap();
-        let prio = match record.metadata().level() {
-            Level::Error => 6, /* ERROR */
-            Level::Warn => 5,  /* WARN */
-            Level::Info => 4,  /* INFO */
-            Level::Debug => 3, /* DEBUG */
-            Level::Trace => 2, /* VERBOSE */
-        };
-        // Output log directly to android log, since env_logger can output log
-        // only to stderr or stdout.
-        unsafe {
-            __android_log_write(prio, tag.as_ptr(), msg.as_ptr());
-        }
-    }
-}
-
-impl log::Log for GeckoLogger {
-    fn enabled(&self, metadata: &log::Metadata) -> bool {
-        self.logger.enabled(metadata)
-    }
-
-    fn log(&self, record: &log::Record) {
-        // Forward log to gfxCriticalNote, if the log should be in gfx crash log.
-        self.maybe_log_to_gfx_critical_note(record);
-        self.log_out(record);
-    }
-
-    fn flush(&self) {}
-}
+use gecko_logger::GeckoLogger;
 
 #[no_mangle]
 pub extern "C" fn GkRust_Init() {
@@ -182,6 +107,15 @@ pub extern "C" fn GkRust_Shutdown() {}
 #[no_mangle]
 pub extern "C" fn intentional_panic(message: *const c_char) {
     panic!("{}", unsafe { CStr::from_ptr(message) }.to_string_lossy());
+}
+
+/// Used to implement `nsIDebug2::rustLog` for testing purposes.
+#[no_mangle]
+pub extern "C" fn debug_log(target: *const c_char, message: *const c_char) {
+    unsafe {
+        // NOTE: The `info!` log macro is used here because we have the `release_max_level_info` feature set.
+        info!(target: CStr::from_ptr(target).to_str().unwrap(), "{}", CStr::from_ptr(message).to_str().unwrap());
+    }
 }
 
 #[cfg(feature = "oom_with_hook")]

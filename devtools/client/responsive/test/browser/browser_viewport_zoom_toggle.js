@@ -49,9 +49,7 @@ addRDMTask(
     // It will now pass all of its messages through to the RDM docshell, meaning that when
     // we request zoom level from it now, we are getting the RDM zoom level.
     const { ui } = await openRDM(tab);
-
-    // Always wait for the post-init message.
-    await message.wait(ui.toolWindow, "post-init");
+    await waitForDeviceAndViewportState(ui);
 
     const uiDocShell = ui.toolWindow.docShell;
 
@@ -61,7 +59,7 @@ addRDMTask(
     // reset the docShell before toggling RDM, which makes checking the initial zoom of the
     // RDM pane not useful.
 
-    const preZoomUIZoom = uiDocShell.contentViewer.fullZoom;
+    const preZoomUIZoom = uiDocShell.browsingContext.fullZoom;
     is(
       preZoomUIZoom,
       INITIAL_ZOOM_LEVEL,
@@ -72,7 +70,7 @@ addRDMTask(
     setZoomForBrowser(browser, MID_RDM_ZOOM_LEVEL);
 
     // The UI zoom should be unchanged by this.
-    const postZoomUIZoom = uiDocShell.contentViewer.fullZoom;
+    const postZoomUIZoom = uiDocShell.browsingContext.fullZoom;
     is(
       postZoomUIZoom,
       preZoomUIZoom,
@@ -99,5 +97,5 @@ addRDMTask(
 
     await removeTab(tab);
   },
-  { usingBrowserUI: true, onlyPrefAndTask: true }
+  { onlyPrefAndTask: true }
 );

@@ -8,7 +8,7 @@
  */
 
 var { DevToolsServer } = require("devtools/server/devtools-server");
-var { DevToolsClient } = require("devtools/shared/client/devtools-client");
+var { DevToolsClient } = require("devtools/client/devtools-client");
 
 const TAB1_URL = EXAMPLE_URL + "doc_empty-tab-01.html";
 
@@ -22,30 +22,30 @@ add_task(async function test() {
   is(type, "browser", "Root actor should identify itself as a browser.");
   const tab = await addTab(TAB1_URL);
 
-  let tabs = await client.mainRoot.listTabs();
-  is(tabs.length, 2, "Should be two tabs");
-  const tabFront = tabs.filter(a => a.url == TAB1_URL).pop();
-  ok(tabFront, "Should have an actor for the tab");
+  const tabDescriptors = await client.mainRoot.listTabs();
+  is(tabDescriptors.length, 2, "Should be two tabs");
+  const tabDescriptor = tabDescriptors.find(d => d.url == TAB1_URL);
+  ok(tabDescriptor, "Should have a descriptor actor for the tab");
 
-  await tabFront.attach();
+  let tabTarget = await tabDescriptor.getTarget();
+  ok(isTargetAttached(tabTarget), "The tab target should be attached");
+  const targetActorId = tabTarget.actorID;
 
-  const previousActorID = tabFront.actorID;
-  let response = await tabFront.detach();
-  is(response.type, "detached", "Should have detached");
+  info("Detach the tab target");
+  await tabTarget.detach();
 
-  tabs = await client.mainRoot.listTabs();
-  const newFront = tabs.find(a => a.url == TAB1_URL);
-  is(
-    newFront.actorID,
-    previousActorID,
-    "Should have the same actor for the same tab"
-  );
-  isnot(newFront, tabFront, "But the front should be a new one");
+  info("Wait until the tab target is destroyed");
+  await waitUntil(() => !tabTarget.actorID);
 
-  await newFront.attach();
-  response = await newFront.detach();
-  is(response.type, "detached", "Should have detached");
+  info("Call getTarget() again on the tabDescriptor");
+  tabTarget = await tabDescriptor.getTarget();
+  ok(targetActorId !== tabTarget.actorID, "We should get a new target actor");
+  ok(isTargetAttached(tabTarget), "The new tab target should also be attached");
 
   await removeTab(tab);
   await client.close();
 });
+
+function isTargetAttached(targetFront) {
+  return !!targetFront?.targetForm?.threadActor;
+}

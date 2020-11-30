@@ -1,14 +1,17 @@
+/* clang-format off */
 /* -*- Mode: Objective-C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* clang-format on */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "AccessibleWrap.h"
 #include "ProxyAccessible.h"
+#include "AccessibleOrProxy.h"
 
 #import <Cocoa/Cocoa.h>
 
-#import "mozAccessibleProtocol.h"
+#import "MOXAccessibleBase.h"
 
 @class mozRootAccessible;
 
@@ -22,155 +25,212 @@
 namespace mozilla {
 namespace a11y {
 
-inline id<mozAccessible> GetObjectOrRepresentedView(id<mozAccessible> aObject) {
-  return [aObject hasRepresentedView] ? [aObject representedView] : aObject;
-}
+inline mozAccessible* GetNativeFromGeckoAccessible(
+    mozilla::a11y::AccessibleOrProxy aAccOrProxy) {
+  MOZ_ASSERT(!aAccOrProxy.IsNull(), "Cannot get native from null accessible");
+  if (Accessible* acc = aAccOrProxy.AsAccessible()) {
+    mozAccessible* native = nil;
+    acc->GetNativeInterface((void**)&native);
+    return native;
+  }
 
-inline mozAccessible* GetNativeFromGeckoAccessible(Accessible* aAccessible) {
-  mozAccessible* native = nil;
-  aAccessible->GetNativeInterface((void**)&native);
-  return native;
-}
-
-inline mozAccessible* GetNativeFromProxy(const ProxyAccessible* aProxy) {
-  return reinterpret_cast<mozAccessible*>(aProxy->GetWrapper());
+  ProxyAccessible* proxy = aAccOrProxy.AsProxy();
+  return reinterpret_cast<mozAccessible*>(proxy->GetWrapper());
 }
 
 }  // a11y
 }  // mozilla
 
-// This is OR'd with the Accessible owner to indicate the wrap-ee is a proxy.
-static const uintptr_t IS_PROXY = 1;
-
-@interface mozAccessible : NSObject <mozAccessible> {
+@interface mozAccessible : MOXAccessibleBase {
   /**
-   * Weak reference; it owns us.
+   * Reference to the accessible we were created with;
+   * either a proxy accessible or an accessible wrap.
    */
-  uintptr_t mGeckoAccessible;
-
-  /**
-   * Strong ref to array of children
-   */
-  NSMutableArray* mChildren;
-
-  /**
-   * Weak reference to the parent
-   */
-  mozAccessible* mParent;
+  mozilla::a11y::AccessibleOrProxy mGeckoAccessible;
 
   /**
    * The role of our gecko accessible.
    */
   mozilla::a11y::role mRole;
+
+  /**
+   * A cache of a subset of our states.
+   */
+  uint64_t mCachedState;
+
+  nsStaticAtom* mARIARole;
 }
 
-// return the Accessible for this mozAccessible if it exists.
-- (mozilla::a11y::AccessibleWrap*)getGeckoAccessible;
+// inits with the given wrap or proxy accessible
+- (id)initWithAccessible:(mozilla::a11y::AccessibleOrProxy)aAccOrProxy;
 
-// return the ProxyAccessible for this mozAccessible if it exists.
-- (mozilla::a11y::ProxyAccessible*)getProxyAccessible;
+// allows for gecko accessible access outside of the class
+- (mozilla::a11y::AccessibleOrProxy)geckoAccessible;
 
-// inits with the gecko owner.
-- (id)initWithAccessible:(uintptr_t)aGeckoObj;
+- (mozilla::a11y::AccessibleOrProxy)geckoDocument;
 
-// our accessible parent (AXParent)
-- (id<mozAccessible>)parent;
+// override
+- (void)dealloc;
 
-// a lazy cache of our accessible children (AXChildren). updated
-- (NSArray*)children;
+// should a child be disabled
+- (BOOL)disableChild:(mozAccessible*)child;
 
-// returns the size of this accessible.
-- (NSValue*)size;
+// Given a gecko accessibility event type, post the relevant
+// system accessibility notification.
+// Note: when overriding or adding new events, make sure your events aren't
+// filtered out in Platform::ProxyEvent or AccessibleWrap::HandleAccEvent!
+- (void)handleAccessibleEvent:(uint32_t)eventType;
 
-// returns the position, in cocoa coordinates.
-- (NSValue*)position;
-
-// can be overridden to report another role name.
-- (NSString*)role;
-
-// a subrole is a more specialized variant of the role. for example,
-// the role might be "textfield", while the subrole is "password textfield".
-- (NSString*)subrole;
-
-// Return the role description, as there are a few exceptions.
-- (NSString*)roleDescription;
-
-// returns the native window we're inside.
-- (NSWindow*)window;
-
-// the value of this element.
-- (id)value;
-
-// name that is associated with this accessible (for buttons, etc)
-- (NSString*)title;
-
-// the accessible description (help text) of this particular instance.
-- (NSString*)help;
-
-// returns the orientation (vertical, horizontal, or undefined)
-- (NSString*)orientation;
-
-- (BOOL)isEnabled;
-
-// information about focus.
-- (BOOL)isFocused;
-- (BOOL)canBeFocused;
-
-// returns NO if for some reason we were unable to focus the element.
-- (BOOL)focus;
-
-// notifications sent out to listening accessible providers.
-- (void)didReceiveFocus;
-- (void)valueDidChange;
-- (void)selectedTextDidChange;
-- (void)documentLoadComplete;
+- (void)handleAccessibleTextChangeEvent:(NSString*)change
+                               inserted:(BOOL)isInserted
+                            inContainer:
+                                (const mozilla::a11y::AccessibleOrProxy&)
+                                    container
+                                     at:(int32_t)start;
 
 // internal method to retrieve a child at a given index.
 - (id)childAt:(uint32_t)i;
 
+// Get gecko accessible's state.
+- (uint64_t)state;
+
+// Get gecko accessible's state filtered through given mask.
+- (uint64_t)stateWithMask:(uint64_t)mask;
+
+// Notify of a state change, so the cache can be altered.
+- (void)stateChanged:(uint64_t)state isEnabled:(BOOL)enabled;
+
+// Invalidate cached state.
+- (void)invalidateState;
+
+// Get top level (tab) web area.
+- (mozAccessible*)topWebArea;
+
+// Handle a role change
+- (void)handleRoleChanged:(mozilla::a11y::role)newRole;
+
+#pragma mark - mozAccessible protocol / widget
+
+// override
+- (BOOL)hasRepresentedView;
+
+// override
+- (id)representedView;
+
+// override
+- (BOOL)isRoot;
+
+#pragma mark - MOXAccessible protocol
+
+// override
+- (BOOL)moxBlockSelector:(SEL)selector;
+
+// override
+- (id)moxHitTest:(NSPoint)point;
+
+// override
+- (id)moxFocusedUIElement;
+
+- (id<MOXTextMarkerSupport>)moxTextMarkerDelegate;
+
+// Attribute getters
+
+// override
+- (id<mozAccessible>)moxParent;
+
+// override
+- (NSArray*)moxChildren;
+
+// override
+- (NSValue*)moxSize;
+
+// override
+- (NSValue*)moxPosition;
+
+// override
+- (NSString*)moxRole;
+
+// override
+- (NSString*)moxSubrole;
+
+// override
+- (NSString*)moxRoleDescription;
+
+// override
+- (NSWindow*)moxWindow;
+
+// override
+- (id)moxValue;
+
+// override
+- (NSString*)moxTitle;
+
+// override
+- (NSString*)moxLabel;
+
+// override
+- (NSString*)moxHelp;
+
+// override
+- (NSNumber*)moxEnabled;
+
+// override
+- (NSNumber*)moxFocused;
+
+// override
+- (NSNumber*)moxSelected;
+
+// override
+- (NSString*)moxARIACurrent;
+
+// override
+- (id)moxTitleUIElement;
+
+// override
+- (NSString*)moxDOMIdentifier;
+
+// override
+- (NSNumber*)moxRequired;
+
+// override
+- (id)moxEditableAncestor;
+
+// override
+- (NSArray*)moxUIElementsForSearchPredicate:(NSDictionary*)searchPredicate;
+
+// override
+- (NSNumber*)moxUIElementCountForSearchPredicate:(NSDictionary*)searchPredicate;
+
+// override
+- (void)moxSetFocused:(NSNumber*)focused;
+
+// override
+- (void)moxPerformScrollToVisible;
+
+// override
+- (void)moxPerformShowMenu;
+
+// override
+- (void)moxPerformPress;
+
+// override
+- (BOOL)moxIgnoreWithParent:(mozAccessible*)parent;
+
+// override
+- (BOOL)moxIgnoreChild:(mozAccessible*)child;
+
 #pragma mark -
-
-// invalidates and removes all our children from our cached array.
-- (void)invalidateChildren;
-
-/**
- * Append a child if they are already cached.
- */
-- (void)appendChild:(mozilla::a11y::Accessible*)aAccessible;
 
 // makes ourselves "expired". after this point, we might be around if someone
 // has retained us (e.g., a third-party), but we really contain no information.
+// override
 - (void)expire;
+// override
 - (BOOL)isExpired;
-
-#ifdef DEBUG
-- (void)printHierarchy;
-- (void)printHierarchyWithLevel:(unsigned)numSpaces;
-
-- (void)sanityCheckChildren;
-- (void)sanityCheckChildren:(NSArray*)theChildren;
-#endif
 
 // ---- NSAccessibility methods ---- //
 
-// whether to skip this element when traversing the accessibility
-// hierarchy.
-- (BOOL)accessibilityIsIgnored;
-
-// called by third-parties to determine the deepest child element under the mouse
-- (id)accessibilityHitTest:(NSPoint)point;
-
-// returns the deepest unignored focused accessible element
-- (id)accessibilityFocusedUIElement;
-
-// a mozAccessible needs to at least provide links to its parent and
-// children.
-- (NSArray*)accessibilityAttributeNames;
-
-// value for the specified attribute
-- (id)accessibilityAttributeValue:(NSString*)attribute;
-
-- (BOOL)accessibilityIsAttributeSettable:(NSString*)attribute;
-- (void)accessibilitySetValue:(id)value forAttribute:(NSString*)attribute;
+// override
+- (NSString*)description;
 
 @end

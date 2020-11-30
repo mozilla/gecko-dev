@@ -11,6 +11,7 @@
 #include "nsArrayEnumerator.h"
 #include "nsCOMArray.h"
 #include "nsCOMPtr.h"
+#include "nsContentUtils.h"
 #include "mozilla/Logging.h"
 #include "nsString.h"
 #include "nsTArray.h"
@@ -21,6 +22,7 @@
 #include "CacheObserver.h"
 #include "MainThreadUtils.h"
 #include "RequestContextService.h"
+#include "mozilla/StoragePrincipalHelper.h"
 #include "mozilla/Unused.h"
 
 namespace mozilla {
@@ -91,6 +93,8 @@ nsLoadGroup::nsLoadGroup()
       mStatus(NS_OK),
       mIsCanceling(false),
       mDefaultLoadIsTimed(false),
+      mBrowsingContextDiscarded(false),
+      mExternalRequestContext(false),
       mTimedRequests(0),
       mCachedRequests(0) {
   LOG(("LOADGROUP [%p]: Created.\n", this));
@@ -102,8 +106,16 @@ nsLoadGroup::~nsLoadGroup() {
 
   mDefaultLoadRequest = nullptr;
 
-  if (mRequestContext) {
+  if (mRequestContext && !mExternalRequestContext) {
     mRequestContextService->RemoveRequestContext(mRequestContext->GetID());
+    if (IsNeckoChild() && gNeckoChild) {
+      gNeckoChild->SendRemoveRequestContext(mRequestContext->GetID());
+    }
+  }
+
+  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+  if (os) {
+    Unused << os->RemoveObserver(this, "last-pb-context-exited");
   }
 
   LOG(("LOADGROUP [%p]: Destroyed.\n", this));
@@ -113,7 +125,7 @@ nsLoadGroup::~nsLoadGroup() {
 // nsISupports methods:
 
 NS_IMPL_ISUPPORTS(nsLoadGroup, nsILoadGroup, nsILoadGroupChild, nsIRequest,
-                  nsISupportsPriority, nsISupportsWeakReference)
+                  nsISupportsPriority, nsISupportsWeakReference, nsIObserver)
 
 ////////////////////////////////////////////////////////////////////////////////
 // nsIRequest methods:
@@ -152,10 +164,9 @@ static bool AppendRequestsToArray(PLDHashTable* aTable,
     nsIRequest* request = e->mKey;
     NS_ASSERTION(request, "What? Null key in PLDHashTable entry?");
 
-    bool ok = !!aArray->AppendElement(request);
-    if (!ok) {
-      break;
-    }
+    // XXX(Bug 1631371) Check if this should use a fallible operation as it
+    // pretended earlier.
+    aArray->AppendElement(request);
     NS_ADDREF(request);
   }
 
@@ -693,7 +704,7 @@ nsLoadGroup::SetParentLoadGroup(nsILoadGroup* aParentLoadGroup) {
 
 NS_IMETHODIMP
 nsLoadGroup::GetChildLoadGroup(nsILoadGroup** aChildLoadGroup) {
-  NS_ADDREF(*aChildLoadGroup = this);
+  *aChildLoadGroup = do_AddRef(this).take();
   return NS_OK;
 }
 
@@ -708,7 +719,7 @@ nsLoadGroup::GetRootLoadGroup(nsILoadGroup** aRootLoadGroup) {
   if (ancestor) return ancestor->GetRootLoadGroup(aRootLoadGroup);
 
   // finally just return this
-  NS_ADDREF(*aRootLoadGroup = this);
+  *aRootLoadGroup = do_AddRef(this).take();
   return NS_OK;
 }
 
@@ -960,6 +971,49 @@ nsresult nsLoadGroup::Init() {
         getter_AddRefs(mRequestContext));
   }
 
+  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+  NS_ENSURE_STATE(os);
+
+  Unused << os->AddObserver(this, "last-pb-context-exited", true);
+
+  return NS_OK;
+}
+
+nsresult nsLoadGroup::InitWithRequestContextId(
+    const uint64_t& aRequestContextId) {
+  mRequestContextService = RequestContextService::GetOrCreate();
+  if (mRequestContextService) {
+    Unused << mRequestContextService->GetRequestContext(
+        aRequestContextId, getter_AddRefs(mRequestContext));
+  }
+  mExternalRequestContext = true;
+
+  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+  NS_ENSURE_STATE(os);
+
+  Unused << os->AddObserver(this, "last-pb-context-exited", true);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsLoadGroup::Observe(nsISupports* aSubject, const char* aTopic,
+                     const char16_t* aData) {
+  MOZ_ASSERT(!strcmp(aTopic, "last-pb-context-exited"));
+
+  OriginAttributes attrs;
+  StoragePrincipalHelper::GetRegularPrincipalOriginAttributes(this, attrs);
+  if (attrs.mPrivateBrowsingId == 0) {
+    return NS_OK;
+  }
+
+  mBrowsingContextDiscarded = true;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsLoadGroup::GetIsBrowsingContextDiscarded(bool* aIsBrowsingContextDiscarded) {
+  *aIsBrowsingContextDiscarded = mBrowsingContextDiscarded;
   return NS_OK;
 }
 

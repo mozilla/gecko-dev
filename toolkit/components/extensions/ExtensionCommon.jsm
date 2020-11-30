@@ -49,7 +49,6 @@ var {
   filterStack,
   getInnerWindowID,
   getUniqueId,
-  getWinUtils,
 } = ExtensionUtils;
 
 function getConsole() {
@@ -115,7 +114,7 @@ function normalizeTime(date) {
 }
 
 function withHandlingUserInput(window, callable) {
-  let handle = getWinUtils(window).setHandlingUserInput(true);
+  let handle = window.windowUtils.setHandlingUserInput(true);
   try {
     return callable();
   } finally {
@@ -1078,7 +1077,7 @@ class LocalAPIImplementation extends SchemaAPIInterface {
     let promise;
     try {
       if (requireUserInput) {
-        if (!getWinUtils(this.context.contentWindow).isHandlingUserInput) {
+        if (!this.context.contentWindow.windowUtils.isHandlingUserInput) {
           throw new ExtensionError(
             `${this.name} may only be called from a user input handler`
           );
@@ -2280,29 +2279,18 @@ class EventManager {
       return;
     }
 
-    let bgStartupPromise = new Promise(resolve => {
-      function resolveBgPromise(type) {
-        extension.off("startup", resolveBgPromise);
-        extension.off("background-page-aborted", resolveBgPromise);
-        extension.off("shutdown", resolveBgPromise);
-        resolve();
-      }
-      extension.on("startup", resolveBgPromise);
-      extension.on("background-page-aborted", resolveBgPromise);
-      extension.on("shutdown", resolveBgPromise);
-    });
-
     for (let [module, moduleEntry] of extension.persistentListeners) {
       let api = extension.apiManager.getAPI(module, extension, "addon_parent");
+      if (!api.primeListener) {
+        // The runtime module no longer implements primed listeners, drop them.
+        extension.persistentListeners.delete(module);
+        EventManager._writePersistentListeners(extension);
+        continue;
+      }
       for (let [event, eventEntry] of moduleEntry) {
         for (let listener of eventEntry.values()) {
           let primed = { pendingEvents: [] };
           listener.primed = primed;
-
-          let wakeup = () => {
-            extension.emit("background-page-event");
-            return bgStartupPromise;
-          };
 
           let fireEvent = (...args) =>
             new Promise((resolve, reject) => {
@@ -2315,7 +2303,7 @@ class EventManager {
             });
 
           let fire = {
-            wakeup,
+            wakeup: () => extension.wakeupBackground(),
             sync: fireEvent,
             async: fireEvent,
           };
@@ -2329,22 +2317,6 @@ class EventManager {
           Object.assign(primed, { unregister, convert });
         }
       }
-    }
-  }
-
-  // Remove a primed listener for the given event (with the given extra
-  // addListener arguments).  This ordinarily happens as a side effect of
-  // calling addListener(), but APIs that need special handling (e.g.,
-  // runtime.onConnect and onMessage which don't have EventManagers in the
-  // parent process) can use this directly.
-  static clearOnePrimedListener(extension, module, event, args = []) {
-    let key = uneval(args);
-    let listener = extension.persistentListeners
-      .get(module)
-      .get(event)
-      .get(key);
-    if (listener.primed) {
-      listener.primed = null;
     }
   }
 
@@ -2535,6 +2507,9 @@ class EventManager {
     if (!this.unregister.has(callback)) {
       return;
     }
+    this.context.logActivity("api_call", `${this.name}.removeListener`, {
+      args: [],
+    });
 
     let unregister = this.unregister.get(callback);
     this.unregister.delete(callback);

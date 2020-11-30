@@ -82,6 +82,7 @@ AccessibleHandler::AccessibleHandler(IUnknown* aOuter, HRESULT* aResult)
       mIATableCellPassThru(nullptr),
       mIAHypertextPassThru(nullptr),
       mCachedData(),
+      mCachedDynamicDataMarshaledByCom(false),
       mCacheGen(0),
       mCachedHyperlinks(nullptr),
       mCachedNHyperlinks(-1),
@@ -103,8 +104,8 @@ AccessibleHandler::AccessibleHandler(IUnknown* aOuter, HRESULT* aResult)
 }
 
 AccessibleHandler::~AccessibleHandler() {
-  // No need to zero memory, since we're being destroyed anyway.
-  CleanupDynamicIA2Data(mCachedData.mDynamicData, false);
+  CleanupDynamicIA2Data(mCachedData.mDynamicData,
+                        mCachedDynamicDataMarshaledByCom);
   if (mCachedData.mGeckoBackChannel) {
     mCachedData.mGeckoBackChannel->Release();
   }
@@ -219,9 +220,20 @@ AccessibleHandler::MaybeUpdateCachedData() {
     return E_POINTER;
   }
 
-  HRESULT hr =
-      mCachedData.mGeckoBackChannel->Refresh(&mCachedData.mDynamicData);
+  // While we're making the outgoing COM call below, an incoming COM call can
+  // be handled which calls ReadHandlerPayload or re-enters this function.
+  // Therefore, we mustn't update the cached data directly lest it be mutated
+  // elsewhere before the outgoing COM call returns and cause corruption or
+  // memory leaks. Instead, pass a temporary struct and update the cached data
+  // only after this call completes.
+  DynamicIA2Data newData;
+  HRESULT hr = mCachedData.mGeckoBackChannel->Refresh(&newData);
   if (SUCCEEDED(hr)) {
+    // Clean up the old data.
+    CleanupDynamicIA2Data(mCachedData.mDynamicData,
+                          mCachedDynamicDataMarshaledByCom);
+    mCachedData.mDynamicData = newData;
+    mCachedDynamicDataMarshaledByCom = true;
     // We just updated the cache, so update this object's cache generation
     // so we only update the cache again after the next change.
     mCacheGen = gen;
@@ -467,9 +479,10 @@ AccessibleHandler::ReadHandlerPayload(IStream* aStream, REFIID aIid) {
     return E_FAIL;
   }
   // Clean up the old data.
-  // No need to zero memory, since we're about to completely replace this.
-  CleanupDynamicIA2Data(mCachedData.mDynamicData, false);
+  CleanupDynamicIA2Data(mCachedData.mDynamicData,
+                        mCachedDynamicDataMarshaledByCom);
   mCachedData = newData;
+  mCachedDynamicDataMarshaledByCom = false;
 
   // These interfaces have been aggregated into the proxy manager.
   // The proxy manager will resolve these interfaces now on QI,
@@ -498,6 +511,15 @@ AccessibleHandler::ReadHandlerPayload(IStream* aStream, REFIID aIid) {
   RefPtr<AccessibleHandlerControl> ctl(gControlFactory.GetOrCreateSingleton());
   if (!ctl) {
     return E_OUTOFMEMORY;
+  }
+
+  if (mCachedData.mDynamicData.mIA2Role == ROLE_SYSTEM_COLUMNHEADER ||
+      mCachedData.mDynamicData.mIA2Role == ROLE_SYSTEM_ROWHEADER) {
+    // Because the same headers can apply to many cells, handler payloads
+    // include the ids of header cells, rather than potentially marshaling the
+    // same objects many times. We need to cache header cells here so we can
+    // get them by id later.
+    ctl->CacheAccessible(mCachedData.mDynamicData.mUniqueId, this);
   }
 
   return ctl->Register(WrapNotNull(mCachedData.mGeckoBackChannel));
@@ -1529,7 +1551,49 @@ AccessibleHandler::get_columnExtent(long* nColumnsSpanned) {
 HRESULT
 AccessibleHandler::get_columnHeaderCells(IUnknown*** cellAccessibles,
                                          long* nColumnHeaderCells) {
-  HRESULT hr = ResolveIATableCell();
+  if (!cellAccessibles || !nColumnHeaderCells) {
+    return E_INVALIDARG;
+  }
+
+  HRESULT hr = S_OK;
+  if (HasPayload()) {
+    RefPtr<AccessibleHandlerControl> ctl(
+        gControlFactory.GetOrCreateSingleton());
+    if (!ctl) {
+      return E_OUTOFMEMORY;
+    }
+    *nColumnHeaderCells = mCachedData.mDynamicData.mNColumnHeaderCells;
+    *cellAccessibles = static_cast<IUnknown**>(
+        ::CoTaskMemAlloc(sizeof(IUnknown*) * *nColumnHeaderCells));
+    long i;
+    for (i = 0; i < *nColumnHeaderCells; ++i) {
+      RefPtr<AccessibleHandler> headerAcc;
+      hr = ctl->GetCachedAccessible(
+          mCachedData.mDynamicData.mColumnHeaderCellIds[i],
+          getter_AddRefs(headerAcc));
+      if (FAILED(hr)) {
+        break;
+      }
+      hr = headerAcc->QueryInterface(IID_IUnknown,
+                                     (void**)&(*cellAccessibles)[i]);
+      if (FAILED(hr)) {
+        break;
+      }
+    }
+    if (SUCCEEDED(hr)) {
+      return S_OK;
+    }
+    // If we failed to get any of the headers from the cache, don't use the
+    // cache at all. We need to clean up anything we did so far.
+    long failedHeader = i;
+    for (i = 0; i < failedHeader; ++i) {
+      (*cellAccessibles)[i]->Release();
+    }
+    ::CoTaskMemFree(*cellAccessibles);
+    *cellAccessibles = nullptr;
+  }
+
+  hr = ResolveIATableCell();
   if (FAILED(hr)) {
     return hr;
   }
@@ -1579,7 +1643,49 @@ AccessibleHandler::get_rowExtent(long* nRowsSpanned) {
 HRESULT
 AccessibleHandler::get_rowHeaderCells(IUnknown*** cellAccessibles,
                                       long* nRowHeaderCells) {
-  HRESULT hr = ResolveIATableCell();
+  if (!cellAccessibles || !nRowHeaderCells) {
+    return E_INVALIDARG;
+  }
+
+  HRESULT hr = S_OK;
+  if (HasPayload()) {
+    RefPtr<AccessibleHandlerControl> ctl(
+        gControlFactory.GetOrCreateSingleton());
+    if (!ctl) {
+      return E_OUTOFMEMORY;
+    }
+    *nRowHeaderCells = mCachedData.mDynamicData.mNRowHeaderCells;
+    *cellAccessibles = static_cast<IUnknown**>(
+        ::CoTaskMemAlloc(sizeof(IUnknown*) * *nRowHeaderCells));
+    long i;
+    for (i = 0; i < *nRowHeaderCells; ++i) {
+      RefPtr<AccessibleHandler> headerAcc;
+      hr = ctl->GetCachedAccessible(
+          mCachedData.mDynamicData.mRowHeaderCellIds[i],
+          getter_AddRefs(headerAcc));
+      if (FAILED(hr)) {
+        break;
+      }
+      hr = headerAcc->QueryInterface(IID_IUnknown,
+                                     (void**)&(*cellAccessibles)[i]);
+      if (FAILED(hr)) {
+        break;
+      }
+    }
+    if (SUCCEEDED(hr)) {
+      return S_OK;
+    }
+    // If we failed to get any of the headers from the cache, don't use the
+    // cache at all. We need to clean up anything we did so far.
+    long failedHeader = i;
+    for (i = 0; i < failedHeader; ++i) {
+      (*cellAccessibles)[i]->Release();
+    }
+    ::CoTaskMemFree(*cellAccessibles);
+    *cellAccessibles = nullptr;
+  }
+
+  hr = ResolveIATableCell();
   if (FAILED(hr)) {
     return hr;
   }

@@ -2,7 +2,7 @@
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
 /*
- * test_nodb: Start search service without existing cache file.
+ * test_nodb: Start search service without existing settings file.
  *
  * Ensure that :
  * - nothing explodes;
@@ -17,7 +17,6 @@
  */
 
 add_task(async function setup() {
-  do_load_manifest("data/chrome.manifest");
   useHttpServer();
   await AddonTestUtils.promiseStartupManager();
 });
@@ -27,7 +26,7 @@ add_task(async function test_nodb_pluschanges() {
     { name: "Test search engine", xmlFileName: "engine.xml" },
     { name: "A second test engine", xmlFileName: "engine2.xml" },
   ]);
-  await promiseAfterCache();
+  await promiseAfterSettings();
 
   let search = Services.search;
 
@@ -39,13 +38,13 @@ add_task(async function test_nodb_pluschanges() {
   await new Promise(resolve => executeSoon(resolve));
 
   info("Forcing flush");
-  let promiseCommit = promiseAfterCache();
+  let promiseCommit = promiseAfterSettings();
   search.QueryInterface(Ci.nsIObserver).observe(null, "quit-application", "");
   await promiseCommit;
   info("Commit complete");
 
   // Check that the entries are placed as specified correctly
   let metadata = await promiseEngineMetadata();
-  Assert.equal(metadata["test-search-engine"].order, 1);
-  Assert.equal(metadata["a-second-test-engine"].order, 2);
+  Assert.equal(metadata["Test search engine"].order, 1);
+  Assert.equal(metadata["A second test engine"].order, 2);
 });

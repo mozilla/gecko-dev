@@ -5,11 +5,10 @@
 extern crate atomic_refcell;
 extern crate crossbeam_utils;
 #[macro_use]
-extern crate failure;
+extern crate cstr;
 #[macro_use]
-extern crate lazy_static;
+extern crate failure;
 extern crate libc;
-extern crate lmdb;
 extern crate log;
 extern crate moz_task;
 extern crate nserror;
@@ -21,18 +20,21 @@ extern crate thin_vec;
 extern crate xpcom;
 
 mod error;
-mod manager;
 mod owned_value;
 mod task;
 
 use atomic_refcell::AtomicRefCell;
 use error::KeyValueError;
 use libc::c_void;
-use moz_task::{create_thread, TaskRunnable};
+use moz_task::{
+    create_background_task_queue, dispatch_background_task_with_options, DispatchOptions,
+    TaskRunnable,
+};
 use nserror::{nsresult, NS_ERROR_FAILURE, NS_ERROR_NO_AGGREGATION, NS_OK};
 use nsstring::{nsACString, nsCString};
 use owned_value::{owned_to_variant, variant_to_owned};
-use rkv::{OwnedValue, Rkv, SingleStore};
+use rkv::backend::{SafeModeDatabase, SafeModeEnvironment};
+use rkv::OwnedValue;
 use std::{
     ptr,
     sync::{Arc, RwLock},
@@ -46,11 +48,14 @@ use xpcom::{
     getter_addrefs,
     interfaces::{
         nsIKeyValueDatabaseCallback, nsIKeyValueEnumeratorCallback, nsIKeyValuePair,
-        nsIKeyValueVariantCallback, nsIKeyValueVoidCallback, nsISupports, nsIThread, nsIVariant,
+        nsIKeyValueVariantCallback, nsIKeyValueVoidCallback, nsISerialEventTarget, nsISupports,
+        nsIVariant,
     },
-    nsIID, xpcom, xpcom_method, RefPtr, ThreadBoundRefPtr,
+    nsIID, xpcom, xpcom_method, RefPtr,
 };
 
+type Rkv = rkv::Rkv<SafeModeEnvironment>;
+type SingleStore = rkv::SingleStore<SafeModeDatabase>;
 type KeyValuePairResult = Result<(String, OwnedValue), KeyValueError>;
 
 #[no_mangle]
@@ -65,12 +70,7 @@ pub unsafe extern "C" fn nsKeyValueServiceConstructor(
         return NS_ERROR_NO_AGGREGATION;
     }
 
-    let thread: RefPtr<nsIThread> = match create_thread("KeyValDB") {
-        Ok(thread) => thread,
-        Err(error) => return error,
-    };
-
-    let service: RefPtr<KeyValueService> = KeyValueService::new(thread);
+    let service = KeyValueService::new();
     service.QueryInterface(iid, result)
 }
 
@@ -100,15 +100,11 @@ pub unsafe extern "C" fn nsKeyValueServiceConstructor(
 #[derive(xpcom)]
 #[xpimplements(nsIKeyValueService)]
 #[refcnt = "atomic"]
-pub struct InitKeyValueService {
-    thread: ThreadBoundRefPtr<nsIThread>,
-}
+pub struct InitKeyValueService {}
 
 impl KeyValueService {
-    fn new(thread: RefPtr<nsIThread>) -> RefPtr<KeyValueService> {
-        KeyValueService::allocate(InitKeyValueService {
-            thread: ThreadBoundRefPtr::new(thread),
-        })
+    fn new() -> RefPtr<KeyValueService> {
+        KeyValueService::allocate(InitKeyValueService {})
     }
 
     xpcom_method!(
@@ -125,16 +121,16 @@ impl KeyValueService {
         path: &nsACString,
         name: &nsACString,
     ) -> Result<(), nsresult> {
-        let thread = self.thread.get_ref().ok_or(NS_ERROR_FAILURE)?;
-
         let task = Box::new(GetOrCreateTask::new(
             RefPtr::new(callback),
-            RefPtr::new(thread),
             nsCString::from(path),
             nsCString::from(name),
         ));
 
-        TaskRunnable::new("KVService::GetOrCreate", task)?.dispatch(thread)
+        dispatch_background_task_with_options(
+            RefPtr::new(TaskRunnable::new("KVService::GetOrCreate", task)?.coerce()),
+            DispatchOptions::default().may_block(true),
+        )
     }
 }
 
@@ -144,16 +140,20 @@ impl KeyValueService {
 pub struct InitKeyValueDatabase {
     rkv: Arc<RwLock<Rkv>>,
     store: SingleStore,
-    thread: ThreadBoundRefPtr<nsIThread>,
+    queue: RefPtr<nsISerialEventTarget>,
 }
 
 impl KeyValueDatabase {
     fn new(
         rkv: Arc<RwLock<Rkv>>,
         store: SingleStore,
-        thread: ThreadBoundRefPtr<nsIThread>,
-    ) -> RefPtr<KeyValueDatabase> {
-        KeyValueDatabase::allocate(InitKeyValueDatabase { rkv, store, thread })
+    ) -> Result<RefPtr<KeyValueDatabase>, KeyValueError> {
+        let queue = create_background_task_queue(cstr!("KeyValueDatabase"))?;
+        Ok(KeyValueDatabase::allocate(InitKeyValueDatabase {
+            rkv,
+            store,
+            queue,
+        }))
     }
 
     xpcom_method!(
@@ -180,9 +180,7 @@ impl KeyValueDatabase {
             value,
         ));
 
-        let thread = self.thread.get_ref().ok_or(NS_ERROR_FAILURE)?;
-
-        TaskRunnable::new("KVDatabase::Put", task)?.dispatch(thread)
+        TaskRunnable::dispatch(TaskRunnable::new("KVDatabase::Put", task)?, &self.queue)
     }
 
     xpcom_method!(
@@ -218,9 +216,10 @@ impl KeyValueDatabase {
             entries,
         ));
 
-        let thread = self.thread.get_ref().ok_or(NS_ERROR_FAILURE)?;
-
-        TaskRunnable::new("KVDatabase::WriteMany", task)?.dispatch(thread)
+        TaskRunnable::dispatch(
+            TaskRunnable::new("KVDatabase::WriteMany", task)?,
+            &self.queue,
+        )
     }
 
     xpcom_method!(
@@ -245,9 +244,7 @@ impl KeyValueDatabase {
             variant_to_owned(default_value)?,
         ));
 
-        let thread = self.thread.get_ref().ok_or(NS_ERROR_FAILURE)?;
-
-        TaskRunnable::new("KVDatabase::Get", task)?.dispatch(thread)
+        TaskRunnable::dispatch(TaskRunnable::new("KVDatabase::Get", task)?, &self.queue)
     }
 
     xpcom_method!(
@@ -262,9 +259,7 @@ impl KeyValueDatabase {
             nsCString::from(key),
         ));
 
-        let thread = self.thread.get_ref().ok_or(NS_ERROR_FAILURE)?;
-
-        TaskRunnable::new("KVDatabase::Has", task)?.dispatch(thread)
+        TaskRunnable::dispatch(TaskRunnable::new("KVDatabase::Has", task)?, &self.queue)
     }
 
     xpcom_method!(
@@ -279,9 +274,7 @@ impl KeyValueDatabase {
             nsCString::from(key),
         ));
 
-        let thread = self.thread.get_ref().ok_or(NS_ERROR_FAILURE)?;
-
-        TaskRunnable::new("KVDatabase::Delete", task)?.dispatch(thread)
+        TaskRunnable::dispatch(TaskRunnable::new("KVDatabase::Delete", task)?, &self.queue)
     }
 
     xpcom_method!(
@@ -295,9 +288,7 @@ impl KeyValueDatabase {
             self.store,
         ));
 
-        let thread = self.thread.get_ref().ok_or(NS_ERROR_FAILURE)?;
-
-        TaskRunnable::new("KVDatabase::Clear", task)?.dispatch(thread)
+        TaskRunnable::dispatch(TaskRunnable::new("KVDatabase::Clear", task)?, &self.queue)
     }
 
     xpcom_method!(
@@ -322,9 +313,10 @@ impl KeyValueDatabase {
             nsCString::from(to_key),
         ));
 
-        let thread = self.thread.get_ref().ok_or(NS_ERROR_FAILURE)?;
-
-        TaskRunnable::new("KVDatabase::Enumerate", task)?.dispatch(thread)
+        TaskRunnable::dispatch(
+            TaskRunnable::new("KVDatabase::Enumerate", task)?,
+            &self.queue,
+        )
     }
 }
 

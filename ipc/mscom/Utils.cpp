@@ -419,9 +419,9 @@ bool IsClassThreadAwareInprocServer(REFCLSID aClsid) {
   nsAutoString strClsid;
   GUIDToString(aClsid, strClsid);
 
-  nsAutoString inprocServerSubkey(NS_LITERAL_STRING("CLSID\\"));
+  nsAutoString inprocServerSubkey(u"CLSID\\"_ns);
   inprocServerSubkey.Append(strClsid);
-  inprocServerSubkey.Append(NS_LITERAL_STRING("\\InprocServer32"));
+  inprocServerSubkey.Append(u"\\InprocServer32"_ns);
 
   // Of the possible values, "Apartment" is the longest, so we'll make this
   // buffer large enough to hold that one.
@@ -446,9 +446,9 @@ bool IsClassThreadAwareInprocServer(REFCLSID aClsid) {
 
   // Ensure that the threading model is one of the known values that indicates
   // that the class can operate natively (ie, no proxying) inside a MTA.
-  return threadingModel.EqualsLiteral("Both") ||
-         threadingModel.EqualsLiteral("Free") ||
-         threadingModel.EqualsLiteral("Neutral");
+  return threadingModel.LowerCaseEqualsLiteral("both") ||
+         threadingModel.LowerCaseEqualsLiteral("free") ||
+         threadingModel.LowerCaseEqualsLiteral("neutral");
 }
 #endif  // defined(MOZILLA_INTERNAL_API)
 

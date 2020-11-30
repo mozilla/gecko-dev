@@ -54,23 +54,29 @@ const CONFIG_PREFS = [
   "identity.fxaccounts.remote.pairing.uri",
   "identity.sync.tokenserver.uri",
 ];
+const SYNC_PARAM = "sync";
 
 var FxAccountsConfig = {
   async promiseEmailURI(email, entrypoint, extraParams = {}) {
     return this._buildURL("", {
-      extraParams: { entrypoint, email, ...extraParams },
+      extraParams: { entrypoint, email, service: SYNC_PARAM, ...extraParams },
     });
   },
 
   async promiseConnectAccountURI(entrypoint, extraParams = {}) {
     return this._buildURL("", {
-      extraParams: { entrypoint, action: "email", ...extraParams },
+      extraParams: {
+        entrypoint,
+        action: "email",
+        service: SYNC_PARAM,
+        ...extraParams,
+      },
     });
   },
 
   async promiseForceSigninURI(entrypoint, extraParams = {}) {
     return this._buildURL("force_auth", {
-      extraParams: { entrypoint, ...extraParams },
+      extraParams: { entrypoint, service: SYNC_PARAM, ...extraParams },
       addAccountIdentifiers: true,
     });
   },
@@ -98,7 +104,7 @@ var FxAccountsConfig = {
 
   async promiseConnectDeviceURI(entrypoint, extraParams = {}) {
     return this._buildURL("connect_another_device", {
-      extraParams: { entrypoint, ...extraParams },
+      extraParams: { entrypoint, service: SYNC_PARAM, ...extraParams },
       addAccountIdentifiers: true,
     });
   },
@@ -125,7 +131,7 @@ var FxAccountsConfig = {
   },
 
   get defaultParams() {
-    return { service: "sync", context: CONTEXT_PARAM };
+    return { context: CONTEXT_PARAM };
   },
 
   /**
@@ -206,8 +212,33 @@ var FxAccountsConfig = {
   async ensureConfigured() {
     let isSignedIn = !!(await this.getSignedInUser());
     if (!isSignedIn) {
-      await this.fetchConfigURLs();
+      await this.updateConfigURLs();
     }
+  },
+
+  // Returns true if this user is using the FxA "production" systems, false
+  // if using any other configuration, including self-hosting or the FxA
+  // non-production systems such as "dev" or "staging".
+  // It's typically used as a proxy for "is this likely to be a self-hosted
+  // user?", but it's named this way to make the implementation less
+  // surprising. As a result, it's fairly conservative and would prefer to have
+  // a false-negative than a false-position as it determines things which users
+  // might consider sensitive (notably, telemetry).
+  // Note also that while it's possible to self-host just sync and not FxA, we
+  // don't make that distinction - that's a self-hoster from the POV of this
+  // function.
+  isProductionConfig() {
+    // Specifically, if the autoconfig URLs, or *any* of the URLs that
+    // we consider configurable are modified, we assume self-hosted.
+    if (this.getAutoConfigURL()) {
+      return false;
+    }
+    for (let pref of CONFIG_PREFS) {
+      if (Services.prefs.prefHasUserValue(pref)) {
+        return false;
+      }
+    }
+    return true;
   },
 
   // Read expected client configuration from the fxa auth server
@@ -215,36 +246,14 @@ var FxAccountsConfig = {
   // and replace all the relevant our prefs with the information found there.
   // This is only done before sign-in and sign-up, and even then only if the
   // `identity.fxaccounts.autoconfig.uri` preference is set.
-  async fetchConfigURLs() {
+  async updateConfigURLs() {
     let rootURL = this.getAutoConfigURL();
     if (!rootURL) {
       return;
     }
-    let configURL = rootURL + "/.well-known/fxa-client-configuration";
-    let request = new RESTRequest(configURL);
-    request.setHeader("Accept", "application/json");
-
-    // Catch and rethrow the error inline.
-    let resp = await request.get().catch(e => {
-      log.error(`Failed to get configuration object from "${configURL}"`, e);
-      throw e;
-    });
-    if (!resp.success) {
-      log.error(
-        `Received HTTP response code ${resp.status} from configuration object request`
-      );
-      if (resp.body) {
-        log.debug("Got error response", resp.body);
-      }
-      throw new Error(
-        `HTTP status ${resp.status} from configuration object request`
-      );
-    }
-
-    log.debug("Got successful configuration response", resp.body);
+    const config = await this.fetchConfigDocument(rootURL);
     try {
       // Update the prefs directly specified by the config.
-      let config = JSON.parse(resp.body);
       let authServerBase = config.auth_server_base_url;
       if (!authServerBase.endsWith("/v1")) {
         authServerBase += "/v1";
@@ -280,6 +289,44 @@ var FxAccountsConfig = {
     } catch (e) {
       log.error(
         "Failed to initialize configuration preferences from autoconfig object",
+        e
+      );
+      throw e;
+    }
+  },
+
+  // Read expected client configuration from the fxa auth server
+  // (or from the provided rootURL, if present) and return it as an object.
+  async fetchConfigDocument(rootURL = null) {
+    if (!rootURL) {
+      rootURL = ROOT_URL;
+    }
+    let configURL = rootURL + "/.well-known/fxa-client-configuration";
+    let request = new RESTRequest(configURL);
+    request.setHeader("Accept", "application/json");
+
+    // Catch and rethrow the error inline.
+    let resp = await request.get().catch(e => {
+      log.error(`Failed to get configuration object from "${configURL}"`, e);
+      throw e;
+    });
+    if (!resp.success) {
+      // Note: 'resp.body' is included with the error log below as we are not concerned
+      // that the body will contain PII, but if that changes it should be excluded.
+      log.error(
+        `Received HTTP response code ${resp.status} from configuration object request:
+        ${resp.body}`
+      );
+      throw new Error(
+        `HTTP status ${resp.status} from configuration object request`
+      );
+    }
+    log.debug("Got successful configuration response", resp.body);
+    try {
+      return JSON.parse(resp.body);
+    } catch (e) {
+      log.error(
+        `Failed to parse configuration preferences from ${configURL}`,
         e
       );
       throw e;

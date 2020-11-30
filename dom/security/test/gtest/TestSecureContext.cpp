@@ -69,9 +69,8 @@ TEST(SecureContext, IsOriginPotentiallyTrustworthyWithContentPrincipal)
     nsAutoCString uri(uris[i].uri);
     rv = nsScriptSecurityManager::GetScriptSecurityManager()
              ->CreateContentPrincipalFromOrigin(uri, getter_AddRefs(prin));
-    bool isPotentiallyTrustworthy = false;
-    rv = prin->GetIsOriginPotentiallyTrustworthy(&isPotentiallyTrustworthy);
-    ASSERT_EQ(NS_OK, rv);
+    ASSERT_EQ(rv, NS_OK);
+    bool isPotentiallyTrustworthy = prin->GetIsOriginPotentiallyTrustworthy();
     ASSERT_EQ(isPotentiallyTrustworthy, uris[i].expectedResult);
   }
 }
@@ -82,10 +81,7 @@ TEST(SecureContext, IsOriginPotentiallyTrustworthyWithSystemPrincipal)
       nsScriptSecurityManager::GetScriptSecurityManager();
   ASSERT_TRUE(!!ssManager);
   nsCOMPtr<nsIPrincipal> sysPrin = nsContentUtils::GetSystemPrincipal();
-  bool isPotentiallyTrustworthy;
-  nsresult rv =
-      sysPrin->GetIsOriginPotentiallyTrustworthy(&isPotentiallyTrustworthy);
-  ASSERT_EQ(rv, NS_OK);
+  bool isPotentiallyTrustworthy = sysPrin->GetIsOriginPotentiallyTrustworthy();
   ASSERT_TRUE(isPotentiallyTrustworthy);
 }
 

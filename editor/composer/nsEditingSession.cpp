@@ -112,8 +112,8 @@ nsEditingSession::MakeWindowEditable(mozIDOMWindowProxy* aWindow,
   // disable plugins
   nsCOMPtr<nsIDocShell> docShell = window->GetDocShell();
   NS_ENSURE_TRUE(docShell, NS_ERROR_FAILURE);
-
   mDocShell = do_GetWeakReference(docShell);
+
   mInteractive = aInteractive;
   mMakeWholeDocumentEditable = aMakeWholeDocumentEditable;
 
@@ -184,7 +184,7 @@ nsresult nsEditingSession::DisableJSAndPlugins(nsIDocShell& aDocShell) {
   // Disable plugins in this document:
   mPluginsEnabled = aDocShell.PluginsAllowedInCurrentDoc();
 
-  rv = aDocShell.SetAllowPlugins(false);
+  rv = aDocShell.GetBrowsingContext()->SetAllowPlugins(false);
   NS_ENSURE_SUCCESS(rv, rv);
 
   mDisabledJSAndPlugins = true;
@@ -210,7 +210,10 @@ nsresult nsEditingSession::RestoreJSAndPlugins(nsPIDOMWindowOuter* aWindow) {
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Disable plugins in this document:
-  return docShell->SetAllowPlugins(mPluginsEnabled);
+  auto* browsingContext = aWindow->GetBrowsingContext();
+  NS_ENSURE_TRUE(browsingContext, NS_ERROR_FAILURE);
+
+  return browsingContext->SetAllowPlugins(mPluginsEnabled);
 }
 
 /*---------------------------------------------------------------------------
@@ -230,30 +233,27 @@ nsEditingSession::WindowIsEditable(mozIDOMWindowProxy* aWindow,
   return docShell->GetEditable(outIsEditable);
 }
 
-// These are MIME types that are automatically parsed as "text/plain"
-//   and thus we can edit them as plaintext
-// Note: in older versions, we attempted to convert the mimetype of
-//   the network channel for these and "text/xml" to "text/plain",
-//   but further investigation reveals that strategy doesn't work
-const char* const gSupportedTextTypes[] = {
-    "text/plain",
-    "text/css",
-    "text/rdf",
-    "text/xsl",
-    "text/javascript",  // obsolete type
-    "text/ecmascript",  // obsolete type
-    "application/javascript",
-    "application/ecmascript",
-    "application/x-javascript",  // obsolete type
-    "text/xul",                  // obsolete type
-    nullptr                      // IMPORTANT! Null must be at end
-};
+bool IsSupportedTextType(const nsAString& aMIMEType) {
+  // These are MIME types that are automatically parsed as "text/plain"
+  //   and thus we can edit them as plaintext
+  // Note: in older versions, we attempted to convert the mimetype of
+  //   the network channel for these and "text/xml" to "text/plain",
+  //   but further investigation reveals that strategy doesn't work
+  static constexpr nsLiteralString sSupportedTextTypes[] = {
+      u"text/plain"_ns,
+      u"text/css"_ns,
+      u"text/rdf"_ns,
+      u"text/xsl"_ns,
+      u"text/javascript"_ns,  // obsolete type
+      u"text/ecmascript"_ns,  // obsolete type
+      u"application/javascript"_ns,
+      u"application/ecmascript"_ns,
+      u"application/x-javascript"_ns,  // obsolete type
+      u"text/xul"_ns                   // obsolete type
+  };
 
-bool IsSupportedTextType(const char* aMIMEType) {
-  NS_ENSURE_TRUE(aMIMEType, false);
-
-  for (size_t i = 0; gSupportedTextTypes[i]; ++i) {
-    if (!strcmp(gSupportedTextTypes[i], aMIMEType)) {
+  for (const nsLiteralString& supportedTextType : sSupportedTextTypes) {
+    if (aMIMEType.Equals(supportedTextType)) {
       return true;
     }
   }
@@ -268,25 +268,22 @@ nsresult nsEditingSession::SetupEditorOnWindow(nsPIDOMWindowOuter& aWindow) {
   // must get the content type
   // Note: the doc gets this from the network channel during StartPageLoad,
   //    so we don't have to get it from there ourselves
-  nsAutoCString mimeCType;
+  nsAutoString mimeType;
 
   // then lets check the mime type
   if (RefPtr<Document> doc = aWindow.GetDoc()) {
-    nsAutoString mimeType;
     doc->GetContentType(mimeType);
-    AppendUTF16toUTF8(mimeType, mimeCType);
 
-    if (IsSupportedTextType(mimeCType.get())) {
+    if (IsSupportedTextType(mimeType)) {
       mEditorType.AssignLiteral("text");
-      mimeCType = "text/plain";
-    } else if (!mimeCType.EqualsLiteral("text/html") &&
-               !mimeCType.EqualsLiteral("application/xhtml+xml")) {
+      mimeType.AssignLiteral("text/plain");
+    } else if (!doc->IsHTMLOrXHTML()) {
       // Neither an acceptable text or html type.
       mEditorStatus = eEditorErrorCantEditMimeType;
 
       // Turn editor into HTML -- we will load blank page later
       mEditorType.AssignLiteral("html");
-      mimeCType.AssignLiteral("text/html");
+      mimeType.AssignLiteral("text/html");
     }
 
     // Flush out frame construction to make sure that the subframe's
@@ -308,7 +305,7 @@ nsresult nsEditingSession::SetupEditorOnWindow(nsPIDOMWindowOuter& aWindow) {
     mEditorFlags =
         nsIEditor::eEditorPlaintextMask | nsIEditor::eEditorEnableWrapHackMask;
   } else if (mEditorType.EqualsLiteral("htmlmail")) {
-    if (mimeCType.EqualsLiteral("text/html")) {
+    if (mimeType.EqualsLiteral("text/html")) {
       needHTMLController = true;
       mEditorFlags = nsIEditor::eEditorMailMask;
     } else {
@@ -396,7 +393,7 @@ nsresult nsEditingSession::SetupEditorOnWindow(nsPIDOMWindowOuter& aWindow) {
   }
 
   // Set mimetype on editor
-  rv = htmlEditor->SetContentsMIMEType(mimeCType.get());
+  rv = htmlEditor->SetContentsMIMEType(mimeType);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIContentViewer> contentViewer;
@@ -414,7 +411,7 @@ nsresult nsEditingSession::SetupEditorOnWindow(nsPIDOMWindowOuter& aWindow) {
   htmlEditor->SetComposerCommandsUpdater(mComposerCommandsUpdater);
 
   rv = htmlEditor->Init(*doc, nullptr /* root content */, nullptr, mEditorFlags,
-                        EmptyString());
+                        u""_ns);
   NS_ENSURE_SUCCESS(rv, rv);
 
   RefPtr<Selection> selection = htmlEditor->GetSelection();
@@ -923,7 +920,7 @@ void nsEditingSession::TimerCallback(nsITimer* aTimer, void* aClosure) {
       LoadURIOptions loadURIOptions;
       loadURIOptions.mTriggeringPrincipal =
           nsContentUtils::GetSystemPrincipal();
-      webNav->LoadURI(NS_LITERAL_STRING("about:blank"), loadURIOptions);
+      webNav->LoadURI(u"about:blank"_ns, loadURIOptions);
     }
   }
 }

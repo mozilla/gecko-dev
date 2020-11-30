@@ -21,13 +21,10 @@ def test(mod, path, entity=None):
         # keep this file list in sync with jar.mn
         if path in (
             "chrome/global/aboutReader.properties",
-            "chrome/global/charsetMenu.properties",
             "chrome/global/commonDialogs.properties",
             "chrome/global/intl.properties",
             "chrome/global/intl.css",
-            "chrome/search/search.properties",
             "chrome/pluginproblem/pluginproblem.dtd",
-            "chrome/global/mozilla.dtd",
             "chrome/global/aboutWebrtc.properties",
         ):
             return "error"
@@ -37,6 +34,9 @@ def test(mod, path, entity=None):
 
         if re.match(r"toolkit/about/[^/]*About.ftl", path):
             # error on toolkit/about/*About.ftl
+            return "error"
+        if re.match(r"toolkit/about/[^/]*Mozilla.ftl", path):
+            # error on toolkit/about/*Mozilla.ftl
             return "error"
         if re.match(r"toolkit/about/[^/]*Plugins.ftl", path):
             # error on toolkit/about/*Plugins.ftl

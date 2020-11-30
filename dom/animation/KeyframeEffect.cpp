@@ -26,7 +26,6 @@
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/StaticPrefs_layers.h"
-#include "mozilla/TypeTraits.h"
 #include "Layers.h"              // For Layer
 #include "nsComputedDOMStyle.h"  // nsComputedDOMStyle::GetComputedStyle
 #include "nsContentUtils.h"
@@ -36,6 +35,7 @@
 #include "nsDOMMutationObserver.h"  // For nsAutoAnimationMutationBatch
 #include "nsIFrame.h"
 #include "nsIFrameInlines.h"
+#include "nsIScrollableFrame.h"
 #include "nsPresContextInlines.h"
 #include "nsRefreshDriver.h"
 
@@ -91,8 +91,22 @@ KeyframeEffect::KeyframeEffect(Document* aDocument,
                                const KeyframeEffectParams& aOptions)
     : AnimationEffect(aDocument, std::move(aTiming)),
       mTarget(std::move(aTarget)),
-      mEffectOptions(aOptions),
-      mCumulativeChangeHint(nsChangeHint(0)) {}
+      mEffectOptions(aOptions) {}
+
+KeyframeEffect::KeyframeEffect(Document* aDocument,
+                               OwningAnimationTarget&& aTarget,
+                               const KeyframeEffect& aOther)
+    : AnimationEffect(aDocument, TimingParams{aOther.SpecifiedTiming()}),
+      mTarget(std::move(aTarget)),
+      mEffectOptions{aOther.IterationComposite(), aOther.Composite(),
+                     mTarget.mPseudoType},
+      mKeyframes(aOther.mKeyframes.Clone()),
+      mProperties(aOther.mProperties.Clone()),
+      mBaseValues(aOther.mBaseValues.Count()) {
+  for (auto iter = aOther.mBaseValues.ConstIter(); !iter.Done(); iter.Next()) {
+    mBaseValues.Put(iter.Key(), RefPtr{iter.Data()});
+  }
+}
 
 JSObject* KeyframeEffect::WrapObject(JSContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
@@ -671,6 +685,8 @@ void KeyframeEffect::SetIsRunningOnCompositor(nsCSSPropertyID aProperty,
       // on the compositor we don't need a message.
       if (aIsRunning) {
         property.mPerformanceWarning.reset();
+      } else if (mAnimation && mAnimation->IsPartialPrerendered()) {
+        ResetPartialPrerendered();
       }
       return;
     }
@@ -694,11 +710,38 @@ void KeyframeEffect::SetIsRunningOnCompositor(
       }
     }
   }
+
+  if (!aIsRunning && mAnimation && mAnimation->IsPartialPrerendered()) {
+    ResetPartialPrerendered();
+  }
 }
 
 void KeyframeEffect::ResetIsRunningOnCompositor() {
   for (AnimationProperty& property : mProperties) {
     property.mIsRunningOnCompositor = false;
+  }
+
+  if (mAnimation && mAnimation->IsPartialPrerendered()) {
+    ResetPartialPrerendered();
+  }
+}
+
+void KeyframeEffect::ResetPartialPrerendered() {
+  MOZ_ASSERT(mAnimation && mAnimation->IsPartialPrerendered());
+
+  nsIFrame* frame = GetPrimaryFrame();
+  if (!frame) {
+    return;
+  }
+
+  nsIWidget* widget = frame->GetNearestWidget();
+  if (!widget) {
+    return;
+  }
+
+  if (layers::LayerManager* layerManager = widget->GetLayerManager()) {
+    layerManager->RemovePartialPrerenderedAnimation(
+        mAnimation->IdOnCompositor(), mAnimation);
   }
 }
 
@@ -827,10 +870,11 @@ nsTArray<AnimationProperty> KeyframeEffect::BuildProperties(
   // happens we could find that |mKeyframes| is overwritten while it is
   // being iterated over. Normally that shouldn't happen but just in case we
   // make a copy of |mKeyframes| first and iterate over that instead.
-  auto keyframesCopy(mKeyframes);
+  auto keyframesCopy(mKeyframes.Clone());
 
   result = KeyframeUtils::GetAnimationPropertiesFromKeyframes(
-      keyframesCopy, mTarget.mElement, aStyle, mEffectOptions.mComposite);
+      keyframesCopy, mTarget.mElement, mTarget.mPseudoType, aStyle,
+      mEffectOptions.mComposite);
 
 #ifdef DEBUG
   MOZ_ASSERT(SpecifiedKeyframeArraysAreEqual(mKeyframes, keyframesCopy),
@@ -838,7 +882,7 @@ nsTArray<AnimationProperty> KeyframeEffect::BuildProperties(
              " should not be modified");
 #endif
 
-  mKeyframes.SwapElements(keyframesCopy);
+  mKeyframes = std::move(keyframesCopy);
   return result;
 }
 
@@ -861,8 +905,12 @@ void KeyframeEffect::UpdateTarget(Element* aElement,
   }
 
   if (mTarget) {
-    UnregisterTarget();
+    // Call ResetIsRunningOnCompositor() prior to UnregisterTarget() since
+    // ResetIsRunningOnCompositor() might try to get the EffectSet associated
+    // with this keyframe effect to remove partial pre-render animation from
+    // the layer manager.
     ResetIsRunningOnCompositor();
+    UnregisterTarget();
 
     RequestRestyle(EffectCompositor::RestyleType::Layer);
 
@@ -1034,23 +1082,12 @@ already_AddRefed<KeyframeEffect> KeyframeEffect::Constructor(
   // aSource's TimingParams.
   // Note: we don't need to re-throw exceptions since the value specified on
   //       aSource's timing object can be assumed valid.
-  RefPtr<KeyframeEffect> effect = new KeyframeEffect(
-      doc, OwningAnimationTarget(aSource.mTarget),
-      TimingParams(aSource.SpecifiedTiming()), aSource.mEffectOptions);
+  RefPtr<KeyframeEffect> effect =
+      new KeyframeEffect(doc, OwningAnimationTarget{aSource.mTarget}, aSource);
   // Copy cumulative change hint. mCumulativeChangeHint should be the same as
   // the source one because both of targets are the same.
   effect->mCumulativeChangeHint = aSource.mCumulativeChangeHint;
 
-  // Copy aSource's keyframes and animation properties.
-  // Note: We don't call SetKeyframes directly, which might revise the
-  //       computed offsets and rebuild the animation properties.
-  effect->mKeyframes = aSource.mKeyframes;
-  effect->mProperties = aSource.mProperties;
-  for (auto iter = aSource.mBaseValues.ConstIter(); !iter.Done(); iter.Next()) {
-    // XXX Should this use non-const Iter() and then pass
-    // std::move(iter.Data())? Otherwise aSource might be a const&...
-    effect->mBaseValues.Put(iter.Key(), RefPtr{iter.Data()});
-  }
   return effect.forget();
 }
 
@@ -1104,7 +1141,7 @@ static void CreatePropertyValue(
     aResult.mEasing.Construct();
     aTimingFunction->AppendToString(aResult.mEasing.Value());
   } else {
-    aResult.mEasing.Construct(NS_LITERAL_STRING("linear"));
+    aResult.mEasing.Construct(u"linear"_ns);
   }
 
   aResult.mComposite = aComposite;
@@ -1146,9 +1183,14 @@ void KeyframeEffect::GetProperties(
       if (segment.mFromKey == segment.mToKey) {
         fromValue.mEasing.Reset();
       }
-      // The following won't fail since we have already allocated the capacity
-      // above.
-      propertyDetails.mValues.AppendElement(fromValue, mozilla::fallible);
+      // Even though we called SetCapacity before, this could fail, since we
+      // might add multiple elements to propertyDetails.mValues for an element
+      // of property.mSegments in the cases mentioned below.
+      if (!propertyDetails.mValues.AppendElement(fromValue,
+                                                 mozilla::fallible)) {
+        aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
+        return;
+      }
 
       // Normally we can ignore the to-value for this segment since it is
       // identical to the from-value from the next segment. However, we need
@@ -1165,7 +1207,11 @@ void KeyframeEffect::GetProperties(
         // last property value or before a sudden jump so we just drop the
         // easing property altogether.
         toValue.mEasing.Reset();
-        propertyDetails.mValues.AppendElement(toValue, mozilla::fallible);
+        if (!propertyDetails.mValues.AppendElement(toValue,
+                                                   mozilla::fallible)) {
+          aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
+          return;
+        }
       }
     }
 
@@ -1352,7 +1398,7 @@ static bool CanOptimizeAwayDueToOpacity(const KeyframeEffect& aEffect,
   if (IsDefinitivelyInvisibleDueToOpacity(aFrame)) {
     return true;
   }
-  return !aEffect.HasOpacityChange();
+  return !aEffect.HasOpacityChange() && !aFrame.HasAnimationOfOpacity();
 }
 
 bool KeyframeEffect::CanThrottleIfNotVisible(nsIFrame& aFrame) const {
@@ -1409,7 +1455,7 @@ bool KeyframeEffect::CanThrottle() const {
     return false;
   }
 
-  nsIFrame* frame = GetStyleFrame();
+  nsIFrame* const frame = GetStyleFrame();
   if (!frame) {
     // There are two possible cases here.
     // a) No target element
@@ -1418,6 +1464,11 @@ bool KeyframeEffect::CanThrottle() const {
     // In either case we can throttle the animation because there is no
     // need to update on the main thread.
     return true;
+  }
+
+  // Do not throttle any animations during print preview.
+  if (frame->PresContext()->IsPrintingOrPrintPreview()) {
+    return false;
   }
 
   if (CanThrottleIfNotVisible(*frame)) {
@@ -1500,7 +1551,7 @@ bool KeyframeEffect::CanThrottleOverflowChangesInScrollable(
 
   // If we don't show scrollbars and have no intersection observers, we don't
   // care about overflow.
-  if (LookAndFeel::GetInt(LookAndFeel::eIntID_ShowHideScrollbars) == 0 &&
+  if (LookAndFeel::GetInt(LookAndFeel::IntID::ShowHideScrollbars) == 0 &&
       !hasIntersectionObservers) {
     return true;
   }
@@ -1658,6 +1709,10 @@ bool KeyframeEffect::ShouldBlockAsyncTransformAnimations(
     return true;
   }
 
+  const bool enableMainthreadSynchronizationWithGeometricAnimations =
+      StaticPrefs::
+          dom_animations_mainthread_synchronization_with_geometric_animations();
+
   for (const AnimationProperty& property : mProperties) {
     // If there is a property for animations level that is overridden by
     // !important rules, it should not block other animations from running
@@ -1674,7 +1729,8 @@ bool KeyframeEffect::ShouldBlockAsyncTransformAnimations(
       continue;
     }
     // Check for geometric properties
-    if (IsGeometricProperty(property.mProperty)) {
+    if (enableMainthreadSynchronizationWithGeometricAnimations &&
+        IsGeometricProperty(property.mProperty)) {
       aPerformanceWarning =
           AnimationPerformanceWarning::Type::TransformWithGeometricProperties;
       return true;
@@ -1838,7 +1894,7 @@ void KeyframeEffect::SetAnimation(Animation* aAnimation) {
 }
 
 bool KeyframeEffect::CanIgnoreIfNotVisible() const {
-  if (!AnimationUtils::IsOffscreenThrottlingEnabled()) {
+  if (!StaticPrefs::dom_animations_offscreen_throttling()) {
     return false;
   }
 

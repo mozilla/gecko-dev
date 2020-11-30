@@ -58,6 +58,8 @@ function ContentRestore(chromeGlobal) {
 
   let EXPORTED_METHODS = [
     "restoreHistory",
+    "finishRestoreHistory",
+    "restoreOnNewEntry",
     "restoreTabContent",
     "restoreDocument",
     "resetRestore",
@@ -80,6 +82,11 @@ function ContentRestoreInternal(chromeGlobal) {
   // restoreTabContent.
   this._tabData = null;
 
+  // To make the sessionRestore work with session history living in the parent process,
+  // we divided the restoreHistory() into two parts in bug 1507287.
+  // This is used for the second part to prevent tabData is removed case.
+  this._tabDataForFinishRestoreHistory = null;
+
   // Contains {entry, scrollPositions, formdata}, where entry is a
   // single entry from the tabData.entries array. Set in
   // restoreTabContent and removed in restoreDocument.
@@ -94,6 +101,25 @@ function ContentRestoreInternal(chromeGlobal) {
   // data from the network. Set in restoreHistory() and restoreTabContent(),
   // removed in resetRestore().
   this._progressListener = null;
+
+  this._shistoryInParent = false;
+}
+
+function kickOffNewLoadFromBlankPage(webNavigation, newURI) {
+  // Reset the tab's URL to what it's actually showing. Without this loadURI()
+  // would use the current document and change the displayed URL only.
+  webNavigation.setCurrentURI(Services.io.newURI("about:blank"));
+
+  // Kick off a new load so that we navigate away from about:blank to the
+  // new URL that was passed to loadURI(). The new load will cause a
+  // STATE_START notification to be sent and the ProgressListener will then
+  // notify the parent and do the rest.
+  let loadFlags = Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP;
+  let loadURIOptions = {
+    triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
+    loadFlags,
+  };
+  webNavigation.loadURI(newURI, loadURIOptions);
 }
 
 /**
@@ -111,7 +137,7 @@ ContentRestoreInternal.prototype = {
    * non-zero) is passed through to all the callbacks. If a load in the tab
    * is started while it is pending, the appropriate callbacks are called.
    */
-  restoreHistory(tabData, loadArguments, callbacks) {
+  restoreHistory(tabData, loadArguments, callbacks, shistoryInParent) {
     this._tabData = tabData;
 
     // In case about:blank isn't done yet.
@@ -130,16 +156,35 @@ ContentRestoreInternal.prototype = {
       webNavigation.setCurrentURI(Services.io.newURI(uri));
     }
 
-    SessionHistory.restore(this.docShell, tabData);
+    this._shistoryInParent = shistoryInParent;
 
-    // Add a listener to watch for reloads.
-    let listener = new HistoryListener(this.docShell, () => {
-      // On reload, restore tab contents.
-      this.restoreTabContent(null, false, callbacks.onLoadFinished);
-    });
+    this._tabDataForFinishRestoreHistory = tabData;
+    if (this._shistoryInParent) {
+      callbacks.requestRestoreSHistory();
+    } else {
+      SessionHistory.restore(this.docShell, tabData);
 
-    webNavigation.sessionHistory.legacySHistory.addSHistoryListener(listener);
-    this._historyListener = listener;
+      // Add a listener to watch for reloads.
+      let listener = new HistoryListener(this.docShell, () => {
+        // On reload, restore tab contents.
+        this.restoreTabContent(
+          null,
+          false,
+          callbacks.onLoadFinished,
+          null,
+          null
+        );
+      });
+
+      webNavigation.sessionHistory.legacySHistory.addSHistoryListener(listener);
+      this._historyListener = listener;
+      this.finishRestoreHistory(callbacks);
+    }
+  },
+
+  finishRestoreHistory(callbacks) {
+    let tabData = this._tabDataForFinishRestoreHistory;
+    this._tabDataForFinishRestoreHistory = null;
 
     // Make sure to reset the capabilities and attributes in case this tab gets
     // reused.
@@ -162,7 +207,10 @@ ContentRestoreInternal.prototype = {
         this._tabData = null;
 
         // Listen for the tab to finish loading.
-        this.restoreTabContentStarted(callbacks.onLoadFinished);
+        this.restoreTabContentStarted(
+          callbacks.onLoadFinished,
+          callbacks.removeRestoreListener
+        );
 
         // Notify the parent.
         callbacks.onLoadStarted();
@@ -170,19 +218,29 @@ ContentRestoreInternal.prototype = {
     });
   },
 
+  restoreOnNewEntry(newURI) {
+    let webNavigation = this.docShell.QueryInterface(Ci.nsIWebNavigation);
+    kickOffNewLoadFromBlankPage(webNavigation, newURI);
+  },
+
   /**
    * Start loading the current page. When the data has finished loading from the
    * network, finishCallback is called. Returns true if the load was successful.
    */
-  restoreTabContent(loadArguments, isRemotenessUpdate, finishCallback) {
+  restoreTabContent(
+    loadArguments,
+    isRemotenessUpdate,
+    finishCallback,
+    removeListenerCallback,
+    reloadSHistoryCallback
+  ) {
     let tabData = this._tabData;
     this._tabData = null;
 
     let webNavigation = this.docShell.QueryInterface(Ci.nsIWebNavigation);
-    let history = webNavigation.sessionHistory.legacySHistory;
 
     // Listen for the tab to finish loading.
-    this.restoreTabContentStarted(finishCallback);
+    this.restoreTabContentStarted(finishCallback, removeListenerCallback);
 
     // Reset the current URI to about:blank. We changed it above for
     // switch-to-tab, but now it must go back to the correct value before the
@@ -238,11 +296,6 @@ ContentRestoreInternal.prototype = {
           ? E10SUtils.deserializeCSP(loadArguments.csp)
           : null;
 
-        if (loadArguments.userContextId) {
-          webNavigation.setOriginAttributesBeforeLoading({
-            userContextId: loadArguments.userContextId,
-          });
-        }
         let loadURIOptions = {
           triggeringPrincipal,
           loadFlags: loadArguments.flags,
@@ -251,17 +304,11 @@ ContentRestoreInternal.prototype = {
           csp,
         };
         webNavigation.loadURI(loadArguments.uri, loadURIOptions);
-      } else if (
-        tabData.userTypedValue &&
-        tabData.userTypedClear &&
-        !isRemotenessUpdate
-      ) {
+      } else if (tabData.userTypedValue && tabData.userTypedClear) {
         // If the user typed a URL into the URL bar and hit enter right before
         // we crashed, we want to start loading that page again. A non-zero
         // userTypedClear value means that the load had started.
         // Load userTypedValue and fix up the URL if it's partial/broken.
-        // Remoteness updates are not crashes, so we use the provided URL, not
-        // the user typed one.
         let loadURIOptions = {
           triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
           loadFlags: Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP,
@@ -279,7 +326,12 @@ ContentRestoreInternal.prototype = {
         // In order to work around certain issues in session history, we need to
         // force session history to update its internal index and call reload
         // instead of gotoIndex. See bug 597315.
-        history.reloadCurrentEntry();
+        if (this._shistoryInParent) {
+          reloadSHistoryCallback();
+        } else {
+          let history = webNavigation.sessionHistory.legacySHistory;
+          history.reloadCurrentEntry();
+        }
       } else {
         // If there's nothing to restore, we should still blank the page.
         let loadURIOptions = {
@@ -304,10 +356,14 @@ ContentRestoreInternal.prototype = {
    * To be called after restoreHistory(). Removes all listeners needed for
    * pending tabs and makes sure to notify when the tab finished loading.
    */
-  restoreTabContentStarted(finishCallback) {
+  restoreTabContentStarted(finishCallback, removeListenerCallback) {
     // The reload listener is no longer needed.
-    this._historyListener.uninstall();
-    this._historyListener = null;
+    if (this._shistoryInParent) {
+      removeListenerCallback();
+    } else if (this._historyListener) {
+      this._historyListener.uninstall();
+      this._historyListener = null;
+    }
 
     // Remove the old progress listener.
     this._progressListener.uninstall();
@@ -394,8 +450,8 @@ function HistoryListener(docShell, callback) {
 }
 HistoryListener.prototype = {
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsISHistoryListener,
-    Ci.nsISupportsWeakReference,
+    "nsISHistoryListener",
+    "nsISupportsWeakReference",
   ]),
 
   uninstall() {
@@ -421,20 +477,7 @@ HistoryListener.prototype = {
       return;
     }
 
-    // Reset the tab's URL to what it's actually showing. Without this loadURI()
-    // would use the current document and change the displayed URL only.
-    this.webNavigation.setCurrentURI(Services.io.newURI("about:blank"));
-
-    // Kick off a new load so that we navigate away from about:blank to the
-    // new URL that was passed to loadURI(). The new load will cause a
-    // STATE_START notification to be sent and the ProgressListener will then
-    // notify the parent and do the rest.
-    let loadFlags = Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP;
-    let loadURIOptions = {
-      triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
-      loadFlags,
-    };
-    this.webNavigation.loadURI(newURI.spec, loadURIOptions);
+    kickOffNewLoadFromBlankPage(this.webNavigation, newURI);
   },
 
   OnHistoryReload() {
@@ -467,8 +510,8 @@ function ProgressListener(docShell, callbacks) {
 
 ProgressListener.prototype = {
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIWebProgressListener,
-    Ci.nsISupportsWeakReference,
+    "nsIWebProgressListener",
+    "nsISupportsWeakReference",
   ]),
 
   uninstall() {

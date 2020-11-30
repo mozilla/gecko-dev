@@ -6,12 +6,18 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import hashlib
 import os
+import platform
 import re
 import subprocess
 import sys
 
 from distutils.version import LooseVersion
 from mozboot import rust
+from mozboot.util import (
+    get_mach_virtualenv_binary,
+    MINIMUM_RUST_VERSION,
+)
+from mozfile import which
 
 # NOTE: This script is intended to be run with a vanilla Python install.  We
 # have to rely on the standard library instead of Python 2+3 helpers like
@@ -60,26 +66,6 @@ upgrade Python on your machine.
 
 Please search the Internet for how to upgrade your Python and try running this
 bootstrapper again to ensure your machine is up to date.
-'''
-
-PYTHON_UPGRADE_FAILED = '''
-We attempted to upgrade Python to a modern version (%s or newer).
-However, you appear to still have version %s.
-
-It's possible your package manager doesn't yet expose a modern version of
-Python. It's also possible Python is not being installed in the search path for
-this shell. Try creating a new shell and run this bootstrapper again.
-
-If this continues to fail and you are sure you have a modern Python on your
-system, ensure it is on the $PATH and try again. If that fails, you'll need to
-install Python manually and ensure the path with the python binary is listed in
-the $PATH environment variable.
-
-We recommend the following tools for installing Python:
-
-    pyenv   -- https://github.com/yyuu/pyenv)
-    pythonz -- https://github.com/saghul/pythonz
-    official installers -- http://www.python.org/
 '''
 
 RUST_INSTALL_COMPLETE = '''
@@ -142,23 +128,20 @@ tool or package manager on your system, or directly from https://rust-lang.org/
 '''
 
 BROWSER_ARTIFACT_MODE_MOZCONFIG = '''
-Paste the lines between the chevrons (>>> and <<<) into your
-$topsrcdir/mozconfig file, or create the file if it does not exist:
-
->>>
 # Automatically download and use compiled C++ components:
 ac_add_options --enable-artifact-builds
-<<<
-'''
+'''.strip()
 
 # Upgrade Mercurial older than this.
-MODERN_MERCURIAL_VERSION = LooseVersion('4.8')
+# This should match the OLDEST_NON_LEGACY_VERSION in
+# version-control-tools/hgext/configwizard/__init__.py.
+MODERN_MERCURIAL_VERSION = LooseVersion('4.9')
 
-# Upgrade Python older than this.
-MODERN_PYTHON_VERSION = LooseVersion('2.7.3')
+MODERN_PYTHON2_VERSION = LooseVersion('2.7.3')
+MODERN_PYTHON3_VERSION = LooseVersion('3.6.0')
 
 # Upgrade rust older than this.
-MODERN_RUST_VERSION = LooseVersion('1.41.1')
+MODERN_RUST_VERSION = LooseVersion(MINIMUM_RUST_VERSION)
 
 # Upgrade nasm older than this.
 MODERN_NASM_VERSION = LooseVersion('2.14')
@@ -167,11 +150,34 @@ MODERN_NASM_VERSION = LooseVersion('2.14')
 class BaseBootstrapper(object):
     """Base class for system bootstrappers."""
 
+    INSTALL_PYTHON_GUIDANCE = (
+        'We do not have specific instructions for your platform on how to '
+        'install Python. You may find Pyenv (https://github.com/pyenv/pyenv) '
+        'helpful, if your system package manager does not provide a way to '
+        'install a recent enough Python 3 and 2.')
+
     def __init__(self, no_interactive=False, no_system_changes=False):
         self.package_manager_updated = False
         self.no_interactive = no_interactive
         self.no_system_changes = no_system_changes
         self.state_dir = None
+
+    def validate_environment(self, srcdir):
+        '''
+        Called once the current firefox checkout has been detected.
+        Platform-specific implementations should check the environment and offer advice/warnings
+        to the user, if necessary.
+        '''
+
+    def suggest_install_distutils(self):
+        '''Called if distutils.{sysconfig,spawn} can't be imported.'''
+        print('Does your distro require installing another package for '
+              'distutils?', file=sys.stderr)
+
+    def suggest_install_pip3(self):
+        '''Called if pip3 can't be found.'''
+        print("Try installing pip3 with your system's package manager.",
+              file=sys.stderr)
 
     def install_system_packages(self):
         '''
@@ -182,7 +188,7 @@ class BaseBootstrapper(object):
         raise NotImplementedError('%s must implement install_system_packages()' %
                                   __name__)
 
-    def install_browser_packages(self):
+    def install_browser_packages(self, mozconfig_builder):
         '''
         Install packages required to build Firefox for Desktop (application
         'browser').
@@ -191,7 +197,7 @@ class BaseBootstrapper(object):
                                   '%s does not yet implement install_browser_packages()' %
                                   __name__)
 
-    def suggest_browser_mozconfig(self):
+    def generate_browser_mozconfig(self):
         '''
         Print a message to the console detailing what the user's mozconfig
         should contain.
@@ -201,7 +207,7 @@ class BaseBootstrapper(object):
         '''
         pass
 
-    def install_browser_artifact_mode_packages(self):
+    def install_browser_artifact_mode_packages(self, mozconfig_builder):
         '''
         Install packages required to build Firefox for Desktop (application
         'browser') in Artifact Mode.
@@ -211,7 +217,7 @@ class BaseBootstrapper(object):
             '%s does not yet implement install_browser_artifact_mode_packages()' %
             __name__)
 
-    def suggest_browser_artifact_mode_mozconfig(self):
+    def generate_browser_artifact_mode_mozconfig(self):
         '''
         Print a message to the console detailing what the user's mozconfig
         should contain.
@@ -219,9 +225,9 @@ class BaseBootstrapper(object):
         Firefox for Desktop Artifact Mode needs to enable artifact builds and
         a path where the build artifacts will be written to.
         '''
-        print(BROWSER_ARTIFACT_MODE_MOZCONFIG)
+        return BROWSER_ARTIFACT_MODE_MOZCONFIG
 
-    def install_mobile_android_packages(self):
+    def install_mobile_android_packages(self, mozconfig_builder):
         '''
         Install packages required to build Firefox for Android (application
         'mobile/android', also known as Fennec).
@@ -230,7 +236,7 @@ class BaseBootstrapper(object):
                                   '%s does not yet implement install_mobile_android_packages()'
                                   % __name__)
 
-    def suggest_mobile_android_mozconfig(self):
+    def generate_mobile_android_mozconfig(self):
         '''
         Print a message to the console detailing what the user's mozconfig
         should contain.
@@ -238,10 +244,10 @@ class BaseBootstrapper(object):
         GeckoView/Firefox for Android needs an application and an ABI set, and it needs
         paths to the Android SDK and NDK.
         '''
-        raise NotImplementedError('%s does not yet implement suggest_mobile_android_mozconfig()' %
+        raise NotImplementedError('%s does not yet implement generate_mobile_android_mozconfig()' %
                                   __name__)
 
-    def install_mobile_android_artifact_mode_packages(self):
+    def install_mobile_android_artifact_mode_packages(self, mozconfig_builder):
         '''
         Install packages required to build GeckoView/Firefox for Android (application
         'mobile/android', also known as Fennec) in Artifact Mode.
@@ -251,7 +257,7 @@ class BaseBootstrapper(object):
             '%s does not yet implement install_mobile_android_artifact_mode_packages()'
             % __name__)
 
-    def suggest_mobile_android_artifact_mode_mozconfig(self):
+    def generate_mobile_android_artifact_mode_mozconfig(self):
         '''
         Print a message to the console detailing what the user's mozconfig
         should contain.
@@ -260,8 +266,15 @@ class BaseBootstrapper(object):
         and it needs paths to the Android SDK.
         '''
         raise NotImplementedError(
-            '%s does not yet implement suggest_mobile_android_artifact_mode_mozconfig()'
+            '%s does not yet implement generate_mobile_android_artifact_mode_mozconfig()'
             % __name__)
+
+    def ensure_mach_environment(self, checkout_root):
+        mach_binary = os.path.abspath(os.path.join(checkout_root, 'mach'))
+        if not os.path.exists(mach_binary):
+            raise ValueError('mach not found at %s' % mach_binary)
+        cmd = [sys.executable, mach_binary, 'create-mach-environment']
+        subprocess.check_call(cmd, cwd=checkout_root)
 
     def ensure_clang_static_analysis_package(self, state_dir, checkout_root):
         '''
@@ -324,6 +337,12 @@ class BaseBootstrapper(object):
         '''
         pass
 
+    def ensure_minidump_stackwalk_packages(self, state_dir, checkout_root):
+        '''
+        Install minidump_stackwalk.
+        '''
+        pass
+
     def install_toolchain_static_analysis(self, state_dir, checkout_root, toolchain_job):
         clang_tools_path = os.path.join(state_dir, 'clang-tools')
         if not os.path.exists(clang_tools_path):
@@ -337,38 +356,27 @@ class BaseBootstrapper(object):
         if not os.path.exists(mach_binary):
             raise ValueError("mach not found at %s" % mach_binary)
 
-        # If Python can't figure out what its own executable is, there's little
-        # chance we're going to be able to execute mach on its own, particularly
-        # on Windows.
-        if not sys.executable:
-            raise ValueError("cannot determine path to Python executable")
+        # NOTE: Use self.state_dir over the passed-in state_dir, which might be
+        # a subdirectory of the actual state directory.
+        if not self.state_dir:
+            raise ValueError(
+                'Need a state directory (e.g. ~/.mozbuild) to download '
+                'artifacts')
+        python_location = get_mach_virtualenv_binary(state_dir=self.state_dir)
+        if not os.path.exists(python_location):
+            raise ValueError('python not found at %s' % python_location)
 
-        cmd = [sys.executable, mach_binary, 'artifact', 'toolchain',
-               '--from-build', toolchain_job]
+        cmd = [python_location, mach_binary, 'artifact', 'toolchain',
+               '--bootstrap', '--from-build', toolchain_job]
 
         if no_unpack:
             cmd += ['--no-unpack']
 
         subprocess.check_call(cmd, cwd=state_dir)
 
-    def which(self, name, *extra_search_dirs):
-        """Python implementation of which.
-
-        It returns the path of an executable or None if it couldn't be found.
-        """
-        search_dirs = os.environ['PATH'].split(os.pathsep)
-        search_dirs.extend(extra_search_dirs)
-
-        for path in search_dirs:
-            test = os.path.join(path, name)
-            if os.path.isfile(test) and os.access(test, os.X_OK):
-                return test
-
-        return None
-
     def run_as_root(self, command):
         if os.geteuid() != 0:
-            if self.which('sudo'):
+            if which('sudo'):
                 command.insert(0, 'sudo')
             else:
                 command = ['su', 'root', '-c', ' '.join(command)]
@@ -378,7 +386,7 @@ class BaseBootstrapper(object):
         subprocess.check_call(command, stdin=sys.stdin)
 
     def dnf_install(self, *packages):
-        if self.which('dnf'):
+        if which('dnf'):
             command = ['dnf', 'install']
         else:
             command = ['yum', 'install']
@@ -390,7 +398,7 @@ class BaseBootstrapper(object):
         self.run_as_root(command)
 
     def dnf_groupinstall(self, *packages):
-        if self.which('dnf'):
+        if which('dnf'):
             command = ['dnf', 'groupinstall']
         else:
             command = ['yum', 'groupinstall']
@@ -402,7 +410,7 @@ class BaseBootstrapper(object):
         self.run_as_root(command)
 
     def dnf_update(self, *packages):
-        if self.which('dnf'):
+        if which('dnf'):
             command = ['dnf', 'update']
         else:
             command = ['yum', 'update']
@@ -433,14 +441,6 @@ class BaseBootstrapper(object):
         command.extend(arch)
 
         self.run_as_root(command)
-
-    def check_output(self, *args, **kwargs):
-        """Run subprocess.check_output even if Python doesn't provide it."""
-        # TODO Legacy Python 2.6 code, can be removed.
-        # We had a custom check_output() function for Python 2.6 backward
-        # compatibility.  Since py2.6 support was dropped we can remove this
-        # method.
-        return subprocess.check_output(*args, **kwargs)
 
     def prompt_int(self, prompt, low, high, limit=5):
         ''' Prompts the user with prompt and requires an integer between low and high. '''
@@ -506,14 +506,19 @@ class BaseBootstrapper(object):
         '''
         if not name:
             name = os.path.basename(path)
-        if name.endswith('.exe'):
+        if name.lower().endswith('.exe'):
             name = name[:-4]
 
-        info = self.check_output([path, version_param],
-                                 env=env,
-                                 stderr=subprocess.STDOUT,
-                                 universal_newlines=True)
-        match = re.search(name + ' ([a-z0-9\.]+)', info)
+        process = subprocess.run(
+            [path, version_param], env=env, universal_newlines=True,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        if process.returncode != 0:
+            # This can happen e.g. if the user has an inactive pyenv shim in
+            # their path. Just silently treat this as a failure to parse the
+            # path and move on.
+            return None
+
+        match = re.search(name + ' ([a-z0-9\.]+)', process.stdout)
         if not match:
             print('ERROR! Unable to identify %s version.' % name)
             return None
@@ -544,7 +549,7 @@ class BaseBootstrapper(object):
         return env
 
     def is_mercurial_modern(self):
-        hg = self.which('hg')
+        hg = which('hg')
         if not hg:
             print(NO_MERCURIAL)
             return False, False, None
@@ -594,50 +599,56 @@ class BaseBootstrapper(object):
         """
         print(MERCURIAL_UNABLE_UPGRADE % (current, MODERN_MERCURIAL_VERSION))
 
-    def is_python_modern(self):
-        python = None
+    def is_python_modern(self, major):
+        assert major in (2, 3)
 
-        for test in ['python2.7', 'python']:
-            python = self.which(test)
-            if python:
-                break
+        our = None
 
-        assert python
+        if major == 3:
+            our = LooseVersion(platform.python_version())
+        else:
+            for test in ('python2.7', 'python'):
+                python = which(test)
+                if python:
+                    candidate_version = self._parse_version(python, 'Python')
+                    if (candidate_version and
+                        candidate_version.version[0] == major):
+                        our = candidate_version
+                        break
 
-        our = self._parse_version(python, 'Python')
-        if not our:
+        if our is None:
             return False, None
 
-        return our >= MODERN_PYTHON_VERSION, our
+        modern = {
+            2: MODERN_PYTHON2_VERSION,
+            3: MODERN_PYTHON3_VERSION,
+        }
+        return our >= modern[major], our
 
     def ensure_python_modern(self):
-        modern, version = self.is_python_modern()
-
+        modern, version = self.is_python_modern(3)
         if modern:
-            print('Your version of Python (%s) is new enough.' % version)
-            return
-
-        print('Your version of Python (%s) is too old. Will try to upgrade.' %
-              version)
-
-        self._ensure_package_manager_updated()
-        self.upgrade_python(version)
-
-        modern, after = self.is_python_modern()
-
-        if not modern:
-            print(PYTHON_UPGRADE_FAILED % (MODERN_PYTHON_VERSION, after))
+            print('Your version of Python 3 (%s) is new enough.' % version)
+        else:
+            print('ERROR: Your version of Python 3 (%s) is not new enough. You '
+                  'must have Python >= %s to build Firefox.' % (
+                      version, MODERN_PYTHON3_VERSION))
+            print(self.INSTALL_PYTHON_GUIDANCE)
             sys.exit(1)
-
-    def upgrade_python(self, current):
-        """Upgrade Python.
-
-        Child classes should reimplement this.
-        """
-        print(PYTHON_UNABLE_UPGRADE % (current, MODERN_PYTHON_VERSION))
+        modern, version = self.is_python_modern(2)
+        if modern:
+            print('Your version of Python 2 (%s) is new enough.' % version)
+        else:
+            print('WARNING: Your version of Python 2 (%s) is not new enough. '
+                  'You must have Python >= %s to build Firefox. Python 2 is '
+                  'not required to build, so we will proceed. However, Python '
+                  '2 is required for other development tasks, like running '
+                  'tests; you may like to have Python 2 installed for that '
+                  'reason.' % (version, MODERN_PYTHON2_VERSION))
+            print(self.INSTALL_PYTHON_GUIDANCE)
 
     def is_nasm_modern(self):
-        nasm = self.which('nasm')
+        nasm = which('nasm')
         if not nasm:
             return False
 
@@ -648,7 +659,7 @@ class BaseBootstrapper(object):
         return our >= MODERN_NASM_VERSION
 
     def is_rust_modern(self, cargo_bin):
-        rustc = self.which('rustc', cargo_bin)
+        rustc = which('rustc', extra_search_dirs=[cargo_bin])
         if not rustc:
             print('Could not find a Rust compiler.')
             return False, None
@@ -697,7 +708,7 @@ class BaseBootstrapper(object):
 
         if modern:
             print('Your version of Rust (%s) is new enough.' % version)
-            rustup = self.which('rustup', cargo_bin)
+            rustup = which('rustup', extra_search_dirs=[cargo_bin])
             if rustup:
                 self.ensure_rust_targets(rustup, version)
             return
@@ -705,7 +716,7 @@ class BaseBootstrapper(object):
         if version:
             print('Your version of Rust (%s) is too old.' % version)
 
-        rustup = self.which('rustup', cargo_bin)
+        rustup = which('rustup', extra_search_dirs=[cargo_bin])
         if rustup:
             rustup_version = self._parse_version(rustup)
             if not rustup_version:
@@ -815,7 +826,7 @@ class BaseBootstrapper(object):
             os.remove(dest)
             raise ValueError('Hash of downloaded file does not match expected hash')
 
-    def ensure_java(self, extra_search_dirs=()):
+    def ensure_java(self, mozconfig_builder):
         """Verify the presence of java.
 
         Note that we currently require a JDK (not just a JRE) because we
@@ -828,44 +839,96 @@ class BaseBootstrapper(object):
         Gradle.
         """
 
+        # We look up the realpath() of "jarsigner" instead of "java" because the
+        # structure of some JDKs places "java" in a different directory:
+        #
+        # $JDK/
+        #    bin/
+        #        jarsigner
+        #        java -> ../jre/bin/java
+        #        ...
+        #    jre/
+        #        bin/
+        #            java
+        #            ...
+        #    ...
+        #
+        # Realpath-ing "jarsigner" consistently gives us a JDK bin dir
+        # containing both "java" and "jarsigner".
+        jdk_bin_dir = None
         if 'JAVA_HOME' in os.environ:
-            extra_search_dirs += (os.path.join(os.environ['JAVA_HOME'], 'bin'),)
-        java = self.which('java', *extra_search_dirs)
+            # Search JAVA_HOME if it is set as it's finer grained than looking at PATH.
+            possible_jarsigner_path = os.path.join(os.environ['JAVA_HOME'], 'bin')
+            if which('jarsigner', path=possible_jarsigner_path):
+                jdk_bin_dir = os.path.realpath(possible_jarsigner_path)
+        else:
+            # Search the path if JAVA_HOME is not set.
+            jarsigner = which('jarsigner')
+            java = which('java')
 
-        if not java:
-            raise Exception('You need to have Java version 1.8 installed. '
-                            'Please visit http://www.java.com/en/download '
-                            'to get version 1.8.')
+            if jarsigner and java:
+                jdk_bin_dir = os.path.dirname(os.path.realpath(jarsigner))
+                jdk_bin_java = which('java', path=jdk_bin_dir)
 
+                # Different parts of the build process reference "java" differently.
+                # In bootstrap, we run some Android tooling which uses "java" from the PATH.
+                # Meanwhile, in build, we'll use the "java" found in the --with-java-bin-path.
+                # To ensure we don't run into surprises, we check that both of our "java"s are
+                # from the same JDK version.
+                path_java_version = _resolve_java_version(java)[0]
+                jdk_bin_version = _resolve_java_version(jdk_bin_java)[0]
+                if path_java_version != jdk_bin_version:
+                    # This can happen on Ubuntu if "update-alternatives" has been
+                    # manually overridden for either "java" or "jarsigner".
+                    raise Exception('The "java" (JDK {}) and "jarsigner" (JDK {}) binaries on the '
+                                    'PATH are currently coming from two different JDKs. Please '
+                                    'resolve this, or explicitly set JAVA_HOME.'
+                                    .format(path_java_version, jdk_bin_version))
+
+        if not jdk_bin_dir:
+            raise Exception('You need to have Java Development Kit version 1.8 installed. '
+                            'Please install it from https://adoptopenjdk.net/?variant=openjdk8')
+
+        java = which('java', path=jdk_bin_dir)
         try:
-            output = subprocess.check_output([java,
-                                              '-XshowSettings:properties',
-                                              '-version'],
-                                             stderr=subprocess.STDOUT,
-                                             universal_newlines=True).rstrip()
+            version, output = _resolve_java_version(java)
 
-            # -version strings are pretty free-form, like: 'java version
-            # "1.8.0_192"' or 'openjdk version "11.0.1" 2018-10-16', but the
-            # -XshowSettings:properties gives the information (to stderr, sigh)
-            # like 'java.specification.version = 8'.  That flag is non-standard
-            # but has been around since at least 2011.
-            version = [line for line in output.splitlines()
-                       if 'java.specification.version' in line]
-            if not len(version) == 1:
-                raise Exception('You need to have Java version 1.8 installed '
-                                '(found {} but could not parse version "{}"). '
-                                'Check the JAVA_HOME environment variable. '
-                                'Please visit http://www.java.com/en/download '
-                                'to get version 1.8.'.format(java, output))
+            if not version or version not in ['1.8', '8']:
+                raise Exception('You need to have Java Development Kit version '
+                                '1.8 installed (found {} but could not parse '
+                                'version "{}"). Check the JAVA_HOME environment '
+                                'variable. Please install JDK 1.8 from '
+                                'https://adoptopenjdk.net/?variant=openjdk8.'
+                                .format(java, output))
 
-            version = version[0].split(' = ')[-1]
-            if version not in ['1.8', '8']:
-                raise Exception('You need to have Java version 1.8 installed '
-                                '(found {} with version "{}"). '
-                                'Check the JAVA_HOME environment variable. '
-                                'Please visit http://www.java.com/en/download '
-                                'to get version 1.8.'.format(java, version))
+            mozconfig_builder.append('''
+            # Use the same Java binary that was used in bootstrap in case the global
+            # system default version is changed.
+            ac_add_options --with-java-bin-path={}
+            '''.format(jdk_bin_dir))
         except subprocess.CalledProcessError as e:
             raise Exception('Failed to get java version from {}: {}'.format(java, e.output))
 
         print('Your version of Java ({}) is at least 1.8 ({}).'.format(java, version))
+
+
+def _resolve_java_version(java_path):
+    output = subprocess.check_output([java_path,
+                                      '-XshowSettings:properties',
+                                      '-version'],
+                                     stderr=subprocess.STDOUT,
+                                     universal_newlines=True).rstrip()
+
+    # -version strings are pretty free-form, like: 'java version
+    # "1.8.0_192"' or 'openjdk version "11.0.1" 2018-10-16', but the
+    # -XshowSettings:properties gives the information (to stderr, sigh)
+    # like 'java.specification.version = 8'.  That flag is non-standard
+    # but has been around since at least 2011.
+    version = [line for line in output.splitlines()
+               if 'java.specification.version' in line]
+
+    if len(version) != 1:
+        return None, output
+
+    version = version[0].split(' = ')[-1]
+    return version, output

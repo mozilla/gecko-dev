@@ -5,11 +5,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ImageBridgeParent.h"
-#include <stdint.h>             // for uint64_t, uint32_t
-#include "CompositableHost.h"   // for CompositableParent, Create
-#include "base/message_loop.h"  // for MessageLoop
-#include "base/process.h"       // for ProcessId
-#include "base/task.h"          // for CancelableTask, DeleteTask, etc
+#include <stdint.h>            // for uint64_t, uint32_t
+#include "CompositableHost.h"  // for CompositableParent, Create
+#include "base/process.h"      // for ProcessId
+#include "base/task.h"         // for CancelableTask, DeleteTask, etc
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/gfx/Point.h"           // for IntSize
 #include "mozilla/Hal.h"                 // for hal::SetCurrentThreadPriority()
@@ -40,6 +39,10 @@
 #  include "mozilla/layers/TextureD3D11.h"
 #endif
 
+#ifdef MOZ_WIDGET_ANDROID
+#  include "mozilla/layers/AndroidHardwareBuffer.h"
+#endif
+
 namespace mozilla {
 namespace layers {
 
@@ -62,9 +65,9 @@ void ImageBridgeParent::Setup() {
   }
 }
 
-ImageBridgeParent::ImageBridgeParent(MessageLoop* aLoop,
+ImageBridgeParent::ImageBridgeParent(nsISerialEventTarget* aThread,
                                      ProcessId aChildProcessId)
-    : mMessageLoop(aLoop),
+    : mThread(aThread),
       mClosed(false),
       mCompositorThreadHolder(CompositorThreadHolder::GetSingleton()) {
   MOZ_ASSERT(NS_IsMainThread());
@@ -77,7 +80,7 @@ ImageBridgeParent::~ImageBridgeParent() = default;
 ImageBridgeParent* ImageBridgeParent::CreateSameProcess() {
   base::ProcessId pid = base::GetCurrentProcId();
   RefPtr<ImageBridgeParent> parent =
-      new ImageBridgeParent(CompositorThreadHolder::Loop(), pid);
+      new ImageBridgeParent(CompositorThread(), pid);
   parent->mSelfRef = parent;
 
   {
@@ -95,15 +98,15 @@ bool ImageBridgeParent::CreateForGPUProcess(
     Endpoint<PImageBridgeParent>&& aEndpoint) {
   MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_GPU);
 
-  MessageLoop* loop = CompositorThreadHolder::Loop();
-  if (!loop) {
+  nsCOMPtr<nsISerialEventTarget> compositorThread = CompositorThread();
+  if (!compositorThread) {
     return false;
   }
 
   RefPtr<ImageBridgeParent> parent =
-      new ImageBridgeParent(loop, aEndpoint.OtherPid());
+      new ImageBridgeParent(compositorThread, aEndpoint.OtherPid());
 
-  loop->PostTask(NewRunnableMethod<Endpoint<PImageBridgeParent>&&>(
+  compositorThread->Dispatch(NewRunnableMethod<Endpoint<PImageBridgeParent>&&>(
       "layers::ImageBridgeParent::Bind", parent, &ImageBridgeParent::Bind,
       std::move(aEndpoint)));
 
@@ -133,7 +136,7 @@ void ImageBridgeParent::ShutdownInternal() {
 
 /* static */
 void ImageBridgeParent::Shutdown() {
-  CompositorThreadHolder::Loop()->PostTask(NS_NewRunnableFunction(
+  CompositorThread()->Dispatch(NS_NewRunnableFunction(
       "ImageBridgeParent::Shutdown",
       []() -> void { ImageBridgeParent::ShutdownInternal(); }));
 }
@@ -146,7 +149,7 @@ void ImageBridgeParent::ActorDestroy(ActorDestroyReason aWhy) {
     MonitorAutoLock lock(*sImageBridgesLock);
     sImageBridges.erase(OtherPid());
   }
-  MessageLoop::current()->PostTask(
+  GetThread()->Dispatch(
       NewRunnableMethod("layers::ImageBridgeParent::DeferredDestroy", this,
                         &ImageBridgeParent::DeferredDestroy));
 
@@ -219,14 +222,14 @@ mozilla::ipc::IPCResult ImageBridgeParent::RecvUpdate(
 /* static */
 bool ImageBridgeParent::CreateForContent(
     Endpoint<PImageBridgeParent>&& aEndpoint) {
-  MessageLoop* loop = CompositorThreadHolder::Loop();
-  if (!loop) {
+  nsCOMPtr<nsISerialEventTarget> compositorThread = CompositorThread();
+  if (!compositorThread) {
     return false;
   }
 
   RefPtr<ImageBridgeParent> bridge =
-      new ImageBridgeParent(loop, aEndpoint.OtherPid());
-  loop->PostTask(NewRunnableMethod<Endpoint<PImageBridgeParent>&&>(
+      new ImageBridgeParent(compositorThread, aEndpoint.OtherPid());
+  compositorThread->Dispatch(NewRunnableMethod<Endpoint<PImageBridgeParent>&&>(
       "layers::ImageBridgeParent::Bind", bridge, &ImageBridgeParent::Bind,
       std::move(aEndpoint)));
 
@@ -422,7 +425,37 @@ void ImageBridgeParent::NotifyNotUsed(PTextureParent* aTexture,
     return;
   }
 
-  if (!(texture->GetFlags() & TextureFlags::RECYCLE)) {
+#ifdef MOZ_WIDGET_ANDROID
+  if (auto hardwareBuffer = texture->GetAndroidHardwareBuffer()) {
+    MOZ_ASSERT(texture->GetFlags() & TextureFlags::RECYCLE);
+
+    Maybe<FileDescriptor> fenceFd = Some(FileDescriptor());
+    auto* compositor = texture->GetProvider()
+                           ? texture->GetProvider()->AsCompositorOGL()
+                           : nullptr;
+    if (compositor) {
+      fenceFd = Some(compositor->GetReleaseFence());
+    }
+
+    auto* wrTexture = texture->AsWebRenderTextureHost();
+    if (wrTexture) {
+      MOZ_ASSERT(!fenceFd->IsValid());
+      fenceFd = Some(texture->GetAndResetReleaseFence());
+    }
+
+    // Invalid file descriptor could not be sent via IPC, but
+    // OpDeliverReleaseFence message needs to be sent to child side.
+    if (!fenceFd->IsValid()) {
+      fenceFd = Nothing();
+    }
+    mPendingAsyncMessage.push_back(OpDeliverReleaseFence(
+        std::move(fenceFd), hardwareBuffer->mId, aTransactionId,
+        /* usesImageBridge */ true));
+  }
+#endif
+
+  if (!(texture->GetFlags() & TextureFlags::RECYCLE) &&
+      !(texture->GetFlags() & TextureFlags::WAIT_HOST_USAGE_END)) {
     return;
   }
 
@@ -432,6 +465,51 @@ void ImageBridgeParent::NotifyNotUsed(PTextureParent* aTexture,
   if (!IsAboutToSendAsyncMessages()) {
     SendPendingAsyncMessages();
   }
+}
+
+/* static */
+void ImageBridgeParent::NotifyBufferNotUsedOfCompositorBridge(
+    base::ProcessId aChildProcessId, TextureHost* aTexture,
+    uint64_t aTransactionId) {
+  RefPtr<ImageBridgeParent> bridge = GetInstance(aChildProcessId);
+  if (!bridge || bridge->mClosed) {
+    return;
+  }
+  bridge->NotifyBufferNotUsedOfCompositorBridge(aTexture, aTransactionId);
+}
+
+void ImageBridgeParent::NotifyBufferNotUsedOfCompositorBridge(
+    TextureHost* aTexture, uint64_t aTransactionId) {
+  MOZ_ASSERT(aTexture);
+  MOZ_ASSERT(aTexture->GetAndroidHardwareBuffer());
+
+#ifdef MOZ_WIDGET_ANDROID
+  auto* compositor = aTexture->GetProvider()
+                         ? aTexture->GetProvider()->AsCompositorOGL()
+                         : nullptr;
+  Maybe<FileDescriptor> fenceFd = Some(FileDescriptor());
+  if (compositor) {
+    fenceFd = Some(compositor->GetReleaseFence());
+  }
+
+  auto* wrTexture = aTexture->AsWebRenderTextureHost();
+  if (wrTexture) {
+    MOZ_ASSERT(!fenceFd->IsValid());
+    fenceFd = Some(aTexture->GetAndResetReleaseFence());
+  }
+
+  // Invalid file descriptor could not be sent via IPC, but
+  // OpDeliverReleaseFence message needs to be sent to child side.
+  if (!fenceFd->IsValid()) {
+    fenceFd = Nothing();
+  }
+  mPendingAsyncMessage.push_back(
+      OpDeliverReleaseFence(fenceFd, aTexture->GetAndroidHardwareBuffer()->mId,
+                            aTransactionId, /* usesImageBridge */ false));
+  SendPendingAsyncMessages();
+#else
+  MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+#endif
 }
 
 #if defined(OS_WIN)
@@ -680,14 +758,14 @@ RefPtr<TextureHost> GetNullPluginTextureHost() {
     void PushResourceUpdates(wr::TransactionBuilder& aResources,
                              ResourceUpdateOp aOp,
                              const Range<wr::ImageKey>& aImageKeys,
-                             const wr::ExternalImageId& aExtID,
-                             const bool aPreferCompositorSurface) override {}
+                             const wr::ExternalImageId& aExtID) override {}
 
     void PushDisplayItems(wr::DisplayListBuilder& aBuilder,
                           const wr::LayoutRect& aBounds,
                           const wr::LayoutRect& aClip,
                           wr::ImageRendering aFilter,
-                          const Range<wr::ImageKey>& aImageKeys) override {}
+                          const Range<wr::ImageKey>& aImageKeys,
+                          PushDisplayItemFlagSet aFlags) override {}
   };
 
   static StaticRefPtr<TextureHost> sNullPluginTextureHost;

@@ -23,8 +23,7 @@ enum {
   kCharsetFromIrreversibleAutoDetection,
   kCharsetFromChannel,
   kCharsetFromOtherComponent,
-  kCharsetFromParentForced,  // propagates to child frames
-  kCharsetFromUserForced,    // propagates to child frames
+  kCharsetFromUserForced,  // propagates to child frames
   kCharsetFromUserForcedAutoDetection,
   kCharsetFromByteOrderMark,
   kCharsetFromUtf8OnlyMime,  // For JSON, WebVTT and such

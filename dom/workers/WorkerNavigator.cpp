@@ -4,29 +4,36 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/dom/BindingUtils.h"
-#include "mozilla/dom/MediaCapabilities.h"
-#include "mozilla/dom/Promise.h"
-#include "mozilla/dom/PromiseWorkerProxy.h"
-#include "mozilla/dom/StorageManager.h"
 #include "mozilla/dom/WorkerNavigator.h"
-#include "mozilla/dom/WorkerNavigatorBinding.h"
-#include "mozilla/dom/network/Connection.h"
-#include "mozilla/StaticPrefs_privacy.h"
 
-#include "nsProxyRelease.h"
-#include "nsRFPService.h"
+#include <utility>
+
+#include "ErrorList.h"
+#include "MainThreadUtils.h"
 #include "RuntimeService.h"
-
-#include "mozilla/dom/Document.h"
-
 #include "WorkerPrivate.h"
 #include "WorkerRunnable.h"
 #include "WorkerScope.h"
-
+#include "mozilla/dom/MediaCapabilities.h"
 #include "mozilla/dom/Navigator.h"
-
+#include "mozilla/dom/StorageManager.h"
+#include "mozilla/dom/WorkerCommon.h"
+#include "mozilla/dom/WorkerNavigatorBinding.h"
+#include "mozilla/dom/WorkerStatus.h"
+#include "mozilla/dom/network/Connection.h"
+#include "mozilla/StaticPrefs_privacy.h"
 #include "mozilla/webgpu/Instance.h"
+#include "nsCOMPtr.h"
+#include "nsDebug.h"
+#include "nsError.h"
+#include "nsIGlobalObject.h"
+#include "nsLiteralString.h"
+#include "nsPIDOMWindow.h"
+#include "nsRFPService.h"
+#include "nsString.h"
+
+class JSObject;
+struct JSContext;
 
 namespace mozilla {
 namespace dom {
@@ -65,7 +72,7 @@ JSObject* WorkerNavigator::WrapObject(JSContext* aCx,
 
 void WorkerNavigator::SetLanguages(const nsTArray<nsString>& aLanguages) {
   WorkerNavigator_Binding::ClearCachedLanguagesValue(this);
-  mProperties.mLanguages = aLanguages;
+  mProperties.mLanguages = aLanguages.Clone();
 }
 
 void WorkerNavigator::GetAppName(nsString& aAppName,
@@ -79,7 +86,7 @@ void WorkerNavigator::GetAppName(nsString& aAppName,
     // We will spoof this value when 'privacy.resistFingerprinting' is true.
     // See nsRFPService.h for spoofed value.
     aAppName = StaticPrefs::privacy_resistFingerprinting()
-                   ? NS_LITERAL_STRING(SPOOFED_APPNAME)
+                   ? NS_LITERAL_STRING_FROM_CSTRING(SPOOFED_APPNAME)
                    : mProperties.mAppNameOverridden;
   } else {
     aAppName = mProperties.mAppName;
@@ -98,7 +105,7 @@ void WorkerNavigator::GetAppVersion(nsString& aAppVersion,
     // We will spoof this value when 'privacy.resistFingerprinting' is true.
     // See nsRFPService.h for spoofed value.
     aAppVersion = StaticPrefs::privacy_resistFingerprinting()
-                      ? NS_LITERAL_STRING(SPOOFED_APPVERSION)
+                      ? NS_LITERAL_STRING_FROM_CSTRING(SPOOFED_APPVERSION)
                       : mProperties.mAppVersionOverridden;
   } else {
     aAppVersion = mProperties.mAppVersion;
@@ -116,7 +123,7 @@ void WorkerNavigator::GetPlatform(nsString& aPlatform, CallerType aCallerType,
     // We will spoof this value when 'privacy.resistFingerprinting' is true.
     // See nsRFPService.h for spoofed value.
     aPlatform = StaticPrefs::privacy_resistFingerprinting()
-                    ? NS_LITERAL_STRING(SPOOFED_PLATFORM)
+                    ? NS_LITERAL_STRING_FROM_CSTRING(SPOOFED_PLATFORM)
                     : mProperties.mPlatformOverridden;
   } else {
     aPlatform = mProperties.mPlatform;
@@ -130,8 +137,7 @@ class GetUserAgentRunnable final : public WorkerMainThreadRunnable {
 
  public:
   GetUserAgentRunnable(WorkerPrivate* aWorkerPrivate, nsString& aUA)
-      : WorkerMainThreadRunnable(aWorkerPrivate,
-                                 NS_LITERAL_CSTRING("UserAgent getter")),
+      : WorkerMainThreadRunnable(aWorkerPrivate, "UserAgent getter"_ns),
         mUA(aUA) {
     MOZ_ASSERT(aWorkerPrivate);
     aWorkerPrivate->AssertIsOnWorkerThread();

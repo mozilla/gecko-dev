@@ -7,8 +7,9 @@
 #ifndef mozilla_dom_serviceworkeroppromise_h__
 #define mozilla_dom_serviceworkeroppromise_h__
 
+#include <utility>
+
 #include "mozilla/MozPromise.h"
-#include "mozilla/Pair.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/dom/ServiceWorkerOpArgs.h"
 
@@ -18,7 +19,7 @@ namespace dom {
 class InternalResponse;
 
 using SynthesizeResponseArgs =
-    Pair<RefPtr<InternalResponse>, FetchEventRespondWithClosure>;
+    std::pair<RefPtr<InternalResponse>, FetchEventRespondWithClosure>;
 
 using FetchEventRespondWithResult =
     Variant<SynthesizeResponseArgs, ResetInterceptionArgs,
@@ -29,6 +30,9 @@ using FetchEventRespondWithPromise =
 
 using ServiceWorkerOpPromise =
     MozPromise<ServiceWorkerOpResult, nsresult, true>;
+
+using ServiceWorkerFetchEventOpPromise =
+    MozPromise<ServiceWorkerFetchEventOpResult, nsresult, true>;
 
 }  // namespace dom
 }  // namespace mozilla

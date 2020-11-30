@@ -13,6 +13,7 @@
 #include "mozilla/dom/WindowProxyHolder.h"
 #include "js/TypeDecls.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsIOpenWindowInfo.h"
 #include "nsWrapperCache.h"
 #include "nsString.h"
 #include "nsXULElement.h"
@@ -39,11 +40,9 @@ class XULFrameElement final : public nsXULElement, public nsFrameLoaderOwner {
   already_AddRefed<nsIWebNavigation> GetWebNavigation();
   Nullable<WindowProxyHolder> GetContentWindow();
   Document* GetContentDocument();
-
-  void PresetOpenerWindow(const Nullable<WindowProxyHolder>& aWindow,
-                          ErrorResult& aRv) {
-    mOpener = aWindow.IsNull() ? nullptr : aWindow.Value().get();
-  }
+  uint64_t BrowserId();
+  nsIOpenWindowInfo* GetOpenWindowInfo() const;
+  void SetOpenWindowInfo(nsIOpenWindowInfo* aInfo);
 
   void SwapFrameLoaders(mozilla::dom::HTMLIFrameElement& aOtherLoaderOwner,
                         mozilla::ErrorResult& rv);
@@ -71,12 +70,13 @@ class XULFrameElement final : public nsXULElement, public nsFrameLoaderOwner {
  protected:
   virtual ~XULFrameElement() = default;
 
-  RefPtr<BrowsingContext> mOpener;
-
   JSObject* WrapNode(JSContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 
   void LoadSrc();
+
+ private:
+  nsCOMPtr<nsIOpenWindowInfo> mOpenWindowInfo;
 };
 
 }  // namespace dom

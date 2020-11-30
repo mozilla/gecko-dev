@@ -4,9 +4,11 @@
 
 #include "GeckoMVMContext.h"
 
+#include "mozilla/DisplayPortUtils.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/Services.h"
 #include "mozilla/dom/Document.h"
+#include "mozilla/dom/VisualViewport.h"
 #include "nsCOMPtr.h"
 #include "nsGlobalWindowInner.h"
 #include "nsIDOMEventListener.h"
@@ -131,7 +133,7 @@ bool GeckoMVMContext::IsInReaderMode() const {
   if (NS_FAILED(mDocument->GetDocumentURI(uri))) {
     return false;
   }
-  static auto readerModeUriPrefix = NS_LITERAL_STRING("about:reader");
+  static auto readerModeUriPrefix = u"about:reader"_ns;
   return StringBeginsWith(uri, readerModeUriPrefix);
 }
 
@@ -148,7 +150,9 @@ void GeckoMVMContext::SetResolutionAndScaleTo(float aResolution,
 
 void GeckoMVMContext::SetVisualViewportSize(const CSSSize& aSize) {
   MOZ_ASSERT(mPresShell);
-  nsLayoutUtils::SetVisualViewportSize(mPresShell, aSize);
+  mPresShell->SetVisualViewportSize(
+      nsPresContext::CSSPixelsToAppUnits(aSize.width),
+      nsPresContext::CSSPixelsToAppUnits(aSize.height));
 }
 
 void GeckoMVMContext::PostVisualViewportResizeEventByDynamicToolbar() {
@@ -165,7 +169,7 @@ void GeckoMVMContext::PostVisualViewportResizeEventByDynamicToolbar() {
 void GeckoMVMContext::UpdateDisplayPortMargins() {
   MOZ_ASSERT(mPresShell);
   if (nsIFrame* root = mPresShell->GetRootScrollFrame()) {
-    bool hasDisplayPort = nsLayoutUtils::HasDisplayPort(root->GetContent());
+    bool hasDisplayPort = DisplayPortUtils::HasDisplayPort(root->GetContent());
     bool hasResolution = mPresShell->GetResolution() != 1.0f;
     if (!hasDisplayPort && !hasResolution) {
       // We only want to update the displayport if there is one already, or
@@ -180,11 +184,11 @@ void GeckoMVMContext::UpdateDisplayPortMargins() {
     // because non-toplevel documents have no limit on their size.
     MOZ_ASSERT(
         mPresShell->GetPresContext()->IsRootContentDocumentCrossProcess());
-    nsLayoutUtils::SetDisplayPortBaseIfNotSet(root->GetContent(),
-                                              displayportBase);
+    DisplayPortUtils::SetDisplayPortBaseIfNotSet(root->GetContent(),
+                                                 displayportBase);
     nsIScrollableFrame* scrollable = do_QueryFrame(root);
-    nsLayoutUtils::CalculateAndSetDisplayPortMargins(
-        scrollable, nsLayoutUtils::RepaintMode::Repaint);
+    DisplayPortUtils::CalculateAndSetDisplayPortMargins(
+        scrollable, DisplayPortUtils::RepaintMode::Repaint);
   }
 }
 

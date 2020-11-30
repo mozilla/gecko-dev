@@ -9,7 +9,10 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/ClientInfo.h"
 #include "mozilla/dom/ServiceWorkerRegistrarTypes.h"
+#include "nsCOMPtr.h"
+#include "nsIPrincipal.h"
 #include "nsIURL.h"
+#include "nsPrintfCString.h"
 
 namespace mozilla {
 namespace dom {
@@ -71,15 +74,30 @@ void ServiceWorkerScopeAndScriptAreValid(const ClientInfo& aClientInfo,
   MOZ_DIAGNOSTIC_ASSERT(aScopeURI);
   MOZ_DIAGNOSTIC_ASSERT(aScriptURI);
 
-  nsCOMPtr<nsIPrincipal> principal = aClientInfo.GetPrincipal();
-  if (NS_WARN_IF(!principal)) {
+  auto principalOrErr = aClientInfo.GetPrincipal();
+  if (NS_WARN_IF(principalOrErr.isErr())) {
     aRv.ThrowInvalidStateError("Can't make security decisions about Client");
     return;
   }
 
+  auto hasHTTPScheme = [](nsIURI* aURI) -> bool {
+    return aURI->SchemeIs("http") || aURI->SchemeIs("https");
+  };
+  auto hasMozExtScheme = [](nsIURI* aURI) -> bool {
+    return aURI->SchemeIs("moz-extension");
+  };
+
+  nsCOMPtr<nsIPrincipal> principal = principalOrErr.unwrap();
+
+  auto isExtension = !!BasePrincipal::Cast(principal)->AddonPolicy();
+  auto hasValidURISchemes = !isExtension ? hasHTTPScheme : hasMozExtScheme;
+
   // https://w3c.github.io/ServiceWorker/#start-register-algorithm step 3.
-  if (!aScriptURI->SchemeIs("http") && !aScriptURI->SchemeIs("https")) {
-    aRv.ThrowTypeError("Script URL's scheme is not 'http' or 'https'");
+  if (!hasValidURISchemes(aScriptURI)) {
+    auto message = !isExtension
+                       ? "Script URL's scheme is not 'http' or 'https'"_ns
+                       : "Script URL's scheme is not 'moz-extension'"_ns;
+    aRv.ThrowTypeError(message);
     return;
   }
 
@@ -90,8 +108,11 @@ void ServiceWorkerScopeAndScriptAreValid(const ClientInfo& aClientInfo,
   }
 
   // https://w3c.github.io/ServiceWorker/#start-register-algorithm step 8.
-  if (!aScopeURI->SchemeIs("http") && !aScopeURI->SchemeIs("https")) {
-    aRv.ThrowTypeError("Scope URL's scheme is not 'http' or 'https'");
+  if (!hasValidURISchemes(aScopeURI)) {
+    auto message = !isExtension
+                       ? "Scope URL's scheme is not 'http' or 'https'"_ns
+                       : "Scope URL's scheme is not 'moz-extension'"_ns;
+    aRv.ThrowTypeError(message);
     return;
   }
 

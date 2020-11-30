@@ -3,13 +3,20 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 # Required Plugins:
-# AppAssocReg    http://nsis.sourceforge.net/Application_Association_Registration_plug-in
-# ApplicationID  http://nsis.sourceforge.net/ApplicationID_plug-in
-# CityHash       http://dxr.mozilla.org/mozilla-central/source/other-licenses/nsis/Contrib/CityHash
-# nsJSON         http://nsis.sourceforge.net/NsJSON_plug-in
-# ShellLink      http://nsis.sourceforge.net/ShellLink_plug-in
-# UAC            http://nsis.sourceforge.net/UAC_plug-in
-# ServicesHelper Mozilla specific plugin that is located in /other-licenses/nsis
+# AppAssocReg
+#   http://nsis.sourceforge.net/Application_Association_Registration_plug-in
+# ApplicationID
+#   http://nsis.sourceforge.net/ApplicationID_plug-in
+# CityHash
+#   http://searchfox.org/mozilla-central/source/other-licenses/nsis/Contrib/CityHash
+# nsJSON
+#   http://nsis.sourceforge.net/NsJSON_plug-in
+# ShellLink
+#   http://nsis.sourceforge.net/ShellLink_plug-in
+# UAC
+#   http://nsis.sourceforge.net/UAC_plug-in
+# ServicesHelper
+#   Mozilla specific plugin that is located in /other-licenses/nsis
 
 ; Set verbosity to 3 (e.g. no script) to lessen the noise in the build logs
 !verbose 3
@@ -52,6 +59,7 @@ Var FinishPhaseStart
 Var FinishPhaseEnd
 Var InstallResult
 Var LaunchedNewApp
+Var PostSigningData
 
 ; By defining NO_STARTMENU_DIR an installer that doesn't provide an option for
 ; an application's Start Menu PROGRAMS directory and doesn't define the
@@ -98,6 +106,7 @@ VIAddVersionKey "OriginalFilename" "setup.exe"
 !insertmacro CheckForFilesInUse
 !insertmacro CleanUpdateDirectories
 !insertmacro CopyFilesFromDir
+!insertmacro CopyPostSigningData
 !insertmacro CreateRegKey
 !insertmacro GetFirstInstallPath
 !insertmacro GetLongPath
@@ -488,6 +497,17 @@ Section "-Application" APP_IDX
   ${EndIf}
 !endif
 
+!ifdef MOZ_UPDATE_AGENT
+  ${PushRegisterUpdateAgentTaskCommand} "register"
+  Pop $0
+  ${If} "$0" != ""
+    ${LogMsg} "Registering update agent task: $0"
+    nsExec::Exec $0
+    Pop $0
+    ${LogMsg} "nsExec::Exec returned $0"
+  ${EndIf}
+!endif
+
   ; These need special handling on uninstall since they may be overwritten by
   ; an install into a different location.
   StrCpy $0 "Software\Microsoft\Windows\CurrentVersion\App Paths\${FileMainEXE}"
@@ -697,7 +717,22 @@ Section "-Application" APP_IDX
 
 !ifdef MOZ_DEFAULT_BROWSER_AGENT
   ${If} $RegisterDefaultAgent != "0"
-    Exec '"$INSTDIR\default-browser-agent.exe" register-task $AppUserModelID'
+    ExecWait '"$INSTDIR\default-browser-agent.exe" register-task $AppUserModelID' $0
+
+    ${If} $0 == 0x80070534 ; HRESULT_FROM_WIN32(ERROR_NONE_MAPPED)
+      ; The agent sometimes returns this error from trying to register the task
+      ; when we're running out of the MSI. The error is cryptic, but I believe
+      ; the cause is the fact that the MSI service runs us as SYSTEM, so
+      ; proxying the invocation through the shell gets the task registered as
+      ; the interactive user, which is what we want.
+      ; We use ExecInExplorer only as a fallback instead of always, because it
+      ; doesn't work in all environments; see bug 1602726.
+      ExecInExplorer::Exec "$INSTDIR\default-browser-agent.exe" \
+                           /cmdargs "register-task $AppUserModelID"
+      ; We don't need Exec's return value, but don't leave it on the stack.
+      Pop $0
+    ${EndIf}
+
     ${If} $RegisterDefaultAgent == ""
       ; If the variable was unset, force it to a good value.
       StrCpy $RegisterDefaultAgent 1
@@ -715,6 +750,23 @@ Section "-InstallEndCleanup"
   SetDetailsPrint both
   DetailPrint "$(STATUS_CLEANUP)"
   SetDetailsPrint none
+
+  ; Maybe copy the post-signing data?
+  StrCpy $PostSigningData ""
+  ${GetParameters} $0
+  ClearErrors
+  ; We don't get post-signing data from the MSI.
+  ${GetOptions} $0 "/LaunchedFromMSI" $1
+  ${If} ${Errors}
+    ; The stub will handle copying the data if it ran us.
+    ClearErrors
+    ${GetOptions} $0 "/LaunchedFromStub" $1
+    ${If} ${Errors}
+      ; We're being run standalone, copy the data.
+      ${CopyPostSigningData}
+      Pop $PostSigningData
+    ${EndIf}
+  ${EndIf}
 
   ${Unless} ${Silent}
     ClearErrors
@@ -772,7 +824,7 @@ Section "-InstallEndCleanup"
   Call AddFirewallEntries
 
   ; Refresh desktop icons
-  System::Call "shell32::SHChangeNotify(i ${SHCNE_ASSOCCHANGED}, i ${SHCNF_DWORDFLUSH}, i 0, i 0)"
+  ${RefreshShellIcons}
 
   ${InstallEndCleanupCommon}
 
@@ -786,7 +838,7 @@ Section "-InstallEndCleanup"
     ; user is an admin.
     UAC::IsAdmin
     ${If} "$0" == "1"
-      ; When a reboot is required give SHChangeNotify time to finish the
+      ; When a reboot is required give RefreshShellIcons time to finish the
       ; refreshing the icons so the OS doesn't display the icons from helper.exe
       Sleep 10000
       ${LogHeader} "Reboot Required To Finish Installation"
@@ -1129,6 +1181,16 @@ Function SendPing
     ${EndIf}
     ${GetSecondsElapsed} $FinishPhaseStart $FinishPhaseEnd $1
     nsJSON::Set /tree ping "Data" "finish_time" /value "$1"
+  ${EndIf}
+
+  ; $PostSigningData should only be empty if we didn't try to copy the
+  ; postSigningData file at all. If we did try and the file was missing
+  ; or empty, this will be "0", and for consistency with the stub we will
+  ; still submit it.
+  ${If} $PostSigningData != ""
+    nsJSON::Quote /always $PostSigningData
+    Pop $0
+    nsJSON::Set /tree ping "Data" "attribution" /value $0
   ${EndIf}
 
   nsJSON::Set /tree ping "Data" "new_launched" /value "$LaunchedNewApp"

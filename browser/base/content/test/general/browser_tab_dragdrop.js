@@ -1,5 +1,33 @@
+// Swaps the content of tab a into tab b and then closes tab a.
 function swapTabsAndCloseOther(a, b) {
   gBrowser.swapBrowsersAndCloseOther(gBrowser.tabs[b], gBrowser.tabs[a]);
+}
+
+// Mirrors the effect of the above function on an array.
+function swapArrayContentsAndRemoveOther(arr, a, b) {
+  arr[b] = arr[a];
+  arr.splice(a, 1);
+}
+
+function checkBrowserIds(expected) {
+  is(
+    gBrowser.tabs.length,
+    expected.length,
+    "Should have the right number of tabs."
+  );
+
+  for (let [i, tab] of gBrowser.tabs.entries()) {
+    is(
+      tab.linkedBrowser.browserId,
+      expected[i],
+      `Tab ${i} should have the right browser ID.`
+    );
+    is(
+      tab.linkedBrowser.browserId,
+      tab.linkedBrowser.browsingContext.browserId,
+      `Browser for tab ${i} has the same browserId as its BrowsingContext`
+    );
+  }
 }
 
 var getClicks = function(tab) {
@@ -36,29 +64,13 @@ function loadURI(tab, url) {
 // active for the browser and that the cached value matches that from the plugin
 // in the page which tells us the plugin hasn't been reinitialized.
 async function cacheObjectValue(browser) {
-  await ContentTask.spawn(browser, null, async function() {
+  await SpecialPowers.spawn(browser, [], () => {
     let plugin = content.document.getElementById("p").wrappedJSObject;
     info(`plugin is ${plugin}`);
     let win = content.document.defaultView;
     info(`win is ${win}`);
     win.objectValue = plugin.getObjectValue();
     info(`got objectValue: ${win.objectValue}`);
-    win.checkObjectValueListener = () => {
-      let result;
-      let exception;
-      try {
-        result = plugin.checkObjectValue(win.objectValue);
-      } catch (e) {
-        exception = e.toString();
-      }
-      info(`sending plugin.checkObjectValue(objectValue): ${result}`);
-      sendAsyncMessage("Test:CheckObjectValueResult", {
-        result,
-        exception,
-      });
-    };
-
-    addMessageListener("Test:CheckObjectValue", win.checkObjectValueListener);
   });
 }
 
@@ -66,44 +78,38 @@ async function cacheObjectValue(browser) {
 // browser to still be alive and have a messageManager.
 async function cleanupObjectValue(browser) {
   info("entered cleanupObjectValue");
-  await ContentTask.spawn(browser, null, async function() {
+  await SpecialPowers.spawn(browser, [], () => {
     info("in cleanup function");
     let win = content.document.defaultView;
     info(`about to delete objectValue: ${win.objectValue}`);
     delete win.objectValue;
-    removeMessageListener(
-      "Test:CheckObjectValue",
-      win.checkObjectValueListener
-    );
-    info(
-      `about to delete checkObjectValueListener: ${win.checkObjectValueListener}`
-    );
-    delete win.checkObjectValueListener;
-    info(
-      `deleted objectValue (${win.objectValue}) and checkObjectValueListener (${win.checkObjectValueListener})`
-    );
   });
   info("exiting cleanupObjectValue");
 }
 
 // See the notes for cacheObjectValue above.
-function checkObjectValue(browser) {
-  let mm = browser.messageManager;
-
-  return new Promise((resolve, reject) => {
-    let listener = ({ data }) => {
-      mm.removeMessageListener("Test:CheckObjectValueResult", listener);
-      if (data.result === null) {
-        ok(false, "checkObjectValue threw an exception: " + data.exception);
-        reject(data.exception);
-      } else {
-        resolve(data.result);
-      }
+async function checkObjectValue(browser) {
+  let data = await SpecialPowers.spawn(browser, [], () => {
+    let plugin = content.document.getElementById("p").wrappedJSObject;
+    let win = content.document.defaultView;
+    let result, exception;
+    try {
+      result = plugin.checkObjectValue(win.objectValue);
+    } catch (e) {
+      exception = e.toString();
+    }
+    return {
+      result,
+      exception,
     };
-
-    mm.addMessageListener("Test:CheckObjectValueResult", listener);
-    mm.sendAsyncMessage("Test:CheckObjectValue");
   });
+
+  if (data.result === null) {
+    ok(false, "checkObjectValue threw an exception: " + data.exception);
+    throw new Error(data.exception);
+  } else {
+    return data.result;
+  }
 }
 
 add_task(async function() {
@@ -134,23 +140,40 @@ add_task(async function() {
   );
   await BrowserTestUtils.switchTab(gBrowser, tabs[3]);
 
-  swapTabsAndCloseOther(2, 3); // now: 0 1 2 4
+  let browserIds = tabs.map(t => t.linkedBrowser.browserId);
+  checkBrowserIds(browserIds);
+
   is(gBrowser.tabs[1], tabs[1], "tab1");
-  is(gBrowser.tabs[2], tabs[3], "tab3");
-  is(gBrowser.tabs[3], tabs[4], "tab4");
-  delete tabs[2];
+  is(gBrowser.tabs[2], tabs[2], "tab2");
+  is(gBrowser.tabs[3], tabs[3], "tab3");
+  is(gBrowser.tabs[4], tabs[4], "tab4");
+
+  swapTabsAndCloseOther(2, 3); // now: 0 1 2 4
+  // Tab 2 is gone (what was tab 3 is displaying its content).
+  tabs.splice(2, 1);
+  swapArrayContentsAndRemoveOther(browserIds, 2, 3);
+
+  is(gBrowser.tabs[1], tabs[1], "tab1");
+  is(gBrowser.tabs[2], tabs[2], "tab2");
+  is(gBrowser.tabs[3], tabs[3], "tab4");
+
+  checkBrowserIds(browserIds);
 
   info("about to cacheObjectValue");
-  await cacheObjectValue(tabs[4].linkedBrowser);
+  await cacheObjectValue(tabs[3].linkedBrowser);
   info("just finished cacheObjectValue");
 
   swapTabsAndCloseOther(3, 2); // now: 0 1 4
+  tabs.splice(3, 1);
+  swapArrayContentsAndRemoveOther(browserIds, 3, 2);
+
   is(
     Array.prototype.indexOf.call(gBrowser.tabs, gBrowser.selectedTab),
     2,
     "The third tab should be selected"
   );
-  delete tabs[4];
+
+  checkBrowserIds(browserIds);
 
   ok(
     await checkObjectValue(gBrowser.tabs[2].linkedBrowser),
@@ -158,15 +181,19 @@ add_task(async function() {
   );
 
   is(gBrowser.tabs[1], tabs[1], "tab1");
-  is(gBrowser.tabs[2], tabs[3], "tab4");
+  is(gBrowser.tabs[2], tabs[2], "tab4");
 
   let clicks = await getClicks(gBrowser.tabs[2]);
   is(clicks, 0, "no click on BODY so far");
   await clickTest(gBrowser.tabs[2]);
 
   swapTabsAndCloseOther(2, 1); // now: 0 4
-  is(gBrowser.tabs[1], tabs[1], "tab1");
-  delete tabs[3];
+  tabs.splice(2, 1);
+  swapArrayContentsAndRemoveOther(browserIds, 2, 1);
+
+  is(gBrowser.tabs[1], tabs[1], "tab4");
+
+  checkBrowserIds(browserIds);
 
   ok(
     await checkObjectValue(gBrowser.tabs[1].linkedBrowser),
@@ -197,9 +224,14 @@ add_task(async function() {
   await loadURI(tabs[1], "about:blank");
   let key = tabs[1].linkedBrowser.permanentKey;
 
+  checkBrowserIds(browserIds);
+
   let win = gBrowser.replaceTabWithWindow(tabs[1]);
   await new Promise(resolve => whenDelayedStartupFinished(win, resolve));
-  delete tabs[1];
+
+  let newWinBrowserId = browserIds[1];
+  browserIds.splice(1, 1);
+  checkBrowserIds(browserIds);
 
   // Verify that the original window now only has the initial tab left in it.
   is(gBrowser.tabs[0], tabs[0], "tab0");
@@ -207,6 +239,12 @@ add_task(async function() {
 
   let tab = win.gBrowser.tabs[0];
   is(tab.linkedBrowser.permanentKey, key, "Should have kept the key");
+  is(tab.linkedBrowser.browserId, newWinBrowserId, "Should have kept the ID");
+  is(
+    tab.linkedBrowser.browserId,
+    tab.linkedBrowser.browsingContext.browserId,
+    "Should have kept the ID"
+  );
 
   let awaitPageShow = BrowserTestUtils.waitForContentEvent(
     tab.linkedBrowser,

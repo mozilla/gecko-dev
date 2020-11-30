@@ -6,6 +6,8 @@
 
 #include "gtest/gtest.h"
 #include "mozilla/dom/quota/OriginScope.h"
+#include "nsDirectoryServiceDefs.h"
+#include "nsDirectoryServiceUtils.h"
 
 using namespace mozilla;
 using namespace mozilla::dom::quota;
@@ -25,6 +27,46 @@ void CheckOriginScopeMatchesOrigin(const OriginScope& aOriginScope,
   EXPECT_TRUE(result == aMatch);
 }
 
+void CheckUnknownFileEntry(nsIFile& aBase, const nsAString& aName,
+                           const bool aWarnIfFile, const bool aWarnIfDir) {
+  nsCOMPtr<nsIFile> file;
+  nsresult rv = aBase.Clone(getter_AddRefs(file));
+  ASSERT_EQ(rv, NS_OK);
+
+  rv = file->Append(aName);
+  ASSERT_EQ(rv, NS_OK);
+
+  rv = file->Create(nsIFile::NORMAL_FILE_TYPE, 0600);
+  ASSERT_EQ(rv, NS_OK);
+
+  auto okOrErr = WARN_IF_FILE_IS_UNKNOWN(*file);
+  ASSERT_TRUE(okOrErr.isOk());
+
+#ifdef DEBUG
+  EXPECT_TRUE(okOrErr.inspect() == aWarnIfFile);
+#else
+  EXPECT_TRUE(okOrErr.inspect() == false);
+#endif
+
+  rv = file->Remove(false);
+  ASSERT_EQ(rv, NS_OK);
+
+  rv = file->Create(nsIFile::DIRECTORY_TYPE, 0700);
+  ASSERT_EQ(rv, NS_OK);
+
+  okOrErr = WARN_IF_FILE_IS_UNKNOWN(*file);
+  ASSERT_TRUE(okOrErr.isOk());
+
+#ifdef DEBUG
+  EXPECT_TRUE(okOrErr.inspect() == aWarnIfDir);
+#else
+  EXPECT_TRUE(okOrErr.inspect() == false);
+#endif
+
+  rv = file->Remove(false);
+  ASSERT_EQ(rv, NS_OK);
+}
+
 }  // namespace
 
 TEST(QuotaManager, OriginScope)
@@ -34,7 +76,7 @@ TEST(QuotaManager, OriginScope)
   // Sanity checks.
 
   {
-    NS_NAMED_LITERAL_CSTRING(origin, "http://www.mozilla.org");
+    constexpr auto origin = "http://www.mozilla.org"_ns;
     originScope.SetFromOrigin(origin);
     EXPECT_TRUE(originScope.IsOrigin());
     EXPECT_TRUE(originScope.GetOrigin().Equals(origin));
@@ -42,7 +84,7 @@ TEST(QuotaManager, OriginScope)
   }
 
   {
-    NS_NAMED_LITERAL_CSTRING(prefix, "http://www.mozilla.org");
+    constexpr auto prefix = "http://www.mozilla.org"_ns;
     originScope.SetFromPrefix(prefix);
     EXPECT_TRUE(originScope.IsPrefix());
     EXPECT_TRUE(originScope.GetOriginNoSuffix().Equals(prefix));
@@ -56,7 +98,7 @@ TEST(QuotaManager, OriginScope)
   // Test each origin scope type against particular origins.
 
   {
-    originScope.SetFromOrigin(NS_LITERAL_CSTRING("http://www.mozilla.org"));
+    originScope.SetFromOrigin("http://www.mozilla.org"_ns);
 
     static const OriginTest tests[] = {
         {"http://www.mozilla.org", true},
@@ -69,7 +111,7 @@ TEST(QuotaManager, OriginScope)
   }
 
   {
-    originScope.SetFromPrefix(NS_LITERAL_CSTRING("http://www.mozilla.org"));
+    originScope.SetFromPrefix("http://www.mozilla.org"_ns);
 
     static const OriginTest tests[] = {
         {"http://www.mozilla.org", true},
@@ -95,4 +137,31 @@ TEST(QuotaManager, OriginScope)
       CheckOriginScopeMatchesOrigin(originScope, test.mOrigin, test.mMatch);
     }
   }
+}
+
+TEST(QuotaManager, WarnIfUnknownFile)
+{
+  nsCOMPtr<nsIFile> base;
+  nsresult rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(base));
+  ASSERT_EQ(rv, NS_OK);
+
+  rv = base->Append(u"mozquotatests"_ns);
+  ASSERT_EQ(rv, NS_OK);
+
+  base->Remove(true);
+
+  rv = base->Create(nsIFile::DIRECTORY_TYPE, 0700);
+  ASSERT_EQ(rv, NS_OK);
+
+  CheckUnknownFileEntry(*base, u"foo.bar"_ns, true, true);
+  CheckUnknownFileEntry(*base, u".DS_Store"_ns, false, true);
+  CheckUnknownFileEntry(*base, u".desktop"_ns, false, true);
+  CheckUnknownFileEntry(*base, u"desktop.ini"_ns, false, true);
+  CheckUnknownFileEntry(*base, u"DESKTOP.INI"_ns, false, true);
+  CheckUnknownFileEntry(*base, u"thumbs.db"_ns, false, true);
+  CheckUnknownFileEntry(*base, u"THUMBS.DB"_ns, false, true);
+  CheckUnknownFileEntry(*base, u".xyz"_ns, false, true);
+
+  rv = base->Remove(true);
+  ASSERT_EQ(rv, NS_OK);
 }

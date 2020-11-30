@@ -75,8 +75,6 @@ const proto = {
    *              Increment the actor's grip depth
    *          - decrementGripDepth
    *              Decrement the actor's grip depth
-   *          - globalDebugObject
-   *              The Debuggee Global Object as given by the ThreadActor
    */
   initialize(
     obj,
@@ -135,13 +133,6 @@ const proto = {
       actor: this.actorID,
     };
 
-    // Unsafe objects must be treated carefully.
-    if (DevToolsUtils.isCPOW(this.obj)) {
-      // Cross-process object wrappers can't be accessed.
-      g.class = "CPOW";
-      return g;
-    }
-
     const unwrapped = DevToolsUtils.unwrap(this.obj);
     if (unwrapped === undefined) {
       // Objects belonging to an invisible-to-debugger compartment might be proxies,
@@ -150,7 +141,7 @@ const proto = {
       return g;
     }
 
-    if (unwrapped && unwrapped.isProxy) {
+    if (unwrapped?.isProxy) {
       // Proxy objects can run traps when accessed, so just create a preview with
       // the target and the handler.
       g.class = "Proxy";
@@ -173,6 +164,7 @@ const proto = {
       extensible: this.obj.isExtensible(),
       frozen: this.obj.isFrozen(),
       sealed: this.obj.isSealed(),
+      isError: this.obj.isError,
     });
 
     this.hooks.incrementGripDepth();
@@ -229,8 +221,7 @@ const proto = {
     let raw = this.obj.unsafeDereference();
 
     // If Cu is not defined, we are running on a worker thread, where xrays
-    // don't exist. The raw object will be null/unavailable when interacting
-    // with a replaying execution.
+    // don't exist.
     if (raw && Cu) {
       raw = Cu.unwaiveXrays(raw);
     }
@@ -484,8 +475,8 @@ const proto = {
         // by not including it as a safe getter value (see Bug 1477765).
         if (
           getterValue &&
-          (getterValue.class == "Promise" &&
-            getterValue.promiseState == "rejected")
+          getterValue.class == "Promise" &&
+          getterValue.promiseState == "rejected"
         ) {
           // Until we have a good way to handle Promise rejections through the
           // debugger API (Bug 1478076), call `catch` when it's safe to do so.
@@ -822,35 +813,6 @@ const proto = {
     }
 
     return { parameterNames: this.obj.parameterNames };
-  },
-
-  /**
-   * Handle a protocol request to provide the lexical scope of a function.
-   */
-  scope: function() {
-    if (this.obj.class !== "Function") {
-      return this.throwError(
-        "objectNotFunction",
-        "scope request is only valid for grips with a 'Function' class."
-      );
-    }
-
-    const { createEnvironmentActor } = this.hooks;
-    const envActor = createEnvironmentActor(
-      this.obj.environment,
-      this.registeredPool
-    );
-
-    if (!envActor) {
-      return this.throwError(
-        "notDebuggee",
-        "cannot access the environment of this function."
-      );
-    }
-
-    return {
-      scope: envActor,
-    };
   },
 
   /**

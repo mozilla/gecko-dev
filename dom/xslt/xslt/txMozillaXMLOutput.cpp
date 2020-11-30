@@ -19,7 +19,6 @@
 #include "nsNameSpaceManager.h"
 #include "txStringUtils.h"
 #include "txURIUtils.h"
-#include "nsIStyleSheetLinkingElement.h"
 #include "nsIDocumentTransformer.h"
 #include "mozilla/StyleSheetInlines.h"
 #include "mozilla/css/Loader.h"
@@ -175,7 +174,7 @@ nsresult txMozillaXMLOutput::comment(const nsString& aData) {
 
   TX_ENSURE_CURRENTNODE;
 
-  RefPtr<Comment> comment = new Comment(mNodeInfoManager);
+  RefPtr<Comment> comment = new (mNodeInfoManager) Comment(mNodeInfoManager);
 
   rv = comment->SetText(aData, false);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -208,8 +207,7 @@ nsresult txMozillaXMLOutput::endDocument(nsresult aResult) {
     MOZ_ASSERT(mDocument->GetReadyStateEnum() == Document::READYSTATE_LOADING,
                "Bad readyState");
     mDocument->SetReadyStateInternal(Document::READYSTATE_INTERACTIVE);
-    ScriptLoader* loader = mDocument->ScriptLoader();
-    if (loader) {
+    if (ScriptLoader* loader = mDocument->ScriptLoader()) {
       loader->ParsingComplete(false);
     }
   }
@@ -290,11 +288,9 @@ nsresult txMozillaXMLOutput::endElement() {
 
   if (mCreatingNewDocument) {
     // Handle all sorts of stylesheets
-    nsCOMPtr<nsIStyleSheetLinkingElement> ssle =
-        do_QueryInterface(mCurrentNode);
-    if (ssle) {
-      ssle->SetEnableUpdates(true);
-      auto updateOrError = ssle->UpdateStyleSheet(mNotifier);
+    if (auto* linkStyle = LinkStyle::FromNode(*mCurrentNode)) {
+      linkStyle->SetEnableUpdates(true);
+      auto updateOrError = linkStyle->UpdateStyleSheet(mNotifier);
       if (mNotifier && updateOrError.isOk() &&
           updateOrError.unwrap().ShouldBlock()) {
         mNotifier->AddPendingStylesheet();
@@ -353,21 +349,20 @@ nsresult txMozillaXMLOutput::processingInstruction(const nsString& aTarget,
   nsCOMPtr<nsIContent> pi =
       NS_NewXMLProcessingInstruction(mNodeInfoManager, aTarget, aData);
 
-  nsCOMPtr<nsIStyleSheetLinkingElement> ssle;
+  LinkStyle* linkStyle = nullptr;
   if (mCreatingNewDocument) {
-    ssle = do_QueryInterface(pi);
-    if (ssle) {
-      ssle->InitStyleLinkElement(false);
-      ssle->SetEnableUpdates(false);
+    linkStyle = LinkStyle::FromNode(*pi);
+    if (linkStyle) {
+      linkStyle->SetEnableUpdates(false);
     }
   }
 
   rv = mCurrentNode->AppendChildTo(pi, true);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (ssle) {
-    ssle->SetEnableUpdates(true);
-    auto updateOrError = ssle->UpdateStyleSheet(mNotifier);
+  if (linkStyle) {
+    linkStyle->SetEnableUpdates(true);
+    auto updateOrError = linkStyle->UpdateStyleSheet(mNotifier);
     if (mNotifier && updateOrError.isOk() &&
         updateOrError.unwrap().ShouldBlock()) {
       mNotifier->AddPendingStylesheet();
@@ -499,11 +494,8 @@ nsresult txMozillaXMLOutput::startElementInternal(nsAtom* aPrefix,
 
   if (mCreatingNewDocument) {
     // Handle all sorts of stylesheets
-    nsCOMPtr<nsIStyleSheetLinkingElement> ssle =
-        do_QueryInterface(mOpenedElement);
-    if (ssle) {
-      ssle->InitStyleLinkElement(false);
-      ssle->SetEnableUpdates(false);
+    if (auto* linkStyle = LinkStyle::FromNodeOrNull(mOpenedElement)) {
+      linkStyle->SetEnableUpdates(false);
     }
   }
 
@@ -548,7 +540,8 @@ nsresult txMozillaXMLOutput::closePrevious(bool aFlushText) {
       rv = createTxWrapper();
       NS_ENSURE_SUCCESS(rv, rv);
     }
-    RefPtr<nsTextNode> text = new nsTextNode(mNodeInfoManager);
+    RefPtr<nsTextNode> text =
+        new (mNodeInfoManager) nsTextNode(mNodeInfoManager);
 
     rv = text->SetText(mText, false);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -568,7 +561,7 @@ nsresult txMozillaXMLOutput::createTxWrapper() {
 
   int32_t namespaceID;
   nsresult rv = nsContentUtils::NameSpaceManager()->RegisterNameSpace(
-      NS_LITERAL_STRING(kTXNameSpaceURI), namespaceID);
+      nsLiteralString(kTXNameSpaceURI), namespaceID);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<Element> wrapper =
@@ -658,7 +651,7 @@ nsresult txMozillaXMLOutput::startHTMLElement(nsIContent* aElement,
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = meta->SetAttr(kNameSpaceID_None, nsGkAtoms::httpEquiv,
-                       NS_LITERAL_STRING("Content-Type"), false);
+                       u"Content-Type"_ns, false);
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsAutoString metacontent;
@@ -771,9 +764,9 @@ nsresult txMozillaXMLOutput::createResultDocument(const nsAString& aName,
   if (!mOutputFormat.mMediaType.IsEmpty()) {
     mDocument->SetContentType(mOutputFormat.mMediaType);
   } else if (mOutputFormat.mMethod == eHTMLOutput) {
-    mDocument->SetContentType(NS_LITERAL_STRING("text/html"));
+    mDocument->SetContentType(u"text/html"_ns);
   } else {
-    mDocument->SetContentType(NS_LITERAL_STRING("application/xml"));
+    mDocument->SetContentType(u"application/xml"_ns);
   }
 
   if (mOutputFormat.mMethod == eXMLOutput &&
@@ -865,7 +858,7 @@ nsresult txMozillaXMLOutput::createHTMLElement(nsAtom* aName,
 txTransformNotifier::txTransformNotifier()
     : mPendingStylesheetCount(0), mInTransform(false) {}
 
-txTransformNotifier::~txTransformNotifier() {}
+txTransformNotifier::~txTransformNotifier() = default;
 
 NS_IMPL_ISUPPORTS(txTransformNotifier, nsIScriptLoaderObserver,
                   nsICSSLoaderObserver)
@@ -955,6 +948,7 @@ void txTransformNotifier::SignalTransformEnd(nsresult aResult) {
   nsCOMPtr<nsIScriptLoaderObserver> kungFuDeathGrip(this);
 
   if (mDocument) {
+    mDocument->ScriptLoader()->DeferCheckpointReached();
     mDocument->ScriptLoader()->RemoveObserver(this);
     // XXX Maybe we want to cancel script loads if NS_FAILED(rv)?
 

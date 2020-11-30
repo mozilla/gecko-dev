@@ -21,10 +21,6 @@ class nsExternalAppHandler;
 
 namespace mozilla {
 
-namespace ipc {
-class URIParams;
-}  // namespace ipc
-
 namespace net {
 class PChannelDiverterParent;
 }  // namespace net
@@ -79,21 +75,17 @@ class ExternalHelperAppParent
                                               const uint32_t& count) override;
   mozilla::ipc::IPCResult RecvOnStopRequest(const nsresult& code) override;
 
-  mozilla::ipc::IPCResult RecvDivertToParentUsing(
-      PChannelDiverterParent* diverter) override;
-
   bool WasFileChannel() override { return mWasFileChannel; }
 
-  ExternalHelperAppParent(const Maybe<mozilla::ipc::URIParams>& uri,
-                          const int64_t& contentLength,
+  ExternalHelperAppParent(nsIURI* uri, const int64_t& contentLength,
                           const bool& wasFileChannel,
                           const nsCString& aContentDispositionHeader,
                           const uint32_t& aContentDispositionHint,
                           const nsString& aContentDispositionFilename);
   void Init(const Maybe<mozilla::net::LoadInfoArgs>& aLoadInfoArgs,
             const nsCString& aMimeContentType, const bool& aForceSave,
-            const Maybe<mozilla::ipc::URIParams>& aReferrer,
-            BrowsingContext* aContext, const bool& aShouldCloseWindow);
+            nsIURI* aReferrer, BrowsingContext* aContext,
+            const bool& aShouldCloseWindow);
 
  protected:
   virtual ~ExternalHelperAppParent();
@@ -102,13 +94,10 @@ class ExternalHelperAppParent
   void Delete();
 
  private:
-  RefPtr<nsExternalAppHandler> mListener;
+  RefPtr<nsIStreamListener> mListener;
   nsCOMPtr<nsIURI> mURI;
   nsCOMPtr<nsILoadInfo> mLoadInfo;
   bool mPending;
-#ifdef DEBUG
-  bool mDiverted;
-#endif
   bool mIPCClosed;
   nsLoadFlags mLoadFlags;
   nsresult mStatus;

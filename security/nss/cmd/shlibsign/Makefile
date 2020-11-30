@@ -95,5 +95,7 @@ else
     endif
 endif
 
-libs install :: $(CHECKLOC)
-
+libs: install
+ifdef CHECKLOC
+	$(MAKE) $(CHECKLOC)
+endif

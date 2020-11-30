@@ -4,34 +4,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <sys/mman.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+#include "mozilla/Assertions.h"
+#include "mozilla/Sprintf.h"
+
 #include "BaseProfiler.h"
-
-#ifdef MOZ_BASE_PROFILER
-
-#  include <sys/mman.h>
-#  include <unistd.h>
-#  include <sys/types.h>
-#  include <sys/stat.h>
-#  include <fcntl.h>
-
-#  include "mozilla/Assertions.h"
-#  include "mozilla/Sprintf.h"
-
-#  include "PlatformMacros.h"
-#  include "AutoObjectMapper.h"
-
-#  if defined(MOZ_LINKER)
-#    include <dlfcn.h>
-#    include "mozilla/Types.h"
-// FIXME move these out of mozglue/linker/ElfLoader.h into their
-// own header, so as to avoid conflicts arising from two definitions
-// of Array
-extern "C" {
-MFBT_API size_t __dl_get_mappable_length(void* handle);
-MFBT_API void* __dl_mmap(void* handle, void* addr, size_t length, off_t offset);
-MFBT_API void __dl_munmap(void* handle, void* addr, size_t length);
-}
-#  endif
+#include "PlatformMacros.h"
+#include "AutoObjectMapper.h"
 
 // A helper function for creating failure error messages in
 // AutoObjectMapper*::Map.
@@ -94,37 +78,3 @@ bool AutoObjectMapperPOSIX::Map(/*OUT*/ void** start, /*OUT*/ size_t* length,
   mSize = *length = sz;
   return true;
 }
-
-#  if defined(MOZ_LINKER)
-AutoObjectMapperFaultyLib::AutoObjectMapperFaultyLib(void (*aLog)(const char*))
-    : AutoObjectMapperPOSIX(aLog), mHdl(nullptr) {}
-
-AutoObjectMapperFaultyLib::~AutoObjectMapperFaultyLib() {
-  if (mHdl) {
-    // We've got an object mapped by faulty.lib.  Unmap it via faulty.lib.
-    MOZ_ASSERT(mSize > 0);
-    // Assert on the basis that no valid mapping would start at page zero.
-    MOZ_ASSERT(mImage);
-    __dl_munmap(mHdl, mImage, mSize);
-    dlclose(mHdl);
-    // Stop assertions in ~AutoObjectMapperPOSIX from failing.
-    mImage = nullptr;
-    mSize = 0;
-  }
-  // At this point the parent class destructor, ~AutoObjectMapperPOSIX,
-  // gets called.  If that has something mapped in the normal way, it
-  // will unmap it in the normal way.  Unfortunately there's no
-  // obvious way to enforce the requirement that the object is mapped
-  // either by faulty.lib or by the parent class, but not by both.
-}
-
-bool AutoObjectMapperFaultyLib::Map(/*OUT*/ void** start,
-                                    /*OUT*/ size_t* length,
-                                    std::string fileName) {
-  MOZ_ASSERT(!mHdl);
-  return false;
-}
-
-#  endif  // defined(MOZ_LINKER)
-
-#endif  // MOZ_BASE_PROFILER

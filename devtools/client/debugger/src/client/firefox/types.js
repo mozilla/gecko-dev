@@ -13,17 +13,14 @@
 import type {
   BreakpointLocation,
   BreakpointOptions,
-  FrameId,
   ActorId,
-  Script,
   PendingLocation,
   SourceId,
   Range,
+  URL,
 } from "../../types";
 
 import type { EventListenerCategoryList } from "../../actions/types";
-
-type URL = string;
 
 /**
  * The protocol is carried by a reliable, bi-directional byte stream; data sent
@@ -90,6 +87,7 @@ export type FrameFront = {
   this: any,
   asyncCause: null | string,
   state: "on-stack" | "suspended" | "dead",
+  type: "call" | "eval" | "global" | "module" | "wasmcall" | "debugger",
 };
 
 /**
@@ -102,8 +100,8 @@ export type SourcePayload = {
   actor: ActorId,
   url: URL | null,
   isBlackBoxed: boolean,
+  sourceMapBaseURL: URL | null,
   sourceMapURL: URL | null,
-  introductionUrl: URL | null,
   introductionType: string | null,
   extensionName: string | null,
 };
@@ -190,10 +188,12 @@ export type Target = {
   off: (string, Function) => void,
   on: (string, Function) => void,
   emit: (string, any) => void,
-  getFront: string => Promise<ConsoleFront>,
+  getFront: string => Promise<*>,
   form: { consoleActor: any },
   root: any,
-  navigateTo: ({ url: string }) => Promise<*>,
+  navigateTo: ({ url: URL }) => Promise<*>,
+  attach: () => Promise<*>,
+  attachThread: Object => Promise<ThreadFront>,
   listWorkers: () => Promise<*>,
   reload: () => Promise<*>,
   destroy: () => void,
@@ -202,29 +202,19 @@ export type Target = {
   isBrowsingContext: boolean,
   isContentProcess: boolean,
   isWorkerTarget: boolean,
+  targetType: string,
+  isTopLevel: boolean,
   traits: Object,
-  chrome: Boolean,
-  url: string,
-  isParentProcess: Boolean,
+  chrome: boolean,
+  url: URL,
+  isParentProcess: boolean,
   isServiceWorker: boolean,
+  targetForm: Object,
+  reconfigure: Object,
 
   // Property installed by the debugger itself.
   debuggerServiceWorkerStatus: string,
-};
-
-type ConsoleFront = {
-  evaluateJSAsync: (
-    script: Script,
-    func: Function,
-    params?: { frameActor: ?FrameId }
-  ) => Promise<{ result: ExpressionResult }>,
-  autocomplete: (
-    input: string,
-    cursor: number,
-    func: Function,
-    frameId: ?string
-  ) => void,
-  emit: (string, any) => void,
+  attachAndInitThread: TargetList => Promise<*>,
 };
 
 /**
@@ -263,6 +253,23 @@ export type DevToolsClient = {
 type ProcessDescriptor = Object;
 
 /**
+ * DevToolsClient
+ * @memberof firefox
+ * @static
+ */
+export type TargetList = {
+  watchTargets: (Array<string>, Function, Function) => void,
+  unwatchTargets: (Array<string>, Function, Function) => void,
+  getAllTargets: (Array<string>) => Array<Target>,
+  targetFront: Target,
+  TYPES: {
+    FRAME: string,
+    PROCESS: string,
+    WORKER: string,
+  },
+};
+
+/**
  * A grip is a JSON value that refers to a specific JavaScript value in the
  * debuggee. Grips appear anywhere an arbitrary value from the debuggee needs
  * to be conveyed to the client: stack frames, object property lists, lexical
@@ -282,12 +289,13 @@ export type Grip = {|
   class: string,
   displayClass: string,
   displayName?: string,
+  isError?: boolean,
   parameterNames?: string[],
   userDisplayName?: string,
   name: string,
   extensible: boolean,
   location: {
-    url: string,
+    url: URL,
     line: number,
     column: number,
   },
@@ -305,7 +313,7 @@ export type FunctionGrip = {|
   parameterNames: string[],
   displayName: string,
   userDisplayName: string,
-  url: string,
+  url: URL,
   line: number,
   column: number,
 |};
@@ -373,6 +381,7 @@ export type ThreadFront = {
   stepIn: Function => Promise<*>,
   stepOver: Function => Promise<*>,
   stepOut: Function => Promise<*>,
+  restart: Function => Promise<*>,
   breakOnNext: () => Promise<*>,
   // FIXME: unclear if SourceId or ActorId here
   source: ({ actor: SourceId }) => SourceClient,
@@ -393,23 +402,24 @@ export type ThreadFront = {
   actor: ActorId,
   actorID: ActorId,
   request: (payload: Object) => Promise<*>,
-  url: string,
+  url: URL,
   setActiveEventBreakpoints: (string[]) => Promise<void>,
   getAvailableEventBreakpoints: () => Promise<EventListenerCategoryList>,
   skipBreakpoints: boolean => Promise<{| skip: boolean |}>,
   detach: () => Promise<void>,
-  timeWarp: Function => Promise<*>,
   fetchAncestorFramePositions: Function => Promise<*>,
-  get: string => FrameFront,
+  getActorByID: string => FrameFront,
+  dumpThread: Function => void,
 };
 
 export type Panel = {|
   emit: (eventName: string) => void,
-  openLink: (url: string) => void,
+  openLink: (url: URL) => void,
   openInspector: () => void,
   openElementInInspector: (grip: Object) => void,
   openConsoleAndEvaluate: (input: string) => void,
   highlightDomElement: (grip: Object) => void,
   unHighlightDomElement: (grip: Object) => void,
   getToolboxStore: () => any,
+  panelWin: Object,
 |};

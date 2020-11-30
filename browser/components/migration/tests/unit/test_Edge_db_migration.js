@@ -545,10 +545,10 @@ add_task(async function() {
   );
   Assert.ok(bookmarksMigrator.exists, "Should recognize db we just created");
 
-  let source = MigrationUtils.getLocalizedString("sourceNameEdge");
-  let sourceLabel = MigrationUtils.getLocalizedString(
-    "importedBookmarksFolder",
-    [source]
+  let source = await MigrationUtils.getLocalizedString("source-name-edge");
+  let sourceLabel = await MigrationUtils.getLocalizedString(
+    "imported-bookmarks-source",
+    { source }
   );
 
   let seenBookmarks = [];
@@ -594,8 +594,8 @@ add_task(async function() {
   Assert.ok(migrateResult, "Migration should succeed");
   Assert.equal(
     seenBookmarks.length,
-    7,
-    "Should have seen 7 items being bookmarked."
+    5,
+    "Should have seen 5 items being bookmarked."
   );
   Assert.equal(
     seenBookmarks.filter(bm => bm.title != sourceLabel).length,
@@ -608,8 +608,8 @@ add_task(async function() {
   );
   Assert.equal(
     menuParents.length,
-    1,
-    "Should have a single folder added to the menu"
+    3,
+    "Bookmarks are added to the menu without a folder"
   );
   let toolbarParents = seenBookmarks.filter(
     item => item.parentGuid == PlacesUtils.bookmarks.toolbarGuid
@@ -619,8 +619,8 @@ add_task(async function() {
     1,
     "Should have a single item added to the toolbar"
   );
-  let menuParentGuid = menuParents[0].guid;
-  let toolbarParentGuid = toolbarParents[0].guid;
+  let menuParentGuid = PlacesUtils.bookmarks.menuGuid;
+  let toolbarParentGuid = PlacesUtils.bookmarks.toolbarGuid;
 
   let expectedTitlesInMenu = bookmarkReferenceItems
     .filter(item => item.ParentId == kEdgeMenuParent)
@@ -631,11 +631,7 @@ add_task(async function() {
     .filter(item => item.ParentId == "921dc8a0-6c83-40ef-8df1-9bd1c5c56aaf")
     .map(item => item.Title);
 
-  let edgeNameStr = MigrationUtils.getLocalizedString("sourceNameEdge");
-  let importParentFolderName = MigrationUtils.getLocalizedString(
-    "importedBookmarksFolder",
-    [edgeNameStr]
-  );
+  let importParentFolderName = sourceLabel;
 
   for (let bookmark of seenBookmarks) {
     let shouldBeInMenu = expectedTitlesInMenu.includes(bookmark.title);
@@ -770,8 +766,8 @@ add_task(async function() {
     MigrationUtils._importQuantities.bookmarks,
     "Telemetry should have items except for 'From Microsoft Edge' folders"
   );
-  let readingListContainerLabel = MigrationUtils.getLocalizedString(
-    "importedEdgeReadingList"
+  let readingListContainerLabel = await MigrationUtils.getLocalizedString(
+    "imported-edge-reading-list"
   );
 
   for (let bookmark of seenBookmarks) {

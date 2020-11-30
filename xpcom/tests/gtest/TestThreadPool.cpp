@@ -19,11 +19,10 @@
 
 using namespace mozilla;
 
-class Task final : public nsIRunnable {
+class TestTask final : public Runnable {
  public:
-  NS_DECL_THREADSAFE_ISUPPORTS
-
-  Task(int i, Atomic<int>& aCounter) : mIndex(i), mCounter(aCounter) {}
+  TestTask(int i, Atomic<int>& aCounter)
+      : Runnable("TestThreadPool::Task"), mIndex(i), mCounter(aCounter) {}
 
   NS_IMETHOD Run() override {
     printf("###(%d) running from thread: %p\n", mIndex,
@@ -37,12 +36,11 @@ class Task final : public nsIRunnable {
   }
 
  private:
-  ~Task() = default;
+  ~TestTask() = default;
 
   int mIndex;
   Atomic<int>& mCounter;
 };
-NS_IMPL_ISUPPORTS(Task, nsIRunnable)
 
 TEST(ThreadPool, Main)
 {
@@ -51,7 +49,7 @@ TEST(ThreadPool, Main)
   Atomic<int> count(0);
 
   for (int i = 0; i < 100; ++i) {
-    nsCOMPtr<nsIRunnable> task = new Task(i, count);
+    nsCOMPtr<nsIRunnable> task = new TestTask(i, count);
     EXPECT_TRUE(task);
 
     pool->Dispatch(task, NS_DISPATCH_NORMAL);
@@ -128,7 +126,7 @@ TEST(ThreadPool, ShutdownWithTimeout)
 
   Atomic<int> allThreadsCount(0);
   for (int i = 0; i < 4; ++i) {
-    nsCOMPtr<nsIRunnable> task = new Task(i, allThreadsCount);
+    nsCOMPtr<nsIRunnable> task = new TestTask(i, allThreadsCount);
     EXPECT_TRUE(task);
 
     pool->Dispatch(task, NS_DISPATCH_NORMAL);
@@ -143,7 +141,7 @@ TEST(ThreadPool, ShutdownWithTimeout)
   Atomic<bool> shutdownAck(false);
   pool = new nsThreadPool();
   for (int i = 0; i < 3; ++i) {
-    nsCOMPtr<nsIRunnable> task = new Task(i, infiniteLoopCount);
+    nsCOMPtr<nsIRunnable> task = new TestTask(i, infiniteLoopCount);
     EXPECT_TRUE(task);
 
     pool->Dispatch(task, NS_DISPATCH_NORMAL);
@@ -176,7 +174,7 @@ TEST(ThreadPool, ShutdownWithTimeoutThenSleep)
   nsCOMPtr<nsIThreadPool> pool = new nsThreadPool();
 
   for (int i = 0; i < 3; ++i) {
-    nsCOMPtr<nsIRunnable> task = new Task(i, count);
+    nsCOMPtr<nsIRunnable> task = new TestTask(i, count);
     EXPECT_TRUE(task);
 
     pool->Dispatch(task, NS_DISPATCH_NORMAL);

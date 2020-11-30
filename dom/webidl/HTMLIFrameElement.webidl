@@ -28,8 +28,6 @@ interface HTMLIFrameElement : HTMLElement {
   [CEReactions, SetterThrows, Pure]
            attribute boolean allowFullscreen;
   [CEReactions, SetterThrows, Pure]
-           attribute boolean allowPaymentRequest;
-  [CEReactions, SetterThrows, Pure]
            attribute DOMString width;
   [CEReactions, SetterThrows, Pure]
            attribute DOMString height;
@@ -63,20 +61,13 @@ partial interface HTMLIFrameElement {
   Document? getSVGDocument();
 };
 
-partial interface HTMLIFrameElement {
-  // nsIDOMMozBrowserFrame
-  [ChromeOnly,SetterThrows]
-           attribute boolean mozbrowser;
-};
-
 HTMLIFrameElement includes MozFrameLoaderOwner;
-HTMLIFrameElement includes BrowserElement;
 
 // https://w3c.github.io/webappsec-feature-policy/#idl-index
 partial interface HTMLIFrameElement {
   [SameObject, Pref="dom.security.featurePolicy.webidl.enabled"]
   readonly attribute FeaturePolicy featurePolicy;
 
-  [CEReactions, SetterThrows, Pure, Pref="dom.security.featurePolicy.enabled"]
+  [CEReactions, SetterThrows, Pure]
            attribute DOMString allow;
 };

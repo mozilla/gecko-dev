@@ -6,16 +6,18 @@
 
 var EXPORTED_SYMBOLS = ["DevToolsFrameParent"];
 const { loader } = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
+const { EventEmitter } = ChromeUtils.import(
+  "resource://gre/modules/EventEmitter.jsm"
+);
+const { WatcherRegistry } = ChromeUtils.import(
+  "resource://devtools/server/actors/watcher/WatcherRegistry.jsm"
+);
 
 loader.lazyRequireGetter(
   this,
   "JsWindowActorTransport",
   "devtools/shared/transport/js-window-actor-transport",
   true
-);
-
-const { EventEmitter } = ChromeUtils.import(
-  "resource://gre/modules/EventEmitter.jsm"
 );
 
 class DevToolsFrameParent extends JSWindowActorParent {
@@ -34,7 +36,7 @@ class DevToolsFrameParent extends JSWindowActorParent {
     // - actor: the frame target actor(as a form)
     // - connection: the DevToolsServerConnection used to communicate with the
     //   frame target actor
-    // - forwardingPrefix: the forwarding prefix used by the connection to know
+    // - prefix: the forwarding prefix used by the connection to know
     //   how to forward packets to the frame target
     // - transport: the JsWindowActorTransport
     //
@@ -48,42 +50,94 @@ class DevToolsFrameParent extends JSWindowActorParent {
     EventEmitter.decorate(this);
   }
 
-  async connectToFrame(connection) {
-    // Compute the same prefix that's used by DevToolsServerConnection when
-    // forwarding packets to the target frame.
-    const forwardingPrefix = connection.allocID("child");
-
-    try {
-      const { actor } = await this.connect({ prefix: forwardingPrefix });
-      connection.on("closed", this._onConnectionClosed);
-
-      // Create a js-window-actor based transport.
-      const transport = new JsWindowActorTransport(this, forwardingPrefix);
-      transport.hooks = {
-        onPacket: connection.send.bind(connection),
-        onClosed() {},
-      };
-      transport.ready();
-
-      connection.setForwarding(forwardingPrefix, transport);
-
-      this._connections.set(connection.prefix, {
-        actor,
-        connection,
-        forwardingPrefix,
-        transport,
-      });
-
-      return actor;
-    } catch (e) {
-      // Might fail if we have an actor destruction.
-      console.error("Failed to connect to DevToolsFrameChild actor");
-      console.error(e.toString());
-      return null;
-    }
+  /**
+   * Request the content process to create the Frame Target if there is one
+   * already available that matches the Browsing Context ID
+   */
+  instantiateTarget({
+    watcherActorID,
+    connectionPrefix,
+    browserId,
+    watchedData,
+  }) {
+    return this.sendQuery("DevToolsFrameParent:instantiate-already-available", {
+      watcherActorID,
+      connectionPrefix,
+      browserId,
+      watchedData,
+    });
   }
 
-  _onConnectionClosed(prefix) {
+  destroyTarget({ watcherActorID, browserId }) {
+    this.sendAsyncMessage("DevToolsFrameParent:destroy", {
+      watcherActorID,
+      browserId,
+    });
+  }
+
+  /**
+   * Communicate to the content process that some data have been added.
+   */
+  addWatcherDataEntry({ watcherActorID, browserId, type, entries }) {
+    return this.sendQuery("DevToolsFrameParent:addWatcherDataEntry", {
+      watcherActorID,
+      browserId,
+      type,
+      entries,
+    });
+  }
+
+  /**
+   * Communicate to the content process that some data have been removed.
+   */
+  removeWatcherDataEntry({ watcherActorID, browserId, type, entries }) {
+    this.sendAsyncMessage("DevToolsFrameParent:removeWatcherDataEntry", {
+      watcherActorID,
+      browserId,
+      type,
+      entries,
+    });
+  }
+
+  connectFromContent({ watcherActorID, forwardingPrefix, actor }) {
+    const watcher = WatcherRegistry.getWatcher(watcherActorID);
+
+    if (!watcher) {
+      throw new Error(
+        `Watcher Actor with ID '${watcherActorID}' can't be found.`
+      );
+    }
+    const connection = watcher.conn;
+
+    connection.on("closed", this._onConnectionClosed);
+
+    // Create a js-window-actor based transport.
+    const transport = new JsWindowActorTransport(this, forwardingPrefix);
+    transport.hooks = {
+      onPacket: connection.send.bind(connection),
+      onClosed() {},
+    };
+    transport.ready();
+
+    connection.setForwarding(forwardingPrefix, transport);
+
+    this._connections.set(watcher.conn.prefix, {
+      watcher,
+      connection,
+      // This prefix is the prefix of the DevToolsServerConnection, running
+      // in the content process, for which we should forward packets to, based on its prefix.
+      // While `watcher.connection` is also a DevToolsServerConnection, but from this process,
+      // the parent process. It is the one receiving Client packets and the one, from which
+      // we should forward packets from.
+      forwardingPrefix,
+      transport,
+      actor,
+    });
+
+    watcher.notifyTargetAvailable(actor);
+  }
+
+  _onConnectionClosed(status, prefix) {
     if (this._connections.has(prefix)) {
       const { connection } = this._connections.get(prefix);
       this._cleanupConnection(connection);
@@ -102,15 +156,6 @@ class DevToolsFrameParent extends JSWindowActorParent {
       transport.close();
     }
 
-    // Notify the child process to clean the target-scoped actors.
-    try {
-      // Bug 1169643: Ignore any exception as the child process
-      // may already be destroyed by now.
-      await this.disconnect({ prefix: forwardingPrefix });
-    } catch (e) {
-      // Nothing to do
-    }
-
     connection.cancelForwarding(forwardingPrefix);
     this._connections.delete(connection.prefix);
     if (!this._connections.size) {
@@ -124,8 +169,11 @@ class DevToolsFrameParent extends JSWindowActorParent {
     }
     this._destroyed = true;
 
-    for (const { actor, connection } of this._connections.values()) {
-      if (actor) {
+    for (const { actor, connection, watcher } of this._connections.values()) {
+      watcher.notifyTargetDestroyed(actor);
+
+      // XXX: we should probably get rid of this
+      if (actor && connection.transport) {
         // The FrameTargetActor within the child process doesn't necessary
         // have time to uninitialize itself when the frame is closed/killed.
         // So ensure telling the client that the related actor is detached.
@@ -134,24 +182,14 @@ class DevToolsFrameParent extends JSWindowActorParent {
 
       this._cleanupConnection(connection);
     }
-
-    this.emit("devtools-frame-parent-actor-destroyed");
   }
 
   /**
    * Supported Queries
    */
 
-  async connect(args) {
-    return this.sendQuery("DevToolsFrameParent:connect", args);
-  }
-
-  async disconnect(args) {
-    return this.sendQuery("DevToolsFrameParent:disconnect", args);
-  }
-
-  async sendPacket(packet, prefix) {
-    return this.sendQuery("DevToolsFrameParent:packet", { packet, prefix });
+  sendPacket(packet, prefix) {
+    this.sendAsyncMessage("DevToolsFrameParent:packet", { packet, prefix });
   }
 
   /**
@@ -169,13 +207,15 @@ class DevToolsFrameParent extends JSWindowActorParent {
     }
   }
 
-  receiveMessage(data) {
-    switch (data.name) {
+  receiveMessage(message) {
+    switch (message.name) {
+      case "DevToolsFrameChild:connectFromContent":
+        return this.connectFromContent(message.data);
       case "DevToolsFrameChild:packet":
-        return this.emit("packet-received", data);
+        return this.emit("packet-received", message);
       default:
         throw new Error(
-          "Unsupported message in DevToolsFrameParent: " + data.name
+          "Unsupported message in DevToolsFrameParent: " + message.name
         );
     }
   }

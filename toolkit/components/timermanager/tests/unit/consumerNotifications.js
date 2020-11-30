@@ -161,7 +161,7 @@ const gTest0TimerCallback = {
     // time to fire so check other timers are successful.
     do_throw("gTest0TimerCallback notify method should not have been called");
   },
-  QueryInterface: ChromeUtils.generateQI([Ci.nsITimerCallback]),
+  QueryInterface: ChromeUtils.generateQI(["nsITimerCallback"]),
 };
 
 const gTest0Factory = {
@@ -169,7 +169,7 @@ const gTest0Factory = {
     if (aOuter == null) {
       return gTest0TimerCallback.QueryInterface(aIID);
     }
-    throw Cr.NS_ERROR_NO_AGGREGATION;
+    throw Components.Exception("", Cr.NS_ERROR_NO_AGGREGATION);
   },
 };
 
@@ -179,7 +179,7 @@ const gTest1TimerCallback = {
     // time to fire so check other timers are successful.
     do_throw("gTest1TimerCallback notify method should not have been called");
   },
-  QueryInterface: ChromeUtils.generateQI([Ci.nsITimer]),
+  QueryInterface: ChromeUtils.generateQI(["nsITimer"]),
 };
 
 const gTest1Factory = {
@@ -187,7 +187,7 @@ const gTest1Factory = {
     if (aOuter == null) {
       return gTest1TimerCallback.QueryInterface(aIID);
     }
-    throw Cr.NS_ERROR_NO_AGGREGATION;
+    throw Components.Exception("", Cr.NS_ERROR_NO_AGGREGATION);
   },
 };
 
@@ -197,7 +197,7 @@ const gTest2TimerCallback = {
     // time to fire so check other timers are successful.
     do_throw("gTest2TimerCallback notify method should not have been called");
   },
-  QueryInterface: ChromeUtils.generateQI([Ci.nsITimerCallback]),
+  QueryInterface: ChromeUtils.generateQI(["nsITimerCallback"]),
 };
 
 const gTest2Factory = {
@@ -205,12 +205,12 @@ const gTest2Factory = {
     if (aOuter == null) {
       return gTest2TimerCallback.QueryInterface(aIID);
     }
-    throw Cr.NS_ERROR_NO_AGGREGATION;
+    throw Components.Exception("", Cr.NS_ERROR_NO_AGGREGATION);
   },
 };
 
 const gTest3TimerCallback = {
-  QueryInterface: ChromeUtils.generateQI([Ci.nsITimerCallback]),
+  QueryInterface: ChromeUtils.generateQI(["nsITimerCallback"]),
 };
 
 const gTest3Factory = {
@@ -218,7 +218,7 @@ const gTest3Factory = {
     if (aOuter == null) {
       return gTest3TimerCallback.QueryInterface(aIID);
     }
-    throw Cr.NS_ERROR_NO_AGGREGATION;
+    throw Components.Exception("", Cr.NS_ERROR_NO_AGGREGATION);
   },
 };
 
@@ -228,7 +228,7 @@ const gTest4TimerCallback = {
     TESTS[4].notified = true;
     finished_test0thru7();
   },
-  QueryInterface: ChromeUtils.generateQI([Ci.nsITimerCallback]),
+  QueryInterface: ChromeUtils.generateQI(["nsITimerCallback"]),
 };
 
 const gTest4Factory = {
@@ -236,7 +236,7 @@ const gTest4Factory = {
     if (aOuter == null) {
       return gTest4TimerCallback.QueryInterface(aIID);
     }
-    throw Cr.NS_ERROR_NO_AGGREGATION;
+    throw Components.Exception("", Cr.NS_ERROR_NO_AGGREGATION);
   },
 };
 
@@ -246,7 +246,7 @@ const gTest5TimerCallback = {
     TESTS[5].notified = true;
     finished_test0thru7();
   },
-  QueryInterface: ChromeUtils.generateQI([Ci.nsITimerCallback]),
+  QueryInterface: ChromeUtils.generateQI(["nsITimerCallback"]),
 };
 
 const gTest5Factory = {
@@ -254,7 +254,7 @@ const gTest5Factory = {
     if (aOuter == null) {
       return gTest5TimerCallback.QueryInterface(aIID);
     }
-    throw Cr.NS_ERROR_NO_AGGREGATION;
+    throw Components.Exception("", Cr.NS_ERROR_NO_AGGREGATION);
   },
 };
 
@@ -264,7 +264,7 @@ const gTest6TimerCallback = {
     TESTS[6].notified = true;
     finished_test0thru7();
   },
-  QueryInterface: ChromeUtils.generateQI([Ci.nsITimerCallback]),
+  QueryInterface: ChromeUtils.generateQI(["nsITimerCallback"]),
 };
 
 const gTest6Factory = {
@@ -272,7 +272,7 @@ const gTest6Factory = {
     if (aOuter == null) {
       return gTest6TimerCallback.QueryInterface(aIID);
     }
-    throw Cr.NS_ERROR_NO_AGGREGATION;
+    throw Components.Exception("", Cr.NS_ERROR_NO_AGGREGATION);
   },
 };
 
@@ -282,7 +282,7 @@ const gTest7TimerCallback = {
     TESTS[7].notified = true;
     finished_test0thru7();
   },
-  QueryInterface: ChromeUtils.generateQI([Ci.nsITimerCallback]),
+  QueryInterface: ChromeUtils.generateQI(["nsITimerCallback"]),
 };
 
 const gTest7Factory = {
@@ -290,7 +290,7 @@ const gTest7Factory = {
     if (aOuter == null) {
       return gTest7TimerCallback.QueryInterface(aIID);
     }
-    throw Cr.NS_ERROR_NO_AGGREGATION;
+    throw Components.Exception("", Cr.NS_ERROR_NO_AGGREGATION);
   },
 };
 
@@ -302,7 +302,7 @@ const gTest8TimerCallback = {
       check_test8thru10(gTest8TimerCallback);
     });
   },
-  QueryInterface: ChromeUtils.generateQI([Ci.nsITimerCallback]),
+  QueryInterface: ChromeUtils.generateQI(["nsITimerCallback"]),
 };
 
 const gTest8Factory = {
@@ -310,7 +310,7 @@ const gTest8Factory = {
     if (aOuter == null) {
       return gTest8TimerCallback.QueryInterface(aIID);
     }
-    throw Cr.NS_ERROR_NO_AGGREGATION;
+    throw Components.Exception("", Cr.NS_ERROR_NO_AGGREGATION);
   },
 };
 
@@ -322,7 +322,7 @@ const gTest9TimerCallback = {
       check_test8thru10(gTest9TimerCallback);
     });
   },
-  QueryInterface: ChromeUtils.generateQI([Ci.nsITimerCallback]),
+  QueryInterface: ChromeUtils.generateQI(["nsITimerCallback"]),
 };
 
 const gTest10TimerCallback = {
@@ -331,7 +331,7 @@ const gTest10TimerCallback = {
     // be called.
     do_throw("gTest10TimerCallback notify method should not have been called");
   },
-  QueryInterface: ChromeUtils.generateQI([Ci.nsITimerCallback]),
+  QueryInterface: ChromeUtils.generateQI(["nsITimerCallback"]),
 };
 
 const gTest9Factory = {
@@ -339,7 +339,7 @@ const gTest9Factory = {
     if (aOuter == null) {
       return gTest9TimerCallback.QueryInterface(aIID);
     }
-    throw Cr.NS_ERROR_NO_AGGREGATION;
+    throw Components.Exception("", Cr.NS_ERROR_NO_AGGREGATION);
   },
 };
 

@@ -57,6 +57,17 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=780847
   <div id="t10_top" class="target" style="top:-50px;" onmousedown="x=1" hidden></div>
   <div id="t10_bottom" class="target" style="top:auto;bottom:-50px;" onmousedown="x=1" hidden></div>
   <div id="t10_over" style="position:absolute; left:0; top:0; width:100%; height:100%; background:yellow;" hidden></div>
+
+  <div id="t11" class="target" style="cursor:pointer" hidden></div>
+  <div id="t11_with_child" class="target" style="cursor:pointer" hidden><div id="t11_child" style="width:100px; height:100px; background:green;"></div></div>
+  <div id="t11_covered" class="target" style="cursor:pointer" hidden><div id="t11_coverer" style="width:100px; height:100px; background:green; cursor:text"></div></div>
+
+  <div id="t12" class="target" hidden>
+    <input id="t12_input" style="width: 100px; height: 20px; border: 0; padding: 0"></input>
+    <div id="t12_zisland" style="width: 100px; height: 50px; position:relative; z-index: 5">
+      <div id="t12_target" style="width: 100px; height: 20px; background-color: green"></div>
+    </div>
+  </div>
 </div>
 <pre id="test">
 <script type="application/javascript">
@@ -73,7 +84,14 @@ function startTest() {
 
 SimpleTest.waitForExplicitFinish();
 
+let oldResolution = 1.0;
+
 function endTest() {
+  if (navigator.appVersion.includes("Android")) {
+    // Restore any resolution that was changed at the end of the test.
+    let topUtils = SpecialPowers.getDOMWindowUtils(window.top);
+    topUtils.setResolutionAndScaleTo(oldResolution);
+  }
   SimpleTest.finish();
 }
 
@@ -91,6 +109,20 @@ function testMouseClick(idPosition, dx, dy, idTarget, msg, options) {
   }
 }
 
+var touchTarget;
+document.addEventListener('touchstart', event => { touchTarget = event.target; });
+
+function testTouch(idPosition, dx, dy, idTarget, msg, options) {
+  touchTarget = null;
+  synthesizeTouch(document.getElementById(idPosition), dx, dy, options || {});
+  try {
+    is(touchTarget.id, idTarget,
+       "checking '" + idPosition + "' offset " + dx + "," + dy + " [" + msg + "]");
+  } catch (ex) {
+    ok(false, "checking '" + idPosition + "' offset " + dx + "," + dy + " [" + msg + "]; got " + touchTarget);
+  }
+}
+
 function setShowing(id, show) {
   var e = document.getElementById(id);
   e.hidden = !show;
@@ -100,11 +132,19 @@ var mm;
 function runTest() {
   let resolution = 1;
   if (navigator.appVersion.includes("Android")) {
+    // Choose a roundish number for the resolution so that the "midpoint" test below
+    // doesn't mis-target an element due to rounding error.
+    let desiredResolution = 0.75;
+    let topUtils = SpecialPowers.getDOMWindowUtils(window.top);
+    // Save the old resolution for restoration at the end of the test.
+    oldResolution = topUtils.getResolution();
+    topUtils.setResolutionAndScaleTo(desiredResolution);
     // This test runs on Android, zoomed out. Therefore we need to account
     // for the resolution as well, because the fluff area is relative to screen
     // pixels rather than CSS pixels.
-    resolution = SpecialPowers.getDOMWindowUtils(window.top).getResolution();
-    ok(resolution <= 1, "Resolution is " + resolution);
+    resolution = topUtils.getResolution();
+    // Make sure we were actually able to zoom out to the desired level.
+    ok(resolution == desiredResolution, "Resolution is " + resolution);
   }
   mm = SpecialPowers.getDOMWindowUtils(window.top).physicalMillimeterInCSSPixels / resolution;
   ok(4*mm >= 10, "WARNING: mm " + mm + " too small in this configuration. Test results will be bogus");
@@ -157,6 +197,14 @@ function test3() {
   t2.onclick = function() {};
   testMouseClick("t2", 100 + 11*mm, 10, "t2", "DIV with onclick");
   t2.onclick = null;
+  t2.onpointerdown = function() {};
+  testMouseClick("t2", 100 + 11*mm, 10, "t2", "DIV with onpointerdown");
+  t2.onpointerdown = null;
+  testMouseClick("t2", 100 + 11*mm, 10, "body", "DIV with onpointerdown removed");
+  t2.onpointerup = function() {};
+  testMouseClick("t2", 100 + 11*mm, 10, "t2", "DIV with onpointerup");
+  t2.onpointerup = null;
+  testMouseClick("t2", 100 + 11*mm, 10, "body", "DIV with onpointerup removed");
   // Keypresses don't make click radius targets
   t2.onkeypress = function() {};
   testMouseClick("t2", 100 + 11*mm, 10, "body", "DIV with onkeypress");
@@ -280,9 +328,63 @@ function test3() {
   setShowing("t10_top", false);
   setShowing("t10_bottom", false);
 
+  setShowing("t11", true);
+  testMouseClick("t11", 100 + 11*mm, 10, "t11",
+                 "Elements with cursor:pointer are fluff targets");
+  setShowing("t11", false);
+
+  setShowing("t11_with_child", true);
+  testMouseClick("t11_with_child", 100 + 11*mm, 10, "t11_child",
+                 "Elements that inherit cursor:pointer are fluff targets");
+  setShowing("t11_with_child", false);
+
+  setShowing("t11_covered", true);
+  testMouseClick("t11_covered", 100 + 11*mm, 10, "body",
+                 "Elements that override an inherited cursor:pointer are not fluff targets");
+  setShowing("t11_covered", false);
+
+  setShowing("t12", true);
+  testMouseClick("t12_target", 1, 1, "t12_target",
+                 "Event retargeting should not escape out from a z-index ancestor");
+  setShowing("t12", false);
+
   // Not yet tested:
   // -- visited link weight
   // -- "Closest" using Euclidean distance
+
+
+  SpecialPowers.pushPrefEnv({"set": [["dom.w3c_touch_events.enabled", 1],
+                                     ["ui.touch.radius.enabled", true],
+                                     ["ui.touch.radius.leftmm", 12],
+                                     ["ui.touch.radius.topmm", 8],
+                                     ["ui.touch.radius.rightmm", 4],
+                                     ["ui.touch.radius.bottommm", 4],
+                                     ["ui.touch.radius.visitedweight", 50]]}, testTouchable);
+}
+
+function testTouchable() {
+  // Element "t" has a mousedown listener but no touch listener. So the touches
+  // that land immediately outside "t" should not hit "t"; only the touches
+  // directly aimed at "t" should hit it.
+  setShowing("t", true);
+  var rect = document.getElementById("t").getBoundingClientRect();
+  testTouch("t", rect.width - 1, 10, "t", "touch inside t right edge");
+  testTouch("t", rect.width + 1, 10, "body", "touch outside t right edge");
+  testTouch("t", 10, rect.height - 1, "t", "touch inside t bottom edge");
+  testTouch("t", 10, rect.height + 1, "body", "touch outside t bottom edge");
+  testTouch("t", 1, 10, "t", "touch inside t left edge");
+  testTouch("t", -1, 10, "body", "touch outside t left edge");
+  testTouch("t", 10, 1, "t", "touch inside t top edge");
+  testTouch("t", 10, -1, "body", "touch outside t top edge");
+  setShowing("t", false);
+
+  // Element "t9" has a touchend listener, so touches within the radius
+  // distance from it should hit it.
+  setShowing("t9", true);
+  testTouch("t9", -5*mm, 10, "body", "touch outside t9 left edge radius");
+  testTouch("t9", -3*mm, 10, "t9", "touch inside t9 left edge radius");
+  setShowing("t9", false);
+
   endTest();
 }
 </script>

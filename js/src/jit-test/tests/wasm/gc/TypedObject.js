@@ -1,34 +1,27 @@
-// |jit-test| skip-if: !wasmGcEnabled() || wasmCompileMode() != 'baseline'
+// |jit-test| skip-if: !wasmGcEnabled()
 
-// We can read the object fields from JS, and write them if they are mutable.
+// We can read the object fields from JS
 
 {
     let ins = wasmEvalText(`(module
-                             (gc_feature_opt_in 3)
-
                              (type $p (struct (field f64) (field (mut i32))))
 
-                             (func (export "mkp") (result anyref)
+                             (func (export "mkp") (result eqref)
                               (struct.new $p (f64.const 1.5) (i32.const 33))))`).exports;
 
     let p = ins.mkp();
     assertEq(p._0, 1.5);
     assertEq(p._1, 33);
     assertEq(p._2, undefined);
-
-    p._1 = 44;
-    assertEq(p._1, 44);
 }
 
 // Writing an immutable field from JS throws.
 
 {
     let ins = wasmEvalText(`(module
-                             (gc_feature_opt_in 3)
-
                              (type $p (struct (field f64)))
 
-                             (func (export "mkp") (result anyref)
+                             (func (export "mkp") (result eqref)
                               (struct.new $p (f64.const 1.5))))`).exports;
 
     let p = ins.mkp();
@@ -37,56 +30,46 @@
                        /setting immutable field/);
 }
 
-// MVA v1 restriction: structs that expose ref-typed fields should not be
-// constructible from JS.
-//
-// However, if the fields are anyref the structs can be constructed from JS.
+// MVA v1 restriction: structs are not constructible from JS.
 
 {
     let ins = wasmEvalText(`(module
-                             (gc_feature_opt_in 3)
-
                              (type $q (struct (field (mut f64))))
-                             (type $p (struct (field (mut (ref $q)))))
+                             (type $p (struct (field (mut (ref null $q)))))
 
-                             (type $r (struct (field (mut anyref))))
+                             (type $r (struct (field (mut eqref))))
 
-                             (func (export "mkp") (result anyref)
-                              (struct.new $p (ref.null)))
+                             (func (export "mkp") (result eqref)
+                              (struct.new $p (ref.null $q)))
 
-                             (func (export "mkr") (result anyref)
-                              (struct.new $r (ref.null))))`).exports;
+                             (func (export "mkr") (result eqref)
+                              (struct.new $r (ref.null eq))))`).exports;
 
-    assertEq(typeof ins.mkp().constructor, "function");
     assertErrorMessage(() => new (ins.mkp().constructor)({_0:null}),
                        TypeError,
                        /not constructible/);
 
-    assertEq(typeof ins.mkr().constructor, "function");
-    let r = new (ins.mkr().constructor)({_0:null});
-    assertEq(typeof r, "object");
+    assertErrorMessage(() => new (ins.mkr().constructor)({_0:null}),
+                       TypeError,
+                       /not constructible/);
 }
 
-// MVA v1 restriction: structs that expose ref-typed fields make those fields
-// immutable from JS even if we're trying to store the correct type.
-//
-// However, anyref fields are mutable from JS.
+// MVA v1 restriction: all fields are immutable
 
 {
     let ins = wasmEvalText(`(module
-                             (gc_feature_opt_in 3)
-
                              (type $q (struct (field (mut f64))))
-                             (type $p (struct (field (mut (ref $q))) (field (mut anyref))))
+                             (type $p (struct (field (mut (ref null $q))) (field (mut eqref))))
 
-                             (func (export "mkq") (result anyref)
+                             (func (export "mkq") (result eqref)
                               (struct.new $q (f64.const 1.5)))
 
-                             (func (export "mkp") (result anyref)
-                              (struct.new $p (ref.null) (ref.null))))`).exports;
+                             (func (export "mkp") (result eqref)
+                              (struct.new $p (ref.null $q) (ref.null eq))))`).exports;
     let q = ins.mkq();
     assertEq(typeof q, "object");
     assertEq(q._0, 1.5);
+
     let p = ins.mkp();
     assertEq(typeof p, "object");
     assertEq(p._0, null);
@@ -95,8 +78,9 @@
                        Error,
                        /setting immutable field/);
 
-    p._1 = q;
-    assertEq(p._1, q);
+    assertErrorMessage(() => { p._1 = q },
+                       Error,
+                       /setting immutable field/);
 }
 
 // MVA v1 restriction: structs that expose i64 fields make those fields
@@ -104,9 +88,8 @@
 
 {
     let ins = wasmEvalText(`(module
-                             (gc_feature_opt_in 3)
                              (type $p (struct (field (mut i64))))
-                             (func (export "mkp") (result anyref)
+                             (func (export "mkp") (result eqref)
                               (struct.new $p (i64.const 0x1234567887654321))))`).exports;
 
     let p = ins.mkp();
@@ -114,7 +97,6 @@
     assertEq(p._0_high, 0x12345678)
     assertEq(p._0_low, 0x87654321|0);
 
-    assertEq(typeof p.constructor, "function");
     assertErrorMessage(() => new (p.constructor)({_0_high:0, _0_low:0}),
                        TypeError,
                        /not constructible/);
@@ -133,13 +115,12 @@
 {
     let ins = wasmEvalText(
         `(module
-          (gc_feature_opt_in 3)
           (type $p (struct (field i64)))
           (type $q (struct (field i32) (field i32)))
-          (func $f (param anyref) (result i32)
-           (ref.is_null (struct.narrow anyref (ref $q) (local.get 0))))
-          (func $g (param anyref) (result i32)
-           (ref.is_null (struct.narrow anyref (ref $p) (local.get 0))))
+          (func $f (param eqref) (result i32)
+           (ref.is_null (struct.narrow eqref (ref null $q) (local.get 0))))
+          (func $g (param eqref) (result i32)
+           (ref.is_null (struct.narrow eqref (ref null $p) (local.get 0))))
           (func (export "t1") (result i32)
            (call $f (struct.new $p (i64.const 0))))
           (func (export "t2") (result i32)

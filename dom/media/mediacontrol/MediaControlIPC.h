@@ -9,23 +9,68 @@
 
 #include "ipc/IPCMessageUtils.h"
 
-#include "mozilla/dom/ContentMediaController.h"
-#include "mozilla/dom/MediaControlKeysEvent.h"
+#include "mozilla/dom/MediaControllerBinding.h"
+#include "mozilla/dom/MediaControlKeySource.h"
+#include "mozilla/dom/MediaPlaybackStatus.h"
 
 namespace IPC {
 template <>
-struct ParamTraits<mozilla::dom::MediaControlKeysEvent>
+struct ParamTraits<mozilla::dom::MediaControlKey>
     : public ContiguousEnumSerializerInclusive<
-          mozilla::dom::MediaControlKeysEvent,
-          mozilla::dom::MediaControlKeysEvent::ePlay,
-          mozilla::dom::MediaControlKeysEvent::eStop> {};
+          mozilla::dom::MediaControlKey, mozilla::dom::MediaControlKey::Focus,
+          mozilla::dom::MediaControlKey::Stop> {};
 
 template <>
-struct ParamTraits<mozilla::dom::ControlledMediaState>
+struct ParamTraits<mozilla::dom::MediaPlaybackState>
     : public ContiguousEnumSerializerInclusive<
-          mozilla::dom::ControlledMediaState,
-          mozilla::dom::ControlledMediaState::eStarted,
-          mozilla::dom::ControlledMediaState::eStopped> {};
+          mozilla::dom::MediaPlaybackState,
+          mozilla::dom::MediaPlaybackState::eStarted,
+          mozilla::dom::MediaPlaybackState::eStopped> {};
+
+template <>
+struct ParamTraits<mozilla::dom::MediaAudibleState>
+    : public ContiguousEnumSerializerInclusive<
+          mozilla::dom::MediaAudibleState,
+          mozilla::dom::MediaAudibleState::eInaudible,
+          mozilla::dom::MediaAudibleState::eAudible> {};
+
+template <>
+struct ParamTraits<mozilla::dom::SeekDetails> {
+  typedef mozilla::dom::SeekDetails paramType;
+
+  static void Write(Message* aMsg, const paramType& aParam) {
+    WriteParam(aMsg, aParam.mSeekTime);
+    WriteParam(aMsg, aParam.mFastSeek);
+  }
+
+  static bool Read(const Message* aMsg, PickleIterator* aIter,
+                   paramType* aResult) {
+    if (!ReadParam(aMsg, aIter, &aResult->mSeekTime) ||
+        !ReadParam(aMsg, aIter, &aResult->mFastSeek)) {
+      return false;
+    }
+    return true;
+  }
+};
+
+template <>
+struct ParamTraits<mozilla::dom::MediaControlAction> {
+  typedef mozilla::dom::MediaControlAction paramType;
+
+  static void Write(Message* aMsg, const paramType& aParam) {
+    WriteParam(aMsg, aParam.mKey);
+    WriteParam(aMsg, aParam.mDetails);
+  }
+
+  static bool Read(const Message* aMsg, PickleIterator* aIter,
+                   paramType* aResult) {
+    if (!ReadParam(aMsg, aIter, &aResult->mKey) ||
+        !ReadParam(aMsg, aIter, &aResult->mDetails)) {
+      return false;
+    }
+    return true;
+  }
+};
 
 }  // namespace IPC
 

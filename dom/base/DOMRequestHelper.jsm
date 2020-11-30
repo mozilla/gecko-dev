@@ -42,8 +42,8 @@ DOMRequestIpcHelper.prototype = {
    * queryInterface method MUST implement Ci.nsISupportsWeakReference.
    */
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsISupportsWeakReference,
-    Ci.nsIObserver,
+    "nsISupportsWeakReference",
+    "nsIObserver",
   ]),
 
   /**
@@ -82,7 +82,7 @@ DOMRequestIpcHelper.prototype = {
           this._listeners[name].count++;
           return;
         } else {
-          throw Cr.NS_ERROR_FAILURE;
+          throw Components.Exception("", Cr.NS_ERROR_FAILURE);
         }
       }
 
@@ -157,8 +157,7 @@ DOMRequestIpcHelper.prototype = {
     this._window = aWindow;
     if (this._window) {
       // We don't use this.innerWindowID, but other classes rely on it.
-      let util = this._window.windowUtils;
-      this.innerWindowID = util.currentInnerWindowID;
+      this.innerWindowID = this._window.windowGlobalChild.innerWindowId;
     }
 
     this._destroyed = false;
@@ -279,7 +278,7 @@ DOMRequestIpcHelper.prototype = {
       Cu.reportError(
         "DOMRequestHelper trying to create a DOMRequest without a valid window, failing."
       );
-      throw Cr.NS_ERROR_FAILURE;
+      throw Components.Exception("", Cr.NS_ERROR_FAILURE);
     }
     return Services.DOMRequest.createRequest(this._window);
   },
@@ -295,7 +294,7 @@ DOMRequestIpcHelper.prototype = {
       Cu.reportError(
         "DOMRequestHelper trying to create a Promise without a valid window, failing."
       );
-      throw Cr.NS_ERROR_FAILURE;
+      throw Components.Exception("", Cr.NS_ERROR_FAILURE);
     }
     return new this._window.Promise(aPromiseInit);
   },

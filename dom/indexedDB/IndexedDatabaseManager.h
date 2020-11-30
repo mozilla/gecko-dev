@@ -13,6 +13,7 @@
 #include "mozilla/Mutex.h"
 #include "nsClassHashtable.h"
 #include "nsHashKeys.h"
+#include "SafeRefPtr.h"
 
 namespace mozilla {
 
@@ -103,11 +104,11 @@ class IndexedDatabaseManager final {
 
   void ClearBackgroundActor();
 
-  MOZ_MUST_USE RefPtr<FileManager> GetFileManager(
+  [[nodiscard]] SafeRefPtr<FileManager> GetFileManager(
       PersistenceType aPersistenceType, const nsACString& aOrigin,
       const nsAString& aDatabaseName);
 
-  void AddFileManager(FileManager* aFileManager);
+  void AddFileManager(SafeRefPtr<FileManager> aFileManager);
 
   void InvalidateAllFileManagers();
 
@@ -125,22 +126,14 @@ class IndexedDatabaseManager final {
                                      const nsACString& aOrigin,
                                      const nsAString& aDatabaseName,
                                      int64_t aFileId, int32_t* aRefCnt,
-                                     int32_t* aDBRefCnt, int32_t* aSliceRefCnt,
-                                     bool* aResult);
+                                     int32_t* aDBRefCnt, bool* aResult);
 
   nsresult FlushPendingFileDeletions();
 
   static const nsCString& GetLocale();
 
-  static mozilla::Mutex& FileMutex() {
-    IndexedDatabaseManager* mgr = Get();
-    NS_ASSERTION(mgr, "Must have a manager here!");
-
-    return mgr->mFileMutex;
-  }
-
   static nsresult CommonPostHandleEvent(EventChainPostVisitor& aVisitor,
-                                        IDBFactory* aFactory);
+                                        const IDBFactory& aFactory);
 
   static bool ResolveSandboxBinding(JSContext* aCx);
 
@@ -163,11 +156,6 @@ class IndexedDatabaseManager final {
 
   nsClassHashtable<nsRefPtrHashKey<FileManager>, nsTArray<int64_t>>
       mPendingDeleteInfos;
-
-  // Lock protecting FileManager.mFileInfos.
-  // It's s also used to atomically update FileInfo.mRefCnt, FileInfo.mDBRefCnt
-  // and FileInfo.mSliceRefCnt
-  mozilla::Mutex mFileMutex;
 
   nsCString mLocale;
 

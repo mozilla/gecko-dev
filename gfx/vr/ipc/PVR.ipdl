@@ -4,8 +4,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 using mozilla::TimeStamp from "mozilla/TimeStamp.h";
-using mozilla::gfx::OpenVRControllerType from "VRMessageUtils.h";
-using mozilla::dom::NativeThreadId from "mozilla/dom/TabMessageUtils.h";
+using mozilla::gfx::VRControllerType from "VRMessageUtils.h";
+using mozilla::dom::NativeThreadId from "mozilla/dom/NativeThreadId.h";
 include "VRMessageUtils.h";
 
 include GraphicsMessages;
@@ -23,25 +23,25 @@ async protocol PVR
 parent:
   async NewGPUVRManager(Endpoint<PVRGPUParent> endpoint);
   async Init(GfxVarUpdate[] vars, DevicePrefs devicePrefs);
-  async NotifyVsync(TimeStamp vsyncTimestamp);
 
   async UpdateVar(GfxVarUpdate var);
   async PreferenceUpdate(Pref pref);
   async OpenVRControllerActionPathToVR(nsCString aPath);
-  async OpenVRControllerManifestPathToVR(OpenVRControllerType aType, nsCString aPath);
+  async OpenVRControllerManifestPathToVR(VRControllerType aType, nsCString aPath);
   async RequestMemoryReport(uint32_t generation,
                             bool anonymize,
                             bool minimizeMemoryUsage,
-                            FileDescriptor? DMDFile);
+                            FileDescriptor? DMDFile)
+      returns (uint32_t aGeneration);
+
 child:
   // Sent when the GPU process has initialized devices. This occurs once, after
   // Init().
   async InitComplete();
   async OpenVRControllerActionPathToParent(nsCString aPath);
-  async OpenVRControllerManifestPathToParent(OpenVRControllerType aType, nsCString aPath);
-  async InitCrashReporter(Shmem shmem, NativeThreadId threadId);
+  async OpenVRControllerManifestPathToParent(VRControllerType aType, nsCString aPath);
+  async InitCrashReporter(NativeThreadId threadId);
   async AddMemoryReport(MemoryReport aReport);
-  async FinishMemoryReport(uint32_t aGeneration);
 };
 
 } // namespace gfx

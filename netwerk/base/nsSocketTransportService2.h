@@ -6,24 +6,25 @@
 #ifndef nsSocketTransportService2_h__
 #define nsSocketTransportService2_h__
 
-#include "nsPISocketTransportService.h"
-#include "nsIThreadInternal.h"
-#include "nsIRunnable.h"
-#include "nsCOMPtr.h"
-#include "prinrval.h"
-#include "mozilla/Logging.h"
-#include "prinit.h"
-#include "nsIObserver.h"
+#include "PollableEvent.h"
+#include "mozilla/Atomics.h"
 #include "mozilla/LinkedList.h"
+#include "mozilla/Logging.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Mutex.h"
-#include "mozilla/net/DashboardTypes.h"
-#include "mozilla/Atomics.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Tuple.h"
-#include "nsITimer.h"
 #include "mozilla/UniquePtr.h"
-#include "PollableEvent.h"
+#include "mozilla/net/DashboardTypes.h"
+#include "nsCOMPtr.h"
+#include "nsIDirectTaskDispatcher.h"
+#include "nsIObserver.h"
+#include "nsIRunnable.h"
+#include "nsIThreadInternal.h"
+#include "nsITimer.h"
+#include "nsPISocketTransportService.h"
+#include "prinit.h"
+#include "prinrval.h"
 
 class nsASocketHandler;
 struct PRPollDesc;
@@ -86,7 +87,8 @@ class nsSocketTransportService final : public nsPISocketTransportService,
                                        public nsISerialEventTarget,
                                        public nsIThreadObserver,
                                        public nsIRunnable,
-                                       public nsIObserver {
+                                       public nsIObserver,
+                                       public nsIDirectTaskDispatcher {
  public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSPISOCKETTRANSPORTSERVICE
@@ -96,6 +98,7 @@ class nsSocketTransportService final : public nsPISocketTransportService,
   NS_DECL_NSITHREADOBSERVER
   NS_DECL_NSIRUNNABLE
   NS_DECL_NSIOBSERVER
+  NS_DECL_NSIDIRECTTASKDISPATCHER
 
   nsSocketTransportService();
 
@@ -142,21 +145,35 @@ class nsSocketTransportService final : public nsPISocketTransportService,
   // misc (any thread)
   //-------------------------------------------------------------------------
 
-  nsCOMPtr<nsIThread> mThread;  // protected by mLock
-  UniquePtr<PollableEvent> mPollableEvent;
+  // The value is guaranteed to be valid and not dangling while on the socket
+  // thread as mThread is only ever reset after it's been shutdown.
+  // This member should only ever be read on the socket thread.
+  nsIThread* mRawThread;
 
-  // Returns mThread, protecting the get-and-addref with mLock
+  // Returns mThread in a thread-safe manner.
   already_AddRefed<nsIThread> GetThreadSafely();
+  // Same as above, but return mThread as a nsIDirectTaskDispatcher
+  already_AddRefed<nsIDirectTaskDispatcher> GetDirectTaskDispatcherSafely();
 
   //-------------------------------------------------------------------------
   // initialization and shutdown (any thread)
   //-------------------------------------------------------------------------
 
+  Atomic<bool> mInitialized;
+  // indicates whether we are currently in the process of shutting down
+  Atomic<bool> mShuttingDown;
   Mutex mLock;
-  bool mInitialized;
-  bool mShuttingDown;
-  // indicates whether we are currently in the
-  // process of shutting down
+  // Variables in the next section protected by mLock
+
+  // mThread and mDirectTaskDispatcher are only ever modified on the main
+  // thread. Will be set on Init and set to null after shutdown. You must access
+  // mThread and mDirectTaskDispatcher outside the main thread via respectively
+  // GetThreadSafely and GetDirectTaskDispatchedSafely().
+  nsCOMPtr<nsIThread> mThread;
+  // We store a pointer to mThread as a direct task dispatcher to avoid having
+  // to do do_QueryInterface whenever we need to access the interface.
+  nsCOMPtr<nsIDirectTaskDispatcher> mDirectTaskDispatcher;
+  UniquePtr<PollableEvent> mPollableEvent;
   bool mOffline;
   bool mGoingOffline;
 
@@ -204,7 +221,6 @@ class nsSocketTransportService final : public nsPISocketTransportService,
 
   SocketContext* mActiveList; /* mListSize entries */
   SocketContext* mIdleList;   /* mListSize entries */
-  nsIThread* mRawThread;
 
   uint32_t mActiveListSize;
   uint32_t mIdleListSize;
@@ -291,7 +307,7 @@ class nsSocketTransportService final : public nsPISocketTransportService,
   // <1> the less-or-equal port number of the range to remap
   // <2> the port number to remap to, when the given port number falls to the
   // range
-  typedef nsTArray<Tuple<uint16_t, uint16_t, uint16_t>> TPortRemapping;
+  typedef CopyableTArray<Tuple<uint16_t, uint16_t, uint16_t>> TPortRemapping;
   Maybe<TPortRemapping> mPortRemapping;
 
   // Called on the socket thread to apply the mapping build on the main thread

@@ -319,6 +319,18 @@ FuzzySecurityInfo::SetEsniTxt(const nsACString& aEsniTxt) {
   return NS_OK;
 }
 
+NS_IMETHODIMP
+FuzzySecurityInfo::GetEchConfig(nsACString& aEchConfig) { return NS_OK; }
+
+NS_IMETHODIMP
+FuzzySecurityInfo::SetEchConfig(const nsACString& aEchConfig) {
+  MOZ_CRASH("Unused");
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+FuzzySecurityInfo::GetRetryEchConfig(nsACString& aEchConfig) { return NS_OK; }
+
 void FuzzySecurityInfo::SerializeToIPC(IPC::Message* aMsg) {
   MOZ_CRASH("Unused");
 }
@@ -331,12 +343,20 @@ bool FuzzySecurityInfo::DeserializeFromIPC(const IPC::Message* aMsg,
 
 NS_IMETHODIMP
 FuzzySecurityInfo::GetPeerId(nsACString& aResult) {
-  aResult.Assign(EmptyCString());
+  aResult.Assign(""_ns);
   return NS_OK;
 }
 
-NS_IMETHODIMP
-FuzzySecurityInfo::SetResumptionTokenFromExternalCache() { return NS_OK; }
+NS_IMETHODIMP FuzzySecurityInfo::SetIsBuiltCertChainRootBuiltInRoot(
+    bool aIsBuiltInRoot) {
+  return NS_OK;
+}
+
+NS_IMETHODIMP FuzzySecurityInfo::GetIsBuiltCertChainRootBuiltInRoot(
+    bool* aIsBuiltInRoot) {
+  *aIsBuiltInRoot = false;
+  return NS_OK;
+}
 
 }  // namespace net
 }  // namespace mozilla

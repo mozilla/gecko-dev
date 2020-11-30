@@ -18,23 +18,25 @@
 #include "builtin/streams/ReadableStreamController.h"  // js::ReadableStreamController
 #include "builtin/streams/ReadableStreamInternals.h"  // js::ReadableStream{Cancel,CreateReadResult}
 #include "js/RootingAPI.h"                            // JS::Handle, JS::Rooted
-#include "js/Value.h"          // JS::Value, JS::UndefinedHandleValue
-#include "vm/Interpreter.h"    // js::GetAndClearException
-#include "vm/JSContext.h"      // JSContext
-#include "vm/PromiseObject.h"  // js::PromiseObject
+#include "js/Value.h"        // JS::Value, JS::UndefinedHandleValue
+#include "vm/Interpreter.h"  // js::GetAndClearException
+#include "vm/JSContext.h"    // JSContext
+#include "vm/PlainObject.h"  // js::PlainObject
+#include "vm/PromiseObject.h"  // js::PromiseObject, js::PromiseResolvedWithUndefined
 #include "vm/Runtime.h"        // JSRuntime
 
-#include "builtin/streams/MiscellaneousOperations-inl.h"  // js::SetSettledPromiseIsHandled
+#include "builtin/Promise-inl.h"  // js::SetSettledPromiseIsHandled
 #include "vm/Compartment-inl.h"  // JS::Compartment::wrap, js::UnwrapInternalSlot
 #include "vm/List-inl.h"         // js::StoreNewListInFixedSlot
 #include "vm/Realm-inl.h"        // js::AutoRealm
 
-using js::ReadableStreamController;
-using js::UnwrapStreamFromReader;
-
 using JS::Handle;
 using JS::Rooted;
 using JS::Value;
+
+using js::PromiseObject;
+using js::ReadableStreamController;
+using js::UnwrapStreamFromReader;
 
 /*** 3.8. Readable stream reader abstract operations ************************/
 
@@ -94,8 +96,7 @@ MOZ_MUST_USE bool js::ReadableStreamReaderGenericInitialize(
     // Step 5: Otherwise, if stream.[[state]] is "closed",
     // Step a: Set reader.[[closedPromise]] to a promise resolved with
     //         undefined.
-    promise = PromiseObject::unforgeableResolveWithNonPromise(
-        cx, UndefinedHandleValue);
+    promise = PromiseResolvedWithUndefined(cx);
   } else {
     // Step 6: Otherwise,
     // Step a: Assert: stream.[[state]] is "errored".
@@ -113,7 +114,7 @@ MOZ_MUST_USE bool js::ReadableStreamReaderGenericInitialize(
     }
 
     // Step c. Set reader.[[closedPromise]].[[PromiseIsHandled]] to true.
-    SetSettledPromiseIsHandled(cx, promise);
+    js::SetSettledPromiseIsHandled(cx, promise);
   }
 
   if (!promise) {
@@ -211,7 +212,7 @@ MOZ_MUST_USE bool js::ReadableStreamReaderGenericRelease(
   }
 
   // Step 5: Set reader.[[closedPromise]].[[PromiseIsHandled]] to true.
-  SetSettledPromiseIsHandled(cx, unwrappedClosedPromise);
+  js::SetSettledPromiseIsHandled(cx, unwrappedClosedPromise);
 
   // Step 6: Set reader.[[ownerReadableStream]].[[reader]] to undefined.
   unwrappedStream->clearReader();
@@ -226,7 +227,7 @@ MOZ_MUST_USE bool js::ReadableStreamReaderGenericRelease(
  * Streams spec, 3.8.7.
  *      ReadableStreamDefaultReaderRead ( reader [, forAuthorCode ] )
  */
-MOZ_MUST_USE JSObject* js::ReadableStreamDefaultReaderRead(
+MOZ_MUST_USE PromiseObject* js::ReadableStreamDefaultReaderRead(
     JSContext* cx, Handle<ReadableStreamDefaultReader*> unwrappedReader) {
   // Step 1: If forAuthorCode was not passed, set it to false (implicit).
 
@@ -244,14 +245,14 @@ MOZ_MUST_USE JSObject* js::ReadableStreamDefaultReaderRead(
   // Step 5: If stream.[[state]] is "closed", return a promise resolved with
   //         ! ReadableStreamCreateReadResult(undefined, true, forAuthorCode).
   if (unwrappedStream->closed()) {
-    RootedObject iterResult(
-        cx, ReadableStreamCreateReadResult(cx, UndefinedHandleValue, true,
-                                           unwrappedReader->forAuthorCode()));
+    PlainObject* iterResult = ReadableStreamCreateReadResult(
+        cx, UndefinedHandleValue, true, unwrappedReader->forAuthorCode());
     if (!iterResult) {
       return nullptr;
     }
+
     Rooted<Value> iterResultVal(cx, JS::ObjectValue(*iterResult));
-    return PromiseObject::unforgeableResolve(cx, iterResultVal);
+    return PromiseObject::unforgeableResolveWithNonPromise(cx, iterResultVal);
   }
 
   // Step 6: If stream.[[state]] is "errored", return a promise rejected

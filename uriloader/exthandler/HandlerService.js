@@ -2,11 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+const { ComponentUtils } = ChromeUtils.import(
+  "resource://gre/modules/ComponentUtils.jsm"
+);
 const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+
+const TOPIC_PDFJS_HANDLER_CHANGED = "pdfjs:handlerChanged";
 
 ChromeUtils.defineModuleGetter(
   this,
@@ -40,9 +45,9 @@ function HandlerService() {
 HandlerService.prototype = {
   classID: Components.ID("{220cc253-b60f-41f6-b9cf-fdcb325f970f}"),
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsISupportsWeakReference,
-    Ci.nsIHandlerService,
-    Ci.nsIObserver,
+    "nsISupportsWeakReference",
+    "nsIHandlerService",
+    "nsIObserver",
   ]),
 
   __store: null,
@@ -153,6 +158,28 @@ HandlerService.prototype = {
       } catch (ex) {}
     }
 
+    // Now drop any entries without a uriTemplate, or with a broken one.
+    // The Array.from calls ensure we can safely delete things without
+    // affecting the iterator.
+    for (let [scheme, handlerObject] of Array.from(Object.entries(schemes))) {
+      let handlers = Array.from(Object.entries(handlerObject));
+      let validHandlers = 0;
+      for (let [key, obj] of handlers) {
+        if (
+          !obj.uriTemplate ||
+          !obj.uriTemplate.startsWith("https://") ||
+          !obj.uriTemplate.toLowerCase().includes("%s")
+        ) {
+          delete handlerObject[key];
+        } else {
+          validHandlers++;
+        }
+      }
+      if (!validHandlers) {
+        delete schemes[scheme];
+      }
+    }
+
     // Now, we're going to cheat. Terribly. The idiologically correct way
     // of implementing the following bit of code would be to fetch the
     // handler info objects from the protocol service, manipulate those,
@@ -164,7 +191,7 @@ HandlerService.prototype = {
     // equivalent of appending into the database. So let's just go do that:
     for (let scheme of Object.keys(schemes)) {
       let existingSchemeInfo = this._store.data.schemes[scheme];
-      if (!this._store.data.schemes[scheme]) {
+      if (!existingSchemeInfo) {
         // Haven't seen this scheme before. Default to asking which app the
         // user wants to use:
         existingSchemeInfo = {
@@ -320,7 +347,7 @@ HandlerService.prototype = {
       //
       let handler = new Proxy(
         {
-          QueryInterface: ChromeUtils.generateQI([Ci.nsIHandlerInfo]),
+          QueryInterface: ChromeUtils.generateQI(["nsIHandlerInfo"]),
           type,
           get _handlerInfo() {
             delete this._handlerInfo;
@@ -421,6 +448,12 @@ HandlerService.prototype = {
     delete storedHandlerInfo.stubEntry;
 
     this._store.saveSoon();
+
+    // Now notify PDF.js. This is hacky, but a lot better than expecting all
+    // the consumers to do it...
+    if (handlerInfo.type == "application/pdf") {
+      Services.obs.notifyObservers(null, TOPIC_PDFJS_HANDLER_CHANGED);
+    }
   },
 
   // nsIHandlerService
@@ -634,4 +667,4 @@ HandlerService.prototype = {
   },
 };
 
-this.NSGetFactory = XPCOMUtils.generateNSGetFactory([HandlerService]);
+this.NSGetFactory = ComponentUtils.generateNSGetFactory([HandlerService]);

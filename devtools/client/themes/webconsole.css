@@ -87,7 +87,7 @@
  *
  * The exact stacking order is:
  *
- *   - z-index: 3 = Navigation and Paused markers
+ *   - z-index: 3 = Navigation
  *   - z-index: 2 = Errors and warnings
  *   - z-index: 1 = Other (console.log, console.info, requests, etc.)
  */
@@ -162,31 +162,6 @@
   z-index: 3;
   color: var(--console-navigation-color);
   border-color: var(--console-navigation-border);
-}
-
-.message.paused {
-  z-index: 3;
-}
-
-.message.paused.paused-before {
-  border-top: 1px solid var(--purple-50);
-  margin-top: 0px;
-}
-
-.message.paused:not(.paused-before) {
-  border-top-color: var(--purple-50);
-  /* always show the border, even for the last child */
-  border-top-width: 1px;
-}
-
-.message.paused ~ .message .message-body-wrapper,
-.message.paused.paused-before .message-body-wrapper {
-  opacity: 0.5;
-}
-
-.message.paused.paused-before .message-body-wrapper,
-.message.paused.paused-before > .icon {
-  margin-top: calc(var(--console-output-vertical-padding) - 1px);
 }
 
 .message.startGroup,
@@ -290,8 +265,13 @@
 }
 
 .message > .icon.logpoint {
-  background-image: url(resource://devtools/client/debugger/images/webconsole-logpoint.svg);
+  background-image: url(chrome://devtools/content/debugger/images/webconsole-logpoint.svg);
   color: var(--theme-graphs-purple);
+}
+
+.message.network-message-blocked > .icon {
+  color: var(--theme-icon-error-color);
+  background-image: url(chrome://devtools/skin/images/blocked.svg);
 }
 
 .message > .message-body-wrapper {
@@ -408,7 +388,7 @@
   cursor: default;
 }
 
-.message.network .status {
+.message.network .message-body .status {
   flex: none;
   cursor: default;
   margin-left: 1ch;
@@ -436,6 +416,13 @@
   line-height: 10px;
   margin-inline-start: 0;
   margin-inline-end: 1ex;
+}
+
+/* Hide the headers panel toolbar buttons in the console */
+.message.network .headers-panel-container #block-button,
+.message.network .headers-panel-container #edit-resend-button,
+.message.network .headers-panel-container .devtools-separator {
+  display: none;
 }
 
 /* JSTerm Styles */
@@ -484,7 +471,7 @@ html #webconsole-notificationbox {
 }
 
 .webconsole-app .cm-auto-complete-shadow-text::after {
-  content: attr(title);
+  content: attr(data-completion);
   color: var(--theme-comment);
   /* This is important for the completion text not to move while the user is typing */
   /* See Bugs 1491776 & 1558248 */
@@ -506,7 +493,7 @@ html #webconsole-notificationbox {
   padding-inline-start: 16px;
 }
 
-.message.open .stacktrace {
+.message.open .stacktrace:not(:empty) {
   display: block;
 }
 
@@ -724,6 +711,12 @@ a.learn-more-link.webconsole-learn-more-link {
 
 /* Network Messages */
 
+.webconsole-app .message.network.network-message-blocked .method,
+.webconsole-app .message.network.network-message-blocked .message-flex-body .message-body .url,
+.webconsole-app .message.network.network-message-blocked .status {
+  color: var(--timing-blocked-color);
+}
+
 .webconsole-app .message.network .method {
   margin-inline-end: 1ch;
 }
@@ -736,7 +729,7 @@ a.learn-more-link.webconsole-learn-more-link {
   line-height: inherit;
 }
 
-.webconsole-app .message.network .url {
+.webconsole-app .message.network .message-flex-body .message-body .url {
   color: var(--theme-comment);
   font-style: inherit;
 }
@@ -748,6 +741,12 @@ a.learn-more-link.webconsole-learn-more-link {
 
 .webconsole-app .message.network .network-monitor .empty-notice {
   font-size: 16px;
+}
+
+/* For 4XX and 5XX requests, display the text in the "error" color */
+.webconsole-app .message.network.error .message-flex-body .message-body .url,
+.webconsole-app .message.network.error .message-flex-body .message-body .status {
+  color: currentColor;
 }
 
 .network.message .network-info {
@@ -765,8 +764,17 @@ a.learn-more-link.webconsole-learn-more-link {
 }
 
 .network.message .network-info .panels {
-  max-height: 250px;
-  min-height: 100px;
+  min-height: 250px;
+}
+/* Response panel needs an absolute height size as the
+ * sizing of its content depends on it, it also needs override
+ * the inline height set on the panels */
+.network.message .network-info #response-panel {
+  height: 250px !important;
+}
+
+.network.message .network-info .accordion-item:last-child .accordion-content {
+  position: static;
 }
 
 /* Hide 'Edit And Resend' button since the feature isn't
@@ -888,7 +896,7 @@ a.learn-more-link.webconsole-learn-more-link {
 }
 
 /* Hide the icon, so that we can use the collapse-button in its place */
-.message.network > .icon,
+.message.network:not(.network-message-blocked) > .icon,
 .message.startGroup > .icon,
 .message.startGroupCollapsed > .icon {
   display: none;

@@ -141,7 +141,7 @@ const CFR_MESSAGES = [
         id: "954390",
         title: "Facebook Container",
         icon:
-          "resource://activity-stream/data/content/assets/cfr_fb_container.png",
+          "chrome://activity-stream/content/data/content/assets/cfr_fb_container.png",
         rating: 4.6,
         users: 299019,
         author: "Mozilla",
@@ -154,7 +154,7 @@ const CFR_MESSAGES = [
           label: { string_id: "cfr-doorhanger-extension-ok-button" },
           action: {
             type: "INSTALL_ADDON_FROM_URL",
-            data: { url: null },
+            data: { url: "https://example.com", telemetrySource: "amo" },
           },
         },
         secondary: [
@@ -212,7 +212,7 @@ const CFR_MESSAGES = [
         id: "445852",
         title: "To Google Translate",
         icon:
-          "resource://activity-stream/data/content/assets/cfr_google_translate.png",
+          "chrome://activity-stream/content/data/content/assets/cfr_google_translate.png",
         rating: 4.1,
         users: 313474,
         author: "Juan Escobar",
@@ -226,7 +226,7 @@ const CFR_MESSAGES = [
           label: { string_id: "cfr-doorhanger-extension-ok-button" },
           action: {
             type: "INSTALL_ADDON_FROM_URL",
-            data: { url: null },
+            data: { url: "https://example.com", telemetrySource: "amo" },
           },
         },
         secondary: [
@@ -284,7 +284,7 @@ const CFR_MESSAGES = [
         id: "700308",
         title: "Enhancer for YouTube\u2122",
         icon:
-          "resource://activity-stream/data/content/assets/cfr_enhancer_youtube.png",
+          "chrome://activity-stream/content/data/content/assets/cfr_enhancer_youtube.png",
         rating: 4.8,
         users: 357328,
         author: "Maxime RF",
@@ -298,7 +298,7 @@ const CFR_MESSAGES = [
           label: { string_id: "cfr-doorhanger-extension-ok-button" },
           action: {
             type: "INSTALL_ADDON_FROM_URL",
-            data: { url: null },
+            data: { url: "https://example.com", telemetrySource: "amo" },
           },
         },
         secondary: [
@@ -357,7 +357,7 @@ const CFR_MESSAGES = [
         id: "659026",
         title: "Wikipedia Context Menu Search",
         icon:
-          "resource://activity-stream/data/content/assets/cfr_wiki_search.png",
+          "chrome://activity-stream/content/data/content/assets/cfr_wiki_search.png",
         rating: 4.9,
         users: 3095,
         author: "Nick Diedrich",
@@ -371,7 +371,7 @@ const CFR_MESSAGES = [
           label: { string_id: "cfr-doorhanger-extension-ok-button" },
           action: {
             type: "INSTALL_ADDON_FROM_URL",
-            data: { url: null },
+            data: { url: "https://example.com", telemetrySource: "amo" },
           },
         },
         secondary: [
@@ -433,7 +433,7 @@ const CFR_MESSAGES = [
         id: "387429",
         title: "Reddit Enhancement Suite",
         icon:
-          "resource://activity-stream/data/content/assets/cfr_reddit_enhancement.png",
+          "chrome://activity-stream/content/data/content/assets/cfr_reddit_enhancement.png",
         rating: 4.6,
         users: 258129,
         author: "honestbleeps",
@@ -447,7 +447,7 @@ const CFR_MESSAGES = [
           label: { string_id: "cfr-doorhanger-extension-ok-button" },
           action: {
             type: "INSTALL_ADDON_FROM_URL",
-            data: { url: null },
+            data: { url: "https://example.com", telemetrySource: "amo" },
           },
         },
         secondary: [
@@ -543,13 +543,61 @@ const CFR_MESSAGES = [
     trigger: { id: "frequentVisits", params: PINNED_TABS_TARGET_SITES },
   },
   {
+    id: "DOH_ROLLOUT_CONFIRMATION",
+    targeting: `
+      "doh-rollout.enabled"|preferenceValue &&
+      !"doh-rollout.disable-heuristics"|preferenceValue &&
+      !"doh-rollout.skipHeuristicsCheck"|preferenceValue &&
+      !"doh-rollout.doorhanger-decision"|preferenceValue
+    `,
+    template: "cfr_doorhanger",
+    content: {
+      skip_address_bar_notifier: true,
+      persistent_doorhanger: true,
+      anchor_id: "PanelUI-menu-button",
+      layout: "icon_and_message",
+      text: { string_id: "cfr-doorhanger-doh-body" },
+      icon: "chrome://browser/skin/connection-secure.svg",
+      buttons: {
+        secondary: [
+          {
+            label: { string_id: "cfr-doorhanger-doh-secondary-button" },
+            action: {
+              type: "DISABLE_DOH",
+            },
+          },
+        ],
+        primary: {
+          label: { string_id: "cfr-doorhanger-doh-primary-button" },
+          action: {
+            type: "ACCEPT_DOH",
+          },
+        },
+      },
+      bucket_id: "DOH_ROLLOUT_CONFIRMATION",
+      heading_text: { string_id: "cfr-doorhanger-doh-header" },
+      info_icon: {
+        label: {
+          string_id: "cfr-doorhanger-extension-sumo-link",
+        },
+        sumo_path: "extensionrecommendations",
+      },
+      notification_text: "Message from Firefox",
+      category: "cfrFeatures",
+    },
+    trigger: {
+      id: "openURL",
+      patterns: ["*://*/*"],
+    },
+  },
+  {
     id: "SAVE_LOGIN",
     frequency: {
       lifetime: 3,
     },
-    targeting: "usesFirefoxSync == false",
+    targeting:
+      "(!type || type == 'save') && isFxAEnabled == true && usesFirefoxSync == false",
     template: "cfr_doorhanger",
-    last_modified: 1565907636313,
     content: {
       layout: "icon_and_message",
       text: {
@@ -592,11 +640,86 @@ const CFR_MESSAGES = [
             type: "OPEN_PREFERENCES_PAGE",
             data: {
               category: "sync",
+              entrypoint: "cfr-save-login",
             },
           },
         },
       },
       bucket_id: "CFR_SAVE_LOGIN",
+      heading_text: {
+        string_id: "cfr-doorhanger-sync-logins-header",
+      },
+      info_icon: {
+        label: {
+          string_id: "cfr-doorhanger-extension-sumo-link",
+        },
+        sumo_path: "extensionrecommendations",
+      },
+      notification_text: {
+        string_id: "cfr-doorhanger-feature-notification",
+      },
+      category: "cfrFeatures",
+    },
+    trigger: {
+      id: "newSavedLogin",
+    },
+  },
+  {
+    id: "UPDATE_LOGIN",
+    frequency: {
+      lifetime: 3,
+    },
+    targeting:
+      "type == 'update' && isFxAEnabled == true && usesFirefoxSync == false",
+    template: "cfr_doorhanger",
+    content: {
+      layout: "icon_and_message",
+      text: {
+        string_id: "cfr-doorhanger-sync-logins-body",
+      },
+      icon: "chrome://browser/content/aboutlogins/icons/intro-illustration.svg",
+      icon_class: "cfr-doorhanger-large-icon",
+      buttons: {
+        secondary: [
+          {
+            label: {
+              string_id: "cfr-doorhanger-extension-cancel-button",
+            },
+            action: {
+              type: "CANCEL",
+            },
+          },
+          {
+            label: {
+              string_id: "cfr-doorhanger-extension-never-show-recommendation",
+            },
+          },
+          {
+            label: {
+              string_id: "cfr-doorhanger-extension-manage-settings-button",
+            },
+            action: {
+              type: "OPEN_PREFERENCES_PAGE",
+              data: {
+                category: "general-cfrfeatures",
+              },
+            },
+          },
+        ],
+        primary: {
+          label: {
+            string_id: "cfr-doorhanger-sync-logins-ok-button",
+          },
+          action: {
+            type: "OPEN_PREFERENCES_PAGE",
+            data: {
+              category: "sync",
+              entrypoint: "cfr-update-login",
+            },
+          },
+        },
+      },
+      bucket_id: "CFR_UPDATE_LOGIN",
       heading_text: {
         string_id: "cfr-doorhanger-sync-logins-header",
       },
@@ -799,6 +922,13 @@ const CFR_MESSAGES = [
           action: { type: "OPEN_PROTECTION_REPORT" },
           event: "PROTECTION",
         },
+        secondary: [
+          {
+            label: { string_id: "cfr-doorhanger-milestone-close-button" },
+            action: { type: "CANCEL" },
+            event: "DISMISS",
+          },
+        ],
       },
     },
     targeting: "pageLoad >= 4",
@@ -831,6 +961,87 @@ const CFR_MESSAGES = [
     trigger: {
       id: "openURL",
       patterns: ["*://*/*"],
+    },
+  },
+  {
+    id: "HOMEPAGE_REMEDIATION_82",
+    frequency: {
+      lifetime: 3,
+    },
+    targeting:
+      "!homePageSettings.isDefault && homePageSettings.isCustomUrl && homePageSettings.urls[.host == 'google.com']|length > 0 && visitsCount >= 3 && userPrefs.cfrFeatures",
+    template: "cfr_doorhanger",
+    content: {
+      layout: "icon_and_message",
+      text:
+        "Update your homepage to search Google while also being able to search your Firefox history and bookmarks.",
+      icon: "chrome://browser/skin/preferences/search.svg",
+      buttons: {
+        secondary: [
+          {
+            label: {
+              string_id: "cfr-doorhanger-extension-cancel-button",
+            },
+            action: {
+              type: "CANCEL",
+            },
+          },
+          {
+            label: {
+              string_id: "cfr-doorhanger-extension-never-show-recommendation",
+            },
+          },
+          {
+            label: {
+              string_id: "cfr-doorhanger-extension-manage-settings-button",
+            },
+            action: {
+              type: "OPEN_PREFERENCES_PAGE",
+              data: {
+                category: "general-cfrfeatures",
+              },
+            },
+          },
+        ],
+        primary: {
+          label: {
+            value: "Activate now",
+            attributes: {
+              accesskey: "A",
+            },
+          },
+          action: {
+            type: "CONFIGURE_HOMEPAGE",
+            data: {
+              homePage: "default",
+              newtab: "default",
+              layout: {
+                search: true,
+                topsites: false,
+                highlights: false,
+                topstories: false,
+                snippets: false,
+              },
+            },
+          },
+        },
+      },
+      bucket_id: "HOMEPAGE_REMEDIATION_82",
+      heading_text: "A better search experience",
+      info_icon: {
+        label: {
+          string_id: "cfr-doorhanger-extension-sumo-link",
+        },
+        sumo_path: "extensionrecommendations",
+      },
+      notification_text: {
+        string_id: "cfr-doorhanger-feature-notification",
+      },
+      category: "cfrFeatures",
+    },
+    trigger: {
+      id: "openURL",
+      params: ["google.com", "www.google.com"],
     },
   },
 ];

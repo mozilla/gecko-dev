@@ -8,6 +8,7 @@ include IPCServiceWorkerRegistrationDescriptor;
 include PBackgroundSharedTypes;
 include URIParams;
 include DOMTypes;
+include NeckoChannelParams;
 include ProtocolTypes;
 
 using struct mozilla::void_t from "ipc/IPCMessageUtils.h";
@@ -49,7 +50,12 @@ struct RemoteWorkerData
 
   PrincipalInfo loadingPrincipalInfo;
   PrincipalInfo principalInfo;
-  PrincipalInfo storagePrincipalInfo;
+  PrincipalInfo partitionedPrincipalInfo;
+
+  bool useRegularPrincipal;
+  bool hasStorageAccessPermissionGranted;
+
+  CookieJarSettingsArgs cookieJarSettings;
 
   nsCString domain;
 
@@ -64,6 +70,9 @@ struct RemoteWorkerData
   OptionalServiceWorkerData serviceWorkerData;
 
   nsID agentClusterId;
+
+  // Child process remote type where the worker should only run on.
+  nsCString remoteType;
 };
 
 // ErrorData/ErrorDataNote correspond to WorkerErrorReport/WorkerErrorNote
@@ -80,9 +89,9 @@ struct ErrorDataNote {
 };
 
 struct ErrorData {
+  bool isWarning;
   uint32_t lineNumber;
   uint32_t columnNumber;
-  uint32_t flags;
   nsString message;
   nsString filename;
   nsString line;

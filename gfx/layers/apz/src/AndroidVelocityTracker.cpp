@@ -19,7 +19,8 @@ namespace layers {
 // stopped moving. Some input devices do not send move events in the
 // case where a pointer has stopped.  We need to detect this case so that we can
 // accurately predict the velocity after the pointer starts moving again.
-static const int kAssumePointerMoveStoppedTimeMs = 40;
+static const TimeDuration kAssumePointerMoveStoppedTime =
+    TimeDuration::FromMilliseconds(40);
 
 // The degree of the approximation.
 static const uint8_t kDegree = 2;
@@ -31,39 +32,36 @@ static const uint8_t kPolyDegree = kDegree + 1;
 // Maximum size of position history.
 static const uint8_t kHistorySize = 20;
 
-AndroidVelocityTracker::AndroidVelocityTracker()
-    : mLastEventTime(0), mAdditionalDelta(0) {}
+AndroidVelocityTracker::AndroidVelocityTracker() {}
 
 void AndroidVelocityTracker::StartTracking(ParentLayerCoord aPos,
-                                           uint32_t aTimestampMs) {
+                                           TimeStamp aTimestamp) {
   Clear();
-  mHistory.AppendElement(std::make_pair(aTimestampMs, aPos));
-  mLastEventTime = aTimestampMs;
+  mHistory.AppendElement(std::make_pair(aTimestamp, aPos));
+  mLastEventTime = aTimestamp;
 }
 
 Maybe<float> AndroidVelocityTracker::AddPosition(ParentLayerCoord aPos,
-                                                 uint32_t aTimestampMs) {
-  if ((aTimestampMs - mLastEventTime) >= kAssumePointerMoveStoppedTimeMs) {
+                                                 TimeStamp aTimestamp) {
+  if ((aTimestamp - mLastEventTime) >= kAssumePointerMoveStoppedTime) {
     Clear();
   }
 
-  aPos += mAdditionalDelta;
-
-  if (aTimestampMs == mLastEventTime) {
-    // If we get a sample with the same timestamp as the previous one,
+  if ((aTimestamp - mLastEventTime).ToMilliseconds() < 1.0) {
+    // If we get a sample within a millisecond of the previous one,
     // just update its position. Two samples in the history with the
     // same timestamp can lead to things like infinite velocities.
     if (mHistory.Length() > 0) {
       mHistory[mHistory.Length() - 1].second = aPos;
     }
   } else {
-    mHistory.AppendElement(std::make_pair(aTimestampMs, aPos));
+    mHistory.AppendElement(std::make_pair(aTimestamp, aPos));
     if (mHistory.Length() > kHistorySize) {
       mHistory.RemoveElementAt(0);
     }
   }
 
-  mLastEventTime = aTimestampMs;
+  mLastEventTime = aTimestamp;
 
   if (mHistory.Length() < 2) {
     return Nothing();
@@ -71,25 +69,8 @@ Maybe<float> AndroidVelocityTracker::AddPosition(ParentLayerCoord aPos,
 
   auto start = mHistory[mHistory.Length() - 2];
   auto end = mHistory[mHistory.Length() - 1];
-  return Some((end.second - start.second) / (end.first - start.first));
-}
-
-float AndroidVelocityTracker::HandleDynamicToolbarMovement(
-    uint32_t aStartTimestampMs, uint32_t aEndTimestampMs,
-    ParentLayerCoord aDelta) {
-  // If the dynamic toolbar is moving, the page content is moving relative
-  // to the screen. The positions passed to AddPosition() reflect the position
-  // of the finger relative to the page content, but we want the velocity we
-  // compute to be based on the physical movement of the finger (that is, its
-  // position relative to the screen). To accomplish this, we maintain
-  // |mAdditionalDelta|, a delta representing the amount by which the page has
-  // moved relative to the screen, and add it to every position recorded in
-  // the history in AddPosition().
-  mAdditionalDelta += aDelta;
-
-  float timeDelta = aEndTimestampMs - aStartTimestampMs;
-  MOZ_ASSERT(timeDelta != 0);
-  return aDelta / timeDelta;
+  return Some((end.second - start.second) /
+              (end.first - start.first).ToMilliseconds());
 }
 
 static float VectorDot(const float* a, const float* b, uint32_t m) {
@@ -234,7 +215,7 @@ static bool SolveLeastSquares(const float* x, const float* y, const float* w,
   return true;
 }
 
-Maybe<float> AndroidVelocityTracker::ComputeVelocity(uint32_t aTimestampMs) {
+Maybe<float> AndroidVelocityTracker::ComputeVelocity(TimeStamp aTimestamp) {
   if (mHistory.IsEmpty()) {
     return Nothing{};
   }
@@ -251,18 +232,20 @@ Maybe<float> AndroidVelocityTracker::ComputeVelocity(uint32_t aTimestampMs) {
   float time[kHistorySize];
   uint32_t m = 0;
   int index = mHistory.Length() - 1;
-  const uint32_t horizon = StaticPrefs::apz_velocity_relevance_time_ms();
+  const TimeDuration horizon = TimeDuration::FromMilliseconds(
+      StaticPrefs::apz_velocity_relevance_time_ms());
   const auto& newest_movement = mHistory[index];
 
   do {
     const auto& movement = mHistory[index];
-    uint32_t age = newest_movement.first - movement.first;
+    TimeDuration age = newest_movement.first - movement.first;
     if (age > horizon) break;
 
     ParentLayerCoord position = movement.second;
     pos[m] = position;
     w[m] = 1.0f;
-    time[m] = -static_cast<float>(age) / 1000.0f;  // in seconds
+    time[m] =
+        -static_cast<float>(age.ToMilliseconds()) / 1000.0f;  // in seconds
     index--;
     m++;
   } while (index >= 0);
@@ -295,10 +278,7 @@ Maybe<float> AndroidVelocityTracker::ComputeVelocity(uint32_t aTimestampMs) {
   return Nothing{};
 }
 
-void AndroidVelocityTracker::Clear() {
-  mAdditionalDelta = 0;
-  mHistory.Clear();
-}
+void AndroidVelocityTracker::Clear() { mHistory.Clear(); }
 
 }  // namespace layers
 }  // namespace mozilla

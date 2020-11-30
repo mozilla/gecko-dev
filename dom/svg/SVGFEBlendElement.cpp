@@ -6,7 +6,6 @@
 
 #include "mozilla/dom/SVGFEBlendElement.h"
 #include "mozilla/dom/SVGFEBlendElementBinding.h"
-#include "nsSVGUtils.h"
 
 NS_IMPL_NS_NEW_SVG_ELEMENT(FEBlend)
 
@@ -68,7 +67,7 @@ already_AddRefed<DOMSVGAnimatedEnumeration> SVGFEBlendElement::Mode() {
 }
 
 FilterPrimitiveDescription SVGFEBlendElement::GetPrimitiveDescription(
-    nsSVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
+    SVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
     const nsTArray<bool>& aInputsAreTainted,
     nsTArray<RefPtr<SourceSurface>>& aInputImages) {
   uint32_t mode = mEnumAttributes[MODE].GetAnimValue();

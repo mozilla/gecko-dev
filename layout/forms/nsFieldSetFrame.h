@@ -21,7 +21,7 @@ class nsFieldSetFrame final : public nsContainerFrame {
   explicit nsFieldSetFrame(ComputedStyle* aStyle, nsPresContext* aPresContext);
 
   nscoord GetIntrinsicISize(gfxContext* aRenderingContext,
-                            nsLayoutUtils::IntrinsicISizeType);
+                            mozilla::IntrinsicISizeType);
   virtual nscoord GetMinISize(gfxContext* aRenderingContext) override;
   virtual nscoord GetPrefISize(gfxContext* aRenderingContext) override;
 
@@ -77,7 +77,7 @@ class nsFieldSetFrame final : public nsContainerFrame {
 
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const override {
-    return MakeFrameName(NS_LITERAL_STRING("FieldSet"), aResult);
+    return MakeFrameName(u"FieldSet"_ns, aResult);
   }
 #endif
 

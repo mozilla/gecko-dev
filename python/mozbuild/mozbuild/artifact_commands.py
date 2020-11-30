@@ -1,3 +1,7 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 from __future__ import absolute_import
 import argparse
 import hashlib
@@ -9,23 +13,29 @@ import six
 
 from collections import OrderedDict
 
-import mozpack.path as mozpath
-
-from mozbuild.artifact_builds import JOB_CHOICES
-
 from mach.decorators import (
     CommandArgument,
     CommandProvider,
     Command,
     SubCommand,
 )
-
+from mozbuild.artifact_builds import JOB_CHOICES
 from mozbuild.base import (
     MachCommandBase,
     MachCommandConditions as conditions,
 )
-
 from mozbuild.util import ensureParentDir
+import mozpack.path as mozpath
+import mozversioncontrol
+
+
+_COULD_NOT_FIND_ARTIFACTS_TEMPLATE = (
+    'ERROR!!!!!! Could not find artifacts for a toolchain build named '
+    '`{build}`. Local commits, dirty/stale files, and other changes in your '
+    'checkout may cause this error. Make sure you are on a fresh, current '
+    'checkout of mozilla-central. Beware that commands like `mach bootstrap` '
+    'and `mach artifact` are unlikely to work on any versions of the code '
+    'besides recent revisions of mozilla-central.')
 
 
 class SymbolsAction(argparse.Action):
@@ -110,7 +120,7 @@ class PackageFrontend(MachCommandBase):
                               download_symbols=download_symbols,
                               download_host_bins=download_host_bins,
                               download_maven_zip=download_maven_zip,
-                              no_process=no_process)
+                              no_process=no_process, mozbuild=self)
         return artifacts
 
     @ArtifactSubCommand('artifact', 'install',
@@ -170,6 +180,12 @@ class PackageFrontend(MachCommandBase):
                      help='Do not unpack any downloaded file')
     @CommandArgument('--retry', type=int, default=4,
                      help='Number of times to retry failed downloads')
+    @CommandArgument(
+        "--bootstrap",
+        action="store_true",
+        help="Whether this is being called from bootstrap. "
+        "This verifies the toolchain is annotated as a toolchain used for local development."
+    )
     @CommandArgument('--artifact-manifest', metavar='FILE',
                      help='Store a manifest about the downloaded taskcluster artifacts')
     @CommandArgument('files', nargs='*',
@@ -179,6 +195,7 @@ class PackageFrontend(MachCommandBase):
                            skip_cache=False, from_build=(),
                            tooltool_manifest=None, authentication_file=None,
                            no_unpack=False, retry=0,
+                           bootstrap=False,
                            artifact_manifest=None, files=()):
         '''Download, cache and install pre-built toolchains.
         '''
@@ -283,12 +300,8 @@ class PackageFrontend(MachCommandBase):
                          'should be determined in the decision task.')
                 return 1
             from taskgraph.optimize.strategies import IndexSearch
-            from taskgraph.parameters import Parameters
             from taskgraph.generator import load_tasks_for_kind
-            params = Parameters(
-                level=six.ensure_text(os.environ.get('MOZ_SCM_LEVEL', '3')),
-                strict=False,
-            )
+            params = {'level': six.ensure_text(os.environ.get('MOZ_SCM_LEVEL', '3'))}
 
             root_dir = mozpath.join(self.topsrcdir, 'taskcluster/ci')
             toolchains = load_tasks_for_kind(params, 'toolchain', root_dir=root_dir)
@@ -312,17 +325,48 @@ class PackageFrontend(MachCommandBase):
                              'Could not find a toolchain build named `{build}`')
                     return 1
 
+                # Ensure that toolchains installed by `mach bootstrap` have the
+                # `local-toolchain attribute set. Taskgraph ensures that these
+                # are built on trunk projects, so the task will be available to
+                # install here.
+                if bootstrap and not task.attributes.get('local-toolchain'):
+                    self.log(logging.ERROR, 'artifact', {'build': user_value},
+                             'Toolchain `{build}` is not annotated as used for local development.')
+                    return 1
+
+                artifact_name = task.attributes.get('toolchain-artifact')
+                self.log(logging.DEBUG, 'artifact',
+                         {'name': artifact_name,
+                          'index': task.optimization.get('index-search')},
+                         'Searching for {name} in {index}')
                 task_id = IndexSearch().should_replace_task(
                     task, {}, task.optimization.get('index-search', []))
-                artifact_name = task.attributes.get('toolchain-artifact')
                 if task_id in (True, False) or not artifact_name:
                     self.log(logging.ERROR, 'artifact', {'build': user_value},
-                             'Could not find artifacts for a toolchain build '
-                             'named `{build}`. Local commits and other changes '
-                             'in your checkout may cause this error. Try '
-                             'updating to a fresh checkout of mozilla-central '
-                             'to use artifact builds.')
+                             _COULD_NOT_FIND_ARTIFACTS_TEMPLATE)
+                    # Get and print some helpful info for diagnosis.
+                    repo = mozversioncontrol.get_repository_object(
+                        self.topsrcdir)
+                    changed_files = (set(repo.get_outgoing_files()) |
+                                     set(repo.get_changed_files()))
+                    if changed_files:
+                        self.log(logging.ERROR, 'artifact', {},
+                                 'Hint: consider reverting your local changes '
+                                 'to the following files: %s' %
+                                 sorted(changed_files))
+                    if 'TASKCLUSTER_ROOT_URL' in os.environ:
+                        self.log(logging.ERROR, 'artifact', {'build': user_value},
+                                 'Due to the environment variable TASKCLUSTER_ROOT_URL '
+                                 'being set, the artifacts were expected to be found '
+                                 'on {}. If this was unintended, unset '
+                                 'TASKCLUSTER_ROOT_URL and try again.'.format(
+                                     os.environ['TASKCLUSTER_ROOT_URL']))
                     return 1
+
+                self.log(logging.DEBUG, 'artifact',
+                         {'name': artifact_name,
+                          'task_id': task_id},
+                         'Found {name} in {task_id}')
 
                 record = ArtifactRecord(task_id, artifact_name)
                 records[record.filename] = record
@@ -364,8 +408,7 @@ class PackageFrontend(MachCommandBase):
                         level = logging.WARN
                     else:
                         level = logging.ERROR
-                    # e.message is not always a string, so convert it first.
-                    self.log(level, 'artifact', {}, str(e.message))
+                    self.log(level, 'artifact', {}, str(e))
                     if not should_retry:
                         break
                     if attempt < retry:
@@ -408,7 +451,7 @@ class PackageFrontend(MachCommandBase):
             # Keep a sha256 of each downloaded file, for the chain-of-trust
             # validation.
             if artifact_manifest is not None:
-                with open(local) as fh:
+                with open(local, 'rb') as fh:
                     h = hashlib.sha256()
                     while True:
                         data = fh.read(1024 * 1024)
@@ -419,7 +462,20 @@ class PackageFrontend(MachCommandBase):
                     'sha256': h.hexdigest(),
                 }
             if record.unpack and not no_unpack:
-                unpack_file(local)
+                # Try to unpack the file. If we get an exception importing
+                # zstandard when calling unpack_file, we can try installing
+                # zstandard locally and trying again
+                try:
+                    unpack_file(local)
+                except ImportError as e:
+                    # Need to do this branch while this code is still exercised
+                    # by Python 2.
+                    if six.PY3 and e.name != "zstandard":
+                        raise
+                    elif six.PY2 and e.message != 'No module named zstandard':
+                        raise
+                    self._ensure_zstd()
+                    unpack_file(local)
                 os.unlink(local)
 
         if not downloaded:

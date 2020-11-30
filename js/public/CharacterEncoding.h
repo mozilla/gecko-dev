@@ -30,7 +30,7 @@ class Latin1Chars : public mozilla::Range<Latin1Char> {
  public:
   using CharT = Latin1Char;
 
-  Latin1Chars() : Base() {}
+  Latin1Chars() = default;
   Latin1Chars(char* aBytes, size_t aLength)
       : Base(reinterpret_cast<Latin1Char*>(aBytes), aLength) {}
   Latin1Chars(const Latin1Char* aBytes, size_t aLength)
@@ -38,6 +38,20 @@ class Latin1Chars : public mozilla::Range<Latin1Char> {
   Latin1Chars(const char* aBytes, size_t aLength)
       : Base(reinterpret_cast<Latin1Char*>(const_cast<char*>(aBytes)),
              aLength) {}
+};
+
+/*
+ * Like Latin1Chars, but the chars are const.
+ */
+class ConstLatin1Chars : public mozilla::Range<const Latin1Char> {
+  typedef mozilla::Range<const Latin1Char> Base;
+
+ public:
+  using CharT = Latin1Char;
+
+  ConstLatin1Chars() = default;
+  ConstLatin1Chars(const Latin1Char* aChars, size_t aLength)
+      : Base(aChars, aLength) {}
 };
 
 /*
@@ -49,7 +63,7 @@ class Latin1CharsZ : public mozilla::RangedPtr<Latin1Char> {
  public:
   using CharT = Latin1Char;
 
-  Latin1CharsZ() : Base(nullptr, 0) {}
+  Latin1CharsZ() : Base(nullptr, 0) {}  // NOLINT
 
   Latin1CharsZ(char* aBytes, size_t aLength)
       : Base(reinterpret_cast<Latin1Char*>(aBytes), aLength) {
@@ -71,7 +85,7 @@ class UTF8Chars : public mozilla::Range<unsigned char> {
  public:
   using CharT = unsigned char;
 
-  UTF8Chars() : Base() {}
+  UTF8Chars() = default;
   UTF8Chars(char* aBytes, size_t aLength)
       : Base(reinterpret_cast<unsigned char*>(aBytes), aLength) {}
   UTF8Chars(const char* aBytes, size_t aLength)
@@ -93,7 +107,7 @@ class WTF8Chars : public mozilla::Range<unsigned char> {
  public:
   using CharT = unsigned char;
 
-  WTF8Chars() : Base() {}
+  WTF8Chars() = default;
   WTF8Chars(char* aBytes, size_t aLength)
       : Base(reinterpret_cast<unsigned char*>(aBytes), aLength) {}
   WTF8Chars(const char* aBytes, size_t aLength)
@@ -110,7 +124,7 @@ class UTF8CharsZ : public mozilla::RangedPtr<unsigned char> {
  public:
   using CharT = unsigned char;
 
-  UTF8CharsZ() : Base(nullptr, 0) {}
+  UTF8CharsZ() : Base(nullptr, 0) {}  // NOLINT
 
   UTF8CharsZ(char* aBytes, size_t aLength)
       : Base(reinterpret_cast<unsigned char*>(aBytes), aLength) {
@@ -176,7 +190,7 @@ class TwoByteChars : public mozilla::Range<char16_t> {
  public:
   using CharT = char16_t;
 
-  TwoByteChars() : Base() {}
+  TwoByteChars() = default;
   TwoByteChars(char16_t* aChars, size_t aLength) : Base(aChars, aLength) {}
   TwoByteChars(const char16_t* aChars, size_t aLength)
       : Base(const_cast<char16_t*>(aChars), aLength) {}
@@ -191,7 +205,7 @@ class TwoByteCharsZ : public mozilla::RangedPtr<char16_t> {
  public:
   using CharT = char16_t;
 
-  TwoByteCharsZ() : Base(nullptr, 0) {}
+  TwoByteCharsZ() : Base(nullptr, 0) {}  // NOLINT
 
   TwoByteCharsZ(char16_t* chars, size_t length) : Base(chars, length) {
     MOZ_ASSERT(chars[length] == '\0');
@@ -211,7 +225,7 @@ class ConstTwoByteChars : public mozilla::Range<const char16_t> {
  public:
   using CharT = char16_t;
 
-  ConstTwoByteChars() : Base() {}
+  ConstTwoByteChars() = default;
   ConstTwoByteChars(const char16_t* aChars, size_t aLength)
       : Base(aChars, aLength) {}
 };
@@ -296,7 +310,7 @@ JS_PUBLIC_API size_t GetDeflatedUTF8StringLength(JSLinearString* s);
  * linear.
  *
  * Given |JSString* str = JS_FORGET_STRING_LINEARNESS(src)|,
- * if |JS_StringHasLatin1Chars(str)|, then |src| is always fully converted
+ * if |JS::StringHasLatin1Chars(str)|, then |src| is always fully converted
  * if |dst.Length() >= JS_GetStringLength(str) * 2|. Otherwise |src| is
  * always fully converted if |dst.Length() >= JS_GetStringLength(str) * 3|.
  *

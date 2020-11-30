@@ -32,15 +32,14 @@ add_task(async function() {
   await waitUntil(() => getWorkerContainers(doc).length === 1);
 
   const container = getWorkerContainers(doc)[0];
-  info("Wait until the debug button is displayed and enabled");
+  info("Wait until the inspect link is displayed");
   await waitUntil(() => {
-    const button = container.querySelector(".js-debug-button");
-    return button && !button.disabled;
+    return container.querySelector(".js-inspect-link");
   });
 
-  info("Click on the debug button and wait for debugger to be ready");
-  const debugButton = container.querySelector(".js-debug-button");
-  debugButton.click();
+  info("Click on the inspect link and wait for debugger to be ready");
+  const debugLink = container.querySelector(".js-inspect-link");
+  debugLink.click();
   await waitFor(() => toolbox.getPanel("jsdebugger"));
 
   // add a breakpoint at line 11
@@ -61,5 +60,9 @@ add_task(async function() {
   const workerScript = findSource(debuggerContext, "debug-sw.js");
   await removeBreakpoint(debuggerContext, workerScript.id, 11);
 
-  await unregisterAllWorkers(target.client);
+  await unregisterAllWorkers(target.client, doc);
+
+  // close the tab
+  info("Closing the tab.");
+  await BrowserTestUtils.removeTab(tab);
 });

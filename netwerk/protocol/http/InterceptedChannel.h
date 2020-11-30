@@ -43,8 +43,8 @@ class InterceptedChannelBase : public nsIInterceptedChannel {
   void EnsureSynthesizedResponse();
   void DoNotifyController();
   void DoSynthesizeStatus(uint16_t aStatus, const nsACString& aReason);
-  MOZ_MUST_USE nsresult DoSynthesizeHeader(const nsACString& aName,
-                                           const nsACString& aValue);
+  [[nodiscard]] nsresult DoSynthesizeHeader(const nsACString& aName,
+                                            const nsACString& aValue);
 
   TimeStamp mLaunchServiceWorkerStart;
   TimeStamp mLaunchServiceWorkerEnd;
@@ -147,44 +147,6 @@ class InterceptedChannelBase : public nsIInterceptedChannel {
   NS_IMETHODIMP SaveTimeStamps() override;
 
   static already_AddRefed<nsIURI> SecureUpgradeChannelURI(nsIChannel* aChannel);
-};
-
-class InterceptedChannelContent : public InterceptedChannelBase {
-  // The actual channel being intercepted.
-  RefPtr<HttpChannelChild> mChannel;
-
-  // Listener for the synthesized response to fix up the notifications before
-  // they reach the actual channel.
-  RefPtr<InterceptStreamListener> mStreamListener;
-
-  // Set for intercepted channels that have gone through a secure upgrade.
-  bool mSecureUpgrade;
-
- public:
-  InterceptedChannelContent(HttpChannelChild* aChannel,
-                            nsINetworkInterceptController* aController,
-                            InterceptStreamListener* aListener,
-                            bool aSecureUpgrade);
-
-  NS_IMETHOD ResetInterception() override;
-  NS_IMETHOD StartSynthesizedResponse(nsIInputStream* aBody,
-                                      nsIInterceptedBodyCallback* aBodyCallback,
-                                      nsICacheInfoChannel* aChannel,
-                                      const nsACString& aFinalURLSpec,
-                                      bool aResponseRedirected) override;
-  NS_IMETHOD FinishSynthesizedResponse() override;
-  NS_IMETHOD GetChannel(nsIChannel** aChannel) override;
-  NS_IMETHOD GetSecureUpgradedChannelURI(nsIURI** aURI) override;
-  NS_IMETHOD SynthesizeStatus(uint16_t aStatus,
-                              const nsACString& aReason) override;
-  NS_IMETHOD SynthesizeHeader(const nsACString& aName,
-                              const nsACString& aValue) override;
-  NS_IMETHOD CancelInterception(nsresult aStatus) override;
-  NS_IMETHOD SetChannelInfo(mozilla::dom::ChannelInfo* aChannelInfo) override;
-  NS_IMETHOD GetInternalContentPolicyType(
-      nsContentPolicyType* aInternalContentPolicyType) override;
-
-  virtual void NotifyController() override;
 };
 
 }  // namespace net

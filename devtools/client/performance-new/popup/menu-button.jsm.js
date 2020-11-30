@@ -5,134 +5,99 @@
 "use strict";
 
 /**
- * @typedef {import("../@types/perf").PerformancePref} PerformancePref
- */
-
-/**
  * This file controls the enabling and disabling of the menu button for the profiler.
  * Care should be taken to keep it minimal as it can be run with browser initialization.
  */
 
-/**
- * TS-TODO
- *
- * This function replaces lazyRequireGetter, and TypeScript can understand it. It's
- * currently duplicated until we have consensus that TypeScript is a good idea.
- *
- * @template T
- * @type {(callback: () => T) => () => T}
- */
-function requireLazy(callback) {
-  /** @type {T | undefined} */
-  let cache;
-  return () => {
-    if (cache === undefined) {
-      cache = callback();
-    }
-    return cache;
-  };
-}
-
 // Provide an exports object for the JSM to be properly read by TypeScript.
 /** @type {any} */ (this).exports = {};
 
-const lazyServices = requireLazy(() =>
-  /** @type {import("resource://gre/modules/Services.jsm")} */
-  (ChromeUtils.import("resource://gre/modules/Services.jsm"))
-);
-const lazyCustomizableUI = requireLazy(() =>
-  /** @type {import("resource:///modules/CustomizableUI.jsm")} */
-  (ChromeUtils.import("resource:///modules/CustomizableUI.jsm"))
-);
-const lazyCustomizableWidgets = requireLazy(() =>
-  /** @type {import("resource:///modules/CustomizableWidgets.jsm")} */
-  (ChromeUtils.import("resource:///modules/CustomizableWidgets.jsm"))
-);
-const lazyPopupPanel = requireLazy(() =>
-  /** @type {import("devtools/client/performance-new/popup/panel.jsm.js")} */
-  (ChromeUtils.import(
-    "resource://devtools/client/performance-new/popup/panel.jsm.js"
-  ))
+const { createLazyLoaders } = ChromeUtils.import(
+  "resource://devtools/client/performance-new/typescript-lazy-load.jsm.js"
 );
 
-/** @type {PerformancePref["PopupEnabled"]} */
-const BUTTON_ENABLED_PREF = "devtools.performance.popup.enabled";
+const lazy = createLazyLoaders({
+  Services: () => ChromeUtils.import("resource://gre/modules/Services.jsm"),
+  CustomizableUI: () =>
+    ChromeUtils.import("resource:///modules/CustomizableUI.jsm"),
+  CustomizableWidgets: () =>
+    ChromeUtils.import("resource:///modules/CustomizableWidgets.jsm"),
+  PopupPanel: () =>
+    ChromeUtils.import(
+      "resource://devtools/client/performance-new/popup/panel.jsm.js"
+    ),
+  Background: () =>
+    ChromeUtils.import(
+      "resource://devtools/client/performance-new/popup/background.jsm.js"
+    ),
+});
+
 const WIDGET_ID = "profiler-button";
 
 /**
+ * Add the profiler button to the navbar.
+ *
+ * @param {ChromeDocument} document  The browser's document.
+ * @return {void}
+ */
+function addToNavbar(document) {
+  const { CustomizableUI } = lazy.CustomizableUI();
+
+  CustomizableUI.addWidgetToArea(WIDGET_ID, CustomizableUI.AREA_NAVBAR);
+}
+
+/**
+ * Remove the widget and place it in the customization palette. This will also
+ * disable the shortcuts.
+ *
+ * @return {void}
+ */
+function remove() {
+  const { CustomizableUI } = lazy.CustomizableUI();
+  CustomizableUI.removeWidgetFromArea(WIDGET_ID);
+}
+
+/**
+ * See if the profiler menu button is in the navbar, or other active areas. The
+ * placement is null when it's inactive in the customization palette.
+ *
  * @return {boolean}
  */
-function isEnabled() {
-  const { Services } = lazyServices();
-  return Services.prefs.getBoolPref(BUTTON_ENABLED_PREF, false);
+function isInNavbar() {
+  const { CustomizableUI } = lazy.CustomizableUI();
+  return Boolean(CustomizableUI.getPlacementOfWidget("profiler-button"));
 }
 
 /**
- * @param {HTMLDocument} document
- * @param {boolean} isChecked
- * @return {void}
+ * Opens the popup for the profiler.
+ * @param {Document} document
  */
-function setMenuItemChecked(document, isChecked) {
-  const menuItem = document.querySelector("#menu_toggleProfilerButtonMenu");
-  if (!menuItem) {
-    return;
+function openPopup(document) {
+  // First find the button.
+  /** @type {HTMLButtonElement | null} */
+  const button = document.querySelector("#profiler-button");
+  if (!button) {
+    throw new Error("Could not find the profiler button.");
   }
-  menuItem.setAttribute("checked", isChecked.toString());
-}
 
-/**
- * Toggle the menu button, and initialize the widget if needed.
- *
- * @param {ChromeDocument} document - The browser's document.
- * @return {void}
- */
-function toggle(document) {
-  const { CustomizableUI } = lazyCustomizableUI();
-  const { Services } = lazyServices();
-
-  const toggledValue = !isEnabled();
-  Services.prefs.setBoolPref(BUTTON_ENABLED_PREF, toggledValue);
-
-  if (toggledValue) {
-    initialize();
-    CustomizableUI.addWidgetToArea(WIDGET_ID, CustomizableUI.AREA_NAVBAR);
-  } else {
-    setMenuItemChecked(document, false);
-    CustomizableUI.destroyWidget(WIDGET_ID);
-
-    // The widgets are not being properly destroyed. This is a workaround
-    // until Bug 1552565 lands.
-    const element = document.getElementById("PanelUI-profiler");
-    delete /** @type {any} */ (element)._addedEventListeners;
-  }
-}
-
-/**
- * This function takes the button element, and returns a function that's used to
- * update the profiler button whenever the profiler activation status changed.
- *
- * @param {HTMLElement} buttonElement
- * @returns {() => void}
- */
-function updateButtonColorForElement(buttonElement) {
-  return () => {
-    const { Services } = lazyServices();
-    const isRunning = Services.profiler.IsActive();
-
-    // Use photon blue-60 when active.
-    buttonElement.style.fill = isRunning ? "#0060df" : "";
-  };
+  // Sending a click event anywhere on the button could start the profiler
+  // instead of opening the popup. Sending a command event on a view widget
+  // will make CustomizableUI show the view.
+  const cmdEvent = document.createEvent("xulcommandevent");
+  cmdEvent.initCommandEvent("command", true, true, button.ownerGlobal);
+  button.dispatchEvent(cmdEvent);
 }
 
 /**
  * This function creates the widget definition for the CustomizableUI. It should
  * only be run if the profiler button is enabled.
+ * @param {(isEnabled: boolean) => void} toggleProfilerKeyShortcuts
  * @return {void}
  */
-function initialize() {
-  const { CustomizableUI } = lazyCustomizableUI();
-  const { CustomizableWidgets } = lazyCustomizableWidgets();
-  const { Services } = lazyServices();
+function initialize(toggleProfilerKeyShortcuts) {
+  const { CustomizableUI } = lazy.CustomizableUI();
+  const { CustomizableWidgets } = lazy.CustomizableWidgets();
+  const { Services } = lazy.Services();
 
   const widget = CustomizableUI.getWidget(WIDGET_ID);
   if (widget && widget.provider == CustomizableUI.PROVIDER_API) {
@@ -140,8 +105,6 @@ function initialize() {
     return;
   }
 
-  /** @type {null | (() => void)} */
-  let observer = null;
   const viewId = "PanelUI-profiler";
 
   /**
@@ -153,6 +116,30 @@ function initialize() {
     cleanup: [],
     isInfoCollapsed: true,
   };
+
+  /**
+   * Handle when the customization changes for the button. This event is not
+   * very specific, and fires for any CustomizableUI widget. This event is
+   * pretty rare to fire, and only affects users of the profiler button,
+   * so it shouldn't have much overhead even if it runs a lot.
+   */
+  function handleCustomizationChange() {
+    const isEnabled = isInNavbar();
+    toggleProfilerKeyShortcuts(isEnabled);
+
+    if (!isEnabled) {
+      // The profiler menu button is no longer in the navbar, make sure that the
+      // "intro-displayed" preference is reset.
+      /** @type {import("../@types/perf").PerformancePref["PopupIntroDisplayed"]} */
+      const popupIntroDisplayedPref =
+        "devtools.performance.popup.intro-displayed";
+      Services.prefs.setBoolPref(popupIntroDisplayedPref, false);
+
+      if (Services.profiler.IsActive()) {
+        Services.profiler.StopProfiler();
+      }
+    }
+  }
 
   const item = {
     id: WIDGET_ID,
@@ -179,7 +166,7 @@ function initialize() {
             createViewControllers,
             addPopupEventHandlers,
             initializePopup,
-          } = lazyPopupPanel();
+          } = lazy.PopupPanel();
 
           const panelElements = selectElementsInPanelview(event.target);
           const panelView = createViewControllers(panelState, panelElements);
@@ -202,9 +189,14 @@ function initialize() {
       panelState.cleanup = [];
     },
 
-    /** @type {(document: HTMLDocument) => void} */
+    /**
+     * Perform any general initialization for this widget. This is called once per
+     * browser window.
+     *
+     * @type {(document: HTMLDocument) => void}
+     */
     onBeforeCreated: document => {
-      /** @type {PerformancePref["PopupIntroDisplayed"]} */
+      /** @type {import("../@types/perf").PerformancePref["PopupIntroDisplayed"]} */
       const popupIntroDisplayedPref =
         "devtools.performance.popup.intro-displayed";
 
@@ -219,25 +211,161 @@ function initialize() {
         Services.prefs.setBoolPref(popupIntroDisplayedPref, true);
       }
 
-      setMenuItemChecked(document, true);
+      // Handle customization event changes. If the profiler is no longer in the
+      // navbar, then reset the popup intro preference.
+      const window = document.defaultView;
+      if (window) {
+        /** @type {any} */ (window).gNavToolbox.addEventListener(
+          "customizationchange",
+          handleCustomizationChange
+        );
+      }
+
+      toggleProfilerKeyShortcuts(isInNavbar());
     },
 
-    /** @type {(document: HTMLElement) => void} */
+    /**
+     * This method is used when we need to operate upon the button element itself.
+     * This is called once per browser window.
+     *
+     * @type {(buttonElement: HTMLElement) => void}
+     */
     onCreated: buttonElement => {
-      observer = updateButtonColorForElement(buttonElement);
-      Services.obs.addObserver(observer, "profiler-started");
-      Services.obs.addObserver(observer, "profiler-stopped");
+      const window = buttonElement?.ownerDocument?.defaultView;
+      if (!window) {
+        console.error(
+          "Unable to find the window of the profiler button element."
+        );
+        return;
+      }
 
-      // Also run the observer right away to update the color if the profiler is
-      // already running at startup.
-      observer();
+      // This class is needed to show the subview arrow when our button
+      // is in the overflow menu.
+      buttonElement.classList.add("subviewbutton-nav");
+
+      // Our buttons has 2 targets: the icon which starts the profiler or
+      // captures the profile, and the dropmarker which opens the popup.
+      // To have this behavior, we need to enable showing the dropmarker...
+      buttonElement.setAttribute("wantdropmarker", "true");
+      // ... and to implement our custom click and keyboard event handling
+      // to decide which of the 2 behaviors should be triggered.
+      buttonElement.addEventListener("click", item);
+      // This would be better as a keypress handler, but CustomizableUI's
+      // keypress handler runs before keypress handlers we could add here.
+      buttonElement.addEventListener("keydown", item);
+
+      function setButtonActive() {
+        buttonElement.setAttribute(
+          "tooltiptext",
+          "The profiler is recording a profile"
+        );
+        buttonElement.classList.toggle("profiler-active", true);
+        buttonElement.classList.toggle("profiler-paused", false);
+      }
+      function setButtonPaused() {
+        buttonElement.setAttribute(
+          "tooltiptext",
+          "The profiler is capturing a profile"
+        );
+        buttonElement.classList.toggle("profiler-active", false);
+        buttonElement.classList.toggle("profiler-paused", true);
+      }
+      function setButtonInactive() {
+        buttonElement.setAttribute(
+          "tooltiptext",
+          "Record a performance profile"
+        );
+        buttonElement.classList.toggle("profiler-active", false);
+        buttonElement.classList.toggle("profiler-paused", false);
+      }
+
+      if (Services.profiler.IsPaused()) {
+        setButtonPaused();
+      }
+      if (Services.profiler.IsActive()) {
+        setButtonActive();
+      }
+
+      Services.obs.addObserver(setButtonActive, "profiler-started");
+      Services.obs.addObserver(setButtonInactive, "profiler-stopped");
+      Services.obs.addObserver(setButtonPaused, "profiler-paused");
+
+      window.addEventListener("unload", () => {
+        Services.obs.removeObserver(setButtonActive, "profiler-started");
+        Services.obs.removeObserver(setButtonInactive, "profiler-stopped");
+        Services.obs.removeObserver(setButtonPaused, "profiler-paused");
+        buttonElement.removeEventListener("click", item);
+        buttonElement.removeEventListener("keydown", item);
+      });
     },
 
-    onDestroyed: () => {
-      if (observer) {
-        Services.obs.removeObserver(observer, "profiler-started");
-        Services.obs.removeObserver(observer, "profiler-stopped");
-        observer = null;
+    handleEvent: event => {
+      function startOrCapture() {
+        if (Services.profiler.IsPaused()) {
+          // A profile is already being captured, ignore this event.
+          return;
+        }
+        const { startProfiler, captureProfile } = lazy.Background();
+        if (Services.profiler.IsActive()) {
+          captureProfile("aboutprofiling");
+        } else {
+          startProfiler("aboutprofiling");
+        }
+      }
+
+      if (event.type == "click") {
+        // Only handle clicks on the left button.
+        if (event.button != 0) {
+          return;
+        }
+
+        const button = event.target;
+
+        // Ignore the click event while in the overflow menu
+        if (button.getAttribute("cui-anchorid") == "nav-bar-overflow-button") {
+          return;
+        }
+
+        // If we are within the area of the icon, handle the event.
+        // Otherwise we are on the dropmarker and CustomizableUI will take
+        // care of opening the panel.
+        const win = button.ownerGlobal;
+        const iconBounds = win.windowUtils.getBoundsWithoutFlushing(
+          button.icon
+        );
+        if (
+          win.RTL_UI ? event.x >= iconBounds.left : event.x <= iconBounds.right
+        ) {
+          startOrCapture();
+          event.stopPropagation();
+          event.preventDefault();
+        }
+      } else if (event.type == "keydown") {
+        if (event.key == " " || event.key == "Enter") {
+          startOrCapture();
+          event.stopPropagation();
+          event.preventDefault();
+          return;
+        }
+        if (event.key == "ArrowDown") {
+          // Trigger a "command" event that CustomizableUI will handle.
+          const button = event.target;
+          const cmdEvent = button.ownerDocument.createEvent("xulcommandevent");
+          cmdEvent.initCommandEvent(
+            "command",
+            true,
+            true,
+            button.ownerGlobal,
+            0,
+            event.ctrlKey,
+            event.altKey,
+            event.shiftKey,
+            event.metaKey,
+            null,
+            event.mozInputSource
+          );
+          event.currentTarget.dispatchEvent(cmdEvent);
+        }
       }
     },
   };
@@ -246,7 +374,13 @@ function initialize() {
   CustomizableWidgets.push(item);
 }
 
-const ProfilerMenuButton = { toggle, initialize, isEnabled };
+const ProfilerMenuButton = {
+  initialize,
+  addToNavbar,
+  isInNavbar,
+  openPopup,
+  remove,
+};
 
 exports.ProfilerMenuButton = ProfilerMenuButton;
 

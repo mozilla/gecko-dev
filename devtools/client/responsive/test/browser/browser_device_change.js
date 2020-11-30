@@ -56,7 +56,6 @@ addRDMTask(
       ui,
       ".viewport-vertical-resize-handle",
       [-10, -10],
-      [testDevice.width, testDevice.height - 10],
       [0, -10]
     );
 
@@ -77,7 +76,7 @@ addRDMTask(
 
     reloadOnUAChange(false);
   },
-  { usingBrowserUI: true, waitForDeviceList: true }
+  { waitForDeviceList: true }
 );
 
 addRDMTask(
@@ -120,5 +119,5 @@ addRDMTask(
 
     reloadOnUAChange(false);
   },
-  { usingBrowserUI: true, onlyPrefAndTask: true }
+  { onlyPrefAndTask: true }
 );

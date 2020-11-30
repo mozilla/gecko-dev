@@ -7,6 +7,8 @@
 #ifndef mozilla_RangeUtils_h
 #define mozilla_RangeUtils_h
 
+#include "Element.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/RangeBoundary.h"
 #include "nsIContent.h"
 #include "nsINode.h"
@@ -97,6 +99,12 @@ class RangeUtils final {
   template <typename SPT, typename SRT, typename EPT, typename ERT>
   static bool IsValidPoints(const RangeBoundaryBase<SPT, SRT>& aStartBoundary,
                             const RangeBoundaryBase<EPT, ERT>& aEndBoundary);
+
+  /**
+   * The caller needs to ensure aNode is in the same doc like aAbstractRange.
+   */
+  static Maybe<bool> IsNodeContainedInRange(nsINode& aNode,
+                                            AbstractRange* aAbstractRange);
 
   /**
    * Utility routine to detect if a content node starts before a range and/or

@@ -6,7 +6,8 @@
 
 #include "jit/MIRGraph.h"
 
-#include "jit/BytecodeAnalysis.h"
+#include "jit/CompileInfo.h"
+#include "jit/InlineScriptTree.h"
 #include "jit/Ion.h"
 #include "jit/JitSpewer.h"
 #include "jit/MIR.h"
@@ -36,6 +37,8 @@ MIRGenerator::MIRGenerator(CompileRealm* realm,
       instrumentedProfilingIsCached_(false),
       safeForMinorGC_(true),
       stringsCanBeInNursery_(realm ? realm->zone()->canNurseryAllocateStrings()
+                                   : false),
+      bigIntsCanBeInNursery_(realm ? realm->zone()->canNurseryAllocateBigInts()
                                    : false),
       minWasmHeapLength_(0),
       options(options),
@@ -1003,22 +1006,25 @@ bool MBasicBlock::addPredecessorPopN(TempAllocator& alloc, MBasicBlock* pred,
     MDefinition* other = pred->getSlot(i);
 
     if (mine != other) {
+      MIRType phiType = mine->type();
+      if (phiType != other->type()) {
+        phiType = MIRType::Value;
+      }
+
       // If the current instruction is a phi, and it was created in this
       // basic block, then we have already placed this phi and should
       // instead append to its operands.
       if (mine->isPhi() && mine->block() == this) {
         MOZ_ASSERT(predecessors_.length());
+        MOZ_ASSERT(!mine->hasDefUses(),
+                   "should only change type of newly created phis");
+        mine->setResultType(phiType);
         if (!mine->toPhi()->addInputSlow(other)) {
           return false;
         }
       } else {
         // Otherwise, create a new phi node.
-        MPhi* phi;
-        if (mine->type() == other->type()) {
-          phi = MPhi::New(alloc.fallible(), mine->type());
-        } else {
-          phi = MPhi::New(alloc.fallible());
-        }
+        MPhi* phi = MPhi::New(alloc.fallible(), phiType);
         if (!phi) {
           return false;
         }
@@ -1535,7 +1541,7 @@ void MBasicBlock::dumpStack(GenericPrinter& out) {
   out.printf(" %-3s %-16s %-6s %-10s\n", "#", "name", "copyOf", "first/next");
   out.printf("-------------------------------------------\n");
   for (uint32_t i = 0; i < stackPosition_; i++) {
-    out.printf(" %-3d", i);
+    out.printf(" %-3u", i);
     out.printf(" %-16p\n", (void*)slots_[i]);
   }
 #endif

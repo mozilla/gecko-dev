@@ -9,9 +9,13 @@
 
 #include "vm/JSContext.h"
 
+#include <type_traits>
+#include <utility>
+
 #include "builtin/Object.h"
 #include "gc/Zone.h"
 #include "jit/JitFrames.h"
+#include "js/friend/StackLimits.h"  // js::CheckRecursionLimit
 #include "proxy/Proxy.h"
 #include "util/DiagnosticAssertions.h"
 #include "vm/BigIntType.h"
@@ -94,8 +98,7 @@ class ContextChecks {
 
   template <typename T>
   void checkAtom(T* thing, int argIndex) {
-    static_assert(mozilla::IsSame<T, JSAtom>::value ||
-                      mozilla::IsSame<T, JS::Symbol>::value,
+    static_assert(std::is_same_v<T, JSAtom> || std::is_same_v<T, JS::Symbol>,
                   "Should only be called with JSAtom* or JS::Symbol* argument");
 
 #ifdef DEBUG
@@ -138,9 +141,8 @@ class ContextChecks {
   // Check the contents of any container class that supports the C++
   // iteration protocol, eg GCVector<jsid>.
   template <typename Container>
-  typename mozilla::EnableIf<
-      mozilla::IsSame<decltype(((Container*)nullptr)->begin()),
-                      decltype(((Container*)nullptr)->end())>::value>::Type
+  std::enable_if_t<std::is_same_v<decltype(std::declval<Container>().begin()),
+                                  decltype(std::declval<Container>().end())>>
   check(const Container& container, int argIndex) {
     for (auto i : container) {
       check(i, argIndex);
@@ -165,7 +167,7 @@ class ContextChecks {
     } else if (JSID_IS_SYMBOL(id)) {
       checkAtom(JSID_TO_SYMBOL(id), argIndex);
     } else {
-      MOZ_ASSERT(!JSID_IS_GCTHING(id));
+      MOZ_ASSERT(!id.isGCThing());
     }
   }
 
@@ -192,22 +194,27 @@ class ContextChecks {
   void check(TypeSet::Type type, int argIndex) {
     check(type.maybeCompartment(), argIndex);
   }
+
+  void check(JS::Handle<mozilla::Maybe<JS::Value>> maybe, int argIndex) {
+    if (maybe.get().isSome()) {
+      check(maybe.get().ref(), argIndex);
+    }
+  }
 };
 
 }  // namespace js
 
-template <class Head, class... Tail>
-inline void JSContext::checkImpl(int argIndex, const Head& head,
-                                 const Tail&... tail) {
-  js::ContextChecks(this).check(head, argIndex);
-  checkImpl(argIndex + 1, tail...);
+template <class... Args>
+inline void JSContext::checkImpl(const Args&... args) {
+  int argIndex = 0;
+  (..., js::ContextChecks(this).check(args, argIndex++));
 }
 
 template <class... Args>
 inline void JSContext::check(const Args&... args) {
 #ifdef JS_CRASH_DIAGNOSTICS
   if (contextChecksEnabled()) {
-    checkImpl(0, args...);
+    checkImpl(args...);
   }
 #endif
 }
@@ -215,7 +222,7 @@ inline void JSContext::check(const Args&... args) {
 template <class... Args>
 inline void JSContext::releaseCheck(const Args&... args) {
   if (contextChecksEnabled()) {
-    checkImpl(0, args...);
+    checkImpl(args...);
   }
 }
 
@@ -223,7 +230,7 @@ template <class... Args>
 MOZ_ALWAYS_INLINE void JSContext::debugOnlyCheck(const Args&... args) {
 #if defined(DEBUG) && defined(JS_CRASH_DIAGNOSTICS)
   if (contextChecksEnabled()) {
-    checkImpl(0, args...);
+    checkImpl(args...);
   }
 #endif
 }

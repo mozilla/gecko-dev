@@ -29,6 +29,12 @@ ChromeUtils.defineModuleGetter(
   "resource://gre/modules/AsyncShutdown.jsm"
 );
 
+ChromeUtils.defineModuleGetter(
+  this,
+  "SharedUtils",
+  "resource://services-settings/SharedUtils.jsm"
+);
+
 // Note: we currently only ever construct one instance of Worker.
 // If it stops being a singleton, the AsyncShutdown code at the bottom
 // of this file, as well as these globals, will need adjusting.
@@ -55,17 +61,24 @@ class Worker {
     this.idleTimeoutId = null;
   }
 
-  async _execute(method, args = []) {
-    if (gShutdown) {
+  async _execute(method, args = [], options = {}) {
+    // Check if we're shutting down.
+    if (gShutdown && method != "prepareShutdown") {
       throw new RemoteSettingsWorkerError("Remote Settings has shut down.");
     }
+    // Don't instantiate the worker to shut it down.
+    if (method == "prepareShutdown" && !this.worker) {
+      return null;
+    }
+
+    const { mustComplete = false } = options;
     // (Re)instantiate the worker if it was terminated.
     if (!this.worker) {
       this.worker = new ChromeWorker(this.source);
       this.worker.onmessage = this._onWorkerMessage.bind(this);
       this.worker.onerror = error => {
         // Worker crashed. Reject each pending callback.
-        for (const [, reject] of this.callbacks.values()) {
+        for (const { reject } of this.callbacks.values()) {
           reject(error);
         }
         this.callbacks.clear();
@@ -77,16 +90,26 @@ class Worker {
     if (this.idleTimeoutId) {
       clearTimeout(this.idleTimeoutId);
     }
+    let identifier = method + "-";
+    // Include the collection details in the importJSONDump case.
+    if (identifier == "importJSONDump-") {
+      identifier += `${args[0]}-${args[1]}-`;
+    }
     return new Promise((resolve, reject) => {
-      const callbackId = `${method}-${++this.lastCallbackId}`;
-      this.callbacks.set(callbackId, [resolve, reject]);
+      const callbackId = `${identifier}${++this.lastCallbackId}`;
+      this.callbacks.set(callbackId, { resolve, reject, mustComplete });
       this.worker.postMessage({ callbackId, method, args });
     });
   }
 
   _onWorkerMessage(event) {
     const { callbackId, result, error } = event.data;
-    const [resolve, reject] = this.callbacks.get(callbackId);
+    // If we're shutting down, we may have already rejected this operation
+    // and removed its callback from our map:
+    if (!this.callbacks.has(callbackId)) {
+      return;
+    }
+    const { resolve, reject } = this.callbacks.get(callbackId);
     if (error) {
       reject(new RemoteSettingsWorkerError(error));
     } else {
@@ -110,6 +133,33 @@ class Worker {
     }
   }
 
+  /**
+   * Called at shutdown to abort anything the worker is doing that isn't
+   * critical.
+   */
+  _abortCancelableRequests() {
+    // End all tasks that we can.
+    const callbackCopy = Array.from(this.callbacks.entries());
+    const error = new Error("Shutdown, aborting read-only worker requests.");
+    for (const [id, { reject, mustComplete }] of callbackCopy) {
+      if (!mustComplete) {
+        this.callbacks.delete(id);
+        reject(error);
+      }
+    }
+    // There might be nothing left now:
+    if (!this.callbacks.size) {
+      this.stop();
+      if (gShutdownResolver) {
+        gShutdownResolver();
+      }
+    }
+    // If there was something left, we'll stop as soon as we get messages from
+    // those tasks, too.
+    // Let's hurry them along a bit:
+    this._execute("prepareShutdown");
+  }
+
   stop() {
     this.worker.terminate();
     this.worker = null;
@@ -125,7 +175,9 @@ class Worker {
   }
 
   async importJSONDump(bucket, collection) {
-    return this._execute("importJSONDump", [bucket, collection]);
+    return this._execute("importJSONDump", [bucket, collection], {
+      mustComplete: true,
+    });
   }
 
   async checkFileHash(filepath, size, hash) {
@@ -133,7 +185,9 @@ class Worker {
   }
 
   async checkContentHash(buffer, size, hash) {
-    return this._execute("checkContentHash", [buffer, size, hash]);
+    // The implementation does little work on the current thread, so run the
+    // task on the current thread instead of the worker thread.
+    return SharedUtils.checkContentHash(buffer, size, hash);
   }
 }
 
@@ -156,10 +210,16 @@ try {
       ) {
         return null;
       }
-      // Otherwise, return a promise that the worker will resolve.
-      return new Promise(resolve => {
+      // Otherwise, there's something left to do. Set up a promise:
+      let finishedPromise = new Promise(resolve => {
         gShutdownResolver = resolve;
       });
+
+      // Try to cancel most of the work:
+      RemoteSettingsWorker._abortCancelableRequests();
+
+      // Return a promise that the worker will resolve.
+      return finishedPromise;
     },
     {
       fetchState() {

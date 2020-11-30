@@ -1,13 +1,15 @@
 /* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 
+"use strict";
+
 const { HttpServer } = ChromeUtils.import("resource://testing-common/httpd.js");
 const { PermissionTestUtils } = ChromeUtils.import(
   "resource://testing-common/PermissionTestUtils.jsm"
 );
 
 /**
- * This is testcase do following steps to make sure bug767025 removing
- * files as expection.
+ * This testcase does the following steps to make sure that bug767025 removes
+ * files as expected.
  *
  * STEPS:
  *  - Schedule a offline cache update for app.manifest.
@@ -89,7 +91,7 @@ function init_http_server() {
   httpServer = new HttpServer();
   httpServer.registerPathHandler("/app.appcache", manifest_handler);
   httpServer.registerPathHandler("/app", app_handler);
-  for (i = 1; i <= 4; i++) {
+  for (let i = 1; i <= 4; i++) {
     httpServer.registerPathHandler("/pages/foo" + i, datafile_handler);
   }
   httpServer.start(4444);

@@ -121,6 +121,12 @@ function saveScreenshot(window, args = {}, value) {
     // Wrap message in an array so that the return value is consistant with save
     return [message];
   }
+
+  // Guard against missing image data.
+  if (!value.data) {
+    return [];
+  }
+
   simulateCameraShutter(window);
   return save(args, value);
 }
@@ -224,6 +230,11 @@ function saveToClipboard(base64URI) {
  */
 async function saveToFile(image) {
   let filename = image.filename;
+
+  // Guard against missing image data.
+  if (!image.data) {
+    return "";
+  }
 
   // Check there is a .png extension to filename
   if (!filename.match(/.png$/i)) {

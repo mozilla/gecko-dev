@@ -35,7 +35,9 @@ SharedPlanarYCbCrImage::SharedPlanarYCbCrImage(ImageClient* aCompositable)
 
 SharedPlanarYCbCrImage::SharedPlanarYCbCrImage(
     TextureClientRecycleAllocator* aRecycleAllocator)
-    : mRecycleAllocator(aRecycleAllocator) {}
+    : mRecycleAllocator(aRecycleAllocator) {
+  MOZ_COUNT_CTOR(SharedPlanarYCbCrImage);
+}
 
 SharedPlanarYCbCrImage::~SharedPlanarYCbCrImage() {
   MOZ_COUNT_DTOR(SharedPlanarYCbCrImage);
@@ -44,7 +46,7 @@ SharedPlanarYCbCrImage::~SharedPlanarYCbCrImage() {
 TextureClientRecycleAllocator* SharedPlanarYCbCrImage::RecycleAllocator() {
   static const uint32_t MAX_POOLED_VIDEO_COUNT = 5;
 
-  if (!mRecycleAllocator && mCompositable && mCompositable) {
+  if (!mRecycleAllocator && mCompositable) {
     if (!mCompositable->HasTextureClientRecycler()) {
       // Initialize TextureClientRecycler
       mCompositable->GetTextureClientRecycler()->SetMaxPoolSize(

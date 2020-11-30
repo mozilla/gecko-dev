@@ -6,6 +6,10 @@
 
 const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
 const { Sqlite } = ChromeUtils.import("resource://gre/modules/Sqlite.jsm");
+const { AboutProtectionsParent } = ChromeUtils.import(
+  "resource:///actors/AboutProtectionsParent.jsm"
+);
+
 XPCOMUtils.defineLazyServiceGetter(
   this,
   "TrackingDBService",
@@ -27,7 +31,10 @@ const SQL = {
 
 add_task(async function setup() {
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.contentblocking.database.enabled", true]],
+    set: [
+      ["browser.contentblocking.database.enabled", true],
+      ["browser.contentblocking.report.vpn.enabled", false],
+    ],
   });
 });
 
@@ -503,49 +510,6 @@ add_task(async function test_graph_display() {
   BrowserTestUtils.removeTab(tab);
 });
 
-// Ensure that the string in the ETP card header is changing when we change
-// the category pref.
-add_task(async function test_etp_header_string() {
-  Services.prefs.setStringPref("browser.contentblocking.category", "standard");
-  let tab = await BrowserTestUtils.openNewForegroundTab({
-    url: "about:protections",
-    gBrowser,
-  });
-  await SpecialPowers.spawn(tab.linkedBrowser, [], async function() {
-    await ContentTaskUtils.waitForCondition(() => {
-      let l10nID = content.document
-        .querySelector("#protection-details")
-        .getAttribute("data-l10n-id");
-      return l10nID == "protection-report-header-details-standard";
-    }, "The standard string is showing");
-  });
-
-  Services.prefs.setStringPref("browser.contentblocking.category", "strict");
-  await reloadTab(tab);
-  await SpecialPowers.spawn(tab.linkedBrowser, [], async function() {
-    await ContentTaskUtils.waitForCondition(() => {
-      let l10nID = content.document
-        .querySelector("#protection-details")
-        .getAttribute("data-l10n-id");
-      return l10nID == "protection-report-header-details-strict";
-    }, "The strict string is showing");
-  });
-
-  Services.prefs.setStringPref("browser.contentblocking.category", "custom");
-  await reloadTab(tab);
-  await SpecialPowers.spawn(tab.linkedBrowser, [], async function() {
-    await ContentTaskUtils.waitForCondition(() => {
-      let l10nID = content.document
-        .querySelector("#protection-details")
-        .getAttribute("data-l10n-id");
-      return l10nID == "protection-report-header-details-custom";
-    }, "The custom string is showing");
-  });
-
-  Services.prefs.setStringPref("browser.contentblocking.category", "standard");
-  BrowserTestUtils.removeTab(tab);
-});
-
 // Ensure that each type of tracker is hidden from the graph if there are no recorded
 // trackers of that type and the user has chosen to not block that type.
 add_task(async function test_etp_custom_settings() {
@@ -710,6 +674,11 @@ add_task(async function test_etp_custom_protections_off() {
     gBrowser,
   });
 
+  let aboutPreferencesPromise = BrowserTestUtils.waitForNewTab(
+    gBrowser,
+    "about:preferences#privacy"
+  );
+
   await SpecialPowers.spawn(tab.linkedBrowser, [], async function() {
     await ContentTaskUtils.waitForCondition(() => {
       let etpCard = content.document.querySelector(".etp-card");
@@ -724,15 +693,54 @@ add_task(async function test_etp_custom_protections_off() {
       "Button to manage protections is displayed"
     );
   });
+
+  // Custom protection card should show, even if there would otherwise be data on the graph.
+  let db = await Sqlite.openConnection({ path: DB_PATH });
+  let date = new Date().toISOString();
+  await db.execute(SQL.insertCustomTimeEvent, {
+    type: TrackingDBService.TRACKERS_ID,
+    count: 1,
+    timestamp: date,
+  });
+  await reloadTab(tab);
+  await SpecialPowers.spawn(tab.linkedBrowser, [], async function() {
+    await ContentTaskUtils.waitForCondition(() => {
+      let etpCard = content.document.querySelector(".etp-card");
+      return etpCard.classList.contains("custom-not-blocking");
+    }, "The custom protections warning card is showing");
+
+    let manageProtectionsButton = content.document.getElementById(
+      "manage-protections"
+    );
+    Assert.ok(
+      ContentTaskUtils.is_visible(manageProtectionsButton),
+      "Button to manage protections is displayed"
+    );
+
+    manageProtectionsButton.click();
+  });
+  let aboutPreferencesTab = await aboutPreferencesPromise;
+  info("about:preferences#privacy was successfully opened in a new tab");
+  gBrowser.removeTab(aboutPreferencesTab);
+
   Services.prefs.setStringPref("browser.contentblocking.category", "standard");
+  // Use the TrackingDBService API to delete the data.
+  await TrackingDBService.clearAll();
+  // Make sure the data was deleted.
+  let rows = await db.execute(SQL.selectAll);
+  is(rows.length, 0, "length is 0");
+  await db.close();
   BrowserTestUtils.removeTab(tab);
 });
 
-// Ensure that the ETP mobile promotion card is shown when the pref is on, and hidden when the pref is off
-add_task(async function test_etp_mobile_promotion() {
+// Ensure that the ETP mobile promotion card is shown when the pref is on and
+// there are no mobile devices connected.
+add_task(async function test_etp_mobile_promotion_pref_on() {
+  AboutProtectionsParent.setTestOverride(mockGetLoginDataWithSyncedDevices());
   await SpecialPowers.pushPrefEnv({
     set: [["browser.contentblocking.report.show_mobile_app", true]],
   });
+
   let tab = await BrowserTestUtils.openNewForegroundTab({
     url: "about:protections",
     gBrowser,
@@ -741,21 +749,22 @@ add_task(async function test_etp_mobile_promotion() {
     let mobilePromotion = content.document.getElementById("mobile-hanger");
     Assert.ok(
       ContentTaskUtils.is_visible(mobilePromotion),
-      "Mobile promotions card is displayed"
+      "Mobile promotions card is displayed when pref is on and there are no synced mobile devices"
     );
 
     // Card should hide after the X is clicked.
     mobilePromotion.querySelector(".exit-icon").click();
     Assert.ok(
       ContentTaskUtils.is_hidden(mobilePromotion),
-      "Mobile promotions card is no longer displayed"
+      "Mobile promotions card is no longer displayed after clicking the X button"
     );
   });
   BrowserTestUtils.removeTab(tab);
 
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.contentblocking.report.show_mobile_app", false]],
-  });
+  // Add a mock mobile device. The promotion should now be hidden.
+  AboutProtectionsParent.setTestOverride(
+    mockGetLoginDataWithSyncedDevices(true)
+  );
   tab = await BrowserTestUtils.openNewForegroundTab({
     url: "about:protections",
     gBrowser,
@@ -764,9 +773,75 @@ add_task(async function test_etp_mobile_promotion() {
     let mobilePromotion = content.document.getElementById("mobile-hanger");
     Assert.ok(
       ContentTaskUtils.is_hidden(mobilePromotion),
-      "Mobile promotions card is hidden"
+      "Mobile promotions card is hidden when pref is on if there are synced mobile devices"
     );
   });
 
   BrowserTestUtils.removeTab(tab);
+  AboutProtectionsParent.setTestOverride(null);
+});
+
+// Test that ETP mobile promotion is not shown when the pref is off,
+// even if no mobile devices are synced.
+add_task(async function test_etp_mobile_promotion_pref_on() {
+  AboutProtectionsParent.setTestOverride(mockGetLoginDataWithSyncedDevices());
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.contentblocking.report.show_mobile_app", false]],
+  });
+
+  let tab = await BrowserTestUtils.openNewForegroundTab({
+    url: "about:protections",
+    gBrowser,
+  });
+  await SpecialPowers.spawn(tab.linkedBrowser, [], async function() {
+    let mobilePromotion = content.document.getElementById("mobile-hanger");
+    Assert.ok(
+      ContentTaskUtils.is_hidden(mobilePromotion),
+      "Mobile promotions card is not displayed when pref is off and there are no synced mobile devices"
+    );
+  });
+
+  BrowserTestUtils.removeTab(tab);
+
+  AboutProtectionsParent.setTestOverride(
+    mockGetLoginDataWithSyncedDevices(true)
+  );
+  tab = await BrowserTestUtils.openNewForegroundTab({
+    url: "about:protections",
+    gBrowser,
+  });
+
+  await SpecialPowers.spawn(tab.linkedBrowser, [], async function() {
+    let mobilePromotion = content.document.getElementById("mobile-hanger");
+    Assert.ok(
+      ContentTaskUtils.is_hidden(mobilePromotion),
+      "Mobile promotions card is not displayed when pref is off even if there are synced mobile devices"
+    );
+  });
+  BrowserTestUtils.removeTab(tab);
+  AboutProtectionsParent.setTestOverride(null);
+});
+
+// Test that clicking on the link to settings in the header properly opens the settings page.
+add_task(async function test_settings_links() {
+  let tab = await BrowserTestUtils.openNewForegroundTab({
+    url: "about:protections",
+    gBrowser,
+  });
+  let aboutPreferencesPromise = BrowserTestUtils.waitForNewTab(
+    gBrowser,
+    "about:preferences#privacy"
+  );
+
+  await SpecialPowers.spawn(tab.linkedBrowser, [], async function() {
+    const protectionSettings = await ContentTaskUtils.waitForCondition(() => {
+      return content.document.getElementById("protection-settings");
+    }, "protection-settings link exists");
+
+    protectionSettings.click();
+  });
+  let aboutPreferencesTab = await aboutPreferencesPromise;
+  info("about:preferences#privacy was successfully opened in a new tab");
+  gBrowser.removeTab(aboutPreferencesTab);
+  gBrowser.removeTab(tab);
 });

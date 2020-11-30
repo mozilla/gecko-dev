@@ -6,8 +6,7 @@
 
 #include "mozilla/dom/SVGFEDisplacementMapElement.h"
 #include "mozilla/dom/SVGFEDisplacementMapElementBinding.h"
-#include "nsSVGFilterInstance.h"
-#include "nsSVGUtils.h"
+#include "mozilla/SVGFilterInstance.h"
 
 NS_IMPL_NS_NEW_SVG_ELEMENT(FEDisplacementMap)
 
@@ -71,7 +70,7 @@ SVGFEDisplacementMapElement::YChannelSelector() {
 }
 
 FilterPrimitiveDescription SVGFEDisplacementMapElement::GetPrimitiveDescription(
-    nsSVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
+    SVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
     const nsTArray<bool>& aInputsAreTainted,
     nsTArray<RefPtr<SourceSurface>>& aInputImages) {
   if (aInputsAreTainted[1]) {

@@ -11,7 +11,7 @@ add_task(async function test() {
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: "https://example.com/" },
     async function(browser) {
-      if (!SpecialPowers.getBoolPref("fission.sessionHistoryInParent")) {
+      if (!SpecialPowers.Services.appinfo.sessionHistoryInParent) {
         await SpecialPowers.spawn(browser, [], async function() {
           let history = this.content.docShell.QueryInterface(
             Ci.nsIWebNavigation
@@ -37,8 +37,8 @@ add_task(async function test() {
             OnHistoryReplaceEntry: () => {},
 
             QueryInterface: ChromeUtils.generateQI([
-              Ci.nsISHistoryListener,
-              Ci.nsISupportsWeakReference,
+              "nsISHistoryListener",
+              "nsISupportsWeakReference",
             ]),
           };
 
@@ -77,8 +77,8 @@ add_task(async function test() {
         OnHistoryReplaceEntry: () => {},
 
         QueryInterface: ChromeUtils.generateQI([
-          Ci.nsISHistoryListener,
-          Ci.nsISupportsWeakReference,
+          "nsISHistoryListener",
+          "nsISupportsWeakReference",
         ]),
       };
 

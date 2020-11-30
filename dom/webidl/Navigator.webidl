@@ -50,7 +50,7 @@ interface mixin NavigatorID {
   readonly attribute DOMString appName;
   [Constant, Cached, Throws, NeedsCallerType]
   readonly attribute DOMString appVersion;
-  [Constant, Cached, Throws, NeedsCallerType]
+  [Pure, Cached, Throws, NeedsCallerType]
   readonly attribute DOMString platform;
   [Pure, Cached, Throws, NeedsCallerType]
   readonly attribute DOMString userAgent;
@@ -83,15 +83,10 @@ interface mixin NavigatorContentUtils {
   // content handler registration
   [Throws, ChromeOnly]
   void checkProtocolHandlerAllowed(DOMString scheme, URI handlerURI, URI documentURI);
-  [Throws, Func="nsGlobalWindowInner::RegisterProtocolHandlerAllowedForContext"]
+  [Throws, SecureContext]
   void registerProtocolHandler(DOMString scheme, DOMString url, DOMString title);
-  [Pref="dom.registerContentHandler.enabled", Throws]
-  void registerContentHandler(DOMString mimeType, DOMString url, DOMString title);
   // NOT IMPLEMENTED
-  //DOMString isProtocolHandlerRegistered(DOMString scheme, DOMString url);
-  //DOMString isContentHandlerRegistered(DOMString mimeType, DOMString url);
   //void unregisterProtocolHandler(DOMString scheme, DOMString url);
-  //void unregisterContentHandler(DOMString mimeType, DOMString url);
 };
 
 [SecureContext]
@@ -230,6 +225,12 @@ partial interface Navigator {
 partial interface Navigator {
   [Pref="dom.vr.puppet.enabled"]
   VRServiceTest requestVRServiceTest();
+};
+
+// https://immersive-web.github.io/webxr/#dom-navigator-xr
+partial interface Navigator {
+  [SecureContext, SameObject, Throws, Pref="dom.vr.webxr.enabled"]
+  readonly attribute XRSystem xr;
 };
 
 // http://webaudio.github.io/web-midi-api/#requestmidiaccess

@@ -4,8 +4,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "nsAutoPtr.h"
-
 #include "sqlite3.h"
 
 #include "mozIStorageStatementCallback.h"
@@ -44,12 +42,12 @@ namespace storage {
 
 /* static */
 nsresult AsyncExecuteStatements::execute(
-    StatementDataArray& aStatements, Connection* aConnection,
+    StatementDataArray&& aStatements, Connection* aConnection,
     sqlite3* aNativeConnection, mozIStorageStatementCallback* aCallback,
     mozIStoragePendingStatement** _stmt) {
   // Create our event to run in the background
   RefPtr<AsyncExecuteStatements> event = new AsyncExecuteStatements(
-      aStatements, aConnection, aNativeConnection, aCallback);
+      std::move(aStatements), aConnection, aNativeConnection, aCallback);
   NS_ENSURE_TRUE(event, NS_ERROR_OUT_OF_MEMORY);
 
   // Dispatch it to the background
@@ -74,9 +72,11 @@ nsresult AsyncExecuteStatements::execute(
 }
 
 AsyncExecuteStatements::AsyncExecuteStatements(
-    StatementDataArray& aStatements, Connection* aConnection,
+    StatementDataArray&& aStatements, Connection* aConnection,
     sqlite3* aNativeConnection, mozIStorageStatementCallback* aCallback)
-    : mConnection(aConnection),
+    : Runnable("AsyncExecuteStatements"),
+      mStatements(std::move(aStatements)),
+      mConnection(aConnection),
       mNativeConnection(aNativeConnection),
       mHasTransaction(false),
       mCallback(aCallback),
@@ -87,9 +87,7 @@ AsyncExecuteStatements::AsyncExecuteStatements(
       mState(PENDING),
       mCancelRequested(false),
       mMutex(aConnection->sharedAsyncExecutionMutex),
-      mDBMutex(aConnection->sharedDBMutex),
-      mRequestStartDate(TimeStamp::Now()) {
-  (void)mStatements.SwapElements(aStatements);
+      mDBMutex(aConnection->sharedDBMutex) {
   NS_ASSERTION(mStatements.Length(), "We weren't given any statements!");
 }
 
@@ -123,8 +121,10 @@ bool AsyncExecuteStatements::bindExecuteAndProcessStatement(
 
   sqlite3_stmt* aStatement = nullptr;
   // This cannot fail; we are only called if it's available.
-  (void)aData.getSqliteStatement(&aStatement);
-  NS_ASSERTION(aStatement, "You broke the code; do not call here like that!");
+  Unused << aData.getSqliteStatement(&aStatement);
+  MOZ_DIAGNOSTIC_ASSERT(
+      aStatement,
+      "bindExecuteAndProcessStatement called without an initialized statement");
   BindingParamsArray* paramsArray(aData);
 
   // Iterate through all of our parameters, bind them, and execute.
@@ -148,7 +148,7 @@ bool AsyncExecuteStatements::bindExecuteAndProcessStatement(
     // Advance our iterator, execute, and then process the statement.
     itr++;
     bool lastStatement = aLastStatement && itr == end;
-    continueProcessing = executeAndProcessStatement(aStatement, lastStatement);
+    continueProcessing = executeAndProcessStatement(aData, lastStatement);
 
     // Always reset our statement.
     (void)::sqlite3_reset(aStatement);
@@ -157,14 +157,21 @@ bool AsyncExecuteStatements::bindExecuteAndProcessStatement(
   return continueProcessing;
 }
 
-bool AsyncExecuteStatements::executeAndProcessStatement(
-    sqlite3_stmt* aStatement, bool aLastStatement) {
+bool AsyncExecuteStatements::executeAndProcessStatement(StatementData& aData,
+                                                        bool aLastStatement) {
   mMutex.AssertNotCurrentThreadOwns();
+
+  sqlite3_stmt* aStatement = nullptr;
+  // This cannot fail; we are only called if it's available.
+  Unused << aData.getSqliteStatement(&aStatement);
+  MOZ_DIAGNOSTIC_ASSERT(
+      aStatement,
+      "executeAndProcessStatement called without an initialized statement");
 
   // Execute our statement
   bool hasResults;
   do {
-    hasResults = executeStatement(aStatement);
+    hasResults = executeStatement(aData);
 
     // If we had an error, bail.
     if (mState == ERROR || mState == CANCELED) return false;
@@ -209,39 +216,55 @@ bool AsyncExecuteStatements::executeAndProcessStatement(
   return true;
 }
 
-bool AsyncExecuteStatements::executeStatement(sqlite3_stmt* aStatement) {
+bool AsyncExecuteStatements::executeStatement(StatementData& aData) {
   mMutex.AssertNotCurrentThreadOwns();
-  Telemetry::AutoTimer<Telemetry::MOZ_STORAGE_ASYNC_REQUESTS_MS>
-      finallySendExecutionDuration(mRequestStartDate);
+
+  sqlite3_stmt* aStatement = nullptr;
+  // This cannot fail; we are only called if it's available.
+  Unused << aData.getSqliteStatement(&aStatement);
+  MOZ_DIAGNOSTIC_ASSERT(
+      aStatement, "executeStatement called without an initialized statement");
+
+  bool busyRetry = false;
   while (true) {
+    if (busyRetry) {
+      busyRetry = false;
+
+      // Yield, and try again
+      Unused << PR_Sleep(PR_INTERVAL_NO_WAIT);
+
+      // Check for cancellation before retrying
+      {
+        MutexAutoLock lockedScope(mMutex);
+        if (mCancelRequested) {
+          mState = CANCELED;
+          return false;
+        }
+      }
+    }
+
     // lock the sqlite mutex so sqlite3_errmsg cannot change
     SQLiteMutexAutoLock lockedScope(mDBMutex);
 
     int rc = mConnection->stepStatement(mNativeConnection, aStatement);
+
+    // Some errors are not fatal, and we can handle them and continue.
+    if (rc == SQLITE_BUSY) {
+      ::sqlite3_reset(aStatement);
+      busyRetry = true;
+      continue;
+    }
+
+    aData.MaybeRecordQueryStatus(rc);
+
     // Stop if we have no more results.
     if (rc == SQLITE_DONE) {
-      Telemetry::Accumulate(Telemetry::MOZ_STORAGE_ASYNC_REQUESTS_SUCCESS,
-                            true);
       return false;
     }
 
     // If we got results, we can return now.
     if (rc == SQLITE_ROW) {
-      Telemetry::Accumulate(Telemetry::MOZ_STORAGE_ASYNC_REQUESTS_SUCCESS,
-                            true);
       return true;
-    }
-
-    // Some errors are not fatal, and we can handle them and continue.
-    if (rc == SQLITE_BUSY) {
-      {
-        // Don't hold the lock while we call outside our module.
-        SQLiteMutexAutoUnlock unlockedScope(mDBMutex);
-        // Yield, and try again
-        (void)::PR_Sleep(PR_INTERVAL_NO_WAIT);
-      }
-      ::sqlite3_reset(aStatement);
-      continue;
     }
 
     if (rc == SQLITE_INTERRUPT) {
@@ -251,7 +274,6 @@ bool AsyncExecuteStatements::executeStatement(sqlite3_stmt* aStatement) {
 
     // Set an error state.
     mState = ERROR;
-    Telemetry::Accumulate(Telemetry::MOZ_STORAGE_ASYNC_REQUESTS_SUCCESS, false);
 
     // Construct the error message before giving up the mutex (which we cannot
     // hold during the call to notifyError).
@@ -435,8 +457,8 @@ nsresult AsyncExecuteStatements::notifyResultsOnCallingThread(
   return NS_OK;
 }
 
-NS_IMPL_ISUPPORTS(AsyncExecuteStatements, nsIRunnable,
-                  mozIStoragePendingStatement)
+NS_IMPL_ISUPPORTS_INHERITED(AsyncExecuteStatements, Runnable,
+                            mozIStoragePendingStatement)
 
 bool AsyncExecuteStatements::statementsNeedTransaction() {
   // If there is more than one write statement, run in a transaction.
@@ -536,7 +558,7 @@ AsyncExecuteStatements::Run() {
       if (!bindExecuteAndProcessStatement(mStatements[i], finished)) break;
     }
     // Otherwise, just execute and process the statement.
-    else if (!executeAndProcessStatement(stmt, finished)) {
+    else if (!executeAndProcessStatement(mStatements[i], finished)) {
       break;
     }
   }

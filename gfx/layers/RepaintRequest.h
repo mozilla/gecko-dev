@@ -7,6 +7,7 @@
 #ifndef GFX_REPAINTREQUEST_H
 #define GFX_REPAINTREQUEST_H
 
+#include <iosfwd>
 #include <stdint.h>  // for uint8_t, uint32_t, uint64_t
 
 #include "FrameMetrics.h"             // for FrameMetrics
@@ -57,25 +58,29 @@ struct RepaintRequest {
         mPaintRequestTime(),
         mScrollUpdateType(eNone),
         mIsRootContent(false),
+        mIsAnimationInProgress(false),
         mIsScrollInfoLayer(false) {}
 
   RepaintRequest(const FrameMetrics& aOther,
-                 const ScrollOffsetUpdateType aScrollUpdateType)
+                 const ScreenMargin& aDisplayportMargins,
+                 const ScrollOffsetUpdateType aScrollUpdateType,
+                 bool aIsAnimationInProgress)
       : mScrollId(aOther.GetScrollId()),
         mPresShellResolution(aOther.GetPresShellResolution()),
         mCompositionBounds(aOther.GetCompositionBounds()),
         mCumulativeResolution(aOther.GetCumulativeResolution()),
         mDevPixelsPerCSSPixel(aOther.GetDevPixelsPerCSSPixel()),
-        mScrollOffset(aOther.GetScrollOffset()),
+        mScrollOffset(aOther.GetVisualScrollOffset()),
         mZoom(aOther.GetZoom()),
         mScrollGeneration(aOther.GetScrollGeneration()),
-        mDisplayPortMargins(aOther.GetDisplayPortMargins()),
+        mDisplayPortMargins(aDisplayportMargins),
         mPresShellId(aOther.GetPresShellId()),
         mLayoutViewport(aOther.GetLayoutViewport()),
         mExtraResolution(aOther.GetExtraResolution()),
         mPaintRequestTime(aOther.GetPaintRequestTime()),
         mScrollUpdateType(aScrollUpdateType),
         mIsRootContent(aOther.IsRootContent()),
+        mIsAnimationInProgress(aIsAnimationInProgress),
         mIsScrollInfoLayer(aOther.IsScrollInfoLayer()) {}
 
   // Default copy ctor and operator= are fine
@@ -97,12 +102,16 @@ struct RepaintRequest {
            mPaintRequestTime == aOther.mPaintRequestTime &&
            mScrollUpdateType == aOther.mScrollUpdateType &&
            mIsRootContent == aOther.mIsRootContent &&
+           mIsAnimationInProgress == aOther.mIsAnimationInProgress &&
            mIsScrollInfoLayer == aOther.mIsScrollInfoLayer;
   }
 
   bool operator!=(const RepaintRequest& aOther) const {
     return !operator==(aOther);
   }
+
+  friend std::ostream& operator<<(std::ostream& aOut,
+                                  const RepaintRequest& aRequest);
 
   CSSToScreenScale2D DisplayportPixelsPerCSSPixel() const {
     // Note: use 'mZoom * ParentLayerToLayerScale(1.0f)' as the CSS-to-Layer
@@ -147,9 +156,13 @@ struct RepaintRequest {
     return mDevPixelsPerCSSPixel;
   }
 
+  bool IsAnimationInProgress() const { return mIsAnimationInProgress; }
+
   bool IsRootContent() const { return mIsRootContent; }
 
-  const CSSPoint& GetScrollOffset() const { return mScrollOffset; }
+  CSSPoint GetLayoutScrollOffset() const { return mLayoutViewport.TopLeft(); }
+
+  const CSSPoint& GetVisualScrollOffset() const { return mScrollOffset; }
 
   const CSSToParentLayerScale2D& GetZoom() const { return mZoom; }
 
@@ -180,6 +193,10 @@ struct RepaintRequest {
   bool IsScrollInfoLayer() const { return mIsScrollInfoLayer; }
 
  protected:
+  void SetIsAnimationInProgress(bool aInProgress) {
+    mIsAnimationInProgress = aInProgress;
+  }
+
   void SetIsRootContent(bool aIsRootContent) {
     mIsRootContent = aIsRootContent;
   }
@@ -210,7 +227,9 @@ struct RepaintRequest {
   // change during zooming).
   //
   // The origin of the composition bounds is relative to the layer tree origin.
-  // Unlike the scroll port's origin, it does not change during scrolling.
+  // Unlike the scroll port's origin, it does not change during scrolling of
+  // the scrollable layer to which it is associated. However, it may change due
+  // to scrolling of ancestor layers.
   //
   // This value is provided by Gecko at layout/paint time.
   ParentLayerRect mCompositionBounds;
@@ -277,6 +296,9 @@ struct RepaintRequest {
 
   // Whether or not this is the root scroll frame for the root content document.
   bool mIsRootContent : 1;
+
+  // Whether or not we are in the middle of a scroll animation.
+  bool mIsAnimationInProgress : 1;
 
   // True if this scroll frame is a scroll info layer. A scroll info layer is
   // not layerized and its content cannot be truly async-scrolled, but its

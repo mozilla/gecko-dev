@@ -9,6 +9,8 @@
 #include "nsISerializable.idl"
 #include "nsIAboutModule.idl"
 #include "nsIReferrerInfo.idl"
+interface nsIChannel;
+#include "mozIDOMWindow.idl"
 
 %{C++
 struct JSPrincipals;
@@ -57,6 +59,14 @@ interface nsIPrincipal : nsISerializable
      * they have the same origin.
      */
     boolean equals(in nsIPrincipal other);
+
+    /**
+     * Returns whether the other principal is equivalent to this principal
+     * for permission purposes
+     * Matches {originAttributes ,equalsURIForPermission}
+     */
+
+    boolean equalsForPermission(in nsIPrincipal other, in bool aExactHost);
 
     /**
      * Like equals, but takes document.domain changes into account.
@@ -165,7 +175,7 @@ interface nsIPrincipal : nsISerializable
                                    in unsigned long long innerWindowID);
 
     /**
-    * Checks if the provided URI is concidered third-party to the
+    * Checks if the provided URI is considered third-party to the
     * URI of the principal.
     * Returns true if the URI is third-party.
     *
@@ -174,13 +184,23 @@ interface nsIPrincipal : nsISerializable
     boolean isThirdPartyURI(in nsIURI uri);
 
     /**
-    * Checks if the provided principal is concidered third-party to the
+    * Checks if the provided principal is considered third-party to the
     * URI of the Principal.
     * Returns true if the principal is third-party.
     *
     * @param principal - The principal to check
     */
     boolean isThirdPartyPrincipal(in nsIPrincipal principal);
+
+    /**
+    * Checks if the provided channel is considered third-party to the
+    * URI of the principal. 
+    * Returns true if the channel is third-party.
+    * Returns false if the Principal is a System Principal
+    *
+    * @param channel - The Channel to check
+    */
+    boolean isThirdPartyChannel(in nsIChannel channel);
 
     /**
      * A dictionary of the non-default origin attributes associated with this
@@ -223,27 +243,31 @@ interface nsIPrincipal : nsISerializable
      * Returns the "host:port" portion of the 
      * Principals URI, if any.
      */
-    [noscript] readonly attribute ACString hostPort;
+    readonly attribute ACString hostPort;
 
-        /**
+    /**
      * Returns the "host:port" portion of the 
      * Principals URI, if any.
      */
-    [noscript] readonly attribute ACString asciiHost;
-
+    readonly attribute ACString asciiHost;
 
     /**
      * Returns the "host" portion of the 
      * Principals URI, if any.
      */
-    [noscript] readonly attribute ACString host;
+    readonly attribute ACString host;
 
     /**
-        * Returns the prepath of the principals uri
-        * follows the format scheme:
-        * "scheme://username:password@hostname:portnumber/"
-    */
-        [noscript] readonly attribute ACString prepath;
+     * Returns the prepath of the principals uri
+     * follows the format scheme:
+     * "scheme://username:password@hostname:portnumber/"
+     */
+    readonly attribute ACString prepath;
+
+    /**
+     * Returns the filePath of the principals uri. See nsIURI.
+     */
+    readonly attribute ACString filePath;
 
     /**
       * Returns the ASCII Spec from the Principals URI.
@@ -253,12 +277,31 @@ interface nsIPrincipal : nsISerializable
       * WARNING: DO NOT USE FOR SECURITY CHECKS.
       * just for logging purposes!
      */
-    [noscript] readonly attribute ACString asciiSpec;
+    readonly attribute ACString asciiSpec;
+
+    /**
+      * Returns the Spec from the Principals URI.
+      * Might return the empty string, e.g. for the case of
+      * a SystemPrincipal or an EpxandedPrincipal.
+      *
+      * WARNING: Do not land new Code using, as this will be removed soon
+     */
+    readonly attribute ACString spec;
 
     /* Returns the Pre Path of the Principals URI with
     * user:pass stripped for privacy and spoof prevention
     */
     readonly attribute ACString exposablePrePath;
+
+    /* Returns the Spec of the Principals URI with
+    * user/pass/ref/query stripped for privacy and spoof prevention
+    */
+    readonly attribute ACString exposableSpec;
+
+    /**
+     * Return the scheme of the principals URI
+     */
+    readonly attribute ACString scheme;
 
     /**
     * Checks if the Principal's URI Scheme matches with the parameter
@@ -302,6 +345,14 @@ interface nsIPrincipal : nsISerializable
 
 
     /*
+    *  Checks if the Principals URI has first party storage access 
+    *  when loaded inside the provided 3rd party resource window. 
+    *  See also: ContentBlocking::ShouldAllowAccessFor
+    */
+    bool hasFirstpartyStorageAccess(in mozIDOMWindow aWindow, out uint32_t rejectedReason);
+    
+    
+    /*
     * Returns a Key for the LocalStorage Manager, used to 
     * check the Principals Origin Storage usage. 
     */
@@ -317,13 +368,20 @@ interface nsIPrincipal : nsISerializable
      *
      * This method returns false instead of throwing upon errors.
      */ 
-    readonly attribute bool isOriginPotentiallyTrustworthy;
+    [infallible]
+    readonly attribute boolean isOriginPotentiallyTrustworthy;
 
     /**
      * Returns the Flags of the Principals 
      * associated AboutModule, in case there is one.
      */
     uint32_t getAboutModuleFlags();
+
+    /*
+    * Returns the Key to access the Principals 
+    * Origin Local/Session Storage
+    */
+    readonly attribute ACString storageOriginKey;
 
     /**
      * Creates and Returns a new ReferrerInfo with the 
@@ -451,10 +509,36 @@ interface nsIPrincipal : nsISerializable
     */
     [infallible] readonly attribute boolean isOnion;
 
+    /*
+     * Returns true if the Domain Policy allows js execution
+     * for the Principals URI
+     */
+    readonly attribute boolean isScriptAllowedByPolicy;
+
+
+     /*
+     * Returns true if the Principal can acess l10n 
+     * features for the Provided DocumentURI
+     */
+    boolean isL10nAllowed(in nsIURI aDocumentURI);
+    
+    /**
+    * Returns a nsIPrincipal, with one less Subdomain Segment
+    * Returns `nullptr` if there are no more segments to remove.
+    */
+
+    [infallible] readonly attribute nsIPrincipal nextSubDomainPrincipal;
+
     /**
      * Returns if the principal is for an IP address.
      */
     [infallible] readonly attribute boolean isIpAddress;
+
+    /**
+     * Returns if the principal is for a local IP address.
+     */
+    [infallible] readonly attribute boolean isLocalIpAddress;
+
 };
 
 /**

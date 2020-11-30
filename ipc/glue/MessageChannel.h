@@ -10,7 +10,6 @@
 
 #include "base/basictypes.h"
 #include "base/message_loop.h"
-
 #include "mozilla/Atomics.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Monitor.h"
@@ -19,16 +18,16 @@
 #if defined(OS_WIN)
 #  include "mozilla/ipc/Neutering.h"
 #endif  // defined(OS_WIN)
-#include "mozilla/ipc/Transport.h"
-#include "MessageLink.h"
-#include "nsThreadUtils.h"
+#include <math.h>
 
 #include <deque>
 #include <functional>
 #include <map>
-#include <math.h>
 #include <stack>
 #include <vector>
+
+#include "MessageLink.h"
+#include "mozilla/ipc/Transport.h"
 
 class nsIEventTarget;
 
@@ -53,6 +52,12 @@ class RefCountedMonitor : public Monitor {
 enum class MessageDirection {
   eSending,
   eReceiving,
+};
+
+enum class MessagePhase {
+  Endpoint,
+  TransferStart,
+  TransferEnd,
 };
 
 enum class SyncSendError {
@@ -92,7 +97,7 @@ enum ChannelState {
 
 class AutoEnterTransaction;
 
-class MessageChannel : HasResultCodes, MessageLoop::DestructionObserver {
+class MessageChannel : HasResultCodes {
   friend class ProcessLink;
   friend class ThreadLink;
 #ifdef FUZZING
@@ -166,7 +171,7 @@ class MessageChannel : HasResultCodes, MessageLoop::DestructionObserver {
   // For more details on the process of opening a channel between
   // threads, see the extended comment on this function
   // in MessageChannel.cpp.
-  bool Open(MessageChannel* aTargetChan, nsIEventTarget* aEventTarget,
+  bool Open(MessageChannel* aTargetChan, nsISerialEventTarget* aEventTarget,
             Side aSide);
 
   // "Open" a connection to an actor on the current thread.
@@ -177,6 +182,12 @@ class MessageChannel : HasResultCodes, MessageLoop::DestructionObserver {
   // Same-thread channels may not perform synchronous or blocking message
   // sends, to avoid deadlocks.
   bool OpenOnSameThread(MessageChannel* aTargetChan, Side aSide);
+
+  /**
+   * This sends a special message that is processed on the IO thread, so that
+   * other actors can know that the process will soon shutdown.
+   */
+  void NotifyImpendingShutdown();
 
   // Close the underlying transport channel.
   void Close();
@@ -213,16 +224,16 @@ class MessageChannel : HasResultCodes, MessageLoop::DestructionObserver {
   ChannelFlags GetChannelFlags() { return mFlags; }
 
   // Asynchronously send a message to the other side of the channel
-  bool Send(Message* aMsg);
+  bool Send(UniquePtr<Message> aMsg);
 
   // Asynchronously send a message to the other side of the channel
   // and wait for asynchronous reply.
   template <typename Value>
-  void Send(Message* aMsg, ActorIdType aActorId,
+  void Send(UniquePtr<Message> aMsg, ActorIdType aActorId,
             ResolveCallback<Value>&& aResolve, RejectCallback&& aReject) {
     int32_t seqno = NextSeqno();
     aMsg->set_seqno(seqno);
-    if (!Send(aMsg)) {
+    if (!Send(std::move(aMsg))) {
       aReject(ResponseRejectReason::SendError);
       return;
     }
@@ -237,15 +248,11 @@ class MessageChannel : HasResultCodes, MessageLoop::DestructionObserver {
   bool SendBuildIDsMatchMessage(const char* aParentBuildI);
   bool DoBuildIDsMatch() { return mBuildIDsConfirmedMatch; }
 
-  // Asynchronously deliver a message back to this side of the
-  // channel
-  bool Echo(Message* aMsg);
-
   // Synchronously send |msg| (i.e., wait for |reply|)
-  bool Send(Message* aMsg, Message* aReply);
+  bool Send(UniquePtr<Message> aMsg, Message* aReply);
 
   // Make an Interrupt call to the other side of the channel
-  bool Call(Message* aMsg, Message* aReply);
+  bool Call(UniquePtr<Message> aMsg, Message* aReply);
 
   // Wait until a message is received
   bool WaitForIncomingMessage();
@@ -273,7 +280,6 @@ class MessageChannel : HasResultCodes, MessageLoop::DestructionObserver {
 
   bool IsOnCxxStack() const { return !mCxxStackFrames.empty(); }
 
-  bool IsInTransaction() const;
   void CancelCurrentTransaction();
 
   // Force all calls to Send to defer actually sending messages. This will
@@ -369,8 +375,10 @@ class MessageChannel : HasResultCodes, MessageLoop::DestructionObserver {
 #endif    // defined(OS_WIN)
 
  private:
-  void CommonThreadOpenInit(MessageChannel* aTargetChan, Side aSide);
-  void OnOpenAsSlave(MessageChannel* aTargetChan, Side aSide);
+  void CommonThreadOpenInit(MessageChannel* aTargetChan,
+                            nsISerialEventTarget* aThread, Side aSide);
+  void OpenAsOtherThread(MessageChannel* aTargetChan,
+                         nsISerialEventTarget* aThread, Side aSide);
 
   void PostErrorNotifyTask();
   void OnNotifyMaybeChannelError();
@@ -464,7 +472,7 @@ class MessageChannel : HasResultCodes, MessageLoop::DestructionObserver {
   // debugger with all threads paused.
   void DumpInterruptStack(const char* const pfx = "") const;
 
-  void AddProfilerMarker(const IPC::Message* aMessage,
+  void AddProfilerMarker(const IPC::Message& aMessage,
                          MessageDirection aDirection);
 
  private:
@@ -531,7 +539,7 @@ class MessageChannel : HasResultCodes, MessageLoop::DestructionObserver {
 
   // Helper for sending a message via the link. This should only be used for
   // non-special messages that might have to be postponed.
-  void SendMessageToLink(Message* aMsg);
+  void SendMessageToLink(UniquePtr<Message> aMsg);
 
   bool WasTransactionCanceled(int transaction);
   bool ShouldDeferMessage(const Message& aMsg);
@@ -545,10 +553,9 @@ class MessageChannel : HasResultCodes, MessageLoop::DestructionObserver {
   void NotifyMaybeChannelError();
 
  private:
-  // Can be run on either thread
   void AssertWorkerThread() const {
     MOZ_ASSERT(mWorkerThread, "Channel hasn't been opened yet");
-    MOZ_RELEASE_ASSERT(mWorkerThread == PR_GetCurrentThread(),
+    MOZ_RELEASE_ASSERT(mWorkerThread && mWorkerThread->IsOnCurrentThread(),
                        "not on worker thread!");
   }
 
@@ -566,7 +573,7 @@ class MessageChannel : HasResultCodes, MessageLoop::DestructionObserver {
     // If we aren't a same-thread channel, our "link" thread is _not_ our
     // worker thread!
     MOZ_ASSERT(mWorkerThread, "Channel hasn't been opened yet");
-    MOZ_RELEASE_ASSERT(mWorkerThread != PR_GetCurrentThread(),
+    MOZ_RELEASE_ASSERT(mWorkerThread && !mWorkerThread->IsOnCurrentThread(),
                        "on worker thread but should not be!");
   }
 
@@ -610,8 +617,6 @@ class MessageChannel : HasResultCodes, MessageLoop::DestructionObserver {
   typedef std::map<size_t, UniquePtr<UntypedCallbackHolder>> CallbackMap;
   typedef IPC::Message::msgid_t msgid_t;
 
-  void WillDestroyCurrentMessageLoop() override;
-
  private:
   // This will be a string literal, so lifetime is not an issue.
   const char* mName;
@@ -623,14 +628,12 @@ class MessageChannel : HasResultCodes, MessageLoop::DestructionObserver {
   RefPtr<RefCountedMonitor> mMonitor;
   Side mSide;
   bool mIsCrossProcess;
-  MessageLink* mLink;
-  MessageLoop* mWorkerLoop;  // thread where work is done
+  UniquePtr<MessageLink> mLink;
   RefPtr<CancelableRunnable>
       mChannelErrorTask;  // NotifyMaybeChannelError runnable
 
-  // Thread we are allowed to send and receive on. This persists even after
-  // mWorkerLoop is cleared during channel shutdown.
-  PRThread* mWorkerThread;
+  // Thread we are allowed to send and receive on.
+  nsCOMPtr<nsISerialEventTarget> mWorkerThread;
 
   // Timeout periods are broken up in two to prevent system suspension from
   // triggering an abort. This method (called by WaitForEvent with a 'did

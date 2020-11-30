@@ -3,6 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import argparse
+import errno
 import hashlib
 import imp
 import os
@@ -14,7 +15,6 @@ from six.moves import configparser
 from mozboot.util import get_state_dir
 
 from mozlog.structured import commandline
-from wptrunner.wptcommandline import set_from_config
 
 import manifestdownload
 from wptrunner import wptcommandline
@@ -130,7 +130,14 @@ def ensure_manifest_directories(logger, test_paths):
         manifest_dir = os.path.dirname(paths["manifest_path"])
         if not os.path.exists(manifest_dir):
             logger.info("Creating directory %s" % manifest_dir)
-            os.makedirs(manifest_dir)
+            # Even though we just checked the path doesn't exist, there's a chance
+            # of race condition with another process or thread having created it in
+            # between. This happens during tests.
+            try:
+                os.makedirs(manifest_dir)
+            except OSError as e:
+                if e.errno != errno.EEXIST:
+                    raise
         elif not os.path.isdir(manifest_dir):
             raise IOError("Manifest directory is a file")
 
@@ -147,7 +154,14 @@ def read_local_config(wpt_dir):
 def generate_config(logger, repo_root, wpt_dir, dest_path, force_rewrite=False):
     """Generate the local wptrunner.ini file to use locally"""
     if not os.path.exists(dest_path):
-        os.makedirs(dest_path)
+        # Even though we just checked the path doesn't exist, there's a chance
+        # of race condition with another process or thread having created it in
+        # between. This happens during tests.
+        try:
+            os.makedirs(dest_path)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
 
     dest_config_path = os.path.join(dest_path, 'wptrunner.local.ini')
 
@@ -168,7 +182,8 @@ def generate_config(logger, repo_root, wpt_dir, dest_path, force_rewrite=False):
         parser.set(section, "metadata", os.path.join(wpt_dir, meta_rel_path))
         parser.set(section, "tests", os.path.join(wpt_dir, tests_rel_path))
 
-    parser.set('paths', 'prefs', os.path.abspath(os.path.join(wpt_dir, parser.get("paths", "prefs"))))
+    parser.set('paths', 'prefs', os.path.abspath(
+        os.path.join(wpt_dir, parser.get("paths", "prefs"))))
 
     with open(dest_config_path, 'wt') as config_file:
         parser.write(config_file)
@@ -179,10 +194,12 @@ def generate_config(logger, repo_root, wpt_dir, dest_path, force_rewrite=False):
 def load_and_update(logger, wpt_dir, test_paths, rebuild=False, config_dir=None, cache_root=None,
                     update=True):
     rv = {}
-    wptdir_hash = hashlib.sha256(os.path.abspath(wpt_dir)).hexdigest()
+    wptdir_hash = hashlib.sha256(os.path.abspath(wpt_dir).encode()).hexdigest()
     for url_base, paths in six.iteritems(test_paths):
         manifest_path = paths["manifest_path"]
-        this_cache_root = os.path.join(cache_root, wptdir_hash, os.path.dirname(paths["manifest_rel_path"]))
+        this_cache_root = os.path.join(cache_root,
+                                       wptdir_hash,
+                                       os.path.dirname(paths["manifest_rel_path"]))
         m = manifest.manifest.load_and_update(paths["tests_path"],
                                               manifest_path,
                                               url_base,

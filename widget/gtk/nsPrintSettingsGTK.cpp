@@ -36,10 +36,7 @@ NS_IMPL_ISUPPORTS_INHERITED(nsPrintSettingsGTK, nsPrintSettings,
 /** ---------------------------------------------------
  */
 nsPrintSettingsGTK::nsPrintSettingsGTK()
-    : mPageSetup(nullptr),
-      mPrintSettings(nullptr),
-      mGTKPrinter(nullptr),
-      mPrintSelectionOnly(false) {
+    : mPageSetup(nullptr), mPrintSettings(nullptr), mGTKPrinter(nullptr) {
   // The aim here is to set up the objects enough that silent printing works
   // well. These will be replaced anyway if the print dialog is used.
   mPrintSettings = gtk_print_settings_new();
@@ -48,6 +45,14 @@ nsPrintSettingsGTK::nsPrintSettingsGTK()
   g_object_unref(pageSetup);
 
   SetOutputFormat(nsIPrintSettings::kOutputFormatNative);
+}
+
+already_AddRefed<nsIPrintSettings> CreatePlatformPrintSettings(
+    const PrintSettingsInitializer& aSettings) {
+  RefPtr<nsPrintSettings> settings = new nsPrintSettingsGTK();
+  settings->InitWithInitializer(aSettings);
+  settings->SetDefaultFileName();
+  return settings.forget();
 }
 
 /** ---------------------------------------------------
@@ -70,10 +75,7 @@ nsPrintSettingsGTK::~nsPrintSettingsGTK() {
 /** ---------------------------------------------------
  */
 nsPrintSettingsGTK::nsPrintSettingsGTK(const nsPrintSettingsGTK& aPS)
-    : mPageSetup(nullptr),
-      mPrintSettings(nullptr),
-      mGTKPrinter(nullptr),
-      mPrintSelectionOnly(false) {
+    : mPageSetup(nullptr), mPrintSettings(nullptr), mGTKPrinter(nullptr) {
   *this = aPS;
 }
 
@@ -98,8 +100,6 @@ nsPrintSettingsGTK& nsPrintSettingsGTK::operator=(
 
   if (mGTKPrinter) g_object_unref(mGTKPrinter);
   mGTKPrinter = (GtkPrinter*)g_object_ref(rhs.mGTKPrinter);
-
-  mPrintSelectionOnly = rhs.mPrintSelectionOnly;
 
   return *this;
 }
@@ -206,10 +206,6 @@ NS_IMETHODIMP nsPrintSettingsGTK::GetOutputFormat(int16_t* aOutputFormat) {
 
 NS_IMETHODIMP nsPrintSettingsGTK::GetPrintRange(int16_t* aPrintRange) {
   NS_ENSURE_ARG_POINTER(aPrintRange);
-  if (mPrintSelectionOnly) {
-    *aPrintRange = kRangeSelection;
-    return NS_OK;
-  }
 
   GtkPrintPages gtkRange = gtk_print_settings_get_print_pages(mPrintSettings);
   if (gtkRange == GTK_PRINT_PAGES_RANGES)
@@ -220,12 +216,6 @@ NS_IMETHODIMP nsPrintSettingsGTK::GetPrintRange(int16_t* aPrintRange) {
   return NS_OK;
 }
 NS_IMETHODIMP nsPrintSettingsGTK::SetPrintRange(int16_t aPrintRange) {
-  if (aPrintRange == kRangeSelection) {
-    mPrintSelectionOnly = true;
-    return NS_OK;
-  }
-
-  mPrintSelectionOnly = false;
   if (aPrintRange == kRangeSpecifiedPageRange)
     gtk_print_settings_set_print_pages(mPrintSettings, GTK_PRINT_PAGES_RANGES);
   else
@@ -416,7 +406,7 @@ nsPrintSettingsGTK::GetPrinterName(nsAString& aPrinter) {
       return NS_OK;
     }
   }
-  aPrinter = NS_ConvertUTF8toUTF16(gtkPrintName);
+  CopyUTF8toUTF16(MakeStringSpan(gtkPrintName), aPrinter);
   return NS_OK;
 }
 
@@ -424,7 +414,7 @@ NS_IMETHODIMP
 nsPrintSettingsGTK::SetPrinterName(const nsAString& aPrinter) {
   NS_ConvertUTF16toUTF8 gtkPrinter(aPrinter);
 
-  if (StringBeginsWith(gtkPrinter, NS_LITERAL_CSTRING("CUPS/"))) {
+  if (StringBeginsWith(gtkPrinter, "CUPS/"_ns)) {
     // Strip off "CUPS/"; GTK might recognize the rest
     gtkPrinter.Cut(0, strlen("CUPS/"));
   }
@@ -468,17 +458,18 @@ nsPrintSettingsGTK::SetScaling(double aScaling) {
 }
 
 NS_IMETHODIMP
-nsPrintSettingsGTK::GetPaperName(nsAString& aPaperName) {
+nsPrintSettingsGTK::GetPaperId(nsAString& aPaperId) {
   const gchar* name =
       gtk_paper_size_get_name(gtk_page_setup_get_paper_size(mPageSetup));
-  aPaperName = NS_ConvertUTF8toUTF16(name);
+  CopyUTF8toUTF16(mozilla::MakeStringSpan(name), aPaperId);
   return NS_OK;
 }
 NS_IMETHODIMP
-nsPrintSettingsGTK::SetPaperName(const nsAString& aPaperName) {
-  NS_ConvertUTF16toUTF8 gtkPaperName(aPaperName);
+nsPrintSettingsGTK::SetPaperId(const nsAString& aPaperId) {
+  NS_ConvertUTF16toUTF8 gtkPaperName(aPaperId);
 
   // Convert these Gecko names to GTK names
+  // XXX (jfkthame): is this still relevant?
   if (gtkPaperName.EqualsIgnoreCase("letter"))
     gtkPaperName.AssignLiteral(GTK_PAPER_NAME_LETTER);
   else if (gtkPaperName.EqualsIgnoreCase("legal"))

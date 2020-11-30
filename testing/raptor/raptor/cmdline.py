@@ -15,7 +15,11 @@ from mozlog.commandline import add_logging_group
 (FENNEC,
  GECKOVIEW,
  REFBROW,
- FENIX) = FIREFOX_ANDROID_APPS = ["fennec", "geckoview", "refbrow", "fenix"]
+ FENIX,
+ CHROME_ANDROID) = FIREFOX_ANDROID_APPS = [
+    "fennec", "geckoview", "refbrow", "fenix", "chrome-m"
+]
+
 CHROMIUM_DISTROS = [CHROME, CHROMIUM]
 APPS = {
     FIREFOX: {
@@ -37,6 +41,10 @@ APPS = {
     FENIX: {
         "long_name": "Firefox Android Fenix Browser",
         "default_activity": "org.mozilla.fenix.IntentReceiverActivity",
+        "default_intent": "android.intent.action.VIEW"},
+    CHROME_ANDROID: {
+        "long_name": "Google Chrome on Android",
+        "default_activity": "com.android.chrome/com.google.android.apps.chrome.Main",
         "default_intent": "android.intent.action.VIEW"}
 }
 INTEGRATED_APPS = list(APPS.keys())
@@ -92,6 +100,10 @@ def create_parser(mach_interface=False):
             help="Use Raptor to measure memory usage.")
     add_arg('--cpu-test', dest="cpu_test", action="store_true",
             help="Use Raptor to measure CPU usage. Currently supported for Android only.")
+    add_arg('--live-sites', dest="live_sites", action="store_true", default=False,
+            help="Run tests using live sites instead of recorded sites.")
+    add_arg('--chimera', dest="chimera", action="store_true", default=False,
+            help="Run tests in chimera mode. Each browser cycle will run a cold and warm test.")
     add_arg('--is-release-build', dest="is_release_build", default=False,
             action='store_true',
             help="Whether the build is a release build which requires workarounds "
@@ -128,7 +140,9 @@ def create_parser(mach_interface=False):
             help='How long to wait (ms) after browser start-up before starting the tests')
     add_arg('--browser-cycles', dest="browser_cycles", type=int,
             help="The number of times a cold load test is repeated (for cold load tests only, "
-            "where the browser is shutdown and restarted between test iterations)")
+            "where the browser is shutdown and restarted between test iterations)"),
+    add_arg('--project', dest='project', type=str, default='mozilla-central',
+            help="Project name (try, mozilla-central, etc.)"),
     add_arg('--test-url-params', dest='test_url_params',
             help="Parameters to add to the test_url query string")
     add_arg('--print-tests', action=_PrintTests,
@@ -146,7 +160,8 @@ def create_parser(mach_interface=False):
     add_arg('--enable-fission', dest="enable_fission", action="store_true", default=False,
             help="Enable Fission (site isolation) in Gecko.")
     add_arg('--setpref', dest="extra_prefs", action="append", default=[],
-            help="A preference to set. Must be a key-value pair separated by a ':'.")
+            metavar="PREF=VALUE",
+            help="Set a browser preference. May be used multiple times.")
     if not mach_interface:
         add_arg('--run-local', dest="run_local", default=False, action="store_true",
                 help="Flag which indicates if Raptor is running locally or in production")
@@ -156,6 +171,10 @@ def create_parser(mach_interface=False):
             help="Flag which indicates if Raptor should not offer to install Android APK.")
     add_arg('--installerpath', dest="installerpath", default=None, type=str,
             help="Location where Android browser APK was extracted to before installation.")
+    add_arg('--disable-perf-tuning', dest='disable_perf_tuning', default=False,
+            action="store_true", help="Disable performance tuning on android.")
+    add_arg('--conditioned-profile-scenario', dest='conditioned_profile_scenario',
+            default='settled', type=str, help="Name of profile scenario.")
 
     # for browsertime jobs, cold page load is determined by a '--cold' cmd line argument
     add_arg('--cold', dest="cold", action="store_true",
@@ -167,23 +186,55 @@ def create_parser(mach_interface=False):
             help="path to Node.js executable")
     add_arg('--browsertime-browsertimejs', dest='browsertime_browsertimejs',
             help="path to browsertime.js script")
+    add_arg('--browsertime-vismet-script', dest='browsertime_vismet_script',
+            help="path to visualmetrics.py script")
     add_arg('--browsertime-chromedriver', dest='browsertime_chromedriver',
             help="path to chromedriver executable")
     add_arg('--browsertime-video', dest='browsertime_video',
             help="records the viewport", default=False, action="store_true")
+    add_arg('--browsertime-visualmetrics', dest='browsertime_visualmetrics',
+            help="enables visual metrics", default=False, action="store_true")
+    add_arg('--browsertime-no-ffwindowrecorder', dest='browsertime_no_ffwindowrecorder',
+            help="disable the firefox window recorder", default=False, action="store_true")
     add_arg('--browsertime-ffmpeg', dest='browsertime_ffmpeg',
             help="path to ffmpeg executable (for `--video=true`)")
     add_arg('--browsertime-geckodriver', dest='browsertime_geckodriver',
             help="path to geckodriver executable")
-
+    add_arg('--verbose', dest="verbose", action="store_true", default=False,
+            help="Verbose output")
     add_logging_group(parser)
     return parser
 
 
 def verify_options(parser, args):
     ctx = vars(args)
-    if args.binary is None:
+    if args.binary is None and args.app != "chrome-m":
         parser.error("--binary is required!")
+
+    # make sure that browsertime_video is set if visual metrics are requested
+    if args.browsertime_visualmetrics and not args.browsertime_video:
+        args.browsertime_video = True
+
+    # if running chrome android tests, make sure it's on browsertime and
+    # that the chromedriver path was provided
+    if args.app == "chrome-m":
+        if not args.browsertime:
+            parser.error("--browsertime is required to run android chrome tests")
+        if not args.browsertime_chromedriver:
+            parser.error(
+                "--browsertime-chromedriver path is required for android chrome tests"
+            )
+
+    if args.chimera:
+        if not args.browsertime:
+            parser.error("--browsertime is required to run tests in chimera mode")
+        if isinstance(args.page_cycles, int) and args.page_cycles != 2:
+            parser.error(
+                "--page-cycles must either not be set, or must be equal to 2 in chimera mode"
+            )
+        # Force cold pageloads with 2 page cycles
+        args.cold = True
+        args.page_cycles = 2
 
     # if running on a desktop browser make sure the binary exists
     if args.app in DESKTOP_APPS:

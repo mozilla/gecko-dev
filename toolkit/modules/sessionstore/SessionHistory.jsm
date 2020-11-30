@@ -36,11 +36,35 @@ var SessionHistory = Object.freeze({
   },
 
   collect(docShell, aFromIdx = -1) {
+    if (Services.appinfo.sessionHistoryInParent) {
+      throw new Error("Use SessionHistory.collectFromParent instead");
+    }
     return SessionHistoryInternal.collect(docShell, aFromIdx);
   },
 
+  collectFromParent(uri, body, history, userContextId, aFromIdx = -1) {
+    return SessionHistoryInternal.collectCommon(
+      uri,
+      body,
+      history,
+      userContextId,
+      aFromIdx
+    );
+  },
+
   restore(docShell, tabData) {
-    return SessionHistoryInternal.restore(docShell, tabData);
+    if (Services.appinfo.sessionHistoryInParent) {
+      throw new Error("Use SessionHistory.restoreFromParent instead");
+    }
+    return SessionHistoryInternal.restore(
+      docShell.QueryInterface(Ci.nsIWebNavigation).sessionHistory
+        .legacySHistory,
+      tabData
+    );
+  },
+
+  restoreFromParent(history, tabData) {
+    return SessionHistoryInternal.restore(history, tabData);
   },
 });
 
@@ -81,12 +105,24 @@ var SessionHistoryInternal = {
   collect(docShell, aFromIdx = -1) {
     let loadContext = docShell.QueryInterface(Ci.nsILoadContext);
     let webNavigation = docShell.QueryInterface(Ci.nsIWebNavigation);
+    let uri = webNavigation.currentURI.displaySpec;
+    let body = webNavigation.document.body;
     let history = webNavigation.sessionHistory;
+    let userContextId = loadContext.originAttributes.userContextId;
+    return this.collectCommon(
+      uri,
+      body,
+      history.legacySHistory,
+      userContextId,
+      aFromIdx
+    );
+  },
 
+  collectCommon(uri, body, shistory, userContextId, aFromIdx) {
     let data = {
       entries: [],
-      userContextId: loadContext.originAttributes.userContextId,
-      requestedIndex: history.legacySHistory.requestedIndex + 1,
+      userContextId,
+      requestedIndex: shistory.requestedIndex + 1,
     };
 
     // We want to keep track how many entries we *could* have collected and
@@ -95,8 +131,7 @@ var SessionHistoryInternal = {
     let skippedCount = 0,
       entryCount = 0;
 
-    if (history && history.count > 0) {
-      let shistory = history.legacySHistory.QueryInterface(Ci.nsISHistory);
+    if (shistory && shistory.count > 0) {
       let count = shistory.count;
       for (; entryCount < count; entryCount++) {
         let shEntry = shistory.getEntryAtIndex(entryCount);
@@ -109,15 +144,13 @@ var SessionHistoryInternal = {
       }
 
       // Ensure the index isn't out of bounds if an exception was thrown above.
-      data.index = Math.min(history.index + 1, entryCount);
+      data.index = Math.min(shistory.index + 1, entryCount);
     }
 
     // If either the session history isn't available yet or doesn't have any
     // valid entries, make sure we at least include the current page,
     // unless of course we just skipped all entries because aFromIdx was big enough.
     if (!data.entries.length && (skippedCount != entryCount || aFromIdx < 0)) {
-      let uri = webNavigation.currentURI.displaySpec;
-      let body = webNavigation.document.body;
       // We landed here because the history is inaccessible or there are no
       // history entries. In that case we should at least record the docShell's
       // current URL as a single history entry. If the URL is not about:blank
@@ -243,11 +276,13 @@ var SessionHistoryInternal = {
       );
     }
 
-    if (shEntry.storagePrincipalToInherit) {
-      entry.storagePrincipalToInherit_base64 = E10SUtils.serializePrincipal(
-        shEntry.storagePrincipalToInherit
+    if (shEntry.partitionedPrincipalToInherit) {
+      entry.partitionedPrincipalToInherit_base64 = E10SUtils.serializePrincipal(
+        shEntry.partitionedPrincipalToInherit
       );
     }
+
+    entry.hasUserInteraction = shEntry.hasUserInteraction;
 
     if (shEntry.triggeringPrincipal) {
       entry.triggeringPrincipal_base64 = E10SUtils.serializePrincipal(
@@ -328,17 +363,15 @@ var SessionHistoryInternal = {
   /**
    * Restores session history data for a given docShell.
    *
-   * @param docShell
-   *        The docShell that owns the session history.
+   * @param history
+   *        The session history object.
    * @param tabData
    *        The tabdata including all history entries.
    * @return A reference to the docShell's nsISHistory interface.
    */
-  restore(docShell, tabData) {
-    let webNavigation = docShell.QueryInterface(Ci.nsIWebNavigation);
-    let history = webNavigation.sessionHistory.legacySHistory;
+  restore(history, tabData) {
     if (history.count > 0) {
-      history.PurgeHistory(history.count);
+      history.purgeHistory(history.count);
     }
 
     let idMap = { used: {} };
@@ -350,10 +383,21 @@ var SessionHistoryInternal = {
         continue;
       }
       let persist = "persist" in entry ? entry.persist : true;
-      history.addEntry(
-        this.deserializeEntry(entry, idMap, docIdentMap, history),
-        persist
-      );
+      let shEntry = this.deserializeEntry(entry, idMap, docIdentMap, history);
+
+      // To enable a smooth migration, we treat values of null/undefined as having
+      // user interaction (because we don't want to hide all session history that was
+      // added before we started recording user interaction).
+      //
+      // This attribute is only set on top-level SH history entries, so we set it
+      // outside of deserializeEntry since that is called recursively.
+      if (entry.hasUserInteraction == undefined) {
+        shEntry.hasUserInteraction = true;
+      } else {
+        shEntry.hasUserInteraction = entry.hasUserInteraction;
+      }
+
+      history.addEntry(shEntry, persist);
     }
 
     // Select the right history entry.
@@ -526,11 +570,11 @@ var SessionHistoryInternal = {
         return Services.scriptSecurityManager.createNullPrincipal({});
       }
     );
-    // As both storagePrincipal and principalToInherit are both not required to load
+    // As both partitionedPrincipal and principalToInherit are both not required to load
     // it's ok to keep these undefined when we don't have a previously defined principal.
-    if (entry.storagePrincipalToInherit_base64) {
-      shEntry.storagePrincipalToInherit = E10SUtils.deserializePrincipal(
-        entry.storagePrincipalToInherit_base64
+    if (entry.partitionedPrincipalToInherit_base64) {
+      shEntry.partitionedPrincipalToInherit = E10SUtils.deserializePrincipal(
+        entry.partitionedPrincipalToInherit_base64
       );
     }
     if (entry.principalToInherit_base64) {
@@ -569,7 +613,7 @@ var SessionHistoryInternal = {
             entry.children[i],
             idMap,
             childDocIdents,
-            shEntry.shistory
+            shistory
           ),
           i
         );

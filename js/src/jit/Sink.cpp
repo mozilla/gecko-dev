@@ -9,6 +9,7 @@
 #include "mozilla/Vector.h"
 
 #include "jit/IonAnalysis.h"
+#include "jit/IonOptimizationLevels.h"
 #include "jit/JitSpewer.h"
 #include "jit/MIR.h"
 #include "jit/MIRGenerator.h"
@@ -72,6 +73,9 @@ bool Sink(MIRGenerator* mir, MIRGraph& graph) {
         hasUses = true;
         MNode* consumerNode = (*i)->consumer();
         if (consumerNode->isResumePoint()) {
+          if (!consumerNode->toResumePoint()->isRecoverableOperand(*i)) {
+            hasLiveUses = true;
+          }
           continue;
         }
 
@@ -191,6 +195,9 @@ bool Sink(MIRGenerator* mir, MIRGraph& graph) {
       }
 
       MInstruction* clone = ins->clone(alloc, operands);
+      if (!clone) {
+        return false;
+      }
       ins->block()->insertBefore(ins, clone);
       clone->setRecoveredOnBailout();
 

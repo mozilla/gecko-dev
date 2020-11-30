@@ -3,7 +3,7 @@
 
 "use strict";
 
-// Tests "megabar" redesign approach with retained results.
+// Tests retained results.
 // When there is a pending search (user typed a search string and blurred
 // without picking a result), on focus we should the search results again.
 
@@ -71,10 +71,7 @@ async function checkDoesNotOpenOnFocus(win) {
 
 add_task(async function setup() {
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.urlbar.autoFill", true],
-      ["browser.urlbar.openViewOnFocus", true],
-    ],
+    set: [["browser.urlbar.autoFill", true]],
   });
   // Add some history for the empty panel and autofill.
   await PlacesTestUtils.addVisits([
@@ -108,7 +105,6 @@ async function test_window(win) {
         let autofill = url == "http://example.com/";
         await UrlbarTestUtils.promiseAutocompleteResultPopup({
           window: win,
-          waitForFocus,
           value: autofill ? "ex" : "foo",
           fireInputEvent: true,
         });
@@ -132,7 +128,6 @@ async function test_window(win) {
 }
 
 add_task(async function test_normalWindow() {
-  // The megabar works properly in a new window.
   let win = await BrowserTestUtils.openNewBrowserWindow();
   await test_window(win);
   await BrowserTestUtils.closeWindow(win);
@@ -151,7 +146,6 @@ add_task(async function test_tabSwitch() {
   let win = await BrowserTestUtils.openNewBrowserWindow();
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window: win,
-    waitForFocus,
     value: "ex",
     fireInputEvent: true,
   });
@@ -183,7 +177,6 @@ add_task(async function test_tabSwitch() {
   let tab2 = await BrowserTestUtils.openNewForegroundTab(win.gBrowser);
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window: win,
-    waitForFocus,
     value: "ex",
     fireInputEvent: true,
   });
@@ -206,7 +199,6 @@ add_task(async function test_tabSwitch() {
   tab2 = await BrowserTestUtils.openNewForegroundTab(win.gBrowser);
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window: win,
-    waitForFocus,
     value: "xam",
     fireInputEvent: true,
   });
@@ -230,7 +222,6 @@ add_task(async function test_tabSwitch() {
   info("autofill in tab2, switch to tab1, then back to tab2 with the mouse");
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window: win,
-    waitForFocus,
     value: "e",
     fireInputEvent: true,
   });
@@ -371,7 +362,6 @@ add_task(async function test_pageproxystate_valid() {
   info("Search for a full url and confirm it with Enter");
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window: win,
-    waitForFocus,
     value: "about:robots",
     fireInputEvent: true,
   });
@@ -419,7 +409,6 @@ add_task(async function test_clicks_after_autofill() {
   info("autofill in tab2, switch to tab1, then back to tab2 with the mouse");
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window: win,
-    waitForFocus,
     value: "e",
     fireInputEvent: true,
   });

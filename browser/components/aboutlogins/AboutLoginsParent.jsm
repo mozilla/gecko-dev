@@ -4,7 +4,8 @@
 
 "use strict";
 
-var EXPORTED_SYMBOLS = ["AboutLoginsParent"];
+// _AboutLogins is only exported for testing
+var EXPORTED_SYMBOLS = ["AboutLoginsParent", "_AboutLogins"];
 
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
@@ -15,7 +16,10 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   E10SUtils: "resource://gre/modules/E10SUtils.jsm",
   LoginBreaches: "resource:///modules/LoginBreaches.jsm",
   LoginHelper: "resource://gre/modules/LoginHelper.jsm",
+  LoginExport: "resource://gre/modules/LoginExport.jsm",
+  LoginCSVImport: "resource://gre/modules/LoginCSVImport.jsm",
   MigrationUtils: "resource:///modules/MigrationUtils.jsm",
+  OSKeyStore: "resource://gre/modules/OSKeyStore.jsm",
   Services: "resource://gre/modules/Services.jsm",
   UIState: "resource://services-sync/UIState.jsm",
   PlacesUtils: "resource://gre/modules/PlacesUtils.jsm",
@@ -36,6 +40,21 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "identity.fxaccounts.enabled",
   false
 );
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "OS_AUTH_ENABLED",
+  "signon.management.page.os-auth.enabled",
+  true
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "VULNERABLE_PASSWORDS_ENABLED",
+  "signon.management.page.vulnerable-passwords.enabled",
+  false
+);
+XPCOMUtils.defineLazyGetter(this, "AboutLoginsL10n", () => {
+  return new Localization(["branding/brand.ftl", "browser/aboutLogins.ftl"]);
+});
 
 const ABOUT_LOGINS_ORIGIN = "about:logins";
 const MASTER_PASSWORD_NOTIFICATION_ID = "master-password-login-required";
@@ -206,6 +225,18 @@ class AboutLoginsParent extends JSWindowActorParent {
     let ownerGlobal = this.browsingContext.embedderElement.ownerGlobal;
     switch (message.name) {
       case "AboutLogins:CreateLogin": {
+        if (!Services.policies.isAllowed("removeMasterPassword")) {
+          if (!LoginHelper.isMasterPasswordSet()) {
+            ownerGlobal.openDialog(
+              "chrome://mozapps/content/preferences/changemp.xhtml",
+              "",
+              "centerscreen,chrome,modal,titlebar"
+            );
+            if (!LoginHelper.isMasterPasswordSet()) {
+              return;
+            }
+          }
+        }
         let newLogin = message.data.login;
         // Remove the path from the origin, if it was provided.
         let origin = LoginHelper.getLoginOrigin(newLogin.origin);
@@ -232,17 +263,6 @@ class AboutLoginsParent extends JSWindowActorParent {
       case "AboutLogins:DeleteLogin": {
         let login = LoginHelper.vanillaObjectToLogin(message.data.login);
         Services.logins.removeLogin(login);
-        break;
-      }
-      case "AboutLogins:DismissBreachAlert": {
-        const login = message.data.login;
-
-        await LoginBreaches.recordDismissal(login.guid);
-        const logins = await AboutLogins.getAllLogins();
-        const breachesByLoginGUID = await LoginBreaches.getPotentialBreachesByLoginGUID(
-          logins
-        );
-        this.sendAsyncMessage("AboutLogins:SetBreaches", breachesByLoginGUID);
         break;
       }
       case "AboutLogins:HideFooter": {
@@ -310,42 +330,50 @@ class AboutLoginsParent extends JSWindowActorParent {
         break;
       }
       case "AboutLogins:MasterPasswordRequest": {
-        // This does no harm if master password isn't set.
-        let tokendb = Cc["@mozilla.org/security/pk11tokendb;1"].createInstance(
-          Ci.nsIPK11TokenDB
+        let messageId = message.data;
+        if (!messageId) {
+          throw new Error(
+            "AboutLogins:MasterPasswordRequest: Message ID required for MasterPasswordRequest."
+          );
+        }
+        let messageText = { value: "NOT SUPPORTED" };
+        let captionText = { value: "" };
+
+        // This feature is only supported on Windows and macOS
+        // but we still call in to OSKeyStore on Linux to get
+        // the proper auth_details for Telemetry.
+        // See bug 1614874 for Linux support.
+        if (OS_AUTH_ENABLED && OSKeyStore.canReauth()) {
+          messageId += "-" + AppConstants.platform;
+          [messageText, captionText] = await AboutLoginsL10n.formatMessages([
+            {
+              id: messageId,
+            },
+            {
+              id: "about-logins-os-auth-dialog-caption",
+            },
+          ]);
+        }
+
+        let { isAuthorized, telemetryEvent } = await LoginHelper.requestReauth(
+          this.browsingContext.embedderElement,
+          OS_AUTH_ENABLED,
+          AboutLogins._authExpirationTime,
+          messageText.value,
+          captionText.value
         );
-        let token = tokendb.getInternalKeyToken();
-
-        // If there is no master password, return as-if authentication succeeded.
-        if (token.checkPassword("")) {
-          this.sendAsyncMessage("AboutLogins:MasterPasswordResponse", true);
-          return;
+        if (isAuthorized) {
+          const AUTH_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+          AboutLogins._authExpirationTime = Date.now() + AUTH_TIMEOUT_MS;
         }
-
-        // If a master password prompt is already open, just exit early and return false.
-        // The user can re-trigger it after responding to the already open dialog.
-        if (Services.logins.uiBusy) {
-          this.sendAsyncMessage("AboutLogins:MasterPasswordResponse", false);
-          return;
-        }
-
-        // So there's a master password. But since checkPassword didn't succeed, we're logged out (per nsIPK11Token.idl).
-        try {
-          // Relogin and ask for the master password.
-          token.login(true); // 'true' means always prompt for token password. User will be prompted until
-          // clicking 'Cancel' or entering the correct password.
-        } catch (e) {
-          // An exception will be thrown if the user cancels the login prompt dialog.
-          // User is also logged out of Software Security Device.
-        }
-
-        this.sendAsyncMessage(
-          "AboutLogins:MasterPasswordResponse",
-          token.isLoggedIn()
-        );
+        this.sendAsyncMessage("AboutLogins:MasterPasswordResponse", {
+          result: isAuthorized,
+          telemetryEvent,
+        });
         break;
       }
       case "AboutLogins:Subscribe": {
+        AboutLogins._authExpirationTime = Number.NEGATIVE_INFINITY;
         if (!AboutLogins._observersAdded) {
           Services.obs.addObserver(AboutLogins, "passwordmgr-crypto-login");
           Services.obs.addObserver(
@@ -383,12 +411,18 @@ class AboutLoginsParent extends JSWindowActorParent {
             playStoreBadgeLanguage,
           };
 
+          let selectedSort = Services.prefs.getCharPref(
+            "signon.management.page.sort",
+            "name"
+          );
+          if (selectedSort == "breached") {
+            // The "breached" value was used since Firefox 70 and
+            // replaced with "alerts" in Firefox 76.
+            selectedSort = "alerts";
+          }
           this.sendAsyncMessage("AboutLogins:Setup", {
             logins,
-            selectedSort: Services.prefs.getCharPref(
-              "signon.management.page.sort",
-              "name"
-            ),
+            selectedSort,
             syncState,
             selectedBadgeLanguages,
             masterPasswordEnabled: LoginHelper.isMasterPasswordSet(),
@@ -443,6 +477,122 @@ class AboutLoginsParent extends JSWindowActorParent {
         }
         break;
       }
+      case "AboutLogins:ExportPasswords": {
+        let messageText = { value: "NOT SUPPORTED" };
+        let captionText = { value: "" };
+
+        // This feature is only supported on Windows and macOS
+        // but we still call in to OSKeyStore on Linux to get
+        // the proper auth_details for Telemetry.
+        // See bug 1614874 for Linux support.
+        if (OSKeyStore.canReauth()) {
+          let messageId =
+            "about-logins-export-password-os-auth-dialog-message-" +
+            AppConstants.platform;
+          [messageText, captionText] = await AboutLoginsL10n.formatMessages([
+            {
+              id: messageId,
+            },
+            {
+              id: "about-logins-os-auth-dialog-caption",
+            },
+          ]);
+        }
+
+        let { isAuthorized, telemetryEvent } = await LoginHelper.requestReauth(
+          this.browsingContext.embedderElement,
+          true,
+          null, // Prompt regardless of a recent prompt
+          messageText.value,
+          captionText.value
+        );
+
+        let { method, object, extra = {}, value = null } = telemetryEvent;
+        Services.telemetry.recordEvent("pwmgr", method, object, value, extra);
+
+        if (!isAuthorized) {
+          return;
+        }
+
+        let fp = Cc["@mozilla.org/filepicker;1"].createInstance(
+          Ci.nsIFilePicker
+        );
+        function fpCallback(aResult) {
+          if (aResult != Ci.nsIFilePicker.returnCancel) {
+            LoginExport.exportAsCSV(fp.file.path);
+            Services.telemetry.recordEvent(
+              "pwmgr",
+              "mgmt_menu_item_used",
+              "export_complete"
+            );
+          }
+        }
+        let [
+          title,
+          defaultFilename,
+          okButtonLabel,
+          csvFilterTitle,
+        ] = await AboutLoginsL10n.formatValues([
+          {
+            id: "about-logins-export-file-picker-title",
+          },
+          {
+            id: "about-logins-export-file-picker-default-filename",
+          },
+          {
+            id: "about-logins-export-file-picker-export-button",
+          },
+          {
+            id: "about-logins-export-file-picker-csv-filter-title",
+          },
+        ]);
+
+        fp.init(ownerGlobal, title, Ci.nsIFilePicker.modeSave);
+        fp.appendFilter(csvFilterTitle, "*.csv");
+        fp.appendFilters(Ci.nsIFilePicker.filterAll);
+        fp.defaultString = defaultFilename;
+        fp.defaultExtension = "csv";
+        fp.okButtonLabel = okButtonLabel;
+        fp.open(fpCallback);
+        break;
+      }
+      case "AboutLogins:ImportPasswords": {
+        let fp = Cc["@mozilla.org/filepicker;1"].createInstance(
+          Ci.nsIFilePicker
+        );
+        async function fpCallback(aResult) {
+          if (aResult != Ci.nsIFilePicker.returnCancel) {
+            await LoginCSVImport.importFromCSV(fp.file.path);
+            Services.telemetry.recordEvent(
+              "pwmgr",
+              "mgmt_menu_item_used",
+              "import_csv_complete"
+            );
+          }
+        }
+        let [
+          title,
+          okButtonLabel,
+          csvFilterTitle,
+        ] = await AboutLoginsL10n.formatValues([
+          {
+            id: "about-logins-import-file-picker-title",
+          },
+          {
+            id: "about-logins-import-file-picker-import-button",
+          },
+          {
+            id: "about-logins-import-file-picker-csv-filter-title",
+          },
+        ]);
+
+        fp.init(ownerGlobal, title, Ci.nsIFilePicker.modeOpen);
+        fp.appendFilter(csvFilterTitle, "*.csv");
+        fp.appendFilters(Ci.nsIFilePicker.filterAll);
+        fp.okButtonLabel = okButtonLabel;
+        fp.open(fpCallback);
+        break;
+      }
     }
   }
 
@@ -465,6 +615,7 @@ class AboutLoginsParent extends JSWindowActorParent {
 var AboutLogins = {
   _subscribers: new WeakSet(),
   _observersAdded: false,
+  _authExpirationTime: Number.NEGATIVE_INFINITY,
 
   async observe(subject, topic, type) {
     if (!ChromeUtils.nondeterministicGetWeakSetKeys(this._subscribers).length) {
@@ -500,14 +651,23 @@ var AboutLogins = {
         if (!login) {
           return;
         }
-        this.messageSubscribers("AboutLogins:LoginAdded", login);
 
         if (BREACH_ALERTS_ENABLED) {
           this.messageSubscribers(
             "AboutLogins:UpdateBreaches",
             await LoginBreaches.getPotentialBreachesByLoginGUID([login])
           );
+          if (VULNERABLE_PASSWORDS_ENABLED) {
+            this.messageSubscribers(
+              "AboutLogins:UpdateVulnerableLogins",
+              await LoginBreaches.getPotentiallyVulnerablePasswordsByLoginGUID([
+                login,
+              ])
+            );
+          }
         }
+
+        this.messageSubscribers("AboutLogins:LoginAdded", login);
         break;
       }
       case "modifyLogin": {
@@ -516,6 +676,30 @@ var AboutLogins = {
         if (!login) {
           return;
         }
+
+        if (BREACH_ALERTS_ENABLED) {
+          let breachesForThisLogin = await LoginBreaches.getPotentialBreachesByLoginGUID(
+            [login]
+          );
+          let breachData = breachesForThisLogin.size
+            ? breachesForThisLogin.get(login.guid)
+            : false;
+          this.messageSubscribers(
+            "AboutLogins:UpdateBreaches",
+            new Map([[login.guid, breachData]])
+          );
+          if (VULNERABLE_PASSWORDS_ENABLED) {
+            let vulnerablePasswordsForThisLogin = await LoginBreaches.getPotentiallyVulnerablePasswordsByLoginGUID(
+              [login]
+            );
+            let isLoginVulnerable = !!vulnerablePasswordsForThisLogin.size;
+            this.messageSubscribers(
+              "AboutLogins:UpdateVulnerableLogins",
+              new Map([[login.guid, isLoginVulnerable]])
+            );
+          }
+        }
+
         this.messageSubscribers("AboutLogins:LoginModified", login);
         break;
       }
@@ -571,7 +755,7 @@ var AboutLogins = {
       id: MASTER_PASSWORD_NOTIFICATION_ID,
       priority: "PRIORITY_WARNING_MEDIUM",
       iconURL: "chrome://browser/skin/login.svg",
-      messageId: "master-password-notification-message",
+      messageId: "about-logins-primary-password-notification-message",
       buttonIds: ["master-password-reload-button"],
       onClicks: [
         function onReloadClick(browser) {
@@ -751,6 +935,14 @@ var AboutLogins = {
         "AboutLogins:SetBreaches",
         await LoginBreaches.getPotentialBreachesByLoginGUID(logins)
       );
+      if (VULNERABLE_PASSWORDS_ENABLED) {
+        sendMessageFn(
+          "AboutLogins:SetVulnerableLogins",
+          await LoginBreaches.getPotentiallyVulnerablePasswordsByLoginGUID(
+            logins
+          )
+        );
+      }
     }
 
     sendMessageFn(
@@ -798,6 +990,7 @@ var AboutLogins = {
     this.updatePasswordSyncNotificationState(this.getSyncState(), latest);
   },
 };
+var _AboutLogins = AboutLogins;
 
 XPCOMUtils.defineLazyPreferenceGetter(
   this,

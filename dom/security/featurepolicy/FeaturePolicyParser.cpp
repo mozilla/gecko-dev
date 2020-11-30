@@ -27,8 +27,8 @@ void ReportToConsoleUnsupportedFeature(Document* aDocument,
   AutoTArray<nsString, 1> params = {aFeatureName};
 
   nsContentUtils::ReportToConsole(
-      nsIScriptError::warningFlag, NS_LITERAL_CSTRING("Feature Policy"),
-      aDocument, nsContentUtils::eSECURITY_PROPERTIES,
+      nsIScriptError::warningFlag, "Feature Policy"_ns, aDocument,
+      nsContentUtils::eSECURITY_PROPERTIES,
       "FeaturePolicyUnsupportedFeatureName", params);
 }
 
@@ -41,8 +41,8 @@ void ReportToConsoleInvalidEmptyAllowValue(Document* aDocument,
   AutoTArray<nsString, 1> params = {aFeatureName};
 
   nsContentUtils::ReportToConsole(
-      nsIScriptError::warningFlag, NS_LITERAL_CSTRING("Feature Policy"),
-      aDocument, nsContentUtils::eSECURITY_PROPERTIES,
+      nsIScriptError::warningFlag, "Feature Policy"_ns, aDocument,
+      nsContentUtils::eSECURITY_PROPERTIES,
       "FeaturePolicyInvalidEmptyAllowValue", params);
 }
 
@@ -54,10 +54,10 @@ void ReportToConsoleInvalidAllowValue(Document* aDocument,
 
   AutoTArray<nsString, 1> params = {aValue};
 
-  nsContentUtils::ReportToConsole(
-      nsIScriptError::warningFlag, NS_LITERAL_CSTRING("Feature Policy"),
-      aDocument, nsContentUtils::eSECURITY_PROPERTIES,
-      "FeaturePolicyInvalidAllowValue", params);
+  nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
+                                  "Feature Policy"_ns, aDocument,
+                                  nsContentUtils::eSECURITY_PROPERTIES,
+                                  "FeaturePolicyInvalidAllowValue", params);
 }
 
 }  // namespace
@@ -70,7 +70,7 @@ bool FeaturePolicyParser::ParseString(const nsAString& aPolicy,
                                       nsTArray<Feature>& aParsedFeatures) {
   MOZ_ASSERT(aSelfOrigin);
 
-  nsTArray<nsTArray<nsString>> tokens;
+  nsTArray<CopyableTArray<nsString>> tokens;
   PolicyTokenizer::tokenizePolicy(aPolicy, tokens);
 
   nsTArray<Feature> parsedFeatures;
@@ -150,7 +150,7 @@ bool FeaturePolicyParser::ParseString(const nsAString& aPolicy,
     }
   }
 
-  aParsedFeatures.SwapElements(parsedFeatures);
+  aParsedFeatures = std::move(parsedFeatures);
   return true;
 }
 

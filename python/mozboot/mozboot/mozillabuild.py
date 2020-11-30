@@ -38,15 +38,128 @@ def is_aarch64_host():
     return nativeMachine.value == IMAGE_FILE_MACHINE_ARM64
 
 
+def get_oracle_jdk_8_path():
+    try:
+        import _winreg
+    except ImportError:
+        import winreg as _winreg
+
+    try:
+        with _winreg.OpenKeyEx(_winreg.HKEY_LOCAL_MACHINE,
+                               r'SOFTWARE\JavaSoft\Java Development Kit\1.8') as key:
+            path, _ = _winreg.QueryValueEx(key, 'JavaHome')
+            return path
+    except FileNotFoundError:
+        return None
+
+
+def get_adopt_open_jdk_8_path():
+    try:
+        import _winreg
+    except ImportError:
+        import winreg as _winreg
+
+    try:
+        # The registry key name looks like:
+        # HKLM\SOFTWARE\AdoptOpenJDK\JDK\8.0.252.09\hotspot\MSI:Path
+        #                                ^^^^^^^^^^
+        # Due to the very precise version in the path, we can't just OpenKey("<static path>").
+        # Instead, we need to enumerate the list of JDKs, find the one that seems to be what
+        # we're looking for (JDK 1.8), then get the path from there.
+        with _winreg.OpenKeyEx(_winreg.HKEY_LOCAL_MACHINE,
+                               r'SOFTWARE\AdoptOpenJDK\JDK') as jdk_key:
+            index = 0
+            while True:
+                version_key_name = _winreg.EnumKey(jdk_key, index)
+                if not version_key_name.startswith('8.'):
+                    index += 1
+                    continue
+
+                with _winreg.OpenKeyEx(jdk_key,
+                                       r'{}\hotspot\MSI'.format(version_key_name)) as msi_key:
+                    path, _ = _winreg.QueryValueEx(msi_key, 'Path')
+                    return path
+    except (FileNotFoundError, OSError):
+        return None
+
+
+def get_is_windefender_disabled():
+    import winreg
+
+    try:
+        with winreg.OpenKeyEx(
+                winreg.HKEY_LOCAL_MACHINE,
+                r'SOFTWARE\Microsoft\Windows Defender') as windefender_key:
+            is_antivirus_disabled, _ = winreg.QueryValueEx(windefender_key, 'DisableAntiSpyware')
+            # is_antivirus_disabled is either 0 (False) or 1 (True)
+            return bool(is_antivirus_disabled)
+    except (FileNotFoundError, OSError):
+        return True
+
+
+def get_windefender_exclusion_paths():
+    import winreg
+
+    paths = []
+    try:
+        with winreg.OpenKeyEx(
+                winreg.HKEY_LOCAL_MACHINE,
+                r'SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths') as exclusions_key:
+            _, values_count, __ = winreg.QueryInfoKey(exclusions_key)
+            for i in range(0, values_count):
+                path, _, __ = winreg.EnumValue(exclusions_key, i)
+                paths.append(path)
+    except (FileNotFoundError, OSError):
+        pass
+
+    return paths
+
+
+def is_windefender_affecting_srcdir(srcdir):
+    if get_is_windefender_disabled():
+        return False
+
+    # When there's a match, but path cases aren't the same between srcdir and exclusion_path,
+    # commonpath will use the casing of the first path provided.
+    # To avoid surprises here, we normcase(...) so we don't get unexpected breakage if we change
+    # the path order.
+    srcdir = os.path.normcase(os.path.abspath(srcdir))
+    for exclusion_path in get_windefender_exclusion_paths():
+        exclusion_path = os.path.normcase(os.path.abspath(exclusion_path))
+        try:
+            if os.path.commonpath([exclusion_path, srcdir]) == exclusion_path:
+                # exclusion_path is an ancestor of srcdir
+                return False
+        except ValueError:
+            # ValueError: Paths don't have the same drive - can't be ours
+            pass
+    return True
+
+
 class MozillaBuildBootstrapper(BaseBootstrapper):
     '''Bootstrapper for MozillaBuild to install rustup.'''
+
+    INSTALL_PYTHON_GUIDANCE = (
+        'Python is provided by MozillaBuild; ensure your MozillaBuild '
+        'installation is up to date.')
+
     def __init__(self, no_interactive=False, no_system_changes=False):
         BaseBootstrapper.__init__(self, no_interactive=no_interactive,
                                   no_system_changes=no_system_changes)
-        print("mach bootstrap is not fully implemented in MozillaBuild")
 
-    def which(self, name, *extra_search_dirs):
-        return BaseBootstrapper.which(self, name + '.exe', *extra_search_dirs)
+    def validate_environment(self, srcdir):
+        if self.application.startswith('mobile_android'):
+            print('WARNING!!! Building Firefox for Android on Windows is not '
+                  'fully supported. See https://bugzilla.mozilla.org/show_bug.'
+                  'cgi?id=1169873 for details.', file=sys.stderr)
+
+        if is_windefender_affecting_srcdir(srcdir):
+            print('Warning: the Firefox checkout directory is currently not in the '
+                  'Windows Defender exclusion list. This can cause the build process '
+                  'to be dramatically slowed or broken. To resolve this, follow the '
+                  'directions here: '
+                  'https://firefox-source-docs.mozilla.org/setup/windows_build.html'
+                  '#antivirus-performance', file=sys.stderr)
 
     def install_system_packages(self):
         pass
@@ -57,47 +170,38 @@ class MozillaBuildBootstrapper(BaseBootstrapper):
         # the last version that comes with wheels.
         self.pip_install('mercurial', '--only-binary', 'mercurial')
 
-    def upgrade_python(self, current):
+    def install_browser_packages(self, mozconfig_builder):
         pass
 
-    def install_browser_packages(self):
+    def install_browser_artifact_mode_packages(self, mozconfig_builder):
         pass
 
-    def install_browser_artifact_mode_packages(self):
-        pass
+    def install_mobile_android_packages(self, mozconfig_builder):
+        self.ensure_mobile_android_packages(mozconfig_builder)
 
-    def install_mobile_android_packages(self):
-        self.ensure_mobile_android_packages()
+    def install_mobile_android_artifact_mode_packages(self, mozconfig_builder):
+        self.ensure_mobile_android_packages(mozconfig_builder, artifact_mode=True)
 
-    def install_mobile_android_artifact_mode_packages(self):
-        self.ensure_mobile_android_packages(artifact_mode=True)
+    def ensure_mobile_android_packages(self, mozconfig_builder, artifact_mode=False):
+        java_path = get_oracle_jdk_8_path() or get_adopt_open_jdk_8_path()
 
-    def ensure_mobile_android_packages(self, artifact_mode=False):
-        # Get java path from registry key
-        try:
-            import _winreg
-        except ImportError:
-            import winreg as _winreg
+        if java_path:
+            from mach.util import setenv
+            setenv('PATH', '{}{}{}'.format(os.path.join(java_path, 'bin'), os.pathsep,
+                                           os.environ['PATH']))
 
-        key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE,
-                              r'SOFTWARE\JavaSoft\Java Development Kit\1.8')
-        java_path, regtype = _winreg.QueryValueEx(key, 'JavaHome')
-        _winreg.CloseKey(key)
-        from mach.util import setenv
-        setenv('PATH', '{}{}{}'.format(os.path.join(java_path, 'bin'), os.pathsep,
-                                       os.environ['PATH']))
-        self.ensure_java()
+        self.ensure_java(mozconfig_builder)
 
         from mozboot import android
         android.ensure_android('windows', artifact_mode=artifact_mode,
                                no_interactive=self.no_interactive)
 
-    def suggest_mobile_android_mozconfig(self, artifact_mode=False):
+    def generate_mobile_android_mozconfig(self, artifact_mode=False):
         from mozboot import android
-        android.suggest_mozconfig('windows', artifact_mode=artifact_mode)
+        return android.generate_mozconfig('windows', artifact_mode=artifact_mode)
 
-    def suggest_mobile_android_artifact_mode_mozconfig(self):
-        self.suggest_mobile_android_mozconfig(artifact_mode=True)
+    def generate_mobile_android_artifact_mode_mozconfig(self):
+        return self.generate_mobile_android_mozconfig(artifact_mode=True)
 
     def ensure_clang_static_analysis_package(self, state_dir, checkout_root):
         from mozboot import static_analysis
@@ -148,6 +252,12 @@ class MozillaBuildBootstrapper(BaseBootstrapper):
         from mozboot import fix_stacks
 
         self.install_toolchain_artifact(state_dir, checkout_root, fix_stacks.WINDOWS_FIX_STACKS)
+
+    def ensure_minidump_stackwalk_packages(self, state_dir, checkout_root):
+        from mozboot import minidump_stackwalk
+
+        self.install_toolchain_artifact(state_dir, checkout_root,
+                                        minidump_stackwalk.WINDOWS_MINIDUMP_STACKWALK)
 
     def _update_package_manager(self):
         pass

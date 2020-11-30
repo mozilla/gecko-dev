@@ -3,10 +3,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 :root {
-  --section-width: 664px;
   --addon-icon-size: 32px;
+  --main-margin-start: 28px;
+  --section-width: 664px;
+  --sidebar-width: var(--in-content-sidebar-width);
   --z-index-sticky-container: 1;
   --z-index-popup: 10;
+}
+
+@media (max-width: 830px) {
+  :root {
+    --main-margin-start: 16px;
+    /* Maintain a main margin so card shadows don't overlap the sidebar. */
+    --sidebar-width: calc(var(--in-content-sidebar-width) - var(--main-margin-start));
+  }
 }
 
 *|*[hidden] {
@@ -19,8 +29,89 @@ body {
   min-width: 500px;
 }
 
+#full {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+}
+
+#sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  overflow: hidden auto;
+}
+
+@media (prefers-reduced-motion) {
+  /* Setting border-inline-end on #sidebar makes it a focusable element */
+  #sidebar::after {
+    content: "";
+    width: 1px;
+    height: 100%;
+    background-color: var(--in-content-border-color);
+    top: 0;
+    inset-inline-end: 0;
+    position: absolute;
+  }
+}
+
+#categories {
+  display: flex;
+  flex-direction: column;
+  padding-inline-end: 4px; /* Leave space for the button focus styles. */
+}
+
+.category {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  margin-block: 0;
+  align-items: center;
+}
+
+.category[badge-count]::after {
+  display: inline-block;
+  min-width: 20px;
+  background-color: var(--blue-50);
+  color: #fff;
+  font-weight: bold;
+  /* Use a large border-radius to get semi-circles on the sides. */
+  border-radius: 1000px;
+  padding: 2px 6px;
+  content: attr(badge-count);
+  text-align: center;
+  margin-inline-start: 8px;
+  grid-column: 2;
+}
+
+.category[name="discover"] {
+  background-image: url("chrome://mozapps/skin/extensions/category-discover.svg");
+}
+.category[name="locale"] {
+  background-image: url("chrome://mozapps/skin/extensions/category-languages.svg");
+}
+.category[name="extension"] {
+  background-image: url("chrome://mozapps/skin/extensions/category-extensions.svg");
+}
+.category[name="theme"] {
+  background-image: url("chrome://mozapps/skin/extensions/category-themes.svg");
+}
+.category[name="plugin"] {
+  background-image: url("chrome://global/skin/plugins/plugin.svg");
+}
+.category[name="dictionary"] {
+  background-image: url("chrome://mozapps/skin/extensions/category-dictionaries.svg");
+}
+.category[name="available-updates"] {
+  background-image: url("chrome://mozapps/skin/extensions/category-available.svg");
+}
+.category[name="recent-updates"] {
+  background-image: url("chrome://mozapps/skin/extensions/category-recent.svg");
+}
+
 .header-name {
-  -moz-user-select: initial;
+  user-select: initial;
 }
 
 .sticky-container {
@@ -43,8 +134,9 @@ body {
 }
 
 search-addons > search-textbox {
-  margin-inline-end: 0;
+  margin: 0;
   width: 20em;
+  min-height: 32px;
 }
 
 .search-label {
@@ -54,7 +146,7 @@ search-addons > search-textbox {
 .main-heading {
   background: var(--in-content-page-background);
   display: flex;
-  margin-inline-start: 28px;
+  margin-inline-start: var(--main-margin-start);
   padding-bottom: 16px;
   max-width: var(--section-width);
 }
@@ -80,14 +172,14 @@ search-addons > search-textbox {
 }
 
 #main {
-  margin-inline-start: 28px;
+  margin-inline-start: var(--main-margin-start);
   margin-bottom: 28px;
   max-width: var(--section-width);
 }
 
 global-warnings,
 #abuse-reports-messages {
-  margin-inline-start: 28px;
+  margin-inline-start: var(--main-margin-start);
   max-width: var(--section-width);
 }
 
@@ -101,13 +193,11 @@ message-bar-stack > * {
 .list-section-heading {
   font-size: 17px;
   font-weight: 600;
-  margin-top: 32px;
   margin-bottom: 16px;
 }
 
-/* The margin is set on the main heading, no need on the first subheading. */
-addon-list > section:first-of-type .list-section-heading {
-  margin-top: 0;
+.section {
+  margin-bottom: 32px;
 }
 
 /* Add-on cards */
@@ -145,18 +235,33 @@ addon-card[expanded] .addon.card {
 }
 
 addon-list addon-card > .addon.card {
-  -moz-user-select: none;
+  user-select: none;
 }
 
-.addon-card-message {
+.addon-card-message,
+.update-postponed-bar {
   border-top-left-radius: 0;
   border-top-right-radius: 0;
   margin: 8px calc(var(--card-padding) * -1) calc(var(--card-padding) * -1);
 }
 
-addon-card[expanded] .addon-card-message {
+addon-card[expanded] .addon-card-message,
+addon-card[expanded] .update-postponed-bar {
   border-radius: 0;
   margin-bottom: 0;
+}
+
+addon-card[expanded] .update-postponed-bar + .addon-card-message {
+  /* Remove margin between the two message bars when they are both
+   * visible in the detail view */
+  margin-top: 0px;
+}
+
+.update-postponed-bar + .addon-card-message {
+  /* Prevent the small overlapping between the two message bars
+   * when they are both visible at the same time one after the
+   * other on the same addon card */
+  margin-top: 12px;
 }
 
 /* Theme preview image. */
@@ -210,12 +315,14 @@ addon-card[expanded] .addon-card-message {
 .addon-badge {
   display: inline-block;
   margin-inline-end: 8px;
-  width: 16px;
-  height: 16px;
-  background-size: 16px;
+  width: 22px;
+  height: 22px;
   background-repeat: no-repeat;
   background-position: center;
   flex-shrink: 0;
+  border-radius: 11px;
+  -moz-context-properties: fill;
+  fill: #fff;
 }
 
 .addon-badge-private-browsing-allowed {
@@ -225,10 +332,21 @@ addon-card[expanded] .addon-card-message {
 .addon-badge-recommended {
   background-color: var(--orange-50);
   background-image: url("chrome://mozapps/skin/extensions/recommended.svg");
-  background-size: 10px;
-  border-radius: 8px;
-  fill: #fff;
-  -moz-context-properties: fill;
+}
+
+.addon-badge-line {
+  background-color: #fff;
+  background-image: url("chrome://mozapps/skin/extensions/line.svg");
+  background-size: 16px;
+  border-radius: 10px;
+  border: 1px solid #CFCFD8;
+  width: 20px;
+  height: 20px;
+}
+
+.addon-badge-verified {
+  background-color: var(--green-70);
+  background-image: url("chrome://global/skin/icons/check.svg");
 }
 
 .theme-enable-button {
@@ -267,7 +385,7 @@ addon-card:not([expanded]) .addon-description {
 }
 
 .page-options-menu > .more-options-button {
-  background-image: url("chrome://mozapps/skin/extensions/utilities.svg");
+  background-image: url("chrome://global/skin/icons/settings.svg");
   width: 32px;
   height: 32px;
 }
@@ -353,6 +471,10 @@ recommended-addon-card .addon-description:not(:empty) {
 
 .privacy-policy-link {
   font-size: small;
+}
+
+.theme-recommendation {
+  text-align: start;
 }
 
 addon-details {
@@ -514,12 +636,66 @@ addon-permissions-list > .addon-detail-row:first-of-type {
   border-top: none;
 }
 
-.deck-tab-group {
+.tab-group {
+  display: block;
   margin-top: 8px;
   /* Pull the buttons flush with the side of the card */
   margin-inline: calc(var(--card-padding) * -1);
+  border-bottom: 1px solid var(--in-content-box-border-color);
+  border-top: 1px solid var(--in-content-box-border-color);
+  font-size: 0;
+  line-height: 0;
+}
+
+button.tab-button {
+  appearance: none;
+  border-inline: none;
+  border-block: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  font-size: 14px;
+  line-height: 20px;
+  margin: 0;
+  padding: 4px 16px;
+  color: var(--in-content-text-color);
+}
+
+button.tab-button:hover {
+  background-color: var(--in-content-button-background);
+  border-top-color: var(--in-content-box-border-color);
+}
+
+button.tab-button:hover:active {
+  background-color: var(--in-content-button-background-hover);
+}
+
+button.tab-button[selected] {
+  border-top-color: var(--in-content-border-highlight);
+  color: var(--in-content-category-text-selected) !important;
+}
+
+button.tab-button:-moz-focusring {
+  outline-offset: -2px;
+  -moz-outline-radius: 0;
+}
+
+.tab-group[last-input-type="mouse"] > button.tab-button:-moz-focusring {
+  outline: none;
+  box-shadow: none;
 }
 
 panel-list {
   font-size: 13px;
+}
+
+@media (max-width: 830px) {
+  .category[badge-count]::after {
+    content: "";
+    display: block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    min-width: auto;
+    padding: 0;
+  }
 }

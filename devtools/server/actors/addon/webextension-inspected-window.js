@@ -70,17 +70,17 @@ function logAccessDeniedWarning(window, callerInfo, extensionPolicy) {
 
   // System principals have a null nodePrincipal.URI and so we use
   // the url from window.location.href.
-  const reportedURI = isSystemPrincipalWindow(window)
+  const reportedURIorPrincipal = isSystemPrincipalWindow(window)
     ? Services.io.newURI(window.location.href)
-    : window.document.nodePrincipal.URI;
+    : window.document.nodePrincipal;
 
   const error = Cc["@mozilla.org/scripterror;1"].createInstance(
     Ci.nsIScriptError
   );
 
-  const msg = `The extension "${name}" is not allowed to access ${reportedURI.spec}`;
+  const msg = `The extension "${name}" is not allowed to access ${reportedURIorPrincipal.spec}`;
 
-  const innerWindowId = window.windowUtils.currentInnerWindowID;
+  const innerWindowId = window.windowGlobalChild.innerWindowId;
 
   const errorFlag = 0;
 
@@ -125,8 +125,8 @@ function CustomizedReload(params) {
 
 CustomizedReload.prototype = {
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIWebProgressListener,
-    Ci.nsISupportsWeakReference,
+    "nsIWebProgressListener",
+    "nsISupportsWeakReference",
   ]),
   get window() {
     return this.docShell.DOMWindow;
@@ -190,7 +190,7 @@ CustomizedReload.prototype = {
     }
 
     const document = subject;
-    const window = document && document.defaultView;
+    const window = document?.defaultView;
 
     // Filter out non interesting documents.
     if (!document || !document.location || !window) {
@@ -629,14 +629,12 @@ var WebExtensionInspectedWindowActor = protocol.ActorClassWithSpec(
             throwErr &&
             typeof throwErr === "object" &&
             throwErr.unsafeDereference();
-          const message =
-            unsafeDereference && unsafeDereference.toString
-              ? unsafeDereference.toString()
-              : String(throwErr);
-          const stack =
-            unsafeDereference && unsafeDereference.stack
-              ? unsafeDereference.stack
-              : null;
+          const message = unsafeDereference?.toString
+            ? unsafeDereference.toString()
+            : String(throwErr);
+          const stack = unsafeDereference?.stack
+            ? unsafeDereference.stack
+            : null;
 
           return {
             exceptionInfo: {

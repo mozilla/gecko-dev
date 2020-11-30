@@ -55,8 +55,7 @@ static bool ContainingBlockMayHaveChanged(const ComputedStyle& aOldStyle,
   auto* oldDisp = aOldStyle.StyleDisplay();
   auto* newDisp = aNewStyle.StyleDisplay();
 
-  if (oldDisp->IsAbsPosContainingBlockForNonSVGTextFrames() !=
-      newDisp->IsAbsPosContainingBlockForNonSVGTextFrames()) {
+  if (oldDisp->IsPositionedStyle() != newDisp->IsPositionedStyle()) {
     return true;
   }
 
@@ -243,6 +242,14 @@ nsChangeHint ComputedStyle::CalcStyleDifference(const ComputedStyle& aNewStyle,
       // what the frame type is).
       hint &= ~nsChangeHint_UpdateContainingBlock;
     }
+  }
+
+  if (HasAuthorSpecifiedBorderOrBackground() !=
+          aNewStyle.HasAuthorSpecifiedBorderOrBackground() &&
+      StyleDisplay()->HasAppearance()) {
+    // A background-specified change may cause padding to change, so we may need
+    // to reflow.  We use the same hint here as we do for "appearance" changes.
+    hint |= nsChangeHint_AllReflowHints | nsChangeHint_RepaintFrame;
   }
 
   MOZ_ASSERT(NS_IsHintSubset(hint, nsChangeHint_AllHints),

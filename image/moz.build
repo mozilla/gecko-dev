@@ -61,7 +61,6 @@ EXPORTS.mozilla.image += [
     'encoders/png/nsPNGEncoder.h',
     'ICOFileHeaders.h',
     'ImageMemoryReporter.h',
-    'RecyclingSourceSurface.h',
 ]
 
 UNIFIED_SOURCES += [
@@ -118,8 +117,6 @@ LOCAL_INCLUDES += [
     '/dom/svg',
     # We need to instantiate the decoders
     '/image/decoders',
-    # Because VectorImage.cpp includes nsSVGUtils.h and SVGObserverUtils.h
-    '/layout/svg',
     # For URI-related functionality
     '/netwerk/base',
     # DecodePool uses thread-related facilities.

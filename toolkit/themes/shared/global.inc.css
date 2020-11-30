@@ -2,10 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* all localizable skin settings shall live here */
+@import url("chrome://global/locale/intl.css");
+@import url("chrome://global/content/widgets.css");
+
+@import url("close-icon.css");
+
+@namespace xul url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+@namespace html url("http://www.w3.org/1999/xhtml");
+
 /* General styles */
 
 *|*.plain {
-  -moz-appearance: none;
+  appearance: none;
   margin: 0 !important;
   border: none;
   padding: 0;
@@ -23,32 +32,6 @@ html|textarea {
   direction: rtl;
 }
 
-/* Close icon */
-
-.close-icon {
-  -moz-appearance: none;
-  -moz-context-properties: fill, fill-opacity;
-  list-style-image: url(chrome://global/skin/icons/close.svg);
-  color: inherit !important;
-  fill: currentColor;
-  fill-opacity: 0;
-}
-
-.close-icon:hover {
-  fill-opacity: 0.1;
-}
-
-.close-icon:hover:active {
-  fill-opacity: 0.2;
-}
-
-.close-icon > .button-icon,
-.close-icon > .button-box > .button-icon,
-.close-icon > .toolbarbutton-icon {
-  width: 20px;
-  height: 20px;
-}
-
 /* Autoscroll popup */
 
 .autoscroller {
@@ -58,7 +41,7 @@ html|textarea {
   background-size: contain;
   background-color: transparent;
   background-repeat: no-repeat;
-  -moz-appearance: none;
+  appearance: none;
   -moz-window-shadow: none;
   /* Set pointer-events: none; so that mousemove events can be handled by browser-content.js. */
   pointer-events: none;
@@ -79,7 +62,7 @@ html|textarea {
 }
 
 .panel-footer > xul|button {
-  -moz-appearance: none;
+  appearance: none;
   border-top: 1px solid var(--panel-separator-color);
   /* !important overrides :hover and :active colors from button.css: */
   color: inherit !important;

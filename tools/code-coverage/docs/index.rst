@@ -127,8 +127,7 @@ browser/config/mozconfigs/linux64/code-coverage,
 browser/config/mozconfigs/win64/code-coverage,
 browser/config/mozconfigs/macosx64/code-coverage.
 
-Make sure you are not running with `artifact
-builds <https://developer.mozilla.org/en-US/docs/Mozilla/Developer_guide/Build_Instructions/Artifact_builds>`__
+Make sure you are not running with :ref:`artifact build <Understanding Artifact Builds>`
 enabled, as it can prevent coverage artifacts from being created.
 
 You can then create your build as usual. Once the build is complete, you
@@ -150,7 +149,7 @@ format for analysis. Anytime a code coverage run generates \*.gcda and
 permanently fail when it is running on a build that is instrumented with
 GCOV. To debug these issues without overloading ActiveData with garbage
 coverage data, open the file
-`taskcluster/taskgraph/transforms/tests.py <https://dxr.mozilla.org/mozilla-central/source/taskcluster/taskgraph/transforms/tests.py#516>`__
+`taskcluster/taskgraph/transforms/tests.py <https://searchfox.org/mozilla-central/source/taskcluster/taskgraph/transforms/tests.py#516>`__
 and add the following line,
 
 .. code:: python
@@ -193,7 +192,7 @@ analyzed locally.
 Generate Per Test Code Coverage Locally
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To generate the JSON files containg coverage information locally, simply
+To generate the JSON files containing coverage information locally, simply
 add an extra argument called ``--jscov-dir-prefix`` which accepts a
 directory as it's input and stores the resulting data in that directory.
 For example, to collect code coverage for the entire Mochitest suite:

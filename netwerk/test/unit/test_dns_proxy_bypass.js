@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+"use strict";
+
 var ioService = Cc["@mozilla.org/network/io-service;1"].getService(
   Ci.nsIIOService
 );
@@ -70,7 +72,7 @@ function run_test() {
     null, // aLoadingNode
     Services.scriptSecurityManager.getSystemPrincipal(),
     null, // aTriggeringPrincipal
-    Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+    Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
     Ci.nsIContentPolicy.TYPE_WEBSOCKET
   );
 

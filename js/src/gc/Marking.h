@@ -18,6 +18,7 @@
 class JSLinearString;
 class JSRope;
 class JSTracer;
+struct JSClass;
 
 namespace js {
 class BaseShape;
@@ -30,10 +31,6 @@ class WeakMapBase;
 namespace jit {
 class JitCode;
 }  // namespace jit
-
-#ifdef DEBUG
-bool IsTracerKind(JSTracer* trc, JS::CallbackTracer::TracerKind kind);
-#endif
 
 namespace gc {
 
@@ -73,8 +70,7 @@ inline bool IsMarkedUnbarriered(JSRuntime* rt, T* thingp) {
 // are always reported as being marked.
 template <typename T>
 inline bool IsMarked(JSRuntime* rt, BarrieredBase<T>* thingp) {
-  return IsMarkedInternal(rt,
-                          ConvertToBase(thingp->unsafeUnbarrieredForTracing()));
+  return IsMarkedInternal(rt, ConvertToBase(thingp->unbarrieredAddress()));
 }
 
 template <typename T>
@@ -83,18 +79,10 @@ inline bool IsAboutToBeFinalizedUnbarriered(T* thingp) {
 }
 
 template <typename T>
-inline bool IsAboutToBeFinalized(const WriteBarriered<T>* thingp) {
+inline bool IsAboutToBeFinalized(const BarrieredBase<T>* thingp) {
   return IsAboutToBeFinalizedInternal(
-      ConvertToBase(thingp->unsafeUnbarrieredForTracing()));
+      ConvertToBase(thingp->unbarrieredAddress()));
 }
-
-template <typename T>
-inline bool IsAboutToBeFinalized(ReadBarriered<T>* thingp) {
-  return IsAboutToBeFinalizedInternal(
-      ConvertToBase(thingp->unsafeUnbarrieredForTracing()));
-}
-
-bool IsAboutToBeFinalizedDuringSweep(TenuredCell& tenured);
 
 inline bool IsAboutToBeFinalizedDuringMinorSweep(Cell* cell);
 
@@ -138,7 +126,6 @@ namespace gc {
 
 template <typename T>
 inline bool IsForwarded(const T* t);
-inline bool IsForwarded(const JS::Value& value);
 
 template <typename T>
 inline T* Forwarded(const T* t);
@@ -147,6 +134,22 @@ inline Value Forwarded(const JS::Value& value);
 
 template <typename T>
 inline T MaybeForwarded(T t);
+
+// Helper functions for use in situations where the object's group might be
+// forwarded, for example while marking.
+
+inline const JSClass* MaybeForwardedObjectClass(const JSObject* obj);
+
+template <typename T>
+inline bool MaybeForwardedObjectIs(JSObject* obj);
+
+template <typename T>
+inline T& MaybeForwardedObjectAs(JSObject* obj);
+
+// Trace TypedObject trace lists with specialised paths for GCMarker and
+// TenuringTracer.
+void VisitTraceList(JSTracer* trc, JSObject* obj, const uint32_t* traceList,
+                    uint8_t* memory);
 
 #ifdef JSGC_HASH_TABLE_CHECKS
 
@@ -158,8 +161,6 @@ inline void CheckGCThingAfterMovingGC(T* t);
 
 template <typename T>
 inline void CheckGCThingAfterMovingGC(const WeakHeapPtr<T*>& t);
-
-inline void CheckValueAfterMovingGC(const JS::Value& value);
 
 #endif  // JSGC_HASH_TABLE_CHECKS
 

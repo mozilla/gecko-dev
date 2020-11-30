@@ -7,12 +7,14 @@
 add_task(setup);
 
 add_task(async function test_TRRRacer_cleanRun() {
-  let racer = new TRRRacer();
+  let deferred = PromiseUtils.defer();
+  let racer = new TRRRacer(() => {
+    deferred.resolve();
+    deferred.resolved = true;
+  });
   racer.run();
 
-  await TestUtils.waitForCondition(() => {
-    return Services.prefs.getBoolPref("doh-rollout.trrRace.complete", false);
-  });
+  await deferred.promise;
   Assert.equal(racer._retryCount, 1);
 
   let events = Services.telemetry.snapshotEvents(
@@ -51,12 +53,14 @@ add_task(async function test_TRRRacer_cleanRun() {
 
   testNetworkChange(false);
   testNetworkChange(true);
-
-  Services.prefs.clearUserPref("doh-rollout.trrRace.complete");
 });
 
 async function test_TRRRacer_networkFlux_helper(captivePortal = false) {
-  let racer = new TRRRacer();
+  let deferred = PromiseUtils.defer();
+  let racer = new TRRRacer(() => {
+    deferred.resolve();
+    deferred.resolved = true;
+  });
   racer.run();
 
   if (captivePortal) {
@@ -68,7 +72,7 @@ async function test_TRRRacer_networkFlux_helper(captivePortal = false) {
   Assert.ok(racer._aggregator.aborted);
   ensureNoTelemetry();
   Assert.equal(racer._retryCount, 1);
-  Assert.ok(!Services.prefs.getBoolPref("doh-rollout.trrRace.complete", false));
+  Assert.ok(!deferred.resolved);
 
   if (captivePortal) {
     Services.obs.notifyObservers(null, "captive-portal-login-success");
@@ -77,9 +81,7 @@ async function test_TRRRacer_networkFlux_helper(captivePortal = false) {
   }
 
   Assert.ok(!racer._aggregator.aborted);
-  await TestUtils.waitForCondition(() => {
-    return Services.prefs.getBoolPref("doh-rollout.trrRace.complete", false);
-  });
+  await deferred.promise;
 
   Assert.equal(racer._retryCount, 2);
 
@@ -92,7 +94,6 @@ async function test_TRRRacer_networkFlux_helper(captivePortal = false) {
   Assert.equal(events.length, racer._aggregator.totalLookups);
 
   Services.telemetry.clearEvents();
-  Services.prefs.clearUserPref("doh-rollout.trrRace.complete");
   if (captivePortal) {
     Services.obs.notifyObservers(null, "captive-portal-login-abort");
   }
@@ -104,7 +105,11 @@ add_task(async function test_TRRRacer_networkFlux() {
 });
 
 async function test_TRRRacer_maxRetries_helper(captivePortal = false) {
-  let racer = new TRRRacer();
+  let deferred = PromiseUtils.defer();
+  let racer = new TRRRacer(() => {
+    deferred.resolve();
+    deferred.resolved = true;
+  });
   racer.run();
   info("ran new racer");
   // Start at i = 1 since we're already at retry #1.
@@ -120,10 +125,7 @@ async function test_TRRRacer_maxRetries_helper(captivePortal = false) {
     Assert.ok(racer._aggregator.aborted);
     ensureNoTelemetry();
     Assert.equal(racer._retryCount, i);
-
-    Assert.ok(
-      !Services.prefs.getBoolPref("doh-rollout.trrRace.complete", false)
-    );
+    Assert.ok(!deferred.resolved);
 
     if (captivePortal) {
       Services.obs.notifyObservers(null, "captive-portal-login-success");
@@ -140,9 +142,7 @@ async function test_TRRRacer_maxRetries_helper(captivePortal = false) {
     Services.obs.notifyObservers(null, "network:link-status-changed", "down");
   }
   Assert.ok(!racer._aggregator.aborted);
-  await TestUtils.waitForCondition(() => {
-    return Services.prefs.getBoolPref("doh-rollout.trrRace.complete", false);
-  });
+  await deferred.promise;
   Assert.equal(racer._retryCount, 5);
 
   let events = Services.telemetry.snapshotEvents(
@@ -154,7 +154,6 @@ async function test_TRRRacer_maxRetries_helper(captivePortal = false) {
   Assert.equal(events.length, racer._aggregator.totalLookups);
 
   Services.telemetry.clearEvents();
-  Services.prefs.clearUserPref("doh-rollout.trrRace.complete");
   if (captivePortal) {
     Services.obs.notifyObservers(null, "captive-portal-login-abort");
   }
@@ -163,4 +162,48 @@ async function test_TRRRacer_maxRetries_helper(captivePortal = false) {
 add_task(async function test_TRRRacer_maxRetries() {
   await test_TRRRacer_maxRetries_helper(false);
   await test_TRRRacer_maxRetries_helper(true);
+});
+
+add_task(async function test_TRRRacer_getFastestTRRFromResults() {
+  let results = [
+    { trr: "trr1", time: 10 },
+    { trr: "trr2", time: 100 },
+    { trr: "trr1", time: 1000 },
+    { trr: "trr2", time: 110 },
+    { trr: "trr3", time: -1 },
+    { trr: "trr4", time: -1 },
+    { trr: "trr4", time: -1 },
+    { trr: "trr4", time: 1 },
+    { trr: "trr4", time: 1 },
+    { trr: "trr5", time: 10 },
+    { trr: "trr5", time: 20 },
+    { trr: "trr5", time: 1000 },
+  ];
+  let racer = new TRRRacer();
+  let fastest = racer._getFastestTRRFromResults(results);
+  // trr1's geometric mean is 100
+  // trr2's geometric mean is 110
+  // trr3 has no valid times, excluded
+  // trr4 has 50% invalid times, excluded
+  // trr5's geometric mean is ~58.5, it's the winner.
+  Assert.equal(fastest, "trr5");
+
+  // When no valid entries are available, undefined is the default output.
+  results = [
+    { trr: "trr1", time: -1 },
+    { trr: "trr2", time: -1 },
+  ];
+
+  fastest = racer._getFastestTRRFromResults(results);
+  Assert.equal(fastest, undefined);
+
+  // When passing `returnRandomDefault = true`, verify that both TRRs are
+  // possible outputs. The probability that the randomization is working
+  // correctly and we consistently get the same output after 50 iterations is
+  // 0.5^50 ~= 8.9*10^-16.
+  let firstResult = racer._getFastestTRRFromResults(results, true);
+  while (racer._getFastestTRRFromResults(results, true) == firstResult) {
+    continue;
+  }
+  Assert.ok(true, "Both TRRs were possible outputs when all results invalid.");
 });

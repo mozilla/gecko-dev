@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <climits>
+#include <type_traits>
 
 using namespace mozilla;
 
@@ -34,7 +35,7 @@ void verifyImplFunction(bool aX, bool aExpected, const char* aFile, int aLine,
 
 #define VERIFY_IMPL(x, expected)                                     \
   verifyImplFunction((x), (expected), __FILE__, __LINE__, sizeof(T), \
-                     IsSigned<T>::value)
+                     std::is_signed_v<T>)
 
 #define VERIFY(x) VERIFY_IMPL(x, true)
 #define VERIFY_IS_FALSE(x) VERIFY_IMPL(x, false)
@@ -48,8 +49,8 @@ struct testTwiceBiggerType {
     VERIFY(
         detail::IsSupported<typename detail::TwiceBiggerType<T>::Type>::value);
     VERIFY(sizeof(typename detail::TwiceBiggerType<T>::Type) == 2 * sizeof(T));
-    VERIFY(bool(IsSigned<typename detail::TwiceBiggerType<T>::Type>::value) ==
-           bool(IsSigned<T>::value));
+    VERIFY(bool(std::is_signed_v<typename detail::TwiceBiggerType<T>::Type>) ==
+           bool(std::is_signed_v<T>));
   }
 };
 
@@ -73,15 +74,15 @@ void test() {
   alreadyRun = true;
 
   VERIFY(detail::IsSupported<T>::value);
-  const bool isTSigned = IsSigned<T>::value;
+  const bool isTSigned = std::is_signed_v<T>;
   VERIFY(bool(isTSigned) == !bool(T(-1) > T(0)));
 
   testTwiceBiggerType<T>::run();
 
-  typedef typename MakeUnsigned<T>::Type unsignedT;
+  using unsignedT = std::make_unsigned_t<T>;
 
   VERIFY(sizeof(unsignedT) == sizeof(T));
-  VERIFY(IsSigned<unsignedT>::value == false);
+  VERIFY(std::is_signed_v<unsignedT> == false);
 
   const CheckedInt<T> max(std::numeric_limits<T>::max());
   const CheckedInt<T> min(std::numeric_limits<T>::min());
@@ -491,7 +492,7 @@ void test() {
 
 #define VERIFY_CONSTRUCTION_FROM_INTEGER_TYPE2(U, V, PostVExpr)       \
   {                                                                   \
-    bool isUSigned = IsSigned<U>::value;                              \
+    bool isUSigned = std::is_signed_v<U>;                             \
     VERIFY_IS_VALID(CheckedInt<T>(V(0) PostVExpr));                   \
     VERIFY_IS_VALID(CheckedInt<T>(V(1) PostVExpr));                   \
     VERIFY_IS_VALID(CheckedInt<T>(V(100) PostVExpr));                 \

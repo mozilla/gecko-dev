@@ -10,30 +10,59 @@
 #include "vm/BytecodeLocation.h"
 
 #include "vm/JSScript.h"
+
 #include "vm/BytecodeUtil-inl.h"
+#include "vm/JSScript-inl.h"
 
 namespace js {
 
-inline JS_PUBLIC_API bool BytecodeLocation::isValid(
-    const JSScript* script) const {
-  // Note: Don't create a new BytecodeLocation during the implementation of
-  // this, as it is used in the constructor, and will recurse forever.
-  return script->contains(*this) || toRawBytecode() == script->codeEnd();
-}
-
-inline bool BytecodeLocation::isInBounds(const JSScript* script) const {
-  return script->contains(*this);
-}
 inline uint32_t BytecodeLocation::bytecodeToOffset(
     const JSScript* script) const {
   MOZ_ASSERT(this->isInBounds());
   return script->pcToOffset(this->rawBytecode_);
 }
 
+inline JSAtom* BytecodeLocation::getAtom(const JSScript* script) const {
+  MOZ_ASSERT(this->isValid());
+  return script->getAtom(this->rawBytecode_);
+}
+
 inline PropertyName* BytecodeLocation::getPropertyName(
     const JSScript* script) const {
   MOZ_ASSERT(this->isValid());
   return script->getName(this->rawBytecode_);
+}
+
+inline JS::BigInt* BytecodeLocation::getBigInt(const JSScript* script) const {
+  MOZ_ASSERT(this->isValid());
+  MOZ_ASSERT(is(JSOp::BigInt));
+  return script->getBigInt(this->rawBytecode_);
+}
+
+inline JSObject* BytecodeLocation::getObject(const JSScript* script) const {
+  MOZ_ASSERT(this->isValid());
+  MOZ_ASSERT(is(JSOp::CallSiteObj) || is(JSOp::Object) ||
+             is(JSOp::NewArrayCopyOnWrite));
+  return script->getObject(this->rawBytecode_);
+}
+
+inline JSFunction* BytecodeLocation::getFunction(const JSScript* script) const {
+  MOZ_ASSERT(this->isValid());
+  MOZ_ASSERT(is(JSOp::Lambda) || is(JSOp::LambdaArrow) ||
+             is(JSOp::FunWithProto));
+  return script->getFunction(this->rawBytecode_);
+}
+
+inline js::RegExpObject* BytecodeLocation::getRegExp(
+    const JSScript* script) const {
+  MOZ_ASSERT(this->isValid());
+  MOZ_ASSERT(is(JSOp::RegExp));
+  return script->getRegExp(this->rawBytecode_);
+}
+
+inline js::Scope* BytecodeLocation::getScope(const JSScript* script) const {
+  MOZ_ASSERT(this->isValid());
+  return script->getScope(this->rawBytecode_);
 }
 
 inline Scope* BytecodeLocation::innermostScope(const JSScript* script) const {
@@ -48,7 +77,7 @@ inline uint32_t BytecodeLocation::tableSwitchCaseOffset(
 
 inline uint32_t BytecodeLocation::getJumpTargetOffset(
     const JSScript* script) const {
-  MOZ_ASSERT(this->isJump() || this->is(JSOp::TableSwitch));
+  MOZ_ASSERT(this->isJump());
   return this->bytecodeToOffset(script) + GET_JUMP_OFFSET(this->rawBytecode_);
 }
 
@@ -56,6 +85,18 @@ inline uint32_t BytecodeLocation::getTableSwitchDefaultOffset(
     const JSScript* script) const {
   MOZ_ASSERT(this->is(JSOp::TableSwitch));
   return this->bytecodeToOffset(script) + GET_JUMP_OFFSET(this->rawBytecode_);
+}
+
+BytecodeLocation BytecodeLocation::getTableSwitchDefaultTarget() const {
+  MOZ_ASSERT(is(JSOp::TableSwitch));
+  return BytecodeLocation(*this, rawBytecode_ + GET_JUMP_OFFSET(rawBytecode_));
+}
+
+BytecodeLocation BytecodeLocation::getTableSwitchCaseTarget(
+    const JSScript* script, uint32_t caseIndex) const {
+  MOZ_ASSERT(is(JSOp::TableSwitch));
+  jsbytecode* casePC = script->tableSwitchCasePC(rawBytecode_, caseIndex);
+  return BytecodeLocation(*this, casePC);
 }
 
 inline uint32_t BytecodeLocation::useCount() const {

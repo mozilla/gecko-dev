@@ -4,6 +4,8 @@
 
 /* Portions Copyright Norbert Lindenberg 2011-2012. */
 
+#include "NumberingSystemsGenerated.h"
+
 /**
  * NumberFormat internal properties.
  *
@@ -319,61 +321,6 @@ For example "speed/kilometer-per-hour" is implied by "length/kilometer" and
 }
 
 /**
- * The list of currently supported simple unit identifiers.
- *
- * Note: Keep in sync with the measure unit lists in
- * - js/src/builtin/intl/NumberFormat.cpp
- * - intl/icu/data_filter.json
- *
- * Intl.NumberFormat Unified API Proposal
- */
-var sanctionedSimpleUnitIdentifiers = {
-    "acre": true,
-    "bit": true,
-    "byte": true,
-    "celsius": true,
-    "centimeter": true,
-    "day": true,
-    "degree": true,
-    "fahrenheit": true,
-    "fluid-ounce": true,
-    "foot": true,
-    "gallon": true,
-    "gigabit": true,
-    "gigabyte": true,
-    "gram": true,
-    "hectare": true,
-    "hour": true,
-    "inch": true,
-    "kilobit": true,
-    "kilobyte": true,
-    "kilogram": true,
-    "kilometer": true,
-    "liter": true,
-    "megabit": true,
-    "megabyte": true,
-    "meter": true,
-    "mile": true,
-    "mile-scandinavian": true,
-    "milliliter": true,
-    "millimeter": true,
-    "millisecond": true,
-    "minute": true,
-    "month": true,
-    "ounce": true,
-    "percent": true,
-    "petabyte": true,
-    "pound": true,
-    "second": true,
-    "stone": true,
-    "terabit": true,
-    "terabyte": true,
-    "week": true,
-    "yard": true,
-    "year": true,
-};
-
-/**
  * Initializes an object as a NumberFormat.
  *
  * This method is complicated a moderate bit by its implementing initialization
@@ -458,8 +405,6 @@ function InitializeNumberFormat(numberFormat, thisValue, locales, options) {
     var matcher = GetOption(options, "localeMatcher", "string", ["lookup", "best fit"], "best fit");
     opt.localeMatcher = matcher;
 
-// https://github.com/tc39/ecma402/pull/175
-#ifdef NIGHTLY_BUILD
     var numberingSystem = GetOption(options, "numberingSystem", "string", undefined, undefined);
 
     if (numberingSystem !== undefined) {
@@ -469,16 +414,10 @@ function InitializeNumberFormat(numberFormat, thisValue, locales, options) {
     }
 
     opt.nu = numberingSystem;
-#endif
 
     // Compute formatting options.
     // Step 12.
-    var style = GetOption(options, "style", "string",
-#ifdef NIGHTLY_BUILD
-                          ["decimal", "percent", "currency", "unit"],
-#else
-                          ["decimal", "percent", "currency"],
-#endif
+    var style = GetOption(options, "style", "string", ["decimal", "percent", "currency", "unit"],
                           "decimal");
     lazyNumberFormatData.style = style;
 
@@ -506,26 +445,16 @@ function InitializeNumberFormat(numberFormat, thisValue, locales, options) {
 
     // Step 18.
     var currencyDisplay = GetOption(options, "currencyDisplay", "string",
-#ifdef NIGHTLY_BUILD
-                                    ["code", "symbol", "narrowSymbol", "name"],
-#else
-                                    ["code", "symbol", "name"],
-#endif
-                                    "symbol");
+                                    ["code", "symbol", "narrowSymbol", "name"], "symbol");
     if (style === "currency")
         lazyNumberFormatData.currencyDisplay = currencyDisplay;
 
-#ifdef NIGHTLY_BUILD
     // Intl.NumberFormat Unified API Proposal
-    var currencySign = GetOption(options, "currencySign", "string",
-                                 ["standard", "accounting"], "standard");
-#else
-    var currencySign = "standard";
-#endif
+    var currencySign = GetOption(options, "currencySign", "string", ["standard", "accounting"],
+                                 "standard");
     if (style === "currency")
         lazyNumberFormatData.currencySign = currencySign;
 
-#ifdef NIGHTLY_BUILD
     // Intl.NumberFormat Unified API Proposal
     var unit = GetOption(options, "unit", "string", undefined, undefined);
 
@@ -543,7 +472,6 @@ function InitializeNumberFormat(numberFormat, thisValue, locales, options) {
         lazyNumberFormatData.unit = unit;
         lazyNumberFormatData.unitDisplay = unitDisplay;
     }
-#endif
 
     // Steps 20-21.
     var mnfdDefault, mxfdDefault;
@@ -555,37 +483,27 @@ function InitializeNumberFormat(numberFormat, thisValue, locales, options) {
         mxfdDefault = style === "percent" ? 0 : 3;
     }
 
-#ifdef NIGHTLY_BUILD
     // Intl.NumberFormat Unified API Proposal
     var notation = GetOption(options, "notation", "string",
                              ["standard", "scientific", "engineering", "compact"], "standard");
-#else
-    var notation = "standard";
-#endif
     lazyNumberFormatData.notation = notation;
 
     // Step 22.
     SetNumberFormatDigitOptions(lazyNumberFormatData, options, mnfdDefault, mxfdDefault, notation);
 
-#ifdef NIGHTLY_BUILD
     // Intl.NumberFormat Unified API Proposal
     var compactDisplay = GetOption(options, "compactDisplay", "string",
                                    ["short", "long"], "short");
     if (notation === "compact")
         lazyNumberFormatData.compactDisplay = compactDisplay;
-#endif
 
     // Steps 23.
     var useGrouping = GetOption(options, "useGrouping", "boolean", undefined, true);
     lazyNumberFormatData.useGrouping = useGrouping;
 
-#ifdef NIGHTLY_BUILD
     // Intl.NumberFormat Unified API Proposal
     var signDisplay = GetOption(options, "signDisplay", "string",
                                 ["auto", "never", "always", "exceptZero"], "auto");
-#else
-    var signDisplay = "auto";
-#endif
     lazyNumberFormatData.signDisplay = signDisplay;
 
     // Step 31.
@@ -651,23 +569,13 @@ function getNumberingSystems(locale) {
     // can be used with any locale. Supporting a decimal numbering system
     // (where only the digits are replaced) is easy, so we offer them all here.
     // Algorithmic numbering systems are typically tied to one locale, so for
-    // lack of information we don't offer them. To increase chances that
-    // other software will process output correctly, we further restrict to
-    // those decimal numbering systems explicitly listed in table 3 of
-    // the ECMAScript Internationalization API Specification, 11.1.6, which
-    // in turn are those with full specifications in version 21 of Unicode
-    // Technical Standard #35 using digits that were defined in Unicode 5.0,
-    // the Unicode version supported in Windows Vista.
+    // lack of information we don't offer them.
     // The one thing we can find out from ICU is the default numbering system
     // for a locale.
     var defaultNumberingSystem = intl_numberingSystem(locale);
     return [
         defaultNumberingSystem,
-        "arab", "arabext", "bali", "beng", "deva",
-        "fullwide", "gujr", "guru", "hanidec", "khmr",
-        "knda", "laoo", "latn", "limb", "mlym",
-        "mong", "mymr", "orya", "tamldec", "telu",
-        "thai", "tibt",
+        NUMBERING_SYSTEMS_WITH_SIMPLE_DIGIT_MAPPINGS
     ];
 }
 
@@ -747,11 +655,11 @@ function Intl_NumberFormat_formatToParts(value) {
                             "Intl_NumberFormat_formatToParts");
     }
 
-    var internals = getNumberFormatInternals(nf);
-    var unitStyle = internals.style === "unit";
-
     // Step 4.
     var x = ToNumeric(value);
+
+    var internals = getNumberFormatInternals(nf);
+    var unitStyle = internals.style === "unit";
 
     // Step 5.
     return intl_FormatNumber(nf, x, /* formatToParts = */ true, unitStyle);
@@ -792,9 +700,7 @@ function Intl_NumberFormat_resolvedOptions() {
     if (hasOwn("currency", internals)) {
         _DefineDataProperty(result, "currency", internals.currency);
         _DefineDataProperty(result, "currencyDisplay", internals.currencyDisplay);
-#ifdef NIGHTLY_BUILD
         _DefineDataProperty(result, "currencySign", internals.currencySign);
-#endif
     }
 
     // unit and unitDisplay are only present for unit formatters.
@@ -835,16 +741,12 @@ function Intl_NumberFormat_resolvedOptions() {
     _DefineDataProperty(result, "useGrouping", internals.useGrouping);
 
     var notation = internals.notation;
-#ifdef NIGHTLY_BUILD
     _DefineDataProperty(result, "notation", notation);
-#endif
 
     if (notation === "compact")
         _DefineDataProperty(result, "compactDisplay", internals.compactDisplay);
 
-#ifdef NIGHTLY_BUILD
     _DefineDataProperty(result, "signDisplay", internals.signDisplay);
-#endif
 
     // Step 6.
     return result;

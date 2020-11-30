@@ -185,6 +185,27 @@ dtls13_SendAckCb(sslSocket *ss)
     (void)dtls13_SendAck(ss);
 }
 
+/* Limits from draft-ietf-tls-dtls13-38; section 4.5.3. */
+PRBool
+dtls13_AeadLimitReached(ssl3CipherSpec *spec)
+{
+    if (spec->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
+        switch (spec->cipherDef->calg) {
+            case ssl_calg_chacha20:
+            case ssl_calg_aes_gcm:
+                return spec->deprotectionFailures >= (1ULL << 36);
+#ifdef UNSAFE_FUZZER_MODE
+            case ssl_calg_null:
+                return PR_FALSE;
+#endif
+            default:
+                PORT_Assert(0);
+                break;
+        }
+    }
+    return PR_FALSE;
+}
+
 /* Zero length messages are very simple to check. */
 static PRBool
 dtls_IsEmptyMessageAcknowledged(sslSocket *ss, PRUint16 msgSeq, PRUint32 offset)
@@ -392,8 +413,7 @@ dtls13_HandleOutOfEpochRecord(sslSocket *ss, const ssl3CipherSpec *spec,
              * server, we might have processed the client's Finished and
              * moved on to application data keys, but the client has
              * retransmitted Finished (e.g., because our ACK got lost.)
-             * We just retransmit the previous Finished to let the client
-             * complete. */
+             * We just retransmit the ACK to let the client complete. */
             if (rType == ssl_ct_handshake) {
                 if ((ss->sec.isServer) &&
                     (ss->ssl3.hs.ws == idle_handshake)) {

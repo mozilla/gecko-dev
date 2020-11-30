@@ -24,8 +24,7 @@ class CreateURLRunnable : public WorkerMainThreadRunnable {
  public:
   CreateURLRunnable(WorkerPrivate* aWorkerPrivate, BlobImpl* aBlobImpl,
                     nsAString& aURL)
-      : WorkerMainThreadRunnable(aWorkerPrivate,
-                                 NS_LITERAL_CSTRING("URL :: CreateURL")),
+      : WorkerMainThreadRunnable(aWorkerPrivate, "URL :: CreateURL"_ns),
         mBlobImpl(aBlobImpl),
         mURL(aURL) {
     MOZ_ASSERT(aBlobImpl);
@@ -39,8 +38,8 @@ class CreateURLRunnable : public WorkerMainThreadRunnable {
     nsCOMPtr<nsIPrincipal> principal = mWorkerPrivate->GetPrincipal();
 
     nsAutoCString url;
-    nsresult rv =
-        BlobURLProtocolHandler::AddDataEntry(mBlobImpl, principal, url);
+    nsresult rv = BlobURLProtocolHandler::AddDataEntry(
+        mBlobImpl, principal, Some(mWorkerPrivate->AgentClusterId()), url);
 
     if (NS_FAILED(rv)) {
       NS_WARNING("Failed to add data entry for the blob!");
@@ -48,7 +47,7 @@ class CreateURLRunnable : public WorkerMainThreadRunnable {
       return false;
     }
 
-    mURL = NS_ConvertUTF8toUTF16(url);
+    CopyUTF8toUTF16(url, mURL);
     return true;
   }
 };
@@ -60,8 +59,7 @@ class RevokeURLRunnable : public WorkerMainThreadRunnable {
 
  public:
   RevokeURLRunnable(WorkerPrivate* aWorkerPrivate, const nsAString& aURL)
-      : WorkerMainThreadRunnable(aWorkerPrivate,
-                                 NS_LITERAL_CSTRING("URL :: RevokeURL")),
+      : WorkerMainThreadRunnable(aWorkerPrivate, "URL :: RevokeURL"_ns),
         mURL(aURL) {}
 
   bool MainThreadRun() override {
@@ -69,18 +67,9 @@ class RevokeURLRunnable : public WorkerMainThreadRunnable {
 
     NS_ConvertUTF16toUTF8 url(mURL);
 
-    nsIPrincipal* urlPrincipal =
-        BlobURLProtocolHandler::GetDataEntryPrincipal(url);
-
-    nsCOMPtr<nsIPrincipal> principal = mWorkerPrivate->GetPrincipal();
-
-    bool subsumes;
-    if (urlPrincipal &&
-        NS_SUCCEEDED(principal->Subsumes(urlPrincipal, &subsumes)) &&
-        subsumes) {
-      BlobURLProtocolHandler::RemoveDataEntry(url);
-    }
-
+    BlobURLProtocolHandler::RemoveDataEntry(
+        url, mWorkerPrivate->GetPrincipal(),
+        Some(mWorkerPrivate->AgentClusterId()));
     return true;
   }
 };
@@ -93,8 +82,7 @@ class IsValidURLRunnable : public WorkerMainThreadRunnable {
 
  public:
   IsValidURLRunnable(WorkerPrivate* aWorkerPrivate, const nsAString& aURL)
-      : WorkerMainThreadRunnable(aWorkerPrivate,
-                                 NS_LITERAL_CSTRING("URL :: IsValidURL")),
+      : WorkerMainThreadRunnable(aWorkerPrivate, "URL :: IsValidURL"_ns),
         mURL(aURL),
         mValid(false) {}
 

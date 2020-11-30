@@ -4,15 +4,6 @@
 
 #[macro_use]
 extern crate lazy_static;
-#[cfg(feature = "gecko")]
-extern crate bindgen;
-#[cfg(feature = "gecko")]
-extern crate log;
-#[cfg(feature = "gecko")]
-extern crate regex;
-#[cfg(feature = "gecko")]
-extern crate toml;
-extern crate walkdir;
 
 use std::env;
 use std::path::Path;
@@ -28,11 +19,11 @@ mod build_gecko {
 }
 
 lazy_static! {
-    pub static ref PYTHON: String = env::var("PYTHON").ok().unwrap_or_else(|| {
+    pub static ref PYTHON: String = env::var("PYTHON3").ok().unwrap_or_else(|| {
         let candidates = if cfg!(windows) {
-            ["python2.7.exe", "python27.exe", "python.exe"]
+            ["python3.exe"]
         } else {
-            ["python2.7", "python2", "python"]
+            ["python3"]
         };
         for &name in &candidates {
             if Command::new(name)
@@ -45,7 +36,7 @@ lazy_static! {
             }
         }
         panic!(
-            "Can't find python (tried {})! Try fixing PATH or setting the PYTHON env var",
+            "Can't find python (tried {})! Try fixing PATH or setting the PYTHON3 env var",
             candidates.join(", ")
         )
     });

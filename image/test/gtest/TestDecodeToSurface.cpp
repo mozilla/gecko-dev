@@ -44,14 +44,16 @@ class DecodeToSurfaceRunnable : public Runnable {
       outputSize.emplace(mTestCase.mOutputSize);
     }
 
+    uint32_t flags = FromSurfaceFlags(mTestCase.mSurfaceFlags);
+
     if (mImageBuffer) {
       mSurface = ImageOps::DecodeToSurface(
-          mImageBuffer, nsDependentCString(mTestCase.mMimeType),
-          imgIContainer::DECODE_FLAGS_DEFAULT, outputSize);
+          mImageBuffer, nsDependentCString(mTestCase.mMimeType), flags,
+          outputSize);
     } else {
       mSurface = ImageOps::DecodeToSurface(
-          mInputStream.forget(), nsDependentCString(mTestCase.mMimeType),
-          imgIContainer::DECODE_FLAGS_DEFAULT, outputSize);
+          mInputStream.forget(), nsDependentCString(mTestCase.mMimeType), flags,
+          outputSize);
     }
     ASSERT_TRUE(mSurface != nullptr);
 
@@ -65,8 +67,7 @@ class DecodeToSurfaceRunnable : public Runnable {
       EXPECT_EQ(mTestCase.mSize, mSurface->GetSize());
     }
 
-    EXPECT_TRUE(IsSolidColor(mSurface, BGRAColor::Green(),
-                             mTestCase.mFlags & TEST_CASE_IS_FUZZY ? 1 : 0));
+    EXPECT_TRUE(IsSolidColor(mSurface, mTestCase.Color(), mTestCase.Fuzz()));
   }
 
  private:

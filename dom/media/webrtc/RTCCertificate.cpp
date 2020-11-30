@@ -18,7 +18,7 @@
 #include "mozilla/dom/StructuredCloneHolder.h"
 #include "mozilla/dom/WebCryptoCommon.h"
 #include "mozilla/dom/WebCryptoTask.h"
-#include "mtransport/dtlsidentity.h"
+#include "transport/dtlsidentity.h"
 
 namespace mozilla {
 namespace dom {
@@ -72,7 +72,7 @@ class GenerateRTCCertificateTask : public GenerateAsymmetricKeyTask {
     }
 
     char buf[sizeof(randomName) * 2 + 4];
-    PL_strncpy(buf, "CN=", 3);
+    strncpy(buf, "CN=", 4);
     for (size_t i = 0; i < sizeof(randomName); ++i) {
       snprintf(&buf[i * 2 + 3], 3, "%.2x", randomName[i]);
     }
@@ -254,7 +254,7 @@ already_AddRefed<Promise> RTCCertificate::GenerateCertificate(
     return nullptr;
   }
   Sequence<nsString> usages;
-  if (!usages.AppendElement(NS_LITERAL_STRING("sign"), fallible)) {
+  if (!usages.AppendElement(u"sign"_ns, fallible)) {
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return nullptr;
   }

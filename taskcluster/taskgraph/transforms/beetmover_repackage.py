@@ -31,9 +31,6 @@ logger = logging.getLogger(__name__)
 
 
 beetmover_description_schema = schema.extend({
-    # depname is used in taskref's to identify the taskID of the unsigned things
-    Required('depname', default='build'): text_type,
-
     # unique label to describe this beetmover task, defaults to {dep.label}-beetmover
     Required('label'): text_type,
 
@@ -193,7 +190,9 @@ def strip_unwanted_langpacks_from_worker(config, jobs):
                 # This locale should only exist on mac
                 assert platform in OSX_OK_PLATFORMS
                 continue
-            for path in map['paths'].keys():
+            # map[paths] is being modified while iterating, so we need to resolve the
+            # ".keys()" iterator up front by throwing it into a list.
+            for path in list(map['paths'].keys()):
                 if path.endswith('target.langpack.xpi'):
                     del map['paths'][path]
             if map['paths'] == {}:

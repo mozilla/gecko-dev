@@ -4,14 +4,19 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+#![allow(clippy::module_name_repetitions)]
+
 use crate::control_stream_local::{ControlStreamLocal, HTTP3_UNI_STREAM_TYPE_CONTROL};
 use crate::control_stream_remote::ControlStreamRemote;
 use crate::hframe::HFrame;
-use crate::hsettings_frame::{HSetting, HSettingType, HSettings};
+use crate::send_message::SendMessage;
+use crate::settings::{HSetting, HSettingType, HSettings, HttpZeroRttChecker};
 use crate::stream_type_reader::NewStreamTypeReader;
-use neqo_common::{matches, qdebug, qerror, qinfo, qtrace, qwarn};
+use crate::RecvStream;
+use neqo_common::{qdebug, qerror, qinfo, qtrace, qwarn};
 use neqo_qpack::decoder::{QPackDecoder, QPACK_UNI_STREAM_TYPE_DECODER};
 use neqo_qpack::encoder::{QPackEncoder, QPACK_UNI_STREAM_TYPE_ENCODER};
+use neqo_qpack::QpackSettings;
 use neqo_transport::{AppError, CloseError, Connection, State, StreamType};
 use std::collections::{BTreeSet, HashMap};
 use std::fmt::Debug;
@@ -20,21 +25,13 @@ use std::mem;
 use crate::{Error, Res};
 
 const HTTP3_UNI_STREAM_TYPE_PUSH: u64 = 0x1;
+const QPACK_TABLE_SIZE_LIMIT: u64 = 1 << 30;
 
 pub(crate) enum HandleReadableOutput {
+    StreamNotFound,
     NoOutput,
     PushStream,
     ControlFrames(Vec<HFrame>),
-}
-
-pub trait Http3Transaction: Debug {
-    fn send(&mut self, conn: &mut Connection, encoder: &mut QPackEncoder) -> Res<()>;
-    fn receive(&mut self, conn: &mut Connection, decoder: &mut QPackDecoder) -> Res<()>;
-    fn has_data_to_send(&self) -> bool;
-    fn reset_receiving_side(&mut self);
-    fn stop_sending(&mut self);
-    fn done(&self) -> bool;
-    fn close_send(&mut self, conn: &mut Connection) -> Res<()>;
 }
 
 #[derive(Debug)]
@@ -45,25 +42,26 @@ enum Http3RemoteSettingsState {
 }
 
 #[derive(Debug, PartialEq, PartialOrd, Ord, Eq, Clone)]
-struct LocalSettings {
-    max_table_size: u32,
-    max_blocked_streams: u16,
-}
-
-#[derive(Debug, PartialEq, PartialOrd, Ord, Eq, Clone)]
 pub enum Http3State {
     Initializing,
     ZeroRtt,
     Connected,
-    GoingAway,
+    GoingAway(u64),
     Closing(CloseError),
     Closed(CloseError),
 }
 
+impl Http3State {
+    #[must_use]
+    pub fn active(&self) -> bool {
+        matches!(self, Http3State::Connected | Http3State::GoingAway(_) | Http3State::ZeroRtt)
+    }
+}
+
 #[derive(Debug)]
-pub struct Http3Connection<T: Http3Transaction> {
+pub(crate) struct Http3Connection {
     pub state: Http3State,
-    local_settings: LocalSettings,
+    local_qpack_settings: QpackSettings,
     control_stream_local: ControlStreamLocal,
     control_stream_remote: ControlStreamRemote,
     new_streams: HashMap<u64, NewStreamTypeReader>,
@@ -71,34 +69,36 @@ pub struct Http3Connection<T: Http3Transaction> {
     pub qpack_decoder: QPackDecoder,
     settings_state: Http3RemoteSettingsState,
     streams_have_data_to_send: BTreeSet<u64>,
-    pub transactions: HashMap<u64, T>,
+    pub send_streams: HashMap<u64, SendMessage>,
+    pub recv_streams: HashMap<u64, Box<dyn RecvStream>>,
 }
 
-impl<T: Http3Transaction> ::std::fmt::Display for Http3Connection<T> {
+impl ::std::fmt::Display for Http3Connection {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         write!(f, "Http3 connection")
     }
 }
 
-impl<T: Http3Transaction> Http3Connection<T> {
-    pub fn new(max_table_size: u32, max_blocked_streams: u16) -> Self {
-        if max_table_size > (1 << 30) - 1 {
+impl Http3Connection {
+    /// Create a new connection.
+    pub fn new(local_qpack_settings: QpackSettings) -> Self {
+        if (local_qpack_settings.max_table_size_encoder >= QPACK_TABLE_SIZE_LIMIT)
+            || (local_qpack_settings.max_table_size_decoder >= QPACK_TABLE_SIZE_LIMIT)
+        {
             panic!("Wrong max_table_size");
         }
         Self {
             state: Http3State::Initializing,
-            local_settings: LocalSettings {
-                max_table_size,
-                max_blocked_streams,
-            },
+            local_qpack_settings,
             control_stream_local: ControlStreamLocal::default(),
             control_stream_remote: ControlStreamRemote::new(),
             new_streams: HashMap::new(),
-            qpack_encoder: QPackEncoder::new(true),
-            qpack_decoder: QPackDecoder::new(max_table_size, max_blocked_streams),
+            qpack_encoder: QPackEncoder::new(local_qpack_settings, true),
+            qpack_decoder: QPackDecoder::new(local_qpack_settings),
             settings_state: Http3RemoteSettingsState::NotReceived,
             streams_have_data_to_send: BTreeSet::new(),
-            transactions: HashMap::new(),
+            send_streams: HashMap::new(),
+            recv_streams: HashMap::new(),
         }
     }
 
@@ -113,11 +113,11 @@ impl<T: Http3Transaction> Http3Connection<T> {
 
     fn send_settings(&mut self) {
         qdebug!([self], "Send settings.");
-        self.control_stream_local.queue_frame(HFrame::Settings {
+        self.control_stream_local.queue_frame(&HFrame::Settings {
             settings: HSettings::new(&[
                 HSetting {
                     setting_type: HSettingType::MaxTableCapacity,
-                    value: self.qpack_decoder.get_max_table_size().into(),
+                    value: self.qpack_decoder.get_max_table_size(),
                 },
                 HSetting {
                     setting_type: HSettingType::BlockedStreams,
@@ -125,6 +125,12 @@ impl<T: Http3Transaction> Http3Connection<T> {
                 },
             ]),
         });
+        self.control_stream_local.queue_frame(&HFrame::Grease);
+    }
+
+    /// Save settings for adding to the session ticket.
+    pub(crate) fn save_settings(&self) -> Vec<u8> {
+        HttpZeroRttChecker::save(self.local_qpack_settings)
     }
 
     fn create_qpack_streams(&mut self, conn: &mut Connection) -> Res<()> {
@@ -136,48 +142,55 @@ impl<T: Http3Transaction> Http3Connection<T> {
         Ok(())
     }
 
+    /// Inform a `HttpConnection` that a stream has data to send and that `send` should be called for the stream.
     pub fn insert_streams_have_data_to_send(&mut self, stream_id: u64) {
         self.streams_have_data_to_send.insert(stream_id);
     }
 
+    /// Return true if there is a stream that needs to send data.
     pub fn has_data_to_send(&self) -> bool {
         !self.streams_have_data_to_send.is_empty()
     }
 
+    /// Call `send` for all streams that need to send data.
     pub fn process_sending(&mut self, conn: &mut Connection) -> Res<()> {
         // check if control stream has data to send.
         self.control_stream_local.send(conn)?;
 
         let to_send = mem::replace(&mut self.streams_have_data_to_send, BTreeSet::new());
         for stream_id in to_send {
-            if let Some(t) = &mut self.transactions.get_mut(&stream_id) {
-                t.send(conn, &mut self.qpack_encoder)?;
-                if t.has_data_to_send() {
+            let mut remove = false;
+            if let Some(s) = &mut self.send_streams.get_mut(&stream_id) {
+                s.send(conn, &mut self.qpack_encoder)?;
+                if s.has_data_to_send() {
                     self.streams_have_data_to_send.insert(stream_id);
                 }
+                remove = s.done();
+            }
+            if remove {
+                self.send_streams.remove(&stream_id);
             }
         }
         self.qpack_decoder.send(conn)?;
-        self.qpack_encoder.send(conn)?;
+        match self.qpack_encoder.send(conn) {
+            Ok(())
+            | Err(neqo_qpack::Error::EncoderStreamBlocked)
+            | Err(neqo_qpack::Error::DynamicTableFull) => {}
+            Err(e) => return Err(Error::QpackError(e)),
+        }
         Ok(())
     }
 
-    pub fn set_resumption_settings(
-        &mut self,
-        conn: &mut Connection,
-        settings: HSettings,
-    ) -> Res<()> {
-        if let Http3State::Initializing = &self.state {
-            self.state = Http3State::ZeroRtt;
-            self.initialize_http3_connection(conn)?;
-            self.set_qpack_settings(&settings)?;
-            self.settings_state = Http3RemoteSettingsState::ZeroRtt(settings);
-            Ok(())
-        } else {
-            Err(Error::Unexpected)
-        }
+    /// We have a resumption token which remembers previous settings. Update the setting.
+    pub fn set_0rtt_settings(&mut self, conn: &mut Connection, settings: HSettings) -> Res<()> {
+        self.initialize_http3_connection(conn)?;
+        self.set_qpack_settings(&settings)?;
+        self.settings_state = Http3RemoteSettingsState::ZeroRtt(settings);
+        self.state = Http3State::ZeroRtt;
+        Ok(())
     }
 
+    /// Returns the settings for a connection. This is used for creating a resumption token.
     pub fn get_settings(&self) -> Option<HSettings> {
         if let Http3RemoteSettingsState::Received(settings) = &self.settings_state {
             Some(settings.clone())
@@ -186,16 +199,15 @@ impl<T: Http3Transaction> Http3Connection<T> {
         }
     }
 
-    // This function adds a new unidi stream and try to read its type. Http3Connection can handle
-    // a Http3 Control stream, Qpack streams and an unknown stream, but it cannot handle a Push stream.
-    // If a Push stream has been discovered, return true and let the Http3Client/Server handle it.
+    /// This function adds a new unidi stream and try to read its type. `Http3Connection` can handle
+    /// a Http3 Control stream, Qpack streams and an unknown stream, but it cannot handle a Push stream.
+    /// If a Push stream has been discovered, return true and let the `Http3Client`/`Server` handle it.
     pub fn handle_new_unidi_stream(&mut self, conn: &mut Connection, stream_id: u64) -> Res<bool> {
         qtrace!([self], "A new stream: {}.", stream_id);
-        debug_assert!(self.state_active());
         let stream_type;
         let fin;
         {
-            let ns = &mut self
+            let ns = self
                 .new_streams
                 .entry(stream_id)
                 .or_insert_with(NewStreamTypeReader::new);
@@ -214,64 +226,8 @@ impl<T: Http3Transaction> Http3Connection<T> {
         }
     }
 
-    // This function handles reading from all streams, i.e. control, qpack, request/response
-    // stream and unidi stream that are still do not have a type.
-    // The function cannot handle:
-    // 1) a Push stream (if a unkown unidi stream is decoded to be a push stream)
-    // 2) frames MaxPushId or Goaway must be handled by Http3Client/Server.
-    // The function returns HandleReadableOutput.
-    pub(crate) fn handle_stream_readable(
-        &mut self,
-        conn: &mut Connection,
-        stream_id: u64,
-    ) -> Res<HandleReadableOutput> {
-        qtrace!([self], "Readable stream {}.", stream_id);
-
-        debug_assert!(self.state_active());
-
-        let label = if ::log::log_enabled!(::log::Level::Debug) {
-            format!("{}", self)
-        } else {
-            String::new()
-        };
-
-        if self.handle_read_stream(conn, stream_id)? {
-            qdebug!([label], "Request/response stream {} read.", stream_id);
-            Ok(HandleReadableOutput::NoOutput)
-        } else if self
-            .control_stream_remote
-            .receive_if_this_stream(conn, stream_id)?
-        {
-            qdebug!(
-                [self],
-                "The remote control stream ({}) is readable.",
-                stream_id
-            );
-
-            let mut control_frames = Vec::new();
-
-            while self.control_stream_remote.frame_reader_done()
-                || self.control_stream_remote.recvd_fin()
-            {
-                if let Some(f) = self.handle_control_frame()? {
-                    control_frames.push(f);
-                }
-                self.control_stream_remote
-                    .receive_if_this_stream(conn, stream_id)?;
-            }
-            if control_frames.is_empty() {
-                Ok(HandleReadableOutput::NoOutput)
-            } else {
-                Ok(HandleReadableOutput::ControlFrames(control_frames))
-            }
-        } else if self.qpack_encoder.recv_if_encoder_stream(conn, stream_id)? {
-            qdebug!(
-                [self],
-                "The qpack encoder stream ({}) is readable.",
-                stream_id
-            );
-            Ok(HandleReadableOutput::NoOutput)
-        } else if self.qpack_decoder.is_recv_stream(stream_id) {
+    fn recv_decoder(&mut self, conn: &mut Connection, stream_id: u64) -> Res<bool> {
+        if self.qpack_decoder.is_recv_stream(stream_id) {
             qdebug!(
                 [self],
                 "The qpack decoder stream ({}) is readable.",
@@ -279,9 +235,64 @@ impl<T: Http3Transaction> Http3Connection<T> {
             );
             let unblocked_streams = self.qpack_decoder.receive(conn, stream_id)?;
             for stream_id in unblocked_streams {
-                qinfo!([self], "Stream {} is unblocked", stream_id);
-                self.handle_read_stream(conn, stream_id)?;
+                qdebug!([self], "Stream {} is unblocked", stream_id);
+                self.handle_read_stream(conn, stream_id, true)?;
             }
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    fn recv_control(&mut self, conn: &mut Connection, stream_id: u64) -> Res<HandleReadableOutput> {
+        assert!(self.control_stream_remote.is_recv_stream(stream_id));
+        let mut control_frames = Vec::new();
+
+        loop {
+            if let Some(f) = self.control_stream_remote.receive(conn)? {
+                if let Some(f) = self.handle_control_frame(f)? {
+                    control_frames.push(f);
+                }
+            } else if control_frames.is_empty() {
+                return Ok(HandleReadableOutput::NoOutput);
+            } else {
+                return Ok(HandleReadableOutput::ControlFrames(control_frames));
+            }
+        }
+    }
+
+    /// This function handles reading from all streams, i.e. control, qpack, request/response
+    /// stream and unidi stream that are still do not have a type.
+    /// The function cannot handle:
+    /// 1) a Push stream (if an unknown unidi stream is decoded to be a push stream)
+    /// 2) frames `MaxPushId` or `Goaway` must be handled by `Http3Client`/`Server`.
+    /// The function returns `HandleReadableOutput`.
+    pub fn handle_stream_readable(
+        &mut self,
+        conn: &mut Connection,
+        stream_id: u64,
+    ) -> Res<HandleReadableOutput> {
+        qtrace!([self], "Readable stream {}.", stream_id);
+
+        let label = ::neqo_common::log_subject!(::log::Level::Debug, self);
+        if self.handle_read_stream(conn, stream_id, false)? {
+            qdebug!([label], "Request/response stream {} read.", stream_id);
+            Ok(HandleReadableOutput::NoOutput)
+        } else if self.control_stream_remote.is_recv_stream(stream_id) {
+            qdebug!(
+                [self],
+                "The remote control stream ({}) is readable.",
+                stream_id
+            );
+            self.recv_control(conn, stream_id)
+        } else if self.qpack_encoder.recv_if_encoder_stream(conn, stream_id)? {
+            qdebug!(
+                [self],
+                "The qpack encoder stream ({}) is readable.",
+                stream_id
+            );
+            Ok(HandleReadableOutput::NoOutput)
+        } else if self.recv_decoder(conn, stream_id)? {
             Ok(HandleReadableOutput::NoOutput)
         } else if let Some(ns) = self.new_streams.get_mut(&stream_id) {
             let stream_type = ns.get_type(conn, stream_id);
@@ -291,10 +302,21 @@ impl<T: Http3Transaction> Http3Connection<T> {
             }
             if let Some(t) = stream_type {
                 self.new_streams.remove(&stream_id);
-                let push = self.decode_new_stream(conn, t, stream_id)?;
-                if push {
-                    return Ok(HandleReadableOutput::PushStream);
-                }
+                self.decode_new_stream(conn, t, stream_id)?;
+                // Make sure to read from this stream because DataReadable will not be set again.
+                return match t {
+                    HTTP3_UNI_STREAM_TYPE_CONTROL => self.recv_control(conn, stream_id),
+                    QPACK_UNI_STREAM_TYPE_DECODER => {
+                        self.qpack_encoder.recv_if_encoder_stream(conn, stream_id)?;
+                        Ok(HandleReadableOutput::NoOutput)
+                    }
+                    QPACK_UNI_STREAM_TYPE_ENCODER => {
+                        self.recv_decoder(conn, stream_id)?;
+                        Ok(HandleReadableOutput::NoOutput)
+                    }
+                    HTTP3_UNI_STREAM_TYPE_PUSH => Ok(HandleReadableOutput::PushStream),
+                    _ => Ok(HandleReadableOutput::NoOutput),
+                };
             }
 
             Ok(HandleReadableOutput::NoOutput)
@@ -305,41 +327,62 @@ impl<T: Http3Transaction> Http3Connection<T> {
             // event and remove it from self.new_streams.
             // Therefore, while processing RecvStreamReadable there will be no
             // entry for the stream in self.new_streams.
-            qdebug!("Unknown stream.");
-            Ok(HandleReadableOutput::NoOutput)
+            // This can be a push stream as well.
+            Ok(HandleReadableOutput::StreamNotFound)
         }
     }
 
-    pub fn handle_stream_reset(
-        &mut self,
-        conn: &mut Connection,
-        stream_id: u64,
-        app_err: AppError,
-    ) -> Res<bool> {
+    fn is_critical_stream(&self, stream_id: u64) -> bool {
+        self.qpack_encoder
+            .local_stream_id()
+            .iter()
+            .chain(self.qpack_encoder.remote_stream_id().iter())
+            .chain(self.qpack_decoder.local_stream_id().iter())
+            .chain(self.qpack_decoder.remote_stream_id().iter())
+            .chain(self.control_stream_local.stream_id().iter())
+            .chain(self.control_stream_remote.stream_id().iter())
+            .any(|id| stream_id == *id)
+    }
+
+    /// This is called when a RESET frame has been received.
+    pub fn handle_stream_reset(&mut self, stream_id: u64, app_error: AppError) -> Res<()> {
         qinfo!(
             [self],
             "Handle a stream reset stream_id={} app_err={}",
             stream_id,
-            app_err
+            app_error
         );
 
-        debug_assert!(self.state_active());
-
-        if let Some(t) = self.transactions.get_mut(&stream_id) {
-            // Close both sides of the transaction_client.
-            t.reset_receiving_side();
-            t.stop_sending();
-            // close sending side of the transport stream as well. The server may have done
-            // it as well, but just to be sure.
-            let _ = conn.stream_reset_send(stream_id, app_err);
-            // remove the stream
-            self.transactions.remove(&stream_id);
-            Ok(true)
+        if let Some(s) = self.recv_streams.remove(&stream_id) {
+            s.stream_reset_recv(app_error, &mut self.qpack_decoder);
+            Ok(())
+        } else if self.is_critical_stream(stream_id) {
+            Err(Error::HttpClosedCriticalStream)
         } else {
-            Ok(false)
+            Ok(())
         }
     }
 
+    pub fn handle_stream_stop_sending(&mut self, stream_id: u64, app_error: AppError) -> Res<()> {
+        qinfo!(
+            [self],
+            "Handle stream_stop_sending stream_id={} app_err={}",
+            stream_id,
+            app_error
+        );
+
+        if let Some(mut s) = self.send_streams.remove(&stream_id) {
+            s.stop_sending(app_error);
+            Ok(())
+        } else if self.is_critical_stream(stream_id) {
+            Err(Error::HttpClosedCriticalStream)
+        } else {
+            Ok(())
+        }
+    }
+
+    /// This is called when `neqo_transport::Connection` state has been change to take proper actions in
+    /// the HTTP3 layer.
     pub fn handle_state_change(&mut self, conn: &mut Connection, state: &State) -> Res<bool> {
         qdebug!([self], "Handle state change {:?}", state);
         match state {
@@ -354,81 +397,79 @@ impl<T: Http3Transaction> Http3Connection<T> {
                 self.state = Http3State::Connected;
                 Ok(true)
             }
-            State::Closing { error, .. } => {
-                if !matches!(self.state, Http3State::Closing(_)| Http3State::Closed(_)) {
+            State::Closing { error, .. } | State::Draining { error, .. } => {
+                if matches!(self.state, Http3State::Closing(_)| Http3State::Closed(_)) {
+                    Ok(false)
+                } else {
                     self.state = Http3State::Closing(error.clone().into());
                     Ok(true)
-                } else {
-                    Ok(false)
                 }
             }
             State::Closed(error) => {
-                if !matches!(self.state, Http3State::Closed(_)) {
+                if matches!(self.state, Http3State::Closed(_)) {
+                    Ok(false)
+                } else {
                     self.state = Http3State::Closed(error.clone().into());
                     Ok(true)
-                } else {
-                    Ok(false)
                 }
             }
             _ => Ok(false),
         }
     }
 
+    /// This is called when 0RTT has been reseted to clear `send_streams`, `recv_streams` and settings.
     pub fn handle_zero_rtt_rejected(&mut self) -> Res<()> {
         if self.state == Http3State::ZeroRtt {
             self.state = Http3State::Initializing;
             self.control_stream_local = ControlStreamLocal::default();
             self.control_stream_remote = ControlStreamRemote::new();
             self.new_streams.clear();
-            self.qpack_encoder = QPackEncoder::new(true);
-            self.qpack_decoder = QPackDecoder::new(
-                self.local_settings.max_table_size,
-                self.local_settings.max_blocked_streams,
-            );
+            self.qpack_encoder = QPackEncoder::new(self.local_qpack_settings, true);
+            self.qpack_decoder = QPackDecoder::new(self.local_qpack_settings);
             self.settings_state = Http3RemoteSettingsState::NotReceived;
             self.streams_have_data_to_send.clear();
             // TODO: investigate whether this code can automatically retry failed transactions.
-            self.transactions.clear();
+            self.send_streams.clear();
+            self.recv_streams.clear();
             Ok(())
         } else {
             debug_assert!(false, "Zero rtt rejected in the wrong state.");
-            Err(Error::HttpInternalError)
+            Err(Error::HttpInternal)
         }
     }
 
-    fn handle_read_stream(&mut self, conn: &mut Connection, stream_id: u64) -> Res<bool> {
-        let label = if ::log::log_enabled!(::log::Level::Debug) {
-            format!("{}", self)
-        } else {
-            String::new()
-        };
+    fn handle_read_stream(
+        &mut self,
+        conn: &mut Connection,
+        stream_id: u64,
+        header_unblocked: bool,
+    ) -> Res<bool> {
+        let label = ::neqo_common::log_subject!(::log::Level::Info, self);
 
-        debug_assert!(self.state_active());
+        let r = self.recv_streams.get_mut(&stream_id);
 
-        if let Some(transaction) = &mut self.transactions.get_mut(&stream_id) {
-            qinfo!(
-                [label],
-                "Request/response stream {} is readable.",
-                stream_id
-            );
-            match transaction.receive(conn, &mut self.qpack_decoder) {
-                Err(e) => {
-                    qerror!([label], "Error {} ocurred", e);
-                    return Err(e);
-                }
-                Ok(()) => {
-                    if transaction.done() {
-                        self.transactions.remove(&stream_id);
-                    }
-                }
-            }
-            Ok(true)
-        } else {
-            Ok(false)
+        if r.is_none() {
+            return Ok(false);
         }
+
+        let recv_stream = r.unwrap();
+        qinfo!(
+            [label],
+            "Request/response stream {} is readable.",
+            stream_id
+        );
+        if header_unblocked {
+            recv_stream.header_unblocked(conn, &mut self.qpack_decoder)?;
+        } else {
+            recv_stream.receive(conn, &mut self.qpack_decoder)?;
+        }
+        if recv_stream.done() {
+            self.recv_streams.remove(&stream_id);
+        }
+        Ok(true)
     }
 
-    // Returns true if it is a push stream.
+    /// Returns true if it is a push stream.
     fn decode_new_stream(
         &mut self,
         conn: &mut Connection,
@@ -449,33 +490,36 @@ impl<T: Http3Transaction> Http3Connection<T> {
                 qinfo!([self], "A new remote qpack encoder stream {}", stream_id);
                 self.qpack_decoder
                     .add_recv_stream(stream_id)
-                    .map_err(|_| Error::HttpStreamCreationError)?;
+                    .map_err(|_| Error::HttpStreamCreation)?;
                 Ok(false)
             }
             QPACK_UNI_STREAM_TYPE_DECODER => {
                 qinfo!([self], "A new remote qpack decoder stream {}", stream_id);
                 self.qpack_encoder
                     .add_recv_stream(stream_id)
-                    .map_err(|_| Error::HttpStreamCreationError)?;
+                    .map_err(|_| Error::HttpStreamCreation)?;
                 Ok(false)
             }
-            // TODO reserved stream types
             _ => {
-                conn.stream_stop_sending(stream_id, Error::HttpStreamCreationError.code())?;
+                conn.stream_stop_sending(stream_id, Error::HttpStreamCreation.code())?;
                 Ok(false)
             }
         }
     }
 
+    /// This is called when an application closes the connection.
     pub fn close(&mut self, error: AppError) {
         qinfo!([self], "Close connection error {:?}.", error);
         self.state = Http3State::Closing(CloseError::Application(error));
-        if !self.transactions.is_empty() && (error == 0) {
-            qwarn!("close() called when streams still active");
+        if (!self.send_streams.is_empty() || !self.recv_streams.is_empty()) && (error == 0) {
+            qwarn!("close(0) called when streams still active");
         }
-        self.transactions.clear();
+        self.send_streams.clear();
+        self.recv_streams.clear();
     }
 
+    /// This is called when an application resets a stream.
+    /// The application reset will close both sides.
     pub fn stream_reset(
         &mut self,
         conn: &mut Connection,
@@ -483,58 +527,60 @@ impl<T: Http3Transaction> Http3Connection<T> {
         error: AppError,
     ) -> Res<()> {
         qinfo!([self], "Reset stream {} error={}.", stream_id, error);
-        let mut transaction = self
-            .transactions
-            .remove(&stream_id)
-            .ok_or(Error::InvalidStreamId)?;
-        transaction.stop_sending();
+
+        let mut found = self.send_streams.remove(&stream_id).is_some();
+        if let Some(s) = self.recv_streams.remove(&stream_id) {
+            s.stream_reset(&mut self.qpack_decoder);
+            found = true;
+        }
+
         // Stream maybe already be closed and we may get an error here, but we do not care.
         let _ = conn.stream_reset_send(stream_id, error);
-        transaction.reset_receiving_side();
         // Stream maybe already be closed and we may get an error here, but we do not care.
-        conn.stream_stop_sending(stream_id, error)?;
-        Ok(())
+        let _ = conn.stream_stop_sending(stream_id, error);
+        if found {
+            Ok(())
+        } else {
+            Err(Error::InvalidStreamId)
+        }
     }
 
+    /// This is called when an application wants to close the sending side of a stream.
     pub fn stream_close_send(&mut self, conn: &mut Connection, stream_id: u64) -> Res<()> {
-        qinfo!([self], "Close sending side for stream {}.", stream_id);
-        debug_assert!(self.state_active() || self.state_zero_rtt());
-        let transaction = self
-            .transactions
+        qinfo!([self], "Close the sending side for stream {}.", stream_id);
+        debug_assert!(self.state.active());
+        let send_stream = self
+            .send_streams
             .get_mut(&stream_id)
             .ok_or(Error::InvalidStreamId)?;
-        transaction.close_send(conn)?;
-        if transaction.done() {
-            self.transactions.remove(&stream_id);
+        // The following funcion may return InvalidStreamId from the transport layer if the stream has been cloesd
+        // already. It is ok to ignore it here.
+        let _ = send_stream.close(conn);
+        if send_stream.done() {
+            self.send_streams.remove(&stream_id);
         }
         Ok(())
     }
 
     // If the control stream has received frames MaxPushId or Goaway which handling is specific to
-    // the client and server, we must give them to the specific client/server handler..
-    fn handle_control_frame(&mut self) -> Res<Option<HFrame>> {
-        if self.control_stream_remote.recvd_fin() {
-            return Err(Error::HttpClosedCriticalStream);
+    // the client and server, we must give them to the specific client/server handler.
+    fn handle_control_frame(&mut self, f: HFrame) -> Res<Option<HFrame>> {
+        qinfo!([self], "Handle a control frame {:?}", f);
+        if !matches!(f, HFrame::Settings { .. })
+            && !matches!(self.settings_state, Http3RemoteSettingsState::Received{..})
+        {
+            return Err(Error::HttpMissingSettings);
         }
-        if self.control_stream_remote.frame_reader_done() {
-            let f = self.control_stream_remote.get_frame()?;
-            qinfo!([self], "Handle a control frame {:?}", f);
-            if !matches!(f, HFrame::Settings { .. })
-                && !matches!(self.settings_state, Http3RemoteSettingsState::Received{..})
-            {
-                return Err(Error::HttpMissingSettings);
+        match f {
+            HFrame::Settings { settings } => {
+                self.handle_settings(settings)?;
+                Ok(None)
             }
-            return match f {
-                HFrame::Settings { settings } => {
-                    self.handle_settings(settings)?;
-                    Ok(None)
-                }
-                HFrame::CancelPush { .. } => Err(Error::HttpFrameUnexpected),
-                HFrame::Goaway { .. } | HFrame::MaxPushId { .. } => Ok(Some(f)),
-                _ => Err(Error::HttpFrameUnexpected),
-            };
+            HFrame::Goaway { .. } | HFrame::MaxPushId { .. } | HFrame::CancelPush { .. } => {
+                Ok(Some(f))
+            }
+            _ => Err(Error::HttpFrameUnexpected),
         }
-        Ok(None)
     }
 
     fn set_qpack_settings(&mut self, settings: &[HSetting]) -> Res<()> {
@@ -545,7 +591,7 @@ impl<T: Http3Transaction> Http3Connection<T> {
                 HSettingType::BlockedStreams => {
                     self.qpack_encoder.set_max_blocked_streams(s.value)?
                 }
-                _ => {}
+                HSettingType::MaxHeaderListSize => (),
             }
         }
         Ok(())
@@ -579,13 +625,13 @@ impl<T: Http3Transaction> Http3Connection<T> {
                             zero_rtt_value,
                             st
                         );
-                        return Err(Error::HttpSettingsError);
+                        return Err(Error::HttpSettings);
                     }
 
                     match st {
                         HSettingType::MaxTableCapacity => {
                             if zero_rtt_value != 0 {
-                                return Err(Error::HttpSettingsError);
+                                return Err(Error::QpackError(neqo_qpack::Error::DecoderStream));
                             }
                             qpack_changed = true;
                         }
@@ -604,22 +650,31 @@ impl<T: Http3Transaction> Http3Connection<T> {
         }
     }
 
-    fn state_active(&self) -> bool {
-        matches!(self.state, Http3State::Connected | Http3State::GoingAway)
-    }
-
-    fn state_zero_rtt(&self) -> bool {
-        matches!(self.state, Http3State::ZeroRtt)
-    }
-
+    /// Return the current state on `Http3Connection`.
     pub fn state(&self) -> Http3State {
         self.state.clone()
     }
 
-    pub fn add_transaction(&mut self, stream_id: u64, transaction: T) {
-        if transaction.has_data_to_send() {
+    /// Adds a new send and receive stream.
+    pub fn add_streams(
+        &mut self,
+        stream_id: u64,
+        send_stream: SendMessage,
+        recv_stream: Box<dyn RecvStream>,
+    ) {
+        if send_stream.has_data_to_send() {
             self.streams_have_data_to_send.insert(stream_id);
         }
-        self.transactions.insert(stream_id, transaction);
+        self.send_streams.insert(stream_id, send_stream);
+        self.recv_streams.insert(stream_id, recv_stream);
+    }
+
+    /// Add a new recv stream. This is used for push streams.
+    pub fn add_recv_stream(&mut self, stream_id: u64, recv_stream: Box<dyn RecvStream>) {
+        self.recv_streams.insert(stream_id, recv_stream);
+    }
+
+    pub fn queue_control_frame(&mut self, frame: &HFrame) {
+        self.control_stream_local.queue_frame(frame);
     }
 }

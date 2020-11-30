@@ -19,11 +19,13 @@
 #include "DocAccessibleChild.h"
 #include "EventTree.h"
 #include "GeckoProfiler.h"
+#include "Pivot.h"
 #include "Relation.h"
 #include "Role.h"
 #include "RootAccessible.h"
 #include "States.h"
 #include "StyleInfo.h"
+#include "TextRange.h"
 #include "TableAccessible.h"
 #include "TableCellAccessible.h"
 #include "TreeWalker.h"
@@ -152,8 +154,8 @@ ENameValueFlag Accessible::Name(nsString& aName) const {
       return eNameFromTooltip;
     }
   } else if (mContent->IsSVGElement()) {
-    // If user agents need to choose among multiple ‘desc’ or ‘title’ elements
-    // for processing, the user agent shall choose the first one.
+    // If user agents need to choose among multiple 'desc' or 'title'
+    // elements for processing, the user agent shall choose the first one.
     for (nsIContent* childElm = mContent->GetFirstChild(); childElm;
          childElm = childElm->GetNextSibling()) {
       if (childElm->IsSVGElement(nsGkAtoms::desc)) {
@@ -460,8 +462,7 @@ uint64_t Accessible::NativeInteractiveState() const {
 uint64_t Accessible::NativeLinkState() const { return 0; }
 
 bool Accessible::NativelyUnavailable() const {
-  if (mContent->IsHTMLElement())
-    return mContent->AsElement()->State().HasState(NS_EVENT_STATE_DISABLED);
+  if (mContent->IsHTMLElement()) return mContent->AsElement()->IsDisabled();
 
   return mContent->IsElement() && mContent->AsElement()->AttrValueIs(
                                       kNameSpaceID_None, nsGkAtoms::disabled,
@@ -532,26 +533,8 @@ Accessible* Accessible::ChildAtPoint(int32_t aX, int32_t aY,
   nsPoint offset(presContext->DevPixelsToAppUnits(aX) - screenRect.X(),
                  presContext->DevPixelsToAppUnits(aY) - screenRect.Y());
 
-  // We need to take into account a non-1 resolution set on the presshell.
-  // This happens in mobile platforms with async pinch zooming.
-  offset = offset.RemoveResolution(presContext->PresShell()->GetResolution());
-
-  // We need to translate with the offset of the edge of the visual
-  // viewport from top edge of the layout viewport.
-  offset += presContext->PresShell()->GetVisualViewportOffset() -
-            presContext->PresShell()->GetLayoutViewportOffset();
-
-  EnumSet<nsLayoutUtils::FrameForPointOption> options = {
-#ifdef MOZ_WIDGET_ANDROID
-      // This is needed in Android to ignore the clipping of the scroll frame
-      // when zoomed in. May regress something on other platforms, so
-      // keeping it Android-exclusive for now.
-      nsLayoutUtils::FrameForPointOption::IgnoreRootScrollFrame
-#endif
-  };
-
-  nsIFrame* foundFrame =
-      nsLayoutUtils::GetFrameForPoint(startFrame, offset, options);
+  nsIFrame* foundFrame = nsLayoutUtils::GetFrameForPoint(
+      RelativeTo{startFrame, ViewportType::Visual}, offset);
 
   nsIContent* content = nullptr;
   if (!foundFrame || !(content = foundFrame->GetContent()))
@@ -613,13 +596,7 @@ Accessible* Accessible::ChildAtPoint(int32_t aX, int32_t aY,
 nsRect Accessible::RelativeBounds(nsIFrame** aBoundingFrame) const {
   nsIFrame* frame = GetFrame();
   if (frame && mContent) {
-    bool* pHasHitRegionRect =
-        static_cast<bool*>(mContent->GetProperty(nsGkAtoms::hitregion));
-    MOZ_ASSERT(pHasHitRegionRect == nullptr || *pHasHitRegionRect,
-               "hitregion property is always null or true");
-    bool hasHitRegionRect = pHasHitRegionRect != nullptr && *pHasHitRegionRect;
-
-    if (hasHitRegionRect && mContent->IsElement()) {
+    if (mContent->GetProperty(nsGkAtoms::hitregion) && mContent->IsElement()) {
       // This is for canvas fallback content
       // Find a canvas frame the found hit region is relative to.
       nsIFrame* canvasFrame = frame->GetParent();
@@ -631,15 +608,14 @@ nsRect Accessible::RelativeBounds(nsIFrame** aBoundingFrame) const {
       // make the canvas the bounding frame
       if (canvasFrame) {
         *aBoundingFrame = canvasFrame;
-        dom::HTMLCanvasElement* canvas =
-            dom::HTMLCanvasElement::FromNode(canvasFrame->GetContent());
-
-        // get the bounding rect of the hit region
-        nsRect bounds;
-        if (canvas && canvas->CountContexts() &&
-            canvas->GetContextAtIndex(0)->GetHitRegionRect(
-                mContent->AsElement(), bounds)) {
-          return bounds;
+        if (auto* canvas =
+                dom::HTMLCanvasElement::FromNode(canvasFrame->GetContent())) {
+          if (auto* context = canvas->GetCurrentContext()) {
+            nsRect bounds;
+            if (context->GetHitRegionRect(mContent->AsElement(), bounds)) {
+              return bounds;
+            }
+          }
         }
       }
     }
@@ -668,8 +644,8 @@ nsRect Accessible::BoundsInAppUnits() const {
   unionRectTwips.MoveBy(-viewportOffset);
 
   // We need to take into account a non-1 resolution set on the presshell.
-  // This happens in mobile platforms with async pinch zooming. Here we
-  // scale the bounds before adding the screen-relative offset.
+  // This happens with async pinch zooming. Here we scale the bounds before
+  // adding the screen-relative offset.
   unionRectTwips.ScaleRoundOut(presShell->GetResolution());
   // We have the union of the rectangle, now we need to put it in absolute
   // screen coords.
@@ -696,9 +672,8 @@ void Accessible::SetSelected(bool aSelect) {
     if (select->State() & states::MULTISELECTABLE) {
       if (mContent->IsElement() && ARIARoleMap()) {
         if (aSelect) {
-          mContent->AsElement()->SetAttr(kNameSpaceID_None,
-                                         nsGkAtoms::aria_selected,
-                                         NS_LITERAL_STRING("true"), true);
+          mContent->AsElement()->SetAttr(
+              kNameSpaceID_None, nsGkAtoms::aria_selected, u"true"_ns, true);
         } else {
           mContent->AsElement()->UnsetAttr(kNameSpaceID_None,
                                            nsGkAtoms::aria_selected, true);
@@ -769,33 +744,27 @@ void Accessible::XULElmName(DocAccessible* aDocument, nsIContent* aElm,
   /**
    * 3 main cases for XUL Controls to be labeled
    *   1 - control contains label="foo"
-   *   2 - control has, as a child, a label element
+   *   2 - non-child label contains control="controlID"
    *        - label has either value="foo" or children
-   *   3 - non-child label contains control="controlID"
-   *        - label has either value="foo" or children
+   *   3 - name from subtree; e.g. a child label element
+   * Cases 1 and 2 are handled here.
+   * Case 3 is handled by GetNameFromSubtree called in NativeName.
    * Once a label is found, the search is discontinued, so a control
-   *  that has a label child as well as having a label external to
+   *  that has a label attribute as well as having a label external to
    *  the control that uses the control="controlID" syntax will use
-   *  the child label for its Name.
+   *  the label attribute for its Name.
    */
 
   // CASE #1 (via label attribute) -- great majority of the cases
-  nsCOMPtr<nsIDOMXULSelectControlItemElement> itemEl =
-      aElm->AsElement()->AsXULSelectControlItem();
-  if (itemEl) {
-    itemEl->GetLabel(aName);
-  } else {
-    // Use @label if this is not a select control element, which uses label
-    // attribute to indicate, which option is selected.
-    nsCOMPtr<nsIDOMXULSelectControlElement> select =
-        aElm->AsElement()->AsXULSelectControl();
-    if (!select) {
-      aElm->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::label, aName);
-    }
+  // Only do this if this is not a select control element, which uses label
+  // attribute to indicate, which option is selected.
+  nsCOMPtr<nsIDOMXULSelectControlElement> select =
+      aElm->AsElement()->AsXULSelectControl();
+  if (!select) {
+    aElm->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::label, aName);
   }
 
-  // CASES #2 and #3 ------ label as a child or <label control="id" ... >
-  // </label>
+  // CASE #2 -- label as <label control="id" ... ></label>
   if (aName.IsEmpty()) {
     NameFromAssociatedXULLabel(aDocument, aElm, aName);
   }
@@ -813,12 +782,17 @@ nsresult Accessible::HandleAccEvent(AccEvent* aEvent) {
     nsAutoCString strMarker;
     strMarker.AppendLiteral("A11y Event - ");
     strMarker.Append(strEventType);
-    PROFILER_ADD_MARKER(strMarker.get(), OTHER);
+    PROFILER_MARKER_UNTYPED(strMarker, OTHER);
   }
 #endif
 
   if (IPCAccessibilityActive() && Document()) {
     DocAccessibleChild* ipcDoc = mDoc->IPCDoc();
+    // If ipcDoc is null, we can't fire the event to the client. We shouldn't
+    // have fired the event in the first place, since this makes events
+    // inconsistent for local and remote documents. To avoid this, don't call
+    // nsEventShell::FireEvent on a DocAccessible for which
+    // HasLoadState(eTreeConstructed) is false.
     MOZ_ASSERT(ipcDoc);
     if (ipcDoc) {
       uint64_t id = aEvent->GetAccessible()->IsDoc()
@@ -849,7 +823,8 @@ nsresult Accessible::HandleAccEvent(AccEvent* aEvent) {
         }
         case nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED: {
           AccCaretMoveEvent* event = downcast_accEvent(aEvent);
-          ipcDoc->SendCaretMoveEvent(id, event->GetCaretOffset());
+          ipcDoc->SendCaretMoveEvent(id, event->GetCaretOffset(),
+                                     event->IsSelectionCollapsed());
           break;
         }
         case nsIAccessibleEvent::EVENT_TEXT_INSERTED:
@@ -922,6 +897,27 @@ nsresult Accessible::HandleAccEvent(AccEvent* aEvent) {
                                         announcementEvent->Priority());
           break;
         }
+        case nsIAccessibleEvent::EVENT_TEXT_SELECTION_CHANGED: {
+          AccTextSelChangeEvent* textSelChangeEvent = downcast_accEvent(aEvent);
+          AutoTArray<TextRange, 1> ranges;
+          textSelChangeEvent->SelectionRanges(&ranges);
+          nsTArray<TextRangeData> textRangeData(ranges.Length());
+          for (size_t i = 0; i < ranges.Length(); i++) {
+            const TextRange& range = ranges.ElementAt(i);
+            Accessible* start = range.StartContainer();
+            Accessible* end = range.EndContainer();
+            textRangeData.AppendElement(TextRangeData(
+                start->IsDoc() && start->AsDoc()->IPCDoc()
+                    ? 0
+                    : reinterpret_cast<uint64_t>(start->UniqueID()),
+                end->IsDoc() && end->AsDoc()->IPCDoc()
+                    ? 0
+                    : reinterpret_cast<uint64_t>(end->UniqueID()),
+                range.StartOffset(), range.EndOffset()));
+          }
+          ipcDoc->SendTextSelectionChangeEvent(id, textRangeData);
+          break;
+        }
 #endif
         default:
           ipcDoc->SendEvent(id, aEvent->GetEventType());
@@ -963,7 +959,7 @@ already_AddRefed<nsIPersistentProperties> Accessible::Attributes() {
   if (roleMapEntry) {
     if (roleMapEntry->Is(nsGkAtoms::searchbox)) {
       nsAccUtils::SetAccAttr(attributes, nsGkAtoms::textInputType,
-                             NS_LITERAL_STRING("search"));
+                             u"search"_ns);
     }
 
     nsAutoString live;
@@ -989,21 +985,18 @@ already_AddRefed<nsIPersistentProperties> Accessible::NativeAttributes() {
   if (HasNumericValue()) {
     nsAutoString valuetext;
     Value(valuetext);
-    attributes->SetStringProperty(NS_LITERAL_CSTRING("valuetext"), valuetext,
-                                  unused);
+    attributes->SetStringProperty("valuetext"_ns, valuetext, unused);
   }
 
   // Expose checkable object attribute if the accessible has checkable state
   if (State() & states::CHECKABLE) {
-    nsAccUtils::SetAccAttr(attributes, nsGkAtoms::checkable,
-                           NS_LITERAL_STRING("true"));
+    nsAccUtils::SetAccAttr(attributes, nsGkAtoms::checkable, u"true"_ns);
   }
 
   // Expose 'explicit-name' attribute.
   nsAutoString name;
   if (Name(name) != eNameFromSubtree && !name.IsVoid()) {
-    attributes->SetStringProperty(NS_LITERAL_CSTRING("explicit-name"),
-                                  NS_LITERAL_STRING("true"), unused);
+    attributes->SetStringProperty("explicit-name"_ns, u"true"_ns, unused);
   }
 
   // Group attributes (level/setsize/posinset)
@@ -1016,13 +1009,11 @@ already_AddRefed<nsIPersistentProperties> Accessible::NativeAttributes() {
   if (itemCount) {
     nsAutoString itemCountStr;
     itemCountStr.AppendInt(itemCount);
-    attributes->SetStringProperty(NS_LITERAL_CSTRING("child-item-count"),
-                                  itemCountStr, unused);
+    attributes->SetStringProperty("child-item-count"_ns, itemCountStr, unused);
   }
 
   if (hierarchical) {
-    attributes->SetStringProperty(NS_LITERAL_CSTRING("hierarchical"),
-                                  NS_LITERAL_STRING("true"), unused);
+    attributes->SetStringProperty("hierarchical"_ns, u"true"_ns, unused);
   }
 
   // If the accessible doesn't have own content (such as list item bullet or
@@ -1034,37 +1025,14 @@ already_AddRefed<nsIPersistentProperties> Accessible::NativeAttributes() {
   // Get container-foo computed live region properties based on the closest
   // container with the live region attribute. Inner nodes override outer nodes
   // within the same document. The inner nodes can be used to override live
-  // region behavior on more general outer nodes. However, nodes in outer
-  // documents override nodes in inner documents: outer doc author may want to
-  // override properties on a widget they used in an iframe.
-  nsIContent* startContent = mContent;
-  while (startContent) {
-    dom::Document* doc = startContent->GetComposedDoc();
-    if (!doc) break;
-
-    nsAccUtils::SetLiveContainerAttributes(attributes, startContent,
-                                           doc->GetRootElement());
-
-    // Allow ARIA live region markup from outer documents to override
-    nsCOMPtr<nsIDocShellTreeItem> docShellTreeItem = doc->GetDocShell();
-    if (!docShellTreeItem) break;
-
-    nsCOMPtr<nsIDocShellTreeItem> sameTypeParent;
-    docShellTreeItem->GetInProcessSameTypeParent(
-        getter_AddRefs(sameTypeParent));
-    if (!sameTypeParent || sameTypeParent == docShellTreeItem) break;
-
-    dom::Document* parentDoc = doc->GetInProcessParentDocument();
-    if (!parentDoc) break;
-
-    startContent = parentDoc->FindContentForSubDocument(doc);
-  }
+  // region behavior on more general outer nodes.
+  nsAccUtils::SetLiveContainerAttributes(attributes, mContent);
 
   if (!mContent->IsElement()) return attributes.forget();
 
   nsAutoString id;
   if (nsCoreUtils::GetID(mContent, id))
-    attributes->SetStringProperty(NS_LITERAL_CSTRING("id"), id, unused);
+    attributes->SetStringProperty("id"_ns, id, unused);
 
   // Expose class because it may have useful microformat information.
   nsAutoString _class;
@@ -1080,8 +1048,7 @@ already_AddRefed<nsIPersistentProperties> Accessible::NativeAttributes() {
   // Expose draggable object attribute.
   if (auto htmlElement = nsGenericHTMLElement::FromNode(mContent)) {
     if (htmlElement->Draggable()) {
-      nsAccUtils::SetAccAttr(attributes, nsGkAtoms::draggable,
-                             NS_LITERAL_STRING("true"));
+      nsAccUtils::SetAccAttr(attributes, nsGkAtoms::draggable, u"true"_ns);
     }
   }
 
@@ -1120,6 +1087,15 @@ already_AddRefed<nsIPersistentProperties> Accessible::NativeAttributes() {
   // Expose 'margin-bottom' attribute.
   styleInfo.MarginBottom(value);
   nsAccUtils::SetAccAttr(attributes, nsGkAtoms::marginBottom, value);
+
+  // Expose data-at-shortcutkeys attribute for web applications and virtual
+  // cursors. Currently mostly used by JAWS.
+  nsAutoString atShortcutKeys;
+  if (mContent->AsElement()->GetAttr(
+          kNameSpaceID_None, nsGkAtoms::dataAtShortcutkeys, atShortcutKeys)) {
+    nsAccUtils::SetAccAttr(attributes, nsGkAtoms::dataAtShortcutkeys,
+                           atShortcutKeys);
+  }
 
   return attributes.forget();
 }
@@ -1333,12 +1309,7 @@ void Accessible::ApplyARIAState(uint64_t* aState) const {
 }
 
 void Accessible::Value(nsString& aValue) const {
-  const nsRoleMapEntry* roleMapEntry = ARIARoleMap();
-
-  if ((roleMapEntry && roleMapEntry->valueRule != eNoValue) ||
-      // Bug 1475376: aria-valuetext should also be supported for implicit ARIA
-      // roles; e.g. <input type="range">.
-      HasNumericValue()) {
+  if (HasNumericValue()) {
     // aria-valuenow is a number, and aria-valuetext is the optional text
     // equivalent. For the string value, we will try the optional text
     // equivalent first.
@@ -1358,6 +1329,7 @@ void Accessible::Value(nsString& aValue) const {
     return;
   }
 
+  const nsRoleMapEntry* roleMapEntry = ARIARoleMap();
   if (!roleMapEntry) {
     return;
   }
@@ -1667,6 +1639,20 @@ Relation Accessible::RelationByType(RelationType aType) const {
         rel.AppendTarget(GetGroupInfo()->ConceptualParent());
       }
 
+      // If this is an OOP iframe document, we can't support NODE_CHILD_OF
+      // here, since the iframe resides in a different process. This is fine
+      // because the client will then request the parent instead, which will be
+      // correctly handled by platform/AccessibleOrProxy code.
+      if (XRE_IsContentProcess() && IsRoot()) {
+        dom::Document* doc =
+            const_cast<Accessible*>(this)->AsDoc()->DocumentNode();
+        dom::BrowsingContext* bc = doc->GetBrowsingContext();
+        MOZ_ASSERT(bc);
+        if (!bc->Top()->IsInProcess()) {
+          return rel;
+        }
+      }
+
       // If accessible is in its own Window, or is the root of a document,
       // then we should provide NODE_CHILD_OF relation so that MSAA clients
       // can easily get to true parent instead of getting to oleacc's
@@ -1720,8 +1706,44 @@ Relation Accessible::RelationByType(RelationType aType) const {
       return Relation(
           new RelatedAccIterator(Document(), mContent, nsGkAtoms::aria_flowto));
 
-    case RelationType::MEMBER_OF:
+    case RelationType::MEMBER_OF: {
+      if (Role() == roles::RADIOBUTTON) {
+        /* If we see a radio button role here, we're dealing with an aria
+         * radio button (because input=radio buttons are
+         * HTMLRadioButtonAccessibles) */
+        Relation rel = Relation();
+        Accessible* currParent = Parent();
+        while (currParent && currParent->Role() != roles::RADIO_GROUP) {
+          currParent = currParent->Parent();
+        }
+
+        if (currParent && currParent->Role() == roles::RADIO_GROUP) {
+          /* If we found a radiogroup parent, search for all
+           * roles::RADIOBUTTON children and add them to our relation.
+           * This search will include the radio button this method
+           * was called from, which is expected. */
+          Pivot p = Pivot(currParent);
+          PivotRoleRule rule(roles::RADIOBUTTON);
+          AccessibleOrProxy wrappedParent = AccessibleOrProxy(currParent);
+          AccessibleOrProxy match = p.Next(wrappedParent, rule);
+          while (!match.IsNull()) {
+            MOZ_ASSERT(
+                !match.IsProxy(),
+                "We shouldn't find any proxy's while building our relation!");
+            rel.AppendTarget(match.AsAccessible());
+            match = p.Next(match, rule);
+          }
+        }
+
+        /* By webkit's standard, aria radio buttons do not get grouped
+         * if they lack a group parent, so we return an empty
+         * relation here if the above check fails. */
+
+        return rel;
+      }
+
       return Relation(mDoc, GetAtomicRegion());
+    }
 
     case RelationType::SUBWINDOW_OF:
     case RelationType::EMBEDS:
@@ -1747,8 +1769,7 @@ Relation Accessible::RelationByType(RelationType aType) const {
         nsIContent* buttonEl = nullptr;
         if (doc->AllowXULXBL()) {
           nsCOMPtr<nsIHTMLCollection> possibleDefaultButtons =
-              doc->GetElementsByAttribute(NS_LITERAL_STRING("default"),
-                                          NS_LITERAL_STRING("true"));
+              doc->GetElementsByAttribute(u"default"_ns, u"true"_ns);
           if (possibleDefaultButtons) {
             uint32_t length = possibleDefaultButtons->Length();
             // Check for button in list of default="true" elements
@@ -2012,8 +2033,8 @@ ENameValueFlag Accessible::NativeName(nsString& aName) const {
   }
 
   if (mContent->IsSVGElement()) {
-    // If user agents need to choose among multiple ‘desc’ or ‘title’ elements
-    // for processing, the user agent shall choose the first one.
+    // If user agents need to choose among multiple 'desc' or 'title'
+    // elements for processing, the user agent shall choose the first one.
     for (nsIContent* childElm = mContent->GetFirstChild(); childElm;
          childElm = childElm->GetNextSibling()) {
       if (childElm->IsSVGElement(nsGkAtoms::title)) {
@@ -2064,6 +2085,15 @@ void Accessible::BindToParent(Accessible* aParent, uint32_t aIndexInParent) {
   mContextFlags |=
       static_cast<uint32_t>((mParent->IsAlert() || mParent->IsInsideAlert())) &
       eInsideAlert;
+
+  // if a new column header is being added, invalidate the table's header cache.
+  TableCellAccessible* cell = AsTableCell();
+  if (cell && Role() == roles::COLUMNHEADER) {
+    TableAccessible* table = cell->Table();
+    if (table) {
+      table->GetHeaderCache().Clear();
+    }
+  }
 }
 
 // Accessible protected
@@ -2121,10 +2151,13 @@ bool Accessible::InsertChildAt(uint32_t aIndex, Accessible* aChild) {
   if (!aChild) return false;
 
   if (aIndex == mChildren.Length()) {
-    if (!mChildren.AppendElement(aChild)) return false;
-
+    // XXX(Bug 1631371) Check if this should use a fallible operation as it
+    // pretended earlier.
+    mChildren.AppendElement(aChild);
   } else {
-    if (!mChildren.InsertElementAt(aIndex, aChild)) return false;
+    // XXX(Bug 1631371) Check if this should use a fallible operation as it
+    // pretended earlier.
+    mChildren.InsertElementAt(aIndex, aChild);
 
     MOZ_ASSERT(mStateFlags & eKidsMutating, "Illicit children change");
 
@@ -2595,7 +2628,17 @@ AccGroupInfo* Accessible::GetGroupInfo() const {
   }
 
   mBits.groupInfo = AccGroupInfo::CreateGroupInfo(this);
+  mStateFlags &= ~eGroupInfoDirty;
   return mBits.groupInfo;
+}
+
+void Accessible::MaybeFireFocusableStateChange(bool aPreviouslyFocusable) {
+  bool isFocusable = (State() & states::FOCUSABLE);
+  if (isFocusable != aPreviouslyFocusable) {
+    RefPtr<AccEvent> focusableChangeEvent =
+        new AccStateChangeEvent(this, states::FOCUSABLE, isFocusable);
+    mDoc->FireDelayedEvent(focusableChangeEvent);
+  }
 }
 
 void Accessible::GetPositionAndSizeInternal(int32_t* aPosInSet,

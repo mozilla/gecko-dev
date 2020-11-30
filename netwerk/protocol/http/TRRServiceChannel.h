@@ -9,8 +9,10 @@
 #define mozilla_net_TRRServiceChannel_h
 
 #include "HttpBaseChannel.h"
+#include "mozilla/DataMutex.h"
 #include "nsIDNSListener.h"
 #include "nsIProtocolProxyCallback.h"
+#include "nsIProxiedChannel.h"
 #include "nsIStreamListener.h"
 #include "nsWeakReference.h"
 
@@ -71,6 +73,7 @@ class TRRServiceChannel : public HttpBaseChannel,
                                  const nsAString& aURL,
                                  const nsAString& aContentType) override;
   NS_IMETHOD SetupFallbackChannel(const char* aFallbackKey) override;
+  NS_IMETHOD GetIsAuthChannel(bool* aIsAuthChannel) override;
 
   NS_IMETHOD SetNotificationCallbacks(
       nsIInterfaceRequestor* aCallbacks) override;
@@ -83,9 +86,10 @@ class TRRServiceChannel : public HttpBaseChannel,
   // nsIResumableChannel
   NS_IMETHOD ResumeAt(uint64_t startPos, const nsACString& entityID) override;
 
-  MOZ_MUST_USE nsresult OnPush(uint32_t aPushedStreamId, const nsACString& aUrl,
-                               const nsACString& aRequestString,
-                               HttpTransactionShell* aTransaction);
+  [[nodiscard]] nsresult OnPush(uint32_t aPushedStreamId,
+                                const nsACString& aUrl,
+                                const nsACString& aRequestString,
+                                HttpTransactionShell* aTransaction);
   void SetPushedStreamTransactionAndId(
       HttpTransactionShell* aTransWithPushedStream, uint32_t aPushedStreamId);
 
@@ -101,6 +105,8 @@ class TRRServiceChannel : public HttpBaseChannel,
   NS_IMETHOD GetRequestStart(mozilla::TimeStamp* aRequestStart) override;
   NS_IMETHOD GetResponseStart(mozilla::TimeStamp* aResponseStart) override;
   NS_IMETHOD GetResponseEnd(mozilla::TimeStamp* aResponseEnd) override;
+  NS_IMETHOD SetLoadGroup(nsILoadGroup* aLoadGroup) override;
+  NS_IMETHOD TimingAllowCheck(nsIPrincipal* aOrigin, bool* aResult) override;
 
  protected:
   TRRServiceChannel();
@@ -125,6 +131,13 @@ class TRRServiceChannel : public HttpBaseChannel,
   nsresult ResolveProxy();
   void AfterApplyContentConversions(nsresult aResult,
                                     nsIStreamListener* aListener);
+  nsresult SyncProcessRedirection(uint32_t aHttpStatus);
+  [[nodiscard]] virtual nsresult SetupReplacementChannel(
+      nsIURI* aNewURI, nsIChannel* aNewChannel, bool aPreserveMethod,
+      uint32_t aRedirectFlags) override;
+
+  virtual bool SameOriginWithOriginalUri(nsIURI* aURI) override;
+  bool DispatchRelease();
 
   // True only when we have computed the value of the top window origin.
   bool mTopWindowOriginComputed;
@@ -141,7 +154,7 @@ class TRRServiceChannel : public HttpBaseChannel,
   RefPtr<HttpTransactionShell> mTransaction;
   uint32_t mPushedStreamId;
   RefPtr<HttpTransactionShell> mTransWithPushedStream;
-  nsCOMPtr<nsICancelable> mProxyRequest;
+  DataMutex<nsCOMPtr<nsICancelable>> mProxyRequest;
   nsCOMPtr<nsIEventTarget> mCurrentEventTarget;
 
   friend class HttpAsyncAborter<TRRServiceChannel>;

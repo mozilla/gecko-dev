@@ -12,15 +12,15 @@
 #include "nsServiceManagerUtils.h"
 #include "prtime.h"
 
-inline MOZ_MUST_USE nsresult NS_GetAboutModuleName(nsIURI* aAboutURI,
-                                                   nsCString& aModule) {
+[[nodiscard]] inline nsresult NS_GetAboutModuleName(nsIURI* aAboutURI,
+                                                    nsCString& aModule) {
   NS_ASSERTION(aAboutURI->SchemeIs("about"),
                "should be used only on about: URIs");
 
   nsresult rv = aAboutURI->GetPathQueryRef(aModule);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  int32_t f = aModule.FindCharInSet(NS_LITERAL_CSTRING("#?"));
+  int32_t f = aModule.FindCharInSet("#?"_ns);
   if (f != kNotFound) {
     aModule.Truncate(f);
   }

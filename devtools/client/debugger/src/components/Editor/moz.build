@@ -17,6 +17,8 @@ CompiledModules(
     'DebugLine.js',
     'EditorMenu.js',
     'EmptyLines.js',
+    'Exception.js',
+    'Exceptions.js',
     'Footer.js',
     'HighlightCalls.js',
     'HighlightLine.js',
@@ -28,16 +30,4 @@ CompiledModules(
     'SearchBar.js',
     'Tab.js',
     'Tabs.js',
-)
-
-DevToolsModules(
-    'Breakpoints.css',
-    'ConditionalPanel.css',
-    'Editor.css',
-    'Footer.css',
-    'HighlightCalls.css',
-    'InlinePreview.css',
-    'Preview.css',
-    'SearchBar.css',
-    'Tabs.css',
 )

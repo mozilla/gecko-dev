@@ -67,9 +67,9 @@ void AliasAnalysis::spewDependencyList() {
         JitSpewHeader(JitSpew_AliasSummaries);
         print.printf(" ");
         MDefinition::PrintOpcodeName(print, def->op());
-        print.printf("%d marked depending on ", def->id());
+        print.printf("%u marked depending on ", def->id());
         MDefinition::PrintOpcodeName(print, def->dependency()->op());
-        print.printf("%d\n", def->dependency()->id());
+        print.printf("%u\n", def->dependency()->id());
       }
     }
   }
@@ -84,7 +84,7 @@ static inline const MDefinition* MaybeUnwrap(const MDefinition* object) {
     object = object->getOperand(0);
   }
 
-  if (object->isTypedArrayElements()) {
+  if (object->isArrayBufferViewElements()) {
     return nullptr;
   }
   if (object->isConstantElements()) {
@@ -109,17 +109,22 @@ static inline const MDefinition* GetObject(const MDefinition* ins) {
     case MDefinition::Opcode::InitializedLength:
     case MDefinition::Opcode::LoadElement:
     case MDefinition::Opcode::LoadUnboxedScalar:
+    case MDefinition::Opcode::LoadDataViewElement:
     case MDefinition::Opcode::StoreElement:
+    case MDefinition::Opcode::StoreHoleValueElement:
     case MDefinition::Opcode::StoreUnboxedScalar:
+    case MDefinition::Opcode::StoreDataViewElement:
     case MDefinition::Opcode::SetInitializedLength:
+    case MDefinition::Opcode::AddAndStoreSlot:
+    case MDefinition::Opcode::AllocateAndStoreSlot:
     case MDefinition::Opcode::ArrayLength:
     case MDefinition::Opcode::SetArrayLength:
     case MDefinition::Opcode::Slots:
     case MDefinition::Opcode::Elements:
     case MDefinition::Opcode::MaybeCopyElementsForWrite:
     case MDefinition::Opcode::MaybeToDoubleElement:
-    case MDefinition::Opcode::TypedArrayLength:
-    case MDefinition::Opcode::TypedArrayByteOffset:
+    case MDefinition::Opcode::ArrayBufferViewLength:
+    case MDefinition::Opcode::ArrayBufferViewByteOffset:
     case MDefinition::Opcode::ArrayPopShift:
     case MDefinition::Opcode::ArrayPush:
     case MDefinition::Opcode::LoadTypedArrayElementHole:
@@ -133,28 +138,59 @@ static inline const MDefinition* GetObject(const MDefinition* ins) {
     case MDefinition::Opcode::GuardReceiverPolymorphic:
     case MDefinition::Opcode::GuardObjectGroup:
     case MDefinition::Opcode::GuardObjectIdentity:
-    case MDefinition::Opcode::LoadSlot:
-    case MDefinition::Opcode::StoreSlot:
+    case MDefinition::Opcode::GuardProto:
+    case MDefinition::Opcode::GuardNullProto:
+    case MDefinition::Opcode::LoadDynamicSlot:
+    case MDefinition::Opcode::StoreDynamicSlot:
     case MDefinition::Opcode::InArray:
     case MDefinition::Opcode::LoadElementHole:
-    case MDefinition::Opcode::TypedArrayElements:
+    case MDefinition::Opcode::ArrayBufferViewElements:
     case MDefinition::Opcode::CopyLexicalEnvironmentObject:
     case MDefinition::Opcode::IsPackedArray:
     case MDefinition::Opcode::SuperFunction:
     case MDefinition::Opcode::InitHomeObject:
     case MDefinition::Opcode::HomeObjectSuperBase:
+    case MDefinition::Opcode::ObjectStaticProto:
+    case MDefinition::Opcode::GuardNoDenseElements:
+    case MDefinition::Opcode::GuardElementNotHole:
+    case MDefinition::Opcode::GuardArrayIsPacked:
+    case MDefinition::Opcode::GuardFunctionFlags:
+    case MDefinition::Opcode::GuardFunctionIsNonBuiltinCtor:
+    case MDefinition::Opcode::GuardFunctionKind:
+    case MDefinition::Opcode::ArgumentsObjectLength:
+    case MDefinition::Opcode::FunctionLength:
+    case MDefinition::Opcode::FunctionName:
+    case MDefinition::Opcode::GuardArgumentsObjectNotOverriddenIterator:
       object = ins->getOperand(0);
       break;
     case MDefinition::Opcode::GetPropertyCache:
     case MDefinition::Opcode::CallGetProperty:
     case MDefinition::Opcode::GetDOMProperty:
     case MDefinition::Opcode::GetDOMMember:
+    case MDefinition::Opcode::LoadDOMExpandoValue:
+    case MDefinition::Opcode::LoadDOMExpandoValueGuardGeneration:
+    case MDefinition::Opcode::LoadDOMExpandoValueIgnoreGeneration:
+    case MDefinition::Opcode::GuardDOMExpandoMissingOrGuardShape:
     case MDefinition::Opcode::Call:
+    case MDefinition::Opcode::Throw:
+    case MDefinition::Opcode::ThrowRuntimeLexicalError:
     case MDefinition::Opcode::GetArgumentsObjectArg:
     case MDefinition::Opcode::SetArgumentsObjectArg:
+    case MDefinition::Opcode::LoadArgumentsObjectArg:
+    case MDefinition::Opcode::CreateThis:
+    case MDefinition::Opcode::NewArrayDynamicLength:
+    case MDefinition::Opcode::NewTypedArrayDynamicLength:
+    case MDefinition::Opcode::CheckObjCoercible:
+    case MDefinition::Opcode::ToObject:
+    case MDefinition::Opcode::MegamorphicLoadSlot:
+    case MDefinition::Opcode::MegamorphicLoadSlotByValue:
+    case MDefinition::Opcode::MegamorphicStoreSlot:
+    case MDefinition::Opcode::MegamorphicHasProp:
     case MDefinition::Opcode::CompareExchangeTypedArrayElement:
     case MDefinition::Opcode::AtomicExchangeTypedArrayElement:
     case MDefinition::Opcode::AtomicTypedArrayElementBinop:
+    case MDefinition::Opcode::LoadWrapperTarget:
+    case MDefinition::Opcode::GuardHasGetterSetter:
     case MDefinition::Opcode::AsmJSLoadHeap:
     case MDefinition::Opcode::AsmJSStoreHeap:
     case MDefinition::Opcode::WasmHeapBase:
@@ -310,7 +346,7 @@ bool AliasAnalysis::analyze() {
     }
 
     if (block->isLoopHeader()) {
-      JitSpew(JitSpew_Alias, "Processing loop header %d", block->id());
+      JitSpew(JitSpew_Alias, "Processing loop header %u", block->id());
       loop_ = new (alloc().fallible()) LoopAliasInfo(alloc(), loop_, *block);
       if (!loop_) {
         return false;
@@ -394,7 +430,7 @@ bool AliasAnalysis::analyze() {
 
     if (block->isLoopBackedge()) {
       MOZ_ASSERT(loop_->loopHeader() == block->loopHeaderOfBackedge());
-      JitSpew(JitSpew_Alias, "Processing loop backedge %d (header %d)",
+      JitSpew(JitSpew_Alias, "Processing loop backedge %u (header %u)",
               block->id(), loop_->loopHeader()->id());
       LoopAliasInfo* outerLoop = loop_->outer();
       MInstruction* firstLoopIns = *loop_->loopHeader()->begin();

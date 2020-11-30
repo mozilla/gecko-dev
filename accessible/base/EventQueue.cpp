@@ -15,8 +15,8 @@
 #  include "Logging.h"
 #endif
 
-using namespace mozilla;
-using namespace mozilla::a11y;
+namespace mozilla {
+namespace a11y {
 
 // Defines the number of selection add/remove events in the queue when they
 // aren't packed into single selection within event.
@@ -31,7 +31,9 @@ bool EventQueue::PushEvent(AccEvent* aEvent) {
                    aEvent->Document() == mDocument,
                "Queued event belongs to another document!");
 
-  if (!mEvents.AppendElement(aEvent)) return false;
+  // XXX(Bug 1631371) Check if this should use a fallible operation as it
+  // pretended earlier, or change the return type to void.
+  mEvents.AppendElement(aEvent);
 
   // Filter events.
   CoalesceEvents();
@@ -266,8 +268,7 @@ void EventQueue::CoalesceSelChangeEvents(AccSelChangeEvent* aTailEvent,
 
 void EventQueue::ProcessEventQueue() {
   // Process only currently queued events.
-  nsTArray<RefPtr<AccEvent> > events;
-  events.SwapElements(mEvents);
+  const nsTArray<RefPtr<AccEvent> > events = std::move(mEvents);
 
   uint32_t eventCount = events.Length();
 #ifdef A11Y_LOG
@@ -329,3 +330,6 @@ void EventQueue::ProcessEventQueue() {
     if (!mDocument) return;
   }
 }
+
+}  // namespace a11y
+}  // namespace mozilla

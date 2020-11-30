@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsTraceRefcnt.h"
+#include "mozilla/AutoRestore.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/Path.h"
@@ -12,8 +13,10 @@
 #include "nsXPCOMPrivate.h"
 #include "nscore.h"
 #include "nsClassHashtable.h"
+#include "nsContentUtils.h"
 #include "nsISupports.h"
 #include "nsHashKeys.h"
+#include "nsPrintfCString.h"
 #include "nsTArray.h"
 #include "nsTHashtable.h"
 #include "prenv.h"
@@ -87,6 +90,11 @@ struct MOZ_STACK_CLASS AutoTraceLogLock final {
 
 class BloatEntry;
 struct SerialNumberRecord;
+
+using mozilla::AutoRestore;
+using mozilla::CodeAddressService;
+using mozilla::CycleCollectedJSContext;
+using mozilla::StaticAutoPtr;
 
 using BloatHash = nsClassHashtable<nsDepCharHashKey, BloatEntry>;
 using CharPtrSet = nsTHashtable<nsCharPtrHashKey>;
@@ -163,7 +171,7 @@ struct SerialNumberRecord {
                                              /*showLocals=*/false,
                                              /*showThisProps=*/false);
     size_t len = strlen(chars.get());
-    jsStack = MakeUnique<char[]>(len + 1);
+    jsStack = mozilla::MakeUnique<char[]>(len + 1);
     memcpy(jsStack.get(), chars.get(), len + 1);
   }
 };
@@ -309,7 +317,8 @@ static BloatEntry* GetBloatEntry(const char* aTypeName,
         "MOZ_COUNT_{C,D}TOR in the constructor or destructor, respectively. "
         "As a workaround, the MOZ_COUNT_{C,D}TOR calls can be moved to a "
         "non-templated base class. Another possible cause is a runnable with "
-        "an mName that matches another refcounted class.");
+        "an mName that matches another refcounted class, or two refcounted "
+        "classes with the same class name in different C++ namespaces.");
   }
   return entry;
 }

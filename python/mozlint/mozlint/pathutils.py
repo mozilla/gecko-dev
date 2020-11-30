@@ -205,7 +205,7 @@ def filterpaths(root, paths, include, exclude=None, extensions=None):
             for p, f in path.finder.find(pattern):
                 discard.add(path.join(p))
 
-    return [f.path for f in keep], collapse([f.path for f in discard])
+    return [f.path for f in keep if f.exists], collapse([f.path for f in discard if f.exists])
 
 
 def findobject(path):
@@ -269,6 +269,7 @@ def expand_exclusions(paths, config, root):
         Generator which generates list of paths that weren't excluded.
     """
     extensions = [e.lstrip('.') for e in config.get('extensions', [])]
+    find_dotfiles = config.get('find-dotfiles', False)
 
     def normalize(path):
         path = mozpath.normpath(path)
@@ -287,10 +288,11 @@ def expand_exclusions(paths, config, root):
                 continue
 
             yield path
+            continue
 
         ignore = [e[len(path):].lstrip('/') for e in exclude
                   if mozpath.commonprefix((path, e)) == path]
-        finder = FileFinder(path, ignore=ignore)
+        finder = FileFinder(path, ignore=ignore, find_dotfiles=find_dotfiles)
 
         _, ext = os.path.splitext(path)
         ext.lstrip('.')

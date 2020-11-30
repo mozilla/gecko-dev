@@ -65,10 +65,10 @@ class PrincipalInfo;
 /**
  * Convert a PrincipalInfo to an nsIPrincipal.
  *
- * MUST be called on the main thread only.
+ * MUST be called on the main thread.
  */
-already_AddRefed<nsIPrincipal> PrincipalInfoToPrincipal(
-    const PrincipalInfo& aPrincipalInfo, nsresult* aOptionalResult = nullptr);
+Result<nsCOMPtr<nsIPrincipal>, nsresult> PrincipalInfoToPrincipal(
+    const PrincipalInfo& aPrincipalInfo);
 
 /**
  * Convert an nsIPrincipal to a PrincipalInfo.
@@ -104,7 +104,7 @@ nsresult CSPToCSPInfo(nsIContentSecurityPolicy* aCSP, CSPInfo* aCSPInfo);
  * Return true if this PrincipalInfo is a content principal and it has
  * a privateBrowsing id in its OriginAttributes
  */
-bool IsPincipalInfoPrivate(const PrincipalInfo& aPrincipalInfo);
+bool IsPrincipalInfoPrivate(const PrincipalInfo& aPrincipalInfo);
 
 /**
  * Convert an RedirectHistoryEntryInfo to a nsIRedirectHistoryEntry.

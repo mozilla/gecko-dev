@@ -15,7 +15,7 @@ main-context-menu-back =
     .aria-label = Back
     .accesskey = B
 
-navbar-tooltip-back = 
+navbar-tooltip-back =
     .value = { main-context-menu-back.tooltiptext }
 
 toolbar-button-back =
@@ -29,7 +29,7 @@ main-context-menu-forward =
     .accesskey = F
 
 navbar-tooltip-forward =
-    .value = { main-context-menu-forward.tooltiptext } 
+    .value = { main-context-menu-forward.tooltiptext }
 
 toolbar-button-forward =
     .label = { main-context-menu-forward.aria-label }
@@ -356,6 +356,10 @@ main-context-menu-frame-view-source =
 main-context-menu-frame-view-info =
     .label = View Frame Info
     .accesskey = I
+
+main-context-menu-print-selection =
+    .label = Print Selection
+    .accesskey = r
 
 main-context-menu-view-selection-source =
     .label = View Selection Source

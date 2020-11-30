@@ -29,8 +29,19 @@ ChromeUtils.defineModuleGetter(
   "ReaderMode",
   "resource://gre/modules/ReaderMode.jsm"
 );
+ChromeUtils.defineModuleGetter(
+  this,
+  "AboutReaderParent",
+  "resource:///actors/AboutReaderParent.jsm"
+);
 
 var EXPORTED_SYMBOLS = ["SaveToPocket"];
+
+XPCOMUtils.defineLazyGetter(this, "gStrings", () => {
+  return Services.strings.createBundle(
+    "chrome://global/locale/aboutReader.properties"
+  );
+});
 
 var PocketPageAction = {
   pageAction: null,
@@ -43,22 +54,19 @@ var PocketPageAction = {
       this.pageAction = PageActions.addAction(
         new PageActions.Action({
           id,
-          title: "pocket-title",
+          panelFluentID: "page-action-pocket-panel",
+          urlbarFluentID: "urlbar-pocket-button",
           pinnedToUrlbar: true,
           wantsIframe: true,
-          urlbarIDOverride: "pocket-button-box",
+          urlbarIDOverride: "pocket-button",
           anchorIDOverride: "pocket-button",
           _insertBeforeActionID: PageActions.ACTION_ID_PIN_TAB,
           _urlbarNodeInMarkup: true,
-          onBeforePlacedInWindow(window) {
-            let action = PageActions.actionForID("pocket");
-            window.BrowserPageActions.takeActionTitleFromPanel(action);
-          },
           onIframeShowing(iframe, panel) {
             Pocket.onShownInPhotonPageActionPanel(panel, iframe);
 
             let doc = panel.ownerDocument;
-            let urlbarNode = doc.getElementById("pocket-button-box");
+            let urlbarNode = doc.getElementById("pocket-button");
             if (!urlbarNode) {
               return;
             }
@@ -67,11 +75,6 @@ var PocketPageAction = {
 
             PocketPageAction.urlbarNode = urlbarNode;
             PocketPageAction.urlbarNode.setAttribute("open", "true");
-            if (
-              Services.prefs.getBoolPref("toolkit.cosmeticAnimations.enabled")
-            ) {
-              PocketPageAction.urlbarNode.setAttribute("animate", "true");
-            }
 
             let browser = panel.ownerGlobal.gBrowser.selectedBrowser;
             PocketPageAction.pocketedBrowser = browser;
@@ -156,8 +159,8 @@ var PocketPageAction = {
 
     for (let win of browserWindows()) {
       let doc = win.document;
-      let pocketButtonBox = doc.getElementById("pocket-button-box");
-      pocketButtonBox.setAttribute("hidden", "true");
+      let pocketButton = doc.getElementById("pocket-button");
+      pocketButton.setAttribute("hidden", "true");
     }
 
     this.pageAction.remove();
@@ -249,8 +252,8 @@ var SaveToPocket = {
       this.updateElements(false);
       Services.obs.addObserver(this, "browser-delayed-startup-finished");
     }
-    Services.mm.addMessageListener("Reader:OnSetup", this);
-    Services.mm.addMessageListener("Reader:Clicked-pocket-button", this);
+    AboutReaderParent.addMessageListener("Reader:OnSetup", this);
+    AboutReaderParent.addMessageListener("Reader:Clicked-pocket-button", this);
   },
 
   observe(subject, topic, data) {
@@ -263,30 +266,28 @@ var SaveToPocket = {
 
   _readerButtonData: {
     id: "pocket-button",
-    image: "chrome://pocket/content/panels/img/pocket-outline.svg",
-    width: 20,
-    height: 20,
+    label: gStrings.formatStringFromName("readerView.savetopocket.label", [
+      "Pocket",
+    ]),
+    image: "chrome://global/skin/reader/pocket.svg",
+    width: 16,
+    height: 16,
   },
 
   onPrefChange(pref, oldValue, newValue) {
     if (!newValue) {
-      Services.mm.broadcastAsyncMessage("Reader:RemoveButton", {
+      AboutReaderParent.broadcastAsyncMessage("Reader:RemoveButton", {
         id: "pocket-button",
       });
       PocketOverlay.shutdown();
       Services.obs.addObserver(this, "browser-delayed-startup-finished");
     } else {
+      AboutReaderParent.broadcastAsyncMessage(
+        "Reader:AddButton",
+        this._readerButtonData
+      );
       Services.obs.removeObserver(this, "browser-delayed-startup-finished");
       PocketOverlay.startup();
-      // The title for the button is extracted from browser.xhtml where it comes from a DTD.
-      // If we don't have this, there's also no possibility of there being a reader
-      // mode tab already loaded. We'll get an Reader:OnSetup message when that happens.
-      if (this._readerButtonData.title) {
-        Services.mm.broadcastAsyncMessage(
-          "Reader:AddButton",
-          this._readerButtonData
-        );
-      }
     }
     this.updateElements(newValue);
   },
@@ -299,14 +300,10 @@ var SaveToPocket = {
   },
 
   updateElementsInWindow(win, enabled) {
-    let elementIds = [
-      "context-pocket",
-      "context-savelinktopocket",
-      "appMenu-library-pocket-button",
-    ];
-    let document = win.document;
-    for (let id of elementIds) {
-      document.getElementById(id).hidden = !enabled;
+    if (enabled) {
+      win.document.documentElement.removeAttribute("pocketdisabled");
+    } else {
+      win.document.documentElement.setAttribute("pocketdisabled", "true");
     }
   },
 
@@ -316,17 +313,11 @@ var SaveToPocket = {
     }
     switch (message.name) {
       case "Reader:OnSetup": {
-        // We must have a browser window; get the tooltip for the button if we don't
-        // have it already.
-        if (!this._readerButtonData.title) {
-          let doc = message.target.ownerDocument;
-          let button = doc.getElementById("pocket-button");
-          this._readerButtonData.title = button.getAttribute("tooltiptext");
-        }
         // Tell the reader about our button.
-        message.target.messageManager.sendAsyncMessage(
+        message.target.sendMessageToActor(
           "Reader:AddButton",
-          this._readerButtonData
+          this._readerButtonData,
+          "AboutReader"
         );
         break;
       }

@@ -13,12 +13,13 @@
 #include "jsapi.h"        // for Handle
 #include "jsfriendapi.h"  // for DumpBacktrace, GetErrorMessage
 
-#include "debugger/Debugger.h"  // for Debugger
-#include "gc/Barrier.h"         // for GCPtrNativeObject
-#include "js/Promise.h"         // for AutoDebuggerJobQueueInterruption
-#include "vm/JSContext.h"       // for ProtectedDataContextArg, JSContext
-#include "vm/JSScript.h"        // for JSScript
-#include "vm/Realm.h"           // for AutoRealm, Realm
+#include "debugger/Debugger.h"        // for Debugger
+#include "js/friend/DumpFunctions.h"  // for DumpBacktrace
+#include "js/Promise.h"               // for AutoDebuggerJobQueueInterruption
+#include "vm/JSContext.h"             // for ProtectedDataContextArg, JSContext
+#include "vm/JSScript.h"              // for JSScript
+#include "vm/Realm.h"                 // for AutoRealm, Realm
+#include "vm/Warnings.h"              // for WarnNumberLatin1
 
 #include "vm/Realm-inl.h"  // for AutoRealm::AutoRealm
 
@@ -75,11 +76,15 @@ bool EnterDebuggeeNoExecute::reportIfFoundInStack(JSContext* cx,
       const char* filename = script->filename() ? script->filename() : "(none)";
       char linenoStr[15];
       SprintfLiteral(linenoStr, "%u", script->lineno());
-      unsigned flags = warning ? JSREPORT_WARNING : JSREPORT_ERROR;
       // FIXME: filename should be UTF-8 (bug 987069).
-      return JS_ReportErrorFlagsAndNumberLatin1(
-          cx, flags, GetErrorMessage, nullptr, JSMSG_DEBUGGEE_WOULD_RUN,
-          filename, linenoStr);
+      if (warning) {
+        return WarnNumberLatin1(cx, JSMSG_DEBUGGEE_WOULD_RUN, filename,
+                                linenoStr);
+      }
+
+      JS_ReportErrorNumberLatin1(cx, GetErrorMessage, nullptr,
+                                 JSMSG_DEBUGGEE_WOULD_RUN, filename, linenoStr);
+      return false;
     }
   }
   return true;

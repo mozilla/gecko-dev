@@ -162,8 +162,7 @@ bool IonSpewer::init() {
   if (usePid && *usePid != 0) {
     uint32_t pid = getpid();
     size_t len;
-    len = snprintf(jsonBuffer, bufferLength,
-                   JIT_SPEW_DIR "/ion%" PRIu32 ".json", pid);
+    len = SprintfLiteral(jsonBuffer, JIT_SPEW_DIR "/ion%" PRIu32 ".json", pid);
     if (bufferLength <= len) {
       fprintf(stderr, "Warning: IonSpewer::init: Cannot serialize file name.");
       return false;
@@ -375,13 +374,11 @@ static void PrintHelpAndExit(int status = 0) {
       "  logs-sync     Same as logs, but flushes between each pass (sync. "
       "compiled functions only).\n"
       "  profiling     Profiling-related information\n"
-      "  trackopts     Optimization tracking information gathered by the "
-      "Gecko profiler. "
-      "(Note: call enableGeckoProfiling() in your script to enable it).\n"
-      "  trackopts-ext Encoding information about optimization tracking\n"
       "  dump-mir-expr Dump the MIR expressions\n"
-      "  cfg           Control flow graph generation\n"
       "  scriptstats   Tracelogger summary stats\n"
+      "  warp-snapshots WarpSnapshots created by WarpOracle\n"
+      "  warp-transpiler Warp CacheIR transpiler\n"
+      "  warp-trial-inlining Trial inlining for Warp\n"
       "  all           Everything\n"
       "\n"
       "  bl-aborts     Baseline compiler abort messages\n"
@@ -476,10 +473,14 @@ void jit::CheckLogging() {
       EnableChannel(JitSpew_Profiling);
     } else if (IsFlag(found, "dump-mir-expr")) {
       EnableChannel(JitSpew_MIRExpressions);
-    } else if (IsFlag(found, "cfg")) {
-      EnableChannel(JitSpew_CFG);
     } else if (IsFlag(found, "scriptstats")) {
       EnableChannel(JitSpew_ScriptStats);
+    } else if (IsFlag(found, "warp-snapshots")) {
+      EnableChannel(JitSpew_WarpSnapshots);
+    } else if (IsFlag(found, "warp-transpiler")) {
+      EnableChannel(JitSpew_WarpTranspiler);
+    } else if (IsFlag(found, "warp-trial-inlining")) {
+      EnableChannel(JitSpew_WarpTrialInlining);
     } else if (IsFlag(found, "all")) {
       LoggingBits = uint64_t(-1);
     } else if (IsFlag(found, "bl-aborts")) {

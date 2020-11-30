@@ -56,12 +56,13 @@ var ObjectTraversalRule = {
     var role = aAccessible.role;
     if (
       hasState(aAccessible, STATE_FOCUSABLE) &&
-      (role != ROLE_DOCUMENT && role != ROLE_INTERNAL_FRAME)
+      role != ROLE_DOCUMENT &&
+      role != ROLE_INTERNAL_FRAME
     ) {
       rv = FILTER_IGNORE_SUBTREE | FILTER_MATCH;
     } else if (
       aAccessible.childCount == 0 &&
-      role != ROLE_STATICTEXT &&
+      role != ROLE_LISTITEM_MARKER &&
       aAccessible.name.trim()
     ) {
       rv = FILTER_MATCH;

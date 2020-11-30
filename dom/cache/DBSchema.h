@@ -29,78 +29,65 @@ struct SavedResponse;
 namespace db {
 
 // Note, this cannot be executed within a transaction.
-nsresult CreateOrMigrateSchema(mozIStorageConnection* aConn);
+nsresult CreateOrMigrateSchema(mozIStorageConnection& aConn);
 
 // Note, this cannot be executed within a transaction.
-nsresult InitializeConnection(mozIStorageConnection* aConn);
+nsresult InitializeConnection(mozIStorageConnection& aConn);
 
-nsresult CreateCacheId(mozIStorageConnection* aConn, CacheId* aCacheIdOut);
+Result<CacheId, nsresult> CreateCacheId(mozIStorageConnection& aConn);
 
-nsresult DeleteCacheId(mozIStorageConnection* aConn, CacheId aCacheId,
-                       nsTArray<nsID>& aDeletedBodyIdListOut,
-                       int64_t* aDeletedPaddingSizeOut);
+Result<DeletionInfo, nsresult> DeleteCacheId(mozIStorageConnection& aConn,
+                                             CacheId aCacheId);
 
-// TODO: Consider removing unused IsCacheOrphaned after writing cleanup code.
-// (bug 1110446)
-nsresult IsCacheOrphaned(mozIStorageConnection* aConn, CacheId aCacheId,
-                         bool* aOrphanedOut);
+Result<nsTArray<CacheId>, nsresult> FindOrphanedCacheIds(
+    mozIStorageConnection& aConn);
 
-nsresult FindOrphanedCacheIds(mozIStorageConnection* aConn,
-                              nsTArray<CacheId>& aOrphanedListOut);
+Result<int64_t, nsresult> FindOverallPaddingSize(mozIStorageConnection& aConn);
 
-nsresult FindOverallPaddingSize(mozIStorageConnection* aConn,
-                                int64_t* aOverallPaddingSizeOut);
+Result<nsTArray<nsID>, nsresult> GetKnownBodyIds(mozIStorageConnection& aConn);
 
-nsresult GetKnownBodyIds(mozIStorageConnection* aConn,
-                         nsTArray<nsID>& aBodyIdListOut);
+Result<Maybe<SavedResponse>, nsresult> CacheMatch(
+    mozIStorageConnection& aConn, CacheId aCacheId,
+    const CacheRequest& aRequest, const CacheQueryParams& aParams);
 
-nsresult CacheMatch(mozIStorageConnection* aConn, CacheId aCacheId,
-                    const CacheRequest& aRequest,
-                    const CacheQueryParams& aParams, bool* aFoundResponseOut,
-                    SavedResponse* aSavedResponseOut);
+Result<nsTArray<SavedResponse>, nsresult> CacheMatchAll(
+    mozIStorageConnection& aConn, CacheId aCacheId,
+    const Maybe<CacheRequest>& aMaybeRequest, const CacheQueryParams& aParams);
 
-nsresult CacheMatchAll(mozIStorageConnection* aConn, CacheId aCacheId,
-                       const Maybe<CacheRequest>& aMaybeRequest,
-                       const CacheQueryParams& aParams,
-                       nsTArray<SavedResponse>& aSavedResponsesOut);
+Result<DeletionInfo, nsresult> CachePut(mozIStorageConnection& aConn,
+                                        CacheId aCacheId,
+                                        const CacheRequest& aRequest,
+                                        const nsID* aRequestBodyId,
+                                        const CacheResponse& aResponse,
+                                        const nsID* aResponseBodyId);
 
-nsresult CachePut(mozIStorageConnection* aConn, CacheId aCacheId,
-                  const CacheRequest& aRequest, const nsID* aRequestBodyId,
-                  const CacheResponse& aResponse, const nsID* aResponseBodyId,
-                  nsTArray<nsID>& aDeletedBodyIdListOut,
-                  int64_t* aDeletedPaddingSizeOut);
+Result<Maybe<DeletionInfo>, nsresult> CacheDelete(
+    mozIStorageConnection& aConn, CacheId aCacheId,
+    const CacheRequest& aRequest, const CacheQueryParams& aParams);
 
-nsresult CacheDelete(mozIStorageConnection* aConn, CacheId aCacheId,
-                     const CacheRequest& aRequest,
-                     const CacheQueryParams& aParams,
-                     nsTArray<nsID>& aDeletedBodyIdListOut,
-                     int64_t* aDeletedPaddingSizeOut, bool* aSuccessOut);
+Result<nsTArray<SavedRequest>, nsresult> CacheKeys(
+    mozIStorageConnection& aConn, CacheId aCacheId,
+    const Maybe<CacheRequest>& aMaybeRequest, const CacheQueryParams& aParams);
 
-nsresult CacheKeys(mozIStorageConnection* aConn, CacheId aCacheId,
-                   const Maybe<CacheRequest>& aMaybeRequest,
-                   const CacheQueryParams& aParams,
-                   nsTArray<SavedRequest>& aSavedRequestsOut);
+Result<Maybe<SavedResponse>, nsresult> StorageMatch(
+    mozIStorageConnection& aConn, Namespace aNamespace,
+    const CacheRequest& aRequest, const CacheQueryParams& aParams);
 
-nsresult StorageMatch(mozIStorageConnection* aConn, Namespace aNamespace,
-                      const CacheRequest& aRequest,
-                      const CacheQueryParams& aParams, bool* aFoundResponseOut,
-                      SavedResponse* aSavedResponseOut);
+Result<Maybe<CacheId>, nsresult> StorageGetCacheId(mozIStorageConnection& aConn,
+                                                   Namespace aNamespace,
+                                                   const nsAString& aKey);
 
-nsresult StorageGetCacheId(mozIStorageConnection* aConn, Namespace aNamespace,
-                           const nsAString& aKey, bool* aFoundCacheOut,
-                           CacheId* aCacheIdOut);
-
-nsresult StoragePutCache(mozIStorageConnection* aConn, Namespace aNamespace,
+nsresult StoragePutCache(mozIStorageConnection& aConn, Namespace aNamespace,
                          const nsAString& aKey, CacheId aCacheId);
 
-nsresult StorageForgetCache(mozIStorageConnection* aConn, Namespace aNamespace,
+nsresult StorageForgetCache(mozIStorageConnection& aConn, Namespace aNamespace,
                             const nsAString& aKey);
 
-nsresult StorageGetKeys(mozIStorageConnection* aConn, Namespace aNamespace,
-                        nsTArray<nsString>& aKeysOut);
+Result<nsTArray<nsString>, nsresult> StorageGetKeys(
+    mozIStorageConnection& aConn, Namespace aNamespace);
 
 // Note, this works best when its NOT executed within a transaction.
-nsresult IncrementalVacuum(mozIStorageConnection* aConn);
+nsresult IncrementalVacuum(mozIStorageConnection& aConn);
 
 // We will wipe out databases with a schema versions less than this.  Newer
 // versions will be migrated on open to the latest schema version.

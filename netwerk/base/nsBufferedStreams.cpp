@@ -224,6 +224,13 @@ nsBufferedStream::Seek(int32_t whence, int64_t offset) {
                 .mNewOffset = mBufferStartOffset);
 
   mFillPoint = mCursor = 0;
+
+  // If we seeked back to the start, then don't fill the buffer
+  // right now in case this is a lazily-opened file stream.
+  // We'll fill on the first read, like we did initially.
+  if (whence == nsISeekableStream::NS_SEEK_SET && offset == 0) {
+    return NS_OK;
+  }
   return Fill();
 }
 
@@ -669,7 +676,20 @@ nsBufferedInputStream::AsyncWait(nsIInputStreamCallback* aCallback,
                                  nsIEventTarget* aEventTarget) {
   nsCOMPtr<nsIAsyncInputStream> stream = do_QueryInterface(mStream);
   if (!stream) {
-    return NS_ERROR_FAILURE;
+    // Stream is probably closed. Callback, if not nullptr, can be executed
+    // immediately
+    if (!aCallback) {
+      return NS_OK;
+    }
+
+    if (aEventTarget) {
+      nsCOMPtr<nsIInputStreamCallback> callable = NS_NewInputStreamReadyEvent(
+          "nsBufferedInputStream::OnInputStreamReady", aCallback, aEventTarget);
+      return callable->OnInputStreamReady(this);
+    }
+
+    aCallback->OnInputStreamReady(this);
+    return NS_OK;
   }
 
   nsCOMPtr<nsIInputStreamCallback> callback = aCallback ? this : nullptr;
@@ -774,7 +794,22 @@ nsBufferedInputStream::AsyncLengthWait(nsIInputStreamLengthCallback* aCallback,
                                        nsIEventTarget* aEventTarget) {
   nsCOMPtr<nsIAsyncInputStreamLength> stream = do_QueryInterface(mStream);
   if (!stream) {
-    return NS_ERROR_FAILURE;
+    // Stream is probably closed. Callback, if not nullptr, can be executed
+    // immediately
+    if (aCallback) {
+      const RefPtr<nsBufferedInputStream> self = this;
+      const nsCOMPtr<nsIInputStreamLengthCallback> callback = aCallback;
+      nsCOMPtr<nsIRunnable> runnable = NS_NewRunnableFunction(
+          "nsBufferedInputStream::OnInputStreamLengthReady",
+          [self, callback] { callback->OnInputStreamLengthReady(self, -1); });
+
+      if (aEventTarget) {
+        aEventTarget->Dispatch(runnable, NS_DISPATCH_NORMAL);
+      } else {
+        runnable->Run();
+      }
+    }
+    return NS_OK;
   }
 
   nsCOMPtr<nsIInputStreamLengthCallback> callback = aCallback ? this : nullptr;

@@ -4,10 +4,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_DOMSVGAnimatedNumber_h
-#define mozilla_dom_DOMSVGAnimatedNumber_h
+#ifndef DOM_SVG_DOMSVGANIMATEDNUMBER_H_
+#define DOM_SVG_DOMSVGANIMATEDNUMBER_H_
 
-#include "nsISupports.h"
 #include "nsWrapperCache.h"
 
 #include "SVGElement.h"
@@ -15,10 +14,10 @@
 namespace mozilla {
 namespace dom {
 
-class DOMSVGAnimatedNumber : public nsISupports, public nsWrapperCache {
+class DOMSVGAnimatedNumber : public nsWrapperCache {
  public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGAnimatedNumber)
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(DOMSVGAnimatedNumber)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(DOMSVGAnimatedNumber)
 
   SVGElement* GetParentObject() const { return mSVGElement; }
 
@@ -39,4 +38,4 @@ class DOMSVGAnimatedNumber : public nsISupports, public nsWrapperCache {
 }  // namespace dom
 }  // namespace mozilla
 
-#endif  // mozilla_dom_DOMSVGAnimatedNumber_h
+#endif  // DOM_SVG_DOMSVGANIMATEDNUMBER_H_

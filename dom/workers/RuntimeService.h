@@ -12,7 +12,9 @@
 #include "nsIObserver.h"
 
 #include "js/ContextOptions.h"
+#include "MainThreadUtils.h"
 #include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/dom/SafeRefPtr.h"
 #include "mozilla/dom/workerinternals/JSSettings.h"
 #include "mozilla/Mutex.h"
 #include "nsClassHashtable.h"
@@ -52,7 +54,10 @@ class RuntimeService final : public nsIObserver {
     }
   };
 
-  struct IdleThreadInfo;
+  struct IdleThreadInfo {
+    SafeRefPtr<WorkerThread> mThread;
+    mozilla::TimeStamp mExpirationTime;
+  };
 
   mozilla::Mutex mMutex;
 
@@ -63,13 +68,14 @@ class RuntimeService final : public nsIObserver {
   nsTArray<IdleThreadInfo> mIdleThreadArray;
 
   // *Not* protected by mMutex.
-  nsClassHashtable<nsPtrHashKey<nsPIDOMWindowInner>, nsTArray<WorkerPrivate*> >
+  nsClassHashtable<nsPtrHashKey<const nsPIDOMWindowInner>,
+                   nsTArray<WorkerPrivate*> >
       mWindowMap;
 
   // Only used on the main thread.
   nsCOMPtr<nsITimer> mIdleThreadTimer;
 
-  static workerinternals::JSSettings sDefaultJSSettings;
+  static UniquePtr<workerinternals::JSSettings> sDefaultJSSettings;
 
  public:
   struct NavigatorProperties {
@@ -79,7 +85,7 @@ class RuntimeService final : public nsIObserver {
     nsString mAppVersionOverridden;
     nsString mPlatform;
     nsString mPlatformOverridden;
-    nsTArray<nsString> mLanguages;
+    CopyableTArray<nsString> mLanguages;
   };
 
  private:
@@ -98,37 +104,38 @@ class RuntimeService final : public nsIObserver {
 
   static RuntimeService* GetService();
 
-  bool RegisterWorker(WorkerPrivate* aWorkerPrivate);
+  bool RegisterWorker(WorkerPrivate& aWorkerPrivate);
 
-  void UnregisterWorker(WorkerPrivate* aWorkerPrivate);
+  void UnregisterWorker(WorkerPrivate& aWorkerPrivate);
 
-  void CancelWorkersForWindow(nsPIDOMWindowInner* aWindow);
+  void CancelWorkersForWindow(const nsPIDOMWindowInner& aWindow);
 
-  void FreezeWorkersForWindow(nsPIDOMWindowInner* aWindow);
+  void FreezeWorkersForWindow(const nsPIDOMWindowInner& aWindow);
 
-  void ThawWorkersForWindow(nsPIDOMWindowInner* aWindow);
+  void ThawWorkersForWindow(const nsPIDOMWindowInner& aWindow);
 
-  void SuspendWorkersForWindow(nsPIDOMWindowInner* aWindow);
+  void SuspendWorkersForWindow(const nsPIDOMWindowInner& aWindow);
 
-  void ResumeWorkersForWindow(nsPIDOMWindowInner* aWindow);
+  void ResumeWorkersForWindow(const nsPIDOMWindowInner& aWindow);
 
-  void PropagateFirstPartyStorageAccessGranted(nsPIDOMWindowInner* aWindow);
+  void PropagateStorageAccessPermissionGranted(
+      const nsPIDOMWindowInner& aWindow);
 
   const NavigatorProperties& GetNavigatorProperties() const {
     return mNavigatorProperties;
   }
 
-  void NoteIdleThread(WorkerThread* aThread);
+  void NoteIdleThread(SafeRefPtr<WorkerThread> aThread);
 
   static void GetDefaultJSSettings(workerinternals::JSSettings& aSettings) {
     AssertIsOnMainThread();
-    aSettings = sDefaultJSSettings;
+    aSettings = *sDefaultJSSettings;
   }
 
   static void SetDefaultContextOptions(
       const JS::ContextOptions& aContextOptions) {
     AssertIsOnMainThread();
-    sDefaultJSSettings.contextOptions = aContextOptions;
+    sDefaultJSSettings->contextOptions = aContextOptions;
   }
 
   void UpdateAppNameOverridePreference(const nsAString& aValue);
@@ -141,18 +148,20 @@ class RuntimeService final : public nsIObserver {
 
   void UpdateAllWorkerLanguages(const nsTArray<nsString>& aLanguages);
 
-  static void SetDefaultJSGCSettings(JSGCParamKey aKey, uint32_t aValue) {
+  static void SetDefaultJSGCSettings(JSGCParamKey aKey,
+                                     Maybe<uint32_t> aValue) {
     AssertIsOnMainThread();
-    sDefaultJSSettings.ApplyGCSetting(aKey, aValue);
+    sDefaultJSSettings->ApplyGCSetting(aKey, aValue);
   }
 
-  void UpdateAllWorkerMemoryParameter(JSGCParamKey aKey, uint32_t aValue);
+  void UpdateAllWorkerMemoryParameter(JSGCParamKey aKey,
+                                      Maybe<uint32_t> aValue);
 
 #ifdef JS_GC_ZEAL
   static void SetDefaultGCZeal(uint8_t aGCZeal, uint32_t aFrequency) {
     AssertIsOnMainThread();
-    sDefaultJSSettings.gcZeal = aGCZeal;
-    sDefaultJSSettings.gcZealFrequency = aFrequency;
+    sDefaultJSSettings->gcZeal = aGCZeal;
+    sDefaultJSSettings->gcZealFrequency = aFrequency;
   }
 
   void UpdateAllWorkerGCZeal();
@@ -184,12 +193,15 @@ class RuntimeService final : public nsIObserver {
 
   void AddAllTopLevelWorkersToArray(nsTArray<WorkerPrivate*>& aWorkers);
 
-  void GetWorkersForWindow(nsPIDOMWindowInner* aWindow,
-                           nsTArray<WorkerPrivate*>& aWorkers);
+  nsTArray<WorkerPrivate*> GetWorkersForWindow(
+      const nsPIDOMWindowInner& aWindow) const;
 
-  bool ScheduleWorker(WorkerPrivate* aWorkerPrivate);
+  bool ScheduleWorker(WorkerPrivate& aWorkerPrivate);
 
   static void ShutdownIdleThreads(nsITimer* aTimer, void* aClosure);
+
+  template <typename Func>
+  void BroadcastAllWorkers(const Func& aFunc);
 };
 
 }  // namespace workerinternals

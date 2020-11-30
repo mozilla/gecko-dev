@@ -299,19 +299,22 @@ window.onload = async function () {
       sourceUrl: "https://bugzilla.mozilla.org/original.js",
     };
     const mockSourceMapService = {
-      subscribe: function (url, line, column, callback) {
-	// Resolve immediately.
-        callback(true, resolvedLocation.sourceUrl, resolvedLocation.line);
-      },
-      unsubscribe: function (url, line, column, callback) {
+      subscribeByLocation: function (loc, callback) {
+        // Resolve immediately.
+        callback({
+          url: resolvedLocation.sourceUrl,
+          line: resolvedLocation.line,
+          column: undefined,
+        });
+        return () => {};
       },
     };
     await checkFrameComponent({
       frame: {
-	line: 97,
-	source: "https://bugzilla.mozilla.org/bundle.js",
+        line: 97,
+        source: "https://bugzilla.mozilla.org/bundle.js",
       },
-      sourceMapService: mockSourceMapService,
+      sourceMapURLService: mockSourceMapService,
     }, {
       file: "original.js",
       line: resolvedLocation.line,

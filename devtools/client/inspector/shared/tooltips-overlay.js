@@ -33,19 +33,7 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   this,
-  "getImageDimensions",
-  "devtools/client/shared/widgets/tooltip/ImageTooltipHelper",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "setImageTooltip",
-  "devtools/client/shared/widgets/tooltip/ImageTooltipHelper",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "setBrokenImageTooltip",
+  ["getImageDimensions", "setImageTooltip", "setBrokenImageTooltip"],
   "devtools/client/shared/widgets/tooltip/ImageTooltipHelper",
   true
 );
@@ -63,6 +51,12 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   this,
+  "CssCompatibilityTooltipHelper",
+  "devtools/client/shared/widgets/tooltip/css-compatibility-tooltip-helper",
+  false
+);
+loader.lazyRequireGetter(
+  this,
   "Telemetry",
   "devtools/client/shared/telemetry",
   false
@@ -71,6 +65,7 @@ loader.lazyRequireGetter(
 const PREF_IMAGE_TOOLTIP_SIZE = "devtools.inspector.imagePreviewTooltipSize";
 
 // Types of existing tooltips
+const TOOLTIP_CSS_COMPATIBILITY = "css-compatibility";
 const TOOLTIP_IMAGE_TYPE = "image";
 const TOOLTIP_FONTFAMILY_TYPE = "font-family";
 const TOOLTIP_INACTIVE_CSS = "inactive-css";
@@ -122,6 +117,7 @@ TooltipsOverlay.prototype = {
     this._isStarted = true;
 
     this.inactiveCssTooltipHelper = new InactiveCssTooltipHelper();
+    this.compatibilityTooltipHelper = new CssCompatibilityTooltipHelper();
 
     // Instantiate the interactiveTooltip and preview tooltip when the
     // rule/computed view is hovered over in order to call
@@ -219,6 +215,7 @@ TooltipsOverlay.prototype = {
     }
 
     this.inactiveCssTooltipHelper.destroy();
+    this.compatibilityTooltipHelper.destroy();
 
     this._isStarted = false;
   },
@@ -350,6 +347,20 @@ TooltipsOverlay.prototype = {
    *         true if shown, false otherwise.
    */
   async onInteractiveTooltipTargetHover(target) {
+    if (target.classList.contains("ruleview-compatibility-warning")) {
+      const nodeCompatibilityInfo = await this.view.getNodeCompatibilityInfo(
+        target
+      );
+
+      await this.compatibilityTooltipHelper.setContent(
+        nodeCompatibilityInfo,
+        this.getTooltip("interactiveTooltip")
+      );
+
+      this.sendOpenScalarToTelemetry(TOOLTIP_CSS_COMPATIBILITY);
+      return true;
+    }
+
     const nodeInfo = this.view.getNodeInfo(target);
     if (!nodeInfo) {
       // The hovered node isn't something we care about.
@@ -395,7 +406,7 @@ TooltipsOverlay.prototype = {
    * Send a telemetry Scalar showing that a tooltip of `type` has been opened.
    *
    * @param {String} type
-   *        The node type from `devtools/client/inspector/shared/node-types`.
+   *        The node type from `devtools/client/inspector/shared/node-types` or the Tooltip type.
    */
   sendOpenScalarToTelemetry(type) {
     this.telemetry.keyedScalarAdd(TOOLTIP_SHOWN_SCALAR, type, 1);

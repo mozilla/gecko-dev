@@ -12,6 +12,7 @@
 #include "nsWindowsHelpers.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Unused.h"
+#include "mozilla/WindowsProcessMitigations.h"
 #include "mozilla/WindowsVersion.h"
 #include "nsNativeCharsetUtils.h"
 #include "nsPrintfCString.h"
@@ -81,22 +82,22 @@ static bool GetPdbInfo(uintptr_t aStart, nsID& aSignature, uint32_t& aAge,
 static nsCString GetVersion(WCHAR* dllPath) {
   DWORD infoSize = GetFileVersionInfoSizeW(dllPath, nullptr);
   if (infoSize == 0) {
-    return EmptyCString();
+    return ""_ns;
   }
 
   mozilla::UniquePtr<unsigned char[]> infoData =
       mozilla::MakeUnique<unsigned char[]>(infoSize);
   if (!GetFileVersionInfoW(dllPath, 0, infoSize, infoData.get())) {
-    return EmptyCString();
+    return ""_ns;
   }
 
   VS_FIXEDFILEINFO* vInfo;
   UINT vInfoLen;
   if (!VerQueryValueW(infoData.get(), L"\\", (LPVOID*)&vInfo, &vInfoLen)) {
-    return EmptyCString();
+    return ""_ns;
   }
   if (!vInfo) {
-    return EmptyCString();
+    return ""_ns;
   }
 
   nsPrintfCString version("%d.%d.%d.%d", vInfo->dwFileVersionMS >> 16,
@@ -149,29 +150,41 @@ SharedLibraryInfo SharedLibraryInfo::GetInfoForSelf() {
       moduleNameStr.Cut(0, pos + 1);
     }
 
-    // Hackaround for Bug 1607574.  Nvidia's shim driver nvd3d9wrapx.dll detours
-    // LoadLibraryExW when it's loaded and the detour function causes AV when
-    // the code tries to access data pointing to an address within unloaded
-    // nvinitx.dll.
+    // Hackaround for Bug 1607574.  Nvidia's shim driver nvd3d9wrap[x].dll
+    // detours LoadLibraryExW when it's loaded and the detour function causes
+    // AV when the code tries to access data pointing to an address within
+    // unloaded nvinit[x].dll.
     // The crashing code is executed when a given parameter is "detoured.dll"
     // and OS version is older than 6.2.  We hit that crash at the following
     // call to LoadLibraryEx even if we specify LOAD_LIBRARY_AS_DATAFILE.
     // We work around it by skipping LoadLibraryEx, and add a library info with
     // a dummy breakpad id instead.
+#if !defined(_M_ARM64)
+#  if defined(_M_AMD64)
+    LPCWSTR kNvidiaShimDriver = L"nvd3d9wrapx.dll";
+    LPCWSTR kNvidiaInitDriver = L"nvinitx.dll";
+#  elif defined(_M_IX86)
+    LPCWSTR kNvidiaShimDriver = L"nvd3d9wrap.dll";
+    LPCWSTR kNvidiaInitDriver = L"nvinit.dll";
+#  endif
     if (moduleNameStr.LowerCaseEqualsLiteral("detoured.dll") &&
-        !mozilla::IsWin8OrLater() && ::GetModuleHandle(L"nvd3d9wrapx.dll") &&
-        !::GetModuleHandle(L"nvinitx.dll")) {
-      NS_NAMED_LITERAL_STRING(pdbNameStr, "detoured.pdb");
-      SharedLibrary shlib(
-          (uintptr_t)module.lpBaseOfDll,
-          (uintptr_t)module.lpBaseOfDll + module.SizeOfImage,
-          0,  // DLLs are always mapped at offset 0 on Windows
-          NS_LITERAL_CSTRING("000000000000000000000000000000000"),
-          moduleNameStr, modulePathStr, pdbNameStr, pdbNameStr,
-          NS_LITERAL_CSTRING(""), "");
+        !mozilla::IsWin8OrLater() && ::GetModuleHandle(kNvidiaShimDriver) &&
+        !::GetModuleHandle(kNvidiaInitDriver)) {
+      constexpr auto pdbNameStr = u"detoured.pdb"_ns;
+      SharedLibrary shlib((uintptr_t)module.lpBaseOfDll,
+                          (uintptr_t)module.lpBaseOfDll + module.SizeOfImage,
+                          0,  // DLLs are always mapped at offset 0 on Windows
+                          "000000000000000000000000000000000"_ns, moduleNameStr,
+                          modulePathStr, pdbNameStr, pdbNameStr, ""_ns, "");
       sharedLibraryInfo.AddSharedLibrary(shlib);
       continue;
     }
+#endif  // !defined(_M_ARM64)
+
+    // If EAF+ is enabled, parsing ntdll's PE header via GetPdbInfo() causes
+    // a crash.  We don't include PDB information in SharedLibrary.
+    bool canGetPdbInfo = (!mozilla::IsEafPlusEnabled() ||
+                          !moduleNameStr.LowerCaseEqualsLiteral("ntdll.dll"));
 
     nsCString breakpadId;
     // Load the module again to make sure that its handle will remain
@@ -196,7 +209,7 @@ SharedLibraryInfo SharedLibraryInfo::GetInfoForSelf() {
     if (handleLock &&
         sizeof(vmemInfo) ==
             VirtualQuery(module.lpBaseOfDll, &vmemInfo, sizeof(vmemInfo)) &&
-        vmemInfo.State == MEM_COMMIT &&
+        vmemInfo.State == MEM_COMMIT && canGetPdbInfo &&
         GetPdbInfo((uintptr_t)module.lpBaseOfDll, pdbSig, pdbAge, &pdbName)) {
       MOZ_ASSERT(breakpadId.IsEmpty());
       breakpadId.AppendPrintf(

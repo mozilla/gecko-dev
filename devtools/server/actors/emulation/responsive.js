@@ -77,7 +77,7 @@ const ResponsiveActor = protocol.ActorClassWithSpec(responsiveSpec, {
    * monitor, which for historical reasons is part of the console actor.
    */
   get _consoleActor() {
-    if (this.targetActor.exited || !this.targetActor.actorID) {
+    if (this.targetActor.exited || this.targetActor.isDestroyed()) {
       return null;
     }
     const form = this.targetActor.form();
@@ -316,7 +316,9 @@ const ResponsiveActor = protocol.ActorClassWithSpec(responsiveSpec, {
     if (this._previousUserAgentOverride === undefined) {
       this._previousUserAgentOverride = this.getUserAgentOverride();
     }
-    this.docShell.browsingContext.customUserAgent = userAgent;
+    // Bug 1637494: TODO - customUserAgent should only be set from parent
+    // process.
+    this.docShell.customUserAgent = userAgent;
     return true;
   },
 
@@ -374,12 +376,6 @@ const ResponsiveActor = protocol.ActorClassWithSpec(responsiveSpec, {
     return this.screenshotActor.capture({});
   },
 
-  async setDocumentInRDMPane(inRDMPane) {
-    if (this.docShell && this.docShell.document) {
-      this.docShell.browsingContext.inRDMPane = inRDMPane;
-    }
-  },
-
   /**
    * Applies a mobile scrollbar overlay to the content document.
    *
@@ -407,6 +403,11 @@ const ResponsiveActor = protocol.ActorClassWithSpec(responsiveSpec, {
     }
 
     this.flushStyle();
+  },
+
+  async setMaxTouchPoints(touchSimulationEnabled) {
+    const maxTouchPoints = touchSimulationEnabled ? 1 : 0;
+    this.docShell.browsingContext.setRDMPaneMaxTouchPoints(maxTouchPoints);
   },
 
   flushStyle() {

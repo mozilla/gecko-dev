@@ -25,6 +25,8 @@ enum class Initialization {
   UpgradeStorageFrom2_0To2_1 = 1 << 6,
   UpgradeStorageFrom2_1To2_2 = 1 << 7,
   UpgradeStorageFrom2_2To2_3 = 1 << 8,
+  UpgradeFromIndexedDBDirectory = 1 << 9,
+  UpgradeFromPersistentStorageDirectory = 1 << 10,
 };
 
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(Initialization)
@@ -88,23 +90,27 @@ class InitializationInfo final {
       const Initialization aInitialization) {
     switch (aInitialization) {
       case Initialization::Storage:
-        return NS_LITERAL_CSTRING("Storage");
+        return "Storage"_ns;
       case Initialization::TemporaryStorage:
-        return NS_LITERAL_CSTRING("TemporaryStorage");
+        return "TemporaryStorage"_ns;
       case Initialization::DefaultRepository:
-        return NS_LITERAL_CSTRING("DefaultRepository");
+        return "DefaultRepository"_ns;
       case Initialization::TemporaryRepository:
-        return NS_LITERAL_CSTRING("TemporaryRepository");
+        return "TemporaryRepository"_ns;
       case Initialization::UpgradeStorageFrom0_0To1_0:
-        return NS_LITERAL_CSTRING("UpgradeStorageFrom0_0To1_0");
+        return "UpgradeStorageFrom0_0To1_0"_ns;
       case Initialization::UpgradeStorageFrom1_0To2_0:
-        return NS_LITERAL_CSTRING("UpgradeStorageFrom1_0To2_0");
+        return "UpgradeStorageFrom1_0To2_0"_ns;
       case Initialization::UpgradeStorageFrom2_0To2_1:
-        return NS_LITERAL_CSTRING("UpgradeStorageFrom2_0To2_1");
+        return "UpgradeStorageFrom2_0To2_1"_ns;
       case Initialization::UpgradeStorageFrom2_1To2_2:
-        return NS_LITERAL_CSTRING("UpgradeStorageFrom2_1To2_2");
+        return "UpgradeStorageFrom2_1To2_2"_ns;
       case Initialization::UpgradeStorageFrom2_2To2_3:
-        return NS_LITERAL_CSTRING("UpgradeStorageFrom2_2To2_3");
+        return "UpgradeStorageFrom2_2To2_3"_ns;
+      case Initialization::UpgradeFromIndexedDBDirectory:
+        return "UpgradeFromIndexedDBDirectory"_ns;
+      case Initialization::UpgradeFromPersistentStorageDirectory:
+        return "UpgradeFromPersistentStorageDirectory"_ns;
 
       default:
         MOZ_CRASH("Bad initialization value!");

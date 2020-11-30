@@ -8,8 +8,9 @@
 
 #include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/Tuple.h"
+#include "mozilla/ThreadSafeWeakPtr.h"
 #include "mozilla/TimeStamp.h"
+#include "mozilla/Tuple.h"
 #include "gfx2DGlue.h"
 #include "imgIContainer.h"
 #include "ImageContainer.h"
@@ -266,6 +267,15 @@ class Image : public imgIContainer {
   virtual void SetHasError() = 0;
 
   virtual nsIURI* GetURI() const = 0;
+
+  NS_IMETHOD GetHotspotX(int32_t* aX) override {
+    *aX = 0;
+    return NS_OK;
+  }
+  NS_IMETHOD GetHotspotY(int32_t* aY) override {
+    *aY = 0;
+    return NS_OK;
+  }
 };
 
 class ImageResource : public Image {
@@ -439,7 +449,7 @@ class ImageResource : public Image {
     Maybe<SVGImageContext> mSVGContext;
     // A weak pointer to our ImageContainer, which stays alive only as long as
     // the layer system needs it.
-    WeakPtr<layers::ImageContainer> mContainer;
+    ThreadSafeWeakPtr<layers::ImageContainer> mContainer;
     // If mContainer is non-null, this contains the ImgDrawResult we obtained
     // the last time we updated it.
     ImgDrawResult mLastDrawResult;

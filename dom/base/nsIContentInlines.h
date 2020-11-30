@@ -94,7 +94,7 @@ static inline nsINode* GetFlattenedTreeParentNode(const nsINode* aNode) {
     return docLevel ? content->OwnerDocAsNode() : parent;
   }
 
-  if (content->IsRootOfAnonymousSubtree()) {
+  if (content->IsRootOfNativeAnonymousSubtree()) {
     return parent;
   }
 
@@ -160,6 +160,9 @@ inline bool nsINode::IsEditable() const {
   }
 
   // Check if the node is in a document and the document is in designMode.
+  //
+  // NOTE(emilio): If you change this to be the composed doc you also need to
+  // change NotifyEditableStateChange() in Document.cpp.
   Document* doc = GetUncomposedDoc();
   return doc && doc->HasFlag(NODE_IS_EDITABLE);
 }
@@ -168,7 +171,7 @@ inline void nsIContent::HandleInsertionToOrRemovalFromSlot() {
   using mozilla::dom::HTMLSlotElement;
 
   MOZ_ASSERT(GetParentElement());
-  if (!IsInShadowTree() || IsRootOfAnonymousSubtree()) {
+  if (!IsInShadowTree() || IsRootOfNativeAnonymousSubtree()) {
     return;
   }
   HTMLSlotElement* slot = HTMLSlotElement::FromNode(mParent);

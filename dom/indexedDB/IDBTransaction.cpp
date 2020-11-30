@@ -26,6 +26,7 @@
 #include "nsTHashtable.h"
 #include "ProfilerHelpers.h"
 #include "ReportInternalError.h"
+#include "ThreadLocal.h"
 
 // Include this last to avoid path problems on Windows.
 #include "ActorsChild.h"
@@ -94,7 +95,7 @@ IDBTransaction::IDBTransaction(IDBDatabase* const aDatabase,
                                CreatedFromFactoryFunction /*aDummy*/)
     : DOMEventTargetHelper(aDatabase),
       mDatabase(aDatabase),
-      mObjectStoreNames(aObjectStoreNames),
+      mObjectStoreNames(aObjectStoreNames.Clone()),
       mLoggingSerialNumber(GetIndexedDBThreadLocal()->NextTransactionSN(aMode)),
       mNextObjectStoreId(0),
       mNextIndexId(0),
@@ -138,7 +139,7 @@ IDBTransaction::~IDBTransaction() {
   MOZ_ASSERT_IF(HasTransactionChild(), mFiredCompleteOrAbort);
 
   if (mRegistered) {
-    mDatabase->UnregisterTransaction(this);
+    mDatabase->UnregisterTransaction(*this);
 #ifdef DEBUG
     mRegistered = false;
 #endif
@@ -160,15 +161,14 @@ IDBTransaction::~IDBTransaction() {
 }
 
 // static
-RefPtr<IDBTransaction> IDBTransaction::CreateVersionChange(
+SafeRefPtr<IDBTransaction> IDBTransaction::CreateVersionChange(
     IDBDatabase* const aDatabase,
     BackgroundVersionChangeTransactionChild* const aActor,
-    IDBOpenDBRequest* const aOpenRequest, const int64_t aNextObjectStoreId,
-    const int64_t aNextIndexId) {
+    const NotNull<IDBOpenDBRequest*> aOpenRequest,
+    const int64_t aNextObjectStoreId, const int64_t aNextIndexId) {
   MOZ_ASSERT(aDatabase);
   aDatabase->AssertIsOnOwningThread();
   MOZ_ASSERT(aActor);
-  MOZ_ASSERT(aOpenRequest);
   MOZ_ASSERT(aNextObjectStoreId > 0);
   MOZ_ASSERT(aNextIndexId > 0);
 
@@ -177,7 +177,7 @@ RefPtr<IDBTransaction> IDBTransaction::CreateVersionChange(
   nsString filename;
   uint32_t lineNo, column;
   aOpenRequest->GetCallerLocation(filename, &lineNo, &column);
-  auto transaction = MakeRefPtr<IDBTransaction>(
+  auto transaction = MakeSafeRefPtr<IDBTransaction>(
       aDatabase, emptyObjectStoreNames, Mode::VersionChange,
       std::move(filename), lineNo, column, CreatedFromFactoryFunction{});
 
@@ -187,14 +187,14 @@ RefPtr<IDBTransaction> IDBTransaction::CreateVersionChange(
   transaction->mNextObjectStoreId = aNextObjectStoreId;
   transaction->mNextIndexId = aNextIndexId;
 
-  aDatabase->RegisterTransaction(transaction);
+  aDatabase->RegisterTransaction(*transaction);
   transaction->mRegistered = true;
 
   return transaction;
 }
 
 // static
-RefPtr<IDBTransaction> IDBTransaction::Create(
+SafeRefPtr<IDBTransaction> IDBTransaction::Create(
     JSContext* const aCx, IDBDatabase* const aDatabase,
     const nsTArray<nsString>& aObjectStoreNames, const Mode aMode) {
   MOZ_ASSERT(aDatabase);
@@ -206,7 +206,7 @@ RefPtr<IDBTransaction> IDBTransaction::Create(
   nsString filename;
   uint32_t lineNo, column;
   IDBRequest::CaptureCaller(aCx, filename, &lineNo, &column);
-  auto transaction = MakeRefPtr<IDBTransaction>(
+  auto transaction = MakeSafeRefPtr<IDBTransaction>(
       aDatabase, aObjectStoreNames, aMode, std::move(filename), lineNo, column,
       CreatedFromFactoryFunction{});
 
@@ -217,7 +217,8 @@ RefPtr<IDBTransaction> IDBTransaction::Create(
     workerPrivate->AssertIsOnWorkerThread();
 
     RefPtr<StrongWorkerRef> workerRef = StrongWorkerRef::Create(
-        workerPrivate, "IDBTransaction", [transaction]() {
+        workerPrivate, "IDBTransaction",
+        [transaction = AsRefPtr(transaction.clonePtr())]() {
           transaction->AssertIsOnOwningThread();
           if (!transaction->IsCommittingOrFinished()) {
             IDB_REPORT_INTERNAL_ERR();
@@ -236,22 +237,23 @@ RefPtr<IDBTransaction> IDBTransaction::Create(
     transaction->mWorkerRef = std::move(workerRef);
   }
 
-  nsCOMPtr<nsIRunnable> runnable = do_QueryObject(transaction);
+  nsCOMPtr<nsIRunnable> runnable =
+      do_QueryObject(transaction.unsafeGetRawPtr());
   nsContentUtils::AddPendingIDBTransaction(runnable.forget());
 
-  aDatabase->RegisterTransaction(transaction);
+  aDatabase->RegisterTransaction(*transaction);
   transaction->mRegistered = true;
 
   return transaction;
 }
 
 // static
-IDBTransaction* IDBTransaction::GetCurrent() {
+Maybe<IDBTransaction&> IDBTransaction::MaybeCurrent() {
   using namespace mozilla::ipc;
 
   MOZ_ASSERT(BackgroundChild::GetForCurrentThread());
 
-  return GetIndexedDBThreadLocal()->GetCurrentTransaction();
+  return GetIndexedDBThreadLocal()->MaybeCurrentTransactionRef();
 }
 
 #ifdef DEBUG
@@ -276,12 +278,13 @@ void IDBTransaction::SetBackgroundActor(
 }
 
 BackgroundRequestChild* IDBTransaction::StartRequest(
-    IDBRequest* const aRequest, const RequestParams& aParams) {
+    MovingNotNull<RefPtr<mozilla::dom::IDBRequest> > aRequest,
+    const RequestParams& aParams) {
   AssertIsOnOwningThread();
-  MOZ_ASSERT(aRequest);
   MOZ_ASSERT(aParams.type() != RequestParams::T__None);
 
-  BackgroundRequestChild* const actor = new BackgroundRequestChild(aRequest);
+  BackgroundRequestChild* const actor =
+      new BackgroundRequestChild(std::move(aRequest));
 
   DoWithTransactionChild([actor, &aParams](auto& transactionChild) {
     transactionChild.SendPBackgroundIDBRequestConstructor(actor, aParams);
@@ -296,18 +299,16 @@ BackgroundRequestChild* IDBTransaction::StartRequest(
   return actor;
 }
 
-void IDBTransaction::OpenCursor(
-    PBackgroundIDBCursorChild* const aBackgroundActor,
-    const OpenCursorParams& aParams) {
+void IDBTransaction::OpenCursor(PBackgroundIDBCursorChild& aBackgroundActor,
+                                const OpenCursorParams& aParams) {
   AssertIsOnOwningThread();
-  MOZ_ASSERT(aBackgroundActor);
   MOZ_ASSERT(aParams.type() != OpenCursorParams::T__None);
 
-  DoWithTransactionChild([aBackgroundActor, &aParams](auto& actor) {
-    actor.SendPBackgroundIDBCursorConstructor(aBackgroundActor, aParams);
+  DoWithTransactionChild([&aBackgroundActor, &aParams](auto& actor) {
+    actor.SendPBackgroundIDBCursorConstructor(&aBackgroundActor, aParams);
   });
 
-  MOZ_ASSERT(aBackgroundActor->GetActorEventTarget(),
+  MOZ_ASSERT(aBackgroundActor.GetActorEventTarget(),
              "The event target shall be inherited from its manager actor.");
 
   // Balanced in BackgroundCursorChild::RecvResponse().
@@ -402,9 +403,11 @@ void IDBTransaction::SendCommit(const bool aAutoCommit) {
     // https://w3c.github.io/IndexedDB/#async-execute-request, step 5.3.). With
     // automatic commit, this is not necessary, as the transaction's state will
     // only be set to committing after the last request completed.
-    const bool dispatchingEventForThisTransaction =
+    const auto maybeCurrentTransaction =
         BackgroundChildImpl::GetThreadLocalForCurrentThread()
-            ->mIndexedDBThreadLocal->GetCurrentTransaction() == this;
+            ->mIndexedDBThreadLocal->MaybeCurrentTransactionRef();
+    const bool dispatchingEventForThisTransaction =
+        maybeCurrentTransaction && &maybeCurrentTransaction.ref() == this;
 
     return Some(requestSerialNumber
                     ? (requestSerialNumber -
@@ -429,8 +432,9 @@ void IDBTransaction::SendAbort(const nsresult aResultCode) {
   const uint64_t requestSerialNumber = IDBRequest::NextSerialNumber();
 
   IDB_LOG_MARK_CHILD_TRANSACTION_REQUEST(
-      "Aborting transaction with result 0x%x", "IDBTransaction abort (0x%x)",
-      LoggingSerialNumber(), requestSerialNumber, aResultCode);
+      "Aborting transaction with result 0x%" PRIx32,
+      "IDBTransaction abort (0x%" PRIx32 ")", LoggingSerialNumber(),
+      requestSerialNumber, static_cast<uint32_t>(aResultCode));
 
   DoWithTransactionChild(
       [aResultCode](auto& actor) { actor.SendAbort(aResultCode); });
@@ -506,7 +510,8 @@ RefPtr<IDBObjectStore> IDBTransaction::CreateObjectStore(
       mBackgroundActor.mVersionChangeBackgroundActor->SendCreateObjectStore(
           aSpec.metadata()));
 
-  RefPtr<IDBObjectStore> objectStore = IDBObjectStore::Create(this, aSpec);
+  RefPtr<IDBObjectStore> objectStore = IDBObjectStore::Create(
+      SafeRefPtr{this, AcquireStrongRefFromRawPtr{}}, aSpec);
   MOZ_ASSERT(objectStore);
 
   mObjectStores.AppendElement(objectStore);
@@ -641,13 +646,13 @@ void IDBTransaction::AbortInternal(const nsresult aAbortCode,
             return static_cast<uint64_t>(objectStoreId);
           });
 
-      mObjectStores.RemoveElementsAt(
+      mObjectStores.RemoveLastElements(
+          mObjectStores.end() -
           std::remove_if(mObjectStores.begin(), mObjectStores.end(),
                          [&validIds](const auto& objectStore) {
                            return !validIds.Contains(
                                uint64_t(objectStore->Id()));
-                         }),
-          mObjectStores.end());
+                         }));
 
       std::copy_if(std::make_move_iterator(mDeletedObjectStores.begin()),
                    std::make_move_iterator(mDeletedObjectStores.end()),
@@ -790,9 +795,10 @@ void IDBTransaction::FireCompleteOrAbortEvents(const nsresult aResult) {
                                    "IDBTransaction 'complete' event",
                                    mLoggingSerialNumber);
   } else {
-    IDB_LOG_MARK_CHILD_TRANSACTION("Firing 'abort' event with error 0x%x",
-                                   "IDBTransaction 'abort' event (0x%x)",
-                                   mLoggingSerialNumber, mAbortCode);
+    IDB_LOG_MARK_CHILD_TRANSACTION(
+        "Firing 'abort' event with error 0x%" PRIx32,
+        "IDBTransaction 'abort' event (0x%" PRIx32 ")", mLoggingSerialNumber,
+        static_cast<uint32_t>(mAbortCode));
   }
 
   IgnoredErrorResult rv;
@@ -892,7 +898,7 @@ RefPtr<DOMStringList> IDBTransaction::ObjectStoreNames() const {
   }
 
   auto list = MakeRefPtr<DOMStringList>();
-  list->StringArray() = mObjectStoreNames;
+  list->StringArray() = mObjectStoreNames.Clone();
   return list;
 }
 
@@ -931,7 +937,8 @@ RefPtr<IDBObjectStore> IDBTransaction::ObjectStore(const nsAString& aName,
   if (foundIt != mObjectStores.cend()) {
     objectStore = *foundIt;
   } else {
-    objectStore = IDBObjectStore::Create(this, *spec);
+    objectStore = IDBObjectStore::Create(
+        SafeRefPtr{this, AcquireStrongRefFromRawPtr{}}, *spec);
     MOZ_ASSERT(objectStore);
 
     mObjectStores.AppendElement(objectStore);

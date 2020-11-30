@@ -38,26 +38,6 @@ enum class State {
 #undef MAKE_STATE
 };
 
-// Reasons we reset an ongoing incremental GC or perform a non-incremental GC.
-#define GC_ABORT_REASONS(D)      \
-  D(None, 0)                     \
-  D(NonIncrementalRequested, 1)  \
-  D(AbortRequested, 2)           \
-  D(Unused1, 3)                  \
-  D(IncrementalDisabled, 4)      \
-  D(ModeChange, 5)               \
-  D(MallocBytesTrigger, 6)       \
-  D(GCBytesTrigger, 7)           \
-  D(ZoneChange, 8)               \
-  D(CompartmentRevived, 9)       \
-  D(GrayRootBufferingFailed, 10) \
-  D(JitCodeBytesTrigger, 11)
-enum class AbortReason {
-#define MAKE_REASON(name, num) name = num,
-  GC_ABORT_REASONS(MAKE_REASON)
-#undef MAKE_REASON
-};
-
 #define JS_FOR_EACH_ZEAL_MODE(D)       \
   D(RootsChange, 1)                    \
   D(Alloc, 2)                          \
@@ -92,6 +72,26 @@ enum class ZealMode {
 
 } /* namespace gc */
 
+// Reasons we reset an ongoing incremental GC or perform a non-incremental GC.
+#define GC_ABORT_REASONS(D)      \
+  D(None, 0)                     \
+  D(NonIncrementalRequested, 1)  \
+  D(AbortRequested, 2)           \
+  D(Unused1, 3)                  \
+  D(IncrementalDisabled, 4)      \
+  D(ModeChange, 5)               \
+  D(MallocBytesTrigger, 6)       \
+  D(GCBytesTrigger, 7)           \
+  D(ZoneChange, 8)               \
+  D(CompartmentRevived, 9)       \
+  D(GrayRootBufferingFailed, 10) \
+  D(JitCodeBytesTrigger, 11)
+enum class GCAbortReason {
+#define MAKE_REASON(name, num) name = num,
+  GC_ABORT_REASONS(MAKE_REASON)
+#undef MAKE_REASON
+};
+
 #define JS_FOR_EACH_INTERNAL_MEMORY_USE(_) \
   _(ArrayBufferContents)                   \
   _(StringContents)                        \
@@ -111,6 +111,7 @@ enum class ZealMode {
   _(RareArgumentsData)                     \
   _(RegExpStatics)                         \
   _(RegExpSharedBytecode)                  \
+  _(RegExpSharedNamedCaptureData)          \
   _(TypedArrayElements)                    \
   _(TypeDescrTraceList)                    \
   _(NativeIterator)                        \
@@ -138,9 +139,8 @@ enum class ZealMode {
   _(DebuggerOnPopHandler)                  \
   _(RealmInstrumentation)                  \
   _(ICUObject)                             \
-  _(FinalizationGroupRecordVector)         \
-  _(FinalizationGroupRecordSet)            \
-  _(FinalizationGroupRegistrations)        \
+  _(FinalizationRegistryRecordVector)      \
+  _(FinalizationRegistryRegistrations)     \
   _(FinalizationRecordVector)              \
   _(ZoneAllocPolicy)                       \
   _(SharedArrayRawBuffer)                  \

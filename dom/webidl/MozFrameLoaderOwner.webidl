@@ -5,17 +5,12 @@
  */
 
 dictionary RemotenessOptions {
-  required DOMString? remoteType;
-
-  // Used to indicate that there is an error condition that needs to
-  // be handled.
-  unsigned long error;
+  required UTF8String? remoteType;
 
   // Used to resume a given channel load within the target process. If present,
   // it will be used rather than the `src` & `srcdoc` attributes on the
   // frameloader to control the load behaviour.
   unsigned long long pendingSwitchID;
-  boolean replaceBrowsingContext = false;
 
   // True if we have an existing channel that we will resume in the
   // target process, either via pendingSwitchID or using messageManager.
@@ -38,9 +33,6 @@ interface mixin MozFrameLoaderOwner {
 
   [ChromeOnly]
   readonly attribute BrowsingContext? browsingContext;
-
-  [ChromeOnly, Throws]
-  void presetOpenerWindow(WindowProxy? window);
 
   [ChromeOnly, Throws]
   void swapFrameLoaders(XULFrameElement aOtherLoaderOwner);

@@ -9,6 +9,7 @@ import importlib
 import os
 import sys
 
+import six
 from mach.decorators import (
     CommandProvider,
     Command,
@@ -56,7 +57,7 @@ class TryConfig(object):
         choices = Registrar.command_handlers['try'].subcommand_handlers.keys()
 
         return [
-            ('try.default', 'string', desc, 'syntax', {'choices': choices}),
+            ('try.default', 'string', desc, 'auto', {'choices': choices}),
             ('try.maxhistory', 'int', "Maximum number of pushes to save in history.", 10),
         ]
 
@@ -64,8 +65,8 @@ class TryConfig(object):
 @CommandProvider
 class TrySelect(MachCommandBase):
 
-    def __init__(self, context):
-        super(TrySelect, self).__init__(context)
+    def __init__(self, *args, **kwargs):
+        super(TrySelect, self).__init__(*args, **kwargs)
         from tryselect import push
         push.MAX_HISTORY = self._mach_context.settings['try']['maxhistory']
         self.subcommand = self._mach_context.handler.subcommand
@@ -94,7 +95,7 @@ class TrySelect(MachCommandBase):
         self._presets = MergedHandler(*preset_paths)
         return self._presets
 
-    def handle_presets(self, preset_action, save, preset, **kwargs):
+    def handle_presets(self, preset_action=None, save=None, preset=None, **kwargs):
         """Handle preset related arguments.
 
         This logic lives here so that the underlying selectors don't need
@@ -111,6 +112,9 @@ class TrySelect(MachCommandBase):
         if preset_action == 'edit':
             user_presets.edit()
             sys.exit()
+
+        if 'preset' not in self.parser.common_groups:
+            return kwargs
 
         default = self.parser.get_default
         if save:
@@ -155,20 +159,26 @@ class TrySelect(MachCommandBase):
 
     def handle_try_config(self, **kwargs):
         from tryselect.util.dicttools import merge
+
+        to_validate = []
         kwargs.setdefault('try_config', {})
-        for cls in self.parser.task_configs.itervalues():
+        for cls in six.itervalues(self.parser.task_configs):
             try_config = cls.try_config(**kwargs)
             if try_config is not None:
+                to_validate.append(cls)
                 kwargs['try_config'] = merge(kwargs['try_config'], try_config)
 
             for name in cls.dests:
                 del kwargs[name]
 
+        # Validate task_configs after they have all been parsed to avoid
+        # depending on the order they were processed.
+        for cls in to_validate:
+            cls.validate(**kwargs)
         return kwargs
 
     def run(self, **kwargs):
-        if 'preset' in self.parser.common_groups:
-            kwargs = self.handle_presets(**kwargs)
+        kwargs = self.handle_presets(**kwargs)
 
         if self.parser.task_configs:
             kwargs = self.handle_try_config(**kwargs)
@@ -188,9 +198,9 @@ class TrySelect(MachCommandBase):
         that provides its own set of command line arguments and are
         listed below.
 
-        If no subcommand is specified, the `syntax` selector is run by
-        default. Run |mach try syntax --help| for more information on
-        scheduling with the `syntax` selector.
+        If no subcommand is specified, the `auto` selector is run by
+        default. Run |mach try auto --help| for more information on
+        scheduling with the `auto` selector.
         """
         # We do special handling of presets here so that `./mach try --preset foo`
         # works no matter what subcommand 'foo' was saved with.
@@ -203,7 +213,7 @@ class TrySelect(MachCommandBase):
 
         sub = self.subcommand or self._mach_context.settings['try']['default']
         return self._mach_context.commands.dispatch(
-            'try', subcommand=sub, context=self._mach_context, argv=argv, **kwargs)
+            'try', self._mach_context, subcommand=sub, argv=argv, **kwargs)
 
     @SubCommand('try',
                 'fuzzy',
@@ -319,10 +329,19 @@ class TrySelect(MachCommandBase):
         has been made, pressing the 'Push' button will automatically push the
         selection to try.
         """
-        self._activate_virtualenv()
+        self.activate_virtualenv()
         path = os.path.join('tools', 'tryselect', 'selectors', 'chooser', 'requirements.txt')
         self.virtualenv_manager.install_pip_requirements(path, quiet=True)
 
+        return self.run(**kwargs)
+
+    @SubCommand('try',
+                'auto',
+                description='Automatically determine which tasks to run. This runs the same '
+                            'set of tasks that would be run on autoland. This '
+                            'selector is EXPERIMENTAL.',
+                parser=get_parser('auto'))
+    def try_auto(self, **kwargs):
         return self.run(**kwargs)
 
     @SubCommand('try',

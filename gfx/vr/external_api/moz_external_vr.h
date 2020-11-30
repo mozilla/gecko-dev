@@ -47,8 +47,8 @@ namespace gfx {
 // and mapped files if we have both release and nightlies
 // running at the same time? Or...what if we have multiple
 // release builds running on same machine? (Bug 1563232)
-#define SHMEM_VERSION "0.0.7"
-static const int32_t kVRExternalVersion = 14;
+#define SHMEM_VERSION "0.0.11"
+static const int32_t kVRExternalVersion = 18;
 
 // We assign VR presentations to groups with a bitmask.
 // Currently, we will only display either content or chrome.
@@ -63,7 +63,6 @@ static const uint32_t kVRGroupAll = 0xffffffff;
 
 static const int kVRDisplayNameMaxLen = 256;
 static const int kVRControllerNameMaxLen = 256;
-static const int kProfileNameListMaxLen = 256;
 static const int kVRControllerMaxCount = 16;
 static const int kVRControllerMaxButtons = 64;
 static const int kVRControllerMaxAxis = 16;
@@ -120,16 +119,39 @@ enum class ControllerCapabilityFlags : uint16_t {
    */
   Cap_LinearAcceleration = 1 << 4,
   /**
-   * Cap_GripSpacePosition is set if the Gamepad has a grip space position.
+   * Cap_TargetRaySpacePosition is set if the Gamepad has a grip space position.
    */
   Cap_GripSpacePosition = 1 << 5,
   /**
+   * Cap_PositionEmulated is set if the XRInputSoruce is capable of setting a
+   * emulated position (e.g. neck model) even if still doesn't support 6DOF
+   * tracking.
+   */
+  Cap_PositionEmulated = 1 << 6,
+  /**
    * Cap_All used for validity checking during IPC serialization
    */
-  Cap_All = (1 << 6) - 1
+  Cap_All = (1 << 7) - 1
 };
 
 #endif  // ifndef MOZILLA_INTERNAL_API
+
+enum class VRControllerType : uint8_t {
+  _empty,
+  HTCVive,
+  HTCViveCosmos,
+  HTCViveFocus,
+  HTCViveFocusPlus,
+  MSMR,
+  ValveIndex,
+  OculusGo,
+  OculusTouch,
+  OculusTouch2,
+  PicoGaze,
+  PicoG2,
+  PicoNeo2,
+  _end
+};
 
 enum class TargetRayMode : uint8_t { Gaze, TrackedPointer, Screen };
 
@@ -208,9 +230,16 @@ enum class VRDisplayCapabilityFlags : uint16_t {
    */
   Cap_ImmersiveAR = 1 << 12,
   /**
+   * Cap_UseDepthValues is set if the device will use the depth values of the
+   * submitted frames if provided.  How the depth values are used is determined
+   * by the VR runtime.  Often the depth is used for occlusion of system UI
+   * or to enable more effective asynchronous reprojection of frames.
+   */
+  Cap_UseDepthValues = 1 << 13,
+  /**
    * Cap_All used for validity checking during IPC serialization
    */
-  Cap_All = (1 << 13) - 1
+  Cap_All = (1 << 14) - 1
 };
 
 #ifdef MOZILLA_INTERNAL_API
@@ -316,6 +345,7 @@ struct VRDisplayState {
   VRFieldOfView eyeFOV[VRDisplayState::NumEyes];
   Point3D_POD eyeTranslation[VRDisplayState::NumEyes];
   IntSize_POD eyeResolution;
+  float nativeFramebufferScaleFactor;
   bool suppressFrames;
   bool isConnected;
   bool isMounted;
@@ -341,13 +371,11 @@ struct VRControllerState {
 #else
   ControllerHand hand;
 #endif
+  // For WebXR->WebVR mapping conversion, once we remove WebVR,
+  // we can remove this item.
+  VRControllerType type;
   // https://immersive-web.github.io/webxr/#enumdef-xrtargetraymode
   TargetRayMode targetRayMode;
-
-  // Space-delimited list of input profile names, in decending order
-  // of specificity.
-  // https://immersive-web.github.io/webxr/#dom-xrinputsource-profiles
-  char profiles[kProfileNameListMaxLen];
 
   // https://immersive-web.github.io/webxr-gamepads-module/#enumdef-gamepadmappingtype
   GamepadMappingType mappingType;
@@ -389,14 +417,14 @@ struct VRControllerState {
 #endif
 
   // When Cap_Position is set in flags, pose corresponds
-  // to the controllers' pose in target ray space:
-  // https://immersive-web.github.io/webxr/#dom-xrinputsource-targetrayspace
-  VRPose pose;
-
-  // When Cap_GripSpacePosition is set in flags, gripPose corresponds
   // to the controllers' pose in grip space:
   // https://immersive-web.github.io/webxr/#dom-xrinputsource-gripspace
-  VRPose gripPose;
+  VRPose pose;
+
+  // When Cap_TargetRaySpacePosition is set in flags, targetRayPose corresponds
+  // to the controllers' pose in target ray space:
+  // https://immersive-web.github.io/webxr/#dom-xrinputsource-targetrayspace
+  VRPose targetRayPose;
 
   bool isPositionValid;
   bool isOrientationValid;

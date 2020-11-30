@@ -95,7 +95,7 @@ export type PauseState = {
   previewLocation: ?SourceLocation,
 };
 
-function createPauseState(thread: ThreadId = "UnknownThread") {
+export function initialPauseState(thread: ThreadId = "UnknownThread") {
   return {
     cx: {
       navigateCounter: 0,
@@ -147,7 +147,7 @@ function getThreadPauseState(state: PauseState, thread: ThreadId) {
 }
 
 function update(
-  state: PauseState = createPauseState(),
+  state: PauseState = initialPauseState(),
   action: Action
 ): PauseState {
   // Actions need to specify any thread they are operating on. These helpers
@@ -226,6 +226,11 @@ function update(
       return updateThreadState({ frames, selectedFrameId });
     }
 
+    case "MAP_FRAME_DISPLAY_NAMES": {
+      const { frames } = action;
+      return updateThreadState({ frames });
+    }
+
     case "ADD_SCOPES": {
       const { frame, status, value } = action;
       const selectedFrameId = frame.id;
@@ -254,13 +259,13 @@ function update(
         ...threadState().frameScopes.original,
         [selectedFrameId]: {
           pending: status !== "done",
-          scope: value && value.scope,
+          scope: value?.scope,
         },
       };
 
       const mappings = {
         ...threadState().frameScopes.mappings,
-        [selectedFrameId]: value && value.mappings,
+        [selectedFrameId]: value?.mappings,
       };
 
       return updateThreadState({
@@ -280,7 +285,7 @@ function update(
 
     case "CONNECT":
       return {
-        ...createPauseState(action.mainThread.actor),
+        ...initialPauseState(action.mainThreadActorID),
       };
 
     case "PAUSE_ON_EXCEPTIONS": {
@@ -417,7 +422,7 @@ function getPauseLocation(state, action) {
     return null;
   }
 
-  const frame = frames && frames[0];
+  const frame = frames?.[0];
   if (!frame) {
     return previousLocation;
   }
@@ -633,9 +638,15 @@ export function getSelectedFrameId(state: State, thread: ThreadId) {
   return getThreadPauseState(state.pause, thread).selectedFrameId;
 }
 
+export function isTopFrameSelected(state: State, thread: ThreadId) {
+  const selectedFrameId = getSelectedFrameId(state, thread);
+  const topFrame = getTopFrame(state, thread);
+  return selectedFrameId == topFrame?.id;
+}
+
 export function getTopFrame(state: State, thread: ThreadId) {
   const frames = getFrames(state, thread);
-  return frames && frames[0];
+  return frames?.[0];
 }
 
 export function getSkipPausing(state: State) {
@@ -680,13 +691,13 @@ export function getInlinePreviewExpression(
   const previews = getThreadPauseState(state.pause, thread).inlinePreview[
     getGeneratedFrameId(frameId)
   ];
-  return previews && previews[line] && previews[line][expression];
+  return previews?.[line]?.[expression];
 }
 
 // NOTE: currently only used for chrome
 export function getChromeScopes(state: State, thread: ThreadId) {
   const frame: ?ChromeFrame = (getSelectedFrame(state, thread): any);
-  return frame ? frame.scopeChain : undefined;
+  return frame?.scopeChain;
 }
 
 export function getLastExpandedScopes(state: State, thread: ThreadId) {

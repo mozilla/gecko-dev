@@ -36,6 +36,7 @@ add_task(async function start_issue_server() {
   // ./head.js sets the value for PREF_WC_REPORTER_ENDPOINT
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["datareporting.healthreport.uploadEnabled", true],
       [PREF_WC_REPORTER_ENABLED, true],
       [PREF_WC_REPORTER_ENDPOINT, serverLanding],
     ],
@@ -84,16 +85,6 @@ add_task(async function test_opened_page() {
     );
 
     let docShell = content.docShell;
-    is(
-      typeof docShell.hasMixedActiveContentBlocked,
-      "boolean",
-      "docShell.hasMixedActiveContentBlocked is available"
-    );
-    is(
-      typeof docShell.hasMixedDisplayContentBlocked,
-      "boolean",
-      "docShell.hasMixedDisplayContentBlocked is available"
-    );
     is(
       typeof docShell.getHasTrackingContentBlocked,
       "function",

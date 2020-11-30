@@ -8,10 +8,8 @@ FINAL_TARGET = '_tests/xpcshell/toolkit/mozapps/update/tests/data'
 
 if not CONFIG['MOZ_SUITE']:
     BROWSER_CHROME_MANIFESTS += ['browser/browser.ini']
-    BROWSER_CHROME_MANIFESTS += ['browser/browser.legacy.ini']
     if CONFIG['MOZ_BITS_DOWNLOAD']:
         BROWSER_CHROME_MANIFESTS += ['browser/browser.bits.ini']
-        BROWSER_CHROME_MANIFESTS += ['browser/browser.legacy.bits.ini']
 
 XPCSHELL_TESTS_MANIFESTS += [
     'unit_aus_update/xpcshell.ini',
@@ -98,11 +96,12 @@ FINAL_TARGET_FILES += [
     'TestAUSReadStrings1.ini',
     'TestAUSReadStrings2.ini',
     'TestAUSReadStrings3.ini',
+    'TestAUSReadStrings4.ini',
 ]
 
 FINAL_TARGET_PP_FILES += [
     'data/xpcshellConstantsPP.js',
 ]
 
-with Files("browser/browser_telemetry_updatePing_ready.js"):
+with Files("browser/browser_telemetry_updatePing_*_ready.js"):
     BUG_COMPONENT = ("Toolkit", "Telemetry")

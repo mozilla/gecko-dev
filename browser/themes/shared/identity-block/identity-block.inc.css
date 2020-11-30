@@ -30,7 +30,7 @@
 #identity-box[pageproxystate="invalid"] > #permissions-granted-icon,
 #identity-box[pageproxystate="invalid"] > #blocked-permissions-container,
 #identity-box[pageproxystate="invalid"] > #notification-popup-box,
-#identity-box[pageproxystate="invalid"] > #identity-icon-labels,
+#identity-box[pageproxystate="invalid"] > #identity-icon-label,
 #identity-box[pageproxystate="invalid"] > #remote-control-icon {
   display: none;
 }
@@ -61,34 +61,19 @@
   -moz-outline-radius: var(--toolbarbutton-border-radius);
 }
 
-#identity-box[pageproxystate="valid"].verifiedIdentity > #identity-icon-labels {
-  color: #058B00;
-}
-
-:root[lwt-toolbar-field-brighttext] #identity-box[pageproxystate="valid"].verifiedIdentity > #identity-icon-labels {
-  color: #30e60b;
-}
-
-#identity-box[pageproxystate="valid"].chromeUI > #identity-icon-labels,
+#identity-box[pageproxystate="valid"].chromeUI > #identity-icon-label,
 .urlbar-label {
   opacity: .6;
 }
 
-#identity-icon-labels:-moz-locale-dir(ltr) {
-  padding-left: 4px;
-}
-#identity-icon-labels:-moz-locale-dir(rtl) {
-  padding-right: 4px;
+#identity-icon-label {
+  padding-inline-start: 4px;
 }
 #identity-box:not(.chromeUI):not(.extensionPage):not(.notSecureText) {
   --urlbar-separator-color: transparent;
 }
-#identity-box[pageproxystate="valid"].verifiedIdentity {
-  --urlbar-separator-color: rgba(18, 188, 0, .5);
-}
 
 #identity-box[pageproxystate="valid"].notSecureText,
-#identity-box[pageproxystate="valid"].verifiedIdentity,
 #identity-box[pageproxystate="valid"].chromeUI,
 #identity-box[pageproxystate="valid"].extensionPage,
 #urlbar-label-box {
@@ -99,7 +84,6 @@
 }
 
 #identity-box[pageproxystate="valid"].notSecureText,
-#identity-box[pageproxystate="valid"].verifiedIdentity,
 #identity-box[pageproxystate="valid"].chromeUI,
 #identity-box[pageproxystate="valid"].extensionPage {
   padding-inline-end: 8px;
@@ -108,6 +92,16 @@
 #urlbar-label-box {
   padding-inline: 4px;
   border-inline-start: 1px solid var(--urlbar-separator-color);
+}
+
+#urlbar[searchmode]:not([breakout-extend]) > #urlbar-input-container > #urlbar-label-box {
+  border-inline-start-color: transparent;
+  border-image-width: 0 1px 0 0;
+  pointer-events: none;
+}
+
+#urlbar[searchmode]:not([breakout-extend]) > #urlbar-input-container > #urlbar-label-box:-moz-locale-dir(rtl) {
+  border-image-width: 0 0 0 1px;
 }
 
 .urlbar-label {
@@ -133,11 +127,15 @@
 /* MAIN IDENTITY ICON */
 #identity-icon {
   margin-inline-start: 0;
-  list-style-image: url(chrome://browser/skin/identity-icon.svg);
+  list-style-image: url(chrome://global/skin/icons/identity-icon.svg);
 }
 
 #identity-box[pageproxystate="valid"].chromeUI > #identity-icon {
   list-style-image: url(chrome://branding/content/identity-icons-brand.svg);
+}
+
+#identity-box[pageproxystate="valid"].localResource > #identity-icon {
+  list-style-image: url(chrome://global/skin/icons/document.svg);
 }
 
 #urlbar:not(.searchButton) > #urlbar-input-container > #identity-box[pageproxystate="invalid"] > #identity-icon {
@@ -146,21 +144,19 @@
 }
 
 #urlbar[actiontype="extension"] > #urlbar-input-container > #identity-box > #identity-icon {
-  list-style-image: url(chrome://mozapps/skin/extensions/extensionGeneric-16.svg);
+  list-style-image: url(chrome://mozapps/skin/extensions/extension.svg);
 }
 
 #identity-box[pageproxystate="valid"].extensionPage > #identity-icon {
-  list-style-image: url(chrome://mozapps/skin/extensions/extensionGeneric-16.svg);
+  list-style-image: url(chrome://mozapps/skin/extensions/extension.svg);
 }
 
 #identity-box[pageproxystate="valid"].verifiedDomain > #identity-icon,
-#identity-box[pageproxystate="valid"].verifiedIdentity > #identity-icon,
 #identity-box[pageproxystate="valid"].mixedActiveBlocked > #identity-icon {
   list-style-image: url(chrome://browser/skin/connection-secure.svg);
 }
 
 #identity-box[pageproxystate="valid"].verifiedDomain > #identity-icon:not([lock-icon-gray]),
-#identity-box[pageproxystate="valid"].verifiedIdentity > #identity-icon:not([lock-icon-gray]),
 #identity-box[pageproxystate="valid"].mixedActiveBlocked > #identity-icon:not([lock-icon-gray]) {
   fill-opacity: 1;
   fill: #12BC00;
@@ -176,8 +172,8 @@
 }
 
 #identity-box[pageproxystate="valid"].notSecure > #identity-icon,
-#identity-box[pageproxystate="valid"].insecureLoginForms > #identity-icon,
-#identity-box[pageproxystate="valid"].mixedActiveContent > #identity-icon {
+#identity-box[pageproxystate="valid"].mixedActiveContent > #identity-icon,
+#identity-box[pageproxystate="valid"].httpsOnlyErrorPage > #identity-icon {
   list-style-image: url(chrome://browser/skin/connection-mixed-active-loaded.svg);
 }
 
@@ -212,12 +208,12 @@
 }
 
 #webrtc-sharing-icon[sharing]:not([paused]) {
-  animation: 1.5s ease in-use-blink infinite;
+  animation: 1.5s ease webrtc-sharing-icon-in-use-blink infinite;
   -moz-context-properties: fill;
   fill: rgb(224, 41, 29);
 }
 
-@keyframes in-use-blink {
+@keyframes webrtc-sharing-icon-in-use-blink {
   50% { opacity: 0; }
 }
 
@@ -242,14 +238,13 @@
   width: 16px;
   height: 16px;
 }
-#tracking-protection-icon-box:not([hasException])[active][animationsenabled] > #tracking-protection-icon,
-#tracking-protection-icon-box:not([animationsenabled])[active] > #tracking-protection-icon,
-#tracking-protection-icon-box:not([animationsenabled]):not([active]) > #tracking-protection-icon-animatable-box,
+
+#tracking-protection-icon-box:not([hasException])[active] > #tracking-protection-icon,
 #tracking-protection-icon-box:not([active]) > #tracking-protection-icon-animatable-box {
   display: none;
 }
 
-#tracking-protection-icon-box > #tracking-protection-icon-animatable-box {
+#tracking-protection-icon-animatable-box {
   display: block;
   position: absolute;
   overflow: hidden;
@@ -257,7 +252,7 @@
   height: 16px;
 }
 
-#tracking-protection-icon-box:not([hasException])[active] #tracking-protection-icon-animatable-image {
+#tracking-protection-icon-box:not([hasException])[active] > #tracking-protection-icon-animatable-box > #tracking-protection-icon-animatable-image {
   /* Overrides the default 'display: -moz-box' to prevent icon shifting issue
      with scaled text, see Bug 1591049 */
   display: block;
@@ -270,6 +265,10 @@
   -moz-context-properties: fill, fill-opacity;
 }
 
+#tracking-protection-icon-box:not([hasException])[active] > #tracking-protection-icon-animatable-box > #tracking-protection-icon-animatable-image:-moz-locale-dir(rtl) {
+  transform: translateX(0);
+}
+
 #tracking-protection-icon-box[hasException]:-moz-locale-dir(rtl)::before {
   left: 0;
   right: unset;
@@ -278,23 +277,21 @@
   z-index: 1;
 }
 
-:root[lwt-toolbar-field-brighttext] #tracking-protection-icon-box:not([hasException])[active] #tracking-protection-icon-animatable-image {
+:root[lwt-toolbar-field-brighttext] #tracking-protection-icon-box:not([hasException])[active] > #tracking-protection-icon-animatable-box > #tracking-protection-icon-animatable-image {
   background-image: url(chrome://browser/skin/tracking-protection-animation-brighttext.svg);
 }
 
-#tracking-protection-icon-box[active] #tracking-protection-icon-animatable-image:-moz-locale-dir(rtl) {
-  transform: scaleX(-1) translateX(-256px);
-}
+@media (prefers-reduced-motion: no-preference) {
+  #tracking-protection-icon-box[active][animate] > #tracking-protection-icon-animatable-box > #tracking-protection-icon-animatable-image {
+    animation-name: tp-icon-animation;
+    animation-timing-function: steps(16);
+    animation-duration: 1s;
+    animation-fill-mode: forwards;
+  }
 
-#tracking-protection-icon-box[animationsenabled][active][animate] #tracking-protection-icon-animatable-image {
-  animation-name: tp-icon-animation;
-  animation-timing-function: steps(16);
-  animation-duration: 1s;
-  animation-fill-mode: forwards;
-}
-
-#tracking-protection-icon-box[animationsenabled][active][animate] #tracking-protection-icon-animatable-image:-moz-locale-dir(rtl) {
-  animation-name: tp-icon-animation-rtl;
+  #tracking-protection-icon-box[active][animate] > #tracking-protection-icon-animatable-box > #tracking-protection-icon-animatable-image:-moz-locale-dir(rtl) {
+    animation-name: tp-icon-animation-rtl;
+  }
 }
 
 #tracking-protection-icon-tooltip {
@@ -307,10 +304,6 @@
 
 #urlbar-input-container[pageproxystate="valid"] > #tracking-protection-icon-container > #tracking-protection-icon-box[hasException] > #tracking-protection-icon {
   list-style-image: url(chrome://browser/skin/tracking-protection-disabled.svg);
-}
-
-#urlbar-input-container[pageproxystate="valid"] > #tracking-protection-icon-container > #tracking-protection-icon-box > #tracking-protection-icon:-moz-locale-dir(rtl) {
-  transform: scaleX(-1);
 }
 
 #urlbar-input-container[pageproxystate="invalid"] > #tracking-protection-icon-container {
@@ -328,10 +321,10 @@
 
 @keyframes tp-icon-animation-rtl {
   from {
-    transform: scaleX(-1) translateX(0);
+    transform: translateX(256px);
   }
   100% {
-    transform: scaleX(-1) translateX(-256px);
+    transform: translateX(0);
   }
 }
 

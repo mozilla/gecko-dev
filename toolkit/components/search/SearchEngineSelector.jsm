@@ -11,22 +11,20 @@ const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
-XPCOMUtils.defineLazyGlobalGetters(this, ["fetch"]);
-
 XPCOMUtils.defineLazyModuleGetters(this, {
+  RemoteSettings: "resource://services-settings/remote-settings.js",
   SearchUtils: "resource://gre/modules/SearchUtils.jsm",
   Services: "resource://gre/modules/Services.jsm",
 });
 
-const EXT_SEARCH_PREFIX = "resource://search-extensions/";
-const DEFAULT_CONFIG_URL = `${EXT_SEARCH_PREFIX}engines.json`;
-const ENGINE_CONFIG_PREF = "search.config.url";
-
 const USER_LOCALE = "$USER_LOCALE";
 
-function log(str) {
-  SearchUtils.log("SearchEngineSelector " + str + "\n");
-}
+XPCOMUtils.defineLazyGetter(this, "logConsole", () => {
+  return console.createInstance({
+    prefix: "SearchEngineSelector",
+    maxLogLevel: SearchUtils.loggingEnabled ? "Debug" : "Warn",
+  });
+});
 
 function getAppInfo(key) {
   let value = null;
@@ -85,53 +83,153 @@ function aboveMaxVersion(config, version) {
  */
 class SearchEngineSelector {
   /**
-   * @param {string} url - Location of the configuration.
+   * @param {function} listener
+   *   A listener for configuration update changes.
    */
-  async init(url = DEFAULT_CONFIG_URL) {
-    let configUrl = Services.prefs.getStringPref(ENGINE_CONFIG_PREF, url);
-    this.configuration = await this.getEngineConfiguration(configUrl);
+  constructor(listener) {
+    this.QueryInterface = ChromeUtils.generateQI(["nsIObserver"]);
+    this._remoteConfig = RemoteSettings(SearchUtils.SETTINGS_KEY);
+    this._listenerAdded = false;
+    this._onConfigurationUpdated = this._onConfigurationUpdated.bind(this);
+    this._changeListener = listener;
   }
 
   /**
-   * @param {string} url - Location of the configuration.
+   * Handles getting the configuration from remote settings.
    */
-  async getEngineConfiguration(url) {
-    const response = await fetch(url);
-    return (await response.json()).data;
+  async getEngineConfiguration() {
+    if (this._getConfigurationPromise) {
+      return this._getConfigurationPromise;
+    }
+
+    this._configuration = await (this._getConfigurationPromise = this._getConfiguration());
+    delete this._getConfigurationPromise;
+
+    if (!this._configuration?.length) {
+      throw Components.Exception(
+        "Failed to get engine data from Remote Settings",
+        Cr.NS_ERROR_UNEXPECTED
+      );
+    }
+
+    if (!this._listenerAdded) {
+      this._remoteConfig.on("sync", this._onConfigurationUpdated);
+      this._listenerAdded = true;
+    }
+
+    return this._configuration;
   }
 
   /**
-   * @param {string} locale - Users locale.
-   * @param {string} region - Users region.
-   * @param {string} channel - The update channel the application is running on.
-   * @param {string} distroID - The distribution ID of the application.
+   * Obtains the configuration from remote settings. This includes
+   * verifying the signature of the record within the database.
+   *
+   * If the signature in the database is invalid, the database will be wiped
+   * and the stored dump will be used, until the settings next update.
+   *
+   * Note that this may cause a network check of the certificate, but that
+   * should generally be quick.
+   *
+   * @param {boolean} [firstTime]
+   *   Internal boolean to indicate if this is the first time check or not.
+   * @returns {array}
+   *   An array of objects in the database, or an empty array if none
+   *   could be obtained.
+   */
+  async _getConfiguration(firstTime = true) {
+    let result = [];
+    let failed = false;
+    try {
+      result = await this._remoteConfig.get();
+    } catch (ex) {
+      logConsole.error(ex);
+      failed = true;
+    }
+    if (!result.length) {
+      logConsole.error("Received empty search configuration!");
+      failed = true;
+    }
+    // If we failed, or the result is empty, try loading from the local dump.
+    if (firstTime && failed) {
+      await this._remoteConfig.db.clear();
+      // Now call this again.
+      return this._getConfiguration(false);
+    }
+    return result;
+  }
+
+  /**
+   * Handles updating of the configuration. Note that the search service is
+   * only updated after a period where the user is observed to be idle.
+   */
+  _onConfigurationUpdated({ data: { current } }) {
+    this._configuration = current;
+    logConsole.debug("Search configuration updated remotely");
+    if (this._changeListener) {
+      this._changeListener();
+    }
+  }
+
+  /**
+   * @param {object} options
+   * @param {string} options.locale
+   *   Users locale.
+   * @param {string} options.region
+   *   Users region.
+   * @param {string} [options.channel]
+   *   The update channel the application is running on.
+   * @param {string} [options.distroID]
+   *   The distribution ID of the application.
+   * @param {string} [options.experiment]
+   *   Any associated experiment id.
    * @returns {object}
    *   An object with "engines" field, a sorted list of engines and
    *   optionally "privateDefault" which is an object containing the engine
    *   details for the engine which should be the default in Private Browsing mode.
    */
-  fetchEngineConfiguration(locale, region, channel, distroID) {
-    let cohort = Services.prefs.getCharPref("browser.search.cohort", null);
+  async fetchEngineConfiguration({
+    locale,
+    region,
+    channel = "default",
+    distroID,
+    experiment,
+  }) {
+    if (!this._configuration) {
+      await this.getEngineConfiguration();
+    }
     let name = getAppInfo("name");
     let version = getAppInfo("version");
-    log(
-      `fetchEngineConfiguration ${region}:${locale}:${channel}:${distroID}:${cohort}:${name}:${version}`
+    logConsole.debug(
+      `fetchEngineConfiguration ${locale}:${region}:${channel}:${distroID}:${experiment}:${name}:${version}`
     );
     let engines = [];
     const lcLocale = locale.toLowerCase();
     const lcRegion = region.toLowerCase();
-    for (let config of this.configuration) {
+    for (let config of this._configuration) {
       const appliesTo = config.appliesTo || [];
       const applies = appliesTo.filter(section => {
-        if ("cohort" in section && cohort != section.cohort) {
-          return false;
+        if ("experiment" in section) {
+          if (experiment != section.experiment) {
+            return false;
+          }
+          if (section.override) {
+            return true;
+          }
         }
+
+        const distroExcluded =
+          (distroID &&
+            sectionIncludes(section, "excludedDistributions", distroID)) ||
+          isDistroExcluded(section, "distributions", distroID);
+
+        if (distroID && !distroExcluded && section.override) {
+          return true;
+        }
+
         if (
           sectionExcludes(section, "channel", channel) ||
           sectionExcludes(section, "name", name) ||
-          (distroID &&
-            sectionIncludes(section, "excludedDistributions", distroID)) ||
-          isDistroExcluded(section, "distributions", distroID) ||
+          distroExcluded ||
           belowMinVersion(section, version) ||
           aboveMaxVersion(section, version)
         ) {
@@ -148,9 +246,13 @@ class SearchEngineSelector {
 
       let baseConfig = this._copyObject({}, config);
 
+      // Don't include any engines if every section is an override
+      // entry, these are only supposed to override otherwise
+      // included engine configurations.
+      let allOverrides = applies.every(e => "override" in e && e.override);
       // Loop through all the appliedTo sections that apply to
-      // this configuration
-      if (applies.length) {
+      // this configuration.
+      if (applies.length && !allOverrides) {
         for (let section of applies) {
           this._copyObject(baseConfig, section);
         }
@@ -175,8 +277,6 @@ class SearchEngineSelector {
         }
       }
     }
-
-    engines = this._filterEngines(engines);
 
     let defaultEngine;
     let privateEngine;
@@ -223,7 +323,7 @@ class SearchEngineSelector {
     }
 
     if (SearchUtils.loggingEnabled) {
-      log(
+      logConsole.debug(
         "fetchEngineConfiguration: " +
           result.engines.map(e => e.webExtension.id)
       );
@@ -258,35 +358,6 @@ class SearchEngineSelector {
       return Number.MAX_SAFE_INTEGER - 1;
     }
     return obj.orderHint || 0;
-  }
-
-  /**
-   * Filter any search engines that are preffed to be ignored,
-   * the pref is only allowed in partner distributions.
-   * @param {Array} engines - The list of engines to be filtered.
-   * @returns {Array} - The engine list with filtered removed.
-   */
-  _filterEngines(engines) {
-    let branch = Services.prefs.getDefaultBranch(
-      SearchUtils.BROWSER_SEARCH_PREF
-    );
-    if (
-      SearchUtils.isPartnerBuild() &&
-      branch.getPrefType("ignoredJAREngines") == branch.PREF_STRING
-    ) {
-      let ignoredJAREngines = branch
-        .getCharPref("ignoredJAREngines")
-        .split(",");
-      let filteredEngines = engines.filter(engine => {
-        let name = engine.webExtension.id.split("@")[0];
-        return !ignoredJAREngines.includes(name);
-      });
-      // Don't allow all engines to be hidden
-      if (filteredEngines.length) {
-        engines = filteredEngines;
-      }
-    }
-    return engines;
   }
 
   /**

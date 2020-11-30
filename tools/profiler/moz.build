@@ -13,7 +13,6 @@ if CONFIG['MOZ_GECKO_PROFILER']:
     EXPORTS += [
         'public/ChildProfilerController.h',
         'public/GeckoProfilerReporter.h',
-        'public/ProfileJSONWriter.h',
         'public/ProfilerChild.h',
         'public/ProfilerCodeAddressService.h',
         'public/ProfilerMarkerPayload.h',
@@ -26,7 +25,6 @@ if CONFIG['MOZ_GECKO_PROFILER']:
         'core/ProfileBuffer.cpp',
         'core/ProfileBufferEntry.cpp',
         'core/ProfiledThreadData.cpp',
-        'core/ProfileJSONWriter.cpp',
         'core/ProfilerBacktrace.cpp',
         'core/ProfilerCodeAddressService.cpp',
         'core/ProfilerMarkerPayload.cpp',
@@ -59,7 +57,7 @@ if CONFIG['MOZ_GECKO_PROFILER']:
             'gecko/nsProfiler.cpp',
         ]
 
-    if CONFIG['OS_TARGET'] in ('Android', 'Linux'):
+    if CONFIG['OS_TARGET'] in ('Android', 'Linux', 'FreeBSD'):
         if CONFIG['CPU_ARCH'] in ('arm', 'aarch64', 'x86', 'x86_64', 'mips64'):
             UNIFIED_SOURCES += [
                 'lul/AutoObjectMapper.cpp',
@@ -81,7 +79,9 @@ if CONFIG['MOZ_GECKO_PROFILER']:
                 '/toolkit/crashreporter/google-breakpad/src/common/linux/linux_libc_support.cc',
                 '/toolkit/crashreporter/google-breakpad/src/common/linux/memory_mapped_file.cc',
             ]
-        if CONFIG['CPU_ARCH'] == 'arm':
+            if not CONFIG['HAVE_GETCONTEXT']:
+                SOURCES += ['/toolkit/crashreporter/google-breakpad/src/common/linux/breakpad_getcontext.S']
+        if CONFIG['CPU_ARCH'] == 'arm' and CONFIG['OS_TARGET'] != 'FreeBSD':
             SOURCES += [
                 'core/EHABIStackWalk.cpp',
             ]
@@ -113,11 +113,7 @@ if CONFIG['MOZ_GECKO_PROFILER']:
         LOCAL_INCLUDES += [
             # We need access to Breakpad's getcontext(3) which is suitable for Android
             '/toolkit/crashreporter/google-breakpad/src/common/android/include',
-            'lul',
         ]
-
-    if not CONFIG['MOZ_CRASHREPORTER'] and CONFIG['OS_TARGET'] == 'Android':
-        SOURCES += ['/toolkit/crashreporter/google-breakpad/src/common/android/breakpad_getcontext.S']
 
     if CONFIG['ENABLE_TESTS']:
         DIRS += ['tests/gtest']
@@ -139,9 +135,14 @@ EXPORTS += [
 ]
 
 EXPORTS.mozilla += [
-    'public/BlocksRingBufferGeckoExtensions.h',
+    'public/ProfileBufferEntrySerializationGeckoExtensions.h',
+    'public/ProfileJSONWriter.h',
     # vm/GeckoProfiler.h needs to include this and doesn't like #include "ProfilerCounts.h"
     'public/ProfilerCounts.h',
+    'public/ProfilerMarkers.h',
+    'public/ProfilerMarkersDetail.h',
+    'public/ProfilerMarkersPrerequisites.h',
+    'public/ProfilerMarkerTypes.h',
 ]
 
 if CONFIG['MOZ_VTUNE']:

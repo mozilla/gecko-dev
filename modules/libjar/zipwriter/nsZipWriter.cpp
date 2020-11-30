@@ -289,7 +289,9 @@ NS_IMETHODIMP nsZipWriter::AddEntryDirectory(const nsACString& aZipEntry,
     item.mZipEntry = aZipEntry;
     item.mModTime = aModTime;
     item.mPermissions = PERMISSIONS_DIR;
-    if (!mQueue.AppendElement(item)) return NS_ERROR_OUT_OF_MEMORY;
+    // XXX(Bug 1631371) Check if this should use a fallible operation as it
+    // pretended earlier.
+    mQueue.AppendElement(item);
     return NS_OK;
   }
 
@@ -311,7 +313,9 @@ NS_IMETHODIMP nsZipWriter::AddEntryFile(const nsACString& aZipEntry,
     item.mCompression = aCompression;
     rv = aFile->Clone(getter_AddRefs(item.mFile));
     NS_ENSURE_SUCCESS(rv, rv);
-    if (!mQueue.AppendElement(item)) return NS_ERROR_OUT_OF_MEMORY;
+    // XXX(Bug 1631371) Check if this should use a fallible operation as it
+    // pretended earlier.
+    mQueue.AppendElement(item);
     return NS_OK;
   }
 
@@ -365,7 +369,9 @@ NS_IMETHODIMP nsZipWriter::AddEntryChannel(const nsACString& aZipEntry,
     item.mCompression = aCompression;
     item.mPermissions = PERMISSIONS_FILE;
     item.mChannel = aChannel;
-    if (!mQueue.AppendElement(item)) return NS_ERROR_OUT_OF_MEMORY;
+    // XXX(Bug 1631371) Check if this should use a fallible operation as it
+    // pretended earlier.
+    mQueue.AppendElement(item);
     return NS_OK;
   }
 
@@ -408,7 +414,9 @@ nsresult nsZipWriter::AddEntryStream(const nsACString& aZipEntry,
     item.mCompression = aCompression;
     item.mPermissions = aPermissions;
     item.mStream = aStream;
-    if (!mQueue.AppendElement(item)) return NS_ERROR_OUT_OF_MEMORY;
+    // XXX(Bug 1631371) Check if this should use a fallible operation as it
+    // pretended earlier.
+    mQueue.AppendElement(item);
     return NS_OK;
   }
 
@@ -454,7 +462,9 @@ NS_IMETHODIMP nsZipWriter::RemoveEntry(const nsACString& aZipEntry,
     nsZipQueueItem item;
     item.mOperation = OPERATION_REMOVE;
     item.mZipEntry = aZipEntry;
-    if (!mQueue.AppendElement(item)) return NS_ERROR_OUT_OF_MEMORY;
+    // XXX(Bug 1631371) Check if this should use a fallible operation as it
+    // pretended earlier.
+    mQueue.AppendElement(item);
     return NS_OK;
   }
 
@@ -782,7 +792,7 @@ nsresult nsZipWriter::InternalAddEntryDirectory(const nsACString& aZipEntry,
   nsresult rv = NS_OK;
   if (aZipEntry.Last() != '/') {
     nsCString dirPath;
-    dirPath.Assign(aZipEntry + NS_LITERAL_CSTRING("/"));
+    dirPath.Assign(aZipEntry + "/"_ns);
     rv = header->Init(dirPath, aModTime, zipAttributes, mCDSOffset);
   } else {
     rv = header->Init(aZipEntry, aModTime, zipAttributes, mCDSOffset);
@@ -922,7 +932,7 @@ inline nsresult nsZipWriter::BeginProcessingAddition(nsZipQueueItem* aItem,
                                  true);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      rv = pump->AsyncRead(stream, nullptr);
+      rv = pump->AsyncRead(stream);
       NS_ENSURE_SUCCESS(rv, rv);
     } else {
       rv = NS_MaybeOpenChannelUsingAsyncOpen(aItem->mChannel, stream);
@@ -978,7 +988,7 @@ inline nsresult nsZipWriter::BeginProcessingRemoval(int32_t aPos) {
   mHeaders.RemoveObjectAt(aPos);
   mCDSDirty = true;
 
-  rv = pump->AsyncRead(listener, nullptr);
+  rv = pump->AsyncRead(listener);
   if (NS_FAILED(rv)) {
     inputStream->Close();
     Cleanup();

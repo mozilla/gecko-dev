@@ -30,12 +30,13 @@ class RemoteSandboxBroker : public AbstractSandboxBroker {
   bool LaunchApp(const wchar_t* aPath, const wchar_t* aArguments,
                  base::EnvironmentMap& aEnvironment,
                  GeckoProcessType aProcessType, const bool aEnableLogging,
-                 void** aProcessHandle) override;
+                 const IMAGE_THUNK_DATA*, void** aProcessHandle) override;
 
   // Security levels for different types of processes
   void SetSecurityLevelForContentProcess(int32_t aSandboxLevel,
                                          bool aIsFileProcess) override;
-  void SetSecurityLevelForGPUProcess(int32_t aSandboxLevel) override;
+  void SetSecurityLevelForGPUProcess(
+      int32_t aSandboxLevel, const nsCOMPtr<nsIFile>& aProfileDir) override;
   bool SetSecurityLevelForRDDProcess() override;
   bool SetSecurityLevelForSocketProcess() override;
   bool SetSecurityLevelForPluginProcess(int32_t aSandboxLevel) override;
@@ -55,7 +56,7 @@ class RemoteSandboxBroker : public AbstractSandboxBroker {
   // We bind the RemoteSandboxBrokerParent to the IPC launch thread.
   // As such, we must close its channel on the same thread. So we save
   // a reference to the IPC launch thread here.
-  nsCOMPtr<nsIEventTarget> mIPCLaunchThread;
+  nsCOMPtr<nsISerialEventTarget> mIPCLaunchThread;
 
   // True if we've been shutdown.
   bool mShutdown = false;

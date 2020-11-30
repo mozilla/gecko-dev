@@ -13,7 +13,7 @@ add_task(async function() {
     set: [["devtools.netmonitor.features.webSockets", true]],
   });
 
-  const { monitor } = await initNetMonitor(SIMPLE_URL);
+  const { monitor } = await initNetMonitor(SIMPLE_URL, { requestCount: 1 });
 
   info("Starting test... ");
 
@@ -25,7 +25,7 @@ add_task(async function() {
   // Make the WS Messages side panel the default so, we avoid
   // request headers from the backend by selecting the Headers
   // panel
-  store.dispatch(Actions.selectDetailsPanelTab("messages"));
+  store.dispatch(Actions.selectDetailsPanelTab("response"));
 
   // Load page that opens WS connection during the load time.
   const waitForEvents = waitForNetworkEvents(monitor, 3);
@@ -52,13 +52,13 @@ add_task(async function() {
   // Wait for two frames to be displayed in the panel
   await waitForDOMIfNeeded(
     document,
-    "#messages-panel .ws-frames-list-table .ws-frame-list-item",
-    4
+    "#messages-view .message-list-table .message-list-item",
+    2
   );
 
   // Check the payload of the first frame.
   const firstFramePayload = document.querySelector(
-    "#messages-panel .ws-frames-list-table .ws-frame-list-item .ws-frames-list-payload"
+    "#messages-view .message-list-table .message-list-item .message-list-payload"
   );
   is(firstFramePayload.textContent.trim(), "readyState:loading");
 

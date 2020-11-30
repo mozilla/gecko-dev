@@ -56,19 +56,23 @@ graph_config_schema = Schema({
         }},
     },
     Required('merge-automation'): {
-        Required('flavors'): {text_type: {
-            Required('from-branch'): text_type,
+        Required('behaviors'): {text_type: {
+            Optional('from-branch'): text_type,
             Required('to-branch'): text_type,
-            Required('from-repo'): text_type,
+            Optional('from-repo'): text_type,
             Required('to-repo'): text_type,
-            Required('version-files'): [text_type],
-            Required('version-files-suffix'): [text_type],
-            Required('version-suffix'): text_type,
-            Required('copy-files'): [[text_type]],
+            Required('version-files'): [
+                {
+                    Required('filename'): text_type,
+                    Optional('new-suffix'): text_type,
+                    Optional('version-bump'): Any('major', 'minor'),
+                }
+            ],
             Required('replacements'): [[text_type]],
             Required('merge-old-head'): bool,
-            Required('base-tag'): text_type,
+            Optional('base-tag'): text_type,
             Optional('end-tag'): text_type,
+            Optional('fetch-version-from'): text_type,
         }},
     },
     Required('scriptworker'): {
@@ -86,6 +90,9 @@ graph_config_schema = Schema({
     )),
     Required('partner-urls'): {
         Required('release-partner-repack'):
+            optionally_keyed_by('release-product', 'release-level', 'release-type',
+                                Any(text_type, None)),
+        Optional('release-partner-attribution'):
             optionally_keyed_by('release-product', 'release-level', 'release-type',
                                 Any(text_type, None)),
         Required('release-eme-free-repack'):
@@ -135,10 +142,16 @@ class GraphConfig(object):
         Add the project's taskgraph directory to the python path, and register
         any extensions present.
         """
+        modify_path = os.path.dirname(self.root_dir)
         if GraphConfig._PATH_MODIFIED:
+            if GraphConfig._PATH_MODIFIED == modify_path:
+                # Already modified path with the same root_dir.
+                # We currently need to do this to enable actions to call
+                # taskgraph_decision, e.g. relpro.
+                return
             raise Exception("Can't register multiple directories on python path.")
-        GraphConfig._PATH_MODIFIED = True
-        sys.path.insert(0, os.path.dirname(self.root_dir))
+        GraphConfig._PATH_MODIFIED = modify_path
+        sys.path.insert(0, modify_path)
         register_path = self['taskgraph'].get('register')
         if register_path:
             find_object(register_path)(self)
@@ -167,6 +180,6 @@ def load_graph_config(root_dir):
 
     logger.debug("loading config from `{}`".format(config_yml))
     config = load_yaml(config_yml)
-
+    logger.debug("validating the graph config.")
     validate_graph_config(config)
     return GraphConfig(config=config, root_dir=root_dir)

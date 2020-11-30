@@ -4,17 +4,20 @@
 ---
 job-defaults:
     description: "cbindgen toolchain build"
+    attributes:
+        local-toolchain: true
     worker-type: b-linux
     worker:
         max-run-time: 3600
     run:
         script: build-cbindgen.sh
         toolchain-artifact: public/build/cbindgen.tar.xz
+    run-on-projects: [trunk]
     fetches:
         fetch:
             # If you update this, make sure to update the minimum version in
             # build/moz.configure/bindgen.configure as well.
-            - cbindgen-0.13.1
+            - cbindgen-0.15.0
 
 linux64-cbindgen:
     treeherder:
@@ -32,10 +35,7 @@ macosx64-cbindgen:
         symbol: TM(cbindgen)
     worker:
         env:
-            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/macosx64/cross-clang.manifest"
-    run-on-projects:
-        - trunk
-        - try
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/macosx64/cross-releng.manifest"
     run:
         arguments: ['x86_64-apple-darwin']
         resources:
@@ -43,7 +43,7 @@ macosx64-cbindgen:
         tooltool-downloads: internal
     fetches:
         toolchain:
-            - linux64-cctools-port
+            - linux64-cctools-port-clang-9
             - linux64-clang-9
             - linux64-llvm-dsymutil
             - linux64-rust-macos-1.41

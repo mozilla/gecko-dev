@@ -54,7 +54,7 @@ RefPtr<GenericPromise> KeyValueStorage::Init() {
   }
   MOZ_ASSERT(profileDir);
 
-  rv = profileDir->AppendNative(NS_LITERAL_CSTRING("mediacapabilities"));
+  rv = profileDir->AppendNative("mediacapabilities"_ns);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return GenericPromise::CreateAndReject(rv, __func__);
   }
@@ -134,7 +134,7 @@ RefPtr<GenericPromise> KeyValueStorage::Put(const nsACString& aName,
     RefPtr<KeyValueStorage> self = this;
     const nsCString key(aKey);
     return Init()->Then(
-        GetCurrentThreadSerialEventTarget(), __func__,
+        GetCurrentSerialEventTarget(), __func__,
         [self, key, aValue](bool) { return self->Put(key, aValue); },
         [](nsresult rv) {
           return GenericPromise::CreateAndReject(rv, __func__);
@@ -196,7 +196,7 @@ RefPtr<KeyValueStorage::GetPromise> KeyValueStorage::Get(
     RefPtr<KeyValueStorage> self = this;
     const nsCString key(aKey);
     return Init()->Then(
-        GetCurrentThreadSerialEventTarget(), __func__,
+        GetCurrentSerialEventTarget(), __func__,
         [self, key](bool) { return self->Get(key); },
         [](nsresult rv) {
           return KeyValueStorage::GetPromise::CreateAndReject(rv, __func__);
@@ -223,7 +223,7 @@ RefPtr<GenericPromise> KeyValueStorage::Clear(const nsACString& aName) {
     mDatabaseName = aName;
     RefPtr<KeyValueStorage> self = this;
     return Init()->Then(
-        GetCurrentThreadSerialEventTarget(), __func__,
+        GetCurrentSerialEventTarget(), __func__,
         [self](bool) { return self->Clear(); },
         [](nsresult rv) {
           return GenericPromise::CreateAndReject(rv, __func__);

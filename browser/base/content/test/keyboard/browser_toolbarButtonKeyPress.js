@@ -62,9 +62,9 @@ add_task(async function testAppMenuButtonWrongKey() {
 add_task(async function testLibraryButtonPress() {
   let button = document.getElementById("library-button");
   forceFocus(button);
+  EventUtils.synthesizeKey(" ");
   let view = document.getElementById("appMenu-libraryView");
   let focused = BrowserTestUtils.waitForEvent(view, "focus", true);
-  EventUtils.synthesizeKey(" ");
   await focused;
   ok(true, "Focus inside Library menu after toolbar button pressed");
   let hidden = BrowserTestUtils.waitForEvent(document, "popuphidden", true);
@@ -82,9 +82,9 @@ add_task(async function testDeveloperButtonPress() {
   );
   let button = document.getElementById("developer-button");
   forceFocus(button);
+  EventUtils.synthesizeKey(" ");
   let view = document.getElementById("PanelUI-developer");
   let focused = BrowserTestUtils.waitForEvent(view, "focus", true);
-  EventUtils.synthesizeKey(" ");
   await focused;
   ok(true, "Focus inside Developer menu after toolbar button pressed");
   let hidden = BrowserTestUtils.waitForEvent(document, "popuphidden", true);
@@ -115,9 +115,9 @@ add_task(async function testPageActionsButtonPress() {
   await BrowserTestUtils.withNewTab("https://example.com", async function() {
     let button = document.getElementById("pageActionButton");
     forceFocus(button);
+    EventUtils.synthesizeKey(" ");
     let view = document.getElementById("pageActionPanelMainView");
     let focused = BrowserTestUtils.waitForEvent(view, "focus", true);
-    EventUtils.synthesizeKey(" ");
     await focused;
     ok(true, "Focus inside Page Actions menu after toolbar button pressed");
     let hidden = BrowserTestUtils.waitForEvent(document, "popuphidden", true);
@@ -227,6 +227,7 @@ add_task(async function testBookmarkButtonPress() {
   ) {
     let button = document.getElementById("star-button");
     forceFocus(button);
+    StarUI._createPanelIfNeeded();
     let panel = document.getElementById("editBookmarkPanel");
     let focused = BrowserTestUtils.waitForEvent(panel, "focus", true);
     // The button ignores activation while the bookmarked status is being

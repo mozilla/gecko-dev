@@ -6,7 +6,6 @@ toolkit.jar:
 % content mozapps %content/mozapps/
 #ifndef MOZ_FENNEC
   content/mozapps/extensions/extensions.xhtml                   (content/extensions.xhtml)
-  content/mozapps/extensions/extensions.css                     (content/extensions.css)
   content/mozapps/extensions/extensions.js                      (content/extensions.js)
   content/mozapps/extensions/blocklist.xhtml                    (content/blocklist.xhtml)
   content/mozapps/extensions/blocklist.js                       (content/blocklist.js)
@@ -19,12 +18,13 @@ toolkit.jar:
   content/mozapps/extensions/aboutaddons.css                    (content/aboutaddons.css)
   content/mozapps/extensions/abuse-reports.js                   (content/abuse-reports.js)
   content/mozapps/extensions/abuse-report-frame.html            (content/abuse-report-frame.html)
-  content/mozapps/extensions/abuse-report-frame.js              (content/abuse-report-frame.js)
   content/mozapps/extensions/abuse-report-panel.css             (content/abuse-report-panel.css)
   content/mozapps/extensions/abuse-report-panel.js              (content/abuse-report-panel.js)
   content/mozapps/extensions/default-theme.svg                  (content/default-theme.svg)
+  content/mozapps/extensions/drag-drop-addon-installer.js       (content/drag-drop-addon-installer.js)
   content/mozapps/extensions/firefox-compact-dark.svg           (content/firefox-compact-dark.svg)
   content/mozapps/extensions/firefox-compact-light.svg          (content/firefox-compact-light.svg)
+  content/mozapps/extensions/firefox-alpenglow.svg              (content/firefox-alpenglow.svg)
   content/mozapps/extensions/message-bar.css                    (content/message-bar.css)
   content/mozapps/extensions/message-bar.js                     (content/message-bar.js)
   content/mozapps/extensions/named-deck.js                      (content/named-deck.js)
@@ -33,5 +33,8 @@ toolkit.jar:
   content/mozapps/extensions/rating-star.css                    (content/rating-star.css)
   content/mozapps/extensions/shortcuts.css                      (content/shortcuts.css)
   content/mozapps/extensions/shortcuts.js                       (content/shortcuts.js)
-  content/mozapps/extensions/toggle-button.css                  (content/toggle-button.css)
+
+% resource default-theme %content/mozapps/extensions/default-theme/
+  content/mozapps/extensions/default-theme/icon.svg             (default-theme/icon.svg)
+  content/mozapps/extensions/default-theme/manifest.json        (default-theme/manifest.json)
 #endif

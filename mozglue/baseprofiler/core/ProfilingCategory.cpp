@@ -4,14 +4,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "BaseProfilingCategory.h"
+
+#include "mozilla/ArrayUtils.h"
+#include "mozilla/Assertions.h"
+
 #include "BaseProfiler.h"
-
-#ifdef MOZ_BASE_PROFILER
-
-#  include "BaseProfilingCategory.h"
-
-#  include "mozilla/ArrayUtils.h"
-#  include "mozilla/Assertions.h"
 
 namespace mozilla {
 namespace baseprofiler {
@@ -28,9 +26,9 @@ namespace baseprofiler {
     name,
 #define SUBCATEGORY_ENUMS_END_CATEGORY \
   };
-BASE_PROFILING_CATEGORY_LIST(SUBCATEGORY_ENUMS_BEGIN_CATEGORY,
-                             SUBCATEGORY_ENUMS_SUBCATEGORY,
-                             SUBCATEGORY_ENUMS_END_CATEGORY)
+MOZ_PROFILING_CATEGORY_LIST(SUBCATEGORY_ENUMS_BEGIN_CATEGORY,
+                            SUBCATEGORY_ENUMS_SUBCATEGORY,
+                            SUBCATEGORY_ENUMS_END_CATEGORY)
 #undef SUBCATEGORY_ENUMS_BEGIN_CATEGORY
 #undef SUBCATEGORY_ENUMS_SUBCATEGORY
 #undef SUBCATEGORY_ENUMS_END_CATEGORY
@@ -45,9 +43,9 @@ BASE_PROFILING_CATEGORY_LIST(SUBCATEGORY_ENUMS_BEGIN_CATEGORY,
    uint32_t(ProfilingSubcategory_##category::name), labelAsString},
 #define CATEGORY_INFO_END_CATEGORY
 const ProfilingCategoryPairInfo sProfilingCategoryPairInfo[] = {
-  BASE_PROFILING_CATEGORY_LIST(CATEGORY_INFO_BEGIN_CATEGORY,
-                               CATEGORY_INFO_SUBCATEGORY,
-                               CATEGORY_INFO_END_CATEGORY)
+  MOZ_PROFILING_CATEGORY_LIST(CATEGORY_INFO_BEGIN_CATEGORY,
+                              CATEGORY_INFO_SUBCATEGORY,
+                              CATEGORY_INFO_END_CATEGORY)
 };
 #undef CATEGORY_INFO_BEGIN_CATEGORY
 #undef CATEGORY_INFO_SUBCATEGORY
@@ -71,5 +69,3 @@ const ProfilingCategoryPairInfo& GetProfilingCategoryPairInfo(
 
 }  // namespace baseprofiler
 }  // namespace mozilla
-
-#endif  // MOZ_BASE_PROFILER

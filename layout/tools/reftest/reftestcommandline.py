@@ -2,10 +2,12 @@ from __future__ import absolute_import, print_function
 
 import argparse
 import os
+import sys
 from collections import OrderedDict
-from urlparse import urlparse
 import mozinfo
 import mozlog
+
+from six.moves.urllib.parse import urlparse
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -198,6 +200,12 @@ class ReftestArgumentsParser(argparse.ArgumentParser):
                           dest="e10s",
                           help="disables content processes")
 
+        self.add_argument("--enable-fission",
+                          action="store_true",
+                          default=False,
+                          dest="fission",
+                          help="Run tests with fission (site isolation) enabled.")
+
         self.add_argument("--setpref",
                           action="append",
                           type=str,
@@ -321,6 +329,9 @@ class ReftestArgumentsParser(argparse.ArgumentParser):
             if not 1 <= options.thisChunk <= options.totalChunks:
                 self.error("thisChunk must be between 1 and totalChunks")
 
+        if options.fission and not options.e10s:
+            self.error("Fission is not supported without e10s.")
+
         if options.logFile:
             options.logFile = reftest.getFullPath(options.logFile)
 
@@ -408,10 +419,17 @@ class DesktopArgumentsParser(ReftestArgumentsParser):
             self.error("No test files specified.")
 
         if options.app is None:
-            bin_dir = (self.build_obj.get_binary_path() if
-                       self.build_obj and self.build_obj.substs[
-                           'MOZ_BUILD_APP'] != 'mobile/android'
-                       else None)
+            if self.build_obj and self.build_obj.substs[
+                    'MOZ_BUILD_APP'] != 'mobile/android':
+                from mozbuild.base import BinaryNotFoundException
+
+                try:
+                    bin_dir = self.build_obj.get_binary_path()
+                except BinaryNotFoundException as e:
+                    print('{}\n\n{}\n'.format(e, e.help()), file=sys.stderr)
+                    sys.exit(1)
+            else:
+                bin_dir = None
 
             if bin_dir:
                 options.app = bin_dir
@@ -471,7 +489,7 @@ class RemoteArgumentsParser(ReftestArgumentsParser):
                           type=str,
                           dest="remoteTestRoot",
                           help="Remote directory to use as test root "
-                               "(eg. /mnt/sdcard/tests or /data/local/tests).")
+                               "(eg. /data/local/tmp/test_root).")
 
         self.add_argument("--httpd-path",
                           action="store",
@@ -490,7 +508,10 @@ class RemoteArgumentsParser(ReftestArgumentsParser):
                           default=False,
                           help="Skip the installation of the APK.")
 
-    def validate_remote(self, options, automation):
+    def validate_remote(self, options):
+        DEFAULT_HTTP_PORT = 8888
+        DEFAULT_SSL_PORT = 4443
+
         if options.remoteWebServer is None:
             options.remoteWebServer = self.get_ip()
 
@@ -500,10 +521,10 @@ class RemoteArgumentsParser(ReftestArgumentsParser):
                        "Please provide the local ip in --remote-webserver")
 
         if not options.httpPort:
-            options.httpPort = automation.DEFAULT_HTTP_PORT
+            options.httpPort = DEFAULT_HTTP_PORT
 
         if not options.sslPort:
-            options.sslPort = automation.DEFAULT_SSL_PORT
+            options.sslPort = DEFAULT_SSL_PORT
 
         if options.xrePath is None:
             self.error(

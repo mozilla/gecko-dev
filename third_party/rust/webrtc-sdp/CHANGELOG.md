@@ -1,5 +1,17 @@
 # Changelog
-
+## [0.3.6] - 2020-05-07
+- Added support for Opus FMTP parameters ptime, maxptime, minptime, and maxaveragebitrate
+## [0.3.5] - 2020-04-07
+### Fixed
+- RTX apt can now be zero
+## [0.3.4] - 2020-03-31
+### Fixed
+- Fixed new clippy warnings in stable
+- Accept a lack of c= lines if there are no m= lines (for JSEP compat.)
+### Changed
+- Added support for ssrc-group
+- Added support for RTX FMTP parameters
+- Example runner can no be told to expect failure
 ## [0.3.3] - 2019-12-10
 ### Changed
 - Changed handling of default channel counts

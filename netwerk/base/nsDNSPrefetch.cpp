@@ -10,6 +10,7 @@
 
 #include "nsIDNSListener.h"
 #include "nsIDNSService.h"
+#include "nsIDNSByTypeRecord.h"
 #include "nsICancelable.h"
 #include "nsIURI.h"
 #include "mozilla/Atomics.h"
@@ -71,12 +72,13 @@ nsresult nsDNSPrefetch::Prefetch(uint32_t flags) {
   // then our timing will be useless. However, in such a case,
   // mEndTimestamp will be a null timestamp and callers should check
   // TimingsValid() before using the timing.
-  nsCOMPtr<nsIEventTarget> target = mozilla::GetCurrentThreadEventTarget();
+  nsCOMPtr<nsIEventTarget> target = mozilla::GetCurrentEventTarget();
 
   flags |= nsIDNSService::GetFlagsFromTRRMode(mTRRMode);
 
   nsresult rv = sDNSService->AsyncResolveNative(
-      mHostname, flags | nsIDNSService::RESOLVE_SPECULATE, this, target,
+      mHostname, nsIDNSService::RESOLVE_TYPE_DEFAULT,
+      flags | nsIDNSService::RESOLVE_SPECULATE, nullptr, this, target,
       mOriginAttributes, getter_AddRefs(tmpOutstanding));
   if (NS_FAILED(rv)) {
     return rv;
@@ -87,10 +89,10 @@ nsresult nsDNSPrefetch::Prefetch(uint32_t flags) {
     nsAutoCString esniHost;
     esniHost.Append("_esni.");
     esniHost.Append(mHostname);
-    sDNSService->AsyncResolveByTypeNative(
-        esniHost, nsIDNSService::RESOLVE_TYPE_TXT,
-        flags | nsIDNSService::RESOLVE_SPECULATE, this, target,
-        mOriginAttributes, getter_AddRefs(tmpOutstanding));
+    sDNSService->AsyncResolveNative(esniHost, nsIDNSService::RESOLVE_TYPE_TXT,
+                                    flags | nsIDNSService::RESOLVE_SPECULATE,
+                                    nullptr, this, target, mOriginAttributes,
+                                    getter_AddRefs(tmpOutstanding));
   }
   return NS_OK;
 }
@@ -109,39 +111,38 @@ nsresult nsDNSPrefetch::PrefetchHigh(bool refreshDNS) {
   return Prefetch(refreshDNS ? nsIDNSService::RESOLVE_BYPASS_CACHE : 0);
 }
 
+nsresult nsDNSPrefetch::FetchHTTPSSVC(bool aRefreshDNS) {
+  if (!sDNSService) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  nsCOMPtr<nsIEventTarget> target = mozilla::GetCurrentEventTarget();
+  uint32_t flags = nsIDNSService::GetFlagsFromTRRMode(mTRRMode) |
+                   nsIDNSService::RESOLVE_SPECULATE;
+  if (aRefreshDNS) {
+    flags |= nsIDNSService::RESOLVE_BYPASS_CACHE;
+  }
+
+  nsCOMPtr<nsICancelable> tmpOutstanding;
+  return sDNSService->AsyncResolveNative(
+      mHostname, nsIDNSService::RESOLVE_TYPE_HTTPSSVC, flags, nullptr, this,
+      target, mOriginAttributes, getter_AddRefs(tmpOutstanding));
+}
+
 NS_IMPL_ISUPPORTS(nsDNSPrefetch, nsIDNSListener)
 
 NS_IMETHODIMP
 nsDNSPrefetch::OnLookupComplete(nsICancelable* request, nsIDNSRecord* rec,
                                 nsresult status) {
-  if (mStoreTiming) {
+  nsCOMPtr<nsIDNSHTTPSSVCRecord> httpsRecord = do_QueryInterface(rec);
+
+  if (mStoreTiming && !httpsRecord) {
     mEndTimestamp = mozilla::TimeStamp::Now();
   }
   nsCOMPtr<nsIDNSListener> listener = do_QueryReferent(mListener);
   if (listener) {
     listener->OnLookupComplete(request, rec, status);
   }
-  // OnLookupComplete should be called on the target thread, so we release
-  // mListener here to make sure mListener is also released on the target
-  // thread.
-  mListener = nullptr;
-  return NS_OK;
-}
 
-NS_IMETHODIMP
-nsDNSPrefetch::OnLookupByTypeComplete(nsICancelable* request,
-                                      nsIDNSByTypeRecord* res,
-                                      nsresult status) {
-  if (mStoreTiming) {
-    mEndTimestamp = mozilla::TimeStamp::Now();
-  }
-  nsCOMPtr<nsIDNSListener> listener = do_QueryReferent(mListener);
-  if (listener) {
-    listener->OnLookupByTypeComplete(request, res, status);
-  }
-  // OnLookupByTypeComplete should be called on the target thread, so we release
-  // mListener here to make sure mListener is also released on the target
-  // thread.
-  mListener = nullptr;
   return NS_OK;
 }

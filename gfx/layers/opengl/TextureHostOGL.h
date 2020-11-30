@@ -33,8 +33,8 @@
 #include "nsRegionFwd.h"      // for nsIntRegion
 
 #ifdef MOZ_WIDGET_ANDROID
-#  include "GeneratedJNIWrappers.h"
 #  include "AndroidSurfaceTexture.h"
+#  include "mozilla/java/GeckoSurfaceTextureWrappers.h"
 #endif
 
 namespace mozilla {
@@ -46,6 +46,8 @@ namespace layers {
 
 class Compositor;
 class CompositorOGL;
+class AndroidHardwareBuffer;
+class SurfaceDescriptorAndroidHardwareBuffer;
 class TextureImageTextureSourceOGL;
 class GLTextureSource;
 
@@ -217,6 +219,9 @@ class GLTextureSource : public DataTextureSource, public TextureSourceOGL {
                   GLenum aTarget, gfx::IntSize aSize,
                   gfx::SurfaceFormat aFormat);
 
+  GLTextureSource(gl::GLContext* aGL, GLuint aTextureHandle, GLenum aTarget,
+                  gfx::IntSize aSize, gfx::SurfaceFormat aFormat);
+
   virtual ~GLTextureSource();
 
   const char* Name() const override { return "GLTextureSource"; }
@@ -274,6 +279,8 @@ class GLTextureSource : public DataTextureSource, public TextureSourceOGL {
 // the surface is not used by compositor.
 class DirectMapTextureSource : public GLTextureSource {
  public:
+  DirectMapTextureSource(gl::GLContext* aContext,
+                         gfx::DataSourceSurface* aSurface);
   DirectMapTextureSource(TextureSourceProvider* aProvider,
                          gfx::DataSourceSurface* aSurface);
   ~DirectMapTextureSource();
@@ -430,16 +437,23 @@ class SurfaceTextureHost : public TextureHost {
   void CreateRenderTexture(
       const wr::ExternalImageId& aExternalImageId) override;
 
+  uint32_t NumSubTextures() override;
+
   void PushResourceUpdates(wr::TransactionBuilder& aResources,
                            ResourceUpdateOp aOp,
                            const Range<wr::ImageKey>& aImageKeys,
-                           const wr::ExternalImageId& aExtID,
-                           const bool aPreferCompositorSurface) override;
+                           const wr::ExternalImageId& aExtID) override;
 
   void PushDisplayItems(wr::DisplayListBuilder& aBuilder,
                         const wr::LayoutRect& aBounds,
                         const wr::LayoutRect& aClip, wr::ImageRendering aFilter,
-                        const Range<wr::ImageKey>& aImageKeys) override;
+                        const Range<wr::ImageKey>& aImageKeys,
+                        PushDisplayItemFlagSet aFlags) override;
+
+  // gecko does not need deferred deletion with WebRender
+  // GPU/hardware task end could be checked by android fence.
+  // SurfaceTexture uses android fence internally,
+  bool NeedsDeferredDeletion() const override { return false; }
 
  protected:
   bool EnsureAttached();
@@ -451,6 +465,84 @@ class SurfaceTextureHost : public TextureHost {
   const bool mIgnoreTransform;
   RefPtr<CompositorOGL> mCompositor;
   RefPtr<SurfaceTextureSource> mTextureSource;
+};
+
+class AndroidHardwareBufferTextureHost : public TextureHost {
+ public:
+  static already_AddRefed<AndroidHardwareBufferTextureHost> Create(
+      TextureFlags aFlags, const SurfaceDescriptorAndroidHardwareBuffer& aDesc);
+
+  AndroidHardwareBufferTextureHost(
+      TextureFlags aFlags, AndroidHardwareBuffer* aAndroidHardwareBuffer);
+
+  virtual ~AndroidHardwareBufferTextureHost();
+
+  void PrepareTextureSource(
+      CompositableTextureSourceRef& aTextureSource) override;
+
+  bool BindTextureSource(CompositableTextureSourceRef& aTexture) override;
+
+  void DeallocateDeviceData() override;
+
+  void SetTextureSourceProvider(TextureSourceProvider* aProvider) override;
+
+  bool Lock() override;
+
+  gfx::SurfaceFormat GetFormat() const override;
+
+  gfx::IntSize GetSize() const override;
+
+  void NotifyNotUsed() override;
+
+  already_AddRefed<gfx::DataSourceSurface> GetAsSurface() override {
+    return nullptr;  // XXX - implement this (for MOZ_DUMP_PAINTING)
+  }
+
+  gl::GLContext* gl() const;
+
+  const char* Name() override { return "AndroidHardwareBufferTextureHost"; }
+
+  AndroidHardwareBufferTextureHost* AsAndroidHardwareBufferTextureHost()
+      override {
+    return this;
+  }
+
+  void CreateRenderTexture(
+      const wr::ExternalImageId& aExternalImageId) override;
+
+  uint32_t NumSubTextures() override;
+
+  void PushResourceUpdates(wr::TransactionBuilder& aResources,
+                           ResourceUpdateOp aOp,
+                           const Range<wr::ImageKey>& aImageKeys,
+                           const wr::ExternalImageId& aExtID) override;
+
+  void PushDisplayItems(wr::DisplayListBuilder& aBuilder,
+                        const wr::LayoutRect& aBounds,
+                        const wr::LayoutRect& aClip, wr::ImageRendering aFilter,
+                        const Range<wr::ImageKey>& aImageKeys,
+                        PushDisplayItemFlagSet aFlags) override;
+
+  void SetAcquireFence(mozilla::ipc::FileDescriptor&& aFenceFd) override;
+
+  void SetReleaseFence(mozilla::ipc::FileDescriptor&& aFenceFd) override;
+
+  mozilla::ipc::FileDescriptor GetAndResetReleaseFence() override;
+
+  AndroidHardwareBuffer* GetAndroidHardwareBuffer() const override {
+    return mAndroidHardwareBuffer;
+  }
+
+  // gecko does not need deferred deletion with WebRender
+  // GPU/hardware task end could be checked by android fence.
+  bool NeedsDeferredDeletion() const override { return false; }
+
+ protected:
+  void DestroyEGLImage();
+
+  RefPtr<AndroidHardwareBuffer> mAndroidHardwareBuffer;
+  RefPtr<GLTextureSource> mTextureSource;
+  EGLImage mEGLImage;
 };
 
 #endif  // MOZ_WIDGET_ANDROID
@@ -539,13 +631,13 @@ class EGLImageTextureHost final : public TextureHost {
   void PushResourceUpdates(wr::TransactionBuilder& aResources,
                            ResourceUpdateOp aOp,
                            const Range<wr::ImageKey>& aImageKeys,
-                           const wr::ExternalImageId& aExtID,
-                           const bool aPreferCompositorSurface) override;
+                           const wr::ExternalImageId& aExtID) override;
 
   void PushDisplayItems(wr::DisplayListBuilder& aBuilder,
                         const wr::LayoutRect& aBounds,
                         const wr::LayoutRect& aClip, wr::ImageRendering aFilter,
-                        const Range<wr::ImageKey>& aImageKeys) override;
+                        const Range<wr::ImageKey>& aImageKeys,
+                        PushDisplayItemFlagSet aFlags) override;
 
  protected:
   const EGLImage mImage;

@@ -32,6 +32,23 @@ const {
 const LOGIN_FIELD_UTILS = LoginTestUtils.loginField;
 const TESTS_DIR = "/tests/toolkit/components/passwordmgr/test/";
 
+// Depending on pref state we either show auth prompts as windows or on tab level.
+let authPromptModalType = SpecialPowers.Services.prompt.MODAL_TYPE_WINDOW;
+if (SpecialPowers.Services.prefs.getBoolPref("prompts.tab_modal.enabled")) {
+  authPromptModalType = SpecialPowers.Services.prefs.getIntPref(
+    "prompts.modalType.httpAuth"
+  );
+}
+
+// Whether the auth prompt is a commonDialog.xhtml or a TabModalPrompt
+let authPromptIsCommonDialog =
+  authPromptModalType === SpecialPowers.Services.prompt.MODAL_TYPE_WINDOW ||
+  (authPromptModalType === SpecialPowers.Services.prompt.MODAL_TYPE_TAB &&
+    SpecialPowers.Services.prefs.getBoolPref(
+      "prompts.tabChromePromptSubDialog",
+      false
+    ));
+
 /**
  * Returns the element with the specified |name| attribute.
  */
@@ -162,7 +179,27 @@ function getSubmitMessage(aFilterFn = undefined) {
           "formSubmissionProcessed",
           processed
         );
-        resolve(...args);
+        resolve(args[0]);
+      }
+    );
+  });
+}
+
+/**
+ * @return {Promise} resolves when a onPasswordEditedOrGenerated message is received at the parent
+ */
+function getPasswordEditedMessage() {
+  info("getPasswordEditedMessage");
+  return new Promise((resolve, reject) => {
+    PWMGR_COMMON_PARENT.addMessageListener(
+      "passwordEditedOrGenerated",
+      function listener(...args) {
+        info("got passwordEditedOrGenerated");
+        PWMGR_COMMON_PARENT.removeMessageListener(
+          "passwordEditedOrGenerated",
+          listener
+        );
+        resolve(args[0]);
       }
     );
   });
@@ -191,7 +228,7 @@ function checkLoginForm(
   );
 }
 
-function checkLoginFormInChildFrame(
+function checkLoginFormInFrame(
   iframeBC,
   usernameFieldId,
   expectedUsername,
@@ -225,6 +262,113 @@ function checkLoginFormInChildFrame(
         expectedPasswordF,
         "Checking " + formID + " password is: " + expectedPasswordF
       );
+    }
+  );
+}
+
+async function checkUnmodifiedFormInFrame(bc, formNum) {
+  return SpecialPowers.spawn(bc, [formNum], formNumF => {
+    let form = this.content.document.getElementById(`form${formNumF}`);
+    ok(form, "Locating form " + formNumF);
+
+    for (var i = 0; i < form.elements.length; i++) {
+      var ele = form.elements[i];
+
+      // No point in checking form submit/reset buttons.
+      if (ele.type == "submit" || ele.type == "reset") {
+        continue;
+      }
+
+      is(
+        ele.value,
+        ele.defaultValue,
+        "Test to default value of field " + ele.name + " in form " + formNumF
+      );
+    }
+  });
+}
+
+/**
+ * Check a form for expected values even if it is in a different top level window
+ * or process. If an argument is null, a field's expected value will be the default
+ * value.
+ *
+ * Similar to the checkForm helper, but it works across (cross-origin) frames.
+ *
+ * <form id="form#">
+ * checkLoginFormInFrameWithElementValues(#, "foo");
+ */
+async function checkLoginFormInFrameWithElementValues(
+  browsingContext,
+  formNum,
+  ...values
+) {
+  return SpecialPowers.spawn(
+    browsingContext,
+    [formNum, values],
+    function checkFormWithElementValues(formNumF, valuesF) {
+      let [val1F, val2F, val3F] = valuesF;
+      let doc = this.content.document;
+      let e;
+      let form = doc.getElementById("form" + formNumF);
+      ok(form, "Locating form " + formNumF);
+
+      let numToCheck = arguments.length - 1;
+
+      if (!numToCheck--) {
+        return;
+      }
+      e = form.elements[0];
+      if (val1F == null) {
+        is(
+          e.value,
+          e.defaultValue,
+          "Test default value of field " + e.name + " in form " + formNumF
+        );
+      } else {
+        is(
+          e.value,
+          val1F,
+          "Test value of field " + e.name + " in form " + formNumF
+        );
+      }
+
+      if (!numToCheck--) {
+        return;
+      }
+
+      e = form.elements[1];
+      if (val2F == null) {
+        is(
+          e.value,
+          e.defaultValue,
+          "Test default value of field " + e.name + " in form " + formNumF
+        );
+      } else {
+        is(
+          e.value,
+          val2F,
+          "Test value of field " + e.name + " in form " + formNumF
+        );
+      }
+
+      if (!numToCheck--) {
+        return;
+      }
+      e = form.elements[2];
+      if (val3F == null) {
+        is(
+          e.value,
+          e.defaultValue,
+          "Test default value of field " + e.name + " in form " + formNumF
+        );
+      } else {
+        is(
+          e.value,
+          val3F,
+          "Test value of field " + e.name + " in form " + formNumF
+        );
+      }
     }
   );
 }
@@ -312,7 +456,14 @@ function checkUnmodifiedForm(formNum) {
   }
 }
 
-function registerRunTests() {
+/**
+ * Wait for the document to be ready and any existing password fields on
+ * forms to be processed.
+ *
+ * @param existingPasswordFieldsCount the number of password fields
+ * that begin on the test page.
+ */
+function registerRunTests(existingPasswordFieldsCount = 0) {
   return new Promise(resolve => {
     function onDOMContentLoaded() {
       var form = document.createElement("form");
@@ -325,8 +476,15 @@ function registerRunTests() {
       password.type = "password";
       form.appendChild(password);
 
+      let foundForcer = false;
       var observer = SpecialPowers.wrapCallback(function(subject, topic, data) {
-        if (data !== "observerforcer") {
+        if (data === "observerforcer") {
+          foundForcer = true;
+        } else {
+          existingPasswordFieldsCount--;
+        }
+
+        if (!foundForcer || existingPasswordFieldsCount > 0) {
           return;
         }
 
@@ -348,7 +506,6 @@ function registerRunTests() {
     // with the rest of the tests.
     if (
       document.readyState == "complete" ||
-      document.readyState == "loaded" ||
       document.readyState == "interactive"
     ) {
       onDOMContentLoaded();
@@ -385,8 +542,9 @@ function logoutMasterPassword() {
 
 /**
  * Resolves when a specified number of forms have been processed for (potential) filling.
+ * This relies on the observer service which only notifies observers within the same process.
  */
-function promiseFormsProcessed(expectedCount = 1) {
+function promiseFormsProcessedInSameProcess(expectedCount = 1) {
   var processedCount = 0;
   return new Promise((resolve, reject) => {
     function onProcessedForm(subject, topic, data) {
@@ -402,6 +560,69 @@ function promiseFormsProcessed(expectedCount = 1) {
     }
     SpecialPowers.addObserver(onProcessedForm, "passwordmgr-processed-form");
   });
+}
+
+/**
+ * Resolves when a form has been processed for (potential) filling.
+ * This works across processes.
+ */
+async function promiseFormsProcessed(expectedCount = 1) {
+  var processedCount = 0;
+  return new Promise(resolve => {
+    PWMGR_COMMON_PARENT.addMessageListener(
+      "formProcessed",
+      function formProcessed() {
+        processedCount++;
+        if (processedCount == expectedCount) {
+          PWMGR_COMMON_PARENT.removeMessageListener(
+            "formProcessed",
+            formProcessed
+          );
+          resolve();
+        }
+      }
+    );
+  });
+}
+
+async function loadFormIntoWindow(origin, html, win, task) {
+  let loadedPromise = new Promise(resolve => {
+    win.addEventListener(
+      "load",
+      function(event) {
+        if (event.target.location.href.endsWith("blank.html")) {
+          resolve();
+        }
+      },
+      { once: true }
+    );
+  });
+
+  let processedPromise = promiseFormsProcessed();
+  win.location =
+    origin + "/tests/toolkit/components/passwordmgr/test/mochitest/blank.html";
+  info(`Waiting for window to load for origin: ${origin}`);
+  await loadedPromise;
+
+  await SpecialPowers.spawn(win, [html, task?.toString()], function(
+    contentHtml,
+    contentTask = null
+  ) {
+    // eslint-disable-next-line no-unsanitized/property
+    this.content.document.documentElement.innerHTML = contentHtml;
+    // Similar to the invokeContentTask helper in accessible/tests/browser/shared-head.js
+    if (contentTask) {
+      // eslint-disable-next-line no-eval
+      const runnableTask = eval(`
+      (() => {
+        return (${contentTask});
+      })();`);
+      runnableTask.call(this);
+    }
+  });
+
+  info("Waiting for the form to be processed");
+  await processedPromise;
 }
 
 function getTelemetryEvents(options) {
@@ -486,6 +707,38 @@ function runInParent(aFunctionOrURL) {
     chromeScript.destroy();
   });
   return chromeScript;
+}
+
+/** Initialize with a list of logins. The logins are added within the parent chrome process.
+ * @param {array} aLogins - a list of logins to add. Each login is an array of the arguments
+ *                          that would be passed to nsLoginInfo.init().
+ */
+function addLoginsInParent(...aLogins) {
+  let script = runInParent(function addLoginsInParentInner() {
+    addMessageListener("addLogins", logins => {
+      // eslint-disable-next-line no-shadow
+      const { Services } = ChromeUtils.import(
+        "resource://gre/modules/Services.jsm"
+      );
+
+      let nsLoginInfo = Components.Constructor(
+        "@mozilla.org/login-manager/loginInfo;1",
+        Ci.nsILoginInfo,
+        "init"
+      );
+
+      for (let login of logins) {
+        let loginInfo = new nsLoginInfo(...login);
+        try {
+          Services.logins.addLogin(loginInfo);
+        } catch (e) {
+          assert.ok(false, "addLogin threw: " + e);
+        }
+      }
+    });
+  });
+  script.sendQuery("addLogins", aLogins);
+  return script;
 }
 
 /*

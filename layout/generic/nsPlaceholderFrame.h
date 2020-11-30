@@ -36,7 +36,7 @@
 #define nsPlaceholderFrame_h___
 
 #include "mozilla/Attributes.h"
-#include "nsFrame.h"
+#include "nsIFrame.h"
 #include "nsGkAtoms.h"
 
 namespace mozilla {
@@ -56,7 +56,7 @@ nsPlaceholderFrame* NS_NewPlaceholderFrame(mozilla::PresShell* aPresShell,
  * Implementation of a frame that's used as a placeholder for a frame that
  * has been moved out of the flow.
  */
-class nsPlaceholderFrame final : public nsFrame {
+class nsPlaceholderFrame final : public nsIFrame {
  public:
   NS_DECL_FRAMEARENA_HELPERS(nsPlaceholderFrame)
 #ifdef DEBUG
@@ -73,7 +73,7 @@ class nsPlaceholderFrame final : public nsFrame {
 
   nsPlaceholderFrame(ComputedStyle* aStyle, nsPresContext* aPresContext,
                      nsFrameState aTypeBits)
-      : nsFrame(aStyle, aPresContext, kClassID), mOutOfFlowFrame(nullptr) {
+      : nsIFrame(aStyle, aPresContext, kClassID), mOutOfFlowFrame(nullptr) {
     MOZ_ASSERT(
         aTypeBits == PLACEHOLDER_FOR_FLOAT ||
             aTypeBits == PLACEHOLDER_FOR_ABSPOS ||
@@ -118,7 +118,7 @@ class nsPlaceholderFrame final : public nsFrame {
 
 #ifdef DEBUG_FRAME_DUMP
   void List(FILE* out = stderr, const char* aPrefix = "",
-            uint32_t aFlags = 0) const override;
+            ListFlags aFlags = ListFlags()) const override;
   virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif  // DEBUG
 
@@ -145,7 +145,7 @@ class nsPlaceholderFrame final : public nsFrame {
 #ifdef ACCESSIBILITY
   virtual mozilla::a11y::AccType AccessibleType() override {
     nsIFrame* realFrame = GetRealFrameForPlaceholder(this);
-    return realFrame ? realFrame->AccessibleType() : nsFrame::AccessibleType();
+    return realFrame ? realFrame->AccessibleType() : nsIFrame::AccessibleType();
   }
 #endif
 

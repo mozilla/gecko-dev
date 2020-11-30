@@ -22,7 +22,71 @@ XPCOMUtils.defineLazyServiceGetter(
 
 const kBrowserURL = AppConstants.BROWSER_CHROME_URL;
 
+/**
+ * GlobalMuteListener is a process-global object that listens for changes to
+ * the global mute state of the camera and microphone. When it notices a
+ * change in that state, it tells the underlying platform code to mute or
+ * unmute those devices.
+ */
+const GlobalMuteListener = {
+  _initted: false,
+
+  /**
+   * Initializes the listener if it hasn't been already. This will also
+   * ensure that the microphone and camera are initially in the right
+   * muting state.
+   */
+  init() {
+    if (!this._initted) {
+      Services.cpmm.sharedData.addEventListener("change", this);
+      this._updateCameraMuteState();
+      this._updateMicrophoneMuteState();
+      this._initted = true;
+    }
+  },
+
+  handleEvent(event) {
+    if (event.changedKeys.includes("WebRTC:GlobalCameraMute")) {
+      this._updateCameraMuteState();
+    }
+    if (event.changedKeys.includes("WebRTC:GlobalMicrophoneMute")) {
+      this._updateMicrophoneMuteState();
+    }
+  },
+
+  _updateCameraMuteState() {
+    let shouldMute = Services.cpmm.sharedData.get("WebRTC:GlobalCameraMute");
+    let topic = shouldMute
+      ? "getUserMedia:muteVideo"
+      : "getUserMedia:unmuteVideo";
+    Services.obs.notifyObservers(null, topic);
+  },
+
+  _updateMicrophoneMuteState() {
+    let shouldMute = Services.cpmm.sharedData.get(
+      "WebRTC:GlobalMicrophoneMute"
+    );
+    let topic = shouldMute
+      ? "getUserMedia:muteAudio"
+      : "getUserMedia:unmuteAudio";
+
+    Services.obs.notifyObservers(null, topic);
+  },
+};
+
 class WebRTCChild extends JSWindowActorChild {
+  actorCreated() {
+    // The user might request that DOM notifications be silenced
+    // when sharing the screen. There doesn't seem to be a great
+    // way of storing that state in any of the objects going into
+    // the WebRTC API or coming out via the observer notification
+    // service, so we store it here on the actor.
+    //
+    // If the user chooses to silence notifications during screen
+    // share, this will get set to true.
+    this.suppressNotifications = false;
+  }
+
   // Called only for 'unload' to remove pending gUM prompts in reloaded frames.
   static handleEvent(aEvent) {
     let contentWindow = aEvent.target.defaultView;
@@ -37,7 +101,7 @@ class WebRTCChild extends JSWindowActorChild {
     }
   }
 
-  // This observer is registered in ContentObservers.js to avoid
+  // This observer is called from BrowserProcessChild to avoid
   // loading this .jsm when WebRTC is not in use.
   static observe(aSubject, aTopic, aData) {
     switch (aTopic) {
@@ -95,6 +159,9 @@ class WebRTCChild extends JSWindowActorChild {
           "getUserMedia:response:allow",
           callID
         );
+
+        this.suppressNotifications = !!aMessage.data.suppressNotifications;
+
         break;
       }
       case "webrtc:Deny":
@@ -104,6 +171,34 @@ class WebRTCChild extends JSWindowActorChild {
         Services.obs.notifyObservers(
           null,
           "getUserMedia:revoke",
+          aMessage.data
+        );
+        break;
+      case "webrtc:MuteCamera":
+        Services.obs.notifyObservers(
+          null,
+          "getUserMedia:muteVideo",
+          aMessage.data
+        );
+        break;
+      case "webrtc:UnmuteCamera":
+        Services.obs.notifyObservers(
+          null,
+          "getUserMedia:unmuteVideo",
+          aMessage.data
+        );
+        break;
+      case "webrtc:MuteMicrophone":
+        Services.obs.notifyObservers(
+          null,
+          "getUserMedia:muteAudio",
+          aMessage.data
+        );
+        break;
+      case "webrtc:UnmuteMicrophone":
+        Services.obs.notifyObservers(
+          null,
+          "getUserMedia:unmuteAudio",
           aMessage.data
         );
         break;
@@ -127,19 +222,6 @@ function getActorForWindow(window) {
 function handlePCRequest(aSubject, aTopic, aData) {
   let { windowID, innerWindowID, callID, isSecure } = aSubject;
   let contentWindow = Services.wm.getOuterWindowWithId(windowID);
-
-  let mm = getMessageManagerForWindow(contentWindow);
-  if (!mm) {
-    // Workaround for Bug 1207784. To use WebRTC, add-ons right now use
-    // hiddenWindow.mozRTCPeerConnection which is only privileged on OSX. Other
-    // platforms end up here without a message manager.
-    // TODO: Remove once there's a better way (1215591).
-
-    // Skip permission check in the absence of a message manager.
-    Services.obs.notifyObservers(null, "PeerConnection:response:allow", callID);
-    return;
-  }
-
   if (!contentWindow.pendingPeerConnectionRequests) {
     setupPendingListsInitially(contentWindow);
   }
@@ -175,6 +257,13 @@ function handleGUMStop(aSubject, aTopic, aData) {
 }
 
 function handleGUMRequest(aSubject, aTopic, aData) {
+  // Now that a getUserMedia request has been created, we should check
+  // to see if we're supposed to have any devices muted. This needs
+  // to occur after the getUserMedia request is made, since the global
+  // mute state is associated with the GetUserMediaWindowListener, which
+  // is only created after a getUserMedia request.
+  GlobalMuteListener.init();
+
   let constraints = aSubject.getConstraints();
   let secure = aSubject.isSecure;
   let isHandlingUserInput = aSubject.isHandlingUserInput;
@@ -402,6 +491,17 @@ function updateIndicators(aSubject, aTopic, aData) {
     let tabState = getTabStateForContentWindow(contentWindow, false);
     tabState.windowId = getInnerWindowIDForWindow(contentWindow);
 
+    // If we were silencing DOM notifications before, but we've updated
+    // state such that we're no longer sharing one of our displays, then
+    // reset the silencing state.
+    if (actor.suppressNotifications) {
+      if (!tabState.screen && !tabState.window && !tabState.browser) {
+        actor.suppressNotifications = false;
+      }
+    }
+
+    tabState.suppressNotifications = actor.suppressNotifications;
+
     actor.sendAsyncMessage("webrtc:UpdateIndicators", tabState);
   }
 }
@@ -428,7 +528,8 @@ function getTabStateForContentWindow(aContentWindow, aForRemove = false) {
     microphone = {},
     screen = {},
     window = {},
-    browser = {};
+    browser = {},
+    devices = {};
   MediaManagerService.mediaCaptureWindowState(
     aContentWindow,
     camera,
@@ -436,6 +537,7 @@ function getTabStateForContentWindow(aContentWindow, aForRemove = false) {
     screen,
     window,
     browser,
+    devices,
     false
   );
 
@@ -446,11 +548,23 @@ function getTabStateForContentWindow(aContentWindow, aForRemove = false) {
     window.value == MediaManagerService.STATE_NOCAPTURE &&
     browser.value == MediaManagerService.STATE_NOCAPTURE
   ) {
-    return {};
+    return { remove: true };
   }
 
   if (aForRemove) {
-    return {};
+    return { remove: true };
+  }
+
+  let serializedDevices = [];
+  if (Array.isArray(devices.value)) {
+    serializedDevices = devices.value.map(device => {
+      return {
+        type: device.type,
+        mediaSource: device.mediaSource,
+        rawId: device.rawId,
+        scary: device.scary,
+      };
+    });
   }
 
   return {
@@ -459,20 +573,10 @@ function getTabStateForContentWindow(aContentWindow, aForRemove = false) {
     screen: screen.value,
     window: window.value,
     browser: browser.value,
-    documentURI: aContentWindow.document.documentURI,
+    devices: serializedDevices,
   };
 }
 
 function getInnerWindowIDForWindow(aContentWindow) {
-  return aContentWindow.windowUtils.currentInnerWindowID;
-}
-
-function getMessageManagerForWindow(aContentWindow) {
-  let docShell = aContentWindow.docShell;
-  if (!docShell) {
-    // Closed tab.
-    return null;
-  }
-
-  return docShell.messageManager;
+  return aContentWindow.windowGlobalChild.innerWindowId;
 }

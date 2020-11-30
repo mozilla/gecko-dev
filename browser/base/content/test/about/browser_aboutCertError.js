@@ -384,9 +384,6 @@ add_task(async function checkCautionClass() {
 
 add_task(async function checkViewCertificate() {
   info("Loading a cert error and checking that the certificate can be shown.");
-  SpecialPowers.pushPrefEnv({
-    set: [["security.aboutcertificate.enabled", true]],
-  });
   for (let useFrame of [true, false]) {
     if (useFrame) {
       // Bug #1573502
@@ -465,21 +462,25 @@ add_task(async function checkBadStsCertHeadline() {
       bc = bc.children[0];
     }
 
-    let titleContent = await SpecialPowers.spawn(bc, [], async function() {
+    await SpecialPowers.spawn(bc, [useFrame], async _useFrame => {
       let titleText = content.document.querySelector(".title-text");
-      return titleText.textContent;
+      await ContentTaskUtils.waitForCondition(
+        () => titleText.textContent,
+        "Error page title is initialized"
+      );
+      let titleContent = titleText.textContent;
+      if (_useFrame) {
+        ok(
+          titleContent.endsWith("Security Issue"),
+          "Did Not Connect: Potential Security Issue"
+        );
+      } else {
+        ok(
+          titleContent.endsWith("Risk Ahead"),
+          "Warning: Potential Security Risk Ahead"
+        );
+      }
     });
-    if (useFrame) {
-      ok(
-        titleContent.endsWith("Security Issue"),
-        "Did Not Connect: Potential Security Issue"
-      );
-    } else {
-      ok(
-        titleContent.endsWith("Risk Ahead"),
-        "Warning: Potential Security Risk Ahead"
-      );
-    }
     BrowserTestUtils.removeTab(gBrowser.selectedTab);
   }
 });
@@ -496,18 +497,27 @@ add_task(async function checkSandboxedIframe() {
   let bc = browser.browsingContext.children[0];
   await SpecialPowers.spawn(bc, [], async function() {
     let doc = content.document;
+
+    // aboutNetError.js is using async localization to format several messages
+    // and in result the translation may be applied later.
+    // We want to return the textContent of the element only after
+    // the translation completes, so let's wait for it here.
+    await ContentTaskUtils.waitForCondition(() => {
+      let elements = [
+        doc.querySelector(".title-text"),
+        doc.getElementById("errorCode"),
+      ];
+
+      return elements.every(elem => !!elem.textContent.trim().length);
+    });
+
     let titleText = doc.querySelector(".title-text");
     Assert.ok(
       titleText.textContent.endsWith("Security Issue"),
       "Title shows Did Not Connect: Potential Security Issue"
     );
 
-    // Wait until fluent sets the errorCode inner text.
-    let el;
-    await ContentTaskUtils.waitForCondition(() => {
-      el = doc.getElementById("errorCode");
-      return el.textContent != "";
-    }, "error code has been set inside the advanced button panel");
+    let el = doc.getElementById("errorCode");
 
     Assert.equal(
       el.textContent,

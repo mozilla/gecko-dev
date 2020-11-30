@@ -37,6 +37,12 @@ job-defaults:
             - name: public/build
               path: /builds/worker/artifacts/
               type: directory
+            - name: public/build/geckoview-androidTest.apk
+              path: /builds/worker/workspace/obj-build/gradle/build/mobile/android/geckoview/outputs/apk/androidTest/withGeckoBinaries/debug/geckoview-withGeckoBinaries-debug-androidTest.apk
+              type: file
+            - name: public/build/geckoview_example.apk
+              path: /builds/worker/workspace/obj-build/gradle/build/mobile/android/geckoview_example/outputs/apk/withGeckoBinaries/debug/geckoview_example-withGeckoBinaries-debug.apk
+              type: file
     run:
         using: mozharness
         script: "mozharness/scripts/fx_desktop_build.py"
@@ -68,53 +74,30 @@ job-defaults:
             - linux64-rust-android
             - linux64-rust-size
             - linux64-cbindgen
+            - linux64-dump-syms
             - linux64-nasm
             - linux64-node
 
 jobs:
-    android-geckoview-fat-aar/opt:
-        description: "Android GeckoView multi-architecture fat AAR Opt"
-        index:
-            job-name: android-geckoview-fat-aar-opt
-        treeherder:
-            platform: android-4-0-geckoview-fat-aar/opt
-            symbol: Bgv
-        dependencies:
-            android-x86-opt: build-android-x86/opt
-            android-x86_64-opt: build-android-x86_64/opt
-            android-api-16-opt: build-android-api-16/opt
-            android-aarch64-opt: build-android-aarch64/opt
-        worker:
-            env:
-                PERFHERDER_EXTRA_OPTIONS: android-geckoview-fat-aar-opt
-                USE_ARTIFACT: '1'
-                MOZ_ARTIFACT_TASK: {task-reference: '<android-api-16-opt>'}
-        run:
-            actions: [get-secrets, build]
-            config: ["builds/releng_base_android_64_builds.py"]
-        fetches:
-            toolchain:
-                - linux64-sccache
-
-    android-geckoview-fat-aar-nightly/opt:
-        description: "Android GeckoView multi-architecture fat AAR Nightly"
+    android-geckoview-fat-aar-shippable/opt:
+        description: "Android GeckoView multi-architecture fat AAR Shippable"
         attributes:
-            nightly: true
+            shippable: true
             enable-full-crashsymbols: true
             disable-push-apk: true
         shipping-phase: build
         shipping-product: fennec
         index:
-            job-name: android-geckoview-fat-aar-nightly
-            type: nightly-with-multi-l10n
+            job-name: android-geckoview-fat-aar-opt
+            type: shippable-with-multi-l10n
         treeherder:
-            platform: android-4-0-geckoview-fat-aar/opt
-            symbol: Ngv
+            platform: android-4-0-geckoview-fat-aar-shippable/opt
+            symbol: Bgv
         dependencies:
-            android-x86-nightly: build-android-x86-nightly/opt
-            android-x86_64-nightly: build-android-x86_64-nightly/opt
-            android-api-16-nightly: build-android-api-16-nightly/opt
-            android-aarch64-nightly: build-android-aarch64-nightly/opt
+            android-x86-shippable: build-android-x86-shippable/opt
+            android-x86_64-shippable: build-android-x86_64-shippable/opt
+            android-api-16-shippable: build-android-api-16-shippable/opt
+            android-aarch64-shippable: build-android-aarch64-shippable/opt
         worker:
             env:
                 PERFHERDER_EXTRA_OPTIONS: android-geckoview-fat-aar-nightly
@@ -123,3 +106,5 @@ jobs:
             config:
                 - builds/releng_base_android_64_builds.py
                 - taskcluster_nightly.py
+        optimization:
+            skip-unless-backstop: null

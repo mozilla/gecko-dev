@@ -33,7 +33,10 @@ using namespace mozilla;
 using namespace mozilla::scache;
 using mozilla::intl::LocaleService;
 
-static bool gDisableXULCache = false;  // enabled by default
+#define XUL_CACHE_DISABLED_DEFAULT false
+
+static bool gDisableXULCache =
+    XUL_CACHE_DISABLED_DEFAULT;  // enabled by default
 static const char kDisableXULCachePref[] = "nglayout.debug.disable_xul_cache";
 static const char kXULCacheInfoKey[] = "nsXULPrototypeCache.startupCache";
 static const char kXULCachePrefix[] = "xulcache";
@@ -43,7 +46,7 @@ static const char kXULCachePrefix[] = "xulcache";
 static void UpdategDisableXULCache() {
   // Get the value of "nglayout.debug.disable_xul_cache" preference
   gDisableXULCache =
-      Preferences::GetBool(kDisableXULCachePref, gDisableXULCache);
+      Preferences::GetBool(kDisableXULCachePref, XUL_CACHE_DISABLED_DEFAULT);
 
   // Sets the flag if the XUL cache is disabled
   if (gDisableXULCache) {
@@ -166,9 +169,9 @@ mozilla::StyleSheet* nsXULPrototypeCache::GetStyleSheet(nsIURI* aURI) {
   return mStyleSheetTable.GetWeak(aURI);
 }
 
-nsresult nsXULPrototypeCache::PutStyleSheet(StyleSheet* aStyleSheet) {
+nsresult nsXULPrototypeCache::PutStyleSheet(RefPtr<StyleSheet>&& aStyleSheet) {
   nsIURI* uri = aStyleSheet->GetSheetURI();
-  mStyleSheetTable.Put(uri, RefPtr{aStyleSheet});
+  mStyleSheetTable.Put(uri, std::move(aStyleSheet));
   return NS_OK;
 }
 
@@ -350,8 +353,7 @@ nsresult nsXULPrototypeCache::BeginCaching(nsIURI* aURI) {
 
   nsAutoCString path;
   aURI->GetPathQueryRef(path);
-  if (!(StringEndsWith(path, NS_LITERAL_CSTRING(".xul")) ||
-        StringEndsWith(path, NS_LITERAL_CSTRING(".xhtml")))) {
+  if (!(StringEndsWith(path, ".xul"_ns) || StringEndsWith(path, ".xhtml"_ns))) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
@@ -482,7 +484,7 @@ static void ReportSize(const nsCString& aPath, size_t aAmount,
                        nsISupports* aData) {
   nsAutoCString path("explicit/xul-prototype-cache/");
   path += aPath;
-  aHandleReport->Callback(EmptyCString(), path, nsIMemoryReporter::KIND_HEAP,
+  aHandleReport->Callback(""_ns, path, nsIMemoryReporter::KIND_HEAP,
                           nsIMemoryReporter::UNITS_BYTES, aAmount, aDescription,
                           aData);
 }
@@ -498,13 +500,19 @@ void nsXULPrototypeCache::CollectMemoryReports(
   size_t other = mallocSizeOf(sInstance);
 
 #define REPORT_SIZE(_path, _amount, _desc) \
-  ReportSize(_path, _amount, NS_LITERAL_CSTRING(_desc), aHandleReport, aData)
+  ReportSize(_path, _amount, nsLiteralCString(_desc), aHandleReport, aData)
 
   other += sInstance->mPrototypeTable.ShallowSizeOfExcludingThis(mallocSizeOf);
   // TODO Report content in mPrototypeTable?
 
   other += sInstance->mStyleSheetTable.ShallowSizeOfExcludingThis(mallocSizeOf);
-  // TODO Report content inside mStyleSheetTable?
+  for (auto iter = sInstance->mStyleSheetTable.ConstIter(); !iter.Done();
+       iter.Next()) {
+    // NOTE: If Loader::DoSheetComplete() is ever modified to stop clongin
+    // sheets before inserting into this cache, we will need to stop using
+    // SizeOfIncludingThis()
+    other += iter.Data()->SizeOfIncludingThis(mallocSizeOf);
+  }
 
   other += sInstance->mScriptTable.ShallowSizeOfExcludingThis(mallocSizeOf);
   // TODO Report content inside mScriptTable?
@@ -517,7 +525,7 @@ void nsXULPrototypeCache::CollectMemoryReports(
   other +=
       sInstance->mInputStreamTable.ShallowSizeOfExcludingThis(mallocSizeOf);
 
-  REPORT_SIZE(NS_LITERAL_CSTRING("other"), other,
+  REPORT_SIZE("other"_ns, other,
               "Memory used by "
               "the instance and tables of the XUL prototype cache.");
 

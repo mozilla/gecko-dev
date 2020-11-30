@@ -14,6 +14,7 @@ enum RTCStatsType {
   "remote-inbound-rtp",
   "remote-outbound-rtp",
   "csrc",
+  "data-channel",
   "session",
   "track",
   "transport",
@@ -79,16 +80,30 @@ dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
   double framerateMean; // deprecated, to be removed in Bug 1367562
   double framerateStdDev; // deprecated, to be removed in Bug 1367562
   unsigned long droppedFrames; // non-spec alias for framesDropped
-  							   // to be deprecated in Bug 1225720
+                               // to be deprecated in Bug 1225720
 };
 
 dictionary RTCRemoteOutboundRtpStreamStats : RTCSentRtpStreamStats {
   DOMString localId;
+  DOMHighResTimeStamp remoteTimestamp;
 };
 
 dictionary RTCRTPContributingSourceStats : RTCStats {
   unsigned long contributorSsrc;
   DOMString     inboundRtpStreamId;
+};
+
+dictionary RTCDataChannelStats : RTCStats {
+  DOMString           label;
+  DOMString           protocol;
+  long                dataChannelIdentifier;
+  // RTCTransportId is not yet implemented - Bug 1225723
+  // DOMString transportId;
+  RTCDataChannelState state;
+  unsigned long       messagesSent;
+  unsigned long long  bytesSent;
+  unsigned long       messagesReceived;
+  unsigned long long  bytesReceived;
 };
 
 enum RTCStatsIceCandidatePairState {
@@ -140,6 +155,48 @@ dictionary RTCIceCandidateStats : RTCStats {
   DOMString proxied;
 };
 
+// This is for tracking the frame rate in about:webrtc
+dictionary RTCVideoFrameHistoryEntryInternal {
+  required unsigned long       width;
+  required unsigned long       height;
+  required unsigned long       rotationAngle;
+  required DOMHighResTimeStamp firstFrameTimestamp;
+  required DOMHighResTimeStamp lastFrameTimestamp;
+  required unsigned long long  consecutiveFrames;
+  required unsigned long       localSsrc;
+  required unsigned long       remoteSsrc;
+};
+
+// Collection over the entries for a single track for about:webrtc
+dictionary RTCVideoFrameHistoryInternal {
+  required DOMString                          trackIdentifier;
+  sequence<RTCVideoFrameHistoryEntryInternal> entries = [];
+};
+
+// Collection over the libwebrtc bandwidth estimation stats
+dictionary RTCBandwidthEstimationInternal {
+  required DOMString  trackIdentifier;
+  long                sendBandwidthBps;    // Estimated available send bandwidth
+  long                maxPaddingBps;       // Cumulative configured max padding
+  long                receiveBandwidthBps; // Estimated available receive bandwidth
+  long                pacerDelayMs;
+  long                rttMs;
+};
+
+// This is used by about:webrtc to report SDP parsing errors
+dictionary RTCSdpParsingErrorInternal {
+  required unsigned long lineNumber;
+  required DOMString     error;
+};
+
+// This is for tracking the flow of SDP for about:webrtc
+dictionary RTCSdpHistoryEntryInternal {
+  required DOMHighResTimeStamp         timestamp;
+  required boolean                     isLocal;
+  required DOMString                   sdp;
+  sequence<RTCSdpParsingErrorInternal> errors = [];
+};
+
 // This is intended to be a list of dictionaries that inherit from RTCStats
 // (with some raw ICE candidates thrown in). Unfortunately, we cannot simply
 // store a sequence<RTCStats> because of slicing. So, we have to have a
@@ -155,14 +212,39 @@ dictionary RTCStatsCollection {
   sequence<RTCIceCandidateStats>            trickledIceCandidateStats = [];
   sequence<DOMString>                       rawLocalCandidates = [];
   sequence<DOMString>                       rawRemoteCandidates = [];
+  sequence<RTCDataChannelStats>             dataChannelStats = [];
+  sequence<RTCVideoFrameHistoryInternal>    videoFrameHistories = [];
+  sequence<RTCBandwidthEstimationInternal>  bandwidthEstimations = [];
+};
+
+// Details that about:webrtc can display about configured ICE servers
+dictionary RTCIceServerInternal {
+  sequence<DOMString> urls = [];
+  required boolean    credentialProvided;
+  required boolean    userNameProvided;
+};
+
+// Details that about:webrtc can display about the RTCConfiguration
+// Chrome only
+dictionary RTCConfigurationInternal {
+  RTCBundlePolicy                bundlePolicy;
+  required boolean               certificatesProvided;
+  sequence<RTCIceServerInternal> iceServers = [];
+  RTCIceTransportPolicy          iceTransportPolicy;
+  required boolean               peerIdentityProvided;
+  DOMString                      sdpSemantics;
 };
 
 // A collection of RTCStats dictionaries, plus some other info. Used by
 // WebrtcGlobalInformation for about:webrtc, and telemetry.
 dictionary RTCStatsReportInternal : RTCStatsCollection {
   required DOMString                        pcid;
+  required unsigned long                    browserId;
+  RTCConfigurationInternal                  configuration;
+  DOMString                                 jsepSessionErrors;
   DOMString                                 localSdp;
   DOMString                                 remoteSdp;
+  sequence<RTCSdpHistoryEntryInternal>      sdpHistory = [];
   required DOMHighResTimeStamp              timestamp;
   double                                    callDurationMs;
   required unsigned long                    iceRestarts;

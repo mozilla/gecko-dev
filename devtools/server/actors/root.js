@@ -31,12 +31,6 @@ loader.lazyRequireGetter(
   "devtools/server/actors/descriptors/process",
   true
 );
-loader.lazyRequireGetter(
-  this,
-  "FrameDescriptorActor",
-  "devtools/server/actors/descriptors/frame",
-  true
-);
 
 /* Root actor for the remote debugging protocol. */
 
@@ -135,12 +129,7 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
       networkMonitor: true,
       // Whether the storage inspector actor to inspect cookies, etc.
       storageInspector: true,
-      // Whether the server can return wasm binary source
-      wasmBinarySource: true,
       bulk: true,
-      // Added in Firefox 40. Indicates that the backend supports registering custom
-      // commands through the WebConsoleCommands API.
-      webConsoleCommands: true,
       // Whether root actor exposes chrome target actors and access to any window.
       // If allowChromeProcess is true, you can:
       // * get a ParentProcessTargetActor instance to debug chrome and any non-content
@@ -229,8 +218,8 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
     if (this._addonTargetActorPool) {
       this._addonTargetActorPool.destroy();
     }
-    if (this._workerTargetActorPool) {
-      this._workerTargetActorPool.destroy();
+    if (this._workerDescriptorActorPool) {
+      this._workerDescriptorActorPool.destroy();
     }
     if (this._frameDescriptorActorPool) {
       this._frameDescriptorActorPool.destroy();
@@ -249,8 +238,7 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
 
   /**
    * Gets the "root" form, which lists all the global actors that affect the entire
-   * browser.  This can replace usages of `listTabs` that only wanted the global actors
-   * and didn't actually care about tabs.
+   * browser.
    */
   getRoot: function() {
     // Create global actors
@@ -271,14 +259,8 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
   /**
    * Handles the listTabs request. The actors will survive until at least
    * the next listTabs request.
-   *
-   * ⚠ WARNING ⚠ This can be a very expensive operation, especially if there are many
-   * open tabs.  It will cause us to visit every tab, load a frame script, start a
-   * devtools server, and read some data.  With lazy tab support (bug 906076), this
-   * would trigger any lazy tabs to be loaded, greatly increasing resource usage.  Avoid
-   * this method whenever possible.
    */
-  listTabs: async function(options) {
+  listTabs: async function() {
     const tabList = this._parameters.tabList;
     if (!tabList) {
       throw {
@@ -295,22 +277,12 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
     // moving all the actors to a new Pool. We'll replace the old tab target actor
     // pool with the one we build here, thus retiring any actors that didn't get listed
     // again, and preparing any new actors to receive packets.
-    const newActorPool = new Pool(this.conn);
-    let selected;
+    const newActorPool = new Pool(this.conn, "listTabs-tab-descriptors");
 
-    const tabDescriptorActors = await tabList.getList(options);
+    const tabDescriptorActors = await tabList.getList();
     for (const tabDescriptorActor of tabDescriptorActors) {
-      if (tabDescriptorActor.selected) {
-        const index = tabDescriptorActors.findIndex(
-          descriptor => descriptor === tabDescriptorActor
-        );
-        selected = index;
-      }
       newActorPool.manage(tabDescriptorActor);
     }
-
-    // Start with the root reply, which includes the global actors for the whole browser.
-    const reply = this.getRoot();
 
     // Drop the old actorID -> actor map. Actors that still mattered were added to the
     // new map; others will go away.
@@ -319,18 +291,10 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
     }
     this._tabDescriptorActorPool = newActorPool;
 
-    // We'll extend the reply here to also mention all the tabs.
-    Object.assign(reply, {
-      selected: selected || 0,
-      tabs: [...this._tabDescriptorActorPool.poolChildren()].map(descriptor =>
-        descriptor.form()
-      ),
-    });
-
-    return reply;
+    return tabDescriptorActors;
   },
 
-  getTab: async function(options) {
+  getTab: async function({ outerWindowID, tabId }) {
     const tabList = this._parameters.tabList;
     if (!tabList) {
       throw {
@@ -339,12 +303,15 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
       };
     }
     if (!this._tabDescriptorActorPool) {
-      this._tabDescriptorActorPool = new Pool(this.conn);
+      this._tabDescriptorActorPool = new Pool(
+        this.conn,
+        "getTab-tab-descriptors"
+      );
     }
 
     let descriptorActor;
     try {
-      descriptorActor = await tabList.getTab(options, { forceUnzombify: true });
+      descriptorActor = await tabList.getTab({ outerWindowID, tabId });
     } catch (error) {
       if (error.error) {
         // Pipe expected errors as-is to the client
@@ -359,7 +326,7 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
     descriptorActor.parentID = this.actorID;
     this._tabDescriptorActorPool.manage(descriptorActor);
 
-    return descriptorActor.form();
+    return descriptorActor;
   },
 
   getWindow: function({ outerWindowID }) {
@@ -378,7 +345,7 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
     }
 
     if (!this._chromeWindowActorPool) {
-      this._chromeWindowActorPool = new Pool(this.conn);
+      this._chromeWindowActorPool = new Pool(this.conn, "chrome-window");
     }
 
     const actor = new ChromeWindowTargetActor(this.conn, window);
@@ -417,7 +384,7 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
     addonList.onListChanged = this._onAddonListChanged;
 
     const addonTargetActors = await addonList.getList();
-    const addonTargetActorPool = new Pool(this.conn);
+    const addonTargetActorPool = new Pool(this.conn, "addon-descriptors");
     for (const addonTargetActor of addonTargetActors) {
       if (option.iconDataURL) {
         await addonTargetActor.loadIconDataURL();
@@ -452,18 +419,18 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
     workerList.onListChanged = this._onWorkerListChanged;
 
     return workerList.getList().then(actors => {
-      const pool = new Pool(this.conn);
+      const pool = new Pool(this.conn, "worker-targets");
       for (const actor of actors) {
         pool.manage(actor);
       }
 
       // Do not destroy the pool before transfering ownership to the newly created
       // pool, so that we do not accidently destroy actors that are still in use.
-      if (this._workerTargetActorPool) {
-        this._workerTargetActorPool.destroy();
+      if (this._workerDescriptorActorPool) {
+        this._workerDescriptorActorPool.destroy();
       }
 
-      this._workerTargetActorPool = pool;
+      this._workerDescriptorActorPool = pool;
 
       return {
         workers: actors,
@@ -489,7 +456,7 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
     registrationList.onListChanged = this._onServiceWorkerRegistrationListChanged;
 
     return registrationList.getList().then(actors => {
-      const pool = new Pool(this.conn);
+      const pool = new Pool(this.conn, "service-workers-registrations");
       for (const actor of actors) {
         pool.manage(actor);
       }
@@ -523,7 +490,7 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
     }
     processList.onListChanged = this._onProcessListChanged;
     const processes = processList.getList();
-    const pool = new Pool(this.conn);
+    const pool = new Pool(this.conn, "process-descriptors");
     for (const metadata of processes) {
       let processDescriptor = this._getKnownDescriptor(
         metadata.id,
@@ -562,7 +529,8 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
       };
     }
     this._processDescriptorActorPool =
-      this._processDescriptorActorPool || new Pool(this.conn);
+      this._processDescriptorActorPool ||
+      new Pool(this.conn, "process-descriptors");
 
     let processDescriptor = this._getKnownDescriptor(
       id,
@@ -574,83 +542,7 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
       processDescriptor = new ProcessDescriptorActor(this.conn, options);
       this._processDescriptorActorPool.manage(processDescriptor);
     }
-    return { processDescriptor };
-  },
-
-  /**
-   * Note that this method behaves differently when called for a top level
-   * window.
-   * For a top level window, it will ONLY return remote browser elements.
-   * For any other window, it will return chidren elements, remote or not.
-   *
-   * Also important to note, this method only returns direct children, not the
-   * complete browsing context tree.
-   */
-  async _getChildBrowsingContexts(id) {
-    // If we have the id of the parent, then we need to get the child
-    // contexts in a special way. We have a method on the descriptor
-    // to take care of this.
-    const parentBrowsingContext = BrowsingContext.get(id);
-    // If this is a parent-process window, and it's top-level (not embedded in a browser),
-    // collect all the remote browsers in the window ourselves. getChildren() will not return
-    // these contexts otherwise.
-    if (
-      parentBrowsingContext.window &&
-      !parentBrowsingContext.embedderElement
-    ) {
-      const { window } = parentBrowsingContext;
-      return [
-        ...window.document.querySelectorAll(`browser[remote="true"]`),
-      ].map(browser => browser.browsingContext);
-    }
-    // for all other contexts, since we do not need to get contexts of
-    // a different type, we can just get the children directly from
-    // the BrowsingContext.
-    return (
-      parentBrowsingContext.children
-        // For now, we only return the "remote frames".
-        // i.e. the frames which are in a distinct process compared to their parent document
-        .filter(browsingContext => {
-          return (
-            !browsingContext.parent ||
-            browsingContext.currentWindowGlobal.osPid !=
-              browsingContext.parent.currentWindowGlobal.osPid
-          );
-        })
-    );
-  },
-
-  async listRemoteFrames(id) {
-    const frames = [];
-    const contextsToWalk = await this._getChildBrowsingContexts(id);
-
-    if (contextsToWalk.length == 0) {
-      return { frames };
-    }
-
-    const pool = new Pool(this.conn);
-    while (contextsToWalk.length) {
-      const currentContext = contextsToWalk.pop();
-      let frameDescriptor = this._getKnownDescriptor(
-        currentContext.id,
-        this._frameDescriptorActorPool
-      );
-      if (!frameDescriptor) {
-        frameDescriptor = new FrameDescriptorActor(this.conn, currentContext);
-      }
-      pool.manage(frameDescriptor);
-      frames.push(frameDescriptor);
-      contextsToWalk.push(...currentContext.children);
-    }
-    // Do not destroy the pool before transfering ownership to the newly created
-    // pool, so that we do not accidently destroy actors that are still in use.
-    if (this._frameDescriptorActorPool) {
-      this._frameDescriptorActorPool.destroy();
-    }
-
-    this._frameDescriptorActorPool = pool;
-
-    return { frames };
+    return processDescriptor;
   },
 
   _getKnownDescriptor(id, pool) {
@@ -668,7 +560,10 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
 
   _getParentProcessDescriptor() {
     if (!this._processDescriptorActorPool) {
-      this._processDescriptorActorPool = new Pool(this.conn);
+      this._processDescriptorActorPool = new Pool(
+        this.conn,
+        "process-descriptors"
+      );
       const options = { id: 0, parent: true };
       const descriptor = new ProcessDescriptorActor(this.conn, options);
       this._processDescriptorActorPool.manage(descriptor);
@@ -688,33 +583,6 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
       DevToolsServer.chromeWindowType
     );
     return id == window.docShell.browsingContext.id;
-  },
-
-  getBrowsingContextDescriptor(id) {
-    // since the id for frame descriptors is the same as the browsing
-    // context id, we can get the associated descriptor using
-    // _getKnownDescriptor.
-    const frameDescriptor = this._getKnownDescriptor(
-      id,
-      this._frameDescriptorActorPool
-    );
-    if (frameDescriptor) {
-      return frameDescriptor;
-    }
-
-    // if the descriptor cannot be found in the frames, it is probably
-    // the main process, which is a process descriptor
-    if (this._isParentBrowsingContext(id)) {
-      return this._getParentProcessDescriptor();
-    }
-
-    const context = BrowsingContext.get(id);
-    const newFrameDescriptor = new FrameDescriptorActor(this.conn, context);
-    if (!this._frameDescriptorActorPool) {
-      this._frameDescriptorActorPool = new Pool(this.conn);
-    }
-    this._frameDescriptorActorPool.manage(newFrameDescriptor);
-    return newFrameDescriptor;
   },
 
   protocolDescription: function() {

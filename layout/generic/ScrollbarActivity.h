@@ -11,11 +11,12 @@
 #include "nsCOMPtr.h"
 #include "nsIDOMEventListener.h"
 #include "mozilla/TimeStamp.h"
-#include "nsRefreshDriver.h"
+#include "nsRefreshObservers.h"
 
 class nsIContent;
 class nsIScrollbarMediator;
 class nsITimer;
+class nsRefreshDriver;
 
 namespace mozilla {
 
@@ -97,7 +98,7 @@ class ScrollbarActivity final : public nsIDOMEventListener,
   }
 
  protected:
-  virtual ~ScrollbarActivity() {}
+  virtual ~ScrollbarActivity() = default;
 
   bool IsActivityOngoing() { return mNestedActivityCounter > 0; }
   bool IsStillFading(TimeStamp aTime);

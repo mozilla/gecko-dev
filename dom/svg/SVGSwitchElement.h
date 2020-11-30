@@ -4,13 +4,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_SVGSwitchElement_h
-#define mozilla_dom_SVGSwitchElement_h
+#ifndef DOM_SVG_SVGSWITCHELEMENT_H_
+#define DOM_SVG_SVGSWITCHELEMENT_H_
 
 #include "mozilla/dom/SVGGraphicsElement.h"
 #include "nsCOMPtr.h"
-
-class nsSVGSwitchFrame;
 
 nsresult NS_NewSVGSwitchElement(
     nsIContent** aResult, already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
@@ -18,11 +16,9 @@ nsresult NS_NewSVGSwitchElement(
 namespace mozilla {
 namespace dom {
 
-typedef SVGGraphicsElement SVGSwitchElementBase;
+using SVGSwitchElementBase = SVGGraphicsElement;
 
 class SVGSwitchElement final : public SVGSwitchElementBase {
-  friend class ::nsSVGSwitchFrame;
-
  protected:
   friend nsresult(::NS_NewSVGSwitchElement(
       nsIContent** aResult,
@@ -63,4 +59,4 @@ class SVGSwitchElement final : public SVGSwitchElementBase {
 }  // namespace dom
 }  // namespace mozilla
 
-#endif  // mozilla_dom_SVGSwitchElement_h
+#endif  // DOM_SVG_SVGSWITCHELEMENT_H_

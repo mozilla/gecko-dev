@@ -28,13 +28,13 @@ var observer = {
     if (aIID.equals(Ci.nsISupports) ||
         aIID.equals(Ci.nsIObserver))
       return this;
-    throw Cr.NS_ERROR_NO_INTERFACE;
+    throw Components.Exception("", Cr.NS_ERROR_NO_INTERFACE);
   },
 
   observe(subject, topic, data) {
     ok(topic == "net:failed-to-process-uri-content", "wrong topic");
     subject = subject.QueryInterface(Ci.nsIURI);
-    is(subject.asciiSpec, "http://mochi.test:8888/tests/image/test/mochitest/invalid.jpg", "wrong subject");
+    is(subject.asciiSpec, `${location.origin}/tests/image/test/mochitest/invalid.jpg`, "wrong subject");
 
     obs.removeObserver(this, "net:failed-to-process-uri-content");
 

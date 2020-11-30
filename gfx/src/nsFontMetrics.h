@@ -24,6 +24,7 @@ class gfxTextPerfMetrics;
 class nsDeviceContext;
 class nsAtom;
 struct nsBoundingMetrics;
+struct FontMatchingStats;
 
 namespace mozilla {
 namespace gfx {
@@ -61,6 +62,7 @@ class nsFontMetrics final {
     FontOrientation orientation = eHorizontal;
     gfxUserFontSet* userFontSet = nullptr;
     gfxTextPerfMetrics* textPerf = nullptr;
+    FontMatchingStats* fontStats = nullptr;
     gfxFontFeatureValueSet* featureValueLookup = nullptr;
   };
 
@@ -216,9 +218,9 @@ class nsFontMetrics final {
 
   // Returns the LOOSE_INK_EXTENTS bounds of the text for determing the
   // overflow area of the string.
-  nsBoundingMetrics GetInkBoundsForVisualOverflow(const char16_t* aString,
-                                                  uint32_t aLength,
-                                                  DrawTarget* aDrawTarget);
+  nsBoundingMetrics GetInkBoundsForInkOverflow(const char16_t* aString,
+                                               uint32_t aLength,
+                                               DrawTarget* aDrawTarget);
 
   void SetTextRunRTL(bool aIsRTL) { mTextRunRTL = aIsRTL; }
   bool GetTextRunRTL() const { return mTextRunRTL; }

@@ -40,8 +40,8 @@ void HexEncode(const SECItem* it, nsACString& result) {
   }
 }
 
-#define DSA_KEY_TYPE_STRING (NS_LITERAL_CSTRING("DS160"))
-#define RSA_KEY_TYPE_STRING (NS_LITERAL_CSTRING("RS256"))
+#define DSA_KEY_TYPE_STRING ("DS160"_ns)
+#define RSA_KEY_TYPE_STRING ("RS256"_ns)
 
 class KeyPair : public nsIIdentityKeyPair {
  public:
@@ -109,7 +109,6 @@ class SignRunnable : public Runnable {
   nsresult mRv;                                              // out
   nsCString mSignature;                                      // out
 
- private:
   SignRunnable(const SignRunnable&) = delete;
   void operator=(const SignRunnable&) = delete;
 };
@@ -268,11 +267,11 @@ KeyGenRunnable::KeyGenRunnable(KeyType keyType,
       mRv(NS_ERROR_NOT_INITIALIZED),
       mThread(operationThread) {}
 
-MOZ_MUST_USE nsresult GenerateKeyPair(PK11SlotInfo* slot,
-                                      SECKEYPrivateKey** privateKey,
-                                      SECKEYPublicKey** publicKey,
-                                      CK_MECHANISM_TYPE mechanism,
-                                      void* params) {
+[[nodiscard]] nsresult GenerateKeyPair(PK11SlotInfo* slot,
+                                       SECKEYPrivateKey** privateKey,
+                                       SECKEYPublicKey** publicKey,
+                                       CK_MECHANISM_TYPE mechanism,
+                                       void* params) {
   *publicKey = nullptr;
   *privateKey = PK11_GenerateKeyPair(
       slot, mechanism, params, publicKey, PR_FALSE /*isPerm*/,
@@ -290,9 +289,9 @@ MOZ_MUST_USE nsresult GenerateKeyPair(PK11SlotInfo* slot,
   return NS_OK;
 }
 
-MOZ_MUST_USE nsresult GenerateRSAKeyPair(PK11SlotInfo* slot,
-                                         SECKEYPrivateKey** privateKey,
-                                         SECKEYPublicKey** publicKey) {
+[[nodiscard]] nsresult GenerateRSAKeyPair(PK11SlotInfo* slot,
+                                          SECKEYPrivateKey** privateKey,
+                                          SECKEYPublicKey** publicKey) {
   MOZ_ASSERT(!NS_IsMainThread());
 
   PK11RSAGenParams rsaParams;
@@ -302,9 +301,9 @@ MOZ_MUST_USE nsresult GenerateRSAKeyPair(PK11SlotInfo* slot,
                          &rsaParams);
 }
 
-MOZ_MUST_USE nsresult GenerateDSAKeyPair(PK11SlotInfo* slot,
-                                         SECKEYPrivateKey** privateKey,
-                                         SECKEYPublicKey** publicKey) {
+[[nodiscard]] nsresult GenerateDSAKeyPair(PK11SlotInfo* slot,
+                                          SECKEYPrivateKey** privateKey,
+                                          SECKEYPublicKey** publicKey) {
   MOZ_ASSERT(!NS_IsMainThread());
 
   // XXX: These could probably be static const arrays, but this way we avoid

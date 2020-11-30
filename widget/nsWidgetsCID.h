@@ -115,7 +115,7 @@
   }
 
 // {b6e1a890-b2b8-4883-a65f-9476f6185313}
-#define NS_MACSYSTEMSTATUSBAR_CID                    \
+#define NS_SYSTEMSTATUSBAR_CID                       \
   {                                                  \
     0xb6e1a890, 0xb2b8, 0x4883, {                    \
       0xa6, 0x5f, 0x94, 0x76, 0xf6, 0x18, 0x53, 0x13 \
@@ -303,7 +303,7 @@
     }                                                \
   }
 
-#define NS_PRINTER_ENUMERATOR_CID                    \
+#define NS_PRINTER_LIST_CID                          \
   {                                                  \
     0xa6cf9129, 0x15b3, 0x11d2, {                    \
       0x93, 0x2e, 0x00, 0x80, 0x5f, 0x8a, 0xdd, 0x32 \

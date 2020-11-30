@@ -4,12 +4,7 @@
 
 "use strict";
 
-var EXPORTED_SYMBOLS = [
-  "DOMContentLoadedPromise",
-  "EventPromise",
-  "MessagePromise",
-  "PollPromise",
-];
+var EXPORTED_SYMBOLS = ["EventPromise", "executeSoon", "PollPromise"];
 
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
@@ -76,46 +71,25 @@ function EventPromise(
     listener.addEventListener(
       type,
       event => {
-        Services.tm.dispatchToMainThread(() => resolve(event));
+        executeSoon(() => resolve(event));
       },
       options
     );
   });
 }
 
-function DOMContentLoadedPromise(window, options = { mozSystemGroup: true }) {
-  if (
-    window.document.readyState == "complete" ||
-    window.document.readyState == "interactive"
-  ) {
-    return Promise.resolve();
-  }
-  return new EventPromise(window, "DOMContentLoaded", options);
-}
-
 /**
- * Awaits a single IPC message.
+ * Wait for the next tick in the event loop to execute a callback.
  *
- * @param {nsIMessageSender} target
- * @param {string} name
- *
- * @return {Promise}
- *
- * @throws {TypeError}
- *     If target is not an nsIMessageSender.
+ * @param {function} fn
+ *     Function to be executed.
  */
-function MessagePromise(target, name) {
-  if (!(target instanceof Ci.nsIMessageSender)) {
+function executeSoon(fn) {
+  if (typeof fn != "function") {
     throw new TypeError();
   }
 
-  return new Promise(resolve => {
-    const onMessage = (...args) => {
-      target.removeMessageListener(name, onMessage);
-      resolve(...args);
-    };
-    target.addMessageListener(name, onMessage);
-  });
+  Services.tm.dispatchToMainThread(fn);
 }
 
 /**
@@ -183,7 +157,8 @@ function PollPromise(func, { timeout = null, interval = 10 } = {}) {
   }
   if (
     (timeout && (!Number.isInteger(timeout) || timeout < 0)) ||
-    (!Number.isInteger(interval) || interval < 0)
+    !Number.isInteger(interval) ||
+    interval < 0
   ) {
     throw new RangeError();
   }

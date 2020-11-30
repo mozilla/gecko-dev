@@ -13,6 +13,7 @@
 #include "nsCOMPtr.h"
 #include "gfxFont.h"
 
+enum WidgetNodeType : int;
 struct _GtkStyle;
 
 class nsLookAndFeel final : public nsXPLookAndFeel {
@@ -31,9 +32,8 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
   char16_t GetPasswordCharacterImpl() override;
   bool GetEchoPasswordImpl() override;
 
-  nsTArray<LookAndFeelInt> GetIntCacheImpl() override;
-  void SetIntCacheImpl(
-      const nsTArray<LookAndFeelInt>& aLookAndFeelIntCache) override;
+  LookAndFeelCache GetCacheImpl() override;
+  void SetCacheImpl(const LookAndFeelCache& aCache) override;
 
   bool IsCSDAvailable() const { return mCSDAvailable; }
 
@@ -41,11 +41,10 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
   static const nscolor kWhite = NS_RGB(255, 255, 255);
 
  protected:
+  bool WidgetUsesImage(WidgetNodeType aNodeType);
+  void RecordLookAndFeelSpecificTelemetry() override;
+
   // Cached fonts
-  bool mDefaultFontCached = false;
-  bool mButtonFontCached = false;
-  bool mFieldFontCached = false;
-  bool mMenuFontCached = false;
   nsString mDefaultFontName;
   nsString mButtonFontName;
   nsString mFieldFontName;
@@ -89,6 +88,14 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
   nscolor mTextSelectedBackground = kWhite;
   nscolor mMozScrollbar = kWhite;
   nscolor mInfoBarText = kBlack;
+  nscolor mMozColHeaderText = kBlack;
+  nscolor mMozColHeaderHoverText = kBlack;
+  nscolor mThemedScrollbar = kWhite;
+  nscolor mThemedScrollbarInactive = kWhite;
+  nscolor mThemedScrollbarThumb = kBlack;
+  nscolor mThemedScrollbarThumbHover = kBlack;
+  nscolor mThemedScrollbarThumbActive = kBlack;
+  nscolor mThemedScrollbarThumbInactive = kBlack;
   char16_t mInvisibleCharacter = 0;
   float mCaretRatio = 0.0f;
   int32_t mCaretBlinkTime = 0;
@@ -100,8 +107,12 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
   bool mCSDCloseButton = false;
   bool mCSDReversedPlacement = false;
   bool mSystemUsesDarkTheme = false;
+  bool mPrefersReducedMotion = false;
   bool mHighContrast = false;
   bool mInitialized = false;
+  int32_t mCSDMaximizeButtonPosition = 0;
+  int32_t mCSDMinimizeButtonPosition = 0;
+  int32_t mCSDCloseButtonPosition = 0;
 
   void EnsureInit();
   void ConfigureContentGtkTheme();

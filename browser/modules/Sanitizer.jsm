@@ -341,8 +341,8 @@ var Sanitizer = {
   },
 
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIObserver,
-    Ci.nsISupportsWeakReference,
+    "nsIObserver",
+    "nsISupportsWeakReference",
   ]),
 
   // This method is meant to be used by tests.
@@ -724,12 +724,10 @@ async function sanitizeInternal(items, aItemsToClear, progress, options = {}) {
       // Catch errors here, so later we can just loop through these.
       handles.push({
         name,
-        promise: item
-          .clear(range, options)
-          .then(
-            () => (progress[name] = "cleared"),
-            ex => annotateError(name, ex)
-          ),
+        promise: item.clear(range, options).then(
+          () => (progress[name] = "cleared"),
+          ex => annotateError(name, ex)
+        ),
       });
     } catch (ex) {
       annotateError(name, ex);
@@ -784,8 +782,7 @@ class PrincipalsCollector {
           let principal = Services.scriptSecurityManager.createContentPrincipalFromOrigin(
             origin
           );
-          let uri = principal.URI;
-          if (isSupportedURI(uri)) {
+          if (isSupportedPrincipal(principal)) {
             list.push(principal);
           }
         }
@@ -953,13 +950,13 @@ async function sanitizeOnShutdown(progress) {
     }
 
     // We consider just permissions set for http, https and file URLs.
-    if (!isSupportedURI(permission.principal.URI)) {
+    if (!isSupportedPrincipal(permission.principal)) {
       continue;
     }
 
     log(
       "Custom session cookie permission detected for: " +
-        permission.principal.URI.spec
+        permission.principal.asciiSpec
     );
     exceptions++;
 
@@ -967,7 +964,7 @@ async function sanitizeOnShutdown(progress) {
     let principals = await principalsCollector.getAllPrincipals(progress);
     let selectedPrincipals = extractMatchingPrincipals(
       principals,
-      permission.principal.URI
+      permission.principal.host
     );
     await maybeSanitizeSessionPrincipals(progress, selectedPrincipals);
   }
@@ -976,9 +973,9 @@ async function sanitizeOnShutdown(progress) {
 }
 
 // Extracts the principals matching matchUri as root domain.
-function extractMatchingPrincipals(principals, matchUri) {
+function extractMatchingPrincipals(principals, matchHost) {
   return principals.filter(principal => {
-    return Services.eTLD.hasRootDomain(matchUri.host, principal.URI.host);
+    return Services.eTLD.hasRootDomain(matchHost, principal.host);
   });
 }
 
@@ -1005,7 +1002,7 @@ async function maybeSanitizeSessionPrincipals(progress, principals) {
 }
 
 function cookiesAllowedForDomainOrSubDomain(principal) {
-  log("Checking principal: " + principal.URI.spec);
+  log("Checking principal: " + principal.asciispec);
 
   // If we have the 'cookie' permission for this principal, let's return
   // immediately.
@@ -1035,15 +1032,13 @@ function cookiesAllowedForDomainOrSubDomain(principal) {
     }
 
     // We consider just permissions set for http, https and file URLs.
-    if (!isSupportedURI(perm.principal.URI)) {
+    if (!isSupportedPrincipal(perm.principal)) {
       continue;
     }
 
     // We don't care about scheme, port, and anything else.
-    if (
-      Services.eTLD.hasRootDomain(perm.principal.URI.host, principal.URI.host)
-    ) {
-      log("Recursive cookie check on principal: " + perm.principal.URI.spec);
+    if (Services.eTLD.hasRootDomain(perm.principal.host, principal.host)) {
+      log("Recursive cookie check on principal: " + perm.principal.asciiSpec);
       return cookiesAllowedForDomainOrSubDomain(perm.principal);
     }
   }
@@ -1053,7 +1048,7 @@ function cookiesAllowedForDomainOrSubDomain(principal) {
 }
 
 async function sanitizeSessionPrincipal(progress, principal) {
-  log("Sanitizing principal: " + principal.URI.spec);
+  log("Sanitizing principal: " + principal.asciispec);
 
   await new Promise(resolve => {
     progress.sanitizePrincipal = "started";
@@ -1163,6 +1158,6 @@ async function clearData(range, flags) {
   }
 }
 
-function isSupportedURI(uri) {
-  return uri.scheme == "http" || uri.scheme == "https" || uri.scheme == "file";
+function isSupportedPrincipal(principal) {
+  return ["http", "https", "file"].some(scheme => principal.schemeIs(scheme));
 }

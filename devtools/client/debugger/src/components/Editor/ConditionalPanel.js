@@ -9,6 +9,7 @@ import { connect } from "../../utils/connect";
 import classNames from "classnames";
 import "./ConditionalPanel.css";
 import { toEditorLine } from "../../utils/editor";
+import { prefs } from "../../utils/prefs";
 import actions from "../../actions";
 
 import {
@@ -176,6 +177,7 @@ export class ConditionalPanel extends PureComponent<Props> {
           ? "editor.conditionalPanel.logPoint.placeholder2"
           : "editor.conditionalPanel.placeholder2"
       ),
+      cursorBlinkRate: prefs.cursorBlinkRate,
     });
 
     codeMirror.on("keydown", (cm, e) => {
@@ -184,7 +186,16 @@ export class ConditionalPanel extends PureComponent<Props> {
       }
     });
 
-    codeMirror.on("blur", (cm, e) => closeConditionalPanel());
+    codeMirror.on("blur", (cm, e) => {
+      if (
+        e?.relatedTarget &&
+        e.relatedTarget.closest(".conditional-breakpoint-panel")
+      ) {
+        return;
+      }
+
+      closeConditionalPanel();
+    });
 
     const codeMirrorWrapper = codeMirror.getWrapperElement();
 
@@ -201,7 +212,7 @@ export class ConditionalPanel extends PureComponent<Props> {
 
   getDefaultValue() {
     const { breakpoint, log } = this.props;
-    const options = (breakpoint && breakpoint.options) || {};
+    const options = breakpoint?.options || {};
     return log ? options.logValue : options.condition;
   }
 

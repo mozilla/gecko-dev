@@ -6,16 +6,15 @@
 
 #include "AutoTimelineMarker.h"
 
+#include "nsIDocShell.h"
 #include "TimelineConsumers.h"
 #include "MainThreadUtils.h"
 
 namespace mozilla {
 
-AutoTimelineMarker::AutoTimelineMarker(
-    nsIDocShell* aDocShell,
-    const char* aName MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
+AutoTimelineMarker::AutoTimelineMarker(nsIDocShell* aDocShell,
+                                       const char* aName)
     : mName(aName), mDocShell(nullptr) {
-  MOZ_GUARD_OBJECT_NOTIFIER_INIT;
   MOZ_ASSERT(NS_IsMainThread());
 
   if (!aDocShell) {

@@ -3,8 +3,8 @@
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
 // @flow
-// eslint-disable-next-line import/named
-import { objectInspector } from "devtools-reps";
+// $FlowIgnore
+import { objectInspector } from "devtools/client/shared/components/reps/index";
 import { getBindingVariables } from "./getVariables";
 import { getFramePopVariables, getThisVariable } from "./utils";
 import { simplifyDisplayName } from "../../pause/frames";
@@ -34,7 +34,7 @@ const {
   },
 } = objectInspector;
 
-function getScopeTitle(type, scope: RenderableScope) {
+function getScopeTitle(type, scope: RenderableScope): string | void {
   if (type === "block" && scope.block && scope.block.displayName) {
     return scope.block.displayName;
   }
@@ -84,7 +84,7 @@ export function getScope(
       }
     }
 
-    if (vars && vars.length) {
+    if (vars?.length) {
       const title = getScopeTitle(type, scope) || "";
       vars.sort((a, b) => a.name.localeCompare(b.name));
       return {
@@ -116,7 +116,7 @@ export function mergeScopes(
   parentScope: RenderableScope,
   item: NamedValue,
   parentItem: NamedValue
-) {
+): NamedValue | void {
   if (scope.scopeKind == "function lexical" && parentScope.type == "function") {
     const contents = (item.contents: any).concat(parentItem.contents);
     contents.sort((a, b) => a.name.localeCompare(b.name));

@@ -44,7 +44,7 @@ already_AddRefed<Presentation> Presentation::Create(
 
 Presentation::Presentation(nsPIDOMWindowInner* aWindow) : mWindow(aWindow) {}
 
-Presentation::~Presentation() {}
+Presentation::~Presentation() = default;
 
 /* virtual */
 JSObject* Presentation::WrapObject(JSContext* aCx,
@@ -124,7 +124,6 @@ bool Presentation::HasReceiverSupport() const {
   }
 
   if (!StaticPrefs::dom_presentation_testing_simulate_receiver() &&
-      !docShell->GetIsInMozBrowser() &&
       !docShell->GetIsTopLevelContentDocShell()) {
     return false;
   }

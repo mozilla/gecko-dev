@@ -17,7 +17,7 @@ function AboutCompat() {
   );
 }
 AboutCompat.prototype = {
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIAboutModule]),
+  QueryInterface: ChromeUtils.generateQI(["nsIAboutModule"]),
   getURIFlags() {
     return Ci.nsIAboutModule.URI_MUST_LOAD_IN_EXTENSION_PROCESS;
   },
@@ -27,11 +27,10 @@ AboutCompat.prototype = {
     const channel = Services.io.newChannelFromURIWithLoadInfo(uri, aLoadInfo);
     channel.originalURI = aURI;
 
-    channel.owner = (Services.scriptSecurityManager.createContentPrincipal ||
-      Services.scriptSecurityManager.createCodebasePrincipal)(
-      uri,
-      aLoadInfo.originAttributes
-    );
+    channel.owner = (
+      Services.scriptSecurityManager.createContentPrincipal ||
+      Services.scriptSecurityManager.createCodebasePrincipal
+    )(uri, aLoadInfo.originAttributes);
     return channel;
   },
 };

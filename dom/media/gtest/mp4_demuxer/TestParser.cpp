@@ -179,8 +179,6 @@ static const TestFileData testFiles[] = {
      0, false, false, 2},
     {"test_case_1181215.mp4", true, 0, false, -1, 0, 0, 0, -1, false, 0, false,
      false, 0},
-    {"test_case_1181220.mp4", false, 0, false, -1, 0, 0, 0, -1, false, 0, false,
-     false, 0},  // invalid audio 'sinf' box
     {"test_case_1181223.mp4", false, 0, false, 416666, 320, 240, 0, -1, false,
      0, false, false, 0},
     {"test_case_1181719.mp4", false, 0, false, -1, 0, 0, 0, -1, false, 0, false,
@@ -944,19 +942,19 @@ TEST_F(MP4MetadataTelemetryFixture, Telemetry) {
   // Clear histograms
   TelemetryTestHelpers::GetAndClearHistogram(
       cx.GetJSContext(), mTelemetry,
-      NS_LITERAL_CSTRING(
+      nsLiteralCString(
           "MEDIA_MP4_PARSE_SAMPLE_DESCRIPTION_ENTRIES_HAVE_MULTIPLE_CODECS"),
       false /* is_keyed */);
 
   TelemetryTestHelpers::GetAndClearHistogram(
       cx.GetJSContext(), mTelemetry,
-      NS_LITERAL_CSTRING(
+      nsLiteralCString(
           "MEDIA_MP4_PARSE_SAMPLE_DESCRIPTION_ENTRIES_HAVE_MULTIPLE_CRYPTO"),
       false /* is_keyed */);
 
   TelemetryTestHelpers::GetAndClearHistogram(
       cx.GetJSContext(), mTelemetry,
-      NS_LITERAL_CSTRING("MEDIA_MP4_PARSE_NUM_SAMPLE_DESCRIPTION_ENTRIES"),
+      "MEDIA_MP4_PARSE_NUM_SAMPLE_DESCRIPTION_ENTRIES"_ns,
       false /* is_keyed */);
 
   // The snapshot won't have any data in it until we populate our histograms, so

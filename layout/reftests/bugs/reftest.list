@@ -272,7 +272,7 @@ skip-if(Android&&asyncPan) == 243519-1.html 243519-1-ref.html
 == 243519-5b.html 243519-5-ref.html
 == 243519-5c.html 243519-5-ref.html
 == 243519-5d.html 243519-5-ref.html
-== 243519-6.html 243519-6-ref.html
+asserts(12) == 243519-6.html 243519-6-ref.html # bug 1655630
 == 243519-7.html 243519-7-ref.html
 == 243519-8.svg 243519-8-ref.svg
 == 243519-9a.html 243519-9-ref.html
@@ -338,7 +338,7 @@ random-if(d2d) == chrome://reftest/content/bugs/299837-3.xhtml chrome://reftest/
 == 300691-1f.html 300691-1-ref.html
 == 301726-1.html 301726-1-ref.html
 fails-if(Android) != 301726-2.html 301726-2-ref.html
-== 302379.html 302379-ref.html
+fuzzy-if(Android,0-1,0-6) == 302379.html 302379-ref.html
 == 306630-1.html 306630-1-ref.html
 == 306660-1.html 306660-1-ref.html
 == 306660-2.html 306660-2-ref.html
@@ -528,7 +528,7 @@ random-if(cocoaWidget) == 350506-1.html 350506-1-ref.html
 == 356774-1.html 356774-1-ref.html
 == 356775-1.html 356775-1-ref.html
 == 359869-1.html 359869-1-ref.html
-fails-if(!nativeThemePref) != 359903-1.html 359903-1-ref.html # erosion of padding removed in bug 1010675
+!= 359903-1.html 359903-1-ref.html # erosion of padding removed in bug 1010675
 != 359903-2.html 359903-2-ref.html # erosion of padding removed in bug 1010675
 == 360065-1.html 360065-1-ref.html
 == 360746-1.html 360746-1-ref.html
@@ -556,10 +556,10 @@ fuzzy-if(skiaContent,0-2,0-4) == 362594-2c.html 362594-2-standards-ref.html
 == 363728-2.html 363728-2-ref.html
 fuzzy-if(skiaContent||Android,0-4,0-11) == 363858-1.html 363858-1-ref.html
 == 363858-2.html 363858-2-ref.html
-== 363858-3.html 363858-3-ref.html
+fuzzy-if(Android,0-1,0-4) == 363858-3.html 363858-3-ref.html
 == 363858-4.html 363858-4-ref.html
 # fuzzy-if(OSX,0-45,0-2) fuzzy-if(winWidget,0-116,0-1) == 363858-5a.html 363858-5-ref.html # bug 1452797
-== 363858-5b.html 363858-5-ref.html
+fuzzy-if(Android,0-1,0-4) == 363858-5b.html 363858-5-ref.html
 # fuzzy-if(OSX,0-45,0-2) fuzzy-if(winWidget,0-116,0-1) == 363858-6a.html 363858-6-ref.html # bug 1452797
 == 363858-6b.html 363858-6-ref.html
 == 363874.html 363874-ref.html
@@ -623,7 +623,7 @@ asserts(4) == 368155-negative-margins-1.html 368155-negative-margins-1-ref.html 
 == chrome://reftest/content/bugs/369882.xhtml chrome://reftest/content/bugs/369882-ref.xhtml
 == 369975-1.html 369975-1.html
 == 370353-1.html 370353-1-ref.html
-== 370422-1.html 370422-1-ref.html
+fuzzy-if(!nativeThemePref,0-1,0-4) == 370422-1.html 370422-1-ref.html
 == 370525-1.html 370525-1-ref.html
 != 370525-1.html 370525-1-notref.html
 == 370525-2.html 370525-2-ref.html
@@ -798,10 +798,10 @@ fuzzy-if(skiaContent,0-1,0-600) == 393649-1.html 393649-1-ref.html
 == 393671-3.html 393671-3-ref.html
 == 394111-1.html about:blank  # Really an assertion test rather than a rendering test
 == 394534-1.html 394534-1-ref.html
-== 395107-1.html 395107-1-ref.html
+fuzzy-if(Android,0-4,0-2) == 395107-1.html 395107-1-ref.html
 fuzzy-if(Android,0-4,0-2) == 395107-2.html 395107-2-ref.html # bug 1309533 fuzzy after test rebucketed
 fuzzy-if(skiaContent,0-1,0-118) fuzzy-if(geckoview,0-4,0-2) == 395107-3.html 395107-3-ref.html
-== 395107-4.html 395107-4-ref.html
+fuzzy-if(Android,0-1,0-2) == 395107-4.html 395107-4-ref.html
 fuzzy-if(geckoview,0-4,0-1) == 395107-5.html 395107-5-ref.html
 == 395130-1.html 395130-1-ref.html
 == 395130-2.html 395130-2-ref.html
@@ -984,8 +984,8 @@ fuzzy-if(Android,0-11,0-17) fuzzy-if(webrender,0-1,0-10) == 413361-1.html 413361
 == 421069.html 421069-ref.html
 == 421069.html 421069-ref2.html
 == 421069-ref.html 421069-ref2.html
-== chrome://reftest/content/bugs/421203-1.xhtml 421203-1-ref.html
-== chrome://reftest/content/bugs/421203-2.xhtml 421203-1-ref.html
+fuzzy(0-92,0-430) == chrome://reftest/content/bugs/421203-1.xhtml 421203-1-ref.html
+fuzzy(0-92,0-430) == chrome://reftest/content/bugs/421203-2.xhtml 421203-1-ref.html
 == chrome://reftest/content/bugs/421203-3.xhtml chrome://reftest/content/bugs/321402-3-ref.xhtml
 == chrome://reftest/content/bugs/421203-4.xhtml chrome://reftest/content/bugs/321402-4-ref.xhtml
 == chrome://reftest/content/bugs/421203-5.xhtml chrome://reftest/content/bugs/321402-5-ref.xhtml
@@ -1005,7 +1005,7 @@ fails-if(Android) fuzzy-if(webrender,63-64,1024-1024) fails-if(usesRepeatResampl
 == 422678-1.html 422678-1-ref.html
 == 423130-1.html 423130-1-ref.html
 == 423385-1.html 423385-1-ref.html
-random-if(gtkWidget||!nativeThemePref) == 423599-1.html 423599-1-ref.html # bug 1309095
+random-if(gtkWidget||Android) == 423599-1.html 423599-1-ref.html # bug 1309095
 == 423676-1.html 423676-1-ref.html
 fails == 423823-1.html 423823-1-ref.html # scrolling rowgroups were removed in bug 28800
 == chrome://reftest/content/bugs/424074-1.xhtml chrome://reftest/content/bugs/424074-1-ref.xhtml
@@ -1132,7 +1132,7 @@ fuzzy-if(skiaContent,0-1,0-3280) == 438987-2c.html 438987-2-ref.html
 == 439004-1.html 439004-1-ref.html
 == 439639-1.html 439639-1-ref.html
 fuzzy-if(gtkWidget,0-255,0-6) == 439910.html 439910-ref.html
-fuzzy-if(skiaContent,0-1,0-1) fuzzy-if(!nativeThemePref&&skiaContent,1-1,3-3) == 440112.html 440112-ref.html
+fuzzy-if(skiaContent,0-1,0-1) fuzzy-if(Android,0-1,0-3) == 440112.html 440112-ref.html
 == 440149-1.html 440149-1-ref.html
 == 441259-1.html 441259-1-ref.html
 == 441259-2.html 441259-2-ref.html
@@ -1177,10 +1177,10 @@ fuzzy-if(webrender,0-4,0-361) == 449519-1.html 449519-1-ref.html
 == 455280-1.xhtml 455280-1-ref.xhtml
 fails-if(Android) == 455826-1.html 455826-1-ref.html
 fails-if(Android||cocoaWidget||winWidget) == chrome://reftest/content/bugs/456147.xhtml 456147-ref.html # bug 458047
-fuzzy-if(Android,0-11,0-41) fuzzy-if(winWidget||gtkWidget,0-4,0-6) fuzzy-if(d2d,0-16,0-95) fuzzy-if(skiaContent,0-42,0-154) fuzzy-if(webrender,56-60,449-528) == 456219-1a.html 456219-1-ref.html # bug 1128229
-fuzzy-if(Android,0-11,0-41) fuzzy-if(winWidget||gtkWidget,0-4,0-6) fuzzy-if(d2d,0-16,0-99) fuzzy-if(skiaContent,0-42,0-154) fuzzy-if(webrender,56-60,449-528) == 456219-1b.html 456219-1-ref.html # bug 1128229
+fuzzy-if(Android,0-11,0-41) fuzzy-if(winWidget||gtkWidget,0-4,0-6) fuzzy-if(d2d,0-16,0-95) fuzzy-if(skiaContent,0-42,0-154) fuzzy-if(webrender,56-60,449-570) == 456219-1a.html 456219-1-ref.html # bug 1128229
+fuzzy-if(Android,0-11,0-41) fuzzy-if(winWidget||gtkWidget,0-4,0-6) fuzzy-if(d2d,0-16,0-99) fuzzy-if(skiaContent,0-42,0-154) fuzzy-if(webrender,56-60,449-570) == 456219-1b.html 456219-1-ref.html # bug 1128229
 fuzzy-if(Android,0-11,0-41) fuzzy-if(winWidget||gtkWidget,0-4,0-6) fuzzy-if(d2d,0-16,0-99) fuzzy-if(skiaContent,0-42,0-154) fuzzy-if(webrender,56-60,449-497) fuzzy-if(geckoview&&webrender&&device,60-60,1014-4421) == 456219-1c.html 456219-1-ref.html # bug 1128229
-fuzzy-if(skiaContent,0-1,0-45) fuzzy-if(webrender,9-9,8-8) == 456219-2.html 456219-2-ref.html
+fuzzy-if(skiaContent,0-1,0-45) fuzzy-if(webrender,8-10,8-8) == 456219-2.html 456219-2-ref.html
 == 456330-1.gif 456330-1-ref.png
 == 456484-1.html 456484-1-ref.html
 == 457398-1.html 457398-1-ref.html
@@ -1214,7 +1214,7 @@ fuzzy-if(skiaContent||webrender,0-1,0-31200) == 461512-1.html 461512-1-ref.html
 == 462844-3.html 462844-ref.html
 == 462844-4.html 462844-ref.html
 == 463204-1.html 463204-1-ref.html
-fuzzy-if(webrender,16-16,3392-4020) == chrome://reftest/content/bugs/463217-1.xhtml chrome://reftest/content/bugs/463217-1-ref.xhtml
+fuzzy-if(webrender,16-16,3391-4020) == chrome://reftest/content/bugs/463217-1.xhtml chrome://reftest/content/bugs/463217-1-ref.xhtml
 == 463952-1.html 463952-1-ref.html
 == 464811-1.html 464811-1-ref.html
 == 465574-1.html 465574-1-ref.html # bug 421436
@@ -1287,9 +1287,9 @@ pref(layout.css.xul-display-values.content.enabled,true) == 480017-1.html 480017
 == 480880-2a.html about:blank
 == 480880-2b.html about:blank
 == 480880-2c.html about:blank
-fails-if(Android&&nativeThemePref) == 481024-1a.html 481024-1-ref.html
-fails-if(Android&&nativeThemePref) == 481024-1b.html 481024-1-ref.html
-fails-if(Android&&nativeThemePref) == 481024-1c.html 481024-1-ref.html
+== 481024-1a.html 481024-1-ref.html
+== 481024-1b.html 481024-1-ref.html
+== 481024-1c.html 481024-1-ref.html
 == 481024-1d.html 481024-1-ref.html
 == 481024-1e.html 481024-1-ref.html
 != 481948-1.html 481948-1-ref.html
@@ -1385,8 +1385,8 @@ skip-if(isDebugBuild) == chrome://reftest/content/bugs/508908-1.xhtml chrome://r
 == 509155-1.xhtml 509155-1-ref.xhtml
 fuzzy-if(Android,0-5,0-1656) fuzzy-if(skiaContent,0-1,0-1200) == 512410.html 512410-ref.html
 == 512631-1.html 512631-1-ref.html
-fuzzy-if(!nativeThemePref&&skiaContent,1-1,2-2) == 513153-1a.html 513153-1-ref.html
-fuzzy-if(!nativeThemePref&&skiaContent,1-1,2-2) == 513153-1b.html 513153-1-ref.html
+fuzzy-if(Android,0-1,0-2) == 513153-1a.html 513153-1-ref.html
+fuzzy-if(Android,0-1,0-2) == 513153-1b.html 513153-1-ref.html
 fuzzy-if(webrender&&winWidget,82-82,76-76) == 513153-2a.html 513153-2-ref.html
 fuzzy-if(webrender&&OSX,34-34,138-138) == 513153-2b.html 513153-2-ref.html
 == chrome://reftest/content/bugs/513318-1.xhtml chrome://reftest/content/bugs/513318-1-ref.xhtml
@@ -1468,8 +1468,8 @@ fuzzy-if(Android,0-12,0-300) == 551463-1.html 551463-1-ref.html
 random != 553571-1.html 553571-1-notref.html # expect dotted circle in test, not in ref: "fails" under harfbuzz, which doesn't consider the sequence invalid
 fuzzy-if(!contentSameGfxBackendAsCanvas,0-128,0-91) random-if(d2d) skip-if(azureSkiaGL) fuzzy-if(skiaContent,0-32,0-150) == 555388-1.html 555388-1-ref.html
 == 556661-1.html 556661-1-ref.html
-fuzzy-if(skiaContent,0-4,0-5) == 557087-1.html 557087-ref.html
-fuzzy-if(skiaContent&&!Android,0-2,0-5) == 557087-2.html 557087-ref.html
+fuzzy-if(skiaContent,0-4,0-9) == 557087-1.html 557087-ref.html
+fuzzy-if(skiaContent,0-2,0-5) fuzzy-if(Android,0-1,0-9) == 557087-2.html 557087-ref.html
 == 557736-1.html 557736-1-ref.html
 skip-if(Android) != chrome://reftest/content/bugs/558011-1.xhtml chrome://reftest/content/bugs/558011-1-ref.xhtml
 == 559284-1.html 559284-1-ref.html
@@ -1585,7 +1585,7 @@ fails-if(!webrender) == 1580534.html 1580534-ref.html
 == 602200-4.html 602200-4-ref.html
 == 603423-1.html 603423-1-ref.html
 == 604737.html 604737-ref.html
-fuzzy-if(webrender&&cocoaWidget,0-7,0-610) fuzzy-if(geckoview&&webrender&&emulator,0-11,0-632) == 605138-1.html 605138-1-ref.html
+fuzzy-if(webrender&&cocoaWidget,0-7,0-610) fuzzy-if(webrender&&gtkWidget,0-11,0-608) fuzzy-if(webrender&&winWidget,0-5,0-587) fuzzy-if(geckoview&&webrender&&emulator,0-11,0-632) == 605138-1.html 605138-1-ref.html
 == 605157-1.xhtml 605157-1-ref.xhtml
 == 607267-1.html 607267-1-ref.html
 == 608636-1.html 608636-1-ref.html
@@ -1602,7 +1602,7 @@ needs-focus == 613433-2.html 613433-3-ref.html
 needs-focus == 613433-3.html 613433-1-ref.html
 needs-focus == 613433-3.html 613433-2-ref.html
 needs-focus == 613433-3.html 613433-3-ref.html
-== 614272-1.svg  614272-1-ref.svg
+fuzzy-if(webrender,0-64,0-45) == 614272-1.svg  614272-1-ref.svg
 == 615121-1.html 615121-1-ref.html
 != 615121-2.html 615121-2-notref.html
 == 617242-1.html 617242-1-ref.html
@@ -1706,7 +1706,7 @@ fuzzy-if(skiaContent,0-1,0-1) == 751012-1b.html 751012-1-ref.html
 == 753329-1.html about:blank
 == 758561-1.html 758561-1-ref.html
 fuzzy-if(true,0-1,0-90) fuzzy-if(skiaContent,0-1,0-320) == 759036-1.html 759036-1-ref.html
-fuzzy-if(true,0-17,0-5886) fuzzy-if(skiaContent,0-9,0-5894) fuzzy-if(geckoview&&webrender&&device,3-3,5897-5897) == 759036-2.html 759036-2-ref.html
+fuzzy-if(true,0-17,0-5886) fuzzy-if(skiaContent,0-9,0-5894) fuzzy-if(geckoview&&webrender&&device,3-3,5850-5855) == 759036-2.html 759036-2-ref.html
 == 776265-1a.html 776265-1-ref.html
 == 776265-1b.html 776265-1-ref.html
 == 776265-1c.html 776265-1-ref.html
@@ -1773,6 +1773,7 @@ fuzzy-if(skiaContent,0-1,0-3) == 931464-1.html 931464-1-ref.html
 == 931853.html 931853-ref.html
 == 931853-quirks.html 931853-quirks-ref.html
 == 933264-1.html 933264-1-ref.html
+test-pref(font.minimum-size.x-western,32) fuzzy-if(Android,0-45,0-324) == 935056-1.html 935056-1-ref.html
 random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == 936670-1.svg 936670-1-ref.svg # Bug 1392106
 == 941940-1.html 941940-1-ref.html
 fails == 942017.html 942017-ref.html # bug 942017
@@ -1784,7 +1785,7 @@ fuzzy-if(skiaContent,0-1,0-5) == 956513-1.svg 956513-1-ref.svg
 == 957770-1.svg 957770-1-ref.svg
 == 960277-1.html 960277-1-ref.html
 fuzzy-if(skiaContent,0-1,0-80) == 961887-1.html 961887-1-ref.html
-== 961887-2.html 961887-2-ref.html
+fuzzy-if(gtkWidget&&webrender&&swgl,1-1,22-22) == 961887-2.html 961887-2-ref.html
 == 961887-3.html 961887-3-ref.html
 pref(layout.css.overflow-clip-box.enabled,true) fuzzy(0-50,0-145) fuzzy-if(asyncPan&&!layersGPUAccelerated,0-102,0-3712) fuzzy-if(webrender,0-255,0-180) random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == 966992-1.html 966992-1-ref.html # Bug 1392106
 == 966510-1.html 966510-1-ref.html
@@ -1835,9 +1836,9 @@ fails-if(webrender) == 1059498-3.html 1059498-1-ref.html # WebRender: see bug 14
 == 1062963-floatmanager-reflow.html 1062963-floatmanager-reflow-ref.html
 == 1066554-1.html 1066554-1-ref.html
 == 1069716-1.html 1069716-1-ref.html
-== 1078262-1.html about:blank
+skip-if(geckoview&&!webrender) == 1078262-1.html about:blank # bug 1656792
 test-pref(layout.testing.overlay-scrollbars.always-visible,false) == 1081072-1.html 1081072-1-ref.html
-fuzzy-if(webrender,63-64,407-845) == 1081185-1.html 1081185-1-ref.html
+fuzzy-if(webrender,63-64,359-845) == 1081185-1.html 1081185-1-ref.html
 == 1097437-1.html 1097437-1-ref.html
 == 1103258-1.html 1103258-1-ref.html # assertion crash test with layers culling test
 == 1105137-1.html 1105137-1-ref.html
@@ -1912,14 +1913,14 @@ pref(apz.allow_zooming,true) skip-if(!Android) fuzzy-if(Android,0-54,0-8) == 113
 pref(apz.allow_zooming,true) skip-if(!Android) != 1133905-ref-vh-rtl.html about:blank # make sure it doesn't render blank
 == 1149304-1-transform-change.html 1149304-1-transform-change-ref.html
 == chrome://reftest/content/bugs/1150021-1.xhtml chrome://reftest/content/bugs/1150021-1-ref.xhtml
-== 1151145-1.html 1151145-1-ref.html
+fuzzy-if(webrender,0-128,0-22) == 1151145-1.html 1151145-1-ref.html # bug 1646527 for WR fuzz
 == 1151306-1.html 1151306-1-ref.html
 == 1153845-1.html 1153845-1-ref.html
-== 1155828-1.html 1155828-1-ref.html
+fuzzy-if(webrender,0-128,0-22) == 1155828-1.html 1155828-1-ref.html # bug 1646527 for WR fuzz
 fuzzy-if(skiaContent,0-7,0-84) == 1156129-1.html 1156129-1-ref.html
 pref(dom.use_xbl_scopes_for_remote_xul,true) HTTP(..) == 1157127-1.html 1157127-1-ref.html
 fuzzy-if(Android,0-6,0-6) == 1169331-1.html 1169331-1-ref.html
-fuzzy(0-1,0-74) fails-if(Android||gtkWidget) == 1174332-1.html 1174332-1-ref.html # bug 1312658
+fuzzy(0-1,0-74) random-if(Android||gtkWidget) == 1174332-1.html 1174332-1-ref.html # bug 1312658
 == 1179078-1.html 1179078-1-ref.html
 == 1179288-1.html 1179288-1-ref.html
 == 1190635-1.html 1190635-1-ref.html
@@ -1972,7 +1973,7 @@ fuzzy-if(Android,0-27,0-874) fuzzy-if(!Android,0-14,0-43) == 1313772.xhtml 13137
 fuzzy(0-3,0-320000) == 1315113-1.html 1315113-1-ref.html
 fuzzy(0-3,0-20000) == 1315113-2.html 1315113-2-ref.html
 == 1315632-1.html 1315632-1-ref.html
-fuzzy(0-2,0-40000) fuzzy-if(/^Windows\x20NT\x2010\.0/.test(http.oscpu),0-13,0-40000) == 1316719-1a.html 1316719-1-ref.html
+fuzzy(0-2,0-40000) fuzzy-if(/^Windows\x20NT\x2010\.0/.test(http.oscpu),0-13,0-40000) fuzzy-if(gtkWidget&&webrender&&swgl,7-7,410-410) == 1316719-1a.html 1316719-1-ref.html
 fuzzy(0-13,0-40000) fuzzy-if(/^Windows\x20NT\x2010\.0/.test(http.oscpu),0-13,0-40000) == 1316719-1b.html 1316719-1-ref.html
 fuzzy(0-13,0-40000) fuzzy-if(/^Windows\x20NT\x2010\.0/.test(http.oscpu),0-13,0-40000) == 1316719-1c.html 1316719-1-ref.html
 != 1318769-1.html 1318769-1-ref.html
@@ -2012,7 +2013,7 @@ skip-if(isDebugBuild&&winWidget) == 1330051.svg 1330051-ref.svg
 == 1375315-8.html 1375315-8-ref.html
 == 1375315-9.html 1375315-9-ref.html
 == 1375315-10.html 1375315-10-ref.html
-== 1375315-11.html 1375315-11-ref.html
+fuzzy-if(!nativeThemePref,0-1,0-4) == 1375315-11.html 1375315-11-ref.html
 == 1375315-12.html 1375315-12-ref.html
 == 1374062.html 1374062-ref.html
 == 1375674.html 1375674-ref.html
@@ -2038,6 +2039,7 @@ fuzzy-if(webrender,0-129,0-48) == 1406179.html 1406179-ref.html
 == 1410028.html 1410028-ref.html
 fuzzy-if(!(webrender&&(gtkWidget||geckoview)),1-2,17500-17500) == 1412375.html 1412375-ref.html
 test-pref(font.size.systemFontScale,200) == 1412743.html 1412743-ref.html
+fuzzy(0-255,0-4054) == 1415987-1.html 1415987-1-ref.html # this is a large fuzz, without the fix the test fails in the range 246-255,3237-25110, which overlaps the fuzz range, but would still catch regressing this bug some of the time which is better than not having a test.
 == 1419820-1.html 1419820-1-ref.html
 == 1420946-1.html 1420946-1-ref.html
 == 1422393.html 1422393-ref.html
@@ -2045,32 +2047,38 @@ test-pref(font.size.systemFontScale,200) == 1412743.html 1412743-ref.html
 == 1424680.html 1424680-ref.html
 == 1424798-1.html 1424798-ref.html
 fuzzy-if(!webrender,0-74,0-2234) == 1425243-1.html 1425243-1-ref.html
-fuzzy-if(Android,0-66,0-574) fuzzy-if(d2d,0-89,0-777) fuzzy-if(!Android&&!d2d,0-1,0-31341) fuzzy-if(webrender&&winWidget,1-1,31320-31320) == 1425243-2.html 1425243-2-ref.html
+fuzzy-if(Android,0-66,0-574) fuzzy-if(d2d,0-89,0-777) fuzzy-if(!Android&&!d2d,0-1,0-31341) fuzzy-if(webrender&&winWidget,1-1,31284-31320) == 1425243-2.html 1425243-2-ref.html
 == 1430869.html 1430869-ref.html
 == 1432541.html 1432541-ref.html
-pref(layout.css.moz-document.url-prefix-hack.enabled,true) == 1446470.html 1035091-ref.html
-pref(layout.css.moz-document.url-prefix-hack.enabled,false) == 1446470-2.html 1035091-ref.html
+== 1446470.html 1035091-ref.html
 == 1456111-1.html about:blank
-test-pref(layout.css.contain.enabled,false) == 1466008.html 1466008-ref.html
+# Note: The following test depends on having a pref-controllable CSS property,
+# and the property needs to have a non-initial value that causes it to create
+# a containing block for fixed-position descendants. It doesn't matter whether
+# the pref is enabled by default; we just need to be able to pref it off here.
+# For now, we use the "backdrop-filter" CSS property (and its pref).
+test-pref(layout.css.backdrop-filter.enabled,false) == 1466008.html 1466008-ref.html
 fuzzy(0-1,0-625) == 1466638-1.html 1466638-1-ref.html
 == bug1472465-1.html bug1472465-1-ref.html
 == 1475971-1.html 1475971-1-ref.html
 == chrome://reftest/content/bugs/1483649-1.xhtml chrome://reftest/content/bugs/1483649-1-ref.xhtml
-test-pref(layout.css.contain.enabled,true) == 1483946.html 1483946-ref.html
+== 1483946.html 1483946-ref.html
 test-pref(layout.css.visited_links_enabled,false) == 1488155.html 1488155-ref.html
 == 1492660-1.html 1492660-1-ref.html
 pref(layout.css.supports-selector.enabled,true) == 1499386.html 1499386-ref.html
 pref(layout.css.supports-selector.enabled,false) != 1499386.html 1499386-ref.html
 == 1509425-1.html 1509425-1-ref.html
 == 1511570.html 1511570-ref.html
-fuzzy-if(winWidget&&!webrender,0-104,0-1420) == 1513423-1.html 1513423-1-ref.html
-fuzzy-if(winWidget&&!webrender,0-89,0-1418) == 1513423-2.html 1513423-2-ref.html
+fuzzy-if(winWidget&&!webrender,0-104,0-1423) == 1513423-1.html 1513423-1-ref.html
+fuzzy-if(winWidget&&!webrender,0-89,0-1420) == 1513423-2.html 1513423-2-ref.html
 == 1513423-3.html 1513423-3-ref.html
 fuzzy-if(!webrender,1-5,66-547) fuzzy-if(geckoview&&!webrender,1-2,64-141) == 1529992-1.html 1529992-1-ref.html
 fuzzy-if(!webrender,0-6,0-34) fuzzy-if(Android,9-14,44-60) fails-if(webrender) == 1529992-2.html 1529992-2-ref.html
 == 1535040-1.html 1535040-1-ref.html
 == 1545360-1.xhtml 1545360-1-ref.xhtml
 skip-if(!asyncPan) == 1544895.html 1544895-ref.html
+== 1546856-1.html 1546856-ref.html
+== 1546856-2.html 1546856-ref.html
 == 1547759-1.html 1547759-1-ref.html
 == 1548809.html 1548809-ref.html
 != 1552789-1.html 1552789-ref-1.html
@@ -2078,17 +2086,27 @@ pref(image.downscale-during-decode.enabled,true) skip-if(Android&&webrender) == 
 == 1558937-1.html 1558937-1-ref.html
 != 1563484.html 1563484-notref.html
 == 1563484.html 1563484-ref.html
-fuzzy-if(!webrender||!winWidget,251-255,464-1613) fuzzy-if(geckoview&&webrender,251-255,1392-1405) == 1562733-rotated-nastaliq-1.html 1562733-rotated-nastaliq-1-ref.html
+fuzzy-if(!webrender||!winWidget,251-255,464-1613) fuzzy-if(geckoview&&webrender,251-255,1392-1405) skip-if(Android&&webrender) == 1562733-rotated-nastaliq-1.html 1562733-rotated-nastaliq-1-ref.html #Bug 1604765
 fuzzy-if(winWidget&&webrender,0-31,0-3) fuzzy-if(geckoview&&webrender,0-93,0-87) == 1562733-rotated-nastaliq-2.html 1562733-rotated-nastaliq-2-ref.html
 test-pref(plain_text.wrap_long_lines,false) != 1565129.txt 1565129.txt
 fuzzy(0-32,0-8) fuzzy-if(Android&&webrender,0-32,0-1458) == 1576553-1.html 1576553-1-ref.html
 fuzzy(0-1,0-10000) == 1577566-1.html 1577566-1-ref.html
 == 1579953-2.html 1579953-2-ref.html
+asserts(1-2) == 1588954.html 1588954-ref.html # Bug 1588954
 == 1595199-1.html 1595199-1-ref.html
 fuzzy-if(gtkWidget,0-255,0-42) == 1599841-1.html 1599841-1-ref.html
 pref(layout.css.xul-box-display-values.content.enabled,true) == 1606130.html 1606130-ref.html
 == 1608124-1.html 1608124-1-ref.html
 skip-if(!OSX) != 1608124-2.html 1608124-2-notref.html
 == 1613380.html 1613380-ref.html
+fuzzy(0-145,0-48536) == 1614788-1.svg 1614788-1-ref.svg # large fuzz necesary to test bug: 239,202824 is how much it differs when bug exists
 == blob-fallback-clip.html blob-fallback-clip-ref.html
 fuzzy-if(OSX,0-42,0-4) fuzzy-if((Android||winWidget)&&!webrender,0-115,0-2) == 1617515-1.html 1617515-1-ref.html
+fuzzy(0-2,0-21184) == 1626259-1.html 1626259-1-ref.html
+fuzzy(0-2,0-21184) == 1626259-2.html 1626259-2-ref.html
+== 1642603-1.html 1642603-1-ref.html
+== 1645549-2.html 1645549-2-ref.html
+== 1641769-1.html 1641769-1-ref.html
+fuzzy(0-2,0-96600) == 1648282-1a.html 1648282-1-ref.html
+fuzzy(0-2,0-96600) == 1648282-1b.html 1648282-1-ref.html
+!= 1672137-1.html 1672137-1-notref.html

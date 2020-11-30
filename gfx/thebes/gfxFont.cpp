@@ -146,8 +146,7 @@ gfxFontCache::Observer::Observe(nsISupports* aSubject, const char* aTopic,
 
 nsresult gfxFontCache::Init() {
   NS_ASSERTION(!gGlobalCache, "Where did this come from?");
-  gGlobalCache =
-      new gfxFontCache(SystemGroup::EventTargetFor(TaskCategory::Other));
+  gGlobalCache = new gfxFontCache(GetMainThreadSerialEventTarget());
   if (!gGlobalCache) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -184,10 +183,6 @@ gfxFontCache::gfxFontCache(nsIEventTarget* aEventTarget)
     obs->AddObserver(new Observer, "memory-pressure", false);
   }
 
-#ifdef EARLY_BETA_OR_EARLIER
-  // Currently disabled for release builds, due to unexplained crashes
-  // during expiration; see bug 717175 & 894798.
-  // Bug 1548661: enabled for early beta, to see what crash-stats shows.
   nsIEventTarget* target = nullptr;
   if (XRE_IsContentProcess() && NS_IsMainThread()) {
     target = aEventTarget;
@@ -197,7 +192,6 @@ gfxFontCache::gfxFontCache(nsIEventTarget* aEventTarget)
                               SHAPED_WORD_TIMEOUT_SECONDS * 1000,
                               nsITimer::TYPE_REPEATING_SLACK,
                               "gfxFontCache::gfxFontCache", target);
-#endif
 }
 
 gfxFontCache::~gfxFontCache() {
@@ -576,7 +570,7 @@ void gfxShapedText::SetupClusterBoundaries(uint32_t aOffset,
                                            uint32_t aLength) {
   CompressedGlyph* glyphs = GetCharacterGlyphs() + aOffset;
 
-  CompressedGlyph extendCluster = CompressedGlyph::MakeComplex(false, true, 0);
+  CompressedGlyph extendCluster = CompressedGlyph::MakeComplex(false, true);
 
   ClusterIterator iter(aString, aLength);
 
@@ -636,18 +630,19 @@ gfxShapedText::DetailedGlyph* gfxShapedText::AllocateDetailedGlyphs(
   return mDetailedGlyphs->Allocate(aIndex, aCount);
 }
 
-void gfxShapedText::SetGlyphs(uint32_t aIndex, CompressedGlyph aGlyph,
-                              const DetailedGlyph* aGlyphs) {
-  NS_ASSERTION(!aGlyph.IsSimpleGlyph(), "Simple glyphs not handled here");
-  NS_ASSERTION(aIndex > 0 || aGlyph.IsLigatureGroupStart(),
-               "First character can't be a ligature continuation!");
+void gfxShapedText::SetDetailedGlyphs(uint32_t aIndex, uint32_t aGlyphCount,
+                                      const DetailedGlyph* aGlyphs) {
+  CompressedGlyph& g = GetCharacterGlyphs()[aIndex];
 
-  uint32_t glyphCount = aGlyph.GetGlyphCount();
-  if (glyphCount > 0) {
-    DetailedGlyph* details = AllocateDetailedGlyphs(aIndex, glyphCount);
-    memcpy(details, aGlyphs, sizeof(DetailedGlyph) * glyphCount);
+  MOZ_ASSERT(aIndex > 0 || g.IsLigatureGroupStart(),
+             "First character can't be a ligature continuation!");
+
+  if (aGlyphCount > 0) {
+    DetailedGlyph* details = AllocateDetailedGlyphs(aIndex, aGlyphCount);
+    memcpy(details, aGlyphs, sizeof(DetailedGlyph) * aGlyphCount);
   }
-  GetCharacterGlyphs()[aIndex] = aGlyph;
+
+  g.SetGlyphCount(aGlyphCount);
 }
 
 #define ZWNJ 0x200C
@@ -658,26 +653,25 @@ static inline bool IsIgnorable(uint32_t aChar) {
 
 void gfxShapedText::SetMissingGlyph(uint32_t aIndex, uint32_t aChar,
                                     gfxFont* aFont) {
+  CompressedGlyph& g = GetCharacterGlyphs()[aIndex];
   uint8_t category = GetGeneralCategory(aChar);
   if (category >= HB_UNICODE_GENERAL_CATEGORY_SPACING_MARK &&
       category <= HB_UNICODE_GENERAL_CATEGORY_NON_SPACING_MARK) {
-    GetCharacterGlyphs()[aIndex].SetComplex(false, true, 0);
+    g.SetComplex(false, true);
   }
 
-  DetailedGlyph* details = AllocateDetailedGlyphs(aIndex, 1);
-
-  details->mGlyphID = aChar;
-  if (IsIgnorable(aChar)) {
-    // Setting advance width to zero will prevent drawing the hexbox
-    details->mAdvance = 0;
-  } else {
+  // Leaving advance as zero will prevent drawing the hexbox for ignorables.
+  int32_t advance = 0;
+  if (!IsIgnorable(aChar)) {
     gfxFloat width =
         std::max(aFont->GetMetrics(nsFontMetrics::eHorizontal).aveCharWidth,
                  gfxFloat(gfxFontMissingGlyphs::GetDesiredMinWidth(
                      aChar, mAppUnitsPerDevUnit)));
-    details->mAdvance = uint32_t(width * mAppUnitsPerDevUnit);
+    advance = int32_t(width * mAppUnitsPerDevUnit);
   }
-  GetCharacterGlyphs()[aIndex].SetMissing(1);
+  DetailedGlyph detail = {aChar, advance, gfx::Point()};
+  SetDetailedGlyphs(aIndex, 1, &detail);
+  g.SetMissing();
 }
 
 bool gfxShapedText::FilterIfIgnorable(uint32_t aIndex, uint32_t aCh) {
@@ -687,15 +681,15 @@ bool gfxShapedText::FilterIfIgnorable(uint32_t aIndex, uint32_t aCh) {
     // if they're followed by additional characters in the same cluster.
     // Some fonts use them to carry the width of a whole cluster of
     // combining jamos; see bug 1238243.
+    auto* charGlyphs = GetCharacterGlyphs();
     if (GetGenCategory(aCh) == nsUGenCategory::kLetter &&
-        aIndex + 1 < GetLength() &&
-        !GetCharacterGlyphs()[aIndex + 1].IsClusterStart()) {
+        aIndex + 1 < GetLength() && !charGlyphs[aIndex + 1].IsClusterStart()) {
       return false;
     }
-    DetailedGlyph* details = AllocateDetailedGlyphs(aIndex, 1);
-    details->mGlyphID = aCh;
-    details->mAdvance = 0;
-    GetCharacterGlyphs()[aIndex].SetMissing(1);
+    // A compressedGlyph that is set to MISSING but has no DetailedGlyphs list
+    // will be zero-width/invisible, which is what we want here.
+    CompressedGlyph& g = charGlyphs[aIndex];
+    g.SetComplex(g.IsClusterStart(), g.IsLigatureGroupStart()).SetMissing();
     return true;
   }
   return false;
@@ -718,9 +712,11 @@ void gfxShapedText::AdjustAdvancesForSyntheticBold(float aSynBoldOffset,
         } else {
           // rare case, tested by making this the default
           uint32_t glyphIndex = glyphData->GetSimpleGlyph();
-          glyphData->SetComplex(true, true, 1);
+          // convert the simple CompressedGlyph to an empty complex record
+          glyphData->SetComplex(true, true);
+          // then set its details (glyph ID with its new advance)
           DetailedGlyph detail = {glyphIndex, advance, gfx::Point()};
-          SetGlyphs(i, *glyphData, &detail);
+          SetDetailedGlyphs(i, 1, &detail);
         }
       }
     } else {
@@ -1702,7 +1698,7 @@ class GlyphBufferAzure {
       }
     } else {
       FlushStroke(aBuffer,
-                  ColorPattern(Color::FromABGR(mRunParams.textStrokeColor)));
+                  ColorPattern(ToDeviceColor(mRunParams.textStrokeColor)));
     }
   }
 
@@ -2361,11 +2357,11 @@ bool gfxFont::RenderColorGlyph(DrawTarget* aDrawTarget, gfxContext* aContext,
                                const mozilla::gfx::Point& aPoint,
                                uint32_t aGlyphId) const {
   AutoTArray<uint16_t, 8> layerGlyphs;
-  AutoTArray<mozilla::gfx::Color, 8> layerColors;
+  AutoTArray<mozilla::gfx::DeviceColor, 8> layerColors;
 
-  mozilla::gfx::Color defaultColor;
+  mozilla::gfx::DeviceColor defaultColor;
   if (!aContext->GetDeviceColor(defaultColor)) {
-    defaultColor = mozilla::gfx::Color(0, 0, 0);
+    defaultColor = ToDeviceColor(mozilla::gfx::sRGBColor::OpaqueBlack());
   }
   if (!GetFontEntry()->GetColorLayersInfo(aGlyphId, defaultColor, layerGlyphs,
                                           layerColors)) {
@@ -2404,12 +2400,46 @@ bool gfxFont::RenderColorGlyph(DrawTarget* aDrawTarget, gfxContext* aContext,
     buffer.mGlyphs = &glyph;
     buffer.mNumGlyphs = 1;
 
-    mozilla::gfx::Color layerColor = layerColors[layerIndex];
+    mozilla::gfx::DeviceColor layerColor = layerColors[layerIndex];
     layerColor.a *= alpha;
     aDrawTarget->FillGlyphs(scaledFont, buffer, ColorPattern(layerColor),
                             aDrawOptions);
   }
   return true;
+}
+
+bool gfxFont::HasColorGlyphFor(uint32_t aCh, uint32_t aNextCh) {
+  // Bitmap fonts are assumed to provide "color" glyphs for all supported chars.
+  gfxFontEntry* fe = GetFontEntry();
+  if (fe->HasColorBitmapTable()) {
+    return true;
+  }
+  // Use harfbuzz shaper to look up the default glyph ID for the character.
+  if (!mHarfBuzzShaper) {
+    mHarfBuzzShaper = MakeUnique<gfxHarfBuzzShaper>(this);
+  }
+  auto* shaper = static_cast<gfxHarfBuzzShaper*>(mHarfBuzzShaper.get());
+  if (!shaper->Initialize()) {
+    return false;
+  }
+  uint32_t gid = 0;
+  if (gfxFontUtils::IsVarSelector(aNextCh)) {
+    gid = shaper->GetVariationGlyph(aCh, aNextCh);
+  }
+  if (!gid) {
+    gid = shaper->GetNominalGlyph(aCh);
+  }
+  if (!gid) {
+    return false;
+  }
+  // Check if there is a COLR/CPAL or SVG glyph for this ID.
+  if (fe->TryGetColorGlyphs() && fe->HasColorLayersForGlyph(gid)) {
+    return true;
+  }
+  if (fe->TryGetSVGData(this) && fe->HasSVGGlyph(gid)) {
+    return true;
+  }
+  return false;
 }
 
 static void UnionRange(gfxFloat aX, gfxFloat* aDestMin, gfxFloat* aDestMax) {
@@ -3472,7 +3502,6 @@ bool gfxFont::InitMetricsFromSfntTables(Metrics& aMetrics) {
   mIsValid = false;  // font is NOT valid in case of early return
 
   const uint32_t kHheaTableTag = TRUETYPE_TAG('h', 'h', 'e', 'a');
-  const uint32_t kPostTableTag = TRUETYPE_TAG('p', 'o', 's', 't');
   const uint32_t kOS_2TableTag = TRUETYPE_TAG('O', 'S', '/', '2');
 
   uint32_t len;
@@ -3487,7 +3516,7 @@ bool gfxFont::InitMetricsFromSfntTables(Metrics& aMetrics) {
     mFUnitsConvFactor = GetAdjustedSize() / unitsPerEm;
   }
 
-  // 'hhea' table is required to get vertical extents
+  // 'hhea' table is required for the advanceWidthMax field
   gfxFontEntry::AutoTable hheaTable(mFontEntry, kHheaTableTag);
   if (!hheaTable) {
     return false;  // no 'hhea' table -> not an sfnt
@@ -3503,23 +3532,6 @@ bool gfxFont::InitMetricsFromSfntTables(Metrics& aMetrics) {
 #define SET_SIGNED(field, src) aMetrics.field = int16_t(src) * mFUnitsConvFactor
 
   SET_UNSIGNED(maxAdvance, hhea->advanceWidthMax);
-  SET_SIGNED(maxAscent, hhea->ascender);
-  SET_SIGNED(maxDescent, -int16_t(hhea->descender));
-  SET_SIGNED(externalLeading, hhea->lineGap);
-
-  // 'post' table is required for underline metrics
-  gfxFontEntry::AutoTable postTable(mFontEntry, kPostTableTag);
-  if (!postTable) {
-    return true;  // no 'post' table -> sfnt is not valid
-  }
-  const PostTable* post =
-      reinterpret_cast<const PostTable*>(hb_blob_get_data(postTable, &len));
-  if (len < offsetof(PostTable, underlineThickness) + sizeof(uint16_t)) {
-    return true;  // bad post table -> sfnt is not valid
-  }
-
-  SET_SIGNED(underlineOffset, post->underlinePosition);
-  SET_UNSIGNED(underlineSize, post->underlineThickness);
 
   // 'OS/2' table is optional, if not found we'll estimate xHeight
   // and aveCharWidth by measuring glyphs
@@ -3527,44 +3539,63 @@ bool gfxFont::InitMetricsFromSfntTables(Metrics& aMetrics) {
   if (os2Table) {
     const OS2Table* os2 =
         reinterpret_cast<const OS2Table*>(hb_blob_get_data(os2Table, &len));
-    // although sxHeight and sCapHeight are signed fields, we consider
-    // negative values to be erroneous and just ignore them
-    if (uint16_t(os2->version) >= 2) {
-      // version 2 and later includes the x-height and cap-height fields
-      if (len >= offsetof(OS2Table, sxHeight) + sizeof(int16_t) &&
-          int16_t(os2->sxHeight) > 0) {
-        SET_SIGNED(xHeight, os2->sxHeight);
-      }
-      if (len >= offsetof(OS2Table, sCapHeight) + sizeof(int16_t) &&
-          int16_t(os2->sCapHeight) > 0) {
-        SET_SIGNED(capHeight, os2->sCapHeight);
-      }
-    }
     // this should always be present in any valid OS/2 of any version
-    if (len >= offsetof(OS2Table, sTypoLineGap) + sizeof(int16_t)) {
+    if (len >= offsetof(OS2Table, xAvgCharWidth) + sizeof(int16_t)) {
       SET_SIGNED(aveCharWidth, os2->xAvgCharWidth);
-      SET_SIGNED(strikeoutSize, os2->yStrikeoutSize);
-      SET_SIGNED(strikeoutOffset, os2->yStrikeoutPosition);
-
-      // for fonts with USE_TYPO_METRICS set in the fsSelection field,
-      // let the OS/2 sTypo* metrics override those from the hhea table
-      // (see http://www.microsoft.com/typography/otspec/os2.htm#fss).
-      //
-      // We also prefer OS/2 metrics if the hhea table gave us a negative
-      // value for maxDescent, which almost certainly indicates a sign
-      // error in the font. (See bug 1402413 for an example.)
-      const uint16_t kUseTypoMetricsMask = 1 << 7;
-      if ((uint16_t(os2->fsSelection) & kUseTypoMetricsMask) ||
-          aMetrics.maxDescent < 0) {
-        SET_SIGNED(maxAscent, os2->sTypoAscender);
-        SET_SIGNED(maxDescent, -int16_t(os2->sTypoDescender));
-        SET_SIGNED(externalLeading, os2->sTypoLineGap);
-      }
     }
   }
 
 #undef SET_SIGNED
 #undef SET_UNSIGNED
+
+  hb_font_t* hbFont = gfxHarfBuzzShaper::CreateHBFont(this);
+  hb_position_t position;
+
+  auto FixedToFloat = [](hb_position_t f) -> gfxFloat { return f / 65536.0; };
+
+  if (hb_ot_metrics_get_position(hbFont, HB_OT_METRICS_TAG_HORIZONTAL_ASCENDER,
+                                 &position)) {
+    aMetrics.maxAscent = FixedToFloat(position);
+  }
+  if (hb_ot_metrics_get_position(hbFont, HB_OT_METRICS_TAG_HORIZONTAL_DESCENDER,
+                                 &position)) {
+    aMetrics.maxDescent = -FixedToFloat(position);
+  }
+  if (hb_ot_metrics_get_position(hbFont, HB_OT_METRICS_TAG_HORIZONTAL_LINE_GAP,
+                                 &position)) {
+    aMetrics.externalLeading = FixedToFloat(position);
+  }
+
+  if (hb_ot_metrics_get_position(hbFont, HB_OT_METRICS_TAG_UNDERLINE_OFFSET,
+                                 &position)) {
+    aMetrics.underlineOffset = FixedToFloat(position);
+  }
+  if (hb_ot_metrics_get_position(hbFont, HB_OT_METRICS_TAG_UNDERLINE_SIZE,
+                                 &position)) {
+    aMetrics.underlineSize = FixedToFloat(position);
+  }
+  if (hb_ot_metrics_get_position(hbFont, HB_OT_METRICS_TAG_STRIKEOUT_OFFSET,
+                                 &position)) {
+    aMetrics.strikeoutOffset = FixedToFloat(position);
+  }
+  if (hb_ot_metrics_get_position(hbFont, HB_OT_METRICS_TAG_STRIKEOUT_SIZE,
+                                 &position)) {
+    aMetrics.strikeoutSize = FixedToFloat(position);
+  }
+
+  // Although sxHeight and sCapHeight are signed fields, we consider
+  // zero/negative values to be erroneous and just ignore them.
+  if (hb_ot_metrics_get_position(hbFont, HB_OT_METRICS_TAG_X_HEIGHT,
+                                 &position) &&
+      position > 0) {
+    aMetrics.xHeight = FixedToFloat(position);
+  }
+  if (hb_ot_metrics_get_position(hbFont, HB_OT_METRICS_TAG_CAP_HEIGHT,
+                                 &position) &&
+      position > 0) {
+    aMetrics.capHeight = FixedToFloat(position);
+  }
+  hb_font_destroy(hbFont);
 
   mIsValid = true;
 
@@ -3895,6 +3926,8 @@ gfxFloat gfxFont::SynthesizeSpaceWidth(uint32_t aCh) {
       return GetAdjustedSize() / 10;  // hair space
     case 0x202f:
       return GetAdjustedSize() / 5;  // narrow no-break space
+    case 0x3000:
+      return GetAdjustedSize();  // ideographic space
     default:
       return -1.0;
   }

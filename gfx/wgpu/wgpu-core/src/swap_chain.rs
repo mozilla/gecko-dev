@@ -32,19 +32,17 @@
     In `present()` we return the swap chain image back and wait on the semaphore.
 !*/
 
+#[cfg(feature = "trace")]
+use crate::device::trace::Action;
 use crate::{
     conv,
-    hub::{GfxBackend, Global, IdentityFilter, Token},
+    hub::{GfxBackend, Global, GlobalIdentityHandlerFactory, Input, Token},
     id::{DeviceId, SwapChainId, TextureViewId},
-    resource,
-    Extent3d,
-    Features,
-    LifeGuard,
-    Stored,
+    resource, LifeGuard, PrivateFeatures, Stored,
 };
 
 use hal::{self, device::Device as _, queue::CommandQueue as _, window::PresentationSurface as _};
-
+use wgt::{SwapChainDescriptor, SwapChainStatus};
 
 const FRAME_TIMEOUT_MS: u64 = 1000;
 pub const DESIRED_NUM_FRAMES: u32 = 3;
@@ -60,79 +58,41 @@ pub struct SwapChain<B: hal::Backend> {
     pub(crate) acquired_framebuffers: Vec<B::Framebuffer>,
 }
 
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
-pub enum PresentMode {
-    NoVsync = 0,
-    Vsync = 1,
-}
-
-#[repr(C)]
-#[derive(Clone, Debug)]
-pub struct SwapChainDescriptor {
-    pub usage: resource::TextureUsage,
-    pub format: resource::TextureFormat,
-    pub width: u32,
-    pub height: u32,
-    pub present_mode: PresentMode,
-}
-
-impl SwapChainDescriptor {
-    pub(crate) fn to_hal(
-        &self,
-        num_frames: u32,
-        features: Features,
-    ) -> hal::window::SwapchainConfig {
-        let mut config = hal::window::SwapchainConfig::new(
-            self.width,
-            self.height,
-            conv::map_texture_format(self.format, features),
-            num_frames,
-        );
-        //TODO: check for supported
-        config.image_usage = conv::map_texture_usage(self.usage, hal::format::Aspects::COLOR);
-        config.composite_alpha_mode = hal::window::CompositeAlphaMode::OPAQUE;
-        config.present_mode = match self.present_mode {
-            PresentMode::NoVsync => hal::window::PresentMode::IMMEDIATE,
-            PresentMode::Vsync => hal::window::PresentMode::FIFO,
-        };
-        config
-    }
-
-    pub fn to_texture_desc(&self) -> resource::TextureDescriptor {
-        resource::TextureDescriptor {
-            size: Extent3d {
-                width: self.width,
-                height: self.height,
-                depth: 1,
-            },
-            mip_level_count: 1,
-            array_layer_count: 1,
-            sample_count: 1,
-            dimension: resource::TextureDimension::D2,
-            format: self.format,
-            usage: self.usage,
-        }
-    }
+pub(crate) fn swap_chain_descriptor_to_hal(
+    desc: &SwapChainDescriptor,
+    num_frames: u32,
+    private_features: PrivateFeatures,
+) -> hal::window::SwapchainConfig {
+    let mut config = hal::window::SwapchainConfig::new(
+        desc.width,
+        desc.height,
+        conv::map_texture_format(desc.format, private_features),
+        num_frames,
+    );
+    //TODO: check for supported
+    config.image_usage = conv::map_texture_usage(desc.usage, hal::format::Aspects::COLOR);
+    config.composite_alpha_mode = hal::window::CompositeAlphaMode::OPAQUE;
+    config.present_mode = match desc.present_mode {
+        wgt::PresentMode::Immediate => hal::window::PresentMode::IMMEDIATE,
+        wgt::PresentMode::Mailbox => hal::window::PresentMode::MAILBOX,
+        wgt::PresentMode::Fifo => hal::window::PresentMode::FIFO,
+    };
+    config
 }
 
 #[repr(C)]
 #[derive(Debug)]
 pub struct SwapChainOutput {
-    pub view_id: TextureViewId,
+    pub status: SwapChainStatus,
+    pub view_id: Option<TextureViewId>,
 }
 
-#[derive(Debug)]
-pub enum SwapChainGetNextTextureError {
-    GpuProcessingTimeout,
-}
-
-impl<F: IdentityFilter<TextureViewId>> Global<F> {
+impl<G: GlobalIdentityHandlerFactory> Global<G> {
     pub fn swap_chain_get_next_texture<B: GfxBackend>(
         &self,
         swap_chain_id: SwapChainId,
-        view_id_in: F::Input,
-    ) -> Result<SwapChainOutput, SwapChainGetNextTextureError> {
+        view_id_in: Input<G, TextureViewId>,
+    ) -> SwapChainOutput {
         let hub = B::hub(self);
         let mut token = Token::root();
 
@@ -141,63 +101,78 @@ impl<F: IdentityFilter<TextureViewId>> Global<F> {
         let (device_guard, mut token) = hub.devices.read(&mut token);
         let (mut swap_chain_guard, mut token) = hub.swap_chains.write(&mut token);
         let sc = &mut swap_chain_guard[swap_chain_id];
+        #[cfg_attr(not(feature = "trace"), allow(unused_variables))]
         let device = &device_guard[sc.device_id.value];
 
-        let (image, _) = {
-            let suf = B::get_surface_mut(surface);
-            match unsafe { suf.acquire_image(FRAME_TIMEOUT_MS * 1_000_000) } {
-                Ok(surface_image) => surface_image,
-                Err(hal::window::AcquireError::Timeout) => {
-                    return Err(SwapChainGetNextTextureError::GpuProcessingTimeout);
-                }
-                Err(e) => {
-                    log::warn!("acquire_image() failed ({:?}), reconfiguring swapchain", e);
-                    let desc = sc.desc.to_hal(sc.num_frames, device.features);
-                    unsafe {
-                        suf.configure_swapchain(&device.raw, desc).unwrap();
-                        suf.acquire_image(FRAME_TIMEOUT_MS * 1_000_000).unwrap()
-                    }
-                }
-            }
-        };
-
-        let view = resource::TextureView {
-            inner: resource::TextureViewInner::SwapChain {
-                image,
-                source_id: Stored {
-                    value: swap_chain_id,
-                    ref_count: sc.life_guard.add_ref(),
+        let suf = B::get_surface_mut(surface);
+        let (image, status) = match unsafe { suf.acquire_image(FRAME_TIMEOUT_MS * 1_000_000) } {
+            Ok((surface_image, None)) => (Some(surface_image), SwapChainStatus::Good),
+            Ok((surface_image, Some(_))) => (Some(surface_image), SwapChainStatus::Suboptimal),
+            Err(err) => (
+                None,
+                match err {
+                    hal::window::AcquireError::OutOfMemory(_) => SwapChainStatus::OutOfMemory,
+                    hal::window::AcquireError::NotReady => unreachable!(), // we always set a timeout
+                    hal::window::AcquireError::Timeout => SwapChainStatus::Timeout,
+                    hal::window::AcquireError::OutOfDate => SwapChainStatus::Outdated,
+                    hal::window::AcquireError::SurfaceLost(_) => SwapChainStatus::Lost,
+                    hal::window::AcquireError::DeviceLost(_) => SwapChainStatus::Lost,
                 },
-            },
-            format: sc.desc.format,
-            extent: hal::image::Extent {
-                width: sc.desc.width,
-                height: sc.desc.height,
-                depth: 1,
-            },
-            samples: 1,
-            range: hal::image::SubresourceRange {
-                aspects: hal::format::Aspects::COLOR,
-                layers: 0 .. 1,
-                levels: 0 .. 1,
-            },
-            life_guard: LifeGuard::new(),
+            ),
         };
-        let ref_count = view.life_guard.add_ref();
-        let view_id = hub
-            .texture_views
-            .register_identity(view_id_in, view, &mut token);
 
-        assert!(
-            sc.acquired_view_id.is_none(),
-            "Swap chain image is already acquired"
-        );
-        sc.acquired_view_id = Some(Stored {
-            value: view_id,
-            ref_count,
+        let view_id = image.map(|image| {
+            let view = resource::TextureView {
+                inner: resource::TextureViewInner::SwapChain {
+                    image,
+                    source_id: Stored {
+                        value: swap_chain_id,
+                        ref_count: sc.life_guard.add_ref(),
+                    },
+                },
+                format: sc.desc.format,
+                extent: hal::image::Extent {
+                    width: sc.desc.width,
+                    height: sc.desc.height,
+                    depth: 1,
+                },
+                samples: 1,
+                range: hal::image::SubresourceRange {
+                    aspects: hal::format::Aspects::COLOR,
+                    layers: 0..1,
+                    levels: 0..1,
+                },
+                life_guard: LifeGuard::new(),
+            };
+
+            let ref_count = view.life_guard.add_ref();
+            let id = hub
+                .texture_views
+                .register_identity(view_id_in, view, &mut token);
+
+            assert!(
+                sc.acquired_view_id.is_none(),
+                "Swap chain image is already acquired"
+            );
+
+            sc.acquired_view_id = Some(Stored {
+                value: id,
+                ref_count,
+            });
+
+            id
         });
 
-        Ok(SwapChainOutput { view_id })
+        #[cfg(feature = "trace")]
+        match device.trace {
+            Some(ref trace) => trace.lock().add(Action::GetSwapChainTexture {
+                id: view_id,
+                parent_id: swap_chain_id,
+            }),
+            None => (),
+        };
+
+        SwapChainOutput { status, view_id }
     }
 
     pub fn swap_chain_present<B: GfxBackend>(&self, swap_chain_id: SwapChainId) {
@@ -210,6 +185,12 @@ impl<F: IdentityFilter<TextureViewId>> Global<F> {
         let (mut swap_chain_guard, mut token) = hub.swap_chains.write(&mut token);
         let sc = &mut swap_chain_guard[swap_chain_id];
         let device = &mut device_guard[sc.device_id.value];
+
+        #[cfg(feature = "trace")]
+        match device.trace {
+            Some(ref trace) => trace.lock().add(Action::PresentSwapChain(swap_chain_id)),
+            None => (),
+        };
 
         let view_id = sc
             .acquired_view_id

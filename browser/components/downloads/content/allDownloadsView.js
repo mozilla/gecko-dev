@@ -127,10 +127,26 @@ HistoryDownloadElementShell.prototype = {
     );
   },
 
-  // Handles return keypress on the element (the keypress listener is
-  // set in the DownloadsPlacesView object).
-  doDefaultCommand() {
+  // Handles double-click and return keypress on the element (the keypress
+  // listener is set in the DownloadsPlacesView object).
+  doDefaultCommand(event) {
     let command = this.currentDefaultCommandName;
+    if (
+      command == "downloadsCmd_open" &&
+      event &&
+      (event.shiftKey || event.ctrlKey || event.metaKey || event.button == 1)
+    ) {
+      // We adjust the command for supported modifiers to suggest where the download may
+      // be opened.
+      let browserWin = BrowserWindowTracker.getTopWindow();
+      let openWhere = browserWin
+        ? browserWin.whereToOpenLink(event, false, true)
+        : "window";
+      if (["window", "tabshifted", "tab"].includes(openWhere)) {
+        command += ":" + openWhere;
+      }
+    }
+
     if (command && this.isCommandEnabled(command)) {
       this.doCommand(command);
     }
@@ -689,12 +705,40 @@ DownloadsPlacesView.prototype = {
     // Set the state attribute so that only the appropriate items are displayed.
     let contextMenu = document.getElementById("downloadsContextMenu");
     let download = element._shell.download;
+    let mimeInfo = DownloadsCommon.getMimeInfo(download);
+    let { preferredAction, useSystemDefault } = mimeInfo ? mimeInfo : {};
+
     contextMenu.setAttribute(
       "state",
       DownloadsCommon.stateOfDownload(download)
     );
     contextMenu.setAttribute("exists", "true");
     contextMenu.classList.toggle("temporary-block", !!download.hasBlockedData);
+
+    if (element.hasAttribute("viewable-internally")) {
+      contextMenu.setAttribute("viewable-internally", "true");
+      let alwaysUseSystemViewerItem = contextMenu.querySelector(
+        ".downloadAlwaysUseSystemDefaultMenuItem"
+      );
+      if (preferredAction === useSystemDefault) {
+        alwaysUseSystemViewerItem.setAttribute("checked", "true");
+      } else {
+        alwaysUseSystemViewerItem.removeAttribute("checked");
+      }
+      alwaysUseSystemViewerItem.toggleAttribute(
+        "enabled",
+        DownloadsCommon.alwaysOpenInSystemViewerItemEnabled
+      );
+      let useSystemViewerItem = contextMenu.querySelector(
+        ".downloadUseSystemDefaultMenuItem"
+      );
+      useSystemViewerItem.toggleAttribute(
+        "enabled",
+        DownloadsCommon.openInSystemViewerItemEnabled
+      );
+    } else {
+      contextMenu.removeAttribute("viewable-internally");
+    }
 
     if (!download.stopped) {
       // The hasPartialData property of a download may change at any time after
@@ -714,7 +758,7 @@ DownloadsPlacesView.prototype = {
       if (selectedElements.length == 1) {
         let element = selectedElements[0];
         if (element._shell) {
-          element._shell.doDefaultCommand();
+          element._shell.doDefaultCommand(aEvent);
         }
       }
     } else if (aEvent.charCode == " ".charCodeAt(0)) {
@@ -739,7 +783,7 @@ DownloadsPlacesView.prototype = {
 
     let element = selectedElements[0];
     if (element._shell) {
-      element._shell.doDefaultCommand();
+      element._shell.doDefaultCommand(aEvent);
     }
   },
 
@@ -809,6 +853,7 @@ DownloadsPlacesView.prototype = {
     if (!links.length) {
       return;
     }
+    aEvent.preventDefault();
     let browserWin = BrowserWindowTracker.getTopWindow();
     let initiatingDoc = browserWin ? browserWin.document : document;
     for (let link of links) {
@@ -841,31 +886,38 @@ function goUpdateDownloadCommands() {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-  let richtListBox = document.getElementById("downloadsRichListBox");
-  richtListBox.addEventListener("scroll", function(event) {
+  let richListBox = document.getElementById("downloadsRichListBox");
+  richListBox.addEventListener("scroll", function(event) {
     return this._placesView.onScroll();
   });
-  richtListBox.addEventListener("keypress", function(event) {
+  richListBox.addEventListener("keypress", function(event) {
     return this._placesView.onKeyPress(event);
   });
-  richtListBox.addEventListener("dblclick", function(event) {
+  richListBox.addEventListener("dblclick", function(event) {
     return this._placesView.onDoubleClick(event);
   });
-  richtListBox.addEventListener("contextmenu", function(event) {
+  richListBox.addEventListener("contextmenu", function(event) {
     return this._placesView.onContextMenu(event);
   });
-  richtListBox.addEventListener("dragstart", function(event) {
+  richListBox.addEventListener("dragstart", function(event) {
     this._placesView.onDragStart(event);
   });
-  richtListBox.addEventListener("dragover", function(event) {
-    this._placesView.onDragOver(event);
+  let dropNode = richListBox;
+  // In about:downloads, also allow drops if the list is empty, by
+  // adding the listener to the document, as the richlistbox is
+  // hidden when it is empty.
+  if (document.documentElement.id == "contentAreaDownloadsView") {
+    dropNode = richListBox.parentNode;
+  }
+  dropNode.addEventListener("dragover", function(event) {
+    richListBox._placesView.onDragOver(event);
   });
-  richtListBox.addEventListener("drop", function(event) {
-    this._placesView.onDrop(event);
+  dropNode.addEventListener("drop", function(event) {
+    richListBox._placesView.onDrop(event);
   });
-  richtListBox.addEventListener("select", function(event) {
+  richListBox.addEventListener("select", function(event) {
     this._placesView.onSelect();
   });
-  richtListBox.addEventListener("focus", goUpdateDownloadCommands);
-  richtListBox.addEventListener("blur", goUpdateDownloadCommands);
+  richListBox.addEventListener("focus", goUpdateDownloadCommands);
+  richListBox.addEventListener("blur", goUpdateDownloadCommands);
 });

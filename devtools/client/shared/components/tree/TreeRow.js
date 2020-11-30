@@ -219,12 +219,17 @@ define(function(require, exports, module) {
 
       if (member.hasChildren) {
         classNames.push("hasChildren");
-        props["aria-expanded"] = false;
+
+        // There are 2 situations where hasChildren is true:
+        // 1. it is an object with children. Only set aria-expanded in this situation
+        // 2. It is a long string (> 50 chars) that can be expanded to fully display it
+        if (member.type !== "string") {
+          props["aria-expanded"] = member.open;
+        }
       }
 
       if (member.open) {
         classNames.push("opened");
-        props["aria-expanded"] = true;
       }
 
       if (member.loading) {
@@ -250,7 +255,7 @@ define(function(require, exports, module) {
       // Get components for rendering cells.
       let renderCell = this.props.renderCell || RenderCell;
       let renderLabelCell = this.props.renderLabelCell || RenderLabelCell;
-      if (decorator && decorator.renderLabelCell) {
+      if (decorator?.renderLabelCell) {
         renderLabelCell =
           decorator.renderLabelCell(member.object) || renderLabelCell;
       }
@@ -263,7 +268,7 @@ define(function(require, exports, module) {
           value: this.props.provider.getValue(member.object, col.id),
         });
 
-        if (decorator && decorator.renderCell) {
+        if (decorator?.renderCell) {
           renderCell = decorator.renderCell(member.object, col.id);
         }
 

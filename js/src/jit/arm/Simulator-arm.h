@@ -36,6 +36,7 @@
 #  include "jit/arm/Architecture-arm.h"
 #  include "jit/arm/disasm/Disasm-arm.h"
 #  include "jit/IonTypes.h"
+#  include "js/AllocPolicy.h"
 #  include "js/ProfilingFrameIterator.h"
 #  include "threading/Thread.h"
 #  include "vm/MutexIDs.h"
@@ -196,8 +197,6 @@ class Simulator {
   // above.
   Simulator();
   ~Simulator();
-
-  static bool supportsAtomics() { return HasLDSTREXBHD(); }
 
   // The currently executing Simulator instance. Potentially there can be one
   // for each native thread.

@@ -51,10 +51,50 @@
   color: var(--theme-icon-error-color);
 }
 
-.status-code-blocked img {
+.status-code-blocked-icon {
   height: 12px;
   width: 12px;
-  vertical-align: -2px;
+  background-image: url("chrome://devtools/skin/images/blocked.svg");
   -moz-context-properties: fill;
   fill: currentColor;
+}
+
+
+/* Status codes for the headers side panel */
+
+.headers-overview .summary .status .status-code {
+  display: inline;
+  background-color: transparent;
+  color: inherit;
+  padding: 0 2px 0 0;
+  font-weight: bold;
+}
+
+.headers-overview .summary .status[data-code^="1"] {
+  color: var(--status-code-color-1xx);
+}
+
+.headers-overview .summary .status[data-code^="2"] {
+  color: var(--status-code-color-2xx);
+}
+
+.headers-overview .summary .status[data-code^="3"] {
+  color: inherit;
+}
+
+.headers-overview .summary .status[data-code^="4"] {
+  color: var(--status-code-color-4xx);
+}
+
+.headers-overview .summary .status[data-code^="5"] {
+  color: var(--status-code-color-5xx);
+}
+
+/* Non-standard status codes are styled like 5XX */
+.headers-overview .summary .status[data-code^="0"],
+.headers-overview .summary .status[data-code^="6"],
+.headers-overview .summary .status[data-code^="7"],
+.headers-overview .summary .status[data-code^="8"],
+.headers-overview .summary .status[data-code^="9"] {
+  color: var(--status-code-color-5xx);
 }

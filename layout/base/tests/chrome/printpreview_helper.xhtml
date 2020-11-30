@@ -4,8 +4,8 @@
                  type="text/css"?>
 <window onload="runTests()"
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
-<iframe height="200" width="600" type="content"></iframe>
-<iframe height="200" width="600" type="content"></iframe>
+  <iframe height="200" width="600" type="content"></iframe>
+  <iframe height="200" width="600" type="content"></iframe>
 <script type="application/javascript">
 <![CDATA[
 // Note: We can't use window.frames directly here because the type="content"
@@ -16,8 +16,10 @@ var is = window.arguments[0].is;
 var isnot = window.arguments[0].isnot;
 var ok = window.arguments[0].ok;
 var todo = window.arguments[0].todo;
+var info = window.arguments[0].info;
 var SimpleTest = window.arguments[0].SimpleTest;
 var gWbp;
+var gPrintPreviewWindow;
 var ctx1;
 var ctx2;
 var counter = 0;
@@ -27,49 +29,76 @@ var file = Cc["@mozilla.org/file/directory_service;1"]
              .get("TmpD", Ci.nsIFile);
 filePath = file.path;
 
-function printpreview(hasMozPrintCallback) {
-  gWbp = frameElts[1].docShell.initOrReusePrintPreviewViewer();
+function printpreview(options = {}) {
+  let resolve;
+  let promise = new Promise(r => { resolve = r });
   var listener = {
     onLocationChange: function(webProgress, request, location, flags) { },
-    onProgressChange: function(webProgress, request, curSelfProgress, 
+    onProgressChange: function(webProgress, request, curSelfProgress,
                                maxSelfProgress, curTotalProgress,
-                               maxTotalProgress) { },
+                               maxTotalProgress) {
+      info("onProgressChange", [...arguments].join(", "));
+    },
     onSecurityChange: function(webProgress, request, state) { },
-    onStateChange: function(webProgress, request, stateFlags, status) { },
-    onStatusChange: function(webProgress, request, status, message) { },
-    onContentBlockingEvent: function(webProgress, request, event) { },
+    onStateChange: function(webProgress, request, stateFlags, status) {
+      info("onStateChange", [...arguments].join(", "));
+      if (stateFlags & Ci.nsIWebProgressListener.STATE_STOP) {
+        setTimeout(resolve, 0);
+      }
+    },
+    onStatusChange: function(webProgress, request, status, message) {
+      info("onStatusChange", [...arguments].join(", "));
+    },
+    onContentBlockingEvent: function(webProgress, request, event) {
+      info("onContentBlockingEvent", [...arguments].join(", "));
+    },
     QueryInterface: function(iid) {
       if (iid.equals(Ci.nsIWebProgressListener) ||
           iid.equals(Ci.nsISupportsWeakReference))
             return this;
-      throw Cr.NS_NOINTERFACE;
+      throw Components.Exception("", Cr.NS_NOINTERFACE);
     }
   }
-  var prefs = Cc["@mozilla.org/preferences-service;1"]
-                .getService(Ci.nsIPrefBranch);
-  prefs.setBoolPref('print.show_print_progress', false);
-  //XXX I would have thought this would work, instead I'm forced to use prefs service
-  gWbp.globalPrintSettings.showPrintProgress = false;
+  var settings = Cc["@mozilla.org/gfx/printsettings-service;1"]
+                       .getService(Ci.nsIPrintSettingsService).newPrintSettings;
+  settings.showPrintProgress = false;
+  settings.printBGColors = true;
+  settings.headerStrLeft = "";
+  settings.headerStrRight = "";
+  settings.footerStrLeft = "";
+  settings.footerStrRight = "";
+  settings.unwriteableMarginTop = 0;
+  settings.unwriteableMarginRight = 0;
+  settings.unwriteableMarginLeft = 0;
+  settings.unwriteableMarginBottom = 0;
+  if (options.settings) {
+    for (let key in options.settings) {
+      settings[key] = options.settings[key];
+    }
+  }
   var before = 0;
   var after = 0;
   function beforeprint() { ++before; }
   function afterprint() { ++after; }
   frameElts[0].contentWindow.addEventListener("beforeprint", beforeprint, true);
   frameElts[0].contentWindow.addEventListener("afterprint", afterprint, true);
-  gWbp.printPreview(gWbp.globalPrintSettings, frameElts[0].contentWindow, listener);
+  gPrintPreviewWindow = frameElts[0].contentWindow.printPreview(settings, listener);
+  gWbp = gPrintPreviewWindow.docShell.contentViewer;
+  gWbp.QueryInterface(Ci.nsIWebBrowserPrint);
   is(before, 1, "Should have called beforeprint listener!");
-  if (!hasMozPrintCallback) {
+  if (!options.hasMozPrintCallback) {
     // If there's a mozPrintCallback the after print event won't fire until
     // later.
     is(after, 1, "Should have called afterprint listener!");
   }
   frameElts[0].contentWindow.removeEventListener("beforeprint", beforeprint, true);
   frameElts[0].contentWindow.removeEventListener("afterprint", afterprint, true);
-  prefs.clearUserPref('print.show_print_progress');
+  return promise;
 }
 
 function exitprintpreview() {
-  frameElts[1].contentWindow.docShell.exitPrintPreview();
+  gPrintPreviewWindow.docShell.exitPrintPreview();
+  gPrintPreviewWindow.close();
 }
 
 function finish() {
@@ -79,31 +108,23 @@ function finish() {
 
 function runTests()
 {
-  var printService = Cc["@mozilla.org/gfx/printsettings-service;1"]
-                       .getService(Ci.nsIPrintSettingsService);
-
-  try {
-    Cc["@mozilla.org/gfx/printerenumerator;1"]
-      .getService(Ci.nsIPrinterEnumerator);
-  } catch(e) {
-    todo(false, "Test skipped on MacOSX, as the print preview code doesn't work there");
-    finish();
-    return;
-  }
-
-  if (printService.defaultPrinterName != '') {
-    startTest1();
-  } else {
-    todo(false, "No printer seems installed on this machine, that is necessary for this test");
-    finish();
-  }
+  startTest1();
 }
 
-function compareCanvases() {
-  return window.windowUtils
-               .compareCanvases(document.getElementsByTagName("canvas")[0],
-                                document.getElementsByTagName("canvas")[1],
-                                {}) == 0;
+function compareCanvases(options = {}) {
+  const canvas1 = document.getElementsByTagName("canvas")[0];
+  const canvas2 = document.getElementsByTagName("canvas")[1];
+  let maxDifference = {};
+  const differingPixels = window.windowUtils.compareCanvases(canvas1, canvas2, maxDifference);
+  if (differingPixels) {
+    todo(false, "different: " + differingPixels + ", maxDifference: " + maxDifference.value);
+    todo(false, "TEST CASE: " + canvas1.toDataURL());
+    todo(false, "REFERENCE: " + canvas2.toDataURL());
+  }
+
+  let maxAllowedDifferent = options.maxDifferent || 0;
+  let maxAllowedDifference = options.maxDifference || 0;
+  return differingPixels <= maxAllowedDifferent && maxDifference.value <= maxAllowedDifference;
 }
 
 function addHTMLContent(parent) {
@@ -131,8 +152,8 @@ function startTest1() {
   frameElts[0].contentWindow.setTimeout(frameElts[0].contentWindow.counterTimeout, 0);
   frameElts[0].contentDocument.body.firstChild.innerHTML = "Print preview";
 
-  printpreview();
-  ctx1.drawWindow(frameElts[1].contentWindow, 0, 0, 400, 400, "rgb(256,256,256)");
+  let ppfinished = printpreview();
+  drawPrintPreviewWindow(ctx1);
   frameElts[0].contentDocument.body.firstChild.innerHTML = "Galley presentation";
 
   // Add some elements.
@@ -142,11 +163,14 @@ function startTest1() {
   // And readd.
   addHTMLContent(frameElts[0].contentDocument.body.lastChild);
 
-  setTimeout(finalizeTest1, 1000);
+  setTimeout(function() {
+    finalizeTest1(ppfinished)
+  }, 1000);
 }
 
-function finalizeTest1() {
-  ctx2.drawWindow(frameElts[1].contentWindow, 0, 0, 400, 400, "rgb(256,256,256)");
+async function finalizeTest1(ppfinished) {
+  await ppfinished;
+  drawPrintPreviewWindow(ctx2);
   exitprintpreview();
   ok(compareCanvases(), "Canvas should be the same!");
   counter = frameElts[0].contentWindow.counter;
@@ -211,18 +235,18 @@ function runTest3() {
   setTimeout(runTest4, 0)
 }
 
-function compareFormElementPrint(el1, el2, equals) {
+async function compareFormElementPrint(el1, el2, equals) {
   frameElts[0].contentDocument.body.innerHTML = el1;
   frameElts[0].contentDocument.body.firstChild.value =
     frameElts[0].contentDocument.body.firstChild.getAttribute('value');
-  printpreview();
-  ctx1.drawWindow(frameElts[1].contentWindow, 0, 0, 400, 400, "rgb(256,256,256)");
+  await printpreview();
+  drawPrintPreviewWindow(ctx1);
   exitprintpreview();
   frameElts[0].contentDocument.body.innerHTML = el2;
   frameElts[0].contentDocument.body.firstChild.value =
     frameElts[0].contentDocument.body.firstChild.getAttribute('value');
-  printpreview();
-  ctx2.drawWindow(frameElts[1].contentWindow, 0, 0, 400, 400, "rgb(256,256,256)");
+  await printpreview();
+  drawPrintPreviewWindow(ctx2);
   exitprintpreview();
   is(compareCanvases(), equals,
      "Comparing print preview didn't succeed [" + el1 + " : " + el2 + "]");
@@ -236,19 +260,19 @@ function runTest4() {
   setTimeout(runTest4end, 500);
 }
 
-function runTest4end() {
-  printpreview();
+async function runTest4end() {
+  await printpreview();
   exitprintpreview();
 
   runTest5();
 }
 
 // This is a crash test for bug 595337
-function runTest5() {
+async function runTest5() {
   frameElts[0].contentDocument.body.innerHTML =
     '<iframe style="position: fixed; visibility: hidden; bottom: 10em;"></iframe>' +
     '<input contenteditable="true" style="display: table; page-break-before: left; width: 10000px;">';
-  printpreview();
+  await printpreview();
   exitprintpreview();
 
   setTimeout(runTest6, 0);
@@ -263,29 +287,29 @@ function runTest6() {
   setTimeout(runTest6end, 500);
 }
 
-function runTest6end() {
-  printpreview();
+async function runTest6end() {
+  await printpreview();
   exitprintpreview();
 
   requestAnimationFrame(function() { setTimeout(runTest7); } );
 }
 
-function runTest7() {
+async function runTest7() {
   var contentText = "<a href='#'>mozilla</a><input>test<select><option>option1</option></select>";
   // Create normal content
   frameElts[0].contentDocument.body.innerHTML =
     "<div>" + contentText + "</div>";
   frameElts[0].contentDocument.body.firstChild.value =
     frameElts[0].contentDocument.body.firstChild.getAttribute('value');
-  printpreview();
-  ctx1.drawWindow(frameElts[1].contentWindow, 0, 0, 400, 400, "rgb(255,255,255)");
+  await printpreview();
+  drawPrintPreviewWindow(ctx1);
   exitprintpreview();
 
   frameElts[0].contentDocument.body.innerHTML = "<div></div>";
   var sr = frameElts[0].contentDocument.body.firstChild.attachShadow({mode: "open"});
   sr.innerHTML = contentText;
-  printpreview();
-  ctx2.drawWindow(frameElts[1].contentWindow, 0, 0, 400, 400, "rgb(255,255,255)");
+  await printpreview();
+  drawPrintPreviewWindow(ctx2);
   exitprintpreview();
   ok(compareCanvases(), "Printing light DOM and shadow DOM should create same output");
 
@@ -301,8 +325,8 @@ async function runTest8() {
     iframeElement.addEventListener("load", resolve, { capture: true, once: true });
     iframeElement.setAttribute("src", "printpreview_font_api_ref.html");
   });
-  printpreview();
-  ctx1.drawWindow(frameElts[1].contentWindow, 0, 0, 400, 400, "rgb(255,255,255)");
+  await printpreview();
+  drawPrintPreviewWindow(ctx1);
   exitprintpreview();
 
   // Second, snapshot the page with font loaded in JS.
@@ -310,8 +334,8 @@ async function runTest8() {
     iframeElement.addEventListener("message", resolve, { capture: true, once: true });
     iframeElement.setAttribute("src", "printpreview_font_api.html");
   });
-  printpreview();
-  ctx2.drawWindow(frameElts[1].contentWindow, 0, 0, 400, 400, "rgb(255,255,255)");
+  await printpreview();
+  drawPrintPreviewWindow(ctx2);
   exitprintpreview();
   ok(compareCanvases(), "Printing pages with fonts loaded from CSS and JS should be the same.");
 
@@ -326,8 +350,8 @@ async function runTest9() {
     </svg>
   `;
 
-  printpreview();
-  ctx1.drawWindow(frameElts[1].contentWindow, 0, 0, 400, 400, "rgb(255,255,255)");
+  await printpreview();
+  drawPrintPreviewWindow(ctx1);
   exitprintpreview();
 
   frameElts[0].contentDocument.body.innerHTML = `
@@ -348,12 +372,18 @@ async function runTest9() {
   // Ensure the <use> shadow tree is created so we test what we want to test.
   frameElts[0].contentDocument.body.offsetTop;
 
-  printpreview();
-  ctx2.drawWindow(frameElts[1].contentWindow, 0, 0, 400, 400, "rgb(255,255,255)");
+  await printpreview();
+  drawPrintPreviewWindow(ctx2);
   exitprintpreview();
   ok(compareCanvases(), "Printing <use> subtrees should create same output");
 
   requestAnimationFrame(function() { setTimeout(runTest10); } );
+}
+
+function drawPrintPreviewWindow(ctx) {
+  ctx.canvas.width = gPrintPreviewWindow.innerWidth;
+  ctx.canvas.height = gPrintPreviewWindow.innerHeight;
+  ctx.drawWindow(gPrintPreviewWindow, 0, 0, gPrintPreviewWindow.innerWidth, gPrintPreviewWindow.innerHeight, "rgb(255, 255, 255)");
 }
 
 // Test for bug 1524640
@@ -370,9 +400,9 @@ async function runTest10() {
   let mozPrintCallbackDone = new Promise((resolve) => {
     iframeElement.addEventListener("message", resolve, { capture: true, once: true });
   });
-  printpreview(true);
+  await printpreview({ hasMozPrintCallback: true });
   await mozPrintCallbackDone;
-  ctx1.drawWindow(frameElts[1].contentWindow, 0, 0, 400, 400, "rgb(255,255,255)");
+  drawPrintPreviewWindow(ctx1);
   exitprintpreview();
 
   // Second, snapshot the page with font loaded in JS.
@@ -383,10 +413,10 @@ async function runTest10() {
   mozPrintCallbackDone = new Promise((resolve) => {
     iframeElement.addEventListener("message", resolve, { capture: true, once: true });
   });
-  printpreview(true);
+  await printpreview({ hasMozPrintCallback: true });
   // Wait for the mozprintcallback to finish.
   await mozPrintCallbackDone;
-  ctx2.drawWindow(frameElts[1].contentWindow, 0, 0, 400, 400, "rgb(255,255,255)");
+  drawPrintPreviewWindow(ctx2);
 
   exitprintpreview();
   ok(compareCanvases(), "Printing pages with fonts loaded from a mozPrintCallback should be the same.");
@@ -394,26 +424,43 @@ async function runTest10() {
   requestAnimationFrame(function() { setTimeout(runTest11); } );
 }
 
-async function compareFiles(src1, src2) {
+async function compareFiles(src1, src2, options = {}) {
+  const BASE = "https://example.org/chrome/layout/base/tests/chrome/";
+
+  info(`Comparing ${src1} with ${src2}`);
   const iframeElement = document.getElementsByTagName("iframe")[0];
+
+  let messagePromise = null;
+  if (options.waitForMessage) {
+    messagePromise = new Promise(resolve => {
+      iframeElement.addEventListener("message", resolve, { capture: true, once: true });
+    });
+  }
+
   await new Promise((resolve) => {
     iframeElement.addEventListener("load", resolve, { capture: true, once: true });
-    iframeElement.setAttribute("src", src1);
+    iframeElement.setAttribute("src", new URL(src1, BASE).href);
   });
-  printpreview();
-  ctx1.drawWindow(frameElts[1].contentWindow, 0, 0, 400, 400, "rgb(255,255,255)");
+
+  if (messagePromise) {
+    info("awaiting for message to arrive");
+    await messagePromise;
+  }
+
+  await printpreview(options.test || options);
+  drawPrintPreviewWindow(ctx1);
   exitprintpreview();
 
   await new Promise((resolve) => {
     iframeElement.addEventListener("load", resolve, { capture: true, once: true });
-    iframeElement.setAttribute("src", src2);
+    iframeElement.setAttribute("src", new URL(src2, BASE).href);
   });
 
-  printpreview();
-  ctx2.drawWindow(frameElts[1].contentWindow, 0, 0, 400, 400, "rgb(255,255,255)");
+  await printpreview(options.ref || options);
+  drawPrintPreviewWindow(ctx2);
   exitprintpreview();
 
-  ok(compareCanvases(), `Printing ${src1} and ${src2} should produce the same results`);
+  is(compareCanvases(options), !options.expectDifference, `Printing ${src1} and ${src2} should${options.expectDifference ? ' not' : ''} produce the same results`);
 }
 
 // bug 1567105
@@ -422,17 +469,345 @@ async function runTest11() {
   requestAnimationFrame(function() { setTimeout(runTest12); } );
 }
 
-// Crash test for bug 1615261
+// bug 1621415
 async function runTest12() {
+  await compareFiles("test_document_adopted_styles.html", "test_document_adopted_styles_ref.html");
+  requestAnimationFrame(function() { setTimeout(runTest13); } );
+}
+
+// bug 1621415
+async function runTest13() {
+  await compareFiles("test_shadow_root_adopted_styles.html", "test_shadow_root_adopted_styles_ref.html");
+  requestAnimationFrame(function() { setTimeout(runTest14); } );
+}
+
+// bug 1622322
+async function runTest14() {
+  await compareFiles("test_shared_adopted_styles.html", "test_shared_adopted_styles_ref.html");
+  requestAnimationFrame(function() { setTimeout(runTest15); } );
+}
+
+// Crash test for bug 1615261
+async function runTest15() {
   frameElts[0].contentDocument.body.innerHTML =
-    '<style> div { width: 100px; height: 100px; background-image: url("animated.gif"); } </style>' +
+    '<style>div { width: 100px; height: 100px; background-image: url("animated.gif"); } </style>' +
     '<div>Firefox will crash if you try and print this page</div>';
 
   // XXX Is there a more reliable way to wait for the background-image to load?
   await new Promise(resolve => setTimeout(resolve, 500));
 
-  printpreview();
+  await printpreview();
+  await exitprintpreview();
+
+  requestAnimationFrame(function() { setTimeout(runTest16); } );
+}
+
+// Various image tests.
+async function runTest16() {
+  // fuzzy: SVG image in the test pixel-snaps different than <div> in the ref.
+  // (And on WebRender, the pixel-snapping seems to shift some pixels over a
+  // bit such that they're fully white vs. fully blue; hence 255 as the allowed
+  // color-channel difference.)
+  // XXXdholbert We should revisit this and adjust these thresholds (hopefully
+  // lower) after bug 1602410 lands.
+  await compareFiles("printpreview_images.html", "printpreview_images_ref.html", { maxDifferent: 118, maxDifference: 255 });
+  requestAnimationFrame(function() { setTimeout(runTest17); } );
+}
+
+async function runTest17() {
+  // fuzzy: SVG image in the test pixel-snaps different than <div> in the ref.
+  // (And on WebRender, the pixel-snapping seems to shift some pixels over a
+  // bit such that they're fully white vs. fully blue; hence 255 as the allowed
+  // color-channel difference.)
+  // XXXdholbert We should revisit this and adjust these thresholds (hopefully
+  // lower) after bug 1602410 lands.
+  await compareFiles("printpreview_images_sw.html", "printpreview_images_sw_ref.html", { waitForMessage: true, maxDifferent: 118, maxDifference: 255 });
+  requestAnimationFrame(() => setTimeout(runTest18));
+}
+
+async function runTest18() {
+  await compareFiles("printpreview_quirks.html", "printpreview_quirks_ref.html", {
+    settings: {
+      marginTop: 22,
+      marginBottom: 22,
+      marginLeft: 22,
+      marginRight: 22,
+    },
+  });
+
+  requestAnimationFrame(() => setTimeout(runTest19));
+}
+
+async function runTest19() {
+  await compareFiles("color_adjust.html", "color_adjust_ref.html", {
+    test: {
+      settings: {
+        printBGColors: false,
+        printBGImages: false,
+      },
+    },
+    ref: {
+      settings: {
+        printBGColors: true,
+        printBGImages: true,
+      },
+    },
+  });
+
+  requestAnimationFrame(() => setTimeout(runTest20));
+}
+
+async function runTest20() {
+  frameElts[0].contentDocument.body.innerHTML =
+    '<style>div { page-break-after: always; }</style>' +
+    '<div>1</div>' +
+    '<div>2</div>' +
+    '<div>3</div>';
+  await printpreview();
+
+  is(gWbp.printPreviewCurrentPageNumber, 1,
+     "The initial current page number should be 1");
+
+  // Scroll to the second page.
+  gWbp.printPreviewScrollToPage(Ci.nsIWebBrowserPrint.PRINTPREVIEW_GOTO_PAGENUM, 2);
+
+  is(gWbp.printPreviewCurrentPageNumber, 2,
+     "The current page number should be 2");
+
+  // Scroll to the last page.
+  gWbp.printPreviewScrollToPage(Ci.nsIWebBrowserPrint.PRINTPREVIEW_END, 0);
+
+  is(gWbp.printPreviewCurrentPageNumber, 3,
+     "The current page number should be 3");
+
   exitprintpreview();
+
+  requestAnimationFrame(() => setTimeout(runTest21));
+}
+
+async function runTest21() {
+  await compareFiles("data:text/html,<audio controls>", "data:text/html,<audio controls >"); // Shouldn't crash.
+  requestAnimationFrame(() => setTimeout(runTest22));
+}
+
+async function runTest22() {
+  // Similar to above runtTest20 but more specific for the logic to choose
+  // the current page in the new print preview UI so this test works only
+  // in the new print preview.
+  if (SpecialPowers.getBoolPref("print.tab_modal.enabled")) {
+    frameElts[0].contentDocument.body.innerHTML =
+      '<style>div { page-break-after: always; max-height: 2in; }</style>' +
+      '<div>1</div>' +
+      '<div>2</div>' +
+      '<div>3</div>' +
+      '<div>4</div>' +
+      '<div>5</div>' +
+      '<div>6</div>' +
+      '<div>7</div>' +
+      '<div>8</div>' +
+      '<div>9</div>' +
+      '<div>10</div>';
+
+    await printpreview({ settings: { paperHeight: 3 } });
+
+    const initialCurrentPageNumber = gWbp.printPreviewCurrentPageNumber;
+
+    // NOTE: In the cases the page hight is less than the half height of the
+    // print preview scroll port height, the initial current page number will
+    // not be 1.
+    ok(initialCurrentPageNumber >= 1,
+       "The initial current page number should be equal to or greater than 1");
+
+    const totalPageNumber = gWbp.printPreviewNumPages;
+    for (let n = initialCurrentPageNumber;
+         n <= totalPageNumber - initialCurrentPageNumber;
+         n++) {
+      // Scroll to the given page number and check the current page number.
+      gWbp.printPreviewScrollToPage(
+        Ci.nsIWebBrowserPrint.PRINTPREVIEW_GOTO_PAGENUM, n);
+      is(gWbp.printPreviewCurrentPageNumber, n,
+         `The current page number should be ${n}`);
+    }
+
+    // Scroll to the end of the scroll region.
+    gWbp.printPreviewScrollToPage(Ci.nsIWebBrowserPrint.PRINTPREVIEW_END, 0);
+
+    // Same as the initial current page number case, the last page might not
+    // be the current page if the page height is less than the half of the scroll
+    // port.
+    is(gWbp.printPreviewCurrentPageNumber,
+       totalPageNumber + 1 - initialCurrentPageNumber,
+       `The current page number should be ${totalPageNumber + 1 - initialCurrentPageNumber}`);
+
+    exitprintpreview();
+  }
+
+  requestAnimationFrame(() => setTimeout(runTest23));
+}
+
+async function runTest23() {
+  await compareFiles("printpreview_prettyprint.xml", "printpreview_prettyprint_ref.xhtml");
+  requestAnimationFrame(() => setTimeout(runTest24));
+}
+async function runTest24() {
+  await compareFiles("printpreview_mask.html", "data:text/html,", {
+    settings: {
+      printBGColors: false,
+      printBGImages: false,
+    },
+    expectDifference: true,
+  });
+  requestAnimationFrame(() => setTimeout(runTest25));
+}
+
+async function runTest25() {
+  await compareFiles("printpreview_downloadable_font.html", "printpreview_downloadable_font_ref.html");
+  requestAnimationFrame(() => setTimeout(runTest26));
+}
+
+async function runTest26() {
+  await compareFiles("printpreview_downloadable_font_in_iframe.html", "printpreview_downloadable_font_in_iframe_ref.html");
+  requestAnimationFrame(() => setTimeout(runTest27));
+}
+
+async function runTest27() {
+  await compareFiles("data:text/html,<style>:root { background-color: red; background-image: linear-gradient(red, red) }</style>", "data:text/html,", {
+    settings: {
+      printBGColors: false,
+      printBGImages: false,
+    }
+  });
+  requestAnimationFrame(() => setTimeout(runTest28));
+}
+
+async function runTest28() {
+  await compareFiles("data:text/html,<style>@page { margin: 0 }</style>Foo", "data:text/html,Foo", {
+    settings: {
+      honorPageRuleMargins: false,
+      marginTop: 1,
+    }
+  });
+
+  requestAnimationFrame(() => setTimeout(runTest29));
+}
+
+async function runTest29() {
+  await compareFiles("data:text/html,<style>@page { margin: 0 }</style>Foo", "data:text/html,Foo", {
+    settings: {
+      honorPageRuleMargins: true,
+      marginTop: 1,
+    },
+    expectDifference: true,
+  });
+
+  requestAnimationFrame(() => setTimeout(runTest30));
+}
+
+// Helper function to test trivial/unsupported pages-per-sheet values which we
+// just treat as 1 page-per-sheet (as if the attribute were unset.)
+// NOTE: The second data-URI's explicit "<body>" tag is not meant to affect the
+// rendering -- it's just a hack to ensure that the URIs themselves are
+// different, so that compareFiles() sees the two URIs as different and gets
+// the "load" notification that it depends on after switching between them.
+async function checkTrivialPagesPerSheetValue(numPages) {
+  await compareFiles("data:text/html,Page", "data:text/html,<body>Page", {
+    test: {
+      settings: {
+        numPagesPerSheet: numPages,
+      },
+    },
+    ref: { settings: {} },
+  });
+}
+
+async function runTest30() {
+  await checkTrivialPagesPerSheetValue(1);
+  await checkTrivialPagesPerSheetValue(0);
+  await checkTrivialPagesPerSheetValue(-5);
+  await checkTrivialPagesPerSheetValue(7);
+  await checkTrivialPagesPerSheetValue(500);
+
+  // XXXdholbert These ones are unsupported (& treated as 1) for now, but we
+  // intend to support them in bug 1669905. After that, we'll want to give them
+  // real tiling tests like we have for the other supported values.
+  await checkTrivialPagesPerSheetValue(2);
+  await checkTrivialPagesPerSheetValue(6);
+
+  requestAnimationFrame(() => setTimeout(runTest31));
+}
+
+// Helper function to test supported pages-per-sheet values that actually do
+// tiling (i.e. values greater than 1).  We render the testcase and reference
+// case with zero page-margins and zero unwritable margins. (This makes it
+// tractable to create a reference case without having to account for margins
+// that are outside of the content area.)
+async function checkSupportedPagesPerSheetValue(src1, src2, numPages, fuzz) {
+  await compareFiles(src1, src2, {
+    maxDifferent: fuzz.maxDifferent,
+    maxDifference: fuzz.maxDifference,
+    test: {
+      settings: {
+        marginTop: 0,
+        marginRight: 0,
+        marginBottom: 0,
+        marginLeft: 0,
+        unwriteableMarginTop: 0,
+        unwriteableMarginRight: 0,
+        unwriteableMarginBottom: 0,
+        unwriteableMarginLeft: 0,
+        numPagesPerSheet: numPages,
+      },
+    },
+    ref: {
+      settings: {
+        marginTop: 0,
+        marginRight: 0,
+        marginBottom: 0,
+        marginLeft: 0,
+        unwriteableMarginTop: 0,
+        unwriteableMarginRight: 0,
+        unwriteableMarginBottom: 0,
+        unwriteableMarginLeft: 0,
+      },
+    },
+  });
+}
+
+// Pages-per-sheet: supported values (4, 9, 16)
+// And eventually 2 and 6, per bug 1669905.
+async function runTest31() {
+  // XXXdholbert On windows, our zero-margin settings aren't reliably respected
+  // for some reason; see bug 1671036. For now, we just account for that with a
+  // hefty amount of fuzz, guarded behind a platform-specific check so that we
+  // can keep this strict on other platforms.
+  let fuzz = navigator.platform.includes("Win") ?
+      { maxDifferent: 101278, maxDifference: 255 } :
+      { maxDifferent: 0, maxDifference: 0 };
+
+  await checkSupportedPagesPerSheetValue("printpreview_pps4.html",
+                                         "printpreview_pps4_ref.html", 4, fuzz);
+
+  requestAnimationFrame(() => setTimeout(runTest32));
+}
+async function runTest32() {
+  let fuzz = navigator.platform.includes("Win") ?
+      { maxDifferent: 121116, maxDifference: 255 } :
+      { maxDifferent: 0, maxDifference: 0 };
+
+  await checkSupportedPagesPerSheetValue("printpreview_pps9.html",
+                                         "printpreview_pps9_ref.html", 9, fuzz);
+
+  requestAnimationFrame(() => setTimeout(runTest33));
+}
+async function runTest33() {
+  let fuzz = navigator.platform.includes("Win") ?
+      { maxDifferent: 145706, maxDifference: 255 } :
+      { maxDifferent: 0, maxDifference: 0 };
+
+  await checkSupportedPagesPerSheetValue("printpreview_pps16.html",
+                                         "printpreview_pps16_ref.html", 16,
+                                         fuzz);
+
   finish();
 }
 

@@ -9,6 +9,7 @@
 #include "mozilla/dom/Navigator.h"
 #include "mozilla/dom/ReportingHeader.h"
 #include "mozilla/dom/ReportDeliver.h"
+#include "mozilla/JSONWriter.h"
 #include "nsIPrincipal.h"
 #include "nsIURIMutator.h"
 #include "nsString.h"
@@ -19,7 +20,7 @@ namespace dom {
 struct StringWriteFunc : public JSONWriteFunc {
   nsCString& mCString;
   explicit StringWriteFunc(nsCString& aCString) : mCString(aCString) {}
-  void Write(const char* aStr) override { mCString.Append(aStr); }
+  void Write(const Span<const char>& aStr) override { mCString.Append(aStr); }
 };
 
 /* static */
@@ -27,32 +28,19 @@ bool CrashReport::Deliver(nsIPrincipal* aPrincipal, bool aIsOOM) {
   MOZ_ASSERT(aPrincipal);
 
   nsAutoCString endpoint_url;
-  ReportingHeader::GetEndpointForReport(NS_LITERAL_STRING("default"),
-                                        aPrincipal, endpoint_url);
+  ReportingHeader::GetEndpointForReport(u"default"_ns, aPrincipal,
+                                        endpoint_url);
   if (endpoint_url.IsEmpty()) {
     return false;
   }
 
-  nsCOMPtr<nsIURI> origin_uri;
-  nsresult rv = aPrincipal->GetURI(getter_AddRefs(origin_uri));
-  NS_ENSURE_SUCCESS(rv, false);
-  NS_ENSURE_TRUE(origin_uri, false);
-
-  nsCOMPtr<nsIURI> safe_origin_uri;
-  rv = NS_MutateURI(origin_uri)
-           .SetUserPass(EmptyCString())
-           .Finalize(safe_origin_uri);
-  NS_ENSURE_SUCCESS(rv, false);
-  NS_ENSURE_TRUE(safe_origin_uri, false);
-
-  nsAutoCString safe_origin_spec;
-  rv = safe_origin_uri->GetSpec(safe_origin_spec);
-  NS_ENSURE_SUCCESS(rv, false);
+  nsCString safe_origin_spec;
+  aPrincipal->GetExposableSpec(safe_origin_spec);
 
   ReportDeliver::ReportData data;
-  data.mType = NS_LITERAL_STRING("crash");
-  data.mGroupName = NS_LITERAL_STRING("default");
-  data.mURL = NS_ConvertUTF8toUTF16(safe_origin_spec);
+  data.mType = u"crash"_ns;
+  data.mGroupName = u"default"_ns;
+  CopyUTF8toUTF16(safe_origin_spec, data.mURL);
   data.mCreationTime = TimeStamp::Now();
 
   Navigator::GetUserAgent(nullptr, aPrincipal, false, data.mUserAgent);

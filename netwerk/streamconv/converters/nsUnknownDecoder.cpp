@@ -14,7 +14,6 @@
 
 #include "nsIMIMEService.h"
 
-#include "nsIDivertableChannel.h"
 #include "nsIViewSourceChannel.h"
 #include "nsIHttpChannel.h"
 #include "nsIForcePendingChannel.h"
@@ -145,7 +144,7 @@ nsUnknownDecoder::AsyncConvertData(const char* aFromType, const char* aToType,
 
 NS_IMETHODIMP
 nsUnknownDecoder::GetConvertedType(const nsACString& aFromType,
-                                   nsACString& aToType) {
+                                   nsIChannel* aChannel, nsACString& aToType) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -215,16 +214,6 @@ nsUnknownDecoder::OnDataAvailable(nsIRequest* request, nsIInputStream* aStream,
     }
 #endif
 
-    nsCOMPtr<nsIDivertableChannel> divertable = do_QueryInterface(request);
-    if (divertable) {
-      bool diverting;
-      divertable->GetDivertingToParent(&diverting);
-      if (diverting) {
-        // The channel is diverted to the parent do not send any more data here.
-        return rv;
-      }
-    }
-
     nsCOMPtr<nsIStreamListener> listener;
     {
       MutexAutoLock lock(mMutex);
@@ -260,11 +249,6 @@ nsUnknownDecoder::OnStartRequest(nsIRequest* request) {
     }
   }
 
-  nsCOMPtr<nsIDivertableChannel> divertable = do_QueryInterface(request);
-  if (divertable) {
-    divertable->UnknownDecoderInvolvedKeepData();
-  }
-
   // Do not pass the OnStartRequest on to the next listener (yet)...
   return rv;
 }
@@ -287,29 +271,6 @@ nsUnknownDecoder::OnStopRequest(nsIRequest* request, nsresult aStatus) {
   //
   if (contentTypeEmpty) {
     DetermineContentType(request);
-
-    /*
-     * In Case we did Sniff Unknown Content with XTCO: nosniff enabled,
-     * add an Telemetry-Entry whether the sniffed content is able to
-     * execute Script.
-     */
-    nsCOMPtr<nsIChannel> channel = do_QueryInterface(request);
-    if (channel) {
-      nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
-      if (loadInfo->GetSkipContentSniffing()) {
-        if (mContentType.EqualsLiteral("text/html") ||
-            mContentType.EqualsLiteral("text/xml") ||
-            mContentType.EqualsLiteral("aplication/pdf")) {
-          Telemetry::AccumulateCategorical(
-              mozilla::Telemetry::LABELS_XCTO_NOSNIFF_TOPLEVEL_NAV_EXCEPTIONS::
-                  ExceptionScriptable);
-        } else {
-          Telemetry::AccumulateCategorical(
-              mozilla::Telemetry::LABELS_XCTO_NOSNIFF_TOPLEVEL_NAV_EXCEPTIONS::
-                  Exception);
-        }
-      }
-    }
 
     // Make sure channel listeners see channel as pending while we call
     // OnStartRequest/OnDataAvailable, even though the underlying channel
@@ -460,8 +421,7 @@ void nsUnknownDecoder::DetermineContentType(nsIRequest* aRequest) {
           spec.AppendLiteral("...");
         }
         httpChannel->LogMimeTypeMismatch(
-            NS_LITERAL_CSTRING("XTCOWithMIMEValueMissing"), false,
-            NS_ConvertUTF8toUTF16(spec),
+            "XTCOWithMIMEValueMissing"_ns, false, NS_ConvertUTF8toUTF16(spec),
             // Type is not used in the Error Message but required
             NS_ConvertUTF8toUTF16(type));
       }
@@ -759,29 +719,12 @@ nsresult nsUnknownDecoder::FireListenerNotifications(nsIRequest* request,
       // mNextListener looks at it.
       request->Cancel(rv);
       listener->OnStartRequest(request);
-
-      nsCOMPtr<nsIDivertableChannel> divertable = do_QueryInterface(request);
-      if (divertable) {
-        rv = divertable->UnknownDecoderInvolvedOnStartRequestCalled();
-      }
-
       return rv;
     }
   }
 
   // Fire the OnStartRequest(...)
   rv = listener->OnStartRequest(request);
-
-  nsCOMPtr<nsIDivertableChannel> divertable = do_QueryInterface(request);
-  if (divertable) {
-    rv = divertable->UnknownDecoderInvolvedOnStartRequestCalled();
-    bool diverting;
-    divertable->GetDivertingToParent(&diverting);
-    if (diverting) {
-      // The channel is diverted to the parent do not send any more data here.
-      return rv;
-    }
-  }
 
   if (NS_SUCCEEDED(rv)) {
     // install stream converter if required
@@ -908,8 +851,7 @@ void nsBinaryDetector::DetermineContentType(nsIRequest* aRequest) {
   }
   // It's an HTTP channel.  Check for the text/plain mess
   nsAutoCString contentTypeHdr;
-  Unused << httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("Content-Type"),
-                                           contentTypeHdr);
+  Unused << httpChannel->GetResponseHeader("Content-Type"_ns, contentTypeHdr);
   nsAutoCString contentType;
   httpChannel->GetContentType(contentType);
 
@@ -933,8 +875,8 @@ void nsBinaryDetector::DetermineContentType(nsIRequest* aRequest) {
   // XXXbz we could improve this by doing a local decompress if we
   // wanted, I'm sure.
   nsAutoCString contentEncoding;
-  Unused << httpChannel->GetResponseHeader(
-      NS_LITERAL_CSTRING("Content-Encoding"), contentEncoding);
+  Unused << httpChannel->GetResponseHeader("Content-Encoding"_ns,
+                                           contentEncoding);
   if (!contentEncoding.IsEmpty()) {
     return;
   }

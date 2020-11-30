@@ -54,7 +54,6 @@ class WebBrowserChromeChild extends GeckoViewActorChild {
         aURI,
         aReferrerInfo,
         aTriggeringPrincipal,
-        false,
         null,
         aCsp
       );
@@ -67,35 +66,13 @@ class WebBrowserChromeChild extends GeckoViewActorChild {
   // nsIWebBrowserChrome
   shouldLoadURIInThisProcess(aURI) {
     debug`shouldLoadURIInThisProcess ${aURI.displaySpec}`;
-    let remoteSubframes = this.docShell.nsILoadContext.useRemoteSubframes;
+    const remoteSubframes = this.docShell.nsILoadContext.useRemoteSubframes;
     return E10SUtils.shouldLoadURIInThisProcess(aURI, remoteSubframes);
-  }
-
-  // nsIWebBrowserChrome
-  reloadInFreshProcess(
-    aDocShell,
-    aURI,
-    aReferrerInfo,
-    aTriggeringPrincipal,
-    aLoadFlags,
-    aCsp
-  ) {
-    debug`reloadInFreshProcess ${aURI.displaySpec}`;
-    E10SUtils.redirectLoad(
-      aDocShell,
-      aURI,
-      aReferrerInfo,
-      aTriggeringPrincipal,
-      true,
-      aLoadFlags,
-      aCsp
-    );
-    return true;
   }
 }
 
 WebBrowserChromeChild.prototype.QueryInterface = ChromeUtils.generateQI([
-  Ci.nsIWebBrowserChrome3,
+  "nsIWebBrowserChrome3",
 ]);
 
-const { debug, warn } = WebBrowserChromeChild.initLogging("WebBrowserChrome"); // eslint-disable-line no-unused-vars
+const { debug, warn } = WebBrowserChromeChild.initLogging("WebBrowserChrome");

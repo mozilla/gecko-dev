@@ -114,7 +114,10 @@ pub enum GenericClipPath<BasicShape, U> {
     Url(U),
     #[css(function)]
     Path(Path),
-    Shape(Box<BasicShape>, #[css(skip_if = "is_default")] ShapeGeometryBox),
+    Shape(
+        Box<BasicShape>,
+        #[css(skip_if = "is_default")] ShapeGeometryBox,
+    ),
     #[animation(error)]
     Box(ShapeGeometryBox),
 }
@@ -267,6 +270,7 @@ pub struct Ellipse<H, V, NonNegativeLengthPercentage> {
     Copy,
     Debug,
     MallocSizeOf,
+    Parse,
     PartialEq,
     SpecifiedValueInfo,
     ToAnimatedValue,

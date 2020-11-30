@@ -1,4 +1,9 @@
-var callbacks = new Array();
+/* import-globals-from head_cache.js */
+/* import-globals-from head_channels.js */
+
+"use strict";
+
+var callbacks = [];
 
 // Expect an existing entry
 const NORMAL = 0;
@@ -65,26 +70,23 @@ function pumpReadStream(inputStream, goon) {
     );
     pump.init(inputStream, 0, 0, true);
     var data = "";
-    pump.asyncRead(
-      {
-        onStartRequest(aRequest) {},
-        onDataAvailable(aRequest, aInputStream, aOffset, aCount) {
-          var wrapper = Cc[
-            "@mozilla.org/scriptableinputstream;1"
-          ].createInstance(Ci.nsIScriptableInputStream);
-          wrapper.init(aInputStream);
-          var str = wrapper.read(wrapper.available());
-          LOG_C2("reading data '" + str.substring(0, 5) + "'");
-          data += str;
-        },
-        onStopRequest(aRequest, aStatusCode) {
-          LOG_C2("done reading data: " + aStatusCode);
-          Assert.equal(aStatusCode, Cr.NS_OK);
-          goon(data);
-        },
+    pump.asyncRead({
+      onStartRequest(aRequest) {},
+      onDataAvailable(aRequest, aInputStream, aOffset, aCount) {
+        var wrapper = Cc["@mozilla.org/scriptableinputstream;1"].createInstance(
+          Ci.nsIScriptableInputStream
+        );
+        wrapper.init(aInputStream);
+        var str = wrapper.read(wrapper.available());
+        LOG_C2("reading data '" + str.substring(0, 5) + "'");
+        data += str;
       },
-      null
-    );
+      onStopRequest(aRequest, aStatusCode) {
+        LOG_C2("done reading data: " + aStatusCode);
+        Assert.equal(aStatusCode, Cr.NS_OK);
+        goon(data);
+      },
+    });
   } else {
     // blocking stream
     var data = read_stream(inputStream, inputStream.available());
@@ -274,7 +276,7 @@ OpenCallback.prototype = {
       LOG_C2(self, "Notifying");
       self.goon(entry);
     });
-    throw Cr.NS_ERROR_FAILURE;
+    throw Components.Exception("", Cr.NS_ERROR_FAILURE);
   },
 };
 

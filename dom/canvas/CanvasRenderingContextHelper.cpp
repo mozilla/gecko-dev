@@ -10,6 +10,7 @@
 #include "mozilla/GfxMessageUtils.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/webgpu/CanvasContext.h"
 #include "MozFramebuffer.h"
 #include "nsContentUtils.h"
 #include "nsDOMJSUtils.h"
@@ -19,6 +20,9 @@
 
 namespace mozilla {
 namespace dom {
+
+CanvasRenderingContextHelper::CanvasRenderingContextHelper()
+    : mCurrentContextType(CanvasContextType::NoContext) {}
 
 void CanvasRenderingContextHelper::ToBlob(
     JSContext* aCx, nsIGlobalObject* aGlobal, BlobCallback& aCallback,
@@ -139,6 +143,15 @@ CanvasRenderingContextHelper::CreateContextHelper(
 
       break;
 
+    case CanvasContextType::WebGPU:
+      // TODO
+      // Telemetry::Accumulate(Telemetry::CANVAS_WEBGPU_USED, 1);
+
+      ret = new webgpu::CanvasContext();
+      if (!ret) return nullptr;
+
+      break;
+
     case CanvasContextType::ImageBitmap:
       ret = new ImageBitmapRenderingContext();
 
@@ -185,12 +198,18 @@ already_AddRefed<nsISupports> CanvasRenderingContextHelper::GetContext(
         Telemetry::Accumulate(Telemetry::CANVAS_WEBGL_SUCCESS, 0);
       else if (contextType == CanvasContextType::WebGL2)
         Telemetry::Accumulate(Telemetry::CANVAS_WEBGL2_SUCCESS, 0);
+      else if (contextType == CanvasContextType::WebGPU) {
+        // Telemetry::Accumulate(Telemetry::CANVAS_WEBGPU_SUCCESS, 0);
+      }
       return nullptr;
     }
     if (contextType == CanvasContextType::WebGL1)
       Telemetry::Accumulate(Telemetry::CANVAS_WEBGL_SUCCESS, 1);
     else if (contextType == CanvasContextType::WebGL2)
       Telemetry::Accumulate(Telemetry::CANVAS_WEBGL2_SUCCESS, 1);
+    else if (contextType == CanvasContextType::WebGPU) {
+      // Telemetry::Accumulate(Telemetry::CANVAS_WEBGPU_SUCCESS, 1);
+    }
   } else {
     // We already have a context of some type.
     if (contextType != mCurrentContextType) return nullptr;
@@ -246,7 +265,7 @@ nsresult CanvasRenderingContextHelper::ParseParams(
   // parse options string as is and pass it to the encoder.
   *outUsingCustomParseOptions = false;
   if (outParams.Length() == 0 && aEncoderOptions.isString()) {
-    NS_NAMED_LITERAL_STRING(mozParseOptions, "-moz-parse-options:");
+    constexpr auto mozParseOptions = u"-moz-parse-options:"_ns;
     nsAutoJSString paramString;
     if (!paramString.init(aCx, aEncoderOptions.toString())) {
       return NS_ERROR_FAILURE;

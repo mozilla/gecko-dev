@@ -8,7 +8,6 @@
 
 #include "DisplayItemClipChain.h"
 #include "FrameMetrics.h"
-#include "LayersLogging.h"
 #include "mozilla/layers/StackingContextHelper.h"
 #include "mozilla/layers/WebRenderLayerManager.h"
 #include "mozilla/webrender/WebRenderAPI.h"
@@ -147,7 +146,16 @@ wr::WrSpaceAndClipChain ClipManager::SwitchItem(nsDisplayItem* aItem) {
     // purposes we always want to use the ASR that would have been used if it
     // didn't have fixed descendants, which is stored as the "container ASR" on
     // the sticky item.
-    asr = static_cast<nsDisplayStickyPosition*>(aItem)->GetContainerASR();
+    nsDisplayStickyPosition* sticky =
+        static_cast<nsDisplayStickyPosition*>(aItem);
+    asr = sticky->GetContainerASR();
+
+    // If the leafmost clip for the sticky item is just the displayport clip,
+    // then skip it. This allows sticky items to remain visible even if the
+    // rest of the content in the enclosing scrollframe is checkerboarding.
+    if (sticky->IsClippedToDisplayPort() && clip && clip->mASR == asr) {
+      clip = clip->mParent;
+    }
   }
 
   // In most cases we can combine the leaf of the clip chain with the clip rect
@@ -208,6 +216,7 @@ wr::WrSpaceAndClipChain ClipManager::SwitchItem(nsDisplayItem* aItem) {
     leafmostASR = ActiveScrolledRoot::PickDescendant(leafmostASR, clip->mASR);
   }
   Maybe<wr::WrSpaceAndClip> leafmostId = DefineScrollLayers(leafmostASR, aItem);
+  Unused << leafmostId;
 
   // Define all the clips in the item's clip chain, and obtain a clip chain id
   // for it.
@@ -306,8 +315,15 @@ Maybe<wr::WrSpaceAndClip> ClipManager::DefineScrollLayers(
   if (parent) {
     parent->space = SpatialIdAfterOverride(parent->space);
   }
-  LayoutDevicePoint scrollOffset =
-      metrics.GetScrollOffset() * metrics.GetDevPixelsPerCSSPixel();
+  // The external scroll offset is accumulated into the local space positions of
+  // display items inside WR, so that the elements hash (intern) to the same
+  // content ID for quick comparisons. To avoid invalidations when the
+  // auPerDevPixel is not a round value, round here directly from app units.
+  // This guarantees we won't introduce any inaccuracy in the external scroll
+  // offset passed to WR.
+  LayoutDevicePoint scrollOffset = LayoutDevicePoint::FromAppUnitsRounded(
+      scrollableFrame->GetScrollPosition(), auPerDevPixel);
+
   return Some(mBuilder->DefineScrollLayer(
       viewId, parent, wr::ToLayoutRect(contentRect),
       wr::ToLayoutRect(clipBounds), wr::ToLayoutPoint(scrollOffset)));

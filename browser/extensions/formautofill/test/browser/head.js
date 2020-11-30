@@ -1,19 +1,20 @@
 /* exported MANAGE_ADDRESSES_DIALOG_URL, MANAGE_CREDIT_CARDS_DIALOG_URL, EDIT_ADDRESS_DIALOG_URL, EDIT_CREDIT_CARD_DIALOG_URL,
             BASE_URL, TEST_ADDRESS_1, TEST_ADDRESS_2, TEST_ADDRESS_3, TEST_ADDRESS_4, TEST_ADDRESS_5, TEST_ADDRESS_CA_1, TEST_ADDRESS_DE_1,
             TEST_ADDRESS_IE_1,
-            TEST_CREDIT_CARD_1, TEST_CREDIT_CARD_2, TEST_CREDIT_CARD_3, FORM_URL, CREDITCARD_FORM_URL, CREDITCARD_FORM_IFRAME_URL
-            FTU_PREF, ENABLED_AUTOFILL_ADDRESSES_PREF, AUTOFILL_CREDITCARDS_AVAILABLE_PREF, ENABLED_AUTOFILL_CREDITCARDS_PREF,
+            TEST_CREDIT_CARD_1, TEST_CREDIT_CARD_2, TEST_CREDIT_CARD_3, TEST_CREDIT_CARD_4, TEST_CREDIT_CARD_5,
+            FORM_URL, CREDITCARD_FORM_URL, CREDITCARD_FORM_IFRAME_URL
+            FTU_PREF, ENABLED_AUTOFILL_ADDRESSES_PREF, ENABLED_AUTOFILL_ADDRESSES_CAPTURE_PREF, AUTOFILL_CREDITCARDS_AVAILABLE_PREF, ENABLED_AUTOFILL_CREDITCARDS_PREF,
             SUPPORTED_COUNTRIES_PREF,
             SYNC_USERNAME_PREF, SYNC_ADDRESSES_PREF, SYNC_CREDITCARDS_PREF, SYNC_CREDITCARDS_AVAILABLE_PREF, CREDITCARDS_USED_STATUS_PREF,
-            DEFAULT_REGION_PREF,
-            sleep, expectPopupOpen, openPopupOn, openPopupForSubframe, expectPopupClose, closePopup, closePopupForSubframe, 
+            CREDITCARDS_SAVED_COUNT_PREF, CREDITCARDS_CANCEL_SAVE_COUNT_PREF, CREDITCARDS_DISMISS_COUNT_PREF,
+            sleep, expectPopupOpen, openPopupOn, openPopupForSubframe, expectPopupClose, closePopup, closePopupForSubframe,
             clickDoorhangerButton, getAddresses, saveAddress, removeAddresses, saveCreditCard,
-            getDisplayedPopupItems, getDoorhangerCheckbox,
+            getDisplayedPopupItems, getDoorhangerCheckbox, waitForPopupEnabled,
             getNotification, getDoorhangerButton, removeAllRecords, expectWarningText, testDialog */
 
 "use strict";
 
-ChromeUtils.import("resource://formautofill/OSKeyStore.jsm", this);
+ChromeUtils.import("resource://gre/modules/OSKeyStore.jsm", this);
 ChromeUtils.import("resource://testing-common/OSKeyStoreTestUtils.jsm", this);
 
 const MANAGE_ADDRESSES_DIALOG_URL =
@@ -39,8 +40,16 @@ const CREDITCARD_FORM_IFRAME_URL =
 
 const FTU_PREF = "extensions.formautofill.firstTimeUse";
 const CREDITCARDS_USED_STATUS_PREF = "extensions.formautofill.creditCards.used";
+const CREDITCARDS_SAVED_COUNT_PREF =
+  "extensions.formautofill.creditCards.usage.saveCc";
+const CREDITCARDS_CANCEL_SAVE_COUNT_PREF =
+  "extensions.formautofill.creditCards.usage.cancelCcSave";
+const CREDITCARDS_DISMISS_COUNT_PREF =
+  "extensions.formautofill.creditCards.usage.dismissed";
 const ENABLED_AUTOFILL_ADDRESSES_PREF =
   "extensions.formautofill.addresses.enabled";
+const ENABLED_AUTOFILL_ADDRESSES_CAPTURE_PREF =
+  "extensions.formautofill.addresses.capture.enabled";
 const AUTOFILL_CREDITCARDS_AVAILABLE_PREF =
   "extensions.formautofill.creditCards.available";
 const ENABLED_AUTOFILL_CREDITCARDS_PREF =
@@ -51,7 +60,6 @@ const SYNC_ADDRESSES_PREF = "services.sync.engine.addresses";
 const SYNC_CREDITCARDS_PREF = "services.sync.engine.creditcards";
 const SYNC_CREDITCARDS_AVAILABLE_PREF =
   "services.sync.engine.creditcards.available";
-const DEFAULT_REGION_PREF = "browser.search.region";
 
 const TEST_ADDRESS_1 = {
   "given-name": "John",
@@ -154,6 +162,17 @@ const TEST_CREDIT_CARD_3 = {
   "cc-exp-month": 1,
   "cc-exp-year": 2000,
   "cc-type": "mastercard",
+};
+
+const TEST_CREDIT_CARD_4 = {
+  "cc-number": "5105105105105100",
+  "cc-type": "mastercard",
+};
+
+const TEST_CREDIT_CARD_5 = {
+  "cc-name": "Chris P. Bacon",
+  "cc-number": "4012888888881881",
+  "cc-type": "visa",
 };
 
 const MAIN_BUTTON = "button";
@@ -288,19 +307,34 @@ async function expectPopupOpen(browser) {
   }, "The popup should be a form autofill one");
 }
 
+async function waitForPopupEnabled(browser) {
+  const {
+    autoCompletePopup: { richlistbox: itemsBox },
+  } = browser;
+  const listItemElems = itemsBox.querySelectorAll(".autocomplete-richlistitem");
+  await TestUtils.waitForCondition(
+    () => !listItemElems[0].disabled,
+    "Wait for list elements to become enabled"
+  );
+}
+
 async function openPopupOn(browser, selector) {
   await SimpleTest.promiseFocus(browser);
   await focusAndWaitForFieldsIdentified(browser, selector);
-  info("openPopupOn: before VK_DOWN");
-  await BrowserTestUtils.synthesizeKey("VK_DOWN", {}, browser);
+  if (!selector.includes("cc-")) {
+    info(`openPopupOn: before VK_DOWN on ${selector}`);
+    await BrowserTestUtils.synthesizeKey("VK_DOWN", {}, browser);
+  }
   await expectPopupOpen(browser);
 }
 
 async function openPopupForSubframe(browser, frameBrowsingContext, selector) {
   await SimpleTest.promiseFocus(browser);
   await focusAndWaitForFieldsIdentified(frameBrowsingContext, selector);
-  info("openPopupOn: before VK_DOWN");
-  await BrowserTestUtils.synthesizeKey("VK_DOWN", {}, frameBrowsingContext);
+  if (!selector.includes("cc-")) {
+    info(`openPopupForSubframe: before VK_DOWN on ${selector}`);
+    await BrowserTestUtils.synthesizeKey("VK_DOWN", {}, frameBrowsingContext);
+  }
   await expectPopupOpen(browser);
 }
 

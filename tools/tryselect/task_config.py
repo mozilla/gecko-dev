@@ -20,6 +20,7 @@ from textwrap import dedent
 
 import mozpack.path as mozpath
 from mozbuild.base import BuildEnvironmentNotFoundException, MozbuildObject
+
 from .tasks import resolve_tests_by_suite
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -43,6 +44,9 @@ class TryConfig(object):
 
     @abstractmethod
     def try_config(self, **kwargs):
+        pass
+
+    def validate(self, **kwargs):
         pass
 
 
@@ -110,17 +114,13 @@ class Pernosco(TryConfig):
             return
 
         if pernosco:
-            if not kwargs['no_artifact'] and (kwargs['artifact'] or Artifact.is_artifact_build()):
-                print("Pernosco does not support artifact builds at this time. "
-                      "Please try again with '--no-artifact'.")
-                sys.exit(1)
-
             try:
                 # The Pernosco service currently requires a Mozilla e-mail address to
                 # log in. Prevent people with non-Mozilla addresses from using this
                 # flag so they don't end up consuming time and resources only to
                 # realize they can't actually log in and see the reports.
-                output = subprocess.check_output(['ssh', '-G', 'hg.mozilla.org']).splitlines()
+                cmd = ['ssh', '-G', 'hg.mozilla.org']
+                output = subprocess.check_output(cmd, universal_newlines=True).splitlines()
                 address = [l.rsplit(' ', 1)[-1] for l in output if l.startswith('user')][0]
                 if not address.endswith('@mozilla.com'):
                     print(dedent("""\
@@ -135,7 +135,7 @@ class Pernosco(TryConfig):
                 print("warning: failed to detect current user for 'hg.mozilla.org'")
                 print("Pernosco requires a Mozilla e-mail address to view its reports.")
                 while True:
-                    answer = raw_input("Do you have an @mozilla.com address? [Y/n]: ").lower()
+                    answer = input("Do you have an @mozilla.com address? [Y/n]: ").lower()
                     if answer == 'n':
                         sys.exit(1)
                     elif answer == 'y':
@@ -146,6 +146,12 @@ class Pernosco(TryConfig):
                 'PERNOSCO': str(int(pernosco)),
             }
         }
+
+    def validate(self, **kwargs):
+        if kwargs['try_config'].get('use-artifact-builds'):
+            print("Pernosco does not support artifact builds at this time. "
+                  "Please try again with '--no-artifact'.")
+            sys.exit(1)
 
 
 class Path(TryConfig):
@@ -228,9 +234,36 @@ class Rebuild(TryConfig):
         if not rebuild:
             return
 
+        if kwargs.get('full') and rebuild > 3:
+            print('warning: limiting --rebuild to 3 when using --full. '
+                  'Use custom push actions to add more.')
+            rebuild = 3
+
         return {
             'rebuild': rebuild,
         }
+
+
+class Routes(TryConfig):
+    arguments = [
+        [
+            ["--route"],
+            {
+                "action": "append",
+                "dest": "routes",
+                "help": (
+                    "Additional route to add to the tasks "
+                    "(note: these will not be added to the decision task)"
+                ),
+            },
+        ],
+    ]
+
+    def try_config(self, routes, **kwargs):
+        if routes:
+            return {
+                'routes': routes,
+            }
 
 
 class ChemspillPrio(TryConfig):
@@ -395,5 +428,6 @@ all_task_configs = {
     'path': Path,
     'pernosco': Pernosco,
     'rebuild': Rebuild,
+    'routes': Routes,
     'worker-overrides': WorkerOverrides,
 }

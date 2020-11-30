@@ -468,9 +468,10 @@ PRStatus nsSOCKSSocketInfo::StartDNS(PRFileDesc* fd) {
   mozilla::OriginAttributes attrs;
 
   mFD = fd;
-  nsresult rv = dns->AsyncResolveNative(proxyHost, 0, this,
-                                        mozilla::GetCurrentThreadEventTarget(),
-                                        attrs, getter_AddRefs(mLookup));
+  nsresult rv = dns->AsyncResolveNative(
+      proxyHost, nsIDNSService::RESOLVE_TYPE_DEFAULT,
+      nsIDNSService::RESOLVE_IGNORE_SOCKS_DNS, nullptr, this,
+      mozilla::GetCurrentEventTarget(), attrs, getter_AddRefs(mLookup));
 
   if (NS_FAILED(rv)) {
     LOGERROR(("socks: DNS lookup for SOCKS proxy %s failed", proxyHost.get()));
@@ -493,13 +494,6 @@ nsSOCKSSocketInfo::OnLookupComplete(nsICancelable* aRequest,
     ConnectToProxy(mFD);
     ForgetFD();
   }
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsSOCKSSocketInfo::OnLookupByTypeComplete(nsICancelable* aRequest,
-                                          nsIDNSByTypeRecord* res,
-                                          nsresult aStatus) {
   return NS_OK;
 }
 
@@ -535,11 +529,13 @@ PRStatus nsSOCKSSocketInfo::ConnectToProxy(PRFileDesc* fd) {
         return PR_FAILURE;
       }
     } else {
+      nsCOMPtr<nsIDNSAddrRecord> record = do_QueryInterface(mDnsRec);
+      MOZ_ASSERT(record);
       if (addresses++) {
-        mDnsRec->ReportUnusable(proxyPort);
+        record->ReportUnusable(proxyPort);
       }
 
-      rv = mDnsRec->GetNextAddr(proxyPort, &mInternalProxyAddr);
+      rv = record->GetNextAddr(proxyPort, &mInternalProxyAddr);
       // No more addresses to try? If so, we'll need to bail
       if (NS_FAILED(rv)) {
         LOGERROR(
@@ -549,7 +545,7 @@ PRStatus nsSOCKSSocketInfo::ConnectToProxy(PRFileDesc* fd) {
 
       if (MOZ_LOG_TEST(gSOCKSLog, LogLevel::Debug)) {
         char buf[kIPv6CStrBufSize];
-        NetAddrToString(&mInternalProxyAddr, buf, sizeof(buf));
+        mInternalProxyAddr.ToStringBuffer(buf, sizeof(buf));
         LOGDEBUG(("socks: trying proxy server, %s:%hu", buf,
                   ntohs(mInternalProxyAddr.inet.port)));
       }
@@ -1522,7 +1518,7 @@ nsresult nsSOCKSIOLayerAddToSocket(int32_t family, const char* host,
 
 bool IsHostLocalTarget(const nsACString& aHost) {
 #if defined(XP_UNIX)
-  return StringBeginsWith(aHost, NS_LITERAL_CSTRING("file:"));
+  return StringBeginsWith(aHost, "file:"_ns);
 #elif defined(XP_WIN)
   return IsNamedPipePath(aHost);
 #else

@@ -6,6 +6,8 @@ extern crate base64;
 extern crate byteorder;
 extern crate crossbeam_utils;
 #[macro_use]
+extern crate cstr;
+#[macro_use]
 extern crate log;
 extern crate memmap;
 extern crate moz_task;
@@ -23,10 +25,10 @@ extern crate xpcom;
 extern crate storage_variant;
 extern crate tempfile;
 
-use byteorder::{NetworkEndian, ReadBytesExt, WriteBytesExt};
+use byteorder::{LittleEndian, NetworkEndian, ReadBytesExt, WriteBytesExt};
 use crossbeam_utils::atomic::AtomicCell;
 use memmap::Mmap;
-use moz_task::{create_thread, is_main_thread, Task, TaskRunnable};
+use moz_task::{create_background_task_queue, is_main_thread, Task, TaskRunnable};
 use nserror::{
     nsresult, NS_ERROR_FAILURE, NS_ERROR_NOT_SAME_THREAD, NS_ERROR_NO_AGGREGATION,
     NS_ERROR_NULL_POINTER, NS_ERROR_UNEXPECTED, NS_OK,
@@ -36,24 +38,24 @@ use rkv::backend::{BackendEnvironmentBuilder, SafeMode, SafeModeDatabase, SafeMo
 use rkv::{StoreError, StoreOptions, Value};
 use rust_cascade::Cascade;
 use sha2::{Digest, Sha256};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ffi::{CStr, CString};
 use std::fmt::Display;
-use std::fs::{create_dir_all, remove_file, File};
-use std::io::{BufRead, BufReader, Write};
+use std::fs::{create_dir_all, remove_file, File, OpenOptions};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::mem::size_of;
 use std::os::raw::c_char;
 use std::path::{Path, PathBuf};
 use std::slice;
 use std::str;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 use std::time::{Duration, SystemTime};
 use storage_variant::VariantType;
 use thin_vec::ThinVec;
 use xpcom::interfaces::{
     nsICRLiteState, nsICertInfo, nsICertStorage, nsICertStorageCallback, nsIFile,
     nsIIssuerAndSerialRevocationState, nsIObserver, nsIPrefBranch, nsIRevocationState,
-    nsISubjectAndPubKeyRevocationState, nsISupports, nsIThread,
+    nsISerialEventTarget, nsISubjectAndPubKeyRevocationState, nsISupports,
 };
 use xpcom::{nsIID, GetterAddrefs, RefPtr, ThreadBoundRefPtr, XpCom};
 
@@ -123,6 +125,10 @@ struct SecurityState {
     env_and_store: Option<EnvAndStore>,
     int_prefs: HashMap<String, u32>,
     crlite_filter: Option<holding::CRLiteFilter>,
+    /// Maps issuer spki hashes to sets of seiral numbers.
+    crlite_stash: HashMap<Vec<u8>, HashSet<Vec<u8>>>,
+    /// Tracks the number of asynchronous operations which have been dispatched but not completed.
+    remaining_ops: i32,
 }
 
 impl SecurityState {
@@ -134,6 +140,8 @@ impl SecurityState {
             env_and_store: None,
             int_prefs: HashMap::new(),
             crlite_filter: None,
+            crlite_stash: HashMap::new(),
+            remaining_ops: 0,
         })
     }
 
@@ -174,6 +182,7 @@ impl SecurityState {
             None => Ok(()),
         }?;
         self.load_crlite_filter()?;
+        self.load_crlite_stash()?;
         Ok(())
     }
 
@@ -370,9 +379,18 @@ impl SecurityState {
         filter: Vec<u8>,
         timestamp: u64,
     ) -> Result<(), SecurityStateError> {
-        // First drop any existing crlite filter.
+        // First drop any existing crlite filter and clear the accumulated stash.
         {
             let _ = self.crlite_filter.take();
+            self.crlite_stash.clear();
+            let mut path = get_store_path(&self.profile_path)?;
+            path.push("crlite.stash");
+            // Truncate the stash file if it exists.
+            if path.exists() {
+                File::create(path).map_err(|e| {
+                    SecurityStateError::from(format!("couldn't truncate stash file: {}", e))
+                })?;
+            }
         }
         // Write the new full filter.
         let mut path = get_store_path(&self.profile_path)?;
@@ -424,6 +442,82 @@ impl SecurityState {
         let old_crlite_filter_should_be_none = self.crlite_filter.replace(crlite_filter);
         assert!(old_crlite_filter_should_be_none.is_none());
         Ok(())
+    }
+
+    pub fn add_crlite_stash(&mut self, stash: Vec<u8>) -> Result<(), SecurityStateError> {
+        // Append the update to the previously-seen stashes.
+        let mut path = get_store_path(&self.profile_path)?;
+        path.push("crlite.stash");
+        let mut stash_file = OpenOptions::new().append(true).create(true).open(path)?;
+        stash_file.write_all(&stash)?;
+        self.load_crlite_stash()?;
+        Ok(())
+    }
+
+    fn load_crlite_stash(&mut self) -> Result<(), SecurityStateError> {
+        self.crlite_stash.clear();
+        let mut path = get_store_path(&self.profile_path)?;
+        path.push("crlite.stash");
+        // Before we've downloaded any stashes, this file won't exist.
+        if !path.exists() {
+            return Ok(());
+        }
+        let mut stash_file = File::open(path)?;
+        // The basic unit of the stash file is an issuer subject public key info
+        // hash (sha-256) followed by a number of serial numbers corresponding
+        // to revoked certificates issued by that issuer. More specifically,
+        // each unit consists of:
+        //   4 bytes little-endian: the number of serial numbers following the issuer spki hash
+        //   1 byte: the length of the issuer spki hash
+        //   issuer spki hash length bytes: the issuer spki hash
+        //   as many times as the indicated serial numbers:
+        //     1 byte: the length of the serial number
+        //     serial number length bytes: the serial number
+        // The stash file consists of any number of these units concatenated
+        // together.
+        loop {
+            let num_serials = match stash_file.read_u32::<LittleEndian>() {
+                Ok(num_serials) => num_serials,
+                Err(_) => break, // end-of-file, presumably
+            };
+            let issuer_spki_hash_len = stash_file.read_u8().map_err(|e| {
+                SecurityStateError::from(format!("error reading stash issuer_spki_hash_len: {}", e))
+            })?;
+            let mut issuer_spki_hash = vec![0; issuer_spki_hash_len as usize];
+            stash_file.read_exact(&mut issuer_spki_hash).map_err(|e| {
+                SecurityStateError::from(format!("error reading stash issuer_spki_hash: {}", e))
+            })?;
+            let serials = self
+                .crlite_stash
+                .entry(issuer_spki_hash)
+                .or_insert(HashSet::new());
+            for _ in 0..num_serials {
+                let serial_len = stash_file.read_u8().map_err(|e| {
+                    SecurityStateError::from(format!("error reading stash serial_len: {}", e))
+                })?;
+                let mut serial = vec![0; serial_len as usize];
+                stash_file.read_exact(&mut serial).map_err(|e| {
+                    SecurityStateError::from(format!("error reading stash serial: {}", e))
+                })?;
+                let _ = serials.insert(serial);
+            }
+        }
+        Ok(())
+    }
+
+    pub fn is_cert_revoked_by_stash(
+        &self,
+        issuer_spki: &[u8],
+        serial: &[u8],
+    ) -> Result<bool, SecurityStateError> {
+        let mut digest = Sha256::default();
+        digest.input(issuer_spki);
+        let lookup_key = digest.result().as_slice().to_vec();
+        let serials = match self.crlite_stash.get(&lookup_key) {
+            Some(serials) => serials,
+            None => return Ok(false),
+        };
+        Ok(serials.contains(&serial.to_vec()))
     }
 
     pub fn get_crlite_revocation_state(
@@ -878,7 +972,14 @@ fn get_store_path(profile_path: &PathBuf) -> Result<PathBuf, SecurityStateError>
 fn make_env(path: &Path) -> Result<Rkv, SecurityStateError> {
     let mut builder = Rkv::environment_builder::<SafeMode>();
     builder.set_max_dbs(2);
-    builder.set_map_size(16777216); // 16MB
+
+    // 16MB is a little over twice the size of the current dataset. When we
+    // eventually switch to the LMDB backend to create the builder above,
+    // we should set this as the map size, since it cannot currently resize.
+    // (The SafeMode backend warns when a map size is specified, so we skip it
+    // for now to avoid console spam.)
+
+    // builder.set_map_size(16777216);
 
     // Bug 1595004: Migrate databases between backends in the future,
     // and handle 32 and 64 bit architectures in case of LMDB.
@@ -918,7 +1019,7 @@ fn do_construct_cert_storage(
 
     let cert_storage = CertStorage::allocate(InitCertStorage {
         security_state: Arc::new(RwLock::new(SecurityState::new(path_buf)?)),
-        thread: Mutex::new(create_thread("cert_storage")?),
+        queue: create_background_task_queue(cstr!("cert_storage"))?,
     });
 
     unsafe {
@@ -935,7 +1036,7 @@ fn do_construct_cert_storage(
 }
 
 fn read_int_pref(name: &str) -> Result<u32, SecurityStateError> {
-    let pref_service = match xpcom::services::get_PreferencesService() {
+    let pref_service = match xpcom::services::get_PrefService() {
         Some(ps) => ps,
         _ => {
             return Err(SecurityStateError::from(
@@ -988,13 +1089,16 @@ impl<T: Default + VariantType, F: FnOnce(&mut SecurityState) -> Result<T, Securi
         callback: &nsICertStorageCallback,
         security_state: &Arc<RwLock<SecurityState>>,
         task_action: F,
-    ) -> SecurityStateTask<T, F> {
-        SecurityStateTask {
+    ) -> Result<SecurityStateTask<T, F>, nsresult> {
+        let mut ss = security_state.write().or(Err(NS_ERROR_FAILURE))?;
+        ss.remaining_ops = ss.remaining_ops.wrapping_add(1);
+
+        Ok(SecurityStateTask {
             callback: AtomicCell::new(Some(ThreadBoundRefPtr::new(RefPtr::new(callback)))),
             security_state: Arc::clone(security_state),
             result: AtomicCell::new((NS_ERROR_FAILURE, T::default())),
             task_action: AtomicCell::new(Some(task_action)),
-        }
+        })
     }
 }
 
@@ -1024,6 +1128,10 @@ impl<T: Default + VariantType, F: FnOnce(&mut SecurityState) -> Result<T, Securi
         let result = self.result.swap((NS_ERROR_FAILURE, T::default()));
         let variant = result.1.into_variant();
         let nsrv = unsafe { callback.Done(result.0, &*variant) };
+
+        let mut ss = self.security_state.write().or(Err(NS_ERROR_FAILURE))?;
+        ss.remaining_ops = ss.remaining_ops.wrapping_sub(1);
+
         match nsrv {
             NS_OK => Ok(()),
             e => Err(e),
@@ -1096,7 +1204,7 @@ macro_rules! get_security_state {
 #[refcnt = "atomic"]
 struct InitCertStorage {
     security_state: Arc<RwLock<SecurityState>>,
-    thread: Mutex<RefPtr<nsIThread>>,
+    queue: RefPtr<nsISerialEventTarget>,
 }
 
 /// CertStorage implements the nsICertStorage interface. The actual work is done by the
@@ -1104,7 +1212,7 @@ struct InitCertStorage {
 /// the one and only SecurityState. So, only one thread can use SecurityState's &mut self functions
 /// at a time, while multiple threads can use &self functions simultaneously (as long as there are
 /// no threads using an &mut self function). The Arc is to allow for the creation of background
-/// tasks that use the SecurityState on the thread owned by CertStorage. This allows us to not block
+/// tasks that use the SecurityState on the queue owned by CertStorage. This allows us to not block
 /// the main thread.
 #[allow(non_snake_case)]
 impl CertStorage {
@@ -1115,7 +1223,7 @@ impl CertStorage {
         ];
 
         // Fetch add observers for relevant prefs
-        let pref_service = xpcom::services::get_PreferencesService().unwrap();
+        let pref_service = xpcom::services::get_PrefService().unwrap();
         let prefs: RefPtr<nsIPrefBranch> = match (*pref_service).query_interface() {
             Some(pb) => pb,
             _ => return Err(SecurityStateError::from("could not QI to nsIPrefBranch")),
@@ -1150,14 +1258,25 @@ impl CertStorage {
         if callback.is_null() {
             return NS_ERROR_NULL_POINTER;
         }
-        let task = Box::new(SecurityStateTask::new(
+        let task = Box::new(try_ns!(SecurityStateTask::new(
             &*callback,
             &self.security_state,
             move |ss| ss.get_has_prior_data(data_type),
-        ));
-        let thread = try_ns!(self.thread.lock());
+        )));
         let runnable = try_ns!(TaskRunnable::new("HasPriorData", task));
-        try_ns!(runnable.dispatch(&*thread));
+        try_ns!(TaskRunnable::dispatch(runnable, self.queue.coerce()));
+        NS_OK
+    }
+
+    unsafe fn GetRemainingOperationCount(&self, state: *mut i32) -> nserror::nsresult {
+        if !is_main_thread() {
+            return NS_ERROR_NOT_SAME_THREAD;
+        }
+        if state.is_null() {
+            return NS_ERROR_NULL_POINTER;
+        }
+        let ss = try_ns!(self.security_state.read());
+        *state = ss.remaining_ops;
         NS_OK
     }
 
@@ -1212,14 +1331,13 @@ impl CertStorage {
             }
         }
 
-        let task = Box::new(SecurityStateTask::new(
+        let task = Box::new(try_ns!(SecurityStateTask::new(
             &*callback,
             &self.security_state,
             move |ss| ss.set_batch_state(&entries, nsICertStorage::DATA_TYPE_REVOCATION as u8),
-        ));
-        let thread = try_ns!(self.thread.lock());
+        )));
         let runnable = try_ns!(TaskRunnable::new("SetRevocations", task));
-        try_ns!(runnable.dispatch(&*thread));
+        try_ns!(TaskRunnable::dispatch(runnable, self.queue.coerce()));
         NS_OK
     }
 
@@ -1291,14 +1409,13 @@ impl CertStorage {
             crlite_entries.push((make_key!(PREFIX_CRLITE, &subject, &pub_key_hash), state));
         }
 
-        let task = Box::new(SecurityStateTask::new(
+        let task = Box::new(try_ns!(SecurityStateTask::new(
             &*callback,
             &self.security_state,
             move |ss| ss.set_batch_state(&crlite_entries, nsICertStorage::DATA_TYPE_CRLITE as u8),
-        ));
-        let thread = try_ns!(self.thread.lock());
+        )));
         let runnable = try_ns!(TaskRunnable::new("SetCRLiteState", task));
-        try_ns!(runnable.dispatch(&*thread));
+        try_ns!(TaskRunnable::dispatch(runnable, self.queue.coerce()));
         NS_OK
     }
 
@@ -1337,14 +1454,52 @@ impl CertStorage {
             return NS_ERROR_NULL_POINTER;
         }
         let filter_owned = (*filter).to_vec();
-        let task = Box::new(SecurityStateTask::new(
+        let task = Box::new(try_ns!(SecurityStateTask::new(
             &*callback,
             &self.security_state,
             move |ss| ss.set_full_crlite_filter(filter_owned, timestamp),
-        ));
-        let thread = try_ns!(self.thread.lock());
+        )));
         let runnable = try_ns!(TaskRunnable::new("SetFullCRLiteFilter", task));
-        try_ns!(runnable.dispatch(&*thread));
+        try_ns!(TaskRunnable::dispatch(runnable, self.queue.coerce()));
+        NS_OK
+    }
+
+    unsafe fn AddCRLiteStash(
+        &self,
+        stash: *const ThinVec<u8>,
+        callback: *const nsICertStorageCallback,
+    ) -> nserror::nsresult {
+        if !is_main_thread() {
+            return NS_ERROR_NOT_SAME_THREAD;
+        }
+        if stash.is_null() || callback.is_null() {
+            return NS_ERROR_NULL_POINTER;
+        }
+        let stash_owned = (*stash).to_vec();
+        let task = Box::new(try_ns!(SecurityStateTask::new(
+            &*callback,
+            &self.security_state,
+            move |ss| ss.add_crlite_stash(stash_owned),
+        )));
+        let runnable = try_ns!(TaskRunnable::new("AddCRLiteStash", task));
+        try_ns!(TaskRunnable::dispatch(runnable, self.queue.coerce()));
+        NS_OK
+    }
+
+    unsafe fn IsCertRevokedByStash(
+        &self,
+        issuer_spki: *const ThinVec<u8>,
+        serial_number: *const ThinVec<u8>,
+        is_revoked: *mut bool,
+    ) -> nserror::nsresult {
+        if issuer_spki.is_null() || serial_number.is_null() || is_revoked.is_null() {
+            return NS_ERROR_NULL_POINTER;
+        }
+        let ss = get_security_state!(self);
+        *is_revoked = match ss.is_cert_revoked_by_stash(&*issuer_spki, &*serial_number) {
+            Ok(is_revoked) => is_revoked,
+            Err(_) => return NS_ERROR_FAILURE,
+        };
         NS_OK
     }
 
@@ -1403,14 +1558,13 @@ impl CertStorage {
             try_ns!((*cert).GetTrust(&mut trust).to_result(), or continue);
             cert_entries.push((der, subject, trust));
         }
-        let task = Box::new(SecurityStateTask::new(
+        let task = Box::new(try_ns!(SecurityStateTask::new(
             &*callback,
             &self.security_state,
             move |ss| ss.add_certs(&cert_entries),
-        ));
-        let thread = try_ns!(self.thread.lock());
+        )));
         let runnable = try_ns!(TaskRunnable::new("AddCerts", task));
-        try_ns!(runnable.dispatch(&*thread));
+        try_ns!(TaskRunnable::dispatch(runnable, self.queue.coerce()));
         NS_OK
     }
 
@@ -1431,14 +1585,13 @@ impl CertStorage {
             let hash_decoded = try_ns!(base64::decode(&*hash), or continue);
             hash_entries.push(hash_decoded);
         }
-        let task = Box::new(SecurityStateTask::new(
+        let task = Box::new(try_ns!(SecurityStateTask::new(
             &*callback,
             &self.security_state,
             move |ss| ss.remove_certs_by_hashes(&hash_entries),
-        ));
-        let thread = try_ns!(self.thread.lock());
+        )));
         let runnable = try_ns!(TaskRunnable::new("RemoveCertsByHashes", task));
-        try_ns!(runnable.dispatch(&*thread));
+        try_ns!(TaskRunnable::dispatch(runnable, self.queue.coerce()));
         NS_OK
     }
 

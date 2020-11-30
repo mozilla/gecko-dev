@@ -15,6 +15,9 @@ var gGfxUtils = {
   init() {
     if (Services.prefs.getBoolPref("gfx.webrender.enable-capture")) {
       document.getElementById("wrCaptureCmd").removeAttribute("disabled");
+      document
+        .getElementById("wrToggleCaptureSequenceCmd")
+        .removeAttribute("disabled");
     }
   },
 
@@ -31,12 +34,11 @@ var gGfxUtils = {
   webrenderCapture() {
     window.windowUtils.wrCapture();
   },
-
   /**
-   * Toggle transaction logging to text file.
+   * Trigger a WebRender capture of the current state and future state
+   * into a local folder. If called again, it will stop capturing.
    */
-  toggleTransactionLogging() {
-    window.windowUtils.setTransactionLogging(!this._isTransactionLogging);
-    this._isTransactionLogging = !this._isTransactionLogging;
+  toggleWebrenderCaptureSequence() {
+    window.windowUtils.wrToggleCaptureSequence();
   },
 };

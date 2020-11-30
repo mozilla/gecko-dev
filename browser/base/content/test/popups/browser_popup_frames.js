@@ -7,17 +7,14 @@ const baseURL = getRootDirectory(gTestPath).replace(
   "http://example.com"
 );
 
-add_task(async function test_opening_blocked_popups() {
+async function test_opening_blocked_popups(testURL) {
   // Enable the popup blocker.
   await SpecialPowers.pushPrefEnv({
     set: [["dom.disable_open_during_load", true]],
   });
 
   // Open the test page.
-  let tab = await BrowserTestUtils.openNewForegroundTab(
-    gBrowser,
-    "data:text/html,Hello"
-  );
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, testURL);
 
   let popupframeBC = await SpecialPowers.spawn(
     tab.linkedBrowser,
@@ -33,7 +30,7 @@ add_task(async function test_opening_blocked_popups() {
 
   // Wait for the popup-blocked notification.
   let notification;
-  await BrowserTestUtils.waitForCondition(
+  await TestUtils.waitForCondition(
     () =>
       (notification = gBrowser
         .getNotificationBox()
@@ -70,7 +67,7 @@ add_task(async function test_opening_blocked_popups() {
     content.document.location.href = "about:blank";
   });
   await pageHideHappened;
-  await BrowserTestUtils.waitForCondition(
+  await TestUtils.waitForCondition(
     () =>
       !gBrowser.getNotificationBox().getNotificationWithValue("popup-blocked"),
     "Notification should go away"
@@ -94,7 +91,7 @@ add_task(async function test_opening_blocked_popups() {
   );
 
   // Wait for the popup-blocked notification.
-  await BrowserTestUtils.waitForCondition(
+  await TestUtils.waitForCondition(
     () =>
       (notification = gBrowser
         .getNotificationBox()
@@ -107,7 +104,7 @@ add_task(async function test_opening_blocked_popups() {
     content.document.getElementById("popupframe").remove();
   });
 
-  await BrowserTestUtils.waitForCondition(
+  await TestUtils.waitForCondition(
     () =>
       !gBrowser.getNotificationBox().getNotificationWithValue("popup-blocked")
   );
@@ -117,4 +114,12 @@ add_task(async function test_opening_blocked_popups() {
   );
 
   BrowserTestUtils.removeTab(tab);
+}
+
+add_task(async function() {
+  await test_opening_blocked_popups("http://example.com/");
+});
+
+add_task(async function() {
+  await test_opening_blocked_popups("http://w3c-test.org/");
 });

@@ -1,4 +1,3 @@
-/* eslint-disable mozilla/no-arbitrary-setTimeout */
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
@@ -39,9 +38,7 @@ async function do_test(openFn, pickMethod) {
     },
     async function(browser) {
       await clearInputHistory();
-      if (!(await openFn())) {
-        return;
-      }
+      await openFn();
       await UrlbarTestUtils.promiseSearchComplete(window);
       let promise = BrowserTestUtils.waitForDocLoadAndStopIt(TEST_URL, browser);
       if (pickMethod == "keyboard") {
@@ -79,38 +76,14 @@ add_task(async function test_history_no_search_terms() {
         info("Test opening panel with down key");
         gURLBar.focus();
         EventUtils.sendKey("down");
-        return true;
-      },
-      () => {
-        if (gURLBar.dropmarker.hidden) {
-          return false;
-        }
-        info("Test opening panel with history dropmarker");
-        gURLBar.dropmarker.click();
-        return true;
-      },
-      async () => {
-        if (gURLBar.dropmarker.hidden) {
-          return false;
-        }
-        info("Test opening panel with history dropmarker on a page");
-        let selectedBrowser = gBrowser.selectedBrowser;
-        await BrowserTestUtils.loadURI(selectedBrowser, TEST_URL);
-        await BrowserTestUtils.browserLoaded(selectedBrowser);
-        gURLBar.dropmarker.click();
-        return true;
       },
       async () => {
         info("Test opening panel on focus");
-        Services.prefs.setBoolPref("browser.urlbar.openViewOnFocus", true);
         gURLBar.blur();
         EventUtils.synthesizeMouseAtCenter(gURLBar.textbox, {});
-        Services.prefs.clearUserPref("browser.urlbar.openViewOnFocus");
-        return true;
       },
       async () => {
         info("Test opening panel on focus on a page");
-        Services.prefs.setBoolPref("browser.urlbar.openViewOnFocus", true);
         let selectedBrowser = gBrowser.selectedBrowser;
         // A page other than TEST_URL must be loaded, or the first Top Site
         // result will be a switch-to-tab result and page won't be reloaded when
@@ -119,8 +92,6 @@ add_task(async function test_history_no_search_terms() {
         await BrowserTestUtils.browserLoaded(selectedBrowser);
         gURLBar.blur();
         EventUtils.synthesizeMouseAtCenter(gURLBar.textbox, {});
-        Services.prefs.clearUserPref("browser.urlbar.openViewOnFocus");
-        return true;
       },
     ]) {
       await do_test(openFn, pickMethod);

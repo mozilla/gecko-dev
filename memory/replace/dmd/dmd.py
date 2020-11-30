@@ -217,10 +217,10 @@ def fixStackTraces(inputFilename, isZipped, opener):
     bpsyms = os.environ.get('BREAKPAD_SYMBOLS_PATH', None)
     sysname = platform.system()
     if bpsyms and os.path.exists(bpsyms):
-        import fix_stack_using_bpsyms as fixModule
+        import fix_stacks as fixModule
 
         def fix(line):
-            return fixModule.fixSymbols(line, bpsyms, jsonEscape=True)
+            return fixModule.fixSymbols(line, jsonMode=True, breakpadSymsDir=bpsyms)
 
     elif sysname in ('Linux', 'Darwin', 'Windows'):
         import fix_stacks as fixModule
@@ -228,35 +228,33 @@ def fixStackTraces(inputFilename, isZipped, opener):
         def fix(line): return fixModule.fixSymbols(line, jsonMode=True)
 
     else:
-        fix = None
+        return
 
-    if fix:
-        # Fix stacks, writing output to a temporary file, and then
-        # overwrite the original file.
-        tmpFile = tempfile.NamedTemporaryFile(delete=False)
+    # Fix stacks, writing output to a temporary file, and then overwrite the
+    # original file.
+    tmpFile = tempfile.NamedTemporaryFile(delete=False)
 
-        # If the input is gzipped, then the output (written initially to
-        # |tmpFile|) should be gzipped as well.
-        #
-        # And we want to set its pre-gzipped filename to '' rather than the
-        # name of the temporary file, so that programs like the Unix 'file'
-        # utility don't say that it was called 'tmp6ozTxE' (or something like
-        # that) before it was zipped. So that explains the |filename=''|
-        # parameter.
-        #
-        # But setting the filename like that clobbers |tmpFile.name|, so we
-        # must get that now in order to move |tmpFile| at the end.
-        tmpFilename = tmpFile.name
-        if isZipped:
-            tmpFile = gzip.GzipFile(filename='', fileobj=tmpFile)
+    # If the input is gzipped, then the output (written initially to |tmpFile|)
+    # should be gzipped as well.
+    #
+    # And we want to set its pre-gzipped filename to '' rather than the name of
+    # the temporary file, so that programs like the Unix 'file' utility don't
+    # say that it was called 'tmp6ozTxE' (or something like that) before it was
+    # zipped. So that explains the |filename=''| parameter.
+    #
+    # But setting the filename like that clobbers |tmpFile.name|, so we must
+    # get that now in order to move |tmpFile| at the end.
+    tmpFilename = tmpFile.name
+    if isZipped:
+        tmpFile = gzip.GzipFile(filename='', fileobj=tmpFile)
 
-        with opener(inputFilename, 'rb') as inputFile:
-            for line in inputFile:
-                tmpFile.write(fix(line))
+    with opener(inputFilename, 'rb') as inputFile:
+        for line in inputFile:
+            tmpFile.write(fix(line))
 
-        tmpFile.close()
+    tmpFile.close()
 
-        shutil.move(tmpFilename, inputFilename)
+    shutil.move(tmpFilename, inputFilename)
 
 
 def getDigestFromFile(args, inputFile):
@@ -345,10 +343,10 @@ def getDigestFromFile(args, inputFile):
             # `#02: TestFull(char const*, int, char const*, int) (../dmd/test/SmokeDMD.cpp:165)`
             #
             # Mac opt, with native stack fixing:
-            # `#03: RunTests() (../build/tests/bin/SmokeDMD +0x21f9)`
+            # `#03: RunTests() (../build/tests/bin/SmokeDMD + 0x21f9)`
             #
             # Windows opt, with native stack fixing failing due to a missing PDB:
-            # `#04: ??? (..\\build\\tests\\bin\\SmokeDMD.exe +0x1c58)`
+            # `#04: ??? (..\\build\\tests\\bin\\SmokeDMD.exe + 0x1c58)`
             #
             # If we see three such frames, we replace the entire stack trace
             # with a single, predictable frame. This imprecise matching will at

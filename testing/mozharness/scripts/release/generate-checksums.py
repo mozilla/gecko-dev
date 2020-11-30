@@ -1,8 +1,11 @@
+import binascii
 import hashlib
 import os
 import re
 import sys
 from multiprocessing.pool import ThreadPool
+
+import six
 
 sys.path.insert(1, os.path.dirname(os.path.dirname(sys.path[0])))
 
@@ -163,7 +166,7 @@ class ChecksumsGenerator(BaseScript, VirtualenvMixin):
         pool.map(worker, find_checksums_files())
 
         for c in raw_checksums:
-            for f, info in parse_checksums_file(c).iteritems():
+            for f, info in six.iteritems(parse_checksums_file(c)):
                 for pattern in self.config["includes"]:
                     if re.search(pattern, f):
                         if f in self.checksums:
@@ -194,16 +197,16 @@ class ChecksumsGenerator(BaseScript, VirtualenvMixin):
             data = [self.checksums[fn]["hashes"][fmt] for fn in files]
 
             tree = MerkleTree(hash_fn, data)
-            head = tree.head().encode("hex")
-            proofs = [tree.inclusion_proof(i).to_rfc6962_bis().encode("hex")
+            head = binascii.hexlify(tree.head())
+            proofs = [binascii.hexlify(tree.inclusion_proof(i).to_rfc6962_bis())
                       for i in range(len(files))]
 
             summary = self._get_summary_filename(fmt)
             self.info("Creating summary file: {}".format(summary))
 
-            content = "{} TREE_HEAD\n".format(head)
+            content = "{} TREE_HEAD\n".format(head.decode('ascii'))
             for i in range(len(files)):
-                content += "{} {}\n".format(proofs[i], files[i])
+                content += "{} {}\n".format(proofs[i].decode('ascii'), files[i])
 
             self.write_to_file(summary, content)
 
@@ -213,7 +216,11 @@ class ChecksumsGenerator(BaseScript, VirtualenvMixin):
             self.info("Creating big checksums file: {}".format(sums))
             with open(sums, "w+") as output_file:
                 for fn in sorted(self.checksums):
-                    output_file.write("{}  {}\n".format(self.checksums[fn]["hashes"][fmt], fn))
+                    output_file.write(
+                        "{}  {}\n".format(
+                            self.checksums[fn]["hashes"][fmt].decode("ascii"), fn
+                        )
+                    )
 
 
 if __name__ == "__main__":

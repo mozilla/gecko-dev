@@ -11,6 +11,7 @@
 #include "nsNSSCertificate.h"
 #include "nsString.h"
 #include "nsTArray.h"
+#include "mozilla/Span.h"
 #include "mozpkix/Time.h"
 
 namespace mozilla {
@@ -34,20 +35,11 @@ class PublicKeyPinningService {
    * that would otherwise be valid for it
    */
   static nsresult ChainHasValidPins(
-      const nsTArray<RefPtr<nsIX509Cert>>& certList, const char* hostname,
+      const nsTArray<Span<const uint8_t>>& certList, const char* hostname,
       mozilla::pkix::Time time, bool enforceTestMode,
       const OriginAttributes& originAttributes,
       /*out*/ bool& chainHasValidPins,
       /*optional out*/ PinningTelemetryInfo* pinningTelemetryInfo);
-  /**
-   * Sets chainMatchesPinset to true if there is any intersection between the
-   * certificate list and the pins specified in the aSHA256keys array.
-   * Values passed in are assumed to be in base64 encoded form.
-   */
-  static nsresult ChainMatchesPinset(
-      const nsTArray<RefPtr<nsIX509Cert>>& certList,
-      const nsTArray<nsCString>& aSHA256keys,
-      /*out*/ bool& chainMatchesPinset);
 
   /**
    * Returns true via the output parameter hostHasPins if there is pinning

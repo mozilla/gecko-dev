@@ -14,7 +14,6 @@
 #include "mozilla/ExtensionPolicyService.h"
 #include "mozilla/FileUtils.h"
 #include "mozilla/ipc/IPCStreamUtils.h"
-#include "mozilla/ipc/URIParams.h"
 #include "mozilla/ipc/URIUtils.h"
 #include "mozilla/net/NeckoChild.h"
 #include "mozilla/RefPtr.h"
@@ -149,6 +148,9 @@ class ExtensionStreamGetter : public RefCounted<ExtensionStreamGetter> {
   // Handle file descriptor being returned from the parent
   void OnFD(const FileDescriptor& aFD);
 
+  static void CancelRequest(nsIStreamListener* aListener, nsIChannel* aChannel,
+                            nsresult aResult);
+
   MOZ_DECLARE_REFCOUNTED_TYPENAME(ExtensionStreamGetter)
 
  private:
@@ -234,14 +236,10 @@ Result<Ok, nsresult> ExtensionStreamGetter::GetAsync(
   mListener = aListener;
   mChannel = aChannel;
 
-  // Serialize the URI to send to parent
-  mozilla::ipc::URIParams uri;
-  SerializeURI(mURI, uri);
-
   RefPtr<ExtensionStreamGetter> self = this;
   if (mIsJarChannel) {
     // Request an FD for this moz-extension URI
-    gNeckoChild->SendGetExtensionFD(uri)->Then(
+    gNeckoChild->SendGetExtensionFD(mURI)->Then(
         mMainThreadEventTarget, __func__,
         [self](const FileDescriptor& fd) { self->OnFD(fd); },
         [self](const mozilla::ipc::ResponseRejectReason) {
@@ -251,7 +249,7 @@ Result<Ok, nsresult> ExtensionStreamGetter::GetAsync(
   }
 
   // Request an input stream for this moz-extension URI
-  gNeckoChild->SendGetExtensionStream(uri)->Then(
+  gNeckoChild->SendGetExtensionStream(mURI)->Then(
       mMainThreadEventTarget, __func__,
       [self](const RefPtr<nsIInputStream>& stream) {
         self->OnStream(do_AddRef(stream));
@@ -262,8 +260,10 @@ Result<Ok, nsresult> ExtensionStreamGetter::GetAsync(
   return Ok();
 }
 
-static void CancelRequest(nsIStreamListener* aListener, nsIChannel* aChannel,
-                          nsresult aResult) {
+// static
+void ExtensionStreamGetter::CancelRequest(nsIStreamListener* aListener,
+                                          nsIChannel* aChannel,
+                                          nsresult aResult) {
   MOZ_ASSERT(aListener);
   MOZ_ASSERT(aChannel);
 
@@ -300,7 +300,7 @@ void ExtensionStreamGetter::OnStream(already_AddRefed<nsIInputStream> aStream) {
     return;
   }
 
-  rv = pump->AsyncRead(listener, nullptr);
+  rv = pump->AsyncRead(listener);
   if (NS_FAILED(rv)) {
     CancelRequest(listener, mChannel, rv);
   }
@@ -390,6 +390,10 @@ nsresult ExtensionProtocolHandler::GetFlagsForURI(nsIURI* aURI,
     if (!policy->PrivateBrowsingAllowed()) {
       flags |= URI_DISALLOW_IN_PRIVATE_CONTEXT;
     }
+  } else {
+    // In case there is no policy, then default to treating moz-extension URIs
+    // as unsafe and generally only allow chrome: to load such.
+    flags |= URI_DANGEROUS_TO_LOAD;
   }
 
   *aFlags = flags;
@@ -465,7 +469,7 @@ void OpenWhenReady(
           nsIStreamListener* aListener) -> already_AddRefed<Promise> {
         nsresult rv = aCallback(aListener, channel);
         if (NS_FAILED(rv)) {
-          CancelRequest(aListener, channel, rv);
+          ExtensionStreamGetter::CancelRequest(aListener, channel, rv);
         }
         return nullptr;
       },
@@ -741,7 +745,7 @@ Result<nsCOMPtr<nsIInputStream>, nsresult> ExtensionProtocolHandler::NewStream(
   nsCOMPtr<nsIChannel> channel;
   MOZ_TRY(NS_NewChannel(getter_AddRefs(channel), resolvedURI,
                         nsContentUtils::GetSystemPrincipal(),
-                        nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+                        nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
                         nsIContentPolicy::TYPE_OTHER));
 
   nsCOMPtr<nsIFileChannel> fileChannel = do_QueryInterface(channel, &rv);
@@ -824,9 +828,8 @@ Result<Ok, nsresult> ExtensionProtocolHandler::NewFD(
   MOZ_TRY(innerFileURL->GetFile(getter_AddRefs(jarFile)));
 
   if (!mFileOpenerThread) {
-    mFileOpenerThread =
-        new LazyIdleThread(DEFAULT_THREAD_TIMEOUT_MS,
-                           NS_LITERAL_CSTRING("ExtensionProtocolHandler"));
+    mFileOpenerThread = new LazyIdleThread(DEFAULT_THREAD_TIMEOUT_MS,
+                                           "ExtensionProtocolHandler"_ns);
   }
 
   RefPtr<ExtensionJARFileOpener> fileOpener =
@@ -841,7 +844,10 @@ Result<Ok, nsresult> ExtensionProtocolHandler::NewFD(
 }
 
 // Set the channel's content type using the provided URI's type
-void SetContentType(nsIURI* aURI, nsIChannel* aChannel) {
+
+// static
+void ExtensionProtocolHandler::SetContentType(nsIURI* aURI,
+                                              nsIChannel* aChannel) {
   nsresult rv;
   nsCOMPtr<nsIMIMEService> mime = do_GetService("@mozilla.org/mime;1", &rv);
   if (NS_SUCCEEDED(rv)) {
@@ -854,9 +860,11 @@ void SetContentType(nsIURI* aURI, nsIChannel* aChannel) {
 }
 
 // Gets a SimpleChannel that wraps the provided ExtensionStreamGetter
-static void NewSimpleChannel(nsIURI* aURI, nsILoadInfo* aLoadinfo,
-                             ExtensionStreamGetter* aStreamGetter,
-                             nsIChannel** aRetVal) {
+
+// static
+void ExtensionProtocolHandler::NewSimpleChannel(
+    nsIURI* aURI, nsILoadInfo* aLoadinfo, ExtensionStreamGetter* aStreamGetter,
+    nsIChannel** aRetVal) {
   nsCOMPtr<nsIChannel> channel = NS_NewSimpleChannel(
       aURI, aLoadinfo, aStreamGetter,
       [](nsIStreamListener* listener, nsIChannel* simpleChannel,
@@ -870,8 +878,12 @@ static void NewSimpleChannel(nsIURI* aURI, nsILoadInfo* aLoadinfo,
 }
 
 // Gets a SimpleChannel that wraps the provided channel
-static void NewSimpleChannel(nsIURI* aURI, nsILoadInfo* aLoadinfo,
-                             nsIChannel* aChannel, nsIChannel** aRetVal) {
+
+// static
+void ExtensionProtocolHandler::NewSimpleChannel(nsIURI* aURI,
+                                                nsILoadInfo* aLoadinfo,
+                                                nsIChannel* aChannel,
+                                                nsIChannel** aRetVal) {
   nsCOMPtr<nsIChannel> channel = NS_NewSimpleChannel(
       aURI, aLoadinfo, aChannel,
       [](nsIStreamListener* listener, nsIChannel* simpleChannel,
@@ -879,7 +891,7 @@ static void NewSimpleChannel(nsIURI* aURI, nsILoadInfo* aLoadinfo,
         nsresult rv = origChannel->AsyncOpen(listener);
         if (NS_FAILED(rv)) {
           simpleChannel->Cancel(NS_BINDING_ABORTED);
-          return RequestOrReason(rv);
+          return Err(rv);
         }
         return RequestOrReason(origChannel);
       });

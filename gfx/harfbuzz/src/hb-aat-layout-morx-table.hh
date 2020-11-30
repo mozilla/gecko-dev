@@ -948,8 +948,10 @@ struct Chain
 	hb_aat_layout_feature_type_t type = (hb_aat_layout_feature_type_t) (unsigned int) feature.featureType;
 	hb_aat_layout_feature_selector_t setting = (hb_aat_layout_feature_selector_t) (unsigned int) feature.featureSetting;
       retry:
-	const hb_aat_map_builder_t::feature_info_t *info = map->features.bsearch (type);
-	if (info && info->setting == setting)
+	// Check whether this type/setting pair was requested in the map, and if so, apply its flags.
+	// (The search here only looks at the type and setting fields of feature_info_t.)
+	hb_aat_map_builder_t::feature_info_t info = { type, setting, false, 0 };
+	if (map->features.bsearch (info))
 	{
 	  flags &= feature.disableFlags;
 	  flags |= feature.enableFlags;
@@ -1015,7 +1017,7 @@ struct Chain
 		bool (subtable->get_coverage () & ChainSubtable<Types>::Backwards) !=
 		HB_DIRECTION_IS_BACKWARD (c->buffer->props.direction);
 
-      if (!c->buffer->message (c->font, "start chain subtable %d", c->lookup_index))
+      if (!c->buffer->message (c->font, "start chainsubtable %d", c->lookup_index))
 	goto skip;
 
       if (reverse)
@@ -1026,7 +1028,7 @@ struct Chain
       if (reverse)
 	c->buffer->reverse ();
 
-      (void) c->buffer->message (c->font, "end chain subtable %d", c->lookup_index);
+      (void) c->buffer->message (c->font, "end chainsubtable %d", c->lookup_index);
 
       if (unlikely (!c->buffer->successful)) return;
 

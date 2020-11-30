@@ -19,7 +19,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   AppMenuNotifications: "resource://gre/modules/AppMenuNotifications.jsm",
   DefaultBrowserCheck: "resource:///modules/BrowserGlue.jsm",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
-  Log: "resource://gre/modules/Log.jsm",
   ProfileAge: "resource://gre/modules/ProfileAge.jsm",
   Services: "resource://gre/modules/Services.jsm",
   setTimeout: "resource://gre/modules/Timer.jsm",
@@ -29,10 +28,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   UrlbarResult: "resource:///modules/UrlbarResult.jsm",
   UrlbarUtils: "resource:///modules/UrlbarUtils.jsm",
 });
-
-XPCOMUtils.defineLazyGetter(this, "logger", () =>
-  Log.repository.getLogger("Urlbar.Provider.SearchTips")
-);
 
 XPCOMUtils.defineLazyServiceGetter(
   this,
@@ -97,8 +92,6 @@ const LAST_UPDATE_THRESHOLD_MS = 24 * 60 * 60 * 1000;
 class ProviderSearchTips extends UrlbarProvider {
   constructor() {
     super();
-    // Maps the running queries by queryContext.
-    this.queries = new Map();
 
     // Whether we should disable tips for the current browser session, for
     // example because a tip was already shown.
@@ -112,6 +105,9 @@ class ProviderSearchTips extends UrlbarProvider {
 
     // Whether and what kind of tip we've shown in the current engagement.
     this.showedTipTypeInCurrentEngagement = TIPS.NONE;
+
+    // Used to track browser windows we've seen.
+    this._seenWindows = new WeakSet();
   }
 
   /**
@@ -139,7 +135,7 @@ class ProviderSearchTips extends UrlbarProvider {
    * The type of the provider.
    */
   get type() {
-    return UrlbarUtils.PROVIDER_TYPE.IMMEDIATE;
+    return UrlbarUtils.PROVIDER_TYPE.PROFILE;
   }
 
   /**
@@ -150,11 +146,7 @@ class ProviderSearchTips extends UrlbarProvider {
    * @returns {boolean} Whether this provider should be invoked for the search.
    */
   isActive(queryContext) {
-    return (
-      UrlbarPrefs.get("update1.searchTips") &&
-      this.currentTip &&
-      cfrFeaturesUserPref
-    );
+    return this.currentTip && cfrFeaturesUserPref;
   }
 
   /**
@@ -175,8 +167,7 @@ class ProviderSearchTips extends UrlbarProvider {
    *       is done searching AND returning results.
    */
   async startQuery(queryContext, addCallback) {
-    let instance = {};
-    this.queries.set(queryContext, instance);
+    let instance = this.queryInstance;
 
     let tip = this.currentTip;
     this.showedTipTypeInCurrentEngagement = this.currentTip;
@@ -190,7 +181,7 @@ class ProviderSearchTips extends UrlbarProvider {
       {
         type: tip,
         buttonTextData: { id: "urlbar-search-tips-confirm" },
-        icon: defaultEngine.iconURI.spec,
+        icon: defaultEngine.iconURI?.spec,
       }
     );
 
@@ -215,24 +206,13 @@ class ProviderSearchTips extends UrlbarProvider {
         break;
     }
 
-    if (!this.queries.has(queryContext)) {
+    if (instance != this.queryInstance) {
       return;
     }
 
     Services.telemetry.keyedScalarAdd("urlbar.tips", `${tip}-shown`, 1);
 
     addCallback(this, result);
-    this.queries.delete(queryContext);
-  }
-
-  /**
-   * Cancels a running query,
-   * @param {UrlbarQueryContext} queryContext the query context object to cancel
-   *        query for.
-   */
-  cancelQuery(queryContext) {
-    logger.info(`Canceling query for ${queryContext.searchString}`);
-    this.queries.delete(queryContext);
   }
 
   /**
@@ -243,7 +223,7 @@ class ProviderSearchTips extends UrlbarProvider {
   pickResult(result) {
     let window = BrowserWindowTracker.getTopWindow();
     window.gURLBar.value = "";
-    window.SetPageProxyState("invalid");
+    window.gURLBar.setPageProxyState("invalid");
     window.gURLBar.focus();
   }
 
@@ -273,11 +253,49 @@ class ProviderSearchTips extends UrlbarProvider {
 
   /**
    * Called from `onLocationChange` in browser.js.
+   * @param {window} window
+   *  The browser window where the location change happened.
    * @param {URL} uri
    *  The URI being navigated to.
+   * @param {nsIWebProgress} webProgress
+   * @param {number} flags
+   *   Load flags. See nsIWebProgressListener.idl for possible values.
    */
-  onLocationChange(uri) {
-    let window = BrowserWindowTracker.getTopWindow();
+  async onLocationChange(window, uri, webProgress, flags) {
+    let instance = (this._onLocationChangeInstance = {});
+
+    // If this is the first time we've seen this browser window, we take some
+    // precautions to avoid impacting ts_paint.
+    if (!this._seenWindows.has(window)) {
+      this._seenWindows.add(window);
+
+      // First, wait until MozAfterPaint is fired in the current content window.
+      await window.gBrowserInit.firstContentWindowPaintPromise;
+      if (instance != this._onLocationChangeInstance) {
+        return;
+      }
+
+      // Second, wait 500ms.  ts_paint waits at most 500ms after MozAfterPaint
+      // before ending.  We use XPCOM directly instead of Timer.jsm to avoid the
+      // perf impact of loading Timer.jsm, in case it's not already loaded.
+      await new Promise(resolve => {
+        let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+        timer.initWithCallback(resolve, 500, Ci.nsITimer.TYPE_ONE_SHOT);
+      });
+      if (instance != this._onLocationChangeInstance) {
+        return;
+      }
+    }
+
+    // Ignore events that don't change the document. Google is known to do this.
+    // Also ignore changes in sub-frames. See bug 1623978.
+    if (
+      flags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT ||
+      !webProgress.isTopLevel
+    ) {
+      return;
+    }
+
     // The UrlbarView is usually closed on location change when the input is
     // blurred. Since we open the view to show the redirect tip without focusing
     // the input, the view won't close in that case. We need to close it
@@ -288,7 +306,6 @@ class ProviderSearchTips extends UrlbarProvider {
 
     // Check if we are supposed to show a tip for the current session.
     if (
-      !UrlbarPrefs.get("update1.searchTips") ||
       !cfrFeaturesUserPref ||
       (this.disableTipsForCurrentSession &&
         !UrlbarPrefs.get("searchTips.test.ignoreShowLimits"))
@@ -309,20 +326,10 @@ class ProviderSearchTips extends UrlbarProvider {
     let instance = {};
     this._maybeShowTipForUrlInstance = instance;
 
-    let ignoreShowLimits = UrlbarPrefs.get("searchTips.test.ignoreShowLimits");
-
-    // Don't show a tip if the browser is already showing some other notification.
-    if ((await isBrowserShowingNotification()) && !ignoreShowLimits) {
-      return;
-    }
-
-    // Don't show a tip if the browser has been updated recently.
-    let date = await lastBrowserUpdateDate();
-    if (Date.now() - date <= LAST_UPDATE_THRESHOLD_MS && !ignoreShowLimits) {
-      return;
-    }
-
-    // Determine which tip we should show for the tab.
+    // Determine which tip we should show for the tab.  Do this check first
+    // before the others below.  It has less of a performance impact than the
+    // others, so in the common case where the URL is not one we're interested
+    // in, we can return immediately.
     let tip;
     let isNewtab = ["about:newtab", "about:home"].includes(urlStr);
     let isSearchHomepage = !isNewtab && (await isDefaultEngineHomepage(urlStr));
@@ -335,10 +342,24 @@ class ProviderSearchTips extends UrlbarProvider {
       return;
     }
 
+    let ignoreShowLimits = UrlbarPrefs.get("searchTips.test.ignoreShowLimits");
+
     // If we've shown this type of tip the maximum number of times over all
     // sessions, don't show it again.
     let shownCount = UrlbarPrefs.get(`tipShownCount.${tip}`);
     if (shownCount >= MAX_SHOWN_COUNT && !ignoreShowLimits) {
+      return;
+    }
+
+    // Don't show a tip if the browser is already showing some other
+    // notification.
+    if ((await isBrowserShowingNotification()) && !ignoreShowLimits) {
+      return;
+    }
+
+    // Don't show a tip if the browser has been updated recently.
+    let date = await lastBrowserUpdateDate();
+    if (Date.now() - date <= LAST_UPDATE_THRESHOLD_MS && !ignoreShowLimits) {
       return;
     }
 
@@ -472,7 +493,7 @@ async function lastBrowserUpdateDate() {
   // Get the newest update in the update history. This isn't perfect
   // because these dates are when updates are applied, not when the
   // user restarts with the update. See bug 1595328.
-  if (updateManager && updateManager.updateCount) {
+  if (updateManager && updateManager.getUpdateCount()) {
     let update = updateManager.getUpdateAt(0);
     return update.installDate;
   }

@@ -141,7 +141,8 @@ class gfxUserFontFamily : public gfxFontFamily {
  public:
   friend class gfxUserFontSet;
 
-  explicit gfxUserFontFamily(const nsACString& aName) : gfxFontFamily(aName) {}
+  explicit gfxUserFontFamily(const nsACString& aName)
+      : gfxFontFamily(aName, FontVisibility::Webfont) {}
 
   virtual ~gfxUserFontFamily();
 
@@ -180,11 +181,11 @@ class gfxUserFontFamily : public gfxFontFamily {
 };
 
 class gfxUserFontEntry;
-class gfxOTSContext;
+class gfxOTSMessageContext;
 
 class gfxUserFontSet {
   friend class gfxUserFontEntry;
-  friend class gfxOTSContext;
+  friend class gfxOTSMessageContext;
 
  public:
   typedef mozilla::FontStretch FontStretch;
@@ -530,7 +531,7 @@ class gfxUserFontEntry : public gfxFontEntry {
   friend class gfxUserFontSet;
   friend class nsUserFontSet;
   friend class nsFontFaceLoader;
-  friend class gfxOTSContext;
+  friend class gfxOTSMessageContext;
 
  public:
   enum UserFontLoadState {

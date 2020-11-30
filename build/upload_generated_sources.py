@@ -16,7 +16,7 @@ from mozbuild.generated_sources import (
     get_s3_region_and_bucket,
 )
 import os
-from Queue import Queue
+from six.moves.queue import Queue
 import requests
 import sys
 import tarfile
@@ -155,7 +155,7 @@ def main(argv):
     region, bucket = get_s3_region_and_bucket()
 
     config = MozbuildObject.from_environment()
-    config._activate_virtualenv()
+    config.activate_virtualenv()
     config.virtualenv_manager.install_pip_package('boto3==1.4.4')
 
     with timed() as elapsed:

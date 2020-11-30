@@ -7,7 +7,7 @@
 import React, { PureComponent } from "react";
 import { connect } from "../../utils/connect";
 
-import { showMenu, buildMenu } from "devtools-contextmenu";
+import { showMenu, buildMenu } from "../../context-menu/menu";
 
 import SourceIcon from "../shared/SourceIcon";
 import { CloseButton } from "../shared/Button";
@@ -118,7 +118,10 @@ class Tab extends PureComponent<Props> {
           ...tabMenuItems.closeTabsToEnd,
           click: () => {
             const tabIndex = tabSources.findIndex(t => t.id == tab);
-            closeTabs(cx, tabURLs.filter((t, i) => i > tabIndex));
+            closeTabs(
+              cx,
+              tabURLs.filter((t, i) => i > tabIndex)
+            );
           },
           disabled:
             tabCount === 1 ||
@@ -134,7 +137,7 @@ class Tab extends PureComponent<Props> {
       { item: { type: "separator" } },
       {
         item: {
-          ...tabMenuItems.copyToClipboard,
+          ...tabMenuItems.copySource,
           disabled: selectedSource.id !== tab,
           click: () => copyToClipboard(sourceTab),
         },
@@ -157,8 +160,8 @@ class Tab extends PureComponent<Props> {
         item: {
           ...tabMenuItems.toggleBlackBox,
           label: source.isBlackBoxed
-            ? L10N.getStr("blackboxContextItem.unblackbox")
-            : L10N.getStr("blackboxContextItem.blackbox"),
+            ? L10N.getStr("ignoreContextItem.unignore")
+            : L10N.getStr("ignoreContextItem.ignore"),
           disabled: !shouldBlackbox(source),
           click: () => toggleBlackBox(cx, source),
         },
@@ -200,7 +203,8 @@ class Tab extends PureComponent<Props> {
     const active =
       selectedSource &&
       sourceId == selectedSource.id &&
-      (!this.isProjectSearchEnabled() && !this.isSourceSearchEnabled());
+      !this.isProjectSearchEnabled() &&
+      !this.isSourceSearchEnabled();
     const isPrettyCode = isPretty(source);
 
     function onClickClose(e) {
@@ -238,7 +242,9 @@ class Tab extends PureComponent<Props> {
       >
         <SourceIcon
           source={source}
-          shouldHide={icon => ["file", "javascript"].includes(icon)}
+          modifier={icon =>
+            ["file", "javascript"].includes(icon) ? null : icon
+          }
         />
         <div className="filename">
           {getTruncatedFileName(source, query)}

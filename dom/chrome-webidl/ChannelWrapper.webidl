@@ -22,7 +22,6 @@ enum MozContentPolicyType {
   "object_subrequest",
   "xmlhttprequest",
   "fetch",
-  "xbl",
   "xslt",
   "ping",
   "beacon",
@@ -123,6 +122,19 @@ interface ChannelWrapper : EventTarget {
   void upgradeToSecure();
 
   /**
+   * Suspends the underlying channel.
+   */
+  [Throws]
+  void suspend();
+
+  /**
+   * Resumes (un-suspends) the underlying channel.  The profilerText parameter
+   * is only used to annotate profiles.
+   */
+  [Throws]
+  void resume(ByteString profileText);
+
+  /**
    * The content type of the request, usually as read from the Content-Type
    * header. This should be used in preference to the header to determine the
    * content type of the channel.
@@ -151,8 +163,8 @@ interface ChannelWrapper : EventTarget {
    * the request is not suspended by the wrapper, but may still be suspended
    * by another caller.
    */
-  [Pure, SetterThrows]
-  attribute boolean suspended;
+  [Pure]
+  readonly attribute boolean suspended;
 
 
   /**
@@ -309,19 +321,19 @@ interface ChannelWrapper : EventTarget {
 
 
   /**
-   * The outer window ID of the frame that the request belongs to, or 0 if it
+   * The BrowsingContext ID of the frame that the request belongs to, or 0 if it
    * is a top-level load or does not belong to a document.
    */
   [Cached, Constant]
-  readonly attribute long long windowId;
+  readonly attribute long long frameId;
 
   /**
-   * The outer window ID of the parent frame of the window that the request
+   * The BrowsingContext ID of the parent frame of the window that the request
    * belongs to, 0 if that parent frame is the top-level frame, and -1 if the
    * request belongs to a top-level frame.
    */
   [Cached, Constant]
-  readonly attribute long long parentWindowId;
+  readonly attribute long long parentFrameId;
 
   /**
    * For cross-process requests, the <browser> or <iframe> element to which the
@@ -355,6 +367,14 @@ interface ChannelWrapper : EventTarget {
    */
   [Throws]
   sequence<MozHTTPHeader> getRequestHeaders();
+
+  /**
+  * For HTTP requests: returns the value of the request header, null if not set.
+  *
+  * For non-HTTP requests, throws NS_ERROR_UNEXPECTED.
+  */
+  [Throws]
+  ByteString? getRequestHeader(ByteString header);
 
   /**
    * For HTTP requests, returns an array of response headers which were

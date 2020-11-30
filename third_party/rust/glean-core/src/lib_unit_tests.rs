@@ -5,13 +5,19 @@
 // NOTE: This is a test-only file that contains unit tests for
 // the lib.rs file.
 
+use std::collections::HashSet;
+use std::iter::FromIterator;
+
 use super::*;
 use crate::metrics::RecordedExperimentData;
-use crate::metrics::StringMetric;
+use crate::metrics::{StringMetric, TimeUnit, TimespanMetric, TimingDistributionMetric};
 
 const GLOBAL_APPLICATION_ID: &str = "org.mozilla.glean.test.app";
-pub fn new_glean() -> (Glean, tempfile::TempDir) {
-    let dir = tempfile::tempdir().unwrap();
+pub fn new_glean(tempdir: Option<tempfile::TempDir>) -> (Glean, tempfile::TempDir) {
+    let dir = match tempdir {
+        Some(tempdir) => tempdir,
+        None => tempfile::tempdir().unwrap(),
+    };
     let tmpname = dir.path().display().to_string();
     let glean = Glean::with_options(&tmpname, GLOBAL_APPLICATION_ID, true).unwrap();
     (glean, dir)
@@ -19,7 +25,7 @@ pub fn new_glean() -> (Glean, tempfile::TempDir) {
 
 #[test]
 fn path_is_constructed_from_data() {
-    let (glean, _) = new_glean();
+    let (glean, _) = new_glean(None);
 
     assert_eq!(
         "/submit/org-mozilla-glean-test-app/baseline/1/this-is-a-docid",
@@ -169,7 +175,7 @@ fn client_id_and_first_run_date_must_be_regenerated() {
     {
         let glean = Glean::with_options(&tmpname, GLOBAL_APPLICATION_ID, true).unwrap();
 
-        glean.data_store.clear_all();
+        glean.data_store.as_ref().unwrap().clear_all();
 
         assert!(glean
             .core_metrics
@@ -200,7 +206,7 @@ fn client_id_and_first_run_date_must_be_regenerated() {
 
 #[test]
 fn basic_metrics_should_be_cleared_when_uploading_is_disabled() {
-    let (mut glean, _t) = new_glean();
+    let (mut glean, _t) = new_glean(None);
     let metric = StringMetric::new(CommonMetricData::new(
         "category",
         "string_metric",
@@ -225,7 +231,7 @@ fn basic_metrics_should_be_cleared_when_uploading_is_disabled() {
 
 #[test]
 fn first_run_date_is_managed_correctly_when_toggling_uploading() {
-    let (mut glean, _) = new_glean();
+    let (mut glean, _) = new_glean(None);
 
     let original_first_run_date = glean
         .core_metrics
@@ -253,7 +259,7 @@ fn first_run_date_is_managed_correctly_when_toggling_uploading() {
 
 #[test]
 fn client_id_is_managed_correctly_when_toggling_uploading() {
-    let (mut glean, _) = new_glean();
+    let (mut glean, _) = new_glean(None);
 
     let original_client_id = glean
         .core_metrics
@@ -395,6 +401,145 @@ fn correct_order() {
 }
 
 #[test]
+#[rustfmt::skip] // Let's not merge lines
+fn backwards_compatible_deserialization() {
+    use std::env;
+    use std::time::Duration;
+    use chrono::prelude::*;
+    use histogram::Histogram;
+    use metrics::{Metric::*, TimeUnit};
+
+    // Prepare some data to fill in
+    let dt = FixedOffset::east(9*3600).ymd(2014, 11, 28).and_hms_nano(21, 45, 59, 12);
+
+    let mut custom_dist_exp = Histogram::exponential(1, 500, 10);
+    custom_dist_exp.accumulate(10);
+
+    let mut custom_dist_linear = Histogram::linear(1, 500, 10);
+    custom_dist_linear.accumulate(10);
+
+    let mut time_dist = Histogram::functional(2.0, 8.0);
+    time_dist.accumulate(10);
+
+    let mut mem_dist = Histogram::functional(2.0, 16.0);
+    mem_dist.accumulate(10);
+
+    // One of every metric type. The values are arbitrary, but stable.
+    let all_metrics = vec![
+        (
+            "boolean",
+            vec![0, 0, 0, 0, 1],
+            Boolean(true)
+        ),
+        (
+            "counter",
+            vec![1, 0, 0, 0, 20, 0, 0, 0],
+            Counter(20)
+        ),
+        (
+            "custom exponential distribution",
+                vec![2, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 0, 0, 0, 0, 0, 1,
+                     0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0,
+                     0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 244, 1, 0, 0, 0, 0, 0, 0, 10, 0,
+                     0, 0, 0, 0, 0, 0],
+            CustomDistributionExponential(custom_dist_exp)
+        ),
+        (
+            "custom linear distribution",
+            vec![3, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+                 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+                 0, 0, 0, 0, 0, 0, 244, 1, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0],
+            CustomDistributionLinear(custom_dist_linear)
+        ),
+        (
+            "datetime",
+            vec![4, 0, 0, 0, 35, 0, 0, 0, 0, 0, 0, 0, 50, 48, 49, 52, 45, 49, 49, 45,
+                 50, 56, 84, 50, 49, 58, 52, 53, 58, 53, 57, 46, 48, 48, 48, 48, 48,
+                 48, 48, 49, 50, 43, 48, 57, 58, 48, 48, 3, 0, 0, 0],
+            Datetime(dt, TimeUnit::Second),
+        ),
+        (
+            "experiment",
+            vec![5, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 98, 114, 97, 110, 99, 104, 0],
+            Experiment(RecordedExperimentData { branch: "branch".into(), extra: None, }),
+        ),
+        (
+            "quantity",
+            vec![6, 0, 0, 0, 17, 0, 0, 0, 0, 0, 0, 0],
+            Quantity(17)
+        ),
+        (
+            "string",
+            vec![7, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 103, 108, 101, 97, 110],
+            String("glean".into())
+        ),
+        (
+            "string list",
+            vec![8, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0,
+                 103, 108, 101, 97, 110],
+            StringList(vec!["glean".into()])
+        ),
+        (
+            "uuid",
+            vec![9, 0, 0, 0, 36, 0, 0, 0, 0, 0, 0, 0, 48, 56, 50, 99, 51, 101, 53, 50,
+                 45, 48, 97, 49, 56, 45, 49, 49, 101, 97, 45, 57, 52, 54, 102, 45, 48,
+                 102, 101, 48, 99, 57, 56, 99, 51, 54, 49, 99],
+            Uuid("082c3e52-0a18-11ea-946f-0fe0c98c361c".into()),
+        ),
+        (
+            "timespan",
+            vec![10, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0],
+            Timespan(Duration::new(5, 0), TimeUnit::Second),
+        ),
+        (
+            "timing distribution",
+            vec![11, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
+                 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 123, 81, 125,
+                 60, 184, 114, 241, 63],
+            TimingDistribution(time_dist),
+        ),
+        (
+            "memory distribution",
+            vec![12, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
+                 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 15, 137, 249,
+                 108, 88, 181, 240, 63],
+             MemoryDistribution(mem_dist),
+        ),
+    ];
+
+    for (name, data, metric) in all_metrics {
+        // Helper to print serialization data if instructed by environment variable
+        // Run with:
+        //
+        // ```text
+        // PRINT_DATA=1 cargo test -p glean-core --lib -- --nocapture backwards
+        // ```
+        //
+        // This should not be necessary to re-run and change here, unless a bincode upgrade
+        // requires us to also migrate existing data.
+        if env::var("PRINT_DATA").is_ok() {
+            let bindata = bincode::serialize(&metric).unwrap();
+            println!("(\n    {:?},\n    vec!{:?},", name, bindata);
+        } else {
+            // Otherwise run the test
+            let deserialized = bincode::deserialize(&data).unwrap();
+            if let CustomDistributionExponential(hist) = &deserialized {
+                hist.snapshot_values(); // Force initialization of the ranges
+            }
+            if let CustomDistributionLinear(hist) = &deserialized {
+                hist.snapshot_values(); // Force initialization of the ranges
+            }
+
+            assert_eq!(
+                metric, deserialized,
+                "Expected properly deserialized {}",
+                name
+            );
+        }
+    }
+}
+
+#[test]
 fn test_first_run() {
     let dir = tempfile::tempdir().unwrap();
     let tmpname = dir.path().display().to_string();
@@ -409,4 +554,252 @@ fn test_first_run() {
         let glean = Glean::with_options(&tmpname, GLOBAL_APPLICATION_ID, true).unwrap();
         assert!(!glean.is_first_run());
     }
+}
+
+#[test]
+fn test_dirty_bit() {
+    let dir = tempfile::tempdir().unwrap();
+    let tmpname = dir.path().display().to_string();
+    {
+        let glean = Glean::with_options(&tmpname, GLOBAL_APPLICATION_ID, true).unwrap();
+        // The dirty flag must not be set the first time Glean runs.
+        assert!(!glean.is_dirty_flag_set());
+
+        // Set the dirty flag and check that it gets correctly set.
+        glean.set_dirty_flag(true);
+        assert!(glean.is_dirty_flag_set());
+    }
+
+    {
+        // Check that next time Glean runs, it correctly picks up the "dirty flag".
+        // It is expected to be 'true'.
+        let glean = Glean::with_options(&tmpname, GLOBAL_APPLICATION_ID, true).unwrap();
+        assert!(glean.is_dirty_flag_set());
+
+        // Set the dirty flag to false.
+        glean.set_dirty_flag(false);
+        assert!(!glean.is_dirty_flag_set());
+    }
+
+    {
+        // Check that next time Glean runs, it correctly picks up the "dirty flag".
+        // It is expected to be 'false'.
+        let glean = Glean::with_options(&tmpname, GLOBAL_APPLICATION_ID, true).unwrap();
+        assert!(!glean.is_dirty_flag_set());
+    }
+}
+
+#[test]
+fn test_change_metric_type_runtime() {
+    let dir = tempfile::tempdir().unwrap();
+
+    let (glean, _) = new_glean(Some(dir));
+
+    // We attempt to create two metrics: one with a 'string' type and the other
+    // with a 'timespan' type, both being sent in the same pings and having the
+    // same lifetime.
+    let metric_name = "type_swap";
+    let metric_category = "test";
+    let metric_lifetime = Lifetime::Ping;
+    let ping_name = "store1";
+
+    let string_metric = StringMetric::new(CommonMetricData {
+        name: metric_name.into(),
+        category: metric_category.into(),
+        send_in_pings: vec![ping_name.into()],
+        disabled: false,
+        lifetime: metric_lifetime,
+        ..Default::default()
+    });
+
+    let string_value = "definitely-a-string!";
+    string_metric.set(&glean, string_value);
+
+    assert_eq!(
+        string_metric.test_get_value(&glean, ping_name).unwrap(),
+        string_value,
+        "Expected properly deserialized string"
+    );
+
+    let mut timespan_metric = TimespanMetric::new(
+        CommonMetricData {
+            name: metric_name.into(),
+            category: metric_category.into(),
+            send_in_pings: vec![ping_name.into()],
+            disabled: false,
+            lifetime: metric_lifetime,
+            ..Default::default()
+        },
+        TimeUnit::Nanosecond,
+    );
+
+    let duration = 60;
+    timespan_metric.set_start(&glean, 0);
+    timespan_metric.set_stop(&glean, duration);
+
+    assert_eq!(
+        timespan_metric.test_get_value(&glean, ping_name).unwrap(),
+        60,
+        "Expected properly deserialized time"
+    );
+
+    // We expect old data to be lost forever. See the following bug comment
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=1621757#c1 for more context.
+    assert_eq!(None, string_metric.test_get_value(&glean, ping_name));
+}
+
+#[test]
+fn timing_distribution_truncation() {
+    let dir = tempfile::tempdir().unwrap();
+
+    let (glean, _) = new_glean(Some(dir));
+    let max_sample_time = 1000 * 1000 * 1000 * 60 * 10;
+
+    for (unit, expected_keys) in &[
+        (
+            TimeUnit::Nanosecond,
+            HashSet::<u64>::from_iter(vec![961_548, 939, 599_512_966_122, 1]),
+        ),
+        (
+            TimeUnit::Microsecond,
+            HashSet::<u64>::from_iter(vec![939, 562_949_953_421_318, 599_512_966_122, 961_548]),
+        ),
+        (
+            TimeUnit::Millisecond,
+            HashSet::<u64>::from_iter(vec![
+                961_548,
+                576_460_752_303_431_040,
+                599_512_966_122,
+                562_949_953_421_318,
+            ]),
+        ),
+    ] {
+        let mut dist = TimingDistributionMetric::new(
+            CommonMetricData {
+                name: format!("local_metric_{:?}", unit),
+                category: "local".into(),
+                send_in_pings: vec!["baseline".into()],
+                ..Default::default()
+            },
+            *unit,
+        );
+
+        for &value in &[
+            1,
+            1_000,
+            1_000_000,
+            max_sample_time,
+            max_sample_time * 1_000,
+            max_sample_time * 1_000_000,
+        ] {
+            let timer_id = dist.set_start(0);
+            dist.set_stop_and_accumulate(&glean, timer_id, value);
+        }
+
+        let snapshot = dist.test_get_value(&glean, "baseline").unwrap();
+
+        let mut keys = HashSet::new();
+        let mut recorded_values = 0;
+
+        for (&key, &value) in &snapshot.values {
+            // A snapshot potentially includes buckets with a 0 count.
+            // We can ignore them here.
+            if value > 0 {
+                assert!(key < max_sample_time * unit.as_nanos(1));
+                keys.insert(key);
+                recorded_values += 1;
+            }
+        }
+
+        assert_eq!(4, recorded_values);
+        assert_eq!(keys, *expected_keys);
+
+        // The number of samples was originally designed around 1ns to
+        // 10minutes, with 8 steps per power of 2, which works out to 316 items.
+        // This is to ensure that holds even when the time unit is changed.
+        assert!(snapshot.values.len() < 316);
+    }
+}
+
+#[test]
+fn timing_distribution_truncation_accumulate() {
+    let dir = tempfile::tempdir().unwrap();
+
+    let (glean, _) = new_glean(Some(dir));
+    let max_sample_time = 1000 * 1000 * 1000 * 60 * 10;
+
+    for &unit in &[
+        TimeUnit::Nanosecond,
+        TimeUnit::Microsecond,
+        TimeUnit::Millisecond,
+    ] {
+        let mut dist = TimingDistributionMetric::new(
+            CommonMetricData {
+                name: format!("local_metric_{:?}", unit),
+                category: "local".into(),
+                send_in_pings: vec!["baseline".into()],
+                ..Default::default()
+            },
+            unit,
+        );
+
+        dist.accumulate_samples_signed(
+            &glean,
+            vec![
+                1,
+                1_000,
+                1_000_000,
+                max_sample_time,
+                max_sample_time * 1_000,
+                max_sample_time * 1_000_000,
+            ],
+        );
+
+        let snapshot = dist.test_get_value(&glean, "baseline").unwrap();
+
+        // The number of samples was originally designed around 1ns to
+        // 10minutes, with 8 steps per power of 2, which works out to 316 items.
+        // This is to ensure that holds even when the time unit is changed.
+        assert!(snapshot.values.len() < 316);
+    }
+}
+
+#[test]
+fn test_setting_debug_view_tag() {
+    let dir = tempfile::tempdir().unwrap();
+
+    let (mut glean, _) = new_glean(Some(dir));
+
+    let valid_tag = "valid-tag";
+    assert_eq!(true, glean.set_debug_view_tag(valid_tag));
+    assert_eq!(valid_tag, glean.debug_view_tag().unwrap());
+
+    let invalid_tag = "invalid tag";
+    assert_eq!(false, glean.set_debug_view_tag(invalid_tag));
+    assert_eq!(valid_tag, glean.debug_view_tag().unwrap());
+}
+
+#[test]
+fn test_setting_log_pings() {
+    let dir = tempfile::tempdir().unwrap();
+
+    let (mut glean, _) = new_glean(Some(dir));
+    assert!(!glean.log_pings());
+
+    glean.set_log_pings(true);
+    assert!(glean.log_pings());
+
+    glean.set_log_pings(false);
+    assert!(!glean.log_pings());
+}
+
+#[test]
+#[should_panic]
+fn test_empty_application_id() {
+    let dir = tempfile::tempdir().unwrap();
+    let tmpname = dir.path().display().to_string();
+
+    let glean = Glean::with_options(&tmpname, "", true).unwrap();
+    // Check that this is indeed the first run.
+    assert!(glean.is_first_run());
 }

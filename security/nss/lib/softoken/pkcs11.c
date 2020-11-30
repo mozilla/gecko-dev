@@ -86,6 +86,7 @@ static PRUint32 minSessionObjectHandle = 1U;
 #undef CK_PKCS11_FUNCTION_INFO
 #undef CK_NEED_ARG_LIST
 
+#define CK_PKCS11_3_0 1
 #define CK_EXTERN extern
 #define CK_PKCS11_FUNCTION_INFO(func) \
     CK_RV __PASTE(NS, func)
@@ -94,8 +95,8 @@ static PRUint32 minSessionObjectHandle = 1U;
 #include "pkcs11f.h"
 
 /* build the crypto module table */
-static const CK_FUNCTION_LIST sftk_funcList = {
-    { 1, 10 },
+static CK_FUNCTION_LIST_3_0 sftk_funcList = {
+    { CRYPTOKI_VERSION_MAJOR, CRYPTOKI_VERSION_MINOR },
 
 #undef CK_PKCS11_FUNCTION_INFO
 #undef CK_NEED_ARG_LIST
@@ -107,10 +108,53 @@ static const CK_FUNCTION_LIST sftk_funcList = {
 
 };
 
+/* need a special version of get info for version 2 which returns the version
+ * 2.4 version number */
+CK_RV NSC_GetInfoV2(CK_INFO_PTR pInfo);
+CK_RV NSC_GetMechanismInfoV2(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type,
+                             CK_MECHANISM_INFO_PTR pInfo);
+
+/* build the crypto module table */
+static CK_FUNCTION_LIST sftk_funcList_v2 = {
+    { 2, 40 },
+
+#undef CK_PKCS11_3_0
+#define CK_PKCS_11_2_0_ONLY 1
+#undef CK_PKCS11_FUNCTION_INFO
+#undef CK_NEED_ARG_LIST
+#define C_GetInfo C_GetInfoV2
+#define C_GetMechanismInfo C_GetMechanismInfoV2
+
+#define CK_PKCS11_FUNCTION_INFO(func) \
+    __PASTE(NS, func)                 \
+    ,
+#include "pkcs11f.h"
+
+};
+
+#undef C_GetInfo
+#undef C_GetMechanismInfo
+#undef CK_PKCS_11_2_0_ONLY
 #undef CK_PKCS11_FUNCTION_INFO
 #undef CK_NEED_ARG_LIST
 
 #undef __PASTE
+
+CK_NSS_MODULE_FUNCTIONS sftk_module_funcList = {
+    { 1, 0 },
+    NSC_ModuleDBFunc
+};
+
+/*
+ * Array is orderd by default first
+ */
+static CK_INTERFACE nss_interfaces[] = {
+    { (CK_UTF8CHAR_PTR) "PKCS 11", &sftk_funcList, NSS_INTERFACE_FLAGS },
+    { (CK_UTF8CHAR_PTR) "PKCS 11", &sftk_funcList_v2, NSS_INTERFACE_FLAGS },
+    { (CK_UTF8CHAR_PTR) "Vendor NSS Module Interface", &sftk_module_funcList, NSS_INTERFACE_FLAGS }
+};
+/* must match the count of interfaces in nss_interfaces above */
+#define NSS_INTERFACE_COUNT 3
 
 /* List of DES Weak Keys */
 typedef unsigned char desKey[8];
@@ -223,12 +267,13 @@ struct mechanismList {
 #define CKF_WR_UN CKF_WRAP | CKF_UNWRAP
 #define CKF_SN_VR CKF_SIGN | CKF_VERIFY
 #define CKF_SN_RE CKF_SIGN_RECOVER | CKF_VERIFY_RECOVER
+#define CKF_EN_DE_MSG CKF_ENCRYPT | CKF_DECRYPT | CKF_MESSAGE_ENCRYPT | CKF_MESSAGE_DECRYPT
 
 #define CKF_EN_DE_WR_UN CKF_EN_DE | CKF_WR_UN
 #define CKF_SN_VR_RE CKF_SN_VR | CKF_SN_RE
 #define CKF_DUZ_IT_ALL CKF_EN_DE_WR_UN | CKF_SN_VR_RE
 
-#define CKF_EC_PNU CKF_EC_FP | CKF_EC_NAMEDCURVE | CKF_EC_UNCOMPRESS
+#define CKF_EC_PNU CKF_EC_F_P | CKF_EC_NAMEDCURVE | CKF_EC_UNCOMPRESS
 
 #define CKF_EC_BPNU CKF_EC_F_2M | CKF_EC_PNU
 
@@ -278,6 +323,10 @@ static const struct mechanismList mechanisms[] = {
     { CKM_DSA, { DSA_MIN_P_BITS, DSA_MAX_P_BITS, CKF_SN_VR }, PR_TRUE },
     { CKM_DSA_PARAMETER_GEN, { DSA_MIN_P_BITS, DSA_MAX_P_BITS, CKF_GENERATE }, PR_TRUE },
     { CKM_DSA_SHA1, { DSA_MIN_P_BITS, DSA_MAX_P_BITS, CKF_SN_VR }, PR_TRUE },
+    { CKM_DSA_SHA224, { DSA_MIN_P_BITS, DSA_MAX_P_BITS, CKF_SN_VR }, PR_TRUE },
+    { CKM_DSA_SHA256, { DSA_MIN_P_BITS, DSA_MAX_P_BITS, CKF_SN_VR }, PR_TRUE },
+    { CKM_DSA_SHA384, { DSA_MIN_P_BITS, DSA_MAX_P_BITS, CKF_SN_VR }, PR_TRUE },
+    { CKM_DSA_SHA512, { DSA_MIN_P_BITS, DSA_MAX_P_BITS, CKF_SN_VR }, PR_TRUE },
     /* -------------------- Diffie Hellman Operations --------------------- */
     /* no diffie hellman yet */
     { CKM_DH_PKCS_KEY_PAIR_GEN, { DH_MIN_P_BITS, DH_MAX_P_BITS, CKF_GENERATE_KEY_PAIR }, PR_TRUE },
@@ -287,6 +336,10 @@ static const struct mechanismList mechanisms[] = {
     { CKM_ECDH1_DERIVE, { EC_MIN_KEY_BITS, EC_MAX_KEY_BITS, CKF_DERIVE | CKF_EC_BPNU }, PR_TRUE },
     { CKM_ECDSA, { EC_MIN_KEY_BITS, EC_MAX_KEY_BITS, CKF_SN_VR | CKF_EC_BPNU }, PR_TRUE },
     { CKM_ECDSA_SHA1, { EC_MIN_KEY_BITS, EC_MAX_KEY_BITS, CKF_SN_VR | CKF_EC_BPNU }, PR_TRUE },
+    { CKM_ECDSA_SHA224, { EC_MIN_KEY_BITS, EC_MAX_KEY_BITS, CKF_SN_VR | CKF_EC_BPNU }, PR_TRUE },
+    { CKM_ECDSA_SHA256, { EC_MIN_KEY_BITS, EC_MAX_KEY_BITS, CKF_SN_VR | CKF_EC_BPNU }, PR_TRUE },
+    { CKM_ECDSA_SHA384, { EC_MIN_KEY_BITS, EC_MAX_KEY_BITS, CKF_SN_VR | CKF_EC_BPNU }, PR_TRUE },
+    { CKM_ECDSA_SHA512, { EC_MIN_KEY_BITS, EC_MAX_KEY_BITS, CKF_SN_VR | CKF_EC_BPNU }, PR_TRUE },
     /* ------------------------- RC2 Operations --------------------------- */
     { CKM_RC2_KEY_GEN, { 1, 128, CKF_GENERATE }, PR_TRUE },
     { CKM_RC2_ECB, { 1, 128, CKF_EN_DE_WR_UN }, PR_TRUE },
@@ -329,8 +382,8 @@ static const struct mechanismList mechanisms[] = {
     { CKM_AES_CBC_PAD, { 16, 32, CKF_EN_DE_WR_UN }, PR_TRUE },
     { CKM_AES_CTS, { 16, 32, CKF_EN_DE }, PR_TRUE },
     { CKM_AES_CTR, { 16, 32, CKF_EN_DE }, PR_TRUE },
-    { CKM_AES_GCM, { 16, 32, CKF_EN_DE }, PR_TRUE },
-    { CKM_AES_XCBC_MAC_96, { 16, 16, CKF_SN_VR }, PR_TRUE },
+    { CKM_AES_GCM, { 16, 32, CKF_EN_DE_MSG }, PR_TRUE },
+    { CKM_AES_XCBC_MAC_96, { 12, 12, CKF_SN_VR }, PR_TRUE },
     { CKM_AES_XCBC_MAC, { 16, 16, CKF_SN_VR }, PR_TRUE },
     /* ------------------------- Camellia Operations --------------------- */
     { CKM_CAMELLIA_KEY_GEN, { 16, 32, CKF_GENERATE }, PR_TRUE },
@@ -339,18 +392,22 @@ static const struct mechanismList mechanisms[] = {
     { CKM_CAMELLIA_MAC, { 16, 32, CKF_SN_VR }, PR_TRUE },
     { CKM_CAMELLIA_MAC_GENERAL, { 16, 32, CKF_SN_VR }, PR_TRUE },
     { CKM_CAMELLIA_CBC_PAD, { 16, 32, CKF_EN_DE_WR_UN }, PR_TRUE },
-    /* ------------------------- SEED Operations --------------------------- */
+/* ------------------------- SEED Operations --------------------------- */
+#ifndef NSS_DISABLE_DEPRECATED_SEED
     { CKM_SEED_KEY_GEN, { 16, 16, CKF_GENERATE }, PR_TRUE },
     { CKM_SEED_ECB, { 16, 16, CKF_EN_DE_WR_UN }, PR_TRUE },
     { CKM_SEED_CBC, { 16, 16, CKF_EN_DE_WR_UN }, PR_TRUE },
     { CKM_SEED_MAC, { 16, 16, CKF_SN_VR }, PR_TRUE },
     { CKM_SEED_MAC_GENERAL, { 16, 16, CKF_SN_VR }, PR_TRUE },
     { CKM_SEED_CBC_PAD, { 16, 16, CKF_EN_DE_WR_UN }, PR_TRUE },
+#endif
+/* ------------------------- ChaCha20 Operations ---------------------- */
 #ifndef NSS_DISABLE_CHACHAPOLY
-    /* ------------------------- ChaCha20 Operations ---------------------- */
     { CKM_NSS_CHACHA20_KEY_GEN, { 32, 32, CKF_GENERATE }, PR_TRUE },
     { CKM_NSS_CHACHA20_POLY1305, { 32, 32, CKF_EN_DE }, PR_TRUE },
     { CKM_NSS_CHACHA20_CTR, { 32, 32, CKF_EN_DE }, PR_TRUE },
+    { CKM_CHACHA20_KEY_GEN, { 32, 32, CKF_GENERATE }, PR_TRUE },
+    { CKM_CHACHA20_POLY1305, { 32, 32, CKF_EN_DE_MSG }, PR_TRUE },
 #endif /* NSS_DISABLE_CHACHAPOLY */
     /* ------------------------- Hashing Operations ----------------------- */
     { CKM_MD2, { 0, 0, CKF_DIGEST }, PR_FALSE },
@@ -380,6 +437,9 @@ static const struct mechanismList mechanisms[] = {
       { 0, 512, CKF_SN_VR },
       PR_FALSE },
     /* ------------------------- HKDF Operations -------------------------- */
+    { CKM_HKDF_DERIVE, { 1, 255 * 64, CKF_DERIVE }, PR_TRUE },
+    { CKM_HKDF_DATA, { 1, 255 * 64, CKF_DERIVE }, PR_TRUE },
+    { CKM_HKDF_KEY_GEN, { 20, 64, CKF_GENERATE }, PR_TRUE },
     { CKM_NSS_HKDF_SHA1, { 1, 128, CKF_DERIVE }, PR_TRUE },
     { CKM_NSS_HKDF_SHA256, { 1, 128, CKF_DERIVE }, PR_TRUE },
     { CKM_NSS_HKDF_SHA384, { 1, 128, CKF_DERIVE }, PR_TRUE },
@@ -437,9 +497,10 @@ static const struct mechanismList mechanisms[] = {
     { CKM_AES_CBC_ENCRYPT_DATA, { 1, 32, CKF_DERIVE }, PR_FALSE },
     { CKM_CAMELLIA_ECB_ENCRYPT_DATA, { 1, 32, CKF_DERIVE }, PR_FALSE },
     { CKM_CAMELLIA_CBC_ENCRYPT_DATA, { 1, 32, CKF_DERIVE }, PR_FALSE },
+#ifndef NSS_DISABLE_DEPRECATED_SEED
     { CKM_SEED_ECB_ENCRYPT_DATA, { 1, 32, CKF_DERIVE }, PR_FALSE },
     { CKM_SEED_CBC_ENCRYPT_DATA, { 1, 32, CKF_DERIVE }, PR_FALSE },
-
+#endif
     /* ---------------------- SSL Key Derivations ------------------------- */
     { CKM_SSL3_PRE_MASTER_KEY_GEN, { 48, 48, CKF_GENERATE }, PR_FALSE },
     { CKM_SSL3_MASTER_KEY_DERIVE, { 48, 48, CKF_DERIVE }, PR_FALSE },
@@ -478,9 +539,9 @@ static const struct mechanismList mechanisms[] = {
     /* ---------------------- PBE Key Derivations  ------------------------ */
     { CKM_PBE_MD2_DES_CBC, { 8, 8, CKF_DERIVE }, PR_TRUE },
     { CKM_PBE_MD5_DES_CBC, { 8, 8, CKF_DERIVE }, PR_TRUE },
-    /* ------------------ NETSCAPE PBE Key Derivations  ------------------- */
-    { CKM_NETSCAPE_PBE_SHA1_DES_CBC, { 8, 8, CKF_GENERATE }, PR_TRUE },
-    { CKM_NETSCAPE_PBE_SHA1_FAULTY_3DES_CBC, { 24, 24, CKF_GENERATE }, PR_TRUE },
+    /* ------------------ NSS PBE Key Derivations  ------------------- */
+    { CKM_NSS_PBE_SHA1_DES_CBC, { 8, 8, CKF_GENERATE }, PR_TRUE },
+    { CKM_NSS_PBE_SHA1_FAULTY_3DES_CBC, { 24, 24, CKF_GENERATE }, PR_TRUE },
     { CKM_PBE_SHA1_DES3_EDE_CBC, { 24, 24, CKF_GENERATE }, PR_TRUE },
     { CKM_PBE_SHA1_DES2_EDE_CBC, { 24, 24, CKF_GENERATE }, PR_TRUE },
     { CKM_PBE_SHA1_RC2_40_CBC, { 40, 40, CKF_GENERATE }, PR_TRUE },
@@ -489,9 +550,9 @@ static const struct mechanismList mechanisms[] = {
     { CKM_PBE_SHA1_RC4_128, { 128, 128, CKF_GENERATE }, PR_TRUE },
     { CKM_PBA_SHA1_WITH_SHA1_HMAC, { 20, 20, CKF_GENERATE }, PR_TRUE },
     { CKM_PKCS5_PBKD2, { 1, 256, CKF_GENERATE }, PR_TRUE },
-    { CKM_NETSCAPE_PBE_SHA1_HMAC_KEY_GEN, { 20, 20, CKF_GENERATE }, PR_TRUE },
-    { CKM_NETSCAPE_PBE_MD5_HMAC_KEY_GEN, { 16, 16, CKF_GENERATE }, PR_TRUE },
-    { CKM_NETSCAPE_PBE_MD2_HMAC_KEY_GEN, { 16, 16, CKF_GENERATE }, PR_TRUE },
+    { CKM_NSS_PBE_SHA1_HMAC_KEY_GEN, { 20, 20, CKF_GENERATE }, PR_TRUE },
+    { CKM_NSS_PBE_MD5_HMAC_KEY_GEN, { 16, 16, CKF_GENERATE }, PR_TRUE },
+    { CKM_NSS_PBE_MD2_HMAC_KEY_GEN, { 16, 16, CKF_GENERATE }, PR_TRUE },
     { CKM_NSS_PKCS12_PBE_SHA224_HMAC_KEY_GEN, { 28, 28, CKF_GENERATE }, PR_TRUE },
     { CKM_NSS_PKCS12_PBE_SHA256_HMAC_KEY_GEN, { 32, 32, CKF_GENERATE }, PR_TRUE },
     { CKM_NSS_PKCS12_PBE_SHA384_HMAC_KEY_GEN, { 48, 48, CKF_GENERATE }, PR_TRUE },
@@ -504,8 +565,11 @@ static const struct mechanismList mechanisms[] = {
     { CKM_NSS_SP800_108_FEEDBACK_KDF_DERIVE_DATA, { 0, CK_MAX, CKF_DERIVE }, PR_TRUE },
     { CKM_NSS_SP800_108_DOUBLE_PIPELINE_KDF_DERIVE_DATA, { 0, CK_MAX, CKF_DERIVE }, PR_TRUE },
     /* ------------------ AES Key Wrap (also encrypt)  ------------------- */
-    { CKM_NETSCAPE_AES_KEY_WRAP, { 16, 32, CKF_EN_DE_WR_UN }, PR_TRUE },
-    { CKM_NETSCAPE_AES_KEY_WRAP_PAD, { 16, 32, CKF_EN_DE_WR_UN }, PR_TRUE },
+    { CKM_NSS_AES_KEY_WRAP, { 16, 32, CKF_EN_DE_WR_UN }, PR_TRUE },
+    { CKM_NSS_AES_KEY_WRAP_PAD, { 16, 32, CKF_EN_DE_WR_UN }, PR_TRUE },
+    { CKM_AES_KEY_WRAP, { 16, 32, CKF_EN_DE_WR_UN }, PR_TRUE },
+    { CKM_AES_KEY_WRAP_PAD, { 16, 32, CKF_EN_DE_WR_UN }, PR_TRUE },
+    { CKM_AES_KEY_WRAP_KWP, { 1, 32, CKF_EN_DE_WR_UN }, PR_TRUE },
     /* --------------------------- J-PAKE -------------------------------- */
     { CKM_NSS_JPAKE_ROUND1_SHA1, { 0, 0, CKF_GENERATE }, PR_TRUE },
     { CKM_NSS_JPAKE_ROUND1_SHA256, { 0, 0, CKF_GENERATE }, PR_TRUE },
@@ -525,7 +589,8 @@ static const struct mechanismList mechanisms[] = {
     /* --------------------IPSEC ----------------------- */
     { CKM_NSS_IKE_PRF_PLUS_DERIVE, { 8, 255 * 64, CKF_DERIVE }, PR_TRUE },
     { CKM_NSS_IKE_PRF_DERIVE, { 8, 64, CKF_DERIVE }, PR_TRUE },
-    { CKM_NSS_IKE1_PRF_DERIVE, { 8, 64, CKF_DERIVE }, PR_TRUE }
+    { CKM_NSS_IKE1_PRF_DERIVE, { 8, 64, CKF_DERIVE }, PR_TRUE },
+    { CKM_NSS_IKE1_APP_B_PRF_DERIVE, { 8, 255 * 64, CKF_DERIVE }, PR_TRUE }
 };
 static const CK_ULONG mechanismCount = sizeof(mechanisms) / sizeof(mechanisms[0]);
 
@@ -821,7 +886,7 @@ sftk_handleSMimeObject(SFTKSession *session, SFTKObject *object)
     if (!sftk_hasAttribute(object, CKA_SUBJECT)) {
         return CKR_TEMPLATE_INCOMPLETE;
     }
-    if (!sftk_hasAttribute(object, CKA_NETSCAPE_EMAIL)) {
+    if (!sftk_hasAttribute(object, CKA_NSS_EMAIL)) {
         return CKR_TEMPLATE_INCOMPLETE;
     }
 
@@ -1104,7 +1169,7 @@ sftk_handlePrivateKeyObject(SFTKSession *session, SFTKObject *object, CK_KEY_TYP
             crv = sftk_Attribute2SSecItem(NULL, &mod, object, CKA_MODULUS);
             if (crv != CKR_OK)
                 return crv;
-            crv = sftk_forceAttribute(object, CKA_NETSCAPE_DB,
+            crv = sftk_forceAttribute(object, CKA_NSS_DB,
                                       sftk_item_expand(&mod));
             if (mod.data)
                 PORT_Free(mod.data);
@@ -1130,6 +1195,11 @@ sftk_handlePrivateKeyObject(SFTKSession *session, SFTKObject *object, CK_KEY_TYP
             }
             if (!sftk_hasAttribute(object, CKA_VALUE)) {
                 return CKR_TEMPLATE_INCOMPLETE;
+            }
+            /* allow subprime to be set after the fact */
+            crv = sftk_defaultAttribute(object, CKA_SUBPRIME, NULL, 0);
+            if (crv != CKR_OK) {
+                return crv;
             }
             encrypt = CK_FALSE;
             recover = CK_FALSE;
@@ -1486,7 +1556,7 @@ sftk_handleDSAParameterObject(SFTKSession *session, SFTKObject *object)
                             * them. */
     }
 
-    attribute = sftk_FindAttribute(object, CKA_NETSCAPE_PQG_COUNTER);
+    attribute = sftk_FindAttribute(object, CKA_NSS_PQG_COUNTER);
     if (attribute != NULL) {
         vfy.counter = *(CK_ULONG *)attribute->attrib.pValue;
         sftk_FreeAttribute(attribute);
@@ -1495,7 +1565,7 @@ sftk_handleDSAParameterObject(SFTKSession *session, SFTKObject *object)
         vfy.counter = -1;
     }
 
-    hAttr = sftk_FindAttribute(object, CKA_NETSCAPE_PQG_H);
+    hAttr = sftk_FindAttribute(object, CKA_NSS_PQG_H);
     if (hAttr != NULL) {
         vfy.h.data = hAttr->attrib.pValue;
         vfy.h.len = hAttr->attrib.ulValueLen;
@@ -1504,7 +1574,7 @@ sftk_handleDSAParameterObject(SFTKSession *session, SFTKObject *object)
         vfy.h.data = NULL;
         vfy.h.len = 0;
     }
-    seedAttr = sftk_FindAttribute(object, CKA_NETSCAPE_PQG_SEED);
+    seedAttr = sftk_FindAttribute(object, CKA_NSS_PQG_SEED);
     if (seedAttr != NULL) {
         vfy.seed.data = seedAttr->attrib.pValue;
         vfy.seed.len = seedAttr->attrib.ulValueLen;
@@ -1669,13 +1739,13 @@ sftk_handleObject(SFTKObject *object, SFTKSession *session)
         case CKO_CERTIFICATE:
             crv = sftk_handleCertObject(session, object);
             break;
-        case CKO_NETSCAPE_TRUST:
+        case CKO_NSS_TRUST:
             crv = sftk_handleTrustObject(session, object);
             break;
-        case CKO_NETSCAPE_CRL:
+        case CKO_NSS_CRL:
             crv = sftk_handleCrlObject(session, object);
             break;
-        case CKO_NETSCAPE_SMIME:
+        case CKO_NSS_SMIME:
             crv = sftk_handleSMimeObject(session, object);
             break;
         case CKO_PRIVATE_KEY:
@@ -1683,7 +1753,7 @@ sftk_handleObject(SFTKObject *object, SFTKSession *session)
         case CKO_SECRET_KEY:
             crv = sftk_handleKeyObject(session, object);
             break;
-        case CKO_KG_PARAMETERS:
+        case CKO_DOMAIN_PARAMETERS:
             crv = sftk_handleKeyParameterObject(session, object);
             break;
         default:
@@ -1988,9 +2058,9 @@ sftk_mkPrivKey(SFTKObject *object, CK_KEY_TYPE key_type, CK_RV *crvp)
             if (crv != CKR_OK)
                 break;
 
-            if (sftk_hasAttribute(object, CKA_NETSCAPE_DB)) {
+            if (sftk_hasAttribute(object, CKA_NSS_DB)) {
                 crv = sftk_Attribute2SSecItem(arena, &privKey->u.ec.publicValue,
-                                              object, CKA_NETSCAPE_DB);
+                                              object, CKA_NSS_DB);
                 if (crv != CKR_OK)
                     break;
                 /* privKey was zero'd so public value is already set to NULL, 0
@@ -2405,7 +2475,7 @@ sftk_IsWeakKey(unsigned char *key, CK_KEY_TYPE key_type)
 CK_RV
 NSC_GetFunctionList(CK_FUNCTION_LIST_PTR *pFunctionList)
 {
-    *pFunctionList = (CK_FUNCTION_LIST_PTR)&sftk_funcList;
+    *pFunctionList = (CK_FUNCTION_LIST_PTR)&sftk_funcList_v2;
     return CKR_OK;
 }
 
@@ -2414,6 +2484,60 @@ CK_RV
 C_GetFunctionList(CK_FUNCTION_LIST_PTR *pFunctionList)
 {
     return NSC_GetFunctionList(pFunctionList);
+}
+
+CK_RV
+NSC_GetInterfaceList(CK_INTERFACE_PTR interfaces, CK_ULONG_PTR pulCount)
+{
+    CK_ULONG count = *pulCount;
+    *pulCount = NSS_INTERFACE_COUNT;
+    if (interfaces == NULL) {
+        return CKR_OK;
+    }
+    if (count < NSS_INTERFACE_COUNT) {
+        return CKR_BUFFER_TOO_SMALL;
+    }
+    PORT_Memcpy(interfaces, nss_interfaces, sizeof(nss_interfaces));
+    return CKR_OK;
+}
+
+CK_RV
+C_GetInterfaceList(CK_INTERFACE_PTR interfaces, CK_ULONG_PTR pulCount)
+{
+    return NSC_GetInterfaceList(interfaces, pulCount);
+}
+
+/*
+ * Get the requested interface, use the nss_interfaces array so we can
+ * easily add new interfaces as they occur.
+ */
+CK_RV
+NSC_GetInterface(CK_UTF8CHAR_PTR pInterfaceName, CK_VERSION_PTR pVersion,
+                 CK_INTERFACE_PTR_PTR ppInterface, CK_FLAGS flags)
+{
+    int i;
+    for (i = 0; i < NSS_INTERFACE_COUNT; i++) {
+        CK_INTERFACE_PTR interface = &nss_interfaces[i];
+        if (pInterfaceName && PORT_Strcmp((char *)pInterfaceName, (char *)interface->pInterfaceName) != 0) {
+            continue;
+        }
+        if (pVersion && PORT_Memcmp(pVersion, (CK_VERSION *)interface->pFunctionList, sizeof(CK_VERSION)) != 0) {
+            continue;
+        }
+        if (flags & ((interface->flags & flags) != flags)) {
+            continue;
+        }
+        *ppInterface = interface;
+        return CKR_OK;
+    }
+    return CKR_ARGUMENTS_BAD;
+}
+
+CK_RV
+C_GetInterface(CK_UTF8CHAR_PTR pInterfaceName, CK_VERSION_PTR pVersion,
+               CK_INTERFACE_PTR_PTR ppInterface, CK_FLAGS flags)
+{
+    return NSC_GetInterface(pInterfaceName, pVersion, ppInterface, flags);
 }
 
 static PLHashNumber
@@ -2489,7 +2613,7 @@ SFTKSlot *
 sftk_SlotFromID(CK_SLOT_ID slotID, PRBool all)
 {
     SFTKSlot *slot;
-    int index = sftk_GetModuleIndex(slotID);
+    unsigned int index = sftk_GetModuleIndex(slotID);
 
     if (nscSlotHashTable[index] == NULL)
         return NULL;
@@ -2520,7 +2644,7 @@ sftk_SlotFromSessionHandle(CK_SESSION_HANDLE handle)
 }
 
 static CK_RV
-sftk_RegisterSlot(SFTKSlot *slot, int moduleIndex)
+sftk_RegisterSlot(SFTKSlot *slot, unsigned int moduleIndex)
 {
     PLHashEntry *entry;
     unsigned int index;
@@ -2596,7 +2720,8 @@ sftk_RegisterSlot(SFTKSlot *slot, int moduleIndex)
  */
 CK_RV
 SFTK_SlotReInit(SFTKSlot *slot, char *configdir, char *updatedir,
-                char *updateID, sftk_token_parameters *params, int moduleIndex)
+                char *updateID, sftk_token_parameters *params,
+                unsigned int moduleIndex)
 {
     PRBool needLogin = !params->noKeyDB;
     CK_RV crv;
@@ -2672,7 +2797,7 @@ loser:
  */
 CK_RV
 SFTK_SlotInit(char *configdir, char *updatedir, char *updateID,
-              sftk_token_parameters *params, int moduleIndex)
+              sftk_token_parameters *params, unsigned int moduleIndex)
 {
     unsigned int i;
     CK_SLOT_ID slotID = params->slotID;
@@ -3053,7 +3178,7 @@ loser:
 }
 
 static void
-nscFreeAllSlots(int moduleIndex)
+nscFreeAllSlots(unsigned int moduleIndex)
 {
     /* free all the slots */
     SFTKSlot *slot = NULL;
@@ -3097,7 +3222,7 @@ sftk_closePeer(PRBool isFIPS)
 {
     CK_SLOT_ID slotID = isFIPS ? PRIVATE_KEY_SLOT_ID : FIPS_SLOT_ID;
     SFTKSlot *slot;
-    int moduleIndex = isFIPS ? NSC_NON_FIPS_MODULE : NSC_FIPS_MODULE;
+    unsigned int moduleIndex = isFIPS ? NSC_NON_FIPS_MODULE : NSC_FIPS_MODULE;
     PLHashTable *tmpSlotHashTable = nscSlotHashTable[moduleIndex];
 
     slot = (SFTKSlot *)PL_HashTableLookup(tmpSlotHashTable, (void *)slotID);
@@ -3119,7 +3244,7 @@ nsc_CommonInitialize(CK_VOID_PTR pReserved, PRBool isFIPS)
     SECStatus rv;
     CK_C_INITIALIZE_ARGS *init_args = (CK_C_INITIALIZE_ARGS *)pReserved;
     int i;
-    int moduleIndex = isFIPS ? NSC_FIPS_MODULE : NSC_NON_FIPS_MODULE;
+    unsigned int moduleIndex = isFIPS ? NSC_FIPS_MODULE : NSC_NON_FIPS_MODULE;
 
     if (isFIPS) {
         loginWaitTime = PR_SecondsToInterval(1);
@@ -3316,6 +3441,7 @@ nsc_CommonFinalize(CK_VOID_PTR pReserved, PRBool isFIPS)
 
     nsc_init = PR_FALSE;
 
+#ifndef NO_FORK_CHECK
 #ifdef CHECK_FORK_MIXED
     if (!usePthread_atfork) {
         myPid = 0; /* allow CHECK_FORK in the next softoken initialization to
@@ -3327,6 +3453,7 @@ nsc_CommonFinalize(CK_VOID_PTR pReserved, PRBool isFIPS)
     myPid = 0; /* allow reinitialization */
 #elif defined(CHECK_FORK_PTHREAD)
     forked = PR_FALSE; /* allow reinitialization */
+#endif
 #endif
     return CKR_OK;
 }
@@ -3392,8 +3519,24 @@ NSC_GetInfo(CK_INFO_PTR pInfo)
 
     CHECK_FORK();
 
+    pInfo->cryptokiVersion.major = CRYPTOKI_VERSION_MAJOR;
+    pInfo->cryptokiVersion.minor = CRYPTOKI_VERSION_MINOR;
+    PORT_Memcpy(pInfo->manufacturerID, manufacturerID, 32);
+    pInfo->libraryVersion.major = SOFTOKEN_VMAJOR;
+    pInfo->libraryVersion.minor = SOFTOKEN_VMINOR;
+    PORT_Memcpy(pInfo->libraryDescription, libraryDescription, 32);
+    pInfo->flags = 0;
+    return CKR_OK;
+}
+
+/* NSC_GetInfo returns general information about Cryptoki. */
+CK_RV
+NSC_GetInfoV2(CK_INFO_PTR pInfo)
+{
+    CHECK_FORK();
+
     pInfo->cryptokiVersion.major = 2;
-    pInfo->cryptokiVersion.minor = 20;
+    pInfo->cryptokiVersion.minor = 40;
     PORT_Memcpy(pInfo->manufacturerID, manufacturerID, 32);
     pInfo->libraryVersion.major = SOFTOKEN_VMAJOR;
     pInfo->libraryVersion.minor = SOFTOKEN_VMINOR;
@@ -3405,7 +3548,8 @@ NSC_GetInfo(CK_INFO_PTR pInfo)
 /* NSC_GetSlotList obtains a list of slots in the system. */
 CK_RV
 nsc_CommonGetSlotList(CK_BBOOL tokenPresent,
-                      CK_SLOT_ID_PTR pSlotList, CK_ULONG_PTR pulCount, int moduleIndex)
+                      CK_SLOT_ID_PTR pSlotList, CK_ULONG_PTR pulCount,
+                      unsigned int moduleIndex)
 {
     *pulCount = nscSlotCount[moduleIndex];
     if (pSlotList != NULL) {
@@ -3522,10 +3666,12 @@ NSC_GetTokenInfo(CK_SLOT_ID slotID, CK_TOKEN_INFO_PTR pInfo)
     PORT_Memcpy(pInfo->model, "NSS 3           ", 16);
     PORT_Memcpy(pInfo->serialNumber, "0000000000000000", 16);
     PORT_Memcpy(pInfo->utcTime, "0000000000000000", 16);
-    pInfo->ulMaxSessionCount = 0; /* arbitrarily large */
-    pInfo->ulSessionCount = slot->sessionCount;
+    pInfo->ulMaxSessionCount = 0;   /* arbitrarily large */
     pInfo->ulMaxRwSessionCount = 0; /* arbitarily large */
+    PZ_Lock(slot->slotLock);        /* Protect sessionCount / rwSessioncount */
+    pInfo->ulSessionCount = slot->sessionCount;
     pInfo->ulRwSessionCount = slot->rwSessionCount;
+    PZ_Unlock(slot->slotLock); /* Unlock before sftk_getKeyDB */
     pInfo->firmwareVersion.major = 0;
     pInfo->firmwareVersion.minor = 0;
     PORT_Memcpy(pInfo->label, slot->tokDescription, sizeof(pInfo->label));
@@ -3675,6 +3821,22 @@ NSC_GetMechanismInfo(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type,
     return CKR_MECHANISM_INVALID;
 }
 
+/*
+ * If we are using the V2 interface, strip out the message flags
+ */
+#define SFTK_MESSAGE_FLAGS (CKF_MESSAGE_ENCRYPT | CKF_MESSAGE_DECRYPT | CKF_MESSAGE_SIGN | CKF_MESSAGE_VERIFY)
+CK_RV
+NSC_GetMechanismInfoV2(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type,
+                       CK_MECHANISM_INFO_PTR pInfo)
+{
+    CK_RV crv;
+    crv = NSC_GetMechanismInfo(slotID, type, pInfo);
+    if (crv == CKR_OK) {
+        pInfo->flags = pInfo->flags & ~SFTK_MESSAGE_FLAGS;
+    }
+    return crv;
+}
+
 CK_RV
 sftk_MechAllowsOperation(CK_MECHANISM_TYPE type, CK_ATTRIBUTE_TYPE op)
 {
@@ -3708,6 +3870,18 @@ sftk_MechAllowsOperation(CK_MECHANISM_TYPE type, CK_ATTRIBUTE_TYPE op)
             break;
         case CKA_DERIVE:
             flags = CKF_DERIVE;
+            break;
+        case CKA_NSS_MESSAGE | CKA_ENCRYPT:
+            flags = CKF_MESSAGE_ENCRYPT;
+            break;
+        case CKA_NSS_MESSAGE | CKA_DECRYPT:
+            flags = CKF_MESSAGE_DECRYPT;
+            break;
+        case CKA_NSS_MESSAGE | CKA_SIGN:
+            flags = CKF_MESSAGE_SIGN;
+            break;
+        case CKA_NSS_MESSAGE | CKA_VERIFY:
+            flags = CKF_MESSAGE_VERIFY;
             break;
         default:
             return CKR_ARGUMENTS_BAD;
@@ -4254,6 +4428,15 @@ done:
     return crv;
 }
 
+CK_RV
+NSC_LoginUser(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType,
+              CK_CHAR_PTR pPin, CK_ULONG ulPinLen, CK_UTF8CHAR_PTR pUsername,
+              CK_ULONG ulUsernameLen)
+{
+    /* softoken currently does not support additional users */
+    return CKR_OPERATION_NOT_INITIALIZED;
+}
+
 /* NSC_Logout logs a user out from a token. */
 CK_RV
 NSC_Logout(CK_SESSION_HANDLE hSession)
@@ -4308,7 +4491,7 @@ sftk_CreateNewSlot(SFTKSlot *slot, CK_OBJECT_CLASS class,
     PRBool isValidFIPSUserSlot = PR_FALSE;
     PRBool isValidSlot = PR_FALSE;
     PRBool isFIPS = PR_FALSE;
-    unsigned long moduleIndex = NSC_NON_FIPS_MODULE;
+    unsigned int moduleIndex = NSC_NON_FIPS_MODULE;
     SFTKAttribute *attribute;
     sftk_parameters paramStrings;
     char *paramString;
@@ -4316,13 +4499,13 @@ sftk_CreateNewSlot(SFTKSlot *slot, CK_OBJECT_CLASS class,
     SFTKSlot *newSlot = NULL;
     CK_RV crv = CKR_OK;
 
-    if (class != CKO_NETSCAPE_DELSLOT && class != CKO_NETSCAPE_NEWSLOT) {
+    if (class != CKO_NSS_DELSLOT && class != CKO_NSS_NEWSLOT) {
         return CKR_ATTRIBUTE_VALUE_INVALID;
     }
-    if (class == CKO_NETSCAPE_NEWSLOT && slot->slotID == FIPS_SLOT_ID) {
+    if (class == CKO_NSS_NEWSLOT && slot->slotID == FIPS_SLOT_ID) {
         isFIPS = PR_TRUE;
     }
-    attribute = sftk_FindAttribute(object, CKA_NETSCAPE_MODULE_SPEC);
+    attribute = sftk_FindAttribute(object, CKA_NSS_MODULE_SPEC);
     if (attribute == NULL) {
         return CKR_TEMPLATE_INCOMPLETE;
     }
@@ -4346,7 +4529,7 @@ sftk_CreateNewSlot(SFTKSlot *slot, CK_OBJECT_CLASS class,
     isValidFIPSUserSlot = (slotID >= SFTK_MIN_FIPS_USER_SLOT_ID &&
                            slotID <= SFTK_MAX_FIPS_USER_SLOT_ID);
 
-    if (class == CKO_NETSCAPE_DELSLOT) {
+    if (class == CKO_NSS_DELSLOT) {
         if (slot->slotID == slotID) {
             isValidSlot = isValidUserSlot || isValidFIPSUserSlot;
         }
@@ -4376,7 +4559,7 @@ sftk_CreateNewSlot(SFTKSlot *slot, CK_OBJECT_CLASS class,
     }
 
     /* if we were just planning on deleting the slot, then do so now */
-    if (class == CKO_NETSCAPE_DELSLOT) {
+    if (class == CKO_NSS_DELSLOT) {
         /* sort of a unconventional use of this error code, be we are
          * overusing CKR_ATTRIBUTE_VALUE_INVALID, and it does apply */
         crv = newSlot ? CKR_OK : CKR_SLOT_ID_INVALID;
@@ -4409,7 +4592,7 @@ NSC_CreateObject(CK_SESSION_HANDLE hSession,
     SFTKSlot *slot = sftk_SlotFromSessionHandle(hSession);
     SFTKSession *session;
     SFTKObject *object;
-    /* make sure class isn't randomly CKO_NETSCAPE_NEWSLOT or
+    /* make sure class isn't randomly CKO_NSS_NEWSLOT or
      * CKO_NETSCPE_DELSLOT. */
     CK_OBJECT_CLASS class = CKO_VENDOR_DEFINED;
     CK_RV crv;
@@ -4454,7 +4637,7 @@ NSC_CreateObject(CK_SESSION_HANDLE hSession,
     /*
      * handle pseudo objects (CKO_NEWSLOT)
      */
-    if ((class == CKO_NETSCAPE_NEWSLOT) || (class == CKO_NETSCAPE_DELSLOT)) {
+    if ((class == CKO_NSS_NEWSLOT) || (class == CKO_NSS_DELSLOT)) {
         crv = sftk_CreateNewSlot(slot, class, object);
         goto done;
     }
@@ -4830,7 +5013,7 @@ sftk_emailhack(SFTKSlot *slot, SFTKDBHandle *handle,
     unsigned int i;
     SFTKSearchResults smime_search;
     CK_ATTRIBUTE smime_template[2];
-    CK_OBJECT_CLASS smime_class = CKO_NETSCAPE_SMIME;
+    CK_OBJECT_CLASS smime_class = CKO_NSS_SMIME;
     SFTKAttribute *attribute = NULL;
     SFTKObject *object = NULL;
     CK_RV crv = CKR_OK;
@@ -4847,7 +5030,7 @@ sftk_emailhack(SFTKSlot *slot, SFTKDBHandle *handle,
                 break;
             }
             isCert = PR_TRUE;
-        } else if (pTemplate[i].type == CKA_NETSCAPE_EMAIL) {
+        } else if (pTemplate[i].type == CKA_NSS_EMAIL) {
             emailIndex = i;
         }
         if (isCert && (emailIndex != -1))

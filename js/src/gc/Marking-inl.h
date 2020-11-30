@@ -11,9 +11,12 @@
 
 #include "mozilla/Maybe.h"
 
+#include <type_traits>
+
 #include "gc/RelocationOverlay.h"
-#include "vm/BigIntType.h"
-#include "vm/RegExpShared.h"
+#include "js/Id.h"
+#include "js/Value.h"
+#include "vm/TaggedProto.h"
 
 #include "gc/Nursery-inl.h"
 
@@ -33,7 +36,7 @@ struct TaggedPtr<JS::Value> {
   static JS::Value wrap(JS::BigInt* bi) { return JS::BigIntValue(bi); }
   template <typename T>
   static JS::Value wrap(T* priv) {
-    static_assert(std::is_base_of<Cell, T>::value,
+    static_assert(std::is_base_of_v<Cell, T>,
                   "Type must be a GC thing derived from js::gc::Cell");
     return JS::PrivateGCThingValue(priv);
   }
@@ -43,7 +46,7 @@ struct TaggedPtr<JS::Value> {
 template <>
 struct TaggedPtr<jsid> {
   static jsid wrap(JSString* str) {
-    return NON_INTEGER_ATOM_TO_JSID(&str->asAtom());
+    return JS::PropertyKey::fromNonIntAtom(str);
   }
   static jsid wrap(JS::Symbol* sym) { return SYMBOL_TO_JSID(sym); }
   static jsid empty() { return JSID_VOID; }
@@ -57,19 +60,14 @@ struct TaggedPtr<TaggedProto> {
 
 template <typename T>
 struct MightBeForwarded {
-  static_assert(std::is_base_of<Cell, T>::value, "T must derive from Cell");
-  static_assert(!mozilla::IsSame<Cell, T>::value &&
-                    !mozilla::IsSame<TenuredCell, T>::value,
-                "T must not be Cell or TenuredCell");
+  static_assert(std::is_base_of_v<Cell, T>);
+  static_assert(!std::is_same_v<Cell, T> && !std::is_same_v<TenuredCell, T>);
 
-  static const bool value = std::is_base_of<JSObject, T>::value ||
-                            std::is_base_of<Shape, T>::value ||
-                            std::is_base_of<BaseShape, T>::value ||
-                            std::is_base_of<JSString, T>::value ||
-                            std::is_base_of<JS::BigInt, T>::value ||
-                            std::is_base_of<js::BaseScript, T>::value ||
-                            std::is_base_of<js::Scope, T>::value ||
-                            std::is_base_of<js::RegExpShared, T>::value;
+#define CAN_FORWARD_KIND_OR(_1, _2, Type, _3, _4, _5, canCompact) \
+  (std::is_base_of_v<Type, T> && canCompact) ||
+
+  static constexpr bool value = FOR_EACH_ALLOCKIND(CAN_FORWARD_KIND_OR) true;
+#undef CAN_FORWARD_KIND_OR
 };
 
 template <typename T>
@@ -82,21 +80,11 @@ inline bool IsForwarded(const T* t) {
   return t->isForwarded();
 }
 
-inline bool IsForwarded(const JS::Value& value) {
-  auto isForwarded = [](auto t) { return IsForwarded(t); };
-  return MapGCThingTyped(value, isForwarded).valueOr(false);
-}
-
 template <typename T>
 inline T* Forwarded(const T* t) {
   const RelocationOverlay* overlay = RelocationOverlay::fromCell(t);
   MOZ_ASSERT(overlay->isForwarded());
   return reinterpret_cast<T*>(overlay->forwardingAddress());
-}
-
-inline Value Forwarded(const JS::Value& value) {
-  auto forward = [](auto t) { return TaggedPtr<Value>::wrap(Forwarded(t)); };
-  return MapGCThingTyped(value, forward).valueOr(value);
 }
 
 template <typename T>
@@ -107,21 +95,34 @@ inline T MaybeForwarded(T t) {
   return t;
 }
 
-inline void RelocationOverlay::forwardTo(Cell* cell) {
-  MOZ_ASSERT(!isForwarded());
-  MOZ_ASSERT((uintptr_t(cell) & Cell::RESERVED_MASK) == 0,
-             "preserving flags doesn't clobber any existing bits");
+inline const JSClass* MaybeForwardedObjectClass(const JSObject* obj) {
+  return MaybeForwarded(obj->groupRaw())->clasp();
+}
 
-  // Preserve old flags because nursery may check them before checking
-  // if this is a forwarded Cell.
-  //
-  // This is pretty terrible and we should find a better way to implement
-  // Cell::getTraceKind() that doesn't rely on this behavior.
-  //
-  // The copied over flags are only used for nursery Cells, when the Cell is
-  // tenured, these bits are never read and hence may contain any content.
-  uintptr_t gcFlags = dataWithTag_ & Cell::RESERVED_MASK;
-  dataWithTag_ = uintptr_t(cell) | gcFlags | Cell::FORWARD_BIT;
+template <typename T>
+inline bool MaybeForwardedObjectIs(JSObject* obj) {
+  MOZ_ASSERT(!obj->isForwarded());
+  return MaybeForwardedObjectClass(obj) == &T::class_;
+}
+
+template <typename T>
+inline T& MaybeForwardedObjectAs(JSObject* obj) {
+  MOZ_ASSERT(MaybeForwardedObjectIs<T>(obj));
+  return *static_cast<T*>(obj);
+}
+
+inline RelocationOverlay::RelocationOverlay(Cell* dst) {
+  MOZ_ASSERT(dst->flags() == 0);
+  uintptr_t ptr = uintptr_t(dst);
+  MOZ_ASSERT((ptr & RESERVED_MASK) == 0);
+  header_ = ptr | FORWARD_BIT;
+}
+
+/* static */
+inline RelocationOverlay* RelocationOverlay::forwardCell(Cell* src, Cell* dst) {
+  MOZ_ASSERT(!src->isForwarded());
+  MOZ_ASSERT(!dst->isForwarded());
+  return new (src) RelocationOverlay(dst);
 }
 
 inline bool IsAboutToBeFinalizedDuringMinorSweep(Cell** cellp) {
@@ -151,10 +152,6 @@ inline void CheckGCThingAfterMovingGC(T* t) {
 template <typename T>
 inline void CheckGCThingAfterMovingGC(const WeakHeapPtr<T*>& t) {
   CheckGCThingAfterMovingGC(t.unbarrieredGet());
-}
-
-inline void CheckValueAfterMovingGC(const JS::Value& value) {
-  ApplyGCThingTyped(value, [](auto t) { CheckGCThingAfterMovingGC(t); });
 }
 
 #endif  // JSGC_HASH_TABLE_CHECKS

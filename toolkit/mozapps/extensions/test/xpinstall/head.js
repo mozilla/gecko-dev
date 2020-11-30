@@ -3,6 +3,9 @@
 const { PermissionTestUtils } = ChromeUtils.import(
   "resource://testing-common/PermissionTestUtils.jsm"
 );
+const { PromptTestUtils } = ChromeUtils.import(
+  "resource://testing-common/PromptTestUtils.jsm"
+);
 
 const RELATIVE_DIR = "toolkit/mozapps/extensions/test/xpinstall/";
 
@@ -118,10 +121,13 @@ var Harness = {
       Services.obs.addObserver(this, "addon-install-failed");
       Services.obs.addObserver(this, "addon-install-complete");
 
+      // For browser_auth tests which trigger auth dialogs.
+      Services.obs.addObserver(this, "tabmodal-dialog-loaded");
+      Services.obs.addObserver(this, "common-dialog-loaded");
+
       this._boundWin = Cu.getWeakReference(win); // need this so our addon manager listener knows which window to use.
       AddonManager.addInstallListener(this);
-
-      Services.wm.addListener(this);
+      AddonManager.addAddonListener(this);
 
       win.addEventListener("popupshown", this);
       win.PanelUI.notificationPanel.addEventListener("popupshown", this);
@@ -142,9 +148,11 @@ var Harness = {
         Services.obs.removeObserver(self, "addon-install-failed");
         Services.obs.removeObserver(self, "addon-install-complete");
 
-        AddonManager.removeInstallListener(self);
+        Services.obs.removeObserver(self, "tabmodal-dialog-loaded");
+        Services.obs.removeObserver(self, "common-dialog-loaded");
 
-        Services.wm.removeListener(self);
+        AddonManager.removeInstallListener(self);
+        AddonManager.removeAddonListener(self);
 
         win.removeEventListener("popupshown", self);
         win.PanelUI.notificationPanel.removeEventListener("popupshown", self);
@@ -156,15 +164,21 @@ var Harness = {
           0,
           "Should be no active installs at the end of the test"
         );
-        aInstalls.forEach(function(aInstall) {
-          info(
-            "Install for " +
-              aInstall.sourceURI +
-              " is in state " +
-              aInstall.state
-          );
-          aInstall.cancel();
-        });
+        await Promise.all(
+          aInstalls.map(async function(aInstall) {
+            info(
+              "Install for " +
+                aInstall.sourceURI +
+                " is in state " +
+                aInstall.state
+            );
+            if (aInstall.state == AddonManager.STATE_INSTALLED) {
+              await aInstall.addon.uninstall();
+            } else {
+              aInstall.cancel();
+            }
+          })
+        );
       });
     }
 
@@ -215,40 +229,38 @@ var Harness = {
     }
   },
 
-  // Window open handling
-  windowReady(window) {
-    if (window.document.location.href == PROMPT_URL) {
-      var promptType = window.args.promptType;
-      let dialog = window.document.getElementById("commonDialog");
-      switch (promptType) {
-        case "alert":
-        case "alertCheck":
-        case "confirmCheck":
-        case "confirm":
-        case "confirmEx":
-          dialog.acceptDialog();
-          break;
-        case "promptUserAndPass":
-          // This is a login dialog, hopefully an authentication prompt
-          // for the xpi.
-          if (this.authenticationCallback) {
-            var auth = this.authenticationCallback();
-            if (auth && auth.length == 2) {
-              window.document.getElementById("loginTextbox").value = auth[0];
-              window.document.getElementById("password1Textbox").value =
-                auth[1];
-              dialog.acceptDialog();
-            } else {
-              dialog.cancelDialog();
-            }
+  promptReady(dialog) {
+    let promptType = dialog.args.promptType;
+
+    switch (promptType) {
+      case "alert":
+      case "alertCheck":
+      case "confirmCheck":
+      case "confirm":
+      case "confirmEx":
+        PromptTestUtils.handlePrompt(dialog, { buttonNumClick: 0 });
+        break;
+      case "promptUserAndPass":
+        // This is a login dialog, hopefully an authentication prompt
+        // for the xpi.
+        if (this.authenticationCallback) {
+          var auth = this.authenticationCallback();
+          if (auth && auth.length == 2) {
+            PromptTestUtils.handlePrompt(dialog, {
+              loginInput: auth[0],
+              passwordInput: auth[1],
+              buttonNumClick: 0,
+            });
           } else {
-            dialog.cancelDialog();
+            PromptTestUtils.handlePrompt(dialog, { buttonNumClick: 1 });
           }
-          break;
-        default:
-          ok(false, "prompt type " + promptType + " not handled in test.");
-          break;
-      }
+        } else {
+          PromptTestUtils.handlePrompt(dialog, { buttonNumClick: 1 });
+        }
+        break;
+      default:
+        ok(false, "prompt type " + promptType + " not handled in test.");
+        break;
     }
   },
 
@@ -349,18 +361,6 @@ var Harness = {
     }
   },
 
-  // nsIWindowMediatorListener
-
-  onOpenWindow(xulWin) {
-    var domwindow = xulWin.docShell.domWindow;
-    var self = this;
-    waitForFocus(function() {
-      self.windowReady(domwindow);
-    }, domwindow);
-  },
-
-  onCloseWindow(window) {},
-
   // Addon Install Listener
 
   onNewInstall(install) {
@@ -412,8 +412,11 @@ var Harness = {
     );
     this.runningInstalls.splice(this.runningInstalls.indexOf(install), 1);
 
-    if (this.downloadCancelledCallback) {
-      this.downloadCancelledCallback(install);
+    if (
+      this.downloadCancelledCallback &&
+      this.downloadCancelledCallback(install) === false
+    ) {
+      return;
     }
     this.checkTestEnded();
   },
@@ -431,10 +434,10 @@ var Harness = {
     }
   },
 
-  onInstallEnded(install, addon) {
+  async onInstallEnded(install, addon) {
     this.installCount++;
     if (this.installEndedCallback) {
-      this.installEndedCallback(install, addon);
+      await this.installEndedCallback(install, addon);
     }
     this.checkTestEnded();
   },
@@ -444,6 +447,14 @@ var Harness = {
       this.installFailedCallback(install);
     }
     this.checkTestEnded();
+  },
+
+  onUninstalled(addon) {
+    let idx = this.runningInstalls.findIndex(install => install.addon == addon);
+    if (idx != -1) {
+      this.runningInstalls.splice(idx, 1);
+      this.checkTestEnded();
+    }
   },
 
   onInstallCancelled(install) {
@@ -540,11 +551,16 @@ var Harness = {
           );
         }, this);
         break;
+      case "tabmodal-dialog-loaded":
+        let browser = subject.ownerGlobal.gBrowser.selectedBrowser;
+        let prompt = browser.tabModalPromptBox.getPrompt(subject);
+        this.promptReady(prompt.Dialog);
+        break;
+      case "common-dialog-loaded":
+        this.promptReady(subject.Dialog);
+        break;
     }
   },
 
-  QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIObserver,
-    Ci.nsIWindowMediatorListener,
-  ]),
+  QueryInterface: ChromeUtils.generateQI(["nsIObserver"]),
 };

@@ -69,6 +69,24 @@ void MacroAssembler::xor32(Register src, Register dest) { ma_xor(dest, src); }
 void MacroAssembler::xor32(Imm32 imm, Register dest) { ma_xor(dest, imm); }
 
 // ===============================================================
+// Swap instructions
+
+void MacroAssembler::byteSwap16SignExtend(Register reg) {
+  ma_wsbh(reg, reg);
+  ma_seh(reg, reg);
+}
+
+void MacroAssembler::byteSwap16ZeroExtend(Register reg) {
+  ma_wsbh(reg, reg);
+  ma_and(reg, Imm32(0xFFFF));
+}
+
+void MacroAssembler::byteSwap32(Register reg) {
+  ma_wsbh(reg, reg);
+  as_rotr(reg, reg, 16);
+}
+
+// ===============================================================
 // Arithmetic instructions
 
 void MacroAssembler::add32(Register src, Register dest) {
@@ -527,6 +545,20 @@ void MacroAssembler::branchMul32(Condition cond, T src, Register dest,
   ma_mul_branch_overflow(dest, dest, src, overflow);
 }
 
+template <typename T>
+void MacroAssembler::branchRshift32(Condition cond, T src, Register dest,
+                                    Label* label) {
+  MOZ_ASSERT(cond == Zero || cond == NonZero);
+  rshift32(src, dest);
+  branch32(cond == Zero ? Equal : NotEqual, dest, Imm32(0), label);
+}
+
+void MacroAssembler::branchNeg32(Condition cond, Register reg, Label* label) {
+  MOZ_ASSERT(cond == Overflow);
+  neg32(reg);
+  branch32(Assembler::Equal, reg, Imm32(INT32_MIN), label);
+}
+
 void MacroAssembler::decBranchPtr(Condition cond, Register lhs, Imm32 rhs,
                                   Label* label) {
   subPtr(rhs, lhs);
@@ -603,16 +635,16 @@ void MacroAssembler::branchTestUndefined(Condition cond, Register tag,
 void MacroAssembler::branchTestUndefined(Condition cond, const Address& address,
                                          Label* label) {
   SecondScratchRegisterScope scratch2(*this);
-  extractTag(address, scratch2);
-  branchTestUndefined(cond, scratch2, label);
+  Register tag = extractTag(address, scratch2);
+  branchTestUndefined(cond, tag, label);
 }
 
 void MacroAssembler::branchTestUndefined(Condition cond,
                                          const BaseIndex& address,
                                          Label* label) {
   SecondScratchRegisterScope scratch2(*this);
-  extractTag(address, scratch2);
-  branchTestUndefined(cond, scratch2, label);
+  Register tag = extractTag(address, scratch2);
+  branchTestUndefined(cond, tag, label);
 }
 
 void MacroAssembler::branchTestInt32(Condition cond, Register tag,
@@ -624,29 +656,29 @@ void MacroAssembler::branchTestInt32(Condition cond, Register tag,
 void MacroAssembler::branchTestInt32(Condition cond, const Address& address,
                                      Label* label) {
   SecondScratchRegisterScope scratch2(*this);
-  extractTag(address, scratch2);
-  branchTestInt32(cond, scratch2, label);
+  Register tag = extractTag(address, scratch2);
+  branchTestInt32(cond, tag, label);
 }
 
 void MacroAssembler::branchTestInt32(Condition cond, const BaseIndex& address,
                                      Label* label) {
   SecondScratchRegisterScope scratch2(*this);
-  extractTag(address, scratch2);
-  branchTestInt32(cond, scratch2, label);
+  Register tag = extractTag(address, scratch2);
+  branchTestInt32(cond, tag, label);
 }
 
 void MacroAssembler::branchTestDouble(Condition cond, const Address& address,
                                       Label* label) {
   SecondScratchRegisterScope scratch2(*this);
-  extractTag(address, scratch2);
-  branchTestDouble(cond, scratch2, label);
+  Register tag = extractTag(address, scratch2);
+  branchTestDouble(cond, tag, label);
 }
 
 void MacroAssembler::branchTestDouble(Condition cond, const BaseIndex& address,
                                       Label* label) {
   SecondScratchRegisterScope scratch2(*this);
-  extractTag(address, scratch2);
-  branchTestDouble(cond, scratch2, label);
+  Register tag = extractTag(address, scratch2);
+  branchTestDouble(cond, tag, label);
 }
 
 void MacroAssembler::branchTestDoubleTruthy(bool b, FloatRegister value,
@@ -672,15 +704,15 @@ void MacroAssembler::branchTestBoolean(Condition cond, Register tag,
 void MacroAssembler::branchTestBoolean(Condition cond, const Address& address,
                                        Label* label) {
   SecondScratchRegisterScope scratch2(*this);
-  extractTag(address, scratch2);
-  branchTestBoolean(cond, scratch2, label);
+  Register tag = extractTag(address, scratch2);
+  branchTestBoolean(cond, tag, label);
 }
 
 void MacroAssembler::branchTestBoolean(Condition cond, const BaseIndex& address,
                                        Label* label) {
   SecondScratchRegisterScope scratch2(*this);
-  extractTag(address, scratch2);
-  branchTestBoolean(cond, scratch2, label);
+  Register tag = extractTag(address, scratch2);
+  branchTestBoolean(cond, tag, label);
 }
 
 void MacroAssembler::branchTestString(Condition cond, Register tag,
@@ -692,15 +724,15 @@ void MacroAssembler::branchTestString(Condition cond, Register tag,
 void MacroAssembler::branchTestString(Condition cond, const Address& address,
                                       Label* label) {
   SecondScratchRegisterScope scratch2(*this);
-  extractTag(address, scratch2);
-  branchTestString(cond, scratch2, label);
+  Register tag = extractTag(address, scratch2);
+  branchTestString(cond, tag, label);
 }
 
 void MacroAssembler::branchTestString(Condition cond, const BaseIndex& address,
                                       Label* label) {
   SecondScratchRegisterScope scratch2(*this);
-  extractTag(address, scratch2);
-  branchTestString(cond, scratch2, label);
+  Register tag = extractTag(address, scratch2);
+  branchTestString(cond, tag, label);
 }
 
 void MacroAssembler::branchTestSymbol(Condition cond, Register tag,
@@ -712,15 +744,28 @@ void MacroAssembler::branchTestSymbol(Condition cond, Register tag,
 void MacroAssembler::branchTestSymbol(Condition cond, const BaseIndex& address,
                                       Label* label) {
   SecondScratchRegisterScope scratch2(*this);
-  extractTag(address, scratch2);
-  branchTestSymbol(cond, scratch2, label);
+  Register tag = extractTag(address, scratch2);
+  branchTestSymbol(cond, tag, label);
+}
+
+void MacroAssembler::branchTestSymbol(Condition cond, const Address& address,
+                                      Label* label) {
+  SecondScratchRegisterScope scratch2(*this);
+  Register tag = extractTag(address, scratch2);
+  branchTestSymbol(cond, tag, label);
+}
+
+void MacroAssembler::branchTestBigInt(Condition cond, Register tag,
+                                      Label* label) {
+  MOZ_ASSERT(cond == Equal || cond == NotEqual);
+  ma_b(tag, ImmTag(JSVAL_TAG_BIGINT), label, cond);
 }
 
 void MacroAssembler::branchTestBigInt(Condition cond, const Address& address,
                                       Label* label) {
   SecondScratchRegisterScope scratch2(*this);
-  extractTag(address, scratch2);
-  branchTestBigInt(cond, scratch2, label);
+  Register tag = extractTag(address, scratch2);
+  branchTestBigInt(cond, tag, label);
 }
 
 void MacroAssembler::branchTestNull(Condition cond, Register tag,
@@ -732,15 +777,15 @@ void MacroAssembler::branchTestNull(Condition cond, Register tag,
 void MacroAssembler::branchTestNull(Condition cond, const Address& address,
                                     Label* label) {
   SecondScratchRegisterScope scratch2(*this);
-  extractTag(address, scratch2);
-  branchTestNull(cond, scratch2, label);
+  Register tag = extractTag(address, scratch2);
+  branchTestNull(cond, tag, label);
 }
 
 void MacroAssembler::branchTestNull(Condition cond, const BaseIndex& address,
                                     Label* label) {
   SecondScratchRegisterScope scratch2(*this);
-  extractTag(address, scratch2);
-  branchTestNull(cond, scratch2, label);
+  Register tag = extractTag(address, scratch2);
+  branchTestNull(cond, tag, label);
 }
 
 void MacroAssembler::branchTestObject(Condition cond, Register tag,
@@ -752,31 +797,40 @@ void MacroAssembler::branchTestObject(Condition cond, Register tag,
 void MacroAssembler::branchTestObject(Condition cond, const Address& address,
                                       Label* label) {
   SecondScratchRegisterScope scratch2(*this);
-  extractTag(address, scratch2);
-  branchTestObject(cond, scratch2, label);
+  Register tag = extractTag(address, scratch2);
+  branchTestObject(cond, tag, label);
 }
 
 void MacroAssembler::branchTestObject(Condition cond, const BaseIndex& address,
                                       Label* label) {
   SecondScratchRegisterScope scratch2(*this);
-  extractTag(address, scratch2);
-  branchTestObject(cond, scratch2, label);
+  Register tag = extractTag(address, scratch2);
+  branchTestObject(cond, tag, label);
 }
 
 void MacroAssembler::branchTestGCThing(Condition cond, const Address& address,
                                        Label* label) {
-  MOZ_ASSERT(cond == Equal || cond == NotEqual);
-  SecondScratchRegisterScope scratch2(*this);
-  extractTag(address, scratch2);
-  ma_b(scratch2, ImmTag(JS::detail::ValueLowerInclGCThingTag), label,
-       (cond == Equal) ? AboveOrEqual : Below);
+  branchTestGCThingImpl(cond, address, label);
 }
+
 void MacroAssembler::branchTestGCThing(Condition cond, const BaseIndex& address,
                                        Label* label) {
+  branchTestGCThingImpl(cond, address, label);
+}
+
+void MacroAssembler::branchTestGCThing(Condition cond,
+                                       const ValueOperand& address,
+                                       Label* label) {
+  branchTestGCThingImpl(cond, address, label);
+}
+
+template <typename T>
+void MacroAssembler::branchTestGCThingImpl(Condition cond, const T& address,
+                                           Label* label) {
   MOZ_ASSERT(cond == Equal || cond == NotEqual);
   SecondScratchRegisterScope scratch2(*this);
-  extractTag(address, scratch2);
-  ma_b(scratch2, ImmTag(JS::detail::ValueLowerInclGCThingTag), label,
+  Register tag = extractTag(address, scratch2);
+  ma_b(tag, ImmTag(JS::detail::ValueLowerInclGCThingTag), label,
        (cond == Equal) ? AboveOrEqual : Below);
 }
 
@@ -796,15 +850,15 @@ void MacroAssembler::branchTestMagic(Condition cond, Register tag,
 void MacroAssembler::branchTestMagic(Condition cond, const Address& address,
                                      Label* label) {
   SecondScratchRegisterScope scratch2(*this);
-  extractTag(address, scratch2);
-  branchTestMagic(cond, scratch2, label);
+  Register tag = extractTag(address, scratch2);
+  branchTestMagic(cond, tag, label);
 }
 
 void MacroAssembler::branchTestMagic(Condition cond, const BaseIndex& address,
                                      Label* label) {
   SecondScratchRegisterScope scratch2(*this);
-  extractTag(address, scratch2);
-  branchTestMagic(cond, scratch2, label);
+  Register tag = extractTag(address, scratch2);
+  branchTestMagic(cond, tag, label);
 }
 
 void MacroAssembler::branchToComputedAddress(const BaseIndex& addr) {
@@ -852,16 +906,16 @@ void MacroAssembler::cmp32Move32(Condition cond, Register lhs,
 void MacroAssembler::cmp32Load32(Condition cond, Register lhs,
                                  const Address& rhs, const Address& src,
                                  Register dest) {
-  Label skip;
-  branch32(cond, rhs, lhs, &skip);
-  load32(src, dest);
-  bind(&skip);
+  ScratchRegisterScope scratch(*this);
+  MOZ_ASSERT(lhs != scratch && dest != scratch);
+  load32(rhs, scratch);
+  cmp32Load32(cond, lhs, scratch, src, dest);
 }
 
 void MacroAssembler::cmp32Load32(Condition cond, Register lhs, Register rhs,
                                  const Address& src, Register dest) {
   Label skip;
-  branch32(cond, rhs, lhs, &skip);
+  branch32(Assembler::InvertCondition(cond), lhs, rhs, &skip);
   load32(src, dest);
   bind(&skip);
 }
@@ -915,12 +969,6 @@ void MacroAssembler::spectreZeroRegister(Condition cond, Register scratch,
 
 // ========================================================================
 // Memory access primitives.
-void MacroAssembler::storeFloat32x3(FloatRegister src, const Address& dest) {
-  MOZ_CRASH("NYI");
-}
-void MacroAssembler::storeFloat32x3(FloatRegister src, const BaseIndex& dest) {
-  MOZ_CRASH("NYI");
-}
 
 void MacroAssembler::storeUncanonicalizedDouble(FloatRegister src,
                                                 const Address& addr) {

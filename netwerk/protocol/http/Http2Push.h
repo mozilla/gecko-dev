@@ -31,7 +31,6 @@ class Http2PushedStream final : public Http2Stream {
                     Http2Session* aSession, Http2Stream* aAssociatedStream,
                     uint32_t aID,
                     uint64_t aCurrentForegroundTabOuterContentWindowId);
-  virtual ~Http2PushedStream() = default;
 
   bool GetPushComplete();
 
@@ -39,20 +38,20 @@ class Http2PushedStream final : public Http2Stream {
   virtual Http2Stream* GetConsumerStream() override { return mConsumerStream; };
 
   void SetConsumerStream(Http2Stream* aStream);
-  MOZ_MUST_USE bool GetHashKey(nsCString& key);
+  [[nodiscard]] bool GetHashKey(nsCString& key);
 
   // override of Http2Stream
-  MOZ_MUST_USE nsresult ReadSegments(nsAHttpSegmentReader*, uint32_t,
-                                     uint32_t*) override;
-  MOZ_MUST_USE nsresult WriteSegments(nsAHttpSegmentWriter*, uint32_t,
+  [[nodiscard]] nsresult ReadSegments(nsAHttpSegmentReader*, uint32_t,
                                       uint32_t*) override;
+  [[nodiscard]] nsresult WriteSegments(nsAHttpSegmentWriter*, uint32_t,
+                                       uint32_t*) override;
   void AdjustInitialWindow() override;
 
   nsIRequestContext* RequestContext() override { return mRequestContext; };
   void ConnectPushedStream(Http2Stream* consumer);
 
-  MOZ_MUST_USE bool TryOnPush();
-  static MOZ_MUST_USE bool TestOnPush(Http2Stream* consumer);
+  [[nodiscard]] bool TryOnPush();
+  [[nodiscard]] static bool TestOnPush(Http2Stream* consumer);
 
   virtual bool DeferCleanup(nsresult status) override;
   void SetDeferCleanupOnSuccess(bool val) { mDeferCleanupOnSuccess = val; }
@@ -63,8 +62,8 @@ class Http2PushedStream final : public Http2Stream {
     mOnPushFailed = true;
   }
 
-  MOZ_MUST_USE nsresult GetBufferedData(char* buf, uint32_t count,
-                                        uint32_t* countWritten);
+  [[nodiscard]] nsresult GetBufferedData(char* buf, uint32_t count,
+                                         uint32_t* countWritten);
 
   // overload of Http2Stream
   virtual bool HasSink() override { return !!mConsumerStream; }
@@ -75,6 +74,7 @@ class Http2PushedStream final : public Http2Stream {
   nsCString& GetResourceUrl() { return mResourceUrl; }
 
  private:
+  virtual ~Http2PushedStream() = default;
   Http2Stream*
       mConsumerStream;  // paired request stream that consumes from
                         // real http/2 one.. null until a match is made.
@@ -112,8 +112,8 @@ class Http2PushTransactionBuffer final : public nsAHttpTransaction {
 
   Http2PushTransactionBuffer();
 
-  MOZ_MUST_USE nsresult GetBufferedData(char* buf, uint32_t count,
-                                        uint32_t* countWritten);
+  [[nodiscard]] nsresult GetBufferedData(char* buf, uint32_t count,
+                                         uint32_t* countWritten);
   void SetPushStream(Http2PushedStream* stream) { mPushStream = stream; }
 
  private:

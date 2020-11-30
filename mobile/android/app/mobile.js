@@ -1,6 +1,8 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+#filter dumbComments emptyLines substitution
+
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 // Non-static prefs that are specific to Firefox on Android belong in this file
 // (unless there is a compelling and documented reason for them to belong in
@@ -9,8 +11,6 @@
 // Please indent all prefs defined within #ifdef/#ifndef conditions. This
 // improves readability, particular for conditional blocks that exceed a single
 // screen.
-
-#filter substitution
 
 // For browser.js element
 //
@@ -51,13 +51,6 @@ pref("browser.tabs.useCache", false);
 
 pref("toolkit.zoomManager.zoomValues", ".2,.3,.5,.67,.8,.9,1,1.1,1.2,1.33,1.5,1.7,2,2.4,3,4");
 
-// Mobile will use faster, less durable mode.
-pref("toolkit.storage.synchronous", 0);
-
-// Android needs concurrent access to the same database from multiple processes,
-// thus we can't use exclusive locking on it.
-pref("storage.multiProcessAccess.enabled", true);
-
 // The default fallback zoom level to render pages at. Set to -1 to fit page; otherwise
 // the value is divided by 1000 and clamped to hard-coded min/max scale values.
 pref("browser.viewport.defaultZoom", -1);
@@ -80,9 +73,6 @@ pref("image.cache.size", 1048576); // bytes
 pref("browser.offline-apps.notify", true);
 pref("browser.cache.offline.capacity", 5120); // kilobytes
 
-// Automatically shrink-to-fit image documents.
-pref("browser.enable_automatic_image_resizing", true);
-
 /* disable some protocol warnings */
 pref("network.protocol-handler.warn-external.tel", false);
 pref("network.protocol-handler.warn-external.sms", false);
@@ -99,7 +89,7 @@ pref("network.http.spdy.push-allowance", 32768);
 pref("network.http.spdy.default-hpack-buffer", 4096); // 4k
 
 // http3
-pref("network.http.http3.default-qpack-table-size", 4096); // 4k
+pref("network.http.http3.default-qpack-table-size", 0);
 
 // See bug 545869 for details on why these are set the way they are
 pref("network.buffer.cache.count", 24);
@@ -151,7 +141,6 @@ pref("signon.expireMasterPassword", false);
 pref("signon.debug", false);
 
 /* form helper (scroll to and optionally zoom into editable fields)  */
-pref("formhelper.mode", 2);  // 0 = disabled, 1 = enabled, 2 = dynamic depending on screen size
 pref("formhelper.autozoom", true);
 
 /* find helper */
@@ -162,9 +151,6 @@ pref("browser.formfill.enable", true);
 
 /* spellcheck */
 pref("layout.spellcheckDefault", 0);
-
-/* new html5 forms */
-pref("dom.forms.datetime.others", true);
 
 /* extension manager and xpinstall */
 pref("xpinstall.whitelist.fileRequest", false);
@@ -224,7 +210,6 @@ pref("privacy.popups.showBrowserMessage", true);
 
 /* disable opening windows with the dialog feature */
 pref("dom.disable_window_open_dialog_feature", true);
-pref("dom.disable_window_find", true);
 
 pref("keyword.enabled", true);
 pref("browser.fixup.domainwhitelist.localhost", true);
@@ -244,10 +229,6 @@ pref("browser.menu.showCharacterEncoding", "chrome://browser/locale/browser.prop
 // SSL error page behaviour
 pref("browser.ssl_override_behavior", 2);
 pref("browser.xul.error_pages.expert_bad_cert", false);
-
-// Market-specific search defaults
-pref("browser.search.geoSpecificDefaults", true);
-pref("browser.search.geoSpecificDefaults.url", "https://search.services.mozilla.com/1/%APP%/%VERSION%/%CHANNEL%/%LOCALE%/%REGION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%");
 
 // disable updating
 pref("browser.search.update", false);
@@ -295,9 +276,6 @@ pref("gfx.displayport.strategy_pb.threshold", -1); // velocity threshold in inch
 // don't allow JS to move and resize existing windows
 pref("dom.disable_window_move_resize", true);
 
-// prevent click image resizing for nsImageDocument
-pref("browser.enable_click_image_resizing", false);
-
 // open in tab preferences
 // 0=default window, 1=current window/tab, 2=new window, 3=new tab in most window
 pref("browser.link.open_external", 3);
@@ -332,7 +310,6 @@ pref("privacy.item.syncAccount", true);
 
 pref("javascript.options.mem.high_water_mark", 32);
 
-pref("dom.max_chrome_script_run_time", 0); // disable slow script dialog for chrome
 pref("dom.max_script_run_time", 20);
 
 // Absolute path to the devtools unix domain socket file used
@@ -341,28 +318,6 @@ pref("devtools.debugger.unix-domain-socket", "@ANDROID_PACKAGE_NAME@/firefox-deb
 
 pref("devtools.remote.usb.enabled", false);
 pref("devtools.remote.wifi.enabled", false);
-
-// Preference for the new performance panel.
-// Profiler feature set. See tools/profiler/core/platform.cpp for features and
-// explanations. Android additionally has "java" feature but other features must
-// be the same. If you intend to change the default value of this pref, please
-// don't forget to change the all.js accordingly.
-pref("devtools.performance.recording.features", "[\"js\",\"leaf\",\"stackwalk\",\"java\"]");
-
-pref("ui.touch.radius.enabled", false);
-pref("ui.touch.radius.leftmm", 3);
-pref("ui.touch.radius.topmm", 5);
-pref("ui.touch.radius.rightmm", 3);
-pref("ui.touch.radius.bottommm", 2);
-pref("ui.touch.radius.visitedWeight", 120);
-
-pref("ui.mouse.radius.enabled", true);
-pref("ui.mouse.radius.leftmm", 3);
-pref("ui.mouse.radius.topmm", 5);
-pref("ui.mouse.radius.rightmm", 3);
-pref("ui.mouse.radius.bottommm", 2);
-pref("ui.mouse.radius.visitedWeight", 120);
-pref("ui.mouse.radius.reposition", true);
 
 // Maximum distance from the point where the user pressed where we still
 // look for text to select
@@ -400,44 +355,11 @@ pref("security.alternate_certificate_error_page", "certerror");
 
 pref("security.warn_viewing_mixed", false); // Warning is disabled.  See Bug 616712.
 
-// Block insecure active content on https pages
-pref("security.mixed_content.block_active_content", true);
-
 // Enable pinning
 pref("security.cert_pinning.enforcement_level", 1);
 
 // Only fetch OCSP for EV certificates
 pref("security.OCSP.enabled", 2);
-
-// Override some named colors to avoid inverse OS themes
-pref("ui.-moz-dialog", "#efebe7");
-pref("ui.-moz-dialogtext", "#101010");
-pref("ui.-moz-field", "#fff");
-pref("ui.-moz-fieldtext", "#1a1a1a");
-pref("ui.-moz-buttonhoverface", "#f3f0ed");
-pref("ui.-moz-buttonhovertext", "#101010");
-pref("ui.-moz-combobox", "#fff");
-pref("ui.-moz-comboboxtext", "#101010");
-pref("ui.buttonface", "#ece7e2");
-pref("ui.buttonhighlight", "#fff");
-pref("ui.buttonshadow", "#aea194");
-pref("ui.buttontext", "#101010");
-pref("ui.captiontext", "#101010");
-pref("ui.graytext", "#b1a598");
-pref("ui.highlight", "#fad184");
-pref("ui.highlighttext", "#1a1a1a");
-pref("ui.infobackground", "#f5f5b5");
-pref("ui.infotext", "#000");
-pref("ui.menu", "#f7f5f3");
-pref("ui.menutext", "#101010");
-pref("ui.threeddarkshadow", "#000");
-pref("ui.threedface", "#ece7e2");
-pref("ui.threedhighlight", "#fff");
-pref("ui.threedlightshadow", "#ece7e2");
-pref("ui.threedshadow", "#aea194");
-pref("ui.window", "#efebe7");
-pref("ui.windowtext", "#101010");
-pref("ui.windowframe", "#efebe7");
 
 /* prefs used by the update timer system (including blocklist pings) */
 pref("app.update.timerFirstInterval", 30000); // milliseconds
@@ -452,9 +374,6 @@ pref("app.update.url.android", "https://aus5.mozilla.org/update/4/%PRODUCT%/%VER
   /* prefs used specifically for updating the app */
   pref("app.update.channel", "@MOZ_UPDATE_CHANNEL@");
 #endif
-
-// replace newlines with spaces on paste into single-line text boxes
-pref("editor.singleLine.pasteNewlines", 2);
 
 // threshold where a tap becomes a drag, in 1/240" reference pixels
 // The names of the preferences are to be in sync with EventStateManager.cpp
@@ -523,8 +442,6 @@ pref("media.video-queue.send-to-compositor-size", 1);
 
 pref("media.mediadrm-widevinecdm.visible", true);
 
-// Switch block autoplay logic to v2.
-pref("media.autoplay.enabled.user-gestures-needed", true);
 // Set Fennec to block autoplay by default.
 pref("media.autoplay.default", 1); // 0=Allowed, 1=Blocked
 
@@ -630,12 +547,6 @@ pref("media.plugins.enabled", true);
 // 16 = Force hardware decoding
 pref("media.stagefright.omxcodec.flags", 0);
 
-// Coalesce touch events to prevent them from flooding the event queue
-pref("dom.event.touch.coalescing.enabled", false);
-
-pref("layout.framevisibility.numscrollportwidths", 1);
-pref("layout.framevisibility.numscrollportheights", 1);
-
 pref("layers.enable-tiles", true);
 
 // Enable the dynamic toolbar
@@ -732,8 +643,6 @@ pref("layout.accessiblecaret.hapticfeedback", true);
 // a smarter phone-number selection for direct-dial ActionBar action.
 pref("layout.accessiblecaret.extend_selection_for_phone_number", true);
 
-pref("browser.tabs.showAudioPlayingIcon", true);
-
 pref("dom.serviceWorkers.enabled", true);
 
 // Allow service workers to open windows for a longer period after a notification
@@ -743,23 +652,7 @@ pref("dom.serviceWorkers.disable_open_click_delay", 5000);
 pref("dom.push.debug", false);
 pref("dom.push.maxRecentMessageIDsPerSubscription", 0);
 
-// The remote content URL where FxAccountsWebChannel messages originate.  Must use HTTPS.
-pref("identity.fxaccounts.remote.webchannel.uri", "https://accounts.firefox.com");
-
-// The remote URL of the Firefox Account profile server.
-pref("identity.fxaccounts.remote.profile.uri", "https://profile.accounts.firefox.com/v1");
-
-// The remote URL of the Firefox Account oauth server.
-pref("identity.fxaccounts.remote.oauth.uri", "https://oauth.accounts.firefox.com/v1");
-
-// Token server used by Firefox Account-authenticated Sync.
-pref("identity.sync.tokenserver.uri", "https://token.services.mozilla.com/1.0/sync/1.5");
-
 pref("dom.audiochannel.mediaControl", true);
-
-// Space separated list of URLS that are allowed to send objects (instead of
-// only strings) through webchannels. This list is duplicated in browser/app/profile/firefox.js
-pref("webchannel.allowObject.urlWhitelist", "https://accounts.firefox.com https://content.cdn.mozilla.net https://support.mozilla.org https://install.mozilla.org");
 
 pref("media.openUnsupportedTypeWithExternalApp", true);
 
@@ -772,7 +665,6 @@ pref("extensions.systemAddon.update.enabled", true);
 
 // E10s stuff. We don't support 'file' or 'priveleged' process types.
 pref("browser.tabs.remote.separateFileUriProcess", false);
-pref("browser.tabs.remote.allowLinkedWebInFileUriProcess", true);
 pref("browser.tabs.remote.separatePrivilegedContentProcess", false);
 pref("browser.tabs.remote.enforceRemoteTypeRestrictions", false);
 

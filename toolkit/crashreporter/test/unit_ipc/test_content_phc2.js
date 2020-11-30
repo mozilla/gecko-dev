@@ -9,9 +9,9 @@ add_task(async function run_test() {
     return;
   }
 
-  // For some unknown reason, having two do_content_crash() calls in a single
-  // test doesn't work. That explains why this test exists separately from
-  // test_content_phc.js.
+  // For some unknown reason, having multiple do_content_crash() calls in a
+  // single test doesn't work. That explains why this test exists separately
+  // from test_content_phc.js.
   await do_content_crash(
     function() {
       crashType = CrashTestUtils.CRASH_PHC_DOUBLE_FREE;

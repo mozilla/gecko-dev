@@ -2,10 +2,10 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<html:template id="template-identity-popup">
 <panel id="identity-popup"
        class="panel-no-padding"
        type="arrow"
-       hidden="true"
        role="alertdialog"
        noautofocus="true"
        aria-labelledby="identity-popup-mainView-panel-header-span"
@@ -29,13 +29,17 @@
         <vbox class="identity-popup-security-content" flex="1">
 
           <vbox class="identity-popup-security-connection">
-            <description class="identity-popup-connection-not-secure"
-                         when-connection="not-secure secure-cert-user-overridden secure-custom-root cert-error-page" data-l10n-id="identity-connection-not-secure"></description>
-            <description class="identity-popup-connection-secure"
-                         when-connection="secure secure-ev" data-l10n-id="identity-connection-secure"></description>
-            <description when-connection="chrome" data-l10n-id="identity-connection-internal"></description>
-            <description when-connection="file" data-l10n-id="identity-connection-file"></description>
-            <description when-connection="extension" data-l10n-id="identity-extension-page"></description>
+            <hbox flex="1">
+              <description class="identity-popup-connection-not-secure"
+                          when-connection="not-secure secure-cert-user-overridden secure-custom-root cert-error-page https-only-error-page" data-l10n-id="identity-connection-not-secure"></description>
+              <description class="identity-popup-connection-secure"
+                          when-connection="secure secure-ev" data-l10n-id="identity-connection-secure"></description>
+              <description when-connection="chrome" data-l10n-id="identity-connection-internal"></description>
+              <description when-connection="file" data-l10n-id="identity-connection-file"></description>
+              <description when-connection="extension" data-l10n-id="identity-extension-page"></description>
+              <description class="identity-popup-connection-secure upgraded" when-httpsonlystatus="upgraded failed-sub"
+                data-l10n-id="identity-https-only-connection-upgraded"></description>
+            </hbox>
           </vbox>
 
           <vbox id="identity-popup-security-description">
@@ -52,19 +56,41 @@
                          when-mixedcontent="active-loaded" data-l10n-id="identity-active-loaded"></description>
             <description class="identity-popup-warning-box identity-popup-warning-yellow"
                          when-ciphers="weak" data-l10n-id="identity-weak-encryption"></description>
-            <description class="identity-popup-warning-box identity-popup-warning-yellow"
-                         when-loginforms="insecure" data-l10n-id="identity-insecure-login-forms"></description>
           </vbox>
+
+          <vbox id="identity-popup-security-httpsonlymode" when-httpsonlystatus="exception upgraded failed-top failed-sub">
+            <label flex="1" data-l10n-id="identity-https-only-label"></label>
+            <div>
+              <menulist id="identity-popup-security-httpsonlymode-menulist"
+                oncommand="gIdentityHandler.changeHttpsOnlyPermission();" sizetopopup="none">
+                <menupopup>
+                  <menuitem value="0" data-l10n-id="identity-https-only-dropdown-on" />
+                  <menuitem value="1" data-l10n-id="identity-https-only-dropdown-off" />
+                  <menuitem value="2" id="identity-popup-security-menulist-tempitem"
+                    data-l10n-id="identity-https-only-dropdown-off-temporarily" />
+                </menupopup>
+              </menulist>
+            </div>
+            <vbox id="identity-popup-security-httpsonlymode-info">
+              <description when-httpsonlystatus="exception" flex="1" data-l10n-id="identity-https-only-info-turn-on2">
+              </description>
+              <description when-httpsonlystatus="failed-sub" flex="1" data-l10n-id="identity-https-only-info-turn-off2">
+              </description>
+              <description when-httpsonlystatus="failed-top" flex="1" data-l10n-id="identity-https-only-info-no-upgrade">
+              </description>
+            </vbox>
+          </vbox>
+
         </vbox>
         <button id="identity-popup-security-expander"
                 class="identity-popup-expander"
-                when-connection="not-secure secure secure-ev secure-cert-user-overridden cert-error-page"
+                when-connection="not-secure secure secure-ev secure-cert-user-overridden cert-error-page https-only-error-page"
                 oncommand="gIdentityHandler.showSecuritySubView();"/>
       </hbox>
 
       <!-- Permissions Section -->
       <hbox class="identity-popup-section"
-            when-connection="not-secure secure secure-ev secure-cert-user-overridden file extension cert-error-page">
+            when-connection="not-secure secure secure-ev secure-cert-user-overridden file extension cert-error-page https-only-error-page">
         <vbox id="identity-popup-permissions-content" flex="1" role="group"
               aria-labelledby="identity-popup-permissions-headline">
           <hbox id="identity-popup-permissions-header" align="center">
@@ -95,7 +121,7 @@
       <vbox class="identity-popup-security-content">
         <vbox class="identity-popup-security-connection">
           <description class="identity-popup-connection-not-secure"
-                       when-connection="not-secure secure-cert-user-overridden cert-error-page" data-l10n-id="identity-connection-not-secure-security-view"></description>
+                       when-connection="not-secure secure-cert-user-overridden cert-error-page https-only-error-page" data-l10n-id="identity-connection-not-secure-security-view"></description>
           <description class="identity-popup-connection-secure"
                        when-connection="secure secure-ev" data-l10n-id="identity-connection-verified"></description>
         </vbox>
@@ -124,12 +150,8 @@
                 oncommand="gIdentityHandler.removeCertException()"/>
 
         <!-- Connection is Not Secure -->
-        <description when-connection="not-secure cert-error-page"
-                     and-when-loginforms="secure" data-l10n-id="identity-description-insecure"></description>
-
-        <!-- Insecure login forms -->
-        <description when-loginforms="insecure" data-l10n-id="identity-description-insecure-login-forms"></description>
-        <label when-loginforms="insecure" id="identity-popup-insecure-login-forms-learn-more" is="text-link" data-l10n-id="identity-learn-more"/>
+        <description when-connection="not-secure cert-error-page https-only-error-page"
+                     data-l10n-id="identity-description-insecure"></description>
 
         <!-- Weak Cipher -->
         <description when-ciphers="weak" data-l10n-id="identity-description-weak-cipher-intro"></description>
@@ -155,17 +177,12 @@
 
         <!-- Active Mixed Content Blocking Disabled -->
         <description when-mixedcontent="active-loaded"
-                     and-when-loginforms="secure" data-l10n-id="identity-description-active-loaded"></description>
+                     data-l10n-id="identity-description-active-loaded"></description>
         <description when-mixedcontent="active-loaded"
-                     and-when-loginforms="secure" data-l10n-id="identity-description-active-loaded-insecure"></description>
+                     data-l10n-id="identity-description-active-loaded-insecure"></description>
         <label when-mixedcontent="active-loaded"
                      and-when-loginforms="secure" is="text-link" class="identity-popup-mcb-learn-more" data-l10n-id="identity-learn-more"/>
-        <!-- Show only the first message when there are insecure login forms,
-             and make sure the Learn More link is included. -->
-        <description when-mixedcontent="active-loaded"
-                     and-when-loginforms="insecure" data-l10n-id="identity-description-active-loaded"></description>
-        <label when-mixedcontent="active-loaded"
-                     and-when-loginforms="insecure" is="text-link" class="identity-popup-mcb-learn-more" data-l10n-id="identity-learn-more"/>
+
 
         <!-- Buttons to enable/disable mixed content blocking. -->
         <button when-mixedcontent="active-blocked"
@@ -188,3 +205,4 @@
     </panelview>
   </panelmultiview>
 </panel>
+</html:template>

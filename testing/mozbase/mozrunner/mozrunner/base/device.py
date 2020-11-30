@@ -4,9 +4,11 @@
 
 from __future__ import absolute_import, print_function
 
+import codecs
 import datetime
 import re
 import signal
+import six
 import sys
 import tempfile
 import time
@@ -42,7 +44,11 @@ class DeviceRunner(BaseRunner):
         if env:
             self._device_env.update(env)
 
-        process_args = {'stream': sys.stdout,
+        if six.PY2:
+            stdout = codecs.getwriter('utf-8')(sys.stdout)
+        else:
+            stdout = codecs.getwriter('utf-8')(sys.stdout.buffer)
+        process_args = {'stream': stdout,
                         'processOutputLine': self.on_output,
                         'onFinish': self.on_finish,
                         'onTimeout': self.on_timeout}
@@ -66,6 +72,7 @@ class DeviceRunner(BaseRunner):
         self.device.setup_profile(self.profile)
 
         app = self.app_ctx.remote_process
+        self.device.run_as_package = app
         args = ["-no-remote", "-profile", self.app_ctx.remote_profile]
         args.extend(self.cmdargs)
         env = self._device_env
@@ -94,7 +101,7 @@ class DeviceRunner(BaseRunner):
 
             self.app_ctx.device.pkill(self.app_ctx.remote_process, sig=sig)
             if self.wait(timeout) is None and sig is not None:
-                print("timed out waiting for '%s' process to exit, trying "
+                print("timed out waiting for '{}' process to exit, trying "
                       "without signal {}".format(
                           self.app_ctx.remote_process, sig))
 
@@ -102,7 +109,7 @@ class DeviceRunner(BaseRunner):
             # restart the process
             self.app_ctx.stop_application()
             if self.wait(timeout) is None:
-                print("timed out waiting for '%s' process to exit".format(
+                print("timed out waiting for '{}' process to exit".format(
                     self.app_ctx.remote_process))
 
     @property

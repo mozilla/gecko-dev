@@ -1,9 +1,3 @@
-# Run the font loader eagerly: this also ensures we will eagerly load localized
-# family names when looking up a requested font-family. Otherwise, tests here
-# may fail if they're running too soon after browser startup, and localized
-# names have not yet been read. (See bug 1439937.)
-defaults pref(gfx.font_loader.delay,0)
-
 == CSS21-t1502-no-inherited-font-family.xhtml CSS21-t1502-no-inherited-font-family-ref.xhtml
 
 # tests for bug 1394311 (case-insensitive lang tag processing)
@@ -135,9 +129,11 @@ random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) != italic-oblique-kinnari.h
 
 # GTK and Windows 7 don't have full emoji and symbol font, so emoji-fallback-2
 # don't work well.
-fails-if(geckoview) == emoji-fallback-1.html emoji-fallback-1-ref.html # Bug 1558513 for GV
+== emoji-fallback-1.html emoji-fallback-1-ref.html
 skip-if(gtkWidget||/^Windows\x20NT\x206\.1/.test(http.oscpu)) == emoji-fallback-2.html emoji-fallback-2-ref.html
-fails-if(geckoview) == emoji-fallback-3.html emoji-fallback-3-ref.html # Bug 1558513 for GV
+== emoji-fallback-3.html emoji-fallback-3-ref.html
+skip-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) != emoji-keycap.html emoji-keycap-notref.html
+== emoji-skintone.html emoji-skintone-ref.html
 
 # system font generic per-language tests, only works under OSX currently
 # Bug 1212731 - initial implementation caused startup regression and

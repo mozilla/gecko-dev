@@ -15,6 +15,7 @@ module.exports = (env = {}) => ({
   output: {
     path: absolute("data/content"),
     filename: "activity-stream.bundle.js",
+    library: "NewtabRenderUtils",
   },
   // TODO: switch to eval-source-map for faster builds. Requires CSP changes
   devtool: env.development ? "inline-source-map" : false,
@@ -32,6 +33,7 @@ module.exports = (env = {}) => ({
         loader: "babel-loader",
         options: {
           presets: ["@babel/preset-react"],
+          plugins: ["@babel/plugin-proposal-optional-chaining"],
         },
       },
       {

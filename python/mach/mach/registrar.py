@@ -54,7 +54,7 @@ class MachRegistrar(object):
     def _condition_failed_message(cls, name, conditions):
         msg = ['\n']
         for c in conditions:
-            part = ['  %s' % c.__name__]
+            part = ['  %s' % getattr(c, '__name__', c)]
             if c.__doc__ is not None:
                 part.append(c.__doc__)
             msg.append(' - '.join(part))
@@ -62,23 +62,15 @@ class MachRegistrar(object):
 
     @classmethod
     def _instance(_, handler, context, **kwargs):
-        cls = handler.cls
+        if context is None:
+            raise ValueError('Expected a non-None context.')
 
-        if handler.pass_context and not context:
-            raise Exception('mach command class requires context.')
+        prerun = getattr(context, 'pre_dispatch_handler', None)
+        if prerun:
+            prerun(context, handler, args=kwargs)
 
-        if context:
-            prerun = getattr(context, 'pre_dispatch_handler', None)
-            if prerun:
-                prerun(context, handler, args=kwargs)
-
-        if handler.pass_context:
-            context.handler = handler
-            instance = cls(context)
-        else:
-            instance = cls()
-
-        return instance
+        context.handler = handler
+        return handler.create_instance(context, handler.virtualenv_name)
 
     @classmethod
     def _fail_conditions(_, handler, instance):
@@ -90,7 +82,7 @@ class MachRegistrar(object):
 
         return fail_conditions
 
-    def _run_command_handler(self, handler, context=None, debug_command=False, **kwargs):
+    def _run_command_handler(self, handler, context, debug_command=False, **kwargs):
         instance = MachRegistrar._instance(handler, context, **kwargs)
         fail_conditions = MachRegistrar._fail_conditions(handler, instance)
         if fail_conditions:
@@ -113,16 +105,16 @@ class MachRegistrar(object):
         result = result or 0
         assert isinstance(result, six.integer_types)
 
-        if context and not debug_command:
+        if not debug_command:
             postrun = getattr(context, 'post_dispatch_handler', None)
             if postrun:
-                postrun(context, handler, instance, result,
+                postrun(context, handler, instance, not result,
                         start_time, end_time, self.command_depth, args=kwargs)
         self.command_depth -= 1
 
         return result
 
-    def dispatch(self, name, context=None, argv=None, subcommand=None, **kwargs):
+    def dispatch(self, name, context, argv=None, subcommand=None, **kwargs):
         """Dispatch/run a command.
 
         Commands can use this to call other commands.
@@ -149,7 +141,7 @@ class MachRegistrar(object):
                 parser.error("unrecognized arguments for {}: {}".format(
                     name, ', '.join(["'{}'".format(arg) for arg in unknown])))
 
-        return self._run_command_handler(handler, context=context, **kwargs)
+        return self._run_command_handler(handler, context, **kwargs)
 
 
 Registrar = MachRegistrar()

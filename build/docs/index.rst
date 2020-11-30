@@ -16,7 +16,6 @@ Important Concepts
    files-metadata
    Profile Guided Optimization <pgo>
    slow
-   tup
    environment-variables
    build-targets
    python
@@ -40,6 +39,7 @@ integrated development environment (IDE)
 .. toctree::
    :maxdepth: 1
 
+   ../../contributing/vscode
    androideclipse
    cppeclipse
    visualstudio
@@ -54,4 +54,3 @@ Mozilla build system.
    :maxdepth: 1
 
    mozbuild/index
-   mozbuild/dumbmake

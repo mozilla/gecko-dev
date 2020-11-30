@@ -176,6 +176,18 @@ class IMEHandler final {
   static bool CurrentKeyboardLayoutHasIME();
 #endif  // #ifdef DEBUG
 
+  /**
+   * Append InputScope values from inputmode string.
+   */
+  static void AppendInputScopeFromInputmode(const nsAString& aInputmode,
+                                            nsTArray<InputScope>& aScopes);
+
+  /**
+   * Append InputScope values from type attreibute string of input element
+   */
+  static void AppendInputScopeFromType(const nsAString& aInputType,
+                                       nsTArray<InputScope>& aScopes);
+
  private:
   static nsWindow* sFocusedWindow;
   static InputContextAction::Cause sLastContextActionCause;
@@ -210,8 +222,11 @@ class IMEHandler final {
   static bool IsTSFAvailable() { return (sIsInTSFMode && !sPluginHasFocus); }
   static bool IsIMMActive();
 
-  static void MaybeShowOnScreenKeyboard();
-  static void MaybeDismissOnScreenKeyboard(nsWindow* aWindow);
+  static void MaybeShowOnScreenKeyboard(nsWindow* aWindow,
+                                        const InputContext& aInputContext);
+  enum class Sync { Yes, No };
+  static void MaybeDismissOnScreenKeyboard(nsWindow* aWindow,
+                                           Sync aSync = Sync::No);
   static bool WStringStartsWithCaseInsensitive(const std::wstring& aHaystack,
                                                const std::wstring& aNeedle);
   static bool NeedOnScreenKeyboard();
@@ -224,13 +239,13 @@ class IMEHandler final {
    * Show the Windows on-screen keyboard. Only allowed for
    * chrome documents and Windows 8 and higher.
    */
-  static void ShowOnScreenKeyboard();
+  static void ShowOnScreenKeyboard(nsWindow* aWindow);
 
   /**
    * Dismiss the Windows on-screen keyboard. Only allowed for
    * Windows 8 and higher.
    */
-  static void DismissOnScreenKeyboard();
+  static void DismissOnScreenKeyboard(nsWindow* aWindow);
 
   /**
    * Get the HWND for the on-screen keyboard, if it's up. Only

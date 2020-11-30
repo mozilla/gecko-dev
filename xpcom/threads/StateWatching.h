@@ -114,11 +114,8 @@ class WatchTarget {
   // subscribed to, and WatchTargets aren't reference-counted. So instead we
   // just prune dead ones at appropriate times, which works just fine.
   void PruneWatchers() {
-    for (int i = mWatchers.Length() - 1; i >= 0; --i) {
-      if (mWatchers[i]->IsDestroyed()) {
-        mWatchers.RemoveElementAt(i);
-      }
-    }
+    mWatchers.RemoveElementsBy(
+        [](const auto& watcher) { return watcher->IsDestroyed(); });
   }
 
   nsTArray<RefPtr<AbstractWatcher>> mWatchers;
@@ -243,7 +240,7 @@ class WatchManager {
       mNotificationPending = true;
 
       // Queue up our notification jobs to run in a stable state.
-      mOwnerThread->TailDispatcher().AddDirectTask(
+      AbstractThread::DispatchDirectTask(
           NS_NewRunnableFunction("WatchManager::PerCallbackWatcher::Notify",
                                  [self = RefPtr<PerCallbackWatcher>(this),
                                   owner = RefPtr<OwnerType>(mOwner)]() {

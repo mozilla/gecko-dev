@@ -16,14 +16,24 @@ global.loader = {
     const module = fn();
     global[name] = module;
   },
-  lazyRequireGetter: (context, name, module, destructure) => {
-    const value = destructure ? require(module)[name] : require(module || name);
-    global[name] = value;
+  lazyRequireGetter: (context, names, module, destructure) => {
+    if (!Array.isArray(names)) {
+      names = [names];
+    }
+
+    for (const name of names) {
+      const value = destructure
+        ? require(module)[name]
+        : require(module || name);
+      global[name] = value;
+    }
   },
 };
 
-global.define = function(fn) {
-  fn(null, global, { exports: global });
-};
-
 global.requestIdleCallback = function() {};
+
+// Used for the HTMLTooltip component.
+// And set "isSystemPrincipal: false" because can't support XUL element in node.
+global.document.nodePrincipal = {
+  isSystemPrincipal: false,
+};

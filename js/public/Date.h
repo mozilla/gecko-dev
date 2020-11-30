@@ -78,14 +78,14 @@ inline ClippedTime TimeClip(double time);
  * as only the user knows what behavior is desired when clipping occurs.
  */
 class ClippedTime {
-  double t;
+  double t = mozilla::UnspecifiedNaN<double>();
 
   explicit ClippedTime(double time) : t(time) {}
   friend ClippedTime TimeClip(double time);
 
  public:
   // Create an invalid date.
-  ClippedTime() : t(mozilla::UnspecifiedNaN<double>()) {}
+  ClippedTime() = default;
 
   // Create an invalid date/time, more explicitly; prefer this to the default
   // constructor.
@@ -192,7 +192,7 @@ JS_PUBLIC_API double DayWithinYear(double time, double year);
 // The callback will be a wrapper function that accepts a single double (the
 // time to clamp and jitter.) Inside the JS Engine, other parameters that may be
 // needed are all constant, so they are handled inside the wrapper function
-using ReduceMicrosecondTimePrecisionCallback = double (*)(double);
+using ReduceMicrosecondTimePrecisionCallback = double (*)(double, JSContext*);
 
 // Set a callback into the toolkit/components/resistfingerprinting function that
 // will centralize time resolution and jitter into one place.

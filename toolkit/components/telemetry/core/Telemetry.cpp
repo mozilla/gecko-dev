@@ -42,7 +42,6 @@
 #include "mozilla/Mutex.h"
 #include "mozilla/PoisonIOInterposer.h"
 #include "mozilla/Preferences.h"
-#include "mozilla/ProcessedStack.h"
 #include "mozilla/StartupTimeline.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/Unused.h"
@@ -62,7 +61,7 @@
 #include "nsIMemoryReporter.h"
 #include "nsISeekableStream.h"
 #include "nsITelemetry.h"
-#if defined(XP_WIN) && defined(EARLY_BETA_OR_EARLIER)
+#if defined(XP_WIN)
 #  include "other/UntrustedModules.h"
 #endif
 #include "nsJSUtils.h"
@@ -81,15 +80,9 @@
 #endif
 #include "nsVersionComparator.h"
 #include "nsXPCOMCIDInternal.h"
-#include "nsXPCOMPrivate.h"
-#include "nsXULAppAPI.h"
 #include "other/CombinedStacks.h"
 #include "other/TelemetryIOInterposeObserver.h"
 #include "plstr.h"
-#if defined(MOZ_GECKO_PROFILER)
-#  include "shared-libraries.h"
-#  include "other/KeyedStackCapturer.h"
-#endif  // MOZ_GECKO_PROFILER
 #include "TelemetryCommon.h"
 #include "TelemetryEvent.h"
 #include "TelemetryHistogram.h"
@@ -109,10 +102,6 @@ using Telemetry::Common::GetCurrentProduct;
 using Telemetry::Common::StringHashSet;
 using Telemetry::Common::SupportedProduct;
 using Telemetry::Common::ToJSString;
-
-#if defined(MOZ_GECKO_PROFILER)
-using mozilla::Telemetry::KeyedStackCapturer;
-#endif
 
 // This is not a member of TelemetryImpl because we want to record I/O during
 // startup.
@@ -139,9 +128,6 @@ class TelemetryImpl final : public nsITelemetry, public nsIMemoryReporter {
   static void ShutdownTelemetry();
   static void RecordSlowStatement(const nsACString& sql,
                                   const nsACString& dbName, uint32_t delay);
-#if defined(MOZ_GECKO_PROFILER)
-  static void DoStackCapture(const nsACString& aKey);
-#endif
   struct Stat {
     uint32_t hitCount;
     uint32_t totalTime;
@@ -191,11 +177,6 @@ class TelemetryImpl final : public nsITelemetry, public nsIMemoryReporter {
   Atomic<bool, SequentiallyConsistent> mCanRecordBase;
   Atomic<bool, SequentiallyConsistent> mCanRecordExtended;
 
-#if defined(MOZ_GECKO_PROFILER)
-  // Stores data about stacks captured on demand.
-  KeyedStackCapturer mStackCapturer;
-#endif
-
   CombinedStacks
       mLateWritesStacks;  // This is collected out of the main thread.
   bool mCachedTelemetryData;
@@ -241,12 +222,6 @@ TelemetryImpl::CollectReports(nsIHandleReportCallback* aHandleReport,
                    sTelemetryIOObserver->SizeOfIncludingThis(aMallocSizeOf),
                    "Memory used by the Telemetry IO Observer");
   }
-
-#if defined(MOZ_GECKO_PROFILER)
-  COLLECT_REPORT("explicit/telemetry/StackCapturer",
-                 mStackCapturer.SizeOfExcludingThis(aMallocSizeOf),
-                 "Memory used by the Telemetry Stack capturer");
-#endif
 
   COLLECT_REPORT("explicit/telemetry/LateWritesStacks",
                  mLateWritesStacks.SizeOfExcludingThis(),
@@ -321,8 +296,7 @@ nsresult GetFailedProfileLockFile(nsIFile** aFile, nsIFile* aProfileDir) {
   nsresult rv = aProfileDir->Clone(aFile);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  (*aFile)->AppendNative(
-      NS_LITERAL_CSTRING("Telemetry.FailedProfileLocks.txt"));
+  (*aFile)->AppendNative("Telemetry.FailedProfileLocks.txt"_ns);
   return NS_OK;
 }
 
@@ -412,7 +386,7 @@ static PathCharPtr GetShutdownTimeFileName() {
     NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(mozFile));
     if (!mozFile) return nullptr;
 
-    mozFile->AppendNative(NS_LITERAL_CSTRING("Telemetry.ShutdownTime.txt"));
+    mozFile->AppendNative("Telemetry.ShutdownTime.txt"_ns);
 
     gRecordedShutdownTimeFileName = NS_xstrdup(mozFile->NativePath().get());
   }
@@ -596,7 +570,7 @@ TelemetryImpl::GetSnapshotForHistograms(const nsACString& aStoreName,
                                         bool aClearStore, bool aFilterTest,
                                         JSContext* aCx,
                                         JS::MutableHandleValue aResult) {
-  NS_NAMED_LITERAL_CSTRING(defaultStore, "main");
+  constexpr auto defaultStore = "main"_ns;
   unsigned int dataset = mCanRecordExtended
                              ? nsITelemetry::DATASET_PRERELEASE_CHANNELS
                              : nsITelemetry::DATASET_ALL_CHANNELS;
@@ -610,7 +584,7 @@ TelemetryImpl::GetSnapshotForKeyedHistograms(const nsACString& aStoreName,
                                              bool aClearStore, bool aFilterTest,
                                              JSContext* aCx,
                                              JS::MutableHandleValue aResult) {
-  NS_NAMED_LITERAL_CSTRING(defaultStore, "main");
+  constexpr auto defaultStore = "main"_ns;
   unsigned int dataset = mCanRecordExtended
                              ? nsITelemetry::DATASET_PRERELEASE_CHANNELS
                              : nsITelemetry::DATASET_ALL_CHANNELS;
@@ -620,11 +594,17 @@ TelemetryImpl::GetSnapshotForKeyedHistograms(const nsACString& aStoreName,
 }
 
 NS_IMETHODIMP
+TelemetryImpl::GetCategoricalLabels(JSContext* aCx,
+                                    JS::MutableHandleValue aResult) {
+  return TelemetryHistogram::GetCategoricalHistogramLabels(aCx, aResult);
+}
+
+NS_IMETHODIMP
 TelemetryImpl::GetSnapshotForScalars(const nsACString& aStoreName,
                                      bool aClearStore, bool aFilterTest,
                                      JSContext* aCx,
                                      JS::MutableHandleValue aResult) {
-  NS_NAMED_LITERAL_CSTRING(defaultStore, "main");
+  constexpr auto defaultStore = "main"_ns;
   unsigned int dataset = mCanRecordExtended
                              ? nsITelemetry::DATASET_PRERELEASE_CHANNELS
                              : nsITelemetry::DATASET_ALL_CHANNELS;
@@ -638,7 +618,7 @@ TelemetryImpl::GetSnapshotForKeyedScalars(const nsACString& aStoreName,
                                           bool aClearStore, bool aFilterTest,
                                           JSContext* aCx,
                                           JS::MutableHandleValue aResult) {
-  NS_NAMED_LITERAL_CSTRING(defaultStore, "main");
+  constexpr auto defaultStore = "main"_ns;
   unsigned int dataset = mCanRecordExtended
                              ? nsITelemetry::DATASET_PRERELEASE_CHANNELS
                              : nsITelemetry::DATASET_ALL_CHANNELS;
@@ -685,24 +665,10 @@ TelemetryImpl::GetMaximalNumberOfConcurrentThreads(uint32_t* ret) {
 
 NS_IMETHODIMP
 TelemetryImpl::GetUntrustedModuleLoadEvents(JSContext* cx, Promise** aPromise) {
-#if defined(XP_WIN) && defined(EARLY_BETA_OR_EARLIER)
+#if defined(XP_WIN)
   return Telemetry::GetUntrustedModuleLoadEvents(cx, aPromise);
 #else
   return NS_ERROR_NOT_IMPLEMENTED;
-#endif
-}
-
-NS_IMETHODIMP
-TelemetryImpl::SnapshotCapturedStacks(bool clear, JSContext* cx,
-                                      JS::MutableHandle<JS::Value> ret) {
-#if defined(MOZ_GECKO_PROFILER)
-  nsresult rv = mStackCapturer.ReflectCapturedStacks(cx, ret);
-  if (clear) {
-    mStackCapturer.Clear();
-  }
-  return rv;
-#else
-  return NS_OK;
 #endif
 }
 
@@ -1021,7 +987,7 @@ void TelemetryImpl::ReadLateWritesStacks(nsIFile* aProfileDir) {
     return;
   }
 
-  NS_NAMED_LITERAL_STRING(prefix, "Telemetry.LateWriteFinal-");
+  constexpr auto prefix = u"Telemetry.LateWriteFinal-"_ns;
   nsCOMPtr<nsIFile> file;
   while (NS_SUCCEEDED(files->GetNextFile(getter_AddRefs(file))) && file) {
     nsAutoString leafName;
@@ -1200,10 +1166,10 @@ already_AddRefed<nsITelemetry> TelemetryImpl::CreateTelemetryInstance() {
   {
     auto lock = sTelemetry.Lock();
     *lock = telemetry;
+    // AddRef for the local reference before releasing the lock.
+    NS_ADDREF(telemetry);
   }
 
-  // AddRef for the local reference
-  NS_ADDREF(telemetry);
   // AddRef for the caller
   nsCOMPtr<nsITelemetry> ret = telemetry;
 
@@ -1212,15 +1178,6 @@ already_AddRefed<nsITelemetry> TelemetryImpl::CreateTelemetryInstance() {
 
   telemetry->InitMemoryReporter();
   InitHistogramRecordingEnabled();  // requires sTelemetry to exist
-
-#if defined(MOZ_TELEMETRY_GECKOVIEW)
-  // We only want to add persistence for GeckoView, but both
-  // GV and Fennec are on Android. So just init persistence if this
-  // is Android but not Fennec.
-  if (GetCurrentProduct() == SupportedProduct::Geckoview) {
-    TelemetryGeckoViewPersistence::InitPersistence();
-  }
-#endif
 
   return ret.forget();
 }
@@ -1241,12 +1198,6 @@ void TelemetryImpl::ShutdownTelemetry() {
   TelemetryEvent::DeInitializeGlobalState();
   TelemetryOrigin::DeInitializeGlobalState();
   TelemetryIPCAccumulator::DeInitializeGlobalState();
-
-#if defined(MOZ_TELEMETRY_GECKOVIEW)
-  if (GetCurrentProduct() == SupportedProduct::Geckoview) {
-    TelemetryGeckoViewPersistence::DeInitPersistence();
-  }
-#endif
 }
 
 void TelemetryImpl::StoreSlowSQL(const nsACString& sql, uint32_t delay,
@@ -1510,24 +1461,6 @@ void TelemetryImpl::RecordSlowStatement(const nsACString& sql,
   StoreSlowSQL(fullSQL, delay, Unsanitized);
 }
 
-#if defined(MOZ_GECKO_PROFILER)
-
-void TelemetryImpl::DoStackCapture(const nsACString& aKey) {
-  if (Telemetry::CanRecordExtended() && XRE_IsParentProcess()) {
-    auto lock = sTelemetry.Lock();
-    auto telemetry = lock.ref();
-    telemetry->mStackCapturer.Capture(aKey);
-  }
-}
-#endif
-
-nsresult TelemetryImpl::CaptureStack(const nsACString& aKey) {
-#ifdef MOZ_GECKO_PROFILER
-  TelemetryImpl::DoStackCapture(aKey);
-#endif
-  return NS_OK;
-}
-
 bool TelemetryImpl::CanRecordBase() {
   auto lock = sTelemetry.Lock();
   auto telemetry = lock.ref();
@@ -1695,24 +1628,6 @@ TelemetryImpl::ClearEvents() {
 }
 
 NS_IMETHODIMP
-TelemetryImpl::ClearProbes() {
-#if defined(MOZ_TELEMETRY_GECKOVIEW)
-  // We only support this in GeckoView.
-  if (GetCurrentProduct() != SupportedProduct::Geckoview) {
-    MOZ_ASSERT(false, "ClearProbes is only supported on GeckoView");
-    return NS_ERROR_FAILURE;
-  }
-
-  // TODO: supporting clear for histograms will come from bug 1457127.
-  TelemetryScalar::ClearScalars();
-  TelemetryGeckoViewPersistence::ClearPersistenceData();
-  return NS_OK;
-#else
-  return NS_ERROR_FAILURE;
-#endif
-}
-
-NS_IMETHODIMP
 TelemetryImpl::SetEventRecordingEnabled(const nsACString& aCategory,
                                         bool aEnabled) {
   TelemetryEvent::SetEventRecordingEnabled(aCategory, aEnabled);
@@ -1770,6 +1685,7 @@ TelemetryImpl::FlushBatchedChildTelemetry() {
 NS_IMETHODIMP
 TelemetryImpl::EarlyInit() {
   Unused << MemoryTelemetry::Get();
+
   return NS_OK;
 }
 
@@ -2019,12 +1935,6 @@ void Init() {
   MOZ_ASSERT(telemetryService);
 }
 
-#if defined(MOZ_GECKO_PROFILER)
-void CaptureStack(const nsACString& aKey) {
-  TelemetryImpl::DoStackCapture(aKey);
-}
-#endif
-
 void WriteFailedProfileLock(nsIFile* aProfileDir) {
   nsCOMPtr<nsIFile> file;
   nsresult rv = GetFailedProfileLockFile(getter_AddRefs(file), aProfileDir);
@@ -2093,7 +2003,7 @@ void SetProfileDir(nsIFile* aProfD) {
   if (NS_FAILED(rv)) {
     return;
   }
-  sTelemetryIOObserver->AddPath(profDirPath, NS_LITERAL_STRING("{profile}"));
+  sTelemetryIOObserver->AddPath(profDirPath, u"{profile}"_ns);
 }
 
 // Scalar API C++ Endpoints
@@ -2138,9 +2048,9 @@ void ScalarSetMaximum(mozilla::Telemetry::ScalarID aId, const nsAString& aKey,
   TelemetryScalar::SetMaximum(aId, aKey, aVal);
 }
 
-void RecordEvent(mozilla::Telemetry::EventID aId,
-                 const mozilla::Maybe<nsCString>& aValue,
-                 const mozilla::Maybe<nsTArray<EventExtraEntry>>& aExtra) {
+void RecordEvent(
+    mozilla::Telemetry::EventID aId, const mozilla::Maybe<nsCString>& aValue,
+    const mozilla::Maybe<CopyableTArray<EventExtraEntry>>& aExtra) {
   TelemetryEvent::RecordEventNative(aId, aValue, aExtra);
 }
 

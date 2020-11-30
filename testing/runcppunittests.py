@@ -51,13 +51,15 @@ class CPPUnitTests(object):
                 proc = mozprocess.ProcessHandler([prog],
                                                  cwd=tempdir,
                                                  env=env,
-                                                 storeOutput=False)
+                                                 storeOutput=False,
+                                                 universal_newlines=True)
             else:
                 proc = mozprocess.ProcessHandler([prog],
                                                  cwd=tempdir,
                                                  env=env,
                                                  storeOutput=True,
-                                                 processOutputLine=lambda _: None)
+                                                 processOutputLine=lambda _: None,
+                                                 universal_newlines=True)
             # TODO: After bug 811320 is fixed, don't let .run() kill the process,
             # instead use a timeout in .wait() and then kill to get a stack.
             test_timeout = CPPUnitTests.TEST_PROC_TIMEOUT * timeout_factor
@@ -142,14 +144,14 @@ class CPPUnitTests(object):
             # Use llvm-symbolizer for ASan if available/required
             llvmsym = os.path.join(
                 self.xre_path,
-                "llvm-symbolizer" + mozinfo.info["bin_suffix"].encode('ascii'))
+                "llvm-symbolizer" + mozinfo.info["bin_suffix"])
             if os.path.isfile(llvmsym):
                 env["ASAN_SYMBOLIZER_PATH"] = llvmsym
                 self.log.info("ASan using symbolizer at %s" % llvmsym)
             else:
                 self.log.info("Failed to find ASan symbolizer at %s" % llvmsym)
 
-            # media/mtransport tests statically link in NSS, which
+            # dom/media/webrtc/transport tests statically link in NSS, which
             # causes ODR violations. See bug 1215679.
             assert 'ASAN_OPTIONS' not in env
             env['ASAN_OPTIONS'] = 'detect_leaks=0:detect_odr_violation=0'
@@ -262,10 +264,16 @@ def extract_unittests_from_args(args, environ, manifest_path):
             for test in active_tests
         ])
 
-    # skip non-existing tests
-    tests = [test for test in tests if os.path.isfile(test[0])]
+    # skip and warn for any tests in the manifest that are not found
+    final_tests = []
+    log = mozlog.get_default_logger()
+    for test in tests:
+        if os.path.isfile(test[0]):
+            final_tests.append(test)
+        else:
+            log.warning("test file not found: %s - skipped" % test[0])
 
-    return tests
+    return final_tests
 
 
 def update_mozinfo():

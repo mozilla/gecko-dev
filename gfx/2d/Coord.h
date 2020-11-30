@@ -8,11 +8,11 @@
 #define MOZILLA_GFX_COORD_H_
 
 #include "mozilla/Attributes.h"
-#include "mozilla/TypeTraits.h"  // For IsSame
 #include "Types.h"
 #include "BaseCoord.h"
 
 #include <cmath>
+#include <type_traits>
 
 namespace mozilla {
 
@@ -85,12 +85,10 @@ struct CoordOperatorsHelper<true, coord, primitive> {
   // 'scale / coord' is intentionally omitted because it doesn't make sense.
 };
 
-// Note: 'IntCoordTyped<units>' and 'CoordTyped<units>' do not derive from
-// 'units' to work around https://gcc.gnu.org/bugzilla/show_bug.cgi?id=61959.
-
 template <class units>
 struct IntCoordTyped
     : public BaseCoord<int32_t, IntCoordTyped<units> >,
+      public units,
       public CoordOperatorsHelper<true, IntCoordTyped<units>, float>,
       public CoordOperatorsHelper<true, IntCoordTyped<units>, double> {
   static_assert(IsPixel<units>::value,
@@ -104,13 +102,14 @@ struct IntCoordTyped
 
 template <class units, class F>
 struct CoordTyped : public BaseCoord<F, CoordTyped<units, F> >,
-                    public CoordOperatorsHelper<!IsSame<F, int32_t>::value,
+                    public units,
+                    public CoordOperatorsHelper<!std::is_same_v<F, int32_t>,
                                                 CoordTyped<units, F>, int32_t>,
-                    public CoordOperatorsHelper<!IsSame<F, uint32_t>::value,
+                    public CoordOperatorsHelper<!std::is_same_v<F, uint32_t>,
                                                 CoordTyped<units, F>, uint32_t>,
-                    public CoordOperatorsHelper<!IsSame<F, double>::value,
+                    public CoordOperatorsHelper<!std::is_same_v<F, double>,
                                                 CoordTyped<units, F>, double>,
-                    public CoordOperatorsHelper<!IsSame<F, float>::value,
+                    public CoordOperatorsHelper<!std::is_same_v<F, float>,
                                                 CoordTyped<units, F>, float> {
   static_assert(IsPixel<units>::value,
                 "'units' must be a coordinate system tag");

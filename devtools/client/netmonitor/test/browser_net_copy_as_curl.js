@@ -10,7 +10,7 @@
 const POST_PAYLOAD = "Plaintext value as a payload";
 
 add_task(async function() {
-  const { tab, monitor } = await initNetMonitor(CURL_URL);
+  const { tab, monitor } = await initNetMonitor(CURL_URL, { requestCount: 1 });
   info("Starting test... ");
 
   // Different quote chars are used for Windows and POSIX
@@ -72,7 +72,7 @@ function buildTestData(QUOTE) {
   const COOKIE_PARTIAL_RESULT = [header("Cookie: bob=true; tom=cool")];
 
   const POST_PARTIAL_RESULT = [
-    "--data " + quote(POST_PAYLOAD),
+    "--data-raw " + quote(POST_PAYLOAD),
     header("Content-Type: text/plain;charset=UTF-8"),
   ];
   const ORIGIN_RESULT = [header("Origin: http://example.com")];

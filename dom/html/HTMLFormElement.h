@@ -9,19 +9,19 @@
 
 #include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/Attributes.h"
-#include "nsAutoPtr.h"
+#include "mozilla/UniquePtr.h"
+#include "mozilla/dom/BrowsingContext.h"
 #include "nsCOMPtr.h"
 #include "nsIForm.h"
 #include "nsIFormControl.h"
 #include "nsGenericHTMLElement.h"
-#include "nsIWebProgressListener.h"
 #include "nsIRadioGroupContainer.h"
 #include "nsIWeakReferenceUtils.h"
 #include "nsThreadUtils.h"
 #include "nsInterfaceHashtable.h"
 #include "nsRefPtrHashtable.h"
 #include "nsDataHashtable.h"
-#include "jsfriendapi.h"  // For js::ExpandoAndGeneration
+#include "js/friend/DOMProxy.h"  // JS::ExpandoAndGeneration
 
 class nsIMutableArray;
 class nsIURI;
@@ -35,7 +35,6 @@ class HTMLImageElement;
 class FormData;
 
 class HTMLFormElement final : public nsGenericHTMLElement,
-                              public nsIWebProgressListener,
                               public nsIForm,
                               public nsIRadioGroupContainer {
   friend class HTMLFormControlsCollection;
@@ -50,9 +49,6 @@ class HTMLFormElement final : public nsGenericHTMLElement,
 
   // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
-
-  // nsIWebProgressListener
-  NS_DECL_NSIWEBPROGRESSLISTENER
 
   // nsIForm
   NS_IMETHOD_(nsIFormControl*) GetElementAt(int32_t aIndex) const override;
@@ -402,7 +398,7 @@ class HTMLFormElement final : public nsGenericHTMLElement,
       nsIContent* aForm);
 #endif
 
-  js::ExpandoAndGeneration mExpandoAndGeneration;
+  JS::ExpandoAndGeneration mExpandoAndGeneration;
 
  protected:
   virtual JSObject* WrapNode(JSContext* aCx,
@@ -460,6 +456,12 @@ class HTMLFormElement final : public nsGenericHTMLElement,
    * @param aFormSubmission the submission object
    */
   nsresult SubmitSubmission(HTMLFormSubmission* aFormSubmission);
+
+  /**
+   * Submit a form[method=dialog]
+   * @param aFormSubmission the submission object
+   */
+  nsresult SubmitDialog(DialogFormSubmission* aFormSubmission);
 
   /**
    * Notify any submit observers of the submit.
@@ -562,11 +564,17 @@ class HTMLFormElement final : public nsGenericHTMLElement,
       mValueMissingRadioGroups;
 
   /** The pending submission object */
-  nsAutoPtr<HTMLFormSubmission> mPendingSubmission;
+  UniquePtr<HTMLFormSubmission> mPendingSubmission;
   /** The request currently being submitted */
   nsCOMPtr<nsIRequest> mSubmittingRequest;
   /** The web progress object we are currently listening to */
   nsWeakPtr mWebProgress;
+
+  /** The target browsing context, if any. */
+  RefPtr<BrowsingContext> mTargetContext;
+  /** The load identifier for the pending request created for a
+   * submit, used to be able to block double submits. */
+  Maybe<uint64_t> mCurrentLoadId;
 
   /** The default submit element -- WEAK */
   nsGenericHTMLFormElement* mDefaultSubmitElement;
@@ -613,8 +621,6 @@ class HTMLFormElement final : public nsGenericHTMLElement,
   bool mGeneratingSubmit;
   /** Whether we are currently processing a reset event or not */
   bool mGeneratingReset;
-  /** Whether we are submitting currently */
-  bool mIsSubmitting;
   /** Whether the submission is to be deferred in case a script triggers it */
   bool mDeferSubmission;
   /** Whether we notified NS_FORMSUBMIT_SUBJECT listeners already */
@@ -632,6 +638,8 @@ class HTMLFormElement final : public nsGenericHTMLElement,
   bool mIsFiringSubmissionEvents;
 
  private:
+  bool IsSubmitting() const;
+
   NotNull<const Encoding*> GetSubmitEncoding();
   ~HTMLFormElement();
 };

@@ -150,6 +150,10 @@ class ActorReadyGeckoProfilerInterface {
       return null;
     }
 
+    // Pause profiler before we collect the profile, so that we don't capture
+    // more samples while the parent process or android threads wait for subprocess profiles.
+    Services.profiler.Pause();
+
     let profile;
     try {
       // Attempt to pull out the data.
@@ -235,7 +239,6 @@ class ActorReadyGeckoProfilerInterface {
 
   /**
    * Lists the supported features of the profiler for the current browser.
-   * This method was added in Firefox 72.
    * @returns {string[]}
    */
   getSupportedFeatures() {

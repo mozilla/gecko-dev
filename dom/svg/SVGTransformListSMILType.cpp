@@ -16,7 +16,7 @@ using namespace mozilla::dom::SVGTransform_Binding;
 
 namespace mozilla {
 
-typedef FallibleTArray<SVGTransformSMILData> TransformArray;
+using TransformArray = FallibleTArray<SVGTransformSMILData>;
 
 //----------------------------------------------------------------------
 // nsISMILType implementation
@@ -334,7 +334,8 @@ bool SVGTransformListSMILType::GetTransforms(
   for (uint32_t i = 0; i < smilTransforms.Length(); ++i) {
     // No need to check the return value below since we have already allocated
     // the necessary space
-    aTransforms.AppendElement(smilTransforms[i].ToSVGTransform(), fallible);
+    (void)aTransforms.AppendElement(smilTransforms[i].ToSVGTransform(),
+                                    fallible);
   }
   return true;
 }

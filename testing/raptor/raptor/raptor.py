@@ -32,7 +32,7 @@ from cmdline import parse_args, CHROMIUM_DISTROS
 from logger.logger import RaptorLogger
 from manifest import get_raptor_test_list
 from signal_handler import SignalHandler
-from utils import view_gecko_profile
+from utils import view_gecko_profile_from_raptor
 from webextension import (
     WebExtensionFirefox,
     WebExtensionDesktopChrome,
@@ -52,7 +52,6 @@ def main(args=sys.argv[1:]):
             {
                 "fission.autostart": True,
                 "dom.serviceWorkers.parent_intercept": True,
-                "browser.tabs.documentchannel": True,
             }
         )
 
@@ -60,7 +59,7 @@ def main(args=sys.argv[1:]):
         args.enable_fission = True
 
     commandline.setup_logging("raptor", args, {"tbpl": sys.stdout})
-
+    LOG.info("Python version: %s" % sys.version)
     LOG.info("raptor-start")
 
     if args.debug_mode:
@@ -75,7 +74,7 @@ def main(args=sys.argv[1:]):
 
     # ensure we have at least one valid test to run
     if len(raptor_test_list) == 0:
-        LOG.critical("this test is not targeted for {}".format(args.app))
+        LOG.critical("test '{}' could not be found for {}".format(args.test, args.app))
         sys.exit(1)
 
     LOG.info("raptor tests scheduled to run:")
@@ -96,8 +95,7 @@ def main(args=sys.argv[1:]):
             # peel off arguments that are specific to browsertime
             for key in outer_kwargs.keys():
                 if key.startswith("browsertime_"):
-                    value = outer_kwargs.pop(key)
-                    inner_kwargs[key] = value
+                    inner_kwargs[key] = outer_kwargs.get(key)
 
             if args.app == "firefox" or args.app in CHROMIUM_DISTROS:
                 klass = BrowsertimeDesktop
@@ -122,6 +120,8 @@ def main(args=sys.argv[1:]):
             power_test=args.power_test,
             cpu_test=args.cpu_test,
             memory_test=args.memory_test,
+            live_sites=args.live_sites,
+            cold=args.cold,
             is_release_build=args.is_release_build,
             debug_mode=args.debug_mode,
             post_startup_delay=args.post_startup_delay,
@@ -132,6 +132,11 @@ def main(args=sys.argv[1:]):
             extra_prefs=args.extra_prefs or {},
             device_name=args.device_name,
             no_conditioned_profile=args.no_conditioned_profile,
+            disable_perf_tuning=args.disable_perf_tuning,
+            conditioned_profile_scenario=args.conditioned_profile_scenario,
+            chimera=args.chimera,
+            project=args.project,
+            verbose=args.verbose
         )
     except Exception:
         traceback.print_exc()
@@ -151,10 +156,13 @@ def main(args=sys.argv[1:]):
             for _page in pages_that_timed_out:
                 message = [
                     ("TEST-UNEXPECTED-FAIL", "test '%s'" % _page["test_name"]),
-                    ("timed out loading test page", _page["url"]),
+                    ("timed out loading test page", "waiting for pending metrics"),
                 ]
                 if _page.get("pending_metrics") is not None:
-                    message.append(("pending metrics", _page["pending_metrics"]))
+                    LOG.warning("page cycle {} has pending metrics: {}".format(
+                        _page["page_cycle"],
+                        _page["pending_metrics"])
+                    )
 
                 LOG.critical(
                     " ".join("%s: %s" % (subject, msg) for subject, msg in message)
@@ -186,7 +194,7 @@ def main(args=sys.argv[1:]):
                 "Not launching profiler.firefox.com because DISABLE_PROFILE_LAUNCH=1"
             )
         else:
-            view_gecko_profile(args.binary)
+            view_gecko_profile_from_raptor()
 
 
 if __name__ == "__main__":

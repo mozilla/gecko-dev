@@ -12,7 +12,6 @@ if CONFIG['MOZ_HAS_REMOTE']:
     DIRS += ['remote']
 
 DIRS += [
-    'aboutcache',
     'aboutcheckerboard',
     'aboutmemory',
     'aboutperformance',
@@ -23,6 +22,7 @@ DIRS += [
     'backgroundhangmonitor',
     'bitsdownload',
     'browser',
+    'cascade_bloom_filter',
     'certviewer',
     'cleardata',
     'clearsitedata',
@@ -39,7 +39,10 @@ DIRS += [
     'filewatcher',
     'finalizationwitness',
     'find',
+    'forgetaboutsite',
     'fuzzyfox',
+    'glean',
+    'httpsonlyerror',
     'jsoncpp/src/lib_json',
     'kvstore',
     'lz4',
@@ -49,9 +52,11 @@ DIRS += [
     'osfile',
     'parentalcontrols',
     'passwordmgr',
+    'pdfjs',
     'perfmonitoring',
     'pictureinpicture',
     'places',
+    'processtools',
     'processsingleton',
     'promiseworker',
     'prompts',
@@ -87,6 +92,7 @@ if CONFIG['MOZ_BUILD_APP'] != 'mobile/android':
     DIRS += [
       'narrate',
       'reader',
+      'viaduct',
     ];
 
     if CONFIG['NS_PRINTING']:
@@ -118,8 +124,12 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'android':
     ]
 
 if CONFIG['MOZ_BUILD_APP'] == 'browser':
-    DIRS += ['normandy']
+    DIRS += ['normandy', 'messaging-system']
 
 # This is only packaged for browser since corrupt JAR and XPI files tend to be a desktop-OS problem.
 if CONFIG['MOZ_BUILD_APP'] == 'browser':
     DIRS += ['corroborator']
+
+# about:processes is experimental
+if CONFIG['NIGHTLY_BUILD']:
+    DIRS += ['aboutprocesses']

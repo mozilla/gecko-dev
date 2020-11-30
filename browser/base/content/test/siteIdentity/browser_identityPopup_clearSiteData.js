@@ -4,7 +4,7 @@
 const TEST_ORIGIN = "https://example.com";
 const TEST_SUB_ORIGIN = "https://test1.example.com";
 const REMOVE_DIALOG_URL =
-  "chrome://browser/content/preferences/siteDataRemoveSelected.xhtml";
+  "chrome://browser/content/preferences/dialogs/siteDataRemoveSelected.xhtml";
 
 // Greek IDN for 'example.test'.
 const TEST_IDN_ORIGIN =
@@ -51,8 +51,10 @@ async function testClearing(
     // Open the identity popup.
     let { gIdentityHandler } = gBrowser.ownerGlobal;
     let promisePanelOpen = BrowserTestUtils.waitForEvent(
-      gIdentityHandler._identityPopup,
-      "popupshown"
+      gBrowser.ownerGlobal,
+      "popupshown",
+      true,
+      event => event.target == gIdentityHandler._identityPopup
     );
     gIdentityHandler._identityBox.click();
     await promisePanelOpen;

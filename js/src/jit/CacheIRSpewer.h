@@ -51,11 +51,6 @@ class CacheIRSpewer {
   void valueProperty(const char* name, const Value& v);
   void opcodeProperty(const char* name, const JSOp op);
   void cacheIRSequence(CacheIRReader& reader);
-  void CacheIRArgs(JSONPrinter& j, CacheIRReader& r,
-                   CacheIROpFormat::ArgType arg);
-  template <typename... Args>
-  void CacheIRArgs(JSONPrinter& j, CacheIRReader& r,
-                   CacheIROpFormat::ArgType arg, Args... args);
   void attached(const char* name);
   void endCache();
 
@@ -79,8 +74,9 @@ class CacheIRSpewer {
 
     ~Guard() {
       if (sp_.enabled()) {
-        if (gen_.writerRef().codeLength() > 0) {
-          CacheIRReader reader(gen_.writerRef());
+        const CacheIRWriter& writer = gen_.writerRef();
+        if (!writer.failed() && writer.codeLength() > 0) {
+          CacheIRReader reader(writer);
           sp_.cacheIRSequence(reader);
         }
         if (name_ != nullptr) {
@@ -105,6 +101,9 @@ class CacheIRSpewer {
     explicit operator bool() const { return sp_.enabled(); }
   };
 };
+
+extern void SpewCacheIROps(GenericPrinter& out, const char* prefix,
+                           const CacheIRStubInfo* info);
 
 }  // namespace jit
 }  // namespace js

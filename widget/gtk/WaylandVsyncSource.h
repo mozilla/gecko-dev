@@ -9,7 +9,7 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/Monitor.h"
-#include "mozcontainer.h"
+#include "MozContainer.h"
 #include "VsyncSource.h"
 #include "base/thread.h"
 #include "nsWaylandDisplay.h"
@@ -48,15 +48,10 @@ class WaylandVsyncSource final : public gfx::VsyncSource {
 
   virtual Display& GetGlobalDisplay() override { return *mGlobalDisplay; }
 
-  struct WaylandFrameCallbackContext;
-
   class WaylandDisplay final : public mozilla::gfx::VsyncSource::Display {
-    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(WaylandDisplay);
-
    public:
     explicit WaylandDisplay(MozContainer* container);
 
-    bool Setup();
     void EnableMonitor();
     void DisableMonitor();
 
@@ -73,31 +68,16 @@ class WaylandVsyncSource final : public gfx::VsyncSource {
 
    private:
     virtual ~WaylandDisplay() = default;
-    void Loop();
+    void Refresh();
     void SetupFrameCallback();
     void ClearFrameCallback();
 
-    base::Thread mThread;
-    RefPtr<Runnable> mTask;
-    WaylandFrameCallbackContext* mCallbackContext;
-    Monitor mNotifyThreadMonitor;
     Mutex mEnabledLock;
     bool mVsyncEnabled;
     bool mMonitorEnabled;
-    bool mShutdown;
     struct wl_display* mDisplay;
+    struct wl_callback* mCallback;
     MozContainer* mContainer;
-  };
-
-  // The WaylandFrameCallbackContext is a context owned by the frame callbacks.
-  // It is created by the display, but deleted by the frame callbacks on the
-  // next callback after being disabled.
-  struct WaylandFrameCallbackContext {
-    explicit WaylandFrameCallbackContext(
-        WaylandVsyncSource::WaylandDisplay* aDisplay)
-        : mEnabled(true), mDisplay(aDisplay) {}
-    bool mEnabled;
-    WaylandVsyncSource::WaylandDisplay* mDisplay;
   };
 
  private:

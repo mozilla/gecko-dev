@@ -13,7 +13,9 @@
 #include "mozilla/Likely.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/webrender/WebRenderAPI.h"
 #include "nsCSSAnonBoxes.h"
+#include "nsCSSFrameConstructor.h"
 #include "nsCSSRendering.h"
 #include "nsDisplayList.h"
 #include "nsGkAtoms.h"
@@ -156,7 +158,7 @@ nsRect nsDisplayFieldSetBorder::GetBounds(nsDisplayListBuilder* aBuilder,
   // nsDisplayBorder has here, but keeping things in sync would be a pain, and
   // this code is not typically performance-sensitive.
   *aSnap = false;
-  return Frame()->GetVisualOverflowRectRelativeToSelf() + ToReferenceFrame();
+  return Frame()->InkOverflowRectRelativeToSelf() + ToReferenceFrame();
 }
 
 bool nsDisplayFieldSetBorder::CreateWebRenderCommands(
@@ -186,7 +188,7 @@ bool nsDisplayFieldSetBorder::CreateWebRenderCommands(
       // We need to clip out the part of the border where the legend would go
       auto appUnitsPerDevPixel = frame->PresContext()->AppUnitsPerDevPixel();
       auto layoutRect = wr::ToLayoutRect(LayoutDeviceRect::FromAppUnits(
-          frame->GetVisualOverflowRectRelativeToSelf() + offset,
+          frame->InkOverflowRectRelativeToSelf() + offset,
           appUnitsPerDevPixel));
 
       wr::ComplexClipRegion region;
@@ -196,7 +198,7 @@ bool nsDisplayFieldSetBorder::CreateWebRenderCommands(
       region.radii = wr::EmptyBorderRadius();
       nsTArray<mozilla::wr::ComplexClipRegion> array{region};
 
-      auto clip = aBuilder.DefineClip(Nothing(), layoutRect, &array, nullptr);
+      auto clip = aBuilder.DefineClip(Nothing(), layoutRect, &array);
       auto clipChain = aBuilder.DefineClipChain({clip}, true);
       clipOut.emplace(aBuilder, clipChain);
     }
@@ -221,7 +223,7 @@ void nsFieldSetFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   // REVIEW: We don't really need to check frame emptiness here; if it's empty,
   // the background/border display item won't do anything, and if it isn't
   // empty, we need to paint the outline
-  if (!(GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER) &&
+  if (!HasAnyStateBits(NS_FRAME_IS_OVERFLOW_CONTAINER) &&
       IsVisibleForPainting()) {
     DisplayOutsetBoxShadowUnconditional(aBuilder, aLists.BorderBackground());
 
@@ -308,17 +310,16 @@ image::ImgDrawResult nsFieldSetFrame::PaintBorder(
     // We set up a clip path which has our rect clockwise and the legend rect
     // counterclockwise, with FILL_WINDING as the fill rule.  That will allow us
     // to paint within our rect but outside the legend rect.  For "our rect" we
-    // use our visual overflow rect (relative to ourselves, so it's not affected
+    // use our ink overflow rect (relative to ourselves, so it's not affected
     // by transforms), because we can have borders sticking outside our border
     // box (e.g. due to border-image-outset).
     RefPtr<PathBuilder> pathBuilder =
         drawTarget->CreatePathBuilder(FillRule::FILL_WINDING);
     int32_t appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
-    AppendRectToPath(
-        pathBuilder,
-        NSRectToSnappedRect(GetVisualOverflowRectRelativeToSelf() + aPt,
-                            appUnitsPerDevPixel, *drawTarget),
-        true);
+    AppendRectToPath(pathBuilder,
+                     NSRectToSnappedRect(InkOverflowRectRelativeToSelf() + aPt,
+                                         appUnitsPerDevPixel, *drawTarget),
+                     true);
     AppendRectToPath(
         pathBuilder,
         NSRectToSnappedRect(legendRect, appUnitsPerDevPixel, *drawTarget),
@@ -340,8 +341,8 @@ image::ImgDrawResult nsFieldSetFrame::PaintBorder(
   return result;
 }
 
-nscoord nsFieldSetFrame::GetIntrinsicISize(
-    gfxContext* aRenderingContext, nsLayoutUtils::IntrinsicISizeType aType) {
+nscoord nsFieldSetFrame::GetIntrinsicISize(gfxContext* aRenderingContext,
+                                           IntrinsicISizeType aType) {
   nscoord legendWidth = 0;
   nscoord contentWidth = 0;
   if (!StyleDisplay()->IsContainSize()) {
@@ -385,7 +386,7 @@ void nsFieldSetFrame::Reflow(nsPresContext* aPresContext,
                              ReflowOutput& aDesiredSize,
                              const ReflowInput& aReflowInput,
                              nsReflowStatus& aStatus) {
-  using LegendAlignValue = HTMLLegendElement::LegendAlignValue;
+  using LegendAlignValue = mozilla::dom::HTMLLegendElement::LegendAlignValue;
 
   MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsFieldSetFrame");
@@ -424,8 +425,8 @@ void nsFieldSetFrame::Reflow(nsPresContext* aPresContext,
     reflowInner = inner != nullptr;
     reflowLegend = legend != nullptr;
   } else {
-    reflowInner = inner && NS_SUBTREE_DIRTY(inner);
-    reflowLegend = legend && NS_SUBTREE_DIRTY(legend);
+    reflowInner = inner && inner->IsSubtreeDirty();
+    reflowLegend = legend && legend->IsSubtreeDirty();
   }
 
   // @note |this| frame applies borders but not any padding.  Our anonymous
@@ -568,7 +569,7 @@ void nsFieldSetFrame::Reflow(nsPresContext* aPresContext,
     }
     ReflowInput kidReflowInput(aPresContext, aReflowInput, inner,
                                innerAvailSize, Nothing(),
-                               ReflowInput::CALLER_WILL_INIT);
+                               ReflowInput::InitFlag::CallerWillInit);
     // Override computed padding, in case it's percentage padding
     kidReflowInput.Init(aPresContext, Nothing(), nullptr,
                         &aReflowInput.ComputedPhysicalPadding());
@@ -894,9 +895,8 @@ void nsFieldSetFrame::EnsureChildContinuation(nsIFrame* aChild,
   } else {
     nsFrameList nifs;
     if (!nif) {
-      auto* pc = PresContext();
-      auto* fc = pc->PresShell()->FrameConstructor();
-      nif = fc->CreateContinuingFrame(pc, aChild, this);
+      auto* fc = PresShell()->FrameConstructor();
+      nif = fc->CreateContinuingFrame(aChild, this);
       if (aStatus.IsOverflowIncomplete()) {
         nif->AddStateBits(NS_FRAME_IS_OVERFLOW_CONTAINER);
       }
@@ -915,18 +915,16 @@ void nsFieldSetFrame::EnsureChildContinuation(nsIFrame* aChild,
       }
     }
     if (aStatus.IsOverflowIncomplete()) {
-      if (nsFrameList* eoc =
-              GetPropTableFrames(ExcessOverflowContainersProperty())) {
+      if (nsFrameList* eoc = GetExcessOverflowContainers()) {
         eoc->AppendFrames(nullptr, nifs);
       } else {
-        SetPropTableFrames(new (PresShell()) nsFrameList(nifs),
-                           ExcessOverflowContainersProperty());
+        SetExcessOverflowContainers(std::move(nifs));
       }
     } else {
       if (nsFrameList* oc = GetOverflowFrames()) {
         oc->AppendFrames(nullptr, nifs);
       } else {
-        SetOverflowFrames(nifs);
+        SetOverflowFrames(std::move(nifs));
       }
     }
   }

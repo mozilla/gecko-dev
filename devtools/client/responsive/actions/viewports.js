@@ -6,7 +6,6 @@
 
 "use strict";
 
-const Services = require("Services");
 const asyncStorage = require("devtools/shared/async-storage");
 
 const {
@@ -37,7 +36,7 @@ module.exports = {
    * Change the viewport device.
    */
   changeDevice(id, device, deviceType) {
-    return async function(dispatch) {
+    return async function({ dispatch }) {
       dispatch({
         type: CHANGE_DEVICE,
         id,
@@ -80,7 +79,7 @@ module.exports = {
    * Remove the viewport's device assocation.
    */
   removeDeviceAssociation(id) {
-    return async function(dispatch) {
+    return async function({ dispatch }) {
       post(window, "remove-device-association");
 
       dispatch({
@@ -108,21 +107,9 @@ module.exports = {
    * Rotate the viewport.
    */
   rotateViewport(id) {
-    return async function(dispatch, getState) {
-      if (Services.prefs.getBoolPref("devtools.responsive.browserUI.enabled")) {
-        const viewport = getState().viewports[0];
-
-        post(window, {
-          type: "viewport-resize",
-          height: viewport.width,
-          width: viewport.height,
-        });
-      }
-
-      dispatch({
-        type: ROTATE_VIEWPORT,
-        id,
-      });
+    return {
+      type: ROTATE_VIEWPORT,
+      id,
     };
   },
 

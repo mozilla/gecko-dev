@@ -4,7 +4,7 @@
 
 // @flow
 import React, { PureComponent } from "react";
-import { showMenu } from "devtools-contextmenu";
+import { showMenu } from "../../context-menu/menu";
 import { connect } from "../../utils/connect";
 import actions from "../../actions";
 import { features } from "../../utils/prefs";
@@ -22,8 +22,8 @@ import {
 import { getScopes } from "../../utils/pause/scopes";
 import { getScopeItemPath } from "../../utils/pause/scopes/utils";
 
-// eslint-disable-next-line import/named
-import { objectInspector } from "devtools-reps";
+// $FlowIgnore
+import { objectInspector } from "devtools/client/shared/components/reps/index";
 
 import type { ThreadContext, Why } from "../../types";
 import type { NamedValue } from "../../utils/pause/scopes/types";
@@ -146,6 +146,9 @@ class Scopes extends PureComponent<Props, State> {
 
     const addSetWatchpointLabel = L10N.getStr("watchpoints.setWatchpoint");
     const addGetWatchpointLabel = L10N.getStr("watchpoints.getWatchpoint");
+    const addGetOrSetWatchpointLabel = L10N.getStr(
+      "watchpoints.getOrSetWatchpoint"
+    );
     const watchpointsSubmenuLabel = L10N.getStr("watchpoints.submenu");
 
     const addSetWatchpointItem = {
@@ -162,12 +165,23 @@ class Scopes extends PureComponent<Props, State> {
       click: () => addWatchpoint(item, "get"),
     };
 
+    const addGetOrSetWatchpointItem = {
+      id: "node-menu-add-get-watchpoint",
+      label: addGetOrSetWatchpointLabel,
+      disabled: false,
+      click: () => addWatchpoint(item, "getorset"),
+    };
+
     const watchpointsSubmenuItem = {
       id: "node-menu-watchpoints",
       label: watchpointsSubmenuLabel,
       disabled: false,
       click: () => addWatchpoint(item, "set"),
-      submenu: [addSetWatchpointItem, addGetWatchpointItem],
+      submenu: [
+        addSetWatchpointItem,
+        addGetWatchpointItem,
+        addGetOrSetWatchpointItem,
+      ],
     };
 
     const menuItems = [watchpointsSubmenuItem];
@@ -186,12 +200,15 @@ class Scopes extends PureComponent<Props, State> {
       return null;
     }
 
-    const watchpoint = item.contents.watchpoint;
+    const { watchpoint } = item.contents;
     return (
       <button
         className={`remove-${watchpoint}-watchpoint`}
         title={L10N.getStr("watchpoints.removeWatchpointTooltip")}
-        onClick={() => removeWatchpoint(item)}
+        onClick={e => {
+          e.stopPropagation();
+          removeWatchpoint(item);
+        }}
       />
     );
   };
@@ -235,6 +252,7 @@ class Scopes extends PureComponent<Props, State> {
             setExpanded={(path, expand) => setExpandedScope(cx, path, expand)}
             initiallyExpanded={initiallyExpanded}
             renderItemActions={this.renderWatchpointButton}
+            shouldRenderTooltip={true}
           />
         </div>
       );
@@ -272,18 +290,14 @@ const mapStateToProps = state => {
   } = getOriginalFrameScope(
     state,
     cx.thread,
-    selectedSource && selectedSource.id,
-    selectedFrame && selectedFrame.id
+    selectedSource?.id,
+    selectedFrame?.id
   ) || { scope: null, pending: false };
 
   const {
     scope: generatedFrameScopes,
     pending: generatedPending,
-  } = getGeneratedFrameScope(
-    state,
-    cx.thread,
-    selectedFrame && selectedFrame.id
-  ) || {
+  } = getGeneratedFrameScope(state, cx.thread, selectedFrame?.id) || {
     scope: null,
     pending: false,
   };
@@ -300,16 +314,13 @@ const mapStateToProps = state => {
   };
 };
 
-export default connect<Props, OwnProps, _, _, _, _>(
-  mapStateToProps,
-  {
-    openLink: actions.openLink,
-    openElementInInspector: actions.openElementInInspectorCommand,
-    highlightDomElement: actions.highlightDomElement,
-    unHighlightDomElement: actions.unHighlightDomElement,
-    toggleMapScopes: actions.toggleMapScopes,
-    setExpandedScope: actions.setExpandedScope,
-    addWatchpoint: actions.addWatchpoint,
-    removeWatchpoint: actions.removeWatchpoint,
-  }
-)(Scopes);
+export default connect<Props, OwnProps, _, _, _, _>(mapStateToProps, {
+  openLink: actions.openLink,
+  openElementInInspector: actions.openElementInInspectorCommand,
+  highlightDomElement: actions.highlightDomElement,
+  unHighlightDomElement: actions.unHighlightDomElement,
+  toggleMapScopes: actions.toggleMapScopes,
+  setExpandedScope: actions.setExpandedScope,
+  addWatchpoint: actions.addWatchpoint,
+  removeWatchpoint: actions.removeWatchpoint,
+})(Scopes);

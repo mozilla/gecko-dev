@@ -12,10 +12,9 @@
 
 namespace mozilla {
 namespace dom {
-class FontListEntry;
+class SystemFontListEntry;
 };
 };  // namespace mozilla
-using mozilla::dom::FontListEntry;
 
 class FontNameCache;
 typedef struct FT_FaceRec_* FT_Face;
@@ -23,7 +22,11 @@ class nsZipArchive;
 class WillShutdownObserver;
 class FTUserFontData;
 
-class FT2FontEntry : public gfxFT2FontEntryBase {
+class FT2FontEntry final : public gfxFT2FontEntryBase {
+  friend class gfxFT2FontList;
+
+  using FontListEntry = mozilla::dom::SystemFontListEntry;
+
  public:
   explicit FT2FontEntry(const nsACString& aFaceName)
       : gfxFT2FontEntryBase(aFaceName), mFTFontIndex(0) {}
@@ -85,7 +88,8 @@ class FT2FontEntry : public gfxFT2FontEntryBase {
    * not be able to find it when the shared font list is in use.
    */
   void AppendToFaceList(nsCString& aFaceList, const nsACString& aFamilyName,
-                        const nsACString& aPSName, const nsACString& aFullName);
+                        const nsACString& aPSName, const nsACString& aFullName,
+                        FontVisibility aVisibility);
 
   void AddSizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf,
                               FontListSizes* aSizes) const override;
@@ -106,15 +110,20 @@ class FT2FontEntry : public gfxFT2FontEntryBase {
   bool mMMVarInitialized = false;
 };
 
-class FT2FontFamily : public gfxFontFamily {
+class FT2FontFamily final : public gfxFontFamily {
+  using FontListEntry = mozilla::dom::SystemFontListEntry;
+
  public:
-  explicit FT2FontFamily(const nsACString& aName) : gfxFontFamily(aName) {}
+  explicit FT2FontFamily(const nsACString& aName, FontVisibility aVisibility)
+      : gfxFontFamily(aName, aVisibility) {}
 
   // Append this family's faces to the IPC fontlist
   void AddFacesToFontList(nsTArray<FontListEntry>* aFontList);
 };
 
-class gfxFT2FontList : public gfxPlatformFontList {
+class gfxFT2FontList final : public gfxPlatformFontList {
+  using FontListEntry = mozilla::dom::SystemFontListEntry;
+
  public:
   gfxFT2FontList();
   virtual ~gfxFT2FontList();
@@ -137,14 +146,15 @@ class gfxFT2FontList : public gfxPlatformFontList {
 
   void WriteCache();
 
-  void GetSystemFontList(nsTArray<FontListEntry>* retValue);
+  void ReadSystemFontList(nsTArray<FontListEntry>* aList);
 
   static gfxFT2FontList* PlatformFontList() {
     return static_cast<gfxFT2FontList*>(
         gfxPlatformFontList::PlatformFontList());
   }
 
-  gfxFontFamily* CreateFontFamily(const nsACString& aName) const override;
+  gfxFontFamily* CreateFontFamily(const nsACString& aName,
+                                  FontVisibility aVisibility) const override;
 
   void WillShutdown();
 

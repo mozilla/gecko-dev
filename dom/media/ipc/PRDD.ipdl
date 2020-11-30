@@ -11,7 +11,7 @@ include protocol PProfiler;
 include protocol PRemoteDecoderManager;
 include protocol PVideoBridge;
 
-using mozilla::dom::NativeThreadId from "mozilla/dom/TabMessageUtils.h";
+using mozilla::dom::NativeThreadId from "mozilla/dom/NativeThreadId.h";
 using moveonly mozilla::UntrustedModulesData from "mozilla/UntrustedModulesData.h";
 using moveonly mozilla::ModulePaths from "mozilla/UntrustedModulesData.h";
 using moveonly mozilla::ModulesMapResult from "mozilla/UntrustedModulesData.h";
@@ -37,7 +37,8 @@ parent:
   async RequestMemoryReport(uint32_t generation,
                             bool anonymize,
                             bool minimizeMemoryUsage,
-                            FileDescriptor? DMDFile);
+                            FileDescriptor? DMDFile)
+      returns (uint32_t aGeneration);
 
   async PreferenceUpdate(Pref pref);
 
@@ -49,10 +50,9 @@ parent:
 
 child:
 
-  async InitCrashReporter(Shmem shmem, NativeThreadId threadId);
+  async InitCrashReporter(NativeThreadId threadId);
 
   async AddMemoryReport(MemoryReport aReport);
-  async FinishMemoryReport(uint32_t aGeneration);
 
   async GetModulesTrust(ModulePaths aModPaths, bool aRunAtNormalPriority)
       returns (ModulesMapResult? modMapResult);

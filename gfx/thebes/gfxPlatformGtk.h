@@ -22,7 +22,7 @@ class SystemFontListEntry;
 };
 };  // namespace mozilla
 
-class gfxPlatformGtk : public gfxPlatform {
+class gfxPlatformGtk final : public gfxPlatform {
  public:
   gfxPlatformGtk();
   virtual ~gfxPlatformGtk();
@@ -42,16 +42,11 @@ class gfxPlatformGtk : public gfxPlatform {
 
   nsresult UpdateFontList() override;
 
-  void GetCommonFallbackFonts(uint32_t aCh, uint32_t aNextCh, Script aRunScript,
+  void GetCommonFallbackFonts(uint32_t aCh, Script aRunScript,
+                              eFontPresentation aPresentation,
                               nsTArray<const char*>& aFontList) override;
 
   gfxPlatformFontList* CreatePlatformFontList() override;
-
-  gfxFontGroup* CreateFontGroup(const mozilla::FontFamilyList& aFontFamilyList,
-                                const gfxFontStyle* aStyle,
-                                gfxTextPerfMetrics* aTextPerf,
-                                gfxUserFontSet* aUserFontSet,
-                                gfxFloat aDevToCssSize) override;
 
   /**
    * Calls XFlush if xrender is enabled.
@@ -88,18 +83,17 @@ class gfxPlatformGtk : public gfxPlatform {
       override;
 #endif
 
-#ifdef MOZ_X11
-  Display* GetCompositorDisplay() { return mCompositorDisplay; }
-#endif  // MOZ_X11
-
 #ifdef MOZ_WAYLAND
-  bool UseWaylandDMABufTextures();
-  bool UseWaylandDMABufWebGL();
-  bool UseWaylandHardwareVideoDecoding();
+  bool UseDMABufTextures();
+  bool UseDMABufVideoTextures();
+  bool UseDMABufWebGL() override { return mUseWebGLDmabufBackend; }
+  void DisableDMABufWebGL() { mUseWebGLDmabufBackend = false; }
+  bool UseHardwareVideoDecoding();
+  bool UseDRMVAAPIDisplay();
 #endif
 
   bool IsX11Display() { return mIsX11Display; }
-  bool IsWaylandDisplay() {
+  bool IsWaylandDisplay() override {
     return !mIsX11Display && !gfxPlatform::IsHeadless();
   }
 
@@ -113,8 +107,8 @@ class gfxPlatformGtk : public gfxPlatform {
   nsTArray<uint8_t> GetPlatformCMSOutputProfileData() override;
 
   bool mIsX11Display;
-#ifdef MOZ_X11
-  Display* mCompositorDisplay;
+#ifdef MOZ_WAYLAND
+  bool mUseWebGLDmabufBackend;
 #endif
 };
 

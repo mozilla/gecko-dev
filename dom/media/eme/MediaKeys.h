@@ -50,14 +50,13 @@ typedef uint32_t PromiseId;
 // Note: its addref/release is not (and can't be) thread safe!
 class MediaKeys final : public nsIDocumentActivity,
                         public nsWrapperCache,
-                        public SupportsWeakPtr<MediaKeys>,
+                        public SupportsWeakPtr,
                         public DecoderDoctorLifeLogger<MediaKeys> {
   ~MediaKeys();
 
  public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(MediaKeys)
-  MOZ_DECLARE_WEAKREFERENCE_TYPENAME(MediaKeys)
   // We want to listen to the owning document so we can shutdown if it goes
   // inactive.
   NS_DECL_NSIDOCUMENTACTIVITY
@@ -80,7 +79,7 @@ class MediaKeys final : public nsIDocumentActivity,
 
   // JavaScript: MediaKeys.createSession()
   already_AddRefed<MediaKeySession> CreateSession(
-      JSContext* aCx, MediaKeySessionType aSessionType, ErrorResult& aRv);
+      MediaKeySessionType aSessionType, ErrorResult& aRv);
 
   // JavaScript: MediaKeys.SetServerCertificate()
   already_AddRefed<DetailedPromise> SetServerCertificate(
@@ -160,7 +159,7 @@ class MediaKeys final : public nsIDocumentActivity,
   // Instantiate CDMProxy instance.
   // It could be MediaDrmCDMProxy (Widevine on Fennec) or ChromiumCDMProxy (the
   // rest).
-  already_AddRefed<CDMProxy> CreateCDMProxy(nsISerialEventTarget* aMainThread);
+  already_AddRefed<CDMProxy> CreateCDMProxy();
 
   // Removes promise from mPromises, and returns it.
   already_AddRefed<DetailedPromise> RetrievePromise(PromiseId aId);

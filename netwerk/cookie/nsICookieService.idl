@@ -7,6 +7,7 @@
 
 interface nsIURI;
 interface nsIChannel;
+webidl Document;
 
 /**
  * @see nsICookieService::runInTransaction
@@ -90,23 +91,17 @@ interface nsICookieService : nsISupports
   // Value = 3 is considered the same as 0
 
   /*
-   * Get the complete cookie string associated with the URI.
+   * Get the complete cookie string associated with the document's principal.
+   * This method is meant to be used for `document.cookie` only. Any security
+   * check about storage-access permission and cookie behavior must be done by
+   * the caller.
    *
-   * @param aURI
-   *        The URI of the document for which cookies are being queried.
-   *        file:// URIs (i.e. with an empty host) are allowed, but any other
-   *        scheme must have a non-empty host. A trailing dot in the host
-   *        is acceptable, and will be stripped. This argument must not be null.
-   * @param aChannel
-   *        the channel used to load the document.  this parameter should not
-   *        be null, otherwise the cookies will not be returned if third-party
-   *        cookies have been disabled by the user. (the channel is used
-   *        to determine the originating URI of the document; if it is not
-   *        provided, the cookies will be assumed third-party.)
+   * @param aDocument
+   *        The document.
    *
    * @return the resulting cookie string
    */
-  ACString getCookieString(in nsIURI aURI, in nsIChannel aChannel);
+  ACString getCookieStringFromDocument(in Document aDocument);
 
   /*
    * Get the complete cookie string associated with the URI.
@@ -119,40 +114,24 @@ interface nsICookieService : nsISupports
    *        file:// URIs (i.e. with an empty host) are allowed, but any other
    *        scheme must have a non-empty host. A trailing dot in the host
    *        is acceptable, and will be stripped. This argument must not be null.
-   * @param aFirstURI
-   *        the URI that the user originally typed in or clicked on to initiate
-   *        the load of the document referenced by aURI.
    * @param aChannel
-   *        the channel used to load the document.  this parameter should not
-   *        be null, otherwise the cookies will not be returned if third-party
-   *        cookies have been disabled by the user. (the channel is used
-   *        to determine the originating URI of the document; if it is not
-   *        provided, the cookies will be assumed third-party.)
+   *        the channel used to load the document.
    *
    * @return the resulting cookie string
    */
-  ACString getCookieStringFromHttp(in nsIURI aURI, in nsIURI aFirstURI,
-                                   in nsIChannel aChannel);
+  ACString getCookieStringFromHttp(in nsIURI aURI, in nsIChannel aChannel);
 
   /*
-   * Set the cookie string associated with the URI.
+   * Set the cookie string associated with a Document. This method is meant to
+   * be used for `document.cookie` only. Any security check about
+   * storage-access permission and cookie behavior must be done by the caller.
    *
-   * @param aURI
-   *        The URI of the document for which cookies are being queried.
-   *        file:// URIs (i.e. with an empty host) are allowed, but any other
-   *        scheme must have a non-empty host. A trailing dot in the host
-   *        is acceptable, and will be stripped. This argument must not be null.
+   * @param aDocument
+   *        The document.
    * @param aCookie
    *        the cookie string to set.
-   * @param aChannel
-   *        the channel used to load the document.  this parameter should not
-   *        be null, otherwise the cookies will not be set if third-party
-   *        cookies have been disabled by the user. (the channel is used
-   *        to determine the originating URI of the document; if it is not
-   *        provided, the cookies will be assumed third-party.)
    */
-  void setCookieString(in nsIURI aURI, in ACString aCookie,
-                       in nsIChannel aChannel);
+  void setCookieStringFromDocument(in Document aDocument, in ACString aCookie);
 
   /*
    * Set the cookie string and expires associated with the URI.
@@ -165,28 +144,13 @@ interface nsICookieService : nsISupports
    *        file:// URIs (i.e. with an empty host) are allowed, but any other
    *        scheme must have a non-empty host. A trailing dot in the host
    *        is acceptable, and will be stripped. This argument must not be null.
-   * @param aFirstURI
-   *        the URI that the user originally typed in or clicked on to initiate
-   *        the load of the document referenced by aURI.
    * @param aCookie
    *        the cookie string to set.
-   * @param aServerTime
-   *        the current time reported by the server, if available. This should
-   *        be the string from the Date header in an HTTP response. If the
-   *        string is empty or null, server time is assumed to be the current
-   *        local time. If provided, it will be used to calculate the expiry
-   *        time of the cookie relative to the server's local time.
    * @param aChannel
-   *        the channel used to load the document.  this parameter should not
-   *        be null, otherwise the cookies will not be set if third-party
-   *        cookies have been disabled by the user. (the channel is used
-   *        to determine the originating URI of the document; if it is not
-   *        provided, the cookies will be assumed third-party.)
+   *        the channel used to load the document.
    */
-  void setCookieStringFromHttp(in nsIURI aURI, in nsIURI aFirstURI,
-                               in ACString aCookie, in ACString aServerTime,
+  void setCookieStringFromHttp(in nsIURI aURI, in ACString aCookie,
                                in nsIChannel aChannel);
-
 
   /*
    * Batch SQLite operations into one transaction. By default each call to

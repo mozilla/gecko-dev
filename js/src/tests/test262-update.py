@@ -21,38 +21,30 @@ from operator import itemgetter
 # Skip all tests which use features not supported in SpiderMonkey.
 UNSUPPORTED_FEATURES = set([
     "tail-call-optimization",
-    "class-fields-private",
-    "class-static-fields-private",
-    "class-methods-private",
-    "class-static-methods-private",
-    "regexp-dotall",
-    "regexp-lookbehind",
     "regexp-match-indices",
-    "regexp-named-groups",
-    "regexp-unicode-property-escapes",
-    "export-star-as-namespace-from-module",
     "Intl.DateTimeFormat-quarter",
-    "Intl.DateTimeFormat-datetimestyle",
-    "Intl.DateTimeFormat-dayPeriod",
-    "Intl.DateTimeFormat-formatRange",
-    "Intl.DisplayNames",
     "Intl.Segmenter",
-    "optional-chaining",
     "top-level-await",
+    "Atomics.waitAsync",
+    "legacy-regexp",
 ])
 FEATURE_CHECK_NEEDED = {
     "Atomics": "!this.hasOwnProperty('Atomics')",
-    "FinalizationGroup": "!this.hasOwnProperty('FinalizationGroup')",
+    "FinalizationRegistry": "!this.hasOwnProperty('FinalizationRegistry')",
     "SharedArrayBuffer": "!this.hasOwnProperty('SharedArrayBuffer')",
     "WeakRef": "!this.hasOwnProperty('WeakRef')",
 }
 RELEASE_OR_BETA = set([
-    "Intl.NumberFormat-unified",
     "Intl.DateTimeFormat-fractionalSecondDigits",
-    "Promise.any",
-    "AggregateError",
-    "String.prototype.replaceAll",
+    "Intl.DateTimeFormat-dayPeriod",
+    "Intl.DateTimeFormat-formatRange",
 ])
+SHELL_OPTIONS = {
+    "class-fields-private": "--enable-private-fields",
+    "class-static-fields-private": "--enable-private-fields",
+    "class-methods-private": "--enable-private-methods",
+    "class-static-methods-private": "--enable-private-methods",
+}
 
 
 @contextlib.contextmanager
@@ -86,7 +78,7 @@ def tryParseTestFile(test262parser, source, testName):
     Returns the result of test262parser.parseTestRecord() or None if a parser
     error occured.
 
-    See <https://github.com/tc39/test262/blob/master/INTERPRETING.md> for an
+    See <https://github.com/tc39/test262/blob/main/INTERPRETING.md> for an
     overview of the returned test attributes.
     """
     try:
@@ -241,7 +233,7 @@ def convertTestFile(test262parser, testSource, testName, includeSet, strictTests
     """
 
     # The test record dictionary, its contents are explained in depth at
-    # <https://github.com/tc39/test262/blob/master/INTERPRETING.md>.
+    # <https://github.com/tc39/test262/blob/main/INTERPRETING.md>.
     testRec = tryParseTestFile(test262parser, testSource.decode("utf-8"), testName)
 
     # jsreftest meta data
@@ -265,14 +257,6 @@ def convertTestFile(test262parser, testSource, testName, includeSet, strictTests
     # before the actual test source code.
     raw = "raw" in testRec
 
-    # Async tests are marked with the "async" attribute. It is an error for a
-    # test to use the $DONE function without specifying the "async" attribute.
-    isAsync = "async" in testRec
-    assert b"$DONE" not in testSource or isAsync, "Missing async attribute in: %s" % testName
-
-    # When the "module" attribute is set, the source code is module code.
-    isModule = "module" in testRec
-
     # Negative tests have additional meta-data to specify the error type and
     # when the error is issued (runtime error or early parse error). We're
     # currently ignoring the error phase attribute.
@@ -281,10 +265,24 @@ def convertTestFile(test262parser, testSource, testName, includeSet, strictTests
     assert not isNegative or type(testRec["negative"]) == dict
     errorType = testRec["negative"]["type"] if isNegative else None
 
-    # Test262 contains tests both marked "negative" and "async". In this case
-    # "negative" is expected to overrule the "async" attribute.
-    if isNegative and isAsync:
-        isAsync = False
+    # Async tests are marked with the "async" attribute.
+    isAsync = "async" in testRec
+
+    # Test262 tests cannot be both "negative" and "async".  (In principle a
+    # negative async test is permitted when the error phase is not "parse" or
+    # the error type is not SyntaxError, but no such tests exist now.)
+    assert not (isNegative and isAsync), \
+           "Can't have both async and negative attributes: %s" % testName
+
+    # Only async tests may use the $DONE function.  However, negative parse
+    # tests may "use" the $DONE function (of course they don't actually use it!)
+    # without specifying the "async" attribute.  Otherwise, $DONE must not
+    # appear in the test.
+    assert b"$DONE" not in testSource or isAsync or isNegative, \
+           "Missing async attribute in: %s" % testName
+
+    # When the "module" attribute is set, the source code is module code.
+    isModule = "module" in testRec
 
     # CanBlockIsFalse is set when the test expects that the implementation
     # cannot block on the main thread.
@@ -319,8 +317,11 @@ def convertTestFile(test262parser, testSource, testName, includeSet, strictTests
                                       "&&getBuildConfiguration()['arm64-simulator'])",
                                       "ARM64 Simulator cannot emulate atomics"))
 
-            if "WeakRef" in testRec["features"] or "FinalizationGroup" in testRec["features"]:
-                refTestOptions.append("shell-option(--enable-weak-refs)")
+            shellOptions = {SHELL_OPTIONS[f] for f in testRec["features"] if f in SHELL_OPTIONS}
+            if shellOptions:
+                refTestSkipIf.append(("!xulRuntime.shell", "requires shell-options"))
+                refTestOptions.extend(("shell-option({})".format(opt)
+                                       for opt in shellOptions))
 
     # Includes for every test file in a directory is collected in a single
     # shell.js file per directory level. This is done to avoid adding all
@@ -337,7 +338,7 @@ def convertTestFile(test262parser, testSource, testName, includeSet, strictTests
 
     (terms, comments) = createRefTestEntry(refTestOptions, refTestSkip, refTestSkipIf, errorType,
                                            isModule, isAsync)
-    if raw or refTestOptions:
+    if raw:
         refTest = ""
         externRefTest = (terms, comments)
     else:
@@ -429,8 +430,8 @@ def process_test262(test262Dir, test262OutDir, strictTests, externManifests):
                                                                  "detachArrayBuffer.js", "nans.js"]
     explicitIncludes[os.path.join("built-ins", "TypedArrays")] = ["detachArrayBuffer.js"]
 
-    # Intl.ListFormat isn't yet enabled by default.
-    localIncludesMap[os.path.join("intl402")] = ["test262-intl-locale.js"]
+    # Intl.DisplayNames isn't yet enabled by default.
+    localIncludesMap[os.path.join("intl402")] = ["test262-intl-displaynames.js"]
 
     # Process all test directories recursively.
     for (dirPath, dirNames, fileNames) in os.walk(testDir):
@@ -461,7 +462,7 @@ def process_test262(test262Dir, test262OutDir, strictTests, externManifests):
                 continue
 
             # Files ending with "_FIXTURE.js" are fixture files:
-            # https://github.com/tc39/test262/blob/master/INTERPRETING.md#modules
+            # https://github.com/tc39/test262/blob/main/INTERPRETING.md#modules
             isFixtureFile = fileName.endswith("_FIXTURE.js")
 
             # Read the original test source and preprocess it for the jstests harness.
@@ -500,7 +501,7 @@ def fetch_local_changes(inDir, outDir, srcDir, strictTests):
     """
     import subprocess
 
-    # TOOD: fail if it's in the master branch? or require a branch name?
+    # TODO: fail if it's in the default branch? or require a branch name?
 
     # Checks for unstaged or non committed files. A clean branch provides a clean status.
     status = subprocess.check_output(
@@ -519,26 +520,26 @@ def fetch_local_changes(inDir, outDir, srcDir, strictTests):
 
     # Fetches the file names to import
     files = subprocess.check_output(
-        ("git -C %s diff master --diff-filter=ACMR --name-only" % srcDir).split(" ")
+        ("git -C %s diff main --diff-filter=ACMR --name-only" % srcDir).split(" ")
     )
 
     # Fetches the deleted files to print an output log. This can be used to
     # set up the skip list, if necessary.
     deletedFiles = subprocess.check_output(
-        ("git -C %s diff master --diff-filter=D --name-only" % srcDir).split(" ")
+        ("git -C %s diff main --diff-filter=D --name-only" % srcDir).split(" ")
     )
 
     # Fetches the modified files as well for logging to support maintenance
     # in the skip list.
     modifiedFiles = subprocess.check_output(
-        ("git -C %s diff master --diff-filter=M --name-only" % srcDir).split(" ")
+        ("git -C %s diff main --diff-filter=M --name-only" % srcDir).split(" ")
     )
 
     # Fetches the renamed files for the same reason, this avoids duplicate
     # tests if running the new local folder and the general imported Test262
     # files.
     renamedFiles = subprocess.check_output(
-        ("git -C %s diff master --diff-filter=R --summary" % srcDir).split(" ")
+        ("git -C %s diff main --diff-filter=R --summary" % srcDir).split(" ")
     )
 
     # Print some friendly output
@@ -737,7 +738,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Update the test262 test suite.")
     parser.add_argument("--url", default="git://github.com/tc39/test262.git",
                         help="URL to git repository (default: %(default)s)")
-    parser.add_argument("--branch", default="master",
+    parser.add_argument("--branch", default="main",
                         help="Git branch (default: %(default)s)")
     parser.add_argument("--revision", default="HEAD",
                         help="Git revision (default: %(default)s)")

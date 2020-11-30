@@ -349,11 +349,11 @@ nsUrlClassifierUtils::GetProvider(const nsACString& aTableName,
   nsCString* provider = nullptr;
 
   if (IsTestTable(aTableName)) {
-    aProvider = NS_LITERAL_CSTRING(TESTING_TABLE_PROVIDER_NAME);
+    aProvider = nsLiteralCString(TESTING_TABLE_PROVIDER_NAME);
   } else if (mProviderDict.Get(aTableName, &provider)) {
-    aProvider = provider ? *provider : EmptyCString();
+    aProvider = provider ? *provider : ""_ns;
   } else {
-    aProvider = EmptyCString();
+    aProvider.Truncate();
   }
   return NS_OK;
 }
@@ -362,15 +362,12 @@ NS_IMETHODIMP
 nsUrlClassifierUtils::GetTelemetryProvider(const nsACString& aTableName,
                                            nsACString& aProvider) {
   GetProvider(aTableName, aProvider);
-  // Whitelist known providers to avoid reporting on private ones.
+  // Exceptionlist known providers to avoid reporting on private ones.
   // An empty provider is treated as "other"
-  if (!NS_LITERAL_CSTRING("mozilla").Equals(aProvider) &&
-      !NS_LITERAL_CSTRING("google").Equals(aProvider) &&
-      !NS_LITERAL_CSTRING("google4").Equals(aProvider) &&
-      !NS_LITERAL_CSTRING("baidu").Equals(aProvider) &&
-      !NS_LITERAL_CSTRING("mozcn").Equals(aProvider) &&
-      !NS_LITERAL_CSTRING("yandex").Equals(aProvider) &&
-      !NS_LITERAL_CSTRING(TESTING_TABLE_PROVIDER_NAME).Equals(aProvider)) {
+  if (!"mozilla"_ns.Equals(aProvider) && !"google"_ns.Equals(aProvider) &&
+      !"google4"_ns.Equals(aProvider) && !"baidu"_ns.Equals(aProvider) &&
+      !"mozcn"_ns.Equals(aProvider) && !"yandex"_ns.Equals(aProvider) &&
+      !nsLiteralCString(TESTING_TABLE_PROVIDER_NAME).Equals(aProvider)) {
     aProvider.AssignLiteral("other");
   }
 
@@ -533,9 +530,9 @@ static nsresult GetSpecWithoutSensitiveData(nsIURI* aUri, nsACString& aSpec) {
   if (url) {
     nsCOMPtr<nsIURI> clone;
     rv = NS_MutateURI(url)
-             .SetQuery(EmptyCString())
-             .SetRef(EmptyCString())
-             .SetUserPass(EmptyCString())
+             .SetQuery(""_ns)
+             .SetRef(""_ns)
+             .SetUserPass(""_ns)
              .Finalize(clone);
     NS_ENSURE_SUCCESS(rv, rv);
     rv = clone->GetAsciiSpec(aSpec);
@@ -602,13 +599,8 @@ static nsresult AddThreatSourceFromRedirectEntry(
   nsCOMPtr<nsIPrincipal> principal;
   rv = aRedirectEntry->GetPrincipal(getter_AddRefs(principal));
   NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsIURI> uri;
-  rv = principal->GetURI(getter_AddRefs(uri));
-  NS_ENSURE_SUCCESS(rv, rv);
-
   nsCString spec;
-  rv = GetSpecWithoutSensitiveData(uri, spec);
+  rv = principal->GetExposableSpec(spec);
   NS_ENSURE_SUCCESS(rv, rv);
   auto source = aHit.add_resources();
   source->set_url(spec.get());
@@ -1052,7 +1044,7 @@ void nsUrlClassifierUtils::CanonicalNum(const nsACString& num, uint32_t bytes,
     if (_retval.IsEmpty()) {
       _retval.Assign(buf);
     } else {
-      _retval = nsDependentCString(buf) + NS_LITERAL_CSTRING(".") + _retval;
+      _retval = nsDependentCString(buf) + "."_ns + _retval;
     }
     val >>= 8;
   }
@@ -1096,15 +1088,14 @@ bool nsUrlClassifierUtils::ShouldURLEscape(const unsigned char c) const {
 // url entries in it. moztest tables don't support updates.
 // static
 bool nsUrlClassifierUtils::IsMozTestTable(const nsACString& aTableName) {
-  return StringBeginsWith(aTableName, NS_LITERAL_CSTRING("moztest-"));
+  return StringBeginsWith(aTableName, "moztest-"_ns);
 }
 
 // test- tables are used by testcases and can add custom test entries
 // through update API.
 // static
 bool nsUrlClassifierUtils::IsTestTable(const nsACString& aTableName) {
-  return IsMozTestTable(aTableName) ||
-         StringBeginsWith(aTableName, NS_LITERAL_CSTRING("test"));
+  return IsMozTestTable(aTableName) || StringBeginsWith(aTableName, "test"_ns);
 }
 
 bool nsUrlClassifierUtils::IsInSafeMode() {

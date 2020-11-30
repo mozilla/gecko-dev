@@ -12,16 +12,16 @@ body {
 .warningBackground {
   display: none;
   background: -moz-Dialog;
-  width:100%;
-  height:100%;
-  z-index:10;
-  top:0;
-  left:0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  top: 0;
+  inset-inline-start: 0;
   position:fixed;
 }
 
 .warningMessage {
-  color: -moz-FieldText;
+  color: FieldText;
   position: relative;
   min-width: 330px;
   max-width: 50em;
@@ -30,8 +30,8 @@ body {
   border-radius: 10px;
   padding: 3em;
   padding-inline-start: 30px;
-  background: -moz-Field;
-  margin-left: auto;
+  background: Field;
+  margin-inline-start: auto;
   text-align: center;
 }
 

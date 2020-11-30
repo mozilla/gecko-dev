@@ -10,7 +10,9 @@
 const { Curl, CurlUtils } = require("devtools/client/shared/curl");
 
 add_task(async function() {
-  const { tab, monitor } = await initNetMonitor(CURL_UTILS_URL);
+  const { tab, monitor } = await initNetMonitor(CURL_UTILS_URL, {
+    requestCount: 1,
+  });
   info("Starting test... ");
 
   const { store, windowRequire, connector } = monitor.panelWin;
@@ -92,7 +94,7 @@ function testIsMultipartRequest(data) {
 }
 
 function testFindHeader(data) {
-  const headers = data.headers;
+  const { headers } = data;
   const hostName = CurlUtils.findHeader(headers, "Host");
   const requestedWithLowerCased = CurlUtils.findHeader(
     headers,
@@ -114,7 +116,7 @@ function testFindHeader(data) {
 }
 
 function testMultiPartHeaders(data) {
-  const headers = data.headers;
+  const { headers } = data;
   const contentType = CurlUtils.findHeader(headers, "Content-Type");
 
   ok(
@@ -140,25 +142,25 @@ function testWriteEmptyPostDataTextParams(data) {
 function testDataArgumentOnGeneratedCommand(data) {
   const curlCommand = Curl.generateCommand(data);
   ok(
-    curlCommand.includes("--data"),
-    "Should return a curl command with --data"
+    curlCommand.includes("--data-raw"),
+    "Should return a curl command with --data-raw"
   );
 }
 
 function testDataEscapeOnGeneratedCommand(data) {
-  const paramsWin = `--data "{""param1"":""value1"",""param2"":""value2""}"`;
-  const paramsPosix = `--data '{"param1":"value1","param2":"value2"}'`;
+  const paramsWin = `--data-raw "{""param1"":""value1"",""param2"":""value2""}"`;
+  const paramsPosix = `--data-raw '{"param1":"value1","param2":"value2"}'`;
 
   let curlCommand = Curl.generateCommand(data, "WINNT");
   ok(
     curlCommand.includes(paramsWin),
-    "Should return a curl command with --data escaped for Windows systems"
+    "Should return a curl command with --data-raw escaped for Windows systems"
   );
 
   curlCommand = Curl.generateCommand(data, "Linux");
   ok(
     curlCommand.includes(paramsPosix),
-    "Should return a curl command with --data escaped for Posix systems"
+    "Should return a curl command with --data-raw escaped for Posix systems"
   );
 }
 

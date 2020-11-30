@@ -164,7 +164,7 @@ def get_firefox_download_link():
     raise Exception()
 
 
-def check_exists(archive, server=None):
+def check_exists(archive, server=None, all_types=False):
     if server is not None:
         archive = server + "/" + archive
     try:
@@ -178,7 +178,11 @@ def check_exists(archive, server=None):
         return check_exists(resp.headers["Location"])
 
     # see Bug 1574854
-    if resp.status_code == 200 and "text/html" in resp.headers["Content-Type"]:
+    if (
+        not all_types
+        and resp.status_code == 200
+        and "text/html" in resp.headers["Content-Type"]
+    ):
         logger.info("Got an html page back")
         exists = False
     else:
@@ -198,10 +202,12 @@ def download_file(url, target=None):
     if target is None:
         target = url.split("/")[-1]
 
+    logger.info("Checking for existence of: %s" % target)
     if os.path.exists(target):
         # XXX for now, reusing downloads without checking them
         # when we don't have an .etag file
         if etag is None or not os.path.exists(target + ".etag"):
+            logger.info("No existing etag downloads.")
             return target
         with open(target + ".etag") as f:
             current_etag = f.read()
@@ -211,6 +217,17 @@ def download_file(url, target=None):
             return target
         else:
             logger.info("Changed!")
+    else:
+        logger.info("Could not find an existing archive.")
+        # Add some debugging logs for the directory content
+        try:
+            archivedir = os.path.dirname(target)
+            logger.info(
+                "Content in cache directory %s: %s"
+                % (archivedir, os.listdir(archivedir))
+            )
+        except Exception:
+            logger.info("Failed to list cache directory contents")
 
     logger.info("Downloading %s" % url)
     req = requests.get(url, stream=True, timeout=DOWNLOAD_TIMEOUT)

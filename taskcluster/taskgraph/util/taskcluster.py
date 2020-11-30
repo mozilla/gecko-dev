@@ -15,6 +15,7 @@ import logging
 import taskcluster_urls as liburls
 from mozbuild.util import memoize
 from requests.packages.urllib3.util.retry import Retry
+from taskcluster import Hooks
 from taskgraph.task import Task
 from taskgraph.util import yaml
 
@@ -61,32 +62,50 @@ def get_root_url(use_proxy):
     return six.ensure_text(os.environ['TASKCLUSTER_ROOT_URL'])
 
 
-@memoize
-def get_session():
-    session = requests.Session()
-
-    retry = Retry(total=5, backoff_factor=0.1,
-                  status_forcelist=[500, 502, 503, 504])
+def requests_retry_session(
+    retries,
+    backoff_factor=0.1,
+    status_forcelist=(500, 502, 504),
+    concurrency=CONCURRENCY,
+    session=None,
+):
+    session = session or requests.Session()
+    retry = Retry(
+        total=retries,
+        read=retries,
+        connect=retries,
+        backoff_factor=backoff_factor,
+        status_forcelist=status_forcelist,
+    )
 
     # Default HTTPAdapter uses 10 connections. Mount custom adapter to increase
     # that limit. Connections are established as needed, so using a large value
     # should not negatively impact performance.
     http_adapter = requests.adapters.HTTPAdapter(
-        pool_connections=CONCURRENCY,
-        pool_maxsize=CONCURRENCY,
-        max_retries=retry)
-    session.mount('https://', http_adapter)
+        pool_connections=concurrency,
+        pool_maxsize=concurrency,
+        max_retries=retry,
+    )
     session.mount('http://', http_adapter)
+    session.mount('https://', http_adapter)
 
     return session
 
 
-def _do_request(url, force_get=False, **kwargs):
+@memoize
+def get_session():
+    return requests_retry_session(retries=5)
+
+
+def _do_request(url, method=None, **kwargs):
+    if method is None:
+        method = "post" if kwargs else "get"
+
     session = get_session()
-    if kwargs and not force_get:
-        response = session.post(url, **kwargs)
-    else:
-        response = session.get(url, stream=True, **kwargs)
+    if method == "get":
+        kwargs["stream"] = True
+    response = getattr(session, method)(url, **kwargs)
+
     if response.status_code >= 400:
         # Consume content before raise_for_status, so that the connection can be
         # reused.
@@ -161,9 +180,9 @@ def get_index_url(index_path, use_proxy=False, multiple=False):
     return index_tmpl.format('s' if multiple else '', index_path)
 
 
-def find_task_id(index_path, use_proxy=False):
+def find_task_id(index_path):
     try:
-        response = _do_request(get_index_url(index_path, use_proxy))
+        response = _do_request(get_index_url(index_path))
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 404:
             raise KeyError("index path {} not found".format(index_path))
@@ -199,6 +218,21 @@ def list_tasks(index_path, use_proxy=False):
     # fetching each task and sorting on the created date.
     results.sort(key=lambda t: parse_time(t['expires']))
     return [t['taskId'] for t in results]
+
+
+def insert_index(index_path, task_id, data=None, use_proxy=False):
+    index_url = get_index_url(index_path, use_proxy=use_proxy)
+
+    # Find task expiry.
+    expires = get_task_definition(task_id, use_proxy=use_proxy)["expires"]
+
+    response = _do_request(index_url, method="put", json={
+        "taskId": task_id,
+        "rank": 0,
+        "data": data or {},
+        "expires": expires,
+    })
+    return response
 
 
 def parse_time(timestamp):
@@ -245,6 +279,16 @@ def rerun_task(task_id):
         _do_request(get_task_url(task_id, use_proxy=True) + '/rerun', json={})
 
 
+def trigger_hook(hook_group_id, hook_id, hook_payload):
+    hooks = Hooks({'rootUrl': get_root_url(True)})
+    response = hooks.triggerHook(hook_group_id, hook_id, hook_payload)
+
+    logger.info('Task seen here: {}/tasks/{}'.format(
+        get_root_url(os.environ.get('TASKCLUSTER_PROXY_URL')),
+        response['status']['taskId'])
+    )
+
+
 def get_current_scopes():
     """Get the current scopes.  This only makes sense in a task with the Taskcluster
     proxy enabled, where it returns the actual scopes accorded to the task."""
@@ -280,17 +324,23 @@ def send_email(address, subject, content, link, use_proxy=False):
     })
 
 
-def list_task_group_incomplete_tasks(task_group_id):
-    """Generate the incomplete tasks in a task group"""
+def list_task_group_tasks(task_group_id):
+    """Generate the tasks in a task group"""
     params = {}
     while True:
         url = liburls.api(get_root_url(False), 'queue', 'v1',
                           'task-group/{}/list'.format(task_group_id))
-        resp = _do_request(url, force_get=True, params=params).json()
-        for task in [t['status'] for t in resp['tasks']]:
-            if task['state'] in ['running', 'pending', 'unscheduled']:
-                yield task['taskId']
+        resp = _do_request(url, method="get", params=params).json()
+        for task in resp['tasks']:
+            yield task
         if resp.get('continuationToken'):
             params = {'continuationToken': resp.get('continuationToken')}
         else:
             break
+
+
+def list_task_group_incomplete_task_ids(task_group_id):
+    states = ('running', 'pending', 'unscheduled')
+    for task in [t['status'] for t in list_task_group_tasks(task_group_id)]:
+        if task['state'] in states:
+            yield task['taskId']

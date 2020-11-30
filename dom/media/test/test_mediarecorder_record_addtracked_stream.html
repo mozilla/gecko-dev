@@ -4,7 +4,7 @@
   <title>Test MediaRecorder recording a constructed MediaStream</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <script src="/tests/dom/canvas/test/captureStream_common.js"></script>
-  <script src="/tests/dom/media/tests/mochitest/head.js"></script>
+  <script src="/tests/dom/media/webrtc/tests/mochitests/head.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
 <body>
@@ -12,8 +12,6 @@
 <div id="content">
 </div>
 <script>
-/* import-globals-from ../../canvas/test/captureStream_common.js */
-/* import-globals-from ../tests/mochitest/head.js */
 SimpleTest.waitForExplicitFinish();
 runTestWhenReady(async () => {
   const canvas = document.createElement("canvas");
@@ -31,6 +29,26 @@ runTestWhenReady(async () => {
   osc.connect(dest);
 
   const stream = dest.stream;
+
+  // Timeouts are experienced intermittently in Linux due to no sound in the
+  // destination. As a workaround wait for the source sound to arrive.
+  const sourceAnalyser = new AudioStreamAnalyser(audioCtx, stream);
+  const sourceAudioReady = sourceAnalyser.waitForAnalysisSuccess(array => {
+    const freq = osc.frequency.value;
+    const lowerFreq = freq / 2;
+    const upperFreq = freq + 1000;
+    const lowerAmp = array[sourceAnalyser.binIndexForFrequency(lowerFreq)];
+    const freqAmp = array[sourceAnalyser.binIndexForFrequency(freq)];
+    const upperAmp = array[sourceAnalyser.binIndexForFrequency(upperFreq)];
+    info("Analysing source audio. "
+         + lowerFreq + ": " + lowerAmp + ", "
+         + freq + ": " + freqAmp + ", "
+         + upperFreq + ": " + upperAmp);
+    return lowerAmp < 50 && freqAmp > 200 && upperAmp < 50;
+  });
+  await sourceAudioReady;
+  info("Source Audio content ok");
+
   canvas.captureStream(0).getVideoTracks().forEach(t => stream.addTrack(t));
 
   const blobs = [];

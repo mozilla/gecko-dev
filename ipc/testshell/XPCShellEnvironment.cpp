@@ -45,8 +45,6 @@
 using mozilla::AutoSafeJSContext;
 using mozilla::dom::AutoEntryScript;
 using mozilla::dom::AutoJSAPI;
-using mozilla::ipc::TestShellChild;
-using mozilla::ipc::TestShellParent;
 using mozilla::ipc::XPCShellEnvironment;
 using namespace JS;
 
@@ -289,7 +287,7 @@ void XPCShellEnvironment::ProcessFile(JSContext* cx, const char* filename,
 
     if (srcBuf.init(cx, buffer, strlen(buffer),
                     JS::SourceOwnership::Borrowed) &&
-        (script = JS::CompileDontInflate(cx, options, srcBuf))) {
+        (script = JS::Compile(cx, options, srcBuf))) {
       ok = JS_ExecuteScript(cx, script, &result);
       if (ok && !result.isUndefined()) {
         /* Suppress warnings from JS::ToString(). */
@@ -361,12 +359,7 @@ bool XPCShellEnvironment::Init() {
             "principals");
   }
 
-  RefPtr<BackstagePass> backstagePass;
-  rv = NS_NewBackstagePass(getter_AddRefs(backstagePass));
-  if (NS_FAILED(rv)) {
-    NS_ERROR("Failed to create backstage pass!");
-    return false;
-  }
+  auto backstagePass = MakeRefPtr<BackstagePass>();
 
   JS::RealmOptions options;
   options.creationOptions().setNewCompartmentInSystemZone();

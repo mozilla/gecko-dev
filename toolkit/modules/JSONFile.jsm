@@ -72,10 +72,22 @@ const FileInputStream = Components.Constructor(
   "init"
 );
 
+ChromeUtils.defineModuleGetter(
+  this,
+  "Services",
+  "resource://gre/modules/Services.jsm"
+);
+
 /**
  * Delay between a change to the data and the related save operation.
  */
 const kSaveDelayMs = 1500;
+
+/**
+ * Cleansed basenames of the filenames that telemetry can be recorded for.
+ * Keep synchronized with 'objects' from Events.yaml.
+ */
+const TELEMETRY_BASENAMES = new Set(["logins", "autofillprofiles"]);
 
 // JSONFile
 
@@ -103,6 +115,11 @@ const kSaveDelayMs = 1500;
  *                      testing.
  *        - compression: A compression algorithm to use when reading and
  *                       writing the data.
+ *        - backupTo: A string value indicating where writeAtomic should create
+ *                    a backup before writing to json files. Note that using this
+ *                    option currently ensures that we automatically restore backed
+ *                    up json files in load() and ensureDataReady() when original
+ *                    files are missing or corrupt.
  */
 function JSONFile(config) {
   this.path = config.path;
@@ -124,12 +141,18 @@ function JSONFile(config) {
     this._options.compression = config.compression;
   }
 
+  if (config.backupTo) {
+    this._options.backupTo = config.backupTo;
+  }
+
   this._finalizeAt = config.finalizeAt || AsyncShutdown.profileBeforeChange;
   this._finalizeInternalBound = this._finalizeInternal.bind(this);
   this._finalizeAt.addBlocker(
     "JSON store: writing data",
     this._finalizeInternalBound
   );
+
+  Services.telemetry.setEventRecordingEnabled("jsonfile", true);
 }
 
 JSONFile.prototype = {
@@ -209,10 +232,26 @@ JSONFile.prototype = {
 
       data = JSON.parse(gTextDecoder.decode(bytes));
     } catch (ex) {
-      // If an exception occurred because the file did not exist, we should
-      // just start with new data.  Other errors may indicate that the file is
-      // corrupt, thus we move it to a backup location before allowing it to
-      // be overwritten by an empty file.
+      // If an exception occurs because the file does not exist or it cannot be read,
+      // we do two things.
+      // 1. For consumers of JSONFile.jsm that have configured a `backupTo` path option,
+      //    we try to look for and use backed up json files first. If the backup
+      //    is also not found or if the backup is unreadable, we then start with an empty file.
+      // 2. If a consumer does not configure a `backupTo` path option, we just start
+      //    with an empty file.
+
+      // In the event that the file exists, but an exception is thrown because it cannot be read,
+      // we store it as a .corrupt file for debugging purposes.
+
+      let cleansedBasename = OS.Path.basename(this.path)
+        .replace(/\.json$/, "")
+        .replaceAll(/[^a-zA-Z0-9_.]/g, "");
+      let errorNo = ex.winLastError || ex.unixErrno;
+      this._recordTelemetry(
+        "load",
+        cleansedBasename,
+        errorNo ? errorNo.toString() : ""
+      );
       if (!(ex instanceof OS.File.Error && ex.becauseNoSuchFile)) {
         Cu.reportError(ex);
 
@@ -223,8 +262,40 @@ JSONFile.prototype = {
           });
           await openInfo.file.close();
           await OS.File.move(this.path, openInfo.path);
+          this._recordTelemetry("load", cleansedBasename, "invalid_json");
         } catch (e2) {
           Cu.reportError(e2);
+        }
+      }
+
+      if (this._options.backupTo) {
+        // Restore the original file from the backup here so fresh writes to empty
+        // json files don't happen at any time in the future compromising the backup
+        // in the process.
+        try {
+          await OS.File.copy(this._options.backupTo, this.path);
+        } catch (e) {
+          if (!(e instanceof OS.File.Error && ex.becauseNoSuchFile)) {
+            Cu.reportError(e);
+          }
+        }
+
+        try {
+          // We still read from the backup file here instead of the original file in case
+          // access to the original file is blocked, e.g. by anti-virus software on the
+          // user's computer.
+          let bytes = await OS.File.read(this._options.backupTo, this._options);
+
+          // If synchronous loading happened in the meantime, exit now.
+          if (this.dataReady) {
+            return;
+          }
+          data = JSON.parse(gTextDecoder.decode(bytes));
+          this._recordTelemetry("load", cleansedBasename, "used_backup");
+        } catch (e3) {
+          if (!(e3 instanceof OS.File.Error && ex.becauseNoSuchFile)) {
+            Cu.reportError(e3);
+          }
         }
       }
 
@@ -269,10 +340,16 @@ JSONFile.prototype = {
         inputStream.close();
       }
     } catch (ex) {
-      // If an exception occurred because the file did not exist, we should just
-      // start with new data.  Other errors may indicate that the file is
-      // corrupt, thus we move it to a backup location before allowing it to be
-      // overwritten by an empty file.
+      // If an exception occurs because the file does not exist or it cannot be read,
+      // we do two things.
+      // 1. For consumers of JSONFile.jsm that have configured a `backupTo` path option,
+      //    we try to look for and use backed up json files first. If the backup
+      //    is also not found or if the backup is unreadable, we then start with an empty file.
+      // 2. If a consumer does not configure a `backupTo` path option, we just start
+      //    with an empty file.
+
+      // In the event that the file exists, but an exception is thrown because it cannot be read,
+      // we store it as a .corrupt file for debugging purposes.
       if (
         !(
           ex instanceof Components.Exception &&
@@ -293,6 +370,53 @@ JSONFile.prototype = {
           originalFile.moveTo(backupFile.parent, backupFile.leafName);
         } catch (e2) {
           Cu.reportError(e2);
+        }
+      }
+
+      if (this._options.backupTo) {
+        // Restore the original file from the backup here so fresh writes to empty
+        // json files don't happen at any time in the future compromising the backup
+        // in the process.
+        try {
+          let basename = OS.Path.basename(this.path);
+          let backupFile = new FileUtils.File(this._options.backupTo);
+          backupFile.copyTo(null, basename);
+        } catch (e) {
+          if (
+            e.result != Cr.NS_ERROR_FILE_TARGET_DOES_NOT_EXIST &&
+            e.result != Cr.NS_ERROR_FILE_NOT_FOUND
+          ) {
+            Cu.reportError(e);
+          }
+        }
+
+        try {
+          // We still read from the backup file here instead of the original file in case
+          // access to the original file is blocked, e.g. by anti-virus software on the
+          // user's computer.
+          // This reads the file and automatically detects the UTF-8 encoding.
+          let inputStream = new FileInputStream(
+            new FileUtils.File(this._options.backupTo),
+            FileUtils.MODE_RDONLY,
+            FileUtils.PERMS_FILE,
+            0
+          );
+          try {
+            let bytes = NetUtil.readInputStream(
+              inputStream,
+              inputStream.available()
+            );
+            data = JSON.parse(gTextDecoder.decode(bytes));
+          } finally {
+            inputStream.close();
+          }
+        } catch (e3) {
+          if (
+            e3.result != Cr.NS_ERROR_FILE_TARGET_DOES_NOT_EXIST &&
+            e3.result != Cr.NS_ERROR_FILE_NOT_FOUND
+          ) {
+            Cu.reportError(e3);
+          }
         }
       }
     }
@@ -351,6 +475,15 @@ JSONFile.prototype = {
       return;
     }
     this.data = this._dataPostProcessor ? this._dataPostProcessor(data) : data;
+  },
+
+  _recordTelemetry(method, cleansedBasename, value) {
+    if (!TELEMETRY_BASENAMES.has(cleansedBasename)) {
+      // Avoid recording so we don't log an error in the console.
+      return;
+    }
+
+    Services.telemetry.recordEvent("jsonfile", method, cleansedBasename, value);
   },
 
   /**

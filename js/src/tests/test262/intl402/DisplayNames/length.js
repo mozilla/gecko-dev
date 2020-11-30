@@ -1,11 +1,10 @@
-// |reftest| skip -- Intl.DisplayNames is not supported
 // Copyright (C) 2019 Leo Balter. All rights reserved.
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
 esid: sec-Intl.DisplayNames
 description: >
-  Intl.DisplayNames.length is 0.
+  Intl.DisplayNames.length is 2.
 info: |
   ECMAScript Standard Built-in Objects:
 
@@ -25,7 +24,7 @@ features: [Intl.DisplayNames]
 ---*/
 
 verifyProperty(Intl.DisplayNames, "length", {
-  value: 0,
+  value: 2,
   enumerable: false,
   writable: false,
   configurable: true,

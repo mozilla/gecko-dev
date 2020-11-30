@@ -1,3 +1,5 @@
+"use strict";
+
 const { HttpServer } = ChromeUtils.import("resource://testing-common/httpd.js");
 var { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
@@ -19,7 +21,7 @@ var test404Path = "/test404" + suffix;
 var PrivateBrowsingLoadContext = Cu.createPrivateLoadContext();
 
 function make_channel(url, flags, usePrivateBrowsing) {
-  var securityFlags = Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL;
+  var securityFlags = Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL;
 
   var uri = Services.io.newURI(url);
   var principal = Services.scriptSecurityManager.createContentPrincipal(uri, {

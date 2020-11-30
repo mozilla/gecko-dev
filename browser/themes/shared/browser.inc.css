@@ -59,9 +59,9 @@
 /* Bookmark toolbar */
 
 #PersonalToolbar {
-  overflow: -moz-hidden-unscrollable;
+  overflow: clip;
   max-height: 4em;
-  padding: 0 6px 2px;
+  padding: 2px 6px;
 }
 
 :root[uidensity=compact] #PersonalToolbar {
@@ -101,8 +101,7 @@
 menupopup::part(drop-indicator-bar) {
   position: relative;
   /* these two margins must together compensate the indicator's height */
-  margin-top: -1px;
-  margin-bottom: -1px;
+  margin-block: -1px;
 }
 
 menupopup::part(drop-indicator) {
@@ -145,6 +144,25 @@ menupopup::part(drop-indicator) {
   list-style-image: url("chrome://browser/skin/forward.svg") !important;
 }
 
+/* Find bar */
+
+.browserContainer > findbar {
+  background-color: var(--toolbar-non-lwt-bgcolor);
+  color: var(--toolbar-non-lwt-textcolor);
+  text-shadow: none;
+}
+
+:root:not([lwtheme-image]) .browserContainer > findbar:-moz-lwtheme {
+  background-color: var(--lwt-accent-color);
+  background-image: linear-gradient(var(--toolbar-bgcolor), var(--toolbar-bgcolor));
+  border-top-color: var(--chrome-content-separator-color);
+  color: var(--toolbar-color);
+}
+
+:root:not([lwtheme-image]) .browserContainer > findbar:-moz-lwtheme:-moz-window-inactive {
+  background-color: var(--lwt-accent-color-inactive, var(--lwt-accent-color));
+}
+
 /* Private browsing and accessibility indicators */
 
 .accessibility-indicator,
@@ -154,8 +172,7 @@ menupopup::part(drop-indicator) {
   background-position: center;
   width: 24px;
   height: 24px;
-  margin-left: 7px;
-  margin-right: 7px;
+  margin-inline: 7px;
   position: relative;
   /* Need to ensure this gets positioned on top of the position:relative #navigator-toolbox
    * in case the dark/light themes give that item a background. */
@@ -166,15 +183,14 @@ menupopup::part(drop-indicator) {
   background-image: url("chrome://browser/skin/accessibility.svg");
   -moz-user-focus: normal;
   /* Clear default button styling */
-  -moz-appearance: none;
-  margin-top: unset;
-  margin-bottom: unset;
+  appearance: none;
+  margin-block: unset;
   min-width: unset;
   color: unset;
   text-shadow: unset;
 }
 
-.accessibility-indicator:-moz-any(:hover, :active, :focus, :-moz-focusring) {
+.accessibility-indicator:is(:hover, :active, :focus, :-moz-focusring) {
   background-image: url("chrome://browser/skin/accessibility-active.svg");
   outline: 0;
 }
@@ -200,8 +216,7 @@ menupopup::part(drop-indicator) {
 
 #DateTimePickerPanel[side="top"],
 #DateTimePickerPanel[side="bottom"] {
-  margin-left: 0;
-  margin-right: 0;
+  margin-inline: 0;
 }
 
 #widget-overflow .webextension-popup-browser {
@@ -254,7 +269,7 @@ menupopup::part(drop-indicator) {
   -moz-context-properties: fill, fill-opacity;
   fill: currentColor;
   fill-opacity: 0.6;
-  list-style-image: url(resource://activity-stream/data/content/assets/glyph-help-24.svg);
+  list-style-image: url(chrome://activity-stream/content/data/content/assets/glyph-help-24.svg);
 }
 
 #cfr-notification-header-image:hover {
@@ -290,8 +305,7 @@ menupopup::part(drop-indicator) {
 #contextual-feature-recommendation-notification[data-notification-bucket="CFR_MILESTONE_MESSAGE"] description {
   font-weight: 400;
   margin: unset;
-  margin-inline-end: 12px;
-  margin-inline-start: 12px;
+  margin-inline: 12px;
   transform: translateY(50%);
 }
 
@@ -301,12 +315,9 @@ menupopup::part(drop-indicator) {
 }
 
 #contextual-feature-recommendation-notification[data-notification-bucket="CFR_MILESTONE_MESSAGE"] .popup-notification-button-container {
-  float: right;
+  float: inline-end;
   background-color: transparent;
-}
-
-#contextual-feature-recommendation-notification[data-notification-bucket="CFR_MILESTONE_MESSAGE"] .popup-notification-button-container:-moz-locale-dir(rtl) {
-  float: left;
+  flex-direction: row-reverse;
 }
 
 #contextual-feature-recommendation-notification[data-notification-bucket="CFR_MILESTONE_MESSAGE"] .popup-notification-button.popup-notification-primary-button {
@@ -315,6 +326,7 @@ menupopup::part(drop-indicator) {
   border-radius: 2px;
   margin: 4px;
   padding: 3px 12px;
+  flex: 1;
 }
 
 #contextual-feature-recommendation-notification[data-notification-bucket="CFR_MILESTONE_MESSAGE"] .popup-notification-button.popup-notification-primary-button:after {
@@ -322,11 +334,10 @@ menupopup::part(drop-indicator) {
   -moz-context-properties: fill;
   fill: currentColor;
   transform: scaleX(-1) translateY(2px);
-  float: right;
+  float: inline-end;
 }
 
 #contextual-feature-recommendation-notification[data-notification-bucket="CFR_MILESTONE_MESSAGE"]:-moz-locale-dir(rtl) .popup-notification-button.popup-notification-primary-button:after {
-  float: left;
   transform: scaleX(1) translateY(2px);
 }
 
@@ -337,6 +348,31 @@ menupopup::part(drop-indicator) {
 #contextual-feature-recommendation-notification[data-notification-bucket="CFR_MILESTONE_MESSAGE"] .popup-notification-button.popup-notification-primary-button:active {
   background-color: rgba(216, 216, 216, 0.5);
 }
+
+#contextual-feature-recommendation-notification[data-notification-bucket="CFR_MILESTONE_MESSAGE"] .popup-notification-button.popup-notification-secondary-button {
+  margin: 3px;
+  border: none;
+  border-radius: 2px;
+  background-image: url(chrome://browser/skin/stop.svg);
+  background-color: transparent;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 10px;
+  -moz-context-properties: fill;
+  fill: white;
+  height: 22px;
+  width: 22px;
+  padding: 0;
+  align-self: center;
+  flex: none;
+  display: block;
+  font-size: 0;
+}
+
+#contextual-feature-recommendation-notification[data-notification-bucket="CFR_MILESTONE_MESSAGE"] .popup-notification-button.popup-notification-secondary-button:hover {
+  background-color: rgba(216, 216, 216, 0.4);
+}
+
 
 #contextual-feature-recommendation-notification[data-notification-bucket="CFR_MILESTONE_MESSAGE"] .popup-notification-header-container {
   color: white;
@@ -445,14 +481,13 @@ menupopup::part(drop-indicator) {
 #cfr-notification-footer-addon-info {
   align-items: center;
   display: flex;
-  margin-top: 10px;
-  margin-bottom: 6px;
+  margin-block: 10px 6px;
 }
 
 #cfr-notification-footer-filled-stars,
 #cfr-notification-footer-empty-stars {
   -moz-context-properties: fill, fill-opacity;
-  background-image: url(resource://activity-stream/data/content/assets/glyph-star-17.svg);
+  background-image: url(chrome://activity-stream/content/data/content/assets/glyph-star-17.svg);
   background-size: 17px;
   fill: currentColor;
   fill-opacity: 0.7;
@@ -491,7 +526,7 @@ menupopup::part(drop-indicator) {
 
 #cfr-notification-footer-pintab-animation-container:before {
   content: "";
-  background-image: url("resource://activity-stream/data/content/assets/cfr_pinnedtab_animated.png");
+  background-image: url("chrome://activity-stream/content/data/content/assets/cfr_pinnedtab_animated.png");
   background-position: top center;
   background-repeat: no-repeat;
   background-size: cover;
@@ -508,7 +543,7 @@ menupopup::part(drop-indicator) {
 
 @media (min-resolution: 2dppx) {
   #cfr-notification-footer-pintab-animation-container:before {
-    background-image: url("resource://activity-stream/data/content/assets/cfr_pinnedtab_animated@2x.png");
+    background-image: url("chrome://activity-stream/content/data/content/assets/cfr_pinnedtab_animated@2x.png");
   }
 }
 
@@ -520,7 +555,7 @@ menupopup::part(drop-indicator) {
 #cfr-notification-footer-pintab-animation-container[paused]:before,
 :root[lwt-popup-brighttext] #cfr-notification-footer-pintab-animation-container:not([animate]):before,
 :root[lwt-popup-brighttext] #cfr-notification-footer-pintab-animation-container[paused]:before {
-  background-image: url("resource://activity-stream/data/content/assets/cfr_pinnedtab_static.png");
+  background-image: url("chrome://activity-stream/content/data/content/assets/cfr_pinnedtab_static.png");
 }
 
 @media (min-resolution: 2dppx) {
@@ -528,17 +563,17 @@ menupopup::part(drop-indicator) {
   #cfr-notification-footer-pintab-animation-container[paused]:before,
   :root[lwt-popup-brighttext] #cfr-notification-footer-pintab-animation-container:not([animate]):before,
   :root[lwt-popup-brighttext] #cfr-notification-footer-pintab-animation-container[paused]:before {
-    background-image: url("resource://activity-stream/data/content/assets/cfr_pinnedtab_static@2x.png");
+    background-image: url("chrome://activity-stream/content/data/content/assets/cfr_pinnedtab_static@2x.png");
   }
 }
 
 :root[lwt-popup-brighttext] #cfr-notification-footer-pintab-animation-container:before {
-  background-image: url("resource://activity-stream/data/content/assets/cfr_pinnedtab_animated_darktheme.png");
+  background-image: url("chrome://activity-stream/content/data/content/assets/cfr_pinnedtab_animated_darktheme.png");
 }
 
 @media (min-resolution: 2dppx) {
   :root[lwt-popup-brighttext] #cfr-notification-footer-pintab-animation-container:before {
-    background-image: url("resource://activity-stream/data/content/assets/cfr_pinnedtab_animated_darktheme@2x.png");
+    background-image: url("chrome://activity-stream/content/data/content/assets/cfr_pinnedtab_animated_darktheme@2x.png");
   }
 }
 
@@ -558,7 +593,7 @@ menupopup::part(drop-indicator) {
 }
 
 #cfr-notification-footer-animation-button {
-  background-image: url("resource://activity-stream/data/content/assets/glyph-pause-12.svg");
+  background-image: url("chrome://activity-stream/content/data/content/assets/glyph-pause-12.svg");
   background-position: right center;
   background-repeat: no-repeat;
   background-size: 12px 10px;
@@ -568,7 +603,7 @@ menupopup::part(drop-indicator) {
 }
 
 #cfr-notification-footer-pintab-animation-container[paused] #cfr-notification-footer-animation-button {
-  background-image: url("resource://activity-stream/data/content/assets/glyph-play-12.svg");
+  background-image: url("chrome://activity-stream/content/data/content/assets/glyph-play-12.svg");
 }
 
 #cfr-notification-footer-animation-button:-moz-locale-dir(rtl) {
@@ -588,4 +623,68 @@ menupopup::part(drop-indicator) {
 
 #content-mask {
   background: rgba(0, 0, 0, 0.5);
+}
+
+/* nhnt11: Workaround to insert a linebreak after the DoH doorhanger's title.
+ * The title uses the inline html|b that usually contains the hostname for
+ * permission prompts to achieve bold formatting. This is always the 2nd child.
+ */
+.popup-notification-description[popupid="doh-first-time"] > html|b:first-of-type {
+  display: block;
+  margin-bottom: 4px; /* matches the margin-bottom on description elements */
+}
+
+/* Password Manager Doorhanger */
+
+.ac-dropmarker {
+  appearance: none;
+  justify-self: end;
+  margin-inline-end: 8px;
+  align-self: center;
+}
+
+.ac-dropmarker::part(icon) {
+  list-style-image: url(chrome://global/skin/icons/arrow-dropdown-12.svg);
+  -moz-context-properties: fill;
+  fill: -moz-DialogText;
+}
+
+.ac-has-end-icon {
+  /* icon width + icon end margin */
+  padding-inline-end: calc(12px + 8px);
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+/* ENABLE DEVTOOLS POPUP */
+
+#enable-devtools-popup {
+%if defined(XP_MACOSX) || defined(XP_WIN)
+  font-size: 1.18em;
+%endif
+}
+
+#sharing-tabs-warning-panel > hbox[type="window"] > vbox > label > #sharing-warning-screen-panel-header,
+#sharing-tabs-warning-panel > hbox[type="screen"] > vbox > label > #sharing-warning-window-panel-header {
+  display: none;
+}
+
+#sharing-tabs-warning-panel {
+  max-width: 400px;
+}
+
+#sharing-warning-proceed-to-tab {
+  appearance: none;
+  border-style: none;
+  margin: 0;
+  background-color: rgb(0,96,223);
+  color: rgb(255,255,255);
+  border-radius: 5px;
+  padding: 10px;
+  margin-top: 15px;
+  margin-bottom: 10px;
+}
+
+#sharing-warning-proceed-to-tab:hover {
+  background-color: rgb(0,62,170);
 }

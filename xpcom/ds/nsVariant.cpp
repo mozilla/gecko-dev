@@ -31,7 +31,7 @@ static nsresult String2Double(const char* aString, double* aResult) {
 }
 
 static nsresult AString2Double(const nsAString& aString, double* aResult) {
-  char* pChars = ToNewCString(aString);
+  char* pChars = ToNewCString(aString, mozilla::fallible);
   if (!pChars) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -78,8 +78,8 @@ nsresult nsDiscriminatedUnion::ToManageableNumber(
       // This group results in a uint32_t...
 
     case nsIDataType::VTYPE_UINT32:
-      aOutData->u.mInt32Value = u.mUint32Value;
-      aOutData->mType = nsIDataType::VTYPE_INT32;
+      aOutData->u.mUint32Value = u.mUint32Value;
+      aOutData->mType = nsIDataType::VTYPE_UINT32;
       return NS_OK;
 
       // This group results in a double...
@@ -633,7 +633,7 @@ bool nsDiscriminatedUnion::String2ID(nsID* aPid) const {
       return false;
   }
 
-  char* pChars = ToNewCString(*pString);
+  char* pChars = ToNewCString(*pString, mozilla::fallible);
   if (!pChars) {
     return false;
   }

@@ -8,6 +8,7 @@
 #define vm_Printer_h
 
 #include "mozilla/Attributes.h"
+#include "mozilla/Range.h"
 
 #include <stdarg.h>
 #include <stddef.h>
@@ -18,6 +19,12 @@
 #include "js/Utility.h"
 
 namespace js {
+
+namespace frontend {
+
+class ParserAtom;
+
+}  // namespace frontend
 
 class LifoAlloc;
 
@@ -199,12 +206,29 @@ extern const char js_EscapeMap[];
 extern JS::UniqueChars QuoteString(JSContext* cx, JSString* str,
                                    char quote = '\0');
 
+// Same as above, except quote a parser atom.
+extern JS::UniqueChars QuoteString(JSContext* cx,
+                                   const frontend::ParserAtom* ent,
+                                   char quote = '\0');
+
 // Appends the quoted string to the given Sprinter. Follows the same semantics
 // as QuoteString from above.
 extern bool QuoteString(Sprinter* sp, JSString* str, char quote = '\0');
 
+// Appends the quoted parser atom to the given Sprinter. Follows the same
+// semantics as QuoteString from above.
+bool QuoteString(Sprinter* sp, const frontend::ParserAtom* ent,
+                 char quote = '\0');
+
 // Appends the JSON quoted string to the given Sprinter.
 extern bool JSONQuoteString(Sprinter* sp, JSString* str);
+
+// Internal implementation code for QuoteString methods above.
+enum class QuoteTarget { String, JSON };
+
+template <QuoteTarget target, typename CharT>
+bool QuoteString(Sprinter* sp, const mozilla::Range<const CharT> chars,
+                 char quote = '\0');
 
 }  // namespace js
 

@@ -5,8 +5,8 @@
 %endif
 
 #sidebar-box {
-  --sidebar-background-color: -moz-Field;
-  --sidebar-text-color: -moz-FieldText;
+  --sidebar-background-color: Field;
+  --sidebar-text-color: FieldText;
   background-color: var(--sidebar-background-color);
   color: var(--sidebar-text-color);
   text-shadow: none;
@@ -22,7 +22,7 @@
 % We don't let the splitter overlap the sidebar on Linux since the sidebar's
 % scrollbar is too narrow on Linux.
 .sidebar-splitter {
-  -moz-appearance: none;
+  appearance: none;
   border: 0 solid;
   border-inline-end-width: 1px;
   border-color: var(--sidebar-border-color);
@@ -35,10 +35,8 @@
 }
 
 #sidebar-box[positionend] + .sidebar-splitter {
-  border-inline-end-width: 0;
-  border-inline-start-width: 1px;
-  margin-inline-start: 0;
-  margin-inline-end: -4px;
+  border-inline-width: 1px 0;
+  margin-inline: 0 -4px;
 }
 %endif
 
@@ -56,8 +54,7 @@
 #sidebar-title {
   margin: 0;
   padding: 0;
-  padding-inline-start: 8px;
-  padding-inline-end: 4px;
+  padding-inline: 8px 4px;
 }
 
 #sidebar-switcher-arrow {
@@ -73,7 +70,7 @@
 }
 
 #sidebar-switcher-target {
-  -moz-appearance: none;
+  appearance: none;
   color: inherit;
   margin-inline-end: 4px;
   border-radius: var(--toolbarbutton-border-radius);
@@ -81,8 +78,9 @@
   padding: 2px 4px;
 }
 
-#sidebar-switcher-target:hover {
-  background: var(--toolbarbutton-hover-background);
+#sidebar-switcher-target:-moz-focusring:not(:hover):not([open]),
+#sidebar-close:-moz-focusring:not(:hover):not([open]) {
+  outline: 1px dotted;
 }
 
 #sidebar-switcher-target:hover:active,
@@ -116,21 +114,21 @@ toolbarseparator + #sidebar-extensions-separator {
 %ifdef XP_MACOSX
 
 #sidebarMenu-popup > .subviewbutton[checked="true"] {
-  background-position: top 7px left 4px;
+  background-position: left 4px top 7px;
 }
 
 #sidebarMenu-popup > .subviewbutton[checked="true"]:-moz-locale-dir(rtl) {
-  background-position: top 7px right 4px;
+  background-position-x: right 4px;
 }
 
 %else
 
 #sidebarMenu-popup > .subviewbutton[checked="true"] {
-  background-position: center left 7px;
+  background-position: left 7px center;
 }
 
 #sidebarMenu-popup > .subviewbutton[checked="true"]:-moz-locale-dir(rtl) {
-  background-position: center right 7px;
+  background-position-x: right 7px;
 }
 
 /* Allow room for the checkbox drawn as a background image at the start of the toolbarbutton */

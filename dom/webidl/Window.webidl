@@ -22,6 +22,7 @@
 interface nsIBrowserDOMWindow;
 interface XULControllers;
 interface nsIDOMWindowUtils;
+interface nsIPrintSettings;
 
 typedef OfflineResourceList ApplicationCache;
 
@@ -118,7 +119,6 @@ typedef OfflineResourceList ApplicationCache;
                     offscreenBuffering,
                     OffscreenCanvas,
                     OffscreenCanvasRenderingContext2D,
-                    onappinstalled,
                     onbeforeinstallprompt,
                     oncancel,
                     ondeviceorientationabsolute,
@@ -257,6 +257,15 @@ typedef OfflineResourceList ApplicationCache;
   [Throws, Pref="dom.enable_window_print"]
   void print();
 
+  // Returns a window that you can use for a print preview.
+  //
+  // This may reuse an existing window if this window is already a print
+  // preview document, or if you pass a docshell explicitly.
+  [Throws, Func="nsContentUtils::IsCallerChromeOrFuzzingEnabled"]
+  WindowProxy? printPreview(optional nsIPrintSettings? settings = null,
+                            optional nsIWebProgressListener? listener = null,
+                            optional nsIDocShell? docShellToPreviewInto = null);
+
   [Throws, CrossOriginCallable, NeedsSubjectPrincipal,
    BinaryName="postMessageMoz"]
   void postMessage(any message, DOMString targetOrigin, optional sequence<object> transfer = []);
@@ -268,12 +277,6 @@ typedef OfflineResourceList ApplicationCache;
 };
 Window includes GlobalEventHandlers;
 Window includes WindowEventHandlers;
-
-// https://www.w3.org/TR/appmanifest/#onappinstalled-attribute
-partial interface Window {
-  [Pref="dom.manifest.onappinstalled"]
-  attribute EventHandler onappinstalled;
-};
 
 // http://www.whatwg.org/specs/web-apps/current-work/
 interface mixin WindowSessionStorage {
@@ -437,6 +440,9 @@ partial interface Window {
 
   [ChromeOnly] readonly attribute nsIDocShell? docShell;
 
+  [ChromeOnly, Constant, CrossOriginReadable, BinaryName="getBrowsingContext"]
+  readonly attribute BrowsingContext browsingContext;
+
   [Throws, NeedsCallerType]
   readonly attribute float mozInnerScreenX;
   [Throws, NeedsCallerType]
@@ -509,10 +515,7 @@ partial interface Window {
                                                optional DOMString options = "",
                                                any... extraArguments);
 
-  [
-#ifdef NIGHTLY_BUILD
-   ChromeOnly,
-#endif
+  [Func="nsGlobalWindowInner::ContentPropertyEnabled",
    NonEnumerable, Replaceable, Throws, NeedsCallerType]
   readonly attribute object? content;
 
@@ -545,9 +548,6 @@ partial interface Window {
   [Constant, Throws, ChromeOnly]
   readonly attribute nsIDOMWindowUtils windowUtils;
 
-  [ChromeOnly]
-  readonly attribute boolean hasOpenerForInitialContentBrowser;
-
   [Pure, ChromeOnly]
   readonly attribute WindowGlobalChild? windowGlobalChild;
 };
@@ -567,8 +567,9 @@ partial interface Window {
 
 #ifdef HAVE_SIDEBAR
 // Mozilla extension
+// Sidebar is deprecated and it will be removed in the next cycles. See bug 1640138.
 partial interface Window {
-  [Replaceable, Throws, UseCounter, Pref="dom.sidebar.enabled"]
+  [Replaceable, Throws, UseCounter]
   readonly attribute (External or WindowProxy) sidebar;
 };
 #endif
@@ -618,9 +619,9 @@ partial interface Window {
   [Func="nsGlobalWindowInner::IsPrivilegedChromeWindow"]
   void                      restore();
   [Func="nsGlobalWindowInner::IsPrivilegedChromeWindow"]
-  long                      getWorkspaceID();
+  DOMString                 getWorkspaceID();
   [Func="nsGlobalWindowInner::IsPrivilegedChromeWindow"]
-  void                      moveToWorkspace(long workspaceID);
+  void                      moveToWorkspace(DOMString workspaceID);
 
   /**
    * Notify a default button is loaded on a dialog or a wizard.

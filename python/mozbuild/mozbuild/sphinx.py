@@ -102,6 +102,13 @@ def special_reference(v, func, typ, doc):
 def format_module(m):
     lines = []
 
+    lines.extend([
+        '.. note::',
+        "   moz.build files' implementation includes a ``Path`` class.",
+    ])
+    path_docstring_minus_summary = prepare_docstring(m.Path.__doc__)[2:]
+    lines.extend(['   ' + line for line in path_docstring_minus_summary])
+
     for subcontext, cls in sorted(m.SUBCONTEXTS.items()):
         lines.extend([
             '.. _mozbuild_subcontext_%s:' % subcontext,
@@ -186,10 +193,8 @@ def setup(app):
     # We need to adjust sys.path in order for Python API docs to get generated
     # properly. We leverage the in-tree virtualenv for this.
     topsrcdir = manager.topsrcdir
-    ve = VirtualenvManager(topsrcdir,
-                           os.path.join(topsrcdir, 'dummy-objdir'),
-                           os.path.join(app.outdir, '_venv'),
-                           sys.stderr,
-                           os.path.join(topsrcdir, 'build', 'virtualenv_packages.txt'))
+    ve = VirtualenvManager(
+        topsrcdir, os.path.join(app.outdir, '_venv'), sys.stderr,
+        os.path.join(topsrcdir, 'build', 'build_virtualenv_packages.txt'))
     ve.ensure()
     ve.activate()

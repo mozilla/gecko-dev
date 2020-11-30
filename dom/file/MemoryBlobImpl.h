@@ -26,7 +26,7 @@ class MemoryBlobImpl final : public BaseBlobImpl {
   // File constructor.
   static already_AddRefed<MemoryBlobImpl> CreateWithLastModifiedNow(
       void* aMemoryBuffer, uint64_t aLength, const nsAString& aName,
-      const nsAString& aContentType);
+      const nsAString& aContentType, bool aCrossOriginIsolated);
 
   // File constructor with custom lastModified attribue value. You should
   // probably use CreateWithLastModifiedNow() instead of this one.
@@ -58,7 +58,7 @@ class MemoryBlobImpl final : public BaseBlobImpl {
   }
 
   void GetBlobImplType(nsAString& aBlobImplType) const override {
-    aBlobImplType = NS_LITERAL_STRING("MemoryBlobImpl");
+    aBlobImplType = u"MemoryBlobImpl"_ns;
   }
 
   class DataOwner final : public mozilla::LinkedListElement<DataOwner> {

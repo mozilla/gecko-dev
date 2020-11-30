@@ -7,8 +7,9 @@
 #include "jit/CompileWrappers.h"
 
 #include "gc/GC.h"
+#include "gc/Heap.h"
 #include "jit/Ion.h"
-#include "jit/JitRealm.h"
+#include "jit/JitRuntime.h"
 
 #include "vm/Realm-inl.h"
 
@@ -56,6 +57,10 @@ const WellKnownSymbols& CompileRuntime::wellKnownSymbols() {
   return *runtime()->wellKnownSymbols;
 }
 
+const JSClass* CompileRuntime::maybeWindowProxyClass() {
+  return runtime()->maybeWindowProxyClass();
+}
+
 const void* CompileRuntime::mainContextPtr() {
   return runtime()->mainContextFromAnyThread();
 }
@@ -96,8 +101,8 @@ CompileRuntime* CompileZone::runtime() {
 bool CompileZone::isAtomsZone() { return zone()->isAtomsZone(); }
 
 #ifdef DEBUG
-const void* CompileZone::addressOfIonBailAfter() {
-  return zone()->runtimeFromAnyThread()->jitRuntime()->addressOfIonBailAfter();
+const void* CompileRuntime::addressOfIonBailAfterCounter() {
+  return runtime()->jitRuntime()->addressOfIonBailAfterCounter();
 }
 #endif
 
@@ -163,6 +168,10 @@ void CompileZone::setMinorGCShouldCancelIonCompilations() {
   rt->gc.storeBuffer().setShouldCancelIonCompilations();
 }
 
+uintptr_t CompileZone::nurseryCellHeader(JS::TraceKind kind) {
+  return gc::NurseryCellHeader::MakeValue(zone(), kind);
+}
+
 JS::Realm* CompileRealm::realm() { return reinterpret_cast<JS::Realm*>(this); }
 
 /* static */
@@ -198,26 +207,16 @@ bool CompileRealm::hasAllocationMetadataBuilder() {
   return realm()->hasAllocationMetadataBuilder();
 }
 
-// Note: This function is thread-safe because setSingletonAsValue sets a boolean
-// variable to false, and this boolean variable has no way to be resetted to
-// true. So even if there is a concurrent write, this concurrent write will
-// always have the same value.  If there is a concurrent read, then we will
-// clone a singleton instead of using the value which is baked in the JSScript,
-// and this would be an unfortunate allocation, but this will not change the
-// semantics of the JavaScript code which is executed.
-void CompileRealm::setSingletonsAsValues() {
-  realm()->behaviors().setSingletonsAsValues();
-}
-
 JitCompileOptions::JitCompileOptions()
-    : cloneSingletons_(false),
-      profilerSlowAssertionsEnabled_(false),
+    : profilerSlowAssertionsEnabled_(false),
       offThreadCompilationAvailable_(false) {}
 
 JitCompileOptions::JitCompileOptions(JSContext* cx) {
-  cloneSingletons_ = cx->realm()->creationOptions().cloneSingletons();
   profilerSlowAssertionsEnabled_ =
       cx->runtime()->geckoProfiler().enabled() &&
       cx->runtime()->geckoProfiler().slowAssertionsEnabled();
   offThreadCompilationAvailable_ = OffThreadCompilationAvailable(cx);
+#ifdef DEBUG
+  ionBailAfterEnabled_ = cx->runtime()->jitRuntime()->ionBailAfterEnabled();
+#endif
 }

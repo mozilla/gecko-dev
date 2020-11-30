@@ -86,23 +86,6 @@ nsMathMLFrame::UpdatePresentationData(uint32_t aFlagsValues,
   return NS_OK;
 }
 
-// Helper to give a ComputedStyle suitable for doing the stretching of
-// a MathMLChar. Frame classes that use this should ensure that the
-// extra leaf ComputedStyle given to the MathMLChars are accessible to
-// the Style System via the Get/Set AdditionalComputedStyle() APIs.
-/* static */
-void nsMathMLFrame::ResolveMathMLCharStyle(nsPresContext* aPresContext,
-                                           nsIContent* aContent,
-                                           ComputedStyle* aParentComputedStyle,
-                                           nsMathMLChar* aMathMLChar) {
-  PseudoStyleType pseudoType = PseudoStyleType::mozMathAnonymous;  // savings
-  RefPtr<ComputedStyle> newComputedStyle;
-  newComputedStyle = aPresContext->StyleSet()->ResolvePseudoElementStyle(
-      *aContent->AsElement(), pseudoType, aParentComputedStyle);
-
-  aMathMLChar->SetComputedStyle(newComputedStyle);
-}
-
 /* static */
 void nsMathMLFrame::GetEmbellishDataFrom(nsIFrame* aFrame,
                                          nsEmbellishData& aEmbellishData) {
@@ -211,8 +194,10 @@ nscoord nsMathMLFrame::CalcLength(nsPresContext* aPresContext,
 
   if (eCSSUnit_EM == unit) {
     const nsStyleFont* font = aComputedStyle->StyleFont();
-    return NSToCoordRound(aCSSValue.GetFloatValue() * (float)font->mFont.size);
-  } else if (eCSSUnit_XHeight == unit) {
+    return font->mFont.size.ScaledBy(aCSSValue.GetFloatValue()).ToAppUnits();
+  }
+
+  if (eCSSUnit_XHeight == unit) {
     aPresContext->SetUsesExChUnits(true);
     RefPtr<nsFontMetrics> fm = nsLayoutUtils::GetFontMetricsForComputedStyle(
         aComputedStyle, aPresContext, aFontSizeInflation);
@@ -223,6 +208,22 @@ nscoord nsMathMLFrame::CalcLength(nsPresContext* aPresContext,
   // MathML doesn't specify other CSS units such as rem or ch
   NS_ERROR("Unsupported unit");
   return 0;
+}
+
+/* static */
+void nsMathMLFrame::GetSubDropFromChild(nsIFrame* aChild, nscoord& aSubDrop,
+                                        float aFontSizeInflation) {
+  RefPtr<nsFontMetrics> fm =
+      nsLayoutUtils::GetFontMetricsForFrame(aChild, aFontSizeInflation);
+  GetSubDrop(fm, aSubDrop);
+}
+
+/* static */
+void nsMathMLFrame::GetSupDropFromChild(nsIFrame* aChild, nscoord& aSupDrop,
+                                        float aFontSizeInflation) {
+  RefPtr<nsFontMetrics> fm =
+      nsLayoutUtils::GetFontMetricsForFrame(aChild, aFontSizeInflation);
+  GetSupDrop(fm, aSupDrop);
 }
 
 /* static */
@@ -299,19 +300,17 @@ void nsMathMLFrame::DisplayBoundingMetrics(nsDisplayListBuilder* aBuilder,
 class nsDisplayMathMLBar final : public nsPaintedDisplayItem {
  public:
   nsDisplayMathMLBar(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-                     const nsRect& aRect, uint16_t aIndex)
-      : nsPaintedDisplayItem(aBuilder, aFrame), mRect(aRect), mIndex(aIndex) {
+                     const nsRect& aRect)
+      : nsPaintedDisplayItem(aBuilder, aFrame), mRect(aRect) {
     MOZ_COUNT_CTOR(nsDisplayMathMLBar);
   }
   MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayMathMLBar)
 
-  virtual uint16_t CalculatePerFrameKey() const override { return mIndex; }
-
   virtual void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override;
   NS_DISPLAY_DECL_NAME("MathMLBar", TYPE_MATHML_BAR)
+
  private:
   nsRect mRect;
-  uint16_t mIndex;
 };
 
 void nsDisplayMathMLBar::Paint(nsDisplayListBuilder* aBuilder,
@@ -332,8 +331,8 @@ void nsMathMLFrame::DisplayBar(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
                                uint32_t aIndex) {
   if (!aFrame->StyleVisibility()->IsVisible() || aRect.IsEmpty()) return;
 
-  aLists.Content()->AppendNewToTop<nsDisplayMathMLBar>(aBuilder, aFrame, aRect,
-                                                       aIndex);
+  aLists.Content()->AppendNewToTopWithIndex<nsDisplayMathMLBar>(
+      aBuilder, aFrame, aIndex, aRect);
 }
 
 void nsMathMLFrame::GetRadicalParameters(nsFontMetrics* aFontMetrics,

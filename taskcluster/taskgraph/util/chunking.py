@@ -6,16 +6,25 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 """Utility functions to handle test chunking."""
 
-import os
 import json
+import logging
+import os
+from abc import ABCMeta, abstractmethod
 
+import six
 from manifestparser import TestManifest
 from manifestparser.filters import chunk_by_runtime
 from mozbuild.util import memoize
-from moztest.resolve import TestResolver, TestManifestLoader
+from moztest.resolve import (
+    TEST_SUITES,
+    TestResolver,
+    TestManifestLoader,
+)
 
 from taskgraph import GECKO
+from taskgraph.util.bugbug import BugbugTimeoutException, CT_LOW, push_schedules
 
+logger = logging.getLogger(__name__)
 here = os.path.abspath(os.path.dirname(__file__))
 resolver = TestResolver.from_environment(cwd=here, loader_cls=TestManifestLoader)
 
@@ -35,9 +44,12 @@ def guess_mozinfo_from_task(task):
     """
     info = {
         'asan': 'asan' in task['build-attributes']['build_platform'],
+        'bits': 32 if '32' in task['build-attributes']['build_platform'] else 64,
         'ccov': 'ccov' in task['build-attributes']['build_platform'],
         'debug': task['build-attributes']['build_type'] == 'debug',
         'e10s': task['attributes']['e10s'],
+        'fission': task['attributes'].get('unittest_variant') == 'fission',
+        'headless': '-headless' in task['test-name'],
         'tsan': 'tsan' in task['build-attributes']['build_platform'],
         'webrender': task.get('webrender', False),
     }
@@ -48,11 +60,35 @@ def guess_mozinfo_from_task(task):
     else:
         raise ValueError("{} is not a known platform!".format(
                          task['build-attributes']['build_platform']))
+
+    info['appname'] = 'fennec' if info['os'] == 'android' else 'firefox'
+
+    # guess processor
+    if 'aarch64' in task['build-attributes']['build_platform']:
+        info['processor'] = 'aarch64'
+    elif info['os'] == 'android' and 'arm' in task['test-platform']:
+        info['processor'] = 'arm'
+    elif info['bits'] == 32:
+        info['processor'] = 'x86'
+    else:
+        info['processor'] = 'x86_64'
+
+    # guess toolkit
+    if info['os'] in ('android', 'windows'):
+        info['toolkit'] = info['os']
+    elif info['os'] == 'mac':
+        info['toolkit'] = 'cocoa'
+    else:
+        info['toolkit'] = 'gtk'
+
     return info
 
 
 @memoize
-def get_runtimes(platform):
+def get_runtimes(platform, suite_name):
+    if not suite_name or not platform:
+        raise TypeError('suite_name and platform cannot be empty.')
+
     base = os.path.join(GECKO, 'testing', 'runtimes', 'manifest-runtimes-{}.json')
     for key in ('android', 'windows'):
         if key in platform:
@@ -61,54 +97,161 @@ def get_runtimes(platform):
     else:
         path = base.format('unix')
 
+    if not os.path.exists(path):
+        raise IOError('manifest runtime file at {} not found.'.format(path))
+
     with open(path, 'r') as fh:
-        return json.load(fh)
+        return json.load(fh)[suite_name]
 
 
-@memoize
-def get_tests(flavor, subsuite):
-    return list(resolver.resolve_tests(flavor=flavor, subsuite=subsuite))
-
-
-@memoize
-def get_chunked_manifests(flavor, subsuite, chunks, mozinfo):
-    """Compute which manifests should run in which chunks with the given category
-    of tests.
+def chunk_manifests(suite, platform, chunks, manifests):
+    """Run the chunking algorithm.
 
     Args:
-        flavor (str): The suite to run. Values are defined by the 'build_flavor' key
-            in `moztest.resolve.TEST_SUITES`.
-        subsuite (str): The subsuite to run or 'undefined' to denote no subsuite.
-        chunks (int): Number of chunks to split manifests across.
-        mozinfo (frozenset): Set of data in the form of (<key>, <value>) used
-                             for filtering.
+        platform (str): Platform used to find runtime info.
+        chunks (int): Number of chunks to split manifests into.
+        manifests(list): Manifests to chunk.
 
     Returns:
-        A list of manifests where each item contains the manifest that should
-        run in the corresponding chunk.
+        A list of length `chunks` where each item contains a list of manifests
+        that run in that chunk.
     """
-    mozinfo = dict(mozinfo)
-    # Compute all tests for the given suite/subsuite.
-    tests = get_tests(flavor, subsuite)
-    all_manifests = set(t['manifest_relpath'] for t in tests)
+    manifests = set(manifests)
 
-    # Compute only the active tests.
-    m = TestManifest()
-    m.tests = tests
-    tests = m.active_tests(disabled=False, exists=False, **mozinfo)
-    active_manifests = set(t['manifest_relpath'] for t in tests)
+    if "web-platform-tests" not in suite:
+        runtimes = {k: v for k, v in get_runtimes(platform, suite).items() if k in manifests}
+        return [
+            c[1] for c in chunk_by_runtime(
+                None,
+                chunks,
+                runtimes
+            ).get_chunked_manifests(manifests)
+        ]
 
-    # Run the chunking algorithm.
-    chunked_manifests = [
-        c[1] for c in chunk_by_runtime(
-            None,
-            chunks,
-            get_runtimes(mozinfo['os'])
-        ).get_chunked_manifests(tests)
-    ]
+    # Keep track of test paths for each chunk, and the runtime information.
+    chunked_manifests = [[] for _ in range(chunks)]
 
-    # Add all skipped manifests to the first chunk so they still show up in the
-    # logs. They won't impact runtime much.
-    skipped_manifests = all_manifests - active_manifests
-    chunked_manifests[0].extend(skipped_manifests)
+    # Spread out the test manifests evenly across all chunks.
+    for index, key in enumerate(sorted(manifests)):
+        chunked_manifests[index % chunks].append(key)
+
+    # One last sort by the number of manifests. Chunk size should be more or less
+    # equal in size.
+    chunked_manifests.sort(key=lambda x: len(x))
+
+    # Return just the chunked test paths.
     return chunked_manifests
+
+
+@six.add_metaclass(ABCMeta)
+class BaseManifestLoader(object):
+
+    def __init__(self, params):
+        self.params = params
+
+    @abstractmethod
+    def get_manifests(self, flavor, subsuite, mozinfo):
+        """Compute which manifests should run for the given flavor, subsuite and mozinfo.
+
+        This function returns skipped manifests separately so that more balanced
+        chunks can be achieved by only considering "active" manifests in the
+        chunking algorithm.
+
+        Args:
+            flavor (str): The suite to run. Values are defined by the 'build_flavor' key
+                in `moztest.resolve.TEST_SUITES`.
+            subsuite (str): The subsuite to run or 'undefined' to denote no subsuite.
+            mozinfo (frozenset): Set of data in the form of (<key>, <value>) used
+                                 for filtering.
+
+        Returns:
+            A tuple of two manifest lists. The first is the set of active manifests (will
+            run at least one test. The second is a list of skipped manifests (all tests are
+            skipped).
+        """
+        pass
+
+
+class DefaultLoader(BaseManifestLoader):
+    """Load manifests using metadata from the TestResolver."""
+
+    @memoize
+    def get_tests(self, suite):
+        suite_definition = TEST_SUITES[suite]
+        return list(resolver.resolve_tests(
+            flavor=suite_definition['build_flavor'],
+            subsuite=suite_definition.get('kwargs', {}).get('subsuite', 'undefined'),
+        ))
+
+    @memoize
+    def get_manifests(self, suite, mozinfo):
+        mozinfo = dict(mozinfo)
+        # Compute all tests for the given suite/subsuite.
+        tests = self.get_tests(suite)
+
+        if "web-platform-tests" in suite:
+            manifests = set()
+            for t in tests:
+                manifests.add(t['manifest'])
+            return {"active": list(manifests), "skipped": []}
+
+        manifests = set(chunk_by_runtime.get_manifest(t) for t in tests)
+
+        # Compute  the active tests.
+        m = TestManifest()
+        m.tests = tests
+        tests = m.active_tests(disabled=False, exists=False, **mozinfo)
+        active = set(chunk_by_runtime.get_manifest(t) for t in tests)
+        skipped = manifests - active
+        return {"active": list(active), "skipped": list(skipped)}
+
+
+class BugbugLoader(DefaultLoader):
+    """Load manifests using metadata from the TestResolver, and then
+    filter them based on a query to bugbug."""
+    CONFIDENCE_THRESHOLD = CT_LOW
+
+    def __init__(self, *args, **kwargs):
+        super(BugbugLoader, self).__init__(*args, **kwargs)
+        self.timedout = False
+
+    @memoize
+    def get_manifests(self, suite, mozinfo):
+        manifests = super(BugbugLoader, self).get_manifests(suite, mozinfo)
+
+        # Don't prune any manifests if we're on a backstop push or there was a timeout.
+        if self.params["backstop"] or self.timedout:
+            return manifests
+
+        try:
+            data = push_schedules(self.params['project'], self.params['head_rev'])
+        except BugbugTimeoutException:
+            logger.warning("Timed out waiting for bugbug, loading all test manifests.")
+            self.timedout = True
+            return self.get_manifests(suite, mozinfo)
+
+        bugbug_manifests = {m for m, c in data.get('groups', {}).items()
+                            if c >= self.CONFIDENCE_THRESHOLD}
+
+        manifests['active'] = list(set(manifests['active']) & bugbug_manifests)
+        manifests['skipped'] = list(set(manifests['skipped']) & bugbug_manifests)
+        return manifests
+
+
+manifest_loaders = {
+    'bugbug': BugbugLoader,
+    'default': DefaultLoader,
+}
+
+_loader_cache = {}
+
+
+def get_manifest_loader(name, params):
+    # Ensure we never create more than one instance of the same loader type for
+    # performance reasons.
+    if name in _loader_cache:
+        return _loader_cache[name]
+
+    loader = manifest_loaders[name](dict(params))
+    _loader_cache[name] = loader
+    return loader

@@ -4,7 +4,7 @@
 "use strict";
 
 // A test to ensure Style Editor only issues 1 request for each stylesheet (instead of 2)
-// by using the network monitor's request history (bug 1306892).
+// by using the cache on the platform.
 
 const EMPTY_TEST_URL = TEST_BASE_HTTP + "doc_empty.html";
 const TEST_URL = TEST_BASE_HTTP + "doc_fetch_from_netmonitor.html";
@@ -41,9 +41,8 @@ add_task(async function() {
   await ui.selectStyleSheet(ui.editors[1].styleSheet);
   await ui.editors[1].getSourceEditor();
 
-  // Wait till there is 5 requests in Netmonitor store.
-  // (i.e. the Styleeditor panel performed one request).
-  await waitUntil(() => getSortedRequests(store.getState()).length == 5);
+  // Wait till there is 4 requests in Netmonitor store.
+  await waitUntil(() => getSortedRequests(store.getState()).length == 4);
 
   info("Checking Netmonitor contents.");
   const shortRequests = [];
@@ -72,11 +71,9 @@ add_task(async function() {
     "Got one request for doc_long_string.css after Style Editor was loaded."
   );
 
-  // Requests with a response body size greater than 1MB cannot be fetched from the
-  // netmonitor, the style editor should perform a separate request.
   is(
     hugeRequests.length,
-    2,
-    "Got two requests for sjs_huge-css-server.sjs after Style Editor was loaded."
+    1,
+    "Got one requests for sjs_huge-css-server.sjs after Style Editor was loaded."
   );
 });

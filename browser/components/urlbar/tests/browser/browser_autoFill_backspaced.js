@@ -13,7 +13,6 @@ async function test_autocomplete(data) {
 
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    waitForFocus,
     value: typed,
     fireInputEvent: true,
   });
@@ -216,7 +215,7 @@ add_task(async function() {
       ["KEY_ArrowLeft", { shiftKey: true }],
       "KEY_Backspace",
     ],
-    type: UrlbarUtils.RESULT_TYPE.URL,
+    type: UrlbarUtils.RESULT_TYPE.SEARCH,
   });
 
   await test_autocomplete({

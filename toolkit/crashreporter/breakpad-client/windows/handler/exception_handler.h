@@ -88,6 +88,13 @@ using std::wstring;
 
 class ExceptionHandler {
  public:
+  // The result value for the filter callback, see below.
+  enum class FilterResult {
+    HandleException,
+    AbortWithoutMinidump,
+    ContinueSearch
+  };
+
   // A callback function to run before Breakpad performs any substantial
   // processing of an exception.  A FilterCallback is called before writing
   // a minidump.  context is the parameter supplied by the user as
@@ -95,13 +102,16 @@ class ExceptionHandler {
   // exception record, if any; assertion points to assertion information,
   // if any.
   //
-  // If a FilterCallback returns true, Breakpad will continue processing,
-  // attempting to write a minidump.  If a FilterCallback returns false,
-  // Breakpad will immediately report the exception as unhandled without
-  // writing a minidump, allowing another handler the opportunity to handle it.
-  typedef bool (*FilterCallback)(void* context, EXCEPTION_POINTERS* exinfo,
-                                 const mozilla::phc::AddrInfo* addr_info,
-                                 MDRawAssertionInfo* assertion);
+  // If a FilterCallback returns HandleException, Breakpad will attempt to
+  // write a minidump.  If a FilterCallback returns ContinueSearch Breakpad
+  // will immediately report the exception as unhandled without writing a
+  // minidump, allowing another handler the opportunity to handle it.
+  // If a FilterCallback returns AbortWithoutMinidump, Breakpad will report the
+  // exception as handled but will not write a minidump, letting the process
+  // terminate itself instead.
+  typedef FilterResult (*FilterCallback)(void* context,
+                                         EXCEPTION_POINTERS* exinfo,
+                                         MDRawAssertionInfo* assertion);
 
   // A callback function to run after the minidump has been written.
   // minidump_id is a unique id for the dump, so the minidump
@@ -146,9 +156,9 @@ class ExceptionHandler {
     HANDLER_EXCEPTION = 1 << 0,          // SetUnhandledExceptionFilter
     HANDLER_INVALID_PARAMETER = 1 << 1,  // _set_invalid_parameter_handler
     HANDLER_PURECALL = 1 << 2,           // _set_purecall_handler
-    HANDLER_ALL = HANDLER_EXCEPTION |
-                  HANDLER_INVALID_PARAMETER |
-                  HANDLER_PURECALL
+    HANDLER_HEAP_CORRUPTION = 1 << 4,    // AddVectoredExceptionHandler
+    HANDLER_ALL = HANDLER_EXCEPTION | HANDLER_INVALID_PARAMETER |
+                  HANDLER_PURECALL | HANDLER_HEAP_CORRUPTION
   };
 
   // Creates a new ExceptionHandler instance to handle writing minidumps.
@@ -333,6 +343,10 @@ class ExceptionHandler {
   // function is called.
   static void HandlePureVirtualCall();
 
+  // This function will be called by the vectored exception handler and will
+  // generate a minidump only for exceptions of type STATUS_HEAP_CORRUPTION.
+  static LONG WINAPI HandleHeapCorruption(EXCEPTION_POINTERS* exinfo);
+
   // This is called on the exception thread or on another thread that
   // the user wishes to produce a dump from.  It calls
   // WriteMinidumpWithException on the handler thread, avoiding stack
@@ -345,15 +359,27 @@ class ExceptionHandler {
   bool WriteMinidumpOnHandlerThread(EXCEPTION_POINTERS* exinfo,
                                     MDRawAssertionInfo* assertion);
 
+  // The return value for WriteMinidumpWithException(), see below.
+  enum class MinidumpResult {
+    Success,
+    Failure,
+    Ignored
+  };
+
   // This function is called on the handler thread.  It calls into
   // WriteMinidumpWithExceptionForProcess() with a handle to the
   // current process.  requesting_thread_id is the ID of the thread
   // that requested the dump.  If the dump is requested as a result of
   // an exception, exinfo contains exception information, otherwise,
-  // it is NULL.
-  bool WriteMinidumpWithException(DWORD requesting_thread_id,
-                                  EXCEPTION_POINTERS* exinfo,
-                                  MDRawAssertionInfo* assertion);
+  // it is NULL. It will return Success in case the minidump has been written
+  // successfully, Failure if we couldn't write out the minidump because of an
+  // error and Ignored if we didn't even try to write the minidump because the
+  // filter callback indicated that we should ignore this exception and abort.
+  // The latter condition is only relevent for a top-level exception handler,
+  // other callers should equate it to a failure.
+  MinidumpResult WriteMinidumpWithException(DWORD requesting_thread_id,
+                                            EXCEPTION_POINTERS* exinfo,
+                                            MDRawAssertionInfo* assertion);
 
   // This function does the actual writing of a minidump.  It is
   // called on the handler thread.  requesting_thread_id is the ID of
@@ -429,6 +455,10 @@ class ExceptionHandler {
   // virtual function calls.
   _purecall_handler previous_pch_;
 
+  // Vectored exception handler used for catching STATUS_HEAP_CORRUPTION
+  // exceptions
+  PVOID heap_corruption_veh_;
+
   // The exception handler thread.
   HANDLE handler_thread_;
 
@@ -467,7 +497,7 @@ class ExceptionHandler {
 
   // The return value of the handler, passed from the handler thread back to
   // the requesting thread.
-  bool handler_return_value_;
+  MinidumpResult handler_return_value_;
 
   // If true, the handler will intercept EXCEPTION_BREAKPOINT and
   // EXCEPTION_SINGLE_STEP exceptions.  Leave this false (the default)

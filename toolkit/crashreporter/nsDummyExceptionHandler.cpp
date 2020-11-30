@@ -39,8 +39,6 @@ nsresult SetupExtraData(nsIFile* aAppDataDirectory,
 
 nsresult UnsetExceptionHandler() { return NS_ERROR_NOT_IMPLEMENTED; }
 
-void NotifyCrashReporterClientCreated() {}
-
 nsresult AnnotateCrashReport(Annotation key, bool data) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -60,6 +58,18 @@ nsresult AnnotateCrashReport(Annotation key, const nsACString& data) {
 nsresult RemoveCrashReportAnnotation(Annotation key) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
+
+AutoAnnotateCrashReport::AutoAnnotateCrashReport(Annotation key, bool data) {}
+
+AutoAnnotateCrashReport::AutoAnnotateCrashReport(Annotation key, int data) {}
+
+AutoAnnotateCrashReport::AutoAnnotateCrashReport(Annotation key,
+                                                 unsigned data) {}
+
+AutoAnnotateCrashReport::AutoAnnotateCrashReport(Annotation key,
+                                                 const nsACString& data) {}
+
+AutoAnnotateCrashReport::~AutoAnnotateCrashReport() {}
 
 void MergeCrashAnnotations(AnnotationTable& aDst, const AnnotationTable& aSrc) {
 }
@@ -190,24 +200,18 @@ void UnregisterInjectorCallback(DWORD processID) {}
 
 bool GetLastRunCrashID(nsAString& id) { return false; }
 
-#if defined(XP_WIN)
-bool SetRemoteExceptionHandler(const nsACString& crashPipe,
-                               uintptr_t aCrashTimeAnnotationFile) {
-  return false;
-}
-
-#elif defined(XP_MACOSX)
-
-bool SetRemoteExceptionHandler(const nsACString& crashPipe) { return false; }
-
-#else
+#if !defined(XP_WIN) && !defined(XP_MACOSX)
 
 bool CreateNotificationPipeForChild(int* childCrashFd, int* childCrashRemapFd) {
   return false;
 }
 
-bool SetRemoteExceptionHandler() { return false; }
-#endif  // XP_WIN
+#endif  // !defined(XP_WIN) && !defined(XP_MACOSX)
+
+bool SetRemoteExceptionHandler(const char* aCrashPipe,
+                               uintptr_t aCrashTimeAnnotationFile) {
+  return false;
+}
 
 bool TakeMinidumpForChild(uint32_t childPid, nsIFile** dump,
                           AnnotationTable& aAnnotations, uint32_t* aSequence) {

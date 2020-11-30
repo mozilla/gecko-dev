@@ -10,7 +10,8 @@
 #include "jsfriendapi.h"
 
 #include "js/BuildId.h"  // JS::BuildIdCharVector, JS::SetProcessBuildIdOp
-#include "js/CompilationAndEvaluation.h"  // JS::CompileDontInflate
+#include "js/CompilationAndEvaluation.h"  // JS::Compile
+#include "js/CompileOptions.h"            // JS::CompileOptions
 #include "js/SourceText.h"                // JS::Source{Ownership,Text}
 #include "js/Transcoding.h"
 #include "jsapi-tests/tests.h"
@@ -23,7 +24,8 @@ static bool GetBuildId(JS::BuildIdCharVector* buildId) {
   return buildId->append(buildid, sizeof(buildid));
 }
 
-static JSScript* FreezeThaw(JSContext* cx, JS::HandleScript script) {
+static JSScript* FreezeThaw(JSContext* cx, JS::CompileOptions& options,
+                            JS::HandleScript script) {
   JS::SetProcessBuildIdOp(::GetBuildId);
 
   // freeze
@@ -35,7 +37,7 @@ static JSScript* FreezeThaw(JSContext* cx, JS::HandleScript script) {
 
   // thaw
   JS::RootedScript script2(cx);
-  rs = JS::DecodeScript(cx, buffer, &script2);
+  rs = JS::DecodeScript(cx, options, buffer, &script2);
   if (rs != JS::TranscodeResult_Ok) {
     return nullptr;
   }
@@ -68,10 +70,10 @@ BEGIN_TEST(testXDR_bug506491) {
   CHECK(srcBuf.init(cx, s, mozilla::ArrayLength(s) - 1,
                     JS::SourceOwnership::Borrowed));
 
-  JS::RootedScript script(cx, JS::CompileDontInflate(cx, options, srcBuf));
+  JS::RootedScript script(cx, JS::Compile(cx, options, srcBuf));
   CHECK(script);
 
-  script = FreezeThaw(cx, script);
+  script = FreezeThaw(cx, options, script);
   CHECK(script);
 
   // execute
@@ -97,10 +99,10 @@ BEGIN_TEST(testXDR_bug516827) {
   JS::SourceText<mozilla::Utf8Unit> srcBuf;
   CHECK(srcBuf.init(cx, "", 0, JS::SourceOwnership::Borrowed));
 
-  JS::RootedScript script(cx, JS::CompileDontInflate(cx, options, srcBuf));
+  JS::RootedScript script(cx, JS::Compile(cx, options, srcBuf));
   CHECK(script);
 
-  script = FreezeThaw(cx, script);
+  script = FreezeThaw(cx, options, script);
   CHECK(script);
 
   // execute with null result meaning no result wanted
@@ -129,10 +131,10 @@ BEGIN_TEST(testXDR_source) {
     JS::SourceText<mozilla::Utf8Unit> srcBuf;
     CHECK(srcBuf.init(cx, *s, strlen(*s), JS::SourceOwnership::Borrowed));
 
-    JS::RootedScript script(cx, JS::CompileDontInflate(cx, options, srcBuf));
+    JS::RootedScript script(cx, JS::Compile(cx, options, srcBuf));
     CHECK(script);
 
-    script = FreezeThaw(cx, script);
+    script = FreezeThaw(cx, options, script);
     CHECK(script);
 
     JSString* out = JS_DecompileScript(cx, script);
@@ -157,7 +159,7 @@ BEGIN_TEST(testXDR_sourceMap) {
     JS::SourceText<mozilla::Utf8Unit> srcBuf;
     CHECK(srcBuf.init(cx, "", 0, JS::SourceOwnership::Borrowed));
 
-    script = JS::CompileDontInflate(cx, options, srcBuf);
+    script = JS::Compile(cx, options, srcBuf);
     CHECK(script);
 
     size_t len = strlen(*sm);
@@ -167,7 +169,7 @@ BEGIN_TEST(testXDR_sourceMap) {
 
     // The script source takes responsibility of free'ing |expected|.
     CHECK(script->scriptSource()->setSourceMapURL(cx, expected));
-    script = FreezeThaw(cx, script);
+    script = FreezeThaw(cx, options, script);
     CHECK(script);
     CHECK(script->scriptSource());
     CHECK(script->scriptSource()->hasSourceMapURL());

@@ -52,11 +52,44 @@ class Front extends Pool {
     this._beforeListeners = new Map();
   }
 
+  /**
+   * Return the parent front.
+   */
+  getParent() {
+    return this.parentFront && this.parentFront.actorID
+      ? this.parentFront
+      : null;
+  }
+
   destroy() {
+    super.destroy();
+    this.clearEvents();
+    // Prevent purging requests if a forwardCancelling request has already been received
+    // and already called purgeRequests
+    if (this.actorID) {
+      this.purgeRequestsForDestroy();
+    }
+    this.targetFront = null;
+    this.parentFront = null;
+    this._frontCreationListeners = null;
+    this._frontDestructionListeners = null;
+    this._beforeListeners = null;
+  }
+
+  // This method is also called from DevToolsClient, when a connector is destroyed
+  // and we should reject all pending request made to the remote process/target/thread.
+  // And also avoid trying to do new request against this remote context.
+  // When a connector is destroy a forwardCancelling RDP event is sent by the server.
+  // This is done in a distinct method from `destroy` in order to be able to purge
+  // requests immediately, even if `Front.destroy` is overloaded by an async method.
+  purgeRequestsForDestroy() {
     // Reject all outstanding requests, they won't make sense after
     // the front is destroyed.
     while (this._requests && this._requests.length > 0) {
       const { deferred, to, type, stack } = this._requests.shift();
+      // Note: many tests are ignoring `Connection closed` promise rejections,
+      // via PromiseTestUtils.allowMatchingRejectionsGlobally.
+      // Do not update the message without updating the tests.
       const msg =
         "Connection closed, pending request to " +
         to +
@@ -67,14 +100,11 @@ class Front extends Pool {
         stack.formattedStack;
       deferred.reject(new Error(msg));
     }
-    super.destroy();
-    this.clearEvents();
     this.actorID = null;
-    this.targetFront = null;
-    this.parentFront = null;
-    this._frontCreationListeners = null;
-    this._frontDestructionListeners = null;
-    this._beforeListeners = null;
+  }
+
+  isDestroyed() {
+    return this.actorID === null;
   }
 
   async manage(front, form, ctx) {
@@ -86,6 +116,21 @@ class Front extends Pool {
           "."
       );
     }
+
+    if (front.parentFront && front.parentFront !== this) {
+      throw new Error(
+        `${this.actorID} (${this.typeName}) can't manage ${front.actorID}
+        (${front.typeName}) since it has a different parentFront ${
+          front.parentFront
+            ? front.parentFront.actordID +
+              "(" +
+              front.parentFront.typeName +
+              ")"
+            : "<no parentFront>"
+        }`
+      );
+    }
+
     super.manage(front);
 
     if (typeof front.initialize == "function") {
@@ -102,7 +147,10 @@ class Front extends Pool {
     }
 
     // Call listeners registered via `watchFronts` method
-    this._frontCreationListeners.emit(front.typeName, front);
+    // (ignore if this front has been destroyed)
+    if (this._frontCreationListeners) {
+      this._frontCreationListeners.emit(front.typeName, front);
+    }
   }
 
   async unmanage(front) {
@@ -125,7 +173,7 @@ class Front extends Pool {
    *        The function is called with the same argument than onAvailable.
    */
   watchFronts(typeName, onAvailable, onDestroy) {
-    if (!this.actorID) {
+    if (this.isDestroyed()) {
       // The front was already destroyed, bail out.
       console.error(
         `Tried to call watchFronts for the '${typeName}' type on an ` +
@@ -156,7 +204,7 @@ class Front extends Pool {
    * See `watchFronts()` for documentation of the arguments.
    */
   unwatchFronts(typeName, onAvailable, onDestroy) {
-    if (!this.actorID) {
+    if (this.isDestroyed()) {
       // The front was already destroyed, bail out.
       console.error(
         `Tried to call unwatchFronts for the '${typeName}' type on an ` +
@@ -212,7 +260,7 @@ class Front extends Pool {
     } else {
       packet.to = this.actorID;
       // The connection might be closed during the promise resolution
-      if (this.conn._transport) {
+      if (this.conn && this.conn._transport) {
         this.conn._transport.send(packet);
       }
     }
@@ -239,6 +287,12 @@ class Front extends Pool {
    * Handler for incoming packets from the client's actor.
    */
   onPacket(packet) {
+    if (this.isDestroyed()) {
+      // If the Front was already destroyed, all the requests have been purged
+      // and rejected with detailed error messages in purgeRequestsForDestroy.
+      return;
+    }
+
     // Pick off event packets
     const type = packet.type || undefined;
     if (this._clientSpec.events && this._clientSpec.events.has(type)) {
@@ -290,6 +344,11 @@ class Front extends Pool {
               "Protocol error (" + packet.error + "): " + packet.message;
           } else {
             message = packet.error;
+          }
+          message += " from: " + this.actorID;
+          if (packet.fileName) {
+            const { fileName, columnNumber, lineNumber } = packet;
+            message += ` (${fileName}:${lineNumber}:${columnNumber})`;
           }
           const packetError = new Error(message);
           deferred.reject(packetError);

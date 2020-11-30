@@ -28,6 +28,8 @@
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/IntegerTypeTraits.h"
 #include "mozilla/NullPrincipal.h"
+#include "mozilla/Telemetry.h"
+#include "mozilla/TelemetryComms.h"
 
 #include "mozilla/Logging.h"
 
@@ -328,8 +330,8 @@ void nsExpatDriver::HandleStartElementForSystemPrincipal(
     error.AppendLiteral("> created from entity value.");
 
     nsContentUtils::ReportToConsoleNonLocalized(
-        error, nsIScriptError::warningFlag, NS_LITERAL_CSTRING("XML Document"),
-        doc, nullptr, EmptyString(), lineNumber, colNumber);
+        error, nsIScriptError::warningFlag, "XML Document"_ns, doc, nullptr,
+        u""_ns, lineNumber, colNumber);
   }
 }
 
@@ -655,7 +657,7 @@ nsresult nsExpatDriver::OpenInputStreamFromExternalDTD(const char16_t* aFPIStr,
     localURI.swap(uri);
     rv = NS_NewChannel(getter_AddRefs(channel), uri,
                        nsContentUtils::GetSystemPrincipal(),
-                       nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+                       nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
                        nsIContentPolicy::TYPE_DTD);
     NS_ENSURE_SUCCESS(rv, rv);
   } else {
@@ -671,20 +673,22 @@ nsresult nsExpatDriver::OpenInputStreamFromExternalDTD(const char16_t* aFPIStr,
         if (doc->SkipDTDSecurityChecks()) {
           policyType = nsIContentPolicy::TYPE_INTERNAL_FORCE_ALLOWED_DTD;
         }
-        rv = NS_NewChannel(getter_AddRefs(channel), uri, doc,
-                           nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_INHERITS |
-                               nsILoadInfo::SEC_ALLOW_CHROME,
-                           policyType);
+        rv = NS_NewChannel(
+            getter_AddRefs(channel), uri, doc,
+            nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_INHERITS_SEC_CONTEXT |
+                nsILoadInfo::SEC_ALLOW_CHROME,
+            policyType);
         NS_ENSURE_SUCCESS(rv, rv);
       }
     }
     if (!channel) {
       nsCOMPtr<nsIPrincipal> nullPrincipal =
           mozilla::NullPrincipal::CreateWithoutOriginAttributes();
-      rv = NS_NewChannel(getter_AddRefs(channel), uri, nullPrincipal,
-                         nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_INHERITS |
-                             nsILoadInfo::SEC_ALLOW_CHROME,
-                         policyType);
+      rv = NS_NewChannel(
+          getter_AddRefs(channel), uri, nullPrincipal,
+          nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_INHERITS_SEC_CONTEXT |
+              nsILoadInfo::SEC_ALLOW_CHROME,
+          policyType);
       NS_ENSURE_SUCCESS(rv, rv);
     }
   }
@@ -694,7 +698,7 @@ nsresult nsExpatDriver::OpenInputStreamFromExternalDTD(const char16_t* aFPIStr,
   NS_ENSURE_SUCCESS(rv, rv);
   CopyUTF8toUTF16(absURL, aAbsURL);
 
-  channel->SetContentType(NS_LITERAL_CSTRING("application/xml"));
+  channel->SetContentType("application/xml"_ns);
   return channel->Open(aStream);
 }
 
@@ -753,6 +757,7 @@ nsresult nsExpatDriver::HandleError() {
   if (mOriginalSink) {
     doc = do_QueryInterface(mOriginalSink->GetTarget());
   }
+
   bool spoofEnglish =
       nsContentUtils::SpoofLocaleEnglish() && (!doc || !doc->AllowsL10n());
   nsParserMsgUtils::GetLocalizedStringByID(
@@ -813,6 +818,23 @@ nsresult nsExpatDriver::HandleError() {
 
   nsAutoString sourceText(mLastLine);
   AppendErrorPointer(colNumber, mLastLine.get(), sourceText);
+
+  if (doc && nsContentUtils::IsChromeDoc(doc)) {
+    nsCString path = doc->GetDocumentURI()->GetSpecOrDefault();
+
+    mozilla::Maybe<nsTArray<mozilla::Telemetry::EventExtraEntry>> extra =
+        mozilla::Some<nsTArray<mozilla::Telemetry::EventExtraEntry>>({
+            mozilla::Telemetry::EventExtraEntry{"error_code"_ns,
+                                                nsPrintfCString("%u", code)},
+            mozilla::Telemetry::EventExtraEntry{
+                "location"_ns, nsPrintfCString("%u:%u", lineNumber, colNumber)},
+        });
+
+    mozilla::Telemetry::SetEventRecordingEnabled("ysod"_ns, true);
+    mozilla::Telemetry::RecordEvent(
+        mozilla::Telemetry::EventID::Ysod_Shown_Ysod, mozilla::Some(path),
+        extra);
+  }
 
   // Try to create and initialize the script error.
   nsCOMPtr<nsIScriptError> serr(do_CreateInstance(NS_SCRIPTERROR_CONTRACTID));

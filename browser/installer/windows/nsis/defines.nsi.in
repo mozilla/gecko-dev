@@ -118,12 +118,21 @@
 !define MOZ_MAINTENANCE_SERVICE
 #endif
 
+#ifdef MOZ_UPDATE_AGENT
+!define MOZ_UPDATE_AGENT
+!define UpdateAgentFullName "Mozilla Update Agent"
+#endif
+
 #ifdef MOZ_BITS_DOWNLOAD
 !define MOZ_BITS_DOWNLOAD
 #endif
 
 #ifdef MOZ_DEFAULT_BROWSER_AGENT
 !define MOZ_DEFAULT_BROWSER_AGENT
+#endif
+
+#ifdef NIGHTLY_BUILD
+!define NIGHTLY_BUILD
 #endif
 
 !if "@AB_CD@" == "en-US"
@@ -156,3 +165,6 @@ VIAddVersionKey "ProductVersion"  "${AppVersion}"
 !define TELEMETRY_NAMESPACE firefox-installer
 !define TELEMETRY_INSTALL_PING_VERSION 1
 !define TELEMETRY_INSTALL_PING_DOCTYPE install
+
+!define TELEMETRY_UNINSTALL_PING_NAMESPACE telemetry
+!define TELEMETRY_UNINSTALL_PING_DOCTYPE uninstall

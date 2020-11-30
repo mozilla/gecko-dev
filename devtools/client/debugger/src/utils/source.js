@@ -9,7 +9,8 @@
  * @module utils/source
  */
 
-import { getUnicodeUrl } from "devtools-modules";
+// $FlowIgnore
+const { getUnicodeUrl } = require("devtools/client/shared/unicode-url");
 
 import { isOriginalSource } from "../utils/source-maps";
 import { endTruncateStr } from "./utils";
@@ -28,7 +29,8 @@ import type {
   SourceActor,
   SourceContent,
   SourceLocation,
-  ThreadId,
+  Thread,
+  URL,
 } from "../types";
 
 import { isFulfilled, type AsyncValue } from "./async-value";
@@ -41,6 +43,7 @@ export const sourceTypes = {
   js: "javascript",
   jsx: "react",
   ts: "typescript",
+  tsx: "typescript",
   vue: "vue",
 };
 
@@ -106,12 +109,12 @@ export function isPretty(source: Source): boolean {
   return isPrettyURL(source.url);
 }
 
-export function isPrettyURL(url: string): boolean {
+export function isPrettyURL(url: URL): boolean {
   return url ? url.endsWith(":formatted") : false;
 }
 
-export function isThirdParty(source: Source) {
-  const url = source.url;
+export function isThirdParty(source: Source): boolean {
+  const { url } = source;
   if (!source || !url) {
     return false;
   }
@@ -123,7 +126,7 @@ export function isThirdParty(source: Source) {
  * @memberof utils/source
  * @static
  */
-export function getPrettySourceURL(url: ?string): string {
+export function getPrettySourceURL(url: ?URL): string {
   if (!url) {
     url = "";
   }
@@ -134,17 +137,17 @@ export function getPrettySourceURL(url: ?string): string {
  * @memberof utils/source
  * @static
  */
-export function getRawSourceURL(url: string): string {
+export function getRawSourceURL(url: URL): string {
   return url && url.endsWith(":formatted")
     ? url.slice(0, -":formatted".length)
     : url;
 }
 
 function resolveFileURL(
-  url: string,
+  url: URL,
   transformUrl: transformUrlCallback = initialUrl => initialUrl,
   truncate: boolean = true
-) {
+): string {
   url = getRawSourceURL(url || "");
   const name = transformUrl(url);
   if (!truncate) {
@@ -153,7 +156,7 @@ function resolveFileURL(
   return endTruncateStr(name, 50);
 }
 
-export function getFormattedSourceId(id: string) {
+export function getFormattedSourceId(id: string): string {
   const firstIndex = id.indexOf("/");
   const secondIndex = id.indexOf("/", firstIndex);
   return `SOURCE${id.slice(firstIndex, secondIndex)}`;
@@ -168,8 +171,8 @@ export function getFormattedSourceId(id: string) {
  */
 export function getFilename(
   source: Source,
-  rawSourceURL: string = getRawSourceURL(source.url)
-) {
+  rawSourceURL: URL = getRawSourceURL(source.url)
+): string {
   const { id } = source;
   if (!rawSourceURL) {
     return getFormattedSourceId(id);
@@ -189,7 +192,7 @@ export function getTruncatedFileName(
   source: Source,
   querystring: string = "",
   length: number = 30
-) {
+): string {
   return truncateMiddleText(`${getFilename(source)}${querystring}`, length);
 }
 
@@ -203,7 +206,7 @@ export function getTruncatedFileName(
 export function getDisplayPath(
   mySource: Source,
   sources: Source[] | TabsSources
-) {
+): string | void {
   const rawSourceURL = getRawSourceURL(mySource.url);
   const filename = getFilename(mySource, rawSourceURL);
 
@@ -258,7 +261,7 @@ export function getDisplayPath(
  * @memberof utils/source
  * @static
  */
-export function getFileURL(source: Source, truncate: boolean = true) {
+export function getFileURL(source: Source, truncate: boolean = true): string {
   const { url, id } = source;
   if (!url) {
     return getFormattedSourceId(id);
@@ -283,7 +286,7 @@ const contentTypeModeMap = {
   "text/html": { name: "htmlmixed" },
 };
 
-export function getSourcePath(url: string) {
+export function getSourcePath(url: URL): string {
   if (!url) {
     return "";
   }
@@ -416,6 +419,26 @@ export function isInlineScript(source: SourceActor): boolean {
   return source.introductionType === "scriptElement";
 }
 
+function getNthLine(str: string, lineNum: number) {
+  let startIndex = -1;
+
+  let newLinesFound = 0;
+  while (newLinesFound < lineNum) {
+    const nextIndex = str.indexOf("\n", startIndex + 1);
+    if (nextIndex === -1) {
+      return null;
+    }
+    startIndex = nextIndex;
+    newLinesFound++;
+  }
+  const endIndex = str.indexOf("\n", startIndex + 1);
+  if (endIndex === -1) {
+    return str.slice(startIndex + 1);
+  }
+
+  return str.slice(startIndex + 1, endIndex);
+}
+
 export const getLineText = memoizeLast(
   (
     sourceId: SourceId,
@@ -434,7 +457,7 @@ export const getLineText = memoizeLast(
       return lines[editorLine] || "";
     }
 
-    const lineText = content.value.split("\n")[line - 1];
+    const lineText = getNthLine(content.value, line - 1);
     return lineText || "";
   }
 );
@@ -443,14 +466,17 @@ export function getTextAtPosition(
   sourceId: SourceId,
   asyncContent: AsyncValue<SourceContent> | null,
   location: SourceLocation
-) {
+): string {
   const { column, line = 0 } = location;
 
   const lineText = getLineText(sourceId, asyncContent, line);
   return lineText.slice(column, column + 100).trim();
 }
 
-export function getSourceClassnames(source: ?Object, symbols: ?Symbols) {
+export function getSourceClassnames(
+  source: ?Object,
+  symbols: ?Symbols
+): string {
   // Conditionals should be ordered by priority of icon!
   const defaultClassName = "file";
 
@@ -477,7 +503,7 @@ export function getSourceClassnames(source: ?Object, symbols: ?Symbols) {
   return sourceTypes[getFileExtension(source)] || defaultClassName;
 }
 
-export function getRelativeUrl(source: Source, root: string) {
+export function getRelativeUrl(source: Source, root: string): string {
   const { group, path } = getURL(source);
   if (!root) {
     return path;
@@ -491,12 +517,12 @@ export function getRelativeUrl(source: Source, root: string) {
 export function underRoot(
   source: Source,
   root: string,
-  threadActors: Array<ThreadId>
-) {
+  threads: Array<Thread>
+): boolean {
   // source.url doesn't include thread actor ID, so remove the thread actor ID from the root
-  threadActors.forEach(threadActor => {
-    if (root.includes(threadActor)) {
-      root = root.slice(threadActor.length + 1);
+  threads.forEach(thread => {
+    if (root.includes(thread.actor)) {
+      root = root.slice(thread.actor.length + 1);
     }
   });
 
@@ -505,16 +531,16 @@ export function underRoot(
     return (group + path).includes(root);
   }
 
-  return source.url && source.url.includes(root);
+  return !!source.url && source.url.includes(root);
 }
 
-export function isOriginal(source: Source) {
+export function isOriginal(source: Source): boolean {
   // Pretty-printed sources are given original IDs, so no need
   // for any additional check
   return isOriginalSource(source);
 }
 
-export function isGenerated(source: Source) {
+export function isGenerated(source: Source): boolean {
   return !isOriginal(source);
 }
 
@@ -526,11 +552,11 @@ export function getSourceQueryString(source: ?Source) {
   return parseURL(getRawSourceURL(source.url)).search;
 }
 
-export function isUrlExtension(url: string) {
+export function isUrlExtension(url: URL): boolean {
   return url.includes("moz-extension:") || url.includes("chrome-extension");
 }
 
-export function isExtensionDirectoryPath(url: string) {
+export function isExtensionDirectoryPath(url: URL): ?boolean {
   if (isUrlExtension(url)) {
     const urlArr = url.replace(/\/+/g, "/").split("/");
     let extensionIndex = urlArr.indexOf("moz-extension:");
@@ -541,7 +567,7 @@ export function isExtensionDirectoryPath(url: string) {
   }
 }
 
-export function getPlainUrl(url: string): string {
+export function getPlainUrl(url: URL): string {
   const queryStart = url.indexOf("?");
   return queryStart !== -1 ? url.slice(0, queryStart) : url;
 }

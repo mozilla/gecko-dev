@@ -36,6 +36,7 @@
 #include "mozilla/Encoding.h"
 #include "mozilla/dom/DocumentType.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/DocGroup.h"
 #include "mozilla/dom/XMLDocumentBinding.h"
 #include "mozilla/dom/DocumentBinding.h"
 
@@ -215,14 +216,14 @@ void XMLDocument::Reset(nsIChannel* aChannel, nsILoadGroup* aLoadGroup) {
 
 void XMLDocument::ResetToURI(nsIURI* aURI, nsILoadGroup* aLoadGroup,
                              nsIPrincipal* aPrincipal,
-                             nsIPrincipal* aStoragePrincipal) {
+                             nsIPrincipal* aPartitionedPrincipal) {
   if (mChannelIsPending) {
     StopDocumentLoad();
     mChannel->Cancel(NS_BINDING_ABORTED);
     mChannelIsPending = false;
   }
 
-  Document::ResetToURI(aURI, aLoadGroup, aPrincipal, aStoragePrincipal);
+  Document::ResetToURI(aURI, aLoadGroup, aPrincipal, aPartitionedPrincipal);
 }
 
 void XMLDocument::SetSuppressParserErrorElement(bool aSuppress) {
@@ -250,11 +251,6 @@ nsresult XMLDocument::StartDocumentLoad(const char* aCommand,
   nsresult rv = Document::StartDocumentLoad(
       aCommand, aChannel, aLoadGroup, aContainer, aDocListener, aReset, aSink);
   if (NS_FAILED(rv)) return rv;
-
-  if (nsCRT::strcmp("loadAsInteractiveData", aCommand) == 0) {
-    mLoadedAsInteractiveData = true;
-    aCommand = kLoadAsData;  // XBL, for example, needs scripts and styles
-  }
 
   int32_t charsetSource = kCharsetFromDocTypeDefault;
   NotNull<const Encoding*> encoding = UTF_8_ENCODING;
@@ -303,7 +299,7 @@ nsresult XMLDocument::StartDocumentLoad(const char* aCommand,
 void XMLDocument::EndLoad() {
   mChannelIsPending = false;
 
-  mSynchronousDOMContentLoaded = (mLoadedAsData || mLoadedAsInteractiveData);
+  mSynchronousDOMContentLoaded = mLoadedAsData;
   Document::EndLoad();
   if (mSynchronousDOMContentLoaded) {
     mSynchronousDOMContentLoaded = false;

@@ -27,7 +27,7 @@ ResultCode DuplicateHandleProxy(HANDLE source_handle,
 
   SharedMemIPCClient ipc(memory);
   CrossCallReturn answer = {0};
-  ResultCode code = CrossCall(ipc, IPC_DUPLICATEHANDLEPROXY_TAG,
+  ResultCode code = CrossCall(ipc, IpcTag::DUPLICATEHANDLEPROXY,
                               source_handle, target_process_id,
                               desired_access, options, &answer);
   if (SBOX_ALL_OK != code)

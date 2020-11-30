@@ -184,7 +184,7 @@ bool WebGLContext::ValidateAttribArraySetter(uint32_t setterElemSize,
 static webgl::Limits MakeLimits(const WebGLContext& webgl) {
   webgl::Limits limits;
 
-  for (const auto i : IntegerRange(EnumValue(WebGLExtensionID::Max))) {
+  for (const auto i : IntegerRange(UnderlyingValue(WebGLExtensionID::Max))) {
     const auto ext = WebGLExtensionID(i);
     limits.supportedExtensions[ext] = webgl.IsExtensionSupported(ext);
   }
@@ -574,19 +574,6 @@ bool WebGLContext::InitAndValidateGL(FailureReason* const out_failReason) {
   // vertex array object (the name zero) is also deprecated. [...]"
   mDefaultVertexArray = WebGLVertexArray::Create(this);
   mDefaultVertexArray->BindVertexArray();
-
-  mPixelStore.mFlipY = false;
-  mPixelStore.mPremultiplyAlpha = false;
-  mPixelStore.mColorspaceConversion = BROWSER_DEFAULT_WEBGL;
-  mPixelStore.mRequireFastPath = false;
-
-  // GLES 3.0.4, p259:
-  mPixelStore.mUnpackImageHeight = 0;
-  mPixelStore.mUnpackSkipImages = 0;
-  mPixelStore.mUnpackRowLength = 0;
-  mPixelStore.mUnpackSkipRows = 0;
-  mPixelStore.mUnpackSkipPixels = 0;
-  mPixelStore.mUnpackAlignment = 4;
 
   mPrimRestartTypeBytes = 0;
 

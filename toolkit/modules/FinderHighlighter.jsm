@@ -103,7 +103,11 @@ const kModalStyles = {
     ["z-index", 1],
   ],
   maskNodeTransition: [["transition", "background .2s ease-in"]],
-  maskNodeDebug: [["z-index", 2147483646], ["top", 0], ["left", 0]],
+  maskNodeDebug: [
+    ["z-index", 2147483646],
+    ["top", 0],
+    ["left", 0],
+  ],
   maskNodeBrightText: [["background", "rgba(255,255,255,.25)"]],
 };
 const kModalOutlineAnim = {
@@ -705,7 +709,7 @@ FinderHighlighter.prototype = {
 
       // Since the frame is an element inside a parent window, we'd like to
       // learn its position relative to it.
-      let el = this._getDWU(currWin).containerElement;
+      let el = currWin.browsingContext.embedderElement;
       currWin = currWin.parent;
       dwu = this._getDWU(currWin);
       let parentRect = Rect.fromRect(dwu.getBoundsWithoutFlushing(el));
@@ -1372,7 +1376,10 @@ FinderHighlighter.prototype = {
     }
     let maskStyle = this._getStyleString(
       kModalStyles.maskNode,
-      [["width", width + "px"], ["height", height + "px"]],
+      [
+        ["width", width + "px"],
+        ["height", height + "px"],
+      ],
       dict.brightText ? kModalStyles.maskNodeBrightText : [],
       paintContent ? kModalStyles.maskNodeTransition : [],
       kDebug ? kModalStyles.maskNodeDebug : []
@@ -1564,8 +1571,8 @@ FinderHighlighter.prototype = {
         } = (dict.lastWindowDimensions = this._getWindowDimensions(window));
         pageContentChanged =
           dict.detectedGeometryChange ||
-          (Math.abs(previousWidth - width) > kContentChangeThresholdPx ||
-            Math.abs(previousHeight - height) > kContentChangeThresholdPx);
+          Math.abs(previousWidth - width) > kContentChangeThresholdPx ||
+          Math.abs(previousHeight - height) > kContentChangeThresholdPx;
       }
       dict.detectedGeometryChange = false;
       // When the page has changed significantly enough in size, we'll restart
@@ -1882,9 +1889,8 @@ FinderHighlighter.prototype = {
     }
   },
 
-  WillDeleteSelection(selection) {
-    let editor = this._getEditableNode(selection.getRangeAt(0).startContainer)
-      .editor;
+  WillDeleteRanges(rangesToDelete) {
+    let { editor } = this._getEditableNode(rangesToDelete[0].startContainer);
     let controller = editor.selectionController;
     let fSelection = controller.getSelection(
       Ci.nsISelectionController.SELECTION_FIND
@@ -1894,7 +1900,7 @@ FinderHighlighter.prototype = {
     let numberOfDeletedSelections = 0;
     let numberOfMatches = fSelection.rangeCount;
 
-    // We need to test if any ranges in the deleted selection (selection)
+    // We need to test if any ranges to be deleted
     // are in any of the ranges of the find selection
     // Usually both selections will only contain one range, however
     // either may contain more than one.
@@ -1903,12 +1909,11 @@ FinderHighlighter.prototype = {
       shouldDelete[fIndex] = false;
       let fRange = fSelection.getRangeAt(fIndex);
 
-      for (let index = 0; index < selection.rangeCount; index++) {
+      for (let selRange of rangesToDelete) {
         if (shouldDelete[fIndex]) {
           continue;
         }
 
-        let selRange = selection.getRangeAt(index);
         let doesOverlap = this._checkOverlap(selRange, fRange);
         if (doesOverlap) {
           shouldDelete[fIndex] = true;

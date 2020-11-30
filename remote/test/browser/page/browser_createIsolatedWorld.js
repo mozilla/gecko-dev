@@ -6,30 +6,122 @@
 // Test Page.createIsolatedWorld
 
 const DOC = toDataURL("default-test-page");
+const DOC_IFRAME = toDataURL(`<iframe src="data:text/html,${DOC}"></iframe>`);
+
 const WORLD_NAME_1 = "testWorld1";
 const WORLD_NAME_2 = "testWorld2";
-const WORLD_NAME_3 = "testWorld3";
+
 const DESTROYED = "Runtime.executionContextDestroyed";
 const CREATED = "Runtime.executionContextCreated";
 const CLEARED = "Runtime.executionContextsCleared";
 
-add_task(async function createContextNoRuntimeDomain({ client }) {
+add_task(async function frameIdMissing({ client }) {
   const { Page } = client;
-  const { frameId } = await Page.navigate({ url: DOC });
-  const { executionContextId: isolatedId } = await Page.createIsolatedWorld({
-    frameId,
-    worldName: WORLD_NAME_1,
-    grantUniversalAccess: true,
-  });
-  ok(typeof isolatedId == "number", "Page.createIsolatedWorld returns an id");
+
+  let errorThrown = "";
+  try {
+    await Page.createIsolatedWorld({
+      worldName: WORLD_NAME_1,
+      grantUniversalAccess: true,
+    });
+  } catch (e) {
+    errorThrown = e.message;
+  }
+  ok(
+    errorThrown.match(/frameId: string value expected/),
+    `Fails with missing frameId`
+  );
 });
 
-add_task(async function createContextRuntimeDisabled({ client }) {
-  const { Runtime, Page } = client;
+add_task(async function frameIdInvalidTypes({ client }) {
+  const { Page } = client;
+
+  for (const frameId of [null, true, 1, [], {}]) {
+    let errorThrown = "";
+    try {
+      await Page.createIsolatedWorld({
+        frameId,
+      });
+    } catch (e) {
+      errorThrown = e.message;
+    }
+    ok(
+      errorThrown.match(/frameId: string value expected/),
+      `Fails with invalid type: ${frameId}`
+    );
+  }
+});
+
+add_task(async function worldNameInvalidTypes({ client }) {
+  const { Page } = client;
+
+  await Page.enable();
+  info("Page notifications are enabled");
+
+  const loadEvent = Page.loadEventFired();
+  const { frameId } = await Page.navigate({ url: DOC });
+  await loadEvent;
+
+  for (const worldName of [null, true, 1, [], {}]) {
+    let errorThrown = "";
+    try {
+      await Page.createIsolatedWorld({
+        frameId,
+        worldName,
+      });
+    } catch (e) {
+      errorThrown = e.message;
+    }
+    ok(
+      errorThrown.match(/worldName: string value expected/),
+      `Fails with invalid type: ${worldName}`
+    );
+  }
+});
+
+add_task(async function noEventsWhenRuntimeDomainDisabled({ client }) {
+  const { Page, Runtime } = client;
+
+  await Page.enable();
+  info("Page notifications are enabled");
+
   const history = recordEvents(Runtime, 0);
+  const loadEvent = Page.loadEventFired();
+  const { frameId } = await Page.navigate({ url: DOC });
+  await loadEvent;
+
+  let errorThrown = "";
+  try {
+    await Page.createIsolatedWorld({
+      frameId,
+      worldName: WORLD_NAME_1,
+      grantUniversalAccess: true,
+    });
+    await assertEventOrder({ history, expectedEvents: [] });
+  } catch (e) {
+    errorThrown = e.message;
+  }
+  todo(
+    errorThrown === "",
+    "No contexts tracked internally without Runtime enabled (Bug 1623482)"
+  );
+});
+
+add_task(async function noEventsAfterRuntimeDomainDisabled({ client }) {
+  const { Page, Runtime } = client;
+
+  await Page.enable();
+  info("Page notifications are enabled");
+
+  await enableRuntime(client);
   await Runtime.disable();
   info("Runtime notifications are disabled");
+
+  const history = recordEvents(Runtime, 0);
+  const loadEvent = Page.loadEventFired();
   const { frameId } = await Page.navigate({ url: DOC });
+  await loadEvent;
+
   await Page.createIsolatedWorld({
     frameId,
     worldName: WORLD_NAME_2,
@@ -39,36 +131,37 @@ add_task(async function createContextRuntimeDisabled({ client }) {
 });
 
 add_task(async function contextCreatedAfterNavigation({ client }) {
-  const { Runtime, Page } = client;
-  const history = recordEvents(Runtime, 4);
-  await Runtime.enable();
-  info("Runtime notifications are enabled");
+  const { Page, Runtime } = client;
+
   await Page.enable();
   info("Page notifications are enabled");
-  info("Navigating...");
-  const { frameId } = await Page.navigate({ url: DOC });
 
-  // Workaround for Bug 1603776 TODO
-  const { frame } = await Page.frameNavigated();
-  is(frame.url, DOC, "Navigated to expected url");
+  await enableRuntime(client);
+
+  const history = recordEvents(Runtime, 3);
+  const loadEvent = Page.loadEventFired();
+  const { frameId } = await Page.navigate({ url: DOC });
+  await loadEvent;
 
   const { executionContextId: isolatedId } = await Page.createIsolatedWorld({
     frameId,
-    worldName: WORLD_NAME_3,
+    worldName: WORLD_NAME_1,
     grantUniversalAccess: true,
   });
   await assertEventOrder({
     history,
     expectedEvents: [
-      CREATED, // default, about:blank
       DESTROYED, // default, about:blank
       CREATED, // default, DOC
       CREATED, // isolated, DOC
     ],
-    timeout: 2000,
   });
-  const defaultContext = history.events[2].payload.context;
-  const isolatedContext = history.events[3].payload.context;
+
+  const contexts = history
+    .findEvents(CREATED)
+    .map(event => event.payload.context);
+  const defaultContext = contexts[0];
+  const isolatedContext = contexts[1];
   is(defaultContext.auxData.isDefault, true, "Default context is default");
   is(
     defaultContext.auxData.type,
@@ -76,17 +169,22 @@ add_task(async function contextCreatedAfterNavigation({ client }) {
     "Default context has type 'default'"
   );
   is(defaultContext.origin, DOC, "Default context has expected origin");
-  checkIsolated(isolatedContext, isolatedId, WORLD_NAME_3);
+  checkIsolated(isolatedContext, isolatedId, WORLD_NAME_1, frameId);
   compareContexts(isolatedContext, defaultContext);
 });
 
-add_task(async function contextDestroyedAfterNavigation({ client }) {
-  const { Runtime, Page } = client;
-  const { isolatedId, defaultContext } = await setupContexts(Page, Runtime);
-  is(defaultContext.auxData.isDefault, true, "Default context is default");
+add_task(async function contextDestroyedForNavigation({ client }) {
+  const { Page, Runtime } = client;
+
+  const defaultContext = await enableRuntime(client);
+  const isolatedContext = await createIsolatedContext(client, defaultContext);
+
+  await Page.enable();
+
   const history = recordEvents(Runtime, 4, true);
-  info("Navigating...");
+  const frameNavigated = Page.frameNavigated();
   await Page.navigate({ url: DOC });
+  await frameNavigated;
 
   await assertEventOrder({
     history,
@@ -96,30 +194,133 @@ add_task(async function contextDestroyedAfterNavigation({ client }) {
       CLEARED,
       CREATED, // default, DOC
     ],
-    timeout: 2000,
   });
-  const destroyed = [
-    history.events[0].payload.executionContextId,
-    history.events[1].payload.executionContextId,
-  ];
-  ok(destroyed.includes(isolatedId), "Isolated context destroyed");
+
+  const destroyed = history
+    .findEvents(DESTROYED)
+    .map(event => event.payload.executionContextId);
+  ok(destroyed.includes(isolatedContext.id), "Isolated context destroyed");
   ok(destroyed.includes(defaultContext.id), "Default context destroyed");
 
-  const newContext = history.events[3].payload.context;
+  const { context: newContext } = history.findEvent(CREATED).payload;
   is(newContext.auxData.isDefault, true, "The new context is a default one");
   ok(!!newContext.id, "The new context has an id");
   ok(
-    ![isolatedId, defaultContext.id].includes(newContext.id),
+    ![defaultContext.id, isolatedContext.id].includes(newContext.id),
+    "The new context has a new id"
+  );
+});
+
+add_task(async function contextsForFramesetNavigation({ client }) {
+  const { Page, Runtime } = client;
+
+  await Page.enable();
+  info("Page notifications are enabled");
+
+  await enableRuntime(client);
+
+  // check creation when navigating to a frameset
+  const historyTo = recordEvents(Runtime, 5);
+  const loadEventTo = Page.loadEventFired();
+  const { frameId: frameIdTo } = await Page.navigate({ url: DOC_IFRAME });
+  await loadEventTo;
+
+  const { frameTree } = await Page.getFrameTree();
+  const subFrame = frameTree.childFrames[0].frame;
+
+  const {
+    executionContextId: contextIdParent,
+  } = await Page.createIsolatedWorld({
+    frameId: frameIdTo,
+    worldName: WORLD_NAME_1,
+    grantUniversalAccess: true,
+  });
+  const {
+    executionContextId: contextIdSubFrame,
+  } = await Page.createIsolatedWorld({
+    frameId: subFrame.id,
+    worldName: WORLD_NAME_2,
+    grantUniversalAccess: true,
+  });
+
+  await assertEventOrder({
+    history: historyTo,
+    expectedEvents: [
+      DESTROYED, // default, about:blank
+      CREATED, // default, DOC_IFRAME
+      CREATED, // default, DOC
+      CREATED, // isolated, DOC_IFRAME
+      CREATED, // isolated, DOC
+    ],
+  });
+
+  const contextsCreated = historyTo
+    .findEvents(CREATED)
+    .map(event => event.payload.context);
+  const parentDefaultContextCreated = contextsCreated[0];
+  const frameDefaultContextCreated = contextsCreated[1];
+  const parentIsolatedContextCreated = contextsCreated[2];
+  const frameIsolatedContextCreated = contextsCreated[3];
+
+  checkIsolated(
+    parentIsolatedContextCreated,
+    contextIdParent,
+    WORLD_NAME_1,
+    frameIdTo
+  );
+  compareContexts(parentIsolatedContextCreated, parentDefaultContextCreated);
+
+  checkIsolated(
+    frameIsolatedContextCreated,
+    contextIdSubFrame,
+    WORLD_NAME_2,
+    subFrame.id
+  );
+  compareContexts(frameIsolatedContextCreated, frameDefaultContextCreated);
+
+  // check destroying when navigating away from a frameset
+  const historyFrom = recordEvents(Runtime, 6);
+  const loadEventFrom = Page.loadEventFired();
+  await Page.navigate({ url: DOC });
+  await loadEventFrom;
+
+  await assertEventOrder({
+    history: historyFrom,
+    expectedEvents: [
+      DESTROYED, // default, DOC
+      DESTROYED, // isolated, DOC
+      DESTROYED, // default, DOC_IFRAME
+      DESTROYED, // isolated, DOC_IFRAME
+      CREATED, // default, DOC
+    ],
+  });
+
+  const contextsDestroyed = historyFrom
+    .findEvents(DESTROYED)
+    .map(event => event.payload.executionContextId);
+  contextsCreated.forEach(context => {
+    ok(
+      contextsDestroyed.includes(context.id),
+      `Context with id ${context.id} destroyed`
+    );
+  });
+
+  const { context: newContext } = historyFrom.findEvent(CREATED).payload;
+  is(newContext.auxData.isDefault, true, "The new context is a default one");
+  ok(!!newContext.id, "The new context has an id");
+  ok(
+    ![parentDefaultContextCreated.id, frameDefaultContextCreated.id].includes(
+      newContext.id
+    ),
     "The new context has a new id"
   );
 });
 
 add_task(async function evaluateInIsolatedAndDefault({ client }) {
-  const { Runtime, Page } = client;
-  const { isolatedContext, defaultContext } = await setupContexts(
-    Page,
-    Runtime
-  );
+  const { Runtime } = client;
+
+  const defaultContext = await enableRuntime(client);
+  const isolatedContext = await createIsolatedContext(client, defaultContext);
 
   const { result: objDefault } = await Runtime.evaluate({
     contextId: defaultContext.id,
@@ -135,7 +336,8 @@ add_task(async function evaluateInIsolatedAndDefault({ client }) {
     arguments: [{ objectId: objIsolated.objectId }],
   });
   is(result1.value, 11, "Isolated context incremented the expected value");
-  let errorThrown;
+
+  let errorThrown = "";
   try {
     await Runtime.callFunctionOn({
       executionContextId: isolatedContext.id,
@@ -146,20 +348,21 @@ add_task(async function evaluateInIsolatedAndDefault({ client }) {
     errorThrown = e.message;
   }
   ok(
-    errorThrown.match(/Cannot find object with ID/),
+    errorThrown.match(/Could not find object with given id/),
     "Contexts do not share objects"
   );
 });
 
 add_task(async function contextEvaluationIsIsolated({ client }) {
-  const { Runtime, Page } = client;
+  const { Runtime } = client;
+
   // If a document makes changes to standard global object, an isolated
   // world should not be affected
   await loadURL(toDataURL("<script>window.Node = null</script>"));
-  const { isolatedContext, defaultContext } = await setupContexts(
-    Page,
-    Runtime
-  );
+
+  const defaultContext = await enableRuntime(client);
+  const isolatedContext = await createIsolatedContext(client, defaultContext);
+
   const { result: result1 } = await Runtime.callFunctionOn({
     executionContextId: defaultContext.id,
     functionDeclaration: "arg => window.Node",
@@ -176,18 +379,21 @@ add_task(async function contextEvaluationIsIsolated({ client }) {
   );
 });
 
-function checkIsolated(context, expectedId, expectedName) {
-  ok(!!context.id, "Isolated context has an id");
-  ok(!!context.origin, "Isolated context has an origin");
-  ok(!!context.auxData.frameId, "Isolated context has a frameId");
-  is(context.name, expectedName, "Isolated context is named as requested");
+function checkIsolated(context, expectedId, expectedName, expectedFrameId) {
   is(
     expectedId,
     context.id,
     "createIsolatedWorld returns id of isolated context"
   );
+  is(
+    context.auxData.frameId,
+    expectedFrameId,
+    "Isolated context has expected frameId"
+  );
   is(context.auxData.isDefault, false, "Isolated context is not default");
   is(context.auxData.type, "isolated", "Isolated context has type 'isolated'");
+  is(context.name, expectedName, "Isolated context is named as requested");
+  ok(!!context.origin, "Isolated context has an origin");
 }
 
 function compareContexts(isolatedContext, defaultContext) {
@@ -213,22 +419,28 @@ function compareContexts(isolatedContext, defaultContext) {
   );
 }
 
-async function setupContexts(Page, Runtime) {
-  const defaultContextCreated = Runtime.executionContextCreated();
-  await Runtime.enable();
-  info("Runtime notifications are enabled");
-  const defaultContext = (await defaultContextCreated).context;
+async function createIsolatedContext(
+  client,
+  defaultContext,
+  worldName = WORLD_NAME_1
+) {
+  const { Page, Runtime } = client;
+
+  const frameId = defaultContext.auxData.frameId;
+
   const isolatedContextCreated = Runtime.executionContextCreated();
   const { executionContextId: isolatedId } = await Page.createIsolatedWorld({
-    frameId: defaultContext.auxData.frameId,
-    worldName: WORLD_NAME_1,
+    frameId,
+    worldName,
     grantUniversalAccess: true,
   });
-  const isolatedContext = (await isolatedContextCreated).context;
+  const { context: isolatedContext } = await isolatedContextCreated;
   info("Isolated world created");
-  checkIsolated(isolatedContext, isolatedId, WORLD_NAME_1);
+
+  checkIsolated(isolatedContext, isolatedId, worldName, frameId);
   compareContexts(isolatedContext, defaultContext);
-  return { isolatedContext, defaultContext, isolatedId };
+
+  return isolatedContext;
 }
 
 function recordEvents(Runtime, total, cleared = false) {
@@ -266,8 +478,16 @@ function recordEvents(Runtime, total, cleared = false) {
 async function assertEventOrder(options = {}) {
   const { history, expectedEvents, timeout = 1000 } = options;
   const events = await history.record(timeout);
+  const eventNames = events.map(item => item.eventName);
+  info(`Expected events: ${expectedEvents}`);
+  info(`Received events: ${eventNames}`);
+  is(
+    events.length,
+    expectedEvents.length,
+    "Received expected number of Runtime context events"
+  );
   Assert.deepEqual(
-    events.map(item => item.eventName),
+    eventNames,
     expectedEvents,
     "Received Runtime context events in expected order"
   );

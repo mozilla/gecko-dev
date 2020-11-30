@@ -21,14 +21,14 @@ async function checkPreloadedZoom(level, message) {
     }, ZOOM_CHANGE_TOPIC)
   );
 
-  is(browser.fullZoom, level, message);
+  is(browser.fullZoom.toFixed(2), level, message);
 
   // Clean up for other tests
   NewTabPagePreloading.removePreloadedBrowser(window);
 }
 
 add_task(async function test_default_zoom() {
-  await checkPreloadedZoom(1, "default preloaded zoom is 1");
+  await checkPreloadedZoom("1.00", "default preloaded zoom is 1");
 });
 
 /**
@@ -40,7 +40,7 @@ async function zoomNewTab(changeZoom, message) {
     "about:newtab"
   );
   changeZoom();
-  const level = tab.linkedBrowser.fullZoom;
+  const level = tab.linkedBrowser.fullZoom.toFixed(2);
   BrowserTestUtils.removeTab(tab);
 
   // Wait for the the update of the full-zoom content pref value, that happens
@@ -48,6 +48,7 @@ async function zoomNewTab(changeZoom, message) {
   let cps2 = Cc["@mozilla.org/content-pref/service;1"].getService(
     Ci.nsIContentPrefService2
   );
+
   await BrowserTestUtils.waitForCondition(() => {
     return new Promise(resolve => {
       cps2.getByDomainAndName(
@@ -58,7 +59,9 @@ async function zoomNewTab(changeZoom, message) {
           handleResult(pref) {
             resolve(level == pref.value);
           },
-          handleCompletion() {},
+          handleCompletion() {
+            console.log("handleCompletion");
+          },
         }
       );
     });

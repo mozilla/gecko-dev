@@ -1,13 +1,14 @@
 import os
 import sys
 
+from six import itervalues
+
 from .metadata import MetadataUpdateRunner
 from .sync import SyncFromUpstreamRunner
 from .tree import GitTree, HgTree, NoVCSTree
 
 from .base import Step, StepRunner, exit_clean, exit_unclean
 from .state import SavedState, UnsavedState
-
 
 def setup_paths(sync_path):
     sys.path.insert(0, os.path.abspath(sync_path))
@@ -110,7 +111,7 @@ class RemoveObsolete(Step):
         state.tests_path = state.paths["/"]["tests_path"]
         state.metadata_path = state.paths["/"]["metadata_path"]
 
-        for url_paths in paths.itervalues():
+        for url_paths in itervalues(paths):
             tests_path = url_paths["tests_path"]
             metadata_path = url_paths["metadata_path"]
             for dirpath, dirnames, filenames in os.walk(metadata_path):

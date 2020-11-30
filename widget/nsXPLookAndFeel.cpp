@@ -10,15 +10,16 @@
 #include "nsXPLookAndFeel.h"
 #include "nsLookAndFeel.h"
 #include "HeadlessLookAndFeel.h"
+#include "nsContentUtils.h"
 #include "nsCRT.h"
 #include "nsFont.h"
+#include "nsIXULRuntime.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "mozilla/ServoStyleSet.h"
 #include "mozilla/StaticPrefs_editor.h"
 #include "mozilla/StaticPrefs_findbar.h"
-#include "mozilla/StaticPrefs_fission.h"
 #include "mozilla/StaticPrefs_ui.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/widget/WidgetMessageUtils.h"
@@ -35,70 +36,76 @@
 
 using namespace mozilla;
 
+// To make one of these prefs toggleable from a reftest add a user
+// pref in testing/profiles/reftest/user.js. For example, to make
+// ui.useAccessibilityTheme toggleable, add:
+//
+// user_pref("ui.useAccessibilityTheme", 0);
+//
 nsLookAndFeelIntPref nsXPLookAndFeel::sIntPrefs[] = {
-    {"ui.caretBlinkTime", eIntID_CaretBlinkTime, false, 0},
-    {"ui.caretWidth", eIntID_CaretWidth, false, 0},
-    {"ui.caretVisibleWithSelection", eIntID_ShowCaretDuringSelection, false, 0},
-    {"ui.submenuDelay", eIntID_SubmenuDelay, false, 0},
-    {"ui.dragThresholdX", eIntID_DragThresholdX, false, 0},
-    {"ui.dragThresholdY", eIntID_DragThresholdY, false, 0},
-    {"ui.useAccessibilityTheme", eIntID_UseAccessibilityTheme, false, 0},
-    {"ui.menusCanOverlapOSBar", eIntID_MenusCanOverlapOSBar, false, 0},
-    {"ui.useOverlayScrollbars", eIntID_UseOverlayScrollbars, false, 0},
-    {"ui.scrollbarDisplayOnMouseMove", eIntID_ScrollbarDisplayOnMouseMove,
+    {"ui.caretBlinkTime", IntID::CaretBlinkTime, false, 0},
+    {"ui.caretWidth", IntID::CaretWidth, false, 0},
+    {"ui.caretVisibleWithSelection", IntID::ShowCaretDuringSelection, false, 0},
+    {"ui.submenuDelay", IntID::SubmenuDelay, false, 0},
+    {"ui.dragThresholdX", IntID::DragThresholdX, false, 0},
+    {"ui.dragThresholdY", IntID::DragThresholdY, false, 0},
+    {"ui.useAccessibilityTheme", IntID::UseAccessibilityTheme, false, 0},
+    {"ui.menusCanOverlapOSBar", IntID::MenusCanOverlapOSBar, false, 0},
+    {"ui.useOverlayScrollbars", IntID::UseOverlayScrollbars, false, 0},
+    {"ui.scrollbarDisplayOnMouseMove", IntID::ScrollbarDisplayOnMouseMove,
      false, 0},
-    {"ui.scrollbarFadeBeginDelay", eIntID_ScrollbarFadeBeginDelay, false, 0},
-    {"ui.scrollbarFadeDuration", eIntID_ScrollbarFadeDuration, false, 0},
-    {"ui.showHideScrollbars", eIntID_ShowHideScrollbars, false, 0},
-    {"ui.skipNavigatingDisabledMenuItem", eIntID_SkipNavigatingDisabledMenuItem,
+    {"ui.scrollbarFadeBeginDelay", IntID::ScrollbarFadeBeginDelay, false, 0},
+    {"ui.scrollbarFadeDuration", IntID::ScrollbarFadeDuration, false, 0},
+    {"ui.showHideScrollbars", IntID::ShowHideScrollbars, false, 0},
+    {"ui.skipNavigatingDisabledMenuItem", IntID::SkipNavigatingDisabledMenuItem,
      false, 0},
-    {"ui.treeOpenDelay", eIntID_TreeOpenDelay, false, 0},
-    {"ui.treeCloseDelay", eIntID_TreeCloseDelay, false, 0},
-    {"ui.treeLazyScrollDelay", eIntID_TreeLazyScrollDelay, false, 0},
-    {"ui.treeScrollDelay", eIntID_TreeScrollDelay, false, 0},
-    {"ui.treeScrollLinesMax", eIntID_TreeScrollLinesMax, false, 0},
-    {"accessibility.tabfocus", eIntID_TabFocusModel, false, 0},
-    {"ui.alertNotificationOrigin", eIntID_AlertNotificationOrigin, false, 0},
-    {"ui.scrollToClick", eIntID_ScrollToClick, false, 0},
-    {"ui.IMERawInputUnderlineStyle", eIntID_IMERawInputUnderlineStyle, false,
+    {"ui.treeOpenDelay", IntID::TreeOpenDelay, false, 0},
+    {"ui.treeCloseDelay", IntID::TreeCloseDelay, false, 0},
+    {"ui.treeLazyScrollDelay", IntID::TreeLazyScrollDelay, false, 0},
+    {"ui.treeScrollDelay", IntID::TreeScrollDelay, false, 0},
+    {"ui.treeScrollLinesMax", IntID::TreeScrollLinesMax, false, 0},
+    {"accessibility.tabfocus", IntID::TabFocusModel, false, 0},
+    {"ui.alertNotificationOrigin", IntID::AlertNotificationOrigin, false, 0},
+    {"ui.scrollToClick", IntID::ScrollToClick, false, 0},
+    {"ui.IMERawInputUnderlineStyle", IntID::IMERawInputUnderlineStyle, false,
      0},
     {"ui.IMESelectedRawTextUnderlineStyle",
-     eIntID_IMESelectedRawTextUnderlineStyle, false, 0},
-    {"ui.IMEConvertedTextUnderlineStyle", eIntID_IMEConvertedTextUnderlineStyle,
+     IntID::IMESelectedRawTextUnderlineStyle, false, 0},
+    {"ui.IMEConvertedTextUnderlineStyle", IntID::IMEConvertedTextUnderlineStyle,
      false, 0},
     {"ui.IMESelectedConvertedTextUnderlineStyle",
-     eIntID_IMESelectedConvertedTextUnderline, false, 0},
-    {"ui.SpellCheckerUnderlineStyle", eIntID_SpellCheckerUnderlineStyle, false,
+     IntID::IMESelectedConvertedTextUnderline, false, 0},
+    {"ui.SpellCheckerUnderlineStyle", IntID::SpellCheckerUnderlineStyle, false,
      0},
     {"ui.scrollbarButtonAutoRepeatBehavior",
-     eIntID_ScrollbarButtonAutoRepeatBehavior, false, 0},
-    {"ui.tooltipDelay", eIntID_TooltipDelay, false, 0},
-    {"ui.contextMenuOffsetVertical", eIntID_ContextMenuOffsetVertical, false,
+     IntID::ScrollbarButtonAutoRepeatBehavior, false, 0},
+    {"ui.tooltipDelay", IntID::TooltipDelay, false, 0},
+    {"ui.contextMenuOffsetVertical", IntID::ContextMenuOffsetVertical, false,
      0},
-    {"ui.contextMenuOffsetHorizontal", eIntID_ContextMenuOffsetHorizontal,
+    {"ui.contextMenuOffsetHorizontal", IntID::ContextMenuOffsetHorizontal,
      false, 0},
-    {"ui.GtkCSDAvailable", eIntID_GTKCSDAvailable, false, 0},
-    {"ui.GtkCSDHideTitlebarByDefault", eIntID_GTKCSDHideTitlebarByDefault,
+    {"ui.GtkCSDAvailable", IntID::GTKCSDAvailable, false, 0},
+    {"ui.GtkCSDHideTitlebarByDefault", IntID::GTKCSDHideTitlebarByDefault,
      false, 0},
-    {"ui.GtkCSDTransparentBackground", eIntID_GTKCSDTransparentBackground,
+    {"ui.GtkCSDTransparentBackground", IntID::GTKCSDTransparentBackground,
      false, 0},
-    {"ui.GtkCSDMinimizeButton", eIntID_GTKCSDMinimizeButton, false, 0},
-    {"ui.GtkCSDMaximizeButton", eIntID_GTKCSDMaximizeButton, false, 0},
-    {"ui.GtkCSDCloseButton", eIntID_GTKCSDCloseButton, false, 0},
-    {"ui.systemUsesDarkTheme", eIntID_SystemUsesDarkTheme, false, 0},
-    {"ui.prefersReducedMotion", eIntID_PrefersReducedMotion, false, 0},
-    {"ui.primaryPointerCapabilities", eIntID_PrimaryPointerCapabilities, false,
+    {"ui.GtkCSDMinimizeButton", IntID::GTKCSDMinimizeButton, false, 0},
+    {"ui.GtkCSDMaximizeButton", IntID::GTKCSDMaximizeButton, false, 0},
+    {"ui.GtkCSDCloseButton", IntID::GTKCSDCloseButton, false, 0},
+    {"ui.systemUsesDarkTheme", IntID::SystemUsesDarkTheme, false, 0},
+    {"ui.prefersReducedMotion", IntID::PrefersReducedMotion, false, 0},
+    {"ui.primaryPointerCapabilities", IntID::PrimaryPointerCapabilities, false,
      6 /* fine and hover-capable pointer, i.e. mouse-type */},
-    {"ui.allPointerCapabilities", eIntID_AllPointerCapabilities, false,
+    {"ui.allPointerCapabilities", IntID::AllPointerCapabilities, false,
      6 /* fine and hover-capable pointer, i.e. mouse-type */},
 };
 
 nsLookAndFeelFloatPref nsXPLookAndFeel::sFloatPrefs[] = {
-    {"ui.IMEUnderlineRelativeSize", eFloatID_IMEUnderlineRelativeSize, false,
+    {"ui.IMEUnderlineRelativeSize", FloatID::IMEUnderlineRelativeSize, false,
      0},
     {"ui.SpellCheckerUnderlineRelativeSize",
-     eFloatID_SpellCheckerUnderlineRelativeSize, false, 0},
-    {"ui.caretAspectRatio", eFloatID_CaretAspectRatio, false, 0},
+     FloatID::SpellCheckerUnderlineRelativeSize, false, 0},
+    {"ui.caretAspectRatio", FloatID::CaretAspectRatio, false, 0},
 };
 
 // This array MUST be kept in the same order as the color list in
@@ -139,6 +146,12 @@ const char nsXPLookAndFeel::sColorPrefs[][41] = {
     "ui.IMESelectedConvertedTextForeground",
     "ui.IMESelectedConvertedTextUnderline",
     "ui.SpellCheckerUnderline",
+    "ui.themedScrollbar",
+    "ui.themedScrollbarInactive",
+    "ui.themedScrollbarThumb",
+    "ui.themedScrollbarThumbHover",
+    "ui.themedScrollbarThumbActive",
+    "ui.themedScrollbarThumbInactive",
     "ui.activeborder",
     "ui.activecaption",
     "ui.appworkspace",
@@ -220,7 +233,9 @@ const char nsXPLookAndFeel::sColorPrefs[][41] = {
     "ui.-moz-visitedhyperlinktext",
     "ui.-moz-comboboxtext",
     "ui.-moz-combobox",
-    "ui.-moz-gtk-info-bar-text"};
+    "ui.-moz-gtk-info-bar-text",
+    "ui.-moz-colheadertext",
+    "ui.-moz-colheaderhovertext"};
 
 int32_t nsXPLookAndFeel::sCachedColors[size_t(LookAndFeel::ColorID::End)] = {0};
 int32_t nsXPLookAndFeel::sCachedColorBits[COLOR_CACHE_SIZE] = {0};
@@ -279,7 +294,7 @@ void nsXPLookAndFeel::IntPrefChanged(nsLookAndFeelIntPref* data) {
 #endif
   }
 
-  NotifyPrefChanged();
+  NotifyChangedAllWindows();
 }
 
 // static
@@ -305,7 +320,7 @@ void nsXPLookAndFeel::FloatPrefChanged(nsLookAndFeelFloatPref* data) {
 #endif
   }
 
-  NotifyPrefChanged();
+  NotifyChangedAllWindows();
 }
 
 // static
@@ -339,15 +354,7 @@ void nsXPLookAndFeel::ColorPrefChanged(unsigned int index,
 #endif
   }
 
-  NotifyPrefChanged();
-}
-
-// static
-void nsXPLookAndFeel::NotifyPrefChanged() {
-  nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
-  if (obs) {
-    obs->NotifyObservers(nullptr, "look-and-feel-pref-changed", nullptr);
-  }
+  NotifyChangedAllWindows();
 }
 
 void nsXPLookAndFeel::InitFromPref(nsLookAndFeelIntPref* aPref) {
@@ -454,10 +461,10 @@ void nsXPLookAndFeel::Init() {
   if (XRE_IsContentProcess()) {
     mozilla::dom::ContentChild* cc = mozilla::dom::ContentChild::GetSingleton();
 
-    LookAndFeel::SetIntCache(cc->LookAndFeelCache());
+    LookAndFeel::SetCache(cc->BorrowLookAndFeelCache());
     // This is only ever used once during initialization, and can be cleared
     // now.
-    cc->LookAndFeelCache().Clear();
+    cc->BorrowLookAndFeelCache().Clear();
   }
 }
 
@@ -641,6 +648,8 @@ nscolor nsXPLookAndFeel::GetStandinForNativeColor(ColorID aID) {
       result = NS_RGB(0xF0, 0xF0, 0xF0);
       break;
     case ColorID::MozDialogtext:
+    case ColorID::MozColheadertext:
+    case ColorID::MozColheaderhovertext:
       result = NS_RGB(0x00, 0x00, 0x00);
       break;
     case ColorID::MozDragtargetzone:
@@ -878,8 +887,7 @@ nsresult nsXPLookAndFeel::GetColorImpl(ColorID aID,
 #endif
 
   if (aID == ColorID::TextSelectBackgroundAttention) {
-    if (StaticPrefs::findbar_modalHighlight() &&
-        !StaticPrefs::fission_autostart()) {
+    if (StaticPrefs::findbar_modalHighlight() && !mozilla::FissionAutostart()) {
       aResult = NS_RGBA(0, 0, 0, 0);
       return NS_OK;
     }
@@ -941,13 +949,13 @@ nsresult nsXPLookAndFeel::GetIntImpl(IntID aID, int32_t& aResult) {
   // Set the default values for these prefs. but allow different platforms
   // to override them in their nsLookAndFeel if desired.
   switch (aID) {
-    case eIntID_ScrollButtonLeftMouseButtonAction:
+    case IntID::ScrollButtonLeftMouseButtonAction:
       aResult = 0;
       return NS_OK;
-    case eIntID_ScrollButtonMiddleMouseButtonAction:
+    case IntID::ScrollButtonMiddleMouseButtonAction:
       aResult = 3;
       return NS_OK;
-    case eIntID_ScrollButtonRightMouseButtonAction:
+    case IntID::ScrollButtonRightMouseButtonAction:
       aResult = 3;
       return NS_OK;
     default:
@@ -997,13 +1005,15 @@ void nsXPLookAndFeel::RefreshImpl() {
   }
 }
 
-nsTArray<LookAndFeelInt> nsXPLookAndFeel::GetIntCacheImpl() {
-  return nsTArray<LookAndFeelInt>();
-}
+LookAndFeelCache nsXPLookAndFeel::GetCacheImpl() { return LookAndFeelCache{}; }
 
 static bool sRecordedLookAndFeelTelemetry = false;
 
 void nsXPLookAndFeel::RecordTelemetry() {
+  if (!XRE_IsParentProcess()) {
+    return;
+  }
+
   if (sRecordedLookAndFeelTelemetry) {
     return;
   }
@@ -1013,10 +1023,19 @@ void nsXPLookAndFeel::RecordTelemetry() {
   int32_t i;
   Telemetry::ScalarSet(
       Telemetry::ScalarID::WIDGET_DARK_MODE,
-      NS_SUCCEEDED(GetIntImpl(eIntID_SystemUsesDarkTheme, i)) && i != 0);
+      NS_SUCCEEDED(GetIntImpl(IntID::SystemUsesDarkTheme, i)) && i != 0);
+
+  RecordLookAndFeelSpecificTelemetry();
 }
 
 namespace mozilla {
+
+// static
+void LookAndFeel::NotifyChangedAllWindows() {
+  if (nsCOMPtr<nsIObserverService> obs = services::GetObserverService()) {
+    obs->NotifyObservers(nullptr, "look-and-feel-changed", nullptr);
+  }
+}
 
 // static
 nsresult LookAndFeel::GetColor(ColorID aID, nscolor* aResult) {
@@ -1073,41 +1092,13 @@ void LookAndFeel::Refresh() { nsLookAndFeel::GetInstance()->RefreshImpl(); }
 void LookAndFeel::NativeInit() { nsLookAndFeel::GetInstance()->NativeInit(); }
 
 // static
-nsTArray<LookAndFeelInt> LookAndFeel::GetIntCache() {
-  return nsLookAndFeel::GetInstance()->GetIntCacheImpl();
+LookAndFeelCache LookAndFeel::GetCache() {
+  return nsLookAndFeel::GetInstance()->GetCacheImpl();
 }
 
 // static
-void LookAndFeel::SetIntCache(
-    const nsTArray<LookAndFeelInt>& aLookAndFeelIntCache) {
-  return nsLookAndFeel::GetInstance()->SetIntCacheImpl(aLookAndFeelIntCache);
-}
-
-// static
-void LookAndFeel::SetShouldRetainCacheForTest(bool aValue) {
-  nsLookAndFeel::GetInstance()->SetShouldRetainCacheImplForTest(aValue);
-}
-
-// static
-void LookAndFeel::SetPrefersReducedMotionOverrideForTest(bool aValue) {
-  // Tell that the cache value we are going to set isn't cleared via
-  // nsPresContext::ThemeChangedInternal which is called right before
-  // we queue the media feature value change for this prefers-reduced-motion
-  // change.
-  SetShouldRetainCacheForTest(true);
-
-  int32_t value = aValue ? 1 : 0;
-
-  AutoTArray<LookAndFeelInt, 1> lookAndFeelCache;
-  lookAndFeelCache.AppendElement(
-      LookAndFeelInt{.id = eIntID_PrefersReducedMotion, .value = value});
-
-  SetIntCache(lookAndFeelCache);
-}
-
-// static
-void LookAndFeel::ResetPrefersReducedMotionOverrideForTest() {
-  SetShouldRetainCacheForTest(false);
+void LookAndFeel::SetCache(const LookAndFeelCache& aCache) {
+  nsLookAndFeel::GetInstance()->SetCacheImpl(aCache);
 }
 
 }  // namespace mozilla

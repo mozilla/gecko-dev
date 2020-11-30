@@ -12,7 +12,7 @@
 #include "mozilla/dom/Element.h"
 #include "nsCOMPtr.h"
 #include "nsIDOMEventListener.h"
-#include "nsIFrame.h"
+#include "nsIFrame.h"  // for WeakFrame only
 #include "nsISupportsBase.h"
 #include "nsISupportsImpl.h"
 #include "nsLiteralString.h"
@@ -191,7 +191,7 @@ class AccessibleCaret {
     }
 
    private:
-    virtual ~DummyTouchListener(){};
+    virtual ~DummyTouchListener() = default;
   };
 
   // Member variables
@@ -205,11 +205,12 @@ class AccessibleCaret {
 
   RefPtr<dom::AnonymousContent> mCaretElementHolder;
 
-  // mImaginaryCaretRect is relative to root frame.
+  // This cached rect is relative to the root frame, and is used in
+  // LogicalPosition() when dragging a caret.
   nsRect mImaginaryCaretRect;
 
-  // Cached mImaginaryCaretRect relative to the custom content container. This
-  // is used in SetPosition() to check whether the caret position has changed.
+  // This cached rect is relative to the custom content container, and is used
+  // in SetPosition() to check whether the caret position has changed.
   nsRect mImaginaryCaretRectInContainerFrame;
 
   // The reference frame we used to calculate mImaginaryCaretRect and

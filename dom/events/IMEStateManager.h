@@ -56,6 +56,11 @@ class IMEStateManager {
     if (sInstalledMenuKeyboardListener) {
       return nullptr;
     }
+    // If we know focused browser parent, use it for making any events related
+    // to composition go to same content process.
+    if (sFocusedIMEBrowserParent) {
+      return sFocusedIMEBrowserParent;
+    }
     return BrowserParent::GetFocused();
   }
 
@@ -71,6 +76,21 @@ class IMEStateManager {
       const BrowserParent* aBrowserParent) {
     MOZ_ASSERT(aBrowserParent);
     return sFocusedIMEBrowserParent == aBrowserParent;
+  }
+
+  /**
+   * If CanSendNotificationToWidget() returns false (it should occur
+   * only in a content process), we shouldn't notify the widget of
+   * any focused editor changes since the content process was blurred.
+   * Also, even if content process, widget has native text event dispatcher such
+   * as Android, it still notify it.
+   */
+  static bool CanSendNotificationToWidget() {
+#ifdef MOZ_WIDGET_ANDROID
+    return true;
+#else
+    return !sCleaningUpForStoppingIMEStateManagement;
+#endif
   }
 
   /**
@@ -164,15 +184,19 @@ class IMEStateManager {
   // isn't changed by the new state, this method does nothing.
   // Note that this method changes the IME state of the active element in the
   // widget.  So, the caller must have focus.
-  static void UpdateIMEState(const IMEState& aNewIMEState, nsIContent* aContent,
-                             EditorBase* aEditorBase);
+  // XXX Changing this to MOZ_CAN_RUN_SCRIPT requires too many callers to be
+  //     marked too.  Probably, we should initialize IMEContentObserver
+  //     asynchronously.
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY static void UpdateIMEState(
+      const IMEState& aNewIMEState, nsIContent* aContent,
+      EditorBase* aEditorBase);
 
   // This method is called when user operates mouse button in focused editor
   // and before the editor handles it.
   // Returns true if IME consumes the event.  Otherwise, false.
-  static bool OnMouseButtonEventInEditor(nsPresContext* aPresContext,
-                                         nsIContent* aContent,
-                                         WidgetMouseEvent* aMouseEvent);
+  MOZ_CAN_RUN_SCRIPT static bool OnMouseButtonEventInEditor(
+      nsPresContext* aPresContext, nsIContent* aContent,
+      WidgetMouseEvent* aMouseEvent);
 
   // This method is called when user clicked in an editor.
   // aContent must be:
@@ -197,13 +221,16 @@ class IMEStateManager {
   // destroyed.
   static void OnEditorDestroying(EditorBase& aEditorBase);
 
+  // This method is called when focus is set to same content again.
+  static void OnReFocus(nsPresContext* aPresContext, nsIContent& aContent);
+
   /**
    * All composition events must be dispatched via DispatchCompositionEvent()
    * for storing the composition target and ensuring a set of composition
    * events must be fired the stored target.  If the stored composition event
    * target is destroying, this removes the stored composition automatically.
    */
-  static void DispatchCompositionEvent(
+  MOZ_CAN_RUN_SCRIPT static void DispatchCompositionEvent(
       nsINode* aEventTargetNode, nsPresContext* aPresContext,
       BrowserParent* aBrowserParent, WidgetCompositionEvent* aCompositionEvent,
       nsEventStatus* aStatus, EventDispatchingCallback* aCallBack,
@@ -282,7 +309,13 @@ class IMEStateManager {
                                  nsIContent* aContent);
 
   static void EnsureTextCompositionArray();
-  static void CreateIMEContentObserver(EditorBase* aEditorBase);
+
+  // XXX Changing this to MOZ_CAN_RUN_SCRIPT requires too many callers to be
+  //     marked too.  Probably, we should initialize IMEContentObserver
+  //     asynchronously.
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY static void CreateIMEContentObserver(
+      EditorBase* aEditorBase);
+
   static void DestroyIMEContentObserver();
 
   static bool IsEditable(nsINode* node);
@@ -353,6 +386,10 @@ class IMEStateManager {
 
   static bool sIsGettingNewIMEState;
   static bool sCheckForIMEUnawareWebApps;
+
+  // Set to true only if this is an instance in a content process and
+  // only while `IMEStateManager::StopIMEStateManagement()`.
+  static bool sCleaningUpForStoppingIMEStateManagement;
 
   class MOZ_STACK_CLASS GettingNewIMEStateBlocker final {
    public:

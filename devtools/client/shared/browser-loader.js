@@ -136,6 +136,20 @@ function BrowserLoaderBuilder({
     sandboxName: "DevTools (UI loader)",
     paths: Object.assign({}, dynamicPaths, loaderOptions.paths),
     invisibleToDebugger: loaderOptions.invisibleToDebugger,
+    // Make sure `define` function exists.  This allows defining some modules
+    // in AMD format while retaining CommonJS compatibility through this hook.
+    // JSON Viewer needs modules in AMD format, as it currently uses RequireJS
+    // from a content document and can't access our usual loaders.  So, any
+    // modules shared with the JSON Viewer should include a define wrapper:
+    //
+    //   // Make this available to both AMD and CJS environments
+    //   define(function(require, exports, module) {
+    //     ... code ...
+    //   });
+    //
+    // Bug 1248830 will work out a better plan here for our content module
+    // loading needs, especially as we head towards devtools.html.
+    supportAMDModules: true,
     requireHook: (id, require) => {
       // If |id| requires special handling, simply defer to devtools
       // immediately.
@@ -174,22 +188,6 @@ function BrowserLoaderBuilder({
       // Allow modules to use the window's console to ensure logs appear in a
       // tab toolbox, if one exists, instead of just the browser console.
       console: window.console,
-      // Make sure `define` function exists.  This allows defining some modules
-      // in AMD format while retaining CommonJS compatibility through this hook.
-      // JSON Viewer needs modules in AMD format, as it currently uses RequireJS
-      // from a content document and can't access our usual loaders.  So, any
-      // modules shared with the JSON Viewer should include a define wrapper:
-      //
-      //   // Make this available to both AMD and CJS environments
-      //   define(function(require, exports, module) {
-      //     ... code ...
-      //   });
-      //
-      // Bug 1248830 will work out a better plan here for our content module
-      // loading needs, especially as we head towards devtools.html.
-      define(factory) {
-        factory(this.require, this.exports, this.module);
-      },
       // Allow modules to use the DevToolsLoader lazy loading helpers.
       loader: {
         lazyGetter: loader.lazyGetter,
@@ -215,21 +213,38 @@ BrowserLoaderBuilder.prototype = {
    * module. This enables delaying importing modules until the module is
    * actually used.
    *
-   * @param Object obj
+   * Several getters can be defined at once by providing an array of
+   * properties and enabling destructuring.
+   *
+   * @param { Object } obj
    *    The object to define the property on.
-   * @param String property
-   *    The property name.
-   * @param String module
+   * @param { String | Array<String> } properties
+   *    String: Name of the property for the getter.
+   *    Array<String>: When destructure is true, properties can be an array of
+   *    strings to create several getters at once.
+   * @param { String } module
    *    The module path.
-   * @param Boolean destructure
+   * @param { Boolean } destructure
    *    Pass true if the property name is a member of the module's exports.
    */
-  lazyRequireGetter: function(obj, property, module, destructure) {
-    loader.lazyGetter(obj, property, () => {
-      return destructure
-        ? this.require(module)[property]
-        : this.require(module || property);
-    });
+  lazyRequireGetter: function(obj, properties, module, destructure) {
+    if (Array.isArray(properties) && !destructure) {
+      throw new Error(
+        "Pass destructure=true to call lazyRequireGetter with an array of properties"
+      );
+    }
+
+    if (!Array.isArray(properties)) {
+      properties = [properties];
+    }
+
+    for (const property of properties) {
+      loader.lazyGetter(obj, property, () => {
+        return destructure
+          ? this.require(module)[property]
+          : this.require(module || property);
+      });
+    }
   },
 };
 

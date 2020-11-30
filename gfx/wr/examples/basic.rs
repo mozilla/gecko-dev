@@ -17,6 +17,7 @@ use winit::TouchPhase;
 use std::collections::HashMap;
 use webrender::ShaderPrecacheFlags;
 use webrender::api::*;
+use webrender::render_api::*;
 use webrender::api::units::*;
 
 
@@ -183,14 +184,14 @@ impl Example for App {
 
     fn render(
         &mut self,
-        api: &RenderApi,
+        api: &mut RenderApi,
         builder: &mut DisplayListBuilder,
         txn: &mut Transaction,
         _: DeviceIntSize,
         pipeline_id: PipelineId,
         _document_id: DocumentId,
     ) {
-        let content_bounds = LayoutRect::new(LayoutPoint::zero(), builder.content_size());
+        let content_bounds = LayoutRect::new(LayoutPoint::zero(), LayoutSize::new(800.0, 600.0));
         let root_space_and_clip = SpaceAndClipInfo::root_scroll(pipeline_id);
         let spatial_id = root_space_and_clip.spatial_id;
 
@@ -217,11 +218,16 @@ impl Example for App {
             BorderRadius::uniform(20.0),
             ClipMode::Clip
         );
-        let clip_id = builder.define_clip(
+        let mask_clip_id = builder.define_clip_image_mask(
             &root_space_and_clip,
-            content_bounds,
-            vec![complex],
-            Some(mask)
+            mask,
+        );
+        let clip_id = builder.define_clip_rounded_rect(
+            &SpaceAndClipInfo {
+                spatial_id: root_space_and_clip.spatial_id,
+                clip_id: mask_clip_id,
+            },
+            complex,
         );
 
         builder.push_rect(
@@ -229,6 +235,7 @@ impl Example for App {
                 (100, 100).to(200, 200),
                 SpaceAndClipInfo { spatial_id, clip_id },
             ),
+            (100, 100).to(200, 200),
             ColorF::new(0.0, 1.0, 0.0, 1.0),
         );
 
@@ -237,6 +244,7 @@ impl Example for App {
                 (250, 100).to(350, 200),
                 SpaceAndClipInfo { spatial_id, clip_id },
             ),
+            (250, 100).to(350, 200),
             ColorF::new(0.0, 1.0, 0.0, 1.0),
         );
         let border_side = BorderSide {
@@ -289,7 +297,7 @@ impl Example for App {
         builder.pop_stacking_context();
     }
 
-    fn on_event(&mut self, event: winit::WindowEvent, api: &RenderApi, document_id: DocumentId) -> bool {
+    fn on_event(&mut self, event: winit::WindowEvent, api: &mut RenderApi, document_id: DocumentId) -> bool {
         let mut txn = Transaction::new();
         match event {
             winit::WindowEvent::Touch(touch) => match self.touch_state.handle_event(touch) {

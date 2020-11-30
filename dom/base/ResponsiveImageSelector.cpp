@@ -11,6 +11,7 @@
 #include "mozilla/TextUtils.h"
 #include "nsIURI.h"
 #include "mozilla/dom/Document.h"
+#include "mozilla/dom/DocumentInlines.h"
 #include "nsContentUtils.h"
 #include "nsPresContext.h"
 
@@ -106,18 +107,9 @@ ResponsiveImageSelector::ResponsiveImageSelector(dom::Document* aDocument)
 
 ResponsiveImageSelector::~ResponsiveImageSelector() = default;
 
-// http://www.whatwg.org/specs/web-apps/current-work/#processing-the-image-candidates
-bool ResponsiveImageSelector::SetCandidatesFromSourceSet(
-    const nsAString& aSrcSet, nsIPrincipal* aTriggeringPrincipal) {
-  ClearSelectedCandidate();
-
-  if (!mOwnerNode || !mOwnerNode->GetBaseURI()) {
-    MOZ_ASSERT(false, "Should not be parsing SourceSet without a document");
-    return false;
-  }
-
-  mCandidates.Clear();
-
+void ResponsiveImageSelector::ParseSourceSet(
+    const nsAString& aSrcSet,
+    FunctionRef<void(ResponsiveImageCandidate&&)> aCallback) {
   nsAString::const_iterator iter, end;
   aSrcSet.BeginReading(iter);
   aSrcSet.EndReading(end);
@@ -159,14 +151,33 @@ bool ResponsiveImageSelector::SetCandidatesFromSourceSet(
     ResponsiveImageCandidate candidate;
     if (candidate.ConsumeDescriptors(iter, end)) {
       candidate.SetURLSpec(urlStr);
-      candidate.SetTriggeringPrincipal(
-          nsContentUtils::GetAttrTriggeringPrincipal(Content(), urlStr,
-                                                     aTriggeringPrincipal));
-      AppendCandidateIfUnique(candidate);
+      aCallback(std::move(candidate));
     }
   }
+}
 
-  bool parsedCandidates = mCandidates.Length() > 0;
+// http://www.whatwg.org/specs/web-apps/current-work/#processing-the-image-candidates
+bool ResponsiveImageSelector::SetCandidatesFromSourceSet(
+    const nsAString& aSrcSet, nsIPrincipal* aTriggeringPrincipal) {
+  ClearSelectedCandidate();
+
+  if (!mOwnerNode || !mOwnerNode->GetBaseURI()) {
+    MOZ_ASSERT(false, "Should not be parsing SourceSet without a document");
+    return false;
+  }
+
+  mCandidates.Clear();
+
+  auto eachCandidate = [&](ResponsiveImageCandidate&& aCandidate) {
+    aCandidate.SetTriggeringPrincipal(
+        nsContentUtils::GetAttrTriggeringPrincipal(
+            Content(), aCandidate.URLString(), aTriggeringPrincipal));
+    AppendCandidateIfUnique(std::move(aCandidate));
+  };
+
+  ParseSourceSet(aSrcSet, eachCandidate);
+
+  bool parsedCandidates = !mCandidates.IsEmpty();
 
   // Re-add default to end of list
   MaybeAppendDefaultCandidate();
@@ -178,9 +189,7 @@ uint32_t ResponsiveImageSelector::NumCandidates(bool aIncludeDefault) {
   uint32_t candidates = mCandidates.Length();
 
   // If present, the default candidate is the last item
-  if (!aIncludeDefault && candidates &&
-      (mCandidates[candidates - 1].Type() ==
-       ResponsiveImageCandidate::eCandidateType_Default)) {
+  if (!aIncludeDefault && candidates && mCandidates.LastElement().IsDefault()) {
     candidates--;
   }
 
@@ -200,10 +209,8 @@ void ResponsiveImageSelector::SetDefaultSource(const nsAString& aURLString,
   ClearSelectedCandidate();
 
   // Check if the last element of our candidates is a default
-  int32_t candidates = mCandidates.Length();
-  if (candidates && (mCandidates[candidates - 1].Type() ==
-                     ResponsiveImageCandidate::eCandidateType_Default)) {
-    mCandidates.RemoveElementAt(candidates - 1);
+  if (!mCandidates.IsEmpty() && mCandidates.LastElement().IsDefault()) {
+    mCandidates.RemoveLastElement();
   }
 
   mDefaultSourceURL = aURLString;
@@ -227,12 +234,12 @@ bool ResponsiveImageSelector::SetSizesFromDescriptor(const nsAString& aSizes) {
 }
 
 void ResponsiveImageSelector::AppendCandidateIfUnique(
-    const ResponsiveImageCandidate& aCandidate) {
+    ResponsiveImageCandidate&& aCandidate) {
   int numCandidates = mCandidates.Length();
 
   // With the exception of Default, which should not be added until we are done
   // building the list.
-  if (aCandidate.Type() == ResponsiveImageCandidate::eCandidateType_Default) {
+  if (aCandidate.IsDefault()) {
     return;
   }
 
@@ -243,7 +250,7 @@ void ResponsiveImageSelector::AppendCandidateIfUnique(
     }
   }
 
-  mCandidates.AppendElement(aCandidate);
+  mCandidates.AppendElement(std::move(aCandidate));
 }
 
 void ResponsiveImageSelector::MaybeAppendDefaultCandidate() {
@@ -273,7 +280,7 @@ void ResponsiveImageSelector::MaybeAppendDefaultCandidate() {
   defaultCandidate.SetTriggeringPrincipal(mDefaultSourceTriggeringPrincipal);
   // We don't use MaybeAppend since we want to keep this even if it can never
   // match, as it may if the source set changes.
-  mCandidates.AppendElement(defaultCandidate);
+  mCandidates.AppendElement(std::move(defaultCandidate));
 }
 
 already_AddRefed<nsIURI> ResponsiveImageSelector::GetSelectedImageURL() {
@@ -415,16 +422,8 @@ bool ResponsiveImageSelector::ComputeFinalWidthForCurrentViewport(
 }
 
 ResponsiveImageCandidate::ResponsiveImageCandidate() {
-  mType = eCandidateType_Invalid;
+  mType = CandidateType::Invalid;
   mValue.mDensity = 1.0;
-}
-
-ResponsiveImageCandidate::ResponsiveImageCandidate(
-    const nsAString& aURLString, double aDensity,
-    nsIPrincipal* aTriggeringPrincipal)
-    : mURLString(aURLString), mTriggeringPrincipal(aTriggeringPrincipal) {
-  mType = eCandidateType_Density;
-  mValue.mDensity = aDensity;
 }
 
 void ResponsiveImageCandidate::SetURLSpec(const nsAString& aURLString) {
@@ -437,30 +436,30 @@ void ResponsiveImageCandidate::SetTriggeringPrincipal(
 }
 
 void ResponsiveImageCandidate::SetParameterAsComputedWidth(int32_t aWidth) {
-  mType = eCandidateType_ComputedFromWidth;
+  mType = CandidateType::ComputedFromWidth;
   mValue.mWidth = aWidth;
 }
 
 void ResponsiveImageCandidate::SetParameterDefault() {
-  MOZ_ASSERT(mType == eCandidateType_Invalid, "double setting candidate type");
+  MOZ_ASSERT(!IsValid(), "double setting candidate type");
 
-  mType = eCandidateType_Default;
+  mType = CandidateType::Default;
   // mValue shouldn't actually be used for this type, but set it to default
   // anyway
   mValue.mDensity = 1.0;
 }
 
 void ResponsiveImageCandidate::SetParameterInvalid() {
-  mType = eCandidateType_Invalid;
+  mType = CandidateType::Invalid;
   // mValue shouldn't actually be used for this type, but set it to default
   // anyway
   mValue.mDensity = 1.0;
 }
 
 void ResponsiveImageCandidate::SetParameterAsDensity(double aDensity) {
-  MOZ_ASSERT(mType == eCandidateType_Invalid, "double setting candidate type");
+  MOZ_ASSERT(!IsValid(), "double setting candidate type");
 
-  mType = eCandidateType_Density;
+  mType = CandidateType::Density;
   mValue.mDensity = aDensity;
 }
 
@@ -475,6 +474,9 @@ struct ResponsiveImageDescriptors {
   // We don't support "h" descriptors yet and they are not spec'd, but the
   // current spec does specify that they can be silently ignored (whereas
   // entirely unknown descriptors cause us to invalidate the candidate)
+  //
+  // If we ever start honoring them we should serialize them in
+  // AppendDescriptors.
   Maybe<int32_t> mFutureCompatHeight;
   // If this descriptor set is bogus, e.g. a value was added twice (and thus
   // dropped) or an unknown descriptor was added.
@@ -633,7 +635,7 @@ bool ResponsiveImageCandidate::ConsumeDescriptors(
 
   descriptors.FillCandidate(*this);
 
-  return Type() != eCandidateType_Invalid;
+  return IsValid();
 }
 
 bool ResponsiveImageCandidate::HasSameParameter(
@@ -642,18 +644,20 @@ bool ResponsiveImageCandidate::HasSameParameter(
     return false;
   }
 
-  if (mType == eCandidateType_Default) {
+  if (mType == CandidateType::Default) {
     return true;
   }
 
-  if (mType == eCandidateType_Density) {
+  if (mType == CandidateType::Density) {
     return aOther.mValue.mDensity == mValue.mDensity;
   }
 
-  if (mType == eCandidateType_Invalid) {
-    MOZ_ASSERT(false, "Comparing invalid candidates?");
+  if (mType == CandidateType::Invalid) {
+    MOZ_ASSERT_UNREACHABLE("Comparing invalid candidates?");
     return true;
-  } else if (mType == eCandidateType_ComputedFromWidth) {
+  }
+
+  if (mType == CandidateType::ComputedFromWidth) {
     return aOther.mValue.mWidth == mValue.mWidth;
   }
 
@@ -661,17 +665,9 @@ bool ResponsiveImageCandidate::HasSameParameter(
   return false;
 }
 
-const nsAString& ResponsiveImageCandidate::URLString() const {
-  return mURLString;
-}
-
-nsIPrincipal* ResponsiveImageCandidate::TriggeringPrincipal() const {
-  return mTriggeringPrincipal;
-}
-
 double ResponsiveImageCandidate::Density(
     ResponsiveImageSelector* aSelector) const {
-  if (mType == eCandidateType_ComputedFromWidth) {
+  if (mType == CandidateType::ComputedFromWidth) {
     double width;
     if (!aSelector->ComputeFinalWidthForCurrentViewport(&width)) {
       return 1.0;
@@ -680,24 +676,45 @@ double ResponsiveImageCandidate::Density(
   }
 
   // Other types don't need matching width
-  MOZ_ASSERT(mType == eCandidateType_Default || mType == eCandidateType_Density,
+  MOZ_ASSERT(mType == CandidateType::Default || mType == CandidateType::Density,
              "unhandled candidate type");
   return Density(-1);
 }
 
+void ResponsiveImageCandidate::AppendDescriptors(
+    nsAString& aDescriptors) const {
+  MOZ_ASSERT(IsValid());
+  switch (mType) {
+    case CandidateType::Default:
+    case CandidateType::Invalid:
+      return;
+    case CandidateType::ComputedFromWidth:
+      aDescriptors.Append(' ');
+      aDescriptors.AppendInt(mValue.mWidth);
+      aDescriptors.Append('w');
+      return;
+    case CandidateType::Density:
+      aDescriptors.Append(' ');
+      aDescriptors.AppendFloat(mValue.mDensity);
+      aDescriptors.Append('x');
+      return;
+  }
+}
+
 double ResponsiveImageCandidate::Density(double aMatchingWidth) const {
-  if (mType == eCandidateType_Invalid) {
+  if (mType == CandidateType::Invalid) {
     MOZ_ASSERT(false, "Getting density for uninitialized candidate");
     return 1.0;
   }
 
-  if (mType == eCandidateType_Default) {
+  if (mType == CandidateType::Default) {
     return 1.0;
   }
 
-  if (mType == eCandidateType_Density) {
+  if (mType == CandidateType::Density) {
     return mValue.mDensity;
-  } else if (mType == eCandidateType_ComputedFromWidth) {
+  }
+  if (mType == CandidateType::ComputedFromWidth) {
     if (aMatchingWidth < 0) {
       MOZ_ASSERT(
           false,
@@ -711,16 +728,6 @@ double ResponsiveImageCandidate::Density(double aMatchingWidth) const {
 
   MOZ_ASSERT(false, "Unknown candidate type");
   return 1.0;
-}
-
-bool ResponsiveImageCandidate::IsComputedFromWidth() const {
-  if (mType == eCandidateType_ComputedFromWidth) {
-    return true;
-  }
-
-  MOZ_ASSERT(mType == eCandidateType_Default || mType == eCandidateType_Density,
-             "Unknown candidate type");
-  return false;
 }
 
 }  // namespace dom

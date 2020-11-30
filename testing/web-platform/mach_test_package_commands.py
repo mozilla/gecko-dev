@@ -12,6 +12,7 @@ from mach.decorators import (
     CommandProvider,
     Command,
 )
+from mozbuild.base import MachCommandBase
 
 
 class WebPlatformTestsRunnerSetup(object):
@@ -23,7 +24,8 @@ class WebPlatformTestsRunnerSetup(object):
     def kwargs_firefox(self, kwargs):
         from wptrunner import wptcommandline
         if kwargs["config"] is None:
-            kwargs["config"] = os.path.join(self.context.package_root, 'web-platform', 'wptrunner.ini')
+            kwargs["config"] = os.path.join(
+                self.context.package_root, 'web-platform', 'wptrunner.ini')
         if kwargs["binary"] is None:
             kwargs["binary"] = self.context.firefox_bin
         if kwargs["prefs_root"] is None:
@@ -43,7 +45,8 @@ class WebPlatformTestsRunnerSetup(object):
                 kwargs["host_cert_path"] = os.path.join(cert_root, "web-platform.test.pem")
         kwargs["capture_stdio"] = True
 
-        if kwargs["exclude"] is None and kwargs["include"] is None and not sys.platform.startswith("linux"):
+        if (kwargs["exclude"] is None and kwargs["include"] is None
+           and not sys.platform.startswith("linux")):
             kwargs["exclude"] = ["css"]
 
         if kwargs["webdriver_binary"] is None:
@@ -56,16 +59,15 @@ class WebPlatformTestsRunnerSetup(object):
 
 
 @CommandProvider
-class MachCommands(object):
-    def __init__(self, context):
-        self.context = context
+class MachCommands(MachCommandBase):
 
     @Command("web-platform-tests",
              category="testing",
              parser=create_parser_wpt)
     def run_web_platform_tests(self, **kwargs):
-        self.context.activate_mozharness_venv()
-        return WebPlatformTestsRunner(WebPlatformTestsRunnerSetup(self.context)).run(**kwargs)
+        self._mach_context.activate_mozharness_venv()
+        return WebPlatformTestsRunner(
+            WebPlatformTestsRunnerSetup(self._mach_context)).run(**kwargs)
 
     @Command("wpt",
              category="testing",

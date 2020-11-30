@@ -26,6 +26,7 @@ pub enum AndroidError {
     Device(mozdevice::DeviceError),
     IO(io::Error),
     NotConnected,
+    PackageNotFound(String),
     Serde(serde_yaml::Error),
 }
 
@@ -33,11 +34,14 @@ impl fmt::Display for AndroidError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             AndroidError::ActivityNotFound(ref package) => {
-                write!(f, "Activity not found for package '{}'", package)
+                write!(f, "Activity for package '{}' not found", package)
             }
             AndroidError::Device(ref message) => message.fmt(f),
             AndroidError::IO(ref message) => message.fmt(f),
             AndroidError::NotConnected => write!(f, "Not connected to any Android device"),
+            AndroidError::PackageNotFound(ref package) => {
+                write!(f, "Package '{}' not found", package)
+            }
             AndroidError::Serde(ref message) => message.fmt(f),
         }
     }
@@ -88,6 +92,7 @@ impl AndroidProcess {
 
 #[derive(Debug, Default)]
 pub struct AndroidHandler {
+    pub config: PathBuf,
     pub options: AndroidOptions,
     pub process: Option<AndroidProcess>,
     pub profile: PathBuf,
@@ -105,6 +110,12 @@ impl Drop for AndroidHandler {
             match process.device.execute_host_shell_command(&clear_command) {
                 Ok(_) => debug!("Disabled reading from configuration file"),
                 Err(e) => error!("Failed disabling from configuration file: {}", e),
+            }
+
+            let remove_command = format!("rm -rf {}", self.config.display());
+            match process.device.execute_host_shell_command(&remove_command) {
+                Ok(_) => debug!("Deleted GeckoView configuration file"),
+                Err(e) => error!("Failed deleting GeckoView configuration file: {}", e),
             }
 
             match process.device.kill_forward_port(self.host_port) {
@@ -132,9 +143,15 @@ impl AndroidHandler {
             &options.package
         ));
 
+        let config = PathBuf::from(format!(
+            "/data/local/tmp/{}-geckoview-config.yaml",
+            &options.package
+        ));
+
         AndroidHandler {
             options: options.clone(),
             profile,
+            config,
             process: None,
             ..Default::default()
         }
@@ -160,21 +177,36 @@ impl AndroidHandler {
             &self.host_port, &self.target_port
         );
 
+        // Check if the specified package is installed
+        let response = device
+            .execute_host_shell_command(&format!("pm list packages {}", &self.options.package))?;
+        let packages = response
+            .split_terminator('\n')
+            .filter(|line| line.starts_with("package:"))
+            .map(|line| line.rsplit(':').next().expect("Package name found"))
+            .collect::<Vec<&str>>();
+        if !packages.contains(&self.options.package.as_str()) {
+            return Err(AndroidError::PackageNotFound(self.options.package.clone()));
+        }
+
         // If activity hasn't been specified default to the main activity of the package
         let activity = match self.options.activity {
             Some(ref activity) => activity.clone(),
             None => {
                 let response = device.execute_host_shell_command(&format!(
-                    "cmd package resolve-activity --brief {} | tail -n 1",
+                    "cmd package resolve-activity --brief {}",
                     &self.options.package
                 ))?;
-                let parts = response.trim_end().split('/').collect::<Vec<&str>>();
-
-                if parts.len() == 1 {
+                let activities = response
+                    .split_terminator('\n')
+                    .filter(|line| line.starts_with(&self.options.package))
+                    .map(|line| line.rsplit('/').next().unwrap())
+                    .collect::<Vec<&str>>();
+                if activities.is_empty() {
                     return Err(AndroidError::ActivityNotFound(self.options.package.clone()));
                 }
 
-                parts[1].to_owned()
+                activities[0].to_owned()
             }
         };
 
@@ -204,8 +236,8 @@ impl AndroidHandler {
         // TODO: Allow to write custom arguments and preferences from moz:firefoxOptions
         let mut config = Config {
             args: Value::Sequence(vec![
-                Value::String("-marionette".into()),
-                Value::String("-profile".into()),
+                Value::String("--marionette".into()),
+                Value::String("--profile".into()),
                 Value::String(self.profile.display().to_string()),
             ]),
             env: Mapping::new(),
@@ -269,25 +301,20 @@ impl AndroidHandler {
                     .device
                     .push_dir(&profile.path, &self.profile, 0o777)?;
 
-                let target_path = PathBuf::from(format!(
-                    "/data/local/tmp/{}-geckoview-config.yaml",
-                    process.package
-                ));
-
                 let contents = self.generate_config_file(env)?;
                 debug!("Content of generated GeckoView config file:\n{}", contents);
                 let reader = &mut io::BufReader::new(contents.as_bytes());
 
                 debug!(
                     "Pushing GeckoView configuration file to {}",
-                    target_path.display()
+                    self.config.display()
                 );
-                process.device.push(reader, &target_path, 0o777)?;
+                process.device.push(reader, &self.config, 0o777)?;
 
                 // Bug 1584966: File permissions are not correctly set by push()
                 process
                     .device
-                    .execute_host_shell_command(&format!("chmod a+rw {}", target_path.display()))?;
+                    .execute_host_shell_command(&format!("chmod a+rw {}", self.config.display()))?;
 
                 // Tell GeckoView to read configuration even when `android:debuggable="false"`.
                 process.device.execute_host_shell_command(&format!(
@@ -315,7 +342,7 @@ impl AndroidHandler {
                 intent_arguments.push("--es".to_owned());
                 intent_arguments.push("args".to_owned());
                 intent_arguments
-                    .push(format!("-marionette -profile {}", self.profile.display()).to_owned());
+                    .push(format!("--marionette --profile {}", self.profile.display()).to_owned());
 
                 debug!("Launching {}/{}", process.package, process.activity);
                 process

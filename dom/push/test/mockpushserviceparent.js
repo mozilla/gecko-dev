@@ -36,7 +36,7 @@ MockWebSocketParent.prototype = {
   _listener: null,
   _context: null,
 
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIWebSocketChannel]),
+  QueryInterface: ChromeUtils.generateQI(["nsIWebSocketChannel"]),
 
   get originalURI() {
     return this._originalURI;
@@ -120,7 +120,12 @@ var MockService = {
       sendAsyncMessage("service-request", {
         name,
         id,
-        params,
+        // The request params from the real push service may contain a
+        // principal, which cannot be passed to the unprivileged
+        // mochitest scope, and will cause the message to be dropped if
+        // present. The mochitest scope fortunately does not need the
+        // principal, though, so set it to null before sending.
+        params: Object.assign({}, params, { principal: null }),
       });
     });
   },

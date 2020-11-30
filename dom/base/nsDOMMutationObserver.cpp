@@ -68,7 +68,7 @@ NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(nsDOMMutationRecord, mTarget,
 
 bool nsMutationReceiverBase::IsObservable(nsIContent* aContent) {
   return !aContent->ChromeOnlyAccess() &&
-         (Observer()->IsChrome() || !aContent->IsInAnonymousSubtree());
+         (Observer()->IsChrome() || !aContent->IsInNativeAnonymousSubtree());
 }
 
 NS_IMPL_ADDREF(nsMutationReceiver)
@@ -593,7 +593,7 @@ void nsDOMMutationObserver::RescheduleForRun() {
 
 void nsDOMMutationObserver::Observe(
     nsINode& aTarget, const mozilla::dom::MutationObserverInit& aOptions,
-    mozilla::ErrorResult& aRv) {
+    nsIPrincipal& aSubjectPrincipal, mozilla::ErrorResult& aRv) {
   bool childList = aOptions.mChildList;
   bool attributes =
       aOptions.mAttributes.WasPassed() && aOptions.mAttributes.Value();
@@ -672,6 +672,13 @@ void nsDOMMutationObserver::Observe(
   r->SetAllAttributes(allAttrs);
   r->SetAnimations(animations);
   r->RemoveClones();
+
+  if (!aSubjectPrincipal.IsSystemPrincipal() &&
+      !aSubjectPrincipal.GetIsAddonOrExpandedAddonPrincipal()) {
+    if (nsPIDOMWindowInner* window = aTarget.OwnerDoc()->GetInnerWindow()) {
+      window->SetMutationObserverHasObservedNodeForTelemetry();
+    }
+  }
 
 #ifdef DEBUG
   for (int32_t i = 0; i < mReceivers.Count(); ++i) {
@@ -819,10 +826,11 @@ void nsDOMMutationObserver::HandleMutationsInternal(AutoSlowOperation& aAso) {
   //    contexts' signal slot list.
   //  * Empty unit of related similar-origin browsing contexts' signal slot
   //    list.
-  nsTArray<RefPtr<HTMLSlotElement>> signalList;
+  nsTArray<nsTArray<RefPtr<HTMLSlotElement>>> signalLists;
   if (DocGroup::sPendingDocGroups) {
+    signalLists.SetCapacity(DocGroup::sPendingDocGroups->Length());
     for (DocGroup* docGroup : *DocGroup::sPendingDocGroups) {
-      docGroup->MoveSignalSlotListTo(signalList);
+      signalLists.AppendElement(docGroup->MoveSignalSlotList());
     }
     delete DocGroup::sPendingDocGroups;
     DocGroup::sPendingDocGroups = nullptr;
@@ -859,9 +867,11 @@ void nsDOMMutationObserver::HandleMutationsInternal(AutoSlowOperation& aAso) {
     suppressedObservers = nullptr;
   }
 
-  // Fire slotchange event for each slot in signalList.
-  for (uint32_t i = 0; i < signalList.Length(); ++i) {
-    signalList[i]->FireSlotChangeEvent();
+  // Fire slotchange event for each slot in signalLists.
+  for (const nsTArray<RefPtr<HTMLSlotElement>>& signalList : signalLists) {
+    for (const RefPtr<HTMLSlotElement>& signal : signalList) {
+      signal->FireSlotChangeEvent();
+    }
   }
 }
 
@@ -911,16 +921,15 @@ void nsDOMMutationObserver::EnterMutationHandling() { ++sMutationLevel; }
 void nsDOMMutationObserver::LeaveMutationHandling() {
   if (sCurrentlyHandlingObservers &&
       sCurrentlyHandlingObservers->Length() == sMutationLevel) {
-    nsTArray<RefPtr<nsDOMMutationObserver>>& obs =
-        sCurrentlyHandlingObservers->ElementAt(sMutationLevel - 1);
+    nsTArray<RefPtr<nsDOMMutationObserver>> obs =
+        sCurrentlyHandlingObservers->PopLastElement();
     for (uint32_t i = 0; i < obs.Length(); ++i) {
       nsDOMMutationObserver* o = static_cast<nsDOMMutationObserver*>(obs[i]);
       if (o->mCurrentMutations.Length() == sMutationLevel) {
         // It is already in pending mutations.
-        o->mCurrentMutations.RemoveElementAt(sMutationLevel - 1);
+        o->mCurrentMutations.RemoveLastElement();
       }
     }
-    sCurrentlyHandlingObservers->RemoveElementAt(sMutationLevel - 1);
   }
   --sMutationLevel;
 }

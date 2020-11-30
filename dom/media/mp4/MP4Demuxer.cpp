@@ -298,7 +298,7 @@ UniquePtr<EncryptionInfo> MP4Demuxer::GetCrypto() {
   UniquePtr<EncryptionInfo> crypto;
   if (!mCryptoInitData.IsEmpty()) {
     crypto.reset(new EncryptionInfo{});
-    crypto->AddInitData(NS_LITERAL_STRING("cenc"), mCryptoInitData);
+    crypto->AddInitData(u"cenc"_ns, mCryptoInitData);
   }
   return crypto;
 }
@@ -422,7 +422,7 @@ already_AddRefed<MediaRawData> MP4TrackDemuxer::GetNextSample() {
       }
     } else if (mType == kVP9 && !sample->mCrypto.IsEncrypted()) {
       bool keyframe = VPXDecoder::IsKeyframe(
-          MakeSpan<const uint8_t>(sample->Data(), sample->Size()),
+          Span<const uint8_t>(sample->Data(), sample->Size()),
           VPXDecoder::Codec::VP9);
       if (sample->mKeyframe != keyframe) {
         NS_WARNING(nsPrintfCString(

@@ -48,7 +48,7 @@ void nsColorControlFrame::DestroyFrom(nsIFrame* aDestructRoot,
 
 #ifdef DEBUG_FRAME_DUMP
 nsresult nsColorControlFrame::GetFrameName(nsAString& aResult) const {
-  return MakeFrameName(NS_LITERAL_STRING("ColorControl"), aResult);
+  return MakeFrameName(u"ColorControl"_ns, aResult);
 }
 #endif
 
@@ -66,9 +66,9 @@ nsresult nsColorControlFrame::CreateAnonymousContent(
   nsresult rv = UpdateColor();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (!aElements.AppendElement(mColorContent)) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
+  // XXX(Bug 1631371) Check if this should use a fallible operation as it
+  // pretended earlier.
+  aElements.AppendElement(mColorContent);
 
   return NS_OK;
 }
@@ -105,7 +105,7 @@ nsresult nsColorControlFrame::UpdateColor() {
 
   // Set the background-color CSS property of the swatch element to this color.
   return mColorContent->SetAttr(kNameSpaceID_None, nsGkAtoms::style,
-                                NS_LITERAL_STRING("background-color:") + color,
+                                u"background-color:"_ns + color,
                                 /* aNotify */ true);
 }
 

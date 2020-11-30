@@ -10,8 +10,7 @@
 #define mozilla_ArrayIterator_h
 
 #include <iterator>
-
-#include "mozilla/TypeTraits.h"
+#include <type_traits>
 
 namespace mozilla {
 
@@ -52,7 +51,7 @@ class ArrayIterator {
   typedef ArrayType array_type;
   typedef ArrayIterator<Element, ArrayType> iterator_type;
   typedef typename array_type::index_type index_type;
-  typedef typename RemoveReference<Element>::Type value_type;
+  typedef std::remove_reference_t<Element> value_type;
   typedef ptrdiff_t difference_type;
   typedef value_type* pointer;
   typedef value_type& reference;

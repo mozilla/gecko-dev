@@ -14,10 +14,10 @@ const dom = require("devtools/client/shared/vendor/react-dom-factories");
 const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
 
 loader.lazyGetter(this, "Rep", function() {
-  return require("devtools/client/shared/components/reps/reps").REPS.Rep;
+  return require("devtools/client/shared/components/reps/index").REPS.Rep;
 });
 loader.lazyGetter(this, "MODE", function() {
-  return require("devtools/client/shared/components/reps/reps").MODE;
+  return require("devtools/client/shared/components/reps/index").MODE;
 });
 
 loader.lazyRequireGetter(
@@ -46,7 +46,6 @@ class GridItem extends PureComponent {
   constructor(props) {
     super(props);
 
-    this.colorValueEl = createRef();
     this.swatchEl = createRef();
 
     this.onGridCheckboxClick = this.onGridCheckboxClick.bind(this);
@@ -79,7 +78,7 @@ class GridItem extends PureComponent {
   }
 
   setGridColor() {
-    const color = this.colorValueEl.current.textContent;
+    const color = this.swatchEl.current.dataset.color;
     this.props.onSetGridOverlayColor(this.props.grid.nodeFront, color);
   }
 
@@ -159,23 +158,13 @@ class GridItem extends PureComponent {
         ),
         dom.div({
           className: "layout-color-swatch",
+          "data-color": grid.color,
           ref: this.swatchEl,
           style: {
             backgroundColor: grid.color,
           },
           title: grid.color,
-        }),
-        // The SwatchColorPicker relies on the nextSibling of the swatch element to apply
-        // the selected color. This is why we use a span in display: none for now.
-        // Ideally we should modify the SwatchColorPickerTooltip to bypass this
-        // requirement. See https://bugzilla.mozilla.org/show_bug.cgi?id=1341578
-        dom.span(
-          {
-            className: "layout-color-value",
-            ref: this.colorValueEl,
-          },
-          grid.color
-        )
+        })
       ),
       this.renderSubgrids()
     );

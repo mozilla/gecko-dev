@@ -10,11 +10,13 @@
 #include "nsAppShell.h"
 #include "nsJSUtils.h"
 #include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
+#include "js/String.h"    // JS::StringHasLatin1Chars
 #include "js/Warnings.h"  // JS::WarnUTF8
 #include "xpcpublic.h"
 
 #include "mozilla/ScopeExit.h"
 #include "mozilla/dom/ScriptSettings.h"
+#include "mozilla/java/EventCallbackWrappers.h"
 
 // Disable the C++ 2a warning. See bug #1509926
 #if defined(__clang__)
@@ -45,7 +47,7 @@ nsresult BoxString(JSContext* aCx, JS::HandleValue aData,
 
   JS::RootedString str(aCx, aData.toString());
 
-  if (JS_StringHasLatin1Chars(str)) {
+  if (JS::StringHasLatin1Chars(str)) {
     nsAutoJSString autoStr;
     NS_ENSURE_TRUE(CheckJS(aCx, autoStr.init(aCx, str)), NS_ERROR_FAILURE);
 
@@ -557,7 +559,7 @@ class JavaCallbackDelegate final : public nsIAndroidEventCallback {
     MOZ_ASSERT(NS_IsMainThread());
 
     jni::Object::LocalRef data(jni::GetGeckoThreadEnv());
-    nsresult rv = BoxData(NS_LITERAL_STRING("callback"), aCx, aData, data,
+    nsresult rv = BoxData(u"callback"_ns, aCx, aData, data,
                           /* ObjectOnly */ false);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -605,8 +607,8 @@ class NativeCallbackDelegateSupport final
     NS_ENSURE_TRUE_VOID(jsapi.Init(mGlobalObject));
 
     JS::RootedValue data(jsapi.cx());
-    nsresult rv = UnboxData(NS_LITERAL_STRING("callback"), jsapi.cx(), aData,
-                            &data, /* BundleOnly */ false);
+    nsresult rv = UnboxData(u"callback"_ns, jsapi.cx(), aData, &data,
+                            /* BundleOnly */ false);
     NS_ENSURE_SUCCESS_VOID(rv);
 
     rv = (mCallback->*aCall)(data, jsapi.cx());
@@ -951,6 +953,11 @@ void EventDispatcher::Attach(java::EventDispatcher::Param aDispatcher,
   dispatcher->SetAttachedToGecko(java::EventDispatcher::ATTACHED);
 }
 
+void EventDispatcher::Shutdown() {
+  mDispatcher = nullptr;
+  mDOMWindow = nullptr;
+}
+
 void EventDispatcher::Detach() {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(mDispatcher);
@@ -963,8 +970,7 @@ void EventDispatcher::Detach() {
     dispatcher->SetAttachedToGecko(java::EventDispatcher::DETACHED);
   }
 
-  mDispatcher = nullptr;
-  mDOMWindow = nullptr;
+  Shutdown();
 }
 
 bool EventDispatcher::HasGeckoListener(jni::String::Param aEvent) {

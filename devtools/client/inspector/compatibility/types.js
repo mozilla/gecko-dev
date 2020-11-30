@@ -22,8 +22,10 @@ const browser = {
   version: PropTypes.string.isRequired,
 };
 
+const node = PropTypes.object;
+
 const issue = {
-  // Type of this issue. The type should be one of MDNCompatibility.ISSUE_TYPE.
+  // Type of this issue. The type should be one of COMPATIBILITY_ISSUE_TYPE.
   type: PropTypes.string.isRequired,
   // The CSS property which caused this issue.
   property: PropTypes.string.isRequired,
@@ -33,9 +35,16 @@ const issue = {
   deprecated: PropTypes.bool.isRequired,
   // Whether the CSS property is experimental or not.
   experimental: PropTypes.bool.isRequired,
+  // Whether the CSS property is needed prefix to cover all target browsers or not.
+  prefixNeeded: PropTypes.bool.isRequired,
   // The browsers which do not support the CSS property.
   unsupportedBrowsers: PropTypes.arrayOf(PropTypes.shape(browser)).isRequired,
+  // Nodes that caused this issue. This will be available for top-level target issues only.
+  nodes: PropTypes.arrayOf(node),
+  // Prefixed properties that the user set.
+  aliases: PropTypes.arrayOf(PropTypes.string),
 };
 
 exports.browser = browser;
 exports.issue = issue;
+exports.node = node;

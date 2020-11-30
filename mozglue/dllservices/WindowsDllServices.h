@@ -19,14 +19,12 @@
 #include "mozilla/mozalloc.h"
 
 #if defined(MOZILLA_INTERNAL_API)
-
 #  include "MainThreadUtils.h"
-#  include "mozilla/SystemGroup.h"
 #  include "nsISupportsImpl.h"
 #  include "nsString.h"
 #  include "nsThreadUtils.h"
 #  include "prthread.h"
-
+#  include "mozilla/SchedulerGroup.h"
 #endif  // defined(MOZILLA_INTERNAL_API)
 
 // For PCUNICODE_STRING
@@ -60,15 +58,21 @@ class DllServicesBase : public Authenticode {
     mAuthenticode = aAuthenticode;
   }
 
-  void SetInitDllBlocklistOOPFnPtr(
-      nt::LoaderAPI::InitDllBlocklistOOPFnPtr aPtr) {
-    mInitDllBlocklistOOPFnPtr = aPtr;
+  void SetWinLauncherFunctions(const nt::WinLauncherFunctions& aFunctions) {
+    mWinLauncherFunctions = aFunctions;
   }
 
   template <typename... Args>
   LauncherVoidResultWithLineInfo InitDllBlocklistOOP(Args&&... aArgs) {
-    MOZ_RELEASE_ASSERT(mInitDllBlocklistOOPFnPtr);
-    return mInitDllBlocklistOOPFnPtr(std::forward<Args>(aArgs)...);
+    MOZ_RELEASE_ASSERT(mWinLauncherFunctions.mInitDllBlocklistOOP);
+    return mWinLauncherFunctions.mInitDllBlocklistOOP(
+        std::forward<Args>(aArgs)...);
+  }
+
+  template <typename... Args>
+  void HandleLauncherError(Args&&... aArgs) {
+    MOZ_RELEASE_ASSERT(mWinLauncherFunctions.mHandleLauncherError);
+    mWinLauncherFunctions.mHandleLauncherError(std::forward<Args>(aArgs)...);
   }
 
   // In debug builds we override GetBinaryOrgName to add a Gecko-specific
@@ -99,8 +103,7 @@ class DllServicesBase : public Authenticode {
   DllServicesBase& operator=(DllServicesBase&&) = delete;
 
  protected:
-  DllServicesBase()
-      : mAuthenticode(nullptr), mInitDllBlocklistOOPFnPtr(nullptr) {}
+  DllServicesBase() : mAuthenticode(nullptr) {}
 
   virtual ~DllServicesBase() = default;
 
@@ -109,7 +112,7 @@ class DllServicesBase : public Authenticode {
 
  private:
   Authenticode* mAuthenticode;
-  nt::LoaderAPI::InitDllBlocklistOOPFnPtr mInitDllBlocklistOOPFnPtr;
+  nt::WinLauncherFunctions mWinLauncherFunctions;
 };
 
 }  // namespace detail
@@ -150,7 +153,7 @@ class DllServices : public detail::DllServicesBase {
             "DllServices::NotifyDllLoad", this, &DllServices::NotifyDllLoad,
             std::move(aModLoadInfo)));
 
-    SystemGroup::Dispatch(TaskCategory::Other, runnable.forget());
+    SchedulerGroup::Dispatch(TaskCategory::Other, runnable.forget());
   }
 
   void DispatchModuleLoadBacklogNotification(
@@ -160,7 +163,7 @@ class DllServices : public detail::DllServicesBase {
             "DllServices::NotifyModuleLoadBacklog", this,
             &DllServices::NotifyModuleLoadBacklog, std::move(aEvents)));
 
-    SystemGroup::Dispatch(TaskCategory::Other, runnable.forget());
+    SchedulerGroup::Dispatch(TaskCategory::Other, runnable.forget());
   }
 
 #  if defined(DEBUG)

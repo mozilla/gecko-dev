@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/dom/cache/CacheStreamControlChild.h"
+#include "CacheStreamControlChild.h"
 
 #include "mozilla/Unused.h"
 #include "mozilla/dom/cache/ActorUtils.h"
@@ -28,13 +28,8 @@ using mozilla::ipc::FileDescriptorSetChild;
 using mozilla::ipc::PFileDescriptorSetChild;
 
 // declared in ActorUtils.h
-PCacheStreamControlChild* AllocPCacheStreamControlChild() {
-  return new CacheStreamControlChild();
-}
-
-// declared in ActorUtils.h
-void DeallocPCacheStreamControlChild(PCacheStreamControlChild* aActor) {
-  delete aActor;
+already_AddRefed<PCacheStreamControlChild> AllocPCacheStreamControlChild() {
+  return MakeAndAddRef<CacheStreamControlChild>();
 }
 
 CacheStreamControlChild::CacheStreamControlChild()
@@ -110,14 +105,15 @@ void CacheStreamControlChild::OpenStream(const nsID& aId,
   // rejection here in many cases, we must handle the case where the
   // MozPromise resolve runnable is already in the event queue when the
   // worker wants to shut down.
-  RefPtr<CacheWorkerRef> holder = GetWorkerRef();
+  const SafeRefPtr<CacheWorkerRef> holder = GetWorkerRefPtr().clonePtr();
 
   SendOpenStream(aId)->Then(
-      GetCurrentThreadSerialEventTarget(), __func__,
-      [aResolver, holder](RefPtr<nsIInputStream>&& aOptionalStream) {
+      GetCurrentSerialEventTarget(), __func__,
+      [aResolver,
+       holder = holder.clonePtr()](RefPtr<nsIInputStream>&& aOptionalStream) {
         aResolver(nsCOMPtr<nsIInputStream>(std::move(aOptionalStream)));
       },
-      [aResolver, holder](ResponseRejectReason&& aReason) {
+      [aResolver, holder = holder.clonePtr()](ResponseRejectReason&& aReason) {
         aResolver(nullptr);
       });
 }
@@ -146,12 +142,6 @@ void CacheStreamControlChild::ActorDestroy(ActorDestroyReason aReason) {
   NS_ASSERT_OWNINGTHREAD(CacheStreamControlChild);
   CloseAllReadStreamsWithoutReporting();
   RemoveWorkerRef();
-}
-
-mozilla::ipc::IPCResult CacheStreamControlChild::RecvClose(const nsID& aId) {
-  NS_ASSERT_OWNINGTHREAD(CacheStreamControlChild);
-  CloseReadStreams(aId);
-  return IPC_OK();
 }
 
 mozilla::ipc::IPCResult CacheStreamControlChild::RecvCloseAll() {

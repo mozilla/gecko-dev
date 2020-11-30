@@ -18,14 +18,14 @@ var newClassID = Cc["@mozilla.org/uuid-generator;1"]
 var newFactory = {
   createInstance(aOuter, aIID) {
     if (aOuter) {
-      throw Cr.NS_ERROR_NO_AGGREGATION;
+      throw Components.Exception("", Cr.NS_ERROR_NO_AGGREGATION);
     }
     return new MockPermissionPromptInstance().QueryInterface(aIID);
   },
   lockFactory(aLock) {
-    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+    throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
   },
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIFactory]),
+  QueryInterface: ChromeUtils.generateQI(["nsIFactory"]),
 };
 
 var MockPermissionPrompt = {
@@ -63,7 +63,7 @@ var MockPermissionPrompt = {
 
 function MockPermissionPromptInstance() {}
 MockPermissionPromptInstance.prototype = {
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIContentPermissionPrompt]),
+  QueryInterface: ChromeUtils.generateQI(["nsIContentPermissionPrompt"]),
 
   promptResult: Ci.nsIPermissionManager.UNKNOWN_ACTION,
 

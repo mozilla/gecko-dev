@@ -4,11 +4,15 @@
 
 from __future__ import absolute_import, unicode_literals, print_function
 
+from operator import itemgetter
 import six
 
 from mozbuild.backend.base import PartialBackend
 from mozbuild.backend.make import MakeBackend
-from mozbuild.frontend.context import ObjDirPath
+from mozbuild.frontend.context import (
+    ObjDirPath,
+    Path,
+)
 from mozbuild.frontend.data import (
     ChromeManifestEntry,
     FinalTargetPreprocessedFiles,
@@ -102,7 +106,6 @@ class FasterMakeBackend(MakeBackend, PartialBackend):
                             target = path
                         else:
                             target = mozpath.join(path, f.target_basename)
-                        mozpath.join(path, f.target_basename)
                         self._install_manifests[obj.install_target] \
                             .add_pattern_link(
                                 prefix,
@@ -170,7 +173,6 @@ class FasterMakeBackend(MakeBackend, PartialBackend):
 
         # Add a few necessary variables inherited from configure
         for var in (
-            'PYTHON',
             'PYTHON3',
             'ACDEFINES',
             'MOZ_BUILD_APP',
@@ -194,12 +196,12 @@ class FasterMakeBackend(MakeBackend, PartialBackend):
 
         # Add information for install manifests.
         mk.add_statement('INSTALL_MANIFESTS = %s'
-                         % ' '.join(self._install_manifests.keys()))
+                         % ' '.join(sorted(self._install_manifests.keys())))
 
         # Add dependencies we inferred:
-        for target, deps in six.iteritems(self._dependencies):
+        for target, deps in sorted(six.iteritems(self._dependencies)):
             mk.create_rule([target]).add_dependencies(
-                '$(TOPOBJDIR)/%s' % d for d in deps)
+                '$(TOPOBJDIR)/%s' % d for d in sorted(deps))
 
         # This is not great, but it's better to have some dependencies on these Python files.
         python_deps = [
@@ -208,15 +210,15 @@ class FasterMakeBackend(MakeBackend, PartialBackend):
             '$(TOPSRCDIR)/third_party/python/compare-locales/compare_locales/paths.py',
         ]
         # Add l10n dependencies we inferred:
-        for target, deps in six.iteritems(self._l10n_dependencies):
+        for target, deps in sorted(six.iteritems(self._l10n_dependencies)):
             mk.create_rule([target]).add_dependencies(
-                '%s' % d[0] for d in deps)
+                '%s' % d[0] for d in sorted(deps, key=itemgetter(0)))
             for (merge, ref_file, l10n_file) in deps:
                 rule = mk.create_rule([merge]).add_dependencies(
                     [ref_file, l10n_file] + python_deps)
                 rule.add_commands(
                     [
-                        '$(PYTHON) -m mozbuild.action.l10n_merge '
+                        '$(PYTHON3) -m mozbuild.action.l10n_merge '
                         '--output {} --ref-file {} --l10n-file {}'.format(
                             merge, ref_file, l10n_file
                         )
@@ -276,4 +278,6 @@ class FasterMakeBackend(MakeBackend, PartialBackend):
         return self._pretty_path(path.full_path, obj)
 
     def _format_generated_file_output_name(self, path, obj):
-        return self._pretty_path(mozpath.join(obj.objdir, path), obj)
+        if not isinstance(path, Path):
+            path = ObjDirPath(obj._context, '!' + path)
+        return self._pretty_path(path.full_path, obj)

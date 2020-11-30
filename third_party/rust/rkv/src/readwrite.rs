@@ -8,48 +8,53 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-use crate::backend::{
-    BackendDatabase,
-    BackendRoCursor,
-    BackendRoCursorTransaction,
-    BackendRoTransaction,
-    BackendRwCursorTransaction,
-    BackendRwTransaction,
+use crate::{
+    backend::{
+        BackendDatabase,
+        BackendRoCursor,
+        BackendRoCursorTransaction,
+        BackendRoTransaction,
+        BackendRwCursorTransaction,
+        BackendRwTransaction,
+    },
+    error::StoreError,
+    helpers::read_transform,
+    value::Value,
 };
-use crate::error::StoreError;
-use crate::helpers::read_transform;
-use crate::value::Value;
 
 pub struct Reader<T>(T);
 pub struct Writer<T>(T);
 
-pub trait Readable<'env> {
+pub trait Readable<'r> {
     type Database: BackendDatabase;
-    type RoCursor: BackendRoCursor<'env>;
+    type RoCursor: BackendRoCursor<'r>;
 
-    fn get<K>(&'env self, db: &Self::Database, k: &K) -> Result<Option<Value<'env>>, StoreError>
+    fn get<K>(&'r self, db: &Self::Database, k: &K) -> Result<Option<Value<'r>>, StoreError>
     where
         K: AsRef<[u8]>;
 
-    fn open_ro_cursor(&'env self, db: &Self::Database) -> Result<Self::RoCursor, StoreError>;
+    fn open_ro_cursor(&'r self, db: &Self::Database) -> Result<Self::RoCursor, StoreError>;
 }
 
-impl<'env, T> Readable<'env> for Reader<T>
+impl<'r, T> Readable<'r> for Reader<T>
 where
-    T: BackendRoCursorTransaction<'env>,
+    T: BackendRoCursorTransaction<'r>,
 {
     type Database = T::Database;
     type RoCursor = T::RoCursor;
 
-    fn get<K>(&'env self, db: &T::Database, k: &K) -> Result<Option<Value<'env>>, StoreError>
+    fn get<K>(&'r self, db: &T::Database, k: &K) -> Result<Option<Value<'r>>, StoreError>
     where
         K: AsRef<[u8]>,
     {
         let bytes = self.0.get(db, k.as_ref()).map_err(|e| e.into());
-        read_transform(bytes)
+        match read_transform(bytes).map(Some) {
+            Err(StoreError::KeyValuePairNotFound) => Ok(None),
+            result => result,
+        }
     }
 
-    fn open_ro_cursor(&'env self, db: &T::Database) -> Result<T::RoCursor, StoreError> {
+    fn open_ro_cursor(&'r self, db: &T::Database) -> Result<T::RoCursor, StoreError> {
         self.0.open_ro_cursor(db).map_err(|e| e.into())
     }
 }
@@ -69,22 +74,25 @@ where
     }
 }
 
-impl<'env, T> Readable<'env> for Writer<T>
+impl<'r, T> Readable<'r> for Writer<T>
 where
-    T: BackendRwCursorTransaction<'env>,
+    T: BackendRwCursorTransaction<'r>,
 {
     type Database = T::Database;
     type RoCursor = T::RoCursor;
 
-    fn get<K>(&'env self, db: &T::Database, k: &K) -> Result<Option<Value<'env>>, StoreError>
+    fn get<K>(&'r self, db: &T::Database, k: &K) -> Result<Option<Value<'r>>, StoreError>
     where
         K: AsRef<[u8]>,
     {
         let bytes = self.0.get(db, k.as_ref()).map_err(|e| e.into());
-        read_transform(bytes)
+        match read_transform(bytes).map(Some) {
+            Err(StoreError::KeyValuePairNotFound) => Ok(None),
+            result => result,
+        }
     }
 
-    fn open_ro_cursor(&'env self, db: &T::Database) -> Result<T::RoCursor, StoreError> {
+    fn open_ro_cursor(&'r self, db: &T::Database) -> Result<T::RoCursor, StoreError> {
         self.0.open_ro_cursor(db).map_err(|e| e.into())
     }
 }

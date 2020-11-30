@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_SVGMPathElement_h
-#define mozilla_dom_SVGMPathElement_h
+#ifndef DOM_SVG_SVGMPATHELEMENT_H_
+#define DOM_SVG_SVGMPATHELEMENT_H_
 
 #include "mozilla/dom/IDTracker.h"
 #include "mozilla/dom/SVGElement.h"
@@ -17,9 +17,9 @@ nsresult NS_NewSVGMPathElement(
 
 namespace mozilla {
 namespace dom {
-class SVGPathElement;
+class SVGGeometryElement;
 
-typedef SVGElement SVGMPathElementBase;
+using SVGMPathElementBase = SVGElement;
 
 class SVGMPathElement final : public SVGMPathElementBase,
                               public nsStubMutationObserver {
@@ -58,10 +58,10 @@ class SVGMPathElement final : public SVGMPathElementBase,
                                 nsIPrincipal* aMaybeScriptedPrincipal,
                                 bool aNotify) override;
 
-  // Public helper method: If our xlink:href attribute links to a <path>
+  // Public helper method: If our xlink:href attribute links to a Shape
   // element, this method returns a pointer to that element. Otherwise,
   // this returns nullptr.
-  SVGPathElement* GetReferencedPath();
+  SVGGeometryElement* GetReferencedPath();
 
   // WebIDL
   already_AddRefed<DOMSVGAnimatedString> Href();
@@ -117,4 +117,4 @@ class SVGMPathElement final : public SVGMPathElementBase,
 }  // namespace dom
 }  // namespace mozilla
 
-#endif  // mozilla_dom_SVGMPathElement_h
+#endif  // DOM_SVG_SVGMPATHELEMENT_H_

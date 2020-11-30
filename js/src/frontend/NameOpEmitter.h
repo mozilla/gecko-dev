@@ -13,6 +13,7 @@
 
 #include "frontend/NameAnalysisTypes.h"
 #include "js/TypeDecls.h"
+#include "vm/SharedStencil.h"  // GCThingIndex
 
 namespace js {
 namespace frontend {
@@ -79,9 +80,9 @@ class MOZ_STACK_CLASS NameOpEmitter {
 
   bool emittedBindOp_ = false;
 
-  Handle<JSAtom*> name_;
+  const ParserAtom* name_;
 
-  uint32_t atomIndex_;
+  GCThingIndex atomIndex_;
 
   NameLocation loc_;
 
@@ -132,8 +133,8 @@ class MOZ_STACK_CLASS NameOpEmitter {
 #endif
 
  public:
-  NameOpEmitter(BytecodeEmitter* bce, Handle<JSAtom*> name, Kind kind);
-  NameOpEmitter(BytecodeEmitter* bce, Handle<JSAtom*> name,
+  NameOpEmitter(BytecodeEmitter* bce, const ParserAtom* name, Kind kind);
+  NameOpEmitter(BytecodeEmitter* bce, const ParserAtom* name,
                 const NameLocation& loc, Kind kind);
 
  private:

@@ -39,24 +39,27 @@ def get_generated_sources():
 
     # First, get the list of generated sources produced by the build backend.
     gen_sources = os.path.join(buildconfig.topobjdir, 'generated-sources.json')
-    with open(gen_sources, 'rb') as f:
+    with open(gen_sources, 'r') as f:
         data = json.load(f)
     for f in data['sources']:
-        yield f, mozpath.join(buildconfig.topobjdir, f)
+        # Exclute symverscript
+        if mozpath.basename(f) != 'symverscript':
+            yield f, mozpath.join(buildconfig.topobjdir, f)
     # Next, return all the files in $objdir/ipc/ipdl/_ipdlheaders.
     base = 'ipc/ipdl/_ipdlheaders'
     finder = FileFinder(mozpath.join(buildconfig.topobjdir, base))
     for p, f in finder.find('**/*.h'):
         yield mozpath.join(base, p), f
-    # Next, return any Rust source files that were generated into the Rust
+    # Next, return any source files that were generated into the Rust
     # object directory.
     rust_build_kind = 'debug' if buildconfig.substs.get('MOZ_DEBUG_RUST') else 'release'
     base = mozpath.join(buildconfig.substs['RUST_TARGET'],
                         rust_build_kind,
                         'build')
     finder = FileFinder(mozpath.join(buildconfig.topobjdir, base))
-    for p, f in finder.find('**/*.rs'):
-        yield mozpath.join(base, p), f
+    for p, f in finder:
+        if p.endswith(('.rs', '.c', '.h', '.cc', '.cpp')):
+            yield mozpath.join(base, p), f
 
 
 def get_s3_region_and_bucket():

@@ -7,6 +7,11 @@
 var EXPORTED_SYMBOLS = ["BrowserTestUtilsChild"];
 
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.defineModuleGetter(
+  this,
+  "E10SUtils",
+  "resource://gre/modules/E10SUtils.jsm"
+);
 
 class BrowserTestUtilsChildObserver {
   constructor() {
@@ -98,7 +103,7 @@ class BrowserTestUtilsChildObserver {
 }
 
 BrowserTestUtilsChildObserver.prototype.QueryInterface = ChromeUtils.generateQI(
-  [Ci.nsIObserver, Ci.nsISupportsWeakReference]
+  ["nsIObserver", "nsISupportsWeakReference"]
 );
 
 class BrowserTestUtilsChild extends JSWindowActorChild {
@@ -210,8 +215,8 @@ class BrowserTestUtilsChild extends JSWindowActorChild {
 
       case "BrowserTestUtils:CrashFrame": {
         // This is to intentionally crash the frame.
-        // We crash by using js-ctypes and dereferencing
-        // a bad pointer. The crash should happen immediately
+        // We crash by using js-ctypes. The crash
+        // should happen immediately
         // upon loading this frame script.
 
         const { ctypes } = ChromeUtils.import(
@@ -219,14 +224,39 @@ class BrowserTestUtilsChild extends JSWindowActorChild {
         );
 
         let dies = function() {
+          dump("\nEt tu, Brute?\n");
           ChromeUtils.privateNoteIntentionalCrash();
-          let zero = new ctypes.intptr_t(8);
-          let badptr = ctypes.cast(zero, ctypes.PointerType(ctypes.int32_t));
-          badptr.contents;
+
+          switch (aMessage.data.crashType) {
+            case "CRASH_OOM": {
+              let debug = Cc["@mozilla.org/xpcom/debug;1"].getService(
+                Ci.nsIDebug2
+              );
+              debug.crashWithOOM();
+              break;
+            }
+            case "CRASH_INVALID_POINTER_DEREF": // Fallthrough
+            default: {
+              // Dereference a bad pointer.
+              let zero = new ctypes.intptr_t(8);
+              let badptr = ctypes.cast(
+                zero,
+                ctypes.PointerType(ctypes.int32_t)
+              );
+              badptr.contents;
+            }
+          }
         };
 
-        dump("\nEt tu, Brute?\n");
-        dies();
+        if (aMessage.data.asyncCrash) {
+          let { setTimeout } = ChromeUtils.import(
+            "resource://gre/modules/Timer.jsm"
+          );
+          // Get out of the stack.
+          setTimeout(dies, 0);
+        } else {
+          dies();
+        }
       }
     }
 
@@ -239,7 +269,9 @@ class BrowserTestUtilsChild extends JSWindowActorChild {
       case "load": {
         this.sendAsyncMessage(aEvent.type, {
           internalURL: aEvent.target.documentURI,
-          visibleURL: aEvent.target.location.href,
+          visibleURL: aEvent.target.location
+            ? aEvent.target.location.href
+            : null,
         });
         break;
       }
@@ -267,7 +299,8 @@ class BrowserTestUtilsChild extends JSWindowActorChild {
         // Account for nodes found in iframes.
         let cur = target;
         do {
-          let frame = cur.ownerGlobal.frameElement;
+          // eslint-disable-next-line mozilla/use-ownerGlobal
+          let frame = cur.ownerDocument.defaultView.frameElement;
           let rect = frame.getBoundingClientRect();
 
           left += rect.left;
@@ -293,16 +326,19 @@ class BrowserTestUtilsChild extends JSWindowActorChild {
     }
 
     let result;
-    if (data.event && data.event.wheel) {
-      this.EventUtils.synthesizeWheelAtPoint(left, top, data.event, window);
-    } else {
-      result = this.EventUtils.synthesizeMouseAtPoint(
-        left,
-        top,
-        data.event,
-        window
-      );
-    }
+
+    E10SUtils.wrapHandlingUserInput(window, data.handlingUserInput, () => {
+      if (data.event && data.event.wheel) {
+        this.EventUtils.synthesizeWheelAtPoint(left, top, data.event, window);
+      } else {
+        result = this.EventUtils.synthesizeMouseAtPoint(
+          left,
+          top,
+          data.event,
+          window
+        );
+      }
+    });
 
     return result;
   }

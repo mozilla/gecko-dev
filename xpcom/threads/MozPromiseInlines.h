@@ -7,6 +7,8 @@
 #if !defined(MozPromiseInlines_h_)
 #  define MozPromiseInlines_h_
 
+#  include <type_traits>
+
 #  include "mozilla/MozPromise.h"
 #  include "mozilla/dom/PrimitiveConversions.h"
 #  include "mozilla/dom/PromiseNativeHandler.h"
@@ -20,7 +22,7 @@ template <typename ResolveValueT, typename RejectValueT, bool IsExclusive>
 RefPtr<MozPromise<ResolveValueT, RejectValueT, IsExclusive>>
 MozPromise<ResolveValueT, RejectValueT, IsExclusive>::FromDomPromise(
     dom::Promise* aDOMPromise) {
-  static_assert(IsSame<RejectValueType, nsresult>::value,
+  static_assert(std::is_same_v<RejectValueType, nsresult>,
                 "Reject type must be nsresult");
   RefPtr<Private> p = new Private(__func__);
   RefPtr<dom::DomPromiseListener> listener = new dom::DomPromiseListener(
@@ -36,15 +38,7 @@ MozPromise<ResolveValueT, RejectValueT, IsExclusive>::FromDomPromise(
         }
         p->Resolve(value, __func__);
       },
-      [p](JSContext* aCx, JS::Handle<JS::Value> aValue) {
-        if (!aValue.isInt32()) {
-          p->Reject(NS_ERROR_DOM_NOT_NUMBER_ERR, __func__);
-          return;
-        }
-        nsresult rv = nsresult(aValue.toInt32());
-        MOZ_ASSERT(NS_SUCCEEDED(rv));
-        p->Reject(rv, __func__);
-      });
+      [p](nsresult aError) { p->Reject(aError, __func__); });
   return p;
 }
 

@@ -6,7 +6,6 @@
 
 const {
   CanvasFrameAnonymousContentHelper,
-  createNode,
 } = require("devtools/server/actors/highlighters/utils/markup");
 
 loader.lazyGetter(this, "L10N", () => {
@@ -33,23 +32,21 @@ function PausedDebuggerOverlay(highlighterEnv, options = {}) {
     highlighterEnv,
     this._buildMarkup.bind(this)
   );
+  this.isReady = this.markup.initialize();
 }
 
 PausedDebuggerOverlay.prototype = {
-  typeName: "PausedDebuggerOverlay",
-
   ID_CLASS_PREFIX: "paused-dbg-",
 
   _buildMarkup() {
-    const { window } = this.env;
     const prefix = this.ID_CLASS_PREFIX;
 
-    const container = createNode(window, {
+    const container = this.markup.createNode({
       attributes: { class: "highlighter-container" },
     });
 
     // Wrapper element.
-    const wrapper = createNode(window, {
+    const wrapper = this.markup.createNode({
       parent: container,
       attributes: {
         id: "root",
@@ -60,7 +57,7 @@ PausedDebuggerOverlay.prototype = {
       prefix,
     });
 
-    const toolbar = createNode(window, {
+    const toolbar = this.markup.createNode({
       parent: wrapper,
       attributes: {
         id: "toolbar",
@@ -69,7 +66,7 @@ PausedDebuggerOverlay.prototype = {
       prefix,
     });
 
-    createNode(window, {
+    this.markup.createNode({
       nodeType: "span",
       parent: toolbar,
       attributes: {
@@ -79,7 +76,7 @@ PausedDebuggerOverlay.prototype = {
       prefix,
     });
 
-    createNode(window, {
+    this.markup.createNode({
       parent: toolbar,
       attributes: {
         id: "divider",
@@ -88,7 +85,7 @@ PausedDebuggerOverlay.prototype = {
       prefix,
     });
 
-    const stepWrapper = createNode(window, {
+    const stepWrapper = this.markup.createNode({
       parent: toolbar,
       attributes: {
         id: "step-button-wrapper",
@@ -97,7 +94,7 @@ PausedDebuggerOverlay.prototype = {
       prefix,
     });
 
-    createNode(window, {
+    this.markup.createNode({
       nodeType: "button",
       parent: stepWrapper,
       attributes: {
@@ -107,7 +104,7 @@ PausedDebuggerOverlay.prototype = {
       prefix,
     });
 
-    const resumeWrapper = createNode(window, {
+    const resumeWrapper = this.markup.createNode({
       parent: toolbar,
       attributes: {
         id: "resume-button-wrapper",
@@ -116,7 +113,7 @@ PausedDebuggerOverlay.prototype = {
       prefix,
     });
 
-    createNode(window, {
+    this.markup.createNode({
       nodeType: "button",
       parent: resumeWrapper,
       attributes: {

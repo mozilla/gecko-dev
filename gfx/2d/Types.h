@@ -13,6 +13,7 @@
 #include "mozilla/MacroArgs.h"  // for MOZ_CONCAT
 #include "mozilla/TypedEnumBits.h"
 
+#include <iosfwd>  // for ostream
 #include <stddef.h>
 #include <stdint.h>
 
@@ -72,14 +73,14 @@ enum class SurfaceFormat : int8_t {
 
   // These ones are their own special cases.
   YUV,
-  NV12,  // YUV 4:2:0 image with a plane of 8 bit Y samples followed by
-         // an interleaved U/V plane containing 8 bit 2x2 subsampled
-         // colour difference samples.
-  P016,  // Similar to NV12, but with 16 bits plane values
-  P010,  // Identical to P016 but the 6 least significant bits are 0.
-         // With DXGI in theory entirely compatible, however practice has
-         // shown that it's not the case.
-  YUV422,
+  NV12,    // YUV 4:2:0 image with a plane of 8 bit Y samples followed by
+           // an interleaved U/V plane containing 8 bit 2x2 subsampled
+           // colour difference samples.
+  P016,    // Similar to NV12, but with 16 bits plane values
+  P010,    // Identical to P016 but the 6 least significant bits are 0.
+           // With DXGI in theory entirely compatible, however practice has
+           // shown that it's not the case.
+  YUV422,  // Single plane YUV 4:2:2 interleaved as Y`0 Cb Y`1 Cr.
   HSV,
   Lab,
   Depth,
@@ -107,6 +108,8 @@ enum class SurfaceFormat : int8_t {
   OS_RGBA = A8R8G8B8_UINT32,
   OS_RGBX = X8R8G8B8_UINT32
 };
+
+std::ostream& operator<<(std::ostream& aOut, const SurfaceFormat& aFormat);
 
 // Represents the bit-shifts required to access color channels when the layout
 // is viewed as a uint32_t value.
@@ -192,10 +195,12 @@ inline bool IsOpaque(SurfaceFormat aFormat) {
   }
 }
 
+// The matrix coeffiecients used for YUV to RGB conversion.
 enum class YUVColorSpace : uint8_t {
   BT601,
   BT709,
   BT2020,
+  Identity,  // aka RGB
   // This represents the unknown format and is a valid value.
   UNKNOWN,
   _NUM_COLORSPACE
@@ -411,6 +416,8 @@ enum class SamplingFilter : int8_t {
   SENTINEL  // one past the last valid value
 };
 
+std::ostream& operator<<(std::ostream& aOut, const SamplingFilter& aFilter);
+
 // clang-format off
 MOZ_DEFINE_ENUM_CLASS_WITH_BASE(PatternType, int8_t, (
   COLOR,
@@ -440,29 +447,44 @@ enum class LuminanceType : int8_t {
   LINEARRGB,
 };
 
-/* Color is stored in non-premultiplied form */
-struct Color {
+/* Color is stored in non-premultiplied form in sRGB color space */
+struct sRGBColor {
  public:
-  Color() : r(0.0f), g(0.0f), b(0.0f), a(0.0f) {}
-  Color(Float aR, Float aG, Float aB, Float aA) : r(aR), g(aG), b(aB), a(aA) {}
-  Color(Float aR, Float aG, Float aB) : r(aR), g(aG), b(aB), a(1.0f) {}
+  constexpr sRGBColor() : r(0.0f), g(0.0f), b(0.0f), a(0.0f) {}
+  constexpr sRGBColor(Float aR, Float aG, Float aB, Float aA)
+      : r(aR), g(aG), b(aB), a(aA) {}
+  constexpr sRGBColor(Float aR, Float aG, Float aB)
+      : r(aR), g(aG), b(aB), a(1.0f) {}
 
-  static Color FromABGR(uint32_t aColor) {
-    Color newColor(((aColor >> 0) & 0xff) * (1.0f / 255.0f),
-                   ((aColor >> 8) & 0xff) * (1.0f / 255.0f),
-                   ((aColor >> 16) & 0xff) * (1.0f / 255.0f),
-                   ((aColor >> 24) & 0xff) * (1.0f / 255.0f));
+  static sRGBColor White(float aA) { return sRGBColor(1.f, 1.f, 1.f, aA); }
+
+  static sRGBColor Black(float aA) { return sRGBColor(0.f, 0.f, 0.f, aA); }
+
+  static sRGBColor OpaqueWhite() { return White(1.f); }
+
+  static sRGBColor OpaqueBlack() { return Black(1.f); }
+
+  static sRGBColor FromU8(uint8_t aR, uint8_t aG, uint8_t aB, uint8_t aA) {
+    return sRGBColor(float(aR) / 255.f, float(aG) / 255.f, float(aB) / 255.f,
+                     float(aA) / 255.f);
+  }
+
+  static sRGBColor FromABGR(uint32_t aColor) {
+    sRGBColor newColor(((aColor >> 0) & 0xff) * (1.0f / 255.0f),
+                       ((aColor >> 8) & 0xff) * (1.0f / 255.0f),
+                       ((aColor >> 16) & 0xff) * (1.0f / 255.0f),
+                       ((aColor >> 24) & 0xff) * (1.0f / 255.0f));
 
     return newColor;
   }
 
   // The "Unusual" prefix is to avoid unintentionally using this function when
   // FromABGR(), which is much more common, is needed.
-  static Color UnusualFromARGB(uint32_t aColor) {
-    Color newColor(((aColor >> 16) & 0xff) * (1.0f / 255.0f),
-                   ((aColor >> 8) & 0xff) * (1.0f / 255.0f),
-                   ((aColor >> 0) & 0xff) * (1.0f / 255.0f),
-                   ((aColor >> 24) & 0xff) * (1.0f / 255.0f));
+  static sRGBColor UnusualFromARGB(uint32_t aColor) {
+    sRGBColor newColor(((aColor >> 16) & 0xff) * (1.0f / 255.0f),
+                       ((aColor >> 8) & 0xff) * (1.0f / 255.0f),
+                       ((aColor >> 0) & 0xff) * (1.0f / 255.0f),
+                       ((aColor >> 24) & 0xff) * (1.0f / 255.0f));
 
     return newColor;
   }
@@ -479,11 +501,85 @@ struct Color {
            uint32_t(r * 255.0f) << 16 | uint32_t(a * 255.0f) << 24;
   }
 
-  bool operator==(const Color& aColor) const {
+  bool operator==(const sRGBColor& aColor) const {
     return r == aColor.r && g == aColor.g && b == aColor.b && a == aColor.a;
   }
 
-  bool operator!=(const Color& aColor) const { return !(*this == aColor); }
+  bool operator!=(const sRGBColor& aColor) const { return !(*this == aColor); }
+
+  Float r, g, b, a;
+};
+
+/* Color is stored in non-premultiplied form in device color space */
+struct DeviceColor {
+ public:
+  DeviceColor() : r(0.0f), g(0.0f), b(0.0f), a(0.0f) {}
+  DeviceColor(Float aR, Float aG, Float aB, Float aA)
+      : r(aR), g(aG), b(aB), a(aA) {}
+  DeviceColor(Float aR, Float aG, Float aB) : r(aR), g(aG), b(aB), a(1.0f) {}
+
+  /* The following Mask* variants are helpers used to make it clear when a
+   * particular color is being used for masking purposes. These masks should
+   * never be colored managed. */
+  static DeviceColor Mask(float aC, float aA) {
+    return DeviceColor(aC, aC, aC, aA);
+  }
+
+  static DeviceColor MaskWhite(float aA) { return Mask(1.f, aA); }
+
+  static DeviceColor MaskBlack(float aA) { return Mask(0.f, aA); }
+
+  static DeviceColor MaskOpaqueWhite() { return MaskWhite(1.f); }
+
+  static DeviceColor MaskOpaqueBlack() { return MaskBlack(1.f); }
+
+  static DeviceColor FromU8(uint8_t aR, uint8_t aG, uint8_t aB, uint8_t aA) {
+    return DeviceColor(float(aR) / 255.f, float(aG) / 255.f, float(aB) / 255.f,
+                       float(aA) / 255.f);
+  }
+
+  static DeviceColor FromABGR(uint32_t aColor) {
+    DeviceColor newColor(((aColor >> 0) & 0xff) * (1.0f / 255.0f),
+                         ((aColor >> 8) & 0xff) * (1.0f / 255.0f),
+                         ((aColor >> 16) & 0xff) * (1.0f / 255.0f),
+                         ((aColor >> 24) & 0xff) * (1.0f / 255.0f));
+
+    return newColor;
+  }
+
+  // The "Unusual" prefix is to avoid unintentionally using this function when
+  // FromABGR(), which is much more common, is needed.
+  static DeviceColor UnusualFromARGB(uint32_t aColor) {
+    DeviceColor newColor(((aColor >> 16) & 0xff) * (1.0f / 255.0f),
+                         ((aColor >> 8) & 0xff) * (1.0f / 255.0f),
+                         ((aColor >> 0) & 0xff) * (1.0f / 255.0f),
+                         ((aColor >> 24) & 0xff) * (1.0f / 255.0f));
+
+    return newColor;
+  }
+
+  uint32_t ToABGR() const {
+    return uint32_t(r * 255.0f) | uint32_t(g * 255.0f) << 8 |
+           uint32_t(b * 255.0f) << 16 | uint32_t(a * 255.0f) << 24;
+  }
+
+  // The "Unusual" prefix is to avoid unintentionally using this function when
+  // ToABGR(), which is much more common, is needed.
+  uint32_t UnusualToARGB() const {
+    return uint32_t(b * 255.0f) | uint32_t(g * 255.0f) << 8 |
+           uint32_t(r * 255.0f) << 16 | uint32_t(a * 255.0f) << 24;
+  }
+
+  bool operator==(const DeviceColor& aColor) const {
+    return r == aColor.r && g == aColor.g && b == aColor.b && a == aColor.a;
+  }
+
+  bool operator!=(const DeviceColor& aColor) const {
+    return !(*this == aColor);
+  }
+
+  friend std::ostream& operator<<(std::ostream& aOut,
+                                  const DeviceColor& aColor);
 
   Float r, g, b, a;
 };
@@ -494,7 +590,7 @@ struct GradientStop {
   }
 
   Float offset;
-  Color color;
+  DeviceColor color;
 };
 
 enum class JobStatus { Complete, Wait, Yield, Error };

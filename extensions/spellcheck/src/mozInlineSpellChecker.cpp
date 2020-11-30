@@ -648,9 +648,9 @@ nsresult mozInlineSpellChecker::RegisterEventListeners() {
   if (NS_WARN_IF(!doc)) {
     return NS_ERROR_FAILURE;
   }
-  doc->AddEventListener(NS_LITERAL_STRING("blur"), this, true, false);
-  doc->AddEventListener(NS_LITERAL_STRING("click"), this, false, false);
-  doc->AddEventListener(NS_LITERAL_STRING("keypress"), this, false, false);
+  doc->AddEventListener(u"blur"_ns, this, true, false);
+  doc->AddEventListener(u"click"_ns, this, false, false);
+  doc->AddEventListener(u"keypress"_ns, this, false, false);
   return NS_OK;
 }
 
@@ -667,9 +667,9 @@ nsresult mozInlineSpellChecker::UnregisterEventListeners() {
   if (NS_WARN_IF(!doc)) {
     return NS_ERROR_FAILURE;
   }
-  doc->RemoveEventListener(NS_LITERAL_STRING("blur"), this, true);
-  doc->RemoveEventListener(NS_LITERAL_STRING("click"), this, false);
-  doc->RemoveEventListener(NS_LITERAL_STRING("keypress"), this, false);
+  doc->RemoveEventListener(u"blur"_ns, this, true);
+  doc->RemoveEventListener(u"click"_ns, this, false);
+  doc->RemoveEventListener(u"keypress"_ns, this, false);
   return NS_OK;
 }
 
@@ -1082,7 +1082,7 @@ bool mozInlineSpellChecker::ShouldSpellCheckNode(TextEditor* aTextEditor,
     // Make sure that we can always turn on spell checking for inputs/textareas.
     // Note that because of the previous check, at this point we know that the
     // node is editable.
-    if (content->IsInAnonymousSubtree()) {
+    if (content->IsInNativeAnonymousSubtree()) {
       nsIContent* node = content->GetParent();
       while (node && node->IsInNativeAnonymousSubtree()) {
         node = node->GetParent();
@@ -1304,9 +1304,8 @@ nsresult mozInlineSpellChecker::DoSpellCheck(
   // XXX Spellchecker API isn't async on chrome process.
   static const size_t requestChunkSize =
       XRE_IsContentProcess() ? INLINESPELL_MAXIMUM_CHUNKED_WORDS_PER_TASK : 1;
-  while (NS_SUCCEEDED(aWordUtil.GetNextWord(wordText, &wordNodeOffsetRange,
-                                            &dontCheckWord)) &&
-         !wordNodeOffsetRange.Empty()) {
+  while (
+      aWordUtil.GetNextWord(wordText, &wordNodeOffsetRange, &dontCheckWord)) {
     // get the range for the current word.
     nsINode* beginNode = wordNodeOffsetRange.Begin().Node();
     nsINode* endNode = wordNodeOffsetRange.End().Node();
@@ -1320,9 +1319,8 @@ nsresult mozInlineSpellChecker::DoSpellCheck(
 #ifdef DEBUG_INLINESPELL
       printf("We have run out of the time, schedule next round.\n");
 #endif
-      CheckCurrentWordsNoSuggest(aSpellCheckSelection, words, checkRanges);
-      words.Clear();
-      checkRanges.Clear();
+      CheckCurrentWordsNoSuggest(aSpellCheckSelection, std::move(words),
+                                 std::move(checkRanges));
 
       // move the range to encompass the stuff that needs checking.
       nsresult rv = aStatus->mRange->SetStart(beginNode, beginOffset);
@@ -1385,13 +1383,17 @@ nsresult mozInlineSpellChecker::DoSpellCheck(
     checkRanges.AppendElement(wordNodeOffsetRange);
     wordsChecked++;
     if (words.Length() >= requestChunkSize) {
-      CheckCurrentWordsNoSuggest(aSpellCheckSelection, words, checkRanges);
-      words.Clear();
-      checkRanges.Clear();
+      CheckCurrentWordsNoSuggest(aSpellCheckSelection, std::move(words),
+                                 std::move(checkRanges));
+      // Set new empty data for spellcheck words and range in DOM to avoid
+      // clang-tidy detection.
+      words = nsTArray<nsString>();
+      checkRanges = nsTArray<NodeOffsetRange>();
     }
   }
 
-  CheckCurrentWordsNoSuggest(aSpellCheckSelection, words, checkRanges);
+  CheckCurrentWordsNoSuggest(aSpellCheckSelection, std::move(words),
+                             std::move(checkRanges));
 
   return NS_OK;
 }
@@ -1400,11 +1402,8 @@ nsresult mozInlineSpellChecker::DoSpellCheck(
 class MOZ_RAII AutoChangeNumPendingSpellChecks final {
  public:
   explicit AutoChangeNumPendingSpellChecks(mozInlineSpellChecker* aSpellChecker,
-                                           int32_t aDelta
-                                               MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : mSpellChecker(aSpellChecker), mDelta(aDelta) {
-    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-  }
+                                           int32_t aDelta)
+      : mSpellChecker(aSpellChecker), mDelta(aDelta) {}
 
   ~AutoChangeNumPendingSpellChecks() {
     mSpellChecker->ChangeNumPendingSpellChecks(mDelta);
@@ -1413,12 +1412,13 @@ class MOZ_RAII AutoChangeNumPendingSpellChecks final {
  private:
   RefPtr<mozInlineSpellChecker> mSpellChecker;
   int32_t mDelta;
-  MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 void mozInlineSpellChecker::CheckCurrentWordsNoSuggest(
-    Selection* aSpellCheckSelection, const nsTArray<nsString>& aWords,
-    const nsTArray<NodeOffsetRange>& aRanges) {
+    Selection* aSpellCheckSelection, nsTArray<nsString>&& aWords,
+    nsTArray<NodeOffsetRange>&& aRanges) {
+  MOZ_ASSERT(aWords.Length() == aRanges.Length());
+
   if (aWords.IsEmpty()) {
     return;
   }
@@ -1428,9 +1428,10 @@ void mozInlineSpellChecker::CheckCurrentWordsNoSuggest(
   RefPtr<mozInlineSpellChecker> self = this;
   RefPtr<Selection> spellCheckerSelection = aSpellCheckSelection;
   uint32_t token = mDisabledAsyncToken;
-  mSpellCheck->CheckCurrentWordsNoSuggest(aWords)->Then(
+  nsTArray<nsString> words = std::move(aWords);
+  mSpellCheck->CheckCurrentWordsNoSuggest(words)->Then(
       GetMainThreadSerialEventTarget(), __func__,
-      [self, spellCheckerSelection, aRanges,
+      [self, spellCheckerSelection, ranges = std::move(aRanges),
        token](const nsTArray<bool>& aIsMisspelled) {
         if (token != self->mDisabledAsyncToken) {
           // This result is never used
@@ -1453,7 +1454,7 @@ void mozInlineSpellChecker::CheckCurrentWordsNoSuggest(
           }
 
           RefPtr<nsRange> wordRange =
-              mozInlineSpellWordUtil::MakeRange(aRanges[i]);
+              mozInlineSpellWordUtil::MakeRange(ranges[i]);
           // If we somehow can't make a range for this word, just ignore
           // it.
           if (wordRange) {

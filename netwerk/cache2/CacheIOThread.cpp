@@ -308,6 +308,8 @@ nsresult CacheIOThread::DispatchInternal(
   }
 #endif
 
+  LogRunnable::LogDispatch(runnable.get());
+
   if (NS_WARN_IF(!runnable)) return NS_ERROR_NULL_POINTER;
 
   mMonitor.AssertCurrentThreadOwns();
@@ -424,8 +426,8 @@ void CacheIOThread::ThreadFunc() {
     MOZ_ASSERT(mBlockingIOWatcher);
     mBlockingIOWatcher->InitThread();
 
-    auto queue = MakeRefPtr<ThreadEventQueue<mozilla::EventQueue>>(
-        MakeUnique<mozilla::EventQueue>());
+    auto queue =
+        MakeRefPtr<ThreadEventQueue>(MakeUnique<mozilla::EventQueue>());
     nsCOMPtr<nsIThread> xpcomThread =
         nsThreadManager::get().CreateCurrentThread(queue,
                                                    nsThread::NOT_MAIN_THREAD);
@@ -485,7 +487,6 @@ void CacheIOThread::ThreadFunc() {
       }
 
       AUTO_PROFILER_LABEL("CacheIOThread::ThreadFunc::Wait", IDLE);
-      AUTO_PROFILER_THREAD_SLEEP;
       lock.Wait();
 
     } while (true);
@@ -502,8 +503,7 @@ void CacheIOThread::ThreadFunc() {
 }
 
 void CacheIOThread::LoopOneLevel(uint32_t aLevel) {
-  EventQueue events;
-  events.SwapElements(mEventQueue[aLevel]);
+  EventQueue events = std::move(mEventQueue[aLevel]);
   EventQueue::size_type length = events.Length();
 
   mCurrentlyExecutingLevel = aLevel;
@@ -532,6 +532,8 @@ void CacheIOThread::LoopOneLevel(uint32_t aLevel) {
       // this flag.
       mRerunCurrentEvent = false;
 
+      LogRunnable::Run log(events[index].get());
+
       events[index]->Run();
 
       MOZ_ASSERT(mBlockingIOWatcher);
@@ -540,6 +542,7 @@ void CacheIOThread::LoopOneLevel(uint32_t aLevel) {
       if (mRerunCurrentEvent) {
         // The event handler yields to higher priority events and wants to
         // rerun.
+        log.WillRunAgain();
         returnEvents = true;
         break;
       }
@@ -562,11 +565,11 @@ void CacheIOThread::LoopOneLevel(uint32_t aLevel) {
     events.RemoveElementsAt(0, index);
     // Move events that might have been scheduled on this queue to the tail to
     // preserve the expected per-queue FIFO order.
-    if (!events.AppendElements(std::move(mEventQueue[aLevel]))) {
-      MOZ_CRASH("Can't allocate memory for cache IO thread queue");
-    }
+    // XXX(Bug 1631371) Check if this should use a fallible operation as it
+    // pretended earlier.
+    events.AppendElements(std::move(mEventQueue[aLevel]));
     // And finally move everything back to the main queue.
-    events.SwapElements(mEventQueue[aLevel]);
+    mEventQueue[aLevel] = std::move(events);
   }
 }
 

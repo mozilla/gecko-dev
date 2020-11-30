@@ -31,14 +31,13 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include <dav1d/dav1d.h>
 #include "src/cpu.h"
 #include "dav1d_fuzzer.h"
 
 #ifdef DAV1D_ALLOC_FAIL
-
-#include <stdlib.h>
 
 #include "alloc_fail.h"
 
@@ -56,6 +55,39 @@ static unsigned r32le(const uint8_t *const p) {
 
 #define DAV1D_FUZZ_MAX_SIZE 4096 * 4096
 
+// search for "--cpumask xxx" in argv and remove both parameters
+int LLVMFuzzerInitialize(int *argc, char ***argv) {
+    int i = 1;
+    for (; i < *argc; i++) {
+        if (!strcmp((*argv)[i], "--cpumask")) {
+            const char * cpumask = (*argv)[i+1];
+            if (cpumask) {
+                char *end;
+                unsigned res;
+                if (!strncmp(cpumask, "0x", 2)) {
+                    cpumask += 2;
+                    res = (unsigned) strtoul(cpumask, &end, 16);
+                } else {
+                    res = (unsigned) strtoul(cpumask, &end, 0);
+                }
+                if (end != cpumask && !end[0]) {
+                    dav1d_set_cpu_flags_mask(res);
+                }
+            }
+            break;
+        }
+    }
+
+    for (; i < *argc - 2; i++) {
+        (*argv)[i] = (*argv)[i + 2];
+    }
+
+    *argc = i;
+
+    return 0;
+}
+
+
 // expects ivf input
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
@@ -68,13 +100,6 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     int err;
 
     dav1d_version();
-
-    // memory sanitizer is inherently incompatible with asm
-#if defined(__has_feature)
-  #if __has_feature(memory_sanitizer)
-    dav1d_set_cpu_flags_mask(0);
-  #endif
-#endif
 
     if (size < 32) goto end;
 #ifdef DAV1D_ALLOC_FAIL

@@ -6,6 +6,7 @@ import yaml
 import mozunit
 import sys
 import unittest
+import os
 from os import path
 
 TELEMETRY_ROOT_PATH = path.abspath(path.join(path.dirname(__file__), path.pardir, path.pardir))
@@ -27,6 +28,15 @@ def load_event(event):
 
 
 class TestParser(unittest.TestCase):
+    def setUp(self):
+        def mockexit(x):
+            raise SystemExit(x)
+        self.oldexit = os._exit
+        os._exit = mockexit
+
+    def tearDown(self):
+        os._exit = self.oldexit
+
     def test_valid_event_defaults(self):
         SAMPLE_EVENT = """
 objects: ["object1", "object2"]
@@ -84,7 +94,7 @@ extra_keys:
   key1: test1
   key2: test2
 products:
-    - geckoview
+    - fennec
 operating_systems:
     - windows
 """
@@ -99,7 +109,7 @@ operating_systems:
         self.assertEqual(evt.methods, ["method1", "method2"])
         self.assertEqual(evt.objects, ["object1", "object2"])
         self.assertEqual(evt.record_in_processes, ["content"])
-        self.assertEqual(evt.products, ["geckoview"])
+        self.assertEqual(evt.products, ["fennec"])
         self.assertEqual(evt.operating_systems, ["windows"])
         self.assertEqual(sorted(evt.extra_keys), ["key1", "key2"])
 

@@ -7,16 +7,78 @@
 #ifndef mozilla_dom_WindowContext_h
 #define mozilla_dom_WindowContext_h
 
+#include "mozilla/PermissionDelegateHandler.h"
+#include "mozilla/Span.h"
+#include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/MaybeDiscarded.h"
 #include "mozilla/dom/SyncedContext.h"
-#include "mozilla/net/NeckoChannelParams.h"
+#include "mozilla/dom/UserActivation.h"
+#include "nsILoadInfo.h"
+#include "nsWrapperCache.h"
+
+class nsIGlobalObject;
+
+class nsGlobalWindowInner;
 
 namespace mozilla {
+class LogModule;
+
 namespace dom {
 
-#define MOZ_EACH_WC_FIELD(FIELD) \
-  FIELD(OuterWindowId, uint64_t) \
-  FIELD(CookieJarSettings, Maybe<mozilla::net::CookieJarSettingsArgs>)
+class WindowGlobalParent;
+class WindowGlobalInit;
+class BrowsingContextGroup;
+
+#define MOZ_EACH_WC_FIELD(FIELD)                                       \
+  /* Whether the SHEntry associated with the current top-level         \
+   * window has already seen user interaction.                         \
+   * As such, this will be reset to false when a new SHEntry is        \
+   * created without changing the WC (e.g. when using pushState or     \
+   * sub-frame navigation)                                             \
+   * This flag is set for optimization purposes, to avoid              \
+   * having to get the top SHEntry and update it on every              \
+   * user interaction.                                                 \
+   * This is only meaningful on the top-level WC. */                   \
+  FIELD(SHEntryHasUserInteraction, bool)                               \
+  FIELD(CookieBehavior, Maybe<uint32_t>)                               \
+  FIELD(IsOnContentBlockingAllowList, bool)                            \
+  /* Whether the given window hierarchy is third party. See            \
+   * ThirdPartyUtil::IsThirdPartyWindow for details */                 \
+  FIELD(IsThirdPartyWindow, bool)                                      \
+  /* Whether this window's channel has been marked as a third-party    \
+   * tracking resource */                                              \
+  FIELD(IsThirdPartyTrackingResourceWindow, bool)                      \
+  FIELD(IsSecureContext, bool)                                         \
+  FIELD(IsOriginalFrameSource, bool)                                   \
+  /* Mixed-Content: If the corresponding documentURI is https,         \
+   * then this flag is true. */                                        \
+  FIELD(IsSecure, bool)                                                \
+  /* Whether the user has overriden the mixed content blocker to allow \
+   * mixed content loads to happen */                                  \
+  FIELD(AllowMixedContent, bool)                                       \
+  /* Whether this window has registered a "beforeunload" event         \
+   * handler */                                                        \
+  FIELD(HasBeforeUnload, bool)                                         \
+  /* Controls whether the WindowContext is currently considered to be  \
+   * activated by a gesture */                                         \
+  FIELD(UserActivationState, UserActivation::State)                    \
+  FIELD(EmbedderPolicy, nsILoadInfo::CrossOriginEmbedderPolicy)        \
+  /* True if this document tree contained at least a HTMLMediaElement. \
+   * This should only be set on top level context. */                  \
+  FIELD(DocTreeHadMedia, bool)                                         \
+  FIELD(AutoplayPermission, uint32_t)                                  \
+  FIELD(ShortcutsPermission, uint32_t)                                 \
+  /* Store the Id of the browsing context where active media session   \
+   * exists on the top level window context */                         \
+  FIELD(ActiveMediaSessionContextId, Maybe<uint64_t>)                  \
+  /* ALLOW_ACTION if it is allowed to open popups for the sub-tree     \
+   * starting and including the current WindowContext */               \
+  FIELD(PopupPermission, uint32_t)                                     \
+  FIELD(DelegatedPermissions,                                          \
+        PermissionDelegateHandler::DelegatedPermissionList)            \
+  FIELD(DelegatedExactHostMatchPermissions,                            \
+        PermissionDelegateHandler::DelegatedPermissionList)            \
+  FIELD(HasReportedShadowDOMUsage, bool)
 
 class WindowContext : public nsISupports, public nsWrapperCache {
   MOZ_DECL_SYNCED_CONTEXT(WindowContext, MOZ_EACH_WC_FIELD)
@@ -32,8 +94,27 @@ class WindowContext : public nsISupports, public nsWrapperCache {
   BrowsingContextGroup* Group() const;
   uint64_t Id() const { return InnerWindowId(); }
   uint64_t InnerWindowId() const { return mInnerWindowId; }
-  uint64_t OuterWindowId() const { return GetOuterWindowId(); }
+  uint64_t OuterWindowId() const { return mOuterWindowId; }
   bool IsDiscarded() const { return mIsDiscarded; }
+
+  bool IsCached() const;
+
+  bool IsInProcess() const { return mInProcess; }
+
+  bool HasBeforeUnload() const { return GetHasBeforeUnload(); }
+
+  nsGlobalWindowInner* GetInnerWindow() const;
+  Document* GetDocument() const;
+  Document* GetExtantDoc() const;
+
+  // Get the parent WindowContext of this WindowContext, taking the BFCache into
+  // account. This will not cross chrome/content <browser> boundaries.
+  WindowContext* GetParentWindowContext();
+  WindowContext* TopWindowContext();
+
+  bool IsTop() const;
+
+  Span<RefPtr<BrowsingContext>> Children() { return mChildren; }
 
   // Cast this object to it's parent-process canonical form.
   WindowGlobalParent* Canonical();
@@ -46,51 +127,155 @@ class WindowContext : public nsISupports, public nsWrapperCache {
 
   struct IPCInitializer {
     uint64_t mInnerWindowId;
+    uint64_t mOuterWindowId;
     uint64_t mBrowsingContextId;
 
-    FieldTuple mFields;
+    FieldValues mFields;
   };
-  IPCInitializer GetIPCInitializer() {
-    return {mInnerWindowId, mBrowsingContext->Id(), mFields.Fields()};
-  }
+  IPCInitializer GetIPCInitializer();
 
-  static already_AddRefed<WindowContext> Create(WindowGlobalChild* aWindow);
   static void CreateFromIPC(IPCInitializer&& aInit);
+
+  // Add new security state flags.
+  // These should be some of the nsIWebProgressListener 'HTTPS_ONLY_MODE' or
+  // 'MIXED' state flags, and should only be called on the top window context.
+  void AddSecurityState(uint32_t aStateFlags);
+
+  // This function would be called when its corresponding window is activated
+  // by user gesture.
+  void NotifyUserGestureActivation();
+
+  // This function would be called when we want to reset the user gesture
+  // activation flag.
+  void NotifyResetUserGestureActivation();
+
+  // Return true if its corresponding window has been activated by user
+  // gesture.
+  bool HasBeenUserGestureActivated();
+
+  // Return true if its corresponding window has transient user gesture
+  // activation and the transient user gesture activation haven't yet timed
+  // out.
+  bool HasValidTransientUserGestureActivation();
+
+  // Return true if the corresponding window has valid transient user gesture
+  // activation and the transient user gesture activation had been consumed
+  // successfully.
+  bool ConsumeTransientUserGestureActivation();
+
+  bool CanShowPopup();
 
  protected:
   WindowContext(BrowsingContext* aBrowsingContext, uint64_t aInnerWindowId,
-                FieldTuple&& aFields);
+                uint64_t aOuterWindowId, bool aInProcess,
+                FieldValues&& aFields);
   virtual ~WindowContext();
 
-  void Init();
+  virtual void Init();
 
  private:
+  friend class BrowsingContext;
+  friend class WindowGlobalChild;
+  friend class WindowGlobalActor;
+
+  void AppendChildBrowsingContext(BrowsingContext* aBrowsingContext);
+  void RemoveChildBrowsingContext(BrowsingContext* aBrowsingContext);
+
   // Send a given `BaseTransaction` object to the correct remote.
   void SendCommitTransaction(ContentParent* aParent,
                              const BaseTransaction& aTxn, uint64_t aEpoch);
   void SendCommitTransaction(ContentChild* aChild, const BaseTransaction& aTxn,
                              uint64_t aEpoch);
 
-  // Overload `CanSet` to get notifications for a particular field being set.
-  bool CanSet(FieldIndex<IDX_OuterWindowId>, const uint64_t& aValue,
-              ContentParent* aSource) {
-    return GetOuterWindowId() == 0 && aValue != 0;
-  }
+  bool CheckOnlyOwningProcessCanSet(ContentParent* aSource);
 
-  bool CanSet(FieldIndex<IDX_CookieJarSettings>,
-              const Maybe<mozilla::net::CookieJarSettingsArgs>& aValue,
+  // Overload `CanSet` to get notifications for a particular field being set.
+  bool CanSet(FieldIndex<IDX_IsSecure>, const bool& aIsSecure,
+              ContentParent* aSource);
+  bool CanSet(FieldIndex<IDX_AllowMixedContent>, const bool& aAllowMixedContent,
+              ContentParent* aSource);
+
+  bool CanSet(FieldIndex<IDX_HasBeforeUnload>, const bool& aHasBeforeUnload,
+              ContentParent* aSource);
+
+  bool CanSet(FieldIndex<IDX_CookieBehavior>, const Maybe<uint32_t>& aValue,
+              ContentParent* aSource);
+
+  bool CanSet(FieldIndex<IDX_IsOnContentBlockingAllowList>, const bool& aValue,
+              ContentParent* aSource);
+
+  bool CanSet(FieldIndex<IDX_EmbedderPolicy>, const bool& aValue,
               ContentParent* aSource) {
     return true;
   }
 
+  bool CanSet(FieldIndex<IDX_IsThirdPartyWindow>,
+              const bool& IsThirdPartyWindow, ContentParent* aSource);
+  bool CanSet(FieldIndex<IDX_IsThirdPartyTrackingResourceWindow>,
+              const bool& aIsThirdPartyTrackingResourceWindow,
+              ContentParent* aSource);
+  bool CanSet(FieldIndex<IDX_IsSecureContext>, const bool& aIsSecureContext,
+              ContentParent* aSource);
+  bool CanSet(FieldIndex<IDX_IsOriginalFrameSource>,
+              const bool& aIsOriginalFrameSource, ContentParent* aSource);
+  bool CanSet(FieldIndex<IDX_DocTreeHadMedia>, const bool& aValue,
+              ContentParent* aSource);
+  bool CanSet(FieldIndex<IDX_AutoplayPermission>, const uint32_t& aValue,
+              ContentParent* aSource);
+  bool CanSet(FieldIndex<IDX_ShortcutsPermission>, const uint32_t& aValue,
+              ContentParent* aSource);
+  bool CanSet(FieldIndex<IDX_ActiveMediaSessionContextId>,
+              const Maybe<uint64_t>& aValue, ContentParent* aSource);
+  bool CanSet(FieldIndex<IDX_PopupPermission>, const uint32_t&,
+              ContentParent* aSource);
+  bool CanSet(FieldIndex<IDX_SHEntryHasUserInteraction>,
+              const bool& aSHEntryHasUserInteraction, ContentParent* aSource) {
+    return true;
+  }
+  bool CanSet(FieldIndex<IDX_DelegatedPermissions>,
+              const PermissionDelegateHandler::DelegatedPermissionList& aValue,
+              ContentParent* aSource);
+  bool CanSet(FieldIndex<IDX_DelegatedExactHostMatchPermissions>,
+              const PermissionDelegateHandler::DelegatedPermissionList& aValue,
+              ContentParent* aSource);
+  bool CanSet(FieldIndex<IDX_UserActivationState>,
+              const UserActivation::State& aUserActivationState,
+              ContentParent* aSource) {
+    return true;
+  }
+
+  bool CanSet(FieldIndex<IDX_HasReportedShadowDOMUsage>, const bool& aValue,
+              ContentParent* aSource) {
+    return true;
+  }
+
+  void DidSet(FieldIndex<IDX_HasReportedShadowDOMUsage>, bool aOldValue);
+
   // Overload `DidSet` to get notifications for a particular field being set.
+  //
+  // You can also overload the variant that gets the old value if you need it.
   template <size_t I>
   void DidSet(FieldIndex<I>) {}
+  template <size_t I, typename T>
+  void DidSet(FieldIndex<I>, T&& aOldValue) {}
+  void DidSet(FieldIndex<IDX_UserActivationState>);
 
-  uint64_t mInnerWindowId;
+  const uint64_t mInnerWindowId;
+  const uint64_t mOuterWindowId;
   RefPtr<BrowsingContext> mBrowsingContext;
 
+  // --- NEVER CHANGE `mChildren` DIRECTLY! ---
+  // Changes to this list need to be synchronized to the list within our
+  // `mBrowsingContext`, and should only be performed through the
+  // `AppendChildBrowsingContext` and `RemoveChildBrowsingContext` methods.
+  nsTArray<RefPtr<BrowsingContext>> mChildren;
+
   bool mIsDiscarded = false;
+  bool mInProcess = false;
+
+  // The start time of user gesture, this is only available if the window
+  // context is in process.
+  TimeStamp mUserGestureStart;
 };
 
 using WindowContextTransaction = WindowContext::BaseTransaction;

@@ -26,7 +26,7 @@ TooltipTextProvider.prototype = {
     }
 
     const XLinkNS = "http://www.w3.org/1999/xlink";
-    const XULNS =
+    const XUL_NS =
       "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
     var titleText = null;
@@ -109,7 +109,7 @@ TooltipTextProvider.prototype = {
       XULtooltiptextText == null
     ) {
       if (tipElement.nodeType == defView.Node.ELEMENT_NODE) {
-        if (tipElement.namespaceURI == XULNS) {
+        if (tipElement.namespaceURI == XUL_NS) {
           XULtooltiptextText = tipElement.hasAttribute("tooltiptext")
             ? tipElement.getAttribute("tooltiptext")
             : null;
@@ -170,7 +170,7 @@ TooltipTextProvider.prototype = {
   },
 
   classID: Components.ID("{f376627f-0bbc-47b8-887e-fc92574cc91f}"),
-  QueryInterface: ChromeUtils.generateQI([Ci.nsITooltipTextProvider]),
+  QueryInterface: ChromeUtils.generateQI(["nsITooltipTextProvider"]),
 };
 
 var EXPORTED_SYMBOLS = ["TooltipTextProvider"];

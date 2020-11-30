@@ -187,7 +187,7 @@ h2 {
 
 .perf-presets-description {
   font-size: 13px;
-  color: var(--grey-60);
+  color: var(--in-content-deemphasized-text);
   margin: 5px 0;
 }
 
@@ -195,4 +195,14 @@ h2 {
   padding: 7px 0;
   display: flex;
   align-items: start;
+}
+
+.perf-back {
+  margin-block-end: 13px;
+}
+
+.perf-back-button {
+  /* Remove the inherited margins */
+  margin-left: 0;
+  margin-right: 0;
 }

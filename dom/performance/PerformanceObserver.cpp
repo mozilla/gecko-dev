@@ -149,9 +149,9 @@ void PerformanceObserver::ReportUnsupportedTypesErrorToConsole(
     nsCOMPtr<nsPIDOMWindowInner> ownerWindow = do_QueryInterface(mOwner);
     Document* document = ownerWindow->GetExtantDoc();
     AutoTArray<nsString, 1> params = {aInvalidTypes};
-    nsContentUtils::ReportToConsole(
-        nsIScriptError::warningFlag, NS_LITERAL_CSTRING("DOM"), document,
-        nsContentUtils::eDOM_PROPERTIES, msgId, params);
+    nsContentUtils::ReportToConsole(nsIScriptError::warningFlag, "DOM"_ns,
+                                    document, nsContentUtils::eDOM_PROPERTIES,
+                                    msgId, params);
   }
 }
 
@@ -160,6 +160,11 @@ void PerformanceObserver::Observe(const PerformanceObserverInit& aOptions,
   const Optional<Sequence<nsString>>& maybeEntryTypes = aOptions.mEntryTypes;
   const Optional<nsString>& maybeType = aOptions.mType;
   const Optional<bool>& maybeBuffered = aOptions.mBuffered;
+
+  if (!mPerformance) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return;
+  }
 
   if (!maybeEntryTypes.WasPassed() && !maybeType.WasPassed()) {
     /* Per spec (3.3.1.2), this should be a syntax error. */
@@ -194,6 +199,7 @@ void PerformanceObserver::Observe(const PerformanceObserverInit& aOptions,
     return;
   }
 
+  bool needQueueNotificationObserverTask = false;
   /* 3.3.1.5 */
   if (mObserverType == ObserverTypeMultiple) {
     const Sequence<nsString>& entryTypes = maybeEntryTypes.Value();
@@ -279,7 +285,7 @@ void PerformanceObserver::Observe(const PerformanceObserverInit& aOptions,
     if (!didUpdateOptionsList) {
       updatedOptionsList.AppendElement(aOptions);
     }
-    mOptions.SwapElements(updatedOptionsList);
+    mOptions = std::move(updatedOptionsList);
 
     /* 3.3.1.6.5 */
     if (maybeBuffered.WasPassed() && maybeBuffered.Value()) {
@@ -287,6 +293,7 @@ void PerformanceObserver::Observe(const PerformanceObserverInit& aOptions,
       mPerformance->GetEntriesByType(type, existingEntries);
       if (!existingEntries.IsEmpty()) {
         mQueuedEntries.AppendElements(existingEntries);
+        needQueueNotificationObserverTask = true;
       }
     }
   }
@@ -294,6 +301,10 @@ void PerformanceObserver::Observe(const PerformanceObserverInit& aOptions,
    * observers, if necessary. (3.3.1.5.4,5; 3.3.1.6.4)
    */
   mPerformance->AddObserver(this);
+
+  if (needQueueNotificationObserverTask) {
+    mPerformance->QueueNotificationObserversTask();
+  }
   mConnected = true;
 }
 
@@ -343,5 +354,5 @@ void PerformanceObserver::Disconnect() {
 void PerformanceObserver::TakeRecords(
     nsTArray<RefPtr<PerformanceEntry>>& aRetval) {
   MOZ_ASSERT(aRetval.IsEmpty());
-  aRetval.SwapElements(mQueuedEntries);
+  aRetval = std::move(mQueuedEntries);
 }

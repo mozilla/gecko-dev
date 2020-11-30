@@ -11,18 +11,16 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/GfxMessageUtils.h"
 #include "mozilla/dom/GamepadMessageUtils.h"
-#include "VRManager.h"
 
 #include "gfxVR.h"
 
 namespace IPC {
 
 template <>
-struct ParamTraits<mozilla::gfx::OpenVRControllerType>
-    : public ContiguousEnumSerializer<
-          mozilla::gfx::OpenVRControllerType,
-          mozilla::gfx::OpenVRControllerType::Vive,
-          mozilla::gfx::OpenVRControllerType::NumOpenVRControllerTypes> {};
+struct ParamTraits<mozilla::gfx::VRControllerType>
+    : public ContiguousEnumSerializer<mozilla::gfx::VRControllerType,
+                                      mozilla::gfx::VRControllerType::_empty,
+                                      mozilla::gfx::VRControllerType::_end> {};
 
 // VRHMDSensorState is POD, we can use PlainOldDataSerializer
 static_assert(std::is_pod<mozilla::gfx::VRHMDSensorState>::value,

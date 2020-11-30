@@ -4,13 +4,17 @@
 
 "use strict";
 
-const { assert } = ChromeUtils.import("chrome://marionette/content/assert.js");
-const { error } = ChromeUtils.import("chrome://marionette/content/error.js");
-const { truncate } = ChromeUtils.import(
-  "chrome://marionette/content/format.js"
+const EXPORTED_SYMBOLS = ["Command", "Message", "Response"];
+
+const { XPCOMUtils } = ChromeUtils.import(
+  "resource://gre/modules/XPCOMUtils.jsm"
 );
 
-this.EXPORTED_SYMBOLS = ["Command", "Message", "Response"];
+XPCOMUtils.defineLazyModuleGetters(this, {
+  assert: "chrome://marionette/content/assert.js",
+  error: "chrome://marionette/content/error.js",
+  truncate: "chrome://marionette/content/format.js",
+});
 
 /** Representation of the packets transproted over the wire. */
 class Message {

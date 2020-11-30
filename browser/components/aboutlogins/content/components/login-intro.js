@@ -12,9 +12,6 @@ export default class LoginIntro extends HTMLElement {
     let shadowRoot = this.attachShadow({ mode: "open" });
     document.l10n.connectRoot(shadowRoot);
     shadowRoot.appendChild(loginIntroTemplate.content.cloneNode(true));
-
-    this._importText = shadowRoot.querySelector(".intro-import-text");
-    this._importText.addEventListener("click", this);
   }
 
   focus() {
@@ -27,8 +24,12 @@ export default class LoginIntro extends HTMLElement {
       event.currentTarget.classList.contains("intro-import-text") &&
       event.target.localName == "a"
     ) {
+      let eventName =
+        event.target.dataset.l10nName == "import-file-link"
+          ? "AboutLoginsImportFromFile"
+          : "AboutLoginsImportFromBrowser";
       document.dispatchEvent(
-        new CustomEvent("AboutLoginsImport", {
+        new CustomEvent(eventName, {
           bubbles: true,
         })
       );
@@ -36,14 +37,10 @@ export default class LoginIntro extends HTMLElement {
     event.preventDefault();
   }
 
-  set supportURL(val) {
-    this.shadowRoot.querySelector(".intro-help-link").setAttribute("href", val);
-  }
-
   updateState(syncState) {
     let l10nId = syncState.loggedIn
       ? "about-logins-login-intro-heading-logged-in"
-      : "login-intro-heading";
+      : "about-logins-login-intro-heading-logged-out";
     document.l10n.setAttributes(
       this.shadowRoot.querySelector(".heading"),
       l10nId
@@ -53,7 +50,18 @@ export default class LoginIntro extends HTMLElement {
       .querySelector(".illustration")
       .classList.toggle("logged-in", syncState.loggedIn);
 
-    this._importText.hidden = !window.AboutLoginsUtils.importVisible;
+    let supportURL =
+      window.AboutLoginsUtils.supportBaseURL + "firefox-lockwise";
+    this.shadowRoot
+      .querySelector(".intro-help-link")
+      .setAttribute("href", supportURL);
+
+    let importClass = window.AboutLoginsUtils.fileImportEnabled
+      ? ".intro-import-text.file-import"
+      : ".intro-import-text.no-file-import";
+    let importText = this.shadowRoot.querySelector(importClass);
+    importText.addEventListener("click", this);
+    importText.hidden = !window.AboutLoginsUtils.importVisible;
   }
 }
 customElements.define("login-intro", LoginIntro);

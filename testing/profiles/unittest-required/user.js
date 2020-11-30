@@ -65,6 +65,8 @@ user_pref("browser.urlbar.speculativeConnect.enabled", false);
 // connections.
 user_pref("browser.urlbar.suggest.searches", false);
 user_pref("browser.urlbar.usepreloadedtopurls.enabled", false);
+// URIFixup whitelist
+user_pref("browser.fixup.domainsuffixwhitelist.test", true);
 user_pref("browser.warnOnQuit", false);
 // Enable webapps testing mode, which bypasses native installation.
 user_pref("browser.webapps.testing", true);
@@ -100,7 +102,6 @@ user_pref("dom.use_xbl_scopes_for_remote_xul", true);
 user_pref("extensions.autoDisableScopes", 0);
 user_pref("extensions.blocklist.detailsURL", "http://{server}/extensions-dummy/blocklistDetailsURL");
 user_pref("extensions.blocklist.itemURL", "http://{server}/extensions-dummy/blocklistItemURL");
-user_pref("extensions.blocklist.url", "http://{server}/extensions-dummy/blocklistURL");
 // XPI extensions are required for test harnesses to load
 user_pref("extensions.defaultProviders.enabled", true);
 // Disable metadata caching for installed add-ons by default
@@ -117,8 +118,6 @@ user_pref("extensions.systemAddon.update.url", "http://{server}/dummy-system-add
 user_pref("extensions.update.background.url", "http://{server}/extensions-dummy/updateBackgroundURL");
 // Point update checks to the local testing server for fast failures
 user_pref("extensions.update.url", "http://{server}/extensions-dummy/updateURL");
-// Make sure opening about:addons won't hit the network
-user_pref("extensions.webservice.discoverURL", "http://{server}/extensions-dummy/discoveryURL");
 user_pref("findbar.highlightAll", false);
 user_pref("findbar.modalHighlight", false);
 // Existing tests assume there is no font size inflation.
@@ -217,6 +216,7 @@ user_pref("toolkit.telemetry.firstShutdownPing.enabled", false);
 user_pref("toolkit.telemetry.newProfilePing.enabled", false);
 // We want to collect telemetry, but we don't want to send in the results.
 user_pref("toolkit.telemetry.server", "https://{server}/telemetry-dummy/");
+user_pref("telemetry.fog.test.localhost_port", -1);
 // Don't send the 'shutdown' ping using the pingsender on the first session using
 // the 'pingsender' process. Valgrind marks the process as leaky (e.g. see bug 1364068
 // for the 'new-profile' ping) but does not provide enough information

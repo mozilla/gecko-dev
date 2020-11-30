@@ -23,6 +23,7 @@ function logErrors(tool, errors) {
 }
 
 function execOut(...args) {
+  let exitCode = 0;
   let out;
   let err;
 
@@ -39,19 +40,51 @@ function execOut(...args) {
 
     out = e && e.stdout;
     err = e && e.stderr;
+    exitCode = e && e.status;
   }
-  return { out: out && out.toString(), err: err && err.toString() };
+  return { exitCode, out: out && out.toString(), err: err && err.toString() };
 }
 
 function logStart(name) {
   console.log(`TEST START | ${name}`);
 }
 
+function checkBundles() {
+  logStart("checkBundles");
+
+  const ASbundle = path.join("data", "content", "activity-stream.bundle.js");
+  const AWbundle = path.join(
+    "aboutwelcome",
+    "content",
+    "aboutwelcome.bundle.js"
+  );
+  let errors = [];
+
+  let ASbefore = readFileSync(ASbundle, "utf8");
+  let AWbefore = readFileSync(AWbundle, "utf8");
+
+  execOut("npm", ["run", "bundle"]);
+
+  let ASafter = readFileSync(ASbundle, "utf8");
+  let AWafter = readFileSync(AWbundle, "utf8");
+
+  if (ASbefore !== ASafter) {
+    errors.push("Activity Stream bundle out of date");
+  }
+
+  if (AWbefore !== AWafter) {
+    errors.push("About:welcome bundle out of date");
+  }
+
+  logErrors("checkBundles", errors);
+  return errors.length === 0;
+}
+
 function karma() {
   logStart("karma");
 
   const errors = [];
-  const { out } = execOut("npm", [
+  const { exitCode, out } = execOut("npm", [
     "run",
     "testmc:unit",
     // , "--", "--log-level", "--verbose",
@@ -95,12 +128,14 @@ function karma() {
   }
 
   logErrors("karma", errors);
-  return errors.length === 0;
+
+  // Pass if there's no detected errors and nothing unexpected.
+  return errors.length === 0 && !exitCode;
 }
 
 function sasslint() {
   logStart("sasslint");
-  const { out } = execOut("npm", [
+  const { exitCode, out } = execOut("npm", [
     "run",
     "--silent",
     "lint:sasslint",
@@ -109,7 +144,8 @@ function sasslint() {
     "json",
   ]);
 
-  if (!out.length) {
+  // Successful exit and no output means sasslint passed.
+  if (!exitCode && !out.length) {
     return true;
   }
 
@@ -128,18 +164,16 @@ function sasslint() {
   });
 
   const errors = logErrors("sasslint", errs);
-  return errors.length === 0;
+
+  // Pass if there's no detected errors and nothing unexpected.
+  return errors.length === 0 && !exitCode;
 }
 
-const karmaPassed = karma();
-const sasslintPassed = sasslint();
-
-const success = karmaPassed && sasslintPassed;
-
-console.log({
-  karmaPassed,
-  sasslintPassed,
-});
+const tests = {};
+const success = [checkBundles, karma, sasslint].every(
+  t => (tests[t.name] = t())
+);
+console.log(tests);
 
 process.exitCode = success ? 0 : 1;
 console.log("CODE", process.exitCode);

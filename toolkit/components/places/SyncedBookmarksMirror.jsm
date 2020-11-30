@@ -81,15 +81,15 @@ const DB_TITLE_LENGTH_MAX = 4096;
 
 // The current mirror database schema version. Bump for migrations, then add
 // migration code to `migrateMirrorSchema`.
-const MIRROR_SCHEMA_VERSION = 7;
+const MIRROR_SCHEMA_VERSION = 8;
 
 const DEFAULT_MAX_FRECENCIES_TO_RECALCULATE = 400;
 
 // Use a shared jankYielder in these functions
 XPCOMUtils.defineLazyGetter(this, "yieldState", () => Async.yieldState());
 
-/** Adapts a `Log.jsm` logger to a `mozISyncedBookmarksMirrorLogger`. */
-class MirrorLoggerAdapter {
+/** Adapts a `Log.jsm` logger to a `mozIServicesLogSink`. */
+class LogAdapter {
   constructor(log) {
     this.log = log;
   }
@@ -97,18 +97,18 @@ class MirrorLoggerAdapter {
   get maxLevel() {
     let level = this.log.level;
     if (level <= Log.Level.All) {
-      return Ci.mozISyncedBookmarksMirrorLogger.LEVEL_TRACE;
+      return Ci.mozIServicesLogSink.LEVEL_TRACE;
     }
     if (level <= Log.Level.Info) {
-      return Ci.mozISyncedBookmarksMirrorLogger.LEVEL_DEBUG;
+      return Ci.mozIServicesLogSink.LEVEL_DEBUG;
     }
     if (level <= Log.Level.Warn) {
-      return Ci.mozISyncedBookmarksMirrorLogger.LEVEL_WARN;
+      return Ci.mozIServicesLogSink.LEVEL_WARN;
     }
     if (level <= Log.Level.Error) {
-      return Ci.mozISyncedBookmarksMirrorLogger.LEVEL_ERROR;
+      return Ci.mozIServicesLogSink.LEVEL_ERROR;
     }
-    return Ci.mozISyncedBookmarksMirrorLogger.LEVEL_OFF;
+    return Ci.mozIServicesLogSink.LEVEL_OFF;
   }
 
   trace(message) {
@@ -266,7 +266,7 @@ class SyncedBookmarksMirror {
     this.merger.db = db.unsafeRawConnection.QueryInterface(
       Ci.mozIStorageConnection
     );
-    this.merger.logger = new MirrorLoggerAdapter(MirrorLog);
+    this.merger.logger = new LogAdapter(MirrorLog);
 
     // Automatically close the database connection on shutdown. `progress`
     // tracks state for shutdown hang reporting.
@@ -686,8 +686,8 @@ class SyncedBookmarksMirror {
       }
       let callback = {
         QueryInterface: ChromeUtils.generateQI([
-          Ci.mozISyncedBookmarksMirrorProgressListener,
-          Ci.mozISyncedBookmarksMirrorCallback,
+          "mozISyncedBookmarksMirrorProgressListener",
+          "mozISyncedBookmarksMirrorCallback",
         ]),
         // `mozISyncedBookmarksMirrorProgressListener` methods.
         onFetchLocalTree: (took, itemCount, deleteCount, problemsBag) => {
@@ -1513,6 +1513,15 @@ async function migrateMirrorSchema(db, currentSchemaVersion) {
   if (currentSchemaVersion < 7) {
     await db.execute(`CREATE INDEX IF NOT EXISTS mirror.structurePositions ON
                       structure(parentGuid, position)`);
+  }
+  if (currentSchemaVersion < 8) {
+    // Not really a "schema" update, but addresses the defect from bug 1635859.
+    // In short, every bookmark with a corresponding entry in the mirror should
+    // have syncStatus = NORMAL.
+    await db.execute(`UPDATE moz_bookmarks AS b
+                      SET syncStatus = ${PlacesUtils.bookmarks.SYNC_STATUS.NORMAL}
+                      WHERE EXISTS (SELECT 1 FROM mirror.items
+                                    WHERE guid = b.guid)`);
   }
 }
 

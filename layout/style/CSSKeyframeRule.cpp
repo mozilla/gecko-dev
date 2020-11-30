@@ -56,7 +56,7 @@ class CSSKeyframeDeclaration : public nsDOMCSSDeclaration {
   }
   ParsingEnvironment GetParsingEnvironment(
       nsIPrincipal* aSubjectPrincipal) const final {
-    return GetParsingEnvironmentForRule(mRule);
+    return GetParsingEnvironmentForRule(mRule, CSSRule_Binding::KEYFRAME_RULE);
   }
   Document* DocToUpdate() final { return nullptr; }
 
@@ -147,7 +147,7 @@ void CSSKeyframeRule::UpdateRule(Func aCallback) {
   aCallback();
 
   if (StyleSheet* sheet = GetStyleSheet()) {
-    sheet->RuleChanged(this);
+    sheet->RuleChanged(this, StyleRuleChangeKind::Generic);
   }
 }
 

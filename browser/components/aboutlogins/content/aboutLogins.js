@@ -86,6 +86,11 @@ window.addEventListener("AboutLoginsChromeToContent", event => {
       gElements.loginItem.setBreaches(event.detail.value);
       break;
     }
+    case "SetVulnerableLogins": {
+      gElements.loginList.setVulnerableLogins(event.detail.value);
+      gElements.loginItem.setVulnerableLogins(event.detail.value);
+      break;
+    }
     case "Setup": {
       handleAllLogins(event.detail.value.logins);
       gElements.loginFooter.showStoreIconsForLocales(
@@ -110,6 +115,32 @@ window.addEventListener("AboutLoginsChromeToContent", event => {
       gElements.loginItem.updateBreaches(event.detail.value);
       break;
     }
+    case "UpdateVulnerableLogins": {
+      gElements.loginList.updateVulnerableLogins(event.detail.value);
+      gElements.loginItem.updateVulnerableLogins(event.detail.value);
+      break;
+    }
+  }
+});
+
+window.addEventListener("AboutLoginsExportPasswordsDialog", async event => {
+  recordTelemetryEvent({
+    object: "export",
+    method: "mgmt_menu_item_used",
+  });
+  let dialog = document.querySelector("confirmation-dialog");
+  let options = {
+    title: "about-logins-confirm-export-dialog-title",
+    message: "about-logins-confirm-export-dialog-message",
+    confirmButtonLabel: "about-logins-confirm-export-dialog-confirm-button",
+  };
+  try {
+    await dialog.show(options);
+    document.dispatchEvent(
+      new CustomEvent("AboutLoginsExportPasswords", { bubbles: true })
+    );
+  } catch (ex) {
+    // The user cancelled the dialog.
   }
 });
 

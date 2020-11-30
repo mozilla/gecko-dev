@@ -16,7 +16,7 @@ static void ToBase64EncodedStringArray(nsCString (&aInput)[N],
     nsCString encoded;
     nsresult rv = mozilla::Base64Encode(aInput[i], encoded);
     NS_ENSURE_SUCCESS_VOID(rv);
-    aEncodedArray.AppendElement(encoded);
+    aEncodedArray.AppendElement(std::move(encoded));
   }
 }
 
@@ -73,7 +73,7 @@ TEST(UrlClassifierFindFullHash, Request)
     rv =
         urlUtil->ConvertListNameToThreatType(listNames[i], &expectedThreatType);
     ASSERT_TRUE(NS_SUCCEEDED(rv));
-    ASSERT_EQ(threatInfo.threat_types(i), expectedThreatType);
+    ASSERT_EQ(threatInfo.threat_types(i), (int)expectedThreatType);
   }
 
   // Compare prefixes.
@@ -168,7 +168,7 @@ class MyParseCallback final : public nsIUrlClassifierParseFindFullHashCallback {
     ASSERT_TRUE(aToVerify == aExpected.mSecs);
   }
 
-  ~MyParseCallback() {}
+  ~MyParseCallback() = default;
 
   uint32_t& mCallbackCount;
 };

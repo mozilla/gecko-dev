@@ -12,7 +12,7 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
 const COMPATIBILITY_STATUS = {
   COMPATIBLE: "compatible",
   TOO_OLD: "too-old",
-  TOO_OLD_67_DEBUGGER: "too-old-67-debugger",
+  TOO_OLD_FENNEC: "too-old-fennec",
   TOO_RECENT: "too-recent",
 };
 exports.COMPATIBILITY_STATUS = COMPATIBILITY_STATUS;
@@ -122,7 +122,11 @@ function _compareVersionCompatibility(localDescription, deviceDescription) {
 
   let status;
   if (isTooOld) {
-    status = COMPATIBILITY_STATUS.TOO_OLD;
+    if (runtimeMajorVersion === 68 && deviceDescription.os === "Android") {
+      status = COMPATIBILITY_STATUS.TOO_OLD_FENNEC;
+    } else {
+      status = COMPATIBILITY_STATUS.TOO_OLD;
+    }
   } else if (isTooRecent) {
     status = COMPATIBILITY_STATUS.TOO_RECENT;
   } else if (isSameMajorVersion && runtimeDate - localDate > 7 * MS_PER_DAY) {
@@ -132,8 +136,6 @@ function _compareVersionCompatibility(localDescription, deviceDescription) {
     // Still allow devices to be newer by up to a week. This accommodates those with local
     // device builds, since their devices will almost always be newer than the client.
     status = COMPATIBILITY_STATUS.TOO_RECENT;
-  } else if (localMajorVersion >= 67 && runtimeMajorVersion < 67) {
-    status = COMPATIBILITY_STATUS.TOO_OLD_67_DEBUGGER;
   } else {
     status = COMPATIBILITY_STATUS.COMPATIBLE;
   }

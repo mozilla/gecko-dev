@@ -6,6 +6,7 @@ license = "MPL-2.0"
 publish = false
 
 build = "build.rs"
+edition = "2018"
 
 # https://github.com/rust-lang/cargo/issues/3544
 links = "servo_style_crate"
@@ -19,7 +20,7 @@ doctest = false
 gecko = ["nsstring", "serde", "style_traits/gecko", "fallible/known_system_malloc", "bindgen", "regex", "toml"]
 servo = ["serde", "style_traits/servo", "servo_atoms", "servo_config", "html5ever",
          "cssparser/serde", "encoding_rs", "malloc_size_of/servo", "arrayvec/use_union",
-         "servo_url", "string_cache", "crossbeam-channel", "to_shmem/servo", "servo_arc/servo"]
+         "servo_url", "string_cache", "to_shmem/servo", "servo_arc/servo"]
 servo-layout-2013 = []
 servo-layout-2020 = []
 gecko_debug = []
@@ -33,13 +34,13 @@ atomic_refcell = "0.1"
 bitflags = "1.0"
 byteorder = "1.0"
 cssparser = "0.27"
-crossbeam-channel = { version = "0.3", optional = true }
 derive_more = "0.99"
 new_debug_unreachable = "1.0"
 encoding_rs = {version = "0.8", optional = true}
-euclid = "0.20"
+euclid = "0.22"
 fallible = { path = "../fallible" }
 fxhash = "0.2"
+hashbrown = "0.9"
 hashglobe = { path = "../hashglobe" }
 html5ever = {version = "0.24", optional = true}
 indexmap = "1.0"
@@ -56,7 +57,7 @@ num-integer = "0.1"
 num-traits = "0.2"
 num-derive = "0.3"
 owning_ref = "0.4"
-parking_lot = "0.9"
+parking_lot = "0.10"
 precomputed-hash = "0.1.1"
 rayon = "1"
 selectors = { path = "../selectors" }
@@ -83,7 +84,7 @@ void = "1.0.2"
 [build-dependencies]
 lazy_static = "1"
 log = "0.4"
-bindgen = {version = "0.51.1", optional = true, default-features = false}
-regex = {version = "1.0", optional = true}
+bindgen = {version = "0.53", optional = true, default-features = false}
+regex = {version = "1.0", optional = true, default-features = false, features = ["perf", "std"]}
 walkdir = "2.1.4"
 toml = {version = "0.4.5", optional = true, default-features = false}

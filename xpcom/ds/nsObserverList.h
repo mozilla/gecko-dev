@@ -26,20 +26,22 @@ class nsObserverList : public nsCharPtrHashKey {
 
   nsObserverList(nsObserverList&& aOther)
       : nsCharPtrHashKey(std::move(aOther)),
-        mObservers(std::move(aOther.mObservers)) {}
+        mObservers(std::move(aOther.mObservers)) {
+    MOZ_COUNT_CTOR(nsObserverList);
+  }
 
   MOZ_COUNTED_DTOR(nsObserverList)
 
-  MOZ_MUST_USE nsresult AddObserver(nsIObserver* aObserver, bool aOwnsWeak);
-  MOZ_MUST_USE nsresult RemoveObserver(nsIObserver* aObserver);
+  [[nodiscard]] nsresult AddObserver(nsIObserver* aObserver, bool aOwnsWeak);
+  [[nodiscard]] nsresult RemoveObserver(nsIObserver* aObserver);
 
   void NotifyObservers(nsISupports* aSubject, const char* aTopic,
                        const char16_t* aSomeData);
   void GetObserverList(nsISimpleEnumerator** aEnumerator);
 
-  // Fill an array with the observers of this category.
+  // Clone an array with the observers of this category.
   // The array is filled in last-added-first order.
-  void FillObserverArray(nsCOMArray<nsIObserver>& aArray);
+  nsCOMArray<nsIObserver> ReverseCloneObserverArray();
 
   // Like FillObserverArray(), but only for strongly held observers.
   void AppendStrongObservers(nsCOMArray<nsIObserver>& aArray);

@@ -26,6 +26,11 @@ requestLongerTimeout(2);
 add_task(async function() {
   let browserConsole, webConsole, objInspector;
 
+  // Setting editor mode for both webconsole and browser console as there are more
+  // elements to check.
+  await pushPref("devtools.webconsole.input.editor", true);
+  await pushPref("devtools.browserconsole.input.editor", true);
+
   // Needed for the execute() function below
   await pushPref("security.allow_parent_unrestricted_js_loads", true);
 
@@ -35,31 +40,39 @@ add_task(async function() {
 
   browserConsole = await BrowserConsoleManager.toggleBrowserConsole();
   objInspector = await logObject(browserConsole);
-  testJSTermIsVisible(browserConsole);
+  testInputRelatedElementsAreVisibile(browserConsole);
   await testObjectInspectorPropertiesAreSet(objInspector);
 
   const browserTab = await addTab("data:text/html;charset=utf8,hello world");
   webConsole = await openConsole(browserTab);
   objInspector = await logObject(webConsole);
-  testJSTermIsVisible(webConsole);
+  testInputRelatedElementsAreVisibile(webConsole);
   await testObjectInspectorPropertiesAreSet(objInspector);
+
+  // Wait for the sourceMap worker target to be fully attached before closing the
+  // Browser Console, otherwise this could lead to failures as the target tries to attach
+  // while the connection is being destroyed.
+  await waitForSourceMapWorker(browserConsole);
   await closeConsole(browserTab);
+  await safeCloseBrowserConsole();
 
-  await BrowserConsoleManager.toggleBrowserConsole();
   Services.prefs.setBoolPref("devtools.chrome.enabled", false);
-
   browserConsole = await BrowserConsoleManager.toggleBrowserConsole();
   objInspector = await logObject(browserConsole);
-  testJSTermIsNotVisible(browserConsole);
+  testInputRelatedElementsAreNotVisibile(browserConsole);
 
   webConsole = await openConsole(browserTab);
   objInspector = await logObject(webConsole);
-  testJSTermIsVisible(webConsole);
+  testInputRelatedElementsAreVisibile(webConsole);
   await testObjectInspectorPropertiesAreSet(objInspector);
 
   info("Close webconsole and browser console");
+  // Wait for the sourceMap worker target to be fully attached before closing the
+  // Browser Console, otherwise this could lead to failures as the target tries to attach
+  // while the connection is being destroyed.
+  await waitForSourceMapWorker(browserConsole);
   await closeConsole(browserTab);
-  await BrowserConsoleManager.toggleBrowserConsole();
+  await safeCloseBrowserConsole();
 });
 
 async function logObject(hud) {
@@ -73,11 +86,57 @@ async function logObject(hud) {
   return node.querySelector(".tree");
 }
 
-function testJSTermIsVisible(hud) {
-  const inputContainer = hud.ui.window.document.querySelector(
-    ".jsterm-input-container"
+function getInputRelatedElements(hud) {
+  const { document } = hud.ui.window;
+
+  return {
+    inputEl: document.querySelector(".jsterm-input-container"),
+    eagerEvaluationEl: document.querySelector(".eager-evaluation-result"),
+    editorResizerEl: document.querySelector(".editor-resizer"),
+    editorToolbarEl: document.querySelector(".webconsole-editor-toolbar"),
+    webConsoleAppEl: document.querySelector(".webconsole-app"),
+  };
+}
+
+function testInputRelatedElementsAreVisibile(hud) {
+  const {
+    inputEl,
+    eagerEvaluationEl,
+    editorResizerEl,
+    editorToolbarEl,
+    webConsoleAppEl,
+  } = getInputRelatedElements(hud);
+
+  isnot(inputEl.style.display, "none", "input is visible");
+  ok(eagerEvaluationEl, "eager evaluation result is in dom");
+  ok(editorResizerEl, "editor resizer is in dom");
+  ok(editorToolbarEl, "editor toolbar is in dom");
+  ok(
+    webConsoleAppEl.classList.contains("jsterm-editor") &&
+      webConsoleAppEl.classList.contains("eager-evaluation"),
+    "webconsole element has expected classes"
   );
-  isnot(inputContainer.style.display, "none", "input is visible");
+}
+
+function testInputRelatedElementsAreNotVisibile(hud) {
+  const {
+    inputEl,
+    eagerEvaluationEl,
+    editorResizerEl,
+    editorToolbarEl,
+    webConsoleAppEl,
+  } = getInputRelatedElements(hud);
+
+  is(inputEl, null, "input is not in dom");
+  is(eagerEvaluationEl, null, "eager evaluation result is not in dom");
+  is(editorResizerEl, null, "editor resizer is not in dom");
+  is(editorToolbarEl, null, "editor toolbar is not in dom");
+  is(
+    webConsoleAppEl.classList.contains("jsterm-editor") &&
+      webConsoleAppEl.classList.contains("eager-evaluation"),
+    false,
+    "webconsole element does not have eager evaluation nor editor classes"
+  );
 }
 
 async function testObjectInspectorPropertiesAreSet(objInspector) {
@@ -105,9 +164,33 @@ async function testObjectInspectorPropertiesAreSet(objInspector) {
   is(value, "true", "value is set correctly");
 }
 
-function testJSTermIsNotVisible(hud) {
-  const inputContainer = hud.ui.window.document.querySelector(
-    ".jsterm-input-container"
+const seenWorkerTargets = new Set();
+function waitForSourceMapWorker(hud) {
+  const { targetList } = hud;
+  // If Fission is not enabled for the Browser Console (e.g. in Beta at this moment),
+  // the target list won't watch for Worker targets, and as a result we won't have issues
+  // with pending connections to the server that we're observing when attaching the target.
+  const isFissionEnabledForBrowserConsole = Services.prefs.getBoolPref(
+    "devtools.browsertoolbox.fission",
+    false
   );
-  is(inputContainer, null, "input is not in dom");
+  if (!isFissionEnabledForBrowserConsole) {
+    return Promise.resolve();
+  }
+
+  return new Promise(resolve => {
+    const onAvailable = ({ targetFront }) => {
+      if (
+        targetFront.url.endsWith(
+          "devtools/client/shared/source-map/worker.js"
+        ) &&
+        !seenWorkerTargets.has(targetFront)
+      ) {
+        seenWorkerTargets.add(targetFront);
+        targetList.unwatchTargets([targetList.TYPES.WORKER], onAvailable);
+        resolve();
+      }
+    };
+    targetList.watchTargets([targetList.TYPES.WORKER], onAvailable);
+  });
 }

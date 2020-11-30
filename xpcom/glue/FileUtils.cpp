@@ -15,6 +15,7 @@
 #include "prmem.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/MemUtils.h"
+#include "mozilla/BaseProfilerMarkers.h"
 
 #if defined(XP_MACOSX)
 #  include <fcntl.h>
@@ -178,7 +179,7 @@ mozilla::PathString mozilla::GetLibraryName(mozilla::pathstr_t aDirectory,
 #  else
   char* temp = PR_GetLibraryName(aDirectory, aLib);
   if (!temp) {
-    return EmptyCString();
+    return ""_ns;
   }
   nsAutoCString libname(temp);
   PR_FreeLibraryName(temp);
@@ -191,7 +192,7 @@ mozilla::PathString mozilla::GetLibraryFilePathname(mozilla::pathstr_t aName,
 #  ifdef XP_WIN
   HMODULE handle = GetModuleHandleW(char16ptr_t(aName));
   if (!handle) {
-    return EmptyString();
+    return u""_ns;
   }
 
   nsAutoString path;
@@ -199,7 +200,7 @@ mozilla::PathString mozilla::GetLibraryFilePathname(mozilla::pathstr_t aName,
   DWORD len = GetModuleFileNameW(handle, char16ptr_t(path.BeginWriting()),
                                  path.Length());
   if (!len) {
-    return EmptyString();
+    return u""_ns;
   }
 
   path.SetLength(len);
@@ -207,7 +208,7 @@ mozilla::PathString mozilla::GetLibraryFilePathname(mozilla::pathstr_t aName,
 #  else
   char* temp = PR_GetLibraryFilePathname(aName, aAddr);
   if (!temp) {
-    return EmptyCString();
+    return ""_ns;
   }
   nsAutoCString path(temp);
   PR_Free(temp);  // PR_GetLibraryFilePathname() uses PR_Malloc().
@@ -243,6 +244,8 @@ static const uint32_t CPU_TYPE = CPU_TYPE_X86_64;
 static const uint32_t CPU_TYPE = CPU_TYPE_POWERPC;
 #  elif defined(__ppc64__)
 static const uint32_t CPU_TYPE = CPU_TYPE_POWERPC64;
+#  elif defined(__aarch64__)
+static const uint32_t CPU_TYPE = CPU_TYPE_ARM64;
 #  else
 #    error Unsupported CPU type
 #  endif
@@ -358,25 +361,57 @@ void mozilla::ReadAheadLib(mozilla::pathstr_t aFilePath) {
   if (!aFilePath) {
     return;
   }
+
+#ifdef MOZ_GECKO_PROFILER
+#  ifdef XP_WIN
+  auto WideToUTF8 = [](const wchar_t* aStr) -> std::string {
+    std::string s;
+    // Determine the number of output bytes (including null terminator).
+    const int numConv = ::WideCharToMultiByte(CP_UTF8, 0, aStr, -1, nullptr, 0,
+                                              nullptr, nullptr);
+    if (numConv == 0) {
+      return s;
+    }
+    s.resize(numConv);
+    const int numConvd = ::WideCharToMultiByte(CP_UTF8, 0, aStr, -1, s.data(),
+                                               numConv, nullptr, nullptr);
+    if (numConvd != numConv) {
+      // Error during conversion, remove any temporary data.
+      s.clear();
+    }
+    return s;
+  };
+#  endif
+
+  AUTO_BASE_PROFILER_MARKER_TEXT("ReadAheadLib", OTHER, {},
+#  ifdef XP_WIN
+                                 WideToUTF8(aFilePath)
+#  else
+                                 aFilePath
+#  endif
+  );
+#endif
+
 #if defined(XP_WIN)
   if (!CanPrefetchMemory()) {
     ReadAheadFile(aFilePath);
     return;
   }
-  nsAutoHandle fd(CreateFileW(aFilePath, GENERIC_READ, FILE_SHARE_READ, nullptr,
-                              OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN,
-                              nullptr));
+  nsAutoHandle fd(CreateFileW(aFilePath, GENERIC_READ | GENERIC_EXECUTE,
+                              FILE_SHARE_READ, nullptr, OPEN_EXISTING,
+                              FILE_FLAG_SEQUENTIAL_SCAN, nullptr));
   if (!fd) {
     return;
   }
 
-  nsAutoHandle mapping(
-      CreateFileMapping(fd, nullptr, SEC_IMAGE | PAGE_READONLY, 0, 0, nullptr));
+  nsAutoHandle mapping(CreateFileMapping(
+      fd, nullptr, SEC_IMAGE | PAGE_EXECUTE_READ, 0, 0, nullptr));
   if (!mapping) {
     return;
   }
 
-  PVOID data = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, 0);
+  PVOID data = MapViewOfFile(
+      mapping, FILE_MAP_READ | FILE_MAP_EXECUTE | SEC_IMAGE, 0, 0, 0);
   if (!data) {
     return;
   }

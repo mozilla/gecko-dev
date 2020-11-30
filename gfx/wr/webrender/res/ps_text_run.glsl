@@ -4,30 +4,18 @@
 
 #include shared,prim_shared
 
-// A few varying slots for the brushes to use.
-// Using these instead of adding dedicated varyings avoids using a high
-// number of varyings in the multi-brush shader.
-//
-// TODO: This is duplicated from the brush shader code and will be merged
-//       back once text runs use the brush infrastructure.
-flat varying vec4 flat_varying_vec4_0;
-flat varying vec4 flat_varying_vec4_1;
-flat varying vec4 flat_varying_vec4_2;
-varying vec4 varying_vec4_0;
-varying vec4 varying_vec4_1;
-
-#define V_COLOR             flat_varying_vec4_0
-#define V_MASK_SWIZZLE      flat_varying_vec4_1.xy
+flat varying vec4 v_color;
+flat varying vec2 v_mask_swizzle;
 // Normalized bounds of the source image in the texture.
-#define V_UV_BOUNDS         flat_varying_vec4_2
+flat varying vec4 v_uv_bounds;
 
 // Interpolated UV coordinates to sample.
-#define V_UV                varying_vec4_0.xy
-#define V_LAYER             varying_vec4_0.z
+varying vec2 v_uv;
+flat varying float v_layer;
 
 
 #ifdef WR_FEATURE_GLYPH_TRANSFORM
-#define V_UV_CLIP           varying_vec4_1
+varying vec4 v_uv_clip;
 #endif
 
 #ifdef WR_VERTEX_SHADER
@@ -112,17 +100,16 @@ vec2 get_snap_bias(int subpx_dir) {
     }
 }
 
-void main(void) {
+void main() {
     Instance instance = decode_instance_attributes();
-
-    int glyph_index = instance.segment_index;
-    int subpx_dir = (instance.flags >> 8) & 0xff;
-    int color_mode = instance.flags & 0xff;
-
     PrimitiveHeader ph = fetch_prim_header(instance.prim_header_address);
     Transform transform = fetch_transform(ph.transform_id);
     ClipArea clip_area = fetch_clip_area(instance.clip_address);
     PictureTask task = fetch_picture_task(instance.picture_task_address);
+
+    int glyph_index = instance.segment_index;
+    int subpx_dir = (instance.flags >> 8) & 0xff;
+    int color_mode = instance.flags & 0xff;
 
     // Note that the reference frame relative offset is stored in the prim local
     // rect size during batching, instead of the actual size of the primitive.
@@ -231,7 +218,7 @@ void main(void) {
 
 #ifdef WR_FEATURE_GLYPH_TRANSFORM
     vec2 f = (glyph_transform * vi.local_pos - glyph_rect.p0) / glyph_rect.size;
-    V_UV_CLIP = vec4(f, 1.0 - f);
+    v_uv_clip = vec4(f, 1.0 - f);
 #else
     vec2 f = (vi.local_pos - glyph_rect.p0) / glyph_rect.size;
 #endif
@@ -241,63 +228,65 @@ void main(void) {
     switch (color_mode) {
         case COLOR_MODE_ALPHA:
         case COLOR_MODE_BITMAP:
-            V_MASK_SWIZZLE = vec2(0.0, 1.0);
-            V_COLOR = text.color;
+            v_mask_swizzle = vec2(0.0, 1.0);
+            v_color = text.color;
             break;
         case COLOR_MODE_SUBPX_BG_PASS2:
         case COLOR_MODE_SUBPX_DUAL_SOURCE:
-            V_MASK_SWIZZLE = vec2(1.0, 0.0);
-            V_COLOR = text.color;
+            v_mask_swizzle = vec2(1.0, 0.0);
+            v_color = text.color;
             break;
         case COLOR_MODE_SUBPX_CONST_COLOR:
         case COLOR_MODE_SUBPX_BG_PASS0:
         case COLOR_MODE_COLOR_BITMAP:
-            V_MASK_SWIZZLE = vec2(1.0, 0.0);
-            V_COLOR = vec4(text.color.a);
+            v_mask_swizzle = vec2(1.0, 0.0);
+            v_color = vec4(text.color.a);
             break;
         case COLOR_MODE_SUBPX_BG_PASS1:
-            V_MASK_SWIZZLE = vec2(-1.0, 1.0);
-            V_COLOR = vec4(text.color.a) * text.bg_color;
+            v_mask_swizzle = vec2(-1.0, 1.0);
+            v_color = vec4(text.color.a) * text.bg_color;
             break;
         default:
-            V_MASK_SWIZZLE = vec2(0.0);
-            V_COLOR = vec4(1.0);
+            v_mask_swizzle = vec2(0.0);
+            v_color = vec4(1.0);
     }
 
     vec2 texture_size = vec2(textureSize(sColor0, 0));
     vec2 st0 = res.uv_rect.xy / texture_size;
     vec2 st1 = res.uv_rect.zw / texture_size;
 
-    V_UV = mix(st0, st1, f);
-    V_LAYER = res.layer;
-    V_UV_BOUNDS = (res.uv_rect + vec4(0.5, 0.5, -0.5, -0.5)) / texture_size.xyxy;
+    v_uv = mix(st0, st1, f);
+    v_layer = res.layer;
+    v_uv_bounds = (res.uv_rect + vec4(0.5, 0.5, -0.5, -0.5)) / texture_size.xyxy;
 }
-#endif
+
+#endif // WR_VERTEX_SHADER
 
 #ifdef WR_FRAGMENT_SHADER
 
-Fragment text_brush_fs(void) {
+Fragment text_fs(void) {
     Fragment frag;
 
-    vec3 tc = vec3(clamp(V_UV, V_UV_BOUNDS.xy, V_UV_BOUNDS.zw), V_LAYER);
+    vec3 tc = vec3(clamp(v_uv, v_uv_bounds.xy, v_uv_bounds.zw), v_layer);
     vec4 mask = texture(sColor0, tc);
-    mask.rgb = mask.rgb * V_MASK_SWIZZLE.x + mask.aaa * V_MASK_SWIZZLE.y;
+    mask.rgb = mask.rgb * v_mask_swizzle.x + mask.aaa * v_mask_swizzle.y;
 
     #ifdef WR_FEATURE_GLYPH_TRANSFORM
-        mask *= float(all(greaterThanEqual(V_UV_CLIP, vec4(0.0))));
+        mask *= float(all(greaterThanEqual(v_uv_clip, vec4(0.0))));
     #endif
 
-    frag.color = V_COLOR * mask;
+    frag.color = v_color * mask;
 
     #ifdef WR_FEATURE_DUAL_SOURCE_BLENDING
-        frag.blend = V_COLOR.a * mask;
+        frag.blend = v_color.a * mask;
     #endif
 
     return frag;
 }
 
-void main(void) {
-    Fragment frag = text_brush_fs();
+
+void main() {
+    Fragment frag = text_fs();
 
     float clip_mask = do_clip();
     frag.color *= clip_mask;

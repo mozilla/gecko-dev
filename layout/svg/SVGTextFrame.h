@@ -4,28 +4,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef MOZILLA_SVGTEXTFRAME_H
-#define MOZILLA_SVGTEXTFRAME_H
+#ifndef LAYOUT_SVG_SVGTEXTFRAME_H_
+#define LAYOUT_SVG_SVGTEXTFRAME_H_
 
 #include "mozilla/Attributes.h"
 #include "mozilla/PresShellForwards.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/SVGContainerFrame.h"
 #include "mozilla/gfx/2D.h"
 #include "gfxMatrix.h"
 #include "gfxRect.h"
 #include "gfxTextRun.h"
 #include "nsIContent.h"  // for GetContent
 #include "nsStubMutationObserver.h"
-#include "nsSVGContainerFrame.h"
 #include "nsTextFrame.h"
 
 class gfxContext;
-class nsDisplaySVGText;
-class SVGTextFrame;
 
 namespace mozilla {
 
 class CharIterator;
+class DisplaySVGText;
+class SVGTextFrame;
 class TextFrameIterator;
 class TextNodeCorrespondenceRecorder;
 struct TextRenderedRun;
@@ -33,10 +33,16 @@ class TextRenderedRunIterator;
 
 namespace dom {
 struct DOMPointInit;
-class nsISVGPoint;
+class DOMSVGPoint;
 class SVGRect;
 class SVGGeometryElement;
 }  // namespace dom
+}  // namespace mozilla
+
+nsIFrame* NS_NewSVGTextFrame(mozilla::PresShell* aPresShell,
+                             mozilla::ComputedStyle* aStyle);
+
+namespace mozilla {
 
 /**
  * Information about the positioning for a single character in an SVG <text>
@@ -123,8 +129,6 @@ class GlyphMetricsUpdater : public Runnable {
   SVGTextFrame* mFrame;
 };
 
-}  // namespace mozilla
-
 /**
  * Frame class for SVG <text> elements.
  *
@@ -158,27 +162,27 @@ class GlyphMetricsUpdater : public Runnable {
  * itself do the painting.  Otherwise, a DrawPathCallback is passed to
  * PaintText so that we can fill the text geometry with SVG paint servers.
  */
-class SVGTextFrame final : public nsSVGDisplayContainerFrame {
-  friend nsIFrame* NS_NewSVGTextFrame(mozilla::PresShell* aPresShell,
-                                      ComputedStyle* aStyle);
+class SVGTextFrame final : public SVGDisplayContainerFrame {
+  friend nsIFrame* ::NS_NewSVGTextFrame(mozilla::PresShell* aPresShell,
+                                        ComputedStyle* aStyle);
 
-  friend class mozilla::CharIterator;
-  friend class mozilla::GlyphMetricsUpdater;
-  friend class mozilla::TextFrameIterator;
-  friend class mozilla::TextNodeCorrespondenceRecorder;
-  friend struct mozilla::TextRenderedRun;
-  friend class mozilla::TextRenderedRunIterator;
+  friend class CharIterator;
+  friend class DisplaySVGText;
+  friend class GlyphMetricsUpdater;
   friend class MutationObserver;
-  friend class nsDisplaySVGText;
+  friend class TextFrameIterator;
+  friend class TextNodeCorrespondenceRecorder;
+  friend struct TextRenderedRun;
+  friend class TextRenderedRunIterator;
 
-  typedef gfxTextRun::Range Range;
-  typedef mozilla::gfx::DrawTarget DrawTarget;
-  typedef mozilla::gfx::Path Path;
-  typedef mozilla::gfx::Point Point;
+  using Range = gfxTextRun::Range;
+  using DrawTarget = gfx::DrawTarget;
+  using Path = gfx::Path;
+  using Point = gfx::Point;
 
  protected:
   explicit SVGTextFrame(ComputedStyle* aStyle, nsPresContext* aPresContext)
-      : nsSVGDisplayContainerFrame(aStyle, aPresContext, kClassID),
+      : SVGDisplayContainerFrame(aStyle, aPresContext, kClassID),
         mTrailingUndisplayedCharacters(0),
         mFontSizeScaleFactor(1.0f),
         mLastContextScale(1.0f),
@@ -209,7 +213,7 @@ class SVGTextFrame final : public nsSVGDisplayContainerFrame {
 
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const override {
-    return MakeFrameName(NS_LITERAL_STRING("SVGText"), aResult);
+    return MakeFrameName(u"SVGText"_ns, aResult);
   }
 #endif
 
@@ -219,7 +223,7 @@ class SVGTextFrame final : public nsSVGDisplayContainerFrame {
   virtual void FindCloserFrameForSelection(
       const nsPoint& aPoint, FrameWithDistance* aCurrentBestFrame) override;
 
-  // nsSVGDisplayableFrame interface:
+  // ISVGDisplayableFrame interface:
   virtual void NotifySVGChanged(uint32_t aFlags) override;
   virtual void PaintSVG(gfxContext& aContext, const gfxMatrix& aTransform,
                         imgDrawingParams& aImgParams,
@@ -233,21 +237,23 @@ class SVGTextFrame final : public nsSVGDisplayContainerFrame {
   uint32_t GetNumberOfChars(nsIContent* aContent);
   float GetComputedTextLength(nsIContent* aContent);
   void SelectSubString(nsIContent* aContent, uint32_t charnum, uint32_t nchars,
-                       mozilla::ErrorResult& aRv);
+                       ErrorResult& aRv);
   MOZ_CAN_RUN_SCRIPT
   float GetSubStringLength(nsIContent* aContent, uint32_t charnum,
-                           uint32_t nchars, mozilla::ErrorResult& aRv);
+                           uint32_t nchars, ErrorResult& aRv);
   int32_t GetCharNumAtPosition(nsIContent* aContent,
-                               const mozilla::dom::DOMPointInit& aPoint);
+                               const dom::DOMPointInit& aPoint);
 
-  already_AddRefed<mozilla::dom::nsISVGPoint> GetStartPositionOfChar(
-      nsIContent* aContent, uint32_t aCharNum, mozilla::ErrorResult& aRv);
-  already_AddRefed<mozilla::dom::nsISVGPoint> GetEndPositionOfChar(
-      nsIContent* aContent, uint32_t aCharNum, mozilla::ErrorResult& aRv);
-  already_AddRefed<mozilla::dom::SVGRect> GetExtentOfChar(
-      nsIContent* aContent, uint32_t aCharNum, mozilla::ErrorResult& aRv);
+  already_AddRefed<dom::DOMSVGPoint> GetStartPositionOfChar(
+      nsIContent* aContent, uint32_t aCharNum, ErrorResult& aRv);
+  already_AddRefed<dom::DOMSVGPoint> GetEndPositionOfChar(nsIContent* aContent,
+                                                          uint32_t aCharNum,
+                                                          ErrorResult& aRv);
+  already_AddRefed<dom::SVGRect> GetExtentOfChar(nsIContent* aContent,
+                                                 uint32_t aCharNum,
+                                                 ErrorResult& aRv);
   float GetRotationOfChar(nsIContent* aContent, uint32_t aCharNum,
-                          mozilla::ErrorResult& aRv);
+                          ErrorResult& aRv);
 
   // SVGTextFrame methods:
 
@@ -255,7 +261,7 @@ class SVGTextFrame final : public nsSVGDisplayContainerFrame {
    * Handles a base or animated attribute value change to a descendant
    * text content element.
    */
-  void HandleAttributeChangeInDescendant(mozilla::dom::Element* aElement,
+  void HandleAttributeChangeInDescendant(dom::Element* aElement,
                                          int32_t aNameSpaceID,
                                          nsAtom* aAttribute);
 
@@ -267,14 +273,14 @@ class SVGTextFrame final : public nsSVGDisplayContainerFrame {
 
   /**
    * Calls ScheduleReflowSVGNonDisplayText if this is a non-display frame,
-   * and nsSVGUtils::ScheduleReflowSVG otherwise.
+   * and SVGUtils::ScheduleReflowSVG otherwise.
    */
   void ScheduleReflowSVG();
 
   /**
    * Reflows the anonymous block frame of this non-display SVGTextFrame.
    *
-   * When we are under nsSVGDisplayContainerFrame::ReflowSVG, we need to
+   * When we are under SVGDisplayContainerFrame::ReflowSVG, we need to
    * reflow any SVGTextFrame frames in the subtree in case they are
    * being observed (by being for example in a <mask>) and the change
    * that caused the reflow would not already have caused a reflow.
@@ -285,12 +291,12 @@ class SVGTextFrame final : public nsSVGDisplayContainerFrame {
   void ReflowSVGNonDisplayText();
 
   /**
-   * This is a function that behaves similarly to nsSVGUtils::ScheduleReflowSVG,
+   * This is a function that behaves similarly to SVGUtils::ScheduleReflowSVG,
    * but which will skip over any ancestor non-display container frames on the
-   * way to the nsSVGOuterSVGFrame.  It exists for the situation where a
+   * way to the SVGOuterSVGFrame.  It exists for the situation where a
    * non-display <text> element has changed and needs to ensure ReflowSVG will
    * be called on its closest display container frame, so that
-   * nsSVGDisplayContainerFrame::ReflowSVG will call ReflowSVGNonDisplayText on
+   * SVGDisplayContainerFrame::ReflowSVG will call ReflowSVGNonDisplayText on
    * it.
    *
    * We have to do this in two cases: in response to a style change on a
@@ -299,7 +305,7 @@ class SVGTextFrame final : public nsSVGDisplayContainerFrame {
    * animated SVG-in-OpenType glyphs), in which case aReason will be eResize,
    * since layout doesn't need to be recomputed.
    */
-  void ScheduleReflowSVGNonDisplayText(mozilla::IntrinsicDirty aReason);
+  void ScheduleReflowSVGNonDisplayText(IntrinsicDirty aReason);
 
   /**
    * Updates the mFontSizeScaleFactor value by looking at the range of
@@ -317,7 +323,7 @@ class SVGTextFrame final : public nsSVGDisplayContainerFrame {
    * according to which rendered run the point hits.
    */
   Point TransformFramePointToTextChild(const Point& aPoint,
-                                       nsIFrame* aChildFrame);
+                                       const nsIFrame* aChildFrame);
 
   /**
    * Takes an app unit rectangle in the coordinate space of a given descendant
@@ -396,8 +402,7 @@ class SVGTextFrame final : public nsSVGDisplayContainerFrame {
    */
   MOZ_CAN_RUN_SCRIPT
   float GetSubStringLengthSlowFallback(nsIContent* aContent, uint32_t charnum,
-                                       uint32_t nchars,
-                                       mozilla::ErrorResult& aRv);
+                                       uint32_t nchars, ErrorResult& aRv);
 
   /**
    * Converts the specified index into mPositions to an addressable
@@ -527,7 +532,7 @@ class SVGTextFrame final : public nsSVGDisplayContainerFrame {
   /**
    * Computed position information for each DOM character within the <text>.
    */
-  nsTArray<mozilla::CharPosition> mPositions;
+  nsTArray<CharPosition> mPositions;
 
   /**
    * mFontSizeScaleFactor is used to cause the nsTextFrames to create text
@@ -567,4 +572,6 @@ class SVGTextFrame final : public nsSVGDisplayContainerFrame {
   float mLengthAdjustScaleFactor;
 };
 
-#endif
+}  // namespace mozilla
+
+#endif  // LAYOUT_SVG_SVGTEXTFRAME_H_

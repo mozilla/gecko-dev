@@ -13,7 +13,26 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/StaticPrefs_media.h"
+#include "mozilla/StaticPrefs_dom.h"
 #include "nsPrintfCString.h"
+
+#ifdef MOZ_GECKO_PROFILER
+#  include "ProfilerMarkerPayload.h"
+#  define PROFILER_AUDIO_MARKER(tag, sample)                              \
+    do {                                                                  \
+      uint64_t startTime = (sample)->mTime.ToMicroseconds();              \
+      uint64_t endTime = (sample)->GetEndTime().ToMicroseconds();         \
+      auto profilerTag = (tag);                                           \
+      mOwnerThread->Dispatch(NS_NewRunnableFunction(                      \
+          "AudioSink:AddMarker", [profilerTag, startTime, endTime] {      \
+            PROFILER_ADD_MARKER_WITH_PAYLOAD(profilerTag, MEDIA_PLAYBACK, \
+                                             MediaSampleMarkerPayload,    \
+                                             (startTime, endTime));       \
+          }));                                                            \
+    } while (0)
+#else
+#  define PROFILER_AUDIO_MARKER(tag, sample)
+#endif
 
 namespace mozilla {
 
@@ -48,26 +67,13 @@ AudioSink::AudioSink(AbstractThread* aThread,
       mOwnerThread(aThread),
       mProcessedQueueLength(0),
       mFramesParsed(0),
+      mOutputRate(DecideAudioPlaybackSampleRate(aInfo)),
+      mOutputChannels(DecideAudioPlaybackChannels(aInfo)),
+      mAudibilityMonitor(
+          mOutputRate,
+          StaticPrefs::dom_media_silence_duration_for_audibility()),
       mIsAudioDataAudible(false),
-      mAudioQueue(aAudioQueue) {
-  bool resampling = StaticPrefs::media_resampling_enabled();
-
-  if (resampling) {
-    mOutputRate = 48000;
-  } else if (mInfo.mRate == 44100 || mInfo.mRate == 48000) {
-    // The original rate is of good quality and we want to minimize unecessary
-    // resampling. The common scenario being that the sampling rate is one or
-    // the other, this allows to minimize audio quality regression and hoping
-    // content provider want change from those rates mid-stream.
-    mOutputRate = mInfo.mRate;
-  } else {
-    // We will resample all data to match cubeb's preferred sampling rate.
-    mOutputRate = AudioStream::GetPreferredRate();
-  }
-  MOZ_DIAGNOSTIC_ASSERT(mOutputRate, "output rate can't be 0.");
-
-  mOutputChannels = DecideAudioPlaybackChannels(mInfo);
-}
+      mAudioQueue(aAudioQueue) {}
 
 AudioSink::~AudioSink() = default;
 
@@ -267,6 +273,7 @@ UniquePtr<AudioStream::Chunk> AudioSink::PopFrames(uint32_t aFrames) {
   SINK_LOG_V("playing audio at time=%" PRId64 " offset=%u length=%u",
              mCurrentData->mTime.ToMicroseconds(),
              mCurrentData->Frames() - mCursor->Available(), framesToPop);
+  PROFILER_AUDIO_MARKER("PlayAudio", mCurrentData);
 
   UniquePtr<AudioStream::Chunk> chunk =
       MakeUnique<Chunk>(mCurrentData, framesToPop, mCursor->Ptr());
@@ -313,7 +320,9 @@ void AudioSink::Errored() {
 void AudioSink::CheckIsAudible(const AudioData* aData) {
   MOZ_ASSERT(aData);
 
-  bool isAudible = aData->IsAudible();
+  mAudibilityMonitor.Process(aData);
+  bool isAudible = mAudibilityMonitor.RecentlyAudible();
+
   if (isAudible != mIsAudioDataAudible) {
     mIsAudioDataAudible = isAudible;
     mAudibleEvent.Notify(mIsAudioDataAudible);
@@ -379,9 +388,15 @@ void AudioSink::NotifyAudioNeeded() {
           mOutputChannels == data->mChannels
               ? inputLayout
               : AudioConfig::ChannelLayout(mOutputChannels);
-      mConverter = MakeUnique<AudioConverter>(
-          AudioConfig(inputLayout, data->mChannels, data->mRate),
-          AudioConfig(outputLayout, mOutputChannels, mOutputRate));
+      AudioConfig inConfig =
+          AudioConfig(inputLayout, data->mChannels, data->mRate);
+      AudioConfig outConfig =
+          AudioConfig(outputLayout, mOutputChannels, mOutputRate);
+      if (!AudioConverter::CanConvert(inConfig, outConfig)) {
+        mErrored = true;
+        return;
+      }
+      mConverter = MakeUnique<AudioConverter>(inConfig, outConfig);
     }
 
     // See if there's a gap in the audio. If there is, push silence into the

@@ -374,8 +374,8 @@ class MediaSegmentBase : public MediaSegment {
   explicit MediaSegmentBase(Type aType) : MediaSegment(aType), mChunks() {}
 
   MediaSegmentBase(MediaSegmentBase&& aSegment)
-      : MediaSegment(std::move(aSegment)), mChunks() {
-    mChunks.SwapElements(aSegment.mChunks);
+      : MediaSegment(std::move(aSegment)),
+        mChunks(std::move(aSegment.mChunks)) {
     MOZ_ASSERT(mChunks.Capacity() >= DEFAULT_SEGMENT_CAPACITY,
                "Capacity must be retained in self after swap");
     MOZ_ASSERT(aSegment.mChunks.Capacity() >= DEFAULT_SEGMENT_CAPACITY,
@@ -479,7 +479,7 @@ class MediaSegmentBase : public MediaSegment {
     }
     // At this point `i` is already advanced due to last check in the loop.
     if (i < mChunks.Length()) {
-      mChunks.RemoveElementsAt(i, mChunks.Length() - i);
+      mChunks.RemoveLastElements(mChunks.Length() - i);
     }
     MOZ_ASSERT(mChunks.Capacity() >= DEFAULT_SEGMENT_CAPACITY,
                "Capacity must be retained after removing chunks");

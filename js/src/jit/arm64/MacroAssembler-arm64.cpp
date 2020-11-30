@@ -6,18 +6,51 @@
 
 #include "jit/arm64/MacroAssembler-arm64.h"
 
+#include "jsmath.h"
+
 #include "jit/arm64/MoveEmitter-arm64.h"
 #include "jit/arm64/SharedICRegisters-arm64.h"
 #include "jit/Bailouts.h"
 #include "jit/BaselineFrame.h"
+#include "jit/JitRuntime.h"
 #include "jit/MacroAssembler.h"
 #include "util/Memory.h"
 #include "vm/JitActivation.h"  // js::jit::JitActivation
+#include "vm/JSContext.h"
 
 #include "jit/MacroAssembler-inl.h"
 
 namespace js {
 namespace jit {
+
+void MacroAssemblerCompat::boxValue(JSValueType type, Register src,
+                                    Register dest) {
+#ifdef DEBUG
+  if (type == JSVAL_TYPE_INT32 || type == JSVAL_TYPE_BOOLEAN) {
+    Label upper32BitsZeroed;
+    movePtr(ImmWord(UINT32_MAX), dest);
+    asMasm().branchPtr(Assembler::BelowOrEqual, src, dest, &upper32BitsZeroed);
+    breakpoint();
+    bind(&upper32BitsZeroed);
+  }
+#endif
+  Orr(ARMRegister(dest, 64), ARMRegister(src, 64),
+      Operand(ImmShiftedTag(type).value));
+}
+
+#ifdef ENABLE_WASM_SIMD
+bool MacroAssembler::MustScalarizeShiftSimd128(wasm::SimdOp op) {
+  MOZ_CRASH("NYI - ion porting interface not in use");
+}
+
+bool MacroAssembler::MustMaskShiftCountSimd128(wasm::SimdOp op, int32_t* mask) {
+  MOZ_CRASH("NYI - ion porting interface not in use");
+}
+
+bool MacroAssembler::MustScalarizeShiftSimd128(wasm::SimdOp op, Imm32 imm) {
+  MOZ_CRASH("NYI - ion porting interface not in use");
+}
+#endif
 
 void MacroAssembler::clampDoubleToUint8(FloatRegister input, Register output) {
   ARMRegister dest(output, 32);
@@ -114,7 +147,7 @@ void MacroAssemblerCompat::loadPrivate(const Address& src, Register dest) {
 }
 
 void MacroAssemblerCompat::handleFailureWithHandlerTail(
-    void* handler, Label* profilerExitTail) {
+    Label* profilerExitTail) {
   // Reserve space for exception information.
   int64_t size = (sizeof(ResumeFromException) + 7) & ~7;
   Sub(GetStackPointer64(), GetStackPointer64(), Operand(size));
@@ -125,10 +158,11 @@ void MacroAssemblerCompat::handleFailureWithHandlerTail(
   Mov(x0, GetStackPointer64());
 
   // Call the handler.
+  using Fn = void (*)(ResumeFromException * rfe);
   asMasm().setupUnalignedABICall(r1);
   asMasm().passABIArg(r0);
-  asMasm().callWithABI(handler, MoveOp::GENERAL,
-                       CheckUnsafeCallWithABI::DontCheckHasExitFrame);
+  asMasm().callWithABI<Fn, HandleException>(
+      MoveOp::GENERAL, CheckUnsafeCallWithABI::DontCheckHasExitFrame);
 
   Label entryFrame;
   Label catch_;
@@ -263,6 +297,10 @@ void MacroAssemblerCompat::profilerEnterFrame(RegisterOrSP framePtr,
            Address(scratch, JitActivation::offsetOfLastProfilingCallSite()));
 }
 
+void MacroAssemblerCompat::profilerExitFrame() {
+  jump(GetJitContext()->runtime->jitRuntime()->getProfilerExitFrameTail());
+}
+
 void MacroAssemblerCompat::breakpoint() {
   // Note, other payloads are possible, but GDB is known to misinterpret them
   // sometimes and iloop on the breakpoint instead of stopping properly.
@@ -345,10 +383,15 @@ void MacroAssemblerCompat::wasmLoadImpl(const wasm::MemoryAccessDesc& access,
         Ldr(SelectGPReg(outany, out64), srcAddr);
         break;
       case Scalar::Float32:
+        // LDR does the right thing also for access.isZeroExtendSimdLoad()
         Ldr(SelectFPReg(outany, out64, 32), srcAddr);
         break;
       case Scalar::Float64:
+        // LDR does the right thing also for access.isZeroExtendSimdLoad()
         Ldr(SelectFPReg(outany, out64, 64), srcAddr);
+        break;
+      case Scalar::Simd128:
+        Ldr(SelectFPReg(outany, out64, 128), srcAddr);
         break;
       case Scalar::Uint8Clamped:
       case Scalar::BigInt64:
@@ -409,6 +452,9 @@ void MacroAssemblerCompat::wasmStoreImpl(const wasm::MemoryAccessDesc& access,
       case Scalar::Float64:
         Str(SelectFPReg(valany, val64, 64), dstAddr);
         break;
+      case Scalar::Simd128:
+        Str(SelectFPReg(valany, val64, 128), dstAddr);
+        break;
       case Scalar::Uint8Clamped:
       case Scalar::BigInt64:
       case Scalar::BigUint64:
@@ -418,6 +464,193 @@ void MacroAssemblerCompat::wasmStoreImpl(const wasm::MemoryAccessDesc& access,
   }
 
   asMasm().memoryBarrierAfter(access.sync());
+}
+
+void MacroAssemblerCompat::compareSimd128Int(Assembler::Condition cond,
+                                             ARMFPRegister dest,
+                                             ARMFPRegister lhs,
+                                             ARMFPRegister rhs) {
+  switch (cond) {
+    case Assembler::Equal:
+      Cmeq(dest, lhs, rhs);
+      break;
+    case Assembler::NotEqual:
+      Cmeq(dest, lhs, rhs);
+      Mvn(lhs, lhs);
+      break;
+    case Assembler::GreaterThan:
+      Cmgt(dest, lhs, rhs);
+      break;
+    case Assembler::GreaterThanOrEqual:
+      Cmge(dest, lhs, rhs);
+      break;
+    case Assembler::LessThan:
+      Cmgt(dest, rhs, lhs);
+      break;
+    case Assembler::LessThanOrEqual:
+      Cmge(dest, rhs, lhs);
+      break;
+    case Assembler::Above:
+      Cmhi(dest, lhs, rhs);
+      break;
+    case Assembler::AboveOrEqual:
+      Cmhs(dest, lhs, rhs);
+      break;
+    case Assembler::Below:
+      Cmhi(dest, rhs, lhs);
+      break;
+    case Assembler::BelowOrEqual:
+      Cmhs(dest, rhs, lhs);
+      break;
+    default:
+      MOZ_CRASH("Unexpected SIMD integer condition");
+  }
+}
+
+void MacroAssemblerCompat::compareSimd128Float(Assembler::Condition cond,
+                                               ARMFPRegister dest,
+                                               ARMFPRegister lhs,
+                                               ARMFPRegister rhs) {
+  switch (cond) {
+    case Assembler::Equal:
+      Fcmeq(dest, lhs, rhs);
+      break;
+    case Assembler::NotEqual:
+      Fcmeq(dest, lhs, rhs);
+      Mvn(lhs, lhs);
+      break;
+    case Assembler::GreaterThan:
+      Fcmgt(dest, lhs, rhs);
+      break;
+    case Assembler::GreaterThanOrEqual:
+      Fcmge(dest, lhs, rhs);
+      break;
+    case Assembler::LessThan:
+      Fcmgt(dest, rhs, lhs);
+      break;
+    case Assembler::LessThanOrEqual:
+      Fcmge(dest, rhs, lhs);
+      break;
+    default:
+      MOZ_CRASH("Unexpected SIMD integer condition");
+  }
+}
+
+void MacroAssemblerCompat::rightShiftInt8x16(Register rhs,
+                                             FloatRegister lhsDest,
+                                             FloatRegister temp,
+                                             bool isUnsigned) {
+  ScratchSimd128Scope scratch_(asMasm());
+  ARMFPRegister shift = Simd8H(scratch_);
+
+  // Compute 8 - (shift & 7) in all 16-bit lanes
+  {
+    vixl::UseScratchRegisterScope temps(this);
+    ARMRegister scratch = temps.AcquireW();
+    And(scratch, ARMRegister(rhs, 32), 7);
+    Neg(scratch, scratch);
+    Add(scratch, scratch, 8);
+    Dup(shift, scratch);
+  }
+
+  // Widen high bytes, shift left variable, then recover top bytes.
+  if (isUnsigned) {
+    Ushll2(Simd8H(temp), Simd16B(lhsDest), 0);
+  } else {
+    Sshll2(Simd8H(temp), Simd16B(lhsDest), 0);
+  }
+  Ushl(Simd8H(temp), Simd8H(temp), shift);
+  Shrn(Simd8B(temp), Simd8H(temp), 8);
+
+  // Ditto low bytes, leaving them in the correct place for the output.
+  if (isUnsigned) {
+    Ushll(Simd8H(lhsDest), Simd8B(lhsDest), 0);
+  } else {
+    Sshll(Simd8H(lhsDest), Simd8B(lhsDest), 0);
+  }
+  Ushl(Simd8H(lhsDest), Simd8H(lhsDest), shift);
+  Shrn(Simd8B(lhsDest), Simd8H(lhsDest), 8);
+
+  // Reassemble: insert the high bytes.
+  Ins(Simd2D(lhsDest), 1, Simd2D(temp), 0);
+}
+
+void MacroAssemblerCompat::rightShiftInt16x8(Register rhs,
+                                             FloatRegister lhsDest,
+                                             FloatRegister temp,
+                                             bool isUnsigned) {
+  ScratchSimd128Scope scratch_(asMasm());
+  ARMFPRegister shift = Simd4S(scratch_);
+
+  // Compute 16 - (shift & 15) in all 32-bit lanes
+  {
+    vixl::UseScratchRegisterScope temps(this);
+    ARMRegister scratch = temps.AcquireW();
+    And(scratch, ARMRegister(rhs, 32), 15);
+    Neg(scratch, scratch);
+    Add(scratch, scratch, 16);
+    Dup(shift, scratch);
+  }
+
+  // Widen high halfwords, shift left variable, then recover top halfwords
+  if (isUnsigned) {
+    Ushll2(Simd4S(temp), Simd8H(lhsDest), 0);
+  } else {
+    Sshll2(Simd4S(temp), Simd8H(lhsDest), 0);
+  }
+  Ushl(Simd4S(temp), Simd4S(temp), shift);
+  Shrn(Simd4H(temp), Simd4S(temp), 16);
+
+  // Ditto low halfwords
+  if (isUnsigned) {
+    Ushll(Simd4S(lhsDest), Simd4H(lhsDest), 0);
+  } else {
+    Sshll(Simd4S(lhsDest), Simd4H(lhsDest), 0);
+  }
+  Ushl(Simd4S(lhsDest), Simd4S(lhsDest), shift);
+  Shrn(Simd4H(lhsDest), Simd4S(lhsDest), 16);
+
+  // Reassemble: insert the high halfwords.
+  Ins(Simd2D(lhsDest), 1, Simd2D(temp), 0);
+}
+
+void MacroAssemblerCompat::rightShiftInt32x4(Register rhs,
+                                             FloatRegister lhsDest,
+                                             FloatRegister temp,
+                                             bool isUnsigned) {
+  ScratchSimd128Scope scratch_(asMasm());
+  ARMFPRegister shift = Simd2D(scratch_);
+
+  // Compute 32 - (shift & 31) in all 64-bit lanes
+  {
+    vixl::UseScratchRegisterScope temps(this);
+    ARMRegister scratch = temps.AcquireX();
+    And(scratch, ARMRegister(rhs, 64), 31);
+    Neg(scratch, scratch);
+    Add(scratch, scratch, 32);
+    Dup(shift, scratch);
+  }
+
+  // Widen high words, shift left variable, then recover top words
+  if (isUnsigned) {
+    Ushll2(Simd2D(temp), Simd4S(lhsDest), 0);
+  } else {
+    Sshll2(Simd2D(temp), Simd4S(lhsDest), 0);
+  }
+  Ushl(Simd2D(temp), Simd2D(temp), shift);
+  Shrn(Simd2S(temp), Simd2D(temp), 32);
+
+  // Ditto high words
+  if (isUnsigned) {
+    Ushll(Simd2D(lhsDest), Simd2S(lhsDest), 0);
+  } else {
+    Sshll(Simd2D(lhsDest), Simd2S(lhsDest), 0);
+  }
+  Ushl(Simd2D(lhsDest), Simd2D(lhsDest), shift);
+  Shrn(Simd2S(lhsDest), Simd2D(lhsDest), 32);
+
+  // Reassemble: insert the high words.
+  Ins(Simd2D(lhsDest), 1, Simd2D(temp), 0);
 }
 
 void MacroAssembler::reserveStack(uint32_t amount) {
@@ -444,6 +677,10 @@ void MacroAssembler::flush() { Assembler::flush(); }
 
 // ===============================================================
 // Stack manipulation functions.
+//
+// These all assume no SIMD registers, because SIMD registers are handled with
+// other routines when that is necessary.  See lengthy comment in
+// Architecture-arm64.h.
 
 void MacroAssembler::PushRegsInMask(LiveRegisterSet set) {
   for (GeneralRegisterBackwardIterator iter(set.gprs()); iter.more();) {
@@ -568,6 +805,100 @@ void MacroAssembler::PopRegsInMaskIgnore(LiveRegisterSet set,
   freeStack(bytesPushed);
 }
 
+#ifdef ENABLE_WASM_SIMD
+void MacroAssemblerCompat::PushRegsInMaskForWasmStubs(LiveRegisterSet set) {
+  for (GeneralRegisterBackwardIterator iter(set.gprs()); iter.more();) {
+    vixl::CPURegister src[4] = {vixl::NoCPUReg, vixl::NoCPUReg, vixl::NoCPUReg,
+                                vixl::NoCPUReg};
+
+    for (size_t i = 0; i < 4 && iter.more(); i++) {
+      src[i] = ARMRegister(*iter, 64);
+      ++iter;
+      asMasm().adjustFrame(8);
+    }
+    vixl::MacroAssembler::Push(src[0], src[1], src[2], src[3]);
+  }
+
+  // reduceSetForPush returns a set with the unique encodings and kind==0.  For
+  // each encoding in the set, just push the SIMD register.
+  for (FloatRegisterBackwardIterator iter(set.fpus().reduceSetForPush());
+       iter.more();) {
+    vixl::CPURegister src[4] = {vixl::NoCPUReg, vixl::NoCPUReg, vixl::NoCPUReg,
+                                vixl::NoCPUReg};
+
+    for (size_t i = 0; i < 4 && iter.more(); i++) {
+      src[i] = ARMFPRegister(*iter, 128);
+      ++iter;
+      asMasm().adjustFrame(FloatRegister::SizeOfSimd128);
+    }
+    vixl::MacroAssembler::Push(src[0], src[1], src[2], src[3]);
+  }
+}
+
+void MacroAssemblerCompat::PopRegsInMaskForWasmStubs(LiveRegisterSet set,
+                                                     LiveRegisterSet ignore) {
+  // The offset of the data from the stack pointer.
+  uint32_t offset = 0;
+
+  // See comments above
+  for (FloatRegisterIterator iter(set.fpus().reduceSetForPush());
+       iter.more();) {
+    vixl::CPURegister dest[2] = {vixl::NoCPUReg, vixl::NoCPUReg};
+    uint32_t nextOffset = offset;
+
+    for (size_t i = 0; i < 2 && iter.more(); i++) {
+      if (!ignore.has(*iter)) {
+        dest[i] = ARMFPRegister(*iter, 128);
+      }
+      ++iter;
+      nextOffset += FloatRegister::SizeOfSimd128;
+    }
+
+    if (!dest[0].IsNone() && !dest[1].IsNone()) {
+      Ldp(dest[0], dest[1], MemOperand(GetStackPointer64(), offset));
+    } else if (!dest[0].IsNone()) {
+      Ldr(dest[0], MemOperand(GetStackPointer64(), offset));
+    } else if (!dest[1].IsNone()) {
+      Ldr(dest[1], MemOperand(GetStackPointer64(), offset + 16));
+    }
+
+    offset = nextOffset;
+  }
+
+  MOZ_ASSERT(offset ==
+             FloatRegister::GetPushSizeInBytesForWasmStubs(set.fpus()));
+
+  for (GeneralRegisterIterator iter(set.gprs()); iter.more();) {
+    vixl::CPURegister dest[2] = {vixl::NoCPUReg, vixl::NoCPUReg};
+    uint32_t nextOffset = offset;
+
+    for (size_t i = 0; i < 2 && iter.more(); i++) {
+      if (!ignore.has(*iter)) {
+        dest[i] = ARMRegister(*iter, 64);
+      }
+      ++iter;
+      nextOffset += sizeof(uint64_t);
+    }
+
+    if (!dest[0].IsNone() && !dest[1].IsNone()) {
+      Ldp(dest[0], dest[1], MemOperand(GetStackPointer64(), offset));
+    } else if (!dest[0].IsNone()) {
+      Ldr(dest[0], MemOperand(GetStackPointer64(), offset));
+    } else if (!dest[1].IsNone()) {
+      Ldr(dest[1], MemOperand(GetStackPointer64(), offset + sizeof(uint64_t)));
+    }
+
+    offset = nextOffset;
+  }
+
+  size_t bytesPushed =
+      set.gprs().size() * sizeof(uint64_t) +
+      FloatRegister::GetPushSizeInBytesForWasmStubs(set.fpus());
+  MOZ_ASSERT(offset == bytesPushed);
+  asMasm().freeStack(bytesPushed);
+}
+#endif
+
 void MacroAssembler::Push(Register reg) {
   push(reg);
   adjustFrame(sizeof(intptr_t));
@@ -616,7 +947,8 @@ void MacroAssembler::Pop(Register reg) {
 }
 
 void MacroAssembler::Pop(FloatRegister f) {
-  MOZ_CRASH("NYI: Pop(FloatRegister)");
+  loadDouble(Address(getStackPointer(), 0), f);
+  freeStack(sizeof(double));
 }
 
 void MacroAssembler::Pop(const ValueOperand& val) {
@@ -982,42 +1314,11 @@ void MacroAssembler::branchValueIsNurseryCellImpl(Condition cond,
   MOZ_ASSERT(temp != ScratchReg &&
              temp != ScratchReg2);  // Both may be used internally.
 
-  Label done, checkAddress, checkObjectAddress, checkStringAddress;
-  bool testNursery = (cond == Assembler::Equal);
-  branchTestObject(Assembler::Equal, value, &checkObjectAddress);
-  branchTestString(Assembler::Equal, value, &checkStringAddress);
-  branchTestBigInt(Assembler::NotEqual, value, testNursery ? &done : label);
-
-  unboxBigInt(value, temp);
-  jump(&checkAddress);
-
-  bind(&checkStringAddress);
-  unboxString(value, temp);
-  jump(&checkAddress);
-
-  bind(&checkObjectAddress);
-  unboxObject(value, temp);
-
-  bind(&checkAddress);
-  orPtr(Imm32(gc::ChunkMask), temp);
-  branch32(cond, Address(temp, gc::ChunkLocationOffsetFromLastByte),
-           Imm32(int32_t(gc::ChunkLocation::Nursery)), label);
-
-  bind(&done);
-}
-
-void MacroAssembler::branchValueIsNurseryObject(Condition cond,
-                                                ValueOperand value,
-                                                Register temp, Label* label) {
-  MOZ_ASSERT(cond == Assembler::Equal || cond == Assembler::NotEqual);
-  MOZ_ASSERT(temp != ScratchReg &&
-             temp != ScratchReg2);  // Both may be used internally.
-
   Label done;
-  branchTestObject(Assembler::NotEqual, value,
-                   cond == Assembler::Equal ? &done : label);
+  branchTestGCThing(Assembler::NotEqual, value,
+                    cond == Assembler::Equal ? &done : label);
 
-  unboxObject(value, temp);
+  unboxGCThingForGCBarrier(value, temp);
   orPtr(Imm32(gc::ChunkMask), temp);
   branch32(cond, Address(temp, gc::ChunkLocationOffsetFromLastByte),
            Imm32(int32_t(gc::ChunkLocation::Nursery)), label);
@@ -2058,6 +2359,270 @@ void MacroAssembler::patchNearAddressMove(CodeLocationLabel loc,
 void MacroAssembler::speculationBarrier() {
   // Conditional speculation barrier.
   csdb();
+}
+
+void MacroAssembler::floorFloat32ToInt32(FloatRegister src, Register dest,
+                                         Label* fail) {
+  floorf(src, dest, fail);
+}
+
+void MacroAssembler::floorDoubleToInt32(FloatRegister src, Register dest,
+                                        Label* fail) {
+  floor(src, dest, fail);
+}
+
+void MacroAssembler::ceilFloat32ToInt32(FloatRegister src, Register dest,
+                                        Label* fail) {
+  ceilf(src, dest, fail);
+}
+
+void MacroAssembler::ceilDoubleToInt32(FloatRegister src, Register dest,
+                                       Label* fail) {
+  ceil(src, dest, fail);
+}
+
+void MacroAssembler::truncFloat32ToInt32(FloatRegister src, Register dest,
+                                         Label* fail) {
+  const ARMFPRegister src32(src, 32);
+
+  Label done, zeroCase;
+
+  // Convert scalar to signed 32-bit fixed-point, rounding toward zero.
+  // In the case of overflow, the output is saturated.
+  // In the case of NaN and -0, the output is zero.
+  Fcvtzs(ARMRegister(dest, 32), src32);
+
+  // If the output was zero, worry about special cases.
+  branch32(Assembler::Equal, dest, Imm32(0), &zeroCase);
+
+  // Fail on overflow cases.
+  branch32(Assembler::Equal, dest, Imm32(INT_MAX), fail);
+  branch32(Assembler::Equal, dest, Imm32(INT_MIN), fail);
+
+  // If the output was non-zero and wasn't saturated, just return it.
+  jump(&done);
+
+  // Handle the case of a zero output:
+  // 1. The input may have been NaN, requiring a failure.
+  // 2. The input may have been in (-1,-0], requiring a failure.
+  {
+    bind(&zeroCase);
+
+    // If input is a negative number that truncated to zero, the real
+    // output should be the non-integer -0.
+    // The use of "lt" instead of "lo" also catches unordered NaN input.
+    Fcmp(src32, 0.0f);
+    B(fail, vixl::lt);
+
+    // Check explicitly for -0, bitwise.
+    Fmov(ARMRegister(dest, 32), src32);
+    branchTest32(Assembler::Signed, dest, dest, fail);
+    move32(Imm32(0), dest);
+  }
+
+  bind(&done);
+}
+
+void MacroAssembler::truncDoubleToInt32(FloatRegister src, Register dest,
+                                        Label* fail) {
+  const ARMFPRegister src64(src, 64);
+
+  Label done, zeroCase;
+
+  // Convert scalar to signed 32-bit fixed-point, rounding toward zero.
+  // In the case of overflow, the output is saturated.
+  // In the case of NaN and -0, the output is zero.
+  Fcvtzs(ARMRegister(dest, 32), src64);
+
+  // If the output was zero, worry about special cases.
+  branch32(Assembler::Equal, dest, Imm32(0), &zeroCase);
+
+  // Fail on overflow cases.
+  branch32(Assembler::Equal, dest, Imm32(INT_MAX), fail);
+  branch32(Assembler::Equal, dest, Imm32(INT_MIN), fail);
+
+  // If the output was non-zero and wasn't saturated, just return it.
+  jump(&done);
+
+  // Handle the case of a zero output:
+  // 1. The input may have been NaN, requiring a failure.
+  // 2. The input may have been in (-1,-0], requiring a failure.
+  {
+    bind(&zeroCase);
+
+    // If input is a negative number that truncated to zero, the real
+    // output should be the non-integer -0.
+    // The use of "lt" instead of "lo" also catches unordered NaN input.
+    Fcmp(src64, 0.0);
+    B(fail, vixl::lt);
+
+    // Check explicitly for -0, bitwise.
+    Fmov(ARMRegister(dest, 64), src64);
+    branchTestPtr(Assembler::Signed, dest, dest, fail);
+    movePtr(ImmPtr(0), dest);
+  }
+
+  bind(&done);
+}
+
+void MacroAssembler::roundFloat32ToInt32(FloatRegister src, Register dest,
+                                         FloatRegister temp, Label* fail) {
+  const ARMFPRegister src32(src, 32);
+  ScratchFloat32Scope scratch(*this);
+
+  Label negative, done;
+
+  // Branch to a slow path if input < 0.0 due to complicated rounding rules.
+  // Note that Fcmp with NaN unsets the negative flag.
+  Fcmp(src32, 0.0);
+  B(&negative, Assembler::Condition::lo);
+
+  // Handle the simple case of a positive input, and also -0 and NaN.
+  // Rounding proceeds with consideration of the fractional part of the input:
+  // 1. If > 0.5, round to integer with higher absolute value (so, up).
+  // 2. If < 0.5, round to integer with lower absolute value (so, down).
+  // 3. If = 0.5, round to +Infinity (so, up).
+  {
+    // Convert to signed 32-bit integer, rounding halfway cases away from zero.
+    // In the case of overflow, the output is saturated.
+    // In the case of NaN and -0, the output is zero.
+    Fcvtas(ARMRegister(dest, 32), src32);
+    // If the output potentially saturated, fail.
+    branch32(Assembler::Equal, dest, Imm32(INT_MAX), fail);
+
+    // If the result of the rounding was non-zero, return the output.
+    // In the case of zero, the input may have been NaN or -0, which must bail.
+    branch32(Assembler::NotEqual, dest, Imm32(0), &done);
+    {
+      // If input is NaN, comparisons set the C and V bits of the NZCV flags.
+      Fcmp(src32, 0.0f);
+      B(fail, Assembler::Overflow);
+
+      // Move all 32 bits of the input into a scratch register to check for -0.
+      vixl::UseScratchRegisterScope temps(this);
+      const ARMRegister scratchGPR32 = temps.AcquireW();
+      Fmov(scratchGPR32, src32);
+      Cmp(scratchGPR32, vixl::Operand(uint32_t(0x80000000)));
+      B(fail, Assembler::Equal);
+    }
+
+    jump(&done);
+  }
+
+  // Handle the complicated case of a negative input.
+  // Rounding proceeds with consideration of the fractional part of the input:
+  // 1. If > 0.5, round to integer with higher absolute value (so, down).
+  // 2. If < 0.5, round to integer with lower absolute value (so, up).
+  // 3. If = 0.5, round to +Infinity (so, up).
+  bind(&negative);
+  {
+    // Inputs in [-0.5, 0) need 0.5 added; other negative inputs need
+    // the biggest double less than 0.5.
+    Label join;
+    loadConstantFloat32(GetBiggestNumberLessThan(0.5f), temp);
+    loadConstantFloat32(-0.5f, scratch);
+    branchFloat(Assembler::DoubleLessThan, src, scratch, &join);
+    loadConstantFloat32(0.5f, temp);
+    bind(&join);
+
+    addFloat32(src, temp);
+    // Round all values toward -Infinity.
+    // In the case of overflow, the output is saturated.
+    // NaN and -0 are already handled by the "positive number" path above.
+    Fcvtms(ARMRegister(dest, 32), temp);
+    // If the output potentially saturated, fail.
+    branch32(Assembler::Equal, dest, Imm32(INT_MIN), fail);
+
+    // If output is zero, then the actual result is -0. Fail.
+    branchTest32(Assembler::Zero, dest, dest, fail);
+  }
+
+  bind(&done);
+}
+
+void MacroAssembler::roundDoubleToInt32(FloatRegister src, Register dest,
+                                        FloatRegister temp, Label* fail) {
+  const ARMFPRegister src64(src, 64);
+  ScratchDoubleScope scratch(*this);
+
+  Label negative, done;
+
+  // Branch to a slow path if input < 0.0 due to complicated rounding rules.
+  // Note that Fcmp with NaN unsets the negative flag.
+  Fcmp(src64, 0.0);
+  B(&negative, Assembler::Condition::lo);
+
+  // Handle the simple case of a positive input, and also -0 and NaN.
+  // Rounding proceeds with consideration of the fractional part of the input:
+  // 1. If > 0.5, round to integer with higher absolute value (so, up).
+  // 2. If < 0.5, round to integer with lower absolute value (so, down).
+  // 3. If = 0.5, round to +Infinity (so, up).
+  {
+    // Convert to signed 32-bit integer, rounding halfway cases away from zero.
+    // In the case of overflow, the output is saturated.
+    // In the case of NaN and -0, the output is zero.
+    Fcvtas(ARMRegister(dest, 32), src64);
+    // If the output potentially saturated, fail.
+    branch32(Assembler::Equal, dest, Imm32(INT_MAX), fail);
+
+    // If the result of the rounding was non-zero, return the output.
+    // In the case of zero, the input may have been NaN or -0, which must bail.
+    branch32(Assembler::NotEqual, dest, Imm32(0), &done);
+    {
+      // If input is NaN, comparisons set the C and V bits of the NZCV flags.
+      Fcmp(src64, 0.0);
+      B(fail, Assembler::Overflow);
+
+      // Move all 64 bits of the input into a scratch register to check for -0.
+      vixl::UseScratchRegisterScope temps(this);
+      const ARMRegister scratchGPR64 = temps.AcquireX();
+      Fmov(scratchGPR64, src64);
+      Cmp(scratchGPR64, vixl::Operand(uint64_t(0x8000000000000000)));
+      B(fail, Assembler::Equal);
+    }
+
+    jump(&done);
+  }
+
+  // Handle the complicated case of a negative input.
+  // Rounding proceeds with consideration of the fractional part of the input:
+  // 1. If > 0.5, round to integer with higher absolute value (so, down).
+  // 2. If < 0.5, round to integer with lower absolute value (so, up).
+  // 3. If = 0.5, round to +Infinity (so, up).
+  bind(&negative);
+  {
+    // Inputs in [-0.5, 0) need 0.5 added; other negative inputs need
+    // the biggest double less than 0.5.
+    Label join;
+    loadConstantDouble(GetBiggestNumberLessThan(0.5), temp);
+    loadConstantDouble(-0.5, scratch);
+    branchDouble(Assembler::DoubleLessThan, src, scratch, &join);
+    loadConstantDouble(0.5, temp);
+    bind(&join);
+
+    addDouble(src, temp);
+    // Round all values toward -Infinity.
+    // In the case of overflow, the output is saturated.
+    // NaN and -0 are already handled by the "positive number" path above.
+    Fcvtms(ARMRegister(dest, 32), temp);
+    // If the output potentially saturated, fail.
+    branch32(Assembler::Equal, dest, Imm32(INT_MIN), fail);
+
+    // If output is zero, then the actual result is -0. Fail.
+    branchTest32(Assembler::Zero, dest, dest, fail);
+  }
+
+  bind(&done);
+}
+
+void MacroAssembler::nearbyIntDouble(RoundingMode mode, FloatRegister src,
+                                     FloatRegister dest) {
+  MOZ_CRASH("not supported on this platform");
+}
+
+void MacroAssembler::nearbyIntFloat32(RoundingMode mode, FloatRegister src,
+                                      FloatRegister dest) {
+  MOZ_CRASH("not supported on this platform");
 }
 
 //}}} check_macroassembler_style

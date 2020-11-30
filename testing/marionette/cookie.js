@@ -4,17 +4,26 @@
 
 "use strict";
 
+const EXPORTED_SYMBOLS = ["cookie"];
+
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
-
-const { assert } = ChromeUtils.import("chrome://marionette/content/assert.js");
-const { InvalidCookieDomainError, UnableToSetCookieError } = ChromeUtils.import(
-  "chrome://marionette/content/error.js"
+const { XPCOMUtils } = ChromeUtils.import(
+  "resource://gre/modules/XPCOMUtils.jsm"
 );
-const { pprint } = ChromeUtils.import("chrome://marionette/content/format.js");
 
-this.EXPORTED_SYMBOLS = ["cookie"];
+XPCOMUtils.defineLazyModuleGetters(this, {
+  assert: "chrome://marionette/content/assert.js",
+  error: "chrome://marionette/content/error.js",
+  pprint: "chrome://marionette/content/format.js",
+});
 
 const IPV4_PORT_EXPR = /:\d+$/;
+
+const SAMESITE_MAP = new Map([
+  ["None", Ci.nsICookie.SAMESITE_NONE],
+  ["Lax", Ci.nsICookie.SAMESITE_LAX],
+  ["Strict", Ci.nsICookie.SAMESITE_STRICT],
+]);
 
 /** @namespace */
 this.cookie = {
@@ -83,6 +92,13 @@ cookie.fromJSON = function(json) {
       "Cookie expiry must be a positive integer"
     );
   }
+  if (typeof json.sameSite != "undefined") {
+    newCookie.sameSite = assert.in(
+      json.sameSite,
+      Array.from(SAMESITE_MAP.keys()),
+      "Cookie SameSite flag must be one of None, Lax, or Strict"
+    );
+  }
 
   return newCookie;
 };
@@ -94,6 +110,8 @@ cookie.fromJSON = function(json) {
  *     Cookie to add.
  * @param {string=} restrictToHost
  *     Perform test that ``newCookie``'s domain matches this.
+ * @param {string=} protocol
+ *     The protocol of the caller. It can be `ftp:`, `http:` or `https:`.
  *
  * @throws {TypeError}
  *     If ``name``, ``value``, or ``domain`` are not present and
@@ -104,7 +122,10 @@ cookie.fromJSON = function(json) {
  * @throws {UnableToSetCookieError}
  *     If an error occurred while trying to save the cookie.
  */
-cookie.add = function(newCookie, { restrictToHost = null } = {}) {
+cookie.add = function(
+  newCookie,
+  { restrictToHost = null, protocol = null } = {}
+) {
   assert.string(newCookie.name, "Cookie name must be string");
   assert.string(newCookie.value, "Cookie value must be string");
 
@@ -135,6 +156,7 @@ cookie.add = function(newCookie, { restrictToHost = null } = {}) {
   } else {
     newCookie.session = false;
   }
+  newCookie.sameSite = SAMESITE_MAP.get(newCookie.sameSite || "None");
 
   let isIpAddress = false;
   try {
@@ -145,7 +167,7 @@ cookie.add = function(newCookie, { restrictToHost = null } = {}) {
         isIpAddress = true;
         break;
       default:
-        throw new InvalidCookieDomainError(newCookie.domain);
+        throw new error.InvalidCookieDomainError(newCookie.domain);
     }
   }
 
@@ -161,11 +183,24 @@ cookie.add = function(newCookie, { restrictToHost = null } = {}) {
       "." + restrictToHost !== newCookie.domain &&
       restrictToHost !== newCookie.domain
     ) {
-      throw new InvalidCookieDomainError(
+      throw new error.InvalidCookieDomainError(
         `Cookies may only be set ` +
           `for the current domain (${restrictToHost})`
       );
     }
+  }
+
+  let schemeType = Ci.nsICookie.SCHEME_UNSET;
+  switch (protocol) {
+    case "http:":
+      schemeType = Ci.nsICookie.SCHEME_HTTP;
+      break;
+    case "https:":
+      schemeType = Ci.nsICookie.SCHEME_HTTPS;
+      break;
+    default:
+      // ftp: or any other protocol is supported by the cookie service.
+      break;
   }
 
   // remove port from domain, if present.
@@ -184,10 +219,11 @@ cookie.add = function(newCookie, { restrictToHost = null } = {}) {
       newCookie.session,
       newCookie.expiry,
       {} /* origin attributes */,
-      Ci.nsICookie.SAMESITE_NONE
+      newCookie.sameSite,
+      schemeType
     );
   } catch (e) {
-    throw new UnableToSetCookieError(e);
+    throw new error.UnableToSetCookieError(e);
   }
 };
 
@@ -247,6 +283,10 @@ cookie.iter = function*(host, currentPath = "/") {
         if (!cookie.isSession) {
           data.expiry = cookie.expiry;
         }
+
+        data.sameSite = [...SAMESITE_MAP].find(
+          ([, value]) => cookie.sameSite === value
+        )[0];
 
         yield data;
       }

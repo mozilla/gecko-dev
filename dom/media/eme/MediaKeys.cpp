@@ -170,7 +170,7 @@ void MediaKeys::GetKeySystem(nsString& aOutKeySystem) const {
 already_AddRefed<DetailedPromise> MediaKeys::SetServerCertificate(
     const ArrayBufferViewOrArrayBuffer& aCert, ErrorResult& aRv) {
   RefPtr<DetailedPromise> promise(
-      MakePromise(aRv, NS_LITERAL_CSTRING("MediaKeys.setServerCertificate")));
+      MakePromise(aRv, "MediaKeys.setServerCertificate"_ns));
   if (aRv.Failed()) {
     return nullptr;
   }
@@ -369,8 +369,7 @@ class MediaKeysGMPCrashHelper : public GMPCrashHelper {
   WeakPtr<MediaKeys> mMediaKeys;
 };
 
-already_AddRefed<CDMProxy> MediaKeys::CreateCDMProxy(
-    nsISerialEventTarget* aMainThread) {
+already_AddRefed<CDMProxy> MediaKeys::CreateCDMProxy() {
   EME_LOG("MediaKeys[%p]::CreateCDMProxy()", this);
   RefPtr<CDMProxy> proxy;
 #ifdef MOZ_WIDGET_ANDROID
@@ -378,24 +377,21 @@ already_AddRefed<CDMProxy> MediaKeys::CreateCDMProxy(
     proxy = new MediaDrmCDMProxy(
         this, mKeySystem,
         mConfig.mDistinctiveIdentifier == MediaKeysRequirement::Required,
-        mConfig.mPersistentState == MediaKeysRequirement::Required,
-        aMainThread);
+        mConfig.mPersistentState == MediaKeysRequirement::Required);
   } else
 #endif
   {
     proxy = new ChromiumCDMProxy(
         this, mKeySystem, new MediaKeysGMPCrashHelper(this),
         mConfig.mDistinctiveIdentifier == MediaKeysRequirement::Required,
-        mConfig.mPersistentState == MediaKeysRequirement::Required,
-        aMainThread);
+        mConfig.mPersistentState == MediaKeysRequirement::Required);
   }
   return proxy.forget();
 }
 
 already_AddRefed<DetailedPromise> MediaKeys::Init(ErrorResult& aRv) {
   EME_LOG("MediaKeys[%p]::Init()", this);
-  RefPtr<DetailedPromise> promise(
-      MakePromise(aRv, NS_LITERAL_CSTRING("MediaKeys::Init()")));
+  RefPtr<DetailedPromise> promise(MakePromise(aRv, "MediaKeys::Init()"_ns));
   if (aRv.Failed()) {
     return nullptr;
   }
@@ -409,25 +405,39 @@ already_AddRefed<DetailedPromise> MediaKeys::Init(ErrorResult& aRv) {
   }
   mPrincipal = sop->GetPrincipal();
 
-  // Determine principal of the "top-level" window; the principal of the
-  // page that will display in the URL bar.
   nsCOMPtr<nsPIDOMWindowInner> window = GetParentObject();
-  if (!window) {
-    promise->MaybeRejectWithInvalidStateError(
-        "Couldn't get top-level window in MediaKeys::Init");
-    return promise.forget();
-  }
-  nsCOMPtr<nsPIDOMWindowOuter> top =
-      window->GetOuterWindow()->GetInProcessTop();
-  if (!top || !top->GetExtantDoc()) {
+  mDocument = window->GetExtantDoc();
+  if (!mDocument) {
+    NS_WARNING("Failed to get document when creating MediaKeys");
     promise->MaybeRejectWithInvalidStateError(
         "Couldn't get document in MediaKeys::Init");
     return promise.forget();
   }
 
-  mDocument = top->GetExtantDoc();
+  // Get the top-level principal so we can partition the GMP based on
+  // the current + top level principal.
+  nsIChannel* channel = mDocument->GetChannel();
+  if (!channel) {
+    NS_WARNING("Failed to get channel when creating MediaKeys");
+    promise->MaybeRejectWithInvalidStateError(
+        "Couldn't get channel in MediaKeys::Init");
+    return promise.forget();
+  }
+  nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
+  MOZ_RELEASE_ASSERT(loadInfo, "Channels should always have LoadInfo");
 
-  mTopLevelPrincipal = mDocument->NodePrincipal();
+  if (loadInfo->GetIsTopLevelLoad()) {
+    // We're in a top level context so our principal is already top level.
+    mTopLevelPrincipal = mPrincipal;
+  } else {
+    mTopLevelPrincipal = loadInfo->GetTopLevelPrincipal();
+    if (!mTopLevelPrincipal) {
+      NS_WARNING("Failed to get top level principal when creating MediaKeys");
+      promise->MaybeRejectWithInvalidStateError(
+          "Couldn't get top level principal in MediaKeys::Init");
+      return promise.forget();
+    }
+  }
 
   if (!mPrincipal || !mTopLevelPrincipal) {
     NS_WARNING("Failed to get principals when creating MediaKeys");
@@ -454,8 +464,7 @@ already_AddRefed<DetailedPromise> MediaKeys::Init(ErrorResult& aRv) {
   EME_LOG("MediaKeys[%p]::Create() (%s, %s)", this, origin.get(),
           topLevelOrigin.get());
 
-  mProxy =
-      CreateCDMProxy(top->GetExtantDoc()->EventTargetFor(TaskCategory::Other));
+  mProxy = CreateCDMProxy();
 
   // The CDMProxy's initialization is asynchronous. The MediaKeys is
   // refcounted, and its instance is returned to JS by promise once
@@ -513,9 +522,9 @@ static bool IsSessionTypeSupported(const MediaKeySessionType aSessionType,
 }
 
 already_AddRefed<MediaKeySession> MediaKeys::CreateSession(
-    JSContext* aCx, MediaKeySessionType aSessionType, ErrorResult& aRv) {
-  EME_LOG("MediaKeys[%p]::CreateSession(aCx=%p, aSessionType=%" PRIu8 ")", this,
-          aCx, static_cast<uint8_t>(aSessionType));
+    MediaKeySessionType aSessionType, ErrorResult& aRv) {
+  EME_LOG("MediaKeys[%p]::CreateSession(aSessionType=%" PRIu8 ")", this,
+          static_cast<uint8_t>(aSessionType));
   if (!IsSessionTypeSupported(aSessionType, mConfig)) {
     EME_LOG("MediaKeys[%p]::CreateSession() failed, unsupported session type",
             this);
@@ -532,7 +541,7 @@ already_AddRefed<MediaKeySession> MediaKeys::CreateSession(
   EME_LOG("MediaKeys[%p] Creating session", this);
 
   RefPtr<MediaKeySession> session = new MediaKeySession(
-      aCx, GetParentObject(), this, mKeySystem, aSessionType, aRv);
+      GetParentObject(), this, mKeySystem, aSessionType, aRv);
 
   if (aRv.Failed()) {
     return nullptr;
@@ -540,9 +549,9 @@ already_AddRefed<MediaKeySession> MediaKeys::CreateSession(
   DDLINKCHILD("session", session.get());
 
   // Add session to the set of sessions awaiting their sessionId being ready.
-  EME_LOG("MediaKeys[%p]::CreateSession(aCx=%p, aSessionType=%" PRIu8
+  EME_LOG("MediaKeys[%p]::CreateSession(aSessionType=%" PRIu8
           ") putting session with token=%" PRIu32 " into mPendingSessions",
-          this, aCx, static_cast<uint8_t>(aSessionType), session->Token());
+          this, static_cast<uint8_t>(aSessionType), session->Token());
   mPendingSessions.Put(session->Token(), RefPtr{session});
 
   return session.forget();
@@ -623,7 +632,7 @@ void MediaKeys::GetSessionsInfo(nsString& sessionsInfo) {
 already_AddRefed<Promise> MediaKeys::GetStatusForPolicy(
     const MediaKeysPolicy& aPolicy, ErrorResult& aRv) {
   RefPtr<DetailedPromise> promise(
-      MakePromise(aRv, NS_LITERAL_CSTRING("MediaKeys::GetStatusForPolicy()")));
+      MakePromise(aRv, "MediaKeys::GetStatusForPolicy()"_ns));
   if (aRv.Failed()) {
     return nullptr;
   }

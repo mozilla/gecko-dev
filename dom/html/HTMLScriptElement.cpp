@@ -80,8 +80,8 @@ nsresult HTMLScriptElement::Clone(dom::NodeInfo* aNodeInfo,
                                   nsINode** aResult) const {
   *aResult = nullptr;
 
-  HTMLScriptElement* it =
-      new HTMLScriptElement(do_AddRef(aNodeInfo), NOT_FROM_PARSER);
+  HTMLScriptElement* it = new (aNodeInfo->NodeInfoManager())
+      HTMLScriptElement(do_AddRef(aNodeInfo), NOT_FROM_PARSER);
 
   nsCOMPtr<nsINode> kungFuDeathGrip = it;
   nsresult rv = const_cast<HTMLScriptElement*>(this)->CopyInnerTo(it);
@@ -137,7 +137,7 @@ void HTMLScriptElement::SetText(const nsAString& aValue, ErrorResult& aRv) {
   aRv = nsContentUtils::SetNodeTextContent(this, aValue, true);
 }
 
-// variation of this code in nsSVGScriptElement - check if changes
+// variation of this code in SVGScriptElement - check if changes
 // need to be transfered when modifying
 
 bool HTMLScriptElement::GetScriptType(nsAString& aType) {
@@ -176,7 +176,7 @@ void HTMLScriptElement::FreezeExecutionAttrs(Document* aOwnerDoc) {
   mIsModule = aOwnerDoc->ModuleScriptsEnabled() && !type.IsEmpty() &&
               type.LowerCaseEqualsASCII("module");
 
-  // variation of this code in nsSVGScriptElement - check if changes
+  // variation of this code in SVGScriptElement - check if changes
   // need to be transfered when modifying.  Note that we don't use GetSrc here
   // because it will return the base URL when the attr value is "".
   nsAutoString src;
@@ -187,21 +187,20 @@ void HTMLScriptElement::FreezeExecutionAttrs(Document* aOwnerDoc) {
                                                 OwnerDoc(), GetBaseURI());
 
       if (!mUri) {
-        AutoTArray<nsString, 2> params = {NS_LITERAL_STRING("src"), src};
+        AutoTArray<nsString, 2> params = {u"src"_ns, src};
 
         nsContentUtils::ReportToConsole(
-            nsIScriptError::warningFlag, NS_LITERAL_CSTRING("HTML"), OwnerDoc(),
+            nsIScriptError::warningFlag, "HTML"_ns, OwnerDoc(),
             nsContentUtils::eDOM_PROPERTIES, "ScriptSourceInvalidUri", params,
-            nullptr, EmptyString(), GetScriptLineNumber(),
-            GetScriptColumnNumber());
+            nullptr, u""_ns, GetScriptLineNumber(), GetScriptColumnNumber());
       }
     } else {
-      AutoTArray<nsString, 1> params = {NS_LITERAL_STRING("src")};
+      AutoTArray<nsString, 1> params = {u"src"_ns};
 
       nsContentUtils::ReportToConsole(
-          nsIScriptError::warningFlag, NS_LITERAL_CSTRING("HTML"), OwnerDoc(),
+          nsIScriptError::warningFlag, "HTML"_ns, OwnerDoc(),
           nsContentUtils::eDOM_PROPERTIES, "ScriptSourceEmpty", params, nullptr,
-          EmptyString(), GetScriptLineNumber(), GetScriptColumnNumber());
+          u""_ns, GetScriptLineNumber(), GetScriptColumnNumber());
     }
 
     // At this point mUri will be null for invalid URLs.

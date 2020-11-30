@@ -70,7 +70,7 @@ add_task(async function() {
   got = await promiseNewChannelResponse(TEST_URI_GOOD);
 
   // Check some keys we expect to always get.
-  Assert.ok(got.message.extensions, "should have extensions");
+  Assert.ok(got.message.addons, "should have addons");
   Assert.ok(got.message.graphics, "should have graphics");
 
   // Check we have channel and build ID info:
@@ -104,6 +104,10 @@ add_task(async function() {
   Assert.ok(
     !got.message.modifiedPreferences,
     "should not have a modifiedPreferences key"
+  );
+  Assert.ok(
+    !got.message.printingPreferences,
+    "should not have a printingPreferences key"
   );
   Assert.ok(!got.message.crashes, "should not have crash info");
 

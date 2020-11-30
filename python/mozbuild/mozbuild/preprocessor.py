@@ -331,7 +331,10 @@ class Preprocessor:
         #  2: #else found
         self.ifStates = []
         self.checkLineNumbers = False
+
+        # A list of (filter_name, filter_function) pairs.
         self.filters = []
+
         self.cmds = {}
         for cmd, level in (
             ('define', 0),
@@ -761,18 +764,10 @@ class Preprocessor:
             return ''
         return aLine
 
-    # slashslash: Strips everything after //.
-    def filter_slashslash(self, aLine):
-        if (aLine.find('//') == -1):
-            return aLine
-        [aLine, rest] = aLine.split('//', 1)
-        if rest:
-            aLine += '\n'
-        return aLine
-
-    # spaces: Collapses sequences of spaces into a single space.
-    def filter_spaces(self, aLine):
-        return re.sub(' +', ' ', aLine).strip(' ')
+    # dumbComments: Empties out lines that consists of optional whitespace
+    # followed by a `//`.
+    def filter_dumbComments(self, aLine):
+        return re.sub('^\s*//.*', '', aLine)
 
     # substitution: variables wrapped in @ are replaced with their value.
     def filter_substitution(self, aLine, fatal=True):

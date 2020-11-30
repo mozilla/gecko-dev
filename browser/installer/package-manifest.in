@@ -60,6 +60,13 @@
 @RESPATH@/update.locale
 @RESPATH@/updater.ini
 #endif
+#ifdef MOZ_DEFAULT_BROWSER_AGENT
+@RESPATH@/defaultagent.ini
+@RESPATH@/defaultagent_localized.ini
+#endif
+#if defined(MOZ_UPDATE_AGENT) || defined(MOZ_DEFAULT_BROWSER_AGENT)
+@RESPATH@/locale.ini
+#endif
 
 [xpcom]
 @RESPATH@/dependentlibs.list
@@ -108,6 +115,9 @@
 #ifdef MOZ_WASM_SANDBOXING_GRAPHITE
 @BINPATH@/@DLL_PREFIX@graphitewasm@DLL_SUFFIX@
 #endif
+#ifdef MOZ_WASM_SANDBOXING_OGG
+@BINPATH@/@DLL_PREFIX@oggwasm@DLL_SUFFIX@
+#endif
 
 ; We don't have a complete view of which dlls to expect when doing an artifact
 ; build because we haven't run the relevant parts of configure, so we guess
@@ -145,7 +155,6 @@
 @BINPATH@/@DLL_PREFIX@mozavutil@DLL_SUFFIX@
 @BINPATH@/@DLL_PREFIX@mozavcodec@DLL_SUFFIX@
 #endif
-@RESPATH@/browser/blocklist.xml
 #ifdef XP_WIN
 #ifdef _AMD64_
 @BINPATH@/@DLL_PREFIX@qipcap64@DLL_SUFFIX@
@@ -166,9 +175,6 @@
 
 ; JavaScript components
 @RESPATH@/browser/components/BrowserComponents.manifest
-@RESPATH@/components/EnterprisePolicies.js
-@RESPATH@/components/EnterprisePoliciesContent.js
-@RESPATH@/components/EnterprisePolicies.manifest
 @RESPATH@/components/toolkitsearch.manifest
 @RESPATH@/components/extensions.manifest
 #ifdef MOZ_UPDATER
@@ -243,8 +249,8 @@
 @RESPATH@/browser/chrome.manifest
 @RESPATH@/browser/chrome/browser@JAREXT@
 @RESPATH@/browser/chrome/browser.manifest
-@RESPATH@/browser/chrome/pdfjs.manifest
-@RESPATH@/browser/chrome/pdfjs/*
+@RESPATH@/chrome/pdfjs.manifest
+@RESPATH@/chrome/pdfjs/*
 @RESPATH@/chrome/toolkit@JAREXT@
 @RESPATH@/chrome/toolkit.manifest
 @RESPATH@/chrome/recording.manifest
@@ -403,6 +409,11 @@ bin/libfreebl_64int_3.so
 @BINPATH@/maintenanceservice_installer.exe
 #endif
 
+; [Background Update Agent]
+#ifdef MOZ_UPDATE_AGENT
+@BINPATH@/updateagent@BIN_SUFFIX@
+#endif
+
 ; [Crash Reporter]
 ;
 #ifdef MOZ_CRASHREPORTER
@@ -454,13 +465,6 @@ bin/libfreebl_64int_3.so
 ; DMD
 @RESPATH@/dmd.py
 @RESPATH@/fix_stacks.py
-@RESPATH@/fix_stack_using_bpsyms.py
-#ifdef XP_MACOSX
-@RESPATH@/fix_macosx_stack.py
-#endif
-#ifdef XP_LINUX
-@RESPATH@/fix_linux_stack.py
-#endif
 #endif
 
 #ifdef PKG_LOCALE_MANIFEST

@@ -7,6 +7,7 @@
 #include "APZCTreeManagerTester.h"
 #include "APZTestCommon.h"
 #include "InputUtils.h"
+#include "mozilla/layers/LayersTypes.h"
 
 class APZEventRegionsTester : public APZCTreeManagerTester {
  protected:
@@ -310,9 +311,9 @@ TEST_F(APZEventRegionsTester, Bug1117712) {
   manager->SetTargetAPZC(inputBlockId, targets);
 }
 
-// Test that APZEventResult::mHitRegionWithApzAwareListeners is correctly
+// Test that APZEventResult::mHandledByRootApzc is correctly
 // populated.
-TEST_F(APZEventRegionsTester, ApzAwareListenersFlag) {
+TEST_F(APZEventRegionsTester, HandledByRootApzcFlag) {
   // Create simple layer tree containing a dispatch-to-content region
   // that covers part but not all of its area.
   const char* layerTreeSyntax = "c";
@@ -322,6 +323,9 @@ TEST_F(APZEventRegionsTester, ApzAwareListenersFlag) {
   root = CreateLayerTree(layerTreeSyntax, layerVisibleRegions, nullptr, lm,
                          layers);
   SetScrollableFrameMetrics(root, ScrollableLayerGuid::START_SCROLL_ID);
+  ModifyFrameMetrics(root, [](ScrollMetadata& sm, FrameMetrics& metrics) {
+    metrics.SetIsRootContent(true);
+  });
   // away from the scrolling container layer.
   EventRegions regions(nsIntRegion(IntRect(0, 0, 100, 100)));
   // bottom half is dispatch-to-content
@@ -331,16 +335,53 @@ TEST_F(APZEventRegionsTester, ApzAwareListenersFlag) {
       MakeUnique<ScopedLayerTreeRegistration>(manager, LayersId{0}, root, mcc);
   UpdateHitTestingTree();
 
-  // Tap the top half and check that we don't report hitting a region
-  // with APZ-aware listeners.
+  // Tap the top half and check that we report that the event was
+  // handled by the root APZC.
   APZEventResult result =
       TouchDown(manager, ScreenIntPoint(50, 25), mcc->Time());
   TouchUp(manager, ScreenIntPoint(50, 25), mcc->Time());
-  EXPECT_FALSE(result.mHitRegionWithApzAwareListeners);
+  EXPECT_EQ(result.mHandledByRootApzc, Some(true));
 
-  // Tap the bottom half and check we do report hitting a region with
-  // APZ-aware listeners.
+  // Tap the bottom half and check that we report that we're not
+  // sure whether the event was handled by the root APZC.
   result = TouchDown(manager, ScreenIntPoint(50, 75), mcc->Time());
   TouchUp(manager, ScreenIntPoint(50, 75), mcc->Time());
-  EXPECT_TRUE(result.mHitRegionWithApzAwareListeners);
+  EXPECT_EQ(result.mHandledByRootApzc, Nothing());
+
+  // Register an input block callback that will tell us the
+  // delayed answer.
+  Maybe<bool> delayedAnswer;
+  manager->AddInputBlockCallback(result.mInputBlockId,
+                                 [&](uint64_t id, bool answer) {
+                                   EXPECT_EQ(id, result.mInputBlockId);
+                                   delayedAnswer = Some(answer);
+                                 });
+
+  // Send APZ the relevant notifications to allow it to process the
+  // input block.
+  manager->SetAllowedTouchBehavior(result.mInputBlockId,
+                                   {AllowedTouchBehavior::VERTICAL_PAN});
+  manager->SetTargetAPZC(result.mInputBlockId, {result.mTargetGuid});
+  manager->ContentReceivedInputBlock(result.mInputBlockId,
+                                     /*preventDefault=*/false);
+
+  // Check that we received the delayed answer and it is what we expect.
+  EXPECT_EQ(delayedAnswer, Some(true));
+
+  // Now repeat the tap on the bottom half, but simulate a prevent-default.
+  // This time, we expect a delayed answer of false.
+  result = TouchDown(manager, ScreenIntPoint(50, 75), mcc->Time());
+  TouchUp(manager, ScreenIntPoint(50, 75), mcc->Time());
+  EXPECT_EQ(result.mHandledByRootApzc, Nothing());
+  manager->AddInputBlockCallback(result.mInputBlockId,
+                                 [&](uint64_t id, bool answer) {
+                                   EXPECT_EQ(id, result.mInputBlockId);
+                                   delayedAnswer = Some(answer);
+                                 });
+  manager->SetAllowedTouchBehavior(result.mInputBlockId,
+                                   {AllowedTouchBehavior::VERTICAL_PAN});
+  manager->SetTargetAPZC(result.mInputBlockId, {result.mTargetGuid});
+  manager->ContentReceivedInputBlock(result.mInputBlockId,
+                                     /*preventDefault=*/true);
+  EXPECT_EQ(delayedAnswer, Some(false));
 }

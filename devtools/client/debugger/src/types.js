@@ -18,6 +18,8 @@ export type SearchModifiers = {
   regexMatch: boolean,
 };
 
+export type URL = string;
+
 export type Mode =
   | String
   | {
@@ -61,7 +63,7 @@ export type QueuedSourceData =
 
 export type OriginalSourceData = {|
   id: string,
-  url: string,
+  url: URL,
 |};
 
 export type GeneratedSourceData = {
@@ -115,20 +117,6 @@ export type PendingLocation = {
   +line: number,
   +column?: number,
   +sourceUrl?: string,
-};
-
-export type ExecutionPoint = {
-  +checkpoint: number,
-  +location: PendingLocation,
-  +position: ExecutionPointPosition,
-  +progress: number,
-};
-
-export type ExecutionPointPosition = {
-  +frameIndex: number,
-  +kind: string,
-  +offset: number,
-  +script: number,
 };
 
 // Type of location used when setting breakpoints in the server. Exactly one of
@@ -262,6 +250,7 @@ export type Frame = {
   index: number,
   asyncCause: null | string,
   state: "on-stack" | "suspended" | "dead",
+  type?: "call" | "eval" | "global" | "module" | "wasmcall" | "debugger",
 };
 
 export type ChromeFrame = {
@@ -394,6 +383,16 @@ export type Grip = {
   fileName?: string,
   message?: string,
   name?: string,
+  displayClass: string,
+  displayName?: string,
+  parameterNames?: string[],
+  userDisplayName?: string,
+  location?: {
+    url: string,
+    line: number,
+    column: number,
+  },
+  optimizedOut: boolean,
 };
 
 export type TextSourceContent = {|
@@ -425,16 +424,18 @@ export type SourceWithContentAndType<+Content: SourceContent> = $ReadOnly<{
 
 export type Source = {
   +id: SourceId,
-  +url: string,
+  +url: URL,
   +isBlackBoxed: boolean,
   +isPrettyPrinted: boolean,
-  +relativeUrl: string,
-  +introductionUrl: ?string,
-  +introductionType: ?string,
+  +relativeUrl: URL,
   +extensionName: ?string,
   +isExtension: boolean,
   +isWasm: boolean,
   +isOriginal: boolean,
+};
+
+export type DisplaySource = Source & {
+  +displayURL: string,
 };
 
 /**
@@ -486,11 +487,11 @@ export type Scope = {|
   scopeKind: string,
 |};
 
-export type ThreadType = "mainThread" | "worker" | "contentProcess";
 export type Thread = {
   +actor: ThreadId,
-  +url: string,
-  +type: ThreadType,
+  +url: URL,
+  +isTopLevel: boolean,
+  +targetType: string,
   +name: string,
   serviceWorkerStatus?: string,
 };
@@ -530,4 +531,38 @@ export type Preview = {
   value: any,
   column: number,
   line: number,
+};
+
+export type Exception = {
+  columnNumber: number,
+  errorMessage: string,
+  lineNumber: number,
+  sourceActorId: SourceActorId,
+  stacktrace: Array<StacktraceFrame>,
+};
+
+export type StacktraceFrame = {
+  columnNumber: number,
+  filename: URL,
+  functionName: string,
+  lineNumber: number,
+  sourceId: SourceActorId,
+};
+
+// ObjectInspector types
+export type OINodeContents = {
+  value: Object | number | string | boolean | null | typeof undefined,
+};
+
+export type OINodeMeta = {
+  startIndex: number,
+  endIndex: number,
+};
+
+export type OINode = {
+  contents: Array<OINode> | OINodeContents,
+  name: string,
+  path: string,
+  type?: Symbol,
+  meta?: OINodeMeta,
 };

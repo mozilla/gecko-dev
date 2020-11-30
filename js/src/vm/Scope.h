@@ -8,12 +8,10 @@
 #define vm_Scope_h
 
 #include "mozilla/Maybe.h"
-#include "mozilla/TypeTraits.h"
 #include "mozilla/Variant.h"
 
 #include <stddef.h>
 
-#include "gc/DeletePolicy.h"
 #include "gc/Policy.h"
 #include "js/UbiNode.h"
 #include "js/UniquePtr.h"
@@ -27,13 +25,25 @@
 namespace js {
 
 namespace frontend {
-class ScopeCreationData;
-class EnvironmentShapeCreationData;
+struct CompilationAtomCache;
+class ScriptStencil;
+class ScopeStencil;
+class ParserAtom;
 };  // namespace frontend
 
-class BaseScopeData;
+template <typename NameT>
+class AbstractBaseScopeData;
+
+template <typename NameT>
+class BaseAbstractBindingIter;
+
+template <typename NameT>
+class AbstractBindingIter;
+
+using BindingIter = AbstractBindingIter<JSAtom>;
+
 class ModuleObject;
-class AbstractScope;
+class AbstractScopePtr;
 
 enum class BindingKind : uint8_t {
   Import,
@@ -51,8 +61,6 @@ static inline bool BindingKindIsLexical(BindingKind kind) {
   return kind == BindingKind::Let || kind == BindingKind::Const;
 }
 
-enum class IsFieldInitializer : bool { No, Yes };
-
 static inline bool ScopeKindIsCatch(ScopeKind kind) {
   return kind == ScopeKind::SimpleCatch || kind == ScopeKind::Catch;
 }
@@ -61,14 +69,18 @@ static inline bool ScopeKindIsInBody(ScopeKind kind) {
   return kind == ScopeKind::Lexical || kind == ScopeKind::SimpleCatch ||
          kind == ScopeKind::Catch || kind == ScopeKind::With ||
          kind == ScopeKind::FunctionLexical ||
-         kind == ScopeKind::FunctionBodyVar;
+         kind == ScopeKind::FunctionBodyVar || kind == ScopeKind::ClassBody;
 }
 
 const char* BindingKindString(BindingKind kind);
 const char* ScopeKindString(ScopeKind kind);
 
-class BindingName {
-  // A JSAtom* with its low bit used as a tag for the:
+template <typename NameT>
+class AbstractBindingName {
+  template <typename OtherNameT>
+  friend class AbstractBindingName;
+
+  // A JSAtom* or ParserAtom* with its low bit used as a tag for the:
   //  * whether it is closed over (i.e., exists in the environment shape)
   //  * whether it is a top-level function binding in global or eval scope,
   //    instead of var binding (both are in the same range in Scope data)
@@ -81,33 +93,46 @@ class BindingName {
   static const uintptr_t FlagMask = 0x3;
 
  public:
-  BindingName() : bits_(0) {}
+  AbstractBindingName() : bits_(0) {}
 
-  BindingName(JSAtom* name, bool closedOver, bool isTopLevelFunction = false)
+  template <typename OldNameT>
+  AbstractBindingName(NameT* name, const AbstractBindingName<OldNameT>& old)
+      : bits_(uintptr_t(name) | (old.bits_ & FlagMask)) {}
+
+  AbstractBindingName(NameT* name, bool closedOver,
+                      bool isTopLevelFunction = false)
       : bits_(uintptr_t(name) | (closedOver ? ClosedOverFlag : 0x0) |
               (isTopLevelFunction ? TopLevelFunctionFlag : 0x0)) {}
 
  private:
   // For fromXDR.
-  BindingName(JSAtom* name, uint8_t flags) : bits_(uintptr_t(name) | flags) {
-    static_assert(FlagMask < alignof(JSAtom),
-                  "Flags should fit into unused bits of JSAtom pointer");
+  AbstractBindingName(NameT* name, uint8_t flags)
+      : bits_(uintptr_t(name) | flags) {
+    static_assert(FlagMask < alignof(NameT),
+                  "Flags should fit into unused low bits of atom repr");
     MOZ_ASSERT((flags & FlagMask) == flags);
   }
 
  public:
-  static BindingName fromXDR(JSAtom* name, uint8_t flags) {
-    return BindingName(name, flags);
+  static AbstractBindingName<NameT> fromXDR(NameT* name, uint8_t flags) {
+    return AbstractBindingName<NameT>(name, flags);
   }
 
   uint8_t flagsForXDR() const { return static_cast<uint8_t>(bits_ & FlagMask); }
 
-  JSAtom* name() const { return reinterpret_cast<JSAtom*>(bits_ & ~FlagMask); }
+  NameT* name() const { return reinterpret_cast<NameT*>(bits_ & ~FlagMask); }
 
   bool closedOver() const { return bits_ & ClosedOverFlag; }
 
+  template <typename NewNameT>
+  AbstractBindingName<NewNameT> transformName(NewNameT* newName) const {
+    return AbstractBindingName<NewNameT>(newName, *this);
+  }
+
  private:
-  friend class BindingIter;
+  friend class BaseAbstractBindingIter<NameT>;
+  friend class frontend::ScopeStencil;
+
   // This method should be called only for binding names in `vars` range in
   // BindingIter.
   bool isTopLevelFunction() const { return bits_ & TopLevelFunctionFlag; }
@@ -115,6 +140,24 @@ class BindingName {
  public:
   void trace(JSTracer* trc);
 };
+
+using BindingName = AbstractBindingName<JSAtom>;
+
+const size_t ScopeDataAlignBytes = size_t(1) << gc::CellFlagBitsReservedForGC;
+
+/**
+ * Empty base class for scope Data classes to inherit from.
+ *
+ * Scope GC things store a pointer to these in their first word so they must be
+ * suitably aligned to allow storing GC flags in the low bits.
+ */
+template <typename NameT>
+class alignas(ScopeDataAlignBytes) AbstractBaseScopeData {
+ public:
+  using NameType = NameT;
+};
+
+using BaseScopeData = AbstractBaseScopeData<JSAtom>;
 
 /**
  * The various {Global,Module,...}Scope::Data classes consist of always-present
@@ -128,10 +171,17 @@ class BindingName {
  * This is concededly a very low-level representation, but we want to only
  * allocate once for data+bindings both, and this does so approximately as
  * elegantly as C++ allows.
+ *
+ * The names array is implemented in terms of an generic type that
+ * allows specialization between a (JSAtom*) BindingName and a
+ * ParserAtom
  */
-class TrailingNamesArray {
+template <typename NameT>
+class AbstractTrailingNamesArray {
+  using BindingNameT = AbstractBindingName<NameT>;
+
  private:
-  alignas(BindingName) unsigned char data_[sizeof(BindingName)];
+  alignas(BindingNameT) unsigned char data_[sizeof(BindingNameT)];
 
  private:
   // Some versions of GCC treat it as a -Wstrict-aliasing violation (ergo a
@@ -143,21 +193,23 @@ class TrailingNamesArray {
  public:
   // Explicitly ensure no one accidentally allocates scope data without
   // poisoning its trailing names.
-  TrailingNamesArray() = delete;
+  AbstractTrailingNamesArray() = delete;
 
-  explicit TrailingNamesArray(size_t nameCount) {
+  explicit AbstractTrailingNamesArray(size_t nameCount) {
     if (nameCount) {
       AlwaysPoison(&data_, JS_SCOPE_DATA_TRAILING_NAMES_PATTERN,
-                   sizeof(BindingName) * nameCount,
+                   sizeof(BindingNameT) * nameCount,
                    MemCheckKind::MakeUndefined);
     }
   }
 
-  BindingName* start() { return reinterpret_cast<BindingName*>(ptr()); }
+  BindingNameT* start() { return reinterpret_cast<BindingNameT*>(ptr()); }
 
-  BindingName& get(size_t i) { return start()[i]; }
-  BindingName& operator[](size_t i) { return get(i); }
+  BindingNameT& get(size_t i) { return start()[i]; }
+  BindingNameT& operator[](size_t i) { return get(i); }
 };
+
+// typedef AbstractTrailingNamesArray<JSAtom> TrailingNamesArray;
 
 class BindingLocation {
  public:
@@ -244,28 +296,31 @@ struct ScopeNameLocation;
 //
 // The base class of all Scopes.
 //
-class Scope : public js::gc::TenuredCell {
+class Scope : public gc::TenuredCellWithNonGCPointer<BaseScopeData> {
   friend class GCMarker;
-  friend class frontend::ScopeCreationData;
+  friend class frontend::ScopeStencil;
+  friend class js::AbstractBindingIter<JSAtom>;
 
-  // The enclosing scope or nullptr.
-  const GCPtrScope enclosing_;
+ protected:
+  // The raw data pointer, stored in the cell header.
+  BaseScopeData* rawData() { return headerPtr(); }
+  const BaseScopeData* rawData() const { return headerPtr(); }
 
   // The kind determines data_.
   const ScopeKind kind_;
 
   // If there are any aliased bindings, the shape for the
   // EnvironmentObject. Otherwise nullptr.
-  const GCPtrShape environmentShape_;
+  const HeapPtr<Shape*> environmentShape_;
 
- protected:
-  BaseScopeData* data_;
+  // The enclosing scope or nullptr.
+  HeapPtr<Scope*> enclosingScope_;
 
   Scope(ScopeKind kind, Scope* enclosing, Shape* environmentShape)
-      : enclosing_(enclosing),
+      : TenuredCellWithNonGCPointer(nullptr),
         kind_(kind),
         environmentShape_(environmentShape),
-        data_(nullptr) {}
+        enclosingScope_(enclosing) {}
 
   static Scope* create(JSContext* cx, ScopeKind kind, HandleScope enclosing,
                        HandleShape envShape);
@@ -282,6 +337,15 @@ class Scope : public js::gc::TenuredCell {
 
   template <typename F>
   void applyScopeDataTyped(F&& f);
+
+  template <typename EnvironmentT>
+  static bool updateEnvShapeIfRequired(JSContext* cx, MutableHandleShape shape,
+                                       bool needsEnvironment);
+
+  template <typename EnvironmentT>
+  static bool updateEnvShapeIfRequired(JSContext* cx,
+                                       mozilla::Maybe<uint32_t>* envShape,
+                                       bool needsEnvironment);
 
  public:
   template <typename ConcreteScope>
@@ -311,9 +375,9 @@ class Scope : public js::gc::TenuredCell {
 
   ScopeKind kind() const { return kind_; }
 
-  Scope* enclosing() const { return enclosing_; }
-
   Shape* environmentShape() const { return environmentShape_; }
+
+  Scope* enclosing() const { return enclosingScope_; }
 
   static bool hasEnvironment(ScopeKind kind, bool environmentShape) {
     switch (kind) {
@@ -328,8 +392,10 @@ class Scope : public js::gc::TenuredCell {
   }
 
   bool hasEnvironment() const {
-    return hasEnvironment(kind_, environmentShape_);
+    return hasEnvironment(kind_, environmentShape());
   }
+
+  uint32_t firstFrameSlot() const;
 
   uint32_t chainLength() const;
   uint32_t environmentChainLength() const;
@@ -369,34 +435,30 @@ class Scope : public js::gc::TenuredCell {
 #endif /* defined(DEBUG) || defined(JS_JITSPEW) */
 };
 
-// Location where a name was declared.
-struct ScopeNameLocation {
-  JSAtom* name;
-  uint32_t line;
-  uint32_t column;
-};
-
-/** Empty base class for scope Data classes to inherit from. */
-class BaseScopeData {
- public:
-  // Optional locations of places where names in this scope were declared.
-  ScopeNameLocation* locations = nullptr;
-  size_t numLocations = 0;
-};
-
 template <class Data>
-inline size_t SizeOfData(uint32_t numBindings) {
-  static_assert(std::is_base_of<BaseScopeData, Data>::value,
-                "Data must be the correct sort of data, i.e. it must "
-                "inherit from BaseScopeData");
-  return sizeof(Data) +
-         (numBindings ? numBindings - 1 : 0) * sizeof(BindingName);
+inline size_t SizeOfScopeData(uint32_t numBindings) {
+  return sizeof(Data) + ((numBindings ? numBindings - 1 : 0) *
+                         sizeof(AbstractBindingName<typename Data::NameType>));
 }
 
 inline const ScopeNameLocation* Scope::getLocations(size_t* aNumLocations) const {
   *aNumLocations = data_->numLocations;
   return data_->locations;
 }
+
+//
+// A useful typedef for selecting between a gc-aware wrappers
+// around pointers to BaseScopeData-derived types, and around raw
+// pointer wrappers around BaseParserScopeData-derived types.
+//
+template <typename ScopeT, typename AtomT>
+using AbstractScopeData = typename ScopeT::template AbstractData<AtomT>;
+
+template <typename ScopeT, typename AtomT>
+using MaybeRootedScopeData = std::conditional_t<
+    std::is_same_v<AtomT, JSAtom>,
+    MaybeRooted<UniquePtr<typename ScopeT::Data>, AllowGC::CanGC>,
+    MaybeRooted<AbstractScopeData<ScopeT, AtomT>*, AllowGC::NoGC>>;
 
 //
 // A lexical scope that holds let and const bindings. There are 4 kinds of
@@ -421,14 +483,15 @@ inline const ScopeNameLocation* Scope::getLocations(size_t* aNumLocations) const
 //
 class LexicalScope : public Scope {
   friend class Scope;
-  friend class BindingIter;
+  friend class AbstractBindingIter<JSAtom>;
   friend class GCMarker;
-  friend class frontend::ScopeCreationData;
+  friend class frontend::ScopeStencil;
 
  public:
   // Data is public because it is created by the frontend. See
   // Parser<FullParseHandler>::newLexicalScopeData.
-  struct Data : public BaseScopeData {
+  template <typename NameT>
+  struct AbstractData : public AbstractBaseScopeData<NameT> {
     // Frame slots [0, nextFrameSlot) are live when this is the innermost
     // scope.
     uint32_t nextFrameSlot = 0;
@@ -441,13 +504,15 @@ class LexicalScope : public Scope {
     uint32_t length = 0;
 
     // Tagged JSAtom* names, allocated beyond the end of the struct.
-    TrailingNamesArray trailingNames;
+    AbstractTrailingNamesArray<NameT> trailingNames;
 
-    explicit Data(size_t nameCount) : trailingNames(nameCount) {}
-    Data() = delete;
+    explicit AbstractData(size_t nameCount) : trailingNames(nameCount) {}
+    AbstractData() = delete;
 
     void trace(JSTracer* trc);
   };
+
+  using Data = AbstractData<JSAtom>;
 
   template <XDRMode mode>
   static XDRResult XDR(XDRState<mode>* xdr, ScopeKind kind,
@@ -459,22 +524,19 @@ class LexicalScope : public Scope {
                                       uint32_t firstFrameSlot,
                                       HandleScope enclosing);
 
-  template <typename ShapeType>
-  static bool prepareForScopeCreation(JSContext* cx, ScopeKind kind,
-                                      uint32_t firstFrameSlot,
-                                      Handle<AbstractScope> enclosing,
-                                      MutableHandle<UniquePtr<Data>> data,
-                                      ShapeType envShape);
+  template <typename AtomT, typename ShapeT>
+  static bool prepareForScopeCreation(
+      JSContext* cx, ScopeKind kind, uint32_t firstFrameSlot,
+      typename MaybeRootedScopeData<LexicalScope, AtomT>::MutableHandleType
+          data,
+      ShapeT envShape);
 
-  Data& data() { return *static_cast<Data*>(data_); }
+  Data& data() { return *static_cast<Data*>(rawData()); }
+  const Data& data() const { return *static_cast<const Data*>(rawData()); }
 
-  const Data& data() const { return *static_cast<Data*>(data_); }
-
-  static uint32_t nextFrameSlot(const AbstractScope& scope);
+  static uint32_t nextFrameSlot(const AbstractScopePtr& scope);
 
  public:
-  uint32_t firstFrameSlot() const;
-
   uint32_t nextFrameSlot() const { return data().nextFrameSlot; }
 
   // Returns an empty shape for extensible global and non-syntactic lexical
@@ -487,7 +549,7 @@ inline bool Scope::is<LexicalScope>() const {
   return kind_ == ScopeKind::Lexical || kind_ == ScopeKind::SimpleCatch ||
          kind_ == ScopeKind::Catch || kind_ == ScopeKind::NamedLambda ||
          kind_ == ScopeKind::StrictNamedLambda ||
-         kind_ == ScopeKind::FunctionLexical;
+         kind_ == ScopeKind::FunctionLexical || kind_ == ScopeKind::ClassBody;
 }
 
 //
@@ -510,20 +572,21 @@ inline bool Scope::is<LexicalScope>() const {
 //
 class FunctionScope : public Scope {
   friend class GCMarker;
-  friend class BindingIter;
+  friend class AbstractBindingIter<JSAtom>;
   friend class PositionalFormalParameterIter;
   friend class Scope;
-  friend class AbstractScope;
+  friend class AbstractScopePtr;
   static const ScopeKind classScopeKind_ = ScopeKind::Function;
 
  public:
   // Data is public because it is created by the
   // frontend. See Parser<FullParseHandler>::newFunctionScopeData.
-  struct Data : public BaseScopeData {
+  template <typename NameT>
+  struct AbstractData : public AbstractBaseScopeData<NameT> {
     // The canonical function of the scope, as during a scope walk we
     // often query properties of the JSFunction (e.g., is the function an
     // arrow).
-    GCPtrFunction canonicalFunction = {};
+    HeapPtr<JSFunction*> canonicalFunction = {};
 
     // Frame slots [0, nextFrameSlot) are live when this is the innermost
     // scope.
@@ -532,9 +595,6 @@ class FunctionScope : public Scope {
     // If parameter expressions are present, parameters act like lexical
     // bindings.
     bool hasParameterExprs = false;
-
-    // Yes if the corresponding function is a field initializer lambda.
-    IsFieldInitializer isFieldInitializer = IsFieldInitializer::No;
 
     // Bindings are sorted by kind in both frames and environments.
     //
@@ -568,30 +628,23 @@ class FunctionScope : public Scope {
     uint32_t length = 0;
 
     // Tagged JSAtom* names, allocated beyond the end of the struct.
-    TrailingNamesArray trailingNames;
+    AbstractTrailingNamesArray<NameT> trailingNames;
 
-    explicit Data(size_t nameCount) : trailingNames(nameCount) {}
-    Data() = delete;
+    explicit AbstractData(size_t nameCount) : trailingNames(nameCount) {}
+    AbstractData() = delete;
 
     void trace(JSTracer* trc);
   };
 
-  template <typename ShapeType>
-  static bool prepareForScopeCreation(JSContext* cx,
-                                      MutableHandle<UniquePtr<Data>> data,
-                                      bool hasParameterExprs,
-                                      IsFieldInitializer isFieldInitializer,
-                                      bool needsEnvironment, HandleFunction fun,
-                                      ShapeType envShape);
+  using Data = AbstractData<JSAtom>;
 
-  static bool updateEnvShapeIfRequired(JSContext* cx, MutableHandleShape shape,
-                                       bool needsEnvironment,
-                                       bool hasParameterExprs);
-
-  static bool updateEnvShapeIfRequired(
+  template <typename AtomT, typename ShapeT>
+  static bool prepareForScopeCreation(
       JSContext* cx,
-      MutableHandle<frontend::EnvironmentShapeCreationData> shape,
-      bool needsEnvironment, bool hasParameterExprs);
+      typename MaybeRootedScopeData<FunctionScope, AtomT>::MutableHandleType
+          data,
+      bool hasParameterExprs, bool needsEnvironment, HandleFunction fun,
+      ShapeT envShape);
 
   static FunctionScope* clone(JSContext* cx, Handle<FunctionScope*> scope,
                               HandleFunction fun, HandleScope enclosing);
@@ -601,14 +654,16 @@ class FunctionScope : public Scope {
                        HandleScope enclosing, MutableHandleScope scope);
 
  private:
-  static FunctionScope* createWithData(
-      JSContext* cx, MutableHandle<UniquePtr<Data>> data,
-      bool hasParameterExprs, IsFieldInitializer isFieldInitializer,
-      bool needsEnvironment, HandleFunction fun, HandleScope enclosing);
+  static FunctionScope* createWithData(JSContext* cx,
+                                       MutableHandle<UniquePtr<Data>> data,
+                                       bool hasParameterExprs,
+                                       bool needsEnvironment,
+                                       HandleFunction fun,
+                                       HandleScope enclosing);
 
-  Data& data() { return *static_cast<Data*>(data_); }
+  Data& data() { return *static_cast<Data*>(rawData()); }
 
-  const Data& data() const { return *static_cast<Data*>(data_); }
+  const Data& data() const { return *static_cast<const Data*>(rawData()); }
 
  public:
   uint32_t nextFrameSlot() const { return data().nextFrameSlot; }
@@ -619,17 +674,12 @@ class FunctionScope : public Scope {
 
   bool hasParameterExprs() const { return data().hasParameterExprs; }
 
-  IsFieldInitializer isFieldInitializer() const {
-    return data().isFieldInitializer;
-  }
-
   uint32_t numPositionalFormalParameters() const {
     return data().nonPositionalFormalStart;
   }
 
   static bool isSpecialName(JSContext* cx, JSAtom* name);
-
-  static Shape* getEmptyEnvironmentShape(JSContext* cx);
+  static bool isSpecialName(JSContext* cx, const frontend::ParserAtom* name);
 };
 
 //
@@ -643,14 +693,15 @@ class FunctionScope : public Scope {
 //
 class VarScope : public Scope {
   friend class GCMarker;
-  friend class BindingIter;
+  friend class AbstractBindingIter<JSAtom>;
   friend class Scope;
-  friend class frontend::ScopeCreationData;
+  friend class frontend::ScopeStencil;
 
  public:
   // Data is public because it is created by the
   // frontend. See Parser<FullParseHandler>::newVarScopeData.
-  struct Data : public BaseScopeData {
+  template <typename NameT>
+  struct AbstractData : public AbstractBaseScopeData<NameT> {
     // Frame slots [0, nextFrameSlot) are live when this is the innermost
     // scope.
     uint32_t nextFrameSlot = 0;
@@ -661,13 +712,14 @@ class VarScope : public Scope {
     uint32_t length = 0;
 
     // Tagged JSAtom* names, allocated beyond the end of the struct.
-    TrailingNamesArray trailingNames;
+    AbstractTrailingNamesArray<NameT> trailingNames;
 
-    explicit Data(size_t nameCount) : trailingNames(nameCount) {}
-    Data() = delete;
+    explicit AbstractData(size_t nameCount) : trailingNames(nameCount) {}
+    AbstractData() = delete;
 
     void trace(JSTracer* trc);
   };
+  using Data = AbstractData<JSAtom>;
 
   template <XDRMode mode>
   static XDRResult XDR(XDRState<mode>* xdr, ScopeKind kind,
@@ -679,30 +731,18 @@ class VarScope : public Scope {
                                   uint32_t firstFrameSlot,
                                   bool needsEnvironment, HandleScope enclosing);
 
-  template <typename ShapeType>
-  static bool prepareForScopeCreation(JSContext* cx, ScopeKind kind,
-                                      MutableHandle<UniquePtr<Data>> data,
-                                      uint32_t firstFrameSlot,
-                                      bool needsEnvironment,
-                                      ShapeType envShape);
+  template <typename AtomT, typename ShapeT>
+  static bool prepareForScopeCreation(
+      JSContext* cx, ScopeKind kind,
+      typename MaybeRootedScopeData<VarScope, AtomT>::MutableHandleType data,
+      uint32_t firstFrameSlot, bool needsEnvironment, ShapeT envShape);
 
-  static bool updateEnvShapeIfRequired(JSContext* cx,
-                                       MutableHandleShape envShape,
-                                       bool needsEnvironment);
-  static bool updateEnvShapeIfRequired(
-      JSContext* cx,
-      MutableHandle<frontend::EnvironmentShapeCreationData> envShape,
-      bool needsEnvironment);
-  Data& data() { return *static_cast<Data*>(data_); }
+  Data& data() { return *static_cast<Data*>(rawData()); }
 
-  const Data& data() const { return *static_cast<Data*>(data_); }
+  const Data& data() const { return *static_cast<const Data*>(rawData()); }
 
  public:
-  uint32_t firstFrameSlot() const;
-
   uint32_t nextFrameSlot() const { return data().nextFrameSlot; }
-
-  static Shape* getEmptyEnvironmentShape(JSContext* cx);
 };
 
 template <>
@@ -731,13 +771,14 @@ inline bool Scope::is<VarScope>() const {
 //
 class GlobalScope : public Scope {
   friend class Scope;
-  friend class BindingIter;
+  friend class AbstractBindingIter<JSAtom>;
   friend class GCMarker;
 
  public:
   // Data is public because it is created by the frontend. See
   // Parser<FullParseHandler>::newGlobalScopeData.
-  struct Data : BaseScopeData {
+  template <typename NameT>
+  struct AbstractData : public AbstractBaseScopeData<NameT> {
     // Bindings are sorted by kind.
     // `vars` includes top-level functions which is distinguished by a bit
     // on the BindingName.
@@ -750,13 +791,14 @@ class GlobalScope : public Scope {
     uint32_t length = 0;
 
     // Tagged JSAtom* names, allocated beyond the end of the struct.
-    TrailingNamesArray trailingNames;
+    AbstractTrailingNamesArray<NameT> trailingNames;
 
-    explicit Data(size_t nameCount) : trailingNames(nameCount) {}
-    Data() = delete;
+    explicit AbstractData(size_t nameCount) : trailingNames(nameCount) {}
+    AbstractData() = delete;
 
     void trace(JSTracer* trc);
   };
+  using Data = AbstractData<JSAtom>;
 
   static GlobalScope* create(JSContext* cx, ScopeKind kind, Handle<Data*> data);
 
@@ -775,9 +817,9 @@ class GlobalScope : public Scope {
   static GlobalScope* createWithData(JSContext* cx, ScopeKind kind,
                                      MutableHandle<UniquePtr<Data>> data);
 
-  Data& data() { return *static_cast<Data*>(data_); }
+  Data& data() { return *static_cast<Data*>(rawData()); }
 
-  const Data& data() const { return *static_cast<Data*>(data_); }
+  const Data& data() const { return *static_cast<const Data*>(rawData()); }
 
  public:
   bool isSyntactic() const { return kind() != ScopeKind::NonSyntactic; }
@@ -796,7 +838,7 @@ inline bool Scope::is<GlobalScope>() const {
 // Corresponds to a WithEnvironmentObject on the environment chain.
 class WithScope : public Scope {
   friend class Scope;
-  friend class AbstractScope;
+  friend class AbstractScopePtr;
   static const ScopeKind classScopeKind_ = ScopeKind::With;
 
  public:
@@ -821,14 +863,15 @@ class WithScope : public Scope {
 //
 class EvalScope : public Scope {
   friend class Scope;
-  friend class BindingIter;
+  friend class AbstractBindingIter<JSAtom>;
   friend class GCMarker;
-  friend class frontend::ScopeCreationData;
+  friend class frontend::ScopeStencil;
 
  public:
   // Data is public because it is created by the frontend. See
   // Parser<FullParseHandler>::newEvalScopeData.
-  struct Data : public BaseScopeData {
+  template <typename NameT>
+  struct AbstractData : public AbstractBaseScopeData<NameT> {
     // Frame slots [0, nextFrameSlot) are live when this is the innermost
     // scope.
     uint32_t nextFrameSlot = 0;
@@ -843,13 +886,14 @@ class EvalScope : public Scope {
     uint32_t length = 0;
 
     // Tagged JSAtom* names, allocated beyond the end of the struct.
-    TrailingNamesArray trailingNames;
+    AbstractTrailingNamesArray<NameT> trailingNames;
 
-    explicit Data(size_t nameCount) : trailingNames(nameCount) {}
-    Data() = delete;
+    explicit AbstractData(size_t nameCount) : trailingNames(nameCount) {}
+    AbstractData() = delete;
 
     void trace(JSTracer* trc);
   };
+  using Data = AbstractData<JSAtom>;
 
   template <XDRMode mode>
   static XDRResult XDR(XDRState<mode>* xdr, ScopeKind kind,
@@ -860,21 +904,15 @@ class EvalScope : public Scope {
                                    MutableHandle<UniquePtr<Data>> data,
                                    HandleScope enclosing);
 
-  template <typename ShapeType>
-  static bool prepareForScopeCreation(JSContext* cx, ScopeKind scopeKind,
-                                      MutableHandle<UniquePtr<Data>> data,
-                                      ShapeType envShape);
+  template <typename AtomT, typename ShapeT>
+  static bool prepareForScopeCreation(
+      JSContext* cx, ScopeKind scopeKind,
+      typename MaybeRootedScopeData<EvalScope, AtomT>::MutableHandleType data,
+      ShapeT envShape);
 
-  static bool updateEnvShapeIfRequired(JSContext* cx,
-                                       MutableHandleShape envShape,
-                                       ScopeKind scopeKind);
-  static bool updateEnvShapeIfRequired(
-      JSContext* cx,
-      MutableHandle<frontend::EnvironmentShapeCreationData> envShape,
-      ScopeKind scopeKind);
-  Data& data() { return *static_cast<Data*>(data_); }
+  Data& data() { return *static_cast<Data*>(rawData()); }
 
-  const Data& data() const { return *static_cast<Data*>(data_); }
+  const Data& data() const { return *static_cast<const Data*>(rawData()); }
 
  public:
   // Starting a scope, the nearest var scope that a direct eval can
@@ -893,8 +931,6 @@ class EvalScope : public Scope {
     }
     return !nearestVarScopeForDirectEval(enclosing())->is<GlobalScope>();
   }
-
-  static Shape* getEmptyEnvironmentShape(JSContext* cx);
 };
 
 template <>
@@ -912,18 +948,19 @@ inline bool Scope::is<EvalScope>() const {
 //
 class ModuleScope : public Scope {
   friend class GCMarker;
-  friend class BindingIter;
+  friend class AbstractBindingIter<JSAtom>;
   friend class Scope;
-  friend class AbstractScope;
-  friend class frontend::ScopeCreationData;
+  friend class AbstractScopePtr;
+  friend class frontend::ScopeStencil;
   static const ScopeKind classScopeKind_ = ScopeKind::Module;
 
  public:
   // Data is public because it is created by the frontend. See
   // Parser<FullParseHandler>::newModuleScopeData.
-  struct Data : BaseScopeData {
+  template <typename NameT>
+  struct AbstractData : public AbstractBaseScopeData<NameT> {
     // The module of the scope.
-    GCPtr<ModuleObject*> module = {};
+    HeapPtr<ModuleObject*> module = {};
 
     // Frame slots [0, nextFrameSlot) are live when this is the innermost
     // scope.
@@ -941,14 +978,15 @@ class ModuleScope : public Scope {
     uint32_t length = 0;
 
     // Tagged JSAtom* names, allocated beyond the end of the struct.
-    TrailingNamesArray trailingNames;
+    AbstractTrailingNamesArray<NameT> trailingNames;
 
-    explicit Data(size_t nameCount) : trailingNames(nameCount) {}
-    Data() = delete;
+    explicit AbstractData(size_t nameCount) : trailingNames(nameCount) {}
+    AbstractData() = delete;
 
     void trace(JSTracer* trc);
     Zone* zone() const;
   };
+  using Data = AbstractData<JSAtom>;
 
   template <XDRMode mode>
   static XDRResult XDR(XDRState<mode>* xdr, HandleModuleObject module,
@@ -959,41 +997,38 @@ class ModuleScope : public Scope {
                                      MutableHandle<UniquePtr<Data>> data,
                                      Handle<ModuleObject*> module,
                                      HandleScope enclosing);
-  template <typename ShapeType>
-  static bool prepareForScopeCreation(JSContext* cx,
-                                      MutableHandle<UniquePtr<Data>> data,
-                                      HandleModuleObject module,
-                                      ShapeType envShape);
-
-  static bool updateEnvShapeIfRequired(JSContext* cx,
-                                       MutableHandleShape envShape);
-  static bool updateEnvShapeIfRequired(
+  template <typename AtomT, typename ShapeT>
+  static bool prepareForScopeCreation(
       JSContext* cx,
-      MutableHandle<frontend::EnvironmentShapeCreationData> envShape);
+      typename MaybeRootedScopeData<ModuleScope, AtomT>::MutableHandleType data,
+      HandleModuleObject module, ShapeT envShape);
 
-  Data& data() { return *static_cast<Data*>(data_); }
+  Data& data() { return *static_cast<Data*>(rawData()); }
 
-  const Data& data() const { return *static_cast<Data*>(data_); }
+  const Data& data() const { return *static_cast<const Data*>(rawData()); }
 
  public:
   uint32_t nextFrameSlot() const { return data().nextFrameSlot; }
 
   ModuleObject* module() const { return data().module; }
 
-  static Shape* getEmptyEnvironmentShape(JSContext* cx);
+  // Off-thread compilation needs to calculate environmentChainLength for
+  // an emptyGlobalScope where the global may not be available.
+  static const size_t EnclosingEnvironmentChainLength = 1;
 };
 
 class WasmInstanceScope : public Scope {
-  friend class BindingIter;
+  friend class AbstractBindingIter<JSAtom>;
   friend class Scope;
   friend class GCMarker;
-  friend class AbstractScope;
+  friend class AbstractScopePtr;
   static const ScopeKind classScopeKind_ = ScopeKind::WasmInstance;
 
  public:
-  struct Data : public BaseScopeData {
+  template <typename NameT>
+  struct AbstractData : public AbstractBaseScopeData<NameT> {
     // The wasm instance of the scope.
-    GCPtr<WasmInstanceObject*> instance = {};
+    HeapPtr<WasmInstanceObject*> instance = {};
 
     // Frame slots [0, nextFrameSlot) are live when this is the innermost
     // scope.
@@ -1007,20 +1042,21 @@ class WasmInstanceScope : public Scope {
     uint32_t length = 0;
 
     // Tagged JSAtom* names, allocated beyond the end of the struct.
-    TrailingNamesArray trailingNames;
+    AbstractTrailingNamesArray<NameT> trailingNames;
 
-    explicit Data(size_t nameCount) : trailingNames(nameCount) {}
-    Data() = delete;
+    explicit AbstractData(size_t nameCount) : trailingNames(nameCount) {}
+    AbstractData() = delete;
 
     void trace(JSTracer* trc);
   };
+  using Data = AbstractData<JSAtom>;
 
   static WasmInstanceScope* create(JSContext* cx, WasmInstanceObject* instance);
 
  private:
-  Data& data() { return *static_cast<Data*>(data_); }
+  Data& data() { return *static_cast<Data*>(rawData()); }
 
-  const Data& data() const { return *static_cast<Data*>(data_); }
+  const Data& data() const { return *static_cast<const Data*>(rawData()); }
 
  public:
   WasmInstanceObject* instance() const { return data().instance; }
@@ -1030,22 +1066,21 @@ class WasmInstanceScope : public Scope {
   uint32_t globalsStart() const { return data().globalsStart; }
 
   uint32_t namesCount() const { return data().length; }
-
-  static Shape* getEmptyEnvironmentShape(JSContext* cx);
 };
 
 // Scope corresponding to the wasm function. A WasmFunctionScope is used by
 // Debugger only, and not for wasm execution.
 //
 class WasmFunctionScope : public Scope {
-  friend class BindingIter;
+  friend class AbstractBindingIter<JSAtom>;
   friend class Scope;
   friend class GCMarker;
-  friend class AbstractScope;
+  friend class AbstractScopePtr;
   static const ScopeKind classScopeKind_ = ScopeKind::WasmFunction;
 
  public:
-  struct Data : public BaseScopeData {
+  template <typename NameT>
+  struct AbstractData : public AbstractBaseScopeData<NameT> {
     // Frame slots [0, nextFrameSlot) are live when this is the innermost
     // scope.
     uint32_t nextFrameSlot = 0;
@@ -1056,24 +1091,22 @@ class WasmFunctionScope : public Scope {
     uint32_t length = 0;
 
     // Tagged JSAtom* names, allocated beyond the end of the struct.
-    TrailingNamesArray trailingNames;
+    AbstractTrailingNamesArray<NameT> trailingNames;
 
-    explicit Data(size_t nameCount) : trailingNames(nameCount) {}
-    Data() = delete;
+    explicit AbstractData(size_t nameCount) : trailingNames(nameCount) {}
+    AbstractData() = delete;
 
     void trace(JSTracer* trc);
   };
+  using Data = AbstractData<JSAtom>;
 
   static WasmFunctionScope* create(JSContext* cx, HandleScope enclosing,
                                    uint32_t funcIndex);
 
  private:
-  Data& data() { return *static_cast<Data*>(data_); }
+  Data& data() { return *static_cast<Data*>(rawData()); }
 
-  const Data& data() const { return *static_cast<Data*>(data_); }
-
- public:
-  static Shape* getEmptyEnvironmentShape(JSContext* cx);
+  const Data& data() const { return *static_cast<const Data*>(rawData()); }
 };
 
 template <typename F>
@@ -1091,6 +1124,7 @@ void Scope::applyScopeDataTyped(F&& f) {
       case ScopeKind::NamedLambda:
       case ScopeKind::StrictNamedLambda:
       case ScopeKind::FunctionLexical:
+      case ScopeKind::ClassBody:
         f(&as<LexicalScope>().data());
         break;
       case ScopeKind::With:
@@ -1113,8 +1147,6 @@ void Scope::applyScopeDataTyped(F&& f) {
       case ScopeKind::WasmFunction:
         f(&as<WasmFunctionScope>().data());
         break;
-      default:
-        MOZ_CRASH("Unexpected scope type in ApplyScopeDataTyped");
     }
   }
 }
@@ -1131,7 +1163,8 @@ void Scope::applyScopeDataTyped(F&& f) {
 //     use(bi);
 //   }
 //
-class BindingIter {
+template <typename NameT>
+class BaseAbstractBindingIter {
  protected:
   // Bindings are sorted by kind. Because different Scopes have differently
   // laid out Data for packing, BindingIter must handle all binding kinds.
@@ -1192,12 +1225,12 @@ class BindingIter {
   MOZ_INIT_OUTSIDE_CTOR uint32_t frameSlot_;
   MOZ_INIT_OUTSIDE_CTOR uint32_t environmentSlot_;
 
-  MOZ_INIT_OUTSIDE_CTOR BindingName* names_;
+  MOZ_INIT_OUTSIDE_CTOR AbstractBindingName<NameT>* names_;
 
   void init(uint32_t positionalFormalStart, uint32_t nonPositionalFormalStart,
             uint32_t varStart, uint32_t letStart, uint32_t constStart,
             uint8_t flags, uint32_t firstFrameSlot,
-            uint32_t firstEnvironmentSlot, BindingName* names,
+            uint32_t firstEnvironmentSlot, AbstractBindingName<NameT>* names,
             uint32_t length) {
     positionalFormalStart_ = positionalFormalStart;
     nonPositionalFormalStart_ = nonPositionalFormalStart;
@@ -1215,14 +1248,17 @@ class BindingIter {
     settle();
   }
 
-  void init(LexicalScope::Data& data, uint32_t firstFrameSlot, uint8_t flags);
-  void init(FunctionScope::Data& data, uint8_t flags);
-  void init(VarScope::Data& data, uint32_t firstFrameSlot);
-  void init(GlobalScope::Data& data);
-  void init(EvalScope::Data& data, bool strict);
-  void init(ModuleScope::Data& data);
-  void init(WasmInstanceScope::Data& data);
-  void init(WasmFunctionScope::Data& data);
+  void init(LexicalScope::AbstractData<NameT>& data, uint32_t firstFrameSlot,
+            uint8_t flags);
+
+  void init(FunctionScope::AbstractData<NameT>& data, uint8_t flags);
+
+  void init(VarScope::AbstractData<NameT>& data, uint32_t firstFrameSlot);
+  void init(GlobalScope::AbstractData<NameT>& data);
+  void init(EvalScope::AbstractData<NameT>& data, bool strict);
+  void init(ModuleScope::AbstractData<NameT>& data);
+  void init(WasmInstanceScope::AbstractData<NameT>& data);
+  void init(WasmFunctionScope::AbstractData<NameT>& data);
 
   bool hasFormalParameterExprs() const {
     return flags_ & HasFormalParameterExprs;
@@ -1270,33 +1306,44 @@ class BindingIter {
     }
   }
 
- public:
-  explicit BindingIter(Scope* scope);
-  explicit BindingIter(JSScript* script);
+  BaseAbstractBindingIter() = default;
 
-  BindingIter(LexicalScope::Data& data, uint32_t firstFrameSlot,
-              bool isNamedLambda) {
+ public:
+  BaseAbstractBindingIter(LexicalScope::AbstractData<NameT>& data,
+                          uint32_t firstFrameSlot, bool isNamedLambda) {
     init(data, firstFrameSlot, isNamedLambda ? IsNamedLambda : 0);
   }
 
-  BindingIter(FunctionScope::Data& data, bool hasParameterExprs) {
+  BaseAbstractBindingIter(FunctionScope::AbstractData<NameT>& data,
+                          bool hasParameterExprs) {
     init(data, IgnoreDestructuredFormalParameters |
                    (hasParameterExprs ? HasFormalParameterExprs : 0));
   }
 
-  BindingIter(VarScope::Data& data, uint32_t firstFrameSlot) {
+  BaseAbstractBindingIter(VarScope::AbstractData<NameT>& data,
+                          uint32_t firstFrameSlot) {
     init(data, firstFrameSlot);
   }
 
-  explicit BindingIter(GlobalScope::Data& data) { init(data); }
+  explicit BaseAbstractBindingIter(GlobalScope::AbstractData<NameT>& data) {
+    init(data);
+  }
 
-  explicit BindingIter(ModuleScope::Data& data) { init(data); }
+  explicit BaseAbstractBindingIter(ModuleScope::AbstractData<NameT>& data) {
+    init(data);
+  }
 
-  explicit BindingIter(WasmFunctionScope::Data& data) { init(data); }
+  explicit BaseAbstractBindingIter(
+      WasmFunctionScope::AbstractData<NameT>& data) {
+    init(data);
+  }
 
-  BindingIter(EvalScope::Data& data, bool strict) { init(data, strict); }
+  BaseAbstractBindingIter(EvalScope::AbstractData<NameT>& data, bool strict) {
+    init(data, strict);
+  }
 
-  MOZ_IMPLICIT BindingIter(const BindingIter& bi) = default;
+  MOZ_IMPLICIT BaseAbstractBindingIter(
+      const BaseAbstractBindingIter<NameT>& bi) = default;
 
   bool done() const { return index_ == length_; }
 
@@ -1320,7 +1367,7 @@ class BindingIter {
     return flags_ & CanHaveEnvironmentSlots;
   }
 
-  JSAtom* name() const {
+  NameT* name() const {
     MOZ_ASSERT(!done());
     return names_[index_].name();
   }
@@ -1407,8 +1454,34 @@ class BindingIter {
     MOZ_ASSERT(canHaveEnvironmentSlots());
     return environmentSlot_;
   }
+};
+
+template <typename NameT>
+class AbstractBindingIter;
+
+template <>
+class AbstractBindingIter<JSAtom> : public BaseAbstractBindingIter<JSAtom> {
+  using Base = BaseAbstractBindingIter<JSAtom>;
+
+ public:
+  AbstractBindingIter<JSAtom>(ScopeKind kind, BaseScopeData* data,
+                              uint32_t firstFrameSlot);
+
+  explicit AbstractBindingIter<JSAtom>(Scope* scope);
+  explicit AbstractBindingIter<JSAtom>(JSScript* script);
+
+  using Base::Base;
 
   void trace(JSTracer* trc);
+};
+
+template <>
+class AbstractBindingIter<const frontend::ParserAtom>
+    : public BaseAbstractBindingIter<const frontend::ParserAtom> {
+  using Base = BaseAbstractBindingIter<const frontend::ParserAtom>;
+
+ public:
+  using Base::Base;
 };
 
 void DumpBindings(JSContext* cx, Scope* scope);
@@ -1416,6 +1489,12 @@ JSAtom* FrameSlotName(JSScript* script, jsbytecode* pc);
 
 Shape* EmptyEnvironmentShape(JSContext* cx, const JSClass* cls,
                              uint32_t numSlots, uint32_t baseShapeFlags);
+
+template <class T>
+Shape* EmptyEnvironmentShape(JSContext* cx) {
+  return EmptyEnvironmentShape(cx, &T::class_, T::RESERVED_SLOTS,
+                               T::BASESHAPE_FLAGS);
+}
 
 //
 // A refinement BindingIter that only iterates over positional formal
@@ -1459,7 +1538,7 @@ class MOZ_STACK_CLASS ScopeIter {
 
   explicit ScopeIter(JSScript* script);
 
-  explicit ScopeIter(const ScopeIter& si) : scope_(si.scope_) {}
+  explicit ScopeIter(const ScopeIter& si) = default;
 
   bool done() const { return !scope_; }
 
@@ -1565,6 +1644,11 @@ Shape* CreateEnvironmentShape(JSContext* cx, BindingIter& bi,
                               const JSClass* cls, uint32_t numSlots,
                               uint32_t baseShapeFlags);
 
+Shape* CreateEnvironmentShape(
+    JSContext* cx, frontend::CompilationAtomCache& atomCache,
+    AbstractBindingIter<const frontend::ParserAtom>& bi, const JSClass* cls,
+    uint32_t numSlots, uint32_t baseShapeFlags);
+
 Shape* EmptyEnvironmentShape(JSContext* cx, const JSClass* cls,
                              uint32_t numSlots, uint32_t baseShapeFlags);
 
@@ -1595,20 +1679,6 @@ DEFINE_SCOPE_DATA_GCPOLICY(js::ModuleScope::Data);
 DEFINE_SCOPE_DATA_GCPOLICY(js::WasmFunctionScope::Data);
 
 #undef DEFINE_SCOPE_DATA_GCPOLICY
-
-// Scope data that contain GCPtrs must use the correct DeletePolicy.
-
-template <>
-struct DeletePolicy<js::FunctionScope::Data>
-    : public js::GCManagedDeletePolicy<js::FunctionScope::Data> {};
-
-template <>
-struct DeletePolicy<js::ModuleScope::Data>
-    : public js::GCManagedDeletePolicy<js::ModuleScope::Data> {};
-
-template <>
-struct DeletePolicy<js::WasmInstanceScope::Data>
-    : public js::GCManagedDeletePolicy<js::WasmInstanceScope::Data> {};
 
 namespace ubi {
 

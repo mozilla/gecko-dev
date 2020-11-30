@@ -1,3 +1,7 @@
+// |jit-test| skip-if: !isTypeInferenceEnabled()
+// With trial inlining enabled, this test loops infinitely
+// waiting for a trial-inlined function to be recompiled.
+
 gczeal(0);
 
 var values = {
@@ -24,7 +28,6 @@ for (var i = 1; i < 6; i++) {
 
     // Run until the end is running within Ion, or skip if we are unable to run
     // in Ion.
-    while (!res.start)
+    while (!res.start || !res.end)
         res = test(values);
-    assertEq(!res.start || !res.end, false);
 }

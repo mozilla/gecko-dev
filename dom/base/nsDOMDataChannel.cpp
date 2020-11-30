@@ -170,7 +170,11 @@ void nsDOMDataChannel::Close() {
 
 // All of the following is copy/pasted from WebSocket.cpp.
 void nsDOMDataChannel::Send(const nsAString& aData, ErrorResult& aRv) {
-  NS_ConvertUTF16toUTF8 msgString(aData);
+  nsAutoCString msgString;
+  if (!AppendUTF16toUTF8(aData, msgString, mozilla::fallible_t())) {
+    aRv.Throw(NS_ERROR_FILE_TOO_BIG);
+    return;
+  }
   Send(nullptr, &msgString, false, aRv);
 }
 
@@ -206,7 +210,12 @@ void nsDOMDataChannel::Send(const ArrayBuffer& aData, ErrorResult& aRv) {
   uint32_t len = aData.Length();
   char* data = reinterpret_cast<char*>(aData.Data());
 
-  nsDependentCSubstring msgString(data, len);
+  nsDependentCSubstring msgString;
+  if (!msgString.Assign(data, len, mozilla::fallible_t())) {
+    aRv.Throw(NS_ERROR_FILE_TOO_BIG);
+    return;
+  }
+
   Send(nullptr, &msgString, true, aRv);
 }
 
@@ -220,7 +229,12 @@ void nsDOMDataChannel::Send(const ArrayBufferView& aData, ErrorResult& aRv) {
   uint32_t len = aData.Length();
   char* data = reinterpret_cast<char*>(aData.Data());
 
-  nsDependentCSubstring msgString(data, len);
+  nsDependentCSubstring msgString;
+  if (!msgString.Assign(data, len, mozilla::fallible_t())) {
+    aRv.Throw(NS_ERROR_FILE_TOO_BIG);
+    return;
+  }
+
   Send(nullptr, &msgString, true, aRv);
 }
 
@@ -284,7 +298,7 @@ nsresult nsDOMDataChannel::DoOnMessageAvailable(const nsACString& aData,
   if (aBinary) {
     if (mBinaryType == DC_BINARY_TYPE_BLOB) {
       RefPtr<Blob> blob =
-          Blob::CreateStringBlob(GetOwnerGlobal(), aData, EmptyString());
+          Blob::CreateStringBlob(GetOwnerGlobal(), aData, u""_ns);
       if (NS_WARN_IF(!blob)) {
         return NS_ERROR_FAILURE;
       }
@@ -312,9 +326,9 @@ nsresult nsDOMDataChannel::DoOnMessageAvailable(const nsACString& aData,
 
   RefPtr<MessageEvent> event = new MessageEvent(this, nullptr, nullptr);
 
-  event->InitMessageEvent(nullptr, NS_LITERAL_STRING("message"), CanBubble::eNo,
-                          Cancelable::eNo, jsData, mOrigin, EmptyString(),
-                          nullptr, Sequence<OwningNonNull<MessagePort>>());
+  event->InitMessageEvent(nullptr, u"message"_ns, CanBubble::eNo,
+                          Cancelable::eNo, jsData, mOrigin, u""_ns, nullptr,
+                          Sequence<OwningNonNull<MessagePort>>());
   event->SetTrusted(true);
 
   DC_DEBUG(
@@ -364,7 +378,7 @@ nsresult nsDOMDataChannel::OnChannelConnected(nsISupports* aContext) {
   DC_DEBUG(
       ("%p(%p): %s - Dispatching\n", this, (void*)mDataChannel, __FUNCTION__));
 
-  return OnSimpleEvent(aContext, NS_LITERAL_STRING("open"));
+  return OnSimpleEvent(aContext, u"open"_ns);
 }
 
 nsresult nsDOMDataChannel::OnChannelClosed(nsISupports* aContext) {
@@ -377,7 +391,7 @@ nsresult nsDOMDataChannel::OnChannelClosed(nsISupports* aContext) {
     DC_DEBUG(("%p(%p): %s - Dispatching\n", this, (void*)mDataChannel,
               __FUNCTION__));
 
-    rv = OnSimpleEvent(aContext, NS_LITERAL_STRING("close"));
+    rv = OnSimpleEvent(aContext, u"close"_ns);
     // no more events can happen
     mSentClose = true;
   } else {
@@ -391,7 +405,7 @@ nsresult nsDOMDataChannel::OnBufferLow(nsISupports* aContext) {
   DC_DEBUG(
       ("%p(%p): %s - Dispatching\n", this, (void*)mDataChannel, __FUNCTION__));
 
-  return OnSimpleEvent(aContext, NS_LITERAL_STRING("bufferedamountlow"));
+  return OnSimpleEvent(aContext, u"bufferedamountlow"_ns);
 }
 
 nsresult nsDOMDataChannel::NotBuffered(nsISupports* aContext) {
@@ -467,8 +481,7 @@ void nsDOMDataChannel::DontKeepAliveAnyMore() {
 
 void nsDOMDataChannel::ReleaseSelf() {
   // release our self-reference (safely) by putting it in an event (always)
-  NS_ReleaseOnMainThreadSystemGroup("nsDOMDataChannel::mSelfRef",
-                                    mSelfRef.forget(), true);
+  NS_ReleaseOnMainThread("nsDOMDataChannel::mSelfRef", mSelfRef.forget(), true);
 }
 
 void nsDOMDataChannel::EventListenerAdded(nsAtom* aType) {

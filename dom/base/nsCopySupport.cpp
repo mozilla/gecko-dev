@@ -17,6 +17,7 @@
 #include "imgIContainer.h"
 #include "imgIRequest.h"
 #include "nsFocusManager.h"
+#include "nsFrameSelection.h"
 #include "mozilla/dom/DataTransfer.h"
 
 #include "nsIDocShell.h"
@@ -406,7 +407,7 @@ nsresult nsCopySupport::GetTransferableForNode(
   // Make a temporary selection with aNode in a single range.
   // XXX We should try to get rid of the Selection object here.
   // XXX bug 1245883
-  RefPtr<Selection> selection = new Selection(nullptr);
+  RefPtr<Selection> selection = new Selection(SelectionType::eNormal, nullptr);
   RefPtr<nsRange> range = nsRange::Create(aNode);
   ErrorResult result;
   range->SelectNode(*aNode, result);
@@ -552,10 +553,10 @@ static nsresult AppendDOMNode(nsITransferable* aTransferable,
   NS_ENSURE_TRUE(document->IsHTMLDocument(), NS_OK);
 
   // init encoder with document and node
-  rv =
-      docEncoder->NativeInit(document, NS_LITERAL_STRING(kHTMLMime),
-                             nsIDocumentEncoder::OutputAbsoluteLinks |
-                                 nsIDocumentEncoder::OutputEncodeBasicEntities);
+  rv = docEncoder->NativeInit(
+      document, NS_LITERAL_STRING_FROM_CSTRING(kHTMLMime),
+      nsIDocumentEncoder::OutputAbsoluteLinks |
+          nsIDocumentEncoder::OutputEncodeBasicEntities);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = docEncoder->SetNode(aDOMNode);
@@ -620,7 +621,7 @@ static nsresult AppendImagePromise(nsITransferable* aTransferable,
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIMIMEInfo> mimeInfo;
-  mimeService->GetFromTypeAndExtension(mimeType, EmptyCString(),
+  mimeService->GetFromTypeAndExtension(mimeType, ""_ns,
                                        getter_AddRefs(mimeInfo));
   NS_ENSURE_TRUE(mimeInfo, NS_OK);
 
@@ -673,37 +674,27 @@ static nsresult AppendImagePromise(nsITransferable* aTransferable,
 }
 #endif  // XP_WIN
 
-nsIContent* nsCopySupport::GetSelectionForCopy(Document* aDocument,
-                                               Selection** aSelection) {
-  *aSelection = nullptr;
-
+already_AddRefed<Selection> nsCopySupport::GetSelectionForCopy(
+    Document* aDocument) {
   PresShell* presShell = aDocument->GetPresShell();
   if (!presShell) {
     return nullptr;
   }
 
-  nsCOMPtr<nsIContent> focusedContent;
-  nsCOMPtr<nsISelectionController> selectionController =
-      presShell->GetSelectionControllerForFocusedContent(
-          getter_AddRefs(focusedContent));
-  if (!selectionController) {
+  RefPtr<nsFrameSelection> frameSel = presShell->GetLastFocusedFrameSelection();
+  if (!frameSel) {
     return nullptr;
   }
 
-  RefPtr<Selection> sel = selectionController->GetSelection(
-      nsISelectionController::SELECTION_NORMAL);
-  sel.forget(aSelection);
-  return focusedContent;
+  RefPtr<Selection> sel = frameSel->GetSelection(SelectionType::eNormal);
+  return sel.forget();
 }
 
 bool nsCopySupport::CanCopy(Document* aDocument) {
   if (!aDocument) return false;
 
-  RefPtr<Selection> sel;
-  GetSelectionForCopy(aDocument, getter_AddRefs(sel));
-  NS_ENSURE_TRUE(sel, false);
-
-  return !sel->IsCollapsed();
+  RefPtr<Selection> sel = GetSelectionForCopy(aDocument);
+  return sel && !sel->IsCollapsed();
 }
 
 static bool IsInsideRuby(nsINode* aNode) {
@@ -717,9 +708,8 @@ static bool IsInsideRuby(nsINode* aNode) {
 
 static bool IsSelectionInsideRuby(Selection* aSelection) {
   uint32_t rangeCount = aSelection->RangeCount();
-  ;
   for (auto i : IntegerRange(rangeCount)) {
-    nsRange* range = aSelection->GetRangeAt(i);
+    const nsRange* range = aSelection->GetRangeAt(i);
     if (!IsInsideRuby(range->GetClosestCommonInclusiveAncestor())) {
       return false;
     }
@@ -776,12 +766,12 @@ bool nsCopySupport::FireClipboardEvent(EventMessage aEventMessage,
   // If a selection was not supplied, try to find it.
   RefPtr<Selection> sel = aSelection;
   if (!sel) {
-    GetSelectionForCopy(doc, getter_AddRefs(sel));
+    sel = GetSelectionForCopy(doc);
   }
 
   // Retrieve the event target node from the start of the selection.
   if (sel) {
-    nsRange* range = sel->GetRangeAt(0);
+    const nsRange* range = sel->GetRangeAt(0);
     if (range) {
       targetElement = GetElementOrNearestFlattenedTreeParentElement(
           range->GetStartContainer());
@@ -928,7 +918,7 @@ bool nsCopySupport::FireClipboardEvent(EventMessage aEventMessage,
   // Now that we have copied, update the clipboard commands. This should have
   // the effect of updating the enabled state of the paste menu item.
   if (doDefault || count) {
-    piWindow->UpdateCommands(NS_LITERAL_STRING("clipboard"), nullptr, 0);
+    piWindow->UpdateCommands(u"clipboard"_ns, nullptr, 0);
   }
 
   if (aActionTaken) {

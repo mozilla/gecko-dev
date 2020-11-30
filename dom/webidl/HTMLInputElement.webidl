@@ -60,8 +60,6 @@ interface HTMLInputElement : HTMLElement {
            attribute unsigned long height;
   [Pure]
            attribute boolean indeterminate;
-  [CEReactions, Pure, SetterThrows, Pref="dom.forms.inputmode"]
-           attribute DOMString inputMode;
   [Pure]
   readonly attribute HTMLElement? list;
   [CEReactions, Pure, SetterThrows]
@@ -96,7 +94,7 @@ interface HTMLInputElement : HTMLElement {
            attribute DOMString defaultValue;
   [CEReactions, Pure, SetterThrows, NeedsCallerType]
            attribute [TreatNullAs=EmptyString] DOMString value;
-  [Throws, Func="HTMLInputElement::ValueAsDateEnabled"]
+  [Throws]
            attribute object? valueAsDate;
   [Pure, SetterThrows]
            attribute unrestricted double valueAsNumber;
@@ -190,7 +188,7 @@ interface mixin MozEditableElement {
   // Returns an nsIEditor instance which is associated with the element.
   // If the element can be associated with an editor but not yet created,
   // this creates new one automatically.
-  [Pure, ChromeOnly]
+  [Pure, ChromeOnly, BinaryName="editorForBindings"]
   readonly attribute nsIEditor? editor;
 
   // Returns true if an nsIEditor instance has already been associated with
@@ -250,40 +248,36 @@ dictionary DateTimeValue {
 };
 
 partial interface HTMLInputElement {
-  [Pref="dom.forms.datetime", ChromeOnly]
+  [ChromeOnly]
   DateTimeValue getDateTimeInputBoxValue();
 
-  [Pref="dom.forms.datetime", ChromeOnly]
+  [ChromeOnly]
   readonly attribute Element? dateTimeBoxElement;
 
-  [Pref="dom.forms.datetime", ChromeOnly,
-   BinaryName="getMinimumAsDouble"]
+  [ChromeOnly, BinaryName="getMinimumAsDouble"]
   double getMinimum();
 
-  [Pref="dom.forms.datetime", ChromeOnly,
-   BinaryName="getMaximumAsDouble"]
+  [ChromeOnly, BinaryName="getMaximumAsDouble"]
   double getMaximum();
 
-  [Pref="dom.forms.datetime", Func="IsChromeOrUAWidget"]
+  [Func="IsChromeOrUAWidget"]
   void openDateTimePicker(optional DateTimeValue initialValue = {});
 
-  [Pref="dom.forms.datetime", Func="IsChromeOrUAWidget"]
+  [Func="IsChromeOrUAWidget"]
   void updateDateTimePicker(optional DateTimeValue value = {});
 
-  [Pref="dom.forms.datetime", Func="IsChromeOrUAWidget"]
+  [Func="IsChromeOrUAWidget"]
   void closeDateTimePicker();
 
-  [Pref="dom.forms.datetime", Func="IsChromeOrUAWidget"]
+  [Func="IsChromeOrUAWidget"]
   void setFocusState(boolean aIsFocused);
 
-  [Pref="dom.forms.datetime", Func="IsChromeOrUAWidget"]
+  [Func="IsChromeOrUAWidget"]
   void updateValidityState();
 
-  [Pref="dom.forms.datetime", Func="IsChromeOrUAWidget",
-   BinaryName="getStepAsDouble"]
+  [Func="IsChromeOrUAWidget", BinaryName="getStepAsDouble"]
   double getStep();
 
-  [Pref="dom.forms.datetime", Func="IsChromeOrUAWidget",
-   BinaryName="getStepBaseAsDouble"]
+  [Func="IsChromeOrUAWidget", BinaryName="getStepBaseAsDouble"]
   double getStepBase();
 };

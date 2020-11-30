@@ -4,25 +4,32 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/TaskQueue.h"
-
 #include "FFmpegAudioDecoder.h"
+#include "FFmpegLog.h"
 #include "TimeUnits.h"
 #include "VideoUtils.h"
+#include "BufferReader.h"
 #include "mozilla/StaticPrefs_media.h"
 
 namespace mozilla {
 
 FFmpegAudioDecoder<LIBAV_VER>::FFmpegAudioDecoder(FFmpegLibWrapper* aLib,
-                                                  TaskQueue* aTaskQueue,
                                                   const AudioInfo& aConfig)
-    : FFmpegDataDecoder(aLib, aTaskQueue, GetCodecId(aConfig.mMimeType)) {
+    : FFmpegDataDecoder(aLib, GetCodecId(aConfig.mMimeType)) {
   MOZ_COUNT_CTOR(FFmpegAudioDecoder);
   // Use a new MediaByteBuffer as the object will be modified during
   // initialization.
   if (aConfig.mCodecSpecificConfig && aConfig.mCodecSpecificConfig->Length()) {
     mExtraData = new MediaByteBuffer;
     mExtraData->AppendElements(*aConfig.mCodecSpecificConfig);
+    if (mCodecID == AV_CODEC_ID_MP3) {
+      BufferReader reader(mExtraData->Elements(), mExtraData->Length());
+      mEncoderDelay = reader.ReadU32().unwrapOr(0);
+      mEncoderPadding = reader.ReadU32().unwrapOr(0);
+      FFMPEG_LOG("FFmpegAudioDecoder, found encoder delay (%" PRIu32
+                 ") and padding values (%" PRIu32 ") in extra data",
+                 mEncoderDelay, mEncoderPadding);
+    }
   }
 }
 
@@ -178,6 +185,7 @@ MediaResult FFmpegAudioDecoder<LIBAV_VER>::DoDecode(MediaRawData* aSample,
                                                     uint8_t* aData, int aSize,
                                                     bool* aGotFrame,
                                                     DecodedData& aResults) {
+  MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
   AVPacket packet;
   mLib->av_init_packet(&packet);
 
@@ -229,6 +237,24 @@ MediaResult FFmpegAudioDecoder<LIBAV_VER>::DoDecode(MediaRawData* aSample,
         return MediaResult(NS_ERROR_OUT_OF_MEMORY, __func__);
       }
 
+      bool trimmed = false;
+      if (mEncoderDelay) {
+        trimmed = true;
+        uint32_t toPop = std::min((uint32_t)mFrame->nb_samples, mEncoderDelay);
+        audio.PopFront(toPop * numChannels);
+        mFrame->nb_samples -= toPop;
+        mEncoderDelay -= toPop;
+      }
+
+      if (aSample->mEOS && mEncoderPadding) {
+        trimmed = true;
+        uint32_t toTrim =
+            std::min((uint32_t)mFrame->nb_samples, mEncoderPadding);
+        mEncoderPadding -= toTrim;
+        audio.PopBack(toTrim * numChannels);
+        mFrame->nb_samples = audio.Length() / numChannels;
+      }
+
       media::TimeUnit duration =
           FramesToTimeUnit(mFrame->nb_samples, samplingRate);
       if (!duration.IsValid()) {
@@ -246,7 +272,8 @@ MediaResult FFmpegAudioDecoder<LIBAV_VER>::DoDecode(MediaRawData* aSample,
       RefPtr<AudioData> data =
           new AudioData(samplePosition, pts, std::move(audio), numChannels,
                         samplingRate, mCodecContext->channel_layout);
-      MOZ_DIAGNOSTIC_ASSERT(duration == data->mDuration, "must be equal");
+      MOZ_DIAGNOSTIC_ASSERT(duration == data->mDuration || trimmed,
+                            "must be equal");
       aResults.AppendElement(std::move(data));
 
       pts = newpts;

@@ -130,8 +130,11 @@ class Output(object):
                         if test.test_config.get('unit'):
                             subtest['unit'] = test.test_config['unit']
 
+                # if there is only one subtest, carry alerting setting from the suite
+                if len(subtests) == 1:
+                    subtests[0]['shouldAlert'] = suite['shouldAlert']
                 # if there is more than one subtest, calculate a summary result
-                if len(subtests) > 1:
+                elif len(subtests) > 1:
                     suite['value'] = self.construct_results(
                         vals, testname=test.name())
                 if test.test_config.get('lower_is_better') is not None:
@@ -211,7 +214,7 @@ class Output(object):
 
         # This is the output that treeherder expects to find when parsing the
         # log file
-        if 'geckoProfile' not in self.results.extra_options:
+        if 'gecko-profile' not in self.results.extra_options:
             LOG.info("PERFHERDER_DATA: %s" % json.dumps(results,
                                                         ignore_nan=True))
         if results_scheme in ('file'):

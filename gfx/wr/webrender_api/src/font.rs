@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
 #[cfg(target_os = "macos")]
 use core_foundation::string::CFString;
 #[cfg(target_os = "macos")]
@@ -16,12 +15,188 @@ use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 #[cfg(not(target_os = "macos"))]
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock, RwLockReadGuard};
+use std::collections::HashMap;
 // local imports
-use crate::api::IdNamespace;
+use crate::IdNamespace;
+use crate::channel::Sender;
 use crate::color::ColorU;
 use crate::units::LayoutPoint;
 
+/// Hashable floating-point storage for font size.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd, Deserialize, Serialize)]
+pub struct FontSize(pub f32);
+
+impl Ord for FontSize {
+    fn cmp(&self, other: &FontSize) -> Ordering {
+        self.partial_cmp(other).unwrap_or(Ordering::Equal)
+    }
+}
+
+impl Eq for FontSize {}
+
+impl Hash for FontSize {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.to_bits().hash(state);
+    }
+}
+
+impl From<f32> for FontSize {
+    fn from(size: f32) -> Self { FontSize(size) }
+}
+
+impl From<FontSize> for f32 {
+    fn from(size: FontSize) -> Self { size.0 }
+}
+
+impl FontSize {
+    pub fn zero() -> Self { FontSize(0.0) }
+
+    pub fn from_f32_px(size: f32) -> Self { FontSize(size) }
+
+    pub fn to_f32_px(&self) -> f32 { self.0 }
+
+    pub fn from_f64_px(size: f64) -> Self { FontSize(size as f32) }
+
+    pub fn to_f64_px(&self) -> f64 { self.0 as f64 }
+}
+
+/// Immutable description of a font instance requested by the user of the API.
+///
+/// `BaseFontInstance` can be identified by a `FontInstanceKey` so we should
+/// never need to hash it.
+#[derive(Clone, PartialEq, Eq, Debug, Ord, PartialOrd, MallocSizeOf)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[cfg_attr(feature = "deserialize", derive(Deserialize))]
+pub struct BaseFontInstance {
+    ///
+    pub instance_key: FontInstanceKey,
+    ///
+    pub font_key: FontKey,
+    ///
+    pub size: FontSize,
+    ///
+    pub bg_color: ColorU,
+    ///
+    pub render_mode: FontRenderMode,
+    ///
+    pub flags: FontInstanceFlags,
+    ///
+    pub synthetic_italics: SyntheticItalics,
+    ///
+    #[cfg_attr(any(feature = "serialize", feature = "deserialize"), serde(skip))]
+    pub platform_options: Option<FontInstancePlatformOptions>,
+    ///
+    pub variations: Vec<FontVariation>,
+}
+
+pub type FontInstanceMap = HashMap<FontInstanceKey, Arc<BaseFontInstance>>;
+/// A map of font instance data accessed concurrently from multiple threads.
+#[derive(Clone)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[cfg_attr(feature = "deserialize", derive(Deserialize))]
+pub struct SharedFontInstanceMap {
+    map: Arc<RwLock<FontInstanceMap>>,
+}
+
+impl SharedFontInstanceMap {
+    /// Creates an empty shared map.
+    pub fn new() -> Self {
+        SharedFontInstanceMap {
+            map: Arc::new(RwLock::new(HashMap::default()))
+        }
+    }
+
+    /// Acquires a write lock on the shared map.
+    pub fn lock(&mut self) -> Option<RwLockReadGuard<FontInstanceMap>> {
+        self.map.read().ok()
+    }
+
+    ///
+    pub fn get_font_instance_data(&self, key: FontInstanceKey) -> Option<FontInstanceData> {
+        match self.map.read().unwrap().get(&key) {
+            Some(instance) => Some(FontInstanceData {
+                font_key: instance.font_key,
+                size: instance.size.into(),
+                options: Some(FontInstanceOptions {
+                  render_mode: instance.render_mode,
+                  flags: instance.flags,
+                  bg_color: instance.bg_color,
+                  synthetic_italics: instance.synthetic_italics,
+                }),
+                platform_options: instance.platform_options,
+                variations: instance.variations.clone(),
+            }),
+            None => None,
+        }
+    }
+
+    /// Replace the shared map with the provided map.
+    pub fn set(&mut self, map: FontInstanceMap) {
+        *self.map.write().unwrap() = map;
+    }
+
+    ///
+    pub fn get_font_instance(&self, instance_key: FontInstanceKey) -> Option<Arc<BaseFontInstance>> {
+        let instance_map = self.map.read().unwrap();
+        instance_map.get(&instance_key).map(|instance| { Arc::clone(instance) })
+    }
+
+    ///
+    pub fn add_font_instance(
+        &mut self,
+        instance_key: FontInstanceKey,
+        font_key: FontKey,
+        size: f32,
+        options: Option<FontInstanceOptions>,
+        platform_options: Option<FontInstancePlatformOptions>,
+        variations: Vec<FontVariation>,
+    ) {
+        let FontInstanceOptions {
+            render_mode,
+            flags,
+            bg_color,
+            synthetic_italics,
+            ..
+        } = options.unwrap_or_default();
+
+        let instance = Arc::new(BaseFontInstance {
+            instance_key,
+            font_key,
+            size: size.into(),
+            bg_color,
+            render_mode,
+            flags,
+            synthetic_italics,
+            platform_options,
+            variations,
+        });
+
+        self.map
+            .write()
+            .unwrap()
+            .insert(instance_key, instance);
+    }
+
+    ///
+    pub fn delete_font_instance(&mut self, instance_key: FontInstanceKey) {
+        self.map.write().unwrap().remove(&instance_key);
+    }
+
+    ///
+    pub fn clear_namespace(&mut self, namespace: IdNamespace) {
+        self.map
+            .write()
+            .unwrap()
+            .retain(|key, _| key.0 != namespace);
+    }
+
+    ///
+    pub fn clone_map(&self) -> FontInstanceMap {
+        self.map.read().unwrap().clone()
+    }
+}
 
 #[cfg(not(target_os = "macos"))]
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -72,6 +247,18 @@ pub struct GlyphDimensions {
     pub width: i32,
     pub height: i32,
     pub advance: f32,
+}
+
+pub struct GlyphDimensionRequest {
+    pub key: FontInstanceKey,
+    pub glyph_indices: Vec<GlyphIndex>,
+    pub sender: Sender<Vec<Option<GlyphDimensions>>>,
+}
+
+pub struct GlyphIndexRequest {
+    pub key: FontKey,
+    pub text: String,
+    pub sender: Sender<Vec<Option<u32>>>,
 }
 
 #[repr(C)]
@@ -180,6 +367,10 @@ bitflags! {
         const FLIP_Y            = 1 << 6;
         const SUBPIXEL_POSITION = 1 << 7;
         const VERTICAL          = 1 << 8;
+
+        // Internal flags
+        const TRANSFORM_GLYPHS  = 1 << 12;
+        const TEXTURE_PADDING   = 1 << 13;
 
         // Windows flags
         const FORCE_GDI         = 1 << 16;
@@ -377,7 +568,7 @@ impl FontInstanceKey {
 #[derive(Clone)]
 pub struct FontInstanceData {
     pub font_key: FontKey,
-    pub size: Au,
+    pub size: f32,
     pub options: Option<FontInstanceOptions>,
     pub platform_options: Option<FontInstancePlatformOptions>,
     pub variations: Vec<FontVariation>,

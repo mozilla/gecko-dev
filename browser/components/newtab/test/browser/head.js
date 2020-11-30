@@ -2,6 +2,11 @@
 
 ChromeUtils.defineModuleGetter(
   this,
+  "ObjectUtils",
+  "resource://gre/modules/ObjectUtils.jsm"
+);
+ChromeUtils.defineModuleGetter(
+  this,
   "PlacesTestUtils",
   "resource://testing-common/PlacesTestUtils.jsm"
 );
@@ -11,11 +16,27 @@ ChromeUtils.defineModuleGetter(
   "resource://activity-stream/lib/ASRouterTargeting.jsm"
 );
 
+// We import sinon here to make it available across all mochitest test files
+// eslint-disable-next-line no-unused-vars
+const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
+
 function popPrefs() {
   return SpecialPowers.popPrefEnv();
 }
 function pushPrefs(...prefs) {
   return SpecialPowers.pushPrefEnv({ set: prefs });
+}
+
+// Toggle the feed off and on as a workaround to read the new prefs.
+async function toggleTopsitesPref() {
+  await pushPrefs([
+    "browser.newtabpage.activity-stream.feeds.system.topsites",
+    false,
+  ]);
+  await pushPrefs([
+    "browser.newtabpage.activity-stream.feeds.system.topsites",
+    true,
+  ]);
 }
 
 // eslint-disable-next-line no-unused-vars
@@ -25,13 +46,26 @@ async function setDefaultTopSites() {
     "browser.newtabpage.activity-stream.default.sites",
     "https://www.youtube.com/,https://www.facebook.com/,https://www.amazon.com/,https://www.reddit.com/,https://www.wikipedia.org/,https://twitter.com/",
   ]);
-  // Toggle the feed off and on as a workaround to read the new prefs.
-  await pushPrefs(["browser.newtabpage.activity-stream.feeds.topsites", false]);
-  await pushPrefs(["browser.newtabpage.activity-stream.feeds.topsites", true]);
+  await toggleTopsitesPref();
   await pushPrefs([
     "browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts",
     true,
   ]);
+}
+
+// eslint-disable-next-line no-unused-vars
+async function setTestTopSites() {
+  await pushPrefs([
+    "browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts",
+    false,
+  ]);
+  // The pref for TopSites is empty by default.
+  // Using a topsite with example.com allows us to open the topsite without a network request.
+  await pushPrefs([
+    "browser.newtabpage.activity-stream.default.sites",
+    "https://example.com/",
+  ]);
+  await toggleTopsitesPref();
 }
 
 // eslint-disable-next-line no-unused-vars
@@ -55,6 +89,17 @@ async function waitForPreloaded(browser) {
   if (readyState !== "complete") {
     await BrowserTestUtils.browserLoaded(browser);
   }
+}
+
+/**
+ * Helper function to navigate and wait for page to load
+ * https://searchfox.org/mozilla-central/rev/b2716c233e9b4398fc5923cbe150e7f83c7c6c5b/testing/mochitest/BrowserTestUtils/BrowserTestUtils.jsm#383
+ */
+// eslint-disable-next-line no-unused-vars
+async function waitForUrlLoad(url) {
+  let browser = gBrowser.selectedBrowser;
+  await BrowserTestUtils.loadURI(browser, url);
+  await BrowserTestUtils.browserLoaded(browser, false, url);
 }
 
 /**

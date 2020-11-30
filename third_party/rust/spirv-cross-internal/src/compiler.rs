@@ -5,7 +5,7 @@ use crate::spirv::{self, Decoration, Type};
 use crate::ErrorCode;
 use std::ffi::CString;
 use std::os::raw::c_void;
-use std::{mem, ptr};
+use std::{mem::MaybeUninit, ptr};
 
 impl spirv::ExecutionModel {
     fn from_raw(raw: br::spv::ExecutionModel) -> Result<Self, ErrorCode> {
@@ -95,25 +95,27 @@ impl spirv::Decoration {
 
 impl spirv::Type {
     pub(crate) fn from_raw(
-        ty: br::SPIRV_CROSS_NAMESPACE::SPIRType_BaseType,
+        ty: br::spirv_cross::SPIRType_BaseType,
+        vecsize: u32,
+        columns: u32,
         member_types: Vec<u32>,
         array: Vec<u32>,
     ) -> Type {
-        use crate::bindings::root::SPIRV_CROSS_NAMESPACE::SPIRType_BaseType as B;
+        use crate::bindings::root::spirv_cross::SPIRType_BaseType as B;
         use crate::spirv::Type::*;
         match ty {
             B::Unknown => Unknown,
             B::Void => Void,
-            B::Boolean => Boolean { array },
+            B::Boolean => Boolean { vecsize, columns, array },
             B::Char => Char { array },
-            B::Int => Int { array },
-            B::UInt => UInt { array },
-            B::Int64 => Int64 { array },
-            B::UInt64 => UInt64 { array },
+            B::Int => Int { vecsize, columns, array },
+            B::UInt => UInt { vecsize, columns, array },
+            B::Int64 => Int64 { vecsize, array },
+            B::UInt64 => UInt64 { vecsize, array },
             B::AtomicCounter => AtomicCounter { array },
-            B::Half => Half { array },
-            B::Float => Float { array },
-            B::Double => Double { array },
+            B::Half => Half { vecsize, columns, array },
+            B::Float => Float { vecsize, columns, array },
+            B::Double => Double { vecsize, columns, array },
             B::Struct => Struct {
                 member_types,
                 array,
@@ -121,12 +123,13 @@ impl spirv::Type {
             B::Image => Image { array },
             B::SampledImage => SampledImage { array },
             B::Sampler => Sampler { array },
-            B::SByte => SByte { array },
-            B::UByte => UByte { array },
-            B::Short => Short { array },
-            B::UShort => UShort { array },
+            B::SByte => SByte { vecsize, array },
+            B::UByte => UByte { vecsize, array },
+            B::Short => Short { vecsize, array },
+            B::UShort => UShort { vecsize, array },
             B::ControlPointArray => ControlPointArray,
-            B::AccelerationStructureNV => AccelerationStructureNv,
+            B::AccelerationStructure => AccelerationStructure,
+            B::RayQuery => RayQuery,
         }
     }
 }
@@ -139,7 +142,7 @@ pub struct Compiler<TTargetData> {
 }
 
 impl<TTargetData> Compiler<TTargetData> {
-    #[cfg(any(feature = "msl", feature = "glsl", feature = "hlsl"))]
+    #[cfg(any(feature = "glsl", feature = "hlsl"))]
     pub fn compile(&mut self) -> Result<String, ErrorCode> {
         unsafe {
             let mut shader_ptr = ptr::null();
@@ -262,13 +265,14 @@ impl<TTargetData> Compiler<TTargetData> {
                     check!(br::sc_internal_free_pointer(
                         entry_point_raw.name as *mut c_void,
                     ));
-                    check!(br::sc_internal_free_pointer(
-                        entry_point_raw_ptr as *mut c_void
-                    ));
 
                     Ok(entry_point)
                 })
                 .collect::<Result<Vec<_>, _>>();
+
+            check!(br::sc_internal_free_pointer(
+                entry_points_raw as *mut c_void,
+            ));
 
             Ok(entry_points?)
         }
@@ -392,7 +396,7 @@ impl<TTargetData> Compiler<TTargetData> {
             let raw = read_from_ptr::<br::ScType>(type_ptr);
             let member_types = read_into_vec_from_ptr(raw.member_types, raw.member_types_size);
             let array = read_into_vec_from_ptr(raw.array, raw.array_size);
-            let result = Type::from_raw(raw.type_, member_types, array);
+            let result = Type::from_raw(raw.type_, raw.vecsize, raw.columns, member_types, array);
 
             if raw.member_types_size > 0 {
                 check!(br::sc_internal_free_pointer(
@@ -489,11 +493,12 @@ impl<TTargetData> Compiler<TTargetData> {
 
     pub fn get_shader_resources(&self) -> Result<spirv::ShaderResources, ErrorCode> {
         unsafe {
-            let mut shader_resources_raw = mem::uninitialized();
+            let mut shader_resources_raw = MaybeUninit::uninit();
             check!(br::sc_internal_compiler_get_shader_resources(
                 self.sc_compiler,
-                &mut shader_resources_raw,
+                shader_resources_raw.as_mut_ptr(),
             ));
+            let shader_resources_raw = shader_resources_raw.assume_init();
 
             let fill_resources = |array_raw: &br::ScResourceArray| {
                 let resources = (0..array_raw.num as usize)

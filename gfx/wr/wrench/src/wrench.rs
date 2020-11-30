@@ -10,7 +10,6 @@ use dwrote;
 #[cfg(all(unix, not(target_os = "android")))]
 use font_loader::system_fonts;
 use winit::EventsLoopProxy;
-use crate::ron_frame_writer::RonFrameWriter;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -18,9 +17,9 @@ use std::sync::mpsc::Receiver;
 use time;
 use webrender;
 use webrender::api::*;
+use webrender::render_api::*;
 use webrender::api::units::*;
 use webrender::{DebugFlags, RenderResults, ShaderPrecacheFlags};
-use crate::yaml_frame_writer::YamlFrameWriterReceiver;
 use crate::{WindowWrapper, NotifierEvent};
 
 // TODO(gw): This descriptor matches what we currently support for fonts
@@ -36,12 +35,6 @@ pub enum FontDescriptor {
         style: u32,
         stretch: u32,
     },
-}
-
-pub enum SaveType {
-    Yaml,
-    Ron,
-    Binary,
 }
 
 struct NotifierData {
@@ -140,6 +133,71 @@ impl WrenchThing for CapturedDocument {
     }
 }
 
+pub struct CapturedSequence {
+    root: PathBuf,
+    frame: usize,
+    frame_set: Vec<(u32, u32)>,
+}
+
+impl CapturedSequence {
+    pub fn new(root: PathBuf, scene_start: u32, frame_start: u32) -> Self {
+        // Build set of a scene and frame IDs.
+        let mut scene = scene_start;
+        let mut frame = frame_start;
+        let mut frame_set = Vec::new();
+        while Self::scene_root(&root, scene).as_path().is_dir() {
+            while Self::frame_root(&root, scene, frame).as_path().is_dir() {
+                frame_set.push((scene, frame));
+                frame += 1;
+            }
+            scene += 1;
+            frame = 1;
+        }
+
+        assert!(!frame_set.is_empty());
+
+        Self {
+            root,
+            frame: 0,
+            frame_set,
+        }
+    }
+
+    fn scene_root(root: &PathBuf, scene: u32) -> PathBuf {
+        let path = format!("scenes/{:05}", scene);
+        root.join(path)
+    }
+
+    fn frame_root(root: &PathBuf, scene: u32, frame: u32) -> PathBuf {
+        let path = format!("scenes/{:05}/frames/{:05}", scene, frame);
+        root.join(path)
+    }
+}
+
+impl WrenchThing for CapturedSequence {
+    fn next_frame(&mut self) {
+        if self.frame + 1 < self.frame_set.len() {
+            self.frame += 1;
+        }
+    }
+
+    fn prev_frame(&mut self) {
+        if self.frame > 0 {
+            self.frame -= 1;
+        }
+    }
+
+    fn do_frame(&mut self, wrench: &mut Wrench) -> u32 {
+        let mut documents = wrench.api.load_capture(self.root.clone(), Some(self.frame_set[self.frame]));
+        println!("loaded {:?} from {:?}",
+            documents.iter().map(|cd| cd.document_id).collect::<Vec<_>>(),
+            self.frame_set[self.frame]);
+        let captured = documents.swap_remove(0);
+        wrench.document_id = captured.document_id;
+        self.frame as u32
+    }
+}
+
 pub struct Wrench {
     window_size: DeviceIntSize,
     pub device_pixel_ratio: f32,
@@ -167,12 +225,11 @@ impl Wrench {
         window: &mut WindowWrapper,
         proxy: Option<EventsLoopProxy>,
         shader_override_path: Option<PathBuf>,
+        use_optimized_shaders: bool,
         dp_ratio: f32,
-        save_type: Option<SaveType>,
         size: DeviceIntSize,
         do_rebuild: bool,
         no_subpixel_aa: bool,
-        no_picture_caching: bool,
         verbose: bool,
         no_scissor: bool,
         no_batch: bool,
@@ -184,17 +241,6 @@ impl Wrench {
         notifier: Option<Box<dyn RenderNotifier>>,
     ) -> Self {
         println!("Shader override path: {:?}", shader_override_path);
-
-        let recorder = save_type.map(|save_type| match save_type {
-            SaveType::Yaml => Box::new(
-                YamlFrameWriterReceiver::new(&PathBuf::from("yaml_frames")),
-            ) as Box<dyn webrender::ApiRecordingReceiver>,
-            SaveType::Ron => Box::new(RonFrameWriter::new(&PathBuf::from("ron_frames"))) as
-                Box<dyn webrender::ApiRecordingReceiver>,
-            SaveType::Binary => Box::new(webrender::BinaryRecorder::new(
-                &PathBuf::from("wr-record.bin"),
-            )) as Box<dyn webrender::ApiRecordingReceiver>,
-        });
 
         let mut debug_flags = DebugFlags::ECHO_DRIVER_MESSAGES;
         debug_flags.set(DebugFlags::DISABLE_BATCHING, no_batch);
@@ -209,7 +255,7 @@ impl Wrench {
         let opts = webrender::RendererOptions {
             device_pixel_ratio: dp_ratio,
             resource_override_path: shader_override_path,
-            recorder,
+            use_optimized_shaders,
             enable_subpixel_aa: !no_subpixel_aa,
             debug_flags,
             enable_clear_scissor: !no_scissor,
@@ -217,12 +263,14 @@ impl Wrench {
             precache_flags,
             blob_image_handler: Some(Box::new(blob::CheckerboardRenderer::new(callbacks.clone()))),
             chase_primitive,
-            enable_picture_caching: !no_picture_caching,
             testing: true,
             max_texture_size: Some(8196), // Needed for rawtest::test_resize_image.
             allow_dual_source_blending: !disable_dual_source_blending,
             allow_advanced_blend_equation: true,
             dump_shader_source,
+            // SWGL doesn't support the GL_ALWAYS depth comparison function used by
+            // `clear_caches_with_quads`, but scissored clears work well.
+            clear_caches_with_quads: !window.is_software(),
             ..Default::default()
         };
 
@@ -243,7 +291,6 @@ impl Wrench {
             notifier,
             opts,
             None,
-            size,
         ).unwrap();
 
         let api = sender.create_api();
@@ -307,7 +354,7 @@ impl Wrench {
         font_key: FontKey,
         instance_key: FontInstanceKey,
         text: &str,
-        size: Au,
+        size: f32,
         origin: LayoutPoint,
         flags: FontInstanceFlags,
     ) -> (Vec<u32>, Vec<LayoutPoint>, LayoutRect) {
@@ -353,7 +400,7 @@ impl Wrench {
                     // Extract the advances from the metrics. The get_glyph_dimensions API
                     // has a limitation that it can't currently get dimensions for non-renderable
                     // glyphs (e.g. spaces), so just use a rough estimate in that case.
-                    let space_advance = size.to_f32_px() / 3.0;
+                    let space_advance = size / 3.0;
                     cursor += direction * space_advance;
                 }
             }
@@ -400,7 +447,7 @@ impl Wrench {
         let key = self.api.generate_font_key();
         let mut txn = Transaction::new();
         txn.add_native_font(key, descriptor.clone());
-        self.api.update_resources(txn.resource_updates);
+        self.api.send_transaction(self.document_id, txn);
         key
     }
 
@@ -491,13 +538,13 @@ impl Wrench {
         let key = self.api.generate_font_key();
         let mut txn = Transaction::new();
         txn.add_raw_font(key, bytes, index);
-        self.api.update_resources(txn.resource_updates);
+        self.api.send_transaction(self.document_id, txn);
         key
     }
 
     pub fn add_font_instance(&mut self,
         font_key: FontKey,
-        size: Au,
+        size: f32,
         flags: FontInstanceFlags,
         render_mode: Option<FontRenderMode>,
         bg_color: Option<ColorU>,
@@ -515,7 +562,7 @@ impl Wrench {
         }
         options.synthetic_italics = synthetic_italics;
         txn.add_font_instance(key, font_key, size, Some(options), None, Vec::new());
-        self.api.update_resources(txn.resource_updates);
+        self.api.send_transaction(self.document_id, txn);
         key
     }
 
@@ -523,7 +570,7 @@ impl Wrench {
     pub fn delete_font_instance(&mut self, key: FontInstanceKey) {
         let mut txn = Transaction::new();
         txn.delete_font_instance(key);
-        self.api.update_resources(txn.resource_updates);
+        self.api.send_transaction(self.document_id, txn);
     }
 
     pub fn update(&mut self, dim: DeviceIntSize) {
@@ -539,7 +586,7 @@ impl Wrench {
     pub fn send_lists(
         &mut self,
         frame_number: u32,
-        display_lists: Vec<(PipelineId, LayoutSize, BuiltDisplayList)>,
+        display_lists: Vec<(PipelineId, BuiltDisplayList)>,
         scroll_offsets: &HashMap<ExternalScrollId, LayoutPoint>,
     ) {
         let root_background_color = Some(ColorF::new(1.0, 1.0, 1.0, 1.0));

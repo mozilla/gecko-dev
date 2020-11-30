@@ -21,6 +21,7 @@ print_usage() {
   notice "  -h  show this help text"
   notice "  -f  clobber this file in the installation"
   notice "      Must be a path to a file to clobber in the partial update."
+  notice "  -q  be less verbose"
   notice ""
 }
 
@@ -79,10 +80,12 @@ fi
 
 requested_forced_updates='Contents/MacOS/firefox'
 
-while getopts "hf:" flag
+while getopts "hqf:" flag
 do
    case "$flag" in
       h) print_usage; exit 0
+      ;;
+      q) QUIET=1
       ;;
       f) requested_forced_updates="$requested_forced_updates $OPTARG"
       ;;
@@ -92,6 +95,8 @@ do
 done
 
 # -----------------------------------------------------------------------------
+
+mar_command="$MAR -V ${MOZ_PRODUCT_VERSION:?} -H ${MAR_CHANNEL_ID:?}"
 
 let arg_start=$OPTIND-1
 shift $arg_start
@@ -105,10 +110,9 @@ if [ $(echo "$newdir" | grep -c '\/$') = 1 ]; then
   # Remove the /
   newdir=$(echo "$newdir" | sed -e 's:\/$::')
 fi
-workdir="$newdir.work"
-updatemanifestv2="$workdir/updatev2.manifest"
+workdir="$(mktemp -d)"
 updatemanifestv3="$workdir/updatev3.manifest"
-archivefiles="updatev2.manifest updatev3.manifest"
+archivefiles="updatev3.manifest"
 
 mkdir -p "$workdir"
 
@@ -143,10 +147,8 @@ popd
 # Add the type of update to the beginning of the update manifests.
 notice ""
 notice "Adding type instruction to update manifests"
-> $updatemanifestv2
 > $updatemanifestv3
 notice "       type partial"
-echo "type \"partial\"" >> $updatemanifestv2
 echo "type \"partial\"" >> $updatemanifestv3
 
 notice ""
@@ -165,11 +167,7 @@ for ((i=0; $i<$num_oldfiles; i=$i+1)); do
     if check_for_add_if_not_update "$f"; then
       # The full workdir may not exist yet, so create it if necessary.
       mkdir -p `dirname "$workdir/$f"`
-      if [[ -n $MAR_OLD_FORMAT ]]; then
-        $BZIP2 -cz9 "$newdir/$f" > "$workdir/$f"
-      else
-        $XZ --compress $BCJ_OPTIONS --lzma2 --format=xz --check=crc64 --force --stdout "$newdir/$f" > "$workdir/$f"
-      fi
+      $XZ $XZ_OPT --compress $BCJ_OPTIONS --lzma2 --format=xz --check=crc64 --force --stdout "$newdir/$f" > "$workdir/$f"
       copy_perm "$newdir/$f" "$workdir/$f"
       make_add_if_not_instruction "$f" "$updatemanifestv3"
       archivefiles="$archivefiles \"$f\""
@@ -179,13 +177,9 @@ for ((i=0; $i<$num_oldfiles; i=$i+1)); do
     if check_for_forced_update "$requested_forced_updates" "$f"; then
       # The full workdir may not exist yet, so create it if necessary.
       mkdir -p `dirname "$workdir/$f"`
-      if [[ -n $MAR_OLD_FORMAT ]]; then
-        $BZIP2 -cz9 "$newdir/$f" > "$workdir/$f"
-      else
-        $XZ --compress $BCJ_OPTIONS --lzma2 --format=xz --check=crc64 --force --stdout "$newdir/$f" > "$workdir/$f"
-      fi
+      $XZ $XZ_OPT --compress $BCJ_OPTIONS --lzma2 --format=xz --check=crc64 --force --stdout "$newdir/$f" > "$workdir/$f"
       copy_perm "$newdir/$f" "$workdir/$f"
-      make_add_instruction "$f" "$updatemanifestv2" "$updatemanifestv3" 1
+      make_add_instruction "$f" "$updatemanifestv3" 1
       archivefiles="$archivefiles \"$f\""
       continue 1
     fi
@@ -195,7 +189,7 @@ for ((i=0; $i<$num_oldfiles; i=$i+1)); do
       # compare the sizes.  Then choose the smaller of the two to package.
       dir=$(dirname "$workdir/$f")
       mkdir -p "$dir"
-      notice "diffing \"$f\""
+      verbose_notice "diffing \"$f\""
       # MBSDIFF_HOOK represents the communication interface with funsize and,
       # if enabled, caches the intermediate patches for future use and
       # compute avoidance
@@ -211,54 +205,31 @@ for ((i=0; $i<$num_oldfiles; i=$i+1)); do
       # if service is not enabled then default to old behavior
       if [ -z "$MBSDIFF_HOOK" ]; then
         $MBSDIFF "$olddir/$f" "$newdir/$f" "$workdir/$f.patch"
-        if [[ -n $MAR_OLD_FORMAT ]]; then
-          $BZIP2 -z9 "$workdir/$f.patch"
-        else
-          $XZ --compress $BCJ_OPTIONS --lzma2 --format=xz --check=crc64 --force "$workdir/$f.patch"
-        fi
+        $XZ $XZ_OPT --compress --lzma2 --format=xz --check=crc64 --force "$workdir/$f.patch"
       else
         # if service enabled then check patch existence for retrieval
-        if [[ -n $MAR_OLD_FORMAT ]]; then
-          if $MBSDIFF_HOOK -g "$olddir/$f" "$newdir/$f" "$workdir/$f.patch.bz2"; then
-            notice "file \"$f\" found in funsize, diffing skipped"
-          else
-            # if not found already - compute it and cache it for future use
-            $MBSDIFF "$olddir/$f" "$newdir/$f" "$workdir/$f.patch"
-            $BZIP2 -z9 "$workdir/$f.patch"
-            $MBSDIFF_HOOK -u "$olddir/$f" "$newdir/$f" "$workdir/$f.patch.bz2"
-          fi
+        if $MBSDIFF_HOOK -g "$olddir/$f" "$newdir/$f" "$workdir/$f.patch.xz"; then
+          verbose_notice "file \"$f\" found in funsize, diffing skipped"
         else
-          if $MBSDIFF_HOOK -g "$olddir/$f" "$newdir/$f" "$workdir/$f.patch.xz"; then
-            notice "file \"$f\" found in funsize, diffing skipped"
-          else
-            # if not found already - compute it and cache it for future use
-            $MBSDIFF "$olddir/$f" "$newdir/$f" "$workdir/$f.patch"
-            $XZ --compress $BCJ_OPTIONS --lzma2 --format=xz --check=crc64 --force "$workdir/$f.patch"
-            $MBSDIFF_HOOK -u "$olddir/$f" "$newdir/$f" "$workdir/$f.patch.xz"
-          fi
+          # if not found already - compute it and cache it for future use
+          $MBSDIFF "$olddir/$f" "$newdir/$f" "$workdir/$f.patch"
+          $XZ $XZ_OPT --compress --lzma2 --format=xz --check=crc64 --force "$workdir/$f.patch"
+          $MBSDIFF_HOOK -u "$olddir/$f" "$newdir/$f" "$workdir/$f.patch.xz"
         fi
       fi
-      if [[ -n $MAR_OLD_FORMAT ]]; then
-        $BZIP2 -cz9 "$newdir/$f" > "$workdir/$f"
-      else
-        $XZ --compress $BCJ_OPTIONS --lzma2 --format=xz --check=crc64 --force --stdout "$newdir/$f" > "$workdir/$f"
-      fi
+      $XZ $XZ_OPT --compress $BCJ_OPTIONS --lzma2 --format=xz --check=crc64 --force --stdout "$newdir/$f" > "$workdir/$f"
       copy_perm "$newdir/$f" "$workdir/$f"
-      if [[ -n $MAR_OLD_FORMAT ]]; then
-        patchfile="$workdir/$f.patch.bz2"
-      else
-        patchfile="$workdir/$f.patch.xz"
-      fi
+      patchfile="$workdir/$f.patch.xz"
       patchsize=$(get_file_size "$patchfile")
       fullsize=$(get_file_size "$workdir/$f")
 
       if [ $patchsize -lt $fullsize ]; then
-        make_patch_instruction "$f" "$updatemanifestv2" "$updatemanifestv3"
+        make_patch_instruction "$f" "$updatemanifestv3"
         mv -f "$patchfile" "$workdir/$f.patch"
         rm -f "$workdir/$f"
         archivefiles="$archivefiles \"$f.patch\""
       else
-        make_add_instruction "$f" "$updatemanifestv2" "$updatemanifestv3"
+        make_add_instruction "$f" "$updatemanifestv3"
         rm -f "$patchfile"
         archivefiles="$archivefiles \"$f\""
       fi
@@ -289,17 +260,13 @@ for ((i=0; $i<$num_newfiles; i=$i+1)); do
   dir=$(dirname "$workdir/$f")
   mkdir -p "$dir"
 
-  if [[ -n $MAR_OLD_FORMAT ]]; then
-    $BZIP2 -cz9 "$newdir/$f" > "$workdir/$f"
-  else
-    $XZ --compress $BCJ_OPTIONS --lzma2 --format=xz --check=crc64 --force --stdout "$newdir/$f" > "$workdir/$f"
-  fi
+  $XZ $XZ_OPT --compress $BCJ_OPTIONS --lzma2 --format=xz --check=crc64 --force --stdout "$newdir/$f" > "$workdir/$f"
   copy_perm "$newdir/$f" "$workdir/$f"
 
   if check_for_add_if_not_update "$f"; then
     make_add_if_not_instruction "$f" "$updatemanifestv3"
   else
-    make_add_instruction "$f" "$updatemanifestv2" "$updatemanifestv3"
+    make_add_instruction "$f" "$updatemanifestv3"
   fi
 
 
@@ -310,15 +277,14 @@ notice ""
 notice "Adding file remove instructions to update manifests"
 for ((i=0; $i<$num_removes; i=$i+1)); do
   f="${remove_array[$i]}"
-  notice "     remove \"$f\""
-  echo "remove \"$f\"" >> $updatemanifestv2
+  verbose_notice "     remove \"$f\""
   echo "remove \"$f\"" >> $updatemanifestv3
 done
 
 # Add remove instructions for any dead files.
 notice ""
 notice "Adding file and directory remove instructions from file 'removed-files'"
-append_remove_instructions "$newdir" "$updatemanifestv2" "$updatemanifestv3"
+append_remove_instructions "$newdir" "$updatemanifestv3"
 
 notice ""
 notice "Adding directory remove instructions for directories that no longer exist"
@@ -328,29 +294,13 @@ for ((i=0; $i<$num_olddirs; i=$i+1)); do
   f="${olddirs[$i]}"
   # If this dir doesn't exist in the new directory remove it.
   if [ ! -d "$newdir/$f" ]; then
-    notice "      rmdir $f/"
-    echo "rmdir \"$f/\"" >> $updatemanifestv2
+    verbose_notice "      rmdir $f/"
     echo "rmdir \"$f/\"" >> $updatemanifestv3
   fi
 done
 
-if [[ -n $MAR_OLD_FORMAT ]]; then
-  $BZIP2 -z9 "$updatemanifestv2" && mv -f "$updatemanifestv2.bz2" "$updatemanifestv2"
-  $BZIP2 -z9 "$updatemanifestv3" && mv -f "$updatemanifestv3.bz2" "$updatemanifestv3"
-else
-  $XZ --compress $BCJ_OPTIONS --lzma2 --format=xz --check=crc64 --force "$updatemanifestv2" && mv -f "$updatemanifestv2.xz" "$updatemanifestv2"
-  $XZ --compress $BCJ_OPTIONS --lzma2 --format=xz --check=crc64 --force "$updatemanifestv3" && mv -f "$updatemanifestv3.xz" "$updatemanifestv3"
-fi
+$XZ $XZ_OPT --compress $BCJ_OPTIONS --lzma2 --format=xz --check=crc64 --force "$updatemanifestv3" && mv -f "$updatemanifestv3.xz" "$updatemanifestv3"
 
-mar_command="$MAR"
-if [[ -n $MOZ_PRODUCT_VERSION ]]
-then
-  mar_command="$mar_command -V $MOZ_PRODUCT_VERSION"
-fi
-if [[ -n $MAR_CHANNEL_ID ]]
-then
-  mar_command="$mar_command -H $MAR_CHANNEL_ID"
-fi
 mar_command="$mar_command -C \"$workdir\" -c output.mar"
 eval "$mar_command $archivefiles"
 mv -f "$workdir/output.mar" "$archive"

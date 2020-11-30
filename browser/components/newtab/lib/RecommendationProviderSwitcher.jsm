@@ -10,17 +10,14 @@ ChromeUtils.defineModuleGetter(
 ChromeUtils.defineModuleGetter(
   this,
   "PersonalityProvider",
-  "resource://activity-stream/lib/PersonalityProvider.jsm"
+  "resource://activity-stream/lib/PersonalityProvider/PersonalityProvider.jsm"
 );
 const { actionTypes: at, actionCreators: ac } = ChromeUtils.import(
   "resource://activity-stream/common/Actions.jsm"
 );
-ChromeUtils.defineModuleGetter(
-  this,
-  "perfService",
-  "resource://activity-stream/common/PerfService.jsm"
-);
 const PREF_PERSONALIZATION_VERSION = "discoverystream.personalization.version";
+const PREF_PERSONALIZATION_OVERRIDE_VERSION =
+  "discoverystream.personalization.overrideVersion";
 const PREF_PERSONALIZATION_MODEL_KEYS =
   "discoverystream.personalization.modelKeys";
 
@@ -57,21 +54,33 @@ this.RecommendationProviderSwitcher = class RecommendationProviderSwitcher {
   setAffinityProvider(...args) {
     const { affinityProviderV2 } = this;
     if (affinityProviderV2 && affinityProviderV2.modelKeys) {
+      // A v2 provider is already set. This can happen when new stories come in
+      // and we need to update their scores.
+      // We can use the existing one, a fresh one is created after startup.
+      // Using the existing one might be a bit out of date,
+      // but it's fine for now. We can rely on restarts for updates.
+      // See bug 1629931 for improvements to this.
+      if (this.affinityProvider) {
+        return;
+      }
       // At this point we've determined we can successfully create a v2 personalization provider.
-      this.affinityProvider = new PersonalityProvider(...args, {
-        modelKeys: affinityProviderV2.modelKeys,
-        dispatch: this.store.dispatch,
-      });
+      if (!this.affinityProvider) {
+        this.affinityProvider = new PersonalityProvider({
+          modelKeys: affinityProviderV2.modelKeys,
+          dispatch: this.store.dispatch,
+        });
+      }
+      this.affinityProvider.setAffinities(...args);
       return;
     }
 
-    const start = perfService.absNow();
+    const start = Cu.now();
     // Otherwise, if we get this far, we fallback to a v1 personalization provider.
     this.affinityProvider = new UserDomainAffinityProvider(...args);
     this.store.dispatch(
       ac.PerfEvent({
         event: "topstories.domain.affinity.calculation.ms",
-        value: Math.round(perfService.absNow() - start),
+        value: Math.round(Cu.now() - start),
       })
     );
   }
@@ -97,14 +106,18 @@ this.RecommendationProviderSwitcher = class RecommendationProviderSwitcher {
   /**
    * Sets affinityProvider state to the correct version.
    */
-  setVersion() {
+  setVersion(isStartup = false) {
     const version = this.store.getState().Prefs.values[
       PREF_PERSONALIZATION_VERSION
     ];
+    const overrideVersion = this.store.getState().Prefs.values[
+      PREF_PERSONALIZATION_OVERRIDE_VERSION
+    ];
+
     const modelKeys = this.store.getState().Prefs.values[
       PREF_PERSONALIZATION_MODEL_KEYS
     ];
-    if (version === 2 && modelKeys) {
+    if (version === 2 && modelKeys && overrideVersion !== 1) {
       this.affinityProviderV2 = {
         modelKeys: modelKeys.split(",").map(i => i.trim()),
       };
@@ -115,6 +128,9 @@ this.RecommendationProviderSwitcher = class RecommendationProviderSwitcher {
         type: at.DISCOVERY_STREAM_PERSONALIZATION_VERSION,
         data: {
           version,
+        },
+        meta: {
+          isStartup,
         },
       })
     );
@@ -132,16 +148,16 @@ this.RecommendationProviderSwitcher = class RecommendationProviderSwitcher {
         this.store.dispatch(
           ac.PerfEvent({
             event: "PERSONALIZATION_V1_ITEM_RELEVANCE_SCORE_DURATION",
-            value: Math.round(perfService.absNow() - scoreStart),
+            value: Math.round(Cu.now() - scoreStart),
           })
         );
       }
     }
   }
 
-  calculateItemRelevanceScore(item) {
+  async calculateItemRelevanceScore(item) {
     if (this.affinityProvider) {
-      const scoreResult = this.affinityProvider.calculateItemRelevanceScore(
+      const scoreResult = await this.affinityProvider.calculateItemRelevanceScore(
         item
       );
       if (scoreResult === 0 || scoreResult) {
@@ -165,7 +181,7 @@ this.RecommendationProviderSwitcher = class RecommendationProviderSwitcher {
   onAction(action) {
     switch (action.type) {
       case at.INIT:
-        this.setVersion();
+        this.setVersion(true /* isStartup */);
         break;
       case at.DISCOVERY_STREAM_CONFIG_CHANGE:
         this.teardown();

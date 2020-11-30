@@ -7,7 +7,7 @@
 #ifndef mozilla_EventQueue_h
 #define mozilla_EventQueue_h
 
-#include "mozilla/AbstractEventQueue.h"
+#include "mozilla/Mutex.h"
 #include "mozilla/Queue.h"
 #include "nsCOMPtr.h"
 
@@ -15,42 +15,62 @@ class nsIRunnable;
 
 namespace mozilla {
 
+enum class EventQueuePriority {
+  Idle,
+  DeferredTimers,
+  InputLow,
+  Normal,
+  MediumHigh,
+  InputHigh,
+  High,
+
+  Count
+};
+
 class IdlePeriodState;
 
 namespace detail {
 
+// EventQueue is our unsynchronized event queue implementation. It is a queue
+// of runnables used for non-main thread, as well as optionally providing
+// forwarding to TaskController.
+//
+// Since EventQueue is unsynchronized, it should be wrapped in an outer
+// SynchronizedEventQueue implementation (like ThreadEventQueue).
 template <size_t ItemsPerPage>
-class EventQueueInternal : public AbstractEventQueue {
+class EventQueueInternal {
  public:
-  static const bool SupportsPrioritization = false;
+  explicit EventQueueInternal(bool aForwardToTC) : mForwardToTC(aForwardToTC) {}
 
-  EventQueueInternal() {}
-  explicit EventQueueInternal(EventQueuePriority aPriority);
-
+  // Add an event to the end of the queue. Implementors are free to use
+  // aPriority however they wish.  If the runnable supports
+  // nsIRunnablePriority and the implementing class supports
+  // prioritization, aPriority represents the result of calling
+  // nsIRunnablePriority::GetPriority().  *aDelay is time the event has
+  // already been delayed (used when moving an event from one queue to
+  // another)
   void PutEvent(already_AddRefed<nsIRunnable>&& aEvent,
                 EventQueuePriority aPriority, const MutexAutoLock& aProofOfLock,
-                mozilla::TimeDuration* aDelay = nullptr) final;
+                mozilla::TimeDuration* aDelay = nullptr);
+
+  // Get an event from the front of the queue. This should return null if the
+  // queue is non-empty but the event in front is not ready to run.
+  // *aLastEventDelay is the time the event spent in queues before being
+  // retrieved.
   already_AddRefed<nsIRunnable> GetEvent(
-      EventQueuePriority* aPriority, const MutexAutoLock& aProofOfLock,
-      mozilla::TimeDuration* aLastEventDelay = nullptr) final;
-  already_AddRefed<nsIRunnable> GetEvent(EventQueuePriority* aPriority,
-                                         const MutexAutoLock& aProofOfLock,
-                                         TimeDuration* aLastEventDelay,
-                                         bool* aIsIdleEvent) {
-    *aIsIdleEvent = false;
-    return GetEvent(aPriority, aProofOfLock, aLastEventDelay);
-  }
+      const MutexAutoLock& aProofOfLock,
+      mozilla::TimeDuration* aLastEventDelay = nullptr);
 
-  void DidRunEvent(const MutexAutoLock& aProofOfLock) {}
+  // Returns true if the queue is empty. Implies !HasReadyEvent().
+  bool IsEmpty(const MutexAutoLock& aProofOfLock);
 
-  bool IsEmpty(const MutexAutoLock& aProofOfLock) final;
-  bool HasReadyEvent(const MutexAutoLock& aProofOfLock) final;
-  bool HasPendingHighPriorityEvents(const MutexAutoLock& aProofOfLock) final {
-    // EventQueueInternal doesn't support any prioritization.
-    return false;
-  }
+  // Returns true if the queue is non-empty and if the event in front is ready
+  // to run. Implies !IsEmpty(). This should return true iff GetEvent returns a
+  // non-null value.
+  bool HasReadyEvent(const MutexAutoLock& aProofOfLock);
 
-  size_t Count(const MutexAutoLock& aProofOfLock) const final;
+  // Returns the number of events in the queue.
+  size_t Count(const MutexAutoLock& aProofOfLock) const;
   // For some reason, if we put this in the .cpp file the linker can't find it
   already_AddRefed<nsIRunnable> PeekEvent(const MutexAutoLock& aProofOfLock) {
     if (mQueue.IsEmpty()) {
@@ -61,22 +81,16 @@ class EventQueueInternal : public AbstractEventQueue {
     return result.forget();
   }
 
-  void EnableInputEventPrioritization(const MutexAutoLock& aProofOfLock) final {
-  }
-  void FlushInputEventPrioritization(const MutexAutoLock& aProofOfLock) final {}
-  void SuspendInputEventPrioritization(
-      const MutexAutoLock& aProofOfLock) final {}
-  void ResumeInputEventPrioritization(const MutexAutoLock& aProofOfLock) final {
-  }
+  void EnableInputEventPrioritization(const MutexAutoLock& aProofOfLock) {}
+  void FlushInputEventPrioritization(const MutexAutoLock& aProofOfLock) {}
+  void SuspendInputEventPrioritization(const MutexAutoLock& aProofOfLock) {}
+  void ResumeInputEventPrioritization(const MutexAutoLock& aProofOfLock) {}
 
-  IdlePeriodState* GetIdlePeriodState() const { return nullptr; }
-
-  bool HasIdleRunnables(const MutexAutoLock& aProofOfLock) const {
-    return false;
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
+    return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
   }
 
-  size_t SizeOfExcludingThis(
-      mozilla::MallocSizeOf aMallocSizeOf) const override {
+  size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
     size_t size = mQueue.ShallowSizeOfExcludingThis(aMallocSizeOf);
 #ifdef MOZ_GECKO_PROFILER
     size += mDispatchTimes.ShallowSizeOfExcludingThis(aMallocSizeOf);
@@ -91,24 +105,25 @@ class EventQueueInternal : public AbstractEventQueue {
   mozilla::Queue<mozilla::TimeStamp, ItemsPerPage> mDispatchTimes;
   TimeDuration mLastEventDelay;
 #endif
+  // This indicates PutEvent forwards runnables to the TaskController. This
+  // should be true for the top level event queue on the main thread.
+  bool mForwardToTC;
 };
 
 }  // namespace detail
 
 class EventQueue final : public mozilla::detail::EventQueueInternal<16> {
  public:
-  EventQueue() : mozilla::detail::EventQueueInternal<16>() {}
-  explicit EventQueue(EventQueuePriority aPriority)
-      : mozilla::detail::EventQueueInternal<16>(aPriority){};
+  explicit EventQueue(bool aForwardToTC = false)
+      : mozilla::detail::EventQueueInternal<16>(aForwardToTC) {}
 };
 
 template <size_t ItemsPerPage = 16>
 class EventQueueSized final
     : public mozilla::detail::EventQueueInternal<ItemsPerPage> {
  public:
-  EventQueueSized() : mozilla::detail::EventQueueInternal<ItemsPerPage>() {}
-  explicit EventQueueSized(EventQueuePriority aPriority)
-      : mozilla::detail::EventQueueInternal<ItemsPerPage>(aPriority){};
+  explicit EventQueueSized(bool aForwardToTC = false)
+      : mozilla::detail::EventQueueInternal<ItemsPerPage>(aForwardToTC) {}
 };
 
 }  // namespace mozilla

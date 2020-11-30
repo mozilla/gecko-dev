@@ -6,25 +6,7 @@
 loader.lazyRequireGetter(this, "Task", "devtools/shared/task", true);
 loader.lazyRequireGetter(
   this,
-  "executeSoon",
-  "devtools/shared/DevToolsUtils",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "isGenerator",
-  "devtools/shared/DevToolsUtils",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "isAsyncFunction",
-  "devtools/shared/DevToolsUtils",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "reportException",
+  ["executeSoon", "isGenerator", "isAsyncFunction", "reportException"],
   "devtools/shared/DevToolsUtils",
   true
 );
@@ -42,12 +24,14 @@ const ERROR_TYPE = (exports.ERROR_TYPE = "@@redux/middleware/task#error");
 function task({ dispatch, getState }) {
   return next => action => {
     if (isGenerator(action)) {
-      return Task.spawn(action.bind(null, dispatch, getState)).catch(
+      return Task.spawn(action.bind(null, { dispatch, getState })).catch(
         handleError.bind(null, dispatch)
       );
     }
     if (isAsyncFunction(action)) {
-      return action(dispatch, getState).catch(handleError.bind(null, dispatch));
+      return action({ dispatch, getState }).catch(
+        handleError.bind(null, dispatch)
+      );
     }
 
     /*

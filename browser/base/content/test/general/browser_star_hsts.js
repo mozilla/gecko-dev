@@ -17,7 +17,10 @@ add_task(async function test_star_redirect() {
     sss.resetState(
       Ci.nsISiteSecurityService.HEADER_HSTS,
       NetUtil.newURI("http://example.com/"),
-      0
+      0,
+      Services.prefs.getBoolPref("privacy.partition.network_state")
+        ? { partitionKey: "(http,example.com)" }
+        : {}
     );
     await PlacesUtils.bookmarks.eraseEverything();
     gBrowser.removeCurrentTab();
@@ -31,6 +34,7 @@ add_task(async function test_star_redirect() {
 
   await promiseStarState(BookmarkingUI.STATUS_UNSTARRED);
 
+  StarUI._createPanelIfNeeded();
   let bookmarkPanel = document.getElementById("editBookmarkPanel");
   let shownPromise = promisePopupShown(bookmarkPanel);
   BookmarkingUI.star.click();

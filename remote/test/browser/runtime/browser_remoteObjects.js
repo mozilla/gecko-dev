@@ -31,7 +31,7 @@ async function testObjectRelease({ Runtime }, contextId) {
     contextId,
     expression: "({ foo: 42 })",
   });
-  is(result.subtype, null, "JS Object have no subtype");
+  is(result.subtype, undefined, "JS Object has no subtype");
   is(result.type, "object", "The type is correct");
   ok(!!result.objectId, "Got an object id");
 
@@ -64,7 +64,7 @@ async function testObjectRelease({ Runtime }, contextId) {
     ok(false, "callFunctionOn with a released object as argument should throw");
   } catch (e) {
     ok(
-      e.message.includes("Cannot find object with ID:"),
+      e.message.includes("Could not find object with given id"),
       "callFunctionOn throws on released argument"
     );
   }

@@ -506,11 +506,13 @@ add_task(async function test_event_order() {
           type: "input",
           cancelable: false,
           targetIsOption: false,
+          composed: false,
         },
         {
           type: "change",
           cancelable: false,
           targetIsOption: false,
+          composed: false,
         },
       ];
 
@@ -519,26 +521,31 @@ add_task(async function test_event_order() {
           type: "mousedown",
           cancelable: true,
           targetIsOption: true,
+          composed: true,
         },
         {
           type: "mouseup",
           cancelable: true,
           targetIsOption: true,
+          composed: true,
         },
         {
           type: "input",
           cancelable: false,
           targetIsOption: false,
+          composed: false,
         },
         {
           type: "change",
           cancelable: false,
           targetIsOption: false,
+          composed: false,
         },
         {
           type: "click",
           cancelable: true,
           targetIsOption: true,
+          composed: true,
         },
       ];
 
@@ -577,6 +584,11 @@ add_task(async function test_event_order() {
                   event.target.localName,
                   expectation.targetIsOption ? "option" : "select",
                   "Target matches"
+                );
+                Assert.equal(
+                  event.composed,
+                  expectation.composed,
+                  "Composed property should match"
                 );
                 if (!contentExpected.length) {
                   resolve();
@@ -1147,6 +1159,58 @@ add_task(async function test_blur_hides_popup() {
   BrowserTestUtils.removeTab(tab);
 });
 
+// Test zoom handling.
+add_task(async function test_zoom() {
+  const pageUrl = "data:text/html," + escape(PAGECONTENT_SMALL);
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, pageUrl);
+
+  let menulist = document.getElementById("ContentSelectDropdown");
+  let selectPopup = menulist.menupopup;
+
+  info("Opening the popup");
+  await openSelectPopup(selectPopup, "click");
+
+  info("Opened the popup");
+  let nonZoomedFontSize = parseFloat(
+    getComputedStyle(selectPopup.querySelector("menuitem")).fontSize,
+    10
+  );
+
+  info("font-size is " + nonZoomedFontSize);
+  await hideSelectPopup(selectPopup);
+
+  info("Hid the popup");
+
+  for (let i = 0; i < 2; ++i) {
+    info("Testing with full zoom: " + ZoomManager.useFullZoom);
+
+    // This is confusing, but does the right thing.
+    FullZoom.setZoom(2.0, tab.linkedBrowser);
+
+    info("Opening popup again");
+    await openSelectPopup(selectPopup, "click");
+
+    let zoomedFontSize = parseFloat(
+      getComputedStyle(selectPopup.querySelector("menuitem")).fontSize,
+      10
+    );
+    info("Zoomed font-size is " + zoomedFontSize);
+
+    ok(
+      Math.abs(zoomedFontSize - nonZoomedFontSize * 2.0) < 0.01,
+      `Zoom should affect menu popup size, got ${zoomedFontSize}, ` +
+        `expected ${nonZoomedFontSize * 2.0}`
+    );
+
+    await hideSelectPopup(selectPopup);
+    info("Hid the popup again");
+
+    ZoomManager.toggleZoom();
+  }
+
+  BrowserTestUtils.removeTab(tab);
+});
+
 function getIsHandlingUserInput(browser, elementId, eventName) {
   return SpecialPowers.spawn(browser, [[elementId, eventName]], async function([
     contentElementId,
@@ -1235,6 +1299,38 @@ let select = document.querySelector("select");
     await getInputEvents(),
     1,
     "Should get change and input events consistently (input)"
+  );
+
+  BrowserTestUtils.removeTab(tab);
+});
+
+add_task(async function test_label_not_text() {
+  const PAGE_CONTENT = `
+<!doctype html>
+<select>
+  <option label="Some nifty Label">Some Element Text Instead</option>
+  <option label="">Element Text</option>
+</select>
+`;
+
+  const pageUrl = "data:text/html," + escape(PAGE_CONTENT);
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, pageUrl);
+
+  let menulist = document.getElementById("ContentSelectDropdown");
+  let selectPopup = menulist.menupopup;
+
+  await openSelectPopup(selectPopup, "click");
+
+  is(
+    selectPopup.children[0].label,
+    "Some nifty Label",
+    "Use the label not the text."
+  );
+
+  is(
+    selectPopup.children[1].label,
+    "Element Text",
+    "Uses the text if the label is empty, like HTMLOptionElement::GetRenderedLabel."
   );
 
   BrowserTestUtils.removeTab(tab);

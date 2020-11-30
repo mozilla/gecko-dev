@@ -243,22 +243,17 @@ void RDDProcessHost::DestroyProcess() {
     mTaskFactory.RevokeAll();
   }
 
-  MessageLoop::current()->PostTask(
+  GetCurrentSerialEventTarget()->Dispatch(
       NS_NewRunnableFunction("DestroyProcessRunnable", [this] { Destroy(); }));
 }
 
 #if defined(XP_MACOSX) && defined(MOZ_SANDBOX)
-/* static */
-bool RDDProcessHost::StaticFillMacSandboxInfo(MacSandboxInfo& aInfo) {
-  GeckoChildProcessHost::StaticFillMacSandboxInfo(aInfo);
+bool RDDProcessHost::FillMacSandboxInfo(MacSandboxInfo& aInfo) {
+  GeckoChildProcessHost::FillMacSandboxInfo(aInfo);
   if (!aInfo.shouldLog && PR_GetEnv("MOZ_SANDBOX_RDD_LOGGING")) {
     aInfo.shouldLog = true;
   }
   return true;
-}
-
-bool RDDProcessHost::FillMacSandboxInfo(MacSandboxInfo& aInfo) {
-  return RDDProcessHost::StaticFillMacSandboxInfo(aInfo);
 }
 
 /* static */

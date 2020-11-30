@@ -456,7 +456,7 @@ static cairo_pattern_t* GfxPatternToCairoPattern(const Pattern& aPattern,
 
   switch (aPattern.GetType()) {
     case PatternType::COLOR: {
-      Color color = static_cast<const ColorPattern&>(aPattern).mColor;
+      DeviceColor color = static_cast<const ColorPattern&>(aPattern).mColor;
       pat = cairo_pattern_create_rgba(color.r, color.g, color.b,
                                       color.a * aAlpha);
       break;
@@ -849,9 +849,15 @@ void DrawTargetCairo::DrawFilter(FilterNode* aNode, const Rect& aSourceRect,
 
 void DrawTargetCairo::DrawSurfaceWithShadow(SourceSurface* aSurface,
                                             const Point& aDest,
-                                            const Color& aColor,
+                                            const DeviceColor& aColor,
                                             const Point& aOffset, Float aSigma,
                                             CompositionOp aOperator) {
+  if (!IsValid() || !aSurface) {
+    gfxCriticalNote << "DrawSurfaceWithShadow with bad surface "
+                    << cairo_surface_status(cairo_get_group_target(mContext));
+    return;
+  }
+
   if (aSurface->GetType() != SurfaceType::CAIRO) {
     return;
   }

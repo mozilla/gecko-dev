@@ -7,7 +7,6 @@
 #ifndef mozilla_storage_Connection_h
 #define mozilla_storage_Connection_h
 
-#include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Mutex.h"
@@ -56,10 +55,7 @@ class Connection final : public mozIStorageConnection,
    * Structure used to describe user functions on the database connection.
    */
   struct FunctionInfo {
-    enum FunctionType { SIMPLE, AGGREGATE };
-
-    nsCOMPtr<nsISupports> function;
-    FunctionType type;
+    nsCOMPtr<mozIStorageFunction> function;
     int32_t numArgs;
   };
 
@@ -107,7 +103,8 @@ class Connection final : public mozIStorageConnection,
    *        The nsIFileURL of the location of the database to open, or create if
    * it does not exist.
    */
-  nsresult initialize(nsIFileURL* aFileURL);
+  nsresult initialize(nsIFileURL* aFileURL,
+                      const nsACString& aTelemetryFilename);
 
   /**
    * Same as initialize, but to be used on the async thread.
@@ -309,10 +306,24 @@ class Connection final : public mozIStorageConnection,
 
   nsresult initializeClone(Connection* aClone, bool aReadOnly);
 
+  /**
+   * Records a status from a sqlite statement.
+   *
+   * @param srv The sqlite result for the failure or SQLITE_OK.
+   */
+  void RecordQueryStatus(int srv);
+
  private:
   ~Connection();
   nsresult initializeInternal();
   void initializeFailed();
+
+  /**
+   * Records the status of an attempt to load a sqlite database to telemetry.
+   *
+   * @param rv The state of the load, success or failure.
+   */
+  void RecordOpenStatus(nsresult rv);
 
   /**
    * Sets the database into a closed state so no further actions can be
@@ -354,7 +365,7 @@ class Connection final : public mozIStorageConnection,
   nsresult databaseElementExists(enum DatabaseElementType aElementType,
                                  const nsACString& aElementName, bool* _exists);
 
-  bool findFunctionByInstance(nsISupports* aInstance);
+  bool findFunctionByInstance(mozIStorageFunction* aInstance);
 
   static int sProgressHelper(void* aArg);
   // Generic progress handler

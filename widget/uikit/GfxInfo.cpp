@@ -135,12 +135,11 @@ nsresult GfxInfo::GetFeatureStatusImpl(
     return NS_OK;
   }
 
-  // OpenGL layers are never blacklisted on iOS.
+  // OpenGL layers are never blocklisted on iOS.
   // This early return is so we avoid potentially slow
   // GLStrings initialization on startup when we initialize GL layers.
   if (aFeature == nsIGfxInfo::FEATURE_OPENGL_LAYERS ||
-      aFeature == nsIGfxInfo::FEATURE_WEBGL_OPENGL ||
-      aFeature == nsIGfxInfo::FEATURE_WEBGL_MSAA) {
+      aFeature == nsIGfxInfo::FEATURE_WEBGL_OPENGL) {
     *aStatus = nsIGfxInfo::FEATURE_STATUS_OK;
     return NS_OK;
   }

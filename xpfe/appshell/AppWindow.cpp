@@ -32,6 +32,7 @@
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIIOService.h"
 #include "nsIObserverService.h"
+#include "nsIOpenWindowInfo.h"
 #include "nsIWindowMediator.h"
 #include "nsIScreenManager.h"
 #include "nsIScreen.h"
@@ -42,7 +43,6 @@
 #include "nsStyleConsts.h"
 #include "nsPresContext.h"
 #include "nsContentUtils.h"
-#include "nsDocShell.h"
 #include "nsGlobalWindow.h"
 #include "nsXULTooltipListener.h"
 #include "nsXULPopupManager.h"
@@ -62,6 +62,10 @@
 #include "mozilla/dom/LoadURIOptionsBinding.h"
 #include "mozilla/EventDispatcher.h"
 
+#ifdef XP_WIN
+#  include "mozilla/PreXULSkeletonUI.h"
+#endif
+
 #ifdef MOZ_NEW_XULSTORE
 #  include "mozilla/XULStore.h"
 #endif
@@ -71,21 +75,21 @@
 #  define USE_NATIVE_MENUS
 #endif
 
-#define SIZEMODE_NORMAL NS_LITERAL_STRING("normal")
-#define SIZEMODE_MAXIMIZED NS_LITERAL_STRING("maximized")
-#define SIZEMODE_MINIMIZED NS_LITERAL_STRING("minimized")
-#define SIZEMODE_FULLSCREEN NS_LITERAL_STRING("fullscreen")
+#define SIZEMODE_NORMAL u"normal"_ns
+#define SIZEMODE_MAXIMIZED u"maximized"_ns
+#define SIZEMODE_MINIMIZED u"minimized"_ns
+#define SIZEMODE_FULLSCREEN u"fullscreen"_ns
 
-#define WINDOWTYPE_ATTRIBUTE NS_LITERAL_STRING("windowtype")
+#define WINDOWTYPE_ATTRIBUTE u"windowtype"_ns
 
-#define PERSIST_ATTRIBUTE NS_LITERAL_STRING("persist")
-#define SCREENX_ATTRIBUTE NS_LITERAL_STRING("screenX")
-#define SCREENY_ATTRIBUTE NS_LITERAL_STRING("screenY")
-#define WIDTH_ATTRIBUTE NS_LITERAL_STRING("width")
-#define HEIGHT_ATTRIBUTE NS_LITERAL_STRING("height")
-#define MODE_ATTRIBUTE NS_LITERAL_STRING("sizemode")
-#define TILED_ATTRIBUTE NS_LITERAL_STRING("gtktiledwindow")
-#define ZLEVEL_ATTRIBUTE NS_LITERAL_STRING("zlevel")
+#define PERSIST_ATTRIBUTE u"persist"_ns
+#define SCREENX_ATTRIBUTE u"screenX"_ns
+#define SCREENY_ATTRIBUTE u"screenY"_ns
+#define WIDTH_ATTRIBUTE u"width"_ns
+#define HEIGHT_ATTRIBUTE u"height"_ns
+#define MODE_ATTRIBUTE u"sizemode"_ns
+#define TILED_ATTRIBUTE u"gtktiledwindow"_ns
+#define ZLEVEL_ATTRIBUTE u"zlevel"_ns
 
 #define SIZE_PERSISTENCE_TIMEOUT 500  // msec
 
@@ -108,6 +112,7 @@ AppWindow::AppWindow(uint32_t aChromeFlags)
       mContentTreeOwner(nullptr),
       mPrimaryContentTreeOwner(nullptr),
       mModalStatus(NS_OK),
+      mFullscreenChangeState(FullscreenChangeState::NotChanging),
       mContinueModalLoop(false),
       mDebuting(false),
       mChromeLoaded(false),
@@ -126,7 +131,6 @@ AppWindow::AppWindow(uint32_t aChromeFlags)
       mPersistentAttributesDirty(0),
       mPersistentAttributesMask(0),
       mChromeFlags(aChromeFlags),
-      mNextRemoteTabId(0),
       mSPTimerLock("AppWindow.mSPTimerLock"),
       mWidgetListenerDelegate(this) {}
 
@@ -156,10 +160,8 @@ NS_INTERFACE_MAP_BEGIN(AppWindow)
 NS_INTERFACE_MAP_END
 
 nsresult AppWindow::Initialize(nsIAppWindow* aParent, nsIAppWindow* aOpener,
-                               nsIURI* aUrl, int32_t aInitialWidth,
-                               int32_t aInitialHeight, bool aIsHiddenWindow,
-                               nsIRemoteTab* aOpeningTab,
-                               mozIDOMWindowProxy* aOpenerWindow,
+                               int32_t aInitialWidth, int32_t aInitialHeight,
+                               bool aIsHiddenWindow,
                                nsWidgetInitData& widgetInitData) {
   nsresult rv;
   nsCOMPtr<nsIWidget> parentWidget;
@@ -231,94 +233,31 @@ nsresult AppWindow::Initialize(nsIAppWindow* aParent, nsIAppWindow* aOpener,
   // since we no longer use content child widgets.
   mWindow->SetBackgroundColor(NS_RGB(255, 255, 255));
 
-  // Create web shell
-  RefPtr<BrowsingContext> openerContext =
-      aOpenerWindow
-          ? nsPIDOMWindowOuter::From(aOpenerWindow)->GetBrowsingContext()
-          : nullptr;
+  // All Chrome BCs exist within the same BrowsingContextGroup, so we don't need
+  // to pass in the opener window here. The opener is set later, if needed, by
+  // nsWindowWatcher.
   RefPtr<BrowsingContext> browsingContext =
-      BrowsingContext::Create(/* aParent */ nullptr, openerContext,
-                              EmptyString(), BrowsingContext::Type::Chrome);
+      BrowsingContext::CreateIndependent(BrowsingContext::Type::Chrome);
+
+  // Create web shell
   mDocShell = nsDocShell::Create(browsingContext);
   NS_ENSURE_TRUE(mDocShell, NS_ERROR_FAILURE);
 
-  // XXX(nika): This is used to handle propagating opener across remote tab
-  // creation. We should come up with a better system for doing this (probably
-  // based on BrowsingContext).
-  mDocShell->SetOpener(aOpeningTab);
-
   // Make sure to set the item type on the docshell _before_ calling
-  // Create() so it knows what type it is.
-  nsCOMPtr<nsIDocShellTreeItem> docShellAsItem(mDocShell);
-  NS_ENSURE_TRUE(docShellAsItem, NS_ERROR_FAILURE);
+  // InitWindow() so it knows what type it is.
   NS_ENSURE_SUCCESS(EnsureChromeTreeOwner(), NS_ERROR_FAILURE);
 
-  docShellAsItem->SetTreeOwner(mChromeTreeOwner);
+  mDocShell->SetTreeOwner(mChromeTreeOwner);
 
   r.MoveTo(0, 0);
-  nsCOMPtr<nsIBaseWindow> docShellAsWin(do_QueryInterface(mDocShell));
-  NS_ENSURE_SUCCESS(docShellAsWin->InitWindow(nullptr, mWindow, r.X(), r.Y(),
-                                              r.Width(), r.Height()),
+  NS_ENSURE_SUCCESS(mDocShell->InitWindow(nullptr, mWindow, r.X(), r.Y(),
+                                          r.Width(), r.Height()),
                     NS_ERROR_FAILURE);
-  NS_ENSURE_SUCCESS(docShellAsWin->Create(), NS_ERROR_FAILURE);
 
   // Attach a WebProgress listener.during initialization...
-  nsCOMPtr<nsIWebProgress> webProgress(do_GetInterface(mDocShell, &rv));
-  if (webProgress) {
-    webProgress->AddProgressListener(this,
-                                     nsIWebProgress::NOTIFY_STATE_NETWORK);
-  }
+  mDocShell->AddProgressListener(this, nsIWebProgress::NOTIFY_STATE_NETWORK);
 
-#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-  if (aOpenerWindow) {
-    BrowsingContext* bc = mDocShell->GetBrowsingContext();
-    BrowsingContext* openerBC =
-        nsPIDOMWindowOuter::From(aOpenerWindow)->GetBrowsingContext();
-    MOZ_DIAGNOSTIC_ASSERT(bc->GetOpenerId() == openerBC->Id());
-    MOZ_DIAGNOSTIC_ASSERT(bc->HadOriginalOpener());
-  }
-#endif
-
-  // Eagerly create an about:blank content viewer with the right principal here,
-  // rather than letting it happening in the upcoming call to
-  // SetInitialPrincipalToSubject. This avoids creating the about:blank document
-  // and then blowing it away with a second one, which can cause problems for
-  // the top-level chrome window case. See bug 789773. Note that we don't accept
-  // expanded principals here, similar to SetInitialPrincipalToSubject.
-  if (nsContentUtils::IsInitialized()) {  // Sometimes this happens really early
-                                          // See bug 793370.
-    MOZ_ASSERT(mDocShell->ItemType() == nsIDocShellTreeItem::typeChrome);
-    nsCOMPtr<nsIPrincipal> principal =
-        nsContentUtils::SubjectPrincipalOrSystemIfNativeCaller();
-    if (nsContentUtils::IsExpandedPrincipal(principal)) {
-      principal = nullptr;
-    }
-    // Use the subject (or system) principal as the storage principal too until
-    // the new window finishes navigating and gets a real storage principal.
-    rv = mDocShell->CreateAboutBlankContentViewer(principal, principal,
-                                                  /* aCsp = */ nullptr);
-    NS_ENSURE_SUCCESS(rv, rv);
-    RefPtr<Document> doc = mDocShell->GetDocument();
-    NS_ENSURE_TRUE(!!doc, NS_ERROR_FAILURE);
-    doc->SetIsInitialDocument(true);
-  }
-
-  if (nullptr != aUrl) {
-    nsCString tmpStr;
-
-    rv = aUrl->GetSpec(tmpStr);
-    if (NS_FAILED(rv)) return rv;
-
-    NS_ConvertUTF8toUTF16 urlString(tmpStr);
-    nsCOMPtr<nsIWebNavigation> webNav(do_QueryInterface(mDocShell));
-    NS_ENSURE_TRUE(webNav, NS_ERROR_FAILURE);
-
-    LoadURIOptions loadURIOptions;
-    loadURIOptions.mTriggeringPrincipal = nsContentUtils::GetSystemPrincipal();
-
-    rv = webNav->LoadURI(urlString, loadURIOptions);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
+  mWindow->MaybeDispatchInitialFocusEvent();
 
   return rv;
 }
@@ -416,10 +355,10 @@ NS_IMETHODIMP AppWindow::SetZLevel(uint32_t aLevel) {
     RefPtr<dom::Document> doc = cv->GetDocument();
     if (doc) {
       ErrorResult rv;
-      RefPtr<dom::Event> event = doc->CreateEvent(NS_LITERAL_STRING("Events"),
-                                                  dom::CallerType::System, rv);
+      RefPtr<dom::Event> event =
+          doc->CreateEvent(u"Events"_ns, dom::CallerType::System, rv);
       if (event) {
-        event->InitEvent(NS_LITERAL_STRING("windowZLevel"), true, false);
+        event->InitEvent(u"windowZLevel"_ns, true, false);
 
         event->SetTrusted(true);
 
@@ -593,20 +532,13 @@ NS_IMETHODIMP AppWindow::InitWindow(nativeWindow aParentNativeWindow,
   return NS_OK;
 }
 
-NS_IMETHODIMP AppWindow::Create() {
-  // XXX First Check In
-  NS_ASSERTION(false, "Not Yet Implemented");
-  return NS_OK;
-}
-
 NS_IMETHODIMP AppWindow::Destroy() {
-  nsresult rv;
-  nsCOMPtr<nsIWebProgress> webProgress(do_GetInterface(mDocShell, &rv));
-  if (webProgress) {
-    webProgress->RemoveProgressListener(this);
+  nsCOMPtr<nsIAppWindow> kungFuDeathGrip(this);
+
+  if (mDocShell) {
+    mDocShell->RemoveProgressListener(this);
   }
 
-  nsCOMPtr<nsIAppWindow> kungFuDeathGrip(this);
   {
     MutexAutoLock lock(mSPTimerLock);
     if (mSPTimer) {
@@ -632,16 +564,6 @@ NS_IMETHODIMP AppWindow::Destroy() {
 
   nsCOMPtr<nsIAppWindow> parentWindow(do_QueryReferent(mParentWindow));
   if (parentWindow) parentWindow->RemoveChildWindow(this);
-
-  // let's make sure the window doesn't get deleted out from under us
-  // while we are trying to close....this can happen if the docshell
-  // we close ends up being the last owning reference to this AppWindow
-
-  // XXXTAB This shouldn't be an issue anymore because the ownership model
-  // only goes in one direction.  When webshell container is fully removed
-  // try removing this...
-
-  nsCOMPtr<nsIAppWindow> placeHolder = this;
 
   // Remove modality (if any) and hide while destroying. More than
   // a convenience, the hide prevents user interaction with the partially
@@ -694,8 +616,7 @@ NS_IMETHODIMP AppWindow::Destroy() {
   mDOMWindow = nullptr;
   if (mDocShell) {
     RefPtr<BrowsingContext> bc(mDocShell->GetBrowsingContext());
-    nsCOMPtr<nsIBaseWindow> shellAsWin(do_QueryInterface(mDocShell));
-    shellAsWin->Destroy();
+    mDocShell->Destroy();
     bc->Detach();
     mDocShell = nullptr;  // this can cause reentrancy of this function
   }
@@ -1031,8 +952,7 @@ NS_IMETHODIMP AppWindow::SetVisibility(bool aVisibility) {
 
   // XXXTAB Do we really need to show docshell and the window?  Isn't
   // the window good enough?
-  nsCOMPtr<nsIBaseWindow> shellAsWin(do_QueryInterface(mDocShell));
-  shellAsWin->SetVisibility(aVisibility);
+  mDocShell->SetVisibility(aVisibility);
   // Store locally so it doesn't die on us. 'Show' can result in the window
   // being closed with AppWindow::Destroy being called. That would set
   // mWindow to null and posibly destroy the nsIWidget while its Show method
@@ -1677,7 +1597,7 @@ void AppWindow::StaggerPosition(int32_t& aRequestedX, int32_t& aRequestedY,
           break;
         }
       }
-    } while (1);
+    } while (true);
   } while (keepTrying);
 }
 
@@ -1699,7 +1619,7 @@ void AppWindow::SyncAttributesToWidget() {
 
   // "chromemargin" attribute
   nsIntMargin margins;
-  windowElement->GetAttribute(NS_LITERAL_STRING("chromemargin"), attr);
+  windowElement->GetAttribute(u"chromemargin"_ns, attr);
   if (nsContentUtils::ParseIntMarginValue(attr, margins)) {
     LayoutDeviceIntMargin tmp =
         LayoutDeviceIntMargin::FromUnknownMargin(margins);
@@ -1717,7 +1637,7 @@ void AppWindow::SyncAttributesToWidget() {
   NS_ENSURE_TRUE_VOID(mWindow);
 
   // "icon" attribute
-  windowElement->GetAttribute(NS_LITERAL_STRING("icon"), attr);
+  windowElement->GetAttribute(u"icon"_ns, attr);
   if (!attr.IsEmpty()) {
     mWindow->SetIcon(attr);
 
@@ -1725,25 +1645,25 @@ void AppWindow::SyncAttributesToWidget() {
   }
 
   // "drawtitle" attribute
-  windowElement->GetAttribute(NS_LITERAL_STRING("drawtitle"), attr);
+  windowElement->GetAttribute(u"drawtitle"_ns, attr);
   mWindow->SetDrawsTitle(attr.LowerCaseEqualsLiteral("true"));
 
   NS_ENSURE_TRUE_VOID(mWindow);
 
   // "toggletoolbar" attribute
-  windowElement->GetAttribute(NS_LITERAL_STRING("toggletoolbar"), attr);
+  windowElement->GetAttribute(u"toggletoolbar"_ns, attr);
   mWindow->SetShowsToolbarButton(attr.LowerCaseEqualsLiteral("true"));
 
   NS_ENSURE_TRUE_VOID(mWindow);
 
-  // "fullscreenbutton" attribute
-  windowElement->GetAttribute(NS_LITERAL_STRING("fullscreenbutton"), attr);
-  mWindow->SetShowsFullScreenButton(attr.LowerCaseEqualsLiteral("true"));
+  // "macnativefullscreen" attribute
+  windowElement->GetAttribute(u"macnativefullscreen"_ns, attr);
+  mWindow->SetSupportsNativeFullscreen(attr.LowerCaseEqualsLiteral("true"));
 
   NS_ENSURE_TRUE_VOID(mWindow);
 
   // "macanimationtype" attribute
-  windowElement->GetAttribute(NS_LITERAL_STRING("macanimationtype"), attr);
+  windowElement->GetAttribute(u"macanimationtype"_ns, attr);
   if (attr.EqualsLiteral("document")) {
     mWindow->SetWindowAnimationType(nsIWidget::eDocumentWindowAnimation);
   }
@@ -1830,18 +1750,17 @@ nsresult AppWindow::GetPersistentValue(const nsAtom* aAttr, nsAString& aValue) {
   return NS_OK;
 }
 
-nsresult AppWindow::SetPersistentValue(const nsAtom* aAttr,
-                                       const nsAString& aValue) {
+nsresult AppWindow::GetDocXulStoreKeys(nsString& aUriSpec,
+                                       nsString& aWindowElementId) {
   nsCOMPtr<dom::Element> docShellElement = GetWindowDOMElement();
   if (!docShellElement) {
     return NS_ERROR_FAILURE;
   }
 
-  nsAutoString windowElementId;
-  docShellElement->GetId(windowElementId);
+  docShellElement->GetId(aWindowElementId);
   // Match the behavior of XULPersist and only persist values if the element
   // has an ID.
-  if (windowElementId.IsEmpty()) {
+  if (aWindowElementId.IsEmpty()) {
     return NS_OK;
   }
 
@@ -1856,7 +1775,45 @@ nsresult AppWindow::SetPersistentValue(const nsAtom* aAttr,
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
-  NS_ConvertUTF8toUTF16 uri(utf8uri);
+
+  aUriSpec = NS_ConvertUTF8toUTF16(utf8uri);
+
+  return NS_OK;
+}
+
+nsresult AppWindow::MaybeSaveEarlyWindowPersistentValues(
+    const LayoutDeviceIntRect& aRect) {
+#ifdef XP_WIN
+  nsAutoString uri;
+  nsAutoString windowElementId;
+  nsresult rv = GetDocXulStoreKeys(uri, windowElementId);
+
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  if (!windowElementId.EqualsLiteral("main-window") ||
+      !uri.EqualsLiteral("chrome://browser/content/browser.xhtml")) {
+    return NS_OK;
+  }
+
+  PersistPreXULSkeletonUIValues(aRect.X(), aRect.Y(), aRect.Width(),
+                                aRect.Height(),
+                                mWindow->GetDefaultScale().scale);
+#endif
+
+  return NS_OK;
+}
+
+nsresult AppWindow::SetPersistentValue(const nsAtom* aAttr,
+                                       const nsAString& aValue) {
+  nsAutoString uri;
+  nsAutoString windowElementId;
+  nsresult rv = GetDocXulStoreKeys(uri, windowElementId);
+
+  if (NS_FAILED(rv) || windowElementId.IsEmpty()) {
+    return rv;
+  }
 
   nsAutoString maybeConvertedValue(aValue);
   if (aAttr == nsGkAtoms::width || aAttr == nsGkAtoms::height) {
@@ -1964,6 +1921,8 @@ NS_IMETHODIMP AppWindow::SavePersistentAttributes() {
     }
   }
 
+  Unused << MaybeSaveEarlyWindowPersistentValues(rect);
+
   if (mPersistentAttributesDirty & PAD_MISC) {
     nsSizeMode sizeMode = mWindow->SizeMode();
 
@@ -1981,9 +1940,9 @@ NS_IMETHODIMP AppWindow::SavePersistentAttributes() {
     }
     bool tiled = mWindow->IsTiled();
     if (tiled) {
-      sizeString.Assign(NS_LITERAL_STRING("true"));
+      sizeString.Assign(u"true"_ns);
     } else {
-      sizeString.Assign(NS_LITERAL_STRING("false"));
+      sizeString.Assign(u"false"_ns);
     }
     docShellElement->SetAttribute(TILED_ATTRIBUTE, sizeString, rv);
     if (persistString.Find("zlevel") >= 0) {
@@ -2118,14 +2077,12 @@ nsresult AppWindow::SetPrimaryRemoteTabSize(int32_t aWidth, int32_t aHeight) {
 }
 
 nsresult AppWindow::GetRootShellSize(int32_t* aWidth, int32_t* aHeight) {
-  nsCOMPtr<nsIBaseWindow> shellAsWin = do_QueryInterface(mDocShell);
-  NS_ENSURE_TRUE(shellAsWin, NS_ERROR_FAILURE);
-  return shellAsWin->GetSize(aWidth, aHeight);
+  NS_ENSURE_TRUE(mDocShell, NS_ERROR_FAILURE);
+  return mDocShell->GetSize(aWidth, aHeight);
 }
 
 nsresult AppWindow::SetRootShellSize(int32_t aWidth, int32_t aHeight) {
-  nsCOMPtr<nsIDocShellTreeItem> docShellAsItem = mDocShell;
-  return SizeShellTo(docShellAsItem, aWidth, aHeight);
+  return SizeShellTo(mDocShell, aWidth, aHeight);
 }
 
 NS_IMETHODIMP AppWindow::SizeShellTo(nsIDocShellTreeItem* aShellItem,
@@ -2156,26 +2113,21 @@ NS_IMETHODIMP AppWindow::ExitModalLoop(nsresult aStatus) {
 
 // top-level function to create a new window
 NS_IMETHODIMP AppWindow::CreateNewWindow(int32_t aChromeFlags,
-                                         nsIRemoteTab* aOpeningTab,
-                                         mozIDOMWindowProxy* aOpener,
-                                         uint64_t aNextRemoteTabId,
+                                         nsIOpenWindowInfo* aOpenWindowInfo,
                                          nsIAppWindow** _retval) {
   NS_ENSURE_ARG_POINTER(_retval);
 
   if (aChromeFlags & nsIWebBrowserChrome::CHROME_OPENAS_CHROME) {
     MOZ_RELEASE_ASSERT(
-        aNextRemoteTabId == 0,
-        "Unexpected next remote tab ID, should never have a non-zero "
-        "aNextRemoteTabId when creating a new chrome window");
-    return CreateNewChromeWindow(aChromeFlags, aOpeningTab, aOpener, _retval);
+        !aOpenWindowInfo,
+        "Unexpected nsOpenWindowInfo when creating a new chrome window");
+    return CreateNewChromeWindow(aChromeFlags, _retval);
   }
-  return CreateNewContentWindow(aChromeFlags, aOpeningTab, aOpener,
-                                aNextRemoteTabId, _retval);
+
+  return CreateNewContentWindow(aChromeFlags, aOpenWindowInfo, _retval);
 }
 
 NS_IMETHODIMP AppWindow::CreateNewChromeWindow(int32_t aChromeFlags,
-                                               nsIRemoteTab* aOpeningTab,
-                                               mozIDOMWindowProxy* aOpener,
                                                nsIAppWindow** _retval) {
   nsCOMPtr<nsIAppShellService> appShell(
       do_GetService(NS_APPSHELLSERVICE_CONTRACTID));
@@ -2185,8 +2137,7 @@ NS_IMETHODIMP AppWindow::CreateNewChromeWindow(int32_t aChromeFlags,
   nsCOMPtr<nsIAppWindow> newWindow;
   appShell->CreateTopLevelWindow(
       this, nullptr, aChromeFlags, nsIAppShellService::SIZE_TO_CONTENT,
-      nsIAppShellService::SIZE_TO_CONTENT, aOpeningTab, aOpener,
-      getter_AddRefs(newWindow));
+      nsIAppShellService::SIZE_TO_CONTENT, getter_AddRefs(newWindow));
 
   NS_ENSURE_TRUE(newWindow, NS_ERROR_FAILURE);
 
@@ -2195,11 +2146,9 @@ NS_IMETHODIMP AppWindow::CreateNewChromeWindow(int32_t aChromeFlags,
   return NS_OK;
 }
 
-NS_IMETHODIMP AppWindow::CreateNewContentWindow(int32_t aChromeFlags,
-                                                nsIRemoteTab* aOpeningTab,
-                                                mozIDOMWindowProxy* aOpener,
-                                                uint64_t aNextRemoteTabId,
-                                                nsIAppWindow** _retval) {
+NS_IMETHODIMP AppWindow::CreateNewContentWindow(
+    int32_t aChromeFlags, nsIOpenWindowInfo* aOpenWindowInfo,
+    nsIAppWindow** _retval) {
   nsCOMPtr<nsIAppShellService> appShell(
       do_GetService(NS_APPSHELLSERVICE_CONTRACTID));
   NS_ENSURE_TRUE(appShell, NS_ERROR_FAILURE);
@@ -2226,34 +2175,20 @@ NS_IMETHODIMP AppWindow::CreateNewContentWindow(int32_t aChromeFlags,
   nsCOMPtr<nsIAppWindow> newWindow;
   {
     AutoNoJSAPI nojsapi;
-    // We actually want this toplevel window which we are creating to have a
-    // null opener, as we will be creating the content xul:browser window inside
-    // of it, so we pass nullptr as our aOpener.
     appShell->CreateTopLevelWindow(this, uri, aChromeFlags, 615, 480,
-                                   aOpeningTab, nullptr,
                                    getter_AddRefs(newWindow));
     NS_ENSURE_TRUE(newWindow, NS_ERROR_FAILURE);
   }
 
-  // Specify that we want the window to remain locked until the chrome has
-  // loaded.
   AppWindow* appWin =
       static_cast<AppWindow*>(static_cast<nsIAppWindow*>(newWindow));
 
-  if (aNextRemoteTabId) {
-    appWin->mNextRemoteTabId = aNextRemoteTabId;
-  }
+  // Specify which flags should be used by browser.xhtml to create the initial
+  // content browser window.
+  appWin->mInitialOpenWindowInfo = aOpenWindowInfo;
 
-  if (aOpener) {
-    nsCOMPtr<nsIDocShell> docShell;
-    appWin->GetDocShell(getter_AddRefs(docShell));
-    MOZ_ASSERT(docShell);
-    nsCOMPtr<nsPIDOMWindowOuter> window = docShell->GetWindow();
-    MOZ_ASSERT(window);
-    window->SetOpenerForInitialContentBrowser(
-        nsPIDOMWindowOuter::From(aOpener)->GetBrowsingContext());
-  }
-
+  // Specify that we want the window to remain locked until the chrome has
+  // loaded.
   appWin->LockUntilChromeLoad();
 
   {
@@ -2263,7 +2198,8 @@ NS_IMETHODIMP AppWindow::CreateNewContentWindow(int32_t aChromeFlags,
 
   NS_ENSURE_STATE(appWin->mPrimaryContentShell ||
                   appWin->mPrimaryBrowserParent);
-  MOZ_ASSERT_IF(appWin->mPrimaryContentShell, aNextRemoteTabId == 0);
+  MOZ_ASSERT_IF(appWin->mPrimaryContentShell,
+                !aOpenWindowInfo->GetNextRemoteBrowser());
 
   newWindow.forget(_retval);
 
@@ -2477,7 +2413,7 @@ void AppWindow::ApplyChromeFlags() {
   // Note that if we're not actually changing the value this will be a no-op,
   // so no need to compare to the old value.
   IgnoredErrorResult rv;
-  window->SetAttribute(NS_LITERAL_STRING("chromehidden"), newvalue, rv);
+  window->SetAttribute(u"chromehidden"_ns, newvalue, rv);
 }
 
 NS_IMETHODIMP
@@ -2587,15 +2523,15 @@ void AppWindow::SizeShell() {
     nsCOMPtr<nsIContentViewer> cv;
     mDocShell->GetContentViewer(getter_AddRefs(cv));
     if (cv) {
-      nsCOMPtr<nsIDocShellTreeItem> docShellAsItem = mDocShell;
+      RefPtr<nsDocShell> docShell = mDocShell;
       nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
-      docShellAsItem->GetTreeOwner(getter_AddRefs(treeOwner));
+      docShell->GetTreeOwner(getter_AddRefs(treeOwner));
       if (treeOwner) {
         // GetContentSize can fail, so initialise |width| and |height| to be
         // on the safe side.
         int32_t width = 0, height = 0;
         if (NS_SUCCEEDED(cv->GetContentSize(&width, &height))) {
-          treeOwner->SizeShellTo(docShellAsItem, width, height);
+          treeOwner->SizeShellTo(docShell, width, height);
           // Update specified size for the final LoadPositionFromXUL call.
           specWidth = width + windowDiff.width;
           specHeight = height + windowDiff.height;
@@ -2661,9 +2597,10 @@ nsresult AppWindow::GetTabCount(uint32_t* aResult) {
   return NS_OK;
 }
 
-nsresult AppWindow::GetNextRemoteTabId(uint64_t* aNextRemoteTabId) {
-  NS_ENSURE_ARG_POINTER(aNextRemoteTabId);
-  *aNextRemoteTabId = mNextRemoteTabId;
+nsresult AppWindow::GetInitialOpenWindowInfo(
+    nsIOpenWindowInfo** aOpenWindowInfo) {
+  NS_ENSURE_ARG_POINTER(aOpenWindowInfo);
+  *aOpenWindowInfo = do_AddRef(mInitialOpenWindowInfo).take();
   return NS_OK;
 }
 
@@ -2686,10 +2623,9 @@ bool AppWindow::WindowMoved(nsIWidget* aWidget, int32_t x, int32_t y) {
   if (mDocShell && mDocShell->GetWindow()) {
     nsCOMPtr<EventTarget> eventTarget =
         mDocShell->GetWindow()->GetTopWindowRoot();
-    nsContentUtils::DispatchChromeEvent(mDocShell->GetDocument(), eventTarget,
-                                        NS_LITERAL_STRING("MozUpdateWindowPos"),
-                                        CanBubble::eNo, Cancelable::eNo,
-                                        nullptr);
+    nsContentUtils::DispatchChromeEvent(
+        mDocShell->GetDocument(), eventTarget, u"MozUpdateWindowPos"_ns,
+        CanBubble::eNo, Cancelable::eNo, nullptr);
   }
 
   // Persist position, but not immediately, in case this OS is firing
@@ -2700,13 +2636,27 @@ bool AppWindow::WindowMoved(nsIWidget* aWidget, int32_t x, int32_t y) {
 
 bool AppWindow::WindowResized(nsIWidget* aWidget, int32_t aWidth,
                               int32_t aHeight) {
-  nsCOMPtr<nsIBaseWindow> shellAsWin(do_QueryInterface(mDocShell));
-  if (shellAsWin) {
-    shellAsWin->SetPositionAndSize(0, 0, aWidth, aHeight, 0);
+  if (mDocShell) {
+    mDocShell->SetPositionAndSize(0, 0, aWidth, aHeight, 0);
   }
   // Persist size, but not immediately, in case this OS is firing
   // repeated size events as the user drags the sizing handle
   if (!IsLocked()) SetPersistenceTimer(PAD_POSITION | PAD_SIZE | PAD_MISC);
+  // Check if we need to continue a fullscreen change.
+  switch (mFullscreenChangeState) {
+    case FullscreenChangeState::WillChange:
+      mFullscreenChangeState = FullscreenChangeState::WidgetResized;
+      break;
+    case FullscreenChangeState::WidgetEnteredFullscreen:
+      FinishFullscreenChange(true);
+      break;
+    case FullscreenChangeState::WidgetExitedFullscreen:
+      FinishFullscreenChange(false);
+      break;
+    case FullscreenChangeState::WidgetResized:
+    case FullscreenChangeState::NotChanging:
+      break;
+  }
   return true;
 }
 
@@ -2776,7 +2726,7 @@ void AppWindow::SizeModeChanged(nsSizeMode sizeMode) {
     }
 
     // And always fire a user-defined sizemodechange event on the window
-    ourWindow->DispatchCustomEvent(NS_LITERAL_STRING("sizemodechange"));
+    ourWindow->DispatchCustomEvent(u"sizemodechange"_ns);
   }
 
   if (PresShell* presShell = GetPresShell()) {
@@ -2794,7 +2744,8 @@ void AppWindow::UIResolutionChanged() {
   nsCOMPtr<nsPIDOMWindowOuter> ourWindow =
       mDocShell ? mDocShell->GetWindow() : nullptr;
   if (ourWindow) {
-    ourWindow->DispatchCustomEvent(NS_LITERAL_STRING("resolutionchange"));
+    ourWindow->DispatchCustomEvent(u"resolutionchange"_ns,
+                                   ChromeOnlyDispatch::eYes);
   }
 }
 
@@ -2804,9 +2755,40 @@ void AppWindow::FullscreenWillChange(bool aInFullscreen) {
       ourWindow->FullscreenWillChange(aInFullscreen);
     }
   }
+  MOZ_ASSERT(mFullscreenChangeState == FullscreenChangeState::NotChanging);
+  mFullscreenChangeState = FullscreenChangeState::WillChange;
 }
 
 void AppWindow::FullscreenChanged(bool aInFullscreen) {
+  if (mFullscreenChangeState == FullscreenChangeState::WidgetResized) {
+    FinishFullscreenChange(aInFullscreen);
+  } else {
+    NS_WARNING_ASSERTION(
+        mFullscreenChangeState == FullscreenChangeState::WillChange,
+        "Unexpected fullscreen change state");
+    FullscreenChangeState newState =
+        aInFullscreen ? FullscreenChangeState::WidgetEnteredFullscreen
+                      : FullscreenChangeState::WidgetExitedFullscreen;
+    mFullscreenChangeState = newState;
+    nsCOMPtr<nsIAppWindow> kungFuDeathGrip(this);
+    // Wait for resize for a small amount of time.
+    // 80ms is actually picked arbitrarily. But it shouldn't be too large
+    // in case the widget resize is not going to happen at all, which can
+    // be the case for some Linux window managers and possibly Android.
+    NS_DelayedDispatchToCurrentThread(
+        NS_NewRunnableFunction(
+            "AppWindow::FullscreenChanged",
+            [this, kungFuDeathGrip, newState, aInFullscreen]() {
+              if (mFullscreenChangeState == newState) {
+                FinishFullscreenChange(aInFullscreen);
+              }
+            }),
+        80);
+  }
+}
+
+void AppWindow::FinishFullscreenChange(bool aInFullscreen) {
+  mFullscreenChangeState = FullscreenChangeState::NotChanging;
   if (mDocShell) {
     if (nsCOMPtr<nsPIDOMWindowOuter> ourWindow = mDocShell->GetWindow()) {
       ourWindow->FinishFullscreenChange(aInFullscreen);
@@ -2819,7 +2801,8 @@ void AppWindow::OcclusionStateChanged(bool aIsFullyOccluded) {
       mDocShell ? mDocShell->GetWindow() : nullptr;
   if (ourWindow) {
     // And always fire a user-defined occlusionstatechange event on the window
-    ourWindow->DispatchCustomEvent(NS_LITERAL_STRING("occlusionstatechange"));
+    ourWindow->DispatchCustomEvent(u"occlusionstatechange"_ns,
+                                   ChromeOnlyDispatch::eYes);
   }
 }
 
@@ -2863,7 +2846,9 @@ void AppWindow::WindowActivated() {
   nsCOMPtr<nsPIDOMWindowOuter> window =
       mDocShell ? mDocShell->GetWindow() : nullptr;
   nsFocusManager* fm = nsFocusManager::GetFocusManager();
-  if (fm && window) fm->WindowRaised(window);
+  if (fm && window) {
+    fm->WindowRaised(window);
+  }
 
   if (mChromeLoaded) {
     PersistentAttributesDirty(PAD_POSITION | PAD_SIZE | PAD_MISC);
@@ -2877,7 +2862,9 @@ void AppWindow::WindowDeactivated() {
   nsCOMPtr<nsPIDOMWindowOuter> window =
       mDocShell ? mDocShell->GetWindow() : nullptr;
   nsFocusManager* fm = nsFocusManager::GetFocusManager();
-  if (fm && window && !fm->IsTestMode()) fm->WindowLowered(window);
+  if (fm && window && !fm->IsTestMode()) {
+    fm->WindowLowered(window);
+  }
 }
 
 #ifdef USE_NATIVE_MENUS
@@ -2894,9 +2881,9 @@ static void LoadNativeMenus(Document* aDoc, nsIWidget* aParentWindow) {
   // Find the menubar tag (if there is more than one, we ignore all but
   // the first).
   nsCOMPtr<nsINodeList> menubarElements = aDoc->GetElementsByTagNameNS(
-      NS_LITERAL_STRING(
-          "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"),
-      NS_LITERAL_STRING("menubar"));
+      nsLiteralString(
+          u"http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"),
+      u"menubar"_ns);
 
   nsCOMPtr<nsINode> menubarNode;
   if (menubarElements) {

@@ -5,9 +5,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "jit/JitOptions.h"
-#include "mozilla/TypeTraits.h"
 
 #include <cstdlib>
+#include <type_traits>
 
 #include "vm/JSFunction.h"
 
@@ -25,11 +25,6 @@ static void Warn(const char* env, const char* value) {
   fprintf(stderr, "Warning: I didn't understand %s=\"%s\"\n", env, value);
 }
 
-template <typename T>
-struct IsBool : mozilla::FalseType {};
-template <>
-struct IsBool<bool> : mozilla::TrueType {};
-
 static Maybe<int> ParseInt(const char* str) {
   char* endp;
   int retval = strtol(str, &endp, 0);
@@ -45,7 +40,7 @@ T overrideDefault(const char* param, T dflt) {
   if (!str) {
     return dflt;
   }
-  if (IsBool<T>::value) {
+  if constexpr (std::is_same_v<T, bool>) {
     if (strcmp(str, "true") == 0 || strcmp(str, "yes") == 0) {
       return true;
     }
@@ -124,7 +119,7 @@ DefaultJitOptions::DefaultJitOptions() {
 
   // Toggles whether the use of multiple Ion optimization levels is globally
   // disabled.
-  SET_DEFAULT(disableOptimizationLevels, false);
+  SET_DEFAULT(disableOptimizationLevels, true);
 
   // Whether the Baseline Interpreter is enabled.
   SET_DEFAULT(baselineInterpreter, true);
@@ -135,13 +130,8 @@ DefaultJitOptions::DefaultJitOptions() {
   // Whether the IonMonkey JIT is enabled.
   SET_DEFAULT(ion, true);
 
-#ifdef NIGHTLY_BUILD
-  // Whether TI is enabled.
-  SET_DEFAULT(typeInference, true);
-#endif
-
   // Whether Ion uses WarpBuilder as MIR builder.
-  SET_DEFAULT(warpBuilder, false);
+  SET_DEFAULT(warpBuilder, true);
 
   // Whether the IonMonkey and Baseline JITs are enabled for Trusted Principals.
   // (Ignored if ion or baselineJit is set to true.)
@@ -172,14 +162,33 @@ DefaultJitOptions::DefaultJitOptions() {
   SET_DEFAULT(baselineJitWarmUpThreshold, 100);
 
   // How many invocations or loop iterations are needed before functions
+  // are considered for trial inlining.
+  SET_DEFAULT(trialInliningWarmUpThreshold, 500);
+
+  // The initial warm-up count for ICScripts created by trial inlining.
+  //
+  // Note: the difference between trialInliningInitialWarmUpCount and
+  // trialInliningWarmUpThreshold must be:
+  //
+  // * Small enough to allow inlining multiple levels deep before the outer
+  //   script reaches its normalIonWarmUpThreshold.
+  //
+  // * Greater than inliningEntryThreshold or no scripts can be inlined.
+  SET_DEFAULT(trialInliningInitialWarmUpCount, 250);
+
+  // How many invocations or loop iterations are needed before functions
   // are compiled with the Ion compiler at OptimizationLevel::Normal.
   // Duplicated in all.js - ensure both match.
-  SET_DEFAULT(normalIonWarmUpThreshold, 1000);
+  SET_DEFAULT(normalIonWarmUpThreshold, 1500);
 
   // How many invocations or loop iterations are needed before functions
   // are compiled with the Ion compiler at OptimizationLevel::Full.
   // Duplicated in all.js - ensure both match.
   SET_DEFAULT(fullIonWarmUpThreshold, 100'000);
+
+  // How many invocations are needed before regexps are compiled to
+  // native code.
+  SET_DEFAULT(regexpWarmUpThreshold, 10);
 
   // Number of exception bailouts (resuming into catch/finally block) before
   // we invalidate and forbid Ion compilation.
@@ -202,7 +211,10 @@ DefaultJitOptions::DefaultJitOptions() {
   SET_DEFAULT(osrPcMismatchesBeforeRecompile, 6000);
 
   // The bytecode length limit for small function.
-  SET_DEFAULT(smallFunctionMaxBytecodeLength_, 130);
+  SET_DEFAULT(smallFunctionMaxBytecodeLength, 130);
+
+  // The minimum entry count for an IC stub before it can be trial-inlined.
+  SET_DEFAULT(inliningEntryThreshold, 100);
 
   // An artificial testing limit for the maximum supported offset of
   // pc-relative jump and call instructions.
@@ -285,6 +297,15 @@ DefaultJitOptions::DefaultJitOptions() {
   SET_DEFAULT(enableTraceLogger, false);
 #endif
 
+  // Dumps a representation of parsed regexps to stderr
+  SET_DEFAULT(traceRegExpParser, false);
+  // Dumps the calls made to the regexp assembler to stderr
+  SET_DEFAULT(traceRegExpAssembler, false);
+  // Dumps the bytecodes interpreted by the regexp engine to stderr
+  SET_DEFAULT(traceRegExpInterpreter, false);
+  // Dumps the changes made by the regexp peephole optimizer to stderr
+  SET_DEFAULT(traceRegExpPeephole, false);
+
   SET_DEFAULT(enableWasmJitExit, true);
   SET_DEFAULT(enableWasmJitEntry, true);
   SET_DEFAULT(enableWasmIonFastCalls, true);
@@ -295,7 +316,7 @@ DefaultJitOptions::DefaultJitOptions() {
 }
 
 bool DefaultJitOptions::isSmallFunction(JSScript* script) const {
-  return script->length() <= smallFunctionMaxBytecodeLength_;
+  return script->length() <= smallFunctionMaxBytecodeLength;
 }
 
 void DefaultJitOptions::enableGvn(bool enable) { disableGvn = !enable; }
@@ -303,12 +324,32 @@ void DefaultJitOptions::enableGvn(bool enable) { disableGvn = !enable; }
 void DefaultJitOptions::setEagerBaselineCompilation() {
   baselineInterpreterWarmUpThreshold = 0;
   baselineJitWarmUpThreshold = 0;
+  regexpWarmUpThreshold = 0;
 }
 
 void DefaultJitOptions::setEagerIonCompilation() {
   setEagerBaselineCompilation();
   normalIonWarmUpThreshold = 0;
   fullIonWarmUpThreshold = 0;
+}
+
+void DefaultJitOptions::setFastWarmUp() {
+  baselineInterpreterWarmUpThreshold = 4;
+  baselineJitWarmUpThreshold = 10;
+  trialInliningWarmUpThreshold = 14;
+  trialInliningInitialWarmUpCount = 12;
+  normalIonWarmUpThreshold = 30;
+  fullIonWarmUpThreshold = 65;
+
+  inliningEntryThreshold = 2;
+  smallFunctionMaxBytecodeLength = 2000;
+}
+
+void DefaultJitOptions::setWarpEnabled(bool enable) {
+  // WarpBuilder doesn't use optimization levels.
+  warpBuilder = enable;
+  disableOptimizationLevels = enable;
+  normalIonWarmUpThreshold = enable ? 1500 : 1000;
 }
 
 void DefaultJitOptions::setNormalIonWarmUpThreshold(uint32_t warmUpThreshold) {

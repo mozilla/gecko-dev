@@ -2,10 +2,6 @@
 Search Configuration Schema
 ===========================
 
-.. note::
-    This configuration is currently under testing for nightly builds only, see
-    `Bug 1542235`_ for more status information.
-
 This document outlines the details of the schema and how the various sub-parts
 interact. For the full fields and descriptions, please see the `schema itself`_.
 
@@ -123,6 +119,35 @@ depending on the user's locale.
 
 You can specify ``"default"`` as a region in the configuration if
 the engine is to be included when we do not know the user's region.
+
+"override"
+----------
+
+The ``"override"`` field can be set to true if you want a section to
+only override otherwise included engines. ``"override"`` will only work for
+sections which apply to distributions or experiments. The experiment case was
+added in Firefox 81.
+
+Example:
+
+.. code-block:: js
+
+    {
+      "webExtension": {
+        "id": "web@ext"
+      },
+      "appliesTo": [{
+        // Complicated and lengthy inclusion rules
+      }, {
+        "override": true,
+        "application": { "distributions": ["mydistrocode"]},
+        "params": {
+          "searchUrlGetParams": [
+            { "name": "custom", "value": "foobar" }
+          ]
+        }
+      }]
+    }
 
 Application Scoping
 ===================
@@ -309,11 +334,11 @@ Experiments
 ===========
 
 We can run experiments by giving sections within ``appliesTo`` a
-``cohort`` value, the Search Service can then optionally pass in a
-matching ``cohort`` value to match those sections.
+``experiment`` value, the Search Service can then optionally pass in a
+matching ``experiment`` value to match those sections.
 
-Sections which have a ``cohort`` will not be used unless a matching
-``cohort`` has been passed in, for example:
+Sections which have a ``experiment`` will not be used unless a matching
+``experiment`` has been passed in, for example:
 
 .. code-block:: js
 
@@ -325,7 +350,7 @@ Sections which have a ``cohort`` will not be used unless a matching
         "included": {
           "everywhere": true
         },
-        "cohort": "nov-16",
+        "experiment": "nov-16",
         "webExtension": {
           "id": "web-experimental@ext"
         }
@@ -463,6 +488,28 @@ Example:
 
 This would result in the order: ``engine2@ext, engine1@ext, engine3@ext``.
 
-.. _Bug 1542235: https://bugzilla.mozilla.org/show_bug.cgi?id=1542235
+Region Params
+=============
+
+The ``regionParams`` field allows us to override query parameters used based on the users current Region without having to reload the engine list which is based on the users home Region.
+
+Example:
+
+.. code-block:: js
+
+    {
+      "webExtension": {
+        "id": "engine1@ext"
+      },
+      "params": {
+        "searchUrlGetParams": [{ "name": "param", "value": "default" }],
+      },
+      "regionParams": {
+        "US": [{ "name": "param", "value": "custom" }]
+      }
+    },
+
+Will send ``param=custom`` whenever we detect the user is in US.
+
 .. _schema itself: https://searchfox.org/mozilla-central/source/toolkit/components/search/schema/
 .. _the version comparator: https://developer.mozilla.org/en-US/docs/Mozilla/Toolkit_version_format

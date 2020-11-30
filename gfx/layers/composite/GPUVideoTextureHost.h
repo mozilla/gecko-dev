@@ -30,6 +30,8 @@ class GPUVideoTextureHost : public TextureHost {
 
   gfx::SurfaceFormat GetFormat() const override;
 
+  void PrepareTextureSource(CompositableTextureSourceRef& aTexture) override;
+
   bool BindTextureSource(CompositableTextureSourceRef& aTexture) override;
   bool AcquireTextureSource(CompositableTextureSourceRef& aTexture) override;
 
@@ -38,9 +40,12 @@ class GPUVideoTextureHost : public TextureHost {
   }
 
   gfx::YUVColorSpace GetYUVColorSpace() const override;
+  gfx::ColorDepth GetColorDepth() const override;
   gfx::ColorRange GetColorRange() const override;
 
   gfx::IntSize GetSize() const override;
+
+  bool IsValid() override;
 
 #ifdef MOZ_LAYERS_HAVE_LOG
   const char* Name() override { return "GPUVideoTextureHost"; }
@@ -51,18 +56,23 @@ class GPUVideoTextureHost : public TextureHost {
   void CreateRenderTexture(
       const wr::ExternalImageId& aExternalImageId) override;
 
+  void MaybeDestroyRenderTexture() override;
+
   uint32_t NumSubTextures() override;
 
   void PushResourceUpdates(wr::TransactionBuilder& aResources,
                            ResourceUpdateOp aOp,
                            const Range<wr::ImageKey>& aImageKeys,
-                           const wr::ExternalImageId& aExtID,
-                           const bool aPreferCompositorSurface) override;
+                           const wr::ExternalImageId& aExtID) override;
 
   void PushDisplayItems(wr::DisplayListBuilder& aBuilder,
                         const wr::LayoutRect& aBounds,
                         const wr::LayoutRect& aClip, wr::ImageRendering aFilter,
-                        const Range<wr::ImageKey>& aImageKeys) override;
+                        const Range<wr::ImageKey>& aImageKeys,
+                        PushDisplayItemFlagSet aFlags) override;
+
+  void UnbindTextureSource() override;
+  void NotifyNotUsed() override;
 
  protected:
   GPUVideoTextureHost(TextureFlags aFlags,
@@ -70,9 +80,14 @@ class GPUVideoTextureHost : public TextureHost {
 
   TextureHost* EnsureWrappedTextureHost();
 
+  void UpdatedInternal(const nsIntRegion* Region) override;
+
   RefPtr<TextureHost> mWrappedTextureHost;
+  RefPtr<TextureSourceProvider> mPendingSourceProvider;
+  bool mPendingUpdatedInternal = false;
+  Maybe<nsIntRegion> mPendingIntRegion;
+  Maybe<CompositableTextureSourceRef> mPendingPrepareTextureSource;
   SurfaceDescriptorGPUVideo mDescriptor;
-  wr::MaybeExternalImageId mExternalImageId;
 };
 
 }  // namespace layers

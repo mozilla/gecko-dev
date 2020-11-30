@@ -49,10 +49,10 @@ Structure:
         defaultPrivateSearchEngine: {,
           // data about the current default engine for private browsing mode. Same as defaultSearchEngineData.
         },
-        searchCohort: <string>, // optional, contains an identifier for any active search A/B experiments
         launcherProcessState: <integer>, // optional, values correspond to values of mozilla::LauncherRegistryInfo::EnabledState enum
         e10sEnabled: <bool>, // whether e10s is on, i.e. browser tabs open by default in a different process
         e10sMultiProcesses: <integer>, // Maximum number of processes that will be launched for regular web content
+        fissionEnabled: <bool>, // whether fission is enabled this session, and subframes can load in a different process
         telemetryEnabled: <bool>, // false on failure
         locale: <string>, // e.g. "it", null on failure
         intl: {
@@ -217,6 +217,8 @@ Structure:
               //   "disabled"    - User explicitly disabled this default feature.
               //   "failed"      - This feature was attempted but failed to initialize.
               //   "available"   - User has this feature available.
+              // The status can also include a ":" followed by a reason
+              // e.g. "FEATURE_FAILURE_WEBRENDER_VIDEO_CRASH_INTEL_23.20.16.4973"
               d3d11: { // This feature is Windows-only.
                 status: <string>,
                 warp: <bool>,           // Software rendering (WARP) mode was chosen.
@@ -235,6 +237,15 @@ Structure:
               advancedLayers: { // Advanced Layers compositing. Only present if D3D11 enabled.
                 status: <string>,    // See the status codes above.
               },
+              hwCompositing: { // hardware acceleration. i.e. whether we try using the GPU
+                status: <string>
+              },
+              wrCompositor: { // native OS compositor (CA, DComp, etc.)
+                status: <string>
+              }
+              openglCompositing: { // OpenGL compositing.
+                status: <string>
+              }
             },
           },
         appleModelId: <string>, // Mac only or null on failure
@@ -367,11 +378,6 @@ This object contains the same information as ``defaultSearchEngineData``. It
 is only reported if the ``browser.search.separatePrivateDefault`` preference is
 set to ``true``.
 
-searchCohort
-~~~~~~~~~~~~
-
-If the user has been enrolled into a search default change experiment, this contains the string identifying the experiment the user is taking part in. Most user profiles will never be part of any search default change experiment, and will not send this value.
-
 userPrefs
 ~~~~~~~~~
 
@@ -383,15 +389,13 @@ The following is a partial list of `collected preferences <https://searchfox.org
 
 - ``browser.search.suggest.enabled``: The "master switch" for search suggestions everywhere in Firefox (search bar, urlbar, etc.). Defaults to true.
 
-- ``browser.urlbar.openViewOnFocus``: False if the user has disabled the "open top sites when focusing the address bar" feature. Defaults to true.
-
 - ``browser.urlbar.suggest.searches``: True if search suggestions are enabled in the urlbar. Defaults to false.
 
 - ``browser.zoom.full`` (deprecated): True if zoom is enabled for both text and images, that is if "Zoom Text Only" is not enabled. Defaults to true. This preference was collected in Firefox 50 to 52 (`Bug 979323 <https://bugzilla.mozilla.org/show_bug.cgi?id=979323>`_).
 
-- ``fission.autostart``: True if fission is enabled at startup. Default to false. For more information please visit `the project wiki page <https://wiki.mozilla.org/Project_Fission>`_.
-
 - ``security.tls.version.enable-deprecated``: True if deprecated versions of TLS (1.0 and 1.1) have been enabled by the user. Defaults to false.
+
+- ``toolkit.telemetry.pioneerId``: The state of the Pioneer ID. If set, then user is enrolled in Pioneer. Note that this does *not* collect the value.
 
 attribution
 ~~~~~~~~~~~

@@ -25,10 +25,10 @@ add_task(async function test_javascript_match() {
     { uri: uri7, title: "title" },
   ]);
 
-  await addBookmark({ uri: uri2, title: "title" });
-  await addBookmark({ uri: uri4, title: "title" });
-  await addBookmark({ uri: uri5, title: "title" });
-  await addBookmark({ uri: uri6, title: "title" });
+  await PlacesTestUtils.addBookmarkWithDetails({ uri: uri2, title: "title" });
+  await PlacesTestUtils.addBookmarkWithDetails({ uri: uri4, title: "title" });
+  await PlacesTestUtils.addBookmarkWithDetails({ uri: uri5, title: "title" });
+  await PlacesTestUtils.addBookmarkWithDetails({ uri: uri6, title: "title" });
 
   await addOpenPages(uri7, 1);
 
@@ -40,7 +40,6 @@ add_task(async function test_javascript_match() {
     search: "foo",
     searchParam: "enable-actions",
     matches: [
-      makeSearchMatch("foo", { heuristic: true }),
       { uri: uri1, title: "title" },
       { uri: uri2, title: "title", style: ["bookmark"] },
       { uri: uri3, title: "title" },

@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ClassifierDummyChannelChild.h"
+#include "mozilla/ContentBlocking.h"
 #include "mozilla/ipc/BackgroundUtils.h"
 #include "mozilla/ipc/URIUtils.h"
 #include "nsIURI.h"
@@ -32,18 +33,13 @@ bool ClassifierDummyChannelChild::Create(
   nsresult topWindowURIResult =
       httpChannelInternal->GetTopWindowURI(getter_AddRefs(topWindowURI));
 
-  nsCOMPtr<nsIPrincipal> principal;
-  nsresult rv = httpChannelInternal->GetContentBlockingAllowListPrincipal(
-      getter_AddRefs(principal));
-  MOZ_ALWAYS_SUCCEEDS(rv);
-
   nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
   Maybe<LoadInfoArgs> loadInfoArgs;
   mozilla::ipc::LoadInfoToLoadInfoArgs(loadInfo, &loadInfoArgs);
 
   PClassifierDummyChannelChild* actor =
       gNeckoChild->SendPClassifierDummyChannelConstructor(
-          aURI, topWindowURI, principal, topWindowURIResult, loadInfoArgs);
+          aURI, topWindowURI, topWindowURIResult, loadInfoArgs);
   if (!actor) {
     return false;
   }
@@ -85,8 +81,8 @@ mozilla::ipc::IPCResult ClassifierDummyChannelChild::Recv__delete__(
   RefPtr<HttpBaseChannel> httpChannel = do_QueryObject(channel);
   httpChannel->AddClassificationFlags(aClassificationFlags, mIsThirdParty);
 
-  bool storageGranted = AntiTrackingCommon::IsFirstPartyStorageAccessGrantedFor(
-      httpChannel, mURI, nullptr);
+  bool storageGranted =
+      ContentBlocking::ShouldAllowAccessFor(httpChannel, mURI, nullptr);
   mCallback(storageGranted);
   return IPC_OK();
 }

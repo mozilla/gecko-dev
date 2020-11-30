@@ -4,21 +4,19 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import copy
 import os
 from functools import partial
-from itertools import chain, count
+from itertools import chain, count, groupby
+
+from pip._internal.req.constructors import install_req_from_line
 
 from . import click
-from ._compat import install_req_from_line
-from .cache import DependencyCache
 from .logging import log
 from .utils import (
     UNSAFE_PACKAGES,
     format_requirement,
     format_specifier,
-    full_groupby,
     is_pinned_requirement,
     is_url_requirement,
     key_from_ireq,
-    key_from_req,
 )
 
 green = partial(click.style, fg="green")
@@ -32,21 +30,25 @@ class RequirementSummary(object):
 
     def __init__(self, ireq):
         self.req = ireq.req
-        self.key = key_from_req(ireq.req)
-        self.extras = str(sorted(ireq.extras))
-        self.specifier = str(ireq.specifier)
+        self.key = key_from_ireq(ireq)
+        self.extras = frozenset(ireq.extras)
+        self.specifier = ireq.specifier
 
     def __eq__(self, other):
-        return str(self) == str(other)
+        return (
+            self.key == other.key
+            and self.specifier == other.specifier
+            and self.extras == other.extras
+        )
 
     def __hash__(self):
-        return hash(str(self))
+        return hash((self.key, self.specifier, self.extras))
 
     def __str__(self):
-        return repr([self.key, self.specifier, self.extras])
+        return repr((self.key, str(self.specifier), sorted(self.extras)))
 
 
-def combine_install_requirements(ireqs):
+def combine_install_requirements(repository, ireqs):
     """
     Return a single install requirement that reflects a combination of
     all the inputs.
@@ -56,13 +58,22 @@ def combine_install_requirements(ireqs):
     source_ireqs = []
     for ireq in ireqs:
         source_ireqs.extend(getattr(ireq, "_source_ireqs", [ireq]))
-    source_ireqs.sort(key=str)
+
+    # Optimization. Don't bother with combination logic.
+    if len(source_ireqs) == 1:
+        return source_ireqs[0]
 
     # deepcopy the accumulator so as to not modify the inputs
     combined_ireq = copy.deepcopy(source_ireqs[0])
+    repository.copy_ireq_dependencies(source_ireqs[0], combined_ireq)
+
     for ireq in source_ireqs[1:]:
         # NOTE we may be losing some info on dropped reqs here
         combined_ireq.req.specifier &= ireq.req.specifier
+        if combined_ireq.constraint:
+            # We don't find dependencies for constraint ireqs, so copy them
+            # from non-constraints:
+            repository.copy_ireq_dependencies(ireq, combined_ireq)
         combined_ireq.constraint &= ireq.constraint
         # Return a sorted, de-duped tuple of extras
         combined_ireq.extras = tuple(
@@ -96,7 +107,7 @@ class Resolver(object):
         self,
         constraints,
         repository,
-        cache=None,
+        cache,
         prereleases=False,
         clear_caches=False,
         allow_unsafe=False,
@@ -109,8 +120,6 @@ class Resolver(object):
         self.our_constraints = set(constraints)
         self.their_constraints = set()
         self.repository = repository
-        if cache is None:
-            cache = DependencyCache()  # pragma: no cover
         self.dependency_cache = cache
         self.prereleases = prereleases
         self.clear_caches = clear_caches
@@ -129,7 +138,7 @@ class Resolver(object):
         """
         log.debug("")
         log.debug("Generating hashes:")
-        with self.repository.allow_all_wheels():
+        with self.repository.allow_all_wheels(), log.indentation():
             return {ireq: self.repository.get_hashes(ireq) for ireq in ireqs}
 
     def resolve(self, max_rounds=10):
@@ -155,8 +164,8 @@ class Resolver(object):
                 raise RuntimeError(
                     "No stable configuration of concrete packages "
                     "could be found for the given constraints after "
-                    "%d rounds of resolving.\n"
-                    "This is likely a bug." % max_rounds
+                    "{max_rounds} rounds of resolving.\n"
+                    "This is likely a bug.".format(max_rounds=max_rounds)
                 )
 
             log.debug("")
@@ -218,15 +227,22 @@ class Resolver(object):
             flask~=0.7
 
         """
-        for _, ireqs in full_groupby(constraints, key=key_from_ireq):
-            ireqs = list(ireqs)
-            editable_ireq = next((ireq for ireq in ireqs if ireq.editable), None)
-            if editable_ireq:
-                # ignore all the other specs: the editable one is the one that counts
-                yield editable_ireq
-                continue
+        constraints = list(constraints)
+        for ireq in constraints:
+            if ireq.name is None:
+                # get_dependencies has side-effect of assigning name to ireq
+                # (so we can group by the name below).
+                self.repository.get_dependencies(ireq)
 
-            yield combine_install_requirements(ireqs)
+        # Sort first by name, i.e. the groupby key. Then within each group,
+        # sort editables first.
+        # This way, we don't bother with combining editables, since the first
+        # ireq will be editable, if one exists.
+        for _, ireqs in groupby(
+            sorted(constraints, key=(lambda x: (key_from_ireq(x), not x.editable))),
+            key=key_from_ireq,
+        ):
+            yield combine_install_requirements(self.repository, ireqs)
 
     def _resolve_one_round(self):
         """
@@ -243,20 +259,23 @@ class Resolver(object):
         constraints = sorted(self.constraints, key=key_from_ireq)
 
         log.debug("Current constraints:")
-        for constraint in constraints:
-            log.debug("  {}".format(constraint))
+        with log.indentation():
+            for constraint in constraints:
+                log.debug(str(constraint))
 
         log.debug("")
         log.debug("Finding the best candidates:")
-        best_matches = {self.get_best_match(ireq) for ireq in constraints}
+        with log.indentation():
+            best_matches = {self.get_best_match(ireq) for ireq in constraints}
 
         # Find the new set of secondary dependencies
         log.debug("")
         log.debug("Finding secondary dependencies:")
 
         their_constraints = []
-        for best_match in best_matches:
-            their_constraints.extend(self._iter_dependencies(best_match))
+        with log.indentation():
+            for best_match in best_matches:
+                their_constraints.extend(self._iter_dependencies(best_match))
         # Grouping constraints to make clean diff between rounds
         theirs = set(self._group_constraints(their_constraints))
 
@@ -273,13 +292,13 @@ class Resolver(object):
         if has_changed:
             log.debug("")
             log.debug("New dependencies found in this round:")
-            for new_dependency in sorted(diff, key=lambda req: key_from_req(req.req)):
-                log.debug("  adding {}".format(new_dependency))
+            with log.indentation():
+                for new_dependency in sorted(diff, key=key_from_ireq):
+                    log.debug("adding {}".format(new_dependency))
             log.debug("Removed dependencies in this round:")
-            for removed_dependency in sorted(
-                removed, key=lambda req: key_from_req(req.req)
-            ):
-                log.debug("  removing {}".format(removed_dependency))
+            with log.indentation():
+                for removed_dependency in sorted(removed, key=key_from_ireq):
+                    log.debug("removing {}".format(removed_dependency))
 
         # Store the last round's results in the their_constraints
         self.their_constraints = theirs
@@ -308,6 +327,10 @@ class Resolver(object):
             # NOTE: it's much quicker to immediately return instead of
             # hitting the index server
             best_match = ireq
+        elif ireq.constraint:
+            # NOTE: This is not a requirement (yet) and does not need
+            # to be resolved
+            best_match = ireq
         else:
             best_match = self.repository.find_best_match(
                 ireq, prereleases=self.prereleases
@@ -315,11 +338,13 @@ class Resolver(object):
 
         # Format the best match
         log.debug(
-            "  found candidate {} (constraint was {})".format(
+            "found candidate {} (constraint was {})".format(
                 format_requirement(best_match), format_specifier(ireq)
             )
         )
         best_match.comes_from = ireq.comes_from
+        if hasattr(ireq, "_source_ireqs"):
+            best_match._source_ireqs = ireq._source_ireqs
         return best_match
 
     def _iter_dependencies(self, ireq):
@@ -331,6 +356,17 @@ class Resolver(object):
         Editable requirements will never be looked up, as they may have
         changed at any time.
         """
+        # Pip does not resolve dependencies of constraints. We skip handling
+        # constraints here as well to prevent the cache from being polluted.
+        # Constraints that are later determined to be dependencies will be
+        # marked as non-constraints in later rounds by
+        # `combine_install_requirements`, and will be properly resolved.
+        # See https://github.com/pypa/pip/
+        # blob/6896dfcd831330c13e076a74624d95fa55ff53f4/src/pip/_internal/
+        # legacy_resolve.py#L325
+        if ireq.constraint:
+            return
+
         if ireq.editable or is_url_requirement(ireq):
             for dependency in self.repository.get_dependencies(ireq):
                 yield dependency
@@ -346,9 +382,7 @@ class Resolver(object):
         # from there
         if ireq not in self.dependency_cache:
             log.debug(
-                "  {} not in cache, need to check index".format(
-                    format_requirement(ireq)
-                ),
+                "{} not in cache, need to check index".format(format_requirement(ireq)),
                 fg="yellow",
             )
             dependencies = self.repository.get_dependencies(ireq)
@@ -357,7 +391,7 @@ class Resolver(object):
         # Example: ['Werkzeug>=0.9', 'Jinja2>=2.4']
         dependency_strings = self.dependency_cache[ireq]
         log.debug(
-            "  {:25} requires {}".format(
+            "{:25} requires {}".format(
                 format_requirement(ireq),
                 ", ".join(sorted(dependency_strings, key=lambda s: s.lower())) or "-",
             )

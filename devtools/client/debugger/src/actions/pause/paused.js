@@ -13,7 +13,7 @@ import {
 import { mapFrames, fetchFrames } from ".";
 import { removeBreakpoint } from "../breakpoints";
 import { evaluateExpressions } from "../expressions";
-import { selectLocation } from "../sources";
+import { selectSpecificLocation } from "../sources";
 import assert from "../../utils/assert";
 
 import { fetchScopes } from "./fetchScopes";
@@ -49,7 +49,7 @@ export function paused(pauseInfo: Pause) {
 
     const selectedFrame = getSelectedFrame(getState(), thread);
     if (selectedFrame) {
-      await dispatch(selectLocation(cx, selectedFrame.location));
+      await dispatch(selectSpecificLocation(cx, selectedFrame.location));
     }
 
     await dispatch(fetchScopes(cx));

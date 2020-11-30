@@ -22,6 +22,7 @@
 
 #include "debugger/Debugger.h"
 #include "ds/Sort.h"
+#include "jit/AutoWritableJitCode.h"
 #include "jit/ExecutableAllocator.h"
 #include "jit/MacroAssembler.h"
 #include "wasm/WasmInstance.h"
@@ -279,11 +280,6 @@ void DebugState::clearBreakpointsIn(JSFreeOp* fop, WasmInstanceObject* instance,
   }
 }
 
-void DebugState::clearAllBreakpoints(JSFreeOp* fop,
-                                     WasmInstanceObject* instance) {
-  clearBreakpointsIn(fop, instance, nullptr, nullptr);
-}
-
 void DebugState::toggleDebugTrap(uint32_t offset, bool enabled) {
   MOZ_ASSERT(offset);
   uint8_t* trap = code_->segment(Tier::Debug).base() + offset;
@@ -367,11 +363,6 @@ bool DebugState::debugGetLocalTypes(uint32_t funcIndex, ValTypeVector* locals,
   return DecodeValidatedLocalEntries(d, locals);
 }
 
-bool DebugState::debugGetResultTypes(uint32_t funcIndex,
-                                     ValTypeVector* results) {
-  return results->appendAll(metadata().debugFuncReturnTypes[funcIndex]);
-}
-
 bool DebugState::getGlobal(Instance& instance, uint32_t globalIndex,
                            MutableHandleValue vp) {
   const GlobalDesc& global = metadata().globals[globalIndex];
@@ -397,6 +388,13 @@ bool DebugState::getGlobal(Instance& instance, uint32_t globalIndex,
         // scheme, to make the pointer recognizable without revealing it.
         vp.set(MagicValue(JS_OPTIMIZED_OUT));
         break;
+      case ValType::V128:
+        // Debugger must be updated to handle this, and should be updated to
+        // handle i64 in any case.
+        vp.set(MagicValue(JS_OPTIMIZED_OUT));
+        break;
+      default:
+        MOZ_CRASH("Global constant type");
     }
     return true;
   }
@@ -429,6 +427,15 @@ bool DebugState::getGlobal(Instance& instance, uint32_t globalIndex,
       vp.set(MagicValue(JS_OPTIMIZED_OUT));
       break;
     }
+    case ValType::V128: {
+      // Just hide it.  See above.
+      vp.set(MagicValue(JS_OPTIMIZED_OUT));
+      break;
+    }
+    default: {
+      MOZ_CRASH("Global variable type");
+      break;
+    }
   }
   return true;
 }
@@ -457,7 +464,7 @@ bool DebugState::getSourceMappingURL(JSContext* cx,
       return true;  // ignoring invalid section data
     }
 
-    UTF8Chars utf8Chars(reinterpret_cast<const char*>(chars), nchars);
+    JS::UTF8Chars utf8Chars(reinterpret_cast<const char*>(chars), nchars);
     JSString* str = JS_NewStringCopyUTF8N(cx, utf8Chars);
     if (!str) {
       return false;
@@ -469,7 +476,7 @@ bool DebugState::getSourceMappingURL(JSContext* cx,
   // Check presence of "SourceMap:" HTTP response header.
   char* sourceMapURL = metadata().sourceMapURL.get();
   if (sourceMapURL && strlen(sourceMapURL)) {
-    UTF8Chars utf8Chars(sourceMapURL, strlen(sourceMapURL));
+    JS::UTF8Chars utf8Chars(sourceMapURL, strlen(sourceMapURL));
     JSString* str = JS_NewStringCopyUTF8N(cx, utf8Chars);
     if (!str) {
       return false;

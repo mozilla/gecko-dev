@@ -11,7 +11,10 @@
 
 #include "jstypes.h"
 #include "jit/BaselineIC.h"
+#include "jit/TrialInlining.h"
 #include "js/UniquePtr.h"
+#include "util/TrailingArray.h"
+#include "vm/EnvironmentObject.h"
 #include "vm/TypeInference.h"
 
 class JS_PUBLIC_API JSScript;
@@ -53,6 +56,138 @@ static IonScript* const IonDisabledScriptPtr =
 static IonScript* const IonCompilingScriptPtr =
     reinterpret_cast<IonScript*>(IonCompilingScript);
 
+class JitScript;
+class InliningRoot;
+
+/* [SMDOC] ICScript Lifetimes
+ *
+ * An ICScript owns an array of ICEntries, each of which owns a linked
+ * list of ICStubs.
+ *
+ * A JitScript contains an embedded ICScript. If it has done any trial
+ * inlining, it also owns an InliningRoot. The InliningRoot owns all
+ * of the ICScripts that have been created for inlining into the
+ * corresponding JitScript. This ties the lifetime of the inlined
+ * ICScripts to the lifetime of the JitScript itself.
+ *
+ * We store pointers to ICScripts in two other places: on the stack in
+ * BaselineFrame, and in IC stubs for CallInlinedFunction.
+ *
+ * The ICScript pointer in a BaselineFrame either points to the
+ * ICScript embedded in the JitScript for that frame, or to an inlined
+ * ICScript owned by a caller. In each case, there must be a frame on
+ * the stack corresponding to the JitScript that owns the current
+ * ICScript, which will keep the ICScript alive.
+ *
+ * Each ICStub is owned by an ICScript and, indirectly, a
+ * JitScript. An ICStub that uses CallInlinedFunction contains an
+ * ICScript for use by the callee. The ICStub and the callee ICScript
+ * are always owned by the same JitScript, so the callee ICScript will
+ * not be freed while the ICStub is alive.
+ *
+ * The lifetime of an ICScript is independent of the lifetimes of the
+ * BaselineScript and IonScript/WarpScript to which it
+ * corresponds. They can be destroyed and recreated, and the ICScript
+ * will remain valid.
+ */
+
+class alignas(uintptr_t) ICScript final : public TrailingArray {
+ public:
+  ICScript(uint32_t warmUpCount, Offset endOffset, uint32_t depth,
+           InliningRoot* inliningRoot = nullptr)
+      : inliningRoot_(inliningRoot),
+        warmUpCount_(warmUpCount),
+        endOffset_(endOffset),
+        depth_(depth) {}
+
+  bool isInlined() const { return depth_ > 0; }
+
+  MOZ_MUST_USE bool initICEntries(JSContext* cx, JSScript* script);
+
+  ICEntry& icEntry(size_t index) {
+    MOZ_ASSERT(index < numICEntries());
+    return icEntries()[index];
+  }
+
+  InliningRoot* inliningRoot() const { return inliningRoot_; }
+  uint32_t depth() const { return depth_; }
+
+  void resetWarmUpCount(uint32_t count) { warmUpCount_ = count; }
+
+  static constexpr size_t offsetOfFirstStub(uint32_t entryIndex) {
+    return sizeof(ICScript) + entryIndex * sizeof(ICEntry) +
+           ICEntry::offsetOfFirstStub();
+  }
+
+  static constexpr Offset offsetOfWarmUpCount() {
+    return offsetof(ICScript, warmUpCount_);
+  }
+  static constexpr Offset offsetOfDepth() { return offsetof(ICScript, depth_); }
+
+  static constexpr Offset offsetOfICEntries() { return sizeof(ICScript); }
+  uint32_t numICEntries() const {
+    return numElements<ICEntry>(icEntriesOffset(), endOffset());
+  }
+
+  ICEntry* interpreterICEntryFromPCOffset(uint32_t pcOffset);
+
+  ICEntry* maybeICEntryFromPCOffset(uint32_t pcOffset);
+  ICEntry* maybeICEntryFromPCOffset(uint32_t pcOffset,
+                                    ICEntry* prevLookedUpEntry);
+
+  ICEntry& icEntryFromPCOffset(uint32_t pcOffset);
+  ICEntry& icEntryFromPCOffset(uint32_t pcOffset, ICEntry* prevLookedUpEntry);
+
+  MOZ_MUST_USE bool addInlinedChild(JSContext* cx,
+                                    js::UniquePtr<ICScript> child,
+                                    uint32_t pcOffset);
+  ICScript* findInlinedChild(uint32_t pcOffset);
+  void removeInlinedChild(uint32_t pcOffset);
+  bool hasInlinedChild(uint32_t pcOffset);
+
+  FallbackICStubSpace* fallbackStubSpace();
+  void purgeOptimizedStubs(Zone* zone);
+
+  void trace(JSTracer* trc);
+
+ private:
+  class CallSite {
+   public:
+    CallSite(ICScript* callee, uint32_t pcOffset)
+        : callee_(callee), pcOffset_(pcOffset) {}
+    ICScript* callee_;
+    uint32_t pcOffset_;
+  };
+
+  // If this ICScript was created for trial inlining or has another
+  // ICScript inlined into it, a pointer to the root of the inlining
+  // tree. Otherwise, nullptr.
+  InliningRoot* inliningRoot_ = nullptr;
+
+  // ICScripts that have been inlined into this ICScript.
+  js::UniquePtr<Vector<CallSite>> inlinedChildren_;
+
+  // Number of times this copy of the script has been called or has had
+  // backedges taken.  Reset if the script's JIT code is forcibly discarded.
+  // See also the ScriptWarmUpData class.
+  mozilla::Atomic<uint32_t, mozilla::Relaxed> warmUpCount_ = {};
+
+  // The size of this allocation.
+  Offset endOffset_;
+
+  // The inlining depth of this ICScript. 0 for the inlining root.
+  uint32_t depth_;
+
+  Offset icEntriesOffset() const { return offsetOfICEntries(); }
+  Offset endOffset() const { return endOffset_; }
+
+  ICEntry* icEntries() { return offsetToPointer<ICEntry>(icEntriesOffset()); }
+
+  JitScript* outerJitScript();
+
+  friend class JitScript;
+};
+
 // [SMDOC] JitScript
 //
 // JitScript stores type inference data, Baseline ICs and other JIT-related data
@@ -60,8 +195,10 @@ static IonScript* const IonCompilingScriptPtr =
 //
 // IC Data
 // =======
-// All IC data for Baseline (Interpreter and JIT) is stored in JitScript. Ion
-// has its own IC chains stored in IonScript.
+// All IC data for Baseline (Interpreter and JIT) is stored in an ICScript. Each
+// JitScript contains an ICScript as the last field. Additional free-standing
+// ICScripts may be created during trial inlining. Ion has its own IC chains
+// stored in IonScript.
 //
 // For each IC we store an ICEntry, which points to the first ICStub in the
 // chain. Note that multiple stubs in the same zone can share Baseline IC code.
@@ -73,18 +210,18 @@ static IonScript* const IonCompilingScriptPtr =
 // because the JitScript can be reused when we have to recompile the
 // BaselineScript.
 //
-// JitScript contains the following IC data structures:
+// The JitScript contains a fallback stub space. This stores all fallback stubs
+// and the "can GC" stubs. These stubs are never purged before destroying the
+// JitScript. Other stubs are stored in the optimized stub space stored in
+// JitZone and can be purged more eagerly. See JitScript::purgeOptimizedStubs.
 //
-// * Fallback stub space: this stores all fallback stubs and the "can GC" stubs.
-//   These stubs are never purged before destroying the JitScript. (Other stubs
-//   are stored in the optimized stub space stored in JitZone and can be
-//   discarded more eagerly. See JitScript::purgeOptimizedStubs.)
-//
-// * List of IC entries, in the following order:
+// An ICScript contains a list of IC entries, in the following order:
 //
 //   - Type monitor IC for |this|.
 //   - Type monitor IC for each formal argument.
 //   - IC for each JOF_IC bytecode op.
+//
+// The ICScript also contains the warmUpCount for the script.
 //
 // Type Inference Data
 // ===================
@@ -102,19 +239,21 @@ static IonScript* const IonCompilingScriptPtr =
 //
 // Memory Layout
 // =============
-// JitScript has various trailing (variable-length) arrays. The memory layout is
-// as follows:
+// JitScript contains an ICScript as the last field. ICScript has a trailing
+// (variable length) ICEntry array. Following the ICScript, JitScript has
+// several additional trailing arrays. The memory layout is as follows:
 //
 //  Item                    | Offset
 //  ------------------------+------------------------
 //  JitScript               | 0
-//  ICEntry[]               | sizeof(JitScript)
-//  StackTypeSet[]          | typeSetOffset_
-//  uint32_t[]              | bytecodeTypeMapOffset_
+//  -->ICScript  (field)    |
+//     ICEntry[]            | icEntriesOffset()
+//  StackTypeSet[]          | typeSetOffset()
+//  uint32_t[]              | bytecodeTypeMapOffset()
 //    (= bytecode type map) |
 //
 // These offsets are also used to compute numICEntries and numTypeSets.
-class alignas(uintptr_t) JitScript final {
+class alignas(uintptr_t) JitScript final : public TrailingArray {
   friend class ::JSScript;
 
   // Allocated space for fallback IC stubs.
@@ -178,23 +317,18 @@ class alignas(uintptr_t) JitScript final {
   // IonCompilingScriptPtr or a valid IonScript*.
   IonScript* ionScript_ = nullptr;
 
-  // Number of times the script has been called or has had backedges taken.
-  // Reset if the script's JIT code is forcibly discarded. See also the
-  // ScriptWarmUpData class.
-  mozilla::Atomic<uint32_t, mozilla::Relaxed> warmUpCount_ = {};
-
   // Offset of the StackTypeSet array.
-  uint32_t typeSetOffset_ = 0;
+  Offset typeSetOffset_ = 0;
 
   // Offset of the bytecode type map.
-  uint32_t bytecodeTypeMapOffset_ = 0;
+  Offset bytecodeTypeMapOffset_ = 0;
+
+  // The size of this allocation.
+  Offset endOffset_ = 0;
 
   // This field is used to avoid binary searches for the sought entry when
   // bytecode map queries are in linear order.
   uint32_t bytecodeTypeMapHint_ = 0;
-
-  // The size of this allocation.
-  uint32_t allocBytes_ = 0;
 
   struct Flags {
     // Flag set when discarding JIT code to indicate this script is on the stack
@@ -212,18 +346,27 @@ class alignas(uintptr_t) JitScript final {
     // inlined into another script. This is cleared when the script's type
     // information or caches are cleared.
     bool ionCompiledOrInlined : 1;
+
+    // True if this script entered Ion via OSR at a loop header.
+    bool hadIonOSR : 1;
   };
   Flags flags_ = {};  // Zero-initialize flags.
 
-  ICEntry* icEntries() {
-    uint8_t* base = reinterpret_cast<uint8_t*>(this);
-    return reinterpret_cast<ICEntry*>(base + offsetOfICEntries());
-  }
+  js::UniquePtr<InliningRoot> inliningRoot_;
+
+  ICScript icScript_;
+  // End of fields.
+
+  Offset icEntriesOffset() const { return offsetOfICEntries(); }
+  Offset typeSetOffset() const { return typeSetOffset_; }
+  Offset bytecodeTypeMapOffset() const { return bytecodeTypeMapOffset_; }
+  Offset endOffset() const { return endOffset_; }
+
+  ICEntry* icEntries() { return icScript_.icEntries(); }
 
   StackTypeSet* typeArrayDontCheckGeneration() {
     MOZ_ASSERT(IsTypeInferenceEnabled());
-    uint8_t* base = reinterpret_cast<uint8_t*>(this);
-    return reinterpret_cast<StackTypeSet*>(base + typeSetOffset_);
+    return offsetToPointer<StackTypeSet>(typeSetOffset());
   }
 
   uint32_t typesGeneration() const { return uint32_t(flags_.typesGeneration); }
@@ -244,8 +387,8 @@ class alignas(uintptr_t) JitScript final {
   }
 
  public:
-  JitScript(JSScript* script, uint32_t typeSetOffset,
-            uint32_t bytecodeTypeMapOffset, uint32_t allocBytes,
+  JitScript(JSScript* script, Offset typeSetOffset,
+            Offset bytecodeTypeMapOffset, Offset endOffset,
             const char* profileString);
 
 #ifdef DEBUG
@@ -260,8 +403,7 @@ class alignas(uintptr_t) JitScript final {
   }
 #endif
 
-  MOZ_MUST_USE bool initICEntriesAndBytecodeTypeMap(JSContext* cx,
-                                                    JSScript* script);
+  void initBytecodeTypeMap(JSScript* script);
 
   MOZ_MUST_USE bool ensureHasCachedIonData(JSContext* cx, HandleScript script);
 
@@ -281,6 +423,9 @@ class alignas(uintptr_t) JitScript final {
   void clearIonCompiledOrInlined() { flags_.ionCompiledOrInlined = false; }
   bool ionCompiledOrInlined() const { return flags_.ionCompiledOrInlined; }
 
+  void setHadIonOSR() { flags_.hadIonOSR = true; }
+  bool hadIonOSR() const { return flags_.hadIonOSR; }
+
   RecompileInfoVector* maybeInlinedCompilations(
       const js::AutoSweepJitScript& sweep) {
     MOZ_ASSERT(sweep.jitScript() == this);
@@ -299,12 +444,10 @@ class alignas(uintptr_t) JitScript final {
     return inlinedCompilations.append(info);
   }
 
-  uint32_t numICEntries() const {
-    return (typeSetOffset_ - offsetOfICEntries()) / sizeof(ICEntry);
-  }
+  uint32_t numICEntries() const { return icScript_.numICEntries(); }
   uint32_t numTypeSets() const {
     MOZ_ASSERT(IsTypeInferenceEnabled());
-    return (bytecodeTypeMapOffset_ - typeSetOffset_) / sizeof(StackTypeSet);
+    return numElements<StackTypeSet>(typeSetOffset(), bytecodeTypeMapOffset());
   }
 
   uint32_t* bytecodeTypeMapHint() { return &bytecodeTypeMapHint_; }
@@ -328,8 +471,7 @@ class alignas(uintptr_t) JitScript final {
 
   uint32_t* bytecodeTypeMap() {
     MOZ_ASSERT(IsTypeInferenceEnabled());
-    uint8_t* base = reinterpret_cast<uint8_t*>(this);
-    return reinterpret_cast<uint32_t*>(base + bytecodeTypeMapOffset_);
+    return offsetToPointer<uint32_t>(bytecodeTypeMapOffset());
   }
 
   inline StackTypeSet* thisTypes(const AutoSweepJitScript& sweep,
@@ -399,7 +541,7 @@ class alignas(uintptr_t) JitScript final {
 
   static void Destroy(Zone* zone, JitScript* script);
 
-  static constexpr size_t offsetOfICEntries() { return sizeof(JitScript); }
+  static constexpr Offset offsetOfICEntries() { return sizeof(JitScript); }
 
   static constexpr size_t offsetOfJitCodeSkipArgCheck() {
     return offsetof(JitScript, jitCodeSkipArgCheck_);
@@ -410,14 +552,16 @@ class alignas(uintptr_t) JitScript final {
   static constexpr size_t offsetOfIonScript() {
     return offsetof(JitScript, ionScript_);
   }
+  static constexpr size_t offsetOfICScript() {
+    return offsetof(JitScript, icScript_);
+  }
   static constexpr size_t offsetOfWarmUpCount() {
-    return offsetof(JitScript, warmUpCount_);
+    return offsetOfICScript() + ICScript::offsetOfWarmUpCount();
   }
 
-  uint32_t warmUpCount() const { return warmUpCount_; }
-  uint32_t* addressOfWarmUpCount() {
-    return reinterpret_cast<uint32_t*>(&warmUpCount_);
-  }
+  uint32_t warmUpCount() const { return icScript_.warmUpCount_; }
+  void incWarmUpCount(uint32_t amount) { icScript_.warmUpCount_ += amount; }
+  void resetWarmUpCount(uint32_t count);
 
 #ifdef DEBUG
   void printTypes(JSContext* cx, HandleScript script);
@@ -444,25 +588,36 @@ class alignas(uintptr_t) JitScript final {
     *fallbackStubs += fallbackStubSpace_.sizeOfExcludingThis(mallocSizeOf);
   }
 
-  ICEntry& icEntry(size_t index) {
-    MOZ_ASSERT(index < numICEntries());
-    return icEntries()[index];
-  }
+  ICEntry& icEntry(size_t index) { return icScript_.icEntry(index); }
 
+  // Used to inform IonBuilder that a getter has been used and we must
+  // use a type barrier.
   void noteAccessedGetter(uint32_t pcOffset);
+  // Used to inform IonBuilder that a SetElem has written to out-of-bounds
+  // indices, to determine whether we need a hole check.
   void noteHasDenseAdd(uint32_t pcOffset);
 
   void trace(JSTracer* trc);
   void purgeOptimizedStubs(JSScript* script);
 
-  ICEntry* interpreterICEntryFromPCOffset(uint32_t pcOffset);
+  ICEntry* interpreterICEntryFromPCOffset(uint32_t pcOffset) {
+    return icScript_.interpreterICEntryFromPCOffset(pcOffset);
+  }
 
-  ICEntry* maybeICEntryFromPCOffset(uint32_t pcOffset);
+  ICEntry* maybeICEntryFromPCOffset(uint32_t pcOffset) {
+    return icScript_.maybeICEntryFromPCOffset(pcOffset);
+  }
   ICEntry* maybeICEntryFromPCOffset(uint32_t pcOffset,
-                                    ICEntry* prevLookedUpEntry);
+                                    ICEntry* prevLookedUpEntry) {
+    return icScript_.maybeICEntryFromPCOffset(pcOffset, prevLookedUpEntry);
+  }
 
-  ICEntry& icEntryFromPCOffset(uint32_t pcOffset);
-  ICEntry& icEntryFromPCOffset(uint32_t pcOffset, ICEntry* prevLookedUpEntry);
+  ICEntry& icEntryFromPCOffset(uint32_t pcOffset) {
+    return icScript_.icEntryFromPCOffset(pcOffset);
+  };
+  ICEntry& icEntryFromPCOffset(uint32_t pcOffset, ICEntry* prevLookedUpEntry) {
+    return icScript_.icEntryFromPCOffset(pcOffset, prevLookedUpEntry);
+  }
 
   MOZ_MUST_USE bool addDependentWasmImport(JSContext* cx,
                                            wasm::Instance& instance,
@@ -470,7 +625,7 @@ class alignas(uintptr_t) JitScript final {
   void removeDependentWasmImport(wasm::Instance& instance, uint32_t idx);
   void unlinkDependentWasmImports();
 
-  size_t allocBytes() const { return allocBytes_; }
+  size_t allocBytes() const { return endOffset(); }
 
   EnvironmentObject* templateEnvironment() const {
     return cachedIonData().templateEnv;
@@ -577,6 +732,12 @@ class alignas(uintptr_t) JitScript final {
     MOZ_ASSERT(isIonCompilingOffThread());
     setIonScriptImpl(script, nullptr);
   }
+  ICScript* icScript() { return &icScript_; }
+
+  bool hasInliningRoot() const { return !!inliningRoot_; }
+  InliningRoot* inliningRoot() const { return inliningRoot_.get(); }
+  InliningRoot* getOrCreateInliningRoot(JSContext* cx, JSScript* script);
+  void clearInliningRoot() { inliningRoot_.reset(); }
 };
 
 // Ensures no JitScripts are purged in the current zone.
@@ -595,6 +756,10 @@ class MOZ_RAII AutoKeepJitScripts {
 // Mark JitScripts on the stack as active, so that they are not discarded
 // during GC.
 void MarkActiveJitScripts(Zone* zone);
+
+#if defined(JS_STRUCTURED_SPEW) || defined(JS_CACHEIR_SPEW)
+bool GetStubEnteredCount(ICStub* stub, uint32_t* count);
+#endif
 
 #ifdef JS_STRUCTURED_SPEW
 void JitSpewBaselineICStats(JSScript* script, const char* dumpReason);

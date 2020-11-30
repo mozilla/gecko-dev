@@ -29,7 +29,7 @@ def getEffectiveTLDs(path):
       raise StopIteration
     line = line.rstrip()
     # comment, empty, or superfluous line for explicitness purposes
-    if line.startswith("//") or "." not in line:
+    if line.startswith("//") or not line.strip():
       continue
     line = re.split(r"[ \t\n]", line, 1)[0]
     entry = EffectiveTLDEntry(line)
@@ -126,8 +126,6 @@ def main(output, effective_tld_filename, output_format="cxx"):
 
   """ words_to_bin() returns a bytes while words_to_cxx() returns string """
   if output_format == "bin":
-    if sys.version_info[0] >= 3:
-      output = output.buffer
     output.write(words_to_bin(dafsa_words()))
   else:
     output.write(words_to_cxx(dafsa_words()))
@@ -137,7 +135,7 @@ def main(output, effective_tld_filename, output_format="cxx"):
 if __name__ == '__main__':
     """
     This program can output the DAFSA in two formats:
-    as C++ code that will be included and compiled at build time 
+    as C++ code that will be included and compiled at build time
     or as a binary file that will be published in Remote Settings.
     
     Flags for format options:

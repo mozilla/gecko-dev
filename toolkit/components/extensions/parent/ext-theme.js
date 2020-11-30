@@ -16,13 +16,11 @@ ChromeUtils.defineModuleGetter(
   "resource://gre/modules/LightweightThemeManager.jsm"
 );
 
-var { getWinUtils } = ExtensionUtils;
-
 const onUpdatedEmitter = new EventEmitter();
 
 // Represents an empty theme for convenience of use
 const emptyTheme = {
-  details: {},
+  details: { colors: null, images: null, properties: null },
 };
 
 let defaultTheme = emptyTheme;
@@ -118,9 +116,9 @@ class Theme {
     }
 
     if (this.windowId) {
-      this.lwtData.window = getWinUtils(
-        windowTracker.getWindow(this.windowId)
-      ).outerWindowID;
+      this.lwtData.window = windowTracker.getWindow(
+        this.windowId
+      ).docShell.outerWindowID;
       windowOverrides.set(this.windowId, this);
     } else {
       windowOverrides.clear();
@@ -386,10 +384,8 @@ class Theme {
     };
 
     if (windowId) {
-      lwtData.window = getWinUtils(
-        windowTracker.getWindow(windowId)
-      ).outerWindowID;
-      windowOverrides.set(windowId, emptyTheme);
+      lwtData.window = windowTracker.getWindow(windowId).docShell.outerWindowID;
+      windowOverrides.delete(windowId);
     } else {
       windowOverrides.clear();
       defaultTheme = emptyTheme;
@@ -473,12 +469,12 @@ this.theme = class extends ExtensionAPI {
             if (!browserWindow) {
               return Promise.reject(`Invalid window ID: ${windowId}`);
             }
-          } else if (defaultTheme.extension !== extension) {
-            return;
-          }
 
-          if (!defaultTheme && !windowOverrides.has(windowId)) {
-            // If no theme has been initialized, nothing to do.
+            let theme = windowOverrides.get(windowId) || defaultTheme;
+            if (theme.extension !== extension) {
+              return;
+            }
+          } else if (defaultTheme.extension !== extension) {
             return;
           }
 

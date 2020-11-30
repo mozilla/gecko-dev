@@ -174,7 +174,7 @@ var SysInfo = {
       return this.overrides[name];
     }
 
-    return this._genuine.getProperty(name);
+    return this._genuine.QueryInterface(Ci.nsIPropertyBag).getProperty(name);
   },
 
   getPropertyAsUint32(name) {
@@ -182,7 +182,7 @@ var SysInfo = {
   },
 
   get(name) {
-    return this._genuine.get(name);
+    return this._genuine.QueryInterface(Ci.nsIPropertyBag2).get(name);
   },
 
   get diskInfo() {
@@ -340,29 +340,16 @@ function spoofPartnerInfo() {
   }
 }
 
-function getAttributionFile() {
-  return FileUtils.getFile("LocalAppData", [
-    "mozilla",
-    AppConstants.MOZ_APP_NAME,
-    "postSigningData",
-  ]);
-}
-
-function spoofAttributionData() {
-  if (gIsWindows) {
+async function spoofAttributionData() {
+  if (gIsWindows || gIsMac) {
     AttributionCode._clearCache();
-    let stream = Cc["@mozilla.org/network/file-output-stream;1"].createInstance(
-      Ci.nsIFileOutputStream
-    );
-    stream.init(getAttributionFile(), -1, -1, 0);
-    stream.write(ATTRIBUTION_CODE, ATTRIBUTION_CODE.length);
-    stream.close();
+    await AttributionCode.writeAttributionFile(ATTRIBUTION_CODE);
   }
 }
 
 function cleanupAttributionData() {
-  if (gIsWindows) {
-    getAttributionFile().remove(false);
+  if (gIsWindows || gIsMac) {
+    AttributionCode.attributionFile.remove(false);
     AttributionCode._clearCache();
   }
 }
@@ -442,6 +429,7 @@ function checkSettingsSection(data) {
     blocklistEnabled: "boolean",
     e10sEnabled: "boolean",
     e10sMultiProcesses: "number",
+    fissionEnabled: "boolean",
     intl: "object",
     locale: "string",
     telemetryEnabled: "boolean",
@@ -502,7 +490,7 @@ function checkSettingsSection(data) {
     Assert.equal(typeof data.settings.defaultPrivateSearchEngineData, "object");
   }
 
-  if (gIsWindows && AppConstants.MOZ_BUILD_APP == "browser") {
+  if ((gIsWindows || gIsMac) && AppConstants.MOZ_BUILD_APP == "browser") {
     Assert.equal(typeof data.settings.attribution, "object");
     Assert.equal(data.settings.attribution.source, "google.com");
   }
@@ -761,12 +749,14 @@ function checkSystemSection(data, assertProcessData) {
   Assert.ok("D2DEnabled" in gfxData);
   Assert.ok("DWriteEnabled" in gfxData);
   Assert.ok("Headless" in gfxData);
+  Assert.ok("EmbeddedInFirefoxReality" in gfxData);
   // DWriteVersion is disabled due to main thread jank and will be enabled
   // again as part of bug 1154500.
   // Assert.ok("DWriteVersion" in gfxData);
   if (gIsWindows) {
     Assert.equal(typeof gfxData.D2DEnabled, "boolean");
     Assert.equal(typeof gfxData.DWriteEnabled, "boolean");
+    Assert.equal(typeof gfxData.EmbeddedInFirefoxReality, "boolean");
     // As above, will be enabled again as part of bug 1154500.
     // Assert.ok(checkString(gfxData.DWriteVersion));
   }
@@ -1922,7 +1912,7 @@ async function checkDefaultSearch(privateOn, reInitSearchService) {
 
   // Initialize the search service.
   if (reInitSearchService) {
-    Services.search.reset();
+    Services.search.wrappedJSObject.reset();
   }
   await Services.search.init();
   await promiseNextTick();
@@ -1963,41 +1953,6 @@ async function checkDefaultSearch(privateOn, reInitSearchService) {
       !("defaultPrivateSearchEngineData" in data.settings),
       "Should not have private data recorded as the pref for separate is off"
     );
-  }
-
-  if (!Services.prefs.getBoolPref("browser.search.modernConfig")) {
-    // Remove all the search engines.
-    for (let engine of await Services.search.getEngines()) {
-      await Services.search.removeEngine(engine);
-    }
-    // The search service does not notify "engine-default" when removing a default engine.
-    // Manually force the notification.
-    // TODO: remove this when bug 1165341 is resolved.
-    Services.obs.notifyObservers(
-      null,
-      "browser-search-engine-modified",
-      "engine-default"
-    );
-    if (privateOn) {
-      Services.obs.notifyObservers(
-        null,
-        "browser-search-engine-modified",
-        "engine-default-private"
-      );
-    }
-    await promiseNextTick();
-
-    // Then check that no default engine is reported if none is available.
-    data = TelemetryEnvironment.currentEnvironment;
-    checkEnvironmentData(data);
-    Assert.equal(data.settings.defaultSearchEngine, "NONE");
-    Assert.deepEqual(data.settings.defaultSearchEngineData, { name: "NONE" });
-    if (privateOn) {
-      Assert.equal(data.settings.defaultPrivateSearchEngine, "NONE");
-      Assert.deepEqual(data.settings.defaultPrivateSearchEngineData, {
-        name: "NONE",
-      });
-    }
   }
 
   // Add a new search engine (this will have no engine identifier).
@@ -2041,7 +1996,7 @@ async function checkDefaultSearch(privateOn, reInitSearchService) {
   const EXPECTED_SEARCH_ENGINE = "other-" + SEARCH_ENGINE_ID;
   const EXPECTED_SEARCH_ENGINE_DATA = {
     name: "telemetry_default",
-    loadPath: "[other]addEngineWithDetails",
+    loadPath: "[other]addEngineWithDetails:telemetry_default@test.engine",
     origin: "verified",
   };
   if (privateOn) {
@@ -2100,10 +2055,9 @@ add_task(async function test_defaultSearchEngine() {
         reject(ex);
       }
     }, "browser-search-engine-modified");
-    Services.search.addEngine(
+    Services.search.addOpenSearchEngine(
       "file://" + do_get_cwd().path + "/engine.xml",
-      null,
-      false
+      null
     );
   });
   await Services.search.setDefault(engine);
@@ -2171,38 +2125,6 @@ add_task(async function test_defaultSearchEngine() {
   data = TelemetryEnvironment.currentEnvironment;
   checkEnvironmentData(data);
   Assert.equal(data.settings.defaultSearchEngine, EXPECTED_SEARCH_ENGINE);
-
-  // Check that by default we are not sending a cohort identifier...
-  Assert.equal(data.settings.searchCohort, undefined);
-
-  // ... but that if a cohort identifier is set, we send it.
-  deferred = PromiseUtils.defer();
-  TelemetryEnvironment.registerChangeListener(
-    "testSearchEngine_pref",
-    deferred.resolve
-  );
-  Services.prefs.setCharPref("browser.search.cohort", "testcohort");
-  Services.obs.notifyObservers(null, "browser-search-service", "init-complete");
-  await deferred.promise;
-  TelemetryEnvironment.unregisterChangeListener("testSearchEngine_pref");
-  data = TelemetryEnvironment.currentEnvironment;
-  Assert.equal(data.settings.searchCohort, "testcohort");
-  Assert.equal(data.experiments.searchCohort.branch, "testcohort");
-
-  // Check that when changing the cohort identifier...
-  deferred = PromiseUtils.defer();
-  TelemetryEnvironment.registerChangeListener(
-    "testSearchEngine_pref",
-    deferred.resolve
-  );
-  Services.prefs.setCharPref("browser.search.cohort", "testcohort2");
-  Services.obs.notifyObservers(null, "browser-search-service", "init-complete");
-  await deferred.promise;
-  TelemetryEnvironment.unregisterChangeListener("testSearchEngine_pref");
-  data = TelemetryEnvironment.currentEnvironment;
-  // ... the setting and experiment are updated.
-  Assert.equal(data.settings.searchCohort, "testcohort2");
-  Assert.equal(data.experiments.searchCohort.branch, "testcohort2");
 });
 
 add_task(async function test_defaultPrivateSearchEngine() {

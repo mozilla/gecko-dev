@@ -9,20 +9,21 @@
 
 #include "mozilla/MozPromise.h"
 #include "mozilla/Variant.h"
+#include "mozilla/WeakPtr.h"
+#include "mozilla/ipc/ProtocolUtils.h"
+#include "mozilla/dom/SessionHistoryEntry.h"
 #include "mozilla/net/NeckoCommon.h"
 #include "mozilla/net/NeckoParent.h"
 #include "mozilla/net/PDocumentChannelParent.h"
 #include "mozilla/net/ParentChannelListener.h"
-#include "mozilla/net/ADocumentChannelBridge.h"
-#include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "nsDOMNavigationTiming.h"
+#include "nsIBrowser.h"
 #include "nsIInterfaceRequestor.h"
-#include "nsIObserver.h"
+#include "nsIMultiPartChannel.h"
 #include "nsIParentChannel.h"
 #include "nsIParentRedirectingChannel.h"
-#include "nsIProcessSwitchRequestor.h"
+#include "nsIProgressEventSink.h"
 #include "nsIRedirectResultListener.h"
-#include "nsIMultiPartChannel.h"
 
 #define DOCUMENT_LOAD_LISTENER_IID                   \
   {                                                  \
@@ -30,6 +31,37 @@
       0xa2, 0xa3, 0x2a, 0x2a, 0xe2, 0xdb, 0xcc, 0xe4 \
     }                                                \
   }
+
+namespace mozilla {
+namespace dom {
+class CanonicalBrowsingContext;
+}
+namespace net {
+using ChildEndpointPromise =
+    MozPromise<ipc::Endpoint<extensions::PStreamFilterChild>, bool, true>;
+
+// If we've been asked to attach a stream filter to our channel,
+// then we return this promise and defer until we know the final
+// content process. At that point we setup Endpoints between
+// mStramFilterProcessId and the new content process, and send
+// the parent Endpoint to the new process.
+// Once we have confirmation of that being bound in the content
+// process, we resolve the promise the child Endpoint.
+struct StreamFilterRequest {
+  StreamFilterRequest() = default;
+  StreamFilterRequest(StreamFilterRequest&&) = default;
+  ~StreamFilterRequest() {
+    if (mPromise) {
+      mPromise->Reject(false, __func__);
+    }
+  }
+  RefPtr<ChildEndpointPromise::Private> mPromise;
+  base::ProcessId mChildProcessId;
+  ipc::Endpoint<extensions::PStreamFilterChild> mChildEndpoint;
+};
+}  // namespace net
+}  // namespace mozilla
+MOZ_DECLARE_RELOCATE_USING_MOVE_CONSTRUCTOR(mozilla::net::StreamFilterRequest)
 
 namespace mozilla {
 namespace net {
@@ -60,23 +92,112 @@ class DocumentLoadListener : public nsIInterfaceRequestor,
                              public nsIParentChannel,
                              public nsIChannelEventSink,
                              public HttpChannelSecurityWarningReporter,
-                             public nsIProcessSwitchRequestor,
-                             public nsIMultiPartChannelListener {
+                             public nsIMultiPartChannelListener,
+                             public nsIProgressEventSink {
  public:
-  explicit DocumentLoadListener(dom::CanonicalBrowsingContext* aBrowsingContext,
-                                nsILoadContext* aLoadContext,
-                                PBOverrideStatus aOverrideStatus,
-                                ADocumentChannelBridge* aBridge);
+  // See the comment on GetLoadingBrowsingContext for explanation of
+  // aLoadingBrowsingContext.
+  DocumentLoadListener(dom::CanonicalBrowsingContext* aLoadingBrowsingContext,
+                       bool aIsDocumentLoad);
 
+  struct OpenPromiseSucceededType {
+    nsTArray<ipc::Endpoint<extensions::PStreamFilterParent>>
+        mStreamFilterEndpoints;
+    uint32_t mRedirectFlags;
+    uint32_t mLoadFlags;
+    RefPtr<PDocumentChannelParent::RedirectToRealChannelPromise::Private>
+        mPromise;
+  };
+  struct OpenPromiseFailedType {
+    nsresult mStatus;
+    nsresult mLoadGroupStatus;
+    // This is set to true if we're rejecting the promise because we
+    // switched to load away to a new process.
+    bool mSwitchedProcess = false;
+  };
+
+  typedef MozPromise<OpenPromiseSucceededType, OpenPromiseFailedType,
+                     true /* isExclusive */>
+      OpenPromise;
+
+  // Interface which may be provided when performing an <object> or <embed> load
+  // with `DocumentLoadListener`, to allow upgrading the Object load to a proper
+  // Document load.
+  struct ObjectUpgradeHandler : public SupportsWeakPtr {
+    using ObjectUpgradePromise =
+        MozPromise<RefPtr<dom::CanonicalBrowsingContext>, nsresult,
+                   true /* isExclusive */>;
+
+    // Upgrade an object load to be a potentially remote document.
+    //
+    // The returned promise will resolve with the BrowsingContext which has been
+    // created in the <object> or <embed> element to finish the load with.
+    virtual RefPtr<ObjectUpgradePromise> UpgradeObjectLoad() = 0;
+  };
+
+ private:
   // Creates the channel, and then calls AsyncOpen on it.
-  bool Open(nsDocShellLoadState* aLoadState, class LoadInfo* aLoadInfo,
-            nsLoadFlags aLoadFlags, uint32_t aLoadType, uint32_t aCacheKey,
-            bool aIsActive, bool aIsTopLevelDoc,
-            bool aHasNonEmptySandboxingFlags, const uint64_t& aChannelId,
-            const TimeStamp& aAsyncOpenTime,
-            const Maybe<uint32_t>& aDocumentOpenFlags, bool aPluginsAllowed,
-            nsDOMNavigationTiming* aTiming, Maybe<dom::ClientInfo>&& aInfo,
-            uint64_t aOuterWindowId, nsresult* aRv);
+  // The DocumentLoadListener will require additional process from the consumer
+  // in order to complete the redirect to the end channel. This is done by
+  // returning a RedirectToRealChannelPromise and then waiting for it to be
+  // resolved or rejected accordingly.
+  // Once that promise is resolved; the consumer no longer needs to hold a
+  // reference to the DocumentLoadListener nor will the consumer required to be
+  // used again.
+  RefPtr<OpenPromise> Open(nsDocShellLoadState* aLoadState, LoadInfo* aLoadInfo,
+                           nsLoadFlags aLoadFlags, uint32_t aCacheKey,
+                           const Maybe<uint64_t>& aChannelId,
+                           const TimeStamp& aAsyncOpenTime,
+                           nsDOMNavigationTiming* aTiming,
+                           Maybe<dom::ClientInfo>&& aInfo, bool aUrgentStart,
+                           base::ProcessId aPid, nsresult* aRv);
+
+ public:
+  RefPtr<OpenPromise> OpenDocument(
+      nsDocShellLoadState* aLoadState, uint32_t aCacheKey,
+      const Maybe<uint64_t>& aChannelId, const TimeStamp& aAsyncOpenTime,
+      nsDOMNavigationTiming* aTiming, Maybe<dom::ClientInfo>&& aInfo,
+      Maybe<bool> aUriModified, Maybe<bool> aIsXFOError, base::ProcessId aPid,
+      nsresult* aRv);
+
+  RefPtr<OpenPromise> OpenObject(
+      nsDocShellLoadState* aLoadState, uint32_t aCacheKey,
+      const Maybe<uint64_t>& aChannelId, const TimeStamp& aAsyncOpenTime,
+      nsDOMNavigationTiming* aTiming, Maybe<dom::ClientInfo>&& aInfo,
+      uint64_t aInnerWindowId, nsLoadFlags aLoadFlags,
+      nsContentPolicyType aContentPolicyType, bool aUrgentStart,
+      base::ProcessId aPid, ObjectUpgradeHandler* aUpgradeHandler,
+      nsresult* aRv);
+
+  // Creates a DocumentLoadListener entirely in the parent process and opens it,
+  // and never needs a DocumentChannel to connect to an existing docshell.
+  // Once we get a response it takes the 'process switch' path to find the right
+  // process and docshell, and delivers the response there directly.
+  static bool LoadInParent(dom::CanonicalBrowsingContext* aBrowsingContext,
+                           nsDocShellLoadState* aLoadState,
+                           bool aSetNavigating);
+
+  // Creates a DocumentLoadListener directly in the parent process and opens it,
+  // without needing an existing DocumentChannel.
+  // If successful it registers a unique identifier (return in aOutIdent) to
+  // keep it alive until a future DocumentChannel can attach to it, or we fail
+  // and clean up.
+  static bool SpeculativeLoadInParent(
+      dom::CanonicalBrowsingContext* aBrowsingContext,
+      nsDocShellLoadState* aLoadState);
+
+  // Ensures that a load identifier allocated by OpenFromParent has
+  // been deregistered if it hasn't already been claimed.
+  // This also cancels the load.
+  static void CleanupParentLoadAttempt(uint64_t aLoadIdent);
+
+  // Looks up aLoadIdent to find the associated, cleans up the registration
+  static RefPtr<OpenPromise> ClaimParentLoad(DocumentLoadListener** aListener,
+                                             uint64_t aLoadIdent);
+
+  // Called by the DocumentChannelParent if actor got destroyed or the parent
+  // channel got deleted.
+  void Abort();
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIREQUESTOBSERVER
@@ -85,19 +206,25 @@ class DocumentLoadListener : public nsIInterfaceRequestor,
   NS_DECL_NSIINTERFACEREQUESTOR
   NS_DECL_NSIASYNCVERIFYREDIRECTREADYCALLBACK
   NS_DECL_NSICHANNELEVENTSINK
-  NS_DECL_NSIPROCESSSWITCHREQUESTOR
   NS_DECL_NSIMULTIPARTCHANNELLISTENER
+  NS_DECL_NSIPROGRESSEVENTSINK
 
   // We suspend the underlying channel when replacing ourselves with
   // the real listener channel.
   // This helper resumes the underlying channel again, and manually
   // forwards any nsIStreamListener messages that arrived while we
   // were suspended (which might have failed).
-  void ResumeSuspendedChannel(nsIStreamListener* aListener);
+  // Returns true if the channel was finished before we could resume it.
+  bool ResumeSuspendedChannel(nsIStreamListener* aListener);
 
   NS_DECLARE_STATIC_IID_ACCESSOR(DOCUMENT_LOAD_LISTENER_IID)
 
-  void Cancel(const nsresult& status);
+  // Called by the DocumentChannel if cancelled.
+  void Cancel(const nsresult& aStatusCode);
+
+  nsIChannel* GetChannel() const { return mChannel; }
+
+  uint32_t GetRedirectChannelId() const { return mRedirectChannelId; }
 
   nsresult ReportSecurityMessage(const nsAString& aMessageTag,
                                  const nsAString& aMessageCategory) override {
@@ -132,41 +259,47 @@ class DocumentLoadListener : public nsIInterfaceRequestor,
     return NS_OK;
   }
 
-  // Called by the bridge when it disconnects, so that we can drop
-  // our reference to it.
-  void DocumentChannelBridgeDisconnected();
+  base::ProcessId OtherPid() const { return mOtherPid; }
 
-  void DisconnectChildListeners(nsresult aStatus, nsresult aLoadGroupStatus);
-
-  base::ProcessId OtherPid() const {
-    if (mDocumentChannelBridge) {
-      return mDocumentChannelBridge->OtherPid();
-    }
-    return 0;
-  }
-
-  bool AttachStreamFilter(
-      ipc::Endpoint<mozilla::extensions::PStreamFilterParent>&& aEndpoint) {
-    if (mDocumentChannelBridge) {
-      return mDocumentChannelBridge->AttachStreamFilter(std::move(aEndpoint));
-    }
-    return false;
-  }
+  [[nodiscard]] RefPtr<ChildEndpointPromise> AttachStreamFilter(
+      base::ProcessId aChildProcessId);
 
   // Serializes all data needed to setup the new replacement channel
   // in the content process into the RedirectToRealChannelArgs struct.
   void SerializeRedirectData(RedirectToRealChannelArgs& aArgs,
                              bool aIsCrossProcess, uint32_t aRedirectFlags,
-                             uint32_t aLoadFlags);
+                             uint32_t aLoadFlags,
+                             dom::ContentParent* aParent) const;
+
+  uint64_t GetLoadIdentifier() const { return mLoadIdentifier; }
+  uint32_t GetLoadType() const { return mLoadStateLoadType; }
+
+  mozilla::dom::LoadingSessionHistoryInfo* GetLoadingSessionHistoryInfo() {
+    return mLoadingSessionHistoryInfo.get();
+  }
+
+  bool IsDocumentLoad() const { return mIsDocumentLoad; }
 
  protected:
   virtual ~DocumentLoadListener();
 
+ private:
+  RefPtr<OpenPromise> OpenInParent(nsDocShellLoadState* aLoadState,
+                                   bool aSupportsRedirectToRealChannel);
+
+  friend class ParentProcessDocumentOpenInfo;
+  // Will reject the promise to notify the DLL consumer that we are done.
+  void DisconnectListeners(nsresult aStatus, nsresult aLoadGroupStatus,
+                           bool aSwitchedProcess = false);
+
+  // Called when we were created without a document channel, and creation has
+  // failed, and won't ever be attached.
+  void NotifyDocumentChannelFailed();
+
   // Initiates the switch from DocumentChannel to the real protocol-specific
   // channel, and ensures that RedirectToRealChannelFinished is called when
   // this is complete.
-  void TriggerRedirectToRealChannel(
-      const Maybe<uint64_t>& aDestinationProcess = Nothing());
+  void TriggerRedirectToRealChannel(const Maybe<uint64_t>& aDestinationProcess);
 
   // Called once the content-process side on setting up a replacement
   // channel is complete. May wait for the new parent channel to
@@ -177,28 +310,68 @@ class DocumentLoadListener : public nsIInterfaceRequestor,
   // This redirects the ParentChannelListener to forward any future
   // messages to the new channel, manually forwards any being held
   // by us, and resumes the underlying source channel.
-  void FinishReplacementChannelSetup(bool aSucceeded);
+  void FinishReplacementChannelSetup(nsresult aResult);
 
-  // Called when we have a cross-process switch promise. Waits on the
-  // promise, and then call TriggerRedirectToRealChannel with the
-  // provided content process id.
-  void TriggerCrossProcessSwitch();
+  // Called from `OnStartRequest` to make the decision about whether or not to
+  // change process. This method will return `nullptr` if the current target
+  // process is appropriate.
+  // aWillSwitchToRemote is set to true if we initiate a process switch,
+  // and that the new remote type will be something other than NOT_REMOTE
+  bool MaybeTriggerProcessSwitch(bool* aWillSwitchToRemote);
+  void TriggerProcessSwitch(dom::CanonicalBrowsingContext* aContext,
+                            const nsCString& aRemoteType,
+                            bool aReplaceBrowsingContext,
+                            uint64_t aSpecificGroupId);
 
   // A helper for TriggerRedirectToRealChannel that abstracts over
   // the same-process and cross-process switch cases and returns
   // a single promise to wait on.
+  using ParentEndpoint = ipc::Endpoint<extensions::PStreamFilterParent>;
   RefPtr<PDocumentChannelParent::RedirectToRealChannelPromise>
   RedirectToRealChannel(uint32_t aRedirectFlags, uint32_t aLoadFlags,
-                        const Maybe<uint64_t>& aDestinationProcess);
+                        const Maybe<uint64_t>& aDestinationProcess,
+                        nsTArray<ParentEndpoint>&& aStreamFilterEndpoints);
 
-  dom::CanonicalBrowsingContext* GetBrowsingContext();
+  // A helper for RedirectToRealChannel that handles the case where we started
+  // from a content process and are process switching into the parent process.
+  RefPtr<PDocumentChannelParent::RedirectToRealChannelPromise>
+  RedirectToParentProcess(uint32_t aRedirectFlags, uint32_t aLoadFlags);
 
-  // Construct a LoadInfo object to use for the internal channel.
-  // TODO: This currently only supports creating top window TYPE_DOCUMENT
-  // LoadInfos
-  already_AddRefed<LoadInfo> CreateLoadInfo(
-      dom::CanonicalBrowsingContext* aBrowsingContext,
-      nsDocShellLoadState* aLoadState, uint64_t aOuterWindowId);
+  // Return the Browsing Context that is performing the load.
+  // For document loads, the BC is the one that the (sub)doc
+  // will load into. For <object>/<embed>, it's the embedder document's BC.
+  dom::CanonicalBrowsingContext* GetLoadingBrowsingContext() const;
+
+  // Return the Browsing Context that document is being loaded into. For
+  // non-document loads, this will return nullptr.
+  dom::CanonicalBrowsingContext* GetDocumentBrowsingContext() const;
+  dom::CanonicalBrowsingContext* GetTopBrowsingContext() const;
+
+  // Return the Window Context which which contains the element which the load
+  // is being performed in. For toplevel loads, this will return `nullptr`.
+  dom::WindowGlobalParent* GetParentWindowContext() const;
+
+  void AddURIVisit(nsIChannel* aChannel, uint32_t aLoadFlags);
+  bool HasCrossOriginOpenerPolicyMismatch() const;
+  void ApplyPendingFunctions(nsIParentChannel* aChannel) const;
+
+  void Disconnect();
+
+  void MaybeReportBlockedByURLClassifier(nsresult aStatus);
+
+  // Returns true if a channel with aStatus will display
+  // some sort of content (could be the actual channel data,
+  // attempt a uri fixup and new load, or an error page).
+  // Returns false if the docshell will ignore the load entirely.
+  bool DocShellWillDisplayContent(nsresult aStatus);
+
+  void FireStateChange(uint32_t aStateFlags, nsresult aStatus);
+
+  // Returns true if this is a failed load, where we have successfully
+  // created a fixed URI to attempt loading instead.
+  // If successful, this calls DisconnectListeners to completely finish
+  // the current load, and calls BrowsingContext::LoadURI to start the new one.
+  bool MaybeHandleLoadErrorWithURIFixup(nsresult aStatus);
 
   // This defines a variant that describes all the attribute setters (and their
   // parameters) from nsIParentChannel
@@ -298,16 +471,6 @@ class DocumentLoadListener : public nsIInterfaceRequestor,
   // replaces us.
   RefPtr<ParentChannelListener> mParentChannelListener;
 
-  // The bridge to the nsIChannel in the originating docshell.
-  // This reference forms a cycle with the bridge, and we expect
-  // the bridge to call DisonnectDocumentChannelBridge when it
-  // shuts down to break this.
-  RefPtr<ADocumentChannelBridge> mDocumentChannelBridge;
-
-  nsCOMPtr<nsILoadContext> mLoadContext;
-
-  PBOverrideStatus mPBOverride;
-
   // The original URI of the current channel. If there are redirects,
   // then the value on the channel gets overwritten with the original
   // URI of the first channel in the redirect chain, so we cache the
@@ -320,10 +483,26 @@ class DocumentLoadListener : public nsIInterfaceRequestor,
   // switch occurs.
   RefPtr<nsDOMNavigationTiming> mTiming;
 
-  nsTArray<DocumentChannelRedirect> mRedirects;
+  // An optional ObjectUpgradeHandler which can be used to upgrade an <object>
+  // or <embed> element to contain a nsFrameLoader, allowing us to switch them
+  // into a different process.
+  //
+  // A weak pointer is held in order to avoid reference cycles.
+  WeakPtr<ObjectUpgradeHandler> mObjectUpgradeHandler;
+
+  // Used to identify an internal redirect in redirect chain.
+  // True when we have seen at least one non-interal redirect.
+  bool mHaveVisibleRedirect = false;
+
+  nsTArray<StreamFilterRequest> mStreamFilterRequests;
 
   nsString mSrcdocData;
   nsCOMPtr<nsIURI> mBaseURI;
+
+  mozilla::UniquePtr<mozilla::dom::LoadingSessionHistoryInfo>
+      mLoadingSessionHistoryInfo;
+
+  RefPtr<dom::WindowGlobalParent> mParentWindowContext;
 
   // Flags from nsDocShellLoadState::LoadFlags/Type that we want to make
   // available to the new docshell if we switch processes.
@@ -333,7 +512,7 @@ class DocumentLoadListener : public nsIInterfaceRequestor,
   // Corresponding redirect channel registrar Id for the final channel that
   // we want to use when redirecting the child, or doing a process switch.
   // 0 means redirection is not started.
-  uint32_t mRedirectChannelId = 0;
+  uint64_t mRedirectChannelId = 0;
   // Set to true once we initiate the redirect to a real channel (either
   // via a process switch or a same-process redirect, and Suspend the
   // underlying channel.
@@ -354,17 +533,33 @@ class DocumentLoadListener : public nsIInterfaceRequestor,
   // channel.
   bool mIsFinished = false;
 
-  typedef MozPromise<uint64_t, nsresult, true /* exclusive */>
-      ContentProcessIdPromise;
-  // This promise is set following a on-may-change-process observer
-  // notification when the associated channel is getting relocated to another
-  // process. It will be resolved when that process is set up.
-  RefPtr<ContentProcessIdPromise> mRedirectContentProcessIdPromise;
-  // This identifier is set at the same time as the
-  // mRedirectContentProcessIdPromise.
-  // This identifier is later passed to the childChannel in order to identify it
-  // once the promise is resolved.
-  uint64_t mCrossProcessRedirectIdentifier = 0;
+  // The id of the currently pending load which is
+  // passed to the childChannel in order to identify it in the new process.
+  uint64_t mLoadIdentifier = 0;
+
+  Maybe<nsCString> mOriginalUriString;
+
+  bool mSupportsRedirectToRealChannel = true;
+
+  // The process id of the content process that we are being called from
+  // or 0 initiated from a parent process load.
+  base::ProcessId mOtherPid = 0;
+
+  void RejectOpenPromise(nsresult aStatus, nsresult aLoadGroupStatus,
+                         bool aSwitchedProcess, const char* aLocation) {
+    // It is possible for mOpenPromise to not be set if AsyncOpen failed and
+    // the DocumentChannel got canceled.
+    if (!mOpenPromiseResolved && mOpenPromise) {
+      mOpenPromise->Reject(
+          OpenPromiseFailedType({aStatus, aLoadGroupStatus, aSwitchedProcess}),
+          aLocation);
+      mOpenPromiseResolved = true;
+    }
+  }
+  RefPtr<OpenPromise::Private> mOpenPromise;
+  bool mOpenPromiseResolved = false;
+
+  const bool mIsDocumentLoad;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(DocumentLoadListener, DOCUMENT_LOAD_LISTENER_IID)

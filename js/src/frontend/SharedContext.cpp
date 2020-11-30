@@ -6,8 +6,17 @@
 
 #include "frontend/SharedContext.h"
 
-#include "frontend/AbstractScope.h"
+#include "mozilla/RefPtr.h"
+
+#include "frontend/AbstractScopePtr.h"
+#include "frontend/FunctionSyntaxKind.h"  // FunctionSyntaxKind
 #include "frontend/ModuleSharedContext.h"
+#include "vm/FunctionFlags.h"          // js::FunctionFlags
+#include "vm/GeneratorAndAsyncKind.h"  // js::GeneratorKind, js::FunctionAsyncKind
+#include "vm/JSScript.h"  // js::FillImmutableFlagsFromCompileOptionsForTopLevel, js::FillImmutableFlagsFromCompileOptionsForFunction
+#include "vm/StencilEnums.h"  // ImmutableScriptFlagsEnum
+#include "wasm/AsmJS.h"
+#include "wasm/WasmModule.h"
 
 #include "frontend/ParseContext-inl.h"
 #include "vm/EnvironmentObject-inl.h"
@@ -15,30 +24,84 @@
 namespace js {
 namespace frontend {
 
-void SharedContext::computeAllowSyntax(Scope* scope) {
+SharedContext::SharedContext(JSContext* cx, Kind kind,
+                             CompilationInfo& compilationInfo,
+                             Directives directives, SourceExtent extent)
+    : cx_(cx),
+      compilationInfo_(compilationInfo),
+      extent_(extent),
+      allowNewTarget_(false),
+      allowSuperProperty_(false),
+      allowSuperCall_(false),
+      allowArguments_(true),
+      inWith_(false),
+      inClass_(false),
+      localStrict(false),
+      hasExplicitUseStrict_(false),
+      isScriptFieldCopiedToStencil(false) {
+  // Compute the script kind "input" flags.
+  if (kind == Kind::FunctionBox) {
+    setFlag(ImmutableFlags::IsFunction);
+  } else if (kind == Kind::Module) {
+    MOZ_ASSERT(!compilationInfo.input.options.nonSyntacticScope);
+    setFlag(ImmutableFlags::IsModule);
+  } else if (kind == Kind::Eval) {
+    setFlag(ImmutableFlags::IsForEval);
+  } else {
+    MOZ_ASSERT(kind == Kind::Global);
+  }
+
+  // Note: This is a mix of transitive and non-transitive options.
+  const JS::ReadOnlyCompileOptions& options = compilationInfo.input.options;
+
+  // Initialize the transitive "input" flags. These are applied to all
+  // SharedContext in this compilation and generally cannot be determined from
+  // the source text alone.
+  if (isTopLevelContext()) {
+    js::FillImmutableFlagsFromCompileOptionsForTopLevel(options,
+                                                        immutableFlags_);
+  } else {
+    js::FillImmutableFlagsFromCompileOptionsForFunction(options,
+                                                        immutableFlags_);
+  }
+
+  // Initialize the strict flag. This may be updated by the parser as we observe
+  // further directives in the body.
+  setFlag(ImmutableFlags::Strict, directives.strict());
+}
+
+void ScopeContext::computeAllowSyntax(Scope* scope) {
   for (ScopeIter si(scope); si; si++) {
     if (si.kind() == ScopeKind::Function) {
       FunctionScope* funScope = &si.scope()->as<FunctionScope>();
       JSFunction* fun = funScope->canonicalFunction();
+
+      // Arrow function inherit syntax restrictions of enclosing scope.
       if (fun->isArrow()) {
         continue;
       }
-      allowNewTarget_ = true;
-      allowSuperProperty_ = fun->allowSuperProperty();
-      allowSuperCall_ = fun->isDerivedClassConstructor();
-      if (funScope->isFieldInitializer() == IsFieldInitializer::Yes) {
-        allowSuperCall_ = false;
-        allowArguments_ = false;
+
+      allowNewTarget = true;
+      allowSuperProperty = fun->allowSuperProperty();
+
+      if (fun->isDerivedClassConstructor()) {
+        allowSuperCall = true;
       }
+
+      if (fun->isFieldInitializer()) {
+        allowArguments = false;
+      }
+
       return;
     }
   }
 }
 
-void SharedContext::computeThisBinding(Scope* scope) {
+void ScopeContext::computeThisBinding(Scope* scope) {
+  // Inspect the scope-chain.
   for (ScopeIter si(scope); si; si++) {
     if (si.kind() == ScopeKind::Module) {
-      thisBinding_ = ThisBinding::Module;
+      thisBinding = ThisBinding::Module;
       return;
     }
 
@@ -50,49 +113,69 @@ void SharedContext::computeThisBinding(Scope* scope) {
         continue;
       }
 
-      // Derived class constructors (including nested arrow functions and
-      // eval) need TDZ checks when accessing |this|.
+      // Derived class constructors (and their nested arrow functions and evals)
+      // use ThisBinding::DerivedConstructor, which ensures TDZ checks happen
+      // when accessing |this|.
       if (fun->isDerivedClassConstructor()) {
-        needsThisTDZChecks_ = true;
+        thisBinding = ThisBinding::DerivedConstructor;
+      } else {
+        thisBinding = ThisBinding::Function;
       }
 
-      thisBinding_ = ThisBinding::Function;
       return;
     }
   }
 
-  thisBinding_ = ThisBinding::Global;
+  thisBinding = ThisBinding::Global;
 }
 
-void SharedContext::computeInWith(Scope* scope) {
+void ScopeContext::computeInWith(Scope* scope) {
   for (ScopeIter si(scope); si; si++) {
     if (si.kind() == ScopeKind::With) {
-      inWith_ = true;
+      inWith = true;
       break;
     }
   }
 }
 
-EvalSharedContext::EvalSharedContext(JSContext* cx, JSObject* enclosingEnv,
-                                     CompilationInfo& compilationInfo,
-                                     Scope* enclosingScope,
-                                     Directives directives, bool extraWarnings)
-    : SharedContext(cx, Kind::Eval, compilationInfo, directives, extraWarnings),
-      enclosingScope_(cx, enclosingScope),
-      bindings(cx) {
-  computeAllowSyntax(enclosingScope);
-  computeInWith(enclosingScope);
-  computeThisBinding(enclosingScope);
+void ScopeContext::computeInClass(Scope* scope) {
+  for (ScopeIter si(scope); si; si++) {
+    if (si.kind() == ScopeKind::ClassBody) {
+      inClass = true;
+      break;
+    }
+  }
+}
 
-  // If this eval is in response to Debugger.Frame.eval, we may have been
-  // passed an incomplete scope chain. In order to better determine the 'this'
-  // binding type, we traverse the environment chain, looking for a CallObject
-  // and recompute the binding type based on its body scope.
-  //
-  // NOTE: A non-debug eval in a non-syntactic environment will also trigger
-  // this code. In that case, we should still compute the same binding type.
-  if (enclosingEnv && enclosingScope->hasOnChain(ScopeKind::NonSyntactic)) {
-    JSObject* env = enclosingEnv;
+void ScopeContext::computeExternalInitializers(Scope* scope) {
+  for (ScopeIter si(scope); si; si++) {
+    if (si.scope()->is<FunctionScope>()) {
+      FunctionScope& funcScope = si.scope()->as<FunctionScope>();
+      JSFunction* fun = funcScope.canonicalFunction();
+
+      // Arrows can call `super()` on behalf on parent so keep searching.
+      if (fun->isArrow()) {
+        continue;
+      }
+
+      if (fun->isClassConstructor()) {
+        memberInitializers =
+            mozilla::Some(fun->baseScript()->getMemberInitializers());
+        MOZ_ASSERT(memberInitializers->valid);
+      }
+
+      break;
+    }
+  }
+}
+
+/* static */
+Scope* ScopeContext::determineEffectiveScope(Scope* scope,
+                                             JSObject* environment) {
+  // If the scope-chain is non-syntactic, we may still determine a more precise
+  // effective-scope to use instead.
+  if (environment && scope->hasOnChain(ScopeKind::NonSyntactic)) {
+    JSObject* env = environment;
     while (env) {
       // Look at target of any DebugEnvironmentProxy, but be sure to use
       // enclosingEnvironment() of the proxy itself.
@@ -103,158 +186,122 @@ EvalSharedContext::EvalSharedContext(JSContext* cx, JSObject* enclosingEnv,
 
       if (unwrapped->is<CallObject>()) {
         JSFunction* callee = &unwrapped->as<CallObject>().callee();
-        computeThisBinding(callee->nonLazyScript()->bodyScope());
-        break;
+        return callee->nonLazyScript()->bodyScope();
       }
 
       env = env->enclosingEnvironment();
     }
   }
+
+  return scope;
 }
 
-#ifdef DEBUG
-bool FunctionBox::atomsAreKept() { return cx_->zone()->hasKeptAtoms(); }
-#endif
+GlobalSharedContext::GlobalSharedContext(JSContext* cx, ScopeKind scopeKind,
+                                         CompilationInfo& compilationInfo,
+                                         Directives directives,
+                                         SourceExtent extent)
+    : SharedContext(cx, Kind::Global, compilationInfo, directives, extent),
+      scopeKind_(scopeKind),
+      bindings(nullptr) {
+  MOZ_ASSERT(scopeKind == ScopeKind::Global ||
+             scopeKind == ScopeKind::NonSyntactic);
+  MOZ_ASSERT(thisBinding_ == ThisBinding::Global);
+}
 
-FunctionBox::FunctionBox(JSContext* cx, TraceListNode* traceListHead,
-                         uint32_t toStringStart,
+EvalSharedContext::EvalSharedContext(JSContext* cx,
+                                     CompilationInfo& compilationInfo,
+                                     CompilationState& compilationState,
+                                     SourceExtent extent)
+    : SharedContext(cx, Kind::Eval, compilationInfo,
+                    compilationState.directives, extent),
+      bindings(nullptr) {
+  // Eval inherits syntax and binding rules from enclosing environment.
+  allowNewTarget_ = compilationState.scopeContext.allowNewTarget;
+  allowSuperProperty_ = compilationState.scopeContext.allowSuperProperty;
+  allowSuperCall_ = compilationState.scopeContext.allowSuperCall;
+  allowArguments_ = compilationState.scopeContext.allowArguments;
+  thisBinding_ = compilationState.scopeContext.thisBinding;
+  inWith_ = compilationState.scopeContext.inWith;
+}
+
+FunctionBox::FunctionBox(JSContext* cx, SourceExtent extent,
                          CompilationInfo& compilationInfo,
-                         Directives directives, bool extraWarnings,
-                         GeneratorKind generatorKind,
-                         FunctionAsyncKind asyncKind, JSAtom* explicitName,
-                         FunctionFlags flags)
-    : ObjectBox(nullptr, traceListHead, TraceListNode::NodeType::Function),
-      SharedContext(cx, Kind::FunctionBox, compilationInfo, directives,
-                    extraWarnings),
-      enclosingScope_(),
-      namedLambdaBindings_(nullptr),
-      functionScopeBindings_(nullptr),
-      extraVarScopeBindings_(nullptr),
-      functionNode(nullptr),
-      extent{0, 0, toStringStart, 0, 1, 0},
-      length(0),
-      isGenerator_(generatorKind == GeneratorKind::Generator),
-      isAsync_(asyncKind == FunctionAsyncKind::AsyncFunction),
-      hasDestructuringArgs(false),
-      hasParameterExprs(false),
-      hasDuplicateParameters(false),
-      useAsm(false),
-      isAnnexB(false),
-      wasEmitted(false),
+                         CompilationState& compilationState,
+                         Directives directives, GeneratorKind generatorKind,
+                         FunctionAsyncKind asyncKind, const ParserAtom* atom,
+                         FunctionFlags flags, FunctionIndex index,
+                         TopLevelFunction isTopLevel)
+    : SharedContext(cx, Kind::FunctionBox, compilationInfo, directives, extent),
+      atom_(atom),
+      funcDataIndex_(index),
+      flags_(FunctionFlags::clearMutableflags(flags)),
+      isTopLevel_(isTopLevel),
       emitBytecode(false),
-      declaredArguments(false),
-      usesArguments(false),
+      isStandalone_(false),
+      wasEmitted_(false),
+      isSingleton_(false),
+      isAnnexB(false),
+      useAsm(false),
+      hasParameterExprs(false),
+      hasDestructuringArgs(false),
+      hasDuplicateParameters(false),
+      hasExprBody_(false),
       usesApply(false),
       usesThis(false),
       usesReturn(false),
-      hasRest_(false),
-      hasExprBody_(false),
-      hasExtensibleScope_(false),
-      argumentsHasLocalBinding_(false),
-      definitelyNeedsArgsObj_(false),
-      needsHomeObject_(false),
-      isDerivedClassConstructor_(false),
-      hasThisBinding_(false),
-      nargs_(0),
-      explicitName_(explicitName),
-      flags_(flags) {}
-
-FunctionBox::FunctionBox(JSContext* cx, TraceListNode* traceListHead,
-                         JSFunction* fun, uint32_t toStringStart,
-                         CompilationInfo& compilationInfo,
-                         Directives directives, bool extraWarnings,
-                         GeneratorKind generatorKind,
-                         FunctionAsyncKind asyncKind)
-    : FunctionBox(cx, traceListHead, toStringStart, compilationInfo, directives,
-                  extraWarnings, generatorKind, asyncKind, fun->explicitName(),
-                  fun->flags()) {
-  gcThing = fun;
-  // Functions created at parse time may be set singleton after parsing and
-  // baked into JIT code, so they must be allocated tenured. They are held by
-  // the JSScript so cannot be collected during a minor GC anyway.
-  MOZ_ASSERT(fun->isTenured());
-}
-
-FunctionBox::FunctionBox(JSContext* cx, TraceListNode* traceListHead,
-                         uint32_t toStringStart,
-                         CompilationInfo& compilationInfo,
-                         Directives directives, bool extraWarnings,
-                         GeneratorKind generatorKind,
-                         FunctionAsyncKind asyncKind, size_t index)
-    : FunctionBox(cx, traceListHead, toStringStart, compilationInfo, directives,
-                  extraWarnings, generatorKind, asyncKind,
-                  compilationInfo.funcData[index].get().atom,
-                  compilationInfo.funcData[index].get().flags) {
-  funcDataIndex_.emplace(index);
+      isFunctionFieldCopiedToStencil(false) {
+  setFlag(ImmutableFlags::IsGenerator,
+          generatorKind == GeneratorKind::Generator);
+  setFlag(ImmutableFlags::IsAsync,
+          asyncKind == FunctionAsyncKind::AsyncFunction);
 }
 
 void FunctionBox::initFromLazyFunction(JSFunction* fun) {
   BaseScript* lazy = fun->baseScript();
-  if (lazy->isDerivedClassConstructor()) {
-    setDerivedClassConstructor();
-  }
-  if (lazy->needsHomeObject()) {
-    setNeedsHomeObject();
-  }
-  if (lazy->bindingsAccessedDynamically()) {
-    setBindingsAccessedDynamically();
-  }
-  if (lazy->hasDirectEval()) {
-    setHasDirectEval();
-  }
-  if (lazy->hasModuleGoal()) {
-    setHasModuleGoal();
-  }
-
-  extent = lazy->extent();
-}
-
-void FunctionBox::initStandaloneFunction(Scope* enclosingScope) {
-  // Standalone functions are Function or Generator constructors and are
-  // always scoped to the global.
-  MOZ_ASSERT(enclosingScope->is<GlobalScope>());
-  enclosingScope_ = AbstractScope(enclosingScope);
-  allowNewTarget_ = true;
-  thisBinding_ = ThisBinding::Function;
+  immutableFlags_ = lazy->immutableFlags();
+  extent_ = lazy->extent();
 }
 
 void FunctionBox::initWithEnclosingParseContext(ParseContext* enclosing,
-                                                FunctionSyntaxKind kind,
-                                                bool isArrow,
-                                                bool allowSuperProperty) {
+                                                FunctionFlags flags,
+                                                FunctionSyntaxKind kind) {
   SharedContext* sc = enclosing->sc();
+
+  // HasModuleGoal and useAsm are inherited from enclosing context.
   useAsm = sc->isFunctionBox() && sc->asFunctionBox()->useAsmOrInsideUseAsm();
+  setHasModuleGoal(sc->hasModuleGoal());
 
   // Arrow functions don't have their own `this` binding.
-  if (isArrow) {
+  if (flags.isArrow()) {
     allowNewTarget_ = sc->allowNewTarget();
     allowSuperProperty_ = sc->allowSuperProperty();
     allowSuperCall_ = sc->allowSuperCall();
     allowArguments_ = sc->allowArguments();
-    needsThisTDZChecks_ = sc->needsThisTDZChecks();
     thisBinding_ = sc->thisBinding();
   } else {
-    allowNewTarget_ = true;
-    allowSuperProperty_ = allowSuperProperty;
-
     if (IsConstructorKind(kind)) {
       auto stmt =
           enclosing->findInnermostStatement<ParseContext::ClassStatement>();
       MOZ_ASSERT(stmt);
       stmt->constructorBox = this;
-
-      if (kind == FunctionSyntaxKind::DerivedClassConstructor) {
-        setDerivedClassConstructor();
-        allowSuperCall_ = true;
-        needsThisTDZChecks_ = true;
-      }
     }
 
-    thisBinding_ = ThisBinding::Function;
-  }
+    allowNewTarget_ = true;
+    allowSuperProperty_ = flags.allowSuperProperty();
 
-  // We inherit the parse goal from our top-level.
-  hasModuleGoal_ = sc->hasModuleGoal();
+    if (kind == FunctionSyntaxKind::DerivedClassConstructor) {
+      setDerivedClassConstructor();
+      allowSuperCall_ = true;
+      thisBinding_ = ThisBinding::DerivedConstructor;
+    } else {
+      thisBinding_ = ThisBinding::Function;
+    }
+
+    if (kind == FunctionSyntaxKind::FieldInitializer) {
+      setFieldInitializer();
+      allowArguments_ = false;
+    }
+  }
 
   if (sc->inWith()) {
     inWith_ = true;
@@ -265,79 +312,172 @@ void FunctionBox::initWithEnclosingParseContext(ParseContext* enclosing,
 
     inWith_ = enclosing->findInnermostStatement(isWith);
   }
+
+  if (sc->inClass()) {
+    inClass_ = true;
+  } else {
+    auto isClass = [](ParseContext::Statement* stmt) {
+      return stmt->kind() == StatementKind::Class;
+    };
+
+    inClass_ = enclosing->findInnermostStatement(isClass);
+  }
 }
 
-void FunctionBox::initFieldInitializer(ParseContext* enclosing,
-                                       Handle<FunctionCreationData> data) {
-  this->initWithEnclosingParseContext(enclosing, data,
-                                      FunctionSyntaxKind::Method);
-  allowArguments_ = false;
-}
-
-void FunctionBox::initWithEnclosingScope(JSFunction* fun) {
-  Scope* enclosingScope = fun->enclosingScope();
-  MOZ_ASSERT(enclosingScope);
-
-  if (!isArrow()) {
+void FunctionBox::initStandalone(ScopeContext& scopeContext,
+                                 FunctionFlags flags, FunctionSyntaxKind kind) {
+  if (flags.isArrow()) {
+    allowNewTarget_ = scopeContext.allowNewTarget;
+    allowSuperProperty_ = scopeContext.allowSuperProperty;
+    allowSuperCall_ = scopeContext.allowSuperCall;
+    allowArguments_ = scopeContext.allowArguments;
+    thisBinding_ = scopeContext.thisBinding;
+  } else {
     allowNewTarget_ = true;
-    allowSuperProperty_ = fun->allowSuperProperty();
+    allowSuperProperty_ = flags.allowSuperProperty();
 
-    if (isDerivedClassConstructor()) {
+    if (kind == FunctionSyntaxKind::DerivedClassConstructor) {
       setDerivedClassConstructor();
       allowSuperCall_ = true;
-      needsThisTDZChecks_ = true;
+      thisBinding_ = ThisBinding::DerivedConstructor;
+    } else {
+      thisBinding_ = ThisBinding::Function;
     }
 
-    thisBinding_ = ThisBinding::Function;
-  } else {
-    computeAllowSyntax(enclosingScope);
-    computeThisBinding(enclosingScope);
+    if (kind == FunctionSyntaxKind::FieldInitializer) {
+      setFieldInitializer();
+      allowArguments_ = false;
+    }
   }
 
-  computeInWith(enclosingScope);
-
-  enclosingScope_ = AbstractScope(enclosingScope);
+  inWith_ = scopeContext.inWith;
+  inClass_ = scopeContext.inClass;
 }
 
-void FunctionBox::setEnclosingScopeForInnerLazyFunction(
-    const AbstractScope& enclosingScope) {
+void FunctionBox::setEnclosingScopeForInnerLazyFunction(ScopeIndex scopeIndex) {
   // For lazy functions inside a function which is being compiled, we cache
   // the incomplete scope object while compiling, and store it to the
-  // LazyScript once the enclosing script successfully finishes compilation
+  // BaseScript once the enclosing script successfully finishes compilation
   // in FunctionBox::finish.
-  MOZ_ASSERT(!enclosingScope_);
-  enclosingScope_ = enclosingScope;
-}
-
-void FunctionBox::finish() {
-  if (!emitBytecode) {
-    // Lazy inner functions need to record their enclosing scope for when they
-    // eventually are compiled.
-    function()->setEnclosingScope(enclosingScope_.getExistingScope());
-  } else {
-    // Non-lazy inner functions don't use the enclosingScope_ field.
-    MOZ_ASSERT(!enclosingScope_);
+  MOZ_ASSERT(enclosingScopeIndex_.isNothing());
+  enclosingScopeIndex_ = mozilla::Some(scopeIndex);
+  if (isFunctionFieldCopiedToStencil) {
+    copyUpdatedEnclosingScopeIndex();
   }
 }
 
-ModuleSharedContext::ModuleSharedContext(JSContext* cx, ModuleObject* module,
-                                         CompilationInfo& compilationInfo,
-                                         Scope* enclosingScope,
-                                         ModuleBuilder& builder)
-    : SharedContext(cx, Kind::Module, compilationInfo, Directives(true), false),
-      module_(cx, module),
-      enclosingScope_(cx, enclosingScope),
-      bindings(cx),
-      builder(builder) {
-  thisBinding_ = ThisBinding::Module;
-  hasModuleGoal_ = true;
+bool FunctionBox::setAsmJSModule(const JS::WasmModule* module) {
+  MOZ_ASSERT(!isFunctionFieldCopiedToStencil);
+
+  MOZ_ASSERT(flags_.kind() == FunctionFlags::NormalFunction);
+
+  // Update flags we will use to allocate the JSFunction.
+  flags_.clearBaseScript();
+  flags_.setIsExtended();
+  flags_.setKind(FunctionFlags::AsmJS);
+
+  if (!compilationInfo_.stencil.asmJS.putNew(index(), module)) {
+    js::ReportOutOfMemory(cx_);
+    return false;
+  }
+  return true;
 }
 
-MutableHandle<FunctionCreationData> FunctionBox::functionCreationData() const {
-  MOZ_ASSERT(hasFunctionCreationIndex());
-  return compilationInfo_.funcData[*funcDataIndex_];
+ModuleSharedContext::ModuleSharedContext(JSContext* cx,
+                                         CompilationInfo& compilationInfo,
+                                         ModuleBuilder& builder,
+                                         SourceExtent extent)
+    : SharedContext(cx, Kind::Module, compilationInfo, Directives(true),
+                    extent),
+      bindings(nullptr),
+      builder(builder) {
+  thisBinding_ = ThisBinding::Module;
+  setFlag(ImmutableFlags::HasModuleGoal);
+}
+
+ScriptStencil& FunctionBox::functionStencil() const {
+  return compilationInfo_.stencil.scriptData[funcDataIndex_];
+}
+
+void SharedContext::copyScriptFields(ScriptStencil& script) {
+  MOZ_ASSERT(!isScriptFieldCopiedToStencil);
+
+  script.immutableFlags = immutableFlags_;
+  script.extent = extent_;
+
+  isScriptFieldCopiedToStencil = true;
+}
+
+void FunctionBox::finishScriptFlags() {
+  MOZ_ASSERT(!isScriptFieldCopiedToStencil);
+
+  using ImmutableFlags = ImmutableScriptFlagsEnum;
+  immutableFlags_.setFlag(ImmutableFlags::HasMappedArgsObj, hasMappedArgsObj());
+  immutableFlags_.setFlag(ImmutableFlags::IsLikelyConstructorWrapper,
+                          isLikelyConstructorWrapper());
+}
+
+void FunctionBox::copyScriptFields(ScriptStencil& script) {
+  MOZ_ASSERT(&script == &functionStencil());
+  MOZ_ASSERT(!isAsmJSModule());
+
+  SharedContext::copyScriptFields(script);
+
+  script.memberInitializers = memberInitializers_;
+
+  isScriptFieldCopiedToStencil = true;
+}
+
+void FunctionBox::copyFunctionFields(ScriptStencil& script) {
+  MOZ_ASSERT(&script == &functionStencil());
+  MOZ_ASSERT(!isFunctionFieldCopiedToStencil);
+
+  script.functionAtom = atom_;
+  script.functionFlags = flags_;
+  script.nargs = nargs_;
+  script.lazyFunctionEnclosingScopeIndex_ = enclosingScopeIndex_;
+  script.isStandaloneFunction = isStandalone_;
+  script.wasFunctionEmitted = wasEmitted_;
+  script.isSingletonFunction = isSingleton_;
+
+  isFunctionFieldCopiedToStencil = true;
+}
+
+void FunctionBox::copyUpdatedImmutableFlags() {
+  ScriptStencil& script = functionStencil();
+  script.immutableFlags = immutableFlags_;
+}
+
+void FunctionBox::copyUpdatedExtent() {
+  ScriptStencil& script = functionStencil();
+  script.extent = extent_;
+}
+
+void FunctionBox::copyUpdatedMemberInitializers() {
+  ScriptStencil& script = functionStencil();
+  script.memberInitializers = memberInitializers_;
+}
+
+void FunctionBox::copyUpdatedEnclosingScopeIndex() {
+  ScriptStencil& script = functionStencil();
+  script.lazyFunctionEnclosingScopeIndex_ = enclosingScopeIndex_;
+}
+
+void FunctionBox::copyUpdatedAtomAndFlags() {
+  ScriptStencil& script = functionStencil();
+  script.functionAtom = atom_;
+  script.functionFlags = flags_;
+}
+
+void FunctionBox::copyUpdatedWasEmitted() {
+  ScriptStencil& script = functionStencil();
+  script.wasFunctionEmitted = wasEmitted_;
+}
+
+void FunctionBox::copyUpdatedIsSingleton() {
+  ScriptStencil& script = functionStencil();
+  script.isSingletonFunction = isSingleton_;
 }
 
 }  // namespace frontend
-
 }  // namespace js

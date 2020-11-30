@@ -7,7 +7,7 @@
 
 #include "ClassifierDummyChannel.h"
 
-#include "mozilla/AntiTrackingCommon.h"
+#include "mozilla/ContentBlocking.h"
 #include "mozilla/net/ClassifierDummyChannelChild.h"
 #include "mozilla/net/UrlClassifierCommon.h"
 #include "mozilla/dom/ContentChild.h"
@@ -60,8 +60,7 @@ ClassifierDummyChannel::StorageAllowed(
     return eAsyncNeeded;
   }
 
-  if (AntiTrackingCommon::IsFirstPartyStorageAccessGrantedFor(httpChannel, uri,
-                                                              nullptr)) {
+  if (ContentBlocking::ShouldAllowAccessFor(httpChannel, uri, nullptr)) {
     return eStorageGranted;
   }
 
@@ -79,12 +78,11 @@ NS_INTERFACE_MAP_BEGIN(ClassifierDummyChannel)
   NS_INTERFACE_MAP_ENTRY_CONCRETE(ClassifierDummyChannel)
 NS_INTERFACE_MAP_END
 
-ClassifierDummyChannel::ClassifierDummyChannel(
-    nsIURI* aURI, nsIURI* aTopWindowURI,
-    nsIPrincipal* aContentBlockingAllowListPrincipal,
-    nsresult aTopWindowURIResult, nsILoadInfo* aLoadInfo)
+ClassifierDummyChannel::ClassifierDummyChannel(nsIURI* aURI,
+                                               nsIURI* aTopWindowURI,
+                                               nsresult aTopWindowURIResult,
+                                               nsILoadInfo* aLoadInfo)
     : mTopWindowURI(aTopWindowURI),
-      mContentBlockingAllowListPrincipal(aContentBlockingAllowListPrincipal),
       mTopWindowURIResult(aTopWindowURIResult),
       mFirstPartyClassificationFlags(0),
       mThirdPartyClassificationFlags(0) {
@@ -95,15 +93,11 @@ ClassifierDummyChannel::ClassifierDummyChannel(
 }
 
 ClassifierDummyChannel::~ClassifierDummyChannel() {
-  NS_ReleaseOnMainThreadSystemGroup("ClassifierDummyChannel::mLoadInfo",
-                                    mLoadInfo.forget());
-  NS_ReleaseOnMainThreadSystemGroup("ClassifierDummyChannel::mURI",
-                                    mURI.forget());
-  NS_ReleaseOnMainThreadSystemGroup("ClassifierDummyChannel::mTopWindowURI",
-                                    mTopWindowURI.forget());
-  NS_ReleaseOnMainThreadSystemGroup(
-      "ClassifierDummyChannel::mContentBlockingAllowListPrincipal",
-      mContentBlockingAllowListPrincipal.forget());
+  NS_ReleaseOnMainThread("ClassifierDummyChannel::mLoadInfo",
+                         mLoadInfo.forget());
+  NS_ReleaseOnMainThread("ClassifierDummyChannel::mURI", mURI.forget());
+  NS_ReleaseOnMainThread("ClassifierDummyChannel::mTopWindowURI",
+                         mTopWindowURI.forget());
 }
 
 void ClassifierDummyChannel::AddClassificationFlags(
@@ -360,6 +354,11 @@ ClassifierDummyChannel::SetupFallbackChannel(const char* aFallbackKey) {
 }
 
 NS_IMETHODIMP
+ClassifierDummyChannel::GetIsAuthChannel(bool* aIsAuthChannel) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
 ClassifierDummyChannel::GetThirdPartyFlags(uint32_t* aThirdPartyFlags) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -573,14 +572,6 @@ ClassifierDummyChannel::GetTopWindowURI(nsIURI** aTopWindowURI) {
 }
 
 NS_IMETHODIMP
-ClassifierDummyChannel::GetContentBlockingAllowListPrincipal(
-    nsIPrincipal** aPrincipal) {
-  nsCOMPtr<nsIPrincipal> copy = mContentBlockingAllowListPrincipal;
-  copy.forget(aPrincipal);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 ClassifierDummyChannel::SetTopWindowURIIfUnknown(nsIURI* aTopWindowURI) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -591,9 +582,11 @@ ClassifierDummyChannel::GetProxyURI(nsIURI** aProxyURI) {
 }
 
 void ClassifierDummyChannel::SetCorsPreflightParameters(
-    const nsTArray<nsCString>& aUnsafeHeaders) {}
+    const nsTArray<nsCString>& aUnsafeHeaders,
+    bool aShouldStripRequestBodyHeader) {}
 
 void ClassifierDummyChannel::SetAltDataForChild(bool aIsForChild) {}
+void ClassifierDummyChannel::DisableAltDataCache() {}
 
 NS_IMETHODIMP
 ClassifierDummyChannel::GetBlockAuthPrompt(bool* aBlockAuthPrompt) {
@@ -667,6 +660,11 @@ NS_IMETHODIMP ClassifierDummyChannel::ComputeCrossOriginOpenerPolicy(
 NS_IMETHODIMP
 ClassifierDummyChannel::GetCrossOriginOpenerPolicy(
     nsILoadInfo::CrossOriginOpenerPolicy* aPolicy) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP ClassifierDummyChannel::HasCrossOriginOpenerPolicyMismatch(
+    bool* aIsMismatch) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -744,6 +742,17 @@ NS_IMETHODIMP ClassifierDummyChannel::IsThirdPartySocialTrackingResource(
       UrlClassifierCommon::IsSocialTrackingClassificationFlag(
           mThirdPartyClassificationFlags);
   return NS_OK;
+}
+
+void ClassifierDummyChannel::DoDiagnosticAssertWhenOnStopNotCalledOnDestroy() {}
+
+NS_IMETHODIMP ClassifierDummyChannel::GetResponseEmbedderPolicy(
+    nsILoadInfo::CrossOriginEmbedderPolicy* aOutPolicy) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP ClassifierDummyChannel::SetWaitForHTTPSSVCRecord() {
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 }  // namespace net

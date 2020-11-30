@@ -388,7 +388,7 @@ void ServiceWorkerUpdateJob::ComparisonResult(nsresult aStatus,
         message, nsContentUtils::eDOM_PROPERTIES,
         "ServiceWorkerScopePathMismatch", reportScope, reportMaxPrefix);
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Failed to format localized string");
-    swm->ReportToAllClients(mScope, message, EmptyString(), EmptyString(), 0, 0,
+    swm->ReportToAllClients(mScope, message, u""_ns, u""_ns, 0, 0,
                             nsIScriptError::errorFlag);
     FailUpdateJob(NS_ERROR_DOM_SECURITY_ERR);
     return;
@@ -489,8 +489,7 @@ void ServiceWorkerUpdateJob::Install() {
   // Send the install event to the worker thread
   ServiceWorkerPrivate* workerPrivate =
       mRegistration->GetInstalling()->WorkerPrivate();
-  nsresult rv =
-      workerPrivate->SendLifeCycleEvent(NS_LITERAL_STRING("install"), callback);
+  nsresult rv = workerPrivate->SendLifeCycleEvent(u"install"_ns, callback);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     ContinueAfterInstallEvent(false /* aSuccess */);
   }
@@ -519,7 +518,12 @@ void ServiceWorkerUpdateJob::ContinueAfterInstallEvent(
     return;
   }
 
-  MOZ_DIAGNOSTIC_ASSERT(mRegistration->GetInstalling());
+  // Abort the update Job if the installWorker is null (e.g. when an extension
+  // is shutting down and all its workers have been terminated).
+  if (!mRegistration->GetInstalling()) {
+    return FailUpdateJob(NS_ERROR_DOM_ABORT_ERR);
+  }
+
   mRegistration->TransitionInstallingToWaiting();
 
   Finish(NS_OK);

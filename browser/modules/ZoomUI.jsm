@@ -13,6 +13,12 @@ const gContentPrefs = Cc["@mozilla.org/content-pref/service;1"].getService(
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const gZoomPropertyName = "browser.content.full-zoom";
 
+ChromeUtils.defineModuleGetter(
+  this,
+  "PanelMultiView",
+  "resource:///modules/PanelMultiView.jsm"
+);
+
 var ZoomUI = {
   init(aWindow) {
     aWindow.addEventListener("EndSwapDocShells", onEndSwapDocShells, true);
@@ -123,7 +129,8 @@ async function updateZoomUI(aBrowser, aAnimate = false) {
     return;
   }
 
-  let appMenuZoomReset = win.document.getElementById(
+  let appMenuZoomReset = PanelMultiView.getViewNode(
+    win.document,
     "appMenu-zoomReset-button"
   );
   let customizableZoomControls = win.document.getElementById("zoom-controls");
@@ -153,9 +160,7 @@ async function updateZoomUI(aBrowser, aAnimate = false) {
       (!aBrowser.contentPrincipal ||
         aBrowser.contentPrincipal.isNullPrincipal)) ||
     (aBrowser.contentPrincipal &&
-      aBrowser.contentPrincipal.URI &&
-      aBrowser.contentPrincipal.URI.spec ==
-        "resource://pdf.js/web/viewer.html") ||
+      aBrowser.contentPrincipal.spec == "resource://pdf.js/web/viewer.html") ||
     (customizableZoomControls &&
       customizableZoomControls.getAttribute("cui-areatype") == "toolbar");
 
@@ -169,7 +174,7 @@ async function updateZoomUI(aBrowser, aAnimate = false) {
     customizableZoomReset.setAttribute("label", label);
   }
   if (!urlbarZoomButton.hidden) {
-    if (aAnimate) {
+    if (aAnimate && !win.gReduceMotion) {
       urlbarZoomButton.setAttribute("animate", "true");
     } else {
       urlbarZoomButton.removeAttribute("animate");

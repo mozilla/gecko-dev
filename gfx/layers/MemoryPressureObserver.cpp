@@ -6,6 +6,12 @@
 
 #include "MemoryPressureObserver.h"
 
+#include "mozilla/Services.h"
+#include "nsCOMPtr.h"
+#include "nsDependentString.h"
+#include "nsIObserverService.h"
+#include "nsLiteralString.h"
+
 namespace mozilla {
 namespace layers {
 
@@ -54,11 +60,9 @@ MemoryPressureObserver::Observe(nsISupports* aSubject, const char* aTopic,
   if (mListener && strcmp(aTopic, "memory-pressure") == 0) {
     MemoryPressureReason reason = MemoryPressureReason::LOW_MEMORY;
     auto reason_string = nsDependentString(aData);
-    if (StringBeginsWith(reason_string,
-                         NS_LITERAL_STRING("low-memory-ongoing"))) {
+    if (StringBeginsWith(reason_string, u"low-memory-ongoing"_ns)) {
       reason = MemoryPressureReason::LOW_MEMORY_ONGOING;
-    } else if (StringBeginsWith(reason_string,
-                                NS_LITERAL_STRING("heap-minimize"))) {
+    } else if (StringBeginsWith(reason_string, u"heap-minimize"_ns)) {
       reason = MemoryPressureReason::HEAP_MINIMIZE;
     }
     mListener->OnMemoryPressure(reason);

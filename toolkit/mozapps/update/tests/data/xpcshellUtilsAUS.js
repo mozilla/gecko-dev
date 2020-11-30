@@ -44,6 +44,12 @@ ChromeUtils.defineModuleGetter(
   "resource://testing-common/MockRegistrar.jsm"
 );
 
+ChromeUtils.defineModuleGetter(
+  this,
+  "updateAppInfo",
+  "resource://testing-common/AppInfo.jsm"
+);
+
 const Cm = Components.manager;
 
 /* global MOZ_APP_VENDOR, MOZ_APP_BASENAME */
@@ -1264,6 +1270,10 @@ function checkUpdateManager(
   aUpdateErrCode,
   aUpdateCount
 ) {
+  let activeUpdate =
+    aUpdateStatusState == STATE_DOWNLOADING
+      ? gUpdateManager.downloadingUpdate
+      : gUpdateManager.readyUpdate;
   Assert.equal(
     readStatusState(),
     aStatusFileState,
@@ -1271,21 +1281,22 @@ function checkUpdateManager(
   );
   let msgTags = [" after startup ", " after a file reload "];
   for (let i = 0; i < msgTags.length; ++i) {
-    logTestInfo("checking Update Manager updates" + msgTags[i]) +
-      "is performed";
+    logTestInfo(
+      "checking Update Manager updates" + msgTags[i] + "is performed"
+    );
     if (aHasActiveUpdate) {
       Assert.ok(
-        !!gUpdateManager.activeUpdate,
+        !!activeUpdate,
         msgTags[i] + "the active update should be defined"
       );
     } else {
       Assert.ok(
-        !gUpdateManager.activeUpdate,
+        !activeUpdate,
         msgTags[i] + "the active update should not be defined"
       );
     }
     Assert.equal(
-      gUpdateManager.updateCount,
+      gUpdateManager.getUpdateCount(),
       aUpdateCount,
       msgTags[i] + "the update manager updateCount attribute" + MSG_SHOULD_EQUAL
     );
@@ -1420,18 +1431,26 @@ function getAppVersion() {
 }
 
 /**
- * Helper function for getting the relative path to the directory where the
+ * Helper function for getting the path to the directory where the
  * application binary is located (e.g. <test_file_leafname>/dir.app/).
  *
  * Note: The dir.app subdirectory under <test_file_leafname> is needed for
  *       platforms other than Mac OS X so the tests can run in parallel due to
  *       update staging creating a lock file named moz_update_in_progress.lock in
  *       the parent directory of the installation directory.
+ * Note: For service tests with IS_AUTHENTICODE_CHECK_ENABLED we use an absolute
+ *       path inside Program Files because the service itself will refuse to
+ *       update an installation not located in Program Files.
  *
- * @return  The relative path to the directory where application binary is
- *          located.
+ * @return  The path to the directory where application binary is located.
  */
 function getApplyDirPath() {
+  if (gIsServiceTest && IS_AUTHENTICODE_CHECK_ENABLED) {
+    let dir = getMaintSvcDir();
+    dir.append(gTestID);
+    dir.append("dir.app");
+    return dir.path;
+  }
   return gTestID + "/dir.app/";
 }
 
@@ -1452,6 +1471,21 @@ function getApplyDirPath() {
  *          applied.
  */
 function getApplyDirFile(aRelPath) {
+  // do_get_file only supports relative paths, but under these conditions we
+  // need to use an absolute path in Program Files instead.
+  if (gIsServiceTest && IS_AUTHENTICODE_CHECK_ENABLED) {
+    let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
+    file.initWithPath(getApplyDirPath());
+    if (aRelPath) {
+      if (aRelPath == "..") {
+        file = file.parent;
+      } else {
+        aRelPath = aRelPath.replace(/\//g, "\\");
+        file.appendRelativePath(aRelPath);
+      }
+    }
+    return file;
+  }
   let relpath = getApplyDirPath() + (aRelPath ? aRelPath : "");
   return do_get_file(relpath, true);
 }
@@ -1635,17 +1669,17 @@ XPCOMUtils.defineLazyGetter(this, "gInstallDirPathHash", function test_gIDPH() {
     return gTestID;
   } catch (e) {
     logTestInfo(
-      "failed to create registry key. Registry Path: " +
+      "failed to create registry value. Registry Path: " +
         REG_PATH +
-        ", Key Name: " +
+        ", Value Name: " +
         appDir.path +
-        ", Key Value: " +
+        ", Value Data: " +
         gTestID +
         ", Exception " +
         e
     );
     do_throw(
-      "Unable to write HKLM or HKCU TaskBarIDs registry key, key path: " +
+      "Unable to write HKLM or HKCU TaskBarIDs registry value, key path: " +
         REG_PATH
     );
   }
@@ -2197,10 +2231,7 @@ function setupActiveUpdate() {
   writeVersionFile(DEFAULT_UPDATE_VERSION);
   writeStatusFile(pendingState);
   reloadUpdateManagerData();
-  Assert.ok(
-    !!gUpdateManager.activeUpdate,
-    "the active update should be defined"
-  );
+  Assert.ok(!!gUpdateManager.readyUpdate, "the ready update should be defined");
 }
 
 /**
@@ -2262,7 +2293,7 @@ async function stageUpdate(
     );
 
     Assert.equal(
-      gUpdateManager.activeUpdate.state,
+      gUpdateManager.readyUpdate.state,
       aStateAfterStage,
       "the update state" + MSG_SHOULD_EQUAL
     );
@@ -3063,8 +3094,14 @@ async function setupUpdaterTest(
     debugDump("start - setup test file: " + aTestFile.fileName);
     if (aTestFile.originalFile || aTestFile.originalContents) {
       let testDir = getApplyDirFile(aTestFile.relPathDir);
-      if (!testDir.exists()) {
+      // Somehow these create calls are failing with FILE_ALREADY_EXISTS even
+      // after checking .exists() first, so we just catch the exception.
+      try {
         testDir.create(Ci.nsIFile.DIRECTORY_TYPE, PERMS_DIRECTORY);
+      } catch (e) {
+        if (e.result != Cr.NS_ERROR_FILE_ALREADY_EXISTS) {
+          throw e;
+        }
       }
 
       let testFile;
@@ -3100,8 +3137,14 @@ async function setupUpdaterTest(
   gTestDirs.forEach(function SUT_TD_FE(aTestDir) {
     debugDump("start - setup test directory: " + aTestDir.relPathDir);
     let testDir = getApplyDirFile(aTestDir.relPathDir);
-    if (!testDir.exists()) {
+    // Somehow these create calls are failing with FILE_ALREADY_EXISTS even
+    // after checking .exists() first, so we just catch the exception.
+    try {
       testDir.create(Ci.nsIFile.DIRECTORY_TYPE, PERMS_DIRECTORY);
+    } catch (e) {
+      if (e.result != Cr.NS_ERROR_FILE_ALREADY_EXISTS) {
+        throw e;
+      }
     }
 
     if (aTestDir.files) {
@@ -3236,7 +3279,7 @@ function replaceLogPaths(aLogContents) {
   let logContents = aLogContents;
   // Remove the majority of the path up to the test directory. This is needed
   // since Assert.equal won't print long strings to the test logs.
-  let testDirPath = do_get_file(gTestID, false).path;
+  let testDirPath = getApplyDirFile().parent.path;
   if (AppConstants.platform == "win") {
     // Replace \\ with \\\\ so the regexp works.
     testDirPath = testDirPath.replace(/\\/g, "\\\\");
@@ -4035,7 +4078,7 @@ function waitForUpdateCheck(aSuccess, aExpectedValues = {}) {
           }
           resolve({ request, update });
         },
-        QueryInterface: ChromeUtils.generateQI([Ci.nsIUpdateCheckListener]),
+        QueryInterface: ChromeUtils.generateQI(["nsIUpdateCheckListener"]),
       },
       true
     )
@@ -4064,8 +4107,8 @@ function waitForUpdateDownload(aUpdates, aExpectedStatus) {
     gAUS.addDownloadListener({
       onStartRequest: aRequest => {},
       onProgress: (aRequest, aContext, aProgress, aMaxProgress) => {},
-      onStatus: (aRequest, aContext, aStatus, aStatusText) => {},
-      onStopRequest: (request, status) => {
+      onStatus: (aRequest, aStatus, aStatusText) => {},
+      onStopRequest(request, status) {
         gAUS.removeDownloadListener(this);
         Assert.equal(
           aExpectedStatus,
@@ -4075,8 +4118,8 @@ function waitForUpdateDownload(aUpdates, aExpectedStatus) {
         resolve(request, status);
       },
       QueryInterface: ChromeUtils.generateQI([
-        Ci.nsIRequestObserver,
-        Ci.nsIProgressEventSink,
+        "nsIRequestObserver",
+        "nsIProgressEventSink",
       ]),
     })
   );
@@ -4146,15 +4189,7 @@ function stop_httpserver(aCallback) {
  *          The gecko version of the application
  */
 function createAppInfo(aID, aName, aVersion, aPlatformVersion) {
-  const XULAPPINFO_CONTRACTID = "@mozilla.org/xre/app-info;1";
-  const XULAPPINFO_CID = Components.ID(
-    "{c763b610-9d49-455a-bbd2-ede71682a1ac}"
-  );
-  let ifaces = [Ci.nsIXULAppInfo, Ci.nsIPlatformInfo, Ci.nsIXULRuntime];
-  if (AppConstants.platform == "win") {
-    ifaces.push(Ci.nsIWinAppHelper);
-  }
-  const XULAppInfo = {
+  updateAppInfo({
     vendor: APP_INFO_VENDOR,
     name: aName,
     ID: aID,
@@ -4166,26 +4201,7 @@ function createAppInfo(aID, aName, aVersion, aPlatformVersion) {
     logConsoleErrors: true,
     OS: "XPCShell",
     XPCOMABI: "noarch-spidermonkey",
-
-    QueryInterface: ChromeUtils.generateQI(ifaces),
-  };
-
-  const XULAppInfoFactory = {
-    createInstance(aOuter, aIID) {
-      if (aOuter == null) {
-        return XULAppInfo.QueryInterface(aIID);
-      }
-      throw Cr.NS_ERROR_NO_AGGREGATION;
-    },
-  };
-
-  let registrar = Cm.QueryInterface(Ci.nsIComponentRegistrar);
-  registrar.registerFactory(
-    XULAPPINFO_CID,
-    "XULAppInfo",
-    XULAPPINFO_CONTRACTID,
-    XULAppInfoFactory
-  );
+  });
 }
 
 /**
@@ -4216,18 +4232,21 @@ function getProcessArgs(aExtraArgs) {
   let appBin = getApplyDirFile(DIR_MACOS + FILE_APP_BIN);
   Assert.ok(appBin.exists(), MSG_SHOULD_EXIST + ", path: " + appBin.path);
   let appBinPath = appBin.path;
-  if (/ /.test(appBinPath)) {
-    appBinPath = '"' + appBinPath + '"';
-  }
 
   // The profile must be specified for the tests that launch the application to
   // run locally when the profiles.ini and installs.ini files already exist.
+  // We can't use getApplyDirFile to find the profile path because on Windows
+  // for service tests that would place the profile inside Program Files, and
+  // this test script has permission to write in Program Files, but the
+  // application may drop those permissions. So for Windows service tests we
+  // override that path with the per-test temp directory that xpcshell provides,
+  // which should be user writable.
   let profileDir = appBin.parent.parent;
+  if (gIsServiceTest && IS_AUTHENTICODE_CHECK_ENABLED) {
+    profileDir = do_get_tempdir();
+  }
   profileDir.append("profile");
   let profilePath = profileDir.path;
-  if (/ /.test(profilePath)) {
-    profilePath = '"' + profilePath + '"';
-  }
 
   let args;
   if (AppConstants.platform == "macosx" || AppConstants.platform == "linux") {
@@ -4322,7 +4341,7 @@ function adjustGeneralPaths() {
       }
       return null;
     },
-    QueryInterface: ChromeUtils.generateQI([Ci.nsIDirectoryServiceProvider]),
+    QueryInterface: ChromeUtils.generateQI(["nsIDirectoryServiceProvider"]),
   };
   let ds = Services.dirsvc.QueryInterface(Ci.nsIDirectoryService);
   ds.QueryInterface(Ci.nsIProperties).undefine(NS_GRE_DIR);
@@ -4400,7 +4419,7 @@ const gAppTimerCallback = {
     }
     Assert.ok(false, "launch application timer expired");
   },
-  QueryInterface: ChromeUtils.generateQI([Ci.nsITimerCallback]),
+  QueryInterface: ChromeUtils.generateQI(["nsITimerCallback"]),
 };
 
 /**
@@ -4553,7 +4572,7 @@ IncrementalDownload.prototype = {
   },
 
   get currentSize() {
-    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+    throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
   },
 
   get destination() {
@@ -4565,18 +4584,18 @@ IncrementalDownload.prototype = {
   },
 
   get totalSize() {
-    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+    throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
   },
 
   /* nsIRequest */
   cancel(aStatus) {
-    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+    throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
   },
   suspend() {
-    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+    throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
   },
   isPending() {
-    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+    throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
   },
   _loadFlags: 0,
   get loadFlags() {
@@ -4603,7 +4622,7 @@ IncrementalDownload.prototype = {
   get status() {
     return this._status;
   },
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIIncrementalDownload]),
+  QueryInterface: ChromeUtils.generateQI(["nsIIncrementalDownload"]),
 };
 
 /**

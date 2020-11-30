@@ -131,12 +131,10 @@ class HTMLInputElement;
 
 class RestoreSelectionState;
 
-class TextControlState final : public SupportsWeakPtr<TextControlState> {
+class TextControlState final : public SupportsWeakPtr {
  public:
   typedef dom::Element Element;
   typedef dom::HTMLInputElement HTMLInputElement;
-
-  MOZ_DECLARE_WEAKREFERENCE_TYPENAME(TextControlState)
 
   static TextControlState* Construct(TextControlElement* aOwningElement);
 
@@ -274,7 +272,6 @@ class TextControlState final : public SupportsWeakPtr<TextControlState> {
   void SetPreviewText(const nsAString& aValue, bool aNotify);
   void GetPreviewText(nsAString& aValue);
   bool GetPreviewVisibility() { return mPreviewVisibility; }
-  void HideSelectionIfBlurred();
 
   struct SelectionProperties {
    public:
@@ -315,7 +312,6 @@ class TextControlState final : public SupportsWeakPtr<TextControlState> {
   bool IsSelectionCached() const { return mSelectionCached; }
   SelectionProperties& GetSelectionProperties() { return mSelectionProperties; }
   MOZ_CAN_RUN_SCRIPT void SetSelectionProperties(SelectionProperties& aProps);
-  void WillInitEagerly() { mSelectionRestoreEagerInit = true; }
   bool HasNeverInitializedBefore() const { return !mEverInited; }
   // Sync up our selection properties with our editor prior to being destroyed.
   // This will invoke UnbindFromFrame() to ensure that we grab whatever
@@ -399,7 +395,7 @@ class TextControlState final : public SupportsWeakPtr<TextControlState> {
 
   MOZ_CAN_RUN_SCRIPT void UnlinkInternal();
 
-  void ValueWasChanged(bool aNotify);
+  void ValueWasChanged();
 
   MOZ_CAN_RUN_SCRIPT void DestroyEditor();
   MOZ_CAN_RUN_SCRIPT void Clear();
@@ -456,8 +452,6 @@ class TextControlState final : public SupportsWeakPtr<TextControlState> {
   bool mValueTransferInProgress;  // Whether a value is being transferred to the
                                   // frame
   bool mSelectionCached;          // Whether mSelectionProperties is valid
-  mutable bool mSelectionRestoreEagerInit;  // Whether we're eager initing
-                                            // because of selection restore
   bool mPlaceholderVisibility;
   bool mPreviewVisibility;
 

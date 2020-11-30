@@ -8,6 +8,8 @@
 #include "nsArray.h"
 #include "nsCRT.h"
 #include "nsCOMPtr.h"
+#include "nsITransferable.h"
+#include "nsLiteralString.h"
 #include "nsXPCOM.h"
 #include "nsISupportsPrimitives.h"
 
@@ -16,9 +18,9 @@
 #include "nsIDocumentEncoder.h"
 #include "nsContentUtils.h"
 
-nsHTMLFormatConverter::nsHTMLFormatConverter() {}
+nsHTMLFormatConverter::nsHTMLFormatConverter() = default;
 
-nsHTMLFormatConverter::~nsHTMLFormatConverter() {}
+nsHTMLFormatConverter::~nsHTMLFormatConverter() = default;
 
 NS_IMPL_ISUPPORTS(nsHTMLFormatConverter, nsIFormatConverter)
 
@@ -30,7 +32,7 @@ NS_IMPL_ISUPPORTS(nsHTMLFormatConverter, nsIFormatConverter)
 //
 NS_IMETHODIMP
 nsHTMLFormatConverter::GetInputDataFlavors(nsTArray<nsCString>& aFlavors) {
-  aFlavors.AppendElement(NS_LITERAL_CSTRING(kHTMLMime));
+  aFlavors.AppendElement(nsLiteralCString(kHTMLMime));
   return NS_OK;
 }
 
@@ -43,8 +45,8 @@ nsHTMLFormatConverter::GetInputDataFlavors(nsTArray<nsCString>& aFlavors) {
 //
 NS_IMETHODIMP
 nsHTMLFormatConverter::GetOutputDataFlavors(nsTArray<nsCString>& aFlavors) {
-  aFlavors.AppendElement(NS_LITERAL_CSTRING(kHTMLMime));
-  aFlavors.AppendElement(NS_LITERAL_CSTRING(kUnicodeMime));
+  aFlavors.AppendElement(nsLiteralCString(kHTMLMime));
+  aFlavors.AppendElement(nsLiteralCString(kUnicodeMime));
   return NS_OK;
 }
 

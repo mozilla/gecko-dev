@@ -1,4 +1,3 @@
-# %ARG DOCKER_IMAGE_PARENT
 FROM $DOCKER_IMAGE_PARENT
 MAINTAINER Mike Hommey <mhommey@mozilla.com>
 
@@ -7,4 +6,5 @@ RUN apt-get install --install-recommends \
       aptitude \
       build-essential \
       devscripts \
-      fakeroot
+      fakeroot \
+      git

@@ -8,9 +8,11 @@
 #define mozilla_SynchronizedEventQueue_h
 
 #include "mozilla/AlreadyAddRefed.h"
-#include "mozilla/AbstractEventQueue.h"
+#include "mozilla/EventQueue.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Mutex.h"
+#include "nsIThreadInternal.h"
+#include "nsCOMPtr.h"
 #include "nsTObserverArray.h"
 
 class nsIEventTarget;
@@ -57,12 +59,8 @@ class ThreadTargetSink {
 class SynchronizedEventQueue : public ThreadTargetSink {
  public:
   virtual already_AddRefed<nsIRunnable> GetEvent(
-      bool aMayWait, EventQueuePriority* aPriority,
-      mozilla::TimeDuration* aLastEventDelay = nullptr) = 0;
-  virtual void DidRunEvent() = 0;
+      bool aMayWait, mozilla::TimeDuration* aLastEventDelay = nullptr) = 0;
   virtual bool HasPendingEvent() = 0;
-
-  virtual bool HasPendingHighPriorityEvents() = 0;
 
   // This method atomically checks if there are pending events and, if there are
   // none, forbids future events from being posted. It returns true if there
@@ -81,11 +79,6 @@ class SynchronizedEventQueue : public ThreadTargetSink {
   void AddObserver(nsIThreadObserver* aObserver);
   void RemoveObserver(nsIThreadObserver* aObserver);
   const nsTObserverArray<nsCOMPtr<nsIThreadObserver>>& EventObservers();
-
-  virtual void EnableInputEventPrioritization() = 0;
-  virtual void FlushInputEventPrioritization() = 0;
-  virtual void SuspendInputEventPrioritization() = 0;
-  virtual void ResumeInputEventPrioritization() = 0;
 
   size_t SizeOfExcludingThis(
       mozilla::MallocSizeOf aMallocSizeOf) const override {

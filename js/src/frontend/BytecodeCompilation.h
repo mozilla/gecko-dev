@@ -17,19 +17,24 @@
 
 #include "jstypes.h"  // JS_PUBLIC_API
 
-#include "frontend/CompilationInfo.h"
+#include "frontend/CompilationInfo.h"  // CompilationInfo, CompilationInfoVector, CompilationGCOutput
 #include "frontend/ParseContext.h"  // js::frontend::UsedNameTracker
 #include "frontend/SharedContext.h"  // js::frontend::Directives, js::frontend::{,Eval,Global}SharedContext
 #include "js/CompileOptions.h"  // JS::ReadOnlyCompileOptions
 #include "js/RootingAPI.h"      // JS::{,Mutable}Handle, JS::Rooted
 #include "js/SourceText.h"      // JS::SourceText
-#include "vm/JSScript.h"  // js::{FunctionAsync,Generator}Kind, js::LazyScript, JSScript, js::ScriptSource, js::ScriptSourceObject
+#include "js/UniquePtr.h"       // js::UniquePtr
+#include "vm/JSScript.h"  // js::{FunctionAsync,Generator}Kind, js::BaseScript, JSScript, js::ScriptSource, js::ScriptSourceObject
 #include "vm/Scope.h"     // js::ScopeKind
 
 class JS_PUBLIC_API JSFunction;
 class JS_PUBLIC_API JSObject;
 
+class JSObject;
+
 namespace js {
+
+class Scope;
 
 namespace frontend {
 
@@ -45,28 +50,60 @@ class ModuleCompiler;
 template <typename Unit>
 class StandaloneFunctionCompiler;
 
-extern JSScript* CompileGlobalScript(CompilationInfo& compilationInfo,
-                                     GlobalSharedContext& globalsc,
-                                     JS::SourceText<char16_t>& srcBuf);
+extern bool CompileGlobalScriptToStencil(JSContext* cx,
+                                         CompilationInfo& compilationInfo,
+                                         JS::SourceText<char16_t>& srcBuf,
+                                         ScopeKind scopeKind);
 
-extern JSScript* CompileGlobalScript(CompilationInfo& compilationInfo,
-                                     GlobalSharedContext& globalsc,
-                                     JS::SourceText<mozilla::Utf8Unit>& srcBuf);
+extern bool CompileGlobalScriptToStencil(
+    JSContext* cx, CompilationInfo& compilationInfo,
+    JS::SourceText<mozilla::Utf8Unit>& srcBuf, ScopeKind scopeKind);
 
-extern JSScript* CompileEvalScript(CompilationInfo& compilationInfo,
-                                   EvalSharedContext& evalsc,
-                                   JS::Handle<JSObject*> environment,
-                                   JS::SourceText<char16_t>& srcBuf);
+extern UniquePtr<CompilationInfo> CompileGlobalScriptToStencil(
+    JSContext* cx, const JS::ReadOnlyCompileOptions& options,
+    JS::SourceText<char16_t>& srcBuf, ScopeKind scopeKind);
 
-extern MOZ_MUST_USE bool CompileLazyFunction(JSContext* cx,
-                                             JS::Handle<BaseScript*> lazy,
-                                             const char16_t* units,
-                                             size_t length);
+extern UniquePtr<CompilationInfo> CompileGlobalScriptToStencil(
+    JSContext* cx, const JS::ReadOnlyCompileOptions& options,
+    JS::SourceText<mozilla::Utf8Unit>& srcBuf, ScopeKind scopeKind);
 
-extern MOZ_MUST_USE bool CompileLazyFunction(JSContext* cx,
-                                             JS::Handle<BaseScript*> lazy,
-                                             const mozilla::Utf8Unit* units,
-                                             size_t length);
+extern bool InstantiateStencils(JSContext* cx, CompilationInfo& compilationInfo,
+                                CompilationGCOutput& gcOutput);
+
+extern bool InstantiateStencils(JSContext* cx,
+                                CompilationInfoVector& compilationInfos,
+                                CompilationGCOutput& gcOutput);
+
+extern JSScript* CompileGlobalScript(JSContext* cx,
+                                     const JS::ReadOnlyCompileOptions& options,
+                                     JS::SourceText<char16_t>& srcBuf,
+                                     ScopeKind scopeKind);
+
+extern JSScript* CompileGlobalScript(JSContext* cx,
+                                     const JS::ReadOnlyCompileOptions& options,
+                                     JS::SourceText<mozilla::Utf8Unit>& srcBuf,
+                                     ScopeKind scopeKind);
+
+extern JSScript* CompileEvalScript(JSContext* cx,
+                                   const JS::ReadOnlyCompileOptions& options,
+                                   JS::SourceText<char16_t>& srcBuf,
+                                   JS::Handle<js::Scope*> enclosingScope,
+                                   JS::Handle<JSObject*> enclosingEnv);
+
+extern void FillCompileOptionsForLazyFunction(JS::CompileOptions& options,
+                                              Handle<BaseScript*> lazy);
+
+extern MOZ_MUST_USE bool CompileLazyFunctionToStencil(
+    JSContext* cx, CompilationInfo& compilationInfo,
+    JS::Handle<BaseScript*> lazy, const char16_t* units, size_t length);
+
+extern MOZ_MUST_USE bool CompileLazyFunctionToStencil(
+    JSContext* cx, CompilationInfo& compilationInfo,
+    JS::Handle<BaseScript*> lazy, const mozilla::Utf8Unit* units,
+    size_t length);
+
+extern bool InstantiateStencilsForDelazify(JSContext* cx,
+                                           CompilationInfo& compilationInfo);
 
 }  // namespace frontend
 

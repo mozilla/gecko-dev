@@ -4,6 +4,7 @@ HANDLER_INFO_OUT = jsparagus/emit/collect_handler_info/info.json
 RS_TABLES_OUT = crates/generated_parser/src/parser_tables_generated.rs
 RS_AST_OUT = crates/ast/src/types_generated.rs \
 	crates/ast/src/type_id_generated.rs \
+	crates/ast/src/dump_generated.rs \
 	crates/ast/src/visit_generated.rs \
 	crates/ast/src/source_location_accessor_generated.rs \
 	crates/generated_parser/src/stack_value_generated.rs
@@ -26,9 +27,21 @@ init: init-venv
 ECMA262_SPEC_HTML = ../tc39/ecma262/spec.html
 STANDARD_ES_GRAMMAR_OUT = js_parser/es.esgrammar
 
+# List of files which have a grammar_extension! Rust macro. The macro content is
+# scrapped to patch the extracted grammar.
+EXTENSION_FILES = \
+
 # Incomplete list of files that contribute to the dump file.
-SOURCE_FILES = \
+SOURCE_FILES = $(EXTENSION_FILES) \
 jsparagus/gen.py \
+jsparagus/grammar.py \
+jsparagus/rewrites.py \
+jsparagus/lr0.py \
+jsparagus/parse_table.py \
+jsparagus/extension.py \
+jsparagus/utils.py \
+jsparagus/actions.py \
+jsparagus/aps.py \
 jsparagus/types.py \
 js_parser/esgrammar.pgen \
 js_parser/generate_js_parser_tables.py \
@@ -44,7 +57,7 @@ jsparagus/emit/rust.py
 DUMP_FILE = js_parser/parser_generated.jsparagus_dump
 
 $(DUMP_FILE): $(SOURCE_FILES)
-	$(PYTHON) -m js_parser.generate_js_parser_tables --progress -o $@
+	$(PYTHON) -m js_parser.generate_js_parser_tables --progress -o $@ $(EXTENSION_FILES:%=--extend %)
 
 $(PY_OUT): $(EMIT_FILES) $(DUMP_FILE)
 	$(PYTHON) -m js_parser.generate_js_parser_tables --progress -o $@ $(DUMP_FILE)
@@ -64,13 +77,35 @@ $(STANDARD_ES_GRAMMAR_OUT): $(ECMA262_SPEC_HTML)
 	$(PYTHON) -m js_parser.extract_es_grammar $(ECMA262_SPEC_HTML) > $@ || rm $@
 
 rust: $(RS_AST_OUT) $(RS_TABLES_OUT)
-	cargo build
+	cargo build --all
 
-check: all
+jsparagus/parse_pgen_generated.py:
+	$(PYTHON) -m jsparagus.parse_pgen --regenerate > $@
+
+check: all static-check dyn-check
+
+dyn-check:
 	./test.sh
-	cargo fmt && cargo test
+	cargo fmt
+	cargo test --all
+
+static-check:
+	$(VENV_BIN_DIR)/mypy -p jsparagus -p tests -p js_parser
 
 jsdemo: $(PY_OUT)
 	$(PYTHON) -m js_parser.try_it
 
-.PHONY: all check jsdemo rust
+update-stencil:
+	$(PYTHON) update_stencil.py \
+		../mozilla-unified ./
+
+update-unicode:
+	$(PYTHON) update_unicode.py UNIDATA ./
+
+smoosh-status:
+	$(PYTHON) smoosh_status.py
+
+smoosh-status-ci:
+	$(PYTHON) smoosh_status.py ci
+
+.PHONY: all check static-check dyn-check jsdemo rust update-opcodes-m-u smoosh-status smoosh-status-ci

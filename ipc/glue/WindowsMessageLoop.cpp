@@ -15,7 +15,9 @@
 #include "WinUtils.h"
 
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/dom/JSExecutionManager.h"
 #include "mozilla/ipc/ProtocolUtils.h"
+#include "mozilla/mscom/Utils.h"
 #include "mozilla/PaintTracker.h"
 #include "mozilla/UniquePtr.h"
 
@@ -456,8 +458,8 @@ static bool WindowIsDeferredWindow(HWND hWnd) {
 
   // Common mozilla windows we must defer messages to.
   nsDependentString className(buffer, length);
-  if (StringBeginsWith(className, NS_LITERAL_STRING("Mozilla")) ||
-      StringBeginsWith(className, NS_LITERAL_STRING("Gecko")) ||
+  if (StringBeginsWith(className, u"Mozilla"_ns) ||
+      StringBeginsWith(className, u"Gecko"_ns) ||
       className.EqualsLiteral("nsToolkitClass") ||
       className.EqualsLiteral("nsAppShell:EventWindowClass")) {
     return true;
@@ -538,10 +540,9 @@ LRESULT CALLBACK CallWindowProcedureHook(int nCode, WPARAM wParam,
     if (!gNeuteredWindows->Contains(hWnd) &&
         !SuppressedNeuteringRegion::IsNeuteringSuppressed() &&
         NeuterWindowProcedure(hWnd)) {
-      if (!gNeuteredWindows->AppendElement(hWnd)) {
-        NS_ERROR("Out of memory!");
-        RestoreWindowProcedure(hWnd);
-      }
+      // XXX(Bug 1631371) Check if this should use a fallible operation as it
+      // pretended earlier.
+      gNeuteredWindows->AppendElement(hWnd);
     }
   }
   return CallNextHookEx(nullptr, nCode, wParam, lParam);
@@ -616,7 +617,7 @@ void InitUIThread() {
   MOZ_ASSERT(gUIThreadId == GetCurrentThreadId(),
              "Called InitUIThread multiple times on different threads!");
 
-  if (!gWinEventHook && XRE_Win32kCallsAllowed()) {
+  if (!gWinEventHook && !mscom::IsCurrentThreadMTA()) {
     gWinEventHook = SetWinEventHook(EVENT_OBJECT_CREATE, EVENT_OBJECT_DESTROY,
                                     NULL, &WinEventHook, GetCurrentProcessId(),
                                     gUIThreadId, WINEVENT_OUTOFCONTEXT);
@@ -795,11 +796,9 @@ static void StopNeutering() {
   MessageChannel::SetIsPumpingMessages(false);
 }
 
-NeuteredWindowRegion::NeuteredWindowRegion(
-    bool aDoNeuter MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
+NeuteredWindowRegion::NeuteredWindowRegion(bool aDoNeuter)
     : mNeuteredByThis(!gWindowHook && aDoNeuter &&
                       XRE_UseNativeEventProcessing()) {
-  MOZ_GUARD_OBJECT_NOTIFIER_INIT;
   if (mNeuteredByThis) {
     StartNeutering();
   }
@@ -827,10 +826,8 @@ void NeuteredWindowRegion::PumpOnce() {
   ::PeekMessageW(&msg, nullptr, 0, 0, PM_NOREMOVE);
 }
 
-DeneuteredWindowRegion::DeneuteredWindowRegion(
-    MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM_IN_IMPL)
+DeneuteredWindowRegion::DeneuteredWindowRegion()
     : mReneuter(gWindowHook != NULL) {
-  MOZ_GUARD_OBJECT_NOTIFIER_INIT;
   if (mReneuter) {
     StopNeutering();
   }
@@ -842,10 +839,8 @@ DeneuteredWindowRegion::~DeneuteredWindowRegion() {
   }
 }
 
-SuppressedNeuteringRegion::SuppressedNeuteringRegion(
-    MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM_IN_IMPL)
+SuppressedNeuteringRegion::SuppressedNeuteringRegion()
     : mReenable(::gUIThreadId == ::GetCurrentThreadId() && ::gWindowHook) {
-  MOZ_GUARD_OBJECT_NOTIFIER_INIT;
   if (mReenable) {
     MOZ_ASSERT(!sSuppressNeutering);
     sSuppressNeutering = true;
@@ -1066,6 +1061,10 @@ bool MessageChannel::WaitForSyncNotify(bool aHandleWindowsMessages) {
 
 bool MessageChannel::WaitForInterruptNotify() {
   mMonitor->AssertCurrentThreadOwns();
+
+  // Receiving the interrupt notification may require JS to execute on a
+  // worker.
+  dom::AutoYieldJSThreadExecution yield;
 
   if (!gUIThreadId) {
     mozilla::ipc::windows::InitUIThread();

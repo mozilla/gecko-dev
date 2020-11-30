@@ -8,21 +8,6 @@
 #ifndef mozilla_mozalloc_h
 #define mozilla_mozalloc_h
 
-#if defined(MOZ_MEMORY) && defined(IMPL_MFBT)
-#  define MOZ_MEMORY_IMPL
-#  include "mozmemory_wrap.h"
-#  define MALLOC_FUNCS MALLOC_FUNCS_MALLOC
-// See mozmemory_wrap.h for more details. Files that are part of libmozglue,
-// need to use _impl suffixes, which is becoming cumbersome. We'll have to use
-// something like a malloc.h wrapper and allow the use of the functions without
-// a _impl suffix. In the meanwhile, this is enough to get by for C++ code.
-#  define NOTHROW_MALLOC_DECL(name, return_type, ...) \
-    MOZ_MEMORY_API return_type name##_impl(__VA_ARGS__) noexcept(true);
-#  define MALLOC_DECL(name, return_type, ...) \
-    MOZ_MEMORY_API return_type name##_impl(__VA_ARGS__);
-#  include "malloc_decls.h"
-#endif
-
 /*
  * https://bugzilla.mozilla.org/show_bug.cgi?id=427099
  */
@@ -36,6 +21,21 @@
 #  include <cstdlib>
 #else
 #  include <stdlib.h>
+#endif
+
+#if defined(MOZ_MEMORY) && defined(IMPL_MFBT)
+#  define MOZ_MEMORY_IMPL
+#  include "mozmemory_wrap.h"
+#  define MALLOC_FUNCS MALLOC_FUNCS_MALLOC
+// See mozmemory_wrap.h for more details. Files that are part of libmozglue,
+// need to use _impl suffixes, which is becoming cumbersome. We'll have to use
+// something like a malloc.h wrapper and allow the use of the functions without
+// a _impl suffix. In the meanwhile, this is enough to get by for C++ code.
+#  define NOTHROW_MALLOC_DECL(name, return_type, ...) \
+    MOZ_MEMORY_API return_type name##_impl(__VA_ARGS__) noexcept(true);
+#  define MALLOC_DECL(name, return_type, ...) \
+    MOZ_MEMORY_API return_type name##_impl(__VA_ARGS__);
+#  include "malloc_decls.h"
 #endif
 
 #if defined(__cplusplus)
@@ -75,21 +75,24 @@ MOZ_BEGIN_EXTERN_C
  * passing that pointer to |free()|.
  */
 
-MFBT_API void* moz_xmalloc(size_t size) MOZ_ALLOCATOR;
+MFBT_API void* moz_xmalloc(size_t size) MOZ_INFALLIBLE_ALLOCATOR;
 
-MFBT_API void* moz_xcalloc(size_t nmemb, size_t size) MOZ_ALLOCATOR;
+MFBT_API void* moz_xcalloc(size_t nmemb, size_t size) MOZ_INFALLIBLE_ALLOCATOR;
 
-MFBT_API void* moz_xrealloc(void* ptr, size_t size) MOZ_ALLOCATOR;
+MFBT_API void* moz_xrealloc(void* ptr, size_t size) MOZ_INFALLIBLE_ALLOCATOR;
 
-MFBT_API char* moz_xstrdup(const char* str) MOZ_ALLOCATOR;
+MFBT_API char* moz_xstrdup(const char* str) MOZ_INFALLIBLE_ALLOCATOR;
 
 #if defined(HAVE_STRNDUP)
-MFBT_API char* moz_xstrndup(const char* str, size_t strsize) MOZ_ALLOCATOR;
+MFBT_API char* moz_xstrndup(const char* str,
+                            size_t strsize) MOZ_INFALLIBLE_ALLOCATOR;
 #endif /* if defined(HAVE_STRNDUP) */
 
-MFBT_API void* moz_xmemdup(const void* ptr, size_t size) MOZ_ALLOCATOR;
+MFBT_API void* moz_xmemdup(const void* ptr,
+                           size_t size) MOZ_INFALLIBLE_ALLOCATOR;
 
-MFBT_API void* moz_xmemalign(size_t boundary, size_t size) MOZ_ALLOCATOR;
+MFBT_API void* moz_xmemalign(size_t boundary,
+                             size_t size) MOZ_INFALLIBLE_ALLOCATOR;
 
 MFBT_API size_t moz_malloc_usable_size(void* ptr);
 

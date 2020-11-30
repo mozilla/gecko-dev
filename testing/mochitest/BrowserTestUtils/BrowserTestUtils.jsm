@@ -19,6 +19,9 @@ var EXPORTED_SYMBOLS = ["BrowserTestUtils"];
 const { AppConstants } = ChromeUtils.import(
   "resource://gre/modules/AppConstants.jsm"
 );
+const { ComponentUtils } = ChromeUtils.import(
+  "resource://gre/modules/ComponentUtils.jsm"
+);
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
@@ -57,7 +60,7 @@ function NewProcessSelector() {}
 
 NewProcessSelector.prototype = {
   classID: OUR_PROCESSSELECTOR_CID,
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIContentProcessProvider]),
+  QueryInterface: ChromeUtils.generateQI(["nsIContentProcessProvider"]),
 
   provideProcess() {
     return Ci.nsIContentProcessProvider.NEW_PROCESS;
@@ -65,12 +68,8 @@ NewProcessSelector.prototype = {
 };
 
 let registrar = Components.manager.QueryInterface(Ci.nsIComponentRegistrar);
-let selectorFactory = XPCOMUtils._getFactory(NewProcessSelector);
+let selectorFactory = ComponentUtils._getFactory(NewProcessSelector);
 registrar.registerFactory(OUR_PROCESSSELECTOR_CID, "", null, selectorFactory);
-
-// For now, we'll allow tests to use CPOWs in this module for
-// some cases.
-Cu.permitCPOWsInScope(this);
 
 const kAboutPageRegistrationContentScript =
   "chrome://mochikit/content/tests/BrowserTestUtils/content-about-page-utils.js";
@@ -380,9 +379,13 @@ var BrowserTestUtils = {
    *
    * This can be used in conjunction with any synchronous method for starting a
    * load, like the "addTab" method on "tabbrowser", and must be called before
-   * yielding control to the event loop. This is guaranteed to work because the
-   * way we're listening for the load is in the content-utils.js frame script,
-   * and then sending an async message up, so we can't miss the message.
+   * yielding control to the event loop. Note that calling this after multiple
+   * successive load operations can be racy, so a |wantLoad| should be specified
+   * in these cases.
+   *
+   * This function works by listening for custom load events on |browser|. These
+   * are sent by a BrowserTestUtils window actor in response to "load" and
+   * "DOMContentLoaded" content events.
    *
    * @param {xul:browser} browser
    *        A xul:browser.
@@ -417,7 +420,10 @@ var BrowserTestUtils = {
     // inserted into the document.
     let tabbrowser = browser.ownerGlobal.gBrowser;
     if (tabbrowser && tabbrowser.getTabForBrowser) {
-      tabbrowser._insertBrowser(tabbrowser.getTabForBrowser(browser));
+      let tab = tabbrowser.getTabForBrowser(browser);
+      if (tab) {
+        tabbrowser._insertBrowser(tab);
+      }
     }
 
     function isWanted(url) {
@@ -524,6 +530,66 @@ var BrowserTestUtils = {
 
   /**
    * Waits for the web progress listener associated with this tab to fire a
+   * state change that matches checkFn for the toplevel document.
+   *
+   * @param {xul:browser} browser
+   *        A xul:browser.
+   * @param {String} expectedURI (optional)
+   *        A specific URL to check the channel load against
+   * @param {Function} checkFn
+   *        If checkFn(aStateFlags, aStatus) returns false, the state change
+   *        is ignored and we continue to wait.
+   *
+   * @return {Promise}
+   * @resolves When the desired state change reaches the tab's progress listener
+   */
+  waitForBrowserStateChange(browser, expectedURI, checkFn) {
+    return new Promise(resolve => {
+      let wpl = {
+        onStateChange(aWebProgress, aRequest, aStateFlags, aStatus) {
+          dump(
+            "Saw state " +
+              aStateFlags.toString(16) +
+              " and status " +
+              aStatus.toString(16) +
+              "\n"
+          );
+          if (checkFn(aStateFlags, aStatus) && aWebProgress.isTopLevel) {
+            let chan = aRequest.QueryInterface(Ci.nsIChannel);
+            dump(
+              "Browser got expected state change " +
+                chan.originalURI.spec +
+                "\n"
+            );
+            if (!expectedURI || chan.originalURI.spec == expectedURI) {
+              browser.removeProgressListener(wpl);
+              BrowserTestUtils._webProgressListeners.delete(wpl);
+              resolve();
+            }
+          }
+        },
+        onSecurityChange() {},
+        onStatusChange() {},
+        onLocationChange() {},
+        onContentBlockingEvent() {},
+        QueryInterface: ChromeUtils.generateQI([
+          "nsIWebProgressListener",
+          "nsIWebProgressListener2",
+          "nsISupportsWeakReference",
+        ]),
+      };
+      browser.addProgressListener(wpl);
+      this._webProgressListeners.add(wpl);
+      dump(
+        "Waiting for browser state change" +
+          (expectedURI ? " of " + expectedURI : "") +
+          "\n"
+      );
+    });
+  },
+
+  /**
+   * Waits for the web progress listener associated with this tab to fire a
    * STATE_STOP for the toplevel document.
    *
    * @param {xul:browser} browser
@@ -538,49 +604,54 @@ var BrowserTestUtils = {
    * @resolves When STATE_STOP reaches the tab's progress listener
    */
   browserStopped(browser, expectedURI, checkAborts = false) {
-    return new Promise(resolve => {
-      let wpl = {
-        onStateChange(aWebProgress, aRequest, aStateFlags, aStatus) {
-          dump(
-            "Saw state " +
-              aStateFlags.toString(16) +
-              " and status " +
-              aStatus.toString(16) +
-              "\n"
-          );
-          if (
-            aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK &&
-            aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
-            (checkAborts || aStatus != Cr.NS_BINDING_ABORTED) &&
-            aWebProgress.isTopLevel
-          ) {
-            let chan = aRequest.QueryInterface(Ci.nsIChannel);
-            dump("Browser loaded " + chan.originalURI.spec + "\n");
-            if (!expectedURI || chan.originalURI.spec == expectedURI) {
-              browser.removeProgressListener(wpl);
-              BrowserTestUtils._webProgressListeners.delete(wpl);
-              resolve();
-            }
-          }
-        },
-        onSecurityChange() {},
-        onStatusChange() {},
-        onLocationChange() {},
-        onContentBlockingEvent() {},
-        QueryInterface: ChromeUtils.generateQI([
-          Ci.nsIWebProgressListener,
-          Ci.nsIWebProgressListener2,
-          Ci.nsISupportsWeakReference,
-        ]),
-      };
-      browser.addProgressListener(wpl);
-      this._webProgressListeners.add(wpl);
-      dump(
-        "Waiting for browser load" +
-          (expectedURI ? " of " + expectedURI : "") +
-          "\n"
+    let testFn = function(aStateFlags, aStatus) {
+      return (
+        aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK &&
+        aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
+        (checkAborts || aStatus != Cr.NS_BINDING_ABORTED)
       );
-    });
+    };
+    dump(
+      "Waiting for browser load" +
+        (expectedURI ? " of " + expectedURI : "") +
+        "\n"
+    );
+    return BrowserTestUtils.waitForBrowserStateChange(
+      browser,
+      expectedURI,
+      testFn
+    );
+  },
+
+  /**
+   * Waits for the web progress listener associated with this tab to fire a
+   * STATE_START for the toplevel document.
+   *
+   * @param {xul:browser} browser
+   *        A xul:browser.
+   * @param {String} expectedURI (optional)
+   *        A specific URL to check the channel load against
+   *
+   * @return {Promise}
+   * @resolves When STATE_START reaches the tab's progress listener
+   */
+  browserStarted(browser, expectedURI) {
+    let testFn = function(aStateFlags, aStatus) {
+      return (
+        aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK &&
+        aStateFlags & Ci.nsIWebProgressListener.STATE_START
+      );
+    };
+    dump(
+      "Waiting for browser to start load" +
+        (expectedURI ? " of " + expectedURI : "") +
+        "\n"
+    );
+    return BrowserTestUtils.waitForBrowserStateChange(
+      browser,
+      expectedURI,
+      testFn
+    );
   },
 
   /**
@@ -688,10 +759,16 @@ var BrowserTestUtils = {
   waitForLocationChange(tabbrowser, url) {
     return new Promise((resolve, reject) => {
       let progressListener = {
-        onLocationChange(aBrowser) {
+        onLocationChange(
+          aBrowser,
+          aWebProgress,
+          aRequest,
+          aLocationURI,
+          aFlags
+        ) {
           if (
-            (url && aBrowser.currentURI.spec != url) ||
-            (!url && aBrowser.currentURI.spec == "about:blank")
+            (url && aLocationURI.spec != url) ||
+            (!url && aLocationURI.spec == "about:blank")
           ) {
             return;
           }
@@ -890,6 +967,24 @@ var BrowserTestUtils = {
         }
       }
       Services.ww.registerNotification(observer);
+    });
+  },
+
+  /**
+   * @param win (optional)
+   *        The window we should wait to have "domwindowopened" sent through
+   *        the observer service for. If this is not supplied, we'll just
+   *        resolve when the first "domwindowopened" notification is seen.
+   *        The promise will be resolved once the new window's document has been
+   *        loaded.
+   * @return {Promise}
+   *         A Promise which resolves when a "domwindowopened" notification
+   *         has been fired by the window watcher.
+   */
+  domWindowOpenedAndLoaded(win) {
+    return this.domWindowOpened(win, async win => {
+      await this.waitForEvent(win, "load");
+      return true;
     });
   },
 
@@ -1175,7 +1270,7 @@ var BrowserTestUtils = {
         eventName,
         () => {
           removeEventListener();
-          resolve();
+          resolve(eventName);
         },
         { capture, wantUntrusted },
         checkFn
@@ -1239,7 +1334,7 @@ var BrowserTestUtils = {
     let contentEventListeners = this._contentEventListeners;
     contentEventListeners.set(id, {
       listener,
-      browsingContext: browser.browsingContext,
+      browserId: browser.browserId,
     });
 
     let eventListenerState = this._contentEventListenerSharedState;
@@ -1275,12 +1370,12 @@ var BrowserTestUtils = {
    * BrowserTestUtilsParent.jsm when a content event we were listening for
    * happens.
    */
-  _receivedContentEventListener(listenerId, browsingContext) {
+  _receivedContentEventListener(listenerId, browserId) {
     let listenerData = this._contentEventListeners.get(listenerId);
     if (!listenerData) {
       return;
     }
-    if (listenerData.browsingContext != browsingContext) {
+    if (listenerData.browserId != browserId) {
       return;
     }
     listenerData.listener();
@@ -1390,7 +1485,7 @@ var BrowserTestUtils = {
               null
             ),
 
-            applyFilter(service, channel, defaultProxyInfo, callback) {
+            applyFilter(channel, defaultProxyInfo, callback) {
               callback.onProxyFilterResult(
                 isHttp(channel.URI.spec) ? defaultProxyInfo : this.proxyInfo
               );
@@ -1469,11 +1564,21 @@ var BrowserTestUtils = {
    *        Additional arguments, similar to the EventUtils.jsm version
    * @param {BrowserContext|MozFrameLoaderOwner} browsingContext
    *        Browsing context or browser element, must not be null
+   * @param {boolean} handlingUserInput
+   *        Whether the synthesize should be perfomed while simulating
+   *        user interaction (making windowUtils.isHandlingUserInput be true).
    *
    * @returns {Promise}
    * @resolves True if the mouse event was cancelled.
    */
-  synthesizeMouse(target, offsetX, offsetY, event, browsingContext) {
+  synthesizeMouse(
+    target,
+    offsetX,
+    offsetY,
+    event,
+    browsingContext,
+    handlingUserInput
+  ) {
     let targetFn = null;
     if (typeof target == "function") {
       targetFn = target.toString();
@@ -1489,6 +1594,7 @@ var BrowserTestUtils = {
       x: offsetX,
       y: offsetY,
       event,
+      handlingUserInput,
     });
   },
 
@@ -1628,6 +1734,12 @@ var BrowserTestUtils = {
    * @param (BrowsingContext) browsingContext
    *        The context where the frame leaves. Default to
    *        top level context if not supplied.
+   * @param (object?) options
+   *        An object with any of the following fields:
+   *          crashType: "CRASH_INVALID_POINTER_DEREF" | "CRASH_OOM"
+   *            The type of crash. If unspecified, default to "CRASH_INVALID_POINTER_DEREF"
+   *          asyncCrash: bool
+   *            If specified and `true`, cause the crash asynchronously.
    *
    * @returns (Promise)
    * @resolves An Object with key-value pairs representing the data from the
@@ -1637,7 +1749,8 @@ var BrowserTestUtils = {
     browser,
     shouldShowTabCrashPage = true,
     shouldClearMinidumps = true,
-    browsingContext
+    browsingContext,
+    options = {}
   ) {
     let extra = {};
 
@@ -1772,7 +1885,10 @@ var BrowserTestUtils = {
     this.sendAsyncMessage(
       browsingContext || browser.browsingContext,
       "BrowserTestUtils:CrashFrame",
-      {}
+      {
+        crashType: options.crashType || "",
+        asyncCrash: options.asyncCrash || false,
+      }
     );
 
     await Promise.all(expectedPromises);
@@ -2041,6 +2157,51 @@ var BrowserTestUtils = {
         // will be the notification itself.
         resolve(event.originalTarget);
       });
+    });
+  },
+
+  /**
+   * Waits for CSS transitions to complete for an element. Tracks any
+   * transitions that start after this function is called and resolves once all
+   * started transitions complete.
+   *
+   * @param element (Element)
+   *        The element that will transition.
+   * @param timeout (number)
+   *        The maximum time to wait in milliseconds. Defaults to 5 seconds.
+   * @return Promise
+   *        Resolves when transitions complete or rejects if the timeout is hit.
+   */
+  waitForTransition(element, timeout = 5000) {
+    return new Promise((resolve, reject) => {
+      let cleanup = () => {
+        element.removeEventListener("transitionrun", listener);
+        element.removeEventListener("transitionend", listener);
+      };
+
+      let timer = element.ownerGlobal.setTimeout(() => {
+        cleanup();
+        reject();
+      }, timeout);
+
+      let transitionCount = 0;
+
+      let listener = event => {
+        if (event.type == "transitionrun") {
+          transitionCount++;
+        } else {
+          transitionCount--;
+          if (transitionCount == 0) {
+            cleanup();
+            element.ownerGlobal.clearTimeout(timer);
+            resolve();
+          }
+        }
+      };
+
+      element.addEventListener("transitionrun", listener);
+      element.addEventListener("transitionend", listener);
+      element.addEventListener("transitioncancel", listener);
     });
   },
 

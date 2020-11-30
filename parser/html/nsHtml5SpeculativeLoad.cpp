@@ -43,7 +43,7 @@ void nsHtml5SpeculativeLoad::Perform(nsHtml5TreeOpExecutor* aExecutor) {
       aExecutor->PreloadImage(
           mUrlOrSizes, mCrossOriginOrMedia, mCharsetOrSrcset,
           mTypeOrCharsetSourceOrDocumentModeOrMetaCSPOrSizesOrIntegrity,
-          mReferrerPolicyOrIntegrity);
+          mReferrerPolicyOrIntegrity, mIsLinkPreload);
       break;
     case eSpeculativeLoadOpenPicture:
       aExecutor->PreloadOpenPicture();
@@ -120,6 +120,14 @@ void nsHtml5SpeculativeLoad::Perform(nsHtml5TreeOpExecutor* aExecutor) {
     } break;
     case eSpeculativeLoadPreconnect:
       aExecutor->Preconnect(mUrlOrSizes, mCrossOriginOrMedia);
+      break;
+    case eSpeculativeLoadFont:
+      aExecutor->PreloadFont(mUrlOrSizes, mCrossOriginOrMedia,
+                             mReferrerPolicyOrIntegrity);
+      break;
+    case eSpeculativeLoadFetch:
+      aExecutor->PreloadFetch(mUrlOrSizes, mCrossOriginOrMedia,
+                              mReferrerPolicyOrIntegrity);
       break;
     default:
       MOZ_ASSERT_UNREACHABLE("Bogus speculative load.");

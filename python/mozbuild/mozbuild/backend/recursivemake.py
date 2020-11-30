@@ -14,14 +14,16 @@ from collections import (
     defaultdict,
     namedtuple,
 )
-from six import StringIO
 from itertools import chain
+from operator import itemgetter
+from six import StringIO
 
 from mozpack.manifests import (
     InstallManifest,
 )
 import mozpack.path as mozpath
 
+from mozbuild import frontend
 from mozbuild.frontend.context import (
     AbsolutePath,
     Path,
@@ -86,54 +88,21 @@ from ..util import (
 from ..makeutil import Makefile
 from mozbuild.shellutil import quote as shell_quote
 
-MOZBUILD_VARIABLES = [
-    'ASFLAGS',
-    'CMSRCS',
-    'CMMSRCS',
-    'CPP_UNIT_TESTS',
-    'DIRS',
-    'DIST_INSTALL',
-    'EXTRA_DSO_LDOPTS',
-    'EXTRA_JS_MODULES',
-    'EXTRA_PP_COMPONENTS',
-    'EXTRA_PP_JS_MODULES',
-    'FORCE_SHARED_LIB',
-    'FORCE_STATIC_LIB',
-    'FINAL_LIBRARY',
-    'HOST_CFLAGS',
-    'HOST_CSRCS',
-    'HOST_CMMSRCS',
-    'HOST_CXXFLAGS',
-    'HOST_EXTRA_LIBS',
-    'HOST_LIBRARY_NAME',
-    'HOST_PROGRAM',
-    'HOST_SIMPLE_PROGRAMS',
-    'JAR_MANIFEST',
-    'JAVA_JAR_TARGETS',
-    'LIBRARY_NAME',
-    'LIBS',
-    'MAKE_FRAMEWORK',
-    'MODULE',
-    'NO_DIST_INSTALL',
-    'NO_EXPAND_LIBS',
-    'NO_INTERFACES_MANIFEST',
-    'OS_LIBS',
-    'PARALLEL_DIRS',
-    'PREF_JS_EXPORTS',
-    'PROGRAM',
-    'RESOURCE_FILES',
-    'SHARED_LIBRARY_LIBS',
-    'SHARED_LIBRARY_NAME',
-    'SIMPLE_PROGRAMS',
-    'SONAME',
-    'STATIC_LIBRARY_NAME',
-    'TEST_DIRS',
-    'TOOL_DIRS',
-    # XXX config/Makefile.in specifies this in a make invocation
-    # 'USE_EXTENSION_MANIFEST',
-    'XPCSHELL_TESTS',
-    'XPIDL_MODULE',
-]
+# To protect against accidentally adding logic to Makefiles that belong in moz.build,
+# we check if moz.build-like variables are defined in Makefiles. If they are, we throw
+# an error to encourage the usage of moz.build instead.
+_MOZBUILD_ONLY_VARIABLES = set(frontend.context.VARIABLES.keys()) - {
+    # The migration to moz.build from Makefiles still isn't complete, and there's still
+    # some straggling Makefile logic that uses variables that only moz.build should
+    # use.
+    # These remaining variables are excluded from our blacklist. As the variables here
+    # are migrated from Makefiles in the future, they should be removed from this
+    # "override" list.
+    'XPI_NAME',
+    'USE_EXTENSION_MANIFEST',
+    'CFLAGS',
+    'CXXFLAGS',
+}
 
 DEPRECATED_VARIABLES = [
     'ALLOW_COMPILER_WARNINGS',
@@ -410,6 +379,7 @@ class RecursiveMakeBackend(MakeBackend):
         self._rust_targets = set()
         self._rust_lib_targets = set()
         self._gkrust_target = None
+        self._pre_compile = set()
 
         self._no_skip = {
             'export': set(),
@@ -428,11 +398,20 @@ class RecursiveMakeBackend(MakeBackend):
         return summary
 
     def _get_backend_file_for(self, obj):
-        if obj.objdir not in self._backend_files:
-            self._backend_files[obj.objdir] = \
-                BackendMakeFile(obj.srcdir, obj.objdir, obj.config,
+        # For generated files that we put in the export or misc tiers, we use the
+        # top-level backend file, except for localized files, which we need to keep
+        # in each directory for dependencies from jar manifests for l10n repacks.
+        if isinstance(obj, GeneratedFile) and not obj.required_during_compile and \
+                not obj.localized:
+            objdir = self.environment.topobjdir
+        else:
+            objdir = obj.objdir
+
+        if objdir not in self._backend_files:
+            self._backend_files[objdir] = \
+                BackendMakeFile(obj.srcdir, objdir, obj.config,
                                 obj.topsrcdir, self.environment.topobjdir, self.dry_run)
-        return self._backend_files[obj.objdir]
+        return self._backend_files[objdir]
 
     def consume_object(self, obj):
         """Write out build files necessary to build with recursive make."""
@@ -478,7 +457,6 @@ class RecursiveMakeBackend(MakeBackend):
             }
             variables = [suffix_map[obj.canonical_suffix]]
             if isinstance(obj, GeneratedSources):
-                variables.append('GARBAGE')
                 base = backend_file.objdir
                 cls = ObjDirPath
                 prefix = '!'
@@ -503,7 +481,6 @@ class RecursiveMakeBackend(MakeBackend):
             }
             variables = [suffix_map[obj.canonical_suffix]]
             if isinstance(obj, HostGeneratedSources):
-                variables.append('GARBAGE')
                 base = backend_file.objdir
                 cls = ObjDirPath
                 prefix = '!'
@@ -527,7 +504,6 @@ class RecursiveMakeBackend(MakeBackend):
             }
             variables = [suffix_map[obj.canonical_suffix]]
             if isinstance(obj, WasmGeneratedSources):
-                variables.append('GARBAGE')
                 base = backend_file.objdir
                 cls = ObjDirPath
                 prefix = '!'
@@ -568,21 +544,27 @@ class RecursiveMakeBackend(MakeBackend):
             if obj.required_before_compile:
                 tier = 'export'
             elif obj.required_during_compile:
-                tier = None
-            elif obj.localized:
-                tier = 'libs'
+                tier = 'pre-compile'
             else:
                 tier = 'misc'
-            if tier:
-                self._no_skip[tier].add(backend_file.relobjdir)
+            relobjdir = mozpath.relpath(obj.objdir, self.environment.topobjdir)
+            if tier == 'pre-compile':
+                self._pre_compile.add(relobjdir)
+            else:
+                self._no_skip[tier].add(relobjdir)
             backend_file.write_once('include $(topsrcdir)/config/AB_rCD.mk\n')
+            relobjdir = mozpath.relpath(obj.objdir, backend_file.objdir)
+            # For generated files that we handle in the top-level backend file,
+            # we want to have a `directory/tier` target depending on the file.
+            # For the others, we want a `tier` target.
+            if tier != 'pre-compile' and relobjdir:
+                tier = '%s/%s' % (relobjdir, tier)
             for stmt in self._format_statements_for_generated_file(
-                    obj, tier,
-                    extra_dependencies='backend.mk' if obj.flags else ''):
+                    obj, tier, extra_dependencies='backend.mk' if obj.flags else ''):
                 backend_file.write(stmt + '\n')
 
         elif isinstance(obj, JARManifest):
-            self._no_skip['libs'].add(backend_file.relobjdir)
+            self._no_skip['misc'].add(backend_file.relobjdir)
             backend_file.write('JAR_MANIFEST := %s\n' % obj.path.full_path)
 
         elif isinstance(obj, RustProgram):
@@ -745,20 +727,29 @@ class RecursiveMakeBackend(MakeBackend):
         root_deps_mk = Makefile()
 
         # Fill the dependencies for traversal of each tier.
-        for tier, filter in filters:
+        for tier, filter in sorted(filters, key=itemgetter(0)):
             main, all_deps = \
                 self._traversal.compute_dependencies(filter)
-            for dir, deps in all_deps.items():
+            for dir, deps in sorted(all_deps.items()):
                 if deps is not None or (dir in self._idl_dirs
                                         and tier == 'export'):
                     rule = root_deps_mk.create_rule(['%s/%s' % (dir, tier)])
-                if deps:
-                    rule.add_dependencies('%s/%s' % (d, tier) for d in deps if d)
-                if dir in self._idl_dirs and tier == 'export':
-                    rule.add_dependencies(['xpcom/xpidl/%s' % tier])
+                    if deps:
+                        rule.add_dependencies(
+                            '%s/%s' % (d, tier) for d in sorted(deps) if d)
             rule = root_deps_mk.create_rule(['recurse_%s' % tier])
             if main:
-                rule.add_dependencies('%s/%s' % (d, tier) for d in main)
+                rule.add_dependencies('%s/%s' % (d, tier) for d in sorted(main))
+
+        rule = root_deps_mk.create_rule(['recurse_pre-compile'])
+        rule.add_dependencies('%s/pre-compile' % d for d in sorted(self._pre_compile))
+
+        targets_with_pre_compile = sorted(
+            t for t in self._compile_graph if mozpath.dirname(t) in self._pre_compile)
+        for t in targets_with_pre_compile:
+            relobjdir = mozpath.dirname(t)
+            rule = root_deps_mk.create_rule([t])
+            rule.add_dependencies(['%s/pre-compile' % relobjdir])
 
         all_compile_deps = six.moves.reduce(
             lambda x, y: x | y,
@@ -783,8 +774,8 @@ class RecursiveMakeBackend(MakeBackend):
             # Directories containing rust compilations don't generally depend
             # on other directories in the tree, so putting them first here will
             # start them earlier in the build.
-            rust_roots = [r for r in roots if r in self._rust_targets]
-            rust_libs = [r for r in roots if r in self._rust_lib_targets]
+            rust_roots = sorted(r for r in roots if r in self._rust_targets)
+            rust_libs = sorted(r for r in roots if r in self._rust_lib_targets)
             if category == 'compile' and rust_roots:
                 rust_rule = root_deps_mk.create_rule(['recurse_rust'])
                 rust_rule.add_dependencies(rust_roots)
@@ -800,11 +791,11 @@ class RecursiveMakeBackend(MakeBackend):
                     r = root_deps_mk.create_rule([target])
                     r.add_dependencies([prior_target])
 
-            rule.add_dependencies(chain(rust_roots, roots))
+            rule.add_dependencies(chain(rust_roots, sorted(roots)))
             for target, deps in sorted(graph.items()):
                 if deps:
                     rule = root_deps_mk.create_rule([target])
-                    rule.add_dependencies(deps)
+                    rule.add_dependencies(sorted(deps))
 
         non_default_roots = defaultdict(list)
         non_default_graphs = defaultdict(lambda: OrderedDefaultDict(set))
@@ -830,7 +821,7 @@ class RecursiveMakeBackend(MakeBackend):
                 self._no_skip['syms'].remove(dirname)
 
         add_category_rules('compile', compile_roots, self._compile_graph)
-        for category, graph in six.iteritems(non_default_graphs):
+        for category, graph in sorted(six.iteritems(non_default_graphs)):
             add_category_rules(category, non_default_roots[category], graph)
 
         root_mk = Makefile()
@@ -842,6 +833,8 @@ class RecursiveMakeBackend(MakeBackend):
 
         # Need a list of compile targets because we can't use pattern rules:
         # https://savannah.gnu.org/bugs/index.php?42833
+        root_mk.add_statement('pre_compile_targets := %s' % ' '.join(sorted(
+            '%s/pre-compile' % p for p in self._pre_compile)))
         root_mk.add_statement('compile_targets := %s' % ' '.join(sorted(
             set(self._compile_graph.keys()) | all_compile_deps)))
         root_mk.add_statement('syms_targets := %s' % ' '.join(sorted(
@@ -852,7 +845,7 @@ class RecursiveMakeBackend(MakeBackend):
         root_mk.add_statement('non_default_tiers := %s' % ' '.join(sorted(
             non_default_roots.keys())))
 
-        for category, graphs in six.iteritems(non_default_graphs):
+        for category, graphs in sorted(six.iteritems(non_default_graphs)):
             category_dirs = [mozpath.dirname(target)
                              for target in graphs.keys()]
             root_mk.add_statement('%s_dirs := %s' % (category,
@@ -906,7 +899,7 @@ class RecursiveMakeBackend(MakeBackend):
             # Don't check comments
             if l.startswith('#'):
                 continue
-            for x in chain(MOZBUILD_VARIABLES, DEPRECATED_VARIABLES):
+            for x in chain(_MOZBUILD_ONLY_VARIABLES, DEPRECATED_VARIABLES):
                 if x not in l:
                     continue
 
@@ -914,7 +907,7 @@ class RecursiveMakeBackend(MakeBackend):
                 # may just appear as part of something else, like DIRS appears
                 # in GENERATED_DIRS.
                 if re.search(r'\b%s\s*[:?+]?=' % x, l):
-                    if x in MOZBUILD_VARIABLES:
+                    if x in _MOZBUILD_ONLY_VARIABLES:
                         message = MOZBUILD_VARIABLES_MESSAGE
                     else:
                         message = DEPRECATED_VARIABLES_MESSAGE
@@ -1308,7 +1301,6 @@ class RecursiveMakeBackend(MakeBackend):
         if libdef.symbols_file:
             if libdef.symbols_link_arg:
                 backend_file.write('EXTRA_DSO_LDOPTS += %s\n' % libdef.symbols_link_arg)
-                backend_file.write('EXTRA_DEPS += %s\n' % libdef.symbols_file)
         if not libdef.cxx_link:
             backend_file.write('LIB_IS_C_ONLY := 1\n')
         if libdef.output_category:
@@ -1439,6 +1431,14 @@ class RecursiveMakeBackend(MakeBackend):
         # Process library-based defines
         self._process_defines(obj.lib_defines, backend_file)
 
+    def _add_install_target(self, backend_file, install_target, tier, dest, files):
+        self._no_skip[tier].add(backend_file.relobjdir)
+        for f in files:
+            backend_file.write('%s_FILES += %s\n' % (install_target, f))
+        backend_file.write('%s_DEST := %s\n' % (install_target, dest))
+        backend_file.write('%s_TARGET := %s\n' % (install_target, tier))
+        backend_file.write('INSTALL_TARGETS += %s\n' % install_target)
+
     def _process_final_target_files(self, obj, files, backend_file):
         target = obj.install_target
         path = mozpath.basedir(target, (
@@ -1461,10 +1461,17 @@ class RecursiveMakeBackend(MakeBackend):
         for path, files in files.walk():
             target_var = (mozpath.join(target, path)
                           if path else target).replace('/', '_')
-            have_objdir_files = False
+            # We don't necessarily want to combine these, because non-wildcard
+            # absolute files tend to be libraries, and we don't want to mix
+            # those in with objdir headers that will be installed during export.
+            # (See bug 1642882 for details.)
+            objdir_files = []
+            absolute_files = []
+
             for f in files:
                 assert not isinstance(f, RenamedSourcePath)
-                dest = mozpath.join(reltarget, path, f.target_basename)
+                dest_dir = mozpath.join(reltarget, path)
+                dest_file = mozpath.join(dest_dir, f.target_basename)
                 if not isinstance(f, ObjDirPath):
                     if '*' in f:
                         if f.startswith('/') or isinstance(f, AbsolutePath):
@@ -1473,24 +1480,39 @@ class RecursiveMakeBackend(MakeBackend):
                                 raise Exception("Wildcards are only supported in the filename part"
                                                 " of srcdir-relative or absolute paths.")
 
-                            install_manifest.add_pattern_link(basepath, wild, path)
+                            install_manifest.add_pattern_link(basepath, wild, dest_dir)
                         else:
-                            install_manifest.add_pattern_link(f.srcdir, f, path)
+                            install_manifest.add_pattern_link(f.srcdir, f, dest_dir)
+                    elif isinstance(f, AbsolutePath):
+                        if not f.full_path.lower().endswith(('.dll', '.pdb', '.so')):
+                            raise Exception("Absolute paths installed to FINAL_TARGET_FILES must"
+                                            " only be shared libraries or associated debug"
+                                            " information.")
+                        install_manifest.add_optional_exists(dest_file)
+                        absolute_files.append(f.full_path)
                     else:
-                        install_manifest.add_link(f.full_path, dest)
+                        install_manifest.add_link(f.full_path, dest_file)
                 else:
-                    install_manifest.add_optional_exists(dest)
-                    backend_file.write('%s_FILES += %s\n' % (
-                        target_var, self._pretty_path(f, backend_file)))
-                    have_objdir_files = True
-            if have_objdir_files:
+                    install_manifest.add_optional_exists(dest_file)
+                    objdir_files.append(self._pretty_path(f, backend_file))
+            install_location = '$(DEPTH)/%s' % mozpath.join(target, path)
+            if objdir_files:
                 tier = 'export' if obj.install_target == 'dist/include' else 'misc'
-                self._no_skip[tier].add(backend_file.relobjdir)
-                backend_file.write('%s_DEST := $(DEPTH)/%s\n'
-                                   % (target_var,
-                                      mozpath.join(target, path)))
-                backend_file.write('%s_TARGET := %s\n' % (target_var, tier))
-                backend_file.write('INSTALL_TARGETS += %s\n' % target_var)
+                # We cannot generate multilocale.txt during misc at the moment.
+                if objdir_files[0] == 'multilocale.txt':
+                    tier = 'libs'
+                self._add_install_target(backend_file, target_var, tier,
+                                         install_location, objdir_files)
+            if absolute_files:
+                # Unfortunately, we can't use _add_install_target because on
+                # Windows, the absolute file paths that we want to install
+                # from often have spaces.  So we write our own rule.
+                self._no_skip['misc'].add(backend_file.relobjdir)
+                backend_file.write('misc::\n%s\n' %
+                                   '\n'.join(
+                                       '\t$(INSTALL) %s %s' % (
+                                           make_quote(shell_quote(f)), install_location)
+                                       for f in absolute_files))
 
     def _process_final_target_pp_files(self, obj, files, backend_file, name):
         # Bug 1177710 - We'd like to install these via manifests as
@@ -1537,12 +1559,12 @@ class RecursiveMakeBackend(MakeBackend):
             raise Exception('Cannot install localized files to ' + target)
         for i, (path, files) in enumerate(files.walk()):
             name = 'LOCALIZED_FILES_%d' % i
-            self._no_skip['libs'].add(backend_file.relobjdir)
+            self._no_skip['misc'].add(backend_file.relobjdir)
             self._write_localized_files_files(files, name + '_FILES', backend_file)
             # Use FINAL_TARGET here because some l10n repack rules set
             # XPI_NAME to generate langpacks.
             backend_file.write('%s_DEST = $(FINAL_TARGET)/%s\n' % (name, path))
-            backend_file.write('%s_TARGET := libs\n' % name)
+            backend_file.write('%s_TARGET := misc\n' % name)
             backend_file.write('INSTALL_TARGETS += %s\n' % name)
 
     def _process_localized_pp_files(self, obj, files, backend_file):
@@ -1552,12 +1574,12 @@ class RecursiveMakeBackend(MakeBackend):
             raise Exception('Cannot install localized files to ' + target)
         for i, (path, files) in enumerate(files.walk()):
             name = 'LOCALIZED_PP_FILES_%d' % i
-            self._no_skip['libs'].add(backend_file.relobjdir)
+            self._no_skip['misc'].add(backend_file.relobjdir)
             self._write_localized_files_files(files, name, backend_file)
             # Use FINAL_TARGET here because some l10n repack rules set
             # XPI_NAME to generate langpacks.
             backend_file.write('%s_PATH = $(FINAL_TARGET)/%s\n' % (name, path))
-            backend_file.write('%s_TARGET := libs\n' % name)
+            backend_file.write('%s_TARGET := misc\n' % name)
             # Localized files will have different content in different
             # localizations, and some preprocessed files may not have
             # any preprocessor directives.
@@ -1777,4 +1799,6 @@ class RecursiveMakeBackend(MakeBackend):
             return self._pretty_path(path, self._get_backend_file_for(obj))
 
     def _format_generated_file_output_name(self, path, obj):
-        return path
+        if not isinstance(path, Path):
+            path = ObjDirPath(obj._context, '!' + path)
+        return self._pretty_path(path, self._get_backend_file_for(obj))

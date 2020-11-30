@@ -65,7 +65,7 @@ impl Extent {
 /// that do not exist is undefined behavior -- for
 /// example, specifying a `z` offset of `1` in a
 /// two-dimensional image.
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Offset {
     /// X offset.
@@ -97,10 +97,10 @@ impl Offset {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Tiling {
     /// Optimal tiling for GPU memory access. Implementation-dependent.
-    Optimal,
+    Optimal = 0,
     /// Optimal for CPU read/write. Texels are laid out in row-major order,
     /// possibly with some padding on each row.
-    Linear,
+    Linear = 1,
 }
 
 /// Pure image object creation error.
@@ -128,9 +128,32 @@ impl From<device::OutOfMemory> for CreationError {
     }
 }
 
+impl std::fmt::Display for CreationError {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CreationError::OutOfMemory(err) => write!(fmt, "Failed to create image: {}", err),
+            CreationError::Format(format) => write!(fmt, "Failed to create image: Unsupported format: {:?}", format),
+            CreationError::Kind => write!(fmt, "Failed to create image: Specified kind doesn't support particular operation"), // Room for improvement.
+            CreationError::Samples(samples) => write!(fmt, "Failed to create image: Specified format doesn't support specified sampling {}", samples),
+            CreationError::Size(size) => write!(fmt, "Failed to create image: Unsupported size in one of the dimensions {}", size),
+            CreationError::Data(data) => write!(fmt, "Failed to create image: The given data has a different size {{{}}} than the target image slice", data), // Actually nothing emits this.
+            CreationError::Usage(usage) => write!(fmt, "Failed to create image: Unsupported usage: {:?}", usage),
+        }
+    }
+}
+
+impl std::error::Error for CreationError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            CreationError::OutOfMemory(err) => Some(err),
+            _ => None,
+        }
+    }
+}
+
 /// Error creating an `ImageView`.
 #[derive(Clone, Debug, PartialEq)]
-pub enum ViewError {
+pub enum ViewCreationError {
     /// The required usage flag is not present in the image.
     Usage(Usage),
     /// Selected mip level doesn't exist.
@@ -147,9 +170,32 @@ pub enum ViewError {
     Unsupported,
 }
 
-impl From<device::OutOfMemory> for ViewError {
+impl From<device::OutOfMemory> for ViewCreationError {
     fn from(error: device::OutOfMemory) -> Self {
-        ViewError::OutOfMemory(error)
+        ViewCreationError::OutOfMemory(error)
+    }
+}
+
+impl std::fmt::Display for ViewCreationError {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ViewCreationError::Usage(usage) => write!(fmt, "Failed to create image view: Specified usage flags are not present in the image {:?}", usage),
+            ViewCreationError::Level(level) => write!(fmt, "Failed to create image view: Selected level doesn't exist in the image {}", level),
+            ViewCreationError::Layer(err) => write!(fmt, "Failed to create image view: {}", err),
+            ViewCreationError::BadFormat(format) => write!(fmt, "Failed to create image view: Incompatible format {:?}", format),
+            ViewCreationError::BadKind(kind) => write!(fmt, "Failed to create image view: Incompatible kind {:?}", kind),
+            ViewCreationError::OutOfMemory(err) => write!(fmt, "Failed to create image view: {}", err),
+            ViewCreationError::Unsupported => write!(fmt, "Failed to create image view: Implementation specific error occurred"),
+        }
+    }
+}
+
+impl std::error::Error for ViewCreationError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            ViewCreationError::OutOfMemory(err) => Some(err),
+            _ => None,
+        }
     }
 }
 
@@ -160,6 +206,21 @@ pub enum LayerError {
     NotExpected(Kind),
     /// Selected layers are outside of the provided range.
     OutOfBounds(Range<Layer>),
+}
+
+impl std::fmt::Display for LayerError {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LayerError::NotExpected(kind) => {
+                write!(fmt, "Kind {{{:?}}} does not support arrays", kind)
+            }
+            LayerError::OutOfBounds(layers) => write!(
+                fmt,
+                "Out of bounds layers {} .. {}",
+                layers.start, layers.end
+            ),
+        }
+    }
 }
 
 /// How to [filter](https://en.wikipedia.org/wiki/Texture_filtering) the
@@ -177,16 +238,6 @@ pub enum Filter {
     ///     * 2D/Cube: Bilinear interpolation
     ///     * 3D: Trilinear interpolation
     Linear,
-}
-
-/// Anisotropic filtering description for the sampler.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub enum Anisotropic {
-    /// Disable anisotropic filtering.
-    Off,
-    /// Enable anisotropic filtering with the anisotropy clamp value.
-    On(u8),
 }
 
 /// The face of a cube image to do an operation on.
@@ -397,6 +448,10 @@ pub enum WrapMode {
     Clamp,
     /// Use border color.
     Border,
+    /// Mirror once and clamp to edge otherwise.
+    ///
+    /// Only valid if `Features::SAMPLER_MIRROR_CLAMP_EDGE` is enabled.
+    MirrorClamp,
 }
 
 /// A wrapper for the LOD level of an image. Needed so that we can
@@ -473,7 +528,9 @@ pub struct SamplerDesc {
     /// Specifies whether the texture coordinates are normalized.
     pub normalized: bool,
     /// Anisotropic filtering.
-    pub anisotropic: Anisotropic,
+    ///
+    /// Can be `Some(_)` only if `Features::SAMPLER_ANISOTROPY` is enabled.
+    pub anisotropy_clamp: Option<u8>,
 }
 
 impl SamplerDesc {
@@ -490,7 +547,7 @@ impl SamplerDesc {
             comparison: None,
             border: PackedColor(0),
             normalized: true,
-            anisotropic: Anisotropic::Off,
+            anisotropy_clamp: None,
         }
     }
 }
@@ -525,7 +582,7 @@ pub enum Layout {
     /// source layout when transforming data to a specific destination
     /// layout or initializing data.  Does NOT guarentee that the contents
     /// of the source buffer are preserved.
-    Undefined, //TODO: consider Option<> instead?
+    Undefined,
     /// Like `Undefined`, but does guarentee that the contents of the source
     /// buffer are preserved.
     Preinitialized,

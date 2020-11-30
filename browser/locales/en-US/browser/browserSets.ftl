@@ -107,6 +107,9 @@ nav-stop-shortcut =
 history-show-all-shortcut =
     .key = H
 
+history-show-all-shortcut-mac =
+    .key = Y
+
 history-sidebar-shortcut =
     .key = H
 
@@ -118,6 +121,15 @@ reader-mode-toggle-shortcut-windows =
 
 reader-mode-toggle-shortcut-other =
     .key = R
+
+picture-in-picture-toggle-shortcut-mac =
+    .key = ]
+
+# Pick the key that is commonly present
+# in your locale keyboards above the
+# `picture-in-picture-toggle-shortcut-mac` key.
+picture-in-picture-toggle-shortcut-mac-alt =
+    .key = {"}"}
 
 picture-in-picture-toggle-shortcut =
     .key = ]
@@ -153,10 +165,10 @@ bookmark-show-sidebar-shortcut =
 full-zoom-reduce-shortcut =
     .key = -
 
-# If in keyboard layouts popular for your locale you need to use the shift key
-# to access the original shortcuts, the following shortcuts can be used.
-# Otherwise their values should remain empty.
-full-zoom-reduce-shortcut-alt =
+full-zoom-reduce-shortcut-alt-a =
+    .key = _
+
+full-zoom-reduce-shortcut-alt-b =
     .key = {""}
 
 full-zoom-enlarge-shortcut =

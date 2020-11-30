@@ -48,82 +48,87 @@ class WindowsDllPatcherBase {
 
   ReadOnlyTargetFunction<MMPolicyT> ResolveRedirectedAddress(
       FARPROC aOriginalFunction) {
-    ReadOnlyTargetFunction<MMPolicyT> origFn(mVMPolicy, aOriginalFunction);
+    uintptr_t currAddr = reinterpret_cast<uintptr_t>(aOriginalFunction);
+
 #if defined(_M_IX86) || defined(_M_X64)
-    // If function entry is jmp rel8 stub to the internal implementation, we
-    // resolve redirected address from the jump target.
-    if (origFn[0] == 0xeb) {
-      int8_t offset = (int8_t)(origFn[1]);
-      uintptr_t abstarget = origFn.GetAddress() + 2 + offset;
+    uintptr_t prevAddr = 0;
+    while (prevAddr != currAddr) {
+      ReadOnlyTargetFunction<MMPolicyT> currFunc(mVMPolicy, currAddr);
+      prevAddr = currAddr;
+
+      // If function entry is jmp rel8 stub to the internal implementation, we
+      // resolve redirected address from the jump target.
+      uintptr_t nextAddr = 0;
+      if (currFunc.IsRelativeShortJump(&nextAddr)) {
+        int8_t offset = nextAddr - currFunc.GetAddress() - 2;
 
 #  if defined(_M_X64)
-      // We redirect to the target of a short jump backwards if the target
-      // is another jump (only 32-bit displacement is currently supported).
-      // This case is used by GetFileAttributesW in Win7.
-      if ((offset < 0) && (origFn.IsValidAtOffset(2 + offset))) {
-        ReadOnlyTargetFunction<MMPolicyT> redirectFn(mVMPolicy, abstarget);
-        if ((redirectFn[0] == 0xff) && (redirectFn[1] == 0x25)) {
-          return redirectFn;
+        // We redirect to the target of a short jump backwards if the target
+        // is another jump (only 32-bit displacement is currently supported).
+        // This case is used by GetFileAttributesW in Win7 x64.
+        if ((offset < 0) && (currFunc.IsValidAtOffset(2 + offset))) {
+          ReadOnlyTargetFunction<MMPolicyT> redirectFn(mVMPolicy, nextAddr);
+          if (redirectFn.IsIndirectNearJump(&nextAddr)) {
+            return redirectFn;
+          }
         }
-      }
 #  endif
 
-      if (offset <= 0) {
-        // Bail out for negative offset: probably already patched by some
-        // third-party code.
-        return origFn;
-      }
+        // We check the downstream has enough nop-space only when the offset is
+        // positive.  Otherwise we stop chasing redirects and let the caller
+        // fail to hook.
+        if (offset > 0) {
+          bool isNopSpace = true;
+          for (int8_t i = 0; i < offset; i++) {
+            if (currFunc[2 + i] != 0x90) {
+              isNopSpace = false;
+              break;
+            }
+          }
 
-      for (int8_t i = 0; i < offset; i++) {
-        if (origFn[2 + i] != 0x90) {
-          // Bail out on insufficient nop space.
-          return origFn;
+          if (isNopSpace) {
+            currAddr = nextAddr;
+          }
         }
-      }
-
-      return EnsureTargetIsAccessible(std::move(origFn), abstarget);
-    }
-
-#  if defined(_M_IX86)
-    // If function entry is jmp [disp32] such as used by kernel32,
-    // we resolve redirected address from import table.
-    if (origFn[0] == 0xff && origFn[1] == 0x25) {
-      uintptr_t abstarget = (origFn + 2).template ChasePointer<uintptr_t*>();
-      return EnsureTargetIsAccessible(std::move(origFn), abstarget);
-    }
-#  elif defined(_M_X64)
-    // If function entry is jmp [disp32] such as used by kernel32,
-    // we resolve redirected address from import table.
-    if (origFn[0] == 0x48 && origFn[1] == 0xff && origFn[2] == 0x25) {
-      uintptr_t abstarget = (origFn + 3).ChasePointerFromDisp();
-      return EnsureTargetIsAccessible(std::move(origFn), abstarget);
-    }
-
-    if (origFn[0] == 0xe9) {
-      // require for TestDllInterceptor with --disable-optimize
-      uintptr_t abstarget = (origFn + 1).ReadDisp32AsAbsolute();
-      return EnsureTargetIsAccessible(std::move(origFn), abstarget);
-    }
+#  if defined(_M_X64)
+      } else if (currFunc.IsIndirectNearJump(&nextAddr) ||
+                 currFunc.IsRelativeNearJump(&nextAddr)) {
+#  else
+      } else if (currFunc.IsIndirectNearJump(&nextAddr)) {
 #  endif
+        // If function entry is jmp [disp32] such as used by kernel32, we
+        // resolve redirected address from import table. For x64, we resolve
+        // a relative near jump for TestDllInterceptor with --disable-optimize.
+        currAddr = nextAddr;
+      }
+    }
 #endif  // defined(_M_IX86) || defined(_M_X64)
 
-    return origFn;
-  }
-
- private:
-  ReadOnlyTargetFunction<MMPolicyT> EnsureTargetIsAccessible(
-      ReadOnlyTargetFunction<MMPolicyT> aOrigFn, uintptr_t aRedirAddress) {
-    if (!mVMPolicy.IsPageAccessible(reinterpret_cast<void*>(aRedirAddress))) {
-      return aOrigFn;
+    if (currAddr != reinterpret_cast<uintptr_t>(aOriginalFunction) &&
+        !mVMPolicy.IsPageAccessible(currAddr)) {
+      currAddr = reinterpret_cast<uintptr_t>(aOriginalFunction);
     }
-
-    return ReadOnlyTargetFunction<MMPolicyT>(mVMPolicy, aRedirAddress);
+    return ReadOnlyTargetFunction<MMPolicyT>(mVMPolicy, currAddr);
   }
 
  public:
   FARPROC GetProcAddress(HMODULE aModule, const char* aName) const {
     GetProcAddressSelector<MMPolicyT> selector;
     return selector(aModule, aName, mVMPolicy);
+  }
+
+  bool IsPageAccessible(uintptr_t aAddress) const {
+    return mVMPolicy.IsPageAccessible(aAddress);
+  }
+
+#if defined(NIGHTLY_BUILD)
+  const Maybe<DetourError>& GetLastDetourError() const {
+    return mVMPolicy.GetLastDetourError();
+  }
+#endif  // defined(NIGHTLY_BUILD)
+  template <typename... Args>
+  void SetLastDetourError(Args&&... aArgs) {
+    mVMPolicy.SetLastDetourError(std::forward<Args>(aArgs)...);
   }
 
  protected:

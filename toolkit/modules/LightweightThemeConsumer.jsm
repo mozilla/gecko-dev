@@ -71,11 +71,12 @@ const toolkitVariableMap = [
       lwtProperty: "popup_text",
       processColor(rgbaChannels, element) {
         const disabledColorVariable = "--panel-disabled-color";
+        const descriptionColorVariable = "--panel-description-color";
 
         if (!rgbaChannels) {
           element.removeAttribute("lwt-popup-brighttext");
-          element.removeAttribute("lwt-popup-darktext");
           element.style.removeProperty(disabledColorVariable);
+          element.style.removeProperty(descriptionColorVariable);
           return null;
         }
 
@@ -83,15 +84,17 @@ const toolkitVariableMap = [
 
         if (_isColorDark(r, g, b)) {
           element.removeAttribute("lwt-popup-brighttext");
-          element.setAttribute("lwt-popup-darktext", "true");
         } else {
-          element.removeAttribute("lwt-popup-darktext");
           element.setAttribute("lwt-popup-brighttext", "true");
         }
 
         element.style.setProperty(
           disabledColorVariable,
           `rgba(${r}, ${g}, ${b}, 0.5)`
+        );
+        element.style.setProperty(
+          descriptionColorVariable,
+          `rgba(${r}, ${g}, ${b}, 0.65)`
         );
         return `rgba(${r}, ${g}, ${b}, ${a})`;
       },
@@ -163,6 +166,19 @@ const toolkitVariableMap = [
     {
       lwtProperty: "toolbar_field_text_focus",
       fallbackProperty: "toolbar_field_text",
+      processColor(rgbaChannels, element) {
+        if (!rgbaChannels) {
+          element.removeAttribute("lwt-toolbar-field-focus-brighttext");
+          return null;
+        }
+        const { r, g, b, a } = rgbaChannels;
+        if (_isColorDark(r, g, b)) {
+          element.removeAttribute("lwt-toolbar-field-focus-brighttext");
+        } else {
+          element.setAttribute("lwt-toolbar-field-focus-brighttext", "true");
+        }
+        return `rgba(${r}, ${g}, ${b}, ${a})`;
+      },
     },
   ],
   [
@@ -197,7 +213,7 @@ const toolkitVariableMap = [
 function LightweightThemeConsumer(aDocument) {
   this._doc = aDocument;
   this._win = aDocument.defaultView;
-  this._winId = this._win.windowUtils.outerWindowID;
+  this._winId = this._win.docShell.outerWindowID;
 
   Services.obs.addObserver(this, "lightweight-theme-styling-update");
 
@@ -332,9 +348,8 @@ LightweightThemeConsumer.prototype = {
     if (properties.colors) {
       for (const property in properties.colors) {
         const cssVariable = experiment.colors[property];
-        const value = _sanitizeCSSColor(
-          root.ownerDocument,
-          properties.colors[property]
+        const value = _rgbaToString(
+          _cssColorToRGBA(root.ownerDocument, properties.colors[property])
         );
         usedVariables.push([cssVariable, value]);
       }
@@ -380,7 +395,7 @@ function _getContentProperties(doc, active, data) {
   let properties = {};
   for (let property in data) {
     if (ThemeContentPropertyList.includes(property)) {
-      properties[property] = _parseRGBA(_sanitizeCSSColor(doc, data[property]));
+      properties[property] = _cssColorToRGBA(doc, data[property]);
     }
   }
   return properties;
@@ -407,7 +422,6 @@ function _setProperty(elem, active, variableName, value) {
 }
 
 function _setProperties(root, active, themeData) {
-  let properties = [];
   let propertyOverrides = new Map();
 
   for (let map of [toolkitVariableMap, ThemeVariableMap]) {
@@ -424,65 +438,44 @@ function _setProperties(root, active, themeData) {
         : root;
       let val = propertyOverrides.get(lwtProperty) || themeData[lwtProperty];
       if (isColor) {
-        val = _sanitizeCSSColor(root.ownerDocument, val);
+        val = _cssColorToRGBA(root.ownerDocument, val);
         if (!val && fallbackProperty) {
-          val = _sanitizeCSSColor(
+          val = _cssColorToRGBA(
             root.ownerDocument,
             themeData[fallbackProperty]
           );
         }
         if (processColor) {
-          val = processColor(_parseRGBA(val), elem, propertyOverrides);
+          val = processColor(val, elem, propertyOverrides);
+        } else {
+          val = _rgbaToString(val);
         }
       }
-      properties.push([elem, cssVarName, val]);
+      _setProperty(elem, active, cssVarName, val);
     }
-  }
-
-  // Set all the properties together, since _sanitizeCSSColor flushes.
-  for (const [elem, cssVarName, val] of properties) {
-    _setProperty(elem, active, cssVarName, val);
   }
 }
 
-function _sanitizeCSSColor(doc, cssColor) {
+const kInvalidColor = { r: 0, g: 0, b: 0, a: 1 };
+
+function _cssColorToRGBA(doc, cssColor) {
   if (!cssColor) {
     return null;
   }
-  const HTML_NS = "http://www.w3.org/1999/xhtml";
-  // style.color normalizes color values and makes invalid ones black, so a
-  // simple round trip gets us a sanitized color value.
-  // Use !important so that the theme's stylesheets cannot override us.
-  let div = doc.createElementNS(HTML_NS, "div");
-  div.style.setProperty("color", "black", "important");
-  div.style.setProperty("display", "none", "important");
-  let span = doc.createElementNS(HTML_NS, "span");
-  span.style.setProperty("color", cssColor, "important");
-
-  // CSS variables are not allowed and should compute to black.
-  if (span.style.color.includes("var(")) {
-    span.style.color = "";
-  }
-
-  div.appendChild(span);
-  doc.documentElement.appendChild(div);
-  cssColor = doc.defaultView.getComputedStyle(span).color;
-  div.remove();
-  return cssColor;
+  return (
+    doc.defaultView.InspectorUtils.colorToRGBA(cssColor, doc) || kInvalidColor
+  );
 }
 
-function _parseRGBA(aColorString) {
-  if (!aColorString) {
+function _rgbaToString(parsedColor) {
+  if (!parsedColor) {
     return null;
   }
-  var rgba = aColorString.replace(/(rgba?\()|(\)$)/g, "").split(",");
-  rgba = rgba.map(x => parseFloat(x));
-  return {
-    r: rgba[0],
-    g: rgba[1],
-    b: rgba[2],
-    a: 3 in rgba ? rgba[3] : 1,
-  };
+  let { r, g, b, a } = parsedColor;
+  if (a == 1) {
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
 function _isColorDark(r, g, b) {

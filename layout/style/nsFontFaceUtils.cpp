@@ -6,15 +6,16 @@
 
 #include "nsFontFaceUtils.h"
 
+#include "gfxTextRun.h"
 #include "gfxUserFontSet.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/RestyleManager.h"
+#include "mozilla/SVGUtils.h"
 #include "nsFontMetrics.h"
 #include "nsIFrame.h"
 #include "nsLayoutUtils.h"
 #include "nsPlaceholderFrame.h"
 #include "nsTArray.h"
-#include "SVGTextFrame.h"
 
 using namespace mozilla;
 
@@ -89,24 +90,24 @@ static FontUsageKind FrameFontUsage(nsIFrame* aFrame,
 // TODO(emilio): Can we use the restyle-hint machinery instead of this?
 static void ScheduleReflow(PresShell* aPresShell, nsIFrame* aFrame) {
   nsIFrame* f = aFrame;
-  if (f->IsFrameOfType(nsIFrame::eSVG) || nsSVGUtils::IsInSVGTextSubtree(f)) {
+  if (f->IsFrameOfType(nsIFrame::eSVG) || SVGUtils::IsInSVGTextSubtree(f)) {
     // SVG frames (and the non-SVG descendants of an SVGTextFrame) need special
     // reflow handling.  We need to search upwards for the first displayed
-    // nsSVGOuterSVGFrame or non-SVG frame, which is the frame we can call
+    // SVGOuterSVGFrame or non-SVG frame, which is the frame we can call
     // FrameNeedsReflow on.  (This logic is based on
-    // nsSVGUtils::ScheduleReflowSVG and
+    // SVGUtils::ScheduleReflowSVG and
     // SVGTextFrame::ScheduleReflowSVGNonDisplayText.)
-    if (f->GetStateBits() & NS_FRAME_IS_NONDISPLAY) {
+    if (f->HasAnyStateBits(NS_FRAME_IS_NONDISPLAY)) {
       while (f) {
-        if (!(f->GetStateBits() & NS_FRAME_IS_NONDISPLAY)) {
-          if (NS_SUBTREE_DIRTY(f)) {
+        if (!f->HasAnyStateBits(NS_FRAME_IS_NONDISPLAY)) {
+          if (f->IsSubtreeDirty()) {
             // This is a displayed frame, so if it is already dirty, we
             // will be reflowed soon anyway.  No need to call
             // FrameNeedsReflow again, then.
             return;
           }
           if (f->IsSVGOuterSVGFrame() || !(f->IsFrameOfType(nsIFrame::eSVG) ||
-                                           nsSVGUtils::IsInSVGTextSubtree(f))) {
+                                           SVGUtils::IsInSVGTextSubtree(f))) {
             break;
           }
           f->AddStateBits(NS_FRAME_HAS_DIRTY_CHILDREN);
@@ -146,13 +147,14 @@ void nsFontFaceUtils::MarkDirtyForFontChange(nsIFrame* aSubtreeRoot,
     nsIFrame* subtreeRoot = subtrees.PopLastElement();
 
     // Check all descendants to see if they use the font
-    AutoTArray<Pair<nsIFrame*, ReflowAlreadyScheduled>, 32> stack;
-    stack.AppendElement(MakePair(subtreeRoot, ReflowAlreadyScheduled::No));
+    AutoTArray<std::pair<nsIFrame*, ReflowAlreadyScheduled>, 32> stack;
+    stack.AppendElement(
+        std::make_pair(subtreeRoot, ReflowAlreadyScheduled::No));
 
     do {
       auto pair = stack.PopLastElement();
-      nsIFrame* f = pair.first();
-      ReflowAlreadyScheduled alreadyScheduled = pair.second();
+      nsIFrame* f = pair.first;
+      ReflowAlreadyScheduled alreadyScheduled = pair.second;
 
       // if this frame uses the font, mark its descendants dirty
       // and skip checking its children
@@ -166,8 +168,8 @@ void nsFontFaceUtils::MarkDirtyForFontChange(nsIFrame* aSubtreeRoot,
           MOZ_ASSERT(f->GetContent() && f->GetContent()->IsElement(),
                      "How could we target a non-element with selectors?");
           f->PresContext()->RestyleManager()->PostRestyleEvent(
-              Element::FromNode(f->GetContent()), RestyleHint::RECASCADE_SELF,
-              nsChangeHint(0));
+              dom::Element::FromNode(f->GetContent()),
+              RestyleHint::RECASCADE_SELF, nsChangeHint(0));
         }
       }
 
@@ -181,12 +183,9 @@ void nsFontFaceUtils::MarkDirtyForFontChange(nsIFrame* aSubtreeRoot,
           }
         }
 
-        nsIFrame::ChildListIterator lists(f);
-        for (; !lists.IsDone(); lists.Next()) {
-          nsFrameList::Enumerator childFrames(lists.CurrentList());
-          for (; !childFrames.AtEnd(); childFrames.Next()) {
-            nsIFrame* kid = childFrames.get();
-            stack.AppendElement(MakePair(kid, alreadyScheduled));
+        for (const auto& childList : f->ChildLists()) {
+          for (nsIFrame* kid : childList.mList) {
+            stack.AppendElement(std::make_pair(kid, alreadyScheduled));
           }
         }
       }

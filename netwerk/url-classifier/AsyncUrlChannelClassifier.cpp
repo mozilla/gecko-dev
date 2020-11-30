@@ -37,7 +37,7 @@ namespace {
 // features for this channel using the feature-factory. See
 // UrlClassifierFeatureFactory.
 // For each feature, it creates a FeatureData object, which contains the
-// whitelist and blacklist prefs and tables. The reason why we create
+// entitylist and blocklist prefs and tables. The reason why we create
 // FeatureData is because:
 // - features are not thread-safe.
 // - we want to store the state of the classification in the FeatureData
@@ -106,8 +106,10 @@ nsresult URIData::Create(nsIURI* aURI, nsIURI* aInnermostURI,
     return rv;
   }
 
-  UC_LOG(("URIData::Create[%p] - new URIData created for spec %s", data.get(),
-          data->mURISpec.get()));
+  UC_LOG_LEAK(
+      ("AsyncChannelClassifier::URIData::Create new URIData created for spec "
+       "%s [this=%p]",
+       data->mURISpec.get(), data.get()));
 
   data.forget(aData);
   return NS_OK;
@@ -115,9 +117,7 @@ nsresult URIData::Create(nsIURI* aURI, nsIURI* aInnermostURI,
 
 URIData::URIData() { MOZ_ASSERT(NS_IsMainThread()); }
 
-URIData::~URIData() {
-  NS_ReleaseOnMainThreadSystemGroup("URIData:mURI", mURI.forget());
-}
+URIData::~URIData() { NS_ReleaseOnMainThread("URIData:mURI", mURI.forget()); }
 
 bool URIData::IsEqual(nsIURI* aURI) const {
   MOZ_ASSERT(NS_IsMainThread());
@@ -138,8 +138,8 @@ const nsTArray<nsCString>& URIData::Fragments() {
   if (mFragments.IsEmpty()) {
     nsresult rv;
 
-    if (mURIType == nsIUrlClassifierFeature::pairwiseWhitelistURI) {
-      rv = LookupCache::GetLookupWhitelistFragments(mURISpec, &mFragments);
+    if (mURIType == nsIUrlClassifierFeature::pairwiseEntitylistURI) {
+      rv = LookupCache::GetLookupEntitylistFragments(mURISpec, &mFragments);
     } else {
       rv = LookupCache::GetLookupFragments(mURISpec, &mFragments);
     }
@@ -201,8 +201,10 @@ TableData::TableData(URIData* aURIData, const nsACString& aTable)
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aURIData);
 
-  UC_LOG(("TableData CTOR[%p] - new TableData created %s", this,
-          aTable.BeginReading()));
+  UC_LOG_LEAK(
+      ("AsyncChannelClassifier::TableData CTOR - new TableData created %s "
+       "[this=%p]",
+       aTable.BeginReading(), this));
 }
 
 TableData::~TableData() = default;
@@ -237,7 +239,10 @@ bool TableData::DoLookup(nsUrlClassifierDBServiceWorker* aWorkerClassifier) {
   MOZ_ASSERT(aWorkerClassifier);
 
   if (mState == TableData::eUnclassified) {
-    UC_LOG(("TableData::DoLookup[%p] - starting lookup", this));
+    UC_LOG_LEAK(
+        ("AsyncChannelClassifier::TableData::DoLookup - starting lookup "
+         "[this=%p]",
+         this));
 
     const nsTArray<nsCString>& fragments = mURIData->Fragments();
     nsresult rv = aWorkerClassifier->DoSingleLocalLookupWithURIFragments(
@@ -246,8 +251,10 @@ bool TableData::DoLookup(nsUrlClassifierDBServiceWorker* aWorkerClassifier) {
 
     mState = mResults.IsEmpty() ? TableData::eNoMatch : TableData::eMatch;
 
-    UC_LOG(("TableData::DoLookup[%p] - lookup completed. Matches: %d", this,
-            (int)mResults.Length()));
+    UC_LOG_LEAK(
+        ("AsyncChannelClassifier::TableData::DoLookup - lookup completed. "
+         "Matches: %d [this=%p]",
+         (int)mResults.Length(), this));
   }
 
   return !mResults.IsEmpty();
@@ -263,8 +270,8 @@ class FeatureData {
   enum State {
     eUnclassified,
     eNoMatch,
-    eMatchBlacklist,
-    eMatchWhitelist,
+    eMatchBlocklist,
+    eMatchEntitylist,
   };
 
  public:
@@ -286,18 +293,19 @@ class FeatureData {
 
   State mState;
   nsCOMPtr<nsIUrlClassifierFeature> mFeature;
+  nsCOMPtr<nsIChannel> mChannel;
 
-  nsTArray<RefPtr<TableData>> mBlacklistTables;
-  nsTArray<RefPtr<TableData>> mWhitelistTables;
+  nsTArray<RefPtr<TableData>> mBlocklistTables;
+  nsTArray<RefPtr<TableData>> mEntitylistTables;
 
-  // blacklist + whitelist.
+  // blocklist + entitylist.
   nsCString mHostInPrefTables[2];
 };
 
 FeatureData::FeatureData() : mState(eUnclassified) {}
 
 FeatureData::~FeatureData() {
-  NS_ReleaseOnMainThreadSystemGroup("FeatureData:mFeature", mFeature.forget());
+  NS_ReleaseOnMainThread("FeatureData:mFeature", mFeature.forget());
 }
 
 nsresult FeatureData::Initialize(FeatureTask* aTask, nsIChannel* aChannel,
@@ -307,21 +315,26 @@ nsresult FeatureData::Initialize(FeatureTask* aTask, nsIChannel* aChannel,
   MOZ_ASSERT(aChannel);
   MOZ_ASSERT(aFeature);
 
-  nsAutoCString featureName;
-  aFeature->GetName(featureName);
-  UC_LOG(("FeatureData::Initialize[%p] - Feature %s - Channel %p", this,
-          featureName.get(), aChannel));
+  if (UC_LOG_ENABLED()) {
+    nsAutoCString name;
+    aFeature->GetName(name);
+    UC_LOG_LEAK(
+        ("AsyncChannelClassifier::FeatureData::Initialize - Feature %s "
+         "[this=%p, channel=%p]",
+         name.get(), this, aChannel));
+  }
 
   mFeature = aFeature;
+  mChannel = aChannel;
 
   nsresult rv = InitializeList(
-      aTask, aChannel, nsIUrlClassifierFeature::blacklist, mBlacklistTables);
+      aTask, aChannel, nsIUrlClassifierFeature::blocklist, mBlocklistTables);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
 
-  rv = InitializeList(aTask, aChannel, nsIUrlClassifierFeature::whitelist,
-                      mWhitelistTables);
+  rv = InitializeList(aTask, aChannel, nsIUrlClassifierFeature::entitylist,
+                      mEntitylistTables);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -334,87 +347,110 @@ void FeatureData::DoLookup(nsUrlClassifierDBServiceWorker* aWorkerClassifier) {
   MOZ_ASSERT(aWorkerClassifier);
   MOZ_ASSERT(mState == eUnclassified);
 
-  UC_LOG(("FeatureData::DoLookup[%p] - lookup starting", this));
+  UC_LOG_LEAK(
+      ("AsyncChannelClassifier::FeatureData::DoLookup - lookup starting "
+       "[this=%p]",
+       this));
 
   // This is wrong, but it's fast: we don't want to check if the host is in the
-  // blacklist table if we know that it's going to be whitelisted by pref.
-  // So, also if maybe it's not blacklisted, let's consider it 'whitelisted'.
-  if (!mHostInPrefTables[nsIUrlClassifierFeature::whitelist].IsEmpty()) {
-    UC_LOG(("FeatureData::DoLookup[%p] - whitelisted by pref", this));
-    mState = eMatchWhitelist;
+  // blocklist table if we know that it's going to be entitylisted by pref.
+  // So, also if maybe it's not blocklisted, let's consider it 'entitylisted'.
+  if (!mHostInPrefTables[nsIUrlClassifierFeature::entitylist].IsEmpty()) {
+    UC_LOG_LEAK(
+        ("AsyncChannelClassifier::FeatureData::DoLookup - entitylisted by pref "
+         "[this=%p]",
+         this));
+    mState = eMatchEntitylist;
     return;
   }
 
-  // Let's check if this feature blacklists the URI.
+  // Let's check if this feature blocklists the URI.
 
-  bool isBlacklisted =
-      !mHostInPrefTables[nsIUrlClassifierFeature::blacklist].IsEmpty();
+  bool isBlocklisted =
+      !mHostInPrefTables[nsIUrlClassifierFeature::blocklist].IsEmpty();
 
-  UC_LOG(("FeatureData::DoLookup[%p] - blacklisted by pref: %d", this,
-          isBlacklisted));
+  UC_LOG_LEAK(
+      ("AsyncChannelClassifier::FeatureData::DoLookup - blocklisted by pref: "
+       "%d [this=%p]",
+       isBlocklisted, this));
 
-  if (isBlacklisted == false) {
-    // If one of the blacklist table matches the URI, we don't need to continue
-    // with the others: the feature is blacklisted (but maybe also
-    // whitelisted).
-    for (TableData* tableData : mBlacklistTables) {
+  if (isBlocklisted == false) {
+    // If one of the blocklist table matches the URI, we don't need to continue
+    // with the others: the feature is blocklisted (but maybe also
+    // entitylisted).
+    for (TableData* tableData : mBlocklistTables) {
       if (tableData->DoLookup(aWorkerClassifier)) {
-        isBlacklisted = true;
+        isBlocklisted = true;
         break;
       }
     }
   }
 
-  UC_LOG(("FeatureData::DoLookup[%p] - blacklisted before whitelisting: %d",
-          this, isBlacklisted));
+  UC_LOG_LEAK(
+      ("AsyncChannelClassifier::FeatureData::DoLookup - blocklisted before "
+       "entitylisting: %d [this=%p]",
+       isBlocklisted, this));
 
-  if (!isBlacklisted) {
+  if (!isBlocklisted) {
     mState = eNoMatch;
     return;
   }
 
-  // Now, let's check if we need to whitelist the same URI.
+  // Now, let's check if we need to entitylist the same URI.
 
-  for (TableData* tableData : mWhitelistTables) {
-    // If one of the whitelist table matches the URI, we don't need to continue
-    // with the others: the feature is whitelisted.
+  for (TableData* tableData : mEntitylistTables) {
+    // If one of the entitylist table matches the URI, we don't need to continue
+    // with the others: the feature is entitylisted.
     if (tableData->DoLookup(aWorkerClassifier)) {
-      UC_LOG(("FeatureData::DoLookup[%p] - whitelisted by table", this));
-      mState = eMatchWhitelist;
+      UC_LOG_LEAK(
+          ("AsyncChannelClassifier::FeatureData::DoLookup - entitylisted by "
+           "table [this=%p]",
+           this));
+      mState = eMatchEntitylist;
       return;
     }
   }
 
-  UC_LOG(("FeatureData::DoLookup[%p] - blacklisted", this));
-  mState = eMatchBlacklist;
+  UC_LOG_LEAK(
+      ("AsyncChannelClassifier::FeatureData::DoLookup - blocklisted [this=%p]",
+       this));
+  mState = eMatchBlocklist;
 }
 
 bool FeatureData::MaybeCompleteClassification(nsIChannel* aChannel) {
   MOZ_ASSERT(NS_IsMainThread());
 
-  UC_LOG(
-      ("FeatureData::MaybeCompleteClassification[%p] - completing "
-       "classification for channel %p",
+  nsAutoCString name;
+  mFeature->GetName(name);
+
+  UC_LOG_LEAK(
+      ("AsyncChannelClassifier::FeatureData::MaybeCompleteClassification - "
+       "completing "
+       "classification [this=%p channel=%p]",
        this, aChannel));
 
   switch (mState) {
     case eNoMatch:
       UC_LOG(
-          ("FeatureData::MaybeCompleteClassification[%p] - no match. Let's "
-           "move on",
-           this));
+          ("AsyncChannelClassifier::FeatureData::MaybeCompleteClassification - "
+           "no match for feature %s. Let's "
+           "move on [this=%p channel=%p]",
+           name.get(), this, aChannel));
       return true;
 
-    case eMatchWhitelist:
+    case eMatchEntitylist:
       UC_LOG(
-          ("FeatureData::MaybeCompleteClassification[%p] - whitelisted. Let's "
-           "move on",
-           this));
+          ("AsyncChannelClassifier::FeatureData::MayebeCompleteClassification "
+           "- entitylisted by feature %s. Let's "
+           "move on [this=%p channel=%p]",
+           name.get(), this, aChannel));
       return true;
 
-    case eMatchBlacklist:
+    case eMatchBlocklist:
       UC_LOG(
-          ("FeatureData::MaybeCompleteClassification[%p] - blacklisted", this));
+          ("AsyncChannelClassifier::FeatureData::MaybeCompleteClassification - "
+           "blocklisted by feature %s [this=%p channel=%p]",
+           name.get(), this, aChannel));
       break;
 
     case eUnclassified:
@@ -422,40 +458,45 @@ bool FeatureData::MaybeCompleteClassification(nsIChannel* aChannel) {
       break;
   }
 
-  MOZ_ASSERT(mState == eMatchBlacklist);
+  MOZ_ASSERT(mState == eMatchBlocklist);
 
-  // Maybe we have to skip this host
-  nsAutoCString skipList;
-  nsresult rv = mFeature->GetSkipHostList(skipList);
+  // Maybe we have to ignore this host
+  nsAutoCString exceptionList;
+  nsresult rv = mFeature->GetExceptionHostList(exceptionList);
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    UC_LOG(
-        ("FeatureData::MaybeCompleteClassification[%p] - error. Let's move on",
-         this));
+    UC_LOG_WARN(
+        ("AsyncChannelClassifier::FeatureData::MayebeCompleteClassification - "
+         "error. Let's move on [this=%p channel=%p]",
+         this, aChannel));
     return true;
   }
 
-  if (!mBlacklistTables.IsEmpty() &&
-      nsContentUtils::IsURIInList(mBlacklistTables[0]->URI(), skipList)) {
+  if (!mBlocklistTables.IsEmpty() &&
+      nsContentUtils::IsURIInList(mBlocklistTables[0]->URI(), exceptionList)) {
+    nsCString spec = mBlocklistTables[0]->URI()->GetSpecOrDefault();
+    spec.Truncate(std::min(spec.Length(), UrlClassifierCommon::sMaxSpecLength));
     UC_LOG(
-        ("FeatureData::MaybeCompleteClassification[%p] - uri found in skiplist",
-         this));
+        ("AsyncChannelClassifier::FeatureData::MaybeCompleteClassification - "
+         "uri %s found in "
+         "exceptionlist of feature %s [this=%p channel=%p]",
+         spec.get(), name.get(), this, aChannel));
     return true;
   }
 
   nsTArray<nsCString> list;
   nsTArray<nsCString> hashes;
-  if (!mHostInPrefTables[nsIUrlClassifierFeature::blacklist].IsEmpty()) {
-    list.AppendElement(mHostInPrefTables[nsIUrlClassifierFeature::blacklist]);
+  if (!mHostInPrefTables[nsIUrlClassifierFeature::blocklist].IsEmpty()) {
+    list.AppendElement(mHostInPrefTables[nsIUrlClassifierFeature::blocklist]);
 
     // Telemetry expects every tracking channel has hash, create it for test
     // entry
     Completion complete;
     complete.FromPlaintext(
-        mHostInPrefTables[nsIUrlClassifierFeature::blacklist]);
+        mHostInPrefTables[nsIUrlClassifierFeature::blocklist]);
     hashes.AppendElement(complete.ToString());
   }
 
-  for (TableData* tableData : mBlacklistTables) {
+  for (TableData* tableData : mBlocklistTables) {
     if (tableData->MatchState() == TableData::eMatch) {
       list.AppendElement(tableData->Table());
 
@@ -465,8 +506,10 @@ bool FeatureData::MaybeCompleteClassification(nsIChannel* aChannel) {
     }
   }
 
-  UC_LOG(("FeatureData::MaybeCompleteClassification[%p] - process channel %p",
-          this, aChannel));
+  UC_LOG_LEAK(
+      ("AsyncChannelClassifier::FeatureData::MaybeCompleteClassification - "
+       "process channel [this=%p channel=%p]",
+       this, aChannel));
 
   bool shouldContinue = false;
   rv = mFeature->ProcessChannel(aChannel, list, hashes, &shouldContinue);
@@ -536,7 +579,7 @@ class FeatureTask {
 };
 
 // Features are able to classify particular URIs from a channel. For instance,
-// tracking-annotation feature uses the top-level URI to whitelist the current
+// tracking-annotation feature uses the top-level URI to entitylist the current
 // channel's URI; flash feature always uses the channel's URI.  Because of
 // this, this function aggregates feature per URI and tables.
 /* static */
@@ -552,14 +595,19 @@ nsresult FeatureTask::Create(nsIChannel* aChannel,
   nsTArray<nsCOMPtr<nsIUrlClassifierFeature>> features;
   UrlClassifierFeatureFactory::GetFeaturesFromChannel(aChannel, features);
   if (features.IsEmpty()) {
-    UC_LOG(("FeatureTask::Create: Nothing to do for channel %p", aChannel));
+    UC_LOG(
+        ("AsyncChannelClassifier::FeatureTask::Create - no task is needed for "
+         "channel %p",
+         aChannel));
     return NS_OK;
   }
 
   RefPtr<FeatureTask> task = new FeatureTask(aChannel, std::move(aCallback));
 
-  UC_LOG(("FeatureTask::Create[%p] - FeatureTask created for channel %p",
-          task.get(), aChannel));
+  UC_LOG(
+      ("AsyncChannelClassifier::FeatureTask::Create - FeatureTask %p created "
+       "for channel %p",
+       task.get(), aChannel));
 
   for (nsIUrlClassifierFeature* feature : features) {
     FeatureData* featureData = task->mFeatures.AppendElement();
@@ -584,9 +632,9 @@ FeatureTask::FeatureTask(nsIChannel* aChannel,
 }
 
 FeatureTask::~FeatureTask() {
-  NS_ReleaseOnMainThreadSystemGroup("FeatureTask::mChannel", mChannel.forget());
-  NS_ReleaseOnMainThreadSystemGroup("FeatureTask::mCallbackHolder",
-                                    mCallbackHolder.forget());
+  NS_ReleaseOnMainThread("FeatureTask::mChannel", mChannel.forget());
+  NS_ReleaseOnMainThread("FeatureTask::mCallbackHolder",
+                         mCallbackHolder.forget());
 }
 
 nsresult FeatureTask::GetOrCreateURIData(
@@ -597,15 +645,18 @@ nsresult FeatureTask::GetOrCreateURIData(
   MOZ_ASSERT(aInnermostURI);
   MOZ_ASSERT(aData);
 
-  UC_LOG(
-      ("FeatureTask::GetOrCreateURIData[%p] - Checking if a URIData must be "
-       "created",
+  UC_LOG_LEAK(
+      ("AsyncChannelClassifier::FeatureTask::GetOrCreateURIData - checking if "
+       "a URIData must be "
+       "created [this=%p]",
        this));
 
   for (URIData* data : mURIs) {
     if (data->IsEqual(aURI)) {
-      UC_LOG(("FeatureTask::GetOrCreateURIData[%p] - Reuse existing URIData %p",
-              this, data));
+      UC_LOG_LEAK(
+          ("AsyncChannelClassifier::FeatureTask::GetOrCreateURIData - reuse "
+           "existing URIData %p [this=%p]",
+           data, this));
 
       RefPtr<URIData> uriData = data;
       uriData.forget(aData);
@@ -622,8 +673,10 @@ nsresult FeatureTask::GetOrCreateURIData(
 
   mURIs.AppendElement(data);
 
-  UC_LOG(("FeatureTask::GetOrCreateURIData[%p] - Create new URIData %p", this,
-          data.get()));
+  UC_LOG_LEAK(
+      ("AsyncChannelClassifier::FeatureTask::GetOrCreateURIData - create new "
+       "URIData %p [this=%p]",
+       data.get(), this));
 
   data.forget(aData);
   return NS_OK;
@@ -636,16 +689,18 @@ nsresult FeatureTask::GetOrCreateTableData(URIData* aURIData,
   MOZ_ASSERT(aURIData);
   MOZ_ASSERT(aData);
 
-  UC_LOG(
-      ("FeatureTask::GetOrCreateTableData[%p] - Checking if TableData must be "
-       "created",
+  UC_LOG_LEAK(
+      ("AsyncChannelClassifier::FeatureTask::GetOrCreateTableData - checking "
+       "if TableData must be "
+       "created [this=%p]",
        this));
 
   for (TableData* data : mTables) {
     if (data->IsEqual(aURIData, aTable)) {
-      UC_LOG((
-          "FeatureTask::GetOrCreateTableData[%p] - Reuse existing TableData %p",
-          this, data));
+      UC_LOG_LEAK(
+          ("FeatureTask::GetOrCreateTableData - reuse existing TableData %p "
+           "[this=%p]",
+           data, this));
 
       RefPtr<TableData> tableData = data;
       tableData.forget(aData);
@@ -656,8 +711,10 @@ nsresult FeatureTask::GetOrCreateTableData(URIData* aURIData,
   RefPtr<TableData> data = new TableData(aURIData, aTable);
   mTables.AppendElement(data);
 
-  UC_LOG(("FeatureTask::GetOrCreateTableData[%p] - Create new TableData %p",
-          this, data.get()));
+  UC_LOG_LEAK(
+      ("AsyncChannelClassifier::FeatureTask::GetOrCreateTableData - create new "
+       "TableData %p [this=%p]",
+       data.get(), this));
 
   data.forget(aData);
   return NS_OK;
@@ -667,13 +724,19 @@ void FeatureTask::DoLookup(nsUrlClassifierDBServiceWorker* aWorkerClassifier) {
   MOZ_ASSERT(!NS_IsMainThread());
   MOZ_ASSERT(aWorkerClassifier);
 
-  UC_LOG(("FeatureTask::DoLookup[%p] - starting lookup", this));
+  UC_LOG_LEAK(
+      ("AsyncChannelClassifier::FeatureTask::DoLookup - starting lookup "
+       "[this=%p]",
+       this));
 
   for (FeatureData& feature : mFeatures) {
     feature.DoLookup(aWorkerClassifier);
   }
 
-  UC_LOG(("FeatureTask::DoLookup[%p] - lookup completed", this));
+  UC_LOG_LEAK(
+      ("AsyncChannelClassifier::FeatureTask::DoLookup - lookup completed "
+       "[this=%p]",
+       this));
 }
 
 void FeatureTask::CompleteClassification() {
@@ -685,7 +748,11 @@ void FeatureTask::CompleteClassification() {
     }
   }
 
-  UC_LOG(("FeatureTask::CompleteClassification[%p] - exec callback", this));
+  UC_LOG(
+      ("AsyncChannelClassifier::FeatureTask::CompleteClassification - complete "
+       "classification for "
+       "channel %p [this=%p]",
+       mChannel.get(), this));
 
   mCallbackHolder->Exec();
 }
@@ -698,8 +765,10 @@ nsresult FeatureData::InitializeList(
   MOZ_ASSERT(aTask);
   MOZ_ASSERT(aChannel);
 
-  UC_LOG(("FeatureData::InitializeList[%p] - Initialize list %d for channel %p",
-          this, aListType, aChannel));
+  UC_LOG_LEAK(
+      ("AsyncChannelClassifier::FeatureData::InitializeList - initialize list "
+       "%d for channel %p [this=%p]",
+       aListType, aChannel, this));
 
   nsCOMPtr<nsIURI> uri;
   nsIUrlClassifierFeature::URIType URIType;
@@ -709,15 +778,20 @@ nsresult FeatureData::InitializeList(
     if (UC_LOG_ENABLED()) {
       nsAutoCString errorName;
       GetErrorName(rv, errorName);
-      UC_LOG(("FeatureData::InitializeList[%p] got an unexpected error (rv=%s)",
-              this, errorName.get()));
+      UC_LOG_LEAK(
+          ("AsyncChannelClassifier::FeatureData::InitializeList - Got an "
+           "unexpected error (rv=%s) [this=%p]",
+           errorName.get(), this));
     }
     return rv;
   }
 
   if (!uri) {
     // Return success when the URI is empty to conitnue to do the lookup.
-    UC_LOG(("FeatureData::InitializeList[%p] got an empty URL", this));
+    UC_LOG_LEAK(
+        ("AsyncChannelClassifier::FeatureData::InitializeList - got an empty "
+         "URL [this=%p]",
+         this));
     return NS_OK;
   }
 
@@ -784,10 +858,31 @@ nsresult AsyncUrlChannelClassifier::CheckChannel(
     return NS_ERROR_INVALID_ARG;
   }
 
-  UC_LOG(
-      ("AsyncUrlChannelClassifier::CheckChannel starting the classification "
-       "for channel %p",
-       aChannel));
+  if (UC_LOG_ENABLED()) {
+    nsCOMPtr<nsIURI> chanURI;
+    if (NS_SUCCEEDED(aChannel->GetURI(getter_AddRefs(chanURI)))) {
+      nsCString chanSpec = chanURI->GetSpecOrDefault();
+      chanSpec.Truncate(
+          std::min(chanSpec.Length(), UrlClassifierCommon::sMaxSpecLength));
+
+      nsCOMPtr<nsIURI> topWinURI;
+      Unused << UrlClassifierCommon::GetTopWindowURI(aChannel,
+                                                     getter_AddRefs(topWinURI));
+      nsCString topWinSpec =
+          topWinURI ? topWinURI->GetSpecOrDefault() : "(null)"_ns;
+
+      topWinSpec.Truncate(
+          std::min(topWinSpec.Length(), UrlClassifierCommon::sMaxSpecLength));
+
+      UC_LOG(
+          ("AsyncUrlChannelClassifier::CheckChannel - starting the "
+           "classification on channel %p",
+           aChannel));
+      UC_LOG(("    uri is %s [channel=%p]", chanSpec.get(), aChannel));
+      UC_LOG(
+          ("    top-level uri is %s [channel=%p]", topWinSpec.get(), aChannel));
+    }
+  }
 
   RefPtr<FeatureTask> task;
   nsresult rv =

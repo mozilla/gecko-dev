@@ -10,6 +10,7 @@ import os
 import platform
 from six.moves import urllib
 import json
+import ssl
 from six.moves.urllib.parse import urlparse, ParseResult
 
 from mozharness.base.errors import BaseErrorList
@@ -34,7 +35,7 @@ INSTALLER_SUFFIXES = ('.apk',  # Android
                       '.installer-stub.exe', '.installer.exe', '.exe', '.zip',  # Windows
                       )
 
-# https://dxr.mozilla.org/mozilla-central/source/testing/config/tooltool-manifests
+# https://searchfox.org/mozilla-central/source/testing/config/tooltool-manifests
 TOOLTOOL_PLATFORM_DIR = {
     'linux':   'linux32',
     'linux64': 'linux64',
@@ -117,6 +118,7 @@ class TestingMixin(VirtualenvMixin, AutomationMixin, ResourceMonitoringMixin,
     symbols_path = None
     jsshell_url = None
     minidump_stackwalk_path = None
+    ssl_context = None
 
     def query_build_dir_url(self, file_name):
         """
@@ -265,7 +267,14 @@ class TestingMixin(VirtualenvMixin, AutomationMixin, ResourceMonitoringMixin,
         if "developer_config.py" in self.config["config_files"]:
             return _urlopen_basic_auth(url, **kwargs)
         else:
-            return urllib.request.urlopen(url, **kwargs)
+            # windows certificates need to be refreshed (https://bugs.python.org/issue36011)
+            if self.platform_name() in ('win64',) and platform.architecture()[0] in ('x64',):
+                if self.ssl_context is None:
+                    self.ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+                    self.ssl_context.load_default_certs()
+                return urllib.request.urlopen(url, context=self.ssl_context, **kwargs)
+            else:
+                return urllib.request.urlopen(url, **kwargs)
 
     def _query_binary_version(self, regex, cmd):
         output = self.get_output_from_command(cmd, silent=False)
@@ -320,10 +329,10 @@ You can set this by specifying --test-url URL
             'mochitest-webgpu': 'mochitest',
             'geckoview': 'mochitest',
             'geckoview-junit': 'mochitest',
-            'jsreftest': 'reftest',
+            'reftest-qr': 'reftest',
             'crashtest': 'reftest',
+            'crashtest-qr': 'reftest',
             'reftest-debug': 'reftest',
-            'jsreftest-debug': 'reftest',
             'crashtest-debug': 'reftest',
         }
         suite_categories = [aliases.get(name, name) for name in suite_categories]
@@ -334,7 +343,18 @@ You can set this by specifying --test-url URL
         self.mkdir_p(test_install_dir)
         package_requirements = self._read_packages_manifest()
         target_packages = []
+        c = self.config
         for category in suite_categories:
+            specified_suites = c.get("specified_{}_suites".format(category))
+            if specified_suites:
+                found = False
+                for specified_suite in specified_suites:
+                    if specified_suite in package_requirements:
+                        target_packages.extend(package_requirements[specified_suite])
+                        found = True
+                if found:
+                    continue
+
             if category in package_requirements:
                 target_packages.extend(package_requirements[category])
             else:
@@ -365,6 +385,10 @@ You can set this by specifying --test-url URL
                 self.info("Special-casing the jsshell zip file")
                 unpack_dirs = None
                 target_dir = dirs['abs_test_bin_dir']
+
+            if "web-platform" in file_name:
+                self.info("Extracting everything from web-platform archive")
+                unpack_dirs = None
 
             url = self.query_build_dir_url(file_name)
             self.download_unpack(url, target_dir,
@@ -633,3 +657,9 @@ Did you run with --create-virtualenv? Is mozinstall in virtualenv_modules?""")
         c = self.config
         if c.get('run_cmd_checks_enabled'):
             self._run_cmd_checks(c.get('postflight_run_cmd_suites', []))
+
+    def query_abs_dirs(self):
+        abs_dirs = super(TestingMixin, self).query_abs_dirs()
+        if 'MOZ_FETCHES_DIR' in os.environ:
+            abs_dirs['abs_fetches_dir'] = os.environ['MOZ_FETCHES_DIR']
+        return abs_dirs

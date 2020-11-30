@@ -6,10 +6,11 @@
 
 #include "mozilla/layers/APZCTreeManagerChild.h"
 
-#include "InputData.h"                               // for InputData
-#include "mozilla/dom/BrowserParent.h"               // for BrowserParent
-#include "mozilla/layers/APZCCallbackHelper.h"       // for APZCCallbackHelper
-#include "mozilla/layers/APZInputBridgeChild.h"      // for APZInputBridgeChild
+#include "InputData.h"                              // for InputData
+#include "mozilla/dom/BrowserParent.h"              // for BrowserParent
+#include "mozilla/layers/APZCCallbackHelper.h"      // for APZCCallbackHelper
+#include "mozilla/layers/APZInputBridgeChild.h"     // for APZInputBridgeChild
+#include "mozilla/layers/GeckoContentController.h"  // for GeckoContentController
 #include "mozilla/layers/RemoteCompositorSession.h"  // for RemoteCompositorSession
 
 namespace mozilla {
@@ -48,7 +49,7 @@ void APZCTreeManagerChild::SetKeyboardMap(const KeyboardMap& aKeyboardMap) {
   SendSetKeyboardMap(aKeyboardMap);
 }
 
-void APZCTreeManagerChild::ZoomToRect(const SLGuidAndRenderRoot& aGuid,
+void APZCTreeManagerChild::ZoomToRect(const ScrollableLayerGuid& aGuid,
                                       const CSSRect& aRect,
                                       const uint32_t aFlags) {
   SendZoomToRect(aGuid, aRect, aFlags);
@@ -60,12 +61,12 @@ void APZCTreeManagerChild::ContentReceivedInputBlock(uint64_t aInputBlockId,
 }
 
 void APZCTreeManagerChild::SetTargetAPZC(
-    uint64_t aInputBlockId, const nsTArray<SLGuidAndRenderRoot>& aTargets) {
+    uint64_t aInputBlockId, const nsTArray<ScrollableLayerGuid>& aTargets) {
   SendSetTargetAPZC(aInputBlockId, aTargets);
 }
 
 void APZCTreeManagerChild::UpdateZoomConstraints(
-    const SLGuidAndRenderRoot& aGuid,
+    const ScrollableLayerGuid& aGuid,
     const Maybe<ZoomConstraints>& aConstraints) {
   if (mIPCOpen) {
     SendUpdateZoomConstraints(aGuid, aConstraints);
@@ -80,16 +81,16 @@ void APZCTreeManagerChild::SetAllowedTouchBehavior(
 }
 
 void APZCTreeManagerChild::StartScrollbarDrag(
-    const SLGuidAndRenderRoot& aGuid, const AsyncDragMetrics& aDragMetrics) {
+    const ScrollableLayerGuid& aGuid, const AsyncDragMetrics& aDragMetrics) {
   SendStartScrollbarDrag(aGuid, aDragMetrics);
 }
 
-bool APZCTreeManagerChild::StartAutoscroll(const SLGuidAndRenderRoot& aGuid,
+bool APZCTreeManagerChild::StartAutoscroll(const ScrollableLayerGuid& aGuid,
                                            const ScreenPoint& aAnchorLocation) {
   return SendStartAutoscroll(aGuid, aAnchorLocation);
 }
 
-void APZCTreeManagerChild::StopAutoscroll(const SLGuidAndRenderRoot& aGuid) {
+void APZCTreeManagerChild::StopAutoscroll(const ScrollableLayerGuid& aGuid) {
   SendStopAutoscroll(aGuid);
 }
 
@@ -102,6 +103,12 @@ APZInputBridge* APZCTreeManagerChild::InputBridge() {
   MOZ_ASSERT(mInputBridge);
 
   return mInputBridge.get();
+}
+
+void APZCTreeManagerChild::AddInputBlockCallback(
+    uint64_t aInputBlockId, InputBlockCallback&& aCallback) {
+  MOZ_RELEASE_ASSERT(false,
+                     "Remoting of input block callbacks is not implemented");
 }
 
 void APZCTreeManagerChild::AddIPDLReference() {
@@ -142,7 +149,8 @@ mozilla::ipc::IPCResult APZCTreeManagerChild::RecvHandleTap(
 
 mozilla::ipc::IPCResult APZCTreeManagerChild::RecvNotifyPinchGesture(
     const PinchGestureType& aType, const ScrollableLayerGuid& aGuid,
-    const LayoutDeviceCoord& aSpanChange, const Modifiers& aModifiers) {
+    const LayoutDevicePoint& aFocusPoint, const LayoutDeviceCoord& aSpanChange,
+    const Modifiers& aModifiers) {
   // This will only get sent from the GPU process to the parent process, so
   // this function should never get called in the content process.
   MOZ_ASSERT(XRE_IsParentProcess());
@@ -151,7 +159,8 @@ mozilla::ipc::IPCResult APZCTreeManagerChild::RecvNotifyPinchGesture(
   // We want to handle it in this process regardless of what the target guid
   // of the pinch is. This may change in the future.
   if (mCompositorSession && mCompositorSession->GetWidget()) {
-    APZCCallbackHelper::NotifyPinchGesture(aType, aSpanChange, aModifiers,
+    APZCCallbackHelper::NotifyPinchGesture(aType, aFocusPoint, aSpanChange,
+                                           aModifiers,
                                            mCompositorSession->GetWidget());
   }
   return IPC_OK();

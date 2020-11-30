@@ -8,9 +8,29 @@ const kIMig = Ci.nsIBrowserProfileMigrator;
 const kIPStartup = Ci.nsIProfileStartup;
 
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+const { AppConstants } = ChromeUtils.import(
+  "resource://gre/modules/AppConstants.jsm"
+);
 const { MigrationUtils } = ChromeUtils.import(
   "resource:///modules/MigrationUtils.jsm"
 );
+
+/**
+ * Map from data types that match Ci.nsIBrowserProfileMigrator's types to
+ * prefixes for strings used to label these data types in the migration
+ * dialog. We use these strings with -checkbox and -label suffixes for the
+ * checkboxes on the "importItems" page, and for the labels on the "migrating"
+ * and "done" pages, respectively.
+ */
+const kDataToStringMap = new Map([
+  ["cookies", "browser-data-cookies"],
+  ["history", "browser-data-history"],
+  ["formdata", "browser-data-formdata"],
+  ["passwords", "browser-data-passwords"],
+  ["bookmarks", "browser-data-bookmarks"],
+  ["otherdata", "browser-data-otherdata"],
+  ["session", "browser-data-session"],
+]);
 
 var MigrationWizard = {
   /* exported MigrationWizard */
@@ -20,6 +40,7 @@ var MigrationWizard = {
   _wiz: null,
   _migrator: null,
   _autoMigrate: null,
+  _receivedPermissions: new Set(),
 
   init() {
     let os = Services.obs;
@@ -39,7 +60,23 @@ var MigrationWizard = {
     this.isInitialMigration =
       entryPointId == MigrationUtils.MIGRATION_ENTRYPOINT_FIRSTRUN;
 
-    if (args.length > 1) {
+    {
+      // Record that the uninstaller requested a profile refresh
+      let env = Cc["@mozilla.org/process/environment;1"].getService(
+        Ci.nsIEnvironment
+      );
+      if (env.get("MOZ_UNINSTALLER_PROFILE_REFRESH")) {
+        env.set("MOZ_UNINSTALLER_PROFILE_REFRESH", "");
+        Services.telemetry.scalarSet(
+          "migration.uninstaller_profile_refresh",
+          true
+        );
+      }
+    }
+
+    if (args.length == 2) {
+      this._source = args[1];
+    } else if (args.length > 2) {
       this._source = args[1];
       this._migrator = args[2] instanceof kIMig ? args[2] : null;
       this._autoMigrate = args[3].QueryInterface(kIPStartup);
@@ -59,6 +96,7 @@ var MigrationWizard = {
         document.getElementById("nothing").hidden = false;
       }
     }
+    this._setSourceForDataLocalization();
 
     document.addEventListener("wizardcancel", function() {
       MigrationWizard.onWizardCancel();
@@ -105,6 +143,11 @@ var MigrationWizard = {
         MigrationWizard.onImportItemsPageAdvanced();
       });
     document
+      .getElementById("importPermissions")
+      .addEventListener("pageadvanced", function(e) {
+        MigrationWizard.onImportPermissionsPageAdvanced(e);
+      });
+    document
       .getElementById("importSource")
       .addEventListener("pageadvanced", function(e) {
         MigrationWizard.onImportSourcePageAdvanced(e);
@@ -132,6 +175,17 @@ var MigrationWizard = {
     this._wiz.canAdvance = canAdvance;
     this._wiz.canRewind = canRewind;
     return result;
+  },
+
+  _setSourceForDataLocalization() {
+    this._sourceForDataLocalization = this._source;
+    // Ensure consistency for various channels, brandings and versions of
+    // Chromium and MS Edge.
+    if (this._sourceForDataLocalization) {
+      this._sourceForDataLocalization = this._sourceForDataLocalization
+        .replace(/^(chromium-edge-beta|chromium-edge)$/, "edge")
+        .replace(/^(canary|chromium|chrome-beta|chrome-dev)$/, "chrome");
+    }
   },
 
   onWizardCancel() {
@@ -236,16 +290,17 @@ var MigrationWizard = {
       this._selectedProfile = null;
     }
     this._source = newSource;
+    this._setSourceForDataLocalization();
 
     // check for more than one source profile
     var sourceProfiles = this.spinResolve(this._migrator.getSourceProfiles());
     if (this._skipImportSourcePage) {
-      this._wiz.currentPage.next = "migrating";
+      this._updateNextPageForPermissions();
     } else if (sourceProfiles && sourceProfiles.length > 1) {
       this._wiz.currentPage.next = "selectProfile";
     } else {
       if (this._autoMigrate) {
-        this._wiz.currentPage.next = "migrating";
+        this._updateNextPageForPermissions();
       } else {
         this._wiz.currentPage.next = "importItems";
       }
@@ -305,7 +360,7 @@ var MigrationWizard = {
 
     // If we're automigrating or just doing bookmarks don't show the item selection page
     if (this._autoMigrate) {
-      this._wiz.currentPage.next = "migrating";
+      this._updateNextPageForPermissions();
     }
   },
 
@@ -319,17 +374,19 @@ var MigrationWizard = {
     var items = this.spinResolve(
       this._migrator.getMigrateData(this._selectedProfile, this._autoMigrate)
     );
-    for (var i = 0; i < 16; ++i) {
-      var itemID = (items >> i) & 0x1 ? Math.pow(2, i) : 0;
-      if (itemID > 0) {
-        var checkbox = document.createXULElement("checkbox");
-        checkbox.id = itemID;
-        checkbox.setAttribute(
-          "label",
-          MigrationUtils.getLocalizedString(itemID + "_" + this._source)
+
+    for (let itemType of kDataToStringMap.keys()) {
+      let itemValue = Ci.nsIBrowserProfileMigrator[itemType.toUpperCase()];
+      if (items & itemValue) {
+        let checkbox = document.createXULElement("checkbox");
+        checkbox.id = itemValue;
+        document.l10n.setAttributes(
+          checkbox,
+          kDataToStringMap.get(itemType) + "-checkbox",
+          { browser: this._sourceForDataLocalization }
         );
         dataSources.appendChild(checkbox);
-        if (!this._itemsFlags || this._itemsFlags & itemID) {
+        if (!this._itemsFlags || this._itemsFlags & itemValue) {
           checkbox.checked = true;
         }
       }
@@ -350,6 +407,8 @@ var MigrationWizard = {
         this._itemsFlags |= parseInt(checkbox.id);
       }
     }
+
+    this._updateNextPageForPermissions();
   },
 
   onImportItemCommand() {
@@ -365,6 +424,56 @@ var MigrationWizard = {
     }
 
     this._wiz.canAdvance = oneChecked;
+
+    this._updateNextPageForPermissions();
+  },
+
+  _updateNextPageForPermissions() {
+    // We would like to just go straight to work:
+    this._wiz.currentPage.next = "migrating";
+    // If we already have permissions, this is easy:
+    if (this._receivedPermissions.has(this._source)) {
+      return;
+    }
+
+    // Otherwise, if we're on mojave or later and importing from
+    // Safari, prompt for the bookmarks file.
+    // We may add other browser/OS combos here in future.
+    if (
+      this._source == "safari" &&
+      AppConstants.isPlatformAndVersionAtLeast("macosx", "18") &&
+      this._itemsFlags & MigrationUtils.resourceTypes.BOOKMARKS
+    ) {
+      let migrator = this._migrator.wrappedJSObject;
+      let havePermissions = this.spinResolve(migrator.hasPermissions());
+
+      if (!havePermissions) {
+        this._wiz.currentPage.next = "importPermissions";
+      }
+    }
+  },
+
+  // 3b: permissions. This gets invoked when the user clicks "Next"
+  async onImportPermissionsPageAdvanced(event) {
+    // We're done if we have permission:
+    if (this._receivedPermissions.has(this._source)) {
+      return;
+    }
+    // The wizard helper is sync, and we need to check some stuff, so just stop
+    // advancing for now and prompt the user, then advance the wizard if everything
+    // worked.
+    event.preventDefault();
+
+    let migrator = this._migrator.wrappedJSObject;
+    await migrator.getPermissions(window);
+    if (await migrator.hasPermissions()) {
+      this._receivedPermissions.add(this._source);
+      // Re-enter (we'll then allow the advancement through the early return above)
+      this._wiz.advance();
+    }
+    // if we didn't have permissions after the `getPermissions` call, the user
+    // cancelled the dialog. Just no-op out now; the user can re-try by clicking
+    // the 'Continue' button again, or go back and pick a different browser.
   },
 
   // 4 - Migrating
@@ -414,16 +523,16 @@ var MigrationWizard = {
       items.firstChild.remove();
     }
 
-    var itemID;
-    for (var i = 0; i < 16; ++i) {
-      itemID = (this._itemsFlags >> i) & 0x1 ? Math.pow(2, i) : 0;
-      if (itemID > 0) {
+    for (let itemType of kDataToStringMap.keys()) {
+      let itemValue = Ci.nsIBrowserProfileMigrator[itemType.toUpperCase()];
+      if (this._itemsFlags & itemValue) {
         var label = document.createXULElement("label");
-        label.id = itemID + "_migrated";
+        label.id = itemValue + "_migrated";
         try {
-          label.setAttribute(
-            "value",
-            MigrationUtils.getLocalizedString(itemID + "_" + this._source)
+          document.l10n.setAttributes(
+            label,
+            kDataToStringMap.get(itemType) + "-label",
+            { browser: this._sourceForDataLocalization }
           );
           items.appendChild(label);
         } catch (e) {
@@ -477,9 +586,6 @@ var MigrationWizard = {
         let type = "undefined";
         let numericType = parseInt(aData);
         switch (numericType) {
-          case Ci.nsIBrowserProfileMigrator.SETTINGS:
-            type = "settings";
-            break;
           case Ci.nsIBrowserProfileMigrator.COOKIES:
             type = "cookies";
             break;

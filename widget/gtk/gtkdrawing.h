@@ -18,6 +18,7 @@
 #include <gdk/gdk.h>
 #include <gtk/gtk.h>
 #include <algorithm>
+#include "mozilla/Span.h"
 
 /*** type definitions ***/
 typedef struct {
@@ -139,7 +140,7 @@ typedef enum {
 #define MOZ_GTK_WIDGET_INCONSISTENT (1 << 1)
 
 /*** widget type constants ***/
-typedef enum {
+enum WidgetNodeType : int {
   /* Paints a GtkButton. flags is a GtkReliefStyle. */
   MOZ_GTK_BUTTON,
   /* Paints a button with image and no text */
@@ -210,6 +211,8 @@ typedef enum {
   MOZ_GTK_TEXT_VIEW,
   /* The "text" window or node of a GtkTextView */
   MOZ_GTK_TEXT_VIEW_TEXT,
+  /* The "selection" node of a GtkTextView.text */
+  MOZ_GTK_TEXT_VIEW_TEXT_SELECTION,
   /* Paints a GtkOptionMenu. */
   MOZ_GTK_DROPDOWN,
   /* Paints a dropdown arrow (a GtkButton containing a down GtkArrow). */
@@ -347,7 +350,14 @@ typedef enum {
   MOZ_GTK_WINDOW_DECORATION_SOLID,
 
   MOZ_GTK_WIDGET_NODE_COUNT
-} WidgetNodeType;
+};
+
+/* ButtonLayout represents a GTK CSD button and whether its on the left or
+ * right side of the tab bar */
+struct ButtonLayout {
+  WidgetNodeType mType;
+  bool mAtRight;
+};
 
 /*** General library functions ***/
 /**
@@ -541,10 +551,11 @@ void moz_gtk_get_arrow_size(WidgetNodeType widgetType, gint* width,
 
 /**
  * Get the minimum height of a entry widget
- * size:    [OUT] the minimum height
- *
+ * min_content_height:    [OUT] the minimum height of the content box.
+ * border_padding_height: [OUT] the size of borders and paddings.
  */
-void moz_gtk_get_entry_min_height(gint* height);
+void moz_gtk_get_entry_min_height(gint* min_content_height,
+                                  gint* border_padding_height);
 
 /**
  * Get the desired size of a toolbar separator
@@ -600,19 +611,16 @@ const ToolbarButtonGTKMetrics* GetToolbarButtonMetrics(
 
 /**
  * Get toolbar button layout.
- * aButtonLayout:  [IN][OUT] An array which will be filled by WidgetNodeType
- *                           references to visible titlebar buttons.
- *                           Must contains at least TOOLBAR_BUTTONS entries.
- * aMaxButtonNums: [IN] Allocated aButtonLayout entries. Must be at least
- *                      TOOLBAR_BUTTONS wide.
+ * aButtonLayout:  [OUT] An array which will be filled by ButtonLayout
+ *                       references to visible titlebar buttons. Must contain at
+ *                       least TOOLBAR_BUTTONS entries if non-empty.
  * aReversedButtonsPlacement: [OUT] True if the buttons are placed in opposite
  *                                  titlebar corner.
  *
  * returns:    Number of returned entries at aButtonLayout.
  */
-int GetGtkHeaderBarButtonLayout(WidgetNodeType* aButtonLayout,
-                                int aMaxButtonNums,
-                                bool* aReversedButtonsPlacement);
+size_t GetGtkHeaderBarButtonLayout(mozilla::Span<ButtonLayout>,
+                                   bool* aReversedButtonsPlacement);
 
 /**
  * Get size of CSD window extents.

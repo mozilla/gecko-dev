@@ -7,15 +7,15 @@
 
 #include "GeckoProfiler.h"
 #include "ProfileBufferEntry.h"
-#include "ProfileJSONWriter.h"
 #include "ProfilerBacktrace.h"
 
 #include "gfxASurface.h"
 #include "Layers.h"
-#include "mozilla/BlocksRingBufferGeckoExtensions.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/net/HttpBaseChannel.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/ProfileBufferEntrySerializationGeckoExtensions.h"
+#include "mozilla/ProfileJSONWriter.h"
 #include "mozilla/Sprintf.h"
 
 #include <inttypes.h>
@@ -23,7 +23,7 @@
 using namespace mozilla;
 
 static UniquePtr<ProfilerMarkerPayload> DeserializeNothing(
-    BlocksRingBuffer::EntryReader&) {
+    ProfileBufferEntryReader&) {
   return nullptr;
 }
 
@@ -96,27 +96,28 @@ static void MOZ_ALWAYS_INLINE WriteTime(SpliceableJSONWriter& aWriter,
                                         const TimeStamp& aTime,
                                         const char* aName) {
   if (!aTime.IsNull()) {
-    aWriter.DoubleProperty(aName, (aTime - aProcessStartTime).ToMilliseconds());
+    aWriter.DoubleProperty(MakeStringSpan(aName),
+                           (aTime - aProcessStartTime).ToMilliseconds());
   }
 }
 
 void ProfilerMarkerPayload::StreamType(const char* aMarkerType,
                                        SpliceableJSONWriter& aWriter) const {
   MOZ_ASSERT(aMarkerType);
-  aWriter.StringProperty("type", aMarkerType);
+  aWriter.StringProperty("type", MakeStringSpan(aMarkerType));
 }
 
-BlocksRingBuffer::Length
+ProfileBufferEntryWriter::Length
 ProfilerMarkerPayload::CommonPropsTagAndSerializationBytes() const {
   return sizeof(DeserializerTag) +
-         BlocksRingBuffer::SumBytes(mCommonProps.mStartTime,
-                                    mCommonProps.mEndTime, mCommonProps.mStack,
-                                    mCommonProps.mInnerWindowID);
+         ProfileBufferEntryWriter::SumBytes(
+             mCommonProps.mStartTime, mCommonProps.mEndTime,
+             mCommonProps.mStack, mCommonProps.mInnerWindowID);
 }
 
 void ProfilerMarkerPayload::SerializeTagAndCommonProps(
     DeserializerTag aDeserializerTag,
-    BlocksRingBuffer::EntryWriter& aEntryWriter) const {
+    ProfileBufferEntryWriter& aEntryWriter) const {
   aEntryWriter.WriteObject(aDeserializerTag);
   aEntryWriter.WriteObject(mCommonProps.mStartTime);
   aEntryWriter.WriteObject(mCommonProps.mEndTime);
@@ -127,7 +128,7 @@ void ProfilerMarkerPayload::SerializeTagAndCommonProps(
 // static
 ProfilerMarkerPayload::CommonProps
 ProfilerMarkerPayload::DeserializeCommonProps(
-    BlocksRingBuffer::EntryReader& aEntryReader) {
+    ProfileBufferEntryReader& aEntryReader) {
   CommonProps props;
   aEntryReader.ReadIntoObject(props.mStartTime);
   aEntryReader.ReadIntoObject(props.mEndTime);
@@ -136,12 +137,21 @@ ProfilerMarkerPayload::DeserializeCommonProps(
   return props;
 }
 
+// Deprecated: This function is providing a way for a few payloads to use the
+// start time and end time in their payloads, which is currently deprecated.
+// The startTime and endTime were removed from most payloads, in favor of
+// the MarkerTiming::Phase idea. However, IPC and Network markers still have
+// them as it was harder to upgrade the front-end without them.
+void ProfilerMarkerPayload::StreamStartEndTime(
+    SpliceableJSONWriter& aWriter, const TimeStamp& aProcessStartTime) const {
+  WriteTime(aWriter, aProcessStartTime, mCommonProps.mStartTime, "startTime");
+  WriteTime(aWriter, aProcessStartTime, mCommonProps.mEndTime, "endTime");
+}
+
 void ProfilerMarkerPayload::StreamCommonProps(
     const char* aMarkerType, SpliceableJSONWriter& aWriter,
     const TimeStamp& aProcessStartTime, UniqueStacks& aUniqueStacks) const {
   StreamType(aMarkerType, aWriter);
-  WriteTime(aWriter, aProcessStartTime, mCommonProps.mStartTime, "startTime");
-  WriteTime(aWriter, aProcessStartTime, mCommonProps.mEndTime, "endTime");
   if (mCommonProps.mInnerWindowID) {
     // Here, we are converting uint64_t to double. Both Browsing Context and
     // Inner Window IDs are creating using
@@ -160,30 +170,30 @@ void ProfilerMarkerPayload::StreamCommonProps(
   }
 }
 
-BlocksRingBuffer::Length TracingMarkerPayload::TagAndSerializationBytes()
-    const {
+ProfileBufferEntryWriter::Length
+TracingMarkerPayload::TagAndSerializationBytes() const {
   return CommonPropsTagAndSerializationBytes() +
-         BlocksRingBuffer::SumBytes(WrapBlocksRingBufferRawPointer(mCategory),
-                                    mKind);
+         ProfileBufferEntryWriter::SumBytes(
+             WrapProfileBufferRawPointer(mCategory), mKind);
 }
 
 void TracingMarkerPayload::SerializeTagAndPayload(
-    BlocksRingBuffer::EntryWriter& aEntryWriter) const {
+    ProfileBufferEntryWriter& aEntryWriter) const {
   static const DeserializerTag tag = TagForDeserializer(Deserialize);
   SerializeTagAndPayload(tag, aEntryWriter);
 }
 
 void TracingMarkerPayload::SerializeTagAndPayload(
     DeserializerTag aDeserializerTag,
-    BlocksRingBuffer::EntryWriter& aEntryWriter) const {
+    ProfileBufferEntryWriter& aEntryWriter) const {
   SerializeTagAndCommonProps(aDeserializerTag, aEntryWriter);
-  aEntryWriter.WriteObject(WrapBlocksRingBufferRawPointer(mCategory));
+  aEntryWriter.WriteObject(WrapProfileBufferRawPointer(mCategory));
   aEntryWriter.WriteObject(mKind);
 }
 
 // static
 UniquePtr<ProfilerMarkerPayload> TracingMarkerPayload::Deserialize(
-    BlocksRingBuffer::EntryReader& aEntryReader) {
+    ProfileBufferEntryReader& aEntryReader) {
   ProfilerMarkerPayload::CommonProps props =
       DeserializeCommonProps(aEntryReader);
   const char* category = aEntryReader.ReadObject<const char*>();
@@ -198,7 +208,7 @@ void TracingMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
   StreamCommonProps("tracing", aWriter, aProcessStartTime, aUniqueStacks);
 
   if (mCategory) {
-    aWriter.StringProperty("category", mCategory);
+    aWriter.StringProperty("category", MakeStringSpan(mCategory));
   }
 
   if (mKind == TRACING_INTERVAL_START) {
@@ -208,56 +218,65 @@ void TracingMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
   }
 }
 
-BlocksRingBuffer::Length FileIOMarkerPayload::TagAndSerializationBytes() const {
+ProfileBufferEntryWriter::Length FileIOMarkerPayload::TagAndSerializationBytes()
+    const {
   return CommonPropsTagAndSerializationBytes() +
-         BlocksRingBuffer::SumBytes(WrapBlocksRingBufferRawPointer(mSource),
-                                    mOperation, mFilename);
+         ProfileBufferEntryWriter::SumBytes(
+             WrapProfileBufferRawPointer(mSource), mOperation, mFilename,
+             mIOThreadId);
 }
 
 void FileIOMarkerPayload::SerializeTagAndPayload(
-    BlocksRingBuffer::EntryWriter& aEntryWriter) const {
+    ProfileBufferEntryWriter& aEntryWriter) const {
   static const DeserializerTag tag = TagForDeserializer(Deserialize);
   SerializeTagAndCommonProps(tag, aEntryWriter);
-  aEntryWriter.WriteObject(WrapBlocksRingBufferRawPointer(mSource));
+  aEntryWriter.WriteObject(WrapProfileBufferRawPointer(mSource));
   aEntryWriter.WriteObject(mOperation);
   aEntryWriter.WriteObject(mFilename);
+  aEntryWriter.WriteObject(mIOThreadId);
 }
 
 // static
 UniquePtr<ProfilerMarkerPayload> FileIOMarkerPayload::Deserialize(
-    BlocksRingBuffer::EntryReader& aEntryReader) {
+    ProfileBufferEntryReader& aEntryReader) {
   ProfilerMarkerPayload::CommonProps props =
       DeserializeCommonProps(aEntryReader);
   auto source = aEntryReader.ReadObject<const char*>();
   auto operation = aEntryReader.ReadObject<UniqueFreePtr<char>>();
   auto filename = aEntryReader.ReadObject<UniqueFreePtr<char>>();
-  return UniquePtr<ProfilerMarkerPayload>(new FileIOMarkerPayload(
-      std::move(props), source, std::move(operation), std::move(filename)));
+  auto ioThreadId = aEntryReader.ReadObject<Maybe<int>>();
+  return UniquePtr<ProfilerMarkerPayload>(
+      new FileIOMarkerPayload(std::move(props), source, std::move(operation),
+                              std::move(filename), ioThreadId));
 }
 
 void FileIOMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
                                         const TimeStamp& aProcessStartTime,
                                         UniqueStacks& aUniqueStacks) const {
   StreamCommonProps("FileIO", aWriter, aProcessStartTime, aUniqueStacks);
-  aWriter.StringProperty("operation", mOperation.get());
-  aWriter.StringProperty("source", mSource);
+  aWriter.StringProperty("operation", MakeStringSpan(mOperation.get()));
+  aWriter.StringProperty("source", MakeStringSpan(mSource));
   if (mFilename) {
-    aWriter.StringProperty("filename", mFilename.get());
+    aWriter.StringProperty("filename", MakeStringSpan(mFilename.get()));
+  }
+  if (mIOThreadId.isSome()) {
+    aWriter.IntProperty("threadId", *mIOThreadId);
   }
 }
 
-BlocksRingBuffer::Length UserTimingMarkerPayload::TagAndSerializationBytes()
-    const {
+ProfileBufferEntryWriter::Length
+UserTimingMarkerPayload::TagAndSerializationBytes() const {
   return CommonPropsTagAndSerializationBytes() +
-         BlocksRingBuffer::SumBytes(WrapBlocksRingBufferRawPointer(mEntryType),
-                                    mName, mStartMark, mEndMark);
+         ProfileBufferEntryWriter::SumBytes(
+             WrapProfileBufferRawPointer(mEntryType), mName, mStartMark,
+             mEndMark);
 }
 
 void UserTimingMarkerPayload::SerializeTagAndPayload(
-    BlocksRingBuffer::EntryWriter& aEntryWriter) const {
+    ProfileBufferEntryWriter& aEntryWriter) const {
   static const DeserializerTag tag = TagForDeserializer(Deserialize);
   SerializeTagAndCommonProps(tag, aEntryWriter);
-  aEntryWriter.WriteObject(WrapBlocksRingBufferRawPointer(mEntryType));
+  aEntryWriter.WriteObject(WrapProfileBufferRawPointer(mEntryType));
   aEntryWriter.WriteObject(mName);
   aEntryWriter.WriteObject(mStartMark);
   aEntryWriter.WriteObject(mEndMark);
@@ -265,7 +284,7 @@ void UserTimingMarkerPayload::SerializeTagAndPayload(
 
 // static
 UniquePtr<ProfilerMarkerPayload> UserTimingMarkerPayload::Deserialize(
-    BlocksRingBuffer::EntryReader& aEntryReader) {
+    ProfileBufferEntryReader& aEntryReader) {
   ProfilerMarkerPayload::CommonProps props =
       DeserializeCommonProps(aEntryReader);
   auto entryType = aEntryReader.ReadObject<const char*>();
@@ -281,30 +300,56 @@ void UserTimingMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
                                             const TimeStamp& aProcessStartTime,
                                             UniqueStacks& aUniqueStacks) const {
   StreamCommonProps("UserTiming", aWriter, aProcessStartTime, aUniqueStacks);
-  aWriter.StringProperty("name", NS_ConvertUTF16toUTF8(mName).get());
-  aWriter.StringProperty("entryType", mEntryType);
+  aWriter.StringProperty("name", NS_ConvertUTF16toUTF8(mName));
+  aWriter.StringProperty("entryType", MakeStringSpan(mEntryType));
 
   if (mStartMark.isSome()) {
     aWriter.StringProperty("startMark",
-                           NS_ConvertUTF16toUTF8(mStartMark.value()).get());
+                           NS_ConvertUTF16toUTF8(mStartMark.value()));
   } else {
     aWriter.NullProperty("startMark");
   }
   if (mEndMark.isSome()) {
-    aWriter.StringProperty("endMark",
-                           NS_ConvertUTF16toUTF8(mEndMark.value()).get());
+    aWriter.StringProperty("endMark", NS_ConvertUTF16toUTF8(mEndMark.value()));
   } else {
     aWriter.NullProperty("endMark");
   }
 }
 
-BlocksRingBuffer::Length TextMarkerPayload::TagAndSerializationBytes() const {
+ProfileBufferEntryWriter::Length TimingMarkerPayload::TagAndSerializationBytes()
+    const {
+  return CommonPropsTagAndSerializationBytes();
+}
+
+void TimingMarkerPayload::SerializeTagAndPayload(
+    ProfileBufferEntryWriter& aEntryWriter) const {
+  static const DeserializerTag tag = TagForDeserializer(Deserialize);
+  SerializeTagAndCommonProps(tag, aEntryWriter);
+}
+
+// static
+UniquePtr<ProfilerMarkerPayload> TimingMarkerPayload::Deserialize(
+    ProfileBufferEntryReader& aEntryReader) {
+  ProfilerMarkerPayload::CommonProps props =
+      DeserializeCommonProps(aEntryReader);
+  return UniquePtr<ProfilerMarkerPayload>(
+      new TimingMarkerPayload(std::move(props)));
+}
+
+void TimingMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
+                                        const TimeStamp& aProcessStartTime,
+                                        UniqueStacks& aUniqueStacks) const {
+  StreamCommonProps("Timing", aWriter, aProcessStartTime, aUniqueStacks);
+}
+
+ProfileBufferEntryWriter::Length TextMarkerPayload::TagAndSerializationBytes()
+    const {
   return CommonPropsTagAndSerializationBytes() +
-         BlocksRingBuffer::SumBytes(mText);
+         ProfileBufferEntryWriter::SumBytes(mText);
 }
 
 void TextMarkerPayload::SerializeTagAndPayload(
-    BlocksRingBuffer::EntryWriter& aEntryWriter) const {
+    ProfileBufferEntryWriter& aEntryWriter) const {
   static const DeserializerTag tag = TagForDeserializer(Deserialize);
   SerializeTagAndCommonProps(tag, aEntryWriter);
   aEntryWriter.WriteObject(mText);
@@ -312,7 +357,7 @@ void TextMarkerPayload::SerializeTagAndPayload(
 
 // static
 UniquePtr<ProfilerMarkerPayload> TextMarkerPayload::Deserialize(
-    BlocksRingBuffer::EntryReader& aEntryReader) {
+    ProfileBufferEntryReader& aEntryReader) {
   ProfilerMarkerPayload::CommonProps props =
       DeserializeCommonProps(aEntryReader);
   auto text = aEntryReader.ReadObject<nsCString>();
@@ -324,16 +369,17 @@ void TextMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
                                       const TimeStamp& aProcessStartTime,
                                       UniqueStacks& aUniqueStacks) const {
   StreamCommonProps("Text", aWriter, aProcessStartTime, aUniqueStacks);
-  aWriter.StringProperty("name", mText.get());
+  aWriter.StringProperty("name", mText);
 }
 
-BlocksRingBuffer::Length LogMarkerPayload::TagAndSerializationBytes() const {
+ProfileBufferEntryWriter::Length LogMarkerPayload::TagAndSerializationBytes()
+    const {
   return CommonPropsTagAndSerializationBytes() +
-         BlocksRingBuffer::SumBytes(mModule, mText);
+         ProfileBufferEntryWriter::SumBytes(mModule, mText);
 }
 
 void LogMarkerPayload::SerializeTagAndPayload(
-    BlocksRingBuffer::EntryWriter& aEntryWriter) const {
+    ProfileBufferEntryWriter& aEntryWriter) const {
   static const DeserializerTag tag = TagForDeserializer(Deserialize);
   SerializeTagAndCommonProps(tag, aEntryWriter);
   aEntryWriter.WriteObject(mModule);
@@ -342,7 +388,7 @@ void LogMarkerPayload::SerializeTagAndPayload(
 
 // static
 UniquePtr<ProfilerMarkerPayload> LogMarkerPayload::Deserialize(
-    BlocksRingBuffer::EntryReader& aEntryReader) {
+    ProfileBufferEntryReader& aEntryReader) {
   ProfilerMarkerPayload::CommonProps props =
       DeserializeCommonProps(aEntryReader);
   auto module = aEntryReader.ReadObject<nsAutoCStringN<32>>();
@@ -355,57 +401,65 @@ void LogMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
                                      const TimeStamp& aProcessStartTime,
                                      UniqueStacks& aUniqueStacks) const {
   StreamCommonProps("Log", aWriter, aProcessStartTime, aUniqueStacks);
-  aWriter.StringProperty("name", mText.get());
-  aWriter.StringProperty("module", mModule.get());
+  aWriter.StringProperty("name", mText);
+  aWriter.StringProperty("module", mModule);
 }
 
-BlocksRingBuffer::Length DOMEventMarkerPayload::TagAndSerializationBytes()
-    const {
-  return TracingMarkerPayload::TagAndSerializationBytes() +
-         BlocksRingBuffer::SumBytes(mTimeStamp, mEventType);
+MediaSampleMarkerPayload::MediaSampleMarkerPayload(
+    const int64_t aSampleStartTimeUs, const int64_t aSampleEndTimeUs)
+    : mSampleStartTimeUs(aSampleStartTimeUs),
+      mSampleEndTimeUs(aSampleEndTimeUs) {}
+
+MediaSampleMarkerPayload::MediaSampleMarkerPayload(
+    CommonProps&& aCommonProps, const int64_t aSampleStartTimeUs,
+    const int64_t aSampleEndTimeUs)
+    : ProfilerMarkerPayload(std::move(aCommonProps)),
+      mSampleStartTimeUs(aSampleStartTimeUs),
+      mSampleEndTimeUs(aSampleEndTimeUs) {}
+
+ProfileBufferEntryWriter::Length
+MediaSampleMarkerPayload::TagAndSerializationBytes() const {
+  return CommonPropsTagAndSerializationBytes() +
+         ProfileBufferEntryWriter::SumBytes(mSampleStartTimeUs,
+                                            mSampleEndTimeUs);
 }
 
-void DOMEventMarkerPayload::SerializeTagAndPayload(
-    BlocksRingBuffer::EntryWriter& aEntryWriter) const {
+void MediaSampleMarkerPayload::SerializeTagAndPayload(
+    ProfileBufferEntryWriter& aEntryWriter) const {
   static const DeserializerTag tag = TagForDeserializer(Deserialize);
-  // Let our parent class serialize our tag with its payload.
-  TracingMarkerPayload::SerializeTagAndPayload(tag, aEntryWriter);
-  // Then write our extra data.
-  aEntryWriter.WriteObject(mTimeStamp);
-  aEntryWriter.WriteObject(mEventType);
+  SerializeTagAndCommonProps(tag, aEntryWriter);
+  aEntryWriter.WriteObject(mSampleStartTimeUs);
+  aEntryWriter.WriteObject(mSampleEndTimeUs);
 }
 
-// static
-UniquePtr<ProfilerMarkerPayload> DOMEventMarkerPayload::Deserialize(
-    BlocksRingBuffer::EntryReader& aEntryReader) {
+/* static */
+UniquePtr<ProfilerMarkerPayload> MediaSampleMarkerPayload::Deserialize(
+    ProfileBufferEntryReader& aEntryReader) {
   ProfilerMarkerPayload::CommonProps props =
       DeserializeCommonProps(aEntryReader);
-  const char* category = aEntryReader.ReadObject<const char*>();
-  TracingKind kind = aEntryReader.ReadObject<TracingKind>();
-  auto timeStamp = aEntryReader.ReadObject<TimeStamp>();
-  auto eventType = aEntryReader.ReadObject<nsString>();
-  return UniquePtr<ProfilerMarkerPayload>(new DOMEventMarkerPayload(
-      std::move(props), category, kind, timeStamp, std::move(eventType)));
+  auto sampleStartTimeUs = aEntryReader.ReadObject<int64_t>();
+  auto sampleEndTimeUs = aEntryReader.ReadObject<int64_t>();
+  return UniquePtr<ProfilerMarkerPayload>(new MediaSampleMarkerPayload(
+      std::move(props), sampleStartTimeUs, sampleEndTimeUs));
 }
 
-void DOMEventMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
-                                          const TimeStamp& aProcessStartTime,
-                                          UniqueStacks& aUniqueStacks) const {
-  TracingMarkerPayload::StreamPayload(aWriter, aProcessStartTime,
-                                      aUniqueStacks);
-
-  WriteTime(aWriter, aProcessStartTime, mTimeStamp, "timeStamp");
-  aWriter.StringProperty("eventType", NS_ConvertUTF16toUTF8(mEventType).get());
+void MediaSampleMarkerPayload::StreamPayload(
+    SpliceableJSONWriter& aWriter, const TimeStamp& aProcessStartTime,
+    UniqueStacks& aUniqueStacks) const {
+  StreamCommonProps("MediaSample", aWriter, aProcessStartTime, aUniqueStacks);
+  aWriter.IntProperty("sampleStartTimeUs", mSampleStartTimeUs);
+  aWriter.IntProperty("sampleEndTimeUs", mSampleEndTimeUs);
 }
 
-BlocksRingBuffer::Length PrefMarkerPayload::TagAndSerializationBytes() const {
+ProfileBufferEntryWriter::Length PrefMarkerPayload::TagAndSerializationBytes()
+    const {
   return CommonPropsTagAndSerializationBytes() +
-         BlocksRingBuffer::SumBytes(mPrefAccessTime, mPrefName, mPrefKind,
-                                    mPrefType, mPrefValue);
+         ProfileBufferEntryWriter::SumBytes(mPrefAccessTime, mPrefName,
+                                            mPrefKind, mPrefType, mPrefValue);
 }
 
 void PrefMarkerPayload::SerializeTagAndPayload(
-    BlocksRingBuffer::EntryWriter& aEntryWriter) const {
+    ProfileBufferEntryWriter& aEntryWriter) const {
   static const DeserializerTag tag = TagForDeserializer(Deserialize);
   SerializeTagAndCommonProps(tag, aEntryWriter);
   aEntryWriter.WriteObject(mPrefAccessTime);
@@ -417,7 +471,7 @@ void PrefMarkerPayload::SerializeTagAndPayload(
 
 // static
 UniquePtr<ProfilerMarkerPayload> PrefMarkerPayload::Deserialize(
-    BlocksRingBuffer::EntryReader& aEntryReader) {
+    ProfileBufferEntryReader& aEntryReader) {
   ProfilerMarkerPayload::CommonProps props =
       DeserializeCommonProps(aEntryReader);
   auto prefAccessTime = aEntryReader.ReadObject<TimeStamp>();
@@ -430,29 +484,31 @@ UniquePtr<ProfilerMarkerPayload> PrefMarkerPayload::Deserialize(
       std::move(prefKind), std::move(prefType), std::move(prefValue)));
 }
 
-static const char* PrefValueKindToString(const Maybe<PrefValueKind>& aKind) {
+static Span<const char> PrefValueKindToString(
+    const Maybe<PrefValueKind>& aKind) {
   if (aKind) {
-    return *aKind == PrefValueKind::Default ? "Default" : "User";
+    return *aKind == PrefValueKind::Default ? MakeStringSpan("Default")
+                                            : MakeStringSpan("User");
   }
-  return "Shared";
+  return MakeStringSpan("Shared");
 }
 
-static const char* PrefTypeToString(const Maybe<PrefType>& type) {
+static Span<const char> PrefTypeToString(const Maybe<PrefType>& type) {
   if (type) {
     switch (*type) {
       case PrefType::None:
-        return "None";
+        return MakeStringSpan("None");
       case PrefType::Int:
-        return "Int";
+        return MakeStringSpan("Int");
       case PrefType::Bool:
-        return "Bool";
+        return MakeStringSpan("Bool");
       case PrefType::String:
-        return "String";
+        return MakeStringSpan("String");
       default:
         MOZ_ASSERT_UNREACHABLE("Unknown preference type.");
     }
   }
-  return "Preference not found";
+  return MakeStringSpan("Preference not found");
 }
 
 void PrefMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
@@ -461,30 +517,30 @@ void PrefMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
   StreamCommonProps("PreferenceRead", aWriter, aProcessStartTime,
                     aUniqueStacks);
   WriteTime(aWriter, aProcessStartTime, mPrefAccessTime, "prefAccessTime");
-  aWriter.StringProperty("prefName", mPrefName.get());
+  aWriter.StringProperty("prefName", mPrefName);
   aWriter.StringProperty("prefKind", PrefValueKindToString(mPrefKind));
   aWriter.StringProperty("prefType", PrefTypeToString(mPrefType));
-  aWriter.StringProperty("prefValue", mPrefValue.get());
+  aWriter.StringProperty("prefValue", mPrefValue);
 }
 
-BlocksRingBuffer::Length
+ProfileBufferEntryWriter::Length
 LayerTranslationMarkerPayload::TagAndSerializationBytes() const {
   return CommonPropsTagAndSerializationBytes() +
-         BlocksRingBuffer::SumBytes(WrapBlocksRingBufferRawPointer(mLayer),
-                                    mPoint);
+         ProfileBufferEntryWriter::SumBytes(WrapProfileBufferRawPointer(mLayer),
+                                            mPoint);
 }
 
 void LayerTranslationMarkerPayload::SerializeTagAndPayload(
-    BlocksRingBuffer::EntryWriter& aEntryWriter) const {
+    ProfileBufferEntryWriter& aEntryWriter) const {
   static const DeserializerTag tag = TagForDeserializer(Deserialize);
   SerializeTagAndCommonProps(tag, aEntryWriter);
-  aEntryWriter.WriteObject(WrapBlocksRingBufferRawPointer(mLayer));
+  aEntryWriter.WriteObject(WrapProfileBufferRawPointer(mLayer));
   aEntryWriter.WriteObject(mPoint);
 }
 
 // static
 UniquePtr<ProfilerMarkerPayload> LayerTranslationMarkerPayload::Deserialize(
-    BlocksRingBuffer::EntryReader& aEntryReader) {
+    ProfileBufferEntryReader& aEntryReader) {
   ProfilerMarkerPayload::CommonProps props =
       DeserializeCommonProps(aEntryReader);
   auto layer = aEntryReader.ReadObject<layers::Layer*>();
@@ -499,26 +555,28 @@ void LayerTranslationMarkerPayload::StreamPayload(
   StreamType("LayerTranslation", aWriter);
   const size_t bufferSize = 32;
   char buffer[bufferSize];
-  SprintfLiteral(buffer, "%p", mLayer);
+  const int written = SprintfLiteral(buffer, "%p", mLayer);
+  MOZ_RELEASE_ASSERT(written > 0);
 
-  aWriter.StringProperty("layer", buffer);
+  aWriter.StringProperty("layer", Span<const char>(buffer, size_t(written)));
   aWriter.IntProperty("x", mPoint.x);
   aWriter.IntProperty("y", mPoint.y);
 }
 
-BlocksRingBuffer::Length VsyncMarkerPayload::TagAndSerializationBytes() const {
+ProfileBufferEntryWriter::Length VsyncMarkerPayload::TagAndSerializationBytes()
+    const {
   return CommonPropsTagAndSerializationBytes();
 }
 
 void VsyncMarkerPayload::SerializeTagAndPayload(
-    BlocksRingBuffer::EntryWriter& aEntryWriter) const {
+    ProfileBufferEntryWriter& aEntryWriter) const {
   static const DeserializerTag tag = TagForDeserializer(Deserialize);
   SerializeTagAndCommonProps(tag, aEntryWriter);
 }
 
 // static
 UniquePtr<ProfilerMarkerPayload> VsyncMarkerPayload::Deserialize(
-    BlocksRingBuffer::EntryReader& aEntryReader) {
+    ProfileBufferEntryReader& aEntryReader) {
   ProfilerMarkerPayload::CommonProps props =
       DeserializeCommonProps(aEntryReader);
   return UniquePtr<ProfilerMarkerPayload>(
@@ -531,72 +589,78 @@ void VsyncMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
   StreamType("VsyncTimestamp", aWriter);
 }
 
-BlocksRingBuffer::Length NetworkMarkerPayload::TagAndSerializationBytes()
-    const {
+ProfileBufferEntryWriter::Length
+NetworkMarkerPayload::TagAndSerializationBytes() const {
   return CommonPropsTagAndSerializationBytes() +
-         BlocksRingBuffer::SumBytes(mID, mURI, mRedirectURI, mType, mPri,
-                                    mCount, mTimings, mCacheDisposition);
+         ProfileBufferEntryWriter::SumBytes(
+             mID, mURI, mRedirectURI, mRequestMethod, mType, mPri, mCount,
+             mTimings, mCacheDisposition, mContentType);
 }
 
 void NetworkMarkerPayload::SerializeTagAndPayload(
-    BlocksRingBuffer::EntryWriter& aEntryWriter) const {
+    ProfileBufferEntryWriter& aEntryWriter) const {
   static const DeserializerTag tag = TagForDeserializer(Deserialize);
   SerializeTagAndCommonProps(tag, aEntryWriter);
   aEntryWriter.WriteObject(mID);
   aEntryWriter.WriteObject(mURI);
   aEntryWriter.WriteObject(mRedirectURI);
+  aEntryWriter.WriteObject(mRequestMethod);
   aEntryWriter.WriteObject(mType);
   aEntryWriter.WriteObject(mPri);
   aEntryWriter.WriteObject(mCount);
   aEntryWriter.WriteObject(mTimings);
   aEntryWriter.WriteObject(mCacheDisposition);
+  aEntryWriter.WriteObject(mContentType);
 }
 
 // static
 UniquePtr<ProfilerMarkerPayload> NetworkMarkerPayload::Deserialize(
-    BlocksRingBuffer::EntryReader& aEntryReader) {
+    ProfileBufferEntryReader& aEntryReader) {
   ProfilerMarkerPayload::CommonProps props =
       DeserializeCommonProps(aEntryReader);
   auto id = aEntryReader.ReadObject<int64_t>();
   auto uri = aEntryReader.ReadObject<UniqueFreePtr<char>>();
   auto redirectURI = aEntryReader.ReadObject<UniqueFreePtr<char>>();
+  auto requestMethod = aEntryReader.ReadObject<nsCString>();
   auto type = aEntryReader.ReadObject<NetworkLoadType>();
   auto pri = aEntryReader.ReadObject<int32_t>();
   auto count = aEntryReader.ReadObject<int64_t>();
   auto timings = aEntryReader.ReadObject<net::TimingStruct>();
   auto cacheDisposition = aEntryReader.ReadObject<net::CacheDisposition>();
+  auto contentType = aEntryReader.ReadObject<Maybe<nsAutoCString>>();
   return UniquePtr<ProfilerMarkerPayload>(new NetworkMarkerPayload(
-      std::move(props), id, std::move(uri), std::move(redirectURI), type, pri,
-      count, timings, cacheDisposition));
+      std::move(props), id, std::move(uri), std::move(redirectURI),
+      std::move(requestMethod), type, pri, count, timings, cacheDisposition,
+      std::move(contentType)));
 }
 
-static const char* GetNetworkState(NetworkLoadType aType) {
+static Span<const char> GetNetworkState(NetworkLoadType aType) {
   switch (aType) {
     case NetworkLoadType::LOAD_START:
-      return "STATUS_START";
+      return MakeStringSpan("STATUS_START");
     case NetworkLoadType::LOAD_STOP:
-      return "STATUS_STOP";
+      return MakeStringSpan("STATUS_STOP");
     case NetworkLoadType::LOAD_REDIRECT:
-      return "STATUS_REDIRECT";
+      return MakeStringSpan("STATUS_REDIRECT");
   }
-  return "";
+  return MakeStringSpan("");
 }
 
-static const char* GetCacheState(net::CacheDisposition aCacheDisposition) {
+static Span<const char> GetCacheState(net::CacheDisposition aCacheDisposition) {
   switch (aCacheDisposition) {
     case net::kCacheUnresolved:
-      return "Unresolved";
+      return MakeStringSpan("Unresolved");
     case net::kCacheHit:
-      return "Hit";
+      return MakeStringSpan("Hit");
     case net::kCacheHitViaReval:
-      return "HitViaReval";
+      return MakeStringSpan("HitViaReval");
     case net::kCacheMissedViaReval:
-      return "MissedViaReval";
+      return MakeStringSpan("MissedViaReval");
     case net::kCacheMissed:
-      return "Missed";
+      return MakeStringSpan("Missed");
     case net::kCacheUnknown:
     default:
-      return nullptr;
+      return MakeStringSpan("");
   }
 }
 
@@ -604,13 +668,16 @@ void NetworkMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
                                          const TimeStamp& aProcessStartTime,
                                          UniqueStacks& aUniqueStacks) const {
   StreamCommonProps("Network", aWriter, aProcessStartTime, aUniqueStacks);
+  // This payload still streams a startTime and endTime property because it made
+  // the migration to MarkerTiming on the front-end easier.
+  StreamStartEndTime(aWriter, aProcessStartTime);
+
   aWriter.IntProperty("id", mID);
-  const char* typeString = GetNetworkState(mType);
-  const char* cacheString = GetCacheState(mCacheDisposition);
   // want to use aUniqueStacks.mUniqueStrings->WriteElement(aWriter,
   // typeString);
-  aWriter.StringProperty("status", typeString);
-  if (cacheString) {
+  aWriter.StringProperty("status", GetNetworkState(mType));
+  if (Span<const char> cacheString = GetCacheState(mCacheDisposition);
+      !cacheString.empty()) {
     aWriter.StringProperty("cache", cacheString);
   }
   aWriter.IntProperty("pri", mPri);
@@ -618,11 +685,19 @@ void NetworkMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
     aWriter.IntProperty("count", mCount);
   }
   if (mURI) {
-    aWriter.StringProperty("URI", mURI.get());
+    aWriter.StringProperty("URI", MakeStringSpan(mURI.get()));
   }
   if (mRedirectURI) {
-    aWriter.StringProperty("RedirectURI", mRedirectURI.get());
+    aWriter.StringProperty("RedirectURI", MakeStringSpan(mRedirectURI.get()));
   }
+  aWriter.StringProperty("requestMethod", mRequestMethod);
+
+  if (mContentType.isSome()) {
+    aWriter.StringProperty("contentType", mContentType.value());
+  } else {
+    aWriter.NullProperty("contentType");
+  }
+
   if (mType != NetworkLoadType::LOAD_START) {
     WriteTime(aWriter, aProcessStartTime, mTimings.domainLookupStart,
               "domainLookupStart");
@@ -643,14 +718,15 @@ void NetworkMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
   }
 }
 
-BlocksRingBuffer::Length ScreenshotPayload::TagAndSerializationBytes() const {
+ProfileBufferEntryWriter::Length ScreenshotPayload::TagAndSerializationBytes()
+    const {
   return CommonPropsTagAndSerializationBytes() +
-         BlocksRingBuffer::SumBytes(mScreenshotDataURL, mWindowSize,
-                                    mWindowIdentifier);
+         ProfileBufferEntryWriter::SumBytes(mScreenshotDataURL, mWindowSize,
+                                            mWindowIdentifier);
 }
 
 void ScreenshotPayload::SerializeTagAndPayload(
-    BlocksRingBuffer::EntryWriter& aEntryWriter) const {
+    ProfileBufferEntryWriter& aEntryWriter) const {
   static const DeserializerTag tag = TagForDeserializer(Deserialize);
   SerializeTagAndCommonProps(tag, aEntryWriter);
   aEntryWriter.WriteObject(mScreenshotDataURL);
@@ -660,7 +736,7 @@ void ScreenshotPayload::SerializeTagAndPayload(
 
 // static
 UniquePtr<ProfilerMarkerPayload> ScreenshotPayload::Deserialize(
-    BlocksRingBuffer::EntryReader& aEntryReader) {
+    ProfileBufferEntryReader& aEntryReader) {
   ProfilerMarkerPayload::CommonProps props =
       DeserializeCommonProps(aEntryReader);
   auto screenshotDataURL = aEntryReader.ReadObject<nsCString>();
@@ -679,20 +755,23 @@ void ScreenshotPayload::StreamPayload(SpliceableJSONWriter& aWriter,
                                               mScreenshotDataURL.get());
 
   char hexWindowID[32];
-  SprintfLiteral(hexWindowID, "0x%" PRIXPTR, mWindowIdentifier);
-  aWriter.StringProperty("windowID", hexWindowID);
+  const int written =
+      SprintfLiteral(hexWindowID, "0x%" PRIXPTR, mWindowIdentifier);
+  MOZ_RELEASE_ASSERT(written > 0);
+  aWriter.StringProperty("windowID",
+                         Span<const char>(hexWindowID, size_t(written)));
   aWriter.DoubleProperty("windowWidth", mWindowSize.width);
   aWriter.DoubleProperty("windowHeight", mWindowSize.height);
 }
 
-BlocksRingBuffer::Length GCSliceMarkerPayload::TagAndSerializationBytes()
-    const {
+ProfileBufferEntryWriter::Length
+GCSliceMarkerPayload::TagAndSerializationBytes() const {
   return CommonPropsTagAndSerializationBytes() +
-         BlocksRingBuffer::SumBytes(mTimingJSON);
+         ProfileBufferEntryWriter::SumBytes(mTimingJSON);
 }
 
 void GCSliceMarkerPayload::SerializeTagAndPayload(
-    BlocksRingBuffer::EntryWriter& aEntryWriter) const {
+    ProfileBufferEntryWriter& aEntryWriter) const {
   static const DeserializerTag tag = TagForDeserializer(Deserialize);
   SerializeTagAndCommonProps(tag, aEntryWriter);
   aEntryWriter.WriteObject(mTimingJSON);
@@ -700,7 +779,7 @@ void GCSliceMarkerPayload::SerializeTagAndPayload(
 
 // static
 UniquePtr<ProfilerMarkerPayload> GCSliceMarkerPayload::Deserialize(
-    BlocksRingBuffer::EntryReader& aEntryReader) {
+    ProfileBufferEntryReader& aEntryReader) {
   ProfilerMarkerPayload::CommonProps props =
       DeserializeCommonProps(aEntryReader);
   auto timingJSON = aEntryReader.ReadObject<JS::UniqueChars>();
@@ -714,20 +793,47 @@ void GCSliceMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
   MOZ_ASSERT(mTimingJSON);
   StreamCommonProps("GCSlice", aWriter, aProcessStartTime, aUniqueStacks);
   if (mTimingJSON) {
-    aWriter.SplicedJSONProperty("timings", mTimingJSON.get());
+    aWriter.SplicedJSONProperty(MakeStringSpan("timings"),
+                                MakeStringSpan(mTimingJSON.get()));
   } else {
     aWriter.NullProperty("timings");
   }
 }
 
-BlocksRingBuffer::Length GCMajorMarkerPayload::TagAndSerializationBytes()
+ProfileBufferEntryWriter::Length BudgetMarkerPayload::TagAndSerializationBytes()
     const {
+  return CommonPropsTagAndSerializationBytes();
+}
+
+void BudgetMarkerPayload::SerializeTagAndPayload(
+    ProfileBufferEntryWriter& aEntryWriter) const {
+  static const DeserializerTag tag = TagForDeserializer(Deserialize);
+  SerializeTagAndCommonProps(tag, aEntryWriter);
+}
+
+// static
+UniquePtr<ProfilerMarkerPayload> BudgetMarkerPayload::Deserialize(
+    ProfileBufferEntryReader& aEntryReader) {
+  ProfilerMarkerPayload::CommonProps props =
+      DeserializeCommonProps(aEntryReader);
+  return UniquePtr<ProfilerMarkerPayload>(
+      new BudgetMarkerPayload(std::move(props)));
+}
+
+void BudgetMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
+                                        const TimeStamp& aProcessStartTime,
+                                        UniqueStacks& aUniqueStacks) const {
+  StreamCommonProps("Budget", aWriter, aProcessStartTime, aUniqueStacks);
+}
+
+ProfileBufferEntryWriter::Length
+GCMajorMarkerPayload::TagAndSerializationBytes() const {
   return CommonPropsTagAndSerializationBytes() +
-         BlocksRingBuffer::SumBytes(mTimingJSON);
+         ProfileBufferEntryWriter::SumBytes(mTimingJSON);
 }
 
 void GCMajorMarkerPayload::SerializeTagAndPayload(
-    BlocksRingBuffer::EntryWriter& aEntryWriter) const {
+    ProfileBufferEntryWriter& aEntryWriter) const {
   static const DeserializerTag tag = TagForDeserializer(Deserialize);
   SerializeTagAndCommonProps(tag, aEntryWriter);
   aEntryWriter.WriteObject(mTimingJSON);
@@ -735,7 +841,7 @@ void GCMajorMarkerPayload::SerializeTagAndPayload(
 
 // static
 UniquePtr<ProfilerMarkerPayload> GCMajorMarkerPayload::Deserialize(
-    BlocksRingBuffer::EntryReader& aEntryReader) {
+    ProfileBufferEntryReader& aEntryReader) {
   ProfilerMarkerPayload::CommonProps props =
       DeserializeCommonProps(aEntryReader);
   auto timingJSON = aEntryReader.ReadObject<JS::UniqueChars>();
@@ -749,20 +855,21 @@ void GCMajorMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
   MOZ_ASSERT(mTimingJSON);
   StreamCommonProps("GCMajor", aWriter, aProcessStartTime, aUniqueStacks);
   if (mTimingJSON) {
-    aWriter.SplicedJSONProperty("timings", mTimingJSON.get());
+    aWriter.SplicedJSONProperty(MakeStringSpan("timings"),
+                                MakeStringSpan(mTimingJSON.get()));
   } else {
     aWriter.NullProperty("timings");
   }
 }
 
-BlocksRingBuffer::Length GCMinorMarkerPayload::TagAndSerializationBytes()
-    const {
+ProfileBufferEntryWriter::Length
+GCMinorMarkerPayload::TagAndSerializationBytes() const {
   return CommonPropsTagAndSerializationBytes() +
-         BlocksRingBuffer::SumBytes(mTimingData);
+         ProfileBufferEntryWriter::SumBytes(mTimingData);
 }
 
 void GCMinorMarkerPayload::SerializeTagAndPayload(
-    BlocksRingBuffer::EntryWriter& aEntryWriter) const {
+    ProfileBufferEntryWriter& aEntryWriter) const {
   static const DeserializerTag tag = TagForDeserializer(Deserialize);
   SerializeTagAndCommonProps(tag, aEntryWriter);
   aEntryWriter.WriteObject(mTimingData);
@@ -770,7 +877,7 @@ void GCMinorMarkerPayload::SerializeTagAndPayload(
 
 // static
 UniquePtr<ProfilerMarkerPayload> GCMinorMarkerPayload::Deserialize(
-    BlocksRingBuffer::EntryReader& aEntryReader) {
+    ProfileBufferEntryReader& aEntryReader) {
   ProfilerMarkerPayload::CommonProps props =
       DeserializeCommonProps(aEntryReader);
   auto timingData = aEntryReader.ReadObject<JS::UniqueChars>();
@@ -784,25 +891,27 @@ void GCMinorMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
   MOZ_ASSERT(mTimingData);
   StreamCommonProps("GCMinor", aWriter, aProcessStartTime, aUniqueStacks);
   if (mTimingData) {
-    aWriter.SplicedJSONProperty("nursery", mTimingData.get());
+    aWriter.SplicedJSONProperty(MakeStringSpan("nursery"),
+                                MakeStringSpan(mTimingData.get()));
   } else {
     aWriter.NullProperty("nursery");
   }
 }
 
-BlocksRingBuffer::Length HangMarkerPayload::TagAndSerializationBytes() const {
+ProfileBufferEntryWriter::Length HangMarkerPayload::TagAndSerializationBytes()
+    const {
   return CommonPropsTagAndSerializationBytes();
 }
 
 void HangMarkerPayload::SerializeTagAndPayload(
-    BlocksRingBuffer::EntryWriter& aEntryWriter) const {
+    ProfileBufferEntryWriter& aEntryWriter) const {
   static const DeserializerTag tag = TagForDeserializer(Deserialize);
   SerializeTagAndCommonProps(tag, aEntryWriter);
 }
 
 // static
 UniquePtr<ProfilerMarkerPayload> HangMarkerPayload::Deserialize(
-    BlocksRingBuffer::EntryReader& aEntryReader) {
+    ProfileBufferEntryReader& aEntryReader) {
   ProfilerMarkerPayload::CommonProps props =
       DeserializeCommonProps(aEntryReader);
   return UniquePtr<ProfilerMarkerPayload>(
@@ -816,13 +925,14 @@ void HangMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
                     aUniqueStacks);
 }
 
-BlocksRingBuffer::Length StyleMarkerPayload::TagAndSerializationBytes() const {
+ProfileBufferEntryWriter::Length StyleMarkerPayload::TagAndSerializationBytes()
+    const {
   return CommonPropsTagAndSerializationBytes() +
-         BlocksRingBuffer::SumBytes(mStats);
+         ProfileBufferEntryWriter::SumBytes(mStats);
 }
 
 void StyleMarkerPayload::SerializeTagAndPayload(
-    BlocksRingBuffer::EntryWriter& aEntryWriter) const {
+    ProfileBufferEntryWriter& aEntryWriter) const {
   static const DeserializerTag tag = TagForDeserializer(Deserialize);
   SerializeTagAndCommonProps(tag, aEntryWriter);
   aEntryWriter.WriteObject(mStats);
@@ -830,7 +940,7 @@ void StyleMarkerPayload::SerializeTagAndPayload(
 
 // static
 UniquePtr<ProfilerMarkerPayload> StyleMarkerPayload::Deserialize(
-    BlocksRingBuffer::EntryReader& aEntryReader) {
+    ProfileBufferEntryReader& aEntryReader) {
   ProfilerMarkerPayload::CommonProps props =
       DeserializeCommonProps(aEntryReader);
   auto stats = aEntryReader.ReadObject<ServoTraversalStatistics>();
@@ -850,20 +960,20 @@ void StyleMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
   aWriter.IntProperty("stylesReused", mStats.mStylesReused);
 }
 
-BlocksRingBuffer::Length LongTaskMarkerPayload::TagAndSerializationBytes()
-    const {
+ProfileBufferEntryWriter::Length
+LongTaskMarkerPayload::TagAndSerializationBytes() const {
   return CommonPropsTagAndSerializationBytes();
 }
 
 void LongTaskMarkerPayload::SerializeTagAndPayload(
-    BlocksRingBuffer::EntryWriter& aEntryWriter) const {
+    ProfileBufferEntryWriter& aEntryWriter) const {
   static const DeserializerTag tag = TagForDeserializer(Deserialize);
   SerializeTagAndCommonProps(tag, aEntryWriter);
 }
 
 // static
 UniquePtr<ProfilerMarkerPayload> LongTaskMarkerPayload::Deserialize(
-    BlocksRingBuffer::EntryReader& aEntryReader) {
+    ProfileBufferEntryReader& aEntryReader) {
   ProfilerMarkerPayload::CommonProps props =
       DeserializeCommonProps(aEntryReader);
   return UniquePtr<ProfilerMarkerPayload>(
@@ -878,28 +988,29 @@ void LongTaskMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
   aWriter.StringProperty("category", "LongTask");
 }
 
-BlocksRingBuffer::Length JsAllocationMarkerPayload::TagAndSerializationBytes()
-    const {
+ProfileBufferEntryWriter::Length
+JsAllocationMarkerPayload::TagAndSerializationBytes() const {
   return CommonPropsTagAndSerializationBytes() +
-         BlocksRingBuffer::SumBytes(mTypeName, mClassName, mDescriptiveTypeName,
-                                    mCoarseType, mSize, mInNursery);
+         ProfileBufferEntryWriter::SumBytes(mTypeName, mClassName,
+                                            mDescriptiveTypeName, mCoarseType,
+                                            mSize, mInNursery);
 }
 
 void JsAllocationMarkerPayload::SerializeTagAndPayload(
-    BlocksRingBuffer::EntryWriter& aEntryWriter) const {
+    ProfileBufferEntryWriter& aEntryWriter) const {
   static const DeserializerTag tag = TagForDeserializer(Deserialize);
   SerializeTagAndCommonProps(tag, aEntryWriter);
   aEntryWriter.WriteObject(mTypeName);
   aEntryWriter.WriteObject(mClassName);
   aEntryWriter.WriteObject(mDescriptiveTypeName);
-  aEntryWriter.WriteObject(WrapBlocksRingBufferRawPointer(mCoarseType));
+  aEntryWriter.WriteObject(WrapProfileBufferRawPointer(mCoarseType));
   aEntryWriter.WriteObject(mSize);
   aEntryWriter.WriteObject(mInNursery);
 }
 
 // static
 UniquePtr<ProfilerMarkerPayload> JsAllocationMarkerPayload::Deserialize(
-    BlocksRingBuffer::EntryReader& aEntryReader) {
+    ProfileBufferEntryReader& aEntryReader) {
   ProfilerMarkerPayload::CommonProps props =
       DeserializeCommonProps(aEntryReader);
   auto typeName = aEntryReader.ReadObject<UniqueFreePtr<const char16_t>>();
@@ -920,30 +1031,28 @@ void JsAllocationMarkerPayload::StreamPayload(
   StreamCommonProps("JS allocation", aWriter, aProcessStartTime, aUniqueStacks);
 
   if (mClassName) {
-    aWriter.StringProperty("className", mClassName.get());
+    aWriter.StringProperty("className", MakeStringSpan(mClassName.get()));
   }
   if (mTypeName) {
-    aWriter.StringProperty("typeName",
-                           NS_ConvertUTF16toUTF8(mTypeName.get()).get());
+    aWriter.StringProperty("typeName", NS_ConvertUTF16toUTF8(mTypeName.get()));
   }
   if (mDescriptiveTypeName) {
-    aWriter.StringProperty(
-        "descriptiveTypeName",
-        NS_ConvertUTF16toUTF8(mDescriptiveTypeName.get()).get());
+    aWriter.StringProperty("descriptiveTypeName",
+                           NS_ConvertUTF16toUTF8(mDescriptiveTypeName.get()));
   }
-  aWriter.StringProperty("coarseType", mCoarseType);
+  aWriter.StringProperty("coarseType", MakeStringSpan(mCoarseType));
   aWriter.IntProperty("size", mSize);
   aWriter.BoolProperty("inNursery", mInNursery);
 }
 
-BlocksRingBuffer::Length
+ProfileBufferEntryWriter::Length
 NativeAllocationMarkerPayload::TagAndSerializationBytes() const {
   return CommonPropsTagAndSerializationBytes() +
-         BlocksRingBuffer::SumBytes(mSize, mThreadId, mMemoryAddress);
+         ProfileBufferEntryWriter::SumBytes(mSize, mThreadId, mMemoryAddress);
 }
 
 void NativeAllocationMarkerPayload::SerializeTagAndPayload(
-    BlocksRingBuffer::EntryWriter& aEntryWriter) const {
+    ProfileBufferEntryWriter& aEntryWriter) const {
   static const DeserializerTag tag = TagForDeserializer(Deserialize);
   SerializeTagAndCommonProps(tag, aEntryWriter);
   aEntryWriter.WriteObject(mSize);
@@ -953,7 +1062,7 @@ void NativeAllocationMarkerPayload::SerializeTagAndPayload(
 
 // static
 UniquePtr<ProfilerMarkerPayload> NativeAllocationMarkerPayload::Deserialize(
-    BlocksRingBuffer::EntryReader& aEntryReader) {
+    ProfileBufferEntryReader& aEntryReader) {
   ProfilerMarkerPayload::CommonProps props =
       DeserializeCommonProps(aEntryReader);
   auto size = aEntryReader.ReadObject<int64_t>();
@@ -973,14 +1082,16 @@ void NativeAllocationMarkerPayload::StreamPayload(
   aWriter.IntProperty("threadId", mThreadId);
 }
 
-BlocksRingBuffer::Length IPCMarkerPayload::TagAndSerializationBytes() const {
+ProfileBufferEntryWriter::Length IPCMarkerPayload::TagAndSerializationBytes()
+    const {
   return CommonPropsTagAndSerializationBytes() +
-         BlocksRingBuffer::SumBytes(mOtherPid, mMessageSeqno, mMessageType,
-                                    mSide, mDirection, mSync);
+         ProfileBufferEntryWriter::SumBytes(mOtherPid, mMessageSeqno,
+                                            mMessageType, mSide, mDirection,
+                                            mPhase, mSync);
 }
 
 void IPCMarkerPayload::SerializeTagAndPayload(
-    BlocksRingBuffer::EntryWriter& aEntryWriter) const {
+    ProfileBufferEntryWriter& aEntryWriter) const {
   static const DeserializerTag tag = TagForDeserializer(Deserialize);
   SerializeTagAndCommonProps(tag, aEntryWriter);
   aEntryWriter.WriteObject(mOtherPid);
@@ -988,23 +1099,53 @@ void IPCMarkerPayload::SerializeTagAndPayload(
   aEntryWriter.WriteObject(mMessageType);
   aEntryWriter.WriteObject(mSide);
   aEntryWriter.WriteObject(mDirection);
+  aEntryWriter.WriteObject(mPhase);
   aEntryWriter.WriteObject(mSync);
 }
 
 // static
 UniquePtr<ProfilerMarkerPayload> IPCMarkerPayload::Deserialize(
-    BlocksRingBuffer::EntryReader& aEntryReader) {
+    ProfileBufferEntryReader& aEntryReader) {
   ProfilerMarkerPayload::CommonProps props =
       DeserializeCommonProps(aEntryReader);
   auto otherPid = aEntryReader.ReadObject<int32_t>();
   auto messageSeqno = aEntryReader.ReadObject<int32_t>();
   auto messageType = aEntryReader.ReadObject<IPC::Message::msgid_t>();
-  auto mSide = aEntryReader.ReadObject<ipc::Side>();
-  auto mDirection = aEntryReader.ReadObject<ipc::MessageDirection>();
-  auto mSync = aEntryReader.ReadObject<bool>();
+  auto side = aEntryReader.ReadObject<ipc::Side>();
+  auto direction = aEntryReader.ReadObject<ipc::MessageDirection>();
+  auto phase = aEntryReader.ReadObject<ipc::MessagePhase>();
+  auto sync = aEntryReader.ReadObject<bool>();
   return UniquePtr<ProfilerMarkerPayload>(
       new IPCMarkerPayload(std::move(props), otherPid, messageSeqno,
-                           messageType, mSide, mDirection, mSync));
+                           messageType, side, direction, phase, sync));
+}
+
+static Span<const char> IPCSideToString(ipc::Side aSide) {
+  switch (aSide) {
+    case ipc::ParentSide:
+      return MakeStringSpan("parent");
+    case ipc::ChildSide:
+      return MakeStringSpan("child");
+    case ipc::UnknownSide:
+      return MakeStringSpan("unknown");
+    default:
+      MOZ_ASSERT_UNREACHABLE("Invalid IPC side");
+      return MakeStringSpan("<invalid IPC side>");
+  }
+}
+
+static Span<const char> IPCPhaseToString(ipc::MessagePhase aPhase) {
+  switch (aPhase) {
+    case ipc::MessagePhase::Endpoint:
+      return MakeStringSpan("endpoint");
+    case ipc::MessagePhase::TransferStart:
+      return MakeStringSpan("transferStart");
+    case ipc::MessagePhase::TransferEnd:
+      return MakeStringSpan("transferEnd");
+    default:
+      MOZ_ASSERT_UNREACHABLE("Invalid IPC phase");
+      return MakeStringSpan("<invalid IPC phase>");
+  }
 }
 
 void IPCMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
@@ -1012,13 +1153,20 @@ void IPCMarkerPayload::StreamPayload(SpliceableJSONWriter& aWriter,
                                      UniqueStacks& aUniqueStacks) const {
   using namespace mozilla::ipc;
   StreamCommonProps("IPC", aWriter, aProcessStartTime, aUniqueStacks);
+
+  // This payload still streams a startTime and endTime property because it made
+  // the migration to MarkerTiming on the front-end easier.
+  StreamStartEndTime(aWriter, aProcessStartTime);
+
   aWriter.IntProperty("otherPid", mOtherPid);
   aWriter.IntProperty("messageSeqno", mMessageSeqno);
-  aWriter.StringProperty("messageType",
-                         IPC::StringFromIPCMessageType(mMessageType));
-  aWriter.StringProperty("side", mSide == ParentSide ? "parent" : "child");
+  aWriter.StringProperty(
+      "messageType",
+      MakeStringSpan(IPC::StringFromIPCMessageType(mMessageType)));
+  aWriter.StringProperty("side", IPCSideToString(mSide));
   aWriter.StringProperty("direction", mDirection == MessageDirection::eSending
-                                          ? "sending"
-                                          : "receiving");
+                                          ? MakeStringSpan("sending")
+                                          : MakeStringSpan("receiving"));
+  aWriter.StringProperty("phase", IPCPhaseToString(mPhase));
   aWriter.BoolProperty("sync", mSync);
 }

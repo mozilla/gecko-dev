@@ -119,6 +119,7 @@
 #define IMAGE_JNG "image/x-jng"
 #define IMAGE_SVG_XML "image/svg+xml"
 #define IMAGE_WEBP "image/webp"
+#define IMAGE_AVIF "image/avif"
 
 #define MESSAGE_EXTERNAL_BODY "message/external-body"
 #define MESSAGE_NEWS "message/news"
@@ -169,6 +170,7 @@
 #define VIDEO_AVI "video/avi"
 #define VIDEO_MATROSKA "video/x-matroska"
 #define APPLICATION_OGG "application/ogg"
+#define APPLICATION_MPEGURL "application/vnd.apple.mpegurl"
 
 /* x-uuencode-apple-single. QuickMail made me do this. */
 #define UUENCODE_APPLE_SINGLE "x-uuencode-apple-single"

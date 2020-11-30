@@ -7,13 +7,11 @@
 // This is loaded into all XUL windows. Wrap in a block to prevent
 // leaking to window scope.
 {
-  const HTML_NS = "http://www.w3.org/1999/xhtml";
-
   class MozSearchTextbox extends MozXULElement {
     constructor() {
       super();
 
-      this.inputField = document.createElementNS(HTML_NS, "input");
+      this.inputField = document.createElement("input");
 
       const METHODS = [
         "focus",
@@ -46,6 +44,7 @@
         });
       }
 
+      this.attachShadow({ mode: "open" });
       this.addEventListener("input", this);
       this.addEventListener("keypress", this);
       this.addEventListener("mousedown", this);
@@ -53,25 +52,40 @@
 
     static get inheritedAttributes() {
       return {
-        ".textbox-input":
+        input:
           "value,maxlength,disabled,size,readonly,placeholder,tabindex,accesskey,mozactionhint,spellcheck",
-        ".textbox-search-icon":
-          "src=image,label=searchbuttonlabel,searchbutton,disabled",
+        ".textbox-search-icon": "label=searchbuttonlabel,disabled",
         ".textbox-search-clear": "disabled",
       };
     }
 
+    static get markup() {
+      // TODO: Bug 1534799 - Convert string to Fluent and use manual DOM construction
+      return `
+      <image class="textbox-search-clear" label="&searchTextBox.clear.label;"/>
+      `;
+    }
+
+    static get entities() {
+      return ["chrome://global/locale/textcontext.dtd"];
+    }
+
     connectedCallback() {
-      if (this.delayConnectedCallback()) {
+      if (this.delayConnectedCallback() || this.connected) {
         return;
       }
+      this.connected = true;
       this.textContent = "";
+
+      const stylesheet = document.createElement("link");
+      stylesheet.rel = "stylesheet";
+      stylesheet.href = "chrome://global/skin/search-textbox.css";
 
       const textboxSign = document.createXULElement("image");
       textboxSign.className = "textbox-search-sign";
+      textboxSign.part = "search-sign";
 
       const input = this.inputField;
-      input.className = "textbox-input";
       input.setAttribute("mozactionhint", "search");
       input.addEventListener("focus", this);
       input.addEventListener("blur", this);
@@ -82,13 +96,7 @@
       searchBtn.className = "textbox-search-icon";
       searchBtn.addEventListener("click", e => this._iconClick(e));
 
-      // TODO: Bug 1534799 - Convert string to Fluent and use manual DOM construction
-      let clearBtn = MozXULElement.parseXULToFragment(
-        `
-      <image class="textbox-search-clear" label="&searchTextBox.clear.label;"/>
-    `,
-        ["chrome://global/locale/textcontext.dtd"]
-      );
+      let clearBtn = this.constructor.fragment;
       clearBtn = this._searchClearIcon = clearBtn.querySelector(
         ".textbox-search-clear"
       );
@@ -97,7 +105,7 @@
       const deck = (this._searchIcons = document.createXULElement("deck"));
       deck.className = "textbox-search-icons";
       deck.append(searchBtn, clearBtn);
-      this.append(textboxSign, input, deck);
+      this.shadowRoot.append(stylesheet, textboxSign, input, deck);
 
       this._timer = null;
 
@@ -121,15 +129,11 @@
       if (val) {
         this.setAttribute("searchbutton", "true");
         this.removeAttribute("aria-autocomplete");
-        // Hack for the button to get the right accessible:
-        // If you update the 'onclick' event handler code within the
-        // _searchButtonIcon you also have to update the sha512 hash in the
-        // CSP of about:addons within extensions.xhtml.
-        this._searchButtonIcon.setAttribute("onclick", "true");
+        this._searchButtonIcon.setAttribute("role", "button");
       } else {
         this.removeAttribute("searchbutton");
-        this._searchButtonIcon.removeAttribute("onclick");
         this.setAttribute("aria-autocomplete", "list");
+        this._searchButtonIcon.setAttribute("role", "none");
       }
       return val;
     }

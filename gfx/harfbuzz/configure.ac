@@ -1,6 +1,6 @@
 AC_PREREQ([2.64])
 AC_INIT([HarfBuzz],
-        [2.6.4],
+        [2.6.8],
         [https://github.com/harfbuzz/harfbuzz/issues/new],
         [harfbuzz],
         [http://harfbuzz.org/])
@@ -23,7 +23,7 @@ AC_PROG_CC
 AC_PROG_CC_C99
 AM_PROG_CC_C_O
 AC_PROG_CXX
-AX_CXX_COMPILE_STDCXX(11,, optional)
+AX_CXX_COMPILE_STDCXX(11)
 AC_SYS_LARGEFILE
 PKG_PROG_PKG_CONFIG([0.20])
 AM_MISSING_PROG([RAGEL], [ragel])
@@ -77,8 +77,8 @@ GTK_DOC_CHECK([1.15],[--flavour no-tmpl])
 ])
 
 # Functions and headers
-AC_CHECK_FUNCS(atexit mprotect sysconf getpagesize mmap isatty newlocale strtod_l roundf)
-AC_CHECK_HEADERS(unistd.h sys/mman.h xlocale.h stdbool.h)
+AC_CHECK_FUNCS(atexit mprotect sysconf getpagesize mmap isatty roundf)
+AC_CHECK_HEADERS(unistd.h sys/mman.h stdbool.h)
 
 # Compiler flags
 AC_CANONICAL_HOST
@@ -512,6 +512,17 @@ echo
 
 AC_MSG_NOTICE([
 
+Autotools still is our main and recommended build system for
+building *nix package out of the library yet we encourage
+packagers to experiment with our brand new meson port and
+give us feedback as our effort to migrate and unify all
+the other build systems we have tools to meson.
+
+])
+
+
+AC_MSG_NOTICE([
+
 Build configuration:
 
 Unicode callbacks (you want at least one):
@@ -526,7 +537,7 @@ Tools used for command-line utilities:
 	Cairo:			${have_cairo}
 	Fontconfig:		${have_fontconfig}
 
-Additional shapers (the more the merrier):
+Additional shapers:
 	Graphite2:		${have_graphite2}
 
 Platform shapers (not normally needed):

@@ -23,8 +23,8 @@ class ChromiumCDMProxy : public CDMProxy {
 
   ChromiumCDMProxy(dom::MediaKeys* aKeys, const nsAString& aKeySystem,
                    GMPCrashHelper* aCrashHelper,
-                   bool aAllowDistinctiveIdentifier, bool aAllowPersistentState,
-                   nsISerialEventTarget* aMainThread);
+                   bool aAllowDistinctiveIdentifier,
+                   bool aAllowPersistentState);
 
   void Init(PromiseId aPromiseId, const nsAString& aOrigin,
             const nsAString& aTopLevelOrigin,
@@ -127,7 +127,7 @@ class ChromiumCDMProxy : public CDMProxy {
 
   Mutex mCDMMutex;
   RefPtr<gmp::ChromiumCDMParent> mCDM;
-  RefPtr<AbstractThread> mGMPThread;
+  nsCOMPtr<nsISerialEventTarget> mGMPThread;
   UniquePtr<ChromiumCDMCallbackProxy> mCallback;
 };
 

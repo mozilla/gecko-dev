@@ -360,7 +360,7 @@ impl Device {
         // TODO: should we assert no bytes were read?
 
         debug!("execute_host_command: >> {:?}", &command);
-        stream.write_all(encode_message(command)?.as_bytes())?;
+        stream.write_all(encode_message(&command)?.as_bytes())?;
         let bytes = read_response(&mut stream, has_output, has_length)?;
 
         let response = std::str::from_utf8(&bytes)?;
@@ -410,8 +410,11 @@ impl Device {
     }
 
     pub fn forward_port(&self, local: u16, remote: u16) -> Result<u16> {
-        let command = format!("forward:tcp:{};tcp:{}", local, remote);
-        let response = self.host.execute_host_command(&command, true, false)?;
+        let command = format!(
+            "host-serial:{}:forward:tcp:{};tcp:{}",
+            self.serial, local, remote
+        );
+        let response = self.host.execute_command(&command, true, false)?;
 
         if local == 0 {
             Ok(response.parse::<u16>()?)
@@ -422,14 +425,11 @@ impl Device {
 
     pub fn kill_forward_port(&self, local: u16) -> Result<()> {
         let command = format!("killforward:tcp:{}", local);
-        self.host
-            .execute_host_command(&command, true, false)
-            .and(Ok(()))
+        self.execute_host_command(&command, true, false).and(Ok(()))
     }
 
     pub fn kill_forward_all_ports(&self) -> Result<()> {
-        self.host
-            .execute_host_command(&"killforward-all".to_owned(), false, false)
+        self.execute_host_command(&"killforward-all".to_owned(), false, false)
             .and(Ok(()))
     }
 
@@ -455,6 +455,11 @@ impl Device {
             .and(Ok(()))
     }
 
+    pub fn path_exists(&self, path: &Path) -> Result<bool> {
+        self.execute_host_shell_command(format!("ls {}", path.display()).as_str())
+            .map(|path| !path.contains("No such file or directory"))
+    }
+
     pub fn push(&self, buffer: &mut dyn Read, dest: &Path, mode: u32) -> Result<()> {
         // Implement the ADB protocol to send a file to the device.
         // The protocol consists of the following steps:
@@ -463,6 +468,43 @@ impl Device {
         // * Send "SEND" command with name and mode of the file
         // * Send "DATA" command one or more times for the file content
         // * Send "DONE" command to indicate end of file transfer
+
+        // If the destination directory does not exist, adb will
+        // create it and any necessary ancestors however it will not
+        // set the directory permissions to 0o777.  In addition,
+        // Android 9 (P) has a bug in its push implementation which
+        // will cause a push which creates directories to fail with
+        // the error `secure_mkdirs failed: Operation not
+        // permitted`. We can work around this by creating the
+        // destination directories prior to the push.  Collect the
+        // ancestors of the destination directory which do not yet
+        // exist so we can create them and adjust their permissions
+        // prior to performing the push.
+        let mut current = dest.parent();
+        let mut leaf: Option<&Path> = None;
+        let mut root: Option<&Path> = None;
+        loop {
+            match current {
+                Some(p) => {
+                    if self.path_exists(p)? {
+                        break;
+                    }
+                    if leaf.is_none() {
+                        leaf = Some(p);
+                    }
+                    root = Some(p);
+                    current = p.parent();
+                }
+                None => break,
+            }
+        }
+        if let Some(p) = leaf {
+            self.execute_host_shell_command(format!("mkdir -p {}", p.display()).as_str())?;
+        }
+        if let Some(p) = root {
+            self.execute_host_shell_command(format!("chmod -R 777 {}", p.display()).as_str())?;
+        }
+
         let mut stream = self.host.connect()?;
 
         let message = encode_message(&format!("host:transport:{}", self.serial))?;

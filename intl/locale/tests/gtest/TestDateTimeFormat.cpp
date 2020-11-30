@@ -32,17 +32,18 @@ TEST(DateTimeFormat, FormatPRExplodedTime)
   PR_ExplodeTime(prTime, PR_GMTParameters, &prExplodedTime);
 
   mozilla::DateTimeFormat::mLocale = new nsCString("en-US");
+  mozilla::DateTimeFormat::DeleteCache();
 
   nsAutoString formattedTime;
   nsresult rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatLong, kTimeFormatSeconds, &prExplodedTime, formattedTime);
+      kDateFormatLong, kTimeFormatLong, &prExplodedTime, formattedTime);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
   ASSERT_STREQ("January 1, 1970, 12:00:00 AM",
                nt(NS_ConvertUTF16toUTF8(formattedTime)).get());
 
   prExplodedTime = {0, 0, 19, 0, 1, 0, 1970, 4, 0, {(19 * 60), 0}};
   rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatLong, kTimeFormatSeconds, &prExplodedTime, formattedTime);
+      kDateFormatLong, kTimeFormatLong, &prExplodedTime, formattedTime);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
   ASSERT_STREQ("January 1, 1970, 12:19:00 AM",
                nt(NS_ConvertUTF16toUTF8(formattedTime)).get());
@@ -50,7 +51,7 @@ TEST(DateTimeFormat, FormatPRExplodedTime)
   prExplodedTime = {0, 0,    0, 7, 1,
                     0, 1970, 4, 0, {(6 * 60 * 60), (1 * 60 * 60)}};
   rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatLong, kTimeFormatSeconds, &prExplodedTime, formattedTime);
+      kDateFormatLong, kTimeFormatLong, &prExplodedTime, formattedTime);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
   ASSERT_STREQ("January 1, 1970, 7:00:00 AM",
                nt(NS_ConvertUTF16toUTF8(formattedTime)).get());
@@ -59,21 +60,21 @@ TEST(DateTimeFormat, FormatPRExplodedTime)
       0, 0,    29, 11, 1,
       0, 1970, 4,  0,  {(10 * 60 * 60) + (29 * 60), (1 * 60 * 60)}};
   rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatLong, kTimeFormatSeconds, &prExplodedTime, formattedTime);
+      kDateFormatLong, kTimeFormatLong, &prExplodedTime, formattedTime);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
   ASSERT_STREQ("January 1, 1970, 11:29:00 AM",
                nt(NS_ConvertUTF16toUTF8(formattedTime)).get());
 
   prExplodedTime = {0, 0, 37, 23, 31, 11, 1969, 3, 364, {-(23 * 60), 0}};
   rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatLong, kTimeFormatSeconds, &prExplodedTime, formattedTime);
+      kDateFormatLong, kTimeFormatLong, &prExplodedTime, formattedTime);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
   ASSERT_STREQ("December 31, 1969, 11:37:00 PM",
                nt(NS_ConvertUTF16toUTF8(formattedTime)).get());
 
   prExplodedTime = {0, 0, 0, 17, 31, 11, 1969, 3, 364, {-(7 * 60 * 60), 0}};
   rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatLong, kTimeFormatSeconds, &prExplodedTime, formattedTime);
+      kDateFormatLong, kTimeFormatLong, &prExplodedTime, formattedTime);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
   ASSERT_STREQ("December 31, 1969, 5:00:00 PM",
                nt(NS_ConvertUTF16toUTF8(formattedTime)).get());
@@ -82,7 +83,7 @@ TEST(DateTimeFormat, FormatPRExplodedTime)
       0,  0,    47, 14,  31,
       11, 1969, 3,  364, {-((10 * 60 * 60) + (13 * 60)), (1 * 60 * 60)}};
   rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatLong, kTimeFormatSeconds, &prExplodedTime, formattedTime);
+      kDateFormatLong, kTimeFormatLong, &prExplodedTime, formattedTime);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
   ASSERT_STREQ("December 31, 1969, 2:47:00 PM",
                nt(NS_ConvertUTF16toUTF8(formattedTime)).get());
@@ -95,52 +96,31 @@ TEST(DateTimeFormat, DateFormatSelectors)
   PR_ExplodeTime(prTime, PR_GMTParameters, &prExplodedTime);
 
   mozilla::DateTimeFormat::mLocale = new nsCString("en-US");
+  mozilla::DateTimeFormat::DeleteCache();
 
   nsAutoString formattedTime;
-  nsresult rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatYearMonth, kTimeFormatNone, &prExplodedTime, formattedTime);
+  nsresult rv = mozilla::DateTimeFormat::FormatDateTime(
+      &prExplodedTime, DateTimeFormat::Skeleton::yyyyMM, formattedTime);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
   ASSERT_STREQ("01/1970", NS_ConvertUTF16toUTF8(formattedTime).get());
 
-  rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatYearMonthLong, kTimeFormatNone, &prExplodedTime,
-      formattedTime);
+  rv = mozilla::DateTimeFormat::FormatDateTime(
+      &prExplodedTime, DateTimeFormat::Skeleton::yyyyMMMM, formattedTime);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
   ASSERT_STREQ("January 1970", NS_ConvertUTF16toUTF8(formattedTime).get());
 
-  rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatMonthLong, kTimeFormatNone, &prExplodedTime, formattedTime);
+  rv = mozilla::DateTimeFormat::GetCalendarSymbol(
+      mozilla::DateTimeFormat::Field::Month,
+      mozilla::DateTimeFormat::Style::Wide, &prExplodedTime, formattedTime);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
   ASSERT_STREQ("January", NS_ConvertUTF16toUTF8(formattedTime).get());
 
-  rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatYearMonth, kTimeFormatNoSeconds, &prExplodedTime,
+  rv = mozilla::DateTimeFormat::GetCalendarSymbol(
+      mozilla::DateTimeFormat::Field::Weekday,
+      mozilla::DateTimeFormat::Style::Abbreviated, &prExplodedTime,
       formattedTime);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
-  ASSERT_STREQ("01/1970, 12:00 AM",
-               nt(NS_ConvertUTF16toUTF8(formattedTime)).get());
-
-  rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatYearMonth, kTimeFormatSeconds, &prExplodedTime, formattedTime);
-  ASSERT_TRUE(NS_SUCCEEDED(rv));
-  ASSERT_STREQ("01/1970, 12:00:00 AM",
-               nt(NS_ConvertUTF16toUTF8(formattedTime)).get());
-
-  rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatWeekday, kTimeFormatNone, &prExplodedTime, formattedTime);
-  ASSERT_TRUE(NS_SUCCEEDED(rv));
   ASSERT_STREQ("Thu", NS_ConvertUTF16toUTF8(formattedTime).get());
-
-  rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatWeekday, kTimeFormatNoSeconds, &prExplodedTime, formattedTime);
-  ASSERT_TRUE(NS_SUCCEEDED(rv));
-  ASSERT_STREQ("Thu, 12:00 AM", nt(NS_ConvertUTF16toUTF8(formattedTime)).get());
-
-  rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatWeekday, kTimeFormatSeconds, &prExplodedTime, formattedTime);
-  ASSERT_TRUE(NS_SUCCEEDED(rv));
-  ASSERT_STREQ("Thu, 12:00:00 AM",
-               nt(NS_ConvertUTF16toUTF8(formattedTime)).get());
 }
 
 // Normalise time.
@@ -167,17 +147,18 @@ TEST(DateTimeFormat, FormatPRExplodedTimeForeign)
   PR_ExplodeTime(prTime, PR_GMTParameters, &prExplodedTime);
 
   mozilla::DateTimeFormat::mLocale = new nsCString("de-DE");
+  mozilla::DateTimeFormat::DeleteCache();
 
   nsAutoString formattedTime;
   nsresult rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatLong, kTimeFormatSeconds, &prExplodedTime, formattedTime);
+      kDateFormatLong, kTimeFormatLong, &prExplodedTime, formattedTime);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
   ASSERT_STREQ("1. Januar 1970, 00:00:00",
                ntd(NS_ConvertUTF16toUTF8(formattedTime)).get());
 
   prExplodedTime = {0, 0, 19, 0, 1, 0, 1970, 4, 0, {(19 * 60), 0}};
   rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatLong, kTimeFormatSeconds, &prExplodedTime, formattedTime);
+      kDateFormatLong, kTimeFormatLong, &prExplodedTime, formattedTime);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
   ASSERT_STREQ("1. Januar 1970, 00:19:00",
                ntd(NS_ConvertUTF16toUTF8(formattedTime)).get());
@@ -185,7 +166,7 @@ TEST(DateTimeFormat, FormatPRExplodedTimeForeign)
   prExplodedTime = {0, 0,    0, 7, 1,
                     0, 1970, 4, 0, {(6 * 60 * 60), (1 * 60 * 60)}};
   rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatLong, kTimeFormatSeconds, &prExplodedTime, formattedTime);
+      kDateFormatLong, kTimeFormatLong, &prExplodedTime, formattedTime);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
   ASSERT_STREQ("1. Januar 1970, 07:00:00",
                ntd(NS_ConvertUTF16toUTF8(formattedTime)).get());
@@ -194,21 +175,21 @@ TEST(DateTimeFormat, FormatPRExplodedTimeForeign)
       0, 0,    29, 11, 1,
       0, 1970, 4,  0,  {(10 * 60 * 60) + (29 * 60), (1 * 60 * 60)}};
   rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatLong, kTimeFormatSeconds, &prExplodedTime, formattedTime);
+      kDateFormatLong, kTimeFormatLong, &prExplodedTime, formattedTime);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
   ASSERT_STREQ("1. Januar 1970, 11:29:00",
                ntd(NS_ConvertUTF16toUTF8(formattedTime)).get());
 
   prExplodedTime = {0, 0, 37, 23, 31, 11, 1969, 3, 364, {-(23 * 60), 0}};
   rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatLong, kTimeFormatSeconds, &prExplodedTime, formattedTime);
+      kDateFormatLong, kTimeFormatLong, &prExplodedTime, formattedTime);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
   ASSERT_STREQ("31. Dezember 1969, 23:37:00",
                ntd(NS_ConvertUTF16toUTF8(formattedTime)).get());
 
   prExplodedTime = {0, 0, 0, 17, 31, 11, 1969, 3, 364, {-(7 * 60 * 60), 0}};
   rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatLong, kTimeFormatSeconds, &prExplodedTime, formattedTime);
+      kDateFormatLong, kTimeFormatLong, &prExplodedTime, formattedTime);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
   ASSERT_STREQ("31. Dezember 1969, 17:00:00",
                ntd(NS_ConvertUTF16toUTF8(formattedTime)).get());
@@ -217,7 +198,7 @@ TEST(DateTimeFormat, FormatPRExplodedTimeForeign)
       0,  0,    47, 14,  31,
       11, 1969, 3,  364, {-((10 * 60 * 60) + (13 * 60)), (1 * 60 * 60)}};
   rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatLong, kTimeFormatSeconds, &prExplodedTime, formattedTime);
+      kDateFormatLong, kTimeFormatLong, &prExplodedTime, formattedTime);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
   ASSERT_STREQ("31. Dezember 1969, 14:47:00",
                ntd(NS_ConvertUTF16toUTF8(formattedTime)).get());
@@ -230,51 +211,31 @@ TEST(DateTimeFormat, DateFormatSelectorsForeign)
   PR_ExplodeTime(prTime, PR_GMTParameters, &prExplodedTime);
 
   mozilla::DateTimeFormat::mLocale = new nsCString("de-DE");
+  mozilla::DateTimeFormat::DeleteCache();
 
   nsAutoString formattedTime;
-  nsresult rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatYearMonth, kTimeFormatNone, &prExplodedTime, formattedTime);
+  nsresult rv = mozilla::DateTimeFormat::FormatDateTime(
+      &prExplodedTime, DateTimeFormat::Skeleton::yyyyMM, formattedTime);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
   ASSERT_STREQ("01.1970", NS_ConvertUTF16toUTF8(formattedTime).get());
 
-  rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatYearMonthLong, kTimeFormatNone, &prExplodedTime,
-      formattedTime);
+  rv = mozilla::DateTimeFormat::FormatDateTime(
+      &prExplodedTime, DateTimeFormat::Skeleton::yyyyMMMM, formattedTime);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
   ASSERT_STREQ("Januar 1970", NS_ConvertUTF16toUTF8(formattedTime).get());
 
-  rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatMonthLong, kTimeFormatNone, &prExplodedTime, formattedTime);
+  rv = mozilla::DateTimeFormat::GetCalendarSymbol(
+      mozilla::DateTimeFormat::Field::Month,
+      mozilla::DateTimeFormat::Style::Wide, &prExplodedTime, formattedTime);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
   ASSERT_STREQ("Januar", NS_ConvertUTF16toUTF8(formattedTime).get());
 
-  rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatYearMonth, kTimeFormatNoSeconds, &prExplodedTime,
+  rv = mozilla::DateTimeFormat::GetCalendarSymbol(
+      mozilla::DateTimeFormat::Field::Weekday,
+      mozilla::DateTimeFormat::Style::Abbreviated, &prExplodedTime,
       formattedTime);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
-  ASSERT_STREQ("01.1970, 00:00",
-               ntd(NS_ConvertUTF16toUTF8(formattedTime)).get());
-
-  rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatYearMonth, kTimeFormatSeconds, &prExplodedTime, formattedTime);
-  ASSERT_TRUE(NS_SUCCEEDED(rv));
-  ASSERT_STREQ("01.1970, 00:00:00",
-               ntd(NS_ConvertUTF16toUTF8(formattedTime)).get());
-
-  rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatWeekday, kTimeFormatNone, &prExplodedTime, formattedTime);
-  ASSERT_TRUE(NS_SUCCEEDED(rv));
   ASSERT_STREQ("Do", NS_ConvertUTF16toUTF8(formattedTime).get());
-
-  rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatWeekday, kTimeFormatNoSeconds, &prExplodedTime, formattedTime);
-  ASSERT_TRUE(NS_SUCCEEDED(rv));
-  ASSERT_STREQ("Do, 00:00", ntd(NS_ConvertUTF16toUTF8(formattedTime)).get());
-
-  rv = mozilla::DateTimeFormat::FormatPRExplodedTime(
-      kDateFormatWeekday, kTimeFormatSeconds, &prExplodedTime, formattedTime);
-  ASSERT_TRUE(NS_SUCCEEDED(rv));
-  ASSERT_STREQ("Do, 00:00:00", ntd(NS_ConvertUTF16toUTF8(formattedTime)).get());
 }
 
 }  // namespace mozilla

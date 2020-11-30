@@ -63,7 +63,8 @@ class nsLocalFile final : public nsILocalFileWin {
 
   bool mDirty;  // cached information can only be used when this is false
   bool mResolveDirty;
-  bool mFollowSymlinks;  // should we follow symlinks when working on this file
+
+  bool mUseDOSDevicePathSyntax;
 
   // this string will always be in native format!
   nsString mWorkingPath;
@@ -84,9 +85,12 @@ class nsLocalFile final : public nsILocalFileWin {
     mShortWorkingPath.Truncate();
   }
 
+  nsresult LookupExtensionIn(const char* const* aExtensionsArray,
+                             size_t aArrayLength, bool* aResult);
+
   nsresult ResolveAndStat();
   nsresult Resolve();
-  nsresult ResolveShortcut();
+  nsresult ResolveSymlink();
 
   void EnsureShortPath();
 

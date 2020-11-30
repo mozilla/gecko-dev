@@ -3,28 +3,27 @@
 mod abi;
 mod binemit;
 mod enc_tables;
-#[cfg(feature = "unwind")]
-mod fde;
 mod registers;
 pub mod settings;
 #[cfg(feature = "unwind")]
-mod unwind;
+pub mod unwind;
 
 use super::super::settings as shared_settings;
 #[cfg(feature = "testing_hooks")]
 use crate::binemit::CodeSink;
 use crate::binemit::{emit_function, MemoryCodeSink};
-#[cfg(feature = "unwind")]
-use crate::binemit::{FrameUnwindKind, FrameUnwindSink};
 use crate::ir;
 use crate::isa::enc_tables::{self as shared_enc_tables, lookup_enclist, Encodings};
 use crate::isa::Builder as IsaBuilder;
+#[cfg(feature = "unwind")]
+use crate::isa::{unwind::systemv::RegisterMappingError, RegUnit};
 use crate::isa::{EncInfo, RegClass, RegInfo, TargetIsa};
 use crate::regalloc;
 use crate::result::CodegenResult;
 use crate::timing;
 use alloc::borrow::Cow;
 use alloc::boxed::Box;
+use core::any::Any;
 use core::fmt;
 use target_lexicon::{PointerWidth, Triple};
 
@@ -55,9 +54,12 @@ fn isa_constructor(
         PointerWidth::U32 => &enc_tables::LEVEL1_I32[..],
         PointerWidth::U64 => &enc_tables::LEVEL1_I64[..],
     };
+
+    let isa_flags = settings::Flags::new(&shared_flags, builder);
+
     Box::new(Isa {
         triple,
-        isa_flags: settings::Flags::new(&shared_flags, builder),
+        isa_flags,
         shared_flags,
         cpumode: level1,
     })
@@ -86,6 +88,11 @@ impl TargetIsa for Isa {
 
     fn register_info(&self) -> RegInfo {
         registers::INFO.clone()
+    }
+
+    #[cfg(feature = "unwind")]
+    fn map_dwarf_register(&self, reg: RegUnit) -> Result<u16, RegisterMappingError> {
+        unwind::systemv::map_reg(self, reg).map(|r| r.0)
     }
 
     fn encoding_info(&self) -> EncInfo {
@@ -158,17 +165,21 @@ impl TargetIsa for Isa {
         ir::condcodes::IntCC::UnsignedLessThan
     }
 
-    /// Emit unwind information for the given function.
-    ///
-    /// Only some calling conventions (e.g. Windows fastcall) will have unwind information.
     #[cfg(feature = "unwind")]
-    fn emit_unwind_info(
+    fn create_unwind_info(
         &self,
         func: &ir::Function,
-        kind: FrameUnwindKind,
-        sink: &mut dyn FrameUnwindSink,
-    ) {
-        abi::emit_unwind_info(func, self, kind, sink);
+    ) -> CodegenResult<Option<super::unwind::UnwindInfo>> {
+        abi::create_unwind_info(func, self)
+    }
+
+    #[cfg(feature = "unwind")]
+    fn create_systemv_cie(&self) -> Option<gimli::write::CommonInformationEntry> {
+        Some(unwind::systemv::create_cie())
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self as &dyn Any
     }
 }
 

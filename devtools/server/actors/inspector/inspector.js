@@ -82,26 +82,19 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   this,
-  "HighlighterActor",
+  [
+    "HighlighterActor",
+    "CustomHighlighterActor",
+    "isTypeRegistered",
+    "HighlighterEnvironment",
+  ],
   "devtools/server/actors/highlighters",
   true
 );
 loader.lazyRequireGetter(
   this,
-  "CustomHighlighterActor",
-  "devtools/server/actors/highlighters",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "isTypeRegistered",
-  "devtools/server/actors/highlighters",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "HighlighterEnvironment",
-  "devtools/server/actors/highlighters",
+  "CompatibilityActor",
+  "devtools/server/actors/compatibility/compatibility",
   true
 );
 
@@ -126,6 +119,7 @@ exports.InspectorActor = protocol.ActorClassWithSpec(inspectorSpec, {
     protocol.Actor.prototype.destroy.call(this);
     this.destroyEyeDropper();
 
+    this._compatibility = null;
     this._highlighterPromise = null;
     this._pageStylePromise = null;
     this._walkerPromise = null;
@@ -181,6 +175,16 @@ exports.InspectorActor = protocol.ActorClassWithSpec(inspectorSpec, {
     return this._pageStylePromise;
   },
 
+  getCompatibility: function() {
+    if (this._compatibility) {
+      return this._compatibility;
+    }
+
+    this._compatibility = CompatibilityActor(this);
+    this.manage(this._compatibility);
+    return this._compatibility;
+  },
+
   /**
    * The most used highlighter actor is the HighlighterActor which can be
    * conveniently retrieved by this method.
@@ -192,21 +196,17 @@ exports.InspectorActor = protocol.ActorClassWithSpec(inspectorSpec, {
    *
    * @param {Boolean} autohide Optionally autohide the highlighter after an
    * element has been picked
-   * @param {Boolean} useNewBoxModelHighlighter Whether to use the new box model
-   * highlighter that has split renderer and observer parts.
    * @return {HighlighterActor}
    */
-  getHighlighter: function(autohide, useNewBoxModelHighlighter) {
+  getHighlighter: function(autohide) {
     if (this._highlighterPromise) {
       return this._highlighterPromise;
     }
 
-    this._highlighterPromise = this.getWalker().then(walker => {
-      const highlighter = HighlighterActor(
-        this,
-        autohide,
-        useNewBoxModelHighlighter
-      );
+    this._highlighterPromise = this.getWalker().then(async walker => {
+      const highlighter = HighlighterActor(this, autohide);
+      await highlighter.initializeInstance();
+      await highlighter.instance.isReady;
       this.manage(highlighter);
       return highlighter;
     });
@@ -224,9 +224,14 @@ exports.InspectorActor = protocol.ActorClassWithSpec(inspectorSpec, {
    * @return {Highlighter} The highlighter actor instance or null if the
    * typeName passed doesn't match any available highlighter
    */
-  getHighlighterByType: function(typeName) {
+  getHighlighterByType: async function(typeName) {
     if (isTypeRegistered(typeName)) {
-      return CustomHighlighterActor(this, typeName);
+      const highlighterActor = CustomHighlighterActor(this, typeName);
+      if (highlighterActor.instance.isReady) {
+        await highlighterActor.instance.isReady;
+      }
+
+      return highlighterActor;
     }
     return null;
   },
@@ -285,6 +290,7 @@ exports.InspectorActor = protocol.ActorClassWithSpec(inspectorSpec, {
     this._highlighterEnv = new HighlighterEnvironment();
     this._highlighterEnv.initFromTargetActor(this.targetActor);
     this._eyeDropper = new EyeDropper(this._highlighterEnv);
+    return this._eyeDropper.isReady;
   },
 
   /**
@@ -306,8 +312,8 @@ exports.InspectorActor = protocol.ActorClassWithSpec(inspectorSpec, {
    * cancels the picker.
    * @param {Object} options
    */
-  pickColorFromPage: function(options) {
-    this.createEyeDropper();
+  pickColorFromPage: async function(options) {
+    await this.createEyeDropper();
     this._eyeDropper.show(this.window.document.documentElement, options);
     this._eyeDropper.once("selected", this._onColorPicked);
     this._eyeDropper.once("canceled", this._onColorPickCanceled);

@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 from marionette_driver import By
 from marionette_driver.errors import NoSuchWindowException
@@ -27,6 +27,7 @@ class TestNoSuchWindowContent(WindowManagerMixin, MarionetteTestCase):
 
         # When closing a browser window both handles are not available
         for context in ("chrome", "content"):
+            print("Testing handles with context {}".format(context))
             with self.marionette.using_context(context):
                 with self.assertRaises(NoSuchWindowException):
                     self.marionette.current_chrome_window_handle
@@ -43,7 +44,7 @@ class TestNoSuchWindowContent(WindowManagerMixin, MarionetteTestCase):
         self.marionette.switch_to_window(new_window)
 
         with self.marionette.using_context("chrome"):
-            self.marionette.switch_to_frame("iframe")
+            self.marionette.switch_to_frame(0)
         self.marionette.close_chrome_window()
 
         with self.assertRaises(NoSuchWindowException):

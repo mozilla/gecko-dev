@@ -53,6 +53,7 @@ type Props = {
   getFrameTitle?: string => string,
   disableContextMenu: boolean,
   panel: "debugger" | "webconsole",
+  restart: typeof actions.restart,
 };
 
 type State = {
@@ -110,6 +111,7 @@ export default class Group extends Component<Props, State> {
       getFrameTitle,
       disableContextMenu,
       panel,
+      restart,
     } = this.props;
 
     const { expanded } = this.state;
@@ -141,6 +143,7 @@ export default class Group extends Component<Props, State> {
               getFrameTitle={getFrameTitle}
               disableContextMenu={disableContextMenu}
               panel={panel}
+              restart={restart}
             />
           );
         }, [])}
@@ -151,10 +154,10 @@ export default class Group extends Component<Props, State> {
   renderDescription() {
     const { l10n } = this.context;
     const { group } = this.props;
+    const { expanded } = this.state;
 
     const frame = group[0];
-    const expanded = this.state.expanded;
-    const l10NEntry = this.state.expanded
+    const l10NEntry = expanded
       ? "callStack.group.collapseTooltip"
       : "callStack.group.expandTooltip";
     const title = l10n.getFormatStr(l10NEntry, frame.library);

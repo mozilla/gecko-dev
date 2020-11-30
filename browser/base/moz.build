@@ -20,6 +20,7 @@ MOCHITEST_CHROME_MANIFESTS += [
 BROWSER_CHROME_MANIFESTS += [
     'content/test/about/browser.ini',
     'content/test/alerts/browser.ini',
+    'content/test/backforward/browser.ini',
     'content/test/caps/browser.ini',
     'content/test/captivePortal/browser.ini',
     'content/test/contextMenu/browser.ini',
@@ -34,31 +35,37 @@ BROWSER_CHROME_MANIFESTS += [
     'content/test/outOfProcess/browser.ini',
     'content/test/pageActions/browser.ini',
     'content/test/pageinfo/browser.ini',
+    'content/test/pageStyle/browser.ini',
     'content/test/performance/browser.ini',
     'content/test/performance/hidpi/browser.ini',
     'content/test/performance/io/browser.ini',
     'content/test/performance/lowdpi/browser.ini',
     'content/test/permissions/browser.ini',
-    'content/test/plugins/browser-rs-blocklist.ini',
     'content/test/plugins/browser.ini',
     'content/test/popupNotifications/browser.ini',
     'content/test/popups/browser.ini',
+    'content/test/protectionsUI/browser.ini',
     'content/test/referrer/browser.ini',
     'content/test/sanitize/browser.ini',
     'content/test/sidebar/browser.ini',
     'content/test/siteIdentity/browser.ini',
-    'content/test/siteProtections/browser.ini',
     'content/test/static/browser.ini',
     'content/test/statuspanel/browser.ini',
     'content/test/sync/browser.ini',
     'content/test/tabcrashed/browser.ini',
+    'content/test/tabdialogs/browser.ini',
+    'content/test/tabMediaIndicator/browser.ini',
     'content/test/tabPrompts/browser.ini',
     'content/test/tabs/browser.ini',
     'content/test/touch/browser.ini',
-    'content/test/trackingUI/browser.ini',
     'content/test/webextensions/browser.ini',
     'content/test/webrtc/browser.ini',
+    'content/test/webrtc/legacyIndicator/browser.ini',
     'content/test/zoom/browser.ini',
+]
+
+PERFTESTS_MANIFESTS += [
+    'content/test/perftest.ini'
 ]
 
 DEFINES['MOZ_APP_VERSION'] = CONFIG['MOZ_APP_VERSION']
@@ -73,3 +80,7 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] in ('windows', 'gtk'):
     DEFINES['MENUBAR_CAN_AUTOHIDE'] = 1
 
 JAR_MANIFESTS += ['jar.mn']
+
+GeneratedFile('content/aboutNetErrorCodes.js', script='gen_aboutneterror_codes.py',
+              inputs=['/browser/locales/en-US/browser/nsserrors.ftl'])
+

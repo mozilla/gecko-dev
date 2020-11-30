@@ -1169,6 +1169,7 @@ class nsCycleCollector : public nsIMemoryReporter {
   bool Collect(ccType aCCType, SliceBudget& aBudget,
                nsICycleCollectorListener* aManualListener,
                bool aPreferShorterSlices = false);
+  MOZ_CAN_RUN_SCRIPT
   void Shutdown(bool aDoCollect);
 
   bool IsIdle() const { return mIncrementalPhase == IdlePhase; }
@@ -1183,6 +1184,7 @@ class nsCycleCollector : public nsIMemoryReporter {
 
  private:
   void CheckThreadSafety();
+  MOZ_CAN_RUN_SCRIPT
   void ShutdownCollect();
 
   void FixGrayBits(bool aForceGC, TimeLog& aTimeLog);
@@ -1219,9 +1221,9 @@ class GraphWalker {
  private:
   Visitor mVisitor;
 
-  void DoWalk(nsDeque& aQueue);
+  void DoWalk(nsDeque<PtrInfo>& aQueue);
 
-  void CheckedPush(nsDeque& aQueue, PtrInfo* aPi) {
+  void CheckedPush(nsDeque<PtrInfo>& aQueue, PtrInfo* aPi) {
     if (!aPi) {
       MOZ_CRASH();
     }
@@ -1278,14 +1280,14 @@ static void ToParticipant(void* aParti, nsCycleCollectionParticipant** aCp) {
 
 template <class Visitor>
 MOZ_NEVER_INLINE void GraphWalker<Visitor>::Walk(PtrInfo* aPi) {
-  nsDeque queue;
+  nsDeque<PtrInfo> queue;
   CheckedPush(queue, aPi);
   DoWalk(queue);
 }
 
 template <class Visitor>
 MOZ_NEVER_INLINE void GraphWalker<Visitor>::WalkFromRoots(CCGraph& aGraph) {
-  nsDeque queue;
+  nsDeque<PtrInfo> queue;
   NodePool::Enumerator etor(aGraph.mNodes);
   for (uint32_t i = 0; i < aGraph.mRootCount; ++i) {
     CheckedPush(queue, etor.GetNext());
@@ -1294,11 +1296,11 @@ MOZ_NEVER_INLINE void GraphWalker<Visitor>::WalkFromRoots(CCGraph& aGraph) {
 }
 
 template <class Visitor>
-MOZ_NEVER_INLINE void GraphWalker<Visitor>::DoWalk(nsDeque& aQueue) {
+MOZ_NEVER_INLINE void GraphWalker<Visitor>::DoWalk(nsDeque<PtrInfo>& aQueue) {
   // Use a aQueue to match the breadth-first traversal used when we
   // built the graph, for hopefully-better locality.
   while (aQueue.GetSize() > 0) {
-    PtrInfo* pi = static_cast<PtrInfo*>(aQueue.PopFront());
+    PtrInfo* pi = aQueue.PopFront();
 
     if (pi->WasTraversed() && mVisitor.ShouldVisitNode(pi)) {
       mVisitor.VisitNode(pi);
@@ -1410,7 +1412,7 @@ class nsCycleCollectorLogSinkToFile final : public nsICycleCollectorLogSink {
     if (!mGCLog.mStream) {
       return NS_ERROR_UNEXPECTED;
     }
-    CloseLog(&mGCLog, NS_LITERAL_STRING("Garbage"));
+    CloseLog(&mGCLog, u"Garbage"_ns);
     return NS_OK;
   }
 
@@ -1418,7 +1420,7 @@ class nsCycleCollectorLogSinkToFile final : public nsICycleCollectorLogSink {
     if (!mCCLog.mStream) {
       return NS_ERROR_UNEXPECTED;
     }
-    CloseLog(&mCCLog, NS_LITERAL_STRING("Cycle"));
+    CloseLog(&mCCLog, u"Cycle"_ns);
     return NS_OK;
   }
 
@@ -1468,8 +1470,8 @@ class nsCycleCollectorLogSinkToFile final : public nsICycleCollectorLogSink {
     // aFilename under a memory-reporting-specific folder
     // (/data/local/tmp/memory-reports). Otherwise, it will open a
     // file named aFilename under "NS_OS_TEMP_DIR".
-    nsresult rv = nsDumpUtils::OpenTempFile(
-        filename, &logFile, NS_LITERAL_CSTRING("memory-reports"));
+    nsresult rv =
+        nsDumpUtils::OpenTempFile(filename, &logFile, "memory-reports"_ns);
     if (NS_FAILED(rv)) {
       NS_IF_RELEASE(logFile);
       return nullptr;
@@ -1530,8 +1532,8 @@ class nsCycleCollectorLogSinkToFile final : public nsICycleCollectorLogSink {
     // Log to the error console.
     nsAutoString logPath;
     logFileFinalDestination->GetPath(logPath);
-    nsAutoString msg = aCollectorKind +
-                       NS_LITERAL_STRING(" Collector log dumped to ") + logPath;
+    nsAutoString msg =
+        aCollectorKind + u" Collector log dumped to "_ns + logPath;
 
     // We don't want any JS to run between ScanRoots and CollectWhite calls,
     // and since ScanRoots calls this method, better to log the message
@@ -2361,7 +2363,7 @@ class JSPurpleBuffer {
   SegmentedVector<JSObject*, kSegmentSize, InfallibleAllocPolicy> mObjects;
 };
 
-NS_IMPL_CYCLE_COLLECTION_CLASS(JSPurpleBuffer)
+NS_IMPL_CYCLE_COLLECTION_MULTI_ZONE_JSHOLDER_CLASS(JSPurpleBuffer)
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(JSPurpleBuffer)
   tmp->Destroy();
@@ -3160,7 +3162,7 @@ nsCycleCollector::nsCycleCollector()
       mCCJSRuntime(nullptr),
       mIncrementalPhase(IdlePhase),
 #ifdef DEBUG
-      mEventTarget(GetCurrentThreadSerialEventTarget()),
+      mEventTarget(GetCurrentSerialEventTarget()),
 #endif
       mWhiteNodeCount(0),
       mBeforeUnlinkCB(nullptr),
@@ -3350,14 +3352,19 @@ void nsCycleCollector::CleanupAfterCollection() {
 
 void nsCycleCollector::ShutdownCollect() {
   FinishAnyIncrementalGCInProgress();
-  JS::ShutdownAsyncTasks(CycleCollectedJSContext::Get()->Context());
+  CycleCollectedJSContext* ccJSContext = CycleCollectedJSContext::Get();
+  JS::ShutdownAsyncTasks(ccJSContext->Context());
 
   SliceBudget unlimitedBudget = SliceBudget::unlimited();
   uint32_t i;
-  for (i = 0; i < DEFAULT_SHUTDOWN_COLLECTIONS; ++i) {
-    if (!Collect(ShutdownCC, unlimitedBudget, nullptr)) {
-      break;
-    }
+  bool collectedAny = true;
+  for (i = 0; i < DEFAULT_SHUTDOWN_COLLECTIONS && collectedAny; ++i) {
+    collectedAny = Collect(ShutdownCC, unlimitedBudget, nullptr);
+    // Run any remaining tasks that may have been enqueued via RunInStableState
+    // or DispatchToMicroTask. These can hold alive CCed objects, and we want to
+    // clear them out before we run the CC again or finish shutting down.
+    ccJSContext->PerformMicroTaskCheckPoint(true);
+    ccJSContext->ProcessStableStateQueue();
   }
   NS_WARNING_ASSERTION(i < NORMAL_SHUTDOWN_COLLECTIONS, "Extra shutdown CC");
 }
@@ -3904,7 +3911,7 @@ already_AddRefed<nsICycleCollectorLogSink> nsCycleCollector_createLogSink() {
   return sink.forget();
 }
 
-void nsCycleCollector_collect(nsICycleCollectorListener* aManualListener) {
+bool nsCycleCollector_collect(nsICycleCollectorListener* aManualListener) {
   CollectorData* data = sCollectorData.get();
 
   // We should have started the cycle collector by now.
@@ -3914,7 +3921,7 @@ void nsCycleCollector_collect(nsICycleCollectorListener* aManualListener) {
   AUTO_PROFILER_LABEL("nsCycleCollector_collect", GCCC);
 
   SliceBudget unlimitedBudget = SliceBudget::unlimited();
-  data->mCollector->Collect(ManualCC, unlimitedBudget, aManualListener);
+  return data->mCollector->Collect(ManualCC, unlimitedBudget, aManualListener);
 }
 
 void nsCycleCollector_collectSlice(SliceBudget& budget,
@@ -3961,15 +3968,12 @@ void nsCycleCollector_shutdown(bool aDoCollect) {
     MOZ_ASSERT(data->mCollector);
     AUTO_PROFILER_LABEL("nsCycleCollector_shutdown", OTHER);
 
-    data->mCollector->Shutdown(aDoCollect);
-    data->mCollector = nullptr;
-    if (data->mContext) {
-      // Run any remaining tasks that may have been enqueued via
-      // RunInStableState or DispatchToMicroTask during the final cycle
-      // collection.
-      data->mContext->ProcessStableStateQueue();
-      data->mContext->PerformMicroTaskCheckPoint(true);
+    {
+      RefPtr<nsCycleCollector> collector = data->mCollector;
+      collector->Shutdown(aDoCollect);
+      data->mCollector = nullptr;
     }
+
     if (!data->mContext) {
       delete data;
       sCollectorData.set(nullptr);

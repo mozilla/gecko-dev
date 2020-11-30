@@ -1,6 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
+ChromeUtils.import("resource://testing-common/OSKeyStoreTestUtils.jsm", this);
+
 add_task(async function setup() {
   TEST_LOGIN1 = await addLogin(TEST_LOGIN1);
   await BrowserTestUtils.openNewForegroundTab({
@@ -26,9 +28,14 @@ const gTests = [
       });
     },
   },
-  {
+];
+
+if (OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
+  gTests[gTests.length] = {
     name: "test contextmenu on password field in edit login view",
     async setup(browser) {
+      let osAuthDialogShown = OSKeyStoreTestUtils.waitForOSKeyStoreLogin(true);
+
       // load up the edit login view
       await SpecialPowers.spawn(
         browser,
@@ -52,12 +59,21 @@ const gTests = [
           }, "Waiting for login item to get populated");
           let editButton = loginItem.shadowRoot.querySelector(".edit-button");
           editButton.click();
-          await Promise.resolve();
         }
       );
+      await osAuthDialogShown;
+      await SpecialPowers.spawn(browser, [], async () => {
+        let loginItem = Cu.waiveXrays(
+          content.document.querySelector("login-item")
+        );
+        await ContentTaskUtils.waitForCondition(
+          () => loginItem.dataset.editing,
+          "Waiting for login-item to be in editing state"
+        );
+      });
     },
-  },
-];
+  };
+}
 
 /**
  * Synthesize mouse clicks to open the password manager context menu popup
@@ -138,7 +154,7 @@ async function testContextMenuOnInputField(testData) {
   await SimpleTest.promiseFocus(browser.ownerGlobal);
   await testData.setup(browser);
 
-  ok(true, "ok");
+  info("test setup completed");
   let contextMenu = await openContextMenuForPasswordInput(browser);
   let fillItem = contextMenu.querySelector("#fill-login");
   ok(fillItem, "fill menu item exists");

@@ -9,7 +9,9 @@
 
 #include "mozilla/Maybe.h"
 
-#include "builtin/TypedObjectConstants.h"
+#include <tuple>  // std::tuple
+
+#include "builtin/TypedArrayConstants.h"
 #include "gc/Memory.h"
 #include "gc/ZoneAllocator.h"
 #include "js/ArrayBuffer.h"
@@ -56,7 +58,7 @@ int32_t LiveMappedBufferCount();
 //
 //
 // - JSObject
-//   - TypedObject (declared in builtin/TypedObject.h)
+//   - TypedObject (declared in wasm/TypedObject.h)
 //   - NativeObject
 //     - ArrayBufferObjectMaybeShared
 //       - ArrayBufferObject
@@ -103,7 +105,7 @@ int32_t LiveMappedBufferCount();
 
 class ArrayBufferObjectMaybeShared;
 
-mozilla::Maybe<uint32_t> WasmArrayBufferMaxSize(
+mozilla::Maybe<uint64_t> WasmArrayBufferMaxSize(
     const ArrayBufferObjectMaybeShared* buf);
 size_t WasmArrayBufferMappedSize(const ArrayBufferObjectMaybeShared* buf);
 
@@ -117,7 +119,7 @@ class ArrayBufferObjectMaybeShared : public NativeObject {
   // Note: the eventual goal is to remove this from ArrayBuffer and have
   // (Shared)ArrayBuffers alias memory owned by some wasm::Memory object.
 
-  mozilla::Maybe<uint32_t> wasmMaxSize() const {
+  mozilla::Maybe<uint64_t> wasmMaxSize() const {
     return WasmArrayBufferMaxSize(this);
   }
   size_t wasmMappedSize() const { return WasmArrayBufferMappedSize(this); }
@@ -232,6 +234,13 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared {
                 "self-hosted code with burned-in constants must use the "
                 "correct DETACHED bit value");
 
+  enum class FillContents { Zero, Uninitialized };
+
+  template <FillContents FillType>
+  static std::tuple<ArrayBufferObject*, uint8_t*> createBufferAndData(
+      JSContext* cx, uint32_t nbytes, AutoSetNewObjectMetadata&,
+      JS::Handle<JSObject*> proto = nullptr);
+
  public:
   class BufferContents {
     uint8_t* data_;
@@ -318,6 +327,9 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared {
 
   static ArrayBufferObject* createForContents(JSContext* cx, uint32_t nbytes,
                                               BufferContents contents);
+
+  static ArrayBufferObject* copy(
+      JSContext* cx, JS::Handle<ArrayBufferObject*> unwrappedArrayBuffer);
 
   static ArrayBufferObject* createZeroed(JSContext* cx, uint32_t nbytes,
                                          HandleObject proto = nullptr);
@@ -417,7 +429,7 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared {
   MOZ_MUST_USE bool prepareForAsmJS();
 
   size_t wasmMappedSize() const;
-  mozilla::Maybe<uint32_t> wasmMaxSize() const;
+  mozilla::Maybe<uint64_t> wasmMaxSize() const;
   static MOZ_MUST_USE bool wasmGrowToSizeInPlace(
       uint32_t newSize, Handle<ArrayBufferObject*> oldBuf,
       MutableHandle<ArrayBufferObject*> newBuf, JSContext* cx);
@@ -486,111 +498,6 @@ ArrayBufferObject& AsArrayBuffer(JSObject* obj);
 bool IsArrayBufferMaybeShared(HandleValue v);
 bool IsArrayBufferMaybeShared(JSObject* obj);
 ArrayBufferObjectMaybeShared& AsArrayBufferMaybeShared(JSObject* obj);
-
-extern uint32_t JS_FASTCALL ClampDoubleToUint8(const double x);
-
-struct uint8_clamped {
-  uint8_t val;
-
-  uint8_clamped() = default;
-  uint8_clamped(const uint8_clamped& other) = default;
-
-  // invoke our assignment helpers for constructor conversion
-  explicit uint8_clamped(uint8_t x) { *this = x; }
-  explicit uint8_clamped(uint16_t x) { *this = x; }
-  explicit uint8_clamped(uint32_t x) { *this = x; }
-  explicit uint8_clamped(uint64_t x) { *this = x; }
-  explicit uint8_clamped(int8_t x) { *this = x; }
-  explicit uint8_clamped(int16_t x) { *this = x; }
-  explicit uint8_clamped(int32_t x) { *this = x; }
-  explicit uint8_clamped(int64_t x) { *this = x; }
-  explicit uint8_clamped(double x) { *this = x; }
-
-  uint8_clamped& operator=(const uint8_clamped& x) = default;
-
-  uint8_clamped& operator=(uint8_t x) {
-    val = x;
-    return *this;
-  }
-
-  uint8_clamped& operator=(uint16_t x) {
-    val = (x > 255) ? 255 : uint8_t(x);
-    return *this;
-  }
-
-  uint8_clamped& operator=(uint32_t x) {
-    val = (x > 255) ? 255 : uint8_t(x);
-    return *this;
-  }
-
-  uint8_clamped& operator=(uint64_t x) {
-    val = (x > 255) ? 255 : uint8_t(x);
-    return *this;
-  }
-
-  uint8_clamped& operator=(int8_t x) {
-    val = (x >= 0) ? uint8_t(x) : 0;
-    return *this;
-  }
-
-  uint8_clamped& operator=(int16_t x) {
-    val = (x >= 0) ? ((x < 255) ? uint8_t(x) : 255) : 0;
-    return *this;
-  }
-
-  uint8_clamped& operator=(int32_t x) {
-    val = (x >= 0) ? ((x < 255) ? uint8_t(x) : 255) : 0;
-    return *this;
-  }
-
-  uint8_clamped& operator=(int64_t x) {
-    val = (x >= 0) ? ((x < 255) ? uint8_t(x) : 255) : 0;
-    return *this;
-  }
-
-  uint8_clamped& operator=(const double x) {
-    val = uint8_t(ClampDoubleToUint8(x));
-    return *this;
-  }
-
-  operator uint8_t() const { return val; }
-
-  void staticAsserts() {
-    static_assert(sizeof(uint8_clamped) == 1,
-                  "uint8_clamped must be layout-compatible with uint8_t");
-  }
-};
-
-/* Note that we can't use std::numeric_limits here due to uint8_clamped. */
-template <typename T>
-inline constexpr bool TypeIsFloatingPoint() {
-  return false;
-}
-template <>
-inline constexpr bool TypeIsFloatingPoint<float>() {
-  return true;
-}
-template <>
-inline constexpr bool TypeIsFloatingPoint<double>() {
-  return true;
-}
-
-template <typename T>
-inline constexpr bool TypeIsUnsigned() {
-  return false;
-}
-template <>
-inline constexpr bool TypeIsUnsigned<uint8_t>() {
-  return true;
-}
-template <>
-inline constexpr bool TypeIsUnsigned<uint16_t>() {
-  return true;
-}
-template <>
-inline constexpr bool TypeIsUnsigned<uint32_t>() {
-  return true;
-}
 
 // Per-compartment table that manages the relationship between array buffers
 // and the views that use their storage.
@@ -668,12 +575,12 @@ class MutableWrappedPtrOperations<InnerViewTable, Wrapper>
 };
 
 class WasmArrayRawBuffer {
-  mozilla::Maybe<uint32_t> maxSize_;
+  mozilla::Maybe<uint64_t> maxSize_;
   size_t mappedSize_;  // Not including the header page
   uint32_t length_;
 
  protected:
-  WasmArrayRawBuffer(uint8_t* buffer, const mozilla::Maybe<uint32_t>& maxSize,
+  WasmArrayRawBuffer(uint8_t* buffer, const mozilla::Maybe<uint64_t>& maxSize,
                      size_t mappedSize, uint32_t length)
       : maxSize_(maxSize), mappedSize_(mappedSize), length_(length) {
     MOZ_ASSERT(buffer == dataPointer());
@@ -681,7 +588,7 @@ class WasmArrayRawBuffer {
 
  public:
   static WasmArrayRawBuffer* Allocate(uint32_t numBytes,
-                                      const mozilla::Maybe<uint32_t>& maxSize,
+                                      const mozilla::Maybe<uint64_t>& maxSize,
                                       const mozilla::Maybe<size_t>& mappedSize);
   static void Release(void* mem);
 
@@ -699,17 +606,17 @@ class WasmArrayRawBuffer {
 
   size_t mappedSize() const { return mappedSize_; }
 
-  mozilla::Maybe<uint32_t> maxSize() const { return maxSize_; }
+  mozilla::Maybe<uint64_t> maxSize() const { return maxSize_; }
 
   uint32_t byteLength() const { return length_; }
 
   MOZ_MUST_USE bool growToSizeInPlace(uint32_t oldSize, uint32_t newSize);
 
-  MOZ_MUST_USE bool extendMappedSize(uint32_t maxSize);
+  MOZ_MUST_USE bool extendMappedSize(uint64_t maxSize);
 
   // Try and grow the mapped region of memory. Does not change current size.
   // Does not move memory if no space to grow.
-  void tryGrowMaxSizeInPlace(uint32_t deltaMaxSize);
+  void tryGrowMaxSizeInPlace(uint64_t deltaMaxSize);
 };
 
 }  // namespace js

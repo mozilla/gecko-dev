@@ -1,36 +1,50 @@
 "use strict";
 
+const { CustomizableUI } = ChromeUtils.import(
+  "resource:///modules/CustomizableUI.jsm"
+);
+
 add_task(async function() {
   let migrator = await MigrationUtils.getMigrator("ie");
   // Sanity check for the source.
-  Assert.ok(await migrator.isSourceAvailable());
+  Assert.ok(await migrator.isSourceAvailable(), "Check migrator source");
 
-  // Wait for the imported bookmarks.  Check that "From Internet Explorer"
-  // folders are created in the menu and on the toolbar.
-  let source = MigrationUtils.getLocalizedString("sourceNameIE");
-  let label = MigrationUtils.getLocalizedString("importedBookmarksFolder", [
-    source,
-  ]);
-
-  let expectedParents = [
-    PlacesUtils.bookmarksMenuFolderId,
-    PlacesUtils.toolbarFolderId,
-  ];
-
+  // Since this test doesn't mock out the favorites, execution is dependent
+  // on the actual favorites stored on the local machine's IE favorites database.
+  // As such, we can't assert that bookmarks were migrated to both the bookmarks
+  // menu and the bookmarks toolbar.
+  let bookmarkRoots = 0;
   let itemCount = 0;
   let listener = events => {
     for (let event of events) {
-      if (event.title != label) {
+      if (event.itemType == PlacesUtils.bookmarks.TYPE_BOOKMARK) {
+        if (event.parentGuid == PlacesUtils.bookmarks.toolbarGuid) {
+          bookmarkRoots |=
+            MigrationUtils.SOURCE_BOOKMARK_ROOTS_BOOKMARKS_TOOLBAR;
+        } else if (event.parentGuid == PlacesUtils.bookmarks.menuGuid) {
+          bookmarkRoots |= MigrationUtils.SOURCE_BOOKMARK_ROOTS_BOOKMARKS_MENU;
+        }
+        info("bookmark added: " + event.parentGuid);
         itemCount++;
-      }
-      if (expectedParents.length && event.title == label) {
-        let index = expectedParents.indexOf(event.parentId);
-        Assert.notEqual(index, -1);
-        expectedParents.splice(index, 1);
       }
     }
   };
   PlacesUtils.observers.addListener(["bookmark-added"], listener);
+  let observerNotified = false;
+  Services.obs.addObserver((aSubject, aTopic, aData) => {
+    let [toolbar, visibility] = JSON.parse(aData);
+    Assert.equal(
+      toolbar,
+      CustomizableUI.AREA_BOOKMARKS,
+      "Notification should be received for bookmarks toolbar"
+    );
+    Assert.equal(
+      visibility,
+      "true",
+      "Notification should say to reveal the bookmarks toolbar"
+    );
+    observerNotified = true;
+  }, "browser-set-toolbar-visibility");
 
   await promiseMigration(migrator, MigrationUtils.resourceTypes.BOOKMARKS);
   PlacesUtils.observers.removeListener(["bookmark-added"], listener);
@@ -39,7 +53,18 @@ add_task(async function() {
     itemCount,
     "Ensure telemetry matches actual number of imported items."
   );
+  await TestUtils.waitForCondition(() => {
+    let snapshot = Services.telemetry.getSnapshotForKeyedHistograms(
+      "main",
+      false
+    ).parent.FX_MIGRATION_BOOKMARKS_ROOTS;
+    if (!snapshot || !snapshot.ie) {
+      return false;
+    }
+    info(`Expected ${bookmarkRoots}, got ${snapshot.ie.sum}`);
+    return snapshot.ie.sum == bookmarkRoots;
+  }, "Wait until telemetry is updated");
 
   // Check the bookmarks have been imported to all the expected parents.
-  Assert.equal(expectedParents.length, 0, "Got all the expected parents");
+  Assert.ok(observerNotified, "The observer should be notified upon migration");
 });

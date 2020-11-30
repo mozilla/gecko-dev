@@ -12,7 +12,7 @@ const {
 
 types.addDictType("contentProcessTarget.workers", {
   error: "nullable:string",
-  workers: "nullable:array:workerTarget",
+  workers: "nullable:array:workerDescriptor",
 });
 
 const contentProcessTargetSpec = generateActorSpec({
@@ -35,15 +35,6 @@ const contentProcessTargetSpec = generateActorSpec({
   events: {
     workerListChanged: {
       type: "workerListChanged",
-    },
-
-    // The thread actor is no longer emitting newSource event in the name of the target
-    // actor (bug 1269919), but as we may still connect to older servers which still do,
-    // we have to keep it being mentioned here. Otherwise the event is considered as a
-    // response to a request and confuses the packet ordering.
-    // We can remove that once FF66 is no longer supported.
-    newSource: {
-      type: "newSource",
     },
     tabDetached: {
       type: "tabDetached",

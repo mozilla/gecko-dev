@@ -118,7 +118,7 @@ nsresult net_GetURLSpecFromActualFile(nsIFile* aFile, nsACString& result) {
   if (NS_FAILED(rv)) return rv;
 
   nsAutoCString escPath;
-  NS_NAMED_LITERAL_CSTRING(prefix, "file://");
+  constexpr auto prefix = "file://"_ns;
 
   // Escape the path with the directory mask
   if (NS_EscapeURL(ePath.get(), ePath.Length(), esc_Directory + esc_Forced,
@@ -143,7 +143,7 @@ nsresult net_GetFileFromURLSpec(const nsACString& aURL, nsIFile** result) {
   nsresult rv;
 
   nsCOMPtr<nsIFile> localFile;
-  rv = NS_NewNativeLocalFile(EmptyCString(), true, getter_AddRefs(localFile));
+  rv = NS_NewNativeLocalFile(""_ns, true, getter_AddRefs(localFile));
   if (NS_FAILED(rv)) return rv;
 
   nsAutoCString directory, fileBaseName, fileExtension, path;

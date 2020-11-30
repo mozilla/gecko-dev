@@ -88,12 +88,6 @@ def create_parser(mach_interface=False):
     add_arg('--spsProfileEntries', dest="gecko_profile_entries", type=int,
             help="(Deprecated - Use --gecko-profile-entries instead.) How "
                  "many samples to take with the profiler")
-    add_arg('--geckoProfile', action="store_true", dest="gecko_profile",
-            help=argparse.SUPPRESS)
-    add_arg('--geckoProfileInterval', dest='gecko_profile_interval', type=float,
-            help=argparse.SUPPRESS)
-    add_arg('--geckoProfileEntries', dest="gecko_profile_entries", type=int,
-            help=argparse.SUPPRESS)
     add_arg('--gecko-profile', action="store_true", dest="gecko_profile",
             help="Profile the run and output the results in $MOZ_UPLOAD_DIR. "
                  "After talos is finished, profiler.firefox.com will be launched in "
@@ -121,7 +115,7 @@ def create_parser(mach_interface=False):
                  " Currently used for xperf only.")
     add_arg('--setpref', action='append', default=[], dest="extraPrefs",
             metavar="PREF=VALUE",
-            help="defines an extra user preference")
+            help="Set a browser preference. May be used multiple times.")
     add_arg("--firstNonBlankPaint", action='store_true', dest="fnbpaint",
             help="Wait for firstNonBlankPaint event before recording the time")
     add_arg("--pdfPaint", action='store_true', dest="pdfpaint",

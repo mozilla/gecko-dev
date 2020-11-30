@@ -13,11 +13,11 @@ var mockNetworkStatusService = {
 
   _originalClassId: "",
 
-  QueryInterface: ChromeUtils.generateQI([Ci.nsINetworkLinkService]),
+  QueryInterface: ChromeUtils.generateQI(["nsINetworkLinkService"]),
 
   createInstance(outer, iiD) {
     if (outer) {
-      throw Cr.NS_ERROR_NO_AGGREGATION;
+      throw Components.Exception("", Cr.NS_ERROR_NO_AGGREGATION);
     }
     return this.QueryInterface(iiD);
   },

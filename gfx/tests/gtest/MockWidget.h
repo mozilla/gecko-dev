@@ -7,6 +7,7 @@
 #ifndef GTEST_MOCKWIDGET_H
 #define GTEST_MOCKWIDGET_H
 
+#include "mozilla/gfx/Point.h"
 #include "mozilla/widget/InProcessCompositorWidget.h"
 #include "nsBaseWidget.h"
 #include "GLContext.h"
@@ -15,6 +16,8 @@
 using mozilla::gl::CreateContextFlags;
 using mozilla::gl::GLContext;
 using mozilla::gl::GLContextProvider;
+
+using mozilla::gfx::IntSize;
 
 class MockWidget : public nsBaseWidget {
  public:
@@ -30,13 +33,15 @@ class MockWidget : public nsBaseWidget {
 
   void* GetNativeData(uint32_t aDataType) override {
     if (aDataType == NS_NATIVE_OPENGL_CONTEXT) {
-      mozilla::gl::SurfaceCaps caps = mozilla::gl::SurfaceCaps::ForRGB();
-      caps.preserve = false;
-      caps.bpp16 = false;
       nsCString discardFailureId;
-      RefPtr<GLContext> context = GLContextProvider::CreateOffscreen(
-          IntSize(mCompWidth, mCompHeight), caps,
-          CreateContextFlags::REQUIRE_COMPAT_PROFILE, &discardFailureId);
+      RefPtr<GLContext> context = GLContextProvider::CreateHeadless(
+          {CreateContextFlags::REQUIRE_COMPAT_PROFILE}, &discardFailureId);
+      if (!context) {
+        return nullptr;
+      }
+      if (!context->CreateOffscreenDefaultFb({mCompWidth, mCompHeight})) {
+        return nullptr;
+      }
       return context.forget().take();
     }
     return nullptr;

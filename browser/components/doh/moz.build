@@ -8,7 +8,11 @@ with Files('**'):
   BUG_COMPONENT = ('Firefox', 'Security')
 
 EXTRA_JS_MODULES += [
+  'DoHConfig.jsm',
+  'DoHController.jsm',
+  'DoHHeuristics.jsm',
   'TRRPerformance.jsm',
 ]
 
 XPCSHELL_TESTS_MANIFESTS += ['test/unit/xpcshell.ini']
+BROWSER_CHROME_MANIFESTS += ['test/browser/browser.ini']

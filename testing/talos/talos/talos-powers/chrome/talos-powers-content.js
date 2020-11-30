@@ -143,6 +143,22 @@ addEventListener(
   { wantUntrusted: true } // since we're exposing to unprivileged
 );
 
+/**
+ * Content that wants to trigger a WebRender capture should fire the
+ * TalosPowersWebRenderCapture custom event.
+ */
+addEventListener(
+  "TalosPowersWebRenderCapture",
+  e => {
+    if (content && content.windowUtils) {
+      content.windowUtils.wrCapture();
+    } else {
+      dump("Unable to obtain DOMWindowUtils for TalosPowersWebRenderCapture\n");
+    }
+  },
+  { wantUntrusted: true } // since we're exposing to unprivileged
+);
+
 /* *
  * Mediator for the generic ParentExec mechanism.
  * Listens for a query event from the content, forwards it as a query message
@@ -166,8 +182,7 @@ addEventListener(
     let uniqueMessageId =
       "TalosPowers:ParentExec:" +
       content.document.documentURI +
-      // eslint-disable-next-line mozilla/avoid-Date-timing
-      Date.now() +
+      content.window.performance.now() +
       Math.random();
 
     // Listener for the reply from the parent process

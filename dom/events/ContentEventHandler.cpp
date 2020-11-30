@@ -37,6 +37,7 @@
 #include "nsTextFragment.h"
 #include "nsTextFrame.h"
 #include "nsView.h"
+#include "mozilla/ViewportUtils.h"
 
 #include <algorithm>
 
@@ -271,7 +272,7 @@ nsresult ContentEventHandler::InitRootContent(Selection* aNormalSelection) {
     return NS_OK;
   }
 
-  RefPtr<nsRange> range(aNormalSelection->GetRangeAt(0));
+  RefPtr<const nsRange> range(aNormalSelection->GetRangeAt(0));
   if (NS_WARN_IF(!range)) {
     return NS_ERROR_UNEXPECTED;
   }
@@ -282,7 +283,7 @@ nsresult ContentEventHandler::InitRootContent(Selection* aNormalSelection) {
   // selection range still keeps storing the nodes.  If the active element of
   // the deactive window is <input> or <textarea>, we can compute the
   // selection root from them.
-  nsINode* startNode = range->GetStartContainer();
+  nsCOMPtr<nsINode> startNode = range->GetStartContainer();
   nsINode* endNode = range->GetEndContainer();
   if (NS_WARN_IF(!startNode) || NS_WARN_IF(!endNode)) {
     return NS_ERROR_FAILURE;
@@ -296,7 +297,8 @@ nsresult ContentEventHandler::InitRootContent(Selection* aNormalSelection) {
   NS_ASSERTION(startNode->GetComposedDoc() == endNode->GetComposedDoc(),
                "firstNormalSelectionRange crosses the document boundary");
 
-  mRootContent = startNode->GetSelectionRootContent(mDocument->GetPresShell());
+  RefPtr<PresShell> presShell = mDocument->GetPresShell();
+  mRootContent = startNode->GetSelectionRootContent(presShell);
   if (NS_WARN_IF(!mRootContent)) {
     return NS_ERROR_FAILURE;
   }
@@ -317,16 +319,15 @@ nsresult ContentEventHandler::InitCommon(SelectionType aSelectionType,
   nsresult rv = InitBasic(aRequireFlush);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsISelectionController> selectionController;
+  RefPtr<nsFrameSelection> frameSel;
   if (PresShell* presShell = mDocument->GetPresShell()) {
-    selectionController = presShell->GetSelectionControllerForFocusedContent();
+    frameSel = presShell->GetLastFocusedFrameSelection();
   }
-  if (NS_WARN_IF(!selectionController)) {
+  if (NS_WARN_IF(!frameSel)) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  mSelection =
-      selectionController->GetSelection(ToRawSelectionType(aSelectionType));
+  mSelection = frameSel->GetSelection(aSelectionType);
   if (NS_WARN_IF(!mSelection)) {
     return NS_ERROR_NOT_AVAILABLE;
   }
@@ -335,8 +336,7 @@ nsresult ContentEventHandler::InitCommon(SelectionType aSelectionType,
   if (mSelection->Type() == SelectionType::eNormal) {
     normalSelection = mSelection;
   } else {
-    normalSelection = selectionController->GetSelection(
-        nsISelectionController::SELECTION_NORMAL);
+    normalSelection = frameSel->GetSelection(SelectionType::eNormal);
     if (NS_WARN_IF(!normalSelection)) {
       return NS_ERROR_NOT_AVAILABLE;
     }
@@ -482,8 +482,8 @@ nsresult ContentEventHandler::QueryContentRect(
     resultRect.UnionRect(resultRect, frameRect);
   }
 
-  aEvent->mReply.mRect = LayoutDeviceIntRect::FromUnknownRect(
-      resultRect.ToOutsidePixels(presContext->AppUnitsPerDevPixel()));
+  aEvent->mReply.mRect = LayoutDeviceIntRect::FromAppUnitsToOutside(
+      resultRect, presContext->AppUnitsPerDevPixel());
   // Returning empty rect may cause native IME confused, let's make sure to
   // return non-empty rect.
   EnsureNonEmptyRect(aEvent->mReply.mRect);
@@ -508,7 +508,7 @@ static bool IsPaddingBR(nsIContent* aContent) {
 
 static void ConvertToNativeNewlines(nsString& aString) {
 #if defined(XP_WIN)
-  aString.ReplaceSubstring(NS_LITERAL_STRING("\n"), NS_LITERAL_STRING("\r\n"));
+  aString.ReplaceSubstring(u"\n"_ns, u"\r\n"_ns);
 #endif
 }
 
@@ -858,7 +858,8 @@ void ContentEventHandler::AppendFontRanges(FontRangeArray& aFontRanges,
 
       FontRange* fontRange = AppendFontRange(aFontRanges, baseOffset);
       fontRange->mFontName.Append(NS_ConvertUTF8toUTF16(font->GetName()));
-      fontRange->mFontSize = font->GetAdjustedSize();
+      fontRange->mFontSize = font->GetAdjustedSize() *
+                             frame->PresShell()->GetCumulativeResolution();
 
       // The converted original offset may exceed the range,
       // hence we need to clamp it.
@@ -936,8 +937,9 @@ nsresult ContentEventHandler::GenerateFlatFontRanges(
           nsAutoCString name;
           fontName.AppendToString(name, false);
           AppendUTF8toUTF16(name, fontRange->mFontName);
-          fontRange->mFontSize =
-              frame->PresContext()->AppUnitsToDevPixels(font.size);
+          fontRange->mFontSize = frame->PresContext()->CSSPixelsToDevPixels(
+              font.size.ToCSSPixels() *
+              frame->PresShell()->GetCumulativeResolution());
         }
       }
       baseOffset += GetBRLength(aLineBreakType);
@@ -2023,8 +2025,14 @@ nsresult ContentEventHandler::OnQueryTextRectArray(
         return rv;
       }
 
-      rect = LayoutDeviceIntRect::FromUnknownRect(charRect.ToOutsidePixels(
-          baseFrame->PresContext()->AppUnitsPerDevPixel()));
+      nsPresContext* presContext = baseFrame->PresContext();
+      rect = LayoutDeviceIntRect::FromAppUnitsToOutside(
+          charRect, presContext->AppUnitsPerDevPixel());
+      if (nsPresContext* rootContext =
+              presContext->GetInProcessRootContentDocumentPresContext()) {
+        rect = RoundedOut(ViewportUtils::DocumentRelativeLayoutToVisual(
+            rect, rootContext->PresShell()));
+      }
       // Returning empty rect may cause native IME confused, let's make sure to
       // return non-empty rect.
       EnsureNonEmptyRect(rect);
@@ -2222,8 +2230,15 @@ nsresult ContentEventHandler::OnQueryTextRect(WidgetQueryContentEvent* aEvent) {
       }
       aEvent->mReply.mWritingMode = rootContentFrame->GetWritingMode();
     }
-    aEvent->mReply.mRect = LayoutDeviceIntRect::FromUnknownRect(
-        rect.ToOutsidePixels(presContext->AppUnitsPerDevPixel()));
+    aEvent->mReply.mRect = LayoutDeviceIntRect::FromAppUnitsToOutside(
+        rect, presContext->AppUnitsPerDevPixel());
+    if (nsPresContext* rootContext =
+            presContext->GetInProcessRootContentDocumentPresContext()) {
+      aEvent->mReply.mRect =
+          RoundedOut(ViewportUtils::DocumentRelativeLayoutToVisual(
+              aEvent->mReply.mRect, rootContext->PresShell()));
+    }
+
     EnsureNonEmptyRect(aEvent->mReply.mRect);
     aEvent->mSucceeded = true;
     return NS_OK;
@@ -2404,8 +2419,15 @@ nsresult ContentEventHandler::OnQueryTextRect(WidgetQueryContentEvent* aEvent) {
     }
   }
 
-  aEvent->mReply.mRect = LayoutDeviceIntRect::FromUnknownRect(
-      rect.ToOutsidePixels(lastFrame->PresContext()->AppUnitsPerDevPixel()));
+  nsPresContext* presContext = lastFrame->PresContext();
+  aEvent->mReply.mRect = LayoutDeviceIntRect::FromAppUnitsToOutside(
+      rect, presContext->AppUnitsPerDevPixel());
+  if (nsPresContext* rootContext =
+          presContext->GetInProcessRootContentDocumentPresContext()) {
+    aEvent->mReply.mRect =
+        RoundedOut(ViewportUtils::DocumentRelativeLayoutToVisual(
+            aEvent->mReply.mRect, rootContext->PresShell()));
+  }
   // Returning empty rect may cause native IME confused, let's make sure to
   // return non-empty rect.
   EnsureNonEmptyRect(aEvent->mReply.mRect);
@@ -2448,10 +2470,15 @@ nsresult ContentEventHandler::OnQueryCaretRect(
       if (offset == aEvent->mInput.mOffset) {
         rv = ConvertToRootRelativeOffset(caretFrame, caretRect);
         NS_ENSURE_SUCCESS(rv, rv);
-        nscoord appUnitsPerDevPixel =
-            caretFrame->PresContext()->AppUnitsPerDevPixel();
-        aEvent->mReply.mRect = LayoutDeviceIntRect::FromUnknownRect(
-            caretRect.ToOutsidePixels(appUnitsPerDevPixel));
+        nsPresContext* presContext = caretFrame->PresContext();
+        aEvent->mReply.mRect = LayoutDeviceIntRect::FromAppUnitsToOutside(
+            caretRect, presContext->AppUnitsPerDevPixel());
+        if (nsPresContext* rootContext =
+                presContext->GetInProcessRootContentDocumentPresContext()) {
+          aEvent->mReply.mRect =
+              RoundedOut(ViewportUtils::DocumentRelativeLayoutToVisual(
+                  aEvent->mReply.mRect, rootContext->PresShell()));
+        }
         // Returning empty rect may cause native IME confused, let's make sure
         // to return non-empty rect.
         EnsureNonEmptyRect(aEvent->mReply.mRect);
@@ -2551,10 +2578,11 @@ nsresult ContentEventHandler::OnQueryCharacterAtPoint(
     eventOnRoot.mRefPoint += aEvent->mWidget->WidgetToScreenOffset() -
                              rootWidget->WidgetToScreenOffset();
   }
-  nsPoint ptInRoot =
-      nsLayoutUtils::GetEventCoordinatesRelativeTo(&eventOnRoot, rootFrame);
+  nsPoint ptInRoot = nsLayoutUtils::GetEventCoordinatesRelativeTo(
+      &eventOnRoot, RelativeTo{rootFrame});
 
-  nsIFrame* targetFrame = nsLayoutUtils::GetFrameForPoint(rootFrame, ptInRoot);
+  nsIFrame* targetFrame =
+      nsLayoutUtils::GetFrameForPoint(RelativeTo{rootFrame}, ptInRoot);
   if (!targetFrame || !targetFrame->GetContent() ||
       !targetFrame->GetContent()->IsInclusiveDescendantOf(mRootContent)) {
     // There is no character at the point.
@@ -2650,7 +2678,7 @@ nsresult ContentEventHandler::OnQueryDOMWidgetHittest(
           docFrameRect.y);
 
   Element* contentUnderMouse = mDocument->ElementFromPointHelper(
-      eventLocCSS.x, eventLocCSS.y, false, false);
+      eventLocCSS.x, eventLocCSS.y, false, false, ViewportType::Visual);
   if (contentUnderMouse) {
     nsIWidget* targetWidget = nullptr;
     nsIFrame* targetFrame = contentUnderMouse->GetPrimaryFrame();
@@ -3019,8 +3047,11 @@ nsresult ContentEventHandler::OnSelectionEvent(WidgetSelectionEvent* aEvent) {
     }
   }
 
-  mSelection->ScrollIntoView(nsISelectionController::SELECTION_FOCUS_REGION,
-                             ScrollAxis(), ScrollAxis(), 0);
+  // `ContentEventHandler` is a `MOZ_STACK_CLASS`, so `mSelection` is known to
+  // be alive.
+  MOZ_KnownLive(mSelection)
+      ->ScrollIntoView(nsISelectionController::SELECTION_FOCUS_REGION,
+                       ScrollAxis(), ScrollAxis(), 0);
   aEvent->mSucceeded = true;
   return NS_OK;
 }

@@ -138,6 +138,10 @@ class nsCSPContext : public nsIContentSecurityPolicy {
         0);
   }
 
+  void AddIPCPolicy(const mozilla::ipc::ContentSecurityPolicy& aPolicy);
+  void SerializePolicies(
+      nsTArray<mozilla::ipc::ContentSecurityPolicy>& aPolicies);
+
  private:
   void EnsureIPCPoliciesRead();
 

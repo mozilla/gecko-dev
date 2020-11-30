@@ -253,6 +253,7 @@ matchingProfiles = [
     "cc-number": "************6785",
     "cc-exp-month": 12,
     "cc-exp-year": 2014,
+    "cc-type": "visa",
   },
   {
     guid: "test-guid-2",
@@ -260,6 +261,7 @@ matchingProfiles = [
     "cc-number": "************1234",
     "cc-exp-month": 4,
     "cc-exp-year": 2014,
+    "cc-type": "amex",
   },
   {
     guid: "test-guid-3",
@@ -290,8 +292,9 @@ let creditCardTestCases = [
           label: JSON.stringify({
             primary: "Timothy Berners-Lee",
             secondary: "****6785",
+            ariaLabel: "Visa Timothy Berners-Lee ****6785",
           }),
-          image: "chrome://formautofill/content/icon-credit-card-generic.svg",
+          image: "chrome://formautofill/content/third-party/cc-logo-visa.svg",
         },
         {
           value: "",
@@ -300,8 +303,9 @@ let creditCardTestCases = [
           label: JSON.stringify({
             primary: "John Doe",
             secondary: "****1234",
+            ariaLabel: "American Express John Doe ****1234",
           }),
-          image: "chrome://formautofill/content/icon-credit-card-generic.svg",
+          image: "chrome://formautofill/content/third-party/cc-logo-amex.png",
         },
       ],
     },
@@ -325,8 +329,9 @@ let creditCardTestCases = [
             primaryAffix: "****",
             primary: "6785",
             secondary: "Timothy Berners-Lee",
+            ariaLabel: "Visa **** 6785 Timothy Berners-Lee",
           }),
-          image: "chrome://formautofill/content/icon-credit-card-generic.svg",
+          image: "chrome://formautofill/content/third-party/cc-logo-visa.svg",
         },
         {
           value: "",
@@ -336,8 +341,9 @@ let creditCardTestCases = [
             primaryAffix: "****",
             primary: "1234",
             secondary: "John Doe",
+            ariaLabel: "American Express **** 1234 John Doe",
           }),
-          image: "chrome://formautofill/content/icon-credit-card-generic.svg",
+          image: "chrome://formautofill/content/third-party/cc-logo-amex.png",
         },
         {
           value: "",
@@ -347,6 +353,7 @@ let creditCardTestCases = [
             primaryAffix: "****",
             primary: "5678",
             secondary: "",
+            ariaLabel: "**** 5678",
           }),
           image: "chrome://formautofill/content/icon-credit-card-generic.svg",
         },

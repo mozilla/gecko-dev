@@ -18,7 +18,7 @@ enum class ThirdPartyAnalysis {
   IsForeign,
   IsThirdPartyTrackingResource,
   IsThirdPartySocialTrackingResource,
-  IsFirstPartyStorageAccessGranted,
+  IsStorageAccessPermissionGranted,
 };
 
 using ThirdPartyAnalysisResult = mozilla::EnumSet<ThirdPartyAnalysis>;
@@ -197,15 +197,6 @@ interface mozIThirdPartyUtil : nsISupports
    * Returns the script object principal for the window.
    */
   nsIPrincipal getPrincipalFromWindow(in mozIDOMWindowProxy aWindow);
-
-  /**
-   * getContentBlockingAllowListPrincipalFromWindow
-   *
-   * Returns the content blocking allow list principal for the window.
-   */
-  [noscript]
-  nsIPrincipal getContentBlockingAllowListPrincipalFromWindow(in mozIDOMWindowProxy aWindow,
-                                                              [optional] in nsIURI aURIBeingLoaded);
 
   /**
    * getTopWindowForChannel

@@ -15,8 +15,8 @@
 #include "nsServiceManagerUtils.h"
 #include "PresentationLog.h"
 
-using namespace mozilla;
-using namespace mozilla::dom;
+namespace mozilla {
+namespace dom {
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(PresentationAvailability)
 
@@ -51,7 +51,7 @@ already_AddRefed<PresentationAvailability> PresentationAvailability::Create(
 
 PresentationAvailability::PresentationAvailability(
     nsPIDOMWindowInner* aWindow, const nsTArray<nsString>& aUrls)
-    : DOMEventTargetHelper(aWindow), mIsAvailable(false), mUrls(aUrls) {
+    : DOMEventTargetHelper(aWindow), mIsAvailable(false), mUrls(aUrls.Clone()) {
   for (uint32_t i = 0; i < mUrls.Length(); ++i) {
     mAvailabilityOfUrl.AppendElement(false);
   }
@@ -193,7 +193,9 @@ void PresentationAvailability::UpdateAvailabilityAndDispatchEvent(
   }
 
   if (isChanged) {
-    Unused << NS_WARN_IF(
-        NS_FAILED(DispatchTrustedEvent(NS_LITERAL_STRING("change"))));
+    Unused << NS_WARN_IF(NS_FAILED(DispatchTrustedEvent(u"change"_ns)));
   }
 }
+
+}  // namespace dom
+}  // namespace mozilla

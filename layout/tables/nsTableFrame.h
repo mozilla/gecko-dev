@@ -69,14 +69,7 @@ class nsDisplayTableBackgroundSet {
 
   nsDisplayList* ColBackgrounds() { return &mColBackgrounds; }
 
-  nsDisplayTableBackgroundSet(nsDisplayListBuilder* aBuilder, nsIFrame* aTable)
-      : mBuilder(aBuilder) {
-    mPrevTableBackgroundSet = mBuilder->SetTableBackgroundSet(this);
-    mozilla::DebugOnly<const nsIFrame*> reference =
-        mBuilder->FindReferenceFrameFor(aTable, &mToReferenceFrame);
-    MOZ_ASSERT(nsLayoutUtils::IsAncestorFrameCrossDoc(reference, aTable));
-    mDirtyRect = mBuilder->GetDirtyRect();
-  }
+  nsDisplayTableBackgroundSet(nsDisplayListBuilder* aBuilder, nsIFrame* aTable);
 
   ~nsDisplayTableBackgroundSet() {
     mozilla::DebugOnly<nsDisplayTableBackgroundSet*> result =
@@ -302,20 +295,23 @@ class nsTableFrame : public nsContainerFrame {
   IntrinsicSizeOffsetData IntrinsicISizeOffsets(
       nscoord aPercentageBasis = NS_UNCONSTRAINEDSIZE) override;
 
-  virtual mozilla::LogicalSize ComputeSize(
-      gfxContext* aRenderingContext, mozilla::WritingMode aWM,
-      const mozilla::LogicalSize& aCBSize, nscoord aAvailableISize,
-      const mozilla::LogicalSize& aMargin, const mozilla::LogicalSize& aBorder,
-      const mozilla::LogicalSize& aPadding, ComputeSizeFlags aFlags) override;
+  SizeComputationResult ComputeSize(gfxContext* aRenderingContext,
+                                    mozilla::WritingMode aWM,
+                                    const mozilla::LogicalSize& aCBSize,
+                                    nscoord aAvailableISize,
+                                    const mozilla::LogicalSize& aMargin,
+                                    const mozilla::LogicalSize& aBorderPadding,
+                                    mozilla::ComputeSizeFlags aFlags) override;
 
   virtual mozilla::LogicalSize ComputeAutoSize(
       gfxContext* aRenderingContext, mozilla::WritingMode aWM,
       const mozilla::LogicalSize& aCBSize, nscoord aAvailableISize,
-      const mozilla::LogicalSize& aMargin, const mozilla::LogicalSize& aBorder,
-      const mozilla::LogicalSize& aPadding, ComputeSizeFlags aFlags) override;
+      const mozilla::LogicalSize& aMargin,
+      const mozilla::LogicalSize& aBorderPadding,
+      mozilla::ComputeSizeFlags aFlags) override;
 
   /**
-   * A copy of nsFrame::ShrinkWidthToFit that calls a different
+   * A copy of nsIFrame::ShrinkWidthToFit that calls a different
    * GetPrefISize, since tables have two different ones.
    */
   nscoord TableShrinkISizeToFit(gfxContext* aRenderingContext,
@@ -545,12 +541,12 @@ class nsTableFrame : public nsContainerFrame {
    *
    * @param aFrame The frame to invalidate
    * @param aOrigRect The original rect of aFrame (before the change).
-   * @param aOrigVisualOverflow The original overflow rect of aFrame.
+   * @param aOrigInkOverflow The original overflow rect of aFrame.
    * @param aIsFirstReflow True if the size/position change is due to the
    *                       first reflow of aFrame.
    */
   static void InvalidateTableFrame(nsIFrame* aFrame, const nsRect& aOrigRect,
-                                   const nsRect& aOrigVisualOverflow,
+                                   const nsRect& aOrigInkOverflow,
                                    bool aIsFirstReflow);
 
   virtual bool ComputeCustomOverflow(nsOverflowAreas& aOverflowAreas) override;
@@ -646,7 +642,9 @@ class nsTableFrame : public nsContainerFrame {
  public:
   // calculate the computed block-size of aFrame including its border and
   // padding given its reflow input.
-  nscoord CalcBorderBoxBSize(const ReflowInput& aReflowInput);
+  nscoord CalcBorderBoxBSize(const ReflowInput& aReflowInput,
+                             const LogicalMargin& aBorderPadding,
+                             nscoord aIntrinsicBorderBoxBSize);
 
  protected:
   // update the  desired block-size of this table taking into account the
@@ -664,7 +662,7 @@ class nsTableFrame : public nsContainerFrame {
                   const mozilla::LogicalPoint& aKidPosition,
                   const nsSize& aContainerSize, ReflowOutput& aKidDesiredSize,
                   const nsRect& aOriginalKidRect,
-                  const nsRect& aOriginalKidVisualOverflow);
+                  const nsRect& aOriginalKidInkOverflow);
   void PlaceRepeatedFooter(TableReflowInput& aReflowInput,
                            nsTableRowGroupFrame* aTfoot, nscoord aFooterHeight);
 
@@ -771,7 +769,7 @@ class nsTableFrame : public nsContainerFrame {
                       nsTArray<nsTableRowFrame*>& aCollection);
 
  public: /* ----- Cell Map public methods ----- */
-  int32_t GetStartRowIndex(nsTableRowGroupFrame* aRowGroupFrame);
+  int32_t GetStartRowIndex(const nsTableRowGroupFrame* aRowGroupFrame) const;
 
   /** returns the number of rows in this table.
    */

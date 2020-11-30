@@ -21,6 +21,7 @@ namespace a11y {
 
 class DocAccessible;
 class EventQueue;
+class TextRange;
 
 // Constants used to point whether the event is from user input.
 enum EIsFromUserInput {
@@ -339,10 +340,12 @@ class AccReorderEvent : public AccTreeMutationEvent {
 class AccCaretMoveEvent : public AccEvent {
  public:
   AccCaretMoveEvent(Accessible* aAccessible, int32_t aCaretOffset,
+                    bool aIsSelectionCollapsed,
                     EIsFromUserInput aIsFromUserInput = eAutoDetect)
       : AccEvent(::nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED, aAccessible,
                  aIsFromUserInput),
-        mCaretOffset(aCaretOffset) {}
+        mCaretOffset(aCaretOffset),
+        mIsSelectionCollapsed(aIsSelectionCollapsed) {}
   virtual ~AccCaretMoveEvent() {}
 
   // AccEvent
@@ -354,8 +357,12 @@ class AccCaretMoveEvent : public AccEvent {
   // AccCaretMoveEvent
   int32_t GetCaretOffset() const { return mCaretOffset; }
 
+  bool IsSelectionCollapsed() const { return mIsSelectionCollapsed; }
+
  private:
   int32_t mCaretOffset;
+
+  bool mIsSelectionCollapsed;
 };
 
 /**
@@ -379,6 +386,11 @@ class AccTextSelChangeEvent : public AccEvent {
    * Return true if the text selection change wasn't caused by pure caret move.
    */
   bool IsCaretMoveOnly() const;
+
+  /**
+   * Return selection ranges in document/control.
+   */
+  void SelectionRanges(nsTArray<a11y::TextRange>* aRanges) const;
 
  private:
   RefPtr<dom::Selection> mSel;

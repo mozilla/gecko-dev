@@ -21,6 +21,9 @@
         "$ref": "#/definitions/appliesToSection"
       }
     },
+    "sendAttributionRequest": {
+      "$ref": "#/definitions/sendAttributionRequest"
+    },
     "telemetryId": {
       "type": "string",
       "title": "Telemetry Id",
@@ -34,6 +37,9 @@
     },
     "extraParams": {
       "$ref": "#/definitions/extraParams"
+    },
+    "regionParams": {
+      "$ref": "#/definitions/regionParams"
     }
   },
   "definitions": {
@@ -78,7 +84,7 @@
         },
         "excludedDistributions": {
           "type": "array",
-          "title": "Exlucuded Distributions",
+          "title": "Excluded Distributions",
           "description": "Which distributions this does not apply to.",
           "items": {
             "type": "string"
@@ -255,6 +261,38 @@
         }
       }
     },
+    "regionParams": {
+      "type": "object",
+      "title": "Region Parameters",
+      "description": "A map of regions to an array of parameter overrides",
+      "patternProperties": {
+        "^([a-z][a-z]|default)$": {
+          "type": "array",
+          "title": "Parameter Overrides",
+          "description": "A array of objects - map of parameter name to the parameter value.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "title": "Name",
+                "description": "Name of the parameter to override"
+              },
+              "value": {
+                "type": "string",
+                "title": "Value",
+                "description": "The value to override with"
+              }
+            }
+          }
+        }
+      }
+    },
+    "sendAttributionRequest": {
+      "type": "boolean",
+      "title": "Send Attribution Request",
+      "description": "Indicates if we should send an attribution request to Mozilla's server."
+    },
     "telemetryId": {
       "type": "string",
       "title": "Telemetry Id",
@@ -267,7 +305,8 @@
         "id": {
           "type": "string",
           "title": "WebExtension Id",
-          "description": "The identifier (local part) of the associated WebExtension"
+          "description": "The identifier (local part) of the associated WebExtension should be of the format example@search.mozilla.org",
+          "pattern": "^[a-zA-Z0-9-._]*@search.mozilla.org$"
         },
         "locale": {
           "type": "string",
@@ -368,14 +407,25 @@
         "webextension": {
           "$ref": "#/definitions/webExtension"
         },
+        "sendAttributionRequest": {
+          "$ref": "#/definitions/sendAttributionRequest"
+        },
         "telemetryId": {
           "$ref": "#/definitions/telemetryId"
         },
         "params": {
           "$ref": "#/definitions/params"
         },
+        "regionParams": {
+          "$ref": "#/definitions/regionParams"
+        },
         "extraParams": {
           "$ref": "#/definitions/extraParams"
+        },
+        "experiment": {
+          "type": "string",
+          "title": "Experiment",
+          "description": "The experiment this section is associated with, if blank it is associated with any configuration."
         }
       }
     }

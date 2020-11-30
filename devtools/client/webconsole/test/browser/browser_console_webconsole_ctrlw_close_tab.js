@@ -11,8 +11,6 @@ add_task(async function() {
     "data:text/html;charset=utf8,<title>bug871156</title>\n" + "<p>hello world";
   const firstTab = gBrowser.selectedTab;
 
-  await pushPref("toolkit.cosmeticAnimations.enabled", false);
-
   let hud = await openNewTabAndConsole(TEST_URI);
 
   const tabClosed = defer();
@@ -62,18 +60,18 @@ add_task(async function() {
   hud = await BrowserConsoleManager.toggleBrowserConsole();
   ok(hud, "Browser Console opened");
 
-  const deferred = defer();
+  const onBrowserConsoleClosed = new Promise(resolve => {
+    Services.obs.addObserver(function onDestroy() {
+      Services.obs.removeObserver(onDestroy, "web-console-destroyed");
+      resolve();
+    }, "web-console-destroyed");
+  });
 
-  Services.obs.addObserver(function onDestroy() {
-    Services.obs.removeObserver(onDestroy, "web-console-destroyed");
-    ok(true, "the Browser Console closed");
-
-    deferred.resolve(null);
-  }, "web-console-destroyed");
-
+  await waitForAllTargetsToBeAttached(hud.targetList);
   waitForFocus(() => {
     EventUtils.synthesizeKey("w", { accelKey: true }, hud.iframeWindow);
   }, hud.iframeWindow);
 
-  await deferred.promise;
+  await onBrowserConsoleClosed;
+  ok(true, "the Browser Console closed");
 });

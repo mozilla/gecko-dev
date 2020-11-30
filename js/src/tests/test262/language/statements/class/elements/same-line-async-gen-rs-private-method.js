@@ -1,4 +1,4 @@
-// |reftest| skip async -- class-methods-private,class-fields-private is not supported
+// |reftest| shell-option(--enable-private-fields) shell-option(--enable-private-methods) skip-if(!xulRuntime.shell) async -- requires shell-options
 // This file was procedurally generated from the following sources:
 // - src/class-elements/rs-private-method.case
 // - src/class-elements/productions/cls-decl-after-same-line-async-gen.template
@@ -134,4 +134,4 @@ c.m().next().then(function(v) {
   }
 
   return Promise.resolve(assertions());
-}, $DONE).then($DONE, $DONE);
+}).then($DONE, $DONE);

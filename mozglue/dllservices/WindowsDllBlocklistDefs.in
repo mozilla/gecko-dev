@@ -15,7 +15,8 @@
 # DLL block.
 #
 # The currently supported blocklist entry types are:
-# DllBlocklistEntry, A11yBlocklistEntry, LspBlocklistEntry
+# DllBlocklistEntry, A11yBlocklistEntry, LspBlocklistEntry,
+# RedirectToNoOpEntryPoint
 # (See gen_dll_blocklist_defs.py for their documentation.)
 #
 # Example:
@@ -192,7 +193,8 @@ ALL_PROCESSES += [
     DllBlocklistEntry("nahimicmsidevprops.dll", UNVERSIONED),
 
     # Bug 1268470 - crashes with Kaspersky Lab on Windows 8
-    DllBlocklistEntry("klsihk64.dll", (14, 0, 456, 0xffff), BLOCK_WIN8_ONLY),
+    DllBlocklistEntry("klsihk64.dll", (14, 0, 456, 0xffff),
+                      BLOCK_WIN8_AND_OLDER),
 
     # Bug 1579758, crashes with OpenSC nightly version 0.19.0.448 and lower
     DllBlocklistEntry("onepin-opensc-pkcs11.dll", (0, 19, 0, 448)),
@@ -220,19 +222,19 @@ ALL_PROCESSES += [
     # 360 Safeguard/360 Total Security causes a11y crashes, bug 1536227.
     DllBlocklistEntry("safemon64.dll", ALL_VERSIONS),
 
-    # FYunZip and PuddingZip cause crashes, bug 1576728
-    DllBlocklistEntry("oly64.dll", (1, 1, 3, 19919)),
-    DllBlocklistEntry("oly.dll", (1, 1, 3, 19919)),
-    DllBlocklistEntry("pdzipmenu64.dll", UNVERSIONED),
-    DllBlocklistEntry("pdzipmenu32.dll", UNVERSIONED),
+    # Old versions of Digital Guardian, bug 1318858 and bug 1603974
+    RedirectToNoOpEntryPoint("dgapi.dll", (7, 5, 0, 0xffff)),
+    RedirectToNoOpEntryPoint("dgapi64.dll", (7, 5, 0, 0xffff)),
 
-    # Old versions of Digital Guardian, bug 1318858
-    DllBlocklistEntry("dgapi.dll", (7, 5, 0, 0xffff)),
-    DllBlocklistEntry("dgapi64.dll", (7, 5, 0, 0xffff)),
-
-    # Old versions of COMODO Internet Security
+    # Old versions of COMODO Internet Security, bug 1608048
     DllBlocklistEntry("IseGuard32.dll", (1, 6, 13835, 184)),
     DllBlocklistEntry("IseGuard64.dll", (1, 6, 13835, 184)),
+
+    # Old version of COMODO Firewall, bug 1407712 and bug 1624336
+    DllBlocklistEntry("guard64.dll", (8, 4, 0, 65535)),
+
+    # Old version of Panda Security, bug 1637984
+    DllBlocklistEntry("PavLspHook64.dll", (9, 2, 2, 1), BLOCK_WIN7_AND_OLDER),
 ]
 
 ALL_PROCESSES_TESTS += [
@@ -240,6 +242,8 @@ ALL_PROCESSES_TESTS += [
     DllBlocklistEntry("testdllblocklist_matchbyname.dll", ALL_VERSIONS),
     DllBlocklistEntry("testdllblocklist_matchbyversion.dll", (5, 5, 5, 5)),
     DllBlocklistEntry("testdllblocklist_allowbyversion.dll", (5, 5, 5, 5)),
+    RedirectToNoOpEntryPoint("testdllblocklist_noopentrypoint.dll",
+                             (5, 5, 5, 5)),
 ]
 
 BROWSER_PROCESS += [
@@ -249,11 +253,22 @@ BROWSER_PROCESS += [
     A11yBlocklistEntry("dtvhooks64.dll", (18, 1, 10, 0xffff)),
 
     # SolidWorks Windows Explorer integration causes crashes, bug 1566109
-    DllBlocklistEntry("Database.dll", (27, 3, 0, 59)),
+    # and bug 1468250
+    DllBlocklistEntry("Database.dll", ALL_VERSIONS),
 
-    # NXP Semiconductors (formerly Athena) PKCS11 module causes crashes,
-    # bug 1560052
-    DllBlocklistEntry("asepkcs.dll", (6, 5, 0, 5)),
+    # Hancom Office shell extension causes crashes when the file picker is
+    # opened. See bug 1581092.
+    DllBlocklistEntry("hncshellext64.dll", (1, 0, 0 ,3)),
+
+    # Cambridge Silicon Radio, bug 1634538
+    DllBlocklistEntry("BLEtokenCredentialProvider.dll", (2, 1, 63, 0)),
+
+    # FYunZip and PuddingZip, loaded as shell extension, cause crashes
+    # bug 1576728
+    DllBlocklistEntry("oly64.dll", (1, 1, 3, 19920)),
+    DllBlocklistEntry("oly.dll", (1, 1, 3, 19920)),
+    DllBlocklistEntry("pdzipmenu64.dll", (1, 4, 4, 20103)),
+    DllBlocklistEntry("pdzipmenu32.dll", (1, 4, 4, 20103)),
 ]
 
 CHILD_PROCESSES += [

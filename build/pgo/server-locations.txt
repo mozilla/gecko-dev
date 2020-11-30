@@ -66,6 +66,7 @@ http://127.0.0.1:80               privileged
 http://127.0.0.1:8888             privileged
 http://test:80                    privileged
 http://mochi.test:8888            privileged
+http://mochi.xorigin-test:8888    privileged
 http://test1.mochi.test:8888
 http://sub1.test1.mochi.test:8888
 http://sub2.xn--lt-uia.mochi.test:8888
@@ -94,6 +95,7 @@ http://sub2.test1.example.com:80     privileged
 http://sub2.test2.example.com:80     privileged
 http://noxul.example.com:80          privileged,noxul
 http://example.net:80                privileged
+http://supports-insecure.expired.example.com:80 privileged
 # Used to test that clearing Service Workers for domain example.com, does not clear prefixexample.com
 http://prefixexample.com:80
 
@@ -115,10 +117,12 @@ https://untrusted.example.com:443      privileged,cert=untrusted
 https://expired.example.com:443        privileged,cert=expired
 https://requestclientcert.example.com:443         privileged,clientauth=request
 https://requireclientcert.example.com:443         privileged,clientauth=require
+https://requireclientcert-2.example.com:443         privileged,clientauth=require
 https://mismatch.expired.example.com:443	privileged,cert=expired
 https://mismatch.untrusted.example.com:443	privileged,cert=untrusted
 https://untrusted-expired.example.com:443	privileged,cert=untrustedandexpired
 https://mismatch.untrusted-expired.example.com:443	privileged,cert=untrustedandexpired
+https://supports-insecure.expired.example.com:443   privileged,cert=expired
 https://no-subject-alt-name.example.com:443   cert=noSubjectAltName
 
 # Used for secure contexts on ip addresses, see bug 1616675. Note that
@@ -282,6 +286,8 @@ http://example.tw:80                privileged
 http://example.cn:80                privileged
 http://example.co.jp:80             privileged
 http://example.fi:80                privileged
+http://example.in:80                privileged
+http://example.lk:80                privileged
 
 # Host for HPKP
 https://include-subdomains.pinning-dynamic.example.com:443        privileged,cert=dynamicPinningGood
@@ -290,6 +296,13 @@ https://bad.include-subdomains.pinning-dynamic.example.com:443    privileged,cer
 # Host for static pin tests
 https://badchain.include-subdomains.pinning.example.com:443       privileged,cert=staticPinningBad
 https://fail-handshake.example.com:443                            privileged,failHandshake
+
+# Host for bad cert domain fixup test
+https://badcertdomain.example.com:443                             privileged,cert=badCertDomain
+https://www.badcertdomain.example.com:443                         privileged,cert=badCertDomain
+https://127.0.0.3:433                                             privileged,cert=badCertDomain
+https://badcertdomain.example.com:82                              privileged,cert=badCertDomain
+https://mismatch.badcertdomain.example.com:443                    privileged,cert=badCertDomain
 
 # Hosts for sha1 console warning tests
 https://sha1ee.example.com:443                                    privileged,cert=sha1_end_entity

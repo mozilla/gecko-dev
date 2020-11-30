@@ -27,6 +27,7 @@ mod err;
 pub mod ext;
 pub mod hkdf;
 pub mod hp;
+mod once;
 mod prio;
 mod replay;
 mod secrets;
@@ -35,18 +36,19 @@ mod ssl;
 mod time;
 
 pub use self::agent::{
-    Agent, Client, HandshakeState, Record, RecordList, SecretAgent, SecretAgentInfo,
-    SecretAgentPreInfo, Server, ZeroRttCheckResult, ZeroRttChecker,
+    Agent, AllowZeroRtt, Client, HandshakeState, Record, RecordList, ResumptionToken, SecretAgent,
+    SecretAgentInfo, SecretAgentPreInfo, Server, ZeroRttCheckResult, ZeroRttChecker,
 };
+pub use self::auth::AuthenticationStatus;
 pub use self::constants::*;
 pub use self::err::{Error, PRErrorCode, Res};
 pub use self::ext::{ExtensionHandler, ExtensionHandlerResult, ExtensionWriterResult};
 pub use self::p11::{random, SymKey};
 pub use self::replay::AntiReplay;
 pub use self::secrets::SecretDirection;
-pub use auth::AuthenticationStatus;
+pub use self::ssl::Opt;
 
-use neqo_common::once::OnceResult;
+use self::once::OnceResult;
 
 use std::ffi::CString;
 use std::os::raw::c_char;

@@ -10,6 +10,8 @@
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/DOMJSProxyHandler.h"
 #include "mozilla/dom/RemoteObjectProxy.h"
+#include "js/friend/WindowProxy.h"  // js::IsWindowProxy
+#include "js/Object.h"              // JS::GetClass
 #include "js/Proxy.h"
 #include "js/RootingAPI.h"
 #include "js/Wrapper.h"
@@ -19,7 +21,7 @@
 
 #ifdef DEBUG
 static bool IsLocation(JSObject* obj) {
-  return strcmp(js::GetObjectClass(obj)->name, "Location") == 0;
+  return strcmp(JS::GetClass(obj)->name, "Location") == 0;
 }
 #endif  // DEBUG
 
@@ -118,7 +120,7 @@ bool MaybeCrossOriginObjectMixins::CrossOriginPropertyFallback(
   }
 
   // Step 2.
-  return ReportCrossOriginDenial(cx, id, NS_LITERAL_CSTRING("access"));
+  return ReportCrossOriginDenial(cx, id, "access"_ns);
 }
 
 /* static */
@@ -173,7 +175,7 @@ bool MaybeCrossOriginObjectMixins::CrossOriginGet(
   JS::Rooted<JSObject*> getter(cx);
   if (!desc.hasGetterObject() || !(getter = desc.getterObject())) {
     // Step 6.
-    return ReportCrossOriginDenial(cx, id, NS_LITERAL_CSTRING("get"));
+    return ReportCrossOriginDenial(cx, id, "get"_ns);
   }
 
   // Step 7.
@@ -229,13 +231,13 @@ bool MaybeCrossOriginObjectMixins::CrossOriginSet(
   }
 
   // Step 4.
-  return ReportCrossOriginDenial(cx, id, NS_LITERAL_CSTRING("set"));
+  return ReportCrossOriginDenial(cx, id, "set"_ns);
 }
 
 /* static */
 bool MaybeCrossOriginObjectMixins::EnsureHolder(
     JSContext* cx, JS::Handle<JSObject*> obj, size_t slot,
-    JSPropertySpec* attributes, JSFunctionSpec* methods,
+    const CrossOriginProperties& properties,
     JS::MutableHandle<JSObject*> holder) {
   MOZ_ASSERT(!IsPlatformObjectSameOrigin(cx, obj) || IsRemoteObjectProxy(obj),
              "Why are we calling this at all in same-origin cases?");
@@ -311,9 +313,14 @@ bool MaybeCrossOriginObjectMixins::EnsureHolder(
   // cross-compartment references to all the methods it holds, since those
   // methods need to be in our current Realm.  It seems better to allocate the
   // holder in our current Realm.
+  bool isChrome = xpc::AccessCheck::isChrome(js::GetContextRealm(cx));
   holder.set(JS_NewObjectWithGivenProto(cx, nullptr, nullptr));
-  if (!holder || !JS_DefineProperties(cx, holder, attributes) ||
-      !JS_DefineFunctions(cx, holder, methods)) {
+  if (!holder || !JS_DefineProperties(cx, holder, properties.mAttributes) ||
+      !JS_DefineFunctions(cx, holder, properties.mMethods) ||
+      (isChrome && properties.mChromeOnlyAttributes &&
+       !JS_DefineProperties(cx, holder, properties.mChromeOnlyAttributes)) ||
+      (isChrome && properties.mChromeOnlyMethods &&
+       !JS_DefineFunctions(cx, holder, properties.mChromeOnlyMethods))) {
     return false;
   }
 
@@ -427,7 +434,7 @@ bool MaybeCrossOriginObject<Base>::defineProperty(
     JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
     JS::Handle<JS::PropertyDescriptor> desc, JS::ObjectOpResult& result) const {
   if (!IsPlatformObjectSameOrigin(cx, proxy)) {
-    return ReportCrossOriginDenial(cx, id, NS_LITERAL_CSTRING("define"));
+    return ReportCrossOriginDenial(cx, id, "define"_ns);
   }
 
   // Enter the Realm of proxy and do the remaining work in there.

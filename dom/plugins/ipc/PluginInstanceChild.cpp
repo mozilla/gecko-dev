@@ -39,7 +39,6 @@ using mozilla::gfx::SharedDIBSurface;
 #include "ImageContainer.h"
 
 using namespace mozilla;
-using mozilla::ipc::ProcessChild;
 using namespace mozilla::plugins;
 using namespace mozilla::layers;
 using namespace mozilla::gfx;
@@ -50,7 +49,6 @@ using namespace mozilla::widget;
 #  include <gtk/gtk.h>
 #  include <gdk/gdkx.h>
 #  include <gdk/gdk.h>
-#  include "gtk2xtbin.h"
 
 #elif defined(OS_WIN)
 
@@ -125,8 +123,8 @@ PluginInstanceChild::PluginInstanceChild(const NPPluginFuncs* aPluginIface,
                                          const nsTArray<nsCString>& aValues)
     : mPluginIface(aPluginIface),
       mMimeType(aMimeType),
-      mNames(aNames),
-      mValues(aValues)
+      mNames(aNames.Clone()),
+      mValues(aValues.Clone())
 #if defined(XP_DARWIN) || defined(XP_WIN)
       ,
       mContentsScaleFactor(1.0)
@@ -3228,7 +3226,7 @@ void PluginInstanceChild::PaintRectToPlatformSurface(const nsIntRect& aRect,
 
 void PluginInstanceChild::PaintRectToSurface(const nsIntRect& aRect,
                                              gfxASurface* aSurface,
-                                             const Color& aColor) {
+                                             const DeviceColor& aColor) {
   // Render using temporary X surface, with copy to image surface
   nsIntRect plPaintRect(aRect);
   RefPtr<gfxASurface> renderSurface = aSurface;
@@ -3335,7 +3333,7 @@ void PluginInstanceChild::PaintRectWithAlphaExtraction(const nsIntRect& aRect,
 
   // Paint the plugin directly onto the target, with a white
   // background and copy the result
-  PaintRectToSurface(rect, aSurface, Color(1.f, 1.f, 1.f));
+  PaintRectToSurface(rect, aSurface, DeviceColor::MaskOpaqueWhite());
   {
     RefPtr<DrawTarget> dt = CreateDrawTargetForSurface(whiteImage);
     RefPtr<SourceSurface> surface =
@@ -3345,7 +3343,7 @@ void PluginInstanceChild::PaintRectWithAlphaExtraction(const nsIntRect& aRect,
 
   // Paint the plugin directly onto the target, with a black
   // background
-  PaintRectToSurface(rect, aSurface, Color(0.f, 0.f, 0.f));
+  PaintRectToSurface(rect, aSurface, DeviceColor::MaskOpaqueBlack());
 
   // Don't copy the result, just extract a subimage so that we can
   // recover alpha directly into the target
@@ -3356,7 +3354,7 @@ void PluginInstanceChild::PaintRectWithAlphaExtraction(const nsIntRect& aRect,
   gfxPoint deviceOffset = -targetRect.TopLeft();
   // Paint onto white background
   whiteImage->SetDeviceOffset(deviceOffset);
-  PaintRectToSurface(rect, whiteImage, Color(1.f, 1.f, 1.f));
+  PaintRectToSurface(rect, whiteImage, DeviceColor::MaskOpaqueWhite());
 
   if (useSurfaceSubimageForBlack) {
     gfxImageSurface* surface = static_cast<gfxImageSurface*>(aSurface);
@@ -3368,7 +3366,7 @@ void PluginInstanceChild::PaintRectWithAlphaExtraction(const nsIntRect& aRect,
 
   // Paint onto black background
   blackImage->SetDeviceOffset(deviceOffset);
-  PaintRectToSurface(rect, blackImage, Color(0.f, 0.f, 0.f));
+  PaintRectToSurface(rect, blackImage, DeviceColor::MaskOpaqueBlack());
 #endif
 
   MOZ_ASSERT(whiteImage && blackImage, "Didn't paint enough!");
@@ -3528,7 +3526,7 @@ bool PluginInstanceChild::ShowPluginFrame() {
     }
     // ... and hand off to the plugin
     // BEWARE: mBackground may die during this call
-    PaintRectToSurface(rect, mCurrentSurface, Color());
+    PaintRectToSurface(rect, mCurrentSurface, DeviceColor());
   } else if (!temporarilyMakeVisible && mDoAlphaExtraction) {
     // We don't want to pay the expense of alpha extraction for
     // phony paints.
@@ -3545,7 +3543,7 @@ bool PluginInstanceChild::ShowPluginFrame() {
                                      ? mHelperSurface
                                      : mCurrentSurface;
 
-    PaintRectToSurface(rect, target, Color());
+    PaintRectToSurface(rect, target, DeviceColor());
   }
   mHasPainted = true;
 
@@ -3993,12 +3991,9 @@ void PluginInstanceChild::Destroy() {
   ManagedPBrowserStreamChild(streams);
 
   // First make sure none of these streams become deleted
-  for (uint32_t i = 0; i < streams.Length();) {
-    if (static_cast<BrowserStreamChild*>(streams[i])->InstanceDying())
-      ++i;
-    else
-      streams.RemoveElementAt(i);
-  }
+  streams.RemoveElementsBy([](const auto& stream) {
+    return !static_cast<BrowserStreamChild*>(stream)->InstanceDying();
+  });
   for (uint32_t i = 0; i < streams.Length(); ++i)
     static_cast<BrowserStreamChild*>(streams[i])->FinishDelivery();
 

@@ -7,7 +7,6 @@
 #include "mozilla/FloatingPoint.h"
 
 #include "txExpr.h"
-#include "nsAutoPtr.h"
 #include "txNodeSet.h"
 #include "nsGkAtoms.h"
 #include "txIXPathContext.h"
@@ -565,7 +564,7 @@ nsresult txCoreFunctionCall::evaluate(txIEvalContext* aContext,
       NS_ENSURE_SUCCESS(rv, rv);
 
       bool result =
-          StringBeginsWith(lang, arg, txCaseInsensitiveStringComparator()) &&
+          StringBeginsWith(lang, arg, nsCaseInsensitiveStringComparator) &&
           (lang.Length() == arg.Length() || lang.CharAt(arg.Length()) == '-');
 
       aContext->recycler()->getBoolResult(result, aResult);
@@ -588,8 +587,7 @@ nsresult txCoreFunctionCall::evaluate(txIEvalContext* aContext,
     }
   }
 
-  aContext->receiveError(NS_LITERAL_STRING("Internal error"),
-                         NS_ERROR_UNEXPECTED);
+  aContext->receiveError(u"Internal error"_ns, NS_ERROR_UNEXPECTED);
   return NS_ERROR_UNEXPECTED;
 }
 

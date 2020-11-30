@@ -139,7 +139,10 @@ nsresult nsStreamConverterService::AddAdjacency(const char* aContractID) {
   NS_ASSERTION(fromEdges, "something wrong in adjacency list construction");
   if (!fromEdges) return NS_ERROR_FAILURE;
 
-  return fromEdges->AppendElement(vertex) ? NS_OK : NS_ERROR_FAILURE;
+  // XXX(Bug 1631371) Check if this should use a fallible operation as it
+  // pretended earlier.
+  fromEdges->AppendElement(vertex);
+  return NS_OK;
 }
 
 nsresult nsStreamConverterService::ParseFromTo(const char* aContractID,
@@ -169,12 +172,9 @@ typedef nsClassHashtable<nsCStringHashKey, BFSTableData> BFSHashTable;
 
 // nsObjectHashtable enumerator functions.
 
-class CStreamConvDeallocator : public nsDequeFunctor {
+class CStreamConvDeallocator : public nsDequeFunctor<nsCString> {
  public:
-  void operator()(void* anObject) override {
-    nsCString* string = (nsCString*)anObject;
-    delete string;
-  }
+  void operator()(nsCString* anObject) override { delete anObject; }
 };
 
 // walks the graph using a breadth-first-search algorithm which generates a
@@ -309,10 +309,9 @@ nsresult nsStreamConverterService::FindConverter(
     newContractID.Append(data->key);
 
     // Add this CONTRACTID to the chain.
-    rv = shortestPath->AppendElement(newContractID)
-             ? NS_OK
-             : NS_ERROR_FAILURE;  // XXX this method incorrectly returns a bool
-    NS_ASSERTION(NS_SUCCEEDED(rv), "AppendElement failed");
+    // XXX(Bug 1631371) Check if this should use a fallible operation as it
+    // pretended earlier.
+    shortestPath->AppendElement(newContractID);
 
     // move up the tree.
     data = predecessorData;
@@ -355,6 +354,7 @@ nsStreamConverterService::CanConvert(const char* aFromType, const char* aToType,
 
 NS_IMETHODIMP
 nsStreamConverterService::ConvertedType(const nsACString& aFromType,
+                                        nsIChannel* aChannel,
                                         nsACString& aOutToType) {
   // first determine whether we can even handle this conversion
   // build a CONTRACTID
@@ -367,7 +367,7 @@ nsStreamConverterService::ConvertedType(const nsACString& aFromType,
   nsresult rv;
   nsCOMPtr<nsIStreamConverter> converter(do_CreateInstance(cContractID, &rv));
   if (NS_SUCCEEDED(rv)) {
-    return converter->GetConvertedType(aFromType, aOutToType);
+    return converter->GetConvertedType(aFromType, aChannel, aOutToType);
   }
   return rv;
 }
@@ -542,8 +542,8 @@ nsresult NS_NewStreamConv(nsStreamConverterService** aStreamConv) {
   MOZ_ASSERT(aStreamConv != nullptr, "null ptr");
   if (!aStreamConv) return NS_ERROR_NULL_POINTER;
 
-  *aStreamConv = new nsStreamConverterService();
-  NS_ADDREF(*aStreamConv);
+  RefPtr<nsStreamConverterService> conv = new nsStreamConverterService();
+  conv.forget(aStreamConv);
 
   return NS_OK;
 }

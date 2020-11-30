@@ -4,6 +4,8 @@
 
 "use strict";
 
+const { Ci } = require("chrome");
+
 const {
   DEBUG_TARGETS,
   REQUEST_WORKERS_SUCCESS,
@@ -29,14 +31,15 @@ const workerComponentDataMiddleware = store => next => action => {
 };
 
 function getServiceWorkerStatus(worker) {
-  const isActive = worker.active;
-  const isRunning = !!worker.workerTargetFront;
+  const isActive = worker.state === Ci.nsIServiceWorkerInfo.STATE_ACTIVATED;
+  const isRunning = !!worker.workerDescriptorFront;
 
   if (isActive && isRunning) {
     return SERVICE_WORKER_STATUSES.RUNNING;
   } else if (isActive) {
     return SERVICE_WORKER_STATUSES.STOPPED;
   }
+
   // We cannot get service worker registrations unless the registration is in
   // ACTIVE state. Unable to know the actual state ("installing", "waiting"), we
   // display a custom state "registering" for now. See Bug 1153292.

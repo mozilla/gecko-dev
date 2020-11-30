@@ -109,7 +109,7 @@ class MOZ_RAII AutoHeapSession {
 
   GCRuntime* gc;
   JS::HeapState prevState;
-  AutoGeckoProfilerEntry profilingStackFrame;
+  mozilla::Maybe<AutoGeckoProfilerEntry> profilingStackFrame;
 };
 
 class MOZ_RAII AutoGCSession : public AutoHeapSession {
@@ -124,6 +124,11 @@ class MOZ_RAII AutoGCSession : public AutoHeapSession {
   // During a GC we can check that it's not possible for anything else to be
   // using the atoms zone.
   mozilla::Maybe<AutoCheckCanAccessAtomsDuringGC> maybeCheckAtomsAccess;
+};
+
+class MOZ_RAII AutoMajorGCProfilerEntry : public AutoGeckoProfilerEntry {
+ public:
+  explicit AutoMajorGCProfilerEntry(GCRuntime* gc);
 };
 
 class MOZ_RAII AutoTraceSession : public AutoLockAllAtoms,
@@ -164,7 +169,7 @@ class MOZ_RAII AutoEmptyNurseryAndPrepareForTracing : private AutoFinishGC,
         AutoTraceSession(cx->runtime()) {}
 };
 
-AbortReason IsIncrementalGCUnsafe(JSRuntime* rt);
+GCAbortReason IsIncrementalGCUnsafe(JSRuntime* rt);
 
 #ifdef JS_GC_ZEAL
 
@@ -213,58 +218,48 @@ void CheckHashTablesAfterMovingGC(JSRuntime* rt);
 void CheckHeapAfterGC(JSRuntime* rt);
 #endif
 
-struct MovingTracer final : public JS::CallbackTracer {
+struct MovingTracer final : public GenericTracer {
   explicit MovingTracer(JSRuntime* rt)
-      : CallbackTracer(rt, TraceWeakMapKeysValues) {}
+      : GenericTracer(rt, JS::TracerKind::Moving,
+                      JS::WeakMapTraceAction::TraceKeysAndValues) {}
 
-  bool onObjectEdge(JSObject** objp) override;
-  bool onShapeEdge(Shape** shapep) override;
-  bool onStringEdge(JSString** stringp) override;
-  bool onScriptEdge(js::BaseScript** scriptp) override;
-  bool onBaseShapeEdge(BaseShape** basep) override;
-  bool onScopeEdge(Scope** scopep) override;
-  bool onRegExpSharedEdge(RegExpShared** sharedp) override;
-  bool onBigIntEdge(BigInt** bip) override;
-  bool onChild(const JS::GCCellPtr& thing) override {
-    MOZ_ASSERT(!thing.asCell()->isForwarded());
-    return true;
-  }
-
-#ifdef DEBUG
-  TracerKind getTracerKind() const override { return TracerKind::Moving; }
-#endif
+  JSObject* onObjectEdge(JSObject* obj) override;
+  Shape* onShapeEdge(Shape* shape) override;
+  JSString* onStringEdge(JSString* string) override;
+  js::BaseScript* onScriptEdge(js::BaseScript* script) override;
+  BaseShape* onBaseShapeEdge(BaseShape* base) override;
+  Scope* onScopeEdge(Scope* scope) override;
+  RegExpShared* onRegExpSharedEdge(RegExpShared* shared) override;
+  BigInt* onBigIntEdge(BigInt* bi) override;
+  ObjectGroup* onObjectGroupEdge(ObjectGroup* group) override;
+  JS::Symbol* onSymbolEdge(JS::Symbol* sym) override;
+  jit::JitCode* onJitCodeEdge(jit::JitCode* jit) override;
 
  private:
   template <typename T>
-  bool updateEdge(T** thingp);
+  T* onEdge(T* thingp);
 };
 
-struct SweepingTracer final : public JS::CallbackTracer {
+struct SweepingTracer final : public GenericTracer {
   explicit SweepingTracer(JSRuntime* rt)
-      : CallbackTracer(rt, TraceWeakMapKeysValues) {}
+      : GenericTracer(rt, JS::TracerKind::Sweeping,
+                      JS::WeakMapTraceAction::TraceKeysAndValues) {}
 
-  bool onObjectEdge(JSObject** objp) override;
-  bool onShapeEdge(Shape** shapep) override;
-  bool onStringEdge(JSString** stringp) override;
-  bool onScriptEdge(js::BaseScript** scriptp) override;
-  bool onBaseShapeEdge(BaseShape** basep) override;
-  bool onJitCodeEdge(jit::JitCode** jitp) override;
-  bool onScopeEdge(Scope** scopep) override;
-  bool onRegExpSharedEdge(RegExpShared** sharedp) override;
-  bool onBigIntEdge(BigInt** bip) override;
-  bool onObjectGroupEdge(js::ObjectGroup** groupp) override;
-  bool onChild(const JS::GCCellPtr& thing) override {
-    MOZ_CRASH("unexpected edge.");
-    return true;
-  }
-
-#ifdef DEBUG
-  TracerKind getTracerKind() const override { return TracerKind::Sweeping; }
-#endif
+  JSObject* onObjectEdge(JSObject* obj) override;
+  Shape* onShapeEdge(Shape* shape) override;
+  JSString* onStringEdge(JSString* string) override;
+  js::BaseScript* onScriptEdge(js::BaseScript* script) override;
+  BaseShape* onBaseShapeEdge(BaseShape* base) override;
+  jit::JitCode* onJitCodeEdge(jit::JitCode* jit) override;
+  Scope* onScopeEdge(Scope* scope) override;
+  RegExpShared* onRegExpSharedEdge(RegExpShared* shared) override;
+  BigInt* onBigIntEdge(BigInt* bi) override;
+  js::ObjectGroup* onObjectGroupEdge(js::ObjectGroup* group) override;
+  JS::Symbol* onSymbolEdge(JS::Symbol* sym) override;
 
  private:
   template <typename T>
-  bool sweepEdge(T** thingp);
+  T* onEdge(T* thingp);
 };
 
 // Structure for counting how many times objects in a particular group have
@@ -312,6 +307,13 @@ extern void DelayCrossCompartmentGrayMarking(JSObject* src);
 inline bool IsOOMReason(JS::GCReason reason) {
   return reason == JS::GCReason::LAST_DITCH ||
          reason == JS::GCReason::MEM_PRESSURE;
+}
+
+inline bool IsShutdownReason(JS::GCReason reason) {
+  return reason == JS::GCReason::WORKER_SHUTDOWN ||
+         reason == JS::GCReason::SHUTDOWN_CC ||
+         reason == JS::GCReason::DESTROY_RUNTIME ||
+         reason == JS::GCReason::XPCONNECT_SHUTDOWN;
 }
 
 TenuredCell* AllocateCellInGC(JS::Zone* zone, AllocKind thingKind);

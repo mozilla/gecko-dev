@@ -7,82 +7,81 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   SearchEngineSelector: "resource://gre/modules/SearchEngineSelector.jsm",
 });
 
-const CONFIG_URL =
-  "data:application/json," +
-  JSON.stringify({
-    data: [
+const TEST_CONFIG = [
+  {
+    engineName: "aol",
+    orderHint: 500,
+    webExtension: {
+      locales: ["default"],
+    },
+    appliesTo: [
       {
-        engineName: "aol",
-        orderHint: 500,
+        included: { everywhere: true },
+      },
+      {
+        included: { regions: ["us"] },
         webExtension: {
-          locales: ["default"],
+          locales: ["$USER_LOCALE"],
         },
-        appliesTo: [
-          {
-            included: { everywhere: true },
-          },
-          {
-            included: { regions: ["us"] },
-            webExtension: {
-              locales: ["$USER_LOCALE"],
-            },
-          },
-        ],
-      },
-      {
-        engineName: "lycos",
-        orderHint: 1000,
-        default: "yes",
-        appliesTo: [
-          {
-            included: { everywhere: true },
-            excluded: { locales: { matches: ["zh-CN"] } },
-          },
-        ],
-      },
-      {
-        engineName: "altavista",
-        orderHint: 2000,
-        defaultPrivate: "yes",
-        appliesTo: [
-          {
-            included: { locales: { matches: ["en-US"] } },
-          },
-          {
-            included: { regions: ["default"] },
-          },
-        ],
-      },
-      {
-        engineName: "excite",
-        default: "yes-if-no-other",
-        appliesTo: [
-          {
-            included: { everywhere: true },
-            excluded: { regions: ["us"] },
-          },
-          {
-            included: { everywhere: true },
-            cohort: "acohortid",
-          },
-        ],
-      },
-      {
-        engineName: "askjeeves",
       },
     ],
-  });
+  },
+  {
+    engineName: "lycos",
+    orderHint: 1000,
+    default: "yes",
+    appliesTo: [
+      {
+        included: { everywhere: true },
+        excluded: { locales: { matches: ["zh-CN"] } },
+      },
+    ],
+  },
+  {
+    engineName: "altavista",
+    orderHint: 2000,
+    defaultPrivate: "yes",
+    appliesTo: [
+      {
+        included: { locales: { matches: ["en-US"] } },
+      },
+      {
+        included: { regions: ["default"] },
+      },
+    ],
+  },
+  {
+    engineName: "excite",
+    default: "yes-if-no-other",
+    appliesTo: [
+      {
+        included: { everywhere: true },
+        excluded: { regions: ["us"] },
+      },
+      {
+        included: { everywhere: true },
+        experiment: "acohortid",
+      },
+    ],
+  },
+  {
+    engineName: "askjeeves",
+  },
+];
 
 const engineSelector = new SearchEngineSelector();
 
 add_task(async function() {
-  await engineSelector.init(CONFIG_URL);
+  const settings = await RemoteSettings(SearchUtils.SETTINGS_KEY);
+  sinon.stub(settings, "get").returns(TEST_CONFIG);
 
-  let { engines, privateDefault } = engineSelector.fetchEngineConfiguration(
-    "en-US",
-    "us",
-    "default"
-  );
+  let {
+    engines,
+    privateDefault,
+  } = await engineSelector.fetchEngineConfiguration({
+    locale: "en-US",
+    region: "us",
+  });
   Assert.equal(
     privateDefault.engineName,
     "altavista",
@@ -96,11 +95,10 @@ add_task(async function() {
     "Subsequent matches in applies to can override default"
   );
 
-  ({ engines, privateDefault } = engineSelector.fetchEngineConfiguration(
-    "zh-CN",
-    "kz",
-    "default"
-  ));
+  ({ engines, privateDefault } = await engineSelector.fetchEngineConfiguration({
+    locale: "zh-CN",
+    region: "kz",
+  }));
   Assert.equal(engines.length, 2, "Correct engines are returns");
   Assert.equal(privateDefault, null, "There should be no privateDefault");
   names = engines.map(obj => obj.engineName);
@@ -110,23 +108,22 @@ add_task(async function() {
     "The engines should be in the correct order"
   );
 
-  Services.prefs.setCharPref("browser.search.cohort", "acohortid");
-  ({ engines, privateDefault } = engineSelector.fetchEngineConfiguration(
-    "en-US",
-    "us",
-    "default"
-  ));
+  ({ engines, privateDefault } = await engineSelector.fetchEngineConfiguration({
+    locale: "en-US",
+    region: "us",
+    experiment: "acohortid",
+  }));
   Assert.deepEqual(
     engines.map(obj => obj.engineName),
     ["lycos", "altavista", "aol", "excite"],
-    "Engines are in the correct order and include the cohort engine"
+    "Engines are in the correct order and include the experiment engine"
   );
 
-  ({ engines, privateDefault } = engineSelector.fetchEngineConfiguration(
-    "en-US",
-    "default",
-    "default"
-  ));
+  ({ engines, privateDefault } = await engineSelector.fetchEngineConfiguration({
+    locale: "en-US",
+    region: "default",
+    experiment: "acohortid",
+  }));
   Assert.deepEqual(
     engines.map(obj => obj.engineName),
     ["lycos", "altavista", "aol", "excite"],

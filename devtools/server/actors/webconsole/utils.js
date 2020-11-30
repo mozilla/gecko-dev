@@ -88,10 +88,10 @@ var WebConsoleUtils = {
    *         Inner ID for the given window, null if we can't access it.
    */
   getInnerWindowId: function(window) {
-    // Might throw with SecurityError: Permission denied to access property "windowUtils"
-    // on cross-origin object.
+    // Might throw with SecurityError: Permission denied to access property
+    // "windowGlobalChild" on cross-origin object.
     try {
-      return window.windowUtils.currentInnerWindowID;
+      return window.windowGlobalChild.innerWindowId;
     } catch (e) {
       return null;
     }
@@ -546,13 +546,13 @@ WebConsoleCommands._registerOriginal("cd", function(owner, window) {
     0,
     1,
     "content javascript",
-    owner.window.windowUtils.currentInnerWindowID
+    owner.window.windowGlobalChild.innerWindowId
   );
   const Services = require("Services");
   Services.console.logMessage(scriptError);
 
   if (!window) {
-    owner.consoleActor.evalWindow = null;
+    owner.consoleActor.evalGlobal = null;
     owner.helperResult = { type: "cd" };
     return;
   }
@@ -571,7 +571,7 @@ WebConsoleCommands._registerOriginal("cd", function(owner, window) {
     return;
   }
 
-  owner.consoleActor.evalWindow = window;
+  owner.consoleActor.evalGlobal = window;
   owner.helperResult = { type: "cd" };
 });
 
@@ -643,6 +643,60 @@ WebConsoleCommands._registerOriginal("screenshot", function(owner, args = {}) {
       // pass args through to the client, so that the client can take care of copying
       // and saving the screenshot data on the client machine instead of on the
       // remote machine
+      args,
+    };
+  })();
+});
+
+/**
+ * Block specific resource from loading
+ *
+ * @param object args
+ *               an object with key "url", i.e. a filter
+ *
+ * @return void
+ */
+WebConsoleCommands._registerOriginal("block", function(owner, args = {}) {
+  if (!args.url) {
+    owner.helperResult = {
+      type: "error",
+      message: "webconsole.messages.commands.blockArgMissing",
+    };
+    return;
+  }
+
+  owner.helperResult = (async () => {
+    await owner.consoleActor.blockRequest(args);
+
+    return {
+      type: "blockURL",
+      args,
+    };
+  })();
+});
+
+/*
+ * Unblock a blocked a resource
+ *
+ * @param object filter
+ *               an object with key "url", i.e. a filter
+ *
+ * @return void
+ */
+WebConsoleCommands._registerOriginal("unblock", function(owner, args = {}) {
+  if (!args.url) {
+    owner.helperResult = {
+      type: "error",
+      message: "webconsole.messages.commands.blockArgMissing",
+    };
+    return;
+  }
+
+  owner.helperResult = (async () => {
+    await owner.consoleActor.unblockRequest(args);
+
+    return {
+      type: "unblockURL",
       args,
     };
   })();

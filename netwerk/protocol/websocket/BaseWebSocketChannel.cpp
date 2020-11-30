@@ -73,7 +73,7 @@ BaseWebSocketChannel::GetOriginalURI(nsIURI** aOriginalURI) {
   LOG(("BaseWebSocketChannel::GetOriginalURI() %p\n", this));
 
   if (!mOriginalURI) return NS_ERROR_NOT_INITIALIZED;
-  NS_ADDREF(*aOriginalURI = mOriginalURI);
+  *aOriginalURI = do_AddRef(mOriginalURI).take();
   return NS_OK;
 }
 
@@ -82,10 +82,11 @@ BaseWebSocketChannel::GetURI(nsIURI** aURI) {
   LOG(("BaseWebSocketChannel::GetURI() %p\n", this));
 
   if (!mOriginalURI) return NS_ERROR_NOT_INITIALIZED;
-  if (mURI)
-    NS_ADDREF(*aURI = mURI);
-  else
-    NS_ADDREF(*aURI = mOriginalURI);
+  if (mURI) {
+    *aURI = do_AddRef(mURI).take();
+  } else {
+    *aURI = do_AddRef(mOriginalURI).take();
+  }
   return NS_OK;
 }
 
@@ -337,7 +338,7 @@ BaseWebSocketChannel::GetDeliveryTarget(nsIEventTarget** aTargetThread) {
 
   nsCOMPtr<nsIEventTarget> target = mTargetThread;
   if (!target) {
-    target = GetCurrentThreadEventTarget();
+    target = GetCurrentEventTarget();
   }
   target.forget(aTargetThread);
   return NS_OK;
@@ -354,10 +355,10 @@ BaseWebSocketChannel::ListenerAndContextContainer::
     ~ListenerAndContextContainer() {
   MOZ_ASSERT(mListener);
 
-  NS_ReleaseOnMainThreadSystemGroup(
+  NS_ReleaseOnMainThread(
       "BaseWebSocketChannel::ListenerAndContextContainer::mListener",
       mListener.forget());
-  NS_ReleaseOnMainThreadSystemGroup(
+  NS_ReleaseOnMainThread(
       "BaseWebSocketChannel::ListenerAndContextContainer::mContext",
       mContext.forget());
 }

@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "VRManagerChild.h"
+#include "VRLayerChild.h"
 #include "VRManagerParent.h"
 #include "VRThread.h"
 #include "VRDisplayClient.h"
@@ -13,17 +14,21 @@
 #include "mozilla/layers/CompositorThread.h"  // for CompositorThread
 #include "mozilla/dom/Navigator.h"
 #include "mozilla/dom/VREventObserver.h"
+#include "mozilla/dom/WebXRBinding.h"
 #include "mozilla/dom/WindowBinding.h"  // for FrameRequestCallback
+#include "mozilla/dom/XRSystem.h"
+#include "mozilla/dom/XRFrame.h"
 #include "mozilla/dom/ContentChild.h"
 #include "nsContentUtils.h"
 #include "mozilla/dom/GamepadManager.h"
 #include "mozilla/layers/SyncObject.h"
+#include "mozilla/layers/TextureForwarder.h"
 
 using namespace mozilla::dom;
 
 namespace {
-const nsTArray<RefPtr<VRManagerEventObserver>>::index_type kNoIndex =
-    nsTArray<RefPtr<VRManagerEventObserver>>::NoIndex;
+const nsTArray<RefPtr<mozilla::gfx::VRManagerEventObserver>>::index_type
+    kNoIndex = nsTArray<RefPtr<mozilla::gfx::VRManagerEventObserver>>::NoIndex;
 }  // namespace
 
 namespace mozilla {
@@ -32,11 +37,13 @@ namespace gfx {
 static StaticRefPtr<VRManagerChild> sVRManagerChildSingleton;
 static StaticRefPtr<VRManagerParent> sVRManagerParentSingleton;
 
+static TimeStamp sMostRecentFrameEnd;
+static TimeDuration sAverageFrameInterval;
+
 void ReleaseVRManagerParentSingleton() { sVRManagerParentSingleton = nullptr; }
 
 VRManagerChild::VRManagerChild()
     : mRuntimeCapabilities(VRDisplayCapabilityFlags::Cap_None),
-      mMessageLoop(MessageLoop::current()),
       mFrameRequestCallbackCounter(0),
       mWaitingForEnumeration(false),
       mBackend(layers::LayersBackend::LAYERS_NONE) {
@@ -88,6 +95,16 @@ bool VRManagerChild::IsPresenting() {
   return result;
 }
 
+TimeStamp VRManagerChild::GetIdleDeadlineHint(TimeStamp aDefault) {
+  MOZ_ASSERT(NS_IsMainThread());
+  if (!VRManagerChild::IsCreated() || sMostRecentFrameEnd.IsNull()) {
+    return aDefault;
+  }
+
+  TimeStamp idleEnd = sMostRecentFrameEnd + sAverageFrameInterval;
+  return idleEnd < aDefault ? idleEnd : aDefault;
+}
+
 /* static */
 bool VRManagerChild::InitForContent(Endpoint<PVRManagerChild>&& aEndpoint) {
   MOZ_ASSERT(NS_IsMainThread());
@@ -108,8 +125,7 @@ void VRManagerChild::InitSameProcess() {
   sVRManagerChildSingleton = new VRManagerChild();
   sVRManagerParentSingleton = VRManagerParent::CreateSameProcess();
   sVRManagerChildSingleton->Open(sVRManagerParentSingleton->GetIPCChannel(),
-                                 CompositorThreadHolder::Loop(),
-                                 mozilla::ipc::ChildSide);
+                                 CompositorThread(), mozilla::ipc::ChildSide);
 }
 
 /* static */
@@ -154,7 +170,7 @@ void VRManagerChild::UpdateDisplayInfo(const VRDisplayInfo& aDisplayInfo) {
   nsTArray<uint32_t> disconnectedDisplays;
   nsTArray<uint32_t> connectedDisplays;
 
-  const nsTArray<RefPtr<VRDisplayClient>> prevDisplays(mDisplays);
+  const nsTArray<RefPtr<VRDisplayClient>> prevDisplays(mDisplays.Clone());
 
   // Check if any displays have been disconnected
   for (auto& display : prevDisplays) {
@@ -214,7 +230,7 @@ void VRManagerChild::UpdateDisplayInfo(const VRDisplayInfo& aDisplayInfo) {
     }
   }
 
-  mDisplays = displays;
+  mDisplays = std::move(displays);
 
   // We wish to fire the events only after mDisplays is updated
   for (uint32_t displayID : disconnectedDisplays) {
@@ -232,6 +248,9 @@ bool VRManagerChild::RuntimeSupportsVR() const {
 bool VRManagerChild::RuntimeSupportsAR() const {
   return bool(mRuntimeCapabilities & VRDisplayCapabilityFlags::Cap_ImmersiveAR);
 }
+bool VRManagerChild::RuntimeSupportsInline() const {
+  return bool(mRuntimeCapabilities & VRDisplayCapabilityFlags::Cap_Inline);
+}
 
 mozilla::ipc::IPCResult VRManagerChild::RecvUpdateRuntimeCapabilities(
     const VRDisplayCapabilityFlags& aCapabilities) {
@@ -243,8 +262,7 @@ mozilla::ipc::IPCResult VRManagerChild::RecvUpdateRuntimeCapabilities(
 }
 
 void VRManagerChild::NotifyRuntimeCapabilitiesUpdatedInternal() {
-  nsTArray<RefPtr<VRManagerEventObserver>> listeners;
-  listeners = mListeners;
+  const nsTArray<RefPtr<VRManagerEventObserver>> listeners = mListeners.Clone();
   for (auto& listener : listeners) {
     listener->NotifyDetectRuntimesCompleted();
   }
@@ -329,7 +347,7 @@ void VRManagerChild::ResetPuppet(dom::Promise* aPromise, ErrorResult& aRv) {
 
 void VRManagerChild::GetVRDisplays(
     nsTArray<RefPtr<VRDisplayClient>>& aDisplays) {
-  aDisplays = mDisplays;
+  aDisplays = mDisplays.Clone();
 }
 
 bool VRManagerChild::RefreshVRDisplaysWithCallback(uint64_t aWindowId) {
@@ -351,7 +369,7 @@ bool VRManagerChild::EnumerateVRDisplays() {
 void VRManagerChild::DetectRuntimes() { Unused << SendDetectRuntimes(); }
 
 PVRLayerChild* VRManagerChild::CreateVRLayer(uint32_t aDisplayID,
-                                             nsIEventTarget* aTarget,
+                                             nsISerialEventTarget* aTarget,
                                              uint32_t aGroup) {
   PVRLayerChild* vrLayerChild = AllocPVRLayerChild(aDisplayID, aGroup);
   // Do the DOM labeling.
@@ -362,26 +380,17 @@ PVRLayerChild* VRManagerChild::CreateVRLayer(uint32_t aDisplayID,
   return SendPVRLayerConstructor(vrLayerChild, aDisplayID, aGroup);
 }
 
-// XXX TODO - VRManagerChild::FrameRequest is the same as
-// Document::FrameRequest, should we consolodate these?
-struct VRManagerChild::FrameRequest {
-  FrameRequest(mozilla::dom::FrameRequestCallback& aCallback, int32_t aHandle)
-      : mCallback(&aCallback), mHandle(aHandle) {}
-
-  // Conversion operator so that we can append these to a
-  // FrameRequestCallbackList
-  operator const RefPtr<mozilla::dom::FrameRequestCallback>&() const {
-    return mCallback;
+void VRManagerChild::XRFrameRequest::Call(
+    const DOMHighResTimeStamp& aTimeStamp) {
+  if (mCallback) {
+    RefPtr<mozilla::dom::FrameRequestCallback> callback = mCallback;
+    callback->Call(aTimeStamp);
+  } else {
+    RefPtr<mozilla::dom::XRFrameRequestCallback> callback = mXRCallback;
+    RefPtr<mozilla::dom::XRFrame> frame = mXRFrame;
+    callback->Call(aTimeStamp, *frame);
   }
-
-  // Comparator operators to allow RemoveElementSorted with an
-  // integer argument on arrays of FrameRequest
-  bool operator==(int32_t aHandle) const { return mHandle == aHandle; }
-  bool operator<(int32_t aHandle) const { return mHandle < aHandle; }
-
-  RefPtr<mozilla::dom::FrameRequestCallback> mCallback;
-  int32_t mHandle;
-};
+}
 
 nsresult VRManagerChild::ScheduleFrameRequestCallback(
     mozilla::dom::FrameRequestCallback& aCallback, int32_t* aHandle) {
@@ -391,9 +400,7 @@ nsresult VRManagerChild::ScheduleFrameRequestCallback(
   }
   int32_t newHandle = ++mFrameRequestCallbackCounter;
 
-  DebugOnly<FrameRequest*> request =
-      mFrameRequestCallbacks.AppendElement(FrameRequest(aCallback, newHandle));
-  NS_ASSERTION(request, "This is supposed to be infallible!");
+  mFrameRequestCallbacks.AppendElement(XRFrameRequest(aCallback, newHandle));
 
   *aHandle = newHandle;
   return NS_OK;
@@ -411,13 +418,30 @@ void VRManagerChild::RunFrameRequestCallbacks() {
   mozilla::TimeDuration duration = nowTime - mStartTimeStamp;
   DOMHighResTimeStamp timeStamp = duration.ToMilliseconds();
 
-  nsTArray<FrameRequest> callbacks;
+  if (!sMostRecentFrameEnd.IsNull()) {
+    TimeDuration frameInterval = nowTime - sMostRecentFrameEnd;
+    if (sAverageFrameInterval.IsZero()) {
+      sAverageFrameInterval = frameInterval;
+    } else {
+      // Calculate the average interval between frame end and next frame start.
+      // Apply some smoothing to make it more stable.
+      const double smooth = 0.9;
+      sAverageFrameInterval = sAverageFrameInterval.MultDouble(smooth) +
+                              frameInterval.MultDouble(1.0 - smooth);
+    }
+  }
+
+  nsTArray<XRFrameRequest> callbacks;
   callbacks.AppendElements(mFrameRequestCallbacks);
   mFrameRequestCallbacks.Clear();
   for (auto& callback : callbacks) {
     // The FrameRequest copied into the on-stack array holds a strong ref to its
     // mCallback and there's nothing that can drop that ref until we return.
     MOZ_KnownLive(callback.mCallback)->Call(timeStamp);
+  }
+
+  if (IsPresenting()) {
+    sMostRecentFrameEnd = TimeStamp::Now();
   }
 }
 
@@ -456,12 +480,16 @@ void VRManagerChild::FireDOMVRDisplayPresentChangeEvent(uint32_t aDisplayID) {
   nsContentUtils::AddScriptRunner(NewRunnableMethod<uint32_t>(
       "gfx::VRManagerChild::FireDOMVRDisplayPresentChangeEventInternal", this,
       &VRManagerChild::FireDOMVRDisplayPresentChangeEventInternal, aDisplayID));
+
+  if (!IsPresenting()) {
+    sMostRecentFrameEnd = TimeStamp();
+    sAverageFrameInterval = 0;
+  }
 }
 
 void VRManagerChild::FireDOMVRDisplayMountedEventInternal(uint32_t aDisplayID) {
   // Iterate over a copy of mListeners, as dispatched events may modify it.
-  nsTArray<RefPtr<VRManagerEventObserver>> listeners(mListeners);
-  for (auto& listener : listeners) {
+  for (auto& listener : mListeners.Clone()) {
     listener->NotifyVRDisplayMounted(aDisplayID);
   }
 }
@@ -469,16 +497,14 @@ void VRManagerChild::FireDOMVRDisplayMountedEventInternal(uint32_t aDisplayID) {
 void VRManagerChild::FireDOMVRDisplayUnmountedEventInternal(
     uint32_t aDisplayID) {
   // Iterate over a copy of mListeners, as dispatched events may modify it.
-  nsTArray<RefPtr<VRManagerEventObserver>> listeners(mListeners);
-  for (auto& listener : listeners) {
+  for (auto& listener : mListeners.Clone()) {
     listener->NotifyVRDisplayUnmounted(aDisplayID);
   }
 }
 
 void VRManagerChild::FireDOMVRDisplayConnectEventInternal(uint32_t aDisplayID) {
   // Iterate over a copy of mListeners, as dispatched events may modify it.
-  nsTArray<RefPtr<VRManagerEventObserver>> listeners(mListeners);
-  for (auto& listener : listeners) {
+  for (auto& listener : mListeners.Clone()) {
     listener->NotifyVRDisplayConnect(aDisplayID);
   }
 }
@@ -486,8 +512,7 @@ void VRManagerChild::FireDOMVRDisplayConnectEventInternal(uint32_t aDisplayID) {
 void VRManagerChild::FireDOMVRDisplayDisconnectEventInternal(
     uint32_t aDisplayID) {
   // Iterate over a copy of mListeners, as dispatched events may modify it.
-  nsTArray<RefPtr<VRManagerEventObserver>> listeners(mListeners);
-  for (auto& listener : listeners) {
+  for (auto& listener : mListeners.Clone()) {
     listener->NotifyVRDisplayDisconnect(aDisplayID);
   }
 }
@@ -495,8 +520,7 @@ void VRManagerChild::FireDOMVRDisplayDisconnectEventInternal(
 void VRManagerChild::FireDOMVRDisplayPresentChangeEventInternal(
     uint32_t aDisplayID) {
   // Iterate over a copy of mListeners, as dispatched events may modify it.
-  const nsTArray<RefPtr<VRManagerEventObserver>> listeners(mListeners);
-  for (auto& listener : listeners) {
+  for (auto& listener : mListeners.Clone()) {
     // MOZ_KnownLive because 'listeners' is guaranteed to keep it alive.
     //
     // This can go away once
@@ -512,16 +536,13 @@ void VRManagerChild::FireDOMVRDisplayConnectEventsForLoadInternal(
 
 void VRManagerChild::NotifyPresentationGenerationChangedInternal(
     uint32_t aDisplayID) {
-  nsTArray<RefPtr<VRManagerEventObserver>> listeners(mListeners);
-  for (auto& listener : listeners) {
+  for (auto& listener : mListeners.Clone()) {
     listener->NotifyPresentationGenerationChanged(aDisplayID);
   }
 }
 
 void VRManagerChild::NotifyEnumerationCompletedInternal() {
-  nsTArray<RefPtr<VRManagerEventObserver>> listeners;
-  listeners = mListeners;
-  for (auto& listener : listeners) {
+  for (auto& listener : mListeners.Clone()) {
     listener->NotifyEnumerationCompleted();
   }
 }
@@ -530,9 +551,7 @@ void VRManagerChild::FireDOMVRDisplayConnectEventsForLoad(
     VRManagerEventObserver* aObserver) {
   // We need to fire the VRDisplayConnect event when a page is loaded
   // for each VR Display that has already been enumerated
-  nsTArray<RefPtr<VRDisplayClient>> displays;
-  displays = mDisplays;
-  for (auto& display : displays) {
+  for (const auto& display : mDisplays.Clone()) {
     const VRDisplayInfo& info = display->GetDisplayInfo();
     if (info.GetIsConnected()) {
       nsContentUtils::AddScriptRunner(NewRunnableMethod<
@@ -586,6 +605,15 @@ void VRManagerChild::HandleFatalError(const char* aMsg) const {
 void VRManagerChild::AddPromise(const uint32_t& aID, dom::Promise* aPromise) {
   MOZ_ASSERT(!mGamepadPromiseList.Get(aID, nullptr));
   mGamepadPromiseList.Put(aID, RefPtr{aPromise});
+}
+
+gfx::VRAPIMode VRManagerChild::GetVRAPIMode(uint32_t aDisplayID) const {
+  for (auto& display : mDisplays) {
+    if (display->GetDisplayInfo().GetDisplayID() == aDisplayID) {
+      return display->GetXRAPIMode();
+    }
+  }
+  return VRAPIMode::WebXR;
 }
 
 mozilla::ipc::IPCResult VRManagerChild::RecvReplyGamepadVibrateHaptic(

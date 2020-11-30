@@ -5,15 +5,8 @@
 "use strict";
 
 /* eslint no-unused-vars: [2, {"vars": "local"}] */
-/* globals registerTestActor, getTestActor, openToolboxForTab, gBrowser */
+/* globals getTestActor, openToolboxForTab, gBrowser */
 /* import-globals-from ../../shared/test/shared-head.js */
-/* import-globals-from ../../shared/test/test-actor-registry.js */
-
-// Import helpers registering the test-actor in remote targets
-Services.scriptloader.loadSubScript(
-  "chrome://mochitests/content/browser/devtools/client/shared/test/test-actor-registry.js",
-  this
-);
 
 var {
   getInplaceEditorForSpan: inplaceEditor,
@@ -42,8 +35,13 @@ var openInspector = async function(hostType) {
     await inspector.once("inspector-updated");
   }
 
-  await registerTestActor(toolbox.target.client);
   const testActor = await getTestActor(toolbox);
+  // Override the highligher getter with a method to return the active box model
+  // highlighter. Adaptation for multi-process scenarios where there can be multiple
+  // highlighters, one per process.
+  testActor.highlighter = () => {
+    return inspector.highlighters.getActiveHighlighter("BoxModelHighlighter");
+  };
 
   return { toolbox, inspector, testActor };
 };
@@ -153,18 +151,6 @@ function openChangesView() {
  */
 function openLayoutView() {
   return openInspectorSidebarTab("layoutview").then(data => {
-    // The actual highligher show/hide methods are mocked in box model tests.
-    // The highlighter is tested in devtools/inspector/test.
-    function mockHighlighter({ highlighter }) {
-      highlighter.showBoxModel = function() {
-        return promise.resolve();
-      };
-      highlighter.hideBoxModel = function() {
-        return promise.resolve();
-      };
-    }
-    mockHighlighter(data.inspector);
-
     return {
       toolbox: data.toolbox,
       inspector: data.inspector,
@@ -292,102 +278,98 @@ function manualDebounce() {
 }
 
 /**
- * Wait for a content -> chrome message on the message manager (the window
- * messagemanager is used).
+ * Get the requested rule style property from the current browser.
  *
+ * @param {Number} styleSheetIndex
+ * @param {Number} ruleIndex
  * @param {String} name
- *        The message name
- * @return {Promise} A promise that resolves to the response data when the
- * message has been received
+ * @return {String} The value, if found, null otherwise
  */
-function waitForContentMessage(name) {
-  info("Expecting message " + name + " from content");
 
-  const mm = gBrowser.selectedBrowser.messageManager;
+async function getRulePropertyValue(styleSheetIndex, ruleIndex, name) {
+  return SpecialPowers.spawn(
+    gBrowser.selectedBrowser,
+    [styleSheetIndex, ruleIndex, name],
+    (styleSheetIndexChild, ruleIndexChild, nameChild) => {
+      let value = null;
 
-  return new Promise(resolve => {
-    mm.addMessageListener(name, function onMessage(msg) {
-      mm.removeMessageListener(name, onMessage);
-      resolve(msg.data);
-    });
-  });
+      info(
+        "Getting the value for property name " +
+          nameChild +
+          " in sheet " +
+          styleSheetIndexChild +
+          " and rule " +
+          ruleIndexChild
+      );
+
+      const sheet = content.document.styleSheets[styleSheetIndexChild];
+      if (sheet) {
+        const rule = sheet.cssRules[ruleIndexChild];
+        if (rule) {
+          value = rule.style.getPropertyValue(nameChild);
+        }
+      }
+
+      return value;
+    }
+  );
 }
 
 /**
- * Send an async message to the frame script (chrome -> content) and wait for a
- * response message with the same name (content -> chrome).
- *
- * @param {String} name
- *        The message name. Should be one of the messages defined
- *        in doc_frame_script.js
- * @param {Object} data
- *        Optional data to send along
- * @param {Object} objects
- *        Optional CPOW objects to send along
- * @param {Boolean} expectResponse
- *        If set to false, don't wait for a response with the same name
- *        from the content script. Defaults to true.
- * @return {Promise} Resolves to the response data if a response is expected,
- * immediately resolves otherwise
- */
-function executeInContent(
-  name,
-  data = {},
-  objects = {},
-  expectResponse = true
-) {
-  info("Sending message " + name + " to content");
-  const mm = gBrowser.selectedBrowser.messageManager;
-
-  mm.sendAsyncMessage(name, data, objects);
-  if (expectResponse) {
-    return waitForContentMessage(name);
-  }
-
-  return promise.resolve();
-}
-
-/**
- * Send an async message to the frame script and get back the requested
- * computed style property.
+ * Get the requested computed style property from the current browser.
  *
  * @param {String} selector
  *        The selector used to obtain the element.
  * @param {String} pseudo
  *        pseudo id to query, or null.
- * @param {String} name
+ * @param {String} propName
  *        name of the property.
  */
 async function getComputedStyleProperty(selector, pseudo, propName) {
-  return executeInContent("Test:GetComputedStylePropertyValue", {
-    selector,
-    pseudo,
-    name: propName,
-  });
+  return SpecialPowers.spawn(
+    gBrowser.selectedBrowser,
+    [selector, pseudo, propName],
+    (selectorChild, pseudoChild, propNameChild) => {
+      const element = content.document.querySelector(selectorChild);
+      return content.document.defaultView
+        .getComputedStyle(element, pseudoChild)
+        .getPropertyValue(propNameChild);
+    }
+  );
 }
 
 /**
- * Send an async message to the frame script and wait until the requested
- * computed style property has the expected value.
+ * Wait until the requested computed style property has the
+ * expected value in the the current browser.
  *
  * @param {String} selector
  *        The selector used to obtain the element.
  * @param {String} pseudo
  *        pseudo id to query, or null.
- * @param {String} prop
+ * @param {String} propName
  *        name of the property.
  * @param {String} expected
  *        expected value of property
- * @param {String} name
- *        the name used in test message
  */
-async function waitForComputedStyleProperty(selector, pseudo, name, expected) {
-  return executeInContent("Test:WaitForComputedStylePropertyValue", {
-    selector,
-    pseudo,
-    expected,
-    name,
-  });
+async function waitForComputedStyleProperty(
+  selector,
+  pseudo,
+  propName,
+  expected
+) {
+  return SpecialPowers.spawn(
+    gBrowser.selectedBrowser,
+    [selector, pseudo, propName, expected],
+    (selectorChild, pseudoChild, propNameChild, expectedChild) => {
+      const element = content.document.querySelector(selectorChild);
+      return ContentTaskUtils.waitForCondition(() => {
+        const value = content.document.defaultView
+          .getComputedStyle(element, pseudoChild)
+          .getPropertyValue(propNameChild);
+        return value === expectedChild;
+      });
+    }
+  );
 }
 
 /**
@@ -539,34 +521,6 @@ function getRuleViewSelector(view, selectorText) {
   const rule = getRuleViewRule(view, selectorText);
   return rule.querySelector(".ruleview-selector, .ruleview-selector-matched");
 }
-
-/**
- * Get a reference to the selectorhighlighter icon DOM element corresponding to
- * a given selector in the rule-view
- *
- * @param {CssRuleView} view
- *        The instance of the rule-view panel
- * @param {String} selectorText
- *        The selector in the rule-view to look for
- * @param {Number} index
- *        If there are more than 1 rule with the same selector, use this index
- *        to determine which one should be retrieved. Defaults to 0
- * @return {DOMNode} The selectorhighlighter icon DOM element
- */
-var getRuleViewSelectorHighlighterIcon = async function(
-  view,
-  selectorText,
-  index = 0
-) {
-  const rule = getRuleViewRule(view, selectorText, index);
-
-  const editor = rule._ruleEditor;
-  if (!editor.uniqueSelector) {
-    await once(editor, "selector-icon-created");
-  }
-
-  return rule.querySelector(".ruleview-selectorhighlighter");
-};
 
 /**
  * Get a rule-link from the rule-view given its index

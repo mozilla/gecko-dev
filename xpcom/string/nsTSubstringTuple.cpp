@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsTSubstringTuple.h"
 #include "mozilla/CheckedInt.h"
 
 /**
@@ -52,7 +53,7 @@ void nsTSubstringTuple<T>::WriteTo(char_type* aBuf, uint32_t aBufLen) const {
 template <typename T>
 bool nsTSubstringTuple<T>::IsDependentOn(const char_type* aStart,
                                          const char_type* aEnd) const {
-  // we aStart with the right-most fragment since it is faster to check.
+  // we start with the right-most fragment since it is faster to check.
 
   if (mFragB->IsDependentOn(aStart, aEnd)) {
     return true;
@@ -64,3 +65,28 @@ bool nsTSubstringTuple<T>::IsDependentOn(const char_type* aStart,
 
   return mFragA->IsDependentOn(aStart, aEnd);
 }
+
+template <typename T>
+auto nsTSubstringTuple<T>::IsDependentOnWithLength(const char_type* aStart,
+                                                   const char_type* aEnd) const
+    -> std::pair<bool, size_type> {
+  // we start with the right-most fragment since it is faster to check for
+  // dependency.
+  const bool rightDependentOn = mFragB->IsDependentOn(aStart, aEnd);
+
+  if (rightDependentOn) {
+    return {true, Length()};
+  }
+
+  const auto [leftDependentOn, leftLen] =
+      mHead ? mHead->IsDependentOnWithLength(aStart, aEnd)
+            : std::pair{mFragA->IsDependentOn(aStart, aEnd), mFragA->Length()};
+
+  const auto checkedLen =
+      mozilla::CheckedInt<size_type>{leftLen} + mFragB->Length();
+  MOZ_RELEASE_ASSERT(checkedLen.isValid(), "Substring tuple length is invalid");
+  return {leftDependentOn, checkedLen.value()};
+}
+
+template class nsTSubstringTuple<char>;
+template class nsTSubstringTuple<char16_t>;

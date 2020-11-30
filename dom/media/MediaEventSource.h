@@ -8,12 +8,12 @@
 #define MediaEventSource_h_
 
 #include <type_traits>
+#include <utility>
 
 #include "mozilla/AbstractThread.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/Tuple.h"
-#include "mozilla/TypeTraits.h"
 #include "mozilla/Unused.h"
 
 #include "nsISupportsImpl.h"
@@ -89,11 +89,11 @@ class TakeArgsHelper {
   template <typename C>
   static std::false_type test(void (C::*)() const volatile, int);
   template <typename F>
-  static std::false_type test(F&&, decltype(DeclVal<F>()(), 0));
+  static std::false_type test(F&&, decltype(std::declval<F>()(), 0));
   static std::true_type test(...);
 
  public:
-  typedef decltype(test(DeclVal<T>(), 0)) type;
+  typedef decltype(test(std::declval<T>(), 0)) type;
 };
 
 template <typename T>
@@ -317,12 +317,8 @@ class MediaEventSourceImpl {
   using TakeArgs = detail::TakeArgs<Method>;
 
   void PruneListeners() {
-    int32_t last = static_cast<int32_t>(mListeners.Length()) - 1;
-    for (int32_t i = last; i >= 0; --i) {
-      if (mListeners[i]->IsRevoked()) {
-        mListeners.RemoveElementAt(i);
-      }
-    }
+    mListeners.RemoveElementsBy(
+        [](const auto& listener) { return listener->IsRevoked(); });
   }
 
   template <typename Target, typename Function>

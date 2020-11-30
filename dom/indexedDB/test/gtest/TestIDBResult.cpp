@@ -11,31 +11,30 @@ using namespace mozilla::dom::indexedDB;
 
 TEST(IDBResultTest, ConstructWithValue)
 {
-  ErrorResult rv;
-  IDBResult<int, IDBSpecialValue::Failure> result(Ok(0));
-  EXPECT_FALSE(result.Is(Failure, rv));
-  EXPECT_TRUE(result.Is(Ok, rv));
-  EXPECT_EQ(result.Unwrap(rv), 0);
+  IDBResult<int, IDBSpecialValue::Failure> result(0);
+  EXPECT_FALSE(result.isErr() &&
+               result.inspectErr().Is(SpecialValues::Failure));
+  EXPECT_TRUE(result.isOk());
+  EXPECT_EQ(result.unwrap(), 0);
 }
 
 TEST(IDBResultTest, Expand)
 {
-  ErrorResult rv;
-  IDBResult<int, IDBSpecialValue::Failure> narrow{Failure};
+  IDBResult<int, IDBSpecialValue::Failure> narrow{
+      mozilla::Err(SpecialValues::Failure)};
   IDBResult<int, IDBSpecialValue::Failure, IDBSpecialValue::Invalid> wide{
-      narrow};
-  EXPECT_TRUE(wide.Is(Failure, rv));
+      narrow.propagateErr()};
+  EXPECT_TRUE(wide.isErr() && wide.inspectErr().Is(SpecialValues::Failure));
 }
 
-IDBResult<int, IDBSpecialValue::Failure> ThrowException(ErrorResult& aRv) {
-  aRv.Throw(NS_ERROR_FAILURE);
-  return Exception;
+IDBResult<int, IDBSpecialValue::Failure> ThrowException() {
+  return mozilla::Err(IDBException(NS_ERROR_FAILURE));
 }
 
 TEST(IDBResultTest, ThrowException)
 {
-  ErrorResult rv;
-  const auto result = ThrowException(rv);
-  EXPECT_TRUE(result.Is(Exception, rv));
-  rv.SuppressException();
+  auto result = ThrowException();
+  EXPECT_TRUE(result.isErr() &&
+              result.inspectErr().Is(SpecialValues::Exception));
+  result.unwrapErr().AsException().SuppressException();
 }

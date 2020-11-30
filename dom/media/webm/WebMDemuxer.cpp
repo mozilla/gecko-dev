@@ -363,8 +363,7 @@ nsresult WebMDemuxer::ReadMetadata() {
       if (mInfo.mVideo.mCrypto.IsEncrypted()) {
         MOZ_ASSERT(mInfo.mVideo.mCrypto.mCryptoScheme == CryptoScheme::Cenc,
                    "WebM should only use cenc scheme");
-        mCrypto.AddInitData(NS_LITERAL_STRING("webm"),
-                            mInfo.mVideo.mCrypto.mKeyId);
+        mCrypto.AddInitData(u"webm"_ns, mInfo.mVideo.mCrypto.mKeyId);
       }
     } else if (type == NESTEGG_TRACK_AUDIO && !mHasAudio) {
       nestegg_audio_params params;
@@ -434,8 +433,7 @@ nsresult WebMDemuxer::ReadMetadata() {
       if (mInfo.mAudio.mCrypto.IsEncrypted()) {
         MOZ_ASSERT(mInfo.mAudio.mCrypto.mCryptoScheme == CryptoScheme::Cenc,
                    "WebM should only use cenc scheme");
-        mCrypto.AddInitData(NS_LITERAL_STRING("webm"),
-                            mInfo.mAudio.mCrypto.mKeyId);
+        mCrypto.AddInitData(u"webm"_ns, mInfo.mAudio.mCrypto.mKeyId);
       }
     }
   }
@@ -640,8 +638,8 @@ nsresult WebMDemuxer::GetNextPacket(TrackInfo::TrackType aType,
             packetEncryption == NESTEGG_PACKET_HAS_SIGNAL_BYTE_UNENCRYPTED ||
                 packetEncryption == NESTEGG_PACKET_HAS_SIGNAL_BYTE_FALSE,
             "Unencrypted packet expected");
-        auto sample = MakeSpan(data, length);
-        auto alphaSample = MakeSpan(alphaData, alphaLength);
+        auto sample = Span(data, length);
+        auto alphaSample = Span(alphaData, alphaLength);
 
         switch (mVideoCodec) {
           case NESTEGG_CODEC_VP8:

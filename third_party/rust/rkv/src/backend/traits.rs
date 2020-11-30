@@ -8,18 +8,25 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-use std::fmt::{
-    Debug,
-    Display,
+use std::{
+    fmt::{
+        Debug,
+        Display,
+    },
+    path::{
+        Path,
+        PathBuf,
+    },
 };
-use std::path::Path;
 
-use crate::backend::common::{
-    DatabaseFlags,
-    EnvironmentFlags,
-    WriteFlags,
+use crate::{
+    backend::common::{
+        DatabaseFlags,
+        EnvironmentFlags,
+        WriteFlags,
+    },
+    error::StoreError,
 };
-use crate::error::StoreError;
 
 pub trait BackendError: Debug + Display + Into<StoreError> {}
 
@@ -67,9 +74,9 @@ pub trait BackendInfo {
     fn num_readers(&self) -> usize;
 }
 
-pub trait BackendEnvironmentBuilder<'env>: Debug + Eq + PartialEq + Copy + Clone {
+pub trait BackendEnvironmentBuilder<'b>: Debug + Eq + PartialEq + Copy + Clone {
     type Error: BackendError;
-    type Environment: BackendEnvironment<'env>;
+    type Environment: BackendEnvironment<'b>;
     type Flags: BackendEnvironmentFlags;
 
     fn new() -> Self;
@@ -84,25 +91,29 @@ pub trait BackendEnvironmentBuilder<'env>: Debug + Eq + PartialEq + Copy + Clone
 
     fn set_map_size(&mut self, size: usize) -> &mut Self;
 
+    fn set_make_dir_if_needed(&mut self, make_dir: bool) -> &mut Self;
+
     fn open(&self, path: &Path) -> Result<Self::Environment, Self::Error>;
 }
 
-pub trait BackendEnvironment<'env>: Debug {
+pub trait BackendEnvironment<'e>: Debug {
     type Error: BackendError;
     type Database: BackendDatabase;
     type Flags: BackendDatabaseFlags;
     type Stat: BackendStat;
     type Info: BackendInfo;
-    type RoTransaction: BackendRoCursorTransaction<'env, Database = Self::Database>;
-    type RwTransaction: BackendRwCursorTransaction<'env, Database = Self::Database>;
+    type RoTransaction: BackendRoCursorTransaction<'e, Database = Self::Database>;
+    type RwTransaction: BackendRwCursorTransaction<'e, Database = Self::Database>;
+
+    fn get_dbs(&self) -> Result<Vec<Option<String>>, Self::Error>;
 
     fn open_db(&self, name: Option<&str>) -> Result<Self::Database, Self::Error>;
 
     fn create_db(&self, name: Option<&str>, flags: Self::Flags) -> Result<Self::Database, Self::Error>;
 
-    fn begin_ro_txn(&'env self) -> Result<Self::RoTransaction, Self::Error>;
+    fn begin_ro_txn(&'e self) -> Result<Self::RoTransaction, Self::Error>;
 
-    fn begin_rw_txn(&'env self) -> Result<Self::RwTransaction, Self::Error>;
+    fn begin_rw_txn(&'e self) -> Result<Self::RwTransaction, Self::Error>;
 
     fn sync(&self, force: bool) -> Result<(), Self::Error>;
 
@@ -112,7 +123,11 @@ pub trait BackendEnvironment<'env>: Debug {
 
     fn freelist(&self) -> Result<usize, Self::Error>;
 
+    fn load_ratio(&self) -> Result<Option<f32>, Self::Error>;
+
     fn set_map_size(&self, size: usize) -> Result<(), Self::Error>;
+
+    fn get_files_on_disk(&self) -> Vec<PathBuf>;
 }
 
 pub trait BackendRoTransaction: Debug {
@@ -146,35 +161,35 @@ pub trait BackendRwTransaction: Debug {
     fn abort(self);
 }
 
-pub trait BackendRoCursorTransaction<'env>: BackendRoTransaction {
-    type RoCursor: BackendRoCursor<'env>;
+pub trait BackendRoCursorTransaction<'t>: BackendRoTransaction {
+    type RoCursor: BackendRoCursor<'t>;
 
-    fn open_ro_cursor(&'env self, db: &Self::Database) -> Result<Self::RoCursor, Self::Error>;
+    fn open_ro_cursor(&'t self, db: &Self::Database) -> Result<Self::RoCursor, Self::Error>;
 }
 
-pub trait BackendRwCursorTransaction<'env>: BackendRwTransaction {
-    type RoCursor: BackendRoCursor<'env>;
+pub trait BackendRwCursorTransaction<'t>: BackendRwTransaction {
+    type RoCursor: BackendRoCursor<'t>;
 
-    fn open_ro_cursor(&'env self, db: &Self::Database) -> Result<Self::RoCursor, Self::Error>;
+    fn open_ro_cursor(&'t self, db: &Self::Database) -> Result<Self::RoCursor, Self::Error>;
 }
 
-pub trait BackendRoCursor<'env>: Debug {
-    type Iter: BackendIter<'env>;
+pub trait BackendRoCursor<'c>: Debug {
+    type Iter: BackendIter<'c>;
 
     fn into_iter(self) -> Self::Iter;
 
     fn into_iter_from<K>(self, key: K) -> Self::Iter
     where
-        K: AsRef<[u8]>;
+        K: AsRef<[u8]> + 'c;
 
     fn into_iter_dup_of<K>(self, key: K) -> Self::Iter
     where
-        K: AsRef<[u8]>;
+        K: AsRef<[u8]> + 'c;
 }
 
-pub trait BackendIter<'env> {
+pub trait BackendIter<'i> {
     type Error: BackendError;
 
     #[allow(clippy::type_complexity)]
-    fn next(&mut self) -> Option<Result<(&'env [u8], &'env [u8]), Self::Error>>;
+    fn next(&mut self) -> Option<Result<(&'i [u8], &'i [u8]), Self::Error>>;
 }

@@ -188,17 +188,7 @@ dictionary ReceiveMessageArgument
    */
   any json = null;
 
-  /**
-   * Named table of jsvals/objects, or null.
-   */
-  required object objects;
-
   sequence<MessagePort> ports;
-
-  /**
-   * Principal for the window app.
-   */
-  required Principal? principal;
 
   FrameLoader targetFrameLoader;
 };
@@ -315,8 +305,6 @@ interface mixin MessageSenderMixin {
   [Throws]
   void sendAsyncMessage(optional DOMString? messageName = null,
                         optional any obj,
-                        optional object? objects = null,
-                        optional Principal? principal = null,
                         optional any transfers);
 
   /**
@@ -334,7 +322,7 @@ interface mixin MessageSenderMixin {
    * Otherwise, it is empty.
    */
   [Throws]
-  readonly attribute DOMString remoteType;
+  readonly attribute UTF8String remoteType;
 };
 
 [ChromeOnly, Exposed=Window]
@@ -356,24 +344,7 @@ interface mixin SyncMessageSenderMixin
    */
   [Throws]
   sequence<any> sendSyncMessage(optional DOMString? messageName = null,
-                                optional any obj,
-                                optional object? objects = null,
-                                optional Principal? principal = null);
-
-  /**
-   * Like |sendSyncMessage()|, except re-entrant. New RPC messages may be
-   * issued even if, earlier on the call stack, we are waiting for a reply
-   * to an earlier sendRpcMessage() call.
-   *
-   * Both sendSyncMessage and sendRpcMessage will block until a reply is
-   * received, but they may be temporarily interrupted to process an urgent
-   * incoming message (such as a CPOW request).
-   */
-  [Throws]
-  sequence<any> sendRpcMessage(optional DOMString? messageName = null,
-                               optional any obj,
-                               optional object? objects = null,
-                               optional Principal? principal = null);
+                                optional any obj);
 };
 
 /**
@@ -395,13 +366,6 @@ interface mixin MessageManagerGlobal
    * Print a string to stdout.
    */
   void dump(DOMString str);
-
-  /**
-   * If leak detection is enabled, print a note to the leak log that this
-   * process will intentionally crash.
-   */
-  [Throws]
-  void privateNoteIntentionalCrash();
 
   /**
    * Ascii base64 data to binary data and vice versa
@@ -509,13 +473,6 @@ interface ContentFrameMessageManager : EventTarget
    */
   readonly attribute nsIEventTarget? tabEventTarget;
 
-  /**
-   * Returns the outerWindowID of the browser window hosting the frame.
-   * If, for some reason, the frameloader can't be resolved to a browser
-   * window, this will return 0.
-   */
-  readonly attribute long long chromeOuterWindowID;
-
 };
 ContentFrameMessageManager includes MessageManagerGlobal;
 ContentFrameMessageManager includes SyncMessageSenderMixin;
@@ -532,7 +489,7 @@ interface ContentProcessMessageManager
   [Throws]
   readonly attribute any initialProcessData;
 
-  readonly attribute MozSharedMap sharedData;
+  readonly attribute MozSharedMap? sharedData;
 };
 ContentProcessMessageManager includes MessageManagerGlobal;
 ContentProcessMessageManager includes SyncMessageSenderMixin;
@@ -558,8 +515,7 @@ interface MessageBroadcaster : MessageListenerManager
    */
   [Throws]
   void broadcastAsyncMessage(optional DOMString? messageName = null,
-                             optional any obj,
-                             optional object? objects = null);
+                             optional any obj);
 
   /**
    * Number of subordinate message managers.

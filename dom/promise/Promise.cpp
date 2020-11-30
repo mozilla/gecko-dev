@@ -20,6 +20,7 @@
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/DOMException.h"
 #include "mozilla/dom/DOMExceptionBinding.h"
+#include "mozilla/dom/Exceptions.h"
 #include "mozilla/dom/MediaStreamError.h"
 #include "mozilla/dom/PromiseBinding.h"
 #include "mozilla/dom/ScriptSettings.h"
@@ -27,8 +28,12 @@
 #include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/dom/WorkerRunnable.h"
 #include "mozilla/dom/WorkerRef.h"
+#include "mozilla/dom/WorkletImpl.h"
+#include "mozilla/dom/WorkletGlobalScope.h"
 
 #include "jsfriendapi.h"
+#include "js/Exception.h"  // JS::ExceptionStack
+#include "js/Object.h"     // JS::GetCompartment
 #include "js/StructuredClone.h"
 #include "nsContentUtils.h"
 #include "nsGlobalWindow.h"
@@ -65,13 +70,8 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(Promise)
   NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mPromiseObj);
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
-NS_IMPL_CYCLE_COLLECTING_ADDREF(Promise)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(Promise)
-
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(Promise)
-  NS_INTERFACE_MAP_ENTRY(nsISupports)
-  NS_INTERFACE_MAP_ENTRY(Promise)
-NS_INTERFACE_MAP_END
+NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(Promise, AddRef)
+NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(Promise, Release)
 
 Promise::Promise(nsIGlobalObject* aGlobal)
     : mGlobal(aGlobal), mPromiseObj(nullptr) {
@@ -369,7 +369,7 @@ namespace {
 class PromiseNativeHandlerShim final : public PromiseNativeHandler {
   RefPtr<PromiseNativeHandler> mInner;
 
-  ~PromiseNativeHandlerShim() {}
+  ~PromiseNativeHandlerShim() = default;
 
  public:
   explicit PromiseNativeHandlerShim(PromiseNativeHandler* aInner)
@@ -475,9 +475,8 @@ void Promise::HandleException(JSContext* aCx) {
 already_AddRefed<Promise> Promise::CreateFromExisting(
     nsIGlobalObject* aGlobal, JS::Handle<JSObject*> aPromiseObj,
     PropagateUserInteraction aPropagateUserInteraction) {
-  MOZ_ASSERT(
-      js::GetObjectCompartment(aGlobal->GetGlobalJSObjectPreserveColor()) ==
-      js::GetObjectCompartment(aPromiseObj));
+  MOZ_ASSERT(JS::GetCompartment(aGlobal->GetGlobalJSObjectPreserveColor()) ==
+             JS::GetCompartment(aPromiseObj));
   RefPtr<Promise> p = new Promise(aGlobal);
   p->mPromiseObj = aPromiseObj;
   if (aPropagateUserInteraction == ePropagateUserInteraction &&
@@ -510,45 +509,77 @@ void Promise::ReportRejectedPromise(JSContext* aCx, JS::HandleObject aPromise) {
 
   MOZ_ASSERT(JS::GetPromiseState(aPromise) == JS::PromiseState::Rejected);
 
-  JS::Rooted<JS::Value> result(aCx, JS::GetPromiseResult(aPromise));
+  bool isChrome = false;
+  nsGlobalWindowInner* win = nullptr;
+  uint64_t innerWindowID = 0;
+  if (MOZ_LIKELY(NS_IsMainThread())) {
+    isChrome = nsContentUtils::ObjectPrincipal(aPromise)->IsSystemPrincipal();
+    win = xpc::WindowGlobalOrNull(aPromise);
+    innerWindowID = win ? win->WindowID() : 0;
+  } else if (const WorkerPrivate* wp = GetCurrentThreadWorkerPrivate()) {
+    isChrome = wp->UsesSystemPrincipal();
+    innerWindowID = wp->WindowID();
+  } else if (nsCOMPtr<nsIGlobalObject> global = xpc::NativeGlobal(aPromise)) {
+    if (nsCOMPtr<WorkletGlobalScope> workletGlobal =
+            do_QueryInterface(global)) {
+      WorkletImpl* impl = workletGlobal->Impl();
+      isChrome = impl->PrincipalInfo().type() ==
+                 mozilla::ipc::PrincipalInfo::TSystemPrincipalInfo;
+      innerWindowID = impl->LoadInfo().InnerWindowID();
+    }
+  }
 
-  RefPtr<xpc::ErrorReport> xpcReport = new xpc::ErrorReport();
-  bool isMainThread = MOZ_LIKELY(NS_IsMainThread());
-  bool isChrome =
-      isMainThread
-          ? nsContentUtils::ObjectPrincipal(aPromise)->IsSystemPrincipal()
-          : IsCurrentThreadRunningChromeWorker();
-  nsGlobalWindowInner* win =
-      isMainThread ? xpc::WindowGlobalOrNull(aPromise) : nullptr;
+  JS::Rooted<JS::Value> result(aCx, JS::GetPromiseResult(aPromise));
+  // resolutionSite can be null if async stacks are disabled.
+  JS::Rooted<JSObject*> resolutionSite(aCx,
+                                       JS::GetPromiseResolutionSite(aPromise));
 
   // We're inspecting the rejection value only to report it to the console, and
   // we do so without side-effects, so we can safely unwrap it without regard to
   // the privileges of the Promise object that holds it. If we don't unwrap
   // before trying to create the error report, we wind up reporting any
   // cross-origin objects as "uncaught exception: Object".
-  Maybe<JSAutoRealm> ar;
-  if (result.isObject()) {
-    result.setObject(*js::UncheckedUnwrap(&result.toObject()));
-    ar.emplace(aCx, &result.toObject());
+  RefPtr<xpc::ErrorReport> xpcReport = new xpc::ErrorReport();
+  {
+    Maybe<JSAutoRealm> ar;
+    JS::Rooted<JS::Value> unwrapped(aCx, result);
+    if (unwrapped.isObject()) {
+      unwrapped.setObject(*js::UncheckedUnwrap(&unwrapped.toObject()));
+      ar.emplace(aCx, &unwrapped.toObject());
+    }
+
+    JS::ErrorReportBuilder report(aCx);
+    RefPtr<Exception> exn;
+    if (unwrapped.isObject() &&
+        (NS_SUCCEEDED(UNWRAP_OBJECT(DOMException, &unwrapped, exn)) ||
+         NS_SUCCEEDED(UNWRAP_OBJECT(Exception, &unwrapped, exn)))) {
+      xpcReport->Init(aCx, exn, isChrome, innerWindowID);
+    } else {
+      // Use the resolution site as the exception stack
+      JS::ExceptionStack exnStack(aCx, unwrapped, resolutionSite);
+      if (!report.init(aCx, exnStack, JS::ErrorReportBuilder::NoSideEffects)) {
+        JS_ClearPendingException(aCx);
+        return;
+      }
+
+      xpcReport->Init(report.report(), report.toStringResult().c_str(),
+                      isChrome, innerWindowID);
+    }
   }
 
-  js::ErrorReport report(aCx);
-  RefPtr<Exception> exn;
-  if (result.isObject() &&
-      (NS_SUCCEEDED(UNWRAP_OBJECT(DOMException, &result, exn)) ||
-       NS_SUCCEEDED(UNWRAP_OBJECT(Exception, &result, exn)))) {
-    xpcReport->Init(aCx, exn, isChrome, win ? win->WindowID() : 0);
-  } else if (report.init(aCx, result, js::ErrorReport::NoSideEffects)) {
-    xpcReport->Init(report.report(), report.toStringResult().c_str(), isChrome,
-                    win ? win->WindowID() : 0);
-  } else {
-    JS_ClearPendingException(aCx);
-    return;
-  }
+  // Used to initialize the similarly named nsISciptError attribute.
+  xpcReport->mIsPromiseRejection = true;
 
   // Now post an event to do the real reporting async
-  RefPtr<nsIRunnable> event = new AsyncErrorReporter(xpcReport);
+  RefPtr<AsyncErrorReporter> event = new AsyncErrorReporter(xpcReport);
   if (win) {
+    if (!win->IsDying()) {
+      // Exceptions from a dying window will cause the window to leak.
+      event->SetException(aCx, result);
+      if (resolutionSite) {
+        event->SerializeStack(aCx, resolutionSite);
+      }
+    }
     win->Dispatch(mozilla::TaskCategory::Other, event.forget());
   } else {
     NS_DispatchToMainThread(event);
@@ -625,7 +656,7 @@ class PromiseWorkerProxyRunnable : public WorkerRunnable {
   }
 
  protected:
-  ~PromiseWorkerProxyRunnable() {}
+  ~PromiseWorkerProxyRunnable() = default;
 
  private:
   RefPtr<PromiseWorkerProxy> mPromiseWorkerProxy;

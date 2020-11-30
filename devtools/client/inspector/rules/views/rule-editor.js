@@ -32,12 +32,6 @@ const EventEmitter = require("devtools/shared/event-emitter");
 const CssLogic = require("devtools/shared/inspector/css-logic");
 
 loader.lazyRequireGetter(this, "Tools", "devtools/client/definitions", true);
-loader.lazyRequireGetter(
-  this,
-  "gDevTools",
-  "devtools/client/framework/devtools",
-  true
-);
 
 const STYLE_INSPECTOR_PROPERTIES =
   "devtools/shared/locales/styleinspector.properties";
@@ -91,28 +85,8 @@ RuleEditor.prototype = {
     this.toolbox.off("tool-registered", this._onToolChanged);
     this.toolbox.off("tool-unregistered", this._onToolChanged);
 
-    let url = null;
-    if (this.rule.sheet) {
-      url = this.rule.sheet.href || this.rule.sheet.nodeHref;
-    }
-    if (
-      url &&
-      !this.rule.isSystem &&
-      this.rule.domRule.type !== ELEMENT_STYLE
-    ) {
-      // Only get the original source link if the rule isn't a system
-      // rule and if it isn't an inline rule.
-      const sourceLine = this.rule.ruleLine;
-      const sourceColumn = this.rule.ruleColumn;
-
-      if (this._sourceMapURLService) {
-        this._sourceMapURLService.unsubscribe(
-          url,
-          sourceLine,
-          sourceColumn,
-          this._updateLocation
-        );
-      }
+    if (this._unsubscribeSourceMap) {
+      this._unsubscribeSourceMap();
     }
   },
 
@@ -185,6 +159,7 @@ RuleEditor.prototype = {
     }
 
     if (this.rule.domRule.type !== CSSRule.KEYFRAME_RULE) {
+      // FIXME: Avoid having this as a nested async operation. (Bug 1664511)
       (async function() {
         let selector;
 
@@ -200,26 +175,15 @@ RuleEditor.prototype = {
           selector = this.ruleView.inspector.selectionCssSelector;
         }
 
-        const isHighlighted =
-          this.ruleView._highlighters &&
-          this.ruleView.highlighters.selectorHighlighterShown === selector;
-        const selectorHighlighter = createChild(header, "span", {
+        const isHighlighted = this.ruleView.isSelectorHighlighted(selector);
+        // Handling of click events is delegated to CssRuleView.handleEvent()
+        createChild(header, "span", {
           class:
-            "ruleview-selectorhighlighter" +
+            "ruleview-selectorhighlighter js-toggle-selector-highlighter" +
             (isHighlighted ? " highlighted" : ""),
+          "data-selector": selector,
           title: l10n("rule.selectorHighlighter.tooltip"),
         });
-        selectorHighlighter.addEventListener("click", event => {
-          this.ruleView.toggleSelectorHighlighter(
-            selectorHighlighter,
-            selector
-          );
-          // Prevent clicks from focusing the property editor.
-          event.stopPropagation();
-        });
-
-        this.uniqueSelector = selector;
-        this.emit("selector-icon-created");
       }
         .bind(this)()
         .catch(error => {
@@ -300,61 +264,36 @@ RuleEditor.prototype = {
   },
 
   _onSourceClick: function() {
-    if (this.source.hasAttribute("unselectable") || !this._currentLocation) {
+    if (this.source.hasAttribute("unselectable")) {
       return;
     }
 
-    const target = this.ruleView.inspector.currentTarget;
+    const { inspector } = this.ruleView;
+    const target = inspector.currentTarget;
     if (Tools.styleEditor.isTargetSupported(target)) {
-      gDevTools.showToolbox(target, "styleeditor").then(toolbox => {
-        const { url, line, column } = this._currentLocation;
-
-        if (!this.rule.sheet.href && this.rule.sheet.nodeHref) {
-          toolbox
-            .getCurrentPanel()
-            .selectStyleSheet(this.rule.sheet, line, column);
-        } else {
-          toolbox.getCurrentPanel().selectStyleSheet(url, line, column);
-        }
-      });
+      inspector.toolbox.viewSourceInStyleEditorByFront(
+        this.rule.sheet,
+        this.rule.ruleLine,
+        this.rule.ruleColumn
+      );
     }
   },
 
   /**
    * Update the text of the source link to reflect whether we're showing
    * original sources or not.  This is a callback for
-   * SourceMapURLService.subscribe, which see.
+   * SourceMapURLService.subscribeByID, which see.
    *
-   * @param {Boolean} enabled
-   *        True if the passed-in location should be used; this means
-   *        that source mapping is in use and the remaining arguments
-   *        are the original location.  False if the already-known
-   *        (stored) location should be used.
-   * @param {String} url
-   *        The original URL
-   * @param {Number} line
-   *        The original line number
-   * @param {number} column
-   *        The original column number
+   * @param {Object | null} originalLocation
+   *        The original position object (url/line/column) or null.
    */
-  _updateLocation: function(enabled, url, line, column) {
-    let displayURL = url;
-    if (!enabled) {
-      url = null;
-      displayURL = null;
-      if (this.rule.sheet) {
-        url = this.rule.sheet.href || this.rule.sheet.nodeHref;
-        displayURL = this.rule.sheet.href;
-      }
-      line = this.rule.ruleLine;
-      column = this.rule.ruleColumn;
+  _updateLocation: function(originalLocation) {
+    let displayURL = this.rule.sheet ? this.rule.sheet.href : null;
+    let line = this.rule.ruleLine;
+    if (originalLocation) {
+      displayURL = originalLocation.url;
+      line = originalLocation.line;
     }
-
-    this._currentLocation = {
-      url,
-      line,
-      column,
-    };
 
     let sourceTextContent = CssLogic.shortSource({ href: displayURL });
     let title = displayURL ? displayURL : sourceTextContent;
@@ -395,26 +334,23 @@ RuleEditor.prototype = {
         sourceLabel.removeAttribute("title");
       }
     } else {
-      this._updateLocation(false);
+      this._updateLocation(null);
     }
 
-    let url = null;
-    if (this.rule.sheet) {
-      url = this.rule.sheet.href || this.rule.sheet.nodeHref;
-    }
     if (
-      url &&
+      this.rule.sheet &&
       !this.rule.isSystem &&
       this.rule.domRule.type !== ELEMENT_STYLE
     ) {
       // Only get the original source link if the rule isn't a system
       // rule and if it isn't an inline rule.
-      const sourceLine = this.rule.ruleLine;
-      const sourceColumn = this.rule.ruleColumn;
-      this.sourceMapURLService.subscribe(
-        url,
-        sourceLine,
-        sourceColumn,
+      if (this._unsubscribeSourceMap) {
+        this._unsubscribeSourceMap();
+      }
+      this._unsubscribeSourceMap = this.sourceMapURLService.subscribeByID(
+        this.rule.sheet.actorID,
+        this.rule.ruleLine,
+        this.rule.ruleColumn,
         this._updateLocation
       );
       // Set "unselectable" appropriately.
@@ -722,6 +658,11 @@ RuleEditor.prototype = {
 
     this.isEditing = true;
 
+    // Remove highlighter for the previous selector.
+    if (this.ruleView.isSelectorHighlighted(this.rule.selectorText)) {
+      await this.ruleView.toggleSelectorHighlighter(this.rule.selectorText);
+    }
+
     try {
       const response = await this.rule.domRule.modifySelector(element, value);
 
@@ -768,14 +709,6 @@ RuleEditor.prototype = {
       // but that is complicated due to the way the UI installs
       // pseudo-element rules and the like.
       this.element.parentNode.replaceChild(editor.element, this.element);
-
-      // Remove highlight for modified selector
-      if (ruleView.highlighters.selectorHighlighterShown) {
-        ruleView.toggleSelectorHighlighter(
-          ruleView.lastSelectorIcon,
-          ruleView.highlighters.selectorHighlighterShown
-        );
-      }
 
       editor._moveSelectorFocus(direction);
     } catch (err) {

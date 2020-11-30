@@ -88,6 +88,9 @@ with Files("test/statuspanel/**"):
 with Files("test/sync/**"):
     BUG_COMPONENT = ("Firefox", "Sync")
 
+with Files("test/tabdialogs/**"):
+    BUG_COMPONENT = ("Firefox", "Tabbed Browser")
+
 with Files("test/tabPrompts/**"):
     BUG_COMPONENT = ("Firefox", "Tabbed Browser")
 
@@ -100,7 +103,7 @@ with Files("test/tabs/**"):
 with Files("test/touch/**"):
     BUG_COMPONENT = ("Firefox", "General")
 
-with Files("test/trackingUI/**"):
+with Files("test/protectionsUI/**"):
     BUG_COMPONENT = ("Firefox", "Protections UI")
 
 with Files("test/webextensions/**"):
@@ -135,9 +138,6 @@ with Files("browser-fullZoom.js"):
 
 with Files("browser-gestureSupport.js"):
     BUG_COMPONENT = ("Core", "Widget: Cocoa")
-
-with Files("browser-media.js"):
-    BUG_COMPONENT = ("Core", "Audio/Video: Playback")
 
 with Files("browser-pageActions.js"):
     BUG_COMPONENT = ("Firefox", "Toolbars and Customization")

@@ -1,5 +1,6 @@
 // |reftest| skip -- Intl.Segmenter is not supported
 // Copyright 2018 the V8 project authors. All rights reserved.
+// Copyright 2020 Apple Inc. All rights reserved.
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
@@ -30,23 +31,15 @@ for (const text of [
     "법원 “다스 지분 처분권·수익권 모두 MB가 보유”", // Korean
     ]) {
   let segments = [];
-  // Create another %SegmentIterator% to compare with result from the one that
-  // created in the for of loop.
-  let iter = seg.segment(text);
-  let prev = 0;
   for (const v of seg.segment(text)) {
-    assert.sameValue(undefined, v.breakType);
+    assert.sameValue(undefined, v.isWordLike);
+    assert.sameValue(false, v.hasOwnProperty("isWordLike"));
     assert.sameValue("string", typeof v.segment);
     assert(v.segment.length > 0);
+    assert.sameValue("string", typeof v.input);
+    assert.sameValue(text, v.input);
     segments.push(v.segment);
-
-    // manually advance the iter.
-    assert.sameValue(iter.following(), false);
-    assert.sameValue(iter.breakType, v.breakType);
-    assert.sameValue(text.substring(prev, iter.index), v.segment);
-    prev = iter.index;
   }
-  assert(iter.following());
   assert.sameValue(text, segments.join(''));
 }
 

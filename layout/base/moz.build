@@ -59,6 +59,7 @@ EXPORTS += [
     'nsPresContextInlines.h',
     'nsQuoteList.h',
     'nsRefreshDriver.h',
+    'nsRefreshObservers.h',
     'nsStyleChangeList.h',
     'nsStyleSheetService.h',
     'StackArena.h',
@@ -72,6 +73,7 @@ EXPORTS += [
 EXPORTS.mozilla += [
     'AccessibleCaretEventHub.h',
     'ArenaObjectID.h',
+    'DisplayPortUtils.h',
     'GeckoMVMContext.h',
     'GeometryUtils.h',
     'MediaEmulationData.h',
@@ -82,11 +84,14 @@ EXPORTS.mozilla += [
     'PresShell.h',
     'PresShellForwards.h',
     'PresShellInlines.h',
+    'RelativeTo.h',
     'RestyleManager.h',
     'ScrollStyles.h',
     'ScrollTypes.h',
     'ShapeUtils.h',
     'StaticPresData.h',
+    'SurfaceFromElementResult.h',
+    'ViewportUtils.h',
 ]
 
 EXPORTS.mozilla.layout += [
@@ -97,6 +102,7 @@ UNIFIED_SOURCES += [
     'AccessibleCaret.cpp',
     'AccessibleCaretEventHub.cpp',
     'AccessibleCaretManager.cpp',
+    'DisplayPortUtils.cpp',
     'GeckoMVMContext.cpp',
     'GeometryUtils.cpp',
     'LayoutLogging.cpp',
@@ -129,6 +135,7 @@ UNIFIED_SOURCES += [
     'StackArena.cpp',
     'StaticPresData.cpp',
     'TouchManager.cpp',
+    'ViewportUtils.cpp',
     'ZoomConstraintsClient.cpp',
 ]
 
@@ -149,7 +156,6 @@ LOCAL_INCLUDES += [
     '../painting',
     '../printing',
     '../style',
-    '../svg',
     '../tables',
     '../xul',
     '../xul/tree/',

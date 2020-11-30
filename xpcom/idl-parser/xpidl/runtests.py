@@ -5,10 +5,18 @@
 #
 # Unit tests for xpidl.py
 
+from __future__ import absolute_import
+
+import sys
+# Hack: the first entry in sys.path is the directory containing the script.
+# This messes things up because that directory is the xpidl module, and that
+# which conflicts with the xpidl submodule in the imports further below.
+sys.path.pop(0)
+
 import mozunit
 import unittest
-import xpidl
-import header
+from xpidl import xpidl
+from xpidl import header
 
 
 class TestParser(unittest.TestCase):
@@ -112,7 +120,7 @@ attribute long bar;
             def write(self, s):
                 pass
         try:
-            header.print_header(i, FdMock(), filename='f')
+            header.print_header(i, FdMock(), filename='f', relpath='f')
             self.assertTrue(False, "Header printing failed to fail")
         except Exception as e:
             self.assertEqual(

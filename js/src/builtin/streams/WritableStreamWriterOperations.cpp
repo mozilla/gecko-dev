@@ -21,13 +21,14 @@
 #include "builtin/streams/WritableStreamDefaultWriter.h"  // js::WritableStreamDefaultWriter
 #include "builtin/streams/WritableStreamOperations.h"  // js::WritableStream{Abort,CloseQueuedOrInFlight}
 #include "js/Promise.h"                                // JS::PromiseState
-#include "js/Value.h"          // JS::Value, JS::{Int32,Null}Value
-#include "vm/Compartment.h"    // JS::Compartment
-#include "vm/Interpreter.h"    // js::GetAndClearException
-#include "vm/JSContext.h"      // JSContext
-#include "vm/PromiseObject.h"  // js::PromiseObject
+#include "js/Value.h"        // JS::Value, JS::{Int32,Null}Value
+#include "vm/Compartment.h"  // JS::Compartment
+#include "vm/Interpreter.h"  // js::GetAndClearException
+#include "vm/JSContext.h"    // JSContext
+#include "vm/PromiseObject.h"  // js::PromiseObject, js::PromiseResolvedWithUndefined
 
-#include "builtin/streams/MiscellaneousOperations-inl.h"  // js::ResolveUnwrappedPromiseWithUndefined, js::SetSettledPromiseIsHandled
+#include "builtin/Promise-inl.h"  // js::SetSettledPromiseIsHandled
+#include "builtin/streams/MiscellaneousOperations-inl.h"  // js::ResolveUnwrappedPromiseWithUndefined
 #include "builtin/streams/WritableStream-inl.h"  // js::WritableStream::setCloseRequest
 #include "builtin/streams/WritableStreamDefaultWriter-inl.h"  // js::UnwrapStreamFromWriter
 #include "vm/Compartment-inl.h"  // js::UnwrapAnd{DowncastObject,TypeCheckThis}
@@ -75,7 +76,7 @@ JSObject* js::WritableStreamDefaultWriterAbort(
  * Streams spec, 4.6.3.
  * WritableStreamDefaultWriterClose ( writer )
  */
-JSObject* js::WritableStreamDefaultWriterClose(
+PromiseObject* js::WritableStreamDefaultWriterClose(
     JSContext* cx, Handle<WritableStreamDefaultWriter*> unwrappedWriter) {
   // Step 1: Let stream be writer.[[ownerWritableStream]].
   // Step 2: Assert: stream is not undefined.
@@ -140,6 +141,45 @@ JSObject* js::WritableStreamDefaultWriterClose(
   return promise;
 }
 
+/**
+ * Streams spec.
+ * WritableStreamDefaultWriterCloseWithErrorPropagation ( writer )
+ */
+PromiseObject* js::WritableStreamDefaultWriterCloseWithErrorPropagation(
+    JSContext* cx, Handle<WritableStreamDefaultWriter*> unwrappedWriter) {
+  // Step 1: Let stream be writer.[[ownerWritableStream]].
+  // Step 2: Assert: stream is not undefined.
+  WritableStream* unwrappedStream = UnwrapStreamFromWriter(cx, unwrappedWriter);
+  if (!unwrappedStream) {
+    return nullptr;
+  }
+
+  // Step 3: Let state be stream.[[state]].
+  // Step 4: If ! WritableStreamCloseQueuedOrInFlight(stream) is true or state
+  //         is "closed", return a promise resolved with undefined.
+  if (WritableStreamCloseQueuedOrInFlight(unwrappedStream) ||
+      unwrappedStream->closed()) {
+    return PromiseResolvedWithUndefined(cx);
+  }
+
+  // Step 5: If state is "errored", return a promise rejected with
+  //         stream.[[storedError]].
+  if (unwrappedStream->errored()) {
+    Rooted<Value> storedError(cx, unwrappedStream->storedError());
+    if (!cx->compartment()->wrap(cx, &storedError)) {
+      return nullptr;
+    }
+
+    return PromiseObject::unforgeableReject(cx, storedError);
+  }
+
+  // Step 6: Assert: state is "writable" or "erroring".
+  MOZ_ASSERT(unwrappedStream->writable() ^ unwrappedStream->erroring());
+
+  // Step 7: Return ! WritableStreamDefaultWriterClose(writer).
+  return WritableStreamDefaultWriterClose(cx, unwrappedWriter);
+}
+
 using GetField = JSObject* (WritableStreamDefaultWriter::*)() const;
 using SetField = void (WritableStreamDefaultWriter::*)(JSObject*);
 
@@ -185,7 +225,7 @@ static bool EnsurePromiseRejected(
   }
 
   // 4.6.{5,6} step 3: Set writer.[[<field>]].[[PromiseIsHandled]] to true.
-  SetSettledPromiseIsHandled(cx, unwrappedPromise);
+  js::SetSettledPromiseIsHandled(cx, unwrappedPromise);
   return true;
 }
 
@@ -311,7 +351,7 @@ bool js::WritableStreamDefaultWriterRelease(
  * Streams spec, 4.6.9.
  * WritableStreamDefaultWriterWrite ( writer, chunk )
  */
-JSObject* js::WritableStreamDefaultWriterWrite(
+PromiseObject* js::WritableStreamDefaultWriterWrite(
     JSContext* cx, Handle<WritableStreamDefaultWriter*> unwrappedWriter,
     Handle<Value> chunk) {
   cx->check(chunk);
@@ -350,7 +390,8 @@ JSObject* js::WritableStreamDefaultWriterWrite(
   }
 
   auto RejectWithStoredError =
-      [](JSContext* cx, Handle<WritableStream*> unwrappedStream) -> JSObject* {
+      [](JSContext* cx,
+         Handle<WritableStream*> unwrappedStream) -> PromiseObject* {
     Rooted<Value> storedError(cx, unwrappedStream->storedError());
     if (!cx->compartment()->wrap(cx, &storedError)) {
       return nullptr;

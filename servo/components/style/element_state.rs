@@ -53,10 +53,6 @@ bitflags! {
         const IN_MOZ_UI_INVALID_STATE = 1 << 13;
         /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-broken
         const IN_BROKEN_STATE = 1 << 14;
-        /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-user-disabled
-        const IN_USER_DISABLED_STATE = 1 << 15;
-        /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-suppressed
-        const IN_SUPPRESSED_STATE = 1 << 16;
         /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-loading
         const IN_LOADING_STATE = 1 << 17;
         /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-handler-blocked
@@ -87,9 +83,9 @@ bitflags! {
         /// <https://html.spec.whatwg.org/multipage/#selector-out-of-range>
         const IN_OUTOFRANGE_STATE = 1 << 28;
         /// <https://html.spec.whatwg.org/multipage/#selector-read-only>
-        const IN_MOZ_READONLY_STATE = 1 << 29;
+        const IN_READONLY_STATE = 1 << 29;
         /// <https://html.spec.whatwg.org/multipage/#selector-read-write>
-        const IN_MOZ_READWRITE_STATE = 1 << 30;
+        const IN_READWRITE_STATE = 1 << 30;
         /// <https://html.spec.whatwg.org/multipage/#selector-default>
         const IN_DEFAULT_STATE = 1 << 31;
         /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-submit-invalid
@@ -141,6 +137,15 @@ bitflags! {
         ///
         /// https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo
         const IN_FOCUS_VISIBLE_STATE = 1 << 52;
+        /// State that dialog element is modal, for centered alignment
+        ///
+        /// https://html.spec.whatwg.org/multipage/#centered-alignment
+        const IN_MODAL_DIALOG_STATE = 1 << 53;
+
+        /// https://html.spec.whatwg.org/multipage/interaction.html#inert-subtrees
+        const IN_MOZINERT_STATE = 1 << 54;
+        /// State for the topmost dialog element in top layer
+        const IN_TOPMOST_MODAL_DIALOG_STATE = 1 << 55;
     }
 }
 

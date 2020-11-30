@@ -17,6 +17,8 @@
 #include "js/Proxy.h"
 #include "js/CharacterEncoding.h"
 #include "js/Class.h"
+#include "js/experimental/JitInfo.h"
+#include "js/experimental/TypedData.h"
 #include "js/MemoryMetrics.h"
 #include "js/Principals.h"
 #include "js/StructuredClone.h"
@@ -454,14 +456,22 @@ JSObject* NewProxyObject(JSContext* aCx, const void* aHandler,
 }
 
 JSObject* WrapperNew(JSContext* aCx, JS::HandleObject aObj,
-                     const void* aHandler, const JSClass* aClass,
-                     bool aSingleton) {
+                     const void* aHandler, const JSClass* aClass) {
   js::WrapperOptions options;
   if (aClass) {
     options.setClass(aClass);
   }
-  options.setSingleton(aSingleton);
   return js::Wrapper::New(aCx, aObj, (const js::Wrapper*)aHandler, options);
+}
+
+JSObject* WrapperNewSingleton(JSContext* aCx, JS::HandleObject aObj,
+                              const void* aHandler, const JSClass* aClass) {
+  js::WrapperOptions options;
+  if (aClass) {
+    options.setClass(aClass);
+  }
+  return js::Wrapper::NewSingleton(aCx, aObj, (const js::Wrapper*)aHandler,
+                                   options);
 }
 
 const JSClass WindowProxyClass = PROXY_CLASS_DEF(
@@ -479,7 +489,7 @@ void SetProxyReservedSlot(JSObject* obj, uint32_t slot, const JS::Value* val) {
 
 JSObject* NewWindowProxy(JSContext* aCx, JS::HandleObject aObj,
                          const void* aHandler) {
-  return WrapperNew(aCx, aObj, aHandler, &WindowProxyClass, true);
+  return WrapperNewSingleton(aCx, aObj, aHandler, &WindowProxyClass);
 }
 
 JS::Value GetProxyPrivate(JSObject* obj) { return js::GetProxyPrivate(obj); }
@@ -505,7 +515,7 @@ void RUST_SET_JITINFO(JSFunction* func, const JSJitInfo* info) {
 }
 
 jsid RUST_INTERNED_STRING_TO_JSID(JSContext* cx, JSString* str) {
-  return INTERNED_STRING_TO_JSID(cx, str);
+  return JS::PropertyKey::fromPinnedString(str);
 }
 
 const JSErrorFormatString* RUST_js_GetErrorMessage(void* userRef,

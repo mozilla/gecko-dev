@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use libc::{c_int, c_short, c_ulong};
-use libudev;
 use libudev::EventType;
 use runloop::RunLoop;
 use std::collections::HashMap;
@@ -107,6 +106,8 @@ where
         let f = self.new_device_cb.clone();
         let key = path.clone();
 
+        debug!("Adding device {}", path.to_string_lossy());
+
         let runloop = RunLoop::new(move |alive| {
             if alive() {
                 f(path, alive);
@@ -119,6 +120,8 @@ where
     }
 
     fn remove_device(&mut self, path: &OsString) {
+        debug!("Removing device {}", path.to_string_lossy());
+
         if let Some(runloop) = self.runloops.remove(path) {
             runloop.cancel();
         }
@@ -130,4 +133,36 @@ where
             self.remove_device(&path);
         }
     }
+}
+
+pub fn get_property_linux(path: &OsString, prop_name: &str) -> io::Result<String> {
+    let ctx = libudev::Context::new()?;
+
+    let mut enumerator = libudev::Enumerator::new(&ctx)?;
+    enumerator.match_subsystem(UDEV_SUBSYSTEM)?;
+
+    // Iterate all existing devices, since we don't have a syspath
+    // and libudev-rs doesn't implement opening by devnode.
+    for dev in enumerator.scan_devices()? {
+        if dev.devnode().is_some() && dev.devnode().unwrap() == path {
+            debug!(
+                "get_property_linux Querying property {} from {}",
+                prop_name,
+                dev.syspath().display()
+            );
+
+            let value = dev
+                .attribute_value(prop_name)
+                .ok_or(io::ErrorKind::Other)?
+                .to_string_lossy();
+
+            debug!("get_property_linux Fetched Result, {}={}", prop_name, value);
+            return Ok(value.to_string());
+        }
+    }
+
+    Err(io::Error::new(
+        io::ErrorKind::Other,
+        "Unable to find device",
+    ))
 }

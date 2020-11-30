@@ -7,7 +7,6 @@
  */
 
 add_task(async function setup() {
-  await AddonTestUtils.promiseStartupManager();
   let engine = await addTestSuggestionsEngine();
   let oldDefaultEngine = await Services.search.getDefault();
   Services.search.setDefault(engine);
@@ -40,9 +39,10 @@ add_task(async function test_restrictions() {
     searchString: "match",
   });
   // Skip the heuristic result.
-  Assert.deepEqual(results.filter(r => !r.heuristic).map(r => r.payload.url), [
-    "http://bookmark.com/",
-  ]);
+  Assert.deepEqual(
+    results.filter(r => !r.heuristic).map(r => r.payload.url),
+    ["http://bookmark.com/"]
+  );
 
   info("History restrict");
   results = await get_results({
@@ -50,9 +50,10 @@ add_task(async function test_restrictions() {
     searchString: "match",
   });
   // Skip the heuristic result.
-  Assert.deepEqual(results.filter(r => !r.heuristic).map(r => r.payload.url), [
-    "http://history.com/",
-  ]);
+  Assert.deepEqual(
+    results.filter(r => !r.heuristic).map(r => r.payload.url),
+    ["http://history.com/"]
+  );
 
   info("tabs restrict");
   results = await get_results({
@@ -60,9 +61,10 @@ add_task(async function test_restrictions() {
     searchString: "match",
   });
   // Skip the heuristic result.
-  Assert.deepEqual(results.filter(r => !r.heuristic).map(r => r.payload.url), [
-    "http://openpagematch.com/",
-  ]);
+  Assert.deepEqual(
+    results.filter(r => !r.heuristic).map(r => r.payload.url),
+    ["http://openpagematch.com/"]
+  );
 
   info("search restrict");
   results = await get_results({
@@ -125,13 +127,19 @@ add_task(async function test_restrictions() {
 
 async function get_results(test) {
   let controller = UrlbarTestUtils.newMockController();
-  let queryContext = createContext(test.searchString, {
+  let options = {
     allowAutofill: false,
     isPrivate: false,
     maxResults: 10,
     sources: test.sources,
-    engineName: test.engineName,
-  });
+  };
+  if (test.engineName) {
+    options.searchMode = {
+      source: UrlbarUtils.RESULT_SOURCE.SEARCH,
+      engineName: test.engineName,
+    };
+  }
+  let queryContext = createContext(test.searchString, options);
   await controller.startQuery(queryContext);
   return queryContext.results;
 }

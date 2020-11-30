@@ -17,17 +17,21 @@
 #include "gc/PublicIterators.h"
 #include "gc/Zone.h"
 #include "js/Date.h"
+#include "js/friend/StackLimits.h"  // js::CheckSystemRecursionLimit
+#include "js/friend/WindowProxy.h"  // js::IsWindow, js::IsWindowProxy, js::ToWindowProxyIfWindow
 #include "js/Proxy.h"
 #include "js/RootingAPI.h"
 #include "js/StableStringChars.h"
 #include "js/Wrapper.h"
 #include "proxy/DeadObjectProxy.h"
+#include "proxy/DOMProxy.h"
 #include "vm/Iteration.h"
 #include "vm/JSContext.h"
 #include "vm/WrapperObject.h"
 
 #include "gc/GC-inl.h"
 #include "gc/Marking-inl.h"
+#include "gc/WeakMap-inl.h"
 #include "vm/JSAtom-inl.h"
 #include "vm/JSFunction-inl.h"
 #include "vm/JSObject-inl.h"
@@ -83,6 +87,16 @@ bool Compartment::putWrapper(JSContext* cx, JSString* wrapped,
   }
 
   return true;
+}
+
+void Compartment::removeWrapper(js::ObjectWrapperMap::Ptr p) {
+  JSObject* key = p->key();
+  JSObject* value = p->value().unbarrieredGet();
+  if (js::gc::detail::GetDelegate(value) == key) {
+    key->zone()->beforeClearDelegate(value, key);
+  }
+
+  crossCompartmentObjectWrappers.remove(p);
 }
 
 static JSString* CopyStringPure(JSContext* cx, JSString* str) {

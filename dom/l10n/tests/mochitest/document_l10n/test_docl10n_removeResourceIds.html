@@ -9,13 +9,14 @@
   <link rel="localization" href="toolkit/about/aboutSupport.ftl"/>
   <script type="application/javascript">
   "use strict";
+  /* eslint-disable mozilla/prefer-formatValues */
 
   SimpleTest.waitForExplicitFinish();
 
   window.onload = async function() {
     {
       // 1. An example message from aboutAddons should be available.
-      let value = await document.l10n.formatValue("shortcuts-browserAction");
+      let value = await document.l10n.formatValue("shortcuts-browserAction2");
       is(value.length > 0, true, "localized value retrieved");
     }
 

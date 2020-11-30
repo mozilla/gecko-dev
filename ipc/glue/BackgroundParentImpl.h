@@ -44,15 +44,15 @@ class BackgroundParentImpl : public PBackgroundParent,
   virtual bool DeallocPBackgroundTestParent(
       PBackgroundTestParent* aActor) override;
 
-  virtual PBackgroundIDBFactoryParent* AllocPBackgroundIDBFactoryParent(
-      const LoggingInfo& aLoggingInfo) override;
+  virtual already_AddRefed<PBackgroundIDBFactoryParent>
+  AllocPBackgroundIDBFactoryParent(const LoggingInfo& aLoggingInfo) override;
+
+  virtual already_AddRefed<net::PBackgroundDataBridgeParent>
+  AllocPBackgroundDataBridgeParent(const uint64_t& aChannelID) override;
 
   virtual mozilla::ipc::IPCResult RecvPBackgroundIDBFactoryConstructor(
       PBackgroundIDBFactoryParent* aActor,
       const LoggingInfo& aLoggingInfo) override;
-
-  virtual bool DeallocPBackgroundIDBFactoryParent(
-      PBackgroundIDBFactoryParent* aActor) override;
 
   virtual PBackgroundIndexedDBUtilsParent*
   AllocPBackgroundIndexedDBUtilsParent() override;
@@ -141,15 +141,19 @@ class BackgroundParentImpl : public PBackgroundParent,
   virtual bool DeallocPBackgroundStorageParent(
       PBackgroundStorageParent* aActor) override;
 
+  virtual already_AddRefed<PBackgroundSessionStorageManagerParent>
+  AllocPBackgroundSessionStorageManagerParent(
+      const uint64_t& aTopContextId) override;
+
   virtual already_AddRefed<PIdleSchedulerParent> AllocPIdleSchedulerParent()
       override;
 
-  virtual already_AddRefed<PIPCBlobInputStreamParent>
-  AllocPIPCBlobInputStreamParent(const nsID& aID,
-                                 const uint64_t& aSize) override;
+  virtual already_AddRefed<PRemoteLazyInputStreamParent>
+  AllocPRemoteLazyInputStreamParent(const nsID& aID,
+                                    const uint64_t& aSize) override;
 
-  virtual mozilla::ipc::IPCResult RecvPIPCBlobInputStreamConstructor(
-      PIPCBlobInputStreamParent* aActor, const nsID& aID,
+  virtual mozilla::ipc::IPCResult RecvPRemoteLazyInputStreamConstructor(
+      PRemoteLazyInputStreamParent* aActor, const nsID& aID,
       const uint64_t& aSize) override;
 
   virtual PTemporaryIPCBlobParent* AllocPTemporaryIPCBlobParent() override;
@@ -286,11 +290,8 @@ class BackgroundParentImpl : public PBackgroundParent,
 
   virtual bool DeallocPCacheParent(dom::cache::PCacheParent* aActor) override;
 
-  virtual dom::cache::PCacheStreamControlParent*
-  AllocPCacheStreamControlParent() override;
-
-  virtual bool DeallocPCacheStreamControlParent(
-      dom::cache::PCacheStreamControlParent* aActor) override;
+  virtual already_AddRefed<dom::cache::PCacheStreamControlParent>
+  AllocPCacheStreamControlParent();
 
   virtual PUDPSocketParent* AllocPUDPSocketParent(
       const Maybe<PrincipalInfo>& pInfo, const nsCString& aFilter) override;
@@ -319,6 +320,12 @@ class BackgroundParentImpl : public PBackgroundParent,
 
   virtual mozilla::ipc::IPCResult RecvShutdownQuotaManager() override;
 
+  virtual mozilla::ipc::IPCResult RecvShutdownBackgroundSessionStorageManagers()
+      override;
+
+  virtual mozilla::ipc::IPCResult RecvRemoveBackgroundSessionStorageManager(
+      const uint64_t& aTopContextId) override;
+
   virtual already_AddRefed<PFileSystemRequestParent>
   AllocPFileSystemRequestParent(const FileSystemParams&) override;
 
@@ -326,16 +333,11 @@ class BackgroundParentImpl : public PBackgroundParent,
       PFileSystemRequestParent* actor, const FileSystemParams& params) override;
 
   // Gamepad API Background IPC
-  virtual PGamepadEventChannelParent* AllocPGamepadEventChannelParent()
-      override;
+  virtual already_AddRefed<PGamepadEventChannelParent>
+  AllocPGamepadEventChannelParent() override;
 
-  virtual bool DeallocPGamepadEventChannelParent(
-      PGamepadEventChannelParent* aActor) override;
-
-  virtual PGamepadTestChannelParent* AllocPGamepadTestChannelParent() override;
-
-  virtual bool DeallocPGamepadTestChannelParent(
-      PGamepadTestChannelParent* aActor) override;
+  virtual already_AddRefed<PGamepadTestChannelParent>
+  AllocPGamepadTestChannelParent() override;
 
   virtual PWebAuthnTransactionParent* AllocPWebAuthnTransactionParent()
       override;

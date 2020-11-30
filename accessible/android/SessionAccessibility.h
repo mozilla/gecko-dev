@@ -6,8 +6,8 @@
 #ifndef mozilla_a11y_SessionAccessibility_h_
 #define mozilla_a11y_SessionAccessibility_h_
 
-#include "GeneratedJNINatives.h"
-#include "GeneratedJNIWrappers.h"
+#include "mozilla/java/SessionAccessibilityNatives.h"
+#include "mozilla/widget/GeckoViewSupport.h"
 #include "nsAppShell.h"
 #include "nsThreadUtils.h"
 #include "nsWindow.h"
@@ -29,13 +29,10 @@ class SessionAccessibility final
       Base;
 
   SessionAccessibility(
-      nsWindow::NativePtr<SessionAccessibility>* aPtr, nsWindow* aWindow,
-      java::SessionAccessibility::NativeProvider::Param aSessionAccessibility)
-      : mWindow(aPtr, aWindow), mSessionAccessibility(aSessionAccessibility) {
-    SetAttached(true, nullptr);
-  }
+      jni::NativeWeakPtr<widget::GeckoViewSupport> aWindow,
+      java::SessionAccessibility::NativeProvider::Param aSessionAccessibility);
 
-  void OnDetach(already_AddRefed<Runnable> aDisposer) {
+  void OnWeakNonIntrusiveDetach(already_AddRefed<Runnable> aDisposer) {
     SetAttached(false, std::move(aDisposer));
   }
 
@@ -45,8 +42,9 @@ class SessionAccessibility final
   }
 
   static void Init();
-  static SessionAccessibility* GetInstanceFor(ProxyAccessible* aAccessible);
-  static SessionAccessibility* GetInstanceFor(Accessible* aAccessible);
+  static RefPtr<SessionAccessibility> GetInstanceFor(
+      ProxyAccessible* aAccessible);
+  static RefPtr<SessionAccessibility> GetInstanceFor(Accessible* aAccessible);
 
   // Native implementations
   using Base::AttachNative;
@@ -110,7 +108,7 @@ class SessionAccessibility final
   void SetAttached(bool aAttached, already_AddRefed<Runnable> aRunnable);
   RootAccessibleWrap* GetRoot();
 
-  nsWindow::WindowPtr<SessionAccessibility> mWindow;  // Parent only
+  jni::NativeWeakPtr<widget::GeckoViewSupport> mWindow;  // Parent only
   java::SessionAccessibility::NativeProvider::GlobalRef mSessionAccessibility;
 };
 

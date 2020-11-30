@@ -14,7 +14,7 @@
 %}
 interface nsIContentSecurityPolicy;
 
-native nsSize (nsSize);
+native nsSize(nsSize);
 
 webidl DataTransfer;
 webidl Document;
@@ -49,6 +49,7 @@ interface nsIDragSession : nsISupports
     * drag originated outside the application. Useful for determining if a drop
     * originated in the same document.
     */
+  [infallible]
   readonly attribute Document sourceDocument;
 
   /**
@@ -69,7 +70,7 @@ interface nsIDragSession : nsISupports
    * csp when sourceNode is xul:browser and the drag is
    * triggered in a browsing context inside it.
    */
-  attribute nsIContentSecurityPolicy csp; 
+  attribute nsIContentSecurityPolicy csp;
 
   /**
    * The data transfer object for the current drag.

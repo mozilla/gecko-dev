@@ -28,10 +28,11 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   SyncedTabs: "resource://services-sync/SyncedTabs.jsm",
 });
 
-XPCOMUtils.defineLazyGetter(this, "CharsetBundle", function() {
-  const kCharsetBundle = "chrome://global/locale/charsetMenu.properties";
-  return Services.strings.createBundle(kCharsetBundle);
-});
+ChromeUtils.defineModuleGetter(
+  this,
+  "PanelMultiView",
+  "resource:///modules/PanelMultiView.jsm"
+);
 
 const kPrefCustomizationDebug = "browser.uiCustomization.debug";
 
@@ -122,12 +123,14 @@ const CustomizableWidgets = [
       );
       // When either of these sub-subviews show, populate them with recently closed
       // objects data.
-      document
-        .getElementById(this.recentlyClosedTabsPanel)
-        .addEventListener("ViewShowing", this);
-      document
-        .getElementById(this.recentlyClosedWindowsPanel)
-        .addEventListener("ViewShowing", this);
+      PanelMultiView.getViewNode(
+        document,
+        this.recentlyClosedTabsPanel
+      ).addEventListener("ViewShowing", this);
+      PanelMultiView.getViewNode(
+        document,
+        this.recentlyClosedWindowsPanel
+      ).addEventListener("ViewShowing", this);
       // When the popup is hidden (thus the panelmultiview node as well), make
       // sure to stop listening to PlacesDatabase updates.
       panelview.panelMultiView.addEventListener("PanelMultiViewHidden", this);
@@ -141,12 +144,14 @@ const CustomizableWidgets = [
       if (this._panelMenuView) {
         this._panelMenuView.uninit();
         delete this._panelMenuView;
-        document
-          .getElementById(this.recentlyClosedTabsPanel)
-          .removeEventListener("ViewShowing", this);
-        document
-          .getElementById(this.recentlyClosedWindowsPanel)
-          .removeEventListener("ViewShowing", this);
+        PanelMultiView.getViewNode(
+          document,
+          this.recentlyClosedTabsPanel
+        ).removeEventListener("ViewShowing", this);
+        PanelMultiView.getViewNode(
+          document,
+          this.recentlyClosedWindowsPanel
+        ).removeEventListener("ViewShowing", this);
       }
       panelMultiView.removeEventListener("PanelMultiViewHidden", this);
     },
@@ -439,29 +444,6 @@ const CustomizableWidgets = [
 
       this._updateElements(elements, currentCharset);
     },
-    updateCurrentDetector(aDocument) {
-      let detectorContainer = aDocument.getElementById(
-        "PanelUI-characterEncodingView-autodetect"
-      );
-      let currentDetector;
-      try {
-        currentDetector = Services.prefs.getComplexValue(
-          "intl.charset.detector",
-          Ci.nsIPrefLocalizedString
-        ).data;
-      } catch (e) {}
-
-      this._updateElements(detectorContainer.children, currentDetector);
-      let hideDetector = Services.prefs.getBoolPref(
-        "intl.charset.detector.ng.enabled"
-      );
-      aDocument.getElementById(
-        "PanelUI-characterEncodingView-autodetect-container"
-      ).hidden = hideDetector;
-      aDocument.getElementById(
-        "PanelUI-characterEncodingView-autodetect-separator"
-      ).hidden = hideDetector;
-    },
     _updateElements(aElements, aCurrentItem) {
       if (!aElements.length) {
         return;
@@ -486,11 +468,10 @@ const CustomizableWidgets = [
       }
       let document = aEvent.target.ownerDocument;
 
-      let autoDetectLabelId = "PanelUI-characterEncodingView-autodetect-label";
-      let autoDetectLabel = document.getElementById(autoDetectLabelId);
-      if (!autoDetectLabel.hasAttribute("value")) {
-        let label = CharsetBundle.GetStringFromName("charsetMenuAutodet");
-        autoDetectLabel.setAttribute("value", label);
+      if (
+        !document.getElementById("PanelUI-characterEncodingView-pinned")
+          .firstChild
+      ) {
         this.populateList(
           document,
           "PanelUI-characterEncodingView-pinned",
@@ -501,13 +482,8 @@ const CustomizableWidgets = [
           "PanelUI-characterEncodingView-charsets",
           "otherCharsets"
         );
-        this.populateList(
-          document,
-          "PanelUI-characterEncodingView-autodetect",
-          "detectors"
-        );
       }
-      this.updateCurrentDetector(document);
+
       this.updateCurrentCharset(document);
     },
     onCommand(aEvent) {
@@ -517,23 +493,9 @@ const CustomizableWidgets = [
       }
 
       let window = node.ownerGlobal;
-      let section = node.section;
       let value = node.value;
 
-      // The behavior as implemented here is directly based off of the
-      // `MultiplexHandler()` method in browser.js.
-      if (section != "detectors") {
-        window.BrowserSetForcedCharacterSet(value);
-      } else {
-        // Set the detector pref.
-        try {
-          Services.prefs.setStringPref("intl.charset.detector", value);
-        } catch (e) {
-          Cu.reportError("Failed to set the intl.charset.detector preference.");
-        }
-        // Prepare a browser page reload with a changed charset.
-        window.BrowserCharsetReload();
-      }
+      window.BrowserSetForcedCharacterSet(value);
     },
     onCreated(aNode) {
       let document = aNode.ownerDocument;
@@ -945,42 +907,7 @@ if (Services.prefs.getBoolPref("privacy.panicButton.enabled")) {
       let win = aEvent.target.ownerGlobal;
       let doc = win.document;
       let eventBlocker = null;
-      if (!doc.querySelector("#PanelUI-panic-timeframe")) {
-        win.MozXULElement.insertFTLIfNeeded("browser/panicButton.ftl");
-        let frag = win.MozXULElement.parseXULToFragment(`
-          <vbox class="panel-subview-body">
-            <hbox id="PanelUI-panic-timeframe">
-              <image id="PanelUI-panic-timeframe-icon" alt=""/>
-              <vbox flex="1">
-                <description data-l10n-id="panic-main-timeframe-desc" id="PanelUI-panic-mainDesc"></description>
-                <radiogroup id="PanelUI-panic-timeSpan" aria-labelledby="PanelUI-panic-mainDesc" closemenu="none">
-                  <radio id="PanelUI-panic-5min" data-l10n-id="panic-button-5min" selected="true"
-                        value="5" class="subviewradio"/>
-                  <radio id="PanelUI-panic-2hr" data-l10n-id="panic-button-2hr"
-                        value="2" class="subviewradio"/>
-                  <radio id="PanelUI-panic-day" data-l10n-id="panic-button-day"
-                        value="6" class="subviewradio"/>
-                </radiogroup>
-              </vbox>
-            </hbox>
-            <vbox id="PanelUI-panic-explanations">
-              <label id="PanelUI-panic-actionlist-main-label" data-l10n-id="panic-button-action-desc"></label>
-
-              <label id="PanelUI-panic-actionlist-windows" class="PanelUI-panic-actionlist" data-l10n-id="panic-button-delete-tabs-and-windows"></label>
-              <label id="PanelUI-panic-actionlist-cookies" class="PanelUI-panic-actionlist" data-l10n-id="panic-button-delete-cookies"></label>
-              <label id="PanelUI-panic-actionlist-history" class="PanelUI-panic-actionlist" data-l10n-id="panic-button-delete-history"></label>
-              <label id="PanelUI-panic-actionlist-newwindow" class="PanelUI-panic-actionlist" data-l10n-id="panic-button-open-new-window"></label>
-
-              <label id="PanelUI-panic-warning" data-l10n-id="panic-button-undo-warning"></label>
-            </vbox>
-            <button id="PanelUI-panic-view-button"
-                    data-l10n-id="panic-button-forget-button"/>
-          </vbox>
-        `);
-
-        aEvent.target.appendChild(frag);
-        eventBlocker = doc.l10n.translateElements([aEvent.target]);
-      }
+      eventBlocker = doc.l10n.translateElements([aEvent.target]);
 
       let forgetButton = aEvent.target.querySelector(
         "#PanelUI-panic-view-button"

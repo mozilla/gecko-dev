@@ -14,18 +14,16 @@
 namespace mozilla {
 namespace places {
 
-class INativePlacesEventCallback
-    : public SupportsWeakPtr<INativePlacesEventCallback> {
+class INativePlacesEventCallback : public SupportsWeakPtr {
  public:
   typedef dom::Sequence<OwningNonNull<dom::PlacesEvent>> PlacesEventSequence;
 
-  MOZ_DECLARE_WEAKREFERENCE_TYPENAME(INativePlacesEventCallback)
   NS_INLINE_DECL_PURE_VIRTUAL_REFCOUNTING
 
   virtual void HandlePlacesEvent(const PlacesEventSequence& aEvents) = 0;
 
  protected:
-  virtual ~INativePlacesEventCallback() {}
+  virtual ~INativePlacesEventCallback() = default;
 };
 
 }  // namespace places

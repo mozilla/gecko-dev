@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "SelfHostingDefines.h"
-#include "TypedObjectConstants.h"
 
 // Assertions and debug printing, defined here instead of in the header above
 // to make `assert` invisible to C++.
@@ -68,27 +67,6 @@ function ToNumber(v) {
     return +v;
 }
 
-
-// ES6 7.2.1 (previously, ES5 9.10 under the name "CheckObjectCoercible").
-function RequireObjectCoercible(v) {
-    if (v === undefined || v === null)
-        ThrowTypeError(JSMSG_CANT_CONVERT_TO, ToString(v), "object");
-}
-
-/* Spec: ECMAScript Draft, 6 edition May 22, 2014, 7.1.15 */
-function ToLength(v) {
-    // Step 1.
-    v = ToInteger(v);
-
-    // Step 2.
-    // Use max(v, 0) here, because it's easier to optimize in Ion.
-    v = std_Math_max(v, 0);
-
-    // Step 3.
-    // Math.pow(2, 53) - 1 = 0x1fffffffffffff
-    return std_Math_min(v, 0x1fffffffffffff);
-}
-
 // ES2017 draft rev aebf014403a3e641fb1622aec47c40f051943527
 // 7.2.10 SameValueZero ( x, y )
 function SameValueZero(x, y) {
@@ -123,19 +101,6 @@ function IsPropertyKey(argument) {
 
 #define TO_PROPERTY_KEY(name) \
 (typeof name !== "string" && typeof name !== "number" && typeof name !== "symbol" ? ToPropertyKey(name) : name)
-
-var _builtinCtorsCache = {__proto__: null};
-
-function GetBuiltinConstructor(builtinName) {
-    var ctor = _builtinCtorsCache[builtinName] ||
-               (_builtinCtorsCache[builtinName] = GetBuiltinConstructorImpl(builtinName));
-    assert(ctor, `No builtin with name "${builtinName}" found`);
-    return ctor;
-}
-
-function GetBuiltinPrototype(builtinName) {
-    return (_builtinCtorsCache[builtinName] || GetBuiltinConstructor(builtinName)).prototype;
-}
 
 // ES 2016 draft Mar 25, 2016 7.3.20.
 function SpeciesConstructor(obj, defaultConstructor) {

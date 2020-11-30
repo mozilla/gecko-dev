@@ -7,7 +7,9 @@
 #include "mozilla/Services.h"
 #include "xpcpublic.h"
 #include "nsSocketTransport2.h"
+#include "nsIHttpChannelInternal.h"
 #include "nsINetworkLinkService.h"
+#include "mozilla/StaticPrefs_network.h"
 
 static LazyLogModule gNCSLog("NetworkConnectivityService");
 #undef LOG
@@ -21,9 +23,16 @@ NS_IMPL_ISUPPORTS(NetworkConnectivityService, nsIDNSListener, nsIObserver,
 
 static StaticRefPtr<NetworkConnectivityService> gConnService;
 
+NetworkConnectivityService::NetworkConnectivityService()
+    : mNAT64(UNKNOWN), mLock("nat64prefixes") {}
+
 // static
 already_AddRefed<NetworkConnectivityService>
 NetworkConnectivityService::GetSingleton() {
+  if (!XRE_IsParentProcess()) {
+    return nullptr;
+  }
+
   if (gConnService) {
     return do_AddRef(gConnService);
   }
@@ -75,12 +84,60 @@ NetworkConnectivityService::GetIPv6(ConnectivityState* aState) {
   return NS_OK;
 }
 
+NS_IMETHODIMP
+NetworkConnectivityService::GetNAT64(ConnectivityState* aState) {
+  NS_ENSURE_ARG(aState);
+  *aState = mNAT64;
+  return NS_OK;
+}
+
+already_AddRefed<AddrInfo> NetworkConnectivityService::MapNAT64IPs(
+    AddrInfo* aNewRRSet) {
+  // Add prefixes only if there are no IPv6 addresses.
+  // Expect that if aNewRRSet has IPv6 addresses, they must come
+  // before IPv4 addresses.
+  if (aNewRRSet->Addresses().IsEmpty() ||
+      aNewRRSet->Addresses()[0].raw.family == PR_AF_INET6) {
+    return do_AddRef(aNewRRSet);
+  }
+
+  // Currently we only add prefixes to the first IP's clones.
+  uint32_t ip = aNewRRSet->Addresses()[0].inet.ip;
+  nsTArray<NetAddr> addresses = aNewRRSet->Addresses().Clone();
+
+  {
+    MutexAutoLock lock(mLock);
+    for (const auto& prefix : mNAT64Prefixes) {
+      NetAddr addr = NetAddr(prefix);
+
+      // Copy the IPv4 address to the end
+      addr.inet6.ip.u32[3] = ip;
+
+      // If we have both IPv4 and NAT64, we be could insourcing NAT64
+      // to avoid double NAT and improve performance. However, this
+      // breaks WebRTC, so we push it to the back.
+      addresses.AppendElement(addr);
+    }
+  }
+
+  auto builder = aNewRRSet->Build();
+  builder.SetAddresses(std::move(addresses));
+  return builder.Finish();
+}
+
 void NetworkConnectivityService::PerformChecks() {
   mDNSv4 = UNKNOWN;
   mDNSv6 = UNKNOWN;
 
   mIPv4 = UNKNOWN;
   mIPv6 = UNKNOWN;
+
+  mNAT64 = UNKNOWN;
+
+  {
+    MutexAutoLock lock(mLock);
+    mNAT64Prefixes.Clear();
+  }
 
   RecheckDNS();
   RecheckIPConnectivity();
@@ -89,6 +146,69 @@ void NetworkConnectivityService::PerformChecks() {
 static inline void NotifyObservers(const char* aTopic) {
   nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
   obs->NotifyObservers(nullptr, aTopic, nullptr);
+}
+
+void NetworkConnectivityService::SaveNAT64Prefixes(nsIDNSRecord* aRecord) {
+  nsCOMPtr<nsIDNSAddrRecord> rec = do_QueryInterface(aRecord);
+  MutexAutoLock lock(mLock);
+  mNAT64Prefixes.Clear();
+
+  if (!rec) {
+    mNAT64 = NOT_AVAILABLE;
+    return;
+  }
+
+  mNAT64 = UNKNOWN;
+  NetAddr addr{};
+
+  // use port 80 as dummy value for NetAddr
+  while (NS_SUCCEEDED(rec->GetNextAddr(80, &addr))) {
+    if (addr.raw.family != AF_INET6 || addr.IsIPAddrV4Mapped()) {
+      // These are not the kind of addresses we are looking for.
+      continue;
+    }
+
+    // RFC 7050 does not require the embedded IPv4 to be
+    // at the end of IPv6. In practice, and as we assume,
+    // it is always at the end.
+    // The embedded IP must be 192.0.0.170 or 192.0.0.171
+
+    // Clear the last bit to compare with the next one.
+    addr.inet6.ip.u8[15] &= ~(uint32_t)1;
+    if ((addr.inet6.ip.u8[12] != 192) || (addr.inet6.ip.u8[13] != 0) ||
+        (addr.inet6.ip.u8[14] != 0) || (addr.inet6.ip.u8[15] != 170)) {
+      continue;
+    }
+
+    mNAT64Prefixes.AppendElement(addr);
+  }
+
+  size_t length = mNAT64Prefixes.Length();
+  if (length == 0) {
+    mNAT64 = NOT_AVAILABLE;
+    return;
+  }
+
+  // Remove duplicates. Typically a DNS64 resolver sends every
+  // prefix twice with address with different last bits. We want
+  // a list of unique prefixes while reordering is not allowed.
+  // We must not handle the case with an element in-between
+  // two identical ones, which is never the case for a properly
+  // configured DNS64 resolver.
+
+  NetAddr prev = mNAT64Prefixes[0];
+
+  for (size_t i = 1; i < length; i++) {
+    if (mNAT64Prefixes[i] == prev) {
+      mNAT64Prefixes.RemoveElementAt(i);
+      i--;
+      length--;
+    } else {
+      prev = mNAT64Prefixes[i];
+    }
+  }
+
+  mNAT64 = OK;
 }
 
 NS_IMETHODIMP
@@ -103,18 +223,14 @@ NetworkConnectivityService::OnLookupComplete(nsICancelable* aRequest,
   } else if (aRequest == mDNSv6Request) {
     mDNSv6 = state;
     mDNSv6Request = nullptr;
+  } else if (aRequest == mNAT64Request) {
+    mNAT64Request = nullptr;
+    SaveNAT64Prefixes(aRecord);
   }
 
-  if (!mDNSv4Request && !mDNSv6Request) {
+  if (!mDNSv4Request && !mDNSv6Request && !mNAT64Request) {
     NotifyObservers("network:connectivity-service:dns-checks-complete");
   }
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-NetworkConnectivityService::OnLookupByTypeComplete(nsICancelable* aRequest,
-                                                   nsIDNSByTypeRecord* aRes,
-                                                   nsresult aStatus) {
   return NS_OK;
 }
 
@@ -133,16 +249,27 @@ NetworkConnectivityService::RecheckDNS() {
   Preferences::GetCString("network.connectivity-service.DNSv4.domain", host);
 
   rv = dns->AsyncResolveNative(
-      host,
+      host, nsIDNSService::RESOLVE_TYPE_DEFAULT,
       nsIDNSService::RESOLVE_DISABLE_IPV6 | nsIDNSService::RESOLVE_DISABLE_TRR,
-      this, NS_GetCurrentThread(), attrs, getter_AddRefs(mDNSv4Request));
+      nullptr, this, NS_GetCurrentThread(), attrs,
+      getter_AddRefs(mDNSv4Request));
   NS_ENSURE_SUCCESS(rv, rv);
 
   Preferences::GetCString("network.connectivity-service.DNSv6.domain", host);
   rv = dns->AsyncResolveNative(
-      host,
+      host, nsIDNSService::RESOLVE_TYPE_DEFAULT,
       nsIDNSService::RESOLVE_DISABLE_IPV4 | nsIDNSService::RESOLVE_DISABLE_TRR,
-      this, NS_GetCurrentThread(), attrs, getter_AddRefs(mDNSv6Request));
+      nullptr, this, NS_GetCurrentThread(), attrs,
+      getter_AddRefs(mDNSv6Request));
+
+  if (StaticPrefs::network_connectivity_service_nat64_check()) {
+    rv = dns->AsyncResolveNative("ipv4only.arpa"_ns,
+                                 nsIDNSService::RESOLVE_TYPE_DEFAULT,
+                                 nsIDNSService::RESOLVE_DISABLE_IPV4 |
+                                     nsIDNSService::RESOLVE_DISABLE_TRR,
+                                 nullptr, this, NS_GetCurrentThread(), attrs,
+                                 getter_AddRefs(mNAT64Request));
+  }
   return rv;
 }
 
@@ -161,6 +288,10 @@ NetworkConnectivityService::Observe(nsISupports* aSubject, const char* aTopic,
       mDNSv6Request->Cancel(NS_ERROR_ABORT);
       mDNSv6Request = nullptr;
     }
+    if (mNAT64Request) {
+      mNAT64Request->Cancel(NS_ERROR_ABORT);
+      mNAT64Request = nullptr;
+    }
 
     nsCOMPtr<nsIObserverService> observerService =
         mozilla::services::GetObserverService();
@@ -169,7 +300,8 @@ NetworkConnectivityService::Observe(nsISupports* aSubject, const char* aTopic,
                                     "network:captive-portal-connectivity");
     observerService->RemoveObserver(this, NS_NETWORK_LINK_TOPIC);
   } else if (!strcmp(aTopic, NS_NETWORK_LINK_TOPIC) &&
-             !NS_LITERAL_STRING(NS_NETWORK_LINK_DATA_UNKNOWN).Equals(aData)) {
+             !NS_LITERAL_STRING_FROM_CSTRING(NS_NETWORK_LINK_DATA_UNKNOWN)
+                  .Equals(aData)) {
     PerformChecks();
   }
 
@@ -194,7 +326,7 @@ static inline already_AddRefed<nsIChannel> SetupIPCheckChannel(bool ipv4) {
   nsCOMPtr<nsIChannel> channel;
   rv = NS_NewChannel(
       getter_AddRefs(channel), uri, nsContentUtils::GetSystemPrincipal(),
-      nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+      nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
       nsIContentPolicy::TYPE_OTHER,
       nullptr,  // nsICookieJarSettings
       nullptr,  // aPerformanceStorage
@@ -203,10 +335,21 @@ static inline already_AddRefed<nsIChannel> SetupIPCheckChannel(bool ipv4) {
       nsIRequest::LOAD_BYPASS_CACHE |    // don't read from the cache
           nsIRequest::INHIBIT_CACHING |  // don't write the response to cache
           nsIRequest::LOAD_ANONYMOUS);   // prevent privacy leaks
-
-  channel->SetTRRMode(nsIRequest::TRR_DISABLED_MODE);
-
   NS_ENSURE_SUCCESS(rv, nullptr);
+
+  rv = channel->SetTRRMode(nsIRequest::TRR_DISABLED_MODE);
+  NS_ENSURE_SUCCESS(rv, nullptr);
+
+  {
+    // Prevent HTTPS-Only Mode from upgrading the OCSP request.
+    nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
+    uint32_t httpsOnlyStatus = loadInfo->GetHttpsOnlyStatus();
+    httpsOnlyStatus |= nsILoadInfo::HTTPS_ONLY_EXEMPT;
+    loadInfo->SetHttpsOnlyStatus(httpsOnlyStatus);
+
+    // allow deprecated HTTP request from SystemPrincipal
+    loadInfo->SetAllowDeprecatedSystemRequests(true);
+  }
 
   nsCOMPtr<nsIHttpChannelInternal> internalChan = do_QueryInterface(channel);
   NS_ENSURE_TRUE(internalChan, nullptr);

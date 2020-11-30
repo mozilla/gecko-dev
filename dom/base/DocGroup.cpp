@@ -5,20 +5,116 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/DocGroup.h"
-#include "mozilla/dom/DOMTypes.h"
-#include "mozilla/dom/TabGroup.h"
+
 #include "mozilla/AbstractThread.h"
 #include "mozilla/PerformanceUtils.h"
-#include "mozilla/ThrottledEventQueue.h"
+#include "mozilla/SchedulerGroup.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/ThrottledEventQueue.h"
+#include "mozilla/dom/DOMTypes.h"
+#include "mozilla/dom/JSExecutionManager.h"
 #include "nsDOMMutationObserver.h"
+#include "nsIDirectTaskDispatcher.h"
 #include "nsProxyRelease.h"
+#include "nsThread.h"
 #if defined(XP_WIN)
 #  include <processthreadsapi.h>  // for GetCurrentProcessId()
 #else
 #  include <unistd.h>  // for getpid()
 #endif                 // defined(XP_WIN)
+
+namespace {
+
+#define NS_LABELLINGEVENTTARGET_IID                  \
+  {                                                  \
+    0x6087fa50, 0xe387, 0x45c8, {                    \
+      0xab, 0x72, 0xd2, 0x1f, 0x69, 0xee, 0xd3, 0x15 \
+    }                                                \
+  }
+
+// LabellingEventTarget labels all dispatches with the DocGroup that
+// created it.
+class LabellingEventTarget final : public nsISerialEventTarget,
+                                   public nsIDirectTaskDispatcher {
+  // This creates a cycle with DocGroup. Therefore, when DocGroup
+  // looses its last Document, the DocGroup of the
+  // LabellingEventTarget needs to be cleared.
+  RefPtr<mozilla::dom::DocGroup> mDocGroup;
+
+ public:
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_LABELLINGEVENTTARGET_IID)
+
+  explicit LabellingEventTarget(mozilla::dom::DocGroup* aDocGroup)
+      : mDocGroup(aDocGroup),
+        mMainThread(static_cast<nsThread*>(GetMainThreadSerialEventTarget())) {}
+
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_NSIEVENTTARGET_FULL
+  NS_DECL_NSIDIRECTTASKDISPATCHER
+
+ private:
+  ~LabellingEventTarget() = default;
+  const RefPtr<nsThread> mMainThread;
+};
+
+NS_DEFINE_STATIC_IID_ACCESSOR(LabellingEventTarget, NS_LABELLINGEVENTTARGET_IID)
+
+}  // namespace
+
+NS_IMETHODIMP
+LabellingEventTarget::DispatchFromScript(nsIRunnable* aRunnable,
+                                         uint32_t aFlags) {
+  return Dispatch(do_AddRef(aRunnable), aFlags);
+}
+
+NS_IMETHODIMP
+LabellingEventTarget::Dispatch(already_AddRefed<nsIRunnable> aRunnable,
+                               uint32_t aFlags) {
+  if (NS_WARN_IF(aFlags != NS_DISPATCH_NORMAL)) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  return mozilla::SchedulerGroup::DispatchWithDocGroup(
+      mozilla::TaskCategory::Other, std::move(aRunnable), mDocGroup);
+}
+
+NS_IMETHODIMP
+LabellingEventTarget::DelayedDispatch(already_AddRefed<nsIRunnable>, uint32_t) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+LabellingEventTarget::IsOnCurrentThread(bool* aIsOnCurrentThread) {
+  *aIsOnCurrentThread = NS_IsMainThread();
+  return NS_OK;
+}
+
+NS_IMETHODIMP_(bool)
+LabellingEventTarget::IsOnCurrentThreadInfallible() {
+  return NS_IsMainThread();
+}
+
+//-----------------------------------------------------------------------------
+// nsIDirectTaskDispatcher
+//-----------------------------------------------------------------------------
+// We are always running on the main thread, forward to the nsThread's
+// MainThread
+NS_IMETHODIMP
+LabellingEventTarget::DispatchDirectTask(already_AddRefed<nsIRunnable> aEvent) {
+  return mMainThread->DispatchDirectTask(std::move(aEvent));
+}
+
+NS_IMETHODIMP LabellingEventTarget::DrainDirectTasks() {
+  return mMainThread->DrainDirectTasks();
+}
+
+NS_IMETHODIMP LabellingEventTarget::HaveDirectTasks(bool* aValue) {
+  return mMainThread->HaveDirectTasks(aValue);
+}
+
+NS_IMPL_ISUPPORTS(LabellingEventTarget, nsIEventTarget, nsISerialEventTarget,
+                  nsIDirectTaskDispatcher)
 
 namespace mozilla {
 namespace dom {
@@ -26,46 +122,75 @@ namespace dom {
 AutoTArray<RefPtr<DocGroup>, 2>* DocGroup::sPendingDocGroups = nullptr;
 
 /* static */
-nsresult DocGroup::GetKey(nsIPrincipal* aPrincipal, nsACString& aKey) {
+already_AddRefed<DocGroup> DocGroup::Create(
+    BrowsingContextGroup* aBrowsingContextGroup, const nsACString& aKey) {
+  RefPtr<DocGroup> docGroup = new DocGroup(aBrowsingContextGroup, aKey);
+  docGroup->mEventTarget = new LabellingEventTarget(docGroup);
+  return docGroup.forget();
+}
+
+/* static */
+nsresult DocGroup::GetKey(nsIPrincipal* aPrincipal, bool aCrossOriginIsolated,
+                          nsACString& aKey) {
   // Use GetBaseDomain() to handle things like file URIs, IP address URIs,
   // etc. correctly.
-  nsresult rv = aPrincipal->GetBaseDomain(aKey);
+  nsresult rv = aCrossOriginIsolated ? aPrincipal->GetOrigin(aKey)
+                                     : aPrincipal->GetSiteOrigin(aKey);
   if (NS_FAILED(rv)) {
-    // We don't really know what to do here.  But we should be conservative,
-    // otherwise it would be possible to reorder two events incorrectly in the
-    // future if we interrupt at the DocGroup level, so to be safe, use an
-    // empty string to classify all such documents as belonging to the same
-    // DocGroup.
     aKey.Truncate();
   }
 
   return rv;
 }
 
+void DocGroup::SetExecutionManager(JSExecutionManager* aManager) {
+  mExecutionManager = aManager;
+}
+
+void DocGroup::AddDocument(Document* aDocument) {
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(!mDocuments.Contains(aDocument));
+  MOZ_ASSERT(mBrowsingContextGroup);
+  mDocuments.AppendElement(aDocument);
+}
+
 void DocGroup::RemoveDocument(Document* aDocument) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(mDocuments.Contains(aDocument));
   mDocuments.RemoveElement(aDocument);
+
+  if (mDocuments.IsEmpty()) {
+    mBrowsingContextGroup = nullptr;
+    // This clears the cycle DocGroup has with LabellingEventTarget.
+    mEventTarget = nullptr;
+  }
 }
 
-DocGroup::DocGroup(TabGroup* aTabGroup, const nsACString& aKey,
-                   const nsID& aAgentClusterId)
-    : mKey(aKey), mTabGroup(aTabGroup), mAgentClusterId(aAgentClusterId) {
-  // This method does not add itself to mTabGroup->mDocGroups as the caller does
-  // it for us.
-  mPerformanceCounter =
-      new mozilla::PerformanceCounter(NS_LITERAL_CSTRING("DocGroup:") + aKey);
+DocGroup::DocGroup(BrowsingContextGroup* aBrowsingContextGroup,
+                   const nsACString& aKey)
+    : mKey(aKey),
+      mBrowsingContextGroup(aBrowsingContextGroup),
+      mAgentClusterId(nsContentUtils::GenerateUUID()) {
+  // This method does not add itself to
+  // mBrowsingContextGroup->mDocGroups as the caller does it for us.
+  MOZ_ASSERT(NS_IsMainThread());
+  if (StaticPrefs::dom_arena_allocator_enabled_AtStartup()) {
+    mArena = new mozilla::dom::DOMArena();
+  }
+
+  mPerformanceCounter = new mozilla::PerformanceCounter("DocGroup:"_ns + aKey);
 }
 
 DocGroup::~DocGroup() {
-  MOZ_ASSERT(mDocuments.IsEmpty());
-  if (!NS_IsMainThread()) {
-    nsIEventTarget* target = EventTargetFor(TaskCategory::Other);
-    NS_ProxyRelease("DocGroup::mReactionsStack", target,
-                    mReactionsStack.forget());
-  }
+  MOZ_RELEASE_ASSERT(mDocuments.IsEmpty());
+  MOZ_RELEASE_ASSERT(!mBrowsingContextGroup);
 
-  mTabGroup->mDocGroups.RemoveEntry(mKey);
+  if (!NS_IsMainThread()) {
+    NS_ReleaseOnMainThread("DocGroup::mReactionsStack",
+                           mReactionsStack.forget());
+
+    NS_ReleaseOnMainThread("DocGroup::mArena", mArena.forget());
+  }
 
   if (mIframePostMessageQueue) {
     FlushIframePostMessageQueue();
@@ -111,7 +236,7 @@ RefPtr<PerformanceInfoPromise> DocGroup::ReportPerformanceInfo() {
       continue;
     }
     windowID = top->WindowID();
-    isTopLevel = win->IsTopLevelWindow();
+    isTopLevel = win->GetBrowsingContext()->IsTop();
     mainThread = AbstractMainThreadFor(TaskCategory::Performance);
     break;
   }
@@ -147,7 +272,7 @@ RefPtr<PerformanceInfoPromise> DocGroup::ReportPerformanceInfo() {
       ->Then(
           mainThread, __func__,
           [self, host, pid, windowID, duration, isTopLevel,
-           items](const PerformanceMemoryInfo& aMemoryInfo) {
+           items = std::move(items)](const PerformanceMemoryInfo& aMemoryInfo) {
             PerformanceInfo info =
                 PerformanceInfo(host, pid, windowID, duration,
                                 self->mPerformanceCounter->GetID(), false,
@@ -166,19 +291,31 @@ nsresult DocGroup::Dispatch(TaskCategory aCategory,
   if (mPerformanceCounter) {
     mPerformanceCounter->IncrementDispatchCounter(DispatchCategory(aCategory));
   }
-  return mTabGroup->DispatchWithDocGroup(aCategory, std::move(aRunnable), this);
+  return SchedulerGroup::DispatchWithDocGroup(aCategory, std::move(aRunnable),
+                                              this);
 }
 
 nsISerialEventTarget* DocGroup::EventTargetFor(TaskCategory aCategory) const {
-  return mTabGroup->EventTargetFor(aCategory);
+  MOZ_ASSERT(!mDocuments.IsEmpty());
+  // Here we have the same event target for every TaskCategory. The
+  // reason for that is that currently TaskCategory isn't used, and
+  // it's unsure if it ever will be (See Bug 1624819).
+  if (mEventTarget) {
+    return mEventTarget;
+  }
+
+  return GetMainThreadSerialEventTarget();
 }
 
 AbstractThread* DocGroup::AbstractMainThreadFor(TaskCategory aCategory) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
-  return mTabGroup->AbstractMainThreadFor(aCategory);
-}
+  MOZ_ASSERT(!mDocuments.IsEmpty());
 
-bool* DocGroup::GetValidAccessPtr() { return mTabGroup->GetValidAccessPtr(); }
+  // Here we have the same thread for every TaskCategory. The reason
+  // for that is that currently TaskCategory isn't used, and it's
+  // unsure if it ever will be (See Bug 1624819).
+  return AbstractThread::MainThread();
+}
 
 void DocGroup::SignalSlotChange(HTMLSlotElement& aSlot) {
   MOZ_ASSERT(!mSignalSlotList.Contains(&aSlot));
@@ -210,10 +347,10 @@ nsresult DocGroup::QueueIframePostMessages(
       MOZ_ALWAYS_SUCCEEDS(rv);
     }
 
-    // Ensure the queue is disabled. Unlike the postMessageEvent queue in
-    // TabGroup, this postMessage queue should always be paused, because if
-    // we leave it open, the postMessage may get dispatched to an unloaded
-    // iframe
+    // Ensure the queue is disabled. Unlike the postMessageEvent queue
+    // in BrowsingContextGroup, this postMessage queue should always
+    // be paused, because if we leave it open, the postMessage may get
+    // dispatched to an unloaded iframe
     MOZ_ASSERT(mIframePostMessageQueue);
     MOZ_ASSERT(mIframePostMessageQueue->IsPaused());
 
@@ -244,13 +381,11 @@ void DocGroup::FlushIframePostMessageQueue() {
   }
 }
 
-void DocGroup::MoveSignalSlotListTo(nsTArray<RefPtr<HTMLSlotElement>>& aDest) {
-  aDest.SetCapacity(aDest.Length() + mSignalSlotList.Length());
-  for (RefPtr<HTMLSlotElement>& slot : mSignalSlotList) {
+nsTArray<RefPtr<HTMLSlotElement>> DocGroup::MoveSignalSlotList() {
+  for (const RefPtr<HTMLSlotElement>& slot : mSignalSlotList) {
     slot->RemovedFromSignalSlotList();
-    aDest.AppendElement(std::move(slot));
   }
-  mSignalSlotList.Clear();
+  return std::move(mSignalSlotList);
 }
 
 bool DocGroup::IsActive() const {

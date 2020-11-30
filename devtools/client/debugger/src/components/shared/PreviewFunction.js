@@ -11,15 +11,17 @@ import { times, zip, flatten } from "lodash";
 
 import { formatDisplayName } from "../../utils/pause/frames";
 
+import type { URL } from "../../types";
+
 import "./PreviewFunction.css";
 
 type FunctionType = {
-  name: string,
+  name?: string,
   displayName?: string,
   userDisplayName?: string,
   parameterNames?: string[],
   location?: {
-    url: string,
+    url: URL,
     line: number,
     column: number,
   },
@@ -38,13 +40,11 @@ export default class PreviewFunction extends Component<Props> {
 
   renderParams(func: FunctionType) {
     const { parameterNames = [] } = func;
-    const params = parameterNames
-      .filter(i => i)
-      .map(param => (
-        <span className="param" key={param}>
-          {param}
-        </span>
-      ));
+    const params = parameterNames.filter(Boolean).map(param => (
+      <span className="param" key={param}>
+        {param}
+      </span>
+    ));
 
     const commas = times(params.length - 1).map((_, i) => (
       <span className="delimiter" key={i}>

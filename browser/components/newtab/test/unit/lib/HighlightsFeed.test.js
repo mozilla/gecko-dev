@@ -200,7 +200,10 @@ describe("Highlights Feed", () => {
       feed.filterForThumbnailExpiration(stub);
 
       assert.calledOnce(stub);
-      assert.calledWithExactly(stub, rows.map(r => r.url));
+      assert.calledWithExactly(
+        stub,
+        rows.map(r => r.url)
+      );
     });
     it("should include preview_image_url (if present) in the callback results", () => {
       const rows = [
@@ -237,6 +240,7 @@ describe("Highlights Feed", () => {
       sandbox.spy(feed.linksCache, "request");
       feed.store.state.TopSites.initialized = false;
       feed.store.state.Prefs.values["feeds.topsites"] = true;
+      feed.store.state.Prefs.values["feeds.system.topsites"] = true;
 
       // Initially TopSites is uninitialised and fetchHighlights should return.
       await feed.fetchHighlights();
@@ -248,6 +252,7 @@ describe("Highlights Feed", () => {
       sandbox.spy(feed.linksCache, "request");
       feed.store.state.TopSites.initialized = true;
       feed.store.state.Prefs.values["feeds.topsites"] = true;
+      feed.store.state.Prefs.values["feeds.system.topsites"] = true;
       feed.store.state.Sections = [];
 
       await feed.fetchHighlights();
@@ -317,6 +322,15 @@ describe("Highlights Feed", () => {
       });
     });
     it("should fetch Highlights if TopSites are not enabled", async () => {
+      sandbox.spy(feed.linksCache, "request");
+      feed.store.state.Prefs.values["feeds.system.topsites"] = false;
+
+      await feed.fetchHighlights();
+
+      assert.calledOnce(feed.linksCache.request);
+      assert.calledOnce(fakeNewTabUtils.activityStreamLinks.getHighlights);
+    });
+    it("should fetch Highlights if TopSites are not shown on NTP", async () => {
       sandbox.spy(feed.linksCache, "request");
       feed.store.state.Prefs.values["feeds.topsites"] = false;
 
@@ -587,7 +601,8 @@ describe("Highlights Feed", () => {
         sectionsManagerStub.updateSection,
         SECTION_ID,
         { rows: [] },
-        true
+        true,
+        undefined
       );
     });
     it("should broadcast if options.broadcast is true", async () => {
@@ -600,7 +615,8 @@ describe("Highlights Feed", () => {
         sectionsManagerStub.updateSection,
         SECTION_ID,
         { rows: [] },
-        true
+        true,
+        undefined
       );
     });
     it("should not broadcast if options.broadcast is false and initialized is true", async () => {
@@ -613,7 +629,8 @@ describe("Highlights Feed", () => {
         sectionsManagerStub.updateSection,
         SECTION_ID,
         { rows: [] },
-        false
+        false,
+        undefined
       );
     });
   });
@@ -711,7 +728,10 @@ describe("Highlights Feed", () => {
       feed.onAction({ type: at.SYSTEM_TICK });
 
       assert.calledOnce(feed.fetchHighlights);
-      assert.calledWithExactly(feed.fetchHighlights, { broadcast: false });
+      assert.calledWithExactly(feed.fetchHighlights, {
+        broadcast: false,
+        isStartup: false,
+      });
     });
     it("should fetch highlights on PREF_CHANGED for include prefs", async () => {
       feed.fetchHighlights = sinon.spy();
@@ -780,7 +800,10 @@ describe("Highlights Feed", () => {
       feed.onAction({ type: at.TOP_SITES_UPDATED });
 
       assert.calledOnce(feed.fetchHighlights);
-      assert.calledWithExactly(feed.fetchHighlights, { broadcast: false });
+      assert.calledWithExactly(feed.fetchHighlights, {
+        broadcast: false,
+        isStartup: false,
+      });
     });
     it("should call fetchHighlights when deleting or archiving from Pocket", async () => {
       feed.fetchHighlights = sinon.spy();

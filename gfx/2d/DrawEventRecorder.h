@@ -75,13 +75,21 @@ class DrawEventRecorderPrivate : public DrawEventRecorder {
     mStoredObjects.erase(aObject);
   }
 
-  void AddStoredUnscaledFont(const ReferencePtr aObject) {
-    mStoredUnscaledFonts.insert(aObject);
+  /**
+   * @param aUnscaledFont the UnscaledFont to increment the reference count for
+   * @return the previous reference count
+   */
+  int32_t IncrementUnscaledFontRefCount(const ReferencePtr aUnscaledFont) {
+    int32_t& count = mUnscaledFontRefs[aUnscaledFont];
+    return count++;
   }
 
-  void RemoveStoredUnscaledFont(const ReferencePtr aObject) {
-    mStoredUnscaledFonts.erase(aObject);
-  }
+  /**
+   * Decrements the reference count for aUnscaledFont and, if count is now zero,
+   * records its destruction.
+   * @param aUnscaledFont the UnscaledFont to decrement the reference count for
+   */
+  void DecrementUnscaledFontRefCount(const ReferencePtr aUnscaledFont);
 
   void AddScaledFont(ScaledFont* aFont) {
     if (mStoredFonts.insert(aFont).second && WantsExternalFonts()) {
@@ -103,10 +111,6 @@ class DrawEventRecorderPrivate : public DrawEventRecorder {
     return mStoredObjects.find(aObject) != mStoredObjects.end();
   }
 
-  bool HasStoredUnscaledFont(const ReferencePtr aObject) {
-    return mStoredUnscaledFonts.find(aObject) != mStoredUnscaledFonts.end();
-  }
-
   void AddStoredFontData(const uint64_t aFontDataKey) {
     mStoredFontData.insert(aFontDataKey);
   }
@@ -124,6 +128,19 @@ class DrawEventRecorderPrivate : public DrawEventRecorder {
   virtual void StoreSourceSurfaceRecording(SourceSurface* aSurface,
                                            const char* aReason);
 
+  /**
+   * This is virtual to allow subclasses to control the recording, if for
+   * example it needs to happen on a specific thread. aSurface is a void*
+   * instead of a SourceSurface* because this is called during the SourceSurface
+   * destructor, so it is partially destructed and should not be accessed. If we
+   * use a SourceSurface* we might, for example, accidentally AddRef/Release the
+   * object by passing it to NewRunnableMethod to submit to a different thread.
+   * We are only using the pointer as a lookup ID to our internal maps and
+   * ReferencePtr to be used on the translation side.
+   * @param aSurface the surface whose destruction is being recorded
+   */
+  virtual void RecordSourceSurfaceDestruction(void* aSurface);
+
   virtual void AddDependentSurface(uint64_t aDependencyId) {
     MOZ_CRASH("GFX: AddDependentSurface");
   }
@@ -134,9 +151,14 @@ class DrawEventRecorderPrivate : public DrawEventRecorder {
   virtual void Flush() = 0;
 
   std::unordered_set<const void*> mStoredObjects;
-  // Unscaled fonts are not currently removed, so we need to track them
-  // separately to other stored objects.
-  std::unordered_set<const void*> mStoredUnscaledFonts;
+
+  // It's difficult to track the lifetimes of UnscaledFonts directly, so we
+  // instead track the number of recorded ScaledFonts that hold a reference to
+  // an Unscaled font and use that as a proxy to the real lifetime. An
+  // UnscaledFonts lifetime could be longer than this, but we only use the
+  // ScaledFonts directly and if another uses an UnscaledFont we have destroyed
+  // on the translation side, it will be recreated.
+  std::unordered_map<const void*, int32_t> mUnscaledFontRefs;
 
   std::unordered_set<uint64_t> mStoredFontData;
   std::unordered_set<ScaledFont*> mStoredFonts;

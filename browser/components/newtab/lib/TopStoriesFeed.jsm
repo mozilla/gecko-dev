@@ -28,17 +28,12 @@ const { UserDomainAffinityProvider } = ChromeUtils.import(
   "resource://activity-stream/lib/UserDomainAffinityProvider.jsm"
 );
 const { PersonalityProvider } = ChromeUtils.import(
-  "resource://activity-stream/lib/PersonalityProvider.jsm"
+  "resource://activity-stream/lib/PersonalityProvider/PersonalityProvider.jsm"
 );
 const { PersistentCache } = ChromeUtils.import(
   "resource://activity-stream/lib/PersistentCache.jsm"
 );
 
-ChromeUtils.defineModuleGetter(
-  this,
-  "perfService",
-  "resource://activity-stream/common/PerfService.jsm"
-);
 ChromeUtils.defineModuleGetter(
   this,
   "pktApi",
@@ -59,6 +54,7 @@ const DISCOVERY_STREAM_PREF_ENABLED_PATH =
   "browser.newtabpage.activity-stream.discoverystream.enabled";
 const REC_IMPRESSION_TRACKING_PREF = "feeds.section.topstories.rec.impressions";
 const OPTIONS_PREF = "feeds.section.topstories.options";
+const PREF_USER_TOPSTORIES = "feeds.section.topstories";
 const MAX_LIFETIME_CAP = 500; // Guard against misconfiguration on the server
 const DISCOVERY_STREAM_PREF = "discoverystream.config";
 
@@ -86,7 +82,7 @@ this.TopStoriesFeed = class TopStoriesFeed {
   }
 
   async onInit() {
-    SectionsManager.enableSection(SECTION_ID);
+    SectionsManager.enableSection(SECTION_ID, true /* isStartup */);
     if (this.discoveryStreamEnabled) {
       return;
     }
@@ -241,12 +237,12 @@ this.TopStoriesFeed = class TopStoriesFeed {
       return provider;
     }
 
-    const start = perfService.absNow();
+    const start = Cu.now();
     const v1Provider = this.UserDomainAffinityProvider(...args);
     this.store.dispatch(
       ac.PerfEvent({
         event: "topstories.domain.affinity.calculation.ms",
-        value: Math.round(perfService.absNow() - start),
+        value: Math.round(Cu.now() - start),
       })
     );
 
@@ -359,7 +355,7 @@ this.TopStoriesFeed = class TopStoriesFeed {
       this.store.dispatch(
         ac.PerfEvent({
           event,
-          value: Math.round(perfService.absNow() - start),
+          value: Math.round(Cu.now() - start),
         })
       );
     }
@@ -370,7 +366,7 @@ this.TopStoriesFeed = class TopStoriesFeed {
       return [];
     }
 
-    const scoreStart = perfService.absNow();
+    const scoreStart = Cu.now();
     const calcResult = items
       .filter(s => !NewTabUtils.blockedLinks.isBlocked({ url: s.url }))
       .map(s => {
@@ -783,23 +779,26 @@ this.TopStoriesFeed = class TopStoriesFeed {
     return false;
   }
 
-  lazyLoadTopStories(dsPref) {
-    let _dsPref = dsPref;
-    if (!_dsPref) {
-      _dsPref = this.store.getState().Prefs.values[DISCOVERY_STREAM_PREF];
+  lazyLoadTopStories(options = {}) {
+    let { dsPref, userPref } = options;
+    if (!dsPref) {
+      dsPref = this.store.getState().Prefs.values[DISCOVERY_STREAM_PREF];
+    }
+    if (!userPref) {
+      userPref = this.store.getState().Prefs.values[PREF_USER_TOPSTORIES];
     }
 
     try {
       this.discoveryStreamEnabled =
-        JSON.parse(_dsPref).enabled &&
+        JSON.parse(dsPref).enabled &&
         this.store.getState().Prefs.values[DISCOVERY_STREAM_PREF_ENABLED];
     } catch (e) {
       // Load activity stream top stories if fail to determine discovery stream state
       this.discoveryStreamEnabled = false;
     }
 
-    // Return without invoking initialization if top stories are loaded
-    if (this.storiesLoaded) {
+    // Return without invoking initialization if top stories are loaded, or preffed off.
+    if (this.storiesLoaded || !userPref) {
       return;
     }
 
@@ -816,10 +815,18 @@ this.TopStoriesFeed = class TopStoriesFeed {
         break;
       case at.PREF_CHANGED:
         if (action.data.name === DISCOVERY_STREAM_PREF) {
-          this.lazyLoadTopStories(action.data.value);
+          this.lazyLoadTopStories({ dsPref: action.data.value });
         }
         if (action.data.name === DISCOVERY_STREAM_PREF_ENABLED) {
           this.lazyLoadTopStories();
+        }
+        if (action.data.name === PREF_USER_TOPSTORIES) {
+          if (action.data.value) {
+            // init topstories if value if true.
+            this.lazyLoadTopStories({ userPref: action.data.value });
+          } else {
+            this.uninit();
+          }
         }
         break;
       case at.UNINIT:
@@ -905,7 +912,15 @@ this.TopStoriesFeed = class TopStoriesFeed {
       }
       case at.PREF_CHANGED:
         if (action.data.name === DISCOVERY_STREAM_PREF) {
-          this.lazyLoadTopStories(action.data.value);
+          this.lazyLoadTopStories({ dsPref: action.data.value });
+        }
+        if (action.data.name === PREF_USER_TOPSTORIES) {
+          if (action.data.value) {
+            // init topstories if value if true.
+            this.lazyLoadTopStories({ userPref: action.data.value });
+          } else {
+            this.uninit();
+          }
         }
         // Check if spocs was disabled. Remove them if they were.
         if (action.data.name === "showSponsored" && !action.data.value) {

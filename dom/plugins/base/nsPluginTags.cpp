@@ -60,7 +60,7 @@ static bool ExtensionInList(const nsCString& aExtensionList,
   nsCCharSeparatedTokenizer extensions(aExtensionList, ',');
   while (extensions.hasMoreTokens()) {
     const nsACString& extension = extensions.nextToken();
-    if (extension.Equals(aExtension, nsCaseInsensitiveCStringComparator())) {
+    if (extension.Equals(aExtension, nsCaseInsensitiveCStringComparator)) {
       return true;
     }
   }
@@ -176,9 +176,9 @@ nsIInternalPluginTag::nsIInternalPluginTag(
       mDescription(aDescription),
       mFileName(aFileName),
       mVersion(aVersion),
-      mMimeTypes(aMimeTypes),
-      mMimeDescriptions(aMimeDescriptions),
-      mExtensions(aExtensions) {}
+      mMimeTypes(aMimeTypes.Clone()),
+      mMimeDescriptions(aMimeDescriptions.Clone()),
+      mExtensions(aExtensions.Clone()) {}
 
 nsIInternalPluginTag::~nsIInternalPluginTag() = default;
 
@@ -545,19 +545,19 @@ void nsPluginTag::SetPluginState(PluginState state) {
 
 NS_IMETHODIMP
 nsPluginTag::GetMimeTypes(nsTArray<nsCString>& aResults) {
-  aResults = mMimeTypes;
+  aResults = mMimeTypes.Clone();
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsPluginTag::GetMimeDescriptions(nsTArray<nsCString>& aResults) {
-  aResults = mMimeDescriptions;
+  aResults = mMimeDescriptions.Clone();
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsPluginTag::GetExtensions(nsTArray<nsCString>& aResults) {
-  aResults = mExtensions;
+  aResults = mExtensions.Clone();
   return NS_OK;
 }
 
@@ -620,8 +620,8 @@ void nsPluginTag::TryUnloadPlugin(bool inShutdown) {
   if (PR_GetEnv("MOZ_DISABLE_NPAPI_SANDBOX")) {
     // Flash sandbox disabled
     sFlashSandboxLevel = 0;
-  } else if (nsCocoaFeatures::OSXVersionMajor() == 10 &&
-             nsCocoaFeatures::OSXVersionMinor() <= legacyOSMinorMax) {
+  } else if (nsCocoaFeatures::macOSVersionMajor() == 10 &&
+             nsCocoaFeatures::macOSVersionMinor() <= legacyOSMinorMax) {
     const char* legacyLevelPref = "dom.ipc.plugins.sandbox-level.flash.legacy";
     int32_t compatLevel = Preferences::GetInt(legacyLevelPref, 0);
     int32_t level = Preferences::GetInt(levelPref, 0);
@@ -881,19 +881,19 @@ nsFakePluginTag::SetEnabledState(uint32_t aEnabledState) {
 
 NS_IMETHODIMP
 nsFakePluginTag::GetMimeTypes(nsTArray<nsCString>& aResults) {
-  aResults = mMimeTypes;
+  aResults = mMimeTypes.Clone();
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsFakePluginTag::GetMimeDescriptions(nsTArray<nsCString>& aResults) {
-  aResults = mMimeDescriptions;
+  aResults = mMimeDescriptions.Clone();
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsFakePluginTag::GetExtensions(nsTArray<nsCString>& aResults) {
-  aResults = mExtensions;
+  aResults = mExtensions.Clone();
   return NS_OK;
 }
 

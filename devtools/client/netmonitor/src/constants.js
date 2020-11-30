@@ -6,6 +6,7 @@
 
 const actionTypes = {
   ADD_REQUEST: "ADD_REQUEST",
+  SET_EVENT_STREAM_FLAG: "SET_EVENT_STREAM_FLAG",
   ADD_TIMING_MARKER: "ADD_TIMING_MARKER",
   ADD_BLOCKED_URL: "ADD_BLOCKED_URL",
   BATCH_ACTIONS: "BATCH_ACTIONS",
@@ -32,8 +33,12 @@ const actionTypes = {
   SEND_CUSTOM_REQUEST: "SEND_CUSTOM_REQUEST",
   SET_REQUEST_FILTER_TEXT: "SET_REQUEST_FILTER_TEXT",
   SORT_BY: "SORT_BY",
+  SYNCED_BLOCKED_URLS: "SYNCED_BLOCKED_URLS",
   TOGGLE_BLOCKING_ENABLED: "TOGGLE_BLOCKING_ENABLED",
   REMOVE_BLOCKED_URL: "REMOVE_BLOCKED_URL",
+  REMOVE_ALL_BLOCKED_URLS: "REMOVE_ALL_BLOCKED_URLS",
+  ENABLE_ALL_BLOCKED_URLS: "ENABLE_ALL_BLOCKED_URLS",
+  DISABLE_ALL_BLOCKED_URLS: "DISABLE_ALL_BLOCKED_URLS",
   TOGGLE_BLOCKED_URL: "TOGGLE_BLOCKED_URL",
   UPDATE_BLOCKED_URL: "UPDATE_BLOCKED_URL",
   DISABLE_MATCHING_URLS: "DISABLE_MATCHING_URLS",
@@ -45,15 +50,17 @@ const actionTypes = {
   UPDATE_REQUEST: "UPDATE_REQUEST",
   WATERFALL_RESIZE: "WATERFALL_RESIZE",
   SET_COLUMNS_WIDTH: "SET_COLUMNS_WIDTH",
-  WS_ADD_FRAME: "WS_ADD_FRAME",
-  WS_SELECT_FRAME: "WS_SELECT_FRAME",
-  WS_OPEN_FRAME_DETAILS: "WS_OPEN_FRAME_DETAILS",
-  WS_CLEAR_FRAMES: "WS_CLEAR_FRAMES",
-  WS_TOGGLE_FRAME_FILTER_TYPE: "WS_TOGGLE_FRAME_FILTER_TYPE",
-  WS_SET_REQUEST_FILTER_TEXT: "WS_SET_REQUEST_FILTER_TEXT",
-  WS_TOGGLE_COLUMN: "WS_TOGGLE_COLUMN",
-  WS_RESET_COLUMNS: "WS_RESET_COLUMNS",
-  WS_CLOSE_CONNECTION: "WS_CLOSE_CONNECTION",
+  MSG_ADD: "MSG_ADD",
+  MSG_SELECT: "MSG_SELECT",
+  MSG_OPEN_DETAILS: "MSG_OPEN_DETAILS",
+  MSG_CLEAR: "MSG_CLEAR",
+  MSG_TOGGLE_FILTER_TYPE: "MSG_TOGGLE_FILTER_TYPE",
+  MSG_TOGGLE_CONTROL: "MSG_TOGGLE_CONTROL",
+  MSG_SET_FILTER_TEXT: "MSG_SET_FILTER_TEXT",
+  MSG_TOGGLE_COLUMN: "MSG_TOGGLE_COLUMN",
+  MSG_RESET_COLUMNS: "MSG_RESET_COLUMNS",
+  MSG_CLOSE_CONNECTION: "MSG_CLOSE_CONNECTION",
+  SET_HEADERS_URL_PREVIEW_EXPANDED: "SET_HEADERS_URL_PREVIEW_EXPANDED",
 
   // Search
   ADD_SEARCH_QUERY: "ADD_SEARCH_QUERY",
@@ -72,6 +79,11 @@ const SEARCH_STATUS = {
   CANCELED: "CANCELED",
   DONE: "DONE",
   ERROR: "ERROR",
+};
+
+const CHANNEL_TYPE = {
+  WEB_SOCKET: "WEB_SOCKET",
+  EVENT_STREAM: "EVENT_STREAM",
 };
 
 // Descriptions for what this frontend is currently doing.
@@ -93,6 +105,44 @@ const ACTIVITY_TYPE = {
 
 // The panel's window global is an EventEmitter firing the following events:
 const EVENTS = {
+  // When a network event is added to the view
+  REQUEST_ADDED: "NetMonitor:RequestAdded",
+
+  // When request headers begin receiving.
+  UPDATING_REQUEST_HEADERS: "NetMonitor:NetworkEventUpdating:RequestHeaders",
+
+  // When request cookies begin receiving.
+  UPDATING_REQUEST_COOKIES: "NetMonitor:NetworkEventUpdating:RequestCookies",
+
+  // When request post data begins receiving.
+  UPDATING_REQUEST_POST_DATA: "NetMonitor:NetworkEventUpdating:RequestPostData",
+
+  // When security information begins receiving.
+  UPDATING_SECURITY_INFO: "NetMonitor:NetworkEventUpdating:SecurityInfo",
+
+  // When response headers begin receiving.
+  UPDATING_RESPONSE_HEADERS: "NetMonitor:NetworkEventUpdating:ResponseHeaders",
+
+  // When response cookies begin receiving.
+  UPDATING_RESPONSE_COOKIES: "NetMonitor:NetworkEventUpdating:ResponseCookies",
+
+  // When event timings begin and finish receiving.
+  UPDATING_EVENT_TIMINGS: "NetMonitor:NetworkEventUpdating:EventTimings",
+  RECEIVED_EVENT_TIMINGS: "NetMonitor:NetworkEventUpdated:EventTimings",
+
+  // When response content updates receiving.
+  UPDATING_RESPONSE_CONTENT: "NetMonitor:NetworkEventUpdating:ResponseContent",
+
+  UPDATING_RESPONSE_CACHE: "NetMonitor:NetworkEventUpdating:ResponseCache",
+
+  // Fired once the connection is established
+  CONNECTED: "connected",
+
+  // When request payload (HTTP details data) are fetched from the backend.
+  PAYLOAD_READY: "NetMonitor:PayloadReady",
+};
+
+const TEST_EVENTS = {
   // When a network or timeline event is received.
   // See https://developer.mozilla.org/docs/Tools/Web_Console/remoting for
   // more information about what each packet is supposed to deliver.
@@ -100,53 +150,34 @@ const EVENTS = {
   NETWORK_EVENT_UPDATED: "NetMonitor:NetworkEventUpdated",
   TIMELINE_EVENT: "NetMonitor:TimelineEvent",
 
-  // When a network event is added to the view
-  REQUEST_ADDED: "NetMonitor:RequestAdded",
+  // When response content begins receiving.
+  STARTED_RECEIVING_RESPONSE: "NetMonitor:NetworkEventUpdating:ResponseStart",
 
-  // When request headers begin and finish receiving.
-  UPDATING_REQUEST_HEADERS: "NetMonitor:NetworkEventUpdating:RequestHeaders",
+  // When request headers finish receiving.
   RECEIVED_REQUEST_HEADERS: "NetMonitor:NetworkEventUpdated:RequestHeaders",
 
-  // When request cookies begin and finish receiving.
-  UPDATING_REQUEST_COOKIES: "NetMonitor:NetworkEventUpdating:RequestCookies",
-  RECEIVED_REQUEST_COOKIES: "NetMonitor:NetworkEventUpdated:RequestCookies",
-
-  // When request post data begins and finishes receiving.
-  UPDATING_REQUEST_POST_DATA: "NetMonitor:NetworkEventUpdating:RequestPostData",
-  RECEIVED_REQUEST_POST_DATA: "NetMonitor:NetworkEventUpdated:RequestPostData",
-
-  // When security information begins and finishes receiving.
-  UPDATING_SECURITY_INFO: "NetMonitor:NetworkEventUpdating:SecurityInfo",
-  RECEIVED_SECURITY_INFO: "NetMonitor:NetworkEventUpdated:SecurityInfo",
-
-  // When response headers begin and finish receiving.
-  UPDATING_RESPONSE_HEADERS: "NetMonitor:NetworkEventUpdating:ResponseHeaders",
+  // When response headers finish receiving.
   RECEIVED_RESPONSE_HEADERS: "NetMonitor:NetworkEventUpdated:ResponseHeaders",
 
-  // When response cookies begin and finish receiving.
-  UPDATING_RESPONSE_COOKIES: "NetMonitor:NetworkEventUpdating:ResponseCookies",
+  // When request cookies finish receiving.
+  RECEIVED_REQUEST_COOKIES: "NetMonitor:NetworkEventUpdated:RequestCookies",
+
+  // When request post data finishes receiving.
+  RECEIVED_REQUEST_POST_DATA: "NetMonitor:NetworkEventUpdated:RequestPostData",
+
+  // When security information finishes receiving.
+  RECEIVED_SECURITY_INFO: "NetMonitor:NetworkEventUpdated:SecurityInfo",
+
+  // When response cookies finish receiving.
   RECEIVED_RESPONSE_COOKIES: "NetMonitor:NetworkEventUpdated:ResponseCookies",
 
-  // When event timings begin and finish receiving.
-  UPDATING_EVENT_TIMINGS: "NetMonitor:NetworkEventUpdating:EventTimings",
-  RECEIVED_EVENT_TIMINGS: "NetMonitor:NetworkEventUpdated:EventTimings",
+  RECEIVED_RESPONSE_CACHE: "NetMonitor:NetworkEventUpdated:ResponseCache",
 
-  // When response content begins, updates and finishes receiving.
-  STARTED_RECEIVING_RESPONSE: "NetMonitor:NetworkEventUpdating:ResponseStart",
-  UPDATING_RESPONSE_CONTENT: "NetMonitor:NetworkEventUpdating:ResponseContent",
+  // When response content finishes receiving.
   RECEIVED_RESPONSE_CONTENT: "NetMonitor:NetworkEventUpdated:ResponseContent",
 
   // When stack-trace finishes receiving.
   RECEIVED_EVENT_STACKTRACE: "NetMonitor:NetworkEventUpdated:StackTrace",
-
-  UPDATING_RESPONSE_CACHE: "NetMonitor:NetworkEventUpdating:ResponseCache",
-  RECEIVED_RESPONSE_CACHE: "NetMonitor:NetworkEventUpdated:ResponseCache",
-
-  // Fired once the connection is established
-  CONNECTED: "connected",
-
-  // When request payload (HTTP details data) are fetched from the backend.
-  PAYLOAD_READY: "NetMonitor:PayloadReady",
 
   // When throttling is set on the backend.
   THROTTLING_CHANGED: "NetMonitor:ThrottlingChanged",
@@ -195,14 +226,16 @@ const UPDATE_PROPS = [
   "isThirdPartyTrackingResource",
   "referrerPolicy",
   "blockedReason",
+  "blockingExtension",
   "channelId",
+  "waitingTime",
 ];
 
 const PANELS = {
   COOKIES: "cookies",
   HEADERS: "headers",
   MESSAGES: "messages",
-  PARAMS: "params",
+  REQUEST: "request",
   RESPONSE: "response",
   CACHE: "cache",
   SECURITY: "security",
@@ -361,7 +394,7 @@ const FILTER_TAGS = [
   "other",
 ];
 
-const WS_FRAMES_HEADERS = [
+const MESSAGE_HEADERS = [
   {
     name: "data",
     width: "40%",
@@ -384,7 +417,19 @@ const WS_FRAMES_HEADERS = [
   },
   {
     name: "time",
-    width: "22%",
+    width: "20%",
+  },
+  {
+    name: "eventName",
+    width: "9%",
+  },
+  {
+    name: "lastEventId",
+    width: "9%",
+  },
+  {
+    name: "retry",
+    width: "9%",
   },
 ];
 
@@ -500,6 +545,9 @@ const BLOCKED_REASON_MESSAGES = {
   2004: "Tracking",
   2005: "Blocked",
   2006: "Harmful",
+  2007: "Cryptomining",
+  2008: "Fingerprinting",
+  2009: "Socialtracking",
   3001: "Mixed Block",
   4000: "CSP",
   4001: "CSP No Data Protocol",
@@ -509,15 +557,17 @@ const BLOCKED_REASON_MESSAGES = {
   4005: "CSP Web Browser",
   4006: "CSP Preload",
   5000: "Not same-origin",
+  6000: "Blocked By Extension",
 };
 
 const general = {
   ACTIVITY_TYPE,
   EVENTS,
+  TEST_EVENTS,
   FILTER_SEARCH_DELAY: 200,
   UPDATE_PROPS,
   HEADERS,
-  WS_FRAMES_HEADERS,
+  MESSAGE_HEADERS,
   RESPONSE_HEADERS,
   FILTER_FLAGS,
   FILTER_TAGS,
@@ -531,6 +581,7 @@ const general = {
   SEARCH_STATUS,
   AUTO_EXPAND_MAX_LEVEL: 7,
   AUTO_EXPAND_MAX_NODES: 50,
+  CHANNEL_TYPE,
 };
 
 // flatten constants

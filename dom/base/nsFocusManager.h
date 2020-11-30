@@ -16,6 +16,7 @@
 #include "nsWeakReference.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/StaticPtr.h"
 
 #define FOCUSMETHOD_MASK 0xF000
 #define FOCUSMETHODANDRING_MASK 0xF0F000
@@ -169,7 +170,7 @@ class nsFocusManager final : public nsIFocusManager,
    * aFocusedWindow may be still be set -- this means that the document is
    * focused but no element within it is focused.
    *
-   * aWindow and aFocusedWindow must both be non-null.
+   * aWindow, aFocusIsOutOfProcess, aFocusedWindow must all be non-null.
    */
   enum SearchRange {
     // Return focused content in aWindow.  So, aFocusedWindow is always aWindow.
@@ -179,6 +180,9 @@ class nsFocusManager final : public nsIFocusManager,
     // Return focused content in aWindow or one of visible sub windows.
     eIncludeVisibleDescendants,
   };
+  static mozilla::dom::Element* GetFocusedDescendant(
+      nsPIDOMWindowOuter* aWindow, SearchRange aSearchRange,
+      bool* aFocusIsOutOfProcess, nsPIDOMWindowOuter** aFocusedWindow);
   static mozilla::dom::Element* GetFocusedDescendant(
       nsPIDOMWindowOuter* aWindow, SearchRange aSearchRange,
       nsPIDOMWindowOuter** aFocusedWindow);
@@ -194,11 +198,21 @@ class nsFocusManager final : public nsIFocusManager,
    * aType is the type passed to MoveFocus. If aNoParentTraversal is set,
    * navigation is not done to parent documents and iteration returns to the
    * beginning (or end) of the starting document.
+   *
+   * aNavigateByKey to move focus by keyboard as a side effect of computing the
+   * next target.
    */
   nsresult DetermineElementToMoveFocus(nsPIDOMWindowOuter* aWindow,
                                        nsIContent* aStart, int32_t aType,
                                        bool aNoParentTraversal,
+                                       bool aNavigateByKey,
                                        nsIContent** aNextContent);
+
+  /**
+   * Setter for focusedWindow with CallerType
+   */
+  nsresult SetFocusedWindowWithCallerType(mozIDOMWindowProxy* aWindowToFocus,
+                                          mozilla::dom::CallerType aCallerType);
 
   /**
    * Given an element, which must be the focused element, activate the remote
@@ -211,6 +225,48 @@ class nsFocusManager final : public nsIFocusManager,
    */
   void RaiseWindow(nsPIDOMWindowOuter* aWindow,
                    mozilla::dom::CallerType aCallerType);
+
+  /**
+   * Called when a window has been raised.
+   */
+  void WindowRaised(mozIDOMWindowProxy* aWindow);
+
+  /**
+   * Called when a window has been lowered.
+   */
+  void WindowLowered(mozIDOMWindowProxy* aWindow);
+
+  /**
+   * Called when a new document in a window is shown.
+   *
+   * If aNeedsFocus is true, then focus events are expected to be fired on the
+   * window if this window is in the focused window chain.
+   */
+  void WindowShown(mozIDOMWindowProxy* aWindow, bool aNeedsFocus);
+
+  /**
+   * Called when a document in a window has been hidden or otherwise can no
+   * longer accept focus.
+   */
+  void WindowHidden(mozIDOMWindowProxy* aWindow);
+
+  /**
+   * Fire any events that have been delayed due to synchronized actions.
+   */
+  void FireDelayedEvents(Document* aDocument);
+
+  /**
+   * Used in a child process to indicate that the parent window is now
+   * active or deactive.
+   */
+  void ParentActivated(mozIDOMWindowProxy* aWindow, bool aActive);
+
+  /**
+   * Indicate that a plugin wishes to take the focus. This is similar to a
+   * normal focus except that the widget focus is not changed. Updating the
+   * widget focus state is the responsibility of the caller.
+   */
+  nsresult FocusPlugin(mozilla::dom::Element* aPlugin);
 
   static uint32_t FocusOptionsToFocusManagerFlags(
       const mozilla::dom::FocusOptions& aOptions);
@@ -231,6 +287,13 @@ class nsFocusManager final : public nsIFocusManager,
    * Returns an InputContextAction cause for aFlags.
    */
   static InputContextAction::Cause GetFocusMoveActionCause(uint32_t aFlags);
+
+  /**
+   * Notify of re-focus to same content.
+   *
+   * aContent is focused content.
+   */
+  void NotifyOfReFocus(nsIContent& aContent);
 
   static bool sMouseFocusesFormControl;
 
@@ -287,12 +350,13 @@ class nsFocusManager final : public nsIFocusManager,
       nsPIDOMWindowOuter* aWindow, mozilla::dom::BrowsingContext* aContext);
 
   /**
-   * When aNewWindow is focused, adjust the ancestors of aNewWindow so that they
-   * also have their corresponding frames focused. Thus, one can start at
-   * the active top-level window and navigate down the currently focused
-   * elements for each frame in the tree to get to aNewWindow.
+   * When aBrowsingContext is focused, adjust the ancestors of aBrowsingContext
+   * so that they also have their corresponding frames focused. Thus, one can
+   * start at the active top-level window and navigate down the currently
+   * focused elements for each frame in the tree to get to aBrowsingContext.
    */
-  void AdjustWindowFocus(nsPIDOMWindowOuter* aNewWindow, bool aCheckPermission);
+  void AdjustWindowFocus(mozilla::dom::BrowsingContext* aBrowsingContext,
+                         bool aCheckPermission, bool aIsVisible);
 
   /**
    * Returns true if aWindow is visible.
@@ -394,6 +458,7 @@ class nsFocusManager final : public nsIFocusManager,
   void Focus(nsPIDOMWindowOuter* aWindow, mozilla::dom::Element* aContent,
              uint32_t aFlags, bool aIsNewDocument, bool aFocusChanged,
              bool aWindowRaised, bool aAdjustWidget,
+             bool aFocusInOtherContentProcess,
              nsIContent* aContentLostFocus = nullptr);
 
   /**
@@ -467,7 +532,8 @@ class nsFocusManager final : public nsIFocusManager,
   /**
    * Helper method to move the caret to the focused element aContent.
    */
-  void MoveCaretToFocus(mozilla::PresShell* aPresShell, nsIContent* aContent);
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY void MoveCaretToFocus(
+      mozilla::PresShell* aPresShell, nsIContent* aContent);
 
   /**
    * Makes the caret visible or not, depending on aVisible.
@@ -519,7 +585,7 @@ class nsFocusManager final : public nsIFocusManager,
       nsIContent* aOwner, nsIContent* aStartContent,
       nsIContent* aOriginalStartContent, bool aForward,
       int32_t aCurrentTabIndex, bool aIgnoreTabIndex,
-      bool aForDocumentNavigation, bool aSkipOwner);
+      bool aForDocumentNavigation, bool aNavigateByKey, bool aSkipOwner);
 
   /**
    * Retrieve the next tabbable element in scope including aStartContent
@@ -549,6 +615,9 @@ class nsFocusManager final : public nsIFocusManager,
    * aForDocumentNavigation informs whether we're navigating only through
    * documents.
    *
+   * aNavigateByKey to move focus by keyboard as a side effect of computing the
+   * next target.
+   *
    * NOTE:
    *   Consider the method searches upwards in all shadow host- or slot-rooted
    *   flattened subtrees that contains aStartContent as non-root, except
@@ -558,7 +627,7 @@ class nsFocusManager final : public nsIFocusManager,
       nsIContent* aStartOwner, nsIContent** aStartContent,
       nsIContent* aOriginalStartContent, bool aForward,
       int32_t* aCurrentTabIndex, bool aIgnoreTabIndex,
-      bool aForDocumentNavigation);
+      bool aForDocumentNavigation, bool aNavigateByKey);
 
   /**
    * Retrieve the next tabbable element within a document, using focusability
@@ -587,12 +656,16 @@ class nsFocusManager final : public nsIFocusManager,
    * active, since we just want to focus the next element in tree order
    * from where the selection is. Similarly, if the starting element isn't
    * focusable, since it doesn't really have a defined tab index.
+   *
+   * aNavigateByKey to move focus by keyboard as a side effect of computing the
+   * next target.
    */
   nsresult GetNextTabbableContent(
       mozilla::PresShell* aPresShell, nsIContent* aRootContent,
       nsIContent* aOriginalStartContent, nsIContent* aStartContent,
       bool aForward, int32_t aCurrentTabIndex, bool aIgnoreTabIndex,
-      bool aForDocumentNavigation, nsIContent** aResultContent);
+      bool aForDocumentNavigation, bool aNavigateByKey,
+      nsIContent** aResultContent);
 
   /**
    * Get the next tabbable image map area and returns it.
@@ -682,6 +755,7 @@ class nsFocusManager final : public nsIFocusManager,
   bool TryToMoveFocusToSubDocument(nsIContent* aCurrentContent,
                                    nsIContent* aOriginalStartContent,
                                    bool aForward, bool aForDocumentNavigation,
+                                   bool aNavigateByKey,
                                    nsIContent** aResultContent);
 
   // Sets the focused BrowsingContext and, if appropriate, syncs it to
@@ -813,7 +887,7 @@ class nsFocusManager final : public nsIFocusManager,
   static bool sTestMode;
 
   // the single focus manager
-  static nsFocusManager* sInstance;
+  static mozilla::StaticRefPtr<nsFocusManager> sInstance;
 };
 
 nsresult NS_NewFocusManager(nsIFocusManager** aResult);

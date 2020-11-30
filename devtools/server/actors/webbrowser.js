@@ -30,8 +30,8 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   this,
-  "WorkerTargetActorList",
-  "devtools/server/actors/worker/worker-target-actor-list",
+  "WorkerDescriptorActorList",
+  "devtools/server/actors/worker/worker-descriptor-actor-list",
   true
 );
 loader.lazyRequireGetter(
@@ -50,11 +50,6 @@ loader.lazyImporter(
   this,
   "AddonManager",
   "resource://gre/modules/AddonManager.jsm"
-);
-loader.lazyImporter(
-  this,
-  "AppConstants",
-  "resource://gre/modules/AppConstants.jsm"
 );
 
 /**
@@ -99,7 +94,7 @@ exports.createRootActor = function createRootActor(connection) {
   return new RootActor(connection, {
     tabList: new BrowserTabList(connection),
     addonList: new BrowserAddonList(connection),
-    workerList: new WorkerTargetActorList(connection, {}),
+    workerList: new WorkerDescriptorActorList(connection, {}),
     serviceWorkerRegistrationList: new ServiceWorkerRegistrationActorList(
       connection
     ),
@@ -178,15 +173,6 @@ exports.createRootActor = function createRootActor(connection) {
  * conservative approach of simply searching the entire table for actors that
  * belong to the closing XUL window, rather than trying to somehow track which
  * XUL window each tab belongs to.
- *
- * - Title changes:
- *
- * For tabs living in the child process, we listen for DOMTitleChange message
- * via the top-level window's message manager.
- * But as these messages aren't sent for tabs loaded in the parent process,
- * we also listen for TabAttrModified event, which is fired only on Firefox
- * desktop.
- * Also, we listen DOMTitleChange event on Android document.
  */
 function BrowserTabList(connection) {
   this._connection = connection;
@@ -231,7 +217,7 @@ function BrowserTabList(connection) {
   /* True if we're testing, and should throw if consistency checks fail. */
   this._testing = false;
 
-  this._onAndroidDocumentEvent = this._onAndroidDocumentEvent.bind(this);
+  this._onPageTitleChangedEvent = this._onPageTitleChangedEvent.bind(this);
 }
 
 BrowserTabList.prototype.constructor = BrowserTabList;
@@ -288,15 +274,7 @@ BrowserTabList.prototype._getChildren = function(window) {
   });
 };
 
-BrowserTabList.prototype.getList = async function(browserActorOptions) {
-  const topAppWindow = Services.wm.getMostRecentWindow(
-    DevToolsServer.chromeWindowType
-  );
-  let selectedBrowser = null;
-  if (topAppWindow) {
-    selectedBrowser = this._getSelectedBrowser(topAppWindow);
-  }
-
+BrowserTabList.prototype.getList = async function() {
   // As a sanity check, make sure all the actors presently in our map get
   // picked up when we iterate over all windows' tabs.
   const initialMapSize = this._actorByBrowser.size;
@@ -305,14 +283,8 @@ BrowserTabList.prototype.getList = async function(browserActorOptions) {
   const actors = [];
 
   for (const browser of this._getBrowsers()) {
-    const selected = browser === selectedBrowser;
     try {
-      const actor = await this._getActorForBrowser(
-        browser,
-        browserActorOptions
-      );
-      // Set the 'selected' properties on all actors correctly.
-      actor.selected = selected;
+      const actor = await this._getActorForBrowser(browser);
       actors.push(actor);
     } catch (e) {
       if (e.error === "tabDestroyed") {
@@ -335,55 +307,42 @@ BrowserTabList.prototype.getList = async function(browserActorOptions) {
   return actors;
 };
 
-/**
- * @param browserActorOptions see options argument of TabDescriptorActor constructor.
- */
-BrowserTabList.prototype._getActorForBrowser = function(
-  browser,
-  browserActorOptions
-) {
+BrowserTabList.prototype._getActorForBrowser = async function(browser) {
   // Do we have an existing actor for this browser? If not, create one.
   let actor = this._actorByBrowser.get(browser);
   if (actor) {
     this._foundCount++;
-    return actor.update(browserActorOptions);
+    return actor;
   }
 
-  actor = new TabDescriptorActor(
-    this._connection,
-    browser,
-    browserActorOptions
-  );
+  actor = new TabDescriptorActor(this._connection, browser);
   this._actorByBrowser.set(browser, actor);
   this._checkListening();
   return actor;
 };
 
-BrowserTabList.prototype.getTab = function(
-  { outerWindowID, tabId },
-  browserActorOptions
-) {
+BrowserTabList.prototype.getTab = function({ outerWindowID, tabId }) {
   if (typeof outerWindowID == "number") {
     // First look for in-process frames with this ID
     const window = Services.wm.getOuterWindowWithId(outerWindowID);
     // Safety check to prevent debugging top level window via getTab
-    if (window && window.isChromeWindow) {
+    if (window?.isChromeWindow) {
       return Promise.reject({
         error: "forbidden",
         message: "Window with outerWindowID '" + outerWindowID + "' is chrome",
       });
     }
     if (window) {
-      const iframe = window.windowUtils.containerElement;
+      const iframe = window.browsingContext.embedderElement;
       if (iframe) {
-        return this._getActorForBrowser(iframe, browserActorOptions);
+        return this._getActorForBrowser(iframe);
       }
     }
     // Then also look on registered <xul:browsers> when using outerWindowID for
     // OOP tabs
     for (const browser of this._getBrowsers()) {
       if (browser.outerWindowID == outerWindowID) {
-        return this._getActorForBrowser(browser, browserActorOptions);
+        return this._getActorForBrowser(browser);
       }
     }
     return Promise.reject({
@@ -394,11 +353,10 @@ BrowserTabList.prototype.getTab = function(
     // Tabs OOP
     for (const browser of this._getBrowsers()) {
       if (
-        browser.frameLoader &&
-        browser.frameLoader.remoteTab &&
+        browser.frameLoader?.remoteTab &&
         browser.frameLoader.remoteTab.tabId === tabId
       ) {
-        return this._getActorForBrowser(browser, browserActorOptions);
+        return this._getActorForBrowser(browser);
       }
     }
     return Promise.reject({
@@ -412,7 +370,7 @@ BrowserTabList.prototype.getTab = function(
   );
   if (topAppWindow) {
     const selectedBrowser = this._getSelectedBrowser(topAppWindow);
-    return this._getActorForBrowser(selectedBrowser, browserActorOptions);
+    return this._getActorForBrowser(selectedBrowser);
   }
   return Promise.reject({
     error: "noTab",
@@ -502,7 +460,7 @@ BrowserTabList.prototype._checkListening = function() {
   this._listenForEventsIf(
     this._actorByBrowser.size > 0,
     "_listeningForTabClose",
-    ["TabClose", "TabRemotenessChange"]
+    ["TabClose"]
   );
 
   /*
@@ -515,33 +473,14 @@ BrowserTabList.prototype._checkListening = function() {
   );
 
   /*
-   * We also listen for title changed from the child process.
-   * This allows listening for title changes from OOP tabs.
-   * OOP tabs are running browser-child.js frame script which sends DOMTitleChanged
-   * events through the message manager.
+   * We also listen for title changed events on the browser.
    */
-  this._listenForMessagesIf(
+  this._listenForEventsIf(
     this._onListChanged && this._mustNotify,
     "_listeningForTitleChange",
-    ["DOMTitleChanged"]
+    ["pagetitlechanged"],
+    this._onPageTitleChangedEvent
   );
-
-  /*
-   * We also listen for title changed event on Android document.
-   * Android document events are used for single process Gecko View and Firefox for
-   * Android. They do no execute browser-child.js because of single process, instead
-   * DOMTitleChanged events are emitted on the top level document.
-   * Also, Multi process Gecko View is not covered by here since that receives title
-   * updates via DOMTitleChanged messages.
-   */
-  if (AppConstants.platform === "android") {
-    this._listenForEventsIf(
-      this._onListChanged && this._mustNotify,
-      "_listeningForAndroidDocument",
-      ["DOMTitleChanged"],
-      this._onAndroidDocumentEvent
-    );
-  }
 };
 
 /*
@@ -575,62 +514,17 @@ BrowserTabList.prototype._listenForEventsIf = function(
 };
 
 /*
- * Add or remove message listeners for all XUL windows.
- *
- * @param shouldListen boolean
- *    True if we should add message listeners; false if we should remove them.
- * @param guard string
- *    The name of a guard property of 'this', indicating whether we're
- *    already listening for those messages.
- * @param messageNames array of strings
- *    An array of message names.
+ * Event listener for pagetitlechanged event.
  */
-BrowserTabList.prototype._listenForMessagesIf = function(
-  shouldListen,
-  guard,
-  messageNames
-) {
-  if (!shouldListen !== !this[guard]) {
-    const op = shouldListen ? "addMessageListener" : "removeMessageListener";
-    for (const win of Services.wm.getEnumerator(
-      DevToolsServer.chromeWindowType
-    )) {
-      for (const name of messageNames) {
-        win.messageManager[op](name, this);
-      }
-    }
-    this[guard] = shouldListen;
-  }
-};
-
-/*
- * This function assumes to be used as a event listener for Android document.
- */
-BrowserTabList.prototype._onAndroidDocumentEvent = function(event) {
+BrowserTabList.prototype._onPageTitleChangedEvent = function(event) {
   switch (event.type) {
-    case "DOMTitleChanged": {
-      const win = event.currentTarget.ownerGlobal;
-      const browser = win.BrowserApp.getBrowserForDocument(event.target);
-      this._onDOMTitleChanged(browser);
+    case "pagetitlechanged": {
+      const window = event.currentTarget.ownerGlobal;
+      this._onDOMTitleChanged(window.browser);
       break;
     }
   }
 };
-
-/**
- * Implement nsIMessageListener.
- */
-BrowserTabList.prototype.receiveMessage = DevToolsUtils.makeInfallible(function(
-  message
-) {
-  const browser = message.target;
-  switch (message.name) {
-    case "DOMTitleChanged": {
-      this._onDOMTitleChanged(browser);
-      break;
-    }
-  }
-});
 
 /**
  * Handle "DOMTitleChanged" event.
@@ -652,8 +546,7 @@ BrowserTabList.prototype.handleEvent = DevToolsUtils.makeInfallible(function(
   event
 ) {
   // If event target has `linkedBrowser`, the event target can be assumed <tab> element.
-  // Else (in Android case), because event target is assumed <browser> element,
-  // use the target as it is.
+  // Else, event target is assumed <browser> element, use the target as it is.
   const browser = event.target.linkedBrowser || event.target;
   switch (event.type) {
     case "TabOpen":
@@ -667,17 +560,6 @@ BrowserTabList.prototype.handleEvent = DevToolsUtils.makeInfallible(function(
       const actor = this._actorByBrowser.get(browser);
       if (actor) {
         this._handleActorClose(actor, browser);
-      }
-      break;
-    }
-    case "TabRemotenessChange": {
-      // We have to remove the cached actor as we have to create a new instance.
-      const actor = this._actorByBrowser.get(browser);
-      if (actor) {
-        this._actorByBrowser.delete(browser);
-        // Don't create a new actor; iterate will take care of that. Just notify.
-        this._notifyListChanged();
-        this._checkListening();
       }
       break;
     }
@@ -743,7 +625,6 @@ BrowserTabList.prototype.onOpenWindow = DevToolsUtils.makeInfallible(function(
     }
     if (this._listeningForTabClose) {
       window.addEventListener("TabClose", this);
-      window.addEventListener("TabRemotenessChange", this);
     }
     if (this._listeningForTitleChange) {
       window.messageManager.addMessageListener("DOMTitleChanged", this);

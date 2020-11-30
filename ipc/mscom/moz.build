@@ -14,6 +14,7 @@ EXPORTS.mozilla.mscom += [
     'Objref.h',
     'PassthruProxy.h',
     'ProcessRuntime.h',
+    'ProfilerMarkers.h',
     'ProxyStream.h',
     'Ptr.h',
     'Utils.h',
@@ -33,6 +34,7 @@ UNIFIED_SOURCES += [
     'Objref.cpp',
     'PassthruProxy.cpp',
     'ProcessRuntime.cpp',
+    'ProfilerMarkers.cpp',
     'ProxyStream.cpp',
     'RegistrationAnnotator.cpp',
     'Utils.cpp',
@@ -60,6 +62,7 @@ if CONFIG['ACCESSIBILITY']:
 
     SOURCES += [
         'Interceptor.cpp',
+        'MainThreadHandoff.cpp',
         'Registration.cpp',
         'SpinEvent.cpp',
         'WeakRef.cpp',
@@ -70,7 +73,6 @@ if CONFIG['ACCESSIBILITY']:
         'DispatchForwarder.cpp',
         'FastMarshaler.cpp',
         'InterceptorLog.cpp',
-        'MainThreadHandoff.cpp',
         'MainThreadInvoker.cpp',
         'StructStream.cpp',
     ]

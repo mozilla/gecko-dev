@@ -13,9 +13,11 @@ import {
 
 export interface PanelWindow {
   gToolbox?: any;
-  gInit(perfFront: any, preferenceFront: any): void;
+  gStore?: Store;
+  gInit(perfFront: PerfFront, pageContext: PageContext): void;
   gDestroy(): void;
-  gReportReady?(): void
+  gReportReady?(): void;
+  gIsPanelDestroyed?: boolean;
 }
 
 /**
@@ -57,9 +59,7 @@ export interface PerfFront {
   isLockedForPrivateBrowsing: () => MaybePromise<boolean>;
   on: (type: string, listener: () => void) => void;
   off: (type: string, listener: () => void) => void;
-  /**
-   * This method was was added in Firefox 72.
-   */
+  destroy: () => void,
   getSupportedFeatures: () => MaybePromise<string[]>
 }
 
@@ -96,7 +96,11 @@ export type RecordingState =
 // We are currently migrating to a new UX workflow with about:profiling.
 // This type provides an easy way to change the implementation based
 // on context.
-export type PageContext = "devtools" | "aboutprofiling";
+export type PageContext =
+  | "devtools"
+  | "devtools-remote"
+  | "aboutprofiling"
+  | "aboutprofiling-remote";
 
 export interface State {
   recordingState: RecordingState;
@@ -126,10 +130,10 @@ export type SymbolTableAsTuple = [Uint32Array, Uint32Array, Uint8Array];
  */
 export type Dispatch = PlainDispatch & ThunkDispatch;
 
-export type ThunkAction<Returns> = (
-  dispatch: Dispatch,
-  getState: GetState
-) => Returns;
+export type ThunkAction<Returns> = ({ dispatch, getState }: {
+  dispatch: Dispatch;
+  getState: GetState;
+}) => Returns;
 
 export interface Library {
   start: number;
@@ -143,8 +147,13 @@ export interface Library {
   arch: string;
 }
 
-export interface GeckoProfile {
-  // Only type properties that we rely on.
+/**
+ * Only provide types for the GeckoProfile as much as we need it. There is no
+ * reason to maintain a full type definition here.
+ */
+export interface MinimallyTypedGeckoProfile {
+  libs: Array<{ debugName: string, breakpadId: string }>;
+  processes: Array<MinimallyTypedGeckoProfile>;
 }
 
 export type GetSymbolTableCallback = (
@@ -153,11 +162,11 @@ export type GetSymbolTableCallback = (
 ) => Promise<SymbolTableAsTuple>;
 
 export type ReceiveProfile = (
-  geckoProfile: GeckoProfile,
+  geckoProfile: MinimallyTypedGeckoProfile,
   getSymbolTableCallback: GetSymbolTableCallback
 ) => void;
 
-export type SetRecordingPreferences = (settings: RecordingStateFromPreferences) => MaybePromise<void>;
+export type SetRecordingPreferences = (settings: RecordingStateFromPreferences) => void;
 
 /**
  * This is the type signature for a function to restart the browser with a given
@@ -182,7 +191,7 @@ export type GetActiveBrowsingContextID = () => number;
  * This interface is injected into profiler.firefox.com
  */
 interface GeckoProfilerFrameScriptInterface {
-  getProfile: () => Promise<object>;
+  getProfile: () => Promise<MinimallyTypedGeckoProfile>;
   getSymbolTable: GetSymbolTableCallback;
 }
 
@@ -214,12 +223,14 @@ export interface InitializedValues {
   // Determine the current page context.
   pageContext: PageContext;
   // The popup and devtools panel use different codepaths for getting symbol tables.
-  getSymbolTableGetter: (profile: object) => GetSymbolTableCallback;
-  // The list of profiler features that the current target supports. Note that
-  // this value is only null to support older Firefox browsers that are targeted
-  // by the actor system. This compatibility can be required when the ESR version
-  // is running at least Firefox 72.
-  supportedFeatures: string[] | null
+  getSymbolTableGetter: (profile: MinimallyTypedGeckoProfile) => GetSymbolTableCallback;
+  // The list of profiler features that the current target supports.
+  supportedFeatures: string[]
+  // Allow different devtools contexts to open about:profiling with different methods.
+  // e.g. via a new tab, or page navigation.
+  openAboutProfiling?: () => void,
+  // Allow about:profiling to switch back to the remote devtools panel.
+  openRemoteDevTools?: () => void,
 }
 
 /**
@@ -267,9 +278,11 @@ export type Action =
       setRecordingPreferences: SetRecordingPreferences;
       presets: Presets;
       pageContext: PageContext;
+      openAboutProfiling?: () => void,
+      openRemoteDevTools?: () => void,
       recordingSettingsFromPreferences: RecordingStateFromPreferences;
-      getSymbolTableGetter: (profile: object) => GetSymbolTableCallback;
-      supportedFeatures: string[] | null;
+      getSymbolTableGetter: (profile: MinimallyTypedGeckoProfile) => GetSymbolTableCallback;
+      supportedFeatures: string[];
     }
   | {
       type: "CHANGE_PRESET";
@@ -284,8 +297,10 @@ export interface InitializeStoreValues {
   presets: Presets;
   pageContext: PageContext;
   recordingPreferences: RecordingStateFromPreferences;
-  supportedFeatures: string[] | null;
-  getSymbolTableGetter: (profile: object) => GetSymbolTableCallback;
+  supportedFeatures: string[];
+  getSymbolTableGetter: (profile: MinimallyTypedGeckoProfile) => GetSymbolTableCallback;
+  openAboutProfiling?: () => void;
+  openRemoteDevTools?: () => void;
 }
 
 export type PopupBackgroundFeatures = { [feature: string]: boolean };
@@ -361,21 +376,14 @@ export interface PerformancePref {
    */
   UIBaseUrlPathPref: "devtools.performance.recording.ui-base-url-path";
   /**
-   * The profiler's menu button and its popup can be enabled/disabled by the user.
-   * This pref controls whether the user has turned it on or not. Note that this
-   * preference is also used outside of the type-checked files, so make sure
-   * and update it elsewhere.
-   */
-  PopupEnabled: "devtools.performance.popup.enabled";
-  /**
    * The profiler popup has some introductory text explaining what it is the first
    * time that you open it. After that, it is not displayed by default.
    */
   PopupIntroDisplayed: "devtools.performance.popup.intro-displayed";
   /**
    * This preference is used outside of the performance-new type system
-   * (in DevToolsStartup). It toggles the availability of the menu item
-   * "Tools -> Web Developer -> Enable Profiler Toolbar Icon".
+   * (in DevToolsStartup). It toggles the availability of the profiler menu
+   * button in the customization palette.
    */
   PopupFeatureFlag: "devtools.performance.popup.feature-flag";
 }
@@ -452,4 +460,24 @@ export class ProfilerWebChannel {
   listen: (
     handler: (idle: string, message: MessageFromFrontend, target: MockedExports.WebChannelTarget) => void
   ) => void;
+}
+
+/**
+ * Describes all of the profiling features that can be turned on and
+ * off in about:profiling.
+ */
+export interface FeatureDescription {
+  // The name of the feature as shown in the UI.
+  name: string,
+  // The key value of the feature, this will be stored in prefs, and used in the
+  // nsiProfiler interface.
+  value: string,
+  // The full description of the preset, this will need to be localized.
+  title: string,
+  // This will give the user a hint that it's recommended on.
+  recommended?: boolean,
+  // This will give the user a hint that it's an experimental feature.
+  experimental?: boolean,
+  // This will give a reason if the feature is disabled.
+  disabledReason?: string,
 }

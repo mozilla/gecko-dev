@@ -14,10 +14,18 @@
 #include "NamespaceImports.h"
 
 #include "js/Conversions.h"
+#include "js/friend/ErrorMessages.h"
 
 #include "vm/StringType.h"
 
 namespace js {
+
+namespace frontend {
+
+class ParserAtomsTable;
+class ParserAtom;
+
+}  // namespace frontend
 
 class GlobalObject;
 class StringBuffer;
@@ -42,12 +50,18 @@ extern JSString* NumberToStringHelperPure(JSContext* cx, double d);
 
 extern JSAtom* NumberToAtom(JSContext* cx, double d);
 
+const frontend::ParserAtom* NumberToParserAtom(
+    JSContext* cx, frontend::ParserAtomsTable& parserAtoms, double d);
+
 template <AllowGC allowGC>
 extern JSLinearString* Int32ToString(JSContext* cx, int32_t i);
 
 extern JSLinearString* Int32ToStringHelperPure(JSContext* cx, int32_t i);
 
 extern JSAtom* Int32ToAtom(JSContext* cx, int32_t si);
+
+const frontend::ParserAtom* Int32ToParserAtom(
+    JSContext* cx, frontend::ParserAtomsTable& parserAtoms, int32_t si);
 
 // ES6 15.7.3.12
 extern bool IsInteger(const Value& val);
@@ -176,6 +190,11 @@ template <typename CharT>
 extern MOZ_MUST_USE bool GetDecimalNonInteger(JSContext* cx, const CharT* start,
                                               const CharT* end, double* dp);
 
+bool CharsToNumber(JSContext* cx, const Latin1Char* chars, size_t length,
+                   double* result);
+bool CharsToNumber(JSContext* cx, const char16_t* chars, size_t length,
+                   double* result);
+
 extern MOZ_MUST_USE bool StringToNumber(JSContext* cx, JSString* str,
                                         double* result);
 
@@ -258,7 +277,9 @@ extern MOZ_MUST_USE bool FullStringToDouble(JSContext* cx, const CharT* begin,
   return false;
 }
 
-extern MOZ_MUST_USE bool num_toString(JSContext* cx, unsigned argc, Value* vp);
+extern MOZ_MUST_USE bool ThisNumberValueForToLocaleString(JSContext* cx,
+                                                          unsigned argc,
+                                                          Value* vp);
 
 extern MOZ_MUST_USE bool num_valueOf(JSContext* cx, unsigned argc, Value* vp);
 

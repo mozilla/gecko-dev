@@ -43,9 +43,9 @@ nsresult GetIPCSynthesizeResponseArgs(
     return NS_ERROR_DOM_INVALID_STATE_ERR;
   }
 
-  aArgs.first()->ToIPC(&aIPCArgs->internalResponse(), bgChild, aAutoBodyStream,
-                       aAutoAlternativeBodyStream);
-  aIPCArgs->closure() = std::move(aArgs.second());
+  aArgs.first->ToIPC(&aIPCArgs->internalResponse(), bgChild, aAutoBodyStream,
+                     aAutoAlternativeBodyStream);
+  aIPCArgs->closure() = std::move(aArgs.second);
 
   return NS_OK;
 }
@@ -57,7 +57,7 @@ void FetchEventOpProxyChild::Initialize(
   MOZ_ASSERT(RemoteWorkerService::Thread()->IsOnCurrentThread());
   MOZ_ASSERT(!mOp);
 
-  mInternalRequest = new InternalRequest(aArgs.internalRequest());
+  mInternalRequest = MakeSafeRefPtr<InternalRequest>(aArgs.internalRequest());
 
   RemoteWorkerChild* manager = static_cast<RemoteWorkerChild*>(Manager());
   MOZ_ASSERT(manager);
@@ -89,7 +89,7 @@ void FetchEventOpProxyChild::Initialize(
   mOp = op;
 
   op->GetRespondWithPromise()
-      ->Then(GetCurrentThreadSerialEventTarget(), __func__,
+      ->Then(GetCurrentSerialEventTarget(), __func__,
              [self = std::move(self)](
                  FetchEventRespondWithPromise::ResolveOrRejectValue&& aResult) {
                self->mRespondWithPromiseRequestHolder.Complete();
@@ -120,8 +120,14 @@ void FetchEventOpProxyChild::Initialize(
                  }
 
                  Unused << self->SendRespondWith(ipcArgs);
-                 autoBodyStream->TakeOptionalValue();
-                 autoAlternativeBodyStream->TakeOptionalValue();
+
+                 if (ipcArgs.internalResponse().body()) {
+                   autoBodyStream->TakeValue();
+                 }
+
+                 if (ipcArgs.internalResponse().alternativeBody()) {
+                   autoAlternativeBodyStream->TakeValue();
+                 }
                } else if (result.is<ResetInterceptionArgs>()) {
                  Unused << self->SendRespondWith(
                      result.extract<ResetInterceptionArgs>());
@@ -135,11 +141,11 @@ void FetchEventOpProxyChild::Initialize(
   manager->MaybeStartOp(std::move(op));
 }
 
-RefPtr<InternalRequest> FetchEventOpProxyChild::ExtractInternalRequest() {
+SafeRefPtr<InternalRequest> FetchEventOpProxyChild::ExtractInternalRequest() {
   MOZ_ASSERT(IsCurrentThreadRunningWorker());
   MOZ_ASSERT(mInternalRequest);
 
-  return RefPtr<InternalRequest>(std::move(mInternalRequest));
+  return std::move(mInternalRequest);
 }
 
 void FetchEventOpProxyChild::ActorDestroy(ActorDestroyReason) {

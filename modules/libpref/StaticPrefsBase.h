@@ -7,6 +7,8 @@
 #ifndef mozilla_StaticPrefsBase_h
 #define mozilla_StaticPrefsBase_h
 
+#include <type_traits>
+
 #include "mozilla/Atomics.h"
 
 namespace mozilla {
@@ -54,13 +56,13 @@ template <typename T>
 using StripAtomic = typename StripAtomicImpl<T>::Type;
 
 template <typename T>
-struct IsAtomic : FalseType {};
+struct IsAtomic : std::false_type {};
 
 template <typename T, MemoryOrdering Order>
-struct IsAtomic<Atomic<T, Order>> : TrueType {};
+struct IsAtomic<Atomic<T, Order>> : std::true_type {};
 
 template <typename T>
-struct IsAtomic<std::atomic<T>> : TrueType {};
+struct IsAtomic<std::atomic<T>> : std::true_type {};
 
 namespace StaticPrefs {
 

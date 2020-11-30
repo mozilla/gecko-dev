@@ -13,6 +13,11 @@ XPCOMUtils.defineLazyScriptGetter(
 XPCOMUtils.defineLazyModuleGetters(this, {
   BookmarkPanelHub: "resource://activity-stream/lib/BookmarkPanelHub.jsm",
 });
+ChromeUtils.defineModuleGetter(
+  this,
+  "PanelMultiView",
+  "resource:///modules/PanelMultiView.jsm"
+);
 
 var StarUI = {
   _itemGuids: null,
@@ -42,6 +47,7 @@ var StarUI = {
   // Edit-bookmark panel
   get panel() {
     delete this.panel;
+    this._createPanelIfNeeded();
     var element = this._element("editBookmarkPanel");
     // initially the panel is hidden
     // to avoid impacting startup / new window performance
@@ -297,6 +303,16 @@ var StarUI = {
     });
 
     this.panel.openPopup(this._anchorElement, "bottomcenter topright");
+  },
+
+  _createPanelIfNeeded() {
+    // Lazy load the editBookmarkPanel the first time we need to display it.
+    if (!this._element("editBookmarkPanel")) {
+      MozXULElement.insertFTLIfNeeded("browser/editBookmarkOverlay.ftl");
+      let template = this._element("editBookmarkPanelTemplate");
+      let clone = template.content.cloneNode(true);
+      template.replaceWith(clone);
+    }
   },
 
   _setIconAndPreviewImage() {
@@ -575,27 +591,6 @@ var PlacesCommandHook = {
   },
 
   /**
-   * Adds a folder with bookmarks to URIList given in param.
-   */
-  bookmarkPages(URIList) {
-    if (!URIList.length) {
-      return;
-    }
-
-    let bookmarkDialogInfo = { action: "add" };
-    if (URIList.length > 1) {
-      bookmarkDialogInfo.type = "folder";
-      bookmarkDialogInfo.URIList = URIList;
-    } else {
-      bookmarkDialogInfo.type = "bookmark";
-      bookmarkDialogInfo.title = URIList[0].title;
-      bookmarkDialogInfo.uri = URIList[0].uri;
-    }
-
-    PlacesUIUtils.showBookmarkDialog(bookmarkDialogInfo, window);
-  },
-
-  /**
    * Opens the Places Organizer.
    * @param {String} item The item to select in the organizer window,
    *                      options are (case sensitive):
@@ -620,7 +615,9 @@ var PlacesCommandHook = {
   },
 
   searchBookmarks() {
-    gURLBar.search(UrlbarTokenizer.RESTRICT.BOOKMARK);
+    gURLBar.search(UrlbarTokenizer.RESTRICT.BOOKMARK, {
+      searchModeEntry: "bookmarkmenu",
+    });
   },
 };
 
@@ -1100,7 +1097,7 @@ var PlacesMenuDNDHandler = {
 
 /**
  * This object handles the initialization and uninitialization of the bookmarks
- * toolbar.
+ * toolbar. It also has helper functions for the managed bookmarks button.
  */
 var PlacesToolbarHelper = {
   get _viewElt() {
@@ -1228,6 +1225,86 @@ var PlacesToolbarHelper = {
       this.init();
     }
   },
+
+  async populateManagedBookmarks(popup) {
+    if (popup.hasChildNodes()) {
+      return;
+    }
+    // Show item's uri in the status bar when hovering, and clear on exit
+    popup.addEventListener("DOMMenuItemActive", function(event) {
+      XULBrowserWindow.setOverLink(event.target.link);
+    });
+    popup.addEventListener("DOMMenuItemInactive", function() {
+      XULBrowserWindow.setOverLink("");
+    });
+    let fragment = document.createDocumentFragment();
+    await this.addManagedBookmarks(
+      fragment,
+      Services.policies.getActivePolicies().ManagedBookmarks
+    );
+    popup.appendChild(fragment);
+  },
+
+  async addManagedBookmarks(menu, children) {
+    for (let i = 0; i < children.length; i++) {
+      let entry = children[i];
+      if (entry.children) {
+        // It's a folder.
+        let submenu = document.createXULElement("menu");
+        if (entry.name) {
+          submenu.setAttribute("label", entry.name);
+        } else {
+          submenu.setAttribute("data-l10n-id", "managed-bookmarks-subfolder");
+        }
+        submenu.setAttribute("container", "true");
+        submenu.setAttribute("class", "menu-iconic bookmark-item");
+        let submenupopup = document.createXULElement("menupopup");
+        submenu.appendChild(submenupopup);
+        menu.appendChild(submenu);
+        this.addManagedBookmarks(submenupopup, entry.children);
+      } else if (entry.name && entry.url) {
+        // It's bookmark.
+        let { preferredURI } = Services.uriFixup.getFixupURIInfo(entry.url);
+        let menuitem = document.createXULElement("menuitem");
+        menuitem.setAttribute("label", entry.name);
+        menuitem.setAttribute("image", "page-icon:" + preferredURI.spec);
+        menuitem.setAttribute(
+          "class",
+          "menuitem-iconic bookmark-item menuitem-with-favicon"
+        );
+        menuitem.link = preferredURI.spec;
+        menu.appendChild(menuitem);
+      }
+    }
+  },
+
+  openManagedBookmark(event) {
+    openUILink(event.target.link, event, {
+      triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
+    });
+  },
+
+  onDragStartManaged(event) {
+    if (!event.target.link) {
+      return;
+    }
+
+    let dt = event.dataTransfer;
+
+    let node = {};
+    node.type = 0;
+    node.title = event.target.label;
+    node.uri = event.target.link;
+
+    function addData(type, index) {
+      let wrapNode = PlacesUtils.wrapNode(node, type);
+      dt.mozSetDataAt(type, wrapNode, index);
+    }
+
+    addData(PlacesUtils.TYPE_X_MOZ_URL, 0);
+    addData(PlacesUtils.TYPE_UNICODE, 0);
+    addData(PlacesUtils.TYPE_HTML, 0);
+  },
 };
 
 /**
@@ -1238,15 +1315,6 @@ var LibraryUI = {
    * @returns true if the animation could be triggered, false otherwise.
    */
   triggerLibraryAnimation(animation) {
-    if (!this.hasOwnProperty("COSMETIC_ANIMATIONS_ENABLED")) {
-      XPCOMUtils.defineLazyPreferenceGetter(
-        this,
-        "COSMETIC_ANIMATIONS_ENABLED",
-        "toolkit.cosmeticAnimations.enabled",
-        true
-      );
-    }
-
     let libraryButton = document.getElementById("library-button");
     if (
       !libraryButton ||
@@ -1254,7 +1322,7 @@ var LibraryUI = {
       libraryButton.getAttribute("overflowedItem") == "true" ||
       !libraryButton.closest("#nav-bar") ||
       !window.toolbar.visible ||
-      !this.COSMETIC_ANIMATIONS_ENABLED
+      gReduceMotion
     ) {
       return false;
     }
@@ -1443,17 +1511,22 @@ var BookmarkingUI = {
   },
 
   selectLabel(elementId, visible) {
-    let element = document.getElementById(elementId);
+    let element = PanelMultiView.getViewNode(document, elementId);
     element.setAttribute(
       "label",
       element.getAttribute(visible ? "label-hide" : "label-show")
     );
   },
 
-  toggleBookmarksToolbar() {
+  toggleBookmarksToolbar(reason) {
     CustomizableUI.setToolbarVisibility(
       "PersonalToolbar",
       document.getElementById("PersonalToolbar").collapsed
+    );
+    BrowserUsageTelemetry.recordToolbarVisibility(
+      "PersonalToolbar",
+      document.getElementById("PersonalToolbar").collapsed,
+      reason
     );
   },
 
@@ -1559,11 +1632,7 @@ var BookmarkingUI = {
   init() {
     CustomizableUI.addListener(this);
 
-    if (Services.prefs.getBoolPref("toolkit.cosmeticAnimations.enabled")) {
-      let starButtonBox = document.getElementById("star-button-box");
-      starButtonBox.setAttribute("animationsenabled", "true");
-      this.star.addEventListener("mouseover", this, { once: true });
-    }
+    this.star.addEventListener("mouseover", this, { once: true });
   },
 
   _hasBookmarksObserver: false,
@@ -1655,7 +1724,7 @@ var BookmarkingUI = {
     for (let element of [
       this.star,
       document.getElementById("context-bookmarkpage"),
-      document.getElementById("panelMenuBookmarkThisPage"),
+      PanelMultiView.getViewNode(document, "panelMenuBookmarkThisPage"),
       document.getElementById("pageAction-panel-bookmark"),
     ]) {
       if (!element) {
@@ -1718,7 +1787,8 @@ var BookmarkingUI = {
       document.l10n.setAttributes(menuItem, menuItemL10nId);
     }
 
-    let panelMenuToolbarButton = document.getElementById(
+    let panelMenuToolbarButton = PanelMultiView.getViewNode(
+      document,
       "panelMenuBookmarkThisPage"
     );
     if (panelMenuToolbarButton) {
@@ -1762,11 +1832,20 @@ var BookmarkingUI = {
         // We assume that menuItemL10nId has a single attribute.
         let label = l10n[0]?.attributes[0].value;
 
-        // Update the title and the starred state for the page action panel.
-        PageActions.actionForID(PageActions.ACTION_ID_BOOKMARK).setTitle(
-          label,
-          window
+        // Update the label, tooltip, and the starred state for the
+        // page action panel.
+        let panelButton = BrowserPageActions.panelButtonNodeForActionID(
+          PageActions.ACTION_ID_BOOKMARK
         );
+        if (panelButton) {
+          panelButton.setAttribute("label", label);
+        }
+        let urlbarButton = BrowserPageActions.urlbarButtonNodeForActionID(
+          PageActions.ACTION_ID_BOOKMARK
+        );
+        if (urlbarButton) {
+          urlbarButton.setAttribute("tooltiptext", label);
+        }
       });
     }
   },
@@ -1788,7 +1867,7 @@ var BookmarkingUI = {
     event,
     anchor = document.getElementById(this.BOOKMARK_BUTTON_ID)
   ) {
-    let view = document.getElementById("PanelUI-bookmarks");
+    let view = PanelMultiView.getViewNode(document, "PanelUI-bookmarks");
     view.addEventListener("ViewShowing", this);
     view.addEventListener("ViewHiding", this);
     anchor.setAttribute("closemenu", "none");
@@ -1947,9 +2026,19 @@ var BookmarkingUI = {
       }
 
       CustomizableUI.addWidgetToArea(this.BOOKMARK_BUTTON_ID, area, pos);
+      BrowserUsageTelemetry.recordWidgetChange(
+        this.BOOKMARK_BUTTON_ID,
+        area,
+        "bookmark-tools"
+      );
     } else {
       // Move it back to the palette.
       CustomizableUI.removeWidgetFromArea(this.BOOKMARK_BUTTON_ID);
+      BrowserUsageTelemetry.recordWidgetChange(
+        this.BOOKMARK_BUTTON_ID,
+        null,
+        "bookmark-tools"
+      );
     }
     triggerNode.setAttribute("checked", !placement);
     updateToggleControlLabel(triggerNode);
@@ -2031,7 +2120,7 @@ var BookmarkingUI = {
     this._uninitView();
   },
 
-  QueryInterface: ChromeUtils.generateQI([Ci.nsINavBookmarkObserver]),
+  QueryInterface: ChromeUtils.generateQI(["nsINavBookmarkObserver"]),
 };
 
 var AutoShowBookmarksToolbar = {

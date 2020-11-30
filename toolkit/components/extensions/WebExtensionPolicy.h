@@ -36,11 +36,10 @@ class WebExtensionContentScript;
 
 class WebExtensionPolicy final : public nsISupports,
                                  public nsWrapperCache,
-                                 public SupportsWeakPtr<WebExtensionPolicy> {
+                                 public SupportsWeakPtr {
  public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(WebExtensionPolicy)
-  MOZ_DECLARE_WEAKREFERENCE_TYPENAME(WebExtensionPolicy)
 
   using ScriptArray = nsTArray<RefPtr<WebExtensionContentScript>>;
 
@@ -142,6 +141,17 @@ class WebExtensionPolicy final : public nsISupports,
   void GetReadyPromise(JSContext* aCx, JS::MutableHandleObject aResult) const;
   dom::Promise* ReadyPromise() const { return mReadyPromise; }
 
+  void GetBackgroundWorker(nsString& aScriptURL) const {
+    aScriptURL.Assign(mBackgroundWorkerScript);
+  }
+
+  bool IsManifestBackgroundWorker(const nsAString& aWorkerScriptURL) const {
+    return mBackgroundWorkerScript.Equals(aWorkerScriptURL);
+  }
+
+  uint64_t GetBrowsingContextGroupId() const;
+  uint64_t GetBrowsingContextGroupId(ErrorResult& aRv);
+
   static void GetActiveExtensions(
       dom::GlobalObject& aGlobal,
       nsTArray<RefPtr<WebExtensionPolicy>>& aResults);
@@ -161,6 +171,7 @@ class WebExtensionPolicy final : public nsISupports,
 
   static bool UseRemoteWebExtensions(dom::GlobalObject& aGlobal);
   static bool IsExtensionProcess(dom::GlobalObject& aGlobal);
+  static bool BackgroundServiceWorkerEnabled(dom::GlobalObject& aGlobal);
 
   nsISupports* GetParentObject() const { return mParent; }
 
@@ -187,6 +198,8 @@ class WebExtensionPolicy final : public nsISupports,
   nsString mExtensionPageCSP;
   nsString mContentScriptCSP;
 
+  uint64_t mBrowsingContextGroupId = 0;
+
   bool mActive = false;
   bool mAllowPrivateBrowsingByDefault = true;
 
@@ -198,6 +211,7 @@ class WebExtensionPolicy final : public nsISupports,
   MatchGlobSet mWebAccessiblePaths;
 
   dom::Nullable<nsTArray<nsString>> mBackgroundScripts;
+  nsString mBackgroundWorkerScript;
 
   nsTArray<RefPtr<WebExtensionContentScript>> mContentScripts;
 

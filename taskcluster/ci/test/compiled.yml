@@ -4,6 +4,11 @@
 ---
 job-defaults:
     e10s: false
+    test-manifest-loader: null  # don't load tests in the taskgraph
+    virtualization:
+        by-test-platform:
+            windows10-64.*: hardware
+            default: virtual
     mozharness:
         script:
             by-test-platform:
@@ -85,14 +90,14 @@ jittest:
             # Additionally, platforms contain suffixes like "/opt" or "/debug".
             (?=linux).*(?!-ccov)...../.*: []  # redundant with SM(...)
             (?=windows).*(?!-ccov)...../.*: []  # redundant with SM(p)
-            android-hw-.*-aarch64/.*: []  # redundant with SM(p)
-            android-hw-.*-api-16/debug: ['try', 'mozilla-central']
+            android-hw-.*-aarch64/debug: ['mozilla-central', 'release']
+            android-hw-.*-api-16(?:-shippable)?/.*: ['mozilla-central', 'release']
             default: built-projects
     chunks:
         by-test-platform:
             windows.*: 1
-            windows10-64-ccov/debug: 6
-            windows10-64-ccov/opt: 6
+            windows10-64-ccov/debug: 8
+            windows10-64-ccov/opt: 8
             macosx.*/opt: 1
             macosx.*/debug: 3
             android.*: 10
@@ -101,6 +106,7 @@ jittest:
         by-test-platform:
             windows10-64-ccov/.*: 7200
             macosx.*-ccov/.*: 7200
+            android-hw.*: 5400
             default: 3600
     mozharness:
         chunked:

@@ -79,3 +79,48 @@ cert-error-details-hsts-label = HTTP Strict Transport Security: { $hasHSTS }
 cert-error-details-key-pinning-label = HTTP Public Key Pinning: { $hasHPKP }
 
 cert-error-details-cert-chain-label = Certificate chain:
+
+open-in-new-window-for-csp-or-xfo-error = Open Site in New Window
+
+# Variables:
+# $hostname (String) - Hostname of the website blocked by csp or xfo error.
+csp-xfo-blocked-long-desc = To protect your security, { $hostname } will not allow { -brand-short-name } to display the page if another site has embedded it. To see this page, you need to open it in a new window.
+
+## Messages used for certificate error titles
+
+connectionFailure-title = Unable to connect
+deniedPortAccess-title = This address is restricted
+# "Hmm" is a sound made when considering or puzzling over something.
+# You don't have to include it in your translation if your language does not have a written word like this.
+dnsNotFound-title = Hmm. We’re having trouble finding that site.
+fileNotFound-title = File not found
+fileAccessDenied-title = Access to the file was denied
+generic-title = Oops.
+captivePortal-title = Log in to network
+# "Hmm" is a sound made when considering or puzzling over something.
+# You don't have to include it in your translation if your language does not have a written word like this.
+malformedURI-title = Hmm. That address doesn’t look right.
+netInterrupt-title = The connection was interrupted
+notCached-title = Document Expired
+netOffline-title = Offline mode
+contentEncodingError-title = Content Encoding Error
+unsafeContentType-title = Unsafe File Type
+netReset-title = The connection was reset
+netTimeout-title = The connection has timed out
+unknownProtocolFound-title = The address wasn’t understood
+proxyConnectFailure-title = The proxy server is refusing connections
+proxyResolveFailure-title = Unable to find the proxy server
+redirectLoop-title = The page isn’t redirecting properly
+unknownSocketType-title = Unexpected response from server
+nssFailure2-title = Secure Connection Failed
+csp-xfo-error-title = { -brand-short-name } Can’t Open This Page
+corruptedContentError-title = Corrupted Content Error
+remoteXUL-title = Remote XUL
+sslv3Used-title = Unable to Connect Securely
+inadequateSecurityError-title = Your connection is not secure
+blockedByPolicy-title = Blocked Page
+clockSkewError-title = Your Computer Clock is Wrong
+networkProtocolError-title = Network Protocol Error
+nssBadCert-title = Warning: Potential Security Risk Ahead
+nssBadCert-sts-title = Did Not Connect: Potential Security Issue
+certerror-mitm-title = Software is Preventing { -brand-short-name } From Safely Connecting to This Site

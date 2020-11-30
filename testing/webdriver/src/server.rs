@@ -5,9 +5,10 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+use bytes::Bytes;
 use http::{self, Method, StatusCode};
 use tokio::net::TcpListener;
-use tokio::reactor::Handle;
+use url::{Host, Url};
 use warp::{self, Buf, Filter, Rejection};
 
 use crate::command::{WebDriverCommand, WebDriverMessage};
@@ -178,9 +179,17 @@ where
 
     let builder = thread::Builder::new().name("webdriver server".to_string());
     let handle = builder.spawn(move || {
-        let listener = TcpListener::from_std(listener, &Handle::default()).unwrap();
-        let wroutes = build_warp_routes(&extension_routes, msg_send.clone());
-        warp::serve(wroutes).run_incoming(listener.incoming());
+        let mut rt = tokio::runtime::Builder::new()
+            .basic_scheduler()
+            .enable_io()
+            .build()
+            .unwrap();
+        let mut listener = rt
+            .handle()
+            .enter(|| TcpListener::from_std(listener).unwrap());
+        let wroutes = build_warp_routes(address, &extension_routes, msg_send.clone());
+        let fut = warp::serve(wroutes).run_incoming(listener.incoming());
+        rt.block_on(fut);
     })?;
 
     let builder = thread::Builder::new().name("webdriver dispatcher".to_string());
@@ -196,22 +205,30 @@ where
 }
 
 fn build_warp_routes<U: 'static + WebDriverExtensionRoute + Send + Sync>(
+    address: SocketAddr,
     ext_routes: &[(Method, &'static str, U)],
     chan: Sender<DispatchMessage<U>>,
-) -> impl Filter<Extract = impl warp::Reply, Error = Rejection> {
+) -> impl Filter<Extract = impl warp::Reply, Error = Rejection> + Clone {
     let chan = Arc::new(Mutex::new(chan));
     let mut std_routes = standard_routes::<U>();
     let (method, path, res) = std_routes.pop().unwrap();
-    let mut wroutes = build_route(method, path, res, chan.clone());
+    let mut wroutes = build_route(address, method, path, res, chan.clone());
     for (method, path, res) in std_routes {
         wroutes = wroutes
-            .or(build_route(method, path, res.clone(), chan.clone()))
+            .or(build_route(
+                address,
+                method,
+                path,
+                res.clone(),
+                chan.clone(),
+            ))
             .unify()
             .boxed()
     }
     for (method, path, res) in ext_routes {
         wroutes = wroutes
             .or(build_route(
+                address,
                 method.clone(),
                 path,
                 Route::Extension(res.clone()),
@@ -224,6 +241,7 @@ fn build_warp_routes<U: 'static + WebDriverExtensionRoute + Send + Sync>(
 }
 
 fn build_route<U: 'static + WebDriverExtensionRoute + Send + Sync>(
+    address: SocketAddr,
     method: Method,
     path: &'static str,
     route: Route<U>,
@@ -232,11 +250,11 @@ fn build_route<U: 'static + WebDriverExtensionRoute + Send + Sync>(
     // Create an empty filter based on the provided method and append an empty hashmap to it. The
     // hashmap will be used to store path parameters.
     let mut subroute = match method {
-        Method::GET => warp::get2().boxed(),
-        Method::POST => warp::post2().boxed(),
-        Method::DELETE => warp::delete2().boxed(),
+        Method::GET => warp::get().boxed(),
+        Method::POST => warp::post().boxed(),
+        Method::DELETE => warp::delete().boxed(),
         Method::OPTIONS => warp::options().boxed(),
-        Method::PUT => warp::put2().boxed(),
+        Method::PUT => warp::put().boxed(),
         _ => panic!("Unsupported method"),
     }
     .or(warp::head())
@@ -271,17 +289,72 @@ fn build_route<U: 'static + WebDriverExtensionRoute + Send + Sync>(
         .and(warp::path::end())
         .and(warp::path::full())
         .and(warp::method())
-        .and(warp::body::concat())
+        .and(warp::header::optional::<String>("origin"))
+        .and(warp::header::optional::<String>("content-type"))
+        .and(warp::body::bytes())
         .map(
-            move |params, full_path: warp::path::FullPath, method, body: warp::body::FullBody| {
+            move |params,
+                  full_path: warp::path::FullPath,
+                  method,
+                  origin_header: Option<String>,
+                  content_type_header: Option<String>,
+                  body: Bytes| {
                 if method == Method::HEAD {
                     return warp::reply::with_status("".into(), StatusCode::OK);
                 }
-                let body = String::from_utf8(body.collect::<Vec<u8>>());
+                if let Some(origin) = origin_header {
+                    let mut valid_host = false;
+                    let host_url = Url::parse(&origin).ok();
+                    let host = host_url.as_ref().and_then(|x| x.host().to_owned());
+                    if let Some(host) = host {
+                        valid_host = match host {
+                            Host::Domain("localhost") => true,
+                            Host::Domain(_) => false,
+                            Host::Ipv4(x) => address.is_ipv4() && x == address.ip(),
+                            Host::Ipv6(x) => address.is_ipv6() && x == address.ip(),
+                        };
+                    }
+                    if !valid_host {
+                        let err = WebDriverError::new(ErrorStatus::UnknownError, "Invalid Origin");
+                        return warp::reply::with_status(
+                            serde_json::to_string(&err).unwrap(),
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                        );
+                    }
+                }
+                if method == Method::POST {
+                    // Disallow CORS-safelisted request headers
+                    // c.f. https://fetch.spec.whatwg.org/#cors-safelisted-request-header
+                    let content_type = content_type_header
+                        .as_ref()
+                        .map(|x| x.find(';').and_then(|idx| x.get(0..idx)).unwrap_or(x))
+                        .map(|x| x.trim())
+                        .map(|x| x.to_lowercase());
+                    match content_type.as_ref().map(|x| x.as_ref()) {
+                        Some("application/x-www-form-urlencoded")
+                        | Some("multipart/form-data")
+                        | Some("text/plain") => {
+                            let err = WebDriverError::new(
+                                ErrorStatus::UnknownError,
+                                "Invalid Content-Type",
+                            );
+                            return warp::reply::with_status(
+                                serde_json::to_string(&err).unwrap(),
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                            );
+                        }
+                        Some(_) | None => {}
+                    }
+                }
+                let body = String::from_utf8(body.bytes().to_vec());
                 if body.is_err() {
+                    let err = WebDriverError::new(
+                        ErrorStatus::UnknownError,
+                        "Request body wasn't valid UTF-8",
+                    );
                     return warp::reply::with_status(
-                        "The body wasn't valid UTF-8".to_string(),
-                        StatusCode::BAD_REQUEST,
+                        serde_json::to_string(&err).unwrap(),
+                        StatusCode::INTERNAL_SERVER_ERROR,
                     );
                 }
                 let body = body.unwrap();

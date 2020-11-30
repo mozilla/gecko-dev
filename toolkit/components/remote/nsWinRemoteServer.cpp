@@ -5,6 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "CmdLineAndEnvUtils.h"
 #include "nsWinRemoteServer.h"
 #include "RemoteUtils.h"
 #include "nsCOMPtr.h"
@@ -17,6 +18,7 @@
 #include "nsICommandLine.h"
 #include "nsCommandLine.h"
 #include "nsIDocShell.h"
+#include "WinRemoteMessage.h"
 
 HWND hwndForDOMWindow(mozIDOMWindowProxy* window) {
   if (!window) {
@@ -47,179 +49,14 @@ static nsresult GetMostRecentWindow(mozIDOMWindowProxy** aWindow) {
   return NS_ERROR_FAILURE;
 }
 
-void HandleCommandLine(const char* aCmdLineString, nsIFile* aWorkingDir,
-                       uint32_t aState) {
-  nsresult rv;
-
-  int justCounting = 1;
-  char** argv = 0;
-  // Flags, etc.
-  int init = 1;
-  int between, quoted, bSlashCount;
-  int argc;
-  const char* p;
-  nsAutoCString arg;
-
-  nsCOMPtr<nsICommandLineRunner> cmdLine(new nsCommandLine());
-
-  // Parse command line args according to MS spec
-  // (see "Parsing C++ Command-Line Arguments" at
-  // http://msdn.microsoft.com/library/devprods/vs6/visualc/vclang/_pluslang_parsing_c.2b2b_.command.2d.line_arguments.htm).
-  // We loop if we've not finished the second pass through.
-  while (1) {
-    // Initialize if required.
-    if (init) {
-      p = aCmdLineString;
-      between = 1;
-      argc = quoted = bSlashCount = 0;
-
-      init = 0;
-    }
-    if (between) {
-      // We are traversing whitespace between args.
-      // Check for start of next arg.
-      if (*p != 0 && !isspace(*p)) {
-        // Start of another arg.
-        between = 0;
-        arg = "";
-        switch (*p) {
-          case '\\':
-            // Count the backslash.
-            bSlashCount = 1;
-            break;
-          case '"':
-            // Remember we're inside quotes.
-            quoted = 1;
-            break;
-          default:
-            // Add character to arg.
-            arg += *p;
-            break;
-        }
-      } else {
-        // Another space between args, ignore it.
-      }
-    } else {
-      // We are processing the contents of an argument.
-      // Check for whitespace or end.
-      if (*p == 0 || (!quoted && isspace(*p))) {
-        // Process pending backslashes (interpret them
-        // literally since they're not followed by a ").
-        while (bSlashCount) {
-          arg += '\\';
-          bSlashCount--;
-        }
-        // End current arg.
-        if (!justCounting) {
-          argv[argc] = new char[arg.Length() + 1];
-          strcpy(argv[argc], arg.get());
-        }
-        argc++;
-        // We're now between args.
-        between = 1;
-      } else {
-        // Still inside argument, process the character.
-        switch (*p) {
-          case '"':
-            // First, digest preceding backslashes (if any).
-            while (bSlashCount > 1) {
-              // Put one backsplash in arg for each pair.
-              arg += '\\';
-              bSlashCount -= 2;
-            }
-            if (bSlashCount) {
-              // Quote is literal.
-              arg += '"';
-              bSlashCount = 0;
-            } else {
-              // Quote starts or ends a quoted section.
-              if (quoted) {
-                // Check for special case of consecutive double
-                // quotes inside a quoted section.
-                if (*(p + 1) == '"') {
-                  // This implies a literal double-quote.  Fake that
-                  // out by causing next double-quote to look as
-                  // if it was preceded by a backslash.
-                  bSlashCount = 1;
-                } else {
-                  quoted = 0;
-                }
-              } else {
-                quoted = 1;
-              }
-            }
-            break;
-          case '\\':
-            // Add to count.
-            bSlashCount++;
-            break;
-          default:
-            // Accept any preceding backslashes literally.
-            while (bSlashCount) {
-              arg += '\\';
-              bSlashCount--;
-            }
-            // Just add next char to the current arg.
-            arg += *p;
-            break;
-        }
-      }
-    }
-    // Check for end of input.
-    if (*p) {
-      // Go to next character.
-      p++;
-    } else {
-      // If on first pass, go on to second.
-      if (justCounting) {
-        // Allocate argv array.
-        argv = new char*[argc];
-
-        // Start second pass
-        justCounting = 0;
-        init = 1;
-      } else {
-        // Quit.
-        break;
-      }
-    }
-  }
-
-  rv = cmdLine->Init(argc, argv, aWorkingDir, aState);
-
-  // Cleanup.
-  while (argc) {
-    delete[] argv[--argc];
-  }
-  delete[] argv;
-
-  if (NS_FAILED(rv)) {
-    NS_ERROR("Error initializing command line.");
-    return;
-  }
-
-  cmdLine->Run();
-}
-
 LRESULT CALLBACK WindowProc(HWND msgWindow, UINT msg, WPARAM wp, LPARAM lp) {
   if (msg == WM_COPYDATA) {
-    // This is an incoming request.
-    COPYDATASTRUCT* cds = (COPYDATASTRUCT*)lp;
-    nsCOMPtr<nsIFile> workingDir;
-
-    if (1 >= cds->dwData) {
-      char* wdpath = (char*)cds->lpData;
-      // skip the command line, and get the working dir of the
-      // other process, which is after the first null char
-      while (*wdpath) ++wdpath;
-
-      ++wdpath;
-
-      NS_NewLocalFile(NS_ConvertUTF8toUTF16(wdpath), false,
-                      getter_AddRefs(workingDir));
+    WinRemoteMessageReceiver receiver;
+    if (NS_SUCCEEDED(receiver.Parse(reinterpret_cast<COPYDATASTRUCT*>(lp)))) {
+      receiver.CommandLineRunner()->Run();
+    } else {
+      NS_ERROR("Error initializing command line.");
     }
-    HandleCommandLine((char*)cds->lpData, workingDir,
-                      nsICommandLine::STATE_REMOTE_AUTO);
 
     // Get current window and return its window handle.
     nsCOMPtr<mozIDOMWindowProxy> win;

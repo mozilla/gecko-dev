@@ -19,11 +19,11 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Compiler.h"
-#include "mozilla/TypeTraits.h"
 
 #include <atomic>
 
 #include <stdint.h>
+#include <type_traits>
 
 namespace mozilla {
 
@@ -377,7 +377,7 @@ class Atomic;
 template <typename T, MemoryOrdering Order>
 class Atomic<
     T, Order,
-    typename EnableIf<IsIntegral<T>::value && !IsSame<T, bool>::value>::Type>
+    std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<T, bool>>>
     : public detail::AtomicBaseIncDec<T, Order> {
   typedef typename detail::AtomicBaseIncDec<T, Order> Base;
 
@@ -447,7 +447,7 @@ class Atomic<T*, Order> : public detail::AtomicBaseIncDec<T*, Order> {
  * The atomic store and load operations and the atomic swap method is provided.
  */
 template <typename T, MemoryOrdering Order>
-class Atomic<T, Order, typename EnableIf<IsEnum<T>::value>::Type>
+class Atomic<T, Order, std::enable_if_t<std::is_enum_v<T>>>
     : public detail::AtomicBase<T, Order> {
   typedef typename detail::AtomicBase<T, Order> Base;
 

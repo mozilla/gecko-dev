@@ -2251,8 +2251,10 @@ LogicVRegister Simulator::tbl(VectorFormat vform,
                               LogicVRegister dst,
                               const LogicVRegister& tab,
                               const LogicVRegister& ind) {
-    movi(vform, dst, 0);
-    return tbx(vform, dst, tab, ind);
+  SimVRegister result;
+  movi(vform, result, 0);
+  tbx(vform, result, tab, ind);
+  return orr(vform, dst, result, result);
 }
 
 
@@ -2261,8 +2263,10 @@ LogicVRegister Simulator::tbl(VectorFormat vform,
                               const LogicVRegister& tab,
                               const LogicVRegister& tab2,
                               const LogicVRegister& ind) {
-    movi(vform, dst, 0);
-    return tbx(vform, dst, tab, tab2, ind);
+  SimVRegister result;
+  movi(vform, result, 0);
+  tbx(vform, result, tab, tab2, ind);
+  return orr(vform, dst, result, result);
 }
 
 
@@ -2272,8 +2276,10 @@ LogicVRegister Simulator::tbl(VectorFormat vform,
                               const LogicVRegister& tab2,
                               const LogicVRegister& tab3,
                               const LogicVRegister& ind) {
-    movi(vform, dst, 0);
-    return tbx(vform, dst, tab, tab2, tab3, ind);
+  SimVRegister result;
+  movi(vform, result, 0);
+  tbx(vform, result, tab, tab2, tab3, ind);
+  return orr(vform, dst, result, result);
 }
 
 
@@ -2284,8 +2290,10 @@ LogicVRegister Simulator::tbl(VectorFormat vform,
                               const LogicVRegister& tab3,
                               const LogicVRegister& tab4,
                               const LogicVRegister& ind) {
-    movi(vform, dst, 0);
-    return tbx(vform, dst, tab, tab2, tab3, tab4, ind);
+  SimVRegister result;
+  movi(vform, result, 0);
+  tbx(vform, result, tab, tab2, tab3, tab4, ind);
+  return orr(vform, dst, result, result);
 }
 
 
@@ -3604,7 +3612,9 @@ int32_t Simulator::FPToInt32(double value, FPRounding rmode) {
 
 int64_t Simulator::FPToInt64(double value, FPRounding rmode) {
   value = FPRoundInt(value, rmode);
-  if (value >= kXMaxInt) {
+  // The compiler would have to round kXMaxInt, triggering a warning. Compare
+  // against the largest int64_t that is exactly representable as a double.
+  if (value > kXMaxExactInt) {
     return kXMaxInt;
   } else if (value < kXMinInt) {
     return kXMinInt;
@@ -3626,7 +3636,9 @@ uint32_t Simulator::FPToUInt32(double value, FPRounding rmode) {
 
 uint64_t Simulator::FPToUInt64(double value, FPRounding rmode) {
   value = FPRoundInt(value, rmode);
-  if (value >= kXMaxUInt) {
+  // The compiler would have to round kXMaxUInt, triggering a warning. Compare
+  // against the largest uint64_t that is exactly representable as a double.
+  if (value > kXMaxExactUInt) {
     return kXMaxUInt;
   } else if (value < 0.0) {
     return 0;

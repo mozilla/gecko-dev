@@ -514,8 +514,15 @@ ConnectionData.prototype = Object.freeze({
       markAsClosed();
     } else {
       this._log.debug("Calling asyncClose().");
-      this._dbConn.asyncClose(markAsClosed);
-      this._dbConn = null;
+      try {
+        this._dbConn.asyncClose(markAsClosed);
+      } catch (ex) {
+        // If for any reason asyncClose fails, we must still remove the
+        // shutdown blockers and resolve _deferredClose.
+        markAsClosed();
+      } finally {
+        this._dbConn = null;
+      }
     }
     return this._deferredClose.promise;
   },
@@ -1376,13 +1383,8 @@ OpenedConnection.prototype = Object.freeze({
    * @return Promise<int>
    */
   getSchemaVersion(schemaName = "main") {
-    return this.execute(`PRAGMA ${schemaName}.user_version`).then(
-      function onSuccess(result) {
-        if (result == null) {
-          return 0;
-        }
-        return result[0].getInt32(0);
-      }
+    return this.execute(`PRAGMA ${schemaName}.user_version`).then(result =>
+      result[0].getInt32(0)
     );
   },
 

@@ -7,10 +7,6 @@
 
 NS_IMPL_ISUPPORTS(nsXPCTestReturnCodeParent, nsIXPCTestReturnCodeParent)
 
-nsXPCTestReturnCodeParent::nsXPCTestReturnCodeParent() {}
-
-nsXPCTestReturnCodeParent::~nsXPCTestReturnCodeParent() {}
-
 NS_IMETHODIMP nsXPCTestReturnCodeParent::CallChild(int32_t childBehavior,
                                                    nsresult* _retval) {
   nsresult rv;

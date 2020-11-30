@@ -10,6 +10,7 @@
 
 #include "mozilla/PresShell.h"
 #include "mozilla/StaticPrefs_dom.h"
+#include "nsRefreshDriver.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -83,7 +84,8 @@ void CoalescedMouseMoveFlusher::StartObserver() {
   RemoveObserver();
   if (refreshDriver) {
     mRefreshDriver = refreshDriver;
-    mRefreshDriver->AddRefreshObserver(this, FlushType::Event);
+    mRefreshDriver->AddRefreshObserver(this, FlushType::Event,
+                                       "Coalesced mouse move flusher");
   }
 }
 
@@ -93,6 +95,14 @@ void CoalescedMouseMoveFlusher::RemoveObserver() {
     mRefreshDriver = nullptr;
   }
 }
+
+CoalescedMouseMoveFlusher::CoalescedMouseMoveFlusher(
+    BrowserChild* aBrowserChild)
+    : mBrowserChild(aBrowserChild) {
+  MOZ_ASSERT(mBrowserChild);
+}
+
+CoalescedMouseMoveFlusher::~CoalescedMouseMoveFlusher() { RemoveObserver(); }
 
 nsRefreshDriver* CoalescedMouseMoveFlusher::GetRefreshDriver() {
   PresShell* presShell = mBrowserChild->GetTopLevelPresShell();

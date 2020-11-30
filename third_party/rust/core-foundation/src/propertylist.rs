@@ -121,7 +121,8 @@ impl CFPropertyList {
 
     #[inline]
     pub unsafe fn wrap_under_get_rule(reference: CFPropertyListRef) -> CFPropertyList {
-        let reference = mem::transmute(CFRetain(mem::transmute(reference)));
+        assert!(!reference.is_null(), "Attempted to create a NULL object.");
+        let reference = CFRetain(reference);
         CFPropertyList(reference)
     }
 
@@ -142,11 +143,12 @@ impl CFPropertyList {
 
     #[inline]
     pub fn as_CFTypeRef(&self) -> ::core_foundation_sys::base::CFTypeRef {
-        unsafe { mem::transmute(self.as_concrete_TypeRef()) }
+        self.as_concrete_TypeRef()
     }
 
     #[inline]
     pub unsafe fn wrap_under_create_rule(obj: CFPropertyListRef) -> CFPropertyList {
+        assert!(!obj.is_null(), "Attempted to create a NULL object.");
         CFPropertyList(obj)
     }
 
@@ -208,7 +210,7 @@ impl CFPropertyList {
     /// // Cast it up to a property list.
     /// let propertylist: CFPropertyList = string.to_CFPropertyList();
     /// // Cast it down again.
-    /// assert!(propertylist.downcast::<CFString>().unwrap().to_string() == "FooBar");
+    /// assert_eq!(propertylist.downcast::<CFString>().unwrap().to_string(), "FooBar");
     /// ```
     ///
     /// [`CFPropertyList`]: struct.CFPropertyList.html
@@ -262,7 +264,7 @@ pub mod test {
         let boo = CFString::from_static_string("Boo");
         let foo = CFString::from_static_string("Foo");
         let tru = CFBoolean::true_value();
-        let n42 = CFNumber::from(42);
+        let n42 = CFNumber::from(1i64<<33);
 
         let dict1 = CFDictionary::from_CFType_pairs(&[(bar.as_CFType(), boo.as_CFType()),
                                                       (baz.as_CFType(), tru.as_CFType()),
@@ -271,7 +273,7 @@ pub mod test {
         let data = create_data(dict1.as_CFTypeRef(), kCFPropertyListXMLFormat_v1_0).unwrap();
         let (dict2, _) = create_with_data(data, kCFPropertyListImmutable).unwrap();
         unsafe {
-            assert!(CFEqual(dict1.as_CFTypeRef(), dict2) == 1);
+            assert_eq!(CFEqual(dict1.as_CFTypeRef(), dict2), 1);
         }
     }
 
@@ -291,7 +293,7 @@ pub mod test {
     #[test]
     fn downcast_string() {
         let propertylist = CFString::from_static_string("Bar").to_CFPropertyList();
-        assert!(propertylist.downcast::<CFString>().unwrap().to_string() == "Bar");
+        assert_eq!(propertylist.downcast::<CFString>().unwrap().to_string(), "Bar");
         assert!(propertylist.downcast::<CFBoolean>().is_none());
     }
 
@@ -319,7 +321,7 @@ pub mod test {
         assert_eq!(string.retain_count(), 2);
 
         let string2 = propertylist.downcast_into::<CFString>().unwrap();
-        assert!(string2.to_string() == "Bar");
+        assert_eq!(string2.to_string(), "Bar");
         assert_eq!(string2.retain_count(), 2);
     }
 }

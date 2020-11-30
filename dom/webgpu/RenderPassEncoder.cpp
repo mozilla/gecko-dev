@@ -12,7 +12,8 @@
 namespace mozilla {
 namespace webgpu {
 
-GPU_IMPL_CYCLE_COLLECTION(RenderPassEncoder, mParent)
+GPU_IMPL_CYCLE_COLLECTION(RenderPassEncoder, mParent, mUsedBindGroups,
+                          mUsedBuffers, mUsedPipelines, mUsedTextureViews)
 GPU_IMPL_JS_WRAP(RenderPassEncoder)
 
 ffi::WGPULoadOp ConvertLoadOp(const dom::GPULoadOp& aOp) {
@@ -59,9 +60,10 @@ ffi::WGPURawPass BeginRenderPass(RawId aEncoderId,
     }
     dsDesc.depth_store_op = ConvertStoreOp(dsa.mDepthStoreOp);
 
-    if (dsa.mStencilLoadValue.IsUnsignedLong()) {
+    if (dsa.mStencilLoadValue.IsRangeEnforcedUnsignedLong()) {
       dsDesc.stencil_load_op = ffi::WGPULoadOp_Clear;
-      dsDesc.clear_stencil = dsa.mStencilLoadValue.GetAsUnsignedLong();
+      dsDesc.clear_stencil =
+          dsa.mStencilLoadValue.GetAsRangeEnforcedUnsignedLong();
     }
     if (dsa.mStencilLoadValue.IsGPULoadOp()) {
       dsDesc.stencil_load_op =
@@ -85,7 +87,7 @@ ffi::WGPURawPass BeginRenderPass(RawId aEncoderId,
     cd.store_op = ConvertStoreOp(ca.mStoreOp);
 
     if (ca.mResolveTarget.WasPassed()) {
-      cd.resolve_target = &ca.mResolveTarget.Value().mId;
+      cd.resolve_target = ca.mResolveTarget.Value().mId;
     }
     if (ca.mLoadValue.IsGPULoadOp()) {
       cd.load_op = ConvertLoadOp(ca.mLoadValue.GetAsGPULoadOp());
@@ -119,10 +121,10 @@ RenderPassEncoder::RenderPassEncoder(CommandEncoder* const aParent,
                                      const dom::GPURenderPassDescriptor& aDesc)
     : ChildOf(aParent), mRaw(BeginRenderPass(aParent->mId, aDesc)) {
   for (const auto& at : aDesc.mColorAttachments) {
-    mUsedTextureViews.push_back(at.mAttachment);
+    mUsedTextureViews.AppendElement(at.mAttachment);
   }
   if (aDesc.mDepthStencilAttachment.WasPassed()) {
-    mUsedTextureViews.push_back(
+    mUsedTextureViews.AppendElement(
         aDesc.mDepthStencilAttachment.Value().mAttachment);
   }
 }
@@ -138,7 +140,7 @@ void RenderPassEncoder::SetBindGroup(
     uint32_t aSlot, const BindGroup& aBindGroup,
     const dom::Sequence<uint32_t>& aDynamicOffsets) {
   if (mValid) {
-    mUsedBindGroups.push_back(&aBindGroup);
+    mUsedBindGroups.AppendElement(&aBindGroup);
     ffi::wgpu_render_pass_set_bind_group(&mRaw, aSlot, aBindGroup.mId,
                                          aDynamicOffsets.Elements(),
                                          aDynamicOffsets.Length());
@@ -147,26 +149,26 @@ void RenderPassEncoder::SetBindGroup(
 
 void RenderPassEncoder::SetPipeline(const RenderPipeline& aPipeline) {
   if (mValid) {
-    mUsedPipelines.push_back(&aPipeline);
+    mUsedPipelines.AppendElement(&aPipeline);
     ffi::wgpu_render_pass_set_pipeline(&mRaw, aPipeline.mId);
   }
 }
 
-void RenderPassEncoder::SetIndexBuffer(const Buffer& aBuffer,
-                                       uint64_t aOffset) {
+void RenderPassEncoder::SetIndexBuffer(const Buffer& aBuffer, uint64_t aOffset,
+                                       uint64_t aSize) {
   if (mValid) {
-    mUsedBuffers.push_back(&aBuffer);
-    ffi::wgpu_render_pass_set_index_buffer(&mRaw, aBuffer.mId, aOffset);
+    mUsedBuffers.AppendElement(&aBuffer);
+    ffi::wgpu_render_pass_set_index_buffer(&mRaw, aBuffer.mId, aOffset,
+                                           ffi::make_buffer_size(aSize));
   }
 }
 
 void RenderPassEncoder::SetVertexBuffer(uint32_t aSlot, const Buffer& aBuffer,
-                                        uint64_t aOffset) {
+                                        uint64_t aOffset, uint64_t aSize) {
   if (mValid) {
-    mUsedBuffers.push_back(&aBuffer);
-    // TODO: change the Rust API to use a single vertex buffer?
-    ffi::wgpu_render_pass_set_vertex_buffers(&mRaw, aSlot, &aBuffer.mId,
-                                             &aOffset, 1);
+    mUsedBuffers.AppendElement(&aBuffer);
+    ffi::wgpu_render_pass_set_vertex_buffer(&mRaw, aSlot, aBuffer.mId, aOffset,
+                                            ffi::make_buffer_size(aSize));
   }
 }
 
@@ -186,6 +188,22 @@ void RenderPassEncoder::DrawIndexed(uint32_t aIndexCount,
     ffi::wgpu_render_pass_draw_indexed(&mRaw, aIndexCount, aInstanceCount,
                                        aFirstIndex, aBaseVertex,
                                        aFirstInstance);
+  }
+}
+
+void RenderPassEncoder::DrawIndirect(const Buffer& aIndirectBuffer,
+                                     uint64_t aIndirectOffset) {
+  if (mValid) {
+    ffi::wgpu_render_pass_draw_indirect(&mRaw, aIndirectBuffer.mId,
+                                        aIndirectOffset);
+  }
+}
+
+void RenderPassEncoder::DrawIndexedIndirect(const Buffer& aIndirectBuffer,
+                                            uint64_t aIndirectOffset) {
+  if (mValid) {
+    ffi::wgpu_render_pass_draw_indexed_indirect(&mRaw, aIndirectBuffer.mId,
+                                                aIndirectOffset);
   }
 }
 

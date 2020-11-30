@@ -238,9 +238,9 @@ already_AddRefed<XPCNativeInterface> XPCNativeInterface::NewInstance(
       nsJSUtils::GetCallingLocation(cx, filename, &lineno, &column);
       nsCOMPtr<nsIScriptError> error(
           do_CreateInstance(NS_SCRIPTERROR_CONTRACTID));
-      error->Init(NS_ConvertUTF8toUTF16(errorMsg), filename, EmptyString(),
-                  lineno, column, nsIScriptError::warningFlag,
-                  "chrome javascript", false /* from private window */,
+      error->Init(NS_ConvertUTF8toUTF16(errorMsg), filename, u""_ns, lineno,
+                  column, nsIScriptError::warningFlag, "chrome javascript",
+                  false /* from private window */,
                   true /* from chrome context */);
       console->LogMessage(error);
     }
@@ -322,7 +322,7 @@ already_AddRefed<XPCNativeInterface> XPCNativeInterface::NewInstance(
         failed = true;
         break;
       }
-      jsid name = INTERNED_STRING_TO_JSID(cx, str);
+      jsid name = PropertyKey::fromPinnedString(str);
 
       // XXX need better way to find dups
       // MOZ_ASSERT(!LookupMemberByID(name),"duplicate method/constant name");
@@ -345,7 +345,7 @@ already_AddRefed<XPCNativeInterface> XPCNativeInterface::NewInstance(
         nullptr == (str = JS_AtomizeAndPinString(cx, bytes))) {
       failed = true;
     }
-    interfaceName = INTERNED_STRING_TO_JSID(cx, str);
+    interfaceName = PropertyKey::fromPinnedString(str);
   }
 
   if (!failed) {

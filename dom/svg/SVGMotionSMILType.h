@@ -6,8 +6,8 @@
 
 /* implementation of SMILType for use by <animateMotion> element */
 
-#ifndef MOZILLA_SVGMOTIONSMILTYPE_H_
-#define MOZILLA_SVGMOTIONSMILTYPE_H_
+#ifndef DOM_SVG_SVGMOTIONSMILTYPE_H_
+#define DOM_SVG_SVGMOTIONSMILTYPE_H_
 
 #include "mozilla/gfx/2D.h"
 #include "mozilla/Attributes.h"
@@ -34,7 +34,7 @@ enum RotateType {
  * many ways as if there were, for simplicity.
  */
 class SVGMotionSMILType : public SMILType {
-  typedef mozilla::gfx::Path Path;
+  using Path = mozilla::gfx::Path;
 
  public:
   // Singleton for SMILValue objects to hold onto.
@@ -76,4 +76,4 @@ class SVGMotionSMILType : public SMILType {
 
 }  // namespace mozilla
 
-#endif  // MOZILLA_SVGMOTIONSMILTYPE_H_
+#endif  // DOM_SVG_SVGMOTIONSMILTYPE_H_

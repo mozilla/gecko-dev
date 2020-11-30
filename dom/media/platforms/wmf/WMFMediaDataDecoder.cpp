@@ -5,21 +5,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "WMFMediaDataDecoder.h"
+
 #include "VideoUtils.h"
 #include "WMFUtils.h"
-#include "mozilla/Telemetry.h"
-#include "nsTArray.h"
-
 #include "mozilla/Logging.h"
 #include "mozilla/SyncRunnable.h"
+#include "mozilla/TaskQueue.h"
+#include "mozilla/Telemetry.h"
+#include "nsTArray.h"
 
 #define LOG(...) MOZ_LOG(sPDMLog, mozilla::LogLevel::Debug, (__VA_ARGS__))
 
 namespace mozilla {
 
-WMFMediaDataDecoder::WMFMediaDataDecoder(MFTManager* aMFTManager,
-                                         TaskQueue* aTaskQueue)
-    : mTaskQueue(aTaskQueue), mMFTManager(aMFTManager) {}
+WMFMediaDataDecoder::WMFMediaDataDecoder(MFTManager* aMFTManager)
+    : mTaskQueue(
+          new TaskQueue(GetMediaThreadPool(MediaThreadType::PLATFORM_DECODER),
+                        "WMFMediaDataDecoder")),
+      mMFTManager(aMFTManager) {}
 
 WMFMediaDataDecoder::~WMFMediaDataDecoder() {}
 
@@ -55,25 +58,18 @@ static void SendTelemetry(unsigned long hr) {
 
 RefPtr<ShutdownPromise> WMFMediaDataDecoder::Shutdown() {
   MOZ_DIAGNOSTIC_ASSERT(!mIsShutDown);
-
   mIsShutDown = true;
 
-  if (mTaskQueue) {
-    return InvokeAsync(mTaskQueue, this, __func__,
-                       &WMFMediaDataDecoder::ProcessShutdown);
-  }
-  return ProcessShutdown();
-}
-
-RefPtr<ShutdownPromise> WMFMediaDataDecoder::ProcessShutdown() {
-  if (mMFTManager) {
-    mMFTManager->Shutdown();
-    mMFTManager = nullptr;
-    if (!mRecordedError && mHasSuccessfulOutput) {
-      SendTelemetry(S_OK);
+  return InvokeAsync(mTaskQueue, __func__, [self = RefPtr{this}, this] {
+    if (mMFTManager) {
+      mMFTManager->Shutdown();
+      mMFTManager = nullptr;
+      if (!mRecordedError && mHasSuccessfulOutput) {
+        SendTelemetry(S_OK);
+      }
     }
-  }
-  return ShutdownPromise::CreateAndResolve(true, __func__);
+    return mTaskQueue->BeginShutdown();
+  });
 }
 
 // Inserts data into the decoder's pipeline.
@@ -122,6 +118,7 @@ RefPtr<MediaDataDecoder::DecodePromise> WMFMediaDataDecoder::ProcessDecode(
     mLastTime = Some(aSample->mTime);
     mLastDuration = aSample->mDuration;
   }
+
   mSamplesCount++;
   mDrainStatus = DrainStatus::DRAINABLE;
   mLastStreamOffset = aSample->mOffset;
@@ -201,6 +198,20 @@ RefPtr<MediaDataDecoder::DecodePromise> WMFMediaDataDecoder::ProcessDrain() {
         // set the duration of the last sample as it was input.
         data->mDuration = mLastDuration;
       }
+    } else if (results.Length() == 1 &&
+               results.LastElement()->mType == MediaData::Type::AUDIO_DATA) {
+      // When we drain the audio decoder and one frame was queued (such as with
+      // AAC) the MFT will re-calculate the starting time rather than use the
+      // value set on the IMF Sample.
+      // This is normally an okay thing to do; however when dealing with poorly
+      // muxed content that has incorrect start time, it could lead to broken
+      // A/V sync. So we ensure that we use the compressed sample's time
+      // instead. Additionally, this is what all other audio decoders are doing
+      // anyway.
+      MOZ_ASSERT(mLastTime,
+                 "We must have attempted to decode at least one frame to get "
+                 "one decoded output");
+      results.LastElement()->mTime = *mLastTime;
     }
     return DecodePromise::CreateAndResolve(std::move(results), __func__);
   }

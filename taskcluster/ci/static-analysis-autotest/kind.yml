@@ -23,7 +23,7 @@ job-defaults:
         max-run-time: 3600
         env:
             PERFHERDER_EXTRA_OPTIONS: static-analysis-autotest
-    run-on-projects: ['mozilla-central', 'try']
+    run-on-projects: ['mozilla-central']
     run:
         using: mozharness
         actions: [static-analysis-autotest]
@@ -54,6 +54,7 @@ jobs:
                 - builds/releng_sub_linux_configs/64_stat_and_debug.py
             tooltool-downloads: public
             keep-artifacts: false
+        use-sccache: true
         fetches:
             toolchain:
                 - linux64-clang
@@ -87,6 +88,7 @@ jobs:
             tooltool-downloads: internal
             extra-config:
                 mozconfig_variant: debug
+        use-sccache: true
         fetches:
             toolchain:
                 - win64-clang-cl
@@ -97,3 +99,4 @@ jobs:
                 - win64-nasm
                 - win64-node
                 - win64-dump-syms
+                - win64-winchecksec

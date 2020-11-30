@@ -9,6 +9,7 @@
 
 #include "mozilla/dom/ElementInlines.h"
 #include "nsContainerFrame.h"
+#include "nsLayoutUtils.h"
 #include "nsPlaceholderFrame.h"
 #include "nsStyleStructInlines.h"
 #include "nsCSSAnonBoxes.h"
@@ -20,12 +21,12 @@ bool nsIFrame::IsSVGGeometryFrameOrSubclass() const {
 
 bool nsIFrame::IsFlexItem() const {
   return GetParent() && GetParent()->IsFlexContainerFrame() &&
-         !(GetStateBits() & NS_FRAME_OUT_OF_FLOW);
+         !HasAnyStateBits(NS_FRAME_OUT_OF_FLOW);
 }
 
 bool nsIFrame::IsGridItem() const {
   return GetParent() && GetParent()->IsGridContainerFrame() &&
-         !(GetStateBits() & NS_FRAME_OUT_OF_FLOW);
+         !HasAnyStateBits(NS_FRAME_OUT_OF_FLOW);
 }
 
 bool nsIFrame::IsFlexOrGridContainer() const {
@@ -33,8 +34,15 @@ bool nsIFrame::IsFlexOrGridContainer() const {
 }
 
 bool nsIFrame::IsFlexOrGridItem() const {
-  return !(GetStateBits() & NS_FRAME_OUT_OF_FLOW) && GetParent() &&
+  return !HasAnyStateBits(NS_FRAME_OUT_OF_FLOW) && GetParent() &&
          GetParent()->IsFlexOrGridContainer();
+}
+
+bool nsIFrame::IsMasonry(mozilla::LogicalAxis aAxis) const {
+  MOZ_DIAGNOSTIC_ASSERT(IsGridContainerFrame());
+  return HasAnyStateBits(aAxis == mozilla::eLogicalAxisBlock
+                             ? NS_STATE_GRID_IS_ROW_MASONRY
+                             : NS_STATE_GRID_IS_COL_MASONRY);
 }
 
 bool nsIFrame::IsTableCaption() const {
@@ -65,6 +73,15 @@ bool nsIFrame::IsAbsolutelyPositioned(
     const nsStyleDisplay* aStyleDisplay) const {
   const nsStyleDisplay* disp = StyleDisplayWithOptionalParam(aStyleDisplay);
   return disp->IsAbsolutelyPositioned(this);
+}
+
+inline bool nsIFrame::IsTrueOverflowContainer() const {
+  return HasAnyStateBits(NS_FRAME_IS_OVERFLOW_CONTAINER) &&
+         !(HasAnyStateBits(NS_FRAME_OUT_OF_FLOW) && IsAbsolutelyPositioned());
+  // XXXfr This check isn't quite correct, because it doesn't handle cases
+  //      where the out-of-flow has overflow.. but that's rare.
+  //      We'll need to revisit the way abspos continuations are handled later
+  //      for various reasons, this detail is one of them. See bug 154892
 }
 
 bool nsIFrame::IsBlockOutside() const {
@@ -121,8 +138,9 @@ nscoord nsIFrame::SynthesizeBaselineBOffsetFromMarginBox(
 
 nscoord nsIFrame::SynthesizeBaselineBOffsetFromBorderBox(
     mozilla::WritingMode aWM, BaselineSharingGroup aGroup) const {
-  MOZ_ASSERT(!aWM.IsOrthogonalTo(GetWritingMode()));
-  nscoord borderBoxSize = BSize(aWM);
+  nscoord borderBoxSize = MOZ_UNLIKELY(aWM.IsOrthogonalTo(GetWritingMode()))
+                              ? ISize(aWM)
+                              : BSize(aWM);
   if (aGroup == BaselineSharingGroup::First) {
     return MOZ_LIKELY(aWM.IsAlphabeticalBaseline()) ? borderBoxSize
                                                     : borderBoxSize / 2;
@@ -135,9 +153,11 @@ nscoord nsIFrame::SynthesizeBaselineBOffsetFromBorderBox(
 
 nscoord nsIFrame::SynthesizeBaselineBOffsetFromContentBox(
     mozilla::WritingMode aWM, BaselineSharingGroup aGroup) const {
-  MOZ_ASSERT(!aWM.IsOrthogonalTo(GetWritingMode()));
-  auto bp = GetLogicalUsedBorderAndPadding(aWM);
-  bp.ApplySkipSides(GetLogicalSkipSides());
+  mozilla::WritingMode wm = GetWritingMode();
+  MOZ_ASSERT(!aWM.IsOrthogonalTo(wm));
+  const auto bp = GetLogicalUsedBorderAndPadding(wm)
+                      .ApplySkipSides(GetLogicalSkipSides())
+                      .ConvertTo(aWM, wm);
 
   if (MOZ_UNLIKELY(aWM.IsCentralBaseline())) {
     nscoord contentBoxBSize = BSize(aWM) - bp.BStartEnd(aWM);
@@ -186,7 +206,7 @@ void nsIFrame::PropagateWritingModeToSelfAndAncestors(
 }
 
 nsContainerFrame* nsIFrame::GetInFlowParent() const {
-  if (GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
+  if (HasAnyStateBits(NS_FRAME_OUT_OF_FLOW)) {
     nsIFrame* ph =
         FirstContinuation()->GetProperty(nsIFrame::PlaceholderFrameProperty());
     return ph->GetParent();
@@ -253,6 +273,15 @@ mozilla::LogicalPoint nsIFrame::GetLogicalNormalPosition(
   // right instead of the left
   return mozilla::LogicalPoint(aWritingMode, GetNormalPosition(),
                                aContainerSize - mRect.Size());
+}
+
+template <bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
+/* static */ void nsIFrame::SortFrameList(nsFrameList& aFrameList) {
+  nsIFrame* head = MergeSort<IsLessThanOrEqual>(aFrameList.FirstChild());
+  aFrameList.Clear();
+  aFrameList = nsFrameList(head, nsLayoutUtils::GetLastSibling(head));
+  MOZ_ASSERT(IsFrameListSorted<IsLessThanOrEqual>(aFrameList),
+             "After we sort a frame list, it should be in sorted order...");
 }
 
 #endif

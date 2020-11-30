@@ -7,7 +7,7 @@
 }
 
 /**** folder menulist ****/
-.folder-icon > .menulist-label-box > .menulist-icon,
+#editBMPanel_folderMenuList::part(icon),
 .folder-icon > .menu-iconic-left > .menu-iconic-icon {
   width: 16px;
   height: 16px;
@@ -27,20 +27,23 @@
 
 .expander-up,
 .expander-down {
-  margin: 0 4px 1px 8px;
+  margin-block: 0 1px;
+  margin-inline: 8px 4px;
   padding: 0;
 }
 
 .expander-up {
-  -moz-appearance: -moz-mac-disclosure-button-open;
+  appearance: auto;
+  -moz-default-appearance: -moz-mac-disclosure-button-open;
 }
 
 .expander-down {
-  -moz-appearance: -moz-mac-disclosure-button-closed;
+  appearance: auto;
+  -moz-default-appearance: -moz-mac-disclosure-button-closed;
 }
 
 #editBMPanel_folderTree {
-  margin: 6px 4px 0 4px;
+  margin: 6px 4px 0;
 }
 
 /* Hide the value column of the tag autocomplete popup
@@ -53,9 +56,10 @@
 }
 
 #editBMPanel_tagsSelector > richlistitem > image {
-  -moz-appearance: checkbox;
+  appearance: auto;
+  -moz-default-appearance: checkbox;
   -moz-box-align: center;
-  margin: 0px 2px;
+  margin: 0 2px;
   min-width: 13px;
   min-height: 13px;
 }

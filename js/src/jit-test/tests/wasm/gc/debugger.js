@@ -1,9 +1,9 @@
-// |jit-test| skip-if: !wasmReftypesEnabled() || !wasmDebuggingIsSupported()
+// |jit-test| skip-if: !wasmReftypesEnabled() || !wasmDebuggingEnabled()
 
 (function() {
     let g = newGlobal({newCompartment: true});
     let dbg = new Debugger(g);
-    g.eval(`o = new WebAssembly.Instance(new WebAssembly.Module(wasmTextToBinary('(module (func (result anyref) (param anyref) local.get 0) (export "" 0))')));`);
+    g.eval(`o = new WebAssembly.Instance(new WebAssembly.Module(wasmTextToBinary('(module (func (param externref) (result externref) local.get 0) (export "" (func 0)))')));`);
 })();
 
 (function() {
@@ -12,7 +12,7 @@
 
     let src = `
       (module
-        (func (export "func") (result anyref) (param $ref anyref)
+        (func (export "func") (param $ref externref) (result externref)
             local.get $ref
         )
       )

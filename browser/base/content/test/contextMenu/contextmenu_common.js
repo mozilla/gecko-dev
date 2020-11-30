@@ -87,7 +87,10 @@ function getVisibleMenuItems(aMenu, aData) {
         item.id != "fill-login-no-logins" &&
         // XXX Screenshots doesn't have an access key. This needs
         // at least bug 1320462 fixing first.
-        item.id != "screenshots_mozilla_org-menuitem-_create-screenshot"
+        item.id != "screenshots_mozilla_org-menuitem-_create-screenshot" &&
+        // Inspect accessibility properties does not have an access key. See
+        // bug 1630717 for more details.
+        item.id != "context-inspect-a11y"
       ) {
         if (item.id != FRAME_OS_PID) {
           ok(key, "menuitem " + item.id + " has an access key");
@@ -184,7 +187,7 @@ function checkMenuItem(
   index
 ) {
   is(
-    actualItem,
+    `${actualItem}`,
     expectedItem,
     "checking item #" + index / 2 + " (" + expectedItem + ") name"
   );
@@ -349,6 +352,8 @@ let lastElementSelector = null;
  *        preCheckContextMenuFn: callback to run before opening menu
  *        onContextMenuShown: callback to run when the context menu is shown
  *        postCheckContextMenuFn: callback to run after opening menu
+ *        keepMenuOpen: if true, we do not call hidePopup, the consumer is
+ *                      responsible for calling it.
  * @return {Promise} resolved after the test finishes
  */
 async function test_contextmenu(selector, menuItems, options = {}) {
@@ -426,16 +431,13 @@ async function test_contextmenu(selector, menuItems, options = {}) {
 
   if (menuItems) {
     if (Services.prefs.getBoolPref("devtools.inspector.enabled", true)) {
-      let inspectItems = ["---", null, "context-inspect", true];
-      menuItems = menuItems.concat(inspectItems);
-    }
+      const inspectItems = ["---", null];
+      if (Services.prefs.getBoolPref("devtools.accessibility.enabled", true)) {
+        inspectItems.push("context-inspect-a11y", true);
+      }
 
-    if (
-      Services.prefs.getBoolPref("devtools.accessibility.enabled", true) &&
-      Services.appinfo.accessibilityEnabled
-    ) {
-      let inspectA11YItems = ["context-inspect-a11y", true];
-      menuItems = menuItems.concat(inspectA11YItems);
+      inspectItems.push("context-inspect", true);
+      menuItems = menuItems.concat(inspectItems);
     }
 
     if (
@@ -465,6 +467,8 @@ async function test_contextmenu(selector, menuItems, options = {}) {
     info("Completed postCheckContextMenuFn");
   }
 
-  contextMenu.hidePopup();
-  await awaitPopupHidden;
+  if (!options.keepMenuOpen) {
+    contextMenu.hidePopup();
+    await awaitPopupHidden;
+  }
 }

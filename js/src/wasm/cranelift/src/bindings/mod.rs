@@ -24,9 +24,8 @@ use cranelift_codegen::entity::EntityRef;
 use cranelift_codegen::ir::immediates::{Ieee32, Ieee64};
 use cranelift_codegen::ir::{self, InstBuilder, SourceLoc};
 use cranelift_codegen::isa;
-use cranelift_wasm::{FuncIndex, GlobalIndex, SignatureIndex, TableIndex, WasmError, WasmResult};
 
-use smallvec::SmallVec;
+use cranelift_wasm::{wasmparser, FuncIndex, GlobalIndex, SignatureIndex, TableIndex, WasmResult};
 
 use crate::compile;
 use crate::utils::BasicError;
@@ -54,9 +53,8 @@ fn typecode_to_type(type_code: TypeCode) -> WasmResult<Option<ir::Type>> {
         TypeCode::I64 => Ok(Some(ir::types::I64)),
         TypeCode::F32 => Ok(Some(ir::types::F32)),
         TypeCode::F64 => Ok(Some(ir::types::F64)),
-        TypeCode::NullRef => Ok(Some(REF_TYPE)),
         TypeCode::FuncRef => Ok(Some(REF_TYPE)),
-        TypeCode::AnyRef => Ok(Some(REF_TYPE)),
+        TypeCode::ExternRef => Ok(Some(REF_TYPE)),
         TypeCode::BlockVoid => Ok(None),
         _ => Err(BasicError::new(format!("unknown type code: {:?}", type_code)).into()),
     }
@@ -64,15 +62,8 @@ fn typecode_to_type(type_code: TypeCode) -> WasmResult<Option<ir::Type>> {
 
 /// Convert a non-void `TypeCode` into the equivalent Cranelift type.
 #[inline]
-fn typecode_to_nonvoid_type(type_code: TypeCode) -> WasmResult<ir::Type> {
+pub(crate) fn typecode_to_nonvoid_type(type_code: TypeCode) -> WasmResult<ir::Type> {
     Ok(typecode_to_type(type_code)?.expect("unexpected void type"))
-}
-
-/// Convert a `TypeCode` into the equivalent Cranelift type.
-#[inline]
-fn valtype_to_type(val_type: BD_ValType) -> WasmResult<ir::Type> {
-    let type_code = unsafe { low_level::env_unpack(val_type) };
-    typecode_to_nonvoid_type(type_code)
 }
 
 /// Convert a u32 into a `BD_SymbolicAddress`.
@@ -109,7 +100,7 @@ impl GlobalDesc {
                 TypeCode::I64 => Ok(pos.ins().iconst(ir::types::I64, v.u.i64)),
                 TypeCode::F32 => Ok(pos.ins().f32const(Ieee32::with_bits(v.u.i32 as u32))),
                 TypeCode::F64 => Ok(pos.ins().f64const(Ieee64::with_bits(v.u.i64 as u64))),
-                TypeCode::Ref | TypeCode::AnyRef | TypeCode::FuncRef | TypeCode::NullRef => {
+                TypeCode::NullableRef | TypeCode::ExternRef | TypeCode::FuncRef => {
                     assert!(v.u.r as usize == 0);
                     Ok(pos.ins().null(REF_TYPE))
                 }
@@ -122,6 +113,10 @@ impl GlobalDesc {
     pub fn tls_offset(self) -> usize {
         unsafe { low_level::global_tlsOffset(self.0) }
     }
+
+    pub fn content_type(self) -> wasmparser::Type {
+        typecode_to_parser_type(unsafe { low_level::global_type(self.0) })
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -132,67 +127,97 @@ impl TableDesc {
     pub fn tls_offset(self) -> usize {
         unsafe { low_level::table_tlsOffset(self.0) }
     }
+
+    pub fn element_type(self) -> wasmparser::Type {
+        typecode_to_parser_type(unsafe { low_level::table_elementTypeCode(self.0) })
+    }
+
+    pub fn resizable_limits(self) -> wasmparser::ResizableLimits {
+        let initial = unsafe { low_level::table_initialLimit(self.0) };
+        let maximum = unsafe { low_level::table_initialLimit(self.0) };
+        let maximum = if maximum == u32::max_value() {
+            None
+        } else {
+            Some(maximum)
+        };
+        wasmparser::ResizableLimits { initial, maximum }
+    }
 }
 
-#[derive(Clone, Copy)]
-pub struct FuncTypeWithId(*const low_level::FuncTypeWithId);
+#[derive(Clone)]
+pub struct FuncTypeWithId {
+    ptr: *const low_level::FuncTypeWithId,
+    args: Vec<TypeCode>,
+    results: Vec<TypeCode>,
+}
 
 impl FuncTypeWithId {
-    pub fn args<'a>(self) -> WasmResult<SmallVec<[ir::Type; 4]>> {
-        let num_args = unsafe { low_level::funcType_numArgs(self.0) };
-        // The `funcType_args` callback crashes when there are no arguments. Also note that
-        // `slice::from_raw_parts()` requires a non-null pointer for empty slices.
-        // TODO: We should get all the parts of a signature in a single callback that returns a
-        // struct.
-        if num_args == 0 {
-            Ok(SmallVec::new())
-        } else {
-            let args = unsafe { slice::from_raw_parts(low_level::funcType_args(self.0), num_args) };
-            let mut ret = SmallVec::new();
-            for &arg in args {
-                ret.push(valtype_to_type(arg)?);
-            }
-            Ok(ret)
-        }
+    /// Creates a new FuncTypeWithId, caching all the values it requires.
+    pub(crate) fn new(ptr: *const low_level::FuncTypeWithId) -> Self {
+        let num_args = unsafe { low_level::funcType_numArgs(ptr) };
+        let args = unsafe { slice::from_raw_parts(low_level::funcType_args(ptr), num_args) };
+        let args = args
+            .iter()
+            .map(|val_type| unsafe { low_level::env_unpack(*val_type) })
+            .collect();
+
+        let num_results = unsafe { low_level::funcType_numResults(ptr) };
+        let results =
+            unsafe { slice::from_raw_parts(low_level::funcType_results(ptr), num_results) };
+        let results = results
+            .iter()
+            .map(|val_type| unsafe { low_level::env_unpack(*val_type) })
+            .collect();
+
+        Self { ptr, args, results }
     }
 
-    pub fn results<'a>(self) -> WasmResult<Vec<ir::Type>> {
-        let num_results = unsafe { low_level::funcType_numResults(self.0) };
-        // The same comments as FuncTypeWithId::args apply here.
-        if num_results == 0 {
-            Ok(Vec::new())
-        } else {
-            let results =
-                unsafe { slice::from_raw_parts(low_level::funcType_results(self.0), num_results) };
-            let mut ret = Vec::new();
-            for &result in results {
-                ret.push(valtype_to_type(result)?);
-            }
-            Ok(ret)
-        }
+    pub(crate) fn id_kind(&self) -> FuncTypeIdDescKind {
+        unsafe { low_level::funcType_idKind(self.ptr) }
     }
-
-    pub fn ret_type(self) -> WasmResult<Option<ir::Type>> {
-        match self.results() {
-            Ok(v) => match v.as_slice() {
-                [] => Ok(None),
-                [t] => Ok(Some(*t)),
-                _ => Err(WasmError::Unsupported("multiple values".to_string())),
-            },
-            Err(e) => Err(e),
-        }
+    pub(crate) fn id_immediate(&self) -> usize {
+        unsafe { low_level::funcType_idImmediate(self.ptr) }
     }
-
-    pub fn id_kind(self) -> FuncTypeIdDescKind {
-        unsafe { low_level::funcType_idKind(self.0) }
+    pub(crate) fn id_tls_offset(&self) -> usize {
+        unsafe { low_level::funcType_idTlsOffset(self.ptr) }
     }
-
-    pub fn id_immediate(self) -> usize {
-        unsafe { low_level::funcType_idImmediate(self.0) }
+    pub(crate) fn args(&self) -> &[TypeCode] {
+        &self.args
     }
+    pub(crate) fn results(&self) -> &[TypeCode] {
+        &self.results
+    }
+}
 
-    pub fn id_tls_offset(self) -> usize {
-        unsafe { low_level::funcType_idTlsOffset(self.0) }
+fn typecode_to_parser_type(ty: TypeCode) -> wasmparser::Type {
+    match ty {
+        TypeCode::I32 => wasmparser::Type::I32,
+        TypeCode::I64 => wasmparser::Type::I64,
+        TypeCode::F32 => wasmparser::Type::F32,
+        TypeCode::F64 => wasmparser::Type::F64,
+        TypeCode::FuncRef => wasmparser::Type::FuncRef,
+        TypeCode::ExternRef => wasmparser::Type::ExternRef,
+        TypeCode::BlockVoid => wasmparser::Type::EmptyBlockType,
+        _ => panic!("unknown type code: {:?}", ty),
+    }
+}
+
+impl wasmparser::WasmFuncType for FuncTypeWithId {
+    fn len_inputs(&self) -> usize {
+        self.args.len()
+    }
+    fn len_outputs(&self) -> usize {
+        self.results.len()
+    }
+    fn input_at(&self, at: u32) -> Option<wasmparser::Type> {
+        self.args
+            .get(at as usize)
+            .map(|ty| typecode_to_parser_type(*ty))
+    }
+    fn output_at(&self, at: u32) -> Option<wasmparser::Type> {
+        self.results
+            .get(at as usize)
+            .map(|ty| typecode_to_parser_type(*ty))
     }
 }
 
@@ -200,17 +225,58 @@ impl FuncTypeWithId {
 
 pub struct ModuleEnvironment<'a> {
     env: &'a CraneliftModuleEnvironment,
+    /// The `WasmModuleResources` trait requires us to return a borrow to a `FuncTypeWithId`, so we
+    /// eagerly construct these.
+    types: Vec<FuncTypeWithId>,
+    /// Similar to `types`, we need to have a persistently-stored `FuncTypeWithId` to return. The
+    /// types in `func_sigs` are a subset of those in `types`, but we don't want to have to
+    /// maintain an index from function to signature ID, so we store these directly.
+    func_sigs: Vec<FuncTypeWithId>,
 }
 
 impl<'a> ModuleEnvironment<'a> {
-    pub fn new(env: &'a CraneliftModuleEnvironment) -> Self {
-        Self { env }
+    pub(crate) fn new(env: &'a CraneliftModuleEnvironment) -> Self {
+        let num_types = unsafe { low_level::env_num_types(env) };
+        let mut types = Vec::with_capacity(num_types);
+        for i in 0..num_types {
+            let t = FuncTypeWithId::new(unsafe { low_level::env_signature(env, i) });
+            types.push(t);
+        }
+        let num_func_sigs = unsafe { low_level::env_num_funcs(env) };
+        let mut func_sigs = Vec::with_capacity(num_func_sigs);
+        for i in 0..num_func_sigs {
+            let t = FuncTypeWithId::new(unsafe { low_level::env_func_sig(env, i) });
+            func_sigs.push(t);
+        }
+        Self {
+            env,
+            types,
+            func_sigs,
+        }
+    }
+    pub fn has_memory(&self) -> bool {
+        unsafe { low_level::env_has_memory(self.env) }
     }
     pub fn uses_shared_memory(&self) -> bool {
         unsafe { low_level::env_uses_shared_memory(self.env) }
     }
-    pub fn function_signature(&self, func_index: FuncIndex) -> FuncTypeWithId {
-        FuncTypeWithId(unsafe { low_level::env_function_signature(self.env, func_index.index()) })
+    pub fn num_tables(&self) -> usize {
+        unsafe { low_level::env_num_tables(self.env) }
+    }
+    pub fn num_types(&self) -> usize {
+        self.types.len()
+    }
+    pub fn type_(&self, index: usize) -> FuncTypeWithId {
+        self.types[index].clone()
+    }
+    pub fn num_func_sigs(&self) -> usize {
+        self.func_sigs.len()
+    }
+    pub fn func_sig(&self, func_index: FuncIndex) -> FuncTypeWithId {
+        self.func_sigs[func_index.index()].clone()
+    }
+    pub fn func_sig_index(&self, func_index: FuncIndex) -> SignatureIndex {
+        SignatureIndex::new(unsafe { low_level::env_func_sig_index(self.env, func_index.index()) })
     }
     pub fn func_import_tls_offset(&self, func_index: FuncIndex) -> usize {
         unsafe { low_level::env_func_import_tls_offset(self.env, func_index.index()) }
@@ -219,7 +285,7 @@ impl<'a> ModuleEnvironment<'a> {
         unsafe { low_level::env_func_is_import(self.env, func_index.index()) }
     }
     pub fn signature(&self, sig_index: SignatureIndex) -> FuncTypeWithId {
-        FuncTypeWithId(unsafe { low_level::env_signature(self.env, sig_index.index()) })
+        FuncTypeWithId::new(unsafe { low_level::env_signature(self.env, sig_index.index()) })
     }
     pub fn table(&self, table_index: TableIndex) -> TableDesc {
         TableDesc(unsafe { low_level::env_table(self.env, table_index.index()) })
@@ -227,8 +293,97 @@ impl<'a> ModuleEnvironment<'a> {
     pub fn global(&self, global_index: GlobalIndex) -> GlobalDesc {
         GlobalDesc(unsafe { low_level::env_global(self.env, global_index.index()) })
     }
-    pub fn min_memory_length(&self) -> i64 {
-        i64::from(self.env.min_memory_length)
+    pub fn min_memory_length(&self) -> u32 {
+        self.env.min_memory_length
+    }
+    pub fn max_memory_length(&self) -> Option<u32> {
+        let max = unsafe { low_level::env_max_memory(self.env) };
+        if max == u32::max_value() {
+            None
+        } else {
+            Some(max)
+        }
+    }
+}
+
+impl<'module> wasmparser::WasmModuleResources for ModuleEnvironment<'module> {
+    type FuncType = FuncTypeWithId;
+    fn table_at(&self, at: u32) -> Option<wasmparser::TableType> {
+        if (at as usize) < self.num_tables() {
+            let desc = TableDesc(unsafe { low_level::env_table(self.env, at as usize) });
+            let element_type = desc.element_type();
+            let limits = desc.resizable_limits();
+            Some(wasmparser::TableType {
+                element_type,
+                limits,
+            })
+        } else {
+            None
+        }
+    }
+    fn memory_at(&self, at: u32) -> Option<wasmparser::MemoryType> {
+        if at == 0 {
+            let has_memory = self.has_memory();
+            if has_memory {
+                let shared = self.uses_shared_memory();
+                let initial = self.min_memory_length() as u32;
+                let maximum = self.max_memory_length();
+                Some(wasmparser::MemoryType::M32 {
+                    limits: wasmparser::ResizableLimits { initial, maximum },
+                    shared,
+                })
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+    fn global_at(&self, at: u32) -> Option<wasmparser::GlobalType> {
+        let num_globals = unsafe { low_level::env_num_globals(self.env) };
+        if (at as usize) < num_globals {
+            let desc = self.global(GlobalIndex::new(at as usize));
+            let mutable = !desc.is_constant();
+            let content_type = desc.content_type();
+            Some(wasmparser::GlobalType {
+                mutable,
+                content_type,
+            })
+        } else {
+            None
+        }
+    }
+    fn func_type_at(&self, type_idx: u32) -> Option<&Self::FuncType> {
+        if (type_idx as usize) < self.types.len() {
+            Some(&self.types[type_idx as usize])
+        } else {
+            None
+        }
+    }
+    fn type_of_function(&self, func_idx: u32) -> Option<&Self::FuncType> {
+        if (func_idx as usize) < self.func_sigs.len() {
+            Some(&self.func_sigs[func_idx as usize])
+        } else {
+            None
+        }
+    }
+    fn element_type_at(&self, at: u32) -> Option<wasmparser::Type> {
+        let num_elems = self.element_count();
+        if at < num_elems {
+            let elem_type = unsafe { low_level::env_elem_typecode(self.env, at) };
+            Some(typecode_to_parser_type(elem_type))
+        } else {
+            None
+        }
+    }
+    fn element_count(&self) -> u32 {
+        unsafe { low_level::env_num_elems(self.env) as u32 }
+    }
+    fn data_count(&self) -> u32 {
+        unsafe { low_level::env_num_datas(self.env) as u32 }
+    }
+    fn is_function_referenced(&self, idx: u32) -> bool {
+        unsafe { low_level::env_is_func_valid_for_ref(self.env, idx) }
     }
 }
 
@@ -236,7 +391,7 @@ impl<'a> ModuleEnvironment<'a> {
 
 impl FuncCompileInput {
     pub fn bytecode(&self) -> &[u8] {
-        unsafe { slice::from_raw_parts(self.bytecode, self.bytecodeSize) }
+        unsafe { slice::from_raw_parts(self.bytecode, self.bytecode_size) }
     }
 
     pub fn stackmaps(&self) -> Stackmaps {
@@ -246,65 +401,57 @@ impl FuncCompileInput {
 
 impl CompiledFunc {
     pub fn reset(&mut self, compiled_func: &compile::CompiledFunc) {
-        self.numMetadata = compiled_func.metadata.len();
+        self.num_metadata = compiled_func.metadata.len();
         self.metadatas = compiled_func.metadata.as_ptr();
 
-        self.framePushed = compiled_func.frame_pushed as usize;
-        self.containsCalls = compiled_func.contains_calls;
+        self.frame_pushed = compiled_func.frame_pushed as usize;
+        self.contains_calls = compiled_func.contains_calls;
 
         self.code = compiled_func.code_buffer.as_ptr();
-        self.codeSize = compiled_func.code_size as usize;
-        self.jumptablesSize = compiled_func.jumptables_size as usize;
-        self.rodataSize = compiled_func.rodata_size as usize;
-        self.totalSize = compiled_func.code_buffer.len();
+        self.code_size = compiled_func.code_size as usize;
+        self.jumptables_size = compiled_func.jumptables_size as usize;
+        self.rodata_size = compiled_func.rodata_size as usize;
+        self.total_size = compiled_func.code_buffer.len();
 
-        self.numRodataRelocs = compiled_func.rodata_relocs.len();
-        self.rodataRelocs = compiled_func.rodata_relocs.as_ptr();
+        self.num_rodata_relocs = compiled_func.rodata_relocs.len();
+        self.rodata_relocs = compiled_func.rodata_relocs.as_ptr();
     }
 }
 
 impl MetadataEntry {
-    pub fn direct_call(code_offset: CodeOffset, func_index: FuncIndex, srcloc: SourceLoc) -> Self {
+    pub fn direct_call(code_offset: CodeOffset, srcloc: SourceLoc, func_index: FuncIndex) -> Self {
         Self {
             which: CraneliftMetadataEntry_Which_DirectCall,
-            codeOffset: code_offset,
-            moduleBytecodeOffset: srcloc.bits(),
+            code_offset,
+            module_bytecode_offset: srcloc.bits(),
             extra: func_index.index(),
         }
     }
-
-    pub fn indirect_call(code_offset: CodeOffset, srcloc: SourceLoc) -> Self {
+    pub fn indirect_call(ret_addr: CodeOffset, srcloc: SourceLoc) -> Self {
         Self {
             which: CraneliftMetadataEntry_Which_IndirectCall,
-            codeOffset: code_offset,
-            moduleBytecodeOffset: srcloc.bits(),
+            code_offset: ret_addr,
+            module_bytecode_offset: srcloc.bits(),
             extra: 0,
         }
     }
-
     pub fn trap(code_offset: CodeOffset, srcloc: SourceLoc, which: Trap) -> Self {
         Self {
             which: CraneliftMetadataEntry_Which_Trap,
-            codeOffset: code_offset,
-            moduleBytecodeOffset: srcloc.bits(),
+            code_offset,
+            module_bytecode_offset: srcloc.bits(),
             extra: which as usize,
         }
     }
-
-    pub fn memory_access(code_offset: CodeOffset, srcloc: SourceLoc) -> Self {
-        Self {
-            which: CraneliftMetadataEntry_Which_MemoryAccess,
-            codeOffset: code_offset,
-            moduleBytecodeOffset: srcloc.bits(),
-            extra: 0,
-        }
-    }
-
-    pub fn symbolic_access(code_offset: CodeOffset, sym: SymbolicAddress) -> Self {
+    pub fn symbolic_access(
+        code_offset: CodeOffset,
+        srcloc: SourceLoc,
+        sym: SymbolicAddress,
+    ) -> Self {
         Self {
             which: CraneliftMetadataEntry_Which_SymbolicAccess,
-            codeOffset: code_offset,
-            moduleBytecodeOffset: 0,
+            code_offset,
+            module_bytecode_offset: srcloc.bits(),
             extra: sym as usize,
         }
     }
@@ -313,7 +460,7 @@ impl MetadataEntry {
 impl StaticEnvironment {
     /// Returns the default calling convention on this machine.
     pub fn call_conv(&self) -> isa::CallConv {
-        if self.platformIsWindows {
+        if self.platform_is_windows {
             isa::CallConv::BaldrdashWindows
         } else {
             isa::CallConv::BaldrdashSystemV
@@ -326,9 +473,9 @@ pub struct Stackmaps(*mut self::low_level::BD_Stackmaps);
 impl Stackmaps {
     pub fn add_stackmap(
         &mut self,
-        stack_slots: &ir::StackSlots,
+        inbound_args_size: u32,
         offset: CodeOffset,
-        map: cranelift_codegen::binemit::Stackmap,
+        map: &cranelift_codegen::binemit::StackMap,
     ) {
         unsafe {
             let bitslice = map.as_slice();
@@ -336,7 +483,7 @@ impl Stackmaps {
                 self.0,
                 std::mem::transmute(bitslice.as_ptr()),
                 map.mapped_words() as usize,
-                stack_slots.layout_info.unwrap().inbound_args_size as usize,
+                inbound_args_size as usize,
                 offset as usize,
             );
         }

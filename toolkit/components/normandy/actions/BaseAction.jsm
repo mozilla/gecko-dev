@@ -115,9 +115,12 @@ class BaseAction {
   }
 
   validateArguments(args, schema = this.schema) {
-    let [valid, validated] = JsonSchemaValidator.validateAndParseParameters(
+    let { valid, parsedValue: validated } = JsonSchemaValidator.validate(
       args,
-      schema
+      schema,
+      {
+        allowExtraProperties: true,
+      }
     );
     if (!valid) {
       throw new Error(
@@ -292,6 +295,7 @@ BaseAction.STATE_DISABLED = "ACTION_DISABLED";
 BaseAction.STATE_FAILED = "ACTION_FAILED";
 BaseAction.STATE_FINALIZED = "ACTION_FINALIZED";
 
+// Make sure to update the docs in ../docs/suitabilities.rst when changing this.
 BaseAction.suitability = {
   /**
    * The recipe's signature is not valid. If any action is taken this recipe

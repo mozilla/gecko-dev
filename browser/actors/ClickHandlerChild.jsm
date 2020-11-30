@@ -75,14 +75,12 @@ class ClickHandlerChild extends JSWindowActorChild {
       Ci.nsIReferrerInfo
     );
     if (node) {
-      referrerInfo.initWithNode(node);
+      referrerInfo.initWithElement(node);
     } else {
       referrerInfo.initWithDocument(ownerDoc);
     }
     referrerInfo = E10SUtils.serializeReferrerInfo(referrerInfo);
-    let frameOuterWindowID = WebNavigationFrames.getFrameId(
-      ownerDoc.defaultView
-    );
+    let frameID = WebNavigationFrames.getFrameId(ownerDoc.defaultView);
 
     let json = {
       button: event.button,
@@ -92,7 +90,7 @@ class ClickHandlerChild extends JSWindowActorChild {
       altKey: event.altKey,
       href: null,
       title: null,
-      frameOuterWindowID,
+      frameID,
       triggeringPrincipal: principal,
       csp,
       referrerInfo,

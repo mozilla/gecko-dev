@@ -2,6 +2,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from .util import hash_str
+
+
 NOT_NESTED = 1
 INSIDE_SYNC_NESTED = 2
 INSIDE_CPOW_NESTED = 3
@@ -209,7 +212,7 @@ class UsingStmt(Node):
 
 class PrettyPrinted:
     @classmethod
-    def __hash__(cls): return hash(cls.pretty)
+    def __hash__(cls): return hash_str(cls.pretty)
 
     @classmethod
     def __str__(cls): return cls.pretty
@@ -265,9 +268,10 @@ class StructField(Node):
 
 
 class StructDecl(NamespacedNode):
-    def __init__(self, loc, name, fields):
+    def __init__(self, loc, name, fields, comparable):
         NamespacedNode.__init__(self, loc, name)
         self.fields = fields
+        self.comparable = comparable
         # A list of indices into `fields` for determining the order in
         # which fields are laid out in memory.  We don't just reorder
         # `fields` itself so as to keep the ordering reasonably stable
@@ -276,9 +280,10 @@ class StructDecl(NamespacedNode):
 
 
 class UnionDecl(NamespacedNode):
-    def __init__(self, loc, name, components):
+    def __init__(self, loc, name, components, comparable):
         NamespacedNode.__init__(self, loc, name)
         self.components = components
+        self.comparable = comparable
 
 
 class Manager(Node):

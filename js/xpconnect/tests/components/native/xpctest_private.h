@@ -28,7 +28,7 @@ class xpcTestObjectReadOnly final : public nsIXPCTestObjectReadOnly {
   xpcTestObjectReadOnly();
 
  private:
-  ~xpcTestObjectReadOnly() {}
+  ~xpcTestObjectReadOnly() = default;
 
   bool boolProperty;
   int16_t shortProperty;
@@ -62,10 +62,10 @@ class nsXPCTestParams final : public nsIXPCTestParams {
   NS_DECL_ISUPPORTS
   NS_DECL_NSIXPCTESTPARAMS
 
-  nsXPCTestParams();
+  nsXPCTestParams() = default;
 
  private:
-  ~nsXPCTestParams();
+  ~nsXPCTestParams() = default;
 };
 
 class nsXPCTestReturnCodeParent final : public nsIXPCTestReturnCodeParent {
@@ -73,10 +73,10 @@ class nsXPCTestReturnCodeParent final : public nsIXPCTestReturnCodeParent {
   NS_DECL_ISUPPORTS
   NS_DECL_NSIXPCTESTRETURNCODEPARENT
 
-  nsXPCTestReturnCodeParent();
+  nsXPCTestReturnCodeParent() = default;
 
  private:
-  ~nsXPCTestReturnCodeParent();
+  ~nsXPCTestReturnCodeParent() = default;
 };
 
 class xpcTestCEnums final : public nsIXPCTestCEnums {

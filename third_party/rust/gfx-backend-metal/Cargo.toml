@@ -13,7 +13,7 @@
 [package]
 edition = "2018"
 name = "gfx-backend-metal"
-version = "0.4.0"
+version = "0.5.6"
 authors = ["The Gfx-rs Developers"]
 description = "Metal API backend for gfx-rs"
 homepage = "https://github.com/gfx-rs/gfx"
@@ -31,7 +31,8 @@ name = "gfx_backend_metal"
 version = "0.5"
 
 [dependencies.auxil]
-version = "0.1"
+version = "0.4"
+features = ["spirv_cross"]
 package = "gfx-auxil"
 
 [dependencies.bitflags]
@@ -40,24 +41,21 @@ version = "1.0"
 [dependencies.block]
 version = "0.1"
 
-[dependencies.cocoa]
-version = "0.19"
+[dependencies.cocoa-foundation]
+version = "0.1"
 
 [dependencies.copyless]
 version = "0.1.4"
 
-[dependencies.core-graphics]
-version = "0.17"
-
 [dependencies.dispatch]
-version = "0.1"
+version = "0.2"
 optional = true
 
 [dependencies.foreign-types]
 version = "0.3"
 
 [dependencies.hal]
-version = "0.4"
+version = "0.5.2"
 package = "gfx-hal"
 
 [dependencies.lazy_static]
@@ -67,14 +65,14 @@ version = "1"
 version = "0.4"
 
 [dependencies.metal]
-version = "0.17"
+version = "0.20"
 features = ["private"]
 
 [dependencies.objc]
 version = "0.2.5"
 
 [dependencies.parking_lot]
-version = "0.9"
+version = "0.10"
 
 [dependencies.range-alloc]
 version = "0.1"
@@ -83,10 +81,10 @@ version = "0.1"
 version = "0.3"
 
 [dependencies.smallvec]
-version = "0.6"
+version = "1"
 
 [dependencies.spirv_cross]
-version = "0.16"
+version = "0.20"
 features = ["msl"]
 
 [dependencies.storage-map]

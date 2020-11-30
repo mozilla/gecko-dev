@@ -12,8 +12,9 @@
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/SVGDocument.h"
 #include "mozilla/StaticPrefs_svg.h"
-#include "nsSVGPaintServerFrame.h"
-#include "SVGObserverUtils.h"
+#include "mozilla/SVGObserverUtils.h"
+#include "mozilla/SVGUtils.h"
+#include "SVGPaintServerFrame.h"
 
 using namespace mozilla::gfx;
 using namespace mozilla::image;
@@ -63,8 +64,8 @@ bool SVGContextPaint::IsAllowedForImageFromURI(nsIURI* aURI) {
       BasePrincipal::CreateContentPrincipal(aURI, OriginAttributes());
   nsString addonId;
   if (NS_SUCCEEDED(principal->GetAddonId(addonId))) {
-    if (StringEndsWith(addonId, NS_LITERAL_STRING("@mozilla.org")) ||
-        StringEndsWith(addonId, NS_LITERAL_STRING("@mozilla.com"))) {
+    if (StringEndsWith(addonId, u"@mozilla.org"_ns) ||
+        StringEndsWith(addonId, u"@mozilla.com"_ns)) {
       return true;
     }
   }
@@ -87,7 +88,7 @@ static void SetupInheritablePaint(const DrawTarget* aDrawTarget,
                                   StyleSVGPaint nsStyleSVG::*aFillOrStroke,
                                   imgDrawingParams& aImgParams) {
   const nsStyleSVG* style = aFrame->StyleSVG();
-  nsSVGPaintServerFrame* ps =
+  SVGPaintServerFrame* ps =
       SVGObserverUtils::GetAndObservePaintServer(aFrame, aFillOrStroke);
 
   if (ps) {
@@ -124,7 +125,7 @@ static void SetupInheritablePaint(const DrawTarget* aDrawTarget,
   }
 
   nscolor color =
-      nsSVGUtils::GetFallbackOrPaintColor(*aFrame->Style(), aFillOrStroke);
+      SVGUtils::GetFallbackOrPaintColor(*aFrame->Style(), aFillOrStroke);
   aTargetPaint.SetColor(color);
 }
 
@@ -142,7 +143,7 @@ DrawMode SVGContextPaintImpl::Init(const DrawTarget* aDrawTarget,
     SetFillOpacity(0.0f);
   } else {
     float opacity =
-        nsSVGUtils::GetOpacity(style->mFillOpacity, aOuterContextPaint);
+        SVGUtils::GetOpacity(style->mFillOpacity, aOuterContextPaint);
 
     SetupInheritablePaint(aDrawTarget, aContextMatrix, aFrame, opacity,
                           aOuterContextPaint, mFillPaint, &nsStyleSVG::mFill,
@@ -158,7 +159,7 @@ DrawMode SVGContextPaintImpl::Init(const DrawTarget* aDrawTarget,
     SetStrokeOpacity(0.0f);
   } else {
     float opacity =
-        nsSVGUtils::GetOpacity(style->mStrokeOpacity, aOuterContextPaint);
+        SVGUtils::GetOpacity(style->mStrokeOpacity, aOuterContextPaint);
 
     SetupInheritablePaint(aDrawTarget, aContextMatrix, aFrame, opacity,
                           aOuterContextPaint, mStrokePaint,
@@ -188,7 +189,8 @@ SVGContextPaint* SVGContextPaint::GetContextPaint(nsIContent* aContent) {
     return nullptr;
   }
 
-  auto* contextPaint = ownerDoc->AsSVGDocument()->GetCurrentContextPaint();
+  const auto* contextPaint =
+      ownerDoc->AsSVGDocument()->GetCurrentContextPaint();
   MOZ_ASSERT_IF(contextPaint, ownerDoc->IsBeingUsedAsImage());
 
   // XXX The SVGContextPaint that SVGDocument keeps around is const. We could
@@ -234,11 +236,11 @@ already_AddRefed<gfxPattern> SVGContextPaintImpl::Paint::GetPattern(
 
   switch (mPaintType) {
     case Tag::None:
-      pattern = new gfxPattern(Color());
+      pattern = new gfxPattern(DeviceColor());
       mPatternMatrix = gfxMatrix();
       break;
     case Tag::Color: {
-      Color color = Color::FromABGR(mPaintDefinition.mColor);
+      DeviceColor color = ToDeviceColor(mPaintDefinition.mColor);
       color.a *= aOpacity;
       pattern = new gfxPattern(color);
       mPatternMatrix = gfxMatrix();
@@ -307,7 +309,7 @@ already_AddRefed<gfxPattern> SVGEmbeddingContextPaint::GetFillPattern(
   // The gfxPattern that we create below depends on aFillOpacity, and since
   // different elements in the SVG image may pass in different values for
   // fill opacities we don't try to cache the gfxPattern that we create.
-  Color fill = *mFill;
+  DeviceColor fill = *mFill;
   fill.a *= aFillOpacity;
   return do_AddRef(new gfxPattern(fill));
 }
@@ -318,7 +320,7 @@ already_AddRefed<gfxPattern> SVGEmbeddingContextPaint::GetStrokePattern(
   if (!mStroke) {
     return nullptr;
   }
-  Color stroke = *mStroke;
+  DeviceColor stroke = *mStroke;
   stroke.a *= aStrokeOpacity;
   return do_AddRef(new gfxPattern(stroke));
 }

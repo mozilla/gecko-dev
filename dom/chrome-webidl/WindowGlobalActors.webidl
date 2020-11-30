@@ -8,17 +8,33 @@ interface URI;
 interface nsIDocShell;
 interface RemoteTab;
 interface nsITransportSecurityInfo;
+interface nsIDOMProcessParent;
 
 [Exposed=Window, ChromeOnly]
 interface WindowContext {
+  readonly attribute BrowsingContext? browsingContext;
+
   readonly attribute unsigned long long innerWindowId;
+
+  readonly attribute WindowContext? parentWindowContext;
+
+  readonly attribute WindowContext topWindowContext;
+
+  // True if this window has registered a "beforeunload" event handler.
+  readonly attribute boolean hasBeforeUnload;
+};
+
+// Keep this in sync with nsIContentViewer::PermitUnloadAction.
+enum PermitUnloadAction {
+  "prompt",
+  "dontUnload",
+  "unload",
 };
 
 [Exposed=Window, ChromeOnly]
 interface WindowGlobalParent : WindowContext {
   readonly attribute boolean isClosed;
   readonly attribute boolean isInProcess;
-  readonly attribute CanonicalBrowsingContext browsingContext;
 
   readonly attribute boolean isCurrentGlobal;
 
@@ -31,9 +47,6 @@ interface WindowGlobalParent : WindowContext {
   // embedder is in a different process.
   readonly attribute boolean isProcessRoot;
 
-  // True if this window has registered a "beforeunload" event handler.
-  readonly attribute boolean hasBeforeUnload;
-
   // Is the document loaded in this WindowGlobalParent the initial document
   // implicitly created while "creating a new browsing context".
   // https://html.spec.whatwg.org/multipage/browsers.html#creating-a-new-browsing-context
@@ -43,9 +56,26 @@ interface WindowGlobalParent : WindowContext {
 
   readonly attribute WindowGlobalChild? childActor; // in-process only
 
+  // Checks for any WindowContexts with "beforeunload" listeners in this
+  // WindowGlobal's subtree. If any exist, a "beforeunload" event is
+  // dispatched to them. If any of those request to block the navigation,
+  // displays a prompt to the user. Returns a boolean which resolves to true
+  // if the navigation should be allowed.
+  //
+  // If `timeout` is greater than 0, it is the maximum time (in milliseconds)
+  // we will wait for a child process to respond with a request to block
+  // navigation before proceeding. If the user needs to be prompted, however,
+  // the promise will not resolve until the user has responded, regardless of
+  // the timeout.
+  [Throws]
+  Promise<boolean> permitUnload(optional PermitUnloadAction action = "prompt",
+                                optional unsigned long timeout = 0);
+
   // Information about the currently loaded document.
   readonly attribute Principal documentPrincipal;
+  readonly attribute Principal? contentBlockingAllowListPrincipal;
   readonly attribute URI? documentURI;
+  readonly attribute DOMString documentTitle;
 
   // Bit mask containing content blocking events that are recorded in
   // the document's content blocking log.
@@ -53,6 +83,11 @@ interface WindowGlobalParent : WindowContext {
 
   // String containing serialized content blocking log.
   readonly attribute DOMString contentBlockingLog;
+
+  // DOM Process which this window was loaded in. Will be either InProcessParent
+  // for windows loaded in the parent process, or ContentParent for windows
+  // loaded in the content process.
+  readonly attribute nsIDOMProcessParent? domProcess;
 
   static WindowGlobalParent? getByInnerWindowId(unsigned long long innerWindowId);
 
@@ -63,14 +98,13 @@ interface WindowGlobalParent : WindowContext {
    * customize actor creation.
    */
   [Throws]
-  JSWindowActorParent getActor(DOMString name);
+  JSWindowActorParent getActor(UTF8String name);
 
   /**
    * Renders a region of the frame into an image bitmap.
    *
-   * @param rect Specify the area of the window to render, in CSS pixels. This
-   * is relative to the current scroll position. If null, the entire viewport
-   * is rendered.
+   * @param rect Specify the area of the document to render, in CSS pixels,
+   * relative to the page. If null, the currently visible viewport is rendered.
    * @param scale The scale to render the window at. Use devicePixelRatio
    * to have comparable rendering to the OS.
    * @param backgroundColor The background color to use.
@@ -114,6 +148,9 @@ interface WindowGlobalChild {
   // embedder is in a different process.
   readonly attribute boolean isProcessRoot;
 
+  // Is this WindowGlobalChild same-origin with `window.top`?
+  readonly attribute boolean sameOriginWithTop;
+
   readonly attribute WindowGlobalParent? parentActor; // in-process only
 
   static WindowGlobalChild? getByInnerWindowId(unsigned long long innerWIndowId);
@@ -125,5 +162,5 @@ interface WindowGlobalChild {
    * customize actor creation.
    */
   [Throws]
-  JSWindowActorChild getActor(DOMString name);
+  JSWindowActorChild getActor(UTF8String name);
 };

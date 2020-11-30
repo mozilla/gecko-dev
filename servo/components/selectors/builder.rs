@@ -17,7 +17,7 @@
 //! is non-trivial. This module encapsulates those details and presents an
 //! easy-to-use API for the parser.
 
-use crate::parser::{Combinator, Component, NonTSPseudoClass, SelectorImpl};
+use crate::parser::{Combinator, Component, SelectorImpl};
 use crate::sink::Push;
 use servo_arc::{Arc, HeaderWithLength, ThinArc};
 use smallvec::{self, SmallVec};
@@ -322,14 +322,23 @@ where
             Component::NthLastOfType(..) |
             Component::FirstOfType |
             Component::LastOfType |
-            Component::OnlyOfType => {
+            Component::OnlyOfType |
+            Component::NonTSPseudoClass(..) => {
                 specificity.class_like_selectors += 1;
             },
-            Component::NonTSPseudoClass(ref pseudo) => {
-                if !pseudo.has_zero_specificity() {
-                    specificity.class_like_selectors += 1;
+            Component::Is(ref list) => {
+                // https://drafts.csswg.org/selectors/#specificity-rules:
+                //
+                //     The specificity of an :is() pseudo-class is replaced by the
+                //     specificity of the most specific complex selector in its
+                //     selector list argument.
+                let mut max = 0;
+                for selector in &**list {
+                    max = std::cmp::max(selector.specificity(), max);
                 }
+                *specificity += Specificity::from(max);
             },
+            Component::Where(..) |
             Component::ExplicitUniversalType |
             Component::ExplicitAnyNamespace |
             Component::ExplicitNoNamespace |

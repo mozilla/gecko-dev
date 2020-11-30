@@ -13,6 +13,10 @@
 #include "nsSimpleURI.h"
 #include "mozilla/dom/MimeType.h"
 
+#ifdef ANDROID
+#  include "mozilla/StaticPrefs_network.h"
+#endif
+
 ////////////////////////////////////////////////////////////////////////////////
 
 NS_IMPL_ISUPPORTS(nsDataHandler, nsIProtocolHandler, nsISupportsWeakReference)
@@ -55,6 +59,12 @@ nsDataHandler::GetProtocolFlags(uint32_t* result) {
   nsCOMPtr<nsIURI> uri;
 
   nsCString spec(aSpec);
+
+#ifdef ANDROID
+  // Due to heap limitations on mobile, limits the size of data URL
+  if (spec.Length() > StaticPrefs::network_data_max_uri_length_mobile())
+    return NS_ERROR_OUT_OF_MEMORY;
+#endif
 
   if (aBaseURI && !spec.IsEmpty() && spec[0] == '#') {
     // Looks like a reference instead of a fully-specified URI.
@@ -123,12 +133,11 @@ nsDataHandler::AllowPort(int32_t port, const char* scheme, bool* _retval) {
  */
 static bool FindOffsetOf(const nsACString& aPattern, const nsACString& aSrc,
                          nsACString::size_type& aOffset) {
-  static const nsCaseInsensitiveCStringComparator kComparator;
-
   nsACString::const_iterator begin, end;
   aSrc.BeginReading(begin);
   aSrc.EndReading(end);
-  if (!RFindInReadable(aPattern, begin, end, kComparator)) {
+  if (!RFindInReadable(aPattern, begin, end,
+                       nsCaseInsensitiveCStringComparator)) {
     return false;
   }
 
@@ -141,8 +150,8 @@ nsresult nsDataHandler::ParsePathWithoutRef(
     const nsACString& aPath, nsCString& aContentType,
     nsCString* aContentCharset, bool& aIsBase64,
     nsDependentCSubstring* aDataBuffer) {
-  static NS_NAMED_LITERAL_CSTRING(kBase64, "base64");
-  static NS_NAMED_LITERAL_CSTRING(kCharset, "charset");
+  static constexpr auto kBase64 = "base64"_ns;
+  static constexpr auto kCharset = "charset"_ns;
 
   aIsBase64 = false;
 
@@ -209,8 +218,7 @@ nsresult nsDataHandler::ParsePathWithoutRef(
     }
 
     // Everything else is content type.
-    UniquePtr<CMimeType> parsed = CMimeType::Parse(mediaType);
-    if (parsed) {
+    if (mozilla::UniquePtr<CMimeType> parsed = CMimeType::Parse(mediaType)) {
       parsed->GetFullType(aContentType);
       if (aContentCharset) {
         parsed->GetParameterValue(kCharset, *aContentCharset);
@@ -234,7 +242,7 @@ nsresult nsDataHandler::ParsePathWithoutRef(
 nsresult nsDataHandler::ParseURI(nsCString& spec, nsCString& contentType,
                                  nsCString* contentCharset, bool& isBase64,
                                  nsCString* dataBuffer) {
-  static NS_NAMED_LITERAL_CSTRING(kDataScheme, "data:");
+  static constexpr auto kDataScheme = "data:"_ns;
 
   // move past "data:"
   int32_t scheme = spec.Find(kDataScheme, /* aIgnoreCase = */ true);

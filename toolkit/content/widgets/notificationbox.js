@@ -47,7 +47,8 @@
     }
 
     get _allowAnimation() {
-      return Services.prefs.getBoolPref("toolkit.cosmeticAnimations.enabled");
+      return window.matchMedia("(prefers-reduced-motion: no-preference)")
+        .matches;
     }
 
     get allNotifications() {
@@ -190,6 +191,10 @@
           }
 
           buttonElem.classList.add("notification-button");
+          if (button.primary) {
+            buttonElem.classList.add("primary");
+          }
+
           newitem.messageDetails.appendChild(buttonElem);
           buttonElem.buttonInfo = button;
         }
@@ -222,12 +227,14 @@
     }
 
     removeNotification(aItem, aSkipAnimation) {
+      if (!aItem.parentNode) {
+        return;
+      }
       if (aItem == this.currentNotification) {
         this.removeCurrentNotification(aSkipAnimation);
       } else if (aItem != this._closedNotification) {
         this._removeNotificationElement(aItem);
       }
-      return aItem;
     }
 
     _removeNotificationElement(aChild) {
@@ -265,9 +272,9 @@
       // Clean up any currently-animating notification; this is necessary
       // if a notification was just opened and is still animating, but we
       // want to close it *without* animating.  This can even happen if
-      // the user toggled `toolkit.cosmeticAnimations.enabled` to false
-      // and called this method immediately after an animated notification
-      // displayed (although this case isn't very likely).
+      // animations get disabled (via prefers-reduced-motion) and this method
+      // is called immediately after an animated notification was displayed
+      // (although this case isn't very likely).
       if (aImmediate || !this._allowAnimation) {
         this._finishAnimation();
       }
@@ -280,7 +287,7 @@
         if (notification.persistence) {
           notification.persistence--;
         } else if (Date.now() > notification.timeout) {
-          this.removeNotification(notification);
+          this.removeNotification(notification, true);
         }
       }
     }
@@ -348,17 +355,8 @@
   });
 
   MozElements.Notification = class Notification extends MozXULElement {
-    constructor() {
-      super();
-      this.persistence = 0;
-      this.priority = 0;
-      this.timeout = 0;
-    }
-
-    connectedCallback() {
-      this.appendChild(
-        MozXULElement.parseXULToFragment(
-          `
+    static get markup() {
+      return `
       <hbox class="messageDetails" align="center" flex="1"
             oncommand="this.parentNode._doButtonCommand(event);">
         <image class="messageImage"/>
@@ -369,10 +367,22 @@
                      class="messageCloseButton close-icon tabbable"
                      tooltiptext="&closeNotification.tooltip;"
                      oncommand="this.parentNode.dismiss();"/>
-    `,
-          ["chrome://global/locale/notification.dtd"]
-        )
-      );
+      `;
+    }
+
+    static get entities() {
+      return ["chrome://global/locale/notification.dtd"];
+    }
+
+    constructor() {
+      super();
+      this.persistence = 0;
+      this.priority = 0;
+      this.timeout = 0;
+    }
+
+    connectedCallback() {
+      this.appendChild(this.constructor.fragment);
 
       for (let [propertyName, selector] of [
         ["messageDetails", ".messageDetails"],
@@ -409,6 +419,9 @@
     }
 
     close() {
+      if (!this.parentNode) {
+        return;
+      }
       this.control.removeNotification(this);
     }
 

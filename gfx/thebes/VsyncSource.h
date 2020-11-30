@@ -16,6 +16,8 @@
 namespace mozilla {
 class RefreshTimerVsyncDispatcher;
 class CompositorVsyncDispatcher;
+class VsyncObserver;
+struct VsyncEvent;
 
 class VsyncIdType {};
 typedef layers::BaseTransactionId<VsyncIdType> VsyncId;
@@ -33,28 +35,43 @@ class VsyncSource {
  public:
   // Controls vsync unique to each display and unique on each platform
   class Display {
+    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Display)
    public:
     Display();
-    virtual ~Display();
 
-    // Notified when this display's vsync occurs, on the vsync thread
-    // The aVsyncTimestamp should normalize to the Vsync time that just occured
-    // However, different platforms give different vsync notification times.
-    // OSX - The vsync timestamp of the upcoming frame, in the future
+    // Notified when this display's vsync callback occurs, on the vsync thread
+    // Different platforms give different aVsyncTimestamp values.
+    // macOS: TimeStamp::Now() or the output time of the previous vsync
+    //        callback, whichever is older.
     // Windows: It's messy, see gfxWindowsPlatform.
     // Android: TODO
-    // All platforms should normalize to the vsync that just occured.
-    // Large parts of Gecko assume TimeStamps should not be in the future such
-    // as animations
-    virtual void NotifyVsync(TimeStamp aVsyncTimestamp);
+    //
+    // @param aVsyncTimestamp  The time of the Vsync that just occured. Needs to
+    //     be at or before the time of the NotifyVsync call.
+    // @param aOutputTimestamp  The estimated timestamp at which drawing will
+    //     appear on the screen, if the drawing happens within a certain
+    //     (unknown) budget. Useful for Audio/Video sync. On platforms where
+    //     this timestamp is provided by the system (macOS), it is a much more
+    //     stable and consistent timing source than the time at which the vsync
+    //     callback is called.
+    virtual void NotifyVsync(const TimeStamp& aVsyncTimestamp,
+                             const TimeStamp& aOutputTimestamp);
+    void NotifyGenericObservers(VsyncEvent aEvent);
 
     RefPtr<RefreshTimerVsyncDispatcher> GetRefreshTimerVsyncDispatcher();
 
-    void AddCompositorVsyncDispatcher(
+    void RegisterCompositorVsyncDispatcher(
         CompositorVsyncDispatcher* aCompositorVsyncDispatcher);
-    void RemoveCompositorVsyncDispatcher(
+    void DeregisterCompositorVsyncDispatcher(
         CompositorVsyncDispatcher* aCompositorVsyncDispatcher);
-    void MoveListenersToNewSource(VsyncSource::Display& aNewDisplay);
+    void EnableCompositorVsyncDispatcher(
+        CompositorVsyncDispatcher* aCompositorVsyncDispatcher);
+    void DisableCompositorVsyncDispatcher(
+        CompositorVsyncDispatcher* aCompositorVsyncDispatcher);
+    void AddGenericObserver(VsyncObserver* aObserver);
+    void RemoveGenericObserver(VsyncObserver* aObserver);
+
+    void MoveListenersToNewSource(const RefPtr<VsyncSource>& aNewSource);
     void NotifyRefreshTimerVsyncStatus(bool aEnable);
     virtual TimeDuration GetVsyncRate();
 
@@ -64,22 +81,44 @@ class VsyncSource {
     virtual bool IsVsyncEnabled() = 0;
     virtual void Shutdown() = 0;
 
+   protected:
+    virtual ~Display();
+
    private:
     void UpdateVsyncStatus();
 
     Mutex mDispatcherLock;
     bool mRefreshTimerNeedsVsync;
-    nsTArray<RefPtr<CompositorVsyncDispatcher>> mCompositorVsyncDispatchers;
+    nsTArray<RefPtr<CompositorVsyncDispatcher>>
+        mEnabledCompositorVsyncDispatchers;
+    nsTArray<RefPtr<CompositorVsyncDispatcher>>
+        mRegisteredCompositorVsyncDispatchers;
     RefPtr<RefreshTimerVsyncDispatcher> mRefreshTimerVsyncDispatcher;
+    nsTArray<RefPtr<VsyncObserver>>
+        mGenericObservers;  // can only be touched from the main thread
     VsyncId mVsyncId;
+    VsyncId mLastVsyncIdSentToMainThread;     // hold mDispatcherLock to touch
+    VsyncId mLastMainThreadProcessedVsyncId;  // hold mDispatcherLock to touch
   };
 
-  void AddCompositorVsyncDispatcher(
+  void EnableCompositorVsyncDispatcher(
       CompositorVsyncDispatcher* aCompositorVsyncDispatcher);
-  void RemoveCompositorVsyncDispatcher(
+  void DisableCompositorVsyncDispatcher(
+      CompositorVsyncDispatcher* aCompositorVsyncDispatcher);
+  void RegisterCompositorVsyncDispatcher(
+      CompositorVsyncDispatcher* aCompositorVsyncDispatcher);
+  void DeregisterCompositorVsyncDispatcher(
       CompositorVsyncDispatcher* aCompositorVsyncDispatcher);
 
-  void MoveListenersToNewSource(VsyncSource* aNewSource);
+  // Add and remove a generic observer for vsync. Note that keeping an observer
+  // registered means vsync will keep firing, which may impact power usage. So
+  // this is intended only for "short term" vsync observers. These methods must
+  // be called on the parent process main thread, and the observer will likewise
+  // be notified on the parent process main thread.
+  void AddGenericObserver(VsyncObserver* aObserver);
+  void RemoveGenericObserver(VsyncObserver* aObserver);
+
+  void MoveListenersToNewSource(const RefPtr<VsyncSource>& aNewSource);
 
   RefPtr<RefreshTimerVsyncDispatcher> GetRefreshTimerVsyncDispatcher();
   virtual Display& GetGlobalDisplay() = 0;  // Works across all displays
@@ -94,9 +133,11 @@ class VsyncSource {
 struct VsyncEvent {
   VsyncId mId;
   TimeStamp mTime;
+  TimeStamp mOutputTime;  // estimate
 
-  VsyncEvent(const VsyncId& aId, const TimeStamp& aTime)
-      : mId(aId), mTime(aTime) {}
+  VsyncEvent(const VsyncId& aId, const TimeStamp& aVsyncTime,
+             const TimeStamp& aOutputTime)
+      : mId(aId), mTime(aVsyncTime), mOutputTime(aOutputTime) {}
   VsyncEvent() = default;
 };
 

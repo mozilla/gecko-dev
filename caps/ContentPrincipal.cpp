@@ -64,7 +64,7 @@ nsresult ContentPrincipal::Init(nsIURI* aURI,
   // or fall back to a null principal.  These are schemes which return
   // URI_INHERITS_SECURITY_CONTEXT from their protocol handler's
   // GetProtocolFlags function.
-  bool hasFlag;
+  bool hasFlag = false;
   Unused << hasFlag;  // silence possible compiler warnings.
   MOZ_DIAGNOSTIC_ASSERT(
       NS_SUCCEEDED(NS_URIChainHasFlags(
@@ -147,7 +147,7 @@ nsresult ContentPrincipal::GenerateOriginNoSuffixFromURI(
        // sources. We check for moz-safe-about:blank since origin is an
        // innermost URI.
        !StringBeginsWith(origin->GetSpecOrDefault(),
-                         NS_LITERAL_CSTRING("moz-safe-about:blank")))) {
+                         "moz-safe-about:blank"_ns))) {
     rv = origin->GetAsciiSpec(aOriginNoSuffix);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -265,12 +265,11 @@ bool ContentPrincipal::SubsumesInternal(
     }
   }
 
-  nsCOMPtr<nsIURI> otherURI;
-  rv = aOther->GetURI(getter_AddRefs(otherURI));
-  NS_ENSURE_SUCCESS(rv, false);
-
   // Compare uris.
-  return nsScriptSecurityManager::SecurityCompareURIs(mURI, otherURI);
+  bool isSameOrigin = false;
+  rv = aOther->IsSameOrigin(mURI, false, &isSameOrigin);
+  NS_ENSURE_SUCCESS(rv, false);
+  return isSameOrigin;
 }
 
 NS_IMETHODIMP
@@ -358,14 +357,17 @@ ContentPrincipal::SetDomain(nsIURI* aDomain) {
 
   // Set the changed-document-domain flag on compartments containing realms
   // using this principal.
-  auto cb = [](JSContext*, void*, JS::Handle<JS::Realm*> aRealm) {
+  auto cb = [](JSContext*, void*, JS::Realm* aRealm,
+               const JS::AutoRequireNoGC& nogc) {
     JS::Compartment* comp = JS::GetCompartmentForRealm(aRealm);
     xpc::SetCompartmentChangedDocumentDomain(comp);
   };
   JSPrincipals* principals =
       nsJSPrincipals::get(static_cast<nsIPrincipal*>(this));
-  AutoSafeJSContext cx;
-  JS::IterateRealmsWithPrincipals(cx, principals, nullptr, cb);
+
+  dom::AutoJSAPI jsapi;
+  jsapi.Init();
+  JS::IterateRealmsWithPrincipals(jsapi.cx(), principals, nullptr, cb);
 
   return NS_OK;
 }
@@ -400,7 +402,10 @@ static nsresult GetSpecialBaseDomain(const nsCOMPtr<nsIURI>& aURI,
     return rv;
   }
 
-  if (hasNoRelativeFlag) {
+  // In case of FTP we want to get base domain via TLD service even if FTP
+  // protocol handler is disabled and the scheme is handled by external protocol
+  // handler which returns URI_NORELATIVE flag.
+  if (hasNoRelativeFlag && !aURI->SchemeIs("ftp")) {
     *aHandled = true;
     return aURI->GetSpec(aBaseDomain);
   }
@@ -476,7 +481,7 @@ ContentPrincipal::GetSiteOrigin(nsACString& aSiteOrigin) {
   // the port, so an extra `SetPort` call has to be made.
   nsCOMPtr<nsIURI> siteUri;
   NS_MutateURI mutator(mURI);
-  mutator.SetUserPass(EmptyCString()).SetPort(-1);
+  mutator.SetUserPass(""_ns).SetPort(-1);
   if (gotBaseDomain) {
     mutator.SetHost(baseDomain);
   }

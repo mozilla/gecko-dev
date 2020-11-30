@@ -51,6 +51,8 @@ const {
 const FORBIDDEN_IDS = new Set(["toolbox", ""]);
 const MAX_ORDINAL = 99;
 
+const CONTENT_FISSION_ENABLED_PREF = "devtools.contenttoolbox.fission";
+
 /**
  * DevTools is a class that represents a set of developer tools, it holds a
  * set of tools and keeps track of open toolboxes in the browser.
@@ -604,12 +606,12 @@ DevTools.prototype = {
     this.emit("toolbox-created", toolbox);
 
     toolbox.once("destroy", () => {
-      this.emit("toolbox-destroy", target);
+      this.emit("toolbox-destroy", toolbox);
     });
 
     toolbox.once("destroyed", () => {
       this._toolboxes.delete(target);
-      this.emit("toolbox-destroyed", target);
+      this.emit("toolbox-destroyed", toolbox);
     });
     // If the document navigates to another process, the current target will be
     // destroyed in favor of a new one. So acknowledge this swap here.
@@ -677,8 +679,8 @@ DevTools.prototype = {
    * web-extensions need to use dedicated instances of Target and cannot reuse the
    * cached instances managed by DevTools target factory.
    */
-  createTargetForTab: function(tab) {
-    return TargetFactory.createTargetForTab(tab);
+  createDescriptorForTab: function(tab) {
+    return TargetFactory.createDescriptorForTab(tab);
   },
 
   /**
@@ -727,14 +729,16 @@ DevTools.prototype = {
     );
     const inspector = toolbox.getCurrentPanel();
 
-    // new-node-front tells us when the node has been selected, whether the
-    // browser is remote or not.
-    const onNewNode = inspector.selection.once("new-node-front");
-
-    const nodeFront = await inspector.walker.getNodeActorFromContentDomReference(
+    const nodeFront = await inspector.inspectorFront.getNodeActorFromContentDomReference(
       domReference
     );
+    if (!nodeFront) {
+      return;
+    }
 
+    // "new-node-front" tells us when the node has been selected, whether the
+    // browser is remote or not.
+    const onNewNode = inspector.selection.once("new-node-front");
     // Select the final node
     inspector.selection.setNodeFront(nodeFront, {
       reason: "browser-context-menu",
@@ -771,9 +775,13 @@ DevTools.prototype = {
       startTime
     );
     const inspectorFront = await toolbox.target.getFront("inspector");
-    const nodeFront = await inspectorFront.walker.getNodeActorFromContentDomReference(
+    const nodeFront = await inspectorFront.getNodeActorFromContentDomReference(
       domReference
     );
+    if (!nodeFront) {
+      return;
+    }
+
     // Select the accessible object in the panel and wait for the event that
     // tells us it has been done.
     const a11yPanel = toolbox.getCurrentPanel();
@@ -827,6 +835,40 @@ DevTools.prototype = {
    */
   getToolboxes() {
     return Array.from(this._toolboxes.values());
+  },
+
+  /**
+   * Check if the content from remote frames should be displayed in the toolbox.
+   * This depends both on enabling the dedicated devtools preference as well as
+   * the fission.autostart preference.
+   */
+  isFissionContentToolboxEnabled() {
+    if (typeof this._cachedFissionContentToolboxEnabled === "undefined") {
+      const isContentFissionEnabled = Services.prefs.getBoolPref(
+        CONTENT_FISSION_ENABLED_PREF,
+        false
+      );
+
+      // Checking fission.autostart is not used to check if the current target
+      // is a Fission tab, but only to check if the user is currently dogfooding
+      // Fission.
+      const isFissionEnabled = Services.appinfo.fissionAutostart;
+      this._cachedFissionContentToolboxEnabled =
+        isFissionEnabled && isContentFissionEnabled;
+    }
+    return this._cachedFissionContentToolboxEnabled;
+  },
+
+  /**
+   * Clear the _cachedFissionContentToolboxEnabled reference so next call to
+   * isFissionContentToolboxEnabled will read the preferences values again instead of
+   * relying on the cached value.
+   * ⚠️ This should only be used in tests as it could lead to different
+   * isFissionContentToolboxEnabled results if the preferences are changed while
+   * toolboxes are open ⚠️.
+   */
+  clearIsFissionContentToolboxEnabledReferenceForTest() {
+    delete this._cachedFissionContentToolboxEnabled;
   },
 };
 

@@ -2,6 +2,11 @@ ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm", this);
 
 ChromeUtils.defineModuleGetter(
   this,
+  "AboutNewTab",
+  "resource:///modules/AboutNewTab.jsm"
+);
+ChromeUtils.defineModuleGetter(
+  this,
   "PlacesUtils",
   "resource://gre/modules/PlacesUtils.jsm"
 );
@@ -198,36 +203,6 @@ function popPrefs() {
   return SpecialPowers.popPrefEnv();
 }
 
-function updateBlocklist(aCallback) {
-  var blocklistNotifier = Cc["@mozilla.org/extensions/blocklist;1"].getService(
-    Ci.nsITimerCallback
-  );
-  var observer = function() {
-    Services.obs.removeObserver(observer, "blocklist-updated");
-    SimpleTest.executeSoon(aCallback);
-  };
-  Services.obs.addObserver(observer, "blocklist-updated");
-  blocklistNotifier.notify(null);
-}
-
-var _originalTestBlocklistURL = null;
-function setAndUpdateBlocklist(aURL, aCallback) {
-  if (!_originalTestBlocklistURL) {
-    _originalTestBlocklistURL = Services.prefs.getCharPref(
-      "extensions.blocklist.url"
-    );
-  }
-  Services.prefs.setCharPref("extensions.blocklist.url", aURL);
-  updateBlocklist(aCallback);
-}
-
-function resetBlocklist() {
-  Services.prefs.setCharPref(
-    "extensions.blocklist.url",
-    _originalTestBlocklistURL
-  );
-}
-
 function promiseWindowClosed(win) {
   let promise = BrowserTestUtils.domWindowClosed(win);
   win.close();
@@ -260,7 +235,7 @@ function promiseOpenAndLoadWindow(aOptions, aWaitForDelayedStartup = false) {
 async function whenNewTabLoaded(aWindow, aCallback) {
   aWindow.BrowserOpenTab();
 
-  let expectedURL = aboutNewTabService.newTabURL;
+  let expectedURL = AboutNewTab.newTabURL;
   let browser = aWindow.gBrowser.selectedBrowser;
   let loadPromise = BrowserTestUtils.browserLoaded(browser, false, expectedURL);
   let alreadyLoaded = await SpecialPowers.spawn(browser, [expectedURL], url => {
@@ -282,124 +257,6 @@ function promiseTabLoaded(aTab) {
     whenTabLoaded(aTab, resolve);
   });
 }
-
-var FullZoomHelper = {
-  selectTabAndWaitForLocationChange: function selectTabAndWaitForLocationChange(
-    tab
-  ) {
-    if (!tab) {
-      throw new Error("tab must be given.");
-    }
-    if (gBrowser.selectedTab == tab) {
-      return Promise.resolve();
-    }
-
-    return Promise.all([
-      BrowserTestUtils.switchTab(gBrowser, tab),
-      this.waitForLocationChange(),
-    ]);
-  },
-
-  removeTabAndWaitForLocationChange: function removeTabAndWaitForLocationChange(
-    tab
-  ) {
-    tab = tab || gBrowser.selectedTab;
-    let selected = gBrowser.selectedTab == tab;
-    gBrowser.removeTab(tab);
-    if (selected) {
-      return this.waitForLocationChange();
-    }
-    return Promise.resolve();
-  },
-
-  waitForLocationChange: function waitForLocationChange() {
-    return new Promise(resolve => {
-      Services.obs.addObserver(function obs(subj, topic, data) {
-        Services.obs.removeObserver(obs, topic);
-        resolve();
-      }, "browser-fullZoom:location-change");
-    });
-  },
-
-  load: function load(tab, url) {
-    return new Promise(resolve => {
-      let didLoad = false;
-      let didZoom = false;
-
-      promiseTabLoadEvent(tab).then(event => {
-        didLoad = true;
-        if (didZoom) {
-          resolve();
-        }
-      }, true);
-
-      this.waitForLocationChange().then(function() {
-        didZoom = true;
-        if (didLoad) {
-          resolve();
-        }
-      });
-
-      BrowserTestUtils.loadURI(tab.linkedBrowser, url);
-    });
-  },
-
-  zoomTest: function zoomTest(tab, val, msg) {
-    is(ZoomManager.getZoomForBrowser(tab.linkedBrowser), val, msg);
-  },
-
-  enlarge: function enlarge() {
-    return new Promise(resolve => FullZoom.enlarge(resolve));
-  },
-
-  reduce: function reduce() {
-    return new Promise(resolve => FullZoom.reduce(resolve));
-  },
-
-  reset: function reset() {
-    return FullZoom.reset();
-  },
-
-  BACK: 0,
-  FORWARD: 1,
-  navigate: function navigate(direction) {
-    return new Promise(resolve => {
-      let didPs = false;
-      let didZoom = false;
-
-      BrowserTestUtils.waitForContentEvent(
-        gBrowser.selectedBrowser,
-        "pageshow",
-        true
-      ).then(() => {
-        didPs = true;
-        if (didZoom) {
-          resolve();
-        }
-      });
-
-      if (direction == this.BACK) {
-        gBrowser.goBack();
-      } else if (direction == this.FORWARD) {
-        gBrowser.goForward();
-      }
-
-      this.waitForLocationChange().then(function() {
-        didZoom = true;
-        if (didPs) {
-          resolve();
-        }
-      });
-    });
-  },
-
-  failAndContinue: function failAndContinue(func) {
-    return function(err) {
-      ok(false, err);
-      func();
-    };
-  },
-};
 
 /**
  * Waits for a load (or custom) event to finish in a given tab. If provided

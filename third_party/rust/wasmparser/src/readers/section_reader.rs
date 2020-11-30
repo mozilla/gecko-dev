@@ -13,21 +13,22 @@
  * limitations under the License.
  */
 
-use super::{BinaryReaderError, Result};
+use super::{BinaryReaderError, Range, Result};
 
 pub trait SectionReader {
     type Item;
     fn read(&mut self) -> Result<Self::Item>;
     fn eof(&self) -> bool;
     fn original_position(&self) -> usize;
+    fn range(&self) -> Range;
     fn ensure_end(&self) -> Result<()> {
         if self.eof() {
             return Ok(());
         }
-        Err(BinaryReaderError {
-            message: "Unexpected data at the end of the section",
-            offset: self.original_position(),
-        })
+        Err(BinaryReaderError::new(
+            "Unexpected data at the end of the section",
+            self.original_position(),
+        ))
     }
 }
 

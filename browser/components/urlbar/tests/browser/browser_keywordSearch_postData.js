@@ -5,7 +5,12 @@
 
 var gTests = [
   {
-    name: "normal search (search service)",
+    name: "single word search (search service)",
+    text: "pizza",
+    expectText: "pizza",
+  },
+  {
+    name: "multi word search (search service)",
     text: "test search",
     expectText: "test+search",
   },
@@ -37,7 +42,6 @@ add_task(async function() {
     value => {
       return UrlbarTestUtils.promiseAutocompleteResultPopup({
         window,
-        waitForFocus,
         value,
       });
     },

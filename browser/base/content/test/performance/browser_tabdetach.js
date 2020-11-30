@@ -2,9 +2,9 @@
 
 /**
  * WHOA THERE: We should never be adding new things to EXPECTED_REFLOWS. This
- * is a whitelist that should slowly go away as we improve the performance of
- * the front-end. Instead of adding more reflows to the whitelist, you should
- * be modifying your code to avoid the reflow.
+ * list should slowly go away as we improve the performance of the front-end.
+ * Instead of adding more reflows to the list, you should be modifying your code
+ * to avoid the reflow.
  *
  * See https://developer.mozilla.org/en-US/Firefox/Performance_best_practices_for_Firefox_fe_engineers
  * for tips on how to do that.
@@ -44,7 +44,7 @@ add_task(async function test_detach_not_overflowed() {
   await createTabs(1);
 
   // Make sure we didn't overflow, as expected
-  await BrowserTestUtils.waitForCondition(() => {
+  await TestUtils.waitForCondition(() => {
     return !gBrowser.tabContainer.hasAttribute("overflow");
   });
 
@@ -70,7 +70,7 @@ add_task(async function test_detach_overflowed() {
   await createTabs(TAB_COUNT_FOR_OVERFLOW + 1);
 
   // Make sure we overflowed, as expected
-  await BrowserTestUtils.waitForCondition(() => {
+  await TestUtils.waitForCondition(() => {
     return gBrowser.tabContainer.hasAttribute("overflow");
   });
 

@@ -46,8 +46,8 @@ ChromeUtils.defineModuleGetter(
 );
 ChromeUtils.defineModuleGetter(
   this,
-  "ReaderParent",
-  "resource:///modules/ReaderParent.jsm"
+  "AboutReaderParent",
+  "resource:///actors/AboutReaderParent.jsm"
 );
 ChromeUtils.defineModuleGetter(
   this,
@@ -58,6 +58,16 @@ ChromeUtils.defineModuleGetter(
   this,
   "UpdateUtils",
   "resource://gre/modules/UpdateUtils.jsm"
+);
+ChromeUtils.defineModuleGetter(
+  this,
+  "BrowserUsageTelemetry",
+  "resource:///modules/BrowserUsageTelemetry.jsm"
+);
+ChromeUtils.defineModuleGetter(
+  this,
+  "PanelMultiView",
+  "resource:///modules/PanelMultiView.jsm"
 );
 
 // See LOG_LEVELS in Console.jsm. Common examples: "All", "Info", "Warn", & "Error".
@@ -169,7 +179,7 @@ var UITour = {
         query: aDocument => {
           // The pocket's urlbar page action button is pre-defined in the DOM.
           // It would be hidden if toggled off from the urlbar.
-          let node = aDocument.getElementById("pocket-button-box");
+          let node = aDocument.getElementById("pocket-button");
           if (node && !node.hidden) {
             return node;
           }
@@ -362,6 +372,12 @@ var UITour = {
       }
 
       case "showHighlight": {
+        if (data.target.startsWith("pageAction-")) {
+          // The page action panel is lazily loaded, so we will need to initialize it
+          // and place actions in the panel before showing the highlight for a panel
+          // node.
+          window.BrowserPageActions.initializePanel();
+        }
         let targetPromise = this.getTarget(window, data.target);
         targetPromise
           .then(target => {
@@ -524,19 +540,21 @@ var UITour = {
         Promise.resolve()
           .then(() => {
             return data.email
-              ? FxAccounts.config.promiseEmailURI(data.email, "uitour")
-              : FxAccounts.config.promiseConnectAccountURI("uitour");
+              ? FxAccounts.config.promiseEmailURI(
+                  data.email,
+                  data.entrypoint || "uitour"
+                )
+              : FxAccounts.config.promiseConnectAccountURI(
+                  data.entrypoint || "uitour"
+                );
           })
           .then(uri => {
             const url = new URL(uri);
-            // Call our helper to validate extraURLCampaignParams and populate URLSearchParams
-            if (
-              !this._populateCampaignParams(url, data.extraURLCampaignParams)
-            ) {
+            // Call our helper to validate extraURLParams and populate URLSearchParams
+            if (!this._populateURLParams(url, data.extraURLParams)) {
               log.warn("showFirefoxAccounts: invalid campaign args specified");
               return;
             }
-
             // We want to replace the current tab.
             browser.loadURI(url.href, {
               triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal(
@@ -548,23 +566,25 @@ var UITour = {
       }
 
       case "showConnectAnotherDevice": {
-        FxAccounts.config.promiseConnectDeviceURI("uitour").then(uri => {
-          const url = new URL(uri);
-          // Call our helper to validate extraURLCampaignParams and populate URLSearchParams
-          if (!this._populateCampaignParams(url, data.extraURLCampaignParams)) {
-            log.warn(
-              "showConnectAnotherDevice: invalid campaign args specified"
-            );
-            return;
-          }
+        FxAccounts.config
+          .promiseConnectDeviceURI(data.entrypoint || "uitour")
+          .then(uri => {
+            const url = new URL(uri);
+            // Call our helper to validate extraURLParams and populate URLSearchParams
+            if (!this._populateURLParams(url, data.extraURLParams)) {
+              log.warn(
+                "showConnectAnotherDevice: invalid campaign args specified"
+              );
+              return;
+            }
 
-          // We want to replace the current tab.
-          browser.loadURI(url.href, {
-            triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal(
-              {}
-            ),
+            // We want to replace the current tab.
+            browser.loadURI(url.href, {
+              triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal(
+                {}
+              ),
+            });
           });
-        });
         break;
       }
 
@@ -662,14 +682,14 @@ var UITour = {
       }
 
       case "forceShowReaderIcon": {
-        ReaderParent.forceShowReaderIcon(browser);
+        AboutReaderParent.forceShowReaderIcon(browser);
         break;
       }
 
       case "toggleReaderMode": {
         let targetPromise = this.getTarget(window, "readerMode-urlBar");
         targetPromise.then(target => {
-          ReaderParent.toggleReaderMode({ target: target.node });
+          AboutReaderParent.toggleReaderMode({ target: target.node });
         });
         break;
       }
@@ -779,52 +799,74 @@ var UITour = {
   },
 
   // Given a string that is a JSONified represenation of an object with
-  // additional utm_* URL params that should be appended, validate and append
-  // them to the passed URL object. Returns true if the params
-  // were validated and appended, and false if the request should be ignored.
-  _populateCampaignParams(url, extraURLCampaignParams) {
+  // additional "flow_id", "flow_begin_time", "device_id", utm_* URL params
+  // that should be appended, validate and append them to the passed URL object.
+  // Returns true if the params were validated and appended, and false if the
+  // request should be ignored.
+  _populateURLParams(url, extraURLParams) {
+    const FLOW_ID_LENGTH = 64;
+    const FLOW_BEGIN_TIME_LENGTH = 13;
+
     // We are extra paranoid about what params we allow to be appended.
-    if (typeof extraURLCampaignParams == "undefined") {
+    if (typeof extraURLParams == "undefined") {
       // no params, so it's all good.
       return true;
     }
-    if (typeof extraURLCampaignParams != "string") {
-      log.warn(
-        "_populateCampaignParams: extraURLCampaignParams is not a string"
-      );
+    if (typeof extraURLParams != "string") {
+      log.warn("_populateURLParams: extraURLParams is not a string");
       return false;
     }
-    let campaignParams;
+    let urlParams;
     try {
-      if (extraURLCampaignParams) {
-        campaignParams = JSON.parse(extraURLCampaignParams);
-        if (typeof campaignParams != "object") {
+      if (extraURLParams) {
+        urlParams = JSON.parse(extraURLParams);
+        if (typeof urlParams != "object") {
           log.warn(
-            "_populateCampaignParams: extraURLCampaignParams is not a stringified object"
+            "_populateURLParams: extraURLParams is not a stringified object"
           );
           return false;
         }
       }
     } catch (ex) {
-      log.warn(
-        "_populateCampaignParams: extraURLCampaignParams is not a JSON object"
-      );
+      log.warn("_populateURLParams: extraURLParams is not a JSON object");
       return false;
     }
-    if (campaignParams) {
+    if (urlParams) {
+      // Expected to JSON parse the following for FxA flow parameters:
+      //
+      // {String} flow_id - Flow Id, such as '5445b28b8b7ba6cf71e345f8fff4bc59b2a514f78f3e2cc99b696449427fd445'
+      // {Number} flow_begin_time - Flow begin timestamp, such as 1590780440325
+      // {String} device_id - Device Id, such as '7e450f3337d3479b8582ea1c9bb5ba6c'
+      if (
+        (urlParams.flow_begin_time &&
+          urlParams.flow_begin_time.toString().length !==
+            FLOW_BEGIN_TIME_LENGTH) ||
+        (urlParams.flow_id && urlParams.flow_id.length !== FLOW_ID_LENGTH)
+      ) {
+        log.warn(
+          "_populateURLParams: flow parameters are not properly structured"
+        );
+        return false;
+      }
+
       // The regex that the name of each param must match - there's no
       // character restriction on the value - they will be escaped as necessary.
       let reSimpleString = /^[-_a-zA-Z0-9]*$/;
-      for (let name in campaignParams) {
-        let value = campaignParams[name];
+      for (let name in urlParams) {
+        let value = urlParams[name];
+        const validName =
+          name.startsWith("utm_") ||
+          name === "entrypoint_experiment" ||
+          name === "entrypoint_variation" ||
+          name === "flow_begin_time" ||
+          name === "flow_id" ||
+          name === "device_id";
         if (
           typeof name != "string" ||
-          typeof value != "string" ||
-          !name.startsWith("utm_") ||
-          !value.length ||
+          !validName ||
           !reSimpleString.test(name)
         ) {
-          log.warn("_populateCampaignParams: invalid campaign param specified");
+          log.warn("_populateURLParams: invalid campaign param specified");
           return false;
         }
         url.searchParams.append(name, value);
@@ -832,7 +874,6 @@ var UITour = {
     }
     return true;
   },
-
   /**
    * Tear down a tour from a tab e.g. upon switching/closing tabs.
    */
@@ -980,7 +1021,12 @@ var UITour = {
               node = null;
             }
           } else {
-            node = aWindow.document.querySelector(targetQuery);
+            let viewCacheTemplate = aWindow.document.getElementById(
+              "appMenu-viewCache"
+            );
+            node =
+              aWindow.document.querySelector(targetQuery) ||
+              viewCacheTemplate.content.querySelector(targetQuery);
           }
 
           resolve({
@@ -1003,9 +1049,10 @@ var UITour = {
     let targetElement = aTarget.node;
     // Use the widget for filtering if it exists since the target may be the icon inside.
     if (aTarget.widgetName) {
-      targetElement = aTarget.node.ownerDocument.getElementById(
-        aTarget.widgetName
-      );
+      let doc = aTarget.node.ownerGlobal.document;
+      targetElement =
+        doc.getElementById(aTarget.widgetName) ||
+        PanelMultiView.getViewNode(doc, aTarget.widgetName);
     }
 
     return targetElement.id.startsWith("appMenu-");
@@ -1165,9 +1212,7 @@ var UITour = {
    */
   async showHighlight(aChromeWindow, aTarget, aEffect = "none", aOptions = {}) {
     let showHighlightElement = aAnchorEl => {
-      let highlighter = aChromeWindow.document.getElementById(
-        "UITourHighlight"
-      );
+      let highlighter = this.getHighlightAndMaybeCreate(aChromeWindow.document);
 
       let effect = aEffect;
       if (effect == "random") {
@@ -1254,7 +1299,7 @@ var UITour = {
   },
 
   _hideHighlightElement(aWindow) {
-    let highlighter = aWindow.document.getElementById("UITourHighlight");
+    let highlighter = this.getHighlightAndMaybeCreate(aWindow.document);
     this._removeAnnotationPanelMutationObserver(highlighter.parentElement);
     highlighter.parentElement.hidePopup();
     highlighter.removeAttribute("active");
@@ -1292,7 +1337,7 @@ var UITour = {
       aAnchorEl.focus();
 
       let document = aChromeWindow.document;
-      let tooltip = document.getElementById("UITourTooltip");
+      let tooltip = this.getTooltipAndMaybeCreate(document);
       let tooltipTitle = document.getElementById("UITourTooltipTitle");
       let tooltipDesc = document.getElementById("UITourTooltipDescription");
       let tooltipIcon = document.getElementById("UITourTooltipIcon");
@@ -1375,7 +1420,7 @@ var UITour = {
       );
 
       tooltip.setAttribute("targetName", aAnchor.targetName);
-      tooltip.hidden = false;
+
       let alignment = "bottomcenter topright";
       if (aAnchor.infoPanelPosition) {
         alignment = aAnchor.infoPanelPosition;
@@ -1405,9 +1450,42 @@ var UITour = {
     }
   },
 
+  getHighlightContainerAndMaybeCreate(document) {
+    let highlightContainer = document.getElementById(
+      "UITourHighlightContainer"
+    );
+    if (!highlightContainer) {
+      let wrapper = document.getElementById("UITourHighlightTemplate");
+      wrapper.replaceWith(wrapper.content);
+      highlightContainer = document.getElementById("UITourHighlightContainer");
+    }
+
+    return highlightContainer;
+  },
+
+  getTooltipAndMaybeCreate(document) {
+    let tooltip = document.getElementById("UITourTooltip");
+    if (!tooltip) {
+      let wrapper = document.getElementById("UITourTooltipTemplate");
+      wrapper.replaceWith(wrapper.content);
+      tooltip = document.getElementById("UITourTooltip");
+    }
+    return tooltip;
+  },
+
+  getHighlightAndMaybeCreate(document) {
+    let highlight = document.getElementById("UITourHighlight");
+    if (!highlight) {
+      let wrapper = document.getElementById("UITourHighlightTemplate");
+      wrapper.replaceWith(wrapper.content);
+      highlight = document.getElementById("UITourHighlight");
+    }
+    return highlight;
+  },
+
   isInfoOnTarget(aChromeWindow, aTargetName) {
     let document = aChromeWindow.document;
-    let tooltip = document.getElementById("UITourTooltip");
+    let tooltip = this.getTooltipAndMaybeCreate(document);
     return (
       tooltip.getAttribute("targetName") == aTargetName &&
       tooltip.state != "closed"
@@ -1416,7 +1494,7 @@ var UITour = {
 
   _hideInfoElement(aWindow) {
     let document = aWindow.document;
-    let tooltip = document.getElementById("UITourTooltip");
+    let tooltip = this.getTooltipAndMaybeCreate(document);
     this._removeAnnotationPanelMutationObserver(tooltip);
     tooltip.hidePopup();
     let tooltipButtons = document.getElementById("UITourTooltipButtons");
@@ -1567,10 +1645,10 @@ var UITour = {
     let annotationElements = new Map([
       // [annotationElement (panel), method to hide the annotation]
       [
-        win.document.getElementById("UITourHighlightContainer"),
+        this.getHighlightContainerAndMaybeCreate(win.document),
         hideHighlightMethod,
       ],
-      [win.document.getElementById("UITourTooltip"), hideInfoMethod],
+      [this.getTooltipAndMaybeCreate(win.document), hideInfoMethod],
     ]);
     annotationElements.forEach((hideMethod, annotationElement) => {
       if (annotationElement.state != "closed") {
@@ -1955,6 +2033,11 @@ var UITour = {
     CustomizableUI.addWidgetToArea(
       aTarget.widgetName,
       CustomizableUI.AREA_NAVBAR
+    );
+    BrowserUsageTelemetry.recordWidgetChange(
+      aTarget.widgetName,
+      CustomizableUI.AREA_NAVBAR,
+      "uitour"
     );
     this.sendPageCallback(aBrowser, aCallbackID);
   },

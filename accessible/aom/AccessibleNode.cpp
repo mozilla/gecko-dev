@@ -82,17 +82,17 @@ void AccessibleNode::GetComputedRole(nsAString& aRole) {
 void AccessibleNode::GetStates(nsTArray<nsString>& aStates) {
   nsAccessibilityService* accService = GetOrCreateAccService();
   if (!mIntl || !accService) {
-    aStates.AppendElement(NS_LITERAL_STRING("defunct"));
+    aStates.AppendElement(u"defunct"_ns);
     return;
   }
 
   if (mStates) {
-    aStates = mStates->StringArray();
+    aStates = mStates->StringArray().Clone();
     return;
   }
 
   mStates = accService->GetStringStates(mIntl->State());
-  aStates = mStates->StringArray();
+  aStates = mStates->StringArray().Clone();
 }
 
 void AccessibleNode::GetAttributes(nsTArray<nsString>& aAttributes) {

@@ -22,6 +22,8 @@
 #include "mozilla/MemoryReporting.h"
 
 #include "jit/MacroAssembler.h"
+#include "threading/ProtectedData.h"
+#include "vm/HelperThreadTask.h"
 #include "wasm/WasmCompile.h"
 #include "wasm/WasmModule.h"
 #include "wasm/WasmValidate.h"
@@ -53,6 +55,15 @@ struct FuncCompileInput {
 
 typedef Vector<FuncCompileInput, 8, SystemAllocPolicy> FuncCompileInputVector;
 
+void CraneliftFreeReusableData(void* ptr);
+
+struct CraneliftReusableDataDtor {
+  void operator()(void* ptr) { CraneliftFreeReusableData(ptr); }
+};
+
+using CraneliftReusableData =
+    mozilla::UniquePtr<void*, CraneliftReusableDataDtor>;
+
 // CompiledCode contains the resulting code and metadata for a set of compiled
 // input functions or stubs.
 
@@ -65,8 +76,11 @@ struct CompiledCode {
   SymbolicAccessVector symbolicAccesses;
   jit::CodeLabelVector codeLabels;
   StackMaps stackMaps;
+  CraneliftReusableData craneliftReusableData;
 
   MOZ_MUST_USE bool swap(jit::MacroAssembler& masm);
+  MOZ_MUST_USE bool swapCranelift(jit::MacroAssembler& masm,
+                                  CraneliftReusableData& craneliftData);
 
   void clear() {
     bytes.clear();
@@ -77,6 +91,7 @@ struct CompiledCode {
     symbolicAccesses.clear();
     codeLabels.clear();
     stackMaps.clear();
+    // The cranelift reusable data resets itself lazily.
     MOZ_ASSERT(empty());
   }
 
@@ -95,38 +110,50 @@ struct CompiledCode {
 // 'numFailed'.
 
 struct CompileTaskState {
-  CompileTaskPtrVector finished;
-  uint32_t numFailed;
-  UniqueChars errorMessage;
+  HelperThreadLockData<CompileTaskPtrVector> finished_;
+  HelperThreadLockData<uint32_t> numFailed_;
+  HelperThreadLockData<UniqueChars> errorMessage_;
+  HelperThreadLockData<ConditionVariable> condVar_;
 
-  CompileTaskState() : numFailed(0) {}
+  CompileTaskState() : numFailed_(0) {}
   ~CompileTaskState() {
-    MOZ_ASSERT(finished.empty());
-    MOZ_ASSERT(!numFailed);
+    MOZ_ASSERT(finished_.refNoCheck().empty());
+    MOZ_ASSERT(!numFailed_.refNoCheck());
   }
-};
 
-using ExclusiveCompileTaskState = ExclusiveWaitableData<CompileTaskState>;
+  CompileTaskPtrVector& finished() { return finished_.ref(); }
+  uint32_t& numFailed() { return numFailed_.ref(); }
+  UniqueChars& errorMessage() { return errorMessage_.ref(); }
+  ConditionVariable& condVar() { return condVar_.ref(); }
+};
 
 // A CompileTask holds a batch of input functions that are to be compiled on a
 // helper thread as well as, eventually, the results of compilation.
 
-struct CompileTask : public RunnableTask {
-  const ModuleEnvironment& env;
-  ExclusiveCompileTaskState& state;
+struct CompileTask : public HelperThreadTask {
+  const ModuleEnvironment& moduleEnv;
+  const CompilerEnvironment& compilerEnv;
+
+  CompileTaskState& state;
   LifoAlloc lifo;
   FuncCompileInputVector inputs;
   CompiledCode output;
+  JSTelemetrySender telemetrySender;
 
-  CompileTask(const ModuleEnvironment& env, ExclusiveCompileTaskState& state,
-              size_t defaultChunkSize)
-      : env(env), state(state), lifo(defaultChunkSize) {}
+  CompileTask(const ModuleEnvironment& moduleEnv,
+              const CompilerEnvironment& compilerEnv, CompileTaskState& state,
+              size_t defaultChunkSize, JSTelemetrySender telemetrySender)
+      : moduleEnv(moduleEnv),
+        compilerEnv(compilerEnv),
+        state(state),
+        lifo(defaultChunkSize),
+        telemetrySender(telemetrySender) {}
 
-  virtual ~CompileTask(){};
+  virtual ~CompileTask() = default;
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
-  void runTask() override;
+  void runHelperThreadTask(AutoLockHelperThreadState& locked) override;
   ThreadType threadType() override { return ThreadType::THREAD_TYPE_WASM; }
 };
 
@@ -150,7 +177,9 @@ class MOZ_STACK_CLASS ModuleGenerator {
   SharedCompileArgs const compileArgs_;
   UniqueChars* const error_;
   const Atomic<bool>* const cancelled_;
-  ModuleEnvironment* const env_;
+  ModuleEnvironment* const moduleEnv_;
+  CompilerEnvironment* const compilerEnv_;
+  JSTelemetrySender telemetrySender_;
 
   // Data that is moved into the result of finish()
   UniqueLinkData linkData_;
@@ -158,7 +187,7 @@ class MOZ_STACK_CLASS ModuleGenerator {
   MutableMetadata metadata_;
 
   // Data scoped to the ModuleGenerator's lifetime
-  ExclusiveCompileTaskState taskState_;
+  CompileTaskState taskState_;
   LifoAlloc lifo_;
   jit::JitContext jcx_;
   jit::TempAllocator masmAlloc_;
@@ -199,16 +228,19 @@ class MOZ_STACK_CLASS ModuleGenerator {
   UniqueCodeTier finishCodeTier();
   SharedMetadata finishMetadata(const Bytes& bytecode);
 
-  bool isAsmJS() const { return env_->isAsmJS(); }
-  Tier tier() const { return env_->tier(); }
-  CompileMode mode() const { return env_->mode(); }
-  bool debugEnabled() const { return env_->debugEnabled(); }
+  bool isAsmJS() const { return moduleEnv_->isAsmJS(); }
+  Tier tier() const { return compilerEnv_->tier(); }
+  CompileMode mode() const { return compilerEnv_->mode(); }
+  bool debugEnabled() const { return compilerEnv_->debugEnabled(); }
 
  public:
-  ModuleGenerator(const CompileArgs& args, ModuleEnvironment* env,
+  ModuleGenerator(const CompileArgs& args, ModuleEnvironment* moduleEnv,
+                  CompilerEnvironment* compilerEnv,
                   const Atomic<bool>* cancelled, UniqueChars* error);
   ~ModuleGenerator();
-  MOZ_MUST_USE bool init(Metadata* maybeAsmJSMetadata = nullptr);
+  MOZ_MUST_USE bool init(
+      Metadata* maybeAsmJSMetadata = nullptr,
+      JSTelemetrySender telemetrySender = JSTelemetrySender());
 
   // Before finishFuncDefs() is called, compileFuncDef() must be called once
   // for each funcIndex in the range [0, env->numFuncDefs()).

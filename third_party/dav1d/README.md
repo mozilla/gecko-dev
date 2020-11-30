@@ -1,4 +1,4 @@
-![dav1d logo](dav1d_logo.png)
+![dav1d logo](doc/dav1d_logo.png)
 
 # dav1d
 
@@ -24,23 +24,27 @@ The reasoning behind this decision is the same as for libvorbis, see [RMS on vor
 
 # Roadmap
 
-The plan is the folllowing:
+The plan is the following:
 
 ### Reached
 1. Complete C implementation of the decoder,
 2. Provide a usable API,
 3. Port to most platforms,
-4. Make it fast on desktop, by writing asm for AVX-2 chips.
+4. Make it fast on desktop, by writing asm for AVX2 chips.
 5. Make it fast on mobile, by writing asm for ARMv8 chips,
-6. Make it fast on older desktop, by writing asm for SSSE3+ chips.
+6. Make it fast on older desktop, by writing asm for SSSE3+ chips,
+7. Make high bit-depth fast on mobile, by writing asm for ARMv8 chips.
 
 ### On-going
-7. Make it fast on older mobiles, by writing asm for ARMv7 chips,
-8. Improve C code base with [various tweaks](https://code.videolan.org/videolan/dav1d/wikis/task-list),
-9. Accelerate for less common architectures, like PPC, SSE2 or AVX-512.
+8. Make it fast on older mobile, by writing asm for ARMv7 chips,
+9. Make high bit-depth fast on older mobile, by writing asm for ARMv7 chips,
+10. Improve C code base with [various tweaks](https://code.videolan.org/videolan/dav1d/wikis/task-list),
+11. Accelerate for less common architectures, like PPC, SSE2 or AVX-512.
 
 ### After
-10. Use more GPU, when possible.
+12. Make high bit-depth fast on desktop, by writing asm for AVX2 chips,
+13. Make high bit-depth fast on older desktop, by writing asm for SSSE3+ chips,
+14. Use more GPU, when possible.
 
 # Contribute
 
@@ -73,10 +77,32 @@ The [VideoLAN Code of Conduct](https://wiki.videolan.org/CoC) applies to this pr
 
 # Compile
 
-1. Install [Meson](https://mesonbuild.com/) (0.47 or higher), [Ninja](https://ninja-build.org/), and, for x86\* targets, [nasm](https://nasm.us/) (2.13.02 or higher)
+1. Install [Meson](https://mesonbuild.com/) (0.47 or higher), [Ninja](https://ninja-build.org/), and, for x86\* targets, [nasm](https://nasm.us/) (2.14 or higher)
 2. Run `mkdir build && cd build` to create a build directory and enter it
 3. Run `meson ..` to configure meson, add `--default-library=static` if static linking is desired
 4. Run `ninja` to compile
+
+## Cross-Compilation for 32- or 64-bit Windows, 32-bit Linux
+
+If you're on a linux build machine trying to compile .exe for a Windows target/host machine, run
+
+```
+meson build --cross-file=package/crossfiles/x86_64-w64-mingw32.meson
+```
+
+or, for 32-bit:
+
+```
+meson build --cross-file=package/crossfiles/i686-w64-mingw32.meson
+```
+
+`mingw-w64` is a pre-requisite and should be installed on your linux machine via your preferred method or package manager. Note the binary name formats may differ between distributions. Verify the names, and use `alias` if certain binaries cannot be found.
+
+For 32-bit linux, run
+
+```
+meson build --cross-file=package/crossfiles/i686-linux32.meson
+```
 
 # Run tests
 
@@ -108,7 +134,7 @@ We think that an implementation written from scratch can achieve faster decoding
 
 ## I am not a developer. Can I help?
 
-- Yes. We need testers, bug reporters, and documentation writers.
+- Yes. We need testers, bug reporters and documentation writers.
 
 ## What about the AV1 patent license?
 
@@ -120,3 +146,5 @@ Please read the [AV1 patent license](doc/PATENTS) that applies to the AV1 specif
 
 - We do, but we don't have either the time or the knowledge. Therefore, patches and contributions welcome.
 
+## Where can I find documentation?
+- The current library documentation, built from master, can be found [here](https://videolan.videolan.me/dav1d/).

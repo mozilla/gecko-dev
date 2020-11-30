@@ -4,7 +4,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 include protocol PContent;
-include protocol PSHEntry;
 include protocol PWebBrowserPersistResources;
 include protocol PWebBrowserPersistSerialize;
 include protocol PFileDescriptorSet;
@@ -17,11 +16,6 @@ include IPCStream;
 using refcounted class nsIReferrerInfo from "mozilla/dom/ReferrerInfoUtils.h";
 
 namespace mozilla {
-
-union SessionHistoryEntryOrCacheKey {
-  nullable PSHEntry;
-  uint32_t;
-};
 
 // nsIWebBrowserPersistDocument has attributes which can be read
 // synchronously.  To avoid using sync IPC for them, the actor sends
@@ -36,7 +30,7 @@ struct WebBrowserPersistDocumentAttrs {
   nsString title;
   nsIReferrerInfo referrerInfo;
   nsString contentDisposition;
-  SessionHistoryEntryOrCacheKey sessionHistoryEntryOrCacheKey;
+  uint32_t sessionHistoryCacheKey;
   uint32_t persistFlags;
   PrincipalInfo principal;
 };

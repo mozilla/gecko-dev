@@ -25,7 +25,7 @@ var TabModalPrompt = class {
     newPrompt.appendChild(
       win.MozXULElement.parseXULToFragment(
         `
-      <spacer flex="1"/>
+      <spacer class="spacer-top" flex="1"/>
         <hbox pack="center">
           <vbox class="tabmodalprompt-mainContainer">
             <grid class="tabmodalprompt-topContainer" flex="1">
@@ -217,6 +217,13 @@ var TabModalPrompt = class {
       );
     }
 
+    // Apply styling depending on modalType (content or tab prompt)
+    if (args.modalType === Ci.nsIPrompt.MODAL_TYPE_TAB) {
+      this.element.classList.add("tab-prompt");
+    } else {
+      this.element.classList.add("content-prompt");
+    }
+
     // We need to remove the prompt when the tab or browser window is closed or
     // the page navigates, else we never unwind the event loop and that's sad times.
     // Remember to cleanup in shutdownPrompt()!
@@ -235,9 +242,12 @@ var TabModalPrompt = class {
     this.Dialog = new tmp.CommonDialog(args, this.ui);
     this.Dialog.onLoad(null);
 
-    // Display the tabprompt title that shows the prompt origin when
+    // For content prompts display the tabprompt title that shows the prompt origin when
     // the prompt origin is not the same as that of the top window.
-    if (!args.showAlertOrigin) {
+    if (
+      args.modalType == Ci.nsIPrompt.MODAL_TYPE_CONTENT &&
+      args.showCallerOrigin
+    ) {
       this.ui.infoTitle.removeAttribute("hidden");
     }
 

@@ -7,12 +7,15 @@
 #ifndef MOZILLA_GFX_BUFFERCLIENT_H
 #define MOZILLA_GFX_BUFFERCLIENT_H
 
-#include <stdint.h>              // for uint64_t
-#include <vector>                // for vector
-#include <map>                   // for map
+#include <stdint.h>  // for uint64_t
+
+#include <map>     // for map
+#include <vector>  // for vector
+
 #include "mozilla/Assertions.h"  // for MOZ_CRASH
-#include "mozilla/RefPtr.h"      // for already_AddRefed, RefCounted
-#include "mozilla/gfx/Types.h"   // for SurfaceFormat
+#include "mozilla/DataMutex.h"
+#include "mozilla/RefPtr.h"     // for already_AddRefed, RefCounted
+#include "mozilla/gfx/Types.h"  // for SurfaceFormat
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/LayersTypes.h"    // for LayersBackend, TextureDumpMode
 #include "mozilla/layers/TextureClient.h"  // for TextureClient
@@ -157,8 +160,7 @@ class CompositableClient {
    *
    * See AutoRemoveTexture to automatically invoke this at the end of a scope.
    */
-  virtual void RemoveTexture(TextureClient* aTexture,
-                             const Maybe<wr::RenderRoot>& aRenderRoot);
+  virtual void RemoveTexture(TextureClient* aTexture);
 
   void InitIPDL(const CompositableHandle& aHandle);
 
@@ -166,7 +168,10 @@ class CompositableClient {
 
   TextureClientRecycleAllocator* GetTextureClientRecycler();
 
-  bool HasTextureClientRecycler() { return !!mTextureClientRecycler; }
+  bool HasTextureClientRecycler() {
+    auto lock = mTextureClientRecycler.Lock();
+    return !!(*lock);
+  }
 
   static void DumpTextureClient(std::stringstream& aStream,
                                 TextureClient* aTexture,
@@ -176,9 +181,10 @@ class CompositableClient {
   RefPtr<CompositableForwarder> mForwarder;
   // Some layers may want to enforce some flags to all their textures
   // (like disallowing tiling)
-  TextureFlags mTextureFlags;
-  RefPtr<TextureClientRecycleAllocator> mTextureClientRecycler;
+  Atomic<TextureFlags> mTextureFlags;
+  DataMutex<RefPtr<TextureClientRecycleAllocator>> mTextureClientRecycler;
 
+  // Only ever accessed via mTextureClientRecycler's Lock
   CompositableHandle mHandle;
   bool mIsAsync;
 
@@ -189,12 +195,9 @@ class CompositableClient {
  * Helper to call RemoveTexture at the end of a scope.
  */
 struct AutoRemoveTexture {
-  AutoRemoveTexture(CompositableClient* aCompositable,
-                    wr::RenderRoot aRenderRoot,
-                    TextureClient* aTexture = nullptr)
-      : mTexture(aTexture),
-        mCompositable(aCompositable),
-        mRenderRoot(aRenderRoot) {}
+  explicit AutoRemoveTexture(CompositableClient* aCompositable,
+                             TextureClient* aTexture = nullptr)
+      : mTexture(aTexture), mCompositable(aCompositable) {}
 
   ~AutoRemoveTexture();
 
@@ -202,7 +205,6 @@ struct AutoRemoveTexture {
 
  private:
   CompositableClient* mCompositable;
-  wr::RenderRoot mRenderRoot;
 };
 
 }  // namespace layers

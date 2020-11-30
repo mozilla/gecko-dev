@@ -51,6 +51,10 @@ enum EmojiPresentation { TextOnly = 0, TextDefault = 1, EmojiDefault = 2 };
 const uint32_t kVariationSelector15 = 0xFE0E;  // text presentation
 const uint32_t kVariationSelector16 = 0xFE0F;  // emoji presentation
 
+// Unicode values for EMOJI MODIFIER FITZPATRICK TYPE-*
+const uint32_t kEmojiSkinToneFirst = 0x1f3fb;
+const uint32_t kEmojiSkinToneLast = 0x1f3ff;
+
 extern const hb_unicode_general_category_t sICUtoHBcategory[];
 
 inline uint32_t GetMirroredChar(uint32_t aCh) { return u_charMirror(aCh); }
@@ -125,6 +129,12 @@ inline uint32_t GetTitlecaseForAll(
 }
 
 inline uint32_t GetFoldedcase(uint32_t aCh) {
+  // Handle dotted capital I and dotless small i specially because we want to
+  // use a combination of ordinary case-folding rules and Turkish case-folding
+  // rules.
+  if (aCh == 0x0130 || aCh == 0x0131) {
+    return 'i';
+  }
   return u_foldCase(aCh, U_FOLD_CASE_DEFAULT);
 }
 
@@ -234,8 +244,15 @@ uint32_t CountGraphemeClusters(const char16_t* aText, uint32_t aLength);
 // European accents and Hebrew niqqud, but not Hangul components or Thaana
 // vowels, even though Thaana vowels are combining nonspacing marks that could
 // be considered diacritics.
+// As an exception to strictly following Unicode properties, we exclude the
+// Japanese kana voicing marks
+//   3099;COMBINING KATAKANA-HIRAGANA VOICED SOUND MARK;Mn;8;NSM
+//   309A;COMBINING KATAKANA-HIRAGANA SEMI-VOICED SOUND MARK;Mn;8;NSM
+// which users report should not be ignored (bug 1624244).
 inline bool IsCombiningDiacritic(uint32_t aCh) {
-  return u_getCombiningClass(aCh) != 0;
+  uint8_t cc = u_getCombiningClass(aCh);
+  return cc != HB_UNICODE_COMBINING_CLASS_NOT_REORDERED &&
+         cc != HB_UNICODE_COMBINING_CLASS_KANA_VOICING;
 }
 
 // Remove diacritics from a character

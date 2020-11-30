@@ -6,12 +6,8 @@ package org.mozilla.geckoview.test
 
 import android.app.ActivityManager
 import android.content.Context
-import android.graphics.Matrix
 import android.graphics.SurfaceTexture
 import android.net.Uri
-import android.os.Build
-import android.os.Bundle
-import android.os.LocaleList
 import android.os.Process
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate.LoadRequest
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.AssertCalled
@@ -19,16 +15,10 @@ import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.IgnoreCrash
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.WithDisplay
 import org.mozilla.geckoview.test.util.Callbacks
 
-import android.support.annotation.AnyThread
+import androidx.annotation.AnyThread
 import androidx.test.filters.MediumTest
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import android.util.Pair
-import android.util.SparseArray
 import android.view.Surface
-import android.view.View
-import android.view.ViewStructure
-import android.view.autofill.AutofillId
-import android.view.autofill.AutofillValue
 import org.hamcrest.Matchers.*
 import org.json.JSONObject
 import org.junit.Assume.assumeThat
@@ -36,7 +26,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.gecko.GeckoAppShell
 import org.mozilla.geckoview.*
-import org.mozilla.geckoview.test.rule.GeckoSessionTestRule
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.NullDelegate
 
 
@@ -58,14 +47,14 @@ class ContentDelegateTest : BaseSessionTest() {
     @Test fun download() {
         // disable test on pgo for frequently failing Bug 1543355
         assumeThat(sessionRule.env.isDebugBuild, equalTo(true))
+
+        val executor = GeckoWebExecutor(sessionRule.runtime)
         sessionRule.session.loadTestPath(DOWNLOAD_HTML_PATH)
 
         sessionRule.waitUntilCalled(object : Callbacks.NavigationDelegate, Callbacks.ContentDelegate {
 
             @AssertCalled(count = 2)
-            override fun onLoadRequest(session: GeckoSession,
-                                       request: LoadRequest):
-                                       GeckoResult<AllowOrDeny>? {
+            override fun onLoadRequest(session: GeckoSession, request: LoadRequest): GeckoResult<AllowOrDeny>? {
                 return null
             }
 
@@ -76,10 +65,46 @@ class ContentDelegateTest : BaseSessionTest() {
 
             @AssertCalled(count = 1)
             override fun onExternalResponse(session: GeckoSession, response: GeckoSession.WebResponseInfo) {
-                assertThat("Uri should start with data:", response.uri, startsWith("data:"))
+                assertThat("Uri should start with data:", response.uri, startsWith("blob:"))
                 assertThat("Content type should match", response.contentType, equalTo("text/plain"))
                 assertThat("Content length should be non-zero", response.contentLength, greaterThan(0L))
                 assertThat("Filename should match", response.filename, equalTo("download.txt"))
+
+                val req = WebRequest.Builder(response.uri).addHeader("Accept", "text/plain").build()
+
+                val res = sessionRule.waitForResult(executor.fetch(req))
+                assertThat("We should download the thing", String(res.body?.readBytes()!!), equalTo("Downloaded Data"))
+            }
+        })
+    }
+
+    @Test fun downloadOneRequest() {
+        // disable test on pgo for frequently failing Bug 1543355
+        assumeThat(sessionRule.env.isDebugBuild, equalTo(true))
+
+        sessionRule.session.loadTestPath(DOWNLOAD_HTML_PATH)
+
+        sessionRule.waitUntilCalled(object : Callbacks.NavigationDelegate, Callbacks.ContentDelegate {
+
+            @AssertCalled(count = 2)
+            override fun onLoadRequest(session: GeckoSession, request: LoadRequest): GeckoResult<AllowOrDeny>? {
+                return null
+            }
+
+            @AssertCalled(false)
+            override fun onNewSession(session: GeckoSession, uri: String): GeckoResult<GeckoSession>? {
+                return null
+            }
+
+            @AssertCalled(count = 1)
+            override fun onExternalResponse(session: GeckoSession, response: WebResponse) {
+                assertThat("Uri should start with data:", response.uri, startsWith("blob:"))
+                assertThat("We should download the thing", String(response.body?.readBytes()!!), equalTo("Downloaded Data"))
+                // The headers below are special headers that we try to get for responses of any kind (http, blob, etc.)
+                // Note the case of the header keys. In the WebResponse object, all of them are lower case.
+                assertThat("Content type should match", response.headers.get("content-type"), equalTo("text/plain"))
+                assertThat("Content length should be non-zero", response.headers.get("Content-Length")!!.toLong(), greaterThan(0L))
+                assertThat("Filename should match", response.headers.get("cONTent-diSPOsiTion"), equalTo("attachment; filename=\"download.txt\""))
             }
         })
     }
@@ -131,54 +156,13 @@ class ContentDelegateTest : BaseSessionTest() {
         mainSession.waitForPageStop()
     }
 
-    @IgnoreCrash
-    @Test fun crashContentMultipleSessions() {
-        // This test doesn't make sense without multiprocess
-        assumeThat(sessionRule.env.isMultiprocess, equalTo(true))
-
-        // XXX we need to make sure all sessions in a given content process receive onCrash().
-        // If we add multiple content processes, this test will need to be fixed to ensure the
-        // test sessions go into the same one.
-        val newSession = sessionRule.createOpenSession()
-
-        // We can inadvertently catch the `onCrash` call for the cached session if we don't specify
-        // individual sessions here. Therefore, assert 'onCrash' is called for the two sessions
-        // individually.
-        val mainSessionCrash = GeckoResult<Void>()
-        val newSessionCrash = GeckoResult<Void>()
-        sessionRule.delegateUntilTestEnd(object : Callbacks.ContentDelegate {
-            fun reportCrash(session: GeckoSession) {
-                if (session == mainSession) {
-                    mainSessionCrash.complete(null)
-                } else if (session == newSession) {
-                    newSessionCrash.complete(null)
-                }
-            }
-            // Slower devices may not catch crashes in a timely manner, so we check to see
-            // if either `onKill` or `onCrash` is called
-            override fun onCrash(session: GeckoSession) {
-                reportCrash(session)
-            }
-            override fun onKill(session: GeckoSession) {
-                reportCrash(session)
-            }
-        })
-
-        newSession.loadTestPath(HELLO_HTML_PATH)
-        newSession.waitForPageStop()
-
-        mainSession.loadUri(CONTENT_CRASH_URL)
-
-        sessionRule.waitForResult(newSessionCrash)
-        sessionRule.waitForResult(mainSessionCrash)
-    }
-
     @AnyThread
-    fun killContentProcess() {
+    fun killAllContentProcesses() {
         val context = GeckoAppShell.getApplicationContext()
         val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val expr = ".*:tab\\d+$".toRegex()
         for (info in manager.runningAppProcesses) {
-            if (info.processName.endsWith(":tab")) {
+            if (info.processName.matches(expr)) {
                 Process.killProcess(info.pid)
             }
         }
@@ -187,10 +171,8 @@ class ContentDelegateTest : BaseSessionTest() {
     @IgnoreCrash
     @Test fun killContent() {
         assumeThat(sessionRule.env.isMultiprocess, equalTo(true))
-        assumeThat(sessionRule.env.isDebugBuild && sessionRule.env.isX86,
-                equalTo(false))
 
-        killContentProcess()
+        killAllContentProcesses()
         mainSession.waitUntilCalled(object : Callbacks.ContentDelegate {
             @AssertCalled(count = 1)
             override fun onKill(session: GeckoSession) {
@@ -209,37 +191,18 @@ class ContentDelegateTest : BaseSessionTest() {
         })
     }
 
-    @IgnoreCrash
-    @Test fun killContentMultipleSessions() {
-        assumeThat(sessionRule.env.isMultiprocess, equalTo(true))
-        assumeThat(sessionRule.env.isDebugBuild && sessionRule.env.isX86,
-                equalTo(false))
-
-        val newSession = sessionRule.createOpenSession()
-        killContentProcess()
-
-        val remainingSessions = mutableListOf(newSession, mainSession)
-        while (remainingSessions.isNotEmpty()) {
-            sessionRule.waitUntilCalled(object : Callbacks.ContentDelegate {
-                @AssertCalled(count = 1)
-                override fun onKill(session: GeckoSession) {
-                    remainingSessions.remove(session)
-                }
-            })
-        }
-    }
-
     private fun goFullscreen() {
         sessionRule.setPrefsUntilTestEnd(mapOf("full-screen-api.allow-trusted-requests-only" to false))
         mainSession.loadTestPath(FULLSCREEN_PATH)
         mainSession.waitForPageStop()
-        mainSession.evaluateJS("document.querySelector('#fullscreen').requestFullscreen(); true")
+        val promise = mainSession.evaluatePromiseJS("document.querySelector('#fullscreen').requestFullscreen()")
         sessionRule.waitUntilCalled(object : Callbacks.ContentDelegate {
             @AssertCalled(count = 1)
             override  fun onFullScreen(session: GeckoSession, fullScreen: Boolean) {
                 assertThat("Div went fullscreen", fullScreen, equalTo(true))
             }
         })
+        promise.value
     }
 
     private fun waitForFullscreenExit() {
@@ -253,8 +216,9 @@ class ContentDelegateTest : BaseSessionTest() {
 
     @Test fun fullscreen() {
         goFullscreen()
-        mainSession.evaluateJS("document.exitFullscreen(); true")
+        val promise = mainSession.evaluatePromiseJS("document.exitFullscreen()")
         waitForFullscreenExit()
+        promise.value
     }
 
     @Test fun sessionExitFullscreen() {
@@ -292,6 +256,22 @@ class ContentDelegateTest : BaseSessionTest() {
         sessionRule.waitUntilCalled(object : Callbacks.ContentDelegate {
             @AssertCalled(count = 1)
             override fun onFirstContentfulPaint(session: GeckoSession) {
+            }
+        })
+    }
+
+    @WithDisplay(width = 10, height = 10)
+    @Test fun paintStatusReset() {
+        mainSession.loadTestPath(HELLO_HTML_PATH)
+        sessionRule.waitUntilCalled(object : Callbacks.ContentDelegate {
+            @AssertCalled(count = 1)
+            override fun onFirstContentfulPaint(session: GeckoSession) {
+            }
+        })
+        mainSession.setActive(false)
+        sessionRule.waitUntilCalled(object : Callbacks.ContentDelegate {
+            @AssertCalled(count = 1)
+            override fun onPaintStatusReset(session: GeckoSession) {
             }
         })
     }
@@ -379,12 +359,56 @@ class ContentDelegateTest : BaseSessionTest() {
         })
     }
 
+    @Test fun closeRequest() {
+        if (!sessionRule.env.isAutomation) {
+            sessionRule.setPrefsUntilTestEnd(mapOf("dom.allow_scripts_to_close_windows" to true))
+        }
+
+        mainSession.loadTestPath(HELLO_HTML_PATH)
+        mainSession.waitForPageStop()
+
+        mainSession.evaluateJS("window.close()")
+        mainSession.waitUntilCalled(object : Callbacks.ContentDelegate {
+            @AssertCalled(count = 1)
+            override fun onCloseRequest(session: GeckoSession) {
+            }
+        })
+    }
+
+    @Test fun windowOpenClose() {
+        sessionRule.setPrefsUntilTestEnd(mapOf("dom.disable_open_during_load" to false))
+
+        mainSession.loadTestPath(HELLO_HTML_PATH)
+        mainSession.waitForPageStop()
+
+        val newSession = sessionRule.createClosedSession()
+        mainSession.delegateDuringNextWait(object : Callbacks.NavigationDelegate {
+            @AssertCalled(count = 1)
+            override fun onNewSession(session: GeckoSession, uri: String): GeckoResult<GeckoSession>? {
+                return GeckoResult.fromValue(newSession)
+            }
+        })
+
+        mainSession.evaluateJS("const w = window.open('about:blank'); w.close()")
+
+        newSession.waitUntilCalled(object : Callbacks.All {
+            @AssertCalled(count = 1)
+            override fun onCloseRequest(session: GeckoSession) {
+            }
+
+            @AssertCalled(count = 1)
+            override fun onPageStop(session: GeckoSession, success: Boolean) {
+            }
+        })
+    }
+
     /**
      * Preferences to induce wanted behaviour.
      */
     private fun setHangReportTestPrefs(timeout: Int = 20000) {
         sessionRule.setPrefsUntilTestEnd(mapOf(
                 "dom.max_script_run_time" to 1,
+                "dom.max_script_run_time_without_important_user_input" to 1,
                 "dom.max_chrome_script_run_time" to 1,
                 "dom.max_ext_content_script_run_time" to 1,
                 "dom.ipc.cpow.timeout" to 100,

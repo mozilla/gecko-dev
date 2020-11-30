@@ -27,13 +27,15 @@
 use api::{DebugFlags, DocumentId, PremultipliedColorF};
 #[cfg(test)]
 use api::IdNamespace;
-use api::units::TexelRect;
+use api::units::*;
 use euclid::{HomogeneousVector, Rect};
 use crate::internal_types::{FastHashMap, FastHashSet};
 use crate::profiler::GpuCacheProfileCounters;
 use crate::render_backend::{FrameStamp, FrameId};
+use crate::prim_store::VECS_PER_SEGMENT;
 use crate::renderer::MAX_VERTEX_TEXTURE_WIDTH;
-use std::{mem, u16, u32};
+use crate::util::VecHelper;
+use std::{u16, u32};
 use std::num::NonZeroU32;
 use std::ops::Add;
 use std::time::{Duration, Instant};
@@ -137,13 +139,6 @@ impl From<TexelRect> for GpuBlockData {
 }
 
 
-// Any data type that can be stored in the GPU cache should
-// implement this trait.
-pub trait ToGpuBlocks {
-    // Request an arbitrary number of GPU data blocks.
-    fn write_gpu_blocks(&self, _: GpuDataRequest);
-}
-
 // A handle to a GPU resource.
 #[derive(Debug, Copy, Clone, MallocSizeOf)]
 #[cfg_attr(feature = "capture", derive(Serialize))]
@@ -155,6 +150,10 @@ pub struct GpuCacheHandle {
 impl GpuCacheHandle {
     pub fn new() -> Self {
         GpuCacheHandle { location: None }
+    }
+
+    pub fn as_int(self, gpu_cache: &GpuCache) -> i32 {
+        gpu_cache.get_address(&self).as_int()
     }
 }
 
@@ -181,6 +180,13 @@ impl GpuCacheAddress {
         u: u16::MAX,
         v: u16::MAX,
     };
+
+    pub fn as_int(self) -> i32 {
+        // TODO(gw): Temporarily encode GPU Cache addresses as a single int.
+        //           In the future, we can change the PrimitiveInstanceData struct
+        //           to use 2x u16 for the vertex attribute instead of an i32.
+        self.v as i32 * MAX_VERTEX_TEXTURE_WIDTH as i32 + self.u as i32
+    }
 }
 
 impl Add<usize> for GpuCacheAddress {
@@ -657,6 +663,17 @@ impl<'a> GpuDataRequest<'a> {
         self.texture.pending_blocks.push(block.into());
     }
 
+    // Write the GPU cache data for an individual segment.
+    pub fn write_segment(
+        &mut self,
+        local_rect: LayoutRect,
+        extra_data: [f32; 4],
+    ) {
+        let _ = VECS_PER_SEGMENT;
+        self.push(local_rect);
+        self.push(extra_data);
+    }
+
     pub fn current_used_block_num(&self) -> usize {
         self.texture.pending_blocks.len() - self.start_index
     }
@@ -769,6 +786,7 @@ impl GpuCache {
     pub fn begin_frame(&mut self, stamp: FrameStamp) {
         debug_assert!(self.texture.pending_blocks.is_empty());
         assert!(self.prepared_for_frames);
+        profile_scope!("begin_frame");
         self.now = stamp;
         self.texture.evict_old_blocks(self.now);
         self.saved_block_count = 0;
@@ -849,6 +867,7 @@ impl GpuCache {
         &mut self,
         profile_counters: &mut GpuCacheProfileCounters,
     ) -> FrameStamp {
+        profile_scope!("end_frame");
         profile_counters
             .allocated_rows
             .set(self.texture.rows.len());
@@ -887,9 +906,9 @@ impl GpuCache {
             frame_id: self.now.frame_id(),
             clear,
             height: self.texture.height,
-            debug_commands: mem::replace(&mut self.texture.debug_commands, Vec::new()),
-            updates: mem::replace(&mut self.texture.updates, Vec::new()),
-            blocks: mem::replace(&mut self.texture.pending_blocks, Vec::new()),
+            debug_commands: self.texture.debug_commands.take_and_preallocate(),
+            updates: self.texture.updates.take_and_preallocate(),
+            blocks: self.texture.pending_blocks.take_and_preallocate(),
         }
     }
 

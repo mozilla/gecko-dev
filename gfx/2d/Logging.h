@@ -127,8 +127,6 @@ enum class LogReason : int {
   UnscaledFontNotFound,
   ScaledFontNotFound,
   InvalidLayerType,  // 40
-  PlayEventFailed,
-  InvalidConstrainedValueRead,
   // End
   MustBeLessThanThis = 101,
 };
@@ -361,10 +359,17 @@ class Log final {
     }
     return *this;
   }
-  Log& operator<<(const Color& aColor) {
+  Log& operator<<(const sRGBColor& aColor) {
     if (MOZ_UNLIKELY(LogIt())) {
-      mMessage << "Color(" << aColor.r << ", " << aColor.g << ", " << aColor.b
-               << ", " << aColor.a << ")";
+      mMessage << "sRGBColor(" << aColor.r << ", " << aColor.g << ", "
+               << aColor.b << ", " << aColor.a << ")";
+    }
+    return *this;
+  }
+  Log& operator<<(const DeviceColor& aColor) {
+    if (MOZ_UNLIKELY(LogIt())) {
+      mMessage << "DeviceColor(" << aColor.r << ", " << aColor.g << ", "
+               << aColor.b << ", " << aColor.a << ")";
     }
     return *this;
   }

@@ -74,6 +74,7 @@ class RequestListHeader extends Component {
     this.waterfallDivisionLabels = this.waterfallDivisionLabels.bind(this);
     this.waterfallLabel = this.waterfallLabel.bind(this);
     this.onHeaderClick = this.onHeaderClick.bind(this);
+    this.resizeColumnToFitContent = this.resizeColumnToFitContent.bind(this);
   }
 
   componentWillMount() {
@@ -82,6 +83,7 @@ class RequestListHeader extends Component {
       resetColumns,
       resetSorting,
       toggleColumn,
+      resizeColumnToFitContent: this.resizeColumnToFitContent,
     });
   }
 
@@ -115,6 +117,99 @@ class RequestListHeader extends Component {
     removeThemeObserver(this.drawBackground);
   }
 
+  /**
+   * Helper method to get the total width of cell's content.
+   * Used for resizing columns to fit their content.
+   */
+  totalCellWidth(cellEl) {
+    return [...cellEl.childNodes]
+      .map(cNode => {
+        if (cNode.nodeType === 3) {
+          // if it's text node
+          return Math.ceil(
+            cNode.getBoxQuads()[0].p2.x - cNode.getBoxQuads()[0].p1.x
+          );
+        }
+        return cNode.getBoundingClientRect().width;
+      })
+      .reduce((a, b) => a + b, 0);
+  }
+
+  /**
+   * Resize column to fit its content.
+   * Additionally, resize other columns (starting from last) to compensate.
+   */
+  resizeColumnToFitContent(name) {
+    const headerRef = this.refs[`${name}Header`];
+    const parentEl = headerRef.closest(".requests-list-table");
+    const width = headerRef.getBoundingClientRect().width;
+    const parentWidth = parentEl.getBoundingClientRect().width;
+    const items = parentEl.querySelectorAll(".request-list-item");
+    const columnIndex = headerRef.cellIndex;
+    const widths = [...items].map(item =>
+      this.totalCellWidth(item.children[columnIndex])
+    );
+
+    const minW = this.getMinWidth(name);
+
+    // Add 11 to account for cell padding (padding-right + padding-left = 9px), not accurate.
+    let maxWidth = 11 + Math.max.apply(null, widths);
+
+    if (maxWidth < minW) {
+      maxWidth = minW;
+    }
+
+    // Pixel value which, if added to this column's width, will fit its content.
+    let change = maxWidth - width;
+
+    // Max change we can do while taking other columns into account.
+    let maxAllowedChange = 0;
+    const visibleColumns = this.getVisibleColumns();
+    const newWidths = [];
+
+    // Calculate new widths for other columns to compensate.
+    // Start from the 2nd last column if last column is waterfall.
+    // This is done to comply with the existing resizing behavior.
+    const delta =
+      visibleColumns[visibleColumns.length - 1].name === "waterfall" ? 2 : 1;
+
+    for (let i = visibleColumns.length - delta; i > 0; i--) {
+      if (i !== columnIndex) {
+        const columnName = visibleColumns[i].name;
+        const columnHeaderRef = this.refs[`${columnName}Header`];
+        const columnWidth = columnHeaderRef.getBoundingClientRect().width;
+        const minWidth = this.getMinWidth(columnName);
+        const newWidth = columnWidth - change;
+
+        // If this column can compensate for all the remaining change.
+        if (newWidth >= minWidth) {
+          maxAllowedChange += change;
+          change = 0;
+          newWidths.push({
+            name: columnName,
+            width: this.px2percent(newWidth, parentWidth),
+          });
+          break;
+        } else {
+          // Max change we can do in this column.
+          let maxColumnChange = columnWidth - minWidth;
+          maxColumnChange = maxColumnChange > change ? change : maxColumnChange;
+          maxAllowedChange += maxColumnChange;
+          change -= maxColumnChange;
+          newWidths.push({
+            name: columnName,
+            width: this.px2percent(columnWidth - maxColumnChange, parentWidth),
+          });
+        }
+      }
+    }
+    newWidths.push({
+      name,
+      width: this.px2percent(width + maxAllowedChange, parentWidth),
+    });
+    this.props.setColumnsWidth(newWidths);
+  }
+
   onContextMenu(evt) {
     evt.preventDefault();
     this.contextMenu.open(evt, this.props.columns);
@@ -139,7 +234,7 @@ class RequestListHeader extends Component {
   }
 
   resizeWaterfall() {
-    const waterfallHeader = this.refs.waterfallHeader;
+    const { waterfallHeader } = this.refs;
     if (waterfallHeader) {
       // Measure its width and update the 'waterfallWidth' property in the store.
       // The 'waterfallWidth' will be further updated on every window resize.
@@ -362,7 +457,7 @@ class RequestListHeader extends Component {
     // Update style for all columns from array widths.
     let i = 0;
     visibleColumns.forEach(col => {
-      const name = col.name;
+      const { name } = col;
       const headerRef = this.refs[`${name}Header`];
       headerRef.style.width = `${this.px2percent(widths[i], parentWidth)}%`;
       i++;
@@ -378,7 +473,7 @@ class RequestListHeader extends Component {
     // Do not check width for waterfall because
     // when all are getting smaller, waterfall is getting bigger.
     for (let i = 0; i < visibleColumns.length - 1; i++) {
-      const name = visibleColumns[i].name;
+      const { name } = visibleColumns[i];
       const headerRef = this.refs[`${name}Header`];
       const minColWidth = this.getMinWidth(name);
       if (headerRef.getBoundingClientRect().width > minColWidth) {
@@ -407,7 +502,7 @@ class RequestListHeader extends Component {
       const lastChangeInWidth = changeInWidth;
       // In the loop adjust all columns except last one - waterfall
       for (let i = 0; i < widths.length - 1; i++) {
-        const name = visibleColumns[i].name;
+        const { name } = visibleColumns[i];
         const minColWidth = this.getMinWidth(name);
         const newColWidth = Math.max(
           widths[i] + changeInWidthPerColumn,
@@ -441,7 +536,7 @@ class RequestListHeader extends Component {
     let totalPercent = 0;
 
     visibleColumns.forEach(col => {
-      const name = col.name;
+      const { name } = col;
       const headerRef = this.refs[`${name}Header`];
       // Get column width from style.
       let widthFromStyle = 0;
@@ -470,7 +565,7 @@ class RequestListHeader extends Component {
     const parentWidth = parentElRect.width;
     const newWidths = [];
     visibleColumns.forEach(col => {
-      const name = col.name;
+      const { name } = col;
       const headerRef = this.refs[`${name}Header`];
       const headerWidth = headerRef.getBoundingClientRect().width;
 
@@ -506,7 +601,7 @@ class RequestListHeader extends Component {
    * Helper method to get minWidth from columnsData;
    */
   getMinWidth(colName) {
-    const columnsData = this.props.columnsData;
+    const { columnsData } = this.props;
     if (columnsData.has(colName)) {
       return columnsData.get(colName).minWidth;
     }
@@ -517,10 +612,10 @@ class RequestListHeader extends Component {
    * Render one column header from the table headers.
    */
   renderColumn(header) {
-    const columnsData = this.props.columnsData;
+    const { columnsData } = this.props;
     const visibleColumns = this.getVisibleColumns();
     const lastVisibleColumn = visibleColumns[visibleColumns.length - 1].name;
-    const name = header.name;
+    const { name } = header;
     const boxName = header.boxName || name;
     const label = header.noLocalization
       ? name
@@ -551,9 +646,11 @@ class RequestListHeader extends Component {
     // Support for columns resizing is currently hidden behind a pref.
     const draggable = Draggable({
       className: "column-resizer ",
+      title: L10N.getStr("netmonitor.toolbar.resizeColumnToFitContent.title"),
       onStart: () => this.onStartMove(),
       onStop: () => this.onStopMove(),
       onMove: x => this.onMove(name, x),
+      onDoubleClick: () => this.resizeColumnToFitContent(name),
     });
 
     return dom.th(
@@ -572,6 +669,7 @@ class RequestListHeader extends Component {
           id: `requests-list-${name}-button`,
           className: `requests-list-header-button`,
           "data-sorted": sorted,
+          "data-name": name,
           title: sortedTitle ? `${label} (${sortedTitle})` : label,
           onClick: evt => this.onHeaderClick(evt, name),
         },

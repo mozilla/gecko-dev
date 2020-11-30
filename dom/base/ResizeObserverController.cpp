@@ -8,6 +8,7 @@
 
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/ErrorEvent.h"
+#include "mozilla/dom/RootedDictionary.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/Unused.h"
 #include "nsPresContext.h"
@@ -49,7 +50,7 @@ void ResizeObserverNotificationHelper::Register() {
     return;
   }
 
-  refreshDriver->AddRefreshObserver(this, FlushType::Display);
+  refreshDriver->AddRefreshObserver(this, FlushType::Display, "ResizeObserver");
   mRegistered = true;
 }
 
@@ -168,8 +169,7 @@ uint32_t ResizeObserverController::BroadcastAllActiveObservations() {
 
   // Copy the observers as this invokes the callbacks and could register and
   // unregister observers at will.
-  const nsTArray<RefPtr<ResizeObserver>> observers(mResizeObservers);
-  for (auto& observer : observers) {
+  for (auto& observer : mResizeObservers.Clone()) {
     // MOZ_KnownLive because 'observers' is guaranteed to keep it
     // alive.
     //

@@ -19,7 +19,6 @@ logger = logging.getLogger(__name__)
     title='Cancel Task',
     name='cancel',
     symbol='cx',
-    generic=True,
     description=(
         'Cancel the given task'
     ),
@@ -36,6 +35,6 @@ def cancel_action(parameters, graph_config, input, task_group_id, task_id):
             # A 409 response indicates that this task is past its deadline.  It
             # cannot be cancelled at this time, but it's also not running
             # anymore, so we can ignore this error.
-            logger.info('Task is past its deadline and cannot be cancelled.'.format(task_id))
+            logger.info('Task {} is past its deadline and cannot be cancelled.'.format(task_id))
             return
         raise

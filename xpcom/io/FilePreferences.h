@@ -19,6 +19,15 @@ bool IsAllowedPath(const nsAString& aFilePath);
 bool IsAllowedPath(const nsACString& aFilePath);
 #endif
 
+#ifdef XP_WIN
+bool StartsWithDiskDesignatorAndBackslash(const nsAString& aAbsolutePath);
+#endif
+
+extern const char kPathSeparator;
+#ifdef XP_WIN
+extern const nsLiteralString kDevicePathSpecifier;
+#endif
+
 namespace testing {
 
 void SetBlockUNCPaths(bool aBlock);

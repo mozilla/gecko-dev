@@ -26,7 +26,7 @@ use log::{error, info, warn};
 use moz_task::create_thread;
 use nserror::{nsresult, NS_ERROR_ABORT, NS_ERROR_NOT_IMPLEMENTED, NS_OK};
 use nsstring::{nsACString, nsCString};
-use std::{cell::Cell, fmt, ptr};
+use std::{cell::Cell, fmt};
 use xpcom::{
     interfaces::{
         nsIBits, nsIBitsCallback, nsILoadGroup, nsIProgressEventSink, nsIRequestObserver,
@@ -104,7 +104,6 @@ pub struct InitBitsRequest {
     monitor_thread: Cell<Option<RefPtr<nsIThread>>>,
     monitor_timeout_ms: u32,
     observer: RefPtr<nsIRequestObserver>,
-    context: Option<RefPtr<nsISupports>>,
     // started indicates whether or not OnStartRequest has been fired.
     started: Cell<bool>,
     // finished indicates whether or not we have called
@@ -140,6 +139,7 @@ impl BitsRequest {
         monitor_client: BitsMonitorClient,
         action: ServiceAction,
     ) -> Result<RefPtr<BitsRequest>, BitsTaskError> {
+        let _ = context;
         let action: Action = action.into();
         let monitor_thread = create_thread(&format!("BitsMonitor {}", id)).map_err(|rv| {
             BitsTaskError::from_nsresult(FailedToStartThread, action, MainThread, rv)
@@ -156,7 +156,6 @@ impl BitsRequest {
             monitor_thread: Cell::new(Some(monitor_thread.clone())),
             monitor_timeout_ms,
             observer,
-            context,
             started: Cell::new(false),
             finished: Cell::new(false),
             cancel_action: Cell::new(CancelAction::NotInProgress),
@@ -242,17 +241,8 @@ impl BitsRequest {
 
     pub fn on_progress(&self, transferred_bytes: i64, total_bytes: i64) {
         if let Some(progress_event_sink) = self.observer.query_interface::<nsIProgressEventSink>() {
-            let context: *const nsISupports = match self.context.as_ref() {
-                Some(context) => &**context,
-                None => ptr::null(),
-            };
             unsafe {
-                progress_event_sink.OnProgress(
-                    self.coerce(),
-                    context,
-                    transferred_bytes,
-                    total_bytes,
-                );
+                progress_event_sink.OnProgress(self.coerce(), transferred_bytes, total_bytes);
             }
         }
     }
@@ -690,14 +680,15 @@ impl BitsRequest {
         )
     }
 
+    xpcom_method!(
+        get_load_group => GetLoadGroup() -> *const nsILoadGroup
+    );
+
     /**
      * As stated in nsIBits.idl, nsIBits interfaces are not expected to
      * implement the loadGroup or loadFlags attributes. This implementation
      * provides only null implementations only for these methods.
      */
-    xpcom_method!(
-        get_load_group => GetLoadGroup() -> *const nsILoadGroup
-    );
     fn get_load_group(&self) -> Result<RefPtr<nsILoadGroup>, nsresult> {
         Err(NS_ERROR_NOT_IMPLEMENTED)
     }

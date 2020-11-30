@@ -34,7 +34,7 @@ class ViewportFrame : public nsContainerFrame {
   explicit ViewportFrame(ComputedStyle* aStyle, nsPresContext* aPresContext)
       : ViewportFrame(aStyle, aPresContext, kClassID) {}
 
-  virtual ~ViewportFrame() {}  // useful for debugging
+  virtual ~ViewportFrame() = default;  // useful for debugging
 
   virtual void Init(nsIContent* aContent, nsContainerFrame* aParent,
                     nsIFrame* aPrevInFlow) override;
@@ -52,7 +52,8 @@ class ViewportFrame : public nsContainerFrame {
                                 const nsDisplayListSet& aLists) override;
 
   void BuildDisplayListForTopLayer(nsDisplayListBuilder* aBuilder,
-                                   nsDisplayList* aList);
+                                   nsDisplayList* aList,
+                                   bool* aIsOpaque = nullptr);
 
   virtual nscoord GetMinISize(gfxContext* aRenderingContext) override;
   virtual nscoord GetPrefISize(gfxContext* aRenderingContext) override;

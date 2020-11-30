@@ -31,6 +31,19 @@ export function prepareSourcePayload(
     makeSourceId(source, isServiceWorker)
   );
 
+  source = { ...source };
+
+  // Maintain backward-compat with servers that only return introductionUrl and
+  // not sourceMapBaseURL.
+  if (
+    typeof source.sourceMapBaseURL === "undefined" &&
+    typeof (source: any).introductionUrl !== "undefined"
+  ) {
+    source.sourceMapBaseURL =
+      source.url || (source: any).introductionUrl || null;
+    delete (source: any).introductionUrl;
+  }
+
   return { thread: threadFront.actor, isServiceWorker, source };
 }
 
@@ -60,6 +73,7 @@ export function createFrame(
     index,
     asyncCause: frame.asyncCause,
     state: frame.state,
+    type: frame.type,
   };
 }
 
@@ -82,24 +96,15 @@ export function createPause(thread: string, packet: PausedPacket): any {
   };
 }
 
-function getTargetType(target: Target) {
-  if (target.isWorkerTarget) {
-    return "worker";
-  }
-
-  if (target.isContentProcess) {
-    return "contentProcess";
-  }
-
-  return "mainThread";
-}
-
 export function createThread(actor: string, target: Target): Thread {
+  const name = target.isTopLevel ? L10N.getStr("mainThread") : target.name;
+
   return {
     actor,
     url: target.url,
-    type: getTargetType(target),
-    name: target.name,
+    isTopLevel: target.isTopLevel,
+    targetType: target.targetType,
+    name,
     serviceWorkerStatus: target.debuggerServiceWorkerStatus,
   };
 }

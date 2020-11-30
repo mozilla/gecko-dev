@@ -1,0 +1,20 @@
+// https://wicg.github.io/sanitizer-api/
+
+[
+  Exposed=Window
+] interface Sanitizer {
+  constructor(optional SanitizerConfig sanitizerConfig = {});
+  DocumentFragment sanitize(DOMString input);
+  DOMString sanitizeToString(DOMString input);
+
+  readonly attribute SanitizerConfig creationOptions;
+};
+
+dictionary SanitizerConfig {
+  sequence<DOMString> allowElements;
+  sequence<DOMString> blockElements;
+  sequence<DOMString> dropElements;
+  sequence<DOMString> allowAttributes;
+  sequence<DOMString> blockAttributes;
+  sequence<DOMString> dropAttributes;
+};

@@ -331,6 +331,15 @@ class AccessibilityTest : BaseSessionTest() {
             }
         })
 
+        // reset caret position
+        mainSession.evaluateJS("""
+            this.select(document.body, 0, 0);
+        """.trimIndent())
+        sessionRule.waitUntilCalled(object : EventDelegate {
+            @AssertCalled(count = 1)
+            override fun onFocused(event: AccessibilityEvent) {}
+        })
+
         mainSession.finder.find("Hell", 0)
         sessionRule.waitUntilCalled(object : EventDelegate {
             @AssertCalled(count = 1)
@@ -997,6 +1006,7 @@ class AccessibilityTest : BaseSessionTest() {
             override fun onWinStateChanged(event: AccessibilityEvent) { }
 
             @AssertCalled(count = 1)
+            @Suppress("deprecation")
             override fun onFocused(event: AccessibilityEvent) {
                 nodeId = getSourceId(event)
                 var node = createNodeInfo(nodeId)
@@ -1644,6 +1654,33 @@ class AccessibilityTest : BaseSessionTest() {
 
         performedAction = provider.performAction(View.NO_ID, AccessibilityNodeInfo.ACTION_PREVIOUS_HTML_ELEMENT, null)
         assertThat("Should fail to move a11y focus before web content", performedAction, equalTo(false))
+    }
+
+    @Test fun testTextEntry() {
+        loadTestPage("test-text-entry-node")
+        waitForInitialFocus()
+
+        mainSession.evaluateJS("document.querySelector('input[aria-label=Name]').focus()")
+        sessionRule.waitUntilCalled(object : EventDelegate {
+            @AssertCalled(count = 1)
+            override fun onFocused(event: AccessibilityEvent) {}
+        })
+
+        mainSession.evaluateJS("document.querySelector('input[aria-label=Name]').value = 'Tobiasas'")
+
+        sessionRule.waitUntilCalled(object : EventDelegate {
+            @AssertCalled(count = 1)
+            override fun onTextChanged(event: AccessibilityEvent) {}
+
+            @AssertCalled(count = 1)
+            override fun onTextSelectionChanged(event: AccessibilityEvent) {}
+
+            // Don't fire a11y focus for collapsed caret changes.
+            // This will interfere with on screen keyboards and throw a11y focus
+            // back and fourth.
+            @AssertCalled(count = 0)
+            override fun onAccessibilityFocused(event: AccessibilityEvent) {}
+        })
     }
 
 }

@@ -203,7 +203,7 @@ class EventData:
         # Check products.
         products = definition.get('products')
         for product in products:
-            if not utils.is_valid_product(product):
+            if not utils.is_valid_product(product) and self._strict_type_checks:
                 ParserError(self.identifier + ': Unknown value in products: ' +
                             product).handle_later()
             if utils.is_geckoview_streaming_product(product):
@@ -324,8 +324,7 @@ class EventData:
         rcc = self.dataset_short
         if rcc == 'opt-out':
             return 'nsITelemetry::DATASET_ALL_CHANNELS'
-        else:
-            return 'nsITelemetry::DATASET_PRERELEASE_CHANNELS'
+        return 'nsITelemetry::DATASET_PRERELEASE_CHANNELS'
 
     @property
     def dataset_short(self):

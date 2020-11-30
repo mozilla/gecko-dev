@@ -4,13 +4,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "WidgetUtilsGtk.h"
+#include "nsWindow.h"
+#include <gtk/gtk.h>
 
 namespace mozilla {
 
 namespace widget {
 
 int32_t WidgetUtilsGTK::IsTouchDeviceSupportPresent() {
-#if GTK_CHECK_VERSION(3, 4, 0)
   int32_t result = 0;
   GdkDisplay* display = gdk_display_get_default();
   if (!display) {
@@ -40,10 +41,9 @@ int32_t WidgetUtilsGTK::IsTouchDeviceSupportPresent() {
   }
 
   return result;
-#else
-  return 0;
-#endif
 }
+
+bool IsMainWindowTransparent() { return nsWindow::IsMainWindowTransparent(); }
 
 }  // namespace widget
 

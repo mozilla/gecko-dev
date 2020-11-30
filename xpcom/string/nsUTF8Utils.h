@@ -6,14 +6,16 @@
 #ifndef nsUTF8Utils_h_
 #define nsUTF8Utils_h_
 
-// This file may be used in two ways: if MOZILLA_INTERNAL_API is defined, this
-// file will provide signatures for the Mozilla abstract string types. It will
+// NB: This code may be used from non-XPCOM code, in particular, the
+// standalone updater executable.  That is, this file may be used in
+// two ways: if MOZILLA_INTERNAL_API is defined, this file will
+// provide signatures for the Mozilla abstract string types. It will
 // use XPCOM assertion/debugging macros, etc.
 
-#include "nscore.h"
+#include <type_traits>
+
 #include "mozilla/Assertions.h"
 #include "mozilla/EndianUtils.h"
-#include "mozilla/TypeTraits.h"
 
 #include "nsCharTraits.h"
 
@@ -230,12 +232,11 @@ class UTF16CharEnumerator {
 template <typename Char, typename UnsignedT>
 inline UnsignedT RewindToPriorUTF8Codepoint(const Char* utf8Chars,
                                             UnsignedT index) {
-  static_assert(mozilla::IsSame<Char, char>::value ||
-                    mozilla::IsSame<Char, unsigned char>::value ||
-                    mozilla::IsSame<Char, signed char>::value,
+  static_assert(std::is_same_v<Char, char> ||
+                    std::is_same_v<Char, unsigned char> ||
+                    std::is_same_v<Char, signed char>,
                 "UTF-8 data must be in 8-bit units");
-  static_assert(mozilla::IsUnsigned<UnsignedT>::value,
-                "index type must be unsigned");
+  static_assert(std::is_unsigned_v<UnsignedT>, "index type must be unsigned");
   while (index > 0 && (utf8Chars[index] & 0xC0) == 0x80) --index;
 
   return index;

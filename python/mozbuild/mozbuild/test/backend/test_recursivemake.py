@@ -322,16 +322,8 @@ class TestRecursiveMakeBackend(BackendTester):
             'RCFILE': [
                 'RCFILE := $(srcdir)/foo.rc',
             ],
-            'RESFILE': [
-                'RESFILE := bar.res',
-            ],
             'RCINCLUDE': [
                 'RCINCLUDE := $(srcdir)/bar.rc',
-            ],
-            'EXTRA_DEPS': [
-                'EXTRA_DEPS += %s' % mozpath.join(mozpath.relpath(env.topsrcdir,
-                                                                  env.topobjdir),
-                                                  'baz.def'),
             ],
             'WIN32_EXE_LDFLAGS': [
                 'WIN32_EXE_LDFLAGS += -subsystem:console',
@@ -410,23 +402,20 @@ class TestRecursiveMakeBackend(BackendTester):
 
         expected = [
             'include $(topsrcdir)/config/AB_rCD.mk',
+            'PRE_COMPILE_TARGETS += $(MDDEPDIR)/bar.c.stub',
             'bar.c: $(MDDEPDIR)/bar.c.stub ;',
-            'GARBAGE += bar.c',
-            'GARBAGE += $(MDDEPDIR)/bar.c.stub',
             'EXTRA_MDDEPEND_FILES += $(MDDEPDIR)/bar.c.pp',
             '$(MDDEPDIR)/bar.c.stub: %s/generate-bar.py' % env.topsrcdir,
             '$(REPORT_BUILD)',
-            '$(call py3_action,file_generate,%s/generate-bar.py baz bar.c $(MDDEPDIR)/bar.c.pp $(MDDEPDIR)/bar.c.stub)' % env.topsrcdir,  # noqa
+            '$(call py_action,file_generate,%s/generate-bar.py baz bar.c $(MDDEPDIR)/bar.c.pp $(MDDEPDIR)/bar.c.stub)' % env.topsrcdir,  # noqa
             '@$(TOUCH) $@',
             '',
-            'export:: $(MDDEPDIR)/foo.h.stub',
+            'EXPORT_TARGETS += $(MDDEPDIR)/foo.h.stub',
             'foo.h: $(MDDEPDIR)/foo.h.stub ;',
-            'GARBAGE += foo.h',
-            'GARBAGE += $(MDDEPDIR)/foo.h.stub',
             'EXTRA_MDDEPEND_FILES += $(MDDEPDIR)/foo.h.pp',
             '$(MDDEPDIR)/foo.h.stub: %s/generate-foo.py $(srcdir)/foo-data' % (env.topsrcdir),
             '$(REPORT_BUILD)',
-            '$(call py3_action,file_generate,%s/generate-foo.py main foo.h $(MDDEPDIR)/foo.h.pp $(MDDEPDIR)/foo.h.stub $(srcdir)/foo-data)' % (env.topsrcdir),  # noqa
+            '$(call py_action,file_generate,%s/generate-foo.py main foo.h $(MDDEPDIR)/foo.h.pp $(MDDEPDIR)/foo.h.stub $(srcdir)/foo-data)' % (env.topsrcdir),  # noqa
             '@$(TOUCH) $@',
             '',
         ]
@@ -443,22 +432,20 @@ class TestRecursiveMakeBackend(BackendTester):
 
         expected = [
             'include $(topsrcdir)/config/AB_rCD.mk',
+            'PRE_COMPILE_TARGETS += $(MDDEPDIR)/bar.c.stub',
             'bar.c: $(MDDEPDIR)/bar.c.stub ;',
-            'GARBAGE += bar.c',
-            'GARBAGE += $(MDDEPDIR)/bar.c.stub',
             'EXTRA_MDDEPEND_FILES += $(MDDEPDIR)/bar.c.pp',
             '$(MDDEPDIR)/bar.c.stub: %s/generate-bar.py FORCE' % env.topsrcdir,
             '$(REPORT_BUILD)',
-            '$(call py3_action,file_generate,%s/generate-bar.py baz bar.c $(MDDEPDIR)/bar.c.pp $(MDDEPDIR)/bar.c.stub)' % env.topsrcdir,  # noqa
+            '$(call py_action,file_generate,%s/generate-bar.py baz bar.c $(MDDEPDIR)/bar.c.pp $(MDDEPDIR)/bar.c.stub)' % env.topsrcdir,  # noqa
             '@$(TOUCH) $@',
             '',
+            'PRE_COMPILE_TARGETS += $(MDDEPDIR)/foo.c.stub',
             'foo.c: $(MDDEPDIR)/foo.c.stub ;',
-            'GARBAGE += foo.c',
-            'GARBAGE += $(MDDEPDIR)/foo.c.stub',
             'EXTRA_MDDEPEND_FILES += $(MDDEPDIR)/foo.c.pp',
             '$(MDDEPDIR)/foo.c.stub: %s/generate-foo.py $(srcdir)/foo-data' % (env.topsrcdir),
             '$(REPORT_BUILD)',
-            '$(call py3_action,file_generate,%s/generate-foo.py main foo.c $(MDDEPDIR)/foo.c.pp $(MDDEPDIR)/foo.c.stub $(srcdir)/foo-data)' % (env.topsrcdir),  # noqa
+            '$(call py_action,file_generate,%s/generate-foo.py main foo.c $(MDDEPDIR)/foo.c.pp $(MDDEPDIR)/foo.c.stub $(srcdir)/foo-data)' % (env.topsrcdir),  # noqa
             '@$(TOUCH) $@',
             '',
         ]
@@ -475,19 +462,17 @@ class TestRecursiveMakeBackend(BackendTester):
 
         expected = [
             'include $(topsrcdir)/config/AB_rCD.mk',
-            'libs:: $(MDDEPDIR)/foo.xyz.stub',
+            'MISC_TARGETS += $(MDDEPDIR)/foo.xyz.stub',
             'foo.xyz: $(MDDEPDIR)/foo.xyz.stub ;',
-            'GARBAGE += foo.xyz',
-            'GARBAGE += $(MDDEPDIR)/foo.xyz.stub',
             'EXTRA_MDDEPEND_FILES += $(MDDEPDIR)/foo.xyz.pp',
             '$(MDDEPDIR)/foo.xyz.stub: %s/generate-foo.py $(call MERGE_FILE,localized-input) $(srcdir)/non-localized-input $(if $(IS_LANGUAGE_REPACK),FORCE)' % env.topsrcdir,  # noqa
             '$(REPORT_BUILD)',
-            '$(call py3_action,file_generate,--locale=$(AB_CD) %s/generate-foo.py main foo.xyz $(MDDEPDIR)/foo.xyz.pp $(MDDEPDIR)/foo.xyz.stub $(call MERGE_FILE,localized-input) $(srcdir)/non-localized-input)' % env.topsrcdir,  # noqa
+            '$(call py_action,file_generate,--locale=$(AB_CD) %s/generate-foo.py main foo.xyz $(MDDEPDIR)/foo.xyz.pp $(MDDEPDIR)/foo.xyz.stub $(call MERGE_FILE,localized-input) $(srcdir)/non-localized-input)' % env.topsrcdir,  # noqa
             '@$(TOUCH) $@',
             '',
             'LOCALIZED_FILES_0_FILES += foo.xyz',
             'LOCALIZED_FILES_0_DEST = $(FINAL_TARGET)/',
-            'LOCALIZED_FILES_0_TARGET := libs',
+            'LOCALIZED_FILES_0_TARGET := misc',
             'INSTALL_TARGETS += LOCALIZED_FILES_0',
         ]
 
@@ -503,24 +488,20 @@ class TestRecursiveMakeBackend(BackendTester):
 
         expected = [
             'include $(topsrcdir)/config/AB_rCD.mk',
-            'libs:: $(MDDEPDIR)/foo.xyz.stub',
+            'MISC_TARGETS += $(MDDEPDIR)/foo.xyz.stub',
             'foo.xyz: $(MDDEPDIR)/foo.xyz.stub ;',
-            'GARBAGE += foo.xyz',
-            'GARBAGE += $(MDDEPDIR)/foo.xyz.stub',
             'EXTRA_MDDEPEND_FILES += $(MDDEPDIR)/foo.xyz.pp',
             '$(MDDEPDIR)/foo.xyz.stub: %s/generate-foo.py $(call MERGE_FILE,localized-input) $(srcdir)/non-localized-input $(if $(IS_LANGUAGE_REPACK),FORCE)' % env.topsrcdir,  # noqa
             '$(REPORT_BUILD)',
-            '$(call py3_action,file_generate,--locale=$(AB_CD) %s/generate-foo.py main foo.xyz $(MDDEPDIR)/foo.xyz.pp $(MDDEPDIR)/foo.xyz.stub $(call MERGE_FILE,localized-input) $(srcdir)/non-localized-input)' % env.topsrcdir,  # noqa
+            '$(call py_action,file_generate,--locale=$(AB_CD) %s/generate-foo.py main foo.xyz $(MDDEPDIR)/foo.xyz.pp $(MDDEPDIR)/foo.xyz.stub $(call MERGE_FILE,localized-input) $(srcdir)/non-localized-input)' % env.topsrcdir,  # noqa
             '@$(TOUCH) $@',
             '',
-            'libs:: $(MDDEPDIR)/abc.xyz.stub',
+            'MISC_TARGETS += $(MDDEPDIR)/abc.xyz.stub',
             'abc.xyz: $(MDDEPDIR)/abc.xyz.stub ;',
-            'GARBAGE += abc.xyz',
-            'GARBAGE += $(MDDEPDIR)/abc.xyz.stub',
             'EXTRA_MDDEPEND_FILES += $(MDDEPDIR)/abc.xyz.pp',
             '$(MDDEPDIR)/abc.xyz.stub: %s/generate-foo.py $(call MERGE_FILE,localized-input) $(srcdir)/non-localized-input FORCE' % env.topsrcdir,  # noqa
             '$(REPORT_BUILD)',
-            '$(call py3_action,file_generate,--locale=$(AB_CD) %s/generate-foo.py main abc.xyz $(MDDEPDIR)/abc.xyz.pp $(MDDEPDIR)/abc.xyz.stub $(call MERGE_FILE,localized-input) $(srcdir)/non-localized-input)' % env.topsrcdir,  # noqa
+            '$(call py_action,file_generate,--locale=$(AB_CD) %s/generate-foo.py main abc.xyz $(MDDEPDIR)/abc.xyz.pp $(MDDEPDIR)/abc.xyz.stub $(call MERGE_FILE,localized-input) $(srcdir)/non-localized-input)' % env.topsrcdir,  # noqa
             '@$(TOUCH) $@',
             '',
         ]
@@ -538,32 +519,26 @@ class TestRecursiveMakeBackend(BackendTester):
 
         expected = [
             'include $(topsrcdir)/config/AB_rCD.mk',
-            'libs:: $(MDDEPDIR)/foo$(AB_CD).xyz.stub',
+            'MISC_TARGETS += $(MDDEPDIR)/foo$(AB_CD).xyz.stub',
             'foo$(AB_CD).xyz: $(MDDEPDIR)/foo$(AB_CD).xyz.stub ;',
-            'GARBAGE += foo$(AB_CD).xyz',
-            'GARBAGE += $(MDDEPDIR)/foo$(AB_CD).xyz.stub',
             'EXTRA_MDDEPEND_FILES += $(MDDEPDIR)/foo$(AB_CD).xyz.pp',
             '$(MDDEPDIR)/foo$(AB_CD).xyz.stub: %s/generate-foo.py $(call MERGE_FILE,localized-input) $(srcdir)/non-localized-input $(if $(IS_LANGUAGE_REPACK),FORCE)' % env.topsrcdir,  # noqa
             '$(REPORT_BUILD)',
-            '$(call py3_action,file_generate,--locale=$(AB_CD) %s/generate-foo.py main foo$(AB_CD).xyz $(MDDEPDIR)/foo$(AB_CD).xyz.pp $(MDDEPDIR)/foo$(AB_CD).xyz.stub $(call MERGE_FILE,localized-input) $(srcdir)/non-localized-input)' % env.topsrcdir,  # noqa
+            '$(call py_action,file_generate,--locale=$(AB_CD) %s/generate-foo.py main foo$(AB_CD).xyz $(MDDEPDIR)/foo$(AB_CD).xyz.pp $(MDDEPDIR)/foo$(AB_CD).xyz.stub $(call MERGE_FILE,localized-input) $(srcdir)/non-localized-input)' % env.topsrcdir,  # noqa
             '@$(TOUCH) $@',
             '',
             'bar$(AB_rCD).xyz: $(MDDEPDIR)/bar$(AB_rCD).xyz.stub ;',
-            'GARBAGE += bar$(AB_rCD).xyz',
-            'GARBAGE += $(MDDEPDIR)/bar$(AB_rCD).xyz.stub',
             'EXTRA_MDDEPEND_FILES += $(MDDEPDIR)/bar$(AB_rCD).xyz.pp',
             '$(MDDEPDIR)/bar$(AB_rCD).xyz.stub: %s/generate-foo.py $(call MERGE_RELATIVE_FILE,localized-input,inner/locales) $(srcdir)/non-localized-input $(if $(IS_LANGUAGE_REPACK),FORCE)' % env.topsrcdir,  # noqa
             '$(REPORT_BUILD)',
-            '$(call py3_action,file_generate,--locale=$(AB_CD) %s/generate-foo.py main bar$(AB_rCD).xyz $(MDDEPDIR)/bar$(AB_rCD).xyz.pp $(MDDEPDIR)/bar$(AB_rCD).xyz.stub $(call MERGE_RELATIVE_FILE,localized-input,inner/locales) $(srcdir)/non-localized-input)' % env.topsrcdir,  # noqa
+            '$(call py_action,file_generate,--locale=$(AB_CD) %s/generate-foo.py main bar$(AB_rCD).xyz $(MDDEPDIR)/bar$(AB_rCD).xyz.pp $(MDDEPDIR)/bar$(AB_rCD).xyz.stub $(call MERGE_RELATIVE_FILE,localized-input,inner/locales) $(srcdir)/non-localized-input)' % env.topsrcdir,  # noqa
             '@$(TOUCH) $@',
             '',
             'zot$(AB_rCD).xyz: $(MDDEPDIR)/zot$(AB_rCD).xyz.stub ;',
-            'GARBAGE += zot$(AB_rCD).xyz',
-            'GARBAGE += $(MDDEPDIR)/zot$(AB_rCD).xyz.stub',
             'EXTRA_MDDEPEND_FILES += $(MDDEPDIR)/zot$(AB_rCD).xyz.pp',
             '$(MDDEPDIR)/zot$(AB_rCD).xyz.stub: %s/generate-foo.py $(call MERGE_RELATIVE_FILE,localized-input,locales) $(srcdir)/non-localized-input $(if $(IS_LANGUAGE_REPACK),FORCE)' % env.topsrcdir,  # noqa
             '$(REPORT_BUILD)',
-            '$(call py3_action,file_generate,--locale=$(AB_CD) %s/generate-foo.py main zot$(AB_rCD).xyz $(MDDEPDIR)/zot$(AB_rCD).xyz.pp $(MDDEPDIR)/zot$(AB_rCD).xyz.stub $(call MERGE_RELATIVE_FILE,localized-input,locales) $(srcdir)/non-localized-input)' % env.topsrcdir,  # noqa
+            '$(call py_action,file_generate,--locale=$(AB_CD) %s/generate-foo.py main zot$(AB_rCD).xyz $(MDDEPDIR)/zot$(AB_rCD).xyz.pp $(MDDEPDIR)/zot$(AB_rCD).xyz.stub $(call MERGE_RELATIVE_FILE,localized-input,locales) $(srcdir)/non-localized-input)' % env.topsrcdir,  # noqa
             '@$(TOUCH) $@',
             '',
         ]
@@ -931,7 +906,7 @@ class TestRecursiveMakeBackend(BackendTester):
         root_deps_path = mozpath.join(env.topobjdir, 'root-deps.mk')
         lines = [l.strip() for l in open(root_deps_path, 'rt').readlines()]
 
-        self.assertTrue(any(l == 'recurse_compile: code/target code/host' for l in lines))
+        self.assertTrue(any(l == 'recurse_compile: code/host code/target' for l in lines))
 
     def test_final_target(self):
         """Test that FINAL_TARGET is written to backend.mk correctly."""
@@ -994,7 +969,7 @@ class TestRecursiveMakeBackend(BackendTester):
             'LOCALIZED_FILES_0_FILES += $(call MERGE_FILE,bar.ini)',
             'LOCALIZED_FILES_0_FILES += $(call MERGE_FILE,foo.js)',
             'LOCALIZED_FILES_0_DEST = $(FINAL_TARGET)/',
-            'LOCALIZED_FILES_0_TARGET := libs',
+            'LOCALIZED_FILES_0_TARGET := misc',
             'INSTALL_TARGETS += LOCALIZED_FILES_0',
         ]
 
@@ -1012,7 +987,7 @@ class TestRecursiveMakeBackend(BackendTester):
             'LOCALIZED_PP_FILES_0 += $(call MERGE_FILE,bar.ini)',
             'LOCALIZED_PP_FILES_0 += $(call MERGE_FILE,foo.js)',
             'LOCALIZED_PP_FILES_0_PATH = $(FINAL_TARGET)/',
-            'LOCALIZED_PP_FILES_0_TARGET := libs',
+            'LOCALIZED_PP_FILES_0_TARGET := misc',
             'LOCALIZED_PP_FILES_0_FLAGS := --silence-missing-directive-warnings',
             'PP_TARGETS += LOCALIZED_PP_FILES_0',
         ]

@@ -17,6 +17,7 @@ Each TestNode has zero or more SubtestNode children, one for each
 known subtest of the test.
 """
 
+
 def data_cls_getter(output_node, visited_node):
     # visited_node is intentionally unused
     if output_node is None:
@@ -31,7 +32,7 @@ def data_cls_getter(output_node, visited_node):
 def bool_prop(name, node):
     """Boolean property"""
     try:
-        return node.get(name)
+        return bool(node.get(name))
     except KeyError:
         return None
 
@@ -53,6 +54,16 @@ def list_prop(name, node):
         return list(list_prop)
     except KeyError:
         return []
+
+
+def str_prop(name, node):
+    try:
+        prop = node.get(name)
+        if not isinstance(prop, string_types):
+            raise ValueError
+        return prop
+    except KeyError:
+        return None
 
 
 def tags(node):
@@ -282,6 +293,10 @@ class ExpectedManifest(ManifestItem):
         return prefs(self)
 
     @property
+    def lsan_disabled(self):
+        return bool_prop("lsan-disabled", self)
+
+    @property
     def lsan_allowed(self):
         return set_prop("lsan-allowed", self)
 
@@ -308,6 +323,10 @@ class ExpectedManifest(ManifestItem):
     @property
     def known_intermittent(self):
         return list_prop("expected", self)[1:]
+
+    @property
+    def implementation_status(self):
+        return str_prop("implementation-status", self)
 
 
 class DirectoryManifest(ManifestItem):
@@ -340,6 +359,10 @@ class DirectoryManifest(ManifestItem):
         return prefs(self)
 
     @property
+    def lsan_disabled(self):
+        return bool_prop("lsan-disabled", self)
+
+    @property
     def lsan_allowed(self):
         return set_prop("lsan-allowed", self)
 
@@ -358,6 +381,10 @@ class DirectoryManifest(ManifestItem):
     @property
     def fuzzy(self):
         return fuzzy_prop(self)
+
+    @property
+    def implementation_status(self):
+        return str_prop("implementation-status", self)
 
 
 class TestNode(ManifestItem):
@@ -417,6 +444,10 @@ class TestNode(ManifestItem):
         return prefs(self)
 
     @property
+    def lsan_disabled(self):
+        return bool_prop("lsan-disabled", self)
+
+    @property
     def lsan_allowed(self):
         return set_prop("lsan-allowed", self)
 
@@ -443,6 +474,10 @@ class TestNode(ManifestItem):
     @property
     def known_intermittent(self):
         return list_prop("expected", self)[1:]
+
+    @property
+    def implementation_status(self):
+        return str_prop("implementation-status", self)
 
     def append(self, node):
         """Add a subtest to the current test

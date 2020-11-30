@@ -70,6 +70,7 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
       isThirdPartyTrackingResource: this._isThirdPartyTrackingResource,
       referrerPolicy: this._referrerPolicy,
       blockedReason: this._blockedReason,
+      blockingExtension: this._blockingExtension,
       channelId: this._channelId,
     };
   },
@@ -134,6 +135,7 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
     this._discardResponseBody = !!networkEvent.discardResponseBody;
 
     this._blockedReason = networkEvent.blockedReason;
+    this._blockingExtension = networkEvent.blockingExtension;
 
     this._truncated = false;
     this._private = networkEvent.private;
@@ -316,7 +318,7 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
    */
   addRequestHeaders(headers, rawHeaders) {
     // Ignore calls when this actor is already destroyed
-    if (!this.actorID) {
+    if (this.isDestroyed()) {
       return;
     }
 
@@ -346,7 +348,7 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
    */
   addRequestCookies(cookies) {
     // Ignore calls when this actor is already destroyed
-    if (!this.actorID) {
+    if (this.isDestroyed()) {
       return;
     }
 
@@ -366,7 +368,7 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
    */
   addRequestPostData(postData) {
     // Ignore calls when this actor is already destroyed
-    if (!this.actorID) {
+    if (this.isDestroyed()) {
       return;
     }
 
@@ -394,7 +396,7 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
    */
   addResponseStart(info, rawHeaders) {
     // Ignore calls when this actor is already destroyed
-    if (!this.actorID) {
+    if (this.isDestroyed()) {
       return;
     }
 
@@ -408,6 +410,7 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
     this._response.status = info.status;
     this._response.statusText = info.statusText;
     this._response.headersSize = info.headersSize;
+    this._response.waitingTime = info.waitingTime;
     // Consider as not discarded if info.discardResponseBody is undefined
     this._discardResponseBody = !!info.discardResponseBody;
 
@@ -424,7 +427,7 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
    */
   addSecurityInfo(info, isRacing) {
     // Ignore calls when this actor is already destroyed
-    if (!this.actorID) {
+    if (this.isDestroyed()) {
       return;
     }
 
@@ -443,7 +446,7 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
    */
   addResponseHeaders(headers) {
     // Ignore calls when this actor is already destroyed
-    if (!this.actorID) {
+    if (this.isDestroyed()) {
       return;
     }
 
@@ -464,7 +467,7 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
    */
   addResponseCookies(cookies) {
     // Ignore calls when this actor is already destroyed
-    if (!this.actorID) {
+    if (this.isDestroyed()) {
       return;
     }
 
@@ -487,9 +490,12 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
    *        - boolean truncated
    *          Tells if the some of the response content is missing.
    */
-  addResponseContent(content, { discardResponseBody, truncated }) {
+  addResponseContent(
+    content,
+    { discardResponseBody, truncated, blockedReason, blockingExtension }
+  ) {
     // Ignore calls when this actor is already destroyed
-    if (!this.actorID) {
+    if (this.isDestroyed()) {
       return;
     }
 
@@ -507,12 +513,14 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
       encoding: content.encoding,
       transferredSize: content.transferredSize,
       discardResponseBody,
+      blockedReason,
+      blockingExtension,
     });
   },
 
   addResponseCache: function(content) {
     // Ignore calls when this actor is already destroyed
-    if (!this.actorID) {
+    if (this.isDestroyed()) {
       return;
     }
 
@@ -533,7 +541,7 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
    */
   addEventTimings(total, timings, offsets, serverTimings) {
     // Ignore calls when this actor is already destroyed
-    if (!this.actorID) {
+    if (this.isDestroyed()) {
       return;
     }
 
@@ -559,7 +567,7 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
    * @param object serverTimings
    *        Timing details extracted from the Server-Timing header.
    */
-  addSeverTimings(serverTimings) {
+  addServerTimings(serverTimings) {
     if (serverTimings) {
       this._serverTimings = serverTimings;
     }

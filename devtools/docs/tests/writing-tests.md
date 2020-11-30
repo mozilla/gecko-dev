@@ -106,7 +106,7 @@ For example, the head.js files in the `markupview` and `styleinspector` test fol
 
 ## Shared head.js file
 
-A [shared-head.js](https://dxr.mozilla.org/mozilla-central/source/devtools/client/shared/test/shared-head.js) file has been introduced to avoid duplicating code in various `head.js` files.
+A [shared-head.js](https://searchfox.org/mozilla-central/source/devtools/client/shared/test/shared-head.js) file has been introduced to avoid duplicating code in various `head.js` files.
 
 It's important to know whether or not the `shared.js` in your test directory already imports `shared-head.js` (look for a <code>Services.scriptloader.loadSubScript</code> call), as common helpers in `shared-head.js` might be useful for your test.
 
@@ -120,13 +120,9 @@ You can learn more about E10S [from this blog post](https://timtaubert.de/blog/2
 
 One of the direct consequences of E10S on tests is that you cannot retrieve and manipulate objects from the content page as you'd do without E10S.
 
-Well this isn't entirely true, because with [cross-process object wrappers](https://developer.mozilla.org/en-US/Firefox/Multiprocess_Firefox/Cross_Process_Object_Wrappers CPOWs) you can somehow access the page, get to DOM nodes, and read their attributes for instance, but a lot of other things you'd expect to work without E10S won't work exactly the same or at all.
-
-Using CPOWs is discouraged; they are only temporarily allowed in mochitests, and their use is forbidden in browser code.
-
 So when creating a new test, if this test needs to access the content page in any way, you can use [the message manager](https://developer.mozilla.org/en-US/docs/The_message_manager) to communicate with a script loaded in the content process to do things for you instead of accessing objects in the page directly.
 
-You can use the helper `ContentTask.spawn()` for this. See [this list of DevTools tests that use that helper for examples](https://dxr.mozilla.org/mozilla-central/search?q=ContentTask.spawn%28+path%3Adevtools%2Fclient&redirect=false&case=false).
+You can use the helper `ContentTask.spawn()` for this. See [this list of DevTools tests that use that helper for examples](https://searchfox.org/mozilla-central/search?q=ContentTask.spawn%28&path=devtools%2Fclient).
 
 Note that a lot of tests only need to access the DevTools UI anyway, and don't need to interact with the content process at all. Since the UI lives in the same process as the test, you won't need to use the message manager to access it.
 

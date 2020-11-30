@@ -11,7 +11,6 @@
 #include "nsIContent.h"
 #include "nsIURI.h"
 #include "nsNetUtil.h"
-#include "nsIStyleSheetLinkingElement.h"
 #include "nsHTMLParts.h"
 #include "nsCRT.h"
 #include "mozilla/StyleSheetInlines.h"
@@ -27,7 +26,6 @@
 #include "mozilla/Logging.h"
 #include "nsRect.h"
 #include "nsIScriptElement.h"
-#include "nsStyleLinkElement.h"
 #include "nsReadableUtils.h"
 #include "nsUnicharUtils.h"
 #include "nsIChannel.h"
@@ -389,6 +387,14 @@ nsXMLContentSink::OnTransformDone(nsresult aResult, Document* aResultDocument) {
 
   DropParserAndPerfHint();
 
+  // By this point, the result document has been set in the content viewer.  But
+  // the content viewer does not call Destroy on the original document, so we
+  // won't end up reporting document use counters.  It's possible we should be
+  // detaching the document from the window, but for now, we call
+  // ReportDocumentUseCounters on the original document here, to avoid
+  // assertions in ~Document about not having reported them.
+  originalDocument->ReportDocumentUseCounters();
+
   return NS_OK;
 }
 
@@ -499,15 +505,13 @@ nsresult nsXMLContentSink::CreateElement(
   if (aNodeInfo->Equals(nsGkAtoms::link, kNameSpaceID_XHTML) ||
       aNodeInfo->Equals(nsGkAtoms::style, kNameSpaceID_XHTML) ||
       aNodeInfo->Equals(nsGkAtoms::style, kNameSpaceID_SVG)) {
-    nsCOMPtr<nsIStyleSheetLinkingElement> ssle(do_QueryInterface(content));
-    if (ssle) {
-      ssle->InitStyleLinkElement(false);
+    if (auto* linkStyle = LinkStyle::FromNode(*content)) {
       if (aFromParser) {
-        ssle->SetEnableUpdates(false);
+        linkStyle->SetEnableUpdates(false);
       }
       if (!aNodeInfo->Equals(nsGkAtoms::link, kNameSpaceID_XHTML)) {
-        ssle->SetLineNumber(aFromParser ? aLineNumber : 0);
-        ssle->SetColumnNumber(aFromParser ? aColumnNumber : 0);
+        linkStyle->SetLineNumber(aFromParser ? aLineNumber : 0);
+        linkStyle->SetColumnNumber(aFromParser ? aColumnNumber : 0);
       }
     }
   }
@@ -569,19 +573,13 @@ nsresult nsXMLContentSink::CloseElement(nsIContent* aContent) {
   }
 
   nsresult rv = NS_OK;
-  if (nodeInfo->Equals(nsGkAtoms::meta, kNameSpaceID_XHTML) &&
-      // Need to check here to make sure this meta tag does not set
-      // mPrettyPrintXML to false when we have a special root!
-      (!mPrettyPrintXML || !mPrettyPrintHasSpecialRoot)) {
-    rv = ProcessMETATag(aContent);
-  } else if (nodeInfo->Equals(nsGkAtoms::link, kNameSpaceID_XHTML) ||
-             nodeInfo->Equals(nsGkAtoms::style, kNameSpaceID_XHTML) ||
-             nodeInfo->Equals(nsGkAtoms::style, kNameSpaceID_SVG)) {
-    nsCOMPtr<nsIStyleSheetLinkingElement> ssle(do_QueryInterface(aContent));
-    if (ssle) {
-      ssle->SetEnableUpdates(true);
+  if (nodeInfo->Equals(nsGkAtoms::link, kNameSpaceID_XHTML) ||
+      nodeInfo->Equals(nsGkAtoms::style, kNameSpaceID_XHTML) ||
+      nodeInfo->Equals(nsGkAtoms::style, kNameSpaceID_SVG)) {
+    if (auto* linkStyle = LinkStyle::FromNode(*aContent)) {
+      linkStyle->SetEnableUpdates(true);
       auto updateOrError =
-          ssle->UpdateStyleSheet(mRunsToCompletion ? nullptr : this);
+          linkStyle->UpdateStyleSheet(mRunsToCompletion ? nullptr : this);
       if (updateOrError.isErr()) {
         rv = updateOrError.unwrapErr();
       } else if (updateOrError.unwrap().ShouldBlock() && !mRunsToCompletion) {
@@ -637,8 +635,8 @@ nsresult nsXMLContentSink::LoadXSLStyleSheet(nsIURI* aUrl) {
 
 nsresult nsXMLContentSink::ProcessStyleLinkFromHeader(
     const nsAString& aHref, bool aAlternate, const nsAString& aTitle,
-    const nsAString& aType, const nsAString& aMedia,
-    const nsAString& aReferrerPolicy) {
+    const nsAString& aIntegrity, const nsAString& aType,
+    const nsAString& aMedia, const nsAString& aReferrerPolicy) {
   mPrettyPrintXML = false;
 
   nsAutoCString cmd;
@@ -657,7 +655,7 @@ nsresult nsXMLContentSink::ProcessStyleLinkFromHeader(
 
   // Otherwise fall through to nsContentSink to handle CSS Link headers.
   return nsContentSink::ProcessStyleLinkFromHeader(
-      aHref, aAlternate, aTitle, aType, aMedia, aReferrerPolicy);
+      aHref, aAlternate, aTitle, aIntegrity, aType, aMedia, aReferrerPolicy);
 }
 
 nsresult nsXMLContentSink::MaybeProcessXSLTLink(
@@ -749,7 +747,8 @@ nsresult nsXMLContentSink::FlushText(bool aReleaseTextNode) {
 
       mTextLength = 0;
     } else {
-      RefPtr<nsTextNode> textContent = new nsTextNode(mNodeInfoManager);
+      RefPtr<nsTextNode> textContent =
+          new (mNodeInfoManager) nsTextNode(mNodeInfoManager);
 
       mLastTextNode = textContent;
 
@@ -802,14 +801,12 @@ nsresult nsXMLContentSink::PushContent(nsIContent* aContent) {
 }
 
 void nsXMLContentSink::PopContent() {
-  int32_t count = mContentStack.Length();
-
-  if (count == 0) {
+  if (mContentStack.IsEmpty()) {
     NS_WARNING("Popping empty stack");
     return;
   }
 
-  mContentStack.RemoveElementAt(count - 1);
+  mContentStack.RemoveLastElement();
 }
 
 bool nsXMLContentSink::HaveNotifiedForCurrentContent() const {
@@ -1059,7 +1056,7 @@ nsresult nsXMLContentSink::HandleEndElement(const char16_t* aName,
     // probably need to deal here.... (and stop appending them on open).
     mState = eXMLContentSinkState_InEpilog;
 
-    mDocument->TriggerInitialDocumentTranslation();
+    mDocument->OnParsingCompleted();
 
     // We might have had no occasion to start layout yet.  Do so now.
     MaybeStartLayout(false);
@@ -1084,7 +1081,7 @@ NS_IMETHODIMP
 nsXMLContentSink::HandleComment(const char16_t* aName) {
   FlushText();
 
-  RefPtr<Comment> comment = new Comment(mNodeInfoManager);
+  RefPtr<Comment> comment = new (mNodeInfoManager) Comment(mNodeInfoManager);
   comment->SetText(nsDependentString(aName), false);
   nsresult rv = AddContentAsLeaf(comment);
   DidAddContent();
@@ -1102,7 +1099,8 @@ nsXMLContentSink::HandleCDataSection(const char16_t* aData, uint32_t aLength) {
 
   FlushText();
 
-  RefPtr<CDATASection> cdata = new CDATASection(mNodeInfoManager);
+  RefPtr<CDATASection> cdata =
+      new (mNodeInfoManager) CDATASection(mNodeInfoManager);
   cdata->SetText(aData, aLength, false);
   nsresult rv = AddContentAsLeaf(cdata);
   DidAddContent();
@@ -1163,11 +1161,9 @@ nsXMLContentSink::HandleProcessingInstruction(const char16_t* aTarget,
   RefPtr<ProcessingInstruction> node =
       NS_NewXMLProcessingInstruction(mNodeInfoManager, target, data);
 
-  nsCOMPtr<nsIStyleSheetLinkingElement> ssle =
-      do_QueryInterface(ToSupports(node));
-  if (ssle) {
-    ssle->InitStyleLinkElement(false);
-    ssle->SetEnableUpdates(false);
+  auto* linkStyle = LinkStyle::FromNode(*node);
+  if (linkStyle) {
+    linkStyle->SetEnableUpdates(false);
     mPrettyPrintXML = false;
   }
 
@@ -1175,12 +1171,12 @@ nsXMLContentSink::HandleProcessingInstruction(const char16_t* aTarget,
   NS_ENSURE_SUCCESS(rv, rv);
   DidAddContent();
 
-  if (ssle) {
+  if (linkStyle) {
     // This is an xml-stylesheet processing instruction... but it might not be
     // a CSS one if the type is set to something else.
-    ssle->SetEnableUpdates(true);
+    linkStyle->SetEnableUpdates(true);
     auto updateOrError =
-        ssle->UpdateStyleSheet(mRunsToCompletion ? nullptr : this);
+        linkStyle->UpdateStyleSheet(mRunsToCompletion ? nullptr : this);
     if (updateOrError.isErr()) {
       return updateOrError.unwrapErr();
     }
@@ -1223,8 +1219,8 @@ nsXMLContentSink::HandleProcessingInstruction(const char16_t* aTarget,
 
   // <?xml-stylesheet?> processing instructions don't have a referrerpolicy
   // pseudo-attribute, so we pass in an empty string
-  rv = MaybeProcessXSLTLink(node, href, isAlternate, title, type, media,
-                            EmptyString());
+  rv =
+      MaybeProcessXSLTLink(node, href, isAlternate, title, type, media, u""_ns);
   return NS_SUCCEEDED(rv) ? DidProcessATokenImpl() : rv;
 }
 
@@ -1315,8 +1311,8 @@ nsXMLContentSink::ReportError(const char16_t* aErrorText,
 
   const char16_t* noAtts[] = {0, 0};
 
-  NS_NAMED_LITERAL_STRING(
-      errorNs, "http://www.mozilla.org/newlayout/xml/parsererror.xml");
+  constexpr auto errorNs =
+      u"http://www.mozilla.org/newlayout/xml/parsererror.xml"_ns;
 
   nsAutoString parsererror(errorNs);
   parsererror.Append((char16_t)0xFFFF);
@@ -1395,9 +1391,7 @@ nsresult nsXMLContentSink::AddText(const char16_t* aText, int32_t aLength) {
   return NS_OK;
 }
 
-void nsXMLContentSink::InitialDocumentTranslationCompleted() {
-  StartLayout(false);
-}
+void nsXMLContentSink::InitialTranslationCompleted() { StartLayout(false); }
 
 void nsXMLContentSink::FlushPendingNotifications(FlushType aType) {
   // Only flush tags if we're not doing the notification ourselves

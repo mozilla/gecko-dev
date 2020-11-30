@@ -1,6 +1,7 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
+"use strict";
 
 const ReferrerInfo = Components.Constructor(
   "@mozilla.org/referrer-info;1",
@@ -41,7 +42,7 @@ function test_policy(test) {
     loadingPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
     triggeringPrincipal,
     contentPolicyType: Ci.nsIContentPolicy.TYPE_OTHER,
-    securityFlags: Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+    securityFlags: Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
   });
 
   chan.QueryInterface(Ci.nsIHttpChannel);

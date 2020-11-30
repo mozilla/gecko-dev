@@ -20,9 +20,9 @@ def is_release_promotion_available(parameters):
 @register_callback_action(
     name="merge-automation",
     title="Merge Day Automation",
-    symbol="${input.merge_flavor}",
+    symbol="${input.behavior}",
     description="Merge repository branches.",
-    generic=False,
+    permission='merge-automation',
     order=500,
     context=[],
     available=is_release_promotion_available,
@@ -39,10 +39,11 @@ def is_release_promotion_available(parameters):
                 "description": "Push changes using to_repo and to_branch",
                 "default": False,
             },
-            "merge_flavor": {
+            "behavior": {
                 "type": "string",
-                "description": "The flavor of release promotion to perform.",
-                "enum": sorted(graph_config["merge-automation"]["flavors"].keys()),
+                "description": "The type of release promotion to perform.",
+                "enum": sorted(graph_config["merge-automation"]["behaviors"].keys()),
+                "default": "central-to-beta"
             },
             "from-repo": {
                 "type": "string",
@@ -64,10 +65,12 @@ def is_release_promotion_available(parameters):
                 "type": "string",
                 "description": "The alias of an ssh account to use when pushing changes.",
             },
+            "fetch-version-from": {
+                "type": "string",
+                "description": "Path to file used when querying current version."
+            },
         },
-        "required": [
-            "merge_flavor"
-        ],
+        "required": ["behavior"],
     },
 )
 def merge_automation_action(parameters, graph_config, input, task_group_id, task_id):
@@ -78,12 +81,21 @@ def merge_automation_action(parameters, graph_config, input, task_group_id, task
     parameters["target_tasks_method"] = "merge_automation"
     parameters["merge_config"] = {
         "force-dry-run": input.get("force-dry-run", False),
-        "merge_flavor": input["merge_flavor"],
+        "behavior": input["behavior"],
     }
 
-    for field in ["from-repo", "from-branch", "to-repo", "to-branch", "ssh-user-alias", "push"]:
+    for field in [
+        "from-repo",
+        "from-branch",
+        "to-repo",
+        "to-branch",
+        "ssh-user-alias",
+        "push",
+        "fetch-version-from",
+    ]:
         if input.get(field):
             parameters["merge_config"][field] = input[field]
+    parameters["tasks_for"] = "action"
 
     # make parameters read-only
     parameters = Parameters(**parameters)

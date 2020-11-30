@@ -1,7 +1,8 @@
 /* exported attachURL, promiseDone,
-   promiseOnce, isNewRoot,
-   waitForMutation, addTest, addAsyncTest,
-   runNextTest, _documentWalker */
+   promiseOnce,
+   addTest, addAsyncTest,
+   runNextTest, _documentWalker,
+   createResourceWatcher */
 "use strict";
 
 const { require } = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
@@ -13,6 +14,11 @@ const {
 const {
   DocumentWalker: _documentWalker,
 } = require("devtools/server/actors/inspector/document-walker");
+
+const { TargetList } = require("devtools/shared/resources/target-list");
+const {
+  ResourceWatcher,
+} = require("devtools/shared/resources/resource-watcher");
 
 const Services = require("Services");
 
@@ -107,32 +113,6 @@ function promiseDone(currentPromise) {
   });
 }
 
-// Mutation list testing
-
-function isNewRoot(change) {
-  return change.type === "newRoot";
-}
-
-// Load mutations aren't predictable, so keep accumulating mutations until
-// the one we're looking for shows up.
-function waitForMutation(walker, test, mutations = []) {
-  return new Promise(resolve => {
-    for (const change of mutations) {
-      if (test(change)) {
-        resolve(mutations);
-      }
-    }
-
-    walker.once("mutations", newMutations => {
-      waitForMutation(walker, test, mutations.concat(newMutations)).then(
-        finalMutations => {
-          resolve(finalMutations);
-        }
-      );
-    });
-  });
-}
-
 var _tests = [];
 function addTest(test) {
   _tests.push(test);
@@ -158,4 +138,9 @@ function runNextTest() {
         ex
     );
   }
+}
+
+function createResourceWatcher(target) {
+  const targetList = new TargetList(target.client.mainRoot, target);
+  return new ResourceWatcher(targetList);
 }

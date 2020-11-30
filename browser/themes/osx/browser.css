@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-%include ../../../toolkit/themes/osx/global/shared.inc
-%define toolbarButtonPressed :hover:active:not([disabled="true"]):not([cui-areatype="menu-panel"])
-
 @namespace html url("http://www.w3.org/1999/xhtml");
 
 %include ../shared/browser.inc.css
@@ -45,21 +42,22 @@
 }
 
 #navigator-toolbox {
-  -moz-appearance: none;
+  appearance: none;
   --tabs-border-color: rgba(0,0,0,.3);
 }
 
 /*
   This is a workaround for Bug 1482157
-  -moz-appearance: toolbox; makes the macOS sheets attached to the element's
-  bottom border. We cannot put this property on the toolbox itself as it
-  cancels all backgrounds that are there, so we set it on the toolbox bottom
+  -moz-default-appearance: toolbox; makes the macOS sheets attached to the
+  element's bottom border. We cannot put this property on the toolbox itself as
+  it cancels all backgrounds that are there, so we set it on the toolbox bottom
   border.
 */
 #navigator-toolbox::after {
   content: "";
   display: -moz-box;
-  -moz-appearance: toolbox;
+  appearance: auto;
+  -moz-default-appearance: toolbox;
   height: 1px;
   margin-top: -1px;
   opacity: 0.001;
@@ -72,11 +70,6 @@
 #navigator-toolbox toolbarbutton:-moz-lwtheme {
   color: inherit;
   text-shadow: inherit;
-}
-
-:root {
-  -moz-appearance: none;
-  background-color: #eeeeee;
 }
 
 /** Begin titlebar **/
@@ -124,14 +117,14 @@
 }
 
 .browser-toolbar:not(.titlebar-color) {
-  -moz-appearance: none;
+  appearance: none;
   background: var(--toolbar-bgcolor);
   color: var(--toolbar-color);
 }
 
 /* Draw the bottom border of the tabs toolbar when it's not using
-   -moz-appearance: toolbar. */
-:root:-moz-any([sizemode="fullscreen"],[customizing]) #nav-bar:not([tabs-hidden="true"]),
+   -moz-default-appearance: toolbar. */
+:root:is([sizemode="fullscreen"],[customizing]) #nav-bar:not([tabs-hidden="true"]),
 :root:not([tabsintitlebar]) #nav-bar:not([tabs-hidden="true"]),
 #nav-bar:not([tabs-hidden="true"]):-moz-lwtheme {
   box-shadow: 0 calc(-1 * var(--tabs-navbar-shadow-size)) 0 var(--tabs-border-color);
@@ -240,25 +233,19 @@
   display: none;
 }
 
-/* ::::: nav-bar-inner ::::: */
+/* Address bar */
 
 %include ../shared/urlbar-searchbar.inc.css
-
-@supports not -moz-bool-pref("browser.urlbar.update1") {
-  :root {
-    --toolbar-field-focus-border-color: -moz-mac-focusring;
-  }
-
-  #searchbar:focus-within,
-  #urlbar:not(.megabar)[focused="true"] {
-    box-shadow: 0 0 0 1px var(--toolbar-field-focus-border-color) inset,
-                0 0 0 1px var(--toolbar-field-focus-border-color);
-  }
-}
 
 #urlbar,
 #searchbar {
   font-size: 1.25em;
+}
+
+@supports -moz-bool-pref("browser.urlbar.experimental.expandTextOnFocus") {
+  #urlbar[breakout-extend] {
+    font-size: 1.36em;
+  }
 }
 
 /* Ensure diacritics and other edge-of-font-box glyphs do not get clipped,
@@ -268,21 +255,17 @@
 }
 
 %include ../shared/identity-block/identity-block.inc.css
+%include ../shared/notification-icons.inc.css
+%include ../shared/addon-notification.inc.css
 
 #pageAction-urlbar-shareURL,
 #pageAction-panel-shareURL {
   list-style-image: url("chrome://browser/skin/share.svg");
 }
 
-/* ----- AUTOCOMPLETE ----- */
+/* Address bar results view */
 
-%include ../shared/autocomplete.inc.css
-
-#PopupAutoComplete > richlistbox > richlistitem[originaltype~="datalist-first"] {
-  border-top: 1px solid #C7C7C7;
-}
-
-%include ../shared/urlbar-autocomplete.inc.css
+%include ../shared/urlbarView.inc.css
 
 :root {
   --urlbar-popup-url-color: hsl(210, 77%, 47%);
@@ -295,30 +278,22 @@
   --panel-disabled-color: #737373;
 }
 
-.urlbarView {
-  font-size: 14px;
-}
+/* ----- AUTOCOMPLETE ----- */
 
-@supports -moz-bool-pref("browser.urlbar.update2.expandTextOnFocus") {
-  .urlbarView {
-    font-size: inherit;
-  }
+%include ../shared/autocomplete.inc.css
 
-  #urlbar[breakout-extend] {
-    font-size: 1.36em;
-  }
+#PopupAutoComplete > richlistbox > richlistitem[originaltype~="datalist-first"] {
+  border-top: 1px solid #C7C7C7;
 }
 
 #BMB_bookmarksPopup[side="top"],
 #BMB_bookmarksPopup[side="bottom"] {
-  margin-left: -26px;
-  margin-right: -26px;
+  margin-inline: -26px;
 }
 
 #BMB_bookmarksPopup[side="left"],
 #BMB_bookmarksPopup[side="right"] {
-  margin-top: -26px;
-  margin-bottom: -26px;
+  margin-block: -26px;
 }
 
 /* Bookmarking panel */
@@ -327,7 +302,7 @@
 
 #editBookmarkPanelRows > vbox > html|input,
 #editBookmarkPanelRows > vbox > hbox > html|input {
-  -moz-appearance: none;
+  appearance: none;
   background-color: var(--arrowpanel-field-background);
   color: inherit;
   border-radius: 2px;
@@ -358,7 +333,7 @@
 }
 
 #editBMPanel_newFolderButton {
-  -moz-appearance: none;
+  appearance: none;
   -moz-box-flex: 1;
   -moz-context-properties: fill, fill-opacity;
   fill: currentColor;
@@ -392,18 +367,16 @@
 #editBMPanel_folderMenuList {
   margin: 0;
   min-height: 22px;
-  padding-top: 2px;
-  padding-bottom: 1px;
-  padding-inline-start: 8px;
-  padding-inline-end: 4px;
+  padding-block: 2px 1px;
+  padding-inline: 8px 4px;
 }
 
 #editBMPanel_folderMenuList:-moz-focusring {
   box-shadow: var(--focus-ring-box-shadow);
 }
 
-#editBMPanel_folderMenuList > .menulist-dropmarker {
-  -moz-appearance: none;
+#editBMPanel_folderMenuList::part(dropmarker) {
+  appearance: none;
   -moz-context-properties: fill, fill-opacity;
   fill: currentColor;
   fill-opacity: 0.8;
@@ -418,7 +391,7 @@
 
 #editBMPanel_folderTree,
 #editBMPanel_tagsSelector {
-  -moz-appearance: none;
+  appearance: none;
   background-color: var(--arrowpanel-field-background);
   color: inherit;
   border-radius: 2px;
@@ -458,7 +431,7 @@
 
 #editBookmarkPanel .expander-up,
 #editBookmarkPanel .expander-down {
-  -moz-appearance: none; /* override button.css */
+  appearance: none; /* override button.css */
   -moz-context-properties: fill, fill-opacity;
   fill: currentColor;
   fill-opacity: 0.8;
@@ -497,27 +470,27 @@
 #sidebar-box {
   /* Default font size is 11px on mac, so this is 12px */
   font-size: 1.0909rem;
+  --sidebar-background-color: -moz-mac-source-list;
 }
 
-#sidebar-box:not([lwt-sidebar]) {
-  -moz-appearance: -moz-mac-source-list;
+/* Give the sidebar a vibrant appearance. Only do this when no lwtheme is
+ * in use, because vibrant appearance values only work if there is no
+ * background-color rendered behind the element, and we have :root:-moz-lwtheme
+ * rules which set appearance: none and an opaque background color on the
+ * root element. That background color would interfere with the vibrancy.
+ * See bug 1594132 for fixing this. */
+#sidebar-box:not(:-moz-lwtheme) {
+  appearance: auto;
+  -moz-default-appearance: -moz-mac-source-list;
   -moz-font-smoothing-background-color: -moz-mac-source-list;
 }
 
 /* ----- CONTENT ----- */
 
 .browserContainer > findbar {
-  background: @scopeBarBackground@;
-  border-top: @scopeBarSeparatorBorder@;
+  /* Use the default background gradient from findBar.css */
+  background-color: transparent;
   color: -moz-DialogText;
-  text-shadow: none;
-}
-
-:root:not([lwtheme-image]) .browserContainer > findbar:-moz-lwtheme {
-  background-color: var(--lwt-accent-color);
-  background-image: linear-gradient(var(--toolbar-bgcolor), var(--toolbar-bgcolor));
-  border-top-color: var(--chrome-content-separator-color);
-  color: var(--toolbar-color);
 }
 
 .openintabs-menuitem {
@@ -533,8 +506,7 @@
 %include ../shared/tabs.inc.css
 
 .tab-label {
-  margin-top: 1px;
-  margin-bottom: 0;
+  margin-block: 1px 0;
 }
 
 .tabbrowser-tab:not(:hover) > .tab-stack > .tab-content > .tab-icon-image:not([selected="true"]):not([multiselected]) {
@@ -569,9 +541,9 @@
   text-shadow: inherit;
 }
 
-:-moz-any(.keyboard-focused-tab, .tabbrowser-tab:focus:not([aria-activedescendant])) > .tab-stack > .tab-content > .tab-label-container:not([pinned]),
-:-moz-any(.keyboard-focused-tab, .tabbrowser-tab:focus:not([aria-activedescendant])) > .tab-stack > .tab-content > .tab-icon-image[pinned],
-:-moz-any(.keyboard-focused-tab, .tabbrowser-tab:focus:not([aria-activedescendant])) > .tab-stack > .tab-content > .tab-throbber[pinned] {
+:is(.keyboard-focused-tab, .tabbrowser-tab:focus:not([aria-activedescendant])) > .tab-stack > .tab-content > .tab-label-container:not([pinned]),
+:is(.keyboard-focused-tab, .tabbrowser-tab:focus:not([aria-activedescendant])) > .tab-stack > .tab-content > .tab-icon-image[pinned],
+:is(.keyboard-focused-tab, .tabbrowser-tab:focus:not([aria-activedescendant])) > .tab-stack > .tab-content > .tab-throbber[pinned] {
   box-shadow: var(--focus-ring-box-shadow);
 }
 
@@ -581,11 +553,11 @@
 
 #TabsToolbar:not(:-moz-lwtheme) {
   color: #333;
-  text-shadow: @loweredShadow@;
 }
 
-:root:-moz-any([inFullscreen], [tabsintitlebar]) #TabsToolbar:not(:-moz-lwtheme) {
-  -moz-appearance: -moz-mac-vibrant-titlebar-dark;
+:root:is([inFullscreen], [tabsintitlebar]) #TabsToolbar:not(:-moz-lwtheme) {
+  appearance: auto;
+  -moz-default-appearance: -moz-mac-vibrant-titlebar-dark;
   -moz-font-smoothing-background-color: -moz-mac-vibrant-titlebar-dark;
   background-color: #232323;
   color: hsl(240, 9%, 98%);
@@ -599,8 +571,7 @@
 
 #tabbrowser-tabs {
   -moz-box-align: stretch;
-  padding-left: 0;
-  padding-right: 0;
+  padding-inline: 0;
   margin-bottom: 0;
   position: static;
 }
@@ -612,8 +583,6 @@
   color: HighlightText !important;
 }
 
-%include ../shared/notification-icons.inc.css
-
 /* Translation */
 
 %include ../shared/translation/infobar.inc.css
@@ -624,14 +593,12 @@ notification[value="translation"] {
   background-image: none;
   border-top: none;
   border-bottom: 1px solid #c4c4c4;
-  padding-top: 1px;
-  padding-bottom: 1px;
+  padding-block: 1px;
   min-height: 35px;
 }
 
 .translate-infobar-element {
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
+  margin-block: 0 !important;
 }
 
 button.translate-infobar-element {
@@ -645,13 +612,11 @@ button.translate-infobar-element {
   min-height: 22px;
   min-width: 0;
   padding: 0 0.8em;
-  margin-left: 0.25em;
-  margin-right: 0.25em;
+  margin-inline: 0.25em;
 }
 
 button.translate-infobar-element .button-text {
-  margin-left: 0;
-  margin-right: 0;
+  margin-inline: 0;
 }
 
 label.translate-infobar-element {
@@ -682,8 +647,7 @@ button.translate-infobar-element[anonid="translate"]:hover {
 }
 
 button.translate-infobar-element.options-menu-button {
-  padding-inline-start: 0.5em;
-  padding-inline-end: 0;
+  padding-inline: 0.5em 0;
 }
 
 button.translate-infobar-element.options-menu-button > .button-box > .button-menu-dropmarker {
@@ -707,11 +671,10 @@ menulist.translate-infobar-element {
   min-height: 22px !important;
 }
 
-menulist.translate-infobar-element > .menulist-label-box {
+menulist.translate-infobar-element::part(label-box) {
   padding-top: 1px;
   padding-inline-start: 0.3em;
-  margin-top: 0;
-  margin-bottom: 0;
+  margin-block: 0;
 }
 
 menulist.translate-infobar-element:hover {
@@ -724,12 +687,10 @@ menulist.translate-infobar-element[open="true"] {
                                     rgba(255,255,255,0.6));
 }
 
-menulist.translate-infobar-element > .menulist-dropmarker {
+menulist.translate-infobar-element::part(dropmarker) {
   display: -moz-box;
   list-style-image: url("chrome://global/skin/icons/arrow-dropdown-12.svg");
 }
-
-%include ../shared/addon-notification.inc.css
 
 /* Status panel */
 
@@ -797,8 +758,7 @@ menulist.translate-infobar-element > .menulist-dropmarker {
 %include ../shared/contextmenu.inc.css
 
 #context-navigation > .menuitem-iconic {
-  padding-left: 0;
-  padding-right: 0;
+  padding-inline: 0;
 }
 
 .cui-widget-panelview[id^=PanelUI-webext-] {

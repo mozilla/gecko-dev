@@ -6,11 +6,32 @@
   --compatibility-base-unit: 4px;
   --compatibility-cause-color: var(--theme-text-color-alt);
   --compatibility-issue-icon-size: calc(var(--compatibility-base-unit) * 3);
-  --compatibility-unsupported-browser-icon-size: calc(var(--compatibility-base-unit) * 4);
+  --compatibility-issue-item-height: calc(var(--compatibility-base-unit) * 4);
+  --compatibility-browser-icon-size: calc(var(--compatibility-base-unit) * 4);
 }
 
 .compatibility-app {
   height: 100%;
+}
+
+.compatibility-app__throbber {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(var(--compatibility-base-unit) * 8);
+}
+
+.compatibility-app__container {
+  display: grid;
+  grid-template-rows: 1fr calc(var(--compatibility-base-unit) * 7);
+  height: 100%;
+}
+
+.compatibility-app__container-hidden {
+  display: none;
+}
+
+.compatibility-app__main {
   overflow: auto;
 }
 
@@ -22,26 +43,22 @@
 
 /*
  * Layout of the issue item
- *  +------+--------------+-----------------+---------------------------+
- *  | icon | issue factor | (issue causes)? | unsupported browser icons |
- *  +------+--------------+-----------------+---------------------------+
+ *  +--------+-------------------+
+ *  | [icon] | issue description |
+ *  +--------+-------------------+
+ *  |        | aliases           |
+ *  +--------+-------------------+
+ *  |        | occurrences       |
+ *  +--------+-------------------+
  */
 .compatibility-issue-item {
   display: grid;
-  grid-template-columns: var(--compatibility-issue-icon-size) max-content 1fr max-content;
-  align-items: center;
-  padding-inline-start: calc(var(--compatibility-base-unit) * 2);
-  padding-inline-end: calc(var(--compatibility-base-unit) * 4);
-  padding-block: calc(var(--compatibility-base-unit) * 2);
-}
-
-.compatibility-issue-item > *:nth-child(-n+2) {
-  /*
-   * The reason why we don't use `gap` in `.compatibility-issue-item` is
-   * because there are cases that the `issue causes` element is null,
-   * then the layout will be broken a bit.
-   */
-  margin-inline-start: var(--compatibility-base-unit);
+  column-gap: var(--compatibility-base-unit);
+  padding: calc(var(--compatibility-base-unit) * 2);
+  grid-template-areas: "icon description"
+                       ".    aliases"
+                       ".    node-pane";
+  grid-template-columns: auto 1fr;
 }
 
 .compatibility-issue-item:not(:last-child) {
@@ -49,16 +66,24 @@
 }
 
 .compatibility-issue-item::before {
+  grid-area: icon;
   content: "";
-  width: var(--compatibility-issue-icon-size);
-  height: var(--compatibility-issue-icon-size);
+  display: block;
+  width: var(--compatibility-issue-item-height);
+  height: var(--compatibility-issue-item-height);
   background-size: var(--compatibility-issue-icon-size);
+  background-position: center;
+  background-repeat: no-repeat;
   -moz-context-properties: fill;
+  /* In order to fit to the position */
+  position: relative;
+  top: -1px;
 }
 
 .compatibility-issue-item--experimental::before,
 .compatibility-issue-item--unsupported::before {
   background-image: url(chrome://devtools/skin/images/info.svg);
+  fill: currentColor;
 }
 
 .compatibility-issue-item--deprecated::before {
@@ -66,31 +91,59 @@
   fill: var(--theme-icon-warning-color);
 }
 
+/*
+ * Layout of the issue description
+ *  +--------------+----------------+---------------------------+
+ *  | issue factor | (issue causes) | unsupported browser icons |
+ *  +--------------+----------------+---------------------------+
+ */
+.compatibility-issue-item__description {
+  grid-area: description;
+  display: flex;
+  column-gap: var(--compatibility-base-unit);
+  row-gap: calc(var(--compatibility-base-unit) / 2);
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
 .compatibility-issue-item__causes {
+  flex: auto;
   color: var(--compatibility-cause-color);
 }
 
 .compatibility-issue-item__mdn-link {
   color: var(--theme-highlight-blue);
   text-decoration: none;
+  unicode-bidi: plaintext;
+}
+
+.compatibility-issue-item__aliases {
+  grid-area: aliases;
+  list-style: none;
+  margin: 0;
+  padding-inline-start: calc(var(--compatibility-base-unit) * 2);
+  padding-block-end: var(--compatibility-base-unit);
+}
+
+.compatibility-issue-item__alias {
+  unicode-bidi: plaintext;
 }
 
 .compatibility-unsupported-browser-list {
-  display: flex;
-  align-items: center;
-  justify-content: end;
   list-style: none;
   padding: 0;
-  gap: calc(var(--compatibility-base-unit) * 2);
+  column-gap: var(--compatibility-base-unit);
+  display: flex;
 }
 
-.compatibility-unsupported-browser-item {
-  width: var(--compatibility-unsupported-browser-icon-size);
-  height: var(--compatibility-unsupported-browser-icon-size);
+.compatibility-browser-icon {
+  display: inline-block;
+  width: var(--compatibility-browser-icon-size);
+  height: var(--compatibility-browser-icon-size);
   position: relative;
 }
 
-.compatibility-unsupported-browser-item--mobile::after {
+.compatibility-browser-icon--mobile::after {
   content: "";
   width: calc(var(--compatibility-base-unit) * 2);
   height: calc(var(--compatibility-base-unit) * 3);
@@ -106,9 +159,119 @@
   bottom: calc(var(--compatibility-base-unit) * -1);
 }
 
-.compatibility-unsupported-browser-item__icon {
+.compatibility-browser-icon__image {
   width: 100%;
   height: 100%;
   fill: var(--theme-icon-dimmed-color);
   -moz-context-properties: fill;
+}
+
+.compatibility-node-pane {
+  grid-area: node-pane;
+}
+
+.compatibility-node-pane__summary {
+  color: var(--theme-comment);
+  cursor: pointer;
+  padding-block-end: var(--compatibility-base-unit);
+}
+
+.compatibility-node-list {
+  list-style: none;
+  margin: 0;
+  padding-inline-start: calc(var(--compatibility-base-unit) * 2);
+}
+
+.compatibility-node-item:not(:last-child) {
+  padding-block-end: var(--compatibility-base-unit);
+}
+
+.compatibility-footer {
+  border-top: 1px solid var(--theme-splitter-color);
+  display: flex;
+  justify-content: space-evenly;
+}
+
+.compatibility-footer__button {
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  column-gap: var(--compatibility-base-unit);
+}
+
+.compatibility-footer__icon {
+  -moz-context-properties: fill;
+  fill: var(--theme-icon-color);
+  width: calc(var(--compatibility-base-unit) * 4);
+  height: calc(var(--compatibility-base-unit) * 4);
+}
+
+.compatibility-footer__label {
+  color: var(--theme-toolbar-color);
+  font-size: calc(var(--compatibility-base-unit) * 3);
+}
+
+.compatibility-settings {
+  width: 100%;
+  height: 100%;
+  background-color: var(--theme-body-background);
+  overflow: auto;
+}
+
+.compatibility-settings__header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  padding-block: calc(var(--compatibility-base-unit) * 3);
+  padding-inline: calc(var(--compatibility-base-unit) * 4);
+}
+
+.compatibility-settings__header-label {
+  color: var(--theme-toolbar-color);
+  font-size: calc(var(--compatibility-base-unit) * 3);
+  font-weight: bold;
+}
+
+.compatibility-settings__header-button {
+  background: none;
+  border: none;
+}
+
+.compatibility-settings__header-icon {
+  -moz-context-properties: fill;
+  fill: var(--theme-icon-color);
+  width: calc(var(--compatibility-base-unit) * 4);
+  height: calc(var(--compatibility-base-unit) * 4);
+}
+
+.compatibility-settings__target-browsers-header {
+  font-size: calc(var(--compatibility-base-unit) * 3);
+  line-height: calc(var(--compatibility-base-unit) * 4);
+  padding-block: var(--compatibility-base-unit);
+  padding-inline: calc(var(--compatibility-base-unit) * 4);
+  background-color: var(--theme-toolbar-background);
+  border-block: 1px solid var(--theme-splitter-color);
+}
+
+.compatibility-settings__target-browsers-list {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding-block: calc(var(--compatibility-base-unit) * 3);
+  padding-inline: calc(var(--compatibility-base-unit) * 4);
+  row-gap: calc(var(--compatibility-base-unit) * 2);
+}
+
+.compatibility-settings__target-browsers-item {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: center;
+  padding-inline-start: calc(var(--compatibility-base-unit) * 2);
+  column-gap: calc(var(--compatibility-base-unit) * 2);
+}
+
+.compatibility-settings__target-browsers-item-label {
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 2/-1;
 }

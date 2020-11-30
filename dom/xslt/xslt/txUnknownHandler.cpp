@@ -12,6 +12,9 @@
 #include "txStringUtils.h"
 #include "txStylesheet.h"
 
+using mozilla::UniquePtr;
+using mozilla::WrapUnique;
+
 txUnknownHandler::txUnknownHandler(txExecutionState* aEs)
     : mEs(aEs), mFlushed(false) {
   MOZ_COUNT_CTOR_INHERITED(txUnknownHandler, txBufferingHandler);
@@ -66,8 +69,7 @@ nsresult txUnknownHandler::endDocument(nsresult aResult) {
     NS_ASSERTION(mEs->mResultHandler == this,
                  "We're leaking mEs->mResultHandler.");
 
-    nsresult rv =
-        createHandlerAndFlush(false, EmptyString(), kNameSpaceID_None);
+    nsresult rv = createHandlerAndFlush(false, u""_ns, kNameSpaceID_None);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -131,9 +133,9 @@ nsresult txUnknownHandler::startElement(nsAtom* aPrefix,
     NS_ASSERTION(mEs->mResultHandler == this,
                  "We're leaking mEs->mResultHandler.");
 
-    bool htmlRoot = aNsID == kNameSpaceID_None && !aPrefix &&
-                    aLocalName.Equals(NS_LITERAL_STRING("html"),
-                                      txCaseInsensitiveStringComparator());
+    bool htmlRoot =
+        aNsID == kNameSpaceID_None && !aPrefix &&
+        aLocalName.Equals(u"html"_ns, nsCaseInsensitiveStringComparator);
     nsresult rv = createHandlerAndFlush(htmlRoot, aLocalName, aNsID);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -152,23 +154,23 @@ nsresult txUnknownHandler::createHandlerAndFlush(bool aHTMLRoot,
     format.mMethod = aHTMLRoot ? eHTMLOutput : eXMLOutput;
   }
 
-  nsAutoPtr<txAXMLEventHandler> handler;
+  UniquePtr<txAXMLEventHandler> handler;
   nsresult rv = mEs->mOutputHandlerFactory->createHandlerWith(
       &format, aName, aNsID, getter_Transfers(handler));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  mEs->mOutputHandler = handler;
-  mEs->mResultHandler = handler.forget();
+  mEs->mOutputHandler = handler.get();
+  mEs->mResultHandler = handler.release();
   // Let the executionstate delete us. We need to stay alive because we might
   // need to forward hooks to mEs->mResultHandler if someone is currently
   // flushing a buffer to mEs->mResultHandler.
-  mEs->mObsoleteHandler = this;
+  mEs->mObsoleteHandler = WrapUnique(this);
 
   mFlushed = true;
 
   // Let go of out buffer as soon as we're done flushing it, we're not going
   // to need it anymore from this point on (all hooks get forwarded to
   // mEs->mResultHandler.
-  nsAutoPtr<txResultBuffer> buffer(std::move(mBuffer));
+  UniquePtr<txResultBuffer> buffer(std::move(mBuffer));
   return buffer->flushToHandler(mEs->mResultHandler);
 }

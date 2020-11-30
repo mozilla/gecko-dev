@@ -24,6 +24,7 @@
 #include "nsPluginInstanceOwner.h"
 #include "nsWrapperCacheInlines.h"
 #include "js/GCHashTable.h"
+#include "js/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetPrivate, JS::SetPrivate
 #include "js/Symbol.h"
 #include "js/TracingAPI.h"
 #include "js/Wrapper.h"
@@ -691,6 +692,8 @@ static bool doInvoke(NPObject* npobj, NPIdentifier method,
     return false;
   }
 
+  AutoAllowLegacyScriptExecution exemption;
+
   // We're about to run script via JS_CallFunctionValue, so we need an
   // AutoEntryScript. NPAPI plugins are Gecko-specific and not in any spec.
   dom::AutoEntryScript aes(globalObject, "NPAPI doInvoke");
@@ -1003,8 +1006,7 @@ NPObject* nsJSObjWrapper::GetNewOrUsed(NPP npp, JS::Handle<JSObject*> obj,
   }
 
   MOZ_ASSERT(JS_IsGlobalObject(objGlobal));
-  MOZ_RELEASE_ASSERT(js::GetObjectCompartment(obj) ==
-                     js::GetObjectCompartment(objGlobal));
+  MOZ_RELEASE_ASSERT(JS::GetCompartment(obj) == JS::GetCompartment(objGlobal));
 
   // No need to enter the right compartment here as we only get the
   // class and private from the JSObject, neither of which cares about
@@ -1243,9 +1245,8 @@ bool NPObjWrapperProxyHandler::get(JSContext* cx, JS::Handle<JSObject*> proxy,
     return false;
   }
 
-  if (JSID_IS_SYMBOL(id)) {
-    JS::RootedSymbol sym(cx, JSID_TO_SYMBOL(id));
-    if (JS::GetSymbolCode(sym) == JS::SymbolCode::toPrimitive) {
+  if (id.isSymbol()) {
+    if (id.isWellKnownSymbol(JS::SymbolCode::toPrimitive)) {
       JS::RootedObject obj(
           cx, JS_GetFunctionObject(JS_NewFunction(cx, NPObjWrapper_toPrimitive,
                                                   1, 0, "Symbol.toPrimitive")));
@@ -1254,7 +1255,7 @@ bool NPObjWrapperProxyHandler::get(JSContext* cx, JS::Handle<JSObject*> proxy,
       return true;
     }
 
-    if (JS::GetSymbolCode(sym) == JS::SymbolCode::toStringTag) {
+    if (id.isWellKnownSymbol(JS::SymbolCode::toStringTag)) {
       JS::RootedString tag(cx, JS_NewStringCopyZ(cx, NPRUNTIME_JSCLASS_NAME));
       if (!tag) {
         return false;
@@ -1720,13 +1721,13 @@ static bool NPObjWrapper_toPrimitive(JSContext* cx, unsigned argc,
   }
 
   JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr,
-                            JSMSG_CANT_CONVERT_TO, JS_GetClass(obj)->name,
+                            JSMSG_CANT_CONVERT_TO, JS::GetClass(obj)->name,
                             "primitive type");
   return false;
 }
 
 bool nsNPObjWrapper::IsWrapper(JSObject* obj) {
-  return js::GetObjectClass(obj) == &sNPObjWrapperProxyClass;
+  return JS::GetClass(obj) == &sNPObjWrapperProxyClass;
 }
 
 // An NPObject is going away, make sure we null out the JS object's
@@ -2004,7 +2005,7 @@ static bool CreateNPObjectMember(NPP npp, JSContext* cx,
 
   vp.setObject(*memobj);
 
-  ::JS_SetPrivate(memobj, (void*)memberPrivate);
+  JS::SetPrivate(memobj, (void*)memberPrivate);
 
   NPIdentifier identifier = JSIdToNPIdentifier(id);
 
@@ -2056,7 +2057,7 @@ static bool CreateNPObjectMember(NPP npp, JSContext* cx,
 static void NPObjectMember_Finalize(JSFreeOp* fop, JSObject* obj) {
   NPObjectMemberPrivate* memberPrivate;
 
-  memberPrivate = (NPObjectMemberPrivate*)::JS_GetPrivate(obj);
+  memberPrivate = (NPObjectMemberPrivate*)JS::GetPrivate(obj);
   if (!memberPrivate) return;
 
   delete memberPrivate;
@@ -2140,8 +2141,7 @@ static bool NPObjectMember_Call(JSContext* cx, unsigned argc, JS::Value* vp) {
 }
 
 static void NPObjectMember_Trace(JSTracer* trc, JSObject* obj) {
-  NPObjectMemberPrivate* memberPrivate =
-      (NPObjectMemberPrivate*)::JS_GetPrivate(obj);
+  auto* memberPrivate = (NPObjectMemberPrivate*)JS::GetPrivate(obj);
   if (!memberPrivate) return;
 
   // Our NPIdentifier is not always interned, so we must trace it.

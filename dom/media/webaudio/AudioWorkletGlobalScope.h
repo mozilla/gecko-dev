@@ -10,6 +10,7 @@
 #include "mozilla/dom/AudioParamDescriptorMap.h"
 #include "mozilla/dom/FunctionBinding.h"
 #include "mozilla/dom/WorkletGlobalScope.h"
+#include "js/ForOfIterator.h"
 #include "nsRefPtrHashtable.h"
 
 namespace mozilla {
@@ -49,7 +50,7 @@ class AudioWorkletGlobalScope final : public WorkletGlobalScope {
   // If successful, returns true and sets aRetProcessor, which will be in the
   // compartment for the realm of this global.  Returns false on failure.
   MOZ_CAN_RUN_SCRIPT
-  bool ConstructProcessor(const nsAString& aName,
+  bool ConstructProcessor(JSContext* aCx, const nsAString& aName,
                           NotNull<StructuredCloneHolder*> aSerializedOptions,
                           UniqueMessagePortId& aPortIdentifier,
                           JS::MutableHandle<JSObject*> aRetProcessor);
@@ -64,9 +65,9 @@ class AudioWorkletGlobalScope final : public WorkletGlobalScope {
   // Returns an AudioParamDescriptorMap filled with AudioParamDescriptor
   // objects, extracted from JS. Returns an empty map in case of error and set
   // aRv accordingly.
-  AudioParamDescriptorMap DescriptorsFromJS(
-      JSContext* aCx, const JS::Rooted<JS::Value>& aDescriptors,
-      ErrorResult& aRv);
+  AudioParamDescriptorMap DescriptorsFromJS(JSContext* aCx,
+                                            JS::ForOfIterator* aIter,
+                                            ErrorResult& aRv);
 
   const RefPtr<AudioWorkletImpl> mImpl;
 

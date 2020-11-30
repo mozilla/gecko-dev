@@ -62,6 +62,9 @@ def main():
         'handler_info', metavar='HANDLER_INFO', nargs='?',
         help="JSON file that contains information about handler")
     parser.add_argument(
+        '-e', '--extend', action='append', default=[],
+        help="name of a files which contains a grammar_extension Rust macro.")
+    parser.add_argument(
         '-o', '--output', metavar='FILE', default='/dev/stdout',
         help="output filename for parser tables")
     parser.add_argument(
@@ -70,6 +73,9 @@ def main():
     parser.add_argument(
         '--progress', action='store_true',
         help="print a dot each time a state is analyzed (thousands of them)")
+    parser.add_argument(
+        '--debug', action='store_true',
+        help="annotate the generated code with grammar productions")
     args = parser.parse_args()
 
     # Check filenames.
@@ -91,9 +97,15 @@ def main():
     else:
         raise ValueError("-o file extension should be .py, .rs, or .jsparagus_dump")
 
+    in_extend = args.extend
+    if from_source:
+        assert all(f.endswith('.rs') for f in in_extend), "Extension are only supposed to be Rust files."
+    else:
+        assert in_extend == [], "Cannot add extensions to the generated parse table."
+
     # Load input and analyze it.
     if from_source:
-        grammar = load_es_grammar.load_syntactic_grammar(in_filename)
+        grammar = load_es_grammar.load_syntactic_grammar(in_filename, in_extend)
         grammar = hack_grammar(grammar)
         if args.verbose:
             grammar.dump()
@@ -101,7 +113,7 @@ def main():
         states = jsparagus.gen.generate_parser_states(
             grammar, verbose=args.verbose, progress=args.progress)
     else:
-        states = jsparagus.gen.ParserStates.load(in_filename)
+        states = jsparagus.gen.ParseTable.load(in_filename)
 
     # Generate output.
     try:
@@ -110,6 +122,7 @@ def main():
                 jsparagus.gen.generate_parser(f, states,
                                               target=target,
                                               verbose=args.verbose,
+                                              debug=args.debug,
                                               handler_info=args.handler_info)
         else:
             assert target == 'dump'

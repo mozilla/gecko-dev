@@ -311,13 +311,7 @@ class nsFloatManager {
    *
    * Both aBCoord and the result are relative to the current translation.
    */
-  enum {
-    // Tell ClearFloats not to push to nscoord_MAX when floats have been
-    // pushed to the next page/column.
-    DONT_CLEAR_PUSHED_FLOATS = (1 << 0)
-  };
-  nscoord ClearFloats(nscoord aBCoord, mozilla::StyleClear aBreakType,
-                      uint32_t aFlags = 0) const;
+  nscoord ClearFloats(nscoord aBCoord, mozilla::StyleClear aBreakType) const;
 
   /**
    * Checks if clear would pass into the floats' BFC's next-in-flow,

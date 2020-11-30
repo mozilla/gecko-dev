@@ -7,61 +7,57 @@
 #define PANGO_ENABLE_ENGINE
 
 #include "gfxPlatformGtk.h"
-#include "prenv.h"
 
-#include "nsUnicharUtils.h"
-#include "nsUnicodeProperties.h"
+#include <gtk/gtk.h>
+#include <fontconfig/fontconfig.h>
+
+#include "base/task.h"
+#include "base/thread.h"
+#include "base/message_loop.h"
+#include "cairo.h"
 #include "gfx2DGlue.h"
 #include "gfxFcPlatformFontList.h"
 #include "gfxConfig.h"
 #include "gfxContext.h"
+#include "gfxImageSurface.h"
 #include "gfxUserFontSet.h"
 #include "gfxUtils.h"
 #include "gfxFT2FontBase.h"
 #include "gfxTextRun.h"
-#include "VsyncSource.h"
+#include "GLContextProvider.h"
 #include "mozilla/Atomics.h"
-#include "mozilla/Monitor.h"
-#include "mozilla/StaticPrefs_layers.h"
-#include "base/task.h"
-#include "base/thread.h"
-#include "base/message_loop.h"
 #include "mozilla/FontPropertyTypes.h"
-#include "mozilla/gfx/Logging.h"
-
 #include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/Logging.h"
+#include "mozilla/Monitor.h"
+#include "mozilla/Preferences.h"
+#include "mozilla/StaticPrefs_layers.h"
+#include "nsMathUtils.h"
+#include "nsUnicharUtils.h"
+#include "nsUnicodeProperties.h"
+#include "VsyncSource.h"
 
-#include "cairo.h"
-#include <gtk/gtk.h>
-
-#include "gfxImageSurface.h"
 #ifdef MOZ_X11
 #  include <gdk/gdkx.h>
-#  include "gfxXlibSurface.h"
 #  include "cairo-xlib.h"
-#  include "mozilla/Preferences.h"
-#  include "mozilla/X11Util.h"
-
-#  include "GLContextProvider.h"
+#  include "gfxXlibSurface.h"
 #  include "GLContextGLX.h"
 #  include "GLXLibrary.h"
+#  include "mozilla/X11Util.h"
 
 /* Undefine the Status from Xlib since it will conflict with system headers on
  * OSX */
 #  if defined(__APPLE__) && defined(Status)
 #    undef Status
 #  endif
-
-#  ifdef MOZ_WAYLAND
-#    include <gdk/gdkwayland.h>
-#    include "mozilla/widget/nsWaylandDisplay.h"
-#  endif
-
 #endif /* MOZ_X11 */
 
-#include <fontconfig/fontconfig.h>
-
-#include "nsMathUtils.h"
+#ifdef MOZ_WAYLAND
+#  include <gdk/gdkwayland.h>
+#  include "mozilla/widget/nsWaylandDisplay.h"
+#  include "mozilla/widget/DMABufLibWrapper.h"
+#  include "mozilla/StaticPrefs_media.h"
+#endif
 
 #define GDK_PIXMAP_SIZE_MAX 32767
 
@@ -85,35 +81,31 @@ gfxPlatformGtk::gfxPlatformGtk() {
   mIsX11Display = gfxPlatform::IsHeadless()
                       ? false
                       : GDK_IS_X11_DISPLAY(gdk_display_get_default());
+  if (XRE_IsParentProcess()) {
 #ifdef MOZ_X11
-  if (mIsX11Display && XRE_IsParentProcess() &&
-      mozilla::Preferences::GetBool("gfx.xrender.enabled")) {
-    gfxVars::SetUseXRender(true);
-  }
+    if (mIsX11Display && mozilla::Preferences::GetBool("gfx.xrender.enabled")) {
+      gfxVars::SetUseXRender(true);
+    }
 #endif
+
+    if (IsWaylandDisplay() || (mIsX11Display && PR_GetEnv("MOZ_X11_EGL"))) {
+      gfxVars::SetUseEGL(true);
+    }
+  }
 
   InitBackendPrefs(GetBackendPrefs());
 
-#ifdef MOZ_X11
-  if (mIsX11Display) {
-    mCompositorDisplay = XOpenDisplay(nullptr);
-    MOZ_ASSERT(mCompositorDisplay, "Failed to create compositor display!");
-  } else {
-    mCompositorDisplay = nullptr;
-  }
-#endif  // MOZ_X11
+#ifdef MOZ_WAYLAND
+  mUseWebGLDmabufBackend =
+      gfxVars::UseEGL() && GetDMABufDevice()->IsDMABufWebGLEnabled();
+#endif
+
   gPlatformFTLibrary = Factory::NewFTLibrary();
-  MOZ_ASSERT(gPlatformFTLibrary);
+  MOZ_RELEASE_ASSERT(gPlatformFTLibrary);
   Factory::SetFTLibrary(gPlatformFTLibrary);
 }
 
 gfxPlatformGtk::~gfxPlatformGtk() {
-#ifdef MOZ_X11
-  if (mCompositorDisplay) {
-    XCloseDisplay(mCompositorDisplay);
-  }
-#endif  // MOZ_X11
-
   Factory::ReleaseFTLibrary(gPlatformFTLibrary);
   gPlatformFTLibrary = nullptr;
 }
@@ -130,7 +122,7 @@ void gfxPlatformGtk::InitPlatformGPUProcessPrefs() {
     FeatureState& gpuProc = gfxConfig::GetFeature(Feature::GPU_PROCESS);
     gpuProc.ForceDisable(FeatureStatus::Blocked,
                          "Wayland does not work in the GPU process",
-                         NS_LITERAL_CSTRING("FEATURE_FAILURE_WAYLAND"));
+                         "FEATURE_FAILURE_WAYLAND"_ns);
   }
 #endif
 }
@@ -214,17 +206,11 @@ static const char kFontWenQuanYiMicroHei[] = "WenQuanYi Micro Hei";
 static const char kFontNanumGothic[] = "NanumGothic";
 static const char kFontSymbola[] = "Symbola";
 
-void gfxPlatformGtk::GetCommonFallbackFonts(uint32_t aCh, uint32_t aNextCh,
-                                            Script aRunScript,
+void gfxPlatformGtk::GetCommonFallbackFonts(uint32_t aCh, Script aRunScript,
+                                            eFontPresentation aPresentation,
                                             nsTArray<const char*>& aFontList) {
-  EmojiPresentation emoji = GetEmojiPresentation(aCh);
-  if (emoji != EmojiPresentation::TextOnly) {
-    if (aNextCh == kVariationSelector16 ||
-        (aNextCh != kVariationSelector15 &&
-         emoji == EmojiPresentation::EmojiDefault)) {
-      // if char is followed by VS16, try for a color emoji glyph
-      aFontList.AppendElement(kFontTwemojiMozilla);
-    }
+  if (PrefersColor(aPresentation)) {
+    aFontList.AppendElement(kFontTwemojiMozilla);
   }
 
   aFontList.AppendElement(kFontDejaVuSerif);
@@ -259,30 +245,15 @@ gfxPlatformFontList* gfxPlatformGtk::CreatePlatformFontList() {
   return nullptr;
 }
 
-gfxFontGroup* gfxPlatformGtk::CreateFontGroup(
-    const FontFamilyList& aFontFamilyList, const gfxFontStyle* aStyle,
-    gfxTextPerfMetrics* aTextPerf, gfxUserFontSet* aUserFontSet,
-    gfxFloat aDevToCssSize) {
-  return new gfxFontGroup(aFontFamilyList, aStyle, aTextPerf, aUserFontSet,
-                          aDevToCssSize);
-}
-
-// FIXME(emilio, bug 1554850): This should be invalidated somehow, right now
-// requires a restart.
-static int32_t sDPI = 0;
-
 int32_t gfxPlatformGtk::GetFontScaleDPI() {
-  if (MOZ_UNLIKELY(!sDPI)) {
-    // Make sure init is run so we have a resolution
-    GdkScreen* screen = gdk_screen_get_default();
-    gtk_settings_get_for_screen(screen);
-    sDPI = int32_t(round(gdk_screen_get_resolution(screen)));
-    if (sDPI <= 0) {
-      // Fall back to something sane
-      sDPI = 96;
-    }
+  GdkScreen* screen = gdk_screen_get_default();
+  gtk_settings_get_for_screen(screen);
+  int32_t dpi = int32_t(round(gdk_screen_get_resolution(screen)));
+  if (dpi <= 0) {
+    // Fall back to something sane
+    dpi = 96;
   }
-  return sDPI;
+  return dpi;
 }
 
 double gfxPlatformGtk::GetFontScaleFactor() {
@@ -384,6 +355,11 @@ static nsTArray<uint8_t> GetDisplayICCProfile(Display* dpy, Window& root) {
 }
 
 nsTArray<uint8_t> gfxPlatformGtk::GetPlatformCMSOutputProfileData() {
+  nsTArray<uint8_t> prefProfileData = GetPrefCMSOutputProfileData();
+  if (!prefProfileData.IsEmpty()) {
+    return prefProfileData;
+  }
+
   if (!mIsX11Display) {
     return nsTArray<uint8_t>();
   }
@@ -503,8 +479,6 @@ class GtkVsyncSource final : public VsyncSource {
   virtual Display& GetGlobalDisplay() override { return *mGlobalDisplay; }
 
   class GLXDisplay final : public VsyncSource::Display {
-    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(GLXDisplay)
-
    public:
     GLXDisplay()
         : mGLContext(nullptr),
@@ -560,9 +534,8 @@ class GtkVsyncSource final : public VsyncSource {
         return;
       }
 
-      mGLContext = gl::GLContextGLX::CreateGLContext(
-          gl::CreateContextFlags::NONE, gl::SurfaceCaps::Any(), false,
-          mXDisplay, root, config, false, nullptr);
+      mGLContext = gl::GLContextGLX::CreateGLContext({}, mXDisplay, root,
+                                                     config, false, nullptr);
 
       if (!mGLContext) {
         lock.NotifyAll();
@@ -670,7 +643,8 @@ class GtkVsyncSource final : public VsyncSource {
         }
 
         lastVsync = TimeStamp::Now();
-        NotifyVsync(lastVsync);
+        TimeStamp outputTime = lastVsync + GetVsyncRate();
+        NotifyVsync(lastVsync, outputTime);
       }
     }
 
@@ -705,11 +679,20 @@ already_AddRefed<gfx::VsyncSource> gfxPlatformGtk::CreateHardwareVsyncSource() {
   }
 #  endif
 
-  // Only use GLX vsync when the OpenGL compositor is being used.
+  // Only use GLX vsync when the OpenGL compositor / WebRedner is being used.
   // The extra cost of initializing a GLX context while blocking the main
   // thread is not worth it when using basic composition.
+  //
+  // Don't call gl::sGLXLibrary.SupportsVideoSync() when EGL is used.
+  // NVIDIA drivers refuse to use EGL GL context when GLX was initialized first
+  // and fail silently.
   if (gfxConfig::IsEnabled(Feature::HW_COMPOSITING)) {
-    if (gl::sGLXLibrary.SupportsVideoSync()) {
+    bool useGlxVsync = false;
+    // Nvidia doesn't support GLX at the same time as EGL.
+    if (!gfxVars::UseEGL()) {
+      useGlxVsync = gl::sGLXLibrary.SupportsVideoSync();
+    }
+    if (useGlxVsync) {
       RefPtr<VsyncSource> vsyncSource = new GtkVsyncSource();
       VsyncSource::Display& display = vsyncSource->GetGlobalDisplay();
       if (!static_cast<GtkVsyncSource::GLXDisplay&>(display).Setup()) {
@@ -727,14 +710,19 @@ already_AddRefed<gfx::VsyncSource> gfxPlatformGtk::CreateHardwareVsyncSource() {
 #endif
 
 #ifdef MOZ_WAYLAND
-bool gfxPlatformGtk::UseWaylandDMABufTextures() {
-  return IsWaylandDisplay() && nsWaylandDisplay::IsDMABufTexturesEnabled();
+bool gfxPlatformGtk::UseDMABufTextures() {
+  return gfxVars::UseEGL() && GetDMABufDevice()->IsDMABufTexturesEnabled();
 }
-bool gfxPlatformGtk::UseWaylandDMABufWebGL() {
-  return IsWaylandDisplay() && nsWaylandDisplay::IsDMABufWebGLEnabled();
+bool gfxPlatformGtk::UseDMABufVideoTextures() {
+  return gfxVars::UseEGL() &&
+         (GetDMABufDevice()->IsDMABufVideoTexturesEnabled() ||
+          StaticPrefs::media_ffmpeg_vaapi_enabled());
 }
-bool gfxPlatformGtk::UseWaylandHardwareVideoDecoding() {
-  return IsWaylandDisplay() && nsWaylandDisplay::IsDMABufVAAPIEnabled() &&
-         gfxPlatform::CanUseHardwareVideoDecoding();
+bool gfxPlatformGtk::UseHardwareVideoDecoding() {
+  return gfxPlatform::CanUseHardwareVideoDecoding() &&
+         StaticPrefs::media_ffmpeg_vaapi_enabled();
+}
+bool gfxPlatformGtk::UseDRMVAAPIDisplay() {
+  return IsX11Display() || GetDMABufDevice()->IsDRMVAAPIDisplayEnabled();
 }
 #endif

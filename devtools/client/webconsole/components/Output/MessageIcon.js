@@ -26,24 +26,22 @@ const CONSTANT_ICONS = Object.entries(l10nLevels).reduce(
   {}
 );
 
-function getIconElement(level, onRewindClick, type) {
+function getIconElement(level, type) {
   let title = l10n.getStr(l10nLevels[level] || level);
   const classnames = ["icon"];
-
-  if (onRewindClick) {
-    title = l10n.getFormatStr("webconsole.jumpButton.tooltip", [title]);
-    classnames.push("rewindable");
-  }
 
   if (type && type === "logPoint") {
     title = l10n.getStr("logpoint.title");
     classnames.push("logpoint");
   }
 
+  if (type && type === "blockedReason") {
+    title = l10n.getStr("blockedrequest.label");
+  }
+
   {
     return dom.span({
       className: classnames.join(" "),
-      onClick: onRewindClick,
       title,
       "aria-live": "off",
     });
@@ -53,19 +51,14 @@ function getIconElement(level, onRewindClick, type) {
 MessageIcon.displayName = "MessageIcon";
 MessageIcon.propTypes = {
   level: PropTypes.string.isRequired,
-  onRewindClick: PropTypes.function,
   type: PropTypes.string,
 };
 
 function MessageIcon(props) {
-  const { level, onRewindClick, type } = props;
-
-  if (onRewindClick) {
-    return getIconElement(level, onRewindClick, type);
-  }
+  const { level, type } = props;
 
   if (type) {
-    return getIconElement(level, null, type);
+    return getIconElement(level, type);
   }
 
   return CONSTANT_ICONS[level] || getIconElement(level);

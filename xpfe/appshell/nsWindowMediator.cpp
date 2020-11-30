@@ -74,9 +74,8 @@ NS_IMETHODIMP nsWindowMediator::RegisterWindow(nsIAppWindow* inWindow) {
   // Create window info struct and add to list of windows
   nsWindowInfo* windowInfo = new nsWindowInfo(inWindow, mTimeStamp);
 
-  ListenerArray::ForwardIterator iter(mListeners);
-  while (iter.HasMore()) {
-    iter.GetNext()->OnOpenWindow(inWindow);
+  for (const auto& listener : mListeners.ForwardRange()) {
+    listener->OnOpenWindow(inWindow);
   }
 
   if (mOldestWindow)
@@ -105,9 +104,8 @@ nsresult nsWindowMediator::UnregisterWindow(nsWindowInfo* inInfo) {
   }
 
   nsIAppWindow* window = inInfo->mWindow.get();
-  ListenerArray::ForwardIterator iter(mListeners);
-  while (iter.HasMore()) {
-    iter.GetNext()->OnCloseWindow(window);
+  for (const auto& listener : mListeners.ForwardRange()) {
+    listener->OnCloseWindow(window);
   }
 
   // Remove from the lists and free up
@@ -199,9 +197,8 @@ nsWindowMediator::GetZOrderAppWindowEnumerator(const char16_t* aWindowType,
   return NS_OK;
 }
 
-int32_t nsWindowMediator::AddEnumerator(
-    nsAppShellWindowEnumerator* inEnumerator) {
-  return mEnumeratorList.AppendElement(inEnumerator) != nullptr;
+void nsWindowMediator::AddEnumerator(nsAppShellWindowEnumerator* inEnumerator) {
+  mEnumeratorList.AppendElement(inEnumerator);
 }
 
 int32_t nsWindowMediator::RemoveEnumerator(
@@ -242,6 +239,13 @@ nsWindowMediator::GetMostRecentBrowserWindow(mozIDOMWindowProxy** outWindow) {
 #ifdef MOZ_WIDGET_ANDROID
   if (!*outWindow) {
     rv = GetMostRecentWindow(u"navigator:geckoview", outWindow);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+#endif
+
+#ifdef MOZ_THUNDERBIRD
+  if (!*outWindow) {
+    rv = GetMostRecentWindow(u"mail:3pane", outWindow);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 #endif

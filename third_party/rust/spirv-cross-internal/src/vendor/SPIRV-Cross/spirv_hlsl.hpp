@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 Robert Konrad
+ * Copyright 2016-2020 Robert Konrad
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,6 +41,56 @@ struct RootConstants
 	uint32_t space;
 };
 
+// For finer control, decorations may be removed from specific resources instead with unset_decoration().
+enum HLSLBindingFlagBits
+{
+	HLSL_BINDING_AUTO_NONE_BIT = 0,
+
+	// Push constant (root constant) resources will be declared as CBVs (b-space) without a register() declaration.
+	// A register will be automatically assigned by the D3D compiler, but must therefore be reflected in D3D-land.
+	// Push constants do not normally have a DecorationBinding set, but if they do, this can be used to ignore it.
+	HLSL_BINDING_AUTO_PUSH_CONSTANT_BIT = 1 << 0,
+
+	// cbuffer resources will be declared as CBVs (b-space) without a register() declaration.
+	// A register will be automatically assigned, but must be reflected in D3D-land.
+	HLSL_BINDING_AUTO_CBV_BIT = 1 << 1,
+
+	// All SRVs (t-space) will be declared without a register() declaration.
+	HLSL_BINDING_AUTO_SRV_BIT = 1 << 2,
+
+	// All UAVs (u-space) will be declared without a register() declaration.
+	HLSL_BINDING_AUTO_UAV_BIT = 1 << 3,
+
+	// All samplers (s-space) will be declared without a register() declaration.
+	HLSL_BINDING_AUTO_SAMPLER_BIT = 1 << 4,
+
+	// No resources will be declared with register().
+	HLSL_BINDING_AUTO_ALL = 0x7fffffff
+};
+using HLSLBindingFlags = uint32_t;
+
+// By matching stage, desc_set and binding for a SPIR-V resource,
+// register bindings are set based on whether the HLSL resource is a
+// CBV, UAV, SRV or Sampler. A single binding in SPIR-V might contain multiple
+// resource types, e.g. COMBINED_IMAGE_SAMPLER, and SRV/Sampler bindings will be used respectively.
+// On SM 5.0 and lower, register_space is ignored.
+//
+// To remap a push constant block which does not have any desc_set/binding associated with it,
+// use ResourceBindingPushConstant{DescriptorSet,Binding} as values for desc_set/binding.
+// For deeper control of push constants, set_root_constant_layouts() can be used instead.
+struct HLSLResourceBinding
+{
+	spv::ExecutionModel stage = spv::ExecutionModelMax;
+	uint32_t desc_set = 0;
+	uint32_t binding = 0;
+
+	struct Binding
+	{
+		uint32_t register_space = 0;
+		uint32_t register_binding = 0;
+	} cbv, uav, srv, sampler;
+};
+
 class CompilerHLSL : public CompilerGLSL
 {
 public:
@@ -59,6 +109,15 @@ public:
 		// Set to false if you know you will never use base instance or base vertex
 		// functionality as it might remove an internal cbuffer.
 		bool support_nonzero_base_vertex_base_instance = false;
+
+		// Forces a storage buffer to always be declared as UAV, even if the readonly decoration is used.
+		// By default, a readonly storage buffer will be declared as ByteAddressBuffer (SRV) instead.
+		bool force_storage_buffer_as_uav = false;
+
+		// Forces any storage image type marked as NonWritable to be considered an SRV instead.
+		// For this to work with function call parameters, NonWritable must be considered to be part of the type system
+		// so that NonWritable image arguments are also translated to Texture rather than RWTexture.
+		bool nonwritable_uav_texture_as_srv = false;
 	};
 
 	explicit CompilerHLSL(std::vector<uint32_t> spirv_)
@@ -116,6 +175,17 @@ public:
 	// so the calling application should declare explicit bindings on this ID before calling compile().
 	VariableID remap_num_workgroups_builtin();
 
+	// Controls how resource bindings are declared in the output HLSL.
+	void set_resource_binding_flags(HLSLBindingFlags flags);
+
+	// resource is a resource binding to indicate the HLSL CBV, SRV, UAV or sampler binding
+	// to use for a particular SPIR-V description set
+	// and binding. If resource bindings are provided,
+	// is_hlsl_resource_binding_used() will return true after calling ::compile() if
+	// the set/binding combination was used by the HLSL code.
+	void add_hlsl_resource_binding(const HLSLResourceBinding &resource);
+	bool is_hlsl_resource_binding_used(spv::ExecutionModel model, uint32_t set, uint32_t binding) const;
+
 private:
 	std::string type_to_glsl(const SPIRType &type, uint32_t id = 0) override;
 	std::string image_type_hlsl(const SPIRType &type, uint32_t id);
@@ -125,6 +195,7 @@ private:
 	void emit_hlsl_entry_point();
 	void emit_header() override;
 	void emit_resources();
+	void declare_undefined_values() override;
 	void emit_interface_block_globally(const SPIRVariable &type);
 	void emit_interface_block_in_struct(const SPIRVariable &type, std::unordered_set<uint32_t> &active_locations);
 	void emit_builtin_inputs_in_struct();
@@ -145,16 +216,24 @@ private:
 	std::string layout_for_member(const SPIRType &type, uint32_t index) override;
 	std::string to_interpolation_qualifiers(const Bitset &flags) override;
 	std::string bitcast_glsl_op(const SPIRType &result_type, const SPIRType &argument_type) override;
+	bool emit_complex_bitcast(uint32_t result_type, uint32_t id, uint32_t op0) override;
 	std::string to_func_call_arg(const SPIRFunction::Parameter &arg, uint32_t id) override;
 	std::string to_sampler_expression(uint32_t id);
 	std::string to_resource_binding(const SPIRVariable &var);
 	std::string to_resource_binding_sampler(const SPIRVariable &var);
-	std::string to_resource_register(char space, uint32_t binding, uint32_t set);
+	std::string to_resource_register(HLSLBindingFlagBits flag, char space, uint32_t binding, uint32_t set);
 	void emit_sampled_image_op(uint32_t result_type, uint32_t result_id, uint32_t image_id, uint32_t samp_id) override;
 	void emit_access_chain(const Instruction &instruction);
 	void emit_load(const Instruction &instruction);
-	std::string read_access_chain(const SPIRAccessChain &chain);
-	void write_access_chain(const SPIRAccessChain &chain, uint32_t value);
+	void read_access_chain(std::string *expr, const std::string &lhs, const SPIRAccessChain &chain);
+	void read_access_chain_struct(const std::string &lhs, const SPIRAccessChain &chain);
+	void read_access_chain_array(const std::string &lhs, const SPIRAccessChain &chain);
+	void write_access_chain(const SPIRAccessChain &chain, uint32_t value, const SmallVector<uint32_t> &composite_chain);
+	void write_access_chain_struct(const SPIRAccessChain &chain, uint32_t value,
+	                               const SmallVector<uint32_t> &composite_chain);
+	void write_access_chain_array(const SPIRAccessChain &chain, uint32_t value,
+	                              const SmallVector<uint32_t> &composite_chain);
+	std::string write_access_chain_value(uint32_t value, const SmallVector<uint32_t> &composite_chain, bool enclose);
 	void emit_store(const Instruction &instruction);
 	void emit_atomic(const uint32_t *ops, uint32_t length, spv::Op op);
 	void emit_subgroup_op(const Instruction &i) override;
@@ -171,6 +250,7 @@ private:
 	// TODO: Refactor this to be more similar to MSL, maybe have some common system in place?
 	bool requires_op_fmod = false;
 	bool requires_fp16_packing = false;
+	bool requires_uint2_packing = false;
 	bool requires_explicit_fp16_packing = false;
 	bool requires_unorm8_packing = false;
 	bool requires_snorm8_packing = false;
@@ -210,6 +290,15 @@ private:
 		QueryTypeCount = 3
 	};
 
+	enum BitcastType
+	{
+		TypeNormal,
+		TypePackUint2x32,
+		TypeUnpackUint64
+	};
+
+	BitcastType get_bitcast_type(uint32_t result_type, uint32_t op0);
+
 	void emit_builtin_variables();
 	bool require_output = false;
 	bool require_input = false;
@@ -221,12 +310,19 @@ private:
 	std::string to_semantic(uint32_t location, spv::ExecutionModel em, spv::StorageClass sc);
 
 	uint32_t num_workgroups_builtin = 0;
+	HLSLBindingFlags resource_binding_flags = 0;
 
 	// Custom root constant layout, which should be emitted
 	// when translating push constant ranges.
 	std::vector<RootConstants> root_constants_layout;
 
 	void validate_shader_model();
+
+	std::string get_unique_identifier();
+	uint32_t unique_identifier_count = 0;
+
+	std::unordered_map<StageSetBinding, std::pair<HLSLResourceBinding, bool>, InternalHasher> resource_bindings;
+	void remap_hlsl_resource_binding(HLSLBindingFlagBits type, uint32_t &desc_set, uint32_t &binding);
 };
 } // namespace SPIRV_CROSS_NAMESPACE
 

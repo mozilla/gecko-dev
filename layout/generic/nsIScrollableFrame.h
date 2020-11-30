@@ -12,7 +12,10 @@
 #define nsIScrollFrame_h___
 
 #include "nsCoord.h"
+#include "mozilla/dom/WindowBinding.h"  // for mozilla::dom::ScrollBehavior
 #include "mozilla/Maybe.h"
+#include "mozilla/ScrollOrigin.h"
+#include "mozilla/ScrollPositionUpdate.h"
 #include "mozilla/ScrollStyles.h"
 #include "mozilla/ScrollTypes.h"
 #include "mozilla/gfx/Point.h"
@@ -29,7 +32,6 @@ class nsIScrollPositionListener;
 class nsIFrame;
 class nsPresContext;
 class nsIContent;
-class nsAtom;
 class nsDisplayListBuilder;
 
 namespace mozilla {
@@ -57,6 +59,7 @@ class nsIScrollableFrame : public nsIScrollbarMediator {
   typedef mozilla::layers::ScrollSnapInfo ScrollSnapInfo;
   typedef mozilla::layout::ScrollAnchorContainer ScrollAnchorContainer;
   typedef mozilla::ScrollMode ScrollMode;
+  typedef mozilla::ScrollOrigin ScrollOrigin;
 
   NS_DECL_QUERYFRAME_TARGET(nsIScrollableFrame)
 
@@ -112,8 +115,14 @@ class nsIScrollableFrame : public nsIScrollbarMediator {
    * positions that don't have a scrollbar or where the scrollbar is not
    * visible. Do not call this while this frame's descendants are being
    * reflowed, it won't be accurate.
+   * INCLUDE_VISUAL_VIEWPORT_SCROLLBARS means we include the size of layout
+   * scrollbars that are only visible to scroll the visual viewport inside the
+   * layout viewport (ie the layout viewport cannot be scrolled) even though
+   * there is no layout space set aside for these scrollbars.
    */
-  virtual nsMargin GetActualScrollbarSizes() const = 0;
+  enum class ScrollbarSizesOptions { NONE, INCLUDE_VISUAL_VIEWPORT_SCROLLBARS };
+  virtual nsMargin GetActualScrollbarSizes(
+      ScrollbarSizesOptions aOptions = ScrollbarSizesOptions::NONE) const = 0;
   /**
    * Return the sizes of all scrollbars assuming that any scrollbars that could
    * be visible due to overflowing content, are. This can be called during
@@ -173,11 +182,6 @@ class nsIScrollableFrame : public nsIScrollbarMediator {
    * As GetScrollPosition(), but uses the top-right as origin for RTL frames.
    */
   virtual nsPoint GetLogicalScrollPosition() const = 0;
-  /**
-   * Get the latest scroll position that the main thread has sent or received
-   * from APZ.
-   */
-  virtual nsPoint GetApzScrollPosition() const = 0;
 
   /**
    * Get the area that must contain the scroll position. Typically
@@ -202,6 +206,17 @@ class nsIScrollableFrame : public nsIScrollbarMediator {
    * GetScrollPosition().
    */
   virtual nsPoint GetVisualViewportOffset() const = 0;
+  /**
+   * Set the visual viewport offset associated with a root scroll frame. This is
+   * only valid when called on a root scroll frame and will assert otherwise.
+   * aRepaint indicates if we need to ask for a main thread paint if this
+   * changes scrollbar positions or not. For example, if the compositor has
+   * already put the scrollbars at this position then they don't need to move so
+   * we can skip the repaint. Returns true if the offset changed and the scroll
+   * frame is still alive after this call.
+   */
+  virtual bool SetVisualViewportOffset(const nsPoint& aOffset,
+                                       bool aRepaint) = 0;
   /**
    * Get the area that must contain the visual viewport offset.
    */
@@ -267,11 +282,12 @@ class nsIScrollableFrame : public nsIScrollbarMediator {
    * FIXME: Drop |aSnap| argument once after we finished the migration to the
    * Scroll Snap Module v1. We should alway use ENABLE_SNAP.
    */
-  virtual void ScrollToCSSPixels(const CSSIntPoint& aScrollPosition,
-                                 ScrollMode aMode = ScrollMode::Instant,
-                                 nsIScrollbarMediator::ScrollSnapMode aSnap =
-                                     nsIScrollbarMediator::DEFAULT,
-                                 nsAtom* aOrigin = nullptr) = 0;
+  virtual void ScrollToCSSPixels(
+      const CSSIntPoint& aScrollPosition,
+      ScrollMode aMode = ScrollMode::Instant,
+      nsIScrollbarMediator::ScrollSnapMode aSnap =
+          nsIScrollbarMediator::DEFAULT,
+      ScrollOrigin aOrigin = ScrollOrigin::NotSpecified) = 0;
   /**
    * @note This method might destroy the frame, pres shell and other objects.
    * Scrolls to a particular position in float CSS pixels.
@@ -281,7 +297,8 @@ class nsIScrollableFrame : public nsIScrollbarMediator {
    * number of layer pixels (so the operation is fast and looks clean).
    */
   virtual void ScrollToCSSPixelsApproximate(
-      const mozilla::CSSPoint& aScrollPosition, nsAtom* aOrigin = nullptr) = 0;
+      const mozilla::CSSPoint& aScrollPosition,
+      ScrollOrigin aOrigin = ScrollOrigin::NotSpecified) = 0;
 
   /**
    * Returns the scroll position in integer CSS pixels, rounded to the nearest
@@ -300,7 +317,7 @@ class nsIScrollableFrame : public nsIScrollbarMediator {
    */
   virtual void ScrollBy(nsIntPoint aDelta, mozilla::ScrollUnit aUnit,
                         ScrollMode aMode, nsIntPoint* aOverflow = nullptr,
-                        nsAtom* aOrigin = nullptr,
+                        ScrollOrigin aOrigin = ScrollOrigin::NotSpecified,
                         ScrollMomentum aMomentum = NOT_MOMENTUM,
                         nsIScrollbarMediator::ScrollSnapMode aSnap =
                             nsIScrollbarMediator::DISABLE_SNAP) = 0;
@@ -309,11 +326,11 @@ class nsIScrollableFrame : public nsIScrollbarMediator {
    * FIXME: Drop |aSnap| argument once after we finished the migration to the
    * Scroll Snap Module v1. We should alway use ENABLE_SNAP.
    */
-  virtual void ScrollByCSSPixels(const CSSIntPoint& aDelta,
-                                 ScrollMode aMode = ScrollMode::Instant,
-                                 nsAtom* aOrigin = nullptr,
-                                 nsIScrollbarMediator::ScrollSnapMode aSnap =
-                                     nsIScrollbarMediator::DEFAULT) = 0;
+  virtual void ScrollByCSSPixels(
+      const CSSIntPoint& aDelta, ScrollMode aMode = ScrollMode::Instant,
+      ScrollOrigin aOrigin = ScrollOrigin::NotSpecified,
+      nsIScrollbarMediator::ScrollSnapMode aSnap =
+          nsIScrollbarMediator::DEFAULT) = 0;
 
   /**
    * Perform scroll snapping, possibly resulting in a smooth scroll to
@@ -377,11 +394,6 @@ class nsIScrollableFrame : public nsIScrollbarMediator {
    */
   virtual bool IsMaybeScrollingActive() const = 0;
   /**
-   * Returns true if the scrollframe is currently processing an async
-   * or smooth scroll.
-   */
-  virtual bool IsProcessingAsyncScroll() = 0;
-  /**
    * Call this when the layer(s) induced by active scrolling are being
    * completely redrawn.
    */
@@ -413,25 +425,23 @@ class nsIScrollableFrame : public nsIScrollbarMediator {
   virtual nsRect ExpandRectToNearlyVisible(const nsRect& aRect) const = 0;
   /**
    * Returns the origin that triggered the last instant scroll. Will equal
-   * nsGkAtoms::apz when the compositor's replica frame metrics includes the
+   * ScrollOrigin::Apz when the compositor's replica frame metrics includes the
    * latest instant scroll.
    */
-  virtual nsAtom* LastScrollOrigin() = 0;
+  virtual ScrollOrigin LastScrollOrigin() = 0;
+
   /**
-   * Returns the origin that triggered the last smooth scroll.
-   * Will equal nsGkAtoms::apz when the compositor's replica frame
-   * metrics includes the latest smooth scroll.  The compositor will always
-   * perform an instant scroll prior to instantiating any smooth scrolls
-   * if LastScrollOrigin and LastSmoothScrollOrigin indicate that
-   * an instant scroll and a smooth scroll have occurred since the last
-   * replication of the frame metrics.
+   * Returns whether there's an async scroll going on.
    *
-   * This is set to nullptr to when the compositor thread acknowledges that
-   * the smooth scroll has been started.  If the smooth scroll has been stomped
-   * by an instant scroll before the smooth scroll could be started by the
-   * compositor, this is set to nullptr to clear the smooth scroll.
+   * The argument allows a subtle distinction that's needed for APZ. When
+   * `IncludeApzAnimation::No` is given, ongoing APZ animations that have
+   * already been synced to the main thread are not included, which is needed so
+   * that APZ can keep syncing the scroll offset properly.
    */
-  virtual nsAtom* LastSmoothScrollOrigin() = 0;
+  enum class IncludeApzAnimation : bool { No, Yes };
+  virtual bool IsScrollAnimating(
+      IncludeApzAnimation = IncludeApzAnimation::Yes) = 0;
+
   /**
    * Returns the current generation counter for the scroll. This counter
    * increments every time the scroll position is set.
@@ -443,11 +453,19 @@ class nsIScrollableFrame : public nsIScrollbarMediator {
    */
   virtual nsPoint LastScrollDestination() = 0;
   /**
+   * Returns the list of scroll position updates since the last call to
+   * NotifyApzTransaction().
+   */
+  virtual nsTArray<mozilla::ScrollPositionUpdate> GetScrollUpdates() const = 0;
+  /**
    * Clears the "origin of last scroll" property stored in this frame, if
    * the generation counter passed in matches the current scroll generation
-   * counter.
+   * counter, and clears the "origin of last smooth scroll" property if the
+   * generation counter matches. It also resets whether there's an ongoing apz
+   * animation.
    */
-  virtual void ResetScrollInfoIfGeneration(uint32_t aGeneration) = 0;
+  virtual void ResetScrollInfoIfNeeded(uint32_t aGeneration,
+                                       bool aApzAnimationInProgress) = 0;
   /**
    * Determine whether it is desirable to be able to asynchronously scroll this
    * scroll frame.
@@ -472,6 +490,8 @@ class nsIScrollableFrame : public nsIScrollbarMediator {
    * Mark the scrollbar frames for reflow.
    */
   virtual void MarkScrollbarsDirtyForReflow() const = 0;
+
+  virtual void UpdateScrollbarPosition() = 0;
 
   virtual void SetTransformingByAPZ(bool aTransforming) = 0;
   virtual bool IsTransformingByAPZ() const = 0;

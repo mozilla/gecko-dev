@@ -1,4 +1,4 @@
-// |jit-test| test-also=--wasm-compiler=ion; skip-if: !wasmDebuggingIsSupported()
+// |jit-test| test-also=--wasm-compiler=optimizing; skip-if: !wasmDebuggingEnabled()
 // Tests that wasm module scripts has inspectable locals.
 
 load(libdir + "wasm.js");
@@ -47,7 +47,7 @@ function monitorLocalValues(wast, lib, expected) {
 }
 
 monitorLocalValues(
-    '(module (func (nop) (nop)) (export "test" 0))',
+    '(module (func (nop) (nop)) (export "test" (func 0)))',
     undefined,
     [{}]
 );

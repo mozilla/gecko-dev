@@ -7,7 +7,9 @@
 #ifndef jit_mips32_SharedICRegisters_mips32_h
 #define jit_mips32_SharedICRegisters_mips32_h
 
-#include "jit/MacroAssembler.h"
+#include "jit/mips32/Assembler-mips32.h"
+#include "jit/Registers.h"
+#include "jit/RegisterSets.h"
 
 namespace js {
 namespace jit {
@@ -37,6 +39,8 @@ static constexpr Register BaselineSecondScratchReg = SecondScratchReg;
 // FloatReg0 must be equal to ReturnFloatReg.
 static constexpr FloatRegister FloatReg0 = f0;
 static constexpr FloatRegister FloatReg1 = f2;
+static constexpr FloatRegister FloatReg2 = f4;
+static constexpr FloatRegister FloatReg3 = f6;
 
 }  // namespace jit
 }  // namespace js

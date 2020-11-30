@@ -5,10 +5,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "IPCBlobUtils.h"
-#include "IPCBlobInputStream.h"
-#include "IPCBlobInputStreamChild.h"
-#include "IPCBlobInputStreamParent.h"
-#include "IPCBlobInputStreamStorage.h"
+#include "RemoteLazyInputStream.h"
+#include "RemoteLazyInputStreamChild.h"
+#include "RemoteLazyInputStreamParent.h"
+#include "RemoteLazyInputStreamUtils.h"
 #include "mozilla/dom/IPCBlob.h"
 #include "mozilla/ipc/BackgroundParent.h"
 #include "mozilla/ipc/PBackgroundParent.h"
@@ -17,6 +17,7 @@
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/ipc/IPCStreamUtils.h"
 #include "mozilla/ipc/ProtocolUtils.h"
+#include "RemoteLazyInputStreamStorage.h"
 #include "StreamBlobImpl.h"
 #include "prtime.h"
 
@@ -30,20 +31,21 @@ namespace IPCBlobUtils {
 already_AddRefed<BlobImpl> Deserialize(const IPCBlob& aIPCBlob) {
   nsCOMPtr<nsIInputStream> inputStream;
 
-  const IPCBlobStream& stream = aIPCBlob.inputStream();
+  const RemoteLazyStream& stream = aIPCBlob.inputStream();
   switch (stream.type()) {
     // Parent to child: when an nsIInputStream is sent from parent to child, the
-    // child receives a IPCBlobInputStream actor.
-    case IPCBlobStream::TPIPCBlobInputStreamChild: {
-      IPCBlobInputStreamChild* actor = static_cast<IPCBlobInputStreamChild*>(
-          stream.get_PIPCBlobInputStreamChild());
+    // child receives a RemoteLazyInputStream actor.
+    case RemoteLazyStream::TPRemoteLazyInputStreamChild: {
+      RemoteLazyInputStreamChild* actor =
+          static_cast<RemoteLazyInputStreamChild*>(
+              stream.get_PRemoteLazyInputStreamChild());
       inputStream = actor->CreateStream();
       break;
     }
 
     // Child to Parent: when a blob is created on the content process send it's
     // sent to the parent, we have an IPCStream object.
-    case IPCBlobStream::TIPCStream:
+    case RemoteLazyStream::TIPCStream:
       MOZ_ASSERT(XRE_IsParentProcess());
       inputStream = DeserializeIPCStream(stream.get_IPCStream());
       break;
@@ -74,96 +76,6 @@ already_AddRefed<BlobImpl> Deserialize(const IPCBlob& aIPCBlob) {
 
   return blobImpl.forget();
 }
-
-template <typename M>
-nsresult SerializeInputStreamParent(nsIInputStream* aInputStream,
-                                    uint64_t aSize, uint64_t aChildID,
-                                    IPCBlob& aIPCBlob, M* aManager) {
-  // Parent to Child we always send a IPCBlobInputStream.
-  MOZ_ASSERT(XRE_IsParentProcess());
-
-  nsCOMPtr<nsIInputStream> stream = aInputStream;
-
-  // In case this is a IPCBlobInputStream, we don't want to create a loop:
-  // IPCBlobInputStreamParent -> IPCBlobInputStream ->
-  // IPCBlobInputStreamParent. Let's use the underlying inputStream instead.
-  nsCOMPtr<mozIIPCBlobInputStream> ipcBlobInputStream =
-      do_QueryInterface(aInputStream);
-  if (ipcBlobInputStream) {
-    stream = ipcBlobInputStream->GetInternalStream();
-    // If we don't have an underlying stream, it's better to terminate here
-    // instead of sending an 'empty' IPCBlobInputStream actor on the other side,
-    // unable to be used.
-    if (NS_WARN_IF(!stream)) {
-      return NS_ERROR_FAILURE;
-    }
-  }
-
-  nsresult rv;
-  RefPtr<IPCBlobInputStreamParent> parentActor =
-      IPCBlobInputStreamParent::Create(stream, aSize, aChildID, &rv, aManager);
-  if (!parentActor) {
-    return rv;
-  }
-
-  if (!aManager->SendPIPCBlobInputStreamConstructor(
-          parentActor, parentActor->ID(), parentActor->Size())) {
-    return NS_ERROR_FAILURE;
-  }
-
-  aIPCBlob.inputStream() = parentActor;
-  return NS_OK;
-}
-
-template <typename M>
-nsresult SerializeInputStreamChild(nsIInputStream* aInputStream,
-                                   IPCBlob& aIPCBlob, M* aManager) {
-  AutoIPCStream ipcStream(true /* delayed start */);
-  if (!ipcStream.Serialize(aInputStream, aManager)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  aIPCBlob.inputStream() = ipcStream.TakeValue();
-  return NS_OK;
-}
-
-nsresult SerializeInputStream(nsIInputStream* aInputStream, uint64_t aSize,
-                              uint64_t aChildID, IPCBlob& aIPCBlob,
-                              ContentParent* aManager) {
-  return SerializeInputStreamParent(aInputStream, aSize, aChildID, aIPCBlob,
-                                    aManager);
-}
-
-nsresult SerializeInputStream(nsIInputStream* aInputStream, uint64_t aSize,
-                              uint64_t aChildID, IPCBlob& aIPCBlob,
-                              PBackgroundParent* aManager) {
-  return SerializeInputStreamParent(aInputStream, aSize, aChildID, aIPCBlob,
-                                    aManager);
-}
-
-nsresult SerializeInputStream(nsIInputStream* aInputStream, uint64_t aSize,
-                              uint64_t aChildID, IPCBlob& aIPCBlob,
-                              ContentChild* aManager) {
-  return SerializeInputStreamChild(aInputStream, aIPCBlob, aManager);
-}
-
-nsresult SerializeInputStream(nsIInputStream* aInputStream, uint64_t aSize,
-                              uint64_t aChildID, IPCBlob& aIPCBlob,
-                              PBackgroundChild* aManager) {
-  return SerializeInputStreamChild(aInputStream, aIPCBlob, aManager);
-}
-
-uint64_t ChildIDFromManager(ContentParent* aManager) {
-  return aManager->ChildID();
-}
-
-uint64_t ChildIDFromManager(PBackgroundParent* aManager) {
-  return BackgroundParent::GetChildID(aManager);
-}
-
-uint64_t ChildIDFromManager(ContentChild* aManager) { return 0; }
-
-uint64_t ChildIDFromManager(PBackgroundChild* aManager) { return 0; }
 
 template <typename M>
 nsresult SerializeInternal(BlobImpl* aBlobImpl, M* aManager,
@@ -218,12 +130,14 @@ nsresult SerializeInternal(BlobImpl* aBlobImpl, M* aManager,
     return rv.StealNSResult();
   }
 
-  rv = SerializeInputStream(inputStream, aIPCBlob.size(),
-                            ChildIDFromManager(aManager), aIPCBlob, aManager);
+  RemoteLazyStream stream;
+  rv = RemoteLazyInputStreamUtils::SerializeInputStream(
+      inputStream, aIPCBlob.size(), stream, aManager);
   if (NS_WARN_IF(rv.Failed())) {
     return rv.StealNSResult();
   }
 
+  aIPCBlob.inputStream() = stream;
   return NS_OK;
 }
 

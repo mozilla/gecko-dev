@@ -5213,7 +5213,7 @@ function runBug1375825Test()
   is(ret.text, "h", "runBug1375825Test #1 (7, 1), \"" + contenteditable.innerHTML + "\": should have queried a rect for 'h'");
 
   // #2
-  contenteditable.innerHTML = "abc<span style=\"-moz-user-select: all;\">defgh</span>";
+  contenteditable.innerHTML = "abc<span style=\"user-select: all;\">defgh</span>";
 
   ret = synthesizeQueryTextRect(2, 1);
   if (!checkQueryContentResult(ret, "runBug1375825Test #2 (2, 1), \"" + contenteditable.innerHTML + "\"")) {
@@ -5355,6 +5355,92 @@ async function runBug1584901Test()
 
   is(contenteditableBySpan.innerHTML, "a b&nbsp;",
      "runBug1584901Test: space must not be removed by composition change");
+}
+
+function runBug1675313Test()
+{
+  input.value = "";
+  input.focus();
+  let count = 0;
+
+  function handler() {
+    input.focus();
+    count++;
+  }
+
+  input.addEventListener("keyup", handler);
+
+  synthesizeCompositionChange({
+    composition: {
+      string: "a",
+      clauses: [{length: 1, attr: COMPOSITION_ATTR_RAW_CLAUSE}],
+      key: { key: "a", type: "keyup" },
+    },
+  });
+  synthesizeCompositionChange({
+    composition: {
+      string: "b",
+      clauses: [{length: 1, attr: COMPOSITION_ATTR_RAW_CLAUSE}],
+      key: { key: "b", type: "keyup" },
+    },
+  });
+  synthesizeComposition({type: "compositioncommitasis"});
+
+  is(count, 3, "runBug1675313Test: keyup event is fired correctly");
+  is(input.value, "b",
+     "runBug1675313Test: re-focus element doesn't commit composition if re-focus isn't click by user");
+
+  input.removeEventListener("keyup", handler);
+}
+
+function runCommitCompositionWithSpaceKey()
+{
+  contenteditable.focus();
+  contenteditable.innerHTML = "";
+
+  // Last white space might be &nbsp; if last child is no <br>
+  // Actually, our implementation will insert <br> element at last child, so
+  // white space will be ASCII space.
+
+  synthesizeCompositionChange({
+    composition: {string: "a", clauses: [{length: 1, attr: COMPOSITION_ATTR_RAW_CLAUSE}]},
+  });
+  synthesizeComposition({type: "compositioncommit", data: "a"});
+  synthesizeKey(" ");
+
+  is(contenteditable.innerHTML, "a <br>",
+     "runCommitCompositionWithSpaceKey: last single space should be kept");
+
+  synthesizeCompositionChange({
+    composition: {string: "b", clauses: [{length: 1, attr: COMPOSITION_ATTR_RAW_CLAUSE}]},
+  });
+  synthesizeComposition({type: "compositioncommit", data: "b"});
+  synthesizeKey(" ");
+
+  is(contenteditable.innerHTML, "a b <br>",
+     "runCommitCompositionWithSpaceKey: inserting composition shouldn't remove last single space.");
+
+  synthesizeCompositionChange({
+    composition: {string: "c", clauses: [{length: 1, attr: COMPOSITION_ATTR_RAW_CLAUSE}]},
+  });
+  synthesizeComposition({type: "compositioncommit", data: "c"});
+  synthesizeKey(" ");
+
+  is(contenteditable.innerHTML, "a b c <br>",
+     "runCommitCompositionWithSpaceKey: inserting composition shouldn't remove last single space.");
+
+  contenteditable.innerHTML = "a";
+  windowOfContenteditable.getSelection().collapse(contenteditable.firstChild, contenteditable.firstChild.length);
+  is(contenteditable.innerHTML, "a",
+     "runCommitCompositionWithSpaceKey: contenteditable should be initialized with text ending with a space and without following <br> element");
+
+  synthesizeCompositionChange({
+    composition: {string: "b", clauses: [{length: 1, attr: COMPOSITION_ATTR_RAW_CLAUSE}]},
+  });
+  synthesizeComposition({type: "compositioncommit", data: "b ", key: { key: " ", code: "Space" }});
+
+  is(contenteditable.innerHTML, "ab <br>",
+     "runCommitCompositionWithSpaceKey: contenteditable should end with a padding <br> element after inserting commit string ending with a space");
 }
 
 function runCSSTransformTest()
@@ -9521,6 +9607,8 @@ async function runTest()
   runBug1375825Test();
   runBug1530649Test();
   runBug1571375Test();
+  runBug1675313Test();
+  runCommitCompositionWithSpaceKey();
   runForceCommitTest();
   runNestedSettingValue();
   runBug811755Test();

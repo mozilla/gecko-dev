@@ -32,6 +32,16 @@ const TELEMETRY_DATA = [
     timestamp: null,
     category: "devtools.main",
     method: "tool_timer",
+    object: "compatibilityview",
+    value: null,
+    extra: {
+      time_open: "",
+    },
+  },
+  {
+    timestamp: null,
+    category: "devtools.main",
+    method: "tool_timer",
     object: "computedview",
     value: null,
     extra: {
@@ -48,6 +58,9 @@ add_task(async function() {
   const snapshot = Services.telemetry.snapshotEvents(ALL_CHANNELS, true);
   ok(!snapshot.parent, "No events have been logged for the main process");
 
+  // Enable the compatibility view explictly as this pref is enabled for only Nightly and DevEdition.
+  await pushPref("devtools.inspector.compatibility.enabled", true);
+
   let { inspector, toolbox } = await openInspectorForURL(TEST_URI);
 
   info("Selecting font inspector.");
@@ -57,6 +70,19 @@ add_task(async function() {
     inspector.sidebar.getCurrentTabID(),
     "fontinspector",
     "Font Inspector is selected"
+  );
+
+  info("Selecting compatibility view.");
+  const onCompatibilityViewInitialized = inspector.once(
+    "compatibilityview-initialized"
+  );
+  inspector.sidebar.select("compatibilityview");
+  await onCompatibilityViewInitialized;
+
+  is(
+    inspector.sidebar.getCurrentTabID(),
+    "compatibilityview",
+    "Compatibility View is selected"
   );
 
   info("Selecting computed view.");

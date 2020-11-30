@@ -7,7 +7,7 @@
 #ifndef vm_ArrayBufferViewObject_h
 #define vm_ArrayBufferViewObject_h
 
-#include "builtin/TypedObjectConstants.h"
+#include "builtin/TypedArrayConstants.h"
 #include "vm/ArrayBufferObject.h"
 #include "vm/NativeObject.h"
 #include "vm/SharedArrayObject.h"
@@ -53,6 +53,16 @@ class ArrayBufferViewObject : public NativeObject {
   // This offset is exposed for performance reasons - so that it
   // need not be looked up on accesses.
   static constexpr size_t DATA_SLOT = 3;
+
+  static constexpr int lengthOffset() {
+    return NativeObject::getFixedSlotOffset(LENGTH_SLOT);
+  }
+  static constexpr int byteOffsetOffset() {
+    return NativeObject::getFixedSlotOffset(BYTEOFFSET_SLOT);
+  }
+  static constexpr int dataOffset() {
+    return NativeObject::getPrivateDataOffset(DATA_SLOT);
+  }
 
  private:
   void* dataPointerEither_() const {

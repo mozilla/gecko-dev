@@ -38,6 +38,7 @@ class DocAccessibleChild : public DocAccessibleChildBase {
     MOZ_COUNT_DTOR_INHERITED(DocAccessibleChild, DocAccessibleChildBase);
   }
 
+  virtual mozilla::ipc::IPCResult RecvConstructedInParentProcess() override;
   virtual mozilla::ipc::IPCResult RecvRestoreFocus() override;
 
   /*
@@ -84,8 +85,9 @@ class DocAccessibleChild : public DocAccessibleChildBase {
   virtual mozilla::ipc::IPCResult RecvARIARoleAtom(const uint64_t& aID,
                                                    nsString* aRole) override;
 
-  virtual mozilla::ipc::IPCResult RecvGetLevelInternal(
-      const uint64_t& aID, int32_t* aLevel) override;
+  virtual mozilla::ipc::IPCResult RecvGroupPosition(
+      const uint64_t& aID, int32_t* aLevel, int32_t* aSimilarItemsInGroup,
+      int32_t* aPositionInGroup) override;
 
   virtual mozilla::ipc::IPCResult RecvAttributes(
       const uint64_t& aID, nsTArray<Attribute>* aAttributes) override;
@@ -458,10 +460,10 @@ class DocAccessibleChild : public DocAccessibleChildBase {
       const uint64_t& aID, nsString* aURL, nsString* aDocType,
       nsString* aMimeType) override;
 
-  virtual mozilla::ipc::IPCResult RecvAccessibleAtPoint(
+  virtual mozilla::ipc::IPCResult RecvChildAtPoint(
       const uint64_t& aID, const int32_t& aX, const int32_t& aY,
-      const bool& aNeedsScreenCoords, const uint32_t& aWhich, uint64_t* aResult,
-      bool* aOk) override;
+      const uint32_t& aWhich, PDocAccessibleChild** aResultDoc,
+      uint64_t* aResultID) override;
 
   virtual mozilla::ipc::IPCResult RecvExtents(const uint64_t& aID,
                                               const bool& aNeedsScreenCoords,

@@ -9,9 +9,9 @@
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/SVGImageContext.h"
 #include "ImageRegion.h"
 #include "Orientation.h"
-#include "SVGImageContext.h"
 
 #include "mozilla/MemoryReporting.h"
 
@@ -111,6 +111,9 @@ Maybe<AspectRatio> DynamicImage::GetIntrinsicRatio() {
 
 NS_IMETHODIMP_(Orientation)
 DynamicImage::GetOrientation() { return Orientation(); }
+
+NS_IMETHODIMP_(bool)
+DynamicImage::HandledOrientation() { return false; }
 
 NS_IMETHODIMP
 DynamicImage::GetType(uint16_t* aType) {
@@ -228,9 +231,9 @@ bool DynamicImage::StartDecodingWithResult(uint32_t aFlags,
   return true;
 }
 
-bool DynamicImage::RequestDecodeWithResult(uint32_t aFlags,
-                                           uint32_t aWhichFrame) {
-  return true;
+imgIContainer::DecodeResult DynamicImage::RequestDecodeWithResult(
+    uint32_t aFlags, uint32_t aWhichFrame) {
+  return imgIContainer::DECODE_SURFACE_AVAILABLE;
 }
 
 NS_IMETHODIMP
@@ -292,6 +295,14 @@ already_AddRefed<imgIContainer> DynamicImage::Unwrap() {
 
 void DynamicImage::PropagateUseCounters(dom::Document*) {
   // No use counters.
+}
+
+nsresult DynamicImage::GetHotspotX(int32_t* aX) {
+  return Image::GetHotspotX(aX);
+}
+
+nsresult DynamicImage::GetHotspotY(int32_t* aY) {
+  return Image::GetHotspotY(aY);
 }
 
 }  // namespace image

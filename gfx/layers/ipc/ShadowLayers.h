@@ -217,9 +217,8 @@ class ShadowLayerForwarder final : public LayersIPCActor,
   bool DestroyInTransaction(PTextureChild* aTexture) override;
   bool DestroyInTransaction(const CompositableHandle& aHandle);
 
-  void RemoveTextureFromCompositable(
-      CompositableClient* aCompositable, TextureClient* aTexture,
-      const Maybe<wr::RenderRoot>& aRenderRoot) override;
+  void RemoveTextureFromCompositable(CompositableClient* aCompositable,
+                                     TextureClient* aTexture) override;
 
   /**
    * Communicate to the compositor that aRegion in the texture identified by
@@ -233,8 +232,7 @@ class ShadowLayerForwarder final : public LayersIPCActor,
    * See CompositableForwarder::UseTextures
    */
   void UseTextures(CompositableClient* aCompositable,
-                   const nsTArray<TimedTextureClient>& aTextures,
-                   const Maybe<wr::RenderRoot>& aRenderRoot) override;
+                   const nsTArray<TimedTextureClient>& aTextures) override;
   void UseComponentAlphaTextures(CompositableClient* aCompositable,
                                  TextureClient* aClientOnBlack,
                                  TextureClient* aClientOnWhite) override;
@@ -390,7 +388,7 @@ class ShadowLayerForwarder final : public LayersIPCActor,
 
   CompositorBridgeChild* GetCompositorBridgeChild();
 
-  nsIEventTarget* GetEventTarget() { return mEventTarget; };
+  nsISerialEventTarget* GetEventTarget() { return mEventTarget; };
 
   bool IsThreadSafe() const override { return false; }
 
@@ -418,7 +416,7 @@ class ShadowLayerForwarder final : public LayersIPCActor,
  private:
   ClientLayerManager* mClientLayerManager;
   Transaction* mTxn;
-  MessageLoop* mMessageLoop;
+  nsCOMPtr<nsISerialEventTarget> mThread;
   DiagnosticTypes mDiagnosticTypes;
   bool mIsFirstPaint;
   FocusTarget mFocusTarget;
@@ -432,7 +430,7 @@ class ShadowLayerForwarder final : public LayersIPCActor,
    * browserChild don't exist anymore; therefore we hold the event target since
    * its lifecycle is independent of these objects.
    */
-  nsCOMPtr<nsIEventTarget> mEventTarget;
+  nsCOMPtr<nsISerialEventTarget> mEventTarget;
 };
 
 class CompositableClient;

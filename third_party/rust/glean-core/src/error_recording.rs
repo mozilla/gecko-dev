@@ -39,7 +39,7 @@ pub enum ErrorType {
 }
 
 impl ErrorType {
-    /// The error type's metric name
+    /// The error type's metric id
     pub fn as_str(&self) -> &'static str {
         match self {
             ErrorType::InvalidValue => "invalid_value",
@@ -101,7 +101,7 @@ fn get_error_metric_for_metric(meta: &CommonMetricData, error: ErrorType) -> Cou
 /// * meta - The metric's meta data
 /// * error -  The error type to record
 /// * message - The message to log. This message is not sent with the ping.
-///             It does not need to include the metric name, as that is automatically prepended to the message.
+///             It does not need to include the metric id, as that is automatically prepended to the message.
 ///  * num_errors - The number of errors of the same type to report.
 pub fn record_error<O: Into<Option<i32>>>(
     glean: &Glean,
@@ -153,20 +153,11 @@ pub fn test_get_num_recorded_errors(
 mod test {
     use super::*;
     use crate::metrics::*;
-
-    const GLOBAL_APPLICATION_ID: &str = "org.mozilla.glean.test.app";
-    pub fn new_glean() -> (Glean, tempfile::TempDir) {
-        let dir = tempfile::tempdir().unwrap();
-        let tmpname = dir.path().display().to_string();
-
-        let glean = Glean::with_options(&tmpname, GLOBAL_APPLICATION_ID, true).unwrap();
-
-        (glean, dir)
-    }
+    use crate::tests::new_glean;
 
     #[test]
     fn recording_of_all_error_types() {
-        let (glean, _t) = new_glean();
+        let (glean, _t) = new_glean(None);
 
         let string_metric = StringMetric::new(CommonMetricData {
             name: "string_metric".into(),

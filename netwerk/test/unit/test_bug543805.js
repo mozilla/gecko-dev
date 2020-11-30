@@ -1,3 +1,5 @@
+"use strict";
+
 const URL = "ftp://localhost/bug543805/";
 
 var dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -111,7 +113,7 @@ function storeData(status, entry) {
     isPending() {
       return this.pending;
     },
-    QueryInterface: ChromeUtils.generateQI([Ci.nsIChannel]),
+    QueryInterface: ChromeUtils.generateQI(["nsIChannel"]),
   };
 
   converter.onStartRequest(channel, null);

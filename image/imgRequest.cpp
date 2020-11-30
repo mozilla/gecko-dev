@@ -18,6 +18,7 @@
 
 #include "nsIChannel.h"
 #include "nsICacheInfoChannel.h"
+#include "nsIClassOfService.h"
 #include "mozilla/dom/Document.h"
 #include "nsIThreadRetargetableRequest.h"
 #include "nsIInputStream.h"
@@ -61,6 +62,8 @@ imgRequest::imgRequest(imgLoader* aLoader, const ImageCacheKey& aCacheKey)
       mCORSMode(imgIRequest::CORS_NONE),
       mImageErrorCode(NS_OK),
       mImageAvailable(false),
+      mIsDeniedCrossSiteCORSRequest(false),
+      mIsCrossSiteNoCORSRequest(false),
       mMutex("imgRequest", /* aOrdered */ true),
       mProgressTracker(new ProgressTracker()),
       mIsMultiPartChannel(false),
@@ -86,8 +89,9 @@ imgRequest::~imgRequest() {
 nsresult imgRequest::Init(nsIURI* aURI, nsIURI* aFinalURI,
                           bool aHadInsecureRedirect, nsIRequest* aRequest,
                           nsIChannel* aChannel, imgCacheEntry* aCacheEntry,
-                          nsISupports* aCX, nsIPrincipal* aTriggeringPrincipal,
-                          int32_t aCORSMode, nsIReferrerInfo* aReferrerInfo) {
+                          mozilla::dom::Document* aLoadingDocument,
+                          nsIPrincipal* aTriggeringPrincipal, int32_t aCORSMode,
+                          nsIReferrerInfo* aReferrerInfo) {
   MOZ_ASSERT(NS_IsMainThread(), "Cannot use nsIURI off main thread!");
 
   LOG_FUNC(gImgLog, "imgRequest::Init");
@@ -136,15 +140,37 @@ nsresult imgRequest::Init(nsIURI* aURI, nsIURI* aFinalURI,
   mCacheEntry = aCacheEntry;
   mCacheEntry->UpdateLoadTime();
 
-  SetLoadId(aCX);
+  SetLoadId(aLoadingDocument);
 
   // Grab the inner window ID of the loading document, if possible.
-  nsCOMPtr<dom::Document> doc = do_QueryInterface(aCX);
-  if (doc) {
-    mInnerWindowId = doc->InnerWindowID();
+  if (aLoadingDocument) {
+    mInnerWindowId = aLoadingDocument->InnerWindowID();
   }
 
   return NS_OK;
+}
+
+bool imgRequest::CanReuseWithoutValidation(dom::Document* aDoc) const {
+  // If the request's loadId is the same as the aLoadingDocument, then it is ok
+  // to use this one because it has already been validated for this context.
+  // XXX: nullptr seems to be a 'special' key value that indicates that NO
+  //      validation is required.
+  // XXX: we also check the window ID because the loadID() can return a reused
+  //      pointer of a document. This can still happen for non-document image
+  //      cache entries.
+  void* key = (void*)aDoc;
+  uint64_t innerWindowID = aDoc ? aDoc->InnerWindowID() : 0;
+  if (LoadId() == key && InnerWindowID() == innerWindowID) {
+    return true;
+  }
+
+  // As a special-case, if this is a print preview document, also validate on
+  // the original document. This allows to print uncacheable images.
+  if (dom::Document* original = aDoc ? aDoc->GetOriginalDocument() : nullptr) {
+    return CanReuseWithoutValidation(original);
+  }
+
+  return false;
 }
 
 void imgRequest::ClearLoader() { mLoader = nullptr; }
@@ -518,53 +544,26 @@ void imgRequest::SetCacheValidation(imgCacheEntry* aCacheEntry,
   recordreplay::RecordReplayAssert("imgRequest::SetCacheValidation %d", !!aCacheEntry);
 
   /* get the expires info */
-  if (aCacheEntry) {
-    // Expiration time defaults to 0. We set the expiration time on our
-    // entry if it hasn't been set yet.
-    if (aCacheEntry->GetExpiryTime() == 0) {
-      uint32_t expiration = 0;
-      nsCOMPtr<nsICacheInfoChannel> cacheChannel(do_QueryInterface(aRequest));
-      if (cacheChannel) {
-        /* get the expiration time from the caching channel's token */
-        cacheChannel->GetCacheTokenExpirationTime(&expiration);
-      }
-      if (expiration == 0) {
-        // If the channel doesn't support caching, then ensure this expires the
-        // next time it is used.
-        expiration = imgCacheEntry::SecondsFromPRTime(RecordReplayNow("imgRequest::SetCacheValidation")) - 1;
-      }
-      aCacheEntry->SetExpiryTime(expiration);
-    }
+  if (!aCacheEntry || aCacheEntry->GetExpiryTime() != 0) {
+    return;
+  }
 
-    // Determine whether the cache entry must be revalidated when we try to use
-    // it. Currently, only HTTP specifies this information...
-    nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(aRequest));
-    if (httpChannel) {
-      bool bMustRevalidate = false;
+  auto info = nsContentUtils::GetSubresourceCacheValidationInfo(aRequest);
 
-      Unused << httpChannel->IsNoStoreResponse(&bMustRevalidate);
-
-      if (!bMustRevalidate) {
-        Unused << httpChannel->IsNoCacheResponse(&bMustRevalidate);
-      }
-
-      if (!bMustRevalidate) {
-        nsAutoCString cacheHeader;
-
-        Unused << httpChannel->GetResponseHeader(
-            NS_LITERAL_CSTRING("Cache-Control"), cacheHeader);
-        if (PL_strcasestr(cacheHeader.get(), "must-revalidate")) {
-          bMustRevalidate = true;
-        }
-      }
-
-      // Cache entries default to not needing to validate. We ensure that
-      // multiple calls to this function don't override an earlier decision to
-      // validate by making validation a one-way decision.
-      if (bMustRevalidate) {
-        aCacheEntry->SetMustValidate(bMustRevalidate);
-      }
-    }
+  // Expiration time defaults to 0. We set the expiration time on our entry if
+  // it hasn't been set yet.
+  if (!info.mExpirationTime) {
+    // If the channel doesn't support caching, then ensure this expires the
+    // next time it is used.
+    info.mExpirationTime.emplace(nsContentUtils::SecondsFromPRTime(PR_Now()) -
+                                 1);
+  }
+  aCacheEntry->SetExpiryTime(*info.mExpirationTime);
+  // Cache entries default to not needing to validate. We ensure that
+  // multiple calls to this function don't override an earlier decision to
+  // validate by making validation a one-way decision.
+  if (info.mMustRevalidate) {
+    aCacheEntry->SetMustValidate(info.mMustRevalidate);
   }
 }
 
@@ -646,12 +645,23 @@ imgRequest::OnStartRequest(nsIRequest* aRequest) {
 
   RefPtr<Image> image;
 
+  if (nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aRequest)) {
+    nsresult rv;
+    nsCOMPtr<nsILoadInfo> loadInfo = httpChannel->LoadInfo();
+    mIsDeniedCrossSiteCORSRequest =
+        loadInfo->GetTainting() == LoadTainting::CORS &&
+        (NS_FAILED(httpChannel->GetStatus(&rv)) || NS_FAILED(rv));
+    mIsCrossSiteNoCORSRequest = loadInfo->GetTainting() == LoadTainting::Opaque;
+  }
+
   // Figure out if we're multipart.
   nsCOMPtr<nsIMultiPartChannel> multiPartChannel = do_QueryInterface(aRequest);
-  MOZ_ASSERT(multiPartChannel || !mIsMultiPartChannel,
-             "Stopped being multipart?");
   {
     MutexAutoLock lock(mMutex);
+
+    MOZ_ASSERT(multiPartChannel || !mIsMultiPartChannel,
+               "Stopped being multipart?");
+
     mNewPartPending = true;
     image = mImage;
     mIsMultiPartChannel = bool(multiPartChannel);

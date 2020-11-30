@@ -14,7 +14,6 @@
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIFrame.h"
 #include "nsFrameLoaderOwner.h"
-#include "mozilla/dom/Document.h"
 #include "nsIContent.h"
 #include "nsViewManager.h"
 #include "nsINode.h"
@@ -27,22 +26,24 @@
 #include "nsRegion.h"
 #include "nsXULPopupManager.h"
 #include "nsMenuPopupFrame.h"
-#include "SVGImageContext.h"
 #ifdef MOZ_XUL
 #  include "nsTreeBodyFrame.h"
 #endif
 #include "mozilla/MouseEvents.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
+#include "mozilla/SVGImageContext.h"
+#include "mozilla/Unused.h"
+#include "mozilla/ViewportUtils.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/DataTransferItemList.h"
 #include "mozilla/dom/DataTransfer.h"
+#include "mozilla/dom/Document.h"
 #include "mozilla/dom/DocumentInlines.h"
 #include "mozilla/dom/DragEvent.h"
 #include "mozilla/dom/MouseEventBinding.h"
 #include "mozilla/dom/Selection.h"
 #include "mozilla/gfx/2D.h"
-#include "mozilla/Unused.h"
 #include "nsFrameLoader.h"
 #include "BrowserParent.h"
 #include "nsIMutableArray.h"
@@ -706,30 +707,29 @@ nsresult nsBaseDragService::DrawDrag(nsINode* aDOMNode,
 
   // didn't want an image, so just set the screen rectangle to the frame size
   if (!enableDragImages || !mHasImage) {
-    // if a region was specified, set the screen rectangle to the area that
-    // the region occupies
-    CSSIntRect dragRect;
+    // This holds a quantity in RelativeTo{presShell->GetRootFrame(),
+    // ViewportType::Layout} space.
+    nsRect presLayoutRect;
     if (aRegion) {
-      // the region's coordinates are relative to the root frame
-      dragRect = aRegion->GetBounds();
-
-      nsIFrame* rootFrame = presShell->GetRootFrame();
-      CSSIntRect screenRect = rootFrame->GetScreenRect();
-      dragRect.MoveBy(screenRect.TopLeft());
+      // if a region was specified, set the screen rectangle to the area that
+      // the region occupies
+      presLayoutRect = ToAppUnits(aRegion->GetBounds(), AppUnitsPerCSSPixel());
     } else {
       // otherwise, there was no region so just set the rectangle to
       // the size of the primary frame of the content.
       nsCOMPtr<nsIContent> content = do_QueryInterface(dragNode);
       nsIFrame* frame = content->GetPrimaryFrame();
       if (frame) {
-        dragRect = frame->GetScreenRect();
+        presLayoutRect = frame->GetRect();
       }
     }
 
-    nsIntRect dragRectDev =
-        ToAppUnits(dragRect, AppUnitsPerCSSPixel())
-            .ToOutsidePixels((*aPresContext)->AppUnitsPerDevPixel());
-    aScreenDragRect->SizeTo(dragRectDev.Width(), dragRectDev.Height());
+    LayoutDeviceRect screenVisualRect = ViewportUtils::ToScreenRelativeVisual(
+        LayoutDeviceRect::FromAppUnits(presLayoutRect,
+                                       (*aPresContext)->AppUnitsPerDevPixel()),
+        *aPresContext);
+    aScreenDragRect->SizeTo(screenVisualRect.Width(),
+                            screenVisualRect.Height());
     return NS_OK;
   }
 

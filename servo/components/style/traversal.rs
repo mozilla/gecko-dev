@@ -351,10 +351,7 @@ where
             rule_inclusion,
             PseudoElementResolution::IfApplicable,
         )
-        .resolve_primary_style(
-            style.as_ref().map(|s| &**s),
-            layout_parent_style.as_ref().map(|s| &**s),
-        );
+        .resolve_primary_style(style.as_deref(), layout_parent_style.as_deref());
 
         let is_display_contents = primary_style.style().is_display_contents();
 
@@ -373,10 +370,7 @@ where
         rule_inclusion,
         PseudoElementResolution::Force,
     )
-    .resolve_style(
-        style.as_ref().map(|s| &**s),
-        layout_parent_style.as_ref().map(|s| &**s),
-    )
+    .resolve_style(style.as_deref(), layout_parent_style.as_deref())
     .into()
 }
 
@@ -613,6 +607,7 @@ where
                         &new_styles.primary,
                         Some(&mut target),
                         traversal_data.current_dom_depth,
+                        &context.shared,
                     );
 
                     new_styles
@@ -669,6 +664,7 @@ where
                     &new_styles.primary,
                     None,
                     traversal_data.current_dom_depth,
+                    &context.shared,
                 );
             }
 
@@ -694,9 +690,7 @@ where
     if let Some(ref values) = data.styles.primary {
         for image in &values.get_background().background_image.0 {
             let (name, arguments) = match *image {
-                Image::PaintWorklet(ref worklet) => {
-                    (&worklet.name, &worklet.arguments)
-                },
+                Image::PaintWorklet(ref worklet) => (&worklet.name, &worklet.arguments),
                 _ => continue,
             };
             let painter = match context.shared.registered_speculative_painters.get(name) {
@@ -845,7 +839,7 @@ where
                 //
                 // By consequence, any element without data has no descendants with
                 // data.
-                if kid.get_data().is_some() {
+                if kid.has_data() {
                     kid.clear_data();
                     parents.push(kid);
                 }

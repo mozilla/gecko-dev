@@ -9,72 +9,498 @@
 #include "nsProfiler.h"
 
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/DataMutex.h"
+#include "mozilla/IOInterposer.h"
+#include "mozilla/Maybe.h"
+#include "mozilla/ProfileBufferControlledChunkManager.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/Unused.h"
 #include "nsTArray.h"
 #include "nsThreadUtils.h"
 
+#include <utility>
+
 namespace mozilla {
 
 using namespace ipc;
 
+class ProfilerParentTracker;
+
+// This class is responsible for gathering updates from chunk managers in
+// different process, and request for the oldest chunks to be destroyed whenever
+// the given memory limit is reached.
+class ProfileBufferGlobalController final {
+ public:
+  explicit ProfileBufferGlobalController(size_t aMaximumBytes);
+
+  ~ProfileBufferGlobalController();
+
+  void HandleChildChunkManagerUpdate(
+      base::ProcessId aProcessId,
+      ProfileBufferControlledChunkManager::Update&& aUpdate);
+
+ private:
+  void HandleChunkManagerNonFinalUpdate(
+      base::ProcessId aProcessId,
+      ProfileBufferControlledChunkManager::Update&& aUpdate,
+      ProfileBufferControlledChunkManager& aParentChunkManager);
+
+  const size_t mMaximumBytes;
+
+  const base::ProcessId mParentProcessId = base::GetCurrentProcId();
+
+  struct ParentChunkManagerAndPendingUpdate {
+    ProfileBufferControlledChunkManager* mChunkManager = nullptr;
+    ProfileBufferControlledChunkManager::Update mPendingUpdate;
+  };
+
+  DataMutex<ParentChunkManagerAndPendingUpdate>
+      mParentChunkManagerAndPendingUpdate{
+          "ProfileBufferGlobalController::mParentChunkManagerAndPendingUpdate"};
+
+  size_t mUnreleasedTotalBytes = 0;
+
+  struct PidAndBytes {
+    base::ProcessId mProcessId;
+    size_t mBytes;
+
+    // For searching and sorting.
+    bool operator==(base::ProcessId aSearchedProcessId) const {
+      return mProcessId == aSearchedProcessId;
+    }
+    bool operator==(const PidAndBytes& aOther) const {
+      return mProcessId == aOther.mProcessId;
+    }
+    bool operator<(base::ProcessId aSearchedProcessId) const {
+      return mProcessId < aSearchedProcessId;
+    }
+    bool operator<(const PidAndBytes& aOther) const {
+      return mProcessId < aOther.mProcessId;
+    }
+  };
+  using PidAndBytesArray = nsTArray<PidAndBytes>;
+  PidAndBytesArray mUnreleasedBytesByPid;
+
+  size_t mReleasedTotalBytes = 0;
+
+  struct TimeStampAndBytesAndPid {
+    TimeStamp mTimeStamp;
+    size_t mBytes;
+    base::ProcessId mProcessId;
+
+    // For searching and sorting.
+    bool operator==(const TimeStampAndBytesAndPid& aOther) const {
+      // Sort first by timestamps, and then by pid in rare cases with the same
+      // timestamps.
+      return mTimeStamp == aOther.mTimeStamp && mProcessId == aOther.mProcessId;
+    }
+    bool operator<(const TimeStampAndBytesAndPid& aOther) const {
+      // Sort first by timestamps, and then by pid in rare cases with the same
+      // timestamps.
+      return mTimeStamp < aOther.mTimeStamp ||
+             (MOZ_UNLIKELY(mTimeStamp == aOther.mTimeStamp) &&
+              mProcessId < aOther.mProcessId);
+    }
+  };
+  using TimeStampAndBytesAndPidArray = nsTArray<TimeStampAndBytesAndPid>;
+  TimeStampAndBytesAndPidArray mReleasedChunksByTime;
+};
+
+// This singleton class tracks live ProfilerParent's (meaning there's a current
+// connection with a child process).
+// It also knows when the local profiler is running.
+// And when both the profiler is running and at least one child is present, it
+// creates a ProfileBufferGlobalController and forwards chunk updates to it.
 class ProfilerParentTracker final {
  public:
   static void StartTracking(ProfilerParent* aParent);
   static void StopTracking(ProfilerParent* aParent);
 
+  static void ProfilerStarted(uint32_t aEntries);
+  static void ProfilerWillStopIfStarted();
+
   template <typename FuncType>
-  static void Enumerate(FuncType aIterFunc);
+  static void Enumerate(FuncType&& aIterFunc);
+
+  template <typename FuncType>
+  static void ForChild(base::ProcessId aChildPid, FuncType&& aIterFunc);
+
+  static void ForwardChildChunkManagerUpdate(
+      base::ProcessId aProcessId,
+      ProfileBufferControlledChunkManager::Update&& aUpdate);
 
   ProfilerParentTracker();
   ~ProfilerParentTracker();
 
  private:
+  static void EnsureInstance();
+
+  // List of parents for currently-connected child processes.
   nsTArray<ProfilerParent*> mProfilerParents;
+
+  // If non-0, the parent profiler is running, with this limit (in number of
+  // entries.) This is needed here, because the parent profiler may start
+  // running before child processes are known (e.g., startup profiling).
+  uint32_t mEntries = 0;
+
+  // When the profiler is running and there is at least one parent-child
+  // connection, this is the controller that should receive chunk updates.
+  Maybe<ProfileBufferGlobalController> mMaybeController;
+
+  // Singleton instance, created when first needed, destroyed at Firefox
+  // shutdown.
   static UniquePtr<ProfilerParentTracker> sInstance;
 };
+
+ProfileBufferGlobalController::ProfileBufferGlobalController(
+    size_t aMaximumBytes)
+    : mMaximumBytes(aMaximumBytes) {
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+
+  // This is the local chunk manager for this parent process, so updates can be
+  // handled here.
+  ProfileBufferControlledChunkManager* parentChunkManager =
+      profiler_get_controlled_chunk_manager();
+
+  if (NS_WARN_IF(!parentChunkManager)) {
+    return;
+  }
+
+  {
+    auto lockedParentChunkManagerAndPendingUpdate =
+        mParentChunkManagerAndPendingUpdate.Lock();
+    lockedParentChunkManagerAndPendingUpdate->mChunkManager =
+        parentChunkManager;
+  }
+
+  parentChunkManager->SetUpdateCallback(
+      [this](ProfileBufferControlledChunkManager::Update&& aUpdate) {
+        MOZ_ASSERT(!aUpdate.IsNotUpdate(),
+                   "Update callback should never be given a non-update");
+        auto lockedParentChunkManagerAndPendingUpdate =
+            mParentChunkManagerAndPendingUpdate.Lock();
+        if (aUpdate.IsFinal()) {
+          // Final update of the parent.
+          // We cannot keep the chunk manager, and there's no point handling
+          // updates anymore. Do some cleanup now, to free resources before
+          // we're destroyed.
+          lockedParentChunkManagerAndPendingUpdate->mChunkManager = nullptr;
+          lockedParentChunkManagerAndPendingUpdate->mPendingUpdate.Clear();
+          mUnreleasedTotalBytes = 0;
+          mUnreleasedBytesByPid.Clear();
+          mReleasedTotalBytes = 0;
+          mReleasedChunksByTime.Clear();
+          return;
+        }
+        if (!lockedParentChunkManagerAndPendingUpdate->mChunkManager) {
+          // No chunk manager, ignore updates.
+          return;
+        }
+        // Special handling of parent non-final updates:
+        // These updates are coming from *this* process, and may originate from
+        // scopes in any thread where any lock is held, so using other locks (to
+        // e.g., dispatch tasks or send IPCs) could trigger a deadlock. Instead,
+        // parent updates are stored locally and handled when the next
+        // non-parent update needs handling, see HandleChildChunkManagerUpdate.
+        lockedParentChunkManagerAndPendingUpdate->mPendingUpdate.Fold(
+            std::move(aUpdate));
+      });
+}
+
+ProfileBufferGlobalController ::~ProfileBufferGlobalController() {
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+  // Extract the parent chunk manager (if still set).
+  // This means any update after this will be ignored.
+  ProfileBufferControlledChunkManager* parentChunkManager = [this]() {
+    auto lockedParentChunkManagerAndPendingUpdate =
+        mParentChunkManagerAndPendingUpdate.Lock();
+    return std::exchange(
+        lockedParentChunkManagerAndPendingUpdate->mChunkManager, nullptr);
+  }();
+  if (parentChunkManager) {
+    // We had not received a final update yet, so the chunk manager is still
+    // valid. Reset the callback in the chunk manager, this will immediately
+    // invoke the callback with the final empty update; see handling above.
+    parentChunkManager->SetUpdateCallback({});
+  }
+}
+
+void ProfileBufferGlobalController::HandleChildChunkManagerUpdate(
+    base::ProcessId aProcessId,
+    ProfileBufferControlledChunkManager::Update&& aUpdate) {
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+
+  MOZ_ASSERT(aProcessId != mParentProcessId);
+
+  MOZ_ASSERT(!aUpdate.IsNotUpdate(),
+             "HandleChildChunkManagerUpdate should not be given a non-update");
+
+  auto lockedParentChunkManagerAndPendingUpdate =
+      mParentChunkManagerAndPendingUpdate.Lock();
+  if (!lockedParentChunkManagerAndPendingUpdate->mChunkManager) {
+    // No chunk manager, ignore updates.
+    return;
+  }
+
+  if (aUpdate.IsFinal()) {
+    // Final update in a child process, remove all traces of that process.
+    size_t index = mUnreleasedBytesByPid.BinaryIndexOf(aProcessId);
+    if (index != PidAndBytesArray::NoIndex) {
+      // We already have a value for this pid.
+      PidAndBytes& pidAndBytes = mUnreleasedBytesByPid[index];
+      mUnreleasedTotalBytes -= pidAndBytes.mBytes;
+      mUnreleasedBytesByPid.RemoveElementAt(index);
+    }
+
+    size_t released = 0;
+    mReleasedChunksByTime.RemoveElementsBy(
+        [&released, aProcessId](const auto& chunk) {
+          const bool match = chunk.mProcessId == aProcessId;
+          if (match) {
+            released += chunk.mBytes;
+          }
+          return match;
+        });
+    if (released != 0) {
+      mReleasedTotalBytes -= released;
+    }
+
+    // Total can only have gone down, so there's no need to check the limit.
+    return;
+  }
+
+  // Non-final update in child process.
+
+  // Before handling the child update, we may have pending updates from the
+  // parent, which can be processed now since we're in an IPC callback outside
+  // of any profiler-related scope.
+  if (!lockedParentChunkManagerAndPendingUpdate->mPendingUpdate.IsNotUpdate()) {
+    MOZ_ASSERT(
+        !lockedParentChunkManagerAndPendingUpdate->mPendingUpdate.IsFinal());
+    HandleChunkManagerNonFinalUpdate(
+        mParentProcessId,
+        std::move(lockedParentChunkManagerAndPendingUpdate->mPendingUpdate),
+        *lockedParentChunkManagerAndPendingUpdate->mChunkManager);
+    lockedParentChunkManagerAndPendingUpdate->mPendingUpdate.Clear();
+  }
+
+  HandleChunkManagerNonFinalUpdate(
+      aProcessId, std::move(aUpdate),
+      *lockedParentChunkManagerAndPendingUpdate->mChunkManager);
+}
+
+void ProfileBufferGlobalController::HandleChunkManagerNonFinalUpdate(
+    base::ProcessId aProcessId,
+    ProfileBufferControlledChunkManager::Update&& aUpdate,
+    ProfileBufferControlledChunkManager& aParentChunkManager) {
+  MOZ_ASSERT(!aUpdate.IsFinal());
+
+  size_t index = mUnreleasedBytesByPid.BinaryIndexOf(aProcessId);
+  if (index != PidAndBytesArray::NoIndex) {
+    // We already have a value for this pid.
+    PidAndBytes& pidAndBytes = mUnreleasedBytesByPid[index];
+    mUnreleasedTotalBytes =
+        mUnreleasedTotalBytes - pidAndBytes.mBytes + aUpdate.UnreleasedBytes();
+    pidAndBytes.mBytes = aUpdate.UnreleasedBytes();
+  } else {
+    // New pid.
+    mUnreleasedBytesByPid.InsertElementSorted(
+        PidAndBytes{aProcessId, aUpdate.UnreleasedBytes()});
+    mUnreleasedTotalBytes += aUpdate.UnreleasedBytes();
+  }
+
+  size_t destroyedReleased = 0;
+  if (!aUpdate.OldestDoneTimeStamp().IsNull()) {
+    size_t i = 0;
+    for (; i < mReleasedChunksByTime.Length(); ++i) {
+      if (mReleasedChunksByTime[i].mTimeStamp >=
+          aUpdate.OldestDoneTimeStamp()) {
+        break;
+      }
+    }
+    // Here, i is the index of the first item that's at or after
+    // aUpdate.mOldestDoneTimeStamp, so chunks from aProcessId before that have
+    // been destroyed.
+    while (i != 0) {
+      --i;
+      const TimeStampAndBytesAndPid& item = mReleasedChunksByTime[i];
+      if (item.mProcessId == aProcessId) {
+        destroyedReleased += item.mBytes;
+        mReleasedChunksByTime.RemoveElementAt(i);
+      }
+    }
+  }
+
+  size_t newlyReleased = 0;
+  for (const ProfileBufferControlledChunkManager::ChunkMetadata& chunk :
+       aUpdate.NewlyReleasedChunksRef()) {
+    newlyReleased += chunk.mBufferBytes;
+    mReleasedChunksByTime.InsertElementSorted(TimeStampAndBytesAndPid{
+        chunk.mDoneTimeStamp, chunk.mBufferBytes, aProcessId});
+  }
+
+  mReleasedTotalBytes = mReleasedTotalBytes - destroyedReleased + newlyReleased;
+
+#ifdef DEBUG
+  size_t totalReleased = 0;
+  for (const TimeStampAndBytesAndPid& item : mReleasedChunksByTime) {
+    totalReleased += item.mBytes;
+  }
+  MOZ_ASSERT(mReleasedTotalBytes == totalReleased);
+#endif  // DEBUG
+
+  std::vector<ProfileBufferControlledChunkManager::ChunkMetadata> toDestroy;
+  while (mUnreleasedTotalBytes + mReleasedTotalBytes > mMaximumBytes &&
+         !mReleasedChunksByTime.IsEmpty()) {
+    // We have reached the global memory limit, and there *are* released chunks
+    // that can be destroyed. Start with the first one, which is the oldest.
+    const TimeStampAndBytesAndPid& oldest = mReleasedChunksByTime[0];
+    mReleasedTotalBytes -= oldest.mBytes;
+    if (oldest.mProcessId == mParentProcessId) {
+      aParentChunkManager.DestroyChunksAtOrBefore(oldest.mTimeStamp);
+    } else {
+      ProfilerParentTracker::ForChild(
+          oldest.mProcessId,
+          [timestamp = oldest.mTimeStamp](ProfilerParent* profilerParent) {
+            Unused << profilerParent->SendDestroyReleasedChunksAtOrBefore(
+                timestamp);
+          });
+    }
+    mReleasedChunksByTime.RemoveElementAt(0);
+  }
+}
 
 UniquePtr<ProfilerParentTracker> ProfilerParentTracker::sInstance;
 
 /* static */
-void ProfilerParentTracker::StartTracking(ProfilerParent* aProfilerParent) {
-  if (!sInstance) {
-    sInstance = MakeUnique<ProfilerParentTracker>();
-    ClearOnShutdown(&sInstance);
+void ProfilerParentTracker::EnsureInstance() {
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+  if (sInstance) {
+    return;
   }
+
+  sInstance = MakeUnique<ProfilerParentTracker>();
+
+  // The tracker should get destroyed before threads are shutdown, because its
+  // destruction closes extant channels, which could trigger promise rejections
+  // that need to be dispatched to other threads.
+  ClearOnShutdown(&sInstance, ShutdownPhase::ShutdownThreads);
+}
+
+/* static */
+void ProfilerParentTracker::StartTracking(ProfilerParent* aProfilerParent) {
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+  EnsureInstance();
+
+  if (sInstance->mMaybeController.isNothing() && sInstance->mEntries != 0) {
+    // There is no controller yet, but the profiler has started.
+    // Since we're adding a ProfilerParent, it's a good time to start
+    // controlling the global memory usage of the profiler.
+    // (And this helps delay the Controller startup, because the parent profiler
+    // can start *very* early in the process, when some resources like threads
+    // are not ready yet.)
+    sInstance->mMaybeController.emplace(size_t(sInstance->mEntries) * 8u);
+  }
+
   sInstance->mProfilerParents.AppendElement(aProfilerParent);
 }
 
 /* static */
 void ProfilerParentTracker::StopTracking(ProfilerParent* aParent) {
-  if (sInstance) {
-    sInstance->mProfilerParents.RemoveElement(aParent);
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+  if (!sInstance) {
+    return;
+  }
+
+  sInstance->mProfilerParents.RemoveElement(aParent);
+}
+
+/* static */
+void ProfilerParentTracker::ProfilerStarted(uint32_t aEntries) {
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+  EnsureInstance();
+
+  sInstance->mEntries = aEntries;
+
+  if (sInstance->mMaybeController.isNothing() &&
+      !sInstance->mProfilerParents.IsEmpty()) {
+    // We are already tracking child processes, so it's a good time to start
+    // controlling the global memory usage of the profiler.
+    sInstance->mMaybeController.emplace(size_t(sInstance->mEntries) * 8u);
+  }
+}
+
+/* static */
+void ProfilerParentTracker::ProfilerWillStopIfStarted() {
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+  if (!sInstance) {
+    return;
+  }
+
+  sInstance->mEntries = 0;
+  sInstance->mMaybeController = Nothing{};
+}
+
+template <typename FuncType>
+/* static */
+void ProfilerParentTracker::Enumerate(FuncType&& aIterFunc) {
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+  if (!sInstance) {
+    return;
+  }
+
+  for (ProfilerParent* profilerParent : sInstance->mProfilerParents) {
+    if (!profilerParent->mDestroyed) {
+      aIterFunc(profilerParent);
+    }
   }
 }
 
 template <typename FuncType>
 /* static */
-void ProfilerParentTracker::Enumerate(FuncType aIterFunc) {
-  if (sInstance) {
-    for (ProfilerParent* profilerParent : sInstance->mProfilerParents) {
+void ProfilerParentTracker::ForChild(base::ProcessId aChildPid,
+                                     FuncType&& aIterFunc) {
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+  if (!sInstance) {
+    return;
+  }
+
+  for (ProfilerParent* profilerParent : sInstance->mProfilerParents) {
+    if (profilerParent->mChildPid == aChildPid) {
       if (!profilerParent->mDestroyed) {
-        aIterFunc(profilerParent);
+        std::forward<FuncType>(aIterFunc)(profilerParent);
       }
+      return;
     }
   }
 }
 
+/* static */
+void ProfilerParentTracker::ForwardChildChunkManagerUpdate(
+    base::ProcessId aProcessId,
+    ProfileBufferControlledChunkManager::Update&& aUpdate) {
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+  if (!sInstance || sInstance->mMaybeController.isNothing()) {
+    return;
+  }
+
+  MOZ_ASSERT(!aUpdate.IsNotUpdate(),
+             "No process should ever send a non-update");
+  sInstance->mMaybeController->HandleChildChunkManagerUpdate(
+      aProcessId, std::move(aUpdate));
+}
+
 ProfilerParentTracker::ProfilerParentTracker() {
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
   MOZ_COUNT_CTOR(ProfilerParentTracker);
 }
 
 ProfilerParentTracker::~ProfilerParentTracker() {
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
   MOZ_COUNT_DTOR(ProfilerParentTracker);
 
-  nsTArray<ProfilerParent*> parents;
-  parents = mProfilerParents;
   // Close the channels of any profiler parents that haven't been destroyed.
-  for (ProfilerParent* profilerParent : parents) {
+  for (ProfilerParent* profilerParent : mProfilerParents.Clone()) {
     if (!profilerParent->mDestroyed) {
       // Keep the object alive until the call to Close() has completed.
       // Close() will trigger a call to DeallocPProfilerParent.
@@ -97,7 +523,7 @@ Endpoint<PProfilerChild> ProfilerParent::CreateForProcess(
     MOZ_CRASH("Failed to create top level actor for PProfiler!");
   }
 
-  RefPtr<ProfilerParent> actor = new ProfilerParent();
+  RefPtr<ProfilerParent> actor = new ProfilerParent(aOtherPid);
   if (!parent.Bind(actor)) {
     MOZ_CRASH("Failed to bind parent actor for PProfiler!");
   }
@@ -109,7 +535,8 @@ Endpoint<PProfilerChild> ProfilerParent::CreateForProcess(
   return child;
 }
 
-ProfilerParent::ProfilerParent() : mDestroyed(false) {
+ProfilerParent::ProfilerParent(base::ProcessId aChildPid)
+    : mChildPid(aChildPid), mDestroyed(false) {
   MOZ_COUNT_CTOR(ProfilerParent);
 
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
@@ -149,6 +576,7 @@ void ProfilerParent::Init() {
     }
 
     Unused << SendEnsureStarted(ipcParams);
+    RequestChunkManagerUpdate();
   } else {
     Unused << SendStop();
   }
@@ -161,7 +589,8 @@ ProfilerParent::~ProfilerParent() {
   ProfilerParentTracker::StopTracking(this);
 }
 
-/* static */ nsTArray<RefPtr<ProfilerParent::SingleProcessProfilePromise>>
+/* static */
+nsTArray<RefPtr<ProfilerParent::SingleProcessProfilePromise>>
 ProfilerParent::GatherProfiles() {
   if (!NS_IsMainThread()) {
     return nsTArray<RefPtr<ProfilerParent::SingleProcessProfilePromise>>();
@@ -172,6 +601,64 @@ ProfilerParent::GatherProfiles() {
     results.AppendElement(profilerParent->SendGatherProfile());
   });
   return results;
+}
+
+// Magic value for ProfileBufferChunkManagerUpdate::unreleasedBytes meaning
+// that this is a final update from a child.
+constexpr static uint64_t scUpdateUnreleasedBytesFINAL = uint64_t(-1);
+
+/* static */
+ProfileBufferChunkManagerUpdate ProfilerParent::MakeFinalUpdate() {
+  return ProfileBufferChunkManagerUpdate{
+      uint64_t(scUpdateUnreleasedBytesFINAL), 0, TimeStamp{},
+      nsTArray<ProfileBufferChunkMetadata>{}};
+}
+
+void ProfilerParent::RequestChunkManagerUpdate() {
+  if (mDestroyed) {
+    return;
+  }
+
+  RefPtr<AwaitNextChunkManagerUpdatePromise> updatePromise =
+      SendAwaitNextChunkManagerUpdate();
+  updatePromise->Then(
+      GetMainThreadSerialEventTarget(), __func__,
+      [self = RefPtr<ProfilerParent>(this)](
+          const ProfileBufferChunkManagerUpdate& aUpdate) {
+        if (aUpdate.unreleasedBytes() == scUpdateUnreleasedBytesFINAL) {
+          // Special value meaning it's the final update from that child.
+          ProfilerParentTracker::ForwardChildChunkManagerUpdate(
+              self->mChildPid,
+              ProfileBufferControlledChunkManager::Update(nullptr));
+        } else {
+          // Not the final update, translate it.
+          std::vector<ProfileBufferControlledChunkManager::ChunkMetadata>
+              chunks;
+          if (!aUpdate.newlyReleasedChunks().IsEmpty()) {
+            chunks.reserve(aUpdate.newlyReleasedChunks().Length());
+            for (const ProfileBufferChunkMetadata& chunk :
+                 aUpdate.newlyReleasedChunks()) {
+              chunks.emplace_back(chunk.doneTimeStamp(), chunk.bufferBytes());
+            }
+          }
+          // Let the tracker handle it.
+          ProfilerParentTracker::ForwardChildChunkManagerUpdate(
+              self->mChildPid,
+              ProfileBufferControlledChunkManager::Update(
+                  aUpdate.unreleasedBytes(), aUpdate.releasedBytes(),
+                  aUpdate.oldestDoneTimeStamp(), std::move(chunks)));
+          // This was not a final update, so start a new request.
+          self->RequestChunkManagerUpdate();
+        }
+      },
+      [self = RefPtr<ProfilerParent>(this)](
+          mozilla::ipc::ResponseRejectReason aReason) {
+        // Rejection could be for a number of reasons, assume the child will
+        // not respond anymore, so we pretend we received a final update.
+        ProfilerParentTracker::ForwardChildChunkManagerUpdate(
+            self->mChildPid,
+            ProfileBufferControlledChunkManager::Update(nullptr));
+      });
 }
 
 /* static */
@@ -192,12 +679,23 @@ void ProfilerParent::ProfilerStarted(nsIProfilerStartParams* aParams) {
   }
   aParams->GetInterval(&ipcParams.interval());
   aParams->GetFeatures(&ipcParams.features());
-  ipcParams.filters() = aParams->GetFilters();
+  ipcParams.filters() = aParams->GetFilters().Clone();
   aParams->GetActiveBrowsingContextID(&ipcParams.activeBrowsingContextID());
 
+  ProfilerParentTracker::ProfilerStarted(ipcParams.entries());
   ProfilerParentTracker::Enumerate([&](ProfilerParent* profilerParent) {
     Unused << profilerParent->SendStart(ipcParams);
+    profilerParent->RequestChunkManagerUpdate();
   });
+}
+
+/* static */
+void ProfilerParent::ProfilerWillStopIfStarted() {
+  if (!NS_IsMainThread()) {
+    return;
+  }
+
+  ProfilerParentTracker::ProfilerWillStopIfStarted();
 }
 
 /* static */
@@ -230,6 +728,28 @@ void ProfilerParent::ProfilerResumed() {
 
   ProfilerParentTracker::Enumerate([](ProfilerParent* profilerParent) {
     Unused << profilerParent->SendResume();
+  });
+}
+
+/* static */
+void ProfilerParent::ProfilerPausedSampling() {
+  if (!NS_IsMainThread()) {
+    return;
+  }
+
+  ProfilerParentTracker::Enumerate([](ProfilerParent* profilerParent) {
+    Unused << profilerParent->SendPauseSampling();
+  });
+}
+
+/* static */
+void ProfilerParent::ProfilerResumedSampling() {
+  if (!NS_IsMainThread()) {
+    return;
+  }
+
+  ProfilerParentTracker::Enumerate([](ProfilerParent* profilerParent) {
+    Unused << profilerParent->SendResumeSampling();
   });
 }
 

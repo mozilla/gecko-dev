@@ -9,6 +9,7 @@
 #include <knownfolders.h>
 #include <winioctl.h>
 
+#include "GeckoProfiler.h"
 #include "gfxPlatform.h"
 #include "gfxUtils.h"
 #include "nsWindow.h"
@@ -23,6 +24,7 @@
 #include "mozilla/gfx/DataSurfaceHelpers.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/SchedulerGroup.h"
 #include "mozilla/WindowsVersion.h"
 #include "mozilla/Unused.h"
 #include "nsIContentPolicy.h"
@@ -49,6 +51,7 @@
 #include "nsLookAndFeel.h"
 #include "nsUnicharUtils.h"
 #include "nsWindowsHelpers.h"
+#include "WinContentSystemParameters.h"
 
 #ifdef NS_ENABLE_TSF
 #  include <textstor.h>
@@ -538,6 +541,9 @@ void WinUtils::Log(const char* fmt, ...) {
 
 // static
 float WinUtils::SystemDPI() {
+  if (XRE_IsContentProcess()) {
+    return WinContentSystemParameters::GetSingleton()->SystemDPI();
+  }
   // The result of GetDeviceCaps won't change dynamically, as it predates
   // per-monitor DPI and support for on-the-fly resolution changes.
   // Therefore, we only need to look it up once.
@@ -600,6 +606,9 @@ static bool SlowIsPerMonitorDPIAware() {
 
 /* static */
 bool WinUtils::IsPerMonitorDPIAware() {
+  if (XRE_IsContentProcess()) {
+    return WinContentSystemParameters::GetSingleton()->IsPerMonitorDPIAware();
+  }
   static bool perMonitorDPIAware = SlowIsPerMonitorDPIAware();
   return perMonitorDPIAware;
 }
@@ -662,6 +671,40 @@ int WinUtils::GetSystemMetricsForDpi(int nIndex, UINT dpi) {
     double scale = IsPerMonitorDPIAware() ? dpi / SystemDPI() : 1.0;
     return NSToIntRound(::GetSystemMetrics(nIndex) * scale);
   }
+}
+
+/* static */
+gfx::MarginDouble WinUtils::GetUnwriteableMarginsForDeviceInInches(HDC aHdc) {
+  if (!aHdc) {
+    return gfx::MarginDouble();
+  }
+
+  int pixelsPerInchY = ::GetDeviceCaps(aHdc, LOGPIXELSY);
+  int marginTop = ::GetDeviceCaps(aHdc, PHYSICALOFFSETY);
+  int printableAreaHeight = ::GetDeviceCaps(aHdc, VERTRES);
+  int physicalHeight = ::GetDeviceCaps(aHdc, PHYSICALHEIGHT);
+
+  double marginTopInch = double(marginTop) / pixelsPerInchY;
+
+  double printableAreaHeightInch = double(printableAreaHeight) / pixelsPerInchY;
+  double physicalHeightInch = double(physicalHeight) / pixelsPerInchY;
+  double marginBottomInch =
+      physicalHeightInch - printableAreaHeightInch - marginTopInch;
+
+  int pixelsPerInchX = ::GetDeviceCaps(aHdc, LOGPIXELSX);
+  int marginLeft = ::GetDeviceCaps(aHdc, PHYSICALOFFSETX);
+  int printableAreaWidth = ::GetDeviceCaps(aHdc, HORZRES);
+  int physicalWidth = ::GetDeviceCaps(aHdc, PHYSICALWIDTH);
+
+  double marginLeftInch = double(marginLeft) / pixelsPerInchX;
+
+  double printableAreaWidthInch = double(printableAreaWidth) / pixelsPerInchX;
+  double physicalWidthInch = double(physicalWidth) / pixelsPerInchX;
+  double marginRightInch =
+      physicalWidthInch - printableAreaWidthInch - marginLeftInch;
+
+  return gfx::MarginDouble(marginTopInch, marginRightInch, marginBottomInch,
+                           marginLeftInch);
 }
 
 #ifdef ACCESSIBILITY
@@ -735,8 +778,12 @@ void WinUtils::WaitForMessage(DWORD aTimeoutMs) {
     if (elapsed >= aTimeoutMs) {
       break;
     }
-    DWORD result = ::MsgWaitForMultipleObjectsEx(0, NULL, aTimeoutMs - elapsed,
-                                                 MOZ_QS_ALLEVENT, waitFlags);
+    DWORD result;
+    {
+      AUTO_PROFILER_THREAD_SLEEP;
+      result = ::MsgWaitForMultipleObjectsEx(0, NULL, aTimeoutMs - elapsed,
+                                             MOZ_QS_ALLEVENT, waitFlags);
+    }
     NS_WARNING_ASSERTION(result != WAIT_FAILED, "Wait failed");
     if (result == WAIT_TIMEOUT) {
       break;
@@ -1144,7 +1191,7 @@ nsresult AsyncFaviconDataReady::OnFaviconDataNotAvailable(void) {
   nsCOMPtr<nsIChannel> channel;
   rv = NS_NewChannel(getter_AddRefs(channel), mozIconURI,
                      nsContentUtils::GetSystemPrincipal(),
-                     nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+                     nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
                      nsIContentPolicy::TYPE_INTERNAL_IMAGE);
 
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1218,7 +1265,7 @@ AsyncFaviconDataReady::OnComplete(nsIURI* aFaviconURI, uint32_t aDataLen,
       return NS_ERROR_OUT_OF_MEMORY;
     }
     dt->FillRect(Rect(0, 0, size.width, size.height),
-                 ColorPattern(Color(1.0f, 1.0f, 1.0f, 1.0f)));
+                 ColorPattern(ToDeviceColor(sRGBColor::OpaqueWhite())));
     IntPoint point;
     point.x = (size.width - surface->GetSize().width) / 2;
     point.y = (size.height - surface->GetSize().height) / 2;
@@ -1307,8 +1354,8 @@ NS_IMETHODIMP AsyncEncodeAndWriteIcon::Run() {
       return rv;
     }
   }
-  nsresult rv = gfxUtils::EncodeSourceSurface(
-      surface, ImageType::ICO, EmptyString(), gfxUtils::eBinaryEncode, file);
+  nsresult rv = gfxUtils::EncodeSourceSurface(surface, ImageType::ICO, u""_ns,
+                                              gfxUtils::eBinaryEncode, file);
   fclose(file);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -2050,15 +2097,15 @@ bool WinUtils::UnexpandEnvVars(nsAString& aPath) {
 WinUtils::WhitelistVec WinUtils::BuildWhitelist() {
   WhitelistVec result;
 
-  Unused << result.emplaceBack(mozilla::MakePair(
-      nsString(NS_LITERAL_STRING("%ProgramFiles%")), nsDependentString()));
+  Unused << result.emplaceBack(
+      std::make_pair(nsString(u"%ProgramFiles%"_ns), nsDependentString()));
 
   // When no substitution is required, set the void flag
-  result.back().second().SetIsVoid(true);
+  result.back().second.SetIsVoid(true);
 
-  Unused << result.emplaceBack(mozilla::MakePair(
-      nsString(NS_LITERAL_STRING("%SystemRoot%")), nsDependentString()));
-  result.back().second().SetIsVoid(true);
+  Unused << result.emplaceBack(
+      std::make_pair(nsString(u"%SystemRoot%"_ns), nsDependentString()));
+  result.back().second.SetIsVoid(true);
 
   wchar_t tmpPath[MAX_PATH + 1] = {};
   if (GetTempPath(MAX_PATH, tmpPath)) {
@@ -2070,8 +2117,8 @@ WinUtils::WhitelistVec WinUtils::BuildWhitelist() {
 
     nsAutoString cleanTmpPath(tmpPath);
     if (UnexpandEnvVars(cleanTmpPath)) {
-      NS_NAMED_LITERAL_STRING(tempVar, "%TEMP%");
-      Unused << result.emplaceBack(mozilla::MakePair(
+      constexpr auto tempVar = u"%TEMP%"_ns;
+      Unused << result.emplaceBack(std::make_pair(
           nsString(cleanTmpPath), nsDependentString(tempVar, 0)));
     }
   }
@@ -2105,7 +2152,7 @@ const WinUtils::WhitelistVec& WinUtils::GetWhitelistedPaths() {
     if (NS_IsMainThread()) {
       setClearFn();
     } else {
-      SystemGroup::Dispatch(
+      SchedulerGroup::Dispatch(
           TaskCategory::Other,
           NS_NewRunnableFunction("WinUtils::GetWhitelistedPaths",
                                  std::move(setClearFn)));
@@ -2204,10 +2251,9 @@ bool WinUtils::PreparePathForTelemetry(nsAString& aPath,
   const WhitelistVec& whitelistedPaths = GetWhitelistedPaths();
 
   for (uint32_t i = 0; i < whitelistedPaths.length(); ++i) {
-    const nsString& testPath = whitelistedPaths[i].first();
-    const nsDependentString& substitution = whitelistedPaths[i].second();
-    if (StringBeginsWith(aPath, testPath,
-                         nsCaseInsensitiveStringComparator())) {
+    const nsString& testPath = whitelistedPaths[i].first;
+    const nsDependentString& substitution = whitelistedPaths[i].second;
+    if (StringBeginsWith(aPath, testPath, nsCaseInsensitiveStringComparator)) {
       if (!substitution.IsVoid()) {
         aPath.Replace(0, testPath.Length(), substitution);
       }

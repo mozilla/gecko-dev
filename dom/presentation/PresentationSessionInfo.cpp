@@ -14,6 +14,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/BrowserParent.h"
 #include "mozilla/dom/ContentParent.h"
+#include "mozilla/dom/ElementBinding.h"
 #include "mozilla/dom/HTMLIFrameElementBinding.h"
 #include "nsContentUtils.h"
 #include "nsFrameLoader.h"
@@ -32,10 +33,6 @@
 #ifdef MOZ_WIDGET_ANDROID
 #  include "nsIPresentationNetworkHelper.h"
 #endif  // MOZ_WIDGET_ANDROID
-
-using namespace mozilla;
-using namespace mozilla::dom;
-using namespace mozilla::services;
 
 /*
  * Implementation of PresentationChannelDescription
@@ -122,14 +119,11 @@ class TCPPresentationChannelDescription final
       : mAddress(aAddress), mPort(aPort) {}
 
  private:
-  ~TCPPresentationChannelDescription() {}
+  ~TCPPresentationChannelDescription() = default;
 
   nsCString mAddress;
   uint16_t mPort;
 };
-
-}  // namespace dom
-}  // namespace mozilla
 
 NS_IMPL_ISUPPORTS(TCPPresentationChannelDescription,
                   nsIPresentationChannelDescription)
@@ -1537,3 +1531,6 @@ void PresentationPresentingInfo::RejectedCallback(
 
   ReplyError(NS_ERROR_DOM_OPERATION_ERR);
 }
+
+}  // namespace dom
+}  // namespace mozilla

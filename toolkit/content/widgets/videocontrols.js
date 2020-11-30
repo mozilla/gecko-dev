@@ -119,26 +119,46 @@ this.VideoControlsWidget = class {
    * media.videocontrols.picture-in-picture.video-toggle.always-show pref, which
    * is mostly used for testing.
    *
-   * @param {Object} prefs The preferences set that was passed to the UAWidget.
-   * @param {Element} someVideo The <video> to test.
+   * @param {Object} prefs
+   *   The preferences set that was passed to the UAWidget.
+   * @param {Element} someVideo
+   *   The <video> to test.
+   * @param {Object} reflowedDimensions
+   *   An object representing the reflowed dimensions of the <video>. Properties
+   *   are:
+   *
+   *     videoWidth (Number):
+   *       The width of the video in pixels.
+   *
+   *     videoHeight (Number):
+   *       The height of the video in pixels.
+   *
    * @return {Boolean}
    */
-  static shouldShowPictureInPictureToggle(prefs, someVideo) {
+  static shouldShowPictureInPictureToggle(
+    prefs,
+    someVideo,
+    reflowedDimensions
+  ) {
     if (
       prefs["media.videocontrols.picture-in-picture.video-toggle.always-show"]
     ) {
       return true;
     }
 
-    const MIN_VIDEO_LENGTH = 45; // seconds
+    const MIN_VIDEO_LENGTH =
+      prefs[
+        "media.videocontrols.picture-in-picture.video-toggle.min-video-secs"
+      ];
+
     if (someVideo.duration < MIN_VIDEO_LENGTH) {
       return false;
     }
 
     const MIN_VIDEO_DIMENSION = 140; // pixels
     if (
-      someVideo.videoWidth < MIN_VIDEO_DIMENSION ||
-      someVideo.videoHeight < MIN_VIDEO_DIMENSION
+      reflowedDimensions.videoWidth < MIN_VIDEO_DIMENSION ||
+      reflowedDimensions.videoHeight < MIN_VIDEO_DIMENSION
     ) {
       return false;
     }
@@ -147,16 +167,76 @@ this.VideoControlsWidget = class {
       return false;
     }
 
-    // Bug 1592539 - It's possible to confuse the underlying visual
-    // cloning mechanism by switching which video stream a <video> is
-    // rendering. We try to head that case off for now by hiding the
-    // Picture-in-Picture capability on <video> elements that have
-    // srcObject != null.
-    if (someVideo.srcObject) {
-      return false;
+    return true;
+  }
+
+  /**
+   * Some variations on the Picture-in-Picture toggle are being experimented with.
+   * These variations have slightly different setup parameters from the currently
+   * shipping toggle, so this method sets up the experimental toggles in the event
+   * that they're being used. It also will enable the appropriate stylesheet for
+   * the preferred toggle experiment.
+   *
+   * @param {Object} prefs
+   *   The preferences set that was passed to the UAWidget.
+   * @param {ShadowRoot} shadowRoot
+   *   The shadowRoot of the <video> element where the video controls are.
+   * @param {Element} toggle
+   *   The toggle element.
+   * @param {Object} reflowedDimensions
+   *   An object representing the reflowed dimensions of the <video>. Properties
+   *   are:
+   *
+   *     videoWidth (Number):
+   *       The width of the video in pixels.
+   *
+   *     videoHeight (Number):
+   *       The height of the video in pixels.
+   */
+  static setupToggleExperiment(prefs, shadowRoot, toggle, reflowedDimensions) {
+    let mode = String(
+      prefs["media.videocontrols.picture-in-picture.video-toggle.mode"]
+    );
+    let videocontrols = shadowRoot.firstChild;
+    let sheets = videocontrols.querySelectorAll("link[rel='stylesheet'][mode]");
+    for (let sheet of sheets) {
+      sheet.disabled = sheet.getAttribute("mode") != mode;
     }
 
-    return true;
+    // These thresholds are all in pixels
+    const SMALL_VIDEO_WIDTH_MAX = 320;
+    const MEDIUM_VIDEO_WIDTH_MAX = 720;
+
+    let isSmall = reflowedDimensions.videoWidth <= SMALL_VIDEO_WIDTH_MAX;
+    toggle.toggleAttribute("small-video", isSmall);
+    toggle.toggleAttribute(
+      "medium-video",
+      !isSmall && reflowedDimensions.videoWidth <= MEDIUM_VIDEO_WIDTH_MAX
+    );
+
+    toggle.setAttribute(
+      "position",
+      prefs["media.videocontrols.picture-in-picture.video-toggle.position"]
+    );
+    toggle.toggleAttribute(
+      "has-used",
+      prefs["media.videocontrols.picture-in-picture.video-toggle.has-used"]
+    );
+  }
+
+  /**
+   * Disables any lingering stylesheets that might still be active after
+   * we've determined that a toggle experiment should be removed.
+   *
+   * @param {ShadowRoot} shadowRoot
+   *   The shadowRoot of the <video> element where the video controls are.
+   */
+  static cleanupToggleExperiment(shadowRoot) {
+    let videocontrols = shadowRoot.firstChild;
+    let sheets = videocontrols.querySelectorAll("link[rel='stylesheet'][mode]");
+    for (let sheet of sheets) {
+      sheet.disabled = true;
+    }
   }
 };
 
@@ -216,6 +296,7 @@ this.VideoControlsImplWidget = class {
         "stalled",
         "mozvideoonlyseekbegin",
         "mozvideoonlyseekcompleted",
+        "durationchange",
       ],
 
       showHours: false,
@@ -341,7 +422,7 @@ this.VideoControlsImplWidget = class {
           // We have to check again if the media has audio here.
           if (!this.isAudioOnly && !this.video.mozHasAudio) {
             this.muteButton.setAttribute("noAudio", "true");
-            this.muteButton.setAttribute("disabled", "true");
+            this.muteButton.disabled = true;
           }
         }
 
@@ -515,6 +596,7 @@ this.VideoControlsImplWidget = class {
       updatePictureInPictureToggleDisplay() {
         if (this.isAudioOnly) {
           this.pictureInPictureToggleButton.setAttribute("hidden", true);
+          this.pictureInPictureToggleExperiment.setAttribute("hidden", true);
           return;
         }
 
@@ -523,12 +605,32 @@ this.VideoControlsImplWidget = class {
           !this.isShowingPictureInPictureMessage &&
           VideoControlsWidget.shouldShowPictureInPictureToggle(
             this.prefs,
-            this.video
+            this.video,
+            this.reflowedDimensions
           )
         ) {
-          this.pictureInPictureToggleButton.removeAttribute("hidden");
+          if (
+            this.prefs[
+              "media.videocontrols.picture-in-picture.video-toggle.mode"
+            ] == -1
+          ) {
+            VideoControlsWidget.cleanupToggleExperiment(this.shadowRoot);
+            this.pictureInPictureToggleButton.removeAttribute("hidden");
+            this.pictureInPictureToggleExperiment.setAttribute("hidden", true);
+          } else {
+            this.pictureInPictureToggleButton.setAttribute("hidden", true);
+            this.pictureInPictureToggleExperiment.removeAttribute("hidden");
+            VideoControlsWidget.setupToggleExperiment(
+              this.prefs,
+              this.shadowRoot,
+              this.pictureInPictureToggleExperiment,
+              this.reflowedDimensions
+            );
+          }
         } else {
+          VideoControlsWidget.cleanupToggleExperiment(this.shadowRoot);
           this.pictureInPictureToggleButton.setAttribute("hidden", true);
+          this.pictureInPictureToggleExperiment.setAttribute("hidden", true);
         }
       },
 
@@ -696,9 +798,12 @@ this.VideoControlsImplWidget = class {
             );
             if (!this.isAudioOnly && !this.video.mozHasAudio) {
               this.muteButton.setAttribute("noAudio", "true");
-              this.muteButton.setAttribute("disabled", "true");
+              this.muteButton.disabled = true;
             }
             this.adjustControlSize();
+            this.updatePictureInPictureToggleDisplay();
+            break;
+          case "durationchange":
             this.updatePictureInPictureToggleDisplay();
             break;
           case "loadeddata":
@@ -854,6 +959,7 @@ this.VideoControlsImplWidget = class {
             this.updateReflowedDimensions();
             this.reflowTriggeringCallValidator.isReflowTriggeringPropsAllowed = false;
             this.adjustControlSize();
+            this.updatePictureInPictureToggleDisplay();
             break;
           case "fullscreenchange":
             this.onFullscreenChange();
@@ -1157,6 +1263,10 @@ this.VideoControlsImplWidget = class {
 
         this.scrubber.value = currentTime;
         this.positionDurationBox.position = positionTime;
+        this.scrubber.setAttribute(
+          "aria-valuetext",
+          this.positionDurationBox.textContent.trim()
+        );
         this.updateScrubberProgress();
       },
 
@@ -1205,6 +1315,14 @@ this.VideoControlsImplWidget = class {
         }
         this.bufferBar.max = duration;
         this.bufferBar.value = endTime;
+        // Progress bars are automatically reported by screen readers even when
+        // they aren't focused, which intrudes on the audio being played.
+        // Ideally, we'd just change the a11y role of bufferBar, but there's
+        // no role which will let us just expose text via an ARIA attribute.
+        // Therefore, we hide bufferBar for a11y and expose the info as
+        // off-screen text.
+        this.bufferA11yVal.textContent =
+          (this.bufferBar.position * 100).toFixed() + "%";
       },
 
       _controlsHiddenByTimeout: false,
@@ -1399,6 +1517,8 @@ this.VideoControlsImplWidget = class {
         if (fadeIn) {
           if (element == this.controlBar) {
             this.controlsSpacer.removeAttribute("hideCursor");
+            // Ensure the Full Screen button is in the tab order.
+            this.fullscreenButton.removeAttribute("tabindex");
           }
 
           // hidden state should be controlled by adjustControlSize
@@ -1415,12 +1535,14 @@ this.VideoControlsImplWidget = class {
           // Unhide
           element.hidden = false;
         } else {
-          if (
-            element == this.controlBar &&
-            !this.hasError() &&
-            this.isVideoInFullScreen
-          ) {
-            this.controlsSpacer.setAttribute("hideCursor", true);
+          if (element == this.controlBar) {
+            if (!this.hasError() && this.isVideoInFullScreen) {
+              this.controlsSpacer.setAttribute("hideCursor", true);
+            }
+            // The Full Screen button is currently the only tabbable button
+            // when the controls are shown. Remove it from the tab order when
+            // visually hidden to prevent visual confusion.
+            this.fullscreenButton.setAttribute("tabindex", "-1");
           }
 
           // No need to fade out if the hidden property returns true
@@ -1819,7 +1941,7 @@ this.VideoControlsImplWidget = class {
 
       get isClosedCaptionAvailable() {
         // There is no rendering area, no need to show the caption.
-        if (!this.video.videoWidth || !this.video.videoHeight) {
+        if (this.isAudioOnly) {
           return false;
         }
         return this.overlayableTextTracks.length;
@@ -2257,6 +2379,7 @@ this.VideoControlsImplWidget = class {
         this.volumeControl = this.shadowRoot.getElementById("volumeControl");
         this.progressBar = this.shadowRoot.getElementById("progressBar");
         this.bufferBar = this.shadowRoot.getElementById("bufferBar");
+        this.bufferA11yVal = this.shadowRoot.getElementById("bufferA11yVal");
         this.scrubberStack = this.shadowRoot.getElementById("scrubberStack");
         this.scrubber = this.shadowRoot.getElementById("scrubber");
         this.durationLabel = this.shadowRoot.getElementById("durationLabel");
@@ -2286,6 +2409,9 @@ this.VideoControlsImplWidget = class {
         );
         this.pictureInPictureToggleButton = this.shadowRoot.getElementById(
           "pictureInPictureToggleButton"
+        );
+        this.pictureInPictureToggleExperiment = this.shadowRoot.getElementById(
+          "pictureInPictureToggleExperiment"
         );
 
         if (this.positionDurationBox) {
@@ -2567,7 +2693,9 @@ this.VideoControlsImplWidget = class {
       %videocontrolsDTD;
       ]>
       <div class="videocontrols" xmlns="http://www.w3.org/1999/xhtml" role="none">
-        <link rel="stylesheet" type="text/css" href="chrome://global/skin/media/videocontrols.css" />
+        <link rel="stylesheet" href="chrome://global/skin/media/videocontrols.css" />
+        <link rel="stylesheet" href="chrome://global/skin/media/pictureinpicture-mode-1.css" mode="1" disabled="true" />
+        <link rel="stylesheet" href="chrome://global/skin/media/pictureinpicture-mode-2.css" mode="2" disabled="true" />
         <div id="controlsContainer" class="controlsContainer" role="none">
           <div id="statusOverlay" class="statusOverlay stackItem" hidden="true">
             <div id="statusIcon" class="statusIcon"></div>
@@ -2595,6 +2723,20 @@ this.VideoControlsImplWidget = class {
               <span class="pictureInPictureToggleLabel">&pictureInPicture.label;</span>
             </button>
 
+            <button id="pictureInPictureToggleExperiment" class="pip-wrapper" position="left" hidden="true">
+              <div class="pip-small clickable"></div>
+              <div class="pip-expanded clickable">
+                <span class="pip-icon-label clickable">
+                  <span class="pip-icon"></span>
+                  <span class="pip-label">&pictureInPictureToggle.label;</span>
+                </span>
+                <div class="pip-explainer clickable">
+                  &pictureInPictureExplainer;
+                </div>
+              </div>
+              <div class="pip-icon clickable"></div>
+            </button>
+
             <div id="controlBar" class="controlBar" role="none" hidden="true">
               <button id="playButton"
                       class="button playButton"
@@ -2604,11 +2746,15 @@ this.VideoControlsImplWidget = class {
               <div id="scrubberStack" class="scrubberStack progressContainer" role="none">
                 <div class="progressBackgroundBar stackItem" role="none">
                   <div class="progressStack" role="none">
-                    <progress id="bufferBar" class="bufferBar" value="0" max="100" tabindex="-1"></progress>
-                    <progress id="progressBar" class="progressBar" value="0" max="100" tabindex="-1"></progress>
+                    <progress id="bufferBar" class="bufferBar" value="0" max="100" aria-hidden="true"></progress>
+                    <span class="a11y-only" role="status" aria-live="off">
+                      <span data-l10n-id="videocontrols-buffer-bar-label"></span>
+                      <span id="bufferA11yVal"></span>
+                    </span>
+                    <progress id="progressBar" class="progressBar" value="0" max="100" aria-hidden="true"></progress>
                   </div>
                 </div>
-                <input type="range" id="scrubber" class="scrubber" tabindex="-1"/>
+                <input type="range" id="scrubber" class="scrubber" tabindex="-1" data-l10n-id="videocontrols-scrubber"/>
               </div>
               <bdi id="positionLabel" class="positionLabel" role="presentation"></bdi>
               <bdi id="durationLabel" class="durationLabel" role="presentation"></bdi>
@@ -2623,7 +2769,7 @@ this.VideoControlsImplWidget = class {
                       tabindex="-1"/>
               <div id="volumeStack" class="volumeStack progressContainer" role="none">
                 <input type="range" id="volumeControl" class="volumeControl" min="0" max="100" step="1" tabindex="-1"
-                       aria-label="&volumeScrubber.label;"/>
+                       data-l10n-id="videocontrols-volume-control"/>
               </div>
               <button id="castingButton" class="button castingButton"
                       aria-label="&castingButton.castingLabel;"/>
@@ -2641,6 +2787,10 @@ this.VideoControlsImplWidget = class {
       </div>`,
       "application/xml"
     );
+    this.l10n = new this.window.DOMLocalization([
+      "toolkit/global/videocontrols.ftl",
+    ]);
+    this.l10n.connectRoot(this.shadowRoot);
     this.shadowRoot.importNodeAndAppendChildAt(
       this.shadowRoot,
       parserDoc.documentElement,
@@ -2657,6 +2807,8 @@ this.VideoControlsImplWidget = class {
     this.Utils.terminate();
     this.TouchUtils.terminate();
     this.Utils.updateOrientationState(false);
+    this.l10n.disconnectRoot(this.shadowRoot);
+    this.l10n = null;
   }
 
   onPrefChange(prefName, prefValue) {
@@ -2826,7 +2978,7 @@ this.NoControlsMobileImplWidget = class {
       %videocontrolsDTD;
       ]>
       <div class="videocontrols" xmlns="http://www.w3.org/1999/xhtml" role="none">
-        <link rel="stylesheet" type="text/css" href="chrome://global/skin/media/videocontrols.css" />
+        <link rel="stylesheet" href="chrome://global/skin/media/videocontrols.css" />
         <div id="controlsContainer" class="controlsContainer" role="none" hidden="true">
           <div class="controlsOverlay stackItem">
             <div class="controlsSpacerStack">
@@ -2881,7 +3033,7 @@ this.NoControlsPictureInPictureImplWidget = class {
       %videocontrolsDTD;
       ]>
       <div class="videocontrols" xmlns="http://www.w3.org/1999/xhtml" role="none">
-        <link rel="stylesheet" type="text/css" href="chrome://global/skin/media/videocontrols.css" />
+        <link rel="stylesheet" href="chrome://global/skin/media/videocontrols.css" />
         <div id="controlsContainer" class="controlsContainer" role="none">
           <div class="pictureInPictureOverlay stackItem" status="pictureInPicture">
             <div id="statusIcon" class="statusIcon" type="pictureInPicture"></div>
@@ -2923,6 +3075,13 @@ this.NoControlsDesktopImplWidget = class {
             }
             break;
           }
+          case "resizevideocontrols": {
+            this.updateReflowedDimensions();
+            this.updatePictureInPictureToggleDisplay();
+            break;
+          }
+          case "durationchange":
+          // Intentional fall-through
           case "loadedmetadata": {
             this.updatePictureInPictureToggleDisplay();
             break;
@@ -2935,12 +3094,32 @@ this.NoControlsDesktopImplWidget = class {
           this.pipToggleEnabled &&
           VideoControlsWidget.shouldShowPictureInPictureToggle(
             this.prefs,
-            this.video
+            this.video,
+            this.reflowedDimensions
           )
         ) {
-          this.pictureInPictureToggleButton.removeAttribute("hidden");
+          if (
+            this.prefs[
+              "media.videocontrols.picture-in-picture.video-toggle.mode"
+            ] == -1
+          ) {
+            VideoControlsWidget.cleanupToggleExperiment(this.shadowRoot);
+            this.pictureInPictureToggleButton.removeAttribute("hidden");
+            this.pictureInPictureToggleExperiment.setAttribute("hidden", true);
+          } else {
+            this.pictureInPictureToggleButton.setAttribute("hidden", true);
+            this.pictureInPictureToggleExperiment.removeAttribute("hidden");
+            VideoControlsWidget.setupToggleExperiment(
+              this.prefs,
+              this.shadowRoot,
+              this.pictureInPictureToggleExperiment,
+              this.reflowedDimensions
+            );
+          }
         } else {
+          VideoControlsWidget.cleanupToggleExperiment(this.shadowRoot);
           this.pictureInPictureToggleButton.setAttribute("hidden", true);
+          this.pictureInPictureToggleExperiment.setAttribute("hidden", true);
         }
       },
 
@@ -2957,6 +3136,10 @@ this.NoControlsDesktopImplWidget = class {
           "pictureInPictureToggleButton"
         );
 
+        this.pictureInPictureToggleExperiment = this.shadowRoot.getElementById(
+          "pictureInPictureToggleExperiment"
+        );
+
         if (this.document.fullscreenElement) {
           this.videocontrols.setAttribute("inDOMFullscreen", true);
         }
@@ -2964,6 +3147,7 @@ this.NoControlsDesktopImplWidget = class {
         // Default the Picture-in-Picture toggle button to being hidden. We might unhide it
         // later if we determine that this video is qualified to show it.
         this.pictureInPictureToggleButton.setAttribute("hidden", true);
+        this.pictureInPictureToggleExperiment.setAttribute("hidden", true);
 
         if (this.video.readyState >= this.video.HAVE_METADATA) {
           // According to the spec[1], at the HAVE_METADATA (or later) state, we know
@@ -2979,6 +3163,8 @@ this.NoControlsDesktopImplWidget = class {
         });
 
         this.video.addEventListener("loadedmetadata", this);
+        this.video.addEventListener("durationchange", this);
+        this.videocontrols.addEventListener("resizevideocontrols", this);
       },
 
       terminate() {
@@ -2987,6 +3173,22 @@ this.NoControlsDesktopImplWidget = class {
         });
 
         this.video.removeEventListener("loadedmetadata", this);
+        this.video.removeEventListener("durationchange", this);
+        this.videocontrols.removeEventListener("resizevideocontrols", this);
+      },
+
+      updateReflowedDimensions() {
+        this.reflowedDimensions.videoHeight = this.video.clientHeight;
+        this.reflowedDimensions.videoWidth = this.video.clientWidth;
+        this.reflowedDimensions.videocontrolsWidth = this.videocontrols.clientWidth;
+      },
+
+      reflowedDimensions: {
+        // Set the dimensions to intrinsic <video> dimensions before the first
+        // update.
+        videoHeight: 150,
+        videoWidth: 300,
+        videocontrolsWidth: 0,
       },
 
       get pipToggleEnabled() {
@@ -3024,12 +3226,27 @@ this.NoControlsDesktopImplWidget = class {
       %videocontrolsDTD;
       ]>
       <div class="videocontrols" xmlns="http://www.w3.org/1999/xhtml" role="none">
-        <link rel="stylesheet" type="text/css" href="chrome://global/skin/media/videocontrols.css" />
+        <link rel="stylesheet" href="chrome://global/skin/media/videocontrols.css" />
+        <link rel="stylesheet" href="chrome://global/skin/media/pictureinpicture-mode-1.css" mode="1" disabled="true" />
+        <link rel="stylesheet" href="chrome://global/skin/media/pictureinpicture-mode-2.css" mode="2" disabled="true" />
         <div id="controlsContainer" class="controlsContainer" role="none">
           <div class="controlsOverlay stackItem">
             <button id="pictureInPictureToggleButton" class="pictureInPictureToggleButton">
               <div id="pictureInPictureToggleIcon" class="pictureInPictureToggleIcon"></div>
               <span class="pictureInPictureToggleLabel">&pictureInPicture.label;</span>
+            </button>
+            <button id="pictureInPictureToggleExperiment" class="pip-wrapper" position="left" hidden="true">
+              <div class="pip-small clickable"></div>
+              <div class="pip-expanded clickable">
+                <span class="pip-icon-label clickable">
+                  <span class="pip-icon"></span>
+                  <span class="pip-label">&pictureInPictureToggle.label;</span>
+                </span>
+                <div class="pip-explainer clickable">
+                  &pictureInPictureExplainer;
+                </div>
+              </div>
+              <div class="pip-icon"></div>
             </button>
           </div>
         </div>

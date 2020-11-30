@@ -12,9 +12,11 @@
 #include "jsapi.h"
 
 #include "builtin/SelfHostingDefines.h"
+#include "frontend/Stencil.h"
 #include "gc/ZoneAllocator.h"
 #include "js/GCVector.h"
 #include "js/Id.h"
+#include "js/Modules.h"
 #include "js/UniquePtr.h"
 #include "vm/JSAtom.h"
 #include "vm/NativeObject.h"
@@ -224,19 +226,6 @@ class ModuleNamespaceObject : public ProxyObject {
 using RootedModuleNamespaceObject = Rooted<ModuleNamespaceObject*>;
 using HandleModuleNamespaceObject = Handle<ModuleNamespaceObject*>;
 
-struct FunctionDeclaration {
-  FunctionDeclaration(HandleAtom name, uint32_t funIndex);
-  void trace(JSTracer* trc);
-
-  const HeapPtr<JSAtom*> name;
-  const uint32_t funIndex;
-};
-
-// A vector of function bindings to be instantiated. This can be created in a
-// helper thread zone and so can't use ZoneAllocPolicy.
-using FunctionDeclarationVector =
-    GCVector<FunctionDeclaration, 0, SystemAllocPolicy>;
-
 // Possible values for ModuleStatus are defined in SelfHostingDefines.h.
 using ModuleStatus = int32_t;
 
@@ -323,10 +312,6 @@ class ModuleObject : public NativeObject {
 
   void setMetaObject(JSObject* obj);
 
-  // For BytecodeEmitter.
-  bool noteFunctionDeclaration(JSContext* cx, HandleAtom name,
-                               uint32_t funIndex);
-
   // For intrinsic_InstantiateModuleFunctionDeclarations.
   static bool instantiateFunctionDeclarations(JSContext* cx,
                                               HandleModuleObject self);
@@ -342,7 +327,8 @@ class ModuleObject : public NativeObject {
 
   static bool createEnvironment(JSContext* cx, HandleModuleObject self);
 
-  FunctionDeclarationVector* functionDeclarations();
+  frontend::FunctionDeclarationVector* functionDeclarations();
+  void initFunctionDeclarations(frontend::FunctionDeclarationVector&& decls);
 
  private:
   static const JSClassOps classOps_;
@@ -361,7 +347,8 @@ JSObject* CallModuleResolveHook(JSContext* cx, HandleValue referencingPrivate,
 JSObject* StartDynamicModuleImport(JSContext* cx, HandleScript script,
                                    HandleValue specifier);
 
-bool FinishDynamicModuleImport(JSContext* cx, HandleValue referencingPrivate,
+bool FinishDynamicModuleImport(JSContext* cx, JS::DynamicImportStatus status,
+                               HandleValue referencingPrivate,
                                HandleString specifier, HandleObject promise);
 
 template <XDRMode mode>

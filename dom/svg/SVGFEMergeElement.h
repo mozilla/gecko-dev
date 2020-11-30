@@ -4,10 +4,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_SVGFEMergeElement_h
-#define mozilla_dom_SVGFEMergeElement_h
+#ifndef DOM_SVG_SVGFEMERGEELEMENT_H_
+#define DOM_SVG_SVGFEMERGEELEMENT_H_
 
-#include "SVGFilters.h"
+#include "mozilla/dom/SVGFilters.h"
 
 nsresult NS_NewSVGFEMergeElement(
     nsIContent** aResult, already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
@@ -15,7 +15,7 @@ nsresult NS_NewSVGFEMergeElement(
 namespace mozilla {
 namespace dom {
 
-typedef SVGFE SVGFEMergeElementBase;
+using SVGFEMergeElementBase = SVGFE;
 
 class SVGFEMergeElement : public SVGFEMergeElementBase {
   friend nsresult(::NS_NewSVGFEMergeElement(
@@ -31,7 +31,7 @@ class SVGFEMergeElement : public SVGFEMergeElementBase {
 
  public:
   virtual FilterPrimitiveDescription GetPrimitiveDescription(
-      nsSVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
+      SVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
       const nsTArray<bool>& aInputsAreTainted,
       nsTArray<RefPtr<SourceSurface>>& aInputImages) override;
   virtual SVGAnimatedString& GetResultImageName() override {
@@ -53,4 +53,4 @@ class SVGFEMergeElement : public SVGFEMergeElementBase {
 }  // namespace dom
 }  // namespace mozilla
 
-#endif  // mozilla_dom_SVGFEMergeElement_h
+#endif  // DOM_SVG_SVGFEMERGEELEMENT_H_

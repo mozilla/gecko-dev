@@ -15,41 +15,81 @@
   <script type="application/javascript"
           src="../states.js"></script>
   <script type="application/javascript"
-          src="../events.js"></script>
+          src="../promisified-events.js"></script>
 
   <script type="application/javascript">
-    // gA11yEventDumpToConsole = true; // debugging stuff
+    const { BrowserTestUtils } = ChromeUtils.import(
+      "resource://testing-common/BrowserTestUtils.jsm");
 
-    function loadFile() {
-      var eventSeq = [
-        new stateChangeChecker(STATE_BUSY, false, true, document, null, false, true),
-        new stateChangeChecker(STATE_BUSY, false, false, document),
-      ];
-      defineScenario(this, eventSeq); // both events were fired
-
-      var unexpectedEventSeq = [
-        new stateChangeChecker(STATE_BUSY, false, true, document),
-        new stateChangeChecker(STATE_BUSY, false, false, document),
-      ];
-      defineScenario(this, [], unexpectedEventSeq); // events were coalesced
-
-      this.invoke = function loadFile_invoke() {
-        synthesizeMouse(getNode("link"), 1, 1, {});
-      };
-
-      this.getID = function loadFile_getID() {
-        return "load file: state busy change events on document";
+    function matchDocBusyChange(isBusy) {
+      return function(event) {
+        const scEvent = event.QueryInterface(nsIAccessibleStateChangeEvent);
+        return (
+          event.DOMNode == document &&
+          scEvent.state === STATE_BUSY &&
+          scEvent.isEnabled === isBusy
+        );
       };
     }
 
-    var gQueue = null;
-    function doTest() {
-      // State busy change event on file loading.
-      // enableLogging("docload"); // debugging
-      gQueue = new eventQueue();
-      gQueue.push(new loadFile());
-      // gQueue.onFinish = function() { disableLogging(); } // debugging
-      gQueue.invoke(); // Will call SimpleTest.finish();
+    async function doTest() {
+      // Because of variable timing, there are two acceptable possibilities:
+      // 1. We get an event for busy and an event for not busy.
+      // 2. The two events get coalesced, so no events are fired.
+      // However, we fail this test if we get the first event but not the
+      // second.
+      let gotBusy = false;
+      let gotNotBusy = false;
+      // We never actually wait on this; we just check the booleans it sets.
+      // We still need to hold a reference so it doesn't get garbage collected
+      // before it does anything.
+      // eslint-disable-next-line no-unused-vars
+      const busyEvents = async function() {
+        await waitForEvent(EVENT_STATE_CHANGE, matchDocBusyChange(true));
+        info("Got busy event");
+        gotBusy = true;
+        await waitForEvent(EVENT_STATE_CHANGE, matchDocBusyChange(false));
+        info("Got not-busy event");
+        gotNotBusy = true;
+      }();
+
+      const downloadPromptOpened = BrowserTestUtils.domWindowOpened(null,
+        async win => {
+          info("Window opened, waiting for load event");
+          await BrowserTestUtils.waitForEvent(win, "load");
+          info("Window loaded, checking if download prompt");
+          return win.location &&
+            win.location.href == "chrome://mozapps/content/downloads/unknownContentType.xhtml";
+        }
+      );
+
+      info("Clicking link to trigger download");
+      synthesizeMouse(getNode("link"), 1, 1, {});
+      info("Waiting for download prompt to open");
+      const downloadWin = await downloadPromptOpened;
+
+      // Any busy events should have been fired by the time the download
+      // prompt has opened.
+      if (gotBusy && gotNotBusy) {
+        ok(true, "Got both busy change and not-busy change");
+      } else if (!gotBusy && !gotNotBusy) {
+        ok(true, "No busy events, coalesced");
+      } else {
+        ok(false, "Got busy change but didn't get not-busy change!");
+      }
+      testStates(document, 0, 0, STATE_BUSY, 0, "Document not busy");
+
+      // Clean up.
+      info("Closing download prompt");
+      downloadWin.close();
+      // We might still be waiting on busy events. Remove any pending observers.
+      for (let observer of Services.obs.enumerateObservers(
+        "accessible-event")
+      ) {
+        Services.obs.removeObserver(observer, "accessible-event");
+      }
+
+      SimpleTest.finish();
     }
 
     SimpleTest.waitForExplicitFinish();

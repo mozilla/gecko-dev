@@ -109,6 +109,22 @@ interface nsIServiceWorkerRegistrationInfo : nsISupports
   void addListener(in nsIServiceWorkerRegistrationInfoListener listener);
 
   void removeListener(in nsIServiceWorkerRegistrationInfoListener listener);
+
+  // Terminate all the service worker relate to this registration.
+  // This is used by the WebExtensions framework to shutdown the extension's
+  // background service workers as part of shutdown, which happens when:
+  // - the extension has been disabled.
+  // - the extension is shutting down to be updated.
+  // - the extension is shutting down as part of the uninstall flow.
+  //
+  // All the service workers instances related to this registration are expected
+  // to be terminate immediately.
+  //
+  // TODO - Bug 1638099: This method should also allow the WebExtension framework
+  // to mark the registration as disabled (e.g. through an additional parameter),
+  // to avoid it to be started again until the WebExtensions framework does explicitly 
+  // mark it back to enabled.
+  void forceShutdown();
 };
 
 [scriptable, uuid(9e523e7c-ad6f-4df0-8077-c74aebbc679d)]
@@ -122,6 +138,27 @@ interface nsIServiceWorkerManagerListener : nsISupports
 [scriptable, builtinclass, uuid(7404c8e8-4d47-4449-8ed1-47d1261d4e33)]
 interface nsIServiceWorkerManager : nsISupports
 {
+  /**
+   * A testing helper that registers a service worker for testing purpose (e.g. used to test
+   * a remote worker that has to spawn a new process to be launched).
+   * This method can only be used when "dom.serviceWorkers.testing.enabled" is true and
+   * it doesn't support all the registration options (e.g. updateViaCache is set automatically
+   * to "imports").
+   */
+  [implicit_jscontext]
+  Promise registerForTest(in nsIPrincipal aPrincipal,
+                          in AString aScope, 
+                          in AString aScriptURL);
+
+  /**
+   * Register an extension background service worker for a given
+   * extension principal and return a promise that resolves to the
+   * nsIServiceWorkerRegistrationInfo (or rejects if there was one
+   * already registered).
+   */
+  [implicit_jscontext]
+  Promise registerForAddonPrincipal(in nsIPrincipal aPrincipal);
+
   /**
    * Unregister an existing ServiceWorker registration for `aScope`.
    * It keeps aCallback alive until the operation is concluded.

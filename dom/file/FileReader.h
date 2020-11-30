@@ -72,7 +72,7 @@ class FileReader final : public DOMEventTargetHelper,
   // WebIDL
   static already_AddRefed<FileReader> Constructor(const GlobalObject& aGlobal);
   void ReadAsArrayBuffer(JSContext* aCx, Blob& aBlob, ErrorResult& aRv) {
-    ReadFileContent(aBlob, EmptyString(), FILE_AS_ARRAYBUFFER, aRv);
+    ReadFileContent(aBlob, u""_ns, FILE_AS_ARRAYBUFFER, aRv);
   }
 
   void ReadAsText(Blob& aBlob, const Optional<nsAString>& aLabel,
@@ -80,12 +80,12 @@ class FileReader final : public DOMEventTargetHelper,
     if (aLabel.WasPassed()) {
       ReadFileContent(aBlob, aLabel.Value(), FILE_AS_TEXT, aRv);
     } else {
-      ReadFileContent(aBlob, EmptyString(), FILE_AS_TEXT, aRv);
+      ReadFileContent(aBlob, u""_ns, FILE_AS_TEXT, aRv);
     }
   }
 
   void ReadAsDataURL(Blob& aBlob, ErrorResult& aRv) {
-    ReadFileContent(aBlob, EmptyString(), FILE_AS_DATAURL, aRv);
+    ReadFileContent(aBlob, u""_ns, FILE_AS_DATAURL, aRv);
   }
 
   void Abort();
@@ -104,7 +104,7 @@ class FileReader final : public DOMEventTargetHelper,
   IMPL_EVENT_HANDLER(loadend)
 
   void ReadAsBinaryString(Blob& aBlob, ErrorResult& aRv) {
-    ReadFileContent(aBlob, EmptyString(), FILE_AS_BINARY, aRv);
+    ReadFileContent(aBlob, u""_ns, FILE_AS_BINARY, aRv);
   }
 
   enum eDataFormat {
@@ -116,6 +116,8 @@ class FileReader final : public DOMEventTargetHelper,
 
   eDataFormat DataFormat() const { return mDataFormat; }
   const nsString& Result() const { return mResult; }
+
+  void InitialAsyncWait();
 
  private:
   virtual ~FileReader();
@@ -191,6 +193,10 @@ class FileReader final : public DOMEventTargetHelper,
   // This value is set when the reading starts in order to keep the worker alive
   // during the process.
   RefPtr<StrongWorkerRef> mStrongWorkerRef;
+
+  // Runnable to start the reading asynchronous.
+  class AsyncWaitRunnable;
+  RefPtr<AsyncWaitRunnable> mAsyncWaitRunnable;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(FileReader, FILEREADER_ID)

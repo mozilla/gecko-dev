@@ -142,23 +142,28 @@ class ServoElementSnapshot {
     return mIsMozBrowserFrame;
   }
 
+  bool IsSelectListBox() const {
+    MOZ_ASSERT(HasOtherPseudoClassState());
+    return mIsSelectListBox;
+  }
+
  private:
   // TODO: Profile, a 1 or 2 element AutoTArray could be worth it, given we know
   // we're dealing with attribute changes when we take snapshots of attributes,
   // though it can be wasted space if we deal with a lot of state-only
   // snapshots.
   nsTArray<AttrArray::InternalAttr> mAttrs;
+  nsTArray<RefPtr<nsAtom>> mChangedAttrNames;
   nsAttrValue mClass;
   ServoStateType mState;
   Flags mContains;
-  bool mIsHTMLElementInHTMLDocument : 1;
   bool mIsInChromeDocument : 1;
   bool mSupportsLangAttr : 1;
   bool mIsTableBorderNonzero : 1;
   bool mIsMozBrowserFrame : 1;
+  bool mIsSelectListBox : 1;
   bool mClassAttributeChanged : 1;
   bool mIdAttributeChanged : 1;
-  bool mOtherAttributeChanged : 1;
 };
 
 inline void ServoElementSnapshot::AddAttrs(const Element& aElement,
@@ -166,14 +171,20 @@ inline void ServoElementSnapshot::AddAttrs(const Element& aElement,
                                            nsAtom* aAttribute) {
   if (aNameSpaceID == kNameSpaceID_None) {
     if (aAttribute == nsGkAtoms::_class) {
+      if (mClassAttributeChanged) {
+        return;
+      }
       mClassAttributeChanged = true;
     } else if (aAttribute == nsGkAtoms::id) {
+      if (mIdAttributeChanged) {
+        return;
+      }
       mIdAttributeChanged = true;
-    } else {
-      mOtherAttributeChanged = true;
     }
-  } else {
-    mOtherAttributeChanged = true;
+  }
+
+  if (!mChangedAttrNames.Contains(aAttribute)) {
+    mChangedAttrNames.AppendElement(aAttribute);
   }
 
   if (HasAttrs()) {

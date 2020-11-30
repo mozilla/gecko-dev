@@ -418,6 +418,26 @@ class Sequence : public FallibleTArray<T> {
       : FallibleTArray<T>(std::move(aArray)) {}
   MOZ_IMPLICIT Sequence(nsTArray<T>&& aArray)
       : FallibleTArray<T>(std::move(aArray)) {}
+
+  Sequence(Sequence&&) = default;
+  Sequence& operator=(Sequence&&) = default;
+
+  // XXX(Bug 1631461) Codegen.py must be adapted to allow making Sequence
+  // uncopyable.
+  Sequence(const Sequence& aOther) {
+    if (!this->AppendElements(aOther, fallible)) {
+      MOZ_CRASH("Out of memory");
+    }
+  }
+  Sequence& operator=(const Sequence& aOther) {
+    if (this != &aOther) {
+      this->Clear();
+      if (!this->AppendElements(aOther, fallible)) {
+        MOZ_CRASH("Out of memory");
+      }
+    }
+    return *this;
+  }
 };
 
 inline nsWrapperCache* GetWrapperCache(nsWrapperCache* cache) { return cache; }

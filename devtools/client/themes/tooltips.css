@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /* Import stylesheets for specific tooltip widgets */
-@import url(chrome://devtools/skin/badge.css);
 @import url(chrome://devtools/skin/accessibility-color-contrast.css);
+@import url(chrome://devtools/skin/badge.css);
 @import url(chrome://devtools/content/shared/widgets/cubic-bezier.css);
 @import url(chrome://devtools/content/shared/widgets/filter-widget.css);
 @import url(chrome://devtools/content/shared/widgets/spectrum.css);
@@ -19,6 +19,7 @@
   --theme-tooltip-color: var(--theme-text-color-strong);
   --theme-tooltip-background: var(--theme-popup-background);
   --theme-tooltip-shadow: rgba(25, 25, 25, 0.76);
+  --theme-tooltip-icon-dimmed-color: rgb(255, 255, 255);
 
   /* Doorhangers */
   /* These colors are based on the colors used for doorhangers elsewhere in
@@ -40,6 +41,7 @@
   --theme-tooltip-color: var(--theme-body-color);
   --theme-tooltip-background: rgb(255, 255, 255);
   --theme-tooltip-shadow: var(--grey-90-a10);
+  --theme-tooltip-icon-dimmed-color: rgba(135, 135, 137, 0.9);
 
   /* Doorhangers */
   /* These colors are based on the colors used for doorhangers elsewhere in
@@ -55,6 +57,8 @@
 
 :root {
   --theme-arrowpanel-border-radius: 0px;
+  --compatibility-tooltip-base-unit: 4px;
+  --compatibility-tooltip-browser-icon-size: calc(var(--compatibility-tooltip-base-unit) * 4);
 }
 :root[platform="mac"] {
   --theme-arrowpanel-border-radius: 3.5px;
@@ -70,15 +74,25 @@ strong {
 
 /* Tooltip: CSS variables tooltip */
 
-.devtools-tooltip-css-variable {
+.devtools-tooltip-css-variable,
+.devtools-tooltip-css-compatibility {
   color: var(--theme-body-color);
   padding: 2px;
   direction: ltr;
 }
 
+/* Tooltip: JS Evaluation Context */
+
+#webconsole-input-evaluationsButton > .tooltip-panel {
+  /* helps the JS Context selector to have scrollbars when content exceed the vertical size of the popup */
+  overflow-y: auto;
+}
+
+
 /* Tooltip: Inactive CSS tooltip */
 
-.devtools-tooltip-inactive-css {
+.devtools-tooltip-inactive-css,
+.devtools-tooltip-css-compatibility {
   color: var(--theme-arrowpanel-color);
   margin: 0;
   padding: 10px 14px 12px 14px;
@@ -86,23 +100,68 @@ strong {
 }
 
 .devtools-tooltip-inactive-css,
-.devtools-tooltip-inactive-css strong {
+.devtools-tooltip-css-compatibility,
+.devtools-tooltip-inactive-css strong,
+.devtools-tooltip-css-compatibility strong {
   user-select: text;
   -moz-user-focus: normal;
 }
 
-.devtools-tooltip-inactive-css p {
+.devtools-tooltip-inactive-css p,
+.devtools-tooltip-css-compatibility p {
   margin-block-start: 0;
   margin-block-end: calc(1em - 4px);
 }
 
-.devtools-tooltip-inactive-css p:last-child {
+.devtools-tooltip-inactive-css p:last-child,
+.devtools-tooltip-css-compatibility p:last-child {
   margin-block-end: 0;
 }
 
-.devtools-tooltip-inactive-css .link {
+.devtools-tooltip-inactive-css .link,
+.devtools-tooltip-css-compatibility .link {
   color: var(--theme-highlight-blue);
   cursor: pointer;
+}
+
+/* Tooltip: Compatibility tooltip */
+
+.tooltip-container[type="doorhanger"] .tooltip-panel ul.compatibility-unsupported-browser-list {
+  width: 100%;
+  list-style: none;
+  padding: 0;
+  column-gap: var(--compatibility-tooltip-base-unit);
+  display: flex;
+}
+
+.devtools-tooltip-css-compatibility .compatibility-browser-icon {
+  display: inline-block;
+  width: var(--compatibility-tooltip-browser-icon-size);
+  height: var(--compatibility-tooltip-browser-icon-size);
+  position: relative;
+}
+
+.devtools-tooltip-css-compatibility .compatibility-browser-icon--mobile::after {
+  content: "";
+  width: calc(var(--compatibility-tooltip-base-unit) * 2);
+  height: calc(var(--compatibility-tooltip-base-unit) * 3);
+  background-color: var(--theme-arrowpanel-background);
+  background-size: calc(var(--compatibility-tooltip-base-unit) * 2 - 2px);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-image: url(chrome://devtools/skin/images/browsers/mobile.svg);
+  -moz-context-properties: fill;
+  fill: var(--theme-tooltip-icon-dimmed-color);
+  position: absolute;
+  right: calc(var(--compatibility-tooltip-base-unit) * -1);
+  bottom: calc(var(--compatibility-tooltip-base-unit) * -1);
+}
+
+.devtools-tooltip-css-compatibility .compatibility-browser-icon__image {
+  width: 100%;
+  height: 100%;
+  -moz-context-properties: fill;
+  fill: var(--theme-tooltip-icon-dimmed-color);
 }
 
 /* Tooltip: Tiles */
@@ -126,14 +185,20 @@ strong {
 }
 
 .tooltip-xul-wrapper {
-  -moz-appearance: none;
+  appearance: none;
   background: transparent;
   overflow: visible;
   border-style: none;
 }
 
 .tooltip-xul-wrapper .tooltip-container {
-  position: absolute;
+  /**
+   * As the width/height of xul:panel (.tooltip-xul-wrapper) is dependent on the
+   * width/height of the inner content. Thus, if "absolute" position here, as the
+   * width/height that are conveyed to the panel will be zero, the tooltip will be
+   * invisible.
+   */
+  position: static;
 }
 
 .tooltip-top {
@@ -411,8 +476,8 @@ strong {
   margin-inline-end: 15px;
 }
 
-.tooltip-container[type="doorhanger"] .menuitem > button.command:-moz-any([role="menuitem"],[role="menuitemcheckbox"],[role="link"]) {
-  -moz-appearance: none;
+.tooltip-container[type="doorhanger"] .menuitem > button.command:is([role="menuitem"],[role="menuitemcheckbox"],[role="link"]) {
+  appearance: none;
   border: none;
   color: var(--theme-arrowpanel-color);
   background-color: transparent;
@@ -420,7 +485,7 @@ strong {
   width: 100%;
 }
 
-.tooltip-container[type="doorhanger"] .menuitem > .command:not(:-moz-any([disabled],[open],:active)):-moz-any(:hover,:focus) {
+.tooltip-container[type="doorhanger"] .menuitem > .command:not(:is([disabled],[open],:active)):is(:hover,:focus) {
   background-color: var(--theme-arrowpanel-dimmed);
 }
 
@@ -428,9 +493,13 @@ strong {
   border-color: transparent;
 }
 
-.tooltip-container[type="doorhanger"] .menuitem > .command:not([disabled]):-moz-any([open],:hover:active) {
+.tooltip-container[type="doorhanger"] .menuitem > .command:not([disabled]):is([open],:hover:active) {
   background-color: var(--theme-arrowpanel-dimmed-further);
   box-shadow: 0 1px 0 hsla(210,4%,10%,.03) inset;
+}
+
+.tooltip-container[type="doorhanger"] .menuitem > .command[disabled] {
+  opacity: 0.5;
 }
 
 .tooltip-container[type="doorhanger"] .menuitem > .command[aria-checked="true"] {
@@ -451,6 +520,8 @@ strong {
   flex: 1;
   font: menu;
   white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 
 .tooltip-container[type="doorhanger"] .checkbox-container .menuitem > .command > .label {
@@ -543,7 +614,7 @@ strong {
 .event-tooltip-debugger-icon {
   -moz-context-properties: stroke;
   stroke: var(--theme-icon-color);
-  background-image: url("resource://devtools/client/shared/components/reps/images/jump-definition.svg");
+  background-image: url("chrome://devtools/content/shared/components/reps/images/jump-definition.svg");
   background-repeat: no-repeat;
   background-position: center;
   width: 20px;

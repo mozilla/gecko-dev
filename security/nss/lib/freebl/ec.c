@@ -62,7 +62,7 @@ ec_points_mul(const ECParams *params, const mp_int *k1, const mp_int *k2,
     ECGroup *group = NULL;
     SECStatus rv = SECFailure;
     mp_err err = MP_OKAY;
-    int len;
+    unsigned int len;
 
 #if EC_DEBUG
     int i;
@@ -96,7 +96,7 @@ ec_points_mul(const ECParams *params, const mp_int *k1, const mp_int *k2,
 #endif
 
     /* NOTE: We only support uncompressed points for now */
-    len = (params->fieldID.size + 7) >> 3;
+    len = (((unsigned int)params->fieldID.size) + 7) >> 3;
     if (pointP != NULL) {
         if ((pointP->data[0] != EC_POINT_FORM_UNCOMPRESSED) ||
             (pointP->len != (2 * len + 1))) {
@@ -428,7 +428,7 @@ EC_ValidatePublicKey(ECParams *ecParams, SECItem *publicValue)
     ECGroup *group = NULL;
     SECStatus rv = SECFailure;
     mp_err err = MP_OKAY;
-    int len;
+    unsigned int len;
 
     if (!ecParams || ecParams->name == ECCurve_noName ||
         !publicValue || !publicValue->len) {
@@ -448,7 +448,7 @@ EC_ValidatePublicKey(ECParams *ecParams, SECItem *publicValue)
     }
 
     /* NOTE: We only support uncompressed points for now */
-    len = (ecParams->fieldID.size + 7) >> 3;
+    len = (((unsigned int)ecParams->fieldID.size) + 7) >> 3;
     if (publicValue->data[0] != EC_POINT_FORM_UNCOMPRESSED) {
         PORT_SetError(SEC_ERROR_UNSUPPORTED_EC_POINT_FORM);
         return SECFailure;
@@ -721,27 +721,6 @@ ECDSA_SignDigestWithSeed(ECPrivateKey *key, SECItem *signature,
 #endif
         PORT_SetError(SEC_ERROR_NEED_RANDOM);
         goto cleanup;
-    }
-
-    /*
-    ** We do not want timing information to leak the length of k,
-    ** so we compute k*G using an equivalent scalar of fixed
-    ** bit-length.
-    ** Fix based on patch for ECDSA timing attack in the paper
-    ** by Billy Bob Brumley and Nicola Tuveri at
-    **   http://eprint.iacr.org/2011/232
-    **
-    ** How do we convert k to a value of a fixed bit-length?
-    ** k starts off as an integer satisfying 0 <= k < n.  Hence,
-    ** n <= k+n < 2n, which means k+n has either the same number
-    ** of bits as n or one more bit than n.  If k+n has the same
-    ** number of bits as n, the second addition ensures that the
-    ** final value has exactly one more bit than n.  Thus, we
-    ** always end up with a value that exactly one more bit than n.
-    */
-    CHECK_MPI_OK(mp_add(&k, &n, &k));
-    if (mpl_significant_bits(&k) <= mpl_significant_bits(&n)) {
-        CHECK_MPI_OK(mp_add(&k, &n, &k));
     }
 
     /*

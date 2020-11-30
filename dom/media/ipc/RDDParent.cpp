@@ -53,7 +53,10 @@ RDDParent::RDDParent() : mLaunchTime(TimeStamp::Now()) { sRDDParent = this; }
 RDDParent::~RDDParent() { sRDDParent = nullptr; }
 
 /* static */
-RDDParent* RDDParent::GetSingleton() { return sRDDParent; }
+RDDParent* RDDParent::GetSingleton() {
+  MOZ_DIAGNOSTIC_ASSERT(sRDDParent);
+  return sRDDParent;
+}
 
 bool RDDParent::Init(base::ProcessId aParentPid, const char* aParentBuildID,
                      MessageLoop* aIOLoop, UniquePtr<IPC::Channel> aChannel) {
@@ -164,7 +167,8 @@ mozilla::ipc::IPCResult RDDParent::RecvInitVideoBridge(
 
 mozilla::ipc::IPCResult RDDParent::RecvRequestMemoryReport(
     const uint32_t& aGeneration, const bool& aAnonymize,
-    const bool& aMinimizeMemoryUsage, const Maybe<FileDescriptor>& aDMDFile) {
+    const bool& aMinimizeMemoryUsage, const Maybe<FileDescriptor>& aDMDFile,
+    const RequestMemoryReportResolver& aResolver) {
   nsPrintfCString processName("RDD (pid %u)", (unsigned)getpid());
 
   mozilla::dom::MemoryReportRequestClient::Start(
@@ -172,9 +176,7 @@ mozilla::ipc::IPCResult RDDParent::RecvRequestMemoryReport(
       [&](const MemoryReport& aReport) {
         Unused << GetSingleton()->SendAddMemoryReport(aReport);
       },
-      [&](const uint32_t& aGeneration) {
-        return GetSingleton()->SendFinishMemoryReport(aGeneration);
-      });
+      aResolver);
   return IPC_OK();
 }
 
@@ -211,23 +213,28 @@ void RDDParent::ActorDestroy(ActorDestroyReason aWhy) {
   ProcessChild::QuickExit();
 #endif
 
+  // Wait until all RemoteDecoderManagerParent have closed.
+  mShutdownBlockers.WaitUntilClear(10 * 1000 /* 10s timeout*/)
+      ->Then(GetCurrentSerialEventTarget(), __func__, [this]() {
+
 #if defined(XP_WIN)
-  RefPtr<DllServices> dllSvc(DllServices::Get());
-  dllSvc->DisableFull();
+        RefPtr<DllServices> dllSvc(DllServices::Get());
+        dllSvc->DisableFull();
 #endif  // defined(XP_WIN)
 
 #ifdef MOZ_GECKO_PROFILER
-  if (mProfilerController) {
-    mProfilerController->Shutdown();
-    mProfilerController = nullptr;
-  }
+        if (mProfilerController) {
+          mProfilerController->Shutdown();
+          mProfilerController = nullptr;
+        }
 #endif
 
-  RemoteDecoderManagerParent::ShutdownVideoBridge();
+        RemoteDecoderManagerParent::ShutdownVideoBridge();
 
-  gfxVars::Shutdown();
-  CrashReporterClient::DestroySingleton();
-  XRE_ShutdownChildProcess();
+        gfxVars::Shutdown();
+        CrashReporterClient::DestroySingleton();
+        XRE_ShutdownChildProcess();
+      });
 }
 
 }  // namespace mozilla

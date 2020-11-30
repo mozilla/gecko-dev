@@ -21,13 +21,12 @@ XPCOM_MANIFESTS += [
     'components.conf',
 ]
 
-EXTRA_JS_MODULES.aboutpages = [
-    'AboutPrivateBrowsingHandler.jsm',
-    'AboutProtectionsHandler.jsm',
-]
-
 FINAL_LIBRARY = 'browsercomps'
 
 LOCAL_INCLUDES += [
     '../build',
+    '/dom/base',
+    '/ipc/chromium/src',
 ]
+
+include('/ipc/chromium/chromium-config.mozbuild')

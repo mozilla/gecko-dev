@@ -19,7 +19,7 @@
  * // If the properties are in multiple code paths and you can't send them all
  * // in one go you will need to use the full telemetry API.
  *
- * import { Telemetry } from "devtools-modules";
+ * const Telemetry = require("devtools/client/shared/telemetry");
  *
  * const telemetry = new Telemetry();
  *
@@ -44,7 +44,9 @@
 
 // @flow
 
-import { Telemetry } from "devtools-modules";
+// $FlowIgnore
+const Telemetry = require("devtools/client/shared/telemetry");
+
 import { isFirefoxPanel } from "devtools-environment";
 
 const telemetry = new Telemetry();
@@ -53,7 +55,7 @@ const telemetry = new Telemetry();
  * @memberof utils/telemetry
  * @static
  */
-export function recordEvent(eventName: string, fields: {} = {}) {
+export function recordEvent(eventName: string, fields: {} = {}): void {
   let sessionId = -1;
 
   if (typeof window !== "object") {
@@ -72,7 +74,7 @@ export function recordEvent(eventName: string, fields: {} = {}) {
   /* eslint-enable camelcase */
 
   if (!isFirefoxPanel() && window.dbg) {
-    const events = window.dbg._telemetry.events;
+    const { events } = window.dbg._telemetry;
     if (!events[eventName]) {
       events[eventName] = [];
     }

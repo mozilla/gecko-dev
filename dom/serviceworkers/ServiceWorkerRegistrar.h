@@ -16,7 +16,7 @@
 #include "nsString.h"
 #include "nsTArray.h"
 
-#define SERVICEWORKERREGISTRAR_FILE "serviceworker.txt"
+#define SERVICEWORKERREGISTRAR_FILE u"serviceworker.txt"
 #define SERVICEWORKERREGISTRAR_VERSION "8"
 #define SERVICEWORKERREGISTRAR_TERMINATOR "#"
 #define SERVICEWORKERREGISTRAR_TRUE "true"
@@ -33,6 +33,10 @@ class PrincipalInfo;
 namespace dom {
 
 class ServiceWorkerRegistrationData;
+}
+}  // namespace mozilla
+
+namespace mozilla::dom {
 
 class ServiceWorkerRegistrar : public nsIObserver,
                                public nsIAsyncShutdownBlocker {
@@ -106,7 +110,6 @@ class ServiceWorkerRegistrar : public nsIObserver,
   bool mRunnableDispatched;
 };
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #endif  // mozilla_dom_ServiceWorkerRegistrar_h

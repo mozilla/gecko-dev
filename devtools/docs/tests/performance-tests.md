@@ -37,18 +37,18 @@ includes the subtest label. Firefox won't automatically close so that you can vi
 #### Recording a profile
 
 ```bash
-./mach talos-test --activeTests damp --geckoProfile --geckoProfileEntries 100000000
+./mach talos-test --activeTests damp --gecko-profile --gecko-profile-entries 100000000
 ```
 This will automatically record the tests and open the profile. You may use the following command in order
 to focus on just one subtest run:
 ```bash
-./mach talos-test --activeTests damp --subtests custom.webconsole --cycles 1 --tppagecycles 1 --geckoProfile --geckoProfileEntries 100000000
+./mach talos-test --activeTests damp --subtests custom.webconsole --cycles 1 --tppagecycles 1 --gecko-profile --gecko-profile-entries 100000000
 ```
 
 ## How to run it on try?
 
 ```bash
-./mach try fuzzy --query "'linux64/ 'damp" --rebuild 6 --artifact
+./mach try fuzzy --query "'linux64-shippable/ 'damp" --rebuild 6
 ```
 * Linux appears to build and run quickly, and offers quite stable results over the other OSes.
 The vast majority of performance issues for DevTools are OS agnostic, so it doesn't really matter which one you run them on.
@@ -142,7 +142,7 @@ It will only display regressions and improvements with a medium or high confiden
 
 DAMP is based on top of a more generic test suite called [Talos](https://wiki.mozilla.org/Buildbot/Talos).
 Talos is a Mozilla test suite to follow all Firefox components performance.
-It is written in Python and here are [the sources](https://dxr.mozilla.org/mozilla-central/source/testing/talos/) in mozilla-central.
+It is written in Python and here are [the sources](https://searchfox.org/mozilla-central/source/testing/talos/) in mozilla-central.
 Compared to the other test suites, it isn't run on the cloud, but on dedicated hardware.
 This is to ensure performance numbers are stable over time and between two runs.
 Talos runs various types of tests. More specifically, DAMP is a [Page loader test](https://wiki.mozilla.org/Buildbot/Talos/Tests#Page_Load_Tests).

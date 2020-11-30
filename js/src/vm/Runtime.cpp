@@ -27,12 +27,10 @@
 
 #include "gc/FreeOp.h"
 #include "gc/PublicIterators.h"
-#include "jit/arm/Simulator-arm.h"
-#include "jit/arm64/vixl/Simulator-vixl.h"
 #include "jit/IonCompileTask.h"
-#include "jit/JitRealm.h"
-#include "jit/mips32/Simulator-mips32.h"
-#include "jit/mips64/Simulator-mips64.h"
+#include "jit/JitRuntime.h"
+#include "jit/Simulator.h"
+#include "js/AllocationLogging.h"  // JS_COUNT_CTOR, JS_COUNT_DTOR
 #include "js/Date.h"
 #include "js/MemoryMetrics.h"
 #include "js/SliceBudget.h"
@@ -48,6 +46,7 @@
 #include "vm/PromiseObject.h"  // js::PromiseObject
 #include "vm/TraceLogging.h"
 #include "vm/TraceLoggingGraph.h"
+#include "vm/Warnings.h"  // js::WarnNumberUC
 #include "wasm/WasmSignalHandlers.h"
 
 #include "debugger/DebugAPI-inl.h"
@@ -60,7 +59,6 @@ using namespace js;
 using mozilla::Atomic;
 using mozilla::DebugOnly;
 using mozilla::NegativeInfinity;
-using mozilla::PodZero;
 using mozilla::PositiveInfinity;
 
 /* static */ MOZ_THREAD_LOCAL(JSContext*) js::TlsContext;
@@ -71,7 +69,7 @@ Atomic<JS::LargeAllocationFailureCallback> js::OnLargeAllocationFailure;
 JS::FilenameValidationCallback js::gFilenameValidationCallback = nullptr;
 
 namespace js {
-void (*HelperThreadTaskCallback)(js::RunnableTask*);
+bool (*HelperThreadTaskCallback)(js::UniquePtr<RunnableTask>);
 
 bool gCanUseExtraThreads = true;
 }  // namespace js
@@ -115,10 +113,11 @@ JSRuntime::JSRuntime(JSRuntime* parentRuntime)
       scriptEnvironmentPreparer(nullptr),
       ctypesActivityCallback(nullptr),
       windowProxyClass_(nullptr),
-      scriptDataLock(mutexid::RuntimeScriptData),
+      scriptDataLock(mutexid::SharedImmutableScriptData),
 #ifdef DEBUG
       activeThreadHasScriptDataAccess(false),
 #endif
+      numParseTasks(0),
       numActiveHelperThreadZones(0),
       numRealms(0),
       numDebuggeeRealms_(0),
@@ -148,6 +147,8 @@ JSRuntime::JSRuntime(JSRuntime* parentRuntime)
       commonNames(nullptr),
       wellKnownSymbols(nullptr),
       liveSABs(0),
+      beforeWaitCallback(nullptr),
+      afterWaitCallback(nullptr),
       offthreadIonCompilationEnabled_(true),
       parallelParsingEnabled_(true),
 #ifdef DEBUG
@@ -316,9 +317,18 @@ void JSRuntime::addTelemetry(int id, uint32_t sample, const char* key) {
   }
 }
 
+JSTelemetrySender JSRuntime::getTelemetrySender() const {
+  return JSTelemetrySender(telemetryCallback);
+}
+
 void JSRuntime::setTelemetryCallback(
     JSRuntime* rt, JSAccumulateTelemetryDataCallback callback) {
   rt->telemetryCallback = callback;
+}
+
+void JSRuntime::setElementCallback(JSRuntime* rt,
+                                   JSGetElementCallback callback) {
+  rt->getElementCallback = callback;
 }
 
 void JSRuntime::setUseCounter(JSObject* obj, JSUseCounter counter) {
@@ -346,8 +356,7 @@ void JSRuntime::addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf,
   }
 
   JSContext* cx = mainContextFromAnyThread();
-  rtSizes->contexts += mallocSizeOf(cx);
-  rtSizes->contexts += cx->sizeOfExcludingThis(mallocSizeOf);
+  rtSizes->contexts += cx->sizeOfIncludingThis(mallocSizeOf);
   rtSizes->temporary += cx->tempLifoAlloc().sizeOfExcludingThis(mallocSizeOf);
   rtSizes->interpreterStack +=
       cx->interpreterStack().sizeOfExcludingThis(mallocSizeOf);
@@ -379,7 +388,7 @@ void JSRuntime::addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf,
     AutoLockScriptData lock(this);
     rtSizes->scriptData +=
         scriptDataTable(lock).shallowSizeOfExcludingThis(mallocSizeOf);
-    for (RuntimeScriptDataTable::Range r = scriptDataTable(lock).all();
+    for (SharedImmutableScriptDataTable::Range r = scriptDataTable(lock).all();
          !r.empty(); r.popFront()) {
       rtSizes->scriptData += r.front()->sizeOfIncludingThis(mallocSizeOf);
     }
@@ -467,8 +476,7 @@ static bool HandleInterrupt(JSContext* cx, bool invokeCallback) {
   } else {
     chars = u"(stack not available)";
   }
-  JS_ReportErrorFlagsAndNumberUC(cx, JSREPORT_WARNING, GetErrorMessage, nullptr,
-                                 JSMSG_TERMINATED, chars);
+  WarnNumberUC(cx, JSMSG_TERMINATED, chars);
 
   mozilla::recordreplay::InvalidateRecording(
       "Interrupt callback forced return");

@@ -16,14 +16,15 @@
 #include "nsContentUtils.h"
 #include "nsLayoutUtils.h"
 #include "nsError.h"
+#include "nsCanvasFrame.h"
 #include "nsDisplayList.h"
 #include "nsIFrameInlines.h"
 #include "FrameLayerBuilder.h"
-#include "SVGObserverUtils.h"
 #include "imgIContainer.h"
 #include "Image.h"
 #include "GeckoProfiler.h"
 #include "mozilla/PresShell.h"
+#include "mozilla/SVGObserverUtils.h"
 #include "mozilla/layers/WebRenderUserData.h"
 
 using namespace mozilla::dom;
@@ -401,47 +402,14 @@ already_AddRefed<imgRequestProxy> ImageLoader::LoadImage(
 
   const URLExtraData& data = aImage.ExtraData();
 
-  // NB: If aDocument is not the original document, we may not be able to load
-  // images from aDocument.  Instead we do the image load from the original
-  // doc and clone it to aDocument.
-  Document* loadingDoc = aDocument.GetOriginalDocument();
-  const bool isPrint = !!loadingDoc;
-  if (!loadingDoc) {
-    loadingDoc = &aDocument;
-  }
-
   RefPtr<imgRequestProxy> request;
   nsresult rv = nsContentUtils::LoadImage(
-      uri, loadingDoc, loadingDoc, data.Principal(), 0, data.ReferrerInfo(),
-      sImageObserver, loadFlags, NS_LITERAL_STRING("css"),
-      getter_AddRefs(request));
+      uri, &aDocument, &aDocument, data.Principal(), 0, data.ReferrerInfo(),
+      sImageObserver, loadFlags, u"css"_ns, getter_AddRefs(request));
 
   if (NS_FAILED(rv) || !request) {
     return nullptr;
   }
-
-  if (isPrint) {
-    RefPtr<imgRequestProxy> ret;
-    request->GetStaticRequest(&aDocument, getter_AddRefs(ret));
-    // Now we have a static image. If it is different from the one from the
-    // loading doc (that is, `request` is an animated image, and `ret` is a
-    // frozen version of it), we can forget about notifications from the
-    // animated image (assuming nothing else cares about it already).
-    //
-    // This is not technically needed for correctness, but helps keep the
-    // invariant that we only receive notifications for images that are in
-    // `sImages`.
-    if (ret != request) {
-      if (!sImages->Contains(request)) {
-        request->CancelAndForgetObserver(NS_BINDING_ABORTED);
-      }
-      if (!ret) {
-        return nullptr;
-      }
-      request = std::move(ret);
-    }
-  }
-
   sImages->LookupForAdd(request).OrInsert([] { return new ImageTableEntry(); });
   return request.forget();
 }
@@ -495,8 +463,28 @@ static bool IsRenderNoImages(uint32_t aDisplayItemKey) {
   return flags & TYPE_RENDERS_NO_IMAGES;
 }
 
-static void InvalidateImages(nsIFrame* aFrame, imgIRequest* aRequest) {
-  bool invalidateFrame = false;
+static void InvalidateImages(nsIFrame* aFrame, imgIRequest* aRequest,
+                             bool aForcePaint) {
+  if (!aFrame->StyleVisibility()->IsVisible()) {
+    return;
+  }
+
+  if (aFrame->IsFrameOfType(nsIFrame::eTablePart)) {
+    // Tables don't necessarily build border/background display items
+    // for the individual table part frames, so IterateRetainedDataFor
+    // might not find the right display item.
+    return aFrame->InvalidateFrame();
+  }
+
+  if (aFrame->IsPrimaryFrameOfRootOrBodyElement()) {
+    if (auto* canvas = aFrame->PresShell()->GetCanvasFrame()) {
+      // Try to invalidate the canvas too, in the probable case the background
+      // was propagated to it.
+      InvalidateImages(canvas, aRequest, aForcePaint);
+    }
+  }
+
+  bool invalidateFrame = aForcePaint;
   const SmallPointerArray<DisplayItemData>& array = aFrame->DisplayItemData();
   for (uint32_t i = 0; i < array.Length(); i++) {
     DisplayItemData* data =
@@ -541,6 +529,17 @@ static void InvalidateImages(nsIFrame* aFrame, imgIRequest* aRequest) {
     }
   }
 
+  // Update ancestor rendering observers (-moz-element etc)
+  //
+  // NOTE: We need to do this even if invalidateFrame is false, see bug 1114526.
+  {
+    nsIFrame* f = aFrame;
+    while (f && !f->HasAnyStateBits(NS_FRAME_DESCENDANT_NEEDS_PAINT)) {
+      SVGObserverUtils::InvalidateDirectRenderingObservers(f);
+      f = nsLayoutUtils::GetCrossDocParentFrame(f);
+    }
+  }
+
   if (invalidateFrame) {
     aFrame->SchedulePaint();
   }
@@ -553,28 +552,7 @@ void ImageLoader::RequestPaintIfNeeded(FrameSet* aFrameSet,
   NS_ASSERTION(mDocument, "Should have returned earlier!");
 
   for (FrameWithFlags& fwf : *aFrameSet) {
-    nsIFrame* frame = fwf.mFrame;
-    if (frame->StyleVisibility()->IsVisible()) {
-      if (frame->IsFrameOfType(nsIFrame::eTablePart)) {
-        // Tables don't necessarily build border/background display items
-        // for the individual table part frames, so IterateRetainedDataFor
-        // might not find the right display item.
-        frame->InvalidateFrame();
-      } else {
-        InvalidateImages(frame, aRequest);
-
-        // Update ancestor rendering observers (-moz-element etc)
-        nsIFrame* f = frame;
-        while (f && !f->HasAnyStateBits(NS_FRAME_DESCENDANT_NEEDS_PAINT)) {
-          SVGObserverUtils::InvalidateDirectRenderingObservers(f);
-          f = nsLayoutUtils::GetCrossDocParentFrame(f);
-        }
-
-        if (aForcePaint) {
-          frame->SchedulePaint();
-        }
-      }
-    }
+    InvalidateImages(fwf.mFrame, aRequest, aForcePaint);
   }
 }
 
@@ -630,13 +608,12 @@ void ImageLoader::RequestReflowOnFrame(FrameWithFlags* aFwf,
   parent->PresShell()->PostReflowCallback(unblocker);
 }
 
-NS_IMETHODIMP
-GlobalImageObserver::Notify(imgIRequest* aRequest, int32_t aType,
-                            const nsIntRect* aData) {
+void GlobalImageObserver::Notify(imgIRequest* aRequest, int32_t aType,
+                                 const nsIntRect* aData) {
   auto entry = sImages->Lookup(aRequest);
   MOZ_DIAGNOSTIC_ASSERT(entry);
   if (MOZ_UNLIKELY(!entry)) {
-    return NS_OK;
+    return;
   }
 
   auto& loaders = entry.Data()->mImageLoaders;
@@ -647,11 +624,10 @@ GlobalImageObserver::Notify(imgIRequest* aRequest, int32_t aType,
   for (auto& loader : loadersToNotify) {
     loader->Notify(aRequest, aType, aData);
   }
-  return NS_OK;
 }
 
-nsresult ImageLoader::Notify(imgIRequest* aRequest, int32_t aType,
-                             const nsIntRect* aData) {
+void ImageLoader::Notify(imgIRequest* aRequest, int32_t aType,
+                         const nsIntRect* aData) {
 #ifdef MOZ_GECKO_PROFILER
   nsCString uriString;
   if (profiler_is_active()) {
@@ -695,22 +671,20 @@ nsresult ImageLoader::Notify(imgIRequest* aRequest, int32_t aType,
   if (aType == imgINotificationObserver::LOAD_COMPLETE) {
     return OnLoadComplete(aRequest);
   }
-
-  return NS_OK;
 }
 
-nsresult ImageLoader::OnSizeAvailable(imgIRequest* aRequest,
-                                      imgIContainer* aImage) {
+void ImageLoader::OnSizeAvailable(imgIRequest* aRequest,
+                                  imgIContainer* aImage) {
   nsPresContext* presContext = GetPresContext();
   if (!presContext) {
-    return NS_OK;
+    return;
   }
 
   aImage->SetAnimationMode(presContext->ImageAnimationMode());
 
   FrameSet* frameSet = mRequestToFrameMap.Get(aRequest);
   if (!frameSet) {
-    return NS_OK;
+    return;
   }
 
   for (const FrameWithFlags& fwf : *frameSet) {
@@ -718,18 +692,16 @@ nsresult ImageLoader::OnSizeAvailable(imgIRequest* aRequest,
       fwf.mFrame->SchedulePaint();
     }
   }
-
-  return NS_OK;
 }
 
-nsresult ImageLoader::OnImageIsAnimated(imgIRequest* aRequest) {
+void ImageLoader::OnImageIsAnimated(imgIRequest* aRequest) {
   if (!mDocument) {
-    return NS_OK;
+    return;
   }
 
   FrameSet* frameSet = mRequestToFrameMap.Get(aRequest);
   if (!frameSet) {
-    return NS_OK;
+    return;
   }
 
   // Register with the refresh driver now that we are aware that
@@ -738,18 +710,16 @@ nsresult ImageLoader::OnImageIsAnimated(imgIRequest* aRequest) {
   if (presContext) {
     nsLayoutUtils::RegisterImageRequest(presContext, aRequest, nullptr);
   }
-
-  return NS_OK;
 }
 
-nsresult ImageLoader::OnFrameComplete(imgIRequest* aRequest) {
+void ImageLoader::OnFrameComplete(imgIRequest* aRequest) {
   if (!mDocument) {
-    return NS_OK;
+    return;
   }
 
   FrameSet* frameSet = mRequestToFrameMap.Get(aRequest);
   if (!frameSet) {
-    return NS_OK;
+    return;
   }
 
   // We may need reflow (for example if the image is from shape-outside).
@@ -759,33 +729,29 @@ nsresult ImageLoader::OnFrameComplete(imgIRequest* aRequest) {
   // we're now able to paint an image that we couldn't paint before (and hence
   // that we don't have retained data for).
   RequestPaintIfNeeded(frameSet, aRequest, /* aForcePaint = */ true);
-
-  return NS_OK;
 }
 
-nsresult ImageLoader::OnFrameUpdate(imgIRequest* aRequest) {
+void ImageLoader::OnFrameUpdate(imgIRequest* aRequest) {
   if (!mDocument) {
-    return NS_OK;
+    return;
   }
 
   FrameSet* frameSet = mRequestToFrameMap.Get(aRequest);
   if (!frameSet) {
-    return NS_OK;
+    return;
   }
 
   RequestPaintIfNeeded(frameSet, aRequest, /* aForcePaint = */ false);
-
-  return NS_OK;
 }
 
-nsresult ImageLoader::OnLoadComplete(imgIRequest* aRequest) {
+void ImageLoader::OnLoadComplete(imgIRequest* aRequest) {
   if (!mDocument) {
-    return NS_OK;
+    return;
   }
 
   FrameSet* frameSet = mRequestToFrameMap.Get(aRequest);
   if (!frameSet) {
-    return NS_OK;
+    return;
   }
 
   // Check if aRequest has an error state. If it does, we need to unblock
@@ -803,8 +769,6 @@ nsresult ImageLoader::OnLoadComplete(imgIRequest* aRequest) {
       }
     }
   }
-
-  return NS_OK;
 }
 
 bool ImageLoader::ImageReflowCallback::ReflowFinished() {

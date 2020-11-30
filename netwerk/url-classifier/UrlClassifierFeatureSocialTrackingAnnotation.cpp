@@ -6,7 +6,6 @@
 
 #include "UrlClassifierFeatureSocialTrackingAnnotation.h"
 
-#include "mozilla/AntiTrackingCommon.h"
 #include "mozilla/net/UrlClassifierCommon.h"
 #include "nsIClassifiedChannel.h"
 #include "nsContentUtils.h"
@@ -19,19 +18,19 @@ namespace {
 
 #define SOCIALTRACKING_ANNOTATION_FEATURE_NAME "socialtracking-annotation"
 
-#define URLCLASSIFIER_SOCIALTRACKING_ANNOTATION_BLACKLIST \
+#define URLCLASSIFIER_SOCIALTRACKING_ANNOTATION_BLOCKLIST \
   "urlclassifier.features.socialtracking.annotate.blacklistTables"
-#define URLCLASSIFIER_SOCIALTRACKING_ANNOTATION_BLACKLIST_TEST_ENTRIES \
+#define URLCLASSIFIER_SOCIALTRACKING_ANNOTATION_BLOCKLIST_TEST_ENTRIES \
   "urlclassifier.features.socialtracking.annotate.blacklistHosts"
-#define URLCLASSIFIER_SOCIALTRACKING_ANNOTATION_WHITELIST \
+#define URLCLASSIFIER_SOCIALTRACKING_ANNOTATION_ENTITYLIST \
   "urlclassifier.features.socialtracking.annotate.whitelistTables"
-#define URLCLASSIFIER_SOCIALTRACKING_ANNOTATION_WHITELIST_TEST_ENTRIES \
+#define URLCLASSIFIER_SOCIALTRACKING_ANNOTATION_ENTITYLIST_TEST_ENTRIES \
   "urlclassifier.features.socialtracking.annotate.whitelistHosts"
-#define URLCLASSIFIER_SOCIALTRACKING_ANNOTATION_SKIP_URLS \
+#define URLCLASSIFIER_SOCIALTRACKING_ANNOTATION_EXCEPTION_URLS \
   "urlclassifier.features.socialtracking.annotate.skipURLs"
-#define TABLE_SOCIALTRACKING_ANNOTATION_BLACKLIST_PREF \
+#define TABLE_SOCIALTRACKING_ANNOTATION_BLOCKLIST_PREF \
   "socialtracking-annotate-blacklist-pref"
-#define TABLE_SOCIALTRACKING_ANNOTATION_WHITELIST_PREF \
+#define TABLE_SOCIALTRACKING_ANNOTATION_ENTITYLIST_PREF \
   "socialtracking-annotate-whitelist-pref"
 
 StaticRefPtr<UrlClassifierFeatureSocialTrackingAnnotation>
@@ -42,17 +41,17 @@ StaticRefPtr<UrlClassifierFeatureSocialTrackingAnnotation>
 UrlClassifierFeatureSocialTrackingAnnotation::
     UrlClassifierFeatureSocialTrackingAnnotation()
     : UrlClassifierFeatureBase(
-          NS_LITERAL_CSTRING(SOCIALTRACKING_ANNOTATION_FEATURE_NAME),
-          NS_LITERAL_CSTRING(URLCLASSIFIER_SOCIALTRACKING_ANNOTATION_BLACKLIST),
-          NS_LITERAL_CSTRING(URLCLASSIFIER_SOCIALTRACKING_ANNOTATION_WHITELIST),
-          NS_LITERAL_CSTRING(
-              URLCLASSIFIER_SOCIALTRACKING_ANNOTATION_BLACKLIST_TEST_ENTRIES),
-          NS_LITERAL_CSTRING(
-              URLCLASSIFIER_SOCIALTRACKING_ANNOTATION_WHITELIST_TEST_ENTRIES),
-          NS_LITERAL_CSTRING(TABLE_SOCIALTRACKING_ANNOTATION_BLACKLIST_PREF),
-          NS_LITERAL_CSTRING(TABLE_SOCIALTRACKING_ANNOTATION_WHITELIST_PREF),
-          NS_LITERAL_CSTRING(
-              URLCLASSIFIER_SOCIALTRACKING_ANNOTATION_SKIP_URLS)) {}
+          nsLiteralCString(SOCIALTRACKING_ANNOTATION_FEATURE_NAME),
+          nsLiteralCString(URLCLASSIFIER_SOCIALTRACKING_ANNOTATION_BLOCKLIST),
+          nsLiteralCString(URLCLASSIFIER_SOCIALTRACKING_ANNOTATION_ENTITYLIST),
+          nsLiteralCString(
+              URLCLASSIFIER_SOCIALTRACKING_ANNOTATION_BLOCKLIST_TEST_ENTRIES),
+          nsLiteralCString(
+              URLCLASSIFIER_SOCIALTRACKING_ANNOTATION_ENTITYLIST_TEST_ENTRIES),
+          nsLiteralCString(TABLE_SOCIALTRACKING_ANNOTATION_BLOCKLIST_PREF),
+          nsLiteralCString(TABLE_SOCIALTRACKING_ANNOTATION_ENTITYLIST_PREF),
+          nsLiteralCString(
+              URLCLASSIFIER_SOCIALTRACKING_ANNOTATION_EXCEPTION_URLS)) {}
 
 /* static */ const char* UrlClassifierFeatureSocialTrackingAnnotation::Name() {
   return SOCIALTRACKING_ANNOTATION_FEATURE_NAME;
@@ -60,7 +59,8 @@ UrlClassifierFeatureSocialTrackingAnnotation::
 
 /* static */
 void UrlClassifierFeatureSocialTrackingAnnotation::MaybeInitialize() {
-  UC_LOG(("UrlClassifierFeatureSocialTrackingAnnotation: MaybeInitialize"));
+  UC_LOG_LEAK(
+      ("UrlClassifierFeatureSocialTrackingAnnotation::MaybeInitialize"));
 
   if (!gFeatureSocialTrackingAnnotation) {
     gFeatureSocialTrackingAnnotation =
@@ -71,7 +71,7 @@ void UrlClassifierFeatureSocialTrackingAnnotation::MaybeInitialize() {
 
 /* static */
 void UrlClassifierFeatureSocialTrackingAnnotation::MaybeShutdown() {
-  UC_LOG(("UrlClassifierFeatureSocialTrackingAnnotation: MaybeShutdown"));
+  UC_LOG_LEAK(("UrlClassifierFeatureSocialTrackingAnnotation::MaybeShutdown"));
 
   if (gFeatureSocialTrackingAnnotation) {
     gFeatureSocialTrackingAnnotation->ShutdownPreferences();
@@ -85,14 +85,9 @@ UrlClassifierFeatureSocialTrackingAnnotation::MaybeCreate(
     nsIChannel* aChannel) {
   MOZ_ASSERT(aChannel);
 
-  UC_LOG(
-      ("UrlClassifierFeatureSocialTrackingAnnotation: MaybeCreate for channel "
-       "%p",
+  UC_LOG_LEAK(
+      ("UrlClassifierFeatureSocialTrackingAnnotation::MaybeCreate - channel %p",
        aChannel));
-
-  if (!UrlClassifierCommon::ShouldEnableClassifier(aChannel)) {
-    return nullptr;
-  }
 
   MaybeInitialize();
   MOZ_ASSERT(gFeatureSocialTrackingAnnotation);
@@ -129,19 +124,19 @@ UrlClassifierFeatureSocialTrackingAnnotation::ProcessChannel(
   *aShouldContinue = true;
 
   UC_LOG(
-      ("UrlClassifierFeatureSocialTrackingAnnotation::ProcessChannel, "
-       "annotating channel[%p]",
+      ("UrlClassifierFeatureSocialTrackingAnnotation::ProcessChannel"
+       "annotating channel %p",
        aChannel));
 
   static std::vector<UrlClassifierCommon::ClassificationData>
       sClassificationData = {
-          {NS_LITERAL_CSTRING("social-tracking-protection-facebook-"),
+          {"social-tracking-protection-facebook-"_ns,
            nsIClassifiedChannel::ClassificationFlags::
                CLASSIFIED_SOCIALTRACKING_FACEBOOK},
-          {NS_LITERAL_CSTRING("social-tracking-protection-linkedin-"),
+          {"social-tracking-protection-linkedin-"_ns,
            nsIClassifiedChannel::ClassificationFlags::
                CLASSIFIED_SOCIALTRACKING_LINKEDIN},
-          {NS_LITERAL_CSTRING("social-tracking-protection-twitter-"),
+          {"social-tracking-protection-twitter-"_ns,
            nsIClassifiedChannel::ClassificationFlags::
                CLASSIFIED_SOCIALTRACKING_TWITTER},
       };
@@ -165,15 +160,15 @@ UrlClassifierFeatureSocialTrackingAnnotation::GetURIByListType(
   NS_ENSURE_ARG_POINTER(aURIType);
   NS_ENSURE_ARG_POINTER(aURI);
 
-  if (aListType == nsIUrlClassifierFeature::blacklist) {
-    *aURIType = nsIUrlClassifierFeature::blacklistURI;
+  if (aListType == nsIUrlClassifierFeature::blocklist) {
+    *aURIType = nsIUrlClassifierFeature::blocklistURI;
     return aChannel->GetURI(aURI);
   }
 
-  MOZ_ASSERT(aListType == nsIUrlClassifierFeature::whitelist);
+  MOZ_ASSERT(aListType == nsIUrlClassifierFeature::entitylist);
 
-  *aURIType = nsIUrlClassifierFeature::pairwiseWhitelistURI;
-  return UrlClassifierCommon::CreatePairwiseWhiteListURI(aChannel, aURI);
+  *aURIType = nsIUrlClassifierFeature::pairwiseEntitylistURI;
+  return UrlClassifierCommon::CreatePairwiseEntityListURI(aChannel, aURI);
 }
 
 }  // namespace net

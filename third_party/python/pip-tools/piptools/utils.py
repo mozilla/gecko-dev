@@ -3,13 +3,16 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import sys
 from collections import OrderedDict
-from itertools import chain, groupby
+from itertools import chain
 
 import six
 from click.utils import LazyFile
+from pip._internal.req.constructors import install_req_from_line
+from pip._internal.utils.misc import redact_auth_from_url
+from pip._internal.vcs import is_url
 from six.moves import shlex_quote
 
-from ._compat import install_req_from_line
+from ._compat import PIP_VERSION
 from .click import style
 
 UNSAFE_PACKAGES = {"setuptools", "distribute", "pip"}
@@ -20,6 +23,7 @@ COMPILE_EXCLUDE_OPTIONS = {
     "--upgrade",
     "--upgrade-package",
     "--verbose",
+    "--cache-dir",
 }
 
 
@@ -136,15 +140,10 @@ def as_tuple(ireq):
     if not is_pinned_requirement(ireq):
         raise TypeError("Expected a pinned InstallRequirement, got {}".format(ireq))
 
-    name = key_from_req(ireq.req)
+    name = key_from_ireq(ireq)
     version = next(iter(ireq.specifier._specs))._spec[1]
     extras = tuple(sorted(ireq.extras))
     return name, version, extras
-
-
-def full_groupby(iterable, key=None):
-    """Like groupby(), but sorts the input on the group key first."""
-    return groupby(sorted(iterable, key=key), key=key)
 
 
 def flat_map(fn, collection):
@@ -185,7 +184,7 @@ def lookup_table(values, key=None, keyval=None, unique=False, use_lists=False):
     ...     'q': ['qux', 'quux']
     ... }
 
-    The values of the resulting lookup table will be values, not sets.
+    The values of the resulting lookup table will be lists, not sets.
 
     For extra power, you can even change the values while building up the LUT.
     To do so, use the `keyval` function instead of the `key` arg:
@@ -232,7 +231,7 @@ def lookup_table(values, key=None, keyval=None, unique=False, use_lists=False):
 
 def dedup(iterable):
     """Deduplicate an iterable object like iter(set(iterable)) but
-    order-reserved.
+    order-preserved.
     """
     return iter(OrderedDict.fromkeys(iterable))
 
@@ -277,7 +276,10 @@ def get_hashes_from_ireq(ireq):
     in the requirement options.
     """
     result = []
-    ireq_hashes = ireq.options.get("hashes", {})
+    if PIP_VERSION[:2] <= (20, 0):
+        ireq_hashes = ireq.options.get("hashes", {})
+    else:
+        ireq_hashes = ireq.hash_options
     for algorithm, hexdigests in ireq_hashes.items():
         for hash_ in hexdigests:
             result.append("{}:{}".format(algorithm, hash_))
@@ -323,6 +325,10 @@ def get_compile_command(click_ctx):
         # Collect variadic args separately, they will be added
         # at the end of the command later
         if option.nargs < 0:
+            # These will necessarily be src_files
+            # Re-add click-stripped '--' if any start with '-'
+            if any(val.startswith("-") and val != "-" for val in value):
+                right_args.append("--")
             right_args.extend([shlex_quote(force_text(val)) for val in value])
             continue
 
@@ -361,10 +367,22 @@ def get_compile_command(click_ctx):
                 left_args.append(shlex_quote(arg))
             # Append to args the option with a value
             else:
-                left_args.append(
-                    "{option}={value}".format(
-                        option=option_long_name, value=shlex_quote(force_text(val))
+                if isinstance(val, six.string_types) and is_url(val):
+                    val = redact_auth_from_url(val)
+                if option.name == "pip_args":
+                    # shlex_quote would produce functional but noisily quoted results,
+                    # e.g. --pip-args='--cache-dir='"'"'/tmp/with spaces'"'"''
+                    # Instead, we try to get more legible quoting via repr:
+                    left_args.append(
+                        "{option}={value}".format(
+                            option=option_long_name, value=repr(fs_str(force_text(val)))
+                        )
                     )
-                )
+                else:
+                    left_args.append(
+                        "{option}={value}".format(
+                            option=option_long_name, value=shlex_quote(force_text(val))
+                        )
+                    )
 
     return " ".join(["pip-compile"] + sorted(left_args) + sorted(right_args))

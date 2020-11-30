@@ -5,7 +5,8 @@
 /* Places Organizer Sidebars */
 
 #placesList {
-  -moz-appearance: -moz-mac-source-list;
+  appearance: auto;
+  -moz-default-appearance: -moz-mac-source-list;
   width: 160px;
 }
 
@@ -20,12 +21,14 @@
 }
 
 #placesList > treechildren::-moz-tree-row(selected) {
-  -moz-appearance: -moz-mac-source-list-selection;
+  appearance: auto;
+  -moz-default-appearance: -moz-mac-source-list-selection;
   -moz-font-smoothing-background-color: -moz-mac-source-list-selection;
 }
 
 #placesList > treechildren::-moz-tree-row(selected,focus) {
-  -moz-appearance: -moz-mac-active-source-list-selection;
+  appearance: auto;
+  -moz-default-appearance: -moz-mac-active-source-list-selection;
   -moz-font-smoothing-background-color: -moz-mac-active-source-list-selection;
 }
 
@@ -73,7 +76,8 @@
   margin: 4px 4px 5px;
   padding: 0;
   height: 22px;
-  -moz-appearance: toolbarbutton;
+  appearance: auto;
+  -moz-default-appearance: toolbarbutton;
 }
 
 #placesToolbar > toolbarbutton > .toolbarbutton-icon {
@@ -93,15 +97,15 @@
   margin-inline-end: 2px;
 }
 
-#placesToolbar > toolbarbutton[disabled="true"] > .toolbarbutton-icon,
+#placesToolbar > toolbarbutton[disabled] > .toolbarbutton-icon,
 #placesToolbar > toolbarbutton:not(:hover):-moz-window-inactive > .toolbarbutton-icon,
-#placesToolbar > toolbarbutton[type="menu"][disabled="true"] > .toolbarbutton-menu-dropmarker,
+#placesToolbar > toolbarbutton[type="menu"][disabled] > .toolbarbutton-menu-dropmarker,
 #placesToolbar > toolbarbutton:not(:hover):-moz-window-inactive[type="menu"] > .toolbarbutton-menu-dropmarker {
   opacity: .5;
 }
 
-#placesToolbar > toolbarbutton:-moz-window-inactive[disabled="true"] > .toolbarbutton-icon,
-#placesToolbar > toolbarbutton:-moz-window-inactive[type="menu"][disabled="true"] > .toolbarbutton-menu-dropmarker {
+#placesToolbar > toolbarbutton:-moz-window-inactive[disabled] > .toolbarbutton-icon,
+#placesToolbar > toolbarbutton:-moz-window-inactive[type="menu"][disabled] > .toolbarbutton-menu-dropmarker {
   opacity: .25;
 }
 
@@ -138,7 +142,7 @@
 
 /* organize button */
 #organizeButton {
-  list-style-image: url("chrome://browser/skin/settings.svg");
+  list-style-image: url("chrome://global/skin/icons/settings.svg");
 }
 
 /* view button */
@@ -165,13 +169,13 @@
 }
 
 #placeContent {
-  -moz-appearance: none;
+  appearance: none;
   border: none;
 }
 
 #placeContent > treechildren::-moz-tree-cell,
 #placeContent > treechildren::-moz-tree-column {
-  border-right: 1px solid #d7dad7;
+  border-inline-end: 1px solid #d7dad7;
 }
 
 #placeContent > treechildren::-moz-tree-cell(separator) {
@@ -181,14 +185,6 @@
 /**
  * info pane
  */
-
-#infoBoxExpander {
-  margin: 2px;
-}
-
-#infoBoxExpanderLabel {
-  display: none;
-}
 
 #itemsCountText,
 #selectItemDescription {

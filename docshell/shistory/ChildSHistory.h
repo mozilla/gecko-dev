@@ -24,16 +24,15 @@
 #include "nsWrapperCache.h"
 #include "nsThreadUtils.h"
 #include "mozilla/LinkedList.h"
+#include "nsID.h"
 
-class nsSHistory;
-class nsDocShell;
 class nsISHEntry;
 class nsISHistory;
-class nsIWebNavigation;
-class nsIGlobalObject;
 
 namespace mozilla {
 namespace dom {
+
+class BrowsingContext;
 
 class ChildSHistory : public nsISupports, public nsWrapperCache {
  public:
@@ -43,7 +42,15 @@ class ChildSHistory : public nsISupports, public nsWrapperCache {
   JSObject* WrapObject(JSContext* cx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
-  explicit ChildSHistory(nsDocShell* aDocShell);
+  explicit ChildSHistory(BrowsingContext* aBrowsingContext);
+
+  void SetBrowsingContext(BrowsingContext* aBrowsingContext);
+
+  // Create or destroy the session history implementation in the child process.
+  // This can be removed once session history is stored exclusively in the
+  // parent process.
+  void SetIsInProcess(bool aIsInProcess);
+  bool IsInProcess() { return !!mHistory; }
 
   int32_t Count();
   int32_t Index();
@@ -59,8 +66,12 @@ class ChildSHistory : public nsISupports, public nsWrapperCache {
    * backwards.
    */
   bool CanGo(int32_t aOffset);
-  void Go(int32_t aOffset, ErrorResult& aRv);
-  void AsyncGo(int32_t aOffset);
+  void Go(int32_t aOffset, bool aRequireUserInteraction, ErrorResult& aRv);
+  void AsyncGo(int32_t aOffset, bool aRequireUserInteraction,
+               CallerType aCallerType, ErrorResult& aRv);
+
+  // aIndex is the new index, and aOffset is the offset between new and current.
+  void GotoIndex(int32_t aIndex, int32_t aOffset, ErrorResult& aRv);
 
   void RemovePendingHistoryNavigations();
 
@@ -69,39 +80,64 @@ class ChildSHistory : public nsISupports, public nsWrapperCache {
    */
   void EvictLocalContentViewers();
 
+  // GetLegacySHistory and LegacySHistory have been deprecated. Don't
+  // use these, but instead handle the interaction with nsISHistory in
+  // the parent process.
+  nsISHistory* GetLegacySHistory(ErrorResult& aError);
   nsISHistory* LegacySHistory();
 
+  void SetIndexAndLength(uint32_t aIndex, uint32_t aLength,
+                         const nsID& aChangeId);
+  nsID AddPendingHistoryChange();
+  nsID AddPendingHistoryChange(int32_t aIndexDelta, int32_t aLengthDelta);
+
+  // AsyncHistoryLength is for testing.
+  void SetAsyncHistoryLength(bool aEnable, ErrorResult& aRv);
+  bool AsyncHistoryLength() { return mAsyncHistoryLength; }
+
  private:
-  virtual ~ChildSHistory();
+  virtual ~ChildSHistory() = default;
 
   class PendingAsyncHistoryNavigation
       : public Runnable,
         public mozilla::LinkedListElement<PendingAsyncHistoryNavigation> {
    public:
-    PendingAsyncHistoryNavigation(ChildSHistory* aHistory, int32_t aOffset)
+    PendingAsyncHistoryNavigation(ChildSHistory* aHistory, int32_t aOffset,
+                                  bool aRequireUserInteraction)
         : Runnable("PendingAsyncHistoryNavigation"),
           mHistory(aHistory),
+          mRequireUserInteraction(aRequireUserInteraction),
           mOffset(aOffset) {}
 
     NS_IMETHOD Run() override {
       if (isInList()) {
         remove();
-        mHistory->Go(mOffset, IgnoreErrors());
+        mHistory->Go(mOffset, mRequireUserInteraction, IgnoreErrors());
       }
       return NS_OK;
     }
 
    private:
     RefPtr<ChildSHistory> mHistory;
+    bool mRequireUserInteraction;
     int32_t mOffset;
   };
 
-  RefPtr<nsDocShell> mDocShell;
+  RefPtr<BrowsingContext> mBrowsingContext;
   nsCOMPtr<nsISHistory> mHistory;
   mozilla::LinkedList<PendingAsyncHistoryNavigation> mPendingNavigations;
-};
+  int32_t mIndex = -1;
+  int32_t mLength = 0;
 
-already_AddRefed<nsISHEntry> CreateSHEntryForDocShell(nsISHistory* aSHistory);
+  struct PendingSHistoryChange {
+    nsID mChangeID;
+    int32_t mIndexDelta;
+    int32_t mLengthDelta;
+  };
+  AutoTArray<PendingSHistoryChange, 2> mPendingSHistoryChanges;
+
+  bool mAsyncHistoryLength = false;
+};
 
 }  // namespace dom
 }  // namespace mozilla

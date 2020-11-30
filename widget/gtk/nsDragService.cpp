@@ -28,6 +28,7 @@
 #include "mozilla/Services.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/PresShell.h"
+#include "GRefPtr.h"
 
 #include "gfxXlibSurface.h"
 #include "gfxContext.h"
@@ -45,6 +46,7 @@
 #include "nsArrayUtils.h"
 #ifdef MOZ_WAYLAND
 #  include "nsClipboardWayland.h"
+#  include "gfxPlatformGtk.h"
 #endif
 
 using namespace mozilla;
@@ -59,7 +61,14 @@ using namespace mozilla::gfx;
 // directly) so that this code can be compiled against versions of GTK+ that
 // do not have GtkDragResult.
 // GtkDragResult is available from GTK+ version 2.12.
-enum { MOZ_GTK_DRAG_RESULT_SUCCESS, MOZ_GTK_DRAG_RESULT_NO_TARGET };
+enum {
+  MOZ_GTK_DRAG_RESULT_SUCCESS,
+  MOZ_GTK_DRAG_RESULT_NO_TARGET,
+  MOZ_GTK_DRAG_RESULT_USER_CANCELLED,
+  MOZ_GTK_DRAG_RESULT_TIMEOUT_EXPIRED,
+  MOZ_GTK_DRAG_RESULT_GRAB_BROKEN,
+  MOZ_GTK_DRAG_RESULT_ERROR
+};
 
 static LazyLogModule sDragLm("nsDragService");
 
@@ -74,6 +83,7 @@ static const char gMozUrlType[] = "_NETSCAPE_URL";
 static const char gTextUriListType[] = "text/uri-list";
 static const char gTextPlainUTF8Type[] = "text/plain;charset=utf-8";
 static const char gXdndDirectSaveType[] = "XdndDirectSave0";
+static const char gTabDropType[] = "application/x-moz-tabbrowser-tab";
 
 static void invisibleSourceDragBegin(GtkWidget* aWidget,
                                      GdkDragContext* aContext, gpointer aData);
@@ -346,12 +356,10 @@ nsresult nsDragService::InvokeDragSessionImpl(
       gtk_window_get_group(GetGtkWindow(mSourceDocument));
   gtk_window_group_add_window(window_group, GTK_WINDOW(mHiddenWidget));
 
-#ifdef MOZ_WIDGET_GTK
   // Get device for event source
   GdkDisplay* display = gdk_display_get_default();
   GdkDeviceManager* device_manager = gdk_display_get_device_manager(display);
   event.button.device = gdk_device_manager_get_client_pointer(device_manager);
-#endif
 
   // start our drag.
   GdkDragContext* context =
@@ -395,11 +403,6 @@ bool nsDragService::SetAlphaPixmap(SourceSurface* aSurface,
 #ifdef cairo_image_surface_create
 #  error "Looks like we're including Mozilla's cairo instead of system cairo"
 #endif
-  // Prior to GTK 3.9.12, cairo surfaces passed into gtk_drag_set_icon_surface
-  // had their shape information derived from the alpha channel and used with
-  // the X SHAPE extension instead of being displayed as an ARGB window.
-  // See bug 1249604.
-  if (gtk_check_version(3, 9, 12)) return false;
 
   // TODO: grab X11 pixmap or image data instead of expensive readback.
   cairo_surface_t* surf = cairo_image_surface_create(
@@ -563,14 +566,6 @@ nsDragService::GetNumDropItems(uint32_t* aNumItems) {
     return NS_OK;
   }
 
-#ifdef MOZ_WAYLAND
-  // TODO: Wayland implementation of text/uri-list.
-  if (!mTargetDragContext) {
-    *aNumItems = 1;
-    return NS_OK;
-  }
-#endif
-
   bool isList = IsTargetContextList();
   if (isList)
     mSourceDataItems->GetLength(aNumItems);
@@ -720,7 +715,7 @@ nsDragService::GetData(nsITransferable* aTransferable, uint32_t aItemIndex) {
           const char* castedText = reinterpret_cast<char*>(mTargetDragData);
           char16_t* convertedText = nullptr;
           NS_ConvertUTF8toUTF16 ucs2string(castedText, mTargetDragDataLen);
-          convertedText = ToNewUnicode(ucs2string);
+          convertedText = ToNewUnicode(ucs2string, mozilla::fallible);
           if (convertedText) {
             MOZ_LOG(sDragLm, LogLevel::Debug,
                     ("successfully converted plain text \
@@ -1030,23 +1025,29 @@ void nsDragService::TargetDataReceived(GtkWidget* aWidget,
 bool nsDragService::IsTargetContextList(void) {
   bool retval = false;
 
-#ifdef MOZ_WAYLAND
-  // TODO: We need a wayland implementation here.
-  if (!mTargetDragContext) return retval;
-#endif
-
   // gMimeListType drags only work for drags within a single process. The
   // gtk_drag_get_source_widget() function will return nullptr if the source
   // of the drag is another app, so we use it to check if a gMimeListType
   // drop will work or not.
-  if (gtk_drag_get_source_widget(mTargetDragContext) == nullptr) return retval;
+  if (mTargetDragContext &&
+      gtk_drag_get_source_widget(mTargetDragContext) == nullptr) {
+    return retval;
+  }
 
-  GList* tmp;
+  GList* tmp = nullptr;
+  if (mTargetDragContext) {
+    tmp = gdk_drag_context_list_targets(mTargetDragContext);
+  }
+#ifdef MOZ_WAYLAND
+  GList* tmp_head = nullptr;
+  if (mTargetWaylandDragContext) {
+    tmp_head = tmp = mTargetWaylandDragContext->GetTargets();
+  }
+#endif
 
   // walk the list of context targets and see if one of them is a list
   // of items.
-  for (tmp = gdk_drag_context_list_targets(mTargetDragContext); tmp;
-       tmp = tmp->next) {
+  for (; tmp; tmp = tmp->next) {
     /* Bug 331198 */
     GdkAtom atom = GDK_POINTER_TO_ATOM(tmp->data);
     gchar* name = nullptr;
@@ -1055,6 +1056,15 @@ bool nsDragService::IsTargetContextList(void) {
     g_free(name);
     if (retval) break;
   }
+
+#ifdef MOZ_WAYLAND
+  // mTargetWaylandDragContext->GetTargets allocates the list
+  // so we need to free it here.
+  if (mTargetWaylandDragContext && tmp_head) {
+    g_list_free(tmp_head);
+  }
+#endif
+
   return retval;
 }
 
@@ -1252,6 +1262,9 @@ GtkTargetList* nsDragService::GetSourceList(void) {
 
 void nsDragService::SourceEndDragSession(GdkDragContext* aContext,
                                          gint aResult) {
+  MOZ_LOG(sDragLm, LogLevel::Debug,
+          ("SourceEndDragSession result %d\n", aResult));
+
   // this just releases the list of data items that we provide
   mSourceDataItems = nullptr;
 
@@ -1272,6 +1285,8 @@ void nsDragService::SourceEndDragSession(GdkDragContext* aContext,
       gint scale = mozilla::widget::ScreenHelperGTK::GetGTKMonitorScaleFactor();
       gdk_display_get_pointer(display, nullptr, &x, &y, nullptr);
       SetDragEndPoint(LayoutDeviceIntPoint(x * scale, y * scale));
+      MOZ_LOG(sDragLm, LogLevel::Debug,
+              ("guess drag end point %d %d\n", x * scale, y * scale));
     }
   }
 
@@ -1307,7 +1322,27 @@ void nsDragService::SourceEndDragSession(GdkDragContext* aContext,
   } else {
     dropEffect = DRAGDROP_ACTION_NONE;
 
-    if (aResult != MOZ_GTK_DRAG_RESULT_NO_TARGET) {
+    bool isWaylandTabDrop = false;
+#ifdef MOZ_WAYLAND
+    // Bug 1527976. Wayland protocol does not have any way how to handle
+    // MOZ_GTK_DRAG_RESULT_NO_TARGET drop result so consider all tab
+    // drops as not cancelled on wayland.
+    if (gfxPlatformGtk::GetPlatform()->IsWaylandDisplay() &&
+        aResult == MOZ_GTK_DRAG_RESULT_ERROR) {
+      for (GList* tmp = gdk_drag_context_list_targets(aContext); tmp;
+           tmp = tmp->next) {
+        GdkAtom atom = GDK_POINTER_TO_ATOM(tmp->data);
+        gchar* name = gdk_atom_name(atom);
+        if (name && (strcmp(name, gTabDropType) == 0)) {
+          isWaylandTabDrop = true;
+          MOZ_LOG(sDragLm, LogLevel::Debug, ("is wayland tab drop\n"));
+          break;
+        }
+      }
+    }
+#endif
+    if (aResult != MOZ_GTK_DRAG_RESULT_NO_TARGET && !isWaylandTabDrop) {
+      MOZ_LOG(sDragLm, LogLevel::Debug, ("drop is user chancelled\n"));
       mUserCancelled = true;
     }
   }
@@ -1383,11 +1418,8 @@ void nsDragService::SourceDataGet(GtkWidget* aWidget, GdkDragContext* aContext,
     return;
   }
 
-
   MOZ_LOG(sDragLm, LogLevel::Debug, ("Type is %s\n", typeName));
-  auto freeTypeName = mozilla::MakeScopeExit([&] {
-    g_free(typeName);
-  });
+  auto freeTypeName = mozilla::MakeScopeExit([&] { g_free(typeName); });
   // check to make sure that we have data items to return.
   if (!mSourceDataItems) {
     MOZ_LOG(sDragLm, LogLevel::Debug, ("Failed to get our data items\n"));
@@ -1460,8 +1492,8 @@ void nsDragService::SourceDataGet(GtkWidget* aWidget, GdkDragContext* aContext,
         if (!infoService) return;
 
         nsAutoCString host;
-        if (NS_SUCCEEDED(infoService->GetPropertyAsACString(
-                NS_LITERAL_STRING("host"), host))) {
+        if (NS_SUCCEEDED(
+                infoService->GetPropertyAsACString(u"host"_ns, host))) {
           if (!host.Equals(hostname)) {
             MOZ_LOG(sDragLm, LogLevel::Debug,
                     ("ignored drag because of different host.\n"));
@@ -1866,7 +1898,7 @@ gboolean nsDragService::RunScheduledTask() {
   // We still reply appropriately to indicate that the drop will or didn't
   // succeeed.
   mTargetWidget = mTargetWindow->GetMozContainerWidget();
-  mTargetDragContext.steal(mPendingDragContext);
+  mTargetDragContext = std::move(mPendingDragContext);
 #ifdef MOZ_WAYLAND
   mTargetWaylandDragContext = std::move(mPendingWaylandDragContext);
 #endif

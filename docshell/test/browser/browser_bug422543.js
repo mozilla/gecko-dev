@@ -8,7 +8,7 @@ let getActor = browser => {
 };
 
 add_task(async function runTests() {
-  if (!Services.prefs.getBoolPref("fission.sessionHistoryInParent")) {
+  if (!SpecialPowers.Services.appinfo.sessionHistoryInParent) {
     await setupAsync();
     let browser = gBrowser.selectedBrowser;
     // Now that we're set up, initialize our frame script.
@@ -94,9 +94,6 @@ add_task(async function runTests() {
 
       let base = getRootDirectory(gTestPath).slice(0, -1);
       ChromeUtils.registerWindowActor(ACTOR, {
-        parent: {
-          moduleURI: `${base}/Bug422543Parent.jsm`,
-        },
         child: {
           moduleURI: `${base}/Bug422543Child.jsm`,
         },
@@ -193,8 +190,8 @@ class SHistoryListener {
   OnHistoryReplaceEntry() {}
 }
 SHistoryListener.prototype.QueryInterface = ChromeUtils.generateQI([
-  Ci.nsISHistoryListener,
-  Ci.nsISupportsWeakReference,
+  "nsISHistoryListener",
+  "nsISupportsWeakReference",
 ]);
 
 let listeners = [new SHistoryListener(), new SHistoryListener()];

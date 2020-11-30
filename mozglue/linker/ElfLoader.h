@@ -33,7 +33,7 @@ typedef struct {
   void* dli_saddr;
 } Dl_info;
 #endif
-int __wrap_dladdr(void* addr, Dl_info* info);
+int __wrap_dladdr(const void* addr, Dl_info* info);
 
 struct dl_phdr_info {
   Elf::Addr dlpi_addr;
@@ -80,10 +80,12 @@ namespace detail {
 template <>
 inline void RefCounted<LibHandle, AtomicRefCount>::Release() const;
 
+#ifdef DEBUG
 template <>
 inline RefCounted<LibHandle, AtomicRefCount>::~RefCounted() {
   MOZ_ASSERT(mRefCnt == 0x7fffdead);
 }
+#endif
 
 } /* namespace detail */
 } /* namespace mozilla */
@@ -241,7 +243,7 @@ inline void RefCounted<LibHandle, AtomicRefCount>::Release() const {
 #ifdef DEBUG
       mRefCnt = 0x7fffdead;
 #else
-      mRefCnt = 1;
+      ++mRefCnt;
 #endif
       delete static_cast<const LibHandle*>(this);
     }

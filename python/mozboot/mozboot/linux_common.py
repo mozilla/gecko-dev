@@ -115,3 +115,46 @@ class ClangStaticAnalysisInstall(object):
         from mozboot import static_analysis
         self.install_toolchain_static_analysis(
             state_dir, checkout_root, static_analysis.LINUX_CLANG_TIDY)
+
+
+class MinidumpStackwalkInstall(object):
+    def __init__(self, **kwargs):
+        pass
+
+    def ensure_minidump_stackwalk_packages(self, state_dir, checkout_root):
+        from mozboot import minidump_stackwalk
+
+        self.install_toolchain_artifact(state_dir, checkout_root,
+                                        minidump_stackwalk.LINUX_MINIDUMP_STACKWALK)
+
+
+class DumpSymsInstall(object):
+    def __init__(self, **kwargs):
+        pass
+
+    def ensure_dump_syms_packages(self, state_dir, checkout_root):
+        from mozboot import dump_syms
+
+        self.install_toolchain_artifact(state_dir, checkout_root,
+                                        dump_syms.LINUX_DUMP_SYMS)
+
+
+class LinuxBootstrapper(
+        ClangStaticAnalysisInstall,
+        FixStacksInstall,
+        DumpSymsInstall,
+        LucetcInstall,
+        MinidumpStackwalkInstall,
+        NasmInstall,
+        NodeInstall,
+        SccacheInstall,
+        StyloInstall,
+        WasiSysrootInstall):
+
+    INSTALL_PYTHON_GUIDANCE = (
+        'See https://firefox-source-docs.mozilla.org/setup/linux_build.html'
+        '#installingpython for guidance on how to install Python on your '
+        'system.')
+
+    def __init__(self, **kwargs):
+        pass

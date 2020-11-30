@@ -21,6 +21,8 @@ extern mozilla::LazyLogModule gPIPNSSLog;
 using mozilla::ipc::AssertIsOnBackgroundThread;
 using mozilla::ipc::IsOnBackgroundThread;
 
+using namespace mozilla::pkix;
+
 namespace mozilla {
 namespace psm {
 
@@ -29,7 +31,8 @@ VerifySSLServerCertParent::VerifySSLServerCertParent() {}
 void VerifySSLServerCertParent::OnVerifiedSSLServerCert(
     const nsTArray<ByteArray>& aBuiltCertChain,
     uint16_t aCertificateTransparencyStatus, uint8_t aEVStatus, bool aSucceeded,
-    PRErrorCode aFinalError, uint32_t aCollectedErrors) {
+    PRErrorCode aFinalError, uint32_t aCollectedErrors,
+    bool aIsBuiltCertChainRootBuiltInRoot) {
   AssertIsOnBackgroundThread();
 
   if (!CanSend()) {
@@ -38,7 +41,8 @@ void VerifySSLServerCertParent::OnVerifiedSSLServerCert(
 
   if (aSucceeded) {
     Unused << SendOnVerifiedSSLServerCertSuccess(
-        aBuiltCertChain, aCertificateTransparencyStatus, aEVStatus);
+        aBuiltCertChain, aCertificateTransparencyStatus, aEVStatus,
+        aIsBuiltCertChainRootBuiltInRoot);
   } else {
     Unused << SendOnVerifiedSSLServerCertFailure(aFinalError, aCollectedErrors);
   }
@@ -62,7 +66,8 @@ class IPCServerCertVerificationResult final
                 nsTArray<nsTArray<uint8_t>>&& aPeerCertChain,
                 uint16_t aCertificateTransparencyStatus, EVStatus aEVStatus,
                 bool aSucceeded, PRErrorCode aFinalError,
-                uint32_t aCollectedErrors) override;
+                uint32_t aCollectedErrors,
+                bool aIsBuiltCertChainRootBuiltInRoot) override;
 
  private:
   ~IPCServerCertVerificationResult() = default;
@@ -75,7 +80,8 @@ void IPCServerCertVerificationResult::Dispatch(
     nsNSSCertificate* aCert, nsTArray<nsTArray<uint8_t>>&& aBuiltChain,
     nsTArray<nsTArray<uint8_t>>&& aPeerCertChain,
     uint16_t aCertificateTransparencyStatus, EVStatus aEVStatus,
-    bool aSucceeded, PRErrorCode aFinalError, uint32_t aCollectedErrors) {
+    bool aSucceeded, PRErrorCode aFinalError, uint32_t aCollectedErrors,
+    bool aIsBuiltCertChainRootBuiltInRoot) {
   nsTArray<ByteArray> builtCertChain;
   if (aSucceeded) {
     for (auto& cert : aBuiltChain) {
@@ -88,11 +94,11 @@ void IPCServerCertVerificationResult::Dispatch(
           "psm::VerifySSLServerCertParent::OnVerifiedSSLServerCert",
           [parent(mParent), builtCertChain{std::move(builtCertChain)},
            aCertificateTransparencyStatus, aEVStatus, aSucceeded, aFinalError,
-           aCollectedErrors]() {
+           aCollectedErrors, aIsBuiltCertChainRootBuiltInRoot]() {
             parent->OnVerifiedSSLServerCert(
                 builtCertChain, aCertificateTransparencyStatus,
                 static_cast<uint8_t>(aEVStatus), aSucceeded, aFinalError,
-                aCollectedErrors);
+                aCollectedErrors, aIsBuiltCertChainRootBuiltInRoot);
           }),
       NS_DISPATCH_NORMAL);
   MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(nrv));
@@ -135,12 +141,12 @@ bool VerifySSLServerCertParent::Dispatch(
 
   Maybe<nsTArray<uint8_t>> stapledOCSPResponse;
   if (aStapledOCSPResponse) {
-    stapledOCSPResponse.emplace(aStapledOCSPResponse->data());
+    stapledOCSPResponse.emplace(aStapledOCSPResponse->data().Clone());
   }
 
   Maybe<nsTArray<uint8_t>> sctsFromTLSExtension;
   if (aSctsFromTLSExtension) {
-    sctsFromTLSExtension.emplace(aSctsFromTLSExtension->data());
+    sctsFromTLSExtension.emplace(aSctsFromTLSExtension->data().Clone());
   }
 
   Maybe<DelegatedCredentialInfo> dcInfo;

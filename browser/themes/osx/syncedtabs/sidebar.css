@@ -6,9 +6,9 @@
 
 /* These styles are intended to mimic XUL trees and the XUL search box. */
 
-body:not([lwt-sidebar]) .content-container {
-  -moz-appearance: -moz-mac-source-list;
-  -moz-font-smoothing-background-color: -moz-mac-source-list;
+body {
+   /* let the -moz-appearance of the sidebar shine through */
+  background-color: transparent;
 }
 
 .item-title-container {
@@ -19,12 +19,14 @@ body:not([lwt-sidebar]) .content-container {
 }
 
 body:not([lwt-sidebar]) .item.selected:not(:focus) > .item-title-container {
-  -moz-appearance: -moz-mac-source-list-selection;
+  appearance: auto;
+  -moz-default-appearance: -moz-mac-source-list-selection;
   -moz-font-smoothing-background-color: -moz-mac-source-list-selection;
 }
 
 body:not([lwt-sidebar-highlight]) .item.selected:focus > .item-title-container {
-  -moz-appearance: -moz-mac-active-source-list-selection;
+  appearance: auto;
+  -moz-default-appearance: -moz-mac-active-source-list-selection;
   -moz-font-smoothing-background-color: -moz-mac-active-source-list-selection;
 }
 
@@ -33,31 +35,4 @@ body:not([lwt-sidebar-highlight]) .item.selected:focus > .item-title-container {
     color: #fff;
     font-weight: bold;
   }
-}
-
-.sidebar-search-container {
-  padding: 4px;
-}
-
-.search-box {
-  -moz-appearance: searchfield;
-  padding: 1px;
-  font-size: 12px;
-  cursor: text;
-  margin: 4px;
-  color: -moz-fieldText;
-  -moz-user-select: text;
-  text-shadow: none;
-}
-
-.search-box > .textbox-input-box > .textbox-search-icons > .textbox-search-clear {
-  background-image: url(chrome://global/skin/icons/searchfield-cancel.svg);
-  background-repeat: no-repeat;
-  background-size: 11px 11px;
-  width: 11px;
-  height: 11px;
-}
-
-.textbox-search-clear {
-  margin-top: 1px;
 }

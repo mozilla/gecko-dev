@@ -24,10 +24,9 @@ find-menu appears in editor element which has had makeEditable() called but desi
     var gFindBar = null;
     var gBrowser;
 
-    var imports = ["SimpleTest", "ok", "info"];
-    for (var name of imports) {
-      window[name] = window.arguments[0][name];
-    }
+    var SimpleTest = window.arguments[0].SimpleTest;
+    var info = window.arguments[0].info;
+    var ok = window.arguments[0].ok;
 
     function onLoad() {
       (async function() {
@@ -81,7 +80,7 @@ find-menu appears in editor element which has had makeEditable() called but desi
     }
   ]]></script>
 
-  <browser id="content" flex="1" src="about:blank" type="content" primary="true"/>
-  <browser id="content-remote" remote="true" flex="1" src="about:blank" type="content" primary="true"/>
+  <browser id="content" flex="1" src="about:blank" type="content" primary="true" messagemanagergroup="test"/>
+  <browser id="content-remote" remote="true" flex="1" src="about:blank" type="content" primary="true" messagemanagergroup="test"/>
   <findbar id="FindToolbar" browserid="content"/>
 </window>

@@ -72,9 +72,13 @@ already_AddRefed<DOMSVGAnimatedLength> SVGCircleElement::R() {
 bool SVGCircleElement::HasValidDimensions() const {
   float r;
 
-  MOZ_ASSERT(GetPrimaryFrame());
-  SVGGeometryProperty::ResolveAll<SVGT::R>(this, &r);
-  return r > 0;
+  if (SVGGeometryProperty::ResolveAll<SVGT::R>(this, &r)) {
+    return r > 0;
+  }
+  // This function might be called for an element in display:none subtree
+  // (e.g. SMIL animateMotion), we fall back to use SVG attributes.
+  return mLengthAttributes[ATTR_R].IsExplicitlySet() &&
+         mLengthAttributes[ATTR_R].GetAnimValInSpecifiedUnits() > 0;
 }
 
 SVGElement::LengthAttributesInfo SVGCircleElement::GetLengthInfo() {
@@ -90,9 +94,10 @@ bool SVGCircleElement::GetGeometryBounds(
     const Matrix& aToBoundsSpace, const Matrix* aToNonScalingStrokeSpace) {
   float x, y, r;
 
-  MOZ_ASSERT(GetPrimaryFrame());
-  SVGGeometryProperty::ResolveAll<SVGT::Cx, SVGT::Cy, SVGT::R>(this, &x, &y,
-                                                               &r);
+  DebugOnly<bool> ok =
+      SVGGeometryProperty::ResolveAll<SVGT::Cx, SVGT::Cy, SVGT::R>(this, &x, &y,
+                                                                   &r);
+  MOZ_ASSERT(ok, "SVGGeometryProperty::ResolveAll failed");
 
   if (r <= 0.f) {
     // Rendering of the element is disabled
@@ -127,8 +132,13 @@ bool SVGCircleElement::GetGeometryBounds(
 
 already_AddRefed<Path> SVGCircleElement::BuildPath(PathBuilder* aBuilder) {
   float x, y, r;
-  SVGGeometryProperty::ResolveAllAllowFallback<SVGT::Cx, SVGT::Cy, SVGT::R>(
-      this, &x, &y, &r);
+  if (!SVGGeometryProperty::ResolveAllAllowFallback<SVGT::Cx, SVGT::Cy,
+                                                    SVGT::R>(this, &x, &y,
+                                                             &r)) {
+    // This function might be called for element in display:none subtree
+    // (e.g. getTotalLength), we fall back to use SVG attributes.
+    GetAnimatedLengthValues(&x, &y, &r, nullptr);
+  }
 
   if (r <= 0.0f) {
     return nullptr;

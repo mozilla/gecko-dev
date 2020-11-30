@@ -8,397 +8,120 @@ Benchmarks
 ----------
 Standard benchmarks are third-party tests (i.e. Speedometer) that we have integrated into Raptor to run per-commit in our production CI. 
 
+
 Desktop
 -------
-Tests for page-load performance.
+Tests for page-load performance. The links direct to the actual websites that are being tested. (WX: WebExtension, BT: Browsertime, FF: Firefox, CH: Chrome, CU: Chromium)
 
-Browsertime amazon
-^^^^^^^^^^^^^^^^^^
-Desktop page-load performance test for amazon, and youtube using Browsertime.
+* `amazon (BT, FF, CH, CU) <https://www.amazon.com/s?k=laptop&ref=nb_sb_noss_1>`__
+* `apple (BT, FF, CH, CU) <https://www.apple.com/macbook-pro/>`__
+* `bing-search (BT, FF, CH, CU) <https://www.bing.com/search?q=barack+obama>`__
+* `ebay (BT, FF, CH, CU) <https://www.ebay.com/>`__
+* `facebook (BT, FF, CH, CU) <https://www.facebook.com>`__
+* `facebook-redesign (BT, FF, CH, CU) <https://www.facebook.com>`__
+* `fandom (BT, FF, CH, CU) <https://www.fandom.com/articles/fallout-76-will-live-and-die-on-the-creativity-of-its-playerbase>`__
+* `google-docs (BT, FF, CH, CU) <https://docs.google.com/document/d/1US-07msg12slQtI_xchzYxcKlTs6Fp7WqIc6W5GK5M8/edit?usp=sharing>`__
+* `google-mail (BT, FF, CH, CU) <https://mail.google.com/>`__
+* `google-search (BT, FF, CH, CU) <https://www.google.com/search?hl=en&q=barack+obama&cad=h>`__
+* `google-sheets (BT, FF, CH, CU) <https://docs.google.com/spreadsheets/d/1jT9qfZFAeqNoOK97gruc34Zb7y_Q-O_drZ8kSXT-4D4/edit?usp=sharing>`__
+* `google-slides (BT, FF, CH, CU) <https://docs.google.com/presentation/d/1Ici0ceWwpFvmIb3EmKeWSq_vAQdmmdFcWqaiLqUkJng/edit?usp=sharing>`__
+* `imdb (BT, FF, CH, CU) <https://www.imdb.com/title/tt0084967/?ref_=nv_sr_2>`__
+* `imgur (BT, FF, CH, CU) <https://imgur.com/gallery/m5tYJL6>`__
+* `instagram (BT, FF, CH, CU) <https://www.instagram.com/>`__
+* `linkedin (BT, FF, CH, CU) <https://www.linkedin.com/in/thommy-harris-hk-385723106/>`__
+* `microsoft (BT, FF, CH, CU) <https://www.microsoft.com/en-us/>`__
+* `netflix (BT, FF, CH, CU) <https://www.netflix.com/title/80117263>`__
+* `office (BT, FF, CH, CU) <https://office.live.com/start/Word.aspx?omkt=en-US>`__
+* `outlook (BT, FF, CH, CU) <https://outlook.live.com/mail/inbox>`__
+* `paypal (BT, FF, CH, CU) <https://www.paypal.com/myaccount/summary/>`__
+* `pinterest (BT, FF, CH, CU) <https://pinterest.com/>`__
+* `raptor-tp6-amazon (WX, FF, CH, CU) <https://www.amazon.com/s?k=laptop&ref=nb_sb_noss_1>`__
+* `raptor-tp6-apple (WX, FF, CH, CU) <https://www.apple.com/macbook-pro/>`__
+* `raptor-tp6-bing (WX, FF, CH, CU) <https://www.bing.com/search?q=barack+obama>`__
+* `raptor-tp6-cnn-ampstories (WX, FF) <https://cnn.com/ampstories/us/why-hurricane-michael-is-a-monster-unlike-any-other>`__
+* `raptor-tp6-docs (WX, FF, CH, CU) <https://docs.google.com/document/d/1US-07msg12slQtI_xchzYxcKlTs6Fp7WqIc6W5GK5M8/edit?usp=sharing>`__
+* `raptor-tp6-ebay (WX, FF, CH, CU) <https://www.ebay.com/>`__
+* `raptor-tp6-facebook (WX, CH, CU) <https://www.facebook.com>`__
+* `raptor-tp6-fandom (WX, FF, CH, CU) <https://www.fandom.com/articles/fallout-76-will-live-and-die-on-the-creativity-of-its-playerbase>`__
+* `raptor-tp6-google (WX, FF, CH, CU) <https://www.google.com/search?hl=en&q=barack+obama&cad=h>`__
+* `raptor-tp6-google-mail (WX, FF, CH, CU) <https://mail.google.com/>`__
+* `raptor-tp6-imdb (WX, FF, CH, CU) <https://www.imdb.com/title/tt0084967/?ref_=nv_sr_2>`__
+* `raptor-tp6-imgur (WX, FF, CH, CU) <https://imgur.com/gallery/m5tYJL6>`__
+* `raptor-tp6-instagram (WX, FF, CH, CU) <https://www.instagram.com/>`__
+* `raptor-tp6-linkedin (WX, FF, CH, CU) <https://www.linkedin.com/in/thommy-harris-hk-385723106/>`__
+* `raptor-tp6-microsoft (WX, FF, CH, CU) <https://www.microsoft.com/en-us/>`__
+* `raptor-tp6-netflix (WX, FF, CH, CU) <https://www.netflix.com/title/80117263>`__
+* `raptor-tp6-office (WX, FF, CH, CU) <https://office.live.com/start/Word.aspx?omkt=en-US>`__
+* `raptor-tp6-outlook (WX, FF, CH, CU) <https://outlook.live.com/mail/inbox>`__
+* `raptor-tp6-paypal (WX, FF, CH, CU) <https://www.paypal.com/myaccount/summary/>`__
+* `raptor-tp6-pinterest (WX, FF, CH, CU) <https://pinterest.com/>`__
+* `raptor-tp6-reddit (WX, FF, CH, CU) <https://www.reddit.com/r/technology/comments/9sqwyh/we_posed_as_100_senators_to_run_ads_on_facebook/>`__
+* `raptor-tp6-sheets (WX, FF, CH, CU) <https://docs.google.com/spreadsheets/d/1jT9qfZFAeqNoOK97gruc34Zb7y_Q-O_drZ8kSXT-4D4/edit?usp=sharing>`__
+* `raptor-tp6-slides (WX, FF, CH, CU) <https://docs.google.com/presentation/d/1Ici0ceWwpFvmIb3EmKeWSq_vAQdmmdFcWqaiLqUkJng/edit?usp=sharing>`__
+* `raptor-tp6-tumblr (WX, FF, CH, CU) <https://www.tumblr.com/dashboard>`__
+* `raptor-tp6-twitch (WX, FF, CH, CU) <https://www.twitch.tv/videos/326804629>`__
+* `raptor-tp6-twitter (WX, FF, CH, CU) <https://twitter.com/BarackObama>`__
+* `raptor-tp6-wikipedia (WX, FF, CH, CU) <https://en.wikipedia.org/wiki/Barack_Obama>`__
+* `raptor-tp6-yahoo-mail (WX, FF, CH, CU) <https://mail.yahoo.com/>`__
+* `raptor-tp6-yahoo-news (WX, FF, CH, CU) <https://www.yahoo.com/lifestyle/police-respond-noise-complaint-end-playing-video-games-respectful-tenants-002329963.html>`__
+* `raptor-tp6-yandex (WX, FF, CH, CU) <https://yandex.ru/search/?text=barack%20obama&lr=10115>`__
+* `raptor-tp6-youtube (WX, FF, CH, CU) <https://www.youtube.com>`__
+* `reddit (BT, FF, CH, CU) <https://www.reddit.com/r/technology/comments/9sqwyh/we_posed_as_100_senators_to_run_ads_on_facebook/>`__
+* `tumblr (BT, FF, CH, CU) <https://www.tumblr.com/dashboard>`__
+* `twitch (BT, FF, CH, CU) <https://www.twitch.tv/videos/326804629>`__
+* `twitter (BT, FF, CH, CU) <https://twitter.com/BarackObama>`__
+* `wikipedia (BT, FF, CH, CU) <https://en.wikipedia.org/wiki/Barack_Obama>`__
+* `yahoo-mail (BT, FF, CH, CU) <https://mail.yahoo.com/>`__
+* `yahoo-news (BT, FF, CH, CU) <https://www.yahoo.com/lifestyle/police-respond-noise-complaint-end-playing-video-games-respectful-tenants-002329963.html>`__
+* `yandex (BT, FF, CH, CU) <https://yandex.ru/search/?text=barack%20obama&lr=10115>`__
+* `youtube (BT, FF, CH, CU) <https://www.youtube.com>`__
 
-Browsertime bing-search
-^^^^^^^^^^^^^^^^^^^^^^^
-Desktop page-load performance test for bing-search using Browsertime.
+Live
+----
+A set of test pages that are run as live sites instead of recorded versions. These tests are available on all browsers, on all platforms.
 
-Browsertime facebook
-^^^^^^^^^^^^^^^^^^^^
-Desktop page-load performance test for facebook using Browsertime.
-
-Browsertime google-search
-^^^^^^^^^^^^^^^^^^^^^^^^^
-Desktop page-load performance test for google-search using Browsertime.
-
-Browsertime google-slides
-^^^^^^^^^^^^^^^^^^^^^^^^^
-Desktop page-load performance test for google-slides using Browsertime.
-
-raptor-tp6-amazon
-^^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance tests for amazon on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-apple
-^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test for apple on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-binast-instagram-firefox
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Desktop page-load performance test for instagram on firefox with binast recordings and flag enabled using WebExtension.
-
-raptor-tp6-bing
-^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test for bing on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-docs
-^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test for docs on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-ebay
-^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test for ebay on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-facebook
-^^^^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test for facebook, chrome, and chromium using WebExtension.
-
-raptor-tp6-fandom
-^^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test for fandom on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-google
-^^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test for google on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-google-mail
-^^^^^^^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test google-mail on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-imdb
-^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test for imdb on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-imgur
-^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test for imgur on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-instagram
-^^^^^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test for instagram on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-linkedin
-^^^^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test for linkedin on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-microsoft
-^^^^^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test for microsoft on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-netflix
-^^^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test for netflix on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-office
-^^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test office on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-outlook
-^^^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test outlook on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-paypal
-^^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test for paypal on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-pinterest
-^^^^^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test pinterest on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-reddit
-^^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test for reddit on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-sheets
-^^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test for sheets on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-slides
-^^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test for slides on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-tumblr
-^^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test for tumblr on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-twitch
-^^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test for twitch on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-twitter
-^^^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test for twitter on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-wikipedia
-^^^^^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test for and wikipedia on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-yahoo-mail
-^^^^^^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test for yahoo-mail on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-yahoo-news
-^^^^^^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test for yahoo-news on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-yandex
-^^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test for yandex on firefox, chrome, and chromium using WebExtension.
-
-raptor-tp6-youtube
-^^^^^^^^^^^^^^^^^^
-Cold and warm desktop page-load performance test for youtube on firefox, chrome, and chromium using WebExtension.
-
-Browsertime wikipedia
-^^^^^^^^^^^^^^^^^^^^^
-Desktop page-load performance test for wikipedia using Browsertime.
-
-Browsertime yahoo-news
-^^^^^^^^^^^^^^^^^^^^^^
-Desktop page-load performance test for yahoo-news using Browsertime.
-
-Browsertime youtube
-^^^^^^^^^^^^^^^^^^^
-Desktop page-load performance test for youtube using Browsertime.
 
 Mobile
 ------
-Page-load performance test suite on Android.
+Page-load performance test suite on Android. The links direct to the actual websites that are being tested. (WX: WebExtension, BT: Browsertime, GV: Geckoview, RB: Refbrow, FE: Fenix, F68: Fennec68, CH-M: Chrome mobile)
 
-Browsertime aframe
-^^^^^^^^^^^^^^^^^^
-Android page-load performance test for aframe using Browsertime.
-
-Browsertime allrecipes
-^^^^^^^^^^^^^^^^^^^^^^
-Android page-load performance test for allrecipes using Browsertime.
-
-Browsertime amazon
-^^^^^^^^^^^^^^^^^^
-Android page-load performance test for amazon using Browsertime.
-
-Browsertime amazon-search
-^^^^^^^^^^^^^^^^^^^^^^^^^
-Android page-load performance test for amazon-search using Browsertime.
-
-Browsertime bbc
-^^^^^^^^^^^^^^^
-Android page-load performance test for bbc using Browsertime.
-
-Browsertime bing
-^^^^^^^^^^^^^^^^
-Android page-load performance test for bing using Browsertime.
-
-Browsertime bing-search-restaurants
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Android page-load performance test for bing-search-restaurants using Browsertime.
-
-Browsertime booking
-^^^^^^^^^^^^^^^^^^^
-Android page-load performance test for booking using Browsertime.
-
-Browsertime cnn
-^^^^^^^^^^^^^^^
-Android page-load performance test for cnn using Browsertime.
-
-Browsertime cnn-ampstories
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-Android page-load performance test for cnn-ampstories using Browsertime.
-
-Browsertime ebay-kleinanzeigen
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Android page-load performance test for ebay-kleinanzeigen using Browsertime.
-
-Browsertime ebay-kleinanzeigen-search
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Android page-load performance test for ebay-kleinanzeigen-search using Browsertime.
-
-Browsertime espn
-^^^^^^^^^^^^^^^^
-Android page-load performance test for espn using Browsertime.
-
-Browsertime facebook
-^^^^^^^^^^^^^^^^^^^^
-Android page-load performance test for facebook using Browsertime.
-
-Browsertime facebook-cristiano
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Android page-load performance test for facebook-cristiano using Browsertime.
-
-Browsertime google
-^^^^^^^^^^^^^^^^^^
-Android page-load performance test for google using Browsertime.
-
-Browsertime google-maps
-^^^^^^^^^^^^^^^^^^^^^^^
-Android page-load performance test for google-maps using Browsertime.
-
-Browsertime google-search-restaurants
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Android page-load performance test for google-search-restaurants using Browsertime.
-
-Browsertime imdb
-^^^^^^^^^^^^^^^^
-Android page-load performance test for imdb using Browsertime.
-
-Browsertime instagram
-^^^^^^^^^^^^^^^^^^^^^
-Android page-load performance test for instagram using Browsertime.
-
-Browsertime jianshu
-^^^^^^^^^^^^^^^^^^^
-Android page-load performance test for jianshu using Browsertime.
-
-Browsertime microsoft-support
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Android page-load performance test for microsoft-support using Browsertime.
-
-raptor-tp6m-aframeio-animation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for aframeio-animation on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-allrecipes
-^^^^^^^^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for allrecipesjianshu on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-amazon
-^^^^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for amazon on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-amazon-search
-^^^^^^^^^^^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for amazon-search on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-bbc
-^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for bbc on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-bing
-^^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for bing on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-bing-restaurants
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for bing-restaurants on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-booking
-^^^^^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for booking on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-cnn
-^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for cnn on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-cnn-ampstories
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for booking on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-ebay-kleinanzeigen
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for ebay-kleinanzeigen on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-espn
-^^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for espn on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-facebook
-^^^^^^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for facebook on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-facebook-cristiano
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for facebook-cristiano on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-google
-^^^^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for google on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-google-maps
-^^^^^^^^^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for google-maps on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-google-restaurants
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for google-restaurants on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-imdb
-^^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for imdb on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-instagram
-^^^^^^^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for instagram on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-jianshu
-^^^^^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for jianshu on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-microsoft-support
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for microsoft-support on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-reddit
-^^^^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for reddit on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-stackoverflow
-^^^^^^^^^^^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for stackoverflow on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-web-de
-^^^^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for web-de on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-wikipedia
-^^^^^^^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for wikipedia on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-youtube
-^^^^^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for youtube on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-raptor-tp6m-youtube-watch
-^^^^^^^^^^^^^^^^^^^^^^^^^
-Cold and warm android page-load performance test for youtube-watch on geckoview, refbrow, fenix, and fennec68 using WebExtension.
-
-Browsertime reddit
-^^^^^^^^^^^^^^^^^^
-Android page-load performance test for reddit using Browsertime.
-
-Browsertime stackoverflow
-^^^^^^^^^^^^^^^^^^^^^^^^^
-Android page-load performance test for stackoverflow using Browsertime.
-
-Browsertime web-de
-^^^^^^^^^^^^^^^^^^
-Android page-load performance test for web-de using Browsertime.
-
-Browsertime wikipedia
-^^^^^^^^^^^^^^^^^^^^^
-Android page-load performance test for wikipedia using Browsertime.
-
-Browsertime youtube
-^^^^^^^^^^^^^^^^^^^
-Android page-load performance test for youtube using Browsertime.
-
-Browsertime youtube-watch
-^^^^^^^^^^^^^^^^^^^^^^^^^
-Android page-load performance test for youtube-watch using Browsertime.
+* `allrecipes (BT, GV, FE, RB, F68, CH-M) <https://www.allrecipes.com/>`__
+* `amazon (BT, GV, FE, RB, F68, CH-M) <https://www.amazon.com>`__
+* `amazon-search (BT, GV, FE, RB, F68, CH-M) <https://www.amazon.com/s/ref=nb_sb_noss_2/139-6317191-5622045?url=search-alias%3Daps&field-keywords=mobile+phone>`__
+* `bbc (BT, GV, FE, RB, F68, CH-M) <https://www.bbc.com/news/business-47245877>`__
+* `bing (BT, GV, FE, RB, F68, CH-M) <https://www.bing.com/>`__
+* `bing-search-restaurants (BT, GV, FE, RB, F68, CH-M) <https://www.bing.com/search?q=restaurants>`__
+* `booking (BT, GV, FE, RB, F68, CH-M) <https://www.booking.com/>`__
+* `cnn (BT, GV, FE, RB, F68, CH-M) <https://cnn.com>`__
+* `cnn-ampstories (BT, GV, FE, RB, F68, CH-M) <https://cnn.com/ampstories/us/why-hurricane-michael-is-a-monster-unlike-any-other>`__
+* `ebay-kleinanzeigen (BT, GV, FE, RB, F68, CH-M) <https://m.ebay-kleinanzeigen.de>`__
+* `ebay-kleinanzeigen-search (BT, GV, FE, RB, F68, CH-M) <https://m.ebay-kleinanzeigen.de/s-anzeigen/auf-zeit-wg-berlin/zimmer/c199-l3331>`__
+* `espn (BT, GV, FE, RB, F68, CH-M) <http://www.espn.com/nba/story/_/page/allstarweekend25788027/the-comparison-lebron-james-michael-jordan-their-own-words>`__
+* `facebook (BT, GV, FE, RB, F68, CH-M) <https://m.facebook.com>`__
+* `facebook-cristiano (BT, GV, FE, RB, F68, CH-M) <https://m.facebook.com/Cristiano>`__
+* `google (BT, GV, FE, RB, F68, CH-M) <https://www.google.com>`__
+* `google-maps (BT, GV, FE, RB, F68, CH-M) <https://www.google.com/maps?force=pwa>`__
+* `google-search-restaurants (BT, GV, FE, RB, F68, CH-M) <https://www.google.com/search?q=restaurants+near+me>`__
+* `imdb (BT, GV, FE, RB, F68, CH-M) <https://m.imdb.com/>`__
+* `instagram (BT, GV, FE, RB, F68, CH-M) <https://www.instagram.com>`__
+* `jianshu (BT, GV, FE, RB, F68, CH-M) <https://www.jianshu.com/>`__
+* `microsoft-support (BT, GV, FE, RB, F68, CH-M) <https://support.microsoft.com/en-us>`__
+* `reddit (BT, GV, FE, RB, F68, CH-M) <https://www.reddit.com>`__
+* `stackoverflow (BT, GV, FE, RB, F68, CH-M) <https://stackoverflow.com/>`__
+* `web-de (BT, GV, FE, RB, F68, CH-M) <https://web.de/magazine/politik/politologe-glaubt-grossen-koalition-herbst-knallen-33563566>`__
+* `wikipedia (BT, GV, FE, RB, F68, CH-M) <https://en.m.wikipedia.org/wiki/Main_Page>`__
+* `youtube (BT, GV, FE, RB, F68, CH-M) <https://m.youtube.com>`__
+* `youtube-watch (BT, GV, FE, RB, F68, CH-M) <https://www.youtube.com/watch?v=COU5T-Wafa4>`__
 
 Scenario
 --------
 Tests that perform a specific action (a scenario), i.e. idle application, idle application in background, etc.
 
+
 Unittests
 ---------
 These tests aren't used in standard testing, they are only used in the Raptor unit tests (they are similar to raptor-tp6 tests though).
+
 
 
 The methods for calling the tests can be found in the `Raptor wiki page <https://wiki.mozilla.org/TestEngineering/Performance/Raptor>`_.

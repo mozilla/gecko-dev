@@ -99,6 +99,7 @@ impl RenderTaskGraph {
         screen_size: DeviceIntSize,
         gpu_supports_fast_clears: bool,
     ) -> Vec<RenderPass> {
+        profile_scope!("generate_passes");
         let mut passes = Vec::new();
 
         if !self.cacheable_render_tasks.is_empty() {
@@ -353,6 +354,7 @@ impl RenderTaskGraph {
     }
 
     pub fn write_task_data(&mut self) {
+        profile_scope!("write_task_data");
         for task in &self.tasks {
             self.task_data.push(task.write_task_data());
         }
@@ -571,7 +573,7 @@ pub fn dump_render_tasks_as_svg(
 
             let saved = if task.saved_index.is_some() { " (Saved)" } else { "" };
             let label = text(tx, ty, format!("{}{}", task.kind.as_str(), saved));
-            let size = text(tx, ty + 12.0, format!("{}", task.location.size()));
+            let size = text(tx, ty + 12.0, format!("{:?}", task.location.size()));
 
             nodes[task_index] = Some(Node { rect, label, size });
 

@@ -7,6 +7,12 @@
 #ifndef mozilla_PerformanceCounter_h
 #define mozilla_PerformanceCounter_h
 
+#include "mozilla/Array.h"
+#include "mozilla/Atomics.h"
+#include "mozilla/TaskCategory.h"
+#include "nsISupportsImpl.h"
+#include "nsString.h"
+
 namespace mozilla {
 
 /*
@@ -88,22 +94,22 @@ class PerformanceCounter final {
   /**
    * Returns a category/counter array of all dispatches.
    */
-  const DispatchCounter& GetDispatchCounter();
+  const DispatchCounter& GetDispatchCounter() const;
 
   /**
    * Returns the total execution duration.
    */
-  uint64_t GetExecutionDuration();
+  uint64_t GetExecutionDuration() const;
 
   /**
    * Returns the number of dispatches per TaskCategory.
    */
-  uint32_t GetDispatchCount(DispatchCategory aCategory);
+  uint32_t GetDispatchCount(DispatchCategory aCategory) const;
 
   /**
    * Returns the total number of dispatches.
    */
-  uint64_t GetTotalDispatchCount();
+  uint64_t GetTotalDispatchCount() const;
 
   /**
    * Returns the unique id for the instance.

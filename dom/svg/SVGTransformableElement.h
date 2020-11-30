@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef SVGTransformableElement_h
-#define SVGTransformableElement_h
+#ifndef DOM_SVG_SVGTRANSFORMABLEELEMENT_H_
+#define DOM_SVG_SVGTRANSFORMABLEELEMENT_H_
 
 #include "SVGAnimatedTransformList.h"
 #include "gfxMatrix.h"
@@ -36,8 +36,7 @@ class SVGTransformableElement : public SVGElement {
   SVGElement* GetNearestViewportElement();
   SVGElement* GetFarthestViewportElement();
   MOZ_CAN_RUN_SCRIPT
-  already_AddRefed<SVGRect> GetBBox(const SVGBoundingBoxOptions& aOptions,
-                                    ErrorResult& rv);
+  already_AddRefed<SVGRect> GetBBox(const SVGBoundingBoxOptions&);
   already_AddRefed<SVGMatrix> GetCTM();
   already_AddRefed<SVGMatrix> GetScreenCTM();
   already_AddRefed<SVGMatrix> GetTransformToElement(
@@ -87,4 +86,4 @@ class SVGTransformableElement : public SVGElement {
 }  // namespace dom
 }  // namespace mozilla
 
-#endif  // SVGTransformableElement_h
+#endif  // DOM_SVG_SVGTRANSFORMABLEELEMENT_H_

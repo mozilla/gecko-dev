@@ -34,6 +34,7 @@
 #include "util/StringBuffer.h"
 #include "vm/GlobalObject.h"
 #include "vm/JSContext.h"
+#include "vm/PlainObject.h"  // js::PlainObject
 #include "vm/Printer.h"
 #include "vm/StringType.h"
 
@@ -47,7 +48,7 @@ using intl::LanguageTag;
 using intl::LanguageTagParser;
 
 const JSClass LocaleObject::class_ = {
-    js_Object_str,
+    "Intl.Locale",
     JSCLASS_HAS_RESERVED_SLOTS(LocaleObject::SLOT_COUNT) |
         JSCLASS_HAS_CACHED_PROTO(JSProto_Locale),
     JS_NULL_CLASS_OPS, &LocaleObject::classSpec_};
@@ -510,6 +511,15 @@ static bool Locale(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
+  // Steps 10-11.
+  RootedObject options(cx);
+  if (args.hasDefined(1)) {
+    options = ToObject(cx, args[1]);
+    if (!options) {
+      return false;
+    }
+  }
+
   // ApplyOptionsToTag, steps 2 and 9.
   LanguageTag tag(cx);
   if (!LanguageTagParser::parse(cx, tagLinearStr, tag)) {
@@ -520,13 +530,7 @@ static bool Locale(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  // Steps 10-11.
-  if (args.hasDefined(1)) {
-    RootedObject options(cx, ToObject(cx, args[1]));
-    if (!options) {
-      return false;
-    }
-
+  if (options) {
     // Step 12.
     if (!ApplyOptionsToTag(cx, tag, options)) {
       return false;
@@ -1390,8 +1394,8 @@ bool js::intl_ValidateAndCanonicalizeUnicodeExtensionType(JSContext* cx,
   intl::AsciiToLowerCase(unicodeTypeChars.get(), unicodeTypeLength,
                          unicodeTypeChars.get());
 
-  auto key = mozilla::MakeSpan(unicodeKey, UnicodeKeyLength);
-  auto type = mozilla::MakeSpan(unicodeTypeChars.get(), unicodeTypeLength);
+  auto key = mozilla::Span(unicodeKey, UnicodeKeyLength);
+  auto type = mozilla::Span(unicodeTypeChars.get(), unicodeTypeLength);
 
   // Search if there's a replacement for the current Unicode keyword.
   JSString* result;

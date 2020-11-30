@@ -15,6 +15,8 @@ const actionTypes = {
   // ui substate
   UPDATE_SELECTED_PAGE: "UPDATE_SELECTED_PAGE",
   // workers substate
+  START_WORKER: "START_WORKER",
+  UNREGISTER_WORKER: "UNREGISTER_WORKER",
   UPDATE_CAN_DEBUG_WORKERS: "UPDATE_CAN_DEBUG_WORKERS",
   UPDATE_WORKERS: "UPDATE_WORKERS",
 };
@@ -25,7 +27,7 @@ const PAGE_TYPES = {
   SERVICE_WORKERS: "service-workers",
 };
 
-const DEFAULT_PAGE = PAGE_TYPES.MANIFEST;
+const DEFAULT_PAGE = PAGE_TYPES.SERVICE_WORKERS;
 
 const MANIFEST_CATEGORIES = {
   IDENTITY: "identity",
@@ -37,6 +39,7 @@ const MANIFEST_MEMBER_VALUE_TYPES = {
   COLOR: "color",
   ICON: "icon",
   STRING: "string",
+  URL: "url",
 };
 
 const MANIFEST_ISSUE_LEVELS = {

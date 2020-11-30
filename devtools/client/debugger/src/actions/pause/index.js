@@ -15,7 +15,7 @@ export {
   stepOver,
   stepOut,
   resume,
-  seekToPosition,
+  restart,
 } from "./commands";
 export { fetchFrames } from "./fetchFrames";
 export { fetchScopes } from "./fetchScopes";
@@ -24,6 +24,7 @@ export { resumed } from "./resumed";
 export { continueToHere } from "./continueToHere";
 export { breakOnNext } from "./breakOnNext";
 export { mapFrames } from "./mapFrames";
+export { mapDisplayNames } from "./mapDisplayNames";
 export { pauseOnExceptions } from "./pauseOnExceptions";
 export { selectFrame } from "./selectFrame";
 export { toggleSkipPausing, setSkipPausing } from "./skipPausing";
@@ -35,4 +36,3 @@ export {
   previewPausedLocation,
   clearPreviewPausedLocation,
 } from "./previewPausedLocation";
-export { setFramePositions } from "./setFramePositions";

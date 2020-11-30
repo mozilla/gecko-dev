@@ -25,16 +25,18 @@ namespace gc {
  * its new location. It's used during generational and compacting GC.
  */
 class RelocationOverlay : public Cell {
-  // First word of a Cell has additional requirements from GC. The GC flags
-  // determine if a Cell is a normal entry or is a RelocationOverlay.
-  //                3         0
-  //  -------------------------
-  //  | NewLocation | GCFlags |
-  //  -------------------------
-  uintptr_t dataWithTag_;
+ public:
+  /* The location the cell has been moved to, stored in the cell header. */
+  Cell* forwardingAddress() const {
+    MOZ_ASSERT(isForwarded());
+    return reinterpret_cast<Cell*>(header_ & ~RESERVED_MASK);
+  }
 
+ protected:
   /* A list entry to track all relocated things. */
   RelocationOverlay* next_;
+
+  explicit RelocationOverlay(Cell* dst);
 
  public:
   static const RelocationOverlay* fromCell(const Cell* cell) {
@@ -45,13 +47,7 @@ class RelocationOverlay : public Cell {
     return static_cast<RelocationOverlay*>(cell);
   }
 
-  Cell* forwardingAddress() const {
-    MOZ_ASSERT(isForwarded());
-    uintptr_t newLocation = dataWithTag_ & ~Cell::RESERVED_MASK;
-    return reinterpret_cast<Cell*>(newLocation);
-  }
-
-  void forwardTo(Cell* cell);
+  static RelocationOverlay* forwardCell(Cell* src, Cell* dst);
 
   RelocationOverlay*& nextRef() {
     MOZ_ASSERT(isForwarded());

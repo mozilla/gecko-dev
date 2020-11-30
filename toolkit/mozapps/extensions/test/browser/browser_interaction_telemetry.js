@@ -1,9 +1,3 @@
-/**
- * These tests run in both the XUL and HTML version of about:addons. When adding
- * a new test it should be defined as a function that accepts a boolean isHtmlViews
- * and added to the testFns array.
- */
-
 const { AddonTestUtils } = ChromeUtils.import(
   "resource://testing-common/AddonTestUtils.jsm",
   {}
@@ -72,10 +66,7 @@ async function installExtension(manifest = {}) {
 }
 
 function getAddonCard(doc, id) {
-  if (doc.ownerGlobal != gManagerWindow) {
-    return doc.querySelector(`addon-card[addon-id="${id}"]`);
-  }
-  return doc.querySelector(`.addon[value="${id}"]`);
+  return doc.querySelector(`addon-card[addon-id="${id}"]`);
 }
 
 function openDetailView(doc, id) {
@@ -94,8 +85,7 @@ async function enableAndDisable(doc, row) {
 }
 
 async function removeAddonAndUndo(doc, row) {
-  let isHtml = doc.ownerGlobal != gManagerWindow;
-  let id = isHtml ? row.addon.id : row.mAddon.id;
+  let id = row.addon.id;
   let started = AddonTestUtils.promiseWebExtensionStartup(id);
   let removed = BrowserTestUtils.waitForEvent(row, "remove");
   row.querySelector('[action="remove"]').click();
@@ -318,7 +308,7 @@ add_task(async function testExtensionEvents() {
 
   // The support button will open a new tab.
   waitForNewTab = BrowserTestUtils.waitForNewTab(gBrowser);
-  gManagerWindow.document.getElementById("helpButton").click();
+  doc.getElementById("help-button").click();
   BrowserTestUtils.removeTab(await waitForNewTab);
 
   // Check that the preferences button includes the view.
@@ -426,7 +416,7 @@ add_task(async function testGeneralActions() {
   BrowserTestUtils.removeTab(tab);
 
   waitForNewTab = BrowserTestUtils.waitForNewTab(gBrowser);
-  let searchBox = doc.getElementById("search-addons");
+  let searchBox = doc.querySelector("search-addons").input.inputField;
   searchBox.value = "something";
   searchBox.focus();
   EventUtils.synthesizeKey("KEY_Enter", {}, win);
@@ -500,22 +490,18 @@ add_task(async function testGeneralActions() {
 add_task(async function testPreferencesLink() {
   assertAboutAddonsTelemetryEvents([]);
 
-  await init("theme");
-
-  let doc = gManagerWindow.document;
+  let doc = await init("theme");
 
   // Open the about:preferences page from about:addons.
   let waitForNewTab = BrowserTestUtils.waitForNewTab(
     gBrowser,
-    "about:preferences"
+    "about:preferences",
+    true
   );
   doc.getElementById("preferencesButton").click();
   let tab = await waitForNewTab;
   let getAddonsButton = () =>
     tab.linkedBrowser.contentDocument.getElementById("addonsButton");
-
-  // Wait for the page to load.
-  await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
 
   // Open the about:addons page from about:preferences.
   getAddonsButton().click();

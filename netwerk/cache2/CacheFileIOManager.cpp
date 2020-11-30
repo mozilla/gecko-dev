@@ -544,11 +544,17 @@ class ShutdownEvent : public Runnable {
   void PostAndWait() {
     MonitorAutoLock mon(mMonitor);
 
-    DebugOnly<nsresult> rv;
-    rv = CacheFileIOManager::gInstance->mIOThread->Dispatch(
+    nsresult rv = CacheFileIOManager::gInstance->mIOThread->Dispatch(
         this,
         CacheIOThread::WRITE);  // When writes and closing of handles is done
     MOZ_ASSERT(NS_SUCCEEDED(rv));
+
+    // If we failed to post the even there's no reason to go into the loop
+    // because mNotified will never be set to true.
+    if (NS_FAILED(rv)) {
+      NS_WARNING("Posting ShutdownEvent task failed");
+      return;
+    }
 
     TimeDuration waitTime = TimeDuration::FromSeconds(1);
     while (!mNotified) {
@@ -1318,7 +1324,7 @@ nsresult CacheFileIOManager::OnProfile() {
   }
 
   if (directory) {
-    rv = directory->Append(NS_LITERAL_STRING("cache2"));
+    rv = directory->Append(u"cache2"_ns);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -1327,7 +1333,7 @@ nsresult CacheFileIOManager::OnProfile() {
 
 #if defined(MOZ_WIDGET_ANDROID)
   if (profilelessDirectory) {
-    rv = profilelessDirectory->Append(NS_LITERAL_STRING("cache2"));
+    rv = profilelessDirectory->Append(u"cache2"_ns);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -1465,8 +1471,7 @@ nsresult CacheFileIOManager::ShutdownMetadataWriteScheduling() {
 void CacheFileIOManager::ShutdownMetadataWriteSchedulingInternal() {
   MOZ_ASSERT(IsOnIOThreadOrCeased());
 
-  nsTArray<RefPtr<CacheFile> > files;
-  files.SwapElements(mScheduledMetadataWrites);
+  nsTArray<RefPtr<CacheFile> > files = std::move(mScheduledMetadataWrites);
   for (uint32_t i = 0; i < files.Length(); ++i) {
     CacheFile* file = files[i];
     file->WriteMetadataIfNeeded();
@@ -1485,8 +1490,7 @@ CacheFileIOManager::Notify(nsITimer* aTimer) {
 
   mMetadataWritesTimer = nullptr;
 
-  nsTArray<RefPtr<CacheFile> > files;
-  files.SwapElements(mScheduledMetadataWrites);
+  nsTArray<RefPtr<CacheFile> > files = std::move(mScheduledMetadataWrites);
   for (uint32_t i = 0; i < files.Length(); ++i) {
     CacheFile* file = files[i];
     file->WriteMetadataIfNeeded();
@@ -2980,7 +2984,7 @@ nsresult CacheFileIOManager::EvictAllInternal() {
     return rv;
   }
 
-  rv = file->AppendNative(NS_LITERAL_CSTRING(ENTRIES_DIR));
+  rv = file->AppendNative(nsLiteralCString(ENTRIES_DIR));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -3470,7 +3474,7 @@ nsresult CacheFileIOManager::FindTrashDirToRemove() {
       continue;
     }
 
-    if (!StringBeginsWith(leafName, NS_LITERAL_CSTRING(TRASH_DIR))) {
+    if (!StringBeginsWith(leafName, nsLiteralCString(TRASH_DIR))) {
       continue;
     }
 
@@ -3636,7 +3640,7 @@ nsresult CacheFileIOManager::GetFile(const SHA1Sum::Hash* aHash,
   rv = mCacheDirectory->Clone(getter_AddRefs(file));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = file->AppendNative(NS_LITERAL_CSTRING(ENTRIES_DIR));
+  rv = file->AppendNative(nsLiteralCString(ENTRIES_DIR));
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsAutoCString leafName;
@@ -3669,10 +3673,10 @@ nsresult CacheFileIOManager::GetDoomedFile(nsIFile** _retval) {
   rv = mCacheDirectory->Clone(getter_AddRefs(file));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = file->AppendNative(NS_LITERAL_CSTRING(DOOMED_DIR));
+  rv = file->AppendNative(nsLiteralCString(DOOMED_DIR));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = file->AppendNative(NS_LITERAL_CSTRING("dummyleaf"));
+  rv = file->AppendNative("dummyleaf"_ns);
   NS_ENSURE_SUCCESS(rv, rv);
 
   const int32_t kMaxTries = 64;
@@ -3823,44 +3827,6 @@ nsresult CacheFileIOManager::CreateCacheTree() {
   }
 
   StartRemovingTrash();
-
-  if (!CacheObserver::CacheFSReported()) {
-    uint32_t fsType = 4;  // Other OS
-
-#ifdef XP_WIN
-    nsAutoString target;
-    nsresult rv = mCacheDirectory->GetTarget(target);
-    if (NS_FAILED(rv)) {
-      return NS_OK;
-    }
-
-    wchar_t volume_path[MAX_PATH + 1] = {0};
-    if (!::GetVolumePathNameW(target.get(), volume_path,
-                              mozilla::ArrayLength(volume_path))) {
-      return NS_OK;
-    }
-
-    wchar_t fsName[6] = {0};
-    if (!::GetVolumeInformationW(volume_path, nullptr, 0, nullptr, nullptr,
-                                 nullptr, fsName,
-                                 mozilla::ArrayLength(fsName))) {
-      return NS_OK;
-    }
-
-    if (wcscmp(fsName, L"NTFS") == 0) {
-      fsType = 0;
-    } else if (wcscmp(fsName, L"FAT32") == 0) {
-      fsType = 1;
-    } else if (wcscmp(fsName, L"FAT") == 0) {
-      fsType = 2;
-    } else {
-      fsType = 3;
-    }
-#endif
-
-    Telemetry::Accumulate(Telemetry::NETWORK_CACHE_FS_TYPE, fsType);
-    CacheObserver::SetCacheFSReported();
-  }
 
   return NS_OK;
 }
@@ -4132,7 +4098,7 @@ nsresult CacheFileIOManager::UpdateSmartCacheSize(int64_t aFreeSpace) {
     return NS_OK;
   }
 
-  CacheObserver::SetDiskCacheCapacity(smartSize);
+  CacheObserver::SetSmartDiskCacheCapacity(smartSize);
 
   return NS_OK;
 }

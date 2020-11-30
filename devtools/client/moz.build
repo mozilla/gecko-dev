@@ -13,6 +13,7 @@ DIRS += [
     'debugger',
     'dom',
     'framework',
+    'fronts',
     'inspector',
     'jsonview',
     'locales',
@@ -27,13 +28,14 @@ DIRS += [
     'styleeditor',
     'themes',
     'webconsole',
-    'whats-new',
 ]
 
 JAR_MANIFESTS += ['jar.mn']
 
 DevToolsModules(
+    'constants.js',
     'definitions.js',
+    'devtools-client.js',
     'menus.js',
 )
 

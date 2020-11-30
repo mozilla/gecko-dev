@@ -12,14 +12,13 @@
 #include "jit/BytecodeAnalysis.h"
 #include "jit/FixedList.h"
 #include "jit/MacroAssembler.h"
+#include "vm/GeneratorResumeKind.h"  // GeneratorResumeKind
 
 namespace js {
 
-enum class GeneratorResumeKind;
-
 namespace jit {
 
-enum class ScriptGCThingType { RegExp, Function, Scope, BigInt };
+enum class ScriptGCThingType { Atom, RegExp, Object, Function, Scope, BigInt };
 
 // Base class for BaselineCompiler and BaselineInterpreterGenerator. The Handler
 // template is a class storing fields/methods that are interpreter or compiler
@@ -111,9 +110,6 @@ class BaselineCodeGen {
   // Load the |this|-value from the global's lexical environment.
   void loadGlobalThisValue(ValueOperand dest);
 
-  // Load script atom |index| into |dest|.
-  void loadScriptAtom(Register index, Register dest);
-
   // Computes the frame size. See BaselineFrame::debugFrameSize_.
   void computeFrameSize(Register dest);
 
@@ -145,6 +141,8 @@ class BaselineCodeGen {
   MOZ_MUST_USE bool emitDebugInstrumentation(const F& ifDebuggee) {
     return emitDebugInstrumentation(ifDebuggee, mozilla::Maybe<F>());
   }
+
+  bool emitSuspend(JSOp op);
 
   template <typename F>
   MOZ_MUST_USE bool emitAfterYieldDebugInstrumentation(const F& ifDebuggee,
@@ -189,7 +187,7 @@ class BaselineCodeGen {
   FOR_EACH_OPCODE(EMIT_OP)
 #undef EMIT_OP
 
-  // JSOp::Neg, JSOp::BitNot, JSOp::Inc, JSOp::Dec
+  // JSOp::Pos, JSOp::Neg, JSOp::BitNot, JSOp::Inc, JSOp::Dec, JSOp::ToNumeric.
   MOZ_MUST_USE bool emitUnaryArith();
 
   // JSOp::BitXor, JSOp::Lsh, JSOp::Add etc.
@@ -245,7 +243,6 @@ class BaselineCodeGen {
 
   MOZ_MUST_USE bool emitFormalArgAccess(JSOp op);
 
-  MOZ_MUST_USE bool emitThrowConstAssignment();
   MOZ_MUST_USE bool emitUninitializedLexicalCheck(const ValueOperand& val);
 
   MOZ_MUST_USE bool emitIsMagicValue();
@@ -263,10 +260,8 @@ class BaselineCodeGen {
   MOZ_MUST_USE bool emitDebugPrologue();
   MOZ_MUST_USE bool emitDebugEpilogue();
 
-  template <typename F1, typename F2>
-  MOZ_MUST_USE bool initEnvironmentChainHelper(const F1& initFunctionEnv,
-                                               const F2& initGlobalOrEvalEnv,
-                                               Register scratch);
+  template <typename F>
+  MOZ_MUST_USE bool initEnvironmentChainHelper(const F& initFunctionEnv);
   MOZ_MUST_USE bool initEnvironmentChain();
 
   MOZ_MUST_USE bool emitTraceLoggerEnter();
@@ -367,7 +362,7 @@ class BaselineCompilerHandler {
     return script()->nslots() > NumSlotsLimit;
   }
 
-  JSObject* maybeNoCloneSingletonObject();
+  bool canHaveFixedSlots() const { return script()->nfixed() != 0; }
 };
 
 using BaselineCompilerCodeGen = BaselineCodeGen<BaselineCompilerHandler>;
@@ -490,7 +485,7 @@ class BaselineInterpreterHandler {
   // include them.
   bool mustIncludeSlotsInStackCheck() const { return true; }
 
-  JSObject* maybeNoCloneSingletonObject() { return nullptr; }
+  bool canHaveFixedSlots() const { return true; }
 };
 
 using BaselineInterpreterCodeGen = BaselineCodeGen<BaselineInterpreterHandler>;

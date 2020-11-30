@@ -4,87 +4,95 @@
     "description": "APIs supporting urlbar experiments",
     "types": [
       {
-        "id": "BrowserUpdateStatus",
-        "type": "string",
-        "enum": ["checking", "downloadAndInstall", "downloadFailed", "downloading", "manualUpdate", "neverChecked", "noUpdater", "noUpdatesFound", "otherInstanceHandlingUpdates", "readyForRestart", "staging", "unsupportedSystem", "updateDisabledByPolicy"],
-        "description": "The browser's current update state. Each value corresponds to an AppUpdater.STATUS value."
+        "id": "DynamicResultType",
+        "type": "object",
+        "description": "Describes a dynamic result type.",
+        "properties": {
+          "viewTemplate": {
+            "type": "object",
+            "description": "An object describing the type's view.",
+            "additionalProperties": true
+          }
+        }
       }
     ],
     "properties": {
       "engagementTelemetry": {
         "$ref": "types.Setting",
         "description": "Enables or disables the engagement telemetry for the current browser session."
-      },
-      "openViewOnFocus": {
-        "$ref": "types.Setting",
-        "description": "Enables or disables the open-view-on-focus mode for the current browser session."
       }
     },
+    "events": [
+      {
+        "name": "onViewUpdateRequested",
+        "type": "function",
+        "description": "Fired when the urlbar view updates the view of one of the results of the provider.",
+        "parameters": [
+          {
+            "name": "payload",
+            "type": "object",
+            "description": "The result's payload."
+          }
+        ],
+        "extraParameters": [
+          {
+            "name": "providerName",
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]+$",
+            "description": "The name of the provider you want to provide updates for."
+          }
+        ],
+        "returns": {
+          "type": "object",
+          "description": "An object describing the view update."
+        }
+      }
+    ],
     "functions": [
       {
-        "name": "checkForBrowserUpdate",
+        "name": "addDynamicResultType",
         "type": "function",
         "async": true,
-        "description": "Checks for an update to the app. If an update is available and the user's preferences allow, the update will automatically be downloaded and installed. This function will not restart the browser, however.",
-        "parameters": []
+        "description": "Adds a dynamic result type. See UrlbarResult.addDynamicResultType().",
+        "parameters": [
+          {
+            "name": "name",
+            "type": "string",
+            "description": "The name of the result type."
+          },
+          {
+            "name": "type",
+            "type": "object",
+            "default": {},
+            "optional": true,
+            "description": "The result type. Currently this should be an empty object (which is the default value)."
+          }
+        ]
+      },
+      {
+        "name": "addDynamicViewTemplate",
+        "type": "function",
+        "async": true,
+        "description": "Adds a view template for a dynamic result type. See UrlbarView.addDynamicViewTemplate().",
+        "parameters": [
+          {
+            "name": "name",
+            "type": "string",
+            "description": "The view template will be registered for the dynamic result type with this name."
+          },
+          {
+            "name": "viewTemplate",
+            "type": "object",
+            "additionalProperties":  true,
+            "description": "The view template."
+          }
+        ]
       },
       {
         "name": "clearInput",
         "type": "function",
         "async": true,
         "description": "Sets urlbar.value to the empty string and the pageproxystate to invalid.",
-        "parameters": []
-      },
-      {
-        "name": "getBrowserUpdateStatus",
-        "type": "function",
-        "async": true,
-        "description": "Returns the browser's current update status. The return value is one of the <code>BrowserUpdateStatus</code> enums.",
-        "parameters": []
-      },
-      {
-        "name": "installBrowserUpdateAndRestart",
-        "type": "function",
-        "async": true,
-        "description": "If an update is available and the updater is ready to download it, this function downloads and installs it, and if the user's preferences allow, the browser is then restarted. If an update isn't available or the updater isn't ready to download it, this function does nothing.",
-        "parameters": [],
-        "requireUserInput": true
-      },
-      {
-        "name": "isBrowserShowingNotification",
-        "type": "function",
-        "async": true,
-        "description": "Returns true if the browser is showing any kind of notification.",
-        "parameters": []
-      },
-      {
-        "name": "lastBrowserUpdateDate",
-        "type": "function",
-        "async": true,
-        "description": "Returns the date of the last browser update. If there's no update history, then the date the profile was first used is returned instead. The return value is milliseconds since 1 January 1970 UTC (i.e., suitable for passing to <code>new Date()</code>).",
-        "parameters": []
-      },
-      {
-        "name": "openClearHistoryDialog",
-        "type": "function",
-        "async": true,
-        "description": "Shows the 'Clear Recent History' dialog unless the user is in Private Browsing Mode.",
-        "parameters": [],
-        "requireUserInput": true
-      },
-      {
-        "name": "restartBrowser",
-        "type": "function",
-        "async": true,
-        "description": "Restarts the application.",
-        "requireUserInput": true,
-        "parameters": []
-      },
-      {
-        "name": "resetBrowser",
-        "type": "function",
-        "async": true,
-        "description": "Opens a confirmation dialogue asking if the user wants to reset their profile.",
         "parameters": []
       }
     ]

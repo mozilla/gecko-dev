@@ -5,138 +5,192 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "DisplayItemCache.h"
+#include "nsDisplayList.h"
 
 namespace mozilla {
 namespace layers {
 
-void DisplayItemCache::UpdateState(const bool aPartialDisplayListBuildFailed,
-                                   const wr::PipelineId& aPipelineId) {
+DisplayItemCache::DisplayItemCache()
+    : mDisplayList(nullptr),
+      mMaximumSize(0),
+      mPipelineId{},
+      mCaching(false),
+      mInvalid(false),
+      mSuppressed(false) {}
+
+void DisplayItemCache::SetDisplayList(nsDisplayListBuilder* aBuilder,
+                                      nsDisplayList* aList) {
   if (!IsEnabled()) {
     return;
   }
 
-  // Clear the cache if the partial display list build failed, or if the
-  // pipeline id changed.
-  const bool clearCache =
-      UpdatePipelineId(aPipelineId) || aPartialDisplayListBuildFailed;
+  MOZ_ASSERT(aBuilder);
+  MOZ_ASSERT(aList);
 
-  if (clearCache) {
-    memset(mCachedItemState.Elements(), 0,
-           mCachedItemState.Length() * sizeof(CacheEntry));
-    mNextIndex = 0;
-    mFreeList.Clear();
-  }
+  const bool listChanged = mDisplayList != aList;
+  const bool partialBuild = !aBuilder->PartialBuildFailed();
 
-  PopulateFreeList(clearCache);
-}
-
-void DisplayItemCache::PopulateFreeList(const bool aAddAll) {
-  uint16_t index = 0;
-  for (auto& state : mCachedItemState) {
-    if (aAddAll || (!state.mUsed && state.mCached)) {
-      // This entry contained a cached item, but was not used.
-      state.mCached = false;
-      mFreeList.AppendElement(index);
-    }
-
-    state.mUsed = false;
-    index++;
-  }
-}
-
-static bool CanCacheItem(const nsPaintedDisplayItem* aItem) {
-  // Only cache leaf display items that can be reused.
-  if (!aItem->CanBeReused()) {
-    return false;
-  }
-
-  return aItem->CanBeCached();
-}
-
-void DisplayItemCache::MaybeStartCaching(nsPaintedDisplayItem* aItem,
-                                         wr::DisplayListBuilder& aBuilder) {
-  if (!IsEnabled()) {
+  if (listChanged && partialBuild) {
+    // If the display list changed during a partial update, it means that
+    // |SetDisplayList()| has missed one rebuilt display list.
+    mDisplayList = nullptr;
     return;
   }
 
-  Stats().AddTotal();
-
-  auto& index = aItem->CacheIndex();
-  if (!index) {
-    if (!CanCacheItem(aItem)) {
-      // The item cannot be cached.
-      return;
-    }
-
-    index = GetNextCacheIndex();
-    if (!index) {
-      // The item does not fit in the cache.
-      return;
-    }
+  if (listChanged || !partialBuild) {
+    // The display list has been changed or rebuilt.
+    mDisplayList = aList;
+    mInvalid = true;
   }
 
-  // Update the current cache index, which is used by |MaybeEndCaching()| below.
-  MOZ_ASSERT(!mCurrentIndex);
-  mCurrentIndex = index;
-
-  MOZ_ASSERT(CanCacheItem(aItem));
-  MOZ_ASSERT(mCurrentIndex && CurrentCacheSize() > *mCurrentIndex);
-
-  aBuilder.StartCachedItem(*mCurrentIndex);
+  UpdateState();
 }
 
-void DisplayItemCache::MaybeEndCaching(wr::DisplayListBuilder& aBuilder) {
-  if (!IsEnabled() || !mCurrentIndex) {
+void DisplayItemCache::SetPipelineId(const wr::PipelineId& aPipelineId) {
+  mInvalid = mInvalid || !(mPipelineId == aPipelineId);
+  mPipelineId = aPipelineId;
+}
+
+void DisplayItemCache::UpdateState() {
+  // |mCaching == true| if:
+  // 1) |SetDisplayList()| is called with a fully rebuilt display list
+  // followed by
+  // 2a) |SetDisplayList()| is called with a partially updated display list
+  // or
+  // 2b) |SkipWaitingForPartialDisplayList()| is called
+  mCaching = !mInvalid;
+
+#if 0
+  Stats().Print();
+  Stats().Reset();
+#endif
+
+  if (IsEmpty()) {
+    // The cache is empty so nothing needs to be updated.
+    mInvalid = false;
     return;
   }
 
-  if (aBuilder.EndCachedItem(*mCurrentIndex)) {
-    // Caching of the item succeeded, update the cached item state.
-    auto& state = mCachedItemState[*mCurrentIndex];
-    MOZ_ASSERT(!state.mCached);
-    state.mCached = true;
-    MOZ_ASSERT(!state.mUsed);
-    state.mUsed = true;
-    state.mSpaceAndClip = aBuilder.CurrentSpaceAndClipChain();
-
-    Stats().AddCached();
+  // Clear the cache if the current state is invalid.
+  if (mInvalid) {
+    Clear();
+  } else {
+    FreeUnusedSlots();
   }
 
-  mCurrentIndex = Nothing();
+  mInvalid = false;
 }
 
-bool DisplayItemCache::ReuseItem(nsPaintedDisplayItem* aItem,
-                                 wr::DisplayListBuilder& aBuilder) {
-  if (!IsEnabled()) {
+void DisplayItemCache::Clear() {
+  memset(mSlots.Elements(), 0, mSlots.Length() * sizeof(Slot));
+  mFreeSlots.ClearAndRetainStorage();
+
+  for (size_t i = 0; i < CurrentSize(); ++i) {
+    mFreeSlots.AppendElement(i);
+  }
+}
+
+Maybe<uint16_t> DisplayItemCache::GetNextFreeSlot() {
+  if (mFreeSlots.IsEmpty() && !GrowIfPossible()) {
+    return Nothing();
+  }
+
+  return Some(mFreeSlots.PopLastElement());
+}
+
+bool DisplayItemCache::GrowIfPossible() {
+  if (IsFull()) {
     return false;
   }
 
-  auto& index = aItem->CacheIndex();
-  if (!index) {
-    return false;
-  }
+  const auto currentSize = CurrentSize();
+  MOZ_ASSERT(currentSize <= mMaximumSize);
 
-  auto& state = mCachedItemState[*index];
-  if (!state.mCached) {
-    // The display item has a stale cache state.
-    return false;  // Recache item.
-  }
-
-  // Spatial id and clip id can change between display lists.
-  if (!(aBuilder.CurrentSpaceAndClipChain() == state.mSpaceAndClip)) {
-    // TODO(miko): Technically we might be able to update just the changed data
-    // here but it adds a lot of complexity.
-    // Mark the cache state false and recache the item.
-    state.mCached = false;
-    return false;
-  }
-
-  Stats().AddReused();
-  Stats().AddTotal();
-
-  state.mUsed = true;
-  aBuilder.ReuseItem(*index);
+  // New slots are added one by one, which is amortized O(1) time complexity due
+  // to underlying storage implementation.
+  mSlots.AppendElement();
+  mFreeSlots.AppendElement(currentSize);
   return true;
+}
+
+void DisplayItemCache::FreeUnusedSlots() {
+  for (size_t i = 0; i < CurrentSize(); ++i) {
+    auto& slot = mSlots[i];
+
+    if (!slot.mUsed && slot.mOccupied) {
+      // This entry contained a cached item, but was not used.
+      slot.mOccupied = false;
+      mFreeSlots.AppendElement(i);
+    }
+
+    slot.mUsed = false;
+  }
+}
+
+void DisplayItemCache::SetCapacity(const size_t aInitialSize,
+                                   const size_t aMaximumSize) {
+  mMaximumSize = aMaximumSize;
+  mSlots.SetLength(aInitialSize);
+  mFreeSlots.SetCapacity(aMaximumSize);
+  Clear();
+}
+
+Maybe<uint16_t> DisplayItemCache::AssignSlot(nsPaintedDisplayItem* aItem) {
+  if (!mCaching || !aItem->CanBeReused() || !aItem->CanBeCached()) {
+    return Nothing();
+  }
+
+  auto& slot = aItem->CacheIndex();
+
+  if (!slot) {
+    slot = GetNextFreeSlot();
+    if (!slot) {
+      // The item does not fit in the cache.
+      return Nothing();
+    }
+  }
+
+  MOZ_ASSERT(slot && CurrentSize() > *slot);
+  return slot;
+}
+
+void DisplayItemCache::MarkSlotOccupied(
+    uint16_t aSlotIndex, const wr::WrSpaceAndClipChain& aSpaceAndClip) {
+  // Caching of the item succeeded, update the slot state.
+  auto& slot = mSlots[aSlotIndex];
+  MOZ_ASSERT(!slot.mOccupied);
+  slot.mOccupied = true;
+  MOZ_ASSERT(!slot.mUsed);
+  slot.mUsed = true;
+  slot.mSpaceAndClip = aSpaceAndClip;
+}
+
+Maybe<uint16_t> DisplayItemCache::CanReuseItem(
+    nsPaintedDisplayItem* aItem, const wr::WrSpaceAndClipChain& aSpaceAndClip) {
+  auto& slotIndex = aItem->CacheIndex();
+  if (!slotIndex) {
+    return Nothing();
+  }
+
+  MOZ_ASSERT(slotIndex && CurrentSize() > *slotIndex);
+
+  auto& slot = mSlots[*slotIndex];
+  if (!slot.mOccupied) {
+    // The display item has a stale cache slot. Recache the item.
+    return Nothing();
+  }
+
+  if (!(aSpaceAndClip == slot.mSpaceAndClip)) {
+    // Spatial id and clip id can change between display lists, if items that
+    // generate them change their order.
+    slot.mOccupied = false;
+    aItem->SetCantBeCached();
+    slotIndex = Nothing();
+  } else {
+    slot.mUsed = true;
+  }
+
+  return slotIndex;
 }
 
 }  // namespace layers

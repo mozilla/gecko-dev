@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef MOZILLA_SVGCONTENTUTILS_H
-#define MOZILLA_SVGCONTENTUTILS_H
+#ifndef DOM_SVG_SVGCONTENTUTILS_H_
+#define DOM_SVG_SVGCONTENTUTILS_H_
 
 // include math.h to pick up definition of M_ maths defines e.g. M_PI
 #include <math.h>
@@ -71,30 +71,19 @@ enum SVGTransformTypes {
 
 /**
  * Functions generally used by SVG Content classes. Functions here
- * should not generally depend on layout methods/classes e.g. nsSVGUtils
+ * should not generally depend on layout methods/classes e.g. SVGUtils
  */
 class SVGContentUtils {
  public:
-  typedef mozilla::gfx::Float Float;
-  typedef mozilla::gfx::Matrix Matrix;
-  typedef mozilla::gfx::Rect Rect;
-  typedef mozilla::gfx::StrokeOptions StrokeOptions;
+  using Float = gfx::Float;
+  using Matrix = gfx::Matrix;
+  using Rect = gfx::Rect;
+  using StrokeOptions = gfx::StrokeOptions;
 
   /*
    * Get the outer SVG element of an nsIContent
    */
   static dom::SVGSVGElement* GetOuterSVGElement(dom::SVGElement* aSVGElement);
-
-  /**
-   * Activates the animation element aContent as a result of navigation to the
-   * fragment identifier that identifies aContent. aContent must be an instance
-   * of nsSVGAnimationElement.
-   *
-   * This is just a shim to allow nsSVGAnimationElement::ActivateByHyperlink to
-   * be called from layout/base without adding to that directory's include
-   * paths.
-   */
-  static void ActivateByHyperlink(nsIContent* aContent);
 
   /**
    * Moz2D's StrokeOptions requires someone else to own its mDashPattern
@@ -321,7 +310,8 @@ class SVGContentUtils {
    * Converts a LengthPercentage into a userspace value, resolving percentage
    * values relative to aContent's SVG viewport.
    */
-  static float CoordToFloat(dom::SVGElement* aContent, const LengthPercentage&);
+  static float CoordToFloat(dom::SVGElement* aContent, const LengthPercentage&,
+                            uint8_t aCtxType = SVGContentUtils::XY);
   /**
    * Parse the SVG path string
    * Returns a path
@@ -347,4 +337,4 @@ class SVGContentUtils {
 
 }  // namespace mozilla
 
-#endif
+#endif  // DOM_SVG_SVGCONTENTUTILS_H_

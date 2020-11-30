@@ -24,6 +24,9 @@ Review groups
    * - Name
      - Owns
      - Members
+   * - #build or #firefox-build-system-reviewers
+     - The configure & build system
+     - `Member list <https://phabricator.services.mozilla.com/project/members/20/>`__
    * - #dom-workers-and-storage-reviewers
      - DOM Workers & Storage
      - `Member list <https://phabricator.services.mozilla.com/project/members/115/>`__
@@ -33,15 +36,9 @@ Review groups
    * - #fluent-reviewers
      - Changes to Fluent (FTL) files (translation).
      - `Member list <https://phabricator.services.mozilla.com/project/members/105/>`__
-   * - #firefox-build-system-reviewers
-     - The configure & build system
-     - `Member list <https://phabricator.services.mozilla.com/project/members/20/>`__
    * - #firefox-source-docs-reviewers
      - Documentation files and its build
      - `Member list <https://phabricator.services.mozilla.com/project/members/118/>`__
-   * - #firefox-style-system-reviewers
-     - Firefox style system
-     - `Member list <https://phabricator.services.mozilla.com/project/members/90/>`__
    * - #firefox-ux-team
      - User experience (UX)
      - `Member list <https://phabricator.services.mozilla.com/project/members/91/>`__
@@ -51,9 +48,15 @@ Review groups
    * - #geckoview-reviewers
      - Changes to GeckoView
      - `Member list <https://phabricator.services.mozilla.com/project/members/92/>`__
+   * - #gfx-reviewers
+     - Changes to Graphics code
+     - `Member list <https://phabricator.services.mozilla.com/project/members/122/>`__
    * - #intermittent-reviewers
      - Test manifest changes
      - `Member list <https://phabricator.services.mozilla.com/project/members/110/>`__
+   * - #layout-reviewers
+     - Layout changes.
+     - `Member list <https://phabricator.services.mozilla.com/project/members/126/>`__
    * - #linter-reviewers
      - tools/lint/*
      - `Member list <https://phabricator.services.mozilla.com/project/members/119/>`__
@@ -69,6 +72,9 @@ Review groups
    * - #perftest-reviewers
      - Perf Tests
      - `Member list <https://phabricator.services.mozilla.com/project/members/102/>`__
+   * - #preferences-reviewers
+     - Firefox for Desktop Preferences (Options) user interface
+     - `Member list <https://phabricator.services.mozilla.com/project/members/132/>`__
    * - #remote-protocol-reviewers
      - Remote protocol
      - `Member list <https://phabricator.services.mozilla.com/project/members/101/>`__
@@ -78,6 +84,12 @@ Review groups
    * - #static-analysis-reviewers
      - Changes related to Static Analysis
      - `Member list <https://phabricator.services.mozilla.com/project/members/120/>`__
+   * - #style or #firefox-style-system-reviewers
+     - Firefox style system (servo, layout/style).
+     - `Member list <https://phabricator.services.mozilla.com/project/members/90/>`__
+   * - #webcompat-reviewers
+     - System addons maintained by the Web Compatibility team
+     - `Member list <https://phabricator.services.mozilla.com/project/members/124/>`__
    * - #webdriver-reviewers
      - Marionette and Geckodriver in Firefox
      - `Member list <https://phabricator.services.mozilla.com/project/members/103/>`__

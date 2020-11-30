@@ -14,7 +14,6 @@
 #include "mozilla/gfx/PathHelpers.h"
 #include "mozilla/gfx/Rect.h"
 #include "mozilla/TypedEnumBits.h"
-#include "nsLayoutUtils.h"
 #include "nsStyleStruct.h"
 #include "nsIFrame.h"
 #include "nsImageRenderer.h"
@@ -29,7 +28,7 @@ namespace mozilla {
 class ComputedStyle;
 
 namespace gfx {
-struct Color;
+struct sRGBColor;
 class DrawTarget;
 }  // namespace gfx
 
@@ -96,7 +95,7 @@ struct nsBackgroundLayerState {
 };
 
 struct nsCSSRendering {
-  typedef mozilla::gfx::Color Color;
+  typedef mozilla::gfx::sRGBColor sRGBColor;
   typedef mozilla::gfx::CompositionOp CompositionOp;
   typedef mozilla::gfx::DrawTarget DrawTarget;
   typedef mozilla::gfx::Float Float;
@@ -141,8 +140,8 @@ struct nsCSSRendering {
                              RectCornerRadii& aOutRadii);
   static nsRect GetShadowRect(const nsRect& aFrameArea, bool aNativeTheme,
                               nsIFrame* aForFrame);
-  static mozilla::gfx::Color GetShadowColor(const mozilla::StyleSimpleShadow&,
-                                            nsIFrame* aFrame, float aOpacity);
+  static mozilla::gfx::sRGBColor GetShadowColor(
+      const mozilla::StyleSimpleShadow&, nsIFrame* aFrame, float aOpacity);
   // Returns if the frame has a themed frame.
   // aMaybeHasBorderRadius will return false if we can early detect
   // that we don't have a border radius.
@@ -432,7 +431,12 @@ struct nsCSSRendering {
      * When this flag is passed, painting will read properties of mask-image
      * style, instead of background-image.
      */
-    PAINTBG_MASK_IMAGE = 0x08
+    PAINTBG_MASK_IMAGE = 0x08,
+    /**
+     * When this flag is passed, images are downscaled during decode. This
+     * is also implied by PAINTBG_TO_WINDOW.
+     */
+    PAINTBG_HIGH_QUALITY_SCALING = 0x16,
   };
 
   struct PaintBGParams {
@@ -672,39 +676,39 @@ struct nsCSSRendering {
   static nsRect GetTextDecorationRect(nsPresContext* aPresContext,
                                       const DecorationRectParams& aParams);
 
-  static CompositionOp GetGFXBlendMode(uint8_t mBlendMode) {
+  static CompositionOp GetGFXBlendMode(mozilla::StyleBlend mBlendMode) {
     switch (mBlendMode) {
-      case NS_STYLE_BLEND_NORMAL:
+      case mozilla::StyleBlend::Normal:
         return CompositionOp::OP_OVER;
-      case NS_STYLE_BLEND_MULTIPLY:
+      case mozilla::StyleBlend::Multiply:
         return CompositionOp::OP_MULTIPLY;
-      case NS_STYLE_BLEND_SCREEN:
+      case mozilla::StyleBlend::Screen:
         return CompositionOp::OP_SCREEN;
-      case NS_STYLE_BLEND_OVERLAY:
+      case mozilla::StyleBlend::Overlay:
         return CompositionOp::OP_OVERLAY;
-      case NS_STYLE_BLEND_DARKEN:
+      case mozilla::StyleBlend::Darken:
         return CompositionOp::OP_DARKEN;
-      case NS_STYLE_BLEND_LIGHTEN:
+      case mozilla::StyleBlend::Lighten:
         return CompositionOp::OP_LIGHTEN;
-      case NS_STYLE_BLEND_COLOR_DODGE:
+      case mozilla::StyleBlend::ColorDodge:
         return CompositionOp::OP_COLOR_DODGE;
-      case NS_STYLE_BLEND_COLOR_BURN:
+      case mozilla::StyleBlend::ColorBurn:
         return CompositionOp::OP_COLOR_BURN;
-      case NS_STYLE_BLEND_HARD_LIGHT:
+      case mozilla::StyleBlend::HardLight:
         return CompositionOp::OP_HARD_LIGHT;
-      case NS_STYLE_BLEND_SOFT_LIGHT:
+      case mozilla::StyleBlend::SoftLight:
         return CompositionOp::OP_SOFT_LIGHT;
-      case NS_STYLE_BLEND_DIFFERENCE:
+      case mozilla::StyleBlend::Difference:
         return CompositionOp::OP_DIFFERENCE;
-      case NS_STYLE_BLEND_EXCLUSION:
+      case mozilla::StyleBlend::Exclusion:
         return CompositionOp::OP_EXCLUSION;
-      case NS_STYLE_BLEND_HUE:
+      case mozilla::StyleBlend::Hue:
         return CompositionOp::OP_HUE;
-      case NS_STYLE_BLEND_SATURATION:
+      case mozilla::StyleBlend::Saturation:
         return CompositionOp::OP_SATURATION;
-      case NS_STYLE_BLEND_COLOR:
+      case mozilla::StyleBlend::Color:
         return CompositionOp::OP_COLOR;
-      case NS_STYLE_BLEND_LUMINOSITY:
+      case mozilla::StyleBlend::Luminosity:
         return CompositionOp::OP_LUMINOSITY;
       default:
         MOZ_ASSERT(false);
@@ -712,15 +716,16 @@ struct nsCSSRendering {
     }
   }
 
-  static CompositionOp GetGFXCompositeMode(uint8_t aCompositeMode) {
+  static CompositionOp GetGFXCompositeMode(
+      mozilla::StyleMaskComposite aCompositeMode) {
     switch (aCompositeMode) {
-      case NS_STYLE_MASK_COMPOSITE_ADD:
+      case mozilla::StyleMaskComposite::Add:
         return CompositionOp::OP_OVER;
-      case NS_STYLE_MASK_COMPOSITE_SUBTRACT:
+      case mozilla::StyleMaskComposite::Subtract:
         return CompositionOp::OP_OUT;
-      case NS_STYLE_MASK_COMPOSITE_INTERSECT:
+      case mozilla::StyleMaskComposite::Intersect:
         return CompositionOp::OP_IN;
-      case NS_STYLE_MASK_COMPOSITE_EXCLUDE:
+      case mozilla::StyleMaskComposite::Exclude:
         return CompositionOp::OP_XOR;
       default:
         MOZ_ASSERT(false);
@@ -770,7 +775,7 @@ struct nsCSSRendering {
  * This is very useful for creating drop shadows or silhouettes.
  */
 class nsContextBoxBlur {
-  typedef mozilla::gfx::Color Color;
+  typedef mozilla::gfx::sRGBColor sRGBColor;
   typedef mozilla::gfx::DrawTarget DrawTarget;
   typedef mozilla::gfx::RectCornerRadii RectCornerRadii;
 
@@ -877,8 +882,8 @@ class nsContextBoxBlur {
   static void BlurRectangle(gfxContext* aDestinationCtx, const nsRect& aRect,
                             int32_t aAppUnitsPerDevPixel,
                             RectCornerRadii* aCornerRadii, nscoord aBlurRadius,
-                            const Color& aShadowColor, const nsRect& aDirtyRect,
-                            const gfxRect& aSkipRect);
+                            const sRGBColor& aShadowColor,
+                            const nsRect& aDirtyRect, const gfxRect& aSkipRect);
 
   /**
    * Draws a blurred inset box shadow shape onto the destination surface.
@@ -906,7 +911,7 @@ class nsContextBoxBlur {
   bool InsetBoxBlur(gfxContext* aDestinationCtx,
                     mozilla::gfx::Rect aDestinationRect,
                     mozilla::gfx::Rect aShadowClipRect,
-                    mozilla::gfx::Color& aShadowColor,
+                    mozilla::gfx::sRGBColor& aShadowColor,
                     nscoord aBlurRadiusAppUnits, nscoord aSpreadRadiusAppUnits,
                     int32_t aAppUnitsPerDevPixel, bool aHasBorderRadius,
                     RectCornerRadii& aInnerClipRectRadii,

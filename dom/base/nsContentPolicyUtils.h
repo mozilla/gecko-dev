@@ -99,7 +99,6 @@ inline const char* NS_CP_ContentTypeName(uint32_t contentType) {
     CASE_RETURN(TYPE_DOCUMENT);
     CASE_RETURN(TYPE_SUBDOCUMENT);
     CASE_RETURN(TYPE_REFRESH);
-    CASE_RETURN(TYPE_XBL);
     CASE_RETURN(TYPE_PING);
     CASE_RETURN(TYPE_XMLHTTPREQUEST);
     CASE_RETURN(TYPE_OBJECT_SUBREQUEST);
@@ -139,6 +138,12 @@ inline const char* NS_CP_ContentTypeName(uint32_t contentType) {
     CASE_RETURN(TYPE_INTERNAL_MODULE_PRELOAD);
     CASE_RETURN(TYPE_INTERNAL_DTD);
     CASE_RETURN(TYPE_INTERNAL_FORCE_ALLOWED_DTD);
+    CASE_RETURN(TYPE_INTERNAL_AUDIOWORKLET);
+    CASE_RETURN(TYPE_INTERNAL_PAINTWORKLET);
+    CASE_RETURN(TYPE_INTERNAL_FONT_PRELOAD);
+    CASE_RETURN(TYPE_INTERNAL_CHROMEUTILS_COMPILED_SCRIPT);
+    CASE_RETURN(TYPE_INTERNAL_FRAME_MESSAGEMANAGER_SCRIPT);
+    CASE_RETURN(TYPE_INTERNAL_FETCH_PRELOAD);
     default:
       return "<Unknown Type>";
   }
@@ -168,46 +173,39 @@ inline const char* NS_CP_ContentTypeName(uint32_t contentType) {
  *
  * Note: requestOrigin is scoped outside the PR_BEGIN_MACRO/PR_END_MACRO on
  * purpose */
-#define CHECK_PRINCIPAL_CSP_AND_DATA(action)                                  \
-  nsCOMPtr<nsIURI> requestOrigin;                                             \
-  PR_BEGIN_MACRO                                                              \
-  if (loadingPrincipal) {                                                     \
-    /* We exempt most loads into any document with the system principal       \
-     * from content policy (escept CSP) checks, mostly as an optimization.    \
-     * Which means that we need to apply this check to the loading principal, \
-     * not the principal that triggered the load. */                          \
-    bool isSystem = loadingPrincipal->IsSystemPrincipal();                    \
-    if (isSystem) {                                                           \
-      /* Check CSP for System Privileged pages */                             \
-      CSPService::ConsultCSP(contentLocation, loadInfo, mimeType, decision);  \
-      if (NS_CP_REJECTED(*decision)) {                                        \
-        return NS_OK;                                                         \
-      }                                                                       \
-      if (contentType != nsIContentPolicy::TYPE_DOCUMENT) {                   \
-        *decision = nsIContentPolicy::ACCEPT;                                 \
-        nsCOMPtr<nsINode> n = do_QueryInterface(context);                     \
-        if (!n) {                                                             \
-          nsCOMPtr<nsPIDOMWindowOuter> win = do_QueryInterface(context);      \
-          n = win ? win->GetExtantDoc() : nullptr;                            \
-        }                                                                     \
-        if (n) {                                                              \
-          mozilla::dom::Document* d = n->OwnerDoc();                          \
-          if (d->IsLoadedAsData() || d->IsBeingUsedAsImage() ||               \
-              d->IsResourceDoc()) {                                           \
-            nsCOMPtr<nsIContentPolicy> dataPolicy =                           \
-                do_GetService("@mozilla.org/data-document-content-policy;1"); \
-            if (dataPolicy) {                                                 \
-              dataPolicy->action(contentLocation, loadInfo, mimeType,         \
-                                 decision);                                   \
-            }                                                                 \
-          }                                                                   \
-        }                                                                     \
-      }                                                                       \
-      return NS_OK;                                                           \
-    }                                                                         \
-    nsresult rv = loadingPrincipal->GetURI(getter_AddRefs(requestOrigin));    \
-    NS_ENSURE_SUCCESS(rv, rv);                                                \
-  }                                                                           \
+#define CHECK_PRINCIPAL_CSP_AND_DATA(action)                                   \
+  PR_BEGIN_MACRO                                                               \
+  if (loadingPrincipal && loadingPrincipal->IsSystemPrincipal()) {             \
+    /* We exempt most loads into any document with the system principal        \
+     * from content policy (except CSP) checks, mostly as an optimization.     \
+     * Which means that we need to apply this check to the loading principal,  \
+     * not the principal that triggered the load. */                           \
+    /* Check CSP for System Privileged pages */                                \
+    CSPService::ConsultCSP(contentLocation, loadInfo, mimeType, decision);     \
+    if (NS_CP_REJECTED(*decision)) {                                           \
+      return NS_OK;                                                            \
+    }                                                                          \
+    if (contentType != nsIContentPolicy::TYPE_DOCUMENT) {                      \
+      *decision = nsIContentPolicy::ACCEPT;                                    \
+      nsCOMPtr<nsINode> n = do_QueryInterface(context);                        \
+      if (!n) {                                                                \
+        nsCOMPtr<nsPIDOMWindowOuter> win = do_QueryInterface(context);         \
+        n = win ? win->GetExtantDoc() : nullptr;                               \
+      }                                                                        \
+      if (n) {                                                                 \
+        mozilla::dom::Document* d = n->OwnerDoc();                             \
+        if (d->IsLoadedAsData() || d->IsBeingUsedAsImage() ||                  \
+            d->IsResourceDoc()) {                                              \
+          nsCOMPtr<nsIContentPolicy> dataPolicy =                              \
+              do_GetService("@mozilla.org/data-document-content-policy;1");    \
+          if (dataPolicy) {                                                    \
+            dataPolicy->action(contentLocation, loadInfo, mimeType, decision); \
+          }                                                                    \
+        }                                                                      \
+      }                                                                        \
+    }                                                                          \
+    return NS_OK;                                                              \
+  }                                                                            \
   PR_END_MACRO
 
 /**
@@ -223,7 +221,7 @@ inline const char* NS_CP_ContentTypeName(uint32_t contentType) {
 inline nsresult NS_CheckContentLoadPolicy(
     nsIURI* contentLocation, nsILoadInfo* loadInfo, const nsACString& mimeType,
     int16_t* decision, nsIContentPolicy* policyService = nullptr) {
-  nsIPrincipal* loadingPrincipal = loadInfo->LoadingPrincipal();
+  nsIPrincipal* loadingPrincipal = loadInfo->GetLoadingPrincipal();
   nsCOMPtr<nsISupports> context = loadInfo->GetLoadingContext();
   nsContentPolicyType contentType = loadInfo->InternalContentPolicyType();
   CHECK_PRINCIPAL_CSP_AND_DATA(ShouldLoad);
@@ -239,7 +237,7 @@ inline nsresult NS_CheckContentLoadPolicy(
 inline nsresult NS_CheckContentProcessPolicy(
     nsIURI* contentLocation, nsILoadInfo* loadInfo, const nsACString& mimeType,
     int16_t* decision, nsIContentPolicy* policyService = nullptr) {
-  nsIPrincipal* loadingPrincipal = loadInfo->LoadingPrincipal();
+  nsIPrincipal* loadingPrincipal = loadInfo->GetLoadingPrincipal();
   nsCOMPtr<nsISupports> context = loadInfo->GetLoadingContext();
   nsContentPolicyType contentType = loadInfo->InternalContentPolicyType();
   CHECK_PRINCIPAL_CSP_AND_DATA(ShouldProcess);

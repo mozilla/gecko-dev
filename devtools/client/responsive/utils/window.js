@@ -10,7 +10,7 @@ const Services = require("Services");
  * Returns the `nsIDOMWindow` toplevel window for any child/inner window
  */
 function getTopLevelWindow(window) {
-  return window.docShell.rootTreeItem.domWindow;
+  return window.browsingContext.topChromeWindow;
 }
 exports.getTopLevelWindow = getTopLevelWindow;
 
@@ -23,8 +23,7 @@ exports.getDOMWindowUtils = getDOMWindowUtils;
  * Check if the given browser window has finished the startup.
  * @params {nsIDOMWindow} window
  */
-const isStartupFinished = window =>
-  window.gBrowserInit && window.gBrowserInit.delayedStartupFinished;
+const isStartupFinished = window => window.gBrowserInit?.delayedStartupFinished;
 
 function startup(window) {
   return new Promise(resolve => {

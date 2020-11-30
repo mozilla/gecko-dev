@@ -21,6 +21,23 @@ impl Key {
     }
 }
 
+impl NodeTypeIdAccessor for Key {
+    fn get_type_id(&self) -> NodeTypeId {
+        self.type_id
+    }
+}
+
+impl SourceLocationAccessor for Key {
+    fn set_loc(&mut self, start: SourceLocation, end: SourceLocation) {
+        self.loc.start = start.start;
+        self.loc.end = end.end;
+    }
+
+    fn get_loc(&self) -> SourceLocation {
+        self.loc
+    }
+}
+
 #[derive(Debug)]
 struct Item<ValueT> {
     key: Key,

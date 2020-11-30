@@ -23,7 +23,6 @@
 #include "nsContentUtils.h"
 #include "mozilla/dom/nsMixedContentBlocker.h"
 #include "nsIContentSecurityPolicy.h"
-#include "mozilla/dom/TabGroup.h"
 #include "mozilla/TaskCategory.h"
 
 class nsIDOMWindow;
@@ -67,7 +66,6 @@ inline nsresult nsContentPolicy::CheckPolicy(CPMethod policyMethod,
                                              nsILoadInfo* loadInfo,
                                              const nsACString& mimeType,
                                              int16_t* decision) {
-  nsContentPolicyType contentType = loadInfo->InternalContentPolicyType();
   nsCOMPtr<nsISupports> requestingContext = loadInfo->GetLoadingContext();
   // sanity-check passed-through parameters
   MOZ_ASSERT(decision, "Null out pointer");
@@ -92,9 +90,6 @@ inline nsresult nsContentPolicy::CheckPolicy(CPMethod policyMethod,
   if (!doc) {
     doc = do_QueryInterface(requestingContext);
   }
-
-  nsContentPolicyType externalType =
-      nsContentUtils::InternalContentPolicyTypeToExternal(contentType);
 
   /*
    * Enumerate mPolicies and ask each of them, taking the logical AND of
@@ -125,16 +120,6 @@ inline nsresult nsContentPolicy::CheckPolicy(CPMethod policyMethod,
                                      decision);
 
     if (NS_SUCCEEDED(rv) && NS_CP_REJECTED(*decision)) {
-      // If we are blocking an image, we have to let the
-      // ImageLoadingContent know that we blocked the load.
-      if (externalType == nsIContentPolicy::TYPE_IMAGE ||
-          externalType == nsIContentPolicy::TYPE_IMAGESET) {
-        nsCOMPtr<nsIImageLoadingContent> img =
-            do_QueryInterface(requestingContext);
-        if (img) {
-          img->SetBlockedRequest(*decision);
-        }
-      }
       /* policy says no, no point continuing to check */
       return NS_OK;
     }

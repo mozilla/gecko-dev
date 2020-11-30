@@ -8,6 +8,8 @@ use alloc::vec::Vec;
 use core::fmt::{self, Display, Formatter};
 use core::str::FromStr;
 use core::{i32, u32};
+#[cfg(feature = "enable-serde")]
+use serde::{Deserialize, Serialize};
 
 /// Convert a type into a vector of bytes; all implementors in this file must use little-endian
 /// orderings of bytes to match WebAssembly's little-endianness.
@@ -56,6 +58,26 @@ impl Imm64 {
     /// Return self negated.
     pub fn wrapping_neg(self) -> Self {
         Self(self.0.wrapping_neg())
+    }
+
+    /// Return bits of this immediate.
+    pub fn bits(&self) -> i64 {
+        self.0
+    }
+
+    /// Sign extend this immediate as if it were a signed integer of the given
+    /// power-of-two width.
+    pub fn sign_extend_from_width(&mut self, bit_width: u16) {
+        debug_assert!(bit_width.is_power_of_two());
+
+        if bit_width >= 64 {
+            return;
+        }
+
+        let bit_width = bit_width as i64;
+        let delta = 64 - bit_width;
+        let sign_extended = (self.0 << delta) >> delta;
+        *self = Imm64(sign_extended);
     }
 }
 
@@ -305,6 +327,7 @@ impl FromStr for Uimm32 {
 ///
 /// This is used as an immediate value in SIMD instructions.
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
+#[cfg_attr(feature = "enable-serde", derive(Serialize, Deserialize))]
 pub struct V128Imm(pub [u8; 16]);
 
 impl V128Imm {

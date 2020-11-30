@@ -138,6 +138,13 @@
                   }
                 },
                 "additionalProperties": { "$ref": "UnrecognizedProperty" }
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "service_worker": { "$ref": "ExtensionURL" }
+                },
+                "postprocess": "requireBackgroundServiceWorkerEnabled"
               }
             ],
             "optional": true
@@ -388,15 +395,26 @@
         "additionalProperties": { "$ref": "UnrecognizedProperty" }
       },
       {
+        "id": "OptionalPermissionNoPrompt",
+        "choices": [
+          {
+            "type": "string",
+            "enum": [
+              "idle"
+            ]
+          }
+        ]
+      },
+      {
         "id": "OptionalPermission",
         "choices": [
+          { "$ref": "OptionalPermissionNoPrompt" },
           {
             "type": "string",
             "enum": [
               "clipboardRead",
               "clipboardWrite",
               "geolocation",
-              "idle",
               "notifications"
             ]
           }
@@ -410,7 +428,7 @@
         ]
       },
       {
-        "id": "Permission",
+        "id": "PermissionNoPrompt",
         "choices": [
           { "$ref": "OptionalPermission" },
           {
@@ -422,6 +440,13 @@
               "unlimitedStorage"
             ]
           }
+        ]
+      },
+      {
+        "id": "Permission",
+        "choices": [
+          { "$ref": "PermissionNoPrompt" },
+          { "$ref": "OptionalPermission" }
         ]
       },
       {

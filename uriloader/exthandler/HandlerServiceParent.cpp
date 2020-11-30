@@ -105,9 +105,9 @@ NS_IMETHODIMP ProxyHandlerInfo::GetDefaultDescription(
 }
 
 /* void launchWithURI (in nsIURI aURI,
-                       [optional] in nsIInterfaceRequestor aWindowContext); */
+                       [optional] in BrowsingContext aBrowsingContext); */
 NS_IMETHODIMP ProxyHandlerInfo::LaunchWithURI(
-    nsIURI* aURI, nsIInterfaceRequestor* aWindowContext) {
+    nsIURI* aURI, mozilla::dom::BrowsingContext* aBrowsingContext) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -220,6 +220,11 @@ NS_IMETHODIMP ProxyMIMEInfo::GetPossibleLocalHandlers(
 
 /* void launchWithFile (in nsIFile aFile); */
 NS_IMETHODIMP ProxyMIMEInfo::LaunchWithFile(nsIFile* aFile) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+/* boolean isCurrentAppOSDefault(); */
+NS_IMETHODIMP ProxyMIMEInfo::IsCurrentAppOSDefault(bool* _retval) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 

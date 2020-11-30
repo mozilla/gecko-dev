@@ -5,6 +5,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "RenderTextureHost.h"
+
+#include "GLContext.h"
 #include "RenderThread.h"
 
 namespace mozilla {
@@ -37,6 +39,18 @@ RenderTextureHost::~RenderTextureHost() {
 
 bool RenderTextureHost::IsFilterUpdateNecessary(wr::ImageRendering aRendering) {
   return mCachedRendering != aRendering;
+}
+
+wr::WrExternalImage RenderTextureHost::Lock(uint8_t aChannelIndex,
+                                            gl::GLContext* aGL,
+                                            wr::ImageRendering aRendering) {
+  return InvalidToWrExternalImage();
+}
+
+wr::WrExternalImage RenderTextureHost::LockSWGL(uint8_t aChannelIndex,
+                                                void* aContext,
+                                                wr::ImageRendering aRendering) {
+  return InvalidToWrExternalImage();
 }
 
 }  // namespace wr

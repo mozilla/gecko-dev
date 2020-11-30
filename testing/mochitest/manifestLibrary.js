@@ -30,16 +30,17 @@ function parseTestManifest(testManifest, params, callback) {
         test: {
           url: name,
           expected: obj.expected,
-          "uses-unsafe-cpows": obj["uses-unsafe-cpows"],
         },
       };
     } else {
       let name = params.testPrefix + path;
+      if (params.xOriginTests && obj.scheme == "https") {
+        name = params.httpsBaseUrl + path;
+      }
       paths.push({
         test: {
           url: name,
           expected: obj.expected,
-          "uses-unsafe-cpows": obj["uses-unsafe-cpows"],
         },
       });
     }

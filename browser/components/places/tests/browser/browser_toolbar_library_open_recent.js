@@ -23,9 +23,9 @@ let openedTabs = [];
 
 async function openBookmarksPanelInLibraryToolbarButton() {
   let libraryBtn = document.getElementById("library-button");
+  libraryBtn.click();
   let libView = document.getElementById("appMenu-libraryView");
   let viewShownPromise = BrowserTestUtils.waitForEvent(libView, "ViewShown");
-  libraryBtn.click();
   await viewShownPromise;
 
   let bookmarksButton;
@@ -35,13 +35,13 @@ async function openBookmarksPanelInLibraryToolbarButton() {
     );
     return bookmarksButton;
   }, "Should have the library bookmarks button");
+  bookmarksButton.click();
 
   let BookmarksView = document.getElementById("PanelUI-bookmarks");
   let viewRecentPromise = BrowserTestUtils.waitForEvent(
     BookmarksView,
     "ViewShown"
   );
-  bookmarksButton.click();
   await viewRecentPromise;
 }
 

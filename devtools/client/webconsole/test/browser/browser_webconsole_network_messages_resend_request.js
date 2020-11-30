@@ -11,8 +11,15 @@ const TEST_FILE = "test-network-request.html";
 const TEST_PATH =
   "http://example.com/browser/devtools/client/webconsole/test/browser/";
 
+registerCleanupFunction(async function() {
+  await new Promise(resolve => {
+    Services.clearData.deleteData(Ci.nsIClearDataService.CLEAR_ALL, value =>
+      resolve()
+    );
+  });
+});
+
 add_task(async function task() {
-  await pushPref("devtools.target-switching.enabled", true);
   await pushPref("devtools.webconsole.filter.net", true);
 
   const hud = await openNewTabAndConsole(TEST_URI);

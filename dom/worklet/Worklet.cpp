@@ -12,6 +12,7 @@
 #include "mozilla/dom/BlobBinding.h"
 #include "mozilla/dom/Fetch.h"
 #include "mozilla/dom/PromiseNativeHandler.h"
+#include "mozilla/dom/Request.h"
 #include "mozilla/dom/Response.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/ScriptLoader.h"
@@ -70,10 +71,9 @@ class WorkletFetchHandler final : public PromiseNativeHandler,
  public:
   NS_DECL_THREADSAFE_ISUPPORTS
 
-  static already_AddRefed<Promise> Fetch(Worklet* aWorklet,
+  static already_AddRefed<Promise> Fetch(Worklet* aWorklet, JSContext* aCx,
                                          const nsAString& aModuleURL,
                                          const WorkletOptions& aOptions,
-                                         CallerType aCallerType,
                                          ErrorResult& aRv) {
     MOZ_ASSERT(aWorklet);
     MOZ_ASSERT(NS_IsMainThread());
@@ -121,14 +121,25 @@ class WorkletFetchHandler final : public PromiseNativeHandler,
       }
     }
 
-    RequestOrUSVString request;
-    request.SetAsUSVString().ShareOrDependUpon(aModuleURL);
+    RequestOrUSVString requestInput;
+    requestInput.SetAsUSVString().ShareOrDependUpon(aModuleURL);
 
-    RequestInit init;
-    init.mCredentials.Construct(aOptions.mCredentials);
+    RequestInit requestInit;
+    requestInit.mCredentials.Construct(aOptions.mCredentials);
 
-    RefPtr<Promise> fetchPromise =
-        FetchRequest(global, request, init, aCallerType, aRv);
+    SafeRefPtr<Request> request =
+        Request::Constructor(global, aCx, requestInput, requestInit, aRv);
+    if (aRv.Failed()) {
+      return nullptr;
+    }
+
+    request->OverrideContentPolicyType(aWorklet->Impl()->ContentPolicyType());
+
+    RequestOrUSVString finalRequestInput;
+    finalRequestInput.SetAsRequest() = request.unsafeGetRawPtr();
+
+    RefPtr<Promise> fetchPromise = FetchRequest(
+        global, finalRequestInput, requestInit, CallerType::System, aRv);
     if (NS_WARN_IF(aRv.Failed())) {
       // OK to just return null, since caller will ignore return value
       // anyway if aRv is a failure.
@@ -185,7 +196,7 @@ class WorkletFetchHandler final : public PromiseNativeHandler,
       return;
     }
 
-    rv = pump->AsyncRead(loader, nullptr);
+    rv = pump->AsyncRead(loader);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       RejectPromises(rv);
       return;
@@ -215,9 +226,9 @@ class WorkletFetchHandler final : public PromiseNativeHandler,
 
     JS::UniqueTwoByteChars scriptTextBuf;
     size_t scriptTextLength;
-    nsresult rv = ScriptLoader::ConvertToUTF16(
-        nullptr, aString, aStringLen, NS_LITERAL_STRING("UTF-8"), nullptr,
-        scriptTextBuf, scriptTextLength);
+    nsresult rv =
+        ScriptLoader::ConvertToUTF16(nullptr, aString, aStringLen, u"UTF-8"_ns,
+                                     nullptr, scriptTextBuf, scriptTextLength);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       RejectPromises(rv);
       return NS_OK;
@@ -264,7 +275,7 @@ class WorkletFetchHandler final : public PromiseNativeHandler,
     mPromises.AppendElement(aPromise);
   }
 
-  ~WorkletFetchHandler() {}
+  ~WorkletFetchHandler() = default;
 
   void AddPromise(Promise* aPromise) {
     MOZ_ASSERT(aPromise);
@@ -374,7 +385,10 @@ void ExecutionRunnable::RunOnWorkletThread() {
   workletThread->EnsureCycleCollectedJSContext(mParentRuntime);
 
   WorkletGlobalScope* globalScope = mWorkletImpl->GetGlobalScope();
-  MOZ_ASSERT(globalScope);
+  if (!globalScope) {
+    mResult = NS_ERROR_DOM_UNKNOWN_ERR;
+    return;
+  }
 
   AutoEntryScript aes(globalScope, "Worklet");
   JSContext* cx = aes.cx();
@@ -440,10 +454,6 @@ Worklet::Worklet(nsPIDOMWindowInner* aWindow, RefPtr<WorkletImpl> aImpl,
   MOZ_ASSERT(aWindow);
   MOZ_ASSERT(mImpl);
   MOZ_ASSERT(NS_IsMainThread());
-
-#ifdef RELEASE_OR_BETA
-  MOZ_CRASH("This code should not go to release/beta yet!");
-#endif
 }
 
 Worklet::~Worklet() { mImpl->NotifyWorkletFinished(); }
@@ -453,13 +463,13 @@ JSObject* Worklet::WrapObject(JSContext* aCx,
   return mImpl->WrapWorklet(aCx, this, aGivenProto);
 }
 
-already_AddRefed<Promise> Worklet::AddModule(const nsAString& aModuleURL,
+already_AddRefed<Promise> Worklet::AddModule(JSContext* aCx,
+                                             const nsAString& aModuleURL,
                                              const WorkletOptions& aOptions,
                                              CallerType aCallerType,
                                              ErrorResult& aRv) {
   MOZ_ASSERT(NS_IsMainThread());
-  return WorkletFetchHandler::Fetch(this, aModuleURL, aOptions, aCallerType,
-                                    aRv);
+  return WorkletFetchHandler::Fetch(this, aCx, aModuleURL, aOptions, aRv);
 }
 
 WorkletFetchHandler* Worklet::GetImportFetchHandler(const nsACString& aURI) {

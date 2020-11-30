@@ -6,7 +6,7 @@
 
 <?xml-stylesheet href="chrome://browser/content/places/places.css"?>
 
-<?xml-stylesheet href="chrome://global/skin/"?>
+<?xml-stylesheet href="chrome://global/skin/global.css"?>
 <?xml-stylesheet href="chrome://browser/skin/places/tree-icons.css"?>
 <?xml-stylesheet href="chrome://browser/skin/places/organizer.css"?>
 <?xml-stylesheet href="chrome://browser/skin/places/editBookmark.css"?>
@@ -17,14 +17,10 @@
 <!DOCTYPE window [
 <!ENTITY % placesDTD SYSTEM "chrome://browser/locale/places/places.dtd">
 %placesDTD;
-<!ENTITY % downloadsDTD SYSTEM "chrome://browser/locale/downloads/downloads.dtd">
-%downloadsDTD;
 <!ENTITY % editMenuOverlayDTD SYSTEM "chrome://global/locale/editMenuOverlay.dtd">
 %editMenuOverlayDTD;
 <!ENTITY % browserDTD SYSTEM "chrome://browser/locale/browser.dtd">
 %browserDTD;
-<!ENTITY % editBookmarkOverlayDTD SYSTEM "chrome://browser/locale/places/editBookmarkOverlay.dtd">
-%editBookmarkOverlayDTD;
 #ifdef XP_MACOSX
 #include ../../../base/content/browser-doctype.inc
 #endif
@@ -45,6 +41,9 @@
   <linkset>
     <html:link rel="localization" href="toolkit/global/textActions.ftl"/>
     <html:link rel="localization" href="browser/browserSets.ftl"/>
+    <html:link rel="localization" href="browser/places.ftl"/>
+    <html:link rel="localization" href="browser/downloads.ftl"/>
+    <html:link rel="localization" href="browser/editBookmarkOverlay.ftl"/>
   </linkset>
 
   <script src="chrome://browser/content/places/places.js"/>
@@ -95,7 +94,6 @@
              oncommand="PlacesOrganizer.forward();"/>
   </commandset>
 #include ../../downloads/content/downloadsCommands.inc.xhtml
-#include ../../downloads/content/downloadsStrings.inc.xhtml
 
   <keyset id="placesOrganizerKeyset">
     <!-- Instantiation Keys -->
@@ -168,7 +166,7 @@
                      disabled="true"/>
 
 #ifdef XP_MACOSX
-        <toolbarbutton type="menu" class="tabbable"
+        <toolbarbutton type="menu" class="tabbable" wantdropmarker="true"
               onpopupshowing="document.getElementById('placeContent').focus()"
 #else
       <menubar id="placesMenu">
@@ -179,16 +177,13 @@
           <menupopup id="organizeButtonPopup">
             <menuitem id="newbookmark"
                       command="placesCmd_new:bookmark"
-                      label="&cmd.new_bookmark.label;"
-                      accesskey="&cmd.new_bookmark.accesskey;"/>
+                      data-l10n-id="places-new-bookmark"/>
             <menuitem id="newfolder"
                       command="placesCmd_new:folder"
-                      label="&cmd.new_folder.label;"
-                      accesskey="&cmd.new_folder.accesskey;"/>
+                      data-l10n-id="places-new-folder"/>
             <menuitem id="newseparator"
                       command="placesCmd_new:separator"
-                      label="&cmd.new_separator.label;"
-                      accesskey="&cmd.new_separator.accesskey;"/>
+                      data-l10n-id="places-new-separator"/>
 
 #ifdef XP_MACOSX
             <menuseparator id="orgDeleteSeparator"/>
@@ -249,7 +244,7 @@
           </menupopup>
 #ifdef XP_MACOSX
         </toolbarbutton>
-        <toolbarbutton type="menu" class="tabbable"
+        <toolbarbutton type="menu" class="tabbable" wantdropmarker="true"
 #else
         </menu>
         <menu accesskey="&views.accesskey;" class="menu-iconic"
@@ -283,7 +278,7 @@
           </menupopup>
 #ifdef XP_MACOSX
         </toolbarbutton>
-        <toolbarbutton type="menu" class="tabbable"
+        <toolbarbutton type="menu" class="tabbable" wantdropmarker="true"
 #else
         </menu>
         <menu accesskey="&maintenance.accesskey;" class="menu-iconic"
@@ -326,6 +321,11 @@
       </menubar>
 #endif
 
+      <toolbarbutton id="clearDownloadsButton"
+                          data-l10n-id="downloads-clear-downloads-button"
+                          class="tabbable"
+                          command="downloadsCmd_clearDownloads"/>
+
       <spacer id="libraryToolbarSpacer" flex="1"/>
 
       <search-textbox id="searchFilter"
@@ -333,12 +333,6 @@
                       aria-controls="placeContent"
                       oncommand="PlacesSearchBox.search(this.value);"
                       collection="bookmarks"/>
-      <toolbarbutton id="clearDownloadsButton"
-                     class="tabbable"
-                     insertbefore="libraryToolbarSpacer"
-                     label="&clearDownloadsButton.label;"
-                     command="downloadsCmd_clearDownloads"
-                     tooltiptext="&clearDownloadsButton.tooltip;"/>
     </toolbar>
   </toolbox>
 

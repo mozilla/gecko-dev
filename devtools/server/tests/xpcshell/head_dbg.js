@@ -42,9 +42,9 @@ const { DevToolsServer } = require("devtools/server/devtools-server");
 const { DevToolsServer: WorkerDevToolsServer } = worker.require(
   "devtools/server/devtools-server"
 );
-const { DevToolsClient } = require("devtools/shared/client/devtools-client");
-const { ObjectFront } = require("devtools/shared/fronts/object");
-const { LongStringFront } = require("devtools/shared/fronts/string");
+const { DevToolsClient } = require("devtools/client/devtools-client");
+const { ObjectFront } = require("devtools/client/fronts/object");
+const { LongStringFront } = require("devtools/client/fronts/string");
 const { TargetFactory } = require("devtools/client/framework/target");
 
 const { addDebuggerToGlobal } = ChromeUtils.import(
@@ -88,7 +88,8 @@ async function createTargetForFakeTab(title) {
   const client = await startTestDevToolsServer(title);
 
   const tabs = await listTabs(client);
-  return findTab(tabs, title);
+  const tabDescriptor = findTab(tabs, title);
+  return tabDescriptor.getTarget();
 }
 
 async function createTargetForMainProcess() {
@@ -211,6 +212,15 @@ function resume(threadFront) {
   return threadFront.resume();
 }
 
+async function addWatchpoint(threadFront, frame, variable, property, type) {
+  const path = `${variable}.${property}`;
+  info(`Add an ${path} ${type} watchpoint`);
+  const environment = await frame.getEnvironment();
+  const obj = environment.bindings.variables[variable];
+  const objFront = threadFront.pauseGrip(obj.value);
+  return objFront.addWatchpoint(property, path, type);
+}
+
 function getSources(threadFront) {
   dump("Getting sources.\n");
   return threadFront.getSources();
@@ -265,23 +275,17 @@ function testExceptionHook(ex) {
   return undefined;
 }
 
-// Convert an nsIScriptError 'flags' value into an appropriate string.
-function scriptErrorFlagsToKind(flags) {
-  let kind;
-  if (flags & Ci.nsIScriptError.warningFlag) {
-    kind = "warning";
+// Convert an nsIScriptError 'logLevel' value into an appropriate string.
+function scriptErrorLogLevel(message) {
+  switch (message.logLevel) {
+    case Ci.nsIConsoleMessage.info:
+      return "info";
+    case Ci.nsIConsoleMessage.warn:
+      return "warning";
+    default:
+      Assert.equal(message.logLevel, Ci.nsIConsoleMessage.error);
+      return "error";
   }
-  if (flags & Ci.nsIScriptError.exceptionFlag) {
-    kind = "exception";
-  } else {
-    kind = "error";
-  }
-
-  if (flags & Ci.nsIScriptError.strictFlag) {
-    kind = "strict " + kind;
-  }
-
-  return kind;
 }
 
 // Register a console listener, so console messages don't just disappear
@@ -301,7 +305,7 @@ var listener = {
             ":" +
             message.lineNumber +
             ": " +
-            scriptErrorFlagsToKind(message.flags) +
+            scriptErrorLogLevel(message) +
             ": " +
             message.errorMessage
         );
@@ -373,7 +377,8 @@ async function getTestTab(client, title) {
 // Attach to |client|'s tab whose title is |title|; and return the targetFront instance
 // referring to that tab.
 async function attachTestTab(client, title) {
-  const targetFront = await getTestTab(client, title);
+  const descriptorFront = await getTestTab(client, title);
+  const targetFront = await descriptorFront.getTarget();
   await targetFront.attach();
   return targetFront;
 }
@@ -633,9 +638,10 @@ function stepIn(threadFront) {
  * @param ThreadFront threadFront
  * @returns Promise
  */
-function stepOver(threadFront) {
+async function stepOver(threadFront, frameActor) {
   dumpn("Stepping over.");
-  return threadFront.stepOver().then(() => waitForPause(threadFront));
+  await threadFront.stepOver(frameActor);
+  return waitForPause(threadFront);
 }
 
 /**
@@ -646,9 +652,24 @@ function stepOver(threadFront) {
  * @param ThreadFront threadFront
  * @returns Promise
  */
-function stepOut(threadFront) {
+async function stepOut(threadFront, frameActor) {
   dumpn("Stepping out.");
-  return threadFront.stepOut().then(() => waitForPause(threadFront));
+  await threadFront.stepOut(frameActor);
+  return waitForPause(threadFront);
+}
+
+/**
+ * Restart specific frame and wait for the pause after the restart
+ * has been taken.
+ *
+ * @param DevToolsClient client
+ * @param ThreadFront threadFront
+ * @returns Promise
+ */
+async function restartFrame(threadFront, frameActor) {
+  dumpn("Restarting frame.");
+  await threadFront.restart(frameActor);
+  return waitForPause(threadFront);
 }
 
 /**
@@ -788,10 +809,11 @@ async function setupTestFromUrl(url) {
   await connect(devToolsClient);
 
   const tabs = await listTabs(devToolsClient);
-  const targetFront = findTab(tabs, "test");
+  const descriptorFront = findTab(tabs, "test");
+  const targetFront = await descriptorFront.getTarget();
   await targetFront.attach();
 
-  const [, threadFront] = await attachThread(targetFront);
+  const threadFront = await attachThread(targetFront);
   await resume(threadFront);
 
   const sourceUrl = getFileUrl(url);
@@ -861,8 +883,23 @@ function threadFrontTest(test, options = {}) {
       scriptName
     );
 
+    // Cross the client/server boundary to retrieve the target actor & thread
+    // actor instances, used by some tests.
+    const rootActor = client.transport._serverConnection.rootActor;
+    const targetActor = rootActor._parameters.tabList.getTargetActorForTab(
+      "debuggee.js"
+    );
+    const { threadActor } = targetActor;
+
     // Run the test function
-    const args = { threadFront, debuggee, client, server, targetFront };
+    const args = {
+      threadActor,
+      threadFront,
+      debuggee,
+      client,
+      server,
+      targetFront,
+    };
     if (waitForFinish) {
       // Use dispatchToMainThread so that the test function does not have to
       // finish executing before the test itself finishes.

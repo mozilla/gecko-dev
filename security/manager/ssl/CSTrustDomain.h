@@ -8,15 +8,12 @@
 #define CSTrustDomain_h
 
 #include "mozpkix/pkixtypes.h"
-#include "mozilla/StaticMutex.h"
-#include "mozilla/UniquePtr.h"
-#include "nsDebug.h"
 #ifdef MOZ_NEW_CERT_STORAGE
 #  include "nsICertStorage.h"
 #else
 #  include "nsICertBlocklist.h"
 #endif
-#include "ScopedNSSTypes.h"
+#include "nsTArray.h"
 
 namespace mozilla {
 namespace psm {
@@ -25,7 +22,7 @@ class CSTrustDomain final : public mozilla::pkix::TrustDomain {
  public:
   typedef mozilla::pkix::Result Result;
 
-  explicit CSTrustDomain(UniqueCERTCertList& certChain);
+  explicit CSTrustDomain(nsTArray<nsTArray<uint8_t>>& certList);
 
   virtual Result GetCertTrust(
       mozilla::pkix::EndEntityOrCA endEntityOrCA,
@@ -38,10 +35,10 @@ class CSTrustDomain final : public mozilla::pkix::TrustDomain {
   virtual Result CheckRevocation(
       mozilla::pkix::EndEntityOrCA endEntityOrCA,
       const mozilla::pkix::CertID& certID, mozilla::pkix::Time time,
-      mozilla::pkix::Time validityPeriodBeginning,
       mozilla::pkix::Duration validityDuration,
       /*optional*/ const mozilla::pkix::Input* stapledOCSPresponse,
-      /*optional*/ const mozilla::pkix::Input* aiaExtension) override;
+      /*optional*/ const mozilla::pkix::Input* aiaExtension,
+      /*optional*/ const mozilla::pkix::Input* sctExtension) override;
   virtual Result IsChainValid(
       const mozilla::pkix::DERArray& certChain, mozilla::pkix::Time time,
       const mozilla::pkix::CertPolicyId& requiredPolicy) override;
@@ -76,7 +73,7 @@ class CSTrustDomain final : public mozilla::pkix::TrustDomain {
                            size_t digestBufLen) override;
 
  private:
-  /*out*/ UniqueCERTCertList& mCertChain;
+  nsTArray<nsTArray<uint8_t>>& mCertList;  // non-owning!
 #ifdef MOZ_NEW_CERT_STORAGE
   nsCOMPtr<nsICertStorage> mCertBlocklist;
 #else

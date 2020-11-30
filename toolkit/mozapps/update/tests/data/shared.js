@@ -40,15 +40,16 @@ const PREF_APP_UPDATE_INTERVAL = "app.update.interval";
 const PREF_APP_UPDATE_LASTUPDATETIME =
   "app.update.lastUpdateTime.background-update-timer";
 const PREF_APP_UPDATE_LOG = "app.update.log";
+const PREF_APP_UPDATE_NOTIFYDURINGDOWNLOAD = "app.update.notifyDuringDownload";
 const PREF_APP_UPDATE_PROMPTWAITTIME = "app.update.promptWaitTime";
 const PREF_APP_UPDATE_RETRYTIMEOUT = "app.update.socket.retryTimeout";
 const PREF_APP_UPDATE_SERVICE_ENABLED = "app.update.service.enabled";
 const PREF_APP_UPDATE_SOCKET_MAXERRORS = "app.update.socket.maxErrors";
 const PREF_APP_UPDATE_STAGING_ENABLED = "app.update.staging.enabled";
 const PREF_APP_UPDATE_UNSUPPORTED_URL = "app.update.unsupported.url";
-const PREF_APP_UPDATE_URL = "app.update.url";
 const PREF_APP_UPDATE_URL_DETAILS = "app.update.url.details";
 const PREF_APP_UPDATE_URL_MANUAL = "app.update.url.manual";
+const PREF_APP_UPDATE_LANGPACK_ENABLED = "app.update.langpack.enabled";
 
 const PREFBRANCH_APP_PARTNER = "app.partner.";
 const PREF_DISTRIBUTION_ID = "distribution.id";
@@ -222,7 +223,7 @@ const observer = {
       }
     }
   },
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIObserver]),
+  QueryInterface: ChromeUtils.generateQI(["nsIObserver"]),
 };
 
 /**
@@ -241,7 +242,7 @@ function setUpdateChannel(aChannel) {
 }
 
 /**
- * Sets the app.update.url default preference.
+ * Sets the effective update url.
  *
  * @param  aURL
  *         The update url. If not specified 'URL_HOST + "/update.xml"' will be
@@ -249,8 +250,30 @@ function setUpdateChannel(aChannel) {
  */
 function setUpdateURL(aURL) {
   let url = aURL ? aURL : URL_HOST + "/update.xml";
-  debugDump("setting " + PREF_APP_UPDATE_URL + " to " + url);
-  gDefaultPrefBranch.setCharPref(PREF_APP_UPDATE_URL, url);
+  debugDump("setting update URL to " + url);
+
+  // The Update URL is stored in appinfo. We can replace this process's appinfo
+  // directly, but that will affect only this process. Luckily, the update URL
+  // is only ever read from the update process. This means that replacing
+  // Services.appinfo is sufficient and we don't need to worry about registering
+  // a replacement factory or anything like that.
+  let origAppInfo = Services.appinfo;
+  registerCleanupFunction(() => {
+    Services.appinfo = origAppInfo;
+  });
+
+  // Override the appinfo object with an object that exposes all of the same
+  // properties overriding just the updateURL.
+  let mockAppInfo = Object.create(origAppInfo, {
+    updateURL: {
+      configurable: true,
+      enumerable: true,
+      writable: false,
+      value: url,
+    },
+  });
+
+  Services.appinfo = mockAppInfo;
 }
 
 /**

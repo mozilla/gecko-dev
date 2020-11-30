@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/HTMLEditor.h"
+#include "HTMLEditor.h"
 
 #include "HTMLEditorEventListener.h"
 #include "HTMLEditUtils.h"
@@ -31,17 +31,19 @@
 #include "nsReadableUtils.h"
 #include "nsString.h"
 #include "nsStringFwd.h"
+#include "nsStyledElement.h"
+#include "nsTextNode.h"
 #include "nscore.h"
 #include <algorithm>
 
-#define kTopLeft NS_LITERAL_STRING("nw")
-#define kTop NS_LITERAL_STRING("n")
-#define kTopRight NS_LITERAL_STRING("ne")
-#define kLeft NS_LITERAL_STRING("w")
-#define kRight NS_LITERAL_STRING("e")
-#define kBottomLeft NS_LITERAL_STRING("sw")
-#define kBottom NS_LITERAL_STRING("s")
-#define kBottomRight NS_LITERAL_STRING("se")
+#define kTopLeft u"nw"_ns
+#define kTop u"n"_ns
+#define kTopRight u"ne"_ns
+#define kLeft u"w"_ns
+#define kRight u"e"_ns
+#define kBottomLeft u"sw"_ns
+#define kBottom u"s"_ns
+#define kBottomRight u"se"_ns
 
 namespace mozilla {
 
@@ -53,14 +55,21 @@ using namespace dom;
 
 ManualNACPtr HTMLEditor::CreateResizer(int16_t aLocation,
                                        nsIContent& aParentContent) {
-  ManualNACPtr ret = CreateAnonymousElement(
-      nsGkAtoms::span, aParentContent, NS_LITERAL_STRING("mozResizer"), false);
-  if (NS_WARN_IF(!ret)) {
+  ManualNACPtr resizer = CreateAnonymousElement(nsGkAtoms::span, aParentContent,
+                                                u"mozResizer"_ns, false);
+  if (!resizer) {
+    NS_WARNING(
+        "HTMLEditor::CreateAnonymousElement(nsGkAtoms::span, mozResizer) "
+        "failed");
     return nullptr;
   }
 
   // add the mouse listener so we can detect a click on a resizer
-  ret->AddEventListener(NS_LITERAL_STRING("mousedown"), mEventListener, true);
+  DebugOnly<nsresult> rvIgnored =
+      resizer->AddEventListener(u"mousedown"_ns, mEventListener, true);
+  NS_WARNING_ASSERTION(
+      NS_SUCCEEDED(rvIgnored),
+      "EventTarget::AddEventListener(mousedown) failed, but ignored");
 
   nsAutoString locationStr;
   switch (aLocation) {
@@ -92,10 +101,12 @@ ManualNACPtr HTMLEditor::CreateResizer(int16_t aLocation,
       break;
   }
 
-  nsresult rv = ret->SetAttr(kNameSpaceID_None, nsGkAtoms::anonlocation,
-                             locationStr, true);
-  NS_ENSURE_SUCCESS(rv, nullptr);
-  return ret;
+  if (NS_FAILED(resizer->SetAttr(kNameSpaceID_None, nsGkAtoms::anonlocation,
+                                 locationStr, true))) {
+    NS_WARNING("Element::SetAttr(nsGkAtoms::anonlocation) failed");
+    return nullptr;
+  }
+  return resizer;
 }
 
 ManualNACPtr HTMLEditor::CreateShadow(nsIContent& aParentContent,
@@ -108,14 +119,14 @@ ManualNACPtr HTMLEditor::CreateShadow(nsIContent& aParentContent,
     name = nsGkAtoms::span;
   }
 
-  return CreateAnonymousElement(name, aParentContent,
-                                NS_LITERAL_STRING("mozResizingShadow"), true);
+  return CreateAnonymousElement(name, aParentContent, u"mozResizingShadow"_ns,
+                                true);
 }
 
 ManualNACPtr HTMLEditor::CreateResizingInfo(nsIContent& aParentContent) {
   // let's create an info box through the element factory
   return CreateAnonymousElement(nsGkAtoms::span, aParentContent,
-                                NS_LITERAL_STRING("mozResizingInfo"), true);
+                                u"mozResizingInfo"_ns, true);
 }
 
 nsresult HTMLEditor::SetAllResizersPosition() {
@@ -131,9 +142,33 @@ nsresult HTMLEditor::SetAllResizersPosition() {
   nsAutoString value;
   float resizerWidth, resizerHeight;
   RefPtr<nsAtom> dummyUnit;
-  CSSEditUtils::GetComputedProperty(*mTopLeftHandle, *nsGkAtoms::width, value);
+  DebugOnly<nsresult> rvIgnored = NS_OK;
+  OwningNonNull<Element> topLeftHandle = *mTopLeftHandle.get();
+  // XXX Do we really need to computed value rather than specified value?
+  //     Because it's an anonymous node.
+  rvIgnored = CSSEditUtils::GetComputedProperty(*topLeftHandle,
+                                                *nsGkAtoms::width, value);
+  if (NS_WARN_IF(Destroyed())) {
+    return NS_ERROR_EDITOR_DESTROYED;
+  }
+  if (NS_WARN_IF(topLeftHandle != mTopLeftHandle)) {
+    return NS_ERROR_FAILURE;
+  }
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
+                       "CSSEditUtils::GetComputedProperty(nsGkAtoms::width) "
+                       "failed, but ignored");
+  rvIgnored = CSSEditUtils::GetComputedProperty(*topLeftHandle,
+                                                *nsGkAtoms::height, value);
+  if (NS_WARN_IF(Destroyed())) {
+    return NS_ERROR_EDITOR_DESTROYED;
+  }
+  if (NS_WARN_IF(topLeftHandle != mTopLeftHandle)) {
+    return NS_ERROR_FAILURE;
+  }
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
+                       "CSSEditUtils::GetComputedProperty(nsGkAtoms::height) "
+                       "failed, but ignored");
   CSSEditUtils::ParseLength(value, &resizerWidth, getter_AddRefs(dummyUnit));
-  CSSEditUtils::GetComputedProperty(*mTopLeftHandle, *nsGkAtoms::height, value);
   CSSEditUtils::ParseLength(value, &resizerHeight, getter_AddRefs(dummyUnit));
 
   int32_t rw = static_cast<int32_t>((resizerWidth + 1) / 2);
@@ -146,65 +181,83 @@ nsresult HTMLEditor::SetAllResizersPosition() {
   // FYI: Note that only checking if mTopLeftHandle is replaced is enough.
   //      We're may be in hot path if user resizes an element a lot.  So,
   //      we should just add-ref mTopLeftHandle.
-  RefPtr<Element> topLeftHandle = mTopLeftHandle.get();
-  SetAnonymousElementPosition(x - rw, y - rh, topLeftHandle);
-  if (NS_WARN_IF(topLeftHandle != mTopLeftHandle)) {
-    return NS_ERROR_FAILURE;
+  auto setHandlePosition =
+      [this](ManualNACPtr& aHandleElement, int32_t aNewX, int32_t aNewY)
+          MOZ_CAN_RUN_SCRIPT_FOR_DEFINITION -> nsresult {
+    RefPtr<nsStyledElement> handleStyledElement =
+        nsStyledElement::FromNodeOrNull(aHandleElement.get());
+    if (!handleStyledElement) {
+      return NS_OK;
+    }
+    nsresult rv = SetAnonymousElementPositionWithoutTransaction(
+        *handleStyledElement, aNewX, aNewY);
+    if (NS_FAILED(rv)) {
+      NS_WARNING(
+          "HTMLEditor::SetAnonymousElementPositionWithoutTransaction() "
+          "failed");
+      return rv;
+    }
+    return NS_WARN_IF(handleStyledElement != aHandleElement.get())
+               ? NS_ERROR_FAILURE
+               : NS_OK;
+  };
+  nsresult rv;
+  rv = setHandlePosition(mTopLeftHandle, x - rw, y - rh);
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Failed to set top-left handle position");
+    return rv;
   }
-  RefPtr<Element> topHandle = mTopHandle.get();
-  SetAnonymousElementPosition(x + w / 2 - rw, y - rh, topHandle);
-  if (NS_WARN_IF(topLeftHandle != mTopLeftHandle)) {
-    return NS_ERROR_FAILURE;
+  rv = setHandlePosition(mTopHandle, x + w / 2 - rw, y - rh);
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Failed to set top handle position");
+    return rv;
   }
-  RefPtr<Element> topRightHandle = mTopRightHandle.get();
-  SetAnonymousElementPosition(x + w - rw - 1, y - rh, topRightHandle);
-  if (NS_WARN_IF(topLeftHandle != mTopLeftHandle)) {
-    return NS_ERROR_FAILURE;
+  rv = setHandlePosition(mTopRightHandle, x + w - rw - 1, y - rh);
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Failed to set top-right handle position");
+    return rv;
   }
 
-  RefPtr<Element> leftHandle = mLeftHandle.get();
-  SetAnonymousElementPosition(x - rw, y + h / 2 - rh, leftHandle);
-  if (NS_WARN_IF(topLeftHandle != mTopLeftHandle)) {
-    return NS_ERROR_FAILURE;
+  rv = setHandlePosition(mLeftHandle, x - rw, y + h / 2 - rh);
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Failed to set left handle position");
+    return rv;
   }
-  RefPtr<Element> rightHandle = mRightHandle.get();
-  SetAnonymousElementPosition(x + w - rw - 1, y + h / 2 - rh, rightHandle);
-  if (NS_WARN_IF(topLeftHandle != mTopLeftHandle)) {
-    return NS_ERROR_FAILURE;
+  rv = setHandlePosition(mRightHandle, x + w - rw - 1, y + h / 2 - rh);
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Failed to set right handle position");
+    return rv;
   }
 
-  RefPtr<Element> bottomLeftHandle = mBottomLeftHandle.get();
-  SetAnonymousElementPosition(x - rw, y + h - rh - 1, bottomLeftHandle);
-  if (NS_WARN_IF(topLeftHandle != mTopLeftHandle)) {
-    return NS_ERROR_FAILURE;
+  rv = setHandlePosition(mBottomLeftHandle, x - rw, y + h - rh - 1);
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Failed to set bottom-left handle position");
+    return rv;
   }
-  RefPtr<Element> bottomHandle = mBottomHandle.get();
-  SetAnonymousElementPosition(x + w / 2 - rw, y + h - rh - 1, bottomHandle);
-  if (NS_WARN_IF(topLeftHandle != mTopLeftHandle)) {
-    return NS_ERROR_FAILURE;
+  rv = setHandlePosition(mBottomHandle, x + w / 2 - rw, y + h - rh - 1);
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Failed to set bottom handle position");
+    return rv;
   }
-  RefPtr<Element> bottomRightHandle = mBottomRightHandle.get();
-  SetAnonymousElementPosition(x + w - rw - 1, y + h - rh - 1,
-                              bottomRightHandle);
-  if (NS_WARN_IF(topLeftHandle != mTopLeftHandle)) {
-    return NS_ERROR_FAILURE;
+  rv = setHandlePosition(mBottomRightHandle, x + w - rw - 1, y + h - rh - 1);
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Failed to set bottom-right handle position");
+    return rv;
   }
 
   return NS_OK;
 }
 
-NS_IMETHODIMP
-HTMLEditor::RefreshResizers() {
+NS_IMETHODIMP HTMLEditor::RefreshResizers() {
   AutoEditActionDataSetter editActionData(*this, EditAction::eNotEditing);
   if (NS_WARN_IF(!editActionData.CanHandle())) {
     return NS_ERROR_NOT_INITIALIZED;
   }
 
   nsresult rv = RefreshResizersInternal();
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return EditorBase::ToGenericNSResult(rv);
-  }
-  return NS_OK;
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                       "HTMLEditor::RefreshResizersInternal() failed");
+  return EditorBase::ToGenericNSResult(rv);
 }
 
 nsresult HTMLEditor::RefreshResizersInternal() {
@@ -215,30 +268,40 @@ nsresult HTMLEditor::RefreshResizersInternal() {
     return NS_OK;
   }
 
+  OwningNonNull<Element> resizedObject = *mResizedObject;
   nsresult rv = GetPositionAndDimensions(
-      *mResizedObject, mResizedObjectX, mResizedObjectY, mResizedObjectWidth,
+      resizedObject, mResizedObjectX, mResizedObjectY, mResizedObjectWidth,
       mResizedObjectHeight, mResizedObjectBorderLeft, mResizedObjectBorderTop,
       mResizedObjectMarginLeft, mResizedObjectMarginTop);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
+  if (NS_FAILED(rv)) {
+    NS_WARNING("HTMLEditor::GetPositionAndDimensions() failed");
     return rv;
+  }
+  if (NS_WARN_IF(resizedObject != mResizedObject)) {
+    return NS_ERROR_FAILURE;
   }
 
   rv = SetAllResizersPosition();
-  if (NS_WARN_IF(NS_FAILED(rv))) {
+  if (NS_FAILED(rv)) {
+    NS_WARNING("HTMLEditor::SetAllResizersPosition() failed");
     return rv;
+  }
+  if (NS_WARN_IF(resizedObject != mResizedObject)) {
+    return NS_ERROR_FAILURE;
   }
 
   MOZ_ASSERT(
       mResizingShadow,
       "SetAllResizersPosition() should return error if resizers are hidden");
   RefPtr<Element> resizingShadow = mResizingShadow.get();
-  RefPtr<Element> resizedObject = mResizedObject;
-  rv = SetShadowPosition(*resizingShadow, *resizedObject, mResizedObjectX,
+  rv = SetShadowPosition(*resizingShadow, resizedObject, mResizedObjectX,
                          mResizedObjectY);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
+  if (NS_WARN_IF(resizedObject != mResizedObject)) {
+    return NS_ERROR_FAILURE;
   }
-  return NS_OK;
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                       "HTMLEditor::SetShadowPosition() failed");
+  return rv;
 }
 
 nsresult HTMLEditor::ShowResizersInternal(Element& aResizedElement) {
@@ -276,7 +339,8 @@ nsresult HTMLEditor::ShowResizersInternal(Element& aResizedElement) {
     // check.
     ManualNACPtr newResizer =
         CreateResizer(nsIHTMLObjectResizer::eTopLeft, *parentContent);
-    if (NS_WARN_IF(!newResizer)) {
+    if (!newResizer) {
+      NS_WARNING("HTMLEditor::CreateResizer(eTopLeft) failed");
       break;
     }
     if (NS_WARN_IF(mTopLeftHandle) ||
@@ -287,7 +351,8 @@ nsresult HTMLEditor::ShowResizersInternal(Element& aResizedElement) {
     }
     mTopLeftHandle = std::move(newResizer);
     newResizer = CreateResizer(nsIHTMLObjectResizer::eTop, *parentContent);
-    if (NS_WARN_IF(!newResizer)) {
+    if (!newResizer) {
+      NS_WARNING("HTMLEditor::CreateResizer(eTop) failed");
       break;
     }
     if (NS_WARN_IF(mTopHandle) ||
@@ -296,7 +361,8 @@ nsresult HTMLEditor::ShowResizersInternal(Element& aResizedElement) {
     }
     mTopHandle = std::move(newResizer);
     newResizer = CreateResizer(nsIHTMLObjectResizer::eTopRight, *parentContent);
-    if (NS_WARN_IF(!newResizer)) {
+    if (!newResizer) {
+      NS_WARNING("HTMLEditor::CreateResizer(eTopRight) failed");
       break;
     }
     if (NS_WARN_IF(mTopRightHandle) ||
@@ -306,7 +372,8 @@ nsresult HTMLEditor::ShowResizersInternal(Element& aResizedElement) {
     mTopRightHandle = std::move(newResizer);
 
     newResizer = CreateResizer(nsIHTMLObjectResizer::eLeft, *parentContent);
-    if (NS_WARN_IF(!newResizer)) {
+    if (!newResizer) {
+      NS_WARNING("HTMLEditor::CreateResizer(eLeft) failed");
       break;
     }
     if (NS_WARN_IF(mLeftHandle) ||
@@ -315,7 +382,8 @@ nsresult HTMLEditor::ShowResizersInternal(Element& aResizedElement) {
     }
     mLeftHandle = std::move(newResizer);
     newResizer = CreateResizer(nsIHTMLObjectResizer::eRight, *parentContent);
-    if (NS_WARN_IF(!newResizer)) {
+    if (!newResizer) {
+      NS_WARNING("HTMLEditor::CreateResizer(eRight) failed");
       break;
     }
     if (NS_WARN_IF(mRightHandle) ||
@@ -326,7 +394,8 @@ nsresult HTMLEditor::ShowResizersInternal(Element& aResizedElement) {
 
     newResizer =
         CreateResizer(nsIHTMLObjectResizer::eBottomLeft, *parentContent);
-    if (NS_WARN_IF(!newResizer)) {
+    if (!newResizer) {
+      NS_WARNING("HTMLEditor::CreateResizer(eBottomLeft) failed");
       break;
     }
     if (NS_WARN_IF(mBottomLeftHandle) ||
@@ -335,7 +404,8 @@ nsresult HTMLEditor::ShowResizersInternal(Element& aResizedElement) {
     }
     mBottomLeftHandle = std::move(newResizer);
     newResizer = CreateResizer(nsIHTMLObjectResizer::eBottom, *parentContent);
-    if (NS_WARN_IF(!newResizer)) {
+    if (!newResizer) {
+      NS_WARNING("HTMLEditor::CreateResizer(eBottom) failed");
       break;
     }
     if (NS_WARN_IF(mBottomHandle) ||
@@ -345,7 +415,8 @@ nsresult HTMLEditor::ShowResizersInternal(Element& aResizedElement) {
     mBottomHandle = std::move(newResizer);
     newResizer =
         CreateResizer(nsIHTMLObjectResizer::eBottomRight, *parentContent);
-    if (NS_WARN_IF(!newResizer)) {
+    if (!newResizer) {
+      NS_WARNING("HTMLEditor::CreateResizer(eBottomRight) failed");
       break;
     }
     if (NS_WARN_IF(mBottomRightHandle) ||
@@ -357,20 +428,22 @@ nsresult HTMLEditor::ShowResizersInternal(Element& aResizedElement) {
     // Store the last resizer which we created.  This is useful when we
     // need to check whether our resizers are hiddedn and recreated another
     // set of resizers or not.
-    RefPtr<Element> createdBottomRightNalde = mBottomRightHandle.get();
+    RefPtr<Element> createdBottomRightHandle = mBottomRightHandle.get();
 
     nsresult rv = GetPositionAndDimensions(
         aResizedElement, mResizedObjectX, mResizedObjectY, mResizedObjectWidth,
         mResizedObjectHeight, mResizedObjectBorderLeft, mResizedObjectBorderTop,
         mResizedObjectMarginLeft, mResizedObjectMarginTop);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
+    if (NS_FAILED(rv)) {
+      NS_WARNING("HTMLEditor::GetPositionAndDimensions() failed");
       break;
     }
 
     // and let's set their absolute positions in the document
     rv = SetAllResizersPosition();
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      if (NS_WARN_IF(mBottomRightHandle.get() != createdBottomRightNalde)) {
+    if (NS_FAILED(rv)) {
+      NS_WARNING("HTMLEditor::SetAllResizersPosition() failed");
+      if (NS_WARN_IF(mBottomRightHandle.get() != createdBottomRightHandle)) {
         return NS_ERROR_FAILURE;
       }
       break;
@@ -378,7 +451,8 @@ nsresult HTMLEditor::ShowResizersInternal(Element& aResizedElement) {
 
     // now, let's create the resizing shadow
     ManualNACPtr newShadow = CreateShadow(*parentContent, aResizedElement);
-    if (NS_WARN_IF(!newShadow)) {
+    if (!newShadow) {
+      NS_WARNING("HTMLEditor::CreateShadow() failed");
       break;
     }
     if (NS_WARN_IF(mResizingShadow) ||
@@ -391,8 +465,9 @@ nsresult HTMLEditor::ShowResizersInternal(Element& aResizedElement) {
     RefPtr<Element> resizingShadow = mResizingShadow.get();
     rv = SetShadowPosition(*resizingShadow, aResizedElement, mResizedObjectX,
                            mResizedObjectY);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      if (NS_WARN_IF(mBottomRightHandle.get() != createdBottomRightNalde)) {
+    if (NS_FAILED(rv)) {
+      NS_WARNING("HTMLEditor::SetShadowPosition() failed");
+      if (NS_WARN_IF(mBottomRightHandle.get() != createdBottomRightHandle)) {
         return NS_ERROR_FAILURE;
       }
       break;
@@ -400,7 +475,8 @@ nsresult HTMLEditor::ShowResizersInternal(Element& aResizedElement) {
 
     // and then the resizing info tooltip
     ManualNACPtr newResizingInfo = CreateResizingInfo(*parentContent);
-    if (NS_WARN_IF(!newResizingInfo)) {
+    if (!newResizingInfo) {
+      NS_WARNING("HTMLEditor::CreateResizingInfo() failed");
       break;
     }
     if (NS_WARN_IF(mResizingInfo) ||
@@ -417,7 +493,9 @@ nsresult HTMLEditor::ShowResizersInternal(Element& aResizedElement) {
 
     rv = static_cast<HTMLEditorEventListener*>(mEventListener.get())
              ->ListenToWindowResizeEvent(true);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
+    if (NS_FAILED(rv)) {
+      NS_WARNING(
+          "HTMLEditorEventListener::ListenToWindowResizeEvent(true) failed");
       break;
     }
 
@@ -425,29 +503,30 @@ nsresult HTMLEditor::ShowResizersInternal(Element& aResizedElement) {
 
     // XXX Even when it failed to add event listener, should we need to set
     //     _moz_resizing attribute?
-    aResizedElement.SetAttr(kNameSpaceID_None, nsGkAtoms::_moz_resizing,
-                            NS_LITERAL_STRING("true"), true);
+    DebugOnly<nsresult> rvIgnored = aResizedElement.SetAttr(
+        kNameSpaceID_None, nsGkAtoms::_moz_resizing, u"true"_ns, true);
+    NS_WARNING_ASSERTION(
+        NS_SUCCEEDED(rvIgnored),
+        "Element::SetAttr(nsGkAtoms::_moz_resizing, true) failed, but ignored");
     return NS_OK;
   } while (true);
 
   DebugOnly<nsresult> rv = HideResizersInternal();
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-                       "Failed to clean up unnecessary resizers");
+                       "HTMLEditor::HideResizersInternal() failed to clean up");
   return NS_ERROR_FAILURE;
 }
 
-NS_IMETHODIMP
-HTMLEditor::HideResizers() {
+NS_IMETHODIMP HTMLEditor::HideResizers() {
   AutoEditActionDataSetter editActionData(*this, EditAction::eNotEditing);
   if (NS_WARN_IF(!editActionData.CanHandle())) {
     return NS_ERROR_NOT_INITIALIZED;
   }
 
   nsresult rv = HideResizersInternal();
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return EditorBase::ToGenericNSResult(rv);
-  }
-  return NS_OK;
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                       "HTMLEditor::HideResizersInternal() failed");
+  return EditorBase::ToGenericNSResult(rv);
 }
 
 nsresult HTMLEditor::HideResizersInternal() {
@@ -465,7 +544,7 @@ nsresult HTMLEditor::HideResizersInternal() {
   // are no document observers to notify, but we still want to
   // UnbindFromTree.
 
-  NS_NAMED_LITERAL_STRING(mousedown, "mousedown");
+  constexpr auto mousedown = u"mousedown"_ns;
 
   // HTMLEditor should forget all members related to resizers first since
   // removing a part of UI may cause showing the resizers again.  In such
@@ -517,12 +596,19 @@ nsresult HTMLEditor::HideResizersInternal() {
 
   // Remove active state of a resizer.
   if (activatedHandle) {
-    activatedHandle->UnsetAttr(kNameSpaceID_None, nsGkAtoms::_moz_activated,
-                               true);
+    DebugOnly<nsresult> rvIgnored = activatedHandle->UnsetAttr(
+        kNameSpaceID_None, nsGkAtoms::_moz_activated, true);
+    NS_WARNING_ASSERTION(
+        NS_SUCCEEDED(rvIgnored),
+        "Element::UnsetAttr(nsGkAtoms::_moz_activated) failed, but ignored");
   }
 
   // Remove resizing state of the target element.
-  resizedObject->UnsetAttr(kNameSpaceID_None, nsGkAtoms::_moz_resizing, true);
+  DebugOnly<nsresult> rvIgnored = resizedObject->UnsetAttr(
+      kNameSpaceID_None, nsGkAtoms::_moz_resizing, true);
+  NS_WARNING_ASSERTION(
+      NS_SUCCEEDED(rvIgnored),
+      "Element::UnsetAttr(nsGkAtoms::_moz_resizing) failed, but ignored");
 
   if (!mEventListener) {
     return NS_OK;
@@ -530,7 +616,10 @@ nsresult HTMLEditor::HideResizersInternal() {
 
   nsresult rv = static_cast<HTMLEditorEventListener*>(mEventListener.get())
                     ->ListenToMouseMoveEventForResizers(false);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
+  if (NS_FAILED(rv)) {
+    NS_WARNING(
+        "HTMLEditorEventListener::ListenToMouseMoveEventForResizers(false) "
+        "failed");
     return rv;
   }
 
@@ -541,29 +630,40 @@ nsresult HTMLEditor::HideResizersInternal() {
 
   rv = static_cast<HTMLEditorEventListener*>(mEventListener.get())
            ->ListenToWindowResizeEvent(false);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-  return NS_OK;
+  NS_WARNING_ASSERTION(
+      NS_SUCCEEDED(rv),
+      "HTMLEditorEventListener::ListenToWindowResizeEvent(false) failed");
+  return rv;
 }
 
 void HTMLEditor::HideShadowAndInfo() {
   if (mResizingShadow) {
-    mResizingShadow->SetAttr(kNameSpaceID_None, nsGkAtoms::_class,
-                             NS_LITERAL_STRING("hidden"), true);
+    DebugOnly<nsresult> rvIgnored = mResizingShadow->SetAttr(
+        kNameSpaceID_None, nsGkAtoms::_class, u"hidden"_ns, true);
+    NS_WARNING_ASSERTION(
+        NS_SUCCEEDED(rvIgnored),
+        "Element::SetAttr(nsGkAtoms::_class, hidden) failed, but ignored");
   }
   if (mResizingInfo) {
-    mResizingInfo->SetAttr(kNameSpaceID_None, nsGkAtoms::_class,
-                           NS_LITERAL_STRING("hidden"), true);
+    DebugOnly<nsresult> rvIgnored = mResizingInfo->SetAttr(
+        kNameSpaceID_None, nsGkAtoms::_class, u"hidden"_ns, true);
+    NS_WARNING_ASSERTION(
+        NS_SUCCEEDED(rvIgnored),
+        "Element::SetAttr(nsGkAtoms::_class, hidden) failed, but ignored");
   }
 }
 
-nsresult HTMLEditor::StartResizing(Element* aHandle) {
+nsresult HTMLEditor::StartResizing(Element& aHandleElement) {
   mIsResizing = true;
-  mActivatedHandle = aHandle;
-  NS_ENSURE_STATE(mActivatedHandle || !aHandle);
-  mActivatedHandle->SetAttr(kNameSpaceID_None, nsGkAtoms::_moz_activated,
-                            NS_LITERAL_STRING("true"), true);
+  mActivatedHandle = &aHandleElement;
+  DebugOnly<nsresult> rvIgnored = mActivatedHandle->SetAttr(
+      kNameSpaceID_None, nsGkAtoms::_moz_activated, u"true"_ns, true);
+  if (NS_WARN_IF(Destroyed())) {
+    return NS_ERROR_EDITOR_DESTROYED;
+  }
+  NS_WARNING_ASSERTION(
+      NS_SUCCEEDED(rvIgnored),
+      "Element::SetAttr(nsGkAtoms::_moz_activated, true) failed");
 
   // do we want to preserve ratio or not?
   bool preserveRatio =
@@ -593,14 +693,41 @@ nsresult HTMLEditor::StartResizing(Element* aHandle) {
   }
 
   // make the shadow appear
-  mResizingShadow->UnsetAttr(kNameSpaceID_None, nsGkAtoms::_class, true);
+  rvIgnored =
+      mResizingShadow->UnsetAttr(kNameSpaceID_None, nsGkAtoms::_class, true);
+  if (NS_WARN_IF(Destroyed())) {
+    return NS_ERROR_EDITOR_DESTROYED;
+  }
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
+                       "Element::UnsetAttr(nsGkAtoms::_class) failed");
 
   // position it
-  RefPtr<Element> resizingShadow = mResizingShadow.get();
-  mCSSEditUtils->SetCSSPropertyPixels(*resizingShadow, *nsGkAtoms::width,
-                                      mResizedObjectWidth);
-  mCSSEditUtils->SetCSSPropertyPixels(*resizingShadow, *nsGkAtoms::height,
-                                      mResizedObjectHeight);
+  if (RefPtr<nsStyledElement> resizingShadowStyledElement =
+          nsStyledElement::FromNodeOrNull(mResizingShadow.get())) {
+    nsresult rv;
+    rv = mCSSEditUtils->SetCSSPropertyPixelsWithoutTransaction(
+        *resizingShadowStyledElement, *nsGkAtoms::width, mResizedObjectWidth);
+    if (rv == NS_ERROR_EDITOR_DESTROYED) {
+      NS_WARNING(
+          "CSSEditUtils::SetCSSPropertyPixelsWithoutTransaction("
+          "nsGkAtoms::width) destroyed the editor");
+      return NS_ERROR_EDITOR_DESTROYED;
+    }
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                         "CSSEditUtils::SetCSSPropertyPixelsWithoutTransaction("
+                         "nsGkAtoms::width) failed");
+    rv = mCSSEditUtils->SetCSSPropertyPixelsWithoutTransaction(
+        *resizingShadowStyledElement, *nsGkAtoms::height, mResizedObjectHeight);
+    if (rv == NS_ERROR_EDITOR_DESTROYED) {
+      NS_WARNING(
+          "CSSEditUtils::SetCSSPropertyPixelsWithoutTransaction("
+          "nsGkAtoms::height) destroyed the editor");
+      return NS_ERROR_EDITOR_DESTROYED;
+    }
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                         "CSSEditUtils::SetCSSPropertyPixelsWithoutTransaction("
+                         "nsGkAtoms::height) failed");
+  }
 
   // add a mouse move listener to the editor
   if (NS_WARN_IF(!mEventListener)) {
@@ -608,15 +735,17 @@ nsresult HTMLEditor::StartResizing(Element* aHandle) {
   }
   nsresult rv = static_cast<HTMLEditorEventListener*>(mEventListener.get())
                     ->ListenToMouseMoveEventForResizers(true);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-  return NS_OK;
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                       "HTMLEditorEventListener::"
+                       "ListenToMouseMoveEventForResizers(true) failed");
+  return rv;
 }
 
 nsresult HTMLEditor::OnMouseDown(int32_t aClientX, int32_t aClientY,
                                  Element* aTarget, Event* aEvent) {
-  NS_ENSURE_ARG_POINTER(aTarget);
+  if (NS_WARN_IF(!aTarget)) {
+    return NS_ERROR_INVALID_ARG;
+  }
 
   nsAutoString anonclass;
   aTarget->GetAttr(nsGkAtoms::_moz_anonclass, anonclass);
@@ -633,11 +762,10 @@ nsresult HTMLEditor::OnMouseDown(int32_t aClientX, int32_t aClientY,
     aEvent->PreventDefault();
     mOriginalX = aClientX;
     mOriginalY = aClientY;
-    nsresult rv = StartResizing(aTarget);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return EditorBase::ToGenericNSResult(rv);
-    }
-    return NS_OK;
+    nsresult rv = StartResizing(*aTarget);
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                         "HTMLEditor::StartResizing() failed");
+    return EditorBase::ToGenericNSResult(rv);
   }
 
   if (anonclass.EqualsLiteral("mozGrabber")) {
@@ -651,17 +779,15 @@ nsresult HTMLEditor::OnMouseDown(int32_t aClientX, int32_t aClientY,
     mOriginalX = aClientX;
     mOriginalY = aClientY;
     nsresult rv = GrabberClicked();
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return EditorBase::ToGenericNSResult(rv);
-    }
-    return NS_OK;
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                         "HTMLEditor::GrabberClicked() failed");
+    return EditorBase::ToGenericNSResult(rv);
   }
 
   return NS_OK;
 }
 
-nsresult HTMLEditor::OnMouseUp(int32_t aClientX, int32_t aClientY,
-                               Element* aTarget) {
+nsresult HTMLEditor::OnMouseUp(int32_t aClientX, int32_t aClientY) {
   if (mIsResizing) {
     AutoEditActionDataSetter editActionData(*this, EditAction::eResizeElement);
     if (NS_WARN_IF(!editActionData.CanHandle())) {
@@ -674,11 +800,22 @@ nsresult HTMLEditor::OnMouseUp(int32_t aClientX, int32_t aClientY,
     HideShadowAndInfo();
 
     nsresult rv = editActionData.MaybeDispatchBeforeInputEvent();
-    if (rv == NS_ERROR_EDITOR_ACTION_CANCELED || NS_WARN_IF(NS_FAILED(rv))) {
+    if (NS_FAILED(rv)) {
+      NS_WARNING_ASSERTION(
+          rv == NS_ERROR_EDITOR_ACTION_CANCELED,
+          "EditorBase::MaybeDispatchBeforeInputEvent(), failed");
       return EditorBase::ToGenericNSResult(rv);
     }
 
-    SetFinalSize(aClientX, aClientY);
+    rv = SetFinalSizeWithTransaction(aClientX, aClientY);
+    if (rv == NS_ERROR_EDITOR_DESTROYED) {
+      NS_WARNING(
+          "HTMLEditor::SetFinalSizeWithTransaction() destroyed the editor");
+      return NS_ERROR_EDITOR_DESTROYED;
+    }
+    NS_WARNING_ASSERTION(
+        NS_SUCCEEDED(rv),
+        "HTMLEditor::SetFinalSizeWithTransaction() failed, but ignored");
     return NS_OK;
   }
 
@@ -686,18 +823,24 @@ nsresult HTMLEditor::OnMouseUp(int32_t aClientX, int32_t aClientY,
     AutoEditActionDataSetter editActionData(*this, EditAction::eMoveElement);
     nsresult rv = editActionData.CanHandleAndMaybeDispatchBeforeInputEvent();
     if (rv != NS_ERROR_EDITOR_ACTION_CANCELED && NS_WARN_IF(NS_FAILED(rv))) {
+      NS_WARNING("CanHandleAndMaybeDispatchBeforeInputEvent() failed");
       return EditorBase::ToGenericNSResult(rv);
     }
 
     if (mIsMoving) {
-      mPositioningShadow->SetAttr(kNameSpaceID_None, nsGkAtoms::_class,
-                                  NS_LITERAL_STRING("hidden"), true);
+      DebugOnly<nsresult> rvIgnored = mPositioningShadow->SetAttr(
+          kNameSpaceID_None, nsGkAtoms::_class, u"hidden"_ns, true);
+      NS_WARNING_ASSERTION(
+          NS_SUCCEEDED(rvIgnored),
+          "Element::SetAttr(nsGkAtoms::_class, hidden) failed");
       if (rv != NS_ERROR_EDITOR_ACTION_CANCELED) {
         SetFinalPosition(aClientX, aClientY);
       }
     }
     if (mGrabberClicked) {
-      EndMoving();
+      DebugOnly<nsresult> rvIgnored = EndMoving();
+      NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
+                           "HTMLEditor::EndMoving() failed");
     }
     return EditorBase::ToGenericNSResult(rv);
   }
@@ -750,17 +893,45 @@ nsresult HTMLEditor::SetResizingInfoPosition(int32_t aX, int32_t aY, int32_t aW,
 
   // Offset info box by 20 so it's not directly under the mouse cursor.
   const int mouseCursorOffset = 20;
-  RefPtr<Element> resizingInfo = mResizingInfo.get();
-  mCSSEditUtils->SetCSSPropertyPixels(*resizingInfo, *nsGkAtoms::left,
-                                      infoXPosition + mouseCursorOffset);
-  mCSSEditUtils->SetCSSPropertyPixels(*resizingInfo, *nsGkAtoms::top,
-                                      infoYPosition + mouseCursorOffset);
+  if (RefPtr<nsStyledElement> resizingInfoStyledElement =
+          nsStyledElement::FromNodeOrNull(mResizingInfo.get())) {
+    nsresult rv;
+    rv = mCSSEditUtils->SetCSSPropertyPixelsWithoutTransaction(
+        *resizingInfoStyledElement, *nsGkAtoms::left,
+        infoXPosition + mouseCursorOffset);
+    if (rv == NS_ERROR_EDITOR_DESTROYED) {
+      NS_WARNING(
+          "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::left) "
+          "destroyed the editor");
+      return NS_ERROR_EDITOR_DESTROYED;
+    }
+    NS_WARNING_ASSERTION(
+        NS_SUCCEEDED(rv),
+        "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::left) "
+        "failed, but ignored");
+    rv = mCSSEditUtils->SetCSSPropertyPixelsWithoutTransaction(
+        *resizingInfoStyledElement, *nsGkAtoms::top,
+        infoYPosition + mouseCursorOffset);
+    if (rv == NS_ERROR_EDITOR_DESTROYED) {
+      NS_WARNING(
+          "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::top) "
+          "destroyed the editor");
+      return NS_ERROR_EDITOR_DESTROYED;
+    }
+    NS_WARNING_ASSERTION(
+        NS_SUCCEEDED(rv),
+        "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::top) "
+        "failed, but ignored");
+  }
 
   nsCOMPtr<nsIContent> textInfo = mResizingInfo->GetFirstChild();
-  ErrorResult erv;
+  ErrorResult error;
   if (textInfo) {
-    mResizingInfo->RemoveChild(*textInfo, erv);
-    NS_ENSURE_TRUE(!erv.Failed(), erv.StealNSResult());
+    mResizingInfo->RemoveChild(*textInfo, error);
+    if (error.Failed()) {
+      NS_WARNING("nsINode::RemoveChild() failed");
+      return error.StealNSResult();
+    }
     textInfo = nullptr;
   }
 
@@ -778,22 +949,26 @@ nsresult HTMLEditor::SetResizingInfoPosition(int32_t aX, int32_t aY, int32_t aW,
   diffWidthStr.AppendInt(diffWidth);
   diffHeightStr.AppendInt(diffHeight);
 
-  nsAutoString info(widthStr + NS_LITERAL_STRING(" x ") + heightStr +
-                    NS_LITERAL_STRING(" (") + diffWidthStr +
-                    NS_LITERAL_STRING(", ") + diffHeightStr +
-                    NS_LITERAL_STRING(")"));
+  nsAutoString info(widthStr + u" x "_ns + heightStr + u" ("_ns + diffWidthStr +
+                    u", "_ns + diffHeightStr + u")"_ns);
 
-  RefPtr<Document> doc = GetDocument();
-  textInfo = doc->CreateTextNode(info);
-  if (NS_WARN_IF(!textInfo)) {
+  RefPtr<Document> document = GetDocument();
+  textInfo = document->CreateTextNode(info);
+  if (!textInfo) {
+    NS_WARNING("Document::CreateTextNode() failed");
     return NS_ERROR_FAILURE;
   }
-  mResizingInfo->AppendChild(*textInfo, erv);
-  if (NS_WARN_IF(erv.Failed())) {
-    return erv.StealNSResult();
+  mResizingInfo->AppendChild(*textInfo, error);
+  if (error.Failed()) {
+    NS_WARNING("nsINode::AppendChild() failed");
+    return error.StealNSResult();
   }
 
-  return mResizingInfo->UnsetAttr(kNameSpaceID_None, nsGkAtoms::_class, true);
+  nsresult rv =
+      mResizingInfo->UnsetAttr(kNameSpaceID_None, nsGkAtoms::_class, true);
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                       "Element::UnsetAttr(nsGkAtoms::_class) failed");
+  return rv;
 }
 
 nsresult HTMLEditor::SetShadowPosition(Element& aShadowElement,
@@ -805,9 +980,18 @@ nsresult HTMLEditor::SetShadowPosition(Element& aShadowElement,
                                               ? mResizingShadow.get()
                                               : mPositioningShadow.get();
 
-  SetAnonymousElementPosition(aElementX, aElementY, &aShadowElement);
-  if (NS_WARN_IF(&aShadowElement != handlingShadowElement)) {
-    return NS_ERROR_FAILURE;
+  if (nsStyledElement* styledShadowElement =
+          nsStyledElement::FromNode(&aShadowElement)) {
+    // MOZ_KnownLive(*styledShadowElement): It's aShadowElement whose lifetime
+    // must be guaranteed by caller because of MOZ_CAN_RUN_SCRIPT method.
+    nsresult rv = SetAnonymousElementPositionWithoutTransaction(
+        MOZ_KnownLive(*styledShadowElement), aElementX, aElementY);
+    if (NS_FAILED(rv)) {
+      NS_WARNING(
+          "HTMLEditor::SetAnonymousElementPositionWithoutTransaction() "
+          "failed");
+      return rv;
+    }
   }
 
   if (!HTMLEditUtils::IsImage(&aElement)) {
@@ -818,11 +1002,15 @@ nsresult HTMLEditor::SetShadowPosition(Element& aShadowElement,
   aElement.GetAttr(kNameSpaceID_None, nsGkAtoms::src, imageSource);
   nsresult rv = aShadowElement.SetAttr(kNameSpaceID_None, nsGkAtoms::src,
                                        imageSource, true);
-  if (NS_WARN_IF(NS_FAILED(rv)) ||
-      NS_WARN_IF(&aShadowElement != handlingShadowElement)) {
+  if (NS_WARN_IF(Destroyed())) {
+    return NS_ERROR_EDITOR_DESTROYED;
+  }
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Element::SetAttr(nsGkAtoms::src) failed");
     return NS_ERROR_FAILURE;
   }
-  return NS_OK;
+  return NS_WARN_IF(&aShadowElement != handlingShadowElement) ? NS_ERROR_FAILURE
+                                                              : NS_OK;
 }
 
 int32_t HTMLEditor::GetNewResizingIncrement(int32_t aX, int32_t aY,
@@ -914,16 +1102,63 @@ nsresult HTMLEditor::OnMouseMove(MouseEvent* aMouseEvent) {
     int32_t newWidth = GetNewResizingWidth(clientX, clientY);
     int32_t newHeight = GetNewResizingHeight(clientX, clientY);
 
-    RefPtr<Element> resizingShadow = mResizingShadow.get();
-    mCSSEditUtils->SetCSSPropertyPixels(*resizingShadow, *nsGkAtoms::left,
-                                        newX);
-    mCSSEditUtils->SetCSSPropertyPixels(*resizingShadow, *nsGkAtoms::top, newY);
-    mCSSEditUtils->SetCSSPropertyPixels(*resizingShadow, *nsGkAtoms::width,
-                                        newWidth);
-    mCSSEditUtils->SetCSSPropertyPixels(*resizingShadow, *nsGkAtoms::height,
-                                        newHeight);
+    if (RefPtr<nsStyledElement> resizingShadowStyledElement =
+            nsStyledElement::FromNodeOrNull(mResizingShadow.get())) {
+      nsresult rv;
+      rv = mCSSEditUtils->SetCSSPropertyPixelsWithoutTransaction(
+          *resizingShadowStyledElement, *nsGkAtoms::left, newX);
+      if (rv == NS_ERROR_EDITOR_DESTROYED) {
+        NS_WARNING(
+            "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::left)"
+            " destroyed the editor");
+        return NS_ERROR_EDITOR_DESTROYED;
+      }
+      NS_WARNING_ASSERTION(
+          NS_SUCCEEDED(rv),
+          "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::left) "
+          "failed, but ignored");
+      rv = mCSSEditUtils->SetCSSPropertyPixelsWithoutTransaction(
+          *resizingShadowStyledElement, *nsGkAtoms::top, newY);
+      if (rv == NS_ERROR_EDITOR_DESTROYED) {
+        NS_WARNING(
+            "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::top)"
+            " destroyed the editor");
+        return NS_ERROR_EDITOR_DESTROYED;
+      }
+      NS_WARNING_ASSERTION(
+          NS_SUCCEEDED(rv),
+          "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::top) "
+          "failed, but ignored");
+      rv = mCSSEditUtils->SetCSSPropertyPixelsWithoutTransaction(
+          *resizingShadowStyledElement, *nsGkAtoms::width, newWidth);
+      if (rv == NS_ERROR_EDITOR_DESTROYED) {
+        NS_WARNING(
+            "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::"
+            "width) destroyed the editor");
+        return NS_ERROR_EDITOR_DESTROYED;
+      }
+      NS_WARNING_ASSERTION(
+          NS_SUCCEEDED(rv),
+          "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::width) "
+          "failed, but ignored");
+      rv = mCSSEditUtils->SetCSSPropertyPixelsWithoutTransaction(
+          *resizingShadowStyledElement, *nsGkAtoms::height, newHeight);
+      if (rv == NS_ERROR_EDITOR_DESTROYED) {
+        NS_WARNING(
+            "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::"
+            "height) destroyed the editor");
+        return NS_ERROR_EDITOR_DESTROYED;
+      }
+      NS_WARNING_ASSERTION(
+          NS_SUCCEEDED(rv),
+          "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::height)"
+          " failed, but ignored");
+    }
 
-    return SetResizingInfoPosition(newX, newY, newWidth, newHeight);
+    nsresult rv = SetResizingInfoPosition(newX, newY, newWidth, newHeight);
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                         "HTMLEditor::SetResizingInfoPosition() failed");
+    return rv;
   }
 
   AutoEditActionDataSetter editActionData(*this, EditAction::eMovingElement);
@@ -936,14 +1171,16 @@ nsresult HTMLEditor::OnMouseMove(MouseEvent* aMouseEvent) {
     int32_t clientY = aMouseEvent->ClientY();
 
     int32_t xThreshold =
-        LookAndFeel::GetInt(LookAndFeel::eIntID_DragThresholdX, 1);
+        LookAndFeel::GetInt(LookAndFeel::IntID::DragThresholdX, 1);
     int32_t yThreshold =
-        LookAndFeel::GetInt(LookAndFeel::eIntID_DragThresholdY, 1);
+        LookAndFeel::GetInt(LookAndFeel::IntID::DragThresholdY, 1);
 
     if (DeprecatedAbs(clientX - mOriginalX) * 2 >= xThreshold ||
         DeprecatedAbs(clientY - mOriginalY) * 2 >= yThreshold) {
       mGrabberClicked = false;
-      StartMoving();
+      DebugOnly<nsresult> rvIgnored = StartMoving();
+      NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
+                           "HTMLEditor::StartMoving() failed, but ignored");
     }
   }
   if (mIsMoving) {
@@ -955,24 +1192,50 @@ nsresult HTMLEditor::OnMouseMove(MouseEvent* aMouseEvent) {
 
     SnapToGrid(newX, newY);
 
-    RefPtr<Element> positioningShadow = mPositioningShadow.get();
-    mCSSEditUtils->SetCSSPropertyPixels(*positioningShadow, *nsGkAtoms::left,
-                                        newX);
-    mCSSEditUtils->SetCSSPropertyPixels(*positioningShadow, *nsGkAtoms::top,
-                                        newY);
+    if (RefPtr<nsStyledElement> positioningShadowStyledElement =
+            nsStyledElement::FromNodeOrNull(mPositioningShadow.get())) {
+      nsresult rv;
+      rv = mCSSEditUtils->SetCSSPropertyPixelsWithoutTransaction(
+          *positioningShadowStyledElement, *nsGkAtoms::left, newX);
+      if (rv == NS_ERROR_EDITOR_DESTROYED) {
+        NS_WARNING(
+            "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::left)"
+            " destroyed the editor");
+        return NS_ERROR_EDITOR_DESTROYED;
+      }
+      NS_WARNING_ASSERTION(
+          NS_SUCCEEDED(rv),
+          "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::left) "
+          "failed, but ignored");
+      rv = mCSSEditUtils->SetCSSPropertyPixelsWithoutTransaction(
+          *positioningShadowStyledElement, *nsGkAtoms::top, newY);
+      if (rv == NS_ERROR_EDITOR_DESTROYED) {
+        NS_WARNING(
+            "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::top) "
+            "destroyed the editor");
+        return NS_ERROR_EDITOR_DESTROYED;
+      }
+      NS_WARNING_ASSERTION(
+          NS_SUCCEEDED(rv),
+          "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::top) "
+          "failed, but ignored");
+    }
   }
   return NS_OK;
 }
 
-void HTMLEditor::SetFinalSize(int32_t aX, int32_t aY) {
+nsresult HTMLEditor::SetFinalSizeWithTransaction(int32_t aX, int32_t aY) {
   if (!mResizedObject) {
     // paranoia
-    return;
+    return NS_OK;
   }
 
   if (mActivatedHandle) {
-    mActivatedHandle->UnsetAttr(kNameSpaceID_None, nsGkAtoms::_moz_activated,
-                                true);
+    DebugOnly<nsresult> rvIgnored = mActivatedHandle->UnsetAttr(
+        kNameSpaceID_None, nsGkAtoms::_moz_activated, true);
+    NS_WARNING_ASSERTION(
+        NS_SUCCEEDED(rvIgnored),
+        "Element::UnsetAttr(nsGkAtoms::_moz_activated) failed, but ignored");
     mActivatedHandle = nullptr;
   }
 
@@ -997,35 +1260,99 @@ void HTMLEditor::SetFinalSize(int32_t aX, int32_t aY) {
                  : 0);
 
   // we want one transaction only from a user's point of view
-  AutoPlaceholderBatch treatAsOneTransaction(*this);
-  RefPtr<Element> resizedObject(mResizedObject);
+  AutoPlaceholderBatch treatAsOneTransaction(*this,
+                                             ScrollSelectionIntoView::Yes);
+  RefPtr<Element> resizedElement(mResizedObject);
+  RefPtr<nsStyledElement> resizedStyleElement =
+      nsStyledElement::FromNodeOrNull(mResizedObject);
 
-  if (mResizedObjectIsAbsolutelyPositioned) {
+  if (mResizedObjectIsAbsolutelyPositioned && resizedStyleElement) {
     if (setHeight) {
-      mCSSEditUtils->SetCSSPropertyPixels(*resizedObject, *nsGkAtoms::top, y);
+      nsresult rv = mCSSEditUtils->SetCSSPropertyPixelsWithTransaction(
+          *resizedStyleElement, *nsGkAtoms::top, y);
+      if (rv == NS_ERROR_EDITOR_DESTROYED) {
+        NS_WARNING(
+            "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::"
+            "top) destoyed the editor");
+        return NS_ERROR_EDITOR_DESTROYED;
+      }
+      NS_WARNING_ASSERTION(
+          NS_SUCCEEDED(rv),
+          "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::top) "
+          "failed, but ignored");
     }
     if (setWidth) {
-      mCSSEditUtils->SetCSSPropertyPixels(*resizedObject, *nsGkAtoms::left, x);
+      nsresult rv = mCSSEditUtils->SetCSSPropertyPixelsWithTransaction(
+          *resizedStyleElement, *nsGkAtoms::left, x);
+      if (rv == NS_ERROR_EDITOR_DESTROYED) {
+        NS_WARNING(
+            "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::"
+            "left) destoyed the editor");
+        return NS_ERROR_EDITOR_DESTROYED;
+      }
+      NS_WARNING_ASSERTION(
+          NS_SUCCEEDED(rv),
+          "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::left)"
+          " "
+          "failed, but ignored");
     }
   }
   if (IsCSSEnabled() || mResizedObjectIsAbsolutelyPositioned) {
     if (setWidth &&
-        resizedObject->HasAttr(kNameSpaceID_None, nsGkAtoms::width)) {
-      RemoveAttributeWithTransaction(*resizedObject, *nsGkAtoms::width);
+        resizedElement->HasAttr(kNameSpaceID_None, nsGkAtoms::width)) {
+      DebugOnly<nsresult> rvIgnored =
+          RemoveAttributeWithTransaction(*resizedElement, *nsGkAtoms::width);
+      if (NS_WARN_IF(Destroyed())) {
+        return NS_ERROR_EDITOR_DESTROYED;
+      }
+      NS_WARNING_ASSERTION(
+          NS_SUCCEEDED(rvIgnored),
+          "EditorBase::RemoveAttributeWithTransaction(nsGkAtoms::width) "
+          "failed, but ignored");
     }
 
     if (setHeight &&
-        resizedObject->HasAttr(kNameSpaceID_None, nsGkAtoms::height)) {
-      RemoveAttributeWithTransaction(*resizedObject, *nsGkAtoms::height);
+        resizedElement->HasAttr(kNameSpaceID_None, nsGkAtoms::height)) {
+      DebugOnly<nsresult> rvIgnored =
+          RemoveAttributeWithTransaction(*resizedElement, *nsGkAtoms::height);
+      if (NS_WARN_IF(Destroyed())) {
+        return NS_ERROR_EDITOR_DESTROYED;
+      }
+      NS_WARNING_ASSERTION(
+          NS_SUCCEEDED(rvIgnored),
+          "EditorBase::RemoveAttributeWithTransaction(nsGkAtoms::height) "
+          "failed, but ignored");
     }
 
-    if (setWidth) {
-      mCSSEditUtils->SetCSSPropertyPixels(*resizedObject, *nsGkAtoms::width,
-                                          width);
-    }
-    if (setHeight) {
-      mCSSEditUtils->SetCSSPropertyPixels(*resizedObject, *nsGkAtoms::height,
-                                          height);
+    if (resizedStyleElement) {
+      if (setWidth) {
+        nsresult rv = mCSSEditUtils->SetCSSPropertyPixelsWithTransaction(
+            *resizedStyleElement, *nsGkAtoms::width, width);
+        if (NS_FAILED(rv)) {
+          NS_WARNING(
+              "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::"
+              "width) destoyed the editor");
+          return NS_ERROR_EDITOR_DESTROYED;
+        }
+        NS_WARNING_ASSERTION(
+            NS_SUCCEEDED(rv),
+            "CSSEditUtils::SetCSSPropertyPixels(nsGkAtoms::width) "
+            "failed, but ignored");
+      }
+      if (setHeight) {
+        nsresult rv = mCSSEditUtils->SetCSSPropertyPixelsWithTransaction(
+            *resizedStyleElement, *nsGkAtoms::height, height);
+        if (NS_FAILED(rv)) {
+          NS_WARNING(
+              "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::"
+              "height) destoyed the editor");
+          return NS_ERROR_EDITOR_DESTROYED;
+        }
+        NS_WARNING_ASSERTION(
+            NS_SUCCEEDED(rv),
+            "CSSEditUtils::SetCSSPropertyPixels(nsGkAtoms::height) "
+            "failed, but ignored");
+      }
     }
   } else {
     // we use HTML size and remove all equivalent CSS properties
@@ -1033,32 +1360,92 @@ void HTMLEditor::SetFinalSize(int32_t aX, int32_t aY) {
     // we set the CSS width and height to remove it later,
     // triggering an immediate reflow; otherwise, we have problems
     // with asynchronous reflow
-    if (setWidth) {
-      mCSSEditUtils->SetCSSPropertyPixels(*resizedObject, *nsGkAtoms::width,
-                                          width);
-    }
-    if (setHeight) {
-      mCSSEditUtils->SetCSSPropertyPixels(*resizedObject, *nsGkAtoms::height,
-                                          height);
+    if (resizedStyleElement) {
+      if (setWidth) {
+        nsresult rv = mCSSEditUtils->SetCSSPropertyPixelsWithTransaction(
+            *resizedStyleElement, *nsGkAtoms::width, width);
+        if (NS_FAILED(rv)) {
+          NS_WARNING(
+              "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::"
+              "width) destoyed the editor");
+          return NS_ERROR_EDITOR_DESTROYED;
+        }
+        NS_WARNING_ASSERTION(
+            NS_SUCCEEDED(rv),
+            "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::"
+            "width) failed, but ignored");
+      }
+      if (setHeight) {
+        nsresult rv = mCSSEditUtils->SetCSSPropertyPixelsWithTransaction(
+            *resizedStyleElement, *nsGkAtoms::height, height);
+        if (NS_FAILED(rv)) {
+          NS_WARNING(
+              "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::"
+              "height) destoyed the editor");
+          return NS_ERROR_EDITOR_DESTROYED;
+        }
+        NS_WARNING_ASSERTION(
+            NS_SUCCEEDED(rv),
+            "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::"
+            "height) failed, but ignored");
+      }
     }
     if (setWidth) {
       nsAutoString w;
       w.AppendInt(width);
-      SetAttributeWithTransaction(*resizedObject, *nsGkAtoms::width, w);
+      DebugOnly<nsresult> rvIgnored =
+          SetAttributeWithTransaction(*resizedElement, *nsGkAtoms::width, w);
+      if (NS_WARN_IF(Destroyed())) {
+        return NS_ERROR_EDITOR_DESTROYED;
+      }
+      NS_WARNING_ASSERTION(
+          NS_SUCCEEDED(rvIgnored),
+          "EditorBase::SetAttributeWithTransaction(nsGkAtoms::width) "
+          "failed, but ignored");
     }
     if (setHeight) {
       nsAutoString h;
       h.AppendInt(height);
-      SetAttributeWithTransaction(*resizedObject, *nsGkAtoms::height, h);
+      DebugOnly<nsresult> rvIgnored =
+          SetAttributeWithTransaction(*resizedElement, *nsGkAtoms::height, h);
+      if (NS_WARN_IF(Destroyed())) {
+        return NS_ERROR_EDITOR_DESTROYED;
+      }
+      NS_WARNING_ASSERTION(
+          NS_SUCCEEDED(rvIgnored),
+          "EditorBase::SetAttributeWithTransaction(nsGkAtoms::height) "
+          "failed, but ignored");
     }
 
-    if (setWidth) {
-      mCSSEditUtils->RemoveCSSProperty(*resizedObject, *nsGkAtoms::width,
-                                       EmptyString());
-    }
-    if (setHeight) {
-      mCSSEditUtils->RemoveCSSProperty(*resizedObject, *nsGkAtoms::height,
-                                       EmptyString());
+    if (resizedStyleElement) {
+      if (setWidth) {
+        nsresult rv = mCSSEditUtils->RemoveCSSPropertyWithTransaction(
+            *resizedStyleElement, *nsGkAtoms::width, u""_ns);
+        if (rv == NS_ERROR_EDITOR_DESTROYED) {
+          NS_WARNING(
+              "CSSEditUtils::RemoveCSSPropertyWithTransaction(nsGkAtoms::width)"
+              " destroyed the editor");
+          return NS_ERROR_EDITOR_DESTROYED;
+        }
+        NS_WARNING_ASSERTION(
+            NS_SUCCEEDED(rv),
+            "CSSEditUtils::RemoveCSSPropertyWithTransaction(nsGkAtoms::width) "
+            "failed, but ignored");
+      }
+      if (setHeight) {
+        nsresult rv = mCSSEditUtils->RemoveCSSPropertyWithTransaction(
+            *resizedStyleElement, *nsGkAtoms::height, u""_ns);
+        if (rv == NS_ERROR_EDITOR_DESTROYED) {
+          NS_WARNING(
+              "CSSEditUtils::RemoveCSSPropertyWithTransaction(nsGkAtoms::"
+              "height) destroyed the editor");
+          return NS_ERROR_EDITOR_DESTROYED;
+        }
+        NS_WARNING_ASSERTION(
+            NS_SUCCEEDED(rv),
+            "CSSEditUtils::RemoveCSSPropertyWithTransaction(nsGkAtoms::height) "
+            "failed, but ignored");
+      }
     }
   }
 
@@ -1066,18 +1453,21 @@ void HTMLEditor::SetFinalSize(int32_t aX, int32_t aY) {
   mResizedObjectWidth = width;
   mResizedObjectHeight = height;
 
-  DebugOnly<nsresult> rv = RefreshResizersInternal();
-  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Failed ot refresh resizers");
+  DebugOnly<nsresult> rvIgnored = RefreshResizersInternal();
+  NS_WARNING_ASSERTION(
+      NS_SUCCEEDED(rvIgnored),
+      "HTMLEditor::RefreshResizersInternal() failed, but ignored");
+  return NS_WARN_IF(Destroyed()) ? NS_ERROR_EDITOR_DESTROYED : NS_OK;
 }
 
-NS_IMETHODIMP
-HTMLEditor::GetObjectResizingEnabled(bool* aIsObjectResizingEnabled) {
+NS_IMETHODIMP HTMLEditor::GetObjectResizingEnabled(
+    bool* aIsObjectResizingEnabled) {
   *aIsObjectResizingEnabled = IsObjectResizerEnabled();
   return NS_OK;
 }
 
-NS_IMETHODIMP
-HTMLEditor::SetObjectResizingEnabled(bool aObjectResizingEnabled) {
+NS_IMETHODIMP HTMLEditor::SetObjectResizingEnabled(
+    bool aObjectResizingEnabled) {
   EnableObjectResizer(aObjectResizingEnabled);
   return NS_OK;
 }

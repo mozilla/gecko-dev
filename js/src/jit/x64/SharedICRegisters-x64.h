@@ -7,7 +7,9 @@
 #ifndef jit_x64_SharedICRegisters_x64_h
 #define jit_x64_SharedICRegisters_x64_h
 
-#include "jit/MacroAssembler.h"
+#include "jit/Registers.h"
+#include "jit/RegisterSets.h"
+#include "jit/x64/Assembler-x64.h"
 
 namespace js {
 namespace jit {
@@ -28,6 +30,8 @@ static constexpr Register ExtractTemp1 = r15;
 // FloatReg0 must be equal to ReturnFloatReg.
 static constexpr FloatRegister FloatReg0 = xmm0;
 static constexpr FloatRegister FloatReg1 = xmm1;
+static constexpr FloatRegister FloatReg2 = xmm2;
+static constexpr FloatRegister FloatReg3 = xmm3;
 
 }  // namespace jit
 }  // namespace js

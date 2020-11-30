@@ -39,6 +39,7 @@ var { getTestLogger, initTestLogging } = ChromeUtils.import(
 var { MockRegistrar } = ChromeUtils.import(
   "resource://testing-common/MockRegistrar.jsm"
 );
+var { NetUtil } = ChromeUtils.import("resource://gre/modules/NetUtil.jsm");
 
 function do_check_empty(obj) {
   do_check_attribute_count(obj, 0);
@@ -137,7 +138,27 @@ function promiseStopServer(server) {
  * all available input is read.
  */
 function readBytesFromInputStream(inputStream, count) {
-  return CommonUtils.readBytesFromInputStream(inputStream, count);
+  if (!count) {
+    count = inputStream.available();
+  }
+  if (!count) {
+    return "";
+  }
+  return NetUtil.readInputStreamToString(inputStream, count, {
+    charset: "UTF-8",
+  });
+}
+
+function writeBytesToOutputStream(outputStream, string) {
+  if (!string) {
+    return;
+  }
+  let converter = Cc[
+    "@mozilla.org/intl/converter-output-stream;1"
+  ].createInstance(Ci.nsIConverterOutputStream);
+  converter.init(outputStream, "UTF-8");
+  converter.writeString(string);
+  converter.close();
 }
 
 /*
@@ -161,14 +182,14 @@ function ensureThrows(func) {
  * Fake a PAC to prompt a channel replacement.
  */
 var PACSystemSettings = {
-  QueryInterface: ChromeUtils.generateQI([Ci.nsISystemProxySettings]),
+  QueryInterface: ChromeUtils.generateQI(["nsISystemProxySettings"]),
 
   // Replace this URI for each test to avoid caching. We want to ensure that
   // each test gets a completely fresh setup.
   mainThreadOnly: true,
   PACURI: null,
   getProxyForURI: function getProxyForURI(aURI) {
-    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+    throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
   },
 };
 
@@ -275,4 +296,8 @@ async function withFakeChannel(channel, f) {
   } finally {
     module.Policy = oldPolicy;
   }
+}
+
+function arrayEqual(a, b) {
+  return JSON.stringify(a) == JSON.stringify(b);
 }

@@ -6,14 +6,21 @@
 
 #include "mozilla/dom/Document.h"
 #include "mozilla/net/CookieJarSettings.h"
-#include "mozilla/AntiTrackingCommon.h"
+#include "mozilla/ContentBlocking.h"
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/StaticPrefs_privacy.h"
 #include "mozilla/StorageAccess.h"
+#include "nsContentUtils.h"
+#include "nsICookiePermission.h"
 #include "nsICookieService.h"
 #include "nsICookieJarSettings.h"
+#include "nsIPermission.h"
 #include "nsIWebProgressListener.h"
+#include "nsSandboxFlags.h"
+
+using namespace mozilla;
+using namespace mozilla::dom;
 
 /**
  * Gets the cookie lifetime policy for a given cookieJarSettings and a given
@@ -76,6 +83,7 @@ static StorageAccess InternalStorageAllowedCheck(
     return StorageAccess::eDeny;
   }
 
+  nsCOMPtr<nsIURI> documentURI;
   if (aWindow) {
     // If the document is sandboxed, then it is not permitted to use storage
     Document* document = aWindow->GetExtantDoc();
@@ -87,6 +95,9 @@ static StorageAccess InternalStorageAllowedCheck(
     if (nsContentUtils::IsInPrivateBrowsing(document)) {
       access = StorageAccess::ePrivateBrowsing;
     }
+
+    // Get the document URI for the below about: URI check.
+    documentURI = document ? document->GetDocumentURI() : nullptr;
   }
 
   uint32_t lifetimePolicy;
@@ -120,7 +131,7 @@ static StorageAccess InternalStorageAllowedCheck(
   // BEFORE:
   // localStorage, caches: allowed in 3rd-party iframes always
   // IndexedDB: allowed in 3rd-party iframes only if 3rd party URI is an about:
-  //   URI within a specific whitelist
+  //   URI within a specific allowlist
   //
   // AFTER:
   // localStorage, caches: allowed in 3rd-party iframes by default. Preference
@@ -128,13 +139,19 @@ static StorageAccess InternalStorageAllowedCheck(
   //   URIs.
   // IndexedDB: allowed in 3rd-party iframes by default. Preference can be set
   //   to disable in 3rd-party, which will disallow in about: URIs, unless they
-  //   are within a specific whitelist.
+  //   are within a specific allowlist.
   //
   // This means that behavior for storage with internal about: URIs should not
   // be affected, which is desireable due to the lack of automated testing for
   // about: URIs with these preferences set, and the importance of the correct
   // functioning of these URIs even with custom preferences.
-  if ((aURI && aURI->SchemeIs("about")) || aPrincipal->SchemeIs("about")) {
+  //
+  // We need to check the aURI or the document URI here instead of only checking
+  // the URI from the principal. Because the principal might not have a URI if
+  // it is a system principal.
+  if ((aURI && aURI->SchemeIs("about")) ||
+      (documentURI && documentURI->SchemeIs("about")) ||
+      aPrincipal->SchemeIs("about")) {
     return access;
   }
 
@@ -168,9 +185,8 @@ static bool StorageDisabledByAntiTrackingInternal(
 
   if (aWindow) {
     nsIURI* documentURI = aURI ? aURI : aWindow->GetDocumentURI();
-    return !documentURI ||
-           !AntiTrackingCommon::IsFirstPartyStorageAccessGrantedFor(
-               aWindow, documentURI, &aRejectedReason);
+    return !documentURI || !ContentBlocking::ShouldAllowAccessFor(
+                               aWindow, documentURI, &aRejectedReason);
   }
 
   if (aChannel) {
@@ -180,13 +196,12 @@ static bool StorageDisabledByAntiTrackingInternal(
       return false;
     }
 
-    return !AntiTrackingCommon::IsFirstPartyStorageAccessGrantedFor(
-        aChannel, uri, &aRejectedReason);
+    return !ContentBlocking::ShouldAllowAccessFor(aChannel, uri,
+                                                  &aRejectedReason);
   }
 
   MOZ_ASSERT(aPrincipal);
-  return !AntiTrackingCommon::IsFirstPartyStorageAccessGrantedFor(
-      aPrincipal, aCookieJarSettings);
+  return !ContentBlocking::ShouldAllowAccessFor(aPrincipal, aCookieJarSettings);
 }
 
 namespace mozilla {
@@ -299,17 +314,18 @@ bool StorageDisabledByAntiTracking(nsPIDOMWindowInner* aWindow,
   }
   bool disabled = StorageDisabledByAntiTrackingInternal(
       aWindow, aChannel, aPrincipal, aURI, cookieJarSettings, aRejectedReason);
+
   if (aWindow) {
-    AntiTrackingCommon::NotifyBlockingDecision(
+    ContentBlockingNotifier::OnDecision(
         aWindow,
-        disabled ? AntiTrackingCommon::BlockingDecision::eBlock
-                 : AntiTrackingCommon::BlockingDecision::eAllow,
+        disabled ? ContentBlockingNotifier::BlockingDecision::eBlock
+                 : ContentBlockingNotifier::BlockingDecision::eAllow,
         aRejectedReason);
   } else if (aChannel) {
-    AntiTrackingCommon::NotifyBlockingDecision(
+    ContentBlockingNotifier::OnDecision(
         aChannel,
-        disabled ? AntiTrackingCommon::BlockingDecision::eBlock
-                 : AntiTrackingCommon::BlockingDecision::eAllow,
+        disabled ? ContentBlockingNotifier::BlockingDecision::eBlock
+                 : ContentBlockingNotifier::BlockingDecision::eAllow,
         aRejectedReason);
   }
   return disabled;

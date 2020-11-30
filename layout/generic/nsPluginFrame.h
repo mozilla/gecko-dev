@@ -13,7 +13,7 @@
 #include "mozilla/EventForwards.h"
 #include "mozilla/UniquePtr.h"
 #include "nsIObjectFrame.h"
-#include "nsFrame.h"
+#include "nsIFrame.h"
 #include "nsRegion.h"
 #include "nsDisplayList.h"
 #include "nsIReflowCallback.h"
@@ -51,7 +51,7 @@ class LayerManager;
 
 class PluginFrameDidCompositeObserver;
 
-class nsPluginFrame final : public nsFrame,
+class nsPluginFrame final : public nsIFrame,
                             public nsIObjectFrame,
                             public nsIReflowCallback {
  public:
@@ -90,7 +90,7 @@ class nsPluginFrame final : public nsFrame,
                                nsEventStatus* aEventStatus) override;
 
   virtual bool IsFrameOfType(uint32_t aFlags) const override {
-    return nsFrame::IsFrameOfType(
+    return nsIFrame::IsFrameOfType(
         aFlags & ~(nsIFrame::eReplaced | nsIFrame::eReplacedSizing));
   }
 
@@ -183,12 +183,12 @@ class nsPluginFrame final : public nsFrame,
    * There will be a call to EndSwapDocShells after we were moved to the
    * new view tree.
    */
-  static void BeginSwapDocShells(nsISupports* aSupports, void*);
+  static void BeginSwapDocShells(nsISupports* aSupports);
   /**
    * If aSupports has a nsPluginFrame, then set it up after a DocShell swap.
    * @see nsSubDocumentFrame::EndSwapDocShells.
    */
-  static void EndSwapDocShells(nsISupports* aSupports, void*);
+  static void EndSwapDocShells(nsISupports* aSupports);
 
   nsIWidget* GetWidget() override {
     if (!mInnerView) {

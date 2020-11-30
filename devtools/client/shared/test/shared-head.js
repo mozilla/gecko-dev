@@ -68,6 +68,31 @@ const URL_ROOT_SSL = CHROME_URL_ROOT.replace(
   "https://example.com/"
 );
 
+// Add aliases which make it more explicit that URL_ROOT uses a com TLD.
+const URL_ROOT_COM = URL_ROOT;
+const URL_ROOT_COM_SSL = URL_ROOT_SSL;
+
+// Also expose http://example.org, http://example.net, https://example.org to
+// test Fission scenarios easily.
+// Note: example.net is not available for https.
+const URL_ROOT_ORG = CHROME_URL_ROOT.replace(
+  "chrome://mochitests/content/",
+  "http://example.org/"
+);
+const URL_ROOT_ORG_SSL = CHROME_URL_ROOT.replace(
+  "chrome://mochitests/content/",
+  "https://example.org/"
+);
+const URL_ROOT_NET = CHROME_URL_ROOT.replace(
+  "chrome://mochitests/content/",
+  "http://example.org/"
+);
+// mochi.test:8888 is the actual primary location where files are served.
+const URL_ROOT_MOCHI_8888 = CHROME_URL_ROOT.replace(
+  "chrome://mochitests/content/",
+  "http://mochi.test:8888/"
+);
+
 try {
   Services.scriptloader.loadSubScript(
     "chrome://mochitests/content/browser/devtools/client/shared/test/telemetry-test-helpers.js",
@@ -85,6 +110,100 @@ try {
 
 // Force devtools to be initialized so menu items and keyboard shortcuts get installed
 require("devtools/client/framework/devtools-browser");
+
+/**
+ * Observer code to register the test actor in every DevTools server which
+ * starts registering its own actors.
+ *
+ * We require immediately the test actor file, because it will force to load and
+ * register the front and the spec for TestActor. Normally specs and fronts are
+ * in separate files registered in specs/index.js. But here to simplify the
+ * setup everything is in the same file and we force to load it here.
+ *
+ * DevToolsServer will emit "devtools-server-initialized" after finishing its
+ * initialization. We watch this observable to add our custom actor.
+ *
+ * As a single test may create several DevTools servers, we keep the observer
+ * alive until the test ends.
+ *
+ * To avoid leaks, the observer needs to be removed at the end of each test.
+ * The test cleanup will send the async message "remove-devtools-testactor-observer",
+ * we listen to this message to cleanup the observer.
+ */
+function testActorBootstrap() {
+  const TEST_ACTOR_URL =
+    "chrome://mochitests/content/browser/devtools/client/shared/test/test-actor.js";
+
+  const { require: _require } = ChromeUtils.import(
+    "resource://devtools/shared/Loader.jsm"
+  );
+  _require(TEST_ACTOR_URL);
+
+  const Services = _require("Services");
+
+  const actorRegistryObserver = subject => {
+    const actorRegistry = subject.wrappedJSObject;
+    actorRegistry.registerModule(TEST_ACTOR_URL, {
+      prefix: "test",
+      constructor: "TestActor",
+      type: { target: true },
+    });
+  };
+  Services.obs.addObserver(
+    actorRegistryObserver,
+    "devtools-server-initialized"
+  );
+
+  const unloadListener = () => {
+    Services.cpmm.removeMessageListener(
+      "remove-devtools-testactor-observer",
+      unloadListener
+    );
+    Services.obs.removeObserver(
+      actorRegistryObserver,
+      "devtools-server-initialized"
+    );
+  };
+  Services.cpmm.addMessageListener(
+    "remove-devtools-testactor-observer",
+    unloadListener
+  );
+}
+
+const testActorBootstrapScript = "data:,(" + testActorBootstrap + ")()";
+Services.ppmm.loadProcessScript(
+  testActorBootstrapScript,
+  // Load this script in all processes (created or to be created)
+  true
+);
+
+registerCleanupFunction(() => {
+  Services.ppmm.broadcastAsyncMessage("remove-devtools-testactor-observer");
+  Services.ppmm.removeDelayedProcessScript(testActorBootstrapScript);
+});
+
+// Spawn an instance of the test actor for the given toolbox
+async function getTestActor(toolbox) {
+  return toolbox.target.getFront("test");
+}
+
+// Sometimes, we need the test actor before opening or without a toolbox then just
+// create a front for the given `tab`
+async function getTestActorWithoutToolbox(tab) {
+  const { DevToolsServer } = require("devtools/server/devtools-server");
+  const { DevToolsClient } = require("devtools/client/devtools-client");
+
+  // We need to spawn a client instance,
+  // but for that we have to first ensure a server is running
+  DevToolsServer.init();
+  DevToolsServer.registerAllActors();
+  const client = new DevToolsClient(DevToolsServer.connectPipe());
+  await client.connect();
+
+  const descriptor = await client.mainRoot.getTab({ tab });
+  const targetFront = await descriptor.getTarget();
+  return targetFront.getFront("test");
+}
 
 // All test are asynchronous
 waitForExplicitFinish();
@@ -113,7 +232,7 @@ registerCleanupFunction(function() {
  * Watch console messages for failed propType definitions in React components.
  */
 const ConsoleObserver = {
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIObserver]),
+  QueryInterface: ChromeUtils.generateQI(["nsIObserver"]),
 
   observe: function(subject) {
     const message = subject.wrappedJSObject.arguments[0];
@@ -129,8 +248,6 @@ registerCleanupFunction(() => {
   Services.obs.removeObserver(ConsoleObserver, "console-api-log-event");
 });
 
-var waitForTime = DevToolsUtils.waitForTime;
-
 function loadFrameScriptUtils(browser = gBrowser.selectedBrowser) {
   let mm = browser.messageManager;
   const frameURL =
@@ -144,16 +261,45 @@ function loadFrameScriptUtils(browser = gBrowser.selectedBrowser) {
 }
 
 Services.prefs.setBoolPref("devtools.inspector.three-pane-enabled", true);
+
+// Disable this preference to reduce exceptions related to pending `listWorkers`
+// requests occuring after a process is created/destroyed. See Bug 1620983.
+Services.prefs.setBoolPref("dom.ipc.processPrelaunch.enabled", false);
+
+// Disable this preference to capture async stacks across all locations during
+// DevTools mochitests. Async stacks provide very valuable information to debug
+// intermittents, but come with a performance overhead, which is why they are
+// only captured in Debuggees by default.
+Services.prefs.setBoolPref(
+  "javascript.options.asyncstack_capture_debuggee_only",
+  false
+);
+
 registerCleanupFunction(() => {
   Services.prefs.clearUserPref("devtools.dump.emit");
   Services.prefs.clearUserPref("devtools.inspector.three-pane-enabled");
+  Services.prefs.clearUserPref("dom.ipc.processPrelaunch.enabled");
   Services.prefs.clearUserPref("devtools.toolbox.host");
   Services.prefs.clearUserPref("devtools.toolbox.previousHost");
   Services.prefs.clearUserPref("devtools.toolbox.splitconsoleEnabled");
   Services.prefs.clearUserPref("devtools.toolbox.splitconsoleHeight");
+  Services.prefs.clearUserPref(
+    "javascript.options.asyncstack_capture_debuggee_only"
+  );
 });
 
+var {
+  BrowserConsoleManager,
+} = require("devtools/client/webconsole/browser-console-manager");
+
 registerCleanupFunction(async function cleanup() {
+  // Closing the browser console if there's one
+  const browserConsole = BrowserConsoleManager.getBrowserConsole();
+  if (browserConsole) {
+    browserConsole.targetList.destroy();
+    await safeCloseBrowserConsole({ clearOutput: true });
+  }
+
   // Close any tab opened by the test.
   // There should be only one tab opened by default when firefox starts the test.
   while (gBrowser.tabs.length > 1) {
@@ -178,7 +324,54 @@ registerCleanupFunction(async function cleanup() {
       conn.close();
     }
   }
+
+  // Clear the cached value for the fission content toolbox preference.
+  gDevTools.clearIsFissionContentToolboxEnabledReferenceForTest();
 });
+
+async function safeCloseBrowserConsole({ clearOutput = false } = {}) {
+  const hud = BrowserConsoleManager.getBrowserConsole();
+  if (!hud) {
+    return;
+  }
+
+  if (clearOutput) {
+    info("Clear the browser console output");
+    const { ui } = hud;
+    const promises = [ui.once("messages-cleared")];
+    // If there's an object inspector, we need to wait for the actors to be released.
+    if (ui.outputNode.querySelector(".object-inspector")) {
+      promises.push(ui.once("fronts-released"));
+    }
+    ui.clearOutput(true);
+    await Promise.all(promises);
+    info("Browser console cleared");
+  }
+
+  info("Wait for all Browser Console targets to be attached");
+  // It might happen that waitForAllTargetsToBeAttached does not resolve, so we set a
+  // timeout of 1s before closing
+  await Promise.race([
+    waitForAllTargetsToBeAttached(hud.targetList),
+    wait(1000),
+  ]);
+  info("Close the Browser Console");
+  await BrowserConsoleManager.closeBrowserConsole();
+  info("Browser Console closed");
+}
+
+/**
+ * Returns a Promise that resolves when all the targets are fully attached.
+ *
+ * @param {TargetList} targetList
+ */
+function waitForAllTargetsToBeAttached(targetList) {
+  return Promise.allSettled(
+    targetList
+      .getAllTargets(targetList.ALL_TYPES)
+      .map(target => target._onThreadInitialized)
+  );
+}
 
 /**
  * Add a new test tab in the browser and load the given url.
@@ -271,8 +464,8 @@ async function navigateTo(uri, { isErrorPage = false } = {}) {
   // event to make sure everything is ready.
   // Navigating from/to pages loaded in the parent process, like about:robots,
   // also spawn new targets.
-  // (If target-switching pref is false, the toolbox will reboot)
-  const onTargetSwitched = toolbox.once("switched-target");
+  // (If target switching is disabled, the toolbox will reboot)
+  const onTargetSwitched = toolbox.targetList.once("switched-target");
   // Otherwise, if we don't switch target, it is safe to wait for navigate event.
   const onNavigate = target.once("navigate");
 
@@ -307,13 +500,10 @@ async function navigateTo(uri, { isErrorPage = false } = {}) {
   // If we switched to another process and the target switching pref is false,
   // the toolbox will close and reopen.
   // For now, this helper doesn't support this case
-  if (
-    switchedToAnotherProcess &&
-    !Services.prefs.getBoolPref("devtools.target-switching.enabled", false)
-  ) {
+  if (switchedToAnotherProcess && !isTargetSwitchingEnabled()) {
     ok(
       false,
-      `navigateTo(${uri}) navigated to another process, but the target-switching preference is false`
+      `navigateTo(${uri}) navigated to another process, but the target switching is disabled`
     );
     return;
   }
@@ -377,10 +567,7 @@ function isFissionEnabled() {
 }
 
 function isTargetSwitchingEnabled() {
-  return (
-    isFissionEnabled() &&
-    Services.prefs.getBoolPref("devtools.target-switching.enabled", false)
-  );
+  return Services.prefs.getBoolPref("devtools.target-switching.enabled", false);
 }
 
 /**
@@ -456,6 +643,66 @@ function synthesizeKeyShortcut(key, target) {
 
   info("Synthesizing key shortcut: " + key);
   EventUtils.synthesizeKey(shortcut.key || "", keyEvent, target);
+}
+
+var waitForTime = DevToolsUtils.waitForTime;
+
+/**
+ * Wait for a tick.
+ * @return {Promise}
+ */
+function waitForTick() {
+  return new Promise(resolve => DevToolsUtils.executeSoon(resolve));
+}
+
+/**
+ * This shouldn't be used in the tests, but is useful when writing new tests or
+ * debugging existing tests in order to introduce delays in the test steps
+ *
+ * @param {Number} ms
+ *        The time to wait
+ * @return A promise that resolves when the time is passed
+ */
+function wait(ms) {
+  return new Promise(resolve => {
+    setTimeout(resolve, ms);
+    info("Waiting " + ms / 1000 + " seconds.");
+  });
+}
+
+/**
+ * Wait for a predicate to return a result.
+ *
+ * @param function condition
+ *        Invoked once in a while until it returns a truthy value. This should be an
+ *        idempotent function, since we have to run it a second time after it returns
+ *        true in order to return the value.
+ * @param string message [optional]
+ *        A message to output if the condition fails.
+ * @param number interval [optional]
+ *        How often the predicate is invoked, in milliseconds.
+ * @return object
+ *         A promise that is resolved with the result of the condition.
+ */
+async function waitFor(condition, message = "", interval = 10, maxTries = 500) {
+  try {
+    const value = await BrowserTestUtils.waitForCondition(
+      condition,
+      message,
+      interval,
+      maxTries
+    );
+    return value;
+  } catch (e) {
+    const errorMessage =
+      "Failed waitFor(): " +
+      message +
+      "\n" +
+      "Failed condition: " +
+      condition +
+      "\n";
+    throw new Error(errorMessage);
+  }
 }
 
 /**
@@ -567,29 +814,6 @@ function once(target, eventName, useCapture = false) {
 function loadHelperScript(filePath) {
   const testDir = gTestPath.substr(0, gTestPath.lastIndexOf("/"));
   Services.scriptloader.loadSubScript(testDir + "/" + filePath, this);
-}
-
-/**
- * Wait for a tick.
- * @return {Promise}
- */
-function waitForTick() {
-  return new Promise(resolve => DevToolsUtils.executeSoon(resolve));
-}
-
-/**
- * This shouldn't be used in the tests, but is useful when writing new tests or
- * debugging existing tests in order to introduce delays in the test steps
- *
- * @param {Number} ms
- *        The time to wait
- * @return A promise that resolves when the time is passed
- */
-function wait(ms) {
-  return new Promise(resolve => {
-    setTimeout(resolve, ms);
-    info("Waiting " + ms / 1000 + " seconds.");
-  });
 }
 
 /**
@@ -938,4 +1162,72 @@ async function moveWindowTo(win, left, top) {
   // Wait so that the anchor's position is correctly measured.
   info("Wait for window screenLeft and screenTop to be updated");
   return waitUntil(() => win.screenLeft === left && win.screenTop === top);
+}
+
+function getCurrentTestFilePath() {
+  return gTestPath.replace("chrome://mochitests/content/browser/", "");
+}
+
+/**
+ * Wait for a single resource of the provided resourceType.
+ *
+ * @param {ResourceWatcher} resourceWatcher
+ *        The ResourceWatcher instance that should emit the expected resource.
+ * @param {String} resourceType
+ *        One of ResourceWatcher.TYPES, type of the expected resource.
+ * @param {Object} additional options
+ *        - {Boolean} ignoreExistingResources: ignore existing resources or not.
+ *        - {Function} predicate: if provided, will wait until a resource makes
+ *          predicate(resource) return true.
+ * @return {Object}
+ *         - resource {Object} the resource itself
+ *         - targetFront {TargetFront} the target which owns the resource
+ */
+function waitForNextResource(
+  resourceWatcher,
+  resourceType,
+  { ignoreExistingResources = false, predicate } = {}
+) {
+  // If no predicate was provided, convert to boolean to avoid resolving for
+  // empty `resources` arrays.
+  predicate = predicate || (resource => !!resource);
+
+  return new Promise(resolve => {
+    const onAvailable = resources => {
+      const matchingResource = resources.find(resource => predicate(resource));
+      if (matchingResource) {
+        resolve(matchingResource);
+        resourceWatcher.unwatchResources([resourceType], { onAvailable });
+      }
+    };
+
+    resourceWatcher.watchResources([resourceType], {
+      ignoreExistingResources,
+      onAvailable,
+    });
+  });
+}
+
+/**
+ * Unregister all registered service workers.
+ *
+ * @param {DevToolsClient} client
+ */
+async function unregisterAllServiceWorkers(client) {
+  info("Wait until all workers have a valid registrationFront");
+  let workers;
+  await asyncWaitUntil(async function() {
+    workers = await client.mainRoot.listAllWorkers();
+    const allWorkersRegistered = workers.service.every(
+      worker => !!worker.registrationFront
+    );
+    return allWorkersRegistered;
+  });
+
+  info("Unregister all service workers");
+  const promises = [];
+  for (const worker of workers.service) {
+    promises.push(worker.registrationFront.unregister());
+  }
+  await Promise.all(promises);
 }

@@ -5,18 +5,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/Range.h"
-#include "mozilla/TypeTraits.h"
 
-using mozilla::IsConvertible;
+#include <type_traits>
+
 using mozilla::Range;
 
-static_assert(IsConvertible<Range<int>, Range<const int>>::value,
+static_assert(std::is_convertible_v<Range<int>, Range<const int>>,
               "Range should convert into const");
-static_assert(!IsConvertible<Range<const int>, Range<int>>::value,
+static_assert(!std::is_convertible_v<Range<const int>, Range<int>>,
               "Range should not drop const in conversion");
 
 void test_RangeToBoolConversionShouldCompile() {
   auto dummy = bool{Range<int>{}};
+  (void)dummy;
+}
+
+void test_RangeT_To_RangeConstT_ShouldCompile() {
+  auto dummy = Range<const int>{Range<int>{}};
   (void)dummy;
 }
 

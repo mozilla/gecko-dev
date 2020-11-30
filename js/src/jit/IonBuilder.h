@@ -12,8 +12,11 @@
 
 #include "mozilla/Maybe.h"
 
+#include "jsfriendapi.h"
+
 #include "jit/BaselineInspector.h"
-#include "jit/BytecodeAnalysis.h"
+#include "jit/CompileInfo.h"
+#include "jit/InlineScriptTree.h"
 #include "jit/IonAnalysis.h"
 #include "jit/IonOptimizationLevels.h"
 #include "jit/MIR.h"
@@ -21,6 +24,9 @@
 #include "jit/MIRGenerator.h"
 #include "jit/MIRGraph.h"
 #include "jit/TIOracle.h"
+#include "js/experimental/JitInfo.h"  // JSJitInfo
+#include "js/ScalarType.h"            // js::Scalar::Type
+#include "vm/SharedStencil.h"         // GCThingIndex
 
 namespace js {
 
@@ -91,9 +97,9 @@ using CallTargets = Vector<JSFunction*, 6, JitAllocPolicy>;
 // whenever we need to execute the catch-block.
 //
 // Because we don't compile the catch-block and the code after the try-catch may
-// only be reachable via the catch-block, MGotoWithFake is used to ensure the
-// code after the try-catch is always compiled and is part of the graph.
-// See IonBuilder::visitTry for more information.
+// only be reachable via the catch-block, Baseline's BytecodeAnalysis ensures
+// Baseline does not attempt OSR into Ion/Warp when loops are only reachable via
+// catch/finally blocks.
 //
 // Finally-blocks are currently not supported by Ion.
 
@@ -291,11 +297,9 @@ class MOZ_STACK_CLASS IonBuilder {
 
   MInstruction* addBoundsCheck(MDefinition* index, MDefinition* length);
 
-  MInstruction* addShapeGuard(MDefinition* obj, Shape* const shape,
-                              BailoutKind bailoutKind);
+  MInstruction* addShapeGuard(MDefinition* obj, Shape* const shape);
   MInstruction* addGroupGuard(MDefinition* obj, ObjectGroup* group,
                               BailoutKind bailoutKind);
-  MInstruction* addSharedTypedArrayGuard(MDefinition* obj);
 
   MInstruction* addGuardReceiverPolymorphic(
       MDefinition* obj, const BaselineInspector::ReceiverVector& receivers);
@@ -375,6 +379,9 @@ class MOZ_STACK_CLASS IonBuilder {
                                     PropertyName* name, MDefinition* value,
                                     bool barrier);
 
+  AbortReasonOr<Ok> arithUnaryBinaryCache(JSOp op, MDefinition* left,
+                                          MDefinition* right);
+
   // jsop_binary_arith helpers.
   MBinaryArithInstruction* binaryArithInstruction(JSOp op, MDefinition* left,
                                                   MDefinition* right);
@@ -390,12 +397,9 @@ class MOZ_STACK_CLASS IonBuilder {
                                               MDefinition* right);
   AbortReasonOr<Ok> binaryArithTrySpecializedOnBaselineInspector(
       bool* emitted, JSOp op, MDefinition* left, MDefinition* right);
-  AbortReasonOr<Ok> arithTryBinaryStub(bool* emitted, JSOp op,
-                                       MDefinition* left, MDefinition* right);
+  MDefinition* maybeConvertToNumber(MDefinition* def);
 
   // jsop_bitop helpers.
-  AbortReasonOr<MBinaryBitwiseInstruction*> binaryBitOpEmit(
-      JSOp op, MIRType specialization, MDefinition* left, MDefinition* right);
   AbortReasonOr<Ok> binaryBitOpTrySpecialized(bool* emitted, JSOp op,
                                               MDefinition* left,
                                               MDefinition* right);
@@ -424,8 +428,6 @@ class MOZ_STACK_CLASS IonBuilder {
       bool* emitted, JSOp op, MDefinition* left, MDefinition* right);
   AbortReasonOr<Ok> compareTryBinaryStub(bool* emitted, MDefinition* left,
                                          MDefinition* right);
-  AbortReasonOr<Ok> compareTryCharacter(bool* emitted, JSOp op,
-                                        MDefinition* left, MDefinition* right);
 
   // jsop_newarray helpers.
   AbortReasonOr<Ok> newArrayTryTemplateObject(bool* emitted,
@@ -518,6 +520,11 @@ class MOZ_STACK_CLASS IonBuilder {
     return length;
   }
 
+  // Add instructions to compute a data view's data and convert |*index| into a
+  // bounds-checked definition.
+  void addDataViewData(MDefinition* obj, Scalar::Type type, MDefinition** index,
+                       MInstruction** elements);
+
   // Add an instruction to compute a typed array's byte offset to the current
   // block.
   MInstruction* addTypedArrayByteOffset(MDefinition* obj);
@@ -552,6 +559,7 @@ class MOZ_STACK_CLASS IonBuilder {
   AbortReasonOr<Ok> jsop_defvar();
   AbortReasonOr<Ok> jsop_deflexical();
   AbortReasonOr<Ok> jsop_deffun();
+  AbortReasonOr<Ok> jsop_checkGlobalOrEvalDecl();
   AbortReasonOr<Ok> jsop_notearg();
   AbortReasonOr<Ok> jsop_throwsetconst();
   AbortReasonOr<Ok> jsop_checklexical();
@@ -589,12 +597,12 @@ class MOZ_STACK_CLASS IonBuilder {
   AbortReasonOr<Ok> jsop_getelem();
   AbortReasonOr<Ok> jsop_getelem_dense(MDefinition* obj, MDefinition* index);
   AbortReasonOr<Ok> jsop_getelem_typed(MDefinition* obj, MDefinition* index,
-                                       ScalarTypeDescr::Type arrayType);
+                                       Scalar::Type arrayType);
   AbortReasonOr<Ok> jsop_setelem();
   AbortReasonOr<Ok> initOrSetElemDense(
       TemporaryTypeSet::DoubleConversion conversion, MDefinition* object,
       MDefinition* index, MDefinition* value, bool writeHole, bool* emitted);
-  AbortReasonOr<Ok> jsop_setelem_typed(ScalarTypeDescr::Type arrayType,
+  AbortReasonOr<Ok> jsop_setelem_typed(Scalar::Type arrayType,
                                        MDefinition* object, MDefinition* index,
                                        MDefinition* value);
   AbortReasonOr<Ok> jsop_length();
@@ -630,14 +638,14 @@ class MOZ_STACK_CLASS IonBuilder {
   AbortReasonOr<Ok> jsop_lambda_arrow(JSFunction* fun);
   AbortReasonOr<Ok> jsop_funwithproto(JSFunction* fun);
   AbortReasonOr<Ok> jsop_setfunname(uint8_t prefixKind);
-  AbortReasonOr<Ok> jsop_pushlexicalenv(uint32_t index);
+  AbortReasonOr<Ok> jsop_pushlexicalenv(GCThingIndex index);
   AbortReasonOr<Ok> jsop_copylexicalenv(bool copySlots);
   AbortReasonOr<Ok> jsop_functionthis();
   AbortReasonOr<Ok> jsop_globalthis();
   AbortReasonOr<Ok> jsop_typeof();
   AbortReasonOr<Ok> jsop_toasync();
   AbortReasonOr<Ok> jsop_toasynciter();
-  AbortReasonOr<Ok> jsop_toid();
+  AbortReasonOr<Ok> jsop_topropertykey();
   AbortReasonOr<Ok> jsop_iter();
   AbortReasonOr<Ok> jsop_itermore();
   AbortReasonOr<Ok> jsop_isnoiter();
@@ -645,6 +653,7 @@ class MOZ_STACK_CLASS IonBuilder {
   AbortReasonOr<Ok> jsop_iternext();
   AbortReasonOr<Ok> jsop_in();
   AbortReasonOr<Ok> jsop_hasown();
+  AbortReasonOr<Ok> jsop_checkprivatefield();
   AbortReasonOr<Ok> jsop_instanceof();
   AbortReasonOr<Ok> jsop_getaliasedvar(EnvironmentCoordinate ec);
   AbortReasonOr<Ok> jsop_setaliasedvar(EnvironmentCoordinate ec);
@@ -665,7 +674,7 @@ class MOZ_STACK_CLASS IonBuilder {
   AbortReasonOr<Ok> jsop_record_replay_assert();
   AbortReasonOr<Ok> jsop_coalesce();
   AbortReasonOr<Ok> jsop_objwithproto();
-  AbortReasonOr<Ok> jsop_builtinproto();
+  AbortReasonOr<Ok> jsop_builtinobject();
   AbortReasonOr<Ok> jsop_checkreturn();
   AbortReasonOr<Ok> jsop_checkthis();
   AbortReasonOr<Ok> jsop_checkthisreinit();
@@ -728,6 +737,10 @@ class MOZ_STACK_CLASS IonBuilder {
   // Boolean natives.
   InliningResult inlineBoolean(CallInfo& callInfo);
 
+  // DataView natives.
+  InliningResult inlineDataViewGet(CallInfo& callInfo, Scalar::Type type);
+  InliningResult inlineDataViewSet(CallInfo& callInfo, Scalar::Type type);
+
   // Iterator intrinsics.
   InliningResult inlineNewIterator(CallInfo& callInfo, MNewIterator::Type type);
   InliningResult inlineArrayIteratorPrototypeOptimizable(CallInfo& callInfo);
@@ -749,12 +762,11 @@ class MOZ_STACK_CLASS IonBuilder {
   InliningResult inlineMathTrunc(CallInfo& callInfo);
   InliningResult inlineMathSign(CallInfo& callInfo);
   InliningResult inlineMathFunction(CallInfo& callInfo,
-                                    MMathFunction::Function function);
+                                    UnaryMathFunction function);
 
   // String natives.
   InliningResult inlineStringObject(CallInfo& callInfo);
   InliningResult inlineStrCharCodeAt(CallInfo& callInfo);
-  InliningResult inlineConstantCharCodeAt(CallInfo& callInfo);
   InliningResult inlineStrFromCharCode(CallInfo& callInfo);
   InliningResult inlineStrFromCodePoint(CallInfo& callInfo);
   InliningResult inlineStrCharAt(CallInfo& callInfo);
@@ -783,6 +795,7 @@ class MOZ_STACK_CLASS IonBuilder {
   InliningResult inlineObject(CallInfo& callInfo);
   InliningResult inlineObjectCreate(CallInfo& callInfo);
   InliningResult inlineObjectIs(CallInfo& callInfo);
+  InliningResult inlineObjectIsPrototypeOf(CallInfo& callInfo);
   InliningResult inlineObjectToString(CallInfo& callInfo);
   InliningResult inlineDefineDataProperty(CallInfo& callInfo);
 
@@ -827,13 +840,9 @@ class MOZ_STACK_CLASS IonBuilder {
   InliningResult inlineToObject(CallInfo& callInfo);
   InliningResult inlineIsCrossRealmArrayConstructor(CallInfo& callInfo);
   InliningResult inlineToInteger(CallInfo& callInfo);
-  InliningResult inlineToString(CallInfo& callInfo);
+  InliningResult inlineToLength(CallInfo& callInfo);
   InliningResult inlineDump(CallInfo& callInfo);
-  InliningResult inlineHasClass(CallInfo& callInfo, const JSClass* clasp,
-                                const JSClass* clasp2 = nullptr,
-                                const JSClass* clasp3 = nullptr,
-                                const JSClass* clasp4 = nullptr);
-  InliningResult inlineGuardToClass(CallInfo& callInfo, const JSClass* clasp);
+  InliningResult inlineGuardToClass(CallInfo& callInfo, InlinableNative native);
   InliningResult inlineIsConstructing(CallInfo& callInfo);
   InliningResult inlineSubstringKernel(CallInfo& callInfo);
   InliningResult inlineObjectHasPrototype(CallInfo& callInfo);
@@ -876,7 +885,7 @@ class MOZ_STACK_CLASS IonBuilder {
 
   bool atomicsMeetsPreconditions(
       CallInfo& callInfo, Scalar::Type* arrayElementType,
-      bool* requiresDynamicCheck,
+      TemporaryTypeSet::TypedArraySharedness* sharedness,
       AtomicCheckResult checkResult = DoCheckAtomicResult);
   void atomicsCheckBounds(CallInfo& callInfo, MInstruction** elements,
                           MDefinition** index);
@@ -1053,18 +1062,6 @@ class MOZ_STACK_CLASS IonBuilder {
     return new (alloc()) BytecodeSite(info().inlineScriptTree(), pc);
   }
 
-  MDefinition* lexicalCheck_;
-
-  void setLexicalCheck(MDefinition* lexical) {
-    MOZ_ASSERT(!lexicalCheck_);
-    lexicalCheck_ = lexical;
-  }
-  MDefinition* takeLexicalCheck() {
-    MDefinition* lexical = lexicalCheck_;
-    lexicalCheck_ = nullptr;
-    return lexical;
-  }
-
   /* Information used for inline-call builders. */
   MResumePoint* callerResumePoint_;
   jsbytecode* callerPC() {
@@ -1081,7 +1078,7 @@ class MOZ_STACK_CLASS IonBuilder {
     LoopHeader(jsbytecode* pc, MBasicBlock* header) : pc(pc), header(header) {}
   };
 
-  Vector<MDefinition*, 2, JitAllocPolicy> iterators_;
+  PhiVector iterators_;
   Vector<LoopHeader, 0, JitAllocPolicy> loopHeaders_;
 
   BaselineInspector* inspector;
@@ -1174,201 +1171,6 @@ class MOZ_STACK_CLASS IonBuilder {
   // preliminary objects which haven't been analyzed yet.
   const ObjectGroupVector& abortedPreliminaryGroups() const {
     return abortedPreliminaryGroups_;
-  }
-};
-
-class CallInfo {
-  MDefinition* fun_;
-  MDefinition* thisArg_;
-  MDefinition* newTargetArg_;
-  MDefinitionVector args_;
-  // If non-empty, this corresponds to the stack prior any implicit inlining
-  // such as before JSOp::FunApply.
-  MDefinitionVector priorArgs_;
-
-  bool constructing_ : 1;
-
-  // True if the caller does not use the return value.
-  bool ignoresReturnValue_ : 1;
-
-  bool setter_ : 1;
-  bool apply_ : 1;
-
- public:
-  CallInfo(TempAllocator& alloc, jsbytecode* pc, bool constructing,
-           bool ignoresReturnValue)
-      : fun_(nullptr),
-        thisArg_(nullptr),
-        newTargetArg_(nullptr),
-        args_(alloc),
-        priorArgs_(alloc),
-        constructing_(constructing),
-        ignoresReturnValue_(ignoresReturnValue),
-        setter_(false),
-        apply_(JSOp(*pc) == JSOp::FunApply) {}
-
-  MOZ_MUST_USE bool init(CallInfo& callInfo) {
-    MOZ_ASSERT(constructing_ == callInfo.constructing());
-
-    fun_ = callInfo.fun();
-    thisArg_ = callInfo.thisArg();
-    ignoresReturnValue_ = callInfo.ignoresReturnValue();
-
-    if (constructing()) {
-      newTargetArg_ = callInfo.getNewTarget();
-    }
-
-    if (!args_.appendAll(callInfo.argv())) {
-      return false;
-    }
-
-    return true;
-  }
-
-  MOZ_MUST_USE bool init(MBasicBlock* current, uint32_t argc) {
-    MOZ_ASSERT(args_.empty());
-
-    // Get the arguments in the right order
-    if (!args_.reserve(argc)) {
-      return false;
-    }
-
-    if (constructing()) {
-      setNewTarget(current->pop());
-    }
-
-    for (int32_t i = argc; i > 0; i--) {
-      args_.infallibleAppend(current->peek(-i));
-    }
-    current->popn(argc);
-
-    // Get |this| and |fun|
-    setThis(current->pop());
-    setFun(current->pop());
-
-    return true;
-  }
-
-  // Before doing any pop to the stack, capture whatever flows into the
-  // instruction, such that we can restore it later.
-  AbortReasonOr<Ok> savePriorCallStack(MIRGenerator* mir, MBasicBlock* current,
-                                       size_t peekDepth);
-
-  void popPriorCallStack(MBasicBlock* current) {
-    if (priorArgs_.empty()) {
-      popCallStack(current);
-    } else {
-      current->popn(priorArgs_.length());
-    }
-  }
-
-  AbortReasonOr<Ok> pushPriorCallStack(MIRGenerator* mir,
-                                       MBasicBlock* current) {
-    if (priorArgs_.empty()) {
-      return pushCallStack(mir, current);
-    }
-    for (MDefinition* def : priorArgs_) {
-      current->push(def);
-    }
-    return Ok();
-  }
-
-  void popCallStack(MBasicBlock* current) { current->popn(numFormals()); }
-
-  AbortReasonOr<Ok> pushCallStack(MIRGenerator* mir, MBasicBlock* current) {
-    // Ensure sufficient space in the slots: needed for inlining from FunApply.
-    if (apply_) {
-      uint32_t depth = current->stackDepth() + numFormals();
-      if (depth > current->nslots()) {
-        if (!current->increaseSlots(depth - current->nslots())) {
-          return mir->abort(AbortReason::Alloc);
-        }
-      }
-    }
-
-    current->push(fun());
-    current->push(thisArg());
-
-    for (uint32_t i = 0; i < argc(); i++) {
-      current->push(getArg(i));
-    }
-
-    if (constructing()) {
-      current->push(getNewTarget());
-    }
-
-    return Ok();
-  }
-
-  uint32_t argc() const { return args_.length(); }
-  uint32_t numFormals() const { return argc() + 2 + constructing(); }
-
-  MOZ_MUST_USE bool setArgs(const MDefinitionVector& args) {
-    MOZ_ASSERT(args_.empty());
-    return args_.appendAll(args);
-  }
-
-  MDefinitionVector& argv() { return args_; }
-
-  const MDefinitionVector& argv() const { return args_; }
-
-  MDefinition* getArg(uint32_t i) const {
-    MOZ_ASSERT(i < argc());
-    return args_[i];
-  }
-
-  MDefinition* getArgWithDefault(uint32_t i, MDefinition* defaultValue) const {
-    if (i < argc()) {
-      return args_[i];
-    }
-
-    return defaultValue;
-  }
-
-  void setArg(uint32_t i, MDefinition* def) {
-    MOZ_ASSERT(i < argc());
-    args_[i] = def;
-  }
-
-  MDefinition* thisArg() const {
-    MOZ_ASSERT(thisArg_);
-    return thisArg_;
-  }
-
-  void setThis(MDefinition* thisArg) { thisArg_ = thisArg; }
-
-  bool constructing() const { return constructing_; }
-
-  bool ignoresReturnValue() const { return ignoresReturnValue_; }
-
-  void setNewTarget(MDefinition* newTarget) {
-    MOZ_ASSERT(constructing());
-    newTargetArg_ = newTarget;
-  }
-  MDefinition* getNewTarget() const {
-    MOZ_ASSERT(newTargetArg_);
-    return newTargetArg_;
-  }
-
-  bool isSetter() const { return setter_; }
-  void markAsSetter() { setter_ = true; }
-
-  MDefinition* fun() const {
-    MOZ_ASSERT(fun_);
-    return fun_;
-  }
-
-  void setFun(MDefinition* fun) { fun_ = fun; }
-
-  void setImplicitlyUsedUnchecked() {
-    fun_->setImplicitlyUsedUnchecked();
-    thisArg_->setImplicitlyUsedUnchecked();
-    if (newTargetArg_) {
-      newTargetArg_->setImplicitlyUsedUnchecked();
-    }
-    for (uint32_t i = 0; i < argc(); i++) {
-      getArg(i)->setImplicitlyUsedUnchecked();
-    }
   }
 };
 

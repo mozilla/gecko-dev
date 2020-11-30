@@ -10,10 +10,10 @@
 #include <utility>
 
 #include "debugger/DebugAPI.h"
-#include "jit/JitFrames.h"
+#include "jit/Bailouts.h"
+#include "js/friend/DumpFunctions.h"  // js::DumpValue
 #include "vm/ArgumentsObject.h"
 
-#include "jit/JitFrames-inl.h"
 #include "vm/EnvironmentObject-inl.h"
 #include "vm/JSScript-inl.h"
 
@@ -196,9 +196,9 @@ void RematerializedFrame::dump() {
 
     for (unsigned i = 0; i < numActualArgs(); i++) {
       if (i < numFormalArgs()) {
-        fprintf(stderr, "  formal (arg %d): ", i);
+        fprintf(stderr, "  formal (arg %u): ", i);
       } else {
-        fprintf(stderr, "  overflown (arg %d): ", i);
+        fprintf(stderr, "  overflown (arg %u): ", i);
       }
 #ifdef DEBUG
       DumpValue(argv()[i]);
@@ -208,7 +208,7 @@ void RematerializedFrame::dump() {
     }
 
     for (unsigned i = 0; i < script()->nfixed(); i++) {
-      fprintf(stderr, "  local %d: ", i);
+      fprintf(stderr, "  local %u: ", i);
 #ifdef DEBUG
       DumpValue(locals()[i]);
 #else

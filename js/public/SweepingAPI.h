@@ -9,6 +9,27 @@
 
 #include "js/HeapAPI.h"
 
+namespace js {
+namespace gc {
+
+class StoreBuffer;
+
+JS_PUBLIC_API void LockStoreBuffer(StoreBuffer* sb);
+JS_PUBLIC_API void UnlockStoreBuffer(StoreBuffer* sb);
+
+class AutoLockStoreBuffer {
+  StoreBuffer* sb;
+
+ public:
+  explicit AutoLockStoreBuffer(StoreBuffer* sb) : sb(sb) {
+    LockStoreBuffer(sb);
+  }
+  ~AutoLockStoreBuffer() { UnlockStoreBuffer(sb); }
+};
+
+}  // namespace gc
+}  // namespace js
+
 namespace JS {
 namespace detail {
 class WeakCacheBase;
@@ -30,9 +51,9 @@ class WeakCacheBase : public mozilla::LinkedListElement<WeakCacheBase> {
   explicit WeakCacheBase(Zone* zone) { shadow::RegisterWeakCache(zone, this); }
   explicit WeakCacheBase(JSRuntime* rt) { shadow::RegisterWeakCache(rt, this); }
   WeakCacheBase(WeakCacheBase&& other) = default;
-  virtual ~WeakCacheBase() {}
+  virtual ~WeakCacheBase() = default;
 
-  virtual size_t sweep() = 0;
+  virtual size_t sweep(js::gc::StoreBuffer* sbToLock) = 0;
   virtual bool needsSweep() = 0;
 
   virtual bool setNeedsIncrementalBarrier(bool needs) {
@@ -68,7 +89,15 @@ class WeakCache : protected detail::WeakCacheBase,
   const T& get() const { return cache; }
   T& get() { return cache; }
 
-  size_t sweep() override {
+  size_t sweep(js::gc::StoreBuffer* sbToLock) override {
+    // Take the store buffer lock in case sweeping triggers any generational
+    // post barriers. This is not always required and WeakCache specializations
+    // may delay or skip taking the lock as appropriate.
+    mozilla::Maybe<js::gc::AutoLockStoreBuffer> lock;
+    if (sbToLock) {
+      lock.emplace(sbToLock);
+    }
+
     GCPolicy<T>::sweep(&cache);
     return 0;
   }

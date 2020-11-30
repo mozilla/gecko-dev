@@ -33,6 +33,8 @@ policy-CertificatesDescription = Add certificates or use built-in certificates.
 
 policy-Cookies = Allow or deny websites to set cookies.
 
+policy-DisabledCiphers = Disable ciphers.
+
 policy-DefaultDownloadDirectory = Set the default download directory.
 
 policy-DisableAppUpdate = Prevent the browser from updating.
@@ -56,7 +58,7 @@ policy-DisableForgetButton = Prevent access to the Forget button.
 
 policy-DisableFormHistory = Don’t remember search and form history.
 
-policy-DisableMasterPasswordCreation = If true, a master password can’t be created.
+policy-DisablePrimaryPasswordCreation = If true, a Primary Password can’t be created.
 
 policy-DisablePasswordReveal = Do not allow passwords to be revealed in saved logins.
 
@@ -91,6 +93,9 @@ policy-DownloadDirectory = Set and lock the download directory.
 # “lock” means that the user won’t be able to change this setting
 policy-EnableTrackingProtection = Enable or disable Content Blocking and optionally lock it.
 
+# “lock” means that the user won’t be able to change this setting
+policy-EncryptedMediaExtensions = Enable or disable Encrypted Media Extensions and optionally lock it.
+
 # A “locked” extension can’t be disabled or removed by the user. This policy
 # takes 3 keys (“Install”, ”Uninstall”, ”Locked”), you can either keep them in
 # English or translate them as verbs.
@@ -104,6 +109,8 @@ policy-FirefoxHome = Configure Firefox Home.
 
 policy-FlashPlugin = Allow or deny usage of the Flash plugin.
 
+policy-Handlers = Configure default application handlers.
+
 policy-HardwareAcceleration = If false, turn off hardware acceleration.
 
 # “lock” means that the user won’t be able to change this setting
@@ -113,7 +120,19 @@ policy-InstallAddonsPermission = Allow certain websites to install add-ons.
 
 policy-LegacyProfiles = Disable the feature enforcing a separate profile for each installation.
 
+## Do not translate "SameSite", it's the name of a cookie attribute.
+
+policy-LegacySameSiteCookieBehaviorEnabled = Enable default legacy SameSite cookie behavior setting.
+
+policy-LegacySameSiteCookieBehaviorEnabledForDomainList = Revert to legacy SameSite behavior for cookies on specified sites.
+
+##
+
 policy-LocalFileLinks = Allow specific websites to link to local files.
+
+policy-ManagedBookmarks = Configures a list of bookmarks managed by an administrator that cannot be changed by the user.
+
+policy-PrimaryPassword = Require or prevent using a Primary Password.
 
 policy-NetworkPrediction = Enable or disable network prediction (DNS prefetching).
 
@@ -131,7 +150,12 @@ policy-OverridePostUpdatePage = Override the post-update “What’s New” page
 
 policy-PasswordManagerEnabled = Enable saving passwords to the password manager.
 
+# PDF.js and PDF should not be translated
+policy-PDFjs = Disable or configure PDF.js, the built-in PDF viewer in { -brand-short-name }.
+
 policy-Permissions2 = Configure permissions for camera, microphone, location, notifications, and autoplay.
+
+policy-PictureInPicture = Enable or disable Picture-in-Picture.
 
 policy-PopupBlocking = Allow certain websites to display popups by default.
 

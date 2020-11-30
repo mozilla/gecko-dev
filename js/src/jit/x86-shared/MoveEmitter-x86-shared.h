@@ -7,11 +7,20 @@
 #ifndef jit_MoveEmitter_x86_shared_h
 #define jit_MoveEmitter_x86_shared_h
 
-#include "jit/MacroAssembler.h"
+#include "mozilla/Maybe.h"
+
+#include <stddef.h>
+#include <stdint.h>
+
 #include "jit/MoveResolver.h"
+#include "jit/Registers.h"
 
 namespace js {
 namespace jit {
+
+struct Address;
+class MacroAssembler;
+class Operand;
 
 class MoveEmitterX86 {
   bool inCycle_;
@@ -46,8 +55,7 @@ class MoveEmitterX86 {
                        const MoveResolver& moves, size_t i);
   void emitFloat32Move(const MoveOperand& from, const MoveOperand& to);
   void emitDoubleMove(const MoveOperand& from, const MoveOperand& to);
-  void emitSimd128FloatMove(const MoveOperand& from, const MoveOperand& to);
-  void emitSimd128IntMove(const MoveOperand& from, const MoveOperand& to);
+  void emitSimd128Move(const MoveOperand& from, const MoveOperand& to);
   void breakCycle(const MoveOperand& to, MoveOp::Type type);
   void completeCycle(const MoveOperand& to, MoveOp::Type type);
 

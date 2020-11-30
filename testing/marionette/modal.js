@@ -4,16 +4,18 @@
 
 "use strict";
 
+const EXPORTED_SYMBOLS = ["modal"];
+
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
-const { Log } = ChromeUtils.import("chrome://marionette/content/log.js");
+XPCOMUtils.defineLazyModuleGetters(this, {
+  Log: "chrome://marionette/content/log.js",
+});
 
-XPCOMUtils.defineLazyGetter(this, "logger", Log.get);
-
-this.EXPORTED_SYMBOLS = ["modal"];
+XPCOMUtils.defineLazyGetter(this, "logger", () => Log.get());
 
 const COMMON_DIALOG = "chrome://global/content/commonDialog.xhtml";
 
@@ -61,6 +63,24 @@ modal.findModalDialogs = function(context) {
 
     if (prompts.length) {
       return new modal.Dialog(() => context, null);
+    }
+  }
+
+  // No dialog found yet, check the TabDialogBox.
+  // This is for prompts that are shown in SubDialogs in the browser chrome.
+  if (context.tab && context.tabBrowser.getTabDialogBox) {
+    let contentBrowser = context.contentBrowser;
+    let dialogManager = context.tabBrowser.getTabDialogBox(contentBrowser)
+      ._dialogManager;
+    let dialogs = dialogManager._dialogs.filter(
+      dialog => dialog._openedURL === COMMON_DIALOG
+    );
+
+    if (dialogs.length) {
+      return new modal.Dialog(
+        () => context,
+        Cu.getWeakReference(dialogs[0]._frame.contentWindow)
+      );
     }
   }
 

@@ -28,9 +28,6 @@ job-defaults:
         --max-page-diff-block-lines 10000
         --exclude-directory-metadata
         --exclude-command .--line-numbers
-        --exclude **/*freeblpriv3.chk
-        --exclude **/*nssdbm3.chk
-        --exclude **/*softokn3.chk
 
 jobs:
     artifact-win64-aarch64-eme-validation:
@@ -61,13 +58,25 @@ jobs:
             --exclude-directory-metadata=recursive
             --exclude b/firefox/chrome/toolkit/content/global/buildconfig.html
             --exclude b/firefox/uninstall/helper.exe
+        # This is necessary to avoid building `build-win64-aarch64` on every push on autoland
+        # A more robust fix for this is https://bugzilla.mozilla.org/show_bug.cgi?id=1643346
+        optimization:
+            skip-unless-expanded: null
 
     reproducible-linux32:
         symbol: Linux32
         new: build-linux-reproduced/opt
         original: build-linux-shippable/opt
         fail-on-diff: true
-        run-on-projects: ['try', 'mozilla-central']  # Do not run linux32 on autoland, Bug 1599197
+        run-on-projects: ['mozilla-central']  # Do not run linux32 on autoland, Bug 1599197
+
+    reproducible-linux32-generated-files:
+        symbol: Linux32g
+        artifact: target.generated-files.tar.gz
+        new: build-linux-reproduced/opt
+        original: build-linux-shippable/opt
+        fail-on-diff: true
+        run-on-projects: ['mozilla-central']  # Do not run linux32 on autoland, Bug 1599197
 
 
 # Make a task for each diff we might want. The following are just examples,

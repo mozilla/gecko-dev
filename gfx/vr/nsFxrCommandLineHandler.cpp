@@ -63,8 +63,7 @@ NS_IMPL_ISUPPORTS(nsFxrCommandLineHandler, nsICommandLineHandler)
 NS_IMETHODIMP
 nsFxrCommandLineHandler::Handle(nsICommandLine* aCmdLine) {
   bool handleFlagRetVal = false;
-  nsresult result =
-      aCmdLine->HandleFlag(NS_LITERAL_STRING("fxr"), false, &handleFlagRetVal);
+  nsresult result = aCmdLine->HandleFlag(u"fxr"_ns, false, &handleFlagRetVal);
   if (result == NS_OK && handleFlagRetVal) {
     if (XRE_IsParentProcess() && !XRE_IsE10sParentProcess()) {
       MOZ_CRASH("--fxr not supported without e10s");
@@ -81,13 +80,13 @@ nsFxrCommandLineHandler::Handle(nsICommandLine* aCmdLine) {
     NS_ENSURE_TRUE(wwatch, NS_ERROR_FAILURE);
 
     nsCOMPtr<mozIDOMWindowProxy> newWindow;
-    result = wwatch->OpenWindow(nullptr,                            // aParent
-                                "chrome://fxr/content/fxrui.html",  // aUrl
-                                "_blank",                           // aName
-                                "chrome,dialog=no,all,private"      // aFeatures
-                                ",alwaysontop",
-                                nullptr,  // aArguments
-                                getter_AddRefs(newWindow));
+    result = wwatch->OpenWindow(
+        nullptr,                                        // aParent
+        "chrome://fxr/content/fxrui.html"_ns,           // aUrl
+        "_blank"_ns,                                    // aName
+        "chrome,dialog=no,all,private,alwaysontop"_ns,  // aFeatures
+        nullptr,                                        // aArguments
+        getter_AddRefs(newWindow));
 
     MOZ_ASSERT(result == NS_OK);
 

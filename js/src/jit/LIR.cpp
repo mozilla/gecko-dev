@@ -363,10 +363,8 @@ static const char* DefTypeName(LDefinition::Type type) {
       return "f";
     case LDefinition::DOUBLE:
       return "d";
-    case LDefinition::SIMD128INT:
-      return "simd128int";
-    case LDefinition::SIMD128FLOAT:
-      return "simd128float";
+    case LDefinition::SIMD128:
+      return "simd128";
     case LDefinition::STACKRESULTS:
       return "stackresults";
 #  ifdef JS_NUNBOX32
@@ -410,18 +408,18 @@ UniqueChars LDefinition::toString() const {
 static UniqueChars PrintUse(const LUse* use) {
   switch (use->policy()) {
     case LUse::REGISTER:
-      return JS_smprintf("v%d:r", use->virtualRegister());
+      return JS_smprintf("v%u:r", use->virtualRegister());
     case LUse::FIXED:
-      return JS_smprintf("v%d:%s", use->virtualRegister(),
+      return JS_smprintf("v%u:%s", use->virtualRegister(),
                          AnyRegister::FromCode(use->registerCode()).name());
     case LUse::ANY:
-      return JS_smprintf("v%d:r?", use->virtualRegister());
+      return JS_smprintf("v%u:r?", use->virtualRegister());
     case LUse::KEEPALIVE:
-      return JS_smprintf("v%d:*", use->virtualRegister());
+      return JS_smprintf("v%u:*", use->virtualRegister());
     case LUse::STACK:
-      return JS_smprintf("v%d:s", use->virtualRegister());
+      return JS_smprintf("v%u:s", use->virtualRegister());
     case LUse::RECOVERED_INPUT:
-      return JS_smprintf("v%d:**", use->virtualRegister());
+      return JS_smprintf("v%u:**", use->virtualRegister());
     default:
       MOZ_CRASH("invalid use policy");
   }
@@ -446,13 +444,13 @@ UniqueChars LAllocation::toString() const {
         buf = JS_smprintf("%s", toFloatReg()->reg().name());
         break;
       case LAllocation::STACK_SLOT:
-        buf = JS_smprintf("stack:%d", toStackSlot()->slot());
+        buf = JS_smprintf("stack:%u", toStackSlot()->slot());
         break;
       case LAllocation::ARGUMENT_SLOT:
-        buf = JS_smprintf("arg:%d", toArgument()->index());
+        buf = JS_smprintf("arg:%u", toArgument()->index());
         break;
       case LAllocation::STACK_AREA:
-        buf = JS_smprintf("stackarea:%d+%d", toStackArea()->base(),
+        buf = JS_smprintf("stackarea:%u+%u", toStackArea()->base(),
                           toStackArea()->size());
         break;
       case LAllocation::USE:
@@ -643,7 +641,12 @@ bool LMoveGroup::add(LAllocation from, LAllocation to, LDefinition::Type type) {
   }
 
   // Check that SIMD moves are aligned according to ABI requirements.
-  if (LDefinition(type).isSimdType()) {
+#  ifdef ENABLE_WASM_SIMD
+  // Alignment is not currently required for SIMD on x86/x64.  See also
+  // CodeGeneratorShared::CodeGeneratorShared and in general everywhere
+  // SimdMemoryAignment is used.  Likely, alignment requirements will return.
+#    if !defined(JS_CODEGEN_X86) && !defined(JS_CODEGEN_X64)
+  if (LDefinition(type).type() == LDefinition::SIMD128) {
     MOZ_ASSERT(from.isMemory() || from.isFloatReg());
     if (from.isMemory()) {
       if (from.isArgument()) {
@@ -661,6 +664,8 @@ bool LMoveGroup::add(LAllocation from, LAllocation to, LDefinition::Type type) {
       }
     }
   }
+#    endif
+#  endif
 #endif
   return moves_.append(LMove(from, to, type));
 }
@@ -707,8 +712,8 @@ void LMoveGroup::printOperands(GenericPrinter& out) {
 }
 #endif
 
-#define LIROP(x)                                   \
-  static_assert(!std::is_polymorphic<L##x>::value, \
+#define LIROP(x)                              \
+  static_assert(!std::is_polymorphic_v<L##x>, \
                 "LIR instructions should not have virtual methods");
 LIR_OPCODE_LIST(LIROP)
 #undef LIROP

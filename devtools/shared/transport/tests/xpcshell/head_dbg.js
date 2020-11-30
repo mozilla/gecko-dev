@@ -28,26 +28,20 @@ const {
   ActorRegistry,
 } = require("devtools/server/actors/utils/actor-registry");
 const { DevToolsServer } = require("devtools/server/devtools-server");
-const { DevToolsClient } = require("devtools/shared/client/devtools-client");
+const { DevToolsClient } = require("devtools/client/devtools-client");
 const { SocketListener } = require("devtools/shared/security/socket");
 
-// Convert an nsIScriptError 'flags' value into an appropriate string.
-function scriptErrorFlagsToKind(flags) {
-  let kind;
-  if (flags & Ci.nsIScriptError.warningFlag) {
-    kind = "warning";
+// Convert an nsIScriptError 'logLevel' value into an appropriate string.
+function scriptErrorLogLevel(message) {
+  switch (message.logLevel) {
+    case Ci.nsIConsoleMessage.info:
+      return "info";
+    case Ci.nsIConsoleMessage.warn:
+      return "warning";
+    default:
+      Assert.equal(message.logLevel, Ci.nsIConsoleMessage.error);
+      return "error";
   }
-  if (flags & Ci.nsIScriptError.exceptionFlag) {
-    kind = "exception";
-  } else {
-    kind = "error";
-  }
-
-  if (flags & Ci.nsIScriptError.strictFlag) {
-    kind = "strict " + kind;
-  }
-
-  return kind;
 }
 
 // Register a console listener, so console messages don't just disappear
@@ -66,7 +60,7 @@ var listener = {
           ":" +
           message.lineNumber +
           ": " +
-          scriptErrorFlagsToKind(message.flags) +
+          scriptErrorLogLevel(message) +
           ": " +
           message.errorMessage +
           "\n"
@@ -87,10 +81,7 @@ var listener = {
       DevToolsServer.xpcInspector.exitNestedEventLoop();
     }
 
-    // Throw in most cases, but ignore the "strict" messages
-    if (!(message.flags & Ci.nsIScriptError.strictFlag)) {
-      do_throw("head_dbg.js got console message: " + string + "\n");
-    }
+    do_throw("head_dbg.js got console message: " + string + "\n");
   },
 };
 

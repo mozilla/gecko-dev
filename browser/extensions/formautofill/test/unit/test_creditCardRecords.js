@@ -44,11 +44,13 @@ const TEST_CREDIT_CARD_3 = {
   "cc-number": "3589993783099582",
   "cc-exp-month": 1,
   "cc-exp-year": 2000,
+  "cc-type": "amex",
 };
 
 const TEST_CREDIT_CARD_4 = {
   "cc-name": "Foo Bar",
   "cc-number": "3589993783099582",
+  "cc-type": "amex",
 };
 
 const TEST_CREDIT_CARD_WITH_BILLING_ADDRESS = {
@@ -333,7 +335,7 @@ add_task(async function test_add() {
   do_check_credit_card_matches(creditCards[1], TEST_CREDIT_CARD_2);
 
   Assert.notEqual(creditCards[0].guid, undefined);
-  Assert.equal(creditCards[0].version, 2);
+  Assert.equal(creditCards[0].version, 3);
   Assert.notEqual(creditCards[0].timeCreated, undefined);
   Assert.equal(creditCards[0].timeLastModified, creditCards[0].timeCreated);
   Assert.equal(creditCards[0].timeLastUsed, 0);
@@ -450,7 +452,7 @@ add_task(async function test_update() {
     TEST_CREDIT_CARD_WITH_EMPTY_FIELD["cc-exp-month"]
   );
   Assert.equal(creditCard["cc-name"], undefined);
-  Assert.equal(creditCard["cc-type"], undefined);
+  Assert.equal(creditCard["cc-type"], "amex");
   Assert.equal(creditCard.billingAddressGUID, undefined);
 
   // Empty computed fields shouldn't cause any problem.
@@ -754,9 +756,11 @@ add_task(async function test_mergeToStorage() {
 
   // Empty computed fields shouldn't cause any problem.
   Assert.equal(
-    (await profileStorage.creditCards.mergeToStorage(
-      TEST_CREDIT_CARD_WITH_EMPTY_COMPUTED_FIELD
-    )).length,
+    (
+      await profileStorage.creditCards.mergeToStorage(
+        TEST_CREDIT_CARD_WITH_EMPTY_COMPUTED_FIELD
+      )
+    ).length,
     0
   );
 });
@@ -781,15 +785,15 @@ add_task(async function test_getDuplicateGuid() {
     null
   );
 
-  // Subset shouldn't be treated as a duplicate.
+  // Subset with the same number is a duplicate.
   let record = Object.assign({}, TEST_CREDIT_CARD_3);
   delete record["cc-exp-month"];
-  Assert.equal(await profileStorage.creditCards.getDuplicateGuid(record), null);
+  Assert.equal(await profileStorage.creditCards.getDuplicateGuid(record), guid);
 
-  // Superset shouldn't be treated as a duplicate.
+  // Superset with the same number is a duplicate.
   record = Object.assign({}, TEST_CREDIT_CARD_3);
   record["cc-name"] = "John Doe";
-  Assert.equal(await profileStorage.creditCards.getDuplicateGuid(record), null);
+  Assert.equal(await profileStorage.creditCards.getDuplicateGuid(record), guid);
 
   // Numbers with the same last 4 digits shouldn't be treated as a duplicate.
   record = Object.assign({}, TEST_CREDIT_CARD_3);
@@ -798,13 +802,44 @@ add_task(async function test_getDuplicateGuid() {
   // 09 and 90 adjacent digits, which is still a valid credit card number.
   record["cc-number"] = "358999378390" + last4Digits;
 
-  // We treat numbers with the same last 4 digits as a duplicate.
+  // We don't treat numbers with the same last 4 digits as a duplicate.
+  Assert.equal(await profileStorage.creditCards.getDuplicateGuid(record), null);
+});
+
+add_task(async function test_getDuplicateGuidMatch() {
+  let profileStorage = await initProfileStorage(
+    TEST_STORE_FILE_NAME,
+    [TEST_CREDIT_CARD_2],
+    "creditCards"
+  );
+  let guid = profileStorage.creditCards._data[0].guid;
+
+  // Absolutely a duplicate.
+  Assert.equal(
+    await profileStorage.creditCards.getDuplicateGuid(TEST_CREDIT_CARD_2),
+    guid
+  );
+
+  // Absolutely not a duplicate.
+  Assert.equal(
+    await profileStorage.creditCards.getDuplicateGuid(TEST_CREDIT_CARD_1),
+    null
+  );
+
+  // Numbers with the same last 4 digits shouldn't be treated as a duplicate.
+  record = Object.assign({}, TEST_CREDIT_CARD_2);
+
+  // We change month from `1` to `2`
+  record["cc-exp-month"] = 2;
   Assert.equal(await profileStorage.creditCards.getDuplicateGuid(record), guid);
 
-  // Even though the last 4 digits are the same, an invalid credit card number
-  // should never be treated as a duplicate.
-  record["cc-number"] = "************" + last4Digits;
-  Assert.equal(await profileStorage.creditCards.getDuplicateGuid(record), null);
+  // We change year from `2000` to `2001`
+  record["cc-exp-year"] = 2001;
+  Assert.equal(await profileStorage.creditCards.getDuplicateGuid(record), guid);
+
+  // New name, same card
+  record["cc-name"] = "John Doe";
+  Assert.equal(await profileStorage.creditCards.getDuplicateGuid(record), guid);
 });
 
 add_task(async function test_creditCardFillDisabled() {

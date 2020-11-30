@@ -3,9 +3,7 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-include('/media/webrtc/webrtc.mozbuild')
-
-FILES_PER_UNIFIED_FILE = 6
+include('/dom/media/webrtc/third_party_build/webrtc.mozbuild')
 
 with Files('*'):
     BUG_COMPONENT = ('Core', 'Audio/Video')
@@ -23,8 +21,6 @@ component_signaling = ('Core', 'WebRTC: Signaling')
 with Files('IdpSandbox.jsm'):
     BUG_COMPONENT = component_signaling
 with Files('PeerConnection*'):
-    BUG_COMPONENT = component_signaling
-with Files('RTC*'):
     BUG_COMPONENT = component_signaling
 
 component_av = ('Core', 'WebRTC: Audio/Video')
@@ -79,9 +75,15 @@ if CONFIG['FUZZING_INTERFACES']:
         'fuzz'
     ]
 
+if CONFIG['MOZ_WEBRTC_SIGNALING']:
+    if CONFIG['FUZZING_INTERFACES']:
+        TEST_DIRS += [
+            'webrtc/tests/fuzztests'
+        ]
+
 MOCHITEST_MANIFESTS += [
     'test/mochitest.ini',
-    'tests/mochitest/identity/mochitest.ini',
+    'webrtc/tests/mochitests/identity/mochitest.ini',
 ]
 
 BROWSER_CHROME_MANIFESTS += [
@@ -90,9 +92,7 @@ BROWSER_CHROME_MANIFESTS += [
 ]
 
 if CONFIG['MOZ_WEBRTC']:
-    MOCHITEST_MANIFESTS += ['tests/mochitest/mochitest.ini']
-    WEBRTC_SIGNALLING_TEST_MANIFESTS += ['tests/mochitest/steeplechase.ini']
-    WEBRTC_SIGNALLING_TEST_MANIFESTS += ['tests/mochitest/steeplechase_long/steeplechase_long.ini']
+    MOCHITEST_MANIFESTS += ['webrtc/tests/mochitests/mochitest.ini']
 
 XPIDL_SOURCES += [
     'nsIAudioDeviceInfo.idl',
@@ -108,17 +108,21 @@ EXPORTS += [
     'ADTSDecoder.h',
     'ADTSDemuxer.h',
     'AsyncLogger.h',
+    'AudibilityMonitor.h',
     'AudioBufferUtils.h',
     'AudioChannelFormat.h',
     'AudioCompactor.h',
     'AudioConfig.h',
     'AudioConverter.h',
     'AudioDeviceInfo.h',
+    'AudioDriftCorrection.h',
     'AudioMixer.h',
     'AudioPacketizer.h',
+    'AudioRingBuffer.h',
     'AudioSampleFormat.h',
     'AudioSegment.h',
     'AudioStream.h',
+    'AudioThreadRegistry.h',
     'AutoplayPolicy.h',
     'BackgroundVideoDecodingPermissionObserver.h',
     'Benchmark.h',
@@ -128,10 +132,12 @@ EXPORTS += [
     'BufferReader.h',
     'ByteWriter.h',
     'ChannelMediaDecoder.h',
+    'CrossGraphPort.h',
     'CubebUtils.h',
     'DecoderTraits.h',
     'DOMMediaStream.h',
     'DriftCompensation.h',
+    'DynamicResampler.h',
     'FileBlockCache.h',
     'ForwardedInputTrack.h',
     'FrameStatistics.h',
@@ -170,6 +176,7 @@ EXPORTS += [
     'MediaTrackList.h',
     'MediaTrackListener.h',
     'MemoryBlockCache.h',
+    'MPSCQueue.h',
     'nsIDocumentActivity.h',
     'PrincipalChangeObserver.h',
     'PrincipalHandle.h',
@@ -201,8 +208,8 @@ EXPORTS.mozilla.media.webrtc += [
 ]
 
 if not CONFIG['MOZ_WEBRTC']:
-  EXPORTS.mtransport += [
-      '../../media/mtransport/runnable_utils.h',
+  EXPORTS.transport += [
+      'webrtc/transport/runnable_utils.h',
   ]
 
 EXPORTS.mozilla.dom += [
@@ -238,6 +245,7 @@ UNIFIED_SOURCES += [
     'AudioConfig.cpp',
     'AudioConverter.cpp',
     'AudioDeviceInfo.cpp',
+    'AudioRingBuffer.cpp',
     'AudioSegment.cpp',
     'AudioStream.cpp',
     'AudioStreamTrack.cpp',
@@ -253,7 +261,9 @@ UNIFIED_SOURCES += [
     'ChannelMediaDecoder.cpp',
     'ChannelMediaResource.cpp',
     'CloneableWithRangeMediaResource.cpp',
+    'CrossGraphPort.cpp',
     'DOMMediaStream.cpp',
+    'DynamicResampler.cpp',
     'FileBlockCache.cpp',
     'FileMediaResource.cpp',
     'ForwardedInputTrack.cpp',
@@ -361,9 +371,9 @@ LOCAL_INCLUDES += [
 
 if CONFIG['MOZ_WEBRTC']:
     LOCAL_INCLUDES += [
-        '/media/webrtc/signaling/src/common',
-        '/media/webrtc/trunk',
-        '/media/webrtc/trunk/webrtc',
+        '/dom/media/webrtc/common',
+        '/third_party/libwebrtc',
+        '/third_party/libwebrtc/webrtc',
     ]
 
 DEFINES['MOZILLA_INTERNAL_API'] = True
@@ -378,17 +388,11 @@ if CONFIG['COMPILE_ENVIRONMENT']:
         '!audioipc_server_ffi_generated.h',
     ]
 
-    GeneratedFile('audioipc_client_ffi_generated.h',
-                  script='/build/RunCbindgen.py', entry_point='generate',
-                  inputs=[
-                      '/media/audioipc/client',
-                  ])
+    CbindgenHeader('audioipc_client_ffi_generated.h',
+                   inputs=['/media/audioipc/client'])
 
-    GeneratedFile('audioipc_server_ffi_generated.h',
-                  script='/build/RunCbindgen.py', entry_point='generate',
-                  inputs=[
-                      '/media/audioipc/server',
-                  ])
+    CbindgenHeader('audioipc_server_ffi_generated.h',
+                   inputs=['/media/audioipc/server'])
 
 include('/ipc/chromium/chromium-config.mozbuild')
 

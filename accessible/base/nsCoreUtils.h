@@ -11,6 +11,8 @@
 #include "nsIAccessibleEvent.h"
 #include "nsIContent.h"
 #include "mozilla/dom/Document.h"  // for GetPresShell()
+#include "mozilla/FlushType.h"
+#include "mozilla/PresShellForwards.h"
 
 #include "nsPoint.h"
 #include "nsTArray.h"
@@ -59,7 +61,7 @@ class nsCoreUtils {
   MOZ_CAN_RUN_SCRIPT
   static void DispatchClickEvent(mozilla::dom::XULTreeElement* aTree,
                                  int32_t aRowIndex, nsTreeColumn* aColumn,
-                                 const nsAString& aPseudoElt = EmptyString());
+                                 const nsAString& aPseudoElt = u""_ns);
 
   /**
    * Send mouse event to the given element.
@@ -143,8 +145,8 @@ class nsCoreUtils {
    * @param aRange    the range to scroll to
    * @param aScrollType   the place a range should be scrolled to
    */
-  static nsresult ScrollSubstringTo(nsIFrame* aFrame, nsRange* aRange,
-                                    uint32_t aScrollType);
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY static nsresult ScrollSubstringTo(
+      nsIFrame* aFrame, nsRange* aRange, uint32_t aScrollType);
 
   /** Helper method to scroll range into view, used for implementation of
    * nsIAccessibleText::scrollSubstringTo[Point]().
@@ -156,9 +158,9 @@ class nsCoreUtils {
    * @param aHorizontal     how to align horizontally, specified in percents,
    * and when.
    */
-  static nsresult ScrollSubstringTo(nsIFrame* aFrame, nsRange* aRange,
-                                    mozilla::ScrollAxis aVertical,
-                                    mozilla::ScrollAxis aHorizontal);
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY static nsresult ScrollSubstringTo(
+      nsIFrame* aFrame, nsRange* aRange, mozilla::ScrollAxis aVertical,
+      mozilla::ScrollAxis aHorizontal);
 
   /**
    * Scrolls the given frame to the point, used for implememntation of
@@ -203,9 +205,11 @@ class nsCoreUtils {
   static bool IsContentDocument(Document* aDocument);
 
   /**
-   * Return true if the given document node is for tab document accessible.
+   * Return true if the given document is a top level content document in this
+   * process.
+   * This will be true for tab documents and out-of-process iframe documents.
    */
-  static bool IsTabDocument(Document* aDocumentNode);
+  static bool IsTopLevelContentDocInProcess(Document* aDocumentNode);
 
   /**
    * Return true if the given document is an error page.
@@ -253,7 +257,8 @@ class nsCoreUtils {
    * Return first sensible column for the given tree box object.
    */
   static already_AddRefed<nsTreeColumn> GetFirstSensibleColumn(
-      mozilla::dom::XULTreeElement* aTree);
+      mozilla::dom::XULTreeElement* aTree,
+      mozilla::FlushType = mozilla::FlushType::Frames);
 
   /**
    * Return sensible columns count for the given tree box object.

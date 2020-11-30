@@ -9,7 +9,9 @@ DevToolsModules(
     'chrome-window.js',
     'content-process.js',
     'frame.js',
+    'index.js',
     'parent-process.js',
+    'target-actor-registry.jsm',
     'webextension.js',
     'worker.js',
 )

@@ -6,6 +6,7 @@
 
 #include "WorkerError.h"
 
+#include "mozilla/ArrayAlgorithm.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/dom/ErrorEvent.h"
 #include "mozilla/dom/ErrorEventBinding.h"
@@ -97,8 +98,8 @@ class ReportErrorRunnable final : public WorkerDebuggeeRunnable {
           if (swm) {
             swm->HandleError(aCx, aWorkerPrivate->GetPrincipal(),
                              aWorkerPrivate->ServiceWorkerScope(),
-                             aWorkerPrivate->ScriptURL(), EmptyString(),
-                             EmptyString(), EmptyString(), 0, 0, JSREPORT_ERROR,
+                             aWorkerPrivate->ScriptURL(), u""_ns, u""_ns,
+                             u""_ns, 0, 0, nsIScriptError::errorFlag,
                              JSEXN_ERR);
           }
         }
@@ -188,9 +189,8 @@ class ReportGenericErrorRunnable final : public WorkerDebuggeeRunnable {
         if (swm) {
           swm->HandleError(aCx, aWorkerPrivate->GetPrincipal(),
                            aWorkerPrivate->ServiceWorkerScope(),
-                           aWorkerPrivate->ScriptURL(), EmptyString(),
-                           EmptyString(), EmptyString(), 0, 0, JSREPORT_ERROR,
-                           JSEXN_ERR);
+                           aWorkerPrivate->ScriptURL(), u""_ns, u""_ns, u""_ns,
+                           0, 0, nsIScriptError::errorFlag, JSEXN_ERR);
         }
       }
 
@@ -203,8 +203,8 @@ class ReportGenericErrorRunnable final : public WorkerDebuggeeRunnable {
 
     RefPtr<mozilla::dom::EventTarget> parentEventTarget =
         aWorkerPrivate->ParentEventTargetRef();
-    RefPtr<Event> event = Event::Constructor(
-        parentEventTarget, NS_LITERAL_STRING("error"), EventInit());
+    RefPtr<Event> event =
+        Event::Constructor(parentEventTarget, u"error"_ns, EventInit());
     event->SetTrusted(true);
 
     parentEventTarget->DispatchEvent(*event);
@@ -215,7 +215,7 @@ class ReportGenericErrorRunnable final : public WorkerDebuggeeRunnable {
 }  // namespace
 
 void WorkerErrorBase::AssignErrorBase(JSErrorBase* aReport) {
-  mFilename = NS_ConvertUTF8toUTF16(aReport->filename);
+  CopyUTF8toUTF16(MakeStringSpan(aReport->filename), mFilename);
   mLineNumber = aReport->lineno;
   mColumnNumber = aReport->column;
   mErrorNumber = aReport->errorNumber;
@@ -227,14 +227,14 @@ void WorkerErrorNote::AssignErrorNote(JSErrorNotes::Note* aNote) {
 }
 
 WorkerErrorReport::WorkerErrorReport()
-    : mFlags(0), mExnType(JSEXN_ERR), mMutedError(false) {}
+    : mIsWarning(false), mExnType(JSEXN_ERR), mMutedError(false) {}
 
 void WorkerErrorReport::AssignErrorReport(JSErrorReport* aReport) {
   WorkerErrorBase::AssignErrorBase(aReport);
   xpc::ErrorReport::ErrorReportToMessageString(aReport, mMessage);
 
   mLine.Assign(aReport->linebuf(), aReport->linebufLength());
-  mFlags = aReport->flags;
+  mIsWarning = aReport->isWarning();
   MOZ_ASSERT(aReport->exnType >= JSEXN_FIRST && aReport->exnType < JSEXN_LIMIT);
   mExnType = JSExnType(aReport->exnType);
   mMutedError = aReport->isMuted;
@@ -268,7 +268,7 @@ void WorkerErrorReport::ReportError(
 
   // We should not fire error events for warnings but instead make sure that
   // they show up in the error console.
-  if (!JSREPORT_IS_WARNING(aReport->mFlags)) {
+  if (!aReport->mIsWarning) {
     // First fire an ErrorEvent at the worker.
     RootedDictionary<ErrorEventInit> init(aCx);
 
@@ -286,7 +286,7 @@ void WorkerErrorReport::ReportError(
 
     if (aTarget) {
       RefPtr<ErrorEvent> event =
-          ErrorEvent::Constructor(aTarget, NS_LITERAL_STRING("error"), init);
+          ErrorEvent::Constructor(aTarget, u"error"_ns, init);
       event->SetTrusted(true);
 
       bool defaultActionEnabled =
@@ -339,7 +339,7 @@ void WorkerErrorReport::ReportError(
         MOZ_ASSERT(globalScope->GetWrapperPreserveColor() == global);
 
         RefPtr<ErrorEvent> event =
-            ErrorEvent::Constructor(aTarget, NS_LITERAL_STRING("error"), init);
+            ErrorEvent::Constructor(aTarget, u"error"_ns, init);
         event->SetTrusted(true);
 
         if (NS_FAILED(EventDispatcher::DispatchDOMEvent(
@@ -379,19 +379,16 @@ void WorkerErrorReport::ReportError(
 void WorkerErrorReport::LogErrorToConsole(JSContext* aCx,
                                           WorkerErrorReport& aReport,
                                           uint64_t aInnerWindowId) {
-  nsTArray<ErrorDataNote> notes;
-  for (size_t i = 0, len = aReport.mNotes.Length(); i < len; i++) {
-    const WorkerErrorNote& note = aReport.mNotes.ElementAt(i);
-    notes.AppendElement(ErrorDataNote(note.mLineNumber, note.mColumnNumber,
-                                      note.mMessage, note.mFilename));
-  }
-
   JS::RootedObject stack(aCx, aReport.ReadStack(aCx));
   JS::RootedObject stackGlobal(aCx, JS::CurrentGlobalOrNull(aCx));
 
-  ErrorData errorData(aReport.mLineNumber, aReport.mColumnNumber,
-                      aReport.mFlags, aReport.mMessage, aReport.mFilename,
-                      aReport.mLine, notes);
+  ErrorData errorData(
+      aReport.mIsWarning, aReport.mLineNumber, aReport.mColumnNumber,
+      aReport.mMessage, aReport.mFilename, aReport.mLine,
+      TransformIntoNewArray(aReport.mNotes, [](const WorkerErrorNote& note) {
+        return ErrorDataNote(note.mLineNumber, note.mColumnNumber,
+                             note.mMessage, note.mFilename);
+      }));
   LogErrorToConsole(errorData, aInnerWindowId, stack, stackGlobal);
 }
 
@@ -402,28 +399,24 @@ void WorkerErrorReport::LogErrorToConsole(const ErrorData& aReport,
                                           JS::HandleObject aStackGlobal) {
   AssertIsOnMainThread();
 
-  RefPtr<nsScriptErrorBase> scriptError;
-  if (aStack) {
-    scriptError = new nsScriptErrorWithStack(aStack, aStackGlobal);
-  } else {
-    scriptError = new nsScriptError();
-  }
+  RefPtr<nsScriptErrorBase> scriptError =
+      CreateScriptError(nullptr, JS::NothingHandleValue, aStack, aStackGlobal);
 
   NS_WARNING_ASSERTION(scriptError, "Failed to create script error!");
 
   if (scriptError) {
     nsAutoCString category("Web Worker");
+    uint32_t flags = aReport.isWarning() ? nsIScriptError::warningFlag
+                                         : nsIScriptError::errorFlag;
     if (NS_FAILED(scriptError->nsIScriptError::InitWithWindowID(
             aReport.message(), aReport.filename(), aReport.line(),
-            aReport.lineNumber(), aReport.columnNumber(), aReport.flags(),
-            category, aInnerWindowId))) {
+            aReport.lineNumber(), aReport.columnNumber(), flags, category,
+            aInnerWindowId))) {
       NS_WARNING("Failed to init script error!");
       scriptError = nullptr;
     }
 
-    for (size_t i = 0, len = aReport.notes().Length(); i < len; i++) {
-      const ErrorDataNote& note = aReport.notes().ElementAt(i);
-
+    for (const ErrorDataNote& note : aReport.notes()) {
       nsScriptErrorNote* noteObject = new nsScriptErrorNote();
       noteObject->Init(note.message(), note.filename(), 0, note.lineNumber(),
                        note.columnNumber());

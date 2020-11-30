@@ -44,15 +44,15 @@
 }
 
 .error-description > p:first-child {
-  padding: 3.5em 3.5em 1em 3.5em;
+  padding: 3.5em 3.5em 1em;
 }
 
 .error-description > p:last-child {
-  padding: 0 3.5em 3.5em 3.5em;
+  padding: 0 3.5em 3.5em;
 }
 
 .error-description #ignore_warning_link,
-.error-description a:-moz-any(:link, :visited) {
+.error-description a:is(:link, :visited) {
   cursor: pointer;
   text-decoration: underline;
   color: black;

@@ -10,10 +10,10 @@
 #  include "mozilla/gfx/2D.h"
 #  include "mozilla/layers/Compositor.h"
 #  include "mozilla/layers/Effects.h"
+#  include "mozilla/ProfilerMarkers.h"
 #  include "mozilla/StaticPrefs_layers.h"
 #  include "mozilla/TimeStamp.h"
 #  include <math.h>
-#  include "GeckoProfiler.h"
 
 #  define TEST_STEPS 1000
 #  define DURATION_THRESHOLD 30
@@ -98,7 +98,7 @@ class EffectSolidColorBench : public BenchTest {
     float red = modff(aStep * 0.03f, &tmp);
     EffectChain effects;
     effects.mPrimaryEffect =
-        new EffectSolidColor(gfx::Color(red, 0.4f, 0.4f, 1.0f));
+        new EffectSolidColor(gfx::DeviceColor(red, 0.4f, 0.4f, 1.0f));
 
     const gfx::Rect& rect = aScreenRect;
     const gfx::Rect& clipRect = aScreenRect;
@@ -127,7 +127,8 @@ class EffectSolidColorTrivialBench : public BenchTest {
     float tmp;
     float red = modff(i * 0.03f, &tmp);
     EffectChain effects;
-    return MakeAndAddRef<EffectSolidColor>(gfx::Color(red, 0.4f, 0.4f, 1.0f));
+    return MakeAndAddRef<EffectSolidColor>(
+        gfx::DeviceColor(red, 0.4f, 0.4f, 1.0f));
   }
 };
 
@@ -149,7 +150,8 @@ class EffectSolidColorStressBench : public BenchTest {
     float tmp;
     float red = modff(i * 0.03f, &tmp);
     EffectChain effects;
-    return MakeAndAddRef<EffectSolidColor>(gfx::Color(red, 0.4f, 0.4f, 1.0f));
+    return MakeAndAddRef<EffectSolidColor>(
+        gfx::DeviceColor(red, 0.4f, 0.4f, 1.0f));
   }
 };
 
@@ -292,7 +294,9 @@ static void RunCompositorBench(Compositor* aCompositor,
     BenchTest* test = tests[i];
     std::vector<TimeDuration> results;
     int testsOverThreshold = 0;
-    PROFILER_ADD_MARKER(test->ToString(), GRAPHICS);
+    PROFILER_MARKER_UNTYPED(
+        ProfilerString8View::WrapNullTerminatedString(test->ToString()),
+        GRAPHICS);
     for (size_t j = 0; j < TEST_STEPS; j++) {
       test->Setup(aCompositor, j);
 

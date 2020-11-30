@@ -17,7 +17,7 @@ const TreeView = createFactory(
   require("devtools/client/shared/components/tree/TreeView")
 );
 // Reps
-const { MODE } = require("devtools/client/shared/components/reps/reps");
+const { MODE } = require("devtools/client/shared/components/reps/index");
 
 const {
   fetchChildren,
@@ -51,6 +51,8 @@ class AccessibilityTree extends Component {
       getAccessibilityTreeRoot: PropTypes.func.isRequired,
       startListeningForAccessibilityEvents: PropTypes.func.isRequired,
       stopListeningForAccessibilityEvents: PropTypes.func.isRequired,
+      highlightAccessible: PropTypes.func.isRequired,
+      unhighlightAccessible: PropTypes.func.isRequired,
     };
   }
 
@@ -151,7 +153,7 @@ class AccessibilityTree extends Component {
    */
   onNameChange(accessibleFront, parentFront) {
     const { accessibles, dispatch } = this.props;
-    const accessibleWalkerFront = accessibleFront.parent();
+    const accessibleWalkerFront = accessibleFront.getParent();
     parentFront = parentFront || accessibleWalkerFront;
 
     if (
@@ -205,6 +207,8 @@ class AccessibilityTree extends Component {
       toolboxDoc,
       filtered,
       getAccessibilityTreeRoot,
+      highlightAccessible,
+      unhighlightAccessible,
     } = this.props;
 
     const renderRow = rowProps => {
@@ -219,6 +223,8 @@ class AccessibilityTree extends Component {
               return highlighted ? ["highlighted"] : [];
             },
           },
+          highlightAccessible,
+          unhighlightAccessible,
         })
       );
     };

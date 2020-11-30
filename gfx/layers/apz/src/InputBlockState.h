@@ -29,6 +29,7 @@ class TouchBlockState;
 class WheelBlockState;
 class DragBlockState;
 class PanGestureBlockState;
+class PinchGestureBlockState;
 class KeyboardBlockState;
 
 /**
@@ -59,6 +60,7 @@ class InputBlockState : public RefCounted<InputBlockState> {
   virtual WheelBlockState* AsWheelBlock() { return nullptr; }
   virtual DragBlockState* AsDragBlock() { return nullptr; }
   virtual PanGestureBlockState* AsPanGestureBlock() { return nullptr; }
+  virtual PinchGestureBlockState* AsPinchGestureBlock() { return nullptr; }
   virtual KeyboardBlockState* AsKeyboardBlock() { return nullptr; }
 
   virtual bool SetConfirmedTargetApzc(
@@ -358,6 +360,31 @@ class PanGestureBlockState : public CancelableBlockState {
 };
 
 /**
+ * A single block of pinch gesture events.
+ */
+class PinchGestureBlockState : public CancelableBlockState {
+ public:
+  PinchGestureBlockState(const RefPtr<AsyncPanZoomController>& aTargetApzc,
+                         TargetConfirmationFlags aFlags);
+
+  bool SetContentResponse(bool aPreventDefault) override;
+  bool HasReceivedAllContentNotifications() const override;
+  bool IsReadyForHandling() const override;
+  bool MustStayActive() override;
+  const char* Type() override;
+
+  PinchGestureBlockState* AsPinchGestureBlock() override { return this; }
+
+  bool WasInterrupted() const { return mInterrupted; }
+
+  void SetNeedsToWaitForContentResponse(bool aWaitForContentResponse);
+
+ private:
+  bool mInterrupted;
+  bool mWaitingForContentResponse;
+};
+
+/**
  * This class represents a single touch block. A touch block is
  * a set of touch events that can be cancelled by web content via
  * touch event listeners.
@@ -473,6 +500,7 @@ class TouchBlockState : public CancelableBlockState {
    */
   bool UpdateSlopState(const MultiTouchInput& aInput,
                        bool aApzcCanConsumeEvents);
+  bool IsInSlop() const;
 
   /**
    * Based on the slop origin and the given input event, return a best guess
@@ -490,6 +518,7 @@ class TouchBlockState : public CancelableBlockState {
   void DispatchEvent(const InputData& aEvent) const override;
   bool MustStayActive() override;
   const char* Type() override;
+  TimeDuration GetTimeSinceBlockStart() const;
 
  private:
   nsTArray<TouchBehaviorFlags> mAllowedTouchBehaviors;
@@ -500,6 +529,7 @@ class TouchBlockState : public CancelableBlockState {
   ScreenIntPoint mSlopOrigin;
   // A reference to the InputQueue's touch counter
   TouchCounter& mTouchCounter;
+  TimeStamp mStartTime;
 };
 
 /**

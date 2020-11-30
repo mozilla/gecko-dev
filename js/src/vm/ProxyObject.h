@@ -8,6 +8,7 @@
 #define vm_ProxyObject_h
 
 #include "js/Proxy.h"
+#include "js/shadow/Object.h"  // JS::shadow::Object
 #include "vm/JSObject.h"
 
 namespace js {
@@ -33,20 +34,21 @@ class ProxyObject : public JSObject {
     static_assert(offsetof(ProxyObject, data) == detail::ProxyDataOffset,
                   "proxy object layout must match shadow interface");
     static_assert(offsetof(ProxyObject, data.reservedSlots) ==
-                      offsetof(shadow::Object, slots),
+                      offsetof(JS::shadow::Object, slots),
                   "Proxy reservedSlots must overlay native object slots field");
   }
-
-  static JS::Result<ProxyObject*, JS::OOM&> create(JSContext* cx,
-                                                   const JSClass* clasp,
-                                                   Handle<TaggedProto> proto,
-                                                   js::gc::AllocKind allocKind,
-                                                   js::NewObjectKind newKind);
 
  public:
   static ProxyObject* New(JSContext* cx, const BaseProxyHandler* handler,
                           HandleValue priv, TaggedProto proto_,
-                          const ProxyOptions& options);
+                          const JSClass* clasp);
+
+  static ProxyObject* NewSingleton(JSContext* cx,
+                                   const BaseProxyHandler* handler,
+                                   HandleValue priv, TaggedProto proto_,
+                                   const JSClass* clasp);
+
+  void init(const BaseProxyHandler* handler, HandleValue priv, JSContext* cx);
 
   // Proxies usually store their ProxyValueArray inline in the object.
   // There's one unfortunate exception: when a proxy is swapped with another
@@ -62,10 +64,14 @@ class ProxyObject : public JSObject {
         &reinterpret_cast<detail::ProxyValueArray*>(inlineDataStart())
              ->reservedSlots;
   }
+
   MOZ_MUST_USE bool initExternalValueArrayAfterSwap(JSContext* cx,
                                                     HandleValueVector values);
 
   const Value& private_() const { return GetProxyPrivate(this); }
+  const Value& expando() const { return GetProxyExpando(this); }
+
+  void setExpando(JSObject* expando);
 
   void setCrossCompartmentPrivate(const Value& priv);
   void setSameCompartmentPrivate(const Value& priv);
@@ -105,6 +111,11 @@ class ProxyObject : public JSObject {
   GCPtrValue* slotOfPrivate() {
     return reinterpret_cast<GCPtrValue*>(
         &detail::GetProxyDataLayout(this)->values()->privateSlot);
+  }
+
+  GCPtrValue* slotOfExpando() {
+    return reinterpret_cast<GCPtrValue*>(
+        &detail::GetProxyDataLayout(this)->values()->expandoSlot);
   }
 
   void setPrivate(const Value& priv);

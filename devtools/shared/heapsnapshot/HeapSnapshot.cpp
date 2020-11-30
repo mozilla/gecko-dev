@@ -34,6 +34,7 @@
 
 #include "jsapi.h"
 #include "jsfriendapi.h"
+#include "js/Object.h"  // JS::GetCompartment
 #include "nsCycleCollectionParticipant.h"
 #include "nsCRTGlue.h"
 #include "nsIFile.h"
@@ -666,7 +667,7 @@ static bool PopulateCompartmentsWithGlobals(CompartmentSet& compartments,
                                             HandleObjectVector globals) {
   unsigned length = globals.length();
   for (unsigned i = 0; i < length; i++) {
-    if (!compartments.put(GetObjectCompartment(globals[i]))) return false;
+    if (!compartments.put(JS::GetCompartment(globals[i]))) return false;
   }
 
   return true;
@@ -1011,7 +1012,7 @@ class MOZ_STACK_CLASS StreamWriter : public CoreDumpWriter {
     // that the 64MB size limit used by Coded{Output,Input}Stream to prevent
     // integer overflow is enforced per message rather than on the whole stream.
     ::google::protobuf::io::CodedOutputStream codedStream(&stream);
-    codedStream.WriteVarint32(message.ByteSize());
+    codedStream.WriteVarint32(message.ByteSizeLong());
     message.SerializeWithCachedSizes(&codedStream);
     return !codedStream.HadError();
   }
@@ -1535,7 +1536,7 @@ already_AddRefed<HeapSnapshot> ChromeUtils::ReadHeapSnapshot(
     GlobalObject& global, const nsAString& filePath, ErrorResult& rv) {
   auto start = TimeStamp::Now();
 
-  UniquePtr<char[]> path(ToNewCString(filePath));
+  UniquePtr<char[]> path(ToNewCString(filePath, mozilla::fallible));
   if (!path) {
     rv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return nullptr;

@@ -10,20 +10,22 @@
 
 use std::marker::PhantomData;
 
-use crate::backend::{
-    BackendDatabase,
-    BackendFlags,
-    BackendIter,
-    BackendRoCursor,
-    BackendRwTransaction,
+use crate::{
+    backend::{
+        BackendDatabase,
+        BackendFlags,
+        BackendIter,
+        BackendRoCursor,
+        BackendRwTransaction,
+    },
+    error::StoreError,
+    helpers::read_transform,
+    readwrite::{
+        Readable,
+        Writer,
+    },
+    value::Value,
 };
-use crate::error::StoreError;
-use crate::helpers::read_transform;
-use crate::readwrite::{
-    Readable,
-    Writer,
-};
-use crate::value::Value;
 
 type EmptyResult = Result<(), StoreError>;
 
@@ -32,9 +34,9 @@ pub struct MultiStore<D> {
     db: D,
 }
 
-pub struct Iter<'env, I> {
+pub struct Iter<'i, I> {
     iter: I,
-    phantom: PhantomData<&'env ()>,
+    phantom: PhantomData<&'i ()>,
 }
 
 impl<D> MultiStore<D>
@@ -47,13 +49,14 @@ where
         }
     }
 
-    /// Provides a cursor to all of the values for the duplicate entries that match this key
-    pub fn get<'env, R, I, C, K>(&self, reader: &'env R, k: K) -> Result<Iter<'env, I>, StoreError>
+    /// Provides a cursor to all of the values for the duplicate entries that match this
+    /// key
+    pub fn get<'r, R, I, C, K>(&self, reader: &'r R, k: K) -> Result<Iter<'r, I>, StoreError>
     where
-        R: Readable<'env, Database = D, RoCursor = C>,
-        I: BackendIter<'env>,
-        C: BackendRoCursor<'env, Iter = I>,
-        K: AsRef<[u8]>,
+        R: Readable<'r, Database = D, RoCursor = C>,
+        I: BackendIter<'r>,
+        C: BackendRoCursor<'r, Iter = I>,
+        K: AsRef<[u8]> + 'r,
     {
         let cursor = reader.open_ro_cursor(&self.db)?;
         let iter = cursor.into_iter_dup_of(k);
@@ -65,9 +68,9 @@ where
     }
 
     /// Provides the first value that matches this key
-    pub fn get_first<'env, R, K>(&self, reader: &'env R, k: K) -> Result<Option<Value<'env>>, StoreError>
+    pub fn get_first<'r, R, K>(&self, reader: &'r R, k: K) -> Result<Option<Value<'r>>, StoreError>
     where
-        R: Readable<'env, Database = D>,
+        R: Readable<'r, Database = D>,
         K: AsRef<[u8]>,
     {
         reader.get(&self.db, &k)
@@ -116,18 +119,20 @@ where
     }
 }
 
-impl<'env, I> Iterator for Iter<'env, I>
+impl<'i, I> Iterator for Iter<'i, I>
 where
-    I: BackendIter<'env>,
+    I: BackendIter<'i>,
 {
-    type Item = Result<(&'env [u8], Option<Value<'env>>), StoreError>;
+    type Item = Result<(&'i [u8], Value<'i>), StoreError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
             None => None,
-            Some(Ok((key, bytes))) => match read_transform(Ok(bytes)) {
-                Ok(val) => Some(Ok((key, val))),
-                Err(err) => Some(Err(err)),
+            Some(Ok((key, bytes))) => {
+                match read_transform(Ok(bytes)) {
+                    Ok(val) => Some(Ok((key, val))),
+                    Err(err) => Some(Err(err)),
+                }
             },
             Some(Err(err)) => Some(Err(err.into())),
         }

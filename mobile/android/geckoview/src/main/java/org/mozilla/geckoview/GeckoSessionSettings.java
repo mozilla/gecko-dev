@@ -10,9 +10,9 @@ import org.mozilla.gecko.util.GeckoBundle;
 
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.support.annotation.AnyThread;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.AnyThread;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -27,10 +27,12 @@ public final class GeckoSessionSettings implements Parcelable {
     public static final class Builder {
         private final GeckoSessionSettings mSettings;
 
+        @SuppressWarnings("checkstyle:javadocmethod")
         public Builder() {
             mSettings = new GeckoSessionSettings();
         }
 
+        @SuppressWarnings("checkstyle:javadocmethod")
         public Builder(final GeckoSessionSettings settings) {
             mSettings = new GeckoSessionSettings(settings);
         }
@@ -204,7 +206,7 @@ public final class GeckoSessionSettings implements Parcelable {
     private static final String LOGTAG = "GeckoSessionSettings";
     private static final boolean DEBUG = false;
 
-    // This needs to match nsIDocShell.idl
+    // This needs to match GeckoViewSettings.jsm
     public static final int DISPLAY_MODE_BROWSER = 0;
     public static final int DISPLAY_MODE_MINIMAL_UI = 1;
     public static final int DISPLAY_MODE_STANDALONE = 2;
@@ -340,10 +342,12 @@ public final class GeckoSessionSettings implements Parcelable {
     private final GeckoSession mSession;
     private final GeckoBundle mBundle;
 
+    @SuppressWarnings("checkstyle:javadocmethod")
     public GeckoSessionSettings() {
         this(null, null);
     }
 
+    @SuppressWarnings("checkstyle:javadocmethod")
     public GeckoSessionSettings(final @NonNull GeckoSessionSettings settings) {
         this(settings, null);
     }
@@ -708,6 +712,7 @@ public final class GeckoSessionSettings implements Parcelable {
     }
 
     // AIDL code may call readFromParcel even though it's not part of Parcelable.
+    @SuppressWarnings("checkstyle:javadocmethod")
     public void readFromParcel(final @NonNull Parcel source) {
         mBundle.readFromParcel(source);
     }

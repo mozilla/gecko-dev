@@ -66,6 +66,7 @@ UNIFIED_SOURCES += [
     'InternetCiter.cpp',
     'JoinNodeTransaction.cpp',
     'PlaceholderTransaction.cpp',
+    'ReplaceTextTransaction.cpp',
     'SelectionState.cpp',
     'SplitNodeTransaction.cpp',
     'TextEditor.cpp',
@@ -91,3 +92,6 @@ FINAL_LIBRARY = 'xul'
 
 if CONFIG['CC_TYPE'] in ('clang', 'gcc'):
     CXXFLAGS += ['-Wno-error=shadow']
+
+with Files("tests/*1151186*"):
+    BUG_COMPONENT = ("Core", "DOM: UI Events & Focus Handling")

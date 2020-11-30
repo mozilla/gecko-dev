@@ -35,9 +35,6 @@ addLoadEvent(function () {
   SpecialPowers.pushPrefEnv({
     "set": [
       ["full-screen-api.allow-trusted-requests-only", false],
-      // Use legacy data: URI behavior to run test.
-      ["security.data_uri.unique_opaque_origin", false],
-      ["security.data_uri.block_toplevel_data_uri_navigations", false],
     ]
   }, next);
 });
@@ -46,13 +43,15 @@ const OPEN_WINDOW_FUNCS = [
   function openNewTab() {
     return new Promise(resolve => {
       var win = window.open("about:blank");
-      resolve(win);
+      win.addEventListener("load", () => {
+        resolve(win);
+      }, { once: true });
     });
   },
   function openNewWindow() {
     return new Promise(resolve => {
       var win = window.open("about:blank", "", "width=300,height=200");
-      win.addEventListener("MozAfterPaint", () => {
+      win.addEventListener("load", () => {
         resolve(win);
       }, { once: true });
     });
@@ -72,7 +71,7 @@ const ACTION_FUNCS = [
         }, win);
       }, { once: true });
     });
-    win.location = `data:text/html,<body onload="window.opener.postMessage('ready', '*');">`;
+    win.location = "file_fullscreen-api-race.html";
     return promise;
   },
   function closeWindow(win) {

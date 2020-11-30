@@ -25,21 +25,33 @@ function hasOriginalURL(url: string): boolean {
 }
 
 function _resolveSourceMapURL(source: SourceMapInput) {
-  const { url = "", sourceMapURL = "" } = source;
+  let { sourceMapBaseURL, sourceMapURL } = source;
+  sourceMapBaseURL = sourceMapBaseURL || "";
+  sourceMapURL = sourceMapURL || "";
 
-  if (!url) {
+  if (!sourceMapBaseURL) {
     // If the source doesn't have a URL, don't resolve anything.
     return { sourceMapURL, baseURL: sourceMapURL };
   }
 
-  const resolvedURL = new URL(sourceMapURL, url);
-  const resolvedString = resolvedURL.toString();
+  let resolvedString;
+  let baseURL;
 
-  let baseURL = resolvedString;
-  // When the sourceMap is a data: URL, fall back to using the
-  // source's URL, if possible.
-  if (resolvedURL.protocol == "data:") {
-    baseURL = url;
+  // When the sourceMap is a data: URL, fall back to using the source's URL,
+  // if possible. We don't use `new URL` here because it will be _very_ slow
+  // for large inlined source-maps, and we don't actually need to parse them.
+  if (sourceMapURL.startsWith("data:")) {
+    resolvedString = sourceMapURL;
+    baseURL = sourceMapBaseURL;
+  } else {
+    resolvedString = new URL(
+      sourceMapURL,
+      // If the URL is a data: URL, the sourceMapURL needs to be absolute, so
+      // we might as well pass `undefined` to avoid parsing a potentially
+      // very large data: URL for no reason.
+      sourceMapBaseURL.startsWith("data:") ? undefined : sourceMapBaseURL
+    ).toString();
+    baseURL = resolvedString;
   }
 
   return { sourceMapURL: resolvedString, baseURL };
@@ -97,7 +109,10 @@ function fetchSourceMap(generatedSource: SourceMapInput): SourceMapConsumer {
   const req = _resolveAndFetch(generatedSource);
   // Make sure the cached promise does not reject, because we only
   // want to report the error once.
-  setSourceMap(generatedSource.id, req.catch(() => null));
+  setSourceMap(
+    generatedSource.id,
+    req.catch(() => null)
+  );
   return req;
 }
 

@@ -84,6 +84,7 @@ async function runTests() {
     let beforeInputEvent = null;
     let inputEvent = null;
     let selectionRanges = [];
+    let expectedTargetRanges = [];
     function reset() {
       beforeInputEvent = null;
       inputEvent = null;
@@ -196,7 +197,10 @@ async function runTests() {
       `${aDescription}inputType of "beforeinput" event for ${action} should be "deleteContentBackward"`);
     is(beforeInputEvent.data, null, `${aDescription}data of "beforeinput" event for ${action} should be null`);
     is(beforeInputEvent.dataTransfer, null, `${aDescription}dataTransfer of "beforeinput" event for ${action} should be null`);
-    checkTargetRanges(beforeInputEvent, selectionRanges);  // XXX bug 1618457
+    checkTargetRanges(beforeInputEvent, [{startContainer: selectionRanges[0].endContainer,
+                                          startOffset: selectionRanges[0].endOffset - 1,
+                                          endContainer: selectionRanges[0].endContainer,
+                                          endOffset: selectionRanges[0].endOffset}]);
     ok(inputEvent, `${aDescription}"input" event should've been fired at ${action}`);
     is(inputEvent.inputType, "deleteContentBackward", `${aDescription}inputType of "input" event for ${action} should be "deleteContentBackward"`);
     is(inputEvent.data, null, `${aDescription}data of "input" event for ${action} should be null`);
@@ -215,22 +219,13 @@ async function runTests() {
     is(beforeInputEvent.data, null, `${aDescription}data of "beforeinput" event for ${action} should be null`);
     is(beforeInputEvent.dataTransfer, null, `${aDescription}dataTransfer of "beforeinput" event for ${action} should be null`);
     checkTargetRanges(beforeInputEvent, selectionRanges);
-    if (!isEditTargetIsDescendantOfEditingHost) {
-      ok(!inputEvent, `${aDescription}"input" event shouldn't be fired at ${action}`);
-    } else {
-      todo(!inputEvent, `${aDescription}"input" event should be fired at ${action} but we replace the padding <br> element`);
-    }
+    ok(!inputEvent, `${aDescription}"input" event shouldn't be fired at ${action}`);
 
     reset();
     cancelBeforeInput = false;
     action = 'typing "B"';
     synthesizeKey("B", {shiftKey: true}, aWindow);
-    // XXX This inconsistency must be a bug.
-    if (!isEditTargetIsDescendantOfEditingHost) {
-      is(editTarget.innerHTML, "B<br>", `${aDescription}"B" should've been inserted by ${action}`);
-    } else {
-      is(editTarget.innerHTML, "B", `${aDescription}"B" should've been inserted by ${action}`);
-    }
+    is(editTarget.innerHTML, "B<br>", `${aDescription}"B" should've been inserted by ${action}`);
     is(beforeInputEvent.cancelable, true, `${aDescription}"beforeinput" event for ${action} should be cancelable`);
     is(beforeInputEvent.inputType, "insertText", `${aDescription}inputType of "beforeinput" event for ${action} should be "insertText"`);
     is(beforeInputEvent.data, "B", `${aDescription}data of "beforeinput" event for ${action} should be "B"`);
@@ -246,12 +241,7 @@ async function runTests() {
     cancelBeforeInput = true;
     action = 'typing "Enter"';
     synthesizeKey("KEY_Enter", {}, aWindow);
-    // XXX This inconsistency must be a bug.
-    if (!isEditTargetIsDescendantOfEditingHost) {
-      is(editTarget.innerHTML, "B<br>", `${aDescription}shouldn't modify the editor by ${action} since "beforeinput" was canceled`);
-    } else {
-      is(editTarget.innerHTML, "B", `${aDescription}shouldn't modify the editor by ${action} since "beforeinput" was canceled`);
-    }
+    is(editTarget.innerHTML, "B<br>", `${aDescription}shouldn't modify the editor by ${action} since "beforeinput" was canceled`);
     ok(beforeInputEvent, `${aDescription}"beforeinput" event should've been fired at ${action}`);
     ok(!inputEvent, `${aDescription}"input" event shouldn't been fired at ${action} since "beforeinput" was canceled`);
 
@@ -385,7 +375,10 @@ async function runTests() {
     is(beforeInputEvent.inputType, "deleteContentForward", `${aDescription}inputType of "beforeinput" event for ${action} should be "deleteContentForward"`);
     is(beforeInputEvent.data, null, `${aDescription}data of "beforeinput" event for ${action} should be null`);
     is(beforeInputEvent.dataTransfer, null, `${aDescription}dataTransfer of "beforeinput" event for ${action} should be null`);
-    checkTargetRanges(beforeInputEvent, selectionRanges);  // XXX bug 1618457
+    checkTargetRanges(beforeInputEvent, [{startContainer: selectionRanges[0].startContainer,
+                                          startOffset: selectionRanges[0].startOffset,
+                                          endContainer: selectionRanges[0].startContainer,
+                                          endOffset: selectionRanges[0].startOffset + 1}]);
     ok(inputEvent, `${aDescription}"input" event should've been fired at ${action}`);
     is(inputEvent.inputType, "deleteContentForward", `${aDescription}inputType of "input" event for ${action} should be "deleteContentForward"`);
     is(inputEvent.data, null, `${aDescription}data of "input" event for ${action} should be null`);
@@ -508,6 +501,12 @@ async function runTests() {
     selection.selectAllChildren(editTarget);
     reset();
     cancelBeforeInput = false;
+    expectedTargetRanges = [{
+      startContainer: editTarget.firstChild,
+      startOffset: 0,
+      endContainer: editTarget.firstChild,
+      endOffset: editTarget.firstChild.length,
+    }];
     synthesizeKey("KEY_Backspace", {}, aWindow);
     is(editTarget.innerHTML, "<br>", `${aDescription}"a" should've been removed by ${action}`);
     ok(beforeInputEvent, `${aDescription}"beforeinput" event should've been fired at ${action}`);
@@ -516,7 +515,7 @@ async function runTests() {
        `${aDescription}inputType of "beforeinput" event for ${action} should be "deleteContentBackward"`);
     is(beforeInputEvent.data, null, `${aDescription}data of "beforeinput" event for ${action} should be null`);
     is(beforeInputEvent.dataTransfer, null, `${aDescription}dataTransfer of "beforeinput" event for ${action} should be null`);
-    checkTargetRanges(beforeInputEvent, selectionRanges);
+    checkTargetRanges(beforeInputEvent, expectedTargetRanges);
     ok(inputEvent, `${aDescription}"input" event should've been fired at ${action}`);
     is(inputEvent.inputType, "deleteContentBackward", `${aDescription}inputType of "input" event for ${action} should be "deleteContentBackward"`);
     is(inputEvent.data, null, `${aDescription}data of "input" event for ${action} should be null`);
@@ -529,6 +528,12 @@ async function runTests() {
     reset();
     cancelBeforeInput = true;
     action = 'removing "a" with "Delete" (with selection)';
+    expectedTargetRanges = [{
+      startContainer: editTarget.firstChild,
+      startOffset: 0,
+      endContainer: editTarget.firstChild,
+      endOffset: editTarget.firstChild.length,
+    }];
     synthesizeKey("KEY_Delete", {}, aWindow);
     is(editTarget.innerHTML, "a", `${aDescription}"a" should've been removed by ${action} since "beforeinput" was canceled`);
     ok(beforeInputEvent, `${aDescription}"beforeinput" event should be fired at ${action} even if it won't remove any content`);
@@ -536,7 +541,7 @@ async function runTests() {
     is(beforeInputEvent.inputType, "deleteContentForward", `${aDescription}inputType of "beforeinput" event for ${action} should be "deleteContentForward"`);
     is(beforeInputEvent.data, null, `${aDescription}data of "beforeinput" event for ${action} should be null`);
     is(beforeInputEvent.dataTransfer, null, `${aDescription}dataTransfer of "beforeinput" event for ${action} should be null`);
-    checkTargetRanges(beforeInputEvent, selectionRanges);
+    checkTargetRanges(beforeInputEvent, expectedTargetRanges);
     ok(!inputEvent, `${aDescription}${action} should not fire "input" event since "beforeinput" was canceled`);
 
     editTarget.innerHTML = "a";
@@ -545,6 +550,12 @@ async function runTests() {
     reset();
     cancelBeforeInput = false;
     action = 'removing "a" with "Delete" (with selection)';
+    expectedTargetRanges = [{
+      startContainer: editTarget.firstChild,
+      startOffset: 0,
+      endContainer: editTarget.firstChild,
+      endOffset: editTarget.firstChild.length,
+    }];
     synthesizeKey("KEY_Delete", {}, aWindow);
     is(editTarget.innerHTML, "<br>", `${aDescription}" " should've been removed by ${action}`);
     ok(beforeInputEvent, `${aDescription}"beforeinput" event should've been fired at ${action}`);
@@ -552,7 +563,7 @@ async function runTests() {
     is(beforeInputEvent.inputType, "deleteContentForward", `${aDescription}inputType of "beforeinput" event for ${action} should be "deleteContentForward"`);
     is(beforeInputEvent.data, null, `${aDescription}data of "beforeinput" event for ${action} should be null`);
     is(beforeInputEvent.dataTransfer, null, `${aDescription}dataTransfer of "beforeinput" event for ${action} should be null`);
-    checkTargetRanges(beforeInputEvent, selectionRanges);
+    checkTargetRanges(beforeInputEvent, expectedTargetRanges);
     ok(inputEvent, `${aDescription}"input" event should've been fired at ${action}`);
     is(inputEvent.inputType, "deleteContentForward", `${aDescription}inputType of "input" event for ${action} should be "deleteContentForward"`);
     is(inputEvent.data, null, `${aDescription}data of "input" event for ${action} should be null`);
@@ -583,7 +594,10 @@ async function runTests() {
     is(beforeInputEvent.inputType, "deleteWordBackward", `${aDescription}inputType of "beforeinput" event for ${action} should be "deleteWordBackward"`);
     is(beforeInputEvent.data, null, `${aDescription}data of "beforeinput" event for ${action} should be null`);
     is(beforeInputEvent.dataTransfer, null, `${aDescription}dataTransfer of "beforeinput" event for ${action} should be null`);
-    checkTargetRanges(beforeInputEvent, selectionRanges);  // XXX bug 1618457
+    checkTargetRanges(beforeInputEvent, [{startContainer: selectionRanges[0].endContainer,
+                                          startOffset: selectionRanges[0].endOffset - "def".length,
+                                          endContainer: selectionRanges[0].endContainer,
+                                          endOffset: selectionRanges[0].endOffset}]);
     ok(inputEvent, `${aDescription}"input" event should've been fired at ${action}`);
     is(inputEvent.inputType, "deleteWordBackward", `${aDescription}inputType of "input" event for ${action} should be "deleteWordBackward"`);
     is(inputEvent.data, null, `${aDescription}data of "input" event for ${action} should be null`);
@@ -614,7 +628,11 @@ async function runTests() {
     is(beforeInputEvent.inputType, "deleteWordForward", `${aDescription}inputType of "beforeinput" event for ${action} should be "deleteWordForward"`);
     is(beforeInputEvent.data, null, `${aDescription}data of "beforeinput" event for ${action} should be null`);
     is(beforeInputEvent.dataTransfer, null, `${aDescription}dataTransfer of "beforeinput" event for ${action} should be null`);
-    checkTargetRanges(beforeInputEvent, selectionRanges);  // XXX bug 1618457
+    checkTargetRanges(beforeInputEvent, [{startContainer: selectionRanges[0].startContainer,
+                                          startOffset: selectionRanges[0].startOffset,
+                                          endContainer: selectionRanges[0].startContainer,
+                                          endOffset: selectionRanges[0].startOffset +
+                                              (kWordSelectEatSpaceToNextWord ? "abc ".length : "abc".length)}]);
     ok(inputEvent, `${aDescription}"input" event should've been fired at ${action}`);
     is(inputEvent.inputType, "deleteWordForward", `${aDescription}inputType of "input" event for ${action} should be "deleteWordForward"`);
     is(inputEvent.data, null, `${aDescription}data of "input" event for ${action} should be null`);
@@ -639,7 +657,10 @@ async function runTests() {
     is(beforeInputEvent.data, null, `${aDescription}data of "beforeinput" event for ${action} should be null`);
     is(beforeInputEvent.dataTransfer, null, `${aDescription}dataTransfer of "beforeinput" event for ${action} should be null`);
     if (kIsWin) {
-      checkTargetRanges(beforeInputEvent, selectionRanges);  // XXX bug 1618457
+      checkTargetRanges(beforeInputEvent, [{startContainer: selectionRanges[0].endContainer,
+                                            startOffset: "abc ".length,
+                                            endContainer: selectionRanges[0].endContainer,
+                                            endOffset: selectionRanges[0].endOffset}]);
     } else {
       checkTargetRanges(beforeInputEvent, selectionRanges);
     }
@@ -671,7 +692,10 @@ async function runTests() {
     is(beforeInputEvent.data, null, `${aDescription}data of "beforeinput" event for ${action} should be null`);
     is(beforeInputEvent.dataTransfer, null, `${aDescription}dataTransfer of "beforeinput" event for ${action} should be null`);
     if (kIsWin) {
-      checkTargetRanges(beforeInputEvent, selectionRanges);  // XXX bug 1618457
+      checkTargetRanges(beforeInputEvent, [{startContainer: selectionRanges[0].startContainer,
+                                            startOffset: selectionRanges[0].startOffset,
+                                            endContainer: selectionRanges[0].endContainer,
+                                            endOffset: kWordSelectEatSpaceToNextWord ? "abc ".length : "abc".length}]);
     } else {
       checkTargetRanges(beforeInputEvent, selectionRanges);
     }
@@ -696,7 +720,10 @@ async function runTests() {
        `${aDescription}inputType of "beforeinput" event for ${action} should be "deleteSoftLineBackward"`);
     is(beforeInputEvent.data, null, `${aDescription}data of "beforeinput" event for ${action} should be null`);
     is(beforeInputEvent.dataTransfer, null, `${aDescription}dataTransfer of "beforeinput" event for ${action} should be null`);
-    checkTargetRanges(beforeInputEvent, selectionRanges);  // XXX bug 1618457
+    checkTargetRanges(beforeInputEvent, [{startContainer: selectionRanges[0].endContainer,
+                                          startOffset: 0,
+                                          endContainer: selectionRanges[0].endContainer,
+                                          endOffset: selectionRanges[0].endOffset}]);
     ok(inputEvent, `${aDescription}"input" event should've been fired at ${action}`);
     is(inputEvent.inputType, "deleteSoftLineBackward", `${aDescription}inputType of "input" event for ${action} should be "deleteSoftLineBackward"`);
     is(inputEvent.data, null, `${aDescription}data of "input" event for ${action} should be null`);
@@ -717,7 +744,10 @@ async function runTests() {
        `${aDescription}inputType of "beforeinput" event for ${action} should be "deleteSoftLineForward"`);
     is(beforeInputEvent.data, null, `${aDescription}data of "beforeinput" event for ${action} should be null`);
     is(beforeInputEvent.dataTransfer, null, `${aDescription}dataTransfer of "beforeinput" event for ${action} should be null`);
-    checkTargetRanges(beforeInputEvent, selectionRanges);  // XXX bug 1618457
+    checkTargetRanges(beforeInputEvent, [{startContainer: selectionRanges[0].startContainer,
+                                          startOffset: selectionRanges[0].startOffset,
+                                          endContainer: selectionRanges[0].startContainer,
+                                          endOffset: "abc def".length}]);
     ok(inputEvent, `${aDescription}"input" event should've been fired at ${action}`);
     is(inputEvent.inputType, "deleteSoftLineForward", `${aDescription}inputType of "input" event for ${action} should be "deleteSoftLineForward"`);
     is(inputEvent.data, null, `${aDescription}data of "input" event for ${action} should be null`);
@@ -742,7 +772,10 @@ async function runTests() {
     is(beforeInputEvent.data, null, `${aDescription}data of "beforeinput" event for ${action} should be null`);
     is(beforeInputEvent.dataTransfer, null, `${aDescription}dataTransfer of "beforeinput" event for ${action} should be null`);
     if (kIsWin) {
-      checkTargetRanges(beforeInputEvent, selectionRanges);  // XXX bug 1618457
+      checkTargetRanges(beforeInputEvent, [{startContainer: selectionRanges[0].endContainer,
+                                            startOffset: 0,
+                                            endContainer: selectionRanges[0].endContainer,
+                                            endOffset: selectionRanges[0].endOffset}]);
     } else {
       checkTargetRanges(beforeInputEvent, selectionRanges);
     }
@@ -769,7 +802,10 @@ async function runTests() {
     is(beforeInputEvent.data, null, `${aDescription}data of "beforeinput" event for ${action} should be null`);
     is(beforeInputEvent.dataTransfer, null, `${aDescription}dataTransfer of "beforeinput" event for ${action} should be null`);
     if (kIsWin) {
-      checkTargetRanges(beforeInputEvent, selectionRanges);  // XXX bug 1618457
+      checkTargetRanges(beforeInputEvent, [{startContainer: selectionRanges[0].startContainer,
+                                            startOffset: selectionRanges[0].startOffset,
+                                            endContainer: selectionRanges[0].endContainer,
+                                            endOffset: "abc def".length}]);
     } else {
       checkTargetRanges(beforeInputEvent, selectionRanges);
     }
@@ -1218,6 +1254,59 @@ async function runTests() {
     checkTargetRanges(beforeInputEvent, selectionRanges);
     ok(!inputEvent, `${aDescription}"input" event shouldn't have been fired at ${action}`);
 
+    // Deleting atomic content
+    editTarget.innerHTML =
+      '<img src=""data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEElEQVR42mNgaGD4D8YwBgAw9AX9Y9zBwwAAAABJRU5ErkJggg==">';
+    editTarget.focus();
+    selection.collapse(editTarget, 0);
+    reset();
+    cancelBeforeInput = false;
+    action = 'typing "Delete" to delete the <img> element';
+    synthesizeKey("KEY_Delete", {}, aWindow);
+    is(editTarget.innerHTML, `<br>`,
+       `${aDescription}the <img> should be deleted and padding <br> element should've been inserted instead at ${action}`);
+    ok(beforeInputEvent, `${aDescription}"beforeinput" event should've been fired at ${action}`);
+    is(beforeInputEvent.cancelable, true, `${aDescription}"beforeinput" event for ${action} should be cancelable`);
+    is(beforeInputEvent.inputType, "deleteContentForward", `${aDescription}inputType of "beforeinput" event should be "deleteContentForward"`);
+    is(beforeInputEvent.data, null, `${aDescription}data of "beforeinput" event for ${action} should be null`);
+    is(beforeInputEvent.dataTransfer, null, `${aDescription}dataTransfer of "beforeinput" event for ${action} should be null`);
+    checkTargetRanges(beforeInputEvent, [{startContainer: editTarget,
+                                          startOffset: 0,
+                                          endContainer: editTarget,
+                                          endOffset: 1}]);
+    ok(inputEvent, `${aDescription}"input" event should've been fired at ${action}`);
+    is(inputEvent.cancelable, false, `${aDescription}"input" event for ${action} should never be cancelable`);
+    is(inputEvent.inputType, "deleteContentForward", `${aDescription}inputType of "input" event should be "deleteContentForward"`);
+    is(inputEvent.data, null, `${aDescription}data of "input" event for ${action} should be null`);
+    is(inputEvent.dataTransfer, null, `${aDescription}dataTransfer of "input" event for ${action} should be null`);
+    checkTargetRanges(inputEvent, []);
+
+    editTarget.innerHTML =
+      '<img src=""data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEElEQVR42mNgaGD4D8YwBgAw9AX9Y9zBwwAAAABJRU5ErkJggg==">';
+    editTarget.focus();
+    selection.collapse(editTarget, 1);
+    reset();
+    cancelBeforeInput = false;
+    action = 'typing "Backspace" to delete the <img> element';
+    synthesizeKey("KEY_Backspace", {}, aWindow);
+    is(editTarget.innerHTML, `<br>`,
+       `${aDescription}the <img> should be deleted and padding <br> element should've been inserted instead at ${action}`);
+    ok(beforeInputEvent, `${aDescription}"beforeinput" event should've been fired at ${action}`);
+    is(beforeInputEvent.cancelable, true, `${aDescription}"beforeinput" event for ${action} should be cancelable`);
+    is(beforeInputEvent.inputType, "deleteContentBackward", `${aDescription}inputType of "beforeinput" event should be "deleteContentBackward"`);
+    is(beforeInputEvent.data, null, `${aDescription}data of "beforeinput" event for ${action} should be null`);
+    is(beforeInputEvent.dataTransfer, null, `${aDescription}dataTransfer of "beforeinput" event for ${action} should be null`);
+    checkTargetRanges(beforeInputEvent, [{startContainer: editTarget,
+                                          startOffset: 0,
+                                          endContainer: editTarget,
+                                          endOffset: 1}]);
+    ok(inputEvent, `${aDescription}"input" event should've been fired at ${action}`);
+    is(inputEvent.cancelable, false, `${aDescription}"input" event for ${action} should never be cancelable`);
+    is(inputEvent.inputType, "deleteContentBackward", `${aDescription}inputType of "input" event should be "deleteContentBackward"`);
+    is(inputEvent.data, null, `${aDescription}data of "input" event for ${action} should be null`);
+    is(inputEvent.dataTransfer, null, `${aDescription}dataTransfer of "input" event for ${action} should be null`);
+    checkTargetRanges(inputEvent, []);
+
     aWindow.removeEventListener("beforeinput", beforeInputHandler, true);
     aWindow.removeEventListener("input", inputHandler, true);
   }
@@ -1233,10 +1322,10 @@ async function runTests() {
           "Editor3, div has contenteditable attribute");
   doTests(document.getElementById("editor4").contentDocument,
           document.getElementById("editor4").contentWindow,
-          "Editor4, html and div has contenteditable attribute");
+          "Editor4, html and div have contenteditable attribute");
   doTests(document.getElementById("editor5").contentDocument,
           document.getElementById("editor5").contentWindow,
-          "Editor5, html and div has contenteditable attribute");
+          "Editor5, html and div have contenteditable attribute");
 
   SimpleTest.finish();
 }

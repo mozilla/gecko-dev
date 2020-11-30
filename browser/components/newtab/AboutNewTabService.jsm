@@ -1,4 +1,4 @@
-/*
+/**
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -6,11 +6,34 @@
 
 "use strict";
 
+const EXPORTED_SYMBOLS = [
+  "AboutNewTabStubService",
+  "AboutHomeStartupCacheChild",
+];
+
+/**
+ * The nsIAboutNewTabService is accessed by the AboutRedirector anytime
+ * about:home, about:newtab or about:welcome are requested. The primary
+ * job of an nsIAboutNewTabService is to tell the AboutRedirector what
+ * resources to actually load for those requests.
+ *
+ * The nsIAboutNewTabService is not involved when the user has overridden
+ * the default about:home or about:newtab pages.
+ *
+ * There are two implementations of this service - one for the parent
+ * process, and one for content processes. Each one has some secondary
+ * responsibilties that are process-specific.
+ *
+ * The need for two implementations is an unfortunate consequence of how
+ * document loading and process redirection for about: pages currently
+ * works in Gecko. The commonalities between the two implementations has
+ * been put into an abstract base class.
+ */
+
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
-
 const { AppConstants } = ChromeUtils.import(
   "resource://gre/modules/AppConstants.jsm"
 );
@@ -18,237 +41,286 @@ const { E10SUtils } = ChromeUtils.import(
   "resource://gre/modules/E10SUtils.jsm"
 );
 
-ChromeUtils.defineModuleGetter(
-  this,
-  "AboutNewTab",
-  "resource:///modules/AboutNewTab.jsm"
+const { ExperimentAPI } = ChromeUtils.import(
+  "resource://messaging-system/experiments/ExperimentAPI.jsm"
 );
 
-const PREF_SEPARATE_ABOUT_WELCOME = "browser.aboutwelcome.enabled";
-const SEPARATE_ABOUT_WELCOME_URL =
+/**
+ * BEWARE: Do not add variables for holding state in the global scope.
+ * Any state variables should be properties of the appropriate class
+ * below. This is to avoid confusion where the state is set in one process,
+ * but not in another.
+ *
+ * Constants are fine in the global scope.
+ */
+
+const PREF_ABOUT_HOME_CACHE_ENABLED =
+  "browser.startup.homepage.abouthome_cache.enabled";
+const PREF_ABOUT_HOME_CACHE_TESTING =
+  "browser.startup.homepage.abouthome_cache.testing";
+const PREF_ABOUT_WELCOME_ENABLED = "browser.aboutwelcome.enabled";
+const ABOUT_WELCOME_URL =
   "resource://activity-stream/aboutwelcome/aboutwelcome.html";
 
-XPCOMUtils.defineLazyPreferenceGetter(
+ChromeUtils.defineModuleGetter(
   this,
-  "isSeparateAboutWelcome",
-  PREF_SEPARATE_ABOUT_WELCOME,
-  false
+  "BasePromiseWorker",
+  "resource://gre/modules/PromiseWorker.jsm"
 );
 
-const TOPIC_APP_QUIT = "quit-application-granted";
-const TOPIC_CONTENT_DOCUMENT_INTERACTIVE = "content-document-interactive";
+const CACHE_WORKER_URL = "resource://activity-stream/lib/cache-worker.js";
 
-const ABOUT_URL = "about:newtab";
-const BASE_URL = "resource://activity-stream/";
-const ACTIVITY_STREAM_PAGES = new Set(["home", "newtab", "welcome"]);
-
-const IS_MAIN_PROCESS =
-  Services.appinfo.processType === Services.appinfo.PROCESS_TYPE_DEFAULT;
 const IS_PRIVILEGED_PROCESS =
   Services.appinfo.remoteType === E10SUtils.PRIVILEGEDABOUT_REMOTE_TYPE;
-
-const IS_RELEASE_OR_BETA = AppConstants.RELEASE_OR_BETA;
 
 const PREF_SEPARATE_PRIVILEGEDABOUT_CONTENT_PROCESS =
   "browser.tabs.remote.separatePrivilegedContentProcess";
 const PREF_ACTIVITY_STREAM_DEBUG = "browser.newtabpage.activity-stream.debug";
 
-function AboutNewTabService() {
-  Services.obs.addObserver(this, TOPIC_APP_QUIT);
-  Services.prefs.addObserver(
-    PREF_SEPARATE_PRIVILEGEDABOUT_CONTENT_PROCESS,
-    this
-  );
-  if (!IS_RELEASE_OR_BETA) {
-    Services.prefs.addObserver(PREF_ACTIVITY_STREAM_DEBUG, this);
-  }
-
-  // More initialization happens here
-  this.toggleActivityStream(true);
-  this.initialized = true;
-
-  if (IS_MAIN_PROCESS) {
-    AboutNewTab.init();
-  } else if (IS_PRIVILEGED_PROCESS) {
-    Services.obs.addObserver(this, TOPIC_CONTENT_DOCUMENT_INTERACTIVE);
-  }
-}
-
-/*
- * A service that allows for the overriding, at runtime, of the newtab page's url.
+/**
+ * The AboutHomeStartupCacheChild is responsible for connecting the
+ * nsIAboutNewTabService with a cached document and script for about:home
+ * if one happens to exist. The AboutHomeStartupCacheChild is only ever
+ * handed the streams for those caches when the "privileged about content
+ * process" first launches, so subsequent loads of about:home do not read
+ * from this cache.
  *
- * There is tight coupling with browser/about/AboutRedirector.cpp.
- *
- * 1. Browser chrome access:
- *
- * When the user issues a command to open a new tab page, usually clicking a button
- * in the browser chrome or using shortcut keys, the browser chrome code invokes the
- * service to obtain the newtab URL. It then loads that URL in a new tab.
- *
- * When not overridden, the default URL emitted by the service is "about:newtab".
- * When overridden, it returns the overriden URL.
- *
- * 2. Redirector Access:
- *
- * When the URL loaded is about:newtab, the default behavior, or when entered in the
- * URL bar, the redirector is hit. The service is then called to return the
- * appropriate activity stream url based on prefs.
- *
- * NOTE: "about:newtab" will always result in a default newtab page, and never an overridden URL.
- *
- * Access patterns:
- *
- * The behavior is different when accessing the service via browser chrome or via redirector
- * largely to maintain compatibility with expectations of add-on developers.
- *
- * Loading a chrome resource, or an about: URL in the redirector with either the
- * LOAD_NORMAL or LOAD_REPLACE flags yield unexpected behaviors, so a roundtrip
- * to the redirector from browser chrome is avoided.
+ * See https://firefox-source-docs.mozilla.org/browser/components/newtab/docs/v2-system-addon/about_home_startup_cache.html
+ * for further details.
  */
-AboutNewTabService.prototype = {
-  _newTabURL: ABOUT_URL,
-  _activityStreamEnabled: false,
-  _activityStreamDebug: false,
-  _privilegedAboutContentProcess: false,
-  _overridden: false,
-  willNotifyUser: false,
+const AboutHomeStartupCacheChild = {
+  _initted: false,
+  CACHE_REQUEST_MESSAGE: "AboutHomeStartupCache:CacheRequest",
+  CACHE_RESPONSE_MESSAGE: "AboutHomeStartupCache:CacheResponse",
+  CACHE_USAGE_RESULT_MESSAGE: "AboutHomeStartupCache:UsageResult",
 
-  classID: Components.ID("{dfcd2adc-7867-4d3a-ba70-17501f208142}"),
-  QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIAboutNewTabService,
-    Ci.nsIObserver,
-  ]),
-
-  observe(subject, topic, data) {
-    switch (topic) {
-      case "nsPref:changed":
-        if (data === PREF_SEPARATE_PRIVILEGEDABOUT_CONTENT_PROCESS) {
-          this._privilegedAboutContentProcess = Services.prefs.getBoolPref(
-            PREF_SEPARATE_PRIVILEGEDABOUT_CONTENT_PROCESS
-          );
-          this.notifyChange();
-        } else if (!IS_RELEASE_OR_BETA && data === PREF_ACTIVITY_STREAM_DEBUG) {
-          this._activityStreamDebug = Services.prefs.getBoolPref(
-            PREF_ACTIVITY_STREAM_DEBUG,
-            false
-          );
-          this.notifyChange();
-        }
-        break;
-      case TOPIC_CONTENT_DOCUMENT_INTERACTIVE: {
-        const win = subject.defaultView;
-
-        // It seems like "content-document-interactive" is triggered multiple
-        // times for a single window. The first event always seems to be an
-        // HTMLDocument object that contains a non-null window reference
-        // whereas the remaining ones seem to be proxied objects.
-        // https://searchfox.org/mozilla-central/rev/d2966246905102b36ef5221b0e3cbccf7ea15a86/devtools/server/actors/object.js#100-102
-        if (win === null) {
-          break;
-        }
-
-        // We use win.location.pathname instead of win.location.toString()
-        // because we want to account for URLs that contain the location hash
-        // property or query strings (e.g. about:newtab#foo, about:home?bar).
-        // Asserting here would be ideal, but this code path is also taken
-        // by the view-source:// scheme, so we should probably just bail out
-        // and do nothing.
-        if (!ACTIVITY_STREAM_PAGES.has(win.location.pathname)) {
-          break;
-        }
-
-        // Bail out early for separate about:welcome URL
-        if (
-          isSeparateAboutWelcome &&
-          win.location.pathname.includes("welcome")
-        ) {
-          break;
-        }
-
-        const onLoaded = () => {
-          const debugString = this._activityStreamDebug ? "-dev" : "";
-
-          // This list must match any similar ones in render-activity-stream-html.js.
-          const scripts = [
-            "chrome://browser/content/contentSearchUI.js",
-            "chrome://browser/content/contentSearchHandoffUI.js",
-            "chrome://browser/content/contentTheme.js",
-            `${BASE_URL}vendor/react${debugString}.js`,
-            `${BASE_URL}vendor/react-dom${debugString}.js`,
-            `${BASE_URL}vendor/prop-types.js`,
-            `${BASE_URL}vendor/react-transition-group.js`,
-            `${BASE_URL}vendor/redux.js`,
-            `${BASE_URL}vendor/react-redux.js`,
-            `${BASE_URL}data/content/activity-stream.bundle.js`,
-          ];
-
-          for (let script of scripts) {
-            Services.scriptloader.loadSubScript(script, win); // Synchronous call
-          }
-        };
-        subject.addEventListener("DOMContentLoaded", onLoaded, { once: true });
-
-        // There is a possibility that DOMContentLoaded won't be fired. This
-        // unload event (which cannot be cancelled) will attempt to remove
-        // the listener for the DOMContentLoaded event.
-        const onUnloaded = () => {
-          subject.removeEventListener("DOMContentLoaded", onLoaded);
-        };
-        subject.addEventListener("unload", onUnloaded, { once: true });
-        break;
-      }
-      case TOPIC_APP_QUIT:
-        this.uninit();
-        if (IS_MAIN_PROCESS) {
-          AboutNewTab.uninit();
-        } else if (IS_PRIVILEGED_PROCESS) {
-          Services.obs.removeObserver(this, TOPIC_CONTENT_DOCUMENT_INTERACTIVE);
-        }
-        break;
+  /**
+   * Called via a process script very early on in the process lifetime. This
+   * prepares the AboutHomeStartupCacheChild to pass an nsIChannel back to
+   * the nsIAboutNewTabService when the initial about:home document is
+   * eventually requested.
+   *
+   * @param pageInputStream (nsIInputStream)
+   *   The stream for the cached page markup.
+   * @param scriptInputStream (nsIInputStream)
+   *   The stream for the cached script to run on the page.
+   */
+  init(pageInputStream, scriptInputStream) {
+    if (!IS_PRIVILEGED_PROCESS) {
+      throw new Error(
+        "Can only instantiate in the privileged about content processes."
+      );
     }
-  },
 
-  notifyChange() {
-    Services.obs.notifyObservers(null, "newtab-url-changed", this._newTabURL);
+    if (!Services.prefs.getBoolPref(PREF_ABOUT_HOME_CACHE_ENABLED, false)) {
+      return;
+    }
+
+    if (this._initted) {
+      throw new Error("AboutHomeStartupCacheChild already initted.");
+    }
+
+    Services.cpmm.addMessageListener(this.CACHE_REQUEST_MESSAGE, this);
+
+    this._pageInputStream = pageInputStream;
+    this._scriptInputStream = scriptInputStream;
+    this._initted = true;
   },
 
   /**
-   * React to changes to the activity stream being enabled or not.
-   *
-   * This will only act if there is a change of state and if not overridden.
-   *
-   * @returns {Boolean} Returns if there has been a state change
-   *
-   * @param {Boolean}   stateEnabled    activity stream enabled state to set to
-   * @param {Boolean}   forceState      force state change
+   * A function that lets us put the AboutHomeStartupCacheChild back into
+   * its initial state. This is used by tests to let us simulate the startup
+   * behaviour of the module without having to manually launch a new privileged
+   * about content process every time.
    */
-  toggleActivityStream(stateEnabled, forceState = false) {
-    if (
-      !forceState &&
-      (this.overridden || stateEnabled === this.activityStreamEnabled)
-    ) {
-      // exit there is no change of state
-      return false;
+  uninit() {
+    if (!Services.prefs.getBoolPref(PREF_ABOUT_HOME_CACHE_TESTING, false)) {
+      throw new Error(
+        "Cannot uninit AboutHomeStartupCacheChild unless testing."
+      );
     }
-    if (stateEnabled) {
-      this._activityStreamEnabled = true;
-    } else {
-      this._activityStreamEnabled = false;
+
+    this._pageInputStream = null;
+    this._scriptInputStream = null;
+    this._initted = false;
+  },
+
+  /**
+   * A public method called from nsIAboutNewTabService that attempts
+   * return an nsIChannel for a cached about:home document that we
+   * were initialized with. If we failed to be initted with the
+   * cache, or the input streams that we were sent have no data
+   * yet available, this function returns null. The caller should =
+   * fall back to generating the page dynamically.
+   *
+   * This function will be called when loading about:home, or
+   * about:home?jscache - the latter returns the cached script.
+   *
+   * @param uri (nsIURI)
+   *   The URI for the requested page, as passed by nsIAboutNewTabService.
+   * @param loadInfo (nsILoadInfo)
+   *   The nsILoadInfo for the requested load, as passed by
+   *   nsIAboutNewWTabService.
+   * @return nsIChannel or null.
+   */
+  maybeGetCachedPageChannel(uri, loadInfo) {
+    if (!this._initted) {
+      return null;
     }
-    this._privilegedAboutContentProcess = Services.prefs.getBoolPref(
-      PREF_SEPARATE_PRIVILEGEDABOUT_CONTENT_PROCESS
-    );
-    if (!IS_RELEASE_OR_BETA) {
-      this._activityStreamDebug = Services.prefs.getBoolPref(
+
+    let isScriptRequest = uri.query === "jscache";
+
+    // If by this point, we don't have anything in the streams,
+    // then either the cache was too slow to give us data, or the cache
+    // doesn't exist. The caller should fall back to generating the
+    // page dynamically.
+    //
+    // We only do this on the page request, because by the time
+    // we get to the script request, we should have already drained
+    // the page input stream.
+    if (!isScriptRequest) {
+      try {
+        if (
+          !this._scriptInputStream.available() ||
+          !this._pageInputStream.available()
+        ) {
+          this.reportUsageResult(false /* success */);
+          return null;
+        }
+      } catch (e) {
+        if (e.result === Cr.NS_BASE_STREAM_CLOSED) {
+          this.reportUsageResult(false /* success */);
+          return null;
+        }
+        throw e;
+      }
+    }
+
+    let channel = Cc[
+      "@mozilla.org/network/input-stream-channel;1"
+    ].createInstance(Ci.nsIInputStreamChannel);
+    channel.QueryInterface(Ci.nsIChannel);
+    channel.setURI(uri);
+    channel.loadInfo = loadInfo;
+    channel.contentStream = isScriptRequest
+      ? this._scriptInputStream
+      : this._pageInputStream;
+
+    this.reportUsageResult(true /* success */);
+
+    return channel;
+  },
+
+  /**
+   * This function takes the state information required to generate
+   * the about:home cache markup and script, and then generates that
+   * markup in script asynchronously. Once that's done, a message
+   * is sent to the parent process with the nsIInputStream's for the
+   * markup and script contents.
+   *
+   * @param state (Object)
+   *   The Redux state of the about:home document to render.
+   * @return Promise
+   * @resolves undefined
+   *   After the message with the nsIInputStream's have been sent to
+   *   the parent.
+   */
+  async constructAndSendCache(state) {
+    if (!IS_PRIVILEGED_PROCESS) {
+      throw new Error("Wrong process type.");
+    }
+
+    let worker = this.getOrCreateWorker();
+
+    TelemetryStopwatch.start("FX_ABOUTHOME_CACHE_CONSTRUCTION");
+
+    let { page, script } = await worker
+      .post("construct", [state])
+      .finally(() => {
+        TelemetryStopwatch.finish("FX_ABOUTHOME_CACHE_CONSTRUCTION");
+      });
+
+    let pageInputStream = Cc[
+      "@mozilla.org/io/string-input-stream;1"
+    ].createInstance(Ci.nsIStringInputStream);
+
+    pageInputStream.setUTF8Data(page);
+
+    let scriptInputStream = Cc[
+      "@mozilla.org/io/string-input-stream;1"
+    ].createInstance(Ci.nsIStringInputStream);
+
+    scriptInputStream.setUTF8Data(script);
+
+    Services.cpmm.sendAsyncMessage(this.CACHE_RESPONSE_MESSAGE, {
+      pageInputStream,
+      scriptInputStream,
+    });
+  },
+
+  _cacheWorker: null,
+  getOrCreateWorker() {
+    if (this._cacheWorker) {
+      return this._cacheWorker;
+    }
+
+    this._cacheWorker = new BasePromiseWorker(CACHE_WORKER_URL);
+    return this._cacheWorker;
+  },
+
+  receiveMessage(message) {
+    if (message.name === this.CACHE_REQUEST_MESSAGE) {
+      let { state } = message.data;
+      this.constructAndSendCache(state);
+    }
+  },
+
+  reportUsageResult(success) {
+    Services.cpmm.sendAsyncMessage(this.CACHE_USAGE_RESULT_MESSAGE, {
+      success,
+    });
+  },
+};
+
+/**
+ * This is an abstract base class for the nsIAboutNewTabService
+ * implementations that has some common methods and properties.
+ */
+class BaseAboutNewTabService {
+  constructor() {
+    if (!AppConstants.RELEASE_OR_BETA) {
+      XPCOMUtils.defineLazyPreferenceGetter(
+        this,
+        "activityStreamDebug",
         PREF_ACTIVITY_STREAM_DEBUG,
         false
       );
+    } else {
+      this.activityStreamDebug = false;
     }
-    this._newtabURL = ABOUT_URL;
-    return true;
-  },
 
-  /*
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this,
+      "isAboutWelcomePrefEnabled",
+      PREF_ABOUT_WELCOME_ENABLED,
+      false
+    );
+
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this,
+      "privilegedAboutProcessEnabled",
+      PREF_SEPARATE_PRIVILEGEDABOUT_CONTENT_PROCESS,
+      false
+    );
+
+    this.classID = Components.ID("{cb36c925-3adc-49b3-b720-a5cc49d8a40e}");
+    this.QueryInterface = ChromeUtils.generateQI([
+      "nsIAboutNewTabService",
+      "nsIObserver",
+    ]);
+  }
+
+  /**
    * Returns the default URL.
    *
    * This URL depends on various activity stream prefs. Overriding
@@ -263,108 +335,75 @@ AboutNewTabService.prototype = {
       "resource://activity-stream/prerendered/",
       "activity-stream",
       // Debug version loads dev scripts but noscripts separately loads scripts
-      this._activityStreamDebug && !this._privilegedAboutContentProcess
+      this.activityStreamDebug && !this.privilegedAboutProcessEnabled
         ? "-debug"
         : "",
-      this._privilegedAboutContentProcess ? "-noscripts" : "",
+      this.privilegedAboutProcessEnabled ? "-noscripts" : "",
       ".html",
     ].join("");
-  },
+  }
 
-  /*
-   * Returns the about:welcome URL
-   *
-   * This is calculated in the same way the default URL is.
-   */
   get welcomeURL() {
-    if (isSeparateAboutWelcome) {
-      return SEPARATE_ABOUT_WELCOME_URL;
+    /*
+     * Returns the about:welcome URL
+     *
+     * This is calculated in the same way the default URL is.
+     */
+
+    if (
+      this.isAboutWelcomePrefEnabled &&
+      // about:welcome should be enabled by default if no experiment exists.
+      ExperimentAPI.isFeatureEnabled("aboutwelcome", true)
+    ) {
+      return ABOUT_WELCOME_URL;
     }
     return this.defaultURL;
-  },
+  }
 
-  get newTabURL() {
-    return this._newTabURL;
-  },
-
-  set newTabURL(aNewTabURL) {
-    let newTabURL = aNewTabURL.trim();
-    if (newTabURL === ABOUT_URL) {
-      // avoid infinite redirects in case one sets the URL to about:newtab
-      this.resetNewTabURL();
-      return;
-    } else if (newTabURL === "") {
-      newTabURL = "about:blank";
-    }
-
-    this.toggleActivityStream(false);
-    this._newTabURL = newTabURL;
-    this._overridden = true;
-    this.notifyChange();
-  },
-
-  get overridden() {
-    return this._overridden;
-  },
-
-  get activityStreamEnabled() {
-    return this._activityStreamEnabled;
-  },
-
-  get activityStreamDebug() {
-    return this._activityStreamDebug;
-  },
-
-  resetNewTabURL() {
-    this._overridden = false;
-    this._newTabURL = ABOUT_URL;
-    this.toggleActivityStream(true, true);
-    this.notifyChange();
-  },
-
-  uninit() {
-    if (!this.initialized) {
-      return;
-    }
-    Services.obs.removeObserver(this, TOPIC_APP_QUIT);
-    Services.prefs.removeObserver(
-      PREF_SEPARATE_PRIVILEGEDABOUT_CONTENT_PROCESS,
-      this
+  aboutHomeChannel(uri, loadInfo) {
+    throw Components.Exception(
+      "AboutHomeChannel not implemented for this process.",
+      Cr.NS_ERROR_NOT_IMPLEMENTED
     );
-    if (!IS_RELEASE_OR_BETA) {
-      Services.prefs.removeObserver(PREF_ACTIVITY_STREAM_DEBUG, this);
-    }
-    this.initialized = false;
-  },
-};
+  }
+}
 
 /**
- * We split out the definition of AboutNewTabStartupRecorder from
- * AboutNewTabService to avoid initializing the AboutNewTabService
- * unnecessarily early when we just want to record some startup
- * data.
+ * The child-process implementation of nsIAboutNewTabService,
+ * which also does the work of redirecting about:home loads to
+ * the about:home startup cache if its available.
  */
-const AboutNewTabStartupRecorder = {
-  _alreadyRecordedTopsitesPainted: false,
-  _nonDefaultStartup: false,
-
-  noteNonDefaultStartup() {
-    this._nonDefaultStartup = true;
-  },
-
-  maybeRecordTopsitesPainted(timestamp) {
-    if (this._alreadyRecordedTopsitesPainted || this._nonDefaultStartup) {
-      return;
+class AboutNewTabChildService extends BaseAboutNewTabService {
+  aboutHomeChannel(uri, loadInfo) {
+    if (IS_PRIVILEGED_PROCESS) {
+      let cacheChannel = AboutHomeStartupCacheChild.maybeGetCachedPageChannel(
+        uri,
+        loadInfo
+      );
+      if (cacheChannel) {
+        return cacheChannel;
+      }
     }
 
-    const SCALAR_KEY = "timestamps.about_home_topsites_first_paint";
+    let pageURI = Services.io.newURI(this.defaultURL);
+    let fileChannel = Services.io.newChannelFromURIWithLoadInfo(
+      pageURI,
+      loadInfo
+    );
+    fileChannel.originalURI = uri;
+    return fileChannel;
+  }
+}
 
-    let startupInfo = Services.startup.getStartupInfo();
-    let processStartTs = startupInfo.process.getTime();
-    let delta = Math.round(timestamp - processStartTs);
-    Services.telemetry.scalarSet(SCALAR_KEY, delta);
-    this._alreadyRecordedTopsitesPainted = true;
-  },
-};
-
-const EXPORTED_SYMBOLS = ["AboutNewTabService", "AboutNewTabStartupRecorder"];
+/**
+ * The AboutNewTabStubService is a function called in both the main and
+ * content processes when trying to get at the nsIAboutNewTabService. This
+ * function does the job of choosing the appropriate implementation of
+ * nsIAboutNewTabService for the process type.
+ */
+function AboutNewTabStubService() {
+  if (Services.appinfo.processType === Services.appinfo.PROCESS_TYPE_DEFAULT) {
+    return new BaseAboutNewTabService();
+  }
+  return new AboutNewTabChildService();
+}

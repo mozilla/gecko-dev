@@ -12,9 +12,9 @@
 //#define GFX_TILEDLAYER_PREF_WARNINGS
 //#define GFX_TILEDLAYER_RETAINING_LOG
 
-#include <stdint.h>         // for uint16_t, uint32_t
-#include <sys/types.h>      // for int32_t
-#include "LayersLogging.h"  // for print_stderr
+#include <stdint.h>     // for uint16_t, uint32_t
+#include <sys/types.h>  // for int32_t
+#include <type_traits>
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/gfx/Logging.h"         // for gfxCriticalError
 #include "mozilla/layers/LayersTypes.h"  // for TextureDumpMode
@@ -28,7 +28,7 @@ namespace mozilla {
 
 struct TileCoordUnit {};
 template <>
-struct IsPixel<TileCoordUnit> : mozilla::TrueType {};
+struct IsPixel<TileCoordUnit> : std::true_type {};
 
 namespace layers {
 

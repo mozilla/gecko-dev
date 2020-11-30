@@ -28,6 +28,7 @@
 #ifndef DAV1D_HEADERS_H
 #define DAV1D_HEADERS_H
 
+#include <stdint.h>
 #include <stddef.h>
 
 // Constants from Section 3. "Symbols and abbreviated terms"
@@ -95,9 +96,9 @@ typedef struct Dav1dWarpedMotionParams {
     union {
         struct {
             int16_t alpha, beta, gamma, delta;
-        };
+        } p;
         int16_t abcd[4];
-    };
+    } u;
 } Dav1dWarpedMotionParams;
 
 enum Dav1dPixelLayout {
@@ -127,6 +128,7 @@ enum Dav1dColorPrimaries {
     DAV1D_COLOR_PRI_SMPTE431 = 11,
     DAV1D_COLOR_PRI_SMPTE432 = 12,
     DAV1D_COLOR_PRI_EBU3213 = 22,
+    DAV1D_COLOR_PRI_RESERVED = 255,
 };
 
 enum Dav1dTransferCharacteristics {
@@ -147,6 +149,7 @@ enum Dav1dTransferCharacteristics {
     DAV1D_TRC_SMPTE2084 = 16,     ///< PQ
     DAV1D_TRC_SMPTE428 = 17,
     DAV1D_TRC_HLG = 18,           ///< hybrid log/gamma (BT.2100 / ARIB STD-B67)
+    DAV1D_TRC_RESERVED = 255,
 };
 
 enum Dav1dMatrixCoefficients {
@@ -164,6 +167,7 @@ enum Dav1dMatrixCoefficients {
     DAV1D_MC_CHROMAT_NCL = 12, ///< Chromaticity-derived
     DAV1D_MC_CHROMAT_CL = 13,
     DAV1D_MC_ICTCP = 14,
+    DAV1D_MC_RESERVED = 255,
 };
 
 enum Dav1dChromaSamplePosition {
@@ -318,8 +322,8 @@ typedef struct Dav1dFilmGrainData {
     int scaling_shift;
     int ar_coeff_lag;
     int8_t ar_coeffs_y[24];
-    int8_t ar_coeffs_uv[2][25];
-    int ar_coeff_shift;
+    int8_t ar_coeffs_uv[2][25 + 3 /* padding for alignment purposes */];
+    uint64_t ar_coeff_shift;
     int grain_scale_shift;
     int uv_mult[2];
     int uv_luma_mult[2];
@@ -329,14 +333,15 @@ typedef struct Dav1dFilmGrainData {
 } Dav1dFilmGrainData;
 
 typedef struct Dav1dFrameHeader {
+    struct {
+        Dav1dFilmGrainData data;
+        int present, update;
+    } film_grain; ///< film grain parameters
     enum Dav1dFrameType frame_type; ///< type of the picture
     int width[2 /* { coded_width, superresolution_upscaled_width } */], height;
     int frame_offset; ///< frame number
-    struct {
-        int present, update;
-        Dav1dFilmGrainData data;
-    } film_grain; ///< film grain parameters
-    int temporal_id, spatial_id; ///< spatial and temporal id of the frame for SVC
+    int temporal_id; ///< temporal id of the frame for SVC
+    int spatial_id; ///< spatial id of the frame for SVC
 
     int show_existing_frame;
     int existing_frame_idx;

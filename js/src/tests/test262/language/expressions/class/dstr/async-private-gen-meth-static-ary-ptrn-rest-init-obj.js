@@ -1,4 +1,4 @@
-// |reftest| skip error:SyntaxError -- class-static-methods-private is not supported
+// |reftest| shell-option(--enable-private-methods) skip-if(!xulRuntime.shell) error:SyntaxError -- requires shell-options
 // This file was procedurally generated from the following sources:
 // - src/dstr-binding/ary-ptrn-rest-init-obj.case
 // - src/dstr-binding/default/cls-expr-async-private-gen-meth-static.template
@@ -6,7 +6,7 @@
 description: Rest element (nested object pattern) does not support initializer (private static class expression async generator method)
 esid: sec-class-definitions-runtime-semantics-evaluation
 features: [class, class-static-methods-private, async-iteration]
-flags: [generated, async]
+flags: [generated]
 negative:
   phase: parse
   type: SyntaxError

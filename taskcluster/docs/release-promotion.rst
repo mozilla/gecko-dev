@@ -47,7 +47,8 @@ In-depth relpro guide
 
     release-promotion-action
     balrog
+    setting-up-an-update-server
     partials
-    pushapk
     signing
     partner-repacks
+    partner-attribution

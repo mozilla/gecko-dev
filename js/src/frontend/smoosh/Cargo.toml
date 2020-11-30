@@ -6,7 +6,18 @@ edition = "2018"
 license = "MIT/Apache-2.0"
 
 [dependencies]
-bumpalo = "2.6.0"
-jsparagus = { git = "https://github.com/mozilla-spidermonkey/jsparagus", rev = "0b248045fda0cc9b7323c73b81cfbcab71f4a9ef" }
+bumpalo = "3.4.0"
+log = "0.4"
+# Setup RUST_LOG logging.
+# Disable regex feature for code size.
+env_logger = {version = "0.6", default-features = false}
+# For non-jsparagus developers.
+jsparagus = { git = "https://github.com/mozilla-spidermonkey/jsparagus", rev = "1dc60327164a3f64f87180147b1f3a2a9cc74276" }
+# For local development, replace above with
+# jsparagus = { path = "{path to jsparagus}" }
+
+[build-dependencies]
+# For non-jsparagus developers.
+jsparagus = { git = "https://github.com/mozilla-spidermonkey/jsparagus", rev = "1dc60327164a3f64f87180147b1f3a2a9cc74276" }
 # For local development, replace above with
 # jsparagus = { path = "{path to jsparagus}" }

@@ -19,7 +19,6 @@ const {
   getAllMessagesPayloadById,
   getAllNetworkMessagesUpdateById,
   getVisibleMessages,
-  getPausedExecutionPoint,
   getAllRepeatById,
   getAllWarningGroupsById,
   isMessageInWarningGroup,
@@ -36,45 +35,11 @@ loader.lazyRequireGetter(
   "devtools/client/webconsole/components/Output/MessageContainer",
   true
 );
-ChromeUtils.defineModuleGetter(
-  this,
-  "pointPrecedes",
-  "resource://devtools/shared/execution-point-utils.js"
-);
 
 const { MESSAGE_TYPE } = require("devtools/client/webconsole/constants");
 const {
   getInitialMessageCountForViewport,
 } = require("devtools/client/webconsole/utils/messages.js");
-
-function getClosestMessage(visibleMessages, messages, executionPoint) {
-  if (!executionPoint || !visibleMessages) {
-    return null;
-  }
-
-  const messageList = visibleMessages.map(id => messages.get(id));
-
-  const precedingMessages = messageList.filter(m => {
-    return (
-      m &&
-      m.executionPoint &&
-      (pointPrecedes(m.executionPoint, executionPoint) ||
-        !pointPrecedes(executionPoint, m.executionPoint))
-    );
-  });
-
-  if (precedingMessages.length != 0) {
-    return precedingMessages.sort((a, b) => {
-      return pointPrecedes(a.executionPoint, b.executionPoint);
-    })[0];
-  }
-
-  return messageList
-    .filter(m => m && m.executionPoint)
-    .sort((a, b) => {
-      return pointPrecedes(b.executionPoint, a.executionPoint);
-    })[0];
-}
 
 class ConsoleOutput extends Component {
   static get propTypes() {
@@ -85,7 +50,7 @@ class ConsoleOutput extends Component {
       serviceContainer: PropTypes.shape({
         attachRefToWebConsoleUI: PropTypes.func.isRequired,
         openContextMenu: PropTypes.func.isRequired,
-        sourceMapService: PropTypes.object,
+        sourceMapURLService: PropTypes.object,
       }),
       dispatch: PropTypes.func.isRequired,
       timestampsVisible: PropTypes.bool,
@@ -96,7 +61,7 @@ class ConsoleOutput extends Component {
       visibleMessages: PropTypes.array.isRequired,
       networkMessageActiveTabId: PropTypes.string.isRequired,
       onFirstMeaningfulPaint: PropTypes.func.isRequired,
-      pausedExecutionPoint: PropTypes.any,
+      editorMode: PropTypes.bool.isRequired,
     };
   }
 
@@ -104,12 +69,39 @@ class ConsoleOutput extends Component {
     super(props);
     this.onContextMenu = this.onContextMenu.bind(this);
     this.maybeScrollToBottom = this.maybeScrollToBottom.bind(this);
+
+    this.resizeObserver = new ResizeObserver(entries => {
+      // If we don't have the outputNode reference, or if the outputNode isn't connected
+      // anymore, we disconnect the resize observer (componentWillUnmount is never called
+      // on this component, so we have to do it here).
+      if (!this.outputNode || !this.outputNode.isConnected) {
+        this.resizeObserver.disconnect();
+        return;
+      }
+
+      if (this.scrolledToBottom) {
+        this.scrollToBottom();
+      }
+    });
   }
 
   componentDidMount() {
     if (this.props.visibleMessages.length > 0) {
-      scrollToBottom(this.outputNode);
+      this.scrollToBottom();
     }
+
+    this.lastMessageIntersectionObserver = new IntersectionObserver(
+      entries => {
+        for (const entry of entries) {
+          // Consider that we're not pinned to the bottom anymore if the last message is
+          // less than half-visible.
+          this.scrolledToBottom = entry.intersectionRatio >= 0.5;
+        }
+      },
+      { root: this.outputNode, threshold: [0.5] }
+    );
+
+    this.resizeObserver.observe(this.getElementToObserve());
 
     const { serviceContainer, onFirstMeaningfulPaint, dispatch } = this.props;
     serviceContainer.attachRefToWebConsoleUI("outputScroller", this.outputNode);
@@ -128,14 +120,21 @@ class ConsoleOutput extends Component {
   }
 
   componentWillUpdate(nextProps, nextState) {
-    const outputNode = this.outputNode;
-    if (!outputNode || !outputNode.lastChild) {
+    if (nextProps.editorMode !== this.props.editorMode) {
+      this.resizeObserver.disconnect();
+    }
+
+    const { outputNode } = this;
+    if (!outputNode?.lastChild) {
       // Force a scroll to bottom when messages are added to an empty console.
       // This makes the console stay pinned to the bottom if a batch of messages
       // are added after a page refresh (Bug 1402237).
       this.shouldScrollBottom = true;
       return;
     }
+
+    const { lastChild } = outputNode;
+    this.lastMessageIntersectionObserver.unobserve(lastChild);
 
     // We need to scroll to the bottom if:
     // - we are reacting to "initialize" action, and we are already scrolled to the bottom
@@ -144,7 +143,6 @@ class ConsoleOutput extends Component {
     // - the number of messages in the store changed and the new message is an evaluation
     //   result.
 
-    const lastChild = outputNode.lastChild;
     const visibleMessagesDelta =
       nextProps.visibleMessages.length - this.props.visibleMessages.length;
     const messagesDelta = nextProps.messages.size - this.props.messages.size;
@@ -168,21 +166,43 @@ class ConsoleOutput extends Component {
     this.shouldScrollBottom =
       (!this.props.initialized &&
         nextProps.initialized &&
-        isScrolledToBottom(lastChild, outputNode)) ||
+        this.scrolledToBottom) ||
       isNewMessageEvaluationResult ||
-      (isScrolledToBottom(lastChild, outputNode) &&
-        visibleMessagesDelta > 0 &&
-        !isOpeningGroup);
+      (this.scrolledToBottom && visibleMessagesDelta > 0 && !isOpeningGroup);
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps) {
     this.maybeScrollToBottom();
+    if (this?.outputNode?.lastChild) {
+      this.lastMessageIntersectionObserver.observe(this.outputNode.lastChild);
+    }
+
+    if (prevProps.editorMode !== this.props.editorMode) {
+      this.resizeObserver.observe(this.getElementToObserve());
+    }
   }
 
   maybeScrollToBottom() {
     if (this.outputNode && this.shouldScrollBottom) {
-      scrollToBottom(this.outputNode);
+      this.scrollToBottom();
     }
+  }
+
+  scrollToBottom() {
+    if (this.outputNode.scrollHeight > this.outputNode.clientHeight) {
+      this.outputNode.scrollTop = this.outputNode.scrollHeight;
+    }
+
+    this.scrolledToBottom = true;
+  }
+
+  getElementToObserve() {
+    // In inline mode, we need to observe the output node parent, which contains both the
+    // output and the input, so we don't trigger the resizeObserver callback when only the
+    // output size changes (e.g. when a network request is expanded).
+    return this.props.editorMode
+      ? this.outputNode
+      : this.outputNode?.parentNode;
   }
 
   onContextMenu(e) {
@@ -205,7 +225,6 @@ class ConsoleOutput extends Component {
       serviceContainer,
       timestampsVisible,
       initialized,
-      pausedExecutionPoint,
     } = this.props;
 
     if (!initialized) {
@@ -218,12 +237,6 @@ class ConsoleOutput extends Component {
         );
       }
     }
-
-    const pausedMessage = getClosestMessage(
-      visibleMessages,
-      messages,
-      pausedExecutionPoint
-    );
 
     const messageNodes = visibleMessages.map(messageId =>
       createElement(MessageContainer, {
@@ -244,9 +257,7 @@ class ConsoleOutput extends Component {
             : false,
         networkMessageUpdate: networkMessagesUpdate[messageId],
         networkMessageActiveTabId,
-        pausedExecutionPoint,
         getMessage: () => messages.get(messageId),
-        isPaused: !!pausedMessage && pausedMessage.id == messageId,
         maybeScrollToBottom: this.maybeScrollToBottom,
       })
     );
@@ -265,24 +276,9 @@ class ConsoleOutput extends Component {
   }
 }
 
-function scrollToBottom(node) {
-  if (node.scrollHeight > node.clientHeight) {
-    node.scrollTop = node.scrollHeight;
-  }
-}
-
-function isScrolledToBottom(lastNode, scrollNode) {
-  const lastNodeHeight = lastNode ? lastNode.clientHeight : 0;
-  return (
-    scrollNode.scrollTop + scrollNode.clientHeight >=
-    scrollNode.scrollHeight - lastNodeHeight / 2
-  );
-}
-
 function mapStateToProps(state, props) {
   return {
     initialized: state.ui.initialized,
-    pausedExecutionPoint: getPausedExecutionPoint(state),
     messages: getAllMessagesById(state),
     visibleMessages: getVisibleMessages(state),
     messagesUi: getAllMessagesUiById(state),

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::{ColorF, GlyphInstance, RasterSpace, Shadow};
+use api::{ColorF, FontInstanceFlags, GlyphInstance, RasterSpace, Shadow};
 use api::units::{LayoutToWorldTransform, LayoutVector2D, PictureRect};
 use crate::scene_building::{CreateShadow, IsVisible};
 use crate::frame_builder::FrameBuildingState;
@@ -11,14 +11,15 @@ use crate::gpu_cache::GpuCache;
 use crate::intern;
 use crate::internal_types::LayoutPrimitiveInfo;
 use crate::picture::{SubpixelMode, SurfaceInfo};
-use crate::prim_store::{PrimitiveOpacity, PrimitiveSceneData,  PrimitiveScratchBuffer};
+use crate::prim_store::{PrimitiveOpacity,  PrimitiveScratchBuffer};
 use crate::prim_store::{PrimitiveStore, PrimKeyCommonData, PrimTemplateCommonData};
 use crate::render_task_graph::RenderTaskGraph;
 use crate::renderer::{MAX_VERTEX_TEXTURE_WIDTH};
 use crate::resource_cache::{ResourceCache};
 use crate::util::{MatrixHelpers};
-use crate::prim_store::{InternablePrimitive, PrimitiveInstanceKind, SpaceSnapper};
+use crate::prim_store::{InternablePrimitive, PrimitiveInstanceKind};
 use crate::spatial_tree::{SpatialTree, SpatialNodeIndex};
+use crate::space::SpaceSnapper;
 use std::ops;
 use std::sync::Arc;
 use crate::storage;
@@ -41,9 +42,7 @@ impl TextRunKey {
         text_run: TextRun,
     ) -> Self {
         TextRunKey {
-            common: PrimKeyCommonData::with_info(
-                info,
-            ),
+            common: info.into(),
             font: text_run.font,
             glyphs: PrimaryArc(text_run.glyphs),
             shadow: text_run.shadow,
@@ -151,7 +150,7 @@ pub struct TextRun {
 impl intern::Internable for TextRun {
     type Key = TextRunKey;
     type StoreData = TextRunTemplate;
-    type InternData = PrimitiveSceneData;
+    type InternData = ();
 }
 
 impl InternablePrimitive for TextRun {
@@ -244,45 +243,49 @@ impl TextRunPrimitive {
         // a raster root back to something sane, thus scale the device size accordingly.
         // to the shader it looks like a change in DPI which it already supports.
         let dps = surface.device_pixel_scale.0 * root_scaling_factor;
-        let glyph_raster_scale = dps * raster_scale;
         let font_size = specified_font.size.to_f32_px();
-        let device_font_size = font_size * glyph_raster_scale;
+        let mut device_font_size = font_size * dps * raster_scale;
 
         // Check there is a valid transform that doesn't exceed the font size limit.
         // Ensure the font is supposed to be rasterized in screen-space.
         // Only support transforms that can be coerced to simple 2D transforms.
-        let (use_subpixel_aa, transform_glyphs, oversized) = if raster_space != RasterSpace::Screen ||
+        // Add texture padding to the rasterized glyph buffer when one anticipates
+        // the glyph will need to be scaled when rendered.
+        let (use_subpixel_aa, transform_glyphs, texture_padding, oversized) = if raster_space != RasterSpace::Screen ||
             transform.has_perspective_component() || !transform.has_2d_inverse()
         {
-            (false, false, device_font_size > FONT_SIZE_LIMIT)
+            (false, false, true, device_font_size > FONT_SIZE_LIMIT)
         } else if transform.exceeds_2d_scale((FONT_SIZE_LIMIT / device_font_size) as f64) {
-            (false, false, true)
+            (false, false, true, true)
         } else {
-            (true, !transform.is_simple_2d_translation(), false)
+            (true, !transform.is_simple_2d_translation(), false, false)
         };
 
         let font_transform = if transform_glyphs {
             // Get the font transform matrix (skew / scale) from the complete transform.
             // Fold in the device pixel scale.
             self.raster_space = RasterSpace::Screen;
-            FontTransform::from(transform).pre_scale(dps, dps)
-        } else if oversized {
-            // Font sizes larger than the limit need to be scaled, thus can't use subpixels.
-            // In this case we adjust the font size and raster space to ensure
-            // we rasterize at the limit, to minimize the amount of scaling.
-            let raster_scale = FONT_SIZE_LIMIT / (font_size * dps);
-            let glyph_raster_scale = raster_scale * dps;
-
-            // Record the raster space the text needs to be snapped in. The original raster
-            // scale would have been too big.
-            self.raster_space = RasterSpace::Local(raster_scale);
-            FontTransform::new(glyph_raster_scale, 0.0, 0.0, glyph_raster_scale)
+            FontTransform::from(transform)
         } else {
-            // Record the raster space the text needs to be snapped in. We may have changed
-            // from RasterSpace::Screen due to a transform with perspective or without a 2d
-            // inverse, or it may have been RasterSpace::Local all along.
-            self.raster_space = RasterSpace::Local(raster_scale);
-            FontTransform::new(glyph_raster_scale, 0.0, 0.0, glyph_raster_scale)
+            if oversized {
+                // Font sizes larger than the limit need to be scaled, thus can't use subpixels.
+                // In this case we adjust the font size and raster space to ensure
+                // we rasterize at the limit, to minimize the amount of scaling.
+                let limited_raster_scale = FONT_SIZE_LIMIT / (font_size * dps);
+                device_font_size = FONT_SIZE_LIMIT;
+
+                // Record the raster space the text needs to be snapped in. The original raster
+                // scale would have been too big.
+                self.raster_space = RasterSpace::Local(limited_raster_scale);
+            } else {
+                // Record the raster space the text needs to be snapped in. We may have changed
+                // from RasterSpace::Screen due to a transform with perspective or without a 2d
+                // inverse, or it may have been RasterSpace::Local all along.
+                self.raster_space = RasterSpace::Local(raster_scale);
+            }
+
+            // Rasterize the glyph without any transform
+            FontTransform::identity()
         };
 
         // TODO(aosmond): Snapping really ought to happen during scene building
@@ -306,21 +309,29 @@ impl TextRunPrimitive {
                 surface.device_pixel_scale,
                 spatial_tree,
             );
-            snap_to_device.snap_vector(&self.reference_frame_relative_offset)
+            snap_to_device.snap_point(&self.reference_frame_relative_offset.to_point()).to_vector()
         };
+
+        let mut flags = specified_font.flags;
+        if transform_glyphs {
+            flags |= FontInstanceFlags::TRANSFORM_GLYPHS;
+        }
+        if texture_padding {
+            flags |= FontInstanceFlags::TEXTURE_PADDING;
+        }
 
         // If the transform or device size is different, then the caller of
         // this method needs to know to rebuild the glyphs.
         let cache_dirty =
             self.used_font.transform != font_transform ||
-            self.used_font.size != specified_font.size ||
-            self.used_font.transform_glyphs != transform_glyphs;
+            self.used_font.size != device_font_size.into() ||
+            self.used_font.flags != flags;
 
         // Construct used font instance from the specified font instance
         self.used_font = FontInstance {
             transform: font_transform,
-            transform_glyphs,
-            size: specified_font.size,
+            size: device_font_size.into(),
+            flags,
             ..specified_font.clone()
         };
 
@@ -330,10 +341,11 @@ impl TextRunPrimitive {
         let mut allow_subpixel = match subpixel_mode {
             SubpixelMode::Allow => true,
             SubpixelMode::Deny => false,
-            SubpixelMode::Conditional { excluded_rects } => {
+            SubpixelMode::Conditional { allowed_rect, excluded_rects } => {
                 // Conditional mode allows subpixel AA to be enabled for this
                 // text run, so long as it doesn't intersect with any of the
-                // cutout rectangles in the list.
+                // cutout rectangles in the list, and it's inside the allowed rect.
+                allowed_rect.contains_rect(&prim_rect) &&
                 excluded_rects.iter().all(|rect| !rect.intersects(&prim_rect))
             }
         };
@@ -392,10 +404,16 @@ impl TextRunPrimitive {
         if self.glyph_keys_range.is_empty() || cache_dirty {
             let subpx_dir = self.used_font.get_subpx_dir();
 
+            let dps = surface.device_pixel_scale.0 * root_scaling_factor;
+            let transform = match self.raster_space {
+                RasterSpace::Local(scale) => FontTransform::new(scale * dps, 0.0, 0.0, scale * dps),
+                RasterSpace::Screen => self.used_font.transform.scale(dps),
+            };
+
             self.glyph_keys_range = scratch.glyph_keys.extend(
                 glyphs.iter().map(|src| {
                     let src_point = src.point + prim_offset;
-                    let device_offset = self.used_font.transform.transform(&src_point);
+                    let device_offset = transform.transform(&src_point);
                     GlyphKey::new(src.index, device_offset, subpx_dir)
                 }));
         }
@@ -421,7 +439,7 @@ fn test_struct_sizes() {
     // (b) You made a structure larger. This is not necessarily a problem, but should only
     //     be done with care, and after checking if talos performance regresses badly.
     assert_eq!(mem::size_of::<TextRun>(), 56, "TextRun size changed");
-    assert_eq!(mem::size_of::<TextRunTemplate>(), 72, "TextRunTemplate size changed");
-    assert_eq!(mem::size_of::<TextRunKey>(), 64, "TextRunKey size changed");
+    assert_eq!(mem::size_of::<TextRunTemplate>(), 80, "TextRunTemplate size changed");
+    assert_eq!(mem::size_of::<TextRunKey>(), 72, "TextRunKey size changed");
     assert_eq!(mem::size_of::<TextRunPrimitive>(), 80, "TextRunPrimitive size changed");
 }

@@ -42,23 +42,21 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(InsertTextTransaction, EditTransactionBase,
 NS_IMPL_ADDREF_INHERITED(InsertTextTransaction, EditTransactionBase)
 NS_IMPL_RELEASE_INHERITED(InsertTextTransaction, EditTransactionBase)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(InsertTextTransaction)
-  NS_INTERFACE_MAP_ENTRY_CONCRETE(InsertTextTransaction)
 NS_INTERFACE_MAP_END_INHERITING(EditTransactionBase)
 
-MOZ_CAN_RUN_SCRIPT_BOUNDARY
-NS_IMETHODIMP
-InsertTextTransaction::DoTransaction() {
+NS_IMETHODIMP InsertTextTransaction::DoTransaction() {
   if (NS_WARN_IF(!mEditorBase) || NS_WARN_IF(!mTextNode)) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  RefPtr<EditorBase> editorBase = mEditorBase;
-  RefPtr<Text> textNode = mTextNode;
+  OwningNonNull<EditorBase> editorBase = *mEditorBase;
+  OwningNonNull<Text> textNode = *mTextNode;
 
-  ErrorResult rv;
-  editorBase->DoInsertText(*textNode, mOffset, mStringToInsert, rv);
-  if (NS_WARN_IF(rv.Failed())) {
-    return rv.StealNSResult();
+  ErrorResult error;
+  editorBase->DoInsertText(textNode, mOffset, mStringToInsert, error);
+  if (error.Failed()) {
+    NS_WARNING("EditorBase::DoInsertText() failed");
+    return error.StealNSResult();
   }
 
   // Only set selection to insertion point if editor gives permission
@@ -67,52 +65,60 @@ InsertTextTransaction::DoTransaction() {
     if (NS_WARN_IF(!selection)) {
       return NS_ERROR_FAILURE;
     }
-    DebugOnly<nsresult> rv =
-        selection->Collapse(textNode, mOffset + mStringToInsert.Length());
-    NS_ASSERTION(NS_SUCCEEDED(rv),
-                 "Selection could not be collapsed after insert");
+    DebugOnly<nsresult> rvIgnored = selection->CollapseInLimiter(
+        textNode, mOffset + mStringToInsert.Length());
+    NS_ASSERTION(NS_SUCCEEDED(rvIgnored),
+                 "Selection::CollapseInLimiter() failed, but ignored");
   } else {
     // Do nothing - DOM Range gravity will adjust selection
   }
   // XXX Other transactions do not do this but its callers do.
   //     Why do this transaction do this by itself?
-  editorBase->RangeUpdaterRef().SelAdjInsertText(*textNode, mOffset,
-                                                 mStringToInsert);
+  editorBase->RangeUpdaterRef().SelAdjInsertText(textNode, mOffset,
+                                                 mStringToInsert.Length());
 
   return NS_OK;
 }
 
-MOZ_CAN_RUN_SCRIPT_BOUNDARY
-NS_IMETHODIMP
-InsertTextTransaction::UndoTransaction() {
+NS_IMETHODIMP InsertTextTransaction::UndoTransaction() {
   if (NS_WARN_IF(!mEditorBase) || NS_WARN_IF(!mTextNode)) {
     return NS_ERROR_NOT_INITIALIZED;
   }
-  RefPtr<EditorBase> editorBase = mEditorBase;
-  RefPtr<Text> textNode = mTextNode;
+  OwningNonNull<EditorBase> editorBase = *mEditorBase;
+  OwningNonNull<Text> textNode = *mTextNode;
   ErrorResult error;
-  editorBase->DoDeleteText(*textNode, mOffset, mStringToInsert.Length(), error);
+  editorBase->DoDeleteText(textNode, mOffset, mStringToInsert.Length(), error);
+  NS_WARNING_ASSERTION(!error.Failed(), "EditorBase::DoDeleteText() failed");
   return error.StealNSResult();
 }
 
-NS_IMETHODIMP
-InsertTextTransaction::Merge(nsITransaction* aTransaction, bool* aDidMerge) {
-  if (!aTransaction || !aDidMerge) {
-    return NS_OK;
+NS_IMETHODIMP InsertTextTransaction::Merge(nsITransaction* aOtherTransaction,
+                                           bool* aDidMerge) {
+  if (NS_WARN_IF(!aOtherTransaction) || NS_WARN_IF(!aDidMerge)) {
+    return NS_ERROR_INVALID_ARG;
   }
   // Set out param default value
   *aDidMerge = false;
 
-  // If aTransaction is a InsertTextTransaction, and if the selection hasn't
-  // changed, then absorb it.
-  RefPtr<InsertTextTransaction> otherTransaction = do_QueryObject(aTransaction);
-  if (otherTransaction && IsSequentialInsert(*otherTransaction)) {
-    nsAutoString otherData;
-    otherTransaction->GetData(otherData);
-    mStringToInsert += otherData;
-    *aDidMerge = true;
+  RefPtr<EditTransactionBase> otherTransactionBase =
+      aOtherTransaction->GetAsEditTransactionBase();
+  if (!otherTransactionBase) {
+    return NS_OK;
   }
 
+  // If aTransaction is a InsertTextTransaction, and if the selection hasn't
+  // changed, then absorb it.
+  InsertTextTransaction* otherInsertTextTransaction =
+      otherTransactionBase->GetAsInsertTextTransaction();
+  if (!otherInsertTextTransaction ||
+      !IsSequentialInsert(*otherInsertTextTransaction)) {
+    return NS_OK;
+  }
+
+  nsAutoString otherData;
+  otherInsertTextTransaction->GetData(otherData);
+  mStringToInsert += otherData;
+  *aDidMerge = true;
   return NS_OK;
 }
 

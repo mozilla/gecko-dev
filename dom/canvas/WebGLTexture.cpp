@@ -166,7 +166,7 @@ bool WebGLTexture::IsMipAndCubeComplete(const uint32_t maxLevel,
           *out_initFailed = true;
           return false;
         }
-        cur.mUninitializedSlices = {};
+        cur.mUninitializedSlices = Nothing();
       }
     }
 
@@ -457,7 +457,7 @@ bool WebGLTexture::EnsureImageDataInitialized(const TexImageTarget target,
   if (!ZeroTextureData(mContext, mGLName, target, level, imageInfo)) {
     return false;
   }
-  imageInfo.mUninitializedSlices = {};
+  imageInfo.mUninitializedSlices = Nothing();
   return true;
 }
 
@@ -586,9 +586,12 @@ static bool ZeroTextureData(const WebGLContext* webgl, GLuint tex,
     UniqueBuffer zeros = calloc(1u, sliceByteCount);
     if (!zeros) return false;
 
-    ScopedUnpackReset scopedReset(webgl);
-    gl->fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT, 1);  // Don't bother with
-                                                     // striding it well.
+    // Don't bother with striding it well.
+    // TODO: We shouldn't need to do this for CompressedTexSubImage.
+    WebGLPixelStore::AssertDefault(*gl, webgl->IsWebGL2());
+    gl->fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT, 1);
+    const auto revert = MakeScopeExit(
+        [&]() { gl->fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT, 4); });
 
     GLenum error = 0;
     for (const auto z : IntegerRange(depth)) {
@@ -628,9 +631,11 @@ static bool ZeroTextureData(const WebGLContext* webgl, GLuint tex,
   UniqueBuffer zeros = calloc(1u, sliceByteCount);
   if (!zeros) return false;
 
-  ScopedUnpackReset scopedReset(webgl);
-  gl->fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT,
-                   1);  // Don't bother with striding it well.
+  // Don't bother with striding it well.
+  WebGLPixelStore::AssertDefault(*gl, webgl->IsWebGL2());
+  gl->fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT, 1);
+  const auto revert =
+      MakeScopeExit([&]() { gl->fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT, 4); });
 
   GLenum error = 0;
   for (const auto z : IntegerRange(depth)) {

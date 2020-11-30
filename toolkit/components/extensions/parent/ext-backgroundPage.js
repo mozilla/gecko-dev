@@ -26,6 +26,12 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "extensions.webextensions.background-delayed-startup"
 );
 
+XPCOMUtils.defineLazyGetter(this, "serviceWorkerManager", () => {
+  return Cc["@mozilla.org/serviceworkers/manager;1"].getService(
+    Ci.nsIServiceWorkerManager
+  );
+});
+
 // Responsible for the background_page section of the manifest.
 class BackgroundPage extends HiddenExtensionPage {
   constructor(extension, options) {
@@ -70,7 +76,9 @@ class BackgroundPage extends HiddenExtensionPage {
       // Extension was down before the background page has loaded.
       Cu.reportError(e);
       ExtensionTelemetry.backgroundPageLoad.stopwatchCancel(extension, this);
-      EventManager.clearPrimedListeners(this.extension, false);
+      if (extension.persistentListeners) {
+        EventManager.clearPrimedListeners(this.extension, false);
+      }
       extension.emit("background-page-aborted");
       return;
     }
@@ -91,7 +99,7 @@ class BackgroundPage extends HiddenExtensionPage {
       EventManager.clearPrimedListeners(extension, !!this.extension);
     }
 
-    extension.emit("startup");
+    extension.emit("background-page-started");
   }
 
   shutdown() {
@@ -100,23 +108,56 @@ class BackgroundPage extends HiddenExtensionPage {
   }
 }
 
+// Responsible for the background.service_worker section of the manifest.
+class BackgroundWorker {
+  constructor(extension, options) {
+    this.registrationInfo = null;
+    this.extension = extension;
+    this.workerScript = options.service_worker;
+
+    if (!this.workerScript) {
+      throw new Error("Missing mandatory background.service_worker property");
+    }
+  }
+
+  async build() {
+    const regInfo = await serviceWorkerManager.registerForAddonPrincipal(
+      this.extension.principal
+    );
+    this.registrationInfo = regInfo.QueryInterface(
+      Ci.nsIServiceWorkerRegistrationInfo
+    );
+  }
+
+  shutdown() {
+    if (this.registrationInfo) {
+      this.registrationInfo.forceShutdown();
+      this.registrationInfo = null;
+    }
+  }
+}
+
 this.backgroundPage = class extends ExtensionAPI {
-  build() {
-    if (this.bgPage) {
+  async build() {
+    if (this.bgInstance) {
       return;
     }
 
     let { extension } = this;
     let { manifest } = extension;
 
-    this.bgPage = new BackgroundPage(extension, manifest.background);
-    return this.bgPage.build();
+    let BackgroundClass = manifest.background.service_worker
+      ? BackgroundWorker
+      : BackgroundPage;
+
+    this.bgInstance = new BackgroundClass(extension, manifest.background);
+    return this.bgInstance.build();
   }
 
   onManifestEntry(entryName) {
     let { extension } = this;
 
-    this.bgPage = null;
+    this.bgInstance = null;
 
     // When in PPB background pages all run in a private context.  This check
     // simply avoids an extraneous error in the console since the BaseContext
@@ -127,6 +168,25 @@ this.backgroundPage = class extends ExtensionAPI {
     ) {
       return;
     }
+
+    // Used by runtime messaging to wait for background page listeners.
+    let bgStartupPromise = new Promise(resolve => {
+      let done = () => {
+        extension.off("background-page-started", done);
+        extension.off("background-page-aborted", done);
+        extension.off("shutdown", done);
+        resolve();
+      };
+      extension.on("background-page-started", done);
+      extension.on("background-page-aborted", done);
+      extension.on("shutdown", done);
+    });
+
+    extension.wakeupBackground = () => {
+      extension.emit("background-page-event");
+      extension.wakeupBackground = () => bgStartupPromise;
+      return bgStartupPromise;
+    };
 
     if (extension.startupReason !== "APP_STARTUP" || !DELAYED_STARTUP) {
       return this.build();
@@ -161,8 +221,9 @@ this.backgroundPage = class extends ExtensionAPI {
   }
 
   onShutdown() {
-    if (this.bgPage) {
-      this.bgPage.shutdown();
+    if (this.bgInstance) {
+      this.bgInstance.shutdown();
+      this.bgInstance = null;
     } else {
       EventManager.clearPrimedListeners(this.extension, false);
     }

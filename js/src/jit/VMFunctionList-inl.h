@@ -8,12 +8,13 @@
 #define jit_VMFunctionList_inl_h
 
 #include "builtin/Eval.h"
-#include "builtin/Promise.h"  // js::AsyncFunctionAwait
+#include "builtin/ModuleObject.h"  // js::GetOrCreateModuleMetaObject
+#include "builtin/Promise.h"       // js::AsyncFunctionAwait
 #include "builtin/RegExp.h"
 #include "builtin/String.h"
 #include "jit/BaselineIC.h"
 #include "jit/IonIC.h"
-#include "jit/JitRealm.h"
+#include "jit/TrialInlining.h"
 #include "jit/VMFunctions.h"
 #include "vm/AsyncFunction.h"
 #include "vm/AsyncIteration.h"
@@ -34,7 +35,6 @@ namespace jit {
 // function to be called. This list must be sorted on the name field.
 #define VMFUNCTION_LIST(_)                                                     \
   _(AddOrUpdateSparseElementHelper, js::AddOrUpdateSparseElementHelper)        \
-  _(AddValues, js::AddValues)                                                  \
   _(ArgumentsObjectCreateForIon, js::ArgumentsObject::createForIon)            \
   _(ArrayConstructorOneArg, js::ArrayConstructorOneArg)                        \
   _(ArrayJoin, js::jit::ArrayJoin)                                             \
@@ -72,31 +72,28 @@ namespace jit {
     js::jit::BigIntStringEqual<js::jit::EqualityKind::NotEqual>)               \
   _(BigIntSub, JS::BigInt::sub)                                                \
   _(BindVarOperation, js::BindVarOperation)                                    \
-  _(BitAnd, js::BitAnd)                                                        \
-  _(BitLsh, js::BitLsh)                                                        \
-  _(BitNot, js::BitNot)                                                        \
-  _(BitOr, js::BitOr)                                                          \
-  _(BitRsh, js::BitRsh)                                                        \
-  _(BitXor, js::BitXor)                                                        \
   _(BoxBoxableValue, js::wasm::BoxBoxableValue)                                \
   _(BoxNonStrictThis, js::BoxNonStrictThis)                                    \
-  _(BuiltinProtoOperation, js::BuiltinProtoOperation)                          \
+  _(BuiltinObjectOperation, js::BuiltinObjectOperation)                        \
+  _(CallDOMGetter, js::jit::CallDOMGetter)                                     \
+  _(CallDOMSetter, js::jit::CallDOMSetter)                                     \
   _(CallNativeGetter, js::jit::CallNativeGetter)                               \
-  _(CallNativeGetterByValue, js::jit::CallNativeGetterByValue)                 \
   _(CallNativeSetter, js::jit::CallNativeSetter)                               \
   _(CharCodeAt, js::jit::CharCodeAt)                                           \
   _(CheckClassHeritageOperation, js::CheckClassHeritageOperation)              \
   _(CheckGlobalOrEvalDeclarationConflicts,                                     \
     js::CheckGlobalOrEvalDeclarationConflicts)                                 \
-  _(CheckIsCallable, js::jit::CheckIsCallable)                                 \
   _(CheckOverRecursed, js::jit::CheckOverRecursed)                             \
   _(CheckOverRecursedBaseline, js::jit::CheckOverRecursedBaseline)             \
+  _(CheckPrivateFieldOperation, js::CheckPrivateFieldOperation)                \
   _(CloneRegExpObject, js::CloneRegExpObject)                                  \
   _(ConcatStrings, js::ConcatStrings<CanGC>)                                   \
   _(ConvertElementsToDoubles, js::ObjectElements::ConvertElementsToDoubles)    \
   _(CopyElementsForWrite, js::NativeObject::CopyElementsForWrite)              \
   _(CopyLexicalEnvironmentObject, js::jit::CopyLexicalEnvironmentObject)       \
   _(CreateAsyncFromSyncIterator, js::CreateAsyncFromSyncIterator)              \
+  _(CreateBigIntFromInt64, js::jit::CreateBigIntFromInt64)                     \
+  _(CreateBigIntFromUint64, js::jit::CreateBigIntFromUint64)                   \
   _(CreateGenerator, js::jit::CreateGenerator)                                 \
   _(CreateThisForFunctionWithProto, js::CreateThisForFunctionWithProto)        \
   _(CreateThisFromIC, js::jit::CreateThisFromIC)                               \
@@ -110,22 +107,20 @@ namespace jit {
   _(DebugLeaveThenRecreateLexicalEnv,                                          \
     js::jit::DebugLeaveThenRecreateLexicalEnv)                                 \
   _(Debug_CheckSelfHosted, js::Debug_CheckSelfHosted)                          \
-  _(DeepCloneObjectLiteral, js::DeepCloneObjectLiteral)                        \
   _(DefFunOperation, js::DefFunOperation)                                      \
   _(DefLexicalOperation, js::DefLexicalOperation)                              \
   _(DefVarOperation, js::DefVarOperation)                                      \
-  _(DeleteElementNonStrict, js::DeleteElementJit<false>)                       \
-  _(DeleteElementStrict, js::DeleteElementJit<true>)                           \
+  _(DelElemOperationNonStrict, js::DelElemOperation<false>)                    \
+  _(DelElemOperationStrict, js::DelElemOperation<true>)                        \
+  _(DelPropOperationNonStrict, js::DelPropOperation<false>)                    \
+  _(DelPropOperationStrict, js::DelPropOperation<true>)                        \
   _(DeleteNameOperation, js::DeleteNameOperation)                              \
-  _(DeletePropertyNonStrict, js::DeletePropertyJit<false>)                     \
-  _(DeletePropertyStrict, js::DeletePropertyJit<true>)                         \
   _(DirectEvalStringFromIon, js::DirectEvalStringFromIon)                      \
-  _(DivValues, js::DivValues)                                                  \
   _(DoCallFallback, js::jit::DoCallFallback)                                   \
   _(DoConcatStringObject, js::jit::DoConcatStringObject)                       \
   _(DoSpreadCallFallback, js::jit::DoSpreadCallFallback)                       \
-  _(DoToNumber, js::jit::DoToNumber)                                           \
-  _(DoToNumeric, js::jit::DoToNumeric)                                         \
+  _(DoStringToInt64, js::jit::DoStringToInt64)                                 \
+  _(DoTrialInlining, js::jit::DoTrialInlining)                                 \
   _(DoTypeUpdateFallback, js::jit::DoTypeUpdateFallback)                       \
   _(EnterWith, js::jit::EnterWith)                                             \
   _(FinalSuspend, js::jit::FinalSuspend)                                       \
@@ -144,8 +139,8 @@ namespace jit {
   _(GetSparseElementHelper, js::GetSparseElementHelper)                        \
   _(GetValueProperty, js::GetValueProperty)                                    \
   _(GlobalNameConflictsCheckFromIon, js::jit::GlobalNameConflictsCheckFromIon) \
-  _(GreaterThan, js::jit::GreaterThan)                                         \
-  _(GreaterThanOrEqual, js::jit::GreaterThanOrEqual)                           \
+  _(GreaterThan, js::GreaterThan)                                              \
+  _(GreaterThanOrEqual, js::GreaterThanOrEqual)                                \
   _(HandleDebugTrap, js::jit::HandleDebugTrap)                                 \
   _(ImplicitThisOperation, js::ImplicitThisOperation)                          \
   _(ImportMetaOperation, js::ImportMetaOperation)                              \
@@ -164,6 +159,7 @@ namespace jit {
   _(InvokeFunction, js::jit::InvokeFunction)                                   \
   _(IonBinaryArithICUpdate, js::jit::IonBinaryArithIC::update)                 \
   _(IonBindNameICUpdate, js::jit::IonBindNameIC::update)                       \
+  _(IonCheckPrivateFieldICUpdate, js::jit::IonCheckPrivateFieldIC::update)     \
   _(IonCompareICUpdate, js::jit::IonCompareIC::update)                         \
   _(IonCompileScriptForBaselineAtEntry,                                        \
     js::jit::IonCompileScriptForBaselineAtEntry)                               \
@@ -177,8 +173,10 @@ namespace jit {
   _(IonHasOwnICUpdate, js::jit::IonHasOwnIC::update)                           \
   _(IonInICUpdate, js::jit::IonInIC::update)                                   \
   _(IonInstanceOfICUpdate, js::jit::IonInstanceOfIC::update)                   \
+  _(IonOptimizeSpreadCallICUpdate, js::jit::IonOptimizeSpreadCallIC::update)   \
   _(IonRecompile, js::jit::IonRecompile)                                       \
   _(IonSetPropertyICUpdate, js::jit::IonSetPropertyIC::update)                 \
+  _(IonToPropertyKeyICUpdate, js::jit::IonToPropertyKeyIC::update)             \
   _(IonUnaryArithICUpdate, js::jit::IonUnaryArithIC::update)                   \
   _(IsArrayFromJit, js::IsArrayFromJit)                                        \
   _(IsPossiblyWrappedTypedArray, js::jit::IsPossiblyWrappedTypedArray)         \
@@ -186,29 +184,27 @@ namespace jit {
   _(Lambda, js::Lambda)                                                        \
   _(LambdaArrow, js::LambdaArrow)                                              \
   _(LeaveWith, js::jit::LeaveWith)                                             \
-  _(LessThan, js::jit::LessThan)                                               \
-  _(LessThanOrEqual, js::jit::LessThanOrEqual)                                 \
+  _(LessThan, js::LessThan)                                                    \
+  _(LessThanOrEqual, js::LessThanOrEqual)                                      \
   _(LexicalEnvironmentObjectCreate, js::LexicalEnvironmentObject::create)      \
   _(LooselyEqual, js::jit::LooselyEqual<js::jit::EqualityKind::Equal>)         \
   _(LooselyNotEqual, js::jit::LooselyEqual<js::jit::EqualityKind::NotEqual>)   \
   _(MakeDefaultConstructor, js::MakeDefaultConstructor)                        \
-  _(ModValues, js::ModValues)                                                  \
-  _(MulValues, js::MulValues)                                                  \
   _(MutatePrototype, js::jit::MutatePrototype)                                 \
   _(NamedLambdaObjectCreateTemplateObject,                                     \
     js::NamedLambdaObject::createTemplateObject)                               \
   _(NativeGetElement, js::NativeGetElement)                                    \
   _(NewArgumentsObject, js::jit::NewArgumentsObject)                           \
   _(NewArrayCopyOnWriteOperation, js::NewArrayCopyOnWriteOperation)            \
-  _(NewArrayIteratorObject, js::NewArrayIteratorObject)                        \
+  _(NewArrayIterator, js::NewArrayIterator)                                    \
   _(NewArrayOperation, js::NewArrayOperation)                                  \
   _(NewArrayWithGroup, js::NewArrayWithGroup)                                  \
   _(NewCallObject, js::jit::NewCallObject)                                     \
   _(NewDenseCopyOnWriteArray, js::NewDenseCopyOnWriteArray)                    \
   _(NewObjectOperation, js::NewObjectOperation)                                \
   _(NewObjectOperationWithTemplate, js::NewObjectOperationWithTemplate)        \
-  _(NewRegExpStringIteratorObject, js::NewRegExpStringIteratorObject)          \
-  _(NewStringIteratorObject, js::NewStringIteratorObject)                      \
+  _(NewRegExpStringIterator, js::NewRegExpStringIterator)                      \
+  _(NewStringIterator, js::NewStringIterator)                                  \
   _(NewStringObject, js::jit::NewStringObject)                                 \
   _(NewTypedArrayWithTemplateAndArray, js::NewTypedArrayWithTemplateAndArray)  \
   _(NewTypedArrayWithTemplateAndBuffer,                                        \
@@ -224,7 +220,6 @@ namespace jit {
   _(OperatorInI, js::jit::OperatorInI)                                         \
   _(OptimizeSpreadCall, js::OptimizeSpreadCall)                                \
   _(PopLexicalEnv, js::jit::PopLexicalEnv)                                     \
-  _(PowValues, js::PowValues)                                                  \
   _(ProcessCallSiteObjOperation, js::ProcessCallSiteObjOperation)              \
   _(ProxyGetProperty, js::ProxyGetProperty)                                    \
   _(ProxyGetPropertyByValue, js::ProxyGetPropertyByValue)                      \
@@ -248,7 +243,6 @@ namespace jit {
   _(SetObjectElementWithReceiver, js::SetObjectElementWithReceiver)            \
   _(SetProperty, js::jit::SetProperty)                                         \
   _(SetPropertySuper, js::SetPropertySuper)                                    \
-  _(SingletonObjectLiteralOperation, js::SingletonObjectLiteralOperation)      \
   _(StartDynamicModuleImport, js::StartDynamicModuleImport)                    \
   _(StrictlyEqual, js::jit::StrictlyEqual<js::jit::EqualityKind::Equal>)       \
   _(StrictlyNotEqual, js::jit::StrictlyEqual<js::jit::EqualityKind::NotEqual>) \
@@ -269,7 +263,6 @@ namespace jit {
   _(StringsCompareLessThan, js::jit::StringsCompare<ComparisonKind::LessThan>) \
   _(StringsEqual, js::jit::StringsEqual<js::jit::EqualityKind::Equal>)         \
   _(StringsNotEqual, js::jit::StringsEqual<js::jit::EqualityKind::NotEqual>)   \
-  _(SubValues, js::SubValues)                                                  \
   _(SubstringKernel, js::SubstringKernel)                                      \
   _(ThrowBadDerivedReturn, js::jit::ThrowBadDerivedReturn)                     \
   _(ThrowBadDerivedReturnOrUninitializedThis,                                  \
@@ -282,38 +275,42 @@ namespace jit {
   _(ThrowOperation, js::ThrowOperation)                                        \
   _(ThrowRuntimeLexicalError, js::jit::ThrowRuntimeLexicalError)               \
   _(ThrowUninitializedThis, js::ThrowUninitializedThis)                        \
-  _(ToIdOperation, js::ToIdOperation)                                          \
+  _(ToBigInt, js::ToBigInt)                                                    \
   _(ToObjectSlow, js::ToObjectSlow)                                            \
   _(ToStringSlow, js::ToStringSlow<CanGC>)                                     \
-  _(TrySkipAwait, js::jit::TrySkipAwait)                                       \
-  _(UrshValues, js::UrshValues)
+  _(TrySkipAwait, js::jit::TrySkipAwait)
 
 // The list below is for tail calls. The third argument specifies the number of
 // non-argument Values the VM wrapper should pop from the stack. This is used
 // for Baseline ICs.
-#define TAIL_CALL_VMFUNCTION_LIST(_)                            \
-  _(DoBinaryArithFallback, js::jit::DoBinaryArithFallback, 2)   \
-  _(DoBindNameFallback, js::jit::DoBindNameFallback, 0)         \
-  _(DoCompareFallback, js::jit::DoCompareFallback, 2)           \
-  _(DoConcatStringObject, js::jit::DoConcatStringObject, 2)     \
-  _(DoGetElemFallback, js::jit::DoGetElemFallback, 2)           \
-  _(DoGetElemSuperFallback, js::jit::DoGetElemSuperFallback, 3) \
-  _(DoGetIntrinsicFallback, js::jit::DoGetIntrinsicFallback, 0) \
-  _(DoGetIteratorFallback, js::jit::DoGetIteratorFallback, 1)   \
-  _(DoGetNameFallback, js::jit::DoGetNameFallback, 0)           \
-  _(DoGetPropFallback, js::jit::DoGetPropFallback, 1)           \
-  _(DoGetPropSuperFallback, js::jit::DoGetPropSuperFallback, 0) \
-  _(DoHasOwnFallback, js::jit::DoHasOwnFallback, 2)             \
-  _(DoInFallback, js::jit::DoInFallback, 2)                     \
-  _(DoInstanceOfFallback, js::jit::DoInstanceOfFallback, 2)     \
-  _(DoNewArrayFallback, js::jit::DoNewArrayFallback, 0)         \
-  _(DoNewObjectFallback, js::jit::DoNewObjectFallback, 0)       \
-  _(DoRestFallback, js::jit::DoRestFallback, 0)                 \
-  _(DoSetElemFallback, js::jit::DoSetElemFallback, 2)           \
-  _(DoSetPropFallback, js::jit::DoSetPropFallback, 1)           \
-  _(DoToBoolFallback, js::jit::DoToBoolFallback, 0)             \
-  _(DoTypeMonitorFallback, js::jit::DoTypeMonitorFallback, 0)   \
-  _(DoTypeOfFallback, js::jit::DoTypeOfFallback, 0)             \
+//
+// This list is required to be alphabetized.
+#define TAIL_CALL_VMFUNCTION_LIST(_)                                        \
+  _(DoBinaryArithFallback, js::jit::DoBinaryArithFallback, 2)               \
+  _(DoBindNameFallback, js::jit::DoBindNameFallback, 0)                     \
+  _(DoCheckPrivateFieldFallback, js::jit::DoCheckPrivateFieldFallback, 2)   \
+  _(DoCompareFallback, js::jit::DoCompareFallback, 2)                       \
+  _(DoConcatStringObject, js::jit::DoConcatStringObject, 2)                 \
+  _(DoGetElemFallback, js::jit::DoGetElemFallback, 2)                       \
+  _(DoGetElemSuperFallback, js::jit::DoGetElemSuperFallback, 3)             \
+  _(DoGetIntrinsicFallback, js::jit::DoGetIntrinsicFallback, 0)             \
+  _(DoGetIteratorFallback, js::jit::DoGetIteratorFallback, 1)               \
+  _(DoGetNameFallback, js::jit::DoGetNameFallback, 0)                       \
+  _(DoGetPropFallback, js::jit::DoGetPropFallback, 1)                       \
+  _(DoGetPropSuperFallback, js::jit::DoGetPropSuperFallback, 0)             \
+  _(DoHasOwnFallback, js::jit::DoHasOwnFallback, 2)                         \
+  _(DoInFallback, js::jit::DoInFallback, 2)                                 \
+  _(DoInstanceOfFallback, js::jit::DoInstanceOfFallback, 2)                 \
+  _(DoNewArrayFallback, js::jit::DoNewArrayFallback, 0)                     \
+  _(DoNewObjectFallback, js::jit::DoNewObjectFallback, 0)                   \
+  _(DoOptimizeSpreadCallFallback, js::jit::DoOptimizeSpreadCallFallback, 0) \
+  _(DoRestFallback, js::jit::DoRestFallback, 0)                             \
+  _(DoSetElemFallback, js::jit::DoSetElemFallback, 2)                       \
+  _(DoSetPropFallback, js::jit::DoSetPropFallback, 1)                       \
+  _(DoToBoolFallback, js::jit::DoToBoolFallback, 0)                         \
+  _(DoToPropertyKeyFallback, js::jit::DoToPropertyKeyFallback, 0)           \
+  _(DoTypeMonitorFallback, js::jit::DoTypeMonitorFallback, 0)               \
+  _(DoTypeOfFallback, js::jit::DoTypeOfFallback, 0)                         \
   _(DoUnaryArithFallback, js::jit::DoUnaryArithFallback, 1)
 
 #define DEF_ID(name, ...) name,

@@ -1,4 +1,4 @@
-# Copyright 2016 Google Inc.
+# Copyright 2016-2020 Google Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,8 +14,16 @@
 
 cmake_minimum_required(VERSION 2.8)
 set(CMAKE_CXX_STANDARD 11)
+
+# Avoid a warning if parent project sets VERSION in project().
+if (${CMAKE_VERSION} VERSION_GREATER "3.0.1")
+	cmake_policy(SET CMP0048 NEW)
+endif()
+
 project(SPIRV-Cross LANGUAGES CXX C)
 enable_testing()
+
+include(GNUInstallDirs)
 
 option(SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS "Instead of throwing exceptions assert" OFF)
 option(SPIRV_CROSS_SHARED "Build the C API as a single shared library." OFF)
@@ -56,7 +64,7 @@ set(spirv-compiler-options "")
 set(spirv-compiler-defines "")
 set(spirv-cross-link-flags "")
 
-message(STATUS "Finding Git version for SPIRV-Cross.")
+message(STATUS "SPIRV-Cross: Finding Git version for SPIRV-Cross.")
 set(spirv-cross-build-version "unknown")
 find_package(Git)
 if (GIT_FOUND)
@@ -67,23 +75,30 @@ if (GIT_FOUND)
 		ERROR_QUIET
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 		)
-	message(STATUS "Git hash: ${spirv-cross-build-version}")
+	message(STATUS "SPIRV-Cross: Git hash: ${spirv-cross-build-version}")
 else()
-	message(STATUS "Git not found, using unknown build version.")
+	message(STATUS "SPIRV-Cross: Git not found, using unknown build version.")
 endif()
 
 string(TIMESTAMP spirv-cross-timestamp)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/gitversion.in.h ${CMAKE_CURRENT_BINARY_DIR}/gitversion.h @ONLY)
 
-if(SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS)
+if (SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS)
 	set(spirv-compiler-defines ${spirv-compiler-defines} SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS)
+	if (NOT MSVC)
+		set(spirv-compiler-options ${spirv-compiler-options} -fno-exceptions)
+	endif()
 endif()
 
-if(SPIRV_CROSS_FORCE_STL_TYPES)
+if (SPIRV_CROSS_FORCE_STL_TYPES)
 	set(spirv-compiler-defines ${spirv-compiler-defines} SPIRV_CROSS_FORCE_STL_TYPES)
 endif()
 
-if (CMAKE_COMPILER_IS_GNUCXX OR (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang"))
+if (WIN32)
+	set(CMAKE_DEBUG_POSTFIX "d")
+endif()
+
+if (CMAKE_COMPILER_IS_GNUCXX OR ((${CMAKE_CXX_COMPILER_ID} MATCHES "Clang") AND NOT MSVC))
 	set(spirv-compiler-options ${spirv-compiler-options} -Wall -Wextra -Wshadow)
 	if (SPIRV_CROSS_MISC_WARNINGS)
 		if (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
@@ -145,7 +160,7 @@ macro(spirv_cross_add_library name config_name library_type)
 	extract_headers(hdrs "${ARGN}")
 	target_include_directories(${name} PUBLIC
 			$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-			$<INSTALL_INTERFACE:include/spirv_cross>)
+			$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/spirv_cross>)
 	set_target_properties(${name} PROPERTIES
 			PUBLIC_HEADERS "${hdrs}")
 	if (SPIRV_CROSS_FORCE_PIC)
@@ -164,12 +179,12 @@ macro(spirv_cross_add_library name config_name library_type)
 	if (NOT SPIRV_CROSS_SKIP_INSTALL)
 		install(TARGETS ${name}
 			EXPORT ${config_name}Config
-			RUNTIME DESTINATION bin
-			LIBRARY DESTINATION lib
-			ARCHIVE DESTINATION lib
-			PUBLIC_HEADER DESTINATION include/spirv_cross)
-		install(FILES ${hdrs} DESTINATION include/spirv_cross)
-		install(EXPORT ${config_name}Config DESTINATION share/${config_name}/cmake)
+			RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+			LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+			ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+			PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/spirv_cross)
+		install(FILES ${hdrs} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/spirv_cross)
+		install(EXPORT ${config_name}Config DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/${config_name}/cmake)
 		export(TARGETS ${name} FILE ${config_name}Config.cmake)
 	endif()
 endmacro()
@@ -308,19 +323,17 @@ if (SPIRV_CROSS_STATIC)
 endif()
 
 set(spirv-cross-abi-major 0)
-set(spirv-cross-abi-minor 19)
+set(spirv-cross-abi-minor 33)
 set(spirv-cross-abi-patch 0)
 
 if (SPIRV_CROSS_SHARED)
 	set(SPIRV_CROSS_VERSION ${spirv-cross-abi-major}.${spirv-cross-abi-minor}.${spirv-cross-abi-patch})
-	set(SPIRV_CROSS_INSTALL_LIB_DIR ${CMAKE_INSTALL_PREFIX}/lib)
-	set(SPIRV_CROSS_INSTALL_INC_DIR ${CMAKE_INSTALL_PREFIX}/include/spirv_cross)
 
 	if (NOT SPIRV_CROSS_SKIP_INSTALL)
 		configure_file(
 			${CMAKE_CURRENT_SOURCE_DIR}/pkg-config/spirv-cross-c-shared.pc.in
 			${CMAKE_CURRENT_BINARY_DIR}/spirv-cross-c-shared.pc @ONLY)
-		install(FILES ${CMAKE_CURRENT_BINARY_DIR}/spirv-cross-c-shared.pc DESTINATION ${CMAKE_INSTALL_PREFIX}/share/pkgconfig)
+		install(FILES ${CMAKE_CURRENT_BINARY_DIR}/spirv-cross-c-shared.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 	endif()
 
 	spirv_cross_add_library(spirv-cross-c-shared spirv_cross_c_shared SHARED
@@ -420,7 +433,7 @@ if (SPIRV_CROSS_CLI)
 	target_compile_definitions(spirv-cross PRIVATE ${spirv-compiler-defines} HAVE_SPIRV_CROSS_GIT_VERSION)
 	set_target_properties(spirv-cross PROPERTIES LINK_FLAGS "${spirv-cross-link-flags}")
 	if (NOT SPIRV_CROSS_SKIP_INSTALL)
-		install(TARGETS spirv-cross RUNTIME DESTINATION bin)
+		install(TARGETS spirv-cross RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 	endif()
 	target_link_libraries(spirv-cross PRIVATE
 			spirv-cross-glsl
@@ -453,14 +466,14 @@ if (SPIRV_CROSS_CLI)
 
 		if ((${spirv-cross-glslang} MATCHES "NOTFOUND") OR (${spirv-cross-spirv-as} MATCHES "NOTFOUND") OR (${spirv-cross-spirv-val} MATCHES "NOTFOUND") OR (${spirv-cross-spirv-opt} MATCHES "NOTFOUND"))
 			set(SPIRV_CROSS_ENABLE_TESTS OFF)
-			message("Could not find glslang or SPIRV-Tools build under external/. Run ./checkout_glslang_spirv_tools.sh and ./build_glslang_spirv_tools.sh. Testing will be disabled.")
+			message("SPIRV-Cross:  Testing will be disabled for SPIRV-Cross. Could not find glslang or SPIRV-Tools build under external/. To enable testing, run ./checkout_glslang_spirv_tools.sh and ./build_glslang_spirv_tools.sh first.")
 		else()
 			set(SPIRV_CROSS_ENABLE_TESTS ON)
-			message("Found glslang and SPIRV-Tools. Enabling test suite.")
-			message("Found glslangValidator in: ${spirv-cross-glslang}.")
-			message("Found spirv-as in: ${spirv-cross-spirv-as}.")
-			message("Found spirv-val in: ${spirv-cross-spirv-val}.")
-			message("Found spirv-opt in: ${spirv-cross-spirv-opt}.")
+			message("SPIRV-Cross: Found glslang and SPIRV-Tools. Enabling test suite.")
+			message("SPIRV-Cross: Found glslangValidator in: ${spirv-cross-glslang}.")
+			message("SPIRV-Cross: Found spirv-as in: ${spirv-cross-spirv-as}.")
+			message("SPIRV-Cross: Found spirv-val in: ${spirv-cross-spirv-val}.")
+			message("SPIRV-Cross: Found spirv-opt in: ${spirv-cross-spirv-opt}.")
 		endif()
 
 		set(spirv-cross-externals
@@ -487,6 +500,10 @@ if (SPIRV_CROSS_CLI)
 				target_link_libraries(spirv-cross-msl-resource-binding-test spirv-cross-c)
 				set_target_properties(spirv-cross-msl-resource-binding-test PROPERTIES LINK_FLAGS "${spirv-cross-link-flags}")
 
+				add_executable(spirv-cross-hlsl-resource-binding-test tests-other/hlsl_resource_bindings.cpp)
+				target_link_libraries(spirv-cross-hlsl-resource-binding-test spirv-cross-c)
+				set_target_properties(spirv-cross-hlsl-resource-binding-test PROPERTIES LINK_FLAGS "${spirv-cross-link-flags}")
+
 				add_executable(spirv-cross-msl-ycbcr-conversion-test tests-other/msl_ycbcr_conversion_test.cpp)
 				target_link_libraries(spirv-cross-msl-ycbcr-conversion-test spirv-cross-c)
 				set_target_properties(spirv-cross-msl-ycbcr-conversion-test PROPERTIES LINK_FLAGS "${spirv-cross-link-flags}")
@@ -509,6 +526,8 @@ if (SPIRV_CROSS_CLI)
 						COMMAND $<TARGET_FILE:spirv-cross-msl-constexpr-test> ${CMAKE_CURRENT_SOURCE_DIR}/tests-other/msl_constexpr_test.spv)
 				add_test(NAME spirv-cross-msl-resource-binding-test
 						COMMAND $<TARGET_FILE:spirv-cross-msl-resource-binding-test> ${CMAKE_CURRENT_SOURCE_DIR}/tests-other/msl_resource_binding.spv)
+				add_test(NAME spirv-cross-hlsl-resource-binding-test
+						COMMAND $<TARGET_FILE:spirv-cross-hlsl-resource-binding-test> ${CMAKE_CURRENT_SOURCE_DIR}/tests-other/hlsl_resource_binding.spv)
 				add_test(NAME spirv-cross-msl-ycbcr-conversion-test
 						COMMAND $<TARGET_FILE:spirv-cross-msl-ycbcr-conversion-test> ${CMAKE_CURRENT_SOURCE_DIR}/tests-other/msl_ycbcr_conversion_test.spv)
 				add_test(NAME spirv-cross-msl-ycbcr-conversion-test-2
@@ -575,9 +594,14 @@ if (SPIRV_CROSS_CLI)
 						${spirv-cross-externals}
 						${CMAKE_CURRENT_SOURCE_DIR}/shaders-ue4
 						WORKING_DIRECTORY $<TARGET_FILE_DIR:spirv-cross>)
+				add_test(NAME spirv-cross-test-ue4-no-opt
+						COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_shaders.py --msl --parallel
+						${spirv-cross-externals}
+						${CMAKE_CURRENT_SOURCE_DIR}/shaders-ue4-no-opt
+						WORKING_DIRECTORY $<TARGET_FILE_DIR:spirv-cross>)
 			endif()
 		elseif(NOT ${PYTHONINTERP_FOUND})
-			message(WARNING "Testing disabled. Could not find python3. If you have python3 installed try running "
+			message(WARNING "SPIRV-Cross: Testing disabled. Could not find python3. If you have python3 installed try running "
 					"cmake with -DPYTHON_EXECUTABLE:FILEPATH=/path/to/python3 to help it find the executable")
 		endif()
 	endif()

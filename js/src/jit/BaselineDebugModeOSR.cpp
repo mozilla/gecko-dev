@@ -6,12 +6,17 @@
 
 #include "jit/BaselineDebugModeOSR.h"
 
+#include "jit/BaselineFrame.h"
 #include "jit/BaselineIC.h"
+#include "jit/BaselineJIT.h"
+#include "jit/Ion.h"
 #include "jit/JitcodeMap.h"
-#include "jit/Linker.h"
+#include "jit/JitFrames.h"
+#include "jit/JitRuntime.h"
+#include "jit/JSJitFrameIter.h"
 #include "jit/PerfSpewer.h"
 
-#include "jit/JitFrames-inl.h"
+#include "jit/JSJitFrameIter-inl.h"
 #include "jit/MacroAssembler-inl.h"
 #include "vm/Stack-inl.h"
 #include "vm/TypeInference-inl.h"
@@ -178,8 +183,6 @@ static const char* RetAddrEntryKindToString(RetAddrEntry::Kind kind) {
       return "prologue IC";
     case RetAddrEntry::Kind::CallVM:
       return "callVM";
-    case RetAddrEntry::Kind::WarmupCounter:
-      return "warmup counter";
     case RetAddrEntry::Kind::StackCheck:
       return "stack check";
     case RetAddrEntry::Kind::InterruptCheck:
@@ -225,18 +228,17 @@ static void PatchBaselineFramesForDebugMode(
   //  A. From a non-prologue IC (fallback stub or "can call" stub).
   //  B. From a VM call.
   //  C. From inside the interrupt handler via the prologue stack check.
-  //  D. From the warmup counter in the prologue.
   //
   // On to Off:
   //  - All the ways above.
-  //  E. From the debug trap handler.
-  //  F. From the debug prologue.
-  //  G. From the debug epilogue.
-  //  H. From a JSOp::AfterYield instruction.
+  //  D. From the debug trap handler.
+  //  E. From the debug prologue.
+  //  F. From the debug epilogue.
+  //  G. From a JSOp::AfterYield instruction.
   //
   // In general, we patch the return address from VM calls and ICs to the
   // corresponding entry in the recompiled BaselineScript. For entries that are
-  // not present in the recompiled script (cases F to I above) we switch the
+  // not present in the recompiled script (cases D to G above) we switch the
   // frame to interpreter mode and resume in the Baseline Interpreter.
   //
   // Specifics on what needs to be done are documented below.
@@ -287,9 +289,8 @@ static void PatchBaselineFramesForDebugMode(
           case RetAddrEntry::Kind::IC:
           case RetAddrEntry::Kind::CallVM:
           case RetAddrEntry::Kind::InterruptCheck:
-          case RetAddrEntry::Kind::WarmupCounter:
           case RetAddrEntry::Kind::StackCheck: {
-            // Cases A, B, C, D above.
+            // Cases A, B, C above.
             //
             // For the baseline frame here, we resume right after the CallVM or
             // IC returns.
@@ -304,7 +305,6 @@ static void PatchBaselineFramesForDebugMode(
               case RetAddrEntry::Kind::InterruptCheck:
                 retAddrEntry = &bl->retAddrEntryFromPCOffset(pcOffset, kind);
                 break;
-              case RetAddrEntry::Kind::WarmupCounter:
               case RetAddrEntry::Kind::StackCheck:
                 retAddrEntry = &bl->prologueRetAddrEntry(kind);
                 break;
@@ -320,7 +320,7 @@ static void PatchBaselineFramesForDebugMode(
           case RetAddrEntry::Kind::DebugEpilogue:
           case RetAddrEntry::Kind::DebugTrap:
           case RetAddrEntry::Kind::DebugAfterYield: {
-            // Cases E, F, G, H above.
+            // Cases D, E, F, G above.
             //
             // Resume in the Baseline Interpreter because these callVMs are not
             // present in the new BaselineScript if we recompiled without debug

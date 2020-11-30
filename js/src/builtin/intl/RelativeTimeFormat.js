@@ -128,8 +128,6 @@ function InitializeRelativeTimeFormat(relativeTimeFormat, locales, options) {
     let matcher = GetOption(options, "localeMatcher", "string", ["lookup", "best fit"], "best fit");
     opt.localeMatcher = matcher;
 
-    // RelativeTimeFormat equivalent to https://github.com/tc39/ecma402/pull/175
-#ifdef NIGHTLY_BUILD
     // Steps 7-9.
     let numberingSystem = GetOption(options, "numberingSystem", "string", undefined, undefined);
     if (numberingSystem !== undefined) {
@@ -138,7 +136,6 @@ function InitializeRelativeTimeFormat(relativeTimeFormat, locales, options) {
                                                                            "nu");
     }
     opt.nu = numberingSystem;
-#endif
 
     lazyRelativeTimeFormatData.opt = opt;
 
@@ -192,14 +189,14 @@ function Intl_RelativeTimeFormat_format(value, unit) {
                             "Intl_RelativeTimeFormat_format");
     }
 
-    // Ensure the RelativeTimeFormat internals are resolved.
-    var internals = getRelativeTimeFormatInternals(relativeTimeFormat);
-
     // Step 3.
     let t = ToNumber(value);
 
     // Step 4.
     let u = ToString(unit);
+
+    // Ensure the RelativeTimeFormat internals are resolved.
+    var internals = getRelativeTimeFormatInternals(relativeTimeFormat);
 
     // Step 5.
     return intl_FormatRelativeTime(relativeTimeFormat, t, u, internals.numeric,
@@ -225,14 +222,14 @@ function Intl_RelativeTimeFormat_formatToParts(value, unit) {
                             "Intl_RelativeTimeFormat_formatToParts");
     }
 
-    // Ensure the RelativeTimeFormat internals are resolved.
-    var internals = getRelativeTimeFormatInternals(relativeTimeFormat);
-
     // Step 3.
     let t = ToNumber(value);
 
     // Step 4.
     let u = ToString(unit);
+
+    // Ensure the RelativeTimeFormat internals are resolved.
+    var internals = getRelativeTimeFormatInternals(relativeTimeFormat);
 
     // Step 5.
     return intl_FormatRelativeTime(relativeTimeFormat, t, u, internals.numeric,

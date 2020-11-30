@@ -117,6 +117,19 @@ interface WebExtensionPolicy {
   static readonly attribute boolean isExtensionProcess;
 
   /**
+   * Whether the background.service_worker in the extension manifest.json file
+   * is enabled.
+   *
+   * NOTE: **do not use Services.prefs to retrieve the value of the undelying pref**
+   *
+   * It is defined in StaticPrefs.yaml as `mirror: once` and so checking
+   * its current value using Services.prefs doesn't guarantee that it does
+   * match the value as accessible from the C++ layers, and unexpected issue
+   * may be possible if different code has a different idea of its value.
+   */
+  static readonly attribute boolean backgroundServiceWorkerEnabled;
+
+  /**
    * Set based on the manifest.incognito value:
    * If "spanning" or "split" will be true.
    * If "not_allowed" will be false.
@@ -217,11 +230,29 @@ interface WebExtensionPolicy {
    * This may be used to delay operations, such as loading extension pages,
    * which depend on extensions being fully initialized.
    *
-   * Note: This will always be either a Promise<WebExtensionPolicy> or null,
+   * Note: This will always be either a Promise<WebExtensionPolicy?> or null,
    * but the WebIDL grammar does not allow us to specify a nullable Promise
    * type.
+   *
+   * Note: This could resolve to null when the startup was interrupted.
    */
   readonly attribute object? readyPromise;
+
+  /**
+   * Returns true if the given worker script URL matches the background
+   * service worker url declared in the extension manifest.json file.
+   */
+  boolean isManifestBackgroundWorker(DOMString workerURL);
+
+  /**
+   * Get the unique BrowsingContextGroup ID which will be used for toplevel
+   * page loads from this extension.
+   *
+   * This method will raise an exception if called from outside of the parent
+   * process, or if the extension is inactive.
+   */
+  [Throws]
+  readonly attribute unsigned long long browsingContextGroupId;
 };
 
 dictionary WebExtensionInit {
@@ -249,6 +280,7 @@ dictionary WebExtensionInit {
   DOMString? contentScriptCSP = null;
 
   sequence<DOMString>? backgroundScripts = null;
+  DOMString? backgroundWorkerScript = null;
 
-  Promise<WebExtensionPolicy> readyPromise;
+  Promise<WebExtensionPolicy?> readyPromise;
 };

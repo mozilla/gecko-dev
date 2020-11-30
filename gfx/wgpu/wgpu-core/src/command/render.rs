@@ -5,98 +5,49 @@
 use crate::{
     command::{
         bind::{Binder, LayoutChange},
-        PhantomSlice,
-        RawRenderPassColorAttachmentDescriptor,
-        RawRenderTargets,
+        PassComponent, PhantomSlice, RawRenderPassColorAttachmentDescriptor,
+        RawRenderPassDepthStencilAttachmentDescriptor, RawRenderTargets,
     },
     conv,
     device::{
-        FramebufferKey,
-        RenderPassContext,
-        RenderPassKey,
-        BIND_BUFFER_ALIGNMENT,
-        MAX_VERTEX_BUFFERS,
-        MAX_COLOR_TARGETS,
+        FramebufferKey, RenderPassContext, RenderPassKey, MAX_COLOR_TARGETS, MAX_VERTEX_BUFFERS,
     },
-    hub::{GfxBackend, Global, Token},
+    hub::{GfxBackend, Global, GlobalIdentityHandlerFactory, Token},
     id,
-    pipeline::{IndexFormat, InputStepMode, PipelineFlags},
-    resource::{BufferUsage, TextureUsage, TextureViewInner},
+    pipeline::PipelineFlags,
+    resource::{BufferUse, TextureUse, TextureViewInner},
     track::TrackerSet,
-    BufferAddress,
-    Color,
-    DynamicOffset,
     Stored,
 };
 
 use arrayvec::ArrayVec;
 use hal::command::CommandBuffer as _;
-use peek_poke::{Peek, PeekCopy, Poke};
-
-use std::{
-    borrow::Borrow,
-    collections::hash_map::Entry,
-    iter,
-    marker::PhantomData,
-    mem,
-    ops::Range,
-    slice,
+use peek_poke::{Peek, PeekPoke, Poke};
+use smallvec::SmallVec;
+use wgt::{
+    BufferAddress, BufferSize, BufferUsage, Color, DynamicOffset, IndexFormat, InputStepMode,
+    LoadOp, RenderPassColorAttachmentDescriptorBase,
+    RenderPassDepthStencilAttachmentDescriptorBase, TextureUsage, BIND_BUFFER_ALIGNMENT,
 };
 
+use std::{borrow::Borrow, collections::hash_map::Entry, fmt, iter, mem, ops::Range, slice};
 
-#[repr(C)]
-#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PeekCopy, Poke)]
-pub enum LoadOp {
-    Clear = 0,
-    Load = 1,
-}
-
-#[repr(C)]
-#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PeekCopy, Poke)]
-pub enum StoreOp {
-    Clear = 0,
-    Store = 1,
-}
-
-#[repr(C)]
-#[derive(Debug, PeekCopy, Poke)]
-pub struct RenderPassColorAttachmentDescriptorBase<T, R> {
-    pub attachment: T,
-    pub resolve_target: R,
-    pub load_op: LoadOp,
-    pub store_op: StoreOp,
-    pub clear_color: Color,
-}
-
-#[repr(C)]
-#[derive(Clone, Debug, PeekCopy, Poke)]
-pub struct RenderPassDepthStencilAttachmentDescriptorBase<T> {
-    pub attachment: T,
-    pub depth_load_op: LoadOp,
-    pub depth_store_op: StoreOp,
-    pub clear_depth: f32,
-    pub stencil_load_op: LoadOp,
-    pub stencil_store_op: StoreOp,
-    pub clear_stencil: u32,
-}
-
-//Note: this could look better if `cbindgen` wasn't confused by &T used in place of
-// a generic paramter, it's not able to mange
-pub type OptionRef<'a, T> = Option<&'a T>;
-pub type RenderPassColorAttachmentDescriptor<'a> =
-    RenderPassColorAttachmentDescriptorBase<id::TextureViewId, OptionRef<'a, id::TextureViewId>>;
+pub type RenderPassColorAttachmentDescriptor =
+    RenderPassColorAttachmentDescriptorBase<id::TextureViewId>;
 pub type RenderPassDepthStencilAttachmentDescriptor =
     RenderPassDepthStencilAttachmentDescriptorBase<id::TextureViewId>;
 
 #[repr(C)]
 #[derive(Debug)]
 pub struct RenderPassDescriptor<'a> {
-    pub color_attachments: *const RenderPassColorAttachmentDescriptor<'a>,
+    pub color_attachments: *const RenderPassColorAttachmentDescriptor,
     pub color_attachments_length: usize,
     pub depth_stencil_attachment: Option<&'a RenderPassDepthStencilAttachmentDescriptor>,
 }
 
-#[derive(Clone, Copy, Debug, PeekCopy, Poke)]
+#[derive(Clone, Copy, Debug, Default, PeekPoke)]
+#[cfg_attr(feature = "trace", derive(serde::Serialize))]
+#[cfg_attr(feature = "replay", derive(serde::Deserialize))]
 pub struct Rect<T> {
     pub x: T,
     pub y: T,
@@ -104,24 +55,28 @@ pub struct Rect<T> {
     pub h: T,
 }
 
-#[derive(Clone, Copy, Debug, PeekCopy, Poke)]
-enum RenderCommand {
+#[derive(Clone, Copy, Debug, PeekPoke)]
+#[cfg_attr(feature = "trace", derive(serde::Serialize))]
+#[cfg_attr(feature = "replay", derive(serde::Deserialize))]
+pub enum RenderCommand {
     SetBindGroup {
         index: u8,
         num_dynamic_offsets: u8,
         bind_group_id: id::BindGroupId,
+        #[cfg_attr(any(feature = "trace", feature = "replay"), serde(skip))]
         phantom_offsets: PhantomSlice<DynamicOffset>,
     },
     SetPipeline(id::RenderPipelineId),
     SetIndexBuffer {
         buffer_id: id::BufferId,
         offset: BufferAddress,
+        size: BufferSize,
     },
-    SetVertexBuffers {
-        start_index: u8,
-        count: u8,
-        phantom_buffer_ids: PhantomSlice<id::BufferId>,
-        phantom_offsets: PhantomSlice<BufferAddress>,
+    SetVertexBuffer {
+        slot: u32,
+        buffer_id: id::BufferId,
+        offset: BufferAddress,
+        size: BufferSize,
     },
     SetBlendColor(Color),
     SetStencilReference(u32),
@@ -156,26 +111,46 @@ enum RenderCommand {
     End,
 }
 
+// required for PeekPoke
+impl Default for RenderCommand {
+    fn default() -> Self {
+        RenderCommand::End
+    }
+}
+
 impl super::RawPass {
     pub unsafe fn new_render(parent_id: id::CommandEncoderId, desc: &RenderPassDescriptor) -> Self {
         let mut pass = Self::from_vec(Vec::<RenderCommand>::with_capacity(1), parent_id);
 
-        let mut targets = RawRenderTargets {
-            depth_stencil: desc.depth_stencil_attachment
-                .cloned()
-                .unwrap_or_else(|| mem::zeroed()),
-            colors: mem::zeroed(),
-        };
-        for (color, at) in targets.colors
-            .iter_mut()
-            .zip(slice::from_raw_parts(desc.color_attachments, desc.color_attachments_length))
-        {
+        let mut targets: RawRenderTargets = mem::zeroed();
+        if let Some(ds) = desc.depth_stencil_attachment {
+            targets.depth_stencil = RawRenderPassDepthStencilAttachmentDescriptor {
+                attachment: ds.attachment.into_raw(),
+                depth: PassComponent {
+                    load_op: ds.depth_load_op,
+                    store_op: ds.depth_store_op,
+                    clear_value: ds.clear_depth,
+                },
+                stencil: PassComponent {
+                    load_op: ds.stencil_load_op,
+                    store_op: ds.stencil_store_op,
+                    clear_value: ds.clear_stencil,
+                },
+            };
+        }
+
+        for (color, at) in targets.colors.iter_mut().zip(slice::from_raw_parts(
+            desc.color_attachments,
+            desc.color_attachments_length,
+        )) {
             *color = RawRenderPassColorAttachmentDescriptor {
-                attachment: at.attachment,
-                resolve_target: at.resolve_target.map_or(id::TextureViewId::ERROR, |rt| *rt),
-                load_op: at.load_op,
-                store_op: at.store_op,
-                clear_color: at.clear_color,
+                attachment: at.attachment.into_raw(),
+                resolve_target: at.resolve_target.map_or(0, |id| id.into_raw()),
+                component: PassComponent {
+                    load_op: at.load_op,
+                    store_op: at.store_op,
+                    clear_value: at.clear_color,
+                },
             };
         }
 
@@ -185,8 +160,7 @@ impl super::RawPass {
 
     pub unsafe fn finish_render(mut self) -> (Vec<u8>, id::CommandEncoderId) {
         self.finish(RenderCommand::End);
-        let (vec, parent_id) = self.into_vec();
-        (vec, parent_id)
+        self.into_vec()
     }
 }
 
@@ -205,15 +179,27 @@ impl OptionalState {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq)]
 enum DrawError {
     MissingBlendColor,
     MissingStencilReference,
+    MissingPipeline,
     IncompatibleBindGroup {
         index: u32,
         //expected: BindGroupLayoutId,
         //provided: Option<(BindGroupLayoutId, BindGroupId)>,
     },
+}
+
+impl fmt::Debug for DrawError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DrawError::MissingBlendColor => write!(f, "MissingBlendColor. A blend color is required to be set using RenderPass::set_blend_color."),
+            DrawError::MissingStencilReference => write!(f, "MissingStencilReference. A stencil reference is required to be set using RenderPass::set_stencil_reference."),
+            DrawError::MissingPipeline => write!(f, "MissingPipeline. You must first set the render pipeline using RenderPass::set_pipeline."),
+            DrawError::IncompatibleBindGroup { index } => write!(f, "IncompatibleBindGroup. The current render pipeline has a layout which is incompatible with a currently set bind group. They first differ at entry index {}.", index),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -255,7 +241,7 @@ impl VertexBufferState {
 
 #[derive(Debug)]
 pub struct VertexState {
-    inputs: [VertexBufferState; MAX_VERTEX_BUFFERS],
+    inputs: SmallVec<[VertexBufferState; MAX_VERTEX_BUFFERS]>,
     vertex_limit: u32,
     instance_limit: u32,
 }
@@ -282,6 +268,7 @@ struct State {
     binder: Binder,
     blend_color: OptionalState,
     stencil_reference: OptionalState,
+    pipeline: OptionalState,
     index: IndexState,
     vertex: VertexState,
 }
@@ -293,8 +280,11 @@ impl State {
         if bind_mask != 0 {
             //let (expected, provided) = self.binder.entries[index as usize].info();
             return Err(DrawError::IncompatibleBindGroup {
-                index: bind_mask.trailing_zeros() as u32,
+                index: bind_mask.trailing_zeros(),
             });
+        }
+        if self.pipeline == OptionalState::Required {
+            return Err(DrawError::MissingPipeline);
         }
         if self.blend_color == OptionalState::Required {
             return Err(DrawError::MissingBlendColor);
@@ -308,7 +298,7 @@ impl State {
 
 // Common routines between render/compute
 
-impl<F> Global<F> {
+impl<G: GlobalIdentityHandlerFactory> Global<G> {
     pub fn command_encoder_run_render_pass<B: GfxBackend>(
         &self,
         encoder_id: id::CommandEncoderId,
@@ -317,7 +307,6 @@ impl<F> Global<F> {
         let hub = B::hub(self);
         let mut token = Token::root();
 
-        let (adapter_guard, mut token) = hub.adapters.read(&mut token);
         let (device_guard, mut token) = hub.devices.read(&mut token);
         let (mut cmb_guard, mut token) = hub.command_buffers.write(&mut token);
 
@@ -338,45 +327,52 @@ impl<F> Global<F> {
         let (view_guard, _) = hub.texture_views.read(&mut token);
 
         let mut peeker = raw_data.as_ptr();
-        let raw_data_end = unsafe {
-            raw_data.as_ptr().add(raw_data.len())
-        };
+        let raw_data_end = unsafe { raw_data.as_ptr().add(raw_data.len()) };
 
         let mut targets: RawRenderTargets = unsafe { mem::zeroed() };
-        assert!(unsafe { peeker.add(RawRenderTargets::max_size()) <= raw_data_end });
-        peeker = unsafe { targets.peek_from(peeker) };
+        assert!(
+            unsafe { peeker.add(RawRenderTargets::max_size()) <= raw_data_end },
+            "RawRenderTargets (size {}) is too big to fit within raw_data (size {})",
+            RawRenderTargets::max_size(),
+            raw_data.len()
+        );
+        peeker = unsafe { RawRenderTargets::peek_from(peeker, &mut targets) };
+        #[cfg(feature = "trace")]
+        let command_peeker_base = peeker;
 
-        let color_attachments = targets.colors
+        let color_attachments = targets
+            .colors
             .iter()
-            .take_while(|at| at.attachment != id::TextureViewId::ERROR)
-            .map(|at| {
-                RenderPassColorAttachmentDescriptor {
-                    attachment: at.attachment,
-                    resolve_target: if at.resolve_target == id::TextureViewId::ERROR {
-                        None
-                    } else {
-                        Some(&at.resolve_target)
-                    },
-                    load_op: at.load_op,
-                    store_op: at.store_op,
-                    clear_color: at.clear_color,
-                }
+            .take_while(|at| at.attachment != 0)
+            .map(|at| RenderPassColorAttachmentDescriptor {
+                attachment: id::TextureViewId::from_raw(at.attachment).unwrap(),
+                resolve_target: id::TextureViewId::from_raw(at.resolve_target),
+                load_op: at.component.load_op,
+                store_op: at.component.store_op,
+                clear_color: at.component.clear_value,
             })
-            .collect::<arrayvec::ArrayVec<[_; MAX_COLOR_TARGETS]>>();
-        let depth_stencil_attachment = if targets.depth_stencil.attachment == id::TextureViewId::ERROR {
+            .collect::<ArrayVec<[_; MAX_COLOR_TARGETS]>>();
+        let depth_stencil_attachment_body;
+        let depth_stencil_attachment = if targets.depth_stencil.attachment == 0 {
             None
         } else {
-            Some(&targets.depth_stencil)
+            let at = &targets.depth_stencil;
+            depth_stencil_attachment_body = RenderPassDepthStencilAttachmentDescriptor {
+                attachment: id::TextureViewId::from_raw(at.attachment).unwrap(),
+                depth_load_op: at.depth.load_op,
+                depth_store_op: at.depth.store_op,
+                clear_depth: at.depth.clear_value,
+                stencil_load_op: at.stencil.load_op,
+                stencil_store_op: at.stencil.store_op,
+                clear_stencil: at.stencil.clear_value,
+            };
+            Some(&depth_stencil_attachment_body)
         };
 
         let (context, sample_count) = {
-            use hal::{adapter::PhysicalDevice as _, device::Device as _};
+            use hal::device::Device as _;
 
-            let limits = adapter_guard[device.adapter_id]
-                .raw
-                .physical_device
-                .limits();
-            let samples_count_limit = limits.framebuffer_color_sample_counts;
+            let samples_count_limit = device.hal_limits.framebuffer_color_sample_counts;
             let base_trackers = &cmb.trackers;
 
             let mut extent = None;
@@ -395,9 +391,10 @@ impl<F> Global<F> {
             type OutputAttachment<'a> = (
                 &'a Stored<id::TextureId>,
                 &'a hal::image::SubresourceRange,
-                Option<TextureUsage>,
+                Option<TextureUse>,
             );
-            let mut output_attachments = ArrayVec::<[OutputAttachment; MAX_TOTAL_ATTACHMENTS]>::new();
+            let mut output_attachments =
+                ArrayVec::<[OutputAttachment; MAX_TOTAL_ATTACHMENTS]>::new();
 
             log::trace!(
                 "Encoding render pass begin in command buffer {:?}",
@@ -411,7 +408,7 @@ impl<F> Global<F> {
                             .use_extend(&*view_guard, at.attachment, (), ())
                             .unwrap();
                         if let Some(ex) = extent {
-                            assert_eq!(ex, view.extent);
+                            assert_eq!(ex, view.extent, "Extent state must match extent from view");
                         } else {
                             extent = Some(view.extent);
                         }
@@ -423,29 +420,34 @@ impl<F> Global<F> {
                         };
 
                         // Using render pass for transition.
-                        let consistent_usage = base_trackers.textures.query(
-                            source_id.value,
-                            view.range.clone(),
-                        );
-                        output_attachments.push((source_id, &view.range, consistent_usage));
+                        let consistent_use = base_trackers
+                            .textures
+                            .query(source_id.value, view.range.clone());
+                        output_attachments.push((source_id, &view.range, consistent_use));
 
-                        let old_layout = match consistent_usage {
-                            Some(usage) => conv::map_texture_state(
-                                usage,
-                                hal::format::Aspects::DEPTH | hal::format::Aspects::STENCIL,
-                            ).1,
+                        let old_layout = match consistent_use {
+                            Some(usage) => {
+                                conv::map_texture_state(
+                                    usage,
+                                    hal::format::Aspects::DEPTH | hal::format::Aspects::STENCIL,
+                                )
+                                .1
+                            }
                             None => hal::image::Layout::DepthStencilAttachmentOptimal,
                         };
 
                         Some(hal::pass::Attachment {
-                            format: Some(conv::map_texture_format(view.format, device.features)),
+                            format: Some(conv::map_texture_format(
+                                view.format,
+                                device.private_features,
+                            )),
                             samples: view.samples,
                             ops: conv::map_load_store_ops(at.depth_load_op, at.depth_store_op),
                             stencil_ops: conv::map_load_store_ops(
                                 at.stencil_load_op,
                                 at.stencil_store_op,
                             ),
-                            layouts: old_layout .. hal::image::Layout::DepthStencilAttachmentOptimal,
+                            layouts: old_layout..hal::image::Layout::DepthStencilAttachmentOptimal,
                         })
                     }
                     None => None,
@@ -455,9 +457,12 @@ impl<F> Global<F> {
                 let mut resolves = ArrayVec::new();
 
                 for at in &color_attachments {
-                    let view = &view_guard[at.attachment];
+                    let view = trackers
+                        .views
+                        .use_extend(&*view_guard, at.attachment, (), ())
+                        .unwrap();
                     if let Some(ex) = extent {
-                        assert_eq!(ex, view.extent);
+                        assert_eq!(ex, view.extent, "Extent state must match extent from view");
                     } else {
                         extent = Some(view.extent);
                     }
@@ -465,46 +470,47 @@ impl<F> Global<F> {
                         view.samples, sample_count,
                         "All attachments must have the same sample_count"
                     );
-                    let first_use = trackers.views.init(
-                        at.attachment,
-                        view.life_guard.add_ref(),
-                        PhantomData,
-                    ).is_ok();
 
                     let layouts = match view.inner {
                         TextureViewInner::Native { ref source_id, .. } => {
-                            let consistent_usage = base_trackers.textures.query(
-                                source_id.value,
-                                view.range.clone(),
-                            );
-                            output_attachments.push((source_id, &view.range, consistent_usage));
+                            let consistent_use = base_trackers
+                                .textures
+                                .query(source_id.value, view.range.clone());
+                            output_attachments.push((source_id, &view.range, consistent_use));
 
-                            let old_layout = match consistent_usage {
-                                Some(usage) => conv::map_texture_state(usage, hal::format::Aspects::COLOR).1,
+                            let old_layout = match consistent_use {
+                                Some(usage) => {
+                                    conv::map_texture_state(usage, hal::format::Aspects::COLOR).1
+                                }
                                 None => hal::image::Layout::ColorAttachmentOptimal,
                             };
-                            old_layout .. hal::image::Layout::ColorAttachmentOptimal
+                            old_layout..hal::image::Layout::ColorAttachmentOptimal
                         }
                         TextureViewInner::SwapChain { ref source_id, .. } => {
                             if let Some((ref sc_id, _)) = cmb.used_swap_chain {
-                                assert_eq!(source_id.value, sc_id.value);
+                                assert_eq!(
+                                    source_id.value, sc_id.value,
+                                    "Texture view's swap chain must match swap chain in use"
+                                );
                             } else {
                                 assert!(used_swap_chain.is_none());
                                 used_swap_chain = Some(source_id.clone());
                             }
 
                             let end = hal::image::Layout::Present;
-                            let start = if first_use {
-                                hal::image::Layout::Undefined
-                            } else {
-                                end
+                            let start = match at.load_op {
+                                LoadOp::Clear => hal::image::Layout::Undefined,
+                                LoadOp::Load => end,
                             };
-                            start .. end
+                            start..end
                         }
                     };
 
                     colors.push(hal::pass::Attachment {
-                        format: Some(conv::map_texture_format(view.format, device.features)),
+                        format: Some(conv::map_texture_format(
+                            view.format,
+                            device.private_features,
+                        )),
                         samples: view.samples,
                         ops: conv::map_load_store_ops(at.load_op, at.store_op),
                         stencil_ops: hal::pass::AttachmentOps::DONT_CARE,
@@ -512,56 +518,55 @@ impl<F> Global<F> {
                     });
                 }
 
-                for &resolve_target in color_attachments
-                    .iter()
-                    .flat_map(|at| at.resolve_target)
-                {
-                    let view = &view_guard[resolve_target];
-                    assert_eq!(extent, Some(view.extent));
+                for resolve_target in color_attachments.iter().flat_map(|at| at.resolve_target) {
+                    let view = trackers
+                        .views
+                        .use_extend(&*view_guard, resolve_target, (), ())
+                        .unwrap();
+                    assert_eq!(
+                        extent,
+                        Some(view.extent),
+                        "Extent state must match extent from view"
+                    );
                     assert_eq!(
                         view.samples, 1,
                         "All resolve_targets must have a sample_count of 1"
                     );
-                    let first_use = trackers.views.init(
-                        resolve_target,
-                        view.life_guard.add_ref(),
-                        PhantomData,
-                    ).is_ok();
 
                     let layouts = match view.inner {
                         TextureViewInner::Native { ref source_id, .. } => {
-                            let consistent_usage = base_trackers.textures.query(
-                                source_id.value,
-                                view.range.clone(),
-                            );
-                            output_attachments.push((source_id, &view.range, consistent_usage));
+                            let consistent_use = base_trackers
+                                .textures
+                                .query(source_id.value, view.range.clone());
+                            output_attachments.push((source_id, &view.range, consistent_use));
 
-                            let old_layout = match consistent_usage {
-                                Some(usage) => conv::map_texture_state(usage, hal::format::Aspects::COLOR).1,
+                            let old_layout = match consistent_use {
+                                Some(usage) => {
+                                    conv::map_texture_state(usage, hal::format::Aspects::COLOR).1
+                                }
                                 None => hal::image::Layout::ColorAttachmentOptimal,
                             };
-                            old_layout .. hal::image::Layout::ColorAttachmentOptimal
+                            old_layout..hal::image::Layout::ColorAttachmentOptimal
                         }
                         TextureViewInner::SwapChain { ref source_id, .. } => {
                             if let Some((ref sc_id, _)) = cmb.used_swap_chain {
-                                assert_eq!(source_id.value, sc_id.value);
+                                assert_eq!(
+                                    source_id.value, sc_id.value,
+                                    "Texture view's swap chain must match swap chain in use"
+                                );
                             } else {
                                 assert!(used_swap_chain.is_none());
                                 used_swap_chain = Some(source_id.clone());
                             }
-
-                            let end = hal::image::Layout::Present;
-                            let start = if first_use {
-                                hal::image::Layout::Undefined
-                            } else {
-                                end
-                            };
-                            start .. end
+                            hal::image::Layout::Undefined..hal::image::Layout::Present
                         }
                     };
 
                     resolves.push(hal::pass::Attachment {
-                        format: Some(conv::map_texture_format(view.format, device.features)),
+                        format: Some(conv::map_texture_format(
+                            view.format,
+                            device.private_features,
+                        )),
                         samples: view.samples,
                         ops: hal::pass::AttachmentOps::new(
                             hal::pass::AttachmentLoadOp::DontCare,
@@ -579,11 +584,15 @@ impl<F> Global<F> {
                 }
             };
 
-            for (source_id, view_range, consistent_usage) in output_attachments {
+            for (source_id, view_range, consistent_use) in output_attachments {
                 let texture = &texture_guard[source_id.value];
-                assert!(texture.usage.contains(TextureUsage::OUTPUT_ATTACHMENT));
+                assert!(
+                    texture.usage.contains(TextureUsage::OUTPUT_ATTACHMENT),
+                    "Texture usage {:?} must contain the usage flag OUTPUT_ATTACHMENT",
+                    texture.usage
+                );
 
-                let usage = consistent_usage.unwrap_or(TextureUsage::OUTPUT_ATTACHMENT);
+                let usage = consistent_use.unwrap_or(TextureUse::OUTPUT_ATTACHMENT);
                 // this is important to record the `first` state.
                 let _ = trackers.textures.change_replace(
                     source_id.value,
@@ -591,14 +600,14 @@ impl<F> Global<F> {
                     view_range.clone(),
                     usage,
                 );
-                if consistent_usage.is_some() {
+                if consistent_use.is_some() {
                     // If we expect the texture to be transited to a new state by the
                     // render pass configuration, make the tracker aware of that.
                     let _ = trackers.textures.change_replace(
                         source_id.value,
                         &source_id.ref_count,
                         view_range.clone(),
-                        TextureUsage::OUTPUT_ATTACHMENT,
+                        TextureUse::OUTPUT_ATTACHMENT,
                     );
                 };
             }
@@ -629,7 +638,11 @@ impl<F> Global<F> {
                             } else {
                                 let sample_count_check =
                                     view_guard[color_attachments[i].attachment].samples;
-                                assert!(sample_count_check > 1, "RenderPassColorAttachmentDescriptor with a resolve_target must have an attachment with sample_count > 1");
+                                assert!(
+                                    sample_count_check > 1,
+                                    "RenderPassColorAttachmentDescriptor with a resolve_target must have an attachment with sample_count > 1, had a sample count of {}",
+                                    sample_count_check
+                                );
                                 resolve_ids.push((
                                     attachment_index,
                                     hal::image::Layout::ColorAttachmentOptimal,
@@ -645,7 +658,7 @@ impl<F> Global<F> {
                     );
 
                     let subpass = hal::pass::SubpassDesc {
-                        colors: &color_ids[.. color_attachments.len()],
+                        colors: &color_ids[..color_attachments.len()],
                         resolves: &resolve_ids,
                         depth_stencil: depth_stencil_attachment.map(|_| &depth_id),
                         inputs: &[],
@@ -668,7 +681,6 @@ impl<F> Global<F> {
                 resolves: color_attachments
                     .iter()
                     .filter_map(|at| at.resolve_target)
-                    .cloned()
                     .collect(),
                 depth_stencil: depth_stencil_attachment.map(|at| at.attachment),
             };
@@ -787,7 +799,7 @@ impl<F> Global<F> {
                     0,
                     iter::once(hal::pso::Viewport {
                         rect,
-                        depth: 0.0 .. 1.0,
+                        depth: 0.0..1.0,
                     }),
                 );
             }
@@ -800,7 +812,7 @@ impl<F> Global<F> {
                 resolves: color_attachments
                     .iter()
                     .filter_map(|at| at.resolve_target)
-                    .map(|resolve| view_guard[*resolve].format)
+                    .map(|resolve| view_guard[resolve].format)
                     .collect(),
                 depth_stencil: depth_stencil_attachment.map(|at| view_guard[at.attachment].format),
             };
@@ -808,16 +820,17 @@ impl<F> Global<F> {
         };
 
         let mut state = State {
-            binder: Binder::new(cmb.features.max_bind_groups),
+            binder: Binder::new(cmb.limits.max_bind_groups),
             blend_color: OptionalState::Unused,
             stencil_reference: OptionalState::Unused,
+            pipeline: OptionalState::Required,
             index: IndexState {
                 bound_buffer_view: None,
                 format: IndexFormat::Uint16,
                 limit: 0,
             },
             vertex: VertexState {
-                inputs: [VertexBufferState::EMPTY; MAX_VERTEX_BUFFERS],
+                inputs: SmallVec::new(),
                 vertex_limit: 0,
                 instance_limit: 0,
             },
@@ -830,12 +843,26 @@ impl<F> Global<F> {
             first_instance: 0,
         };
         loop {
-            assert!(unsafe { peeker.add(RenderCommand::max_size()) } <= raw_data_end);
-            peeker = unsafe { command.peek_from(peeker) };
+            assert!(
+                unsafe { peeker.add(RenderCommand::max_size()) <= raw_data_end },
+                "RenderCommand (size {}) is too big to fit within raw_data (size {})",
+                RenderCommand::max_size(),
+                raw_data.len()
+            );
+            peeker = unsafe { RenderCommand::peek_from(peeker, &mut command) };
             match command {
-                RenderCommand::SetBindGroup { index, num_dynamic_offsets, bind_group_id, phantom_offsets } => {
+                RenderCommand::SetBindGroup {
+                    index,
+                    num_dynamic_offsets,
+                    bind_group_id,
+                    phantom_offsets,
+                } => {
                     let (new_peeker, offsets) = unsafe {
-                        phantom_offsets.decode_unaligned(peeker, num_dynamic_offsets as usize, raw_data_end)
+                        phantom_offsets.decode_unaligned(
+                            peeker,
+                            num_dynamic_offsets as usize,
+                            raw_data_end,
+                        )
                     };
                     peeker = new_peeker;
 
@@ -859,11 +886,17 @@ impl<F> Global<F> {
 
                     trackers.merge_extend(&bind_group.used);
 
-                    if let Some((pipeline_layout_id, follow_ups)) = state.binder
-                        .provide_entry(index as usize, bind_group_id, bind_group, offsets)
-                    {
-                        let bind_groups = iter::once(bind_group.raw.raw())
-                            .chain(follow_ups.clone().map(|(bg_id, _)| bind_group_guard[bg_id].raw.raw()));
+                    if let Some((pipeline_layout_id, follow_ups)) = state.binder.provide_entry(
+                        index as usize,
+                        bind_group_id,
+                        bind_group,
+                        offsets,
+                    ) {
+                        let bind_groups = iter::once(bind_group.raw.raw()).chain(
+                            follow_ups
+                                .clone()
+                                .map(|(bg_id, _)| bind_group_guard[bg_id].raw.raw()),
+                        );
                         unsafe {
                             raw.bind_graphics_descriptor_sets(
                                 &&pipeline_layout_guard[pipeline_layout_id].raw,
@@ -872,13 +905,17 @@ impl<F> Global<F> {
                                 offsets
                                     .iter()
                                     .chain(follow_ups.flat_map(|(_, offsets)| offsets))
-                                    .map(|&off| off as hal::command::DescriptorSetOffset),
+                                    .cloned(),
                             );
                         }
                     };
                 }
                 RenderCommand::SetPipeline(pipeline_id) => {
-                    let pipeline = &pipeline_guard[pipeline_id];
+                    state.pipeline = OptionalState::Set;
+                    let pipeline = trackers
+                        .render_pipes
+                        .use_extend(&*pipeline_guard, pipeline_id, (), ())
+                        .unwrap();
 
                     assert!(
                         context.compatible(&pipeline.pass_context),
@@ -889,9 +926,11 @@ impl<F> Global<F> {
                         "The render pipeline and renderpass have mismatching sample_count"
                     );
 
-                    state.blend_color
+                    state
+                        .blend_color
                         .require(pipeline.flags.contains(PipelineFlags::BLEND_COLOR));
-                    state.stencil_reference
+                    state
+                        .stencil_reference
                         .require(pipeline.flags.contains(PipelineFlags::STENCIL_REFERENCE));
 
                     unsafe {
@@ -899,21 +938,22 @@ impl<F> Global<F> {
                     }
 
                     // Rebind resource
-                    if state.binder.pipeline_layout_id != Some(pipeline.layout_id) {
-                        let pipeline_layout = &pipeline_layout_guard[pipeline.layout_id];
-                        state.binder.pipeline_layout_id = Some(pipeline.layout_id);
-                        state.binder
+                    if state.binder.pipeline_layout_id != Some(pipeline.layout_id.value) {
+                        let pipeline_layout = &pipeline_layout_guard[pipeline.layout_id.value];
+                        state.binder.pipeline_layout_id = Some(pipeline.layout_id.value);
+                        state
+                            .binder
                             .reset_expectations(pipeline_layout.bind_group_layout_ids.len());
                         let mut is_compatible = true;
 
-                        for (index, (entry, &bgl_id)) in state
+                        for (index, (entry, bgl_id)) in state
                             .binder
                             .entries
                             .iter_mut()
                             .zip(&pipeline_layout.bind_group_layout_ids)
                             .enumerate()
                         {
-                            match entry.expect_layout(bgl_id) {
+                            match entry.expect_layout(bgl_id.value) {
                                 LayoutChange::Match(bg_id, offsets) if is_compatible => {
                                     let desc_set = bind_group_guard[bg_id].raw.raw();
                                     unsafe {
@@ -921,7 +961,7 @@ impl<F> Global<F> {
                                             &pipeline_layout.raw,
                                             index,
                                             iter::once(desc_set),
-                                            offsets.iter().map(|offset| *offset as u32),
+                                            offsets.iter().cloned(),
                                         );
                                     }
                                 }
@@ -941,12 +981,15 @@ impl<F> Global<F> {
                         if let Some((buffer_id, ref range)) = state.index.bound_buffer_view {
                             let buffer = trackers
                                 .buffers
-                                .use_extend(&*buffer_guard, buffer_id, (), BufferUsage::INDEX)
+                                .use_extend(&*buffer_guard, buffer_id, (), BufferUse::INDEX)
                                 .unwrap();
 
                             let view = hal::buffer::IndexBufferView {
                                 buffer: &buffer.raw,
-                                offset: range.start,
+                                range: hal::buffer::SubRange {
+                                    offset: range.start,
+                                    size: Some(range.end - range.start),
+                                },
                                 index_type: conv::map_index_format(state.index.format),
                             };
 
@@ -956,35 +999,44 @@ impl<F> Global<F> {
                         }
                     }
                     // Update vertex buffer limits
-                    for (vbs, &(stride, rate)) in state
-                        .vertex
-                        .inputs
-                        .iter_mut()
-                        .zip(&pipeline.vertex_strides)
+                    for (vbs, &(stride, rate)) in
+                        state.vertex.inputs.iter_mut().zip(&pipeline.vertex_strides)
                     {
                         vbs.stride = stride;
                         vbs.rate = rate;
                     }
-                    for vbs in state.vertex.inputs[pipeline.vertex_strides.len() ..].iter_mut() {
+                    let vertex_strides_len = pipeline.vertex_strides.len();
+                    for vbs in state.vertex.inputs.iter_mut().skip(vertex_strides_len) {
                         vbs.stride = 0;
                         vbs.rate = InputStepMode::Vertex;
                     }
                     state.vertex.update_limits();
                 }
-                RenderCommand::SetIndexBuffer { buffer_id, offset } => {
+                RenderCommand::SetIndexBuffer {
+                    buffer_id,
+                    offset,
+                    size,
+                } => {
                     let buffer = trackers
                         .buffers
-                        .use_extend(&*buffer_guard, buffer_id, (), BufferUsage::INDEX)
+                        .use_extend(&*buffer_guard, buffer_id, (), BufferUse::INDEX)
                         .unwrap();
-                    assert!(buffer.usage.contains(BufferUsage::INDEX));
+                    assert!(buffer.usage.contains(BufferUsage::INDEX), "An invalid setIndexBuffer call has been made. The buffer usage is {:?} which does not contain required usage INDEX", buffer.usage);
 
-                    let range = offset .. buffer.size;
-                    state.index.bound_buffer_view = Some((buffer_id, range));
+                    let end = if size != BufferSize::WHOLE {
+                        offset + size.0
+                    } else {
+                        buffer.size
+                    };
+                    state.index.bound_buffer_view = Some((buffer_id, offset..end));
                     state.index.update_limit();
 
                     let view = hal::buffer::IndexBufferView {
                         buffer: &buffer.raw,
-                        offset,
+                        range: hal::buffer::SubRange {
+                            offset,
+                            size: Some(end - offset),
+                        },
                         index_type: conv::map_index_format(state.index.format),
                     };
 
@@ -992,31 +1044,38 @@ impl<F> Global<F> {
                         raw.bind_index_buffer(view);
                     }
                 }
-                RenderCommand::SetVertexBuffers { start_index, count, phantom_buffer_ids, phantom_offsets } => {
-                    let (new_peeker, buffer_ids) = unsafe {
-                        phantom_buffer_ids.decode_unaligned(peeker, count as usize, raw_data_end)
+                RenderCommand::SetVertexBuffer {
+                    slot,
+                    buffer_id,
+                    offset,
+                    size,
+                } => {
+                    let buffer = trackers
+                        .buffers
+                        .use_extend(&*buffer_guard, buffer_id, (), BufferUse::VERTEX)
+                        .unwrap();
+                    assert!(buffer.usage.contains(BufferUsage::VERTEX), "An invalid setVertexBuffer call has been made. The buffer usage is {:?} which does not contain required usage VERTEX", buffer.usage);
+                    let empty_slots = (1 + slot as usize).saturating_sub(state.vertex.inputs.len());
+                    state
+                        .vertex
+                        .inputs
+                        .extend(iter::repeat(VertexBufferState::EMPTY).take(empty_slots));
+                    state.vertex.inputs[slot as usize].total_size = if size != BufferSize::WHOLE {
+                        size.0
+                    } else {
+                        buffer.size - offset
                     };
-                    let (new_peeker, offsets) = unsafe {
-                        phantom_offsets.decode_unaligned(new_peeker, count as usize, raw_data_end)
+
+                    let range = hal::buffer::SubRange {
+                        offset,
+                        size: if size != BufferSize::WHOLE {
+                            Some(size.0)
+                        } else {
+                            None
+                        },
                     };
-                    peeker = new_peeker;
-
-                    let pairs = state.vertex.inputs[start_index as usize ..]
-                        .iter_mut()
-                        .zip(buffer_ids.iter().zip(offsets))
-                        .map(|(vbs, (&id, &offset))| {
-                            let buffer = trackers
-                                .buffers
-                                .use_extend(&*buffer_guard, id, (), BufferUsage::VERTEX)
-                                .unwrap();
-                            assert!(buffer.usage.contains(BufferUsage::VERTEX));
-
-                            vbs.total_size = buffer.size - offset;
-                            (&buffer.raw, offset)
-                        });
-
                     unsafe {
-                        raw.bind_vertex_buffers(start_index as u32, pairs);
+                        raw.bind_vertex_buffers(slot, iter::once((&buffer.raw, range)));
                     }
                     state.vertex.update_limits();
                 }
@@ -1032,7 +1091,11 @@ impl<F> Global<F> {
                         raw.set_stencil_reference(hal::pso::Face::all(), value);
                     }
                 }
-                RenderCommand::SetViewport { ref rect, depth_min, depth_max } => {
+                RenderCommand::SetViewport {
+                    ref rect,
+                    depth_min,
+                    depth_max,
+                } => {
                     use std::{convert::TryFrom, i16};
                     let r = hal::pso::Rect {
                         x: i16::try_from(rect.x.round() as i64).unwrap_or(0),
@@ -1045,7 +1108,7 @@ impl<F> Global<F> {
                             0,
                             iter::once(hal::pso::Viewport {
                                 rect: r,
-                                depth: depth_min .. depth_max,
+                                depth: depth_min..depth_max,
                             }),
                         );
                     }
@@ -1059,48 +1122,64 @@ impl<F> Global<F> {
                         h: i16::try_from(rect.h).unwrap_or(i16::MAX),
                     };
                     unsafe {
-                        raw.set_scissors(
-                            0,
-                            iter::once(r),
-                        );
+                        raw.set_scissors(0, iter::once(r));
                     }
                 }
-                RenderCommand::Draw { vertex_count, instance_count, first_vertex, first_instance } => {
+                RenderCommand::Draw {
+                    vertex_count,
+                    instance_count,
+                    first_vertex,
+                    first_instance,
+                } => {
                     state.is_ready().unwrap();
                     assert!(
                         first_vertex + vertex_count <= state.vertex.vertex_limit,
-                        "Vertex out of range!"
+                        "Vertex {} extends beyond limit {}",
+                        first_vertex + vertex_count,
+                        state.vertex.vertex_limit
                     );
                     assert!(
                         first_instance + instance_count <= state.vertex.instance_limit,
-                        "Instance out of range!"
+                        "Instance {} extends beyond limit {}",
+                        first_instance + instance_count,
+                        state.vertex.instance_limit
                     );
 
                     unsafe {
                         raw.draw(
-                            first_vertex .. first_vertex + vertex_count,
-                            first_instance .. first_instance + instance_count,
+                            first_vertex..first_vertex + vertex_count,
+                            first_instance..first_instance + instance_count,
                         );
                     }
                 }
-                RenderCommand::DrawIndexed { index_count, instance_count, first_index, base_vertex, first_instance } => {
+                RenderCommand::DrawIndexed {
+                    index_count,
+                    instance_count,
+                    first_index,
+                    base_vertex,
+                    first_instance,
+                } => {
                     state.is_ready().unwrap();
 
                     //TODO: validate that base_vertex + max_index() is within the provided range
                     assert!(
                         first_index + index_count <= state.index.limit,
-                        "Index out of range!"
+                        "Index {} extends beyond limit {}",
+                        first_index + index_count,
+                        state.index.limit
                     );
                     assert!(
                         first_instance + instance_count <= state.vertex.instance_limit,
-                        "Instance out of range!"
+                        "Instance {} extends beyond limit {}",
+                        first_instance + instance_count,
+                        state.vertex.instance_limit
                     );
 
                     unsafe {
                         raw.draw_indexed(
-                            first_index .. first_index + index_count,
+                            first_index..first_index + index_count,
                             base_vertex,
-                            first_instance .. first_instance + instance_count,
+                            first_instance..first_instance + instance_count,
                         );
                     }
                 }
@@ -1109,14 +1188,9 @@ impl<F> Global<F> {
 
                     let buffer = trackers
                         .buffers
-                        .use_extend(
-                            &*buffer_guard,
-                            buffer_id,
-                            (),
-                            BufferUsage::INDIRECT,
-                        )
+                        .use_extend(&*buffer_guard, buffer_id, (), BufferUse::INDIRECT)
                         .unwrap();
-                    assert!(buffer.usage.contains(BufferUsage::INDIRECT));
+                    assert!(buffer.usage.contains(BufferUsage::INDIRECT), "An invalid drawIndirect call has been made. The buffer usage is {:?} which does not contain required usage INDIRECT", buffer.usage);
 
                     unsafe {
                         raw.draw_indirect(&buffer.raw, offset, 1, 0);
@@ -1127,14 +1201,9 @@ impl<F> Global<F> {
 
                     let buffer = trackers
                         .buffers
-                        .use_extend(
-                            &*buffer_guard,
-                            buffer_id,
-                            (),
-                            BufferUsage::INDIRECT,
-                        )
+                        .use_extend(&*buffer_guard, buffer_id, (), BufferUse::INDIRECT)
                         .unwrap();
-                    assert!(buffer.usage.contains(BufferUsage::INDIRECT));
+                    assert!(buffer.usage.contains(BufferUsage::INDIRECT), "An invalid drawIndexedIndirect call has been made. The buffer usage is {:?} which does not contain required usage INDIRECT", buffer.usage);
 
                     unsafe {
                         raw.draw_indexed_indirect(&buffer.raw, offset, 1, 0);
@@ -1144,6 +1213,49 @@ impl<F> Global<F> {
             }
         }
 
+        #[cfg(feature = "trace")]
+        match cmb.commands {
+            Some(ref mut list) => {
+                let mut pass_commands = Vec::new();
+                let mut pass_dynamic_offsets = Vec::new();
+                peeker = command_peeker_base;
+                loop {
+                    peeker = unsafe { RenderCommand::peek_from(peeker, &mut command) };
+                    match command {
+                        RenderCommand::SetBindGroup {
+                            num_dynamic_offsets,
+                            phantom_offsets,
+                            ..
+                        } => {
+                            let (new_peeker, offsets) = unsafe {
+                                phantom_offsets.decode_unaligned(
+                                    peeker,
+                                    num_dynamic_offsets as usize,
+                                    raw_data_end,
+                                )
+                            };
+                            peeker = new_peeker;
+                            pass_dynamic_offsets.extend_from_slice(offsets);
+                        }
+                        RenderCommand::End => break,
+                        _ => {}
+                    }
+                    pass_commands.push(command);
+                }
+                list.push(crate::device::trace::Command::RunRenderPass {
+                    target_colors: color_attachments.into_iter().collect(),
+                    target_depth_stencil: depth_stencil_attachment.cloned(),
+                    commands: pass_commands,
+                    dynamic_offsets: pass_dynamic_offsets,
+                });
+            }
+            None => {}
+        }
+
+        log::trace!("Merging {:?} with the render pass", encoder_id);
+        unsafe {
+            raw.end_render_pass();
+        }
         super::CommandBuffer::insert_barriers(
             cmb.raw.last_mut().unwrap(),
             &mut cmb.trackers,
@@ -1153,7 +1265,6 @@ impl<F> Global<F> {
         );
         unsafe {
             cmb.raw.last_mut().unwrap().finish();
-            raw.end_render_pass();
         }
         cmb.raw.push(raw);
     }
@@ -1161,17 +1272,12 @@ impl<F> Global<F> {
 
 pub mod render_ffi {
     use super::{
-        RenderCommand,
         super::{PhantomSlice, RawPass, Rect},
+        RenderCommand,
     };
-    use crate::{
-        id,
-        BufferAddress,
-        Color,
-        DynamicOffset,
-        RawString,
-    };
+    use crate::{id, RawString};
     use std::{convert::TryInto, slice};
+    use wgt::{BufferAddress, BufferSize, Color, DynamicOffset};
 
     /// # Safety
     ///
@@ -1191,11 +1297,9 @@ pub mod render_ffi {
             index: index.try_into().unwrap(),
             num_dynamic_offsets: offset_length.try_into().unwrap(),
             bind_group_id,
-            phantom_offsets: PhantomSlice::new(),
+            phantom_offsets: PhantomSlice::default(),
         });
-        pass.encode_slice(
-            slice::from_raw_parts(offsets, offset_length),
-        );
+        pass.encode_slice(slice::from_raw_parts(offsets, offset_length));
     }
 
     #[no_mangle]
@@ -1211,46 +1315,33 @@ pub mod render_ffi {
         pass: &mut RawPass,
         buffer_id: id::BufferId,
         offset: BufferAddress,
+        size: BufferSize,
     ) {
         pass.encode(&RenderCommand::SetIndexBuffer {
             buffer_id,
             offset,
+            size,
         });
     }
 
-    /// # Safety
-    ///
-    /// This function is unsafe as there is no guarantee that the given pointers
-    /// (`buffer_ids` and `offsets`) are valid for `length` elements.
-    // TODO: There might be other safety issues, such as using the unsafe
-    // `RawPass::encode` and `RawPass::encode_slice`.
     #[no_mangle]
-    pub unsafe extern "C" fn wgpu_render_pass_set_vertex_buffers(
+    pub unsafe extern "C" fn wgpu_render_pass_set_vertex_buffer(
         pass: &mut RawPass,
-        start_slot: u32,
-        buffer_ids: *const id::BufferId,
-        offsets: *const BufferAddress,
-        length: usize,
+        slot: u32,
+        buffer_id: id::BufferId,
+        offset: BufferAddress,
+        size: BufferSize,
     ) {
-        pass.encode(&RenderCommand::SetVertexBuffers {
-            start_index: start_slot.try_into().unwrap(),
-            count: length.try_into().unwrap(),
-            phantom_buffer_ids: PhantomSlice::new(),
-            phantom_offsets: PhantomSlice::new(),
+        pass.encode(&RenderCommand::SetVertexBuffer {
+            slot,
+            buffer_id,
+            offset,
+            size,
         });
-        pass.encode_slice(
-            slice::from_raw_parts(buffer_ids, length),
-        );
-        pass.encode_slice(
-            slice::from_raw_parts(offsets, length),
-        );
     }
 
     #[no_mangle]
-    pub unsafe extern "C" fn wgpu_render_pass_set_blend_color(
-        pass: &mut RawPass,
-        color: &Color,
-    ) {
+    pub unsafe extern "C" fn wgpu_render_pass_set_blend_color(pass: &mut RawPass, color: &Color) {
         pass.encode(&RenderCommand::SetBlendColor(*color));
     }
 
@@ -1330,10 +1421,7 @@ pub mod render_ffi {
         buffer_id: id::BufferId,
         offset: BufferAddress,
     ) {
-        pass.encode(&RenderCommand::DrawIndirect {
-            buffer_id,
-            offset,
-        });
+        pass.encode(&RenderCommand::DrawIndirect { buffer_id, offset });
     }
 
     #[no_mangle]
@@ -1342,10 +1430,7 @@ pub mod render_ffi {
         buffer_id: id::BufferId,
         offset: BufferAddress,
     ) {
-        pass.encode(&RenderCommand::DrawIndexedIndirect {
-            buffer_id,
-            offset,
-        });
+        pass.encode(&RenderCommand::DrawIndexedIndirect { buffer_id, offset });
     }
 
     #[no_mangle]
@@ -1358,25 +1443,17 @@ pub mod render_ffi {
     }
 
     #[no_mangle]
-    pub extern "C" fn wgpu_render_pass_push_debug_group(
-        _pass: &mut RawPass,
-        _label: RawString,
-    ) {
+    pub extern "C" fn wgpu_render_pass_push_debug_group(_pass: &mut RawPass, _label: RawString) {
         //TODO
     }
 
     #[no_mangle]
-    pub extern "C" fn wgpu_render_pass_pop_debug_group(
-        _pass: &mut RawPass,
-    ) {
+    pub extern "C" fn wgpu_render_pass_pop_debug_group(_pass: &mut RawPass) {
         //TODO
     }
 
     #[no_mangle]
-    pub extern "C" fn wgpu_render_pass_insert_debug_marker(
-        _pass: &mut RawPass,
-        _label: RawString,
-    ) {
+    pub extern "C" fn wgpu_render_pass_insert_debug_marker(_pass: &mut RawPass, _label: RawString) {
         //TODO
     }
 

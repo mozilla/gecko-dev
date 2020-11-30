@@ -16,7 +16,7 @@
 #include "mozilla/net/PNeckoParent.h"
 #include "nsIPermissionManager.h"
 #include "mozilla/ipc/PBackgroundParent.h"
-#include "mtransport/runnable_utils.h"
+#include "transport/runnable_utils.h"
 
 namespace mozilla {
 
@@ -32,31 +32,16 @@ UDPSocketParent::UDPSocketParent(PBackgroundParent* aManager)
 UDPSocketParent::UDPSocketParent(PNeckoParent* aManager)
     : mBackgroundManager(nullptr), mIPCOpen(true) {}
 
-UDPSocketParent::~UDPSocketParent() {}
+UDPSocketParent::~UDPSocketParent() = default;
 
 bool UDPSocketParent::Init(nsIPrincipal* aPrincipal,
                            const nsACString& aFilter) {
   MOZ_ASSERT_IF(mBackgroundManager, !aPrincipal);
   // will be used once we move all UDPSocket to PBackground, or
-  // if we add in Principal checking for mtransport
+  // if we add in Principal checking for dom/media/webrtc/transport
   Unused << mBackgroundManager;
 
   mPrincipal = aPrincipal;
-  if (net::UsingNeckoIPCSecurity() && mPrincipal &&
-      !ContentParent::IgnoreIPCPrincipal()) {
-    nsCOMPtr<nsIPermissionManager> permMgr = services::GetPermissionManager();
-    if (!permMgr) {
-      NS_WARNING("No PermissionManager available!");
-      return false;
-    }
-
-    uint32_t permission = nsIPermissionManager::DENY_ACTION;
-    permMgr->TestExactPermissionFromPrincipal(
-        mPrincipal, NS_LITERAL_CSTRING("udp-socket"), &permission);
-    if (permission != nsIPermissionManager::ALLOW_ACTION) {
-      return false;
-    }
-  }
 
   if (!aFilter.IsEmpty()) {
     nsAutoCString contractId(NS_NETWORK_UDP_SOCKET_FILTER_HANDLER_PREFIX);
@@ -80,12 +65,7 @@ bool UDPSocketParent::Init(nsIPrincipal* aPrincipal,
       return false;
     }
   }
-  // We don't have browser actors in xpcshell, and hence can't run automated
-  // tests without this loophole.
-  if (net::UsingNeckoIPCSecurity() && !mFilter &&
-      (!mPrincipal || ContentParent::IgnoreIPCPrincipal())) {
-    return false;
-  }
+
   return true;
 }
 
@@ -159,8 +139,7 @@ nsresult UDPSocketParent::BindInternal(const nsCString& aHost,
       return NS_ERROR_FAILURE;
     }
 
-    mozilla::net::NetAddr addr;
-    PRNetAddrToNetAddr(&prAddr, &addr);
+    mozilla::net::NetAddr addr(&prAddr);
     rv = sock->InitWithAddress(&addr, mPrincipal, aAddressReuse,
                                /* optional_argc = */ 1);
   }
@@ -235,7 +214,7 @@ static void CheckSTSThread() {
 // should be done there.
 mozilla::ipc::IPCResult UDPSocketParent::RecvConnect(
     const UDPAddressInfo& aAddressInfo) {
-  nsCOMPtr<nsIEventTarget> target = GetCurrentThreadEventTarget();
+  nsCOMPtr<nsIEventTarget> target = GetCurrentEventTarget();
   Unused << NS_WARN_IF(NS_FAILED(GetSTSThread()->Dispatch(
       WrapRunnable(RefPtr<UDPSocketParent>(this), &UDPSocketParent::DoConnect,
                    mSocket, target, aAddressInfo),
@@ -308,9 +287,7 @@ nsresult UDPSocketParent::ConnectInternal(const nsCString& aHost,
     return NS_ERROR_FAILURE;
   }
 
-  mozilla::net::NetAddr addr;
-  PRNetAddrToNetAddr(&prAddr, &addr);
-
+  mozilla::net::NetAddr addr(&prAddr);
   rv = mSocket->Connect(&addr);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
@@ -526,8 +503,7 @@ UDPSocketParent::OnPacketReceived(nsIUDPSocket* aSocket,
     FireInternalError(__LINE__);
     return NS_ERROR_OUT_OF_MEMORY;
   }
-  nsTArray<uint8_t> infallibleArray;
-  infallibleArray.SwapElements(fallibleArray);
+  nsTArray<uint8_t> infallibleArray{std::move(fallibleArray)};
 
   // compose callback
   mozilla::Unused << SendCallbackReceivedData(UDPAddressInfo(ip, port),
@@ -550,8 +526,8 @@ void UDPSocketParent::FireInternalError(uint32_t aLineNo) {
     return;
   }
 
-  mozilla::Unused << SendCallbackError(NS_LITERAL_CSTRING("Internal error"),
-                                       NS_LITERAL_CSTRING(__FILE__), aLineNo);
+  mozilla::Unused << SendCallbackError("Internal error"_ns,
+                                       nsLiteralCString(__FILE__), aLineNo);
 }
 
 void UDPSocketParent::SendInternalError(const nsCOMPtr<nsIEventTarget>& aThread,

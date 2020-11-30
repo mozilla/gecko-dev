@@ -26,8 +26,8 @@ void js::Mutex::preLockChecks() const {
   if (prev) {
     if (id_.order <= prev->id_.order) {
       fprintf(stderr,
-              "Attempt to acquire mutex %s with order %d while holding %s with "
-              "order %d\n",
+              "Attempt to acquire mutex %s with order %u while holding %s with "
+              "order %u\n",
               id_.name, id_.order, prev->id_.name, prev->id_.order);
       MOZ_CRASH("Mutex ordering violation");
     }
@@ -59,10 +59,13 @@ void js::Mutex::preUnlockChecks() {
   owningThread_.reset();
 }
 
+bool js::Mutex::isHeld() const { return owningThread_.isSome(); }
+
 bool js::Mutex::ownedByCurrentThread() const {
   // First determine this using the owningThread_ property, then check it via
   // the mutex stack.
-  bool check = ThreadId::ThisThreadId() == owningThread_.value();
+  bool check = owningThread_.isSome() &&
+               ThreadId::ThisThreadId() == owningThread_.value();
 
   Mutex* stack = HeldMutexStack.get();
 

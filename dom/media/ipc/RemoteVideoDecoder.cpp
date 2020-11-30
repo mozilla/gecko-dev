@@ -16,10 +16,12 @@
 #endif
 #include "GPUVideoImage.h"
 #include "ImageContainer.h"  // for PlanarYCbCrData and BufferRecycleBin
+#include "MediaDataDecoderProxy.h"
 #include "MediaInfo.h"
 #include "PDMFactory.h"
 #include "RemoteDecoderManagerChild.h"
 #include "RemoteDecoderManagerParent.h"
+#include "RemoteImageHolder.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/layers/ImageClient.h"
@@ -72,95 +74,16 @@ RemoteVideoDecoderChild::RemoteVideoDecoderChild(bool aRecreatedOnCrash)
     : RemoteDecoderChild(aRecreatedOnCrash),
       mBufferRecycleBin(new BufferRecycleBin) {}
 
-RefPtr<mozilla::layers::Image> RemoteVideoDecoderChild::DeserializeImage(
-    const SurfaceDescriptorBuffer& aSdBuffer, const IntSize& aPicSize) {
-  MOZ_ASSERT(aSdBuffer.desc().type() == BufferDescriptor::TYCbCrDescriptor);
-  if (aSdBuffer.desc().type() != BufferDescriptor::TYCbCrDescriptor) {
-    return nullptr;
-  }
-  const YCbCrDescriptor& descriptor = aSdBuffer.desc().get_YCbCrDescriptor();
-
-  uint8_t* buffer = nullptr;
-  const MemoryOrShmem& memOrShmem = aSdBuffer.data();
-  switch (memOrShmem.type()) {
-    case MemoryOrShmem::Tuintptr_t:
-      buffer = reinterpret_cast<uint8_t*>(memOrShmem.get_uintptr_t());
-      break;
-    case MemoryOrShmem::TShmem:
-      buffer = memOrShmem.get_Shmem().get<uint8_t>();
-      break;
-    default:
-      MOZ_ASSERT(false, "Unknown MemoryOrShmem type");
-  }
-  if (!buffer) {
-    return nullptr;
-  }
-
-  PlanarYCbCrData pData;
-  pData.mYSize = descriptor.ySize();
-  pData.mYStride = descriptor.yStride();
-  pData.mCbCrSize = descriptor.cbCrSize();
-  pData.mCbCrStride = descriptor.cbCrStride();
-  // default mYSkip, mCbSkip, mCrSkip because not held in YCbCrDescriptor
-  pData.mYSkip = pData.mCbSkip = pData.mCrSkip = 0;
-  // default mPicX, mPicY because not held in YCbCrDescriptor
-  pData.mPicX = pData.mPicY = 0;
-  pData.mPicSize = aPicSize;
-  pData.mStereoMode = descriptor.stereoMode();
-  pData.mColorDepth = descriptor.colorDepth();
-  pData.mYUVColorSpace = descriptor.yUVColorSpace();
-  pData.mYChannel = ImageDataSerializer::GetYChannel(buffer, descriptor);
-  pData.mCbChannel = ImageDataSerializer::GetCbChannel(buffer, descriptor);
-  pData.mCrChannel = ImageDataSerializer::GetCrChannel(buffer, descriptor);
-
-  // images coming from AOMDecoder are RecyclingPlanarYCbCrImages.
-  RefPtr<RecyclingPlanarYCbCrImage> image =
-      new RecyclingPlanarYCbCrImage(mBufferRecycleBin);
-  bool setData = image->CopyData(pData);
-  MOZ_ASSERT(setData);
-
-  switch (memOrShmem.type()) {
-    case MemoryOrShmem::Tuintptr_t:
-      delete[] reinterpret_cast<uint8_t*>(memOrShmem.get_uintptr_t());
-      break;
-    case MemoryOrShmem::TShmem:
-      // Memory buffer will be recycled by the parent automatically.
-      break;
-    default:
-      MOZ_ASSERT(false, "Unknown MemoryOrShmem type");
-  }
-
-  if (!setData) {
-    return nullptr;
-  }
-
-  return image;
-}
-
 MediaResult RemoteVideoDecoderChild::ProcessOutput(
-    const DecodedOutputIPDL& aDecodedData) {
+    DecodedOutputIPDL&& aDecodedData) {
   AssertOnManagerThread();
-  MOZ_ASSERT(aDecodedData.type() ==
-             DecodedOutputIPDL::TArrayOfRemoteVideoDataIPDL);
+  MOZ_ASSERT(aDecodedData.type() == DecodedOutputIPDL::TArrayOfRemoteVideoData);
 
-  const nsTArray<RemoteVideoDataIPDL>& arrayData =
-      aDecodedData.get_ArrayOfRemoteVideoDataIPDL();
+  nsTArray<RemoteVideoData>& arrayData =
+      aDecodedData.get_ArrayOfRemoteVideoData()->Array();
 
   for (auto&& data : arrayData) {
-    RefPtr<Image> image;
-    if (data.sd().type() == SurfaceDescriptor::TSurfaceDescriptorBuffer) {
-      image = DeserializeImage(data.sd().get_SurfaceDescriptorBuffer(),
-                               data.frameSize());
-    } else {
-      // The Image here creates a TextureData object that takes ownership
-      // of the SurfaceDescriptor, and is responsible for making sure that
-      // it gets deallocated.
-      SurfaceDescriptorRemoteDecoder remoteSD =
-          static_cast<const SurfaceDescriptorGPUVideo&>(data.sd());
-      remoteSD.source() = Some(GetManager()->GetSource());
-      image = new GPUVideoImage(GetManager(), remoteSD, data.frameSize());
-    }
-
+    RefPtr<Image> image = data.image().TransferToImage(mBufferRecycleBin);
     RefPtr<VideoData> video = VideoData::CreateFromImage(
         data.display(), data.base().offset(), data.base().time(),
         data.base().duration(), image, data.base().keyframe(),
@@ -251,9 +174,9 @@ RemoteVideoDecoderParent::RemoteVideoDecoderParent(
     RemoteDecoderManagerParent* aParent, const VideoInfo& aVideoInfo,
     float aFramerate, const CreateDecoderParams::OptionSet& aOptions,
     const Maybe<layers::TextureFactoryIdentifier>& aIdentifier,
-    TaskQueue* aManagerTaskQueue, TaskQueue* aDecodeTaskQueue, bool* aSuccess,
-    nsCString* aErrorDescription)
-    : RemoteDecoderParent(aParent, aManagerTaskQueue, aDecodeTaskQueue),
+    nsISerialEventTarget* aManagerThread, TaskQueue* aDecodeTaskQueue,
+    bool* aSuccess, nsCString* aErrorDescription)
+    : RemoteDecoderParent(aParent, aManagerThread, aDecodeTaskQueue),
       mVideoInfo(aVideoInfo) {
   if (aIdentifier) {
     // Check to see if we have a direct PVideoBridge connection to the
@@ -264,15 +187,21 @@ RemoteVideoDecoderParent::RemoteVideoDecoderParent(
         KnowsCompositorVideo::TryCreateForIdentifier(*aIdentifier);
   }
 
+  RefPtr<layers::ImageContainer> container = new layers::ImageContainer();
+  if (mKnowsCompositor && XRE_IsRDDProcess()) {
+    // Ensure to allocate recycle allocator
+    container->EnsureRecycleAllocatorForRDD(mKnowsCompositor);
+  }
+
   CreateDecoderParams params(mVideoInfo);
-  params.mTaskQueue = mDecodeTaskQueue;
   params.mKnowsCompositor = mKnowsCompositor;
-  params.mImageContainer = new layers::ImageContainer();
+  params.mImageContainer = container;
   params.mRate = CreateDecoderParams::VideoFrameRate(aFramerate);
   params.mOptions = aOptions;
   MediaResult error(NS_OK);
   params.mError = &error;
 
+  RefPtr<MediaDataDecoder> decoder;
   if (XRE_IsGPUProcess()) {
 #ifdef XP_WIN
     // Ensure everything is properly initialized on the right thread.
@@ -282,7 +211,7 @@ RemoteVideoDecoderParent::RemoteVideoDecoderParent(
     // PDM factory logic for picking a decoder.
     RefPtr<WMFDecoderModule> pdm(new WMFDecoderModule());
     pdm->Startup();
-    mDecoder = pdm->CreateVideoDecoder(params);
+    decoder = pdm->CreateVideoDecoder(params);
 #else
     MOZ_ASSERT(false,
                "Can't use RemoteVideoDecoder in the GPU process on non-Windows "
@@ -293,9 +222,9 @@ RemoteVideoDecoderParent::RemoteVideoDecoderParent(
 #ifdef MOZ_AV1
   if (AOMDecoder::IsAV1(params.mConfig.mMimeType)) {
     if (StaticPrefs::media_av1_use_dav1d()) {
-      mDecoder = new DAV1DDecoder(params);
+      decoder = new DAV1DDecoder(params);
     } else {
-      mDecoder = new AOMDecoder(params);
+      decoder = new AOMDecoder(params);
     }
   }
 #endif
@@ -305,21 +234,24 @@ RemoteVideoDecoderParent::RemoteVideoDecoderParent(
     *aErrorDescription = error.Description();
   }
 
+  if (decoder) {
+    mDecoder = new MediaDataDecoderProxy(decoder.forget(),
+                                         do_AddRef(mDecodeTaskQueue.get()));
+  }
   *aSuccess = !!mDecoder;
 }
 
 MediaResult RemoteVideoDecoderParent::ProcessDecodedData(
-    const MediaDataDecoder::DecodedData& aData,
-    DecodedOutputIPDL& aDecodedData) {
+    MediaDataDecoder::DecodedData&& aData, DecodedOutputIPDL& aDecodedData) {
   MOZ_ASSERT(OnManagerThread());
-
-  nsTArray<RemoteVideoDataIPDL> array;
 
   // If the video decoder bridge has shut down, stop.
   if (mKnowsCompositor && !mKnowsCompositor->GetTextureForwarder()) {
-    aDecodedData = std::move(array);
+    aDecodedData = MakeRefPtr<ArrayOfRemoteVideoData>();
     return NS_OK;
   }
+
+  nsTArray<RemoteVideoData> array;
 
   for (const auto& data : aData) {
     MOZ_ASSERT(data->mType == MediaData::Type::VIDEO_DATA,
@@ -330,12 +262,13 @@ MediaResult RemoteVideoDecoderParent::ProcessDecodedData(
                "Decoded video must output a layer::Image to "
                "be used with RemoteDecoderParent");
 
+    RefPtr<TextureClient> texture;
     SurfaceDescriptor sd;
     IntSize size;
+    bool needStorage = false;
 
     if (mKnowsCompositor) {
-      RefPtr<TextureClient> texture =
-          video->mImage->GetTextureClient(mKnowsCompositor);
+      texture = video->mImage->GetTextureClient(mKnowsCompositor);
 
       if (!texture) {
         texture = ImageClient::CreateTextureClientForImage(video->mImage,
@@ -347,7 +280,10 @@ MediaResult RemoteVideoDecoderParent::ProcessDecodedData(
           texture->InitIPDLActor(mKnowsCompositor);
           texture->SetAddedToCompositableClient();
         }
-        sd = mParent->StoreImage(video->mImage, texture);
+        needStorage = true;
+        SurfaceDescriptorRemoteDecoder remoteSD;
+        texture->GetSurfaceDescriptorRemoteDecoder(&remoteSD);
+        sd = remoteSD;
         size = texture->GetSize();
       }
     }
@@ -355,6 +291,7 @@ MediaResult RemoteVideoDecoderParent::ProcessDecodedData(
     // If failed to create a GPU accelerated surface descriptor, fall back to
     // copying frames via shmem.
     if (!IsSurfaceDescriptorValid(sd)) {
+      needStorage = false;
       PlanarYCbCrImage* image = video->mImage->AsPlanarYCbCrImage();
       if (!image) {
         return MediaResult(NS_ERROR_UNEXPECTED,
@@ -377,15 +314,26 @@ MediaResult RemoteVideoDecoderParent::ProcessDecodedData(
       size = image->GetSize();
     }
 
-    RemoteVideoDataIPDL output(
+    if (needStorage) {
+      MOZ_ASSERT(sd.type() != SurfaceDescriptor::TSurfaceDescriptorBuffer);
+      mParent->StoreImage(static_cast<const SurfaceDescriptorGPUVideo&>(sd),
+                          video->mImage, texture);
+    }
+
+    RemoteVideoData output(
         MediaDataIPDL(data->mOffset, data->mTime, data->mTimecode,
                       data->mDuration, data->mKeyframe),
-        video->mDisplay, size, sd, video->mFrameID);
+        video->mDisplay,
+        RemoteImageHolder(mParent,
+                          XRE_IsGPUProcess() ? VideoBridgeSource::GpuProcess
+                                             : VideoBridgeSource::RddProcess,
+                          size, sd),
+        video->mFrameID);
 
-    array.AppendElement(output);
+    array.AppendElement(std::move(output));
   }
 
-  aDecodedData = std::move(array);
+  aDecodedData = MakeRefPtr<ArrayOfRemoteVideoData>(std::move(array));
 
   return NS_OK;
 }

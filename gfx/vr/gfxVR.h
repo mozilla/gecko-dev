@@ -28,6 +28,8 @@ enum class GamepadMappingType : uint8_t;
 enum class GamepadHand : uint8_t;
 }  // namespace dom
 namespace gfx {
+enum class VRAPIMode : uint8_t { WebXR, WebVR, NumVRAPIModes };
+
 class VRLayerParent;
 class VRDisplayHost;
 class VRManagerPromise;
@@ -40,14 +42,6 @@ class VRManagerPromise;
 // As the current fastest refresh rate is 90hz, 100 is selected as a
 // conservative value.
 static const int kVRMaxLatencyFrames = 100;
-
-enum class OpenVRControllerType : uint16_t {
-  Vive,
-  WMR,
-  Knuckles,
-  Cosmos,
-  NumOpenVRControllerTypes
-};
 
 struct VRDisplayInfo {
   uint32_t mDisplayID;

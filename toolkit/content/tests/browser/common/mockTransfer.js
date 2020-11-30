@@ -20,9 +20,9 @@ function MockTransfer() {
 
 MockTransfer.prototype = {
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIWebProgressListener,
-    Ci.nsIWebProgressListener2,
-    Ci.nsITransfer,
+    "nsIWebProgressListener",
+    "nsIWebProgressListener2",
+    "nsITransfer",
   ]),
 
   /* nsIWebProgressListener */
@@ -68,6 +68,7 @@ MockTransfer.prototype = {
 
   /* nsITransfer */
   init() {},
+  initWithBrowsingContext() {},
   setSha256Hash() {},
   setSignatureInfo() {},
 };

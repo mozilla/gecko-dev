@@ -1,4 +1,4 @@
-// |jit-test| test-also=--wasm-compiler=ion; skip-if: !wasmDebuggingIsSupported()
+// |jit-test| test-also=--wasm-compiler=optimizing; skip-if: !wasmDebuggingEnabled()
 
 // Tests that wasm module scripts have special URLs.
 
@@ -6,8 +6,8 @@ var g = newGlobal({newCompartment: true});
 var dbg = new Debugger(g);
 g.eval(`
 function initWasm(s) { return new WebAssembly.Instance(new WebAssembly.Module(wasmTextToBinary(s))); }
-o1 = initWasm('(module (func) (export "" 0))');
-o2 = initWasm('(module (func) (func) (export "" 1))');
+o1 = initWasm('(module (func) (export "" (func 0)))');
+o2 = initWasm('(module (func) (func) (export "" (func 1)))');
 `);
 
 function isWasm(script) { return script.format === "wasm"; }

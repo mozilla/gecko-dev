@@ -27,12 +27,29 @@ const webl10n = new LocalizationHelper(
   "devtools/client/locales/webconsole.properties"
 );
 
+function savedFrameToLocation(frame) {
+  const { source: url, line, column, sourceId } = frame;
+  return {
+    url,
+    line,
+    column,
+    // The sourceId will be a string if it's a source actor ID, otherwise
+    // it is either a Spidermonkey-internal ID from a SavedFrame or missing,
+    // and in either case we can't use the ID for anything useful.
+    id: typeof sourceId === "string" ? sourceId : null,
+  };
+}
+
 class Frame extends Component {
   static get propTypes() {
     return {
       // SavedFrame, or an object containing all the required properties.
       frame: PropTypes.shape({
         functionDisplayName: PropTypes.string,
+        // This could be a SavedFrame with a numeric sourceId, or it could
+        // be a SavedFrame-like client-side object, in which case the
+        // "sourceId" will be a source actor ID.
+        sourceId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
         source: PropTypes.string.isRequired,
         line: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
         column: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
@@ -50,7 +67,7 @@ class Frame extends Component {
       // Option to display a full source instead of just the filename.
       showFullSourceUrl: PropTypes.bool,
       // Service to enable the source map feature for console.
-      sourceMapService: PropTypes.object,
+      sourceMapURLService: PropTypes.object,
       // The source of the message
       messageSource: PropTypes.string,
     };
@@ -68,65 +85,43 @@ class Frame extends Component {
 
   constructor(props) {
     super(props);
+    this.state = {
+      originalLocation: null,
+    };
     this._locationChanged = this._locationChanged.bind(this);
-    this.getSourceForClick = this.getSourceForClick.bind(this);
   }
 
   componentWillMount() {
-    if (this.props.sourceMapService) {
-      const { source, line, column } = this.props.frame;
-      this.unsubscribeSourceMapService = this.props.sourceMapService.subscribe(
-        source,
-        line,
-        column,
+    if (this.props.sourceMapURLService) {
+      const location = savedFrameToLocation(this.props.frame);
+      // Many things that make use of this component either:
+      // a) Pass in no sourceId because they have no way to know.
+      // b) Pass in no sourceId because the actor wasn't created when the
+      //    server sent its response.
+      //
+      // and due to that, we need to use subscribeByLocation in order to
+      // handle both cases with an without an ID.
+      this.unsubscribeSourceMapService = this.props.sourceMapURLService.subscribeByLocation(
+        location,
         this._locationChanged
       );
     }
   }
 
   componentWillUnmount() {
-    if (typeof this.unsubscribeSourceMapService === "function") {
+    if (this.unsubscribeSourceMapService) {
       this.unsubscribeSourceMapService();
     }
   }
 
-  _locationChanged(isSourceMapped, url, line, column) {
-    const newState = {
-      isSourceMapped,
-    };
-    if (isSourceMapped) {
-      newState.frame = {
-        source: url,
-        line,
-        column,
-        functionDisplayName: this.props.frame.functionDisplayName,
-      };
-    }
-
-    this.setState(newState);
-  }
-
-  /**
-   * Utility method to convert the Frame object model to the
-   * object model required by the onClick callback.
-   * @param Frame frame
-   * @returns {{url: *, line: *, column: *, functionDisplayName: *}}
-   */
-  getSourceForClick(frame) {
-    const { source, line, column, sourceId } = frame;
-    return {
-      url: source,
-      line,
-      column,
-      functionDisplayName: this.props.frame.functionDisplayName,
-      sourceId,
-    };
+  _locationChanged(originalLocation) {
+    this.setState({ originalLocation });
   }
 
   // eslint-disable-next-line complexity
   render() {
-    let frame, isSourceMapped;
     const {
+      frame,
       onClick,
       showFunctionName,
       showAnonymousFunctionName,
@@ -135,18 +130,16 @@ class Frame extends Component {
       showFullSourceUrl,
       messageSource,
     } = this.props;
+    const { originalLocation } = this.state;
 
-    if (this.state && this.state.isSourceMapped && this.state.frame) {
-      frame = this.state.frame;
-      isSourceMapped = this.state.isSourceMapped;
-    } else {
-      frame = this.props.frame;
-    }
+    const generatedLocation = savedFrameToLocation(frame);
+    const currentLocation = originalLocation || generatedLocation;
 
-    const source = frame.source || "";
-    const sourceId = frame.sourceId;
-    const line = frame.line != void 0 ? Number(frame.line) : null;
-    const column = frame.column != void 0 ? Number(frame.column) : null;
+    const source = currentLocation.url || "";
+    const line =
+      currentLocation.line != void 0 ? Number(currentLocation.line) : null;
+    const column =
+      currentLocation.column != void 0 ? Number(currentLocation.column) : null;
 
     const { short, long, host } = getSourceNames(source);
     const unicodeShort = getUnicodeUrlPath(short);
@@ -159,7 +152,11 @@ class Frame extends Component {
     // Source mapped sources might not necessary linkable, but they
     // are still valid in the debugger.
     // If we have a source ID then we can show the source in the debugger.
-    const isLinkable = !!parseURL(source) || isSourceMapped || sourceId;
+    const isLinkable =
+      originalLocation ||
+      generatedLocation.id ||
+      !!parseURL(generatedLocation.url);
+
     const elements = [];
     const sourceElements = [];
     let sourceEl;
@@ -180,19 +177,16 @@ class Frame extends Component {
     };
 
     if (showFunctionName) {
-      let functionDisplayName = frame.functionDisplayName;
-      if (!functionDisplayName && showAnonymousFunctionName) {
-        functionDisplayName = webl10n.getStr("stacktrace.anonymousFunction");
-      }
-
-      if (functionDisplayName) {
+      const functionDisplayName = frame.functionDisplayName;
+      if (functionDisplayName || showAnonymousFunctionName) {
         elements.push(
           dom.span(
             {
               key: "function-display-name",
               className: "frame-link-function-display-name",
             },
-            functionDisplayName
+            functionDisplayName ||
+              webl10n.getStr("stacktrace.anonymousFunction")
           ),
           " "
         );
@@ -200,7 +194,7 @@ class Frame extends Component {
     }
 
     let displaySource = showFullSourceUrl ? unicodeLong : unicodeShort;
-    if (isSourceMapped) {
+    if (originalLocation) {
       displaySource = getSourceMappedFile(displaySource);
     } else if (
       showEmptyPathAsHost &&
@@ -272,7 +266,8 @@ class Frame extends Component {
           onClick: e => {
             e.preventDefault();
             e.stopPropagation();
-            onClick(this.getSourceForClick({ ...frame, source, sourceId }));
+
+            onClick(generatedLocation);
           },
           href: source,
           className: "frame-link-source",

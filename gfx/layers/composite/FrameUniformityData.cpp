@@ -63,6 +63,24 @@ Point LayerTransforms::GetStdDev() {
   return stdDev;
 }
 
+bool LayerTransforms::Sanitize() {
+  // Remove leading and trailing zeros to isolate the composites that actually
+  // changed the transform
+  for (size_t i = 1; i < mTransforms.Length(); i++) {
+    if (mTransforms[i] != mTransforms[i - 1]) {
+      mTransforms.RemoveElementsAt(0, i - 1);
+      break;
+    }
+  }
+  for (size_t i = mTransforms.Length() - 1; i > 0; i--) {
+    if (mTransforms[i - 1] != mTransforms[i]) {
+      mTransforms.SetLength(i + 1);
+      break;
+    }
+  }
+  return !mTransforms.IsEmpty();
+}
+
 LayerTransformRecorder::~LayerTransformRecorder() { Reset(); }
 
 void LayerTransformRecorder::RecordTransform(Layer* aLayer,
@@ -72,9 +90,9 @@ void LayerTransformRecorder::RecordTransform(Layer* aLayer,
 }
 
 void LayerTransformRecorder::EndTest(FrameUniformityData* aOutData) {
-  for (auto iter = mFrameTransforms.begin(); iter != mFrameTransforms.end();
-       ++iter) {
-    uintptr_t layer = iter->first;
+  for (const auto& [layer, transforms] : mFrameTransforms) {
+    (void)transforms;  // suppress unused variable warning
+
     float uniformity = CalculateFrameUniformity(layer);
 
     std::pair<uintptr_t, float> result(layer, uniformity);
@@ -85,29 +103,20 @@ void LayerTransformRecorder::EndTest(FrameUniformityData* aOutData) {
 }
 
 LayerTransforms* LayerTransformRecorder::GetLayerTransforms(uintptr_t aLayer) {
-  if (!mFrameTransforms.count(aLayer)) {
-    LayerTransforms* newTransform = new LayerTransforms();
-    std::pair<uintptr_t, LayerTransforms*> newLayer(aLayer, newTransform);
-    mFrameTransforms.insert(newLayer);
+  auto [iter, inserted] =
+      mFrameTransforms.insert(FrameTransformMap::value_type{aLayer, nullptr});
+  if (inserted) {
+    iter->second = MakeUnique<LayerTransforms>();
   }
-
-  return mFrameTransforms.find(aLayer)->second;
+  return iter->second.get();
 }
 
-void LayerTransformRecorder::Reset() {
-  for (auto iter = mFrameTransforms.begin(); iter != mFrameTransforms.end();
-       ++iter) {
-    LayerTransforms* layerTransforms = iter->second;
-    delete layerTransforms;
-  }
-
-  mFrameTransforms.clear();
-}
+void LayerTransformRecorder::Reset() { mFrameTransforms.clear(); }
 
 float LayerTransformRecorder::CalculateFrameUniformity(uintptr_t aLayer) {
   LayerTransforms* layerTransform = GetLayerTransforms(aLayer);
   float yUniformity = -1;
-  if (!layerTransform->mTransforms.IsEmpty()) {
+  if (layerTransform->Sanitize()) {
     Point stdDev = layerTransform->GetStdDev();
     yUniformity = stdDev.y;
   }
@@ -120,10 +129,7 @@ bool FrameUniformityData::ToJS(JS::MutableHandleValue aOutValue,
   dom::Sequence<dom::FrameUniformity>& layers =
       results.mLayerUniformities.Construct();
 
-  for (auto iter = mUniformities.begin(); iter != mUniformities.end(); ++iter) {
-    uintptr_t layerAddr = iter->first;
-    float uniformity = iter->second;
-
+  for (const auto& [layerAddr, uniformity] : mUniformities) {
     // FIXME: Make this infallible after bug 968520 is done.
     MOZ_ALWAYS_TRUE(layers.AppendElement(fallible));
     dom::FrameUniformity& entry = layers.LastElement();

@@ -20,10 +20,34 @@ origin:
 
   # Human-readable identifier for this version/release
   # Generally "version NNN", "tag SSS", "bookmark SSS"
-  release: commit 39667c751d427e447cbe8be783cfecd296659e24 (2019-12-02T18:19:06.000+01:00).
+  release: commit 0243c3ffb644e61848b82f24f5e4a7324669d76e (2020-09-27T15:38:45.000+02:00).
+
+  # Revision to pull in
+  # Must be a long or short commit SHA (long preferred)
+  revision: 0243c3ffb644e61848b82f24f5e4a7324669d76e
 
   # The package's license, where possible using the mnemonic from
   # https://spdx.org/licenses/
   # Multiple licenses can be specified (as a YAML list)
   # A "LICENSE" file must exist containing the full license text
   license: BSD-2-Clause
+
+  license-file: COPYING
+
+vendoring:
+  url: https://code.videolan.org/videolan/dav1d.git
+  source-hosting: gitlab
+  vendor-directory: third_party/dav1d
+
+  exclude:
+    - build/.gitattributes
+    - build/.gitignore
+
+  update-actions:
+    - action: copy-file
+      from: include/vcs_version.h.in
+      to: '{yaml_dir}/vcs_version.h'
+    - action: replace-in-file
+      pattern: '@VCS_TAG@'
+      with: '{revision}'
+      file: '{yaml_dir}/vcs_version.h'

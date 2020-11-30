@@ -46,6 +46,21 @@ geckoview:
       - ktaeleman@mozilla.com
     expires: 2021-02-01
 
+  content_process_lifetime:
+    type: timing_distribution
+    time_unit: millisecond
+    gecko_datapoint: GV_CONTENT_PROCESS_LIFETIME_MS
+    description: >
+      The uptime of content processes in ms
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1625325
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1625325#c2
+    notification_emails:
+      - geckoview-team@mozilla.com
+      - aklotz@mozilla.com
+    expires: never
+
   page_load_progress_time:
     type: timing_distribution
     time_unit: millisecond
@@ -137,6 +152,30 @@ geckoview:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1589700#c5
     notification_emails:
       - sefeng@mozilla.com
+      - perfteam@mozilla.com
+    expires: never
+
+  per_document_site_origins:
+    type: custom_distribution
+    description: >
+      When a document is unloaded, report the highest number of
+      [site origins](https://searchfox.org/
+      mozilla-central/rev/
+      3300072e993ae05d50d5c63d815260367eaf9179/
+      caps/nsIPrincipal.idl#264) loaded simultaneously in that
+      document.
+    range_min: 0
+    range_max: 100
+    bucket_count: 50
+    histogram_type: exponential
+    unit: number of site origins per document
+    gecko_datapoint: FX_NUMBER_OF_UNIQUE_SITE_ORIGINS_PER_DOCUMENT
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1603185
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1603185#c13
+    notification_emails:
+      - barret@mozilla.com
       - perfteam@mozilla.com
     expires: never
 
@@ -869,6 +908,143 @@ network:
       - mnovotny@mozilla.com
     expires: never
 
+performance.pageload:
+  load_time:
+    type: timing_distribution
+    time_unit: millisecond
+    gecko_datapoint: PERF_PAGE_LOAD_TIME_MS
+    description: >
+      Time in milliseconds from navigationStart to loadEventStart
+      for the foreground http or https root content document.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671729
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671729#c7
+    notification_emails:
+      - dpalmeiro@mozilla.com
+      - perfteam@mozilla.com
+    expires: never
+
+  load_time_responsestart:
+    type: timing_distribution
+    time_unit: millisecond
+    gecko_datapoint: PERF_PAGE_LOAD_TIME_FROM_RESPONSESTART_MS
+    description: >
+      Time in milliseconds from responseStart to loadEventStart
+      for the foreground http or https root content document.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671729
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671729#c7
+    notification_emails:
+      - dpalmeiro@mozilla.com
+      - perfteam@mozilla.com
+    expires: never
+
+  dcl:
+    type: timing_distribution
+    time_unit: millisecond
+    gecko_datapoint: PERF_DOM_CONTENT_LOADED_MS
+    description: >
+      Time in milliseconds from navigationStart to domContentLoaded
+      for the foreground http or https root content document.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671729
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671729#c7
+    notification_emails:
+      - dpalmeiro@mozilla.com
+      - perfteam@mozilla.com
+    expires: never
+
+  dcl_responsestart:
+    type: timing_distribution
+    time_unit: millisecond
+    gecko_datapoint: PERF_DOM_CONTENT_LOADED_FROM_RESPONSESTART_MS
+    description: >
+      Time in milliseconds from responseStart to domContentLoaded
+      for the foreground http or https root content document.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671729
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671729#c7
+    notification_emails:
+      - dpalmeiro@mozilla.com
+      - perfteam@mozilla.com
+    expires: never
+
+  fcp:
+    type: timing_distribution
+    time_unit: millisecond
+    gecko_datapoint: PERF_FIRST_CONTENTFUL_PAINT_MS
+    description: >
+      The time between navigationStart and the first contentful paint
+      of a foreground http or https root content document, in
+      milliseconds. The contentful paint timestamp is taken during
+      display list building and does not include rasterization or
+      compositing of that paint.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671729
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671729#c7
+    notification_emails:
+      - dpalmeiro@mozilla.com
+      - perfteam@mozilla.com
+    expires: never
+
+  fcp_responsestart:
+    type: timing_distribution
+    time_unit: millisecond
+    gecko_datapoint: PERF_FIRST_CONTENTFUL_PAINT_FROM_RESPONSESTART_MS
+    description: >
+      The time between responseStart and the first contentful paint
+      of a foreground http or https root content document, in
+      milliseconds. The contentful paint timestamp is taken during
+      display list building and does not include rasterization or
+      compositing of that paint.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671729
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671729#c7
+    notification_emails:
+      - dpalmeiro@mozilla.com
+      - perfteam@mozilla.com
+    expires: never
+
+  req_anim_frame_callback:
+    type: timing_distribution
+    time_unit: millisecond
+    gecko_datapoint: PERF_REQUEST_ANIMATION_CALLBACK_PAGELOAD_MS
+    description: >
+      Time spent in milliseconds calling all request animation frame callbacks
+      for a document before it has reached readystate complete.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671729
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671729#c7
+    notification_emails:
+      - dpalmeiro@mozilla.com
+      - perfteam@mozilla.com
+    expires: never
+
+performance.responsiveness:
+  req_anim_frame_callback:
+    type: timing_distribution
+    time_unit: millisecond
+    gecko_datapoint: PERF_REQUEST_ANIMATION_CALLBACK_NON_PAGELOAD_MS
+    description: >
+      Time spent in milliseconds calling all request animation frame callbacks
+      for a document after it has reached readystate complete.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671729
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671729#c7
+    notification_emails:
+      - dpalmeiro@mozilla.com
+      - perfteam@mozilla.com
+    expires: never
+
+
 performance.time:
   response_start:
     type: timing_distribution
@@ -997,6 +1173,82 @@ performance.time:
       - sphilp@mozilla.com
     expires: never
 
+  load_event_start_preload:
+    type: timing_distribution
+    time_unit: millisecond
+    gecko_datapoint: TIME_TO_LOAD_EVENT_START_PRELOAD_MS
+    description: >
+      Time from navigationStart to [`loadEventStart`](https://www.w3.org/TR/
+      navigation-timing/#dom-performancetiming-loadstart) as per the W3C
+      Performance Timing API. This is only submitted on when the document
+      would preload a resource (i.e., if it encounters a `<link>` element or
+      a `Link` header with `rel="preload"`), even if the `network.preload`
+      pref is disabled.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1657188
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1657188#c5
+    notification_emails:
+      - perf-telemetry-alerts@mozilla.com
+      - barret@mozilla.com
+    expires: 2021-02-24
+
+  load_event_end_preload:
+    type: timing_distribution
+    time_unit: millisecond
+    gecko_datapoint: TIME_TO_LOAD_EVENT_END_PRELOAD_MS
+    description: >
+      Time from navigationStart to [`loadEventEnd`](https://www.w3.org/TR/
+      navigation-timing/#dom-performancetiming-loadend) as per the W3C
+      Performance Timing API. This is only submitted on when the document
+      would preload a resource (i.e., if it encounters a `<link>` element or
+      a `Link` header with `rel="preload"`), even if the `network.preload`
+      pref is disabled.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1657188
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1657188#c5
+    notification_emails:
+      - perf-telemetry-alerts@mozilla.com
+      - barret@mozilla.com
+    expires: 2021-02-24
+
+  load_event_start_no_preload:
+    type: timing_distribution
+    time_unit: millisecond
+    gecko_datapoint: TIME_TO_LOAD_EVENT_START_NO_PRELOAD_MS
+    description: >
+      Time from navigationStart to [`loadEventStart`](https://www.w3.org/TR/
+      navigation-timing/#dom-performancetiming-loadstart) as per the W3C
+      Performance Timing API. This is only submitted on when the document
+      would not preload a resource.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1657188
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1657188#c5
+    notification_emails:
+      - perf-telemetry-alerts@mozilla.com
+      - barret@mozilla.com
+    expires: 2021-02-24
+
+  load_event_end_no_preload:
+    type: timing_distribution
+    time_unit: millisecond
+    gecko_datapoint: TIME_TO_LOAD_EVENT_END_NO_PRELOAD_MS
+    description: >
+      Time from navigationStart to [`loadEventEnd`](https://www.w3.org/TR/
+      navigation-timing/#dom-performancetiming-loadend) as per the W3C
+      Performance Timing API. This is only submitted on when the document
+      would not preload a resource.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1657188
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1657188#c5
+    notification_emails:
+      - perf-telemetry-alerts@mozilla.com
+      - barret@mozilla.com
+    expires: 2021-02-24
+
 performance.page:
   non_blank_paint:
     type: timing_distribution
@@ -1070,4 +1322,216 @@ performance.interaction:
     notification_emails:
       - mconley@mozilla.com
       - dolske@mozilla.com
+    expires: never
+
+js:
+  execution_percentage:
+    type: custom_distribution
+    description: >
+      Percentage of page load time spent executing Javascript.
+    range_min: 0
+    range_max: 100
+    bucket_count: 20
+    histogram_type: linear
+    unit: percentage of execution time
+    gecko_datapoint: JS_EXECUTION_PROPORTION
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1664475
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1664475#c6
+    notification_emails:
+      - dpalmeiro@mozilla.com
+      - perfteam@mozilla.com
+    expires: 2021-03-18
+  delazification_percentage:
+    type: custom_distribution
+    description: >
+      Percentage of execution time spent during delazification for
+      JS scripts up until the page load event fires.
+    range_min: 0
+    range_max: 100
+    bucket_count: 20
+    histogram_type: linear
+    unit: percentage of execution time
+    gecko_datapoint: JS_DELAZIFICATION_PROPORTION
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1664475
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1664475#c6
+    notification_emails:
+      - dpalmeiro@mozilla.com
+      - perfteam@mozilla.com
+    expires: 2021-03-18
+  xdr_encode_percentage:
+    type: custom_distribution
+    description: >
+      Percentage of execution time spent during XDR encoding for
+      JS scripts up until the page load event fires.
+    range_min: 0
+    range_max: 100
+    bucket_count: 20
+    histogram_type: linear
+    unit: percentage of execution time
+    gecko_datapoint: JS_XDR_ENCODING_PROPORTION
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1664475
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1664475#c6
+    notification_emails:
+      - dpalmeiro@mozilla.com
+      - perfteam@mozilla.com
+    expires: 2021-03-18
+  baseline_compile_percentage:
+    type: custom_distribution
+    description: >
+      Percentage of execution time spent during Baseline compilation for
+      JS scripts up until the page load event fires.
+    range_min: 0
+    range_max: 100
+    bucket_count: 20
+    histogram_type: linear
+    unit: percentage of execution time
+    gecko_datapoint: JS_BASELINE_COMPILE_PROPORTION
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1664475
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1664475#c6
+    notification_emails:
+      - dpalmeiro@mozilla.com
+      - perfteam@mozilla.com
+    expires: 2021-03-18
+  bytecode_caching_time:
+    type: timing_distribution
+    unit: milliseconds
+    description: >
+      Time spent caching JS bytecode for scripts executed during a page load.
+    gecko_datapoint: JS_BYTECODE_CACHING_TIME
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1664475
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1664475#c6
+    notification_emails:
+      - dpalmeiro@mozilla.com
+      - perfteam@mozilla.com
+    expires: 2021-03-18
+
+javascript.gc:
+  total_time:
+    type: timing_distribution
+    time_unit: millisecond
+    gecko_datapoint: GC_MS
+    description: >
+      The total time taken by a major collection.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1636419
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1636419#c8
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  minor_time:
+    type: timing_distribution
+    time_unit: microsecond
+    gecko_datapoint: GC_MINOR_US
+    description: >
+      The time taked by a minor (nursery) collection.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1636419
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1636419#c17
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  prepare_time:
+    type: timing_distribution
+    time_unit: millisecond
+    gecko_datapoint: GC_PREPARE_MS
+    description: >
+      The time spent in the preparation phase.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1636419
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1636419#c17
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  mark_roots_time:
+    type: timing_distribution
+    time_unit: microsecond
+    gecko_datapoint: GC_MARK_ROOTS_US
+    description: >
+      The time spent marking GC roots.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1636419
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1636419#c17
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  mark_time:
+    type: timing_distribution
+    time_unit: millisecond
+    gecko_datapoint: GC_MARK_MS
+    description: >
+      The time spent in the mark phase.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1636419
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1636419#c17
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  sweep_time:
+    type: timing_distribution
+    time_unit: millisecond
+    gecko_datapoint: GC_SWEEP_MS
+    description: >
+      The time spent in the sweep phase.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1636419
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1636419#c17
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  compact_time:
+    type: timing_distribution
+    time_unit: millisecond
+    gecko_datapoint: GC_COMPACT_MS
+    description: >
+      The time spent in the compact phase.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1636419
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1636419#c17
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
+  slice_time:
+    type: timing_distribution
+    time_unit: millisecond
+    gecko_datapoint: GC_SLICE_MS
+    description: >
+      The time spent running a GC slice.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1636419
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1636419#c17
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
     expires: never

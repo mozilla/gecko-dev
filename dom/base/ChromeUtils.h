@@ -11,6 +11,9 @@
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/ChromeUtilsBinding.h"
 #include "mozilla/ErrorResult.h"
+#include "nsDOMNavigationTiming.h"  // for DOMHighResTimeStamp
+#include "nsIDOMProcessChild.h"
+#include "nsIDOMProcessParent.h"
 
 namespace mozilla {
 
@@ -28,6 +31,7 @@ struct MediaMetadataInit;
 class MozQueryInterface;
 class PrecompiledScript;
 class Promise;
+struct ProcessActorOptions;
 struct WindowActorOptions;
 
 class ChromeUtils {
@@ -76,6 +80,10 @@ class ChromeUtils {
 
   static void ReleaseAssert(GlobalObject& aGlobal, bool aCondition,
                             const nsAString& aMessage);
+
+  static void AddProfilerMarker(GlobalObject& aGlobal, const nsACString& aName,
+                                const Optional<DOMHighResTimeStamp>& aStartTime,
+                                const Optional<nsACString>& text);
 
   static void OriginAttributesToSuffix(
       GlobalObject& aGlobal, const dom::OriginAttributesDictionary& aAttrs,
@@ -141,6 +149,8 @@ class ChromeUtils {
 
   static void ClearRecentJSDevError(GlobalObject& aGlobal);
 
+  static void ClearStyleSheetCache(GlobalObject&, nsIPrincipal* aForPrincipal);
+
   static already_AddRefed<Promise> RequestPerformanceMetrics(
       GlobalObject& aGlobal, ErrorResult& aRv);
 
@@ -187,12 +197,20 @@ class ChromeUtils {
   static void ResetLastExternalProtocolIframeAllowed(GlobalObject& aGlobal);
 
   static void RegisterWindowActor(const GlobalObject& aGlobal,
-                                  const nsAString& aName,
+                                  const nsACString& aName,
                                   const WindowActorOptions& aOptions,
                                   ErrorResult& aRv);
 
   static void UnregisterWindowActor(const GlobalObject& aGlobal,
-                                    const nsAString& aName);
+                                    const nsACString& aName);
+
+  static void RegisterProcessActor(const GlobalObject& aGlobal,
+                                   const nsACString& aName,
+                                   const ProcessActorOptions& aOptions,
+                                   ErrorResult& aRv);
+
+  static void UnregisterProcessActor(const GlobalObject& aGlobal,
+                                     const nsACString& aName);
 
   static bool IsClassifierBlockingErrorCode(GlobalObject& aGlobal,
                                             uint32_t aError);
@@ -205,12 +223,11 @@ class ChromeUtils {
   static void SetCloudReplayStatusCallback(const GlobalObject& aGlobal,
                                            JS::HandleValue aCallback);
 
-  static void GenerateMediaControlKeysTestEvent(
-      const GlobalObject& aGlobal, MediaControlKeysTestEvent aEvent);
+  static nsIDOMProcessChild* GetDomProcessChild(const GlobalObject&);
 
-  // This function would only be used for testing.
-  static void GetCurrentActiveMediaMetadata(const GlobalObject& aGlobal,
-                                            MediaMetadataInit& aMetadata);
+  static void GetAllDOMProcesses(
+      GlobalObject& aGlobal, nsTArray<RefPtr<nsIDOMProcessParent>>& aParents,
+      ErrorResult& aRv);
 };
 
 }  // namespace dom

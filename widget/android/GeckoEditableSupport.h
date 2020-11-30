@@ -6,11 +6,12 @@
 #ifndef mozilla_widget_GeckoEditableSupport_h
 #define mozilla_widget_GeckoEditableSupport_h
 
-#include "GeneratedJNIWrappers.h"
 #include "nsAppShell.h"
 #include "nsIWidget.h"
 #include "nsTArray.h"
 
+#include "mozilla/java/GeckoEditableChildNatives.h"
+#include "mozilla/java/SessionTextInputWrappers.h"
 #include "mozilla/TextEventDispatcher.h"
 #include "mozilla/TextEventDispatcherListener.h"
 #include "mozilla/UniquePtr.h"
@@ -77,7 +78,7 @@ class GeckoEditableSupport final
   enum RemoveCompositionFlag { CANCEL_IME_COMPOSITION, COMMIT_IME_COMPOSITION };
 
   const bool mIsRemote;
-  nsWindow::WindowPtr<GeckoEditableSupport> mWindow;  // Parent only
+  jni::NativeWeakPtr<GeckoViewSupport> mWindow;  // Parent only
   RefPtr<TextEventDispatcher> mDispatcher;
   java::GeckoEditableChild::GlobalRef mEditable;
   bool mEditableAttached;
@@ -94,9 +95,8 @@ class GeckoEditableSupport final
   bool mIMETextChangedDuringFlush;
   bool mIMEMonitorCursor;
 
-  nsIWidget* GetWidget() const {
-    return mDispatcher ? mDispatcher->GetWidget() : mWindow;
-  }
+  nsIWidget* GetWidget() const;
+  nsWindow* GetNsWindow() const;
 
   nsresult BeginInputTransaction(TextEventDispatcher* aDispatcher) {
     if (mIsRemote) {
@@ -155,16 +155,14 @@ class GeckoEditableSupport final
   static void SetOnBrowserChild(dom::BrowserChild* aBrowserChild);
 
   // Constructor for main process GeckoEditableChild.
-  GeckoEditableSupport(nsWindow::NativePtr<GeckoEditableSupport>* aPtr,
-                       nsWindow* aWindow,
+  GeckoEditableSupport(jni::NativeWeakPtr<GeckoViewSupport> aWindow,
                        java::GeckoEditableChild::Param aEditableChild)
-      : mIsRemote(!aWindow),
-        mWindow(aPtr, aWindow),
+      : mIsRemote(!aWindow.IsAttached()),
+        mWindow(aWindow),
         mEditable(aEditableChild),
         mEditableAttached(!mIsRemote),
         mIMERanges(new TextRangeArray()),
-        mIMEMaskEventsCount(1)  // Mask IME events since there's no focus yet
-        ,
+        mIMEMaskEventsCount(1),  // Mask IME events since there's no focus yet
         mIMEFocusCount(0),
         mIMEDelaySynchronizeReply(false),
         mIMEActiveSynchronizeCount(0),
@@ -174,7 +172,7 @@ class GeckoEditableSupport final
 
   // Constructor for content process GeckoEditableChild.
   explicit GeckoEditableSupport(java::GeckoEditableChild::Param aEditableChild)
-      : GeckoEditableSupport(nullptr, nullptr, aEditableChild) {}
+      : GeckoEditableSupport(nullptr, aEditableChild) {}
 
   NS_DECL_ISUPPORTS
 
@@ -203,12 +201,13 @@ class GeckoEditableSupport final
 
   const java::GeckoEditableChild::Ref& GetJavaEditable() { return mEditable; }
 
-  void OnDetach(already_AddRefed<Runnable> aDisposer) {
+  void OnWeakNonIntrusiveDetach(already_AddRefed<Runnable> aDisposer) {
     RefPtr<GeckoEditableSupport> self(this);
-    nsAppShell::PostEvent([this, self, disposer = RefPtr<Runnable>(aDisposer)] {
-      mEditableAttached = false;
-      disposer->Run();
-    });
+    nsAppShell::PostEvent(
+        [self = std::move(self), disposer = RefPtr<Runnable>(aDisposer)] {
+          self->mEditableAttached = false;
+          disposer->Run();
+        });
   }
 
   // Transfer to a new parent.
@@ -240,6 +239,9 @@ class GeckoEditableSupport final
 
   // Set cursor mode whether IME requests
   void OnImeRequestCursorUpdates(int aRequestMode);
+
+  // Commit current composition to sync Gecko text state with Java.
+  void OnImeRequestCommit();
 };
 
 }  // namespace widget

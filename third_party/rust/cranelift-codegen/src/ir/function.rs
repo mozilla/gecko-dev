@@ -10,13 +10,14 @@ use crate::ir::{
     Block, ExtFuncData, FuncRef, GlobalValue, GlobalValueData, Heap, HeapData, Inst, JumpTable,
     JumpTableData, Opcode, SigRef, StackSlot, StackSlotData, Table, TableData,
 };
-use crate::ir::{BlockOffsets, FrameLayout, InstEncodings, SourceLocs, StackSlots, ValueLocations};
+use crate::ir::{BlockOffsets, InstEncodings, SourceLocs, StackSlots, ValueLocations};
 use crate::ir::{DataFlowGraph, ExternalName, Layout, Signature};
 use crate::ir::{JumpTableOffsets, JumpTables};
 use crate::isa::{CallConv, EncInfo, Encoding, Legalize, TargetIsa};
 use crate::regalloc::{EntryRegDiversions, RegDiversions};
 use crate::value_label::ValueLabelsRanges;
 use crate::write::write_function;
+use alloc::vec::Vec;
 use core::fmt;
 
 /// A function.
@@ -87,15 +88,20 @@ pub struct Function {
 
     /// Instruction that marks the end (inclusive) of the function's prologue.
     ///
-    /// This is used for some calling conventions to track the end of unwind information.
+    /// This is used for some ABIs to generate unwind information.
     pub prologue_end: Option<Inst>,
 
-    /// Frame layout for the instructions.
+    /// The instructions that mark the start (inclusive) of an epilogue in the function.
     ///
-    /// The stack unwinding requires to have information about which registers and where they
-    /// are saved in the frame. This information is created during the prologue and epilogue
-    /// passes.
-    pub frame_layout: Option<FrameLayout>,
+    /// This is used for some ABIs to generate unwind information.
+    pub epilogues_start: Vec<Inst>,
+
+    /// An optional global value which represents an expression evaluating to
+    /// the stack limit for this function. This `GlobalValue` will be
+    /// interpreted in the prologue, if necessary, to insert a stack check to
+    /// ensure that a trap happens if the stack pointer goes below the
+    /// threshold specified here.
+    pub stack_limit: Option<ir::GlobalValue>,
 }
 
 impl Function {
@@ -119,7 +125,8 @@ impl Function {
             jt_offsets: SecondaryMap::new(),
             srclocs: SecondaryMap::new(),
             prologue_end: None,
-            frame_layout: None,
+            epilogues_start: Vec::new(),
+            stack_limit: None,
         }
     }
 
@@ -140,7 +147,8 @@ impl Function {
         self.jt_offsets.clear();
         self.srclocs.clear();
         self.prologue_end = None;
-        self.frame_layout = None;
+        self.epilogues_start.clear();
+        self.stack_limit = None;
     }
 
     /// Create a new empty, anonymous function with a Fast calling convention.
@@ -238,24 +246,26 @@ impl Function {
 
     /// Wrapper around `encode` which assigns `inst` the resulting encoding.
     pub fn update_encoding(&mut self, inst: ir::Inst, isa: &dyn TargetIsa) -> Result<(), Legalize> {
-        self.encode(inst, isa).map(|e| self.encodings[inst] = e)
+        if isa.get_mach_backend().is_some() {
+            Ok(())
+        } else {
+            self.encode(inst, isa).map(|e| self.encodings[inst] = e)
+        }
     }
 
     /// Wrapper around `TargetIsa::encode` for encoding an existing instruction
     /// in the `Function`.
     pub fn encode(&self, inst: ir::Inst, isa: &dyn TargetIsa) -> Result<Encoding, Legalize> {
-        isa.encode(&self, &self.dfg[inst], self.dfg.ctrl_typevar(inst))
+        if isa.get_mach_backend().is_some() {
+            Ok(Encoding::new(0, 0))
+        } else {
+            isa.encode(&self, &self.dfg[inst], self.dfg.ctrl_typevar(inst))
+        }
     }
 
     /// Starts collection of debug information.
     pub fn collect_debug_info(&mut self) {
         self.dfg.collect_debug_info();
-        self.collect_frame_layout_info();
-    }
-
-    /// Starts collection of frame layout information.
-    pub fn collect_frame_layout_info(&mut self) {
-        self.frame_layout = Some(FrameLayout::new());
     }
 
     /// Changes the destination of a jump or branch instruction.
@@ -295,8 +305,32 @@ impl Function {
     /// to be confused with a "leaf function" in Windows terminology.
     pub fn is_leaf(&self) -> bool {
         // Conservative result: if there's at least one function signature referenced in this
-        // function, assume it may call.
-        !self.dfg.signatures.is_empty()
+        // function, assume it is not a leaf.
+        self.dfg.signatures.is_empty()
+    }
+
+    /// Replace the `dst` instruction's data with the `src` instruction's data
+    /// and then remove `src`.
+    ///
+    /// `src` and its result values should not be used at all, as any uses would
+    /// be left dangling after calling this method.
+    ///
+    /// `src` and `dst` must have the same number of resulting values, and
+    /// `src`'s i^th value must have the same type as `dst`'s i^th value.
+    pub fn transplant_inst(&mut self, dst: Inst, src: Inst) {
+        debug_assert_eq!(
+            self.dfg.inst_results(dst).len(),
+            self.dfg.inst_results(src).len()
+        );
+        debug_assert!(self
+            .dfg
+            .inst_results(dst)
+            .iter()
+            .zip(self.dfg.inst_results(src))
+            .all(|(a, b)| self.dfg.value_type(*a) == self.dfg.value_type(*b)));
+
+        self.dfg[dst] = self.dfg[src].clone();
+        self.layout.remove_inst(src);
     }
 }
 

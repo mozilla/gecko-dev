@@ -15,9 +15,9 @@ import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.Build;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.UiThread;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.UiThread;
 import android.util.Log;
 import android.view.ActionMode;
 import android.view.Menu;
@@ -96,10 +96,12 @@ public class BasicSelectionActionDelegate implements ActionMode.Callback,
         }
     }
 
+    @SuppressWarnings("checkstyle:javadocmethod")
     public BasicSelectionActionDelegate(final @NonNull Activity activity) {
         this(activity, Build.VERSION.SDK_INT >= 23);
     }
 
+    @SuppressWarnings("checkstyle:javadocmethod")
     public BasicSelectionActionDelegate(final @NonNull Activity activity,
                                         final boolean useFloatingToolbar) {
         mActivity = activity;
@@ -374,6 +376,7 @@ public class BasicSelectionActionDelegate implements ActionMode.Callback,
         mActionMode = null;
     }
 
+    @SuppressWarnings("checkstyle:javadocmethod")
     public void onGetContentRect(final @Nullable ActionMode mode, final @Nullable View view,
                                  final @NonNull Rect outRect) {
         ThreadUtils.assertOnUiThread();

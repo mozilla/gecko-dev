@@ -11,6 +11,18 @@ ChromeUtils.defineModuleGetter(
   "resource://gre/modules/AppConstants.jsm"
 );
 
+ChromeUtils.defineModuleGetter(
+  this,
+  "DEFAULT_SITES",
+  "resource://activity-stream/lib/DefaultSites.jsm"
+);
+
+ChromeUtils.defineModuleGetter(
+  this,
+  "Region",
+  "resource://gre/modules/Region.jsm"
+);
+
 // NB: Eagerly load modules that will be loaded/constructed/initialized in the
 // common case to avoid the overhead of wrapping and detecting lazy loading.
 const { actionCreators: ac, actionTypes: at } = ChromeUtils.import(
@@ -97,52 +109,16 @@ ChromeUtils.defineModuleGetter(
   "resource://activity-stream/lib/DiscoveryStreamFeed.jsm"
 );
 
-const DEFAULT_SITES = new Map([
-  // This first item is the global list fallback for any unexpected geos
-  [
-    "",
-    "https://www.youtube.com/,https://www.facebook.com/,https://www.wikipedia.org/,https://www.reddit.com/,https://www.amazon.com/,https://twitter.com/",
-  ],
-  [
-    "US",
-    "https://www.youtube.com/,https://www.facebook.com/,https://www.amazon.com/,https://www.reddit.com/,https://www.wikipedia.org/,https://twitter.com/",
-  ],
-  [
-    "CA",
-    "https://www.youtube.com/,https://www.facebook.com/,https://www.reddit.com/,https://www.wikipedia.org/,https://www.amazon.ca/,https://twitter.com/",
-  ],
-  [
-    "DE",
-    "https://www.youtube.com/,https://www.facebook.com/,https://www.amazon.de/,https://www.ebay.de/,https://www.wikipedia.org/,https://www.reddit.com/",
-  ],
-  [
-    "PL",
-    "https://www.youtube.com/,https://www.facebook.com/,https://allegro.pl/,https://www.wikipedia.org/,https://www.olx.pl/,https://www.wykop.pl/",
-  ],
-  [
-    "RU",
-    "https://vk.com/,https://www.youtube.com/,https://ok.ru/,https://www.avito.ru/,https://www.aliexpress.com/,https://www.wikipedia.org/",
-  ],
-  [
-    "GB",
-    "https://www.youtube.com/,https://www.facebook.com/,https://www.reddit.com/,https://www.amazon.co.uk/,https://www.bbc.co.uk/,https://www.ebay.co.uk/",
-  ],
-  [
-    "FR",
-    "https://www.youtube.com/,https://www.facebook.com/,https://www.wikipedia.org/,https://www.amazon.fr/,https://www.leboncoin.fr/,https://twitter.com/",
-  ],
-  [
-    "CN",
-    "https://www.baidu.com/,https://www.zhihu.com/,https://www.ifeng.com/,https://weibo.com/,https://www.ctrip.com/,https://www.iqiyi.com/",
-  ],
-]);
-const GEO_PREF = "browser.search.region";
 const REGION_STORIES_CONFIG =
   "browser.newtabpage.activity-stream.discoverystream.region-stories-config";
+const REGION_STORIES_BLOCK =
+  "browser.newtabpage.activity-stream.discoverystream.region-stories-block";
 const REGION_SPOCS_CONFIG =
   "browser.newtabpage.activity-stream.discoverystream.region-spocs-config";
-const REGION_LAYOUT_CONFIG =
-  "browser.newtabpage.activity-stream.discoverystream.region-layout-config";
+const REGION_BASIC_CONFIG =
+  "browser.newtabpage.activity-stream.discoverystream.region-basic-config";
+const LOCALE_LIST_CONFIG =
+  "browser.newtabpage.activity-stream.discoverystream.locale-list-config";
 
 // Determine if spocs should be shown for a geo/locale
 function showSpocs({ geo }) {
@@ -173,7 +149,7 @@ const PREFS_CONFIG = new Map([
         JSON.stringify({
           api_key_pref: "extensions.pocket.oAuthConsumerKey",
           // Use the opposite value as what default value the feed would have used
-          hidden: !PREFS_CONFIG.get("feeds.section.topstories").getValue(args),
+          hidden: !PREFS_CONFIG.get("feeds.system.topstories").getValue(args),
           provider_icon: "pocket",
           provider_name: "Pocket",
           read_more_endpoint:
@@ -250,10 +226,32 @@ const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "feeds.topsites",
+    {
+      title: "Displays Top Sites on the New Tab Page",
+      value: true,
+    },
+  ],
+  [
+    "hideTopSitesTitle",
+    {
+      title:
+        "Hide the top sites section's title, including the section and collapse icons",
+      value: false,
+    },
+  ],
+  [
     "showSponsored",
     {
       title:
         "Show sponsored cards in spoc experiment (show_spocs in topstories.options has to be set to true as well)",
+      value: true,
+    },
+  ],
+  [
+    "showSponsoredTopSites",
+    {
+      title: "Show sponsored top sites",
       value: true,
     },
   ],
@@ -310,14 +308,6 @@ const PREFS_CONFIG = new Map([
     {
       title: "Enable Unified Telemetry event data collection",
       value: AppConstants.EARLY_BETA_OR_EARLIER,
-      value_local_dev: false,
-    },
-  ],
-  [
-    "telemetry.structuredIngestion",
-    {
-      title: "Enable Structured Ingestion Telemetry data collection",
-      value: true,
       value_local_dev: false,
     },
   ],
@@ -465,7 +455,6 @@ const PREFS_CONFIG = new Map([
         enabled: true,
         type: "remote-settings",
         bucket: "cfr-fxa",
-        frequency: { custom: [{ period: "daily", cap: 1 }] },
         updateCycleInMs: 3600000,
       }),
     },
@@ -527,12 +516,19 @@ const PREFS_CONFIG = new Map([
       title: "Decision to use basic layout based on region.",
       getValue: ({ geo }) => {
         const preffedRegionsString =
-          Services.prefs.getStringPref(REGION_LAYOUT_CONFIG) || "";
+          Services.prefs.getStringPref(REGION_BASIC_CONFIG) || "";
+        // If no regions are set to basic,
+        // we don't need to bother checking against the region.
+        // We are also not concerned if geo is not set,
+        // because stories are going to be empty until we have geo.
+        if (!preffedRegionsString) {
+          return false;
+        }
         const preffedRegions = preffedRegionsString
           .split(",")
           .map(s => s.trim());
 
-        return !preffedRegions.includes(geo);
+        return preffedRegions.includes(geo);
       },
     },
   ],
@@ -601,26 +597,56 @@ const FEEDS_DATA = [
     value: true,
   },
   {
-    name: "section.topstories",
+    name: "system.topstories",
     factory: () =>
       new TopStoriesFeed(PREFS_CONFIG.get("discoverystream.config")),
     title:
-      "Fetches content recommendations from a configurable content provider",
+      "System pref that fetches content recommendations from a configurable content provider",
     // Dynamically determine if Pocket should be shown for a geo / locale
     getValue: ({ geo, locale }) => {
+      // If we don't have geo, we don't want to flash the screen with stories while geo loads.
+      // Best to display nothing until geo is ready.
+      if (!geo) {
+        return false;
+      }
+      const preffedRegionsBlockString =
+        Services.prefs.getStringPref(REGION_STORIES_BLOCK) || "";
       const preffedRegionsString =
         Services.prefs.getStringPref(REGION_STORIES_CONFIG) || "";
+      const preffedLocaleListString =
+        Services.prefs.getStringPref(LOCALE_LIST_CONFIG) || "";
+      const preffedBlockRegions = preffedRegionsBlockString
+        .split(",")
+        .map(s => s.trim());
       const preffedRegions = preffedRegionsString.split(",").map(s => s.trim());
+      const preffedLocales = preffedLocaleListString
+        .split(",")
+        .map(s => s.trim());
       const locales = {
-        US: ["en-CA", "en-GB", "en-US", "en-ZA"],
-        CA: ["en-CA", "en-GB", "en-US", "en-ZA"],
-        GB: ["en-CA", "en-GB", "en-US", "en-ZA"],
-        DE: ["de", "de-DE", "de-AT", "de-CH"],
-        JP: ["ja", "ja-JP"],
+        US: ["en-CA", "en-GB", "en-US"],
+        CA: ["en-CA", "en-GB", "en-US"],
+        GB: ["en-CA", "en-GB", "en-US"],
+        AU: ["en-CA", "en-GB", "en-US"],
+        NZ: ["en-CA", "en-GB", "en-US"],
+        IN: ["en-CA", "en-GB", "en-US"],
+        IE: ["en-CA", "en-GB", "en-US"],
+        ZA: ["en-CA", "en-GB", "en-US"],
+        CH: ["de"],
+        BE: ["de"],
+        DE: ["de"],
+        AT: ["de"],
+        IT: ["it"],
+        FR: ["fr"],
+        ES: ["es"],
+        PL: ["pl"],
+        JP: ["ja", "ja-JP-mac"],
       }[geo];
-      return (
-        preffedRegions.includes(geo) && !!locales && locales.includes(locale)
-      );
+
+      const regionBlocked = preffedBlockRegions.includes(geo);
+      const localeEnabled = locale && preffedLocales.includes(locale);
+      const regionEnabled =
+        preffedRegions.includes(geo) && !!locales && locales.includes(locale);
+      return !regionBlocked && (localeEnabled || regionEnabled);
     },
   },
   {
@@ -642,7 +668,7 @@ const FEEDS_DATA = [
     value: true,
   },
   {
-    name: "topsites",
+    name: "system.topsites",
     factory: () => new TopSitesFeed(),
     title: "Queries places and gets metadata for Top Sites section",
     value: true,
@@ -717,6 +743,9 @@ this.ActivityStream = class ActivityStream {
           data: {
             locale: this.locale,
           },
+          meta: {
+            isStartup: true,
+          },
         }),
         { type: at.UNINIT }
       );
@@ -769,7 +798,7 @@ this.ActivityStream = class ActivityStream {
 
   uninit() {
     if (this.geo === "") {
-      Services.prefs.removeObserver(GEO_PREF, this);
+      Services.obs.removeObserver(this, Region.REGION_TOPIC);
     }
 
     this.store.uninit();
@@ -778,11 +807,11 @@ this.ActivityStream = class ActivityStream {
 
   _updateDynamicPrefs() {
     // Save the geo pref if we have it
-    if (Services.prefs.prefHasUserValue(GEO_PREF)) {
-      this.geo = Services.prefs.getStringPref(GEO_PREF);
+    if (Region.home) {
+      this.geo = Region.home;
     } else if (this.geo !== "") {
       // Watch for geo changes and use a dummy value for now
-      Services.prefs.addObserver(GEO_PREF, this);
+      Services.obs.addObserver(this, Region.REGION_TOPIC);
       this.geo = "";
     }
 
@@ -826,11 +855,9 @@ this.ActivityStream = class ActivityStream {
 
   observe(subject, topic, data) {
     switch (topic) {
-      case "nsPref:changed":
-        // We should only expect one geo change, so update and stop observing
-        if (data === GEO_PREF) {
+      case Region.REGION_TOPIC:
+        if (data === Region.REGION_UPDATED) {
           this._updateDynamicPrefs();
-          Services.prefs.removeObserver(GEO_PREF, this);
         }
         break;
     }

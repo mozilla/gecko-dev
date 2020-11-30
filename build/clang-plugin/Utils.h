@@ -134,7 +134,7 @@ inline bool typeHasVTable(QualType T) {
   return Offender && Offender->hasDefinition() && Offender->isDynamicClass();
 }
 
-inline std::string getDeclarationNamespace(const Decl *Declaration) {
+inline StringRef getDeclarationNamespace(const Decl *Declaration) {
   const DeclContext *DC =
       Declaration->getDeclContext()->getEnclosingNamespaceContext();
   const NamespaceDecl *ND = dyn_cast<NamespaceDecl>(DC);
@@ -154,7 +154,7 @@ inline std::string getDeclarationNamespace(const Decl *Declaration) {
 }
 
 inline bool isInIgnoredNamespaceForImplicitCtor(const Decl *Declaration) {
-  std::string Name = getDeclarationNamespace(Declaration);
+  StringRef Name = getDeclarationNamespace(Declaration);
   if (Name == "") {
     return false;
   }
@@ -164,7 +164,7 @@ inline bool isInIgnoredNamespaceForImplicitCtor(const Decl *Declaration) {
          Name == "boost" ||             // boost
          Name == "webrtc" ||            // upstream webrtc
          Name == "rtc" ||               // upstream webrtc 'base' package
-         Name.substr(0, 4) == "icu_" || // icu
+         Name.startswith("icu_") ||     // icu
          Name == "google" ||            // protobuf
          Name == "google_breakpad" ||   // breakpad
          Name == "soundtouch" ||        // libsoundtouch
@@ -174,11 +174,12 @@ inline bool isInIgnoredNamespaceForImplicitCtor(const Decl *Declaration) {
          Name == "arm_ex_to_module" ||  // arm_ex_to_module
          Name == "testing" ||           // gtest
          Name == "Json" ||              // jsoncpp
-         Name == "rlbox";               // rlbox
+         Name == "rlbox" ||             // rlbox
+         Name == "v8";                  // irregexp
 }
 
 inline bool isInIgnoredNamespaceForImplicitConversion(const Decl *Declaration) {
-  std::string Name = getDeclarationNamespace(Declaration);
+  StringRef Name = getDeclarationNamespace(Declaration);
   if (Name == "") {
     return false;
   }
@@ -228,7 +229,7 @@ inline bool isIgnoredPathForSprintfLiteral(const CallExpr *Call,
         Begin->compare_lower(StringRef("icu")) == 0 ||
         Begin->compare_lower(StringRef("jsoncpp")) == 0 ||
         Begin->compare_lower(StringRef("libstagefright")) == 0 ||
-        Begin->compare_lower(StringRef("mtransport")) == 0 ||
+        Begin->compare_lower(StringRef("transport")) == 0 ||
         Begin->compare_lower(StringRef("protobuf")) == 0 ||
         Begin->compare_lower(StringRef("skia")) == 0 ||
         Begin->compare_lower(StringRef("sfntly")) == 0 ||

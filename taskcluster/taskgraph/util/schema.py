@@ -13,8 +13,6 @@ from six import text_type, iteritems
 
 import taskgraph
 
-from mozbuild import schedules
-
 from .keyed_by import evaluate_keyed_by
 
 
@@ -50,18 +48,24 @@ def optionally_keyed_by(*arguments):
     schema = arguments[-1]
     fields = arguments[:-1]
 
-    # build the nestable schema by generating schema = Any(schema,
-    # by-fld1, by-fld2, by-fld3) once for each field.  So we don't allow
-    # infinite nesting, but one level of nesting for each field.
-    for _ in arguments:
-        options = [schema]
-        for field in fields:
-            options.append({'by-' + field: {text_type: schema}})
-        schema = voluptuous.Any(*options)
-    return schema
+    def validator(obj):
+        if isinstance(obj, dict) and len(obj) == 1:
+            k, v = list(obj.items())[0]
+            if k.startswith('by-') and k[len('by-'):] in fields:
+                res = {}
+                for kk, vv in v.items():
+                    try:
+                        res[kk] = validator(vv)
+                    except voluptuous.Invalid as e:
+                        e.prepend([k, kk])
+                        raise
+                return res
+        return Schema(schema)(obj)
+
+    return validator
 
 
-def resolve_keyed_by(item, field, item_name, **extra_values):
+def resolve_keyed_by(item, field, item_name, defer=None, **extra_values):
     """
     For values which can either accept a literal value, or be keyed by some
     other attribute of the item, perform that lookup and replacement in-place
@@ -100,6 +104,12 @@ def resolve_keyed_by(item, field, item_name, **extra_values):
                         cedar: ..
                 linux: 13
                 default: 12
+
+    The `defer` parameter allows evaluating a by-* entry at a later time. In the
+    example above it's possible that the project attribute hasn't been set
+    yet, in which case we'd want to stop before resolving that subkey and then
+    call this function again later. This can be accomplished by setting
+    `defer=["project"]` in this example.
     """
     # find the field, returning the item unchanged if anything goes wrong
     container, subfield = item, field
@@ -117,6 +127,7 @@ def resolve_keyed_by(item, field, item_name, **extra_values):
     container[subfield] = evaluate_keyed_by(
         value=container[subfield],
         item_name="`{}` in `{}`".format(field, item_name),
+        defer=defer,
         attributes=dict(item, **extra_values),
     )
 
@@ -145,6 +156,8 @@ def check_schema(schema):
         def check_identifier(path, k):
             if k in (text_type, text_type, voluptuous.Extra):
                 pass
+            elif isinstance(k, voluptuous.NotIn):
+                pass
             elif isinstance(k, text_type):
                 if not identifier_re.match(k) and not whitelisted(path):
                     raise RuntimeError(
@@ -152,7 +165,7 @@ def check_schema(schema):
                         'not {!r} @ {}'.format(k, path))
             elif isinstance(k, (voluptuous.Optional, voluptuous.Required)):
                 check_identifier(path, k.schema)
-            elif isinstance(k, voluptuous.Any):
+            elif isinstance(k, (voluptuous.Any, voluptuous.All)):
                 for v in k.validators:
                     check_identifier(path, v)
             elif not whitelisted(path):
@@ -181,7 +194,8 @@ class Schema(voluptuous.Schema):
     """
     def __init__(self, *args, **kwargs):
         super(Schema, self).__init__(*args, **kwargs)
-        check_schema(self)
+        if not taskgraph.fast:
+            check_schema(self)
 
     def extend(self, *args, **kwargs):
         schema = super(Schema, self).extend(*args, **kwargs)
@@ -190,28 +204,14 @@ class Schema(voluptuous.Schema):
         schema.__class__ = Schema
         return schema
 
+    def _compile(self, schema):
+        if taskgraph.fast:
+            return
+        return super(Schema, self)._compile(schema)
+
     def __getitem__(self, item):
         return self.schema[item]
 
-
-OptimizationSchema = voluptuous.Any(
-    # always run this task (default)
-    None,
-    # search the index for the given index namespaces, and replace this task if found
-    # the search occurs in order, with the first match winning
-    {'index-search': [text_type]},
-    # consult SETA and skip this task if it is low-value
-    {'seta': None},
-    # skip this task if none of the given file patterns match
-    {'skip-unless-changed': [text_type]},
-    # skip this task if unless the change files' SCHEDULES contains any of these components
-    {'skip-unless-schedules': list(schedules.ALL_COMPONENTS)},
-    # optimize strategy aliases for the test kind
-    {'test': list(schedules.ALL_COMPONENTS)},
-    {'test-inclusive': list(schedules.ALL_COMPONENTS)},
-    {'test-try': list(schedules.ALL_COMPONENTS)},
-    {'fuzzing-builds': list(schedules.ALL_COMPONENTS)},
-)
 
 # shortcut for a string where task references are allowed
 taskref_or_string = voluptuous.Any(

@@ -155,8 +155,7 @@ nsStyleSheetService::LoadAndRegisterSheet(nsIURI* aSheetURI,
   rv = LoadAndRegisterSheetInternal(aSheetURI, aSheetType);
   if (NS_SUCCEEDED(rv)) {
     // Hold on to a copy of the registered PresShells.
-    nsTArray<RefPtr<PresShell>> toNotify(mPresShells);
-    for (PresShell* presShell : toNotify) {
+    for (PresShell* presShell : mPresShells.Clone()) {
       StyleSheet* sheet = mSheets[aSheetType].LastElement();
       presShell->NotifyStyleSheetServiceSheetAdded(sheet, aSheetType);
     }
@@ -169,11 +168,8 @@ nsStyleSheetService::LoadAndRegisterSheet(nsIURI* aSheetURI,
         return rv;
       }
 
-      mozilla::ipc::URIParams uri;
-      SerializeURI(aSheetURI, uri);
-
       for (uint32_t i = 0; i < children.Length(); i++) {
-        Unused << children[i]->SendLoadAndRegisterSheet(uri, aSheetType);
+        Unused << children[i]->SendLoadAndRegisterSheet(aSheetURI, aSheetType);
       }
     }
   }
@@ -310,8 +306,7 @@ nsStyleSheetService::UnregisterSheet(nsIURI* aSheetURI, uint32_t aSheetType) {
   }
 
   // Hold on to a copy of the registered PresShells.
-  nsTArray<RefPtr<PresShell>> toNotify(mPresShells);
-  for (PresShell* presShell : toNotify) {
+  for (PresShell* presShell : mPresShells.Clone()) {
     if (presShell->StyleSet()) {
       if (sheet) {
         presShell->NotifyStyleSheetServiceSheetRemoved(sheet, aSheetType);
@@ -327,11 +322,8 @@ nsStyleSheetService::UnregisterSheet(nsIURI* aSheetURI, uint32_t aSheetType) {
       return NS_OK;
     }
 
-    mozilla::ipc::URIParams uri;
-    SerializeURI(aSheetURI, uri);
-
     for (uint32_t i = 0; i < children.Length(); i++) {
-      Unused << children[i]->SendUnregisterSheet(uri, aSheetType);
+      Unused << children[i]->SendUnregisterSheet(aSheetURI, aSheetType);
     }
   }
 

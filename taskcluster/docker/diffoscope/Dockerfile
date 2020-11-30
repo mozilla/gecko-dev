@@ -1,4 +1,3 @@
-# %ARG DOCKER_IMAGE_PARENT
 FROM $DOCKER_IMAGE_PARENT
 MAINTAINER Mike Hommey <mhommey@mozilla.com>
 
@@ -26,5 +25,6 @@ RUN apt-get install \
     locale-gen
 
 COPY get_and_diffoscope /builds/worker/bin/get_and_diffoscope
+COPY readelf /builds/worker/bin/readelf
 
 RUN chown -R worker:worker /builds/worker/bin && chmod 755 /builds/worker/bin/*

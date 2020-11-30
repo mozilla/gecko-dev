@@ -11,6 +11,7 @@
 
 from __future__ import absolute_import
 
+import codecs
 import os
 import sys
 import tempfile
@@ -23,6 +24,7 @@ import mozversion
 
 from mozprofile import Profile
 from mozrunner import Runner, FennecEmulatorRunner
+import six
 from six import reraise
 
 from . import errors
@@ -41,12 +43,15 @@ class GeckoInstance(object):
         # bug 1210465.
         "apz.content_response_timeout": 60000,
 
-        # Do not send Firefox health reports to the production server
-        # removed in Firefox 59
-        "datareporting.healthreport.about.reportUrl": "http://%(server)s/dummy/abouthealthreport/",
+        # Defensively disable data reporting systems
         "datareporting.healthreport.documentServerURI": "http://%(server)s/dummy/healthreport/",
+        "datareporting.healthreport.logging.consoleEnabled": False,
+        "datareporting.healthreport.service.enabled": False,
+        "datareporting.healthreport.service.firstRun": False,
+        "datareporting.healthreport.uploadEnabled": False,
 
-        # Do not show datareporting policy notifications which can interfer with tests
+        # Do not show datareporting policy notifications which can interfere with tests
+        "datareporting.policy.dataSubmissionEnabled": False,
         "datareporting.policy.dataSubmissionPolicyBypassNotification": True,
 
         # Automatically unload beforeunload alerts
@@ -75,7 +80,7 @@ class GeckoInstance(object):
         "extensions.update.enabled": False,
         "extensions.update.notifyUser": False,
         # Make sure opening about:addons won"t hit the network
-        "extensions.webservice.discoverURL": "http://%(server)s/dummy/discoveryURL",
+        "extensions.getAddons.discovery.api_url": "data:, ",
 
         # Allow the application to have focus even it runs in the background
         "focusmanager.testmode": True,
@@ -89,10 +94,12 @@ class GeckoInstance(object):
         # Do not scan Wifi
         "geo.wifi.scan": False,
 
+        # Disable idle-daily notifications to avoid expensive operations
+        # that may cause unexpected test timeouts.
+        "idle.lastDailyNotification": -1,
+
         "javascript.options.showInConsole": True,
 
-        # Enable Marionette component
-        "marionette.enabled": True,
         # (deprecated and can be removed when Firefox 60 ships)
         "marionette.defaultPrefs.enabled": True,
 
@@ -129,9 +136,6 @@ class GeckoInstance(object):
 
         # Prevent starting into safe mode after application crashes
         "toolkit.startup.max_resumed_crashes": -1,
-
-        # We want to collect telemetry, but we don't want to send in the results
-        "toolkit.telemetry.server": "https://%(server)s/dummy/telemetry/",
 
         # Enabling the support for File object creation in the content process.
         "dom.file.createInChild": True,
@@ -200,7 +204,7 @@ class GeckoInstance(object):
         self._update_profile(value)
 
     def _update_profile(self, profile=None, profile_name=None):
-        """Check if the profile has to be created, or replaced
+        """Check if the profile has to be created, or replaced.
 
         :param profile: A Profile instance to be used.
         :param name: Profile name to be used in the path.
@@ -219,7 +223,7 @@ class GeckoInstance(object):
             profile_path = profile
 
             # If a path to a profile is given then clone it
-            if isinstance(profile_path, basestring):
+            if isinstance(profile_path, six.string_types):
                 profile_args["path_from"] = profile_path
                 profile_args["path_to"] = tempfile.mkdtemp(
                     suffix=u".{}".format(profile_name or os.path.basename(profile_path)),
@@ -298,8 +302,8 @@ class GeckoInstance(object):
             instance_class = apps[app]
         except (IOError, KeyError):
             exc, val, tb = sys.exc_info()
-            msg = 'Application "{0}" unknown (should be one of {1})'
-            reraise(NotImplementedError, msg.format(app, apps.keys()), tb)
+            msg = 'Application "{0}" unknown (should be one of {1})'.format(app, list(apps.keys()))
+            reraise(NotImplementedError, NotImplementedError(msg), tb)
 
         return instance_class(*args, **kwargs)
 
@@ -311,10 +315,14 @@ class GeckoInstance(object):
     def _get_runner_args(self):
         process_args = {
             "processOutputLine": [NullOutput()],
+            "universal_newlines": True,
         }
 
         if self.gecko_log == "-":
-            process_args["stream"] = sys.stdout
+            if six.PY2:
+                process_args["stream"] = codecs.getwriter('utf-8')(sys.stdout)
+            else:
+                process_args["stream"] = codecs.getwriter('utf-8')(sys.stdout.buffer)
         else:
             process_args["logfile"] = self.gecko_log
 
@@ -446,10 +454,10 @@ class FennecInstance(GeckoInstance):
             if self.connect_to_running_emulator:
                 self.runner.device.connect()
             self.runner.start()
-        except Exception as e:
-            exc, val, tb = sys.exc_info()
-            message = "Error possibly due to runner or device args: {}"
-            reraise(exc, message.format(e.message), tb)
+        except Exception:
+            exc_cls, exc, tb = sys.exc_info()
+            reraise(exc_cls, exc_cls(
+                "Error possibly due to runner or device args: {}".format(exc)), tb)
 
         # forward marionette port
         self.runner.device.device.forward(
@@ -459,6 +467,7 @@ class FennecInstance(GeckoInstance):
     def _get_runner_args(self):
         process_args = {
             "processOutputLine": [NullOutput()],
+            "universal_newlines": True,
         }
 
         env = {} if self.env is None else self.env.copy()
@@ -562,9 +571,6 @@ class DesktopInstance(GeckoInstance):
         "browser.startup.homepage_override.mstone": "ignore",
         # Start with a blank page by default
         "browser.startup.page": 0,
-
-        # Disable browser animations
-        "toolkit.cosmeticAnimations.enabled": False,
 
         # Bug 1557457: Disable because modal dialogs might not appear in Firefox
         "browser.tabs.remote.separatePrivilegedContentProcess": False,

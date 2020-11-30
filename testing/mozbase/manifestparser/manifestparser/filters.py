@@ -295,13 +295,16 @@ class chunk_by_manifest(InstanceFilter):
         for manifest in manifests:
             mtests = [t for t in tests if t['manifest'] == manifest]
             tests_by_manifest.append(mtests)
-        tests_by_manifest.sort(reverse=True, key=lambda x: (len(x), x))
+        # Sort tests_by_manifest from largest manifest to shortest; include
+        # manifest name as secondary key to ensure consistent order across
+        # multiple runs.
+        tests_by_manifest.sort(reverse=True, key=lambda x: (len(x), x[0]['manifest']))
 
         tests_by_chunk = [[] for i in range(self.total_chunks)]
         for batch in tests_by_manifest:
             # Sort to guarantee the chunk with the lowest score will always
             # get the next batch of tests.
-            tests_by_chunk.sort(key=lambda x: (len(x), x))
+            tests_by_chunk.sort(key=lambda x: (len(x), x[0]['manifest'] if len(x) else ""))
             tests_by_chunk[0].extend(batch)
 
         return (t for t in tests_by_chunk[self.this_chunk - 1])
@@ -325,7 +328,8 @@ class chunk_by_runtime(InstanceFilter):
         self.total_chunks = total_chunks
         self.runtimes = {normsep(m): r for m, r in runtimes.items()}
 
-    def get_manifest(self, test):
+    @classmethod
+    def get_manifest(cls, test):
         manifest = normsep(test.get('ancestor_manifest', ''))
 
         # Ignore ancestor_manifests that live at the root (e.g, don't have a
@@ -336,9 +340,8 @@ class chunk_by_runtime(InstanceFilter):
             manifest = normsep(test['manifest_relpath'])
         return manifest
 
-    def get_chunked_manifests(self, tests):
+    def get_chunked_manifests(self, manifests):
         # Find runtimes for all relevant manifests.
-        manifests = set(self.get_manifest(t) for t in tests)
         runtimes = [(self.runtimes[m], m) for m in manifests if m in self.runtimes]
 
         # Compute the average to use as a default for manifests that don't exist.
@@ -367,7 +370,8 @@ class chunk_by_runtime(InstanceFilter):
 
     def __call__(self, tests, values):
         tests = list(tests)
-        chunks = self.get_chunked_manifests(tests)
+        manifests = set(self.get_manifest(t) for t in tests)
+        chunks = self.get_chunked_manifests(manifests)
         runtime, this_manifests = chunks[self.this_chunk - 1]
         log("Cumulative test runtime is around {} minutes (average is {} minutes)".format(
             round(runtime / 60), round(sum([c[0] for c in chunks]) / (60 * len(chunks)))))
@@ -419,8 +423,10 @@ class pathprefix(InstanceFilter):
         if isinstance(paths, string_types):
             paths = [paths]
         self.paths = paths
+        self.missing = set()
 
     def __call__(self, tests, values):
+        seen = set()
         for test in tests:
             for tp in self.paths:
                 tp = os.path.normpath(tp)
@@ -450,8 +456,12 @@ class pathprefix(InstanceFilter):
                 # matter what, even if it's disabled
                 if 'disabled' in test and os.path.normpath(test['relpath']) == tp:
                     del test['disabled']
+
+                seen.add(tp)
                 yield test
                 break
+
+        self.missing = set(self.paths) - seen
 
 
 # filter container

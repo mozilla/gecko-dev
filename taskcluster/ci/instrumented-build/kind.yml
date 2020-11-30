@@ -29,6 +29,14 @@ job-defaults:
         actions: [get-secrets, build]
         script: mozharness/scripts/fx_desktop_build.py
         secrets: true
+    use-sccache:
+        by-release-level:
+            production: false
+            staging: true
+    fetches:
+        toolchain:
+            - linux64-sccache
+    run-on-projects: ['release']
 
 jobs:
     linux-shippable/opt:
@@ -41,14 +49,14 @@ jobs:
             platform: linux32-shippable/opt
         worker-type: b-linux
         worker:
-            docker-image: {in-tree: debian7-i386-build}
+            docker-image: {in-tree: debian8-i386-build}
         run:
             config:
                 - builds/releng_base_firefox.py
                 - builds/releng_base_linux_32_builds.py
             mozconfig-variant: profile-generate
             tooltool-downloads: public
-        run-on-projects: ['try', 'release']
+        run-on-projects: ['release']
         fetches:
             toolchain:
                 - linux64-binutils
@@ -56,6 +64,7 @@ jobs:
                 - linux64-rust
                 - linux64-rust-size
                 - linux64-cbindgen
+                - linux64-dump-syms
                 - linux64-nasm
                 - linux64-node
 
@@ -81,6 +90,7 @@ jobs:
                 - linux64-rust
                 - linux64-rust-size
                 - linux64-cbindgen
+                - linux64-dump-syms
                 - linux64-nasm
                 - linux64-node
                 - linux64-lucetc
@@ -94,6 +104,7 @@ jobs:
             platform: osx-shippable/opt
         worker-type: b-linux
         worker:
+            docker-image: {in-tree: debian10-amd64-build}
             max-run-time: 7200
             env:
                 PERFHERDER_EXTRA_OPTIONS: instrumented
@@ -110,6 +121,7 @@ jobs:
             tooltool-downloads: internal
         fetches:
             toolchain:
+                - linux64-binutils
                 - linux64-cctools-port
                 - linux64-clang-macosx-cross
                 - linux64-hfsplus
@@ -118,12 +130,13 @@ jobs:
                 - linux64-rust-macos
                 - linux64-rust-size
                 - linux64-cbindgen
+                - linux64-dump-syms
                 - linux64-nasm
                 - linux64-node
                 - linux64-lucetc
                 - wasi-sysroot
 
-    android-api-16/pgo:
+    android-api-16-shippable/opt:
         description: "Android 4.0 api-16+ PGO instrumented"
         index:
             product: mobile
@@ -161,6 +174,7 @@ jobs:
                 - linux64-rust-android
                 - linux64-rust-size
                 - linux64-cbindgen
+                - linux64-dump-syms
                 - linux64-nasm
                 - linux64-node
 
@@ -172,8 +186,9 @@ jobs:
         shipping-product: firefox
         treeherder:
             platform: windows2012-32-shippable/opt
-        worker-type: b-win2012
+        worker-type: b-linux
         worker:
+            docker-image: {in-tree: debian10-amd64-build}
             env:
                 TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/win32/releng.manifest"
         run:
@@ -181,20 +196,30 @@ jobs:
             mozconfig-variant: profile-generate
             config:
                 - builds/releng_base_firefox.py
-                - builds/taskcluster_base_windows.py
-                - builds/taskcluster_base_win32.py
+                - builds/releng_base_linux_64_builds.py
             tooltool-downloads: internal
             extra-config:
                 stage_platform: win32
+                mozconfig_platform: win32
+                env:
+                    LD_PRELOAD: "/builds/worker/fetches/liblowercase/liblowercase.so"
+                    LOWERCASE_DIRS: "/builds/worker/checkouts/gecko/vs2017_15.8.4"
         fetches:
             toolchain:
-                - win64-clang-cl
-                - win64-dump-syms
-                - win64-rust
-                - win64-rust-size
-                - win64-cbindgen
-                - win64-nasm
-                - win64-node
+                - linux64-binutils
+                - linux64-clang-win-cross
+                - linux64-rust-cross
+                - linux64-rust-size
+                - linux64-nasm
+                - linux64-node
+                - linux64-cbindgen
+                - linux64-dump-syms
+                - linux64-wine
+                - linux64-liblowercase
+                - linux64-winchecksec
+            fetch:
+                - nsis-3.01-win
+                - upx-3.95-win
 
     win64-shippable/opt:
         description: "Win64 Shippable PGO Instrumented"
@@ -204,8 +229,9 @@ jobs:
         shipping-product: firefox
         treeherder:
             platform: windows2012-64-shippable/opt
-        worker-type: b-win2012
+        worker-type: b-linux
         worker:
+            docker-image: {in-tree: debian10-amd64-build}
             env:
                 TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/win64/releng.manifest"
         run:
@@ -213,17 +239,27 @@ jobs:
             mozconfig-variant: profile-generate
             config:
                 - builds/releng_base_firefox.py
-                - builds/taskcluster_base_windows.py
-                - builds/taskcluster_base_win64.py
+                - builds/releng_base_linux_64_builds.py
             tooltool-downloads: internal
             extra-config:
                 stage_platform: win64
+                mozconfig_platform: win64
+                env:
+                    LD_PRELOAD: "/builds/worker/fetches/liblowercase/liblowercase.so"
+                    LOWERCASE_DIRS: "/builds/worker/checkouts/gecko/vs2017_15.8.4"
         fetches:
             toolchain:
-                - win64-clang-cl
-                - win64-dump-syms
-                - win64-rust
-                - win64-rust-size
-                - win64-cbindgen
-                - win64-nasm
-                - win64-node
+                - linux64-binutils
+                - linux64-clang-win-cross
+                - linux64-rust-cross
+                - linux64-rust-size
+                - linux64-nasm
+                - linux64-node
+                - linux64-cbindgen
+                - linux64-dump-syms
+                - linux64-wine
+                - linux64-liblowercase
+                - linux64-winchecksec
+            fetch:
+                - nsis-3.01-win
+                - upx-3.95-win

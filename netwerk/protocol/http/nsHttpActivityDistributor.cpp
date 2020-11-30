@@ -8,8 +8,11 @@
 #include "mozilla/net/SocketProcessChild.h"
 #include "mozilla/net/SocketProcessParent.h"
 #include "nsHttpActivityDistributor.h"
+#include "nsHttpHandler.h"
 #include "nsCOMPtr.h"
 #include "nsIOService.h"
+#include "nsNetUtil.h"
+#include "nsQueryObject.h"
 #include "nsThreadUtils.h"
 #include "NullHttpChannel.h"
 
@@ -83,7 +86,7 @@ nsHttpActivityDistributor::ObserveActivityWithArgs(
       }
     } else if (args.type() == HttpActivityArgs::THttpActivity) {
       nsCOMPtr<nsIURI> uri;
-      nsAutoCString portStr(NS_LITERAL_CSTRING(""));
+      nsAutoCString portStr(""_ns);
       int32_t port = args.get_HttpActivity().port();
       bool endToEndSSL = args.get_HttpActivity().endToEndSSL();
       if (port != -1 &&
@@ -92,8 +95,7 @@ nsHttpActivityDistributor::ObserveActivityWithArgs(
       }
 
       nsresult rv = NS_NewURI(getter_AddRefs(uri),
-                              (endToEndSSL ? NS_LITERAL_CSTRING("https://")
-                                           : NS_LITERAL_CSTRING("http://")) +
+                              (endToEndSSL ? "https://"_ns : "http://"_ns) +
                                   args.get_HttpActivity().host() + portStr);
       if (NS_FAILED(rv)) {
         return;
@@ -109,8 +111,13 @@ nsHttpActivityDistributor::ObserveActivityWithArgs(
     }
   };
 
-  return NS_DispatchToMainThread(NS_NewRunnableFunction(
-      "net::nsHttpActivityDistributor::ObserveActivityWithArgs", task));
+  if (!NS_IsMainThread()) {
+    return NS_DispatchToMainThread(NS_NewRunnableFunction(
+        "net::nsHttpActivityDistributor::ObserveActivityWithArgs", task));
+  }
+
+  task();
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -144,16 +151,19 @@ nsHttpActivityDistributor::AddObserver(nsIHttpActivityObserver* aObserver) {
   {
     MutexAutoLock lock(mLock);
     wasEmpty = mObservers.IsEmpty();
-    if (!mObservers.AppendElement(observer)) return NS_ERROR_OUT_OF_MEMORY;
+    // XXX(Bug 1631371) Check if this should use a fallible operation as it
+    // pretended earlier.
+    mObservers.AppendElement(observer);
   }
 
   if (nsIOService::UseSocketProcess() && wasEmpty) {
-    SocketProcessParent* parent = SocketProcessParent::GetSingleton();
-    if (parent && parent->CanSend()) {
-      Unused << parent->SendOnHttpActivityDistributorActivated(true);
-    } else {
-      return NS_ERROR_FAILURE;
-    }
+    auto task = []() {
+      SocketProcessParent* parent = SocketProcessParent::GetSingleton();
+      if (parent && parent->CanSend()) {
+        Unused << parent->SendOnHttpActivityDistributorActivated(true);
+      }
+    };
+    gIOService->CallOrWaitForSocketProcess(task);
   }
   return NS_OK;
 }
@@ -173,12 +183,13 @@ nsHttpActivityDistributor::RemoveObserver(nsIHttpActivityObserver* aObserver) {
   }
 
   if (nsIOService::UseSocketProcess() && isEmpty) {
-    SocketProcessParent* parent = SocketProcessParent::GetSingleton();
-    if (parent && parent->CanSend()) {
-      Unused << parent->SendOnHttpActivityDistributorActivated(false);
-    } else {
-      return NS_ERROR_FAILURE;
-    }
+    auto task = []() {
+      SocketProcessParent* parent = SocketProcessParent::GetSingleton();
+      if (parent && parent->CanSend()) {
+        Unused << parent->SendOnHttpActivityDistributorActivated(false);
+      }
+    };
+    gIOService->CallOrWaitForSocketProcess(task);
   }
   return NS_OK;
 }

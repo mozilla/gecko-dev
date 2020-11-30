@@ -4,8 +4,8 @@
 
 // This testing component is used in test_vacuum* tests.
 
-const { XPCOMUtils } = ChromeUtils.import(
-  "resource://gre/modules/XPCOMUtils.jsm"
+const { ComponentUtils } = ChromeUtils.import(
+  "resource://gre/modules/ComponentUtils.jsm"
 );
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
@@ -101,10 +101,10 @@ vacuumParticipant.prototype = {
   },
 
   QueryInterface: ChromeUtils.generateQI([
-    Ci.mozIStorageVacuumParticipant,
-    Ci.nsIObserver,
+    "mozIStorageVacuumParticipant",
+    "nsIObserver",
   ]),
 };
 
 var gComponentsArray = [vacuumParticipant];
-this.NSGetFactory = XPCOMUtils.generateNSGetFactory(gComponentsArray);
+this.NSGetFactory = ComponentUtils.generateNSGetFactory(gComponentsArray);

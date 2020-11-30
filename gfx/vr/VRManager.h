@@ -65,6 +65,7 @@ class VRManager : nsIObserver {
   bool RunPuppet(const nsTArray<uint64_t>& aBuffer,
                  VRManagerParent* aManagerParent);
   void ResetPuppet(VRManagerParent* aManagerParent);
+  void NotifyPuppetComplete();
 #endif
   void AddLayer(VRLayerParent* aLayer);
   void RemoveLayer(VRLayerParent* aLayer);
@@ -98,7 +99,6 @@ class VRManager : nsIObserver {
   void ProcessManagerState_Stopping();
   void PullState(const std::function<bool()>& aWaitCondition = nullptr);
   void PushState(const bool aNotifyCond = false);
-  void ProcessTelemetryEvent();
   static uint32_t AllocateDisplayID();
   void DispatchVRDisplayInfoUpdate();
   void DispatchRuntimeCapabilitiesUpdate();

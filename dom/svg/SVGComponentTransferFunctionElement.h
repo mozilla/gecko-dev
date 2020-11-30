@@ -4,13 +4,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_SVGComponentTransferFunctionElement_h
-#define mozilla_dom_SVGComponentTransferFunctionElement_h
+#ifndef DOM_SVG_SVGCOMPONENTTRANSFERFUNCTIONELEMENT_H_
+#define DOM_SVG_SVGCOMPONENTTRANSFERFUNCTIONELEMENT_H_
 
 #include "SVGAnimatedEnumeration.h"
 #include "SVGAnimatedNumber.h"
 #include "SVGAnimatedNumberList.h"
-#include "SVGFilters.h"
+#include "mozilla/dom/SVGFilters.h"
 
 #define NS_SVG_FE_COMPONENT_TRANSFER_FUNCTION_ELEMENT_CID \
   {                                                       \
@@ -25,7 +25,7 @@ namespace dom {
 
 class DOMSVGAnimatedNumberList;
 
-typedef SVGFEUnstyledElement SVGComponentTransferFunctionElementBase;
+using SVGComponentTransferFunctionElementBase = SVGFEUnstyledElement;
 
 class SVGComponentTransferFunctionElement
     : public SVGComponentTransferFunctionElementBase {
@@ -37,7 +37,7 @@ class SVGComponentTransferFunctionElement
   virtual ~SVGComponentTransferFunctionElement() = default;
 
  public:
-  typedef gfx::ComponentTransferAttributes ComponentTransferAttributes;
+  using ComponentTransferAttributes = gfx::ComponentTransferAttributes;
 
   // interfaces:
   NS_DECLARE_STATIC_IID_ACCESSOR(
@@ -201,4 +201,4 @@ class SVGFEFuncAElement : public SVGComponentTransferFunctionElement {
 }  // namespace dom
 }  // namespace mozilla
 
-#endif  // mozilla_dom_SVGComponentTransferFunctionElement_h
+#endif  // DOM_SVG_SVGCOMPONENTTRANSFERFUNCTIONELEMENT_H_

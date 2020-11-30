@@ -15,11 +15,12 @@ include "ImageLayers.h";
 
 using mozilla::gfx::Glyph from "mozilla/gfx/2D.h";
 using mozilla::gfx::SamplingFilter from "mozilla/gfx/2D.h";
-using struct mozilla::gfx::Color from "mozilla/gfx/2D.h";
+using struct mozilla::gfx::DeviceColor from "mozilla/gfx/2D.h";
 using struct mozilla::gfx::Point from "mozilla/gfx/Point.h";
 using struct mozilla::gfx::Point3D from "mozilla/gfx/Point.h";
 using mozilla::gfx::IntPoint from "mozilla/gfx/Point.h";
 using class mozilla::gfx::Matrix4x4 from "mozilla/gfx/Matrix.h";
+using class mozilla::SideBits from "mozilla/gfx/Types.h";
 using nscolor from "nsColor.h";
 using nscoord from "nsCoord.h";
 using struct nsRect from "nsRect.h";
@@ -38,9 +39,13 @@ using mozilla::LayerCoord from "Units.h";
 using mozilla::LayerSize from "Units.h";
 using mozilla::LayerRect from "Units.h";
 using mozilla::LayerIntSize from "Units.h";
+using mozilla::LayerIntRect from "Units.h";
 using mozilla::LayerIntRegion from "Units.h";
 using mozilla::ParentLayerIntRect from "Units.h";
+using mozilla::ParentLayerRect from "Units.h";
 using mozilla::LayoutDeviceIntRect from "Units.h";
+using mozilla::LayoutDevicePoint from "Units.h";
+using mozilla::LayoutDeviceRect from "Units.h";
 using mozilla::layers::ScaleMode from "mozilla/layers/LayersTypes.h";
 using mozilla::layers::EventRegions from "mozilla/layers/LayersTypes.h";
 using mozilla::layers::EventRegionsOverride from "mozilla/layers/LayersTypes.h";
@@ -119,9 +124,9 @@ union TimingFunction {
   StepFunction;
 };
 
-struct LayerColor { Color value; };
+struct LayerColor { DeviceColor value; };
 
-union Animatable {
+comparable union Animatable {
   null_t;
   float;
   nscolor;
@@ -145,28 +150,42 @@ struct AnimationSegment {
   TimingFunction sampleFn;
 };
 
+comparable struct MotionPathData {
+  // the transform-origin property for motion in css pixels
+  CSSPoint origin;
+  // the adjustment for the anchor point of motion path.
+  CSSPoint anchorAdjustment;
+  RayReferenceData rayReferenceData;
+};
+
+comparable struct PartialPrerenderData {
+  LayoutDeviceRect rect;
+  SideBits overflowedSides;
+  // the scroll id of the nearest scrollable frame of this partial prerender
+  // data.
+  ViewID scrollId;
+  // The clip rectangle of the nearest scrollable frame.
+  // NOTE: This should be used only for fallback cases where APZ is not enabled.
+  ParentLayerRect clipRect;
+  // a transform from the coordinate space of the animated element to a
+  // coordinate space where the `clipRect` can be applied.
+  Matrix4x4 transformInClip; // Used only for WebRender.
+  // the position relative to the reference frame of the animated transform
+  // element in the element coordinate space.
+  LayoutDevicePoint position; // Used only for WebRender.
+};
+
 // Transforms need extra information to correctly convert the list of transform
 // functions to a Matrix4x4 that can be applied directly to the layer.
-struct TransformData {
+comparable struct TransformData {
   // the origin of the frame being transformed in app units
   nsPoint origin;
   // the transform-origin property for the transform in device pixels
   Point3D transformOrigin;
   nsRect bounds;
   int32_t appUnitsPerDevPixel;
-  // The resolution scale inherited from the parent
-  float inheritedXScale;
-  float inheritedYScale;
-  // True if the parent has perspective transform
-  bool hasPerspectiveParent;
-};
-
-struct MotionPathData {
-  // the transform-origin property for motion in css pixels
-  CSSPoint origin;
-  // the adjustment for the anchor point of motion path.
-  CSSPoint anchorAdjustment;
-  RayReferenceData rayReferenceData;
+  MotionPathData? motionPathData;
+  PartialPrerenderData? partialPrerenderData;
 };
 
 struct Animation {
@@ -203,8 +222,6 @@ struct Animation {
   // This uses dom::FillMode.
   uint8_t fillMode;
   nsCSSPropertyID property;
-  TransformData? transformData;
-  MotionPathData? motionPathData;
   float playbackRate;
   // When performing an asynchronous update to the playbackRate, |playbackRate|
   // above is the updated playbackRate while |previousPlaybackRate| is the
@@ -231,6 +248,8 @@ struct Animation {
   // the first animation in the set (i.e. the animation that is lowest in the
   // stack). In all other cases the value is null_t.
   Animatable baseStyle;
+  // An optional data specific for transform like properies.
+  TransformData? transformData;
 };
 
 struct CompositorAnimations {
@@ -266,12 +285,6 @@ struct ContainerLayerAttributes {
   float presShellResolution;
 };
 
-struct GlyphArray
-{
-  LayerColor color;
-  Glyph[] glyphs;
-};
-
 struct ColorLayerAttributes     { LayerColor color; IntRect bounds; };
 struct CanvasLayerAttributes    { SamplingFilter samplingFilter; IntRect bounds; };
 struct RefLayerAttributes {
@@ -297,7 +310,7 @@ struct LayerAttributes {
 };
 
 // See nsIWidget Configurations
-struct PluginWindowData {
+comparable struct PluginWindowData {
   uintptr_t windowId;
   LayoutDeviceIntRect[] clip;
   LayoutDeviceIntRect bounds;
@@ -424,6 +437,18 @@ struct OpNotifyNotUsed {
   uint64_t fwdTransactionId;
 };
 
+struct OpDeliverAcquireFence {
+  PTexture texture;
+  FileDescriptor fenceFd;
+};
+
+struct OpDeliverReleaseFence {
+  FileDescriptor? fenceFd;
+  uint64_t bufferId;
+  uint64_t fwdTransactionId;
+  bool usesImageBridge;
+};
+
 union CompositableOperationDetail {
   OpPaintTextureRegion;
 
@@ -433,6 +458,8 @@ union CompositableOperationDetail {
 
   OpUseTexture;
   OpUseComponentAlphaTextures;
+
+  OpDeliverAcquireFence;
 };
 
 struct CompositableOperation {
@@ -494,6 +521,7 @@ struct ImageCompositeNotification {
 
 union AsyncParentMessageData {
   OpNotifyNotUsed;
+  OpDeliverReleaseFence;
 };
 
 struct PaintTiming {

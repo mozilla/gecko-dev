@@ -5,16 +5,22 @@
 // @flow
 
 import { parse } from "../url";
-import { getUnicodeHostname, getUnicodeUrlPath } from "devtools-modules";
 
-import type { Source } from "../../types";
+const {
+  getUnicodeHostname,
+  getUnicodeUrlPath,
+  // $FlowIgnore
+} = require("devtools/client/shared/unicode-url");
+
+import type { DisplaySource, Source } from "../../types";
 export type ParsedURL = {
   path: string,
+  search: string,
   group: string,
   filename: string,
 };
 
-export function getFilenameFromPath(pathname?: string) {
+export function getFilenameFromPath(pathname?: string): string {
   let filename = "";
   if (pathname) {
     filename = pathname.substring(pathname.lastIndexOf("/") + 1);
@@ -27,15 +33,29 @@ export function getFilenameFromPath(pathname?: string) {
 }
 
 const NoDomain = "(no domain)";
-const def = { path: "", group: "", filename: "" };
+const def = { path: "", search: "", group: "", filename: "" };
 
 export function getURL(source: Source, defaultDomain: ?string = ""): ParsedURL {
   const { url } = source;
   if (!url) {
     return def;
   }
+  return getURLInternal(url, defaultDomain);
+}
 
-  const { pathname, protocol, host } = parse(url);
+export function getDisplayURL(
+  source: DisplaySource,
+  defaultDomain: ?string = ""
+): ParsedURL {
+  const { displayURL } = source;
+  if (!displayURL) {
+    return def;
+  }
+  return getURLInternal(displayURL, defaultDomain);
+}
+
+function getURLInternal(url: string, defaultDomain: ?string): ParsedURL {
+  const { pathname, search, protocol, host } = parse(url);
   const filename = getUnicodeUrlPath(getFilenameFromPath(pathname));
 
   switch (protocol) {
@@ -48,6 +68,7 @@ export function getURL(source: Source, defaultDomain: ?string = ""): ParsedURL {
       return {
         ...def,
         path: pathname,
+        search,
         filename,
         group: `${protocol}//${host || ""}`,
       };
@@ -57,6 +78,7 @@ export function getURL(source: Source, defaultDomain: ?string = ""): ParsedURL {
       return {
         ...def,
         path: pathname,
+        search,
         filename,
         group: `${protocol}//`,
       };
@@ -66,6 +88,7 @@ export function getURL(source: Source, defaultDomain: ?string = ""): ParsedURL {
       return {
         ...def,
         path: "/",
+        search,
         filename,
         group: url,
       };
@@ -74,6 +97,7 @@ export function getURL(source: Source, defaultDomain: ?string = ""): ParsedURL {
       return {
         ...def,
         path: "/",
+        search,
         group: NoDomain,
         filename: url,
       };
@@ -84,13 +108,15 @@ export function getURL(source: Source, defaultDomain: ?string = ""): ParsedURL {
         return {
           ...def,
           path: pathname,
+          search,
           filename,
           group: "file://",
         };
       } else if (!host) {
         return {
           ...def,
-          path: url,
+          path: pathname,
+          search,
           group: defaultDomain || "",
           filename,
         };
@@ -102,6 +128,7 @@ export function getURL(source: Source, defaultDomain: ?string = ""): ParsedURL {
       return {
         ...def,
         path: pathname,
+        search,
         filename,
         group: getUnicodeHostname(host),
       };
@@ -110,6 +137,7 @@ export function getURL(source: Source, defaultDomain: ?string = ""): ParsedURL {
   return {
     ...def,
     path: pathname,
+    search,
     group: protocol ? `${protocol}//` : "",
     filename,
   };

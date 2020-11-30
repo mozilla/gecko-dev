@@ -1,6 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
+ChromeUtils.import("resource://testing-common/OSKeyStoreTestUtils.jsm", this);
+
 add_task(async function setup() {
   let aboutLoginsTab = await BrowserTestUtils.openNewForegroundTab({
     gBrowser,
@@ -131,6 +133,11 @@ add_task(async function test_create_login() {
       (_, data) => data == "modifyLogin"
     );
     await SpecialPowers.spawn(browser, [originTuple], async aOriginTuple => {
+      await ContentTaskUtils.waitForCondition(() => {
+        return !content.document.documentElement.classList.contains(
+          "no-logins"
+        );
+      }, "waiting for no-logins view to exit");
       ok(
         !content.document.documentElement.classList.contains("no-logins"),
         "Should no longer be in no logins view"
@@ -187,19 +194,47 @@ add_task(async function test_create_login() {
       let usernameInput = loginItem.shadowRoot.querySelector(
         "input[name='username']"
       );
+      await ContentTaskUtils.waitForCondition(
+        () => usernameInput.placeholder,
+        "waiting for placeholder to get set"
+      );
       ok(
         usernameInput.placeholder,
         "there should be a placeholder on the username input when not in edit mode"
       );
+    });
 
+    if (!OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
+      continue;
+    }
+
+    let reauthObserved = forceAuthTimeoutAndWaitForOSKeyStoreLogin({
+      loginResult: true,
+    });
+    await SpecialPowers.spawn(browser, [originTuple], async aOriginTuple => {
+      let loginItem = Cu.waiveXrays(
+        content.document.querySelector("login-item")
+      );
       let editButton = loginItem.shadowRoot.querySelector(".edit-button");
+      info("clicking on edit button");
       editButton.click();
+    });
+    info("waiting for oskeystore auth");
+    await reauthObserved;
 
+    await SpecialPowers.spawn(browser, [originTuple], async aOriginTuple => {
+      let loginItem = Cu.waiveXrays(
+        content.document.querySelector("login-item")
+      );
       await ContentTaskUtils.waitForCondition(
         () => loginItem.dataset.editing,
         "waiting for 'edit' mode"
       );
+      info("in edit mode");
 
+      let usernameInput = loginItem.shadowRoot.querySelector(
+        "input[name='username']"
+      );
       let passwordInput = loginItem.shadowRoot.querySelector(
         "input[name='password']"
       );
@@ -209,6 +244,7 @@ add_task(async function test_create_login() {
       let saveChangesButton = loginItem.shadowRoot.querySelector(
         ".save-changes-button"
       );
+      info("clicking save changes button");
       saveChangesButton.click();
     });
 
@@ -220,9 +256,18 @@ add_task(async function test_create_login() {
       let loginList = Cu.waiveXrays(
         content.document.querySelector("login-list")
       );
-      let login = Object.values(loginList._logins).find(
-        obj => obj.login.origin == aOriginTuple[1]
-      ).login;
+      let login;
+      await ContentTaskUtils.waitForCondition(() => {
+        login = Object.values(loginList._logins).find(
+          obj => obj.login.origin == aOriginTuple[1]
+        ).login;
+        info(`${login.origin} / ${login.username} / ${login.password}`);
+        return (
+          login.origin == aOriginTuple[1] &&
+          login.username == "testuser2" &&
+          login.password == "testpass2"
+        );
+      }, "waiting for the login to get updated");
       is(
         login.origin,
         aOriginTuple[1],
@@ -402,6 +447,10 @@ add_task(async function test_cancel_create_login_with_logins_filtered_out() {
 });
 
 add_task(async function test_create_duplicate_login() {
+  if (!OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
+    return;
+  }
+
   let browser = gBrowser.selectedBrowser;
   EXPECTED_ERROR_MESSAGE = "This login already exists.";
   await SpecialPowers.spawn(browser, [], async () => {
@@ -419,8 +468,8 @@ add_task(async function test_create_duplicate_login() {
     let passwordInput = loginItem.shadowRoot.querySelector(
       "input[name='password']"
     );
-    const EXISTING_ORIGIN = "https://example.com";
     const EXISTING_USERNAME = "testuser2";
+    const EXISTING_ORIGIN = "https://example.com";
     originInput.value = EXISTING_ORIGIN;
     usernameInput.value = EXISTING_USERNAME;
     passwordInput.value = "different password value";

@@ -7,6 +7,8 @@
 #if !defined(MediaTimer_h_)
 #  define MediaTimer_h_
 
+#  include <queue>
+
 #  include "mozilla/AbstractThread.h"
 #  include "mozilla/IntegerPrintfMacros.h"
 #  include "mozilla/Monitor.h"
@@ -15,7 +17,6 @@
 #  include "mozilla/TimeStamp.h"
 #  include "mozilla/Unused.h"
 #  include "nsITimer.h"
-#  include <queue>
 
 namespace mozilla {
 
@@ -39,9 +40,8 @@ class MediaTimer {
  public:
   explicit MediaTimer(bool aFuzzy = false);
 
-  // We use a release with a custom Destroy().
-  NS_IMETHOD_(MozExternalRefCountType) AddRef(void);
-  NS_IMETHOD_(MozExternalRefCountType) Release(void);
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING_WITH_DESTROY(MediaTimer,
+                                                     DispatchDestroy());
 
   RefPtr<MediaTimerPromise> WaitFor(const TimeDuration& aDuration,
                                     const char* aCallSite);
@@ -93,8 +93,6 @@ class MediaTimer {
     }
   };
 
-  ThreadSafeAutoRefCnt mRefCnt;
-  NS_DECL_OWNINGTHREAD
   nsCOMPtr<nsIEventTarget> mThread;
   std::priority_queue<Entry> mEntries;
   Monitor mMonitor;
@@ -115,7 +113,8 @@ class MediaTimer {
 // Class for managing delayed dispatches on target thread.
 class DelayedScheduler {
  public:
-  explicit DelayedScheduler(AbstractThread* aTargetThread, bool aFuzzy = false)
+  explicit DelayedScheduler(nsISerialEventTarget* aTargetThread,
+                            bool aFuzzy = false)
       : mTargetThread(aTargetThread), mMediaTimer(new MediaTimer(aFuzzy)) {
     MOZ_ASSERT(mTargetThread);
   }
@@ -123,18 +122,16 @@ class DelayedScheduler {
   bool IsScheduled() const { return !mTarget.IsNull(); }
 
   void Reset() {
-    MOZ_ASSERT(mTargetThread->IsCurrentThreadIn(),
+    MOZ_ASSERT(mTargetThread->IsOnCurrentThread(),
                "Must be on target thread to disconnect");
-    if (IsScheduled()) {
-      mRequest.Disconnect();
-      mTarget = TimeStamp();
-    }
+    mRequest.DisconnectIfExists();
+    mTarget = TimeStamp();
   }
 
   template <typename ResolveFunc, typename RejectFunc>
   void Ensure(mozilla::TimeStamp& aTarget, ResolveFunc&& aResolver,
               RejectFunc&& aRejector) {
-    MOZ_ASSERT(mTargetThread->IsCurrentThreadIn());
+    MOZ_ASSERT(mTargetThread->IsOnCurrentThread());
     if (IsScheduled() && mTarget <= aTarget) {
       return;
     }
@@ -147,13 +144,13 @@ class DelayedScheduler {
   }
 
   void CompleteRequest() {
-    MOZ_ASSERT(mTargetThread->IsCurrentThreadIn());
+    MOZ_ASSERT(mTargetThread->IsOnCurrentThread());
     mRequest.Complete();
     mTarget = TimeStamp();
   }
 
  private:
-  RefPtr<AbstractThread> mTargetThread;
+  nsCOMPtr<nsISerialEventTarget> mTargetThread;
   RefPtr<MediaTimer> mMediaTimer;
   MozPromiseRequestHolder<mozilla::MediaTimerPromise> mRequest;
   TimeStamp mTarget;

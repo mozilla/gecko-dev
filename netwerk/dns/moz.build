@@ -16,6 +16,7 @@ XPIDL_SOURCES += [
     'nsIDNSByTypeRecord.idl',
     'nsIDNSListener.idl',
     'nsIDNSRecord.idl',
+    'nsIDNSResolverInfo.idl',
     'nsIDNSService.idl',
     'nsIEffectiveTLDService.idl',
     'nsIIDNService.idl',
@@ -38,15 +39,23 @@ EXPORTS += [
 EXPORTS.mozilla.net += [
     'ChildDNSService.h',
     'DNS.h',
+    'DNSByTypeRecord.h',
     'DNSListenerProxy.h',
+    'DNSRequestBase.h',
     'DNSRequestChild.h',
     'DNSRequestParent.h',
+    'HTTPSSVC.h',
     'IDNBlocklistUtils.h',
-    'PDNSParams.h',
+    'NativeDNSResolverOverrideChild.h',
+    'NativeDNSResolverOverrideParent.h',
     'TRRService.h',
+    'TRRServiceBase.h',
+    'TRRServiceChild.h',
+    'TRRServiceParent.h',
 ]
 
 SOURCES += [
+    "GetAddrInfo.cpp", # Undefines UNICODE
     'nsEffectiveTLDService.cpp', # Excluded from UNIFIED_SOURCES due to special build flags.
     'nsHostResolver.cpp', # Redefines LOG
 ]
@@ -57,18 +66,26 @@ UNIFIED_SOURCES += [
     'DNSListenerProxy.cpp',
     'DNSRequestChild.cpp',
     'DNSRequestParent.cpp',
-    'GetAddrInfo.cpp',
+    'DNSResolverInfo.cpp',
+    'HTTPSSVC.cpp',
     'IDNBlocklistUtils.cpp',
+    'NativeDNSResolverOverrideChild.cpp',
+    'NativeDNSResolverOverrideParent.cpp',
     'nsDNSService2.cpp',
     'nsIDNService.cpp',
     'punycode.c',
     'TRR.cpp',
     'TRRService.cpp',
+    'TRRServiceBase.cpp',
+    'TRRServiceChild.cpp',
+    'TRRServiceParent.cpp',
 ]
 
 IPDL_SOURCES = [
     'PDNSRequest.ipdl',
     'PDNSRequestParams.ipdlh',
+    'PNativeDNSResolverOverride.ipdl',
+    'PTRRService.ipdl',
 ]
 
 include('/ipc/chromium/chromium-config.mozbuild')

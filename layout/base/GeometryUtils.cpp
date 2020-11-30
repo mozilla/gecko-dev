@@ -7,6 +7,7 @@
 #include "GeometryUtils.h"
 
 #include "mozilla/PresShell.h"
+#include "mozilla/SVGUtils.h"
 #include "mozilla/dom/CharacterData.h"
 #include "mozilla/dom/DOMPointBinding.h"
 #include "mozilla/dom/GeometryUtilsBinding.h"
@@ -19,7 +20,6 @@
 #include "nsIFrame.h"
 #include "nsCSSFrameConstructor.h"
 #include "nsLayoutUtils.h"
-#include "nsSVGUtils.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -143,7 +143,7 @@ static nsIFrame* GetFirstNonAnonymousFrameForNode(nsINode* aNode) {
  */
 static nsRect GetBoxRectForFrame(nsIFrame** aFrame, CSSBoxType aType) {
   nsRect r;
-  nsIFrame* f = nsSVGUtils::GetOuterSVGFrameAndCoveredRegion(*aFrame, &r);
+  nsIFrame* f = SVGUtils::GetOuterSVGFrameAndCoveredRegion(*aFrame, &r);
   if (f && f != *aFrame) {
     // For non-outer SVG frames, the BoxType is ignored.
     *aFrame = f;
@@ -299,6 +299,9 @@ void GetBoxQuads(nsINode* aNode, const dom::BoxQuadOptions& aOptions,
       GetBoxRectForFrame(&relativeToFrame, CSSBoxType::Border).TopLeft();
   AccumulateQuadCallback callback(ownerDoc, aResult, relativeToFrame,
                                   relativeToTopLeft, aOptions.mBox);
+
+  // Bug 1624653: Refactor this to get boxes in layer pixels, which we will
+  // then convert into CSS units.
   nsLayoutUtils::GetAllInFlowBoxes(frame, &callback);
 }
 
@@ -330,6 +333,9 @@ void GetBoxQuadsFromWindowOrigin(nsINode* aNode,
   ogn.SetAsDocument() = topInProcessDoc;
   bqo.mRelativeTo.Construct(ogn);
 
+  // Bug 1624653: Refactor this to get boxes in layer pixels, which we can
+  // transform directly with the GetChildToParentConversionMatrix below,
+  // and convert to CSS units as a final step.
   GetBoxQuads(aNode, bqo, aResult, CallerType::System, aRv);
   if (aRv.Failed()) {
     return;
@@ -364,7 +370,8 @@ void GetBoxQuadsFromWindowOrigin(nsINode* aNode,
   // For each DOMQuad in aResult, change the css units into layer pixels,
   // then transform them by matrix, then change them back into css units
   // and overwrite the original points.
-  LayoutDeviceToCSSScale ld2cScale(appUnitsPerDevPixel);
+  LayoutDeviceToCSSScale ld2cScale((float)appUnitsPerDevPixel /
+                                   (float)AppUnitsPerCSSPixel());
   CSSToLayoutDeviceScale c2ldScale = ld2cScale.Inverse();
 
   for (auto& quad : aResult) {

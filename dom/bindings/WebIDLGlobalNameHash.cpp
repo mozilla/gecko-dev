@@ -8,6 +8,7 @@
 #include "js/Class.h"
 #include "js/GCAPI.h"
 #include "js/Id.h"
+#include "js/Object.h"  // JS::GetClass, JS::GetReservedSlot
 #include "js/Wrapper.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
@@ -40,10 +41,9 @@ static JSObject* FindNamedConstructorForXray(
   // (instead of just having it defined on the global now).  Check for named
   // constructors with this id, in case that's what the caller is asking for.
   for (unsigned slot = DOM_INTERFACE_SLOTS_BASE;
-       slot < JSCLASS_RESERVED_SLOTS(js::GetObjectClass(interfaceObject));
-       ++slot) {
+       slot < JSCLASS_RESERVED_SLOTS(JS::GetClass(interfaceObject)); ++slot) {
     JSObject* constructor =
-        &js::GetReservedSlot(interfaceObject, slot).toObject();
+        &JS::GetReservedSlot(interfaceObject, slot).toObject();
     if (JS_GetFunctionId(JS_GetObjectFunction(constructor)) ==
         JSID_TO_STRING(aId)) {
       return constructor;
@@ -190,7 +190,7 @@ bool WebIDLGlobalNameHash::GetNames(JSContext* aCx, JS::Handle<JSObject*> aObj,
         (!entry.mEnabled || entry.mEnabled(aCx, aObj))) {
       JSString* str =
           JS_AtomizeStringN(aCx, sNames + entry.mNameOffset, entry.mNameLength);
-      if (!str || !aNames.append(NON_INTEGER_ATOM_TO_JSID(str))) {
+      if (!str || !aNames.append(PropertyKey::fromNonIntAtom(str))) {
         return false;
       }
     }
@@ -261,7 +261,7 @@ bool WebIDLGlobalNameHash::NewEnumerateSystemGlobal(
     if (!entry.mEnabled || entry.mEnabled(aCx, aObj)) {
       JSString* str =
           JS_AtomizeStringN(aCx, sNames + entry.mNameOffset, entry.mNameLength);
-      if (!str || !aProperties.append(NON_INTEGER_ATOM_TO_JSID(str))) {
+      if (!str || !aProperties.append(PropertyKey::fromNonIntAtom(str))) {
         return false;
       }
     }

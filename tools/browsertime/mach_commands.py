@@ -42,7 +42,7 @@ import contextlib
 
 from six import StringIO
 from mach.decorators import CommandArgument, CommandProvider, Command
-from mozbuild.base import MachCommandBase
+from mozbuild.base import MachCommandBase, BinaryNotFoundException
 from mozbuild.util import mkdir
 import mozpack.path as mozpath
 
@@ -270,8 +270,8 @@ class MachBrowsertime(MachCommandBase):
                 'to {new_upstream_url}')
 
             if not re.search('/tarball/[a-f0-9]{40}$', new_upstream_url):
-                raise ValueError("New upstream URL does not end with /tarball/[a-f0-9]{40}: '{}'"
-                                 .format(new_upstream_url))
+                raise ValueError("New upstream URL does not end with /tarball/[a-f0-9]{40}: '%s'"
+                                 % new_upstream_url)
 
             with open(package_json_path) as f:
                 existing_body = json.loads(f.read(), object_pairs_hook=collections.OrderedDict)
@@ -292,8 +292,8 @@ class MachBrowsertime(MachCommandBase):
         # to an endpoint with binaries named like
         # https://github.com/sitespeedio/geckodriver/blob/master/install.js#L31.
         if AUTOMATION:
-            os.environ[b"CHROMEDRIVER_SKIP_DOWNLOAD"] = b"true"
-            os.environ[b"GECKODRIVER_SKIP_DOWNLOAD"] = b"true"
+            os.environ["CHROMEDRIVER_SKIP_DOWNLOAD"] = "true"
+            os.environ["GECKODRIVER_SKIP_DOWNLOAD"] = "true"
 
         self.log(
             logging.INFO,
@@ -402,30 +402,33 @@ class MachBrowsertime(MachCommandBase):
 
         return append_env
 
-    def _activate_virtualenv(self, *args, **kwargs):
+    def _need_install(self, package):
+        from pip._internal.req.constructors import install_req_from_line
+        req = install_req_from_line(package)
+        req.check_if_exists(use_user_site=False)
+        if req.satisfied_by is None:
+            return True
+        venv_site_lib = os.path.abspath(os.path.join(self.virtualenv_manager.bin_path, "..",
+                                        "lib"))
+        site_packages = os.path.abspath(req.satisfied_by.location)
+        return not site_packages.startswith(venv_site_lib)
+
+    def activate_virtualenv(self, *args, **kwargs):
         r'''Activates virtualenv.
 
         This function will also install Pillow and pyssim if needed.
         It will raise an error in case the install failed.
         '''
-        MachCommandBase._activate_virtualenv(self, *args, **kwargs)
+        MachCommandBase.activate_virtualenv(self, *args, **kwargs)
+
         # installing Python deps on the fly
-        try:
-            import PIL
-            if PIL.__version__ != PILLOW_VERSION:
-                raise ImportError("Wrong version %s" % PIL.__version__)
-        except ImportError:
-            self.virtualenv_manager.install_pip_package('Pillow==%s' % PILLOW_VERSION)
-        try:
-            # No __version__ in that package.
-            # We make the assumption it's fine.
-            import ssim  # noqa
-        except ImportError:
-            self.virtualenv_manager.install_pip_package('pyssim==%s' % PYSSIM_VERSION)
+        for dep in ("Pillow==%s" % PILLOW_VERSION, "pyssim==%s" % PYSSIM_VERSION):
+            if self._need_install(dep):
+                self.virtualenv_manager._run_pip(["install", dep])
 
     def check(self):
         r'''Run `visualmetrics.py --check`.'''
-        self._activate_virtualenv()
+        self.activate_virtualenv()
 
         args = ['--check']
         status = self.run_process(
@@ -500,9 +503,16 @@ class MachBrowsertime(MachCommandBase):
             if not specifies_binaryPath:
                 try:
                     extra_args.extend(('--firefox.binaryPath', self.get_binary_path()))
-                except Exception:
-                    print('Please run |./mach build| '
-                          'or specify a Firefox binary with --firefox.binaryPath.')
+                except BinaryNotFoundException as e:
+                    self.log(logging.ERROR,
+                             'browsertime',
+                             {'error': str(e)},
+                             'ERROR: {error}')
+                    self.log(logging.INFO,
+                             'browsertime',
+                             {},
+                             'Please run |./mach build| '
+                             'or specify a Firefox binary with --firefox.binaryPath.')
                     return 1
 
         if extra_args:
@@ -541,14 +551,15 @@ class MachBrowsertime(MachCommandBase):
     @CommandArgument('--update-upstream-url', default='')
     @CommandArgument('--setup', default=False, action='store_true')
     @CommandArgument('--clobber', default=False, action='store_true')
-    @CommandArgument('--skip-cache', action='store_true',
-                     help='Skip all local caches to force re-fetching remote artifacts.',
-                     default=False)
+    @CommandArgument('--skip-cache', default=False, action='store_true',
+                     help='Skip all local caches to force re-fetching remote artifacts.')
     @CommandArgument('--check', default=False, action='store_true')
+    @CommandArgument('--browsertime-help', default=False, action='store_true',
+                     help='Show the browsertime help message.')
     @CommandArgument('args', nargs=argparse.REMAINDER)
     def browsertime(self, args, verbose=False,
                     update_upstream_url='', setup=False, clobber=False,
-                    skip_cache=False, check=False):
+                    skip_cache=False, check=False, browsertime_help=False):
         self._set_log_level(verbose)
 
         if update_upstream_url:
@@ -562,7 +573,10 @@ class MachBrowsertime(MachCommandBase):
         if check:
             return self.check()
 
-        self._activate_virtualenv()
+        if browsertime_help:
+            args.append('--help')
+
+        self.activate_virtualenv()
         default_args = self.extra_default_args(args)
         if default_args == 1:
             return 1
@@ -574,7 +588,7 @@ class MachBrowsertime(MachCommandBase):
     @CommandArgument('args', nargs=argparse.REMAINDER)
     def visualmetrics(self, video, args):
         self._set_log_level(True)
-        self._activate_virtualenv()
+        self.activate_virtualenv()
 
         # Turn '/path/to/video/1.mp4' into '/path/to/video' and '1'.
         d, base = os.path.split(video)

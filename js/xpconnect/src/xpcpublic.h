@@ -11,7 +11,9 @@
 #include "js/BuildId.h"  // JS::BuildIdCharVector
 #include "js/HeapAPI.h"
 #include "js/GCAPI.h"
+#include "js/Object.h"  // JS::GetCompartment
 #include "js/Proxy.h"
+#include "js/String.h"  // JS::IsExternalString
 #include "js/Wrapper.h"
 
 #include "nsAtom.h"
@@ -182,7 +184,7 @@ inline JSObject* xpc_FastGetCachedWrapper(JSContext* cx, nsWrapperCache* cache,
   if (cache) {
     JSObject* wrapper = cache->GetWrapper();
     if (wrapper &&
-        js::GetObjectCompartment(wrapper) == js::GetContextCompartment(cx)) {
+        JS::GetCompartment(wrapper) == js::GetContextCompartment(cx)) {
       vp.setObject(*wrapper);
       return wrapper;
     }
@@ -268,7 +270,7 @@ class XPCStringConvert {
       JSString* str, const JSExternalStringCallbacks* desiredCallbacks,
       const char16_t** chars) {
     const JSExternalStringCallbacks* callbacks;
-    return js::IsExternalString(str, &callbacks, chars) &&
+    return JS::IsExternalString(str, &callbacks, chars) &&
            callbacks == desiredCallbacks;
   }
 
@@ -415,7 +417,7 @@ void SetLocationForGlobal(JSObject* global, nsIURI* locationURI);
 // of JS::ZoneStats.
 class ZoneStatsExtras {
  public:
-  ZoneStatsExtras() {}
+  ZoneStatsExtras() = default;
 
   nsCString pathPrefix;
 
@@ -428,7 +430,7 @@ class ZoneStatsExtras {
 // of JS::RealmStats.
 class RealmStatsExtras {
  public:
-  RealmStatsExtras() {}
+  RealmStatsExtras() = default;
 
   nsCString jsPathPrefix;
   nsCString domPathPrefix;
@@ -483,6 +485,10 @@ already_AddRefed<nsISupports> ReflectorToISupportsDynamic(JSObject* reflector,
  * using this compartment. If you don't, bholley will hunt you down.
  */
 JSObject* UnprivilegedJunkScope();
+
+JSObject* UnprivilegedJunkScope(const mozilla::fallible_t&);
+
+bool IsUnprivilegedJunkScope(JSObject*);
 
 /**
  * This will generally be the shared JSM global, but callers should not depend
@@ -543,8 +549,6 @@ bool ShouldDiscardSystemSource();
 
 void SetPrefableRealmOptions(JS::RealmOptions& options);
 
-bool ExtraWarningsForSystemJS();
-
 class ErrorBase {
  public:
   nsString mErrorMsg;
@@ -585,10 +589,15 @@ class ErrorReport : public ErrorBase {
   nsString mSourceLine;
   nsString mErrorMsgName;
   uint64_t mWindowID;
-  uint32_t mFlags;
+  bool mIsWarning;
   bool mIsMuted;
+  bool mIsPromiseRejection;
 
-  ErrorReport() : mWindowID(0), mFlags(0), mIsMuted(false) {}
+  ErrorReport()
+      : mWindowID(0),
+        mIsWarning(false),
+        mIsMuted(false),
+        mIsPromiseRejection(false) {}
 
   void Init(JSErrorReport* aReport, const char* aToStringResult, bool aIsChrome,
             uint64_t aWindowID);
@@ -603,7 +612,9 @@ class ErrorReport : public ErrorBase {
   // null. If aStack is non-null, aStackGlobal must be a non-null global
   // object that's same-compartment with aStack. Note that aStack might be a
   // CCW.
-  void LogToConsoleWithStack(JS::HandleObject aStack,
+  void LogToConsoleWithStack(nsGlobalWindowInner* aWin,
+                             JS::Handle<mozilla::Maybe<JS::Value>> aException,
+                             JS::HandleObject aStack,
                              JS::HandleObject aStackGlobal);
 
   // Produce an error event message string from the given JSErrorReport.  Note
@@ -615,8 +626,10 @@ class ErrorReport : public ErrorBase {
   // Log the error report to the stderr.
   void LogToStderr();
 
+  bool IsWarning() const { return mIsWarning; };
+
  private:
-  ~ErrorReport() {}
+  ~ErrorReport() = default;
 };
 
 void DispatchScriptErrorEvent(nsPIDOMWindowInner* win,
@@ -658,7 +671,11 @@ void AddGCCallback(xpcGCCallback cb);
 void RemoveGCCallback(xpcGCCallback cb);
 
 // We need an exact page size only if we run the binary in automation.
+#if defined(XP_DARWIN) && defined(__aarch64__)
+const size_t kAutomationPageSize = 16384;
+#else
 const size_t kAutomationPageSize = 4096;
+#endif
 
 struct alignas(kAutomationPageSize) ReadOnlyPage final {
   bool mNonLocalConnectionsDisabled = false;

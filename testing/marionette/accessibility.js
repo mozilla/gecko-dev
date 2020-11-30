@@ -4,17 +4,19 @@
 
 "use strict";
 
+const EXPORTED_SYMBOLS = ["accessibility"];
+
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
-const { ElementNotAccessibleError } = ChromeUtils.import(
-  "chrome://marionette/content/error.js"
-);
-const { Log } = ChromeUtils.import("chrome://marionette/content/log.js");
+XPCOMUtils.defineLazyModuleGetters(this, {
+  error: "chrome://marionette/content/error.js",
+  Log: "chrome://marionette/content/log.js",
+});
 
-XPCOMUtils.defineLazyGetter(this, "logger", Log.get);
+XPCOMUtils.defineLazyGetter(this, "logger", () => Log.get());
 
 XPCOMUtils.defineLazyGetter(this, "service", () => {
   try {
@@ -26,8 +28,6 @@ XPCOMUtils.defineLazyGetter(this, "service", () => {
     return undefined;
   }
 });
-
-this.EXPORTED_SYMBOLS = ["accessibility"];
 
 /** @namespace */
 this.accessibility = {
@@ -455,6 +455,6 @@ accessibility.Checks = class {
       message += `: id: ${id}, tagName: ${tagName}, className: ${className}`;
     }
 
-    throw new ElementNotAccessibleError(message);
+    throw new error.ElementNotAccessibleError(message);
   }
 };

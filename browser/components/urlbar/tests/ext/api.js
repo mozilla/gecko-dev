@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* global ExtensionAPI */
+/* global ExtensionAPI, ExtensionCommon */
 
 "use strict";
 
@@ -11,49 +11,11 @@ const { XPCOMUtils } = ChromeUtils.import(
 );
 
 XPCOMUtils.defineLazyModuleGetters(this, {
-  AppMenuNotifications: "resource://gre/modules/AppMenuNotifications.jsm",
-  AppUpdater: "resource:///modules/AppUpdater.jsm",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
   Preferences: "resource://gre/modules/Preferences.jsm",
-  ProfileAge: "resource://gre/modules/ProfileAge.jsm",
-  Services: "resource://gre/modules/Services.jsm",
-  ResetProfile: "resource://gre/modules/ResetProfile.jsm",
-  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.jsm",
-  Sanitizer: "resource:///modules/Sanitizer.jsm",
-});
-
-XPCOMUtils.defineLazyServiceGetter(
-  this,
-  "updateService",
-  "@mozilla.org/updates/update-service;1",
-  "nsIApplicationUpdateService"
-);
-XPCOMUtils.defineLazyServiceGetter(
-  this,
-  "updateManager",
-  "@mozilla.org/updates/update-manager;1",
-  "nsIUpdateManager"
-);
-
-XPCOMUtils.defineLazyGetter(this, "appUpdater", () => new AppUpdater());
-
-XPCOMUtils.defineLazyGetter(this, "appUpdaterStatusToStringMap", () => {
-  // The AppUpdater.STATUS values have uppercase, underscored names like
-  // READY_FOR_RESTART.  The statuses we return from this API are camel-cased
-  // versions of those names, like "readyForRestart".  Here we convert those
-  // AppUpdater.STATUS names to camel-cased names and store them in a map.
-  let map = new Map();
-  for (let name in AppUpdater.STATUS) {
-    let parts = name.split("_").map(p => p.toLowerCase());
-    let string =
-      parts[0] +
-      parts
-        .slice(1)
-        .map(p => p[0].toUpperCase() + p.substring(1))
-        .join("");
-    map.set(AppUpdater.STATUS[name], string);
-  }
-  return map;
+  UrlbarProviderExtension: "resource:///modules/UrlbarProviderExtension.jsm",
+  UrlbarResult: "resource:///modules/UrlbarResult.jsm",
+  UrlbarView: "resource:///modules/UrlbarView.jsm",
 });
 
 XPCOMUtils.defineLazyGetter(
@@ -62,148 +24,44 @@ XPCOMUtils.defineLazyGetter(
   () => new Preferences({ defaultBranch: true })
 );
 
+let { EventManager } = ExtensionCommon;
+
 this.experiments_urlbar = class extends ExtensionAPI {
-  getAPI() {
+  getAPI(context) {
     return {
       experiments: {
         urlbar: {
-          checkForBrowserUpdate() {
-            appUpdater.check();
+          addDynamicResultType: (name, type) => {
+            this._addDynamicResultType(name, type);
+          },
+
+          addDynamicViewTemplate: (name, viewTemplate) => {
+            this._addDynamicViewTemplate(name, viewTemplate);
           },
 
           clearInput() {
             let window = BrowserWindowTracker.getTopWindow();
             window.gURLBar.value = "";
-            window.SetPageProxyState("invalid");
+            window.gURLBar.setPageProxyState("invalid");
           },
 
           engagementTelemetry: this._getDefaultSettingsAPI(
             "browser.urlbar.eventTelemetry.enabled"
           ),
 
-          getBrowserUpdateStatus() {
-            return appUpdaterStatusToStringMap.get(appUpdater.status);
-          },
-
-          installBrowserUpdateAndRestart() {
-            if (appUpdater.status != AppUpdater.STATUS.DOWNLOAD_AND_INSTALL) {
-              return Promise.resolve();
-            }
-            return new Promise(resolve => {
-              let listener = () => {
-                // Once we call startDownload, there are two possible end
-                // states: DOWNLOAD_FAILED and READY_FOR_RESTART.
-                if (
-                  appUpdater.status != AppUpdater.STATUS.READY_FOR_RESTART &&
-                  appUpdater.status != AppUpdater.STATUS.DOWNLOAD_FAILED
-                ) {
-                  return;
-                }
-                appUpdater.removeListener(listener);
-                if (appUpdater.status == AppUpdater.STATUS.READY_FOR_RESTART) {
-                  restartBrowser();
-                }
-                resolve();
-              };
-              appUpdater.addListener(listener);
-              appUpdater.startDownload();
-            });
-          },
-
-          isBrowserShowingNotification() {
-            let window = BrowserWindowTracker.getTopWindow();
-
-            // urlbar view and notification box (info bar)
-            if (
-              window.gURLBar.view.isOpen ||
-              window.gBrowser.getNotificationBox().currentNotification
-            ) {
-              return true;
-            }
-
-            // app menu notification doorhanger
-            if (
-              AppMenuNotifications.activeNotification &&
-              !AppMenuNotifications.activeNotification.dismissed &&
-              !AppMenuNotifications.activeNotification.options.badgeOnly
-            ) {
-              return true;
-            }
-
-            // tracking protection and identity box doorhangers
-            if (
-              ["tracking-protection-icon-container", "identity-box"].some(
-                id =>
-                  window.document.getElementById(id).getAttribute("open") ==
-                  "true"
-              )
-            ) {
-              return true;
-            }
-
-            // page action button panels
-            let pageActions = window.document.getElementById(
-              "page-action-buttons"
-            );
-            if (pageActions) {
-              for (let child of pageActions.childNodes) {
-                if (child.getAttribute("open") == "true") {
-                  return true;
-                }
-              }
-            }
-
-            // toolbar button panels
-            let navbar = window.document.getElementById(
-              "nav-bar-customization-target"
-            );
-            for (let node of navbar.querySelectorAll("toolbarbutton")) {
-              if (node.getAttribute("open") == "true") {
-                return true;
-              }
-            }
-
-            return false;
-          },
-
-          async lastBrowserUpdateDate() {
-            // Get the newest update in the update history.  This isn't perfect
-            // because these dates are when updates are applied, not when the
-            // user restarts with the update.  See bug 1595328.
-            if (updateManager.updateCount) {
-              let update = updateManager.getUpdateAt(0);
-              return update.installDate;
-            }
-            // Fall back to the profile age.
-            let age = await ProfileAge();
-            return (await age.firstUse) || age.created;
-          },
-
-          openViewOnFocus: this._getDefaultSettingsAPI(
-            "browser.urlbar.openViewOnFocus"
-          ),
-
-          openClearHistoryDialog() {
-            let window = BrowserWindowTracker.getTopWindow();
-            // The behaviour of the Clear Recent History dialog in PBM does
-            // not have the expected effect (bug 463607).
-            if (PrivateBrowsingUtils.isWindowPrivate(window)) {
-              return;
-            }
-            Sanitizer.showUI(window);
-          },
-
-          restartBrowser() {
-            restartBrowser();
-          },
-
-          resetBrowser() {
-            if (!ResetProfile.resetSupported()) {
-              return;
-            }
-            let window = BrowserWindowTracker.getTopWindow();
-            ResetProfile.openConfirmationDialog(window);
-          },
+          onViewUpdateRequested: new EventManager({
+            context,
+            name: "experiments.urlbar.onViewUpdateRequested",
+            register: (fire, providerName) => {
+              let provider = UrlbarProviderExtension.getOrCreate(providerName);
+              provider.setEventListener("getViewUpdate", result => {
+                return fire.async(result.payload).catch(error => {
+                  throw context.normalizeError(error);
+                });
+              });
+              return () => provider.setEventListener("getViewUpdate", null);
+            },
+          }).api(),
         },
       },
     };
@@ -218,6 +76,9 @@ this.experiments_urlbar = class extends ExtensionAPI {
         defaultPreferences.set(pref, value);
       }
     }
+
+    this._removeDynamicViewTemplates();
+    this._removeDynamicResultTypes();
   }
 
   _getDefaultSettingsAPI(pref) {
@@ -251,28 +112,134 @@ this.experiments_urlbar = class extends ExtensionAPI {
       },
     };
   }
-};
 
-function restartBrowser() {
-  // Notify all windows that an application quit has been requested.
-  let cancelQuit = Cc["@mozilla.org/supports-PRBool;1"].createInstance(
-    Ci.nsISupportsPRBool
-  );
-  Services.obs.notifyObservers(
-    cancelQuit,
-    "quit-application-requested",
-    "restart"
-  );
-  // Something aborted the quit process.
-  if (cancelQuit.data) {
-    return;
-  }
-  // If already in safe mode restart in safe mode.
-  if (Services.appinfo.inSafeMode) {
-    Services.startup.restartInSafeMode(Ci.nsIAppStartup.eAttemptQuit);
-  } else {
-    Services.startup.quit(
-      Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eRestart
+  // We use the following four properties as bookkeeping to keep track of
+  // dynamic result types and view templates registered by extensions so that
+  // they can be properly removed on extension shutdown.
+
+  // Names of dynamic result types added by this extension.
+  _dynamicResultTypeNames = new Set();
+
+  // Names of dynamic result type view templates added by this extension.
+  _dynamicViewTemplateNames = new Set();
+
+  // Maps dynamic result type names to Sets of IDs of extensions that have
+  // registered those types.
+  static extIDsByDynamicResultTypeName = new Map();
+
+  // Maps dynamic result type view template names to Sets of IDs of extensions
+  // that have registered those view templates.
+  static extIDsByDynamicViewTemplateName = new Map();
+
+  /**
+   * Adds a dynamic result type and includes it in our bookkeeping.  See
+   * UrlbarResult.addDynamicResultType().
+   *
+   * @param {string} name
+   *   The name of the dynamic result type.
+   * @param {object} type
+   *   The type.
+   */
+  _addDynamicResultType(name, type) {
+    this._dynamicResultTypeNames.add(name);
+    this._addExtIDToDynamicResultTypeMap(
+      experiments_urlbar.extIDsByDynamicResultTypeName,
+      name
     );
+    UrlbarResult.addDynamicResultType(name, type);
   }
-}
+
+  /**
+   * Removes all dynamic result types added by the extension.
+   */
+  _removeDynamicResultTypes() {
+    for (let name of this._dynamicResultTypeNames) {
+      let allRemoved = this._removeExtIDFromDynamicResultTypeMap(
+        experiments_urlbar.extIDsByDynamicResultTypeName,
+        name
+      );
+      if (allRemoved) {
+        UrlbarResult.removeDynamicResultType(name);
+      }
+    }
+  }
+
+  /**
+   * Adds a dynamic result type view template and includes it in our
+   * bookkeeping.  See UrlbarView.addDynamicViewTemplate().
+   *
+   * @param {string} name
+   *   The view template will be registered for the dynamic result type with
+   *   this name.
+   * @param {object} viewTemplate
+   *   The view template.
+   */
+  _addDynamicViewTemplate(name, viewTemplate) {
+    this._dynamicViewTemplateNames.add(name);
+    this._addExtIDToDynamicResultTypeMap(
+      experiments_urlbar.extIDsByDynamicViewTemplateName,
+      name
+    );
+    if (viewTemplate.stylesheet) {
+      viewTemplate.stylesheet = this.extension.baseURI.resolve(
+        viewTemplate.stylesheet
+      );
+    }
+    UrlbarView.addDynamicViewTemplate(name, viewTemplate);
+  }
+
+  /**
+   * Removes all dynamic result type view templates added by the extension.
+   */
+  _removeDynamicViewTemplates() {
+    for (let name of this._dynamicViewTemplateNames) {
+      let allRemoved = this._removeExtIDFromDynamicResultTypeMap(
+        experiments_urlbar.extIDsByDynamicViewTemplateName,
+        name
+      );
+      if (allRemoved) {
+        UrlbarView.removeDynamicViewTemplate(name);
+      }
+    }
+  }
+
+  /**
+   * Adds a dynamic result type name and this extension's ID to a bookkeeping
+   * map.
+   *
+   * @param {Map} map
+   *   Either extIDsByDynamicResultTypeName or extIDsByDynamicViewTemplateName.
+   * @param {string} dynamicTypeName
+   *   The dynamic result type name.
+   */
+  _addExtIDToDynamicResultTypeMap(map, dynamicTypeName) {
+    let extIDs = map.get(dynamicTypeName);
+    if (!extIDs) {
+      extIDs = new Set();
+      map.set(dynamicTypeName, extIDs);
+    }
+    extIDs.add(this.extension.id);
+  }
+
+  /**
+   * Removes a dynamic result type name and this extension's ID from a
+   * bookkeeping map.
+   *
+   * @param {Map} map
+   *   Either extIDsByDynamicResultTypeName or extIDsByDynamicViewTemplateName.
+   * @param {string} dynamicTypeName
+   *   The dynamic result type name.
+   * @returns {boolean}
+   *   True if no other extension IDs are in the map under the same
+   *   dynamicTypeName, and false otherwise.
+   */
+  _removeExtIDFromDynamicResultTypeMap(map, dynamicTypeName) {
+    let extIDs = map.get(dynamicTypeName);
+    extIDs.delete(this.extension.id);
+    if (!extIDs.size) {
+      map.delete(dynamicTypeName);
+      return true;
+    }
+    return false;
+  }
+};

@@ -7,6 +7,8 @@
 #if !defined(PlatformDecoderModule_h_)
 #  define PlatformDecoderModule_h_
 
+#  include <queue>
+
 #  include "DecoderDoctorLogger.h"
 #  include "GMPCrashHelper.h"
 #  include "MediaEventSource.h"
@@ -20,7 +22,6 @@
 #  include "mozilla/layers/KnowsCompositor.h"
 #  include "mozilla/layers/LayersTypes.h"
 #  include "nsTArray.h"
-#  include <queue>
 
 namespace mozilla {
 class TrackInfo;
@@ -36,7 +37,6 @@ class ImageContainer;
 class GpuDecoderModule;
 class MediaDataDecoder;
 class RemoteDecoderModule;
-class TaskQueue;
 class CDMProxy;
 
 static LazyLogModule sPDMLog("PlatformDecoderModule");
@@ -66,7 +66,7 @@ struct MOZ_STACK_CLASS CreateDecoderParams final {
     bool mUse = false;
   };
 
-  // Do not wrap H264 decoder in a H264Converter.
+  // Do not wrap decoder in a MediaChangeMonitor.
   struct NoWrapper {
     NoWrapper() = default;
     explicit NoWrapper(bool aDontUseWrapper)
@@ -104,7 +104,6 @@ struct MOZ_STACK_CLASS CreateDecoderParams final {
   }
 
   const TrackInfo& mConfig;
-  TaskQueue* mTaskQueue = nullptr;
   DecoderDoctorDiagnostics* mDiagnostics = nullptr;
   layers::ImageContainer* mImageContainer = nullptr;
   MediaResult* mError = nullptr;
@@ -118,7 +117,6 @@ struct MOZ_STACK_CLASS CreateDecoderParams final {
   VideoFrameRate mRate;
 
  private:
-  void Set(TaskQueue* aTaskQueue) { mTaskQueue = aTaskQueue; }
   void Set(DecoderDoctorDiagnostics* aDiagnostics) {
     mDiagnostics = aDiagnostics;
   }
@@ -280,6 +278,8 @@ class MediaDataDecoder : public DecoderDoctorLifeLogger<MediaDataDecoder> {
   // it can call Shutdown() to cancel this operation. Any initialization
   // that requires blocking the calling thread in this function *must*
   // be done here so that it can be canceled by calling Shutdown()!
+  // Methods Decode, DecodeBatch, Drain, Flush, Shutdown are guaranteed to be
+  // called on the thread where Init() first ran.
   virtual RefPtr<InitPromise> Init() = 0;
 
   // Inserts a sample into the decoder's decode pipeline. The DecodePromise will
@@ -297,7 +297,7 @@ class MediaDataDecoder : public DecoderDoctorLifeLogger<MediaDataDecoder> {
   // the decoder needs more input, the DecodePromise may be resolved
   // with an empty array of samples to indicate that Decode should be
   // called again before a MediaData is returned.
-  virtual bool CanDecodeBatch() { return false; }
+  virtual bool CanDecodeBatch() const { return false; }
   virtual RefPtr<DecodePromise> DecodeBatch(
       nsTArray<RefPtr<MediaRawData>>&& aSamples) {
     MOZ_CRASH("DecodeBatch not implemented yet");

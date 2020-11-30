@@ -27,7 +27,7 @@ XPCOMUtils.defineLazyGetter(this, "PushService", function() {
     return PushService;
   }
 
-  throw Cr.NS_ERROR_NOT_AVAILABLE;
+  throw Components.Exception("", Cr.NS_ERROR_NOT_AVAILABLE);
 });
 
 // Observer notification topics for push messages and subscription status
@@ -58,11 +58,11 @@ PushServiceBase.prototype = {
   classID: Components.ID("{daaa8d73-677e-4233-8acd-2c404bd01658}"),
   contractID: "@mozilla.org/push/Service;1",
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIObserver,
-    Ci.nsISupportsWeakReference,
-    Ci.nsIPushService,
-    Ci.nsIPushQuotaManager,
-    Ci.nsIPushErrorReporter,
+    "nsIObserver",
+    "nsISupportsWeakReference",
+    "nsIPushService",
+    "nsIPushQuotaManager",
+    "nsIPushErrorReporter",
   ]),
 
   pushTopic: OBSERVER_TOPIC_PUSH,
@@ -225,7 +225,7 @@ Object.assign(PushServiceParent.prototype, {
     if (!this._isValidMessage(message)) {
       return;
     }
-    let { name, principal, target, data } = message;
+    let { name, target, data } = message;
     if (name === "Push:NotificationForOriginShown") {
       this.notificationForOriginShown(data);
       return;
@@ -238,7 +238,7 @@ Object.assign(PushServiceParent.prototype, {
       this.reportDeliveryError(data.messageId, data.reason);
       return;
     }
-    this._handleRequest(name, principal, data)
+    this._handleRequest(name, data.principal, data)
       .then(
         result => {
           target.sendAsyncMessage(this._getResponseName(name, "OK"), {
@@ -382,42 +382,30 @@ Object.assign(PushServiceContent.prototype, {
 
   subscribeWithKey(scope, principal, key, callback) {
     let requestID = this._addRequest(callback);
-    this._mm.sendAsyncMessage(
-      "Push:Register",
-      {
-        scope,
-        appServerKey: key,
-        requestID,
-      },
-      null,
-      principal
-    );
+    this._mm.sendAsyncMessage("Push:Register", {
+      scope,
+      appServerKey: key,
+      requestID,
+      principal,
+    });
   },
 
   unsubscribe(scope, principal, callback) {
     let requestID = this._addRequest(callback);
-    this._mm.sendAsyncMessage(
-      "Push:Unregister",
-      {
-        scope,
-        requestID,
-      },
-      null,
-      principal
-    );
+    this._mm.sendAsyncMessage("Push:Unregister", {
+      scope,
+      requestID,
+      principal,
+    });
   },
 
   getSubscription(scope, principal, callback) {
     let requestID = this._addRequest(callback);
-    this._mm.sendAsyncMessage(
-      "Push:Registration",
-      {
-        scope,
-        requestID,
-      },
-      null,
-      principal
-    );
+    this._mm.sendAsyncMessage("Push:Registration", {
+      scope,
+      requestID,
+      principal,
+    });
   },
 
   clearForDomain(domain, callback) {
@@ -513,7 +501,7 @@ function PushSubscription(props) {
 }
 
 PushSubscription.prototype = {
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIPushSubscription]),
+  QueryInterface: ChromeUtils.generateQI(["nsIPushSubscription"]),
 
   /** The URL for sending messages to this subscription. */
   get endpoint() {

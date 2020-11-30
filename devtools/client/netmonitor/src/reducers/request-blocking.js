@@ -10,12 +10,17 @@ const {
   TOGGLE_BLOCKED_URL,
   UPDATE_BLOCKED_URL,
   REMOVE_BLOCKED_URL,
+  REMOVE_ALL_BLOCKED_URLS,
+  ENABLE_ALL_BLOCKED_URLS,
+  DISABLE_ALL_BLOCKED_URLS,
   TOGGLE_BLOCKING_ENABLED,
+  SYNCED_BLOCKED_URLS,
 } = require("devtools/client/netmonitor/src/constants");
 
 function RequestBlocking() {
   return {
     blockedUrls: [],
+    blockingSynced: false,
     blockingEnabled: true,
   };
 }
@@ -26,17 +31,34 @@ function requestBlockingReducer(state = RequestBlocking(), action) {
       return addBlockedUrl(state, action);
     case REMOVE_BLOCKED_URL:
       return removeBlockedUrl(state, action);
+    case REMOVE_ALL_BLOCKED_URLS:
+      return removeAllBlockedUrls(state, action);
     case UPDATE_BLOCKED_URL:
       return updateBlockedUrl(state, action);
     case TOGGLE_BLOCKED_URL:
       return toggleBlockedUrl(state, action);
     case TOGGLE_BLOCKING_ENABLED:
       return toggleBlockingEnabled(state, action);
+    case ENABLE_ALL_BLOCKED_URLS:
+      return enableAllBlockedUrls(state, action);
+    case DISABLE_ALL_BLOCKED_URLS:
+      return disableAllBlockedUrls(state, action);
     case DISABLE_MATCHING_URLS:
       return disableOrRemoveMatchingUrls(state, action);
+    case SYNCED_BLOCKED_URLS:
+      return syncedBlockedUrls(state, action);
     default:
       return state;
   }
+}
+
+function syncedBlockedUrls(state, action) {
+  // Indicates whether the blocked url has been synced
+  // with the server once. We don't need to do it once netmonitor is open.
+  return {
+    ...state,
+    blockingSynced: action.synced,
+  };
 }
 
 function toggleBlockingEnabled(state, action) {
@@ -50,13 +72,20 @@ function addBlockedUrl(state, action) {
   // The user can paste in a list of URLS so we need to cleanse the input
   // Pasting a list turns new lines into spaces
   const uniqueUrls = [...new Set(action.url.split(" "))].map(url => url.trim());
+
   const newUrls = uniqueUrls
     // Ensure the URL isn't already blocked
     .filter(url => url && !state.blockedUrls.some(item => item.url === url))
     // Add new URLs as enabled by default
     .map(url => ({ url, enabled: true }));
 
-  const blockedUrls = [...state.blockedUrls, ...newUrls];
+  // If the user is trying to block a URL that's currently in the list but disabled,
+  // re-enable the old item
+  const currentBlockedUrls = state.blockedUrls.map(item =>
+    uniqueUrls.includes(item.url) ? { url: item.url, enabled: true } : item
+  );
+
+  const blockedUrls = [...currentBlockedUrls, ...newUrls];
   return {
     ...state,
     blockedUrls,
@@ -67,6 +96,35 @@ function removeBlockedUrl(state, action) {
   return {
     ...state,
     blockedUrls: state.blockedUrls.filter(item => item.url != action.url),
+  };
+}
+
+function removeAllBlockedUrls(state, action) {
+  return {
+    ...state,
+    blockedUrls: [],
+  };
+}
+
+function enableAllBlockedUrls(state, action) {
+  const blockedUrls = state.blockedUrls.map(item => ({
+    ...item,
+    enabled: true,
+  }));
+  return {
+    ...state,
+    blockedUrls,
+  };
+}
+
+function disableAllBlockedUrls(state, action) {
+  const blockedUrls = state.blockedUrls.map(item => ({
+    ...item,
+    enabled: false,
+  }));
+  return {
+    ...state,
+    blockedUrls,
   };
 }
 

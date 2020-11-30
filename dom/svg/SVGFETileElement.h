@@ -4,10 +4,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_SVGFETileElement_h
-#define mozilla_dom_SVGFETileElement_h
+#ifndef DOM_SVG_SVGFETILEELEMENT_H_
+#define DOM_SVG_SVGFETILEELEMENT_H_
 
-#include "SVGFilters.h"
+#include "mozilla/dom/SVGFilters.h"
 
 nsresult NS_NewSVGFETileElement(
     nsIContent** aResult, already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
@@ -15,7 +15,7 @@ nsresult NS_NewSVGFETileElement(
 namespace mozilla {
 namespace dom {
 
-typedef SVGFE SVGFETileElementBase;
+using SVGFETileElementBase = SVGFE;
 
 class SVGFETileElement : public SVGFETileElementBase {
   friend nsresult(::NS_NewSVGFETileElement(
@@ -33,7 +33,7 @@ class SVGFETileElement : public SVGFETileElementBase {
   virtual bool SubregionIsUnionOfRegions() override { return false; }
 
   virtual FilterPrimitiveDescription GetPrimitiveDescription(
-      nsSVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
+      SVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
       const nsTArray<bool>& aInputsAreTainted,
       nsTArray<RefPtr<SourceSurface>>& aInputImages) override;
   virtual bool AttributeAffectsRendering(int32_t aNameSpaceID,
@@ -59,4 +59,4 @@ class SVGFETileElement : public SVGFETileElementBase {
 }  // namespace dom
 }  // namespace mozilla
 
-#endif  // mozilla_dom_SVGFETileElement_h
+#endif  // DOM_SVG_SVGFETILEELEMENT_H_

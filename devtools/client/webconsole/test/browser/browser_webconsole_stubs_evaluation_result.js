@@ -9,7 +9,7 @@ const {
   getSerializedPacket,
   getStubFile,
   writeStubsToFile,
-} = require("chrome://mochitests/content/browser/devtools/client/webconsole/test/browser/stub-generator-helpers");
+} = require(`${CHROME_URL_ROOT}stub-generator-helpers`);
 
 const TEST_URI = "data:text/html;charset=utf-8,stub generation";
 const STUB_FILE = "evaluationResult.js";
@@ -28,10 +28,9 @@ add_task(async function() {
 
   const existingStubs = getStubFile(STUB_FILE);
   const FAILURE_MSG =
-    "The evaluationResult stubs file needs to be updated by running " +
-    "`mach test devtools/client/webconsole/test/browser/" +
-    "browser_webconsole_stubs_evaluation_result.js --headless " +
-    "--setenv WEBCONSOLE_STUBS_UPDATE=true`";
+    "The evaluationResult stubs file needs to be updated by running `" +
+    `mach test ${getCurrentTestFilePath()} --headless --setenv WEBCONSOLE_STUBS_UPDATE=true` +
+    "`";
 
   if (generatedStubs.size !== existingStubs.rawPackets.size) {
     ok(false, FAILURE_MSG);
@@ -40,9 +39,10 @@ add_task(async function() {
 
   let failed = false;
   for (const [key, packet] of generatedStubs) {
-    const packetStr = getSerializedPacket(packet);
+    const packetStr = getSerializedPacket(packet, { sortKeys: true });
     const existingPacketStr = getSerializedPacket(
-      existingStubs.rawPackets.get(key)
+      existingStubs.rawPackets.get(key),
+      { sortKeys: true }
     );
     is(packetStr, existingPacketStr, `"${key}" packet has expected value`);
     failed = failed || packetStr !== existingPacketStr;
@@ -89,5 +89,22 @@ function getCommands() {
 
   evaluationResult.set(`eval throw ""`, `throw ""`);
   evaluationResult.set(`eval throw "tomato"`, `throw "tomato"`);
+  evaluationResult.set(`eval throw false`, `throw false`);
+  evaluationResult.set(`eval throw 0`, `throw 0`);
+  evaluationResult.set(`eval throw null`, `throw null`);
+  evaluationResult.set(`eval throw undefined`, `throw undefined`);
+  evaluationResult.set(`eval throw Symbol`, `throw Symbol("potato")`);
+  evaluationResult.set(`eval throw Object`, `throw {vegetable: "cucumber"}`);
+  evaluationResult.set(`eval throw Error Object`, `throw new Error("pumpkin")`);
+  evaluationResult.set(
+    `eval throw Error Object with custom name`,
+    `
+    var err = new Error("pineapple");
+    err.name = "JuicyError";
+    err.flavor = "delicious";
+    throw err;
+  `
+  );
+
   return evaluationResult;
 }

@@ -8,15 +8,15 @@
 #define mozilla_dom_HTMLStyleElement_h
 
 #include "mozilla/Attributes.h"
+#include "mozilla/dom/LinkStyle.h"
 #include "nsGenericHTMLElement.h"
-#include "nsStyleLinkElement.h"
 #include "nsStubMutationObserver.h"
 
 namespace mozilla {
 namespace dom {
 
 class HTMLStyleElement final : public nsGenericHTMLElement,
-                               public nsStyleLinkElement,
+                               public LinkStyle,
                                public nsStubMutationObserver {
  public:
   explicit HTMLStyleElement(
@@ -37,6 +37,13 @@ class HTMLStyleElement final : public nsGenericHTMLElement,
   virtual void SetTextContentInternal(const nsAString& aTextContent,
                                       nsIPrincipal* aSubjectPrincipal,
                                       mozilla::ErrorResult& aError) override;
+  /**
+   * Mark this style element with a devtools-specific principal that
+   * skips Content Security Policy unsafe-inline checks. This triggering
+   * principal will be overwritten by any callers that set textContent
+   * or innerHTML on this element.
+   */
+  void SetDevtoolsAsTriggeringPrincipal();
 
   virtual nsresult BindToTree(BindContext&, nsINode& aParent) override;
   virtual void UnbindFromTree(bool aNullParent = true) override;
@@ -71,6 +78,8 @@ class HTMLStyleElement final : public nsGenericHTMLElement,
  protected:
   virtual ~HTMLStyleElement();
 
+  nsIContent& AsContent() final { return *this; }
+  const LinkStyle* AsLinkStyle() const final { return this; }
   Maybe<SheetInfo> GetStyleSheetInfo() final;
 
   /**

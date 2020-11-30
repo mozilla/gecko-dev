@@ -1804,7 +1804,7 @@ void nsPluginHost::UpdatePluginBlocklistState(nsPluginTag* aPluginTag,
   }
   // Asynchronously get the blocklist state.
   RefPtr<Promise> promise;
-  blocklist->GetPluginBlocklistState(aPluginTag, EmptyString(), EmptyString(),
+  blocklist->GetPluginBlocklistState(aPluginTag, u""_ns, u""_ns,
                                      getter_AddRefs(promise));
   MOZ_ASSERT(promise,
              "Should always get a promise for plugin blocklist state.");
@@ -1845,7 +1845,7 @@ static void WatchRegKey(uint32_t aRoot, nsCOMPtr<nsIWindowsRegKey>& aKey) {
     return;
   }
   nsresult rv = aKey->Open(
-      aRoot, NS_LITERAL_STRING("Software\\MozillaPlugins"),
+      aRoot, u"Software\\MozillaPlugins"_ns,
       nsIWindowsRegKey::ACCESS_READ | nsIWindowsRegKey::ACCESS_NOTIFY);
   if (NS_FAILED(rv)) {
     aKey = nullptr;
@@ -1857,7 +1857,7 @@ static void WatchRegKey(uint32_t aRoot, nsCOMPtr<nsIWindowsRegKey>& aKey) {
 
 already_AddRefed<nsIAsyncShutdownClient> GetProfileChangeTeardownPhase() {
   nsCOMPtr<nsIAsyncShutdownService> asyncShutdownSvc =
-      services::GetAsyncShutdown();
+      services::GetAsyncShutdownService();
   MOZ_ASSERT(asyncShutdownSvc);
   if (NS_WARN_IF(!asyncShutdownSvc)) {
     return nullptr;
@@ -1905,9 +1905,9 @@ nsresult nsPluginHost::LoadPlugins() {
   // (yet) aware of flash being present), and then again after we've actually
   // looked for it on disk.
   nsresult rv = mPendingFinder->DoFullSearch(
-      [self](
-          bool aPluginsChanged, RefPtr<nsPluginTag> aPlugins,
-          const nsTArray<Pair<bool, RefPtr<nsPluginTag>>>& aBlocklistRequests) {
+      [self](bool aPluginsChanged, RefPtr<nsPluginTag> aPlugins,
+             const nsTArray<std::pair<bool, RefPtr<nsPluginTag>>>&
+                 aBlocklistRequests) {
         MOZ_ASSERT(NS_IsMainThread(),
                    "Callback should only be called on the main thread.");
         self->mPluginsLoaded = true;
@@ -1924,8 +1924,8 @@ nsresult nsPluginHost::LoadPlugins() {
 
         // Do blocklist queries immediately after.
         for (auto pair : aBlocklistRequests) {
-          RefPtr<nsPluginTag> pluginTag = pair.second();
-          bool shouldSoftblock = pair.first();
+          RefPtr<nsPluginTag> pluginTag = pair.second;
+          bool shouldSoftblock = pair.first;
           self->UpdatePluginBlocklistState(pluginTag, shouldSoftblock);
         }
 
@@ -1958,9 +1958,9 @@ nsresult nsPluginHost::LoadPlugins() {
     nsCOMPtr<nsIAsyncShutdownClient> shutdownPhase =
         GetProfileChangeTeardownPhase();
     if (shutdownPhase) {
-      rv =
-          shutdownPhase->AddBlocker(mPendingFinder, NS_LITERAL_STRING(__FILE__),
-                                    __LINE__, NS_LITERAL_STRING(""));
+      rv = shutdownPhase->AddBlocker(mPendingFinder,
+                                     NS_LITERAL_STRING_FROM_CSTRING(__FILE__),
+                                     __LINE__, u""_ns);
       mAddedFinderShutdownBlocker = NS_SUCCEEDED(rv);
     }
 
@@ -2026,11 +2026,10 @@ nsresult nsPluginHost::SetPluginsInContent(
           tag.id(), tag.name().get(), tag.description().get(),
           tag.filename().get(),
           "",  // aFullPath
-          tag.version().get(), nsTArray<nsCString>(tag.mimeTypes()),
-          nsTArray<nsCString>(tag.mimeDescriptions()),
-          nsTArray<nsCString>(tag.extensions()), tag.isFlashPlugin(),
-          tag.supportsAsyncRender(), tag.lastModifiedTime(), tag.sandboxLevel(),
-          tag.blocklistState());
+          tag.version().get(), tag.mimeTypes().Clone(),
+          tag.mimeDescriptions().Clone(), tag.extensions().Clone(),
+          tag.isFlashPlugin(), tag.supportsAsyncRender(),
+          tag.lastModifiedTime(), tag.sandboxLevel(), tag.blocklistState());
       AddPluginTag(pluginTag);
     }
 
@@ -2199,8 +2198,8 @@ void nsPluginHost::RegisterWithCategoryManager(const nsCString& aMimeType,
     return;
   }
 
-  NS_NAMED_LITERAL_CSTRING(
-      contractId, "@mozilla.org/content/plugin/document-loader-factory;1");
+  constexpr auto contractId =
+      "@mozilla.org/content/plugin/document-loader-factory;1"_ns;
 
   if (aType == ePluginRegister) {
     catMan->AddCategoryEntry("Gecko-Content-Viewers", aMimeType, contractId,
@@ -2270,7 +2269,7 @@ nsresult nsPluginHost::NewPluginURLStream(
   // form |nsDocShell::OnLinkClickSync| bug 166613
   rv = NS_NewChannel(
       getter_AddRefs(channel), url, element,
-      nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_INHERITS |
+      nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_INHERITS_SEC_CONTEXT |
           nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL,
       nsIContentPolicy::TYPE_OBJECT_SUBREQUEST,
       nullptr,  // aPerformanceStorage
@@ -2328,7 +2327,7 @@ nsresult nsPluginHost::NewPluginURLStream(
       nsCOMPtr<nsIUploadChannel> uploadChannel(do_QueryInterface(httpChannel));
       NS_ASSERTION(uploadChannel, "http must support nsIUploadChannel");
 
-      uploadChannel->SetUploadStream(aPostStream, EmptyCString(), -1);
+      uploadChannel->SetUploadStream(aPostStream, ""_ns, -1);
     }
 
     if (aHeadersData) {
@@ -2762,21 +2761,20 @@ void nsPluginHost::PluginCrashed(nsNPAPIPlugin* aPlugin,
     if (!NS_WARN_IF(!library)) {
       library->GetRunID(&runID);
     }
-    propbag->SetPropertyAsUint32(NS_LITERAL_STRING("runID"), runID);
+    propbag->SetPropertyAsUint32(u"runID"_ns, runID);
 
     nsCString pluginName;
     crashedPluginTag->GetName(pluginName);
-    propbag->SetPropertyAsAString(NS_LITERAL_STRING("pluginName"),
+    propbag->SetPropertyAsAString(u"pluginName"_ns,
                                   NS_ConvertUTF8toUTF16(pluginName));
-    propbag->SetPropertyAsAString(NS_LITERAL_STRING("pluginDumpID"),
-                                  aPluginDumpID);
-    propbag->SetPropertyAsACString(NS_LITERAL_STRING("additionalMinidumps"),
+    propbag->SetPropertyAsAString(u"pluginDumpID"_ns, aPluginDumpID);
+    propbag->SetPropertyAsACString(u"additionalMinidumps"_ns,
                                    aAdditionalMinidumps);
-    propbag->SetPropertyAsBool(NS_LITERAL_STRING("submittedCrashReport"),
+    propbag->SetPropertyAsBool(u"submittedCrashReport"_ns,
                                submittedCrashReport);
     obsService->NotifyObservers(propbag, "plugin-crashed", nullptr);
     // see if an observer submitted a crash report.
-    propbag->GetPropertyAsBool(NS_LITERAL_STRING("submittedCrashReport"),
+    propbag->GetPropertyAsBool(u"submittedCrashReport"_ns,
                                &submittedCrashReport);
   }
 

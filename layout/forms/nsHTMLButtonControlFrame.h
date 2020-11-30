@@ -74,11 +74,11 @@ class nsHTMLButtonControlFrame : public nsContainerFrame,
 
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const override {
-    return MakeFrameName(NS_LITERAL_STRING("HTMLButtonControl"), aResult);
+    return MakeFrameName(u"HTMLButtonControl"_ns, aResult);
   }
 #endif
 
-  virtual bool HonorPrintBackgroundSettings() override { return false; }
+  virtual bool HonorPrintBackgroundSettings() const override { return false; }
 
   // nsIFormControlFrame
   void SetFocus(bool aOn, bool aRepaint) override;

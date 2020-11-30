@@ -20,15 +20,18 @@ const ECHO_BODY = String.raw`
   import struct
   import sys
 
-  while True:
-      rawlen = sys.stdin.read(4)
-      if len(rawlen) == 0:
-          sys.exit(0)
-      msglen = struct.unpack('@I', rawlen)[0]
-      msg = sys.stdin.read(msglen)
+  stdin = getattr(sys.stdin, 'buffer', sys.stdin)
+  stdout = getattr(sys.stdout, 'buffer', sys.stdout)
 
-      sys.stdout.write(struct.pack('@I', msglen))
-      sys.stdout.write(msg)
+  while True:
+    rawlen = stdin.read(4)
+    if len(rawlen) == 0:
+      sys.exit(0)
+    msglen = struct.unpack('@I', rawlen)[0]
+    msg = stdin.read(msglen)
+
+    stdout.write(struct.pack('@I', msglen))
+    stdout.write(msg)
 `;
 
 const INFO_BODY = String.raw`
@@ -38,7 +41,10 @@ const INFO_BODY = String.raw`
   import sys
 
   msg = json.dumps({"args": sys.argv, "cwd": os.getcwd()})
-  sys.stdout.write(struct.pack('@I', len(msg)))
+  if sys.version_info >= (3,):
+    sys.stdout.buffer.write(struct.pack('@I', len(msg)))
+  else:
+    sys.stdout.write(struct.pack('@I', len(msg)))
   sys.stdout.write(msg)
   sys.exit(0)
 `;
@@ -664,11 +670,6 @@ add_task(async function test_connect_native_from_content_script() {
 
   await extension.startup();
 
-  Services.prefs.setBoolPref(
-    "security.turn_off_all_security_so_that_viruses_can_take_over_this_computer",
-    true
-  );
-  Services.prefs.setBoolPref("security.allow_unsafe_parent_loads", true);
   const page = await ExtensionTestUtils.loadContentPage(
     "http://example.com/dummy"
   );

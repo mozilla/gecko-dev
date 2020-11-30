@@ -1,6 +1,7 @@
 from __future__ import print_function
 import array
 import os
+import sys
 from collections import defaultdict, namedtuple
 
 from mozlog import structuredlog
@@ -319,14 +320,17 @@ def write_new_expected(metadata_path, expected):
         manifest_str = wptmanifest.serialize(expected.node,
                                              skip_empty_data=True)
         assert manifest_str != ""
-        dir = os.path.split(path)[0]
+        dir = os.path.dirname(path)
         if not os.path.exists(dir):
             os.makedirs(dir)
         tmp_path = path + ".tmp"
         try:
             with open(tmp_path, "wb") as f:
-                f.write(manifest_str)
-            os.rename(tmp_path, path)
+                f.write(manifest_str.encode("utf8"))
+            if sys.version_info >= (3, 3):
+                os.replace(tmp_path, path)
+            else:
+                os.rename(tmp_path, path)
         except (Exception, KeyboardInterrupt):
             try:
                 os.unlink(tmp_path)
@@ -617,6 +621,7 @@ class PackedResultList(object):
 class TestFileData(object):
     __slots__ = ("url_base", "item_type", "test_path", "metadata_path", "tests",
                  "_requires_update", "data")
+
     def __init__(self, url_base, item_type, metadata_path, test_path, tests):
         self.url_base = url_base
         self.item_type = item_type

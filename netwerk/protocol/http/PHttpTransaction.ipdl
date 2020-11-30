@@ -26,6 +26,12 @@ struct H2PushedStreamArg {
   uint32_t pushedStreamId;
 };
 
+struct NetworkAddressArg {
+  NetAddr selfAddr;
+  NetAddr peerAddr;
+  bool resolvedByTRR;
+};
+
 refcounted protocol PHttpTransaction
 {
   manager PSocketProcess;
@@ -37,10 +43,15 @@ parent:
                        bool                       proxyConnectFailed,
                        TimingStructArgs           timings,
                        int32_t                    proxyConnectResponseCode,
-                       uint8_t[]                  dataForSniffer);
+                       uint8_t[]                  dataForSniffer,
+                       nsCString?                 altSvcUsed,
+                       bool                       dataToChildProcess,
+                       bool                       restarted,
+                       uint32_t?                  HTTPSSVCReceivedStage);
   async OnTransportStatus(nsresult status,
                           int64_t progress,
-                          int64_t progressMax);
+                          int64_t progressMax,
+                          NetworkAddressArg? networkAddressArg);
   async OnDataAvailable(nsCString data,
                         uint64_t  offset,
                         uint32_t  count);
@@ -50,8 +61,8 @@ parent:
                       TimingStructArgs timings,
                       nsHttpHeaderArray? responseTrailers,
                       bool hasStickyConn,
-                      TransactionObserverResult? transactionObserverResult);
-  async OnNetAddrUpdate(NetAddr selfAddr, NetAddr peerAddr, bool resolvedByTRR);
+                      TransactionObserverResult? transactionObserverResult,
+                      TimeStamp lastActiveTabOptimization);
   async OnInitFailed(nsresult status);
   async OnH2PushStream(uint32_t pushedStreamId,
                        nsCString resourceUrl,
@@ -74,7 +85,10 @@ child:
              uint64_t channelId,
              bool hasTransactionObserver,
              H2PushedStreamArg? pushedStreamArg,
-             PInputChannelThrottleQueue? throttleQueue);
+             PInputChannelThrottleQueue? throttleQueue,
+             bool aIsDocumentLoad,
+             TimeStamp aRedirectStart,
+             TimeStamp aRedirectEnd);
 
   async UpdateClassOfService(uint32_t classOfService);
   async CancelPump(nsresult status);

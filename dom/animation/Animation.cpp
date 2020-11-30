@@ -18,8 +18,8 @@
 #include "mozilla/AnimationTarget.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/DeclarationBlock.h"
-#include "mozilla/Maybe.h"       // For Maybe
-#include "mozilla/TypeTraits.h"  // For std::forward<>
+#include "mozilla/Maybe.h"  // For Maybe
+#include "mozilla/StaticPrefs_dom.h"
 #include "nsAnimationManager.h"  // For CSSAnimation
 #include "nsComputedDOMStyle.h"
 #include "nsDOMMutationObserver.h"    // For nsAutoAnimationMutationBatch
@@ -59,9 +59,7 @@ namespace {
 // appropriate document from the supplied animation.
 class MOZ_RAII AutoMutationBatchForAnimation {
  public:
-  explicit AutoMutationBatchForAnimation(
-      const Animation& aAnimation MOZ_GUARD_OBJECT_NOTIFIER_PARAM) {
-    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+  explicit AutoMutationBatchForAnimation(const Animation& aAnimation) {
     NonOwningAnimationTarget target = aAnimation.GetTargetForAnimation();
     if (!target) {
       return;
@@ -72,7 +70,6 @@ class MOZ_RAII AutoMutationBatchForAnimation {
   }
 
  private:
-  MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
   Maybe<nsAutoAnimationMutationBatch> mAutoBatch;
 };
 }  // namespace
@@ -82,6 +79,37 @@ class MOZ_RAII AutoMutationBatchForAnimation {
 // Animation interface:
 //
 // ---------------------------------------------------------------------------
+
+/* static */
+already_AddRefed<Animation> Animation::ClonePausedAnimation(
+    nsIGlobalObject* aGlobal, const Animation& aOther, AnimationEffect& aEffect,
+    AnimationTimeline& aTimeline) {
+  RefPtr<Animation> animation = new Animation(aGlobal);
+  // Setup the timing.
+  animation->mTimeline = &aTimeline;
+  const Nullable<TimeDuration> timelineTime =
+      aTimeline.GetCurrentTimeAsDuration();
+  MOZ_ASSERT(!timelineTime.IsNull(), "Timeline not yet set");
+
+  const Nullable<TimeDuration> currentTime = aOther.GetCurrentTimeAsDuration();
+  animation->mHoldTime = currentTime;
+  if (!currentTime.IsNull()) {
+    animation->mPreviousCurrentTime = timelineTime;
+  }
+
+  animation->mPlaybackRate = aOther.mPlaybackRate;
+
+  // Setup the effect's link to this.
+  animation->mEffect = &aEffect;
+  animation->mEffect->SetAnimation(animation);
+
+  // We expect our relevance to be the same as the orginal.
+  animation->mIsRelevant = aOther.mIsRelevant;
+
+  animation->PostUpdate();
+  animation->mTimeline->NotifyAnimationUpdated(*animation);
+  return animation.forget();
+}
 
 NonOwningAnimationTarget Animation::GetTargetForAnimation() const {
   AnimationEffect* effect = GetEffect();
@@ -152,6 +180,11 @@ void Animation::SetEffectNoUpdate(AnimationEffect* aEffect) {
     // Break links with the old effect and then drop it.
     RefPtr<AnimationEffect> oldEffect = mEffect;
     mEffect = nullptr;
+    if (IsPartialPrerendered()) {
+      if (KeyframeEffect* oldKeyframeEffect = oldEffect->AsKeyframeEffect()) {
+        oldKeyframeEffect->ResetPartialPrerendered();
+      }
+    }
     oldEffect->SetAnimation(nullptr);
 
     // The following will not do any notification because mEffect is null.
@@ -506,11 +539,11 @@ void Animation::Cancel(PostRestyleMode aPostRestyle) {
 
     if (mFinished) {
       mFinished->MaybeReject(NS_ERROR_DOM_ABORT_ERR);
+      mFinished->SetSettledPromiseIsHandled();
     }
     ResetFinishedPromise();
 
-    QueuePlaybackEvent(NS_LITERAL_STRING("cancel"),
-                       GetTimelineCurrentTimeAsTimeStamp());
+    QueuePlaybackEvent(u"cancel"_ns, GetTimelineCurrentTimeAsTimeStamp());
   }
 
   StickyTimeDuration activeTime =
@@ -536,10 +569,12 @@ void Animation::Cancel(PostRestyleMode aPostRestyle) {
 void Animation::Finish(ErrorResult& aRv) {
   double effectivePlaybackRate = CurrentOrPendingPlaybackRate();
 
-  if (effectivePlaybackRate == 0 ||
-      (effectivePlaybackRate > 0 && EffectEnd() == TimeDuration::Forever())) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
-    return;
+  if (effectivePlaybackRate == 0) {
+    return aRv.ThrowInvalidStateError(
+        "Can't finish animation with zero playback rate");
+  }
+  if (effectivePlaybackRate > 0 && EffectEnd() == TimeDuration::Forever()) {
+    return aRv.ThrowInvalidStateError("Can't finish infinite animation");
   }
 
   AutoMutationBatchForAnimation mb(*this);
@@ -595,9 +630,13 @@ void Animation::Play(ErrorResult& aRv, LimitBehavior aLimitBehavior) {
 
 // https://drafts.csswg.org/web-animations/#reverse-an-animation
 void Animation::Reverse(ErrorResult& aRv) {
-  if (!mTimeline || mTimeline->GetCurrentTimeAsDuration().IsNull()) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
-    return;
+  if (!mTimeline) {
+    return aRv.ThrowInvalidStateError(
+        "Can't reverse an animation with no associated timeline");
+  }
+  if (mTimeline->GetCurrentTimeAsDuration().IsNull()) {
+    return aRv.ThrowInvalidStateError(
+        "Can't reverse an animation associated with an inactive timeline");
   }
 
   double effectivePlaybackRate = CurrentOrPendingPlaybackRate();
@@ -658,32 +697,34 @@ void Animation::CommitStyles(ErrorResult& aRv) {
   }
 
   if (target.mPseudoType != PseudoStyleType::NotPseudo) {
-    aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
-    return;
+    return aRv.ThrowNoModificationAllowedError(
+        "Can't commit styles of a pseudo-element");
   }
 
   // Check it is an element with a style attribute
-  nsCOMPtr<nsStyledElement> styledElement = do_QueryInterface(target.mElement);
+  RefPtr<nsStyledElement> styledElement =
+      nsStyledElement::FromNodeOrNull(target.mElement);
   if (!styledElement) {
-    aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
-    return;
+    return aRv.ThrowNoModificationAllowedError(
+        "Target is not capable of having a style attribute");
   }
 
-  // Flush style before checking if the target element is rendered since the
-  // result could depend on pending style changes.
-  if (Document* doc = target.mElement->GetComposedDoc()) {
-    doc->FlushPendingNotifications(FlushType::Style);
+  // Hold onto a strong reference to the doc in case the flush destroys it.
+  RefPtr<Document> doc = target.mElement->GetComposedDoc();
+
+  // Flush frames before checking if the target element is rendered since the
+  // result could depend on pending style changes, and IsRendered() looks at the
+  // primary frame.
+  if (doc) {
+    doc->FlushPendingNotifications(FlushType::Frames);
   }
   if (!target.mElement->IsRendered()) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
-    return;
+    return aRv.ThrowInvalidStateError("Target is not rendered");
   }
-
   nsPresContext* presContext =
       nsContentUtils::GetContextForContent(target.mElement);
   if (!presContext) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
-    return;
+    return aRv.ThrowInvalidStateError("Target is not rendered");
   }
 
   // Get the computed animation values
@@ -978,7 +1019,9 @@ bool Animation::ShouldBeSynchronizedWithMainThread(
   // We check this before calling ShouldBlockAsyncTransformAnimations, partly
   // because it's cheaper, but also because it's often the most useful thing
   // to know when you're debugging performance.
-  if (mSyncWithGeometricAnimations &&
+  if (StaticPrefs::
+          dom_animations_mainthread_synchronization_with_geometric_animations() &&
+      mSyncWithGeometricAnimations &&
       keyframeEffect->HasAnimationOfPropertySet(
           nsCSSPropertyIDSet::TransformLikeProperties())) {
     aPerformanceWarning =
@@ -1112,8 +1155,7 @@ void Animation::Remove() {
   UpdateEffect(PostRestyleMode::IfNeeded);
   PostUpdate();
 
-  QueuePlaybackEvent(NS_LITERAL_STRING("remove"),
-                     GetTimelineCurrentTimeAsTimeStamp());
+  QueuePlaybackEvent(u"remove"_ns, GetTimelineCurrentTimeAsTimeStamp());
 }
 
 bool Animation::HasLowerCompositeOrderThan(const Animation& aOther) const {
@@ -1307,8 +1349,8 @@ void Animation::PlayNoUpdate(ErrorResult& aRv, LimitBehavior aLimitBehavior) {
                (currentTime.Value() <= TimeDuration() ||
                 currentTime.Value() > EffectEnd())))) {
     if (EffectEnd() == TimeDuration::Forever()) {
-      aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
-      return;
+      return aRv.ThrowInvalidStateError(
+          "Can't rewind animation with infinite effect end");
     }
     mHoldTime.SetValue(TimeDuration(EffectEnd()));
   } else if (effectivePlaybackRate == 0.0 && currentTime.IsNull()) {
@@ -1391,8 +1433,7 @@ void Animation::Pause(ErrorResult& aRv) {
       mHoldTime.SetValue(TimeDuration(0));
     } else {
       if (EffectEnd() == TimeDuration::Forever()) {
-        aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
-        return;
+        return aRv.ThrowInvalidStateError("Can't seek to infinite effect end");
       }
       mHoldTime.SetValue(TimeDuration(EffectEnd()));
     }
@@ -1617,6 +1658,7 @@ void Animation::ResetPendingTasks() {
 
   if (mReady) {
     mReady->MaybeReject(NS_ERROR_DOM_ABORT_ERR);
+    mReady->SetSettledPromiseIsHandled();
     mReady = nullptr;
   }
 }
@@ -1768,8 +1810,7 @@ void Animation::DoFinishNotificationImmediately(MicroTaskRunnable* aAsync) {
 
   MaybeResolveFinishedPromise();
 
-  QueuePlaybackEvent(NS_LITERAL_STRING("finish"),
-                     AnimationTimeToTimeStamp(EffectEnd()));
+  QueuePlaybackEvent(u"finish"_ns, AnimationTimeToTimeStamp(EffectEnd()));
 }
 
 void Animation::QueuePlaybackEvent(const nsAString& aName,

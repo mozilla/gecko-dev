@@ -4,56 +4,35 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "ProfileBuffer.h"
+
+#include "mozilla/MathAlgorithms.h"
+
 #include "BaseProfiler.h"
-
-#ifdef MOZ_BASE_PROFILER
-
-#  include "ProfileBuffer.h"
-
-#  include "mozilla/MathAlgorithms.h"
 
 namespace mozilla {
 namespace baseprofiler {
 
-// 65536 bytes should be plenty for a single backtrace.
-static constexpr auto DuplicationBufferBytes = MakePowerOfTwo32<65536>();
-
-ProfileBuffer::ProfileBuffer(BlocksRingBuffer& aBuffer, PowerOfTwo32 aCapacity)
-    : mEntries(aBuffer),
-      mDuplicationBuffer(MakeUnique<BlocksRingBuffer::Byte[]>(
-          DuplicationBufferBytes.Value())) {
-  // Only ProfileBuffer should control this buffer, and it should be empty when
-  // there is no ProfileBuffer using it.
-  MOZ_ASSERT(mEntries.BufferLength().isNothing());
-  // Allocate the requested capacity.
-  mEntries.Set(aCapacity);
-}
-
-ProfileBuffer::ProfileBuffer(BlocksRingBuffer& aBuffer) : mEntries(aBuffer) {
-  // Assume the given buffer is not empty.
-  MOZ_ASSERT(mEntries.BufferLength().isSome());
-}
-
-ProfileBuffer::~ProfileBuffer() {
-  // Only ProfileBuffer controls this buffer, and it should be empty when there
-  // is no ProfileBuffer using it.
-  mEntries.Reset();
-  MOZ_ASSERT(mEntries.BufferLength().isNothing());
+ProfileBuffer::ProfileBuffer(ProfileChunkedBuffer& aBuffer)
+    : mEntries(aBuffer) {
+  // Assume the given buffer is in-session.
+  MOZ_ASSERT(mEntries.IsInSession());
 }
 
 /* static */
 ProfileBufferBlockIndex ProfileBuffer::AddEntry(
-    BlocksRingBuffer& aBlocksRingBuffer, const ProfileBufferEntry& aEntry) {
+    ProfileChunkedBuffer& aProfileChunkedBuffer,
+    const ProfileBufferEntry& aEntry) {
   switch (aEntry.GetKind()) {
-#  define SWITCH_KIND(KIND, TYPE, SIZE)                      \
-    case ProfileBufferEntry::Kind::KIND: {                   \
-      return aBlocksRingBuffer.PutFrom(&aEntry, 1 + (SIZE)); \
-      break;                                                 \
-    }
+#define SWITCH_KIND(KIND, TYPE, SIZE)                          \
+  case ProfileBufferEntry::Kind::KIND: {                       \
+    return aProfileChunkedBuffer.PutFrom(&aEntry, 1 + (SIZE)); \
+    break;                                                     \
+  }
 
     FOR_EACH_PROFILE_BUFFER_ENTRY_KIND(SWITCH_KIND)
 
-#  undef SWITCH_KIND
+#undef SWITCH_KIND
     default:
       MOZ_ASSERT(false, "Unhandled baseprofiler::ProfilerBuffer entry KIND");
       return ProfileBufferBlockIndex{};
@@ -67,8 +46,9 @@ uint64_t ProfileBuffer::AddEntry(const ProfileBufferEntry& aEntry) {
 
 /* static */
 ProfileBufferBlockIndex ProfileBuffer::AddThreadIdEntry(
-    BlocksRingBuffer& aBlocksRingBuffer, int aThreadId) {
-  return AddEntry(aBlocksRingBuffer, ProfileBufferEntry::ThreadId(aThreadId));
+    ProfileChunkedBuffer& aProfileChunkedBuffer, int aThreadId) {
+  return AddEntry(aProfileChunkedBuffer,
+                  ProfileBufferEntry::ThreadId(aThreadId));
 }
 
 uint64_t ProfileBuffer::AddThreadIdEntry(int aThreadId) {
@@ -86,17 +66,37 @@ void ProfileBuffer::CollectCodeLocation(
   if (aStr) {
     // Store the string using one or more DynamicStringFragment entries.
     size_t strLen = strlen(aStr) + 1;  // +1 for the null terminator
-    for (size_t j = 0; j < strLen;) {
+    // If larger than the prescribed limit, we will cut the string and end it
+    // with an ellipsis.
+    const bool tooBig = strLen > kMaxFrameKeyLength;
+    if (tooBig) {
+      strLen = kMaxFrameKeyLength;
+    }
+    char chars[ProfileBufferEntry::kNumChars];
+    for (size_t j = 0;; j += ProfileBufferEntry::kNumChars) {
       // Store up to kNumChars characters in the entry.
-      char chars[ProfileBufferEntry::kNumChars];
       size_t len = ProfileBufferEntry::kNumChars;
-      if (j + len >= strLen) {
+      const bool last = j + len >= strLen;
+      if (last) {
+        // Only the last entry may be smaller than kNumChars.
         len = strLen - j;
+        if (tooBig) {
+          // That last entry is part of a too-big string, replace the end
+          // characters with an ellipsis "...".
+          len = std::max(len, size_t(4));
+          chars[len - 4] = '.';
+          chars[len - 3] = '.';
+          chars[len - 2] = '.';
+          chars[len - 1] = '\0';
+          // Make sure the memcpy will not overwrite our ellipsis!
+          len -= 4;
+        }
       }
       memcpy(chars, &aStr[j], len);
-      j += ProfileBufferEntry::kNumChars;
-
       AddEntry(ProfileBufferEntry::DynamicStringFragment(chars));
+      if (last) {
+        break;
+      }
     }
   }
 
@@ -146,7 +146,7 @@ void ProfileBuffer::CollectOverheadStats(TimeDuration aSamplingTime,
   mLastSamplingTimeNs = timeNs;
   // Time to take the lock before sampling.
   double lockingNs = aLocking.ToMilliseconds() * 1000.0;
-  // Time to discard expired markers.
+  // Time to discard expired data.
   double cleaningNs = aCleaning.ToMilliseconds() * 1000.0;
   // Time to gather all counters.
   double countersNs = aCounters.ToMilliseconds() * 1000.0;
@@ -171,7 +171,8 @@ void ProfileBuffer::CollectOverheadStats(TimeDuration aSamplingTime,
 ProfilerBufferInfo ProfileBuffer::GetProfilerBufferInfo() const {
   return {BufferRangeStart(),
           BufferRangeEnd(),
-          mEntries.BufferLength()->Value() / 8,  // 8 bytes per entry.
+          static_cast<uint32_t>(*mEntries.BufferLength() /
+                                8),  // 8 bytes per entry.
           mIntervalsNs,
           mOverheadsNs,
           mLockingsNs,
@@ -195,20 +196,10 @@ void ProfileBufferCollector::CollectProfilingStackFrame(
 
   const char* label = aFrame.label();
   const char* dynamicString = aFrame.dynamicString();
-  bool isChromeJSEntry = false;
   Maybe<uint32_t> line;
   Maybe<uint32_t> column;
 
   MOZ_ASSERT(aFrame.isLabelFrame());
-
-  if (dynamicString) {
-    // Adjust the dynamic string as necessary.
-    if (ProfilerFeature::HasPrivacy(mFeatures) && !isChromeJSEntry) {
-      dynamicString = "(private)";
-    } else if (strlen(dynamicString) >= ProfileBuffer::kMaxFrameKeyLength) {
-      dynamicString = "(too long)";
-    }
-  }
 
   mBuf.CollectCodeLocation(label, dynamicString, aFrame.flags(),
                            aFrame.realmID(), line, column,
@@ -217,5 +208,3 @@ void ProfileBufferCollector::CollectProfilingStackFrame(
 
 }  // namespace baseprofiler
 }  // namespace mozilla
-
-#endif  // MOZ_BASE_PROFILER

@@ -6,11 +6,12 @@
 
 import typeof SourceMaps from "devtools-source-map";
 import type {
-  ThreadList,
   Thread,
   Context,
   ThreadId,
+  SourceId,
   SourceLocation,
+  URL,
 } from "../../types";
 import type { State } from "../../reducers/types";
 import type { MatchedLocations } from "../../reducers/file-search";
@@ -59,33 +60,33 @@ export type Thunk = ThunkArgs => any;
 export type ActionType = Object | Function;
 
 type ProjectTextSearchResult = {
-  sourceId: string,
+  sourceId: SourceId,
   filepath: string,
   matches: MatchedLocations[],
 };
 
 type AddTabAction = {|
   +type: "ADD_TAB",
-  +url: string,
+  +url: URL,
   +framework?: string,
   +isOriginal?: boolean,
-  +sourceId: string,
+  +sourceId: SourceId,
 |};
 
 type UpdateTabAction = {|
   +type: "UPDATE_TAB",
-  +url: string,
+  +url: URL,
   +framework?: string,
   +isOriginal?: boolean,
-  +sourceId: string,
+  +sourceId: SourceId,
 |};
 
 type NavigateAction =
   | {|
       +type: "CONNECT",
-      +mainThread: Thread,
       +traits: Object,
       +isWebExtension: boolean,
+      +mainThreadActorID: ThreadId,
     |}
   | {| +type: "NAVIGATE", +mainThread: Thread |};
 
@@ -143,16 +144,16 @@ export type QuickOpenAction =
   | {| +type: "OPEN_QUICK_OPEN", +query?: string |}
   | {| +type: "CLOSE_QUICK_OPEN" |};
 
-export type DebuggeeAction =
+export type ThreadsAction =
   | {|
-      +type: "INSERT_THREADS",
+      +type: "INSERT_THREAD",
       +cx: Context,
-      +threads: ThreadList,
+      +newThread: Thread,
     |}
   | {|
-      +type: "REMOVE_THREADS",
+      +type: "REMOVE_THREAD",
       +cx: Context,
-      +threads: Array<ThreadId>,
+      +oldThread: Thread,
     |}
   | {|
       +type: "UPDATE_SERVICE_WORKER_STATUS",
@@ -232,6 +233,6 @@ export type Action =
   | QuickOpenAction
   | FileTextSearchAction
   | ProjectTextSearchAction
-  | DebuggeeAction
+  | ThreadsAction
   | SourceTreeAction
   | EventListenerAction;

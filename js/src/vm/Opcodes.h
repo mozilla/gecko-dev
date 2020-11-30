@@ -225,6 +225,7 @@
  *     SetPrototype
  *     Array literals
  *     RegExp literals
+ *     Built-in objects
  *   [Functions]
  *     Creating functions
  *     Creating constructors
@@ -404,8 +405,8 @@
      *   Operands:
      *   Stack: val => (typeof val)
      */ \
-    MACRO(Typeof, typeof_, NULL, 1, 1, 1, JOF_BYTE|JOF_DETECTING|JOF_IC) \
-    MACRO(TypeofExpr, typeof_expr, NULL, 1, 1, 1, JOF_BYTE|JOF_DETECTING|JOF_IC) \
+    MACRO(Typeof, typeof_, NULL, 1, 1, 1, JOF_BYTE|JOF_IC) \
+    MACRO(TypeofExpr, typeof_expr, NULL, 1, 1, 1, JOF_BYTE|JOF_IC) \
     /*
      * [The unary `+` operator][1].
      *
@@ -423,7 +424,7 @@
      *   Operands:
      *   Stack: val => (+val)
      */ \
-    MACRO(Pos, pos, "+ ", 1, 1, 1, JOF_BYTE) \
+    MACRO(Pos, pos, "+ ", 1, 1, 1, JOF_BYTE|JOF_IC) \
     /*
      * [The unary `-` operator][1].
      *
@@ -469,7 +470,7 @@
      *   Operands:
      *   Stack: val => (!val)
      */ \
-    MACRO(Not, not_, "!", 1, 1, 1, JOF_BYTE|JOF_DETECTING|JOF_IC) \
+    MACRO(Not, not_, "!", 1, 1, 1, JOF_BYTE|JOF_IC) \
     /*
      * [Binary bitwise operations][1] (`|`, `^`, `&`).
      *
@@ -503,8 +504,8 @@
      *   Operands:
      *   Stack: lval, rval => (lval OP rval)
      */ \
-    MACRO(Eq, eq, "==", 1, 2, 1, JOF_BYTE|JOF_DETECTING|JOF_IC) \
-    MACRO(Ne, ne, "!=", 1, 2, 1, JOF_BYTE|JOF_DETECTING|JOF_IC) \
+    MACRO(Eq, eq, "==", 1, 2, 1, JOF_BYTE|JOF_IC) \
+    MACRO(Ne, ne, "!=", 1, 2, 1, JOF_BYTE|JOF_IC) \
     /*
      * Strict equality operators (`===` and `!==`).
      *
@@ -521,8 +522,8 @@
      *   Operands:
      *   Stack: lval, rval => (lval OP rval)
      */ \
-    MACRO(StrictEq, strict_eq, "===", 1, 2, 1, JOF_BYTE|JOF_DETECTING|JOF_IC) \
-    MACRO(StrictNe, strict_ne, "!==", 1, 2, 1, JOF_BYTE|JOF_DETECTING|JOF_IC) \
+    MACRO(StrictEq, strict_eq, "===", 1, 2, 1, JOF_BYTE|JOF_IC) \
+    MACRO(StrictNe, strict_ne, "!==", 1, 2, 1, JOF_BYTE|JOF_IC) \
     /*
      * Relative operators (`<`, `>`, `<=`, `>=`).
      *
@@ -705,7 +706,7 @@
      *   Operands:
      *   Stack: propertyNameValue => propertyKey
      */ \
-    MACRO(ToId, to_id, NULL, 1, 1, 1, JOF_BYTE) \
+    MACRO(ToPropertyKey, to_property_key, NULL, 1, 1, 1, JOF_BYTE|JOF_IC) \
     /*
      * Convert a value to a numeric value (a Number or BigInt).
      *
@@ -715,7 +716,7 @@
      * not possible to get the right behavior using `JSOp::Add` and `JSOp::Sub`
      * alone. For one thing, `JSOp::Add` sometimes does string concatenation,
      * while `++` always does numeric addition. More fundamentally, the result
-     * of evaluating `--x` is ToNumeric(old value of `x`), a value that the
+     * of evaluating `x--` is ToNumeric(old value of `x`), a value that the
      * sequence `GetLocal "x"; One; Sub; SetLocal "x"` does not give us.
      *
      * [1]: https://tc39.es/ecma262/#sec-tonumeric
@@ -726,7 +727,7 @@
      *   Operands:
      *   Stack: val => ToNumeric(val)
      */ \
-    MACRO(ToNumeric, to_numeric, NULL, 1, 1, 1, JOF_BYTE) \
+    MACRO(ToNumeric, to_numeric, NULL, 1, 1, 1, JOF_BYTE|JOF_IC) \
     /*
      * Convert a value to a string.
      *
@@ -809,7 +810,7 @@
      *   Operands:
      *   Stack: => obj
      */ \
-    MACRO(NewInit, new_init, NULL, 1, 0, 1, JOF_UINT32|JOF_IC) \
+    MACRO(NewInit, new_init, NULL, 1, 0, 1, JOF_BYTE|JOF_IC) \
     /*
      * Create and push a new object of a predetermined shape.
      *
@@ -842,8 +843,9 @@
      * new object every time it's evaluated, so this instruction must not be
      * used anywhere it might be executed more than once.
      *
-     * There's a shell-only option, `newGlobal({cloneSingletons: true})`, that
-     * makes this instruction do a deep copy of the object. A few tests use it.
+     * This may only be used in non-function run-once scripts. Care also must
+     * be taken to not emit in loops or other constructs where it could run
+     * more than once.
      *
      *   Category: Objects
      *   Type: Creating objects
@@ -879,7 +881,7 @@
      *   Operands: uint32_t nameIndex
      *   Stack: obj, val => obj
      */ \
-    MACRO(InitProp, init_prop, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT|JOF_DETECTING|JOF_IC) \
+    MACRO(InitProp, init_prop, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT|JOF_IC) \
     /*
      * Like `JSOp::InitProp`, but define a non-enumerable property.
      *
@@ -895,7 +897,7 @@
      *   Operands: uint32_t nameIndex
      *   Stack: obj, val => obj
      */ \
-    MACRO(InitHiddenProp, init_hidden_prop, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT|JOF_DETECTING|JOF_IC) \
+    MACRO(InitHiddenProp, init_hidden_prop, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT|JOF_IC) \
     /*
      * Like `JSOp::InitProp`, but define a non-enumerable, non-writable,
      * non-configurable property.
@@ -912,9 +914,11 @@
      *   Operands: uint32_t nameIndex
      *   Stack: obj, val => obj
      */ \
-    MACRO(InitLockedProp, init_locked_prop, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT|JOF_DETECTING|JOF_IC) \
+    MACRO(InitLockedProp, init_locked_prop, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT|JOF_IC) \
     /*
      * Define a data property on `obj` with property key `id` and value `val`.
+     *
+     * `obj` must be an object.
      *
      * Implements: [CreateDataPropertyOrThrow][1]. This instruction is used for
      * object literals like `{0: val}` and `{[id]: val}`, and methods like
@@ -922,6 +926,8 @@
      *
      * `JSOp::InitHiddenElem` is the same but defines a non-enumerable property,
      * for class methods.
+     * `JSOp::InitLockedElem` is the same but defines a non-enumerable, non-writable, non-configurable property,
+     * for private class methods.
      *
      *    [1]: https://tc39.es/ecma262/#sec-createdatapropertyorthrow
      *
@@ -930,11 +936,14 @@
      *   Operands:
      *   Stack: obj, id, val => obj
      */ \
-    MACRO(InitElem, init_elem, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPINIT|JOF_DETECTING|JOF_IC) \
-    MACRO(InitHiddenElem, init_hidden_elem, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPINIT|JOF_DETECTING|JOF_IC) \
+    MACRO(InitElem, init_elem, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPINIT|JOF_IC) \
+    MACRO(InitHiddenElem, init_hidden_elem, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPINIT|JOF_IC) \
+    MACRO(InitLockedElem, init_locked_elem, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPINIT|JOF_IC) \
     /*
      * Define an accessor property on `obj` with the given `getter`.
      * `nameIndex` gives the property name.
+     *
+     * `obj` must be an object and `getter` must be a function.
      *
      * `JSOp::InitHiddenPropGetter` is the same but defines a non-enumerable
      * property, for getters in classes.
@@ -944,12 +953,14 @@
      *   Operands: uint32_t nameIndex
      *   Stack: obj, getter => obj
      */ \
-    MACRO(InitPropGetter, init_prop_getter, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT|JOF_DETECTING) \
-    MACRO(InitHiddenPropGetter, init_hidden_prop_getter, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT|JOF_DETECTING) \
+    MACRO(InitPropGetter, init_prop_getter, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT) \
+    MACRO(InitHiddenPropGetter, init_hidden_prop_getter, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT) \
     /*
      * Define an accessor property on `obj` with property key `id` and the given `getter`.
      *
      * This is used to implement getters like `get [id]() {}` or `get 0() {}`.
+     *
+     * `obj` must be an object and `getter` must be a function.
      *
      * `JSOp::InitHiddenElemGetter` is the same but defines a non-enumerable
      * property, for getters in classes.
@@ -959,12 +970,14 @@
      *   Operands:
      *   Stack: obj, id, getter => obj
      */ \
-    MACRO(InitElemGetter, init_elem_getter, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPINIT|JOF_DETECTING) \
-    MACRO(InitHiddenElemGetter, init_hidden_elem_getter, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPINIT|JOF_DETECTING) \
+    MACRO(InitElemGetter, init_elem_getter, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPINIT) \
+    MACRO(InitHiddenElemGetter, init_hidden_elem_getter, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPINIT) \
     /*
      * Define an accessor property on `obj` with the given `setter`.
      *
      * This is used to implement ordinary setters like `set foo(v) {}`.
+     *
+     * `obj` must be an object and `setter` must be a function.
      *
      * `JSOp::InitHiddenPropSetter` is the same but defines a non-enumerable
      * property, for setters in classes.
@@ -974,8 +987,8 @@
      *   Operands: uint32_t nameIndex
      *   Stack: obj, setter => obj
      */ \
-    MACRO(InitPropSetter, init_prop_setter, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT|JOF_DETECTING) \
-    MACRO(InitHiddenPropSetter, init_hidden_prop_setter, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT|JOF_DETECTING) \
+    MACRO(InitPropSetter, init_prop_setter, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT) \
+    MACRO(InitHiddenPropSetter, init_hidden_prop_setter, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT) \
     /*
      * Define an accesssor property on `obj` with property key `id` and the
      * given `setter`.
@@ -991,8 +1004,8 @@
      *   Operands:
      *   Stack: obj, id, setter => obj
      */ \
-    MACRO(InitElemSetter, init_elem_setter, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPINIT|JOF_DETECTING) \
-    MACRO(InitHiddenElemSetter, init_hidden_elem_setter, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPINIT|JOF_DETECTING) \
+    MACRO(InitElemSetter, init_elem_setter, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPINIT) \
+    MACRO(InitHiddenElemSetter, init_hidden_elem_setter, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPINIT) \
     /*
      * Get the value of the property `obj.name`. This can call getters and
      * proxy traps.
@@ -1058,7 +1071,7 @@
      *   Operands: uint32_t nameIndex
      *   Stack: obj, val => val
      */ \
-    MACRO(SetProp, set_prop, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSLOPPY|JOF_IC) \
+    MACRO(SetProp, set_prop, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPSET|JOF_CHECKSLOPPY|JOF_IC) \
     /*
      * Like `JSOp::SetProp`, but for strict mode code. Throw a TypeError if
      * `obj[key]` exists but is non-writable, if it's an accessor property with
@@ -1069,7 +1082,7 @@
      *   Operands: uint32_t nameIndex
      *   Stack: obj, val => val
      */ \
-    MACRO(StrictSetProp, strict_set_prop, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSTRICT|JOF_IC) \
+    MACRO(StrictSetProp, strict_set_prop, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPSET|JOF_CHECKSTRICT|JOF_IC) \
     /*
      * Non-strict assignment to a property, `obj[key] = val`.
      *
@@ -1082,7 +1095,7 @@
      *   Operands:
      *   Stack: obj, key, val => val
      */ \
-    MACRO(SetElem, set_elem, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSLOPPY|JOF_IC) \
+    MACRO(SetElem, set_elem, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPSET|JOF_CHECKSLOPPY|JOF_IC) \
     /*
      * Like `JSOp::SetElem`, but for strict mode code. Throw a TypeError if
      * `obj[key]` exists but is non-writable, if it's an accessor property with
@@ -1093,7 +1106,7 @@
      *   Operands:
      *   Stack: obj, key, val => val
      */ \
-    MACRO(StrictSetElem, strict_set_elem, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSTRICT|JOF_IC) \
+    MACRO(StrictSetElem, strict_set_elem, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPSET|JOF_CHECKSTRICT|JOF_IC) \
     /*
      * Delete a property from `obj`. Push true on success, false if the
      * property existed but could not be deleted. This implements `delete
@@ -1164,6 +1177,24 @@
      */ \
     MACRO(HasOwn, has_own, NULL, 1, 2, 1, JOF_BYTE|JOF_IC) \
     /*
+     * Push a bool representing the presence of private field id on obj.
+     * May throw, depending on the ThrowCondition.
+     *
+     * Two arguments:
+     *   - throwCondition: One of the ThrowConditions defined in
+     *     ThrowMsgKind.h. Determines why (or if) this op will throw.
+     *   - msgKind: One of the ThrowMsgKinds defined in ThrowMsgKind.h, which
+     *     maps to one of the messages in js.msg. Note: It's not possible to
+     *     pass arguments to the message at the moment.
+     *
+     *   Category: Control flow
+     *   Category: Objects
+     *   Type: Accessing properties
+     *   Operands: ThrowCondition throwCondition, ThrowMsgKind msgKind
+     *   Stack: obj, key => obj, key, (obj.hasOwnProperty(id))
+     */ \
+    MACRO(CheckPrivateField, check_private_field, NULL, 3, 2, 3, JOF_TWO_UINT8|JOF_CHECKSTRICT|JOF_IC) \
+    /*
      * Push the SuperBase of the method `callee`. The SuperBase is
      * `callee.[[HomeObject]].[[GetPrototypeOf]]()`, the object where `super`
      * property lookups should begin.
@@ -1233,7 +1264,7 @@
      *   Operands: uint32_t nameIndex
      *   Stack: receiver, obj, val => val
      */ \
-    MACRO(SetPropSuper, set_prop_super, NULL, 5, 3, 1, JOF_ATOM|JOF_PROP|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSLOPPY) \
+    MACRO(SetPropSuper, set_prop_super, NULL, 5, 3, 1, JOF_ATOM|JOF_PROP|JOF_PROPSET|JOF_CHECKSLOPPY) \
     /*
      * Like `JSOp::SetPropSuper`, but for strict mode code.
      *
@@ -1242,7 +1273,7 @@
      *   Operands: uint32_t nameIndex
      *   Stack: receiver, obj, val => val
      */ \
-    MACRO(StrictSetPropSuper, strict_set_prop_super, NULL, 5, 3, 1, JOF_ATOM|JOF_PROP|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSTRICT) \
+    MACRO(StrictSetPropSuper, strict_set_prop_super, NULL, 5, 3, 1, JOF_ATOM|JOF_PROP|JOF_PROPSET|JOF_CHECKSTRICT) \
     /*
      * Assign `val` to `receiver[key]`, strating the search for an existing
      * property at `obj`. In spec terms, `obj.[[Set]](key, val, receiver)`.
@@ -1259,7 +1290,7 @@
      *   Operands:
      *   Stack: receiver, key, obj, val => val
      */ \
-    MACRO(SetElemSuper, set_elem_super, NULL, 1, 4, 1, JOF_BYTE|JOF_ELEM|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSLOPPY) \
+    MACRO(SetElemSuper, set_elem_super, NULL, 1, 4, 1, JOF_BYTE|JOF_ELEM|JOF_PROPSET|JOF_CHECKSLOPPY) \
     /*
      * Like `JSOp::SetElemSuper`, but for strict mode code.
      *
@@ -1268,7 +1299,7 @@
      *   Operands:
      *   Stack: receiver, key, obj, val => val
      */ \
-    MACRO(StrictSetElemSuper, strict_set_elem_super, NULL, 1, 4, 1, JOF_BYTE|JOF_ELEM|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSTRICT) \
+    MACRO(StrictSetElemSuper, strict_set_elem_super, NULL, 1, 4, 1, JOF_BYTE|JOF_ELEM|JOF_PROPSET|JOF_CHECKSTRICT) \
     /*
      * Set up a for-in loop by pushing a `PropertyIteratorObject` over the
      * enumerable properties of `val`.
@@ -1336,7 +1367,7 @@
     MACRO(IsNoIter, is_no_iter, NULL, 1, 1, 2, JOF_BYTE) \
     /*
      * No-op instruction to hint to IonBuilder that the value on top of the
-     * stack is the (likely string) key in a for-in loop.
+     * stack is the string key in a for-in loop.
      *
      *   Category: Objects
      *   Type: Enumeration
@@ -1358,7 +1389,7 @@
     /*
      * Check that the top value on the stack is an object, and throw a
      * TypeError if not. `kind` is used only to generate an appropriate error
-     * message. It must be in range for `js::CheckIsObjectKind`.
+     * message.
      *
      * Implements: [GetIterator][1] step 5, [IteratorNext][2] step 3. Both
      * operations call a JS method which scripts can define however they want,
@@ -1369,21 +1400,10 @@
      *
      *   Category: Objects
      *   Type: Iteration
-     *   Operands: uint8_t kind
+     *   Operands: CheckIsObjectKind kind
      *   Stack: result => result
      */ \
     MACRO(CheckIsObj, check_is_obj, NULL, 2, 1, 1, JOF_UINT8) \
-    /*
-     * Check that the top value on the stack is callable, and throw a TypeError
-     * if not. The operand `kind` is used only to generate an appropriate error
-     * message. It must be in range for `js::CheckIsCallableKind`.
-     *
-     *   Category: Objects
-     *   Type: Iteration
-     *   Operands: uint8_t kind
-     *   Stack: obj => obj
-     */ \
-    MACRO(CheckIsCallable, check_is_callable, NULL, 2, 1, 1, JOF_UINT8) \
     /*
      * Throw a TypeError if `val` is `null` or `undefined`.
      *
@@ -1465,7 +1485,7 @@
      *   Operands: uint32_t index
      *   Stack: array, val => array
      */ \
-    MACRO(InitElemArray, init_elem_array, NULL, 5, 2, 1, JOF_UINT32|JOF_ELEM|JOF_PROPINIT|JOF_DETECTING|JOF_IC) \
+    MACRO(InitElemArray, init_elem_array, NULL, 5, 2, 1, JOF_UINT32|JOF_ELEM|JOF_PROPINIT|JOF_IC) \
     /*
      * Initialize an array element `array[index++]` with value `val`.
      *
@@ -1593,12 +1613,16 @@
      *
      *   Category: Functions
      *   Type: Creating functions
-     *   Operands: uint8_t prefixKind
+     *   Operands: FunctionPrefixKind prefixKind
      *   Stack: fun, name => fun
      */ \
     MACRO(SetFunName, set_fun_name, NULL, 2, 2, 1, JOF_UINT8) \
     /*
      * Initialize the home object for functions with super bindings.
+     *
+     * `fun` must be a method, getter, or setter, so that it has a
+     * [[HomeObject]] slot. `homeObject` must be a plain object or (for static
+     * methods) a constructor.
      *
      *   Category: Functions
      *   Type: Creating functions
@@ -1648,7 +1672,9 @@
      * 10.b. and 12-17.
      *
      * The `sourceStart`/`sourceEnd` offsets are the start/end offsets of the
-     * class definition in the source buffer and are used for `toString()`.
+     * class definition in the source buffer, used for `toString()`. They must
+     * be valid offsets into the source buffer, measured in code units, such
+     * that `scriptSource->substring(cx, start, end)` is valid.
      *
      * [1]: https://tc39.es/ecma262/#sec-runtime-semantics-classdefinitionevaluation
      *
@@ -1667,8 +1693,8 @@
      * Implements: [ClassDefinitionEvaluation for *ClassTail*][1], steps
      * 10.a. and 12-17.
      *
-     * The `sourceStart`/`sourceEnd` offsets are the start/end offsets of the
-     * class definition in the source buffer and are used for `toString()`.
+     * `sourceStart` and `sourceEnd` follow the same rules as for
+     * `JSOp::ClassConstructor`.
      *
      * [1]: https://tc39.es/ecma262/#sec-runtime-semantics-classdefinitionevaluation
      *
@@ -1679,14 +1705,17 @@
      */ \
     MACRO(DerivedConstructor, derived_constructor, NULL, 13, 1, 1, JOF_CLASS_CTOR) \
     /*
-     * Pushes the current global's builtin prototype for a given proto key.
+     * Pushes the current global's %BuiltinObject%.
      *
-     *   Category: Functions
-     *   Type: Creating constructors
+     * `kind` must be a valid `BuiltinObjectKind` (and must not be
+     * `BuiltinObjectKind::None`).
+     *
+     *   Category: Objects
+     *   Type: Built-in objects
      *   Operands: uint8_t kind
-     *   Stack: => %BuiltinPrototype%
+     *   Stack: => %BuiltinObject%
      */ \
-    MACRO(BuiltinProto, builtin_proto, NULL, 2, 0, 1, JOF_UINT8) \
+    MACRO(BuiltinObject, builtin_object, NULL, 2, 0, 1, JOF_UINT8) \
     /*
      * Invoke `callee` with `this` and `args`, and push the return value. Throw
      * a TypeError if `callee` isn't a function.
@@ -1752,7 +1781,7 @@
      *   Operands:
      *   Stack: arr => arr, optimized
      */ \
-    MACRO(OptimizeSpreadCall, optimize_spread_call, NULL, 1, 1, 2, JOF_BYTE) \
+    MACRO(OptimizeSpreadCall, optimize_spread_call, NULL, 1, 1, 2, JOF_BYTE|JOF_IC) \
     /*
      * Perform a direct eval in the current environment if `callee` is the
      * builtin `eval` function, otherwise follow same behaviour as `JSOp::Call`.
@@ -1767,6 +1796,9 @@
      * to prove that the bindings won't need to be captured by closures or
      * accessed using `JSOp::{Get,Bind,Set,Del}Name` instructions. Direct eval
      * makes that analysis impossible.
+     *
+     * The instruction immediately following any `JSOp::*Eval` instruction must
+     * be `JSOp::Lineno`.
      *
      * Implements: [Function Call Evaluation][1], steps 5-7 and 9, when the
      * syntactic critera for direct eval in step 6 are all met.
@@ -1906,7 +1938,7 @@
      *   Operands: uint16_t argc
      *   Stack: callee, isConstructing, args[0], ..., args[argc-1], newTarget => rval
      */ \
-    MACRO(New, new_, NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_CONSTRUCT|JOF_TYPESET|JOF_IC|JOF_IC) \
+    MACRO(New, new_, NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_CONSTRUCT|JOF_TYPESET|JOF_IC) \
     MACRO(SuperCall, super_call, NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_CONSTRUCT|JOF_TYPESET|JOF_IC) \
     /*
      * Spread-call variant of `JSOp::New`.
@@ -1958,21 +1990,44 @@
      */ \
     MACRO(CheckThisReinit, check_this_reinit, NULL, 1, 1, 1, JOF_BYTE) \
     /*
-     * Initializes generator frame, creates a generator and pushes it on the
-     * stack.
+     * Create and push a generator object for the current frame.
+     *
+     * This instruction must appear only in scripts for generators, async
+     * functions, and async generators. There must not already be a generator
+     * object for the current frame (that is, this instruction must execute at
+     * most once per generator or async call).
      *
      *   Category: Functions
      *   Type: Generators and async functions
      *   Operands:
-     *   Stack: => generator
+     *   Stack: => gen
      */ \
     MACRO(Generator, generator, NULL, 1, 0, 1, JOF_BYTE) \
     /*
-     * Pops the generator from the top of the stack, suspends it and stops
-     * execution.
+     * Suspend the current generator and return to the caller.
      *
-     * When resuming execution, JSOp::Resume pushes the rval, gen and resumeKind
-     * values. resumeKind is the GeneratorResumeKind stored as int32.
+     * When a generator is called, its script starts running, like any other JS
+     * function, because [FunctionDeclarationInstantation][1] and other
+     * [generator object setup][2] are implemented mostly in bytecode. However,
+     * the *FunctionBody* of the generator is not supposed to start running
+     * until the first `.next()` call, so after setup the script suspends
+     * itself: the "initial yield".
+     *
+     * Later, when resuming execution, `rval`, `gen` and `resumeKind` will
+     * receive the values passed in by `JSOp::Resume`. `resumeKind` is the
+     * `GeneratorResumeKind` stored as an Int32 value.
+     *
+     * This instruction must appear only in scripts for generators and async
+     * generators. `gen` must be the generator object for the current frame. It
+     * must not have been previously suspended. The resume point indicated by
+     * `resumeIndex` must be the next instruction in the script, which must be
+     * `AfterYield`.
+     *
+     * Implements: [GeneratorStart][3], steps 4-7.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-functiondeclarationinstantiation
+     * [2]: https://tc39.es/ecma262/#sec-generator-function-definitions-runtime-semantics-evaluatebody
+     * [3]: https://tc39.es/ecma262/#sec-generatorstart
      *
      *   Category: Functions
      *   Type: Generators and async functions
@@ -1981,11 +2036,14 @@
      */ \
     MACRO(InitialYield, initial_yield, NULL, 4, 1, 3, JOF_RESUMEINDEX) \
     /*
-     * Bytecode emitted after 'yield' expressions. This is useful for the
+     * Bytecode emitted after `yield` expressions. This is useful for the
      * Debugger and `AbstractGeneratorObject::isAfterYieldOrAwait`. It's
      * treated as jump target op so that the Baseline Interpreter can
      * efficiently restore the frame's interpreterICEntry when resuming a
      * generator.
+     *
+     * The preceding instruction in the script must be `Yield`, `InitialYield`,
+     * or `Await`.
      *
      *   Category: Functions
      *   Type: Generators and async functions
@@ -1994,8 +2052,18 @@
      */ \
     MACRO(AfterYield, after_yield, NULL, 5, 0, 0, JOF_ICINDEX) \
     /*
-     * Pops the generator and suspends and closes it. Yields the value in the
-     * frame's return value slot.
+     * Suspend and close the current generator, async function, or async
+     * generator.
+     *
+     * `gen` must be the generator object for the current frame.
+     *
+     * If the current function is a non-async generator, then the value in the
+     * frame's return value slot is returned to the caller. It should be an
+     * object of the form `{value: returnValue, done: true}`.
+     *
+     * If the current function is an async function or async generator, the
+     * frame's return value slot must contain the current frame's result
+     * promise, which must already be resolved or rejected.
      *
      *   Category: Functions
      *   Type: Generators and async functions
@@ -2004,11 +2072,26 @@
      */ \
     MACRO(FinalYieldRval, final_yield_rval, NULL, 1, 1, 0, JOF_BYTE) \
     /*
-     * Pops the generator and the return value 'rval1', stops execution and
-     * returns 'rval1'.
+     * Suspend execution of the current generator or async generator, returning
+     * `rval1`.
      *
-     * When resuming execution, JSOp::Resume pushes the rval2, gen and resumeKind
-     * values.
+     * For non-async generators, `rval1` should be an object of the form
+     * `{value: valueToYield, done: true}`. For async generators, `rval1`
+     * should be the value to yield, and the caller is responsible for creating
+     * the iterator result object (under `js::AsyncGeneratorYield`).
+     *
+     * This instruction must appear only in scripts for generators and async
+     * generators. `gen` must be the generator object for the current stack
+     * frame. The resume point indicated by `resumeIndex` must be the next
+     * instruction in the script, which must be `AfterYield`.
+     *
+     * When resuming execution, `rval2`, `gen` and `resumeKind` receive the
+     * values passed in by `JSOp::Resume`.
+     *
+     * Implements: [GeneratorYield][1] and [AsyncGeneratorYield][2].
+     *
+     * [1]: https://tc39.es/ecma262/#sec-generatoryield
+     * [2]: https://tc39.es/ecma262/#sec-asyncgeneratoryield
      *
      *   Category: Functions
      *   Type: Generators and async functions
@@ -2027,10 +2110,25 @@
      */ \
     MACRO(IsGenClosing, is_gen_closing, NULL, 1, 1, 2, JOF_BYTE) \
     /*
-     * Pops the top two values 'value' and 'gen' from the stack, then starts
-     * "awaiting" for 'value' to be resolved, which will then resume the
-     * execution of 'gen'. Pushes the async function promise on the stack, so
-     * that it'll be returned to the caller on the very first "await".
+     * Arrange for this async function to resume asynchronously when `value`
+     * becomes resolved.
+     *
+     * This is the last thing an async function does before suspending for an
+     * `await` expression. It coerces the awaited `value` to a promise and
+     * effectively calls `.then()` on it, passing handler functions that will
+     * resume this async function call later. See `js::AsyncFunctionAwait`.
+     *
+     * This instruction must appear only in non-generator async function
+     * scripts. `gen` must be the internal generator object for the current
+     * frame. After this instruction, the script should suspend itself with
+     * `Await` (rather than exiting any other way).
+     *
+     * The result `promise` is the async function's result promise,
+     * `gen->as<AsyncFunctionGeneratorObject>().promise()`.
+     *
+     * Implements: [Await][1], steps 2-9.
+     *
+     * [1]: https://tc39.github.io/ecma262/#await
      *
      *   Category: Functions
      *   Type: Generators and async functions
@@ -2039,23 +2137,74 @@
      */ \
     MACRO(AsyncAwait, async_await, NULL, 1, 2, 1, JOF_BYTE) \
     /*
-     * Pops the top two values 'valueOrReason' and 'gen' from the stack, then
-     * pushes the promise resolved with 'valueOrReason'. `gen` must be the
-     * internal generator object created in async functions. The pushed promise
-     * is the async function's result promise, which is stored in `gen`.
+     * Resolve or reject the current async function's result promise with
+     * 'valueOrReason'.
+     *
+     * This instruction must appear only in non-generator async function
+     * scripts. `gen` must be the internal generator object for the current
+     * frame. This instruction must run at most once per async function call,
+     * as resolving/rejecting an already resolved/rejected promise is not
+     * permitted.
+     *
+     * The result `promise` is the async function's result promise,
+     * `gen->as<AsyncFunctionGeneratorObject>().promise()`.
+     *
+     * Implements: [AsyncFunctionStart][1], step 4.d.i. and 4.e.i.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-async-functions-abstract-operations-async-function-start
      *
      *   Category: Functions
      *   Type: Generators and async functions
-     *   Operands: uint8_t fulfillOrReject
+     *   Operands: AsyncFunctionResolveKind fulfillOrReject
      *   Stack: valueOrReason, gen => promise
      */ \
     MACRO(AsyncResolve, async_resolve, NULL, 2, 2, 1, JOF_UINT8) \
     /*
-     * Pops the generator and the return value 'promise', stops execution and
-     * returns 'promise'.
+     * Suspend the current frame for an `await` expression.
      *
-     * When resuming execution, JSOp::Resume pushes the resolved, gen and
-     * resumeKind values. resumeKind is the GeneratorResumeKind stored as int32.
+     * This instruction must appear only in scripts for async functions and
+     * async generators. `gen` must be the internal generator object for the
+     * current frame.
+     *
+     * This returns `promise` to the caller. Later, when this async call is
+     * resumed, `resolved`, `gen` and `resumeKind` receive the values passed in
+     * by `JSOp::Resume`, and execution continues at the next instruction,
+     * which must be `AfterYield`.
+     *
+     * This instruction is used in two subtly different ways.
+     *
+     * 1.  In async functions:
+     *
+     *         ...                          # valueToAwait
+     *         GetAliasedVar ".generator"   # valueToAwait gen
+     *         AsyncAwait                   # resultPromise
+     *         GetAliasedVar ".generator"   # resultPromise gen
+     *         Await                        # resolved gen resumeKind
+     *         AfterYield
+     *
+     *     `AsyncAwait` arranges for this frame to be resumed later and pushes
+     *     its result promise. `Await` then suspends the frame and removes it
+     *     from the stack, returning the result promise to the caller. (If this
+     *     async call hasn't awaited before, the caller may be user code.
+     *     Otherwise, the caller is self-hosted code using `resumeGenerator`.)
+     *
+     * 2.  In async generators:
+     *
+     *         ...                          # valueToAwait
+     *         GetAliasedVar ".generator"   # valueToAwait gen
+     *         Await                        # resolved gen resumeKind
+     *         AfterYield
+     *
+     *     `AsyncAwait` is not used, so (1) the value returned to the caller by
+     *     `Await` is `valueToAwait`, not `resultPromise`; and (2) the caller
+     *     is responsible for doing the async-generator equivalent of
+     *     `AsyncAwait` (namely, `js::AsyncGeneratorAwait`, called from
+     *     `js::AsyncGeneratorResume` after `js::CallSelfHostedFunction`
+     *     returns).
+     *
+     * Implements: [Await][1], steps 10-12.
+     *
+     * [1]: https://tc39.es/ecma262/#await
      *
      *   Category: Functions
      *   Type: Generators and async functions
@@ -2064,16 +2213,20 @@
      */ \
     MACRO(Await, await, NULL, 4, 2, 3, JOF_RESUMEINDEX) \
     /*
-     * Pops the top of stack value as 'value', checks if the await for 'value'
-     * can be skipped. If the await operation can be skipped and the resolution
-     * value for 'value' can be acquired, pushes the resolution value and
-     * 'true' onto the stack. Otherwise, pushes 'value' and 'false' on the
-     * stack.
+     * Decide whether awaiting 'value' can be skipped.
+     *
+     * This is part of an optimization for `await` expressions. Programs very
+     * often await values that aren't promises, or promises that are already
+     * resolved. We can then sometimes skip suspending the current frame and
+     * returning to the microtask loop. If the circumstances permit the
+     * optimization, `TrySkipAwait` replaces `value` with the result of the
+     * `await` expression (unwrapping the resolved promise, if any) and pushes
+     * `true`. Otherwise, it leaves `value` unchanged and pushes 'false'.
      *
      *   Category: Functions
      *   Type: Generators and async functions
      *   Operands:
-     *   Stack: value => value_or_resolved, canskip
+     *   Stack: value => value_or_resolved, can_skip
      */ \
     MACRO(TrySkipAwait, try_skip_await, NULL, 1, 1, 2, JOF_BYTE) \
     /*
@@ -2086,10 +2239,13 @@
      */ \
     MACRO(ResumeKind, resume_kind, NULL, 2, 0, 1, JOF_UINT8) \
     /*
-     * Pops the generator and resumeKind values. resumeKind is the
-     * GeneratorResumeKind stored as int32. If resumeKind is Next, continue
-     * execution. If resumeKind is Throw or Return, these completions are
-     * handled by throwing an exception. See GeneratorThrowOrReturn.
+     * Handle Throw and Return resumption.
+     *
+     * `gen` must be the generator object for the current frame. `resumeKind`
+     * must be a `GeneratorResumeKind` stored as an `Int32` value. If it is
+     * `Next`, continue to the next instruction. If `resumeKind` is `Throw` or
+     * `Return`, these completions are handled by throwing an exception. See
+     * `GeneratorThrowOrReturn`.
      *
      *   Category: Functions
      *   Type: Generators and async functions
@@ -2098,9 +2254,19 @@
      */ \
     MACRO(CheckResumeKind, check_resume_kind, NULL, 1, 3, 1, JOF_BYTE) \
     /*
-     * Pops the generator, argument and resumeKind from the stack, pushes a new
-     * generator frame and resumes execution of it. Pushes the return value
-     * after the generator yields.
+     * Resume execution of a generator, async function, or async generator.
+     *
+     * This behaves something like a call instruction. It pushes a stack frame
+     * (the one saved when `gen` was suspended, rather than a fresh one) and
+     * runs instructions in it. Once `gen` returns or yields, its return value
+     * is pushed to this frame's stack and execution continues in this script.
+     *
+     * This instruction is emitted only for the `resumeGenerator` self-hosting
+     * intrinsic. It is used in the implementation of
+     * `%GeneratorPrototype%.next`, `.throw`, and `.return`.
+     *
+     * `gen` must be a suspended generator object. `resumeKind` must be in
+     * range for `GeneratorResumeKind`.
      *
      *   Category: Functions
      *   Type: Generators and async functions
@@ -2160,7 +2326,7 @@
      *   Operands: int32_t forwardOffset
      *   Stack: cond =>
      */ \
-    MACRO(IfEq, if_eq, NULL, 5, 1, 0, JOF_JUMP|JOF_DETECTING|JOF_IC) \
+    MACRO(IfEq, if_eq, NULL, 5, 1, 0, JOF_JUMP|JOF_IC) \
     /*
      * If ToBoolean(`cond`) is true, jump to a 32-bit offset from the current
      * instruction.
@@ -2185,7 +2351,7 @@
      *   Operands: int32_t forwardOffset
      *   Stack: cond => cond
      */ \
-    MACRO(And, and_, NULL, 5, 1, 1, JOF_JUMP|JOF_DETECTING|JOF_IC) \
+    MACRO(And, and_, NULL, 5, 1, 1, JOF_JUMP|JOF_IC) \
     /*
      * Short-circuit for logical OR.
      *
@@ -2197,7 +2363,7 @@
      *   Operands: int32_t forwardOffset
      *   Stack: cond => cond
      */ \
-    MACRO(Or, or_, NULL, 5, 1, 1, JOF_JUMP|JOF_DETECTING|JOF_IC) \
+    MACRO(Or, or_, NULL, 5, 1, 1, JOF_JUMP|JOF_IC) \
     /*
      * Short-circuiting for nullish coalescing.
      *
@@ -2209,7 +2375,7 @@
      *   Operands: int32_t forwardOffset
      *   Stack: val => val
      */ \
-    MACRO(Coalesce, coalesce, NULL, 5, 1, 1, JOF_JUMP|JOF_DETECTING) \
+    MACRO(Coalesce, coalesce, NULL, 5, 1, 1, JOF_JUMP) \
      /*
      * Like `JSOp::IfNe` ("jump if true"), but if the branch is taken,
      * pop and discard an additional stack value.
@@ -2281,7 +2447,7 @@
      *             uint24_t firstResumeIndex
      *   Stack: i =>
      */ \
-    MACRO(TableSwitch, table_switch, NULL, 16, 1, 0, JOF_TABLESWITCH|JOF_DETECTING) \
+    MACRO(TableSwitch, table_switch, NULL, 16, 1, 0, JOF_TABLESWITCH) \
     /*
      * Return `rval`.
      *
@@ -2310,6 +2476,9 @@
     MACRO(GetRval, get_rval, NULL, 1, 0, 1, JOF_BYTE) \
     /*
      * Store `rval` in the current stack frame's `returnValue` slot.
+     *
+     * This instruction must not be used in a toplevel script compiled with the
+     * `noScriptRval` option.
      *
      *   Category: Control flow
      *   Type: Return
@@ -2388,71 +2557,45 @@
      * example, `delete super.prop;` is allowed in methods, but always throws a
      * ReferenceError.
      *
-     * `msgNumber` must be one of the error codes listed in js/src/js.msg; it
-     * determines the `.message` and [[Prototype]] of the new Error object. The
-     * number of arguments in the error message must be 0.
+     * `msgNumber` determines the `.message` and [[Prototype]] of the new Error
+     * object.  It must be an error number in js/public/friend/ErrorNumbers.msg.
+     * The number of arguments in the error message must be 0.
      *
      *   Category: Control flow
      *   Type: Exceptions
-     *   Operands: uint16_t msgNumber
+     *   Operands: ThrowMsgKind msgNumber
      *   Stack: =>
      */ \
-    MACRO(ThrowMsg, throw_msg, NULL, 3, 0, 0, JOF_UINT16) \
+    MACRO(ThrowMsg, throw_msg, NULL, 2, 0, 0, JOF_UINT8) \
     /*
-     * Throw a TypeError for invalid assignment to a `const`. The environment
-     * coordinate is used to get the variable name for the error message.
+     * Throws a runtime TypeError for invalid assignment to a `const` binding.
      *
      *   Category: Control flow
      *   Type: Exceptions
-     *   Operands: uint8_t hops, uint24_t slot
+     *   Operands: uint32_t nameIndex
      *   Stack:
      */ \
-    MACRO(ThrowSetAliasedConst, throw_set_aliased_const, NULL, 5, 0, 0, JOF_ENVCOORD|JOF_NAME|JOF_DETECTING) \
-    /*
-     * Throw a TypeError for invalid assignment to the callee binding in a named
-     * lambda, which is always a `const` binding. This is a different bytecode
-     * than `JSOp::ThrowSetConst` because the named lambda callee, if not closed
-     * over, does not have a frame slot to look up the name with for the error
-     * message.
-     *
-     *   Category: Control flow
-     *   Type: Exceptions
-     *   Operands:
-     *   Stack:
-     */ \
-    MACRO(ThrowSetCallee, throw_set_callee, NULL, 1, 0, 0, JOF_BYTE) \
-    /*
-     * Throws a runtime TypeError for invalid assignment to an optimized
-     * `const` binding. `localno` is used to get the variable name for the
-     * error message.
-     *
-     *   Category: Control flow
-     *   Type: Exceptions
-     *   Operands: uint24_t localno
-     *   Stack:
-     */ \
-    MACRO(ThrowSetConst, throw_set_const, NULL, 4, 0, 0, JOF_LOCAL|JOF_NAME|JOF_DETECTING) \
+    MACRO(ThrowSetConst, throw_set_const, NULL, 5, 0, 0, JOF_ATOM|JOF_NAME) \
     /*
      * No-op instruction that marks the top of the bytecode for a
      * *TryStatement*.
-     *
-     * The `jumpAtEndOffset` operand is the offset (relative to the current op)
-     * of the `JSOp::Goto` at the end of the try-block body. This is used by
-     * bytecode analysis and JIT compilation.
      *
      * Location information for catch/finally blocks is stored in a side table,
      * `script->trynotes()`.
      *
      *   Category: Control flow
      *   Type: Exceptions
-     *   Operands: int32_t jumpAtEndOffset
+     *   Operands:
      *   Stack: =>
      */ \
-    MACRO(Try, try_, NULL, 5, 0, 0, JOF_CODE_OFFSET) \
+    MACRO(Try, try_, NULL, 1, 0, 0, JOF_BYTE) \
     /*
      * No-op instruction used by the exception unwinder to determine the
      * correct environment to unwind to when performing IteratorClose due to
      * destructuring.
+     *
+     * This instruction must appear immediately before each
+     * `JSTRY_DESTRUCTURING` span in a script's try notes.
      *
      *   Category: Control flow
      *   Type: Exceptions
@@ -2572,7 +2715,7 @@
      * Push `MagicValue(JS_UNINITIALIZED_LEXICAL)`, a magic value used to mark
      * a binding as uninitialized.
      *
-     * This magic value must be used only by `JSOp::Init*Lexical`.
+     * This magic value must be used only by `JSOp::InitLexical`.
      *
      *   Category: Variables and scopes
      *   Type: Initialization
@@ -2601,11 +2744,15 @@
      *   Operands: uint24_t localno
      *   Stack: v => v
      */ \
-    MACRO(InitLexical, init_lexical, NULL, 4, 1, 1, JOF_LOCAL|JOF_NAME|JOF_DETECTING) \
+    MACRO(InitLexical, init_lexical, NULL, 4, 1, 1, JOF_LOCAL|JOF_NAME) \
     /*
-     * Initialize a global lexical binding; or mark it as uninitialized.
+     * Initialize a global lexical binding.
      *
-     * Like `JSOp::InitLexical` but for global lexicals.
+     * The binding must already have been created by `DefLet` or `DefConst` and
+     * must be uninitialized.
+     *
+     * Like `JSOp::InitLexical` but for global lexicals. Unlike `InitLexical`
+     * this can't be used to mark a binding as uninitialized.
      *
      *   Category: Variables and scopes
      *   Type: Initialization
@@ -2630,15 +2777,11 @@
      *   Operands: uint8_t hops, uint24_t slot
      *   Stack: v => v
      */ \
-    MACRO(InitAliasedLexical, init_aliased_lexical, NULL, 5, 1, 1, JOF_ENVCOORD|JOF_NAME|JOF_PROPINIT|JOF_DETECTING) \
+    MACRO(InitAliasedLexical, init_aliased_lexical, NULL, 5, 1, 1, JOF_ENVCOORD|JOF_NAME|JOF_PROPINIT) \
     /*
-     * Throw a ReferenceError if the optimized local `localno` is
-     * uninitialized.
+     * Throw a ReferenceError if the value on top of the stack is uninitialized.
      *
-     * `localno` must be the number of a fixed slot in the current stack frame
-     * previously initialized or marked uninitialized using `JSOp::InitLexical`.
-     *
-     * Typically used before `JSOp::GetLocal` or `JSOp::SetLocal`.
+     * Typically used after `JSOp::GetLocal` with the same `localno`.
      *
      * Implements: [GetBindingValue][1] step 3 and [SetMutableBinding][2] step
      * 4 for declarative Environment Records.
@@ -2649,11 +2792,13 @@
      *   Category: Variables and scopes
      *   Type: Initialization
      *   Operands: uint24_t localno
-     *   Stack: =>
+     *   Stack: v => v
      */ \
-    MACRO(CheckLexical, check_lexical, NULL, 4, 0, 0, JOF_LOCAL|JOF_NAME) \
+    MACRO(CheckLexical, check_lexical, NULL, 4, 1, 1, JOF_LOCAL|JOF_NAME) \
     /*
      * Like `JSOp::CheckLexical` but for aliased bindings.
+     *
+     * Typically used after `JSOp::GetAliasedVar` with the same hops/slot.
      *
      * Note: There are no `CheckName` or `CheckGName` instructions because
      * they're unnecessary. `JSOp::{Get,Set}{Name,GName}` all check for
@@ -2662,9 +2807,9 @@
      *   Category: Variables and scopes
      *   Type: Initialization
      *   Operands: uint8_t hops, uint24_t slot
-     *   Stack: =>
+     *   Stack: v => v
      */ \
-    MACRO(CheckAliasedLexical, check_aliased_lexical, NULL, 5, 0, 0, JOF_ENVCOORD|JOF_NAME) \
+    MACRO(CheckAliasedLexical, check_aliased_lexical, NULL, 5, 1, 1, JOF_ENVCOORD|JOF_NAME) \
     /*
      * Throw a ReferenceError if the value on top of the stack is
      * `MagicValue(JS_UNINITIALIZED_LEXICAL)`. Used in derived class
@@ -2786,8 +2931,6 @@
      * `slot` that encode an [`EnvironmentCoordinate`][1], directions to the
      * binding from the current environment object.
      *
-     * `hops` and `slot` must be valid for the current scope.
-     *
      * `Aliased` instructions can't be used when there's a dynamic scope (due
      * to non-strict `eval` or `with`) that might shadow the aliased binding.
      *
@@ -2813,7 +2956,7 @@
      * not bound in `env`, throw a ReferenceError.
      *
      * `env` must be an environment currently on the environment chain, pushed
-     * by `JSOp::BindName`.
+     * by `JSOp::BindName` or `JSOp::BindVar`.
      *
      * Note: `JSOp::BindName` and `JSOp::GetBoundName` are the two halves of the
      * `JSOp::GetName` operation: finding and reading a variable. This
@@ -2868,8 +3011,9 @@
     MACRO(Callee, callee, NULL, 1, 0, 1, JOF_BYTE) \
     /*
      * Load the callee stored in a CallObject on the environment chain. The
-     * numHops operand is the number of environment objects to skip on the
-     * environment chain.
+     * `numHops` operand is the number of environment objects to skip on the
+     * environment chain. The environment chain element indicated by `numHops`
+     * must be a CallObject.
      *
      *   Category: Variables and scopes
      *   Type: Getting binding values
@@ -2883,7 +3027,7 @@
      * This can call setters and/or proxy traps.
      *
      * `env` must be an environment currently on the environment chain,
-     * pushed by `JSOp::BindName`.
+     * pushed by `JSOp::BindName` or `JSOp::BindVar`.
      *
      * This is the fallback `Set` instruction that handles all unoptimized
      * cases. Optimized instructions follow.
@@ -2904,7 +3048,7 @@
      *   Operands: uint32_t nameIndex
      *   Stack: env, val => val
      */ \
-    MACRO(SetName, set_name, NULL, 5, 2, 1, JOF_ATOM|JOF_NAME|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSLOPPY|JOF_IC) \
+    MACRO(SetName, set_name, NULL, 5, 2, 1, JOF_ATOM|JOF_NAME|JOF_PROPSET|JOF_CHECKSLOPPY|JOF_IC) \
     /*
      * Like `JSOp::SetName`, but throw a TypeError if there is no binding for
      * the specified name in `env`, or if the binding is immutable (a `const`
@@ -2919,7 +3063,7 @@
      *   Operands: uint32_t nameIndex
      *   Stack: env, val => val
      */ \
-    MACRO(StrictSetName, strict_set_name, NULL, 5, 2, 1, JOF_ATOM|JOF_NAME|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSTRICT|JOF_IC) \
+    MACRO(StrictSetName, strict_set_name, NULL, 5, 2, 1, JOF_ATOM|JOF_NAME|JOF_PROPSET|JOF_CHECKSTRICT|JOF_IC) \
     /*
      * Like `JSOp::SetName`, but for assigning to globals. `env` must be an
      * environment pushed by `JSOp::BindGName`.
@@ -2929,7 +3073,7 @@
      *   Operands: uint32_t nameIndex
      *   Stack: env, val => val
      */ \
-    MACRO(SetGName, set_g_name, NULL, 5, 2, 1, JOF_ATOM|JOF_NAME|JOF_PROPSET|JOF_DETECTING|JOF_GNAME|JOF_CHECKSLOPPY|JOF_IC) \
+    MACRO(SetGName, set_g_name, NULL, 5, 2, 1, JOF_ATOM|JOF_NAME|JOF_PROPSET|JOF_GNAME|JOF_CHECKSLOPPY|JOF_IC) \
     /*
      * Like `JSOp::StrictSetGName`, but for assigning to globals. `env` must be
      * an environment pushed by `JSOp::BindGName`.
@@ -2939,7 +3083,7 @@
      *   Operands: uint32_t nameIndex
      *   Stack: env, val => val
      */ \
-    MACRO(StrictSetGName, strict_set_g_name, NULL, 5, 2, 1, JOF_ATOM|JOF_NAME|JOF_PROPSET|JOF_DETECTING|JOF_GNAME|JOF_CHECKSTRICT|JOF_IC) \
+    MACRO(StrictSetGName, strict_set_g_name, NULL, 5, 2, 1, JOF_ATOM|JOF_NAME|JOF_PROPSET|JOF_GNAME|JOF_CHECKSTRICT|JOF_IC) \
     /*
      * Assign `val` to an argument binding that's stored in the stack frame or
      * in an `ArgumentsObject`.
@@ -2958,7 +3102,7 @@
      *   Operands: uint24_t localno
      *   Stack: v => v
      */ \
-    MACRO(SetLocal, set_local, NULL, 4, 1, 1, JOF_LOCAL|JOF_NAME|JOF_DETECTING) \
+    MACRO(SetLocal, set_local, NULL, 4, 1, 1, JOF_LOCAL|JOF_NAME) \
     /*
      * Assign to an aliased binding.
      *
@@ -2973,7 +3117,7 @@
      *   Operands: uint8_t hops, uint24_t slot
      *   Stack: val => val
      */ \
-    MACRO(SetAliasedVar, set_aliased_var, NULL, 5, 1, 1, JOF_ENVCOORD|JOF_NAME|JOF_PROPSET|JOF_DETECTING) \
+    MACRO(SetAliasedVar, set_aliased_var, NULL, 5, 1, 1, JOF_ENVCOORD|JOF_NAME|JOF_PROPSET) \
     /*
      * Assign to an intrinsic.
      *
@@ -2987,7 +3131,7 @@
      *   Operands: uint32_t nameIndex
      *   Stack: val => val
      */ \
-    MACRO(SetIntrinsic, set_intrinsic, NULL, 5, 1, 1, JOF_ATOM|JOF_NAME|JOF_DETECTING) \
+    MACRO(SetIntrinsic, set_intrinsic, NULL, 5, 1, 1, JOF_ATOM|JOF_NAME) \
     /*
      * Push a lexical environment onto the environment chain.
      *
@@ -3000,7 +3144,7 @@
      * #### Fine print for environment chain instructions
      *
      * The following rules for `JSOp::{Push,Pop}LexicalEnv` also apply to
-     * `JSOp::{Push,Pop}VarEnv` and `JSOp::{Enter,Leave}With`.
+     * `JSOp::PushVarEnv` and `JSOp::{Enter,Leave}With`.
      *
      * Each `JSOp::PopLexicalEnv` instruction matches a particular
      * `JSOp::PushLexicalEnv` instruction in the same script and must have the
@@ -3067,6 +3211,8 @@
      * fresh lexical environment for every iteration of a for-in/of loop whose
      * loop-head has a (captured) lexical declaration.
      *
+     * The current environment must be a LexicalEnvironmentObject.
+     *
      *   Category: Variables and scopes
      *   Type: Entering and leaving environments
      *   Operands:
@@ -3079,6 +3225,8 @@
      * of inducing a fresh lexical environment for every iteration of a
      * `for(let ...; ...; ...)` loop, if any declarations induced by such a
      * loop are captured within the loop.
+     *
+     * The current environment must be a LexicalEnvironmentObject.
      *
      *   Category: Variables and scopes
      *   Type: Entering and leaving environments
@@ -3186,8 +3334,9 @@
      * before anything else that might add bindings to the environment, and
      * only once per binding. There must be a correct entry for the new binding
      * in `script->bodyScope()`. (All this ensures that at run time, there is
-     * no existing conflicting binding. We check before running the script, in
-     * `js::CheckGlobalOrEvalDeclarationConflicts`.)
+     * no existing conflicting binding. This is checked by the
+     * `JSOp::CheckGlobalOrEvalDecl` bytecode instruction that must appear
+     * before `JSOp::Def{Var,Let,Const,Fun}`.)
      *
      * Throw a SyntaxError if the current VariableEnvironment is the global
      * environment and a binding with the same name exists on the global
@@ -3223,10 +3372,10 @@
      */ \
     MACRO(DefFun, def_fun, NULL, 1, 1, 0, JOF_BYTE) \
     /*
-     * Create a new mutable binding in the global lexical environment. Throw a
-     * SyntaxError if a binding with the same name already exists on that
-     * environment, or if a var binding with the same name exists on the
-     * global.
+     * Create a new uninitialized mutable binding in the global lexical
+     * environment. Throw a SyntaxError if a binding with the same name already
+     * exists on that environment, or if a var binding with the same name
+     * exists on the global.
      *
      *   Category: Variables and scopes
      *   Type: Creating and deleting bindings
@@ -3235,11 +3384,7 @@
      */ \
     MACRO(DefLet, def_let, NULL, 5, 0, 0, JOF_ATOM) \
     /*
-     * Create a new constant binding in the global lexical environment.
-     *
-     * Throw a SyntaxError if a binding with the same name already exists in
-     * that environment, or if a var binding with the same name exists on the
-     * global.
+     * Like `DefLet`, but create an uninitialized constant binding.
      *
      *   Category: Variables and scopes
      *   Type: Creating and deleting bindings
@@ -3247,6 +3392,22 @@
      *   Stack: =>
      */ \
     MACRO(DefConst, def_const, NULL, 5, 0, 0, JOF_ATOM) \
+    /*
+     * Check for conflicting bindings before `JSOp::Def{Var,Let,Const,Fun}` in
+     * global or sloppy eval scripts.
+     *
+     * Implements: [GlobalDeclarationInstantiation][1] steps 5, 6, 10 and 12,
+     * and [EvalDeclarationInstantiation][2] steps 5 and 8.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-globaldeclarationinstantiation
+     * [2]: https://tc39.es/ecma262/#sec-evaldeclarationinstantiation
+     *
+     *   Category: Variables and scopes
+     *   Type: Creating and deleting bindings
+     *   Operands:
+     *   Stack: =>
+     */ \
+    MACRO(CheckGlobalOrEvalDecl, check_global_or_eval_decl, NULL, 1, 0, 0, JOF_BYTE) \
     /*
      * Look up a variable on the environment chain and delete it. Push `true`
      * on success (if a binding was deleted, or if no such binding existed in
@@ -3313,7 +3474,8 @@
     /*
      * Create and push the rest parameter array for current function call.
      *
-     * This must appear only in function scripts.
+     * This must appear only in a script for a function that has a rest
+     * parameter.
      *
      *   Category: Variables and scopes
      *   Type: Function environment setup
@@ -3333,6 +3495,10 @@
      * Functions that have a `this` binding have a local variable named
      * `".this"`, which is initialized using this instruction in the function
      * prologue.
+     *
+     * In non-strict functions, `this` is always an object. Undefined/null
+     * `this` is converted into the global `this` value. Other primitive values
+     * are boxed. See `js::BoxNonStrictThis`.
      *
      *   Category: Variables and scopes
      *   Type: Function environment setup
@@ -3419,7 +3585,11 @@
      */ \
     MACRO(Nop, nop, NULL, 1, 0, 0, JOF_BYTE) \
     /*
-     * No-op instruction used to speed up pc-to-line mapping.
+     * No-op instruction emitted immediately after `JSOp::*Eval` so that direct
+     * eval does not have to do slow pc-to-line mapping.
+     *
+     * The `lineno` operand should agree with this script's source notes about
+     * the line number of the preceding `*Eval` instruction.
      *
      *   Category: Other
      *   Operands: uint32_t lineno
@@ -3427,8 +3597,15 @@
      */ \
     MACRO(Lineno, lineno, NULL, 5, 0, 0, JOF_UINT32) \
     /*
-     * No-op instruction used by the decompiler to produce nicer error messages
-     * about destructuring code.
+     * No-op instruction to hint that the top stack value is uninteresting.
+     *
+     * This affects only debug output and some error messages.
+     * In array destructuring, we emit bytecode that is roughly equivalent to
+     * `result.done ? undefined : result.value`.
+     * `NopDestructuring` is emitted after the `undefined`, so that the
+     * expression decompiler and disassembler know to casually ignore the
+     * possibility of `undefined`, and render the result of the conditional
+     * expression simply as "`result.value`".
      *
      *   Category: Other
      *   Operands:

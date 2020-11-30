@@ -37,7 +37,10 @@ async function callMediaPlay(shouldStartPlaying) {
     }, 3000);
   });
 
-  let isStartPlaying = await playPromise.then(() => true, () => false);
+  let isStartPlaying = await playPromise.then(
+    () => true,
+    () => false
+  );
   is(
     isStartPlaying,
     shouldStartPlaying,
@@ -74,7 +77,7 @@ add_task(async function setup_test_preference() {
   return SpecialPowers.pushPrefEnv({
     set: [
       ["media.autoplay.default", SpecialPowers.Ci.nsIAutoplay.BLOCKED],
-      ["media.autoplay.enabled.user-gestures-needed", true],
+      ["media.autoplay.blocking_policy", 0],
     ],
   });
 });

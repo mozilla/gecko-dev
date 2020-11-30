@@ -59,17 +59,19 @@ static nsresult moz_gdk_pixbuf_to_channel(GdkPixbuf* aPixbuf, nsIURI* aURI,
   *(out++) = width;
   *(out++) = height;
   *(out++) = uint8_t(mozilla::gfx::SurfaceFormat::OS_RGBA);
-  *(out++) = 0;
+
+  // Set all bits to ensure in nsIconDecoder we color manage and premultiply.
+  *(out++) = 0xFF;
 
   const guchar* const pixels = gdk_pixbuf_get_pixels(aPixbuf);
   int instride = gdk_pixbuf_get_rowstride(aPixbuf);
   int outstride = width * n_channels;
 
-  // encode the RGB data and the A data
-  mozilla::gfx::PremultiplyData(pixels, instride,
-                                mozilla::gfx::SurfaceFormat::R8G8B8A8, out,
-                                outstride, mozilla::gfx::SurfaceFormat::OS_RGBA,
-                                mozilla::gfx::IntSize(width, height));
+  // encode the RGB data and the A data and adjust the stride as necessary.
+  mozilla::gfx::SwizzleData(pixels, instride,
+                            mozilla::gfx::SurfaceFormat::R8G8B8A8, out,
+                            outstride, mozilla::gfx::SurfaceFormat::OS_RGBA,
+                            mozilla::gfx::IntSize(width, height));
 
   nsresult rv;
   nsCOMPtr<nsIStringInputStream> stream =
@@ -97,7 +99,7 @@ static nsresult moz_gdk_pixbuf_to_channel(GdkPixbuf* aPixbuf, nsIURI* aURI,
   return NS_NewInputStreamChannel(
       aChannel, aURI, stream.forget(), nullPrincipal,
       nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_IS_BLOCKED,
-      nsIContentPolicy::TYPE_INTERNAL_IMAGE, NS_LITERAL_CSTRING(IMAGE_ICON_MS));
+      nsIContentPolicy::TYPE_INTERNAL_IMAGE, nsLiteralCString(IMAGE_ICON_MS));
 }
 
 static GtkWidget* gProtoWindow = nullptr;
@@ -296,9 +298,9 @@ nsresult nsIconChannel::Init(nsIURI* aURI) {
 
   // First lookup the icon by stock id and text direction.
   GtkTextDirection direction = GTK_TEXT_DIR_NONE;
-  if (StringEndsWith(stockIcon, NS_LITERAL_CSTRING("-ltr"))) {
+  if (StringEndsWith(stockIcon, "-ltr"_ns)) {
     direction = GTK_TEXT_DIR_LTR;
-  } else if (StringEndsWith(stockIcon, NS_LITERAL_CSTRING("-rtl"))) {
+  } else if (StringEndsWith(stockIcon, "-rtl"_ns)) {
     direction = GTK_TEXT_DIR_RTL;
   }
 

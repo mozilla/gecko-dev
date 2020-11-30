@@ -382,13 +382,9 @@ void EventListenerManager::AddEventListenerInternal(
         doc->SetUseCounter(eUseCounter_custom_onfinish);
       }
     }
-  } else if (aTypeAtom == nsGkAtoms::ontext) {
-    // Ignore event listeners in the system group since editor needs to
-    // listen "text" events in the system group.
-    if (!aFlags.mInSystemGroup) {
-      if (nsPIDOMWindowInner* window = GetInnerWindowForTarget()) {
-        window->SetHasTextEventListenerInDefaultGroup();
-      }
+  } else if (aTypeAtom == nsGkAtoms::onbeforeinput) {
+    if (nsPIDOMWindowInner* window = GetInnerWindowForTarget()) {
+      window->SetHasBeforeInputEventListenersForTelemetry();
     }
   }
 
@@ -817,8 +813,8 @@ nsresult EventListenerManager::SetEventHandler(nsAtom* aName,
       bool allowsInlineScript = true;
       rv = csp->GetAllowsInline(
           nsIContentPolicy::TYPE_SCRIPT,
-          EmptyString(),  // aNonce
-          true,  // aParserCreated (true because attribute event handler)
+          u""_ns,  // aNonce
+          true,    // aParserCreated (true because attribute event handler)
           aElement,
           nullptr,  // nsICSPEventListener
           aBody, lineNum, columnNum, &allowsInlineScript);
@@ -923,14 +919,8 @@ nsresult EventListenerManager::CompileEventHandlerInternal(
   if (!aBody) {
     if (aListener->mTypeAtom == nsGkAtoms::onSVGLoad) {
       attrName = nsGkAtoms::onload;
-    } else if (aListener->mTypeAtom == nsGkAtoms::onSVGUnload) {
-      attrName = nsGkAtoms::onunload;
-    } else if (aListener->mTypeAtom == nsGkAtoms::onSVGResize) {
-      attrName = nsGkAtoms::onresize;
     } else if (aListener->mTypeAtom == nsGkAtoms::onSVGScroll) {
       attrName = nsGkAtoms::onscroll;
-    } else if (aListener->mTypeAtom == nsGkAtoms::onSVGZoom) {
-      attrName = nsGkAtoms::onzoom;
     } else if (aListener->mTypeAtom == nsGkAtoms::onbeginEvent) {
       attrName = nsGkAtoms::onbegin;
     } else if (aListener->mTypeAtom == nsGkAtoms::onrepeatEvent) {
@@ -953,7 +943,7 @@ nsresult EventListenerManager::CompileEventHandlerInternal(
   }
   aListener = nullptr;
 
-  nsAutoCString url(NS_LITERAL_CSTRING("-moz-evil:lying-event-listener"));
+  nsAutoCString url("-moz-evil:lying-event-listener"_ns);
   MOZ_ASSERT(body);
   MOZ_ASSERT(aElement);
   nsIURI* uri = aElement->OwnerDoc()->GetDocumentURI();
@@ -1009,12 +999,21 @@ nsresult EventListenerManager::CompileEventHandlerInternal(
   if (NS_WARN_IF(!GetOrCreateDOMReflector(cx, aElement, &v))) {
     return NS_ERROR_FAILURE;
   }
+
+  RefPtr<ScriptFetchOptions> fetchOptions = new ScriptFetchOptions(
+      CORS_NONE, aElement->OwnerDoc()->GetReferrerPolicy(), aElement,
+      aElement->OwnerDoc()->NodePrincipal());
+  NS_ENSURE_TRUE(fetchOptions, NS_ERROR_OUT_OF_MEMORY);
+
+  RefPtr<EventScript> eventScript = new EventScript(fetchOptions, uri);
+  NS_ENSURE_TRUE(eventScript, NS_ERROR_OUT_OF_MEMORY);
+
   JS::CompileOptions options(cx);
   // Use line 0 to make the function body starts from line 1.
   options.setIntroductionType("eventHandler")
       .setFileAndLine(url.get(), 0)
-      .setElement(&v.toObject())
-      .setElementAttributeName(jsStr);
+      .setElementAttributeName(jsStr)
+      .setPrivateValue(JS::PrivateValue(eventScript));
 
   JS::Rooted<JSObject*> handler(cx);
   result = nsJSUtils::CompileFunction(jsapi, scopeChain, options,
@@ -1125,7 +1124,7 @@ EventMessage EventListenerManager::GetEventMessageAndAtomForListener(
     return nsContentUtils::GetEventMessageAndAtomForListener(aType, aAtom);
   }
 
-  *aAtom = NS_Atomize(NS_LITERAL_STRING("on") + aType).take();
+  *aAtom = NS_Atomize(u"on"_ns + aType).take();
   return eUnidentifiedEvent;
 }
 
@@ -1189,13 +1188,12 @@ void EventListenerManager::HandleEventInternal(nsPresContext* aPresContext,
   EventMessage eventMessage = aEvent->mMessage;
 
   while (true) {
-    nsAutoTObserverArray<Listener, 2>::EndLimitedIterator iter(mListeners);
     Maybe<EventMessageAutoOverride> legacyAutoOverride;
-    while (iter.HasMore()) {
+    for (Listener& listenerRef : mListeners.EndLimitedRange()) {
       if (aEvent->mFlags.mImmediatePropagationStopped) {
         break;
       }
-      Listener* listener = &iter.GetNext();
+      Listener* listener = &listenerRef;
       // Check that the phase is same in event and event listener.
       // Handle only trusted events, except when listener permits untrusted
       // events.
@@ -1210,8 +1208,8 @@ void EventListenerManager::HandleEventInternal(nsPresContext* aPresContext,
             // This is tiny bit slow, but happens only once per event.
             // Similar code also in EventDispatcher.
             nsCOMPtr<EventTarget> et = aEvent->mOriginalTarget;
-            RefPtr<Event> event = EventDispatcher::CreateEvent(
-                et, aPresContext, aEvent, EmptyString());
+            RefPtr<Event> event =
+                EventDispatcher::CreateEvent(et, aPresContext, aEvent, u""_ns);
             event.forget(aDOMEvent);
           }
           if (*aDOMEvent) {
@@ -1317,24 +1315,22 @@ void EventListenerManager::HandleEventInternal(nsPresContext* aPresContext,
     // the loop above, we need to clean up them here. Note that, this
     // could clear once listeners handled in some outer level as well,
     // but that should not affect the result.
-    mListeners.RemoveElementsBy([](const Listener& aListener) {
+    mListeners.NonObservingRemoveElementsBy([](const Listener& aListener) {
       return aListener.mListenerType == Listener::eNoListener;
     });
     NotifyEventListenerRemoved(aEvent->mSpecifiedEventType);
     if (IsDeviceType(aEvent->mMessage)) {
       // This is a device-type event, we need to check whether we can
       // disable device after removing the once listeners.
-      bool hasAnyListener = false;
-      nsAutoTObserverArray<Listener, 2>::ForwardIterator iter(mListeners);
-      while (iter.HasMore()) {
-        Listener* listener = &iter.GetNext();
-        if (EVENT_TYPE_EQUALS(listener, aEvent->mMessage,
-                              aEvent->mSpecifiedEventType,
-                              /* all events */ false)) {
-          hasAnyListener = true;
-          break;
-        }
-      }
+      const auto [begin, end] = mListeners.NonObservingRange();
+      const bool hasAnyListener =
+          std::any_of(begin, end, [aEvent](const Listener& listenerRef) {
+            const Listener* listener = &listenerRef;
+            return EVENT_TYPE_EQUALS(listener, aEvent->mMessage,
+                                     aEvent->mSpecifiedEventType,
+                                     /* all events */ false);
+          });
+
       if (!hasAnyListener) {
         DisableDevice(aEvent->mMessage);
       }
@@ -1465,21 +1461,34 @@ uint32_t EventListenerManager::MutationListenerBits() {
 }
 
 bool EventListenerManager::HasListenersFor(const nsAString& aEventName) const {
-  RefPtr<nsAtom> atom = NS_Atomize(NS_LITERAL_STRING("on") + aEventName);
+  RefPtr<nsAtom> atom = NS_Atomize(u"on"_ns + aEventName);
   return HasListenersFor(atom);
 }
 
 bool EventListenerManager::HasListenersFor(nsAtom* aEventNameWithOn) const {
+  return HasListenersForInternal(aEventNameWithOn, false);
+}
+
+bool EventListenerManager::HasNonSystemGroupListenersFor(
+    nsAtom* aEventNameWithOn) const {
+  return HasListenersForInternal(aEventNameWithOn, true);
+}
+
+bool EventListenerManager::HasListenersForInternal(
+    nsAtom* aEventNameWithOn, bool aIgnoreSystemGroup) const {
 #ifdef DEBUG
   nsAutoString name;
   aEventNameWithOn->ToString(name);
 #endif
-  NS_ASSERTION(StringBeginsWith(name, NS_LITERAL_STRING("on")),
+  NS_ASSERTION(StringBeginsWith(name, u"on"_ns),
                "Event name does not start with 'on'");
   uint32_t count = mListeners.Length();
   for (uint32_t i = 0; i < count; ++i) {
     const Listener* listener = &mListeners.ElementAt(i);
     if (listener->mTypeAtom == aEventNameWithOn) {
+      if (aIgnoreSystemGroup && listener->mFlags.mInSystemGroup) {
+        continue;
+      }
       return true;
     }
   }
@@ -1495,9 +1504,7 @@ nsresult EventListenerManager::GetListenerInfo(
   nsCOMPtr<EventTarget> target = mTarget;
   NS_ENSURE_STATE(target);
   aList.Clear();
-  nsAutoTObserverArray<Listener, 2>::ForwardIterator iter(mListeners);
-  while (iter.HasMore()) {
-    const Listener& listener = iter.GetNext();
+  for (const Listener& listener : mListeners.ForwardRange()) {
     // If this is a script handler and we haven't yet
     // compiled the event handler itself go ahead and compile it
     if (listener.mListenerType == Listener::eJSEventListener &&

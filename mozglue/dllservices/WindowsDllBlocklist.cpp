@@ -13,7 +13,6 @@
 
 #include "Authenticode.h"
 #include "BaseProfiler.h"
-#include "nsAutoPtr.h"
 #include "nsWindowsDllInterceptor.h"
 #include "mozilla/CmdLineAndEnvUtils.h"
 #include "mozilla/DebugOnly.h"
@@ -458,13 +457,19 @@ static NTSTATUS NTAPI patched_LdrLoadDll(PWCHAR filePath, PULONG flags,
       printf_stderr("LdrLoadDll: info->mName: '%s'\n", info->mName);
 #endif
 
-      if ((info->mFlags & DllBlockInfo::BLOCK_WIN8PLUS_ONLY) &&
-          !IsWin8OrLater()) {
+      if (info->mFlags & DllBlockInfo::REDIRECT_TO_NOOP_ENTRYPOINT) {
+        printf_stderr(
+            "LdrLoadDll: "
+            "Ignoring the REDIRECT_TO_NOOP_ENTRYPOINT flag\n");
+      }
+
+      if ((info->mFlags & DllBlockInfo::BLOCK_WIN8_AND_OLDER) &&
+          IsWin8Point1OrLater()) {
         goto continue_loading;
       }
 
-      if ((info->mFlags & DllBlockInfo::BLOCK_WIN8_ONLY) &&
-          (!IsWin8OrLater() || IsWin8Point1OrLater())) {
+      if ((info->mFlags & DllBlockInfo::BLOCK_WIN7_AND_OLDER) &&
+          IsWin8OrLater()) {
         goto continue_loading;
       }
 
@@ -593,7 +598,7 @@ static WindowsDllInterceptor Kernel32Intercept;
 static void GetNativeNtBlockSetWriter();
 
 static glue::LoaderObserver gMozglueLoaderObserver;
-static nt::LoaderAPI::InitDllBlocklistOOPFnPtr gInitDllBlocklistOOPFnPtr;
+static nt::WinLauncherFunctions gWinLauncherFunctions;
 
 MFBT_API void DllBlocklist_Initialize(uint32_t aInitFlags) {
   if (sBlocklistInitAttempted) {
@@ -603,8 +608,8 @@ MFBT_API void DllBlocklist_Initialize(uint32_t aInitFlags) {
 
   sInitFlags = aInitFlags;
 
-  gInitDllBlocklistOOPFnPtr =
-      glue::ModuleLoadFrame::StaticInit(&gMozglueLoaderObserver);
+  glue::ModuleLoadFrame::StaticInit(&gMozglueLoaderObserver,
+                                    &gWinLauncherFunctions);
 
 #ifdef _M_AMD64
   if (!IsWin8OrLater()) {
@@ -633,7 +638,7 @@ MFBT_API void DllBlocklist_Initialize(uint32_t aInitFlags) {
   //   cases, it's ok not to check user32.dll in this scenario.
   const bool skipUser32Check =
       (sInitFlags & eDllBlocklistInitFlagWasBootstrapped)
-#ifdef MOZ_BASE_PROFILER
+#ifdef MOZ_GECKO_PROFILER
       ||
       (!IsWin10AnniversaryUpdateOrLater() && baseprofiler::profiler_is_active())
 #endif
@@ -760,7 +765,7 @@ MFBT_API void DllBlocklist_SetFullDllServices(
   glue::AutoExclusiveLock lock(gDllServicesLock);
   if (aSvc) {
     aSvc->SetAuthenticodeImpl(GetAuthenticode());
-    aSvc->SetInitDllBlocklistOOPFnPtr(gInitDllBlocklistOOPFnPtr);
+    aSvc->SetWinLauncherFunctions(gWinLauncherFunctions);
     gMozglueLoaderObserver.Forward(aSvc);
   }
 

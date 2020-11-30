@@ -30,12 +30,17 @@ class OriginAttributes : public dom::OriginAttributesDictionary {
   void SetFirstPartyDomain(const bool aIsTopLevelDocument,
                            const nsACString& aDomain);
   void SetFirstPartyDomain(const bool aIsTopLevelDocument,
-                           const nsAString& aDomain);
+                           const nsAString& aDomain, bool aForced = false);
+
+  void SetPartitionKey(nsIURI* aURI);
+  void SetPartitionKey(const nsACString& aDomain);
+  void SetPartitionKey(const nsAString& aDomain);
 
   enum {
     STRIP_FIRST_PARTY_DOMAIN = 0x01,
     STRIP_USER_CONTEXT_ID = 0x02,
     STRIP_PRIVATE_BROWSING_ID = 0x04,
+    STRIP_PARITION_KEY = 0x08,
   };
 
   inline void StripAttributes(uint32_t aFlags) {
@@ -51,21 +56,25 @@ class OriginAttributes : public dom::OriginAttributesDictionary {
       mPrivateBrowsingId =
           nsIScriptSecurityManager::DEFAULT_PRIVATE_BROWSING_ID;
     }
+
+    if (aFlags & STRIP_PARITION_KEY) {
+      mPartitionKey.Truncate();
+    }
   }
 
   bool operator==(const OriginAttributes& aOther) const {
-    return mInIsolatedMozBrowser == aOther.mInIsolatedMozBrowser &&
-           mUserContextId == aOther.mUserContextId &&
-           mPrivateBrowsingId == aOther.mPrivateBrowsingId &&
+    return EqualsIgnoringFPD(aOther) &&
            mFirstPartyDomain == aOther.mFirstPartyDomain &&
-           mGeckoViewSessionContextId == aOther.mGeckoViewSessionContextId;
+           // FIXME(emilio, bug 1667440): Should this be part of
+           // EqualsIgnoringFPD instead?
+           mPartitionKey == aOther.mPartitionKey;
   }
 
   bool operator!=(const OriginAttributes& aOther) const {
     return !(*this == aOther);
   }
 
-  MOZ_MUST_USE bool EqualsIgnoringFPD(const OriginAttributes& aOther) const {
+  [[nodiscard]] bool EqualsIgnoringFPD(const OriginAttributes& aOther) const {
     return mInIsolatedMozBrowser == aOther.mInIsolatedMozBrowser &&
            mUserContextId == aOther.mUserContextId &&
            mPrivateBrowsingId == aOther.mPrivateBrowsingId &&
@@ -80,12 +89,12 @@ class OriginAttributes : public dom::OriginAttributesDictionary {
   // Don't use this method for anything else than debugging!
   void CreateAnonymizedSuffix(nsACString& aStr) const;
 
-  MOZ_MUST_USE bool PopulateFromSuffix(const nsACString& aStr);
+  [[nodiscard]] bool PopulateFromSuffix(const nsACString& aStr);
 
   // Populates the attributes from a string like
   // |uri!key1=value1&key2=value2| and returns the uri without the suffix.
-  MOZ_MUST_USE bool PopulateFromOrigin(const nsACString& aOrigin,
-                                       nsACString& aOriginNoSuffix);
+  [[nodiscard]] bool PopulateFromOrigin(const nsACString& aOrigin,
+                                        nsACString& aOriginNoSuffix);
 
   // Helper function to match mIsPrivateBrowsing to existing private browsing
   // flags. Once all other flags are removed, this can be removed too.
@@ -94,6 +103,13 @@ class OriginAttributes : public dom::OriginAttributesDictionary {
   // check if "privacy.firstparty.isolate" is enabled.
   static inline bool IsFirstPartyEnabled() {
     return StaticPrefs::privacy_firstparty_isolate();
+  }
+
+  static inline bool UseSiteForFirstPartyDomain() {
+    if (IsFirstPartyEnabled()) {
+      return StaticPrefs::privacy_firstparty_isolate_use_site();
+    }
+    return StaticPrefs::privacy_dynamic_firstparty_use_site();
   }
 
   // check if the access of window.opener across different FPDs is restricted.
@@ -108,7 +124,7 @@ class OriginAttributes : public dom::OriginAttributesDictionary {
 
   // Check whether we block the postMessage across different FPDs when the
   // targetOrigin is '*'.
-  static inline MOZ_MUST_USE bool IsBlockPostMessageForFPI() {
+  [[nodiscard]] static inline bool IsBlockPostMessageForFPI() {
     return StaticPrefs::privacy_firstparty_isolate() &&
            StaticPrefs::privacy_firstparty_isolate_block_post_message();
   }
@@ -160,6 +176,11 @@ class OriginAttributesPattern : public dom::OriginAttributesPatternDictionary {
       return false;
     }
 
+    if (mPartitionKey.WasPassed() &&
+        mPartitionKey.Value() != aAttrs.mPartitionKey) {
+      return false;
+    }
+
     return true;
   }
 
@@ -190,6 +211,11 @@ class OriginAttributesPattern : public dom::OriginAttributesPatternDictionary {
         aOther.mGeckoViewSessionContextId.WasPassed() &&
         mGeckoViewSessionContextId.Value() !=
             aOther.mGeckoViewSessionContextId.Value()) {
+      return false;
+    }
+
+    if (mPartitionKey.WasPassed() && aOther.mPartitionKey.WasPassed() &&
+        mPartitionKey.Value() != aOther.mPartitionKey.Value()) {
       return false;
     }
 

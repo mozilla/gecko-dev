@@ -7,6 +7,7 @@
 
 #include "txXPathResultComparator.h"
 #include "txExpr.h"
+#include "nsComponentManagerUtils.h"
 #include "txCore.h"
 #include "nsCollationCID.h"
 
@@ -47,7 +48,7 @@ nsresult txResultStringComparator::init(const nsString& aLanguage) {
 nsresult txResultStringComparator::createSortableValue(Expr* aExpr,
                                                        txIEvalContext* aContext,
                                                        txObject*& aResult) {
-  nsAutoPtr<StringValue> val(new StringValue);
+  UniquePtr<StringValue> val(new StringValue);
   if (!val) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -60,7 +61,7 @@ nsresult txResultStringComparator::createSortableValue(Expr* aExpr,
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (nsCaseKey.IsEmpty()) {
-    aResult = val.forget();
+    aResult = val.release();
 
     return NS_OK;
   }
@@ -69,7 +70,7 @@ nsresult txResultStringComparator::createSortableValue(Expr* aExpr,
                                       nsCaseKey, val->mKey);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  aResult = val.forget();
+  aResult = val.release();
 
   return NS_OK;
 }
@@ -146,7 +147,7 @@ txResultNumberComparator::txResultNumberComparator(bool aAscending) {
 nsresult txResultNumberComparator::createSortableValue(Expr* aExpr,
                                                        txIEvalContext* aContext,
                                                        txObject*& aResult) {
-  nsAutoPtr<NumberValue> numval(new NumberValue);
+  UniquePtr<NumberValue> numval(new NumberValue);
   if (!numval) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -157,7 +158,7 @@ nsresult txResultNumberComparator::createSortableValue(Expr* aExpr,
 
   numval->mVal = exprRes->numberValue();
 
-  aResult = numval.forget();
+  aResult = numval.release();
 
   return NS_OK;
 }

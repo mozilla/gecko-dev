@@ -9,7 +9,6 @@
 
 #  include "MediaDataDecoderProxy.h"
 #  include "PlatformDecoderModule.h"
-#  include "PlatformDecoderModule.h"
 #  include "SamplesWaitingForKey.h"
 
 namespace mozilla {
@@ -46,9 +45,10 @@ class EMEMediaDataDecoderProxy
     : public MediaDataDecoderProxy,
       public DecoderDoctorLifeLogger<EMEMediaDataDecoderProxy> {
  public:
-  EMEMediaDataDecoderProxy(already_AddRefed<AbstractThread> aProxyThread,
-                           CDMProxy* aProxy,
-                           const CreateDecoderParams& aParams);
+  EMEMediaDataDecoderProxy(const CreateDecoderParams& aParams,
+                           already_AddRefed<MediaDataDecoder> aProxyDecoder,
+                           already_AddRefed<nsISerialEventTarget> aProxyThread,
+                           CDMProxy* aProxy);
   EMEMediaDataDecoderProxy(const CreateDecoderParams& aParams,
                            already_AddRefed<MediaDataDecoder> aProxyDecoder,
                            CDMProxy* aProxy);
@@ -58,7 +58,7 @@ class EMEMediaDataDecoderProxy
   RefPtr<ShutdownPromise> Shutdown() override;
 
  private:
-  RefPtr<AbstractThread> mThread;
+  nsCOMPtr<nsISerialEventTarget> mThread;
   RefPtr<SamplesWaitingForKey> mSamplesWaitingForKey;
   MozPromiseRequestHolder<SamplesWaitingForKey::WaitForKeyPromise> mKeyRequest;
   MozPromiseHolder<DecodePromise> mDecodePromise;

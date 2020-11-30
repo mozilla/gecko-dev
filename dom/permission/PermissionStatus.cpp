@@ -5,14 +5,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/PermissionStatus.h"
+#include "mozilla/PermissionDelegateHandler.h"
 
 #include "mozilla/AsyncEventDispatcher.h"
+#include "mozilla/Permission.h"
 #include "mozilla/Services.h"
 #include "nsIPermissionManager.h"
 #include "PermissionObserver.h"
 #include "PermissionUtils.h"
-#include "nsPermission.h"
-#include "PermissionDelegateHandler.h"
 
 namespace mozilla {
 namespace dom {
@@ -34,7 +34,7 @@ PermissionStatus::PermissionStatus(nsPIDOMWindowInner* aWindow,
     : DOMEventTargetHelper(aWindow),
       mName(aName),
       mState(PermissionState::Denied) {
-  KeepAliveIfHasListenersFor(NS_LITERAL_STRING("change"));
+  KeepAliveIfHasListenersFor(u"change"_ns);
 }
 
 nsresult PermissionStatus::Init() {
@@ -105,7 +105,7 @@ already_AddRefed<nsIPrincipal> PermissionStatus::GetPrincipal() const {
   }
 
   nsCOMPtr<nsIPrincipal> principal =
-      nsPermission::ClonePrincipalForPermission(doc->NodePrincipal());
+      Permission::ClonePrincipalForPermission(doc->NodePrincipal());
   NS_ENSURE_TRUE(principal, nullptr);
 
   return principal.forget();
@@ -115,14 +115,14 @@ void PermissionStatus::PermissionChanged() {
   auto oldState = mState;
   UpdateState();
   if (mState != oldState) {
-    RefPtr<AsyncEventDispatcher> eventDispatcher = new AsyncEventDispatcher(
-        this, NS_LITERAL_STRING("change"), CanBubble::eNo);
+    RefPtr<AsyncEventDispatcher> eventDispatcher =
+        new AsyncEventDispatcher(this, u"change"_ns, CanBubble::eNo);
     eventDispatcher->PostDOMEvent();
   }
 }
 
 void PermissionStatus::DisconnectFromOwner() {
-  IgnoreKeepAliveIfHasListenersFor(NS_LITERAL_STRING("change"));
+  IgnoreKeepAliveIfHasListenersFor(u"change"_ns);
 
   if (mObserver) {
     mObserver->RemoveSink(this);

@@ -38,11 +38,17 @@ class PageStyleChild extends JSWindowActorChild {
     switch (msg.name) {
       // Sent when the page's enabled style sheet is changed.
       case "PageStyle:Switch":
+        if (this.browsingContext.top == this.browsingContext) {
+          this.browsingContext.authorStyleDisabledDefault = false;
+        }
         this.docShell.contentViewer.authorStyleDisabled = false;
         this._switchStylesheet(msg.data.title);
         break;
       // Sent when "No Style" is chosen.
       case "PageStyle:Disable":
+        if (this.browsingContext.top == this.browsingContext) {
+          this.browsingContext.authorStyleDisabledDefault = true;
+        }
         this.docShell.contentViewer.authorStyleDisabled = true;
         break;
     }
@@ -57,11 +63,13 @@ class PageStyleChild extends JSWindowActorChild {
     // Does this doc contain a stylesheet with this title?
     // If not, it's a subframe's stylesheet that's being changed,
     // so no need to disable stylesheets here.
-    let docContainsStyleSheet = false;
-    for (let docStyleSheet of docStyleSheets) {
-      if (docStyleSheet.title === title) {
-        docContainsStyleSheet = true;
-        break;
+    let docContainsStyleSheet = !title;
+    if (title) {
+      for (let docStyleSheet of docStyleSheets) {
+        if (docStyleSheet.title === title) {
+          docContainsStyleSheet = true;
+          break;
+        }
       }
     }
 

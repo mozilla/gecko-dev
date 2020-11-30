@@ -15,7 +15,6 @@ const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 XPCOMUtils.defineLazyModuleGetters(this, {
-  Log: "resource://gre/modules/Log.jsm",
   PlacesUtils: "resource://gre/modules/PlacesUtils.jsm",
   UrlbarProvider: "resource:///modules/UrlbarUtils.jsm",
   UrlbarProvidersManager: "resource:///modules/UrlbarProvidersManager.jsm",
@@ -23,62 +22,12 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   UrlbarUtils: "resource:///modules/UrlbarUtils.jsm",
 });
 
-XPCOMUtils.defineLazyGetter(this, "logger", () =>
-  Log.repository.getLogger("Urlbar.Provider.OpenTabs")
-);
-
 /**
  * Class used to create the provider.
  */
-class ProviderOpenTabs extends UrlbarProvider {
+class UrlbarProviderOpenTabs extends UrlbarProvider {
   constructor() {
     super();
-    // Maps the open tabs by userContextId.
-    this.openTabs = new Map();
-    // Maps the running queries by queryContext.
-    this.queries = new Map();
-  }
-
-  /**
-   * Database handle. For performance reasons the temp tables are created and
-   * populated only when a query starts, rather than when a tab is added.
-   * @returns {object} the Sqlite database handle.
-   */
-  async promiseDb() {
-    if (this._db) {
-      return this._db;
-    }
-    let conn = await PlacesUtils.promiseLargeCacheDBConnection();
-    // Create the temp tables to store open pages.
-    UrlbarProvidersManager.runInCriticalSection(async () => {
-      // These should be kept up-to-date with the definition in nsPlacesTables.h.
-      await conn.execute(`
-        CREATE TEMP TABLE IF NOT EXISTS moz_openpages_temp (
-          url TEXT,
-          userContextId INTEGER,
-          open_count INTEGER,
-          PRIMARY KEY (url, userContextId)
-        )
-      `);
-      await conn.execute(`
-        CREATE TEMP TRIGGER IF NOT EXISTS moz_openpages_temp_afterupdate_trigger
-        AFTER UPDATE OF open_count ON moz_openpages_temp FOR EACH ROW
-        WHEN NEW.open_count = 0
-        BEGIN
-          DELETE FROM moz_openpages_temp
-          WHERE url = NEW.url
-            AND userContextId = NEW.userContextId;
-        END
-      `);
-    }).catch(Cu.reportError);
-
-    // Populate the table with the current cache contents...
-    for (let [userContextId, urls] of this.openTabs) {
-      for (let url of urls) {
-        await addToMemoryTable(conn, url, userContextId).catch(Cu.reportError);
-      }
-    }
-    return (this._db = conn);
   }
 
   /**
@@ -111,18 +60,45 @@ class ProviderOpenTabs extends UrlbarProvider {
   }
 
   /**
+   * Tracks whether the memory tables have been initialized yet. Until this
+   * happens tabs are only stored in openTabs and later copied over to the
+   * memory table.
+   */
+  static memoryTableInitialized = false;
+
+  /**
+   * Maps the open tabs by userContextId.
+   */
+  static openTabs = new Map();
+
+  /**
+   * Copy over cached open tabs to the memory table once the Urlbar
+   * connection has been initialized.
+   */
+  static promiseDBPopulated = PlacesUtils.largeCacheDBConnDeferred.promise.then(
+    async () => {
+      // Must be set before populating.
+      UrlbarProviderOpenTabs.memoryTableInitialized = true;
+      // Populate the table with the current cached tabs.
+      for (let [userContextId, urls] of UrlbarProviderOpenTabs.openTabs) {
+        for (let url of urls) {
+          await addToMemoryTable(url, userContextId).catch(Cu.reportError);
+        }
+      }
+    }
+  );
+
+  /**
    * Registers a tab as open.
    * @param {string} url Address of the tab
    * @param {integer} userContextId Containers user context id
    */
-  async registerOpenTab(url, userContextId = 0) {
-    if (!this.openTabs.has(userContextId)) {
-      this.openTabs.set(userContextId, []);
+  static async registerOpenTab(url, userContextId = 0) {
+    if (!UrlbarProviderOpenTabs.openTabs.has(userContextId)) {
+      UrlbarProviderOpenTabs.openTabs.set(userContextId, []);
     }
-    this.openTabs.get(userContextId).push(url);
-    if (this._db) {
-      await addToMemoryTable(this._db, url, userContextId);
-    }
+    UrlbarProviderOpenTabs.openTabs.get(userContextId).push(url);
+    await addToMemoryTable(url, userContextId).catch(Cu.reportError);
   }
 
   /**
@@ -130,15 +106,13 @@ class ProviderOpenTabs extends UrlbarProvider {
    * @param {string} url Address of the tab
    * @param {integer} userContextId Containers user context id
    */
-  async unregisterOpenTab(url, userContextId = 0) {
-    let openTabs = this.openTabs.get(userContextId);
+  static async unregisterOpenTab(url, userContextId = 0) {
+    let openTabs = UrlbarProviderOpenTabs.openTabs.get(userContextId);
     if (openTabs) {
       let index = openTabs.indexOf(url);
       if (index != -1) {
         openTabs.splice(index, 1);
-        if (this._db) {
-          await removeFromMemoryTable(this._db, url, userContextId);
-        }
+        await removeFromMemoryTable(url, userContextId).catch(Cu.reportError);
       }
     }
   }
@@ -156,10 +130,9 @@ class ProviderOpenTabs extends UrlbarProvider {
     // temp table to return proper frecency.
     // TODO:
     //  * properly search and handle tokens, this is just a mock for now.
-    logger.info(`Starting query for ${queryContext.searchString}`);
-    let instance = {};
-    this.queries.set(queryContext, instance);
-    let conn = await this.promiseDb();
+    let instance = this.queryInstance;
+    let conn = await PlacesUtils.promiseLargeCacheDBConnection();
+    await UrlbarProviderOpenTabs.promiseDBPopulated;
     await conn.executeCached(
       `
       SELECT url, userContextId
@@ -167,7 +140,7 @@ class ProviderOpenTabs extends UrlbarProvider {
     `,
       {},
       (row, cancel) => {
-        if (!this.queries.has(queryContext)) {
+        if (instance != this.queryInstance) {
           cancel();
           return;
         }
@@ -184,31 +157,21 @@ class ProviderOpenTabs extends UrlbarProvider {
         );
       }
     );
-    // We are done.
-    this.queries.delete(queryContext);
-  }
-
-  /**
-   * Cancels a running query.
-   * @param {object} queryContext The query context object
-   */
-  cancelQuery(queryContext) {
-    logger.info(`Canceling query for ${queryContext.searchString}`);
-    this.queries.delete(queryContext);
   }
 }
 
-var UrlbarProviderOpenTabs = new ProviderOpenTabs();
-
 /**
  * Adds an open page to the memory table.
- * @param {object} conn A Sqlite.jsm database handle
  * @param {string} url Address of the page
  * @param {number} userContextId Containers user context id
  * @returns {Promise} resolved after the addition.
  */
-async function addToMemoryTable(conn, url, userContextId) {
-  return UrlbarProvidersManager.runInCriticalSection(async () => {
+async function addToMemoryTable(url, userContextId) {
+  if (!UrlbarProviderOpenTabs.memoryTableInitialized) {
+    return;
+  }
+  await UrlbarProvidersManager.runInCriticalSection(async () => {
+    let conn = await PlacesUtils.promiseLargeCacheDBConnection();
     await conn.executeCached(
       `
       INSERT OR REPLACE INTO moz_openpages_temp (url, userContextId, open_count)
@@ -229,13 +192,16 @@ async function addToMemoryTable(conn, url, userContextId) {
 
 /**
  * Removes an open page from the memory table.
- * @param {object} conn A Sqlite.jsm database handle
  * @param {string} url Address of the page
  * @param {number} userContextId Containers user context id
  * @returns {Promise} resolved after the removal.
  */
-async function removeFromMemoryTable(conn, url, userContextId) {
-  return UrlbarProvidersManager.runInCriticalSection(async () => {
+async function removeFromMemoryTable(url, userContextId) {
+  if (!UrlbarProviderOpenTabs.memoryTableInitialized) {
+    return;
+  }
+  await UrlbarProvidersManager.runInCriticalSection(async () => {
+    let conn = await PlacesUtils.promiseLargeCacheDBConnection();
     await conn.executeCached(
       `
       UPDATE moz_openpages_temp

@@ -334,12 +334,12 @@ nsresult nsFileChannel::OpenContentStream(bool async, nsIInputStream** result,
   if (NS_FAILED(rv)) return rv;
 
   nsCOMPtr<nsIURI> newURI;
-  rv = fileHandler->ReadURLFile(file, getter_AddRefs(newURI));
-  if (NS_SUCCEEDED(rv)) {
+  if (NS_SUCCEEDED(fileHandler->ReadURLFile(file, getter_AddRefs(newURI))) ||
+      NS_SUCCEEDED(fileHandler->ReadShellLink(file, getter_AddRefs(newURI)))) {
     nsCOMPtr<nsIChannel> newChannel;
     rv = NS_NewChannel(getter_AddRefs(newChannel), newURI,
                        nsContentUtils::GetSystemPrincipal(),
-                       nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+                       nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
                        nsIContentPolicy::TYPE_OTHER);
 
     if (NS_FAILED(rv)) return rv;
@@ -377,7 +377,7 @@ nsresult nsFileChannel::OpenContentStream(bool async, nsIInputStream** result,
     // sniffer code in nsBaseChannel.
     // However, don't override explicitly set types.
     if (!HasContentTypeHint())
-      SetContentType(NS_LITERAL_CSTRING(APPLICATION_OCTET_STREAM));
+      SetContentType(nsLiteralCString(APPLICATION_OCTET_STREAM));
   } else {
     nsAutoCString contentType;
     rv = MakeFileInputStream(file, stream, contentType, async);

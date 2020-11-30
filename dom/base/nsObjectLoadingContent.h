@@ -15,12 +15,12 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/BindingDeclarations.h"
+#include "nsIFrame.h"  // for WeakFrame only
 #include "nsImageLoadingContent.h"
 #include "nsIStreamListener.h"
 #include "nsIChannelEventSink.h"
 #include "nsIObjectLoadingContent.h"
 #include "nsIRunnable.h"
-#include "nsIFrame.h"
 #include "nsFrameLoaderOwner.h"
 
 class nsAsyncInstantiateEvent;
@@ -89,10 +89,6 @@ class nsObjectLoadingContent : public nsImageLoadingContent,
     eFallbackOutdated = nsIObjectLoadingContent::PLUGIN_OUTDATED,
     // The plugin has crashed
     eFallbackCrashed = nsIObjectLoadingContent::PLUGIN_CRASHED,
-    // Suppressed by security policy
-    eFallbackSuppressed = nsIObjectLoadingContent::PLUGIN_SUPPRESSED,
-    // Blocked by content policy
-    eFallbackUserDisabled = nsIObjectLoadingContent::PLUGIN_USER_DISABLED,
     /// ** All values >= eFallbackClickToPlay are plugin placeholder types
     ///    that would be replaced by a real plugin if activated (PlayPlugin())
     /// ** Furthermore, values >= eFallbackClickToPlay and
@@ -306,7 +302,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent,
   /**
    * Destroys all loaded documents/plugins and releases references
    */
-  void DestroyContent();
+  void Destroy();
 
   static void Traverse(nsObjectLoadingContent* tmp,
                        nsCycleCollectionTraversalCallback& cb);

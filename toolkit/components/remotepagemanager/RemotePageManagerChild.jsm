@@ -13,10 +13,10 @@ const { MessagePort } = ChromeUtils.import(
 
 // The content side of a message port
 class ChildMessagePort extends MessagePort {
-  constructor(actor, window) {
+  constructor(window) {
     let portID =
       Services.appinfo.processID + ":" + ChildMessagePort.nextPortID++;
-    super(actor, portID);
+    super(window.docShell.messageManager, portID);
 
     this.window = window;
 
@@ -31,42 +31,6 @@ class ChildMessagePort extends MessagePort {
     Cu.exportFunction(this.removeMessageListener.bind(this), window, {
       defineAs: "RPMRemoveMessageListener",
       allowCallbacks: true,
-    });
-    Cu.exportFunction(this.getAppBuildID.bind(this), window, {
-      defineAs: "RPMGetAppBuildID",
-    });
-    Cu.exportFunction(this.getIntPref.bind(this), window, {
-      defineAs: "RPMGetIntPref",
-    });
-    Cu.exportFunction(this.getStringPref.bind(this), window, {
-      defineAs: "RPMGetStringPref",
-    });
-    Cu.exportFunction(this.getBoolPref.bind(this), window, {
-      defineAs: "RPMGetBoolPref",
-    });
-    Cu.exportFunction(this.setBoolPref.bind(this), window, {
-      defineAs: "RPMSetBoolPref",
-    });
-    Cu.exportFunction(this.prefIsLocked.bind(this), window, {
-      defineAs: "RPMPrefIsLocked",
-    });
-    Cu.exportFunction(this.getFormatURLPref.bind(this), window, {
-      defineAs: "RPMGetFormatURLPref",
-    });
-    Cu.exportFunction(this.isWindowPrivate.bind(this), window, {
-      defineAs: "RPMIsWindowPrivate",
-    });
-    Cu.exportFunction(this.getUpdateChannel.bind(this), window, {
-      defineAs: "RPMGetUpdateChannel",
-    });
-    Cu.exportFunction(this.getFxAccountsEndpoint.bind(this), window, {
-      defineAs: "RPMGetFxAccountsEndpoint",
-    });
-    Cu.exportFunction(this.recordTelemetryEvent.bind(this), window, {
-      defineAs: "RPMRecordTelemetryEvent",
-    });
-    Cu.exportFunction(this.addToHistogram.bind(this), window, {
-      defineAs: "RPMAddToHistogram",
     });
 
     // The actor form only needs the functions set up above. The actor

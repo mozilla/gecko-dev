@@ -71,9 +71,9 @@ class AndroidProfileRun(TestingMixin, BaseScript, MozbaseMixin,
         super(AndroidProfileRun, self).__init__(
             config_options=self.config_options,
             all_actions=['setup-avds',
-                         'start-emulator',
                          'download',
                          'create-virtualenv',
+                         'start-emulator',
                          'verify-device',
                          'install',
                          'run-tests',
@@ -98,13 +98,12 @@ class AndroidProfileRun(TestingMixin, BaseScript, MozbaseMixin,
         abs_dirs = super(AndroidProfileRun, self).query_abs_dirs()
         dirs = {}
 
-        dirs['abs_src_dir'] = os.environ['GECKO_PATH']
         dirs['abs_test_install_dir'] = os.path.join(
-            dirs['abs_src_dir'], 'testing')
+            abs_dirs['abs_src_dir'], 'testing')
         dirs['abs_xre_dir'] = os.path.join(
             abs_dirs['abs_work_dir'], 'hostutils')
         dirs['abs_blob_upload_dir'] = '/builds/worker/artifacts/blobber_upload_dir'
-        dirs['abs_avds_dir'] = self.config.get("avds_dir", "/home/cltbld/.android")
+        dirs['abs_avds_dir'] = os.path.join(abs_dirs["abs_work_dir"], ".android")
 
         for key in dirs.keys():
             if key not in abs_dirs:
@@ -150,7 +149,7 @@ class AndroidProfileRun(TestingMixin, BaseScript, MozbaseMixin,
         """
         from mozhttpd import MozHttpd
         from mozprofile import Preferences
-        from mozdevice import ADBDevice, ADBTimeoutError
+        from mozdevice import ADBDeviceFactory, ADBTimeoutError
         from six import string_types
         from marionette_driver.marionette import Marionette
 
@@ -207,9 +206,34 @@ class AndroidProfileRun(TestingMixin, BaseScript, MozbaseMixin,
         env["MOZ_JAR_LOG_FILE"] = jarlog
         env["LLVM_PROFILE_FILE"] = profdata
 
-        adbdevice = ADBDevice(adb=adb,
-                              device='emulator-5554')
-        adbdevice.mkdir(outputdir)
+        if self.query_minidump_stackwalk():
+            os.environ['MINIDUMP_STACKWALK'] = self.minidump_stackwalk_path
+        os.environ['MINIDUMP_SAVE_PATH'] = self.query_abs_dirs()['abs_blob_upload_dir']
+        if not self.symbols_path:
+            self.symbols_path = os.environ.get("MOZ_FETCHES_DIR")
+
+        # Force test_root to be on the sdcard for android pgo
+        # builds which fail for Android 4.3 when profiles are located
+        # in /data/local/tmp/test_root with
+        # E AndroidRuntime: FATAL EXCEPTION: Gecko
+        # E AndroidRuntime: java.lang.IllegalArgumentException: \
+        #    Profile directory must be writable if specified: /data/local/tmp/test_root/profile
+        # This occurs when .can-write-sentinel is written to
+        # the profile in
+        # mobile/android/geckoview/src/main/java/org/mozilla/gecko/GeckoProfile.java.
+        # This is not a problem on later versions of Android. This
+        # over-ride of test_root should be removed when Android 4.3 is no
+        # longer supported.
+        sdcard_test_root = '/sdcard/test_root'
+        adbdevice = ADBDeviceFactory(adb=adb,
+                                     device='emulator-5554',
+                                     test_root=sdcard_test_root)
+        if adbdevice.test_root != sdcard_test_root:
+            # If the test_root was previously set and shared
+            # the initializer will not have updated the shared
+            # value. Force it to match the sdcard_test_root.
+            adbdevice.test_root = sdcard_test_root
+        adbdevice.mkdir(outputdir, parents=True)
 
         try:
             # Run Fennec a first time to initialize its profile
@@ -222,6 +246,7 @@ class AndroidProfileRun(TestingMixin, BaseScript, MozbaseMixin,
                 connect_to_running_emulator=True,
                 startup_timeout=1000,
                 env=env,
+                symbols_path=self.symbols_path,
             )
             driver.start_session()
 

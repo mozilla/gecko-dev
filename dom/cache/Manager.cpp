@@ -20,7 +20,6 @@
 #include "mozilla/dom/cache/SavedTypes.h"
 #include "mozilla/dom/cache/StreamList.h"
 #include "mozilla/dom/cache/Types.h"
-#include "mozilla/dom/cache/QuotaClient.h"
 #include "mozilla/ipc/BackgroundParent.h"
 #include "mozStorageHelper.h"
 #include "nsIInputStream.h"
@@ -29,12 +28,39 @@
 #include "nsIThread.h"
 #include "nsThreadUtils.h"
 #include "nsTObserverArray.h"
+#include "QuotaClientImpl.h"
 
 namespace mozilla {
 namespace dom {
 namespace cache {
 
 namespace {
+
+/**
+ * Note: The aCommitHook argument will be invoked while a lock is held. Callers
+ * should be careful not to pass a hook that might lock on something else and
+ * trigger a deadlock.
+ */
+template <typename Callable>
+nsresult MaybeUpdatePaddingFile(nsIFile* aBaseDir, mozIStorageConnection* aConn,
+                                const int64_t aIncreaseSize,
+                                const int64_t aDecreaseSize,
+                                Callable aCommitHook) {
+  MOZ_ASSERT(!NS_IsMainThread());
+  MOZ_DIAGNOSTIC_ASSERT(aBaseDir);
+  MOZ_DIAGNOSTIC_ASSERT(aConn);
+  MOZ_DIAGNOSTIC_ASSERT(aIncreaseSize >= 0);
+  MOZ_DIAGNOSTIC_ASSERT(aDecreaseSize >= 0);
+
+  RefPtr<CacheQuotaClient> cacheQuotaClient = CacheQuotaClient::Get();
+  MOZ_DIAGNOSTIC_ASSERT(cacheQuotaClient);
+
+  nsresult rv = cacheQuotaClient->MaybeUpdatePaddingFileInternal(
+      aBaseDir, aConn, aIncreaseSize, aDecreaseSize, aCommitHook);
+  Unused << NS_WARN_IF(NS_FAILED(rv));
+
+  return rv;
+}
 
 // An Action that is executed when a Context is first created.  It ensures that
 // the directory and database are setup properly.  This lets other actions
@@ -54,7 +80,7 @@ class SetupAction final : public SyncDBAction {
     }
 
     // executes in its own transaction
-    rv = db::CreateOrMigrateSchema(aConn);
+    rv = db::CreateOrMigrateSchema(*aConn);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
@@ -76,38 +102,33 @@ class SetupAction final : public SyncDBAction {
 
       // Clean up orphaned Cache objects
       AutoTArray<CacheId, 8> orphanedCacheIdList;
-      nsresult rv = db::FindOrphanedCacheIds(aConn, orphanedCacheIdList);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
+      CACHE_TRY_UNWRAP(orphanedCacheIdList, db::FindOrphanedCacheIds(*aConn));
 
       int64_t overallDeletedPaddingSize = 0;
       for (uint32_t i = 0; i < orphanedCacheIdList.Length(); ++i) {
-        AutoTArray<nsID, 16> deletedBodyIdList;
-        int64_t deletedPaddingSize = 0;
-        rv = db::DeleteCacheId(aConn, orphanedCacheIdList[i], deletedBodyIdList,
-                               &deletedPaddingSize);
+        DeletionInfo deletionInfo;
+        CACHE_TRY_UNWRAP(deletionInfo,
+                         db::DeleteCacheId(*aConn, orphanedCacheIdList[i]));
+
+        rv = BodyDeleteFiles(aQuotaInfo, aDBDir,
+                             deletionInfo.mDeletedBodyIdList);
         if (NS_WARN_IF(NS_FAILED(rv))) {
           return rv;
         }
 
-        rv = BodyDeleteFiles(aQuotaInfo, aDBDir, deletedBodyIdList);
-        if (NS_WARN_IF(NS_FAILED(rv))) {
-          return rv;
+        if (deletionInfo.mDeletedPaddingSize > 0) {
+          DecreaseUsageForQuotaInfo(aQuotaInfo,
+                                    deletionInfo.mDeletedPaddingSize);
         }
 
-        if (deletedPaddingSize > 0) {
-          DecreaseUsageForQuotaInfo(aQuotaInfo, deletedPaddingSize);
-        }
-
-        MOZ_DIAGNOSTIC_ASSERT(INT64_MAX - deletedPaddingSize >=
+        MOZ_DIAGNOSTIC_ASSERT(INT64_MAX - deletionInfo.mDeletedPaddingSize >=
                               overallDeletedPaddingSize);
-        overallDeletedPaddingSize += deletedPaddingSize;
+        overallDeletedPaddingSize += deletionInfo.mDeletedPaddingSize;
       }
 
       // Clean up orphaned body objects
       AutoTArray<nsID, 64> knownBodyIdList;
-      rv = db::GetKnownBodyIds(aConn, knownBodyIdList);
+      CACHE_TRY_UNWRAP(knownBodyIdList, db::GetKnownBodyIds(*aConn));
 
       rv = BodyDeleteOrphanedFiles(aQuotaInfo, aDBDir, knownBodyIdList);
       if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -141,14 +162,15 @@ class SetupAction final : public SyncDBAction {
 // a body file that has been orphaned.
 class DeleteOrphanedBodyAction final : public Action {
  public:
-  explicit DeleteOrphanedBodyAction(const nsTArray<nsID>& aDeletedBodyIdList)
-      : mDeletedBodyIdList(aDeletedBodyIdList) {}
+  using DeletedBodyIdList = AutoTArray<nsID, 64>;
 
-  explicit DeleteOrphanedBodyAction(const nsID& aBodyId) {
-    mDeletedBodyIdList.AppendElement(aBodyId);
-  }
+  explicit DeleteOrphanedBodyAction(DeletedBodyIdList&& aDeletedBodyIdList)
+      : mDeletedBodyIdList(std::move(aDeletedBodyIdList)) {}
 
-  void RunOnTarget(Resolver* aResolver, const QuotaInfo& aQuotaInfo,
+  explicit DeleteOrphanedBodyAction(const nsID& aBodyId)
+      : mDeletedBodyIdList{aBodyId} {}
+
+  void RunOnTarget(SafeRefPtr<Resolver> aResolver, const QuotaInfo& aQuotaInfo,
                    Data*) override {
     MOZ_DIAGNOSTIC_ASSERT(aResolver);
     MOZ_DIAGNOSTIC_ASSERT(aQuotaInfo.mDir);
@@ -163,7 +185,7 @@ class DeleteOrphanedBodyAction final : public Action {
       return;
     }
 
-    rv = dbDir->Append(NS_LITERAL_STRING("cache"));
+    rv = dbDir->Append(u"cache"_ns);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       aResolver->Resolve(rv);
       return;
@@ -176,7 +198,7 @@ class DeleteOrphanedBodyAction final : public Action {
   }
 
  private:
-  nsTArray<nsID> mDeletedBodyIdList;
+  DeletedBodyIdList mDeletedBodyIdList;
 };
 
 bool IsHeadRequest(const CacheRequest& aRequest,
@@ -204,72 +226,47 @@ class Manager::Factory {
  public:
   friend class StaticAutoPtr<Manager::Factory>;
 
-  static nsresult GetOrCreate(ManagerId* aManagerId, Manager** aManagerOut) {
+  static Result<SafeRefPtr<Manager>, nsresult> AcquireCreateIfNonExistent(
+      const SafeRefPtr<ManagerId>& aManagerId) {
     mozilla::ipc::AssertIsOnBackgroundThread();
 
-    // Ensure there is a factory instance.  This forces the Get() call
+    // Ensure there is a factory instance.  This forces the Acquire() call
     // below to use the same factory.
     nsresult rv = MaybeCreateInstance();
     if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
+      return Err(rv);
     }
 
-    RefPtr<Manager> ref = Get(aManagerId);
+    SafeRefPtr<Manager> ref = Acquire(*aManagerId);
     if (!ref) {
       // TODO: replace this with a thread pool (bug 1119864)
       nsCOMPtr<nsIThread> ioThread;
       rv = NS_NewNamedThread("DOMCacheThread", getter_AddRefs(ioThread));
       if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
+        return Err(rv);
       }
 
-      ref = new Manager(aManagerId, ioThread);
+      ref = MakeSafeRefPtr<Manager>(aManagerId.clonePtr(), ioThread,
+                                    ConstructorGuard{});
 
       // There may be an old manager for this origin in the process of
       // cleaning up.  We need to tell the new manager about this so
       // that it won't actually start until the old manager is done.
-      RefPtr<Manager> oldManager = Get(aManagerId, Closing);
-      ref->Init(oldManager);
+      SafeRefPtr<Manager> oldManager = Acquire(*aManagerId, Closing);
+      ref->Init(oldManager ? SomeRef(*oldManager) : Nothing());
 
       MOZ_ASSERT(!sFactory->mManagerList.Contains(ref));
-      sFactory->mManagerList.AppendElement(ref);
+      sFactory->mManagerList.AppendElement(ref.unsafeGetRawPtr());
     }
 
-    ref.forget(aManagerOut);
-
-    return NS_OK;
+    return ref;
   }
 
-  static already_AddRefed<Manager> Get(ManagerId* aManagerId,
-                                       State aState = Open) {
+  static void Remove(Manager& aManager) {
     mozilla::ipc::AssertIsOnBackgroundThread();
-
-    nsresult rv = MaybeCreateInstance();
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return nullptr;
-    }
-
-    // Iterate in reverse to find the most recent, matching Manager.  This
-    // is important when looking for a Closing Manager.  If a new Manager
-    // chains to an old Manager we want it to be the most recent one.
-    ManagerList::BackwardIterator iter(sFactory->mManagerList);
-    while (iter.HasMore()) {
-      RefPtr<Manager> manager = iter.GetNext();
-      if (aState == manager->GetState() &&
-          *manager->mManagerId == *aManagerId) {
-        return manager.forget();
-      }
-    }
-
-    return nullptr;
-  }
-
-  static void Remove(Manager* aManager) {
-    mozilla::ipc::AssertIsOnBackgroundThread();
-    MOZ_DIAGNOSTIC_ASSERT(aManager);
     MOZ_DIAGNOSTIC_ASSERT(sFactory);
 
-    MOZ_ALWAYS_TRUE(sFactory->mManagerList.RemoveElement(aManager));
+    MOZ_ALWAYS_TRUE(sFactory->mManagerList.RemoveElement(&aManager));
 
     // clean up the factory singleton if there are no more managers
     MaybeDestroyInstance();
@@ -285,14 +282,22 @@ class Manager::Factory {
     MOZ_DIAGNOSTIC_ASSERT(!sFactory->mManagerList.IsEmpty());
 
     {
-      ManagerList::ForwardIterator iter(sFactory->mManagerList);
-      while (iter.HasMore()) {
-        RefPtr<Manager> manager = iter.GetNext();
+      // Note that we are synchronously calling abort code here.  If any
+      // of the shutdown code synchronously decides to delete the Factory
+      // we need to delay that delete until the end of this method.
+      AutoRestore<bool> restore(sFactory->mInSyncAbortOrShutdown);
+      sFactory->mInSyncAbortOrShutdown = true;
+
+      for (auto* manager : sFactory->mManagerList.ForwardRange()) {
         if (aOrigin.IsVoid() || manager->mManagerId->QuotaOrigin() == aOrigin) {
-          manager->Abort();
+          auto pinnedManager =
+              SafeRefPtr{manager, AcquireStrongRefFromRawPtr{}};
+          pinnedManager->Abort();
         }
       }
     }
+
+    MaybeDestroyInstance();
   }
 
   static void ShutdownAll() {
@@ -308,13 +313,12 @@ class Manager::Factory {
       // Note that we are synchronously calling shutdown code here.  If any
       // of the shutdown code synchronously decides to delete the Factory
       // we need to delay that delete until the end of this method.
-      AutoRestore<bool> restore(sFactory->mInSyncShutdown);
-      sFactory->mInSyncShutdown = true;
+      AutoRestore<bool> restore(sFactory->mInSyncAbortOrShutdown);
+      sFactory->mInSyncAbortOrShutdown = true;
 
-      ManagerList::ForwardIterator iter(sFactory->mManagerList);
-      while (iter.HasMore()) {
-        RefPtr<Manager> manager = iter.GetNext();
-        manager->Shutdown();
+      for (auto* manager : sFactory->mManagerList.ForwardRange()) {
+        auto pinnedManager = SafeRefPtr{manager, AcquireStrongRefFromRawPtr{}};
+        pinnedManager->Shutdown();
       }
     }
 
@@ -327,14 +331,14 @@ class Manager::Factory {
   }
 
  private:
-  Factory() : mInSyncShutdown(false) {
+  Factory() : mInSyncAbortOrShutdown(false) {
     MOZ_COUNT_CTOR(cache::Manager::Factory);
   }
 
   ~Factory() {
     MOZ_COUNT_DTOR(cache::Manager::Factory);
     MOZ_DIAGNOSTIC_ASSERT(mManagerList.IsEmpty());
-    MOZ_DIAGNOSTIC_ASSERT(!mInSyncShutdown);
+    MOZ_DIAGNOSTIC_ASSERT(!mInSyncAbortOrShutdown);
   }
 
   static nsresult MaybeCreateInstance() {
@@ -373,13 +377,36 @@ class Manager::Factory {
 
     // If the factory is is still in use then we cannot delete yet.  This
     // could be due to managers still existing or because we are in the
-    // middle of shutting down.  We need to be careful not to delete ourself
-    // synchronously during shutdown.
-    if (!sFactory->mManagerList.IsEmpty() || sFactory->mInSyncShutdown) {
+    // middle of aborting or shutting down.  We need to be careful not to delete
+    // ourself synchronously during shutdown.
+    if (!sFactory->mManagerList.IsEmpty() || sFactory->mInSyncAbortOrShutdown) {
       return;
     }
 
     sFactory = nullptr;
+  }
+
+  static SafeRefPtr<Manager> Acquire(const ManagerId& aManagerId,
+                                     State aState = Open) {
+    mozilla::ipc::AssertIsOnBackgroundThread();
+
+    nsresult rv = MaybeCreateInstance();
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return nullptr;
+    }
+
+    // Iterate in reverse to find the most recent, matching Manager.  This
+    // is important when looking for a Closing Manager.  If a new Manager
+    // chains to an old Manager we want it to be the most recent one.
+    const auto range = Reversed(sFactory->mManagerList.NonObservingRange());
+    const auto foundIt = std::find_if(
+        range.begin(), range.end(), [aState, &aManagerId](const auto* manager) {
+          return aState == manager->GetState() &&
+                 *manager->mManagerId == aManagerId;
+        });
+    return foundIt != range.end()
+               ? SafeRefPtr{*foundIt, AcquireStrongRefFromRawPtr{}}
+               : nullptr;
   }
 
   // Singleton created on demand and deleted when last Manager is cleared
@@ -397,13 +424,12 @@ class Manager::Factory {
   // Weak references as we don't want to keep Manager objects alive forever.
   // When a Manager is destroyed it calls Factory::Remove() to clear itself.
   // PBackground thread only.
-  typedef nsTObserverArray<Manager*> ManagerList;
-  ManagerList mManagerList;
+  nsTObserverArray<Manager*> mManagerList;
 
-  // This flag is set when we are looping through the list and calling
-  // Shutdown() on each Manager.  We need to be careful not to synchronously
+  // This flag is set when we are looping through the list and calling Abort()
+  // or Shutdown() on each Manager.  We need to be careful not to synchronously
   // trigger the deletion of the factory while still executing this loop.
-  bool mInSyncShutdown;
+  bool mInSyncAbortOrShutdown;
 };
 
 // static
@@ -422,9 +448,9 @@ bool Manager::Factory::sFactoryShutdown = false;
 // Manager.
 class Manager::BaseAction : public SyncDBAction {
  protected:
-  BaseAction(Manager* aManager, ListenerId aListenerId)
+  BaseAction(SafeRefPtr<Manager> aManager, ListenerId aListenerId)
       : SyncDBAction(DBAction::Existing),
-        mManager(aManager),
+        mManager(std::move(aManager)),
         mListenerId(aListenerId) {}
 
   virtual void Complete(Listener* aListener, ErrorResult&& aRv) = 0;
@@ -440,7 +466,7 @@ class Manager::BaseAction : public SyncDBAction {
     mManager = nullptr;
   }
 
-  RefPtr<Manager> mManager;
+  SafeRefPtr<Manager> mManager;
   const ListenerId mListenerId;
 };
 
@@ -450,11 +476,10 @@ class Manager::BaseAction : public SyncDBAction {
 // a Cache object that has been orphaned.
 class Manager::DeleteOrphanedCacheAction final : public SyncDBAction {
  public:
-  DeleteOrphanedCacheAction(Manager* aManager, CacheId aCacheId)
+  DeleteOrphanedCacheAction(SafeRefPtr<Manager> aManager, CacheId aCacheId)
       : SyncDBAction(DBAction::Existing),
-        mManager(aManager),
-        mCacheId(aCacheId),
-        mDeletedPaddingSize(0) {}
+        mManager(std::move(aManager)),
+        mCacheId(aCacheId) {}
 
   virtual nsresult RunSyncWithDBOnTarget(
       const QuotaInfo& aQuotaInfo, nsIFile* aDBDir,
@@ -464,15 +489,11 @@ class Manager::DeleteOrphanedCacheAction final : public SyncDBAction {
     mozStorageTransaction trans(aConn, false,
                                 mozIStorageConnection::TRANSACTION_IMMEDIATE);
 
-    nsresult rv = db::DeleteCacheId(aConn, mCacheId, mDeletedBodyIdList,
-                                    &mDeletedPaddingSize);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
+    CACHE_TRY_UNWRAP(mDeletionInfo, db::DeleteCacheId(*aConn, mCacheId));
 
-    rv = MaybeUpdatePaddingFile(aDBDir, aConn, /* aIncreaceSize */ 0,
-                                mDeletedPaddingSize,
-                                [&trans]() mutable { return trans.Commit(); });
+    nsresult rv = MaybeUpdatePaddingFile(
+        aDBDir, aConn, /* aIncreaceSize */ 0, mDeletionInfo.mDeletedPaddingSize,
+        [&trans]() mutable { return trans.Commit(); });
     Unused << NS_WARN_IF(NS_FAILED(rv));
 
     return rv;
@@ -482,14 +503,15 @@ class Manager::DeleteOrphanedCacheAction final : public SyncDBAction {
     // If the transaction fails, we shouldn't delete the body files and decrease
     // their padding size.
     if (NS_FAILED(aRv)) {
-      mDeletedBodyIdList.Clear();
-      mDeletedPaddingSize = 0;
+      mDeletionInfo.mDeletedBodyIdList.Clear();
+      mDeletionInfo.mDeletedPaddingSize = 0;
     }
 
-    mManager->NoteOrphanedBodyIdList(mDeletedBodyIdList);
+    mManager->NoteOrphanedBodyIdList(mDeletionInfo.mDeletedBodyIdList);
 
-    if (mDeletedPaddingSize > 0) {
-      DecreaseUsageForQuotaInfo(mQuotaInfo.ref(), mDeletedPaddingSize);
+    if (mDeletionInfo.mDeletedPaddingSize > 0) {
+      DecreaseUsageForQuotaInfo(mQuotaInfo.ref(),
+                                mDeletionInfo.mDeletedPaddingSize);
     }
 
     // ensure we release the manager on the initiating thread
@@ -497,45 +519,48 @@ class Manager::DeleteOrphanedCacheAction final : public SyncDBAction {
   }
 
  private:
-  RefPtr<Manager> mManager;
+  SafeRefPtr<Manager> mManager;
   const CacheId mCacheId;
-  nsTArray<nsID> mDeletedBodyIdList;
+  DeletionInfo mDeletionInfo;
   Maybe<QuotaInfo> mQuotaInfo;
-  // Track any pad amount associated with orphaned entries.
-  int64_t mDeletedPaddingSize;
 };
 
 // ----------------------------------------------------------------------------
 
 class Manager::CacheMatchAction final : public Manager::BaseAction {
  public:
-  CacheMatchAction(Manager* aManager, ListenerId aListenerId, CacheId aCacheId,
-                   const CacheMatchArgs& aArgs, StreamList* aStreamList)
-      : BaseAction(aManager, aListenerId),
+  CacheMatchAction(SafeRefPtr<Manager> aManager, ListenerId aListenerId,
+                   CacheId aCacheId, const CacheMatchArgs& aArgs,
+                   SafeRefPtr<StreamList> aStreamList)
+      : BaseAction(std::move(aManager), aListenerId),
         mCacheId(aCacheId),
         mArgs(aArgs),
-        mStreamList(aStreamList),
+        mStreamList(std::move(aStreamList)),
         mFoundResponse(false) {}
 
   virtual nsresult RunSyncWithDBOnTarget(
       const QuotaInfo& aQuotaInfo, nsIFile* aDBDir,
       mozIStorageConnection* aConn) override {
-    nsresult rv = db::CacheMatch(aConn, mCacheId, mArgs.request(),
-                                 mArgs.params(), &mFoundResponse, &mResponse);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
+    Maybe<SavedResponse> maybeResponse;
+    CACHE_TRY_UNWRAP(
+        maybeResponse,
+        db::CacheMatch(*aConn, mCacheId, mArgs.request(), mArgs.params()));
+
+    mFoundResponse = maybeResponse.isSome();
+    if (mFoundResponse) {
+      mResponse = std::move(maybeResponse.ref());
     }
 
     if (!mFoundResponse || !mResponse.mHasBodyId ||
         IsHeadRequest(mArgs.request(), mArgs.params())) {
       mResponse.mHasBodyId = false;
-      return rv;
+      return NS_OK;
     }
 
     nsCOMPtr<nsIInputStream> stream;
     if (mArgs.openMode() == OpenMode::Eager) {
-      rv = BodyOpen(aQuotaInfo, aDBDir, mResponse.mBodyId,
-                    getter_AddRefs(stream));
+      nsresult rv = BodyOpen(aQuotaInfo, aDBDir, mResponse.mBodyId,
+                             getter_AddRefs(stream));
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return rv;
       }
@@ -546,7 +571,7 @@ class Manager::CacheMatchAction final : public Manager::BaseAction {
 
     mStreamList->Add(mResponse.mBodyId, std::move(stream));
 
-    return rv;
+    return NS_OK;
   }
 
   virtual void Complete(Listener* aListener, ErrorResult&& aRv) override {
@@ -555,7 +580,7 @@ class Manager::CacheMatchAction final : public Manager::BaseAction {
     } else {
       mStreamList->Activate(mCacheId);
       aListener->OnOpComplete(std::move(aRv), CacheMatchResult(Nothing()),
-                              mResponse, mStreamList);
+                              mResponse, *mStreamList);
     }
     mStreamList = nullptr;
   }
@@ -567,7 +592,7 @@ class Manager::CacheMatchAction final : public Manager::BaseAction {
  private:
   const CacheId mCacheId;
   const CacheMatchArgs mArgs;
-  RefPtr<StreamList> mStreamList;
+  SafeRefPtr<StreamList> mStreamList;
   bool mFoundResponse;
   SavedResponse mResponse;
 };
@@ -576,22 +601,20 @@ class Manager::CacheMatchAction final : public Manager::BaseAction {
 
 class Manager::CacheMatchAllAction final : public Manager::BaseAction {
  public:
-  CacheMatchAllAction(Manager* aManager, ListenerId aListenerId,
+  CacheMatchAllAction(SafeRefPtr<Manager> aManager, ListenerId aListenerId,
                       CacheId aCacheId, const CacheMatchAllArgs& aArgs,
-                      StreamList* aStreamList)
-      : BaseAction(aManager, aListenerId),
+                      SafeRefPtr<StreamList> aStreamList)
+      : BaseAction(std::move(aManager), aListenerId),
         mCacheId(aCacheId),
         mArgs(aArgs),
-        mStreamList(aStreamList) {}
+        mStreamList(std::move(aStreamList)) {}
 
   virtual nsresult RunSyncWithDBOnTarget(
       const QuotaInfo& aQuotaInfo, nsIFile* aDBDir,
       mozIStorageConnection* aConn) override {
-    nsresult rv = db::CacheMatchAll(aConn, mCacheId, mArgs.maybeRequest(),
-                                    mArgs.params(), mSavedResponses);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
+    CACHE_TRY_UNWRAP(mSavedResponses,
+                     db::CacheMatchAll(*aConn, mCacheId, mArgs.maybeRequest(),
+                                       mArgs.params()));
 
     for (uint32_t i = 0; i < mSavedResponses.Length(); ++i) {
       if (!mSavedResponses[i].mHasBodyId ||
@@ -602,8 +625,8 @@ class Manager::CacheMatchAllAction final : public Manager::BaseAction {
 
       nsCOMPtr<nsIInputStream> stream;
       if (mArgs.openMode() == OpenMode::Eager) {
-        rv = BodyOpen(aQuotaInfo, aDBDir, mSavedResponses[i].mBodyId,
-                      getter_AddRefs(stream));
+        nsresult rv = BodyOpen(aQuotaInfo, aDBDir, mSavedResponses[i].mBodyId,
+                               getter_AddRefs(stream));
         if (NS_WARN_IF(NS_FAILED(rv))) {
           return rv;
         }
@@ -615,13 +638,13 @@ class Manager::CacheMatchAllAction final : public Manager::BaseAction {
       mStreamList->Add(mSavedResponses[i].mBodyId, std::move(stream));
     }
 
-    return rv;
+    return NS_OK;
   }
 
   virtual void Complete(Listener* aListener, ErrorResult&& aRv) override {
     mStreamList->Activate(mCacheId);
     aListener->OnOpComplete(std::move(aRv), CacheMatchAllResult(),
-                            mSavedResponses, mStreamList);
+                            mSavedResponses, *mStreamList);
     mStreamList = nullptr;
   }
 
@@ -632,7 +655,7 @@ class Manager::CacheMatchAllAction final : public Manager::BaseAction {
  private:
   const CacheId mCacheId;
   const CacheMatchAllArgs mArgs;
-  RefPtr<StreamList> mStreamList;
+  SafeRefPtr<StreamList> mStreamList;
   nsTArray<SavedResponse> mSavedResponses;
 };
 
@@ -644,12 +667,12 @@ class Manager::CacheMatchAllAction final : public Manager::BaseAction {
 class Manager::CachePutAllAction final : public DBAction {
  public:
   CachePutAllAction(
-      Manager* aManager, ListenerId aListenerId, CacheId aCacheId,
+      SafeRefPtr<Manager> aManager, ListenerId aListenerId, CacheId aCacheId,
       const nsTArray<CacheRequestResponse>& aPutList,
       const nsTArray<nsCOMPtr<nsIInputStream>>& aRequestStreamList,
       const nsTArray<nsCOMPtr<nsIInputStream>>& aResponseStreamList)
       : DBAction(DBAction::Existing),
-        mManager(aManager),
+        mManager(std::move(aManager)),
         mListenerId(aListenerId),
         mCacheId(aCacheId),
         mList(aPutList.Length()),
@@ -674,7 +697,7 @@ class Manager::CachePutAllAction final : public DBAction {
  private:
   ~CachePutAllAction() = default;
 
-  virtual void RunWithDBOnTarget(Resolver* aResolver,
+  virtual void RunWithDBOnTarget(SafeRefPtr<Resolver> aResolver,
                                  const QuotaInfo& aQuotaInfo, nsIFile* aDBDir,
                                  mozIStorageConnection* aConn) override {
     MOZ_DIAGNOSTIC_ASSERT(aResolver);
@@ -685,7 +708,7 @@ class Manager::CachePutAllAction final : public DBAction {
     MOZ_DIAGNOSTIC_ASSERT(!mConn);
 
     MOZ_DIAGNOSTIC_ASSERT(!mTarget);
-    mTarget = GetCurrentThreadSerialEventTarget();
+    mTarget = GetCurrentSerialEventTarget();
     MOZ_DIAGNOSTIC_ASSERT(mTarget);
 
     // We should be pre-initialized to expect one async completion.  This is
@@ -693,7 +716,7 @@ class Manager::CachePutAllAction final : public DBAction {
     // cases.
     MOZ_DIAGNOSTIC_ASSERT(mExpectedAsyncCopyCompletions == 1);
 
-    mResolver = aResolver;
+    mResolver = std::move(aResolver);
     mDBDir = aDBDir;
     mConn = aConn;
     mQuotaInfo.emplace(aQuotaInfo);
@@ -817,16 +840,20 @@ class Manager::CachePutAllAction final : public DBAction {
         }
       }
 
-      int64_t deletedPaddingSize = 0;
-      rv = db::CachePut(mConn, mCacheId, e.mRequest,
-                        e.mRequestStream ? &e.mRequestBodyId : nullptr,
-                        e.mResponse,
-                        e.mResponseStream ? &e.mResponseBodyId : nullptr,
-                        mDeletedBodyIdList, &deletedPaddingSize);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        DoResolve(rv);
+      // XXXtt:: CACHE_TRY_UNWRAP/CACHE_TRY_INSPECT might need to handle cases
+      //         like this.
+      auto deletionInfoOrErr = db::CachePut(
+          *mConn, mCacheId, e.mRequest,
+          e.mRequestStream ? &e.mRequestBodyId : nullptr, e.mResponse,
+          e.mResponseStream ? &e.mResponseBodyId : nullptr);
+      if (NS_WARN_IF(deletionInfoOrErr.isErr())) {
+        DoResolve(deletionInfoOrErr.unwrapErr());
         return;
       }
+
+      const int64_t deletedPaddingSize =
+          deletionInfoOrErr.inspect().mDeletedPaddingSize;
+      mDeletedBodyIdList = deletionInfoOrErr.unwrap().mDeletedBodyIdList;
 
       MOZ_DIAGNOSTIC_ASSERT(INT64_MAX - mDeletedPaddingSize >=
                             deletedPaddingSize);
@@ -998,13 +1025,12 @@ class Manager::CachePutAllAction final : public DBAction {
     mTarget = nullptr;
 
     // Make sure to de-ref the resolver per the Action API contract.
-    RefPtr<Action::Resolver> resolver;
-    mResolver.swap(resolver);
+    SafeRefPtr<Action::Resolver> resolver = std::move(mResolver);
     resolver->Resolve(aRv);
   }
 
   // initiating thread only
-  RefPtr<Manager> mManager;
+  SafeRefPtr<Manager> mManager;
   const ListenerId mListenerId;
 
   // Set on initiating thread, read on target thread.  State machine guarantees
@@ -1014,7 +1040,7 @@ class Manager::CachePutAllAction final : public DBAction {
   uint32_t mExpectedAsyncCopyCompletions;
 
   // target thread only
-  RefPtr<Resolver> mResolver;
+  SafeRefPtr<Resolver> mResolver;
   nsCOMPtr<nsIFile> mDBDir;
   nsCOMPtr<mozIStorageConnection> mConn;
   nsCOMPtr<nsISerialEventTarget> mTarget;
@@ -1041,13 +1067,12 @@ class Manager::CachePutAllAction final : public DBAction {
 
 class Manager::CacheDeleteAction final : public Manager::BaseAction {
  public:
-  CacheDeleteAction(Manager* aManager, ListenerId aListenerId, CacheId aCacheId,
-                    const CacheDeleteArgs& aArgs)
-      : BaseAction(aManager, aListenerId),
+  CacheDeleteAction(SafeRefPtr<Manager> aManager, ListenerId aListenerId,
+                    CacheId aCacheId, const CacheDeleteArgs& aArgs)
+      : BaseAction(std::move(aManager), aListenerId),
         mCacheId(aCacheId),
         mArgs(aArgs),
-        mSuccess(false),
-        mDeletedPaddingSize(0) {}
+        mSuccess(false) {}
 
   virtual nsresult RunSyncWithDBOnTarget(
       const QuotaInfo& aQuotaInfo, nsIFile* aDBDir,
@@ -1057,16 +1082,19 @@ class Manager::CacheDeleteAction final : public Manager::BaseAction {
     mozStorageTransaction trans(aConn, false,
                                 mozIStorageConnection::TRANSACTION_IMMEDIATE);
 
-    nsresult rv =
-        db::CacheDelete(aConn, mCacheId, mArgs.request(), mArgs.params(),
-                        mDeletedBodyIdList, &mDeletedPaddingSize, &mSuccess);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
+    Maybe<DeletionInfo> maybeDeletionInfo;
+    CACHE_TRY_UNWRAP(
+        maybeDeletionInfo,
+        db::CacheDelete(*aConn, mCacheId, mArgs.request(), mArgs.params()));
+
+    mSuccess = maybeDeletionInfo.isSome();
+    if (mSuccess) {
+      mDeletionInfo = std::move(maybeDeletionInfo.ref());
     }
 
-    rv = MaybeUpdatePaddingFile(aDBDir, aConn, /* aIncreaceSize */ 0,
-                                mDeletedPaddingSize,
-                                [&trans]() mutable { return trans.Commit(); });
+    nsresult rv = MaybeUpdatePaddingFile(
+        aDBDir, aConn, /* aIncreaceSize */ 0, mDeletionInfo.mDeletedPaddingSize,
+        [&trans]() mutable { return trans.Commit(); });
     if (NS_WARN_IF(NS_FAILED(rv))) {
       mSuccess = false;
       return rv;
@@ -1079,14 +1107,15 @@ class Manager::CacheDeleteAction final : public Manager::BaseAction {
     // If the transaction fails, we shouldn't delete the body files and decrease
     // their padding size.
     if (aRv.Failed()) {
-      mDeletedBodyIdList.Clear();
-      mDeletedPaddingSize = 0;
+      mDeletionInfo.mDeletedBodyIdList.Clear();
+      mDeletionInfo.mDeletedPaddingSize = 0;
     }
 
-    mManager->NoteOrphanedBodyIdList(mDeletedBodyIdList);
+    mManager->NoteOrphanedBodyIdList(mDeletionInfo.mDeletedBodyIdList);
 
-    if (mDeletedPaddingSize > 0) {
-      DecreaseUsageForQuotaInfo(mQuotaInfo.ref(), mDeletedPaddingSize);
+    if (mDeletionInfo.mDeletedPaddingSize > 0) {
+      DecreaseUsageForQuotaInfo(mQuotaInfo.ref(),
+                                mDeletionInfo.mDeletedPaddingSize);
     }
 
     aListener->OnOpComplete(std::move(aRv), CacheDeleteResult(mSuccess));
@@ -1100,31 +1129,28 @@ class Manager::CacheDeleteAction final : public Manager::BaseAction {
   const CacheId mCacheId;
   const CacheDeleteArgs mArgs;
   bool mSuccess;
-  nsTArray<nsID> mDeletedBodyIdList;
+  DeletionInfo mDeletionInfo;
   Maybe<QuotaInfo> mQuotaInfo;
-  // Track any pad amount associated with deleted entries.
-  int64_t mDeletedPaddingSize;
 };
 
 // ----------------------------------------------------------------------------
 
 class Manager::CacheKeysAction final : public Manager::BaseAction {
  public:
-  CacheKeysAction(Manager* aManager, ListenerId aListenerId, CacheId aCacheId,
-                  const CacheKeysArgs& aArgs, StreamList* aStreamList)
-      : BaseAction(aManager, aListenerId),
+  CacheKeysAction(SafeRefPtr<Manager> aManager, ListenerId aListenerId,
+                  CacheId aCacheId, const CacheKeysArgs& aArgs,
+                  SafeRefPtr<StreamList> aStreamList)
+      : BaseAction(std::move(aManager), aListenerId),
         mCacheId(aCacheId),
         mArgs(aArgs),
-        mStreamList(aStreamList) {}
+        mStreamList(std::move(aStreamList)) {}
 
   virtual nsresult RunSyncWithDBOnTarget(
       const QuotaInfo& aQuotaInfo, nsIFile* aDBDir,
       mozIStorageConnection* aConn) override {
-    nsresult rv = db::CacheKeys(aConn, mCacheId, mArgs.maybeRequest(),
-                                mArgs.params(), mSavedRequests);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
+    CACHE_TRY_UNWRAP(
+        mSavedRequests,
+        db::CacheKeys(*aConn, mCacheId, mArgs.maybeRequest(), mArgs.params()));
 
     for (uint32_t i = 0; i < mSavedRequests.Length(); ++i) {
       if (!mSavedRequests[i].mHasBodyId ||
@@ -1135,8 +1161,8 @@ class Manager::CacheKeysAction final : public Manager::BaseAction {
 
       nsCOMPtr<nsIInputStream> stream;
       if (mArgs.openMode() == OpenMode::Eager) {
-        rv = BodyOpen(aQuotaInfo, aDBDir, mSavedRequests[i].mBodyId,
-                      getter_AddRefs(stream));
+        nsresult rv = BodyOpen(aQuotaInfo, aDBDir, mSavedRequests[i].mBodyId,
+                               getter_AddRefs(stream));
         if (NS_WARN_IF(NS_FAILED(rv))) {
           return rv;
         }
@@ -1148,13 +1174,13 @@ class Manager::CacheKeysAction final : public Manager::BaseAction {
       mStreamList->Add(mSavedRequests[i].mBodyId, std::move(stream));
     }
 
-    return rv;
+    return NS_OK;
   }
 
   virtual void Complete(Listener* aListener, ErrorResult&& aRv) override {
     mStreamList->Activate(mCacheId);
     aListener->OnOpComplete(std::move(aRv), CacheKeysResult(), mSavedRequests,
-                            mStreamList);
+                            *mStreamList);
     mStreamList = nullptr;
   }
 
@@ -1165,7 +1191,7 @@ class Manager::CacheKeysAction final : public Manager::BaseAction {
  private:
   const CacheId mCacheId;
   const CacheKeysArgs mArgs;
-  RefPtr<StreamList> mStreamList;
+  SafeRefPtr<StreamList> mStreamList;
   nsTArray<SavedRequest> mSavedRequests;
 };
 
@@ -1173,35 +1199,39 @@ class Manager::CacheKeysAction final : public Manager::BaseAction {
 
 class Manager::StorageMatchAction final : public Manager::BaseAction {
  public:
-  StorageMatchAction(Manager* aManager, ListenerId aListenerId,
+  StorageMatchAction(SafeRefPtr<Manager> aManager, ListenerId aListenerId,
                      Namespace aNamespace, const StorageMatchArgs& aArgs,
-                     StreamList* aStreamList)
-      : BaseAction(aManager, aListenerId),
+                     SafeRefPtr<StreamList> aStreamList)
+      : BaseAction(std::move(aManager), aListenerId),
         mNamespace(aNamespace),
         mArgs(aArgs),
-        mStreamList(aStreamList),
+        mStreamList(std::move(aStreamList)),
         mFoundResponse(false) {}
 
   virtual nsresult RunSyncWithDBOnTarget(
       const QuotaInfo& aQuotaInfo, nsIFile* aDBDir,
       mozIStorageConnection* aConn) override {
-    nsresult rv =
-        db::StorageMatch(aConn, mNamespace, mArgs.request(), mArgs.params(),
-                         &mFoundResponse, &mSavedResponse);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
+    auto maybeResponse =
+        db::StorageMatch(*aConn, mNamespace, mArgs.request(), mArgs.params());
+    if (NS_WARN_IF(maybeResponse.isErr())) {
+      return maybeResponse.unwrapErr();
+    }
+
+    mFoundResponse = maybeResponse.inspect().isSome();
+    if (mFoundResponse) {
+      mSavedResponse = maybeResponse.unwrap().ref();
     }
 
     if (!mFoundResponse || !mSavedResponse.mHasBodyId ||
         IsHeadRequest(mArgs.request(), mArgs.params())) {
       mSavedResponse.mHasBodyId = false;
-      return rv;
+      return NS_OK;
     }
 
     nsCOMPtr<nsIInputStream> stream;
     if (mArgs.openMode() == OpenMode::Eager) {
-      rv = BodyOpen(aQuotaInfo, aDBDir, mSavedResponse.mBodyId,
-                    getter_AddRefs(stream));
+      nsresult rv = BodyOpen(aQuotaInfo, aDBDir, mSavedResponse.mBodyId,
+                             getter_AddRefs(stream));
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return rv;
       }
@@ -1212,7 +1242,7 @@ class Manager::StorageMatchAction final : public Manager::BaseAction {
 
     mStreamList->Add(mSavedResponse.mBodyId, std::move(stream));
 
-    return rv;
+    return NS_OK;
   }
 
   virtual void Complete(Listener* aListener, ErrorResult&& aRv) override {
@@ -1221,7 +1251,7 @@ class Manager::StorageMatchAction final : public Manager::BaseAction {
     } else {
       mStreamList->Activate(mSavedResponse.mCacheId);
       aListener->OnOpComplete(std::move(aRv), StorageMatchResult(Nothing()),
-                              mSavedResponse, mStreamList);
+                              mSavedResponse, *mStreamList);
     }
     mStreamList = nullptr;
   }
@@ -1229,7 +1259,7 @@ class Manager::StorageMatchAction final : public Manager::BaseAction {
  private:
   const Namespace mNamespace;
   const StorageMatchArgs mArgs;
-  RefPtr<StreamList> mStreamList;
+  SafeRefPtr<StreamList> mStreamList;
   bool mFoundResponse;
   SavedResponse mSavedResponse;
 };
@@ -1238,9 +1268,9 @@ class Manager::StorageMatchAction final : public Manager::BaseAction {
 
 class Manager::StorageHasAction final : public Manager::BaseAction {
  public:
-  StorageHasAction(Manager* aManager, ListenerId aListenerId,
+  StorageHasAction(SafeRefPtr<Manager> aManager, ListenerId aListenerId,
                    Namespace aNamespace, const StorageHasArgs& aArgs)
-      : BaseAction(aManager, aListenerId),
+      : BaseAction(std::move(aManager), aListenerId),
         mNamespace(aNamespace),
         mArgs(aArgs),
         mCacheFound(false) {}
@@ -1248,9 +1278,13 @@ class Manager::StorageHasAction final : public Manager::BaseAction {
   virtual nsresult RunSyncWithDBOnTarget(
       const QuotaInfo& aQuotaInfo, nsIFile* aDBDir,
       mozIStorageConnection* aConn) override {
-    CacheId cacheId;
-    return db::StorageGetCacheId(aConn, mNamespace, mArgs.key(), &mCacheFound,
-                                 &cacheId);
+    Maybe<CacheId> maybeCacheId;
+    CACHE_TRY_UNWRAP(maybeCacheId,
+                     db::StorageGetCacheId(*aConn, mNamespace, mArgs.key()));
+
+    mCacheFound = maybeCacheId.isSome();
+
+    return NS_OK;
   }
 
   virtual void Complete(Listener* aListener, ErrorResult&& aRv) override {
@@ -1267,9 +1301,9 @@ class Manager::StorageHasAction final : public Manager::BaseAction {
 
 class Manager::StorageOpenAction final : public Manager::BaseAction {
  public:
-  StorageOpenAction(Manager* aManager, ListenerId aListenerId,
+  StorageOpenAction(SafeRefPtr<Manager> aManager, ListenerId aListenerId,
                     Namespace aNamespace, const StorageOpenArgs& aArgs)
-      : BaseAction(aManager, aListenerId),
+      : BaseAction(std::move(aManager), aListenerId),
         mNamespace(aNamespace),
         mArgs(aArgs),
         mCacheId(INVALID_CACHE_ID) {}
@@ -1282,23 +1316,20 @@ class Manager::StorageOpenAction final : public Manager::BaseAction {
                                 mozIStorageConnection::TRANSACTION_IMMEDIATE);
 
     // Look for existing cache
-    bool cacheFound;
-    nsresult rv = db::StorageGetCacheId(aConn, mNamespace, mArgs.key(),
-                                        &cacheFound, &mCacheId);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
-    if (cacheFound) {
+    Maybe<CacheId> maybeCacheId;
+    CACHE_TRY_UNWRAP(maybeCacheId,
+                     db::StorageGetCacheId(*aConn, mNamespace, mArgs.key()));
+
+    if (maybeCacheId.isSome()) {
+      mCacheId = maybeCacheId.ref();
       MOZ_DIAGNOSTIC_ASSERT(mCacheId != INVALID_CACHE_ID);
-      return rv;
+      return NS_OK;
     }
 
-    rv = db::CreateCacheId(aConn, &mCacheId);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
+    CACHE_TRY_UNWRAP(mCacheId, db::CreateCacheId(*aConn));
 
-    rv = db::StoragePutCache(aConn, mNamespace, mArgs.key(), mCacheId);
+    nsresult rv =
+        db::StoragePutCache(*aConn, mNamespace, mArgs.key(), mCacheId);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
@@ -1329,9 +1360,9 @@ class Manager::StorageOpenAction final : public Manager::BaseAction {
 
 class Manager::StorageDeleteAction final : public Manager::BaseAction {
  public:
-  StorageDeleteAction(Manager* aManager, ListenerId aListenerId,
+  StorageDeleteAction(SafeRefPtr<Manager> aManager, ListenerId aListenerId,
                       Namespace aNamespace, const StorageDeleteArgs& aArgs)
-      : BaseAction(aManager, aListenerId),
+      : BaseAction(std::move(aManager), aListenerId),
         mNamespace(aNamespace),
         mArgs(aArgs),
         mCacheDeleted(false),
@@ -1343,21 +1374,19 @@ class Manager::StorageDeleteAction final : public Manager::BaseAction {
     mozStorageTransaction trans(aConn, false,
                                 mozIStorageConnection::TRANSACTION_IMMEDIATE);
 
-    bool exists;
-    nsresult rv = db::StorageGetCacheId(aConn, mNamespace, mArgs.key(), &exists,
-                                        &mCacheId);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
+    Maybe<CacheId> maybeCacheId;
+    CACHE_TRY_UNWRAP(maybeCacheId,
+                     db::StorageGetCacheId(*aConn, mNamespace, mArgs.key()));
 
-    if (!exists) {
+    if (maybeCacheId.isNothing()) {
       mCacheDeleted = false;
       return NS_OK;
     }
+    mCacheId = maybeCacheId.ref();
 
     // Don't delete the removing padding size here, we'll delete it on
     // DeleteOrphanedCacheAction.
-    rv = db::StorageForgetCache(aConn, mNamespace, mArgs.key());
+    nsresult rv = db::StorageForgetCache(*aConn, mNamespace, mArgs.key());
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
@@ -1377,15 +1406,15 @@ class Manager::StorageDeleteAction final : public Manager::BaseAction {
       // deleted later.
       if (!mManager->SetCacheIdOrphanedIfRefed(mCacheId)) {
         // no outstanding references, delete immediately
-        RefPtr<Context> context = mManager->mContext;
+        const auto pinnedContext =
+            SafeRefPtr{mManager->mContext, AcquireStrongRefFromRawPtr{}};
 
-        if (context->IsCanceled()) {
-          context->NoteOrphanedData();
+        if (pinnedContext->IsCanceled()) {
+          pinnedContext->NoteOrphanedData();
         } else {
-          context->CancelForCacheId(mCacheId);
-          RefPtr<Action> action =
-              new DeleteOrphanedCacheAction(mManager, mCacheId);
-          context->Dispatch(action);
+          pinnedContext->CancelForCacheId(mCacheId);
+          pinnedContext->Dispatch(MakeSafeRefPtr<DeleteOrphanedCacheAction>(
+              mManager.clonePtr(), mCacheId));
         }
       }
     }
@@ -1404,14 +1433,16 @@ class Manager::StorageDeleteAction final : public Manager::BaseAction {
 
 class Manager::StorageKeysAction final : public Manager::BaseAction {
  public:
-  StorageKeysAction(Manager* aManager, ListenerId aListenerId,
+  StorageKeysAction(SafeRefPtr<Manager> aManager, ListenerId aListenerId,
                     Namespace aNamespace)
-      : BaseAction(aManager, aListenerId), mNamespace(aNamespace) {}
+      : BaseAction(std::move(aManager), aListenerId), mNamespace(aNamespace) {}
 
   virtual nsresult RunSyncWithDBOnTarget(
       const QuotaInfo& aQuotaInfo, nsIFile* aDBDir,
       mozIStorageConnection* aConn) override {
-    return db::StorageGetKeys(aConn, mNamespace, mKeys);
+    CACHE_TRY_UNWRAP(mKeys, db::StorageGetKeys(*aConn, mNamespace));
+
+    return NS_OK;
   }
 
   virtual void Complete(Listener* aListener, ErrorResult&& aRv) override {
@@ -1430,9 +1461,9 @@ class Manager::StorageKeysAction final : public Manager::BaseAction {
 
 class Manager::OpenStreamAction final : public Manager::BaseAction {
  public:
-  OpenStreamAction(Manager* aManager, ListenerId aListenerId,
+  OpenStreamAction(SafeRefPtr<Manager> aManager, ListenerId aListenerId,
                    InputStreamResolver&& aResolver, const nsID& aBodyId)
-      : BaseAction(aManager, aListenerId),
+      : BaseAction(std::move(aManager), aListenerId),
         mResolver(std::move(aResolver)),
         mBodyId(aBodyId) {}
 
@@ -1477,52 +1508,48 @@ Manager::ListenerId Manager::sNextListenerId = 0;
 
 void Manager::Listener::OnOpComplete(ErrorResult&& aRv,
                                      const CacheOpResult& aResult) {
-  OnOpComplete(std::move(aRv), aResult, INVALID_CACHE_ID,
-               nsTArray<SavedResponse>(), nsTArray<SavedRequest>(), nullptr);
+  OnOpComplete(std::move(aRv), aResult, INVALID_CACHE_ID, Nothing());
 }
 
 void Manager::Listener::OnOpComplete(ErrorResult&& aRv,
                                      const CacheOpResult& aResult,
                                      CacheId aOpenedCacheId) {
-  OnOpComplete(std::move(aRv), aResult, aOpenedCacheId,
-               nsTArray<SavedResponse>(), nsTArray<SavedRequest>(), nullptr);
+  OnOpComplete(std::move(aRv), aResult, aOpenedCacheId, Nothing());
 }
 
 void Manager::Listener::OnOpComplete(ErrorResult&& aRv,
                                      const CacheOpResult& aResult,
                                      const SavedResponse& aSavedResponse,
-                                     StreamList* aStreamList) {
+                                     StreamList& aStreamList) {
   AutoTArray<SavedResponse, 1> responseList;
   responseList.AppendElement(aSavedResponse);
-  OnOpComplete(std::move(aRv), aResult, INVALID_CACHE_ID, responseList,
-               nsTArray<SavedRequest>(), aStreamList);
+  OnOpComplete(
+      std::move(aRv), aResult, INVALID_CACHE_ID,
+      Some(StreamInfo{responseList, nsTArray<SavedRequest>(), aStreamList}));
 }
 
 void Manager::Listener::OnOpComplete(
     ErrorResult&& aRv, const CacheOpResult& aResult,
     const nsTArray<SavedResponse>& aSavedResponseList,
-    StreamList* aStreamList) {
-  OnOpComplete(std::move(aRv), aResult, INVALID_CACHE_ID, aSavedResponseList,
-               nsTArray<SavedRequest>(), aStreamList);
+    StreamList& aStreamList) {
+  OnOpComplete(std::move(aRv), aResult, INVALID_CACHE_ID,
+               Some(StreamInfo{aSavedResponseList, nsTArray<SavedRequest>(),
+                               aStreamList}));
 }
 
 void Manager::Listener::OnOpComplete(
     ErrorResult&& aRv, const CacheOpResult& aResult,
-    const nsTArray<SavedRequest>& aSavedRequestList, StreamList* aStreamList) {
+    const nsTArray<SavedRequest>& aSavedRequestList, StreamList& aStreamList) {
   OnOpComplete(std::move(aRv), aResult, INVALID_CACHE_ID,
-               nsTArray<SavedResponse>(), aSavedRequestList, aStreamList);
+               Some(StreamInfo{nsTArray<SavedResponse>(), aSavedRequestList,
+                               aStreamList}));
 }
 
 // static
-nsresult Manager::GetOrCreate(ManagerId* aManagerId, Manager** aManagerOut) {
+Result<SafeRefPtr<Manager>, nsresult> Manager::AcquireCreateIfNonExistent(
+    const SafeRefPtr<ManagerId>& aManagerId) {
   mozilla::ipc::AssertIsOnBackgroundThread();
-  return Factory::GetOrCreate(aManagerId, aManagerOut);
-}
-
-// static
-already_AddRefed<Manager> Manager::Get(ManagerId* aManagerId) {
-  mozilla::ipc::AssertIsOnBackgroundThread();
-  return Factory::Get(aManagerId);
+  return Factory::AcquireCreateIfNonExistent(aManagerId);
 }
 
 // static
@@ -1554,10 +1581,10 @@ void Manager::RemoveListener(Listener* aListener) {
   MaybeAllowContextToClose();
 }
 
-void Manager::RemoveContext(Context* aContext) {
+void Manager::RemoveContext(Context& aContext) {
   NS_ASSERT_OWNINGTHREAD(Manager);
   MOZ_DIAGNOSTIC_ASSERT(mContext);
-  MOZ_DIAGNOSTIC_ASSERT(mContext == aContext);
+  MOZ_DIAGNOSTIC_ASSERT(mContext == &aContext);
 
   // Whether the Context destruction was triggered from the Manager going
   // idle or the underlying storage being invalidated, we should know we
@@ -1569,14 +1596,14 @@ void Manager::RemoveContext(Context* aContext) {
   // orphaned data so it will be cleaned up on the next open.
   for (uint32_t i = 0; i < mCacheIdRefs.Length(); ++i) {
     if (mCacheIdRefs[i].mOrphaned) {
-      aContext->NoteOrphanedData();
+      aContext.NoteOrphanedData();
       break;
     }
   }
 
   for (uint32_t i = 0; i < mBodyIdRefs.Length(); ++i) {
     if (mBodyIdRefs[i].mOrphaned) {
-      aContext->NoteOrphanedData();
+      aContext.NoteOrphanedData();
       break;
     }
   }
@@ -1586,7 +1613,7 @@ void Manager::RemoveContext(Context* aContext) {
   // Once the context is gone, we can immediately remove ourself from the
   // Factory list.  We don't need to block shutdown by staying in the list
   // any more.
-  Factory::Remove(this);
+  Factory::Remove(*this);
 }
 
 void Manager::NoteClosing() {
@@ -1626,17 +1653,17 @@ void Manager::ReleaseCacheId(CacheId aCacheId) {
       if (mCacheIdRefs[i].mCount == 0) {
         bool orphaned = mCacheIdRefs[i].mOrphaned;
         mCacheIdRefs.RemoveElementAt(i);
-        RefPtr<Context> context = mContext;
+        const auto pinnedContext =
+            SafeRefPtr{mContext, AcquireStrongRefFromRawPtr{}};
         // If the context is already gone, then orphan flag should have been
         // set in RemoveContext().
-        if (orphaned && context) {
-          if (context->IsCanceled()) {
-            context->NoteOrphanedData();
+        if (orphaned && pinnedContext) {
+          if (pinnedContext->IsCanceled()) {
+            pinnedContext->NoteOrphanedData();
           } else {
-            context->CancelForCacheId(aCacheId);
-            RefPtr<Action> action =
-                new DeleteOrphanedCacheAction(this, aCacheId);
-            context->Dispatch(action);
+            pinnedContext->CancelForCacheId(aCacheId);
+            pinnedContext->Dispatch(MakeSafeRefPtr<DeleteOrphanedCacheAction>(
+                SafeRefPtrFromThis(), aCacheId));
           }
         }
       }
@@ -1673,15 +1700,16 @@ void Manager::ReleaseBodyId(const nsID& aBodyId) {
       if (mBodyIdRefs[i].mCount < 1) {
         bool orphaned = mBodyIdRefs[i].mOrphaned;
         mBodyIdRefs.RemoveElementAt(i);
-        RefPtr<Context> context = mContext;
+        const auto pinnedContext =
+            SafeRefPtr{mContext, AcquireStrongRefFromRawPtr{}};
         // If the context is already gone, then orphan flag should have been
         // set in RemoveContext().
-        if (orphaned && context) {
-          if (context->IsCanceled()) {
-            context->NoteOrphanedData();
+        if (orphaned && pinnedContext) {
+          if (pinnedContext->IsCanceled()) {
+            pinnedContext->NoteOrphanedData();
           } else {
-            RefPtr<Action> action = new DeleteOrphanedBodyAction(aBodyId);
-            context->Dispatch(action);
+            pinnedContext->Dispatch(
+                MakeSafeRefPtr<DeleteOrphanedBodyAction>(aBodyId));
           }
         }
       }
@@ -1692,10 +1720,7 @@ void Manager::ReleaseBodyId(const nsID& aBodyId) {
   MOZ_ASSERT_UNREACHABLE("Attempt to release BodyId that is not referenced!");
 }
 
-already_AddRefed<ManagerId> Manager::GetManagerId() const {
-  RefPtr<ManagerId> ref = mManagerId;
-  return ref.forget();
-}
+const ManagerId& Manager::GetManagerId() const { return *mManagerId; }
 
 void Manager::AddStreamList(StreamList* aStreamList) {
   NS_ASSERT_OWNINGTHREAD(Manager);
@@ -1720,36 +1745,41 @@ void Manager::ExecuteCacheOp(Listener* aListener, CacheId aCacheId,
     return;
   }
 
-  RefPtr<Context> context = mContext;
-  MOZ_DIAGNOSTIC_ASSERT(!context->IsCanceled());
+  const auto pinnedContext = SafeRefPtr{mContext, AcquireStrongRefFromRawPtr{}};
+  MOZ_DIAGNOSTIC_ASSERT(!pinnedContext->IsCanceled());
 
-  RefPtr<StreamList> streamList = new StreamList(this, context);
-  ListenerId listenerId = SaveListener(aListener);
+  auto action = [this, aListener, aCacheId, &aOpArgs,
+                 &pinnedContext]() -> SafeRefPtr<Action> {
+    const ListenerId listenerId = SaveListener(aListener);
 
-  RefPtr<Action> action;
-  switch (aOpArgs.type()) {
-    case CacheOpArgs::TCacheMatchArgs:
-      action = new CacheMatchAction(this, listenerId, aCacheId,
-                                    aOpArgs.get_CacheMatchArgs(), streamList);
-      break;
-    case CacheOpArgs::TCacheMatchAllArgs:
-      action =
-          new CacheMatchAllAction(this, listenerId, aCacheId,
-                                  aOpArgs.get_CacheMatchAllArgs(), streamList);
-      break;
-    case CacheOpArgs::TCacheDeleteArgs:
-      action = new CacheDeleteAction(this, listenerId, aCacheId,
-                                     aOpArgs.get_CacheDeleteArgs());
-      break;
-    case CacheOpArgs::TCacheKeysArgs:
-      action = new CacheKeysAction(this, listenerId, aCacheId,
-                                   aOpArgs.get_CacheKeysArgs(), streamList);
-      break;
-    default:
-      MOZ_CRASH("Unknown Cache operation!");
-  }
+    if (CacheOpArgs::TCacheDeleteArgs == aOpArgs.type()) {
+      return MakeSafeRefPtr<CacheDeleteAction>(SafeRefPtrFromThis(), listenerId,
+                                               aCacheId,
+                                               aOpArgs.get_CacheDeleteArgs());
+    }
 
-  context->Dispatch(action);
+    auto streamList = MakeSafeRefPtr<StreamList>(SafeRefPtrFromThis(),
+                                                 pinnedContext.clonePtr());
+
+    switch (aOpArgs.type()) {
+      case CacheOpArgs::TCacheMatchArgs:
+        return MakeSafeRefPtr<CacheMatchAction>(
+            SafeRefPtrFromThis(), listenerId, aCacheId,
+            aOpArgs.get_CacheMatchArgs(), std::move(streamList));
+      case CacheOpArgs::TCacheMatchAllArgs:
+        return MakeSafeRefPtr<CacheMatchAllAction>(
+            SafeRefPtrFromThis(), listenerId, aCacheId,
+            aOpArgs.get_CacheMatchAllArgs(), std::move(streamList));
+      case CacheOpArgs::TCacheKeysArgs:
+        return MakeSafeRefPtr<CacheKeysAction>(
+            SafeRefPtrFromThis(), listenerId, aCacheId,
+            aOpArgs.get_CacheKeysArgs(), std::move(streamList));
+      default:
+        MOZ_CRASH("Unknown Cache operation!");
+    }
+  }();
+
+  pinnedContext->Dispatch(std::move(action));
 }
 
 void Manager::ExecuteStorageOp(Listener* aListener, Namespace aNamespace,
@@ -1762,39 +1792,41 @@ void Manager::ExecuteStorageOp(Listener* aListener, Namespace aNamespace,
     return;
   }
 
-  RefPtr<Context> context = mContext;
-  MOZ_DIAGNOSTIC_ASSERT(!context->IsCanceled());
+  const auto pinnedContext = SafeRefPtr{mContext, AcquireStrongRefFromRawPtr{}};
+  MOZ_DIAGNOSTIC_ASSERT(!pinnedContext->IsCanceled());
 
-  RefPtr<StreamList> streamList = new StreamList(this, context);
-  ListenerId listenerId = SaveListener(aListener);
+  auto action = [this, aListener, aNamespace, &aOpArgs,
+                 &pinnedContext]() -> SafeRefPtr<Action> {
+    const ListenerId listenerId = SaveListener(aListener);
 
-  RefPtr<Action> action;
-  switch (aOpArgs.type()) {
-    case CacheOpArgs::TStorageMatchArgs:
-      action =
-          new StorageMatchAction(this, listenerId, aNamespace,
-                                 aOpArgs.get_StorageMatchArgs(), streamList);
-      break;
-    case CacheOpArgs::TStorageHasArgs:
-      action = new StorageHasAction(this, listenerId, aNamespace,
-                                    aOpArgs.get_StorageHasArgs());
-      break;
-    case CacheOpArgs::TStorageOpenArgs:
-      action = new StorageOpenAction(this, listenerId, aNamespace,
-                                     aOpArgs.get_StorageOpenArgs());
-      break;
-    case CacheOpArgs::TStorageDeleteArgs:
-      action = new StorageDeleteAction(this, listenerId, aNamespace,
-                                       aOpArgs.get_StorageDeleteArgs());
-      break;
-    case CacheOpArgs::TStorageKeysArgs:
-      action = new StorageKeysAction(this, listenerId, aNamespace);
-      break;
-    default:
-      MOZ_CRASH("Unknown CacheStorage operation!");
-  }
+    switch (aOpArgs.type()) {
+      case CacheOpArgs::TStorageMatchArgs:
+        return MakeSafeRefPtr<StorageMatchAction>(
+            SafeRefPtrFromThis(), listenerId, aNamespace,
+            aOpArgs.get_StorageMatchArgs(),
+            MakeSafeRefPtr<StreamList>(SafeRefPtrFromThis(),
+                                       pinnedContext.clonePtr()));
+      case CacheOpArgs::TStorageHasArgs:
+        return MakeSafeRefPtr<StorageHasAction>(SafeRefPtrFromThis(),
+                                                listenerId, aNamespace,
+                                                aOpArgs.get_StorageHasArgs());
+      case CacheOpArgs::TStorageOpenArgs:
+        return MakeSafeRefPtr<StorageOpenAction>(SafeRefPtrFromThis(),
+                                                 listenerId, aNamespace,
+                                                 aOpArgs.get_StorageOpenArgs());
+      case CacheOpArgs::TStorageDeleteArgs:
+        return MakeSafeRefPtr<StorageDeleteAction>(
+            SafeRefPtrFromThis(), listenerId, aNamespace,
+            aOpArgs.get_StorageDeleteArgs());
+      case CacheOpArgs::TStorageKeysArgs:
+        return MakeSafeRefPtr<StorageKeysAction>(SafeRefPtrFromThis(),
+                                                 listenerId, aNamespace);
+      default:
+        MOZ_CRASH("Unknown CacheStorage operation!");
+    }
+  }();
 
-  context->Dispatch(action);
+  pinnedContext->Dispatch(std::move(action));
 }
 
 void Manager::ExecuteOpenStream(Listener* aListener,
@@ -1809,8 +1841,8 @@ void Manager::ExecuteOpenStream(Listener* aListener,
     return;
   }
 
-  RefPtr<Context> context = mContext;
-  MOZ_DIAGNOSTIC_ASSERT(!context->IsCanceled());
+  const auto pinnedContext = SafeRefPtr{mContext, AcquireStrongRefFromRawPtr{}};
+  MOZ_DIAGNOSTIC_ASSERT(!pinnedContext->IsCanceled());
 
   // We save the listener simply to track the existence of the caller here.
   // Our returned value will really be passed to the resolver when the
@@ -1818,10 +1850,8 @@ void Manager::ExecuteOpenStream(Listener* aListener,
   // mechanism in favor of std::function or MozPromise.
   ListenerId listenerId = SaveListener(aListener);
 
-  RefPtr<Action> action =
-      new OpenStreamAction(this, listenerId, std::move(aResolver), aBodyId);
-
-  context->Dispatch(action);
+  pinnedContext->Dispatch(MakeSafeRefPtr<OpenStreamAction>(
+      SafeRefPtrFromThis(), listenerId, std::move(aResolver), aBodyId));
 }
 
 void Manager::ExecutePutAll(
@@ -1837,20 +1867,18 @@ void Manager::ExecutePutAll(
     return;
   }
 
-  RefPtr<Context> context = mContext;
-  MOZ_DIAGNOSTIC_ASSERT(!context->IsCanceled());
+  const auto pinnedContext = SafeRefPtr{mContext, AcquireStrongRefFromRawPtr{}};
+  MOZ_DIAGNOSTIC_ASSERT(!pinnedContext->IsCanceled());
 
   ListenerId listenerId = SaveListener(aListener);
-
-  RefPtr<Action> action =
-      new CachePutAllAction(this, listenerId, aCacheId, aPutList,
-                            aRequestStreamList, aResponseStreamList);
-
-  context->Dispatch(action);
+  pinnedContext->Dispatch(MakeSafeRefPtr<CachePutAllAction>(
+      SafeRefPtrFromThis(), listenerId, aCacheId, aPutList, aRequestStreamList,
+      aResponseStreamList));
 }
 
-Manager::Manager(ManagerId* aManagerId, nsIThread* aIOThread)
-    : mManagerId(aManagerId),
+Manager::Manager(SafeRefPtr<ManagerId> aManagerId, nsIThread* aIOThread,
+                 const ConstructorGuard&)
+    : mManagerId(std::move(aManagerId)),
       mIOThread(aIOThread),
       mContext(nullptr),
       mShuttingDown(false),
@@ -1873,21 +1901,17 @@ Manager::~Manager() {
       "nsIThread::AsyncShutdown", ioThread, &nsIThread::AsyncShutdown)));
 }
 
-void Manager::Init(Manager* aOldManager) {
+void Manager::Init(Maybe<Manager&> aOldManager) {
   NS_ASSERT_OWNINGTHREAD(Manager);
-
-  RefPtr<Context> oldContext;
-  if (aOldManager) {
-    oldContext = aOldManager->mContext;
-  }
 
   // Create the context immediately.  Since there can at most be one Context
   // per Manager now, this lets us cleanly call Factory::Remove() once the
   // Context goes away.
-  RefPtr<Action> setupAction = new SetupAction();
-  RefPtr<Context> ref = Context::Create(this, mIOThread->SerialEventTarget(),
-                                        setupAction, oldContext);
-  mContext = ref;
+  SafeRefPtr<Context> ref = Context::Create(
+      SafeRefPtrFromThis(), mIOThread->SerialEventTarget(),
+      MakeSafeRefPtr<SetupAction>(),
+      aOldManager ? SomeRef(*aOldManager->mContext) : Nothing());
+  mContext = ref.unsafeGetRawPtr();
 }
 
 void Manager::Shutdown() {
@@ -1910,8 +1934,9 @@ void Manager::Shutdown() {
   // If there is a context, then cancel and only note that we are done after
   // its cleaned up.
   if (mContext) {
-    RefPtr<Context> context = mContext;
-    context->CancelAll();
+    const auto pinnedContext =
+        SafeRefPtr{mContext, AcquireStrongRefFromRawPtr{}};
+    pinnedContext->CancelAll();
     return;
   }
 }
@@ -1926,8 +1951,8 @@ void Manager::Abort() {
   NoteClosing();
 
   // Cancel and only note that we are done after the context is cleaned up.
-  RefPtr<Context> context = mContext;
-  context->CancelAll();
+  const auto pinnedContext = SafeRefPtr{mContext, AcquireStrongRefFromRawPtr{}};
+  pinnedContext->CancelAll();
 }
 
 Manager::ListenerId Manager::SaveListener(Listener* aListener) {
@@ -1994,7 +2019,10 @@ bool Manager::SetBodyIdOrphanedIfRefed(const nsID& aBodyId) {
 void Manager::NoteOrphanedBodyIdList(const nsTArray<nsID>& aDeletedBodyIdList) {
   NS_ASSERT_OWNINGTHREAD(Manager);
 
-  AutoTArray<nsID, 64> deleteNowList;
+  // XXX TransformIfIntoNewArray might be generalized to allow specifying the
+  // type of nsTArray to create, so that it can create an AutoTArray as well; an
+  // TransformIf (without AbortOnErr) might be added, which could be used here.
+  DeleteOrphanedBodyAction::DeletedBodyIdList deleteNowList;
   deleteNowList.SetCapacity(aDeletedBodyIdList.Length());
 
   for (uint32_t i = 0; i < aDeletedBodyIdList.Length(); ++i) {
@@ -2005,10 +2033,11 @@ void Manager::NoteOrphanedBodyIdList(const nsTArray<nsID>& aDeletedBodyIdList) {
 
   // TODO: note that we need to check these bodies for staleness on startup (bug
   // 1110446)
-  RefPtr<Context> context = mContext;
-  if (!deleteNowList.IsEmpty() && context && !context->IsCanceled()) {
-    RefPtr<Action> action = new DeleteOrphanedBodyAction(deleteNowList);
-    context->Dispatch(action);
+  const auto pinnedContext = SafeRefPtr{mContext, AcquireStrongRefFromRawPtr{}};
+  if (!deleteNowList.IsEmpty() && pinnedContext &&
+      !pinnedContext->IsCanceled()) {
+    pinnedContext->Dispatch(
+        MakeSafeRefPtr<DeleteOrphanedBodyAction>(std::move(deleteNowList)));
   }
 }
 
@@ -2020,15 +2049,15 @@ void Manager::MaybeAllowContextToClose() {
   // Cache state information to complete before doing this.  Once we allow
   // the Context to close we may not reliably get notified of storage
   // invalidation.
-  RefPtr<Context> context = mContext;
-  if (context && mListeners.IsEmpty() && mCacheIdRefs.IsEmpty() &&
+  const auto pinnedContext = SafeRefPtr{mContext, AcquireStrongRefFromRawPtr{}};
+  if (pinnedContext && mListeners.IsEmpty() && mCacheIdRefs.IsEmpty() &&
       mBodyIdRefs.IsEmpty()) {
     // Mark this Manager as invalid so that it won't get used again.  We don't
     // want to start any new operations once we allow the Context to close since
     // it may race with the underlying storage getting invalidated.
     NoteClosing();
 
-    context->AllowToClose();
+    pinnedContext->AllowToClose();
   }
 }
 

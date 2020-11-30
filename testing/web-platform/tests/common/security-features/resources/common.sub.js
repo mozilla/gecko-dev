@@ -486,6 +486,11 @@ function dedicatedWorkerUrlThatFetches(url) {
 }
 
 function workerUrlThatImports(url) {
+  return `/common/security-features/subresource/static-import.py` +
+      `?import_url=${encodeURIComponent(url)}`;
+}
+
+function workerDataUrlThatImports(url) {
   return `data:text/javascript,import '${url}';`;
 }
 
@@ -878,10 +883,15 @@ const subresourceMap = {
     path: "/common/security-features/subresource/worker.py",
     invoker: url => requestViaDedicatedWorker(url, {type: "module"}),
   },
-  "worker-import-data": {
+  "worker-import": {
     path: "/common/security-features/subresource/worker.py",
     invoker: url =>
         requestViaDedicatedWorker(workerUrlThatImports(url), {type: "module"}),
+  },
+  "worker-import-data": {
+    path: "/common/security-features/subresource/worker.py",
+    invoker: url =>
+        requestViaDedicatedWorker(workerDataUrlThatImports(url), {type: "module"}),
   },
   "sharedworker-classic": {
     path: "/common/security-features/subresource/shared-worker.py",
@@ -891,10 +901,15 @@ const subresourceMap = {
     path: "/common/security-features/subresource/shared-worker.py",
     invoker: url => requestViaSharedWorker(url, {type: "module"}),
   },
-  "sharedworker-import-data": {
+  "sharedworker-import": {
     path: "/common/security-features/subresource/shared-worker.py",
     invoker: url =>
         requestViaSharedWorker(workerUrlThatImports(url), {type: "module"}),
+  },
+  "sharedworker-import-data": {
+    path: "/common/security-features/subresource/shared-worker.py",
+    invoker: url =>
+        requestViaSharedWorker(workerDataUrlThatImports(url), {type: "module"}),
   },
 
   "websocket": {
@@ -910,7 +925,7 @@ for (const workletType of ['animation', 'audio', 'layout', 'paint']) {
   subresourceMap[`worklet-${workletType}-import-data`] = {
       path: "/common/security-features/subresource/worker.py",
       invoker: url =>
-          requestViaWorklet(workletType, workerUrlThatImports(url))
+          requestViaWorklet(workletType, workerDataUrlThatImports(url))
     };
 }
 
@@ -1111,19 +1126,19 @@ function invokeRequest(subresource, sourceContextList) {
       invoker: invokeFromWorker.bind(undefined, "worker", true, {type: 'module'}),
     },
     "sharedworker-classic": {
-      // Classic dedicated worker loaded from same-origin.
+      // Classic shared worker loaded from same-origin.
       invoker: invokeFromWorker.bind(undefined, "sharedworker", false, {}),
     },
     "sharedworker-classic-data": {
-      // Classic dedicated worker loaded from data: URL.
+      // Classic shared worker loaded from data: URL.
       invoker: invokeFromWorker.bind(undefined, "sharedworker", true, {}),
     },
     "sharedworker-module": {
-      // Module dedicated worker loaded from same-origin.
+      // Module shared worker loaded from same-origin.
       invoker: invokeFromWorker.bind(undefined, "sharedworker", false, {type: 'module'}),
     },
     "sharedworker-module-data": {
-      // Module dedicated worker loaded from data: URL.
+      // Module shared worker loaded from data: URL.
       invoker: invokeFromWorker.bind(undefined, "sharedworker", true, {type: 'module'}),
     },
   };
@@ -1182,7 +1197,7 @@ function invokeFromWorker(workerType, isDataUrl, workerOptions,
       if (workerType === "worker") {
         const worker = new Worker(url, workerOptions);
         worker.postMessage({subresource: subresource,
-                           sourceContextList: sourceContextList.slice(1)});
+                            sourceContextList: sourceContextList.slice(1)});
         return bindEvents2(worker, "message", worker, "error", window, "error");
       } else if (workerType === "sharedworker") {
         const worker = new SharedWorker(url, workerOptions);

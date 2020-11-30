@@ -8,11 +8,15 @@
 
 #include "gfxAndroidPlatform.h"
 #include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/gfxVars.h"
 #include "mozilla/CountingAllocatorBase.h"
 #include "mozilla/intl/LocaleService.h"
 #include "mozilla/intl/OSPreferences.h"
+#include "mozilla/jni/Utils.h"
+#include "mozilla/layers/AndroidHardwareBuffer.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_gfx.h"
+#include "mozilla/StaticPrefs_webgl.h"
 
 #include "gfx2DGlue.h"
 #include "gfxFT2FontList.h"
@@ -29,7 +33,7 @@
 #include FT_FREETYPE_H
 #include FT_MODULE_H
 
-#include "GeneratedJNINatives.h"
+#include "mozilla/java/VsyncSourceNatives.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -100,6 +104,25 @@ gfxAndroidPlatform::gfxAndroidPlatform() {
 gfxAndroidPlatform::~gfxAndroidPlatform() {
   FT_Done_Library(gPlatformFTLibrary);
   gPlatformFTLibrary = nullptr;
+  layers::AndroidHardwareBufferManager::Shutdown();
+  layers::AndroidHardwareBufferApi::Shutdown();
+}
+
+void gfxAndroidPlatform::InitAcceleration() {
+  gfxPlatform::InitAcceleration();
+  if (XRE_IsParentProcess() && jni::GetAPIVersion() >= 26) {
+    if (StaticPrefs::gfx_use_ahardwarebuffer_content_AtStartup()) {
+      gfxVars::SetUseAHardwareBufferContent(true);
+    }
+    if (StaticPrefs::webgl_enable_ahardwarebuffer()) {
+      gfxVars::SetUseAHardwareBufferSharedSurface(true);
+    }
+  }
+  if (gfx::gfxVars::UseAHardwareBufferContent() ||
+      gfxVars::UseAHardwareBufferSharedSurface()) {
+    layers::AndroidHardwareBufferApi::Init();
+    layers::AndroidHardwareBufferManager::Init();
+  }
 }
 
 already_AddRefed<gfxASurface> gfxAndroidPlatform::CreateOffscreenSurface(
@@ -141,21 +164,15 @@ static bool IsJapaneseLocale() {
 }
 
 void gfxAndroidPlatform::GetCommonFallbackFonts(
-    uint32_t aCh, uint32_t aNextCh, Script aRunScript,
+    uint32_t aCh, Script aRunScript, eFontPresentation aPresentation,
     nsTArray<const char*>& aFontList) {
   static const char kDroidSansJapanese[] = "Droid Sans Japanese";
   static const char kMotoyaLMaru[] = "MotoyaLMaru";
   static const char kNotoSansCJKJP[] = "Noto Sans CJK JP";
   static const char kNotoColorEmoji[] = "Noto Color Emoji";
 
-  EmojiPresentation emoji = GetEmojiPresentation(aCh);
-  if (emoji != EmojiPresentation::TextOnly) {
-    if (aNextCh == kVariationSelector16 ||
-        (aNextCh != kVariationSelector15 &&
-         emoji == EmojiPresentation::EmojiDefault)) {
-      // if char is followed by VS16, try for a color emoji glyph
-      aFontList.AppendElement(kNotoColorEmoji);
-    }
+  if (PrefersColor(aPresentation)) {
+    aFontList.AppendElement(kNotoColorEmoji);
   }
 
   if (IS_IN_BMP(aCh)) {
@@ -224,10 +241,6 @@ void gfxAndroidPlatform::GetCommonFallbackFonts(
   aFontList.AppendElement("Droid Sans Fallback");
 }
 
-void gfxAndroidPlatform::GetSystemFontList(nsTArray<FontListEntry>* retValue) {
-  gfxFT2FontList::PlatformFontList()->GetSystemFontList(retValue);
-}
-
 gfxPlatformFontList* gfxAndroidPlatform::CreatePlatformFontList() {
   gfxPlatformFontList* list = new gfxFT2FontList();
   if (NS_SUCCEEDED(list->InitFontList())) {
@@ -237,12 +250,9 @@ gfxPlatformFontList* gfxAndroidPlatform::CreatePlatformFontList() {
   return nullptr;
 }
 
-gfxFontGroup* gfxAndroidPlatform::CreateFontGroup(
-    const FontFamilyList& aFontFamilyList, const gfxFontStyle* aStyle,
-    gfxTextPerfMetrics* aTextPerf, gfxUserFontSet* aUserFontSet,
-    gfxFloat aDevToCssSize) {
-  return new gfxFontGroup(aFontFamilyList, aStyle, aTextPerf, aUserFontSet,
-                          aDevToCssSize);
+void gfxAndroidPlatform::ReadSystemFontList(
+    nsTArray<SystemFontListEntry>* aFontList) {
+  gfxFT2FontList::PlatformFontList()->ReadSystemFontList(aFontList);
 }
 
 bool gfxAndroidPlatform::FontHintingEnabled() {
@@ -289,7 +299,10 @@ class AndroidVsyncSource final : public VsyncSource {
     using Base::DisposeNative;
 
     static void NotifyVsync() {
-      GetDisplayInstance().NotifyVsync(TimeStamp::Now());
+      Display& display = GetDisplayInstance();
+      TimeStamp vsyncTime = TimeStamp::Now();
+      TimeStamp outputTime = vsyncTime + display.GetVsyncRate();
+      display.NotifyVsync(vsyncTime, outputTime);
     }
   };
 
@@ -298,6 +311,9 @@ class AndroidVsyncSource final : public VsyncSource {
     Display()
         : mJavaVsync(java::VsyncSource::INSTANCE()), mObservingVsync(false) {
       JavaVsyncSupport::Init();  // To register native methods.
+
+      float fps = mJavaVsync->GetRefreshRate();
+      mVsyncDuration = TimeDuration::FromMilliseconds(1000.0 / fps);
     }
 
     ~Display() { DisableVsync(); }
@@ -316,12 +332,7 @@ class AndroidVsyncSource final : public VsyncSource {
       if (mObservingVsync) {
         return;
       }
-      bool ok = mJavaVsync->ObserveVsync(true);
-      if (ok && !mVsyncDuration) {
-        float fps = mJavaVsync->GetRefreshRate();
-        mVsyncDuration = TimeDuration::FromMilliseconds(1000.0 / fps);
-      }
-      mObservingVsync = ok;
+      mObservingVsync = mJavaVsync->ObserveVsync(true);
       MOZ_ASSERT(mObservingVsync);
     }
 
@@ -355,8 +366,8 @@ class AndroidVsyncSource final : public VsyncSource {
   virtual ~AndroidVsyncSource() = default;
 
   static Display& GetDisplayInstance() {
-    static Display globalDisplay;
-    return globalDisplay;
+    static RefPtr<Display> globalDisplay = new Display();
+    return *globalDisplay;
   }
 };
 

@@ -165,7 +165,7 @@ interface nsIDocShell : nsIDocShellTreeItem
    * Content Viewer that is currently loaded for this DocShell.  This may
    * change as the underlying content changes.
    */
-  readonly attribute nsIContentViewer contentViewer;
+  [infallible] readonly attribute nsIContentViewer contentViewer;
 
   /**
    * Get the id of the outer window that is or will be in this docshell.
@@ -177,6 +177,11 @@ interface nsIDocShell : nsIDocShellTreeItem
    * be of interest to chrome.
    */
   attribute EventTarget chromeEventHandler;
+
+  /**
+   * This allows chrome to set a custom User agent on a specific docshell
+   */
+  attribute AString customUserAgent;
 
   /**
    * Whether CSS error reporting is enabled.
@@ -237,15 +242,6 @@ interface nsIDocShell : nsIDocShellTreeItem
    * Setting allowContentRetargeting also overwrites this value.
    */
   [infallible] attribute boolean allowContentRetargetingOnChildren;
-
-  /**
-   * True if this docShell should inherit the private browsing ID from
-   * its parent when reparented.
-   *
-   * NOTE: This should *not* be set false in new code, or for docShells
-   * inserted anywhere other than as children of panels.
-   */
-  [infallible] attribute boolean inheritPrivateBrowsingId;
 
   /**
    * Get an array of this docShell and its children.
@@ -358,12 +354,6 @@ interface nsIDocShell : nsIDocShellTreeItem
   attribute nsILayoutHistoryState layoutHistoryState;
 
   /**
-   * The SecureBrowserUI object for this docshell.  This is set by XUL
-   * <browser> or nsWebBrowser for their root docshell.
-   */
-  attribute nsISecureBrowserUI securityUI;
-
-  /**
    * Object used to delegate URI loading to an upper context.
    * Currently only set for GeckoView to allow handling of load requests
    * at the application level.
@@ -404,6 +394,8 @@ interface nsIDocShell : nsIDocShellTreeItem
   void finishRestore();
 
   void clearCachedUserAgent();
+
+  void clearCachedPlatform();
 
   /* Track whether we're currently restoring a document presentation. */
   readonly attribute boolean restoringDocument;
@@ -468,46 +460,7 @@ interface nsIDocShell : nsIDocShellTreeItem
    * Find out whether the docshell is currently in the middle of a page
    * transition. This is set just before the pagehide/unload events fire.
    */
-  readonly attribute boolean isInUnload;
-
-  /**
-   * This attribute determines whether Mixed Active Content is loaded on the
-   * document. When it is true, mixed active content was not blocked and has
-   * loaded (or is about to load) on the page. When it is false, mixed active content
-   * has not loaded on the page, either because there was no mixed active content
-   * requests on the page or such requests were blocked by nsMixedContentBlocker.
-   * This boolean is set to true in nsMixedContentBlocker if Mixed Active Content
-   * is allowed (either explicitly on the page by the user or when the about:config
-   * setting security.mixed_content.block_active_content is set to false).
-   */
-  [infallible] readonly attribute boolean hasMixedActiveContentLoaded;
-
-   /**
-   * This attribute determines whether a document has Mixed Active Content
-   * that has been blocked from loading. When it is true, there is definitely
-   * mixed active content on a page that has been blocked by
-   * nsMixedContentBlocker.  When it is false, there may or may not be mixed
-   * active content on a page, but if there is, it will load. Note that if the
-   * about:config setting security.mixed_content.block_active_content is set
-   * false, this boolean will be false, since blocking active content has been
-   * disabled.
-   */
-  [infallible] readonly attribute boolean hasMixedActiveContentBlocked;
-
-  /**
-   * This attribute determines whether Mixed Display Content is loaded on the
-   * document. When it is true, mixed display content was not blocked and has
-   * loaded (or is about to load) on the page. Similar behavior to
-   * hasMixedActiveContentLoaded.
-   */
-  [infallible] readonly attribute boolean hasMixedDisplayContentLoaded;
-
-   /**
-   * This attribute determines whether a document has Mixed Display Content
-   * that has been blocked from loading. Similar behavior to
-   * hasMixedActiveContentBlocked.
-   */
-  [infallible] readonly attribute boolean hasMixedDisplayContentBlocked;
+  [infallible] readonly attribute boolean isInUnload;
 
   /**
    * Disconnects this docshell's editor from its window, and stores the
@@ -522,30 +475,6 @@ interface nsIDocShell : nsIDocShellTreeItem
    * and should be treated accordingly.
    **/
   attribute boolean isOffScreenBrowser;
-
-  /**
-   * Allows nsDocumentViewer to tell the top-level same-type docshell that
-   * one of the documents under it is printing.
-   */
-  [noscript, notxpcom] void setIsPrinting(in boolean aIsPrinting);
-
-  /**
-   * This method should only be called on a docShell that has been specifically
-   * created to display a print preview document.  If the current document
-   * viewer isn't initialized for print preview when this method is called, it
-   * is replaced with a new viewer with an about:blank document (with the URL
-   * about:printpreview).  The viewer is then returned, ready for the print
-   * preview document to be constructed when viewer.printPreview() is called.
-   *
-   * The same viewer will be returned on subsequent calls since various bits of
-   * code assume that, once created, the viewer is never replaced.  Note,
-   * however, that the viewer's document will be replaced with a new document
-   * each time printPreview() is called on it (which is what we do to take
-   * account of print preview settings changes).  Replacing the document
-   * viewer's document breaks the normally unchanging 1:1 relationship between
-   * a document and its viewer, but that seems to be okay.
-   */
-  nsIWebBrowserPrint initOrReusePrintPreviewViewer();
 
   /**
    * Propagated to the print preview document viewer.  Must only be called on
@@ -568,14 +497,21 @@ interface nsIDocShell : nsIDocShellTreeItem
   [infallible] attribute boolean isActive;
 
   /**
+   * Set if the media element in this docShell should be suspended when the
+   * docShell is inactive.
+   */
+  [infallible] attribute boolean suspendMediaWhenInactive;
+
+
+  /**
    * The ID of the docshell in the session history.
    */
-  readonly attribute nsIDPtr historyID;
+  readonly attribute nsIDRef historyID;
 
   /**
    * Helper method for accessing this value from C++
    */
-  [noscript, notxpcom] nsID HistoryID();
+  [noscript, notxpcom] nsIDRef HistoryID();
 
   /**
    * Sets whether a docshell is an app tab. An app tab docshell may behave
@@ -587,18 +523,19 @@ interface nsIDocShell : nsIDocShellTreeItem
   /**
    * Create a new about:blank document and content viewer.
    * @param aPrincipal the principal to use for the new document.
-   * @param aStoragePrincipal the storage principal to use for the new document.
+   * @param aPartitionedPrincipal the partitioned principal to use for the new
+   *        document.
    * @param aCsp the CSP to use for the new document.
    */
   void createAboutBlankContentViewer(in nsIPrincipal aPrincipal,
-                                     in nsIPrincipal aStoragePrincipal,
+                                     in nsIPrincipal aPartitionedPrincipal,
                                      [optional] in nsIContentSecurityPolicy aCSP);
 
   /**
    * Upon getting, returns the canonical encoding label of the document
    * currently loaded into this docshell.
    *
-   * Upon setting, sets forcedCharset for compatibility with legacy callers.
+   * Upon setting, sets the forced encoding for compatibility with legacy callers.
    */
   attribute ACString charset;
 
@@ -608,11 +545,6 @@ interface nsIDocShell : nsIDocShellTreeItem
    * extensions adding noise to the data.
    */
   void gatherCharsetMenuTelemetry();
-
-  /**
-   * The charset forced by the user.
-   */
-  attribute ACString forcedCharset;
 
   /**
    * In a child docshell, this is the charset of the parent docshell
@@ -694,63 +626,23 @@ interface nsIDocShell : nsIDocShellTreeItem
   [noscript] void notifyScrollObservers();
 
   /**
-   * The type of iframe that this docshell lives.
-   */
-  cenum FrameType : 8 {
-    FRAME_TYPE_REGULAR = 0,
-    FRAME_TYPE_BROWSER = 1,
-  };
-  [infallible] attribute nsIDocShell_FrameType frameType;
-
-  /**
-   * Returns true if this docshell corresponds to an <iframe mozbrowser>.
-   * <xul:browser> returns false here.
-   */
-  [infallible] readonly attribute boolean isMozBrowser;
-
-  /**
-   * Returns true if this docshell corresponds to an <iframe mozbrowser>, or
-   * if this docshell is contained in an <iframe mozbrowser>. <xul:browser>
-   * returns false here.
-   *
-   * To compute this value, we walk up the docshell hierarchy.  If we encounter
-   * a docshell with isMozBrowser before we hit the end of the hierarchy,
-   * we return true.  Otherwise, we return false.
-   */
-  [infallible] readonly attribute boolean isInMozBrowser;
-
-  /**
    * Returns true if this docshell is the top level content docshell.
    */
   [infallible] readonly attribute boolean isTopLevelContentDocShell;
 
   /**
    * Like nsIDocShellTreeItem::GetSameTypeParent, except this ignores <iframe
-   * mozbrowser> boundaries.
+   * mozbrowser> boundaries. Which no longer exist.
    *
    * @deprecated: Use `BrowsingContext::GetParent()` in the future.
    */
-  nsIDocShell getSameTypeParentIgnoreBrowserBoundaries();
-
-  /**
-   * Like nsIDocShellTreeItem::GetSameTypeRootTreeItem, except this ignores
-   * <iframe mozbrowser> boundaries.
-   *
-   * @deprecated: Use `BrowsingContext::Top()` in the future.
-   */
-  nsIDocShell getSameTypeRootTreeItemIgnoreBrowserBoundaries();
+  nsIDocShell getSameTypeInProcessParentIgnoreBrowserBoundaries();
 
   /**
    * True iff asynchronous panning and zooming is enabled for this
    * docshell.
    */
   readonly attribute bool asyncPanZoomEnabled;
-
-  /**
-   * Returns true if we are sandboxed from aTargetDocShell.
-   * aTargetDocShell - the browsing context we are attempting to navigate.
-   */
-  [noscript,notxpcom,nostdcall] bool isSandboxedFrom(in BrowsingContext aTargetBC);
 
   /**
    * This member variable determines whether a document has Mixed Active Content that
@@ -772,40 +664,12 @@ interface nsIDocShell : nsIDocShellTreeItem
   attribute nsIChannel mixedContentChannel;
 
   /**
-   * Checks whether the channel associated with the root docShell is equal to
-   * mMixedContentChannel. If they are the same, allowMixedContent is set to true.
-   * Checks if the root document has a secure connection. If it is, sets
-   * rootHasSecureConnection to true. If the docShell is the root doc shell,
-   * isRootDocShell is set to true.
-   */
-  void GetAllowMixedContentAndConnectionData(out boolean rootHasSecureConnection, out boolean allowMixedContent, out boolean isRootDocShell);
-
-
-  /**
    * Are plugins allowed in the current document loaded in this docshell ?
    * (if there is one). This depends on whether plugins are allowed by this
    * docshell itself or if the document is sandboxed and hence plugins should
    * not be allowed.
    */
   [noscript, notxpcom] bool pluginsAllowedInCurrentDoc();
-
-
-  /**
-   * Attribute that determines whether fullscreen is allowed to be entered for
-   * this subtree of the docshell tree. This is true when all iframes containing
-   * this docshell have their "allowfullscreen" attribute set to "true".
-   * fullscreenAllowed is only writable at content boundaries, where it is used
-   * to propagate the value of the cross process parent's iframe's
-   * "allowfullscreen" attribute to the child process. Setting
-   * fullscreenAllowed on docshells which aren't content boundaries throws an
-   * exception.
-   */
-  [infallible] readonly attribute boolean fullscreenAllowed;
-
-  void setFullscreenAllowed(in boolean allowed);
-
-  [notxpcom] uint32_t orientationLock();
-  [notxpcom] void setOrientationLock(in uint32_t orientationLock);
 
   [noscript, infallible] attribute boolean affectPrivateSessionLifetime;
 
@@ -832,34 +696,6 @@ interface nsIDocShell : nsIDocShellTreeItem
    *                                  creating the editor.
    */
   void makeEditable(in boolean inWaitForUriLoad);
-
-
-  /**
-   * Add a Child SHEntry for a frameset page, given the child's loadtype.
-   * If aCloneChildren is true, then aCloneReference's children will be
-   * cloned onto aHistoryEntry.
-   */
-  void addChildSHEntry(in nsISHEntry aCloneReference,
-                       in nsISHEntry aHistoryEntry,
-                       in long aChildOffset,
-                       in unsigned long aLoadType,
-                       in boolean aCloneChilden);
-
-  /**
-   * Whether this docshell should save entries in global history.
-   */
-  attribute boolean useGlobalHistory;
-
-  /**
-   * Removes nsISHEntry objects related to this docshell from session history.
-   * Use this only with subdocuments, like iframes.
-   */
-  void removeFromSessionHistory();
-
-  /**
-   * Set when an iframe/frame is added dynamically.
-   */
-  [infallible] attribute boolean createdDynamically;
 
   /**
    * Returns false for mLSHE, true for mOSHE
@@ -890,6 +726,8 @@ interface nsIDocShell : nsIDocShellTreeItem
 */
   [noscript,notxpcom,nostdcall] nsIScriptGlobalObject GetScriptGlobalObject();
 
+  [noscript,notxpcom,nostdcall] Document getExtantDocument();
+
   /**
    * If deviceSizeIsPageSize is set to true, device-width/height media queries
    * will be calculated from the page size, not the device size.
@@ -903,15 +741,6 @@ interface nsIDocShell : nsIDocShellTreeItem
   [infallible] attribute boolean deviceSizeIsPageSize;
 
   /**
-   * Regarding setOpener / getOpener - We can't use XPIDL's "attribute"
-   * for notxpcom, so we're relegated to using explicit gets / sets. This
-   * should be fine, considering that these methods should only ever be
-   * called from native code.
-   */
-  [noscript,notxpcom,nostdcall] void setOpener(in nsIRemoteTab aOpener);
-  [noscript,notxpcom,nostdcall] nsIRemoteTab getOpener();
-
-  /**
    * Notify DocShell when the browser is about to start executing JS, and after
    * that execution has stopped.  This only occurs when the Timeline devtool
    * is collecting information.
@@ -923,8 +752,6 @@ interface nsIDocShell : nsIDocShellTreeItem
                                                                   in jsval asyncStack,
                                                                   in string asyncCause);
   [noscript,notxpcom,nostdcall] void notifyJSRunToCompletionStop();
-
-  [noscript] void GetOSHEId(out uint32_t aSHEntryId);
 
   /**
    * This attribute determines whether a document which is not about:blank has
@@ -1014,12 +841,6 @@ interface nsIDocShell : nsIDocShellTreeItem
   [infallible] attribute nsIDocShell_MetaViewportOverride metaViewportOverride;
 
   /**
-   * Returns `true` if this docshell was created due to a Large-Allocation
-   * header, and has not seen the initiating load yet.
-   */
-  [infallible] readonly attribute boolean awaitingLargeAlloc;
-
-  /**
    * Attribute that determines whether tracking protection is enabled.
    */
   attribute boolean useTrackingProtection;
@@ -1056,12 +877,6 @@ interface nsIDocShell : nsIDocShellTreeItem
 
   Array<float> getColorMatrix();
 
-  /**
-   * Initialize session history for this docshell. The docshell must be the root
-   * docshell.
-   */
-  void initSessionHistory();
-
 %{C++
   /**
    * These methods call nsDocShell::GetHTMLEditorInternal() and
@@ -1070,23 +885,6 @@ interface nsIDocShell : nsIDocShellTreeItem
   mozilla::HTMLEditor* GetHTMLEditor();
   nsresult SetHTMLEditor(mozilla::HTMLEditor* aHTMLEditor);
 %}
-
-  /**
-   * Allowed CSS display modes. This needs to be kept in
-   * sync with similar values in ServoStyleConsts.h
-   */
-  cenum DisplayMode: 8 {
-    DISPLAY_MODE_BROWSER = 0,
-    DISPLAY_MODE_MINIMAL_UI = 1,
-    DISPLAY_MODE_STANDALONE = 2,
-    DISPLAY_MODE_FULLSCREEN = 3,
-  };
-
-  /**
-   * Display mode for this docshell. Defaults to DISPLAY_MODE_BROWSER.
-   * Media queries only look at the value in the top-most docshell.
-   */
-  [infallible] attribute nsIDocShell_DisplayMode displayMode;
 
   /**
    * The message manager for this docshell.  This does not throw, but
@@ -1107,11 +905,6 @@ interface nsIDocShell : nsIDocShellTreeItem
    */
   [notxpcom, nostdcall] readonly attribute boolean isAttemptingToNavigate;
 
-  /**
-   * Whether developer tools are watching activity in this docshell.
-   */
-  [infallible] attribute boolean watchedByDevtools;
-
   /*
    * Whether or not this docshell is executing a nsIWebNavigation navigation
    * method.
@@ -1129,4 +922,14 @@ interface nsIDocShell : nsIDocShellTreeItem
    * @see nsISHEntry synchronizeLayoutHistoryState().
    */
   void synchronizeLayoutHistoryState();
+
+  /**
+   * This attempts to save any applicable layout history state (like
+   * scroll position) in the nsISHEntry. This is normally done
+   * automatically when transitioning from page to page in the
+   * same process. We expose this function to support transitioning
+   * from page to page across processes as a workaround for bug 1630234
+   * until session history state is moved into the parent process.
+   */
+  void persistLayoutHistoryState();
 };

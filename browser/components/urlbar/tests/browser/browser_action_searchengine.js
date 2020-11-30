@@ -33,13 +33,13 @@ add_task(async function setup() {
     await Services.search.removeEngine(engine);
     await Services.search.removeEngine(engine2);
     await PlacesUtils.history.clear();
+    await UrlbarTestUtils.formHistory.clear();
   });
 });
 
 async function testSearch(win, expectedName, expectedBaseUrl) {
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window: win,
-    waitForFocus: SimpleTest.waitForFocus,
     value: "open a search",
   });
   let result = await UrlbarTestUtils.getDetailsOfResultAt(win, 0);

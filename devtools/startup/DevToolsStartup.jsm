@@ -28,19 +28,14 @@ const kDebuggerPrefs = [
 ];
 
 const DEVTOOLS_ENABLED_PREF = "devtools.enabled";
+const DEVTOOLS_F12_DISABLED_PREF = "devtools.experiment.f12.shortcut_disabled";
 
 const DEVTOOLS_POLICY_DISABLED_PREF = "devtools.policy.disabled";
-const PROFILER_POPUP_ENABLED_PREF = "devtools.performance.popup.enabled";
 
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
-ChromeUtils.defineModuleGetter(
-  this,
-  "ActorManagerParent",
-  "resource://gre/modules/ActorManagerParent.jsm"
-);
 ChromeUtils.defineModuleGetter(
   this,
   "Services",
@@ -75,6 +70,11 @@ ChromeUtils.defineModuleGetter(
   this,
   "WebChannel",
   "resource://gre/modules/WebChannel.jsm"
+);
+ChromeUtils.defineModuleGetter(
+  this,
+  "PanelMultiView",
+  "resource:///modules/PanelMultiView.jsm"
 );
 
 const { require } = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
@@ -240,7 +240,7 @@ XPCOMUtils.defineLazyGetter(this, "KeyShortcuts", function () {
     });
   }
 
-  if (isProfilerButtonEnabled()) {
+  if (ProfilerMenuButton.isInNavbar()) {
     shortcuts.push(...getProfilerKeyShortcuts());
   }
 
@@ -262,14 +262,6 @@ function getProfilerKeyShortcuts() {
       modifiers: "control,shift",
     },
   ];
-}
-
-/**
- * Instead of loading the ProfilerMenuButton.jsm file, provide an independent check
- * to see if it is turned on.
- */
-function isProfilerButtonEnabled() {
-  return Services.prefs.getBoolPref(PROFILER_POPUP_ENABLED_PREF, false);
 }
 
 /**
@@ -296,8 +288,9 @@ function validateProfilerWebChannelUrl(targetUrl) {
       // Allows the following:
       //   "https://deploy-preview-1234--perf-html.netlify.com"
       //   "https://deploy-preview-1234--perf-html.netlify.com/"
-      //   "https://deploy-preview-1234567--perf-html.netlify.com"
-      /^https:\/\/deploy-preview-\d+--perf-html\.netlify\.com\/?$/.test(
+      //   "https://deploy-preview-1234567--perf-html.netlify.app"
+      //   "https://main--perf-html.netlify.app"
+      /^https:\/\/(?:deploy-preview-\d+|main)--perf-html\.netlify\.(?:com|app)\/?$/.test(
         targetUrl
       )
     ) {
@@ -379,19 +372,35 @@ DevToolsStartup.prototype = {
     const isInitialLaunch =
       cmdLine.state == Ci.nsICommandLine.STATE_INITIAL_LAUNCH;
     if (isInitialLaunch) {
-      this._registerDevToolsJsWindowActors();
-
       // Enable devtools for all users on startup (onboarding experiment from Bug 1408969
       // is over).
       Services.prefs.setBoolPref(DEVTOOLS_ENABLED_PREF, true);
 
+      // The F12 shortcut might be disabled to avoid accidental usage.
+      // Users who are already considered as devtools users should not be
+      // impacted.
+      if (this.isDevToolsUser()) {
+        Services.prefs.setBoolPref(DEVTOOLS_F12_DISABLED_PREF, false);
+      }
+
       // Store devtoolsFlag to check it later in onWindowReady.
       this.devtoolsFlag = flags.devtools;
+
+      /* eslint-disable mozilla/balanced-observers */
+      // We are not expecting to remove those listeners until Firefox closes.
+
       // Only top level Firefox Windows fire a browser-delayed-startup-finished event
       Services.obs.addObserver(
         this.onWindowReady,
         "browser-delayed-startup-finished"
       );
+
+      // Update menu items when devtools.enabled changes.
+      Services.prefs.addObserver(
+        DEVTOOLS_ENABLED_PREF,
+        this.onEnabledPrefChanged
+      );
+      /* eslint-enable mozilla/balanced-observers */
 
       if (!this.isDisabledByPolicy()) {
         if (AppConstants.MOZ_DEV_EDITION) {
@@ -407,12 +416,6 @@ DevToolsStartup.prototype = {
       if (isRunningTest()) {
         new ContentProcessListener(this);
       }
-
-      // Update menu items when devtools.enabled changes.
-      Services.prefs.addObserver(
-        DEVTOOLS_ENABLED_PREF,
-        this.onEnabledPrefChanged
-      );
     }
 
     if (flags.console) {
@@ -497,9 +500,10 @@ DevToolsStartup.prototype = {
       .getElementById("webDeveloperMenu")
       .setAttribute("hidden", "true");
     // This will hide the "Web Developer" item in the hamburger menu.
-    window.document
-      .getElementById("appMenu-developer-button")
-      .setAttribute("hidden", "true");
+    PanelMultiView.getViewNode(
+      window.document,
+      "appMenu-developer-button"
+    ).setAttribute("hidden", "true");
   },
 
   onFirstWindowReady(window) {
@@ -555,7 +559,7 @@ DevToolsStartup.prototype = {
    * Also, this menu duplicates its own entries from the "Web Developer"
    * menu in the system menu, under "Tools" main menu item. The system
    * menu is being hooked by "hookWebDeveloperMenu" which ends up calling
-   * devtools/client/framework/browser-menu to create the items for real,
+   * devtools/client/framework/browser-menus to create the items for real,
    * initDevTools, from onViewShowing is also calling browser-menu.
    */
   hookDeveloperToggle() {
@@ -596,7 +600,10 @@ DevToolsStartup.prototype = {
         });
         itemsToDisplay.push(doc.getElementById("goOfflineMenuitem"));
 
-        const developerItems = doc.getElementById("PanelUI-developerItems");
+        const developerItems = PanelMultiView.getViewNode(
+          doc,
+          "PanelUI-developerItems"
+        );
         CustomizableUI.clearSubview(developerItems);
         CustomizableUI.fillSubviewFromMenuItems(itemsToDisplay, developerItems);
       },
@@ -611,8 +618,7 @@ DevToolsStartup.prototype = {
         // not called yet when CustomizableUI creates the widget.
         this.hookKeyShortcuts(doc.defaultView);
 
-        // Bug 1223127, CUI should make this easier to do.
-        if (doc.getElementById("PanelUI-developerItems")) {
+        if (PanelMultiView.getViewNode(doc, "PanelUI-developerItems")) {
           return;
         }
         const view = doc.createXULElement("panelview");
@@ -640,38 +646,36 @@ DevToolsStartup.prototype = {
   },
 
   /**
-   * Dynamically register a profiler recording button in the
-   * customization menu. You can use this button by right clicking
-   * on Firefox toolbar and dragging it from the customization panel
-   * to the toolbar. (i.e. this isn't displayed by default to users.)
+   * Register the profiler recording button. This button will be available
+   * in the customization palette for the Firefox toolbar. In addition, it can be
+   * enabled from profiler.firefox.com.
    */
   hookProfilerRecordingButton() {
     if (this.profilerRecordingButtonCreated) {
       return;
     }
-    this.profilerRecordingButtonCreated = true;
-
+    const featureFlagPref = "devtools.performance.popup.feature-flag";
     const isPopupFeatureFlagEnabled = Services.prefs.getBoolPref(
-      "devtools.performance.popup.feature-flag",
-      AppConstants.NIGHTLY_BUILD
+      featureFlagPref
     );
+    this.profilerRecordingButtonCreated = true;
 
     // Listen for messages from the front-end. This needs to happen even if the
     // button isn't enabled yet. This will allow the front-end to turn on the
     // popup for our users, regardless of if the feature is enabled by default.
     this.initializeProfilerWebChannel();
 
-    if (!isPopupFeatureFlagEnabled) {
-      // The profiler's popup is experimental. The plan is to eventually turn it on
-      // everywhere, but while it's under active development we don't want everyone
-      // having it enabled. For now the default pref is to turn it on with Nightly,
-      // with the option to flip the pref in other releases. This feature flag will
-      // go away once it is fully shipped.
-      return;
-    }
-
-    if (isProfilerButtonEnabled()) {
-      ProfilerMenuButton.initialize();
+    if (isPopupFeatureFlagEnabled) {
+      // Initialize the CustomizableUI widget.
+      ProfilerMenuButton.initialize(this.toggleProfilerKeyShortcuts);
+    } else {
+      // The feature flag is not enabled, but watch for it to be enabled. If it is,
+      // initialize everything.
+      const enable = () => {
+        ProfilerMenuButton.initialize(this.toggleProfilerKeyShortcuts);
+        Services.prefs.removeObserver(featureFlagPref, enable);
+      };
+      Services.prefs.addObserver(featureFlagPref, enable);
     }
   },
 
@@ -686,7 +690,12 @@ DevToolsStartup.prototype = {
     // Register a channel for the URL in preferences. Also update the WebChannel if
     // the URL changes.
     const urlPref = "devtools.performance.recording.ui-base-url";
+
+    // This method is only run once per Firefox instance, so it should not be
+    // strictly necessary to remove observers here.
+    // eslint-disable-next-line mozilla/balanced-observers
     Services.prefs.addObserver(urlPref, registerWebChannel);
+
     registerWebChannel();
 
     function registerWebChannel() {
@@ -828,13 +837,6 @@ DevToolsStartup.prototype = {
     // account (see bug 832984).
     const mainKeyset = doc.getElementById("mainKeyset");
     mainKeyset.parentNode.insertBefore(keyset, mainKeyset);
-
-    // Watch for the profiler to enable or disable the profiler popup, then toggle
-    // the keyboard shortcuts on and off.
-    Services.prefs.addObserver(
-      PROFILER_POPUP_ENABLED_PREF,
-      this.toggleProfilerKeyShortcuts
-    );
   },
 
   /**
@@ -869,9 +871,9 @@ DevToolsStartup.prototype = {
   /**
    * We only want to have the keyboard shortcuts active when the menu button is on.
    * This function either adds or removes the elements.
+   * @param {boolean} isEnabled
    */
-  toggleProfilerKeyShortcuts() {
-    const isEnabled = isProfilerButtonEnabled();
+  toggleProfilerKeyShortcuts(isEnabled) {
     const profilerKeyShortcuts = getProfilerKeyShortcuts();
     for (const { document } of Services.wm.getEnumerator(null)) {
       const devtoolsKeyset = document.getElementById("devtoolsKeyset");
@@ -882,6 +884,13 @@ DevToolsStartup.prototype = {
         continue;
       }
 
+      const areProfilerKeysPresent = !!document.getElementById(
+        "key_profilerStartStop"
+      );
+      if (isEnabled === areProfilerKeysPresent) {
+        // Don't double add or double remove the shortcuts.
+        continue;
+      }
       if (isEnabled) {
         this.attachKeys(document, profilerKeyShortcuts);
       } else {
@@ -892,11 +901,6 @@ DevToolsStartup.prototype = {
       // account (see bug 832984).
       mainKeyset.parentNode.insertBefore(devtoolsKeyset, mainKeyset);
     }
-
-    if (!isEnabled) {
-      // Ensure the profiler isn't left profiling in the background.
-      ProfilerPopupBackground.stopProfiler();
-    }
   },
 
   async onKey(window, key) {
@@ -905,11 +909,11 @@ DevToolsStartup.prototype = {
       // first to bail out of checking if DevTools is available.
       switch (key.id) {
         case "profilerStartStop": {
-          ProfilerPopupBackground.toggleProfiler();
+          ProfilerPopupBackground.toggleProfiler("aboutprofiling");
           return;
         }
         case "profilerCapture": {
-          ProfilerPopupBackground.captureProfile();
+          ProfilerPopupBackground.captureProfile("aboutprofiling");
           return;
         }
       }
@@ -1272,23 +1276,6 @@ DevToolsStartup.prototype = {
     this.recorded = true;
   },
 
-  _registerDevToolsJsWindowActors() {
-    ActorManagerParent.addActors({
-      DevToolsFrame: {
-        parent: {
-          moduleURI:
-            "resource://devtools/server/connectors/js-window-actor/DevToolsFrameParent.jsm",
-        },
-        child: {
-          moduleURI:
-            "resource://devtools/server/connectors/js-window-actor/DevToolsFrameChild.jsm",
-        },
-        allFrames: true,
-      },
-    });
-    ActorManagerParent.flush();
-  },
-
   // Used by tests and the toolbox to register the same key shortcuts in toolboxes loaded
   // in a window window.
   get KeyShortcuts() {
@@ -1313,7 +1300,7 @@ DevToolsStartup.prototype = {
   /* eslint-disable max-len */
 
   classID: Components.ID("{9e9a9283-0ce9-4e4a-8f1c-ba129a032c32}"),
-  QueryInterface: ChromeUtils.generateQI([Ci.nsICommandLineHandler]),
+  QueryInterface: ChromeUtils.generateQI(["nsICommandLineHandler"]),
 };
 
 /**
@@ -1329,15 +1316,6 @@ const JsonView = {
       return;
     }
     this.initialized = true;
-
-    // Load JSON converter module. This converter is responsible
-    // for handling 'application/json' documents and converting
-    // them into a simple web-app that allows easy inspection
-    // of the JSON data.
-    Services.ppmm.loadProcessScript(
-      "resource://devtools/client/jsonview/converter-observer.js",
-      true
-    );
 
     // Register for messages coming from the child process.
     // This is never removed as there is no particular need to unregister
@@ -1373,7 +1351,7 @@ const JsonView = {
       //   principal is from the child. Null principals don't survive crossing
       //   over IPC, so there's no other principal that'll work.
       const persistable = browser.frameLoader;
-      persistable.startPersistence(0, {
+      persistable.startPersistence(null, {
         onDocumentReady(doc) {
           const uri = chrome.makeURI(doc.documentURI, doc.characterSet);
           const filename = chrome.getDefaultFileName(undefined, uri, doc, null);

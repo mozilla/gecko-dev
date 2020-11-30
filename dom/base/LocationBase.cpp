@@ -16,6 +16,7 @@
 #include "nsGlobalWindow.h"
 #include "mozilla/NullPrincipal.h"
 #include "mozilla/dom/Document.h"
+#include "mozilla/dom/WindowContext.h"
 
 namespace mozilla {
 namespace dom {
@@ -99,10 +100,13 @@ already_AddRefed<nsDocShellLoadState> LocationBase::CheckURL(
     principal->CreateReferrerInfo(referrerPolicy, getter_AddRefs(referrerInfo));
   }
   loadState->SetTriggeringPrincipal(triggeringPrincipal);
+  loadState->SetTriggeringSandboxFlags(doc->GetSandboxFlags());
   loadState->SetCsp(doc->GetCsp());
   if (referrerInfo) {
     loadState->SetReferrerInfo(referrerInfo);
   }
+  loadState->SetHasValidUserGestureActivation(
+      doc->HasValidTransientUserGestureActivation());
 
   return loadState.forget();
 }
@@ -110,35 +114,48 @@ already_AddRefed<nsDocShellLoadState> LocationBase::CheckURL(
 void LocationBase::SetURI(nsIURI* aURI, nsIPrincipal& aSubjectPrincipal,
                           ErrorResult& aRv, bool aReplace) {
   RefPtr<BrowsingContext> bc = GetBrowsingContext();
-  if (bc && !bc->IsDiscarded()) {
-    RefPtr<nsDocShellLoadState> loadState =
-        CheckURL(aURI, aSubjectPrincipal, aRv);
-    if (aRv.Failed()) {
-      return;
-    }
+  if (!bc || bc->IsDiscarded()) {
+    return;
+  }
 
-    if (aReplace) {
-      loadState->SetLoadType(LOAD_STOP_CONTENT_AND_REPLACE);
-    } else {
-      loadState->SetLoadType(LOAD_STOP_CONTENT);
-    }
+  CallerType callerType = aSubjectPrincipal.IsSystemPrincipal()
+                              ? CallerType::System
+                              : CallerType::NonSystem;
 
-    // Get the incumbent script's browsing context to set as source.
-    nsCOMPtr<nsPIDOMWindowInner> sourceWindow =
-        nsContentUtils::CallerInnerWindow();
-    RefPtr<BrowsingContext> accessingBC;
-    if (sourceWindow) {
-      accessingBC = sourceWindow->GetBrowsingContext();
-      loadState->SetSourceDocShell(sourceWindow->GetDocShell());
-    }
+  nsresult rv = bc->CheckLocationChangeRateLimit(callerType);
+  if (NS_FAILED(rv)) {
+    aRv.Throw(rv);
+    return;
+  }
 
-    loadState->SetLoadFlags(nsIWebNavigation::LOAD_FLAGS_NONE);
-    loadState->SetFirstParty(true);
+  RefPtr<nsDocShellLoadState> loadState =
+      CheckURL(aURI, aSubjectPrincipal, aRv);
+  if (aRv.Failed()) {
+    return;
+  }
 
-    nsresult rv = bc->LoadURI(accessingBC, loadState);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      aRv.Throw(rv);
-    }
+  if (aReplace) {
+    loadState->SetLoadType(LOAD_STOP_CONTENT_AND_REPLACE);
+  } else {
+    loadState->SetLoadType(LOAD_STOP_CONTENT);
+  }
+
+  // Get the incumbent script's browsing context to set as source.
+  nsCOMPtr<nsPIDOMWindowInner> sourceWindow =
+      nsContentUtils::CallerInnerWindow();
+  if (sourceWindow) {
+    WindowContext* context = sourceWindow->GetWindowContext();
+    loadState->SetSourceBrowsingContext(sourceWindow->GetBrowsingContext());
+    loadState->SetHasValidUserGestureActivation(
+        context && context->HasValidTransientUserGestureActivation());
+  }
+
+  loadState->SetLoadFlags(nsIWebNavigation::LOAD_FLAGS_NONE);
+  loadState->SetFirstParty(true);
+
+  rv = bc->LoadURI(loadState);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    aRv.Throw(rv);
   }
 }
 

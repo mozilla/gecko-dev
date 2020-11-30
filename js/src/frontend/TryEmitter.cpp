@@ -10,7 +10,6 @@
 
 #include "frontend/BytecodeEmitter.h"  // BytecodeEmitter
 #include "frontend/SharedContext.h"    // StatementKind
-#include "frontend/SourceNotes.h"      // SrcNote, SRC_*
 #include "vm/JSScript.h"               // JSTRY_CATCH, JSTRY_FINALLY
 #include "vm/Opcodes.h"                // JSOp
 
@@ -48,7 +47,8 @@ bool TryEmitter::emitTry() {
   // uses this depth to properly unwind the stack and the scope chain.
   depth_ = bce_->bytecodeSection().stackDepth();
 
-  if (!bce_->emitN(JSOp::Try, 4, &tryOpOffset_)) {
+  tryOpOffset_ = bce_->bytecodeSection().offset();
+  if (!bce_->emit1(JSOp::Try)) {
     return false;
   }
 
@@ -68,12 +68,6 @@ bool TryEmitter::emitTryEnd() {
       return false;
     }
   }
-
-  // Patch the JSOp::Try offset.
-  jsbytecode* trypc = bce_->bytecodeSection().code(tryOpOffset_);
-  BytecodeOffsetDiff offset = bce_->bytecodeSection().offset() - tryOpOffset_;
-  MOZ_ASSERT(JSOp(*trypc) == JSOp::Try);
-  SET_CODE_OFFSET(trypc, offset.value());
 
   // Emit jump over catch and/or finally.
   if (!bce_->emitJump(JSOp::Goto, &catchAndFinallyJump_)) {
@@ -263,7 +257,7 @@ bool TryEmitter::emitEnd() {
   // Add the try note last, to let post-order give us the right ordering
   // (first to last for a given nesting level, inner to outer by level).
   if (hasCatch()) {
-    if (!bce_->addTryNote(JSTRY_CATCH, depth_, offsetAfterTryOp(),
+    if (!bce_->addTryNote(TryNoteKind::Catch, depth_, offsetAfterTryOp(),
                           tryEnd_.offset)) {
       return false;
     }
@@ -273,7 +267,7 @@ bool TryEmitter::emitEnd() {
   // trynote to catch exceptions (re)thrown from a catch block or
   // for the try{}finally{} case.
   if (hasFinally()) {
-    if (!bce_->addTryNote(JSTRY_FINALLY, depth_, offsetAfterTryOp(),
+    if (!bce_->addTryNote(TryNoteKind::Finally, depth_, offsetAfterTryOp(),
                           finallyStart_.offset)) {
       return false;
     }

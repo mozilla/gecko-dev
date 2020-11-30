@@ -26,7 +26,9 @@
 #include "mozilla/interceptor/TargetFunction.h"
 
 #if defined(MOZILLA_INTERNAL_API)
+#  include "nsHashKeys.h"
 #  include "nsString.h"
+#  include "nsTHashtable.h"
 #endif  // defined(MOZILLA_INTERNAL_API)
 
 // The declarations within this #if block are intended to be used for initial
@@ -88,6 +90,9 @@ VOID NTAPI RtlAcquireSRWLockShared(PSRWLOCK aLock);
 
 VOID NTAPI RtlReleaseSRWLockExclusive(PSRWLOCK aLock);
 VOID NTAPI RtlReleaseSRWLockShared(PSRWLOCK aLock);
+
+ULONG NTAPI RtlNtStatusToDosError(NTSTATUS aStatus);
+VOID NTAPI RtlSetLastWin32Error(DWORD aError);
 
 NTSTATUS NTAPI NtReadVirtualMemory(HANDLE aProcessHandle, PVOID aBaseAddress,
                                    PVOID aBuffer, SIZE_T aNumBytesToRead,
@@ -393,6 +398,17 @@ inline void GetLeafName(PUNICODE_STRING aDestString,
 
 #endif  // !defined(MOZILLA_INTERNAL_API)
 
+#if defined(MOZILLA_INTERNAL_API)
+
+inline const nsDependentSubstring GetLeafName(const nsString& aString) {
+  int32_t lastBackslashPos = aString.RFindChar(L'\\');
+  int32_t leafStartPos =
+      (lastBackslashPos == kNotFound) ? 0 : (lastBackslashPos + 1);
+  return Substring(aString, leafStartPos);
+}
+
+#endif  // defined(MOZILLA_INTERNAL_API)
+
 inline char EnsureLowerCaseASCII(char aChar) {
   if (aChar >= 'A' && aChar <= 'Z') {
     aChar -= 'A' - 'a';
@@ -491,6 +507,14 @@ class MOZ_RAII PEHeaders final {
     }
 
     mImageLimit = RVAToPtrUnchecked<void*>(imageSize - 1UL);
+
+    PIMAGE_DATA_DIRECTORY importDirEntry =
+        GetImageDirectoryEntryPtr(IMAGE_DIRECTORY_ENTRY_IMPORT);
+    if (!importDirEntry) {
+      return;
+    }
+
+    mIsImportDirectoryTampered = (importDirEntry->VirtualAddress >= imageSize);
   }
 
   explicit operator bool() const { return !!mImageLimit; }
@@ -545,7 +569,7 @@ class MOZ_RAII PEHeaders final {
                      IMAGE_DIRECTORY_ENTRY_IMPORT);
   }
 
-  PIMAGE_RESOURCE_DIRECTORY GetResourceTable() {
+  PIMAGE_RESOURCE_DIRECTORY GetResourceTable() const {
     return GetImageDirectoryEntry<PIMAGE_RESOURCE_DIRECTORY>(
         IMAGE_DIRECTORY_ENTRY_RESOURCE);
   }
@@ -575,7 +599,7 @@ class MOZ_RAII PEHeaders final {
     return dirEntry;
   }
 
-  bool GetVersionInfo(uint64_t& aOutVersion) {
+  bool GetVersionInfo(uint64_t& aOutVersion) const {
     // RT_VERSION == 16
     // Version resources require an id of 1
     auto root = FindResourceLeaf<VS_VERSIONINFO_HEADER*>(16, 1);
@@ -593,7 +617,7 @@ class MOZ_RAII PEHeaders final {
     return true;
   }
 
-  bool GetTimeStamp(DWORD& aResult) {
+  bool GetTimeStamp(DWORD& aResult) const {
     if (!(*this)) {
       return false;
     }
@@ -623,6 +647,26 @@ class MOZ_RAII PEHeaders final {
 
     return nullptr;
   }
+
+#if defined(MOZILLA_INTERNAL_API)
+  nsTHashtable<nsStringCaseInsensitiveHashKey> GenerateDependentModuleSet() {
+    nsTHashtable<nsStringCaseInsensitiveHashKey> dependentModuleSet;
+
+    for (PIMAGE_IMPORT_DESCRIPTOR curImpDesc = GetImportDirectory();
+         IsValid(curImpDesc); ++curImpDesc) {
+      auto curName = mIsImportDirectoryTampered
+                         ? RVAToPtrUnchecked<const char*>(curImpDesc->Name)
+                         : RVAToPtr<const char*>(curImpDesc->Name);
+      if (!curName) {
+        continue;
+      }
+
+      dependentModuleSet.PutEntry(GetLeafName(NS_ConvertASCIItoUTF16(curName)));
+    }
+
+    return dependentModuleSet;
+  }
+#endif  // defined(MOZILLA_INTERNAL_API)
 
   /**
    * If |aBoundaries| is given, this method checks whether each IAT entry is
@@ -658,7 +702,7 @@ class MOZ_RAII PEHeaders final {
       ++curIatThunk;
     }
 
-    return Some(MakeSpan(firstIatThunk, curIatThunk));
+    return Some(Span(firstIatThunk, curIatThunk));
   }
 
   /**
@@ -667,7 +711,7 @@ class MOZ_RAII PEHeaders final {
    * If aLangId == 0, we just resolve the first entry regardless of language.
    */
   template <typename T>
-  T FindResourceLeaf(WORD aType, WORD aResId, WORD aLangId = 0) {
+  T FindResourceLeaf(WORD aType, WORD aResId, WORD aLangId = 0) const {
     PIMAGE_RESOURCE_DIRECTORY topLevel = GetResourceTable();
     if (!topLevel) {
       return nullptr;
@@ -739,7 +783,7 @@ class MOZ_RAII PEHeaders final {
       }
 
       auto base = RVAToPtr<const uint8_t*>(rva);
-      return Some(MakeSpan(base, size));
+      return Some(Span(base, size));
     }
 
     return Nothing();
@@ -759,13 +803,19 @@ class MOZ_RAII PEHeaders final {
     return aImgThunk && aImgThunk->u1.Ordinal != 0;
   }
 
-  void SetImportDirectoryTampered() { mIsImportDirectoryTampered = true; }
+  bool IsImportDirectoryTampered() const { return mIsImportDirectoryTampered; }
+
+  FARPROC GetEntryPoint() const {
+    // Use the unchecked version because the entrypoint may be tampered.
+    return RVAToPtrUnchecked<FARPROC>(
+        mPeHeader->OptionalHeader.AddressOfEntryPoint);
+  }
 
  private:
   enum class BoundsCheckPolicy { Default, Skip };
 
   template <typename T, BoundsCheckPolicy Policy = BoundsCheckPolicy::Default>
-  T GetImageDirectoryEntry(const uint32_t aDirectoryIndex) {
+  T GetImageDirectoryEntry(const uint32_t aDirectoryIndex) const {
     PIMAGE_DATA_DIRECTORY dirEntry = GetImageDirectoryEntryPtr(aDirectoryIndex);
     if (!dirEntry) {
       return nullptr;
@@ -790,11 +840,11 @@ class MOZ_RAII PEHeaders final {
     // The Windows loader has an internal limit of 96 sections (per PE spec)
     auto numSections =
         std::min(mPeHeader->FileHeader.NumberOfSections, WORD(96));
-    return MakeSpan(base, numSections);
+    return Span{base, numSections};
   }
 
   PIMAGE_RESOURCE_DIRECTORY_ENTRY
-  FindResourceEntry(PIMAGE_RESOURCE_DIRECTORY aCurLevel, WORD aId) {
+  FindResourceEntry(PIMAGE_RESOURCE_DIRECTORY aCurLevel, WORD aId) const {
     // Immediately after the IMAGE_RESOURCE_DIRECTORY structure is an array
     // of IMAGE_RESOURCE_DIRECTORY_ENTRY structures. Since this function
     // searches by ID, we need to skip past any named entries before iterating.
@@ -811,7 +861,7 @@ class MOZ_RAII PEHeaders final {
   }
 
   PIMAGE_RESOURCE_DIRECTORY_ENTRY
-  FindFirstResourceEntry(PIMAGE_RESOURCE_DIRECTORY aCurLevel) {
+  FindFirstResourceEntry(PIMAGE_RESOURCE_DIRECTORY aCurLevel) const {
     // Immediately after the IMAGE_RESOURCE_DIRECTORY structure is an array
     // of IMAGE_RESOURCE_DIRECTORY_ENTRY structures. We just return the first
     // entry, regardless of whether it is indexed by name or by id.
@@ -826,7 +876,7 @@ class MOZ_RAII PEHeaders final {
     return dirEnt;
   }
 
-  VS_FIXEDFILEINFO* GetFixedFileInfo(VS_VERSIONINFO_HEADER* aVerInfo) {
+  VS_FIXEDFILEINFO* GetFixedFileInfo(VS_VERSIONINFO_HEADER* aVerInfo) const {
     WORD length = aVerInfo->wLength;
     if (length < sizeof(VS_VERSIONINFO_HEADER)) {
       return nullptr;
@@ -1099,6 +1149,8 @@ inline DWORD RtlGetCurrentThreadId() {
                             0xFFFFFFFFUL);
 }
 
+const HANDLE kCurrentProcess = reinterpret_cast<HANDLE>(-1);
+
 inline LauncherResult<DWORD> GetParentProcessId() {
   struct PROCESS_BASIC_INFORMATION {
     NTSTATUS ExitStatus;
@@ -1109,7 +1161,6 @@ inline LauncherResult<DWORD> GetParentProcessId() {
     ULONG_PTR InheritedFromUniqueProcessId;
   };
 
-  const HANDLE kCurrentProcess = reinterpret_cast<HANDLE>(-1);
   ULONG returnLength;
   PROCESS_BASIC_INFORMATION pbi = {};
   NTSTATUS status =
@@ -1120,6 +1171,30 @@ inline LauncherResult<DWORD> GetParentProcessId() {
   }
 
   return static_cast<DWORD>(pbi.InheritedFromUniqueProcessId & 0xFFFFFFFF);
+}
+
+inline SIZE_T WINAPI VirtualQueryEx(HANDLE aProcess, LPCVOID aAddress,
+                                    PMEMORY_BASIC_INFORMATION aMemInfo,
+                                    SIZE_T aMemInfoLen) {
+#if defined(MOZILLA_INTERNAL_API)
+  return ::VirtualQueryEx(aProcess, aAddress, aMemInfo, aMemInfoLen);
+#else
+  SIZE_T returnedLength;
+  NTSTATUS status = ::NtQueryVirtualMemory(
+      aProcess, const_cast<PVOID>(aAddress), MemoryBasicInformation, aMemInfo,
+      aMemInfoLen, &returnedLength);
+  if (!NT_SUCCESS(status)) {
+    ::RtlSetLastWin32Error(::RtlNtStatusToDosError(status));
+    returnedLength = 0;
+  }
+  return returnedLength;
+#endif  // defined(MOZILLA_INTERNAL_API)
+}
+
+inline SIZE_T WINAPI VirtualQuery(LPCVOID aAddress,
+                                  PMEMORY_BASIC_INFORMATION aMemInfo,
+                                  SIZE_T aMemInfoLen) {
+  return nt::VirtualQueryEx(kCurrentProcess, aAddress, aMemInfo, aMemInfoLen);
 }
 
 struct DataDirectoryEntry : public _IMAGE_DATA_DIRECTORY {
@@ -1161,7 +1236,7 @@ inline LauncherResult<void*> GetProcessPebPtr(HANDLE aProcess) {
 inline LauncherResult<HMODULE> GetProcessExeModule(HANDLE aProcess) {
   LauncherResult<void*> ppeb = GetProcessPebPtr(aProcess);
   if (ppeb.isErr()) {
-    return LAUNCHER_ERROR_FROM_RESULT(ppeb);
+    return ppeb.propagateErr();
   }
 
   PEB peb;
@@ -1208,6 +1283,34 @@ inline LauncherResult<HMODULE> GetProcessExeModule(HANDLE aProcess) {
 }
 
 #if !defined(MOZILLA_INTERNAL_API)
+
+inline LauncherResult<HMODULE> GetModuleHandleFromLeafName(
+    const UNICODE_STRING& aTarget) {
+  auto maybePeb = nt::GetProcessPebPtr(kCurrentProcess);
+  if (maybePeb.isErr()) {
+    return maybePeb.propagateErr();
+  }
+
+  const PPEB peb = reinterpret_cast<PPEB>(maybePeb.unwrap());
+  if (!peb->Ldr) {
+    return LAUNCHER_ERROR_FROM_WIN32(ERROR_BAD_EXE_FORMAT);
+  }
+
+  auto firstItem = &peb->Ldr->InMemoryOrderModuleList;
+  for (auto p = firstItem->Flink; p != firstItem; p = p->Flink) {
+    const auto currentTableEntry =
+        CONTAINING_RECORD(p, LDR_DATA_TABLE_ENTRY, InMemoryOrderLinks);
+
+    UNICODE_STRING leafName;
+    nt::GetLeafName(&leafName, &currentTableEntry->FullDllName);
+
+    if (::RtlCompareUnicodeString(&leafName, &aTarget, TRUE) == 0) {
+      return reinterpret_cast<HMODULE>(currentTableEntry->DllBase);
+    }
+  }
+
+  return LAUNCHER_ERROR_FROM_WIN32(ERROR_MOD_NOT_FOUND);
+}
 
 class MOZ_ONLY_USED_TO_AVOID_STATIC_CONSTRUCTORS SRWLock final {
  public:
@@ -1320,7 +1423,7 @@ class RtlAllocPolicy {
 
   void reportAllocOverflow() const {}
 
-  MOZ_MUST_USE bool checkSimulatedOOM() const { return true; }
+  [[nodiscard]] bool checkSimulatedOOM() const { return true; }
 };
 
 }  // namespace nt

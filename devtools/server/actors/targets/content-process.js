@@ -24,11 +24,12 @@ const { ActorClassWithSpec, Actor } = require("devtools/shared/protocol");
 const {
   contentProcessTargetSpec,
 } = require("devtools/shared/specs/targets/content-process");
+const Targets = require("devtools/server/actors/targets/index");
 
 loader.lazyRequireGetter(
   this,
-  "WorkerTargetActorList",
-  "devtools/server/actors/worker/worker-target-actor-list",
+  "WorkerDescriptorActorList",
+  "devtools/server/actors/worker/worker-descriptor-actor-list",
   true
 );
 loader.lazyRequireGetter(
@@ -71,9 +72,22 @@ const ContentProcessTargetActor = ActorClassWithSpec(contentProcessTargetSpec, {
     this._consoleScope = sandbox;
 
     this._workerList = null;
-    this._workerTargetActorPool = null;
+    this._workerDescriptorActorPool = null;
     this._onWorkerListChanged = this._onWorkerListChanged.bind(this);
+
+    // Try to destroy the Content Process Target when the content process shuts down.
+    // The parent process can't communicate during shutdown as the communication channel
+    // is already down (message manager or JS Window Actor API).
+    // So that we have to observe to some event fired from this process.
+    // While such cleanup doesn't sound ultimately necessary (the process will be completely destroyed)
+    // mochitests are asserting that there is no leaks during process shutdown.
+    // Do not override destroy as Protocol.js may override it when calling destroy,
+    // and we won't be able to call removeObserver correctly.
+    this.destroyObserver = this.destroy.bind(this);
+    Services.obs.addObserver(this.destroyObserver, "xpcom-shutdown");
   },
+
+  targetType: Targets.TYPES.FRAME,
 
   get isRootActor() {
     return true;
@@ -141,7 +155,7 @@ const ContentProcessTargetActor = ActorClassWithSpec(contentProcessTargetSpec, {
 
   ensureWorkerList() {
     if (!this._workerList) {
-      this._workerList = new WorkerTargetActorList(this.conn, {});
+      this._workerList = new WorkerDescriptorActorList(this.conn, {});
     }
     return this._workerList;
   },
@@ -150,18 +164,18 @@ const ContentProcessTargetActor = ActorClassWithSpec(contentProcessTargetSpec, {
     return this.ensureWorkerList()
       .getList()
       .then(actors => {
-        const pool = new Pool(this.conn);
+        const pool = new Pool(this.conn, "workers");
         for (const actor of actors) {
           pool.manage(actor);
         }
 
         // Do not destroy the pool before transfering ownership to the newly created
         // pool, so that we do not accidentally destroy actors that are still in use.
-        if (this._workerTargetActorPool) {
-          this._workerTargetActorPool.destroy();
+        if (this._workerDescriptorActorPool) {
+          this._workerDescriptorActorPool.destroy();
         }
 
-        this._workerTargetActorPool = pool;
+        this._workerDescriptorActorPool = pool;
         this._workerList.onListChanged = this._onWorkerListChanged;
 
         return {
@@ -181,6 +195,9 @@ const ContentProcessTargetActor = ActorClassWithSpec(contentProcessTargetSpec, {
   },
 
   destroy: function() {
+    if (this.isDestroyed()) {
+      return;
+    }
     Actor.prototype.destroy.call(this);
 
     // Tell the live lists we aren't watching any more.
@@ -198,6 +215,8 @@ const ContentProcessTargetActor = ActorClassWithSpec(contentProcessTargetSpec, {
       this._dbg.disable();
       this._dbg = null;
     }
+
+    Services.obs.removeObserver(this.destroyObserver, "xpcom-shutdown");
   },
 });
 

@@ -8,7 +8,7 @@ use std::convert::TryFrom;
 use std::fmt::Debug;
 use std::ops::{Deref, DerefMut};
 
-use crate::hex;
+use crate::hex_with_len;
 
 /// Decoder is a view into a byte array that has a read offset.  Use it for parsing.
 pub struct Decoder<'a> {
@@ -108,7 +108,7 @@ impl<'a> Decoder<'a> {
     pub fn decode_varint(&mut self) -> Option<u64> {
         let b1 = match self.decode_byte() {
             Some(b) => b,
-            _ => return None,
+            None => return None,
         };
         match b1 >> 6 {
             0 => Some(u64::from(b1 & 0x3f)),
@@ -129,7 +129,7 @@ impl<'a> Decoder<'a> {
     fn decode_checked(&mut self, n: Option<u64>) -> Option<&'a [u8]> {
         let len = match n {
             Some(l) => l,
-            _ => return None,
+            None => return None,
         };
         if let Ok(l) = usize::try_from(len) {
             self.decode(l)
@@ -165,7 +165,7 @@ impl<'a> Deref for Decoder<'a> {
 
 impl<'a> Debug for Decoder<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        f.write_str(&hex(self))
+        f.write_str(&hex_with_len(self))
     }
 }
 
@@ -173,6 +173,16 @@ impl<'a> From<&'a [u8]> for Decoder<'a> {
     #[must_use]
     fn from(buf: &'a [u8]) -> Decoder<'a> {
         Decoder::new(buf)
+    }
+}
+
+impl<'a, T> From<&'a T> for Decoder<'a>
+where
+    T: AsRef<[u8]>,
+{
+    #[must_use]
+    fn from(buf: &'a T) -> Decoder<'a> {
+        Decoder::new(buf.as_ref())
     }
 }
 
@@ -216,6 +226,13 @@ impl Encoder {
         }
     }
 
+    /// Get the capacity of the underlying buffer: the number of bytes that can be
+    /// written without causing an allocation to occur.
+    #[must_use]
+    pub fn capacity(&self) -> usize {
+        self.buf.capacity()
+    }
+
     /// Create a view of the current contents of the buffer.
     /// Note: for a view of a slice, use `Decoder::new(&enc[s..e])`
     #[must_use]
@@ -225,7 +242,8 @@ impl Encoder {
 
     /// Don't use this except in testing.
     #[must_use]
-    pub fn from_hex(s: &str) -> Self {
+    pub fn from_hex(s: impl AsRef<str>) -> Self {
+        let s = s.as_ref();
         if s.len() % 2 != 0 {
             panic!("Needs to be even length");
         }
@@ -348,7 +366,13 @@ impl Encoder {
 
 impl Debug for Encoder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        f.write_str(&hex(self))
+        f.write_str(&hex_with_len(self))
+    }
+}
+
+impl AsRef<[u8]> for Encoder {
+    fn as_ref(&self) -> &[u8] {
+        self.buf.as_ref()
     }
 }
 
@@ -391,7 +415,7 @@ impl DerefMut for Encoder {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{Decoder, Encoder};
 
     #[test]
     fn decode() {
@@ -425,7 +449,7 @@ mod tests {
         assert_eq!(dec.decode_remainder(), &[0x01, 0x23, 0x45]);
         assert!(dec.decode(2).is_none());
 
-        let mut dec = Decoder::from(&enc[0..0]);
+        let mut dec = Decoder::from(&[]);
         assert_eq!(dec.decode_remainder().len(), 0);
     }
 
@@ -684,7 +708,7 @@ mod tests {
             enc_inner.encode(&[0xa5; 65]);
         });
         let mut v: Vec<u8> = enc.into();
-        v.split_off(3);
+        let _ = v.split_off(3);
         assert_eq!(v, vec![0x40, 0x41, 0xa5]);
     }
 

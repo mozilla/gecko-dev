@@ -25,7 +25,10 @@ TraversalRule::TraversalRule()
 TraversalRule::TraversalRule(int32_t aGranularity)
     : mGranularity(aGranularity) {}
 
-uint16_t TraversalRule::Match(Accessible* aAccessible) {
+uint16_t TraversalRule::Match(const AccessibleOrProxy& aAccOrProxy) {
+  MOZ_ASSERT(aAccOrProxy.IsAccessible(),
+             "Should only receive accessibles when processing on android.");
+  Accessible* aAccessible = aAccOrProxy.AsAccessible();
   uint16_t result = nsIAccessibleTraversalRule::FILTER_IGNORE;
 
   if (nsAccUtils::MustPrune(aAccessible)) {
@@ -57,6 +60,9 @@ uint16_t TraversalRule::Match(Accessible* aAccessible) {
       break;
     case java::SessionAccessibility::HTML_GRANULARITY_HEADING:
       result |= HeadingMatch(aAccessible);
+      break;
+    case java::SessionAccessibility::HTML_GRANULARITY_LANDMARK:
+      result |= LandmarkMatch(aAccessible);
       break;
     default:
       result |= DefaultMatch(aAccessible);
@@ -150,6 +156,14 @@ uint16_t TraversalRule::SectionMatch(Accessible* aAccessible) {
   return nsIAccessibleTraversalRule::FILTER_IGNORE;
 }
 
+uint16_t TraversalRule::LandmarkMatch(Accessible* aAccessible) {
+  if (aAccessible->LandmarkRole()) {
+    return nsIAccessibleTraversalRule::FILTER_MATCH;
+  }
+
+  return nsIAccessibleTraversalRule::FILTER_IGNORE;
+}
+
 uint16_t TraversalRule::ControlMatch(Accessible* aAccessible) {
   switch (aAccessible->Role()) {
     case roles::PUSHBUTTON:
@@ -235,6 +249,13 @@ uint16_t TraversalRule::DefaultMatch(Accessible* aAccessible) {
       break;
     case roles::LISTITEM:
       if (IsFlatSubtree(aAccessible) || IsSingleLineage(aAccessible)) {
+        return nsIAccessibleTraversalRule::FILTER_MATCH |
+               nsIAccessibleTraversalRule::FILTER_IGNORE_SUBTREE;
+      }
+      break;
+    case roles::LABEL:
+      if (IsFlatSubtree(aAccessible)) {
+        // Match if this is a label with text but no nested controls.
         return nsIAccessibleTraversalRule::FILTER_MATCH |
                nsIAccessibleTraversalRule::FILTER_IGNORE_SUBTREE;
       }

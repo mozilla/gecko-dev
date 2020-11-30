@@ -8,6 +8,14 @@ const TEST_PATH =
   "http://example.com/browser/devtools/client/webconsole/" + "test/browser/";
 const TEST_URI = TEST_PATH + TEST_FILE;
 
+registerCleanupFunction(async function() {
+  await new Promise(resolve => {
+    Services.clearData.deleteData(Ci.nsIClearDataService.CLEAR_ALL, value =>
+      resolve()
+    );
+  });
+});
+
 add_task(async function task() {
   await pushPref("devtools.webconsole.filter.net", false);
   await pushPref("devtools.webconsole.filter.netxhr", true);
@@ -38,12 +46,24 @@ add_task(async function task() {
   const urlNode = messageNode.querySelector(".url");
   info("Network message found.");
 
-  const consoleReady = hud.ui.once("network-request-payload-ready");
+  const onReady = new Promise(resolve => {
+    let count = 0;
+    function onPayloadReady(updateCount) {
+      count += updateCount;
+      // Wait for all NETWORK_REQUEST updated events
+      // Otherwise we may still be having pending request
+      if (count == 7) {
+        hud.ui.off("network-request-payload-ready", onPayloadReady);
+        resolve();
+      }
+    }
+    hud.ui.on("network-request-payload-ready", onPayloadReady);
+  });
 
   // Expand network log
   urlNode.click();
 
-  await consoleReady;
+  await onReady;
 
   info("network-request-payload-ready received");
   await testNetworkMessage(messageNode);

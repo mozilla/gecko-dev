@@ -28,11 +28,20 @@ if [ $1 = -h ]; then
   notice ""
   notice "Options:"
   notice "  -h  show this help text"
+  notice "  -q  be less verbose"
   notice ""
   exit 1
 fi
 
+if [ $1 = -q ]; then
+  QUIET=1
+  export QUIET
+  shift
+fi
+
 # -----------------------------------------------------------------------------
+
+mar_command="$MAR -V ${MOZ_PRODUCT_VERSION:?} -H ${MAR_CHANNEL_ID:?}"
 
 archive="$1"
 targetdir="$2"
@@ -43,9 +52,8 @@ if [ $(echo "$targetdir" | grep -c '\/$') = 1 ]; then
   targetdir=$(echo "$targetdir" | sed -e 's:\/$::')
 fi
 workdir="$targetdir.work"
-updatemanifestv2="$workdir/updatev2.manifest"
 updatemanifestv3="$workdir/updatev3.manifest"
-targetfiles="updatev2.manifest updatev3.manifest"
+targetfiles="updatev3.manifest"
 
 mkdir -p "$workdir"
 
@@ -67,12 +75,10 @@ list_files files
 popd
 
 # Add the type of update to the beginning of the update manifests.
-> "$updatemanifestv2"
 > "$updatemanifestv3"
 notice ""
 notice "Adding type instruction to update manifests"
 notice "       type complete"
-echo "type \"complete\"" >> "$updatemanifestv2"
 echo "type \"complete\"" >> "$updatemanifestv3"
 
 notice ""
@@ -84,20 +90,13 @@ for ((i=0; $i<$num_files; i=$i+1)); do
 
   if check_for_add_if_not_update "$f"; then
     make_add_if_not_instruction "$f" "$updatemanifestv3"
-    if check_for_add_to_manifestv2 "$f"; then
-      make_add_instruction "$f" "$updatemanifestv2" "" 1
-    fi
   else
-    make_add_instruction "$f" "$updatemanifestv2" "$updatemanifestv3"
+    make_add_instruction "$f" "$updatemanifestv3"
   fi
 
   dir=$(dirname "$f")
   mkdir -p "$workdir/$dir"
-  if [[ -n $MAR_OLD_FORMAT ]]; then
-    $BZIP2 -cz9 "$targetdir/$f" > "$workdir/$f"
-  else
-    $XZ --compress $BCJ_OPTIONS --lzma2 --format=xz --check=crc64 --force --stdout "$targetdir/$f" > "$workdir/$f"
-  fi
+  $XZ $XZ_OPT --compress $BCJ_OPTIONS --lzma2 --format=xz --check=crc64 --force --stdout "$targetdir/$f" > "$workdir/$f"
   copy_perm "$targetdir/$f" "$workdir/$f"
 
   targetfiles="$targetfiles \"$f\""
@@ -106,25 +105,10 @@ done
 # Append remove instructions for any dead files.
 notice ""
 notice "Adding file and directory remove instructions from file 'removed-files'"
-append_remove_instructions "$targetdir" "$updatemanifestv2" "$updatemanifestv3"
+append_remove_instructions "$targetdir" "$updatemanifestv3"
 
-if [[ -n $MAR_OLD_FORMAT ]]; then
-  $BZIP2 -z9 "$updatemanifestv2" && mv -f "$updatemanifestv2.bz2" "$updatemanifestv2"
-  $BZIP2 -z9 "$updatemanifestv3" && mv -f "$updatemanifestv3.bz2" "$updatemanifestv3"
-else
-  $XZ --compress $BCJ_OPTIONS --lzma2 --format=xz --check=crc64 --force "$updatemanifestv2" && mv -f "$updatemanifestv2.xz" "$updatemanifestv2"
-  $XZ --compress $BCJ_OPTIONS --lzma2 --format=xz --check=crc64 --force "$updatemanifestv3" && mv -f "$updatemanifestv3.xz" "$updatemanifestv3"
-fi
+$XZ $XZ_OPT --compress $BCJ_OPTIONS --lzma2 --format=xz --check=crc64 --force "$updatemanifestv3" && mv -f "$updatemanifestv3.xz" "$updatemanifestv3"
 
-mar_command="$MAR"
-if [[ -n $MOZ_PRODUCT_VERSION ]]
-then
-  mar_command="$mar_command -V $MOZ_PRODUCT_VERSION"
-fi
-if [[ -n $MAR_CHANNEL_ID ]]
-then
-  mar_command="$mar_command -H $MAR_CHANNEL_ID"
-fi
 mar_command="$mar_command -C \"$workdir\" -c output.mar"
 eval "$mar_command $targetfiles"
 mv -f "$workdir/output.mar" "$archive"

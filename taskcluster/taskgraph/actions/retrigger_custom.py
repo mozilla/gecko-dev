@@ -9,79 +9,107 @@ from __future__ import absolute_import, print_function, unicode_literals
 import json
 import logging
 
-from slugid import nice as slugid
-from .util import (
-    fetch_graph_and_labels,
-    create_task_from_def,
-)
+import six
+
+from ..util import taskcluster
 from ..util.parameterization import resolve_task_references
 from .registry import register_callback_action
-from taskgraph.util import taskcluster
+from .util import create_task_from_def, fetch_graph_and_labels
 
 logger = logging.getLogger(__name__)
+
+# Properties available for custom retrigger of any supported test suites
+basic_properties = {
+    'path': {
+        'type': 'string',
+        'maxLength': 255,
+        'default': '',
+        'title': 'Path name',
+        'description': 'Path of test(s) to retrigger'
+    },
+    'logLevel': {
+        'type': 'string',
+        'enum': ['debug', 'info', 'warning', 'error', 'critical'],
+        'default': 'info',
+        'title': 'Log level',
+        'description': 'Log level for output (INFO is normal, DEBUG gives more detail)'
+    },
+    'environment': {
+        'type': 'object',
+        'default': {'MOZ_LOG': ''},
+        'title': 'Extra environment variables',
+        'description': 'Extra environment variables to use for this run',
+        'additionalProperties': {'type': 'string'}
+    },
+}
+
+# Additional properties available for custom retrigger of some additional test suites
+extended_properties = basic_properties.copy()
+extended_properties.update({
+    'runUntilFail': {
+        'type': 'boolean',
+        'default': False,
+        'title': 'Run until failure',
+        'description': ('Runs the specified set of tests repeatedly '
+                        'until failure (up to REPEAT times)')
+    },
+    'repeat': {
+        'type': 'integer',
+        'default': 0,
+        'minimum': 0,
+        'title': 'Repeat test(s) N times',
+        'description': ('Run test(s) repeatedly (usually used in '
+                        'conjunction with runUntilFail)')
+    },
+    'preferences': {
+        'type': 'object',
+        'default': {'marionette.log.level': 'Info'},
+        'title': 'Extra gecko (about:config) preferences',
+        'description': 'Extra gecko (about:config) preferences to use for this run',
+        'additionalProperties': {'type': 'string'}
+    }
+})
 
 
 @register_callback_action(
     name='retrigger-custom',
     title='Retrigger task with custom parameters',
     symbol='rt',
-    generic=True,
     description="Retriggers the specified task with custom environment and parameters",
-    context=[{'test-type': 'mochitest'},
-             {'test-type': 'reftest'}],
+    context=[{'test-type': 'mochitest', 'worker-implementation': 'docker-worker'},
+             {'test-type': 'reftest', 'worker-implementation': 'docker-worker'},
+             {'test-type': 'geckoview-junit', 'worker-implementation': 'docker-worker'}],
     order=10,
     schema={
         'type': 'object',
-        'properties': {
-            'path': {
-                'type': 'string',
-                'maxLength': 255,
-                'default': '',
-                'title': 'Path name',
-                'description': 'Path of test to retrigger'
-            },
-            'logLevel': {
-                'type': 'string',
-                'enum': ['debug', 'info', 'warning', 'error', 'critical'],
-                'default': 'debug',
-                'title': 'Log level',
-                'description': 'Log level for output (default is DEBUG, which is highest)'
-            },
-            'runUntilFail': {
-                'type': 'boolean',
-                'default': True,
-                'title': 'Run until failure',
-                'description': ('Runs the specified set of tests repeatedly '
-                                'until failure (or 30 times)')
-            },
-            'repeat': {
-                'type': 'integer',
-                'default': 30,
-                'minimum': 1,
-                'title': 'Run tests N times',
-                'description': ('Run tests repeatedly (usually used in '
-                                'conjunction with runUntilFail)')
-            },
-            'environment': {
-                'type': 'object',
-                'default': {'MOZ_LOG': ''},
-                'title': 'Extra environment variables',
-                'description': 'Extra environment variables to use for this run',
-                'additionalProperties': {'type': 'string'}
-            },
-            'preferences': {
-                'type': 'object',
-                'default': {'mygeckopreferences.pref': 'myvalue2'},
-                'title': 'Extra gecko (about:config) preferences',
-                'description': 'Extra gecko (about:config) preferences to use for this run',
-                'additionalProperties': {'type': 'string'}
-            }
-        },
+        'properties': extended_properties,
         'additionalProperties': False,
         'required': ['path']
     }
 )
-def custom_retrigger_action(parameters, graph_config, input, task_group_id, task_id):
+def extended_custom_retrigger_action(parameters, graph_config, input, task_group_id, task_id):
+    handle_custom_retrigger(parameters, graph_config, input, task_group_id, task_id)
+
+
+@register_callback_action(
+    name='retrigger-custom (gtest)',
+    title='Retrigger gtest task with custom parameters',
+    symbol='rt',
+    description="Retriggers the specified task with custom environment and parameters",
+    context=[{'test-type': 'gtest', 'worker-implementation': 'docker-worker'}],
+    order=10,
+    schema={
+        'type': 'object',
+        'properties': basic_properties,
+        'additionalProperties': False,
+        'required': ['path']
+    }
+)
+def basic_custom_retrigger_action_basic(parameters, graph_config, input, task_group_id, task_id):
+    handle_custom_retrigger(parameters, graph_config, input, task_group_id, task_id)
+
+
+def handle_custom_retrigger(parameters, graph_config, input, task_group_id, task_id):
     task = taskcluster.get_task_definition(task_id)
     decision_task_id, full_task_graph, label_to_taskid = fetch_graph_and_labels(
         parameters, graph_config)
@@ -91,9 +119,9 @@ def custom_retrigger_action(parameters, graph_config, input, task_group_id, task
     # fix up the task's dependencies, similar to how optimization would
     # have done in the decision
     dependencies = {name: label_to_taskid[label]
-                    for name, label in pre_task.dependencies.iteritems()}
+                    for name, label in six.iteritems(pre_task.dependencies)}
     new_task_definition = resolve_task_references(pre_task.label, pre_task.task, dependencies)
-    new_task_definition.setdefault('dependencies', []).extend(dependencies.itervalues())
+    new_task_definition.setdefault('dependencies', []).extend(six.itervalues(dependencies))
 
     # don't want to run mozharness tests, want a custom mach command instead
     new_task_definition['payload']['command'] += ['--no-run-tests']
@@ -121,7 +149,7 @@ def custom_retrigger_action(parameters, graph_config, input, task_group_id, task
         custom_mach_command += ['--repeat', str(input.get('repeat', 30))]
 
     # add any custom gecko preferences
-    for (key, val) in input.get('preferences', {}).iteritems():
+    for (key, val) in six.iteritems(input.get('preferences', {})):
         custom_mach_command += ['--setpref', '{}={}'.format(key, val)]
 
     custom_mach_command += [input['path']]
@@ -136,6 +164,4 @@ def custom_retrigger_action(parameters, graph_config, input, task_group_id, task
 
     logging.info("New task definition: %s", new_task_definition)
 
-    # actually create the new task
-    new_task_id = slugid()
-    create_task_from_def(new_task_id, new_task_definition, parameters['level'])
+    create_task_from_def(new_task_definition, parameters['level'])

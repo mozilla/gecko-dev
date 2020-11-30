@@ -4,9 +4,11 @@
     "default",
     "defaultPrivate",
     "orderHint",
+    "sendAttributionRequest",
     "telemetryId",
     "params",
     "extraParams",
+    "regionParams",
     "appliesTo"
   ]
 }

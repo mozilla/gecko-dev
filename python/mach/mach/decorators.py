@@ -6,19 +6,15 @@ from __future__ import absolute_import, unicode_literals
 
 import argparse
 import collections
-import inspect
-import sys
 
 from .base import MachError
 from .registrar import Registrar
+from mozbuild.base import MachCommandBase
 
 
 class _MachCommand(object):
-    """Container for mach command metadata.
+    """Container for mach command metadata."""
 
-    Mach commands contain lots of attributes. This class exists to capture them
-    in a sane way so tuples, etc aren't used instead.
-    """
     __slots__ = (
         # Content from decorator arguments to define the command.
         'name',
@@ -29,6 +25,8 @@ class _MachCommand(object):
         '_parser',
         'arguments',
         'argument_group_names',
+        'virtualenv_name',
+        'ok_if_tests_disabled',
 
         # By default, subcommands will be sorted. If this is set to
         # 'declaration', they will be left in declaration order.
@@ -41,10 +39,9 @@ class _MachCommand(object):
         # the class if the command is executed.
         'cls',
 
-        # Whether the __init__ method of the class should receive a mach
-        # context instance. This should only affect the mach driver and how
-        # it instantiates classes.
-        'pass_context',
+        # The path to the `metrics.yaml` file that describes data that telemetry will
+        # gather for this command. This path is optional.
+        'metrics_path',
 
         # The name of the method providing the command. In other words, this
         # is the str name of the attribute on the class type corresponding to
@@ -62,7 +59,7 @@ class _MachCommand(object):
 
     def __init__(self, name=None, subcommand=None, category=None,
                  description=None, conditions=None, parser=None,
-                 order=None):
+                 order=None, virtualenv_name=None, ok_if_tests_disabled=False):
         self.name = name
         self.subcommand = subcommand
         self.category = category
@@ -71,13 +68,24 @@ class _MachCommand(object):
         self._parser = parser
         self.arguments = []
         self.argument_group_names = []
+        self.virtualenv_name = virtualenv_name
         self.order = order
+        if ok_if_tests_disabled and category != 'testing':
+            raise ValueError('ok_if_tests_disabled should only be set for '
+                             '`testing` mach commands')
+        self.ok_if_tests_disabled = ok_if_tests_disabled
 
         self.cls = None
-        self.pass_context = None
+        self.metrics_path = None
         self.method = None
         self.subcommand_handlers = {}
         self.decl_order = None
+
+    def create_instance(self, context, virtualenv_name):
+        metrics = None
+        if self.metrics_path:
+            metrics = context.telemetry.metrics(self.metrics_path)
+        return self.cls(context, virtualenv_name=virtualenv_name, metrics=metrics)
 
     @property
     def parser(self):
@@ -103,103 +111,97 @@ class _MachCommand(object):
         return self
 
 
-def CommandProvider(cls):
-    """Class decorator to denote that it provides subcommands for Mach.
+def CommandProvider(_cls=None, metrics_path=None):
+    def finalize(cls):
+        if not issubclass(cls, MachCommandBase):
+            raise MachError(
+                'Mach command provider class %s must be a subclass of '
+                'mozbuild.base.MachComandBase' % cls.__name__)
 
-    When this decorator is present, mach looks for commands being defined by
-    methods inside the class.
-    """
+        seen_commands = set()
 
-    # The implementation of this decorator relies on the parse-time behavior of
-    # decorators. When the module is imported, the method decorators (like
-    # @Command and @CommandArgument) are called *before* this class decorator.
-    # The side-effect of the method decorators is to store specifically-named
-    # attributes on the function types. We just scan over all functions in the
-    # class looking for the side-effects of the method decorators.
+        # We scan __dict__ because we only care about the classes' own attributes,
+        # not inherited ones. If we did inherited attributes, we could potentially
+        # define commands multiple times. We also sort keys so commands defined in
+        # the same class are grouped in a sane order.
+        command_methods = sorted([
+            (name, value._mach_command)
+            for name, value in cls.__dict__.items()
+            if hasattr(value, '_mach_command')
+        ])
 
-    # Tell mach driver whether to pass context argument to __init__.
-    pass_context = False
+        for method, command in command_methods:
+            # Ignore subcommands for now: we handle them later.
+            if command.subcommand:
+                continue
 
-    isfunc = inspect.ismethod if sys.version_info < (3, 0) else inspect.isfunction
-    if isfunc(cls.__init__):
-        spec = inspect.getargspec(cls.__init__)
+            seen_commands.add(command.name)
 
-        if len(spec.args) > 2:
-            msg = 'Mach @CommandProvider class %s implemented incorrectly. ' + \
-                  '__init__() must take 1 or 2 arguments. From %s'
-            msg = msg % (cls.__name__, inspect.getsourcefile(cls))
-            raise MachError(msg)
+            if not command.conditions and Registrar.require_conditions:
+                continue
 
-        if len(spec.args) == 2:
-            pass_context = True
+            msg = 'Mach command \'%s\' implemented incorrectly. ' + \
+                  'Conditions argument must take a list ' + \
+                  'of functions. Found %s instead.'
 
-    seen_commands = set()
-
-    # We scan __dict__ because we only care about the classes' own attributes,
-    # not inherited ones. If we did inherited attributes, we could potentially
-    # define commands multiple times. We also sort keys so commands defined in
-    # the same class are grouped in a sane order.
-    command_methods = sorted([
-        (name, value._mach_command)
-        for name, value in cls.__dict__.items()
-        if hasattr(value, '_mach_command')
-    ])
-
-    for method, command in command_methods:
-        # Ignore subcommands for now: we handle them later.
-        if command.subcommand:
-            continue
-
-        seen_commands.add(command.name)
-
-        if not command.conditions and Registrar.require_conditions:
-            continue
-
-        msg = 'Mach command \'%s\' implemented incorrectly. ' + \
-              'Conditions argument must take a list ' + \
-              'of functions. Found %s instead.'
-
-        if not isinstance(command.conditions, collections.Iterable):
-            msg = msg % (command.name, type(command.conditions))
-            raise MachError(msg)
-
-        for c in command.conditions:
-            if not hasattr(c, '__call__'):
-                msg = msg % (command.name, type(c))
+            if not isinstance(command.conditions, collections.Iterable):
+                msg = msg % (command.name, type(command.conditions))
                 raise MachError(msg)
 
-        command.cls = cls
-        command.method = method
-        command.pass_context = pass_context
+            for c in command.conditions:
+                if not hasattr(c, '__call__'):
+                    msg = msg % (command.name, type(c))
+                    raise MachError(msg)
 
-        Registrar.register_command_handler(command)
+            command.cls = cls
+            command.metrics_path = metrics_path
+            command.method = method
 
-    # Now do another pass to get sub-commands. We do this in two passes so
-    # we can check the parent command existence without having to hold
-    # state and reconcile after traversal.
-    for method, command in command_methods:
-        # It is a regular command.
-        if not command.subcommand:
-            continue
+            Registrar.register_command_handler(command)
 
-        if command.name not in seen_commands:
-            raise MachError('Command referenced by sub-command does not '
-                            'exist: %s' % command.name)
+        # Now do another pass to get sub-commands. We do this in two passes so
+        # we can check the parent command existence without having to hold
+        # state and reconcile after traversal.
+        for method, command in command_methods:
+            # It is a regular command.
+            if not command.subcommand:
+                continue
 
-        if command.name not in Registrar.command_handlers:
-            continue
+            if command.name not in seen_commands:
+                raise MachError('Command referenced by sub-command does not '
+                                'exist: %s' % command.name)
 
-        command.cls = cls
-        command.method = method
-        command.pass_context = pass_context
-        parent = Registrar.command_handlers[command.name]
+            if command.name not in Registrar.command_handlers:
+                continue
 
-        if command.subcommand in parent.subcommand_handlers:
-            raise MachError('sub-command already defined: %s' % command.subcommand)
+            command.cls = cls
+            command.metrics_path = metrics_path
+            command.method = method
+            parent = Registrar.command_handlers[command.name]
 
-        parent.subcommand_handlers[command.subcommand] = command
+            if command.subcommand in parent.subcommand_handlers:
+                raise MachError('sub-command already defined: %s' % command.subcommand)
 
-    return cls
+            parent.subcommand_handlers[command.subcommand] = command
+
+        return cls
+
+    if _cls:
+        # The CommandProvider was used without parameters, e.g.:
+        #
+        # @CommandProvider
+        # class Example:
+        #     ...
+        # Invoke finalize() immediately
+        return finalize(_cls)
+    else:
+        # The CommandProvider was used with parameters, e.g.:
+        #
+        # @CommandProvider(metrics_path='...')
+        # class Example:
+        #     ...
+        # Return a callback which will be parameterized with the decorated class
+        return finalize
 
 
 class Command(object):

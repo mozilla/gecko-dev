@@ -34,14 +34,16 @@ class ComputePassEncoder final : public ObjectBase,
 
   ffi::WGPURawPass mRaw;
   // keep all the used objects alive while the pass is recorded
-  std::vector<RefPtr<const BindGroup>> mUsedBindGroups;
-  std::vector<RefPtr<const ComputePipeline>> mUsedPipelines;
+  nsTArray<RefPtr<const BindGroup>> mUsedBindGroups;
+  nsTArray<RefPtr<const ComputePipeline>> mUsedPipelines;
 
  public:
   void SetBindGroup(uint32_t aSlot, const BindGroup& aBindGroup,
                     const dom::Sequence<uint32_t>& aDynamicOffsets);
   void SetPipeline(const ComputePipeline& aPipeline);
   void Dispatch(uint32_t x, uint32_t y, uint32_t z);
+  void DispatchIndirect(const Buffer& aIndirectBuffer,
+                        uint64_t aIndirectOffset);
   void EndPass(ErrorResult& aRv);
 };
 

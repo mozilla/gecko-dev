@@ -63,7 +63,8 @@ pub fn traverse_dom<E, D>(
     traversal: &D,
     token: PreTraverseToken<E>,
     pool: Option<&rayon::ThreadPool>,
-) where
+) -> E
+where
     E: TElement,
     D: DomTraversal<E>,
 {
@@ -89,7 +90,7 @@ pub fn traverse_dom<E, D>(
     //     ThreadLocalStyleContext on the main thread. If the main thread
     //     ThreadLocalStyleContext has not released its TLS borrow by that point,
     //     we'll panic on double-borrow.
-    let mut maybe_tls: Option<ScopedTLS<ThreadLocalStyleContext<E>>> = None;
+    let mut tls_slots = None;
     let mut tlc = ThreadLocalStyleContext::new(traversal.shared_context());
     let mut context = StyleContext {
         shared: traversal.shared_context(),
@@ -129,7 +130,7 @@ pub fn traverse_dom<E, D>(
             // depth for all the children.
             if pool.is_some() && discovered.len() > WORK_UNIT_MAX {
                 let pool = pool.unwrap();
-                maybe_tls = Some(ScopedTLS::<ThreadLocalStyleContext<E>>::new(pool));
+                let tls = ScopedTLS::<ThreadLocalStyleContext<E>>::new(pool);
                 let root_opaque = root.as_node().opaque();
                 let drain = discovered.drain(..);
                 pool.install(|| {
@@ -151,10 +152,12 @@ pub fn traverse_dom<E, D>(
                             scope,
                             pool,
                             traversal,
-                            maybe_tls.as_ref().unwrap(),
+                            &tls,
                         );
                     });
                 });
+
+                tls_slots = Some(tls.into_slots());
                 break;
             }
             nodes_remaining_at_current_depth = discovered.len();
@@ -164,11 +167,10 @@ pub fn traverse_dom<E, D>(
     // Collect statistics from thread-locals if requested.
     if dump_stats || report_stats {
         let mut aggregate = mem::replace(&mut context.thread_local.statistics, Default::default());
-        let parallel = maybe_tls.is_some();
-        if let Some(ref mut tls) = maybe_tls {
-            let slots = unsafe { tls.unsafe_get() };
-            for slot in slots {
-                if let Some(ref cx) = *slot.borrow() {
+        let parallel = tls_slots.is_some();
+        if let Some(ref mut tls) = tls_slots {
+            for slot in tls.iter_mut() {
+                if let Some(cx) = slot.get_mut() {
                     aggregate += cx.statistics.clone();
                 }
             }
@@ -186,4 +188,6 @@ pub fn traverse_dom<E, D>(
             }
         }
     }
+
+    root
 }

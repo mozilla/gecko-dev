@@ -107,17 +107,43 @@ class FaviconLoad {
   constructor(iconInfo) {
     this.icon = iconInfo;
 
+    let securityFlags;
+    if (iconInfo.node.crossOrigin === "anonymous") {
+      securityFlags = Ci.nsILoadInfo.SEC_REQUIRE_CORS_INHERITS_SEC_CONTEXT;
+    } else if (iconInfo.node.crossOrigin === "use-credentials") {
+      securityFlags =
+        Ci.nsILoadInfo.SEC_REQUIRE_CORS_INHERITS_SEC_CONTEXT |
+        Ci.nsILoadInfo.SEC_COOKIES_INCLUDE;
+    } else {
+      securityFlags =
+        Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_INHERITS_SEC_CONTEXT;
+    }
+
     this.channel = Services.io.newChannelFromURI(
       iconInfo.iconUri,
       iconInfo.node,
       iconInfo.node.nodePrincipal,
       iconInfo.node.nodePrincipal,
-      Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_INHERITS |
+      securityFlags |
         Ci.nsILoadInfo.SEC_ALLOW_CHROME |
         Ci.nsILoadInfo.SEC_DISALLOW_SCRIPT,
       Ci.nsIContentPolicy.TYPE_INTERNAL_IMAGE_FAVICON
     );
 
+    if (this.channel instanceof Ci.nsIHttpChannel) {
+      this.channel.QueryInterface(Ci.nsIHttpChannel);
+      let referrerInfo = Cc["@mozilla.org/referrer-info;1"].createInstance(
+        Ci.nsIReferrerInfo
+      );
+      // Sometimes node is a document and sometimes it is an element. We need
+      // to set the referrer info correctly either way.
+      if (iconInfo.node.nodeType == iconInfo.node.DOCUMENT_NODE) {
+        referrerInfo.initWithDocument(iconInfo.node);
+      } else {
+        referrerInfo.initWithElement(iconInfo.node);
+      }
+      this.channel.referrerInfo = referrerInfo;
+    }
     this.channel.loadFlags |=
       Ci.nsIRequest.LOAD_BACKGROUND |
       Ci.nsIRequest.VALIDATE_NEVER |
@@ -330,7 +356,7 @@ class FaviconLoad {
     if (iid.equals(Ci.nsIChannelEventSink)) {
       return this;
     }
-    throw Cr.NS_ERROR_NO_INTERFACE;
+    throw Components.Exception("", Cr.NS_ERROR_NO_INTERFACE);
   }
 }
 

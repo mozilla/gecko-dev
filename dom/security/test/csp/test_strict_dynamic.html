@@ -12,7 +12,6 @@
 <script class="testbody" type="text/javascript">
 
 SimpleTest.waitForExplicitFinish();
-SpecialPowers.setBoolPref("security.csp.enableStrictDynamic", true);
 
 /* Description of the test:
  * We load scripts with a CSP of 'strict-dynamic' with valid
@@ -36,7 +35,7 @@ var tests = [
     policy: "script-src 'strict-dynamic' 'nonce-bar' http: http://example.com"
   },
   {
-    desc: "strict-dynamic, whitelist and invalid nonce should be blocked",
+    desc: "strict-dynamic, allowlist and invalid nonce should be blocked",
     result: "blocked",
     file: "file_strict_dynamic_script_extern.html",
     policy: "script-src 'strict-dynamic' 'nonce-bar' 'unsafe-inline' http: http://example.com"
@@ -79,10 +78,10 @@ var tests = [
     policy: "script-src 'strict-dynamic' 'nonce-foo'"
   },
   {
-    // marquee is a special snowflake. Extra test for xbl things.
-    desc: "strict-dynamic with DOM events should be blocked (XBL)",
+    // marquee is a special snowflake
+    desc: "strict-dynamic with DOM events should be blocked (marquee)",
     result: "blocked",
-    file: "file_strict_dynamic_script_events_xbl.html",
+    file: "file_strict_dynamic_script_events_marquee.html",
     policy: "script-src 'strict-dynamic' 'nonce-foo'"
   },
   {

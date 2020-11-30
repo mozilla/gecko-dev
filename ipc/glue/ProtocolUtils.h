@@ -1,14 +1,12 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: sw=2 ts=4 et :
- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #ifndef mozilla_ipc_ProtocolUtils_h
 #define mozilla_ipc_ProtocolUtils_h 1
 
-#include "base/id_map.h"
 #include "base/process.h"
 #include "base/process_util.h"
 #include "chrome/common/ipc_message_utils.h"
@@ -33,6 +31,9 @@
 #include "mozilla/UniquePtr.h"
 #include "MainThreadUtils.h"
 
+#include "nsDataHashtable.h"
+#include "nsHashKeys.h"
+
 #if defined(ANDROID) && defined(DEBUG)
 #  include <android/log.h>
 #endif
@@ -52,6 +53,7 @@ namespace {
 // protocol 0.  Oops!  We can get away with this until protocol 0
 // starts approaching its 65,536th message.
 enum {
+  IMPENDING_SHUTDOWN_MESSAGE_TYPE = kuint16max - 9,
   BUILD_IDS_MATCH_MESSAGE_TYPE = kuint16max - 8,
   BUILD_ID_MESSAGE_TYPE = kuint16max - 7,  // unused
   CHANNEL_OPENED_MESSAGE_TYPE = kuint16max - 6,
@@ -65,7 +67,7 @@ enum {
 
 }  // namespace
 
-class nsIEventTarget;
+class nsISerialEventTarget;
 
 namespace mozilla {
 class SchedulerGroup;
@@ -207,18 +209,17 @@ class IProtocol : public HasResultCodes {
   // SetEventTargetForActor is called. The receiver when calling
   // SetEventTargetForActor must be the actor that will be the manager for
   // aActor.
-  void SetEventTargetForActor(IProtocol* aActor, nsIEventTarget* aEventTarget);
+  void SetEventTargetForActor(IProtocol* aActor,
+                              nsISerialEventTarget* aEventTarget);
 
   // Replace the event target for the messages of aActor. There must not be
   // any messages of aActor in the task queue, or we might run into some
   // unexpected behavior.
   void ReplaceEventTargetForActor(IProtocol* aActor,
-                                  nsIEventTarget* aEventTarget);
+                                  nsISerialEventTarget* aEventTarget);
 
-  void SetEventTargetForRoute(int32_t aRoute, nsIEventTarget* aEventTarget);
-
-  nsIEventTarget* GetActorEventTarget();
-  already_AddRefed<nsIEventTarget> GetActorEventTarget(IProtocol* aActor);
+  nsISerialEventTarget* GetActorEventTarget();
+  already_AddRefed<nsISerialEventTarget> GetActorEventTarget(IProtocol* aActor);
 
   ProcessId OtherPid() const;
 
@@ -288,7 +289,7 @@ class IProtocol : public HasResultCodes {
                    RejectCallback&& aReject) {
     UniquePtr<IPC::Message> msg(aMsg);
     if (CanSend()) {
-      GetIPCChannel()->Send(msg.release(), this, std::move(aResolve),
+      GetIPCChannel()->Send(std::move(msg), this, std::move(aResolve),
                             std::move(aReject));
     } else {
       NS_WARNING("IPC message discarded: actor cannot send");
@@ -410,12 +411,11 @@ class IToplevelProtocol : public IProtocol {
 
   // NOTE: The target actor's Manager must already be set.
   void SetEventTargetForActorInternal(IProtocol* aActor,
-                                      nsIEventTarget* aEventTarget);
+                                      nsISerialEventTarget* aEventTarget);
   void ReplaceEventTargetForActor(IProtocol* aActor,
-                                  nsIEventTarget* aEventTarget);
-  void SetEventTargetForRoute(int32_t aRoute, nsIEventTarget* aEventTarget);
-  nsIEventTarget* GetActorEventTarget();
-  already_AddRefed<nsIEventTarget> GetActorEventTarget(IProtocol* aActor);
+                                  nsISerialEventTarget* aEventTarget);
+  nsISerialEventTarget* GetActorEventTarget();
+  already_AddRefed<nsISerialEventTarget> GetActorEventTarget(IProtocol* aActor);
 
   ProcessId OtherPid() const;
   void SetOtherProcessId(base::ProcessId aOtherPid);
@@ -429,10 +429,7 @@ class IToplevelProtocol : public IProtocol {
             MessageLoop* aThread = nullptr,
             mozilla::ipc::Side aSide = mozilla::ipc::UnknownSide);
 
-  bool Open(MessageChannel* aChannel, MessageLoop* aMessageLoop,
-            mozilla::ipc::Side aSide = mozilla::ipc::UnknownSide);
-
-  bool Open(MessageChannel* aChannel, nsIEventTarget* aEventTarget,
+  bool Open(MessageChannel* aChannel, nsISerialEventTarget* aEventTarget,
             mozilla::ipc::Side aSide = mozilla::ipc::UnknownSide);
 
   // Open a toplevel actor such that both ends of the actor's channel are on
@@ -443,6 +440,12 @@ class IToplevelProtocol : public IProtocol {
   // will crash.
   bool OpenOnSameThread(MessageChannel* aChannel,
                         mozilla::ipc::Side aSide = mozilla::ipc::UnknownSide);
+
+  /**
+   * This sends a special message that is processed on the IO thread, so that
+   * other actors can know that the process will soon shutdown.
+   */
+  void NotifyImpendingShutdown();
 
   void Close();
 
@@ -507,27 +510,16 @@ class IToplevelProtocol : public IProtocol {
 
   void OnIPCChannelOpened() { ActorConnected(); }
 
-  already_AddRefed<nsIEventTarget> GetMessageEventTarget(const Message& aMsg);
-
- protected:
-  // Override this method in top-level protocols to change the event target
-  // for a new actor (and its sub-actors).
-  virtual already_AddRefed<nsIEventTarget> GetConstructedEventTarget(
-      const Message& aMsg) {
-    return nullptr;
-  }
-
-  // Override this method in top-level protocols to change the event target
-  // for specific messages.
-  virtual already_AddRefed<nsIEventTarget> GetSpecificMessageEventTarget(
-      const Message& aMsg) {
-    return nullptr;
-  }
+  already_AddRefed<nsISerialEventTarget> GetMessageEventTarget(
+      const Message& aMsg);
 
  private:
   base::ProcessId OtherPidMaybeInvalid() const { return mOtherPid; }
 
   int32_t NextId();
+
+  template <class T>
+  using IDMap = nsDataHashtable<nsUint32HashKey, T>;
 
   base::ProcessId mOtherPid;
 
@@ -541,7 +533,7 @@ class IToplevelProtocol : public IProtocol {
   // worthwhile to remove it before people start depending on it for other weird
   // things.
   Mutex mEventTargetMutex;
-  IDMap<nsCOMPtr<nsIEventTarget>> mEventTargetMap;
+  IDMap<nsCOMPtr<nsISerialEventTarget>> mEventTargetMap;
 
   MessageChannel mChannel;
 };
@@ -580,13 +572,13 @@ inline bool LoggingEnabled() {
 #endif
 }
 
+#if defined(DEBUG) || defined(FUZZING)
+bool LoggingEnabledFor(const char* aTopLevelProtocol, const char* aFilter);
+#endif
+
 inline bool LoggingEnabledFor(const char* aTopLevelProtocol) {
 #if defined(DEBUG) || defined(FUZZING)
-  const char* filter = PR_GetEnv("MOZ_IPC_MESSAGE_LOG");
-  if (!filter) {
-    return false;
-  }
-  return strcmp(filter, "1") == 0 || strcmp(filter, aTopLevelProtocol) == 0;
+  return LoggingEnabledFor(aTopLevelProtocol, PR_GetEnv("MOZ_IPC_MESSAGE_LOG"));
 #else
   return false;
 #endif
@@ -867,7 +859,7 @@ class ManagedEndpoint {
 // references!
 class ActorLifecycleProxy {
  public:
-  NS_INLINE_DECL_REFCOUNTING(ActorLifecycleProxy)
+  NS_INLINE_DECL_REFCOUNTING_ONEVENTTARGET(ActorLifecycleProxy)
 
   IProtocol* Get() { return mActor; }
 

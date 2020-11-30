@@ -14,6 +14,7 @@ mod boilerplate;
 use crate::boilerplate::Example;
 use euclid::Scale;
 use webrender::api::*;
+use webrender::render_api::*;
 use webrender::api::units::*;
 
 // This example creates multiple documents overlapping each other with
@@ -33,7 +34,7 @@ struct App {
 impl App {
     fn init(
         &mut self,
-        api: &RenderApi,
+        api: &mut RenderApi,
         device_pixel_ratio: f32,
     ) {
         let init_data = vec![
@@ -89,26 +90,23 @@ impl App {
 impl Example for App {
     fn render(
         &mut self,
-        api: &RenderApi,
-        base_builder: &mut DisplayListBuilder,
+        api: &mut RenderApi,
+        _base_builder: &mut DisplayListBuilder,
         _txn: &mut Transaction,
-        device_size: DeviceIntSize,
+        _device_size: DeviceIntSize,
         _pipeline_id: PipelineId,
         _: DocumentId,
     ) {
         if self.documents.is_empty() {
-            let device_pixel_ratio = device_size.width as f32 /
-                base_builder.content_size().width;
             // this is the first run, hack around the boilerplate,
             // which assumes an example only needs one document
-            self.init(api,  device_pixel_ratio);
+            self.init(api, 1.0);
         }
 
         for doc in &self.documents {
             let space_and_clip = SpaceAndClipInfo::root_scroll(doc.pipeline_id);
             let mut builder = DisplayListBuilder::new(
                 doc.pipeline_id,
-                doc.content_rect.size,
             );
             let local_rect = LayoutRect::new(
                 LayoutPoint::zero(),
@@ -122,6 +120,7 @@ impl Example for App {
             );
             builder.push_rect(
                 &CommonItemProperties::new(local_rect, space_and_clip),
+                local_rect,
                 doc.color,
             );
             builder.pop_stacking_context();

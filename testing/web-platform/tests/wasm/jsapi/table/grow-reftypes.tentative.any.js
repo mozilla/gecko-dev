@@ -1,4 +1,4 @@
-// META: global=jsshell
+// META: global=window,dedicatedworker,jsshell
 // META: script=assertions.js
 // META: script=/wasm/jsapi/wasm-constants.js
 // META: script=/wasm/jsapi/wasm-module-builder.js
@@ -16,7 +16,7 @@ test(() => {
   const builder = new WasmModuleBuilder();
   builder
     .addFunction("fn", kSig_v_v)
-    .addBody([kExprEnd])
+    .addBody([])
     .exportFunc();
   const bin = builder.toBuffer()
   const argument = { "element": "anyfunc", "initial": 1 };

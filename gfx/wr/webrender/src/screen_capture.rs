@@ -141,7 +141,7 @@ impl AsyncScreenshotGrabber {
         let read_size = match self.mode {
             AsyncScreenshotGrabberMode::ProfilerScreenshots => {
                 let stride = (screenshot_size.width * image_format.bytes_per_pixel()) as usize;
-                let rounded = round_up_to_multiple(stride, device.optimal_pbo_stride());
+                let rounded = round_up_to_multiple(stride, device.optimal_pbo_stride().num_bytes(image_format));
                 let optimal_width = rounded as i32 / image_format.bytes_per_pixel();
 
                 DeviceIntSize::new(
@@ -290,7 +290,7 @@ impl AsyncScreenshotGrabber {
         let draw_target_rect = draw_target
             .to_framebuffer_rect(DeviceIntRect::new(DeviceIntPoint::new(0, 0), dest_size));
 
-        let read_target_rect = FramebufferIntRect::from_untyped(&read_target_rect.to_untyped());
+        let read_target_rect = device_rect_as_framebuffer_rect(&read_target_rect);
 
         if level == 0 && !device.surface_origin_is_top_left() {
             device.blit_render_target_invert_y(

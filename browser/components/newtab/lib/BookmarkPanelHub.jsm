@@ -45,7 +45,7 @@ class _BookmarkPanelHub {
     this._handleMessageRequest = handleMessageRequest;
     this._addImpression = addImpression;
     this._dispatch = dispatch;
-    this._l10n = new DOMLocalization();
+    this._l10n = new DOMLocalization([]);
     this._initialized = true;
   }
 
@@ -150,11 +150,10 @@ class _BookmarkPanelHub {
         this.sendUserEventTelemetry("CLICK", win);
       });
       recommendation.style.color = message.color;
-      recommendation.style.background = `-moz-linear-gradient(-45deg, ${message.background_color_1} 0%, ${message.background_color_2} 70%)`;
+      recommendation.style.background = `linear-gradient(135deg, ${message.background_color_1} 0%, ${message.background_color_2} 70%)`;
       const close = createElement("button");
       close.setAttribute("id", "cfrClose");
       close.setAttribute("aria-label", "close");
-      close.style.color = message.color;
       close.addEventListener("click", e => {
         this.sendUserEventTelemetry("DISMISS", win);
         this.collapseMessage();

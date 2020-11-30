@@ -328,7 +328,7 @@ bool nsDisplayXULTextBox::CreateWebRenderCommands(
 nsRect nsDisplayXULTextBox::GetBounds(nsDisplayListBuilder* aBuilder,
                                       bool* aSnap) const {
   *aSnap = false;
-  return mFrame->GetVisualOverflowRectRelativeToSelf() + ToReferenceFrame();
+  return mFrame->InkOverflowRectRelativeToSelf() + ToReferenceFrame();
 }
 
 nsRect nsDisplayXULTextBox::GetComponentAlphaBounds(
@@ -487,9 +487,10 @@ void nsTextBoxFrame::DrawText(gfxContext& aRenderingContext,
 
   CalculateUnderline(refDrawTarget, *fontMet);
 
-  nscolor c = aOverrideColor ? *aOverrideColor : StyleText()->mColor.ToColor();
-  ColorPattern color(ToDeviceColor(c));
-  aRenderingContext.SetColor(Color::FromABGR(c));
+  DeviceColor color = ToDeviceColor(
+      aOverrideColor ? *aOverrideColor : StyleText()->mColor.ToColor());
+  ColorPattern colorPattern(color);
+  aRenderingContext.SetDeviceColor(color);
 
   nsresult rv = NS_ERROR_FAILURE;
 
@@ -540,7 +541,7 @@ void nsTextBoxFrame::DrawText(gfxContext& aRenderingContext,
              mAccessKeyInfo->mAccessWidth,
              mAccessKeyInfo->mAccessUnderlineSize);
     Rect devPxRect = NSRectToSnappedRect(r, appUnitsPerDevPixel, *drawTarget);
-    drawTarget->FillRect(devPxRect, color);
+    drawTarget->FillRect(devPxRect, colorPattern);
   }
 
   // Strikeout is drawn on top of the text, per
@@ -767,7 +768,7 @@ nscoord nsTextBoxFrame::CalculateTitleForWidth(gfxContext& aRenderingContext,
                                                  aRenderingContext);
 }
 
-#define OLD_ELLIPSIS NS_LITERAL_STRING("...")
+#define OLD_ELLIPSIS u"..."_ns
 
 // the following block is to append the accesskey to mTitle if there is an
 // accesskey but the mTitle doesn't have the character
@@ -783,7 +784,7 @@ void nsTextBoxFrame::UpdateAccessTitle() {
   if (!menuAccessKey || mAccessKey.IsEmpty()) return;
 
   if (!AlwaysAppendAccessKey() &&
-      FindInReadable(mAccessKey, mTitle, nsCaseInsensitiveStringComparator()))
+      FindInReadable(mAccessKey, mTitle, nsCaseInsensitiveStringComparator))
     return;
 
   nsAutoString accessKeyLabel;
@@ -857,11 +858,11 @@ void nsTextBoxFrame::UpdateAccessIndex() {
           // didn't find it - perform a case-insensitive search
           start = originalStart;
           found = FindInReadable(mAccessKey, start, end,
-                                 nsCaseInsensitiveStringComparator());
+                                 nsCaseInsensitiveStringComparator);
         }
       } else {
         found = RFindInReadable(mAccessKey, start, end,
-                                nsCaseInsensitiveStringComparator());
+                                nsCaseInsensitiveStringComparator);
       }
 
       if (found)
@@ -924,7 +925,7 @@ nsTextBoxFrame::DoXULLayout(nsBoxLayoutState& aBoxLayoutState) {
 
   RefPtr<nsFontMetrics> fontMet =
       nsLayoutUtils::GetFontMetricsForFrame(this, 1.0f);
-  nsBoundingMetrics metrics = fontMet->GetInkBoundsForVisualOverflow(
+  nsBoundingMetrics metrics = fontMet->GetInkBoundsForInkOverflow(
       mCroppedTitle.get(), mCroppedTitle.Length(),
       aBoxLayoutState.GetRenderingContext()->GetDrawTarget());
 
@@ -940,7 +941,7 @@ nsTextBoxFrame::DoXULLayout(nsBoxLayoutState& aBoxLayoutState) {
 
   textRect = tr.GetPhysicalRect(wm, GetSize());
 
-  // Our scrollable overflow is our bounds; our visual overflow may
+  // Our scrollable overflow is our bounds; our ink overflow may
   // extend beyond that.
   nsRect visualBounds;
   visualBounds.UnionRect(scrollBounds, textRect);
@@ -948,7 +949,7 @@ nsTextBoxFrame::DoXULLayout(nsBoxLayoutState& aBoxLayoutState) {
 
   if (textStyle->HasTextShadow()) {
     // text-shadow extends our visual but not scrollable bounds
-    nsRect& vis = overflow.VisualOverflow();
+    nsRect& vis = overflow.InkOverflow();
     vis.UnionRect(vis,
                   nsLayoutUtils::GetTextShadowRectsUnion(mTextDrawRect, this));
   }
@@ -959,12 +960,12 @@ nsTextBoxFrame::DoXULLayout(nsBoxLayoutState& aBoxLayoutState) {
 
 nsRect nsTextBoxFrame::GetComponentAlphaBounds() const {
   if (StyleText()->HasTextShadow()) {
-    return GetVisualOverflowRectRelativeToSelf();
+    return InkOverflowRectRelativeToSelf();
   }
   return mTextDrawRect;
 }
 
-bool nsTextBoxFrame::ComputesOwnOverflowArea() { return true; }
+bool nsTextBoxFrame::XULComputesOwnOverflowArea() { return true; }
 
 /* virtual */
 void nsTextBoxFrame::MarkIntrinsicISizesDirty() {
@@ -1053,7 +1054,7 @@ nsSize nsTextBoxFrame::GetXULPrefSize(nsBoxLayoutState& aBoxLayoutState) {
   nsSize size = mTextSize;
   DISPLAY_PREF_SIZE(this, size);
 
-  AddBorderAndPadding(size);
+  AddXULBorderAndPadding(size);
   bool widthSet, heightSet;
   nsIFrame::AddXULPrefSize(this, size, widthSet, heightSet);
 
@@ -1078,7 +1079,7 @@ nsSize nsTextBoxFrame::GetXULMinSize(nsBoxLayoutState& aBoxLayoutState) {
     }
   }
 
-  AddBorderAndPadding(size);
+  AddXULBorderAndPadding(size);
   bool widthSet, heightSet;
   nsIFrame::AddXULMinSize(this, size, widthSet, heightSet);
 
@@ -1101,8 +1102,8 @@ nscoord nsTextBoxFrame::GetXULBoxAscent(nsBoxLayoutState& aBoxLayoutState) {
 
 #ifdef DEBUG_FRAME_DUMP
 nsresult nsTextBoxFrame::GetFrameName(nsAString& aResult) const {
-  MakeFrameName(NS_LITERAL_STRING("TextBox"), aResult);
-  aResult += NS_LITERAL_STRING("[value=") + mTitle + NS_LITERAL_STRING("]");
+  MakeFrameName(u"TextBox"_ns, aResult);
+  aResult += u"[value="_ns + mTitle + u"]"_ns;
   return NS_OK;
 }
 #endif

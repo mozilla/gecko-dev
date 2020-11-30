@@ -13,12 +13,14 @@
 #include "jit/Bailouts.h"
 #include "jit/BaselineFrame.h"
 #include "jit/JitFrames.h"
+#include "jit/JitRuntime.h"
 #include "jit/MacroAssembler.h"
 #include "jit/mips32/Simulator-mips32.h"
 #include "jit/MoveEmitter.h"
 #include "jit/SharedICRegisters.h"
 #include "util/Memory.h"
 #include "vm/JitActivation.h"  // js::jit::JitActivation
+#include "vm/JSContext.h"
 
 #include "jit/MacroAssembler-inl.h"
 
@@ -1370,6 +1372,11 @@ void MacroAssemblerMIPSCompat::unboxDouble(const Address& src,
   moveToDoubleHi(ScratchRegister, dest);
 }
 
+void MacroAssemblerMIPSCompat::unboxDouble(const BaseIndex& src,
+                                           FloatRegister dest) {
+  loadDouble(src, dest);
+}
+
 void MacroAssemblerMIPSCompat::unboxString(const ValueOperand& operand,
                                            Register dest) {
   ma_move(dest, operand.payloadReg());
@@ -1379,12 +1386,26 @@ void MacroAssemblerMIPSCompat::unboxString(const Address& src, Register dest) {
   ma_lw(dest, Address(src.base, src.offset + PAYLOAD_OFFSET));
 }
 
+void MacroAssemblerMIPSCompat::unboxBigInt(const ValueOperand& operand,
+                                           Register dest) {
+  ma_move(dest, operand.payloadReg());
+}
+
+void MacroAssemblerMIPSCompat::unboxBigInt(const Address& src, Register dest) {
+  ma_lw(dest, Address(src.base, src.offset + PAYLOAD_OFFSET));
+}
+
 void MacroAssemblerMIPSCompat::unboxObject(const ValueOperand& src,
                                            Register dest) {
   ma_move(dest, src.payloadReg());
 }
 
 void MacroAssemblerMIPSCompat::unboxObject(const Address& src, Register dest) {
+  ma_lw(dest, Address(src.base, src.offset + PAYLOAD_OFFSET));
+}
+
+void MacroAssemblerMIPSCompat::unboxObjectOrNull(const Address& src,
+                                                 Register dest) {
   ma_lw(dest, Address(src.base, src.offset + PAYLOAD_OFFSET));
 }
 
@@ -1718,7 +1739,7 @@ void MacroAssemblerMIPSCompat::checkStackAlignment() {
 
 void MacroAssemblerMIPSCompat::alignStackPointer() {
   movePtr(StackPointer, SecondScratchReg);
-  asMasm().subPtr(Imm32(sizeof(uintptr_t)), StackPointer);
+  asMasm().subPtr(Imm32(sizeof(intptr_t)), StackPointer);
   asMasm().andPtr(Imm32(~(ABIStackAlignment - 1)), StackPointer);
   storePtr(SecondScratchReg, Address(StackPointer, 0));
 }
@@ -1728,7 +1749,7 @@ void MacroAssemblerMIPSCompat::restoreStackPointer() {
 }
 
 void MacroAssemblerMIPSCompat::handleFailureWithHandlerTail(
-    void* handler, Label* profilerExitTail) {
+    Label* profilerExitTail) {
   // Reserve space for exception information.
   int size = (sizeof(ResumeFromException) + ABIStackAlignment) &
              ~(ABIStackAlignment - 1);
@@ -1736,10 +1757,11 @@ void MacroAssemblerMIPSCompat::handleFailureWithHandlerTail(
   ma_move(a0, StackPointer);  // Use a0 since it is a first function argument
 
   // Call the handler.
+  using Fn = void (*)(ResumeFromException * rfe);
   asMasm().setupUnalignedABICall(a1);
   asMasm().passABIArg(a0);
-  asMasm().callWithABI(handler, MoveOp::GENERAL,
-                       CheckUnsafeCallWithABI::DontCheckHasExitFrame);
+  asMasm().callWithABI<Fn, HandleException>(
+      MoveOp::GENERAL, CheckUnsafeCallWithABI::DontCheckHasExitFrame);
 
   Label entryFrame;
   Label catch_;
@@ -1910,6 +1932,10 @@ void MacroAssembler::PushRegsInMask(LiveRegisterSet set) {
   }
   MOZ_ASSERT(diffG == 0);
 
+#ifdef ENABLE_WASM_SIMD
+#  error "Needs more careful logic if SIMD is enabled"
+#endif
+
   if (diffF > 0) {
     // Double values have to be aligned. We reserve extra space so that we can
     // start writing from the first aligned location.
@@ -1935,6 +1961,10 @@ void MacroAssembler::PopRegsInMaskIgnore(LiveRegisterSet set,
   int32_t diffF = set.fpus().getPushSizeInBytes();
   const int32_t reservedG = diffG;
   const int32_t reservedF = diffF;
+
+#ifdef ENABLE_WASM_SIMD
+#  error "Needs more careful logic if SIMD is enabled"
+#endif
 
   if (reservedF > 0) {
     // Read the buffer form the first aligned location.
@@ -1979,6 +2009,10 @@ void MacroAssembler::storeRegsInMask(LiveRegisterSet set, Address dest,
     storePtr(*iter, dest);
   }
   MOZ_ASSERT(diffG == 0);
+
+#ifdef ENABLE_WASM_SIMD
+#  error "Needs more careful logic if SIMD is enabled"
+#endif
 
   if (diffF > 0) {
     computeEffectiveAddress(dest, scratch);
@@ -2167,14 +2201,12 @@ void MacroAssembler::branchValueIsNurseryCell(Condition cond,
                                               const Address& address,
                                               Register temp, Label* label) {
   MOZ_ASSERT(cond == Assembler::Equal || cond == Assembler::NotEqual);
-  Label done, checkAddress;
 
-  branchTestObject(Assembler::Equal, address, &checkAddress);
-  branchTestString(Assembler::Equal, address, &checkAddress);
-  branchTestBigInt(Assembler::NotEqual, address,
-                   cond == Assembler::Equal ? &done : label);
+  Label done;
 
-  bind(&checkAddress);
+  branchTestGCThing(Assembler::NotEqual, address,
+                    cond == Assembler::Equal ? &done : label);
+
   loadPtr(address, temp);
   branchPtrInNurseryChunk(cond, temp, InvalidReg, label);
 
@@ -2186,26 +2218,10 @@ void MacroAssembler::branchValueIsNurseryCell(Condition cond,
                                               Label* label) {
   MOZ_ASSERT(cond == Assembler::Equal || cond == Assembler::NotEqual);
 
-  Label done, checkAddress;
-  branchTestObject(Assembler::Equal, value, &checkAddress);
-  branchTestString(Assembler::Equal, value, &checkAddress);
-  branchTestBigInt(Assembler::NotEqual, value,
-                   cond == Assembler::Equal ? &done : label);
-
-  bind(&checkAddress);
-  branchPtrInNurseryChunk(cond, value.payloadReg(), temp, label);
-
-  bind(&done);
-}
-
-void MacroAssembler::branchValueIsNurseryObject(Condition cond,
-                                                ValueOperand value,
-                                                Register temp, Label* label) {
-  MOZ_ASSERT(cond == Assembler::Equal || cond == Assembler::NotEqual);
   Label done;
 
-  branchTestObject(Assembler::NotEqual, value,
-                   cond == Assembler::Equal ? &done : label);
+  branchTestGCThing(Assembler::NotEqual, value,
+                    cond == Assembler::Equal ? &done : label);
   branchPtrInNurseryChunk(cond, value.payloadReg(), temp, label);
 
   bind(&done);
@@ -2260,6 +2276,8 @@ template void MacroAssembler::storeUnboxedValue(const ConstantOrRegister& value,
 template void MacroAssembler::storeUnboxedValue(
     const ConstantOrRegister& value, MIRType valueType,
     const BaseObjectElementIndex& dest, MIRType slotType);
+
+void MacroAssembler::PushBoxed(FloatRegister reg) { Push(reg); }
 
 void MacroAssembler::wasmBoundsCheck(Condition cond, Register index,
                                      Register boundsCheckLimit, Label* label) {
@@ -2747,6 +2765,14 @@ void MacroAssembler::convertUInt64ToDouble(Register64 src, FloatRegister dest,
                                            Register temp) {
   MOZ_ASSERT(temp == Register::Invalid());
   convertUInt32ToDouble(src.high, dest);
+  loadConstantDouble(TO_DOUBLE_HIGH_SCALE, ScratchDoubleReg);
+  mulDouble(ScratchDoubleReg, dest);
+  convertUInt32ToDouble(src.low, ScratchDoubleReg);
+  addDouble(ScratchDoubleReg, dest);
+}
+
+void MacroAssembler::convertInt64ToDouble(Register64 src, FloatRegister dest) {
+  convertInt32ToDouble(src.high, dest);
   loadConstantDouble(TO_DOUBLE_HIGH_SCALE, ScratchDoubleReg);
   mulDouble(ScratchDoubleReg, dest);
   convertUInt32ToDouble(src.low, ScratchDoubleReg);

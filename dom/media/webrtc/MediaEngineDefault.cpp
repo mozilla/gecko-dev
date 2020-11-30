@@ -11,6 +11,7 @@
 #include "MediaTrackListener.h"
 #include "MediaTrackConstraints.h"
 #include "mozilla/dom/File.h"
+#include "mozilla/SyncRunnable.h"
 #include "mozilla/UniquePtr.h"
 #include "nsCOMPtr.h"
 #include "nsContentUtils.h"
@@ -39,6 +40,7 @@ using dom::MediaTrackSettings;
 using dom::VideoFacingModeEnum;
 
 static nsString DefaultVideoName() {
+  MOZ_ASSERT(!NS_IsMainThread());
   // For the purpose of testing we allow to change the name of the fake device
   // by pref.
   nsAutoString cameraNameFromPref;
@@ -47,19 +49,16 @@ static nsString DefaultVideoName() {
   // InvokeAsync, instead of "soft" block, provided by sync dispatch which
   // allows the waiting thread to spin its event loop. The latter would allow
   // miltiple enumeration requests being processed out-of-order.
-  media::Await(
-      do_AddRef(SystemGroup::EventTargetFor(TaskCategory::Other)),
-      InvokeAsync(
-          SystemGroup::EventTargetFor(TaskCategory::Other), __func__, [&]() {
-            rv = Preferences::GetString("media.getusermedia.fake-camera-name",
-                                        cameraNameFromPref);
-            return GenericPromise::CreateAndResolve(true, __func__);
-          }));
+  RefPtr<Runnable> runnable = NS_NewRunnableFunction(__func__, [&]() {
+    rv = Preferences::GetString("media.getusermedia.fake-camera-name",
+                                cameraNameFromPref);
+  });
+  SyncRunnable::DispatchToThread(GetMainThreadSerialEventTarget(), runnable);
 
   if (NS_SUCCEEDED(rv)) {
     return std::move(cameraNameFromPref);
   }
-  return NS_LITERAL_STRING(u"Default Video Device");
+  return u"Default Video Device"_ns;
 }
 
 /**
@@ -86,11 +85,11 @@ MediaEngineDefaultVideoSource::~MediaEngineDefaultVideoSource() = default;
 nsString MediaEngineDefaultVideoSource::GetName() const { return mName; }
 
 nsCString MediaEngineDefaultVideoSource::GetUUID() const {
-  return NS_LITERAL_CSTRING("1041FCBD-3F12-4F7B-9E9B-1EC556DD5676");
+  return "1041FCBD-3F12-4F7B-9E9B-1EC556DD5676"_ns;
 }
 
 nsString MediaEngineDefaultVideoSource::GetGroupId() const {
-  return NS_LITERAL_STRING(u"Default Video Group");
+  return u"Default Video Group"_ns;
 }
 
 uint32_t MediaEngineDefaultVideoSource::GetBestFitnessDistance(
@@ -237,7 +236,7 @@ nsresult MediaEngineDefaultVideoSource::Start() {
   MOZ_ASSERT(mState == kAllocated || mState == kStopped);
   MOZ_ASSERT(mTrack, "SetTrack() must happen before Start()");
 
-  mTimer = NS_NewTimer();
+  mTimer = NS_NewTimer(GetCurrentSerialEventTarget());
   if (!mTimer) {
     return NS_ERROR_FAILURE;
   }
@@ -359,8 +358,8 @@ class AudioSourcePullListener : public MediaTrackListener {
                           uint32_t aFrequency)
       : mTrack(std::move(aTrack)),
         mPrincipalHandle(aPrincipalHandle),
-        mSineGenerator(
-            MakeUnique<SineWaveGenerator>(mTrack->mSampleRate, aFrequency)) {
+        mSineGenerator(MakeUnique<SineWaveGenerator<int16_t>>(
+            mTrack->mSampleRate, aFrequency)) {
     MOZ_COUNT_CTOR(AudioSourcePullListener);
   }
 
@@ -371,7 +370,7 @@ class AudioSourcePullListener : public MediaTrackListener {
 
   const RefPtr<SourceMediaTrack> mTrack;
   const PrincipalHandle mPrincipalHandle;
-  const UniquePtr<SineWaveGenerator> mSineGenerator;
+  const UniquePtr<SineWaveGenerator<int16_t>> mSineGenerator;
 };
 
 /**
@@ -383,15 +382,15 @@ MediaEngineDefaultAudioSource::MediaEngineDefaultAudioSource() = default;
 MediaEngineDefaultAudioSource::~MediaEngineDefaultAudioSource() = default;
 
 nsString MediaEngineDefaultAudioSource::GetName() const {
-  return NS_LITERAL_STRING(u"Default Audio Device");
+  return u"Default Audio Device"_ns;
 }
 
 nsCString MediaEngineDefaultAudioSource::GetUUID() const {
-  return NS_LITERAL_CSTRING("B7CBD7C1-53EF-42F9-8353-73F61C70C092");
+  return "B7CBD7C1-53EF-42F9-8353-73F61C70C092"_ns;
 }
 
 nsString MediaEngineDefaultAudioSource::GetGroupId() const {
-  return NS_LITERAL_STRING(u"Default Audio Group");
+  return u"Default Audio Group"_ns;
 }
 
 void MediaEngineDefaultAudioSource::GetSettings(
@@ -444,6 +443,10 @@ void MediaEngineDefaultAudioSource::SetTrack(
 nsresult MediaEngineDefaultAudioSource::Start() {
   AssertIsOnOwningThread();
 
+  if (mState == kStarted) {
+    return NS_OK;
+  }
+
   MOZ_ASSERT(mState == kAllocated || mState == kStopped);
   MOZ_ASSERT(mTrack, "SetTrack() must happen before Start()");
 
@@ -495,7 +498,7 @@ nsresult MediaEngineDefaultAudioSource::Reconfigure(
 void AudioSourcePullListener::NotifyPull(MediaTrackGraph* aGraph,
                                          TrackTime aEndOfAppendedData,
                                          TrackTime aDesiredTime) {
-  TRACE_AUDIO_CALLBACK_COMMENT("SourceMediaTrack %p", mTrack.get());
+  TRACE_COMMENT("SourceMediaTrack %p", mTrack.get());
   AudioSegment segment;
   TrackTicks delta = aDesiredTime - aEndOfAppendedData;
   CheckedInt<size_t> bufferSize(sizeof(int16_t));
@@ -518,18 +521,18 @@ void MediaEngineDefault::EnumerateDevices(
     case MediaSourceEnum::Camera: {
       // Only supports camera video sources. See Bug 1038241.
       auto newSource = MakeRefPtr<MediaEngineDefaultVideoSource>();
-      aDevices->AppendElement(MakeRefPtr<MediaDevice>(
-          newSource, newSource->GetName(),
-          NS_ConvertUTF8toUTF16(newSource->GetUUID()), newSource->GetGroupId(),
-          NS_LITERAL_STRING("")));
+      aDevices->AppendElement(
+          MakeRefPtr<MediaDevice>(newSource, newSource->GetName(),
+                                  NS_ConvertUTF8toUTF16(newSource->GetUUID()),
+                                  newSource->GetGroupId(), u""_ns));
       return;
     }
     case MediaSourceEnum::Microphone: {
       auto newSource = MakeRefPtr<MediaEngineDefaultAudioSource>();
-      aDevices->AppendElement(MakeRefPtr<MediaDevice>(
-          newSource, newSource->GetName(),
-          NS_ConvertUTF8toUTF16(newSource->GetUUID()), newSource->GetGroupId(),
-          NS_LITERAL_STRING("")));
+      aDevices->AppendElement(
+          MakeRefPtr<MediaDevice>(newSource, newSource->GetName(),
+                                  NS_ConvertUTF8toUTF16(newSource->GetUUID()),
+                                  newSource->GetGroupId(), u""_ns));
       return;
     }
     default:

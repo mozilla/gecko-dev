@@ -4,13 +4,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "PageInformation.h"
+
 #include "BaseProfiler.h"
 
-#ifdef MOZ_BASE_PROFILER
-
-#  include "PageInformation.h"
-
-#  include "BaseProfileJSONWriter.h"
+#include "mozilla/BaseProfileJSONWriter.h"
 
 namespace mozilla {
 namespace baseprofiler {
@@ -39,7 +37,7 @@ void PageInformation::StreamJSON(SpliceableJSONWriter& aWriter) const {
   // when passed into and out of JS as a double.
   aWriter.DoubleProperty("browsingContextID", BrowsingContextID());
   aWriter.DoubleProperty("innerWindowID", InnerWindowID());
-  aWriter.StringProperty("url", Url().c_str());
+  aWriter.StringProperty("url", Url());
   aWriter.DoubleProperty("embedderInnerWindowID", EmbedderInnerWindowID());
   aWriter.EndObject();
 }
@@ -50,5 +48,3 @@ size_t PageInformation::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const {
 
 }  // namespace baseprofiler
 }  // namespace mozilla
-
-#endif  // MOZ_BASE_PROFILER

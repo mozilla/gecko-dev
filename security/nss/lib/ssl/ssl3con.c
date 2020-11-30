@@ -21,6 +21,7 @@
 #include "sslerr.h"
 #include "ssl3ext.h"
 #include "ssl3exthandle.h"
+#include "tls13psk.h"
 #include "tls13subcerts.h"
 #include "prtime.h"
 #include "prinrval.h"
@@ -65,6 +66,7 @@ static SECStatus ssl3_FlushHandshakeMessages(sslSocket *ss, PRInt32 flags);
 static CK_MECHANISM_TYPE ssl3_GetHashMechanismByHashType(SSLHashType hashType);
 static CK_MECHANISM_TYPE ssl3_GetMgfMechanismByHashType(SSLHashType hash);
 PRBool ssl_IsRsaPssSignatureScheme(SSLSignatureScheme scheme);
+PRBool ssl_IsRsaeSignatureScheme(SSLSignatureScheme scheme);
 PRBool ssl_IsRsaPkcs1SignatureScheme(SSLSignatureScheme scheme);
 PRBool ssl_IsDsaSignatureScheme(SSLSignatureScheme scheme);
 
@@ -391,7 +393,7 @@ static const SSLCipher2Mech alg2Mech[] = {
     { ssl_calg_camellia, CKM_CAMELLIA_CBC },
     { ssl_calg_seed, CKM_SEED_CBC },
     { ssl_calg_aes_gcm, CKM_AES_GCM },
-    { ssl_calg_chacha20, CKM_NSS_CHACHA20_POLY1305 },
+    { ssl_calg_chacha20, CKM_CHACHA20_POLY1305 },
 };
 
 const PRUint8 tls12_downgrade_random[] = { 0x44, 0x4F, 0x57, 0x4E,
@@ -517,7 +519,7 @@ ssl3_DecodeContentType(int msgType)
             rv = "application_data (23)";
             break;
         case ssl_ct_ack:
-            rv = "ack (25)";
+            rv = "ack (26)";
             break;
         default:
             sprintf(line, "*UNKNOWN* record type! (%d)", msgType);
@@ -782,15 +784,19 @@ ssl_HasCert(const sslSocket *ss, PRUint16 maxVersion, SSLAuthType authType)
  * Both by policy and by having a token that supports it. */
 static PRBool
 ssl_SignatureSchemeAccepted(PRUint16 minVersion,
-                            SSLSignatureScheme scheme)
+                            SSLSignatureScheme scheme,
+                            PRBool forCert)
 {
     /* Disable RSA-PSS schemes if there are no tokens to verify them. */
     if (ssl_IsRsaPssSignatureScheme(scheme)) {
         if (!PK11_TokenExists(auth_alg_defs[ssl_auth_rsa_pss])) {
             return PR_FALSE;
         }
-    } else if (ssl_IsRsaPkcs1SignatureScheme(scheme)) {
-        /* Disable PKCS#1 signatures if we are limited to TLS 1.3. */
+    } else if (!forCert && ssl_IsRsaPkcs1SignatureScheme(scheme)) {
+        /* Disable PKCS#1 signatures if we are limited to TLS 1.3.
+         * We still need to advertise PKCS#1 signatures in CH and CR
+         * for certificate signatures.
+         */
         if (minVersion >= SSL_LIBRARY_VERSION_TLS_1_3) {
             return PR_FALSE;
         }
@@ -849,7 +855,8 @@ ssl_CheckSignatureSchemes(sslSocket *ss)
     /* Ensure that there is a signature scheme that can be accepted.*/
     for (unsigned int i = 0; i < ss->ssl3.signatureSchemeCount; ++i) {
         if (ssl_SignatureSchemeAccepted(ss->vrange.min,
-                                        ss->ssl3.signatureSchemes[i])) {
+                                        ss->ssl3.signatureSchemes[i],
+                                        PR_FALSE /* forCert */)) {
             return SECSuccess;
         }
     }
@@ -878,7 +885,7 @@ ssl_HasSignatureScheme(const sslSocket *ss, SSLAuthType authType)
         PRBool acceptable = authType == schemeAuthType ||
                             (schemeAuthType == ssl_auth_rsa_pss &&
                              authType == ssl_auth_rsa_sign);
-        if (acceptable && ssl_SignatureSchemeAccepted(ss->version, scheme)) {
+        if (acceptable && ssl_SignatureSchemeAccepted(ss->version, scheme, PR_FALSE /* forCert */)) {
             return PR_TRUE;
         }
     }
@@ -909,6 +916,13 @@ ssl3_config_match_init(sslSocket *ss)
         return 0;
     }
     if (SSL_ALL_VERSIONS_DISABLED(&ss->vrange)) {
+        return 0;
+    }
+    if (ss->sec.isServer && ss->psk &&
+        PR_CLIST_IS_EMPTY(&ss->serverCerts) &&
+        (ss->opt.requestCertificate || ss->opt.requireCertificate)) {
+        /* PSK and certificate auth cannot be combined. */
+        PORT_SetError(SSL_ERROR_NO_CERTIFICATE);
         return 0;
     }
     if (ssl_CheckSignatureSchemes(ss) != SECSuccess) {
@@ -1006,6 +1020,16 @@ ssl3_config_match(const ssl3CipherSuiteCfg *suite, PRUint8 policy,
 
     if (ss->sec.isServer && !ssl_HasCert(ss, vrange->max, kea_def->authKeyType)) {
         return PR_FALSE;
+    }
+
+    /* If a PSK is selected, disable suites that use a different hash than
+     * the PSK. We advertise non-PSK-compatible suites in the CH, as we could
+     * fallback to certificate auth. The client handler will check hash
+     * compatibility before committing to use the PSK. */
+    if (ss->xtnData.selectedPsk) {
+        if (ss->xtnData.selectedPsk->hash != cipher_def->prf_hash) {
+            return PR_FALSE;
+        }
     }
 
     return ssl3_CipherSuiteAllowedForVersionRange(suite->cipher_suite, vrange);
@@ -1739,117 +1763,6 @@ ssl3_BuildRecordPseudoHeader(DTLSEpoch epoch,
     return SECSuccess;
 }
 
-static SECStatus
-ssl3_AESGCM(const ssl3KeyMaterial *keys,
-            PRBool doDecrypt,
-            unsigned char *out,
-            unsigned int *outlen,
-            unsigned int maxout,
-            const unsigned char *in,
-            unsigned int inlen,
-            const unsigned char *additionalData,
-            unsigned int additionalDataLen)
-{
-    SECItem param;
-    SECStatus rv = SECFailure;
-    unsigned char nonce[12];
-    unsigned int uOutLen;
-    CK_GCM_PARAMS gcmParams;
-
-    const int tagSize = 16;
-    const int explicitNonceLen = 8;
-
-    /* See https://tools.ietf.org/html/rfc5288#section-3 for details of how the
-     * nonce is formed. */
-    memcpy(nonce, keys->iv, 4);
-    if (doDecrypt) {
-        memcpy(nonce + 4, in, explicitNonceLen);
-        in += explicitNonceLen;
-        inlen -= explicitNonceLen;
-        *outlen = 0;
-    } else {
-        if (maxout < explicitNonceLen) {
-            PORT_SetError(SEC_ERROR_INPUT_LEN);
-            return SECFailure;
-        }
-        /* Use the 64-bit sequence number as the explicit nonce. */
-        memcpy(nonce + 4, additionalData, explicitNonceLen);
-        memcpy(out, additionalData, explicitNonceLen);
-        out += explicitNonceLen;
-        maxout -= explicitNonceLen;
-        *outlen = explicitNonceLen;
-    }
-
-    param.type = siBuffer;
-    param.data = (unsigned char *)&gcmParams;
-    param.len = sizeof(gcmParams);
-    gcmParams.pIv = nonce;
-    gcmParams.ulIvLen = sizeof(nonce);
-    gcmParams.pAAD = (unsigned char *)additionalData; /* const cast */
-    gcmParams.ulAADLen = additionalDataLen;
-    gcmParams.ulTagBits = tagSize * 8;
-
-    if (doDecrypt) {
-        rv = PK11_Decrypt(keys->key, CKM_AES_GCM, &param, out, &uOutLen,
-                          maxout, in, inlen);
-    } else {
-        rv = PK11_Encrypt(keys->key, CKM_AES_GCM, &param, out, &uOutLen,
-                          maxout, in, inlen);
-    }
-    *outlen += (int)uOutLen;
-
-    return rv;
-}
-
-static SECStatus
-ssl3_ChaCha20Poly1305(const ssl3KeyMaterial *keys, PRBool doDecrypt,
-                      unsigned char *out, unsigned int *outlen, unsigned int maxout,
-                      const unsigned char *in, unsigned int inlen,
-                      const unsigned char *additionalData,
-                      unsigned int additionalDataLen)
-{
-    size_t i;
-    SECItem param;
-    SECStatus rv = SECFailure;
-    unsigned int uOutLen;
-    unsigned char nonce[12];
-    CK_NSS_AEAD_PARAMS aeadParams;
-
-    const int tagSize = 16;
-
-    /* See
-     * https://tools.ietf.org/html/draft-ietf-tls-chacha20-poly1305-04#section-2
-     * for details of how the nonce is formed. */
-    PORT_Memcpy(nonce, keys->iv, 12);
-
-    /* XOR the last 8 bytes of the IV with the sequence number. */
-    PORT_Assert(additionalDataLen >= 8);
-    for (i = 0; i < 8; ++i) {
-        nonce[4 + i] ^= additionalData[i];
-    }
-
-    param.type = siBuffer;
-    param.len = sizeof(aeadParams);
-    param.data = (unsigned char *)&aeadParams;
-    memset(&aeadParams, 0, sizeof(aeadParams));
-    aeadParams.pNonce = nonce;
-    aeadParams.ulNonceLen = sizeof(nonce);
-    aeadParams.pAAD = (unsigned char *)additionalData;
-    aeadParams.ulAADLen = additionalDataLen;
-    aeadParams.ulTagLen = tagSize;
-
-    if (doDecrypt) {
-        rv = PK11_Decrypt(keys->key, CKM_NSS_CHACHA20_POLY1305, &param,
-                          out, &uOutLen, maxout, in, inlen);
-    } else {
-        rv = PK11_Encrypt(keys->key, CKM_NSS_CHACHA20_POLY1305, &param,
-                          out, &uOutLen, maxout, in, inlen);
-    }
-    *outlen = (int)uOutLen;
-
-    return rv;
-}
-
 /* Initialize encryption and MAC contexts for pending spec.
  * Master Secret already is derived.
  * Caller holds Spec write lock.
@@ -1867,40 +1780,26 @@ ssl3_InitPendingContexts(sslSocket *ss, ssl3CipherSpec *spec)
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveSpecWriteLock(ss));
 
-    macLength = spec->macDef->mac_size;
     calg = spec->cipherDef->calg;
     PORT_Assert(alg2Mech[calg].calg == calg);
 
-    if (spec->cipherDef->type == type_aead) {
-        spec->cipher = NULL;
-        spec->cipherContext = NULL;
-        switch (calg) {
-            case ssl_calg_aes_gcm:
-                spec->aead = ssl3_AESGCM;
-                break;
-            case ssl_calg_chacha20:
-                spec->aead = ssl3_ChaCha20Poly1305;
-                break;
-            default:
-                PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-                return SECFailure;
+    if (spec->cipherDef->type != type_aead) {
+        macLength = spec->macDef->mac_size;
+
+        /*
+        ** Now setup the MAC contexts,
+        **   crypto contexts are setup below.
+        */
+        macParam.data = (unsigned char *)&macLength;
+        macParam.len = sizeof(macLength);
+        macParam.type = siBuffer;
+
+        spec->keyMaterial.macContext = PK11_CreateContextBySymKey(
+            spec->macDef->mmech, CKA_SIGN, spec->keyMaterial.macKey, &macParam);
+        if (!spec->keyMaterial.macContext) {
+            ssl_MapLowLevelError(SSL_ERROR_SYM_KEY_CONTEXT_FAILURE);
+            return SECFailure;
         }
-        return SECSuccess;
-    }
-
-    /*
-    ** Now setup the MAC contexts,
-    **   crypto contexts are setup below.
-    */
-    macParam.data = (unsigned char *)&macLength;
-    macParam.len = sizeof(macLength);
-    macParam.type = siBuffer;
-
-    spec->keyMaterial.macContext = PK11_CreateContextBySymKey(
-        spec->macDef->mmech, CKA_SIGN, spec->keyMaterial.macKey, &macParam);
-    if (!spec->keyMaterial.macContext) {
-        ssl_MapLowLevelError(SSL_ERROR_SYM_KEY_CONTEXT_FAILURE);
-        return SECFailure;
     }
 
     /*
@@ -1911,15 +1810,21 @@ ssl3_InitPendingContexts(sslSocket *ss, ssl3CipherSpec *spec)
         return SECSuccess;
     }
 
-    spec->cipher = (SSLCipher)PK11_CipherOp;
     encMechanism = ssl3_Alg2Mech(calg);
     encMode = (spec->direction == ssl_secret_write) ? CKA_ENCRYPT : CKA_DECRYPT;
+    if (spec->cipherDef->type == type_aead) {
+        encMode |= CKA_NSS_MESSAGE;
+        iv.data = NULL;
+        iv.len = 0;
+    } else {
+        spec->cipher = (SSLCipher)PK11_CipherOp;
+        iv.data = spec->keyMaterial.iv;
+        iv.len = spec->cipherDef->iv_size;
+    }
 
     /*
      * build the context
      */
-    iv.data = spec->keyMaterial.iv;
-    iv.len = spec->cipherDef->iv_size;
     spec->cipherContext = PK11_CreateContextBySymKey(encMechanism, encMode,
                                                      spec->keyMaterial.key,
                                                      &iv);
@@ -2238,25 +2143,54 @@ ssl3_MACEncryptRecord(ssl3CipherSpec *cwSpec,
         isDTLS, contentLen, &pseudoHeader);
     PORT_Assert(rv == SECSuccess);
     if (cwSpec->cipherDef->type == type_aead) {
-        const int nonceLen = cwSpec->cipherDef->explicit_nonce_size;
-        const int tagLen = cwSpec->cipherDef->tag_size;
+        const unsigned int nonceLen = cwSpec->cipherDef->explicit_nonce_size;
+        const unsigned int tagLen = cwSpec->cipherDef->tag_size;
+        unsigned int ivOffset = 0;
+        CK_GENERATOR_FUNCTION gen;
+        /* ivOut includes the iv and the nonce and is the internal iv/nonce
+         * for the AEAD function. On Encrypt, this is an in/out parameter */
+        unsigned char ivOut[MAX_IV_LENGTH];
+        ivLen = cwSpec->cipherDef->iv_size;
+
+        PORT_Assert((ivLen + nonceLen) <= MAX_IV_LENGTH);
+        PORT_Assert((ivLen + nonceLen) >= sizeof(sslSequenceNumber));
 
         if (nonceLen + contentLen + tagLen > SSL_BUFFER_SPACE(wrBuf)) {
             PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
             return SECFailure;
         }
 
-        rv = cwSpec->aead(
-            &cwSpec->keyMaterial,
-            PR_FALSE,                /* do encrypt */
-            SSL_BUFFER_NEXT(wrBuf),  /* output  */
-            &len,                    /* out len */
-            SSL_BUFFER_SPACE(wrBuf), /* max out */
-            pIn, contentLen,         /* input   */
-            SSL_BUFFER_BASE(&pseudoHeader), SSL_BUFFER_LEN(&pseudoHeader));
+        if (nonceLen == 0) {
+            ivOffset = ivLen - sizeof(sslSequenceNumber);
+            gen = CKG_GENERATE_COUNTER_XOR;
+        } else {
+            ivOffset = ivLen;
+            gen = CKG_GENERATE_COUNTER;
+        }
+        ivOffset = tls13_SetupAeadIv(isDTLS, ivOut, cwSpec->keyMaterial.iv,
+                                     ivOffset, ivLen, cwSpec->epoch);
+        rv = tls13_AEAD(cwSpec->cipherContext,
+                        PR_FALSE,
+                        gen, ivOffset * BPB,                /* iv generator params */
+                        ivOut,                              /* iv in  */
+                        ivOut,                              /* iv out */
+                        ivLen + nonceLen,                   /* full iv length */
+                        NULL, 0,                            /* nonce is generated*/
+                        SSL_BUFFER_BASE(&pseudoHeader),     /* aad */
+                        SSL_BUFFER_LEN(&pseudoHeader),      /* aadlen */
+                        SSL_BUFFER_NEXT(wrBuf) + nonceLen,  /* output  */
+                        &len,                               /* out len */
+                        SSL_BUFFER_SPACE(wrBuf) - nonceLen, /* max out */
+                        tagLen,
+                        pIn, contentLen); /* input   */
         if (rv != SECSuccess) {
             PORT_SetError(SSL_ERROR_ENCRYPTION_FAILURE);
             return SECFailure;
+        }
+        len += nonceLen; /* include the nonce at the beginning */
+        /* copy out the generated iv if we are using explict nonces */
+        if (nonceLen) {
+            PORT_Memcpy(SSL_BUFFER_NEXT(wrBuf), ivOut + ivLen, nonceLen);
         }
 
         rv = sslBuffer_Skip(wrBuf, len, NULL);
@@ -4553,6 +4487,21 @@ ssl_IsRsaPssSignatureScheme(SSLSignatureScheme scheme)
 }
 
 PRBool
+ssl_IsRsaeSignatureScheme(SSLSignatureScheme scheme)
+{
+    switch (scheme) {
+        case ssl_sig_rsa_pss_rsae_sha256:
+        case ssl_sig_rsa_pss_rsae_sha384:
+        case ssl_sig_rsa_pss_rsae_sha512:
+            return PR_TRUE;
+
+        default:
+            return PR_FALSE;
+    }
+    return PR_FALSE;
+}
+
+PRBool
 ssl_IsRsaPkcs1SignatureScheme(SSLSignatureScheme scheme)
 {
     switch (scheme) {
@@ -5407,10 +5356,11 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
     }
 
     if (extensionBuf.len) {
-        /* If we are sending a PSK binder, replace the dummy value.  Note that
-         * we only set statelessResume on the client in TLS 1.3. */
-        if (ss->statelessResume &&
-            ss->xtnData.sentSessionTicketInClientHello) {
+        /* If we are sending a PSK binder, replace the dummy value. */
+        if (ssl3_ExtensionAdvertised(ss, ssl_tls13_pre_shared_key_xtn)) {
+            PORT_Assert(ss->psk ||
+                        (ss->statelessResume && ss->xtnData.sentSessionTicketInClientHello));
+            PORT_Assert(!PR_CLIST_IS_EMPTY(&ss->ssl3.hs.psks));
             rv = tls13_WriteExtensionsWithBinder(ss, &extensionBuf);
         } else {
             rv = ssl3_AppendBufferToHandshakeVariable(ss, &extensionBuf, 2);
@@ -6673,7 +6623,7 @@ ssl_CheckServerSessionIdCorrectness(sslSocket *ss, SECItem *sidBytes)
      * fake. Check for the real value. */
     if (sentRealSid) {
         sidMatch = (sidBytes->len == sid->u.ssl3.sessionIDLength) &&
-                   PORT_Memcmp(sid->u.ssl3.sessionID, sidBytes->data, sidBytes->len) == 0;
+                   (!sidBytes->len || PORT_Memcmp(sid->u.ssl3.sessionID, sidBytes->data, sidBytes->len) == 0);
     } else {
         /* Otherwise, the session ID was a fake if TLS 1.3 compat mode is
          * enabled.  If so, check for the fake value. */
@@ -6695,7 +6645,11 @@ ssl_CheckServerSessionIdCorrectness(sslSocket *ss, SECItem *sidBytes)
 
     /* TLS 1.3: We sent a session ID.  The server's should match. */
     if (!IS_DTLS(ss) && (sentRealSid || sentFakeSid)) {
-        return sidMatch;
+        if (sidMatch) {
+            ss->ssl3.hs.allowCcs = PR_TRUE;
+            return PR_TRUE;
+        }
+        return PR_FALSE;
     }
 
     /* TLS 1.3 (no SID)/DTLS 1.3: The server shouldn't send a session ID. */
@@ -7703,16 +7657,6 @@ ssl3_CompleteHandleCertificateRequest(sslSocket *ss,
             /* check what the callback function returned */
             if ((!ss->ssl3.clientCertificate) || (!ss->ssl3.clientPrivateKey)) {
                 /* we are missing either the key or cert */
-                if (ss->ssl3.clientCertificate) {
-                    /* got a cert, but no key - free it */
-                    CERT_DestroyCertificate(ss->ssl3.clientCertificate);
-                    ss->ssl3.clientCertificate = NULL;
-                }
-                if (ss->ssl3.clientPrivateKey) {
-                    /* got a key, but no cert - free it */
-                    SECKEY_DestroyPrivateKey(ss->ssl3.clientPrivateKey);
-                    ss->ssl3.clientPrivateKey = NULL;
-                }
                 goto send_no_certificate;
             }
             /* Setting ssl3.clientCertChain non-NULL will cause
@@ -7722,22 +7666,33 @@ ssl3_CompleteHandleCertificateRequest(sslSocket *ss,
                 ss->ssl3.clientCertificate,
                 certUsageSSLClient, PR_FALSE);
             if (ss->ssl3.clientCertChain == NULL) {
-                CERT_DestroyCertificate(ss->ssl3.clientCertificate);
-                ss->ssl3.clientCertificate = NULL;
-                SECKEY_DestroyPrivateKey(ss->ssl3.clientPrivateKey);
-                ss->ssl3.clientPrivateKey = NULL;
                 goto send_no_certificate;
             }
             if (ss->ssl3.hs.hashType == handshake_hash_record ||
                 ss->ssl3.hs.hashType == handshake_hash_single) {
                 rv = ssl_PickClientSignatureScheme(ss, signatureSchemes,
                                                    signatureSchemeCount);
+                if (rv != SECSuccess) {
+                    /* This should only happen if our schemes changed or
+                     * if an RSA-PSS cert was selected, but the token
+                     * does not support PSS schemes. */
+                    goto send_no_certificate;
+                }
             }
             break; /* not an error */
 
         case SECFailure:
         default:
         send_no_certificate:
+            CERT_DestroyCertificate(ss->ssl3.clientCertificate);
+            SECKEY_DestroyPrivateKey(ss->ssl3.clientPrivateKey);
+            ss->ssl3.clientCertificate = NULL;
+            ss->ssl3.clientPrivateKey = NULL;
+            if (ss->ssl3.clientCertChain) {
+                CERT_DestroyCertificateList(ss->ssl3.clientCertChain);
+                ss->ssl3.clientCertChain = NULL;
+            }
+
             if (ss->version > SSL_LIBRARY_VERSION_3_0) {
                 ss->ssl3.sendEmptyCert = PR_TRUE;
             } else {
@@ -8179,26 +8134,53 @@ ssl3_KEASupportsTickets(const ssl3KEADef *kea_def)
     return PR_TRUE;
 }
 
+static PRBool
+ssl3_PeerSupportsCipherSuite(const SECItem *peerSuites, uint16_t suite)
+{
+    for (unsigned int i = 0; i + 1 < peerSuites->len; i += 2) {
+        PRUint16 suite_i = (peerSuites->data[i] << 8) | peerSuites->data[i + 1];
+        if (suite_i == suite) {
+            return PR_TRUE;
+        }
+    }
+    return PR_FALSE;
+}
+
 SECStatus
 ssl3_NegotiateCipherSuiteInner(sslSocket *ss, const SECItem *suites,
                                PRUint16 version, PRUint16 *suitep)
 {
-    unsigned int j;
     unsigned int i;
+    SSLVersionRange vrange = { version, version };
 
-    for (j = 0; j < ssl_V3_SUITES_IMPLEMENTED; j++) {
-        ssl3CipherSuiteCfg *suite = &ss->cipherSuites[j];
-        SSLVersionRange vrange = { version, version };
+    /* If we negotiated an External PSK and that PSK has a ciphersuite
+     * configured, we need to constrain our choice. If the client does
+     * not support it, negotiate a certificate auth suite and fall back.
+     */
+    if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3 &&
+        ss->xtnData.selectedPsk &&
+        ss->xtnData.selectedPsk->type == ssl_psk_external &&
+        ss->xtnData.selectedPsk->zeroRttSuite != TLS_NULL_WITH_NULL_NULL) {
+        PRUint16 pskSuite = ss->xtnData.selectedPsk->zeroRttSuite;
+        ssl3CipherSuiteCfg *pskSuiteCfg = ssl_LookupCipherSuiteCfgMutable(pskSuite,
+                                                                          ss->cipherSuites);
+        if (ssl3_config_match(pskSuiteCfg, ss->ssl3.policy, &vrange, ss) &&
+            ssl3_PeerSupportsCipherSuite(suites, pskSuite)) {
+            *suitep = pskSuite;
+            return SECSuccess;
+        }
+    }
+
+    for (i = 0; i < ssl_V3_SUITES_IMPLEMENTED; i++) {
+        ssl3CipherSuiteCfg *suite = &ss->cipherSuites[i];
         if (!ssl3_config_match(suite, ss->ssl3.policy, &vrange, ss)) {
             continue;
         }
-        for (i = 0; i + 1 < suites->len; i += 2) {
-            PRUint16 suite_i = (suites->data[i] << 8) | suites->data[i + 1];
-            if (suite_i == suite->cipher_suite) {
-                *suitep = suite_i;
-                return SECSuccess;
-            }
+        if (!ssl3_PeerSupportsCipherSuite(suites, suite->cipher_suite)) {
+            continue;
         }
+        *suitep = suite->cipher_suite;
+        return SECSuccess;
     }
     PORT_SetError(SSL_ERROR_NO_CYPHER_OVERLAP);
     return SECFailure;
@@ -8714,6 +8696,7 @@ ssl3_HandleClientHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
                 errCode = PORT_GetError();
                 goto alert_loser;
             }
+            ss->ssl3.hs.allowCcs = PR_TRUE;
         }
 
         /* TLS 1.3 requires that compression include only null. */
@@ -9831,10 +9814,31 @@ ssl3_SendServerKeyExchange(sslSocket *ss)
 }
 
 SECStatus
-ssl3_EncodeSigAlgs(const sslSocket *ss, PRUint16 minVersion, sslBuffer *buf)
+ssl3_EncodeSigAlgs(const sslSocket *ss, PRUint16 minVersion, PRBool forCert,
+                   sslBuffer *buf)
 {
+    SSLSignatureScheme filtered[MAX_SIGNATURE_SCHEMES] = { 0 };
+    unsigned int filteredCount = 0;
+
+    SECStatus rv = ssl3_FilterSigAlgs(ss, minVersion, PR_FALSE, forCert,
+                                      PR_ARRAY_SIZE(filtered),
+                                      filtered, &filteredCount);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+    return ssl3_EncodeFilteredSigAlgs(ss, filtered, filteredCount, buf);
+}
+
+SECStatus
+ssl3_EncodeFilteredSigAlgs(const sslSocket *ss, const SSLSignatureScheme *schemes,
+                           PRUint32 numSchemes, sslBuffer *buf)
+{
+    if (!numSchemes) {
+        PORT_SetError(SSL_ERROR_NO_SUPPORTED_SIGNATURE_ALGORITHM);
+        return SECFailure;
+    }
+
     unsigned int lengthOffset;
-    PRBool found = PR_FALSE;
     SECStatus rv;
 
     rv = sslBuffer_Skip(buf, 2, &lengthOffset);
@@ -9842,23 +9846,68 @@ ssl3_EncodeSigAlgs(const sslSocket *ss, PRUint16 minVersion, sslBuffer *buf)
         return SECFailure;
     }
 
-    for (unsigned int i = 0; i < ss->ssl3.signatureSchemeCount; ++i) {
-        if (ssl_SignatureSchemeAccepted(minVersion,
-                                        ss->ssl3.signatureSchemes[i])) {
-            rv = sslBuffer_AppendNumber(buf, ss->ssl3.signatureSchemes[i], 2);
-            if (rv != SECSuccess) {
-                return SECFailure;
-            }
-            found = PR_TRUE;
+    for (unsigned int i = 0; i < numSchemes; ++i) {
+        rv = sslBuffer_AppendNumber(buf, schemes[i], 2);
+        if (rv != SECSuccess) {
+            return SECFailure;
         }
     }
+    return sslBuffer_InsertLength(buf, lengthOffset, 2);
+}
 
-    if (!found) {
-        PORT_SetError(SSL_ERROR_NO_SUPPORTED_SIGNATURE_ALGORITHM);
+/*
+ * In TLS 1.3 we are permitted to advertise support for PKCS#1
+ * schemes. This doesn't affect the signatures in TLS itself, just
+ * those on certificates. Not advertising PKCS#1 signatures creates a
+ * serious compatibility risk as it excludes many certificate chains
+ * that include PKCS#1. Hence, forCert is used to enable advertising
+ * PKCS#1 support. Note that we include these in signature_algorithms
+ * because we don't yet support signature_algorithms_cert. TLS 1.3
+ * requires that PKCS#1 schemes are placed last in the list if they
+ * are present. This sorting can be removed once we support
+ * signature_algorithms_cert.
+ */
+SECStatus
+ssl3_FilterSigAlgs(const sslSocket *ss, PRUint16 minVersion, PRBool disableRsae,
+                   PRBool forCert,
+                   unsigned int maxSchemes, SSLSignatureScheme *filteredSchemes,
+                   unsigned int *numFilteredSchemes)
+{
+    PORT_Assert(filteredSchemes);
+    PORT_Assert(numFilteredSchemes);
+    PORT_Assert(maxSchemes >= ss->ssl3.signatureSchemeCount);
+    if (maxSchemes < ss->ssl3.signatureSchemeCount) {
         return SECFailure;
     }
 
-    return sslBuffer_InsertLength(buf, lengthOffset, 2);
+    *numFilteredSchemes = 0;
+    PRBool allowUnsortedPkcs1 = forCert && minVersion < SSL_LIBRARY_VERSION_TLS_1_3;
+    for (unsigned int i = 0; i < ss->ssl3.signatureSchemeCount; ++i) {
+        if (disableRsae && ssl_IsRsaeSignatureScheme(ss->ssl3.signatureSchemes[i])) {
+            continue;
+        }
+        if (ssl_SignatureSchemeAccepted(minVersion,
+                                        ss->ssl3.signatureSchemes[i],
+                                        allowUnsortedPkcs1)) {
+            filteredSchemes[(*numFilteredSchemes)++] = ss->ssl3.signatureSchemes[i];
+        }
+    }
+    if (forCert && !allowUnsortedPkcs1) {
+        for (unsigned int i = 0; i < ss->ssl3.signatureSchemeCount; ++i) {
+            if (disableRsae && ssl_IsRsaeSignatureScheme(ss->ssl3.signatureSchemes[i])) {
+                continue;
+            }
+            if (!ssl_SignatureSchemeAccepted(minVersion,
+                                             ss->ssl3.signatureSchemes[i],
+                                             PR_FALSE) &&
+                ssl_SignatureSchemeAccepted(minVersion,
+                                            ss->ssl3.signatureSchemes[i],
+                                            PR_TRUE)) {
+                filteredSchemes[(*numFilteredSchemes)++] = ss->ssl3.signatureSchemes[i];
+            }
+        }
+    }
+    return SECSuccess;
 }
 
 static SECStatus
@@ -9894,7 +9943,7 @@ ssl3_SendCertificateRequest(sslSocket *ss)
 
     length = 1 + certTypesLength + 2 + calen;
     if (isTLS12) {
-        rv = ssl3_EncodeSigAlgs(ss, ss->version, &sigAlgsBuf);
+        rv = ssl3_EncodeSigAlgs(ss, ss->version, PR_TRUE /* forCert */, &sigAlgsBuf);
         if (rv != SECSuccess) {
             return rv;
         }
@@ -11255,6 +11304,8 @@ static SECStatus ssl3_FinishHandshake(sslSocket *ss);
 static SECStatus
 ssl3_AlwaysFail(sslSocket *ss)
 {
+    /* The caller should have cleared the callback. */
+    ss->ssl3.hs.restartTarget = ssl3_AlwaysFail;
     PORT_SetError(PR_INVALID_STATE_ERROR);
     return SECFailure;
 }
@@ -11347,9 +11398,9 @@ ssl3_ComputeTLSFinished(sslSocket *ss, ssl3CipherSpec *spec,
     }
 
     if (spec->version < SSL_LIBRARY_VERSION_TLS_1_2) {
-        tls_mac_params.prfMechanism = CKM_TLS_PRF;
+        tls_mac_params.prfHashMechanism = CKM_TLS_PRF;
     } else {
-        tls_mac_params.prfMechanism = ssl3_GetPrfHashMechanism(ss);
+        tls_mac_params.prfHashMechanism = ssl3_GetPrfHashMechanism(ss);
     }
     tls_mac_params.ulMacLength = 12;
     tls_mac_params.ulServerOrClient = isServer ? 1 : 2;
@@ -11690,7 +11741,6 @@ ssl3_CacheWrappedSecret(sslSocket *ss, sslSessionID *sid,
 static SECStatus
 ssl3_HandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
-    sslSessionID *sid = ss->sec.ci.sid;
     SECStatus rv = SECSuccess;
     PRBool isServer = ss->sec.isServer;
     PRBool isTLS;
@@ -11834,15 +11884,6 @@ xmit_loser:
         return rv;
     }
 
-    if (sid->cached == never_cached && !ss->opt.noCache) {
-        rv = ssl3_FillInCachedSID(ss, sid, ss->ssl3.crSpec->masterSecret);
-
-        /* If the wrap failed, we don't cache the sid.
-         * The connection continues normally however.
-         */
-        ss->ssl3.hs.cacheSID = rv == SECSuccess;
-    }
-
     if (ss->ssl3.hs.authCertificatePending) {
         if (ss->ssl3.hs.restartTarget) {
             PR_NOT_REACHED("ssl3_HandleFinished: unexpected restartTarget");
@@ -11907,33 +11948,45 @@ ssl3_FinishHandshake(sslSocket *ss)
     PORT_Assert(ss->opt.noLocks || ssl_HaveRecvBufLock(ss));
     PORT_Assert(ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
     PORT_Assert(ss->ssl3.hs.restartTarget == NULL);
+    sslSessionID *sid = ss->sec.ci.sid;
+    SECStatus sidRv = SECFailure;
 
     /* The first handshake is now completed. */
     ss->handshake = NULL;
 
+    if (sid->cached == never_cached && !ss->opt.noCache) {
+        /* If the wrap fails, don't cache the sid. The connection proceeds
+         * normally, so the rv is only used to determine whether we cache. */
+        sidRv = ssl3_FillInCachedSID(ss, sid, ss->ssl3.crSpec->masterSecret);
+    }
+
     /* RFC 5077 Section 3.3: "The client MUST NOT treat the ticket as valid
-     * until it has verified the server's Finished message." When the server
-     * sends a NewSessionTicket in a resumption handshake, we must wait until
-     * the handshake is finished (we have verified the server's Finished
-     * AND the server's certificate) before we update the ticket in the sid.
-     *
-     * This must be done before we call ssl_CacheSessionID(ss)
-     * because CacheSID requires the session ticket to already be set, and also
-     * because of the lazy lock creation scheme used by CacheSID and
-     * ssl3_SetSIDSessionTicket.
-     */
+    * until it has verified the server's Finished message." When the server
+    * sends a NewSessionTicket in a resumption handshake, we must wait until
+    * the handshake is finished (we have verified the server's Finished
+    * AND the server's certificate) before we update the ticket in the sid.
+    *
+    * This must be done before we call ssl_CacheSessionID(ss)
+    * because CacheSID requires the session ticket to already be set, and also
+    * because of the lazy lock creation scheme used by CacheSID and
+    * ssl3_SetSIDSessionTicket. */
     if (ss->ssl3.hs.receivedNewSessionTicket) {
         PORT_Assert(!ss->sec.isServer);
-        ssl3_SetSIDSessionTicket(ss->sec.ci.sid, &ss->ssl3.hs.newSessionTicket);
-        /* The sid took over the ticket data */
+        if (sidRv == SECSuccess) {
+            /* The sid takes over the ticket data */
+            ssl3_SetSIDSessionTicket(ss->sec.ci.sid,
+                                     &ss->ssl3.hs.newSessionTicket);
+        } else {
+            PORT_Assert(ss->ssl3.hs.newSessionTicket.ticket.data);
+            SECITEM_FreeItem(&ss->ssl3.hs.newSessionTicket.ticket,
+                             PR_FALSE);
+        }
         PORT_Assert(!ss->ssl3.hs.newSessionTicket.ticket.data);
         ss->ssl3.hs.receivedNewSessionTicket = PR_FALSE;
     }
-
-    if (ss->ssl3.hs.cacheSID) {
+    if (sidRv == SECSuccess) {
         PORT_Assert(ss->sec.ci.sid->cached == never_cached);
         ssl_CacheSessionID(ss);
-        ss->ssl3.hs.cacheSID = PR_FALSE;
     }
 
     ss->ssl3.hs.canFalseStart = PR_FALSE; /* False Start phase is complete */
@@ -12331,41 +12384,26 @@ loser : {
     return SECFailure;
 }
 
-/* These macros return the given value with the MSB copied to all the other
- * bits. They use the fact that arithmetic shift shifts-in the sign bit.
- * However, this is not ensured by the C standard so you may need to replace
- * them with something else for odd compilers. */
-#define DUPLICATE_MSB_TO_ALL(x) ((unsigned)((int)(x) >> (sizeof(int) * 8 - 1)))
-#define DUPLICATE_MSB_TO_ALL_8(x) ((unsigned char)(DUPLICATE_MSB_TO_ALL(x)))
-
 /* SECStatusToMask returns, in constant time, a mask value of all ones if
  * rv == SECSuccess.  Otherwise it returns zero. */
 static unsigned int
 SECStatusToMask(SECStatus rv)
 {
-    unsigned int good;
-    /* rv ^ SECSuccess is zero iff rv == SECSuccess. Subtracting one results
-     * in the MSB being set to one iff it was zero before. */
-    good = rv ^ SECSuccess;
-    good--;
-    return DUPLICATE_MSB_TO_ALL(good);
+    return PORT_CT_EQ(rv, SECSuccess);
 }
 
-/* ssl_ConstantTimeGE returns 0xff if a>=b and 0x00 otherwise. */
+/* ssl_ConstantTimeGE returns 0xffffffff if a>=b and 0x00 otherwise. */
 static unsigned char
 ssl_ConstantTimeGE(unsigned int a, unsigned int b)
 {
-    a -= b;
-    return DUPLICATE_MSB_TO_ALL(~a);
+    return PORT_CT_GE(a, b);
 }
 
-/* ssl_ConstantTimeEQ8 returns 0xff if a==b and 0x00 otherwise. */
+/* ssl_ConstantTimeEQ returns 0xffffffff if a==b and 0x00 otherwise. */
 static unsigned char
-ssl_ConstantTimeEQ8(unsigned char a, unsigned char b)
+ssl_ConstantTimeEQ(unsigned char a, unsigned char b)
 {
-    unsigned int c = a ^ b;
-    c--;
-    return DUPLICATE_MSB_TO_ALL_8(c);
+    return PORT_CT_EQ(a, b);
 }
 
 /* ssl_constantTimeSelect return a if mask is 0xFF and b if mask is 0x00 */
@@ -12380,7 +12418,7 @@ ssl_RemoveSSLv3CBCPadding(sslBuffer *plaintext,
                           unsigned int blockSize,
                           unsigned int macSize)
 {
-    unsigned int paddingLength, good, t;
+    unsigned int paddingLength, good;
     const unsigned int overhead = 1 /* padding length byte */ + macSize;
 
     /* These lengths are all public so we can test them in non-constant
@@ -12391,13 +12429,9 @@ ssl_RemoveSSLv3CBCPadding(sslBuffer *plaintext,
 
     paddingLength = plaintext->buf[plaintext->len - 1];
     /* SSLv3 padding bytes are random and cannot be checked. */
-    t = plaintext->len;
-    t -= paddingLength + overhead;
-    /* If len >= paddingLength+overhead then the MSB of t is zero. */
-    good = DUPLICATE_MSB_TO_ALL(~t);
+    good = PORT_CT_GE(plaintext->len, paddingLength + overhead);
     /* SSLv3 requires that the padding is minimal. */
-    t = blockSize - (paddingLength + 1);
-    good &= DUPLICATE_MSB_TO_ALL(~t);
+    good &= PORT_CT_GE(blockSize, paddingLength + 1);
     plaintext->len -= good & (paddingLength + 1);
     return (good & SECSuccess) | (~good & SECFailure);
 }
@@ -12405,7 +12439,7 @@ ssl_RemoveSSLv3CBCPadding(sslBuffer *plaintext,
 SECStatus
 ssl_RemoveTLSCBCPadding(sslBuffer *plaintext, unsigned int macSize)
 {
-    unsigned int paddingLength, good, t, toCheck, i;
+    unsigned int paddingLength, good, toCheck, i;
     const unsigned int overhead = 1 /* padding length byte */ + macSize;
 
     /* These lengths are all public so we can test them in non-constant
@@ -12415,10 +12449,7 @@ ssl_RemoveTLSCBCPadding(sslBuffer *plaintext, unsigned int macSize)
     }
 
     paddingLength = plaintext->buf[plaintext->len - 1];
-    t = plaintext->len;
-    t -= paddingLength + overhead;
-    /* If len >= paddingLength+overhead then the MSB of t is zero. */
-    good = DUPLICATE_MSB_TO_ALL(~t);
+    good = PORT_CT_GE(plaintext->len, paddingLength + overhead);
 
     /* The padding consists of a length byte at the end of the record and then
      * that many bytes of padding, all with the same value as the length byte.
@@ -12435,10 +12466,9 @@ ssl_RemoveTLSCBCPadding(sslBuffer *plaintext, unsigned int macSize)
     }
 
     for (i = 0; i < toCheck; i++) {
-        t = paddingLength - i;
         /* If i <= paddingLength then the MSB of t is zero and mask is
          * 0xff.  Otherwise, mask is 0. */
-        unsigned char mask = DUPLICATE_MSB_TO_ALL(~t);
+        unsigned char mask = PORT_CT_LE(i, paddingLength);
         unsigned char b = plaintext->buf[plaintext->len - 1 - i];
         /* The final |paddingLength+1| bytes should all have the value
          * |paddingLength|. Therefore the XOR should be zero. */
@@ -12453,7 +12483,7 @@ ssl_RemoveTLSCBCPadding(sslBuffer *plaintext, unsigned int macSize)
     good &= good >> 2;
     good &= good >> 1;
     good <<= sizeof(good) * 8 - 1;
-    good = DUPLICATE_MSB_TO_ALL(good);
+    good = PORT_CT_DUPLICATE_MSB_TO_ALL(good);
 
     plaintext->len -= good & (paddingLength + 1);
     return (good & SECSuccess) | (~good & SECFailure);
@@ -12546,7 +12576,7 @@ ssl_CBCExtractMAC(sslBuffer *plaintext,
                                           0, rotateOffset);
     for (i = 0; i < macSize; i++) {
         for (j = 0; j < macSize; j++) {
-            out[j] |= rotatedMac[i] & ssl_ConstantTimeEQ8(j, rotateOffset);
+            out[j] |= rotatedMac[i] & ssl_ConstantTimeEQ(j, rotateOffset);
         }
         rotateOffset++;
         rotateOffset = ssl_constantTimeSelect(ssl_ConstantTimeGE(rotateOffset, macSize),
@@ -12656,21 +12686,50 @@ ssl3_UnprotectRecord(sslSocket *ss,
          * ciphertext by a fixed byte count, but it is not true in general.
          * Each AEAD cipher should provide a function that returns the
          * plaintext length for a given ciphertext. */
-        unsigned int decryptedLen =
-            cText->buf->len - cipher_def->explicit_nonce_size -
-            cipher_def->tag_size;
+        const unsigned int explicitNonceLen = cipher_def->explicit_nonce_size;
+        const unsigned int tagLen = cipher_def->tag_size;
+        unsigned int nonceLen = explicitNonceLen;
+        unsigned int decryptedLen = cText->buf->len - nonceLen - tagLen;
+        /* even though read doesn't return and IV, we still need a space to put
+         * the combined iv/nonce n the gcm 1.2 case*/
+        unsigned char ivOut[MAX_IV_LENGTH];
+        unsigned char *iv = NULL;
+        unsigned char *nonce = NULL;
+
+        ivLen = cipher_def->iv_size;
+
         rv = ssl3_BuildRecordPseudoHeader(
             spec->epoch, cText->seqNum,
             rType, isTLS, rVersion, IS_DTLS(ss), decryptedLen, &header);
         PORT_Assert(rv == SECSuccess);
-        rv = spec->aead(&spec->keyMaterial,
-                        PR_TRUE,          /* do decrypt */
-                        plaintext->buf,   /* out */
-                        &plaintext->len,  /* outlen */
-                        plaintext->space, /* maxout */
-                        cText->buf->buf,  /* in */
-                        cText->buf->len,  /* inlen */
-                        SSL_BUFFER_BASE(&header), SSL_BUFFER_LEN(&header));
+
+        /* build the iv */
+        if (explicitNonceLen == 0) {
+            nonceLen = sizeof(cText->seqNum);
+            iv = spec->keyMaterial.iv;
+            nonce = SSL_BUFFER_BASE(&header);
+        } else {
+            PORT_Memcpy(ivOut, spec->keyMaterial.iv, ivLen);
+            PORT_Memset(ivOut + ivLen, 0, explicitNonceLen);
+            iv = ivOut;
+            nonce = cText->buf->buf;
+            nonceLen = explicitNonceLen;
+        }
+        rv = tls13_AEAD(spec->cipherContext, PR_TRUE,
+                        CKG_NO_GENERATE, 0,       /* iv generator params
+                                                        * (not used in decrypt)*/
+                        iv,                       /* iv in */
+                        NULL,                     /* iv out */
+                        ivLen + explicitNonceLen, /* full iv length */
+                        nonce, nonceLen,          /* nonce in */
+                        SSL_BUFFER_BASE(&header), /* aad */
+                        SSL_BUFFER_LEN(&header),  /* aadlen */
+                        plaintext->buf,           /* output  */
+                        &plaintext->len,          /* out len */
+                        plaintext->space,         /* max out */
+                        tagLen,
+                        cText->buf->buf + explicitNonceLen,  /* input */
+                        cText->buf->len - explicitNonceLen); /* input len */
         if (rv != SECSuccess) {
             good = 0;
         }
@@ -13007,12 +13066,19 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText)
             ss->ssl3.hs.ws != idle_handshake &&
             cText->buf->len == 1 &&
             cText->buf->buf[0] == change_cipher_spec_choice) {
-            /* Ignore the CCS. */
-            return SECSuccess;
+            if (ss->ssl3.hs.allowCcs) {
+                /* Ignore the first CCS. */
+                ss->ssl3.hs.allowCcs = PR_FALSE;
+                return SECSuccess;
+            }
+
+            /* Compatibility mode is not negotiated. */
+            alert = unexpected_message;
+            PORT_SetError(SSL_ERROR_RX_MALFORMED_CHANGE_CIPHER);
         }
 
-        if (IS_DTLS(ss) ||
-            (ss->sec.isServer &&
+        if ((IS_DTLS(ss) && !dtls13_AeadLimitReached(spec)) ||
+            (!IS_DTLS(ss) && ss->sec.isServer &&
              ss->ssl3.hs.zeroRttIgnore == ssl_0rtt_ignore_trial)) {
             /* Silently drop the packet unless we sent a fatal alert. */
             if (ss->ssl3.fatalAlertSent) {
@@ -13135,7 +13201,6 @@ ssl3_InitState(sslSocket *ss)
     ss->ssl3.hs.currentSecret = NULL;
     ss->ssl3.hs.resumptionMasterSecret = NULL;
     ss->ssl3.hs.dheSecret = NULL;
-    ss->ssl3.hs.pskBinderKey = NULL;
     ss->ssl3.hs.clientEarlyTrafficSecret = NULL;
     ss->ssl3.hs.clientHsTrafficSecret = NULL;
     ss->ssl3.hs.serverHsTrafficSecret = NULL;
@@ -13509,8 +13574,6 @@ ssl3_DestroySSL3Info(sslSocket *ss)
         PK11_FreeSymKey(ss->ssl3.hs.resumptionMasterSecret);
     if (ss->ssl3.hs.dheSecret)
         PK11_FreeSymKey(ss->ssl3.hs.dheSecret);
-    if (ss->ssl3.hs.pskBinderKey)
-        PK11_FreeSymKey(ss->ssl3.hs.pskBinderKey);
     if (ss->ssl3.hs.clientEarlyTrafficSecret)
         PK11_FreeSymKey(ss->ssl3.hs.clientEarlyTrafficSecret);
     if (ss->ssl3.hs.clientHsTrafficSecret)
@@ -13529,6 +13592,8 @@ ssl3_DestroySSL3Info(sslSocket *ss)
     ss->ssl3.hs.zeroRttState = ssl_0rtt_none;
     /* Destroy TLS 1.3 buffered early data. */
     tls13_DestroyEarlyData(&ss->ssl3.hs.bufferedEarlyData);
+    /* Destroy TLS 1.3 PSKs */
+    tls13_DestroyPskList(&ss->ssl3.hs.psks);
 }
 
 #define MAP_NULL(x) (((x) != 0) ? (x) : SEC_OID_NULL_CIPHER)

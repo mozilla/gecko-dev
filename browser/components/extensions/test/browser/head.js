@@ -32,16 +32,22 @@
  */
 
 // There are shutdown issues for which multiple rejections are left uncaught.
-// This bug should be fixed, but for the moment this directory is whitelisted.
+// This bug should be fixed, but for the moment all tests in this directory
+// allow various classes of promise rejections.
 //
-// NOTE: Entire directory whitelisting should be kept to a minimum. Normally you
-//       should use "expectUncaughtRejection" to flag individual failures.
+// NOTE: Allowing rejections on an entire directory should be avoided.
+//       Normally you should use "expectUncaughtRejection" to flag individual
+//       failures.
 const { PromiseTestUtils } = ChromeUtils.import(
   "resource://testing-common/PromiseTestUtils.jsm"
 );
-PromiseTestUtils.whitelistRejectionsGlobally(/Message manager disconnected/);
-PromiseTestUtils.whitelistRejectionsGlobally(/No matching message handler/);
-PromiseTestUtils.whitelistRejectionsGlobally(/Receiving end does not exist/);
+PromiseTestUtils.allowMatchingRejectionsGlobally(
+  /Message manager disconnected/
+);
+PromiseTestUtils.allowMatchingRejectionsGlobally(/No matching message handler/);
+PromiseTestUtils.allowMatchingRejectionsGlobally(
+  /Receiving end does not exist/
+);
 
 const { AppConstants } = ChromeUtils.import(
   "resource://gre/modules/AppConstants.jsm"
@@ -70,10 +76,14 @@ function loadTestSubscript(filePath) {
   Services.scriptloader.loadSubScript(new URL(filePath, gTestPath).href, this);
 }
 
-// Don't try to create screenshots of sites we load during tests.
+// Leaving Top Sites enabled during these tests would create site screenshots
+// and update pinned Top Sites unnecessarily.
 Services.prefs
   .getDefaultBranch("browser.newtabpage.activity-stream.")
   .setBoolPref("feeds.topsites", false);
+Services.prefs
+  .getDefaultBranch("browser.newtabpage.activity-stream.")
+  .setBoolPref("feeds.system.topsites", false);
 
 {
   // Touch the recipeParentPromise lazy getter so we don't get
@@ -488,6 +498,9 @@ async function openContextMenuInSidebar(selector = "body") {
   return contentAreaContextMenu;
 }
 
+// `selector` should refer to the content in the frame. If invalid the test can
+// fail intermittently because the click could inadvertently be registered on
+// the upper-left corner of the frame (instead of inside the frame).
 async function openContextMenuInFrame(selector = "body", frameIndex = 0) {
   let contentAreaContextMenu = document.getElementById(
     "contentAreaContextMenu"
@@ -642,7 +655,7 @@ function closeChromeContextMenu(menuId, itemToSelect, win = window) {
 
 async function openActionContextMenu(extension, kind, win = window) {
   // See comment from getPageActionButton below.
-  SetPageProxyState("valid");
+  win.gURLBar.setPageProxyState("valid");
   await promiseAnimationFrame(win);
   let buttonID;
   let menuID;
@@ -666,14 +679,15 @@ function closeActionContextMenu(itemToSelect, kind, win = window) {
   return closeChromeContextMenu(menuID, itemToSelect, win);
 }
 
-function openTabContextMenu(win = window) {
+function openTabContextMenu(tab = gBrowser.selectedTab) {
   // The TabContextMenu initializes its strings only on a focus or mouseover event.
   // Calls focus event on the TabContextMenu before opening.
-  gBrowser.selectedTab.focus();
+  tab.focus();
+  let indexOfTab = Array.prototype.indexOf.call(tab.parentNode.children, tab);
   return openChromeContextMenu(
     "tabContextMenu",
-    ".tabbrowser-tab[selected]",
-    win
+    `.tabbrowser-tab:nth-child(${indexOfTab + 1})`,
+    tab.ownerGlobal
   );
 }
 
@@ -693,11 +707,11 @@ async function getPageActionButton(extension, win = window) {
   //
   // Unfortunately, that doesn't happen automatically in browser chrome
   // tests.
-  SetPageProxyState("valid");
+  win.gURLBar.setPageProxyState("valid");
 
   // If the current tab is blank and the previously selected tab was an internal
   // page, the urlbar will now be showing the internal identity box due to the
-  // SetPageProxyState call above.  The page action button is hidden in that
+  // setPageProxyState call above.  The page action button is hidden in that
   // case, so make sure we're not showing the internal identity box.
   gIdentityHandler._identityBox.classList.remove("chromeUI");
 
@@ -720,7 +734,7 @@ async function clickPageAction(extension, win = window, modifiers = {}) {
 // all available page actions
 async function showPageActionsPanel(win = window) {
   // See the comment at getPageActionButton
-  SetPageProxyState("valid");
+  win.gURLBar.setPageProxyState("valid");
   await promiseAnimationFrame(win);
 
   let pageActionsPopup = win.document.getElementById("pageActionPanel");

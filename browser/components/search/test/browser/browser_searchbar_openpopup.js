@@ -4,18 +4,7 @@
 const searchPopup = document.getElementById("PopupSearchAutoComplete");
 const kValues = ["long text", "long text 2", "long text 3"];
 
-const isWindows = Services.appinfo.OS == "WINNT";
-const mouseDown = isWindows ? 2 : 1;
-const mouseUp = isWindows ? 4 : 2;
-const utils = window.windowUtils;
-const scale = utils.screenPixelsPerCSSPixel;
-
-function synthesizeNativeMouseClick(aElement) {
-  let rect = aElement.getBoundingClientRect();
-  let win = aElement.ownerGlobal;
-  let x = win.mozInnerScreenX + (rect.left + rect.right) / 2;
-  let y = win.mozInnerScreenY + (rect.top + rect.bottom) / 2;
-
+function synthesizeNativeMouseClickAtCenterAsync(aElement) {
   // Wait for the mouseup event to occur before continuing.
   return new Promise((resolve, reject) => {
     function eventOccurred(e) {
@@ -25,8 +14,7 @@ function synthesizeNativeMouseClick(aElement) {
 
     aElement.addEventListener("mouseup", eventOccurred, true);
 
-    utils.sendNativeMouseEvent(x * scale, y * scale, mouseDown, 0, null);
-    utils.sendNativeMouseEvent(x * scale, y * scale, mouseUp, 0, null);
+    EventUtils.synthesizeNativeMouseClickAtCenter(aElement);
   });
 }
 
@@ -60,10 +48,6 @@ let searchIcon;
 let goButton;
 
 add_task(async function init() {
-  SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.disableExtendForTests", true]],
-  });
-
   searchbar = await gCUITestUtils.addSearchBar();
   registerCleanupFunction(() => {
     gCUITestUtils.removeSearchBar();
@@ -156,7 +140,7 @@ add_task(async function open_empty() {
   promise = promiseEvent(searchPopup, "popuphidden");
 
   info("Hiding popup");
-  await synthesizeNativeMouseClick(searchIcon);
+  await synthesizeNativeMouseClickAtCenterAsync(searchIcon);
   await promise;
 
   is(
@@ -213,6 +197,44 @@ add_task(async function click_opens_popup() {
   searchPopup.hidePopup();
   await promise;
 
+  textbox.value = "";
+});
+
+add_task(async function open_empty_hiddenOneOffs() {
+  // Disable all the engines but the current one and check the oneoffs.
+  let defaultEngine = await Services.search.getDefault();
+  let engines = (await Services.search.getVisibleEngines()).filter(
+    e => e.name != defaultEngine.name
+  );
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.search.hiddenOneOffs", engines.map(e => e.name).join(",")]],
+  });
+
+  let oneOffButtons = searchPopup.searchOneOffsContainer.querySelector(
+    ".search-panel-one-offs"
+  );
+  textbox.value = "foo";
+  let promise = promiseEvent(searchPopup, "popupshown");
+  EventUtils.synthesizeMouseAtCenter(textbox, {});
+  await promise;
+
+  Assert.ok(
+    oneOffButtons.getAttribute("hidden"),
+    "The one-offs buttons should have the hidden attribute."
+  );
+  Assert.equal(
+    getComputedStyle(oneOffButtons).display,
+    "none",
+    "The one-off buttons should be hidden."
+  );
+
+  promise = promiseEvent(searchPopup, "popuphidden");
+
+  info("Hiding popup");
+  await synthesizeNativeMouseClickAtCenterAsync(searchIcon);
+  await promise;
+
+  await SpecialPowers.popPrefEnv();
   textbox.value = "";
 });
 
@@ -548,7 +570,7 @@ add_task(async function dont_consume_clicks() {
   is(textbox.selectionEnd, 3, "Should have selected all of the text");
 
   promise = promiseEvent(searchPopup, "popuphidden");
-  await synthesizeNativeMouseClick(gURLBar.inputField);
+  await synthesizeNativeMouseClickAtCenterAsync(gURLBar.inputField);
   await promise;
 
   is(

@@ -16,10 +16,11 @@ import {
 } from "../utils/bootstrap";
 
 import { initialBreakpointsState } from "../reducers/breakpoints";
+import { initialSourcesState } from "../reducers/sources";
 
 import type { Panel } from "./firefox/types";
 
-async function syncBreakpoints() {
+async function syncBreakpoints(): Promise<*> {
   const breakpoints = await asyncStore.pendingBreakpoints;
   const breakpointValues = (Object.values(breakpoints): any);
   breakpointValues.forEach(({ disabled, options, generatedLocation }) => {
@@ -29,7 +30,7 @@ async function syncBreakpoints() {
   });
 }
 
-function syncXHRBreakpoints() {
+function syncXHRBreakpoints(): void {
   asyncStore.xhrBreakpoints.then(bps => {
     bps.forEach(({ path, method, disabled }) => {
       if (!disabled) {
@@ -43,19 +44,18 @@ async function loadInitialState() {
   const pendingBreakpoints = await asyncStore.pendingBreakpoints;
   const tabs = { tabs: await asyncStore.tabs };
   const xhrBreakpoints = await asyncStore.xhrBreakpoints;
+  const tabsBlackBoxed = await asyncStore.tabsBlackBoxed;
   const eventListenerBreakpoints = await asyncStore.eventListenerBreakpoints;
   const breakpoints = initialBreakpointsState(xhrBreakpoints);
+  const sources = initialSourcesState({ tabsBlackBoxed });
 
   return {
     pendingBreakpoints,
     tabs,
     breakpoints,
     eventListenerBreakpoints,
+    sources,
   };
-}
-
-function getClient(connection: any) {
-  return firefox;
 }
 
 export async function onConnect(
@@ -70,8 +70,7 @@ export async function onConnect(
 
   verifyPrefSchema();
 
-  const client = getClient(connection);
-  const commands = client.clientCommands;
+  const commands = firefox.clientCommands;
 
   const initialState = await loadInitialState();
   const workers = bootstrapWorkers(panelWorkers);
@@ -83,7 +82,7 @@ export async function onConnect(
     initialState
   );
 
-  const connected = client.onConnect(connection, actions);
+  const connected = firefox.onConnect(connection, actions, store);
 
   await syncBreakpoints();
   syncXHRBreakpoints();
@@ -93,10 +92,14 @@ export async function onConnect(
     selectors,
     workers,
     connection,
-    client: client.clientCommands,
+    client: firefox.clientCommands,
   });
 
   bootstrapApp(store, panel);
   await connected;
   return { store, actions, selectors, client: commands };
+}
+
+export function onDisconnect() {
+  return firefox.onDisconnect();
 }

@@ -7,8 +7,8 @@
 #ifndef MAR_PRIVATE_H__
 #define MAR_PRIVATE_H__
 
+#include <assert.h>  // for C11 static_assert
 #include "limits.h"
-#include "mozilla/Assertions.h"
 #include <stdint.h>
 
 #define BLOCKSIZE 4096
@@ -27,14 +27,13 @@
 
 /* Existing code makes assumptions that the file size is
    smaller than LONG_MAX. */
-MOZ_STATIC_ASSERT(MAX_SIZE_OF_MAR_FILE < ((int64_t)LONG_MAX),
-                  "max mar file size is too big");
+static_assert(MAX_SIZE_OF_MAR_FILE < ((int64_t)LONG_MAX),
+              "max mar file size is too big");
 
 /* We store at most the size up to the signature block + 4
    bytes per BLOCKSIZE bytes */
-MOZ_STATIC_ASSERT(sizeof(BLOCKSIZE) <
-                      (SIGNATURE_BLOCK_OFFSET + sizeof(uint32_t)),
-                  "BLOCKSIZE is too big");
+static_assert(sizeof(BLOCKSIZE) < (SIGNATURE_BLOCK_OFFSET + sizeof(uint32_t)),
+              "BLOCKSIZE is too big");
 
 /* The maximum size of any signature supported by current and future
    implementations of the signmar program. */
@@ -55,6 +54,9 @@ MOZ_STATIC_ASSERT(sizeof(BLOCKSIZE) <
    instead of the NSPR equivalents. */
 #ifdef XP_WIN
 #  include <winsock2.h>
+/* Include stdio.h before redefining ftello and fseeko to avoid clobbering
+ * the ftello() and fseeko() function declarations in MinGW's stdio.h. */
+#  include <stdio.h>
 #  ifdef __MINGW32__
 /* Avoid MinGW's _ftelli64() and _fseeki64() implementations because they
  * are unreliable. */
@@ -68,9 +70,8 @@ MOZ_STATIC_ASSERT(sizeof(BLOCKSIZE) <
 #  define _FILE_OFFSET_BITS 64
 #  include <netinet/in.h>
 #  include <unistd.h>
+#  include <stdio.h>
 #endif
-
-#include <stdio.h>
 
 #define HOST_TO_NETWORK64(x)                                               \
   (((((uint64_t)x) & 0xFF) << 56) | ((((uint64_t)x) >> 8) & 0xFF) << 48) | \

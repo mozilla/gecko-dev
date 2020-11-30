@@ -7,6 +7,8 @@
 #include "StorageIPC.h"
 
 #include "LocalStorageManager.h"
+#include "SessionStorageManager.h"
+#include "SessionStorageCache.h"
 
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/BackgroundParent.h"
@@ -14,6 +16,8 @@
 #include "mozilla/ipc/PBackgroundParent.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/Unused.h"
+#include "nsCOMPtr.h"
+#include "nsIPrincipal.h"
 #include "nsThreadUtils.h"
 
 namespace mozilla {
@@ -76,18 +80,18 @@ mozilla::ipc::IPCResult LocalStorageCacheChild::RecvObserve(
     const nsString& aNewValue) {
   AssertIsOnOwningThread();
 
-  nsresult rv;
-  nsCOMPtr<nsIPrincipal> principal =
-      PrincipalInfoToPrincipal(aPrincipalInfo, &rv);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
+  auto principalOrErr = PrincipalInfoToPrincipal(aPrincipalInfo);
+  if (NS_WARN_IF(principalOrErr.isErr())) {
     return IPC_FAIL_NO_REASON(this);
   }
 
-  nsCOMPtr<nsIPrincipal> cachePrincipal =
-      PrincipalInfoToPrincipal(aCachePrincipalInfo, &rv);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
+  auto cachePrincipalOrErr = PrincipalInfoToPrincipal(aCachePrincipalInfo);
+  if (NS_WARN_IF(cachePrincipalOrErr.isErr())) {
     return IPC_FAIL_NO_REASON(this);
   }
+
+  nsCOMPtr<nsIPrincipal> principal = principalOrErr.unwrap();
+  nsCOMPtr<nsIPrincipal> cachePrincipal = cachePrincipalOrErr.unwrap();
 
   if (StorageUtils::PrincipalsEqual(principal, cachePrincipal)) {
     Storage::NotifyChange(/* aStorage */ nullptr, principal, aKey, aOldValue,
@@ -462,6 +466,75 @@ mozilla::ipc::IPCResult SessionStorageObserverChild::RecvObserve(
   return IPC_OK();
 }
 
+SessionStorageCacheChild::SessionStorageCacheChild(SessionStorageCache* aCache)
+    : mCache(aCache) {
+  AssertIsOnOwningThread();
+  MOZ_ASSERT(mCache);
+
+  MOZ_COUNT_CTOR(SessionStorageCacheChild);
+}
+
+SessionStorageCacheChild::~SessionStorageCacheChild() {
+  AssertIsOnOwningThread();
+
+  MOZ_COUNT_DTOR(SessionStorageCacheChild);
+}
+
+void SessionStorageCacheChild::SendDeleteMeInternal() {
+  AssertIsOnOwningThread();
+
+  if (mCache) {
+    mCache->ClearActor();
+    mCache = nullptr;
+
+    MOZ_ALWAYS_TRUE(PBackgroundSessionStorageCacheChild::SendDeleteMe());
+  }
+}
+
+void SessionStorageCacheChild::ActorDestroy(ActorDestroyReason aWhy) {
+  AssertIsOnOwningThread();
+
+  if (mCache) {
+    mCache->ClearActor();
+    mCache = nullptr;
+  }
+}
+
+SessionStorageManagerChild::SessionStorageManagerChild(
+    SessionStorageManager* aSSManager)
+    : mSSManager(aSSManager) {
+  AssertIsOnOwningThread();
+  MOZ_ASSERT(mSSManager);
+
+  MOZ_COUNT_CTOR(SessionStorageManagerChild);
+}
+
+SessionStorageManagerChild::~SessionStorageManagerChild() {
+  AssertIsOnOwningThread();
+
+  MOZ_COUNT_DTOR(SessionStorageManagerChild);
+}
+
+void SessionStorageManagerChild::SendDeleteMeInternal() {
+  AssertIsOnOwningThread();
+
+  if (mSSManager) {
+    mSSManager->ClearActor();
+    mSSManager = nullptr;
+
+    MOZ_ALWAYS_TRUE(PBackgroundSessionStorageManagerChild::SendDeleteMe());
+  }
+}
+
+void SessionStorageManagerChild::ActorDestroy(ActorDestroyReason aWhy) {
+  AssertIsOnOwningThread();
+
+  if (mSSManager) {
+    mSSManager->ClearActor();
+    mSSManager = nullptr;
+  }
+}
+
 LocalStorageCacheParent::LocalStorageCacheParent(
     const mozilla::ipc::PrincipalInfo& aPrincipalInfo,
     const nsACString& aOriginKey, uint32_t aPrivateBrowsingId)
@@ -548,7 +621,7 @@ class StorageDBParent::ObserverSink : public StorageObserverSink {
 
  public:
   explicit ObserverSink(StorageDBParent* aActor)
-      : mOwningEventTarget(GetCurrentThreadEventTarget()), mActor(aActor) {
+      : mOwningEventTarget(GetCurrentEventTarget()), mActor(aActor) {
     AssertIsOnBackgroundThread();
     MOZ_ASSERT(aActor);
   }
@@ -912,8 +985,7 @@ class LoadRunnable : public Runnable {
   LoadRunnable(StorageDBParent* aParent, TaskType aType,
                const nsACString& aOriginSuffix,
                const nsACString& aOriginNoSuffix,
-               const nsAString& aKey = EmptyString(),
-               const nsAString& aValue = EmptyString())
+               const nsAString& aKey = u""_ns, const nsAString& aValue = u""_ns)
       : Runnable("dom::LoadRunnable"),
         mParent(aParent),
         mType(aType),
@@ -1222,6 +1294,111 @@ nsresult SessionStorageObserverParent::Observe(
   return NS_OK;
 }
 
+SessionStorageCacheParent::SessionStorageCacheParent(
+    const nsCString& aOriginAttrs, const nsCString& aOriginKey,
+    SessionStorageManagerParent* aActor)
+    : mOriginAttrs(aOriginAttrs),
+      mOriginKey(aOriginKey),
+      mManagerActor(aActor) {
+  AssertIsOnBackgroundThread();
+  MOZ_ASSERT(mManagerActor);
+}
+
+SessionStorageCacheParent::~SessionStorageCacheParent() = default;
+
+void SessionStorageCacheParent::ActorDestroy(ActorDestroyReason aWhy) {
+  AssertIsOnBackgroundThread();
+
+  mManagerActor = nullptr;
+}
+
+mozilla::ipc::IPCResult SessionStorageCacheParent::RecvLoad(
+    nsTArray<SSSetItemInfo>* aDefaultData,
+    nsTArray<SSSetItemInfo>* aSessionData) {
+  AssertIsOnBackgroundThread();
+  MOZ_ASSERT(mManagerActor);
+
+  mLoadReceived.Flip();
+
+  RefPtr<BackgroundSessionStorageManager> manager = mManagerActor->GetManager();
+  MOZ_ASSERT(manager);
+
+  manager->CopyDataToContentProcess(mOriginAttrs, mOriginKey, *aDefaultData,
+                                    *aSessionData);
+
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult SessionStorageCacheParent::RecvCheckpoint(
+    nsTArray<SSWriteInfo>&& aDefaultWriteInfos,
+    nsTArray<SSWriteInfo>&& aSessionWriteInfos) {
+  AssertIsOnBackgroundThread();
+  MOZ_ASSERT(mManagerActor);
+
+  RefPtr<BackgroundSessionStorageManager> manager = mManagerActor->GetManager();
+  MOZ_ASSERT(manager);
+
+  manager->UpdateData(mOriginAttrs, mOriginKey, aDefaultWriteInfos,
+                      aSessionWriteInfos);
+
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult SessionStorageCacheParent::RecvDeleteMe() {
+  AssertIsOnBackgroundThread();
+  MOZ_ASSERT(mManagerActor);
+
+  mManagerActor = nullptr;
+
+  IProtocol* mgr = Manager();
+  if (!PBackgroundSessionStorageCacheParent::Send__delete__(this)) {
+    return IPC_FAIL(
+        mgr, "Failed to delete PBackgroundSessionStorageCacheParent actor");
+  }
+  return IPC_OK();
+}
+
+SessionStorageManagerParent::SessionStorageManagerParent(uint64_t aTopContextId)
+    : mBackgroundManager(
+          BackgroundSessionStorageManager::GetOrCreate(aTopContextId)) {
+  AssertIsOnBackgroundThread();
+  MOZ_ASSERT(mBackgroundManager);
+}
+
+SessionStorageManagerParent::~SessionStorageManagerParent() = default;
+
+void SessionStorageManagerParent::ActorDestroy(ActorDestroyReason aWhy) {
+  AssertIsOnBackgroundThread();
+
+  mBackgroundManager = nullptr;
+}
+
+already_AddRefed<PBackgroundSessionStorageCacheParent>
+SessionStorageManagerParent::AllocPBackgroundSessionStorageCacheParent(
+    const nsCString& aOriginAttrs, const nsCString& aOriginKey) {
+  return MakeAndAddRef<SessionStorageCacheParent>(aOriginAttrs, aOriginKey,
+                                                  this);
+}
+
+BackgroundSessionStorageManager* SessionStorageManagerParent::GetManager()
+    const {
+  return mBackgroundManager;
+}
+
+mozilla::ipc::IPCResult SessionStorageManagerParent::RecvDeleteMe() {
+  AssertIsOnBackgroundThread();
+  MOZ_ASSERT(mBackgroundManager);
+
+  mBackgroundManager = nullptr;
+
+  IProtocol* mgr = Manager();
+  if (!PBackgroundSessionStorageManagerParent::Send__delete__(this)) {
+    return IPC_FAIL(
+        mgr, "Failed to delete PBackgroundSessionStorageManagerParent actor");
+  }
+  return IPC_OK();
+}
+
 /*******************************************************************************
  * Exported functions
  ******************************************************************************/
@@ -1332,6 +1509,11 @@ bool DeallocPSessionStorageObserverParent(
       dont_AddRef(static_cast<SessionStorageObserverParent*>(aActor));
 
   return true;
+}
+
+already_AddRefed<PBackgroundSessionStorageManagerParent>
+AllocPBackgroundSessionStorageManagerParent(const uint64_t& aTopContextId) {
+  return MakeAndAddRef<SessionStorageManagerParent>(aTopContextId);
 }
 
 }  // namespace dom

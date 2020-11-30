@@ -6,6 +6,8 @@
 #ifndef gfx_src_gfxTelemetry_h__
 #define gfx_src_gfxTelemetry_h__
 
+#include <cstdint>
+
 namespace mozilla {
 namespace gfx {
 
@@ -29,7 +31,7 @@ enum class FeatureStatus {
   // were able to recover via SEH (or something similar).
   CrashedInHandler,
 
-  // This feature was blocked for reasons outside the blacklist, such as a
+  // This feature was blocked for reasons outside the blocklist, such as a
   // runtime test failing.
   Blocked,
   BlockedDeviceUnknown,
@@ -49,8 +51,8 @@ enum class FeatureStatus {
   // This feature has been blocked by the allowlist.
   Denied,
 
-  // This feature has been blocked by the graphics blacklist.
-  Blacklisted,
+  // This feature has been blocked by the graphics blocklist.
+  Blocklisted,
 
   // This feature is disabled by default, and so activation isn't attempted
   // unless something explicitly enables it.

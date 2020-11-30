@@ -8,6 +8,7 @@
 #define jit_IonCacheIRCompiler_h
 
 #include "mozilla/Maybe.h"
+
 #include "jit/CacheIR.h"
 #include "jit/CacheIRCompiler.h"
 #include "jit/IonIC.h"
@@ -22,20 +23,21 @@ class MOZ_RAII IonCacheIRCompiler : public CacheIRCompiler {
   friend class AutoCallVM;
 
   IonCacheIRCompiler(JSContext* cx, const CacheIRWriter& writer, IonIC* ic,
-                     IonScript* ionScript, IonICStub* stub,
+                     IonScript* ionScript,
                      const PropertyTypeCheckInfo* typeCheckInfo,
                      uint32_t stubDataOffset);
 
   MOZ_MUST_USE bool init();
-  JitCode* compile();
+  JitCode* compile(IonICStub* stub);
+
+#ifdef DEBUG
+  void assertFloatRegisterAvailable(FloatRegister reg);
+#endif
 
  private:
   const CacheIRWriter& writer_;
   IonIC* ic_;
   IonScript* ionScript_;
-
-  // The stub we're generating code for.
-  IonICStub* stub_;
 
   // Information necessary to generate property type checks. Non-null iff
   // this is a SetProp/SetElem stub.
@@ -48,32 +50,26 @@ class MOZ_RAII IonCacheIRCompiler : public CacheIRCompiler {
   bool savedLiveRegs_;
 
   template <typename T>
-  T rawWordStubField(uint32_t offset);
+  T rawPointerStubField(uint32_t offset);
 
   template <typename T>
   T rawInt64StubField(uint32_t offset);
-
-  uint64_t* expandoGenerationStubFieldPtr(uint32_t offset);
 
   void prepareVMCall(MacroAssembler& masm, const AutoSaveLiveRegisters&);
 
   template <typename Fn, Fn fn>
   void callVM(MacroAssembler& masm);
 
-  MOZ_MUST_USE bool emitAddAndStoreSlotShared(CacheOp op);
-  MOZ_MUST_USE bool emitCallScriptedGetterResultShared(
-      TypedOrValueRegister receiver, TypedOrValueRegister output);
-  MOZ_MUST_USE bool emitCallNativeGetterResultShared(
-      TypedOrValueRegister receiver, const AutoOutputRegister& output,
-      AutoSaveLiveRegisters& save);
+  MOZ_MUST_USE bool emitAddAndStoreSlotShared(
+      CacheOp op, ObjOperandId objId, uint32_t offsetOffset, ValOperandId rhsId,
+      bool changeGroup, uint32_t newGroupOffset, uint32_t newShapeOffset,
+      mozilla::Maybe<uint32_t> numNewSlotsOffset);
 
   bool needsPostBarrier() const;
 
   void pushStubCodePointer();
 
-#define DEFINE_OP(op, ...) MOZ_MUST_USE bool emit##op();
-  CACHE_IR_OPS(DEFINE_OP)
-#undef DEFINE_OP
+  CACHE_IR_COMPILER_UNSHARED_GENERATED
 };
 
 }  // namespace jit

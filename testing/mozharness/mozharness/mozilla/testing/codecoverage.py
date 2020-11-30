@@ -109,16 +109,15 @@ class CodeCoverageMixin(SingleTestMixin):
 
     def _setup_cpp_js_coverage_tools(self):
         if mozinfo.os == 'linux' or mozinfo.os == 'mac':
-            self.prefix = '/builds/worker/workspace/build/src/'
-            strip_count = self.prefix.count('/')
+            self.prefix = '/builds/worker/checkouts/gecko'
         elif mozinfo.os == 'win':
+            # obj folder is z:/build/workspace/obj-build
+            # same strip count as prefix
             self.prefix = 'z:/build/build/src/'
-            # Add 1 as on Windows the path where the compiler tries to write the
-            # gcda files has an additional 'obj-firefox' component.
-            strip_count = self.prefix.count('/') + 1
         else:
             raise Exception('Unexpected OS: {}'.format(mozinfo.os))
 
+        strip_count = len(filter(None, self.prefix.split('/')))
         os.environ['GCOV_PREFIX_STRIP'] = str(strip_count)
 
         # Download the gcno archive from the build machine.
@@ -298,8 +297,8 @@ class CodeCoverageMixin(SingleTestMixin):
             os.path.join(self.grcov_dir, self.grcov_bin),
             '-t', output_format,
             '-p', self.prefix,
-            '--ignore-dir', 'gcc*',
-            '--ignore-dir', 'vs2017_*',
+            '--ignore', 'gcc*',
+            '--ignore', 'vs2017_*',
             os.path.join(self.grcov_dir, 'target.code-coverage-gcno.zip'), gcov_dir
         ]
 

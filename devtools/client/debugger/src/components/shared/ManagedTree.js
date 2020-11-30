@@ -6,7 +6,8 @@
 import React, { Component } from "react";
 import "./ManagedTree.css";
 
-const { Tree } = require("devtools-components");
+// $FlowIgnore
+const Tree = require("devtools/client/shared/components/Tree");
 
 export type Item = {
   contents: any,
@@ -84,7 +85,7 @@ class ManagedTree extends Component<Props, State> {
       while (parents.length) {
         const children = [];
         for (const parent of parents) {
-          if (parent.contents && parent.contents.length) {
+          if (parent.contents?.length) {
             for (const child of parent.contents) {
               expandItem(child);
               children.push(child);

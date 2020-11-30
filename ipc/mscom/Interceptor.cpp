@@ -302,6 +302,15 @@ Interceptor::GetMarshalSizeMax(REFIID riid, void* pv, DWORD dwDestContext,
     return hr;
   }
 
+#if defined(MOZ_MSCOM_REMARSHAL_NO_HANDLER)
+  if (XRE_IsContentProcess() && IsCallerExternalProcess()) {
+    // The caller isn't our chrome process, so we do not provide a handler
+    // payload. Even though we're only getting the size here, calculating the
+    // payload size might actually require building the payload.
+    return hr;
+  }
+#endif  // defined(MOZ_MSCOM_REMARSHAL_NO_HANDLER)
+
   DWORD payloadSize = 0;
   hr = mEventSink->GetHandlerPayloadSize(WrapNotNull(this),
                                          WrapNotNull(&payloadSize));
@@ -704,6 +713,10 @@ Interceptor::QueryInterfaceTarget(REFIID aIid, void** aOutput,
     // thread is also querying for IMarshal. If we do need to respond to these
     // special interfaces, this should be done before this point; e.g. in
     // Interceptor::QueryInterface like we do for INoMarshal.
+    return E_NOINTERFACE;
+  }
+
+  if (mEventSink->IsInterfaceMaybeSupported(aIid) == E_NOINTERFACE) {
     return E_NOINTERFACE;
   }
 

@@ -22,6 +22,8 @@
 #include "nsServiceManagerUtils.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/LoadInfo.h"
+#include "mozilla/SchedulerGroup.h"
+#include "mozilla/StaticPrefs_extensions.h"
 #include "mozilla/StorageAccess.h"
 #include "mozilla/dom/ClientIPCTypes.h"
 #include "mozilla/dom/DOMMozPromiseRequestHolder.h"
@@ -153,7 +155,7 @@ void ServiceWorkerContainer::ControllerChanged(ErrorResult& aRv) {
     return;
   }
   mControllerWorker = go->GetOrCreateServiceWorker(go->GetController().ref());
-  aRv = DispatchTrustedEvent(NS_LITERAL_STRING("controllerchange"));
+  aRv = DispatchTrustedEvent(u"controllerchange"_ns);
 }
 
 using mozilla::dom::ipc::StructuredCloneData;
@@ -223,7 +225,7 @@ already_AddRefed<nsIURI> GetBaseURIFromGlobal(nsIGlobalObject* aGlobal,
 
 already_AddRefed<Promise> ServiceWorkerContainer::Register(
     const nsAString& aScriptURL, const RegistrationOptions& aOptions,
-    ErrorResult& aRv) {
+    const CallerType aCallerType, ErrorResult& aRv) {
   // Note, we can't use GetGlobalIfValid() from the start here.  If we
   // hit a storage failure we want to log a message with the final
   // scope string we put together below.
@@ -259,13 +261,32 @@ already_AddRefed<Promise> ServiceWorkerContainer::Register(
     return nullptr;
   }
 
+  // Never allow script URL with moz-extension scheme if support is fully
+  // disabled by the 'extensions.background_service_worker.enabled' pref.
+  if (scriptURI->SchemeIs("moz-extension") &&
+      !StaticPrefs::extensions_backgroundServiceWorker_enabled_AtStartup()) {
+    aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
+    return nullptr;
+  }
+
+  // Allow a webextension principal to register a service worker script with
+  // a moz-extension url only if 'extensions.service_worker_register.allowed'
+  // is true.
+  if (scriptURI->SchemeIs("moz-extension") &&
+      aCallerType == CallerType::NonSystem &&
+      (!baseURI->SchemeIs("moz-extension") ||
+       !StaticPrefs::extensions_serviceWorkerRegister_allowed())) {
+    aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
+    return nullptr;
+  }
+
   // In ServiceWorkerContainer.register() the scope argument is parsed against
   // different base URLs depending on whether it was passed or not.
   nsCOMPtr<nsIURI> scopeURI;
 
   // Step 4. If none passed, parse against script's URL
   if (!aOptions.mScope.WasPassed()) {
-    NS_NAMED_LITERAL_CSTRING(defaultScope, "./");
+    constexpr auto defaultScope = "./"_ns;
     rv = NS_NewURI(getter_AddRefs(scopeURI), defaultScope, nullptr, scriptURI);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       nsAutoCString spec;
@@ -335,8 +356,7 @@ already_AddRefed<Promise> ServiceWorkerContainer::Register(
   // Check content policy.
   int16_t decision = nsIContentPolicy::ACCEPT;
   rv = NS_CheckContentLoadPolicy(scriptURI, secCheckLoadInfo,
-                                 NS_LITERAL_CSTRING("application/javascript"),
-                                 &decision);
+                                 "application/javascript"_ns, &decision);
   if (NS_FAILED(rv)) {
     aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
     return nullptr;
@@ -367,7 +387,7 @@ already_AddRefed<Promise> ServiceWorkerContainer::Register(
     AutoTArray<nsString, 1> param;
     CopyUTF8toUTF16(cleanedScopeURL, *param.AppendElement());
     nsContentUtils::ReportToConsole(nsIScriptError::errorFlag,
-                                    NS_LITERAL_CSTRING("Service Workers"), aDoc,
+                                    "Service Workers"_ns, aDoc,
                                     nsContentUtils::eDOM_PROPERTIES,
                                     "ServiceWorkerRegisterStorageError", param);
   });
@@ -410,7 +430,7 @@ already_AddRefed<Promise> ServiceWorkerContainer::GetRegistrations(
     ErrorResult& aRv) {
   nsIGlobalObject* global = GetGlobalIfValid(aRv, [](Document* aDoc) {
     nsContentUtils::ReportToConsole(nsIScriptError::errorFlag,
-                                    NS_LITERAL_CSTRING("Service Workers"), aDoc,
+                                    "Service Workers"_ns, aDoc,
                                     nsContentUtils::eDOM_PROPERTIES,
                                     "ServiceWorkerGetRegistrationStorageError");
   });
@@ -469,7 +489,7 @@ already_AddRefed<Promise> ServiceWorkerContainer::GetRegistration(
     const nsAString& aURL, ErrorResult& aRv) {
   nsIGlobalObject* global = GetGlobalIfValid(aRv, [](Document* aDoc) {
     nsContentUtils::ReportToConsole(nsIScriptError::errorFlag,
-                                    NS_LITERAL_CSTRING("Service Workers"), aDoc,
+                                    "Service Workers"_ns, aDoc,
                                     nsContentUtils::eDOM_PROPERTIES,
                                     "ServiceWorkerGetRegistrationStorageError");
   });
@@ -708,10 +728,7 @@ void ServiceWorkerContainer::DispatchMessage(RefPtr<ReceivedMessage> aMessage) {
     }
 
     RefPtr<MessageEvent> event = MessageEvent::Constructor(
-        this,
-        deserializationFailed ? NS_LITERAL_STRING("messageerror")
-                              : NS_LITERAL_STRING("message"),
-        init);
+        this, deserializationFailed ? u"messageerror"_ns : u"message"_ns, init);
     event->SetTrusted(true);
 
     result = NS_OK;
@@ -730,14 +747,14 @@ nsresult FillInOriginNoSuffix(const ServiceWorkerDescriptor& aServiceWorker,
 
   nsresult rv;
 
-  nsCOMPtr<nsIPrincipal> principal =
-      PrincipalInfoToPrincipal(aServiceWorker.PrincipalInfo(), &rv);
-  if (NS_FAILED(rv) || !principal) {
-    return rv;
+  auto principalOrErr =
+      PrincipalInfoToPrincipal(aServiceWorker.PrincipalInfo());
+  if (NS_WARN_IF(principalOrErr.isErr())) {
+    return principalOrErr.unwrapErr();
   }
 
   nsAutoCString originUTF8;
-  rv = principal->GetOriginNoSuffix(originUTF8);
+  rv = principalOrErr.unwrap()->GetOriginNoSuffix(originUTF8);
   if (NS_FAILED(rv)) {
     return rv;
   }

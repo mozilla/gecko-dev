@@ -50,6 +50,18 @@ interface nsITelemetry : nsISupports
   const unsigned long DATASET_ALL_CHANNELS = 0;
   const unsigned long DATASET_PRERELEASE_CHANNELS = 1;
 
+  /**
+   * Serializes the histogram labels for categorical hitograms.
+   * The returned structure looks like:
+   *   { "histogram1": [ "histogram1_label1", "histogram1_label2", ...],
+   *     "histogram2": [ "histogram2_label1", "histogram2_label2", ...]
+   *     ...
+   *     }
+   *
+   * Note that this function should only be used in tests and about:telemetry.
+   */
+  [implicit_jscontext]
+  jsval getCategoricalLabels();
 
   /**
    * Serializes the histograms from the given store to a JSON-style object.
@@ -194,47 +206,6 @@ interface nsITelemetry : nsISupports
   Promise getUntrustedModuleLoadEvents();
 
   /*
-   * Record the current thread's call stack on demand. Note that, the stack is
-   * only captured at the first call. All subsequent calls result in incrementing
-   * the capture counter without doing actual stack unwinding.
-   *
-   * @param aKey - A user defined key associated with the captured stack.
-   *
-   * NOTE: Unwinding call stacks is an expensive operation performance-wise.
-   */
-  void captureStack(in ACString name);
-
-  /*
-   * Returns a snapshot of captured stacks. The data has the following structure:
-   *
-   * {
-   *  "memoryMap": [
-   *      ["wgdi32.pdb", "08A541B5942242BDB4AEABD8C87E4CFF2"],
-   *      ["igd10iumd32.pdb", "D36DEBF2E78149B5BE1856B772F1C3991"],
-   *      ... other entries in the format ["module name", "breakpad identifier"] ...
-   *   ],
-   *   "stacks": [
-   *      [
-   *         [
-   *           0, // the module index or -1 for invalid module indices
-   *           190649 // the offset of this program counter in its module or an absolute pc
-   *         ],
-   *         [1, 2540075],
-   *         ... other frames ...
-   *      ],
-   *      ... other stacks ...
-   *   ],
-   *   "captures": [["string-key", stack-index, count], ... ]
-   * }
-   *
-   * @param clear Whether to clear out the subsession histograms after taking a snapshot.
-   *
-   * @return A snapshot of captured stacks.
-   */
-  [implicit_jscontext]
-  jsval snapshotCapturedStacks([optional] in boolean clear);
-
-  /*
    * Asynchronously get an array of the modules loaded in the process.
    *
    * The data has the following structure:
@@ -274,7 +245,10 @@ interface nsITelemetry : nsISupports
    *
    * @param id - unique identifier from TelemetryHistograms.h
    * The returned object has the following functions:
-   *   add(int) - Adds an int value to the appropriate bucket.
+   *   add(value) - Adds a sample of `value` to the histogram.
+                    `value` may be a categorical histogram's label as a string,
+                    a boolean histogram's value as a boolean,
+                    or a number that fits inside a uint32_t.
    *   snapshot([optional] {store}) - Returns a snapshot of the histogram with the same data fields
                                       as in getSnapshotForHistograms().
                                       Defaults to the "main" store.
@@ -290,8 +264,11 @@ interface nsITelemetry : nsISupports
    *
    * @param id - unique identifier from TelemetryHistograms.h
    * The returned object has the following functions:
-   *   add(string key, [optional] int) - Add an int value to the histogram for that key.
+   *   add(string key, [optional] value) - Adds a sample of `value` to the histogram for that key.
                                          If no histogram for that key exists yet, it is created.
+                                         `value` may be a categorical histogram's label as a string,
+                                         a boolean histogram's value as a boolean,
+                                         or a number that fits inside a uint32_t.
    *   snapshot([optional] {store}) - Returns the snapshots of all the registered keys in the form
                                       {key1: snapshot1, key2: snapshot2, ...} in the specified store.
    *                                  Defaults to the "main" store.
@@ -509,7 +486,7 @@ interface nsITelemetry : nsISupports
    *   ]
    *
    * @param aDataset DATASET_ALL_CHANNELS or DATASET_PRERELEASE_CHANNELS.
-   * @param [aClear=false] Whether to clear out the events after snapshotting.
+   * @param [aClear=false] Whether to clear out the flushed events after snapshotting.
    * @param aEventLimit How many events per process to limit the snapshot to contain, all if unspecified.
    *                    Even if aClear, the leftover event records are not cleared.
    */
@@ -595,6 +572,8 @@ interface nsITelemetry : nsISupports
 
   /**
    * Resets all the stored events. This is intended to be only used in tests.
+   * Events recorded but not yet flushed to the parent process storage won't be cleared.
+   * Override the pref. `toolkit.telemetry.ipcBatchTimeout` to reduce the time to flush events.
    */
   void clearEvents();
 
@@ -605,18 +584,6 @@ interface nsITelemetry : nsISupports
    */
   [implicit_jscontext]
   jsval getAllStores();
-
-  /**
-   * Reset the storage for all the collection primitives so that GeckoView
-   * can issue a single Clear signal for histograms, scalars, events, ...
-   *
-   * This is needed for supporting the current implementation of GeckoView
-   * measurement persistence: all the measurements are stored in a single file and
-   * they can't be cleared independently.
-   *
-   * Please note that this is only intended to be used by GeckoViewTelemetryController.
-   */
-  void clearProbes();
 
   /**
    * Does early, cheap initialization for native telemetry data providers.

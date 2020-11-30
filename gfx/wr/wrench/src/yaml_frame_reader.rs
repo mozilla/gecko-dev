@@ -15,6 +15,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::usize;
 use webrender::api::*;
+use webrender::render_api::*;
 use webrender::api::units::*;
 use crate::wrench::{FontDescriptor, Wrench, WrenchThing};
 use crate::yaml_helper::{StringEnum, YamlHelper, make_perspective};
@@ -111,7 +112,16 @@ impl LocalExternalImageHandler {
             ImageData::Raw(ref data) => {
                 let gl = device.gl();
                 let texture_ids = gl.gen_textures(1);
-                let format_desc = device.gl_describe_format(desc.format);
+                let format_desc = if desc.format == ImageFormat::BGRA8 {
+                    // Force BGRA8 data to RGBA8 layout to avoid potential
+                    // need for usage of texture-swizzle.
+                    webrender::FormatDesc {
+                        external: gl::BGRA,
+                        .. device.gl_describe_format(ImageFormat::RGBA8)
+                    }
+                } else {
+                    device.gl_describe_format(desc.format)
+                };
 
                 LocalExternalImageHandler::init_gl_texture(
                     texture_ids[0],
@@ -313,7 +323,7 @@ pub struct YamlFrameReader {
     aux_dir: PathBuf,
     frame_count: u32,
 
-    display_lists: Vec<(PipelineId, LayoutSize, BuiltDisplayList)>,
+    display_lists: Vec<(PipelineId, BuiltDisplayList)>,
 
     include_only: Vec<String>,
 
@@ -327,7 +337,7 @@ pub struct YamlFrameReader {
     image_map: HashMap<(PathBuf, Option<i64>), (ImageKey, LayoutSize)>,
 
     fonts: HashMap<FontDescriptor, FontKey>,
-    font_instances: HashMap<(FontKey, Au, FontInstanceFlags, Option<ColorU>, SyntheticItalics), FontInstanceKey>,
+    font_instances: HashMap<(FontKey, FontSize, FontInstanceFlags, Option<ColorU>, SyntheticItalics), FontInstanceKey>,
     font_render_mode: Option<FontRenderMode>,
     allow_mipmaps: bool,
 
@@ -387,7 +397,7 @@ impl YamlFrameReader {
             txn.delete_font(font);
         }
 
-        wrench.api.update_resources(txn.resource_updates);
+        wrench.api.send_transaction(wrench.document_id, txn);
     }
 
     fn top_space_and_clip(&self) -> SpaceAndClipInfo {
@@ -467,15 +477,12 @@ impl YamlFrameReader {
         self.spatial_id_stack.clear();
         self.spatial_id_stack.push(SpatialId::root_scroll_node(pipeline_id));
 
-        let content_size = self.get_root_size_from_yaml(wrench, yaml);
-        let mut builder = DisplayListBuilder::new(pipeline_id, content_size);
+        let mut builder = DisplayListBuilder::new(pipeline_id);
         let mut info = CommonItemProperties {
             clip_rect: LayoutRect::zero(),
             clip_id: ClipId::invalid(),
             spatial_id: SpatialId::new(0, PipelineId::dummy()),
             flags: PrimitiveFlags::default(),
-            hit_info: None,
-            item_key: None,
         };
         self.add_stacking_context_from_yaml(&mut builder, wrench, yaml, true, &mut info);
         self.display_lists.push(builder.finalize());
@@ -769,7 +776,7 @@ impl YamlFrameReader {
             txn.add_image(image_key, descriptor, image_data, tiling);
         }
 
-        wrench.api.update_resources(txn.resource_updates);
+        wrench.api.send_transaction(wrench.document_id, txn);
         let val = (
             image_key,
             LayoutSize::new(descriptor.size.width as f32, descriptor.size.height as f32),
@@ -815,7 +822,7 @@ impl YamlFrameReader {
     fn get_or_create_font_instance(
         &mut self,
         font_key: FontKey,
-        size: Au,
+        size: f32,
         bg_color: Option<ColorU>,
         flags: FontInstanceFlags,
         synthetic_italics: SyntheticItalics,
@@ -824,7 +831,7 @@ impl YamlFrameReader {
         let font_render_mode = self.font_render_mode;
 
         *self.font_instances
-            .entry((font_key, size, flags, bg_color, synthetic_italics))
+            .entry((font_key, size.into(), flags, bg_color, synthetic_italics))
             .or_insert_with(|| {
                 wrench.add_font_instance(
                     font_key,
@@ -956,7 +963,7 @@ impl YamlFrameReader {
         &mut self,
         dl: &mut DisplayListBuilder,
         item: &Yaml,
-        info: &mut CommonItemProperties,
+        info: &CommonItemProperties,
     ) {
         let bounds_key = if item["type"].is_badvalue() {
             "rect"
@@ -964,26 +971,19 @@ impl YamlFrameReader {
             "bounds"
         };
 
-        info.clip_rect = try_intersect!(
-            self.resolve_rect(&item[bounds_key]),
-            &info.clip_rect
-        );
-
+        let bounds = self.resolve_rect(&item[bounds_key]);
         let color = self.resolve_colorf(&item["color"], ColorF::BLACK);
-        dl.push_rect(&info, color);
+        dl.push_rect(&info, bounds, color);
     }
 
     fn handle_clear_rect(
         &mut self,
         dl: &mut DisplayListBuilder,
         item: &Yaml,
-        info: &mut CommonItemProperties,
+        info: &CommonItemProperties,
     ) {
-        info.clip_rect = try_intersect!(
-            item["bounds"].as_rect().expect("clear-rect type must have bounds"),
-            &info.clip_rect
-        );
-        dl.push_clear_rect(&info);
+        let bounds = item["bounds"].as_rect().expect("clear-rect type must have bounds");
+        dl.push_clear_rect(&info, bounds);
     }
 
     fn handle_hit_test(
@@ -997,7 +997,12 @@ impl YamlFrameReader {
             &info.clip_rect
         );
 
-        dl.push_hit_test(&info);
+        if let Some(tag) = self.to_hit_testing_tag(&item["hit-testing-tag"]) {
+            dl.push_hit_test(
+                &info,
+                tag,
+            );
+        }
     }
 
     fn handle_line(
@@ -1496,7 +1501,7 @@ impl YamlFrameReader {
         item: &Yaml,
         info: &mut CommonItemProperties,
     ) {
-        let size = item["size"].as_pt_to_au().unwrap_or(Au::from_f32_px(16.0));
+        let size = item["size"].as_pt_to_f32().unwrap_or(16.0);
         let color = item["color"].as_colorf().unwrap_or(ColorF::BLACK);
         let bg_color = item["bg-color"].as_colorf().map(|c| c.into());
         let synthetic_italics = if let Some(angle) = item["synthetic-italics"].as_f32() {
@@ -1704,11 +1709,9 @@ impl YamlFrameReader {
                 match item_type {
                     "clip" | "clip-chain" | "scroll-frame" => {},
                     _ => {
-                        let id = dl.define_clip(
+                        let id = dl.define_clip_rounded_rect(
                             &self.top_space_and_clip(),
-                            clip_rect,
-                            vec![complex_clip],
-                            None,
+                            complex_clip,
                         );
                         self.clip_id_stack.push(id);
                         pushed_clip = true;
@@ -1744,8 +1747,6 @@ impl YamlFrameReader {
                 clip_rect,
                 clip_id: space_and_clip.clip_id,
                 spatial_id: space_and_clip.spatial_id,
-                hit_info: self.to_hit_testing_tag(&item["hit-testing-tag"]),
-                item_key: None,
                 flags,
             };
 
@@ -1804,9 +1805,6 @@ impl YamlFrameReader {
 
         let numeric_id = yaml["id"].as_i64().map(|id| id as u64);
 
-        let complex_clips = self.to_complex_clip_regions(&yaml["complex"]);
-        let image_mask = self.to_image_mask(&yaml["image-mask"], wrench);
-
         let external_id =  yaml["scroll-offset"].as_point().map(|size| {
             let id = ExternalScrollId((self.scroll_offsets.len() + 1) as u64, dl.pipeline_id);
             self.scroll_offsets.insert(id, LayoutPoint::new(size.x, size.y));
@@ -1818,8 +1816,6 @@ impl YamlFrameReader {
             external_id,
             content_rect,
             clip_rect,
-            complex_clips,
-            image_mask,
             ScrollSensitivity::ScriptAndInputEvents,
             external_scroll_offset,
         );
@@ -1964,35 +1960,41 @@ impl YamlFrameReader {
     }
 
     fn handle_clip(&mut self, dl: &mut DisplayListBuilder, wrench: &mut Wrench, yaml: &Yaml) {
-        let clip_rect = yaml["bounds"].as_rect().expect("clip must have a bounds");
         let numeric_id = yaml["id"].as_i64();
         let complex_clips = self.to_complex_clip_regions(&yaml["complex"]);
-        let image_mask = self.to_image_mask(&yaml["image-mask"], wrench);
+        let mut space_and_clip = self.top_space_and_clip();
 
-        let space_and_clip = self.top_space_and_clip();
-        let real_id = dl.define_clip(
-            &space_and_clip,
-            clip_rect,
-            complex_clips,
-            image_mask,
-        );
+        if let Some(clip_rect) = yaml["bounds"].as_rect() {
+            space_and_clip.clip_id = dl.define_clip_rect(
+                &space_and_clip,
+                clip_rect,
+            );
+        }
+
+        if let Some(image_mask) = self.to_image_mask(&yaml["image-mask"], wrench) {
+            space_and_clip.clip_id = dl.define_clip_image_mask(
+                &space_and_clip,
+                image_mask,
+            );
+        }
+
+        for complex_clip in complex_clips {
+            space_and_clip.clip_id = dl.define_clip_rounded_rect(
+                &space_and_clip,
+                complex_clip,
+            );
+        }
+
         if let Some(numeric_id) = numeric_id {
-            self.add_clip_id_mapping(numeric_id as u64, real_id);
+            self.add_clip_id_mapping(numeric_id as u64, space_and_clip.clip_id);
             self.add_spatial_id_mapping(numeric_id as u64, space_and_clip.spatial_id);
         }
 
         if !yaml["items"].is_badvalue() {
-            self.clip_id_stack.push(real_id);
+            self.clip_id_stack.push(space_and_clip.clip_id);
             self.add_display_list_items_from_yaml(dl, wrench, &yaml["items"]);
             self.clip_id_stack.pop().unwrap();
         }
-    }
-
-    fn get_root_size_from_yaml(&mut self, wrench: &mut Wrench, yaml: &Yaml) -> LayoutSize {
-        yaml["bounds"]
-            .as_rect()
-            .map(|rect| rect.size)
-            .unwrap_or(wrench.window_size_f32())
     }
 
     fn push_reference_frame(
@@ -2108,8 +2110,8 @@ impl YamlFrameReader {
         let raster_space = yaml["raster-space"]
             .as_raster_space()
             .unwrap_or(RasterSpace::Screen);
-        let cache_tiles = yaml["cache"].as_bool().unwrap_or(false);
         let is_backdrop_root = yaml["backdrop-root"].as_bool().unwrap_or(false);
+        let is_blend_container = yaml["blend-container"].as_bool().unwrap_or(false);
 
         if is_root {
             if let Some(size) = yaml["scroll-offset"].as_point() {
@@ -2122,6 +2124,14 @@ impl YamlFrameReader {
         let filter_datas = yaml["filter-datas"].as_vec_filter_data().unwrap_or(vec![]);
         let filter_primitives = yaml["filter-primitives"].as_vec_filter_primitive().unwrap_or(vec![]);
 
+        let mut flags = StackingContextFlags::empty();
+        if is_backdrop_root {
+            flags |= StackingContextFlags::IS_BACKDROP_ROOT;
+        }
+        if is_blend_container {
+            flags |= StackingContextFlags::IS_BLEND_CONTAINER;
+        }
+
         dl.push_stacking_context(
             bounds.origin,
             *self.spatial_id_stack.last().unwrap(),
@@ -2133,8 +2143,7 @@ impl YamlFrameReader {
             &filter_datas,
             &filter_primitives,
             raster_space,
-            cache_tiles,
-            is_backdrop_root,
+            flags,
         );
 
         if !yaml["items"].is_badvalue() {
@@ -2179,7 +2188,8 @@ impl WrenchThing for YamlFrameReader {
 
         // If YAML isn't read yet, or watching source file, reload from disk.
         if self.yaml_string.is_empty() || self.watch_source {
-            let mut file = File::open(&self.yaml_path).unwrap();
+            let mut file = File::open(&self.yaml_path)
+                .unwrap_or_else(|_| panic!("YAML '{:?}' doesn't exist", self.yaml_path));
             self.yaml_string.clear();
             file.read_to_string(&mut self.yaml_string).unwrap();
             should_build_yaml = true;

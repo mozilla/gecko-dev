@@ -139,6 +139,15 @@ static const nsRoleMapEntry sWAIRoleMaps[] = {
     eARIACheckableMixed,
     eARIAReadonly
   },
+  { // code
+    nsGkAtoms::code,
+    roles::CODE,
+    kUseMapRole,
+    eNoValue,
+    eNoAction,
+    eNoLiveAttr,
+    kGenericAccType,
+  },
   { // columnheader
     nsGkAtoms::columnheader,
     roles::COLUMNHEADER,
@@ -1293,8 +1302,8 @@ static const nsRoleMapEntry sLandmarkRoleMap = {
     eNoAction,         eNoLiveAttr,    kGenericAccType, kNoReqStates};
 
 nsRoleMapEntry aria::gEmptyRoleMap = {
-    nsGkAtoms::_empty, roles::NOTHING, kUseMapRole,     eNoValue,
-    eNoAction,         eNoLiveAttr,    kGenericAccType, kNoReqStates};
+    nsGkAtoms::_empty, roles::TEXT_CONTAINER, kUseMapRole,     eNoValue,
+    eNoAction,         eNoLiveAttr,           kGenericAccType, kNoReqStates};
 
 /**
  * Universal (Global) states:
@@ -1460,8 +1469,7 @@ bool AttrIterator::Next(nsAString& aAttrName, nsAString& aAttrValue) {
     if (attr->NamespaceEquals(kNameSpaceID_None)) {
       nsAtom* attrAtom = attr->Atom();
       nsDependentAtomString attrStr(attrAtom);
-      if (!StringBeginsWith(attrStr, NS_LITERAL_STRING("aria-")))
-        continue;  // Not ARIA
+      if (!StringBeginsWith(attrStr, u"aria-"_ns)) continue;  // Not ARIA
 
       uint8_t attrFlags = aria::AttrCharacteristicsFor(attrAtom);
       if (attrFlags & ATTR_BYPASSOBJ)

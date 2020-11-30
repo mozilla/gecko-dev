@@ -7,6 +7,7 @@
 #define widget_gtk_GtkCompositorWidget_h
 
 #include "GLDefs.h"
+#include "mozilla/DataMutex.h"
 #include "mozilla/widget/CompositorWidget.h"
 #include "WindowSurfaceProvider.h"
 
@@ -35,7 +36,7 @@ class GtkCompositorWidget : public CompositorWidget,
  public:
   GtkCompositorWidget(const GtkCompositorWidgetInitData& aInitData,
                       const layers::CompositorOptions& aOptions,
-                      nsWindow* aWindow = nullptr);
+                      nsWindow* aWindow /* = nullptr*/);
   ~GtkCompositorWidget();
 
   // CompositorWidget Overrides
@@ -57,11 +58,14 @@ class GtkCompositorWidget : public CompositorWidget,
   GtkCompositorWidget* AsX11() override { return this; }
   CompositorWidgetDelegate* AsDelegate() override { return this; }
 
+  EGLNativeWindowType GetEGLNativeWindow();
+  int32_t GetDepth();
+
+#if defined(MOZ_X11)
   Display* XDisplay() const { return mXDisplay; }
   Window XWindow() const { return mXWindow; }
-
-  EGLNativeWindowType GetEGLNativeWindow();
-#ifdef MOZ_WAYLAND
+#endif
+#if defined(MOZ_WAYLAND)
   void SetEGLNativeWindowSize(const LayoutDeviceIntSize& aEGLWindowSize);
 #endif
 
@@ -73,11 +77,21 @@ class GtkCompositorWidget : public CompositorWidget,
   nsWindow* mWidget;
 
  private:
-  LayoutDeviceIntSize mClientSize;
+  // This field is written to on the main thread and read from on the compositor
+  // or renderer thread. During window resizing, this is subject to a (largely
+  // benign) read/write race, see bug 1665726. The DataMutex doesn't prevent the
+  // read/write race, but it does make it Not Undefined Behaviour, and also
+  // ensures we only ever use the old or new size, and not some weird synthesis
+  // of the two.
+  DataMutex<LayoutDeviceIntSize> mClientSize;
 
-  Display* mXDisplay;
-  Window mXWindow;
   WindowSurfaceProvider mProvider;
+
+#if defined(MOZ_X11)
+  Display* mXDisplay = {};
+  Window mXWindow = {};
+#endif
+  int32_t mDepth = {};
 };
 
 }  // namespace widget

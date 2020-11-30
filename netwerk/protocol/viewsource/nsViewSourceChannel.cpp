@@ -98,13 +98,12 @@ nsresult nsViewSourceChannel::InitSrcdoc(nsIURI* aURI, nsIURI* aBaseURI,
   // Need to strip view-source: from the URI.  Hardcoded to
   // about:srcdoc as this is the only permissible URI for srcdoc
   // loads
-  rv =
-      NS_NewURI(getter_AddRefs(inStreamURI), NS_LITERAL_STRING("about:srcdoc"));
+  rv = NS_NewURI(getter_AddRefs(inStreamURI), u"about:srcdoc"_ns);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = NS_NewInputStreamChannelInternal(
-      getter_AddRefs(mChannel), inStreamURI, aSrcdoc,
-      NS_LITERAL_CSTRING("text/html"), aLoadInfo, true);
+  rv = NS_NewInputStreamChannelInternal(getter_AddRefs(mChannel), inStreamURI,
+                                        aSrcdoc, "text/html"_ns, aLoadInfo,
+                                        true);
 
   NS_ENSURE_SUCCESS(rv, rv);
   mOriginalURI = aURI;
@@ -188,7 +187,7 @@ nsresult nsViewSourceChannel::BuildViewSourceURI(nsIURI* aURI,
     return rv;
   }
 
-  return NS_NewURI(aResult, NS_LITERAL_CSTRING("view-source:") + spec);
+  return NS_NewURI(aResult, "view-source:"_ns + spec);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -271,9 +270,7 @@ nsViewSourceChannel::Resume(void) {
 
 NS_IMETHODIMP
 nsViewSourceChannel::GetOriginalURI(nsIURI** aURI) {
-  NS_ASSERTION(aURI, "Null out param!");
-  *aURI = mOriginalURI;
-  NS_ADDREF(*aURI);
+  *aURI = do_AddRef(mOriginalURI).take();
   return NS_OK;
 }
 
@@ -811,6 +808,15 @@ nsViewSourceChannel::SetRequestHeader(const nsACString& aHeader,
 }
 
 NS_IMETHODIMP
+nsViewSourceChannel::SetNewReferrerInfo(
+    const nsACString& aUrl, nsIReferrerInfo::ReferrerPolicyIDL aPolicy,
+    bool aSendReferrer) {
+  return !mHttpChannel
+             ? NS_ERROR_NULL_POINTER
+             : mHttpChannel->SetNewReferrerInfo(aUrl, aPolicy, aSendReferrer);
+}
+
+NS_IMETHODIMP
 nsViewSourceChannel::SetEmptyRequestHeader(const nsACString& aHeader) {
   return !mHttpChannel ? NS_ERROR_NULL_POINTER
                        : mHttpChannel->SetEmptyRequestHeader(aHeader);
@@ -827,6 +833,14 @@ nsViewSourceChannel::VisitNonDefaultRequestHeaders(
     nsIHttpHeaderVisitor* aVisitor) {
   return !mHttpChannel ? NS_ERROR_NULL_POINTER
                        : mHttpChannel->VisitNonDefaultRequestHeaders(aVisitor);
+}
+
+NS_IMETHODIMP
+nsViewSourceChannel::ShouldStripRequestBodyHeader(const nsACString& aMethod,
+                                                  bool* aResult) {
+  return !mHttpChannel
+             ? NS_ERROR_NULL_POINTER
+             : mHttpChannel->ShouldStripRequestBodyHeader(aMethod, aResult);
 }
 
 NS_IMETHODIMP
@@ -890,14 +904,13 @@ nsViewSourceChannel::GetResponseHeader(const nsACString& aHeader,
   aValue.Truncate();
   if (!mHttpChannel) return NS_ERROR_NULL_POINTER;
 
-  if (!aHeader.Equals(NS_LITERAL_CSTRING("Content-Type"),
-                      nsCaseInsensitiveCStringComparator()) &&
-      !aHeader.Equals(NS_LITERAL_CSTRING("Content-Security-Policy"),
-                      nsCaseInsensitiveCStringComparator()) &&
-      !aHeader.Equals(NS_LITERAL_CSTRING("Content-Security-Policy-Report-Only"),
-                      nsCaseInsensitiveCStringComparator()) &&
-      !aHeader.Equals(NS_LITERAL_CSTRING("X-Frame-Options"),
-                      nsCaseInsensitiveCStringComparator())) {
+  if (!aHeader.Equals("Content-Type"_ns, nsCaseInsensitiveCStringComparator) &&
+      !aHeader.Equals("Content-Security-Policy"_ns,
+                      nsCaseInsensitiveCStringComparator) &&
+      !aHeader.Equals("Content-Security-Policy-Report-Only"_ns,
+                      nsCaseInsensitiveCStringComparator) &&
+      !aHeader.Equals("X-Frame-Options"_ns,
+                      nsCaseInsensitiveCStringComparator)) {
     // We simulate the NS_ERROR_NOT_AVAILABLE error which is produced by
     // GetResponseHeader via nsHttpHeaderArray::GetHeader when the entry is
     // not present, such that it appears as though no headers except for the
@@ -919,7 +932,7 @@ NS_IMETHODIMP
 nsViewSourceChannel::VisitResponseHeaders(nsIHttpHeaderVisitor* aVisitor) {
   if (!mHttpChannel) return NS_ERROR_NULL_POINTER;
 
-  NS_NAMED_LITERAL_CSTRING(contentTypeStr, "Content-Type");
+  constexpr auto contentTypeStr = "Content-Type"_ns;
   nsAutoCString contentType;
   nsresult rv = mHttpChannel->GetResponseHeader(contentTypeStr, contentType);
   if (NS_SUCCEEDED(rv)) {
@@ -1000,12 +1013,18 @@ nsViewSourceChannel::SetIsMainDocumentChannel(bool aValue) {
 
 // Have to manually forward SetCorsPreflightParameters since it's [notxpcom]
 void nsViewSourceChannel::SetCorsPreflightParameters(
-    const nsTArray<nsCString>& aUnsafeHeaders) {
-  mHttpChannelInternal->SetCorsPreflightParameters(aUnsafeHeaders);
+    const nsTArray<nsCString>& aUnsafeHeaders,
+    bool aShouldStripRequestBodyHeader) {
+  mHttpChannelInternal->SetCorsPreflightParameters(
+      aUnsafeHeaders, aShouldStripRequestBodyHeader);
 }
 
 void nsViewSourceChannel::SetAltDataForChild(bool aIsForChild) {
   mHttpChannelInternal->SetAltDataForChild(aIsForChild);
+}
+
+void nsViewSourceChannel::DisableAltDataCache() {
+  mHttpChannelInternal->DisableAltDataCache();
 }
 
 NS_IMETHODIMP
@@ -1066,6 +1085,12 @@ void nsViewSourceChannel::SetHasNonEmptySandboxingFlag(
   }
 }
 
+void nsViewSourceChannel::DoDiagnosticAssertWhenOnStopNotCalledOnDestroy() {
+  if (mHttpChannelInternal) {
+    mHttpChannelInternal->DoDiagnosticAssertWhenOnStopNotCalledOnDestroy();
+  }
+}
+
 // nsIChildChannel methods
 
 NS_IMETHODIMP
@@ -1076,8 +1101,7 @@ nsViewSourceChannel::ConnectParent(uint32_t aRegistarId) {
 }
 
 NS_IMETHODIMP
-nsViewSourceChannel::CompleteRedirectSetup(nsIStreamListener* aListener,
-                                           nsISupports* aContext) {
+nsViewSourceChannel::CompleteRedirectSetup(nsIStreamListener* aListener) {
   NS_ENSURE_TRUE(mChildChannel, NS_ERROR_NULL_POINTER);
 
   mListener = aListener;
@@ -1095,7 +1119,7 @@ nsViewSourceChannel::CompleteRedirectSetup(nsIStreamListener* aListener,
   }
 
   nsresult rv = NS_OK;
-  rv = mChildChannel->CompleteRedirectSetup(this, aContext);
+  rv = mChildChannel->CompleteRedirectSetup(this);
 
   if (NS_FAILED(rv) && loadGroup) {
     loadGroup->RemoveRequest(static_cast<nsIViewSourceChannel*>(this), nullptr,

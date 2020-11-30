@@ -127,6 +127,9 @@ TEST_F(VsyncTester, CompositorGetVsyncNotifications) {
 
   vsyncDispatcher = nullptr;
   testVsyncObserver = nullptr;
+
+  globalDisplay.DisableVsync();
+  ASSERT_FALSE(globalDisplay.IsVsyncEnabled());
 }
 
 // Test that if we have vsync enabled, the parent refresh driver should get
@@ -154,6 +157,9 @@ TEST_F(VsyncTester, ParentRefreshDriverGetVsyncNotifications) {
 
   vsyncDispatcher = nullptr;
   testVsyncObserver = nullptr;
+
+  globalDisplay.DisableVsync();
+  ASSERT_FALSE(globalDisplay.IsVsyncEnabled());
 }
 
 // Test that child refresh vsync observers get vsync notifications
@@ -180,6 +186,9 @@ TEST_F(VsyncTester, ChildRefreshDriverGetVsyncNotifications) {
 
   vsyncDispatcher = nullptr;
   testVsyncObserver = nullptr;
+
+  globalDisplay.DisableVsync();
+  ASSERT_FALSE(globalDisplay.IsVsyncEnabled());
 }
 
 // Test that we can read the vsync rate
@@ -188,4 +197,7 @@ TEST_F(VsyncTester, VsyncSourceHasVsyncRate) {
   TimeDuration vsyncRate = globalDisplay.GetVsyncRate();
   ASSERT_NE(vsyncRate, TimeDuration::Forever());
   ASSERT_GT(vsyncRate.ToMilliseconds(), 0);
+
+  globalDisplay.DisableVsync();
+  ASSERT_FALSE(globalDisplay.IsVsyncEnabled());
 }

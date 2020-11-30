@@ -144,7 +144,7 @@ NS_IMPL_ISUPPORTS(nsSound, nsISound, nsIStreamLoaderObserver)
 ////////////////////////////////////////////////////////////////////////
 nsSound::nsSound() { mInited = false; }
 
-nsSound::~nsSound() {}
+nsSound::~nsSound() = default;
 
 NS_IMETHODIMP
 nsSound::Init() {
@@ -343,11 +343,12 @@ NS_IMETHODIMP nsSound::Play(nsIURL* aURL) {
     g_free(path);
   } else {
     nsCOMPtr<nsIStreamLoader> loader;
-    rv = NS_NewStreamLoader(getter_AddRefs(loader), aURL,
-                            this,  // aObserver
-                            nsContentUtils::GetSystemPrincipal(),
-                            nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
-                            nsIContentPolicy::TYPE_OTHER);
+    rv = NS_NewStreamLoader(
+        getter_AddRefs(loader), aURL,
+        this,  // aObserver
+        nsContentUtils::GetSystemPrincipal(),
+        nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
+        nsIContentPolicy::TYPE_OTHER);
   }
 
   return rv;

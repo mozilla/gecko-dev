@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_SVGAngle_h
-#define mozilla_dom_SVGAngle_h
+#ifndef DOM_SVG_DOMSVGANGLE_H_
+#define DOM_SVG_DOMSVGANGLE_H_
 
 #include "nsWrapperCache.h"
 #include "SVGElement.h"
@@ -20,7 +20,7 @@ class SVGSVGElement;
 
 class DOMSVGAngle final : public nsWrapperCache {
  public:
-  typedef enum { BaseValue, AnimValue, CreatedValue } AngleType;
+  enum class AngleType : int8_t { BaseValue, AnimValue, CreatedValue };
 
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(DOMSVGAngle)
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(DOMSVGAngle)
@@ -63,4 +63,4 @@ class DOMSVGAngle final : public nsWrapperCache {
 }  // namespace dom
 }  // namespace mozilla
 
-#endif  // mozilla_dom_SVGAngle_h
+#endif  // DOM_SVG_DOMSVGANGLE_H_

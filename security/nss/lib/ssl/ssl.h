@@ -312,7 +312,8 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
 
 /* Enables the delegated credentials extension (draft-ietf-tls-subcerts). When
  * enabled, a client that supports TLS 1.3 will indicate willingness to
- * negotiate a delegated credential (DC).
+ * negotiate a delegated credential (DC). Note that client-delegated credentials
+ * are not currently supported.
  *
  * If support is indicated, the peer may use a DC to authenticate itself. The DC
  * is sent as an extension to the peer's end-entity certificate; the end-entity
@@ -322,9 +323,28 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
  * mitigate the damage in case the secret key is compromised, the DC is only
  * valid for a short time (days, hours, or even minutes).
  *
- * This library implements draft-03 of the protocol spec.
+ * This library implements draft-07 of the protocol spec.
  */
 #define SSL_ENABLE_DELEGATED_CREDENTIALS 40
+
+/* Causes TLS (>=1.3) to suppress the EndOfEarlyData message in stream mode.
+ *
+ * This is not advisable in general, but the message only exists to delineate
+ * early data in a streamed connection.  DTLS does not use this message as a
+ * result.  The integration of TLS with QUIC, which uses a record/packet
+ * protection layer that is unreliable, also does not use this message.
+ *
+ * On the server, this requires that SSL_RecordLayerData be used.
+ * EndOfEarlyData is otherwise needed to drive key changes.  Additionally,
+ * servers that use this API must check that handshake messages (Certificate,
+ * CertificateVerify, and Finished in particular) are only received in epoch 2
+ * (Handshake).  SSL_RecordLayerData will accept these handshake messages if
+ * they are passed as epoch 1 (Early Data) in a single call.
+ *
+ * Using this option will cause connections to fail if early data is attempted
+ * and the peer expects this message.
+ */
+#define SSL_SUPPRESS_END_OF_EARLY_DATA 41
 
 #ifdef SSL_DEPRECATED_FUNCTION
 /* Old deprecated function names */

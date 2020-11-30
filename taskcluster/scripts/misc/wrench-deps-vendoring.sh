@@ -20,7 +20,9 @@ mkdir wrench-deps/cargo-apk
 # https://github.com/rust-windowing/android-rs-glue/pull/223, we need to use
 # an unpublished version.
 cargo install --path $MOZ_FETCHES_DIR/android-rs-glue/cargo-apk --root wrench-deps/cargo-apk cargo-apk
-tar caf wrench-deps.tar.bz2 wrench-deps
+
+ci-scripts/install-meson.sh
+mv meson wrench-deps/meson
 
 mkdir -p $UPLOAD_DIR
-mv wrench-deps.tar.bz2 $UPLOAD_DIR/
+tar caf $UPLOAD_DIR/wrench-deps.tar.bz2 wrench-deps

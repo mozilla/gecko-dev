@@ -125,17 +125,40 @@ class GeckoViewSelectionActionChild extends GeckoViewChildModule {
 
     let currentWindow = aEvent.target.defaultView;
     while (currentWindow.realFrameElement) {
-      const currentRect = currentWindow.realFrameElement.getBoundingClientRect();
-      currentWindow = currentWindow.realFrameElement.ownerGlobal;
+      const frameElement = currentWindow.realFrameElement;
+      currentWindow = frameElement.ownerGlobal;
 
-      offset.left += currentRect.left;
-      offset.top += currentRect.top;
+      // The offset of the iframe window relative to the parent window
+      // includes the iframe's border, and the iframe's origin in its
+      // containing document.
+      const currentRect = frameElement.getBoundingClientRect();
+      const style = currentWindow.getComputedStyle(frameElement);
+      const borderLeft = parseFloat(style.borderLeftWidth) || 0;
+      const borderTop = parseFloat(style.borderTopWidth) || 0;
+      const paddingLeft = parseFloat(style.paddingLeft) || 0;
+      const paddingTop = parseFloat(style.paddingTop) || 0;
 
-      let targetDocShell = currentWindow.docShell;
+      offset.left += currentRect.left + borderLeft + paddingLeft;
+      offset.top += currentRect.top + borderTop + paddingTop;
+
+      const targetDocShell = currentWindow.docShell;
       if (targetDocShell.isMozBrowser) {
         break;
       }
     }
+
+    // Now we have coordinates relative to the root content document's
+    // layout viewport. Subtract the offset of the visual viewport
+    // relative to the layout viewport, to get coordinates relative to
+    // the visual viewport.
+    var offsetX = {};
+    var offsetY = {};
+    currentWindow.windowUtils.getVisualViewportOffsetRelativeToLayoutViewport(
+      offsetX,
+      offsetY
+    );
+    offset.left -= offsetX.value;
+    offset.top -= offsetY.value;
 
     return offset;
   }
@@ -256,7 +279,7 @@ class GeckoViewSelectionActionChild extends GeckoViewChildModule {
             warn`Stale response ${response.id}`;
             return;
           }
-          let action = actions.find(action => action.id === response.id);
+          const action = actions.find(action => action.id === response.id);
           if (action) {
             debug`Performing ${response.id}`;
             action.perform.call(this, aEvent, response);
@@ -301,5 +324,5 @@ class GeckoViewSelectionActionChild extends GeckoViewChildModule {
 
 const { debug, warn } = GeckoViewSelectionActionChild.initLogging(
   "GeckoViewSelectionAction"
-); // eslint-disable-line no-unused-vars
+);
 const module = GeckoViewSelectionActionChild.create(this);

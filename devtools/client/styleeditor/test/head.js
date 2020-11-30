@@ -46,19 +46,22 @@ var addTab = function(url, win) {
   });
 };
 
-var navigateToAndWaitForStyleSheets = async function(url, ui) {
-  const onReset = ui.once("stylesheets-reset");
+var navigateToAndWaitForStyleSheets = async function(url, ui, editorCount) {
+  const onClear = ui.once("stylesheets-clear");
   await navigateTo(url);
-  await onReset;
+  await onClear;
+  await waitUntil(() => ui.editors.length === editorCount);
 };
 
-var reloadPageAndWaitForStyleSheets = async function(ui) {
+var reloadPageAndWaitForStyleSheets = async function(ui, editorCount) {
   info("Reloading the page.");
 
-  const onReset = ui.once("stylesheets-reset");
+  const onClear = ui.once("stylesheets-clear");
   const browser = gBrowser.selectedBrowser;
   await SpecialPowers.spawn(browser, [], () => content.location.reload());
-  await onReset;
+  await onClear;
+
+  await waitUntil(() => ui.editors.length === editorCount);
 };
 
 /**
@@ -138,5 +141,33 @@ function waitForManyEvents(ui, delay) {
       }, delay);
     };
     ui.on("media-list-changed", onEvent);
+  });
+}
+
+/**
+ * Creates a new style sheet in the Style Editor
+
+ * @param {StyleEditorUI} ui
+ *        Current StyleEditorUI on which to simulate pressing the + button.
+ * @param {Window} panelWindow
+ *        The panelWindow property of the current Style Editor panel.
+ */
+function createNewStyleSheet(ui, panelWindow) {
+  info("Creating a new stylesheet now");
+
+  return new Promise(resolve => {
+    ui.once("editor-added", editor => {
+      editor.getSourceEditor().then(resolve);
+    });
+
+    waitForFocus(function() {
+      // create a new style sheet
+      const newButton = panelWindow.document.querySelector(
+        ".style-editor-newButton"
+      );
+      ok(newButton, "'new' button exists");
+
+      EventUtils.synthesizeMouseAtCenter(newButton, {}, panelWindow);
+    }, panelWindow);
   });
 }

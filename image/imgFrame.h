@@ -7,6 +7,7 @@
 #ifndef mozilla_image_imgFrame_h
 #define mozilla_image_imgFrame_h
 
+#include <functional>
 #include <utility>
 
 #include "AnimationParams.h"
@@ -27,7 +28,6 @@ class RawAccessFrameRef;
 enum class Opacity : uint8_t { FULLY_OPAQUE, SOME_TRANSPARENCY };
 
 class imgFrame {
-  typedef gfx::Color Color;
   typedef gfx::DataSourceSurface DataSourceSurface;
   typedef gfx::DrawTarget DrawTarget;
   typedef gfx::SamplingFilter SamplingFilter;
@@ -219,14 +219,7 @@ class imgFrame {
   uint32_t GetImageBytesPerRow() const;
   uint32_t GetImageDataLength() const;
   void FinalizeSurfaceInternal();
-
-  /**
-   * @param aTemporary  If true, it will assume the caller does not require a
-   *                    wrapping RecycleSourceSurface to protect the underlying
-   *                    surface from recycling. The reference to the surface
-   *                    must be freed before releasing the main thread context.
-   */
-  already_AddRefed<SourceSurface> GetSourceSurfaceInternal(bool aTemporary);
+  already_AddRefed<SourceSurface> GetSourceSurfaceInternal();
 
   struct SurfaceWithFormat {
     RefPtr<gfxDrawable> mDrawable;
@@ -253,7 +246,6 @@ class imgFrame {
  private:  // data
   friend class DrawableFrameRef;
   friend class RawAccessFrameRef;
-  friend class RecyclingSourceSurface;
   friend class UnlockImageDataRunnable;
 
   //////////////////////////////////////////////////////////////////////////////
@@ -288,9 +280,6 @@ class imgFrame {
 
   //! Number of RawAccessFrameRefs currently alive for this imgFrame.
   int16_t mLockCount;
-
-  //! Number of RecyclingSourceSurface's currently alive for this imgFrame.
-  int16_t mRecycleLockCount;
 
   bool mAborted;
   bool mFinished;

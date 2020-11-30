@@ -1,5 +1,14 @@
 let { HttpServer } = ChromeUtils.import("resource://testing-common/httpd.js");
 
+let authPromptModalType = Services.prefs.getIntPref(
+  "prompts.modalType.httpAuth"
+);
+
+let commonDialogEnabled =
+  authPromptModalType === Services.prompt.MODAL_TYPE_WINDOW ||
+  (authPromptModalType === Services.prompt.MODAL_TYPE_TAB &&
+    Services.prefs.getBoolPref("prompts.tabChromePromptSubDialog"));
+
 let server = new HttpServer();
 server.registerPathHandler("/file.html", fileHandler);
 server.start(-1);
@@ -27,17 +36,27 @@ function fileHandler(metadata, response) {
 }
 
 function onCommonDialogLoaded(subject) {
+  let dialog;
+  if (commonDialogEnabled) {
+    dialog = subject.Dialog;
+  } else {
+    let promptBox =
+      subject.ownerGlobal.gBrowser.selectedBrowser.tabModalPromptBox;
+    dialog = promptBox.getPrompt(subject).Dialog;
+  }
   // Submit random account and password
-  let dialog = subject.Dialog;
   dialog.ui.loginTextbox.setAttribute("value", Math.random());
   dialog.ui.password1Textbox.setAttribute("value", Math.random());
   dialog.ui.button0.click();
 }
 
-Services.obs.addObserver(onCommonDialogLoaded, "common-dialog-loaded");
+let authPromptTopic = commonDialogEnabled
+  ? "common-dialog-loaded"
+  : "tabmodal-dialog-loaded";
+Services.obs.addObserver(onCommonDialogLoaded, authPromptTopic);
 
 registerCleanupFunction(() => {
-  Services.obs.removeObserver(onCommonDialogLoaded, "common-dialog-loaded");
+  Services.obs.removeObserver(onCommonDialogLoaded, authPromptTopic);
   server.stop(() => {
     server = null;
   });
@@ -49,4 +68,10 @@ function getResult() {
   return credentialQueue.shift();
 }
 
-IsolationTestTools.runTests(FILE_URI, getResult);
+async function doInit(aMode) {
+  await SpecialPowers.pushPrefEnv({
+    set: [["privacy.partition.network_state", false]],
+  });
+}
+
+IsolationTestTools.runTests(FILE_URI, getResult, null, doInit);

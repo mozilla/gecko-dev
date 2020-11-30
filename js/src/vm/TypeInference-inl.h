@@ -20,6 +20,7 @@
 #include "builtin/Symbol.h"
 #include "gc/GC.h"
 #include "jit/BaselineJIT.h"
+#include "jit/IonScript.h"
 #include "jit/JitScript.h"
 #include "js/HeapAPI.h"
 #include "util/DiagnosticAssertions.h"
@@ -29,6 +30,7 @@
 #include "vm/NativeObject.h"
 #include "vm/NumberObject.h"
 #include "vm/ObjectGroup.h"
+#include "vm/PlainObject.h"  // js::PlainObject
 #include "vm/Shape.h"
 #include "vm/SharedArrayObject.h"
 #include "vm/StringObject.h"
@@ -111,13 +113,13 @@ inline JSObject* TypeSet::ObjectKey::singletonNoBarrier() {
 
 inline ObjectGroup* TypeSet::ObjectKey::group() {
   ObjectGroup* res = groupNoBarrier();
-  ObjectGroup::readBarrier(res);
+  gc::ReadBarrier(res);
   return res;
 }
 
 inline JSObject* TypeSet::ObjectKey::singleton() {
   JSObject* res = singletonNoBarrier();
-  JSObject::readBarrier(res);
+  gc::ReadBarrier(res);
   return res;
 }
 
@@ -431,7 +433,7 @@ class TypeNewScript {
     initializedGroup_ = nullptr;
   }
 
-  static void writeBarrierPre(TypeNewScript* newScript);
+  static void preWriteBarrier(TypeNewScript* newScript);
 
   bool analyzed() const { return preliminaryObjects == nullptr; }
 

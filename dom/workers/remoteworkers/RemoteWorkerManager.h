@@ -11,6 +11,7 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/RemoteWorkerTypes.h"
+#include "mozilla/dom/WorkerPrivate.h"  // WorkerType enum
 #include "nsISupportsImpl.h"
 #include "nsTArray.h"
 
@@ -34,6 +35,24 @@ class RemoteWorkerManager final {
   void Launch(RemoteWorkerController* aController,
               const RemoteWorkerData& aData, base::ProcessId aProcessId);
 
+  static bool MatchRemoteType(const nsACString& processRemoteType,
+                              const nsACString& workerRemoteType);
+
+  /**
+   * Get the child process RemoteType where a RemoteWorker should be
+   * launched.
+   */
+  static Result<nsCString, nsresult> GetRemoteType(
+      const nsCOMPtr<nsIPrincipal>& aPrincipal, WorkerType aWorkerType);
+
+  /**
+   * Verify if a remote worker should be allowed to run in the current
+   * child process remoteType.
+   */
+  static bool IsRemoteTypeAllowed(const RemoteWorkerData& aData);
+
+  static bool HasExtensionPrincipal(const RemoteWorkerData& aData);
+
  private:
   RemoteWorkerManager();
   ~RemoteWorkerManager();
@@ -41,11 +60,8 @@ class RemoteWorkerManager final {
   RemoteWorkerServiceParent* SelectTargetActor(const RemoteWorkerData& aData,
                                                base::ProcessId aProcessId);
 
-  RemoteWorkerServiceParent* SelectTargetActorForServiceWorker(
-      const RemoteWorkerData& aData) const;
-
-  RemoteWorkerServiceParent* SelectTargetActorForSharedWorker(
-      base::ProcessId aProcessId) const;
+  RemoteWorkerServiceParent* SelectTargetActorInternal(
+      const RemoteWorkerData& aData, base::ProcessId aProcessId) const;
 
   void LaunchInternal(RemoteWorkerController* aController,
                       RemoteWorkerServiceParent* aTargetActor,
@@ -56,8 +72,10 @@ class RemoteWorkerManager final {
 
   void AsyncCreationFailed(RemoteWorkerController* aController);
 
-  // Iterate through all RemoteWorkerServiceParent actors, starting from a
-  // random index (as if iterating through a circular array).
+  // Iterate through all RemoteWorkerServiceParent actors with the given
+  // remoteType, starting from the actor related to a child process with pid
+  // aProcessId if needed and available or from a random index otherwise (as if
+  // iterating through a circular array).
   //
   // aCallback should be a invokable object with a function signature of
   //   bool (RemoteWorkerServiceParent*, RefPtr<ContentParent>&&)
@@ -69,7 +87,8 @@ class RemoteWorkerManager final {
   // doesn't need to worry about proxy-releasing the ContentParent if it isn't
   // moved out of the parameter.
   template <typename Callback>
-  void ForEachActor(Callback&& aCallback) const;
+  void ForEachActor(Callback&& aCallback, const nsACString& aRemoteType,
+                    Maybe<base::ProcessId> aProcessId = Nothing()) const;
 
   // The list of existing RemoteWorkerServiceParent actors for child processes.
   // Raw pointers because RemoteWorkerServiceParent actors unregister themselves

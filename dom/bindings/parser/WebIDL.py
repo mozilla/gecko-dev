@@ -874,7 +874,7 @@ class IDLInterfaceMixin(IDLInterfaceOrInterfaceMixinOrNamespace):
 
 class IDLInterfaceOrNamespace(IDLInterfaceOrInterfaceMixinOrNamespace):
     def __init__(self, location, parentScope, name, parent, members,
-                 isKnownNonPartial, toStringTag):
+                 isKnownNonPartial):
         assert isKnownNonPartial or not parent
         assert isKnownNonPartial or len(members) == 0
 
@@ -905,8 +905,6 @@ class IDLInterfaceOrNamespace(IDLInterfaceOrInterfaceMixinOrNamespace):
         self.hasCrossOriginMembers = False
         # True if some descendant (including ourselves) has cross-origin members
         self.hasDescendantWithCrossOriginMembers = False
-
-        self.toStringTag = toStringTag
 
         IDLInterfaceOrInterfaceMixinOrNamespace.__init__(self, location, parentScope, name)
 
@@ -1610,11 +1608,9 @@ class IDLInterfaceOrNamespace(IDLInterfaceOrInterfaceMixinOrNamespace):
 
 class IDLInterface(IDLInterfaceOrNamespace):
     def __init__(self, location, parentScope, name, parent, members,
-                 isKnownNonPartial, classNameOverride=None,
-                 toStringTag=None):
+                 isKnownNonPartial, classNameOverride=None):
         IDLInterfaceOrNamespace.__init__(self, location, parentScope, name,
-                                         parent, members, isKnownNonPartial,
-                                         toStringTag)
+                                         parent, members, isKnownNonPartial)
         self.classNameOverride = classNameOverride
 
     def __str__(self):
@@ -1792,8 +1788,7 @@ class IDLInterface(IDLInterfaceOrNamespace):
 class IDLNamespace(IDLInterfaceOrNamespace):
     def __init__(self, location, parentScope, name, members, isKnownNonPartial):
         IDLInterfaceOrNamespace.__init__(self, location, parentScope, name,
-                                         None, members, isKnownNonPartial,
-                                         toStringTag=None)
+                                         None, members, isKnownNonPartial)
 
     def __str__(self):
         return "Namespace '%s'" % self.identifier.name
@@ -2110,6 +2105,11 @@ class IDLType(IDLObject):
         self._allowShared = False
         self._extendedAttrDict = {}
 
+    def __hash__(self):
+        return (hash(self.builtin) + hash(self.name) + hash(self._clamp) +
+                hash(self._enforceRange) + hash(self.treatNullAsEmpty) +
+                hash(self._allowShared))
+
     def __eq__(self, other):
         return (other and self.builtin == other.builtin and self.name == other.name and
                           self._clamp == other.hasClamp() and self._enforceRange == other.hasEnforceRange() and
@@ -2355,6 +2355,9 @@ class IDLNullableType(IDLParametrizedType):
 
         IDLParametrizedType.__init__(self, location, None, innerType)
 
+    def __hash__(self):
+        return hash(self.inner)
+
     def __eq__(self, other):
         return isinstance(other, IDLNullableType) and self.inner == other.inner
 
@@ -2517,6 +2520,9 @@ class IDLSequenceType(IDLParametrizedType):
         if self.inner.isComplete():
             self.name = self.inner.name + "Sequence"
 
+    def __hash__(self):
+        return hash(self.inner)
+
     def __eq__(self, other):
         return isinstance(other, IDLSequenceType) and self.inner == other.inner
 
@@ -2600,6 +2606,9 @@ class IDLRecordType(IDLParametrizedType):
         # since in that case our .complete() won't be called.
         if self.inner.isComplete():
             self.name = self.keyType.name + self.inner.name + "Record"
+
+    def __hash__(self):
+        return hash(self.inner)
 
     def __eq__(self, other):
         return isinstance(other, IDLRecordType) and self.inner == other.inner
@@ -2781,6 +2790,9 @@ class IDLTypedefType(IDLType):
         self.inner = innerType
         self.builtin = False
 
+    def __hash__(self):
+        return hash(self.inner)
+
     def __eq__(self, other):
         return isinstance(other, IDLTypedefType) and self.inner == other.inner
 
@@ -2917,6 +2929,9 @@ class IDLWrapperType(IDLType):
         self.inner = inner
         self._identifier = inner.identifier
         self.builtin = False
+
+    def __hash__(self):
+        return hash(self._identifier) + hash(self.builtin)
 
     def __eq__(self, other):
         return (isinstance(other, IDLWrapperType) and
@@ -3090,6 +3105,9 @@ class IDLWrapperType(IDLType):
 class IDLPromiseType(IDLParametrizedType):
     def __init__(self, location, innerType):
         IDLParametrizedType.__init__(self, location, "Promise", innerType)
+
+    def __hash__(self):
+        return hash(self.promiseInnerType())
 
     def __eq__(self, other):
         return (isinstance(other, IDLPromiseType) and
@@ -3480,7 +3498,7 @@ class IDLBuiltinType(IDLType):
                                       [self.location, attribute.location])
                 assert not self.nullable()
                 if not attribute.hasValue():
-                    raise WebIDLError("[TreatNullAs] must take an identifier argument"
+                    raise WebIDLError("[TreatNullAs] must take an identifier argument",
                                       [attribute.location])
                 value = attribute.value()
                 if value != 'EmptyString':
@@ -4351,8 +4369,7 @@ class IDLConst(IDLInterfaceMember):
               identifier == "ChromeOnly" or
               identifier == "Func" or
               identifier == "SecureContext" or
-              identifier == "NonEnumerable" or
-              identifier == "NeedsWindowsUndef"):
+              identifier == "NonEnumerable"):
             # Known attributes that we don't need to do anything with here
             pass
         else:
@@ -5469,7 +5486,7 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
                                   [attr.location])
             if identifier == "CrossOriginCallable" and self.isStatic():
                 raise WebIDLError("[CrossOriginCallable] is only allowed on non-static "
-                                  "attributes"
+                                  "attributes",
                                   [attr.location, self.location])
         elif identifier == "Pure":
             if not attr.noArguments():
@@ -5843,10 +5860,7 @@ class Tokenizer(object):
         if lexer:
             self.lexer = lexer
         else:
-            self.lexer = lex.lex(object=self,
-                                 outputdir=outputdir,
-                                 lextab='webidllex',
-                                 reflags=re.DOTALL)
+            self.lexer = lex.lex(object=self, reflags=re.DOTALL)
 
 
 class SqueakyCleanLogger(object):
@@ -7502,8 +7516,8 @@ class Parser(Tokenizer):
         try:
             self.parser = yacc.yacc(module=self,
                                     outputdir=outputdir,
-                                    tabmodule='webidlyacc',
-                                    errorlog=logger
+                                    errorlog=logger,
+                                    write_tables=False,
                                     # Pickling the grammar is a speedup in
                                     # some cases (older Python?) but a
                                     # significant slowdown in others.
@@ -7580,12 +7594,11 @@ class Parser(Tokenizer):
                 nextMethod.addExtendedAttributes([simpleExtendedAttr("Throws")])
                 itr_ident = IDLUnresolvedIdentifier(iface.location,
                                                     iface.identifier.name + "Iterator")
-                toStringTag = iface.identifier.name + " Iterator"
+                classNameOverride = iface.identifier.name + " Iterator"
                 itr_iface = IDLInterface(iface.location, self.globalScope(),
                                          itr_ident, None, [nextMethod],
                                          isKnownNonPartial=True,
-                                         classNameOverride=toStringTag,
-                                         toStringTag=toStringTag)
+                                         classNameOverride=classNameOverride)
                 itr_iface.addExtendedAttributes([simpleExtendedAttr("NoInterfaceObject")])
                 # Make sure the exposure set for the iterator interface is the
                 # same as the exposure set for the iterable interface, because

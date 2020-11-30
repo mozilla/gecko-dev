@@ -4,6 +4,9 @@
 
 "use strict";
 
+const { ComponentUtils } = ChromeUtils.import(
+  "resource://gre/modules/ComponentUtils.jsm"
+);
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
@@ -20,7 +23,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   TCPListener: "chrome://marionette/content/server.js",
 });
 
-XPCOMUtils.defineLazyGetter(this, "log", Log.get);
+XPCOMUtils.defineLazyGetter(this, "logger", () => Log.get());
 
 XPCOMUtils.defineLazyServiceGetter(
   this,
@@ -32,7 +35,7 @@ XPCOMUtils.defineLazyServiceGetter(
 const XMLURI_PARSE_ERROR =
   "http://www.mozilla.org/newlayout/xml/parsererror.xml";
 
-const NOTIFY_LISTENING = "remote-listening";
+const NOTIFY_LISTENING = "marionette-listening";
 
 // Complements -marionette flag for starting the Marionette server.
 // We also set this if Marionette is running in order to start the server
@@ -219,7 +222,7 @@ const RECOMMENDED_PREFS = new Map([
   ["extensions.update.notifyUser", false],
 
   // Make sure opening about:addons will not hit the network
-  ["extensions.webservice.discoverURL", "http://%(server)s/dummy/discoveryURL"],
+  ["extensions.getAddons.discovery.api_url", "data:, "],
 
   // Allow the application to have focus even it runs in the background
   ["focusmanager.testmode", true],
@@ -242,10 +245,6 @@ const RECOMMENDED_PREFS = new Map([
 
   // Do not prompt for temporary redirects
   ["network.http.prompt-temp-redirect", false],
-
-  // Disable speculative connections so they are not reported as leaking
-  // when they are hanging around
-  ["network.http.speculative-parallel-limit", 0],
 
   // Do not automatically switch between offline and online
   ["network.manage-offline-status", false],
@@ -281,9 +280,6 @@ const RECOMMENDED_PREFS = new Map([
   ["startup.homepage_welcome_url", "about:blank"],
   ["startup.homepage_welcome_url.additional", ""],
 
-  // Disable browser animations (tabs, fullscreen, sliding alerts)
-  ["toolkit.cosmeticAnimations.enabled", false],
-
   // Prevent starting into safe mode after application crashes
   ["toolkit.startup.max_resumed_crashes", -1],
 ]);
@@ -308,14 +304,28 @@ class MarionetteParentProcess {
     if (env.exists(ENV_ENABLED)) {
       this.enabled = true;
     } else {
+      // TODO: Don't read the preference anymore (bug 1632821)
       this.enabled = MarionettePrefs.enabled;
     }
 
     if (this.enabled) {
-      log.trace(`Marionette enabled`);
+      logger.trace(`Marionette enabled`);
     }
 
     Services.ppmm.addMessageListener("Marionette:IsRunning", this);
+  }
+
+  get enabled() {
+    return !!this._enabled;
+  }
+
+  set enabled(value) {
+    if (value) {
+      // Only update the preference when Marionette is going to be enabled
+      MarionettePrefs.enabled = value;
+    }
+
+    this._enabled = value;
   }
 
   get running() {
@@ -328,14 +338,14 @@ class MarionetteParentProcess {
         return this.running;
 
       default:
-        log.warn("Unknown IPC message to parent process: " + name);
+        logger.warn("Unknown IPC message to parent process: " + name);
         return null;
     }
   }
 
   observe(subject, topic) {
     if (this.enabled) {
-      log.trace(`Received observer notification ${topic}`);
+      logger.trace(`Received observer notification ${topic}`);
     }
 
     switch (topic) {
@@ -351,7 +361,7 @@ class MarionetteParentProcess {
         Services.obs.removeObserver(this, topic);
 
         if (!this.enabled && subject.handleFlag("marionette", false)) {
-          log.trace(`Marionette enabled`);
+          logger.trace(`Marionette enabled`);
           this.enabled = true;
         }
 
@@ -399,7 +409,7 @@ class MarionetteParentProcess {
               Services.obs.removeObserver(this, topic);
 
               let parserError = ev.target.querySelector("parsererror");
-              log.fatal(parserError.textContent);
+              logger.fatal(parserError.textContent);
               this.uninit();
               Services.startup.quit(Ci.nsIAppStartup.eForceQuit);
             }
@@ -425,7 +435,7 @@ class MarionetteParentProcess {
         }
 
         if (this.gfxWindow) {
-          log.trace(
+          logger.trace(
             "GFX sanity window detected, waiting until it has been closed..."
           );
           Services.obs.addObserver(this, "domwindowclosed");
@@ -454,7 +464,7 @@ class MarionetteParentProcess {
         let dialog = win.document.getElementById("safeModeDialog");
         if (dialog) {
           // accept the dialog to start in safe-mode
-          log.trace("Safe mode detected, supressing dialog");
+          logger.trace("Safe mode detected, supressing dialog");
           win.setTimeout(() => {
             dialog.getButton("accept").click();
           });
@@ -466,14 +476,14 @@ class MarionetteParentProcess {
 
   init(quit = true) {
     if (this.running || !this.enabled || !this.finalUIStartup) {
-      log.debug(
+      logger.debug(
         `Init aborted (running=${this.running}, ` +
           `enabled=${this.enabled}, finalUIStartup=${this.finalUIStartup})`
       );
       return;
     }
 
-    log.trace(
+    logger.trace(
       `Waiting until startup recorder finished recording startup scripts...`
     );
     Services.tm.idleDispatchToMainThread(async () => {
@@ -483,12 +493,12 @@ class MarionetteParentProcess {
           .wrappedJSObject.done;
       }
       await startupRecorder;
-      log.trace(`All scripts recorded.`);
+      logger.trace(`All scripts recorded.`);
 
       if (MarionettePrefs.recommendedPrefs) {
         for (let [k, v] of RECOMMENDED_PREFS) {
           if (!Preferences.isSet(k)) {
-            log.debug(`Setting recommended pref ${k} to ${v}`);
+            logger.debug(`Setting recommended pref ${k} to ${v}`);
             Preferences.set(k, v);
             this.alteredPrefs.add(k);
           }
@@ -499,7 +509,7 @@ class MarionetteParentProcess {
         this.server = new TCPListener(MarionettePrefs.port);
         this.server.start();
       } catch (e) {
-        log.fatal("Remote protocol server failed to start", e);
+        logger.fatal("Remote protocol server failed to start", e);
         this.uninit();
         if (quit) {
           Services.startup.quit(Ci.nsIAppStartup.eForceQuit);
@@ -509,13 +519,13 @@ class MarionetteParentProcess {
 
       env.set(ENV_ENABLED, "1");
       Services.obs.notifyObservers(this, NOTIFY_LISTENING, true);
-      log.debug("Marionette is listening");
+      logger.debug("Marionette is listening");
     });
   }
 
   uninit() {
     for (let k of this.alteredPrefs) {
-      log.debug(`Resetting recommended pref ${k}`);
+      logger.debug(`Resetting recommended pref ${k}`);
       Preferences.reset(k);
     }
     this.alteredPrefs.clear();
@@ -523,15 +533,15 @@ class MarionetteParentProcess {
     if (this.running) {
       this.server.stop();
       Services.obs.notifyObservers(this, NOTIFY_LISTENING);
-      log.debug("Marionette stopped listening");
+      logger.debug("Marionette stopped listening");
     }
   }
 
   get QueryInterface() {
     return ChromeUtils.generateQI([
-      Ci.nsICommandLineHandler,
-      Ci.nsIMarionette,
-      Ci.nsIObserver,
+      "nsICommandLineHandler",
+      "nsIMarionette",
+      "nsIObserver",
     ]);
   }
 }
@@ -540,14 +550,14 @@ class MarionetteContentProcess {
   get running() {
     let reply = Services.cpmm.sendSyncMessage("Marionette:IsRunning");
     if (reply.length == 0) {
-      log.warn("No reply from parent process");
+      logger.warn("No reply from parent process");
       return false;
     }
     return reply[0];
   }
 
   get QueryInterface() {
-    return ChromeUtils.generateQI([Ci.nsIMarionette]);
+    return ChromeUtils.generateQI(["nsIMarionette"]);
   }
 }
 
@@ -556,7 +566,7 @@ const MarionetteFactory = {
 
   createInstance(outer, iid) {
     if (outer) {
-      throw Cr.NS_ERROR_NO_AGGREGATION;
+      throw Components.Exception("", Cr.NS_ERROR_NO_AGGREGATION);
     }
 
     if (!this.instance_) {
@@ -584,4 +594,4 @@ Marionette.prototype = {
   helpInfo: "  --marionette       Enable remote control server.\n",
 };
 
-this.NSGetFactory = XPCOMUtils.generateNSGetFactory([Marionette]);
+this.NSGetFactory = ComponentUtils.generateNSGetFactory([Marionette]);

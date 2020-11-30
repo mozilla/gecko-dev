@@ -4,12 +4,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_SVGFECompositeElement_h
-#define mozilla_dom_SVGFECompositeElement_h
+#ifndef DOM_SVG_SVGFECOMPOSITEELEMENT_H_
+#define DOM_SVG_SVGFECOMPOSITEELEMENT_H_
 
 #include "SVGAnimatedEnumeration.h"
 #include "SVGAnimatedNumber.h"
-#include "SVGFilters.h"
+#include "mozilla/dom/SVGFilters.h"
 
 nsresult NS_NewSVGFECompositeElement(
     nsIContent** aResult, already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
@@ -17,7 +17,7 @@ nsresult NS_NewSVGFECompositeElement(
 namespace mozilla {
 namespace dom {
 
-typedef SVGFE SVGFECompositeElementBase;
+using SVGFECompositeElementBase = SVGFE;
 
 class SVGFECompositeElement : public SVGFECompositeElementBase {
   friend nsresult(::NS_NewSVGFECompositeElement(
@@ -33,7 +33,7 @@ class SVGFECompositeElement : public SVGFECompositeElementBase {
 
  public:
   virtual FilterPrimitiveDescription GetPrimitiveDescription(
-      nsSVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
+      SVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
       const nsTArray<bool>& aInputsAreTainted,
       nsTArray<RefPtr<SourceSurface>>& aInputImages) override;
   virtual bool AttributeAffectsRendering(int32_t aNameSpaceID,
@@ -77,4 +77,4 @@ class SVGFECompositeElement : public SVGFECompositeElementBase {
 }  // namespace dom
 }  // namespace mozilla
 
-#endif  // mozilla_dom_SVGFECompositeElement_h
+#endif  // DOM_SVG_SVGFECOMPOSITEELEMENT_H_

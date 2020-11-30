@@ -121,8 +121,8 @@ nsMIMEHeaderParamImpl::GetParameterHTTP(const nsACString& aHeaderVal,
 nsresult nsMIMEHeaderParamImpl::GetParameterHTTP(const nsACString& aHeaderVal,
                                                  const char* aParamName,
                                                  nsAString& aResult) {
-  return DoGetParameter(aHeaderVal, aParamName, HTTP_FIELD_ENCODING,
-                        EmptyCString(), false, nullptr, aResult);
+  return DoGetParameter(aHeaderVal, aParamName, HTTP_FIELD_ENCODING, ""_ns,
+                        false, nullptr, aResult);
 }
 
 // XXX : aTryLocaleCharset is not yet effective.
@@ -147,7 +147,7 @@ nsresult nsMIMEHeaderParamImpl::DoGetParameter(
   // if necessary.
 
   nsAutoCString str1;
-  rv = internalDecodeParameter(med, charset, EmptyCString(), false,
+  rv = internalDecodeParameter(med, charset, ""_ns, false,
                                // was aDecoding == MIME_FIELD_ENCODING
                                // see bug 875615
                                true, str1);
@@ -497,10 +497,13 @@ nsresult nsMIMEHeaderParamImpl::DoParameterInternal(
     if (*str != '"') {
       // The value is a token, not a quoted string.
       valueStart = str;
-      for (valueEnd = str;
-           *valueEnd && !nsCRT::IsAsciiSpace(*valueEnd) && *valueEnd != ';';
-           valueEnd++)
+      for (valueEnd = str; *valueEnd && *valueEnd != ';'; valueEnd++) {
         ;
+      }
+      // ignore trailing whitespace:
+      while (valueEnd > valueStart && nsCRT::IsAsciiSpace(*(valueEnd - 1))) {
+        valueEnd--;
+      }
       str = valueEnd;
     } else {
       isQuotedString = true;
@@ -532,7 +535,7 @@ nsresult nsMIMEHeaderParamImpl::DoParameterInternal(
       //     line continuation -- jht 4/29/98
       nsAutoCString tempStr(valueStart, valueEnd - valueStart);
       tempStr.StripCRLF();
-      char* res = ToNewCString(tempStr);
+      char* res = ToNewCString(tempStr, mozilla::fallible);
       NS_ENSURE_TRUE(res, NS_ERROR_OUT_OF_MEMORY);
 
       if (isQuotedString) RemoveQuotedStringEscapes(res);

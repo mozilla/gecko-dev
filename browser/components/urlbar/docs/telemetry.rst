@@ -50,9 +50,9 @@ FX_URLBAR_SELECTED_RESULT_INDEX
   This probe tracks the indexes of picked results in the results list.
   It's an enumerated histogram with 17 buckets.
 
-FX_URLBAR_SELECTED_RESULT_TYPE
+FX_URLBAR_SELECTED_RESULT_TYPE_2
   This probe tracks the types of picked results.
-  It's an enumerated histogram with 14 buckets.
+  It's an enumerated histogram with 32 buckets.
   Values can be:
 
     0. autofill
@@ -69,13 +69,16 @@ FX_URLBAR_SELECTED_RESULT_TYPE
     11. preloaded-top-site
     12. tip
     13. topsite
+    14. formhistory
 
-FX_URLBAR_SELECTED_RESULT_INDEX_BY_TYPE
+FX_URLBAR_SELECTED_RESULT_INDEX_BY_TYPE_2
   This probe tracks picked result type, for each one it tracks the index where
   it appeared.
   It's a keyed histogram where the keys are result types (see
-  URLBAR_SELECTED_RESULT_TYPES). For each key, this records the indexes of
-  picked results for that result type.
+  `UrlbarUtils.SELECTED_RESULT_TYPES`_). For each key, this records the indexes
+  of picked results for that result type.
+
+  .. _UrlbarUtils.SELECTED_RESULT_TYPES: https://searchfox.org/mozilla-central/search?q=symbol:UrlbarUtils%23SELECTED_RESULT_TYPES&redirect=false
 
 Scalars
 -------
@@ -133,6 +136,10 @@ urlbar.tips
     Incremented when the user picks the update_web search intervention.
   - ``intervention_update_web-shown``
     Incremented when the update_web search intervention is shown.
+  - ``tabtosearch_onboard-shown``
+    Incremented when a tab-to-search onboarding result is shown. Please note
+    that the number of times tab-to-search onboarding results are picked is
+    the sum of all keys in ``urlbar.searchmode.tabtosearch_onboard``.
   - ``searchTip_onboard-picked``
     Incremented when the user picks the onboarding search tip.
   - ``searchTip_onboard-shown``
@@ -141,6 +148,79 @@ urlbar.tips
     Incremented when the user picks the redirect search tip.
   - ``searchTip_redirect-shown``
     Incremented when the redirect search tip is shown.
+
+urlbar.searchmode.*
+  This is set of keyed scalars whose values are uints are are incremented each
+  time search mode is entered in the Urlbar. The suffix on the scalar name
+  describes how search mode was entered. Possibilities include:
+
+  - ``bookmarkmenu``
+    Used when the user selects the Search Bookmarks menu item in the Library
+    menu.
+  - ``handoff``
+    Used when the user uses the search box on the new tab page and is handed off
+    to the address bar.
+  - ``keywordoffer``
+    Used when the user selects a keyword offer result.
+  - ``oneoff``
+    Used when the user selects a one-off engine in the Urlbar.
+  - ``shortcut``
+    Used when the user enters search mode with a keyboard shortcut or menu bar
+    item (e.g. ``Accel+K``).
+  - ``tabmenu``
+    Used when the user selects the Search Tabs menu item in the tab overflow
+    menu.
+  - ``tabtosearch``
+    Used when the user selects a tab-to-search result. These results suggest a
+    search engine when the search engine's domain is autofilled.
+  - ``tabtosearch_onboard``
+    Used when the user selects a tab-to-search onboarding result. These are
+    shown the first few times the user encounters a tab-to-search result.
+  - ``topsites_newtab``
+    Used when the user selects a search shortcut Top Site from the New Tab Page.
+  - ``topsites_urlbar``
+    Used when the user selects a search shortcut Top Site from the Urlbar.
+  - ``touchbar``
+    Used when the user taps a search shortct on the Touch Bar, available on some
+    Macs.
+  - ``typed``
+    Used when the user types an engine alias in the Urlbar.
+  - ``other``
+    Used as a catchall for other behaviour. We don't expect this scalar to hold
+    any values. If it does, we need to correct an issue with search mode entry
+    points.
+
+  The keys for the scalars above are engine and source names. If the user enters
+  a remote search mode with a built-in engine, we record the engine name. If the
+  user enters a remote search mode with an engine they installed (e.g. via
+  OpenSearch or a WebExtension), we record ``other`` (not to be confused with
+  the ``urlbar.searchmode.other`` scalar above). If they enter a local search
+  mode, we record the English name of the result source (e.g. "bookmarks",
+  "history", "tabs"). Note that we slightly modify the engine name for some
+  built-in engines: we flatten all localized Amazon sites (Amazon.com,
+  Amazon.ca, Amazon.de, etc.) to "Amazon" and we flatten all localized
+  Wikipedia sites (Wikipedia (en), Wikipedia (fr), etc.) to "Wikipedia". This
+  is done to reduce the number of keys used by these scalars.
+
+urlbar.picked.searchmode.*
+  This is a set of keyed scalars whose values are uints incremented each time a
+  result is picked from the Urlbar while the Urlbar is in search mode. The
+  suffix on the scalar name is the search mode entry point. The keys for the
+  scalars are the 0-based index of the result in the urlbar panel when it was
+  picked.
+
+  .. note::
+    These scalars share elements of both ``urlbar.picked.*`` and
+    ``urlbar.searchmode.*``. Scalar name suffixes are search mode entry points,
+    like ``urlbar.searchmode.*``. The keys for these scalars are result indices,
+    like ``urlbar.picked.*``.
+
+  .. note::
+    These data are a subset of the data recorded by ``urlbar.picked.*``. For
+    example, if the user enters search mode by clicking a one-off then selects
+    a Google search suggestion at index 2, we would record in **both**
+    ``urlbar.picked.searchsuggestion`` and ``urlbar.picked.searchmode.oneoff``.
+
 
 Event Telemetry
 ---------------
@@ -166,8 +246,7 @@ Event Value
   - ``dropped``: The text was drag and dropped into the urlbar.
   - ``pasted``: The text was pasted into the urlbar.
   - ``topsites``: The user opened the urlbar view without typing, dropping,
-    or pasting. Most likely they clicked the dropdown arrow or pressed the down
-    arrow key while the view was closed, or openViewOnFocus was active.
+    or pasting.
     In these cases, if the urlbar input is showing the URL of the loaded page
     and the user has not modified the input’s content, the urlbar views shows
     the user’s top sites. Otherwise, if the user had modified the input’s
@@ -200,20 +279,29 @@ Event Object
 
 Event Extra
   This object contains additional information about the interaction.
-  Extra is a key-value store, whhere all the keys and values are strings.
+  Extra is a key-value store, where all the keys and values are strings.
 
   - ``elapsed``
     Time in milliseconds from the initial interaction to an action.
   - ``numChars``
     Number of input characters the user typed or pasted at the time of
     submission.
+  - ``numWords``
+    Number of words in the input. The measurement is taken from a trimmed input
+    split up by its spaces. This is not a perfect measurement, since it will
+    return an incorrect value for languages that do not use spaces or URLs
+    containing spaces in its query parameters, for example.
   - ``selType``
     The type of the selected result at the time of submission.
     This is only present for ``engagement`` events.
     It can be one of: ``none``, ``autofill``, ``visit``, ``bookmark``,
     ``history``, ``keyword``, ``search``, ``searchsuggestion``, ``switchtab``,
     ``remotetab``, ``extension``, ``oneoff``, ``keywordoffer``, ``canonized``,
-    ``tip``, ``tiphelp``
+    ``tip``, ``tiphelp``, ``formhistory``, ``tabtosearch``
+    In practice, ``tabtosearch`` should not appear in real event telemetry.
+    Opening a tab-to-search result enters search mode and entering search mode
+    does not currently mark the end of an engagement. It is noted here for
+    completeness.
   - ``selIndex``
     Index of the selected result in the urlbar panel, or -1 for no selection.
     There won't be a selection when a one-off button is the only selection, and
@@ -222,6 +310,13 @@ Event Extra
     directly decide whether to search or visit the given string without having
     a fully built result.
     This is only present for ``engagement`` events.
+  - ``provider``
+    The name of the result provider for the selected result. Existing values
+    are: ``HeuristicFallback``, ``Autofill``, ``UnifiedComplete``,
+    ``TokenAliasEngines``, ``SearchSuggestions``, ``UrlbarProviderTopSites``.
+    Values can also be defined by `URLBar provider experiments`_.
+
+    .. _URLBar provider experiments: experiments.html#developing-address-bar-extensions
 
 Search probes relevant to the Address Bar
 -----------------------------------------
@@ -237,13 +332,15 @@ SEARCH_COUNTS
     - ``alias`` This is when using an alias (like ``@google``) in the urlbar.
       Note there is often confusion between the terms alias and keyword, and
       they may be used inappropriately: aliases refer to search engines, while
-      keywords refer to bookmarks.
+      keywords refer to bookmarks. We expect no results for this SAP in Firefox
+      82+, since urlbar-searchmode replaces it.
     - ``abouthome``
     - ``contextmenu``
     - ``newtab``
     - ``searchbar``
     - ``system``
-    - ``urlbar`` Except aliases.
+    - ``urlbar`` Except aliases and search mode.
+    - ``urlbar-searchmode`` Used when the Urlbar is in search mode.
     - ``webextension``
     - ``oneoff-urlbar``
     - ``oneoff-searchbar``
@@ -257,7 +354,8 @@ browser.engagement.navigation.*
   by the originating action.
   Possible SAPs are:
 
-    - ``urlbar``
+    - ``urlbar``  Except search mode.
+    - ``urlbar_searchmode``  Used when the Urlbar is in search mode.
     - ``searchbar``
     - ``about_home``
     - ``about_newtab``
@@ -269,20 +367,67 @@ browser.engagement.navigation.*
 
     - ``search``
       Used for any search from ``contextmenu``, ``system`` and ``webextension``.
+    - ``search_alias``
+      For ``urlbar``, indicates the user confirmed a search through an alias.
     - ``search_enter``
       For ``about_home`` and ``about:newtab`` this counts any search.
       For the other SAPs it tracks typing and then pressing Enter.
+    - ``search_formhistory``
+      For ``urlbar``, indicates the user picked a form history result.
     - ``search_oneoff``
       For ``urlbar`` or ``searchbar``, indicates the user confirmed a search
       using a one-off button.
     - ``search_suggestion``
       For ``urlbar`` or ``searchbar``, indicates the user confirmed a search
       suggestion.
-    - ``search_alias``
-      For ``urlbar``, indicates the user confirmed a search through an alias.
 
+Obsolete probes
+---------------
 
-navigation.search
+Obsolete histograms
+~~~~~~~~~~~~~~~~~~~
+
+FX_URLBAR_SELECTED_RESULT_TYPE (OBSOLETE)
+  This probe is obsolete and was replaced with
+  ``FX_URLBAR_SELECTED_RESULT_TYPE_2`` in Firefox 78 in order to increase the
+  number of buckets.
+
+  This probe tracked the types of picked results.
+  It's an enumerated histogram with 14 buckets.
+  Values can be:
+
+    0. autofill
+    1. bookmark
+    2. history
+    3. keyword
+    4. searchengine
+    5. searchsuggestion
+    6. switchtab
+    7. tag
+    8. visiturl
+    9. remotetab
+    10. extension
+    11. preloaded-top-site
+    12. tip
+    13. topsite
+
+FX_URLBAR_SELECTED_RESULT_INDEX_BY_TYPE (OBSOLETE)
+  This probe is obsolete and was replaced with
+  ``FX_URLBAR_SELECTED_RESULT_INDEX_BY_TYPE_2`` in Firefox 78 in order to
+  increase the number of buckets.
+
+  This probe tracked picked result type, for each one it tracks the index where
+  it appeared.
+  It's a keyed histogram where the keys are result types (see
+  `UrlbarUtils.SELECTED_RESULT_TYPES`_). For each key, this records the indexes
+  of picked results for that result type.
+
+  .. _UrlbarUtils.SELECTED_RESULT_TYPES: https://searchfox.org/mozilla-central/search?q=symbol:UrlbarUtils%23SELECTED_RESULT_TYPES&redirect=false
+
+Obsolete search probes
+----------------------
+
+navigation.search (OBSOLETE)
   This is a legacy and disabled event telemetry that is currently under
   discussion for removal or modernization. It can't be enabled through a pref.
   it's more or less equivalent to browser.engagement.navigation, but can also

@@ -4,6 +4,7 @@
 
 from __future__ import absolute_import, print_function
 
+import codecs
 import fnmatch
 import io
 import json
@@ -128,7 +129,7 @@ class ManifestParser(object):
         :param root: The base path
         :param filename: File object or string path for the base manifest file
         :param defaults: Options that apply to all items
-        :param parentmanifest: Filename of the parent manifest (default None)
+        :param parentmanifest: Filename of the parent manifest, relative to rootdir (default None)
         """
         def read_file(type):
             include_file = section.split(type, 1)[-1]
@@ -153,15 +154,17 @@ class ManifestParser(object):
             if self.finder:
                 assert os.path.isabs(filename)
             filename = os.path.abspath(filename)
+            filename_rel = self.relative_to_root(filename)
             self.source_files.add(filename)
             if self.finder:
-                fp = self.finder.get(filename).open(mode='r')
+                fp = codecs.getreader('utf-8')(self.finder.get(filename).open())
             else:
                 fp = io.open(filename, encoding='utf-8')
             here = os.path.dirname(filename)
         else:
             fp = filename
             filename = here = None
+            filename_rel = None
         defaults['here'] = here
 
         # read the configuration
@@ -191,7 +194,7 @@ class ManifestParser(object):
                 include_file = read_file('include:')
                 if include_file:
                     include_defaults = data.copy()
-                    self._read(root, include_file, include_defaults, parentmanifest=filename)
+                    self._read(root, include_file, include_defaults, parentmanifest=filename_rel)
                 continue
 
             # otherwise an item
@@ -201,8 +204,8 @@ class ManifestParser(object):
             # Will be None if the manifest being read is a file-like object.
             test['manifest'] = filename
             test['manifest_relpath'] = None
-            if test['manifest']:
-                test['manifest_relpath'] = self.relative_to_root(normalize_path(test['manifest']))
+            if filename:
+                test['manifest_relpath'] = filename_rel
 
             # determine the path
             path = test.get('path', section)
@@ -227,7 +230,7 @@ class ManifestParser(object):
                 # indicate that in the test object for the sake of identifying
                 # a test, particularly in the case a test file is included by
                 # multiple manifests.
-                test['ancestor_manifest'] = self.relative_to_root(parentmanifest)
+                test['ancestor_manifest'] = parentmanifest
 
             # append the item
             self.tests.append(test)

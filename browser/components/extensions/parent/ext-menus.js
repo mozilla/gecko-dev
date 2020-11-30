@@ -19,7 +19,7 @@ ChromeUtils.defineModuleGetter(
   "resource://gre/modules/Bookmarks.jsm"
 );
 
-var { DefaultMap, ExtensionError } = ExtensionUtils;
+var { DefaultMap, ExtensionError, parseMatchPatterns } = ExtensionUtils;
 
 var { ExtensionParent } = ChromeUtils.import(
   "resource://gre/modules/ExtensionParent.jsm"
@@ -759,7 +759,7 @@ MenuItem.prototype = {
     }
 
     if (createProperties.documentUrlPatterns != null) {
-      this.documentUrlMatchPattern = new MatchPatternSet(
+      this.documentUrlMatchPattern = parseMatchPatterns(
         this.documentUrlPatterns,
         {
           restrictSchemes: this.extension.restrictSchemes,
@@ -768,7 +768,7 @@ MenuItem.prototype = {
     }
 
     if (createProperties.targetUrlPatterns != null) {
-      this.targetUrlMatchPattern = new MatchPatternSet(this.targetUrlPatterns, {
+      this.targetUrlMatchPattern = parseMatchPatterns(this.targetUrlPatterns, {
         // restrictSchemes default to false when matching links instead of pages
         // (see Bug 1280370 for a rationale).
         restrictSchemes: false,
@@ -1165,7 +1165,7 @@ const menuTracker = {
 
     if (menu.id === "placesContext") {
       const trigger = menu.triggerNode;
-      if (!trigger._placesNode) {
+      if (!trigger._placesNode?.bookmarkGuid) {
         return;
       }
 
@@ -1181,11 +1181,7 @@ const menuTracker = {
       gMenuBuilder.build({ menu, tab, pageUrl, inToolsMenu: true });
     }
     if (menu.id === "tabContextMenu") {
-      let trigger = menu.triggerNode;
-      while (trigger && trigger.localName != "tab") {
-        trigger = trigger.parentNode;
-      }
-      const tab = trigger || tabTracker.activeTab;
+      const tab = menu.ownerGlobal.TabContextMenu.contextTab;
       const pageUrl = tab.linkedBrowser.currentURI.spec;
       gMenuBuilder.build({ menu, tab, pageUrl, onTab: true });
     }
@@ -1262,7 +1258,7 @@ this.menusInternal = class extends ExtensionAPI {
             let includeSensitiveData =
               (nativeTab &&
                 extension.tabManager.hasActiveTabPermission(nativeTab)) ||
-              (contextUrl && extension.whiteListedHosts.matches(contextUrl));
+              (contextUrl && extension.allowedOrigins.matches(contextUrl));
 
             addMenuEventInfo(
               info,

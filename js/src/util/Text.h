@@ -10,7 +10,9 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/Casting.h"
 #include "mozilla/Latin1.h"
+#include "mozilla/Likely.h"
 #include "mozilla/TextUtils.h"
 #include "mozilla/Utf8.h"
 
@@ -20,6 +22,7 @@
 #include <stdio.h>
 #include <string>
 #include <type_traits>
+#include <utility>
 
 #include "NamespaceImports.h"
 
@@ -105,6 +108,10 @@ extern UniqueChars DuplicateStringToArena(arena_id_t destArenaId, JSContext* cx,
 extern UniqueChars DuplicateStringToArena(arena_id_t destArenaId, JSContext* cx,
                                           const char* s, size_t n);
 
+extern UniqueLatin1Chars DuplicateStringToArena(arena_id_t destArenaId,
+                                                JSContext* cx,
+                                                const Latin1Char* s, size_t n);
+
 extern UniqueTwoByteChars DuplicateStringToArena(arena_id_t destArenaId,
                                                  JSContext* cx,
                                                  const char16_t* s);
@@ -123,6 +130,10 @@ extern UniqueChars DuplicateStringToArena(arena_id_t destArenaId,
 extern UniqueChars DuplicateStringToArena(arena_id_t destArenaId, const char* s,
                                           size_t n);
 
+extern UniqueLatin1Chars DuplicateStringToArena(arena_id_t destArenaId,
+                                                const JS::Latin1Char* s,
+                                                size_t n);
+
 extern UniqueTwoByteChars DuplicateStringToArena(arena_id_t destArenaId,
                                                  const char16_t* s);
 
@@ -132,6 +143,9 @@ extern UniqueTwoByteChars DuplicateStringToArena(arena_id_t destArenaId,
 extern UniqueChars DuplicateString(JSContext* cx, const char* s);
 
 extern UniqueChars DuplicateString(JSContext* cx, const char* s, size_t n);
+
+extern UniqueLatin1Chars DuplicateString(JSContext* cx, const JS::Latin1Char* s,
+                                         size_t n);
 
 extern UniqueTwoByteChars DuplicateString(JSContext* cx, const char16_t* s);
 
@@ -146,6 +160,8 @@ extern UniqueChars DuplicateString(const char* s);
 
 extern UniqueChars DuplicateString(const char* s, size_t n);
 
+extern UniqueLatin1Chars DuplicateString(const JS::Latin1Char* s, size_t n);
+
 extern UniqueTwoByteChars DuplicateString(const char16_t* s);
 
 extern UniqueTwoByteChars DuplicateString(const char16_t* s, size_t n);
@@ -157,20 +173,115 @@ extern UniqueTwoByteChars DuplicateString(const char16_t* s, size_t n);
  */
 extern char16_t* InflateString(JSContext* cx, const char* bytes, size_t length);
 
+/**
+ * For a valid UTF-8, Latin-1, or WTF-16 code unit sequence, expose its contents
+ * as the sequence of WTF-16 |char16_t| code units that would identically
+ * constitute it.
+ */
+template <typename CharT>
+class InflatedChar16Sequence {
+ private:
+  const CharT* units_;
+  const CharT* limit_;
+
+  static_assert(std::is_same_v<CharT, char16_t> ||
+                    std::is_same_v<CharT, JS::Latin1Char>,
+                "InflatedChar16Sequence only supports UTF-8/Latin-1/WTF-16");
+
+ public:
+  InflatedChar16Sequence(const CharT* units, size_t len)
+      : units_(units), limit_(units_ + len) {}
+
+  bool hasMore() { return units_ < limit_; }
+
+  char16_t next() {
+    MOZ_ASSERT(hasMore());
+    return static_cast<char16_t>(*units_++);
+  }
+
+  HashNumber computeHash() const {
+    auto copy = *this;
+    HashNumber hash = 0;
+    while (copy.hasMore()) {
+      hash = mozilla::AddToHash(hash, copy.next());
+    }
+    return hash;
+  }
+};
+
+template <>
+class InflatedChar16Sequence<mozilla::Utf8Unit> {
+ private:
+  const mozilla::Utf8Unit* units_;
+  const mozilla::Utf8Unit* limit_;
+
+  char16_t pendingTrailingSurrogate_ = 0;
+
+ public:
+  InflatedChar16Sequence(const mozilla::Utf8Unit* units, size_t len)
+      : units_(units), limit_(units + len) {}
+
+  bool hasMore() { return pendingTrailingSurrogate_ || units_ < limit_; }
+
+  char16_t next() {
+    MOZ_ASSERT(hasMore());
+
+    if (MOZ_UNLIKELY(pendingTrailingSurrogate_)) {
+      char16_t trail = 0;
+      std::swap(pendingTrailingSurrogate_, trail);
+      return trail;
+    }
+
+    mozilla::Utf8Unit unit = *units_++;
+    if (mozilla::IsAscii(unit)) {
+      return static_cast<char16_t>(unit.toUint8());
+    }
+
+    mozilla::Maybe<char32_t> cp =
+        mozilla::DecodeOneUtf8CodePoint(unit, &units_, limit_);
+    MOZ_ASSERT(cp.isSome(), "input code unit sequence required to be valid");
+
+    char32_t v = cp.value();
+    if (v < unicode::NonBMPMin) {
+      return mozilla::AssertedCast<char16_t>(v);
+    }
+
+    char16_t lead;
+    unicode::UTF16Encode(v, &lead, &pendingTrailingSurrogate_);
+
+    MOZ_ASSERT(unicode::IsLeadSurrogate(lead));
+
+    MOZ_ASSERT(pendingTrailingSurrogate_ != 0,
+               "pendingTrailingSurrogate_ must be nonzero to be detected and "
+               "returned next go-around");
+    MOZ_ASSERT(unicode::IsTrailSurrogate(pendingTrailingSurrogate_));
+
+    return lead;
+  }
+
+  HashNumber computeHash() const {
+    auto copy = *this;
+    HashNumber hash = 0;
+    while (copy.hasMore()) {
+      hash = mozilla::AddToHash(hash, copy.next());
+    }
+    return hash;
+  }
+};
+
 /*
  * Inflate bytes to JS chars in an existing buffer. 'dst' must be large
  * enough for 'srclen' char16_t code units. The buffer is NOT null-terminated.
  */
 inline void CopyAndInflateChars(char16_t* dst, const char* src, size_t srclen) {
-  mozilla::ConvertLatin1toUtf16(mozilla::MakeSpan(src, srclen),
-                                mozilla::MakeSpan(dst, srclen));
+  mozilla::ConvertLatin1toUtf16(mozilla::Span(src, srclen),
+                                mozilla::Span(dst, srclen));
 }
 
 inline void CopyAndInflateChars(char16_t* dst, const JS::Latin1Char* src,
                                 size_t srclen) {
-  mozilla::ConvertLatin1toUtf16(
-      mozilla::AsChars(mozilla::MakeSpan(src, srclen)),
-      mozilla::MakeSpan(dst, srclen));
+  mozilla::ConvertLatin1toUtf16(mozilla::AsChars(mozilla::Span(src, srclen)),
+                                mozilla::Span(dst, srclen));
 }
 
 /*

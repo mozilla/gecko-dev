@@ -22,7 +22,6 @@ from taskgraph.util.treeherder import replace_group
 from taskgraph.transforms.task import task_description_schema
 
 beetmover_checksums_description_schema = schema.extend({
-    Required('depname', default='build'): text_type,
     Required('attributes'): {text_type: object},
     Optional('label'): text_type,
     Optional('treeherder'): task_description_schema['treeherder'],
@@ -69,9 +68,7 @@ def make_beetmover_checksums_description(config, jobs):
         )
 
         extra = {}
-        if build_platform.startswith("android"):
-            extra['product'] = 'fennec'
-        elif 'devedition' in build_platform:
+        if 'devedition' in build_platform:
             extra['product'] = 'devedition'
         else:
             extra['product'] = 'firefox'

@@ -12,8 +12,6 @@
 #include "nsInterfaceHashtable.h"
 #include "nsWeakReference.h"
 
-class nsISubstitutionObserver;
-
 struct SubstitutionMapping;
 class nsResProtocolHandler final
     : public nsIResProtocolHandler,
@@ -51,31 +49,23 @@ class nsResProtocolHandler final
                                                                  aResult);
   }
 
-  NS_IMETHOD AddObserver(nsISubstitutionObserver* aObserver) override {
-    return mozilla::net::SubstitutingProtocolHandler::AddObserver(aObserver);
-  }
-
-  NS_IMETHOD RemoveObserver(nsISubstitutionObserver* aObserver) override {
-    return mozilla::net::SubstitutingProtocolHandler::RemoveObserver(aObserver);
-  }
-
  protected:
-  MOZ_MUST_USE nsresult GetSubstitutionInternal(const nsACString& aRoot,
-                                                nsIURI** aResult,
-                                                uint32_t* aFlags) override;
+  [[nodiscard]] nsresult GetSubstitutionInternal(const nsACString& aRoot,
+                                                 nsIURI** aResult,
+                                                 uint32_t* aFlags) override;
   virtual ~nsResProtocolHandler() = default;
 
-  MOZ_MUST_USE bool ResolveSpecialCases(const nsACString& aHost,
-                                        const nsACString& aPath,
-                                        const nsACString& aPathname,
-                                        nsACString& aResult) override;
+  [[nodiscard]] bool ResolveSpecialCases(const nsACString& aHost,
+                                         const nsACString& aPath,
+                                         const nsACString& aPathname,
+                                         nsACString& aResult) override;
 
-  virtual MOZ_MUST_USE bool MustResolveJAR(const nsACString& aRoot) override {
+  [[nodiscard]] virtual bool MustResolveJAR(const nsACString& aRoot) override {
     return aRoot.EqualsLiteral("android");
   }
 
  private:
-  MOZ_MUST_USE nsresult Init();
+  [[nodiscard]] nsresult Init();
   static mozilla::StaticRefPtr<nsResProtocolHandler> sSingleton;
 
   nsCString mAppURI;

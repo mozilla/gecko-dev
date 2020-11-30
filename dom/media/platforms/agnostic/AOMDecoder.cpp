@@ -5,19 +5,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "AOMDecoder.h"
+
+#include <algorithm>
+
+#include "ImageContainer.h"
 #include "MediaResult.h"
 #include "TimeUnits.h"
-#include "aom/aomdx.h"
 #include "aom/aom_image.h"
+#include "aom/aomdx.h"
 #include "gfx2DGlue.h"
 #include "mozilla/PodOperations.h"
 #include "mozilla/SyncRunnable.h"
+#include "mozilla/TaskQueue.h"
 #include "nsError.h"
-#include "prsystem.h"
-#include "ImageContainer.h"
 #include "nsThreadUtils.h"
-
-#include <algorithm>
+#include "prsystem.h"
 
 #undef LOG
 #define LOG(arg, ...)                                                  \
@@ -77,7 +79,8 @@ static MediaResult InitContext(AOMDecoder& aAOMDecoder, aom_codec_ctx_t* aCtx,
 
 AOMDecoder::AOMDecoder(const CreateDecoderParams& aParams)
     : mImageContainer(aParams.mImageContainer),
-      mTaskQueue(aParams.mTaskQueue),
+      mTaskQueue(new TaskQueue(
+          GetMediaThreadPool(MediaThreadType::PLATFORM_DECODER), "AOMDecoder")),
       mInfo(aParams.VideoConfig()) {
   PodZero(&mCodec);
 }
@@ -91,7 +94,7 @@ RefPtr<ShutdownPromise> AOMDecoder::Shutdown() {
     if (res != AOM_CODEC_OK) {
       LOGEX_RESULT(self.get(), res, "aom_codec_destroy");
     }
-    return ShutdownPromise::CreateAndResolve(true, __func__);
+    return self->mTaskQueue->BeginShutdown();
   });
 }
 
@@ -152,17 +155,14 @@ RefPtr<MediaDataDecoder::DecodePromise> AOMDecoder::ProcessDecode(
     b.mPlanes[0].mStride = img->stride[0];
     b.mPlanes[0].mHeight = img->d_h;
     b.mPlanes[0].mWidth = img->d_w;
-    b.mPlanes[0].mOffset = 0;
     b.mPlanes[0].mSkip = 0;
 
     b.mPlanes[1].mData = img->planes[1];
     b.mPlanes[1].mStride = img->stride[1];
-    b.mPlanes[1].mOffset = 0;
     b.mPlanes[1].mSkip = 0;
 
     b.mPlanes[2].mData = img->planes[2];
     b.mPlanes[2].mStride = img->stride[2];
-    b.mPlanes[2].mOffset = 0;
     b.mPlanes[2].mSkip = 0;
 
     if (img->fmt == AOM_IMG_FMT_I420 || img->fmt == AOM_IMG_FMT_I42016) {

@@ -32,8 +32,6 @@ class nsXULPrototypePI;
  */
 class nsXULPrototypeDocument final : public nsISerializable {
  public:
-  static nsresult Create(nsIURI* aURI, nsXULPrototypeDocument** aResult);
-
   typedef std::function<void()> Callback;
 
   // nsISupports interface
@@ -97,7 +95,7 @@ class nsXULPrototypeDocument final : public nsISerializable {
 
   bool WasL10nCached() { return mWasL10nCached; };
 
-  void SetIsL10nCached();
+  void SetIsL10nCached(bool aIsCached);
   void RebuildPrototypeFromElement(nsXULPrototypeElement* aPrototype,
                                    mozilla::dom::Element* aElement, bool aDeep);
   void RebuildL10nPrototype(mozilla::dom::Element* aElement, bool aDeep);

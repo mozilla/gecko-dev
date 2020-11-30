@@ -12,7 +12,9 @@
 add_task(async function() {
   await pushPref("devtools.netmonitor.features.requestBlocking", true);
 
-  const { tab, monitor } = await initNetMonitor(CUSTOM_GET_URL);
+  const { tab, monitor } = await initNetMonitor(CUSTOM_GET_URL, {
+    requestCount: 1,
+  });
   info("Starting test... ");
 
   const { document, store, windowRequire } = monitor.panelWin;
@@ -30,6 +32,13 @@ add_task(async function() {
       EventUtils.synthesizeKey(ch, {}, monitor.panelWin);
     }
   };
+
+  // wait for the add input to get focus
+  await waitUntil(() => {
+    return document.querySelector(
+      "#network-action-bar-blocked-panel .request-blocking-add-form input.devtools-searchinput:focus"
+    );
+  });
 
   // Add patterns which should block some of the requests
   type("test1");

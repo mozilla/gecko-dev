@@ -13,12 +13,12 @@
 #include "mozilla/Compiler.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/MathAlgorithms.h"
-#include "mozilla/TypeTraits.h"
 #include "mozilla/WrappingOperations.h"
 
 #include <cmath>
 #include <stddef.h>  // size_t
 #include <stdint.h>  // {u,}int{8,16,32,64}_t
+#include <type_traits>
 
 #include "jspubtd.h"
 #include "jstypes.h"  // JS_PUBLIC_API
@@ -287,7 +287,7 @@ inline JSObject* ToObject(JSContext* cx, HandleValue v) {
  */
 template <typename UnsignedInteger>
 inline UnsignedInteger ToUnsignedInteger(double d) {
-  static_assert(mozilla::IsUnsigned<UnsignedInteger>::value,
+  static_assert(std::is_unsigned_v<UnsignedInteger>,
                 "UnsignedInteger must be an unsigned type");
 
   uint64_t bits = mozilla::BitwiseCast<uint64_t>(d);
@@ -367,10 +367,10 @@ inline UnsignedInteger ToUnsignedInteger(double d) {
 
 template <typename SignedInteger>
 inline SignedInteger ToSignedInteger(double d) {
-  static_assert(mozilla::IsSigned<SignedInteger>::value,
+  static_assert(std::is_signed_v<SignedInteger>,
                 "SignedInteger must be a signed type");
 
-  using UnsignedInteger = typename mozilla::MakeUnsigned<SignedInteger>::Type;
+  using UnsignedInteger = std::make_unsigned_t<SignedInteger>;
   UnsignedInteger u = ToUnsignedInteger<UnsignedInteger>(d);
 
   return mozilla::WrapToSigned(u);
@@ -513,7 +513,7 @@ inline int32_t ToSignedInteger<int32_t>(double d) {
 namespace detail {
 
 template <typename IntegerType,
-          bool IsUnsigned = mozilla::IsUnsigned<IntegerType>::value>
+          bool IsUnsigned = std::is_unsigned_v<IntegerType>>
 struct ToSignedOrUnsignedInteger;
 
 template <typename IntegerType>

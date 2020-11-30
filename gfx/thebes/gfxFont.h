@@ -9,10 +9,7 @@
 
 #include "gfxTypes.h"
 #include "gfxFontEntry.h"
-#include "gfxFontVariations.h"
 #include "nsString.h"
-#include "gfxPoint.h"
-#include "gfxPattern.h"
 #include "nsTArray.h"
 #include "nsTHashtable.h"
 #include "nsHashKeys.h"
@@ -27,16 +24,13 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/FontPropertyTypes.h"
 #include "mozilla/TypedEnumBits.h"
-#include "MainThreadUtils.h"
 #include <algorithm>
 #include "DrawMode.h"
 #include "nsDataHashtable.h"
-#include "harfbuzz/hb.h"
 #include "mozilla/gfx/2D.h"
 #include "nsColor.h"
 #include "nsFontMetrics.h"
 #include "mozilla/ServoUtils.h"
-#include "TextDrawTarget.h"
 #include "ThebesRLBoxTypes.h"
 
 typedef struct _cairo cairo_t;
@@ -46,10 +40,9 @@ typedef struct _cairo_scaled_font cairo_scaled_font_t;
 #  include <stdio.h>
 #endif
 
-class gfxContext;
 class gfxTextRun;
-class gfxFont;
 class gfxGlyphExtents;
+class gfxPattern;
 class gfxShapedText;
 class gfxShapedWord;
 class gfxSkipChars;
@@ -73,6 +66,10 @@ struct gfxTextRunDrawCallbacks;
 
 namespace mozilla {
 class SVGContextPaint;
+
+namespace layout {
+class TextDrawTarget;
+}
 }  // namespace mozilla
 
 struct gfxFontStyle {
@@ -97,7 +94,7 @@ struct gfxFontStyle {
   // (3) are guaranteed to be mutually exclusive
 
   // custom opentype feature settings
-  nsTArray<gfxFontFeature> featureSettings;
+  CopyableTArray<gfxFontFeature> featureSettings;
 
   // Some font-variant property values require font-specific settings
   // defined via @font-feature-values rules.  These are resolved after
@@ -110,7 +107,7 @@ struct gfxFontStyle {
   RefPtr<gfxFontFeatureValueSet> featureValueLookup;
 
   // opentype variation settings
-  nsTArray<gfxFontVariation> variationSettings;
+  CopyableTArray<gfxFontVariation> variationSettings;
 
   // The logical size of the font, in pixels
   gfxFloat size;
@@ -398,8 +395,6 @@ class gfxFontCache final : private gfxFontCacheExpirationTracker {
     // When constructing a new entry in the hashtable, we'll leave this
     // blank. The caller of Put() will fill this in.
     explicit HashEntry(KeyTypePointer aStr) : mFont(nullptr) {}
-    HashEntry(const HashEntry& toCopy) : mFont(toCopy.mFont) {}
-    ~HashEntry() = default;
 
     bool KeyEquals(const KeyTypePointer aKey) const;
     static KeyTypePointer KeyToPointer(KeyType aKey) { return &aKey; }
@@ -479,6 +474,8 @@ namespace gfx {
 // Flags that live in the gfxShapedText::mFlags field.
 // (Note that gfxTextRun has an additional mFlags2 field for use
 // by textrun clients like nsTextFrame.)
+//
+// If you add a flag, please add support for it in gfxTextRun::Dump.
 enum class ShapedTextFlags : uint16_t {
   /**
    * When set, the text is RTL.
@@ -720,6 +717,9 @@ class gfxShapedText {
       // in appunits).
       FLAG_IS_SIMPLE_GLYPH = 0x80000000U,
 
+      // These flags are applicable to both "simple" and "complex" records.
+      COMMON_FLAGS_MASK = 0x70000000U,
+
       // Indicates whether a linebreak is allowed before this character;
       // this is a two-bit field that holds a FLAG_BREAK_TYPE_xxx value
       // indicating the kind of linebreak (if any) allowed here.
@@ -732,41 +732,47 @@ class gfxShapedText {
 
       FLAG_CHAR_IS_SPACE = 0x10000000U,
 
-      // The advance is stored in appunits
+      // Fields present only when FLAG_IS_SIMPLE_GLYPH is /true/.
+      // The advance is stored in appunits as a 12-bit field:
       ADVANCE_MASK = 0x0FFF0000U,
       ADVANCE_SHIFT = 16,
-
+      // and the glyph ID is stored in the low 16 bits.
       GLYPH_MASK = 0x0000FFFFU,
 
+      // Fields present only when FLAG_IS_SIMPLE_GLYPH is /false/.
       // Non-simple glyphs may or may not have glyph data in the
-      // corresponding mDetailedGlyphs entry. They have the following
-      // flag bits:
+      // corresponding mDetailedGlyphs entry. They have a glyph count
+      // stored in the low 16 bits, and the following flag bits:
+      GLYPH_COUNT_MASK = 0x0000FFFFU,
 
       // When NOT set, indicates that this character corresponds to a
       // missing glyph and should be skipped (or possibly, render the character
       // Unicode value in some special way). If there are glyphs,
       // the mGlyphID is actually the UTF16 character code. The bit is
       // inverted so we can memset the array to zero to indicate all missing.
-      FLAG_NOT_MISSING = 0x01,
-      FLAG_NOT_CLUSTER_START = 0x02,
-      FLAG_NOT_LIGATURE_GROUP_START = 0x04,
+      FLAG_NOT_MISSING = 0x010000,
+      FLAG_NOT_CLUSTER_START = 0x020000,
+      FLAG_NOT_LIGATURE_GROUP_START = 0x040000,
+      // Flag bit 0x080000 is currently unused.
 
-      FLAG_CHAR_IS_TAB = 0x08,
-      FLAG_CHAR_IS_NEWLINE = 0x10,
+      // Certain types of characters are marked so that they can be given
+      // special treatment in rendering. This may require use of a "complex"
+      // CompressedGlyph record even for a character that would otherwise be
+      // treated as "simple".
+      CHAR_TYPE_FLAGS_MASK = 0xF00000,
+      FLAG_CHAR_IS_TAB = 0x100000,
+      FLAG_CHAR_IS_NEWLINE = 0x200000,
       // Per CSS Text Decoration Module Level 3, emphasis marks are not
       // drawn for any character in Unicode categories Z*, Cc, Cf, and Cn
       // which is not combined with any combining characters. This flag is
       // set for all those characters except 0x20 whitespace.
-      FLAG_CHAR_NO_EMPHASIS_MARK = 0x20,
+      FLAG_CHAR_NO_EMPHASIS_MARK = 0x400000,
       // Per CSS Text, letter-spacing is not applied to formatting chars
       // (category Cf). We mark those in the textrun so as to be able to
       // skip them when setting up spacing in nsTextFrame.
-      FLAG_CHAR_IS_FORMATTING_CONTROL = 0x40,
+      FLAG_CHAR_IS_FORMATTING_CONTROL = 0x800000,
 
-      CHAR_TYPE_FLAGS_MASK = 0x78,
-
-      GLYPH_COUNT_MASK = 0x00FFFF00U,
-      GLYPH_COUNT_SHIFT = 8
+      // The bits 0x0F000000 are currently unused in non-simple glyphs.
     };
 
     // "Simple glyphs" have a simple glyph ID, simple advance and their
@@ -785,25 +791,27 @@ class gfxShapedText {
       return (aAdvance & (ADVANCE_MASK >> ADVANCE_SHIFT)) == aAdvance;
     }
 
-    bool IsSimpleGlyph() const { return (mValue & FLAG_IS_SIMPLE_GLYPH) != 0; }
+    bool IsSimpleGlyph() const { return mValue & FLAG_IS_SIMPLE_GLYPH; }
     uint32_t GetSimpleAdvance() const {
+      MOZ_ASSERT(IsSimpleGlyph());
       return (mValue & ADVANCE_MASK) >> ADVANCE_SHIFT;
     }
-    uint32_t GetSimpleGlyph() const { return mValue & GLYPH_MASK; }
+    uint32_t GetSimpleGlyph() const {
+      MOZ_ASSERT(IsSimpleGlyph());
+      return mValue & GLYPH_MASK;
+    }
 
     bool IsMissing() const {
-      return (mValue & (FLAG_NOT_MISSING | FLAG_IS_SIMPLE_GLYPH)) == 0;
+      return !(mValue & (FLAG_NOT_MISSING | FLAG_IS_SIMPLE_GLYPH));
     }
     bool IsClusterStart() const {
-      return (mValue & FLAG_IS_SIMPLE_GLYPH) ||
-             !(mValue & FLAG_NOT_CLUSTER_START);
+      return IsSimpleGlyph() || !(mValue & FLAG_NOT_CLUSTER_START);
     }
     bool IsLigatureGroupStart() const {
-      return (mValue & FLAG_IS_SIMPLE_GLYPH) ||
-             !(mValue & FLAG_NOT_LIGATURE_GROUP_START);
+      return IsSimpleGlyph() || !(mValue & FLAG_NOT_LIGATURE_GROUP_START);
     }
     bool IsLigatureContinuation() const {
-      return (mValue & FLAG_IS_SIMPLE_GLYPH) == 0 &&
+      return !IsSimpleGlyph() &&
              (mValue & (FLAG_NOT_LIGATURE_GROUP_START | FLAG_NOT_MISSING)) ==
                  (FLAG_NOT_LIGATURE_GROUP_START | FLAG_NOT_MISSING);
     }
@@ -811,21 +819,20 @@ class gfxShapedText {
     // Return true if the original character was a normal (breakable,
     // trimmable) space (U+0020). Not true for other characters that
     // may happen to map to the space glyph (U+00A0).
-    bool CharIsSpace() const { return (mValue & FLAG_CHAR_IS_SPACE) != 0; }
+    bool CharIsSpace() const { return mValue & FLAG_CHAR_IS_SPACE; }
 
     bool CharIsTab() const {
-      return !IsSimpleGlyph() && (mValue & FLAG_CHAR_IS_TAB) != 0;
+      return !IsSimpleGlyph() && (mValue & FLAG_CHAR_IS_TAB);
     }
     bool CharIsNewline() const {
-      return !IsSimpleGlyph() && (mValue & FLAG_CHAR_IS_NEWLINE) != 0;
+      return !IsSimpleGlyph() && (mValue & FLAG_CHAR_IS_NEWLINE);
     }
     bool CharMayHaveEmphasisMark() const {
       return !CharIsSpace() &&
              (IsSimpleGlyph() || !(mValue & FLAG_CHAR_NO_EMPHASIS_MARK));
     }
     bool CharIsFormattingControl() const {
-      return !IsSimpleGlyph() &&
-             (mValue & FLAG_CHAR_IS_FORMATTING_CONTROL) != 0;
+      return !IsSimpleGlyph() && (mValue & FLAG_CHAR_IS_FORMATTING_CONTROL);
     }
 
     uint32_t CharTypeFlags() const {
@@ -833,8 +840,7 @@ class gfxShapedText {
     }
 
     void SetClusterStart(bool aIsClusterStart) {
-      NS_ASSERTION(!IsSimpleGlyph(),
-                   "can't call SetClusterStart on simple glyphs");
+      MOZ_ASSERT(!IsSimpleGlyph());
       if (aIsClusterStart) {
         mValue &= ~FLAG_NOT_CLUSTER_START;
       } else {
@@ -847,7 +853,7 @@ class gfxShapedText {
     }
     // Returns FLAGS_CAN_BREAK_BEFORE if the setting changed, 0 otherwise
     uint32_t SetCanBreakBefore(uint8_t aCanBreakBefore) {
-      NS_ASSERTION(aCanBreakBefore <= 2, "Bogus break-before value!");
+      MOZ_ASSERT(aCanBreakBefore <= 2, "Bogus break-before value!");
       uint32_t breakMask = (uint32_t(aCanBreakBefore) << FLAGS_CAN_BREAK_SHIFT);
       uint32_t toggle = breakMask ^ (mValue & FLAGS_CAN_BREAK_BEFORE);
       mValue ^= toggle;
@@ -858,8 +864,8 @@ class gfxShapedText {
     // no extra flags (line-break or is_space) set.
     static CompressedGlyph MakeSimpleGlyph(uint32_t aAdvanceAppUnits,
                                            uint32_t aGlyph) {
-      NS_ASSERTION(IsSimpleAdvance(aAdvanceAppUnits), "Advance overflow");
-      NS_ASSERTION(IsSimpleGlyphID(aGlyph), "Glyph overflow");
+      MOZ_ASSERT(IsSimpleAdvance(aAdvanceAppUnits));
+      MOZ_ASSERT(IsSimpleGlyphID(aGlyph));
       CompressedGlyph g;
       g.mValue =
           FLAG_IS_SIMPLE_GLYPH | (aAdvanceAppUnits << ADVANCE_SHIFT) | aGlyph;
@@ -870,64 +876,75 @@ class gfxShapedText {
     // preserving line-break/is-space flags if present.
     CompressedGlyph& SetSimpleGlyph(uint32_t aAdvanceAppUnits,
                                     uint32_t aGlyph) {
-      NS_ASSERTION(!CharTypeFlags(), "Char type flags lost");
-      mValue = (mValue & (FLAGS_CAN_BREAK_BEFORE | FLAG_CHAR_IS_SPACE)) |
+      MOZ_ASSERT(!CharTypeFlags(), "Char type flags lost");
+      mValue = (mValue & COMMON_FLAGS_MASK) |
                MakeSimpleGlyph(aAdvanceAppUnits, aGlyph).mValue;
       return *this;
     }
 
     // Create a CompressedGlyph value representing a complex glyph record,
     // without any line-break or char-type flags.
-    static CompressedGlyph MakeComplex(bool aClusterStart, bool aLigatureStart,
-                                       uint32_t aGlyphCount) {
+    static CompressedGlyph MakeComplex(bool aClusterStart,
+                                       bool aLigatureStart) {
       CompressedGlyph g;
       g.mValue = FLAG_NOT_MISSING |
                  (aClusterStart ? 0 : FLAG_NOT_CLUSTER_START) |
-                 (aLigatureStart ? 0 : FLAG_NOT_LIGATURE_GROUP_START) |
-                 (aGlyphCount << GLYPH_COUNT_SHIFT);
+                 (aLigatureStart ? 0 : FLAG_NOT_LIGATURE_GROUP_START);
       return g;
     }
 
     // Assign a complex glyph value to an existing CompressedGlyph record,
     // preserving line-break/char-type flags if present.
-    CompressedGlyph& SetComplex(bool aClusterStart, bool aLigatureStart,
-                                uint32_t aGlyphCount) {
-      mValue = (mValue & (FLAGS_CAN_BREAK_BEFORE | FLAG_CHAR_IS_SPACE)) |
-               CharTypeFlags() |
-               MakeComplex(aClusterStart, aLigatureStart, aGlyphCount).mValue;
+    // This sets the glyphCount to zero; it will be updated when we call
+    // gfxShapedText::SetDetailedGlyphs.
+    CompressedGlyph& SetComplex(bool aClusterStart, bool aLigatureStart) {
+      mValue = (mValue & COMMON_FLAGS_MASK) | CharTypeFlags() |
+               MakeComplex(aClusterStart, aLigatureStart).mValue;
       return *this;
     }
 
     /**
+     * Mark a glyph record as being a missing-glyph.
      * Missing glyphs are treated as ligature group starts; don't mess with
      * the cluster-start flag (see bugs 618870 and 619286).
+     * We also preserve the glyph count here, as this is used after any
+     * required DetailedGlyphs (to store the char code for a hexbox) has been
+     * set up.
+     * This must be called *after* SetDetailedGlyphs is used for the relevant
+     * offset in the shaped-word, because that will mark it as not-missing.
      */
-    CompressedGlyph& SetMissing(uint32_t aGlyphCount) {
-      mValue = (mValue & (FLAGS_CAN_BREAK_BEFORE | FLAG_NOT_CLUSTER_START |
-                          FLAG_CHAR_IS_SPACE)) |
-               CharTypeFlags() | (aGlyphCount << GLYPH_COUNT_SHIFT);
+    CompressedGlyph& SetMissing() {
+      MOZ_ASSERT(!IsSimpleGlyph());
+      mValue &= ~(FLAG_NOT_MISSING | FLAG_NOT_LIGATURE_GROUP_START);
       return *this;
     }
+
     uint32_t GetGlyphCount() const {
-      NS_ASSERTION(!IsSimpleGlyph(), "Expected non-simple-glyph");
-      return (mValue & GLYPH_COUNT_MASK) >> GLYPH_COUNT_SHIFT;
+      MOZ_ASSERT(!IsSimpleGlyph());
+      return mValue & GLYPH_COUNT_MASK;
+    }
+    void SetGlyphCount(uint32_t aGlyphCount) {
+      MOZ_ASSERT(!IsSimpleGlyph());
+      MOZ_ASSERT(GetGlyphCount() == 0, "Glyph count already set");
+      MOZ_ASSERT(aGlyphCount <= 0xffff, "Glyph count out of range");
+      mValue |= FLAG_NOT_MISSING | aGlyphCount;
     }
 
     void SetIsSpace() { mValue |= FLAG_CHAR_IS_SPACE; }
     void SetIsTab() {
-      NS_ASSERTION(!IsSimpleGlyph(), "Expected non-simple-glyph");
+      MOZ_ASSERT(!IsSimpleGlyph());
       mValue |= FLAG_CHAR_IS_TAB;
     }
     void SetIsNewline() {
-      NS_ASSERTION(!IsSimpleGlyph(), "Expected non-simple-glyph");
+      MOZ_ASSERT(!IsSimpleGlyph());
       mValue |= FLAG_CHAR_IS_NEWLINE;
     }
     void SetNoEmphasisMark() {
-      NS_ASSERTION(!IsSimpleGlyph(), "Expected non-simple-glyph");
+      MOZ_ASSERT(!IsSimpleGlyph());
       mValue |= FLAG_CHAR_NO_EMPHASIS_MARK;
     }
     void SetIsFormattingControl() {
-      NS_ASSERTION(!IsSimpleGlyph(), "Expected non-simple-glyph");
+      MOZ_ASSERT(!IsSimpleGlyph());
       mValue |= FLAG_CHAR_IS_FORMATTING_CONTROL;
     }
 
@@ -958,8 +975,10 @@ class gfxShapedText {
     mozilla::gfx::Point mOffset;
   };
 
-  void SetGlyphs(uint32_t aCharIndex, CompressedGlyph aGlyph,
-                 const DetailedGlyph* aGlyphs);
+  // Store DetailedGlyph records for the given index. (This does not modify
+  // the associated CompressedGlyph character-type or break flags.)
+  void SetDetailedGlyphs(uint32_t aIndex, uint32_t aGlyphCount,
+                         const DetailedGlyph* aGlyphs);
 
   void SetMissingGlyph(uint32_t aIndex, uint32_t aChar, gfxFont* aFont);
 
@@ -1059,7 +1078,8 @@ class gfxShapedText {
       DetailedGlyph details = {aGlyph.GetSimpleGlyph(),
                                (int32_t)aGlyph.GetSimpleAdvance(),
                                mozilla::gfx::Point()};
-      SetGlyphs(aIndex, CompressedGlyph().SetComplex(true, true, 1), &details);
+      aGlyph.SetComplex(true, true);
+      SetDetailedGlyphs(aIndex, 1, &details);
     }
   }
 
@@ -1858,6 +1878,8 @@ class gfxFont {
   // glyphs. This does not add a reference to the returned font.
   gfxFont* GetSubSuperscriptFont(int32_t aAppUnitsPerDevPixel);
 
+  bool HasColorGlyphFor(uint32_t aCh, uint32_t aNextCh);
+
  protected:
   virtual const Metrics& GetHorizontalMetrics() = 0;
 
@@ -2053,10 +2075,10 @@ class gfxFont {
     // When constructing a new entry in the hashtable, the caller of Put()
     // will fill us in.
     explicit CacheHashEntry(KeyTypePointer aKey) {}
-    CacheHashEntry(const CacheHashEntry& toCopy) {
-      NS_ERROR("Should not be called");
-    }
-    ~CacheHashEntry() = default;
+    CacheHashEntry(const CacheHashEntry&) = delete;
+    CacheHashEntry& operator=(const CacheHashEntry&) = delete;
+    CacheHashEntry(CacheHashEntry&&) = default;
+    CacheHashEntry& operator=(CacheHashEntry&&) = default;
 
     bool KeyEquals(const KeyTypePointer aKey) const;
 

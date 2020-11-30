@@ -30,6 +30,7 @@ https://tools.ietf.org/html/draft-ietf-httpbis-alt-svc-06
 #include "nsIStreamListener.h"
 #include "nsISpeculativeConnect.h"
 #include "mozilla/BasePrincipal.h"
+#include "NullHttpTransaction.h"
 
 class nsILoadInfo;
 
@@ -59,14 +60,14 @@ class AltSvcMapping {
   AltSvcMapping(DataStorage* storage, int32_t storageEpoch,
                 const nsCString& serialized);
 
-  static void ProcessHeader(const nsCString& buf, const nsCString& originScheme,
-                            const nsCString& originHost, int32_t originPort,
-                            const nsACString& username,
-                            const nsACString& topWindowOrigin,
-                            bool privateBrowsing, bool isolated,
-                            nsIInterfaceRequestor* callbacks,
-                            nsProxyInfo* proxyInfo, uint32_t caps,
-                            const OriginAttributes& originAttributes);
+  static void ProcessHeader(
+      const nsCString& buf, const nsCString& originScheme,
+      const nsCString& originHost, int32_t originPort,
+      const nsACString& username, const nsACString& topWindowOrigin,
+      bool privateBrowsing, bool isolated, nsIInterfaceRequestor* callbacks,
+      nsProxyInfo* proxyInfo, uint32_t caps,
+      const OriginAttributes& originAttributes,
+      bool aDontValidate = false);  // aDontValidate is only used for testing!
 
   // AcceptableProxy() decides whether a particular proxy configuration (pi) is
   // suitable for use with Alt-Svc. No proxy (including a null pi) is suitable.
@@ -101,7 +102,8 @@ class AltSvcMapping {
                           const nsACString& originHost, int32_t originPort,
                           bool privateBrowsing, bool isolated,
                           const nsACString& topWindowOrigin,
-                          const OriginAttributes& originAttributes);
+                          const OriginAttributes& originAttributes,
+                          bool aIsHttp3);
 
   bool IsHttp3() { return mIsHttp3; }
   const nsCString& NPNToken() const { return mNPNToken; }
@@ -190,10 +192,15 @@ class AltSvcCache {
       AltSvcMapping* map, nsProxyInfo* pi, nsIInterfaceRequestor*,
       uint32_t caps,
       const OriginAttributes& originAttributes);  // main thread
+  void UpdateAltServiceMappingWithoutValidation(
+      AltSvcMapping* map, nsProxyInfo* pi, nsIInterfaceRequestor*,
+      uint32_t caps,
+      const OriginAttributes& originAttributes);  // main thread
   already_AddRefed<AltSvcMapping> GetAltServiceMapping(
       const nsACString& scheme, const nsACString& host, int32_t port, bool pb,
       bool isolated, const nsACString& topWindowOrigin,
-      const OriginAttributes& originAttributes);
+      const OriginAttributes& originAttributes, bool aHttp2Allowed,
+      bool aHttp3Allowed);
   void ClearAltServiceMappings();
   void ClearHostMapping(const nsACString& host, int32_t port,
                         const OriginAttributes& originAttributes,
@@ -209,6 +216,55 @@ class AltSvcCache {
                                                 bool privateBrowsing);
   RefPtr<DataStorage> mStorage;
   int32_t mStorageEpoch;
+};
+
+// This class is used to write the validated result to AltSvcMapping when the
+// AltSvcTransaction is closed and destroyed.
+class AltSvcMappingValidator final {
+ public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AltSvcMappingValidator)
+
+  explicit AltSvcMappingValidator(AltSvcMapping* aMap);
+
+  void OnTransactionDestroy(bool aValidateResult);
+
+  void OnTransactionClose(bool aValidateResult);
+
+ protected:
+  virtual ~AltSvcMappingValidator() = default;
+
+  RefPtr<AltSvcMapping> mMapping;
+};
+
+// This is the asynchronous null transaction used to validate
+// an alt-svc advertisement only for https://
+// When http over socket process is enabled, this class should live only in
+// socket process.
+template <class Validator>
+class AltSvcTransaction final : public NullHttpTransaction {
+ public:
+  AltSvcTransaction(nsHttpConnectionInfo* ci, nsIInterfaceRequestor* callbacks,
+                    uint32_t caps, Validator* aValidator, bool aIsHttp3);
+
+  ~AltSvcTransaction() override;
+
+ private:
+  // check on alternate route.
+  // also evaluate 'reasonable assurances' for opportunistic security
+  bool MaybeValidate(nsresult reason);
+
+ public:
+  void Close(nsresult reason) override;
+  nsresult ReadSegments(nsAHttpSegmentReader* reader, uint32_t count,
+                        uint32_t* countRead) override;
+
+ private:
+  RefPtr<Validator> mValidator;
+  uint32_t mIsHttp3 : 1;
+  uint32_t mRunning : 1;
+  uint32_t mTriedToValidate : 1;
+  uint32_t mTriedToWrite : 1;
+  uint32_t mValidatedResult : 1;
 };
 
 }  // namespace net

@@ -33,6 +33,7 @@
 #include "js/UniquePtr.h"
 #include "js/Utility.h"
 #include "threading/LockGuard.h"
+#include "vm/JSContext.h"
 #include "vm/Runtime.h"
 
 js::jit::SimulatorProcess* js::jit::SimulatorProcess::singleton_ = nullptr;
@@ -208,6 +209,18 @@ void Simulator::Destroy(Simulator* sim) {
 void Simulator::ExecuteInstruction() {
   // The program counter should always be aligned.
   VIXL_ASSERT(IsWordAligned(pc_));
+#ifdef JS_CACHE_SIMULATOR_ARM64
+  if (pendingCacheRequests) {
+      // We're here emulating the behavior of the membarrier carried over on
+      // real hardware does; see syscalls to membarrier in MozCpu-vixl.cpp.
+      // There's a slight difference that the simulator is not being
+      // interrupted: instead, we effectively run the icache flush request
+      // before executing the next instruction, which is close enough and
+      // sufficient for our use case.
+      js::jit::AutoLockSimulatorCache alsc;
+      FlushICache();
+  }
+#endif
   decoder_->Decode(pc_);
   increment_pc();
 }
@@ -224,8 +237,9 @@ uintptr_t* Simulator::addressOfStackLimit() {
 
 
 bool Simulator::overRecursed(uintptr_t newsp) const {
-  if (newsp)
+  if (newsp == 0) {
     newsp = get_sp();
+  }
   return newsp <= stackLimit();
 }
 
@@ -376,6 +390,15 @@ void* Simulator::RedirectNativeFunction(void* nativeFunction, ABIFunctionType ty
 }
 
 void Simulator::VisitException(const Instruction* instr) {
+  if (instr->InstructionBits() == UNDEFINED_INST_PATTERN) {
+    uint8_t* newPC;
+    if (js::wasm::HandleIllegalInstruction(registerState(), &newPC)) {
+      set_pc((Instruction*)newPC);
+      return;
+    }
+    DoUnreachable(instr);
+  }
+
   switch (instr->Mask(ExceptionMask)) {
     case BRK: {
       int lowbit  = ImmException_offset;
@@ -385,15 +408,6 @@ void Simulator::VisitException(const Instruction* instr) {
     }
     case HLT:
       switch (instr->ImmException()) {
-        case kUnreachableOpcode: {
-          uint8_t* newPC;
-          if (js::wasm::HandleIllegalInstruction(registerState(), &newPC)) {
-            set_pc((Instruction*)newPC);
-            return;
-          }
-          DoUnreachable(instr);
-          return;
-        }
         case kTraceOpcode:
           DoTrace(instr);
           return;
@@ -421,8 +435,8 @@ void Simulator::VisitException(const Instruction* instr) {
           return;
         }
         case kCheckStackPointer: {
-          int64_t current = get_sp();
-          int64_t expected = spStack_.popCopy();
+          DebugOnly<int64_t> current = get_sp();
+          DebugOnly<int64_t> expected = spStack_.popCopy();
           VIXL_ASSERT(current == expected);
           return;
         }
@@ -543,10 +557,9 @@ typedef int64_t (*Prototype_General_GeneralInt32)(int64_t, int32_t);
 typedef int64_t (*Prototype_General_GeneralInt32Int32)(int64_t,
                                                        int32_t,
                                                        int32_t);
-typedef int64_t (*Prototype_General_GeneralInt32Int32General)(int64_t,
-                                                              int32_t,
-                                                              int32_t,
-                                                              int64_t);
+typedef int64_t (*Prototype_General_GeneralInt32General)(int64_t,
+                                                         int32_t,
+                                                         int64_t);
 
 // Simulator support for callWithABI().
 void
@@ -836,10 +849,10 @@ Simulator::VisitCallRedirection(const Instruction* instr)
       setGPR64Result(ret);
       break;
     }
-    case js::jit::Args_General_GeneralInt32Int32General: {
+    case js::jit::Args_General_GeneralInt32General: {
       int64_t ret =
-          reinterpret_cast<Prototype_General_GeneralInt32Int32General>(
-              nativeFn)(x0, x1, x2, x3);
+          reinterpret_cast<Prototype_General_GeneralInt32General>(
+              nativeFn)(x0, x1, x2);
       setGPR64Result(ret);
       break;
     }
@@ -889,6 +902,7 @@ Simulator::FlushICache()
     decoder_->FlushICache(flush.start, flush.length);
   }
   vec.clear();
+  pendingCacheRequests = false;
 }
 
 void CachingDecoder::Decode(const Instruction* instr) {
@@ -965,6 +979,13 @@ void SimulatorProcess::recordICacheFlush(void* start, size_t length) {
     if (!s.records.append(range)) {
       oomUnsafe.crash("Simulator recordFlushICache");
     }
+  }
+}
+
+void SimulatorProcess::membarrier() {
+  MOZ_ASSERT(singleton_->lock_.ownedByCurrentThread());
+  for (auto& s : singleton_->pendingFlushes_) {
+    s.thread->pendingCacheRequests = true;
   }
 }
 

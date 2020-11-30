@@ -7,8 +7,9 @@
 # Write a Mochitest manifest for WebGL conformance test files.
 
 import os
+from pathlib import Path
 import re
-from pathlib import *
+import shutil
 
 # All paths in this file are based where this file is run.
 WRAPPER_TEMPLATE_FILE = 'mochi-wrapper.html.template'
@@ -35,6 +36,7 @@ ACCEPTABLE_ERRATA_KEYS = set([
     'fail-if',
     'skip-if',
 ])
+
 
 def ChooseSubsuite(name):
     # name: generated/test_2_conformance2__vertex_arrays__vertex-array-object.html
@@ -65,6 +67,7 @@ def ChooseSubsuite(name):
 ########################################################################
 # GetTestList
 
+
 def GetTestList():
     split = BASE_TEST_LIST_PATHSTR.rsplit('/', 1)
     basePath = '.'
@@ -87,6 +90,7 @@ def GetTestList():
 ##############################
 # Internals
 
+
 def IsVersionLess(a, b):
     aSplit = [int(x) for x in a.split('.')]
     bSplit = [int(x) for x in b.split('.')]
@@ -107,6 +111,7 @@ def IsVersionLess(a, b):
         return aVal < bVal
 
     return False
+
 
 class TestEntry:
     def __init__(self, path, webgl1, webgl2):
@@ -139,11 +144,11 @@ def AccumTests(pathStr, listFile, allowWebGL1, allowWebGL2, out_testList):
 
             webgl1 = allowWebGL1
             webgl2 = allowWebGL2
-            while curLine.startswith('--'): # '--min-version 1.0.2 foo.html'
+            while curLine.startswith('--'):  # '--min-version 1.0.2 foo.html'
                 (flag, curLine) = curLine.split(' ', 1)
                 if flag == '--min-version':
                     (minVersion, curLine) = curLine.split(' ', 1)
-                    if not IsVersionLess(minVersion, "2.0.0"): # >= 2.0.0
+                    if not IsVersionLess(minVersion, "2.0.0"):  # >= 2.0.0
                         webgl1 = False
                         break
                 elif flag == '--max-version':
@@ -152,7 +157,7 @@ def AccumTests(pathStr, listFile, allowWebGL1, allowWebGL2, out_testList):
                         webgl2 = False
                         break
                 elif flag == '--slow':
-                    continue # TODO
+                    continue  # TODO
                 else:
                     text = 'Unknown flag \'{}\': {}:{}: {}'.format(flag, listPath,
                                                                    lineNum, line)
@@ -188,6 +193,7 @@ def AccumTests(pathStr, listFile, allowWebGL1, allowWebGL2, out_testList):
 ########################################################################
 # Templates
 
+
 def FillTemplate(inFilePath, templateDict, outFilePath):
     templateShell = ImportTemplate(inFilePath)
     OutputFilledTemplate(templateShell, templateDict, outFilePath)
@@ -209,17 +215,18 @@ def OutputFilledTemplate(templateShell, templateDict, outFilePath):
 ##############################
 # Internals
 
+
 def WrapWithIndent(lines, indentLen):
-  split = lines.split('\n')
-  if len(split) == 1:
-      return lines
+    split = lines.split('\n')
+    if len(split) == 1:
+        return lines
 
-  ret = [split[0]]
-  indentSpaces = ' ' * indentLen
-  for line in split[1:]:
-      ret.append(indentSpaces + line)
+    ret = [split[0]]
+    indentSpaces = ' ' * indentLen
+    for line in split[1:]:
+        ret.append(indentSpaces + line)
 
-  return '\n'.join(ret)
+    return '\n'.join(ret)
 
 
 templateRE = re.compile('(%%.*?%%)')
@@ -236,7 +243,6 @@ class TemplateShellSpan:
             self.span = self.span[2:-2]
 
         return
-
 
     def Fill(self, templateDict, indentLen):
         if self.isLiteralSpan:
@@ -283,8 +289,8 @@ class TemplateShell:
         self.spanList = spanList
         return
 
-
     # Returns spanStrList.
+
     def Fill(self, templateDict):
         indentLen = 0
         ret = []
@@ -308,6 +314,7 @@ class TemplateShell:
 
 ########################################################################
 # Output
+
 
 def IsWrapperWebGL2(wrapperPath):
     return wrapperPath.startswith(GENERATED_PATHSTR + '/test_' + WEBGL2_TEST_MANGLE)
@@ -368,6 +375,7 @@ def WriteWrappers(testEntryList):
 kManifestRelPathStr = os.path.relpath('.', os.path.dirname(DEST_MANIFEST_PATHSTR))
 kManifestRelPathStr = kManifestRelPathStr.replace(os.sep, '/')
 
+
 def ManifestPathStr(pathStr):
     pathStr = kManifestRelPathStr + '/' + pathStr
     return os.path.normpath(pathStr).replace(os.sep, '/')
@@ -398,8 +406,6 @@ def WriteManifest(wrapperPathStrList, supportPathStrList):
     manifestTestLineList = []
     wrapperPathStrList = sorted(wrapperPathStrList)
     for wrapperPathStr in wrapperPathStrList:
-        #print('wrapperPathStr: ' + wrapperPathStr)
-
         wrapperManifestPathStr = ManifestPathStr(wrapperPathStr)
         sectionName = '[' + wrapperManifestPathStr + ']'
         manifestTestLineList.append(sectionName)
@@ -439,7 +445,9 @@ def WriteManifest(wrapperPathStrList, supportPathStrList):
 ##############################
 # Internals
 
+
 kManifestHeaderRegex = re.compile(r'[[]([^]]*)[]]')
+
 
 def LoadINI(path):
     curSectionName = None
@@ -465,7 +473,8 @@ def LoadINI(path):
                 assert line[-1] == ']', '{}:{}'.format(path, lineNum)
 
                 curSectionName = line[1:-1]
-                assert curSectionName not in ret, 'Line {}: Duplicate section: {}'.format(lineNum, line)
+                assert curSectionName not in ret, 'Line {}: Duplicate section: {}'.format(
+                    lineNum, line)
 
                 curSectionMap = {}
                 ret[curSectionName] = (lineNum, curSectionMap)
@@ -491,11 +500,12 @@ def LoadErrata():
     for (sectionName, (sectionLineNum, sectionMap)) in iniMap.items():
         curLines = []
 
-        if sectionName == None:
+        if sectionName is None:
             continue
         elif sectionName != 'DEFAULT':
             path = sectionName.replace('/', os.sep)
-            assert os.path.exists(path), 'Errata line {}: Invalid file: {}'.format(sectionLineNum, sectionName)
+            assert os.path.exists(path), 'Errata line {}: Invalid file: {}'.format(
+                sectionLineNum, sectionName)
 
         for (key, (lineNum, val)) in sectionMap.items():
             assert key in ACCEPTABLE_ERRATA_KEYS, 'Line {}: {}'.format(lineNum, key)
@@ -510,6 +520,7 @@ def LoadErrata():
     return ret
 
 ########################################################################
+
 
 def GetSupportFileList():
     ret = EXTRA_SUPPORT_FILES[:]
@@ -540,6 +551,7 @@ def GetFilePathListForDir(baseDir):
 if __name__ == '__main__':
     file_dir = Path(__file__).parent
     os.chdir(str(file_dir))
+    shutil.rmtree(file_dir / 'generated', True)
 
     testEntryList = GetTestList()
     wrapperPathStrList = WriteWrappers(testEntryList)

@@ -1,5 +1,8 @@
 // Preferences file used by the raptor harness
 /* globals user_pref */
+// prevents normandy from running updates during the tests
+user_pref("app.normandy.enabled", false);
+
 user_pref("dom.performance.time_to_non_blank_paint.enabled", true);
 user_pref("dom.performance.time_to_contentful_paint.enabled", true);
 user_pref("dom.performance.time_to_dom_content_flushed.enabled", true);
@@ -26,5 +29,6 @@ user_pref("toolkit.content-background-hang-monitor.disabled", true);
 // https://developer.mozilla.org/en-US/docs/Mozilla/Benchmarking#Async_Stacks
 user_pref('javascript.options.asyncstack', false);
 
-// enable marionette trace logging
-user_pref('marionette.log.level', 'Trace');
+// disable Firefox Telemetry (and some other things too)
+// https://bugzilla.mozilla.org/show_bug.cgi?id=1533879
+user_pref('datareporting.healthreport.uploadEnabled', false);

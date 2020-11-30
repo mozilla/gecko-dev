@@ -31,21 +31,21 @@ MediaCenterEventHandler MediaHardwareKeysEventSourceMacMediaCenter::CreatePlayPa
     center.playbackState = center.playbackState == MPNowPlayingPlaybackStatePlaying
                                ? MPNowPlayingPlaybackStatePaused
                                : MPNowPlayingPlaybackStatePlaying;
-    HandleEvent(MediaControlKeysEvent::ePlayPause);
+    HandleEvent(MediaControlKey::Playpause);
     return MPRemoteCommandHandlerStatusSuccess;
   });
 }
 
 MediaCenterEventHandler MediaHardwareKeysEventSourceMacMediaCenter::CreateNextTrackHandler() {
   return Block_copy(^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent* event) {
-    HandleEvent(MediaControlKeysEvent::eNextTrack);
+    HandleEvent(MediaControlKey::Nexttrack);
     return MPRemoteCommandHandlerStatusSuccess;
   });
 }
 
 MediaCenterEventHandler MediaHardwareKeysEventSourceMacMediaCenter::CreatePreviousTrackHandler() {
   return Block_copy(^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent* event) {
-    HandleEvent(MediaControlKeysEvent::ePrevTrack);
+    HandleEvent(MediaControlKey::Previoustrack);
     return MPRemoteCommandHandlerStatusSuccess;
   });
 }
@@ -57,7 +57,7 @@ MediaCenterEventHandler MediaHardwareKeysEventSourceMacMediaCenter::CreatePlayHa
     if (center.playbackState != MPNowPlayingPlaybackStatePlaying) {
       center.playbackState = MPNowPlayingPlaybackStatePlaying;
     }
-    HandleEvent(MediaControlKeysEvent::ePlay);
+    HandleEvent(MediaControlKey::Play);
     return MPRemoteCommandHandlerStatusSuccess;
   });
 }
@@ -69,7 +69,7 @@ MediaCenterEventHandler MediaHardwareKeysEventSourceMacMediaCenter::CreatePauseH
     if (center.playbackState != MPNowPlayingPlaybackStatePaused) {
       center.playbackState = MPNowPlayingPlaybackStatePaused;
     }
-    HandleEvent(MediaControlKeysEvent::ePause);
+    HandleEvent(MediaControlKey::Pause);
     return MPRemoteCommandHandlerStatusSuccess;
   });
 }
@@ -137,30 +137,32 @@ bool MediaHardwareKeysEventSourceMacMediaCenter::Open() {
 
 void MediaHardwareKeysEventSourceMacMediaCenter::Close() {
   LOG("Close MediaHardwareKeysEventSourceMacMediaCenter");
+  SetPlaybackState(dom::MediaSessionPlaybackState::None);
   EndListeningForEvents();
   mOpened = false;
-  MediaControlKeysEventSource::Close();
+  MediaControlKeySource::Close();
 }
 
 bool MediaHardwareKeysEventSourceMacMediaCenter::IsOpened() const { return mOpened; }
 
-void MediaHardwareKeysEventSourceMacMediaCenter::HandleEvent(MediaControlKeysEvent aEvent) {
+void MediaHardwareKeysEventSourceMacMediaCenter::HandleEvent(MediaControlKey aEvent) {
   for (auto iter = mListeners.begin(); iter != mListeners.end(); ++iter) {
-    (*iter)->OnKeyPressed(aEvent);
+    (*iter)->OnActionPerformed(MediaControlAction(aEvent));
   }
 }
 
-void MediaHardwareKeysEventSourceMacMediaCenter::SetPlaybackState(PlaybackState aState) {
+void MediaHardwareKeysEventSourceMacMediaCenter::SetPlaybackState(
+    MediaSessionPlaybackState aState) {
   MPNowPlayingInfoCenter* center =
       (MPNowPlayingInfoCenter*)[mpNowPlayingInfoCenterClass defaultCenter];
-  if (aState == PlaybackState::ePlaying) {
+  if (aState == MediaSessionPlaybackState::Playing) {
     center.playbackState = MPNowPlayingPlaybackStatePlaying;
-  } else if (aState == PlaybackState::ePaused) {
+  } else if (aState == MediaSessionPlaybackState::Paused) {
     center.playbackState = MPNowPlayingPlaybackStatePaused;
-  } else if (aState == PlaybackState::eStopped) {
+  } else if (aState == MediaSessionPlaybackState::None) {
     center.playbackState = MPNowPlayingPlaybackStateStopped;
   }
-  MediaControlKeysEventSource::SetPlaybackState(aState);
+  MediaControlKeySource::SetPlaybackState(aState);
 }
 
 }

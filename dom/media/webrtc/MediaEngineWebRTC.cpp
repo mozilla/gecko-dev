@@ -8,7 +8,6 @@
 
 #include "CamerasChild.h"
 #include "CSFLog.h"
-#include "MediaEngineTabVideoSource.h"
 #include "MediaEngineRemoteVideoSource.h"
 #include "MediaEngineWebRTCAudio.h"
 #include "MediaManager.h"
@@ -35,16 +34,8 @@ CubebDeviceEnumerator* GetEnumerator() {
 
 MediaEngineWebRTC::MediaEngineWebRTC(MediaEnginePrefs& aPrefs)
     : mDelayAgnostic(aPrefs.mDelayAgnostic),
-      mExtendedFilter(aPrefs.mExtendedFilter),
-      mHasTabVideoSource(false) {
+      mExtendedFilter(aPrefs.mExtendedFilter) {
   AssertIsOnOwningThread();
-
-  nsCOMPtr<nsIComponentRegistrar> compMgr;
-  NS_GetComponentRegistrar(getter_AddRefs(compMgr));
-  if (compMgr) {
-    compMgr->IsContractIDRegistered(NS_TABSOURCESERVICE_CONTRACTID,
-                                    &mHasTabVideoSource);
-  }
 
   GetChildAndCall(
       &CamerasChild::ConnectDeviceListChangeListener<MediaEngineWebRTC>,
@@ -71,7 +62,8 @@ void MediaEngineWebRTC::SetFakeDeviceChangeEventsEnabled(bool aEnable) {
         getter_AddRefs(mFakeDeviceChangeEventTimer),
         &FakeDeviceChangeEventTimerTick, this,
         FAKE_ONDEVICECHANGE_EVENT_PERIOD_IN_MS, nsITimer::TYPE_REPEATING_SLACK,
-        "MediaEngineWebRTC::mFakeDeviceChangeEventTimer");
+        "MediaEngineWebRTC::mFakeDeviceChangeEventTimer",
+        GetCurrentSerialEventTarget());
     return;
   }
 
@@ -166,15 +158,7 @@ void MediaEngineWebRTC::EnumerateVideoDevices(
                                                scaryKind || scarySource);
     aDevices->AppendElement(MakeRefPtr<MediaDevice>(
         vSource, vSource->GetName(), NS_ConvertUTF8toUTF16(vSource->GetUUID()),
-        vSource->GetGroupId(), NS_LITERAL_STRING("")));
-  }
-
-  if (mHasTabVideoSource || aCapEngine == camera::BrowserEngine) {
-    RefPtr<MediaEngineSource> tabVideoSource = new MediaEngineTabVideoSource();
-    aDevices->AppendElement(MakeRefPtr<MediaDevice>(
-        tabVideoSource, tabVideoSource->GetName(),
-        NS_ConvertUTF8toUTF16(tabVideoSource->GetUUID()),
-        tabVideoSource->GetGroupId(), NS_LITERAL_STRING("")));
+        vSource->GetGroupId(), u""_ns));
   }
 }
 
@@ -205,7 +189,7 @@ void MediaEngineWebRTC::EnumerateMicrophoneDevices(
           devices[i]->MaxChannels(), mDelayAgnostic, mExtendedFilter);
       RefPtr<MediaDevice> device = MakeRefPtr<MediaDevice>(
           source, source->GetName(), NS_ConvertUTF8toUTF16(source->GetUUID()),
-          source->GetGroupId(), NS_LITERAL_STRING(""));
+          source->GetGroupId(), u""_ns);
       if (devices[i]->Preferred()) {
 #ifdef DEBUG
         if (!foundPreferredDevice) {
@@ -246,7 +230,7 @@ void MediaEngineWebRTC::EnumerateSpeakerDevices(
       // If, for example, input and output are in the same device, uuid
       // would be the same for both which ends up to create the same
       // deviceIDs (in JS).
-      uuid.Append(NS_LITERAL_STRING("_Speaker"));
+      uuid.Append(u"_Speaker"_ns);
       nsString groupId(device->GroupID());
       if (device->Preferred()) {
         // In windows is possible to have more than one preferred device
@@ -277,6 +261,7 @@ void MediaEngineWebRTC::EnumerateDevices(
         // window and fullscreen into a single list of choices. The other values
         // are still useful for testing.
         EnumerateVideoDevices(aWindowId, camera::WinEngine, aDevices);
+        EnumerateVideoDevices(aWindowId, camera::BrowserEngine, aDevices);
         EnumerateVideoDevices(aWindowId, camera::ScreenEngine, aDevices);
         break;
       case dom::MediaSourceEnum::Screen:
@@ -298,7 +283,7 @@ void MediaEngineWebRTC::EnumerateDevices(
     aDevices->AppendElement(MakeRefPtr<MediaDevice>(
         audioCaptureSource, audioCaptureSource->GetName(),
         NS_ConvertUTF8toUTF16(audioCaptureSource->GetUUID()),
-        audioCaptureSource->GetGroupId(), NS_LITERAL_STRING("")));
+        audioCaptureSource->GetGroupId(), u""_ns));
   } else if (aMediaSource == dom::MediaSourceEnum::Microphone) {
     EnumerateMicrophoneDevices(aWindowId, aDevices);
   }
@@ -322,6 +307,7 @@ void MediaEngineWebRTC::Shutdown() {
 /* static */ void MediaEngineWebRTC::FakeDeviceChangeEventTimerTick(
     nsITimer* aTimer, void* aClosure) {
   MediaEngineWebRTC* self = static_cast<MediaEngineWebRTC*>(aClosure);
+  self->AssertIsOnOwningThread();
   self->DeviceListChanged();
 }
 

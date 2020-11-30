@@ -4,12 +4,12 @@
 
 /**
  * Clipboard function taken from
- * https://dxr.mozilla.org/mozilla-central/source/devtools/shared/platform/content/clipboard.js
+ * https://searchfox.org/mozilla-central/source/devtools/shared/platform/clipboard.js
  */
 
 // @flow
 
-export function copyToTheClipboard(string: string) {
+export function copyToTheClipboard(string: string): void {
   const doCopy = function(e: any) {
     e.clipboardData.setData("text/plain", string);
     e.preventDefault();

@@ -16,13 +16,8 @@
  * Both are fine, but cannot be mixed for the same module.
  */
 
-// Modules imported with destructuring
-import * as devtoolsComponents from "devtools-components";
 // $FlowIgnore
-import * as devtoolsConfig from "devtools-config";
-import * as devtoolsContextmenu from "devtools-contextmenu";
 import * as devtoolsEnvironment from "devtools-environment";
-import * as devtoolsModules from "devtools-modules";
 import * as devtoolsUtils from "devtools-utils";
 import * as fuzzaldrinPlus from "fuzzaldrin-plus";
 import * as transition from "react-transition-group/Transition";
@@ -39,11 +34,7 @@ import move from "lodash-move";
 // !!! Should remain synchronized with .babel/transform-mc.js !!!
 export const vendored = {
   classnames,
-  "devtools-components": devtoolsComponents,
-  "devtools-config": devtoolsConfig,
-  "devtools-contextmenu": devtoolsContextmenu,
   "devtools-environment": devtoolsEnvironment,
-  "devtools-modules": devtoolsModules,
   "devtools-splitter": devtoolsSplitter,
   "devtools-utils": devtoolsUtils,
   "fuzzaldrin-plus": fuzzaldrinPlus,

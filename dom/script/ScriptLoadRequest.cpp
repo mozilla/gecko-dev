@@ -12,6 +12,8 @@
 #include "mozilla/Utf8.h"  // mozilla::Utf8Unit
 
 #include "nsContentUtils.h"
+#include "nsIClassOfService.h"
+#include "nsISupportsPriority.h"
 #include "ScriptLoadRequest.h"
 #include "ScriptSettings.h"
 
@@ -29,7 +31,7 @@ NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(ScriptFetchOptions, Release)
 
 ScriptFetchOptions::ScriptFetchOptions(mozilla::CORSMode aCORSMode,
                                        ReferrerPolicy aReferrerPolicy,
-                                       nsIScriptElement* aElement,
+                                       Element* aElement,
                                        nsIPrincipal* aTriggeringPrincipal)
     : mCORSMode(aCORSMode),
       mReferrerPolicy(aReferrerPolicy),
@@ -39,7 +41,7 @@ ScriptFetchOptions::ScriptFetchOptions(mozilla::CORSMode aCORSMode,
   MOZ_ASSERT(mTriggeringPrincipal);
 }
 
-ScriptFetchOptions::~ScriptFetchOptions() {}
+ScriptFetchOptions::~ScriptFetchOptions() = default;
 
 //////////////////////////////////////////////////////////////
 // ScriptLoadRequest
@@ -56,11 +58,16 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(ScriptLoadRequest)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(ScriptLoadRequest)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mFetchOptions, mCacheInfo)
   tmp->mScript = nullptr;
+  if (Runnable* runnable = tmp->mRunnable.exchange(nullptr)) {
+    runnable->Release();
+  }
   tmp->DropBytecodeCacheReferences();
+  tmp->MaybeUnblockOnload();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(ScriptLoadRequest)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mFetchOptions, mCacheInfo)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mFetchOptions, mCacheInfo,
+                                    mLoadBlockedDocument)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(ScriptLoadRequest)
@@ -77,7 +84,6 @@ ScriptLoadRequest::ScriptLoadRequest(ScriptKind aKind, nsIURI* aURI,
       mDataType(DataType::eUnknown),
       mScriptFromHead(false),
       mIsInline(true),
-      mHasSourceMapURL(false),
       mInDeferList(false),
       mInAsyncList(false),
       mIsNonAsyncScriptInserted(false),
@@ -87,6 +93,7 @@ ScriptLoadRequest::ScriptLoadRequest(ScriptKind aKind, nsIURI* aURI,
       mIsTracking(false),
       mFetchOptions(aFetchOptions),
       mOffThreadToken(nullptr),
+      mRunnable(nullptr),
       mScriptTextLength(0),
       mScriptBytecode(),
       mBytecodeOffset(0),
@@ -99,17 +106,21 @@ ScriptLoadRequest::ScriptLoadRequest(ScriptKind aKind, nsIURI* aURI,
 }
 
 ScriptLoadRequest::~ScriptLoadRequest() {
-  // We should always clean up any off-thread script parsing resources.
-  MOZ_ASSERT(!mOffThreadToken);
+  // When speculative parsing is enabled, it is possible to off-main-thread
+  // compile scripts that are never executed.  These should be cleaned up here
+  // if they exist.
+  MOZ_ASSERT_IF(
+      !StaticPrefs::
+          dom_script_loader_external_scripts_speculative_omt_parse_enabled(),
+      !mOffThreadToken);
 
-  // But play it safe in release builds and try to clean them up here
-  // as a fail safe.
   MaybeCancelOffThreadScript();
 
   if (mScript) {
     DropBytecodeCacheReferences();
   }
 
+  MaybeUnblockOnload();
   DropJSObjects(this);
 }
 
@@ -140,6 +151,14 @@ void ScriptLoadRequest::MaybeCancelOffThreadScript() {
     MOZ_ASSERT(IsBytecode());
     JS::CancelOffThreadScriptDecoder(cx, mOffThreadToken);
   }
+
+  // Cancellation request above should guarantee removal of the parse task, so
+  // releasing the runnable should be safe to do here.
+  if (Runnable* runnable = mRunnable.exchange(nullptr)) {
+    runnable->Release();
+  }
+
+  MaybeUnblockOnload();
   mOffThreadToken = nullptr;
 }
 
@@ -182,15 +201,7 @@ void ScriptLoadRequest::SetTextSource() {
   }
 }
 
-void ScriptLoadRequest::SetBinASTSource() {
-#ifdef JS_BUILD_BINAST
-  MOZ_ASSERT(IsUnknownDataType());
-  mDataType = DataType::eBinASTSource;
-  mScriptData.emplace(VariantType<BinASTSourceBuffer>());
-#else
-  MOZ_CRASH("BinAST not supported");
-#endif
-}
+void ScriptLoadRequest::SetBinASTSource() { MOZ_CRASH("BinAST not supported"); }
 
 void ScriptLoadRequest::SetBytecode() {
   MOZ_ASSERT(IsUnknownDataType());
@@ -198,24 +209,7 @@ void ScriptLoadRequest::SetBytecode() {
 }
 
 bool ScriptLoadRequest::ShouldAcceptBinASTEncoding() const {
-#ifdef JS_BUILD_BINAST
-  // We accept the BinAST encoding if we're using a secure connection.
-
-  if (!mURI->SchemeIs("https")) {
-    return false;
-  }
-
-  if (StaticPrefs::dom_script_loader_binast_encoding_domain_restrict()) {
-    if (!nsContentUtils::IsURIInPrefList(
-            mURI, "dom.script_loader.binast_encoding.domain.restrict.list")) {
-      return false;
-    }
-  }
-
-  return true;
-#else
   MOZ_CRASH("BinAST not supported");
-#endif
 }
 
 void ScriptLoadRequest::ClearScriptSource() {
@@ -230,6 +224,24 @@ void ScriptLoadRequest::SetScript(JSScript* aScript) {
   MOZ_ASSERT(!mScript);
   mScript = aScript;
   HoldJSObjects(this);
+}
+
+// static
+void ScriptLoadRequest::PrioritizeAsPreload(nsIChannel* aChannel) {
+  if (nsCOMPtr<nsIClassOfService> cos = do_QueryInterface(aChannel)) {
+    cos->AddClassFlags(nsIClassOfService::Unblocked);
+  }
+  if (nsCOMPtr<nsISupportsPriority> sp = do_QueryInterface(aChannel)) {
+    sp->AdjustPriority(nsISupportsPriority::PRIORITY_HIGHEST);
+  }
+}
+
+void ScriptLoadRequest::PrioritizeAsPreload() {
+  if (!IsLinkPreloadScript()) {
+    // Do the prioritization only if this request has not already been created
+    // as a preload.
+    PrioritizeAsPreload(Channel());
+  }
 }
 
 //////////////////////////////////////////////////////////////

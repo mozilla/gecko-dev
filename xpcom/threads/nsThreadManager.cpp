@@ -11,18 +11,17 @@
 #include "nsIClassInfoImpl.h"
 #include "nsTArray.h"
 #include "nsXULAppAPI.h"
-#include "MainThreadQueue.h"
 #include "mozilla/AbstractThread.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/EventQueue.h"
+#include "mozilla/InputTaskManager.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/Preferences.h"
-#include "mozilla/SystemGroup.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/TaskQueue.h"
 #include "mozilla/ThreadEventQueue.h"
 #include "mozilla/ThreadLocal.h"
-#include "PrioritizedEventQueue.h"
+#include "TaskController.h"
 #ifdef MOZ_CANARY
 #  include <fcntl.h>
 #  include <unistd.h>
@@ -71,15 +70,18 @@ nsresult BackgroundEventTarget::Init() {
   nsCOMPtr<nsIThreadPool> pool(new nsThreadPool());
   NS_ENSURE_TRUE(pool, NS_ERROR_FAILURE);
 
-  nsresult rv = pool->SetName(NS_LITERAL_CSTRING("BackgroundThreadPool"));
+  nsresult rv = pool->SetName("BackgroundThreadPool"_ns);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Use potentially more conservative stack size.
   rv = pool->SetThreadStackSize(nsIThreadManager::kThreadPoolStackSize);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // For now just one thread. Can increase easily later if we want.
-  rv = pool->SetThreadLimit(1);
+  // Thread limit of 2 makes deadlock during synchronous dispatch less likely.
+  rv = pool->SetThreadLimit(2);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = pool->SetIdleThreadLimit(1);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Leave threads alive for up to 5 minutes
@@ -90,15 +92,18 @@ nsresult BackgroundEventTarget::Init() {
   nsCOMPtr<nsIThreadPool> ioPool(new nsThreadPool());
   NS_ENSURE_TRUE(pool, NS_ERROR_FAILURE);
 
-  rv = ioPool->SetName(NS_LITERAL_CSTRING("BgIOThreadPool"));
+  rv = ioPool->SetName("BgIOThreadPool"_ns);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Use potentially more conservative stack size.
   rv = ioPool->SetThreadStackSize(nsIThreadManager::kThreadPoolStackSize);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // For now just one thread. Can increase easily later if we want.
-  rv = ioPool->SetThreadLimit(1);
+  // Thread limit of 4 makes deadlock during synchronous dispatch less likely.
+  rv = ioPool->SetThreadLimit(4);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = ioPool->SetIdleThreadLimit(1);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Leave threads alive for up to 5 minutes
@@ -184,14 +189,10 @@ already_AddRefed<nsISerialEventTarget>
 BackgroundEventTarget::CreateBackgroundTaskQueue(const char* aName) {
   MutexAutoLock lock(mMutex);
 
-  RefPtr<TaskQueue> queue = new TaskQueue(do_AddRef(this), aName,
-                                          /*aSupportsTailDispatch=*/false,
-                                          /*aRetainFlags=*/true);
-  nsCOMPtr<nsISerialEventTarget> target(queue->WrapAsEventTarget());
+  RefPtr<TaskQueue> queue = new TaskQueue(do_AddRef(this), aName);
+  mTaskQueues.AppendElement(queue);
 
-  mTaskQueues.AppendElement(queue.forget());
-
-  return target.forget();
+  return queue.forget();
 }
 
 extern "C" {
@@ -206,6 +207,10 @@ void NS_SetMainThread() {
   }
   sTLSIsMainThread.set(true);
   MOZ_ASSERT(NS_IsMainThread());
+  // We initialize the SerialEventTargetGuard's TLS here for simplicity as it
+  // needs to be initialized around the same time you would initialize
+  // sTLSIsMainThread.
+  SerialEventTargetGuard::InitTLS();
 }
 
 #ifdef DEBUG
@@ -367,10 +372,22 @@ nsresult nsThreadManager::Init() {
           : 0;
 #endif
 
+  TaskController::Initialize();
+
+  // Initialize idle handling.
   nsCOMPtr<nsIIdlePeriod> idlePeriod = new MainThreadIdlePeriod();
+  TaskController::Get()->SetIdleTaskManager(
+      new IdleTaskManager(idlePeriod.forget()));
+
+  // Create main thread queue that forwards events to TaskController and
+  // construct main thread.
+  UniquePtr<EventQueue> queue = MakeUnique<EventQueue>(true);
+
+  RefPtr<ThreadEventQueue> synchronizedQueue =
+      new ThreadEventQueue(std::move(queue), true);
 
   mMainThread =
-      CreateMainThread<ThreadEventQueue<PrioritizedEventQueue>>(idlePeriod);
+      new nsThread(WrapNotNull(synchronizedQueue), nsThread::MAIN_THREAD, 0);
 
   nsresult rv = mMainThread->InitCurrentThread();
   if (NS_FAILED(rv)) {
@@ -600,7 +617,7 @@ bool nsThreadManager::IsNSThread() const {
 NS_IMETHODIMP
 nsThreadManager::NewThread(uint32_t aCreationFlags, uint32_t aStackSize,
                            nsIThread** aResult) {
-  return NewNamedThread(NS_LITERAL_CSTRING(""), aStackSize, aResult);
+  return NewNamedThread(""_ns, aStackSize, aResult);
 }
 
 NS_IMETHODIMP
@@ -613,8 +630,10 @@ nsThreadManager::NewNamedThread(const nsACString& aName, uint32_t aStackSize,
     return NS_ERROR_NOT_INITIALIZED;
   }
 
-  RefPtr<ThreadEventQueue<EventQueue>> queue =
-      new ThreadEventQueue<EventQueue>(MakeUnique<EventQueue>());
+  TimeStamp startTime = TimeStamp::Now();
+
+  RefPtr<ThreadEventQueue> queue =
+      new ThreadEventQueue(MakeUnique<EventQueue>());
   RefPtr<nsThread> thr =
       new nsThread(WrapNotNull(queue), nsThread::NOT_MAIN_THREAD, aStackSize);
   nsresult rv =
@@ -634,6 +653,12 @@ nsThreadManager::NewNamedThread(const nsACString& aName, uint32_t aStackSize,
     }
     return NS_ERROR_NOT_INITIALIZED;
   }
+
+  PROFILER_MARKER_TEXT(
+      "NewThread", OTHER,
+      MarkerOptions({MarkerStack::Capture(),
+                     MarkerTiming::IntervalUntilNowFrom(startTime)}),
+      aName);
 
   thr.forget(aResult);
   return NS_OK;
@@ -729,9 +754,8 @@ nsThreadManager::SpinEventLoopUntilEmpty() {
 }
 
 NS_IMETHODIMP
-nsThreadManager::GetSystemGroupEventTarget(nsIEventTarget** aTarget) {
-  nsCOMPtr<nsIEventTarget> target =
-      SystemGroup::EventTargetFor(TaskCategory::Other);
+nsThreadManager::GetMainThreadEventTarget(nsIEventTarget** aTarget) {
+  nsCOMPtr<nsIEventTarget> target = GetMainThreadSerialEventTarget();
   target.forget(aTarget);
   return NS_OK;
 }
@@ -763,22 +787,22 @@ nsThreadManager::DispatchToMainThread(nsIRunnable* aEvent, uint32_t aPriority,
 void nsThreadManager::EnableMainThreadEventPrioritization() {
   MOZ_ASSERT(NS_IsMainThread());
   InputEventStatistics::Get().SetEnable(true);
-  mMainThread->EnableInputEventPrioritization();
+  InputTaskManager::Get()->EnableInputEventPrioritization();
 }
 
 void nsThreadManager::FlushInputEventPrioritization() {
   MOZ_ASSERT(NS_IsMainThread());
-  mMainThread->FlushInputEventPrioritization();
+  InputTaskManager::Get()->FlushInputEventPrioritization();
 }
 
 void nsThreadManager::SuspendInputEventPrioritization() {
   MOZ_ASSERT(NS_IsMainThread());
-  mMainThread->SuspendInputEventPrioritization();
+  InputTaskManager::Get()->SuspendInputEventPrioritization();
 }
 
 void nsThreadManager::ResumeInputEventPrioritization() {
   MOZ_ASSERT(NS_IsMainThread());
-  mMainThread->ResumeInputEventPrioritization();
+  InputTaskManager::Get()->ResumeInputEventPrioritization();
 }
 
 // static

@@ -80,22 +80,23 @@ class MakeBackend(CommonBackend):
                 if tier and not needs_AB_rCD:
                     # Android localized resources have special Makefile
                     # handling.
-                    ret.append('%s%s: %s' % (
-                        tier, ':' if tier != 'default' else '', stub_file))
+
+                    # Double-colon tiers via a variable that the backend adds as a dependency
+                    # later. See https://bugzilla.mozilla.org/show_bug.cgi?id=1645986#c0 as
+                    # to why.
+                    if tier in ('export', 'pre-compile', 'libs', 'misc'):
+                        dep = '%s_TARGETS' % tier.replace('-', '_').upper()
+                        ret.append('%s += %s' % (dep, stub_file))
+                    else:
+                        ret.append('%s: %s' % (tier, stub_file))
             for output in outputs:
                 ret.append('%s: %s ;' % (output, stub_file))
-                ret.append('GARBAGE += %s' % output)
-            ret.append('GARBAGE += %s' % stub_file)
             ret.append('EXTRA_MDDEPEND_FILES += %s' % dep_file)
 
-            if obj.py2:
-                action = 'py_action'
-            else:
-                action = 'py3_action'
             ret.append((
                     """{stub}: {script}{inputs}{backend}{force}
 \t$(REPORT_BUILD)
-\t$(call {action},file_generate,{locale}{script} """  # wrap for E501
+\t$(call py_action,file_generate,{locale}{script} """  # wrap for E501
                     """{method} {output} {dep_file} {stub}{inputs}{flags})
 \t@$(TOUCH) $@
 """).format(
@@ -110,7 +111,6 @@ class MakeBackend(CommonBackend):
                 # with a different locale as input. IS_LANGUAGE_REPACK will reliably be set
                 # in this situation, so simply force the generation to run in that case.
                 force=force,
-                action=action,
                 locale='--locale=$(AB_CD) ' if obj.localized else '',
                 script=obj.script,
                 method=obj.method

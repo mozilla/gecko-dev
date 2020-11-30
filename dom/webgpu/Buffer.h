@@ -27,12 +27,13 @@ class Buffer final : public ObjectBase, public ChildOf<Device> {
   struct Mapping final {
     UniquePtr<ipc::Shmem> mShmem;
     JS::Heap<JSObject*> mArrayBuffer;
+    const bool mWrite;
 
-    Mapping(ipc::Shmem&& aShmem, JSObject* aArrayBuffer);
+    Mapping(ipc::Shmem&& aShmem, JSObject* aArrayBuffer, bool aWrite);
   };
 
   Buffer(Device* const aParent, RawId aId, BufferAddress aSize);
-  void InitMapping(ipc::Shmem&& aShmem, JSObject* aArrayBuffer);
+  void InitMapping(ipc::Shmem&& aShmem, JSObject* aArrayBuffer, bool aWrite);
 
   const RawId mId;
 
@@ -50,6 +51,7 @@ class Buffer final : public ObjectBase, public ChildOf<Device> {
  public:
   already_AddRefed<dom::Promise> MapReadAsync(ErrorResult& aRv);
   void Unmap(JSContext* aCx, ErrorResult& aRv);
+  void Destroy();
 };
 
 }  // namespace webgpu

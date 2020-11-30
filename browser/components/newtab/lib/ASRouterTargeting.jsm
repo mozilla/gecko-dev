@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const SEARCH_REGION_PREF = "browser.search.region";
 const FXA_ENABLED_PREF = "identity.fxaccounts.enabled";
 const DISTRIBUTION_ID_PREF = "distribution.id";
 const DISTRIBUTION_ID_CHINA_REPACK = "MozillaOnline";
@@ -22,9 +21,12 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.jsm",
   AppConstants: "resource://gre/modules/AppConstants.jsm",
   AttributionCode: "resource:///modules/AttributionCode.jsm",
-  FilterExpressions:
-    "resource://gre/modules/components-utils/FilterExpressions.jsm",
+  TargetingContext: "resource://messaging-system/targeting/Targeting.jsm",
   fxAccounts: "resource://gre/modules/FxAccounts.jsm",
+  Region: "resource://gre/modules/Region.jsm",
+  TelemetrySession: "resource://gre/modules/TelemetrySession.jsm",
+  HomePage: "resource:///modules/HomePage.jsm",
+  AboutNewTab: "resource:///modules/AboutNewTab.jsm",
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -77,12 +79,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   this,
-  "browserSearchRegion",
-  SEARCH_REGION_PREF,
-  ""
-);
-XPCOMUtils.defineLazyPreferenceGetter(
-  this,
   "isFxAEnabled",
   FXA_ENABLED_PREF,
   true
@@ -107,11 +103,10 @@ XPCOMUtils.defineLazyServiceGetter(
 );
 
 const FXA_USERNAME_PREF = "services.sync.username";
-const MOZ_JEXL_FILEPATH = "mozjexl";
 
 const { activityStreamProvider: asProvider } = NewTabUtils;
 
-const FXA_ATTACHED_CLIENTS_UPDATE_INTERVAL = 2 * 60 * 60 * 1000; // Two hours
+const FXA_ATTACHED_CLIENTS_UPDATE_INTERVAL = 4 * 60 * 60 * 1000; // Four hours
 const FRECENT_SITES_UPDATE_INTERVAL = 6 * 60 * 60 * 1000; // Six hours
 const FRECENT_SITES_IGNORE_BLOCKED = false;
 const FRECENT_SITES_NUM_ITEMS = 25;
@@ -345,6 +340,49 @@ function getSortedMessages(messages, options = {}) {
   return result;
 }
 
+/**
+ * parseAboutPageURL - Parse a URL string retrieved from about:home and about:new, returns
+ *                    its type (web extenstion or custom url) and the parsed url(s)
+ *
+ * @param {string} url - A URL string for home page or newtab page
+ * @returns {Object} {
+ *   isWebExt: boolean,
+ *   isCustomUrl: boolean,
+ *   urls: Array<{url: string, host: string}>
+ * }
+ */
+function parseAboutPageURL(url) {
+  let ret = {
+    isWebExt: false,
+    isCustomUrl: false,
+    urls: [],
+  };
+  if (url.startsWith("moz-extension://")) {
+    ret.isWebExt = true;
+    ret.urls.push({ url, host: "" });
+  } else {
+    // The home page URL could be either a single URL or a list of "|" separated URLs.
+    // Note that it should work with "about:home" and "about:blank", in which case the
+    // "host" is set as an empty string.
+    for (const _url of url.split("|")) {
+      if (!["about:home", "about:newtab", "about:blank"].includes(_url)) {
+        ret.isCustomUrl = true;
+      }
+      try {
+        const parsedURL = new URL(_url);
+        const host = parsedURL.hostname.replace(/^www\./i, "");
+        ret.urls.push({ url: _url, host });
+      } catch (e) {}
+    }
+    // If URL parsing failed, just return the given url with an empty host
+    if (!ret.urls.length) {
+      ret.urls.push({ url, host: "" });
+    }
+  }
+
+  return ret;
+}
+
 const TargetingGetters = {
   get locale() {
     return Services.locale.appLocaleAsBCP47;
@@ -382,11 +420,8 @@ const TargetingGetters = {
   get isFxAEnabled() {
     return isFxAEnabled;
   },
-  get trailheadInterrupt() {
-    return ASRouterPreferences.trailhead.trailheadInterrupt;
-  },
   get trailheadTriplet() {
-    return ASRouterPreferences.trailhead.trailheadTriplet;
+    return ASRouterPreferences.trailheadTriplet;
   },
   get sync() {
     return {
@@ -426,13 +461,11 @@ const TargetingGetters = {
     return new Promise(resolve => {
       // Note: calling init ensures this code is only executed after Search has been initialized
       Services.search
-        .getVisibleEngines()
+        .getDefaultEngines()
         .then(engines => {
           resolve({
             current: Services.search.defaultEngine.identifier,
-            installed: engines
-              .map(engine => engine.identifier)
-              .filter(engine => engine),
+            installed: engines.map(engine => engine.identifier),
           });
         })
         .catch(() => resolve({ installed: [], current: "" }));
@@ -484,7 +517,7 @@ const TargetingGetters = {
     return parseInt(AppConstants.MOZ_APP_VERSION.match(/\d+/), 10);
   },
   get region() {
-    return browserSearchRegion;
+    return Region.home || "";
   },
   get needsUpdate() {
     return QueryCache.queries.CheckBrowserNeedsUpdate.get();
@@ -569,41 +602,47 @@ const TargetingGetters = {
   get userId() {
     return ClientEnvironment.userId;
   },
+  get profileRestartCount() {
+    // Counter starts at 1 when a profile is created, substract 1 so the value
+    // returned matches expectations
+    return (
+      TelemetrySession.getMetadata("targeting").profileSubsessionCounter - 1
+    );
+  },
+  get homePageSettings() {
+    const url = HomePage.get();
+    const { isWebExt, isCustomUrl, urls } = parseAboutPageURL(url);
+
+    return {
+      isWebExt,
+      isCustomUrl,
+      urls,
+      isDefault: HomePage.isDefault,
+      isLocked: HomePage.locked,
+    };
+  },
+  get newtabSettings() {
+    const url = AboutNewTab.newTabURL;
+    const { isWebExt, isCustomUrl, urls } = parseAboutPageURL(url);
+
+    return {
+      isWebExt,
+      isCustomUrl,
+      isDefault: AboutNewTab.activityStreamEnabled,
+      url: urls[0].url,
+      host: urls[0].host,
+    };
+  },
+  get isFissionExperimentEnabled() {
+    return (
+      Services.appinfo.fissionExperimentStatus ===
+      Ci.nsIXULRuntime.eExperimentStatusTreatment
+    );
+  },
 };
 
 this.ASRouterTargeting = {
   Environment: TargetingGetters,
-
-  ERROR_TYPES: {
-    MALFORMED_EXPRESSION: "MALFORMED_EXPRESSION",
-    ATTRIBUTE_ERROR: "JEXL_ATTRIBUTE_GETTER_ERROR",
-    OTHER_ERROR: "OTHER_ERROR",
-  },
-
-  // Combines the getter properties of two objects without evaluating them
-  combineContexts(contextA = {}, contextB = {}, onError) {
-    return {
-      get: (obj, prop) => {
-        try {
-          return contextA[prop] || contextB[prop];
-        } catch (error) {
-          onError(this.ERROR_TYPES.ATTRIBUTE_ERROR, error, prop);
-        }
-
-        return null;
-      },
-    };
-  },
-
-  isMatch(filterExpression, customContext, onError) {
-    return FilterExpressions.eval(
-      filterExpression,
-      new Proxy(
-        {},
-        this.combineContexts(customContext, this.Environment, onError)
-      )
-    );
-  },
 
   isTriggerMatch(trigger = {}, candidateMessageTrigger = {}) {
     if (trigger.id !== candidateMessageTrigger.id) {
@@ -658,12 +697,12 @@ this.ASRouterTargeting = {
    * checkMessageTargeting - Checks is a message's targeting parameters are satisfied
    *
    * @param {*} message An AS router message
-   * @param {obj} context A FilterExpression context
+   * @param {obj} targetingContext a TargetingContext instance complete with eval environment
    * @param {func} onError A function to handle errors (takes two params; error, message)
    * @param {boolean} shouldCache Should the JEXL evaluations be cached and reused.
    * @returns
    */
-  async checkMessageTargeting(message, context, onError, shouldCache) {
+  async checkMessageTargeting(message, targetingContext, onError, shouldCache) {
     // If no targeting is specified,
     if (!message.targeting) {
       return true;
@@ -676,7 +715,7 @@ this.ASRouterTargeting = {
           return result.value;
         }
       }
-      result = await this.isMatch(message.targeting, context, onError);
+      result = await targetingContext.evalWithDefault(message.targeting);
       if (shouldCache) {
         jexlEvaluationCache.set(message.targeting, {
           timestamp: Date.now(),
@@ -684,19 +723,22 @@ this.ASRouterTargeting = {
         });
       }
     } catch (error) {
-      Cu.reportError(error);
       if (onError) {
-        const type = error.fileName.includes(MOZ_JEXL_FILEPATH)
-          ? this.ERROR_TYPES.MALFORMED_EXPRESSION
-          : this.ERROR_TYPES.OTHER_ERROR;
-        onError(type, error, message);
+        onError(error, message);
       }
+      Cu.reportError(error);
       result = false;
     }
     return result;
   },
 
-  _isMessageMatch(message, trigger, context, onError, shouldCache = false) {
+  _isMessageMatch(
+    message,
+    trigger,
+    targetingContext,
+    onError,
+    shouldCache = false
+  ) {
     return (
       message &&
       (trigger
@@ -704,7 +746,12 @@ this.ASRouterTargeting = {
         : !message.trigger) &&
       // If a trigger expression was passed to this function, the message should match it.
       // Otherwise, we should choose a message with no trigger property (i.e. a message that can show up at any time)
-      this.checkMessageTargeting(message, context, onError, shouldCache)
+      this.checkMessageTargeting(
+        message,
+        targetingContext,
+        onError,
+        shouldCache
+      )
     );
   },
 
@@ -723,25 +770,28 @@ this.ASRouterTargeting = {
    */
   async findMatchingMessage({
     messages,
-    trigger,
-    context,
+    trigger = {},
+    context = {},
     onError,
     ordered = false,
     shouldCache = false,
     returnAll = false,
   }) {
     const sortedMessages = getSortedMessages(messages, { ordered });
-    const combinedContext = new Proxy(
-      {},
-      this.combineContexts(trigger && trigger.context, context, onError)
-    );
     const matching = returnAll ? [] : null;
+    const targetingContext = new TargetingContext(
+      TargetingContext.combineContexts(
+        context,
+        this.Environment,
+        trigger.context || {}
+      )
+    );
 
     const isMatch = candidate =>
       this._isMessageMatch(
         candidate,
         trigger,
-        combinedContext,
+        targetingContext,
         onError,
         shouldCache
       );

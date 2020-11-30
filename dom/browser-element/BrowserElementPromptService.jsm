@@ -11,9 +11,6 @@ var EXPORTED_SYMBOLS = ["BrowserElementPromptService"];
 
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
-const NS_PREFBRANCH_PREFCHANGE_TOPIC_ID = "nsPref:changed";
-const BROWSER_FRAMES_ENABLED_PREF = "dom.mozBrowserFramesEnabled";
-
 function debug(msg) {
   // dump("BrowserElementPromptService - " + msg + "\n");
 }
@@ -24,7 +21,7 @@ function BrowserElementPrompt(win, browserElementChild) {
 }
 
 BrowserElementPrompt.prototype = {
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIPrompt]),
+  QueryInterface: ChromeUtils.generateQI(["nsIPrompt"]),
 
   alert(title, text) {
     this._browserElementChild.showModalPrompt(this._win, {
@@ -130,15 +127,15 @@ BrowserElementPrompt.prototype = {
     checkMsg,
     checkState
   ) {
-    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+    throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
   },
 
   promptPassword(title, text, password, checkMsg, checkState) {
-    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+    throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
   },
 
   select(title, text, aSelectList, aOutSelection) {
-    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+    throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
   },
 
   _buildConfirmExButtonProperties(
@@ -237,10 +234,10 @@ BrowserElementPrompt.prototype = {
 function BrowserElementAuthPrompt() {}
 
 BrowserElementAuthPrompt.prototype = {
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIAuthPrompt2]),
+  QueryInterface: ChromeUtils.generateQI(["nsIAuthPrompt2"]),
 
   promptAuth: function promptAuth(channel, level, authInfo) {
-    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+    throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
   },
 
   asyncPromptAuth: function asyncPromptAuth(
@@ -257,13 +254,13 @@ BrowserElementAuthPrompt.prototype = {
       authInfo.flags & Ci.nsIAuthInformation.AUTH_PROXY &&
       authInfo.flags & Ci.nsIAuthInformation.ONLY_PASSWORD
     ) {
-      throw Cr.NS_ERROR_FAILURE;
+      throw Components.Exception("", Cr.NS_ERROR_FAILURE);
     }
 
     let frame = this._getFrameFromChannel(channel);
     if (!frame) {
       debug("Cannot get frame, asyncPromptAuth fail");
-      throw Cr.NS_ERROR_FAILURE;
+      throw Components.Exception("", Cr.NS_ERROR_FAILURE);
     }
 
     let browserElementParent = BrowserElementPromptService.getBrowserElementParentForFrame(
@@ -272,11 +269,11 @@ BrowserElementAuthPrompt.prototype = {
 
     if (!browserElementParent) {
       debug("Failed to load browser element parent.");
-      throw Cr.NS_ERROR_FAILURE;
+      throw Components.Exception("", Cr.NS_ERROR_FAILURE);
     }
 
     let consumer = {
-      QueryInterface: ChromeUtils.generateQI([Ci.nsICancelable]),
+      QueryInterface: ChromeUtils.generateQI(["nsICancelable"]),
       callback,
       context,
       cancel() {
@@ -489,7 +486,7 @@ function AuthPromptWrapper(oldImpl, browserElementImpl) {
 }
 
 AuthPromptWrapper.prototype = {
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIAuthPrompt2]),
+  QueryInterface: ChromeUtils.generateQI(["nsIAuthPrompt2"]),
   promptAuth(channel, level, authInfo) {
     if (this._canGetParentElement(channel)) {
       return this._browserElementImpl.promptAuth(channel, level, authInfo);
@@ -523,8 +520,7 @@ AuthPromptWrapper.prototype = {
       );
       let frame = context.topFrameElement;
       if (!frame) {
-        // This function returns a boolean value
-        return !!context.nestedFrameId;
+        return false;
       }
 
       if (!BrowserElementPromptService.getBrowserElementParentForFrame(frame)) {
@@ -544,7 +540,7 @@ function BrowserElementPromptFactory(toWrap) {
 
 BrowserElementPromptFactory.prototype = {
   classID: Components.ID("{24f3d0cf-e417-4b85-9017-c9ecf8bb1299}"),
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIPromptFactory]),
+  QueryInterface: ChromeUtils.generateQI(["nsIPromptFactory"]),
 
   _mayUseNativePrompt() {
     try {
@@ -638,24 +634,14 @@ BrowserElementPromptFactory.prototype = {
 
 var BrowserElementPromptService = {
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIObserver,
-    Ci.nsISupportsWeakReference,
+    "nsIObserver",
+    "nsISupportsWeakReference",
   ]),
 
   _initialized: false,
 
   _init() {
     if (this._initialized) {
-      return;
-    }
-
-    // If the pref is disabled, do nothing except wait for the pref to change.
-    if (!this._browserFramesPrefEnabled()) {
-      Services.prefs.addObserver(
-        BROWSER_FRAMES_ENABLED_PREF,
-        this,
-        /* ownsWeak = */ true
-      );
       return;
     }
 
@@ -685,7 +671,7 @@ var BrowserElementPromptService = {
     var newFactory = {
       createInstance(outer, iid) {
         if (outer != null) {
-          throw Cr.NS_ERROR_NO_AGGREGATION;
+          throw Components.Exception("", Cr.NS_ERROR_NO_AGGREGATION);
         }
         return newInstance.QueryInterface(iid);
       },
@@ -701,7 +687,7 @@ var BrowserElementPromptService = {
   },
 
   _getOuterWindowID(win) {
-    return win.windowUtils.outerWindowID;
+    return win.docShell.outerWindowID;
   },
 
   _browserElementChildMap: {},
@@ -735,17 +721,8 @@ var BrowserElementPromptService = {
     delete this._browserElementChildMap[outerWindowID.data];
   },
 
-  _browserFramesPrefEnabled() {
-    return Services.prefs.getBoolPref(BROWSER_FRAMES_ENABLED_PREF, false);
-  },
-
   observe(subject, topic, data) {
     switch (topic) {
-      case NS_PREFBRANCH_PREFCHANGE_TOPIC_ID:
-        if (data == BROWSER_FRAMES_ENABLED_PREF) {
-          this._init();
-        }
-        break;
       case "outer-window-destroyed":
         this._observeOuterWindowDestroyed(subject);
         break;

@@ -5,6 +5,9 @@
 //! Generic types for CSS handling of specified and computed values of
 //! [`position`](https://drafts.csswg.org/css-backgrounds-3/#position)
 
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ToCss};
+
 /// A generic type for representing a CSS [position](https://drafts.csswg.org/css-values/#position).
 #[derive(
     Animate,
@@ -31,6 +34,17 @@ pub struct GenericPosition<H, V> {
     pub vertical: V,
 }
 
+impl<H, V> PositionComponent for Position<H, V>
+where
+    H: PositionComponent,
+    V: PositionComponent,
+{
+    #[inline]
+    fn is_center(&self) -> bool {
+        self.horizontal.is_center() && self.vertical.is_center()
+    }
+}
+
 pub use self::GenericPosition as Position;
 
 impl<H, V> Position<H, V> {
@@ -41,6 +55,13 @@ impl<H, V> Position<H, V> {
             vertical,
         }
     }
+}
+
+/// Implements a method that checks if the position is centered.
+pub trait PositionComponent {
+    /// Returns if the position component is 50% or center.
+    /// For pixel lengths, it always returns false.
+    fn is_center(&self) -> bool;
 }
 
 /// A generic type for representing an `Auto | <position>`.
@@ -129,6 +150,115 @@ impl<Integer> ZIndex<Integer> {
         match self {
             ZIndex::Integer(n) => n,
             ZIndex::Auto => auto,
+        }
+    }
+}
+
+/// A generic value for the `<ratio>` value.
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C)]
+pub struct Ratio<N>(pub N, pub N);
+
+impl<N> ToCss for Ratio<N>
+where
+    N: ToCss
+{
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        self.0.to_css(dest)?;
+        // Even though 1 could be omitted, we don't per
+        // https://drafts.csswg.org/css-values-4/#ratio-value:
+        //
+        //     The second <number> is optional, defaulting to 1. However,
+        //     <ratio> is always serialized with both components.
+        //
+        // And for compat reasons, see bug 1669742.
+        //
+        // We serialize with spaces for consistency with all other
+        // slash-delimited things, see
+        // https://github.com/w3c/csswg-drafts/issues/4282
+        dest.write_str(" / ")?;
+        self.1.to_css(dest)?;
+        Ok(())
+    }
+}
+
+/// Ratio or None.
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C, u8)]
+pub enum PreferredRatio<N> {
+    /// Without specified ratio
+    #[css(skip)]
+    None,
+    /// With specified ratio
+    Ratio(#[css(field_bound)] Ratio<N>),
+}
+
+/// A generic value for the `aspect-ratio` property, the value is `auto || <ratio>`.
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C)]
+pub struct GenericAspectRatio<N> {
+    /// Specifiy auto or not.
+    #[animation(constant)]
+    #[css(represents_keyword)]
+    pub auto: bool,
+    /// The preferred aspect-ratio value.
+    #[css(field_bound)]
+    pub ratio: PreferredRatio<N>,
+}
+
+pub use self::GenericAspectRatio as AspectRatio;
+
+impl<N> AspectRatio<N> {
+    /// Returns `auto`
+    #[inline]
+    pub fn auto() -> Self {
+        AspectRatio {
+            auto: true,
+            ratio: PreferredRatio::None,
         }
     }
 }

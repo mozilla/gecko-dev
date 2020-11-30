@@ -29,11 +29,14 @@
 // origin and multiplex non tunneled transactions at the same time, so they have
 // a special wildcard CI that accepts all origins through that proxy.
 
+class nsISVCBRecord;
+
 namespace mozilla {
 namespace net {
 
 extern LazyLogModule gHttpLog;
 class HttpConnectionInfoCloneArgs;
+class nsHttpTransaction;
 
 class nsHttpConnectionInfo final : public ARefBase {
  public:
@@ -83,8 +86,14 @@ class nsHttpConnectionInfo final : public ARefBase {
 
   // OK to treat these as an infalible allocation
   already_AddRefed<nsHttpConnectionInfo> Clone() const;
+  // This main prupose of this function is to clone this connection info, but
+  // replace mRoutedHost with SvcDomainName in the given SVCB record. Note that
+  // if SvcParamKeyPort and SvcParamKeyAlpn are presented in the SVCB record,
+  // mRoutedPort and mNPNToken will be replaced as well.
+  already_AddRefed<nsHttpConnectionInfo> CloneAndAdoptHTTPSSVCRecord(
+      nsISVCBRecord* aRecord) const;
   void CloneAsDirectRoute(nsHttpConnectionInfo** outParam);
-  MOZ_MUST_USE nsresult CreateWildCard(nsHttpConnectionInfo** outParam);
+  [[nodiscard]] nsresult CreateWildCard(nsHttpConnectionInfo** outParam);
 
   const char* ProxyHost() const {
     return mProxyInfo ? mProxyInfo->Host().get() : nullptr;
@@ -201,6 +210,12 @@ class nsHttpConnectionInfo final : public ARefBase {
 
   bool IsHttp3() const { return mIsHttp3; }
 
+  void SetHasIPHintAddress(bool aHasIPHint) { mHasIPHintAddress = aHasIPHint; }
+  bool HasIPHintAddress() const { return mHasIPHintAddress; }
+
+  void SetEchConfig(const nsACString& aEchConfig) { mEchConfig = aEchConfig; }
+  const nsCString& GetEchConfig() const { return mEchConfig; }
+
  private:
   // These constructor versions are intended to be used from Clone() and
   // DeserializeHttpConnectionInfoCloneArgs().
@@ -251,6 +266,9 @@ class nsHttpConnectionInfo final : public ARefBase {
                         // tls1.3. If the tls version is till not know or it
                         // is 1.3 or greater the value will be false.
   bool mIsHttp3;
+
+  bool mHasIPHintAddress = false;
+  nsCString mEchConfig;
 
   // for RefPtr
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(nsHttpConnectionInfo, override)

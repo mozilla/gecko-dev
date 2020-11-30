@@ -12,10 +12,11 @@ import json
 import logging
 import os
 from six import text_type
+import six
 import sys
+import time
 import traceback
 import re
-from distutils.util import strtobool
 
 from mach.decorators import (
     CommandArgument,
@@ -25,6 +26,18 @@ from mach.decorators import (
 )
 
 from mozbuild.base import MachCommandBase
+
+
+def strtobool(value):
+    """Convert string to boolean.
+
+    Wraps "distutils.util.strtobool", deferring the import of the package
+    in case it's not installed. Otherwise, we have a "chicken and egg problem" where
+    |mach bootstrap| would install the required package to enable "distutils.util", but
+    it can't because mach fails to interpret this file.
+    """
+    from distutils.util import strtobool
+    return bool(strtobool(value))
 
 
 class ShowTaskGraphSubCommand(SubCommand):
@@ -162,7 +175,7 @@ class MachCommands(MachCommandBase):
     @CommandArgument('--target-tasks-method', type=text_type,
                      help='method for selecting the target tasks to generate')
     @CommandArgument('--optimize-target-tasks',
-                     type=lambda flag: bool(strtobool(flag)),
+                     type=lambda flag: strtobool(flag),
                      nargs='?', const='true',
                      help='If specified, this indicates whether the target '
                           'tasks are eligible for optimization. Otherwise, '
@@ -191,49 +204,38 @@ class MachCommands(MachCommandBase):
         import taskgraph.decision
         try:
             self.setup_logging()
-            return taskgraph.decision.taskgraph_decision(options)
+            start = time.monotonic()
+            ret = taskgraph.decision.taskgraph_decision(options)
+            end = time.monotonic()
+            if os.environ.get('MOZ_AUTOMATION') == '1':
+                perfherder_data = {
+                    'framework': {'name': 'build_metrics'},
+                    'suites': [
+                        {
+                            'name': 'decision',
+                            'value': end - start,
+                            'lowerIsBetter': True,
+                            'shouldAlert': True,
+                            'subtests': [],
+                        }
+                    ],
+                }
+                print(
+                    'PERFHERDER_DATA: {}'.format(json.dumps(perfherder_data)), file=sys.stderr
+                )
+            return ret
         except Exception:
             traceback.print_exc()
             sys.exit(1)
 
     @SubCommand('taskgraph', 'cron',
-                description="Run the cron task")
-    @CommandArgument('--base-repository',
-                     required=False,
-                     help='(ignored)')
-    @CommandArgument('--head-repository',
-                     required=True,
-                     help='URL for "head" repository to fetch')
-    @CommandArgument('--head-ref',
-                     required=False,
-                     help='(ignored)')
-    @CommandArgument('--project',
-                     required=True,
-                     help='Project to use for creating tasks. Example: --project=mozilla-central')
-    @CommandArgument('--level',
-                     required=True,
-                     help='SCM level of this repository')
-    @CommandArgument('--force-run',
-                     required=False,
-                     help='If given, force this cronjob to run regardless of time, '
-                     'and run no others')
-    @CommandArgument('--no-create',
-                     required=False,
-                     action='store_true',
-                     help='Do not actually create tasks')
-    @CommandArgument('--root', '-r',
-                     required=False,
-                     help="root of the repository to get cron task definitions from")
+                description="Provide a pointer to the new `.cron.yml` handler.")
     def taskgraph_cron(self, **options):
-        """Run the cron task; this task creates zero or more decision tasks.  It is run
-        from the hooks service on a regular basis."""
-        import taskgraph.cron
-        try:
-            self.setup_logging()
-            return taskgraph.cron.taskgraph_cron(options)
-        except Exception:
-            traceback.print_exc()
-            sys.exit(1)
+        print(
+            'Handling of ".cron.yml" files has move to '
+            "https://hg.mozilla.org/ci/ci-admin/file/default/build-decision."
+        )
+        sys.exit(1)
 
     @SubCommand('taskgraph', 'action-callback',
                 description='Run action callback used by action tasks')
@@ -356,12 +358,15 @@ class MachCommands(MachCommandBase):
 
         try:
             self.setup_logging(quiet=options['quiet'], verbose=options['verbose'])
-            parameters = taskgraph.parameters.parameters_loader(options['parameters'])
+            parameters = taskgraph.parameters.parameters_loader(
+                options['parameters'],
+                overrides={'target-kind': options.get('target_kind')},
+                strict=False,
+            )
 
             tgg = taskgraph.generator.TaskGraphGenerator(
                 root_dir=options.get('root'),
                 parameters=parameters,
-                target_kind=options.get('target_kind'),
             )
 
             tg = getattr(tgg, graph_attr)
@@ -405,7 +410,7 @@ class MachCommands(MachCommandBase):
             task = taskgraph.tasks[key]
             if regexprogram.match(task.label):
                 filteredtasks[key] = task
-                for depname, dep in named_links_dict[key].iteritems():
+                for depname, dep in six.iteritems(named_links_dict[key]):
                     if regexprogram.match(dep):
                         filterededges.add((key, dep, depname))
         filtered_taskgraph = TaskGraph(filteredtasks, Graph(set(filteredtasks), filterededges))
@@ -423,9 +428,12 @@ class MachCommands(MachCommandBase):
 
             tgg = taskgraph.generator.TaskGraphGenerator(
                 root_dir=options.get('root'),
-                parameters=parameters)
+                parameters=parameters,
+            )
 
-            actions = taskgraph.actions.render_actions_json(tgg.parameters, tgg.graph_config)
+            actions = taskgraph.actions.render_actions_json(
+                tgg.parameters, tgg.graph_config, decision_task_id="DECISION-TASK",
+                )
             print(json.dumps(actions, sort_keys=True, indent=2, separators=(',', ': ')))
         except Exception:
             traceback.print_exc()
@@ -434,13 +442,6 @@ class MachCommands(MachCommandBase):
 
 @CommandProvider
 class TaskClusterImagesProvider(MachCommandBase):
-    def _ensure_zstd(self):
-        try:
-            import zstandard  # noqa: F401
-        except (ImportError, AttributeError):
-            self._activate_virtualenv()
-            self.virtualenv_manager.install_pip_package('zstandard==0.9.0')
-
     @Command('taskcluster-load-image', category="ci",
              description="Load a pre-built Docker image. Note that you need to "
                          "have docker installed and running for this to work.")
@@ -496,7 +497,7 @@ class TaskClusterImagesProvider(MachCommandBase):
 
 
 @CommandProvider
-class TaskClusterPartialsData(object):
+class TaskClusterPartialsData(MachCommandBase):
     @Command('release-history', category="ci",
              description="Query balrog for release history used by enable partials generation")
     @CommandArgument('-b', '--branch',

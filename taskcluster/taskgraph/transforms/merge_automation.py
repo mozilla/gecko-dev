@@ -16,6 +16,9 @@ transforms = TransformSequence()
 @transforms.add
 def handle_keyed_by(config, tasks):
     """Resolve fields that can be keyed by platform, etc."""
+    if "merge_config" not in config.params:
+        return
+    merge_config = config.params["merge_config"]
     fields = [
         "worker.push",
         "worker-type",
@@ -31,8 +34,20 @@ def handle_keyed_by(config, tasks):
                 **{
                     "project": config.params["project"],
                     "release-type": config.params["release_type"],
+                    "behavior": merge_config["behavior"],
                 }
             )
+        yield task
+
+
+@transforms.add
+def update_labels(config, tasks):
+    for task in tasks:
+        merge_config = config.params["merge_config"]
+        task["label"] = "merge-{}".format(merge_config["behavior"])
+        treeherder = task.get("treeherder", {})
+        treeherder["symbol"] = "Rel({})".format(merge_config["behavior"])
+        task["treeherder"] = treeherder
         yield task
 
 
@@ -43,12 +58,15 @@ def add_payload_config(config, tasks):
             break
         merge_config = config.params["merge_config"]
         worker = task["worker"]
-        worker["merge-info"] = config.graph_config["merge-automation"]["flavors"][
-            merge_config["merge_flavor"]
+        worker["merge-info"] = config.graph_config["merge-automation"]["behaviors"][
+            merge_config["behavior"]
         ]
 
+        if "l10n-bump-info" in worker and worker["l10n-bump-info"] is None:
+            del(worker["l10n-bump-info"])
+
         # Override defaults, useful for testing.
-        for field in ["from-repo", "from-branch", "to-repo", "to-branch"]:
+        for field in ["from-repo", "from-branch", "to-repo", "to-branch", "fetch-version-from"]:
             if merge_config.get(field):
                 worker["merge-info"][field] = merge_config[field]
 

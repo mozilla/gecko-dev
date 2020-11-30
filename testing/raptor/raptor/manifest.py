@@ -39,7 +39,22 @@ playback_settings = [
 ]
 
 whitelist_live_site_tests = [
+    "booking-sf",
+    "discord",
+    "expedia",
+    "fashionbeans",
+    "google-accounts",
+    "imdb-firefox",
+    "medium-article",
+    "nytimes",
+    "people-article",
     "raptor-youtube-playback",
+    "youtube-playback",
+    "reddit-thread",
+    "rumble-fox",
+    "stackoverflow-question",
+    "urbandictionary-define",
+    "wikia-marvel",
 ]
 
 
@@ -327,6 +342,14 @@ def get_raptor_test_list(args, oskey):
                 # subtest comes from matching test ini file name, so add it
                 tests_to_run.append(next_test)
 
+    # enable live sites if requested with --live-sites
+    if args.live_sites:
+        for next_test in tests_to_run:
+            # set use_live_sites to `true` and disable mitmproxy playback
+            # immediately so we don't follow playback paths below
+            next_test['use_live_sites'] = "true"
+            next_test['playback'] = None
+
     # go through each test and set the page-cycles and page-timeout, and some config flags
     # the page-cycles value in the INI can be overriden when debug-mode enabled, when
     # gecko-profiling enabled, or when --page-cycles cmd line arg was used (that overrides all)
@@ -335,7 +358,9 @@ def get_raptor_test_list(args, oskey):
         max_page_cycles = next_test.get('page_cycles', 1)
         max_browser_cycles = next_test.get('browser_cycles', 1)
 
-        # if using playback, the playback recording info may need to be transformed
+        # If using playback, the playback recording info may need to be transformed.
+        # This transformation needs to happen before the test name is changed
+        # below (for cold tests for instance)
         if next_test.get('playback') is not None:
             next_test['playback_pageset_manifest'] = \
                 transform_subtest(next_test['playback_pageset_manifest'],
@@ -381,7 +406,7 @@ def get_raptor_test_list(args, oskey):
             next_test['page_cycles'] = args.page_cycles
             LOG.info("setting page-cycles to %d as specified on cmd line" % args.page_cycles)
         else:
-            if int(next_test.get('page_cycles', 1)) > max_page_cycles:
+            if int(next_test.get('page_cycles', 1)) > int(max_page_cycles):
                 next_test['page_cycles'] = max_page_cycles
                 LOG.info("setting page-cycles to %d because gecko-profling is enabled"
                          % next_test['page_cycles'])
@@ -402,18 +427,16 @@ def get_raptor_test_list(args, oskey):
             LOG.info("setting page-timeout to %d as specified on cmd line" % args.page_timeout)
             next_test['page_timeout'] = args.page_timeout
 
-        # for browsertime jobs, cold page-load mode is determined by command line argument; for
-        # raptor-webext jobs cold page-load is determined by the 'cold' key in test manifest INI
         _running_cold = False
-        if args.browsertime is True:
-            if args.cold is True:
-                _running_cold = True
-            else:
-                # running warm page-load so ignore browser-cycles if it was provided (set to 1)
-                next_test['browser_cycles'] = 1
+
+        # check command line to see if we set cold page load from command line
+        if args.cold or next_test.get("cold") == "true":
+            # for raptor-webext jobs cold page-load is determined by the 'cold' key
+            # in test manifest INI
+            _running_cold = True
         else:
-            if next_test.get("cold", "false") == "true":
-                _running_cold = True
+            # if it's a warm load test ignore browser_cycles if set
+            next_test['browser_cycles'] = 1
 
         if _running_cold:
             # when running in cold mode, set browser-cycles to the page-cycles value; as we want
@@ -421,9 +444,13 @@ def get_raptor_test_list(args, oskey):
             # want 1 single page-load for every browser-cycle
             next_test['cold'] = True
             next_test['expected_browser_cycles'] = int(next_test['browser_cycles'])
-            next_test['page_cycles'] = 1
+            if args.chimera:
+                next_test['page_cycles'] = 2
+            else:
+                next_test['page_cycles'] = 1
             # also ensure '-cold' is in test name so perfherder results indicate warm cold-load
-            if "-cold" not in next_test['name']:
+            # Bug 1644344 we can remove this condition once we're migrated away from WebExtension
+            if "-cold" not in next_test['name'] and not args.browsertime:
                 next_test['name'] += "-cold"
         else:
             # when running in warm mode, just set test-cycles to 1 and leave page-cycles as/is
@@ -446,18 +473,29 @@ def get_raptor_test_list(args, oskey):
             # when using live sites we want to turn off playback
             LOG.info("using live sites so turning playback off!")
             next_test['playback'] = None
-            LOG.info("using live sites so appending '-live' to the test name")
-            next_test['name'] = next_test['name'] + "-live"
+            # Only for raptor-youtube-playback tests until they are removed
+            # in favor of the browsertime variant
+            if "raptor-youtube-playback" in next_test['name']:
+                next_test['name'] = next_test['name'] + "-live"
             # allow a slightly higher page timeout due to remote page loads
             next_test['page_timeout'] = int(
                 next_test['page_timeout']) * LIVE_SITE_TIMEOUT_MULTIPLIER
             LOG.info("using live sites so using page timeout of %dms" % next_test['page_timeout'])
 
+        if not args.browsertime and "browsertime" in next_test.get("manifest", ""):
+            raise Exception(
+                "%s test can only be run with --browsertime" % next_test.get("name", "Unknown")
+            )
+
         # browsertime doesn't use the 'measure' test ini setting; however just for the sake
         # of supporting both webext and browsertime, just provide a dummy 'measure' setting
         # here to prevent having to check in multiple places; it has no effect on what
         # browsertime actually measures; remove this when eventually we remove webext support
-        if args.browsertime and next_test.get('measure') is None:
+        if (
+            args.browsertime
+            and next_test.get("measure") is None
+            and next_test.get("type") == "pageload"
+        ):
             next_test['measure'] = "fnbpaint, fcp, dcf, loadtime"
 
         # convert 'measure =' test INI line to list
@@ -492,7 +530,5 @@ def get_raptor_test_list(args, oskey):
                 # test doesn't have valid settings, remove it from available list
                 LOG.info("test %s is not valid due to missing settings" % test['name'])
                 tests_to_run.remove(test)
-    else:
-        LOG.critical("abort: specified test name doesn't exist")
 
     return tests_to_run

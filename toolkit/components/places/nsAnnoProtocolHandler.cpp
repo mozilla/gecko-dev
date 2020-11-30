@@ -45,15 +45,15 @@ static nsresult GetDefaultIcon(nsIChannel* aOriginalChannel,
                                nsIChannel** aChannel) {
   nsCOMPtr<nsIURI> defaultIconURI;
   nsresult rv = NS_NewURI(getter_AddRefs(defaultIconURI),
-                          NS_LITERAL_CSTRING(FAVICON_DEFAULT_URL));
+                          nsLiteralCString(FAVICON_DEFAULT_URL));
   NS_ENSURE_SUCCESS(rv, rv);
   nsCOMPtr<nsILoadInfo> loadInfo = aOriginalChannel->LoadInfo();
   rv = NS_NewChannelInternal(aChannel, defaultIconURI, loadInfo);
   NS_ENSURE_SUCCESS(rv, rv);
   Unused << (*aChannel)->SetContentType(
-      NS_LITERAL_CSTRING(FAVICON_DEFAULT_MIMETYPE));
+      nsLiteralCString(FAVICON_DEFAULT_MIMETYPE));
   Unused << aOriginalChannel->SetContentType(
-      NS_LITERAL_CSTRING(FAVICON_DEFAULT_MIMETYPE));
+      nsLiteralCString(FAVICON_DEFAULT_MIMETYPE));
   return NS_OK;
 }
 
@@ -103,9 +103,9 @@ class faviconAsyncLoader : public AsyncStatementCallback {
 
       // Eventually override the default mimeType for svg.
       if (width == UINT16_MAX) {
-        rv = mChannel->SetContentType(NS_LITERAL_CSTRING(SVG_MIME_TYPE));
+        rv = mChannel->SetContentType(nsLiteralCString(SVG_MIME_TYPE));
       } else {
-        rv = mChannel->SetContentType(NS_LITERAL_CSTRING(PNG_MIME_TYPE));
+        rv = mChannel->SetContentType(nsLiteralCString(PNG_MIME_TYPE));
       }
       NS_ENSURE_SUCCESS(rv, rv);
 
@@ -141,7 +141,7 @@ class faviconAsyncLoader : public AsyncStatementCallback {
                                        target);
         MOZ_ASSERT(NS_SUCCEEDED(rv));
         if (NS_SUCCEEDED(rv)) {
-          return pump->AsyncRead(mListener, nullptr);
+          return pump->AsyncRead(mListener);
         }
       }
     }
@@ -161,7 +161,7 @@ class faviconAsyncLoader : public AsyncStatementCallback {
   }
 
  protected:
-  virtual ~faviconAsyncLoader() {}
+  virtual ~faviconAsyncLoader() = default;
 
  private:
   nsCOMPtr<nsIChannel> mChannel;

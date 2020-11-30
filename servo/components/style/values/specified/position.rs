@@ -12,12 +12,14 @@ use crate::selector_map::PrecomputedHashMap;
 use crate::str::HTML_SPACE_CHARACTERS;
 use crate::values::computed::LengthPercentage as ComputedLengthPercentage;
 use crate::values::computed::{Context, Percentage, ToComputedValue};
+use crate::values::generics::position::AspectRatio as GenericAspectRatio;
 use crate::values::generics::position::Position as GenericPosition;
+use crate::values::generics::position::PositionComponent as GenericPositionComponent;
 use crate::values::generics::position::PositionOrAuto as GenericPositionOrAuto;
+use crate::values::generics::position::Ratio as GenericRatio;
 use crate::values::generics::position::ZIndex as GenericZIndex;
-use crate::values::specified::{AllowQuirks, Integer, LengthPercentage};
-use crate::Atom;
-use crate::Zero;
+use crate::values::specified::{AllowQuirks, Integer, LengthPercentage, NonNegativeNumber};
+use crate::{Atom, One, Zero};
 use cssparser::Parser;
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
@@ -114,28 +116,31 @@ impl Position {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        match input.try(|i| PositionComponent::parse_quirky(context, i, allow_quirks)) {
+        match input.try_parse(|i| PositionComponent::parse_quirky(context, i, allow_quirks)) {
             Ok(x_pos @ PositionComponent::Center) => {
                 if let Ok(y_pos) =
-                    input.try(|i| PositionComponent::parse_quirky(context, i, allow_quirks))
+                    input.try_parse(|i| PositionComponent::parse_quirky(context, i, allow_quirks))
                 {
                     return Ok(Self::new(x_pos, y_pos));
                 }
                 let x_pos = input
-                    .try(|i| PositionComponent::parse_quirky(context, i, allow_quirks))
+                    .try_parse(|i| PositionComponent::parse_quirky(context, i, allow_quirks))
                     .unwrap_or(x_pos);
                 let y_pos = PositionComponent::Center;
                 return Ok(Self::new(x_pos, y_pos));
             },
             Ok(PositionComponent::Side(x_keyword, lp)) => {
-                if input.try(|i| i.expect_ident_matching("center")).is_ok() {
+                if input
+                    .try_parse(|i| i.expect_ident_matching("center"))
+                    .is_ok()
+                {
                     let x_pos = PositionComponent::Side(x_keyword, lp);
                     let y_pos = PositionComponent::Center;
                     return Ok(Self::new(x_pos, y_pos));
                 }
-                if let Ok(y_keyword) = input.try(VerticalPositionKeyword::parse) {
+                if let Ok(y_keyword) = input.try_parse(VerticalPositionKeyword::parse) {
                     let y_lp = input
-                        .try(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
+                        .try_parse(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
                         .ok();
                     let x_pos = PositionComponent::Side(x_keyword, lp);
                     let y_pos = PositionComponent::Side(y_keyword, y_lp);
@@ -146,30 +151,30 @@ impl Position {
                 return Ok(Self::new(x_pos, y_pos));
             },
             Ok(x_pos @ PositionComponent::Length(_)) => {
-                if let Ok(y_keyword) = input.try(VerticalPositionKeyword::parse) {
+                if let Ok(y_keyword) = input.try_parse(VerticalPositionKeyword::parse) {
                     let y_pos = PositionComponent::Side(y_keyword, None);
                     return Ok(Self::new(x_pos, y_pos));
                 }
                 if let Ok(y_lp) =
-                    input.try(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
+                    input.try_parse(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
                 {
                     let y_pos = PositionComponent::Length(y_lp);
                     return Ok(Self::new(x_pos, y_pos));
                 }
                 let y_pos = PositionComponent::Center;
-                let _ = input.try(|i| i.expect_ident_matching("center"));
+                let _ = input.try_parse(|i| i.expect_ident_matching("center"));
                 return Ok(Self::new(x_pos, y_pos));
             },
             Err(_) => {},
         }
         let y_keyword = VerticalPositionKeyword::parse(input)?;
-        let lp_and_x_pos: Result<_, ParseError> = input.try(|i| {
+        let lp_and_x_pos: Result<_, ParseError> = input.try_parse(|i| {
             let y_lp = i
-                .try(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
+                .try_parse(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
                 .ok();
-            if let Ok(x_keyword) = i.try(HorizontalPositionKeyword::parse) {
+            if let Ok(x_keyword) = i.try_parse(HorizontalPositionKeyword::parse) {
                 let x_lp = i
-                    .try(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
+                    .try_parse(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
                     .ok();
                 let x_pos = PositionComponent::Side(x_keyword, x_lp);
                 return Ok((y_lp, x_pos));
@@ -248,17 +253,34 @@ impl<S: Parse> PositionComponent<S> {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("center")).is_ok() {
+        if input
+            .try_parse(|i| i.expect_ident_matching("center"))
+            .is_ok()
+        {
             return Ok(PositionComponent::Center);
         }
-        if let Ok(lp) = input.try(|i| LengthPercentage::parse_quirky(context, i, allow_quirks)) {
+        if let Ok(lp) =
+            input.try_parse(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
+        {
             return Ok(PositionComponent::Length(lp));
         }
         let keyword = S::parse(context, input)?;
         let lp = input
-            .try(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
+            .try_parse(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
             .ok();
         Ok(PositionComponent::Side(keyword, lp))
+    }
+}
+
+impl<S> GenericPositionComponent for PositionComponent<S> {
+    fn is_center(&self) -> bool {
+        match *self {
+            PositionComponent::Center => true,
+            PositionComponent::Length(LengthPercentage::Percentage(ref per)) => per.0 == 0.5,
+            // 50% from any side is still the center.
+            PositionComponent::Side(_, Some(LengthPercentage::Percentage(ref per))) => per.0 == 0.5,
+            _ => false,
+        }
     }
 }
 
@@ -367,6 +389,171 @@ bitflags! {
         const COLUMN = 1 << 1;
         /// 'dense'
         const DENSE = 1 << 2;
+    }
+}
+
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+/// Masonry auto-placement algorithm packing.
+pub enum MasonryPlacement {
+    /// Place the item in the track(s) with the smallest extent so far.
+    Pack,
+    /// Place the item after the last item, from start to end.
+    Next,
+}
+
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+/// Masonry auto-placement algorithm item sorting option.
+pub enum MasonryItemOrder {
+    /// Place all items with a definite placement before auto-placed items.
+    DefiniteFirst,
+    /// Place items in `order-modified document order`.
+    Ordered,
+}
+
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+/// Controls how the Masonry layout algorithm works
+/// specifying exactly how auto-placed items get flowed in the masonry axis.
+pub struct MasonryAutoFlow {
+    /// Specify how to pick a auto-placement track.
+    #[css(contextual_skip_if = "is_pack_with_non_default_order")]
+    pub placement: MasonryPlacement,
+    /// Specify how to pick an item to place.
+    #[css(skip_if = "is_item_order_definite_first")]
+    pub order: MasonryItemOrder,
+}
+
+#[inline]
+fn is_pack_with_non_default_order(placement: &MasonryPlacement, order: &MasonryItemOrder) -> bool {
+    *placement == MasonryPlacement::Pack && *order != MasonryItemOrder::DefiniteFirst
+}
+
+#[inline]
+fn is_item_order_definite_first(order: &MasonryItemOrder) -> bool {
+    *order == MasonryItemOrder::DefiniteFirst
+}
+
+impl MasonryAutoFlow {
+    #[inline]
+    /// Get initial `masonry-auto-flow` value.
+    pub fn initial() -> MasonryAutoFlow {
+        MasonryAutoFlow {
+            placement: MasonryPlacement::Pack,
+            order: MasonryItemOrder::DefiniteFirst,
+        }
+    }
+}
+
+impl Parse for MasonryAutoFlow {
+    /// [ definite-first | ordered ] || [ pack | next ]
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<MasonryAutoFlow, ParseError<'i>> {
+        let mut value = MasonryAutoFlow::initial();
+        let mut got_placement = false;
+        let mut got_order = false;
+        while !input.is_exhausted() {
+            let location = input.current_source_location();
+            let ident = input.expect_ident()?;
+            let success = match_ignore_ascii_case! { &ident,
+                "pack" if !got_placement => {
+                    got_placement = true;
+                    true
+                },
+                "next" if !got_placement => {
+                    value.placement = MasonryPlacement::Next;
+                    got_placement = true;
+                    true
+                },
+                "definite-first" if !got_order => {
+                    got_order = true;
+                    true
+                },
+                "ordered" if !got_order => {
+                    value.order = MasonryItemOrder::Ordered;
+                    got_order = true;
+                    true
+                },
+                _ => false
+            };
+            if !success {
+                return Err(location
+                    .new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())));
+            }
+        }
+
+        if got_placement || got_order {
+            Ok(value)
+        } else {
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        }
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<u8> for MasonryAutoFlow {
+    fn from(bits: u8) -> MasonryAutoFlow {
+        use crate::gecko_bindings::structs;
+        let mut value = MasonryAutoFlow::initial();
+        if bits & structs::NS_STYLE_MASONRY_PLACEMENT_PACK as u8 == 0 {
+            value.placement = MasonryPlacement::Next;
+        }
+        if bits & structs::NS_STYLE_MASONRY_ORDER_DEFINITE_FIRST as u8 == 0 {
+            value.order = MasonryItemOrder::Ordered;
+        }
+        value
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<MasonryAutoFlow> for u8 {
+    fn from(v: MasonryAutoFlow) -> u8 {
+        use crate::gecko_bindings::structs;
+
+        let mut result: u8 = 0;
+        if v.placement == MasonryPlacement::Pack {
+            result |= structs::NS_STYLE_MASONRY_PLACEMENT_PACK as u8;
+        }
+        if v.order == MasonryItemOrder::DefiniteFirst {
+            result |= structs::NS_STYLE_MASONRY_ORDER_DEFINITE_FIRST as u8;
+        }
+        result
     }
 }
 
@@ -523,6 +710,11 @@ impl TemplateAreas {
                     });
                     current_area_index = Some(index);
                 }
+                if column == 0 {
+                    // Each string must produce a valid token.
+                    // https://github.com/w3c/csswg-drafts/issues/5110
+                    return Err(());
+                }
                 if let Some(index) = current_area_index {
                     if areas[index].columns.end != column + 1 {
                         assert_ne!(areas[index].rows.start, row);
@@ -539,7 +731,7 @@ impl TemplateAreas {
         Ok(TemplateAreas {
             areas: areas.into(),
             strings: strings.into(),
-            width: width,
+            width,
         })
     }
 }
@@ -551,7 +743,7 @@ impl Parse for TemplateAreas {
     ) -> Result<Self, ParseError<'i>> {
         let mut strings = vec![];
         while let Ok(string) =
-            input.try(|i| i.expect_string().map(|s| s.as_ref().to_owned().into()))
+            input.try_parse(|i| i.expect_string().map(|s| s.as_ref().to_owned().into()))
         {
             strings.push(string);
         }
@@ -589,7 +781,16 @@ impl Parse for TemplateAreasArc {
 /// A range of rows or columns. Using this instead of std::ops::Range for FFI
 /// purposes.
 #[repr(C)]
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToShmem)]
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
 pub struct UnsignedRange {
     /// The start of the range.
     pub start: u32,
@@ -597,7 +798,16 @@ pub struct UnsignedRange {
     pub end: u32,
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToShmem)]
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
 #[repr(C)]
 /// Not associated with any particular grid item, but can be referenced from the
 /// grid-placement properties.
@@ -680,3 +890,67 @@ impl GridTemplateAreas {
 
 /// A specified value for the `z-index` property.
 pub type ZIndex = GenericZIndex<Integer>;
+
+/// A specified value for the `aspect-ratio` property.
+pub type AspectRatio = GenericAspectRatio<NonNegativeNumber>;
+
+impl Parse for AspectRatio {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        use crate::values::generics::position::PreferredRatio;
+
+        let location = input.current_source_location();
+        let mut auto = input.try_parse(|i| i.expect_ident_matching("auto"));
+        let ratio = input.try_parse(|i| Ratio::parse(context, i));
+        if auto.is_err() {
+            auto = input.try_parse(|i| i.expect_ident_matching("auto"));
+        }
+
+        if auto.is_err() && ratio.is_err() {
+            return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+
+        Ok(AspectRatio {
+            auto: auto.is_ok(),
+            ratio: match ratio {
+                Ok(ratio) => PreferredRatio::Ratio(ratio),
+                Err(..) => PreferredRatio::None,
+            },
+        })
+    }
+}
+
+impl AspectRatio {
+    /// Returns Self by a valid ratio.
+    pub fn from_mapped_ratio(w: f32, h: f32) -> Self {
+        use crate::values::generics::position::PreferredRatio;
+        AspectRatio {
+            auto: true,
+            ratio: PreferredRatio::Ratio(GenericRatio(
+                NonNegativeNumber::new(w),
+                NonNegativeNumber::new(h),
+            )),
+        }
+    }
+}
+
+/// A specified <ratio> value.
+pub type Ratio = GenericRatio<NonNegativeNumber>;
+
+// https://drafts.csswg.org/css-values-4/#ratios
+impl Parse for Ratio {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let a = NonNegativeNumber::parse(context, input)?;
+        let b = match input.try_parse(|input| input.expect_delim('/')) {
+            Ok(()) => NonNegativeNumber::parse(context, input)?,
+            _ => One::one(),
+        };
+
+        Ok(GenericRatio(a, b))
+    }
+}

@@ -99,13 +99,11 @@ static bool GetPluginFile(const nsAString& aPluginPath,
   GetFileBase(aPluginPath, aLibDirectory, aLibFile, baseName);
 
 #if defined(XP_MACOSX)
-  nsAutoString binaryName =
-      NS_LITERAL_STRING("lib") + baseName + NS_LITERAL_STRING(".dylib");
+  nsAutoString binaryName = u"lib"_ns + baseName + u".dylib"_ns;
 #elif defined(OS_POSIX)
-  nsAutoString binaryName =
-      NS_LITERAL_STRING("lib") + baseName + NS_LITERAL_STRING(".so");
+  nsAutoString binaryName = u"lib"_ns + baseName + u".so"_ns;
 #elif defined(XP_WIN)
-  nsAutoString binaryName = baseName + NS_LITERAL_STRING(".dll");
+  nsAutoString binaryName = baseName + u".dll"_ns;
 #else
 #  error not defined
 #endif
@@ -281,7 +279,7 @@ bool GMPChild::GetUTF8LibPath(nsACString& aOutLibPath) {
 
   nsAutoString path;
   libFile->GetPath(path);
-  aOutLibPath = NS_ConvertUTF16toUTF8(path);
+  CopyUTF16toUTF8(path, aOutLibPath);
 
   return true;
 #endif
@@ -315,14 +313,14 @@ static bool IsFileLeafEqualToASCII(const nsCOMPtr<nsIFile>& aFile,
 #endif
 
 #if defined(XP_WIN)
-#  define FIREFOX_FILE NS_LITERAL_STRING("firefox.exe")
-#  define XUL_LIB_FILE NS_LITERAL_STRING("xul.dll")
+#  define FIREFOX_FILE u"firefox.exe"_ns
+#  define XUL_LIB_FILE u"xul.dll"_ns
 #elif defined(XP_MACOSX)
-#  define FIREFOX_FILE NS_LITERAL_STRING("firefox")
-#  define XUL_LIB_FILE NS_LITERAL_STRING("XUL")
+#  define FIREFOX_FILE u"firefox"_ns
+#  define XUL_LIB_FILE u"XUL"_ns
 #else
-#  define FIREFOX_FILE NS_LITERAL_STRING("firefox")
-#  define XUL_LIB_FILE NS_LITERAL_STRING("libxul.so")
+#  define FIREFOX_FILE u"firefox"_ns
+#  define XUL_LIB_FILE u"libxul.so"_ns
 #endif
 
 static nsCOMPtr<nsIFile> GetFirefoxAppPath(
@@ -374,13 +372,13 @@ static bool GetSigPath(const int aRelativeLayers,
   }
   MOZ_ASSERT(path);
   aOutSigPath = path;
-  return NS_SUCCEEDED(path->Append(NS_LITERAL_STRING("Resources"))) &&
+  return NS_SUCCEEDED(path->Append(u"Resources"_ns)) &&
          NS_SUCCEEDED(path->Append(aTargetSigFileName));
 }
 #endif
 
 static bool AppendHostPath(nsCOMPtr<nsIFile>& aFile,
-                           nsTArray<Pair<nsCString, nsCString>>& aPaths) {
+                           nsTArray<std::pair<nsCString, nsCString>>& aPaths) {
   nsString str;
   if (!FileExists(aFile) || !ResolveLinks(aFile) ||
       NS_FAILED(aFile->GetPath(str))) {
@@ -394,37 +392,37 @@ static bool AppendHostPath(nsCOMPtr<nsIFile>& aFile,
   if (NS_FAILED(aFile->GetLeafName(binary))) {
     return false;
   }
-  binary.Append(NS_LITERAL_STRING(".sig"));
+  binary.Append(u".sig"_ns);
   nsCOMPtr<nsIFile> sigFile;
   if (GetSigPath(2, binary, aFile, sigFile) &&
       NS_SUCCEEDED(sigFile->GetPath(str))) {
-    sigFilePath = NS_ConvertUTF16toUTF8(str);
+    CopyUTF16toUTF8(str, sigFilePath);
   } else {
     // Cannot successfully get the sig file path.
     // Assume it is located at the same place as plugin-container
     // alternatively.
-    sigFilePath =
-        nsCString(NS_ConvertUTF16toUTF8(str) + NS_LITERAL_CSTRING(".sig"));
+    sigFilePath = nsCString(NS_ConvertUTF16toUTF8(str) + ".sig"_ns);
   }
 #else
-  sigFilePath =
-      nsCString(NS_ConvertUTF16toUTF8(str) + NS_LITERAL_CSTRING(".sig"));
+  sigFilePath = nsCString(NS_ConvertUTF16toUTF8(str) + ".sig"_ns);
 #endif
-  aPaths.AppendElement(MakePair(std::move(filePath), std::move(sigFilePath)));
+  aPaths.AppendElement(
+      std::make_pair(std::move(filePath), std::move(sigFilePath)));
   return true;
 }
 
-nsTArray<Pair<nsCString, nsCString>> GMPChild::MakeCDMHostVerificationPaths() {
+nsTArray<std::pair<nsCString, nsCString>>
+GMPChild::MakeCDMHostVerificationPaths() {
   // Record the file path and its sig file path.
-  nsTArray<Pair<nsCString, nsCString>> paths;
+  nsTArray<std::pair<nsCString, nsCString>> paths;
   // Plugin binary path.
   nsCOMPtr<nsIFile> path;
   nsString str;
   if (GetPluginFile(mPluginPath, path) && FileExists(path) &&
       ResolveLinks(path) && NS_SUCCEEDED(path->GetPath(str))) {
-    paths.AppendElement(MakePair(
-        nsCString(NS_ConvertUTF16toUTF8(str)),
-        nsCString(NS_ConvertUTF16toUTF8(str) + NS_LITERAL_CSTRING(".sig"))));
+    paths.AppendElement(
+        std::make_pair(nsCString(NS_ConvertUTF16toUTF8(str)),
+                       nsCString(NS_ConvertUTF16toUTF8(str) + ".sig"_ns)));
   }
 
   // Plugin-container binary path.
@@ -433,7 +431,7 @@ nsTArray<Pair<nsCString, nsCString>> GMPChild::MakeCDMHostVerificationPaths() {
   const std::string pluginContainer =
       WideToUTF8(CommandLine::ForCurrentProcess()->program());
   path = nullptr;
-  str = NS_ConvertUTF8toUTF16(nsDependentCString(pluginContainer.c_str()));
+  CopyUTF8toUTF16(nsDependentCString(pluginContainer.c_str()), str);
   if (NS_FAILED(NS_NewLocalFile(str, true, /* aFollowLinks */
                                 getter_AddRefs(path))) ||
       !AppendHostPath(path, paths)) {
@@ -474,14 +472,14 @@ nsTArray<Pair<nsCString, nsCString>> GMPChild::MakeCDMHostVerificationPaths() {
   return paths;
 }
 
-static nsCString ToCString(const nsTArray<Pair<nsCString, nsCString>>& aPairs) {
+static nsCString ToCString(
+    const nsTArray<std::pair<nsCString, nsCString>>& aPairs) {
   nsCString result;
   for (const auto& p : aPairs) {
     if (!result.IsEmpty()) {
       result.AppendLiteral(",");
     }
-    result.Append(
-        nsPrintfCString("(%s,%s)", p.first().get(), p.second().get()));
+    result.Append(nsPrintfCString("(%s,%s)", p.first.get(), p.second.get()));
   }
   return result;
 }
@@ -653,12 +651,9 @@ mozilla::ipc::IPCResult GMPChild::RecvInitGMPContentChild(
 
 void GMPChild::GMPContentChildActorDestroy(GMPContentChild* aGMPContentChild) {
   for (uint32_t i = mGMPContentChildren.Length(); i > 0; i--) {
-    UniquePtr<GMPContentChild>& toDestroy = mGMPContentChildren[i - 1];
-    if (toDestroy.get() == aGMPContentChild) {
+    RefPtr<GMPContentChild>& destroyedActor = mGMPContentChildren[i - 1];
+    if (destroyedActor.get() == aGMPContentChild) {
       SendPGMPContentChildDestroyed();
-      RefPtr<DeleteTask<GMPContentChild>> task =
-          new DeleteTask<GMPContentChild>(toDestroy.release());
-      MessageLoop::current()->PostTask(task.forget());
       mGMPContentChildren.RemoveElementAt(i - 1);
       break;
     }

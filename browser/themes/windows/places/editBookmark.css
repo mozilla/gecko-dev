@@ -6,8 +6,9 @@
   margin-bottom: .5em;
 }
 
-/**** folder menulist ****/
-.folder-icon > .menulist-label-box > .menulist-icon {
+/* Folder menulist */
+
+#editBMPanel_folderMenuList::part(icon) {
   width: 16px;
   height: 16px;
 }
@@ -22,14 +23,22 @@
   fill: currentColor;
 }
 
-
-/**** expanders ****/
+/* Expanders */
 
 .expander-up,
 .expander-down {
   min-width: 0;
+  padding: 1px;
   margin: 0;
   margin-inline-end: 4px;
+  list-style-image: url("chrome://global/skin/icons/arrow-dropdown-16.svg");
+  -moz-context-properties: fill, fill-opacity;
+  fill: currentColor;
+  fill-opacity: 0.8;
+}
+
+.expander-up {
+  transform: scaleY(-1);
 }
 
 .expander-up > .button-box,
@@ -37,17 +46,8 @@
   padding: 0;
 }
 
-.expander-up {
-  list-style-image: url("chrome://global/skin/icons/collapse.png");
-}
-
-.expander-down {
-  list-style-image: url("chrome://global/skin/icons/expand.png");
-}
-
 #editBMPanel_folderTree {
-  margin-top: 2px;
-  margin-bottom: 2px;
+  margin-block: 2px;
 }
 
 /* Hide the value column of the tag autocomplete popup
@@ -60,17 +60,17 @@
 }
 
 #editBMPanel_tagsSelector > richlistitem > image {
-  -moz-appearance: checkbox;
+  appearance: auto;
+  -moz-default-appearance: checkbox;
   -moz-box-align: center;
-  margin: 0px 2px;
+  margin: 0 2px;
   border: 1px solid -moz-DialogText;
   min-width: 13px;
   min-height: 13px;
-  background: -moz-Field no-repeat 50% 50%;
+  background: Field no-repeat 50% 50%;
 }
 
-
-/* ::::: bookmark panel dropdown icons ::::: */
+/* Bookmark panel dropdown icons */
 
 #editBMPanel_folderMenuList[selectedGuid="toolbar_____"],
 #editBMPanel_toolbarFolderItem {

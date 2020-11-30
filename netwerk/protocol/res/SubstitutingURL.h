@@ -18,9 +18,9 @@ namespace net {
 // resolution
 class SubstitutingURL : public nsStandardURL {
  public:
+  NS_DECL_ISUPPORTS_INHERITED
   virtual nsStandardURL* StartClone() override;
-  virtual MOZ_MUST_USE nsresult EnsureFile() override;
-  NS_IMETHOD GetClassIDNoAlloc(nsCID* aCID) override;
+  [[nodiscard]] virtual nsresult EnsureFile() override;
 
  private:
   explicit SubstitutingURL() : nsStandardURL(true) {}
@@ -30,6 +30,7 @@ class SubstitutingURL : public nsStandardURL {
   virtual nsresult Clone(nsIURI** aURI) override {
     return nsStandardURL::Clone(aURI);
   }
+  virtual ~SubstitutingURL() = default;
 
  public:
   class Mutator : public TemplatedMutator<SubstitutingURL> {

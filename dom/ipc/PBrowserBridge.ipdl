@@ -11,16 +11,22 @@ include protocol PDocAccessible;
 
 include DOMTypes;
 
+include "mozilla/LayoutMessageUtils.h";
+include "mozilla/dom/TabMessageUtils.h";
+
 using mozilla::layers::LayersObserverEpoch from "mozilla/layers/LayersTypes.h";
-using mozilla::layers::LayersId from "mozilla/layers/LayersTypes.h";
 using mozilla::WidgetMouseEvent from "ipc/nsGUIEventIPC.h";
 using mozilla::a11y::IDispatchHolder from "mozilla/a11y/IPCTypes.h";
-using mozilla::dom::EffectsInfo from "mozilla/dom/TabMessageUtils.h";
+using mozilla::dom::EffectsInfo from "mozilla/dom/EffectsInfo.h";
 using mozilla::ScrollAxis from "mozilla/PresShellForwards.h";
 using mozilla::ScrollFlags from "mozilla/PresShellForwards.h";
 using struct nsRect from "nsRect.h";
 using CallerType from "mozilla/dom/BindingDeclarations.h";
 using nsIntRect from "nsRect.h";
+using mozilla::dom::EmbedderElementEventType from "mozilla/dom/TabMessageTypes.h";
+using refcounted class nsDocShellLoadState from "nsDocShellLoadState.h";
+using mozilla::IntrinsicSize from "nsIFrame.h";
+using mozilla::AspectRatio from "mozilla/AspectRatio.h";
 
 namespace mozilla {
 namespace dom {
@@ -36,8 +42,6 @@ async refcounted protocol PBrowserBridge {
   manager PBrowser;
 
 child:
-  async SetLayersId(LayersId layersId);
-
   /**
    * Request that the IPC child / Web parent process move focus to the
    * browser's frame. If canRaise is true, the window can be raised if
@@ -60,21 +64,23 @@ child:
    * Called once this PBrowserBridge's OOP subdoc no longer blocks its
    * embedding element's and embedding doc's 'load' events.
    */
-  async MaybeFireEmbedderLoadEvents(bool aIsTrusted,
-                                    bool aFireLoadAtEmbeddingElement);
+  async MaybeFireEmbedderLoadEvents(EmbedderElementEventType aFireEventAtEmbeddingElement);
 
   async ScrollRectIntoView(nsRect aRect, ScrollAxis aVertical,
                            ScrollAxis aHorizontal, ScrollFlags aScrollFlags,
                            int32_t aAppUnitsPerDevPixel);
 
-  async SubFrameCrashed(MaybeDiscardedBrowsingContext aContext);
+  async SubFrameCrashed();
+
+  async IntrinsicSizeOrRatioChanged(IntrinsicSize? aIntrinsicSize,
+                                    AspectRatio? aIntrinsicRatio);
 
 parent:
   // Destroy the remote web browser due to the nsFrameLoader going away.
   async __delete__();
 
   // DocShell messaging.
-  async LoadURL(nsCString aSpec);
+  async LoadURL(nsDocShellLoadState aLoadState);
   async ResumeLoad(uint64_t aPendingSwitchID);
 
   // Out of process rendering.

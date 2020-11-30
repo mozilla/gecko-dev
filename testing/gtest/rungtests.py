@@ -6,7 +6,7 @@
 
 from __future__ import with_statement
 
-from optparse import OptionParser
+import argparse
 import os
 import sys
 
@@ -142,7 +142,7 @@ class GTests(object):
             # Symbolizer support
             llvmsym = os.path.join(
                 self.xre_path,
-                "llvm-symbolizer" + mozinfo.info["bin_suffix"].encode('ascii'))
+                "llvm-symbolizer" + mozinfo.info["bin_suffix"])
             if os.path.isfile(llvmsym):
                 env["ASAN_SYMBOLIZER_PATH"] = llvmsym
                 log.info("gtest | ASan using symbolizer at %s", llvmsym)
@@ -159,34 +159,36 @@ class GTests(object):
         return env
 
 
-class gtestOptions(OptionParser):
+class gtestOptions(argparse.ArgumentParser):
     def __init__(self):
-        OptionParser.__init__(self)
-        self.add_option("--cwd",
-                        dest="cwd",
-                        default=os.getcwd(),
-                        help="absolute path to directory from which "
-                             "to run the binary")
-        self.add_option("--xre-path",
-                        dest="xre_path",
-                        default=None,
-                        help="absolute path to directory containing XRE "
-                             "(probably xulrunner)")
-        self.add_option("--symbols-path",
-                        dest="symbols_path",
-                        default=None,
-                        help="absolute path to directory containing breakpad "
-                             "symbols, or the URL of a zip file containing "
-                             "symbols")
-        self.add_option("--utility-path",
-                        dest="utility_path",
-                        default=None,
-                        help="path to a directory containing utility program binaries")
-        self.add_option("--enable-webrender",
-                        action="store_true",
-                        dest="enable_webrender",
-                        default=False,
-                        help="Enable the WebRender compositor in Gecko.")
+        super(gtestOptions, self).__init__()
+
+        self.add_argument("--cwd",
+                          dest="cwd",
+                          default=os.getcwd(),
+                          help="absolute path to directory from which "
+                               "to run the binary")
+        self.add_argument("--xre-path",
+                          dest="xre_path",
+                          default=None,
+                          help="absolute path to directory containing XRE "
+                               "(probably xulrunner)")
+        self.add_argument("--symbols-path",
+                          dest="symbols_path",
+                          default=None,
+                          help="absolute path to directory containing breakpad "
+                               "symbols, or the URL of a zip file containing "
+                               "symbols")
+        self.add_argument("--utility-path",
+                          dest="utility_path",
+                          default=None,
+                          help="path to a directory containing utility program binaries")
+        self.add_argument("--enable-webrender",
+                          action="store_true",
+                          dest="enable_webrender",
+                          default=False,
+                          help="Enable the WebRender compositor in Gecko.")
+        self.add_argument("args", nargs=argparse.REMAINDER)
 
 
 def update_mozinfo():
@@ -203,15 +205,16 @@ def update_mozinfo():
 
 def main():
     parser = gtestOptions()
-    options, args = parser.parse_args()
+    options = parser.parse_args()
+    args = options.args
     if not args:
-        print >>sys.stderr, """Usage: %s <binary>""" % sys.argv[0]
+        print("Usage: %s <binary>" % sys.argv[0])
         sys.exit(1)
     if not options.xre_path:
-        print >>sys.stderr, """Error: --xre-path is required"""
+        print("Error: --xre-path is required")
         sys.exit(1)
     if not options.utility_path:
-        print >>sys.stderr, """Warning: --utility-path is required to process assertion stacks"""
+        print("Warning: --utility-path is required to process assertion stacks")
 
     update_mozinfo()
     prog = os.path.abspath(args[0])

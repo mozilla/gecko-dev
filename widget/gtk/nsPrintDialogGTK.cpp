@@ -8,8 +8,9 @@
 #include <stdlib.h>
 
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/Services.h"
 
-#include "mozcontainer.h"
+#include "MozContainer.h"
 #include "nsIPrintSettings.h"
 #include "nsIWidget.h"
 #include "nsPrintDialogGTK.h"
@@ -174,9 +175,9 @@ nsPrintDialogWidgetGTK::nsPrintDialogWidgetGTK(nsPIDOMWindowOuter* aParent,
   gtk_print_unix_dialog_set_manual_capabilities(
       GTK_PRINT_UNIX_DIALOG(dialog),
       GtkPrintCapabilities(
-          GTK_PRINT_CAPABILITY_PAGE_SET | GTK_PRINT_CAPABILITY_COPIES |
-          GTK_PRINT_CAPABILITY_COLLATE | GTK_PRINT_CAPABILITY_REVERSE |
-          GTK_PRINT_CAPABILITY_SCALE | GTK_PRINT_CAPABILITY_GENERATE_PDF));
+          GTK_PRINT_CAPABILITY_COPIES | GTK_PRINT_CAPABILITY_COLLATE |
+          GTK_PRINT_CAPABILITY_REVERSE | GTK_PRINT_CAPABILITY_SCALE |
+          GTK_PRINT_CAPABILITY_GENERATE_PDF));
 
   // The vast majority of magic numbers in this widget construction are padding.
   // e.g. for the set_border_width below, 12px matches that of just about every
@@ -196,9 +197,7 @@ nsPrintDialogWidgetGTK::nsPrintDialogWidgetGTK(nsPIDOMWindowOuter* aParent,
   // GTK+2.18 and above allow us to add a "Selection" option to the main
   // settings screen, rather than adding an option on a custom tab like we must
   // do on older versions.
-  bool canSelectText;
-  aSettings->GetPrintOptions(nsIPrintSettings::kEnableSelectionRB,
-                             &canSelectText);
+  bool canSelectText = aSettings->GetIsPrintSelectionRBEnabled();
   if (gtk_major_version > 2 ||
       (gtk_major_version == 2 && gtk_minor_version >= 18)) {
     useNativeSelection = true;
@@ -378,13 +377,11 @@ nsresult nsPrintDialogWidgetGTK::ImportSettings(nsIPrintSettings* aNSSettings) {
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(shrink_to_fit_toggle),
                                geckoBool);
 
-  aNSSettings->GetPrintBGColors(&geckoBool);
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(print_bg_colors_toggle),
-                               geckoBool);
+                               aNSSettings->GetPrintBGColors());
 
-  aNSSettings->GetPrintBGImages(&geckoBool);
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(print_bg_images_toggle),
-                               geckoBool);
+                               aNSSettings->GetPrintBGImages());
 
   gtk_print_unix_dialog_set_settings(GTK_PRINT_UNIX_DIALOG(dialog), settings);
   gtk_print_unix_dialog_set_page_setup(GTK_PRINT_UNIX_DIALOG(dialog), setup);
@@ -436,7 +433,7 @@ nsresult nsPrintDialogWidgetGTK::ExportSettings(nsIPrintSettings* aNSSettings) {
         printSelectionOnly = gtk_toggle_button_get_active(
             GTK_TOGGLE_BUTTON(selection_only_toggle));
       }
-      aNSSettingsGTK->SetForcePrintSelectionOnly(printSelectionOnly);
+      aNSSettingsGTK->SetPrintSelectionOnly(printSelectionOnly);
     }
   }
 
@@ -485,9 +482,9 @@ GtkWidget* nsPrintDialogWidgetGTK::ConstructHeaderFooterDropdown(
 
 NS_IMPL_ISUPPORTS(nsPrintDialogServiceGTK, nsIPrintDialogService)
 
-nsPrintDialogServiceGTK::nsPrintDialogServiceGTK() {}
+nsPrintDialogServiceGTK::nsPrintDialogServiceGTK() = default;
 
-nsPrintDialogServiceGTK::~nsPrintDialogServiceGTK() {}
+nsPrintDialogServiceGTK::~nsPrintDialogServiceGTK() = default;
 
 NS_IMETHODIMP
 nsPrintDialogServiceGTK::Init() { return NS_OK; }
@@ -1014,18 +1011,42 @@ nsPrintDialogServiceGTK::ShowPageSetup(nsPIDOMWindowOuter* aParent,
     nsString printName;
     aNSSettings->GetPrinterName(printName);
     if (printName.IsVoid()) {
-      psService->GetDefaultPrinterName(printName);
+      psService->GetLastUsedPrinterName(printName);
       aNSSettings->SetPrinterName(printName);
     }
     psService->InitPrintSettingsFromPrefs(aNSSettings, true,
                                           nsIPrintSettings::kInitSaveAll);
   }
 
+  // Frustratingly, gtk_print_run_page_setup_dialog doesn't tell us whether
+  // the user cancelled or confirmed the dialog! So to avoid needlessly
+  // refreshing the preview when Page Setup was cancelled, we compare the
+  // serializations of old and new settings; if they're the same, bail out.
   GtkPrintSettings* gtkSettings = aNSSettingsGTK->GetGtkPrintSettings();
   GtkPageSetup* oldPageSetup = aNSSettingsGTK->GetGtkPageSetup();
+  GKeyFile* oldKeyFile = g_key_file_new();
+  gtk_page_setup_to_key_file(oldPageSetup, oldKeyFile, nullptr);
+  gsize oldLength;
+  gchar* oldData = g_key_file_to_data(oldKeyFile, &oldLength, nullptr);
+  g_key_file_free(oldKeyFile);
 
   GtkPageSetup* newPageSetup =
       gtk_print_run_page_setup_dialog(gtkParent, oldPageSetup, gtkSettings);
+
+  GKeyFile* newKeyFile = g_key_file_new();
+  gtk_page_setup_to_key_file(newPageSetup, newKeyFile, nullptr);
+  gsize newLength;
+  gchar* newData = g_key_file_to_data(newKeyFile, &newLength, nullptr);
+  g_key_file_free(newKeyFile);
+
+  bool unchanged =
+      (oldLength == newLength && !memcmp(oldData, newData, oldLength));
+  g_free(oldData);
+  g_free(newData);
+  if (unchanged) {
+    g_object_unref(newPageSetup);
+    return NS_ERROR_ABORT;
+  }
 
   aNSSettingsGTK->SetGtkPageSetup(newPageSetup);
 
@@ -1034,8 +1055,11 @@ nsPrintDialogServiceGTK::ShowPageSetup(nsPIDOMWindowOuter* aParent,
   g_object_unref(newPageSetup);
 
   if (psService)
-    psService->SavePrintSettingsToPrefs(aNSSettings, true,
-                                        nsIPrintSettings::kInitSaveAll);
+    psService->SavePrintSettingsToPrefs(
+        aNSSettings, true,
+        nsIPrintSettings::kInitSaveOrientation |
+            nsIPrintSettings::kInitSavePaperSize |
+            nsIPrintSettings::kInitSaveUnwriteableMargins);
 
   return NS_OK;
 }

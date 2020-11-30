@@ -11,10 +11,10 @@ namespace mozilla {
 namespace dom {
 
 FeaturePolicyViolationReportBody::FeaturePolicyViolationReportBody(
-    nsPIDOMWindowInner* aWindow, const nsAString& aFeatureId,
+    nsIGlobalObject* aGlobal, const nsAString& aFeatureId,
     const nsAString& aSourceFile, const Nullable<int32_t>& aLineNumber,
     const Nullable<int32_t>& aColumnNumber, const nsAString& aDisposition)
-    : ReportBody(aWindow),
+    : ReportBody(aGlobal),
       mFeatureId(aFeatureId),
       mSourceFile(aSourceFile),
       mLineNumber(aLineNumber),
@@ -52,13 +52,12 @@ void FeaturePolicyViolationReportBody::GetDisposition(
 }
 
 void FeaturePolicyViolationReportBody::ToJSON(JSONWriter& aWriter) const {
-  aWriter.StringProperty("featureId", NS_ConvertUTF16toUTF8(mFeatureId).get());
+  aWriter.StringProperty("featureId", NS_ConvertUTF16toUTF8(mFeatureId));
 
   if (mSourceFile.IsEmpty()) {
     aWriter.NullProperty("sourceFile");
   } else {
-    aWriter.StringProperty("sourceFile",
-                           NS_ConvertUTF16toUTF8(mSourceFile).get());
+    aWriter.StringProperty("sourceFile", NS_ConvertUTF16toUTF8(mSourceFile));
   }
 
   if (mLineNumber.IsNull()) {
@@ -73,8 +72,7 @@ void FeaturePolicyViolationReportBody::ToJSON(JSONWriter& aWriter) const {
     aWriter.IntProperty("columnNumber", mColumnNumber.Value());
   }
 
-  aWriter.StringProperty("disposition",
-                         NS_ConvertUTF16toUTF8(mDisposition).get());
+  aWriter.StringProperty("disposition", NS_ConvertUTF16toUTF8(mDisposition));
 }
 
 }  // namespace dom

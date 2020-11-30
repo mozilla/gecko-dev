@@ -7,12 +7,10 @@
 #ifndef GFX_SCROLLABLELAYERGUID_H
 #define GFX_SCROLLABLELAYERGUID_H
 
+#include <iosfwd>                        // for ostream
 #include <stdint.h>                      // for uint8_t, uint32_t, uint64_t
-#include "mozilla/HashFunctions.h"       // for HashGeneric
-#include "mozilla/gfx/Logging.h"         // for Log
 #include "mozilla/layers/LayersTypes.h"  // for LayersId
-#include "nsHashKeys.h"                  // for nsPrintfCString
-#include "nsPrintfCString.h"             // for nsPrintfCString
+#include "nsHashKeys.h"                  // for nsUint64HashKey
 
 namespace mozilla {
 namespace layers {
@@ -37,41 +35,21 @@ struct ScrollableLayerGuid {
   uint32_t mPresShellId;
   ViewID mScrollId;
 
-  ScrollableLayerGuid() : mLayersId{0}, mPresShellId(0), mScrollId(0) {}
+  ScrollableLayerGuid();
 
   ScrollableLayerGuid(LayersId aLayersId, uint32_t aPresShellId,
-                      ViewID aScrollId)
-      : mLayersId(aLayersId),
-        mPresShellId(aPresShellId),
-        mScrollId(aScrollId) {}
+                      ViewID aScrollId);
 
   ScrollableLayerGuid(const ScrollableLayerGuid& other) = default;
 
   ~ScrollableLayerGuid() = default;
 
-  bool operator==(const ScrollableLayerGuid& other) const {
-    return mLayersId == other.mLayersId && mPresShellId == other.mPresShellId &&
-           mScrollId == other.mScrollId;
-  }
+  bool operator==(const ScrollableLayerGuid& other) const;
+  bool operator!=(const ScrollableLayerGuid& other) const;
+  bool operator<(const ScrollableLayerGuid& other) const;
 
-  bool operator!=(const ScrollableLayerGuid& other) const {
-    return !(*this == other);
-  }
-
-  bool operator<(const ScrollableLayerGuid& other) const {
-    if (mLayersId < other.mLayersId) {
-      return true;
-    }
-    if (mLayersId == other.mLayersId) {
-      if (mPresShellId < other.mPresShellId) {
-        return true;
-      }
-      if (mPresShellId == other.mPresShellId) {
-        return mScrollId < other.mScrollId;
-      }
-    }
-    return false;
-  }
+  friend std::ostream& operator<<(std::ostream& aOut,
+                                  const ScrollableLayerGuid& aGuid);
 
   // Helper structs to use as hash/equality functions in std::unordered_map.
   // e.g. std::unordered_map<ScrollableLayerGuid,
@@ -83,34 +61,18 @@ struct ScrollableLayerGuid {
   //                    ScrollableLayerGuid::EqualIgnoringPresShellFn> myMap;
 
   struct HashFn {
-    std::size_t operator()(const ScrollableLayerGuid& aGuid) const {
-      return HashGeneric(uint64_t(aGuid.mLayersId), aGuid.mPresShellId,
-                         aGuid.mScrollId);
-    }
+    std::size_t operator()(const ScrollableLayerGuid& aGuid) const;
   };
 
   struct HashIgnoringPresShellFn {
-    std::size_t operator()(const ScrollableLayerGuid& aGuid) const {
-      return HashGeneric(uint64_t(aGuid.mLayersId), aGuid.mScrollId);
-    }
+    std::size_t operator()(const ScrollableLayerGuid& aGuid) const;
   };
 
   struct EqualIgnoringPresShellFn {
     bool operator()(const ScrollableLayerGuid& lhs,
-                    const ScrollableLayerGuid& rhs) const {
-      return lhs.mLayersId == rhs.mLayersId && lhs.mScrollId == rhs.mScrollId;
-    }
+                    const ScrollableLayerGuid& rhs) const;
   };
 };
-
-template <int LogLevel>
-gfx::Log<LogLevel>& operator<<(gfx::Log<LogLevel>& log,
-                               const ScrollableLayerGuid& aGuid) {
-  return log << nsPrintfCString("(0x%" PRIx64 ", %u, %" PRIu64 ")",
-                                uint64_t(aGuid.mLayersId), aGuid.mPresShellId,
-                                aGuid.mScrollId)
-                    .get();
-}
 
 }  // namespace layers
 }  // namespace mozilla

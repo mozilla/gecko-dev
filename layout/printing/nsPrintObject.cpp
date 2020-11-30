@@ -21,10 +21,11 @@
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Element.h"
 
-using mozilla::PresShell;
+using namespace mozilla;
 using mozilla::dom::BrowsingContext;
 using mozilla::dom::Document;
 using mozilla::dom::Element;
+using mozilla::dom::Selection;
 
 //---------------------------------------------------
 //-- nsPrintObject Class Impl
@@ -34,8 +35,6 @@ nsPrintObject::nsPrintObject()
       mFrameType(eFrame),
       mParent(nullptr),
       mHasBeenPrinted(false),
-      mDontPrint(true),
-      mPrintAsIs(false),
       mInvisible(false),
       mDidCreateDocShell(false),
       mShrinkRatio(1.0),
@@ -57,51 +56,19 @@ nsPrintObject::~nsPrintObject() {
 }
 
 //------------------------------------------------------------------
+
 nsresult nsPrintObject::InitAsRootObject(nsIDocShell* aDocShell, Document* aDoc,
                                          bool aForPrintPreview) {
   NS_ENSURE_STATE(aDocShell);
   NS_ENSURE_STATE(aDoc);
 
-  if (aForPrintPreview) {
-    nsCOMPtr<nsIContentViewer> viewer;
-    aDocShell->GetContentViewer(getter_AddRefs(viewer));
-    if (viewer && viewer->GetDocument() && viewer->GetDocument()->IsShowing()) {
-      // We're about to discard this document, and it needs mIsShowing to be
-      // false to avoid triggering the assertion in its dtor.
-      viewer->GetDocument()->OnPageHide(false, nullptr);
-    }
-    mDocShell = aDocShell;
-  } else {
-    // When doing an actual print, we create a BrowsingContext/nsDocShell that
-    // is detached from any browser window or tab.
+  MOZ_ASSERT(aDoc->IsStaticDocument());
 
-    // Create a new BrowsingContext to create our DocShell in.
-    RefPtr<BrowsingContext> bc = BrowsingContext::CreateWindowless(
-        /* aParent */ nullptr,
-        /* aOpener */ nullptr, EmptyString(),
-        nsDocShell::Cast(aDocShell)->GetBrowsingContext()->GetType());
+  mDocShell = aDocShell;
+  mDocument = aDoc;
 
-    // Create a container docshell for printing.
-    mDocShell = nsDocShell::Create(bc);
-    NS_ENSURE_TRUE(mDocShell, NS_ERROR_OUT_OF_MEMORY);
-
-    mDidCreateDocShell = true;
-    MOZ_ASSERT(mDocShell->ItemType() == aDocShell->ItemType());
-
-    mTreeOwner = do_GetInterface(aDocShell);
-    mDocShell->SetTreeOwner(mTreeOwner);
-
-    // Make sure nsDocShell::EnsureContentViewer() is called:
-    mozilla::Unused << nsDocShell::Cast(mDocShell)->GetDocument();
-  }
-
-  mDocument = aDoc->CreateStaticClone(mDocShell);
-  NS_ENSURE_STATE(mDocument);
-
-  nsCOMPtr<nsIContentViewer> viewer;
-  mDocShell->GetContentViewer(getter_AddRefs(viewer));
-  NS_ENSURE_STATE(viewer);
-  viewer->SetDocument(mDocument);
+  // Ensure the document has no presentation.
+  DestroyPresentation();
 
   return NS_OK;
 }
@@ -119,19 +86,51 @@ nsresult nsPrintObject::InitAsNestedObject(nsIDocShell* aDocShell,
   nsCOMPtr<nsPIDOMWindowOuter> window = aDoc->GetWindow();
   mContent = window->GetFrameElementInternal();
 
+  // "frame" elements not in a frameset context should be treated
+  // as iframes
+  if (mContent->IsHTMLElement(nsGkAtoms::frame) &&
+      mParent->mFrameType == eFrameSet) {
+    mFrameType = eFrame;
+  } else {
+    // Assume something iframe-like, i.e. iframe, object, or embed
+    mFrameType = eIFrame;
+  }
   return NS_OK;
 }
 
 //------------------------------------------------------------------
 // Resets PO by destroying the presentation
 void nsPrintObject::DestroyPresentation() {
-  if (mPresShell) {
-    mPresShell->EndObservingDocument();
-    nsAutoScriptBlocker scriptBlocker;
-    RefPtr<PresShell> presShell = mPresShell;
-    mPresShell = nullptr;
-    presShell->Destroy();
+  if (mDocument) {
+    if (RefPtr<PresShell> ps = mDocument->GetPresShell()) {
+      MOZ_DIAGNOSTIC_ASSERT(!mPresShell || ps == mPresShell);
+      mPresShell = nullptr;
+      nsAutoScriptBlocker scriptBlocker;
+      ps->EndObservingDocument();
+      ps->Destroy();
+    }
   }
+  mPresShell = nullptr;
   mPresContext = nullptr;
   mViewManager = nullptr;
+}
+
+void nsPrintObject::EnablePrinting(bool aEnable) {
+  mPrintingIsEnabled = aEnable;
+
+  for (const UniquePtr<nsPrintObject>& kid : mKids) {
+    kid->EnablePrinting(aEnable);
+  }
+}
+
+bool nsPrintObject::HasSelection() const {
+  return mDocument && mDocument->GetProperty(nsGkAtoms::printselectionranges);
+}
+
+void nsPrintObject::EnablePrintingSelectionOnly() {
+  mPrintingIsEnabled = HasSelection();
+
+  for (const UniquePtr<nsPrintObject>& kid : mKids) {
+    kid->EnablePrintingSelectionOnly();
+  }
 }

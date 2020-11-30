@@ -37,7 +37,6 @@ class FlexContainer extends PureComponent {
   constructor(props) {
     super(props);
 
-    this.colorValueEl = createRef();
     this.swatchEl = createRef();
 
     this.setFlexboxColor = this.setFlexboxColor.bind(this);
@@ -65,7 +64,7 @@ class FlexContainer extends PureComponent {
   }
 
   setFlexboxColor() {
-    const color = this.colorValueEl.current.textContent;
+    const color = this.swatchEl.current.dataset.color;
     this.props.onSetFlexboxOverlayColor(color);
   }
 
@@ -82,36 +81,29 @@ class FlexContainer extends PureComponent {
       Fragment,
       null,
       dom.div(
-        { className: "flex-header-container-label" },
+        {
+          className: "flex-header-container-label",
+        },
         getNodeRep(nodeFront, {
           onDOMNodeMouseOut: () => onHideBoxModelHighlighter(),
           onDOMNodeMouseOver: () => onShowBoxModelHighlighterForNode(nodeFront),
         }),
         dom.div({
           className: "layout-color-swatch",
+          "data-color": color,
           ref: this.swatchEl,
           style: {
             backgroundColor: color,
           },
           title: color,
-        }),
-        // The SwatchColorPicker relies on the nextSibling of the swatch element to
-        // apply the selected color. This is why we use a span in display: none for
-        // now. Ideally we should modify the SwatchColorPickerTooltip to bypass this
-        // requirement. See https://bugzilla.mozilla.org/show_bug.cgi?id=1341578
-        dom.span(
-          {
-            className: "layout-color-value",
-            ref: this.colorValueEl,
-          },
-          color
-        )
+        })
       ),
       dom.div(
         { className: "flex-header-container-properties" },
         dom.div(
           {
             className: "inspector-badge",
+            role: "figure",
             title: `flex-direction: ${properties["flex-direction"]}`,
           },
           properties["flex-direction"]
@@ -119,6 +111,7 @@ class FlexContainer extends PureComponent {
         dom.div(
           {
             className: "inspector-badge",
+            role: "figure",
             title: `flex-wrap: ${properties["flex-wrap"]}`,
           },
           properties["flex-wrap"]

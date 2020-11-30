@@ -160,7 +160,7 @@ async function requestPromise(errorAction, actionFn) {
     let timer = makeTimeout(reject, errorAction);
 
     let callback = {
-      QueryInterface: ChromeUtils.generateQI([Ci.nsIBitsCallback]),
+      QueryInterface: ChromeUtils.generateQI(["nsIBitsCallback"]),
       success() {
         timer.cancel();
         resolve();
@@ -579,7 +579,7 @@ class BitsRequest {
     });
   }
 }
-BitsRequest.prototype.QueryInterface = ChromeUtils.generateQI([Ci.nsIRequest]);
+BitsRequest.prototype.QueryInterface = ChromeUtils.generateQI(["nsIRequest"]);
 
 /**
  * This function does all of the wrapping and error handling for an async
@@ -648,7 +648,6 @@ async function servicePromise(errorAction, observer, actionFn) {
       },
       onProgress: function wrappedObserver_onProgress(
         request,
-        context,
         progress,
         progressMax
       ) {
@@ -656,31 +655,26 @@ async function servicePromise(errorAction, observer, actionFn) {
           if (!wrappedRequest) {
             wrappedRequest = new BitsRequest(request);
           }
-          observer.onProgress(wrappedRequest, context, progress, progressMax);
+          observer.onProgress(wrappedRequest, progress, progressMax);
         }
       },
-      onStatus: function wrappedObserver_onStatus(
-        request,
-        context,
-        status,
-        statusArg
-      ) {
+      onStatus: function wrappedObserver_onStatus(request, status, statusArg) {
         if (isProgressEventSink) {
           if (!wrappedRequest) {
             wrappedRequest = new BitsRequest(request);
           }
-          observer.onStatus(wrappedRequest, context, status, statusArg);
+          observer.onStatus(wrappedRequest, status, statusArg);
         }
       },
       QueryInterface: ChromeUtils.generateQI([
-        Ci.nsIRequestObserver,
-        Ci.nsIProgressEventSink,
+        "nsIRequestObserver",
+        "nsIProgressEventSink",
       ]),
     };
 
     let timer = makeTimeout(reject, errorAction);
     let callback = {
-      QueryInterface: ChromeUtils.generateQI([Ci.nsIBitsNewRequestCallback]),
+      QueryInterface: ChromeUtils.generateQI(["nsIBitsNewRequestCallback"]),
       success(request) {
         timer.cancel();
         if (!wrappedRequest) {

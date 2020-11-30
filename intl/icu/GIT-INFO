@@ -1,5 +1,10 @@
-commit fd123bf023882f07bfacf51c39111be2f946d8f8
-Author: Steven R. Loomis <srloomis@us.ibm.com>
-Date:   Wed Oct 2 10:25:22 2019 -0700
+commit 40252f6fe1dabbe6b043773b639acfae2294add3
+Author: Jeff Genovy <29107334+jefgen@users.noreply.github.com>
+Date:   Wed Jun 10 10:34:28 2020 -0700
 
-    ICU-20796 update C API Change Report
+    ICU-21150 Backport fix for broken Windows build with prebuilt datafile to ICU 67
+    
+    This is cherry-picked from:
+    ICU-21102 Fix broken builds on Windows when using a pre-built data file (from the tgz).
+    
+    (cherry picked from commit 82a5959b863ac647fce3bcc5804ed906fb3b4bc0)

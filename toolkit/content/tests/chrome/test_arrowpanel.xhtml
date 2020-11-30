@@ -45,7 +45,7 @@ SimpleTest.waitForExplicitFinish();
 const isOSXYosemite = navigator.userAgent.includes("Mac OS X 10.10");
 
 var expectedAnchor = null;
-var expectedSide = "", expectedAnchorEdge = "", expectedPack = "", expectedAlignment = "";
+var expectedSide = "", expectedAnchorEdge = "", expectedPack = "";
 var zoomFactor = 1;
 var animatedPopupShown = false;
 var animatedPopupHidden = false;
@@ -67,7 +67,6 @@ function* nextTest()
     expectedSide = expected;
     expectedAnchorEdge = anchorEdge;
     expectedPack = pack;
-    expectedAlignment = alignment == undefined ? position : alignment;
 
     panel.removeAttribute("side");
     panel.openPopup(expectedAnchor, position, 0, 0, false, false, null);
@@ -201,7 +200,7 @@ function* nextTest()
     }
 
     // Check that the transition occurs for an arrow panel with animate="true"
-    $("animatepanel").addEventListener("transitionend", transitionEnded, false);
+    $("animatepanel").addEventListener("transitionend", transitionEnded);
     $("animatepanel").openPopup($("topleft"), "after_start", 0, 0, false, false, null, "start");
     is($("animatepanel").state, "showing", "state is showing");
     yield;
@@ -217,8 +216,7 @@ function* nextTest()
 
 function setScale(win, scale)
 {
-  var docViewer = win.docShell.contentViewer;
-  docViewer.fullZoom = scale;
+  SpecialPowers.setFullZoom(win, scale);
   zoomFactor = scale;
 }
 
@@ -299,7 +297,6 @@ function checkPanelPosition(panel)
   is(panel.getAttribute("side"), expectedSide, "panel arrow side");
   is(arrow.hidden, false, "panel hidden");
   is(arrow.parentNode.getAttribute("pack"), expectedPack, "panel arrow pack");
-  is(panel.alignmentPosition, expectedAlignment, "panel alignmentPosition");
 
   panel.hidePopup();
 }

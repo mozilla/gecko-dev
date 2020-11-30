@@ -38,7 +38,7 @@ CallOrNewEmitter::CallOrNewEmitter(BytecodeEmitter* bce, JSOp op,
   MOZ_ASSERT(isCall() || isNew() || isSuperCall());
 }
 
-bool CallOrNewEmitter::emitNameCallee(Handle<JSAtom*> name) {
+bool CallOrNewEmitter::emitNameCallee(const ParserAtom* name) {
   MOZ_ASSERT(state_ == State::Start);
 
   NameOpEmitter noe(
@@ -67,13 +67,14 @@ MOZ_MUST_USE PropOpEmitter& CallOrNewEmitter::prepareForPropCallee(
 }
 
 MOZ_MUST_USE ElemOpEmitter& CallOrNewEmitter::prepareForElemCallee(
-    bool isSuperElem) {
+    bool isSuperElem, bool isPrivate) {
   MOZ_ASSERT(state_ == State::Start);
 
   eoe_.emplace(bce_,
                isCall() ? ElemOpEmitter::Kind::Call : ElemOpEmitter::Kind::Get,
                isSuperElem ? ElemOpEmitter::ObjKind::Super
-                           : ElemOpEmitter::ObjKind::Other);
+                           : ElemOpEmitter::ObjKind::Other,
+               isPrivate ? NameVisibility::Private : NameVisibility::Public);
 
   state_ = State::ElemCallee;
   return *eoe_;

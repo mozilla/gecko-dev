@@ -16,6 +16,7 @@
 #include "mozilla/dom/Document.h"
 #include "nsIFrame.h"
 #include "nsIFrameInlines.h"
+#include "nsIScrollableFrame.h"
 #include "nsLayoutUtils.h"
 #include "nsStyleConsts.h"
 
@@ -27,13 +28,12 @@ namespace {
 using FrameForPointOption = nsLayoutUtils::FrameForPointOption;
 
 // Returns the DOM element found at |aPoint|, interpreted as being relative to
-// the root frame of |aPresShell|. If the point is inside a subdocument, returns
-// an element inside the subdocument, rather than the subdocument element
-// (and does so recursively).
-// The implementation was adapted from DocumentOrShadowRoot::ElementFromPoint(),
-// with the notable exception that we don't pass nsLayoutUtils::IGNORE_CROSS_DOC
-// to GetFrameForPoint(), so as to get the behaviour described above in the
-// presence of subdocuments.
+// the root frame of |aPresShell| in visual coordinates. If the point is inside
+// a subdocument, returns an element inside the subdocument, rather than the
+// subdocument element (and does so recursively). The implementation was adapted
+// from DocumentOrShadowRoot::ElementFromPoint(), with the notable exception
+// that we don't pass nsLayoutUtils::IGNORE_CROSS_DOC to GetFrameForPoint(), so
+// as to get the behaviour described above in the presence of subdocuments.
 static already_AddRefed<dom::Element> ElementFromPoint(
     const RefPtr<PresShell>& aPresShell, const CSSPoint& aPoint) {
   nsIFrame* rootFrame = aPresShell->GetRootFrame();
@@ -41,11 +41,10 @@ static already_AddRefed<dom::Element> ElementFromPoint(
     return nullptr;
   }
   nsIFrame* frame = nsLayoutUtils::GetFrameForPoint(
-      rootFrame, CSSPoint::ToAppUnits(aPoint),
-      {FrameForPointOption::IgnorePaintSuppression,
-       FrameForPointOption::IgnoreRootScrollFrame});
+      RelativeTo{rootFrame, ViewportType::Visual}, CSSPoint::ToAppUnits(aPoint),
+      {FrameForPointOption::IgnorePaintSuppression});
   while (frame && (!frame->GetContent() ||
-                   frame->GetContent()->IsInAnonymousSubtree())) {
+                   frame->GetContent()->IsInNativeAnonymousSubtree())) {
     frame = nsLayoutUtils::GetParentOrPlaceholderFor(frame);
   }
   if (!frame) {
@@ -128,9 +127,9 @@ CSSRect CalculateRectToZoomTo(const RefPtr<dom::Document>& aRootContentDocument,
 
   FrameMetrics metrics =
       nsLayoutUtils::CalculateBasicFrameMetrics(rootScrollFrame);
-  CSSRect compositedArea(
-      CSSPoint::FromAppUnits(presShell->GetVisualViewportOffset()),
-      metrics.CalculateCompositedSizeInCssPixels());
+  CSSPoint visualScrollOffset = metrics.GetVisualScrollOffset();
+  CSSRect compositedArea(visualScrollOffset,
+                         metrics.CalculateCompositedSizeInCssPixels());
   const CSSCoord margin = 15;
   CSSRect rect =
       nsLayoutUtils::GetBoundingContentRect(element, rootScrollFrame);
@@ -176,7 +175,7 @@ CSSRect CalculateRectToZoomTo(const RefPtr<dom::Document>& aRootContentDocument,
   // upon. This prevents flying to the top of the page when double-tapping
   // to zoom in (bug 761721). The 1.2 multiplier is just a little fuzz to
   // compensate for 'rect' including horizontal margins but not vertical ones.
-  CSSCoord cssTapY = metrics.GetScrollOffset().y + aPoint.y;
+  CSSCoord cssTapY = visualScrollOffset.y + aPoint.y;
   if ((rect.Height() > rounded.Height()) &&
       (cssTapY > rounded.Y() + (rounded.Height() * 1.2))) {
     rounded.MoveToY(cssTapY - (rounded.Height() / 2));

@@ -8,6 +8,8 @@
 
 #include "FormControlAccessible.h"
 #include "HyperTextAccessibleWrap.h"
+#include "nsAccUtils.h"
+#include "Relation.h"
 
 namespace mozilla {
 class TextEditor;
@@ -29,6 +31,10 @@ class HTMLRadioButtonAccessible : public RadioButtonAccessible {
   virtual uint64_t NativeState() const override;
   virtual void GetPositionAndSizeInternal(int32_t* aPosInSet,
                                           int32_t* aSetSize) override;
+  virtual Relation RelationByType(RelationType aType) const override;
+
+ private:
+  Relation ComputeGroupAttributes(int32_t* aPosInSet, int32_t* aSetSize) const;
 };
 
 /**
@@ -108,7 +114,7 @@ class HTMLTextFieldAccessible : public HyperTextAccessibleWrap {
       return el;
     }
     // XUL search-textbox custom element
-    return Elm()->Closest(NS_LITERAL_STRING("search-textbox"), IgnoreErrors());
+    return Elm()->Closest(u"search-textbox"_ns, IgnoreErrors());
   }
 };
 
@@ -280,6 +286,40 @@ class HTMLProgressAccessible : public LeafAccessible {
 
  protected:
   virtual ~HTMLProgressAccessible() {}
+};
+
+/**
+ * Accessible for HTML date/time inputs.
+ */
+template <a11y::role R>
+class HTMLDateTimeAccessible : public AccessibleWrap {
+ public:
+  HTMLDateTimeAccessible(nsIContent* aContent, DocAccessible* aDoc)
+      : AccessibleWrap(aContent, aDoc) {}
+
+  NS_INLINE_DECL_REFCOUNTING_INHERITED(HTMLDateTimeAccessible, AccessibleWrap)
+
+  // Accessible
+  virtual mozilla::a11y::role NativeRole() const override { return R; }
+  virtual already_AddRefed<nsIPersistentProperties> NativeAttributes()
+      override {
+    nsCOMPtr<nsIPersistentProperties> attributes =
+        AccessibleWrap::NativeAttributes();
+    // Unfortunately, an nsStaticAtom can't be passed as a
+    // template argument, so fetch the type from the DOM.
+    nsAutoString type;
+    if (mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::type,
+                                       type)) {
+      nsAccUtils::SetAccAttr(attributes, nsGkAtoms::textInputType, type);
+    }
+    return attributes.forget();
+  }
+
+  // Widgets
+  virtual bool IsWidget() const override { return true; }
+
+ protected:
+  virtual ~HTMLDateTimeAccessible() {}
 };
 
 }  // namespace a11y

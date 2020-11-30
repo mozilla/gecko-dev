@@ -12,6 +12,11 @@
 
 namespace js {
 
+namespace frontend {
+class ParserAtom;
+class ParserAtomsTable;
+}  // namespace frontend
+
 // Logic related to instrumentation which can be performed in a realm.
 
 #define FOR_EACH_INSTRUMENTATION_KIND(MACRO)                                \
@@ -41,12 +46,12 @@ enum class InstrumentationKind {
 
 class RealmInstrumentation {
   // Callback invoked on instrumentation operations.
-  const GCPtrObject callback;
+  const HeapPtrObject callback;
 
   // Debugger with which the instrumentation is associated. This debugger's
   // Debugger.Script instances store instrumentation IDs for scripts in the
   // realm.
-  const GCPtrObject dbgObject;
+  const HeapPtrObject dbgObject;
 
   // Mask of the InstrumentationKind operations which should be instrumented.
   uint32_t kinds = 0;
@@ -66,8 +71,9 @@ class RealmInstrumentation {
   static uint32_t getInstrumentationKinds(GlobalObject* global);
 
   // Get the string name of an instrumentation kind.
-  static JSAtom* getInstrumentationKindName(JSContext* cx,
-                                            InstrumentationKind kind);
+  static const frontend::ParserAtom* getInstrumentationKindName(
+      JSContext* cx, frontend::ParserAtomsTable& parserAtoms,
+      InstrumentationKind kind);
 
   static bool getScriptId(JSContext* cx, Handle<GlobalObject*> global,
                           HandleScript script, int32_t* id);
@@ -101,13 +107,5 @@ bool InstrumentationScriptIdOperation(JSContext* cx, HandleScript script,
                                       MutableHandleValue rv);
 
 }  // namespace js
-
-namespace JS {
-
-template <>
-struct DeletePolicy<js::RealmInstrumentation>
-    : public js::GCManagedDeletePolicy<js::RealmInstrumentation> {};
-
-} /* namespace JS */
 
 #endif /* vm_Instrumentation_h */

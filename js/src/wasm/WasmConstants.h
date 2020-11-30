@@ -53,28 +53,32 @@ enum class TypeCode {
   // non-special-purpose) types are added here then you MUST update
   // LowestPrimitiveTypeCode, below.
 
-  I32 = 0x7f,  // SLEB128(-0x01)
-  I64 = 0x7e,  // SLEB128(-0x02)
-  F32 = 0x7d,  // SLEB128(-0x03)
-  F64 = 0x7c,  // SLEB128(-0x04)
+  I32 = 0x7f,   // SLEB128(-0x01)
+  I64 = 0x7e,   // SLEB128(-0x02)
+  F32 = 0x7d,   // SLEB128(-0x03)
+  F64 = 0x7c,   // SLEB128(-0x04)
+  V128 = 0x7b,  // SLEB128(-0x05)
 
   // A function pointer with any signature
   FuncRef = 0x70,  // SLEB128(-0x10)
 
-  // A reference to any type.
-  AnyRef = 0x6f,  // SLEB128(-0x11)
+  // A reference to any host value.
+  ExternRef = 0x6f,  // SLEB128(-0x11)
 
-  // A null reference.
-  NullRef = 0x6e,  // SLEB128(-0x12)
+  // A reference to a struct/array value.
+  EqRef = 0x6d,  // SLEB128(-0x12)
 
-  // Type constructor for reference types.
-  Ref = 0x6d,
+  // Type constructor for nullable reference types.
+  NullableRef = 0x6c,  // SLEB128(-0x14)
+
+  // Type constructor for non-nullable reference types.
+  Ref = 0x6b,  // SLEB128(-0x15)
 
   // Type constructor for function types
   Func = 0x60,  // SLEB128(-0x20)
 
   // Type constructor for structure types - unofficial
-  Struct = 0x50,  // SLEB128(-0x30)
+  Struct = 0x5f,  // SLEB128(-0x21)
 
   // The 'empty' case of blocktype.
   BlockVoid = 0x40,  // SLEB128(-0x40)
@@ -86,7 +90,17 @@ enum class TypeCode {
 // UnpackTypeCodeTypeAbstracted().  If primitive typecodes are added below any
 // reference typecode then the logic in that function MUST change.
 
-static constexpr TypeCode LowestPrimitiveTypeCode = TypeCode::F64;
+static constexpr TypeCode LowestPrimitiveTypeCode = TypeCode::V128;
+
+// An arbitrary reference type used as the result of
+// UnpackTypeCodeTypeAbstracted() when a value type is a reference.
+
+static constexpr TypeCode AbstractReferenceTypeCode = TypeCode::ExternRef;
+
+// A type code used to represent (ref null? typeindex) whether or not the type
+// is encoded with 'Ref' or 'NullableRef'.
+
+static constexpr TypeCode AbstractReferenceTypeIndexCode = TypeCode::Ref;
 
 enum class FuncTypeIdDescKind { None, Immediate, Global };
 
@@ -373,15 +387,22 @@ enum class Op {
   I64Extend16S = 0xc3,
   I64Extend32S = 0xc4,
 
-  // GC ops
+  // Reference types
   RefNull = 0xd0,
   RefIsNull = 0xd1,
   RefFunc = 0xd2,
 
-  RefEq = 0xf0,  // Unofficial + experimental
+  // Function references
+  RefAsNonNull = 0xd3,
+  BrOnNull = 0xd4,
 
-  FirstPrefix = 0xfc,
+  // GC (experimental)
+  RefEq = 0xd5,
+
+  FirstPrefix = 0xfb,
+  GcPrefix = 0xfb,
   MiscPrefix = 0xfc,
+  SimdPrefix = 0xfd,
   ThreadPrefix = 0xfe,
   MozPrefix = 0xff,
 
@@ -389,6 +410,283 @@ enum class Op {
 };
 
 inline bool IsPrefixByte(uint8_t b) { return b >= uint8_t(Op::FirstPrefix); }
+
+// Opcodes in the GC opcode space.
+enum class GcOp {
+  // Structure operations
+  StructNew = 0x00,
+  StructGet = 0x03,
+  StructSet = 0x06,
+  StructNarrow = 0x07,
+
+  Limit
+};
+
+// Opcode list from the SIMD proposal post-renumbering in May, 2020.
+
+// Opcodes with suffix 'Experimental' are proposed but not standardized, and are
+// compatible with those same opcodes in V8.  No opcode labeled 'Experimental'
+// will ship in a Release build where SIMD is enabled by default.
+
+enum class SimdOp {
+  V128Load = 0x00,
+  I16x8LoadS8x8 = 0x01,
+  I16x8LoadU8x8 = 0x02,
+  I32x4LoadS16x4 = 0x03,
+  I32x4LoadU16x4 = 0x04,
+  I64x2LoadS32x2 = 0x05,
+  I64x2LoadU32x2 = 0x06,
+  V8x16LoadSplat = 0x07,
+  V16x8LoadSplat = 0x08,
+  V32x4LoadSplat = 0x09,
+  V64x2LoadSplat = 0x0a,
+  V128Store = 0x0b,
+  V128Const = 0x0c,
+  V8x16Shuffle = 0x0d,
+  V8x16Swizzle = 0x0e,
+  I8x16Splat = 0x0f,
+  I16x8Splat = 0x10,
+  I32x4Splat = 0x11,
+  I64x2Splat = 0x12,
+  F32x4Splat = 0x13,
+  F64x2Splat = 0x14,
+  I8x16ExtractLaneS = 0x15,
+  I8x16ExtractLaneU = 0x16,
+  I8x16ReplaceLane = 0x17,
+  I16x8ExtractLaneS = 0x18,
+  I16x8ExtractLaneU = 0x19,
+  I16x8ReplaceLane = 0x1a,
+  I32x4ExtractLane = 0x1b,
+  I32x4ReplaceLane = 0x1c,
+  I64x2ExtractLane = 0x1d,
+  I64x2ReplaceLane = 0x1e,
+  F32x4ExtractLane = 0x1f,
+  F32x4ReplaceLane = 0x20,
+  F64x2ExtractLane = 0x21,
+  F64x2ReplaceLane = 0x22,
+  I8x16Eq = 0x23,
+  I8x16Ne = 0x24,
+  I8x16LtS = 0x25,
+  I8x16LtU = 0x26,
+  I8x16GtS = 0x27,
+  I8x16GtU = 0x28,
+  I8x16LeS = 0x29,
+  I8x16LeU = 0x2a,
+  I8x16GeS = 0x2b,
+  I8x16GeU = 0x2c,
+  I16x8Eq = 0x2d,
+  I16x8Ne = 0x2e,
+  I16x8LtS = 0x2f,
+  I16x8LtU = 0x30,
+  I16x8GtS = 0x31,
+  I16x8GtU = 0x32,
+  I16x8LeS = 0x33,
+  I16x8LeU = 0x34,
+  I16x8GeS = 0x35,
+  I16x8GeU = 0x36,
+  I32x4Eq = 0x37,
+  I32x4Ne = 0x38,
+  I32x4LtS = 0x39,
+  I32x4LtU = 0x3a,
+  I32x4GtS = 0x3b,
+  I32x4GtU = 0x3c,
+  I32x4LeS = 0x3d,
+  I32x4LeU = 0x3e,
+  I32x4GeS = 0x3f,
+  I32x4GeU = 0x40,
+  F32x4Eq = 0x41,
+  F32x4Ne = 0x42,
+  F32x4Lt = 0x43,
+  F32x4Gt = 0x44,
+  F32x4Le = 0x45,
+  F32x4Ge = 0x46,
+  F64x2Eq = 0x47,
+  F64x2Ne = 0x48,
+  F64x2Lt = 0x49,
+  F64x2Gt = 0x4a,
+  F64x2Le = 0x4b,
+  F64x2Ge = 0x4c,
+  V128Not = 0x4d,
+  V128And = 0x4e,
+  V128AndNot = 0x4f,
+  V128Or = 0x50,
+  V128Xor = 0x51,
+  V128Bitselect = 0x52,
+  // Unused = 0x53
+  // Unused = 0x54
+  // Unused = 0x55
+  // Unused = 0x56
+  // Unused = 0x57
+  // Unused = 0x58
+  // Unused = 0x59
+  // Unused = 0x5a
+  // Unused = 0x5b
+  // Unused = 0x5c
+  // Unused = 0x5d
+  // Unused = 0x5e
+  // Unused = 0x5f
+  I8x16Abs = 0x60,
+  I8x16Neg = 0x61,
+  I8x16AnyTrue = 0x62,
+  I8x16AllTrue = 0x63,
+  I8x16Bitmask = 0x64,
+  I8x16NarrowSI16x8 = 0x65,
+  I8x16NarrowUI16x8 = 0x66,
+  // Widen = 0x67
+  // Widen = 0x68
+  // Widen = 0x69
+  // Widen = 0x6a
+  I8x16Shl = 0x6b,
+  I8x16ShrS = 0x6c,
+  I8x16ShrU = 0x6d,
+  I8x16Add = 0x6e,
+  I8x16AddSaturateS = 0x6f,
+  I8x16AddSaturateU = 0x70,
+  I8x16Sub = 0x71,
+  I8x16SubSaturateS = 0x72,
+  I8x16SubSaturateU = 0x73,
+  // Dot = 0x74
+  // Mul = 0x75
+  I8x16MinS = 0x76,
+  I8x16MinU = 0x77,
+  I8x16MaxS = 0x78,
+  I8x16MaxU = 0x79,
+  // AvgrS = 0x7a
+  I8x16AvgrU = 0x7b,
+  // Unused = 0x7c
+  // Unused = 0x7d
+  // Unused = 0x7e
+  // Unused = 0x7f
+  I16x8Abs = 0x80,
+  I16x8Neg = 0x81,
+  I16x8AnyTrue = 0x82,
+  I16x8AllTrue = 0x83,
+  I16x8Bitmask = 0x84,
+  I16x8NarrowSI32x4 = 0x85,
+  I16x8NarrowUI32x4 = 0x86,
+  I16x8WidenLowSI8x16 = 0x87,
+  I16x8WidenHighSI8x16 = 0x88,
+  I16x8WidenLowUI8x16 = 0x89,
+  I16x8WidenHighUI8x16 = 0x8a,
+  I16x8Shl = 0x8b,
+  I16x8ShrS = 0x8c,
+  I16x8ShrU = 0x8d,
+  I16x8Add = 0x8e,
+  I16x8AddSaturateS = 0x8f,
+  I16x8AddSaturateU = 0x90,
+  I16x8Sub = 0x91,
+  I16x8SubSaturateS = 0x92,
+  I16x8SubSaturateU = 0x93,
+  // Dot = 0x94
+  I16x8Mul = 0x95,
+  I16x8MinS = 0x96,
+  I16x8MinU = 0x97,
+  I16x8MaxS = 0x98,
+  I16x8MaxU = 0x99,
+  // AvgrS = 0x9a
+  I16x8AvgrU = 0x9b,
+  // Unused = 0x9c
+  // Unused = 0x9d
+  // Unused = 0x9e
+  // Unused = 0x9f
+  I32x4Abs = 0xa0,
+  I32x4Neg = 0xa1,
+  I32x4AnyTrue = 0xa2,
+  I32x4AllTrue = 0xa3,
+  I32x4Bitmask = 0xa4,
+  // Narrow = 0xa5
+  // Narrow = 0xa6
+  I32x4WidenLowSI16x8 = 0xa7,
+  I32x4WidenHighSI16x8 = 0xa8,
+  I32x4WidenLowUI16x8 = 0xa9,
+  I32x4WidenHighUI16x8 = 0xaa,
+  I32x4Shl = 0xab,
+  I32x4ShrS = 0xac,
+  I32x4ShrU = 0xad,
+  I32x4Add = 0xae,
+  // AddSatS = 0xaf
+  // AddSatU = 0xb0
+  I32x4Sub = 0xb1,
+  // SubSatS = 0xb2
+  // SubSatU = 0xb3
+  // Dot = 0xb4
+  I32x4Mul = 0xb5,
+  I32x4MinS = 0xb6,
+  I32x4MinU = 0xb7,
+  I32x4MaxS = 0xb8,
+  I32x4MaxU = 0xb9,
+  I32x4DotSI16x8 = 0xba,
+  // AvgrU = 0xbb
+  // Unused = 0xbc
+  // Unused = 0xbd
+  // Unused = 0xbe
+  // Unused = 0xbf
+  // Abs = 0xc0
+  I64x2Neg = 0xc1,
+  // AnyTrue = 0xc2
+  // AllTrue = 0xc3
+  // Bitmask = 0xc4
+  // Narrow = 0xc5
+  // Narrow = 0xc6
+  // Widen = 0xc7
+  // Widen = 0xc8
+  // Widen = 0xc9
+  // Widen = 0xca
+  I64x2Shl = 0xcb,
+  I64x2ShrS = 0xcc,
+  I64x2ShrU = 0xcd,
+  I64x2Add = 0xce,
+  // AddSatS = 0xcf
+  // AddSatU = 0xd0
+  I64x2Sub = 0xd1,
+  // SubSatS = 0xd2
+  // SubSatU = 0xd3
+  // Dot = 0xd4
+  I64x2Mul = 0xd5,
+  // MinS = 0xd6
+  // MinU = 0xd7
+  F32x4Ceil = 0xd8,
+  F32x4Floor = 0xd9,
+  F32x4Trunc = 0xda,
+  F32x4Nearest = 0xdb,
+  F64x2Ceil = 0xdc,
+  F64x2Floor = 0xdd,
+  F64x2Trunc = 0xde,
+  F64x2Nearest = 0xdf,
+  F32x4Abs = 0xe0,
+  F32x4Neg = 0xe1,
+  // Round = 0xe2
+  F32x4Sqrt = 0xe3,
+  F32x4Add = 0xe4,
+  F32x4Sub = 0xe5,
+  F32x4Mul = 0xe6,
+  F32x4Div = 0xe7,
+  F32x4Min = 0xe8,
+  F32x4Max = 0xe9,
+  F32x4PMin = 0xea,
+  F32x4PMax = 0xeb,
+  F64x2Abs = 0xec,
+  F64x2Neg = 0xed,
+  // Round = 0xee
+  F64x2Sqrt = 0xef,
+  F64x2Add = 0xf0,
+  F64x2Sub = 0xf1,
+  F64x2Mul = 0xf2,
+  F64x2Div = 0xf3,
+  F64x2Min = 0xf4,
+  F64x2Max = 0xf5,
+  F64x2PMin = 0xf6,
+  F64x2PMax = 0xf7,
+  I32x4TruncSSatF32x4 = 0xf8,
+  I32x4TruncUSatF32x4 = 0xf9,
+  F32x4ConvertSI32x4 = 0xfa,
+  F32x4ConvertUI32x4 = 0xfb,
+  V128Load32ZeroExperimental = 0xfc,
+  V128Load64ZeroExperimental = 0xfd,
+  // Unused = 0xfe and up
+
+  Limit
+};
 
 // Opcodes in the "miscellaneous" opcode space.
 enum class MiscOp {
@@ -415,12 +713,6 @@ enum class MiscOp {
   TableGrow = 0x0f,
   TableSize = 0x10,
   TableFill = 0x11,
-
-  // Structure operations.  Note, these are unofficial.
-  StructNew = 0x50,
-  StructGet = 0x51,
-  StructSet = 0x52,
-  StructNarrow = 0x53,
 
   Limit
 };
@@ -574,6 +866,11 @@ enum class NameType { Module = 0, Function = 1, Local = 2 };
 
 enum class FieldFlags { Mutable = 0x01, AllowedMask = 0x01 };
 
+// The WebAssembly spec hard-codes the virtual page size to be 64KiB and
+// requires the size of linear memory to always be a multiple of 64KiB.
+
+static const unsigned PageSize = 64 * 1024;
+
 // These limits are agreed upon with other engines for consistency.
 
 static const unsigned MaxTypes = 1000000;
@@ -583,7 +880,10 @@ static const unsigned MaxImports = 100000;
 static const unsigned MaxExports = 100000;
 static const unsigned MaxGlobals = 1000000;
 static const unsigned MaxDataSegments = 100000;
+static const unsigned MaxDataSegmentLengthPages = 16384;
 static const unsigned MaxElemSegments = 10000000;
+static const unsigned MaxElemSegmentLength = 10000000;
+static const unsigned MaxTableLimitField = UINT32_MAX;
 static const unsigned MaxTableLength = 10000000;
 static const unsigned MaxLocals = 50000;
 static const unsigned MaxParams = 1000;
@@ -591,22 +891,23 @@ static const unsigned MaxParams = 1000;
 // `env->funcMaxResults()` to get the correct value for a module.
 static const unsigned MaxResults = 1000;
 static const unsigned MaxStructFields = 1000;
-static const unsigned MaxMemoryMaximumPages = 65536;
+static const unsigned MaxMemoryLimitField = 65536;
+static const unsigned MaxMemoryPages = INT32_MAX / PageSize;
 static const unsigned MaxStringBytes = 100000;
 static const unsigned MaxModuleBytes = 1024 * 1024 * 1024;
 static const unsigned MaxFunctionBytes = 7654321;
 
 // These limits pertain to our WebAssembly implementation only.
 
-static const unsigned MaxTableInitialLength = 10000000;
 static const unsigned MaxBrTableElems = 1000000;
-static const unsigned MaxMemoryInitialPages = 16384;
 static const unsigned MaxCodeSectionBytes = MaxModuleBytes;
-
-// FIXME: Temporary limit to function result counts.  Replace with MaxResults:
-// bug 1585909.
-
-static const unsigned MaxFuncResults = 1;
+static const unsigned MaxArgsForJitInlineCall = 8;
+static const unsigned MaxResultsForJitEntry = 1;
+static const unsigned MaxResultsForJitExit = 1;
+static const unsigned MaxResultsForJitInlineCall = MaxResultsForJitEntry;
+// The maximum number of results of a function call or block that may be
+// returned in registers.
+static const unsigned MaxRegisterResults = 1;
 
 // A magic value of the FramePointer to indicate after a return to the entry
 // stub that an exception has been caught and that we should throw.
@@ -616,6 +917,27 @@ static const unsigned FailFP = 0xbad;
 // Asserted by Decoder::readVarU32.
 
 static const unsigned MaxVarU32DecodedBytes = 5;
+
+// Which backend to use in the case of the optimized tier.
+
+enum class OptimizedBackend {
+  Ion,
+  Cranelift,
+};
+
+// The CompileMode controls how compilation of a module is performed (notably,
+// how many times we compile it).
+
+enum class CompileMode { Once, Tier1, Tier2 };
+
+// Typed enum for whether debugging is enabled.
+
+enum class DebugEnabled { False, True };
+
+// A wasm module can either use no memory, a unshared memory (ArrayBuffer) or
+// shared memory (SharedArrayBuffer).
+
+enum class MemoryUsage { None = false, Unshared = 1, Shared = 2 };
 
 }  // namespace wasm
 }  // namespace js

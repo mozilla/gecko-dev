@@ -35,6 +35,10 @@ class PerformanceMainThread final : public Performance,
   virtual void AddEntry(nsIHttpChannel* channel,
                         nsITimedChannel* timedChannel) override;
 
+  void AddRawEntry(UniquePtr<PerformanceTimingData>,
+                   const nsAString& aInitiatorType,
+                   const nsAString& aEntryName);
+
   TimeStamp CreationTimeStamp() const override;
 
   DOMHighResTimeStamp CreationTime() const override;
@@ -62,7 +66,10 @@ class PerformanceMainThread final : public Performance,
       const nsAString& aName, const Optional<nsAString>& aEntryType,
       nsTArray<RefPtr<PerformanceEntry>>& aRetval) override;
 
+  void UpdateNavigationTimingEntry() override;
   void QueueNavigationTimingEntry() override;
+
+  bool CrossOriginIsolated() const override;
 
  protected:
   ~PerformanceMainThread();
@@ -84,6 +91,8 @@ class PerformanceMainThread final : public Performance,
   RefPtr<PerformanceTiming> mTiming;
   RefPtr<PerformanceNavigation> mNavigation;
   JS::Heap<JSObject*> mMozMemory;
+
+  const bool mCrossOriginIsolated;
 };
 
 }  // namespace dom

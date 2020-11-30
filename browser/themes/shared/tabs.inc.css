@@ -38,18 +38,16 @@
   background-color: #25003e;
 }
 
-@supports -moz-bool-pref("browser.in-content.dark-mode") {
 @media (prefers-color-scheme: dark) {
   #tabbrowser-tabpanels {
     /* Value for --in-content-page-background for dark mode in in-content/common.inc.css */
     background-color: #2A2A2E;
   }
 }
-}
 
 #tabbrowser-tabs,
-#tabbrowser-tabs > .tabbrowser-arrowscrollbox,
-#tabbrowser-tabs[positionpinnedtabs] > .tabbrowser-arrowscrollbox > .tabbrowser-tab[pinned] {
+#tabbrowser-arrowscrollbox,
+#tabbrowser-tabs[positionpinnedtabs] > #tabbrowser-arrowscrollbox > .tabbrowser-tab[pinned] {
   min-height: var(--tab-min-height);
 }
 
@@ -63,7 +61,7 @@
     min-width: 0;
   }
 
-  .tabbrowser-arrowscrollbox::part(scrollbox) {
+  #tabbrowser-arrowscrollbox::part(scrollbox) {
     /* Needed to prevent tabstrip from growing as wide as the sum of the tabs'
        page-title widths (when we'd rather have it be as wide as the window and
        compress the tabs to their minimum size): */
@@ -72,7 +70,7 @@
 }
 
 .tabbrowser-tab {
-  -moz-appearance: none;
+  appearance: none;
   background-color: transparent;
   border-radius: 0;
   border-width: 0;
@@ -96,64 +94,66 @@
   padding: 0 12px;
 }
 
-:root[sessionrestored] .tab-loading-burst {
-  position: relative;
-  overflow: hidden;
-}
-
-:root[sessionrestored] .tab-loading-burst::before {
-  position: absolute;
-  content: "";
-  /* We set the width to be a percentage of the tab's width so that we can use
-     the `scale` transform to scale it up to the full size of the tab when the
-     burst occurs. We also need to set the margin-inline-start so that the
-     center of the burst matches the center of the favicon. */
-  width: 5%;
-  height: 100%;
-  /* Center the burst over the .tab-loading-burst; it's 9px from the edge thanks
-     to .tab-content, plus 8px more since .tab-loading-burst is 16px wide. */
-  margin-inline-start: calc(17px - 2.5%);
-}
-
-:root[sessionrestored] .tab-loading-burst[pinned]::before {
-  /* This is like the margin-inline-start rule above, except that icons for
-     pinned tabs are 12px from the edge. */
-  margin-inline-start: calc(20px - 2.5%);
-}
-
-:root[sessionrestored] .tab-loading-burst[bursting]::before {
-  background-image: url("chrome://browser/skin/tabbrowser/loading-burst.svg");
-  background-position: center center;
-  background-size: 100% auto;
-  background-repeat: no-repeat;
-  animation: tab-burst-animation 375ms cubic-bezier(0,0,.58,1);
-  -moz-context-properties: fill;
-  fill: var(--tab-loading-fill);
-}
-
-:root[sessionrestored] .tab-loading-burst[bursting][notselectedsinceload]::before {
-  animation-name: tab-burst-animation-light;
-}
-
-@keyframes tab-burst-animation {
-  0% {
-    opacity: 0.4;
-    transform: scale(1);
+@media (prefers-reduced-motion: no-preference) {
+  :root[sessionrestored] .tab-loading-burst {
+    position: relative;
+    overflow: hidden;
   }
-  100% {
-    opacity: 0;
-    transform: scale(40);
-  }
-}
 
-@keyframes tab-burst-animation-light {
-  0% {
-    opacity: 0.2;
-    transform: scale(1);
+  :root[sessionrestored] .tab-loading-burst::before {
+    position: absolute;
+    content: "";
+    /* We set the width to be a percentage of the tab's width so that we can use
+       the `scale` transform to scale it up to the full size of the tab when the
+       burst occurs. We also need to set the margin-inline-start so that the
+       center of the burst matches the center of the favicon. */
+    width: 5%;
+    height: 100%;
+    /* Center the burst over the .tab-loading-burst; it's 9px from the edge thanks
+       to .tab-content, plus 8px more since .tab-loading-burst is 16px wide. */
+    margin-inline-start: calc(17px - 2.5%);
   }
-  100% {
-    opacity: 0;
-    transform: scale(40);
+
+  :root[sessionrestored] .tab-loading-burst[pinned]::before {
+    /* This is like the margin-inline-start rule above, except that icons for
+       pinned tabs are 12px from the edge. */
+    margin-inline-start: calc(20px - 2.5%);
+  }
+
+  :root[sessionrestored] .tab-loading-burst[bursting]::before {
+    background-image: url("chrome://browser/skin/tabbrowser/loading-burst.svg");
+    background-position: center center;
+    background-size: 100% auto;
+    background-repeat: no-repeat;
+    animation: tab-burst-animation 375ms cubic-bezier(0,0,.58,1);
+    -moz-context-properties: fill;
+    fill: var(--tab-loading-fill);
+  }
+
+  :root[sessionrestored] .tab-loading-burst[bursting][notselectedsinceload]::before {
+    animation-name: tab-burst-animation-light;
+  }
+
+  @keyframes tab-burst-animation {
+    0% {
+      opacity: 0.4;
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(40);
+    }
+  }
+
+  @keyframes tab-burst-animation-light {
+    0% {
+      opacity: 0.2;
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(40);
+    }
   }
 }
 
@@ -182,62 +182,79 @@
   margin-inline-end: 6px;
 }
 
-:root[sessionrestored] .tab-throbber[busy] {
-  position: relative;
-  overflow: hidden;
+@media (prefers-reduced-motion: reduce) {
+  .tab-throbber[busy] {
+    background-image: url("chrome://browser/skin/tabbrowser/hourglass.svg");
+    background-position: center;
+    background-repeat: no-repeat;
+    -moz-context-properties: fill;
+    fill: currentColor;
+    opacity: 0.4;
+  }
+
+  .tab-throbber[progress] {
+    opacity: 0.8;
+  }
 }
 
-:root[sessionrestored] .tab-throbber[busy]::before {
-  content: "";
-  position: absolute;
-  background-image: url("chrome://browser/skin/tabbrowser/loading.svg");
-  background-position: left center;
-  background-repeat: no-repeat;
-  width: 480px;
-  height: 100%;
-  animation: tab-throbber-animation 1.05s steps(30) infinite;
-  -moz-context-properties: fill;
+@media (prefers-reduced-motion: no-preference) {
+  :root[sessionrestored] .tab-throbber[busy] {
+    position: relative;
+    overflow: hidden;
+  }
 
-  /* XXX: It would be nice to transition between the "connecting" color and the
-     "loading" color (see the `.tab-throbber[progress]::before` rule below);
-     however, that currently forces main thread painting. When this is fixed
-     (after WebRender lands), we can do something like
-     `transition: fill 0.333s, opacity 0.333s;` */
+  :root[sessionrestored] .tab-throbber[busy]::before {
+    content: "";
+    position: absolute;
+    background-image: url("chrome://browser/skin/tabbrowser/loading.svg");
+    background-position: left center;
+    background-repeat: no-repeat;
+    width: 480px;
+    height: 100%;
+    animation: tab-throbber-animation 1.05s steps(30) infinite;
+    -moz-context-properties: fill;
 
-  fill: currentColor;
-  opacity: 0.7;
-}
+    /* XXX: It would be nice to transition between the "connecting" color and the
+       "loading" color (see the `.tab-throbber[progress]::before` rule below);
+       however, that currently forces main thread painting. When this is fixed
+       (after WebRender lands), we can do something like
+       `transition: fill 0.333s, opacity 0.333s;` */
 
-:root[sessionrestored] .tab-throbber[busy]:-moz-locale-dir(rtl)::before {
-  animation-name: tab-throbber-animation-rtl;
-}
+    fill: currentColor;
+    opacity: 0.7;
+  }
 
-@keyframes tab-throbber-animation {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-100%); }
-}
+  :root[sessionrestored] .tab-throbber[busy]:-moz-locale-dir(rtl)::before {
+    animation-name: tab-throbber-animation-rtl;
+  }
 
-@keyframes tab-throbber-animation-rtl {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(100%); }
-}
+  @keyframes tab-throbber-animation {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+  }
 
-#TabsToolbar[brighttext] .tab-throbber[busy]:not([selected=true])::before {
-  /* Don't change the --tab-loading-fill variable because this should only affect
-     tabs that are not visually selected. */
-  fill: #717171;
-  opacity: 1;
-}
+  @keyframes tab-throbber-animation-rtl {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(100%); }
+  }
 
-:root[sessionrestored] .tab-throbber[progress]::before {
-  fill: var(--tab-loading-fill);
-  opacity: 1;
-}
+  #TabsToolbar[brighttext] .tab-throbber[busy]:not([selected=true])::before {
+    /* Don't change the --tab-loading-fill variable because this should only affect
+       tabs that are not visually selected. */
+    fill: #717171;
+    opacity: 1;
+  }
 
-#TabsToolbar[brighttext] .tab-throbber[progress]:not([selected=true])::before {
-  /* Don't change the --tab-loading-fill variable because this should only affect
-     tabs that are not visually selected. */
-  fill: #84c1ff;
+  :root[sessionrestored] .tab-throbber[progress]::before {
+    fill: var(--tab-loading-fill);
+    opacity: 1;
+  }
+
+  #TabsToolbar[brighttext] .tab-throbber[progress]:not([selected=true])::before {
+    /* Don't change the --tab-loading-fill variable because this should only affect
+       tabs that are not visually selected. */
+    fill: #84c1ff;
+  }
 }
 
 .tab-icon-image {
@@ -292,14 +309,12 @@
   width: 16px;
   height: 16px;
   margin-top: -8px;
-  margin-inline-start: -15px;
-  margin-inline-end: -1px;
+  margin-inline: -15px -1px;
   position: relative;
 }
 
 .tab-icon-overlay[pinned] {
-  margin-inline-start: -6px;
-  margin-inline-end: -10px;
+  margin-inline: -6px -10px;
 }
 
 .tab-icon-overlay[crashed] {
@@ -333,35 +348,49 @@
   list-style-image: url("chrome://browser/skin/tabbrowser/tab-audio-blocked-small.svg");
 }
 
-.tab-throbber-tabslist[busy] {
-  list-style-image: url("chrome://browser/skin/tabbrowser/tab-connecting.png");
-}
-
-.tab-throbber-tabslist[progress] {
-  list-style-image: url("chrome://browser/skin/tabbrowser/tab-loading.png");
-}
-
-:root[lwt-popup-brighttext] .tab-throbber-tabslist[progress]:not([selected=true]) {
-  list-style-image: url("chrome://browser/skin/tabbrowser/tab-loading-inverted.png");
-}
-
-@media (min-resolution: 1.1dppx) {
+@media (prefers-reduced-motion: reduce) {
   .tab-throbber-tabslist[busy] {
-    list-style-image: url("chrome://browser/skin/tabbrowser/tab-connecting@2x.png");
+    list-style-image: url("chrome://browser/skin/tabbrowser/hourglass.svg");
+    -moz-context-properties: fill;
+    fill: currentColor;
+    opacity: 0.4;
   }
 
   .tab-throbber-tabslist[progress] {
-    list-style-image: url("chrome://browser/skin/tabbrowser/tab-loading@2x.png");
+    opacity: 0.8;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tab-throbber-tabslist[busy] {
+    list-style-image: url("chrome://browser/skin/tabbrowser/tab-connecting.png");
+  }
+
+  .tab-throbber-tabslist[progress] {
+    list-style-image: url("chrome://browser/skin/tabbrowser/tab-loading.png");
   }
 
   :root[lwt-popup-brighttext] .tab-throbber-tabslist[progress]:not([selected=true]) {
-    list-style-image: url("chrome://browser/skin/tabbrowser/tab-loading-inverted@2x.png");
+    list-style-image: url("chrome://browser/skin/tabbrowser/tab-loading-inverted.png");
+  }
+
+  @media (min-resolution: 1.1dppx) {
+    .tab-throbber-tabslist[busy] {
+      list-style-image: url("chrome://browser/skin/tabbrowser/tab-connecting@2x.png");
+    }
+
+    .tab-throbber-tabslist[progress] {
+      list-style-image: url("chrome://browser/skin/tabbrowser/tab-loading@2x.png");
+    }
+
+    :root[lwt-popup-brighttext] .tab-throbber-tabslist[progress]:not([selected=true]) {
+      list-style-image: url("chrome://browser/skin/tabbrowser/tab-loading-inverted@2x.png");
+    }
   }
 }
 
 .tab-label {
-  margin-inline-end: 0;
-  margin-inline-start: 0;
+  margin-inline: 0;
   /* Maintain consistent alignment in case of font fallback for non-Latin characters. */
   line-height: 1.7em;
 }
@@ -404,6 +433,7 @@
   list-style-image: url(chrome://global/skin/media/pictureinpicture.svg);
   width: 14px;
   height: 14px;
+  opacity: .8;
 }
 
 .tab-icon-sound[pictureinpicture]:-moz-locale-dir(rtl) {
@@ -424,7 +454,6 @@
   filter: drop-shadow(1px 1px 1px black);
 }
 
-.tab-icon-sound[pictureinpicture]:not(:hover),
 .tab-icon-sound[soundplaying]:not(:hover),
 .tab-icon-sound[muted]:not(:hover),
 .tab-icon-sound[activemedia-blocked]:not(:hover) {
@@ -438,8 +467,8 @@
 }
 
 /* Tab Overflow */
-.tabbrowser-arrowscrollbox:not([scrolledtostart])::part(arrowscrollbox-overflow-start-indicator),
-.tabbrowser-arrowscrollbox:not([scrolledtoend])::part(arrowscrollbox-overflow-end-indicator) {
+#tabbrowser-arrowscrollbox:not([scrolledtostart])::part(overflow-start-indicator),
+#tabbrowser-arrowscrollbox:not([scrolledtoend])::part(overflow-end-indicator) {
   width: 18px;
   background-image: url(chrome://browser/skin/tabbrowser/tab-overflow-indicator.png);
   background-size: 17px 100%;
@@ -454,28 +483,26 @@
   z-index: 3; /* the selected tab's z-index + 1 */
 }
 
-.tabbrowser-arrowscrollbox:-moz-locale-dir(rtl)::part(arrowscrollbox-overflow-start-indicator),
-.tabbrowser-arrowscrollbox:-moz-locale-dir(ltr)::part(arrowscrollbox-overflow-end-indicator) {
+#tabbrowser-arrowscrollbox:-moz-locale-dir(rtl)::part(overflow-start-indicator),
+#tabbrowser-arrowscrollbox:-moz-locale-dir(ltr)::part(overflow-end-indicator) {
   transform: scaleX(-1);
 }
 
-.tabbrowser-arrowscrollbox:not([scrolledtostart])::part(arrowscrollbox-overflow-start-indicator) {
-  margin-inline-start: -1px;
-  margin-inline-end: -17px;
+#tabbrowser-arrowscrollbox:not([scrolledtostart])::part(overflow-start-indicator) {
+  margin-inline: -1px -17px;
 }
 
-.tabbrowser-arrowscrollbox:not([scrolledtoend])::part(arrowscrollbox-overflow-end-indicator) {
-  margin-inline-start: -17px;
-  margin-inline-end: -1px;
+#tabbrowser-arrowscrollbox:not([scrolledtoend])::part(overflow-end-indicator) {
+  margin-inline: -17px -1px;
 }
 
-.tabbrowser-arrowscrollbox[scrolledtostart]::part(arrowscrollbox-overflow-start-indicator),
-.tabbrowser-arrowscrollbox[scrolledtoend]::part(arrowscrollbox-overflow-end-indicator) {
+#tabbrowser-arrowscrollbox[scrolledtostart]::part(overflow-start-indicator),
+#tabbrowser-arrowscrollbox[scrolledtoend]::part(overflow-end-indicator) {
   opacity: 0;
 }
 
-.tabbrowser-arrowscrollbox::part(arrowscrollbox-overflow-start-indicator),
-.tabbrowser-arrowscrollbox::part(arrowscrollbox-overflow-end-indicator) {
+#tabbrowser-arrowscrollbox::part(overflow-start-indicator),
+#tabbrowser-arrowscrollbox::part(overflow-end-indicator) {
   transition: opacity 150ms ease;
 }
 
@@ -541,8 +568,8 @@
  */
 
 /* Lightweight theme on tabs */
-#tabbrowser-tabs:not([movingtab]) > .tabbrowser-arrowscrollbox > .tabbrowser-tab > .tab-stack > .tab-background[multiselected=true]:-moz-lwtheme,
-#tabbrowser-tabs:not([movingtab]) > .tabbrowser-arrowscrollbox > .tabbrowser-tab > .tab-stack > .tab-background[selected=true]:-moz-lwtheme {
+#tabbrowser-tabs:not([movingtab]) > #tabbrowser-arrowscrollbox > .tabbrowser-tab > .tab-stack > .tab-background[multiselected=true]:-moz-lwtheme,
+#tabbrowser-tabs:not([movingtab]) > #tabbrowser-arrowscrollbox > .tabbrowser-tab > .tab-stack > .tab-background[selected=true]:-moz-lwtheme {
   background-attachment: scroll, scroll, fixed;
   background-color: transparent;
   background-image: linear-gradient(var(--lwt-selected-tab-background-color, transparent), var(--lwt-selected-tab-background-color, transparent)),
@@ -563,10 +590,15 @@
   background-color: rgba(255,255,255,.1);
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .tab-line:not([selected=true]):not([multiselected]) {
+    transition: transform 250ms var(--animation-easing-function), opacity 250ms var(--animation-easing-function);
+  }
+}
+
 .tab-line:not([selected=true]):not([multiselected]) {
   opacity: 0;
   transform: scaleX(0);
-  transition: transform 250ms var(--animation-easing-function), opacity 250ms var(--animation-easing-function);
 }
 
 .tabbrowser-tab:hover > .tab-stack > .tab-background > .tab-line:not([selected=true]):not([multiselected]) {
@@ -586,19 +618,18 @@
 /* Pinned tabs */
 
 /* Pinned tab separators need position: absolute when positioned (during overflow). */
-#tabbrowser-tabs[positionpinnedtabs] > .tabbrowser-arrowscrollbox > .tabbrowser-tab[pinned]::after {
+#tabbrowser-tabs[positionpinnedtabs] > #tabbrowser-arrowscrollbox > .tabbrowser-tab[pinned]::after {
   display: block;
   position: absolute;
-  top: 0;
-  bottom: 0;
+  inset-block: 0;
   inset-inline-end: 0;
 }
 
-#tabbrowser-tabs[positionpinnedtabs] > .tabbrowser-arrowscrollbox > .tabbrowser-tab[pinned] > .tab-stack {
+#tabbrowser-tabs[positionpinnedtabs] > #tabbrowser-arrowscrollbox > .tabbrowser-tab[pinned] > .tab-stack {
   border-inline-end: 1px solid transparent;
 }
 
-.tabbrowser-tab:-moz-any([image], [pinned]) > .tab-stack > .tab-content[attention]:not([selected="true"]),
+.tabbrowser-tab:is([image], [pinned]) > .tab-stack > .tab-content[attention]:not([selected="true"]),
 .tabbrowser-tab > .tab-stack > .tab-content[pinned][titlechanged]:not([selected="true"]) {
   background-image: url(chrome://browser/skin/tabbrowser/indicator-tab-attention.svg);
   background-position: center bottom calc(-4px + var(--tabs-navbar-shadow-size));
@@ -652,8 +683,7 @@
 .tabbrowser-tab::after,
 .tabbrowser-tab::before {
   border-left: 1px solid var(--lwt-background-tab-separator-color, currentColor);
-  margin-top: 5px;
-  margin-bottom: 4px;
+  margin-block: 5px 4px;
   opacity: 0.3;
 }
 
@@ -676,16 +706,16 @@
 %endif
 /* Show full height tab separators on hover and multiselection. */
 .tabbrowser-tab:hover::after,
-#tabbrowser-tabs:not([movingtab]) > .tabbrowser-arrowscrollbox > .tabbrowser-tab[beforehovered]::after,
+#tabbrowser-tabs:not([movingtab]) > #tabbrowser-arrowscrollbox > .tabbrowser-tab[beforehovered]::after,
 .tabbrowser-tab[multiselected]::after,
-#tabbrowser-tabs:not([movingtab]) > .tabbrowser-arrowscrollbox > .tabbrowser-tab[before-multiselected]::after {
+#tabbrowser-tabs:not([movingtab]) > #tabbrowser-arrowscrollbox > .tabbrowser-tab[before-multiselected]::after {
   margin-top: var(--tabs-top-border-width);
   margin-bottom: 0;
 }
 
 /* Show full height tab separators on selected tabs. */
-#tabbrowser-tabs:not([movingtab]) > .tabbrowser-arrowscrollbox > .tabbrowser-tab[beforeselected-visible]::after,
-#tabbrowser-tabs[movingtab] > .tabbrowser-arrowscrollbox > .tabbrowser-tab[visuallyselected]::before,
+#tabbrowser-tabs:not([movingtab]) > #tabbrowser-arrowscrollbox > .tabbrowser-tab[beforeselected-visible]::after,
+#tabbrowser-tabs[movingtab] > #tabbrowser-arrowscrollbox > .tabbrowser-tab[visuallyselected]::before,
 .tabbrowser-tab[visuallyselected]::after {
   border-color: var(--tabs-border-color);
   margin-top: 0;
@@ -695,25 +725,17 @@
 
 .tabbrowser-tab::after,
 /* Also show separators beside the selected tab when dragging it. */
-#tabbrowser-tabs[movingtab] > .tabbrowser-arrowscrollbox > .tabbrowser-tab[visuallyselected]::before {
+#tabbrowser-tabs[movingtab] > #tabbrowser-arrowscrollbox > .tabbrowser-tab[visuallyselected]::before {
   content: "";
   display: block;
 }
 
 /* Tab bar scroll arrows */
 
-.tabbrowser-arrowscrollbox::part(scrollbutton-up),
-.tabbrowser-arrowscrollbox::part(scrollbutton-down) {
-  list-style-image: url(chrome://global/skin/icons/arrow-left.svg) !important;
-  -moz-context-properties: fill, fill-opacity;
+#tabbrowser-arrowscrollbox::part(scrollbutton-up),
+#tabbrowser-arrowscrollbox::part(scrollbutton-down) {
   fill: var(--lwt-toolbarbutton-icon-fill, currentColor);
   fill-opacity: var(--toolbarbutton-icon-fill-opacity);
-  color: inherit;
-}
-
-.tabbrowser-arrowscrollbox:-moz-locale-dir(rtl)::part(scrollbutton-up),
-.tabbrowser-arrowscrollbox:-moz-locale-dir(ltr)::part(scrollbutton-down) {
-  transform: scaleX(-1);
 }
 
 /* New tab button */

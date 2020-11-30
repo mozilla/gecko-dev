@@ -52,7 +52,7 @@ class TestRunnableJobs(unittest.TestCase):
 
     def make_taskgraph(self, tasks):
         label_to_taskid = {k: k + '-tid' for k in tasks}
-        for label, task_id in label_to_taskid.iteritems():
+        for label, task_id in label_to_taskid.items():
             tasks[label].task_id = task_id
         graph = Graph(nodes=set(tasks), edges=set())
         taskgraph = TaskGraph(tasks, graph)

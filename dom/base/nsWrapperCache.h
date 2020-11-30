@@ -13,6 +13,7 @@
 #include "js/Value.h"  // must come before js/RootingAPI.h
 #include "js/RootingAPI.h"
 #include "js/TracingAPI.h"
+#include "jsfriendapi.h"
 
 namespace mozilla {
 namespace dom {
@@ -178,12 +179,20 @@ class nsWrapperCache {
   }
 
   /**
+   * Update the wrapper when the object moves between globals.
+   */
+  template <typename T>
+  void UpdateWrapperForNewGlobal(T* aScriptObjectHolder, JSObject* aNewWrapper);
+
+  /**
    * Update the wrapper if the object it contains is moved.
    *
    * This method must be called from the objectMovedOp class extension hook for
    * any wrapper cached object.
    */
   void UpdateWrapper(JSObject* aNewObject, const JSObject* aOldObject) {
+    MOZ_ASSERT(js::GetObjectZoneFromAnyThread(aNewObject) ==
+               js::GetObjectZoneFromAnyThread(aOldObject));
     if (mWrapper) {
       MOZ_ASSERT(mWrapper == aOldObject);
       mWrapper = aNewObject;
@@ -293,8 +302,8 @@ class nsWrapperCache {
       return;
     }
 
-    GetWrapper();  // Read barrier for incremental GC.
-    HoldJSObjects(aScriptObjectHolder, aTracer);
+    JSObject* wrapper = GetWrapper();  // Read barrier for incremental GC.
+    HoldJSObjects(aScriptObjectHolder, aTracer, JS::GetObjectZone(wrapper));
     SetPreservingWrapper(true);
 #ifdef DEBUG
     // Make sure the cycle collector will be able to traverse to the wrapper.
@@ -341,7 +350,8 @@ class nsWrapperCache {
     mFlags &= ~aFlagsToUnset;
   }
 
-  void HoldJSObjects(void* aScriptObjectHolder, nsScriptObjectTracer* aTracer);
+  void HoldJSObjects(void* aScriptObjectHolder, nsScriptObjectTracer* aTracer,
+                     JS::Zone* aZone);
 
 #ifdef DEBUG
  public:

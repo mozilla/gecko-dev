@@ -15,7 +15,7 @@
 #include "CompositorWidget.h"
 #include "nsWindowBase.h"
 #include "nsdefs.h"
-#include "nsIdleService.h"
+#include "nsUserIdleService.h"
 #include "nsToolkit.h"
 #include "nsString.h"
 #include "nsTArray.h"
@@ -30,6 +30,7 @@
 #include "mozilla/TimeStamp.h"
 #include "mozilla/webrender/WebRenderTypes.h"
 #include "mozilla/dom/MouseEventBinding.h"
+#include "mozilla/UniquePtr.h"
 #include "nsMargin.h"
 #include "nsRegionFwd.h"
 
@@ -45,7 +46,7 @@
 #endif
 
 #include "nsUXThemeData.h"
-#include "nsIIdleServiceInternal.h"
+#include "nsIUserIdleServiceInternal.h"
 
 #include "IMMHandler.h"
 
@@ -62,8 +63,31 @@ namespace widget {
 class NativeKey;
 class InProcessWinCompositorWidget;
 struct MSGResult;
+class DirectManipulationOwner;
 }  // namespace widget
 }  // namespace mozilla
+
+/**
+ * Forward Windows-internal definitions of otherwise incomplete ones provided by
+ * the SDK.
+ */
+const CLSID CLSID_ImmersiveShell = {
+    0xC2F03A33,
+    0x21F5,
+    0x47FA,
+    {0xB4, 0xBB, 0x15, 0x63, 0x62, 0xA2, 0xF2, 0x39}};
+
+// Virtual Desktop.
+
+EXTERN_C const IID IID_IVirtualDesktopManager;
+MIDL_INTERFACE("a5cd92ff-29be-454c-8d04-d82879fb3f1b")
+IVirtualDesktopManager : public IUnknown {
+ public:
+  virtual HRESULT STDMETHODCALLTYPE GetWindowDesktopId(
+      __RPC__in HWND topLevelWindow, __RPC__out GUID * desktopId) = 0;
+  virtual HRESULT STDMETHODCALLTYPE MoveWindowToDesktop(
+      __RPC__in HWND topLevelWindow, __RPC__in REFGUID desktopId) = 0;
+};
 
 /**
  * Native WIN32 window wrapper.
@@ -87,6 +111,8 @@ class nsWindow final : public nsWindowBase {
 
   friend class nsWindowGfx;
 
+  void SendAnAPZEvent(mozilla::InputData& aEvent);
+
   // nsWindowBase
   virtual void InitEvent(mozilla::WidgetGUIEvent& aEvent,
                          LayoutDeviceIntPoint* aPoint = nullptr) override;
@@ -104,10 +130,10 @@ class nsWindow final : public nsWindowBase {
 
   // nsIWidget interface
   using nsWindowBase::Create;  // for Create signature not overridden here
-  virtual MOZ_MUST_USE nsresult
-  Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
-         const LayoutDeviceIntRect& aRect,
-         nsWidgetInitData* aInitData = nullptr) override;
+  [[nodiscard]] virtual nsresult Create(
+      nsIWidget* aParent, nsNativeWidget aNativeParent,
+      const LayoutDeviceIntRect& aRect,
+      nsWidgetInitData* aInitData = nullptr) override;
   virtual void Destroy() override;
   virtual void SetParent(nsIWidget* aNewParent) override;
   virtual nsIWidget* GetParent(void) override;
@@ -135,20 +161,22 @@ class nsWindow final : public nsWindowBase {
   virtual void Resize(double aX, double aY, double aWidth, double aHeight,
                       bool aRepaint) override;
   virtual mozilla::Maybe<bool> IsResizingNativeWidget() override;
-  virtual MOZ_MUST_USE nsresult BeginResizeDrag(mozilla::WidgetGUIEvent* aEvent,
-                                                int32_t aHorizontal,
-                                                int32_t aVertical) override;
+  [[nodiscard]] virtual nsresult BeginResizeDrag(
+      mozilla::WidgetGUIEvent* aEvent, int32_t aHorizontal,
+      int32_t aVertical) override;
   virtual void PlaceBehind(nsTopLevelWidgetZPlacement aPlacement,
                            nsIWidget* aWidget, bool aActivate) override;
   virtual void SetSizeMode(nsSizeMode aMode) override;
+  virtual void GetWorkspaceID(nsAString& workspaceID) override;
+  virtual void MoveToWorkspace(const nsAString& workspaceID) override;
   virtual void SuppressAnimation(bool aSuppress) override;
   virtual void Enable(bool aState) override;
   virtual bool IsEnabled() const override;
   virtual void SetFocus(Raise, mozilla::dom::CallerType aCallerType) override;
   virtual LayoutDeviceIntRect GetBounds() override;
   virtual LayoutDeviceIntRect GetScreenBounds() override;
-  virtual MOZ_MUST_USE nsresult
-  GetRestoredBounds(LayoutDeviceIntRect& aRect) override;
+  [[nodiscard]] virtual nsresult GetRestoredBounds(
+      LayoutDeviceIntRect& aRect) override;
   virtual LayoutDeviceIntRect GetClientBounds() override;
   virtual LayoutDeviceIntPoint GetClientOffset() override;
   void SetBackgroundColor(const nscolor& aColor) override;
@@ -183,15 +211,15 @@ class nsWindow final : public nsWindowBase {
   virtual void CaptureMouse(bool aCapture) override;
   virtual void CaptureRollupEvents(nsIRollupListener* aListener,
                                    bool aDoCapture) override;
-  virtual MOZ_MUST_USE nsresult GetAttention(int32_t aCycleCount) override;
+  [[nodiscard]] virtual nsresult GetAttention(int32_t aCycleCount) override;
   virtual bool HasPendingInputEvent() override;
   virtual LayerManager* GetLayerManager(
       PLayerTransactionChild* aShadowManager = nullptr,
       LayersBackend aBackendHint = mozilla::layers::LayersBackend::LAYERS_NONE,
       LayerManagerPersistence aPersistence = LAYER_MANAGER_CURRENT) override;
   void SetCompositorWidgetDelegate(CompositorWidgetDelegate* delegate) override;
-  virtual MOZ_MUST_USE nsresult
-  OnDefaultButtonLoaded(const LayoutDeviceIntRect& aButtonRect) override;
+  [[nodiscard]] virtual nsresult OnDefaultButtonLoaded(
+      const LayoutDeviceIntRect& aButtonRect) override;
   virtual nsresult SynthesizeNativeKeyEvent(
       int32_t aNativeKeyboardLayout, int32_t aNativeKeyCode,
       uint32_t aModifierFlags, const nsAString& aCharacters,
@@ -238,7 +266,7 @@ class nsWindow final : public nsWindowBase {
   virtual bool DispatchMouseEvent(
       mozilla::EventMessage aEventMessage, WPARAM wParam, LPARAM lParam,
       bool aIsContextMenuKey = false,
-      int16_t aButton = mozilla::MouseButton::eLeft,
+      int16_t aButton = mozilla::MouseButton::ePrimary,
       uint16_t aInputSource =
           mozilla::dom::MouseEvent_Binding::MOZ_SOURCE_MOUSE,
       WinPointerInfo* aPointerInfo = nullptr);
@@ -247,6 +275,7 @@ class nsWindow final : public nsWindowBase {
   void DispatchPendingEvents();
   bool DispatchPluginEvent(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
                            bool aDispatchPendingEvents);
+  void DispatchCustomEvent(const nsString& eventName);
 
 #ifdef ACCESSIBILITY
   /**
@@ -277,6 +306,10 @@ class nsWindow final : public nsWindowBase {
 
   void SetSmallIcon(HICON aIcon);
   void SetBigIcon(HICON aIcon);
+
+  static void SetIsRestoringSession(const bool aIsRestoringSession) {
+    sIsRestoringSession = aIsRestoringSession;
+  }
 
   /**
    * AssociateDefaultIMC() associates or disassociates the default IMC for
@@ -337,6 +370,7 @@ class nsWindow final : public nsWindowBase {
       mozilla::widget::CompositorWidgetInitData* aInitData) override;
   bool IsTouchWindow() const { return mTouchWindow; }
   bool SynchronouslyRepaintOnResize() override;
+  virtual void MaybeDispatchInitialFocusEvent() override;
 
  protected:
   virtual ~nsWindow();
@@ -418,7 +452,8 @@ class nsWindow final : public nsWindowBase {
   LRESULT ProcessCharMessage(const MSG& aMsg, bool* aEventDispatched);
   LRESULT ProcessKeyUpMessage(const MSG& aMsg, bool* aEventDispatched);
   LRESULT ProcessKeyDownMessage(const MSG& aMsg, bool* aEventDispatched);
-  static bool EventIsInsideWindow(nsWindow* aWindow);
+  static bool EventIsInsideWindow(
+      nsWindow* aWindow, Maybe<POINT> aEventPoint = mozilla::Nothing());
   // Convert nsEventStatus value to a windows boolean
   static bool ConvertStatus(nsEventStatus aStatus);
   static void PostSleepWakeNotification(const bool aIsSleepMode);
@@ -477,7 +512,8 @@ class nsWindow final : public nsWindowBase {
   static void RegisterSpecialDropdownHooks();
   static void UnregisterSpecialDropdownHooks();
   static bool GetPopupsToRollup(nsIRollupListener* aRollupListener,
-                                uint32_t* aPopupsToRollup);
+                                uint32_t* aPopupsToRollup,
+                                Maybe<POINT> aEventPoint = mozilla::Nothing());
   static bool NeedsToHandleNCActivateDelayed(HWND aWnd);
   static bool DealWithPopups(HWND inWnd, UINT inMsg, WPARAM inWParam,
                              LPARAM inLParam, LRESULT* outResult);
@@ -540,6 +576,10 @@ class nsWindow final : public nsWindowBase {
   void CreateCompositor() override;
   void RequestFxrOutput();
 
+  void RecreateDirectManipulationIfNeeded();
+  void ResizeDirectManipulationViewport();
+  void DestroyDirectManipulation();
+
  protected:
   nsCOMPtr<nsIWidget> mParent;
   nsIntSize mLastSize;
@@ -566,6 +606,8 @@ class nsWindow final : public nsWindowBase {
   bool mOpeningAnimationSuppressed;
   bool mAlwaysOnTop;
   bool mIsEarlyBlankWindow;
+  bool mWasPreXulSkeletonUI;
+  bool mResizable;
   DWORD_PTR mOldStyle;
   DWORD_PTR mOldExStyle;
   nsNativeDragTarget* mNativeDragTarget;
@@ -589,6 +631,7 @@ class nsWindow final : public nsWindowBase {
   static bool sJustGotActivate;
   static bool sIsInMouseCapture;
   static bool sHaveInitializedPrefs;
+  static bool sIsRestoringSession;
 
   PlatformCompositorWidgetDelegate* mCompositorWidgetDelegate;
 
@@ -618,7 +661,7 @@ class nsWindow final : public nsWindowBase {
 
   float mAspectRatio;
 
-  nsCOMPtr<nsIIdleServiceInternal> mIdleService;
+  nsCOMPtr<nsIUserIdleServiceInternal> mIdleService;
 
   // Draggable titlebar region maintained by UpdateWindowDraggingRegion
   LayoutDeviceIntRegion mDraggableRegion;
@@ -704,6 +747,8 @@ class nsWindow final : public nsWindowBase {
   // When true, used to indicate an async call to RequestFxrOutput to the GPU
   // process after the Compositor is created
   bool mRequestFxrOutputPending;
+
+  mozilla::UniquePtr<mozilla::widget::DirectManipulationOwner> mDmOwner;
 };
 
 #endif  // Window_h__

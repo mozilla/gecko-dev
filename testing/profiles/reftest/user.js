@@ -81,9 +81,6 @@ user_pref("privacy.trackingprotection.pbmode.enabled", false);
 // rely on this to load downloadable fonts (which are restricted to same
 // origin policy by default) from outside their directory.
 user_pref("security.fileuri.strict_origin_policy", false);
-// Allow view-source URIs to be opened from URIs that share
-// their protocol with the inner URI of the view-source URI
-user_pref("security.view-source.reachable-from-inner-protocol", true);
 user_pref("startup.homepage_override_url", "");
 user_pref("startup.homepage_welcome_url", "");
 user_pref("startup.homepage_welcome_url.additional", "");
@@ -93,10 +90,14 @@ user_pref("testing.supports.moz-bool-pref", false);
 // server in the middle of the tests.
 user_pref("toolkit.telemetry.enabled", false);
 user_pref("toolkit.telemetry.server", "https://%(server)s/telemetry-dummy/");
+user_pref("telemetry.fog.test.localhost_port", -1);
 user_pref("ui.caretBlinkTime", -1);
 user_pref("ui.caretWidth", 1);
 user_pref("ui.prefersReducedMotion", 0);
 user_pref("ui.systemUsesDarkTheme", 0);
+user_pref("ui.useAccessibilityTheme", 0);
+user_pref("ui.windowForeground", "");
+user_pref("ui.windowBackground", "");
 // Turn off the Push service.
 user_pref("dom.push.serverURL", "");
 // Disable intermittent telemetry collection

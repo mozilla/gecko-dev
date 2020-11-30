@@ -16,9 +16,9 @@ ChromeUtils.import("resource://testing-common/MockRegistrar.jsm", this);
 add_task(async function test_setup() {
   // Save downloads to disk without showing the dialog.
   let cid = MockRegistrar.register("@mozilla.org/helperapplauncherdialog;1", {
-    QueryInterface: ChromeUtils.generateQI([Ci.nsIHelperAppLauncherDialog]),
+    QueryInterface: ChromeUtils.generateQI(["nsIHelperAppLauncherDialog"]),
     show(launcher) {
-      launcher.saveToDisk(null, false);
+      launcher.promptForSaveDestination();
     },
     promptForSaveToFileAsync(launcher) {
       // The dialog should create the empty placeholder file.

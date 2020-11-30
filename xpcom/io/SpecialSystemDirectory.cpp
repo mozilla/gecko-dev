@@ -69,9 +69,9 @@ static nsresult GetKnownFolder(GUID* aGuid, nsIFile** aFile) {
 static nsresult GetWindowsFolder(int aFolder, nsIFile** aFile) {
   WCHAR path_orig[MAX_PATH + 3];
   WCHAR* path = path_orig + 1;
-  HRESULT result = SHGetSpecialFolderPathW(nullptr, path, aFolder, true);
+  BOOL result = SHGetSpecialFolderPathW(nullptr, path, aFolder, true);
 
-  if (!SUCCEEDED(result)) {
+  if (!result) {
     return NS_ERROR_FAILURE;
   }
 
@@ -377,7 +377,7 @@ static nsresult GetUnixXDGUserDirectory(SystemDirectories aSystemDirectory,
       return rv;
     }
 
-    rv = file->AppendNative(NS_LITERAL_CSTRING("Desktop"));
+    rv = file->AppendNative("Desktop"_ns);
   } else {
     // no fallback for the other XDG dirs
     rv = NS_ERROR_FAILURE;
@@ -618,7 +618,7 @@ nsresult GetOSXFolderType(short aDomain, OSType aFolderType,
   nsresult rv = NS_ERROR_FAILURE;
 
   if (aFolderType == kTemporaryFolderType) {
-    NS_NewLocalFile(EmptyString(), true, aLocalFile);
+    NS_NewLocalFile(u""_ns, true, aLocalFile);
     nsCOMPtr<nsILocalFileMac> localMacFile(do_QueryInterface(*aLocalFile));
     if (localMacFile) {
       rv = localMacFile->InitWithCFURL(
@@ -631,7 +631,7 @@ nsresult GetOSXFolderType(short aDomain, OSType aFolderType,
   FSRef fsRef;
   err = ::FSFindFolder(aDomain, aFolderType, kCreateFolder, &fsRef);
   if (err == noErr) {
-    NS_NewLocalFile(EmptyString(), true, aLocalFile);
+    NS_NewLocalFile(u""_ns, true, aLocalFile);
     nsCOMPtr<nsILocalFileMac> localMacFile(do_QueryInterface(*aLocalFile));
     if (localMacFile) {
       rv = localMacFile->InitWithFSRef(&fsRef);

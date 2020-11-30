@@ -20,6 +20,8 @@
 #endif
 
 using mozilla::IsAscii;
+using mozilla::IsAsciiAlpha;
+using mozilla::IsAsciiDigit;
 
 const double growthRate = 1.2;
 
@@ -568,7 +570,7 @@ bool mozTXTToHTMLConv::ItMatchesDelimited(const char16_t* aInString,
       !Substring(Substring(aInString, aInString + aInLength), ignoreLen,
                  aRepLen)
            .Equals(Substring(rep, rep + aRepLen),
-                   nsCaseInsensitiveStringComparator()))
+                   nsCaseInsensitiveStringComparator))
     return false;
 
   return true;
@@ -930,8 +932,8 @@ int32_t mozTXTToHTMLConv::CiteLevelTXT(const char16_t* line,
       // here, |logLineStart < lineLength| is always true
       uint32_t minlength = std::min(uint32_t(6), NS_strlen(indexString));
       if (Substring(indexString, indexString + minlength)
-              .Equals(Substring(NS_LITERAL_STRING(">From "), 0, minlength),
-                      nsCaseInsensitiveStringComparator()))
+              .Equals(Substring(u">From "_ns, 0, minlength),
+                      nsCaseInsensitiveStringComparator))
         // XXX RFC2646
         moreCites = false;
       else {
@@ -1219,7 +1221,7 @@ mozTXTToHTMLConv::AsyncConvertData(const char* aFromType, const char* aToType,
 
 NS_IMETHODIMP
 mozTXTToHTMLConv::GetConvertedType(const nsACString& aFromType,
-                                   nsACString& aToType) {
+                                   nsIChannel* aChannel, nsACString& aToType) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -1251,10 +1253,8 @@ nsresult MOZ_NewTXTToHTMLConv(mozTXTToHTMLConv** aConv) {
   MOZ_ASSERT(aConv != nullptr, "null ptr");
   if (!aConv) return NS_ERROR_NULL_POINTER;
 
-  *aConv = new mozTXTToHTMLConv();
-  if (!*aConv) return NS_ERROR_OUT_OF_MEMORY;
-
-  NS_ADDREF(*aConv);
+  RefPtr<mozTXTToHTMLConv> conv = new mozTXTToHTMLConv();
+  conv.forget(aConv);
   //    return (*aConv)->Init();
   return NS_OK;
 }

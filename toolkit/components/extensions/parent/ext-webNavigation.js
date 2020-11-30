@@ -5,7 +5,7 @@
 "use strict";
 
 // This file expects tabTracker to be defined in the global scope (e.g.
-// by ext-utils.js).
+// by ext-browser.js or ext-android.js).
 /* global tabTracker */
 
 ChromeUtils.defineModuleGetter(
@@ -233,6 +233,15 @@ this.webNavigation = class extends ExtensionAPI {
         getAllFrames(details) {
           let tab = tabManager.get(details.tabId);
 
+          try {
+            if (tab.discarded) {
+              return null;
+            }
+          } catch (e) {
+            // accessing the tab.discarded getter may reject if not implemented
+            // on the current platform.
+          }
+
           let { innerWindowID, messageManager } = tab.browser;
           let recipient = { innerWindowID };
 
@@ -249,6 +258,15 @@ this.webNavigation = class extends ExtensionAPI {
         },
         getFrame(details) {
           let tab = tabManager.get(details.tabId);
+
+          try {
+            if (tab.discarded) {
+              return null;
+            }
+          } catch (e) {
+            // accessing the tab.discarded getter may reject if not implemented
+            // on the current platform.
+          }
 
           let recipient = {
             innerWindowID: tab.browser.innerWindowID,

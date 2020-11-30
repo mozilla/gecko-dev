@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", async e => {
   let url = new URL(document.URL);
   let certInfo = url.searchParams.getAll("cert");
   if (certInfo.length === 0) {
-    await render(false, true);
+    render({}, false, true);
     return;
   }
   certInfo = certInfo.map(cert => decodeURIComponent(cert));
@@ -23,7 +23,9 @@ document.addEventListener("DOMContentLoaded", async e => {
 export const updateSelectedItem = (() => {
   let state;
   return selectedItem => {
-    let certificateSection = document.querySelector("certificate-section");
+    let certificateSection =
+      document.querySelector("certificate-section") ||
+      document.querySelector("about-certificate-section");
     if (selectedItem) {
       if (state !== selectedItem) {
         state = selectedItem;
@@ -35,7 +37,7 @@ export const updateSelectedItem = (() => {
   };
 })();
 
-const createEntryItem = (labelId, info) => {
+const createEntryItem = (labelId, info, isHex = false) => {
   if (
     labelId == null ||
     info == null ||
@@ -46,6 +48,7 @@ const createEntryItem = (labelId, info) => {
   return {
     labelId,
     info,
+    isHex,
   };
 };
 
@@ -164,9 +167,9 @@ export const adjustCertInformation = cert => {
           createEntryItem("algorithm", cert.subjectPublicKeyInfo.kty),
           createEntryItem("key-size", cert.subjectPublicKeyInfo.keysize),
           createEntryItem("curve", cert.subjectPublicKeyInfo.crv),
-          createEntryItem("public-value", cert.subjectPublicKeyInfo.xy),
+          createEntryItem("public-value", cert.subjectPublicKeyInfo.xy, true),
           createEntryItem("exponent", cert.subjectPublicKeyInfo.e),
-          createEntryItem("modulus", cert.subjectPublicKeyInfo.n),
+          createEntryItem("modulus", cert.subjectPublicKeyInfo.n, true),
         ].filter(elem => elem != null);
       }
       return items;
@@ -179,7 +182,7 @@ export const adjustCertInformation = cert => {
   addToResultUsing(
     () => {
       let items = [
-        createEntryItem("serial-number", cert.serialNumber),
+        createEntryItem("serial-number", cert.serialNumber, true),
         createEntryItem(
           "signature-algorithm",
           cert.signature ? cert.signature.name : null
@@ -199,8 +202,8 @@ export const adjustCertInformation = cert => {
       let items = [];
       if (cert.fingerprint) {
         items = [
-          createEntryItem("sha-256", cert.fingerprint.sha256),
-          createEntryItem("sha-1", cert.fingerprint.sha1),
+          createEntryItem("sha-256", cert.fingerprint.sha256, true),
+          createEntryItem("sha-1", cert.fingerprint.sha1, true),
         ].filter(elem => elem != null);
       }
       return items;
@@ -282,7 +285,7 @@ export const adjustCertInformation = cert => {
     () => {
       let items = [];
       if (cert.ext.sKID) {
-        items = [createEntryItem("key-id", cert.ext.sKID.id)].filter(
+        items = [createEntryItem("key-id", cert.ext.sKID.id, true)].filter(
           elem => elem != null
         );
       }
@@ -297,7 +300,7 @@ export const adjustCertInformation = cert => {
     () => {
       let items = [];
       if (cert.ext.aKID) {
-        items = [createEntryItem("key-id", cert.ext.aKID.id)].filter(
+        items = [createEntryItem("key-id", cert.ext.aKID.id, true)].filter(
           elem => elem != null
         );
       }
@@ -385,8 +388,12 @@ export const adjustCertInformation = cert => {
             if (key.includes("timestamp")) {
               timestamps[key.includes("UTC") ? "utc" : "local"] = entry[key];
             } else {
+              let isHex = false;
+              if (key == "logId") {
+                isHex = true;
+              }
               items.push(
-                createEntryItem(normalizeToKebabCase(key), entry[key])
+                createEntryItem(normalizeToKebabCase(key), entry[key], isHex)
               );
             }
           }
@@ -406,10 +413,20 @@ export const adjustCertInformation = cert => {
   };
 };
 
-const render = async (certs, error) => {
-  await customElements.whenDefined("certificate-section");
-  const CertificateSection = customElements.get("certificate-section");
-  document.querySelector("body").append(new CertificateSection(certs, error));
+// isAboutCertificate means to the standalone page about:certificate, which
+// uses a different customElement than opening a certain certificate
+const render = async (certs, error, isAboutCertificate = false) => {
+  if (isAboutCertificate) {
+    await customElements.whenDefined("about-certificate-section");
+    const AboutCertificateSection = customElements.get(
+      "about-certificate-section"
+    );
+    document.querySelector("body").append(new AboutCertificateSection());
+  } else {
+    await customElements.whenDefined("certificate-section");
+    const CertificateSection = customElements.get("certificate-section");
+    document.querySelector("body").append(new CertificateSection(certs, error));
+  }
   return Promise.resolve();
 };
 
@@ -435,6 +452,12 @@ const buildChain = async chain => {
       if (certs.length === 0) {
         return Promise.reject();
       }
+      let certTitle = document.querySelector("#certTitle");
+      let firstCertCommonName = certs[0].subject.cn;
+      document.l10n.setAttributes(certTitle, "certificate-viewer-tab-title", {
+        firstCertName: firstCertCommonName,
+      });
+
       let adjustedCerts = certs.map(cert => adjustCertInformation(cert));
       return render(adjustedCerts, false);
     })

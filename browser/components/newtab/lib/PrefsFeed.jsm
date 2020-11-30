@@ -111,20 +111,30 @@ this.PrefsFeed = class PrefsFeed {
       value: handoffToAwesomebarPrefValue,
     });
 
+    this._setBoolPref(values, "feeds.section.topstories", false);
     this._setBoolPref(values, "discoverystream.enabled", false);
     this._setBoolPref(values, "discoverystream.isCollectionDismissible", false);
     this._setBoolPref(values, "discoverystream.hardcoded-basic-layout", false);
+    this._setBoolPref(values, "discoverystream.recs.personalized", false);
+    this._setBoolPref(values, "discoverystream.spocs.personalized", false);
     this._setStringPref(
       values,
       "discoverystream.personalization.modelKeys",
       ""
     );
     this._setIntPref(values, "discoverystream.personalization.version", 1);
+    this._setIntPref(values, "discoverystream.personalization.overrideVersion");
     this._setStringPref(values, "discoverystream.spocs-endpoint", "");
 
     // Set the initial state of all prefs in redux
     this.store.dispatch(
-      ac.BroadcastToContent({ type: at.PREFS_INITIAL_VALUES, data: values })
+      ac.BroadcastToContent({
+        type: at.PREFS_INITIAL_VALUES,
+        data: values,
+        meta: {
+          isStartup: true,
+        },
+      })
     );
   }
 

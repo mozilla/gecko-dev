@@ -382,6 +382,10 @@ with modules["NETWORK"]:
     # speak to a proxy server, then it will generate this error if the proxy
     # hostname cannot be resolved.
     errors["NS_ERROR_UNKNOWN_PROXY_HOST"] = FAILURE(42)
+    # This DNS error will occur when the resolver uses the Extended DNS Error
+    # option to indicate an error code for which we should not fall back to the
+    # default DNS resolver. This means the DNS failure is definitive.
+    errors["NS_ERROR_DEFINITIVE_UNKNOWN_HOST"] = FAILURE(43)
 
     # Socket specific error codes:
 
@@ -656,7 +660,6 @@ with modules["DOM"]:
     errors["NS_ERROR_DOM_DATA_CLONE_ERR"] = FAILURE(25)
     # StringEncoding API errors from http://wiki.whatwg.org/wiki/StringEncoding
     errors["NS_ERROR_DOM_ENCODING_NOT_SUPPORTED_ERR"] = FAILURE(28)
-    errors["NS_ERROR_DOM_INVALID_POINTER_ERR"] = FAILURE(29)
     # WebCrypto API errors from http://www.w3.org/TR/WebCryptoAPI/
     errors["NS_ERROR_DOM_UNKNOWN_ERR"] = FAILURE(30)
     errors["NS_ERROR_DOM_DATA_ERR"] = FAILURE(31)
@@ -821,7 +824,6 @@ with modules["XPCONNECT"]:
     errors["NS_ERROR_XPC_HAS_BEEN_SHUTDOWN"] = FAILURE(51)
     errors["NS_ERROR_XPC_CANT_MODIFY_PROP_ON_WN"] = FAILURE(52)
     errors["NS_ERROR_XPC_BAD_CONVERT_JS_ZERO_ISNOT_NULL"] = FAILURE(53)
-    errors["NS_ERROR_XPC_CANT_PASS_CPOW_TO_NATIVE"] = FAILURE(54)
     # any new errors here should have an associated entry added in xpc.msg
 
 
@@ -848,10 +850,9 @@ with modules["SECURITY"]:
 
     # Error code for Sub-Resource Integrity
     errors["NS_ERROR_SRI_CORRUPT"] = FAILURE(200)
-    errors["NS_ERROR_SRI_DISABLED"] = FAILURE(201)
-    errors["NS_ERROR_SRI_NOT_ELIGIBLE"] = FAILURE(202)
-    errors["NS_ERROR_SRI_UNEXPECTED_HASH_TYPE"] = FAILURE(203)
-    errors["NS_ERROR_SRI_IMPORT"] = FAILURE(204)
+    errors["NS_ERROR_SRI_NOT_ELIGIBLE"] = FAILURE(201)
+    errors["NS_ERROR_SRI_UNEXPECTED_HASH_TYPE"] = FAILURE(202)
+    errors["NS_ERROR_SRI_IMPORT"] = FAILURE(203)
 
     # CMS specific nsresult error codes.  Note: the numbers used here correspond
     # to the values in nsICMSMessageErrors.idl.
@@ -888,7 +889,7 @@ with modules["DOM_XPATH"]:
 with modules["URILOADER"]:
     errors["NS_ERROR_WONT_HANDLE_CONTENT"] = FAILURE(1)
     # The load has been cancelled because it was found on a malware or phishing
-    # blacklist.
+    # list.
     errors["NS_ERROR_MALWARE_URI"] = FAILURE(30)
     errors["NS_ERROR_PHISHING_URI"] = FAILURE(31)
     errors["NS_ERROR_TRACKING_URI"] = FAILURE(34)
@@ -1228,6 +1229,8 @@ def error_list_h(output):
 
 #ifndef ErrorList_h__
 #define ErrorList_h__
+
+#include <stdint.h>
 
 """)
 

@@ -7,11 +7,14 @@ const { LoginManagerParent } = ChromeUtils.import(
 ChromeUtils.import("resource://testing-common/LoginTestUtils.jsm", this);
 ChromeUtils.import("resource://testing-common/ContentTaskUtils.jsm", this);
 ChromeUtils.import("resource://testing-common/TelemetryTestUtils.jsm", this);
+ChromeUtils.import("resource://testing-common/PromptTestUtils.jsm", this);
 
 add_task(async function common_initialize() {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["signon.rememberSignons", true],
+      ["signon.testOnlyUserHasInteractedByPrefValue", true],
+      ["signon.testOnlyUserHasInteractedWithDocument", true],
       ["toolkit.telemetry.ipcBatchTimeout", 0],
     ],
   });
@@ -128,7 +131,7 @@ async function submitFormAndGetResults(
         );
         // we don't get an input event if the new value == the old
         field.value = "###";
-        WrapPrivileged.wrap(field).setUserInput(value);
+        WrapPrivileged.wrap(field, this).setUserInput(value);
         await gotInput;
       } catch (ex) {
         throw new Error(
@@ -263,6 +266,7 @@ const NEVER_MENUITEM = 0;
 
 const CHANGE_BUTTON = "button";
 const DONT_CHANGE_BUTTON = "secondaryButton";
+const REMOVE_LOGIN_MENUITEM = 0;
 
 /**
  * Checks if we have a password capture popup notification
@@ -330,7 +334,11 @@ async function waitForDoorhanger(browser, type) {
   await TestUtils.waitForCondition(() => {
     notif = PopupNotifications.getNotification("password", browser);
     if (notif && type !== "any") {
-      return notif.options.passwordNotificationType == type;
+      return (
+        notif.options.passwordNotificationType == type &&
+        notif.anchorElement &&
+        BrowserTestUtils.is_visible(notif.anchorElement)
+      );
     }
     return notif;
   }, `Waiting for a ${type} notification`);
@@ -463,10 +471,10 @@ async function updateDoorhangerInputValues(
     info(`setInputValue: on target: ${target.id}, value: ${value}`);
     target.focus();
     target.select();
-    await EventUtils.synthesizeKey("KEY_Backspace");
     info(
-      `setInputValue: target.value: ${target.value}, sending new value string`
+      `setInputValue: current value: '${target.value}', setting new value '${value}'`
     );
+    await EventUtils.synthesizeKey("KEY_Backspace");
     await EventUtils.sendString(value);
     await EventUtils.synthesizeKey("KEY_Tab");
     return Promise.resolve();
@@ -491,29 +499,87 @@ async function updateDoorhangerInputValues(
   }
 }
 
-// End popup notification (doorhanger) functions //
-
-async function waitForPasswordManagerDialog(openingFunc) {
-  let win;
-  await openingFunc();
-  await TestUtils.waitForCondition(() => {
-    win = Services.wm.getMostRecentWindow("Toolkit:PasswordManager");
-    return win && win.document.getElementById("filter");
-  }, "Waiting for the password manager dialog to open");
-
-  return {
-    filterValue: win.document.getElementById("filter").value,
-    async close() {
-      await BrowserTestUtils.closeWindow(win);
-    },
-  };
+/**
+ * Open doorhanger autocomplete popup and select a username value.
+ *
+ * @param {string} text the text value of the username that should be selected.
+ *                 Noop if `text` is falsy.
+ */
+async function selectDoorhangerUsername(text) {
+  await _selectDoorhanger(
+    text,
+    "#password-notification-username",
+    "#password-notification-username-dropmarker"
+  );
 }
 
-async function waitForPasswordManagerTab(openingFunc, waitForFilter) {
+/**
+ * Open doorhanger autocomplete popup and select a password value.
+ *
+ * @param {string} text the text value of the password that should be selected.
+ *                 Noop if `text` is falsy.
+ */
+async function selectDoorhangerPassword(text) {
+  await _selectDoorhanger(
+    text,
+    "#password-notification-password",
+    "#password-notification-password-dropmarker"
+  );
+}
+
+async function _selectDoorhanger(text, inputSelector, dropmarkerSelector) {
+  if (!text) {
+    return;
+  }
+
+  info("Opening doorhanger suggestion popup");
+
+  let doorhangerPopup = document.getElementById("password-notification");
+  let dropmarker = doorhangerPopup.querySelector(dropmarkerSelector);
+
+  let autocompletePopup = document.getElementById("PopupAutoComplete");
+  let popupShown = BrowserTestUtils.waitForEvent(
+    autocompletePopup,
+    "popupshown"
+  );
+
+  EventUtils.synthesizeMouseAtCenter(dropmarker, {});
+
+  await popupShown;
+
+  let suggestions = [
+    ...document
+      .getElementById("PopupAutoComplete")
+      .getElementsByTagName("richlistitem"),
+  ].filter(richlistitem => !richlistitem.collapsed);
+
+  let suggestionText = suggestions.map(
+    richlistitem => richlistitem.querySelector(".ac-title-text").innerHTML
+  );
+
+  let targetIndex = suggestionText.indexOf(text);
+  ok(targetIndex != -1, "Suggestions include expected text");
+
+  let promiseHidden = BrowserTestUtils.waitForEvent(
+    autocompletePopup,
+    "popuphidden"
+  );
+
+  info("Selecting doorhanger suggestion");
+
+  EventUtils.synthesizeMouseAtCenter(suggestions[targetIndex], {});
+
+  await promiseHidden;
+}
+
+// End popup notification (doorhanger) functions //
+
+async function openPasswordManager(openingFunc, waitForFilter) {
   info("waiting for new tab to open");
   let tabPromise = BrowserTestUtils.waitForNewTab(
     gBrowser,
-    url => url.includes("about:logins") && !url.includes("entryPoint=")
+    url => url.includes("about:logins") && !url.includes("entryPoint="),
+    true
   );
   await openingFunc();
   let tab = await tabPromise;
@@ -539,23 +605,23 @@ async function waitForPasswordManagerTab(openingFunc, waitForFilter) {
   };
 }
 
-function openPasswordManager(openingFunc, waitForFilter) {
-  return Services.prefs.getCharPref("signon.management.overrideURI")
-    ? waitForPasswordManagerTab(openingFunc, waitForFilter)
-    : waitForPasswordManagerDialog(openingFunc);
-}
-
 // Autocomplete popup related functions //
 
-async function openACPopup(popup, browser, inputSelector) {
+async function openACPopup(
+  popup,
+  browser,
+  inputSelector,
+  iframeBrowsingContext = null
+) {
   let promiseShown = BrowserTestUtils.waitForEvent(popup, "popupshown");
 
   await SimpleTest.promiseFocus(browser);
   info("content window focused");
 
   // Focus the username field to open the popup.
+  let target = iframeBrowsingContext || browser;
   await SpecialPowers.spawn(
-    browser,
+    target,
     [[inputSelector]],
     function openAutocomplete(sel) {
       content.document.querySelector(sel).focus();
@@ -624,7 +690,7 @@ async function fillGeneratedPasswordFromOpenACPopup(
  */
 async function openPasswordContextMenu(
   browser,
-  passwordInput,
+  input,
   assertCallback = null,
   browsingContext = null
 ) {
@@ -647,14 +713,14 @@ async function openPasswordContextMenu(
   // (which it does for real user input) in order to not show the password autocomplete.
   let eventDetails = { type: "mousedown", button: 2 };
   await BrowserTestUtils.synthesizeMouseAtCenter(
-    passwordInput,
+    input,
     eventDetails,
     browsingContext
   );
   // Synthesize a contextmenu event to actually open the context menu.
   eventDetails = { type: "contextmenu", button: 2 };
   await BrowserTestUtils.synthesizeMouseAtCenter(
-    passwordInput,
+    input,
     eventDetails,
     browsingContext
   );
@@ -740,15 +806,24 @@ async function doFillGeneratedPasswordContextMenuItem(browser, passwordInput) {
 }
 
 // Content form helpers
-async function changeContentFormValues(browser, selectorValues) {
+async function changeContentFormValues(
+  browser,
+  selectorValues,
+  shouldBlur = true
+) {
   for (let [sel, value] of Object.entries(selectorValues)) {
     info("changeContentFormValues, update: " + sel + ", to: " + value);
-    await changeContentInputValue(browser, sel, value);
+    await changeContentInputValue(browser, sel, value, shouldBlur);
     await TestUtils.waitForTick();
   }
 }
 
-async function changeContentInputValue(browser, selector, str) {
+async function changeContentInputValue(
+  browser,
+  selector,
+  str,
+  shouldBlur = true
+) {
   await SimpleTest.promiseFocus(browser.ownerGlobal);
   let oldValue = await ContentTask.spawn(browser, [selector], function(sel) {
     return content.document.querySelector(sel).value;
@@ -759,22 +834,78 @@ async function changeContentInputValue(browser, selector, str) {
     return;
   }
   info(`changeContentInputValue: from "${oldValue}" to "${str}"`);
-  await ContentTask.spawn(browser, { selector, str }, async function({
-    selector,
-    str,
-  }) {
-    const EventUtils = ContentTaskUtils.getEventUtils(content);
-    let input = content.document.querySelector(selector);
-    input.focus();
-    input.select();
-    await EventUtils.synthesizeKey("KEY_Backspace", {}, content);
-    let changedPromise = ContentTaskUtils.waitForEvent(input, "change");
-    if (str) {
-      await EventUtils.sendString(str, content);
+  await ContentTask.spawn(
+    browser,
+    { selector, str, shouldBlur },
+    async function({ selector, str, shouldBlur }) {
+      const EventUtils = ContentTaskUtils.getEventUtils(content);
+      let input = content.document.querySelector(selector);
+
+      input.focus();
+      if (!str) {
+        input.select();
+        await EventUtils.synthesizeKey("KEY_Backspace", {}, content);
+      } else if (input.value.startsWith(str)) {
+        info(
+          `New string is substring of value: ${str.length}, ${input.value.length}`
+        );
+        input.setSelectionRange(str.length, input.value.length);
+        await EventUtils.synthesizeKey("KEY_Backspace", {}, content);
+      } else if (str.startsWith(input.value)) {
+        info(
+          `New string appends to value: ${input.value}, ${str.substring(
+            input.value.length
+          )}`
+        );
+        input.setSelectionRange(input.value.length, input.value.length);
+        await EventUtils.sendString(str.substring(input.value.length), content);
+      } else {
+        input.select();
+        await EventUtils.sendString(str, content);
+      }
+
+      if (shouldBlur) {
+        let changedPromise = ContentTaskUtils.waitForEvent(input, "change");
+        input.blur();
+        await changedPromise;
+      }
+
+      is(str, input.value, `Expected value '${str}' is set on input`);
     }
-    input.blur();
-    await changedPromise;
-  });
+  );
   info("Input value changed");
   await TestUtils.waitForTick();
+}
+
+async function verifyConfirmationHint(
+  browser,
+  forceClose,
+  anchorID = "password-notification-icon"
+) {
+  let hintElem = browser.ownerGlobal.ConfirmationHint._panel;
+  await BrowserTestUtils.waitForPopupEvent(hintElem, "shown");
+  try {
+    is(hintElem.state, "open", "hint popup is open");
+    ok(
+      BrowserTestUtils.is_visible(hintElem.anchorNode),
+      "hint anchorNode is visible"
+    );
+    is(
+      hintElem.anchorNode.id,
+      anchorID,
+      "Hint should be anchored on the expected notification icon"
+    );
+    info("verifyConfirmationHint, hint is shown and has its anchorNode");
+    if (forceClose) {
+      await closePopup(hintElem);
+    } else {
+      info("verifyConfirmationHint, assertion ok, wait for poopuphidden");
+      await BrowserTestUtils.waitForPopupEvent(hintElem, "hidden");
+      info("verifyConfirmationHint, hintElem popup is hidden");
+    }
+  } catch (ex) {
+    ok(false, "Confirmation hint not shown: " + ex.message);
+  } finally {
+    info("verifyConfirmationHint promise finalized");
+  }
 }

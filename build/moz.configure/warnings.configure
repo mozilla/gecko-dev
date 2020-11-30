@@ -4,9 +4,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-js_option('--enable-warnings-as-errors', env='MOZ_ENABLE_WARNINGS_AS_ERRORS',
-          default=depends('MOZ_AUTOMATION')(lambda x: bool(x)),
-          help='{Enable|Disable} treating warnings as errors')
+option('--enable-warnings-as-errors', env='MOZ_ENABLE_WARNINGS_AS_ERRORS',
+       default=depends('MOZ_AUTOMATION')(lambda x: bool(x)),
+       help='{Enable|Disable} treating warnings as errors')
 
 
 @depends('--enable-warnings-as-errors')
@@ -215,13 +215,11 @@ with only_when(depends(target)(lambda t: t.kernel == 'WINNT')):
 # We hit this all over the place with the gtest INSTANTIATE_TEST_CASE_P macro
 check_and_add_gcc_warning('-Wno-gnu-zero-variadic-macro-arguments')
 
-# Disable a warning with gcc 7. See bug 1320656
-# We are far from using C++17 and the impact of the warning will be
-# limited to a potential public ABI.
-# Currently only affecting js/
-check_and_add_gcc_warning('-Wno-noexcept-type', cxx_compiler,
-                          when=depends(build_project)
-                          (lambda build_project: build_project == 'js'))
+# Make it an error to be missing function declarations.
+check_and_add_gcc_warning('-Werror=implicit-function-declaration')
+
+# New in clang 11. We can't really do anything about this warning.
+check_and_add_gcc_warning('-Wno-psabi')
 
 
 # Please keep these last in this file

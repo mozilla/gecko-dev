@@ -2,65 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
-// checks to see if the frame is selected and the title is correct
-function isFrameSelected(dbg, index, title) {
-  const $frame = findElement(dbg, "frame", index);
-
-  const {
-    selectors: { getSelectedFrame, getCurrentThread },
-    getState,
-  } = dbg;
-
-  const frame = getSelectedFrame(getCurrentThread());
-
-  const elSelected = $frame.classList.contains("selected");
-  const titleSelected = frame.displayName == title;
-
-  return elSelected && titleSelected;
-}
-
-function toggleButton(dbg) {
-  const callStackBody = findElement(dbg, "callStackBody");
-  return callStackBody.querySelector(".show-more");
-}
-
-// Create an HTTP server to simulate an angular app with anonymous functions
-// and return the URL.
-function createMockAngularPage() {
-  const httpServer = createTestHTTPServer();
-
-  httpServer.registerContentType("html", "text/html");
-  httpServer.registerContentType("js", "application/javascript");
-
-  const htmlFilename = "angular-mock.html";
-  httpServer.registerPathHandler(`/${htmlFilename}`, function(
-    request,
-    response
-  ) {
-    response.setStatusLine(request.httpVersion, 200, "OK");
-    response.write(`
-        <html>
-            <button class="pause">Click me</button>
-            <script type="text/javascript" src="angular.js"></script>
-        </html>`);
-  });
-
-  // Register an angular.js file in order to create a Group with anonymous functions in
-  // the callstack panel.
-  httpServer.registerPathHandler("/angular.js", function(request, response) {
-    response.setHeader("Content-Type", "application/javascript");
-    response.write(`
-      document.querySelector("button.pause").addEventListener("click", () => {
-        (function() {
-          debugger;
-        })();
-      })
-    `);
-  });
-
-  const port = httpServer.identity.primaryPort;
-  return `http://localhost:${port}/${htmlFilename}`;
-}
+// Ignore strange errors when shutting down.
+PromiseTestUtils.allowMatchingRejectionsGlobally(/No such actor/);
 
 add_task(async function() {
   const dbg = await initDebugger("doc-script-switching.html");
@@ -125,3 +68,63 @@ add_task(async function() {
     "Group has expected location"
   );
 });
+
+// checks to see if the frame is selected and the title is correct
+function isFrameSelected(dbg, index, title) {
+  const $frame = findElement(dbg, "frame", index);
+
+  const {
+    selectors: { getSelectedFrame, getCurrentThread },
+    getState,
+  } = dbg;
+
+  const frame = getSelectedFrame(getCurrentThread());
+
+  const elSelected = $frame.classList.contains("selected");
+  const titleSelected = frame.displayName == title;
+
+  return elSelected && titleSelected;
+}
+
+function toggleButton(dbg) {
+  const callStackBody = findElement(dbg, "callStackBody");
+  return callStackBody.querySelector(".show-more");
+}
+
+// Create an HTTP server to simulate an angular app with anonymous functions
+// and return the URL.
+function createMockAngularPage() {
+  const httpServer = createTestHTTPServer();
+
+  httpServer.registerContentType("html", "text/html");
+  httpServer.registerContentType("js", "application/javascript");
+
+  const htmlFilename = "angular-mock.html";
+  httpServer.registerPathHandler(`/${htmlFilename}`, function(
+    request,
+    response
+  ) {
+    response.setStatusLine(request.httpVersion, 200, "OK");
+    response.write(`
+        <html>
+            <button class="pause">Click me</button>
+            <script type="text/javascript" src="angular.js"></script>
+        </html>`);
+  });
+
+  // Register an angular.js file in order to create a Group with anonymous functions in
+  // the callstack panel.
+  httpServer.registerPathHandler("/angular.js", function(request, response) {
+    response.setHeader("Content-Type", "application/javascript");
+    response.write(`
+      document.querySelector("button.pause").addEventListener("click", () => {
+        (function() {
+          debugger;
+        })();
+      })
+    `);
+  });
+
+  const port = httpServer.identity.primaryPort;
+  return `http://localhost:${port}/${htmlFilename}`;
+}

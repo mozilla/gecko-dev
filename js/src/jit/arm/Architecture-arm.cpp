@@ -152,7 +152,8 @@ static bool forceDoubleCacheFlush = false;
 #endif
 
 // The override flags parsed from the ARMHWCAP environment variable or from the
-// --arm-hwcap js shell argument.
+// --arm-hwcap js shell argument.  They are stable after startup: there is no
+// longer a programmatic way of setting these from JS.
 volatile uint32_t armHwCapFlags = HWCAP_UNINITIALIZED;
 
 bool ParseARMHwCapFlags(const char* armHwCap) {
@@ -398,6 +399,10 @@ FloatRegisters::Code FloatRegisters::FromName(const char* name) {
 }
 
 FloatRegisterSet VFPRegister::ReduceSetForPush(const FloatRegisterSet& s) {
+#ifdef ENABLE_WASM_SIMD
+#  error "Needs more careful logic if SIMD is enabled"
+#endif
+
   LiveFloatRegisterSet mod;
   for (FloatRegisterIterator iter(s); iter.more(); ++iter) {
     if ((*iter).isSingle()) {
@@ -416,6 +421,10 @@ FloatRegisterSet VFPRegister::ReduceSetForPush(const FloatRegisterSet& s) {
 }
 
 uint32_t VFPRegister::GetPushSizeInBytes(const FloatRegisterSet& s) {
+#ifdef ENABLE_WASM_SIMD
+#  error "Needs more careful logic if SIMD is enabled"
+#endif
+
   FloatRegisterSet ss = s.reduceSetForPush();
   uint64_t bits = ss.bits();
   uint32_t ret = mozilla::CountPopulation32(bits & 0xffffffff) * sizeof(float);
@@ -423,6 +432,10 @@ uint32_t VFPRegister::GetPushSizeInBytes(const FloatRegisterSet& s) {
   return ret;
 }
 uint32_t VFPRegister::getRegisterDumpOffsetInBytes() {
+#ifdef ENABLE_WASM_SIMD
+#  error "Needs more careful logic if SIMD is enabled"
+#endif
+
   if (isSingle()) {
     return id() * sizeof(float);
   }
@@ -439,7 +452,7 @@ uint32_t FloatRegisters::ActualTotalPhys() {
   return 16;
 }
 
-void FlushICache(void* code, size_t size) {
+void FlushICache(void* code, size_t size, bool codeIsThreadLocal) {
 #if defined(JS_SIMULATOR_ARM)
   js::jit::SimulatorProcess::FlushICache(code, size);
 

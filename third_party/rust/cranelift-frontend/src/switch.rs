@@ -1,11 +1,12 @@
 use super::HashMap;
 use crate::frontend::FunctionBuilder;
 use alloc::vec::Vec;
+use core::convert::TryFrom;
 use cranelift_codegen::ir::condcodes::IntCC;
 use cranelift_codegen::ir::*;
 use log::debug;
 
-type EntryIndex = u64;
+type EntryIndex = u128;
 
 /// Unlike with `br_table`, `Switch` cases may be sparse or non-0-based.
 /// They emit efficient code using branches, jump tables, or a combination of both.
@@ -152,13 +153,14 @@ impl Switch {
                 let left_block = bx.create_block();
                 let right_block = bx.create_block();
 
-                let should_take_right_side = bx.ins().icmp_imm(
-                    IntCC::UnsignedGreaterThanOrEqual,
-                    val,
-                    right[0].first_index as i64,
-                );
+                let first_index = right[0].first_index;
+                let should_take_right_side =
+                    icmp_imm_u128(bx, IntCC::UnsignedGreaterThanOrEqual, val, first_index);
                 bx.ins().brnz(should_take_right_side, right_block, &[]);
                 bx.ins().jump(left_block, &[]);
+
+                bx.seal_block(left_block);
+                bx.seal_block(right_block);
 
                 stack.push((Some(left_block), left));
                 stack.push((Some(right_block), right));
@@ -181,6 +183,7 @@ impl Switch {
             if was_branch {
                 let block = bx.create_block();
                 bx.ins().jump(block, &[]);
+                bx.seal_block(block);
                 bx.switch_to_block(block);
             }
         };
@@ -196,13 +199,14 @@ impl Switch {
                 }
                 (1, _) => {
                     ins_fallthrough_jump(was_branch, bx);
-                    let is_good_val = bx.ins().icmp_imm(IntCC::Equal, val, first_index as i64);
+                    let is_good_val = icmp_imm_u128(bx, IntCC::Equal, val, first_index);
                     bx.ins().brnz(is_good_val, blocks[0], &[]);
                 }
                 (_, 0) => {
                     // if `first_index` is 0, then `icmp_imm uge val, first_index` is trivially true
                     let jt_block = bx.create_block();
                     bx.ins().jump(jt_block, &[]);
+                    bx.seal_block(jt_block);
                     cases_and_jt_blocks.push((first_index, jt_block, blocks));
                     // `jump otherwise` below must not be hit, because the current block has been
                     // filled above. This is the last iteration anyway, as 0 is the smallest
@@ -212,12 +216,10 @@ impl Switch {
                 (_, _) => {
                     ins_fallthrough_jump(was_branch, bx);
                     let jt_block = bx.create_block();
-                    let is_good_val = bx.ins().icmp_imm(
-                        IntCC::UnsignedGreaterThanOrEqual,
-                        val,
-                        first_index as i64,
-                    );
+                    let is_good_val =
+                        icmp_imm_u128(bx, IntCC::UnsignedGreaterThanOrEqual, val, first_index);
                     bx.ins().brnz(is_good_val, jt_block, &[]);
+                    bx.seal_block(jt_block);
                     cases_and_jt_blocks.push((first_index, jt_block, blocks));
                 }
             }
@@ -235,6 +237,13 @@ impl Switch {
         cases_and_jt_blocks: Vec<(EntryIndex, Block, Vec<Block>)>,
     ) {
         for (first_index, jt_block, blocks) in cases_and_jt_blocks.into_iter().rev() {
+            // There are currently no 128bit systems supported by rustc, but once we do ensure that
+            // we don't silently ignore a part of the jump table for 128bit integers on 128bit systems.
+            assert!(
+                u32::try_from(blocks.len()).is_ok(),
+                "Jump tables bigger than 2^32-1 are not yet supported"
+            );
+
             let mut jt_data = JumpTableData::new();
             for block in blocks {
                 jt_data.push_entry(block);
@@ -245,8 +254,38 @@ impl Switch {
             let discr = if first_index == 0 {
                 val
             } else {
-                bx.ins().iadd_imm(val, (first_index as i64).wrapping_neg())
+                if let Ok(first_index) = u64::try_from(first_index) {
+                    bx.ins().iadd_imm(val, (first_index as i64).wrapping_neg())
+                } else {
+                    let (lsb, msb) = (first_index as u64, (first_index >> 64) as u64);
+                    let lsb = bx.ins().iconst(types::I64, lsb as i64);
+                    let msb = bx.ins().iconst(types::I64, msb as i64);
+                    let index = bx.ins().iconcat(lsb, msb);
+                    bx.ins().isub(val, index)
+                }
             };
+
+            let discr = if bx.func.dfg.value_type(discr).bits() > 32 {
+                // Check for overflow of cast to u32.
+                let new_block = bx.create_block();
+                let bigger_than_u32 =
+                    bx.ins()
+                        .icmp_imm(IntCC::UnsignedGreaterThan, discr, u32::max_value() as i64);
+                bx.ins().brnz(bigger_than_u32, otherwise, &[]);
+                bx.ins().jump(new_block, &[]);
+                bx.switch_to_block(new_block);
+
+                // Cast to u32, as br_table is not implemented for integers bigger than 32bits.
+                let discr = if bx.func.dfg.value_type(discr) == types::I128 {
+                    bx.ins().isplit(discr).0
+                } else {
+                    discr
+                };
+                bx.ins().ireduce(types::I32, discr)
+            } else {
+                discr
+            };
+
             bx.ins().br_table(discr, otherwise, jump_table);
         }
     }
@@ -269,6 +308,18 @@ impl Switch {
         let cases_and_jt_blocks =
             Self::build_search_tree(bx, val, otherwise, contiguous_case_ranges);
         Self::build_jump_tables(bx, val, otherwise, cases_and_jt_blocks);
+    }
+}
+
+fn icmp_imm_u128(bx: &mut FunctionBuilder, cond: IntCC, x: Value, y: u128) -> Value {
+    if let Ok(index) = u64::try_from(y) {
+        bx.ins().icmp_imm(cond, x, index as i64)
+    } else {
+        let (lsb, msb) = (y as u64, (y >> 64) as u64);
+        let lsb = bx.ins().iconst(types::I64, lsb as i64);
+        let msb = bx.ins().iconst(types::I64, msb as i64);
+        let index = bx.ins().iconcat(lsb, msb);
+        bx.ins().icmp(cond, x, index)
     }
 }
 
@@ -434,7 +485,7 @@ block10:
 
     #[test]
     fn switch_min_index_value() {
-        let func = setup!(0, [::core::i64::MIN as u64, 1,]);
+        let func = setup!(0, [::core::i64::MIN as u64 as u128, 1,]);
         assert_eq!(
             func,
             "block0:
@@ -453,7 +504,7 @@ block3:
 
     #[test]
     fn switch_max_index_value() {
-        let func = setup!(0, [::core::i64::MAX as u64, 1,]);
+        let func = setup!(0, [::core::i64::MAX as u64 as u128, 1,]);
         assert_eq!(
             func,
             "block0:
@@ -472,7 +523,7 @@ block3:
 
     #[test]
     fn switch_optimal_codegen() {
-        let func = setup!(0, [-1i64 as u64, 0, 1,]);
+        let func = setup!(0, [-1i64 as u64 as u128, 0, 1,]);
         assert_eq!(
             func,
             "    jt0 = jump_table [block2, block3]
@@ -486,6 +537,125 @@ block0:
 
 block4:
     br_table.i32 v1, block0, jt0"
+        );
+    }
+
+    #[test]
+    fn switch_seal_generated_blocks() {
+        let keys = [0, 1, 2, 10, 11, 12, 20, 30, 40, 50];
+
+        let mut func = Function::new();
+        let mut builder_ctx = FunctionBuilderContext::new();
+        let mut builder = FunctionBuilder::new(&mut func, &mut builder_ctx);
+
+        let root_block = builder.create_block();
+        let default_block = builder.create_block();
+        let mut switch = Switch::new();
+
+        let case_blocks = keys
+            .iter()
+            .map(|key| {
+                let block = builder.create_block();
+                switch.set_entry(*key, block);
+                block
+            })
+            .collect::<Vec<_>>();
+
+        builder.seal_block(root_block);
+        builder.switch_to_block(root_block);
+
+        let val = builder.ins().iconst(types::I32, 1);
+        switch.emit(&mut builder, val, default_block);
+
+        for &block in case_blocks.iter().chain(std::iter::once(&default_block)) {
+            builder.seal_block(block);
+            builder.switch_to_block(block);
+            builder.ins().return_(&[]);
+        }
+
+        builder.finalize(); // Will panic if some blocks are not sealed
+    }
+
+    #[test]
+    fn switch_64bit() {
+        let mut func = Function::new();
+        let mut func_ctx = FunctionBuilderContext::new();
+        {
+            let mut bx = FunctionBuilder::new(&mut func, &mut func_ctx);
+            let block0 = bx.create_block();
+            bx.switch_to_block(block0);
+            let val = bx.ins().iconst(types::I64, 0);
+            let mut switch = Switch::new();
+            let block1 = bx.create_block();
+            switch.set_entry(1, block1);
+            let block2 = bx.create_block();
+            switch.set_entry(0, block2);
+            let block3 = bx.create_block();
+            switch.emit(&mut bx, val, block3);
+        }
+        let func = func
+            .to_string()
+            .trim_start_matches("function u0:0() fast {\n")
+            .trim_end_matches("\n}\n")
+            .to_string();
+        assert_eq!(
+            func,
+            "    jt0 = jump_table [block2, block1]
+
+block0:
+    v0 = iconst.i64 0
+    jump block4
+
+block4:
+    v1 = icmp_imm.i64 ugt v0, 0xffff_ffff
+    brnz v1, block3
+    jump block5
+
+block5:
+    v2 = ireduce.i32 v0
+    br_table v2, block3, jt0"
+        );
+    }
+
+    #[test]
+    fn switch_128bit() {
+        let mut func = Function::new();
+        let mut func_ctx = FunctionBuilderContext::new();
+        {
+            let mut bx = FunctionBuilder::new(&mut func, &mut func_ctx);
+            let block0 = bx.create_block();
+            bx.switch_to_block(block0);
+            let val = bx.ins().iconst(types::I128, 0);
+            let mut switch = Switch::new();
+            let block1 = bx.create_block();
+            switch.set_entry(1, block1);
+            let block2 = bx.create_block();
+            switch.set_entry(0, block2);
+            let block3 = bx.create_block();
+            switch.emit(&mut bx, val, block3);
+        }
+        let func = func
+            .to_string()
+            .trim_start_matches("function u0:0() fast {\n")
+            .trim_end_matches("\n}\n")
+            .to_string();
+        assert_eq!(
+            func,
+            "    jt0 = jump_table [block2, block1]
+
+block0:
+    v0 = iconst.i128 0
+    jump block4
+
+block4:
+    v1 = icmp_imm.i128 ugt v0, 0xffff_ffff
+    brnz v1, block3
+    jump block5
+
+block5:
+    v2, v3 = isplit.i128 v0
+    v4 = ireduce.i32 v2
+    br_table v4, block3, jt0"
         );
     }
 }

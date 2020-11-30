@@ -7,6 +7,7 @@
 #include "VRProcessParent.h"
 #include "VRGPUChild.h"
 #include "VRProcessManager.h"
+#include "mozilla/dom/MemoryReportRequest.h"
 #include "mozilla/gfx/GPUProcessManager.h"
 #include "mozilla/gfx/GPUChild.h"
 #include "mozilla/ipc/ProtocolTypes.h"
@@ -16,7 +17,6 @@
 #include "mozilla/Unused.h"
 #include "ProcessUtils.h"
 #include "VRChild.h"
-#include "VRManager.h"
 #include "VRThread.h"
 
 #include "nsAppRunner.h"  // for IToplevelProtocol

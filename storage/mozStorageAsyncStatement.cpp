@@ -118,21 +118,21 @@ nsresult AsyncStatement::initialize(Connection* aDBConnection,
   // escapeStringForLIKE instead of just trusting user input.  The idea to
   // check to see if they are binding a parameter after like instead of just
   // using a string.  We only do this in debug builds because it's expensive!
-  const nsCaseInsensitiveCStringComparator c;
+  auto c = nsCaseInsensitiveCStringComparator;
   nsACString::const_iterator start, end, e;
   aSQLStatement.BeginReading(start);
   aSQLStatement.EndReading(end);
   e = end;
-  while (::FindInReadable(NS_LITERAL_CSTRING(" LIKE"), start, e, c)) {
+  while (::FindInReadable(" LIKE"_ns, start, e, c)) {
     // We have a LIKE in here, so we perform our tests
     // FindInReadable moves the iterator, so we have to get a new one for
     // each test we perform.
     nsACString::const_iterator s1, s2, s3;
     s1 = s2 = s3 = start;
 
-    if (!(::FindInReadable(NS_LITERAL_CSTRING(" LIKE ?"), s1, end, c) ||
-          ::FindInReadable(NS_LITERAL_CSTRING(" LIKE :"), s2, end, c) ||
-          ::FindInReadable(NS_LITERAL_CSTRING(" LIKE @"), s3, end, c))) {
+    if (!(::FindInReadable(" LIKE ?"_ns, s1, end, c) ||
+          ::FindInReadable(" LIKE :"_ns, s2, end, c) ||
+          ::FindInReadable(" LIKE @"_ns, s3, end, c))) {
       // At this point, we didn't find a LIKE statement followed by ?, :,
       // or @, all of which are valid characters for binding a parameter.
       // We will warn the consumer that they may not be safely using LIKE.

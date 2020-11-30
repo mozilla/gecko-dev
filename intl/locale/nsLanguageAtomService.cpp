@@ -170,7 +170,19 @@ nsStaticAtom* nsLanguageAtomService::GetUncachedLanguageGroup(
       }
     }
   } else {
-    // If the lang code can be parsed as BCP47, look up its (likely) script
+    // If the lang code can be parsed as BCP47, look up its (likely) script.
+
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=1618034:
+    // First strip any private subtags that would cause Locale to reject the
+    // tag as non-wellformed.
+    nsACString::const_iterator start, end;
+    langStr.BeginReading(start);
+    langStr.EndReading(end);
+    if (FindInReadable("-x-"_ns, start, end)) {
+      // The substring we want ends at the beginning of the "-x-" subtag.
+      langStr.Truncate(start.get() - langStr.BeginReading());
+    }
+
     Locale loc(langStr);
     if (loc.IsWellFormed()) {
       // Fill in script subtag if not present.
@@ -187,7 +199,7 @@ nsStaticAtom* nsLanguageAtomService::GetUncachedLanguageGroup(
       }
       // Search list of known script subtags that map to langGroup codes.
       size_t foundIndex;
-      const nsDependentCSubstring& script = loc.GetScript();
+      nsDependentCSubstring script = loc.GetScript();
       if (BinarySearchIf(
               kScriptLangGroup, 0, ArrayLength(kScriptLangGroup),
               [script](const auto& entry) -> int {

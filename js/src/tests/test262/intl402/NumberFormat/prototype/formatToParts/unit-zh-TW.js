@@ -1,4 +1,3 @@
-// |reftest| skip-if(release_or_beta) -- Intl.NumberFormat-unified is not released yet
 // Copyright 2019 Igalia, S.L. All rights reserved.
 // This code is governed by the BSD license found in the LICENSE file.
 
@@ -25,73 +24,73 @@ const tests = [
     -987,
     {
       "short":
-        [{"type":"minusSign","value":"-"},{"type":"integer","value":"987"},{"type":"literal","value":" "},{"type":"unit","value":"公尺"}],
+        [{"type":"minusSign","value":"-"},{"type":"integer","value":"987"},{"type":"literal","value":" "},{"type":"unit","value":"公里/小時"}],
       "narrow":
-        [{"type":"minusSign","value":"-"},{"type":"integer","value":"987"},{"type":"unit","value":"公尺"}],
+        [{"type":"minusSign","value":"-"},{"type":"integer","value":"987"},{"type":"unit","value":"公里/小時"}],
       "long":
-        [{"type":"minusSign","value":"-"},{"type":"integer","value":"987"},{"type":"literal","value":" "},{"type":"unit","value":"公尺"}],
+        [{"type":"unit","value":"每小時"},{"type":"literal","value":" "},{"type":"minusSign","value":"-"},{"type":"integer","value":"987"},{"type":"literal","value":" "},{"type":"unit","value":"公里"}],
     }
   ],
   [
     -0.001,
     {
       "short":
-        [{"type":"minusSign","value":"-"},{"type":"integer","value":"0"},{"type":"decimal","value":"."},{"type":"fraction","value":"001"},{"type":"literal","value":" "},{"type":"unit","value":"公尺"}],
+        [{"type":"minusSign","value":"-"},{"type":"integer","value":"0"},{"type":"decimal","value":"."},{"type":"fraction","value":"001"},{"type":"literal","value":" "},{"type":"unit","value":"公里/小時"}],
       "narrow":
-        [{"type":"minusSign","value":"-"},{"type":"integer","value":"0"},{"type":"decimal","value":"."},{"type":"fraction","value":"001"},{"type":"unit","value":"公尺"}],
+        [{"type":"minusSign","value":"-"},{"type":"integer","value":"0"},{"type":"decimal","value":"."},{"type":"fraction","value":"001"},{"type":"unit","value":"公里/小時"}],
       "long":
-        [{"type":"minusSign","value":"-"},{"type":"integer","value":"0"},{"type":"decimal","value":"."},{"type":"fraction","value":"001"},{"type":"literal","value":" "},{"type":"unit","value":"公尺"}],
+        [{"type":"unit","value":"每小時"},{"type":"literal","value":" "},{"type":"minusSign","value":"-"},{"type":"integer","value":"0"},{"type":"decimal","value":"."},{"type":"fraction","value":"001"},{"type":"literal","value":" "},{"type":"unit","value":"公里"}],
     }
   ],
   [
     -0,
     {
       "short":
-        [{"type":"minusSign","value":"-"},{"type":"integer","value":"0"},{"type":"literal","value":" "},{"type":"unit","value":"公尺"}],
+        [{"type":"minusSign","value":"-"},{"type":"integer","value":"0"},{"type":"literal","value":" "},{"type":"unit","value":"公里/小時"}],
       "narrow":
-        [{"type":"minusSign","value":"-"},{"type":"integer","value":"0"},{"type":"unit","value":"公尺"}],
+        [{"type":"minusSign","value":"-"},{"type":"integer","value":"0"},{"type":"unit","value":"公里/小時"}],
       "long":
-        [{"type":"minusSign","value":"-"},{"type":"integer","value":"0"},{"type":"literal","value":" "},{"type":"unit","value":"公尺"}],
+        [{"type":"unit","value":"每小時"},{"type":"literal","value":" "},{"type":"minusSign","value":"-"},{"type":"integer","value":"0"},{"type":"literal","value":" "},{"type":"unit","value":"公里"}],
     }
   ],
   [
     0,
     {
       "short":
-        [{"type":"integer","value":"0"},{"type":"literal","value":" "},{"type":"unit","value":"公尺"}],
+        [{"type":"integer","value":"0"},{"type":"literal","value":" "},{"type":"unit","value":"公里/小時"}],
       "narrow":
-        [{"type":"integer","value":"0"},{"type":"unit","value":"公尺"}],
+        [{"type":"integer","value":"0"},{"type":"unit","value":"公里/小時"}],
       "long":
-        [{"type":"integer","value":"0"},{"type":"literal","value":" "},{"type":"unit","value":"公尺"}],
+        [{"type":"unit","value":"每小時"},{"type":"literal","value":" "},{"type":"integer","value":"0"},{"type":"literal","value":" "},{"type":"unit","value":"公里"}],
     }
   ],
   [
     0.001,
     {
       "short":
-        [{"type":"integer","value":"0"},{"type":"decimal","value":"."},{"type":"fraction","value":"001"},{"type":"literal","value":" "},{"type":"unit","value":"公尺"}],
+        [{"type":"integer","value":"0"},{"type":"decimal","value":"."},{"type":"fraction","value":"001"},{"type":"literal","value":" "},{"type":"unit","value":"公里/小時"}],
       "narrow":
-        [{"type":"integer","value":"0"},{"type":"decimal","value":"."},{"type":"fraction","value":"001"},{"type":"unit","value":"公尺"}],
+        [{"type":"integer","value":"0"},{"type":"decimal","value":"."},{"type":"fraction","value":"001"},{"type":"unit","value":"公里/小時"}],
       "long":
-        [{"type":"integer","value":"0"},{"type":"decimal","value":"."},{"type":"fraction","value":"001"},{"type":"literal","value":" "},{"type":"unit","value":"公尺"}],
+        [{"type":"unit","value":"每小時"},{"type":"literal","value":" "},{"type":"integer","value":"0"},{"type":"decimal","value":"."},{"type":"fraction","value":"001"},{"type":"literal","value":" "},{"type":"unit","value":"公里"}],
     }
   ],
   [
     987,
     {
       "short":
-        [{"type":"integer","value":"987"},{"type":"literal","value":" "},{"type":"unit","value":"公尺"}],
+        [{"type":"integer","value":"987"},{"type":"literal","value":" "},{"type":"unit","value":"公里/小時"}],
       "narrow":
-        [{"type":"integer","value":"987"},{"type":"unit","value":"公尺"}],
+        [{"type":"integer","value":"987"},{"type":"unit","value":"公里/小時"}],
       "long":
-        [{"type":"integer","value":"987"},{"type":"literal","value":" "},{"type":"unit","value":"公尺"}],
+        [{"type":"unit","value":"每小時"},{"type":"literal","value":" "},{"type":"integer","value":"987"},{"type":"literal","value":" "},{"type":"unit","value":"公里"}],
     }
   ],
 ];
 
 for (const [number, expectedData] of tests) {
   for (const [unitDisplay, expected] of Object.entries(expectedData)) {
-    const nf = new Intl.NumberFormat("zh-TW", { style: "unit", unit: "meter", unitDisplay });
+    const nf = new Intl.NumberFormat("zh-TW", { style: "unit", unit: "kilometer-per-hour", unitDisplay });
     verifyFormatParts(nf.formatToParts(number), expected);
   }
 }

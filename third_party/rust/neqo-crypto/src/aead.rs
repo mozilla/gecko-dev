@@ -4,7 +4,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::constants::*;
+use crate::constants::{Cipher, Version};
 use crate::err::{Error, Res};
 use crate::p11::{PK11SymKey, SymKey};
 use crate::ssl;
@@ -53,8 +53,6 @@ pub struct Aead {
     ctx: AeadContext,
 }
 
-// TODO(mt) move unused_self once https://github.com/rust-lang/rust-clippy/issues/5053 is fixed
-#[allow(clippy::unused_self)]
 impl Aead {
     /// Create a new AEAD based on the indicated TLS version and cipher suite.
     ///
@@ -66,6 +64,7 @@ impl Aead {
     }
 
     #[must_use]
+    #[allow(clippy::unused_self)]
     pub fn expansion(&self) -> usize {
         16
     }

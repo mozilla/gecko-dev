@@ -19,7 +19,6 @@
 #include "mozilla/widget/CompositorWidget.h"
 #include "mozilla/widget/WinCompositorWidget.h"
 #include "MLGShaders.h"
-#include "LayersLogging.h"
 #include "TextureD3D11.h"
 #include "gfxConfig.h"
 #include "mozilla/StaticPrefs_layers.h"
@@ -268,6 +267,10 @@ bool MLGSwapChainD3D11::Initialize(CompositorWidget* aWidget) {
       mSwapChain1->SetBackgroundColor(&color);
       mSwapChain = mSwapChain1;
       mIsDoubleBuffered = true;
+    } else if (aWidget->AsWindows()->GetCompositorHwnd()) {
+      // Destroy compositor window.
+      aWidget->AsWindows()->DestroyCompositorWindow();
+      hwnd = aWidget->AsWindows()->GetHwnd();
     }
   }
 
@@ -826,8 +829,10 @@ bool MLGDeviceD3D11::Initialize() {
   LAZY_PS(ComponentAlphaQuadPS, ComponentAlphaQuad);
   LAZY_PS(ComponentAlphaVertexPS, ComponentAlphaVertex);
   LAZY_PS(TexturedVertexIMC4, TexturedVertexIMC4);
+  LAZY_PS(TexturedVertexIdentityIMC4, TexturedVertexIdentityIMC4);
   LAZY_PS(TexturedVertexNV12, TexturedVertexNV12);
   LAZY_PS(TexturedQuadIMC4, TexturedQuadIMC4);
+  LAZY_PS(TexturedQuadIdentityIMC4, TexturedQuadIdentityIMC4);
   LAZY_PS(TexturedQuadNV12, TexturedQuadNV12);
   LAZY_PS(BlendMultiplyPS, BlendMultiply);
   LAZY_PS(BlendScreenPS, BlendScreen);
@@ -1572,7 +1577,8 @@ RefPtr<MLGRenderTarget> MLGDeviceD3D11::CreateRenderTarget(
   return rt;
 }
 
-void MLGDeviceD3D11::Clear(MLGRenderTarget* aRT, const gfx::Color& aColor) {
+void MLGDeviceD3D11::Clear(MLGRenderTarget* aRT,
+                           const gfx::DeviceColor& aColor) {
   MLGRenderTargetD3D11* rt = aRT->AsD3D11();
   FLOAT rgba[4] = {aColor.r, aColor.g, aColor.b, aColor.a};
   mCtx->ClearRenderTargetView(rt->GetRenderTargetView(), rgba);
@@ -1588,7 +1594,7 @@ void MLGDeviceD3D11::ClearDepthBuffer(MLGRenderTarget* aRT) {
   }
 }
 
-void MLGDeviceD3D11::ClearView(MLGRenderTarget* aRT, const Color& aColor,
+void MLGDeviceD3D11::ClearView(MLGRenderTarget* aRT, const DeviceColor& aColor,
                                const IntRect* aRects, size_t aNumRects) {
   MOZ_ASSERT(mCanUseClearView);
   MOZ_ASSERT(mCtx1);
@@ -1841,7 +1847,7 @@ void MLGDeviceD3D11::HandleDeviceReset(const char* aWhere) {
     return;
   }
 
-  Fail(NS_LITERAL_CSTRING("FEATURE_FAILURE_DEVICE_RESET"), nullptr);
+  Fail("FEATURE_FAILURE_DEVICE_RESET"_ns, nullptr);
 
   gfxCriticalNote << "GFX: D3D11 detected a device reset in " << aWhere;
   if (XRE_IsGPUProcess()) {
@@ -1884,15 +1890,14 @@ void MLGDeviceD3D11::CopyTexture(MLGTexture* aDest,
   IntRect sourceBounds(IntPoint(0, 0), aSource->GetSize());
   if (!sourceBounds.Contains(aRect)) {
     gfxWarning() << "Attempt to read out-of-bounds in CopySubresourceRegion: "
-                 << Stringify(sourceBounds) << ", " << Stringify(aRect);
+                 << sourceBounds << ", " << aRect;
     return;
   }
 
   IntRect destBounds(IntPoint(0, 0), aDest->GetSize());
   if (!destBounds.Contains(IntRect(aTarget, aRect.Size()))) {
     gfxWarning() << "Attempt to write out-of-bounds in CopySubresourceRegion: "
-                 << Stringify(destBounds) << ", " << Stringify(aTarget) << ", "
-                 << Stringify(aRect.Size());
+                 << destBounds << ", " << aTarget << ", " << aRect.Size();
     return;
   }
 
@@ -1952,16 +1957,18 @@ bool MLGDeviceD3D11::VerifyConstantBufferOffsetting() {
       return false;
     }
 
-    *reinterpret_cast<Color*>(map.mData) = Color(1.0f, 0.2f, 0.3f, 1.0f);
-    *reinterpret_cast<Color*>(map.mData + kConstantSize * kMinConstants) =
-        Color(0.4f, 0.0f, 0.5f, 1.0f);
-    *reinterpret_cast<Color*>(map.mData + (kConstantSize * kMinConstants) * 2) =
-        Color(0.6f, 0.7f, 1.0f, 1.0f);
+    *reinterpret_cast<DeviceColor*>(map.mData) =
+        DeviceColor(1.0f, 0.2f, 0.3f, 1.0f);
+    *reinterpret_cast<DeviceColor*>(map.mData + kConstantSize * kMinConstants) =
+        DeviceColor(0.4f, 0.0f, 0.5f, 1.0f);
+    *reinterpret_cast<DeviceColor*>(map.mData +
+                                    (kConstantSize * kMinConstants) * 2) =
+        DeviceColor(0.6f, 0.7f, 1.0f, 1.0f);
 
     Unmap(buffer);
   }
 
-  Clear(rt, Color(0.0f, 0.0f, 0.0f, 1.0f));
+  Clear(rt, DeviceColor(0.0f, 0.0f, 0.0f, 1.0f));
   SetRenderTarget(rt);
   SetViewport(IntRect(0, 0, 2, 2));
   SetScissorRect(Nothing());

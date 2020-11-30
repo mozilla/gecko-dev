@@ -8,49 +8,42 @@ const { GeckoViewActorChild } = ChromeUtils.import(
 const { LoadURIDelegate } = ChromeUtils.import(
   "resource://gre/modules/LoadURIDelegate.jsm"
 );
+const { XPCOMUtils } = ChromeUtils.import(
+  "resource://gre/modules/XPCOMUtils.jsm"
+);
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+
+XPCOMUtils.defineLazyModuleGetters(this, {
+  E10SUtils: "resource://gre/modules/E10SUtils.jsm",
+});
 
 var EXPORTED_SYMBOLS = ["LoadURIDelegateChild"];
 
 // Implements nsILoadURIDelegate.
 class LoadURIDelegateChild extends GeckoViewActorChild {
-  /** Returns true if this docShell is of type Content, false otherwise. */
-  get isContentWindow() {
-    if (!this.docShell) {
-      return false;
-    }
-
-    // Some WebExtension windows are tagged as content but really they are not
-    // for us (e.g. the remote debugging window or the background extension
-    // page).
-    const browser = this.browsingContext.top.embedderElement;
-    if (browser) {
-      const viewType = browser.getAttribute("webextension-view-type");
-      if (viewType) {
-        debug`webextension-view-type: ${viewType}`;
-        return false;
-      }
-      const debugTarget = browser.getAttribute(
-        "webextension-addon-debug-target"
-      );
-      if (debugTarget) {
-        debug`webextension-addon-debug-target: ${debugTarget}`;
-        return false;
-      }
-    }
-
-    return this.docShell.itemType == this.docShell.typeContent;
-  }
-
   // nsILoadURIDelegate.
   loadURI(aUri, aWhere, aFlags, aTriggeringPrincipal) {
     debug`loadURI: uri=${aUri && aUri.spec}
                     where=${aWhere} flags=0x${aFlags.toString(16)}
-                    tp=${aTriggeringPrincipal &&
-                      aTriggeringPrincipal.URI &&
-                      aTriggeringPrincipal.URI.spec}`;
+                    tp=${aTriggeringPrincipal && aTriggeringPrincipal.spec}`;
     if (!this.isContentWindow) {
       debug`loadURI: not a content window`;
       // This is an internal Gecko window, nothing to do
+      return false;
+    }
+
+    // Ignore any load going to the extension process
+    // TODO: Remove workaround after Bug 1619798
+    if (
+      WebExtensionPolicy.useRemoteWebExtensions &&
+      E10SUtils.getRemoteTypeForURIObject(
+        aUri,
+        /* aMultiProcess */ true,
+        /* aRemoteSubframes */ false,
+        Services.appinfo.remoteType
+      ) == E10SUtils.EXTENSION_REMOTE_TYPE
+    ) {
+      debug`Bypassing load delegate in the Extension process.`;
       return false;
     }
 
@@ -96,7 +89,7 @@ class LoadURIDelegateChild extends GeckoViewActorChild {
 }
 
 LoadURIDelegateChild.prototype.QueryInterface = ChromeUtils.generateQI([
-  Ci.nsILoadURIDelegate,
+  "nsILoadURIDelegate",
 ]);
 
-const { debug, warn } = LoadURIDelegateChild.initLogging("LoadURIDelegate"); // eslint-disable-line no-unused-vars
+const { debug, warn } = LoadURIDelegateChild.initLogging("LoadURIDelegate");

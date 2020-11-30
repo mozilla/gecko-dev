@@ -168,9 +168,8 @@ bool CompositorD3D11::Initialize(nsCString* const out_failureReason) {
   }
   if (!mAttachments || !mAttachments->IsValid()) {
     gfxCriticalNote << "[D3D11] failed to get compositor device attachments";
-    *out_failureReason =
-        mAttachments ? mAttachments->GetFailureId()
-                     : NS_LITERAL_CSTRING("FEATURE_FAILURE_NO_ATTACHMENTS");
+    *out_failureReason = mAttachments ? mAttachments->GetFailureId()
+                                      : "FEATURE_FAILURE_NO_ATTACHMENTS"_ns;
     return false;
   }
 
@@ -240,6 +239,10 @@ bool CompositorD3D11::Initialize(nsCString* const out_failureReason) {
         swapChain->SetBackgroundColor(&color);
 
         mSwapChain = swapChain;
+      } else if (mWidget->AsWindows()->GetCompositorHwnd()) {
+        // Destroy compositor window.
+        mWidget->AsWindows()->DestroyCompositorWindow();
+        mHwnd = mWidget->AsWindows()->GetHwnd();
       }
     }
 
@@ -929,7 +932,7 @@ void CompositorD3D11::DrawGeometry(const Geometry& aGeometry,
 
   switch (aEffectChain.mPrimaryEffect->mType) {
     case EffectTypes::SOLID_COLOR: {
-      Color color =
+      DeviceColor color =
           static_cast<EffectSolidColor*>(aEffectChain.mPrimaryEffect.get())
               ->mColor;
       mPSConstants.layerColor[0] = color.r * color.a * aOpacity;
@@ -1243,9 +1246,11 @@ Maybe<IntRect> CompositorD3D11::BeginFrame(const nsIntRegion& aInvalidRegion,
 void CompositorD3D11::NormalDrawingDone() { mDiagnostics->End(); }
 
 void CompositorD3D11::EndFrame() {
+#ifdef MOZ_GECKO_PROFILER
   if (!profiler_feature_active(ProfilerFeature::Screenshots) && mWindowRTCopy) {
     mWindowRTCopy = nullptr;
   }
+#endif  // MOZ_GECKO_PROFILER
 
   if (!mDefaultRT) {
     Compositor::EndFrame();

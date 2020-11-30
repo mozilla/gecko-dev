@@ -7,5 +7,5 @@ ff_Latn_GN{
             "GNF",
         }
     }
-    Version{"36"}
+    Version{"37"}
 }

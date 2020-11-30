@@ -65,9 +65,9 @@ async function setUp(server) {
   await generateNewKeys(Service.collectionKeys);
   let serverKeys = Service.collectionKeys.asWBO("crypto", "keys");
   await serverKeys.encrypt(Service.identity.syncKeyBundle);
-  let result = (await serverKeys.upload(
-    Service.resource(Service.cryptoKeysURL)
-  )).success;
+  let result = (
+    await serverKeys.upload(Service.resource(Service.cryptoKeysURL))
+  ).success;
   return result;
 }
 
@@ -622,7 +622,7 @@ add_task(async function test_autoconnect_mp_locked() {
       },
     },
     keys: {
-      canGetKeys() {
+      canGetKeyForScope() {
         return false;
       },
     },

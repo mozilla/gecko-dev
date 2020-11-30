@@ -14,7 +14,8 @@ var tests = [
   {
     name: "view-source",
     location: "view-source:http://example.com/",
-    hostForDisplay: null,
+    newURI: "http://example.com/",
+    hostForDisplay: "example.com",
   },
   {
     name: "normal HTTPS",
@@ -39,7 +40,8 @@ var tests = [
   {
     name: "view-source HTTPS",
     location: "view-source:https://example.com/",
-    hostForDisplay: null,
+    newURI: "https://example.com/",
+    hostForDisplay: "example.com",
   },
   {
     name: "IP address",
@@ -56,6 +58,11 @@ var tests = [
     name: "about:reader",
     location: "about:reader?url=http://example.com",
     hostForDisplay: "example.com",
+  },
+  {
+    name: "chrome:",
+    location: "chrome://global/skin/in-content/info-pages.css",
+    hostForDisplay: "chrome://global/skin/in-content/info-pages.css",
   },
 ];
 
@@ -104,14 +111,15 @@ async function runTest(i, forward) {
   await loaded;
   await popupHidden;
   ok(
-    BrowserTestUtils.is_hidden(gIdentityHandler._identityPopup),
+    !gIdentityHandler._identityPopup ||
+      BrowserTestUtils.is_hidden(gIdentityHandler._identityPopup),
     "Control Center is hidden"
   );
 
   // Sanity check other values, and the value of gIdentityHandler.getHostForDisplay()
   is(
     gIdentityHandler._uri.spec,
-    currentTest.location,
+    currentTest.newURI || currentTest.location,
     "location matches for test " + testDesc
   );
   // getHostForDisplay can't be called for all modes
@@ -125,8 +133,10 @@ async function runTest(i, forward) {
 
   // Open the Control Center and make sure it closes after nav (Bug 1207542).
   let popupShown = BrowserTestUtils.waitForEvent(
-    gIdentityHandler._identityPopup,
-    "popupshown"
+    window,
+    "popupshown",
+    true,
+    event => event.target == gIdentityHandler._identityPopup
   );
   gIdentityHandler._identityBox.click();
   info("Waiting for the Control Center to be shown");

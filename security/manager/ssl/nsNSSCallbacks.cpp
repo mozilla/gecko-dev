@@ -199,9 +199,8 @@ nsresult OCSPRequest::GetResponse(/*out*/ Vector<uint8_t>& response) {
   return NS_OK;
 }
 
-static NS_NAMED_LITERAL_CSTRING(OCSP_REQUEST_MIME_TYPE,
-                                "application/ocsp-request");
-static NS_NAMED_LITERAL_CSTRING(OCSP_REQUEST_METHOD, "POST");
+static constexpr auto OCSP_REQUEST_MIME_TYPE = "application/ocsp-request"_ns;
+static constexpr auto OCSP_REQUEST_METHOD = "POST"_ns;
 
 NS_IMETHODIMP
 OCSPRequest::Run() {
@@ -248,7 +247,7 @@ OCSPRequest::Run() {
                        nullptr,  // aLoadingNode
                        nsContentUtils::GetSystemPrincipal(),
                        nullptr,  // aTriggeringPrincipal
-                       nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+                       nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
                        nsIContentPolicy::TYPE_OTHER, getter_AddRefs(channel));
   if (NS_FAILED(rv)) {
     return NotifyDone(rv, lock);
@@ -265,6 +264,16 @@ OCSPRequest::Run() {
                         nsIChannel::LOAD_BYPASS_SERVICE_WORKER |
                         nsIChannel::LOAD_BYPASS_URL_CLASSIFIER);
 
+  nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
+
+  // Prevent HTTPS-Only Mode from upgrading the OCSP request.
+  uint32_t httpsOnlyStatus = loadInfo->GetHttpsOnlyStatus();
+  httpsOnlyStatus |= nsILoadInfo::HTTPS_ONLY_EXEMPT;
+  loadInfo->SetHttpsOnlyStatus(httpsOnlyStatus);
+
+  // allow deprecated HTTP request from SystemPrincipal
+  loadInfo->SetAllowDeprecatedSystemRequests(true);
+
   // For OCSP requests, only the first party domain and private browsing id
   // aspects of origin attributes are used. This means that:
   // a) if first party isolation is enabled, OCSP requests will be isolated
@@ -277,7 +286,6 @@ OCSPRequest::Run() {
     attrs.mFirstPartyDomain = mOriginAttributes.mFirstPartyDomain;
     attrs.mPrivateBrowsingId = mOriginAttributes.mPrivateBrowsingId;
 
-    nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
     rv = loadInfo->SetOriginAttributes(attrs);
     if (NS_FAILED(rv)) {
       return NotifyDone(rv, lock);
@@ -561,11 +569,11 @@ void PK11PasswordPromptRunnable::RunOnTargetThread() {
 
   nsAutoString promptString;
   if (PK11_IsInternal(mSlot)) {
-    rv = GetPIPNSSBundleString("CertPassPromptDefault", promptString);
+    rv = GetPIPNSSBundleString("CertPasswordPromptDefault", promptString);
   } else {
     AutoTArray<nsString, 1> formatStrings = {
         NS_ConvertUTF8toUTF16(PK11_GetTokenName(mSlot))};
-    rv = PIPBundleFormatStringFromName("CertPassPrompt", formatStrings,
+    rv = PIPBundleFormatStringFromName("CertPasswordPrompt", formatStrings,
                                        promptString);
   }
   if (NS_FAILED(rv)) {
@@ -598,35 +606,35 @@ nsCString getKeaGroupName(uint32_t aKeaGroup) {
   nsCString groupName;
   switch (aKeaGroup) {
     case ssl_grp_ec_secp256r1:
-      groupName = NS_LITERAL_CSTRING("P256");
+      groupName = "P256"_ns;
       break;
     case ssl_grp_ec_secp384r1:
-      groupName = NS_LITERAL_CSTRING("P384");
+      groupName = "P384"_ns;
       break;
     case ssl_grp_ec_secp521r1:
-      groupName = NS_LITERAL_CSTRING("P521");
+      groupName = "P521"_ns;
       break;
     case ssl_grp_ec_curve25519:
-      groupName = NS_LITERAL_CSTRING("x25519");
+      groupName = "x25519"_ns;
       break;
     case ssl_grp_ffdhe_2048:
-      groupName = NS_LITERAL_CSTRING("FF 2048");
+      groupName = "FF 2048"_ns;
       break;
     case ssl_grp_ffdhe_3072:
-      groupName = NS_LITERAL_CSTRING("FF 3072");
+      groupName = "FF 3072"_ns;
       break;
     case ssl_grp_none:
-      groupName = NS_LITERAL_CSTRING("none");
+      groupName = "none"_ns;
       break;
     case ssl_grp_ffdhe_custom:
-      groupName = NS_LITERAL_CSTRING("custom");
+      groupName = "custom"_ns;
       break;
     // All other groups are not enabled in Firefox. See namedGroups in
     // nsNSSIOLayer.cpp.
     default:
       // This really shouldn't happen!
       MOZ_ASSERT_UNREACHABLE("Invalid key exchange group.");
-      groupName = NS_LITERAL_CSTRING("unknown group");
+      groupName = "unknown group"_ns;
   }
   return groupName;
 }
@@ -635,50 +643,50 @@ nsCString getSignatureName(uint32_t aSignatureScheme) {
   nsCString signatureName;
   switch (aSignatureScheme) {
     case ssl_sig_none:
-      signatureName = NS_LITERAL_CSTRING("none");
+      signatureName = "none"_ns;
       break;
     case ssl_sig_rsa_pkcs1_sha1:
-      signatureName = NS_LITERAL_CSTRING("RSA-PKCS1-SHA1");
+      signatureName = "RSA-PKCS1-SHA1"_ns;
       break;
     case ssl_sig_rsa_pkcs1_sha256:
-      signatureName = NS_LITERAL_CSTRING("RSA-PKCS1-SHA256");
+      signatureName = "RSA-PKCS1-SHA256"_ns;
       break;
     case ssl_sig_rsa_pkcs1_sha384:
-      signatureName = NS_LITERAL_CSTRING("RSA-PKCS1-SHA384");
+      signatureName = "RSA-PKCS1-SHA384"_ns;
       break;
     case ssl_sig_rsa_pkcs1_sha512:
-      signatureName = NS_LITERAL_CSTRING("RSA-PKCS1-SHA512");
+      signatureName = "RSA-PKCS1-SHA512"_ns;
       break;
     case ssl_sig_ecdsa_secp256r1_sha256:
-      signatureName = NS_LITERAL_CSTRING("ECDSA-P256-SHA256");
+      signatureName = "ECDSA-P256-SHA256"_ns;
       break;
     case ssl_sig_ecdsa_secp384r1_sha384:
-      signatureName = NS_LITERAL_CSTRING("ECDSA-P384-SHA384");
+      signatureName = "ECDSA-P384-SHA384"_ns;
       break;
     case ssl_sig_ecdsa_secp521r1_sha512:
-      signatureName = NS_LITERAL_CSTRING("ECDSA-P521-SHA512");
+      signatureName = "ECDSA-P521-SHA512"_ns;
       break;
     case ssl_sig_rsa_pss_sha256:
-      signatureName = NS_LITERAL_CSTRING("RSA-PSS-SHA256");
+      signatureName = "RSA-PSS-SHA256"_ns;
       break;
     case ssl_sig_rsa_pss_sha384:
-      signatureName = NS_LITERAL_CSTRING("RSA-PSS-SHA384");
+      signatureName = "RSA-PSS-SHA384"_ns;
       break;
     case ssl_sig_rsa_pss_sha512:
-      signatureName = NS_LITERAL_CSTRING("RSA-PSS-SHA512");
+      signatureName = "RSA-PSS-SHA512"_ns;
       break;
     case ssl_sig_ecdsa_sha1:
-      signatureName = NS_LITERAL_CSTRING("ECDSA-SHA1");
+      signatureName = "ECDSA-SHA1"_ns;
       break;
     case ssl_sig_rsa_pkcs1_sha1md5:
-      signatureName = NS_LITERAL_CSTRING("RSA-PKCS1-SHA1MD5");
+      signatureName = "RSA-PKCS1-SHA1MD5"_ns;
       break;
     // All other groups are not enabled in Firefox. See sEnabledSignatureSchemes
     // in nsNSSIOLayer.cpp.
     default:
       // This really shouldn't happen!
       MOZ_ASSERT_UNREACHABLE("Invalid signature scheme.");
-      signatureName = NS_LITERAL_CSTRING("unknown signature");
+      signatureName = "unknown signature"_ns;
   }
   return signatureName;
 }
@@ -879,10 +887,12 @@ static void AccumulateNonECCKeySize(Telemetry::HistogramID probe,
 // named curves for a given size (e.g. secp256k1 vs. secp256r1). We punt on
 // that for now. See also NSS bug 323674.
 static void AccumulateECCCurve(Telemetry::HistogramID probe, uint32_t bits) {
-  unsigned int value = bits == 256 ? 23                              // P-256
-                                   : bits == 384 ? 24                // P-384
-                                                 : bits == 521 ? 25  // P-521
-                                                               : 0;  // Unknown
+  unsigned int value =
+      bits == 255 ? 29                                            // Curve25519
+                  : bits == 256 ? 23                              // P-256
+                                : bits == 384 ? 24                // P-384
+                                              : bits == 521 ? 25  // P-521
+                                                            : 0;  // Unknown
   Telemetry::Accumulate(probe, value);
 }
 
@@ -999,6 +1009,12 @@ static void AccumulateCipherSuite(Telemetry::HistogramID probe,
     case TLS_RSA_WITH_SEED_CBC_SHA:
       value = 67;
       break;
+    case TLS_RSA_WITH_AES_128_GCM_SHA256:
+      value = 68;
+      break;
+    case TLS_RSA_WITH_AES_256_GCM_SHA384:
+      value = 69;
+      break;
     // TLS 1.3 PSK resumption
     case TLS_AES_128_GCM_SHA256:
       value = 70;
@@ -1100,6 +1116,7 @@ static void RebuildVerifiedCertificateInformation(PRFileDesc* fd,
   CertificateTransparencyInfo certificateTransparencyInfo;
   UniqueCERTCertList builtChain;
   const bool saveIntermediates = false;
+  bool isBuiltCertChainRootBuiltInRoot = false;
   mozilla::pkix::Result rv = certVerifier->VerifySSLServerCert(
       cert, mozilla::pkix::Now(), infoObject, infoObject->GetHostName(),
       builtChain, flags, maybePeerCertsBytes, stapledOCSPResponse,
@@ -1109,7 +1126,9 @@ static void RebuildVerifiedCertificateInformation(PRFileDesc* fd,
       nullptr,  // key size telemetry
       nullptr,  // SHA-1 telemetry
       nullptr,  // pinning telemetry
-      &certificateTransparencyInfo);
+      &certificateTransparencyInfo,
+      nullptr,  // CRLite telemetry,
+      &isBuiltCertChainRootBuiltInRoot);
 
   if (rv != Success) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
@@ -1135,6 +1154,8 @@ static void RebuildVerifiedCertificateInformation(PRFileDesc* fd,
     nsTArray<nsTArray<uint8_t>> certBytesArray =
         TransportSecurityInfo::CreateCertBytesArray(builtChain);
     infoObject->SetSucceededCertChain(std::move(certBytesArray));
+    infoObject->SetIsBuiltCertChainRootBuiltInRoot(
+        isBuiltCertChainRootBuiltInRoot);
   }
 }
 
@@ -1225,6 +1246,11 @@ static void RebuildCertificateInfoFromSSLTokenCache(
   if (info.mSucceededCertChainBytes) {
     aInfoObject->SetSucceededCertChain(
         std::move(*info.mSucceededCertChainBytes));
+  }
+
+  if (info.mIsBuiltCertChainRootBuiltInRoot) {
+    aInfoObject->SetIsBuiltCertChainRootBuiltInRoot(
+        *info.mIsBuiltCertChainRootBuiltInRoot);
   }
 }
 
@@ -1365,12 +1391,10 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
             ("HandshakeCallback KEEPING existing cert\n"));
   } else {
-    if (mozilla::net::SSLTokensCache::IsEnabled()) {
+    if (StaticPrefs::network_ssl_tokens_cache_enabled()) {
       RebuildCertificateInfoFromSSLTokenCache(infoObject);
-      infoObject->NoteSessionResumptionTime(true);
     } else {
       RebuildVerifiedCertificateInformation(fd, infoObject);
-      infoObject->NoteSessionResumptionTime(false);
     }
   }
 

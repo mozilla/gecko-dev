@@ -133,7 +133,8 @@ class InspectorUtils {
   //
   // NOTE: Converting a color to RGBA may be lossy when converting from some
   // formats e.g. CMYK.
-  static void ColorToRGBA(GlobalObject& aGlobal, const nsACString& aColorString,
+  static void ColorToRGBA(GlobalObject&, const nsACString& aColorString,
+                          const Document*,
                           Nullable<InspectorRGBATuple>& aResult);
 
   // Check whether a given color is a valid CSS color.
@@ -163,6 +164,9 @@ class InspectorUtils {
   static bool CssPropertySupportsType(GlobalObject& aGlobal,
                                       const nsACString& aProperty,
                                       InspectorPropertyType, ErrorResult& aRv);
+
+  static bool Supports(GlobalObject&, const nsACString& aDeclaration,
+                       const SupportsOptions&);
 
   static bool IsIgnorableWhitespace(GlobalObject& aGlobalObject,
                                     CharacterData& aDataNode) {
@@ -237,6 +241,10 @@ class InspectorUtils {
   static bool IsElementThemed(GlobalObject& aGlobal, Element& aElement);
 
   static Element* ContainingBlockOf(GlobalObject&, Element&);
+
+  MOZ_CAN_RUN_SCRIPT
+  static already_AddRefed<nsINodeList> GetOverflowingChildrenOfElement(
+      GlobalObject& aGlobal, Element& element);
 
   /**
    * Parse CSS and update the style sheet in place.

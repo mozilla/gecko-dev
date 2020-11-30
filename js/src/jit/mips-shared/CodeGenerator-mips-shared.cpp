@@ -12,8 +12,8 @@
 #include "jsnum.h"
 
 #include "jit/CodeGenerator.h"
-#include "jit/JitFrames.h"
-#include "jit/JitRealm.h"
+#include "jit/InlineScriptTree.h"
+#include "jit/JitRuntime.h"
 #include "jit/MIR.h"
 #include "jit/MIRGraph.h"
 #include "js/Conversions.h"
@@ -48,7 +48,7 @@ Operand CodeGeneratorMIPSShared::ToOperand(const LAllocation& a) {
   if (a.isFloatReg()) {
     return Operand(a.toFloatReg()->reg());
   }
-  return Operand(masm.getStackPointer(), ToStackOffset(&a));
+  return Operand(ToAddress(a));
 }
 
 Operand CodeGeneratorMIPSShared::ToOperand(const LAllocation* a) {
@@ -242,30 +242,6 @@ void CodeGenerator::visitMinMaxF(LMinMaxF* ins) {
   } else {
     masm.minFloat32(second, first, true);
   }
-}
-
-void CodeGenerator::visitAbsD(LAbsD* ins) {
-  FloatRegister input = ToFloatRegister(ins->input());
-  MOZ_ASSERT(input == ToFloatRegister(ins->output()));
-  masm.as_absd(input, input);
-}
-
-void CodeGenerator::visitAbsF(LAbsF* ins) {
-  FloatRegister input = ToFloatRegister(ins->input());
-  MOZ_ASSERT(input == ToFloatRegister(ins->output()));
-  masm.as_abss(input, input);
-}
-
-void CodeGenerator::visitSqrtD(LSqrtD* ins) {
-  FloatRegister input = ToFloatRegister(ins->input());
-  FloatRegister output = ToFloatRegister(ins->output());
-  masm.as_sqrtd(output, input);
-}
-
-void CodeGenerator::visitSqrtF(LSqrtF* ins) {
-  FloatRegister input = ToFloatRegister(ins->input());
-  FloatRegister output = ToFloatRegister(ins->output());
-  masm.as_sqrts(output, input);
 }
 
 void CodeGenerator::visitAddI(LAddI* ins) {
@@ -1091,12 +1067,11 @@ MoveOperand CodeGeneratorMIPSShared::toMoveOperand(LAllocation a) const {
   if (a.isFloatReg()) {
     return MoveOperand(ToFloatRegister(a));
   }
-  int32_t offset = ToStackOffset(a);
-  MOZ_ASSERT((offset & 3) == 0);
   MoveOperand::Kind kind =
       a.isStackArea() ? MoveOperand::EFFECTIVE_ADDRESS : MoveOperand::MEMORY;
-
-  return MoveOperand(StackPointer, offset, kind);
+  Address address = ToAddress(a);
+  MOZ_ASSERT((address.offset & 3) == 0);
+  return MoveOperand(address, kind);
 }
 
 void CodeGenerator::visitMathD(LMathD* math) {
@@ -1145,306 +1120,6 @@ void CodeGenerator::visitMathF(LMathF* math) {
   }
 }
 
-void CodeGenerator::visitFloor(LFloor* lir) {
-  FloatRegister input = ToFloatRegister(lir->input());
-  FloatRegister scratch = ScratchDoubleReg;
-  Register output = ToRegister(lir->output());
-
-  Label skipCheck, done;
-
-  // If Nan, 0 or -0 check for bailout
-  masm.loadConstantDouble(0.0, scratch);
-  masm.ma_bc1d(input, scratch, &skipCheck, Assembler::DoubleNotEqual,
-               ShortJump);
-
-  // If high part is not zero, it is NaN or -0, so we bail.
-  masm.moveFromDoubleHi(input, SecondScratchReg);
-  bailoutCmp32(Assembler::NotEqual, SecondScratchReg, Imm32(0),
-               lir->snapshot());
-
-  // Input was zero, so return zero.
-  masm.move32(Imm32(0), output);
-  masm.ma_b(&done, ShortJump);
-
-  masm.bind(&skipCheck);
-  masm.as_floorwd(scratch, input);
-  masm.moveFromDoubleLo(scratch, output);
-
-  bailoutCmp32(Assembler::Equal, output, Imm32(INT_MIN), lir->snapshot());
-  bailoutCmp32(Assembler::Equal, output, Imm32(INT_MAX), lir->snapshot());
-
-  masm.bind(&done);
-}
-
-void CodeGenerator::visitFloorF(LFloorF* lir) {
-  FloatRegister input = ToFloatRegister(lir->input());
-  FloatRegister scratch = ScratchFloat32Reg;
-  Register output = ToRegister(lir->output());
-
-  Label skipCheck, done;
-
-  // If Nan, 0 or -0 check for bailout
-  masm.loadConstantFloat32(0.0f, scratch);
-  masm.ma_bc1s(input, scratch, &skipCheck, Assembler::DoubleNotEqual,
-               ShortJump);
-
-  // If binary value is not zero, it is NaN or -0, so we bail.
-  masm.moveFromDoubleLo(input, SecondScratchReg);
-  bailoutCmp32(Assembler::NotEqual, SecondScratchReg, Imm32(0),
-               lir->snapshot());
-
-  // Input was zero, so return zero.
-  masm.move32(Imm32(0), output);
-  masm.ma_b(&done, ShortJump);
-
-  masm.bind(&skipCheck);
-  masm.as_floorws(scratch, input);
-  masm.moveFromDoubleLo(scratch, output);
-
-  bailoutCmp32(Assembler::Equal, output, Imm32(INT_MIN), lir->snapshot());
-  bailoutCmp32(Assembler::Equal, output, Imm32(INT_MAX), lir->snapshot());
-
-  masm.bind(&done);
-}
-
-void CodeGenerator::visitCeil(LCeil* lir) {
-  FloatRegister input = ToFloatRegister(lir->input());
-  FloatRegister scratch = ScratchDoubleReg;
-  Register output = ToRegister(lir->output());
-
-  Label performCeil, done;
-
-  // If x < -1 or x > 0 then perform ceil.
-  masm.loadConstantDouble(0, scratch);
-  masm.branchDouble(Assembler::DoubleGreaterThan, input, scratch, &performCeil);
-  masm.loadConstantDouble(-1, scratch);
-  masm.branchDouble(Assembler::DoubleLessThanOrEqual, input, scratch,
-                    &performCeil);
-
-  // If high part is not zero, the input was not 0, so we bail.
-  masm.moveFromDoubleHi(input, SecondScratchReg);
-  bailoutCmp32(Assembler::NotEqual, SecondScratchReg, Imm32(0),
-               lir->snapshot());
-
-  // Input was zero, so return zero.
-  masm.move32(Imm32(0), output);
-  masm.ma_b(&done, ShortJump);
-
-  masm.bind(&performCeil);
-  masm.as_ceilwd(scratch, input);
-  masm.moveFromDoubleLo(scratch, output);
-
-  bailoutCmp32(Assembler::Equal, output, Imm32(INT_MIN), lir->snapshot());
-  bailoutCmp32(Assembler::Equal, output, Imm32(INT_MAX), lir->snapshot());
-
-  masm.bind(&done);
-}
-
-void CodeGenerator::visitCeilF(LCeilF* lir) {
-  FloatRegister input = ToFloatRegister(lir->input());
-  FloatRegister scratch = ScratchFloat32Reg;
-  Register output = ToRegister(lir->output());
-
-  Label performCeil, done;
-
-  // If x < -1 or x > 0 then perform ceil.
-  masm.loadConstantFloat32(0.0f, scratch);
-  masm.branchFloat(Assembler::DoubleGreaterThan, input, scratch, &performCeil);
-  masm.loadConstantFloat32(-1.0f, scratch);
-  masm.branchFloat(Assembler::DoubleLessThanOrEqual, input, scratch,
-                   &performCeil);
-
-  // If binary value is not zero, the input was not 0, so we bail.
-  masm.moveFromFloat32(input, SecondScratchReg);
-  bailoutCmp32(Assembler::NotEqual, SecondScratchReg, Imm32(0),
-               lir->snapshot());
-
-  // Input was zero, so return zero.
-  masm.move32(Imm32(0), output);
-  masm.ma_b(&done, ShortJump);
-
-  masm.bind(&performCeil);
-  masm.as_ceilws(scratch, input);
-  masm.moveFromFloat32(scratch, output);
-
-  bailoutCmp32(Assembler::Equal, output, Imm32(INT_MIN), lir->snapshot());
-  bailoutCmp32(Assembler::Equal, output, Imm32(INT_MAX), lir->snapshot());
-
-  masm.bind(&done);
-}
-
-void CodeGenerator::visitRound(LRound* lir) {
-  FloatRegister input = ToFloatRegister(lir->input());
-  FloatRegister temp = ToFloatRegister(lir->temp());
-  FloatRegister scratch = ScratchDoubleReg;
-  Register output = ToRegister(lir->output());
-
-  Label bail, negative, end, skipCheck;
-
-  // Load biggest number less than 0.5 in the temp register.
-  masm.loadConstantDouble(GetBiggestNumberLessThan(0.5), temp);
-
-  // Branch to a slow path for negative inputs. Doesn't catch NaN or -0.
-  masm.loadConstantDouble(0.0, scratch);
-  masm.ma_bc1d(input, scratch, &negative, Assembler::DoubleLessThan, ShortJump);
-
-  // If Nan, 0 or -0 check for bailout
-  masm.ma_bc1d(input, scratch, &skipCheck, Assembler::DoubleNotEqual,
-               ShortJump);
-
-  // If high part is not zero, it is NaN or -0, so we bail.
-  masm.moveFromDoubleHi(input, SecondScratchReg);
-  bailoutCmp32(Assembler::NotEqual, SecondScratchReg, Imm32(0),
-               lir->snapshot());
-
-  // Input was zero, so return zero.
-  masm.move32(Imm32(0), output);
-  masm.ma_b(&end, ShortJump);
-
-  masm.bind(&skipCheck);
-  masm.as_addd(scratch, input, temp);
-  masm.as_floorwd(scratch, scratch);
-
-  masm.moveFromDoubleLo(scratch, output);
-
-  bailoutCmp32(Assembler::Equal, output, Imm32(INT_MIN), lir->snapshot());
-  bailoutCmp32(Assembler::Equal, output, Imm32(INT_MAX), lir->snapshot());
-
-  masm.jump(&end);
-
-  // Input is negative, but isn't -0.
-  masm.bind(&negative);
-
-  // Inputs in ]-0.5; 0] need to be added 0.5, other negative inputs need to
-  // be added the biggest double less than 0.5.
-  Label loadJoin;
-  masm.loadConstantDouble(-0.5, scratch);
-  masm.branchDouble(Assembler::DoubleLessThan, input, scratch, &loadJoin);
-  masm.loadConstantDouble(0.5, temp);
-  masm.bind(&loadJoin);
-
-  masm.addDouble(input, temp);
-
-  // If input + 0.5 >= 0, input is a negative number >= -0.5 and the
-  // result is -0.
-  masm.branchDouble(Assembler::DoubleGreaterThanOrEqual, temp, scratch, &bail);
-  bailoutFrom(&bail, lir->snapshot());
-
-  // Truncate and round toward zero.
-  // This is off-by-one for everything but integer-valued inputs.
-  masm.as_floorwd(scratch, temp);
-  masm.moveFromDoubleLo(scratch, output);
-
-  bailoutCmp32(Assembler::Equal, output, Imm32(INT_MIN), lir->snapshot());
-
-  masm.bind(&end);
-}
-
-void CodeGenerator::visitRoundF(LRoundF* lir) {
-  FloatRegister input = ToFloatRegister(lir->input());
-  FloatRegister temp = ToFloatRegister(lir->temp());
-  FloatRegister scratch = ScratchFloat32Reg;
-  Register output = ToRegister(lir->output());
-
-  Label bail, negative, end, skipCheck;
-
-  // Load biggest number less than 0.5 in the temp register.
-  masm.loadConstantFloat32(GetBiggestNumberLessThan(0.5f), temp);
-
-  // Branch to a slow path for negative inputs. Doesn't catch NaN or -0.
-  masm.loadConstantFloat32(0.0f, scratch);
-  masm.ma_bc1s(input, scratch, &negative, Assembler::DoubleLessThan, ShortJump);
-
-  // If Nan, 0 or -0 check for bailout
-  masm.ma_bc1s(input, scratch, &skipCheck, Assembler::DoubleNotEqual,
-               ShortJump);
-
-  // If binary value is not zero, it is NaN or -0, so we bail.
-  masm.moveFromFloat32(input, SecondScratchReg);
-  bailoutCmp32(Assembler::NotEqual, SecondScratchReg, Imm32(0),
-               lir->snapshot());
-
-  // Input was zero, so return zero.
-  masm.move32(Imm32(0), output);
-  masm.ma_b(&end, ShortJump);
-
-  masm.bind(&skipCheck);
-  masm.as_adds(scratch, input, temp);
-  masm.as_floorws(scratch, scratch);
-
-  masm.moveFromFloat32(scratch, output);
-
-  bailoutCmp32(Assembler::Equal, output, Imm32(INT_MIN), lir->snapshot());
-  bailoutCmp32(Assembler::Equal, output, Imm32(INT_MAX), lir->snapshot());
-
-  masm.jump(&end);
-
-  // Input is negative, but isn't -0.
-  masm.bind(&negative);
-
-  // Inputs in ]-0.5; 0] need to be added 0.5, other negative inputs need to
-  // be added the biggest double less than 0.5.
-  Label loadJoin;
-  masm.loadConstantFloat32(-0.5f, scratch);
-  masm.branchFloat(Assembler::DoubleLessThan, input, scratch, &loadJoin);
-  masm.loadConstantFloat32(0.5f, temp);
-  masm.bind(&loadJoin);
-
-  masm.as_adds(temp, input, temp);
-
-  // If input + 0.5 >= 0, input is a negative number >= -0.5 and the
-  // result is -0.
-  masm.branchFloat(Assembler::DoubleGreaterThanOrEqual, temp, scratch, &bail);
-  bailoutFrom(&bail, lir->snapshot());
-
-  // Truncate and round toward zero.
-  // This is off-by-one for everything but integer-valued inputs.
-  masm.as_floorws(scratch, temp);
-  masm.moveFromFloat32(scratch, output);
-
-  bailoutCmp32(Assembler::Equal, output, Imm32(INT_MIN), lir->snapshot());
-
-  masm.bind(&end);
-}
-
-void CodeGenerator::visitTrunc(LTrunc* lir) {
-  FloatRegister input = ToFloatRegister(lir->input());
-  Register output = ToRegister(lir->output());
-
-  Label notZero;
-  masm.as_truncwd(ScratchFloat32Reg, input);
-  masm.as_cfc1(ScratchRegister, Assembler::FCSR);
-  masm.moveFromFloat32(ScratchFloat32Reg, output);
-  masm.ma_ext(ScratchRegister, ScratchRegister, Assembler::CauseV, 1);
-
-  masm.ma_b(output, Imm32(0), &notZero, Assembler::NotEqual, ShortJump);
-  masm.moveFromDoubleHi(input, ScratchRegister);
-  // Check if input is in ]-1; -0] range by checking the sign bit.
-  masm.as_slt(ScratchRegister, ScratchRegister, zero);
-  masm.bind(&notZero);
-
-  bailoutCmp32(Assembler::NotEqual, ScratchRegister, Imm32(0), lir->snapshot());
-}
-
-void CodeGenerator::visitTruncF(LTruncF* lir) {
-  FloatRegister input = ToFloatRegister(lir->input());
-  Register output = ToRegister(lir->output());
-
-  Label notZero;
-  masm.as_truncws(ScratchFloat32Reg, input);
-  masm.as_cfc1(ScratchRegister, Assembler::FCSR);
-  masm.moveFromFloat32(ScratchFloat32Reg, output);
-  masm.ma_ext(ScratchRegister, ScratchRegister, Assembler::CauseV, 1);
-
-  masm.ma_b(output, Imm32(0), &notZero, Assembler::NotEqual, ShortJump);
-  masm.moveFromFloat32(input, ScratchRegister);
-  // Check if input is in ]-1; -0] range by checking the sign bit.
-  masm.as_slt(ScratchRegister, ScratchRegister, zero);
-  masm.bind(&notZero);
-
-  bailoutCmp32(Assembler::NotEqual, ScratchRegister, Imm32(0), lir->snapshot());
-}
-
 void CodeGenerator::visitTruncateDToInt32(LTruncateDToInt32* ins) {
   emitTruncateDouble(ToFloatRegister(ins->input()), ToRegister(ins->output()),
                      ins->mir());
@@ -1453,6 +1128,18 @@ void CodeGenerator::visitTruncateDToInt32(LTruncateDToInt32* ins) {
 void CodeGenerator::visitTruncateFToInt32(LTruncateFToInt32* ins) {
   emitTruncateFloat32(ToFloatRegister(ins->input()), ToRegister(ins->output()),
                       ins->mir());
+}
+
+void CodeGenerator::visitWasmBuiltinTruncateDToInt32(
+    LWasmBuiltinTruncateDToInt32* lir) {
+  emitTruncateDouble(ToFloatRegister(lir->getOperand(0)),
+                     ToRegister(lir->getDef(0)), lir->mir());
+}
+
+void CodeGenerator::visitWasmBuiltinTruncateFToInt32(
+    LWasmBuiltinTruncateFToInt32* lir) {
+  emitTruncateFloat32(ToFloatRegister(lir->getOperand(0)),
+                      ToRegister(lir->getDef(0)), lir->mir());
 }
 
 void CodeGenerator::visitWasmTruncateToInt32(LWasmTruncateToInt32* lir) {
@@ -1675,6 +1362,9 @@ void CodeGenerator::visitBitAndAndBranch(LBitAndAndBranch* lir) {
              lir->ifFalse());
 }
 
+// See ../CodeGenerator.cpp for more information.
+void CodeGenerator::visitWasmRegisterResult(LWasmRegisterResult* lir) {}
+
 void CodeGenerator::visitWasmUint32ToDouble(LWasmUint32ToDouble* lir) {
   masm.convertUInt32ToDouble(ToRegister(lir->input()),
                              ToFloatRegister(lir->output()));
@@ -1732,14 +1422,10 @@ void CodeGeneratorMIPSShared::generateInvalidateEpilogue() {
   // Push the Ion script onto the stack (when we determine what that
   // pointer is).
   invalidateEpilogueData_ = masm.pushWithPatch(ImmWord(uintptr_t(-1)));
+
+  // Jump to the invalidator which will replace the current frame.
   TrampolinePtr thunk = gen->jitRuntime()->getInvalidationThunk();
-
   masm.jump(thunk);
-
-  // We should never reach this point in JIT code -- the invalidation thunk
-  // should pop the invalidated JS frame and return directly to its caller.
-  masm.assumeUnreachable(
-      "Should have returned directly to its caller instead of here.");
 }
 
 class js::jit::OutOfLineTableSwitch

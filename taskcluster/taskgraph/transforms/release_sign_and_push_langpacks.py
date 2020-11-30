@@ -25,8 +25,7 @@ langpack_sign_push_description_schema = schema.extend({
     Required('worker'): {
         Required('implementation'): 'push-addons',
         Required('channel'): optionally_keyed_by(
-            'project',
-            optionally_keyed_by('platform', Any('listed', 'unlisted'))),
+            'project', 'platform', Any('listed', 'unlisted')),
         Required('upstream-artifacts'): None,   # Processed here below
     },
 
@@ -84,16 +83,15 @@ def filter_out_macos_jobs_but_mac_only_locales(config, jobs):
     for job in jobs:
         build_platform = job['primary-dependency'].attributes.get('build_platform')
 
-        if build_platform in (
-                'linux64-nightly', 'linux64-devedition', 'linux64-shippable'):
+        if build_platform in ('linux64-devedition', 'linux64-shippable'):
             yield job
-        elif build_platform in (
-                'macosx64-nightly', 'macosx64-devedition', 'macosx64-shippable') and \
+        elif build_platform in ('macosx64-devedition', 'macosx64-shippable') and \
                 'ja-JP-mac' in job['attributes']['chunk_locales']:
             # Other locales of the same job shouldn't be processed
             job['attributes']['chunk_locales'] = ['ja-JP-mac']
             job['label'] = job['label'].replace(
-                job['attributes']['l10n_chunk'], 'ja-JP-mac'
+                # Guard against a chunk 10 or chunk 1 (latter on try) weird munging
+                "-{}/".format(job['attributes']['l10n_chunk']), '-ja-JP-mac/'
             )
             yield job
 

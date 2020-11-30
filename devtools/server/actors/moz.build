@@ -7,6 +7,7 @@
 DIRS += [
     'accessibility',
     'addon',
+    'compatibility',
     'descriptors',
     'emulation',
     'highlighters',
@@ -14,14 +15,15 @@ DIRS += [
     'network-monitor',
     'object',
     'replay',
+    'resources',
     'targets',
     'utils',
+    'watcher',
     'webconsole',
     'worker',
 ]
 
 DevToolsModules(
-    'actor-registry.js',
     'animation-type-longhand.js',
     'animation.js',
     'array-buffer.js',
@@ -56,6 +58,7 @@ DevToolsModules(
     'styles.js',
     'stylesheets.js',
     'thread.js',
+    'watcher.js',
     'webbrowser.js',
     'webconsole.js',
 )

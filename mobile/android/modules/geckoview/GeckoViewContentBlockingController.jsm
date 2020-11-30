@@ -25,7 +25,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   Services: "resource://gre/modules/Services.jsm",
 });
 
-// eslint-disable-next-line no-unused-vars
 const { debug, warn } = GeckoViewUtils.initLogging(
   "GeckoViewContentBlockingController"
 );
@@ -41,7 +40,13 @@ const GeckoViewContentBlockingController = {
           aData.sessionId,
           null
         );
-        ContentBlockingAllowList.add(sessionWindow.browser);
+
+        if (ContentBlockingAllowList.canHandle(sessionWindow.browser)) {
+          ContentBlockingAllowList.add(sessionWindow.browser);
+        } else {
+          warn`Could not add content blocking exception`;
+        }
+
         break;
       }
 
@@ -50,7 +55,13 @@ const GeckoViewContentBlockingController = {
           aData.sessionId,
           null
         );
-        ContentBlockingAllowList.remove(sessionWindow.browser);
+
+        if (ContentBlockingAllowList.canHandle(sessionWindow.browser)) {
+          ContentBlockingAllowList.remove(sessionWindow.browser);
+        } else {
+          warn`Could not remove content blocking exception`;
+        }
+
         break;
       }
 
@@ -65,8 +76,15 @@ const GeckoViewContentBlockingController = {
           aData.sessionId,
           null
         );
-        const res = ContentBlockingAllowList.includes(sessionWindow.browser);
-        aCallback.onSuccess(res);
+
+        if (ContentBlockingAllowList.canHandle(sessionWindow.browser)) {
+          const res = ContentBlockingAllowList.includes(sessionWindow.browser);
+          aCallback.onSuccess(res);
+        } else {
+          warn`Could not check content blocking exception`;
+          aCallback.onSuccess(false);
+        }
+
         break;
       }
 

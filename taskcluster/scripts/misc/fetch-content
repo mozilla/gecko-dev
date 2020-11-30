@@ -241,6 +241,27 @@ def download_to_path(url, path, sha256=None, size=None):
     raise Exception("Download failed, no more retries!")
 
 
+def download_to_memory(url, sha256=None, size=None):
+    """Download a URL to memory, possibly with verification."""
+
+    data = b""
+    for _ in retrier(attempts=5, sleeptime=60):
+        try:
+            log('Downloading %s' % (url))
+
+            for chunk in stream_download(url, sha256=sha256, size=size):
+                data += chunk
+
+            return data
+        except IntegrityError:
+            raise
+        except Exception as e:
+            log("Download failed: {}".format(e))
+            continue
+
+    raise Exception("Download failed, no more retries!")
+
+
 def gpg_verify_path(path: pathlib.Path, public_key_data: bytes,
                     signature_data: bytes):
     """Verify that a filesystem path verifies using GPG.
@@ -483,7 +504,7 @@ def fetch_urls(downloads):
 
 
 def git_checkout_archive(dest_path: pathlib.Path, repo: str, commit: str,
-                         prefix=None):
+                         prefix=None, ssh_key=None):
     """Produce an archive of the files comprising a Git checkout."""
     dest_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -501,11 +522,32 @@ def git_checkout_archive(dest_path: pathlib.Path, repo: str, commit: str,
         # to initiate a clone. Since the commit-ish may not refer to a ref, we
         # simply perform a full clone followed by a checkout.
         print('cloning %s to %s' % (repo, git_dir))
-        subprocess.run(['git', 'clone', '--recurse-submodules', repo, str(git_dir)],
-                       check=True)
 
-        subprocess.run(['git', 'checkout', '--recurse-submodules', commit],
+        env = os.environ.copy()
+        keypath = ""
+        if ssh_key:
+            taskcluster_secret_url = api(os.environ.get('TASKCLUSTER_PROXY_URL'), "secrets", "v1", "secret/{keypath}".format(keypath=ssh_key))
+            taskcluster_secret = b''.join(stream_download(taskcluster_secret_url))
+            taskcluster_secret = json.loads(taskcluster_secret)
+            sshkey = taskcluster_secret['secret']['ssh_privkey']
+
+            keypath = temp_dir.joinpath("ssh-key")
+            keypath.write_text(sshkey)
+            keypath.chmod(0o600)
+
+            env = {"GIT_SSH_COMMAND": "ssh -o 'StrictHostKeyChecking no' -i {keypath}".format(keypath=keypath)}
+
+        subprocess.run(['git', 'clone', '-n', repo, str(git_dir)],
+                       check=True, env=env)
+
+        subprocess.run(['git', 'checkout', commit],
                        cwd=str(git_dir), check=True)
+
+        subprocess.run(['git', 'submodule', 'update', '--init'],
+                       cwd=str(git_dir), check=True)
+
+        if keypath:
+            os.remove(keypath)
 
         print('creating archive %s of commit %s' % (dest_path, commit))
         proc = subprocess.Popen([
@@ -524,7 +566,7 @@ def command_git_checkout_archive(args):
 
     try:
         git_checkout_archive(dest, args.repo, args.commit,
-                             prefix=args.path_prefix)
+                             prefix=args.path_prefix, ssh_key=args.ssh_key_secret)
     except Exception:
         try:
             dest.unlink()
@@ -583,6 +625,14 @@ def api(root_url, service, version, path):
             root_url=root_url, service=service, version=version, path=path)
 
 
+def get_hash(fetch, root_url):
+    path = 'task/{task}/artifacts/{artifact}'.format(
+        task=fetch['task'], artifact='public/chain-of-trust.json')
+    url = api(root_url, 'queue', 'v1', path)
+    cot = json.loads(download_to_memory(url))
+    return cot['artifacts'][fetch['artifact']]['sha256']
+
+
 def command_task_artifacts(args):
     start = time.monotonic()
     fetches = json.loads(os.environ['MOZ_FETCHES'])
@@ -590,9 +640,13 @@ def command_task_artifacts(args):
     for fetch in fetches:
         extdir = pathlib.Path(args.dest)
         if 'dest' in fetch:
-            extdir = extdir.joinpath(fetch['dest'])
+            # Note: normpath doesn't like pathlib.Path in python 3.5
+            extdir = pathlib.Path(os.path.normpath(str(extdir.joinpath(fetch['dest']))))
         extdir.mkdir(parents=True, exist_ok=True)
         root_url = os.environ['TASKCLUSTER_ROOT_URL']
+        sha256 = None
+        if fetch.get('verify-hash'):
+            sha256 = get_hash(fetch, root_url)
         if fetch['artifact'].startswith('public/'):
             path = 'task/{task}/artifacts/{artifact}'.format(
                     task=fetch['task'], artifact=fetch['artifact'])
@@ -602,7 +656,7 @@ def command_task_artifacts(args):
                     proxy_url=os.environ['TASKCLUSTER_PROXY_URL'],
                     task=fetch['task'],
                     artifact=fetch['artifact'])
-        downloads.append((url, extdir, fetch['extract']))
+        downloads.append((url, extdir, fetch['extract'], sha256))
 
     fetch_urls(downloads)
     end = time.monotonic()
@@ -636,6 +690,8 @@ def main():
                               help='Git commit to check out')
     git_checkout.add_argument('dest',
                               help='Destination path of archive')
+    git_checkout.add_argument('--ssh-key-secret',
+                              help='The scope path of the ssh key to used for checkout')
 
     url = subparsers.add_parser('static-url', help='Download a static URL')
     url.set_defaults(func=command_static_url)

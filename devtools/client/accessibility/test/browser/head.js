@@ -8,7 +8,7 @@
 /* exported addTestTab, checkTreeState, checkSidebarState, checkAuditState, selectRow,
             toggleRow, toggleMenuItem, addA11yPanelTestsTask, reload, navigate,
             openSimulationMenu, toggleSimulationOption, TREE_FILTERS_MENU_ID,
-            PREFS_MENU_ID, checkHighlighted */
+            PREFS_MENU_ID */
 
 "use strict";
 
@@ -48,49 +48,24 @@ const MENU_INDEXES = {
 };
 
 /**
- * Enable accessibility service and wait for a11y init event.
- * @return {Object}  instance of accessibility service.
- */
-async function initA11y() {
-  if (Services.appinfo.accessibilityEnabled) {
-    return Cc["@mozilla.org/accessibilityService;1"].getService(
-      Ci.nsIAccessibilityService
-    );
-  }
-
-  const initPromise = new Promise(resolve => {
-    const observe = () => {
-      Services.obs.removeObserver(observe, "a11y-init-or-shutdown");
-      resolve();
-    };
-    Services.obs.addObserver(observe, "a11y-init-or-shutdown");
-  });
-
-  const a11yService = Cc["@mozilla.org/accessibilityService;1"].getService(
-    Ci.nsIAccessibilityService
-  );
-  await initPromise;
-  return a11yService;
-}
-
-/**
  * Wait for accessibility service to shut down. We consider it shut down when
  * an "a11y-init-or-shutdown" event is received with a value of "0".
  */
-function shutdownA11y() {
-  if (!Services.appinfo.accessibilityEnabled) {
-    return Promise.resolve();
-  }
-
-  // Force collections to speed up accessibility service shutdown.
-  Cu.forceGC();
-  Cu.forceCC();
-  Cu.forceShrinkingGC();
-
+function waitForAccessibilityShutdown() {
   return new Promise(resolve => {
+    if (!Services.appinfo.accessibilityEnabled) {
+      resolve();
+      return;
+    }
+
     const observe = (subject, topic, data) => {
       if (data === "0") {
         Services.obs.removeObserver(observe, "a11y-init-or-shutdown");
+        // Sanity check
+        ok(
+          !Services.appinfo.accessibilityEnabled,
+          "Accessibility disabled in this process"
+        );
         resolve();
       }
     };
@@ -99,13 +74,26 @@ function shutdownA11y() {
     // accessibility service naturally if there are no more XPCOM references to
     // a11y related objects (after GC/CC).
     Services.obs.addObserver(observe, "a11y-init-or-shutdown");
+
+    // Force garbage collection.
+    SpecialPowers.gc();
+    SpecialPowers.forceShrinkingGC();
+    SpecialPowers.forceCC();
   });
+}
+
+/**
+ * Ensure that accessibility is completely shutdown.
+ */
+async function shutdownAccessibility(browser) {
+  await waitForAccessibilityShutdown();
+  await SpecialPowers.spawn(browser, [], waitForAccessibilityShutdown);
 }
 
 registerCleanupFunction(async () => {
   info("Cleaning up...");
-  await shutdownA11y();
   Services.prefs.clearUserPref("devtools.accessibility.enabled");
+  Services.prefs.clearUserPref("devtools.contenttoolbox.fission");
 });
 
 const EXPANDABLE_PROPS = ["actions", "states", "attributes"];
@@ -140,10 +128,6 @@ async function addTestTab(url) {
       state.details.accessible.role === "document"
   );
 
-  // Wait for inspector load here to avoid protocol errors on shutdown, since
-  // accessibility panel test can be too fast.
-  await panel._toolbox.loadTool("inspector");
-
   return {
     tab,
     browser: tab.linkedBrowser,
@@ -153,23 +137,6 @@ async function addTestTab(url) {
     doc,
     store,
   };
-}
-
-/**
- * Turn off accessibility features from within the panel. We call it before the
- * cleanup function to make sure that the panel is still present.
- */
-async function disableAccessibilityInspector(env) {
-  const { doc, win, panel } = env;
-  // Disable accessibility service through the panel and wait for the shutdown
-  // event.
-  const shutdown = panel.accessibilityProxy.accessibilityFront.once("shutdown");
-  const disableButton = await BrowserTestUtils.waitForCondition(
-    () => doc.getElementById("accessibility-disable-button"),
-    "Wait for the disable button."
-  );
-  EventUtils.sendMouseEvent({ type: "click" }, disableButton, win);
-  await shutdown;
 }
 
 /**
@@ -321,10 +288,13 @@ function relationsMatch(relations, expected) {
     let expTargets = expected[relationType];
     expTargets = Array.isArray(expTargets) ? expTargets : [expTargets];
 
-    let targets = relations[relationType];
+    let targets = relations ? relations[relationType] : [];
     targets = Array.isArray(targets) ? targets : [targets];
 
     for (const index in expTargets) {
+      if (!targets[index]) {
+        return false;
+      }
       if (
         expTargets[index].name !== targets[index].name ||
         expTargets[index].role !== targets[index].role
@@ -631,9 +601,14 @@ async function toggleMenuItem(doc, toolboxDoc, menuId, menuItemIndex) {
     menuItem.getAttribute("aria-checked") === "true" ? null : "true";
 
   // Make the menu visible first.
+  const onPopupShown = new Promise(r =>
+    toolboxDoc.addEventListener("popupshown", r, { once: true })
+  );
   EventUtils.synthesizeMouseAtCenter(menuButton, {}, panelWin);
-  await BrowserTestUtils.waitForCondition(
-    () => !!menuItem.offsetParent,
+  await onPopupShown;
+  const boundingRect = menuItem.getBoundingClientRect();
+  ok(
+    boundingRect.width > 0 && boundingRect.height > 0,
     "Menu item is visible."
   );
 
@@ -667,7 +642,9 @@ async function findAccessibleFor(
   {
     toolbox: { target },
     panel: {
-      accessibilityProxy: { accessibleWalkerFront },
+      accessibilityProxy: {
+        accessibilityFront: { accessibleWalkerFront },
+      },
     },
   },
   selector
@@ -756,16 +733,32 @@ async function runA11yPanelTests(tests, env) {
 
 /**
  * Build a valid URL from an HTML snippet.
- * @param  {String} uri HTML snippet
+ * @param  {String}  uri      HTML snippet
+ * @param  {Object}  options  options for the test
  * @return {String}     built URL
  */
-function buildURL(uri) {
+function buildURL(uri, options = {}) {
+  if (options.remoteIframe) {
+    const srcURL = new URL(`http://example.net/document-builder.sjs`);
+    srcURL.searchParams.append(
+      "html",
+      `<html>
+        <head>
+          <meta charset="utf-8"/>
+          <title>Accessibility Panel Test (OOP)</title>
+        </head>
+        <body>${uri}</body>
+      </html>`
+    );
+    uri = `<iframe title="Accessibility Panel Test (OOP)" src="${srcURL.href}"/>`;
+  }
+
   return `data:text/html;charset=UTF-8,${encodeURIComponent(uri)}`;
 }
 
 /**
  * Add a test task based on the test structure and a test URL.
- * @param  {JSON}   tests  test data that has the format of:
+ * @param  {JSON}   tests    test data that has the format of:
  *                    {
  *                      desc     {String}    description for better logging
  *                      setup   {Function}   An optional setup that needs to be
@@ -774,11 +767,33 @@ function buildURL(uri) {
  *                      expected {JSON}      An expected states for the tree and
  *                                           the sidebar
  *                    }
- * @param {String}  uri    test URL
- * @param {String}  msg    a message that is printed for the test
+ * @param {String}  uri      test URL
+ * @param {String}  msg      a message that is printed for the test
+ * @param {Object}  options  options for the test
  */
-function addA11yPanelTestsTask(tests, uri, msg) {
-  addA11YPanelTask(msg, uri, env => runA11yPanelTests(tests, env));
+function addA11yPanelTestsTask(tests, uri, msg, options) {
+  addA11YPanelTask(msg, uri, env => runA11yPanelTests(tests, env), options);
+}
+
+/**
+ * Borrowed from framework's shared head. Close toolbox, completely disable
+ * accessibility and remove the tab.
+ * @param  {Tab}
+ *         tab The tab to close.
+ * @return {Promise}
+ *         Resolves when the toolbox and tab have been destroyed and closed.
+ */
+async function closeTabToolboxAccessibility(tab = gBrowser.selectedTab) {
+  if (TargetFactory.isKnownTab(tab)) {
+    const target = await TargetFactory.forTab(tab);
+    if (target) {
+      await gDevTools.closeToolbox(target);
+    }
+  }
+
+  await shutdownAccessibility(gBrowser.getBrowserForTab(tab));
+  await removeTab(tab);
+  await new Promise(resolve => setTimeout(resolve, 0));
 }
 
 /**
@@ -787,13 +802,18 @@ function addA11yPanelTestsTask(tests, uri, msg) {
  * @param {String}   msg    a message that is printed for the test
  * @param {String}   uri    test URL
  * @param {Function} task   task function containing the tests.
+ * @param {Object}   options  options for the test
  */
-function addA11YPanelTask(msg, uri, task) {
+function addA11YPanelTask(msg, uri, task, options = {}) {
   add_task(async function a11YPanelTask() {
     info(msg);
-    const env = await addTestTab(buildURL(uri));
+    if (options.remoteIframe) {
+      await pushPref("devtools.contenttoolbox.fission", true);
+    }
+
+    const env = await addTestTab(buildURL(uri, options));
     await task(env);
-    await disableAccessibilityInspector(env);
+    await closeTabToolboxAccessibility(env.tab);
   });
 }
 
@@ -805,19 +825,4 @@ function addA11YPanelTask(msg, uri, task) {
 function reload(target, waitForTargetEvent = "navigate") {
   executeSoon(() => target.reload());
   return once(target, waitForTargetEvent);
-}
-
-/**
- * Wait and check that the state of the accessibility tab in the toolbox is
- * correct.
- * @param {Object}   toolbox
- *                   DevTools toolbox to be checked.
- * @param {Boolean}  expected
- *                   Expected highlighted state of the accessibility tab.
- */
-async function checkHighlighted(toolbox, expected) {
-  await BrowserTestUtils.waitForCondition(async function() {
-    const isHighlighted = await toolbox.isToolHighlighted("accessibility");
-    return isHighlighted === expected;
-  });
 }

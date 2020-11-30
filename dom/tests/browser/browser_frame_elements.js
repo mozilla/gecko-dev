@@ -11,18 +11,14 @@ add_task(async function test() {
   await BrowserTestUtils.withNewTab({ gBrowser, url: TEST_URI }, async function(
     browser
   ) {
-    if (!browser.isRemoteBrowser) {
-      // Non-e10s, access contentWindow and confirm its container is the browser:
-      let windowUtils = browser.contentWindow.windowUtils;
-      is(
-        windowUtils.containerElement,
-        browser,
-        "Container element for main window is xul:browser"
-      );
-    }
+    // Confirm its embedder is the browser:
+    is(
+      browser.browsingContext.embedderElement,
+      browser,
+      "Embedder element for main window is xul:browser"
+    );
 
     await SpecialPowers.spawn(browser, [], startTests);
-    await mozBrowserTests(browser);
   });
 });
 
@@ -37,11 +33,10 @@ function startTests() {
   info("Checking about:blank iframe");
   let iframeBlank = gWindow.document.querySelector("#iframe-blank");
   Assert.ok(iframeBlank, "Iframe exists on page");
-  let iframeBlankUtils = iframeBlank.contentWindow.windowUtils;
   Assert.equal(
-    iframeBlankUtils.containerElement,
+    iframeBlank.browsingContext.embedderElement,
     iframeBlank,
-    "Container element for iframe window is iframe"
+    "Embedder element for iframe window is iframe"
   );
   Assert.equal(iframeBlank.contentWindow.top, gWindow, "gWindow is top");
   Assert.equal(iframeBlank.contentWindow.parent, gWindow, "gWindow is parent");
@@ -49,11 +44,10 @@ function startTests() {
   info("Checking iframe with data url src");
   let iframeDataUrl = gWindow.document.querySelector("#iframe-data-url");
   Assert.ok(iframeDataUrl, "Iframe exists on page");
-  let iframeDataUrlUtils = iframeDataUrl.contentWindow.windowUtils;
   Assert.equal(
-    iframeDataUrlUtils.containerElement,
+    iframeDataUrl.browsingContext.embedderElement,
     iframeDataUrl,
-    "Container element for iframe window is iframe"
+    "Embedder element for iframe window is iframe"
   );
   Assert.equal(iframeDataUrl.contentWindow.top, gWindow, "gWindow is top");
   Assert.equal(
@@ -65,11 +59,10 @@ function startTests() {
   info("Checking object with data url data attribute");
   let objectDataUrl = gWindow.document.querySelector("#object-data-url");
   Assert.ok(objectDataUrl, "Object exists on page");
-  let objectDataUrlUtils = objectDataUrl.contentWindow.windowUtils;
   Assert.equal(
-    objectDataUrlUtils.containerElement,
+    objectDataUrl.browsingContext.embedderElement,
     objectDataUrl,
-    "Container element for object window is the object"
+    "Embedder element for object window is the object"
   );
   Assert.equal(objectDataUrl.contentWindow.top, gWindow, "gWindow is top");
   Assert.equal(
@@ -77,33 +70,4 @@ function startTests() {
     gWindow,
     "gWindow is parent"
   );
-}
-
-async function mozBrowserTests(browser) {
-  info("Granting special powers for mozbrowser");
-  await SpecialPowers.addPermission("browser", true, TEST_URI);
-  Services.prefs.setBoolPref("dom.mozBrowserFramesEnabled", true);
-  Services.prefs.setBoolPref("network.disable.ipc.security", true);
-
-  await SpecialPowers.spawn(browser, [], function() {
-    info("Checking mozbrowser iframe");
-    let mozBrowserFrame = content.document.createElement("iframe");
-    mozBrowserFrame.setAttribute("mozbrowser", "");
-    content.document.body.appendChild(mozBrowserFrame);
-    Assert.equal(
-      mozBrowserFrame.contentWindow.top,
-      mozBrowserFrame.contentWindow,
-      "Mozbrowser top == iframe window"
-    );
-    Assert.equal(
-      mozBrowserFrame.contentWindow.parent,
-      mozBrowserFrame.contentWindow,
-      "Mozbrowser parent == iframe window"
-    );
-  });
-
-  info("Revoking special powers for mozbrowser");
-  Services.prefs.clearUserPref("dom.mozBrowserFramesEnabled");
-  Services.prefs.clearUserPref("network.disable.ipc.security");
-  await SpecialPowers.removePermission("browser", TEST_URI);
 }

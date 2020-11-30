@@ -11,9 +11,6 @@
 XPCOMUtils.defineLazyModuleGetters(this, {
   AboutNewTab: "resource:///modules/AboutNewTab.jsm",
   UrlbarTestUtils: "resource://testing-common/UrlbarTestUtils.jsm",
-  URLBAR_SELECTED_RESULT_TYPES: "resource:///modules/BrowserUsageTelemetry.jsm",
-  URLBAR_SELECTED_RESULT_METHODS:
-    "resource:///modules/BrowserUsageTelemetry.jsm",
 });
 
 const EN_US_TOPSITES =
@@ -27,10 +24,10 @@ function snapshotHistograms() {
       "FX_URLBAR_SELECTED_RESULT_INDEX"
     ),
     resultTypeHist: TelemetryTestUtils.getAndClearHistogram(
-      "FX_URLBAR_SELECTED_RESULT_TYPE"
+      "FX_URLBAR_SELECTED_RESULT_TYPE_2"
     ),
     resultIndexByTypeHist: TelemetryTestUtils.getAndClearKeyedHistogram(
-      "FX_URLBAR_SELECTED_RESULT_INDEX_BY_TYPE"
+      "FX_URLBAR_SELECTED_RESULT_INDEX_BY_TYPE_2"
     ),
     resultMethodHist: TelemetryTestUtils.getAndClearHistogram(
       "FX_URLBAR_SELECTED_RESULT_METHOD"
@@ -44,7 +41,7 @@ function assertHistogramResults(histograms, type, index, method) {
 
   TelemetryTestUtils.assertHistogram(
     histograms.resultTypeHist,
-    URLBAR_SELECTED_RESULT_TYPES[type],
+    UrlbarUtils.SELECTED_RESULT_TYPES[type],
     1
   );
 
@@ -69,8 +66,8 @@ async function updateTopSites(condition, searchShortcuts = false) {
   // Toggle the pref to clear the feed cache and force an update.
   await SpecialPowers.pushPrefEnv({
     set: [
-      ["browser.newtabpage.activity-stream.feeds.topsites", false],
-      ["browser.newtabpage.activity-stream.feeds.topsites", true],
+      ["browser.newtabpage.activity-stream.feeds.system.topsites", false],
+      ["browser.newtabpage.activity-stream.feeds.system.topsites", true],
       [
         "browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts",
         searchShortcuts,
@@ -88,8 +85,7 @@ async function updateTopSites(condition, searchShortcuts = false) {
 add_task(async function setup() {
   await SpecialPowers.pushPrefEnv({
     set: [
-      ["browser.urlbar.update1", true],
-      ["browser.urlbar.openViewOnFocus", true],
+      ["browser.urlbar.suggest.topsites", true],
       ["browser.newtabpage.activity-stream.default.sites", EN_US_TOPSITES],
     ],
   });
@@ -110,7 +106,7 @@ add_task(async function test() {
     const histograms = snapshotHistograms();
 
     await UrlbarTestUtils.promisePopupOpen(window, () => {
-      EventUtils.synthesizeMouseAtCenter(window.gURLBar.inputField, {});
+      EventUtils.synthesizeMouseAtCenter(gURLBar.inputField, {});
     });
 
     await UrlbarTestUtils.promiseSearchComplete(window);
@@ -139,10 +135,10 @@ add_task(async function test() {
       histograms,
       "topsite",
       0,
-      URLBAR_SELECTED_RESULT_METHODS.arrowEnterSelection
+      UrlbarTestUtils.SELECTED_RESULT_METHODS.arrowEnterSelection
     );
     await UrlbarTestUtils.promisePopupClose(window, () => {
-      window.gURLBar.blur();
+      gURLBar.blur();
     });
   });
 });

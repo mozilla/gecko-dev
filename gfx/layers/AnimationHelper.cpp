@@ -5,12 +5,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "AnimationHelper.h"
-#include "mozilla/ComputedTimingFunction.h"      // for ComputedTimingFunction
+#include "gfx2DGlue.h"                       // for ThebesRect
+#include "gfxLineSegment.h"                  // for gfxLineSegment
+#include "gfxPoint.h"                        // for gfxPoint
+#include "gfxQuad.h"                         // for gfxQuad
+#include "gfxRect.h"                         // for gfxRect
+#include "gfxUtils.h"                        // for gfxUtils::TransformToQuad
+#include "mozilla/ComputedTimingFunction.h"  // for ComputedTimingFunction
 #include "mozilla/dom/AnimationEffectBinding.h"  // for dom::FillMode
 #include "mozilla/dom/KeyframeEffectBinding.h"   // for dom::IterationComposite
 #include "mozilla/dom/KeyframeEffect.h"       // for dom::KeyFrameEffectReadOnly
 #include "mozilla/dom/Nullable.h"             // for dom::Nullable
 #include "mozilla/layers/CompositorThread.h"  // for CompositorThreadHolder
+#include "mozilla/layers/CompositorAnimationStorage.h"  // for CompositorAnimationStorage
 #include "mozilla/layers/LayerAnimationUtils.h"  // for TimingFunctionToComputedTimingFunction
 #include "mozilla/LayerAnimationInfo.h"  // for GetCSSPropertiesFor()
 #include "mozilla/MotionPathUtils.h"     // for ResolveMotionPath()
@@ -21,112 +28,6 @@
 
 namespace mozilla {
 namespace layers {
-
-void CompositorAnimationStorage::Clear() {
-  MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
-
-  mAnimatedValues.Clear();
-  mAnimations.Clear();
-  mAnimationRenderRoots.Clear();
-}
-
-void CompositorAnimationStorage::ClearById(const uint64_t& aId) {
-  MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
-
-  mAnimatedValues.Remove(aId);
-  mAnimations.Remove(aId);
-  mAnimationRenderRoots.Remove(aId);
-}
-
-AnimatedValue* CompositorAnimationStorage::GetAnimatedValue(
-    const uint64_t& aId) const {
-  MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
-  return mAnimatedValues.Get(aId);
-}
-
-OMTAValue CompositorAnimationStorage::GetOMTAValue(const uint64_t& aId) const {
-  OMTAValue omtaValue = mozilla::null_t();
-  auto animatedValue = GetAnimatedValue(aId);
-  if (!animatedValue) {
-    return omtaValue;
-  }
-
-  animatedValue->Value().match(
-      [&](const AnimationTransform& aTransform) {
-        gfx::Matrix4x4 transform = aTransform.mFrameTransform;
-        const TransformData& data = aTransform.mData;
-        float scale = data.appUnitsPerDevPixel();
-        gfx::Point3D transformOrigin = data.transformOrigin();
-
-        // Undo the rebasing applied by
-        // nsDisplayTransform::GetResultingTransformMatrixInternal
-        transform.ChangeBasis(-transformOrigin);
-
-        // Convert to CSS pixels (this undoes the operations performed by
-        // nsStyleTransformMatrix::ProcessTranslatePart which is called from
-        // nsDisplayTransform::GetResultingTransformMatrix)
-        double devPerCss = double(scale) / double(AppUnitsPerCSSPixel());
-        transform._41 *= devPerCss;
-        transform._42 *= devPerCss;
-        transform._43 *= devPerCss;
-        omtaValue = transform;
-      },
-      [&](const float& aOpacity) { omtaValue = aOpacity; },
-      [&](const nscolor& aColor) { omtaValue = aColor; });
-  return omtaValue;
-}
-
-void CompositorAnimationStorage::SetAnimatedValue(
-    uint64_t aId, gfx::Matrix4x4&& aTransformInDevSpace,
-    gfx::Matrix4x4&& aFrameTransform, const TransformData& aData) {
-  MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
-  auto count = mAnimatedValues.Count();
-  AnimatedValue* value = mAnimatedValues.LookupOrAdd(
-      aId, std::move(aTransformInDevSpace), std::move(aFrameTransform), aData);
-  if (count == mAnimatedValues.Count()) {
-    MOZ_ASSERT(value->Is<AnimationTransform>());
-    *value = AnimatedValue(std::move(aTransformInDevSpace),
-                           std::move(aFrameTransform), aData);
-  }
-}
-
-void CompositorAnimationStorage::SetAnimatedValue(
-    uint64_t aId, gfx::Matrix4x4&& aTransformInDevSpace) {
-  MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
-  const TransformData dontCare = {};
-  SetAnimatedValue(aId, std::move(aTransformInDevSpace), gfx::Matrix4x4(),
-                   dontCare);
-}
-
-void CompositorAnimationStorage::SetAnimatedValue(uint64_t aId,
-                                                  nscolor aColor) {
-  MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
-  auto count = mAnimatedValues.Count();
-  AnimatedValue* value = mAnimatedValues.LookupOrAdd(aId, aColor);
-  if (count == mAnimatedValues.Count()) {
-    MOZ_ASSERT(value->Is<nscolor>());
-    *value = AnimatedValue(aColor);
-  }
-}
-
-void CompositorAnimationStorage::SetAnimatedValue(uint64_t aId,
-                                                  const float& aOpacity) {
-  MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
-  auto count = mAnimatedValues.Count();
-  AnimatedValue* value = mAnimatedValues.LookupOrAdd(aId, aOpacity);
-  if (count == mAnimatedValues.Count()) {
-    MOZ_ASSERT(value->Is<float>());
-    *value = AnimatedValue(aOpacity);
-  }
-}
-
-void CompositorAnimationStorage::SetAnimations(uint64_t aId,
-                                               const AnimationArray& aValue,
-                                               wr::RenderRoot aRenderRoot) {
-  MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
-  mAnimations.Put(aId, AnimationHelper::ExtractAnimations(aValue));
-  mAnimationRenderRoots.Put(aId, aRenderRoot);
-}
 
 enum class CanSkipCompose {
   IfPossible,
@@ -318,10 +219,11 @@ AnimationHelper::SampleResult AnimationHelper::SampleAnimationForEachNode(
     // Initialize animation value with base style.
     RefPtr<RawServoAnimationValue> currValue = group.mBaseStyle;
 
-    CanSkipCompose canSkipCompose = aPropertyAnimationGroups.Length() == 1 &&
-                                            group.mAnimations.Length() == 1
-                                        ? CanSkipCompose::IfPossible
-                                        : CanSkipCompose::No;
+    CanSkipCompose canSkipCompose =
+        aPreviousValue && aPropertyAnimationGroups.Length() == 1 &&
+                group.mAnimations.Length() == 1
+            ? CanSkipCompose::IfPossible
+            : CanSkipCompose::No;
 
     MOZ_ASSERT(
         !group.mAnimations.IsEmpty() ||
@@ -364,7 +266,7 @@ AnimationHelper::SampleResult AnimationHelper::SampleAnimationForEachNode(
   SampleResult rv =
       aAnimationValues.IsEmpty() ? SampleResult::None : SampleResult::Sampled;
   if (rv == SampleResult::Sampled) {
-    aAnimationValues.AppendElements(nonAnimatingValues);
+    aAnimationValues.AppendElements(std::move(nonAnimatingValues));
   }
   return rv;
 }
@@ -419,8 +321,9 @@ static bool HasTransformLikeAnimations(const AnimationArray& aAnimations) {
 #endif
 
 AnimationStorageData AnimationHelper::ExtractAnimations(
-    const AnimationArray& aAnimations) {
+    const LayersId& aLayersId, const AnimationArray& aAnimations) {
   AnimationStorageData storageData;
+  storageData.mLayersId = aLayersId;
 
   nsCSSPropertyID prevID = eCSSProperty_UNKNOWN;
   PropertyAnimationGroup* currData = nullptr;
@@ -435,18 +338,11 @@ AnimationStorageData AnimationHelper::ExtractAnimations(
       currData = storageData.mAnimation.AppendElement();
       currData->mProperty = animation.property();
       if (animation.transformData()) {
-        MOZ_ASSERT(!storageData.mTransformLikeMetaData.mTransform,
+        MOZ_ASSERT(!storageData.mTransformData,
                    "Only one entry has TransformData");
-        storageData.mTransformLikeMetaData.mTransform =
-            animation.transformData();
+        storageData.mTransformData = animation.transformData();
       }
 
-      if (animation.motionPathData()) {
-        MOZ_ASSERT(!storageData.mTransformLikeMetaData.mMotionPath,
-                   "Only one entry has MotionPathData");
-        storageData.mTransformLikeMetaData.mMotionPath =
-            animation.motionPathData();
-      }
       prevID = animation.property();
 
       // Reset the debug pointer.
@@ -555,12 +451,12 @@ AnimationStorageData AnimationHelper::ExtractAnimations(
 
     if (seenProperties.IsSubsetOf(LayerAnimationInfo::GetCSSPropertiesFor(
             DisplayItemType::TYPE_TRANSFORM))) {
-      MOZ_ASSERT(storageData.mTransformLikeMetaData.mTransform,
-                 "Should have TransformData");
+      MOZ_ASSERT(storageData.mTransformData, "Should have TransformData");
     }
 
     if (seenProperties.HasProperty(eCSSProperty_offset_path)) {
-      MOZ_ASSERT(storageData.mTransformLikeMetaData.mMotionPath,
+      MOZ_ASSERT(storageData.mTransformData, "Should have TransformData");
+      MOZ_ASSERT(storageData.mTransformData->motionPathData(),
                  "Should have MotionPathData");
     }
   }
@@ -579,97 +475,9 @@ uint64_t AnimationHelper::GetNextCompositorAnimationsId() {
   return nextId;
 }
 
-bool AnimationHelper::SampleAnimations(CompositorAnimationStorage* aStorage,
-                                       TimeStamp aPreviousFrameTime,
-                                       TimeStamp aCurrentFrameTime) {
-  MOZ_ASSERT(aStorage);
-  bool isAnimating = false;
-
-  // Do nothing if there are no compositor animations
-  if (!aStorage->AnimationsCount()) {
-    return isAnimating;
-  }
-
-  // Sample the animations in CompositorAnimationStorage
-  for (auto iter = aStorage->ConstAnimationsTableIter(); !iter.Done();
-       iter.Next()) {
-    auto& animationStorageData = iter.Data();
-    if (animationStorageData.mAnimation.IsEmpty()) {
-      continue;
-    }
-
-    isAnimating = true;
-    nsTArray<RefPtr<RawServoAnimationValue>> animationValues;
-    AnimatedValue* previousValue = aStorage->GetAnimatedValue(iter.Key());
-    AnimationHelper::SampleResult sampleResult =
-        AnimationHelper::SampleAnimationForEachNode(
-            aPreviousFrameTime, aCurrentFrameTime, previousValue,
-            animationStorageData.mAnimation, animationValues);
-
-    if (sampleResult != AnimationHelper::SampleResult::Sampled) {
-      continue;
-    }
-
-    const PropertyAnimationGroup& lastPropertyAnimationGroup =
-        animationStorageData.mAnimation.LastElement();
-
-    // Store the AnimatedValue
-    switch (lastPropertyAnimationGroup.mProperty) {
-      case eCSSProperty_background_color: {
-        aStorage->SetAnimatedValue(
-            iter.Key(), Servo_AnimationValue_GetColor(animationValues[0],
-                                                      NS_RGBA(0, 0, 0, 0)));
-        break;
-      }
-      case eCSSProperty_opacity: {
-        MOZ_ASSERT(animationValues.Length() == 1);
-        aStorage->SetAnimatedValue(
-            iter.Key(), Servo_AnimationValue_GetOpacity(animationValues[0]));
-        break;
-      }
-      case eCSSProperty_rotate:
-      case eCSSProperty_scale:
-      case eCSSProperty_translate:
-      case eCSSProperty_transform:
-      case eCSSProperty_offset_path:
-      case eCSSProperty_offset_distance:
-      case eCSSProperty_offset_rotate:
-      case eCSSProperty_offset_anchor: {
-        gfx::Matrix4x4 transform = ServoAnimationValueToMatrix4x4(
-            animationValues, animationStorageData.mTransformLikeMetaData,
-            animationStorageData.mCachedMotionPath);
-        gfx::Matrix4x4 frameTransform = transform;
-        // If the parent has perspective transform, then the offset into
-        // reference frame coordinates is already on this transform. If not,
-        // then we need to ask for it to be added here.
-        MOZ_ASSERT(animationStorageData.mTransformLikeMetaData.mTransform);
-        const TransformData& transformData =
-            *animationStorageData.mTransformLikeMetaData.mTransform;
-        if (!transformData.hasPerspectiveParent()) {
-          nsLayoutUtils::PostTranslate(transform, transformData.origin(),
-                                       transformData.appUnitsPerDevPixel(),
-                                       true);
-        }
-
-        transform.PostScale(transformData.inheritedXScale(),
-                            transformData.inheritedYScale(), 1);
-
-        aStorage->SetAnimatedValue(iter.Key(), std::move(transform),
-                                   std::move(frameTransform), transformData);
-        break;
-      }
-      default:
-        MOZ_ASSERT_UNREACHABLE("Unhandled animated property");
-    }
-  }
-
-  return isAnimating;
-}
-
 gfx::Matrix4x4 AnimationHelper::ServoAnimationValueToMatrix4x4(
     const nsTArray<RefPtr<RawServoAnimationValue>>& aValues,
-    const CompositorAnimationData& aAnimationData,
-    gfx::Path* aCachedMotionPath) {
+    const TransformData& aTransformData, gfx::Path* aCachedMotionPath) {
   using nsStyleTransformMatrix::TransformReferenceBox;
 
   // This is a bit silly just to avoid the transform list copy from the
@@ -729,23 +537,175 @@ gfx::Matrix4x4 AnimationHelper::ServoAnimationValueToMatrix4x4(
     }
   }
 
-  MOZ_ASSERT(aAnimationData.mTransform);
-  const TransformData& transformData = *aAnimationData.mTransform;
-  TransformReferenceBox refBox(nullptr, transformData.bounds());
+  TransformReferenceBox refBox(nullptr, aTransformData.bounds());
   Maybe<ResolvedMotionPathData> motion = MotionPathUtils::ResolveMotionPath(
-      path, distance, offsetRotate, anchor, aAnimationData.mMotionPath, refBox,
-      aCachedMotionPath);
+      path, distance, offsetRotate, anchor, aTransformData.motionPathData(),
+      refBox, aCachedMotionPath);
 
   // We expect all our transform data to arrive in device pixels
-  gfx::Point3D transformOrigin = transformData.transformOrigin();
+  gfx::Point3D transformOrigin = aTransformData.transformOrigin();
   nsDisplayTransform::FrameTransformProperties props(
       translate ? *translate : noneTranslate, rotate ? *rotate : noneRotate,
       scale ? *scale : noneScale, transform ? *transform : noneTransform,
       motion, transformOrigin);
 
   return nsDisplayTransform::GetResultingTransformMatrix(
-      props, refBox, transformData.origin(),
-      transformData.appUnitsPerDevPixel(), 0);
+      props, refBox, aTransformData.appUnitsPerDevPixel());
+}
+
+static uint8_t CollectOverflowedSideLines(const gfxQuad& aPrerenderedQuad,
+                                          SideBits aOverflowSides,
+                                          gfxLineSegment sideLines[4]) {
+  uint8_t count = 0;
+
+  if (aOverflowSides & SideBits::eTop) {
+    sideLines[count] = gfxLineSegment(aPrerenderedQuad.mPoints[0],
+                                      aPrerenderedQuad.mPoints[1]);
+    count++;
+  }
+  if (aOverflowSides & SideBits::eRight) {
+    sideLines[count] = gfxLineSegment(aPrerenderedQuad.mPoints[1],
+                                      aPrerenderedQuad.mPoints[2]);
+    count++;
+  }
+  if (aOverflowSides & SideBits::eBottom) {
+    sideLines[count] = gfxLineSegment(aPrerenderedQuad.mPoints[2],
+                                      aPrerenderedQuad.mPoints[3]);
+    count++;
+  }
+  if (aOverflowSides & SideBits::eLeft) {
+    sideLines[count] = gfxLineSegment(aPrerenderedQuad.mPoints[3],
+                                      aPrerenderedQuad.mPoints[0]);
+    count++;
+  }
+
+  return count;
+}
+
+enum RegionBits : uint8_t {
+  Inside = 0,
+  Left = (1 << 0),
+  Right = (1 << 1),
+  Bottom = (1 << 2),
+  Top = (1 << 3),
+};
+
+MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(RegionBits);
+
+static RegionBits GetRegionBitsForPoint(double aX, double aY,
+                                        const gfxRect& aClip) {
+  RegionBits result = RegionBits::Inside;
+  if (aX < aClip.X()) {
+    result |= RegionBits::Left;
+  } else if (aX > aClip.XMost()) {
+    result |= RegionBits::Right;
+  }
+
+  if (aY < aClip.Y()) {
+    result |= RegionBits::Bottom;
+  } else if (aY > aClip.YMost()) {
+    result |= RegionBits::Top;
+  }
+  return result;
+};
+
+// https://en.wikipedia.org/wiki/Cohen%E2%80%93Sutherland_algorithm
+static bool LineSegmentIntersectsClip(double aX0, double aY0, double aX1,
+                                      double aY1, const gfxRect& aClip) {
+  RegionBits b0 = GetRegionBitsForPoint(aX0, aY0, aClip);
+  RegionBits b1 = GetRegionBitsForPoint(aX1, aY1, aClip);
+
+  while (true) {
+    if (!(b0 | b1)) {
+      // Completely inside.
+      return true;
+    }
+
+    if (b0 & b1) {
+      // Completely outside.
+      return false;
+    }
+
+    double x, y;
+    // Choose an outside point.
+    RegionBits outsidePointBits = b1 > b0 ? b1 : b0;
+    if (outsidePointBits & RegionBits::Top) {
+      x = aX0 + (aX1 - aX0) * (aClip.YMost() - aY0) / (aY1 - aY0);
+      y = aClip.YMost();
+    } else if (outsidePointBits & RegionBits::Bottom) {
+      x = aX0 + (aX1 - aX0) * (aClip.Y() - aY0) / (aY1 - aY0);
+      y = aClip.Y();
+    } else if (outsidePointBits & RegionBits::Right) {
+      y = aY0 + (aY1 - aY0) * (aClip.XMost() - aX0) / (aX1 - aX0);
+      x = aClip.XMost();
+    } else if (outsidePointBits & RegionBits::Left) {
+      y = aY0 + (aY1 - aY0) * (aClip.X() - aX0) / (aX1 - aX0);
+      x = aClip.X();
+    }
+
+    if (outsidePointBits == b0) {
+      aX0 = x;
+      aY0 = y;
+      b0 = GetRegionBitsForPoint(aX0, aY0, aClip);
+    } else {
+      aX1 = x;
+      aY1 = y;
+      b1 = GetRegionBitsForPoint(aX1, aY1, aClip);
+    }
+  }
+  MOZ_ASSERT_UNREACHABLE();
+  return false;
+}
+
+// static
+bool AnimationHelper::ShouldBeJank(const LayoutDeviceRect& aPrerenderedRect,
+                                   SideBits aOverflowSides,
+                                   const gfx::Matrix4x4& aTransform,
+                                   const ParentLayerRect& aClipRect) {
+  if (aClipRect.IsEmpty()) {
+    return false;
+  }
+
+  gfxQuad prerenderedQuad = gfxUtils::TransformToQuad(
+      ThebesRect(aPrerenderedRect.ToUnknownRect()), aTransform);
+
+  gfxLineSegment sideLines[4];
+  uint8_t overflowSideCount =
+      CollectOverflowedSideLines(prerenderedQuad, aOverflowSides, sideLines);
+
+  gfxRect clipRect = ThebesRect(aClipRect.ToUnknownRect());
+  for (uint8_t j = 0; j < overflowSideCount; j++) {
+    if (LineSegmentIntersectsClip(sideLines[j].mStart.x, sideLines[j].mStart.y,
+                                  sideLines[j].mEnd.x, sideLines[j].mEnd.y,
+                                  clipRect)) {
+      return true;
+    }
+  }
+
+  // With step timing functions there are cases the transform jumps to a
+  // position where the partial pre-render area is totally outside of the clip
+  // rect without any intersection of the partial pre-render area and the clip
+  // rect happened in previous compositions but there remains visible area of
+  // the entire transformed area.
+  //
+  // So now all four points of the transformed partial pre-render rect are
+  // outside of the clip rect, if all these four points are in either side of
+  // the clip rect, we consider it's jank so that on the main-thread we will
+  // either a) rebuild the up-to-date display item if there remains visible area
+  // or b) no longer rebuild the display item if it's totally outside of the
+  // clip rect.
+  //
+  // Note that RegionBits::Left and Right are mutually exclusive,
+  // RegionBits::Top and Bottom are also mutually exclusive, so if there remains
+  // any bits, it means all four points are in the same side.
+  return GetRegionBitsForPoint(prerenderedQuad.mPoints[0].x,
+                               prerenderedQuad.mPoints[0].y, clipRect) &
+         GetRegionBitsForPoint(prerenderedQuad.mPoints[1].x,
+                               prerenderedQuad.mPoints[1].y, clipRect) &
+         GetRegionBitsForPoint(prerenderedQuad.mPoints[2].x,
+                               prerenderedQuad.mPoints[2].y, clipRect) &
+         GetRegionBitsForPoint(prerenderedQuad.mPoints[3].x,
+                               prerenderedQuad.mPoints[3].y, clipRect);
 }
 
 }  // namespace layers

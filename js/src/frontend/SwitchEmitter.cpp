@@ -122,7 +122,7 @@ bool SwitchEmitter::emitDiscriminant(const Maybe<uint32_t>& switchPos) {
   return true;
 }
 
-bool SwitchEmitter::emitLexical(Handle<LexicalScope::Data*> bindings) {
+bool SwitchEmitter::emitLexical(ParserLexicalScopeData* bindings) {
   MOZ_ASSERT(state_ == State::Discriminant);
   MOZ_ASSERT(bindings);
 
@@ -382,7 +382,7 @@ bool SwitchEmitter::emitEnd() {
     // Allocate resume index range.
     uint32_t firstResumeIndex = 0;
     mozilla::Span<BytecodeOffset> offsets =
-        mozilla::MakeSpan(caseOffsets_.begin(), caseOffsets_.end());
+        mozilla::Span(caseOffsets_.begin(), caseOffsets_.end());
     if (!bce_->allocateResumeIndexRange(offsets, &firstResumeIndex)) {
       return false;
     }

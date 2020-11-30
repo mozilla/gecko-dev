@@ -5,10 +5,11 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
-use cocoa::foundation::NSUInteger;
+use cocoa_foundation::foundation::NSUInteger;
+use std::default::Default;
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Default)]
 pub struct MTLOrigin {
     pub x: NSUInteger,
     pub y: NSUInteger,
@@ -16,7 +17,7 @@ pub struct MTLOrigin {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Default)]
 pub struct MTLSize {
     pub width: NSUInteger,
     pub height: NSUInteger,
@@ -24,7 +25,7 @@ pub struct MTLSize {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Default)]
 pub struct MTLRegion {
     pub origin: MTLOrigin,
     pub size: MTLSize,

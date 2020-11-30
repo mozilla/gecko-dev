@@ -41,7 +41,7 @@ impl ValueLoc {
     pub fn unwrap_reg(self) -> RegUnit {
         match self {
             Self::Reg(ru) => ru,
-            _ => panic!("Expected register: {:?}", self),
+            _ => panic!("unwrap_reg expected register, found {:?}", self),
         }
     }
 
@@ -49,7 +49,7 @@ impl ValueLoc {
     pub fn unwrap_stack(self) -> StackSlot {
         match self {
             Self::Stack(ss) => ss,
-            _ => panic!("Expected stack slot: {:?}", self),
+            _ => panic!("unwrap_stack expected stack slot, found {:?}", self),
         }
     }
 
@@ -98,6 +98,7 @@ impl<'a> fmt::Display for DisplayValueLoc<'a> {
 /// - For register arguments, there is usually no difference, but if we ever add support for a
 ///   register-window ISA like SPARC, register arguments would also need to be translated.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "enable-serde", derive(Serialize, Deserialize))]
 pub enum ArgumentLoc {
     /// This argument has not been assigned to a location yet.
     Unassigned,

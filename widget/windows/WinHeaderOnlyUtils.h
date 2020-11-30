@@ -51,6 +51,23 @@ typedef struct _FILE_ID_INFO {
 #  define STATUS_SUCCESS ((NTSTATUS)0x00000000L)
 #endif  // !defined(STATUS_SUCCESS)
 
+// Our data indicates a few users of Win7 x86 hit failure to load urlmon.dll
+// for unknown reasons.  Since we don't always require urlmon.dll on Win7,
+// we delay-load it, which causes a crash if loading urlmon.dll fails.  This
+// macro is to safely load and call urlmon's API graciously without crash.
+#if defined(_X86_)
+#  define SAFECALL_URLMON_FUNC(FuncName, ...)                                  \
+    do {                                                                       \
+      static const mozilla::StaticDynamicallyLinkedFunctionPtr<decltype(       \
+          &::FuncName)>                                                        \
+          func(L"urlmon.dll", #FuncName);                                      \
+      hr =                                                                     \
+          func ? func(__VA_ARGS__) : HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND); \
+    } while (0)
+#else
+#  define SAFECALL_URLMON_FUNC(FuncName, ...) hr = ::FuncName(__VA_ARGS__)
+#endif
+
 namespace mozilla {
 
 class WindowsError final {
@@ -59,12 +76,12 @@ class WindowsError final {
   // overloading to properly differentiate between the two. Instead we'll use
   // static functions to convert the various error types to HRESULTs before
   // instantiating.
-  explicit WindowsError(HRESULT aHResult) : mHResult(aHResult) {}
+  explicit constexpr WindowsError(HRESULT aHResult) : mHResult(aHResult) {}
 
  public:
   using UniqueString = UniquePtr<WCHAR[], LocalFreeDeleter>;
 
-  static WindowsError FromNtStatus(NTSTATUS aNtStatus) {
+  static constexpr WindowsError FromNtStatus(NTSTATUS aNtStatus) {
     if (aNtStatus == STATUS_SUCCESS) {
       // Special case: we don't want to set FACILITY_NT_BIT
       // (HRESULT_FROM_NT does not handle this case, unlike HRESULT_FROM_WIN32)
@@ -74,11 +91,11 @@ class WindowsError final {
     return WindowsError(HRESULT_FROM_NT(aNtStatus));
   }
 
-  static WindowsError FromHResult(HRESULT aHResult) {
+  static constexpr WindowsError FromHResult(HRESULT aHResult) {
     return WindowsError(aHResult);
   }
 
-  static WindowsError FromWin32Error(DWORD aWin32Err) {
+  static constexpr WindowsError FromWin32Error(DWORD aWin32Err) {
     return WindowsError(HRESULT_FROM_WIN32(aWin32Err));
   }
 
@@ -160,11 +177,11 @@ class WindowsError final {
     return Nothing();
   }
 
-  bool operator==(const WindowsError& aOther) const {
+  constexpr bool operator==(const WindowsError& aOther) const {
     return mHResult == aOther.mHResult;
   }
 
-  bool operator!=(const WindowsError& aOther) const {
+  constexpr bool operator!=(const WindowsError& aOther) const {
     return mHResult != aOther.mHResult;
   }
 
@@ -187,6 +204,69 @@ class WindowsError final {
   HRESULT mHResult;
 };
 
+namespace detail {
+template <>
+struct UnusedZero<WindowsError> {
+  using StorageType = WindowsError;
+
+  static constexpr bool value = true;
+  static constexpr StorageType nullValue = WindowsError::FromHResult(S_OK);
+
+  static constexpr void AssertValid(StorageType aValue) {}
+  static constexpr const WindowsError& Inspect(const StorageType& aValue) {
+    return aValue;
+  }
+  static constexpr WindowsError Unwrap(StorageType aValue) { return aValue; }
+  static constexpr StorageType Store(WindowsError aValue) { return aValue; }
+};
+}  // namespace detail
+
+enum DetourResultCode : uint32_t {
+  RESULT_OK = 0,
+  INTERCEPTOR_MOD_NULL,
+  INTERCEPTOR_MOD_INACCESSIBLE,
+  INTERCEPTOR_PROC_NULL,
+  INTERCEPTOR_PROC_INACCESSIBLE,
+  DETOUR_PATCHER_RESERVE_FOR_MODULE_PE_ERROR,
+  DETOUR_PATCHER_RESERVE_FOR_MODULE_TEXT_ERROR,
+  DETOUR_PATCHER_RESERVE_FOR_MODULE_RESERVE_ERROR,
+  DETOUR_PATCHER_DO_RESERVE_ERROR,
+  DETOUR_PATCHER_NEXT_TRAMPOLINE_ERROR,
+  DETOUR_PATCHER_INVALID_TRAMPOLINE,
+  DETOUR_PATCHER_WRITE_POINTER_ERROR,
+  DETOUR_PATCHER_CREATE_TRAMPOLINE_ERROR,
+  FUNCHOOKCROSSPROCESS_COPYSTUB_ERROR,
+  MMPOLICY_RESERVE_INVALIDARG,
+  MMPOLICY_RESERVE_ZERO_RESERVATIONSIZE,
+  MMPOLICY_RESERVE_CREATEFILEMAPPING,
+  MMPOLICY_RESERVE_MAPVIEWOFFILE,
+  MMPOLICY_RESERVE_NOBOUND_RESERVE_ERROR,
+  MMPOLICY_RESERVE_FINDREGION_INVALIDLEN,
+  MMPOLICY_RESERVE_FINDREGION_INVALIDRANGE,
+  MMPOLICY_RESERVE_FINDREGION_VIRTUALQUERY_ERROR,
+  MMPOLICY_RESERVE_FINAL_RESERVE_ERROR,
+};
+
+#if defined(NIGHTLY_BUILD)
+struct DetourError {
+  // We have a 16-bytes buffer, but only minimum bytes to detour per
+  // architecture are copied.  See CreateTrampoline in PatcherDetour.h.
+  DetourResultCode mErrorCode;
+  uint8_t mOrigBytes[16];
+  explicit DetourError(DetourResultCode aError)
+      : mErrorCode(aError), mOrigBytes{} {}
+  DetourError(DetourResultCode aError, DWORD aWin32Error)
+      : mErrorCode(aError), mOrigBytes{} {
+    static_assert(sizeof(mOrigBytes) >= sizeof(aWin32Error),
+                  "Can't fit a DWORD in mOrigBytes");
+    *reinterpret_cast<DWORD*>(mOrigBytes) = aWin32Error;
+  }
+  operator WindowsError() const {
+    return WindowsError::FromHResult(mErrorCode);
+  }
+};
+#endif  // defined(NIGHTLY_BUILD)
+
 template <typename T>
 using WindowsErrorResult = Result<T, WindowsError>;
 
@@ -194,9 +274,22 @@ struct LauncherError {
   LauncherError(const char* aFile, int aLine, WindowsError aWin32Error)
       : mFile(aFile), mLine(aLine), mError(aWin32Error) {}
 
+#if defined(NIGHTLY_BUILD)
+  LauncherError(const char* aFile, int aLine,
+                const Maybe<DetourError>& aDetourError)
+      : mFile(aFile),
+        mLine(aLine),
+        mError(aDetourError.isSome() ? aDetourError.value()
+                                     : WindowsError::CreateGeneric()),
+        mDetourError(aDetourError) {}
+#endif  // defined(NIGHTLY_BUILD)
+
   const char* mFile;
   int mLine;
   WindowsError mError;
+#if defined(NIGHTLY_BUILD)
+  Maybe<DetourError> mDetourError;
+#endif  // defined(NIGHTLY_BUILD)
 
   bool operator==(const LauncherError& aOther) const {
     return mError == aOther.mError;
@@ -211,17 +304,7 @@ struct LauncherError {
   bool operator!=(const WindowsError& aOther) const { return mError != aOther; }
 };
 
-#if defined(MOZILLA_INTERNAL_API)
-
-template <typename T>
-using LauncherResult = WindowsErrorResult<T>;
-
-template <typename T>
-using LauncherResultWithLineInfo = Result<T, LauncherError>;
-
-using WindowsErrorType = WindowsError;
-
-#else
+#if defined(MOZ_USE_LAUNCHER_ERROR)
 
 template <typename T>
 using LauncherResult = Result<T, LauncherError>;
@@ -231,36 +314,34 @@ using LauncherResultWithLineInfo = LauncherResult<T>;
 
 using WindowsErrorType = LauncherError;
 
-#endif  // defined(MOZILLA_INTERNAL_API)
+#else
+
+template <typename T>
+using LauncherResult = WindowsErrorResult<T>;
+
+template <typename T>
+using LauncherResultWithLineInfo = Result<T, LauncherError>;
+
+using WindowsErrorType = WindowsError;
+
+#endif  // defined(MOZ_USE_LAUNCHER_ERROR)
 
 using LauncherVoidResult = LauncherResult<Ok>;
 
 using LauncherVoidResultWithLineInfo = LauncherResultWithLineInfo<Ok>;
 
-#if defined(MOZILLA_INTERNAL_API)
-
-#  define LAUNCHER_ERROR_GENERIC() \
-    ::mozilla::Err(::mozilla::WindowsError::CreateGeneric())
-
-#  define LAUNCHER_ERROR_FROM_WIN32(err) \
-    ::mozilla::Err(::mozilla::WindowsError::FromWin32Error(err))
-
-#  define LAUNCHER_ERROR_FROM_LAST() \
-    ::mozilla::Err(::mozilla::WindowsError::FromLastError())
-
-#  define LAUNCHER_ERROR_FROM_NTSTATUS(ntstatus) \
-    ::mozilla::Err(::mozilla::WindowsError::FromNtStatus(ntstatus))
-
-#  define LAUNCHER_ERROR_FROM_HRESULT(hresult) \
-    ::mozilla::Err(::mozilla::WindowsError::FromHResult(hresult))
-
-#  define LAUNCHER_ERROR_FROM_MOZ_WINDOWS_ERROR(err) ::mozilla::Err(err)
-
-#else
+#if defined(MOZ_USE_LAUNCHER_ERROR)
 
 #  define LAUNCHER_ERROR_GENERIC()           \
     ::mozilla::Err(::mozilla::LauncherError( \
         __FILE__, __LINE__, ::mozilla::WindowsError::CreateGeneric()))
+
+#  if defined(NIGHTLY_BUILD)
+#    define LAUNCHER_ERROR_FROM_DETOUR_ERROR(err) \
+      ::mozilla::Err(::mozilla::LauncherError(__FILE__, __LINE__, err))
+#  else
+#    define LAUNCHER_ERROR_FROM_DETOUR_ERROR(err) LAUNCHER_ERROR_GENERIC()
+#  endif  // defined(NIGHTLY_BUILD)
 
 #  define LAUNCHER_ERROR_FROM_WIN32(err)     \
     ::mozilla::Err(::mozilla::LauncherError( \
@@ -282,11 +363,28 @@ using LauncherVoidResultWithLineInfo = LauncherResultWithLineInfo<Ok>;
 #  define LAUNCHER_ERROR_FROM_MOZ_WINDOWS_ERROR(err) \
     ::mozilla::Err(::mozilla::LauncherError(__FILE__, __LINE__, err))
 
-#endif  // defined(MOZILLA_INTERNAL_API)
+#else
 
-// This macro enables copying of a mozilla::LauncherError from a
-// mozilla::LauncherResult<Foo> into a mozilla::LauncherResult<Bar>
-#define LAUNCHER_ERROR_FROM_RESULT(result) ::mozilla::Err(result.inspectErr())
+#  define LAUNCHER_ERROR_GENERIC() \
+    ::mozilla::Err(::mozilla::WindowsError::CreateGeneric())
+
+#  define LAUNCHER_ERROR_FROM_DETOUR_ERROR(err) LAUNCHER_ERROR_GENERIC()
+
+#  define LAUNCHER_ERROR_FROM_WIN32(err) \
+    ::mozilla::Err(::mozilla::WindowsError::FromWin32Error(err))
+
+#  define LAUNCHER_ERROR_FROM_LAST() \
+    ::mozilla::Err(::mozilla::WindowsError::FromLastError())
+
+#  define LAUNCHER_ERROR_FROM_NTSTATUS(ntstatus) \
+    ::mozilla::Err(::mozilla::WindowsError::FromNtStatus(ntstatus))
+
+#  define LAUNCHER_ERROR_FROM_HRESULT(hresult) \
+    ::mozilla::Err(::mozilla::WindowsError::FromHResult(hresult))
+
+#  define LAUNCHER_ERROR_FROM_MOZ_WINDOWS_ERROR(err) ::mozilla::Err(err)
+
+#endif  // defined(MOZ_USE_LAUNCHER_ERROR)
 
 // How long to wait for a created process to become available for input,
 // to prevent that process's windows being forced to the background.
@@ -401,18 +499,11 @@ class FileUniqueId final {
     GetId(aFile);
   }
 
-  FileUniqueId(const FileUniqueId& aOther) : mId(aOther.mId) {}
-
   ~FileUniqueId() = default;
 
   bool IsError() const { return mId.isErr(); }
 
   const WindowsErrorType& GetError() const { return mId.inspectErr(); }
-
-  FileUniqueId& operator=(const FileUniqueId& aOther) {
-    mId = aOther.mId;
-    return *this;
-  }
 
   FileUniqueId(FileUniqueId&& aOther) = default;
   FileUniqueId& operator=(FileUniqueId&& aOther) = delete;

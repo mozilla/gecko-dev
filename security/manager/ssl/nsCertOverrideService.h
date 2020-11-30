@@ -11,7 +11,9 @@
 
 #include "mozilla/HashFunctions.h"
 #include "mozilla/Mutex.h"
+#include "mozilla/TaskQueue.h"
 #include "mozilla/TypedEnumBits.h"
+#include "nsIAsyncShutdown.h"
 #include "nsICertOverrideService.h"
 #include "nsIFile.h"
 #include "nsIObserver.h"
@@ -20,8 +22,11 @@
 #include "nsWeakReference.h"
 #include "secoidt.h"
 
-class nsCertOverride {
+class nsCertOverride final : public nsICertOverride {
  public:
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_NSICERTOVERRIDE
+
   enum class OverrideBits {
     None = 0,
     Untrusted = nsICertOverrideService::ERROR_UNTRUSTED,
@@ -31,19 +36,6 @@ class nsCertOverride {
 
   nsCertOverride()
       : mPort(-1), mIsTemporary(false), mOverrideBits(OverrideBits::None) {}
-
-  nsCertOverride(const nsCertOverride& other) { this->operator=(other); }
-
-  nsCertOverride& operator=(const nsCertOverride& other) {
-    mAsciiHost = other.mAsciiHost;
-    mPort = other.mPort;
-    mIsTemporary = other.mIsTemporary;
-    mFingerprint = other.mFingerprint;
-    mOverrideBits = other.mOverrideBits;
-    mDBKey = other.mDBKey;
-    mCert = other.mCert;
-    return *this;
-  }
 
   nsCString mAsciiHost;
   int32_t mPort;
@@ -55,6 +47,9 @@ class nsCertOverride {
 
   static void convertBitsToString(OverrideBits ob, nsACString& str);
   static void convertStringToBits(const nsACString& str, OverrideBits& ob);
+
+ private:
+  ~nsCertOverride() = default;
 };
 
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(nsCertOverride::OverrideBits)
@@ -74,7 +69,7 @@ class nsCertOverrideEntry final : public PLDHashEntryHdr {
         mSettings(std::move(toMove.mSettings)),
         mHostWithPort(std::move(toMove.mHostWithPort)) {}
 
-  ~nsCertOverrideEntry() {}
+  ~nsCertOverrideEntry() = default;
 
   KeyType GetKey() const { return HostWithPortPtr(); }
 
@@ -97,25 +92,27 @@ class nsCertOverrideEntry final : public PLDHashEntryHdr {
 
   inline KeyTypePointer HostWithPortPtr() const { return mHostWithPort.get(); }
 
-  nsCertOverride mSettings;
+  RefPtr<nsCertOverride> mSettings;
   nsCString mHostWithPort;
 };
 
 class nsCertOverrideService final : public nsICertOverrideService,
                                     public nsIObserver,
-                                    public nsSupportsWeakReference {
+                                    public nsSupportsWeakReference,
+                                    public nsIAsyncShutdownBlocker {
  public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSICERTOVERRIDESERVICE
   NS_DECL_NSIOBSERVER
+  NS_DECL_NSIASYNCSHUTDOWNBLOCKER
 
   nsCertOverrideService();
 
   nsresult Init();
   void RemoveAllTemporaryOverrides();
 
-  typedef void (*CertOverrideEnumerator)(const nsCertOverride& aSettings,
-                                         void* aUserData);
+  typedef void (*CertOverrideEnumerator)(
+      const RefPtr<nsCertOverride>& aSettings, void* aUserData);
 
   // aCert == null: return all overrides
   // aCert != null: return overrides that match the given cert
@@ -129,7 +126,11 @@ class nsCertOverrideService final : public nsICertOverrideService,
   static void GetHostWithPort(const nsACString& aHostName, int32_t aPort,
                               nsACString& _retval);
 
- protected:
+  void AssertOnTaskQueue() const {
+    MOZ_ASSERT(mWriterTaskQueue->IsOnCurrentThread());
+  }
+
+ private:
   ~nsCertOverrideService();
 
   bool mDisableAllSecurityCheck;
@@ -149,6 +150,8 @@ class nsCertOverrideService final : public nsICertOverrideService,
                           nsCertOverride::OverrideBits ob,
                           const nsACString& dbKey,
                           const mozilla::MutexAutoLock& aProofOfLock);
+
+  RefPtr<TaskQueue> mWriterTaskQueue;
 };
 
 #define NS_CERTOVERRIDE_CID                          \

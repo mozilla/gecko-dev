@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-@import url(resource://devtools/client/themes/variables.css);
-@import url(resource://devtools/client/themes/common.css);
+@import url(chrome://devtools/skin/variables.css);
+@import url(chrome://devtools/skin/common.css);
 @import url(chrome://devtools/skin/toolbars.css);
 @import url(chrome://devtools/skin/tooltips.css);
 
@@ -197,6 +197,9 @@ body {
 
 .cm-s-mozilla .CodeMirror-lines .CodeMirror-cursor {
   border-left: solid 1px #fff;
+}
+.cm-s-mozilla .CodeMirror-lines .CodeMirror-cursor.CodeMirror-secondarycursor {
+  border-left-color: #aaa;
 }
 
 .cm-s-mozilla.CodeMirror-focused .CodeMirror-selected { /* selected text (focused) */

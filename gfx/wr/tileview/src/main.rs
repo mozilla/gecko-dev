@@ -12,6 +12,20 @@
 ///    2nd:
 ///    cargo run --release -- /foo/bar/wr-capture/tilecache /tmp/tilecache
 /// 4. open /tmp/tilecache/index.html
+///
+/// Note: accurate interning info requires that the circular buffer doesn't wrap around.
+/// So for best results, use this workflow:
+/// a. start up blank browser; in about:config enable logging; close browser
+/// b. start new browser, quickly load the repro
+/// c. capture.
+///
+/// If that's tricky, you can also just throw more memory at it: in render_backend.rs,
+/// increase the buffer size here: 'TileCacheLogger::new(500usize)'
+///
+/// Note: some features don't work when opening index.html directly due to cross-scripting
+/// protections.  Instead use a HTTP server:
+///     python -m SimpleHTTPServer 8000
+
 
 use webrender::{TileNode, TileNodeKind, InvalidationReason, TileOffset};
 use webrender::{TileSerializer, TileCacheInstanceSerializer, TileCacheLoggerUpdateLists};
@@ -22,7 +36,8 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::ffi::OsString;
 use std::collections::HashMap;
-use webrender::api::{enumerate_interners, ColorF};
+use webrender::enumerate_interners;
+use webrender::api::ColorF;
 use euclid::{Rect, Transform3D};
 use webrender_api::units::{PicturePoint, PictureSize, PicturePixel, WorldPixel};
 
@@ -45,6 +60,7 @@ static CSS_PRIM_COUNT: &str              = "fill:#40f0f0;fill-opacity:0.1;";
 static CSS_CONTENT: &str                 = "fill:#f04040;fill-opacity:0.1;";
 static CSS_COMPOSITOR_KIND_CHANGED: &str = "fill:#f0c070;fill-opacity:0.1;";
 static CSS_VALID_RECT_CHANGED: &str      = "fill:#ff00ff;fill-opacity:0.1;";
+static CSS_SCALE_CHANGED: &str           = "fill:#ff80ff;fill-opacity:0.1;";
 
 // parameters to tweak the SVG generation
 struct SvgSettings {
@@ -59,7 +75,7 @@ fn tile_node_to_svg(node: &TileNode,
 {
     match &node.kind {
         TileNodeKind::Leaf { .. } => {
-            let rect_world = transform.transform_rect(&node.rect).unwrap();
+            let rect_world = transform.outer_transformed_rect(&node.rect.to_rect()).unwrap();
             format!("<rect x=\"{:.2}\" y=\"{:.2}\" width=\"{:.2}\" height=\"{:.2}\" />\n",
                     rect_world.origin.x    * svg_settings.scale + svg_settings.x,
                     rect_world.origin.y    * svg_settings.scale + svg_settings.y,
@@ -97,6 +113,7 @@ fn tile_to_svg(key: TileOffset,
             Some(InvalidationReason::CompositorKindChanged) => CSS_COMPOSITOR_KIND_CHANGED.to_string(),
             Some(InvalidationReason::Content { .. } ) => CSS_CONTENT.to_string(),
             Some(InvalidationReason::ValidRectChanged) => CSS_VALID_RECT_CHANGED.to_string(),
+            Some(InvalidationReason::ScaleChanged) => CSS_SCALE_CHANGED.to_string(),
             None => {
                 let mut background = tile.background_color;
                 if background.is_none() {
@@ -190,22 +207,17 @@ fn tile_to_svg(key: TileOffset,
                                 &format!("<b>Content: Descriptor</b> changed for uid {}<br/>",
                                          old.prim_uid.get_uid()));
                             let mut changes = String::new();
-                            if old.origin != new.origin {
-                                changes += &format!("<li><b>origin</b> changed from ({},{}) to ({},{})</li>",
-                                                    old.origin.x, old.origin.y,
-                                                    new.origin.x, new.origin.y);
-                            }
-                            if old.prim_clip_rect != new.prim_clip_rect {
-                                changes += &format!("<li><b>prim_clip_rect</b> changed from {}x{} at ({},{})",
-                                                    old.prim_clip_rect.w,
-                                                    old.prim_clip_rect.h,
-                                                    old.prim_clip_rect.x,
-                                                    old.prim_clip_rect.y);
-                                changes += &format!(" to {}x{} at ({},{})</li>",
-                                                    new.prim_clip_rect.w,
-                                                    new.prim_clip_rect.h,
-                                                    new.prim_clip_rect.x,
-                                                    new.prim_clip_rect.y);
+                            if old.prim_clip_box != new.prim_clip_box {
+                                changes += &format!("<li><b>prim_clip_rect</b> changed from {},{} -> {},{}",
+                                                    old.prim_clip_box.min.x,
+                                                    old.prim_clip_box.min.y,
+                                                    old.prim_clip_box.max.x,
+                                                    old.prim_clip_box.max.y);
+                                changes += &format!(" to {},{} -> {},{}</li>",
+                                                    new.prim_clip_box.min.x,
+                                                    new.prim_clip_box.min.y,
+                                                    new.prim_clip_box.max.x,
+                                                    new.prim_clip_box.max.y);
                             }
                             invalidation_report.push_str(
                                 &format!("<ul>{}<li>Item: {}</li></ul>",
@@ -262,16 +274,14 @@ fn tile_to_svg(key: TileOffset,
         invalidation_report.push_str("</div>\n");
     }
 
-    svg = format!(r#"{}<rect x="{}" y="{}" width="{}" height="{}" style="{}" ></rect>"#,
-            svg,
+    svg += &format!(r#"<rect x="{}" y="{}" width="{}" height="{}" style="{}" ></rect>"#,
             tile.rect.origin.x    * svg_settings.scale + svg_settings.x,
             tile.rect.origin.y    * svg_settings.scale + svg_settings.y,
             tile.rect.size.width  * svg_settings.scale,
             tile.rect.size.height * svg_settings.scale,
             tile_style);
 
-    svg = format!("{}\n\n<g class=\"svg_quadtree\">\n{}</g>\n",
-                   svg,
+    svg += &format!("\n\n<g class=\"svg_quadtree\">\n{}</g>\n",
                    tile_node_to_svg(&tile.root, &slice.transform, svg_settings));
 
     let right  = (tile.rect.origin.x + tile.rect.size.width) as i32;
@@ -282,25 +292,35 @@ fn tile_to_svg(key: TileOffset,
 
     svg += "\n<!-- primitives -->\n";
 
-    svg = format!("{}<g id=\"{}\">\n\t",
-                  svg,
-                  prim_class);
+    svg += &format!("<g id=\"{}\">\n\t", prim_class);
+
+
+    let rect_visual_id = Rect {
+        origin: tile.rect.origin,
+        size: PictureSize::new(1.0, 1.0)
+    };
+    let rect_visual_id_world = slice.transform.outer_transformed_rect(&rect_visual_id).unwrap();
+    svg += &format!("\n<text class=\"svg_tile_visual_id\" x=\"{}\" y=\"{}\">{},{} ({})</text>",
+            rect_visual_id_world.origin.x           * svg_settings.scale + svg_settings.x,
+            (rect_visual_id_world.origin.y + 110.0) * svg_settings.scale + svg_settings.y,
+            key.x, key.y, slice.tile_cache.slice);
+
 
     for prim in &tile.current_descriptor.prims {
-        let rect = prim.prim_clip_rect;
+        let rect = prim.prim_clip_box;
 
         // the transform could also be part of the CSS, let the browser do it;
         // might be a bit faster and also enable actual 3D transforms.
         let rect_pixel = Rect {
-            origin: PicturePoint::new(rect.x, rect.y),
-            size: PictureSize::new(rect.w, rect.h),
+            origin: PicturePoint::new(rect.min.x, rect.min.y),
+            size: PictureSize::new(rect.max.x - rect.min.x, rect.max.y - rect.min.y),
         };
-        let rect_world = slice.transform.transform_rect(&rect_pixel).unwrap();
+        let rect_world = slice.transform.outer_transformed_rect(&rect_pixel).unwrap();
 
         let style =
             if let Some(prev_tile) = prev_tile {
                 // when this O(n^2) gets too slow, stop brute-forcing and use a set or something
-                if prev_tile.current_descriptor.prims.iter().find(|&prim| prim.prim_clip_rect == rect).is_some() {
+                if prev_tile.current_descriptor.prims.iter().find(|&prim| prim.prim_clip_box == rect).is_some() {
                     ""
                 } else {
                     "class=\"svg_changed_prim\" "
@@ -351,11 +371,15 @@ fn slices_to_svg(slices: &[Slice], prev_slices: Option<Vec<Slice>>,
         let tile_cache = &slice.tile_cache;
         *max_slice_index = if tile_cache.slice > *max_slice_index { tile_cache.slice } else { *max_slice_index };
 
+        invalidation_report.push_str(&format!("<div id=\"invalidation_slice{}\">\n", tile_cache.slice));
+
         let prim_class = format!("tile_slice{}", tile_cache.slice);
 
+        svg += &format!("\n<g id=\"tile_slice{}_everything\">", tile_cache.slice);
+
         //println!("slice {}", tile_cache.slice);
-        svg.push_str(&format!("\n<!-- tile_cache slice {} -->\n",
-                              tile_cache.slice));
+        svg += &format!("\n<!-- tile_cache slice {} -->\n",
+                              tile_cache.slice);
 
         //let tile_stroke = "stroke:grey;stroke-width:1;".to_string();
         let tile_stroke = "stroke:none;".to_string();
@@ -376,12 +400,16 @@ fn slices_to_svg(slices: &[Slice], prev_slices: Option<Vec<Slice>>,
                 prev_tile = prev.tile_cache.tiles.get(key);
             }
 
-            svg.push_str(&tile_to_svg(*key, &tile, &slice, prev_tile,
+            svg += &tile_to_svg(*key, &tile, &slice, prev_tile,
                                       itemuid_to_string,
                                       &tile_stroke, &prim_class,
                                       &mut invalidation_report,
-                                      svg_width, svg_height, svg_settings));
+                                      svg_width, svg_height, svg_settings);
         }
+
+        svg += "\n</g>";
+
+        invalidation_report.push_str("</div>\n");
     }
 
     (
@@ -398,7 +426,7 @@ fn slices_to_svg(slices: &[Slice], prev_slices: Option<Vec<Slice>>,
     )
 }
 
-fn write_html(output_dir: &Path, svg_files: &[String], intern_files: &[String]) {
+fn write_html(output_dir: &Path, max_slice_index: usize, svg_files: &[String], intern_files: &[String]) {
     let html_head = "<!DOCTYPE html>\n\
                      <html>\n\
                      <head>\n\
@@ -433,6 +461,26 @@ fn write_html(output_dir: &Path, svg_files: &[String], intern_files: &[String]) 
                       </html>\n"
                       .to_string();
 
+    let mut html_slices_form =
+            "\n<form id=\"slicecontrols\">\n\
+                Slice\n".to_string();
+
+    for ix in 0..max_slice_index + 1 {
+        html_slices_form +=
+            &format!(
+                "<input id=\"slice_toggle{}\" \
+                        type=\"checkbox\" \
+                        onchange=\"update_slice_visibility({})\" \
+                        checked=\"checked\" />\n\
+                <label for=\"slice_toggle{}\">{}</label>\n",
+                ix,
+                max_slice_index + 1,
+                ix,
+                ix );
+    }
+
+    html_slices_form += "<form>\n";
+
     let html_body = format!(
         "{}\n\
         <div class=\"split left\">\n\
@@ -451,13 +499,15 @@ fn write_html(output_dir: &Path, svg_files: &[String], intern_files: &[String]) 
             <div id=\"text_spacebar\">Spacebar to Play</div>\n\
             <div>Use Left/Right to Step</div>\n\
             <input id=\"frame_slider\" type=\"range\" min=\"0\" max=\"{}\" value=\"0\" class=\"svg_ui_slider\" />
+            {}
         </div>",
         html_body,
         svg_files[0],
         svg_files[0],
         intern_files[0],
         svg_files[0],
-        svg_files.len() );
+        svg_files.len(),
+        html_slices_form );
 
     let html = format!("{}{}{}{}", html_head, html_body, script, html_end);
 
@@ -490,6 +540,12 @@ fn write_css(output_dir: &Path, max_slice_index: usize, svg_settings: &SvgSettin
                         0.8 * svg_settings.scale,
                         rgb);
     }
+
+    css += &format!(".svg_tile_visual_id {{\n\
+                         font: {}px sans-serif;\n\
+                         fill: rgb(50,50,50);\n\
+                     }}\n\n",
+                     150.0 * svg_settings.scale);
 
     let output_file = output_dir.join("tilecache.css");
     let mut css_output = File::create(output_file).unwrap();
@@ -603,9 +659,18 @@ fn main() {
     let mut max_slice_index = 0;
 
     let mut entries: Vec<_> = std::fs::read_dir(input_dir).unwrap()
-                                                          //.map(|r| r.unwrap())
                                                           .filter_map(|r| r.ok())
                                                           .collect();
+    // auto-fix a missing 'tile_cache' postfix on the input path -- easy to do when copy-pasting a
+    // path to a wr-capture; there should at least be a frame00000.ron...
+    let frame00000 = entries.iter().find(|&entry| entry.path().ends_with("frame00000.ron"));
+    // ... and if not, try again with 'tile_cache' appended to the input folder
+    if frame00000.is_none() {
+        let new_path = input_dir.join("tile_cache");
+        entries = std::fs::read_dir(new_path).unwrap()
+                                             .filter_map(|r| r.ok())
+                                             .collect();
+    }
     entries.sort_by_key(|dir| dir.path());
 
     let mut svg_files: Vec::<String> = Vec::new();
@@ -649,7 +714,7 @@ fn main() {
         prev_slices = Some(slices);
     }
 
-    write_html(output_dir, &svg_files, &intern_files);
+    write_html(output_dir, max_slice_index, &svg_files, &intern_files);
     write_css(output_dir, max_slice_index, &svg_settings);
 
     std::fs::write(output_dir.join("tilecache.js"), RES_JAVASCRIPT).unwrap();

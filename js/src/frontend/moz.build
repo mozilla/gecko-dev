@@ -21,16 +21,10 @@ GeneratedFile('ReservedWordsGenerated.h', script='GenerateReservedWords.py',
               inputs=['ReservedWords.h'])
 
 if CONFIG['JS_ENABLE_SMOOSH']:
-    GeneratedFile('smoosh_generated.h',
-                  script='/build/RunCbindgen.py',
-                  entry_point='generate_with_same_crate',
-                  inputs=[
-                      '/js/src/frontend/smoosh',
-                  ])
+    CbindgenHeader('smoosh_generated.h', inputs=['/js/src/frontend/smoosh'])
 
 UNIFIED_SOURCES += [
-    'AbstractScope.cpp',
-    'BCEScriptStencil.cpp',
+    'AbstractScopePtr.cpp',
     'BytecodeCompiler.cpp',
     'BytecodeControlStructures.cpp',
     'BytecodeEmitter.cpp',
@@ -59,9 +53,12 @@ UNIFIED_SOURCES += [
     'ParseContext.cpp',
     'ParseNode.cpp',
     'ParseNodeVerify.cpp',
+    'ParserAtom.cpp',
     'PropOpEmitter.cpp',
     'SharedContext.cpp',
+    'SourceNotes.cpp',
     'Stencil.cpp',
+    'StencilXdr.cpp',
     'SwitchEmitter.cpp',
     'TDZCheckCache.cpp',
     'TokenStream.cpp',
@@ -80,35 +77,3 @@ if CONFIG['JS_ENABLE_SMOOSH']:
 SOURCES += [
     'Parser.cpp',
 ]
-
-if CONFIG['JS_BUILD_BINAST']:
-    # Using SOURCES, as UNIFIED_SOURCES causes mysterious bugs on 32-bit
-    # platforms.
-
-    # These parts of BinAST should eventually move to release.
-    SOURCES += [
-        'BinASTParser.cpp',
-        'BinASTParserBase.cpp',
-        'BinASTParserPerTokenizer.cpp',
-        'BinASTRuntimeSupport.cpp',
-        'BinASTToken.cpp',
-        'BinASTTokenReaderBase.cpp',
-        'BinASTTokenReaderContext.cpp',
-        'BinASTTokenReaderMultipart.cpp',
-    ]
-
-    if CONFIG['JS_STANDALONE']:
-        DIRS += [
-            'binast'
-        ]
-
-    # Instrument BinAST files for fuzzing as we have a fuzzing target for BinAST.
-    if CONFIG['FUZZING_INTERFACES'] and CONFIG['LIBFUZZER']:
-        include('/tools/fuzzing/libfuzzer-flags.mozbuild')
-
-        SOURCES['BinASTParser.cpp'].flags += libfuzzer_flags
-        SOURCES['BinASTParserBase.cpp'].flags += libfuzzer_flags
-        SOURCES['BinASTParserPerTokenizer.cpp'].flags += libfuzzer_flags
-        SOURCES['BinASTToken.cpp'].flags += libfuzzer_flags
-        SOURCES['BinASTTokenReaderBase.cpp'].flags += libfuzzer_flags
-        SOURCES['BinASTTokenReaderMultipart.cpp'].flags += libfuzzer_flags

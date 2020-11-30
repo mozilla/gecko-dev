@@ -100,7 +100,7 @@ function searchInResource(resource, query, modifiers) {
       findMatches(resource, query, modifiers, {
         key: "requestPostData.postData.text",
         type: "requestPostData",
-        panel: "params",
+        panel: "request",
       })
     );
   }
@@ -202,7 +202,7 @@ function getType(resource) {
  */
 function getValue(path, obj) {
   const properties = Array.isArray(path) ? path : path.split(".");
-  return properties.reduce((prev, curr) => prev && prev[curr], obj);
+  return properties.reduce((prev, curr) => prev?.[curr], obj);
 }
 
 /**

@@ -9,6 +9,7 @@
 
 #include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/DataMutex.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/Logging.h"
 #include "mozilla/net/NeckoTargetHolder.h"
@@ -58,7 +59,7 @@ class PendingPACQuery final : public Runnable,
                               public LinkedListElement<PendingPACQuery> {
  public:
   PendingPACQuery(nsPACMan* pacMan, nsIURI* uri, nsPACManCallback* callback,
-                  bool mainThreadResponse);
+                  uint32_t flags, bool mainThreadResponse);
 
   // can be called from either thread
   void Complete(nsresult status, const nsACString& pacString);
@@ -68,6 +69,7 @@ class PendingPACQuery final : public Runnable,
   nsCString mScheme;
   nsCString mHost;
   int32_t mPort;
+  uint32_t mFlags;
 
   NS_IMETHOD Run(void) override; /* Runnable */
 
@@ -91,7 +93,7 @@ class nsPACMan final : public nsIStreamLoaderObserver,
  public:
   NS_DECL_THREADSAFE_ISUPPORTS
 
-  explicit nsPACMan(nsIEventTarget* mainThreadEventTarget);
+  explicit nsPACMan(nsISerialEventTarget* mainThreadEventTarget);
 
   /**
    * This method may be called to shutdown the PAC manager.  Any async queries
@@ -110,11 +112,14 @@ class nsPACMan final : public nsIStreamLoaderObserver,
    *        The URI to query.
    * @param callback
    *        The callback to run once the PAC result is available.
+   * @param flags
+   *        A bit-wise combination of the RESOLVE_ flags defined above.  Pass
+   *        0 to specify the default behavior.
    * @param mustCallbackOnMainThread
    *        If set to false the callback can be made from the PAC thread
    */
   nsresult AsyncGetProxyForURI(nsIURI* uri, nsPACManCallback* callback,
-                               bool mustCallbackOnMainThread);
+                               uint32_t flags, bool mustCallbackOnMainThread);
 
   /**
    * This method may be called to reload the PAC file.  While we are loading
@@ -130,7 +135,10 @@ class nsPACMan final : public nsIStreamLoaderObserver,
   /**
    * Returns true if we are currently loading the PAC file.
    */
-  bool IsLoading() { return mLoader != nullptr; }
+  bool IsLoading() {
+    auto loader = mLoader.Lock();
+    return loader.ref() != nullptr;
+  }
 
   /**
    * Returns true if the given URI matches the URI of our PAC file or the
@@ -266,7 +274,7 @@ class nsPACMan final : public nsIStreamLoaderObserver,
   nsCString mPACURIRedirectSpec;
   nsCString mNormalPACURISpec;
 
-  nsCOMPtr<nsIStreamLoader> mLoader;
+  DataMutex<nsCOMPtr<nsIStreamLoader>> mLoader;
   bool mLoadPending;
   Atomic<bool, Relaxed> mShutdown;
   TimeStamp mScheduledReload;

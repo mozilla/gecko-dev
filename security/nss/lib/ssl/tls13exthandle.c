@@ -14,6 +14,7 @@
 #include "ssl3exthandle.h"
 #include "tls13esni.h"
 #include "tls13exthandle.h"
+#include "tls13psk.h"
 #include "tls13subcerts.h"
 
 SECStatus
@@ -408,69 +409,92 @@ tls13_ServerSendKeyShareXtn(const sslSocket *ss, TLSExtensionData *xtnData,
  *         };
  *
  *     } PreSharedKeyExtension;
-
- * Presently the only way to get a PSK is by resumption, so this is
- * really a ticket label and there will be at most one.
  */
 SECStatus
 tls13_ClientSendPreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData,
                                 sslBuffer *buf, PRBool *added)
 {
-    NewSessionTicket *session_ticket;
-    PRTime age;
     const static PRUint8 binder[TLS13_MAX_FINISHED_SIZE] = { 0 };
     unsigned int binderLen;
+    unsigned int identityLen = 0;
+    const PRUint8 *identity = NULL;
+    PRTime age;
     SECStatus rv;
 
-    /* We only set statelessResume on the client in TLS 1.3 code. */
-    if (!ss->statelessResume) {
+    /* Exit early if no PSKs or max version < 1.3. */
+    if (PR_CLIST_IS_EMPTY(&ss->ssl3.hs.psks) ||
+        ss->vrange.max < SSL_LIBRARY_VERSION_TLS_1_3) {
+        return SECSuccess;
+    }
+
+    /* ...or if PSK type is resumption, but we're not resuming. */
+    sslPsk *psk = (sslPsk *)PR_LIST_HEAD(&ss->ssl3.hs.psks);
+    if (psk->type == ssl_psk_resume && !ss->statelessResume) {
         return SECSuccess;
     }
 
     /* Save where this extension starts so that if we have to add padding, it
-     * can be inserted before this extension. */
+    * can be inserted before this extension. */
     PORT_Assert(buf->len >= 4);
     xtnData->lastXtnOffset = buf->len - 4;
+    PORT_Assert(psk->type == ssl_psk_resume || psk->type == ssl_psk_external);
+    binderLen = tls13_GetHashSizeForHash(psk->hash);
+    if (psk->type == ssl_psk_resume) {
+        /* Send a single ticket identity. */
+        NewSessionTicket *session_ticket = &ss->sec.ci.sid->u.ssl3.locked.sessionTicket;
+        identityLen = session_ticket->ticket.len;
+        identity = session_ticket->ticket.data;
 
-    PORT_Assert(ss->vrange.max >= SSL_LIBRARY_VERSION_TLS_1_3);
-    PORT_Assert(ss->sec.ci.sid->version >= SSL_LIBRARY_VERSION_TLS_1_3);
+        /* Obfuscated age. */
+        age = ssl_Time(ss) - session_ticket->received_timestamp;
+        age /= PR_USEC_PER_MSEC;
+        age += session_ticket->ticket_age_add;
+        PRINT_BUF(50, (ss, "Sending Resumption PSK with identity", identity, identityLen));
+    } else if (psk->type == ssl_psk_external) {
+        identityLen = psk->label.len;
+        identity = psk->label.data;
+        age = 0;
+        PRINT_BUF(50, (ss, "Sending External PSK with label", identity, identityLen));
+    } else {
+        PORT_Assert(0);
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
 
-    /* Send a single ticket identity. */
-    session_ticket = &ss->sec.ci.sid->u.ssl3.locked.sessionTicket;
-    rv = sslBuffer_AppendNumber(buf, 2 +                              /* identity length */
-                                         session_ticket->ticket.len + /* ticket */
-                                         4 /* obfuscated_ticket_age */,
-                                2);
-    if (rv != SECSuccess)
+    /* Length is len(identityLen) + identityLen + len(age) */
+    rv = sslBuffer_AppendNumber(buf, 2 + identityLen + 4, 2);
+    if (rv != SECSuccess) {
         goto loser;
-    rv = sslBuffer_AppendVariable(buf, session_ticket->ticket.data,
-                                  session_ticket->ticket.len, 2);
-    if (rv != SECSuccess)
-        goto loser;
+    }
 
-    /* Obfuscated age. */
-    age = ssl_Time(ss) - session_ticket->received_timestamp;
-    age /= PR_USEC_PER_MSEC;
-    age += session_ticket->ticket_age_add;
+    rv = sslBuffer_AppendVariable(buf, identity,
+                                  identityLen, 2);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+
     rv = sslBuffer_AppendNumber(buf, age, 4);
-    if (rv != SECSuccess)
+    if (rv != SECSuccess) {
         goto loser;
+    }
 
     /* Write out the binder list length. */
-    binderLen = tls13_GetHashSize(ss);
     rv = sslBuffer_AppendNumber(buf, binderLen + 1, 2);
-    if (rv != SECSuccess)
+    if (rv != SECSuccess) {
         goto loser;
-    /* Write zeroes for the binder for the moment. */
+    }
+
+    /* Write zeroes for the binder for the moment. These
+     * are overwritten in tls13_WriteExtensionsWithBinder. */
     rv = sslBuffer_AppendVariable(buf, binder, binderLen, 1);
-    if (rv != SECSuccess)
+    if (rv != SECSuccess) {
         goto loser;
+    }
 
-    PRINT_BUF(50, (ss, "Sending PreSharedKey value",
-                   session_ticket->ticket.data,
-                   session_ticket->ticket.len));
+    if (psk->type == ssl_psk_resume) {
+        xtnData->sentSessionTicketInClientHello = PR_TRUE;
+    }
 
-    xtnData->sentSessionTicketInClientHello = PR_TRUE;
     *added = PR_TRUE;
     return SECSuccess;
 
@@ -479,8 +503,7 @@ loser:
     return SECFailure;
 }
 
-/* Handle a TLS 1.3 PreSharedKey Extension. We only accept PSKs
- * that contain session tickets. */
+/* Handle a TLS 1.3 PreSharedKey Extension. */
 SECStatus
 tls13_ServerHandlePreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData,
                                   SECItem *data)
@@ -534,28 +557,52 @@ tls13_ServerHandlePreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData
             return rv;
 
         if (!numIdentities) {
-            PRINT_BUF(50, (ss, "Handling PreSharedKey value",
-                           label.data, label.len));
-            rv = ssl3_ProcessSessionTicketCommon(
-                CONST_CAST(sslSocket, ss), &label, appToken);
-            /* This only happens if we have an internal error, not
-             * a malformed ticket. Bogus tickets just don't resume
-             * and return SECSuccess. */
-            if (rv != SECSuccess)
-                return SECFailure;
+            /* Check any configured external PSK for a matching label.
+             * If none exists, try to parse it as a ticket. */
+            PORT_Assert(!xtnData->selectedPsk);
+            for (PRCList *cur_p = PR_LIST_HEAD(&ss->ssl3.hs.psks);
+                 cur_p != &ss->ssl3.hs.psks;
+                 cur_p = PR_NEXT_LINK(cur_p)) {
+                sslPsk *psk = (sslPsk *)cur_p;
+                if (psk->type != ssl_psk_external ||
+                    SECITEM_CompareItem(&psk->label, &label) != SECEqual) {
+                    continue;
+                }
+                PRINT_BUF(50, (ss, "Using External PSK with label",
+                               psk->label.data, psk->label.len));
+                xtnData->selectedPsk = psk;
+            }
 
-            if (ss->sec.ci.sid) {
-                /* xtnData->ticketAge contains the baseline we use for
-                 * calculating the ticket age (i.e., our RTT estimate less the
-                 * value of ticket_age_add).
-                 *
-                 * Add that to the obfuscated ticket age to recover the client's
-                 * view of the ticket age plus the estimated RTT.
-                 *
-                 * See ssl3_EncodeSessionTicket() for details. */
-                xtnData->ticketAge += obfuscatedAge;
+            if (!xtnData->selectedPsk) {
+                PRINT_BUF(50, (ss, "Handling PreSharedKey value",
+                               label.data, label.len));
+                rv = ssl3_ProcessSessionTicketCommon(
+                    CONST_CAST(sslSocket, ss), &label, appToken);
+                /* This only happens if we have an internal error, not
+                * a malformed ticket. Bogus tickets just don't resume
+                * and return SECSuccess. */
+                if (rv != SECSuccess) {
+                    return SECFailure;
+                }
+
+                if (ss->sec.ci.sid) {
+                    /* xtnData->ticketAge contains the baseline we use for
+                    * calculating the ticket age (i.e., our RTT estimate less the
+                    * value of ticket_age_add).
+                    *
+                    * Add that to the obfuscated ticket age to recover the client's
+                    * view of the ticket age plus the estimated RTT.
+                    *
+                    * See ssl3_EncodeSessionTicket() for details. */
+                    xtnData->ticketAge += obfuscatedAge;
+
+                    /* We are not committed to resumption until after unwrapping the
+                    * RMS in tls13_HandleClientHelloPart2. The RPSK will be stored
+                    * in ss->xtnData.selectedPsk at that point, so continue. */
+                }
             }
         }
+
         ++numIdentities;
     }
 
@@ -589,10 +636,14 @@ tls13_ServerHandlePreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData
     if (numBinders != numIdentities)
         goto alert_loser;
 
-    /* Keep track of negotiated extensions. Note that this does not
-     * mean we are resuming. */
-    xtnData->negotiated[xtnData->numNegotiated++] = ssl_tls13_pre_shared_key_xtn;
+    if (ss->statelessResume) {
+        PORT_Assert(!ss->xtnData.selectedPsk);
+    } else if (!xtnData->selectedPsk) {
+        /* No matching EPSK. */
+        return SECSuccess;
+    }
 
+    xtnData->negotiated[xtnData->numNegotiated++] = ssl_tls13_pre_shared_key_xtn;
     return SECSuccess;
 
 alert_loser:
@@ -618,8 +669,7 @@ tls13_ServerSendPreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData,
     return SECSuccess;
 }
 
-/* Handle a TLS 1.3 PreSharedKey Extension. We only accept PSKs
- * that contain session tickets. */
+/* Handle a TLS 1.3 PreSharedKey Extension. */
 SECStatus
 tls13_ClientHandlePreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData,
                                   SECItem *data)
@@ -648,12 +698,23 @@ tls13_ClientHandlePreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData
 
     /* We only sent one PSK label so index must be equal to 0 */
     if (index) {
+        ssl3_ExtSendAlert(ss, alert_fatal, illegal_parameter);
         PORT_SetError(SSL_ERROR_MALFORMED_PRE_SHARED_KEY);
+        return SECFailure;
+    }
+
+    PORT_Assert(!PR_CLIST_IS_EMPTY(&ss->ssl3.hs.psks));
+    sslPsk *candidate = (sslPsk *)PR_LIST_HEAD(&ss->ssl3.hs.psks);
+
+    /* Check that the server-selected ciphersuite hash and PSK hash match. */
+    if (candidate->hash != tls13_GetHashForCipherSuite(ss->ssl3.hs.cipher_suite)) {
+        ssl3_ExtSendAlert(ss, alert_fatal, illegal_parameter);
         return SECFailure;
     }
 
     /* Keep track of negotiated extensions. */
     xtnData->negotiated[xtnData->numNegotiated++] = ssl_tls13_pre_shared_key_xtn;
+    xtnData->selectedPsk = candidate;
 
     return SECSuccess;
 }
@@ -795,6 +856,21 @@ tls13_ClientSendSupportedVersionsXtn(const sslSocket *ss, TLSExtensionData *xtnD
         if (rv != SECSuccess) {
             return SECFailure;
         }
+
+        if (ss->opt.enableDtls13VersionCompat &&
+            ss->protocolVariant == ssl_variant_datagram) {
+            switch (version) {
+                case SSL_LIBRARY_VERSION_TLS_1_2:
+                case SSL_LIBRARY_VERSION_TLS_1_1:
+                    rv = sslBuffer_AppendNumber(buf, (PRUint16)version, 2);
+                    break;
+                default:
+                    continue;
+            }
+            if (rv != SECSuccess) {
+                return SECFailure;
+            }
+        }
     }
 
     rv = sslBuffer_InsertLength(buf, lengthOffset, 1);
@@ -921,10 +997,13 @@ tls13_ClientSendPostHandshakeAuthXtn(const sslSocket *ss,
                                      TLSExtensionData *xtnData,
                                      sslBuffer *buf, PRBool *added)
 {
-    SSL_TRC(3, ("%d: TLS13[%d]: send post_handshake_auth extension",
-                SSL_GETPID(), ss->fd));
-
-    *added = ss->opt.enablePostHandshakeAuth;
+    /* Only one post-handshake message is supported: a single
+     * NST immediately following the client Finished. */
+    if (!IS_DTLS(ss)) {
+        SSL_TRC(3, ("%d: TLS13[%d]: send post_handshake_auth extension",
+                    SSL_GETPID(), ss->fd));
+        *added = ss->opt.enablePostHandshakeAuth;
+    }
     return SECSuccess;
 }
 
@@ -941,8 +1020,12 @@ tls13_ServerHandlePostHandshakeAuthXtn(const sslSocket *ss,
         return SECFailure;
     }
 
-    /* Keep track of negotiated extensions. */
-    xtnData->negotiated[xtnData->numNegotiated++] = ssl_tls13_post_handshake_auth_xtn;
+    /* Only one post-handshake message is supported: a single
+     * NST immediately following the client Finished. */
+    if (!IS_DTLS(ss)) {
+        /* Keep track of negotiated extensions. */
+        xtnData->negotiated[xtnData->numNegotiated++] = ssl_tls13_post_handshake_auth_xtn;
+    }
 
     return SECSuccess;
 }
@@ -1139,7 +1222,6 @@ tls13_ClientSendEsniXtn(const sslSocket *ss, TLSExtensionData *xtnData,
     sslBuffer sni = SSL_BUFFER(sniBuf);
     const ssl3CipherSuiteDef *suiteDef;
     ssl3KeyMaterial keyMat;
-    SSLAEADCipher aead;
     PRUint8 outBuf[1024];
     unsigned int outLen;
     unsigned int sniStart;
@@ -1188,10 +1270,6 @@ tls13_ClientSendEsniXtn(const sslSocket *ss, TLSExtensionData *xtnData,
     PORT_Assert(suiteDef);
     if (!suiteDef) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-        return SECFailure;
-    }
-    aead = tls13_GetAead(ssl_GetBulkCipherDef(suiteDef));
-    if (!aead) {
         return SECFailure;
     }
 
@@ -1251,15 +1329,33 @@ tls13_ClientSendEsniXtn(const sslSocket *ss, TLSExtensionData *xtnData,
         ssl_DestroyKeyMaterial(&keyMat);
         return SECFailure;
     }
+
     /* Now encrypt. */
-    rv = aead(&keyMat, PR_FALSE /* Encrypt */,
-              outBuf, &outLen, sizeof(outBuf),
-              SSL_BUFFER_BASE(&sni),
-              SSL_BUFFER_LEN(&sni),
-              SSL_BUFFER_BASE(&aadInput),
-              SSL_BUFFER_LEN(&aadInput));
+    unsigned char *aad = SSL_BUFFER_BASE(&aadInput);
+    int aadLen = SSL_BUFFER_LEN(&aadInput);
+    const ssl3BulkCipherDef *cipher_def = ssl_GetBulkCipherDef(suiteDef);
+    int ivLen = cipher_def->iv_size + cipher_def->explicit_nonce_size;
+    unsigned char zero[sizeof(sslSequenceNumber)] = { 0 };
+    SSLCipherAlgorithm calg = cipher_def->calg;
+    SECItem null_params = { siBuffer, NULL, 0 };
+    PK11Context *ctxt = PK11_CreateContextBySymKey(ssl3_Alg2Mech(calg),
+                                                   CKA_NSS_MESSAGE | CKA_ENCRYPT,
+                                                   keyMat.key, &null_params);
+    if (!ctxt) {
+        ssl_DestroyKeyMaterial(&keyMat);
+        sslBuffer_Clear(&aadInput);
+        return SECFailure;
+    }
+
+    /* This function is a single shot, with fresh/unique keys, no need to
+     * generate the IV internally */
+    rv = tls13_AEAD(ctxt, PR_FALSE /* Encrypt */, CKG_NO_GENERATE, 0,
+                    keyMat.iv, NULL, ivLen, zero, sizeof(zero), aad, aadLen,
+                    outBuf, &outLen, sizeof(outBuf), cipher_def->tag_size,
+                    SSL_BUFFER_BASE(&sni), SSL_BUFFER_LEN(&sni));
     ssl_DestroyKeyMaterial(&keyMat);
     sslBuffer_Clear(&aadInput);
+    PK11_DestroyContext(ctxt, PR_TRUE);
     if (rv != SECSuccess) {
         return SECFailure;
     }
@@ -1403,21 +1499,59 @@ tls13_ClientCheckEsniXtn(sslSocket *ss)
 }
 
 /* Indicates support for the delegated credentials extension. This should be
- * hooked while processing the ClientHello.
- */
+ * hooked while processing the ClientHello. */
 SECStatus
 tls13_ClientSendDelegatedCredentialsXtn(const sslSocket *ss,
                                         TLSExtensionData *xtnData,
                                         sslBuffer *buf, PRBool *added)
 {
     /* Only send the extension if support is enabled and the client can
-     * negotiate TLS 1.3.
-     */
+     * negotiate TLS 1.3. */
     if (ss->vrange.max < SSL_LIBRARY_VERSION_TLS_1_3 ||
         !ss->opt.enableDelegatedCredentials) {
         return SECSuccess;
     }
 
+    /* Filter the schemes that are enabled and acceptable. Save these in
+     * the "advertised" list, then encode them to be sent. If we receive
+     * a DC in response, validate that it matches one of the advertised
+     * schemes. */
+    SSLSignatureScheme filtered[MAX_SIGNATURE_SCHEMES] = { 0 };
+    unsigned int filteredCount = 0;
+    SECStatus rv = ssl3_FilterSigAlgs(ss, ss->vrange.max,
+                                      PR_TRUE /* disableRsae */,
+                                      PR_FALSE /* forCert */,
+                                      MAX_SIGNATURE_SCHEMES,
+                                      filtered,
+                                      &filteredCount);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
+    /* If no schemes available for the DC extension, don't send it. */
+    if (!filteredCount) {
+        return SECSuccess;
+    }
+
+    rv = ssl3_EncodeFilteredSigAlgs(ss, filtered, filteredCount, buf);
+    if (rv != SECSuccess) {
+        return SECFailure;
+    }
+
+    SSLSignatureScheme *dcSchemesAdvertised = PORT_ZNewArray(SSLSignatureScheme,
+                                                             filteredCount);
+    if (!dcSchemesAdvertised) {
+        return SECFailure;
+    }
+    for (unsigned int i = 0; i < filteredCount; i++) {
+        dcSchemesAdvertised[i] = filtered[i];
+    }
+
+    if (xtnData->delegCredSigSchemesAdvertised) {
+        PORT_Free(xtnData->delegCredSigSchemesAdvertised);
+    }
+    xtnData->delegCredSigSchemesAdvertised = dcSchemesAdvertised;
+    xtnData->numDelegCredSigSchemesAdvertised = filteredCount;
     *added = PR_TRUE;
     return SECSuccess;
 }
@@ -1441,15 +1575,59 @@ tls13_ClientHandleDelegatedCredentialsXtn(const sslSocket *ss,
         return SECFailure;
     }
 
-    SECStatus rv = tls13_ReadDelegatedCredential(data->data, data->len,
-                                                 &xtnData->peerDelegCred);
+    sslDelegatedCredential *dc = NULL;
+    SECStatus rv = tls13_ReadDelegatedCredential(data->data, data->len, &dc);
     if (rv != SECSuccess) {
-        return SECFailure; /* code already set */
+        goto loser; /* code already set */
     }
 
+    /* When using RSA, the public key MUST NOT use the rsaEncryption OID. */
+    if (dc->expectedCertVerifyAlg == ssl_sig_rsa_pss_rsae_sha256 ||
+        dc->expectedCertVerifyAlg == ssl_sig_rsa_pss_rsae_sha384 ||
+        dc->expectedCertVerifyAlg == ssl_sig_rsa_pss_rsae_sha512) {
+        goto alert_loser;
+    }
+
+    /* The algorithm and expected_cert_verify_algorithm fields MUST be of a
+     * type advertised by the client in the SignatureSchemeList and are
+     * considered invalid otherwise.  Clients that receive invalid delegated
+     * credentials MUST terminate the connection with an "illegal_parameter"
+     * alert. */
+    PRBool found = PR_FALSE;
+    for (unsigned int i = 0; i < ss->xtnData.numDelegCredSigSchemesAdvertised; ++i) {
+        if (dc->expectedCertVerifyAlg == ss->xtnData.delegCredSigSchemesAdvertised[i]) {
+            found = PR_TRUE;
+            break;
+        }
+    }
+    if (found == PR_FALSE) {
+        goto alert_loser;
+    }
+
+    // Check the dc->alg, if necessary.
+    if (dc->alg != dc->expectedCertVerifyAlg) {
+        found = PR_FALSE;
+        for (unsigned int i = 0; i < ss->xtnData.numDelegCredSigSchemesAdvertised; ++i) {
+            if (dc->alg == ss->xtnData.delegCredSigSchemesAdvertised[i]) {
+                found = PR_TRUE;
+                break;
+            }
+        }
+        if (found == PR_FALSE) {
+            goto alert_loser;
+        }
+    }
+
+    xtnData->peerDelegCred = dc;
     xtnData->negotiated[xtnData->numNegotiated++] =
         ssl_delegated_credentials_xtn;
     return SECSuccess;
+alert_loser:
+    ssl3_ExtSendAlert(ss, alert_fatal, illegal_parameter);
+    PORT_SetError(SSL_ERROR_UNSUPPORTED_SIGNATURE_ALGORITHM);
+loser:
+    tls13_DestroyDelegatedCredential(dc);
+    return SECFailure;
 }
 
 /* Adds the DC extension if we're committed to authenticating with a DC. */
@@ -1460,19 +1638,13 @@ tls13_ServerSendDelegatedCredentialsXtn(const sslSocket *ss,
 {
     if (tls13_IsSigningWithDelegatedCredential(ss)) {
         const SECItem *dc = &ss->sec.serverCert->delegCred;
-
-        if (tls13_IsSigningWithDelegatedCredential(ss)) {
-            SECStatus rv;
-            rv = sslBuffer_Append(buf, dc->data, dc->len);
-            if (rv != SECSuccess) {
-                return SECFailure;
-            }
+        SECStatus rv;
+        rv = sslBuffer_Append(buf, dc->data, dc->len);
+        if (rv != SECSuccess) {
+            return SECFailure;
         }
-
         *added = PR_TRUE;
-        return SECSuccess;
     }
-
     return SECSuccess;
 }
 
@@ -1484,6 +1656,33 @@ tls13_ServerHandleDelegatedCredentialsXtn(const sslSocket *ss,
                                           TLSExtensionData *xtnData,
                                           SECItem *data)
 {
+    if (xtnData->delegCredSigSchemes) {
+        PORT_Free(xtnData->delegCredSigSchemes);
+        xtnData->delegCredSigSchemes = NULL;
+        xtnData->numDelegCredSigSchemes = 0;
+    }
+    SECStatus rv = ssl_ParseSignatureSchemes(ss, NULL,
+                                             &xtnData->delegCredSigSchemes,
+                                             &xtnData->numDelegCredSigSchemes,
+                                             &data->data, &data->len);
+    if (rv != SECSuccess) {
+        ssl3_ExtSendAlert(ss, alert_fatal, decode_error);
+        PORT_SetError(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
+        return SECFailure;
+    }
+    if (xtnData->numDelegCredSigSchemes == 0) {
+        ssl3_ExtSendAlert(ss, alert_fatal, handshake_failure);
+        PORT_SetError(SSL_ERROR_UNSUPPORTED_SIGNATURE_ALGORITHM);
+        return SECFailure;
+    }
+    /* Check for trailing data. */
+    if (data->len != 0) {
+        ssl3_ExtSendAlert(ss, alert_fatal, decode_error);
+        PORT_SetError(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
+        return SECFailure;
+    }
+
+    /* Keep track of negotiated extensions. */
     xtnData->peerRequestedDelegCred = PR_TRUE;
     xtnData->negotiated[xtnData->numNegotiated++] =
         ssl_delegated_credentials_xtn;

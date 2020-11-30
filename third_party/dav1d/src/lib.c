@@ -31,12 +31,17 @@
 #include <errno.h>
 #include <string.h>
 
+#if defined(__linux__) && defined(HAVE_DLSYM)
+#include <dlfcn.h>
+#endif
+
 #include "dav1d/dav1d.h"
 #include "dav1d/data.h"
 
 #include "common/mem.h"
 #include "common/validate.h"
 
+#include "src/cpu.h"
 #include "src/fg_apply.h"
 #include "src/internal.h"
 #include "src/log.h"
@@ -47,10 +52,11 @@
 #include "src/wedge.h"
 
 static COLD void init_internal(void) {
-    dav1d_init_wedge_masks();
+    dav1d_init_cpu();
     dav1d_init_interintra_masks();
     dav1d_init_qm_tables();
     dav1d_init_thread();
+    dav1d_init_wedge_masks();
 }
 
 COLD const char *dav1d_version(void) {
@@ -73,6 +79,22 @@ COLD void dav1d_default_settings(Dav1dSettings *const s) {
 
 static void close_internal(Dav1dContext **const c_out, int flush);
 
+NO_SANITIZE("cfi-icall") // CFI is broken with dlsym()
+static COLD size_t get_stack_size_internal(const pthread_attr_t *const thread_attr) {
+#if defined(__linux__) && defined(HAVE_DLSYM) && defined(__GLIBC__)
+    /* glibc has an issue where the size of the TLS is subtracted from the stack
+     * size instead of allocated separately. As a result the specified stack
+     * size may be insufficient when used in an application with large amounts
+     * of TLS data. The following is a workaround to compensate for that.
+     * See https://sourceware.org/bugzilla/show_bug.cgi?id=11787 */
+    size_t (*const get_minstack)(const pthread_attr_t*) =
+        dlsym(RTLD_DEFAULT, "__pthread_get_minstack");
+    if (get_minstack)
+        return get_minstack(thread_attr) - PTHREAD_STACK_MIN;
+#endif
+    return 0;
+}
+
 COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     static pthread_once_t initted = PTHREAD_ONCE_INIT;
     pthread_once(&initted, init_internal);
@@ -92,7 +114,9 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
 
     pthread_attr_t thread_attr;
     if (pthread_attr_init(&thread_attr)) return DAV1D_ERR(ENOMEM);
-    pthread_attr_setstacksize(&thread_attr, 1024 * 1024);
+    size_t stack_size = 1024 * 1024 + get_stack_size_internal(&thread_attr);
+
+    pthread_attr_setstacksize(&thread_attr, stack_size);
 
     Dav1dContext *const c = *c_out = dav1d_alloc_aligned(sizeof(*c), 32);
     if (!c) goto error;
@@ -124,17 +148,15 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
     memset(c->fc, 0, sizeof(*c->fc) * s->n_frame_threads);
     if (c->n_fc > 1) {
         c->frame_thread.out_delayed =
-            malloc(sizeof(*c->frame_thread.out_delayed) * c->n_fc);
+            calloc(c->n_fc, sizeof(*c->frame_thread.out_delayed));
         if (!c->frame_thread.out_delayed) goto error;
-        memset(c->frame_thread.out_delayed, 0,
-               sizeof(*c->frame_thread.out_delayed) * c->n_fc);
     }
     for (int n = 0; n < s->n_frame_threads; n++) {
         Dav1dFrameContext *const f = &c->fc[n];
         f->c = c;
         f->lf.last_sharpness = -1;
         f->n_tc = s->n_tile_threads;
-        f->tc = dav1d_alloc_aligned(sizeof(*f->tc) * s->n_tile_threads, 32);
+        f->tc = dav1d_alloc_aligned(sizeof(*f->tc) * s->n_tile_threads, 64);
         if (!f->tc) goto error;
         memset(f->tc, 0, sizeof(*f->tc) * s->n_tile_threads);
         if (f->n_tc > 1) {
@@ -169,8 +191,7 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
                 t->tile_thread.td.inited = 1;
             }
         }
-        f->libaom_cm = dav1d_alloc_ref_mv_common();
-        if (!f->libaom_cm) goto error;
+        dav1d_refmvs_init(&f->rf);
         if (c->n_fc > 1) {
             if (pthread_mutex_init(&f->frame_thread.td.lock, NULL)) goto error;
             if (pthread_cond_init(&f->frame_thread.td.cond, NULL)) {
@@ -249,21 +270,6 @@ error:
     dav1d_close(&c);
 
     return res;
-}
-
-int dav1d_send_data(Dav1dContext *const c, Dav1dData *const in)
-{
-    validate_input_or_ret(c != NULL, DAV1D_ERR(EINVAL));
-    validate_input_or_ret(in != NULL, DAV1D_ERR(EINVAL));
-    validate_input_or_ret(in->data == NULL || in->sz, DAV1D_ERR(EINVAL));
-
-    c->drain = 0;
-
-    if (c->in.data)
-        return DAV1D_ERR(EAGAIN);
-    dav1d_data_move_ref(&c->in, in);
-
-    return 0;
 }
 
 static int output_image(Dav1dContext *const c, Dav1dPicture *const out,
@@ -352,21 +358,13 @@ static int drain_picture(Dav1dContext *const c, Dav1dPicture *const out) {
     return DAV1D_ERR(EAGAIN);
 }
 
-int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
+static int gen_picture(Dav1dContext *const c)
 {
     int res;
-
-    validate_input_or_ret(c != NULL, DAV1D_ERR(EINVAL));
-    validate_input_or_ret(out != NULL, DAV1D_ERR(EINVAL));
-
-    const int drain = c->drain;
-    c->drain = 1;
-
     Dav1dData *const in = &c->in;
-    if (!in->data) {
-        if (c->n_fc == 1) return DAV1D_ERR(EAGAIN);
-        return drain_picture(c, out);
-    }
+
+    if (output_picture_ready(c))
+        return 0;
 
     while (in->sz > 0) {
         res = dav1d_parse_obus(c, in, 0);
@@ -383,6 +381,40 @@ int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
         if (res < 0)
             return res;
     }
+
+    return 0;
+}
+
+int dav1d_send_data(Dav1dContext *const c, Dav1dData *const in)
+{
+    validate_input_or_ret(c != NULL, DAV1D_ERR(EINVAL));
+    validate_input_or_ret(in != NULL, DAV1D_ERR(EINVAL));
+    validate_input_or_ret(in->data == NULL || in->sz, DAV1D_ERR(EINVAL));
+
+    if (in->data)
+        c->drain = 0;
+    if (c->in.data)
+        return DAV1D_ERR(EAGAIN);
+    dav1d_data_ref(&c->in, in);
+
+    int res = gen_picture(c);
+    if (!res)
+        dav1d_data_unref_internal(in);
+
+    return res;
+}
+
+int dav1d_get_picture(Dav1dContext *const c, Dav1dPicture *const out)
+{
+    validate_input_or_ret(c != NULL, DAV1D_ERR(EINVAL));
+    validate_input_or_ret(out != NULL, DAV1D_ERR(EINVAL));
+
+    const int drain = c->drain;
+    c->drain = 1;
+
+    int res = gen_picture(c);
+    if (res < 0)
+        return res;
 
     if (output_picture_ready(c))
         return output_image(c, out, &c->out);
@@ -511,8 +543,8 @@ static COLD void close_internal(Dav1dContext **const c_out, int flush) {
         free(f->lf.lr_mask);
         free(f->lf.level);
         free(f->lf.tx_lpf_right_edge[0]);
-        if (f->libaom_cm) dav1d_free_ref_mv_common(f->libaom_cm);
-        dav1d_free_aligned(f->lf.cdef_line[0][0][0]);
+        dav1d_refmvs_clear(&f->rf);
+        dav1d_free_aligned(f->lf.cdef_line_buf);
         dav1d_free_aligned(f->lf.lr_lpf_line[0]);
     }
     dav1d_free_aligned(c->fc);

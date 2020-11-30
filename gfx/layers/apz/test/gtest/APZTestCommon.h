@@ -45,6 +45,15 @@ using ::testing::MockFunction;
 using ::testing::NiceMock;
 typedef mozilla::layers::GeckoContentController::TapType TapType;
 
+static TimeStamp GetStartupTime() {
+  static TimeStamp sStartupTime = TimeStamp::Now();
+  return sStartupTime;
+}
+
+inline uint32_t MillisecondsSinceStartup(TimeStamp aTime) {
+  return (aTime - GetStartupTime()).ToMilliseconds();
+}
+
 // Some helper functions for constructing input event objects suitable to be
 // passed either to an APZC (which expects an transformed point), or to an APZTM
 // (which expects an untransformed point). We handle both cases by setting both
@@ -67,8 +76,9 @@ inline PinchGestureInput CreatePinchGestureInput(
     PinchGestureInput::PinchGestureType aType, const ScreenPoint& aFocus,
     float aCurrentSpan, float aPreviousSpan, TimeStamp timestamp) {
   ParentLayerPoint localFocus(aFocus.x, aFocus.y);
-  PinchGestureInput result(aType, 0, timestamp, ExternalPoint(0, 0), aFocus,
-                           aCurrentSpan, aPreviousSpan, 0);
+  PinchGestureInput result(
+      aType, PinchGestureInput::UNKNOWN, MillisecondsSinceStartup(timestamp),
+      timestamp, ExternalPoint(0, 0), aFocus, aCurrentSpan, aPreviousSpan, 0);
   return result;
 }
 
@@ -115,26 +125,16 @@ class ScopedGfxSetting {
   ScopedGfxSetting<const varType&, varType> var_##varBase( \
       &(gfxVars::varBase), &(gfxVars::Set##varBase), varValue)
 
-static TimeStamp GetStartupTime() {
-  static TimeStamp sStartupTime = TimeStamp::Now();
-  return sStartupTime;
-}
-
 class MockContentController : public GeckoContentController {
  public:
-  MOCK_METHOD1(NotifyLayerTransforms, void(const nsTArray<MatrixMessage>&));
+  MOCK_METHOD1(NotifyLayerTransforms, void(nsTArray<MatrixMessage>&&));
   MOCK_METHOD1(RequestContentRepaint, void(const RepaintRequest&));
-  MOCK_METHOD2(RequestFlingSnap,
-               void(const ScrollableLayerGuid::ViewID& aScrollId,
-                    const mozilla::CSSPoint& aDestination));
-  MOCK_METHOD2(AcknowledgeScrollUpdate,
-               void(const ScrollableLayerGuid::ViewID&,
-                    const uint32_t& aScrollGeneration));
   MOCK_METHOD5(HandleTap, void(TapType, const LayoutDevicePoint&, Modifiers,
                                const ScrollableLayerGuid&, uint64_t));
-  MOCK_METHOD4(NotifyPinchGesture,
+  MOCK_METHOD5(NotifyPinchGesture,
                void(PinchGestureInput::PinchGestureType,
-                    const ScrollableLayerGuid&, LayoutDeviceCoord, Modifiers));
+                    const ScrollableLayerGuid&, const LayoutDevicePoint&,
+                    LayoutDeviceCoord, Modifiers));
   // Can't use the macros with already_AddRefed :(
   void PostDelayedTask(already_AddRefed<Runnable> aTask, int aDelayMs) {
     RefPtr<Runnable> task = aTask;
@@ -158,16 +158,18 @@ class MockContentController : public GeckoContentController {
 
 class MockContentControllerDelayed : public MockContentController {
  public:
-  MockContentControllerDelayed() : mTime(GetStartupTime()) {}
+  MockContentControllerDelayed()
+      : mTime(SampleTime::FromTest(GetStartupTime())) {}
 
-  const TimeStamp& Time() { return mTime; }
+  const TimeStamp& Time() { return mTime.Time(); }
+  const SampleTime& GetSampleTime() { return mTime; }
 
   void AdvanceByMillis(int aMillis) {
     AdvanceBy(TimeDuration::FromMilliseconds(aMillis));
   }
 
   void AdvanceBy(const TimeDuration& aIncrement) {
-    TimeStamp target = mTime + aIncrement;
+    SampleTime target = mTime + aIncrement;
     while (mTaskQueue.Length() > 0 && mTaskQueue[0].second <= target) {
       RunNextDelayedTask();
     }
@@ -176,7 +178,7 @@ class MockContentControllerDelayed : public MockContentController {
 
   void PostDelayedTask(already_AddRefed<Runnable> aTask, int aDelayMs) {
     RefPtr<Runnable> task = aTask;
-    TimeStamp runAtTime = mTime + TimeDuration::FromMilliseconds(aDelayMs);
+    SampleTime runAtTime = mTime + TimeDuration::FromMilliseconds(aDelayMs);
     int insIndex = mTaskQueue.Length();
     while (insIndex > 0) {
       if (mTaskQueue[insIndex - 1].second <= runAtTime) {
@@ -193,8 +195,8 @@ class MockContentControllerDelayed : public MockContentController {
   // in the queue after this function is called. Only when the return
   // value is 0 is the queue guaranteed to be empty.
   int RunThroughDelayedTasks() {
-    nsTArray<std::pair<RefPtr<Runnable>, TimeStamp>> runQueue;
-    runQueue.SwapElements(mTaskQueue);
+    nsTArray<std::pair<RefPtr<Runnable>, SampleTime>> runQueue =
+        std::move(mTaskQueue);
     int numTasks = runQueue.Length();
     for (int i = 0; i < numTasks; i++) {
       mTime = runQueue[i].second;
@@ -209,7 +211,7 @@ class MockContentControllerDelayed : public MockContentController {
 
  private:
   void RunNextDelayedTask() {
-    std::pair<RefPtr<Runnable>, TimeStamp> next = mTaskQueue[0];
+    std::pair<RefPtr<Runnable>, SampleTime> next = mTaskQueue[0];
     mTaskQueue.RemoveElementAt(0);
     mTime = next.second;
     next.first->Run();
@@ -220,8 +222,8 @@ class MockContentControllerDelayed : public MockContentController {
 
   // The following array is sorted by timestamp (tasks are inserted in order by
   // timestamp).
-  nsTArray<std::pair<RefPtr<Runnable>, TimeStamp>> mTaskQueue;
-  TimeStamp mTime;
+  nsTArray<std::pair<RefPtr<Runnable>, SampleTime>> mTaskQueue;
+  SampleTime mTime;
 };
 
 class TestAPZCTreeManager : public APZCTreeManager {
@@ -239,23 +241,11 @@ class TestAPZCTreeManager : public APZCTreeManager {
    **/
   void CancelAnimation() { EXPECT_TRUE(false); }
 
-  using APZCTreeManager::SetTargetAPZC;  // silence clang warning about overload
-  void SetTargetAPZC(uint64_t aInputBlockId,
-                     const nsTArray<ScrollableLayerGuid>& aTargets) {
-    nsTArray<SLGuidAndRenderRoot> wrapped;
-    for (const ScrollableLayerGuid& target : aTargets) {
-      wrapped.AppendElement(
-          SLGuidAndRenderRoot(target, wr::RenderRoot::Default));
-    }
-    this->SetTargetAPZC(aInputBlockId, wrapped);
-  }
-
  protected:
-  AsyncPanZoomController* NewAPZCInstance(LayersId aLayersId,
-                                          GeckoContentController* aController,
-                                          wr::RenderRoot aRenderRoot) override;
+  AsyncPanZoomController* NewAPZCInstance(
+      LayersId aLayersId, GeckoContentController* aController) override;
 
-  TimeStamp GetFrameTime() override { return mcc->Time(); }
+  SampleTime GetFrameTime() override { return mcc->GetSampleTime(); }
 
  private:
   RefPtr<MockContentControllerDelayed> mcc;
@@ -266,11 +256,9 @@ class TestAsyncPanZoomController : public AsyncPanZoomController {
   TestAsyncPanZoomController(LayersId aLayersId,
                              MockContentControllerDelayed* aMcc,
                              TestAPZCTreeManager* aTreeManager,
-                             wr::RenderRoot aRenderRoot,
                              GestureBehavior aBehavior = DEFAULT_GESTURES)
       : AsyncPanZoomController(aLayersId, aTreeManager,
-                               aTreeManager->GetInputQueue(), aMcc, aRenderRoot,
-                               aBehavior),
+                               aTreeManager->GetInputQueue(), aMcc, aBehavior),
         mWaitForMainThread(false),
         mcc(aMcc) {}
 
@@ -337,9 +325,9 @@ class TestAsyncPanZoomController : public AsyncPanZoomController {
     EXPECT_EQ(FLING, mState);
   }
 
-  void AssertStateIsSmoothScroll() const {
+  void AssertStateIsSmoothMsdScroll() const {
     RecursiveMutexAutoLock lock(mRecursiveMutex);
-    EXPECT_EQ(SMOOTH_SCROLL, mState);
+    EXPECT_EQ(SMOOTHMSD_SCROLL, mState);
   }
 
   void AssertNotAxisLocked() const {
@@ -361,7 +349,7 @@ class TestAsyncPanZoomController : public AsyncPanZoomController {
 
   void AdvanceAnimationsUntilEnd(
       const TimeDuration& aIncrement = TimeDuration::FromMilliseconds(10)) {
-    while (AdvanceAnimations(mcc->Time())) {
+    while (AdvanceAnimations(mcc->GetSampleTime())) {
       mcc->AdvanceBy(aIncrement);
     }
   }
@@ -370,7 +358,7 @@ class TestAsyncPanZoomController : public AsyncPanZoomController {
       AsyncTransform* aOutTransform, ParentLayerPoint& aScrollOffset,
       const TimeDuration& aIncrement = TimeDuration::FromMilliseconds(0)) {
     mcc->AdvanceBy(aIncrement);
-    bool ret = AdvanceAnimations(mcc->Time());
+    bool ret = AdvanceAnimations(mcc->GetSampleTime());
     if (aOutTransform) {
       *aOutTransform =
           GetCurrentAsyncTransform(AsyncPanZoomController::eForHitTesting);
@@ -396,6 +384,8 @@ class TestAsyncPanZoomController : public AsyncPanZoomController {
 class APZCTesterBase : public ::testing::Test {
  public:
   APZCTesterBase() { mcc = new NiceMock<MockContentControllerDelayed>(); }
+
+  virtual void SetUp() { gfxPlatform::GetPlatform(); }
 
   enum class PanOptions {
     None = 0,
@@ -883,10 +873,8 @@ void APZCTesterBase::PinchWithPinchInput(
   mcc->AdvanceBy(TIME_BETWEEN_PINCH_INPUT);
 
   actualStatus = aTarget->ReceiveInputEvent(
-      CreatePinchGestureInput(
-          PinchGestureInput::PINCHGESTURE_END,
-          PinchGestureInput::BothFingersLifted<ScreenPixel>(), 10.0 * aScale,
-          10.0 * aScale, mcc->Time()),
+      CreatePinchGestureInput(PinchGestureInput::PINCHGESTURE_END, aSecondFocus,
+                              10.0 * aScale, 10.0 * aScale, mcc->Time()),
       nullptr);
   if (aOutEventStatuses) {
     (*aOutEventStatuses)[2] = actualStatus;
@@ -901,20 +889,18 @@ void APZCTesterBase::PinchWithPinchInputAndCheckStatus(
   PinchWithPinchInput(aTarget, aFocus, aFocus, aScale, &statuses);
 
   nsEventStatus expectedStatus = aShouldTriggerPinch
-                                     ? nsEventStatus_eConsumeNoDefault
+                                     ? nsEventStatus_eConsumeDoDefault
                                      : nsEventStatus_eIgnore;
   EXPECT_EQ(expectedStatus, statuses[0]);
   EXPECT_EQ(expectedStatus, statuses[1]);
 }
 
 AsyncPanZoomController* TestAPZCTreeManager::NewAPZCInstance(
-    LayersId aLayersId, GeckoContentController* aController,
-    wr::RenderRoot aRenderRoot) {
+    LayersId aLayersId, GeckoContentController* aController) {
   MockContentControllerDelayed* mcc =
       static_cast<MockContentControllerDelayed*>(aController);
   return new TestAsyncPanZoomController(
-      aLayersId, mcc, this, aRenderRoot,
-      AsyncPanZoomController::USE_GESTURE_DETECTOR);
+      aLayersId, mcc, this, AsyncPanZoomController::USE_GESTURE_DETECTOR);
 }
 
 inline FrameMetrics TestFrameMetrics() {
@@ -926,10 +912,6 @@ inline FrameMetrics TestFrameMetrics() {
   fm.SetScrollableRect(CSSRect(0, 0, 100, 100));
 
   return fm;
-}
-
-inline uint32_t MillisecondsSinceStartup(TimeStamp aTime) {
-  return (aTime - GetStartupTime()).ToMilliseconds();
 }
 
 #endif  // mozilla_layers_APZTestCommon_h

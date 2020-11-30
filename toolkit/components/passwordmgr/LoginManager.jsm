@@ -46,9 +46,9 @@ function LoginManager() {
 LoginManager.prototype = {
   classID: Components.ID("{cb9e0de8-3598-4ed7-857b-827f011ad5d8}"),
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsILoginManager,
-    Ci.nsISupportsWeakReference,
-    Ci.nsIInterfaceRequestor,
+    "nsILoginManager",
+    "nsISupportsWeakReference",
+    "nsIInterfaceRequestor",
   ]),
   getInterface(aIID) {
     if (aIID.equals(Ci.mozIStorageConnection) && this._storage) {
@@ -116,8 +116,8 @@ LoginManager.prototype = {
     _pwmgr: null,
 
     QueryInterface: ChromeUtils.generateQI([
-      Ci.nsIObserver,
-      Ci.nsISupportsWeakReference,
+      "nsIObserver",
+      "nsISupportsWeakReference",
     ]),
 
     // nsIObserver
@@ -388,12 +388,31 @@ LoginManager.prototype = {
   /**
    * Record that the password of a saved login was used (e.g. submitted or copied).
    */
-  recordPasswordUse(login) {
+  recordPasswordUse(
+    login,
+    privateContextWithoutExplicitConsent,
+    loginType,
+    filled
+  ) {
     log.debug(
       "Recording password use",
+      loginType,
       login.QueryInterface(Ci.nsILoginMetaInfo).guid
     );
-    this._storage.recordPasswordUse(login);
+    if (!privateContextWithoutExplicitConsent) {
+      // don't record non-interactive use in private browsing
+      this._storage.recordPasswordUse(login);
+    }
+
+    Services.telemetry.recordEvent(
+      "pwmgr",
+      "saved_login_used",
+      loginType,
+      null,
+      {
+        filled: "" + filled,
+      }
+    );
   },
 
   /**
@@ -510,6 +529,23 @@ LoginManager.prototype = {
     );
 
     return this._storage.countLogins(origin, formActionOrigin, httpRealm);
+  },
+
+  /* Sync metadata functions - see nsILoginManagerStorage for details */
+  async getSyncID() {
+    return this._storage.getSyncID();
+  },
+
+  async setSyncID(id) {
+    await this._storage.setSyncID(id);
+  },
+
+  async getLastSync() {
+    return this._storage.getLastSync();
+  },
+
+  async setLastSync(timestamp) {
+    await this._storage.setLastSync(timestamp);
   },
 
   get uiBusy() {

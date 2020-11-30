@@ -7,8 +7,11 @@
 #include "StorageActivityService.h"
 
 #include "mozilla/ipc/BackgroundUtils.h"
+#include "mozilla/SchedulerGroup.h"
 #include "mozilla/StaticPtr.h"
+#include "nsCOMPtr.h"
 #include "nsIMutableArray.h"
+#include "nsIPrincipal.h"
 #include "nsSupportsPrimitives.h"
 #include "nsXPCOM.h"
 
@@ -53,13 +56,20 @@ void StorageActivityService::SendActivity(
       "StorageActivityService::SendActivity", [aPrincipalInfo]() {
         MOZ_ASSERT(NS_IsMainThread());
 
-        nsCOMPtr<nsIPrincipal> principal =
+        auto principalOrErr =
             mozilla::ipc::PrincipalInfoToPrincipal(aPrincipalInfo);
 
-        StorageActivityService::SendActivity(principal);
+        if (principalOrErr.isOk()) {
+          nsCOMPtr<nsIPrincipal> principal = principalOrErr.unwrap();
+          StorageActivityService::SendActivity(principal);
+        } else {
+          NS_WARNING(
+              "Could not obtain principal from "
+              "mozilla::ipc::PrincipalInfoToPrincipal");
+        }
       });
 
-  SystemGroup::Dispatch(TaskCategory::Other, r.forget());
+  SchedulerGroup::Dispatch(TaskCategory::Other, r.forget());
 }
 
 /* static */
@@ -84,7 +94,7 @@ void StorageActivityService::SendActivity(const nsACString& aOrigin) {
   if (NS_IsMainThread()) {
     Unused << r->Run();
   } else {
-    SystemGroup::Dispatch(TaskCategory::Other, r.forget());
+    SchedulerGroup::Dispatch(TaskCategory::Other, r.forget());
   }
 }
 

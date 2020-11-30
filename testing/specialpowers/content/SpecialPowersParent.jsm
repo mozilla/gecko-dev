@@ -57,6 +57,8 @@ const PREF_TYPES = {
 let prefUndoStack = [];
 let inPrefEnvOp = false;
 
+let permissionUndoStack = [];
+
 function doPrefEnvOp(fn) {
   if (inPrefEnvOp) {
     throw new Error(
@@ -69,6 +71,55 @@ function doPrefEnvOp(fn) {
   } finally {
     inPrefEnvOp = false;
   }
+}
+
+async function createWindowlessBrowser({ isPrivate = false } = {}) {
+  const {
+    promiseDocumentLoaded,
+    promiseEvent,
+    promiseObserved,
+  } = ChromeUtils.import(
+    "resource://gre/modules/ExtensionUtils.jsm"
+  ).ExtensionUtils;
+
+  let windowlessBrowser = Services.appShell.createWindowlessBrowser(true);
+
+  if (isPrivate) {
+    let loadContext = windowlessBrowser.docShell.QueryInterface(
+      Ci.nsILoadContext
+    );
+    loadContext.usePrivateBrowsing = true;
+  }
+
+  let chromeShell = windowlessBrowser.docShell.QueryInterface(
+    Ci.nsIWebNavigation
+  );
+
+  const system = Services.scriptSecurityManager.getSystemPrincipal();
+  chromeShell.createAboutBlankContentViewer(system, system);
+  windowlessBrowser.browsingContext.useGlobalHistory = false;
+  chromeShell.loadURI("chrome://extensions/content/dummy.xhtml", {
+    triggeringPrincipal: system,
+  });
+
+  await promiseObserved(
+    "chrome-document-global-created",
+    win => win.document == chromeShell.document
+  );
+
+  let chromeDoc = await promiseDocumentLoaded(chromeShell.document);
+
+  let browser = chromeDoc.createXULElement("browser");
+  browser.setAttribute("type", "content");
+  browser.setAttribute("disableglobalhistory", "true");
+  browser.setAttribute("remote", "true");
+
+  let promise = promiseEvent(browser, "XULFrameLoaderCreated");
+  chromeDoc.documentElement.appendChild(browser);
+
+  await promise;
+
+  return { windowlessBrowser, browser };
 }
 
 // Supplies the unique IDs for tasks created by SpecialPowers.spawn(),
@@ -102,22 +153,6 @@ class SpecialPowersParent extends JSWindowActorParent {
       observe(aSubject, aTopic, aData) {
         var msg = { aData };
         switch (aTopic) {
-          case "perm-changed":
-            var permission = aSubject.QueryInterface(Ci.nsIPermission);
-
-            // specialPowersAPI will consume this value, and it is used as a
-            // fake permission, but only type will be used.
-            //
-            // We need to ensure that it looks the same as a real permission,
-            // so we fake these properties.
-            msg.permission = {
-              principal: {
-                originAttributes: {},
-              },
-              type: permission.type,
-            };
-            this._self.sendAsyncMessage("specialpowers-" + aTopic, msg);
-            return;
           case "csp-on-violate-policy":
             // the subject is either an nsIURI or an nsISupportsCString
             let subject = null;
@@ -559,12 +594,135 @@ class SpecialPowersParent extends JSWindowActorParent {
     }
   }
 
+  _permOp(perm) {
+    switch (perm.op) {
+      case "add":
+        Services.perms.addFromPrincipal(
+          perm.principal,
+          perm.type,
+          perm.permission,
+          perm.expireType,
+          perm.expireTime
+        );
+        break;
+      case "remove":
+        Services.perms.removeFromPrincipal(perm.principal, perm.type);
+        break;
+      default:
+        throw new Error(`Unexpected permission op: ${perm.op}`);
+    }
+  }
+
+  pushPermissions(inPermissions) {
+    let pendingPermissions = [];
+    let cleanupPermissions = [];
+
+    for (let permission of inPermissions) {
+      let { principal } = permission;
+      if (principal.isSystemPrincipal) {
+        continue;
+      }
+
+      let originalValue = Services.perms.testPermissionFromPrincipal(
+        principal,
+        permission.type
+      );
+
+      let perm = permission.allow;
+      if (typeof perm === "boolean") {
+        perm = Ci.nsIPermissionManager[perm ? "ALLOW_ACTION" : "DENY_ACTION"];
+      }
+
+      if (permission.remove) {
+        perm = Ci.nsIPermissionManager.UNKNOWN_ACTION;
+      }
+
+      if (originalValue == perm) {
+        continue;
+      }
+
+      let todo = {
+        op: "add",
+        type: permission.type,
+        permission: perm,
+        value: perm,
+        principal,
+        expireType:
+          typeof permission.expireType === "number" ? permission.expireType : 0, // default: EXPIRE_NEVER
+        expireTime:
+          typeof permission.expireTime === "number" ? permission.expireTime : 0,
+      };
+
+      var cleanupTodo = Object.assign({}, todo);
+
+      if (permission.remove) {
+        todo.op = "remove";
+      }
+
+      pendingPermissions.push(todo);
+
+      if (originalValue == Ci.nsIPermissionManager.UNKNOWN_ACTION) {
+        cleanupTodo.op = "remove";
+      } else {
+        cleanupTodo.value = originalValue;
+        cleanupTodo.permission = originalValue;
+      }
+      cleanupPermissions.push(cleanupTodo);
+    }
+
+    permissionUndoStack.push(cleanupPermissions);
+
+    for (let perm of pendingPermissions) {
+      this._permOp(perm);
+    }
+  }
+
+  popPermissions() {
+    if (permissionUndoStack.length) {
+      for (let perm of permissionUndoStack.pop()) {
+        this._permOp(perm);
+      }
+    }
+  }
+
+  flushPermissions() {
+    while (permissionUndoStack.length) {
+      this.popPermissions();
+    }
+  }
+
+  _spawnChrome(task, args, caller, imports) {
+    let sb = new SpecialPowersSandbox(
+      null,
+      data => {
+        this.sendAsyncMessage("Assert", data);
+      },
+      { imports }
+    );
+
+    for (let [global, prop] of Object.entries({
+      windowGlobalParent: "manager",
+      browsingContext: "browsingContext",
+    })) {
+      Object.defineProperty(sb.sandbox, global, {
+        get: () => {
+          return this[prop];
+        },
+        enumerable: true,
+      });
+    }
+
+    return sb.execute(task, args, caller);
+  }
+
   /**
    * messageManager callback function
    * This will get requests from our API in the window and process them in chrome for it
    **/
   // eslint-disable-next-line complexity
   receiveMessage(aMessage) {
+    ChromeUtils.addProfilerMarker("SpecialPowers", undefined, aMessage.name);
+
     // We explicitly return values in the below code so that this function
     // doesn't trigger a flurry of warnings about "does not always return
     // a value".
@@ -576,7 +734,17 @@ class SpecialPowersParent extends JSWindowActorParent {
         return undefined;
 
       case "SpecialPowers.Quit":
-        Services.startup.quit(Ci.nsIAppStartup.eForceQuit);
+        if (
+          !AppConstants.RELEASE_OR_BETA &&
+          !AppConstants.DEBUG &&
+          !AppConstants.MOZ_CODE_COVERAGE &&
+          !AppConstants.ASAN &&
+          !AppConstants.TSAN
+        ) {
+          Cu.exitIfInAutomation();
+        } else {
+          Services.startup.quit(Ci.nsIAppStartup.eForceQuit);
+        }
         return undefined;
 
       case "SpecialPowers.Focus":
@@ -655,6 +823,15 @@ class SpecialPowersParent extends JSWindowActorParent {
       case "FlushPrefEnv":
         return this.flushPrefEnv();
 
+      case "PushPermissions":
+        return this.pushPermissions(aMessage.data);
+
+      case "PopPermissions":
+        return this.popPermissions();
+
+      case "FlushPermissions":
+        return this.flushPermissions();
+
       case "SPPrefService": {
         let prefs = Services.prefs;
         let prefType = aMessage.json.prefType.toUpperCase();
@@ -730,31 +907,21 @@ class SpecialPowersParent extends JSWindowActorParent {
       }
 
       case "SPPermissionManager": {
-        let msg = aMessage.json;
-        let principal = msg.principal;
-
+        let msg = aMessage.data;
         switch (msg.op) {
           case "add":
-            Services.perms.addFromPrincipal(
-              principal,
-              msg.type,
-              msg.permission,
-              msg.expireType,
-              msg.expireTime
-            );
-            break;
           case "remove":
-            Services.perms.removeFromPrincipal(principal, msg.type);
+            this._permOp(msg);
             break;
           case "has":
             let hasPerm = Services.perms.testPermissionFromPrincipal(
-              principal,
+              msg.principal,
               msg.type
             );
             return hasPerm == Ci.nsIPermissionManager.ALLOW_ACTION;
           case "test":
             let testPerm = Services.perms.testPermissionFromPrincipal(
-              principal,
+              msg.principal,
               msg.type
             );
             return testPerm == msg.value;
@@ -821,6 +988,7 @@ class SpecialPowersParent extends JSWindowActorParent {
         );
 
         Object.assign(sb.sandbox, {
+          createWindowlessBrowser,
           sendAsyncMessage: (name, message) => {
             this.sendAsyncMessage("SPChromeScriptMessage", {
               id,
@@ -962,12 +1130,6 @@ class SpecialPowersParent extends JSWindowActorParent {
         // This is either an Extension, or (if useAddonManager is set) a MockExtension.
         let extension = this._extensions.get(id);
         extension.on("startup", (eventName, ext) => {
-          if (!ext) {
-            // ext is only set by the "startup" event from Extension.jsm.
-            // Unfortunately ext-backgroundPage.js emits an event with the same
-            // name, but without the extension object as parameter.
-            return;
-          }
           if (AppConstants.platform === "android") {
             // We need a way to notify the embedding layer that a new extension
             // has been installed, so that the java layer can be updated too.
@@ -1026,6 +1188,13 @@ class SpecialPowersParent extends JSWindowActorParent {
         return undefined;
       }
 
+      case "SPExtensionGrantActiveTab": {
+        let { id, tabId } = aMessage.data;
+        let { tabManager } = this._extensions.get(id);
+        tabManager.addActiveTabPermission(tabManager.get(tabId).nativeTab);
+        return undefined;
+      }
+
       case "SPUnloadExtension": {
         let id = aMessage.data.id;
         let extension = this._extensions.get(id);
@@ -1064,6 +1233,12 @@ class SpecialPowersParent extends JSWindowActorParent {
           .finally(() => spParent._taskActors.delete(taskId));
       }
 
+      case "SpawnChrome": {
+        let { task, args, caller, imports } = aMessage.data;
+
+        return this._spawnChrome(task, args, caller, imports);
+      }
+
       case "Snapshot": {
         let { browsingContext, rect, background } = aMessage.data;
 
@@ -1086,6 +1261,11 @@ class SpecialPowersParent extends JSWindowActorParent {
           });
       }
 
+      case "SecurityState": {
+        let { browsingContext } = aMessage.data;
+        return browsingContext.secureBrowserUI.state;
+      }
+
       case "ProxiedAssert": {
         let { taskId, data } = aMessage.data;
 
@@ -1104,7 +1284,8 @@ class SpecialPowersParent extends JSWindowActorParent {
       }
 
       case "SPGenerateMediaControlKeyTestEvent": {
-        ChromeUtils.generateMediaControlKeysTestEvent(aMessage.data.event);
+        // eslint-disable-next-line no-undef
+        MediaControlService.generateMediaControlKey(aMessage.data.event);
         return undefined;
       }
 

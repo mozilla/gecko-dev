@@ -739,7 +739,7 @@ class RecordedDrawSurfaceWithShadow
     : public RecordedDrawingEvent<RecordedDrawSurfaceWithShadow> {
  public:
   RecordedDrawSurfaceWithShadow(DrawTarget* aDT, ReferencePtr aRefSource,
-                                const Point& aDest, const Color& aColor,
+                                const Point& aDest, const DeviceColor& aColor,
                                 const Point& aOffset, Float aSigma,
                                 CompositionOp aOp)
       : RecordedDrawingEvent(DRAWSURFACEWITHSHADOW, aDT),
@@ -766,7 +766,7 @@ class RecordedDrawSurfaceWithShadow
 
   ReferencePtr mRefSource;
   Point mDest;
-  Color mColor;
+  DeviceColor mColor;
   Point mOffset;
   Float mSigma;
   CompositionOp mOp;
@@ -1613,20 +1613,12 @@ void RecordedEvent::ReadPatternData(S& aStream,
       ReadElement(aStream, *sps);
       if (sps->mExtend < ExtendMode::CLAMP ||
           sps->mExtend > ExtendMode::REFLECT) {
-        gfxDevCrash(LogReason::InvalidConstrainedValueRead)
-            << "Invalid ExtendMode read: value: " << int(sps->mExtend)
-            << ", min: " << int(ExtendMode::CLAMP)
-            << ", max: " << int(ExtendMode::REFLECT);
         aStream.SetIsBad();
+        return;
       }
 
       if (sps->mSamplingFilter < SamplingFilter::GOOD ||
           sps->mSamplingFilter >= SamplingFilter::SENTINEL) {
-        gfxDevCrash(LogReason::InvalidConstrainedValueRead)
-            << "Invalid SamplingFilter read: value: "
-            << int(sps->mSamplingFilter)
-            << ", min: " << int(SamplingFilter::GOOD)
-            << ", sentinel: " << int(SamplingFilter::SENTINEL);
         aStream.SetIsBad();
       }
       return;
@@ -1741,7 +1733,7 @@ void RecordedEvent::ReadStrokeOptions(S& aStream,
   aStrokeOptions.mLineJoin = joinStyle;
   aStrokeOptions.mLineCap = capStyle;
 
-  if (!aStrokeOptions.mDashLength) {
+  if (!aStrokeOptions.mDashLength || !aStream.good()) {
     return;
   }
 
@@ -1756,21 +1748,12 @@ static void ReadDrawOptions(S& aStream, DrawOptions& aDrawOptions) {
   ReadElement(aStream, aDrawOptions);
   if (aDrawOptions.mAntialiasMode < AntialiasMode::NONE ||
       aDrawOptions.mAntialiasMode > AntialiasMode::DEFAULT) {
-    gfxDevCrash(LogReason::InvalidConstrainedValueRead)
-        << "Invalid AntialiasMode read: value: "
-        << int(aDrawOptions.mAntialiasMode)
-        << ", min: " << int(AntialiasMode::NONE)
-        << ", max: " << int(AntialiasMode::DEFAULT);
     aStream.SetIsBad();
+    return;
   }
 
   if (aDrawOptions.mCompositionOp < CompositionOp::OP_OVER ||
       aDrawOptions.mCompositionOp > CompositionOp::OP_COUNT) {
-    gfxDevCrash(LogReason::InvalidConstrainedValueRead)
-        << "Invalid CompositionOp read: value: "
-        << int(aDrawOptions.mCompositionOp)
-        << ", min: " << int(CompositionOp::OP_OVER)
-        << ", max: " << int(CompositionOp::OP_COUNT);
     aStream.SetIsBad();
   }
 }
@@ -1781,21 +1764,12 @@ static void ReadDrawSurfaceOptions(S& aStream,
   ReadElement(aStream, aDrawSurfaceOptions);
   if (aDrawSurfaceOptions.mSamplingFilter < SamplingFilter::GOOD ||
       aDrawSurfaceOptions.mSamplingFilter >= SamplingFilter::SENTINEL) {
-    gfxDevCrash(LogReason::InvalidConstrainedValueRead)
-        << "Invalid SamplingFilter read: value: "
-        << int(aDrawSurfaceOptions.mSamplingFilter)
-        << ", min: " << int(SamplingFilter::GOOD)
-        << ", sentinel: " << int(SamplingFilter::SENTINEL);
     aStream.SetIsBad();
+    return;
   }
 
   if (aDrawSurfaceOptions.mSamplingBounds < SamplingBounds::UNBOUNDED ||
       aDrawSurfaceOptions.mSamplingBounds > SamplingBounds::BOUNDED) {
-    gfxDevCrash(LogReason::InvalidConstrainedValueRead)
-        << "Invalid SamplingBounds read: value: "
-        << int(aDrawSurfaceOptions.mSamplingBounds)
-        << ", min: " << int(SamplingBounds::UNBOUNDED)
-        << ", max: " << int(SamplingBounds::BOUNDED);
     aStream.SetIsBad();
   }
 }
@@ -1804,11 +1778,11 @@ inline void RecordedEvent::OutputSimplePatternInfo(
     const PatternStorage& aStorage, std::stringstream& aOutput) const {
   switch (aStorage.mType) {
     case PatternType::COLOR: {
-      const Color color =
+      const DeviceColor color =
           reinterpret_cast<const ColorPatternStorage*>(&aStorage.mStorage)
               ->mColor;
-      aOutput << "Color: (" << color.r << ", " << color.g << ", " << color.b
-              << ", " << color.a << ")";
+      aOutput << "DeviceColor: (" << color.r << ", " << color.g << ", "
+              << color.b << ", " << color.a << ")";
       return;
     }
     case PatternType::LINEAR_GRADIENT: {
@@ -2198,7 +2172,7 @@ struct GenericPattern {
         return mPattern;
       }
       default:
-        return new (mColPat) ColorPattern(Color());
+        return new (mColPat) ColorPattern(DeviceColor());
     }
 
     return mPattern;
@@ -2388,6 +2362,10 @@ RecordedFillGlyphs::RecordedFillGlyphs(S& aStream)
   ReadDrawOptions(aStream, mOptions);
   ReadPatternData(aStream, mPattern);
   ReadElement(aStream, mNumGlyphs);
+  if (!aStream.good()) {
+    return;
+  }
+
   mGlyphs = new Glyph[mNumGlyphs];
   aStream.read((char*)mGlyphs, sizeof(Glyph) * mNumGlyphs);
 }
@@ -2820,9 +2798,11 @@ inline bool RecordedDrawDependentSurface::PlayEvent(
     return false;
   }
 
+  // We still return true even if this fails, since dependent surfaces are
+  // used for cross-origin iframe drawing and can fail.
   RefPtr<SourceSurface> surface = aTranslator->LookupExternalSurface(mId);
   if (!surface) {
-    return false;
+    return true;
   }
 
   dt->DrawSurface(surface, mDest, Rect(Point(), Size(surface->GetSize())),
@@ -2933,7 +2913,7 @@ RecordedDrawSurfaceWithShadow::RecordedDrawSurfaceWithShadow(S& aStream)
 inline void RecordedDrawSurfaceWithShadow::OutputSimpleEventInfo(
     std::stringstream& aStringStream) const {
   aStringStream << "[" << mDT << "] DrawSurfaceWithShadow (" << mRefSource
-                << ") Color: (" << mColor.r << ", " << mColor.g << ", "
+                << ") DeviceColor: (" << mColor.r << ", " << mColor.g << ", "
                 << mColor.b << ", " << mColor.a << ")";
 }
 
@@ -3042,12 +3022,17 @@ RecordedSourceSurfaceCreation::RecordedSourceSurfaceCreation(S& aStream)
   ReadElement(aStream, mSize);
   ReadElementConstrained(aStream, mFormat, SurfaceFormat::A8R8G8B8_UINT32,
                          SurfaceFormat::UNKNOWN);
+  if (!aStream.good()) {
+    return;
+  }
+
   size_t size = mSize.width * mSize.height * BytesPerPixel(mFormat);
   mData = new (fallible) uint8_t[size];
   if (!mData) {
     gfxCriticalNote
         << "RecordedSourceSurfaceCreation failed to allocate data of size "
         << size;
+    aStream.SetIsBad();
   } else {
     aStream.read((char*)mData, size);
   }
@@ -3231,6 +3216,10 @@ RecordedGradientStopsCreation::RecordedGradientStopsCreation(S& aStream)
   ReadElementConstrained(aStream, mExtendMode, ExtendMode::CLAMP,
                          ExtendMode::REFLECT);
   ReadElement(aStream, mNumStops);
+  if (!aStream.good()) {
+    return;
+  }
+
   mStops = new GradientStop[mNumStops];
 
   aStream.read((char*)mStops, mNumStops * sizeof(GradientStop));
@@ -3401,8 +3390,12 @@ void RecordedFontData::Record(S& aStream) const {
 
   WriteElement(aStream, mType);
   WriteElement(aStream, mFontDetails.fontDataKey);
-  WriteElement(aStream, mFontDetails.size);
-  aStream.write((const char*)mData, mFontDetails.size);
+  if (!mData) {
+    WriteElement(aStream, 0);
+  } else {
+    WriteElement(aStream, mFontDetails.size);
+    aStream.write((const char*)mData, mFontDetails.size);
+  }
 }
 
 inline void RecordedFontData::OutputSimpleEventInfo(
@@ -3442,11 +3435,16 @@ RecordedFontData::RecordedFontData(S& aStream)
   ReadElementConstrained(aStream, mType, FontType::DWRITE, FontType::UNKNOWN);
   ReadElement(aStream, mFontDetails.fontDataKey);
   ReadElement(aStream, mFontDetails.size);
+  if (!mFontDetails.size || !aStream.good()) {
+    return;
+  }
+
   mData = new (fallible) uint8_t[mFontDetails.size];
   if (!mData) {
     gfxCriticalNote
         << "RecordedFontData failed to allocate data for playback of size "
         << mFontDetails.size;
+    aStream.SetIsBad();
   } else {
     aStream.read((char*)mData, mFontDetails.size);
   }
@@ -3475,7 +3473,9 @@ void RecordedFontDescriptor::Record(S& aStream) const {
   WriteElement(aStream, mRefPtr);
   WriteElement(aStream, mIndex);
   WriteElement(aStream, (size_t)mData.size());
-  aStream.write((char*)mData.data(), mData.size());
+  if (mData.size()) {
+    aStream.write((char*)mData.data(), mData.size());
+  }
 }
 
 inline void RecordedFontDescriptor::OutputSimpleEventInfo(
@@ -3499,8 +3499,13 @@ RecordedFontDescriptor::RecordedFontDescriptor(S& aStream)
 
   size_t size;
   ReadElement(aStream, size);
-  mData.resize(size);
-  aStream.read((char*)mData.data(), size);
+  if (!aStream.good()) {
+    return;
+  }
+  if (size) {
+    mData.resize(size);
+    aStream.read((char*)mData.data(), size);
+  }
 }
 
 inline bool RecordedUnscaledFontCreation::PlayEvent(
@@ -3526,7 +3531,9 @@ void RecordedUnscaledFontCreation::Record(S& aStream) const {
   WriteElement(aStream, mFontDataKey);
   WriteElement(aStream, mIndex);
   WriteElement(aStream, (size_t)mInstanceData.size());
-  aStream.write((char*)mInstanceData.data(), mInstanceData.size());
+  if (mInstanceData.size()) {
+    aStream.write((char*)mInstanceData.data(), mInstanceData.size());
+  }
 }
 
 inline void RecordedUnscaledFontCreation::OutputSimpleEventInfo(
@@ -3536,7 +3543,9 @@ inline void RecordedUnscaledFontCreation::OutputSimpleEventInfo(
 
 inline void RecordedUnscaledFontCreation::SetFontInstanceData(
     const uint8_t* aData, uint32_t aSize) {
-  mInstanceData.assign(aData, aData + aSize);
+  if (aSize) {
+    mInstanceData.assign(aData, aData + aSize);
+  }
 }
 
 template <class S>
@@ -3548,8 +3557,13 @@ RecordedUnscaledFontCreation::RecordedUnscaledFontCreation(S& aStream)
 
   size_t size;
   ReadElement(aStream, size);
-  mInstanceData.resize(size);
-  aStream.read((char*)mInstanceData.data(), size);
+  if (!aStream.good()) {
+    return;
+  }
+  if (size) {
+    mInstanceData.resize(size);
+    aStream.read((char*)mInstanceData.data(), size);
+  }
 }
 
 inline bool RecordedUnscaledFontDestruction::PlayEvent(
@@ -3598,10 +3612,14 @@ void RecordedScaledFontCreation::Record(S& aStream) const {
   WriteElement(aStream, mUnscaledFont);
   WriteElement(aStream, mGlyphSize);
   WriteElement(aStream, (size_t)mInstanceData.size());
-  aStream.write((char*)mInstanceData.data(), mInstanceData.size());
+  if (mInstanceData.size()) {
+    aStream.write((char*)mInstanceData.data(), mInstanceData.size());
+  }
   WriteElement(aStream, (size_t)mVariations.size());
-  aStream.write((char*)mVariations.data(),
-                sizeof(FontVariation) * mVariations.size());
+  if (mVariations.size()) {
+    aStream.write((char*)mVariations.data(),
+                  sizeof(FontVariation) * mVariations.size());
+  }
 }
 
 inline void RecordedScaledFontCreation::OutputSimpleEventInfo(
@@ -3612,8 +3630,12 @@ inline void RecordedScaledFontCreation::OutputSimpleEventInfo(
 inline void RecordedScaledFontCreation::SetFontInstanceData(
     const uint8_t* aData, uint32_t aSize, const FontVariation* aVariations,
     uint32_t aNumVariations) {
-  mInstanceData.assign(aData, aData + aSize);
-  mVariations.assign(aVariations, aVariations + aNumVariations);
+  if (aSize) {
+    mInstanceData.assign(aData, aData + aSize);
+  }
+  if (aNumVariations) {
+    mVariations.assign(aVariations, aVariations + aNumVariations);
+  }
 }
 
 template <class S>
@@ -3625,13 +3647,24 @@ RecordedScaledFontCreation::RecordedScaledFontCreation(S& aStream)
 
   size_t size;
   ReadElement(aStream, size);
-  mInstanceData.resize(size);
-  aStream.read((char*)mInstanceData.data(), size);
+  if (!aStream.good()) {
+    return;
+  }
+  if (size) {
+    mInstanceData.resize(size);
+    aStream.read((char*)mInstanceData.data(), size);
+  }
+
   size_t numVariations;
   ReadElement(aStream, numVariations);
-  mVariations.resize(numVariations);
-  aStream.read((char*)mVariations.data(),
-               sizeof(FontVariation) * numVariations);
+  if (!aStream.good()) {
+    return;
+  }
+  if (numVariations) {
+    mVariations.resize(numVariations);
+    aStream.read((char*)mVariations.data(),
+                 sizeof(FontVariation) * numVariations);
+  }
 }
 
 inline bool RecordedScaledFontDestruction::PlayEvent(
@@ -3727,7 +3760,7 @@ inline bool RecordedFilterNodeSetAttribute::PlayEvent(
     REPLAY_SET_ATTRIBUTE(Matrix, MATRIX);
     REPLAY_SET_ATTRIBUTE(Matrix5x4, MATRIX5X4);
     REPLAY_SET_ATTRIBUTE(Point3D, POINT3D);
-    REPLAY_SET_ATTRIBUTE(Color, COLOR);
+    REPLAY_SET_ATTRIBUTE(DeviceColor, COLOR);
     case ARGTYPE_FLOAT_ARRAY:
       node->SetAttribute(mIndex,
                          reinterpret_cast<const Float*>(&mPayload.front()),
@@ -3756,6 +3789,10 @@ RecordedFilterNodeSetAttribute::RecordedFilterNodeSetAttribute(S& aStream)
                          ArgType::ARGTYPE_FLOAT_ARRAY);
   uint64_t size;
   ReadElement(aStream, size);
+  if (!aStream.good()) {
+    return;
+  }
+
   mPayload.resize(size_t(size));
   aStream.read((char*)&mPayload.front(), size);
 }

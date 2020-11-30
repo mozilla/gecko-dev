@@ -3,15 +3,26 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-include('/media/webrtc/webrtc.mozbuild')
+include('/dom/media/webrtc/third_party_build/webrtc.mozbuild')
 
-with Files('*'):
+with Files('**'):
     BUG_COMPONENT = ('Core', 'WebRTC: Audio/Video')
 
 with Files('PeerIdentity.*'):
     BUG_COMPONENT = ('Core', 'WebRTC: Signaling')
 
-XPIDL_MODULE = 'content_webrtc'
+with Files('common/**'):
+    BUG_COMPONENT = ('CORE', 'WebRTC: Signaling')
+with Files('jsep/**'):
+    BUG_COMPONENT = ('CORE', 'WebRTC: Signaling')
+with Files('libwebrtcglue/**'):
+    BUG_COMPONENT = ('CORE', 'WebRTC: Signaling')
+with Files('transportbridge/**'):
+    BUG_COMPONENT = ('CORE', 'WebRTC: Signaling')
+with Files('jsapi/**'):
+    BUG_COMPONENT = ('CORE', 'WebRTC: Signaling')
+with Files('sdp/**'):
+    BUG_COMPONENT = ('CORE', 'WebRTC: Signaling')
 
 EXPORTS += [
     'CubebDeviceEnumerator.h',
@@ -30,12 +41,12 @@ SOURCES += [
 if CONFIG['MOZ_WEBRTC']:
     EXPORTS += [
         'MediaEngineRemoteVideoSource.h',
-        'MediaEngineWebRTC.h'
+        'MediaEngineWebRTC.h',
+        'MediaEngineWebRTCAudio.h',
     ]
     EXPORTS.mozilla.dom += [ 'RTCIdentityProviderRegistrar.h' ]
     UNIFIED_SOURCES += [
         'MediaEngineRemoteVideoSource.cpp',
-        'MediaEngineTabVideoSource.cpp',
         'MediaEngineWebRTCAudio.cpp',
         'RTCCertificate.cpp',
         'RTCIdentityProviderRegistrar.cpp',
@@ -48,20 +59,32 @@ if CONFIG['MOZ_WEBRTC']:
         '..',
         '/dom/base',
         '/dom/media',
+        '/dom/media/webrtc/common',
+        '/dom/media/webrtc/common/browser_logging',
         '/media/libyuv/libyuv/include',
-        '/media/webrtc/signaling/src/common',
-        '/media/webrtc/signaling/src/common/browser_logging',
-        '/media/webrtc/trunk',
-        '/media/webrtc/trunk/webrtc'
+        '/third_party/libwebrtc',
+        '/third_party/libwebrtc/webrtc',
     ]
+
+if CONFIG['MOZ_WEBRTC_SIGNALING']:
+    DIRS += [
+        'common',
+        'jsapi',
+        'jsep',
+        'libwebrtcglue',
+        'sdp',
+        'third_party_build',
+        'transportbridge',
+    ]
+
+    # Avoid warnings from third-party code that we can not modify.
+    if CONFIG['CC_TYPE'] == 'clang-cl':
+        CXXFLAGS += ['-Wno-invalid-source-encoding']
+
 
 PREPROCESSED_IPDL_SOURCES += [
     'PMediaTransport.ipdl',
     'PWebrtcGlobal.ipdl',
-]
-
-XPIDL_SOURCES += [
-    'nsITabSource.idl'
 ]
 
 UNIFIED_SOURCES += [

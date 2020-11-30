@@ -14,7 +14,6 @@ import re
 
 import six
 
-from slugid import nice as slugid
 from taskgraph.util.taskcluster import list_artifacts, get_artifact, get_task_definition
 from ..util.parameterization import resolve_task_references
 from .registry import register_callback_action
@@ -148,7 +147,7 @@ def create_isolate_failure_tasks(task_definition, failures, level, times):
     th_dict['tier'] = 3
 
     for i in range(times):
-        create_task_from_def(slugid(), task_definition, level)
+        create_task_from_def(task_definition, level)
 
     if repeatable_task:
         task_definition['payload']['maxRunTime'] = 3600 * 3
@@ -194,19 +193,18 @@ def create_isolate_failure_tasks(task_definition, failures, level, times):
                     extra_args=include_args)
             else:
                 task_definition['payload']['env']['MOZHARNESS_TEST_PATHS'] = six.ensure_text(
-                    json.dumps({suite: [failure_path]}))
+                    json.dumps({suite: [failure_path]}, sort_keys=True))
 
             logger.info("Creating task for path {} with command {}".format(
                 failure_path,
                 task_definition['payload']['command']))
             for i in range(times):
-                create_task_from_def(slugid(), task_definition, level)
+                create_task_from_def(task_definition, level)
 
 
 @register_callback_action(
     name='isolate-test-failures',
     title='Isolate test failures in job',
-    generic=True,
     symbol='it',
     description="Re-run Tests for original manifest, directories and tests for failing tests.",
     order=150,
@@ -238,10 +236,10 @@ def isolate_test_failures(parameters, graph_config, input, task_group_id, task_i
     # fix up the task's dependencies, similar to how optimization would
     # have done in the decision
     dependencies = {name: label_to_taskid[label]
-                    for name, label in pre_task.dependencies.iteritems()}
+                    for name, label in six.iteritems(pre_task.dependencies)}
 
     task_definition = resolve_task_references(pre_task.label, pre_task.task, dependencies)
-    task_definition.setdefault('dependencies', []).extend(dependencies.itervalues())
+    task_definition.setdefault('dependencies', []).extend(six.itervalues(dependencies))
 
     failures = get_failures(task_id)
     logger.info('isolate_test_failures: %s' % failures)

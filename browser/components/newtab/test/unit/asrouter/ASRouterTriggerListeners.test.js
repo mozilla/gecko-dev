@@ -102,8 +102,8 @@ describe("ASRouterTriggerListeners", () => {
             matches: url => patterns.has(url),
           }))
         );
-        sandbox.stub(global.Services.mm, "addMessageListener");
-        sandbox.stub(global.Services.mm, "removeMessageListener");
+        sandbox.stub(global.AboutReaderParent, "addMessageListener");
+        sandbox.stub(global.AboutReaderParent, "removeMessageListener");
       });
       afterEach(() => {
         openArticleURLListener.uninit();
@@ -111,9 +111,9 @@ describe("ASRouterTriggerListeners", () => {
       it("setup an event listener on init", () => {
         openArticleURLListener.init(sandbox.stub(), hosts, hosts);
 
-        assert.calledOnce(global.Services.mm.addMessageListener);
+        assert.calledOnce(global.AboutReaderParent.addMessageListener);
         assert.calledWithExactly(
-          global.Services.mm.addMessageListener,
+          global.AboutReaderParent.addMessageListener,
           openArticleURLListener.readerModeEvent,
           sinon.match.object
         );
@@ -126,7 +126,7 @@ describe("ASRouterTriggerListeners", () => {
         const [
           ,
           { receiveMessage },
-        ] = global.Services.mm.addMessageListener.firstCall.args;
+        ] = global.AboutReaderParent.addMessageListener.firstCall.args;
         receiveMessage({ data: { isArticle: true }, target });
 
         assert.calledOnce(stub);
@@ -143,7 +143,7 @@ describe("ASRouterTriggerListeners", () => {
         const [
           ,
           { receiveMessage },
-        ] = global.Services.mm.addMessageListener.firstCall.args;
+        ] = global.AboutReaderParent.addMessageListener.firstCall.args;
         receiveMessage({ data: { isArticle: true }, target });
 
         assert.calledOnce(stub);
@@ -156,7 +156,7 @@ describe("ASRouterTriggerListeners", () => {
         openArticleURLListener.init(sandbox.stub(), hosts, hosts);
         openArticleURLListener.uninit();
 
-        assert.calledOnce(global.Services.mm.removeMessageListener);
+        assert.calledOnce(global.AboutReaderParent.removeMessageListener);
       });
     });
   });
@@ -235,9 +235,11 @@ describe("ASRouterTriggerListeners", () => {
         frequentVisitsListener.init(_triggerHandler, hosts, ["pattern"]);
 
         assert.calledOnce(window.MatchPatternSet);
-        assert.calledWithExactly(window.MatchPatternSet, new Set(["pattern"]), {
-          ignorePath: true,
-        });
+        assert.calledWithExactly(
+          window.MatchPatternSet,
+          new Set(["pattern"]),
+          undefined
+        );
       });
       it("should allow to add multiple patterns and dedupe", () => {
         frequentVisitsListener.init(_triggerHandler, hosts, ["pattern"]);
@@ -247,7 +249,7 @@ describe("ASRouterTriggerListeners", () => {
         assert.calledWithExactly(
           window.MatchPatternSet,
           new Set(["pattern", "foo"]),
-          { ignorePath: true }
+          undefined
         );
       });
       it("should handle bad arguments to MatchPatternSet", () => {
@@ -363,6 +365,7 @@ describe("ASRouterTriggerListeners", () => {
         assert.calledWithExactly(newTriggerHandler, browser, {
           id: "openURL",
           param: { host: "www.mozilla.org", url: "www.mozilla.org" },
+          context: { visitsCount: 1 },
         });
       });
       it("should call triggerHandler for a redirect (openURL + frequentVisits)", () => {
@@ -415,6 +418,7 @@ describe("ASRouterTriggerListeners", () => {
         assert.calledWithExactly(newTriggerHandler, browser, {
           id: "openURL",
           param: { host: "www.mozilla.org", url: "www.mozilla.org" },
+          context: { visitsCount: 1 },
         });
       });
       it("should call triggerHandler for a redirect (openURL + frequentVisits)", () => {
@@ -467,6 +471,7 @@ describe("ASRouterTriggerListeners", () => {
         assert.calledWithExactly(newTriggerHandler, browser, {
           id: "openURL",
           param: { host: "www.mozilla.org", url: "www.mozilla.org" },
+          context: { visitsCount: 1 },
         });
       });
       it("should fail for subdomains (not redirect)", () => {

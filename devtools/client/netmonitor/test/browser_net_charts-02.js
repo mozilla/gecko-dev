@@ -11,7 +11,7 @@
 add_task(async function() {
   const { L10N } = require("devtools/client/netmonitor/src/utils/l10n");
 
-  const { monitor } = await initNetMonitor(SIMPLE_URL);
+  const { monitor } = await initNetMonitor(SIMPLE_URL, { requestCount: 1 });
   info("Starting test... ");
 
   const { document, windowRequire } = monitor.panelWin;
@@ -27,7 +27,7 @@ add_task(async function() {
     height: 100,
   });
 
-  const node = pie.node;
+  const { node } = pie;
   const slices = node.querySelectorAll(".pie-chart-slice.chart-colored-blob");
   const labels = node.querySelectorAll(".pie-chart-label");
 

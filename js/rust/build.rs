@@ -58,6 +58,7 @@ fn get_mozjs_include_dir() -> path::PathBuf {
 fn build_jsapi_bindings() {
     let mut builder = bindgen::builder()
         .rust_target(bindgen::RustTarget::Stable_1_19)
+        .size_t_is_usize(true)
         .header("./etc/wrapper.hpp")
         .raw_line("pub use self::root::*;")
         // Translate every enum with the "rustified enum" strategy. We should
@@ -162,7 +163,7 @@ const WHITELIST_TYPES: &'static [&'static str] = &[
     "JS::RealmOptions",
     "JS::ContextOptions",
     "js::DOMCallbacks",
-    "js::DOMProxyShadowsResult",
+    "JS::DOMProxyShadowsResult",
     "js::ESClass",
     "JS::ForOfIterator",
     "JS::Handle",
@@ -213,7 +214,7 @@ const WHITELIST_TYPES: &'static [&'static str] = &[
     "jsid",
     "JS::Compartment",
     "JS::Latin1Char",
-    "JS::detail::MaybeWrapped",
+    "JS::detail::RootedPtr",
     "JS::MutableHandle",
     "JS::MutableHandleObject",
     "JS::MutableHandleValue",
@@ -231,8 +232,8 @@ const WHITELIST_TYPES: &'static [&'static str] = &[
     "JS::RootKind",
     "js::Scalar::Type",
     "JS::ServoSizes",
-    "js::shadow::Object",
-    "js::shadow::ObjectGroup",
+    "JS::shadow::Object",
+    "JS::shadow::ObjectGroup",
     "JS::SourceText",
     "js::StackFormat",
     "JSStructuredCloneCallbacks",
@@ -263,7 +264,6 @@ const WHITELIST_VARS: &'static [&'static str] = &[
 
 /// Functions we want to generate bindings to.
 const WHITELIST_FUNCTIONS: &'static [&'static str] = &[
-    "INTERNED_STRING_TO_JSID",
     "JS::ExceptionStackOrNull",
     "JS_AddExtraGCRootsTracer",
     "JS_AddInterruptCallback",
@@ -282,7 +282,7 @@ const WHITELIST_FUNCTIONS: &'static [&'static str] = &[
     "JS::CompileFunctionUtf8",
     "JS::Construct",
     "JS::ContextOptionsRef",
-    "JS_CopyPropertiesFrom",
+    "JS_CopyOwnPropertiesAndPrivateFields",
     "JS::CurrentGlobalOrNull",
     "JS_DeletePropertyById",
     "js::detail::IsWindowSlow",
@@ -324,6 +324,7 @@ const WHITELIST_FUNCTIONS: &'static [&'static str] = &[
     "JS_DefineProperty",
     "JS_DefinePropertyById",
     "JS_DefineUCProperty",
+    "JS_DeprecatedStringHasLatin1Chars",
     "JS::detail::InitWithFailureDiagnostic",
     "JS_DestroyContext",
     "JS::DisableIncrementalGC",
@@ -350,7 +351,7 @@ const WHITELIST_FUNCTIONS: &'static [&'static str] = &[
     "JS_GetPropertyById",
     "js::GetPropertyKeys",
     "JS_GetPrototype",
-    "JS_GetReservedSlot",
+    "JS::GetReservedSlot",
     "JS::GetRealmErrorPrototype",
     "JS::GetRealmFunctionPrototype",
     "JS::GetRealmIteratorPrototype",
@@ -395,7 +396,6 @@ const WHITELIST_FUNCTIONS: &'static [&'static str] = &[
     "JS_NewUint32Array",
     "JS_NewUint8Array",
     "JS_NewUint8ClampedArray",
-    "js::ObjectClassName",
     "JS::ObjectIsDate",
     "JS_ParseJSON",
     "JS_ReadBytes",
@@ -437,7 +437,6 @@ const WHITELIST_FUNCTIONS: &'static [&'static str] = &[
     "js::StopDrainingJobQueue",
     "JS_StrictPropertyStub",
     "JS_StringEqualsAscii",
-    "JS_StringHasLatin1Chars",
     "JS_WrapObject",
     "JS_WrapValue",
     "JS_WriteBytes",

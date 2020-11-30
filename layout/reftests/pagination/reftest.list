@@ -2,16 +2,16 @@
 #   and layout/reftests/w3c-css/submitted/multicol3/
 # Pagination tests
 # asserts(3) == abspos-breaking-000.xhtml abspos-breaking-000.ref.xhtml # bug 1067755, 1135556
-random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == abspos-breaking-001.xhtml abspos-breaking-000.ref.xhtml # Bug 1392106
-random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == abspos-breaking-002.xhtml abspos-breaking-000.ref.xhtml # Bug 1392106
-random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == abspos-breaking-003.html abspos-breaking-003-ref.html # Bug 1392106
-random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == abspos-breaking-004.html abspos-breaking-004-ref.html # Bug 1392106
-random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == abspos-breaking-005.html abspos-breaking-005-ref.html # Bug 1392106
-random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == abspos-breaking-006.html abspos-breaking-006-ref.html # Bug 1392106
-random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == abspos-breaking-007.html abspos-breaking-007-ref.html # Bug 1392106
-random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == abspos-breaking-008.html abspos-breaking-008-ref.html # Bug 1392106
-random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == abspos-breaking-009.html abspos-breaking-009-ref.html # Bug 1392106
-random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == abspos-breaking-010.html abspos-breaking-010-ref.html # Bug 1392106
+asserts(9) random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == abspos-breaking-001.xhtml abspos-breaking-000.ref.xhtml # Bug 1655630, Bug 1392106
+asserts(9) random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == abspos-breaking-002.xhtml abspos-breaking-000.ref.xhtml # Bug 1655630, Bug 1392106
+asserts(6) random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == abspos-breaking-003.html abspos-breaking-003-ref.html # Bug 1655630, Bug 1392106
+asserts(12) random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == abspos-breaking-004.html abspos-breaking-004-ref.html # Bug 1655630, Bug 1392106
+asserts(12) random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == abspos-breaking-005.html abspos-breaking-005-ref.html # Bug 1655630, Bug 1392106
+asserts(12) random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == abspos-breaking-006.html abspos-breaking-006-ref.html # Bug 1655630, Bug 1392106
+asserts(6) random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == abspos-breaking-007.html abspos-breaking-007-ref.html # Bug 1655630, Bug 1392106
+asserts(6) random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == abspos-breaking-008.html abspos-breaking-008-ref.html # Bug 1655630, Bug 1392106
+asserts(6) random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == abspos-breaking-009.html abspos-breaking-009-ref.html # Bug 1655630, Bug 1392106
+asserts(6) random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == abspos-breaking-010.html abspos-breaking-010-ref.html # Bug 1655630, Bug 1392106
 == abspos-breaking-011.html abspos-breaking-011-ref.html # Bug 1392106
 == abspos-breaking-dynamic-001.html abspos-breaking-dynamic-001-ref.html
 == abspos-breaking-dynamic-002.html abspos-breaking-dynamic-002-ref.html
@@ -36,10 +36,6 @@ fails == border-breaking-004-cols.xhtml border-breaking-002-cols.ref.xhtml
 == content-inserted-008.xhtml content-inserted-001.ref.xhtml
 == content-inserted-009.xhtml content-inserted-002.ref.xhtml
 == dynamic-abspos-overflow-01-cols.xhtml dynamic-abspos-overflow-01-cols.ref.xhtml
-== float-clear-000.html float-clear-000.ref.html
-== float-clear-001.html float-clear-000.ref.html
-== float-clear-002.html float-clear-000.ref.html
-fails == float-clear-003.html float-clear-000.ref.html
 == float-clear-000-print.html float-clear-000-print.ref.html
 == float-clear-001-print.html float-clear-000-print.ref.html
 == float-clear-002-print.html float-clear-000-print.ref.html
@@ -73,12 +69,21 @@ fuzzy-if(skiaContent,0-1,0-23) == resize-reflow-001.html resize-reflow-001.ref.h
 # == table-caption-splitaftercaption-9.html blank.html # bug 672654
 # == table-caption-splitaftercaption-10.html blank.html # bug 672654
 # == table-caption-splitaftercaption-11.html blank.html # bug 672654
+== table-cell-breaking-1a.html table-cell-breaking-1-ref.html
+== table-cell-breaking-1b.html table-cell-breaking-1-ref.html
+== table-cell-breaking-2a.html table-cell-breaking-2-ref.html
+== table-cell-breaking-2b.html table-cell-breaking-2-ref.html
+# Note: table-cell-breaking-3a.html should match table-cell-breaking-3-ref.html, but
+# currently it renders the same as table-cell-breaking-3a-ref.html.
+== table-cell-breaking-3a.html table-cell-breaking-3a-ref.html
+fails == table-cell-breaking-3a.html table-cell-breaking-3-ref.html
+asserts(1-1) == table-cell-breaking-3b.html table-cell-breaking-3-ref.html
 == column-balancing-break-inside-avoid-2.html column-balancing-break-inside-avoid-2-ref.html
 fuzzy-if(Android,0-4,0-2) == combobox-page-break-inside.html combobox-page-break-inside-ref.html
-== table-nested-1308876-1.xhtml table-nested-1308876-1-ref.html
-test-pref(layout.css.contain.enabled,true) == contain-size-break-001.html contain-size-break-001-ref.html
-test-pref(layout.css.contain.enabled,true) == contain-size-break-002.html contain-size-break-002-ref.html
-test-pref(layout.css.contain.enabled,true) == contain-size-break-003.html contain-size-break-003-ref.html
+fuzzy-if(OSX,23-23,1-1) == table-nested-1308876-1.xhtml table-nested-1308876-1-ref.html
+== contain-size-break-001.html contain-size-break-001-ref.html
+== contain-size-break-002.html contain-size-break-002-ref.html
+== contain-size-break-003.html contain-size-break-003-ref.html
 
 # Bugs
 == 272830-1.html 272830-1-ref.html
@@ -90,7 +95,7 @@ test-pref(layout.css.contain.enabled,true) == contain-size-break-003.html contai
 == 129941-1b.html 129941-1-ref.html
 == 129941-1c.html 129941-1-ref.html
 == 129941-1d.html 129941-1-ref.html
-== 129941-1e.html 129941-1-ref.html
+== 129941-1e.html 129941-1e-ref.html
 == 609227-1.html 609227-1-ref.html
 == 609227-2a.html 609227-2-ref.html
 == 609227-2b.html 609227-2-ref.html
@@ -123,7 +128,6 @@ fuzzy-if(cocoaWidget,0-1,0-5000) == 745025-1.html 745025-1-ref.html
 == 1406291-1.html 1406291-1-ref.html
 == 1409585-1.html 1409585-1-ref.html
 == 1411799-1.html 1411799-1-ref.html
-== 1420528-1.html 1420528-1-ref.html
 == 1420528-1.html 1420528-1-ref.html
 == 1427141-1.html 1427141-ref.html
 == 1427141-2.html 1427141-ref.html

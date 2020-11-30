@@ -39,13 +39,7 @@ namespace wr {
 typedef uintptr_t usize;
 
 typedef wr::WrWindowId WindowId;
-typedef wr::WrPipelineId PipelineId;
-typedef wr::WrDocumentId DocumentId;
 typedef wr::WrRemovedPipeline RemovedPipeline;
-typedef wr::WrImageKey ImageKey;
-typedef wr::WrFontKey FontKey;
-typedef wr::WrFontInstanceKey FontInstanceKey;
-typedef wr::WrEpoch Epoch;
 
 class RenderedFrameIdType {};
 typedef layers::BaseTransactionId<RenderedFrameIdType> RenderedFrameId;
@@ -64,89 +58,6 @@ struct ExternalImageKeyPair {
 
 /* Generate a brand new window id and return it. */
 WindowId NewWindowId();
-
-MOZ_DEFINE_ENUM_CLASS_WITH_BASE(
-    RenderRoot, uint8_t,
-    (
-        // The default render root - within the parent process, this refers
-        // to everything within the top chrome area (urlbar, tab strip, etc.).
-        // Within the content process, this refers to the content area. Any
-        // system that multiplexes data streams from different processes is
-        // responsible for converting RenderRoot::Default into
-        // RenderRoot::Content (or whatever value is appropriate)
-        Default,
-
-        // Everything below the chrome - even if it is not coming from a content
-        // process. For example. the devtools, sidebars, and status panel are
-        // traditionally part of the "chrome," but are assigned a renderroot of
-        // RenderRoot::Content because they occupy screen space in the "content"
-        // area of the browser (visually situated below the "chrome" area).
-        Content,
-
-        // Currently used for the pointerlock and fullscreen warnings. This is
-        // intended to overlay both the Content and Default render roots when
-        // we need a piece of UI that straddles their border.
-        Popover));
-
-typedef EnumSet<RenderRoot, uint8_t> RenderRootSet;
-
-// For simple iteration of all render roots
-const Array<RenderRoot, kRenderRootCount> kRenderRoots(RenderRoot::Default,
-                                                       RenderRoot::Content,
-                                                       RenderRoot::Popover);
-
-const Array<RenderRoot, kRenderRootCount - 1> kNonDefaultRenderRoots(
-    RenderRoot::Content, RenderRoot::Popover);
-
-template <typename T>
-class RenderRootArray : public Array<T, kRenderRootCount> {
-  typedef Array<T, kRenderRootCount> Super;
-
- public:
-  RenderRootArray() {
-    if (IsPod<T>::value) {
-      // Ensure primitive types get initialized to 0/false.
-      PodArrayZero(*this);
-    }  // else C++ will default-initialize the array elements for us
-  }
-
-  T& operator[](wr::RenderRoot aIndex) {
-    return (*(Super*)this)[(size_t)aIndex];
-  }
-
-  const T& operator[](wr::RenderRoot aIndex) const {
-    return (*(Super*)this)[(size_t)aIndex];
-  }
-
-  T& operator[](size_t aIndex) = delete;
-  const T& operator[](size_t aIndex) const = delete;
-};
-
-template <typename T>
-class NonDefaultRenderRootArray : public Array<T, kRenderRootCount - 1> {
-  typedef Array<T, kRenderRootCount - 1> Super;
-
- public:
-  NonDefaultRenderRootArray() {
-    // See RenderRootArray constructor
-    if (IsPod<T>::value) {
-      PodArrayZero(*this);
-    }
-  }
-
-  T& operator[](wr::RenderRoot aIndex) {
-    return (*(Super*)this)[(size_t)aIndex - 1];
-  }
-
-  const T& operator[](wr::RenderRoot aIndex) const {
-    return (*(Super*)this)[(size_t)aIndex - 1];
-  }
-
-  T& operator[](size_t aIndex) = delete;
-  const T& operator[](size_t aIndex) const = delete;
-};
-
-RenderRoot RenderRootFromId(DocumentId id);
 
 inline DebugFlags NewDebugFlags(uint32_t aFlags) { return {aFlags}; }
 
@@ -362,7 +273,7 @@ static inline MixBlendMode ToMixBlendMode(gfx::CompositionOp compositionOp) {
   }
 }
 
-static inline wr::ColorF ToColorF(const gfx::Color& color) {
+static inline wr::ColorF ToColorF(const gfx::DeviceColor& color) {
   wr::ColorF c;
   c.r = color.r;
   c.g = color.g;
@@ -371,7 +282,7 @@ static inline wr::ColorF ToColorF(const gfx::Color& color) {
   return c;
 }
 
-static inline wr::ColorU ToColorU(const gfx::Color& color) {
+static inline wr::ColorU ToColorU(const gfx::DeviceColor& color) {
   wr::ColorU c;
   c.r = uint8_t(color.r * 255.0f);
   c.g = uint8_t(color.g * 255.0f);
@@ -543,7 +454,7 @@ static inline wr::LayoutTransform ToLayoutTransform(
 
 wr::BorderStyle ToBorderStyle(StyleBorderStyle style);
 
-static inline wr::BorderSide ToBorderSide(const gfx::Color& color,
+static inline wr::BorderSide ToBorderSide(const gfx::DeviceColor& color,
                                           StyleBorderStyle style) {
   wr::BorderSide bs;
   bs.color = ToColorF(color);
@@ -632,7 +543,7 @@ static inline wr::WrTransformProperty ToWrTransformProperty(
     uint64_t id, const gfx::Matrix4x4Typed<S, T>& transform) {
   wr::WrTransformProperty prop;
   prop.id = id;
-  prop.transform = ToLayoutTransform(transform);
+  prop.value = ToLayoutTransform(transform);
   return prop;
 }
 
@@ -640,15 +551,15 @@ static inline wr::WrOpacityProperty ToWrOpacityProperty(uint64_t id,
                                                         const float opacity) {
   wr::WrOpacityProperty prop;
   prop.id = id;
-  prop.opacity = opacity;
+  prop.value = opacity;
   return prop;
 }
 
-static inline wr::WrColorProperty ToWrColorProperty(uint64_t id,
-                                                    const gfx::Color& color) {
+static inline wr::WrColorProperty ToWrColorProperty(
+    uint64_t id, const gfx::DeviceColor& color) {
   wr::WrColorProperty prop;
   prop.id = id;
-  prop.color = ToColorF(color);
+  prop.value = ToColorF(color);
   return prop;
 }
 
@@ -735,11 +646,19 @@ struct Vec<uint8_t> final {
     inner.length = 0;
   }
 
+  uint8_t* Data() { return inner.data; }
+
   size_t Length() { return inner.length; }
+
+  size_t Capacity() { return inner.capacity; }
+
+  Range<uint8_t> GetRange() { return Range<uint8_t>(Data(), Length()); }
 
   void PushBytes(Range<uint8_t> aBytes) {
     wr_vec_u8_push_bytes(&inner, RangeToByteSlice(aBytes));
   }
+
+  void Reserve(size_t aLength) { wr_vec_u8_reserve(&inner, aLength); }
 
   ~Vec() {
     if (inner.data) {
@@ -842,6 +761,7 @@ enum class WebRenderError : int8_t {
   MAKE_CURRENT,
   RENDER,
   NEW_SURFACE,
+  VIDEO_OVERLAY,
 
   Sentinel /* this must be last for serialization purposes. */
 };
@@ -855,6 +775,8 @@ static inline wr::WrYuvColorSpace ToWrYuvColorSpace(
       return wr::WrYuvColorSpace::Rec709;
     case gfx::YUVColorSpace::BT2020:
       return wr::WrYuvColorSpace::Rec2020;
+    case gfx::YUVColorSpace::Identity:
+      return wr::WrYuvColorSpace::Identity;
     default:
       MOZ_ASSERT_UNREACHABLE("Tried to convert invalid YUVColorSpace.");
   }

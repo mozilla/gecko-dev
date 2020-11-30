@@ -43,7 +43,10 @@
 #include "nsIObserverService.h"
 #include "WidgetUtils.h"
 
-#include "GeneratedJNIWrappers.h"
+#include "mozilla/java/EventDispatcherWrappers.h"
+#include "mozilla/java/GeckoAppShellWrappers.h"
+#include "mozilla/java/GeckoThreadWrappers.h"
+#include "mozilla/java/HardwareCodecCapabilityUtilsWrappers.h"
 
 using namespace mozilla;
 using namespace mozilla::gfx;
@@ -182,10 +185,7 @@ AndroidBridge::AndroidBridge() {
 static void getHandlersFromStringArray(
     JNIEnv* aJNIEnv, jni::ObjectArray::Param aArr, size_t aLen,
     nsIMutableArray* aHandlersArray, nsIHandlerApp** aDefaultApp,
-    const nsAString& aAction = EmptyString(),
-    const nsACString& aMimeType = EmptyCString()) {
-  nsString empty = EmptyString();
-
+    const nsAString& aAction = u""_ns, const nsACString& aMimeType = ""_ns) {
   auto getNormalizedString = [](jni::Object::Param obj) -> nsString {
     nsString out;
     if (!obj) {
@@ -580,6 +580,20 @@ nsAndroidBridge::nsAndroidBridge() {
   }
 
   AddObservers();
+}
+
+NS_IMETHODIMP
+nsAndroidBridge::GetDispatcherByName(const char* aName,
+                                     nsIAndroidEventDispatcher** aResult) {
+  if (!jni::IsAvailable()) {
+    return NS_ERROR_FAILURE;
+  }
+
+  RefPtr<widget::EventDispatcher> dispatcher = new widget::EventDispatcher();
+  dispatcher->Attach(java::EventDispatcher::ByName(aName),
+                     /* window */ nullptr);
+  dispatcher.forget(aResult);
+  return NS_OK;
 }
 
 nsAndroidBridge::~nsAndroidBridge() {}

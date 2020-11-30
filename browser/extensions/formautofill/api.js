@@ -25,6 +25,11 @@ ChromeUtils.defineModuleGetter(
 );
 ChromeUtils.defineModuleGetter(
   this,
+  "FormAutofillParent",
+  "resource://formautofill/FormAutofillParent.jsm"
+);
+ChromeUtils.defineModuleGetter(
+  this,
   "AutoCompleteParent",
   "resource://gre/actors/AutoCompleteParent.jsm"
 );
@@ -55,7 +60,7 @@ function insertStyleSheet(domWindow, url) {
   }
 }
 
-function onMaybeOpenPopup(domWindow) {
+function ensureCssLoaded(domWindow) {
   if (CACHED_STYLESHEETS.has(domWindow)) {
     // This window already has autofill stylesheets.
     return;
@@ -64,9 +69,12 @@ function onMaybeOpenPopup(domWindow) {
   insertStyleSheet(domWindow, "chrome://formautofill/content/formautofill.css");
   insertStyleSheet(
     domWindow,
-    "resource://formautofill/autocomplete-item-shared.css"
+    "chrome://formautofill/content/skin/autocomplete-item-shared.css"
   );
-  insertStyleSheet(domWindow, "resource://formautofill/autocomplete-item.css");
+  insertStyleSheet(
+    domWindow,
+    "chrome://formautofill/content/skin/autocomplete-item.css"
+  );
 }
 
 function isAvailable() {
@@ -167,8 +175,13 @@ this.formautofill = class extends ExtensionAPI {
       );
     }
 
-    // Listen for the autocomplete popup message to lazily append our stylesheet related to the popup.
-    AutoCompleteParent.addPopupStateListener(onMaybeOpenPopup);
+    // Listen for the autocomplete popup message
+    // or the form submitted message (which may trigger a
+    // doorhanger) to lazily append our stylesheets related
+    // to the autocomplete feature.
+    AutoCompleteParent.addPopupStateListener(ensureCssLoaded);
+    FormAutofillParent.addMessageObserver(this);
+    this.onFormSubmitted = (data, window) => ensureCssLoaded(window);
 
     FormAutofillStatus.init();
 
@@ -205,7 +218,8 @@ this.formautofill = class extends ExtensionAPI {
 
     ChromeUtils.unregisterWindowActor("FormAutofill");
 
-    AutoCompleteParent.removePopupStateListener(onMaybeOpenPopup);
+    AutoCompleteParent.removePopupStateListener(ensureCssLoaded);
+    FormAutofillParent.removeMessageObserver(this);
 
     for (let win of Services.wm.getEnumerator("navigator:browser")) {
       let cachedStyleSheets = CACHED_STYLESHEETS.get(win);

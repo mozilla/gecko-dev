@@ -24,10 +24,9 @@ use uuid::{
 
 use crate::error::DataError;
 
-/// We define a set of types, associated with simple integers, to annotate values
-/// stored in LMDB. This is to avoid an accidental 'cast' from a value of one type
-/// to another. For this reason we don't simply use `deserialize` from the `bincode`
-/// crate.
+/// We define a set of types, associated with simple integers, to annotate values stored
+/// in LMDB. This is to avoid an accidental 'cast' from a value of one type to another.
+/// For this reason we don't simply use `deserialize` from the `bincode` crate.
 #[repr(u8)]
 #[derive(Debug, PartialEq, Eq)]
 pub enum Type {
@@ -86,16 +85,16 @@ impl fmt::Display for Type {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum Value<'s> {
+pub enum Value<'v> {
     Bool(bool),
     U64(u64),
     I64(i64),
     F64(OrderedFloat<f64>),
     Instant(i64), // Millisecond-precision timestamp.
-    Uuid(&'s Bytes),
-    Str(&'s str),
-    Json(&'s str),
-    Blob(&'s [u8]),
+    Uuid(&'v Bytes),
+    Str(&'v str),
+    Json(&'v str),
+    Blob(&'v [u8]),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -119,19 +118,21 @@ fn uuid(bytes: &[u8]) -> Result<Value, DataError> {
     }
 }
 
-impl<'s> Value<'s> {
-    pub fn from_tagged_slice(slice: &'s [u8]) -> Result<Value<'s>, DataError> {
+impl<'v> Value<'v> {
+    pub fn from_tagged_slice(slice: &'v [u8]) -> Result<Value<'v>, DataError> {
         let (tag, data) = slice.split_first().ok_or(DataError::Empty)?;
         let t = Type::from_tag(*tag)?;
         Value::from_type_and_data(t, data)
     }
 
-    fn from_type_and_data(t: Type, data: &'s [u8]) -> Result<Value<'s>, DataError> {
+    fn from_type_and_data(t: Type, data: &'v [u8]) -> Result<Value<'v>, DataError> {
         if t == Type::Uuid {
             return deserialize(data)
-                .map_err(|e| DataError::DecodingError {
-                    value_type: t,
-                    err: e,
+                .map_err(|e| {
+                    DataError::DecodingError {
+                        value_type: t,
+                        err: e,
+                    }
                 })
                 .map(uuid)?;
         }
@@ -150,9 +151,11 @@ impl<'s> Value<'s> {
                 unreachable!()
             },
         }
-        .map_err(|e| DataError::DecodingError {
-            value_type: t,
-            err: e,
+        .map_err(|e| {
+            DataError::DecodingError {
+                value_type: t,
+                err: e,
+            }
         })
     }
 
@@ -187,7 +190,7 @@ impl<'s> Value<'s> {
     }
 }
 
-impl<'s> From<&'s Value<'s>> for OwnedValue {
+impl<'v> From<&'v Value<'v>> for OwnedValue {
     fn from(value: &Value) -> OwnedValue {
         match value {
             Value::Bool(v) => OwnedValue::Bool(*v),
@@ -203,7 +206,7 @@ impl<'s> From<&'s Value<'s>> for OwnedValue {
     }
 }
 
-impl<'s> From<&'s OwnedValue> for Value<'s> {
+impl<'v> From<&'v OwnedValue> for Value<'v> {
     fn from(value: &OwnedValue) -> Value {
         match value {
             OwnedValue::Bool(v) => Value::Bool(*v),
@@ -221,8 +224,6 @@ impl<'s> From<&'s OwnedValue> for Value<'s> {
 
 #[cfg(test)]
 mod tests {
-    use ordered_float::OrderedFloat;
-
     use super::*;
 
     #[test]

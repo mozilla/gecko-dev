@@ -135,7 +135,7 @@ impl DocumentMatchingFunction {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(url) = input.try(|input| CssUrl::parse(context, input)) {
+        if let Ok(url) = input.try_parse(|input| CssUrl::parse(context, input)) {
             return Ok(DocumentMatchingFunction::Url(url));
         }
 
@@ -262,10 +262,6 @@ impl DocumentCondition {
 
         if pref!("layout.css.moz-document.content.enabled") {
             return true;
-        }
-
-        if !pref!("layout.css.moz-document.url-prefix-hack.enabled") {
-            return false;
         }
 
         // Allow a single url-prefix() for compatibility.

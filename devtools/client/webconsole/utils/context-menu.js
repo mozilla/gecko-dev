@@ -70,12 +70,19 @@ function createContextMenu(event, message, webConsoleWrapper) {
   const rootActor = rootObjectInspector
     ? rootObjectInspector.querySelector("[data-link-actor-id]")
     : null;
-  const rootActorId = rootActor ? rootActor.dataset.linkActorId : null;
+  // We can have object which are not displayed inside an ObjectInspector (e.g. Errors),
+  // so let's default to `actor`.
+  const rootActorId = rootActor ? rootActor.dataset.linkActorId : actor;
+
+  const elementNode =
+    target.closest(".objectBox-node") || target.closest(".objectBox-textNode");
+  const isConnectedElement =
+    elementNode && elementNode.querySelector(".open-inspector") !== null;
 
   const win = parentNode.ownerDocument.defaultView;
   const selection = win.getSelection();
 
-  const { source, request, executionPoint, messageId } = message || {};
+  const { source, request, messageId } = message || {};
 
   const menu = new Menu({ id: "webconsole-menu" });
 
@@ -95,8 +102,8 @@ function createContextMenu(event, message, webConsoleWrapper) {
     })
   );
 
-  // Open Network message in the Network panel.
   if (toolbox && request) {
+    // Open Network message in the Network panel.
     menu.append(
       new MenuItem({
         id: "console-menu-open-in-network-panel",
@@ -106,10 +113,7 @@ function createContextMenu(event, message, webConsoleWrapper) {
         click: () => dispatch(actions.openNetworkPanel(message.messageId)),
       })
     );
-  }
-
-  // Resend Network message.
-  if (toolbox && request) {
+    // Resend Network message.
     menu.append(
       new MenuItem({
         id: "console-menu-resend-network-request",
@@ -138,6 +142,19 @@ function createContextMenu(event, message, webConsoleWrapper) {
       },
     })
   );
+
+  // Open DOM node in the Inspector panel.
+  if (isConnectedElement) {
+    menu.append(
+      new MenuItem({
+        id: "console-menu-open-node",
+        label: l10n.getStr("webconsole.menu.openNodeInInspector.label"),
+        accesskey: l10n.getStr("webconsole.menu.openNodeInInspector.accesskey"),
+        disabled: false,
+        click: () => dispatch(actions.openNodeInInspector(actor)),
+      })
+    );
+  }
 
   // Store as global variable.
   menu.append(
@@ -248,22 +265,10 @@ function createContextMenu(event, message, webConsoleWrapper) {
     menu.append(
       new MenuItem({
         id: "console-menu-open-sidebar",
-        label: l10n.getStr("webconsole.menu.openInSidebar.label"),
+        label: l10n.getStr("webconsole.menu.openInSidebar.label1"),
         accesskey: l10n.getStr("webconsole.menu.openInSidebar.accesskey"),
         disabled: !rootActorId,
         click: () => dispatch(actions.openSidebar(messageId, rootActorId)),
-      })
-    );
-  }
-
-  // Add time warp option if available.
-  if (executionPoint) {
-    menu.append(
-      new MenuItem({
-        id: "console-menu-time-warp",
-        label: l10n.getStr("webconsole.menu.timeWarp.label"),
-        disabled: false,
-        click: () => dispatch(actions.jumpToExecutionPoint(executionPoint)),
       })
     );
   }

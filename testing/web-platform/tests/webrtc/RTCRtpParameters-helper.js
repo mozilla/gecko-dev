@@ -46,12 +46,14 @@ async function doOfferAnswerExchange(t, caller) {
 
       - rtcp.cname is set to the CNAME of the associated RTCPeerConnection. rtcp.reducedSize
         is set to true if reduced-size RTCP has been negotiated for sending, and false otherwise.
-
-      - degradationPreference is set to the last value passed into setParameters, or the
-        default value of "balanced" if setParameters hasn't been called.
  */
 function validateSenderRtpParameters(param) {
   validateRtpParameters(param);
+
+  assert_array_field(param, 'encodings');
+  for(const encoding of param.encodings) {
+    validateEncodingParameters(encoding);
+  }
 
   assert_not_equals(param.transactionId, undefined,
     'Expect sender param.transactionId to be set');
@@ -80,7 +82,7 @@ function validateSenderRtpParameters(param) {
       - rtcp.reducedSize is set to true if the receiver is currently prepared to receive
         reduced-size RTCP packets, and false otherwise. rtcp.cname is left undefined.
 
-      - transactionId and degradationPreference are left undefined.
+      - transactionId is left undefined.
  */
 function validateReceiverRtpParameters(param) {
   validateRtpParameters(param);
@@ -93,9 +95,6 @@ function validateReceiverRtpParameters(param) {
 
   assert_equals(param.rtcp.cname, undefined,
     'Expect receiver param.rtcp.cname to be unset');
-
-  assert_equals(param.degradationPreference, undefined,
-    'Expect receiver param.degradationPreference to be unset');
 }
 
 /*
@@ -105,22 +104,11 @@ function validateReceiverRtpParameters(param) {
     sequence<RTCRtpHeaderExtensionParameters> headerExtensions;
     RTCRtcpParameters                         rtcp;
     sequence<RTCRtpCodecParameters>           codecs;
-    RTCDegradationPreference                  degradationPreference;
   };
 
-  enum RTCDegradationPreference {
-    "maintain-framerate",
-    "maintain-resolution",
-    "balanced"
-  };
  */
 function validateRtpParameters(param) {
   assert_optional_string_field(param, 'transactionId');
-
-  assert_array_field(param, 'encodings');
-  for(const encoding of param.encodings) {
-    validateEncodingParameters(encoding);
-  }
 
   assert_array_field(param, 'headerExtensions');
   for(const headerExt of param.headerExtensions) {
@@ -134,20 +122,12 @@ function validateRtpParameters(param) {
   for(const codec of param.codecs) {
     validateCodecParameters(codec);
   }
-
-  assert_optional_enum_field(param, 'degradationPreference',
-    ['maintain-framerate', 'maintain-resolution', 'balanced']);
 }
 
 /*
   dictionary RTCRtpEncodingParameters {
-    RTCDtxStatus        dtx;
     boolean             active;
-    RTCPriorityType     priority;
-    RTCPriorityType     networkPriority;
-    unsigned long       ptime;
     unsigned long       maxBitrate;
-    double              maxFramerate;
 
     [readonly]
     DOMString           rid;
@@ -155,31 +135,10 @@ function validateRtpParameters(param) {
     double              scaleResolutionDownBy;
   };
 
-  enum RTCDtxStatus {
-    "disabled",
-    "enabled"
-  };
-
-  enum RTCPriorityType {
-    "very-low",
-    "low",
-    "medium",
-    "high"
-  };
  */
 function validateEncodingParameters(encoding) {
-  assert_optional_enum_field(encoding, 'dtx',
-    ['disabled', 'enabled']);
-
   assert_optional_boolean_field(encoding, 'active');
-  assert_optional_enum_field(encoding, 'priority',
-    ['very-low', 'low', 'medium', 'high']);
-  assert_optional_enum_field(encoding, 'networkPriority',
-    ['very-low', 'low', 'medium', 'high']);
-
-  assert_optional_unsigned_int_field(encoding, 'ptime');
   assert_optional_unsigned_int_field(encoding, 'maxBitrate');
-  assert_optional_number_field(encoding, 'maxFramerate');
 
   assert_optional_string_field(encoding, 'rid');
   assert_optional_number_field(encoding, 'scaleResolutionDownBy');

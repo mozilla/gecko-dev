@@ -15,7 +15,7 @@ from mach.decorators import (
 )
 
 from mozbuild.base import MachCommandBase
-from mozbuild.util import ensure_subprocess_env
+from mozbuild.util import ensure_subprocess_env, MOZBUILD_METRICS_PATH
 from mozbuild.mozconfig import MozconfigLoader
 import mozpack.path as mozpath
 
@@ -25,14 +25,12 @@ from mozbuild.backend import (
 
 BUILD_WHAT_HELP = '''
 What to build. Can be a top-level make target or a relative directory. If
-multiple options are provided, they will be built serially. Takes dependency
-information from `topsrcdir/build/dumbmake-dependencies` to build additional
-targets as needed. BUILDING ONLY PARTS OF THE TREE CAN RESULT IN BAD TREE
-STATE. USE AT YOUR OWN RISK.
+multiple options are provided, they will be built serially. BUILDING ONLY PARTS
+OF THE TREE CAN RESULT IN BAD TREE STATE. USE AT YOUR OWN RISK.
 '''.strip()
 
 
-@CommandProvider
+@CommandProvider(metrics_path=MOZBUILD_METRICS_PATH)
 class Build(MachCommandBase):
     """Interface to build the tree."""
 
@@ -42,15 +40,12 @@ class Build(MachCommandBase):
     @CommandArgument('-C', '--directory', default=None,
                      help='Change to a subdirectory of the build directory first.')
     @CommandArgument('what', default=None, nargs='*', help=BUILD_WHAT_HELP)
-    @CommandArgument('-X', '--disable-extra-make-dependencies',
-                     default=False, action='store_true',
-                     help='Do not add extra make dependencies.')
     @CommandArgument('-v', '--verbose', action='store_true',
                      help='Verbose output for what commands the build is running.')
     @CommandArgument('--keep-going', action='store_true',
                      help='Keep building after an error has occurred')
-    def build(self, what=None, disable_extra_make_dependencies=None, jobs=0,
-              directory=None, verbose=False, keep_going=False):
+    def build(self, what=None, jobs=0, directory=None, verbose=False,
+              keep_going=False):
         """Build the source tree.
 
         With no arguments, this will perform a full build.
@@ -93,8 +88,8 @@ class Build(MachCommandBase):
 
             append_env = {'MOZ_PROFILE_GENERATE': '1'}
             status = instr.build(
+                self.metrics,
                 what=what,
-                disable_extra_make_dependencies=disable_extra_make_dependencies,
                 jobs=jobs,
                 directory=directory,
                 verbose=verbose,
@@ -128,8 +123,8 @@ class Build(MachCommandBase):
 
         driver = self._spawn(BuildDriver)
         return driver.build(
+            self.metrics,
             what=what,
-            disable_extra_make_dependencies=disable_extra_make_dependencies,
             jobs=jobs,
             directory=directory,
             verbose=verbose,
@@ -150,6 +145,7 @@ class Build(MachCommandBase):
         driver = self._spawn(BuildDriver)
 
         return driver.configure(
+            self.metrics,
             options=options,
             buildstatus_messages=buildstatus_messages,
             line_handler=line_handler)

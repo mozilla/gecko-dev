@@ -15,6 +15,11 @@ import sys
 import traceback
 
 
+read_input = input
+if sys.version_info.major == 2:
+    read_input = raw_input
+
+
 def add_tests_dir_to_path():
     from os.path import dirname, exists, join, realpath
     js_src_dir = dirname(dirname(realpath(sys.argv[0])))
@@ -56,7 +61,7 @@ def choose_item(jobs, max_items, display):
     for i, job in enumerate(jobs, 1):
         print("{}) {}".format(i, display(job)))
 
-    item = raw_input('Which one:\n')
+    item = read_input('Which one:\n')
     try:
         item = int(item)
         if item > job_count or item < 1:
@@ -164,9 +169,9 @@ def main(argv):
                     type=str, dest='device_serial', default=None,
                     help='ADB device serial number of remote device to test')
     op.add_argument('--remoteTestRoot', dest='remote_test_root', action='store',
-                    type=str, default='/data/local/tests',
+                    type=str, default='/data/local/tmp/test_root',
                     help='The remote directory to use as test root'
-                    ' (eg. /data/local/tests)')
+                    ' (e.g.  %(default)s)')
     op.add_argument('--localLib', dest='local_lib', action='store',
                     type=str,
                     help='The location of libraries to push -- preferably'
@@ -182,11 +187,6 @@ def main(argv):
     op.add_argument('--test-reflect-stringify', dest="test_reflect_stringify",
                     help="instead of running tests, use them to test the "
                     "Reflect.stringify code in specified file")
-    op.add_argument('--run-binast', action='store_true',
-                    dest="run_binast",
-                    help="By default BinAST testcases encoded from JS "
-                    "testcases are skipped. If specified, BinAST testcases "
-                    "are also executed.")
     # --enable-webrender is ignored as it is not relevant for JIT
     # tests, but is required for harness compatibility.
     op.add_argument('--enable-webrender', action='store_true',
@@ -222,20 +222,10 @@ def main(argv):
     test_list = []
     read_all = True
 
-    if options.run_binast:
-        code = 'print(getBuildConfiguration().binast)'
-        is_binast_enabled = subprocess.check_output([js_shell, '-e', code])
-        if not is_binast_enabled.startswith('true'):
-            print("While --run-binast is specified, BinAST is not enabled.",
-                  file=sys.stderr)
-            print("BinAST testcases will be skipped.",
-                  file=sys.stderr)
-            options.run_binast = False
-
     if test_args:
         read_all = False
         for arg in test_args:
-            test_list += jittests.find_tests(arg, run_binast=options.run_binast)
+            test_list += jittests.find_tests(arg)
 
     if options.read_tests:
         read_all = False
@@ -255,7 +245,7 @@ def main(argv):
                 sys.stderr.write('---\n')
 
     if read_all:
-        test_list = jittests.find_tests(run_binast=options.run_binast)
+        test_list = jittests.find_tests()
 
     if options.exclude_from:
         with open(options.exclude_from) as fh:
@@ -267,7 +257,7 @@ def main(argv):
     if options.exclude:
         exclude_list = []
         for exclude in options.exclude:
-            exclude_list += jittests.find_tests(exclude, run_binast=options.run_binast)
+            exclude_list += jittests.find_tests(exclude)
         test_list = [test for test in test_list
                      if test not in set(exclude_list)]
 
@@ -319,11 +309,6 @@ def main(argv):
                 for line in f.readlines():
                     path = line.strip('\n')
                     ignore.add(path)
-
-                    binjs_path = path.replace('.js', '.binjs')
-                    # Do not use os.path.join to always use '/'.
-                    ignore.add('binast/nonlazy/{}'.format(binjs_path))
-                    ignore.add('binast/lazy/{}'.format(binjs_path))
                 options.ignore_timeouts = ignore
         except IOError:
             sys.exit("Error reading file: " + options.ignore_timeouts)
@@ -334,7 +319,7 @@ def main(argv):
     prologue = os.path.join(jittests.LIB_DIR, 'prologue.js')
     if options.remote:
         prologue = posixpath.join(options.remote_test_root,
-                                  'jit-tests', 'jit-tests', 'lib', 'prologue.js')
+                                  'tests', 'tests', 'lib', 'prologue.js')
 
     prefix += ['-f', prologue]
 

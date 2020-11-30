@@ -32,6 +32,7 @@ exports.ConsoleMessage = function(props) {
     {
       id: null,
       innerWindowID: null,
+      targetFront: null,
       allowRepeating: true,
       source: null,
       timeStamp: null,
@@ -47,7 +48,6 @@ exports.ConsoleMessage = function(props) {
       groupId: null,
       errorMessageName: null,
       exceptionDocURL: null,
-      executionPoint: undefined,
       cssSelectors: "",
       userProvidedStyles: null,
       notes: null,
@@ -56,6 +56,8 @@ exports.ConsoleMessage = function(props) {
       private: false,
       logpointId: undefined,
       chromeContext: false,
+      hasException: false,
+      isPromiseRejection: false,
     },
     props
   );
@@ -66,6 +68,7 @@ exports.NetworkEventMessage = function(props) {
     {
       id: null,
       actor: null,
+      targetFront: null,
       level: MESSAGE_LEVEL.LOG,
       isXHR: false,
       request: null,
@@ -82,6 +85,7 @@ exports.NetworkEventMessage = function(props) {
       securityInfo: null,
       requestHeadersFromUploadStream: null,
       private: false,
+      blockedReason: null,
     },
     props
   );

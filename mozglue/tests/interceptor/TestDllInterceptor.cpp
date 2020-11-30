@@ -16,7 +16,6 @@
 
 #include "AssemblyPayloads.h"
 #include "mozilla/DynamicallyLinkedFunctionPtr.h"
-#include "mozilla/TypeTraits.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/WindowsVersion.h"
 #include "nsWindowsDllInterceptor.h"
@@ -330,17 +329,8 @@ bool TestHook(const char (&dll)[N], const char* func, PredicateT&& aPred,
     nsModuleHandle mod(::LoadLibrary(dll));
     FARPROC funcAddr = ::GetProcAddress(mod, func);
     if (funcAddr) {
-      // For each CPU arch, we output the maximum number of bytes required to
-      // patch the function.
-#if defined(_M_ARM64)
-      const uint32_t kNumBytesToDump = 16;
-#elif defined(_M_IX86)
-      const uint32_t kNumBytesToDump = 5;
-#elif defined(_M_X64)
-      const uint32_t kNumBytesToDump = 13;
-#else
-#  error "Unsupported CPU architecture"
-#endif
+      const uint32_t kNumBytesToDump =
+          WindowsDllInterceptor::GetWorstCaseRequiredBytesToPatch();
 
       printf("\tFirst %u bytes of function:\n\t", kNumBytesToDump);
 
@@ -716,15 +706,17 @@ bool TestShortDetour() {
 #endif
 }
 
-template <typename InterceptorType>
-bool TestAssemblyFunctions() {
-  constexpr uintptr_t NoStubAddressCheck = 0;
-  struct TestCase {
-    const char* functionName;
-    uintptr_t expectedStub;
-    explicit TestCase(const char* aFunctionName, uintptr_t aExpectedStub)
-        : functionName(aFunctionName), expectedStub(aExpectedStub) {}
-  } testCases[] = {
+constexpr uintptr_t NoStubAddressCheck = 0;
+constexpr uintptr_t ExpectedFail = 1;
+struct TestCase {
+  const char* mFunctionName;
+  uintptr_t mExpectedStub;
+  bool mPatchedOnce;
+  explicit TestCase(const char* aFunctionName, uintptr_t aExpectedStub)
+      : mFunctionName(aFunctionName),
+        mExpectedStub(aExpectedStub),
+        mPatchedOnce(false) {}
+} g_AssemblyTestCases[] = {
 #if defined(__clang__)
 // We disable these testcases because the code coverage instrumentation injects
 // code in a way that WindowsDllInterceptor doesn't understand.
@@ -734,57 +726,112 @@ bool TestAssemblyFunctions() {
     // original jump destination is returned as a stub.
     TestCase("MovPushRet", JumpDestination),
     TestCase("MovRaxJump", JumpDestination),
+    TestCase("DoubleJump", JumpDestination),
+
+    // Passing NoStubAddressCheck as the following testcases return
+    // a trampoline address instead of the original destination.
+    TestCase("NearJump", NoStubAddressCheck),
+    TestCase("OpcodeFF", NoStubAddressCheck),
+    TestCase("IndirectCall", NoStubAddressCheck),
+    TestCase("MovImm64", NoStubAddressCheck),
 #    elif defined(_M_IX86)
     // Skip the stub address check as we always generate a trampoline for x86.
     TestCase("PushRet", NoStubAddressCheck),
     TestCase("MovEaxJump", NoStubAddressCheck),
+    TestCase("DoubleJump", NoStubAddressCheck),
     TestCase("Opcode83", NoStubAddressCheck),
+    TestCase("LockPrefix", NoStubAddressCheck),
+    TestCase("LooksLikeLockPrefix", NoStubAddressCheck),
 #    endif
-#  endif  // MOZ_CODE_COVERAGE
-#endif    // defined(__clang__)
-  };
+#    if !defined(DEBUG)
+    // Skip on Debug build because it hits MOZ_ASSERT_UNREACHABLE.
+    TestCase("UnsupportedOp", ExpectedFail),
+#    endif  // !defined(DEBUG)
+#  endif    // MOZ_CODE_COVERAGE
+#endif      // defined(__clang__)
+};
 
+template <typename InterceptorType>
+bool TestAssemblyFunctions() {
   static const auto patchedFunction = []() { patched_func_called = true; };
 
   InterceptorType interceptor;
   interceptor.Init("TestDllInterceptor.exe");
 
-  for (const auto& testCase : testCases) {
+  for (auto& testCase : g_AssemblyTestCases) {
+    if (testCase.mExpectedStub == NoStubAddressCheck && testCase.mPatchedOnce) {
+      // For the testcases with NoStubAddressCheck, we revert a hook by
+      // jumping into the original stub, which is not detourable again.
+      continue;
+    }
+
     typename InterceptorType::template FuncHookType<void (*)()> hook;
-    bool result = hook.Set(interceptor, testCase.functionName, patchedFunction);
+    bool result =
+        hook.Set(interceptor, testCase.mFunctionName, patchedFunction);
+    if (testCase.mExpectedStub == ExpectedFail) {
+      if (result) {
+        printf(
+            "TEST-FAILED | WindowsDllInterceptor | "
+            "Unexpectedly succeeded to detour %s.\n",
+            testCase.mFunctionName);
+        return false;
+      }
+#if defined(NIGHTLY_BUILD)
+      const Maybe<DetourError>& maybeError = interceptor.GetLastDetourError();
+      if (maybeError.isNothing()) {
+        printf(
+            "TEST-FAILED | WindowsDllInterceptor | "
+            "DetourError was not set on detour error.\n");
+        return false;
+      }
+      if (maybeError.ref().mErrorCode !=
+          DetourResultCode::DETOUR_PATCHER_CREATE_TRAMPOLINE_ERROR) {
+        printf(
+            "TEST-FAILED | WindowsDllInterceptor | "
+            "A wrong detour errorcode was set on detour error.\n");
+        return false;
+      }
+#endif  // defined(NIGHTLY_BUILD)
+      printf("TEST-PASS | WindowsDllInterceptor | %s\n",
+             testCase.mFunctionName);
+      continue;
+    }
+
     if (!result) {
       printf(
           "TEST-FAILED | WindowsDllInterceptor | "
           "Failed to detour %s.\n",
-          testCase.functionName);
+          testCase.mFunctionName);
       return false;
     }
 
+    testCase.mPatchedOnce = true;
+
     const auto actualStub = reinterpret_cast<uintptr_t>(hook.GetStub());
-    if (testCase.expectedStub != NoStubAddressCheck &&
-        actualStub != testCase.expectedStub) {
+    if (testCase.mExpectedStub != NoStubAddressCheck &&
+        actualStub != testCase.mExpectedStub) {
       printf(
           "TEST-FAILED | WindowsDllInterceptor | "
           "Wrong stub was backed up for %s: %zx\n",
-          testCase.functionName, actualStub);
+          testCase.mFunctionName, actualStub);
       return false;
     }
 
     patched_func_called = false;
 
     auto originalFunction = reinterpret_cast<void (*)()>(
-        GetProcAddress(GetModuleHandle(nullptr), testCase.functionName));
+        GetProcAddress(GetModuleHandle(nullptr), testCase.mFunctionName));
     originalFunction();
 
     if (!patched_func_called) {
       printf(
           "TEST-FAILED | WindowsDllInterceptor | "
           "Hook from %s was not called\n",
-          testCase.functionName);
+          testCase.mFunctionName);
       return false;
     }
 
-    printf("TEST-PASS | WindowsDllInterceptor | %s\n", testCase.functionName);
+    printf("TEST-PASS | WindowsDllInterceptor | %s\n", testCase.mFunctionName);
   }
 
   return true;
@@ -962,6 +1009,8 @@ extern "C" int wmain(int argc, wchar_t* argv[]) {
                              ApiSetQueryApiSetPresence, Equals, FALSE,
                              &gEmptyUnicodeString, &gIsPresent) &&
       TEST_HOOK("kernelbase.dll", QueryDosDeviceW, Equals, 0) &&
+      TEST_HOOK("kernel32.dll", GetFileAttributesW, Equals,
+                INVALID_FILE_ATTRIBUTES) &&
 #if !defined(_M_ARM64)
 #  ifndef MOZ_ASAN
       // Bug 733892: toolkit/crashreporter/nsExceptionHandler.cpp

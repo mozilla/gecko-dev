@@ -77,11 +77,12 @@ function run_test() {
   standardInit();
 
   Assert.ok(
-    !gUpdateManager.activeUpdate,
-    "the update manager activeUpdate attribute" + MSG_SHOULD_EQUAL
+    !gUpdateManager.downloadingUpdate,
+    "there should not be a downloading update"
   );
+  Assert.ok(!gUpdateManager.readyUpdate, "there should not be a ready update");
   Assert.equal(
-    gUpdateManager.updateCount,
+    gUpdateManager.getUpdateCount(),
     2,
     "the update manager updateCount attribute" + MSG_SHOULD_EQUAL
   );

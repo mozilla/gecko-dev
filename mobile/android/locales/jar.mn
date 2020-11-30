@@ -9,16 +9,6 @@
 
 @AB_CD@.jar:
 % locale browser @AB_CD@ %locale/@AB_CD@/browser/
-  locale/@AB_CD@/browser/about.dtd                (%chrome/about.dtd)
-  locale/@AB_CD@/browser/aboutAccounts.dtd        (%chrome/aboutAccounts.dtd)
-  locale/@AB_CD@/browser/aboutAccounts.properties (%chrome/aboutAccounts.properties)
-  locale/@AB_CD@/browser/aboutAddons.dtd          (%chrome/aboutAddons.dtd)
-  locale/@AB_CD@/browser/aboutAddons.properties   (%chrome/aboutAddons.properties)
-  locale/@AB_CD@/browser/aboutCertError.dtd       (%chrome/aboutCertError.dtd)
-  locale/@AB_CD@/browser/aboutDownloads.dtd       (%chrome/aboutDownloads.dtd)
-  locale/@AB_CD@/browser/aboutDownloads.properties (%chrome/aboutDownloads.properties)
-  locale/@AB_CD@/browser/aboutHome.dtd            (%chrome/aboutHome.dtd)
-  locale/@AB_CD@/browser/aboutPrivateBrowsing.dtd (%chrome/aboutPrivateBrowsing.dtd)
   locale/@AB_CD@/browser/browser.properties       (%chrome/browser.properties)
   locale/@AB_CD@/browser/config.dtd               (%chrome/config.dtd)
   locale/@AB_CD@/browser/config.properties        (%chrome/config.properties)
@@ -26,8 +16,6 @@
   locale/@AB_CD@/browser/pippki.properties        (%chrome/pippki.properties)
   locale/@AB_CD@/browser/sync.properties          (%chrome/sync.properties)
   locale/@AB_CD@/browser/phishing.dtd             (%chrome/phishing.dtd)
-  locale/@AB_CD@/browser/aboutLogins.dtd          (%chrome/aboutLogins.dtd)
-  locale/@AB_CD@/browser/aboutLogins.properties  (%chrome/aboutLogins.properties)
   locale/@AB_CD@/browser/passwordmgr.properties   (%chrome/passwordmgr.properties)
 #if MOZ_UPDATE_CHANNEL != release && MOZ_UPDATE_CHANNEL != esr
   locale/@AB_CD@/browser/webcompatReporter.properties (%chrome/webcompatReporter.properties)
@@ -37,15 +25,11 @@
 # keep this file list in sync with l10n.toml and filter.py
 relativesrcdir toolkit/locales:
   locale/@AB_CD@/browser/overrides/aboutReader.properties          (%chrome/global/aboutReader.properties)
-  locale/@AB_CD@/browser/overrides/charsetMenu.properties          (%chrome/global/charsetMenu.properties)
   locale/@AB_CD@/browser/overrides/commonDialogs.properties        (%chrome/global/commonDialogs.properties)
   locale/@AB_CD@/browser/overrides/intl.properties                 (%chrome/global/intl.properties)
   locale/@AB_CD@/browser/overrides/intl.css                        (%chrome/global/intl.css)
-  locale/@AB_CD@/browser/overrides/search/search.properties        (%chrome/search/search.properties)
 # plugins
   locale/@AB_CD@/browser/overrides/plugins/pluginproblem.dtd       (%chrome/pluginproblem/pluginproblem.dtd)
-#about:mozilla
-  locale/@AB_CD@/browser/overrides/global/mozilla.dtd                (%chrome/global/mozilla.dtd)
 #about:webrtc
   locale/@AB_CD@/browser/overrides/global/aboutWebrtc.properties  (%chrome/global/aboutWebrtc.properties)
 
@@ -74,6 +58,8 @@ relativesrcdir toolkit/locales:
   crashreporter                                    (%crashreporter/**/*.ftl)
 #about:about
   toolkit/about                                    (%toolkit/about/*About.ftl)
+#about:mozilla
+  toolkit/about                                    (%toolkit/about/*Mozilla.ftl)
 #about:support
   toolkit/about                                    (%toolkit/about/*Support.ftl)
 #about:rights

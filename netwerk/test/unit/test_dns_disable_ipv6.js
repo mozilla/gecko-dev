@@ -3,6 +3,8 @@
 // return any IPv6 addresses.
 //
 
+"use strict";
+
 var dns = Cc["@mozilla.org/network/dns-service;1"].getService(Ci.nsIDNSService);
 var ioService = Cc["@mozilla.org/network/io-service;1"].getService(
   Ci.nsIIOService
@@ -18,6 +20,7 @@ var listener = {
 
     while (true) {
       try {
+        inRecord.QueryInterface(Ci.nsIDNSAddrRecord);
         var answer = inRecord.getNextAddrAsString();
         // If there is an answer it should be an IPv4  address
         dump(answer);
@@ -38,7 +41,9 @@ function run_test() {
   try {
     dns.asyncResolve(
       "example.com",
+      Ci.nsIDNSService.RESOLVE_TYPE_DEFAULT,
       Ci.nsIDNSService.RESOLVE_DISABLE_IPV6,
+      null, // resolverInfo
       listener,
       null,
       defaultOriginAttributes

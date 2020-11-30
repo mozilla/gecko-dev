@@ -10,7 +10,7 @@ import { connect } from "../../utils/connect";
 
 import AccessibleImage from "./AccessibleImage";
 
-import { getSourceClassnames } from "../../utils/source";
+import { getSourceClassnames, isPretty } from "../../utils/source";
 import { getFramework } from "../../utils/tabs";
 import { getSymbols, getTabs } from "../../selectors";
 
@@ -23,11 +23,11 @@ type OwnProps = {|
   source: Source,
 
   // An additional validator for the icon returned
-  shouldHide?: string => boolean,
+  modifier?: string => string | null,
 |};
 type Props = {
   source: Source,
-  shouldHide?: string => boolean,
+  modifier?: string => string | null,
 
   // symbols will provide framework information
   symbols: ?Symbols,
@@ -36,13 +36,23 @@ type Props = {
 
 class SourceIcon extends PureComponent<Props> {
   render() {
-    const { shouldHide, source, symbols, framework } = this.props;
-    const iconClass = framework
-      ? framework.toLowerCase()
-      : getSourceClassnames(source, symbols);
+    const { modifier, source, symbols, framework } = this.props;
+    let iconClass = "";
 
-    if (shouldHide && shouldHide(iconClass)) {
-      return null;
+    if (isPretty(source)) {
+      iconClass = "prettyPrint";
+    } else {
+      iconClass = framework
+        ? framework.toLowerCase()
+        : getSourceClassnames(source, symbols);
+    }
+
+    if (modifier) {
+      const modified = modifier(iconClass);
+      if (!modified) {
+        return null;
+      }
+      iconClass = modified;
     }
 
     return <AccessibleImage className={`source-icon ${iconClass}`} />;

@@ -112,8 +112,8 @@ class WidgetOverscrollEffect : public OverscrollEffectBase {
     RefPtr<GeckoContentController> controller =
         mApzc.GetGeckoContentController();
     if (controller && (aShouldOverscrollX || aShouldOverscrollY)) {
-      controller->UpdateOverscrollOffset(aOverscroll.x, aOverscroll.y,
-                                         mApzc.IsRootContent());
+      controller->UpdateOverscrollOffset(mApzc.GetGuid(), aOverscroll.x,
+                                         aOverscroll.y, mApzc.IsRootContent());
       aOverscroll = ParentLayerPoint();
     }
   }
@@ -122,8 +122,8 @@ class WidgetOverscrollEffect : public OverscrollEffectBase {
     RefPtr<GeckoContentController> controller =
         mApzc.GetGeckoContentController();
     if (controller) {
-      controller->UpdateOverscrollVelocity(aVelocity.x, aVelocity.y,
-                                           mApzc.IsRootContent());
+      controller->UpdateOverscrollVelocity(mApzc.GetGuid(), aVelocity.x,
+                                           aVelocity.y, mApzc.IsRootContent());
     }
   }
 

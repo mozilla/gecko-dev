@@ -13,17 +13,18 @@ import sys
 from distutils.version import StrictVersion as Version
 
 import buildconfig
+from mozbuild.action.util import log_build_task
 from mozbuild.util import memoize
 from mozpack.executables import (
     get_type,
     ELF,
-    MACHO,
     UNKNOWN,
 )
 
 
-STDCXX_MAX_VERSION = Version('3.4.17')
-GLIBC_MAX_VERSION = Version('2.12')
+STDCXX_MAX_VERSION = Version('3.4.19')
+CXXABI_MAX_VERSION = Version('1.3.7')
+GLIBC_MAX_VERSION = Version('2.17')
 LIBGCC_MAX_VERSION = Version('4.8')
 
 HOST = {
@@ -56,7 +57,7 @@ get_type = memoize(get_type)
 def get_output(*cmd):
     env = dict(os.environ)
     env[b'LC_ALL'] = b'C'
-    return subprocess.check_output(cmd, env=env).splitlines()
+    return subprocess.check_output(cmd, env=env, universal_newlines=True).splitlines()
 
 
 class Skip(RuntimeError):
@@ -76,74 +77,33 @@ def at_least_one(iter):
         raise Empty()
 
 
-# Iterates the symbol table on ELF and MACHO, and the export table on
-# COFF/PE.
-def iter_symbols(binary):
+# Iterates the symbol table on ELF binaries.
+def iter_elf_symbols(target, binary, all=False):
     ty = get_type(binary)
-    # XXX: Static libraries on ELF, MACHO and COFF/PE systems are all
-    # ar archives. So technically speaking, the following is wrong
-    # but is enough for now. llvm-objdump -t can actually be used on all
-    # platforms for static libraries, but its format is different for
-    # Windows .obj files, so the following won't work for them, but
-    # it currently doesn't matter.
-    if ty == UNKNOWN and open(binary).read(8) == '!<arch>\n':
+    # Static libraries are ar archives. Assume they are ELF.
+    if ty == UNKNOWN and open(binary, 'rb').read(8) == b'!<arch>\n':
         ty = ELF
-    if ty in (ELF, MACHO):
-        for line in get_output(buildconfig.substs['LLVM_OBJDUMP'], '-t',
-                               binary):
-            m = ADDR_RE.match(line)
-            if not m:
-                continue
-            addr = int(m.group(0), 16)
-            # The second "column" is 7 one-character items that can be
-            # whitespaces. We don't have use for their value, so just skip
-            # those.
-            rest = line[m.end() + 9:].split()
-            # The number of remaining colums will vary between ELF and MACHO.
-            # On ELF, we have:
-            #   Section Size .hidden? Name
-            # On Macho, the size is skipped.
-            # In every case, the symbol name is last.
-            name = rest[-1]
-            if '@' in name:
-                name, ver = name.rsplit('@', 1)
-                while name.endswith('@'):
-                    name = name[:-1]
-            else:
-                ver = None
-            yield {
-                'addr': addr,
-                'size': int(rest[1], 16) if ty == ELF else 0,
-                'name': name,
-                'version': ver or None,
-            }
-    else:
-        export_table = False
-        for line in get_output(buildconfig.substs['LLVM_OBJDUMP'], '-p',
-                               binary):
-            if line.strip() == 'Export Table:':
-                export_table = True
-                continue
-            elif not export_table:
-                continue
+    assert ty == ELF
+    for line in get_output(target['readelf'], '--syms' if all else '--dyn-syms', binary):
+        data = line.split()
+        if not (len(data) >= 8 and data[0].endswith(':') and data[0][:-1].isdigit()):
+            continue
+        n, addr, size, type, bind, vis, index, name = data[:8]
 
-            cols = line.split()
-            # The data we're interested in comes in 3 columns, and the first
-            # column is a number.
-            if len(cols) != 3 or not cols[0].isdigit():
-                continue
-            _, rva, name = cols
-            # - The MSVC mangling has some type info following `@@`
-            # - Any namespacing that can happen on the symbol appears as a
-            #   suffix, after a `@`.
-            # - Mangled symbols are prefixed with `?`.
-            name = name.split('@@')[0].split('@')[0].lstrip('?')
-            yield {
-                'addr': int(rva, 16),
-                'size': 0,
-                'name': name,
-                'version': None,
-            }
+        if '@' in name:
+            name, ver = name.rsplit('@', 1)
+            while name.endswith('@'):
+                name = name[:-1]
+        else:
+            ver = None
+        yield {
+            'addr': int(addr, 16),
+            # readelf output may contain decimal values or hexadecimal
+            # values prefixed with 0x for the size. Let python autodetect.
+            'size': int(size, 0),
+            'name': name,
+            'version': ver,
+        }
 
 
 def iter_readelf_dynamic(target, binary):
@@ -153,39 +113,43 @@ def iter_readelf_dynamic(target, binary):
             yield data[1].rstrip(')').lstrip('('), data[2]
 
 
-def check_dep_versions(target, binary, lib, prefix, max_version):
+def check_binary_compat(target, binary):
     if get_type(binary) != ELF:
         raise Skip()
-    unwanted = []
-    prefix = prefix + '_'
+    checks = (
+        ('libstdc++', 'GLIBCXX_', STDCXX_MAX_VERSION),
+        ('libstdc++', 'CXXABI_', CXXABI_MAX_VERSION),
+        ('libgcc', 'GCC_', LIBGCC_MAX_VERSION),
+        ('libc', 'GLIBC_', GLIBC_MAX_VERSION),
+    )
+
+    unwanted = {}
     try:
-        for sym in at_least_one(iter_symbols(binary)):
-            if sym['addr'] == 0 and sym['version'] and \
-                    sym['version'].startswith(prefix):
-                version = Version(sym['version'][len(prefix):])
-                if version > max_version:
-                    unwanted.append(sym)
+        for sym in at_least_one(iter_elf_symbols(target, binary)):
+            # Only check versions on undefined symbols
+            if sym['addr'] != 0:
+                continue
+
+            # No version to check
+            if not sym['version']:
+                continue
+
+            for _, prefix, max_version in checks:
+                if sym['version'].startswith(prefix):
+                    version = Version(sym['version'][len(prefix):])
+                    if version > max_version:
+                        unwanted.setdefault(prefix, []).append(sym)
     except Empty:
         raise RuntimeError('Could not parse llvm-objdump output?')
     if unwanted:
-        raise RuntimeError('\n'.join([
-            'We do not want these {} symbol versions to be used:'.format(lib)
-        ] + [
-            ' {} ({})'.format(s['name'], s['version']) for s in unwanted
-        ]))
-
-
-def check_stdcxx(target, binary):
-    check_dep_versions(
-        target, binary, 'libstdc++', 'GLIBCXX', STDCXX_MAX_VERSION)
-
-
-def check_libgcc(target, binary):
-    check_dep_versions(target, binary, 'libgcc', 'GCC', LIBGCC_MAX_VERSION)
-
-
-def check_glibc(target, binary):
-    check_dep_versions(target, binary, 'libc', 'GLIBC', GLIBC_MAX_VERSION)
+        error = []
+        for lib, prefix, _ in checks:
+            if prefix in unwanted:
+                error.append(
+                    'We do not want these {} symbol versions to be used:'.format(lib))
+                error.extend(
+                    ' {} ({})'.format(s['name'], s['version']) for s in unwanted[prefix])
+        raise RuntimeError('\n'.join(error))
 
 
 def check_textrel(target, binary):
@@ -250,7 +214,7 @@ def check_mozglue_order(target, binary):
         raise RuntimeError('Could not parse readelf output?')
 
 
-def check_networking(binary):
+def check_networking(target, binary):
     retcode = 0
     networking_functions = set([
         # socketpair is not concerning; it is restricted to AF_UNIX
@@ -267,7 +231,7 @@ def check_networking(binary):
     bad_occurences_names = set()
 
     try:
-        for sym in at_least_one(iter_symbols(binary)):
+        for sym in at_least_one(iter_elf_symbols(target, binary, all=True)):
             if sym['addr'] == 0 and sym['name'] in networking_functions:
                 bad_occurences_names.add(sym['name'])
     except Empty:
@@ -293,9 +257,7 @@ def checks(target, binary):
         target = HOST
     checks = []
     if target['MOZ_LIBSTDCXX_VERSION']:
-        checks.append(check_stdcxx)
-        checks.append(check_libgcc)
-        checks.append(check_glibc)
+        checks.append(check_binary_compat)
 
     # Disabled for local builds because of readelf performance: See bug 1472496
     if not buildconfig.substs.get('DEVELOPER_OPTIONS'):
@@ -315,7 +277,7 @@ def checks(target, binary):
             pass
         except RuntimeError as e:
             print('TEST-UNEXPECTED-FAIL | {} | {} | {}'
-                  .format(name, basename, e.message),
+                  .format(name, basename, str(e)),
                   file=sys.stderr)
             retcode = 1
     return retcode
@@ -348,7 +310,7 @@ def main(args):
         return 1
 
     if options.networking:
-        return check_networking(options.binary)
+        return check_networking(TARGET, options.binary)
     elif options.host:
         return checks(HOST, options.binary)
     elif options.target:
@@ -356,4 +318,4 @@ def main(args):
 
 
 if __name__ == '__main__':
-    sys.exit(main(sys.argv[1:]))
+    sys.exit(log_build_task(main, sys.argv[1:]))

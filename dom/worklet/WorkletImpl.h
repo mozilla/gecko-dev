@@ -64,6 +64,8 @@ class WorkletImpl {
 
   void NotifyWorkletFinished();
 
+  virtual nsContentPolicyType ContentPolicyType() const = 0;
+
   // Execution thread only.
   dom::WorkletGlobalScope* GetGlobalScope();
 
@@ -98,6 +100,7 @@ class WorkletImpl {
 
   // Execution thread only.
   RefPtr<dom::WorkletGlobalScope> mGlobalScope;
+  bool mFinishedOnExecutionThread;
 
   Maybe<nsID> mAgentClusterId;
 

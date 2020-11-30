@@ -23,7 +23,7 @@ add_task(async function() {
 
   // assert manifest members are being properly displayed
   checkManifestMember(doc, "name", "Foo");
-  checkManifestMember(doc, "background_color", "#ff0000ff");
+  checkManifestMember(doc, "background_color", "#ff0000");
 
   ok(
     doc.querySelector(".js-manifest-issues") === null,
@@ -58,9 +58,9 @@ add_task(async function() {
   const issuesEl = doc.querySelector(".js-manifest-issues");
   ok(issuesEl !== null, "Validation issues are displayed");
 
-  const warningEl = [...issuesEl.querySelectorAll(".js-manifest-issue")].find(
-    x => x.textContent.includes("background_color")
-  );
+  const warningEl = [
+    ...issuesEl.querySelectorAll(".js-manifest-issue"),
+  ].find(x => x.textContent.includes("background_color"));
   ok(warningEl !== null, "A warning about background_color is displayed");
 
   // close the tab

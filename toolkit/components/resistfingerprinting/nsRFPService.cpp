@@ -90,26 +90,10 @@ nsRFPService* nsRFPService::GetOrCreate() {
 double nsRFPService::TimerResolution() {
   double prefValue = StaticPrefs::
       privacy_resistFingerprinting_reduceTimerPrecision_microseconds();
-  if (nsRFPService::IsResistFingerprintingEnabled()) {
+  if (StaticPrefs::privacy_resistFingerprinting()) {
     return std::max(100000.0, prefValue);
   }
   return prefValue;
-}
-
-/* static */
-bool nsRFPService::IsResistFingerprintingEnabled() {
-  return StaticPrefs::privacy_resistFingerprinting();
-}
-
-/* static */
-bool nsRFPService::IsTimerPrecisionReductionEnabled(TimerPrecisionType aType) {
-  if (aType == TimerPrecisionType::RFPOnly) {
-    return IsResistFingerprintingEnabled();
-  }
-
-  return (StaticPrefs::privacy_reduceTimerPrecision() ||
-          IsResistFingerprintingEnabled()) &&
-         TimerResolution() > 0;
 }
 
 // When accessing the LRU cache we can get different behavior when replaying
@@ -155,7 +139,7 @@ class LRUCache final {
           MOZ_LOG(gResistFingerprintingLog, LogLevel::Verbose,
                   ("LRU Cache HIT-MISS with %lli != %lli and %lli != %lli",
                    aKeyPart1, tmp_keyPart1, aKeyPart2, tmp_keyPart2));
-          return EmptyCString();
+          return ""_ns;
         }
 
         cacheEntry.accessTime = ReallyNow();
@@ -165,7 +149,7 @@ class LRUCache final {
       }
     }
 
-    return EmptyCString();
+    return ""_ns;
   }
 
   void Store(long long aKeyPart1, long long aKeyPart2,
@@ -448,15 +432,16 @@ nsresult nsRFPService::RandomMidpoint(long long aClampedTimeUSec,
  * nearest multiple of that precision.
  *
  * It will check if it is appropriate to clamp the input time according to the
- * values of the privacy.resistFingerprinting and privacy.reduceTimerPrecision
- * preferences.  Note that while it will check these prefs, it will use
- * whatever precision is given to it, so if one desires a minimum precision for
- * Resist Fingerprinting, it is the caller's responsibility to provide the
- * correct value. This means you should pass TimerResolution(), which enforces
- * a minimum vale on the precision based on preferences.
+ * values of the given TimerPrecisionType.  Note that if one desires a minimum
+ * precision for Resist Fingerprinting, it is the caller's responsibility to
+ * provide the correct value. This means you should pass TimerResolution(),
+ * which enforces a minimum value on the precision based on preferences.
  *
  * It ensures the given precision value is greater than zero, if it is not it
  * returns the input time.
+ *
+ * While the correct thing to pass is TimerResolution() we expose it as an
+ * argument for testing purposes only.
  *
  * @param aTime           [in] The input time to be clamped.
  * @param aTimeScale      [in] The units the input time is in (Seconds,
@@ -472,23 +457,20 @@ double nsRFPService::ReduceTimePrecisionImpl(double aTime, TimeScale aTimeScale,
                                              double aResolutionUSec,
                                              int64_t aContextMixin,
                                              TimerPrecisionType aType) {
+  if (aType == TimerPrecisionType::DangerouslyNone) {
+    return aTime;
+  }
+
   // This boolean will serve as a flag indicating we are clamping the time
   // unconditionally. We do this when timer reduction preference is off; but we
   // still want to apply 20us clamping to al timestamps to avoid leaking
   // nano-second precision.
   bool unconditionalClamping = false;
-  if (!IsTimerPrecisionReductionEnabled(aType)) {
-    if (!StaticPrefs::privacy_reduceTimerPrecision_unconditional()) {
-      return aTime;
-    }
+  if (aType == UnconditionalAKAHighRes || aResolutionUSec <= 0) {
     unconditionalClamping = true;
     aResolutionUSec = RFP_TIMER_UNCONDITIONAL_VALUE;  // 20 microseconds
     aContextMixin = 0;  // Just clarifies our logging statement at the end,
                         // otherwise unused
-  }
-
-  if (aResolutionUSec <= 0) {
-    return aTime;
   }
 
   // Increase the time as needed until it is in microseconds.
@@ -508,13 +490,14 @@ double nsRFPService::ReduceTimePrecisionImpl(double aTime, TimeScale aTimeScale,
   // running a debug build _probably_ has an accurate clock, and if they don't,
   // they'll hopefully find this message and understand why things are crashing.
   const long long kFeb282008 = 1204233985000;
-  if (!unconditionalClamping && aContextMixin == 0 &&
-      aType == TimerPrecisionType::All && timeAsInt < kFeb282008) {
+  if (aContextMixin == 0 && timeAsInt < kFeb282008 && !unconditionalClamping &&
+      aType != TimerPrecisionType::RFP) {
+    nsAutoCString type;
+    TypeToText(aType, type);
     MOZ_LOG(
         gResistFingerprintingLog, LogLevel::Error,
         ("About to assert. aTime=%lli<%lli aContextMixin=%" PRId64 " aType=%s",
-         timeAsInt, kFeb282008, aContextMixin,
-         (aType == TimerPrecisionType::RFPOnly ? "RFPOnly" : "All")));
+         timeAsInt, kFeb282008, aContextMixin, type.get()));
     MOZ_ASSERT(
         false,
         "ReduceTimePrecisionImpl was given a relative time "
@@ -571,36 +554,68 @@ double nsRFPService::ReduceTimePrecisionImpl(double aTime, TimeScale aTimeScale,
 }
 
 /* static */
-double nsRFPService::ReduceTimePrecisionAsUSecs(
-    double aTime, int64_t aContextMixin,
-    TimerPrecisionType aType /* = TimerPrecisionType::All */) {
+double nsRFPService::ReduceTimePrecisionAsUSecs(double aTime,
+                                                int64_t aContextMixin,
+                                                bool aIsSystemPrincipal,
+                                                bool aCrossOriginIsolated) {
+  const auto type =
+      GetTimerPrecisionType(aIsSystemPrincipal, aCrossOriginIsolated);
   return nsRFPService::ReduceTimePrecisionImpl(
-      aTime, MicroSeconds, TimerResolution(), aContextMixin, aType);
+      aTime, MicroSeconds, TimerResolution(), aContextMixin, type);
 }
 
 /* static */
-double nsRFPService::ReduceTimePrecisionAsUSecsWrapper(double aTime) {
+double nsRFPService::ReduceTimePrecisionAsMSecs(double aTime,
+                                                int64_t aContextMixin,
+                                                bool aIsSystemPrincipal,
+                                                bool aCrossOriginIsolated) {
+  const auto type =
+      GetTimerPrecisionType(aIsSystemPrincipal, aCrossOriginIsolated);
+  return nsRFPService::ReduceTimePrecisionImpl(
+      aTime, MilliSeconds, TimerResolution(), aContextMixin, type);
+}
+
+/* static */
+double nsRFPService::ReduceTimePrecisionAsMSecsRFPOnly(double aTime,
+                                                       int64_t aContextMixin) {
+  return nsRFPService::ReduceTimePrecisionImpl(aTime, MilliSeconds,
+                                               TimerResolution(), aContextMixin,
+                                               GetTimerPrecisionTypeRFPOnly());
+}
+
+/* static */
+double nsRFPService::ReduceTimePrecisionAsSecs(double aTime,
+                                               int64_t aContextMixin,
+                                               bool aIsSystemPrincipal,
+                                               bool aCrossOriginIsolated) {
+  const auto type =
+      GetTimerPrecisionType(aIsSystemPrincipal, aCrossOriginIsolated);
+  return nsRFPService::ReduceTimePrecisionImpl(
+      aTime, Seconds, TimerResolution(), aContextMixin, type);
+}
+
+/* static */
+double nsRFPService::ReduceTimePrecisionAsSecsRFPOnly(double aTime,
+                                                      int64_t aContextMixin) {
+  return nsRFPService::ReduceTimePrecisionImpl(aTime, Seconds,
+                                               TimerResolution(), aContextMixin,
+                                               GetTimerPrecisionTypeRFPOnly());
+}
+
+/* static */
+double nsRFPService::ReduceTimePrecisionAsUSecsWrapper(double aTime,
+                                                       JSContext* aCx) {
+  MOZ_ASSERT(aCx);
+
+  nsCOMPtr<nsIGlobalObject> global = xpc::CurrentNativeGlobal(aCx);
+  MOZ_ASSERT(global);
+  const auto type = GetTimerPrecisionType(/* aIsSystemPrincipal */ false,
+                                          global->CrossOriginIsolated());
   return nsRFPService::ReduceTimePrecisionImpl(
       aTime, MicroSeconds, TimerResolution(),
       0, /* For absolute timestamps (all the JS engine does), supply zero
             context mixin */
-      TimerPrecisionType::All);
-}
-
-/* static */
-double nsRFPService::ReduceTimePrecisionAsMSecs(
-    double aTime, int64_t aContextMixin,
-    TimerPrecisionType aType /* = TimerPrecisionType::All */) {
-  return nsRFPService::ReduceTimePrecisionImpl(
-      aTime, MilliSeconds, TimerResolution(), aContextMixin, aType);
-}
-
-/* static */
-double nsRFPService::ReduceTimePrecisionAsSecs(
-    double aTime, int64_t aContextMixin,
-    TimerPrecisionType aType /* = TimerPrecisionType::All */) {
-  return nsRFPService::ReduceTimePrecisionImpl(
-      aTime, Seconds, TimerResolution(), aContextMixin, aType);
+      type);
 }
 
 /* static */
@@ -660,7 +675,7 @@ uint32_t nsRFPService::GetSpoofedPresentedFrames(double aTime, uint32_t aWidth,
 
 static uint32_t GetSpoofedVersion() {
   // If we can't get the current Firefox version, use a hard-coded ESR version.
-  const uint32_t kKnownEsrVersion = 60;
+  const uint32_t kKnownEsrVersion = 78;
 
   nsresult rv;
   nsCOMPtr<nsIXULAppInfo> appInfo =
@@ -677,20 +692,39 @@ static uint32_t GetSpoofedVersion() {
   uint32_t firefoxVersion = appVersion.ToInteger(&rv);
   NS_ENSURE_SUCCESS(rv, kKnownEsrVersion);
 
+  // Some add-on tests set the Firefox version to low numbers like 1 or 42,
+  // which causes the spoofed version calculation's unsigned int subtraction
+  // below to wrap around zero to Firefox versions like 4294967287. This
+  // function should always return an ESR version, so return a good one now.
+  if (firefoxVersion < kKnownEsrVersion) {
+    return kKnownEsrVersion;
+  }
+
 #ifdef DEBUG
   // If we are running in Firefox ESR, determine whether the formula of ESR
   // version has changed.  Once changed, we must update the formula in this
   // function.
   if (!strcmp(MOZ_STRINGIFY(MOZ_UPDATE_CHANNEL), "esr")) {
-    MOZ_ASSERT(((firefoxVersion % 8) == 4),
+    MOZ_ASSERT(((firefoxVersion - kKnownEsrVersion) % 13) == 0,
                "Please update ESR version formula in nsRFPService.cpp");
   }
 #endif  // DEBUG
 
-  // Starting with Firefox 52, a new ESR version will be released every
-  // eight Firefox versions: 52, 60, 68, ...
+  // Starting with Firefox 78, a new ESR version will be released every June.
+  // We can't accurately calculate the next ESR version, but it will be
+  // probably be every ~13 Firefox releases, assuming four-week release
+  // cycles. If this assumption is wrong, we won't need to worry about it
+  // until ESR 104±1 in 2022. :) We have a debug assert above to catch if the
+  // spoofed version doesn't match the actual ESR version then.
   // We infer the last and closest ESR version based on this rule.
-  return firefoxVersion - ((firefoxVersion - 4) % 8);
+  uint32_t spoofedVersion =
+      firefoxVersion - ((firefoxVersion - kKnownEsrVersion) % 13);
+
+  MOZ_ASSERT(spoofedVersion >= kKnownEsrVersion &&
+             spoofedVersion <= firefoxVersion &&
+             (spoofedVersion - kKnownEsrVersion) % 13 == 0);
+
+  return spoofedVersion;
 }
 
 namespace mozilla::recordreplay {
@@ -793,7 +827,7 @@ void nsRFPService::UpdateRFPPref() {
     // We will not touch the TZ value if 'privacy.resistFingerprinting' is false
     // during the time of initialization.
     if (!mInitialTZValue.IsEmpty()) {
-      nsAutoCString tzValue = NS_LITERAL_CSTRING("TZ=") + mInitialTZValue;
+      nsAutoCString tzValue = "TZ="_ns + mInitialTZValue;
       static char* tz = nullptr;
 
       // If the tz has been set before, we free it first since it will be
@@ -803,7 +837,7 @@ void nsRFPService::UpdateRFPPref() {
       }
       // PR_SetEnv() needs the input string been leaked intentionally, so
       // we copy it here.
-      tz = ToNewCString(tzValue);
+      tz = ToNewCString(tzValue, mozilla::fallible);
       if (tz != nullptr) {
         PR_SetEnv(tz);
       }
@@ -881,12 +915,12 @@ void nsRFPService::MaybeCreateSpoofingKeyCodesForEnUS() {
 
   static const SpoofingKeyboardInfo spoofingKeyboardInfoTable[] = {
 #define KEY(key_, _codeNameIdx, _keyCode, _modifier) \
-  {KEY_NAME_INDEX_USE_STRING,                        \
-   NS_LITERAL_STRING(key_),                          \
+  {NS_LITERAL_STRING_FROM_CSTRING(key_),             \
+   KEY_NAME_INDEX_USE_STRING,                        \
    {CODE_NAME_INDEX_##_codeNameIdx, _keyCode, _modifier}},
 #define CONTROL(keyNameIdx_, _codeNameIdx, _keyCode) \
-  {KEY_NAME_INDEX_##keyNameIdx_,                     \
-   EmptyString(),                                    \
+  {u""_ns,                                           \
+   KEY_NAME_INDEX_##keyNameIdx_,                     \
    {CODE_NAME_INDEX_##_codeNameIdx, _keyCode, MODIFIER_NONE}},
 #include "KeyCodeConsensus_En_US.h"
 #undef CONTROL
@@ -1037,7 +1071,7 @@ bool nsRFPService::GetSpoofedCode(const dom::Document* aDoc,
   // it's a right key.
   if (aKeyboardEvent->mLocation ==
           dom::KeyboardEvent_Binding::DOM_KEY_LOCATION_RIGHT &&
-      StringEndsWith(aOut, NS_LITERAL_STRING("Left"))) {
+      StringEndsWith(aOut, u"Left"_ns)) {
     aOut.ReplaceLiteral(aOut.Length() - 4, 4, u"Right");
   }
 
@@ -1058,6 +1092,67 @@ bool nsRFPService::GetSpoofedKeyCode(const dom::Document* aDoc,
   }
 
   return false;
+}
+
+/* static */
+TimerPrecisionType nsRFPService::GetTimerPrecisionType(
+    bool aIsSystemPrincipal, bool aCrossOriginIsolated) {
+  if (aIsSystemPrincipal) {
+    return DangerouslyNone;
+  }
+
+  if (StaticPrefs::privacy_resistFingerprinting()) {
+    return RFP;
+  }
+
+  if (StaticPrefs::privacy_reduceTimerPrecision() && aCrossOriginIsolated) {
+    return UnconditionalAKAHighRes;
+  }
+
+  if (StaticPrefs::privacy_reduceTimerPrecision()) {
+    return Normal;
+  }
+
+  if (StaticPrefs::privacy_reduceTimerPrecision_unconditional()) {
+    return UnconditionalAKAHighRes;
+  }
+
+  return DangerouslyNone;
+}
+
+/* static */
+TimerPrecisionType nsRFPService::GetTimerPrecisionTypeRFPOnly() {
+  if (StaticPrefs::privacy_resistFingerprinting()) {
+    return RFP;
+  }
+
+  if (StaticPrefs::privacy_reduceTimerPrecision_unconditional()) {
+    return UnconditionalAKAHighRes;
+  }
+
+  return DangerouslyNone;
+}
+
+/* static */
+void nsRFPService::TypeToText(TimerPrecisionType aType, nsACString& aText) {
+  switch (aType) {
+    case TimerPrecisionType::DangerouslyNone:
+      aText.AssignLiteral("DangerouslyNone");
+      return;
+    case TimerPrecisionType::Normal:
+      aText.AssignLiteral("Normal");
+      return;
+    case TimerPrecisionType::RFP:
+      aText.AssignLiteral("RFP");
+      return;
+    case TimerPrecisionType::UnconditionalAKAHighRes:
+      aText.AssignLiteral("UnconditionalAKAHighRes");
+      return;
+    default:
+      MOZ_ASSERT(false, "Shouldn't go here");
+      aText.AssignLiteral("Unknown Enum Value");
+      return;
+  }
 }
 
 // static

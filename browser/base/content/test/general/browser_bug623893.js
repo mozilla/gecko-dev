@@ -19,13 +19,17 @@ add_task(async function test() {
   );
 });
 
-function promiseGetIndex(browser) {
-  return SpecialPowers.spawn(browser, [], function() {
-    let shistory = docShell
-      .QueryInterface(Ci.nsIInterfaceRequestor)
-      .getInterface(Ci.nsISHistory);
-    return shistory.index;
-  });
+async function promiseGetIndex(browser) {
+  if (!SpecialPowers.Services.appinfo.sessionHistoryInParent) {
+    return SpecialPowers.spawn(browser, [], function() {
+      let shistory =
+        docShell.browsingContext.childSessionHistory.legacySHistory;
+      return shistory.index;
+    });
+  }
+
+  let shistory = browser.browsingContext.sessionHistory;
+  return shistory.index;
 }
 
 let duplicate = async function(delta, msg, cb) {
@@ -33,8 +37,7 @@ let duplicate = async function(delta, msg, cb) {
 
   duplicateTabIn(gBrowser.selectedTab, "tab", delta);
 
-  let tab = gBrowser.selectedTab;
-  await BrowserTestUtils.waitForEvent(tab, "SSTabRestored");
+  await BrowserTestUtils.waitForEvent(gBrowser.tabContainer, "SSTabRestored");
 
   let endIndex = await promiseGetIndex(gBrowser.selectedBrowser);
   is(endIndex, startIndex + delta, msg);

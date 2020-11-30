@@ -19,22 +19,19 @@ namespace mozilla {
 namespace dom {
 
 /* static */
-bool CSS::Supports(const GlobalObject& aGlobal, const nsAString& aProperty,
-                   const nsAString& aValue, ErrorResult& aRv) {
-  NS_ConvertUTF16toUTF8 property(aProperty);
-  NS_ConvertUTF16toUTF8 value(aValue);
-  return Servo_CSSSupports2(&property, &value);
+bool CSS::Supports(const GlobalObject&, const nsACString& aProperty,
+                   const nsACString& aValue) {
+  return Servo_CSSSupports2(&aProperty, &aValue);
 }
 
 /* static */
-bool CSS::Supports(const GlobalObject& aGlobal, const nsAString& aCondition,
-                   ErrorResult& aRv) {
-  NS_ConvertUTF16toUTF8 cond(aCondition);
-  return Servo_CSSSupports(&cond);
+bool CSS::Supports(const GlobalObject&, const nsACString& aCondition) {
+  return Servo_CSSSupports(&aCondition, /* ua = */ false, /* chrome = */ false,
+                           /* quirks = */ false);
 }
 
 /* static */
-void CSS::Escape(const GlobalObject& aGlobal, const nsAString& aIdent,
+void CSS::Escape(const GlobalObject&, const nsAString& aIdent,
                  nsAString& aReturn) {
   nsStyleUtil::AppendEscapedCSSIdent(aIdent, aReturn);
 }

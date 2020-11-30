@@ -36,9 +36,9 @@ const Toolbar = createFactory(
   require("devtools/client/netmonitor/src/components/Toolbar")
 );
 
-loader.lazyGetter(this, "NetworkDetailsPanel", function() {
+loader.lazyGetter(this, "NetworkDetailsBar", function() {
   return createFactory(
-    require("devtools/client/netmonitor/src/components/NetworkDetailsPanel")
+    require("devtools/client/netmonitor/src/components/request-details/NetworkDetailsBar")
   );
 });
 
@@ -68,12 +68,13 @@ class MonitorPanel extends Component {
       isEmpty: PropTypes.bool.isRequired,
       networkDetailsOpen: PropTypes.bool.isRequired,
       openNetworkDetails: PropTypes.func.isRequired,
+      toolboxDoc: PropTypes.object.isRequired,
       // Callback for opening split console.
       openSplitConsole: PropTypes.func,
       onNetworkDetailsResized: PropTypes.func.isRequired,
       request: PropTypes.object,
       selectedRequestVisible: PropTypes.bool.isRequired,
-      sourceMapService: PropTypes.object,
+      sourceMapURLService: PropTypes.object,
       openLink: PropTypes.func,
       updateRequest: PropTypes.func.isRequired,
       networkActionOpen: PropTypes.bool.isRequired,
@@ -204,7 +205,8 @@ class MonitorPanel extends Component {
       networkDetailsOpen,
       openLink,
       openSplitConsole,
-      sourceMapService,
+      sourceMapURLService,
+      toolboxDoc,
     } = this.props;
 
     const initialWidth = Services.prefs.getIntPref(
@@ -222,6 +224,7 @@ class MonitorPanel extends Component {
         connector,
         openSplitConsole,
         singleRow: this.state.isSingleRow,
+        toolboxDoc,
       }),
       SplitBox({
         className: "devtools-responsive-container",
@@ -233,11 +236,11 @@ class MonitorPanel extends Component {
         startPanel: this.renderActionBar(),
         endPanel:
           networkDetailsOpen &&
-          NetworkDetailsPanel({
+          NetworkDetailsBar({
             ref: "endPanel",
             connector,
             openLink,
-            sourceMapService,
+            sourceMapURLService,
           }),
         endPanelCollapsed: !networkDetailsOpen,
         endPanelControl: true,

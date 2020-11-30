@@ -63,7 +63,6 @@ elif toolkit == 'cocoa':
         'nsIMacSharingService.idl',
         'nsIMacWebAppUtils.idl',
         'nsIStandaloneNativeMenu.idl',
-        'nsISystemStatusBar.idl',
         'nsITaskbarProgress.idl',
         'nsITouchBarHelper.idl',
         'nsITouchBarInput.idl',
@@ -73,7 +72,10 @@ elif toolkit == 'cocoa':
         'nsINativeMenuService.h',
     ]
 
-TEST_DIRS += ['tests']
+TEST_DIRS += [
+    'tests',
+    'tests/gtest'
+]
 
 DIRS += ['headless']
 
@@ -85,9 +87,6 @@ DIRS += ['headless']
 #
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gtk':
     DIRS += ['gtk']
-
-    if CONFIG['MOZ_X11']:
-        DIRS += ['gtkxtbin']
 
     XPIDL_SOURCES += [
         'nsIGtkTaskbarProgress.idl',
@@ -109,9 +108,10 @@ XPIDL_SOURCES += [
     'nsIFormatConverter.idl',
     'nsIGfxInfo.idl',
     'nsIGfxInfoDebug.idl',
-    'nsIIdleService.idl',
-    'nsIIdleServiceInternal.idl',
-    'nsIPrinterEnumerator.idl',
+    'nsIPaper.idl',
+    'nsIPaperMargin.idl',
+    'nsIPrinter.idl',
+    'nsIPrinterList.idl',
     'nsIPrintSession.idl',
     'nsIPrintSettings.idl',
     'nsIPrintSettingsService.idl',
@@ -119,7 +119,10 @@ XPIDL_SOURCES += [
     'nsIScreenManager.idl',
     'nsISharePicker.idl',
     'nsISound.idl',
+    'nsISystemStatusBar.idl',
     'nsITransferable.idl',
+    'nsIUserIdleService.idl',
+    'nsIUserIdleServiceInternal.idl',
 ]
 
 XPIDL_MODULE = 'widget'
@@ -135,13 +138,15 @@ EXPORTS += [
     'nsBaseScreen.h',
     'nsBaseWidget.h',
     'nsIDeviceContextSpec.h',
-    'nsIdleService.h',
     'nsIKeyEventInPluginCallback.h',
     'nsIPluginWidget.h',
     'nsIPrintDialogService.h',
     'nsIRollupListener.h',
     'nsIWidget.h',
     'nsIWidgetListener.h',
+    'nsPaper.h',
+    'nsPrinterListBase.h',
+    'nsUserIdleService.h',
     'nsWidgetInitData.h',
     'nsWidgetsCID.h',
     'PuppetWidget.h',
@@ -171,6 +176,7 @@ EXPORTS.mozilla += [
 
 EXPORTS.mozilla.widget += [
     'CompositorWidget.h',
+    'IconLoader.h',
     'IMEData.h',
     'InProcessCompositorWidget.h',
     'MediaKeysEventSourceFactory.h',
@@ -188,6 +194,7 @@ UNIFIED_SOURCES += [
     'GfxDriverInfo.cpp',
     'GfxInfoBase.cpp',
     'GfxInfoCollector.cpp',
+    'IconLoader.cpp',
     'IMEData.cpp',
     'InProcessCompositorWidget.cpp',
     'InputData.cpp',
@@ -201,13 +208,13 @@ UNIFIED_SOURCES += [
     'nsDragServiceProxy.cpp',
     'nsFilePickerProxy.cpp',
     'nsHTMLFormatConverter.cpp',
-    'nsIdleService.cpp',
     'nsIWidgetListener.cpp',
     'nsNativeBasicTheme.cpp',
     'nsPrimitiveHelpers.cpp',
     'nsPrintSettingsImpl.cpp',
     'nsSoundProxy.cpp',
     'nsTransferable.cpp',
+    'nsUserIdleService.cpp',
     'nsXPLookAndFeel.cpp',
     'PuppetBidiKeyboard.cpp',
     'PuppetWidget.cpp',
@@ -234,9 +241,20 @@ if CONFIG['MOZ_XUL'] and CONFIG['NS_PRINTING']:
     ]
     UNIFIED_SOURCES += [
         'nsDeviceContextSpecProxy.cpp',
+        'nsPaper.cpp',
+        'nsPaperMargin.cpp',
+        'nsPrinterBase.cpp',
+        'nsPrinterListBase.cpp',
         'nsPrintSession.cpp',
         'nsPrintSettingsService.cpp',
     ]
+
+    if toolkit in ('cocoa', 'gtk'):
+        UNIFIED_SOURCES += [
+            'nsCUPSShim.cpp',
+            'nsPrinterCUPS.cpp',
+            'nsPrinterListCUPS.cpp',
+        ]
 
 # nsBaseWidget.cpp needs to be built separately because of name clashes in the OS X headers
 # nsBaseDragService.cpp moved out of UNIFIED to fix xgill crash (bug 1259850) after moving widget/ContentHelper -> apz/util/TouchActionHelper
@@ -307,6 +325,12 @@ LOCAL_INCLUDES += [
     '/widget',
     '/widget/headless',
 ]
+
+# We use the CUPS headers on Cocoa and GTK, but on GTK we don't depend on there being system headers.
+if toolkit == 'gtk':
+    LOCAL_INCLUDES += [
+        '/third_party/cups/include'
+    ]
 
 if toolkit == 'windows':
     IPDL_SOURCES = [

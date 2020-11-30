@@ -13,7 +13,10 @@
 #  include <dbus/dbus-glib-lowlevel.h>
 
 #  if defined(MOZ_X11)
+#    include "gfxPlatformGtk.h"
 #    include "prlink.h"
+#    include <gdk/gdk.h>
+#    include <gdk/gdkx.h>
 #  endif
 
 #  if defined(MOZ_WAYLAND)
@@ -38,6 +41,10 @@ using namespace mozilla::widget;
 NS_IMPL_ISUPPORTS(WakeLockListener, nsIDOMMozWakeLockListener)
 
 StaticRefPtr<WakeLockListener> WakeLockListener::sSingleton;
+
+#  define WAKE_LOCK_LOG(...) \
+    MOZ_LOG(gLinuxWakeLockLog, mozilla::LogLevel::Debug, (__VA_ARGS__))
+static mozilla::LazyLogModule gLinuxWakeLockLog("LinuxWakeLock");
 
 enum DesktopEnvironment {
   FreeDesktop,
@@ -229,12 +236,12 @@ bool WakeLockTopic::InhibitXScreenSaver(bool inhibit) {
 
 /* static */
 bool WakeLockTopic::CheckWaylandIdleInhibitSupport() {
-  nsWaylandDisplay* waylandDisplay = WaylandDisplayGet();
+  RefPtr<nsWaylandDisplay> waylandDisplay = WaylandDisplayGet();
   return waylandDisplay && waylandDisplay->GetIdleInhibitManager() != nullptr;
 }
 
 bool WakeLockTopic::InhibitWaylandIdle() {
-  nsWaylandDisplay* waylandDisplay = WaylandDisplayGet();
+  RefPtr<nsWaylandDisplay> waylandDisplay = WaylandDisplayGet();
   if (!waylandDisplay) {
     return false;
   }
@@ -246,10 +253,13 @@ bool WakeLockTopic::InhibitWaylandIdle() {
 
   UninhibitWaylandIdle();
 
-  mWaylandInhibitor = zwp_idle_inhibit_manager_v1_create_inhibitor(
-      waylandDisplay->GetIdleInhibitManager(),
-      focusedWindow->GetWaylandSurface());
-
+  MozContainer* container = focusedWindow->GetMozContainer();
+  wl_surface* waylandSurface = moz_container_wayland_surface_lock(container);
+  if (waylandSurface) {
+    mWaylandInhibitor = zwp_idle_inhibit_manager_v1_create_inhibitor(
+        waylandDisplay->GetIdleInhibitManager(), waylandSurface);
+    moz_container_wayland_surface_unlock(container, &waylandSurface);
+  }
   return true;
 }
 
@@ -468,9 +478,8 @@ nsresult WakeLockListener::Callback(const nsAString& topic,
     return NS_ERROR_FAILURE;
   }
 
-  if (!topic.Equals(NS_LITERAL_STRING("screen")) &&
-      !topic.Equals(NS_LITERAL_STRING("audio-playing")) &&
-      !topic.Equals(NS_LITERAL_STRING("video-playing")))
+  if (!topic.Equals(u"screen"_ns) && !topic.Equals(u"audio-playing"_ns) &&
+      !topic.Equals(u"video-playing"_ns))
     return NS_OK;
 
   WakeLockTopic* topicLock = mTopics.Get(topic);
@@ -481,6 +490,8 @@ nsresult WakeLockListener::Callback(const nsAString& topic,
 
   // Treat "locked-background" the same as "unlocked" on desktop linux.
   bool shouldLock = state.EqualsLiteral("locked-foreground");
+  WAKE_LOCK_LOG("topic=%s, shouldLock=%d", NS_ConvertUTF16toUTF8(topic).get(),
+                shouldLock);
 
   return shouldLock ? topicLock->InhibitScreensaver()
                     : topicLock->UninhibitScreensaver();

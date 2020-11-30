@@ -7,7 +7,7 @@ package org.mozilla.gecko.gfx;
 
 import android.graphics.SurfaceTexture;
 import android.os.Build;
-import android.support.annotation.RequiresApi;
+import androidx.annotation.RequiresApi;
 import android.util.Log;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -131,7 +131,7 @@ import org.mozilla.gecko.mozglue.JNIObject;
     public synchronized void release() {
         mUpstream = 0;
         if (mBlitter != null) {
-            mBlitter.disposeNative();
+            mBlitter.close();
         }
         try {
             super.release();
@@ -233,21 +233,6 @@ import org.mozilla.gecko.mozglue.JNIObject;
         }
     }
 
-    @WrapForJNI
-    public static void detachAllFromGLContext(final long context) {
-        synchronized (sSurfaceTextures) {
-            for (GeckoSurfaceTexture tex : sSurfaceTextures.values()) {
-                try {
-                    if (tex.isAttachedToGLContext(context)) {
-                        tex.detachFromGLContext();
-                    }
-                } catch (Exception e) {
-                    Log.e(LOGTAG, "Failed to detach SurfaceTexture with handle: " + tex.mHandle, e);
-                }
-            }
-        }
-    }
-
     public static GeckoSurfaceTexture acquire(final boolean singleBufferMode, final int handle) {
         if (singleBufferMode && !isSingleBufferSupported()) {
             throw new IllegalArgumentException("single buffer mode not supported on API version < 19");
@@ -311,13 +296,32 @@ import org.mozilla.gecko.mozglue.JNIObject;
 
     @WrapForJNI
     public static final class NativeGLBlitHelper extends JNIObject {
-        public native static NativeGLBlitHelper create(int textureHandle,
-                                                       GeckoSurface targetSurface,
-                                                       int width,
-                                                       int height);
+        public static NativeGLBlitHelper create(final int textureHandle,
+                                                final GeckoSurface targetSurface,
+                                                final int width,
+                                                final int height) {
+            NativeGLBlitHelper helper = nativeCreate(textureHandle, targetSurface, width, height);
+            helper.mTargetSurface = targetSurface; // Take ownership of surface.
+            return helper;
+        }
+
+        public native static NativeGLBlitHelper nativeCreate(final int textureHandle,
+                                                       final GeckoSurface targetSurface,
+                                                       final int width,
+                                                       final int height);
         public native void blit();
+
+        public void close() {
+            disposeNative();
+            if (mTargetSurface != null) {
+                mTargetSurface.release();
+                mTargetSurface = null;
+            }
+        }
 
         @Override
         protected native void disposeNative();
+
+        private GeckoSurface mTargetSurface;
     }
 }

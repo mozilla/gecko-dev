@@ -8,10 +8,10 @@
 #include "WebBrowserPersistDocumentParent.h"
 #include "WebBrowserPersistResourcesParent.h"
 #include "WebBrowserPersistSerializeParent.h"
-#include "SHEntryParent.h"
 #include "mozilla/Unused.h"
 #include "mozilla/ipc/BackgroundUtils.h"
 
+#include "nsDebug.h"
 #include "nsIPrincipal.h"
 
 namespace mozilla {
@@ -22,13 +22,11 @@ WebBrowserPersistRemoteDocument ::WebBrowserPersistRemoteDocument(
     WebBrowserPersistDocumentParent* aActor, const Attrs& aAttrs,
     nsIInputStream* aPostData)
     : mActor(aActor), mAttrs(aAttrs), mPostData(aPostData) {
-  nsresult rv;
-  mPrincipal = ipc::PrincipalInfoToPrincipal(mAttrs.principal(), &rv);
-  if (mAttrs.sessionHistoryEntryOrCacheKey().type() ==
-      SessionHistoryEntryOrCacheKey::TPSHEntryParent) {
-    mSHEntry = static_cast<dom::SHEntryParent*>(
-                   mAttrs.sessionHistoryEntryOrCacheKey().get_PSHEntryParent())
-                   ->GetSHEntry();
+  auto principalOrErr = ipc::PrincipalInfoToPrincipal(mAttrs.principal());
+  if (principalOrErr.isOk()) {
+    mPrincipal = principalOrErr.unwrap();
+  } else {
+    NS_WARNING("Failed to obtain principal!");
   }
 }
 
@@ -95,15 +93,7 @@ WebBrowserPersistRemoteDocument::GetContentDisposition(nsAString& aDisp) {
 
 NS_IMETHODIMP
 WebBrowserPersistRemoteDocument::GetCacheKey(uint32_t* aCacheKey) {
-  *aCacheKey = 0;
-  if (mAttrs.sessionHistoryEntryOrCacheKey().type() ==
-      SessionHistoryEntryOrCacheKey::TPSHEntryParent) {
-    if (mSHEntry) {
-      *aCacheKey = mSHEntry->GetCacheKey();
-    }
-  } else {
-    *aCacheKey = mAttrs.sessionHistoryEntryOrCacheKey();
-  }
+  *aCacheKey = mAttrs.sessionHistoryCacheKey();
   return NS_OK;
 }
 

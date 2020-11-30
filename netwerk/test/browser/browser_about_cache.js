@@ -4,6 +4,10 @@
  * Open a dummy page, then open about:cache and verify the opened page shows up in the cache.
  */
 add_task(async function() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["privacy.partition.network_state", false]],
+  });
+
   const kRoot = getRootDirectory(gTestPath).replace(
     "chrome://mochitests/content/",
     "https://example.com/"
@@ -37,11 +41,11 @@ add_task(async function() {
       !content.document.nodePrincipal.isSystemPrincipal,
       "about:cache should not have system principal"
     );
-    let principalURI = content.document.nodePrincipal.URI;
+    let principal = content.document.nodePrincipal;
     let channel = content.docShell.currentDocumentChannel;
     ok(!channel.loadInfo.loadingPrincipal, "Loading principal should be null.");
     is(
-      principalURI && principalURI.spec,
+      principal.spec,
       content.document.location.href,
       "Principal matches location"
     );
@@ -69,16 +73,16 @@ add_task(async function() {
       !content.document.nodePrincipal.isSystemPrincipal,
       "about:cache with query params should still not have system principal"
     );
-    let principalURI = content.document.nodePrincipal.URI;
+    let principal = content.document.nodePrincipal;
     is(
-      principalURI && principalURI.spec,
+      principal.spec,
       content.document.location.href,
       "Principal matches location"
     );
     let channel = content.docShell.currentDocumentChannel;
-    principalURI = channel.loadInfo.triggeringPrincipal.URI;
+    principal = channel.loadInfo.triggeringPrincipal;
     is(
-      principalURI && principalURI.spec,
+      principal.spec,
       "about:cache",
       "Triggering principal matches previous location"
     );
@@ -99,16 +103,16 @@ add_task(async function() {
       !content.document.nodePrincipal.isSystemPrincipal,
       "about:cache-entry should also not have system principal"
     );
-    let principalURI = content.document.nodePrincipal.URI;
+    let principal = content.document.nodePrincipal;
     is(
-      principalURI && principalURI.spec,
+      principal.spec,
       content.document.location.href,
       "Principal matches location"
     );
     let channel = content.docShell.currentDocumentChannel;
-    principalURI = channel.loadInfo.triggeringPrincipal.URI;
+    principal = channel.loadInfo.triggeringPrincipal;
     is(
-      principalURI && principalURI.spec,
+      principal.spec,
       triggeringURISpec,
       "Triggering principal matches previous location"
     );

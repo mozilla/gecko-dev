@@ -7,9 +7,12 @@
 
 use crate::ir::{ArgumentLoc, ExternalName, SigRef, Type};
 use crate::isa::{CallConv, RegInfo, RegUnit};
+use crate::machinst::RelocDistance;
 use alloc::vec::Vec;
 use core::fmt;
 use core::str::FromStr;
+#[cfg(feature = "enable-serde")]
+use serde::{Deserialize, Serialize};
 
 /// Function signature.
 ///
@@ -19,6 +22,7 @@ use core::str::FromStr;
 /// A signature can optionally include ISA-specific ABI information which specifies exactly how
 /// arguments and return values are passed.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "enable-serde", derive(Serialize, Deserialize))]
 pub struct Signature {
     /// The arguments passed to the function.
     pub params: Vec<AbiParam>,
@@ -144,6 +148,7 @@ impl fmt::Display for Signature {
 /// This describes the value type being passed to or from a function along with flags that affect
 /// how the argument is passed.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "enable-serde", derive(Serialize, Deserialize))]
 pub struct AbiParam {
     /// Type of the argument value.
     pub value_type: Type,
@@ -155,6 +160,8 @@ pub struct AbiParam {
     /// ABI-specific location of this argument, or `Unassigned` for arguments that have not yet
     /// been legalized.
     pub location: ArgumentLoc,
+    /// Was the argument converted to pointer during legalization?
+    pub legalized_to_pointer: bool,
 }
 
 impl AbiParam {
@@ -165,6 +172,7 @@ impl AbiParam {
             extension: ArgumentExtension::None,
             purpose: ArgumentPurpose::Normal,
             location: Default::default(),
+            legalized_to_pointer: false,
         }
     }
 
@@ -175,6 +183,7 @@ impl AbiParam {
             extension: ArgumentExtension::None,
             purpose,
             location: Default::default(),
+            legalized_to_pointer: false,
         }
     }
 
@@ -185,6 +194,7 @@ impl AbiParam {
             extension: ArgumentExtension::None,
             purpose,
             location: ArgumentLoc::Reg(regunit),
+            legalized_to_pointer: false,
         }
     }
 
@@ -218,6 +228,9 @@ pub struct DisplayAbiParam<'a>(&'a AbiParam, Option<&'a RegInfo>);
 impl<'a> fmt::Display for DisplayAbiParam<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.0.value_type)?;
+        if self.0.legalized_to_pointer {
+            write!(f, " ptr")?;
+        }
         match self.0.extension {
             ArgumentExtension::None => {}
             ArgumentExtension::Uext => write!(f, " uext")?,
@@ -246,6 +259,7 @@ impl fmt::Display for AbiParam {
 /// On some architectures, small integer function arguments are extended to the width of a
 /// general-purpose register.
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
+#[cfg_attr(feature = "enable-serde", derive(Serialize, Deserialize))]
 pub enum ArgumentExtension {
     /// No extension, high bits are indeterminate.
     None,
@@ -263,9 +277,13 @@ pub enum ArgumentExtension {
 ///
 /// The argument purpose is used to indicate any special meaning of an argument or return value.
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
+#[cfg_attr(feature = "enable-serde", derive(Serialize, Deserialize))]
 pub enum ArgumentPurpose {
     /// A normal user program value passed to or from a function.
     Normal,
+
+    /// A C struct passed as argument.
+    StructArgument(u32),
 
     /// Struct return pointer.
     ///
@@ -317,23 +335,37 @@ pub enum ArgumentPurpose {
     /// This is a pointer to a stack limit. It is used to check the current stack pointer
     /// against. Can only appear once in a signature.
     StackLimit,
-}
 
-/// Text format names of the `ArgumentPurpose` variants.
-static PURPOSE_NAMES: [&str; 8] = [
-    "normal",
-    "sret",
-    "link",
-    "fp",
-    "csr",
-    "vmctx",
-    "sigid",
-    "stack_limit",
-];
+    /// A callee TLS value.
+    ///
+    /// In the Baldrdash-2020 calling convention, the stack upon entry to the callee contains the
+    /// TLS-register values for the caller and the callee. This argument is used to provide the
+    /// value for the callee.
+    CalleeTLS,
+
+    /// A caller TLS value.
+    ///
+    /// In the Baldrdash-2020 calling convention, the stack upon entry to the callee contains the
+    /// TLS-register values for the caller and the callee. This argument is used to provide the
+    /// value for the caller.
+    CallerTLS,
+}
 
 impl fmt::Display for ArgumentPurpose {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(PURPOSE_NAMES[*self as usize])
+        f.write_str(match self {
+            Self::Normal => "normal",
+            Self::StructArgument(size) => return write!(f, "sarg({})", size),
+            Self::StructReturn => "sret",
+            Self::Link => "link",
+            Self::FramePointer => "fp",
+            Self::CalleeSaved => "csr",
+            Self::VMContext => "vmctx",
+            Self::SignatureId => "sigid",
+            Self::StackLimit => "stack_limit",
+            Self::CalleeTLS => "callee_tls",
+            Self::CallerTLS => "caller_tls",
+        })
     }
 }
 
@@ -349,6 +381,14 @@ impl FromStr for ArgumentPurpose {
             "vmctx" => Ok(Self::VMContext),
             "sigid" => Ok(Self::SignatureId),
             "stack_limit" => Ok(Self::StackLimit),
+            _ if s.starts_with("sarg(") => {
+                if !s.ends_with(")") {
+                    return Err(());
+                }
+                // Parse 'sarg(size)'
+                let size: u32 = s["sarg(".len()..s.len() - 1].parse().map_err(|_| ())?;
+                Ok(Self::StructArgument(size))
+            }
             _ => Err(()),
         }
     }
@@ -366,6 +406,16 @@ pub struct ExtFuncData {
     /// Will this function be defined nearby, such that it will always be a certain distance away,
     /// after linking? If so, references to it can avoid going through a GOT or PLT. Note that
     /// symbols meant to be preemptible cannot be considered colocated.
+    ///
+    /// If `true`, some backends may use relocation forms that have limited range. The exact
+    /// distance depends on the code model in use. Currently on AArch64, for example, Cranelift
+    /// uses a custom code model supporting up to +/- 128MB displacements. If it is unknown how
+    /// far away the target will be, it is best not to set the `colocated` flag; in general, this
+    /// flag is best used when the target is known to be in the same unit of code generation, such
+    /// as a Wasm module.
+    ///
+    /// See the documentation for [`RelocDistance`](crate::machinst::RelocDistance) for more details. A
+    /// `colocated` flag value of `true` implies `RelocDistance::Near`.
     pub colocated: bool,
 }
 
@@ -375,6 +425,17 @@ impl fmt::Display for ExtFuncData {
             write!(f, "colocated ")?;
         }
         write!(f, "{} {}", self.name, self.signature)
+    }
+}
+
+impl ExtFuncData {
+    /// Return an estimate of the distance to the referred-to function symbol.
+    pub fn reloc_distance(&self) -> RelocDistance {
+        if self.colocated {
+            RelocDistance::Near
+        } else {
+            RelocDistance::Far
+        }
     }
 }
 
@@ -393,21 +454,24 @@ mod tests {
         assert_eq!(t.sext().to_string(), "i32 sext");
         t.purpose = ArgumentPurpose::StructReturn;
         assert_eq!(t.to_string(), "i32 uext sret");
+        t.legalized_to_pointer = true;
+        assert_eq!(t.to_string(), "i32 ptr uext sret");
     }
 
     #[test]
     fn argument_purpose() {
         let all_purpose = [
-            ArgumentPurpose::Normal,
-            ArgumentPurpose::StructReturn,
-            ArgumentPurpose::Link,
-            ArgumentPurpose::FramePointer,
-            ArgumentPurpose::CalleeSaved,
-            ArgumentPurpose::VMContext,
-            ArgumentPurpose::SignatureId,
-            ArgumentPurpose::StackLimit,
+            (ArgumentPurpose::Normal, "normal"),
+            (ArgumentPurpose::StructReturn, "sret"),
+            (ArgumentPurpose::Link, "link"),
+            (ArgumentPurpose::FramePointer, "fp"),
+            (ArgumentPurpose::CalleeSaved, "csr"),
+            (ArgumentPurpose::VMContext, "vmctx"),
+            (ArgumentPurpose::SignatureId, "sigid"),
+            (ArgumentPurpose::StackLimit, "stack_limit"),
+            (ArgumentPurpose::StructArgument(42), "sarg(42)"),
         ];
-        for (&e, &n) in all_purpose.iter().zip(PURPOSE_NAMES.iter()) {
+        for &(e, n) in &all_purpose {
             assert_eq!(e.to_string(), n);
             assert_eq!(Ok(e), n.parse());
         }
@@ -422,6 +486,7 @@ mod tests {
             CallConv::WindowsFastcall,
             CallConv::BaldrdashSystemV,
             CallConv::BaldrdashWindows,
+            CallConv::Baldrdash2020,
         ] {
             assert_eq!(Ok(cc), cc.to_string().parse())
         }

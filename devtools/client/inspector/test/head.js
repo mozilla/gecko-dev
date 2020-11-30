@@ -81,8 +81,6 @@ var startEyeDropper = async function(toolbox) {
  *
  * @param {Inspector} inspector
  *        Inspector instance
- * @param {TestActor} testActor
- *        TestActor instance
  * @param {String} selector
  *        CSS selector to identify the click target
  * @param {Number} x
@@ -92,12 +90,18 @@ var startEyeDropper = async function(toolbox) {
  * @return {Promise} promise that resolves when the selection is updated with the picked
  *         node.
  */
-function pickElement(inspector, testActor, selector, x, y) {
+function pickElement(inspector, selector, x, y) {
   info("Waiting for element " + selector + " to be picked");
   // Use an empty options argument in order trigger the default synthesizeMouse behavior
   // which will trigger mousedown, then mouseup.
   const onNewNodeFront = inspector.selection.once("new-node-front");
-  testActor.synthesizeMouse({ selector, x, y, options: {} });
+  BrowserTestUtils.synthesizeMouse(
+    selector,
+    x,
+    y,
+    {},
+    gBrowser.selectedTab.linkedBrowser
+  );
   return onNewNodeFront;
 }
 
@@ -106,22 +110,95 @@ function pickElement(inspector, testActor, selector, x, y) {
  *
  * @param {Inspector} inspector
  *        Inspector instance
- * @param {TestActor} testActor
- *        TestActor instance
- * @param {String} selector
- *        CSS selector to identify the hover target
+ * @param {String|Array} selector
+ *        CSS selector to identify the hover target.
+ *        Example: ".target"
+ *        If the element is at the bottom of a nested iframe stack, the selector should
+ *        be an array with each item identifying the iframe within its host document.
+ *        The last item of the array should be the element selector within the deepest
+ *        nested iframe.
+          Example: ["iframe#top", "iframe#nested", ".target"]
  * @param {Number} x
  *        X-offset from the top-left corner of the element matching the provided selector
  * @param {Number} y
  *        Y-offset from the top-left corner of the element matching the provided selector
- * @return {Promise} promise that resolves when the "picker-node-hovered" event is
- *         emitted.
+ * @return {Promise} promise that resolves when both the "picker-node-hovered" and
+ *                   "highlighter-shown" events are emitted.
  */
-function hoverElement(inspector, testActor, selector, x, y) {
+async function hoverElement(inspector, selector, x, y) {
+  const { waitForHighlighterTypeShown } = getHighlighterTestHelpers(inspector);
   info("Waiting for element " + selector + " to be hovered");
   const onHovered = inspector.toolbox.nodePicker.once("picker-node-hovered");
-  testActor.synthesizeMouse({ selector, x, y, options: { type: "mousemove" } });
-  return onHovered;
+  const onHighlighterShown = waitForHighlighterTypeShown(
+    inspector.highlighters.TYPES.BOXMODEL
+  );
+
+  // Default to the top-level target browsing context
+  let browsingContext = gBrowser.selectedTab.linkedBrowser;
+
+  if (Array.isArray(selector)) {
+    // Get the browsing context for the deepest nested frame; exclude the last array item.
+    // Cloning the array so it can be safely mutated.
+    browsingContext = await getBrowsingContextForNestedFrame(
+      selector.slice(0, selector.length - 1)
+    );
+    // Assume the last item in the selector array is the actual element selector.
+    // DO NOT mutate the selector array with .pop(), it might still be used by a test.
+    selector = selector[selector.length - 1];
+  }
+
+  if (isNaN(x) || isNaN(y)) {
+    BrowserTestUtils.synthesizeMouseAtCenter(
+      selector,
+      { type: "mousemove" },
+      browsingContext
+    );
+  } else {
+    BrowserTestUtils.synthesizeMouse(
+      selector,
+      x,
+      y,
+      { type: "mousemove" },
+      browsingContext
+    );
+  }
+
+  return Promise.all([onHighlighterShown, onHovered]);
+}
+
+/**
+ * Get the browsing context for the deepest nested iframe
+ * as identified by an array of selectors.
+ *
+ * @param  {Array} selectorArray
+ *         Each item in the array is a selector that identifies the iframe
+ *         within its host document.
+ *         Example: ["iframe#top", "iframe#nested"]
+ * @return {BrowsingContext}
+ *         BrowsingContext for the deepest nested iframe.
+ */
+async function getBrowsingContextForNestedFrame(selectorArray = []) {
+  // Default to the top-level target browsing context
+  let browsingContext = gBrowser.selectedTab.linkedBrowser;
+
+  // Return the top-level target browsing context if the selector is not an array.
+  if (!Array.isArray(selectorArray)) {
+    return browsingContext;
+  }
+
+  // Recursively get the browsing context for each nested iframe.
+  while (selectorArray.length) {
+    browsingContext = await SpecialPowers.spawn(
+      browsingContext,
+      [selectorArray.shift()],
+      function(selector) {
+        const iframe = content.document.querySelector(selector);
+        return iframe.browsingContext;
+      }
+    );
+  }
+
+  return browsingContext;
 }
 
 /**
@@ -133,9 +210,15 @@ function hoverElement(inspector, testActor, selector, x, y) {
  * @return a promise that resolves when the inspector is updated with the new
  * node
  */
-function selectAndHighlightNode(selector, inspector) {
+async function selectAndHighlightNode(selector, inspector) {
+  const { waitForHighlighterTypeShown } = getHighlighterTestHelpers(inspector);
   info("Highlighting and selecting the node " + selector);
-  return selectNode(selector, inspector, "test-highlight");
+  const onHighlighterShown = waitForHighlighterTypeShown(
+    inspector.highlighters.TYPES.BOXMODEL
+  );
+
+  await selectNode(selector, inspector, "test-highlight");
+  await onHighlighterShown;
 }
 
 /**
@@ -214,6 +297,24 @@ var getNodeFrontInFrame = async function(selector, frameSelector, inspector) {
   const iframe = await getNodeFront(frameSelector, inspector);
   const { nodes } = await inspector.walker.children(iframe);
   return inspector.walker.querySelector(nodes[0], selector);
+};
+
+/**
+ * Get the NodeFront for the document node inside a given iframe.
+ *
+ * @param {String|NodeFront} frameSelector
+ *        A selector that matches the iframe the document node is in
+ * @param {InspectorPanel} inspector
+ *        The instance of InspectorPanel currently loaded in the toolbox
+ * @return {Promise} Resolves the node front when the inspector is updated with the new
+ *         node.
+ */
+var getFrameDocument = async function(frameSelector, inspector) {
+  const iframe = await getNodeFront(frameSelector, inspector);
+  const { nodes } = await inspector.walker.children(iframe);
+
+  // Find the document node in the children of the iframe element.
+  return nodes.filter(node => node.displayName === "#document")[0];
 };
 
 /**
@@ -326,18 +427,21 @@ var getContainerForSelector = async function(
  * is shown on the corresponding node
  */
 var hoverContainer = async function(selector, inspector) {
+  const { waitForHighlighterTypeShown } = getHighlighterTestHelpers(inspector);
   info("Hovering over the markup-container for node " + selector);
 
   const nodeFront = await getNodeFront(selector, inspector);
   const container = getContainerForNodeFront(nodeFront, inspector);
 
-  const highlit = inspector.highlighter.once("node-highlight");
+  const onHighlighterShown = waitForHighlighterTypeShown(
+    inspector.highlighters.TYPES.BOXMODEL
+  );
   EventUtils.synthesizeMouseAtCenter(
     container.tagLine,
     { type: "mousemove" },
     inspector.markup.doc.defaultView
   );
-  return highlit;
+  await onHighlighterShown;
 };
 
 /**
@@ -633,6 +737,48 @@ const getHighlighterHelperFor = type =>
     };
   };
 
+/**
+ * Inspector-scoped wrapper for highlighter helpers to be used in tests.
+ *
+ * @param  {Inspector} inspector
+ *         Inspector client object instance.
+ * @return {Object} Object with helper methods
+ */
+function getHighlighterTestHelpers(inspector) {
+  /**
+   * Return a promise which resolves when a highlighter triggers the given event.
+   *
+   * @param  {String} type
+   *         Highlighter type.
+   * @param  {String} eventName
+   *         Name of the event to listen to.
+   * @return {Promise}
+   *         Promise which resolves when the highlighter event occurs.
+   *         Resolves with the data payload attached to the event.
+   */
+  function _waitForHighlighterTypeEvent(type, eventName) {
+    return new Promise(resolve => {
+      function _handler(data) {
+        if (type === data.type) {
+          inspector.highlighters.off(eventName, _handler);
+          resolve(data);
+        }
+      }
+
+      inspector.highlighters.on(eventName, _handler);
+    });
+  }
+
+  return {
+    waitForHighlighterTypeShown(type) {
+      return _waitForHighlighterTypeEvent(type, "highlighter-shown");
+    },
+    waitForHighlighterTypeHidden(type) {
+      return _waitForHighlighterTypeEvent(type, "highlighter-hidden");
+    },
+  };
+}
+
 // The expand all operation of the markup-view calls itself recursively and
 // there's not one event we can wait for to know when it's done so use this
 // helper function to wait until all recursive children updates are done.
@@ -747,35 +893,6 @@ var waitForTab = async function() {
   info("The tab load completed");
   return tab;
 };
-
-/**
- * Wait for a predicate to return a result.
- *
- * @param {Function} condition
- *        Invoked once in a while until it returns a truthy value. This should be an
- *        idempotent function, since we have to run it a second time after it returns
- *        true in order to return the value.
- * @param {String} message [optional]
- *        A message to output if the condition fails.
- * @param {Number} interval [optional]
- *        How often the predicate is invoked, in milliseconds.
- * @return {Object}
- *         A promise that is resolved with the result of the condition.
- */
-async function waitFor(
-  condition,
-  message = "waitFor",
-  interval = 10,
-  maxTries = 500
-) {
-  await BrowserTestUtils.waitForCondition(
-    condition,
-    message,
-    interval,
-    maxTries
-  );
-  return condition();
-}
 
 /**
  * Simulate the key input for the given input in the window.
@@ -1030,4 +1147,174 @@ async function simulateColorPickerChange(colorPicker, newRgba) {
   info("Applying the change");
   spectrum.updateUI();
   spectrum.onChange();
+}
+
+/**
+ * Assert method to compare the current content of the markupview to a text based tree.
+ *
+ * @param {String} tree
+ *        Multiline string representing the markup view tree, for instance:
+ *        `root
+ *           child1
+ *             subchild1
+ *             subchild2
+ *           child2
+ *             subchild3!slotted`
+ *           child3!ignore-children
+ *        Each sub level should be indented by 2 spaces.
+ *        Each line contains text expected to match with the text of the corresponding
+ *        node in the markup view. Some suffixes are supported:
+ *        - !slotted -> indicates that the line corresponds to the slotted version
+ *        - !ignore-children -> the node might have children but do not assert them
+ * @param {String} selector
+ *        A CSS selector that will uniquely match the "root" element from the tree
+ * @param {Inspector} inspector
+ *        The inspector instance.
+ */
+async function assertMarkupViewAsTree(tree, selector, inspector) {
+  const { markup } = inspector;
+
+  info(`Find and expand the shadow DOM host matching selector ${selector}.`);
+  const rootFront = await getNodeFront(selector, inspector);
+  const rootContainer = markup.getContainer(rootFront);
+
+  const parsedTree = _parseMarkupViewTree(tree);
+  const treeRoot = parsedTree.children[0];
+  await _checkMarkupViewNode(treeRoot, rootContainer, inspector);
+}
+
+async function _checkMarkupViewNode(treeNode, container, inspector) {
+  const { node, children, path } = treeNode;
+  info("Checking [" + path + "]");
+  info("Checking node: " + node);
+
+  const ignoreChildren = node.includes("!ignore-children");
+  const slotted = node.includes("!slotted");
+
+  // Remove optional suffixes.
+  const nodeText = node.replace("!slotted", "").replace("!ignore-children", "");
+
+  assertContainerHasText(container, nodeText);
+
+  if (slotted) {
+    assertContainerSlotted(container);
+  }
+
+  if (ignoreChildren) {
+    return;
+  }
+
+  if (!children.length) {
+    ok(!container.canExpand, "Container for [" + path + "] has no children");
+    return;
+  }
+
+  // Expand the container if not already done.
+  if (!container.expanded) {
+    await expandContainer(inspector, container);
+  }
+
+  const containers = container.getChildContainers();
+  is(
+    containers.length,
+    children.length,
+    "Node [" + path + "] has the expected number of children"
+  );
+  for (let i = 0; i < children.length; i++) {
+    await _checkMarkupViewNode(children[i], containers[i], inspector);
+  }
+}
+
+/**
+ * Helper designed to parse a tree represented as:
+ * root
+ *   child1
+ *     subchild1
+ *     subchild2
+ *   child2
+ *     subchild3!slotted
+ *
+ * Lines represent a simplified view of the markup, where the trimmed line is supposed to
+ * be included in the text content of the actual markupview container.
+ * This method returns an object that can be passed to _checkMarkupViewNode() to verify
+ * the current markup view displays the expected structure.
+ */
+function _parseMarkupViewTree(inputString) {
+  const tree = {
+    level: 0,
+    children: [],
+  };
+  let lines = inputString.split("\n");
+  lines = lines.filter(l => l.trim());
+
+  let currentNode = tree;
+  for (const line of lines) {
+    const nodeString = line.trim();
+    const level = line.split("  ").length;
+
+    let parent;
+    if (level > currentNode.level) {
+      parent = currentNode;
+    } else {
+      parent = currentNode.parent;
+      for (let i = 0; i < currentNode.level - level; i++) {
+        parent = parent.parent;
+      }
+    }
+
+    const node = {
+      node: nodeString,
+      children: [],
+      parent,
+      level,
+      path: parent.path + " " + nodeString,
+    };
+
+    parent.children.push(node);
+    currentNode = node;
+  }
+
+  return tree;
+}
+
+/**
+ * Assert whether the provided container is slotted.
+ */
+function assertContainerSlotted(container) {
+  ok(container.isSlotted(), "Container is a slotted container");
+  ok(
+    container.elt.querySelector(".reveal-link"),
+    "Slotted container has a reveal link element"
+  );
+}
+
+/**
+ * Check if the provided text can be matched anywhere in the text content for the provided
+ * container.
+ */
+function assertContainerHasText(container, expectedText) {
+  const textContent = container.elt.textContent;
+  ok(
+    textContent.includes(expectedText),
+    "Container has expected text: " + expectedText
+  );
+}
+
+function waitForMutation(inspector, type) {
+  return waitForNMutations(inspector, type, 1);
+}
+
+function waitForNMutations(inspector, type, count) {
+  info(`Expecting ${count} markupmutation of type ${type}`);
+  let receivedMutations = 0;
+  return new Promise(resolve => {
+    inspector.on("markupmutation", function onMutation(mutations) {
+      const validMutations = mutations.filter(m => m.type === type).length;
+      receivedMutations = receivedMutations + validMutations;
+      if (receivedMutations == count) {
+        inspector.off("markupmutation", onMutation);
+        resolve();
+      }
+    });
+  });
 }

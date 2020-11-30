@@ -9,6 +9,7 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/RangeBoundary.h"
 #include "mozilla/RangeUtils.h"
+#include "mozilla/Result.h"
 
 #include "nsContentUtils.h"
 #include "nsElementTable.h"
@@ -112,8 +113,8 @@ static bool NodeIsInTraversalRange(nsINode* aNode, bool aIsPreMode,
   return ComparePostMode(aStart, aEnd, *aNode);
 }
 
-ContentIteratorBase::ContentIteratorBase(bool aPre)
-    : mIsDone(false), mPre(aPre) {}
+ContentIteratorBase::ContentIteratorBase(Order aOrder)
+    : mIsDone(false), mOrder(aOrder) {}
 
 /******************************************************
  * Init routines
@@ -126,17 +127,17 @@ nsresult ContentIteratorBase::Init(nsINode* aRoot) {
 
   mIsDone = false;
 
-  if (mPre) {
+  if (mOrder == Order::Pre) {
     mFirst = aRoot;
-    mLast = GetDeepLastChild(aRoot);
+    mLast = ContentIteratorBase::GetDeepLastChild(aRoot);
     NS_WARNING_ASSERTION(mLast, "GetDeepLastChild returned null");
   } else {
-    mFirst = GetDeepFirstChild(aRoot);
+    mFirst = ContentIteratorBase::GetDeepFirstChild(aRoot);
     NS_WARNING_ASSERTION(mFirst, "GetDeepFirstChild returned null");
     mLast = aRoot;
   }
 
-  mCommonParent = aRoot;
+  mClosestCommonInclusiveAncestor = aRoot;
   mCurNode = mFirst;
   return NS_OK;
 }
@@ -181,16 +182,62 @@ nsresult ContentIteratorBase::Init(const RawRangeBoundary& aStart,
   return InitInternal(aStart, aEnd);
 }
 
-nsresult ContentIteratorBase::InitInternal(const RawRangeBoundary& aStart,
-                                           const RawRangeBoundary& aEnd) {
-  // get common content parent
-  mCommonParent = nsContentUtils::GetClosestCommonInclusiveAncestor(
-      aStart.Container(), aEnd.Container());
-  if (NS_WARN_IF(!mCommonParent)) {
-    return NS_ERROR_FAILURE;
+class MOZ_STACK_CLASS ContentIteratorBase::Initializer final {
+ public:
+  Initializer(ContentIteratorBase& aIterator, const RawRangeBoundary& aStart,
+              const RawRangeBoundary& aEnd)
+      : mIterator{aIterator},
+        mStart{aStart},
+        mEnd{aEnd},
+        mStartIsCharacterData{mStart.Container()->IsCharacterData()} {
+    MOZ_ASSERT(mStart.IsSetAndValid());
+    MOZ_ASSERT(mEnd.IsSetAndValid());
   }
 
-  bool startIsData = aStart.Container()->IsCharacterData();
+  nsresult Run();
+
+ private:
+  /**
+   * @return may be nullptr.
+   */
+  nsINode* DetermineFirstNode() const;
+
+  /**
+   * @return may be nullptr.
+   */
+  [[nodiscard]] Result<nsINode*, nsresult> DetermineLastNode() const;
+
+  bool IsCollapsedNonCharacterRange() const;
+  bool IsSingleNodeCharacterRange() const;
+
+  ContentIteratorBase& mIterator;
+  const RawRangeBoundary& mStart;
+  const RawRangeBoundary& mEnd;
+  const bool mStartIsCharacterData;
+};
+
+nsresult ContentIteratorBase::InitInternal(const RawRangeBoundary& aStart,
+                                           const RawRangeBoundary& aEnd) {
+  Initializer initializer{*this, aStart, aEnd};
+  return initializer.Run();
+}
+
+bool ContentIteratorBase::Initializer::IsCollapsedNonCharacterRange() const {
+  return !mStartIsCharacterData && mStart == mEnd;
+}
+
+bool ContentIteratorBase::Initializer::IsSingleNodeCharacterRange() const {
+  return mStartIsCharacterData && mStart.Container() == mEnd.Container();
+}
+
+nsresult ContentIteratorBase::Initializer::Run() {
+  // get common content parent
+  mIterator.mClosestCommonInclusiveAncestor =
+      nsContentUtils::GetClosestCommonInclusiveAncestor(mStart.Container(),
+                                                        mEnd.Container());
+  if (NS_WARN_IF(!mIterator.mClosestCommonInclusiveAncestor)) {
+    return NS_ERROR_FAILURE;
+  }
 
   // Check to see if we have a collapsed range, if so, there is nothing to
   // iterate over.
@@ -199,34 +246,53 @@ nsresult ContentIteratorBase::InitInternal(const RawRangeBoundary& aStart,
   //      we always want to be able to iterate text nodes at the end points
   //      of a range.
 
-  if (!startIsData && aStart == aEnd) {
-    MakeEmpty();
+  if (IsCollapsedNonCharacterRange()) {
+    mIterator.SetEmpty();
     return NS_OK;
   }
 
-  // Handle ranges within a single character data node.
-  if (startIsData && aStart.Container() == aEnd.Container()) {
-    mFirst = aStart.Container()->AsContent();
-    mLast = mFirst;
-    mCurNode = mFirst;
+  if (IsSingleNodeCharacterRange()) {
+    mIterator.mFirst = mStart.Container()->AsContent();
+    mIterator.mLast = mIterator.mFirst;
+    mIterator.mCurNode = mIterator.mFirst;
 
     return NS_OK;
   }
 
-  // Find first node in range.
+  mIterator.mFirst = DetermineFirstNode();
 
+  if (Result<nsINode*, nsresult> lastNode = DetermineLastNode();
+      NS_WARN_IF(lastNode.isErr())) {
+    return lastNode.unwrapErr();
+  } else {
+    mIterator.mLast = lastNode.unwrap();
+  }
+
+  // If either first or last is null, they both have to be null!
+  if (!mIterator.mFirst || !mIterator.mLast) {
+    mIterator.mFirst = nullptr;
+    mIterator.mLast = nullptr;
+  }
+
+  mIterator.mCurNode = mIterator.mFirst;
+  mIterator.mIsDone = !mIterator.mCurNode;
+
+  return NS_OK;
+}
+
+nsINode* ContentIteratorBase::Initializer::DetermineFirstNode() const {
   nsIContent* cChild = nullptr;
 
   // Try to get the child at our starting point. This might return null if
-  // aStart is immediately after the last node in aStart.Container().
-  if (!startIsData) {
-    cChild = aStart.GetChildAtOffset();
+  // mStart is immediately after the last node in mStart.Container().
+  if (!mStartIsCharacterData) {
+    cChild = mStart.GetChildAtOffset();
   }
 
   if (!cChild) {
     // No children (possibly a <br> or text node), or index is after last child.
 
-    if (mPre) {
+    if (mIterator.mOrder == Order::Pre) {
       // XXX: In the future, if start offset is after the last
       //      character in the cdata node, should we set mFirst to
       //      the next sibling?
@@ -236,150 +302,155 @@ nsresult ContentIteratorBase::InitInternal(const RawRangeBoundary& aStart,
       // is a non-container node (e.g. <br>), we don't skip the node in this
       // case in order to address bug 1215798.
       bool startIsContainer = true;
-      if (aStart.Container()->IsHTMLElement()) {
-        nsAtom* name = aStart.Container()->NodeInfo()->NameAtom();
+      if (mStart.Container()->IsHTMLElement()) {
+        nsAtom* name = mStart.Container()->NodeInfo()->NameAtom();
         startIsContainer =
             nsHTMLElement::IsContainer(nsHTMLTags::AtomTagToId(name));
       }
-      if (!startIsData && (startIsContainer || !aStart.IsStartOfContainer())) {
-        mFirst = GetNextSibling(aStart.Container());
-        NS_WARNING_ASSERTION(mFirst, "GetNextSibling returned null");
+      if (!mStartIsCharacterData &&
+          (startIsContainer || !mStart.IsStartOfContainer())) {
+        nsINode* const result =
+            ContentIteratorBase::GetNextSibling(mStart.Container());
+        NS_WARNING_ASSERTION(result, "GetNextSibling returned null");
 
         // Does mFirst node really intersect the range?  The range could be
         // 'degenerate', i.e., not collapsed but still contain no content.
-        if (mFirst &&
-            NS_WARN_IF(!NodeIsInTraversalRange(mFirst, mPre, aStart, aEnd))) {
-          mFirst = nullptr;
+        if (result &&
+            NS_WARN_IF(!NodeIsInTraversalRange(
+                result, mIterator.mOrder == Order::Pre, mStart, mEnd))) {
+          return nullptr;
         }
-      } else {
-        mFirst = aStart.Container()->AsContent();
+
+        return result;
       }
+      return mStart.Container()->AsContent();
     } else {
       // post-order
-      if (NS_WARN_IF(!aStart.Container()->IsContent())) {
+      if (NS_WARN_IF(!mStart.Container()->IsContent())) {
         // What else can we do?
-        mFirst = nullptr;
-      } else {
-        mFirst = aStart.Container()->AsContent();
+        return nullptr;
       }
+      return mStart.Container()->AsContent();
     }
   } else {
-    if (mPre) {
-      mFirst = cChild;
-    } else {
-      // post-order
-      mFirst = GetDeepFirstChild(cChild);
-      NS_WARNING_ASSERTION(mFirst, "GetDeepFirstChild returned null");
-
-      // Does mFirst node really intersect the range?  The range could be
-      // 'degenerate', i.e., not collapsed but still contain no content.
-
-      if (mFirst && !NodeIsInTraversalRange(mFirst, mPre, aStart, aEnd)) {
-        mFirst = nullptr;
-      }
+    if (mIterator.mOrder == Order::Pre) {
+      return cChild;
     }
+    // post-order
+    nsINode* const result = ContentIteratorBase::GetDeepFirstChild(cChild);
+    NS_WARNING_ASSERTION(result, "GetDeepFirstChild returned null");
+
+    // Does mFirst node really intersect the range?  The range could be
+    // 'degenerate', i.e., not collapsed but still contain no content.
+
+    if (result && !NodeIsInTraversalRange(
+                      result, mIterator.mOrder == Order::Pre, mStart, mEnd)) {
+      return nullptr;
+    }
+
+    return result;
   }
 
-  // Find last node in range.
+  return nullptr;
+}
 
-  bool endIsData = aEnd.Container()->IsCharacterData();
+Result<nsINode*, nsresult> ContentIteratorBase::Initializer::DetermineLastNode()
+    const {
+  const bool endIsCharacterData = mEnd.Container()->IsCharacterData();
 
-  if (endIsData || !aEnd.Container()->HasChildren() ||
-      aEnd.IsStartOfContainer()) {
-    if (mPre) {
-      if (NS_WARN_IF(!aEnd.Container()->IsContent())) {
+  if (endIsCharacterData || !mEnd.Container()->HasChildren() ||
+      mEnd.IsStartOfContainer()) {
+    if (mIterator.mOrder == Order::Pre) {
+      if (NS_WARN_IF(!mEnd.Container()->IsContent())) {
         // Not much else to do here...
-        mLast = nullptr;
-      } else {
-        // If the end node is a non-container element and the end offset is 0,
-        // the last element should be the previous node (i.e., shouldn't
-        // include the end node in the range).
-        bool endIsContainer = true;
-        if (aEnd.Container()->IsHTMLElement()) {
-          nsAtom* name = aEnd.Container()->NodeInfo()->NameAtom();
-          endIsContainer =
-              nsHTMLElement::IsContainer(nsHTMLTags::AtomTagToId(name));
-        }
-        if (!endIsData && !endIsContainer && aEnd.IsStartOfContainer()) {
-          mLast = PrevNode(aEnd.Container());
-          NS_WARNING_ASSERTION(mLast, "PrevNode returned null");
-          if (mLast && mLast != mFirst &&
-              NS_WARN_IF(!NodeIsInTraversalRange(
-                  mLast, mPre, RawRangeBoundary(mFirst, 0u), aEnd))) {
-            mLast = nullptr;
-          }
-        } else {
-          mLast = aEnd.Container()->AsContent();
-        }
+        return nullptr;
       }
+
+      // If the end node is a non-container element and the end offset is 0,
+      // the last element should be the previous node (i.e., shouldn't
+      // include the end node in the range).
+      bool endIsContainer = true;
+      if (mEnd.Container()->IsHTMLElement()) {
+        nsAtom* name = mEnd.Container()->NodeInfo()->NameAtom();
+        endIsContainer =
+            nsHTMLElement::IsContainer(nsHTMLTags::AtomTagToId(name));
+      }
+      if (!endIsCharacterData && !endIsContainer && mEnd.IsStartOfContainer()) {
+        nsINode* const result = mIterator.PrevNode(mEnd.Container());
+        NS_WARNING_ASSERTION(result, "PrevNode returned null");
+        if (result && result != mIterator.mFirst &&
+            NS_WARN_IF(!NodeIsInTraversalRange(
+                result, mIterator.mOrder == Order::Pre,
+                RawRangeBoundary(mIterator.mFirst, 0u), mEnd))) {
+          return nullptr;
+        }
+
+        return result;
+      }
+
+      return mEnd.Container()->AsContent();
     } else {
       // post-order
       //
       // XXX: In the future, if end offset is before the first character in the
       //      cdata node, should we set mLast to the prev sibling?
 
-      if (!endIsData) {
-        mLast = GetPrevSibling(aEnd.Container());
-        NS_WARNING_ASSERTION(mLast, "GetPrevSibling returned null");
+      if (!endIsCharacterData) {
+        nsINode* const result =
+            ContentIteratorBase::GetPrevSibling(mEnd.Container());
+        NS_WARNING_ASSERTION(result, "GetPrevSibling returned null");
 
-        if (!NodeIsInTraversalRange(mLast, mPre, aStart, aEnd)) {
-          mLast = nullptr;
+        if (!NodeIsInTraversalRange(result, mIterator.mOrder == Order::Pre,
+                                    mStart, mEnd)) {
+          return nullptr;
         }
-      } else {
-        mLast = aEnd.Container()->AsContent();
+        return result;
       }
+      return mEnd.Container()->AsContent();
     }
   } else {
-    cChild = aEnd.Ref();
+    nsIContent* cChild = mEnd.Ref();
 
     if (NS_WARN_IF(!cChild)) {
       // No child at offset!
       MOZ_ASSERT_UNREACHABLE("ContentIterator::ContentIterator");
-      return NS_ERROR_FAILURE;
+      return Err(NS_ERROR_FAILURE);
     }
 
-    if (mPre) {
-      mLast = GetDeepLastChild(cChild);
-      NS_WARNING_ASSERTION(mLast, "GetDeepLastChild returned null");
+    if (mIterator.mOrder == Order::Pre) {
+      nsINode* const result = ContentIteratorBase::GetDeepLastChild(cChild);
+      NS_WARNING_ASSERTION(result, "GetDeepLastChild returned null");
 
-      if (NS_WARN_IF(!NodeIsInTraversalRange(mLast, mPre, aStart, aEnd))) {
-        mLast = nullptr;
+      if (NS_WARN_IF(!NodeIsInTraversalRange(
+              result, mIterator.mOrder == Order::Pre, mStart, mEnd))) {
+        return nullptr;
       }
-    } else {
-      // post-order
-      mLast = cChild;
+
+      return result;
     }
+    // post-order
+    return cChild;
   }
-
-  // If either first or last is null, they both have to be null!
-
-  if (!mFirst || !mLast) {
-    mFirst = nullptr;
-    mLast = nullptr;
-  }
-
-  mCurNode = mFirst;
-  mIsDone = !mCurNode;
-
-  return NS_OK;
 }
 
-void ContentIteratorBase::MakeEmpty() {
+void ContentIteratorBase::SetEmpty() {
   mCurNode = nullptr;
   mFirst = nullptr;
   mLast = nullptr;
-  mCommonParent = nullptr;
+  mClosestCommonInclusiveAncestor = nullptr;
   mIsDone = true;
 }
 
+// static
 nsINode* ContentIteratorBase::GetDeepFirstChild(nsINode* aRoot) {
   if (NS_WARN_IF(!aRoot) || !aRoot->HasChildren()) {
     return aRoot;
   }
 
-  return GetDeepFirstChild(aRoot->GetFirstChild());
+  return ContentIteratorBase::GetDeepFirstChild(aRoot->GetFirstChild());
 }
 
+// static
 nsIContent* ContentIteratorBase::GetDeepFirstChild(nsIContent* aRoot) {
   if (NS_WARN_IF(!aRoot)) {
     return nullptr;
@@ -396,14 +467,16 @@ nsIContent* ContentIteratorBase::GetDeepFirstChild(nsIContent* aRoot) {
   return node;
 }
 
+// static
 nsINode* ContentIteratorBase::GetDeepLastChild(nsINode* aRoot) {
   if (NS_WARN_IF(!aRoot) || !aRoot->HasChildren()) {
     return aRoot;
   }
 
-  return GetDeepLastChild(aRoot->GetLastChild());
+  return ContentIteratorBase::GetDeepLastChild(aRoot->GetLastChild());
 }
 
+// static
 nsIContent* ContentIteratorBase::GetDeepLastChild(nsIContent* aRoot) {
   if (NS_WARN_IF(!aRoot)) {
     return nullptr;
@@ -418,6 +491,7 @@ nsIContent* ContentIteratorBase::GetDeepLastChild(nsIContent* aRoot) {
 }
 
 // Get the next sibling, or parent's next sibling, or grandpa's next sibling...
+// static
 nsIContent* ContentIteratorBase::GetNextSibling(nsINode* aNode) {
   if (NS_WARN_IF(!aNode)) {
     return nullptr;
@@ -439,10 +513,11 @@ nsIContent* ContentIteratorBase::GetNextSibling(nsINode* aNode) {
     return parent->GetFirstChild();
   }
 
-  return GetNextSibling(parent);
+  return ContentIteratorBase::GetNextSibling(parent);
 }
 
 // Get the prev sibling, or parent's prev sibling, or grandpa's prev sibling...
+// static
 nsIContent* ContentIteratorBase::GetPrevSibling(nsINode* aNode) {
   if (NS_WARN_IF(!aNode)) {
     return nullptr;
@@ -464,14 +539,14 @@ nsIContent* ContentIteratorBase::GetPrevSibling(nsINode* aNode) {
     return parent->GetLastChild();
   }
 
-  return GetPrevSibling(parent);
+  return ContentIteratorBase::GetPrevSibling(parent);
 }
 
 nsINode* ContentIteratorBase::NextNode(nsINode* aNode) {
   nsINode* node = aNode;
 
   // if we are a Pre-order iterator, use pre-order
-  if (mPre) {
+  if (mOrder == Order::Pre) {
     // if it has children then next node is first child
     if (node->HasChildren()) {
       nsIContent* firstChild = node->GetFirstChild();
@@ -481,7 +556,7 @@ nsINode* ContentIteratorBase::NextNode(nsINode* aNode) {
     }
 
     // else next sibling is next
-    return GetNextSibling(node);
+    return ContentIteratorBase::GetNextSibling(node);
   }
 
   // post-order
@@ -495,7 +570,7 @@ nsINode* ContentIteratorBase::NextNode(nsINode* aNode) {
   nsIContent* sibling = node->GetNextSibling();
   if (sibling) {
     // next node is sibling's "deep left" child
-    return GetDeepFirstChild(sibling);
+    return ContentIteratorBase::GetDeepFirstChild(sibling);
   }
 
   return parent;
@@ -505,7 +580,7 @@ nsINode* ContentIteratorBase::PrevNode(nsINode* aNode) {
   nsINode* node = aNode;
 
   // if we are a Pre-order iterator, use pre-order
-  if (mPre) {
+  if (mOrder == Order::Pre) {
     nsINode* parent = node->GetParentNode();
     if (NS_WARN_IF(!parent)) {
       MOZ_ASSERT(parent, "The node is the root node but not the first node");
@@ -515,7 +590,7 @@ nsINode* ContentIteratorBase::PrevNode(nsINode* aNode) {
 
     nsIContent* sibling = node->GetPreviousSibling();
     if (sibling) {
-      return GetDeepLastChild(sibling);
+      return ContentIteratorBase::GetDeepLastChild(sibling);
     }
 
     return parent;
@@ -527,7 +602,7 @@ nsINode* ContentIteratorBase::PrevNode(nsINode* aNode) {
   }
 
   // else prev sibling is previous
-  return GetPrevSibling(node);
+  return ContentIteratorBase::GetPrevSibling(node);
 }
 
 /******************************************************
@@ -544,8 +619,8 @@ void ContentIteratorBase::First() {
 }
 
 void ContentIteratorBase::Last() {
-  // Note that mLast can be nullptr if MakeEmpty() is called in Init() since
-  // at that time, Init() returns NS_OK.
+  // Note that mLast can be nullptr if SetEmpty() is called in Init()
+  // since at that time, Init() returns NS_OK.
   if (!mLast) {
     MOZ_ASSERT(mIsDone);
     return;
@@ -605,7 +680,7 @@ nsresult ContentIteratorBase::PositionAt(nsINode* aCurNode) {
   RawRangeBoundary last(mLast, 0u);
 
   if (mFirst && mLast) {
-    if (mPre) {
+    if (mOrder == Order::Pre) {
       // In pre we want to record the point immediately before mFirst, which is
       // the point immediately after mFirst's previous sibling.
       first = {mFirst->GetParentNode(), mFirst->GetPreviousSibling()};
@@ -636,7 +711,8 @@ nsresult ContentIteratorBase::PositionAt(nsINode* aCurNode) {
   // for example, bug 327694.
   if (mFirst != mCurNode && mLast != mCurNode &&
       (NS_WARN_IF(!first.IsSet()) || NS_WARN_IF(!last.IsSet()) ||
-       NS_WARN_IF(!NodeIsInTraversalRange(mCurNode, mPre, first, last)))) {
+       NS_WARN_IF(!NodeIsInTraversalRange(mCurNode, mOrder == Order::Pre, first,
+                                          last)))) {
     mIsDone = true;
     return NS_ERROR_FAILURE;
   }
@@ -705,54 +781,29 @@ nsresult ContentSubtreeIterator::Init(const RawRangeBoundary& aStartBoundary,
   return InitWithRange();
 }
 
-nsresult ContentSubtreeIterator::InitWithRange() {
-  MOZ_ASSERT(mRange);
-  MOZ_ASSERT(mRange->IsPositioned());
-
-  // get the start node and offset, convert to nsINode
-  mCommonParent = mRange->GetClosestCommonInclusiveAncestor();
-  nsINode* startContainer = mRange->GetStartContainer();
-  int32_t startOffset = mRange->StartOffset();
-  nsINode* endContainer = mRange->GetEndContainer();
-  int32_t endOffset = mRange->EndOffset();
-  MOZ_ASSERT(mCommonParent && startContainer && endContainer);
-  // Bug 767169
-  MOZ_ASSERT(uint32_t(startOffset) <= startContainer->Length() &&
-             uint32_t(endOffset) <= endContainer->Length());
-
-  // short circuit when start node == end node
-  if (startContainer == endContainer) {
-    nsINode* child = startContainer->GetFirstChild();
-
-    if (!child || startOffset == endOffset) {
-      // Text node, empty container, or collapsed
-      MakeEmpty();
-      return NS_OK;
-    }
-  }
-
-  // cache ancestors
-  mEndNodes.Clear();
+void ContentSubtreeIterator::CacheInclusiveAncestorsOfEndContainer() {
+  mInclusiveAncestorsOfEndContainer.Clear();
+  nsINode* const endContainer = mRange->GetEndContainer();
   nsIContent* endNode =
       endContainer->IsContent() ? endContainer->AsContent() : nullptr;
   while (endNode) {
-    mEndNodes.AppendElement(endNode);
+    mInclusiveAncestorsOfEndContainer.AppendElement(endNode);
     endNode = endNode->GetParent();
   }
+}
 
+nsIContent* ContentSubtreeIterator::DetermineCandidateForFirstContent() const {
+  nsINode* startContainer = mRange->GetStartContainer();
   nsIContent* firstCandidate = nullptr;
-  nsIContent* lastCandidate = nullptr;
-
   // find first node in range
-  int32_t offset = mRange->StartOffset();
-
   nsINode* node = nullptr;
   if (!startContainer->GetChildCount()) {
     // no children, start at the node itself
     node = startContainer;
   } else {
     nsIContent* child = mRange->GetChildAtStartOffset();
-    MOZ_ASSERT(child == startContainer->GetChildAt_Deprecated(offset));
+    MOZ_ASSERT(child ==
+               startContainer->GetChildAt_Deprecated(mRange->StartOffset()));
     if (!child) {
       // offset after last child
       node = startContainer;
@@ -763,37 +814,45 @@ nsresult ContentSubtreeIterator::InitWithRange() {
 
   if (!firstCandidate) {
     // then firstCandidate is next node after node
-    firstCandidate = GetNextSibling(node);
-
-    if (!firstCandidate) {
-      MakeEmpty();
-      return NS_OK;
-    }
+    firstCandidate = ContentIteratorBase::GetNextSibling(node);
   }
 
-  firstCandidate = GetDeepFirstChild(firstCandidate);
+  if (firstCandidate) {
+    firstCandidate = ContentIteratorBase::GetDeepFirstChild(firstCandidate);
+  }
+
+  return firstCandidate;
+}
+
+nsIContent* ContentSubtreeIterator::DetermineFirstContent() const {
+  nsIContent* firstCandidate = DetermineCandidateForFirstContent();
+  if (!firstCandidate) {
+    return nullptr;
+  }
 
   // confirm that this first possible contained node is indeed contained.  Else
   // we have a range that does not fully contain any node.
-
-  bool nodeBefore, nodeAfter;
-  MOZ_ALWAYS_SUCCEEDS(RangeUtils::CompareNodeToRange(firstCandidate, mRange,
-                                                     &nodeBefore, &nodeAfter));
-
-  if (nodeBefore || nodeAfter) {
-    MakeEmpty();
-    return NS_OK;
+  const Maybe<bool> isNodeContainedInRange =
+      RangeUtils::IsNodeContainedInRange(*firstCandidate, mRange);
+  MOZ_ALWAYS_TRUE(isNodeContainedInRange);
+  if (!isNodeContainedInRange.value()) {
+    return nullptr;
   }
 
   // cool, we have the first node in the range.  Now we walk up its ancestors
   // to find the most senior that is still in the range.  That's the real first
   // node.
-  mFirst = GetTopAncestorInRange(firstCandidate);
+  return GetTopAncestorInRange(firstCandidate);
+}
 
+nsIContent* ContentSubtreeIterator::DetermineCandidateForLastContent() const {
+  nsIContent* lastCandidate{nullptr};
+  nsINode* endContainer = mRange->GetEndContainer();
   // now to find the last node
-  offset = mRange->EndOffset();
+  int32_t offset = mRange->EndOffset();
   int32_t numChildren = endContainer->GetChildCount();
 
+  nsINode* node = nullptr;
   if (offset > numChildren) {
     // Can happen for text nodes
     offset = numChildren;
@@ -809,35 +868,81 @@ nsresult ContentSubtreeIterator::InitWithRange() {
 
   if (!lastCandidate) {
     // then lastCandidate is prev node before node
-    lastCandidate = GetPrevSibling(node);
+    lastCandidate = ContentIteratorBase::GetPrevSibling(node);
   }
 
-  if (!lastCandidate) {
-    MakeEmpty();
+  if (lastCandidate) {
+    lastCandidate = ContentIteratorBase::GetDeepLastChild(lastCandidate);
+  }
+
+  return lastCandidate;
+}
+
+nsresult ContentSubtreeIterator::InitWithRange() {
+  MOZ_ASSERT(mRange);
+  MOZ_ASSERT(mRange->IsPositioned());
+
+  // get the start node and offset, convert to nsINode
+  mClosestCommonInclusiveAncestor = mRange->GetClosestCommonInclusiveAncestor();
+  nsINode* startContainer = mRange->GetStartContainer();
+  const int32_t startOffset = mRange->StartOffset();
+  nsINode* endContainer = mRange->GetEndContainer();
+  const int32_t endOffset = mRange->EndOffset();
+  MOZ_ASSERT(mClosestCommonInclusiveAncestor && startContainer && endContainer);
+  // Bug 767169
+  MOZ_ASSERT(uint32_t(startOffset) <= startContainer->Length() &&
+             uint32_t(endOffset) <= endContainer->Length());
+
+  // short circuit when start node == end node
+  if (startContainer == endContainer) {
+    nsINode* child = startContainer->GetFirstChild();
+
+    if (!child || startOffset == endOffset) {
+      // Text node, empty container, or collapsed
+      SetEmpty();
+      return NS_OK;
+    }
+  }
+
+  CacheInclusiveAncestorsOfEndContainer();
+
+  mFirst = DetermineFirstContent();
+  if (!mFirst) {
+    SetEmpty();
     return NS_OK;
   }
 
-  lastCandidate = GetDeepLastChild(lastCandidate);
+  mLast = DetermineLastContent();
+  if (!mLast) {
+    SetEmpty();
+    return NS_OK;
+  }
+
+  mCurNode = mFirst;
+
+  return NS_OK;
+}
+
+nsIContent* ContentSubtreeIterator::DetermineLastContent() const {
+  nsIContent* lastCandidate = DetermineCandidateForLastContent();
+  if (!lastCandidate) {
+    return nullptr;
+  }
 
   // confirm that this last possible contained node is indeed contained.  Else
   // we have a range that does not fully contain any node.
 
-  MOZ_ALWAYS_SUCCEEDS(RangeUtils::CompareNodeToRange(lastCandidate, mRange,
-                                                     &nodeBefore, &nodeAfter));
-
-  if (nodeBefore || nodeAfter) {
-    MakeEmpty();
-    return NS_OK;
+  const Maybe<bool> isNodeContainedInRange =
+      RangeUtils::IsNodeContainedInRange(*lastCandidate, mRange);
+  MOZ_ALWAYS_TRUE(isNodeContainedInRange);
+  if (!isNodeContainedInRange.value()) {
+    return nullptr;
   }
 
   // cool, we have the last node in the range.  Now we walk up its ancestors to
   // find the most senior that is still in the range.  That's the real first
   // node.
-  mLast = GetTopAncestorInRange(lastCandidate);
-
-  mCurNode = mFirst;
-
-  return NS_OK;
+  return GetTopAncestorInRange(lastCandidate);
 }
 
 /****************************************************************
@@ -868,10 +973,10 @@ void ContentSubtreeIterator::Next() {
     return;
   }
 
-  nsINode* nextNode = GetNextSibling(mCurNode);
+  nsINode* nextNode = ContentIteratorBase::GetNextSibling(mCurNode);
   NS_ASSERTION(nextNode, "No next sibling!?! This could mean deadlock!");
 
-  int32_t i = mEndNodes.IndexOf(nextNode);
+  int32_t i = mInclusiveAncestorsOfEndContainer.IndexOf(nextNode);
   while (i != -1) {
     // as long as we are finding ancestors of the endpoint of the range,
     // dive down into their children
@@ -882,7 +987,7 @@ void ContentSubtreeIterator::Next() {
     // down the child chain to the bottom without finding an interior node,
     // then the previous node should have been the last, which was
     // was tested at top of routine.
-    i = mEndNodes.IndexOf(nextNode);
+    i = mInclusiveAncestorsOfEndContainer.IndexOf(nextNode);
   }
 
   mCurNode = nextNode;
@@ -895,7 +1000,7 @@ void ContentSubtreeIterator::Next() {
 
 void ContentSubtreeIterator::Prev() {
   // Prev should be optimized to use the mStartNodes, just as Next
-  // uses mEndNodes.
+  // uses mInclusiveAncestorsOfEndContainer.
   if (mIsDone || !mCurNode) {
     return;
   }
@@ -907,11 +1012,11 @@ void ContentSubtreeIterator::Prev() {
 
   // If any of these function calls return null, so will all succeeding ones,
   // so mCurNode will wind up set to null.
-  nsINode* prevNode = GetDeepFirstChild(mCurNode);
+  nsINode* prevNode = ContentIteratorBase::GetDeepFirstChild(mCurNode);
 
   prevNode = PrevNode(prevNode);
 
-  prevNode = GetDeepLastChild(prevNode);
+  prevNode = ContentIteratorBase::GetDeepLastChild(prevNode);
 
   mCurNode = GetTopAncestorInRange(prevNode);
 
@@ -931,7 +1036,8 @@ nsresult ContentSubtreeIterator::PositionAt(nsINode* aCurNode) {
  * ContentSubtreeIterator helper routines
  ****************************************************************/
 
-nsIContent* ContentSubtreeIterator::GetTopAncestorInRange(nsINode* aNode) {
+nsIContent* ContentSubtreeIterator::GetTopAncestorInRange(
+    nsINode* aNode) const {
   if (!aNode || !aNode->GetParentNode()) {
     return nullptr;
   }
@@ -940,12 +1046,11 @@ nsIContent* ContentSubtreeIterator::GetTopAncestorInRange(nsINode* aNode) {
   nsIContent* content = aNode->AsContent();
 
   // sanity check: aNode is itself in the range
-  bool nodeBefore, nodeAfter;
-  nsresult res =
-      RangeUtils::CompareNodeToRange(aNode, mRange, &nodeBefore, &nodeAfter);
-  NS_ASSERTION(NS_SUCCEEDED(res) && !nodeBefore && !nodeAfter,
+  Maybe<bool> isNodeContainedInRange =
+      RangeUtils::IsNodeContainedInRange(*aNode, mRange);
+  NS_ASSERTION(isNodeContainedInRange && isNodeContainedInRange.value(),
                "aNode isn't in mRange, or something else weird happened");
-  if (NS_FAILED(res) || nodeBefore || nodeAfter) {
+  if (!isNodeContainedInRange || !isNodeContainedInRange.value()) {
     return nullptr;
   }
 
@@ -960,12 +1065,14 @@ nsIContent* ContentSubtreeIterator::GetTopAncestorInRange(nsINode* aNode) {
     if (!parent || !parent->GetParentNode()) {
       return content;
     }
-    MOZ_ALWAYS_SUCCEEDS(RangeUtils::CompareNodeToRange(
-        parent, mRange, &nodeBefore, &nodeAfter));
 
-    if (nodeBefore || nodeAfter) {
+    isNodeContainedInRange =
+        RangeUtils::IsNodeContainedInRange(*parent, mRange);
+    MOZ_ALWAYS_TRUE(isNodeContainedInRange);
+    if (!isNodeContainedInRange.value()) {
       return content;
     }
+
     content = parent;
   }
 

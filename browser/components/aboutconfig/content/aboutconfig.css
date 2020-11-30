@@ -19,8 +19,7 @@
 .config-background {
   background: url("chrome://browser/content/aboutconfig/background.svg") no-repeat;
   height: 182px;
-  margin-block: 32px;
-  margin-inline: auto;
+  margin: 32px auto;
   width: 235px;
 }
 
@@ -47,13 +46,13 @@
 #about-config-search {
   -moz-context-properties: fill, fill-opacity;
   fill: currentColor;
-  fill-opacity: 0.8;
+  fill-opacity: 0.4;
   box-sizing: border-box;
   width: 100%;
-  background-image: url("chrome://global/skin/icons/search-textbox.svg");
+  background-image: url("chrome://browser/skin/search-glass.svg");
   background-repeat: no-repeat;
-  background-position: 9px center;
-  background-size: 12px 12px;
+  background-position: 8px center;
+  background-size: 16px;
   z-index: 1;
   /* Set horizontal margin to 0 to ensure alignment with table. */
   margin-inline: 0;
@@ -72,12 +71,12 @@
 :root:dir(ltr) #about-config-search {
   /* Be explicit about padding direction since
    * `about-config-search` is forced to be LTR. */
-  padding-left: 30px;
+  padding-left: 32px;
 }
 
 :root:dir(rtl) #about-config-search {
-  background-position-x: right 9px;
-  padding-right: 30px;
+  background-position-x: right 8px;
+  padding-right: 32px;
 }
 
 #show-all {
@@ -112,7 +111,7 @@
 
 #prefs > tr.locked {
   opacity: 0.4;
-  background-image: url("chrome://browser/skin/preferences/in-content/privacy-security.svg");
+  background-image: url("chrome://browser/skin/preferences/privacy-security.svg");
   background-repeat: no-repeat;
   background-position: 9px center;
   background-size: 16px 16px;
@@ -169,13 +168,22 @@ tr:not(.deleted) > .cell-value {
   text-align: match-parent;
 }
 
+:root:dir(ltr) tr:not(.deleted) > .cell-value > #form-edit {
+  /* Make the text in the form stay in the same place as before editing the pref. */
+  margin-left: -8px;
+}
+
+:root:dir(rtl) tr:not(.deleted) > .cell-value > #form-edit {
+  margin-right: -8px;
+}
+
 #form-edit > label {
   padding-inline-end: 10px;
 }
 
 td.cell-value > form > input[type="text"],
 td.cell-value > form > input[type="number"] {
-  -moz-appearance: textfield;
+  appearance: textfield;
   margin: 0;
   width: 100%;
   box-sizing: border-box;
@@ -235,8 +243,7 @@ td.cell-value > form > input[type="number"] {
   position: absolute;
   top: 0;
   /* Make it wider by the border width so the border-inline is hidden. */
-  left: calc(var(--prefs-table-border-width) * -1);
-  right: calc(var(--prefs-table-border-width) * -1);
+  inset-inline: calc(var(--prefs-table-border-width) * -1);
   height: 12px;
   background-color: var(--in-content-page-background);
   /* This is visually the top border on the add row. */

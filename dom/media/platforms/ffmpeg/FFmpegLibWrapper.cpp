@@ -101,15 +101,20 @@ FFmpegLibWrapper::LinkResult FFmpegLibWrapper::Link() {
                       : LinkResult::UnknownFutureLibAVVersion;
   }
 
-#define AV_FUNC_OPTION(func, ver)                                     \
+#define AV_FUNC_OPTION_SILENT(func, ver)                              \
   if ((ver)&version) {                                                \
     if (!(func = (decltype(func))PR_FindSymbol(                       \
               ((ver)&AV_FUNC_AVUTIL_MASK) ? mAVUtilLib : mAVCodecLib, \
               #func))) {                                              \
-      FFMPEG_LOG("Couldn't load function " #func);                    \
     }                                                                 \
   } else {                                                            \
     func = (decltype(func)) nullptr;                                  \
+  }
+
+#define AV_FUNC_OPTION(func, ver)                            \
+  AV_FUNC_OPTION_SILENT(func, ver)                           \
+  if ((ver)&version && (func) == (decltype(func)) nullptr) { \
+    FFMPEG_LOG("Couldn't load function " #func);             \
   }
 
 #define AV_FUNC(func, ver)                              \
@@ -153,32 +158,56 @@ FFmpegLibWrapper::LinkResult FFmpegLibWrapper::Link() {
   AV_FUNC_OPTION(av_frame_get_colorspace, AV_FUNC_AVUTIL_ALL)
   AV_FUNC_OPTION(av_frame_get_color_range, AV_FUNC_AVUTIL_ALL)
 #ifdef MOZ_WAYLAND
-  AV_FUNC_OPTION(avcodec_get_hw_config, AV_FUNC_58)
-  AV_FUNC_OPTION(av_hwdevice_ctx_create, AV_FUNC_58)
-  AV_FUNC_OPTION(av_buffer_ref, AV_FUNC_AVUTIL_58)
-  AV_FUNC_OPTION(av_buffer_unref, AV_FUNC_AVUTIL_58)
-  AV_FUNC_OPTION(av_hwframe_transfer_get_formats, AV_FUNC_58)
-  AV_FUNC_OPTION(av_hwdevice_ctx_create_derived, AV_FUNC_58)
-  AV_FUNC_OPTION(av_hwframe_ctx_alloc, AV_FUNC_58)
-  AV_FUNC_OPTION(av_dict_set, AV_FUNC_58)
-  AV_FUNC_OPTION(av_dict_free, AV_FUNC_58)
+  AV_FUNC_OPTION_SILENT(avcodec_get_hw_config, AV_FUNC_58)
+  AV_FUNC_OPTION_SILENT(av_hwdevice_ctx_init, AV_FUNC_58)
+  AV_FUNC_OPTION_SILENT(av_hwdevice_ctx_alloc, AV_FUNC_58)
+  AV_FUNC_OPTION_SILENT(av_buffer_ref, AV_FUNC_AVUTIL_58)
+  AV_FUNC_OPTION_SILENT(av_buffer_unref, AV_FUNC_AVUTIL_58)
+  AV_FUNC_OPTION_SILENT(av_hwframe_transfer_get_formats, AV_FUNC_58)
+  AV_FUNC_OPTION_SILENT(av_hwdevice_ctx_create_derived, AV_FUNC_58)
+  AV_FUNC_OPTION_SILENT(av_hwframe_ctx_alloc, AV_FUNC_58)
+  AV_FUNC_OPTION_SILENT(av_dict_set, AV_FUNC_58)
+  AV_FUNC_OPTION_SILENT(av_dict_free, AV_FUNC_58)
 #endif
 #undef AV_FUNC
 #undef AV_FUNC_OPTION
 
 #ifdef MOZ_WAYLAND
-#  define VA_FUNC_OPTION(func)                                    \
+#  define VA_FUNC_OPTION_SILENT(func)                             \
     if (!(func = (decltype(func))PR_FindSymbol(mVALib, #func))) { \
-      FFMPEG_LOG("Couldn't load function " #func);                \
       func = (decltype(func)) nullptr;                            \
     }
 
   // mVALib is optional and may not be present.
   if (mVALib) {
-    VA_FUNC_OPTION(vaExportSurfaceHandle)
-    VA_FUNC_OPTION(vaSyncSurface)
+    VA_FUNC_OPTION_SILENT(vaExportSurfaceHandle)
+    VA_FUNC_OPTION_SILENT(vaSyncSurface)
+    VA_FUNC_OPTION_SILENT(vaInitialize)
+    VA_FUNC_OPTION_SILENT(vaTerminate)
   }
-#  undef VA_FUNC_OPTION
+#  undef VA_FUNC_OPTION_SILENT
+
+#  define VAW_FUNC_OPTION_SILENT(func)                                   \
+    if (!(func = (decltype(func))PR_FindSymbol(mVALibWayland, #func))) { \
+      FFMPEG_LOG("Couldn't load function " #func);                       \
+    }
+
+  // mVALibWayland is optional and may not be present.
+  if (mVALibWayland) {
+    VAW_FUNC_OPTION_SILENT(vaGetDisplayWl)
+  }
+#  undef VAW_FUNC_OPTION_SILENT
+
+#  define VAD_FUNC_OPTION_SILENT(func)                               \
+    if (!(func = (decltype(func))PR_FindSymbol(mVALibDrm, #func))) { \
+      FFMPEG_LOG("Couldn't load function " #func);                   \
+    }
+
+  // mVALibDrm is optional and may not be present.
+  if (mVALibDrm) {
+    VAD_FUNC_OPTION_SILENT(vaGetDisplayDRM)
+  }
+#  undef VAD_FUNC_OPTION_SILENT
 #endif
 
   avcodec_register_all();
@@ -214,6 +243,12 @@ void FFmpegLibWrapper::Unlink() {
   if (mVALib) {
     PR_UnloadLibrary(mVALib);
   }
+  if (mVALibWayland) {
+    PR_UnloadLibrary(mVALibWayland);
+  }
+  if (mVALibDrm) {
+    PR_UnloadLibrary(mVALibDrm);
+  }
 #endif
   PodZero(this);
 }
@@ -222,13 +257,17 @@ void FFmpegLibWrapper::Unlink() {
 bool FFmpegLibWrapper::IsVAAPIAvailable() {
 #  define VA_FUNC_LOADED(func) (func != nullptr)
   return VA_FUNC_LOADED(avcodec_get_hw_config) &&
-         VA_FUNC_LOADED(av_hwdevice_ctx_create) &&
+         VA_FUNC_LOADED(av_hwdevice_ctx_alloc) &&
+         VA_FUNC_LOADED(av_hwdevice_ctx_init) &&
          VA_FUNC_LOADED(av_buffer_ref) && VA_FUNC_LOADED(av_buffer_unref) &&
          VA_FUNC_LOADED(av_hwframe_transfer_get_formats) &&
          VA_FUNC_LOADED(av_hwdevice_ctx_create_derived) &&
          VA_FUNC_LOADED(av_hwframe_ctx_alloc) && VA_FUNC_LOADED(av_dict_set) &&
          VA_FUNC_LOADED(av_dict_free) &&
-         VA_FUNC_LOADED(vaExportSurfaceHandle) && VA_FUNC_LOADED(vaSyncSurface);
+         VA_FUNC_LOADED(vaExportSurfaceHandle) &&
+         VA_FUNC_LOADED(vaSyncSurface) && VA_FUNC_LOADED(vaInitialize) &&
+         VA_FUNC_LOADED(vaTerminate) &&
+         (VA_FUNC_LOADED(vaGetDisplayWl) || VA_FUNC_LOADED(vaGetDisplayDRM));
 }
 #endif
 

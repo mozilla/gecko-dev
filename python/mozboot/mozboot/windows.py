@@ -10,6 +10,7 @@ import sys
 import subprocess
 
 from mozboot.base import BaseBootstrapper
+from mozfile import which
 
 
 def is_aarch64_host():
@@ -43,7 +44,6 @@ class WindowsBootstrapper(BaseBootstrapper):
 
     SYSTEM_PACKAGES = [
         'mingw-w64-x86_64-make',
-        'mingw-w64-x86_64-python2-pip',
         'mingw-w64-x86_64-perl',
         'patch',
         'patchutils',
@@ -73,13 +73,10 @@ class WindowsBootstrapper(BaseBootstrapper):
                                       'Windows. If you are testing Windows Bootstrap support, '
                                       'try `export MOZ_WINDOWS_BOOTSTRAP=1`')
         BaseBootstrapper.__init__(self, **kwargs)
-        if not self.which('pacman'):
+        if not which('pacman'):
             raise NotImplementedError('The Windows bootstrapper only works with msys2 with '
                                       'pacman. Get msys2 at http://msys2.github.io/')
         print('Using an experimental bootstrapper for Windows.')
-
-    def which(self, name, *extra_search_dirs):
-        return BaseBootstrapper.which(self, name + '.exe', *extra_search_dirs)
 
     def install_system_packages(self):
         self.pacman_install(*self.SYSTEM_PACKAGES)
@@ -87,16 +84,13 @@ class WindowsBootstrapper(BaseBootstrapper):
     def upgrade_mercurial(self, current):
         self.pip_install('mercurial')
 
-    def upgrade_python(self, current):
-        self.pacman_install('mingw-w64-x86_64-python2')
-
-    def install_browser_packages(self):
+    def install_browser_packages(self, mozconfig_builder):
         self.pacman_install(*self.BROWSER_PACKAGES)
 
-    def install_mobile_android_packages(self):
+    def install_mobile_android_packages(self, mozconfig_builder):
         raise NotImplementedError('We do not support building Android on Windows. Sorry!')
 
-    def install_mobile_android_artifact_mode_packages(self):
+    def install_mobile_android_artifact_mode_packages(self, mozconfig_builder):
         raise NotImplementedError('We do not support building Android on Windows. Sorry!')
 
     def ensure_clang_static_analysis_package(self, state_dir, checkout_root):

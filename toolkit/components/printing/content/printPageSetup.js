@@ -226,9 +226,24 @@ function hfIdToValue(node) {
   return result;
 }
 
-function setPrinterDefaultsForSelectedPrinter() {
+async function lastUsedPrinterNameOrDefault() {
+  let printerList = Cc["@mozilla.org/gfx/printerlist;1"].getService(
+    Ci.nsIPrinterList
+  );
+  let lastUsedName = gPrintService.lastUsedPrinterName;
+  let printers = await printerList.printers;
+  for (let printer of printers) {
+    printer.QueryInterface(Ci.nsIPrinter);
+    if (printer.name == lastUsedName) {
+      return lastUsedName;
+    }
+  }
+  return printerList.systemDefaultPrinterName;
+}
+
+async function setPrinterDefaultsForSelectedPrinter() {
   if (gPrintSettings.printerName == "") {
-    gPrintSettings.printerName = gPrintService.defaultPrinterName;
+    gPrintSettings.printerName = await lastUsedPrinterNameOrDefault();
   }
 
   // First get any defaults from the printer
@@ -256,7 +271,7 @@ function setPrinterDefaultsForSelectedPrinter() {
 }
 
 // ---------------------------------------------------
-function loadDialog() {
+async function loadDialog() {
   var print_orientation = 0;
   var print_margin_top = 0.5;
   var print_margin_left = 0.5;
@@ -277,7 +292,7 @@ function loadDialog() {
     dump("loadDialog: ex=" + ex + "\n");
   }
 
-  setPrinterDefaultsForSelectedPrinter();
+  await setPrinterDefaultsForSelectedPrinter();
 
   gDialog.printBG.checked =
     gPrintSettings.printBGColors || gPrintSettings.printBGImages;
@@ -501,10 +516,14 @@ function onAccept() {
     gPrintSettingsInterface.kInitSaveInColor |
     gPrintSettingsInterface.kInitSaveReversed |
     gPrintSettingsInterface.kInitSaveOrientation |
-    gPrintSettingsInterface.kInitSaveOddEvenPages |
     gPrintSettingsInterface.kInitSaveShrinkToFit |
     gPrintSettingsInterface.kInitSaveScaling;
 
+  // Note that this file is Windows only code, so this doesn't handle saving
+  // for other platforms.
+  // XXX Should we do this in nsPrintDialogServiceWin::ShowPageSetup (the code
+  // that invokes us), since ShowPageSetup is where we do the saving for the
+  // other platforms?
   gPrintService.savePrintSettingsToPrefs(gPrintSettings, true, flags);
 }
 

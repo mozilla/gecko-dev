@@ -8,6 +8,7 @@
 #include "CertVerifier.h"
 #include "ExtendedValidation.h"
 #include "NSSCertDBTrustDomain.h"
+#include "X509CertValidity.h"
 #include "certdb.h"
 #include "ipc/IPCMessageUtils.h"
 #include "mozilla/Assertions.h"
@@ -22,16 +23,15 @@
 #include "mozpkix/Result.h"
 #include "mozpkix/pkixnss.h"
 #include "mozpkix/pkixtypes.h"
+#include "mozpkix/pkixutil.h"
 #include "nsArray.h"
 #include "nsCOMPtr.h"
 #include "nsIClassInfoImpl.h"
 #include "nsIObjectInputStream.h"
 #include "nsIObjectOutputStream.h"
 #include "nsIX509Cert.h"
-#include "nsNSSASN1Object.h"
 #include "nsNSSCertHelper.h"
 #include "nsNSSCertTrust.h"
-#include "nsNSSCertValidity.h"
 #include "nsPK11TokenDB.h"
 #include "nsPKCS12Blob.h"
 #include "nsProxyRelease.h"
@@ -108,7 +108,6 @@ bool nsNSSCertificate::InitFromDER(char* certDER, int derLen) {
 
 nsNSSCertificate::nsNSSCertificate(CERTCertificate* cert)
     : mCert(nullptr),
-      mPermDelete(false),
       mCertType(CERT_TYPE_NOT_YET_INITIALIZED),
       mSubjectAltNames() {
   if (cert) {
@@ -119,23 +118,8 @@ nsNSSCertificate::nsNSSCertificate(CERTCertificate* cert)
 
 nsNSSCertificate::nsNSSCertificate()
     : mCert(nullptr),
-      mPermDelete(false),
       mCertType(CERT_TYPE_NOT_YET_INITIALIZED),
       mSubjectAltNames() {}
-
-nsNSSCertificate::~nsNSSCertificate() {
-  if (mPermDelete) {
-    if (mCertType == nsNSSCertificate::USER_CERT) {
-      nsCOMPtr<nsIInterfaceRequestor> cxt = new PipUIContext();
-      PK11_DeleteTokenCertAndKey(mCert.get(), cxt);
-    } else if (mCert->slot && !PK11_IsReadOnly(mCert->slot)) {
-      // If the list of built-ins does contain a non-removable
-      // copy of this certificate, our call will not remove
-      // the certificate permanently, but rather remove all trust.
-      SEC_DeletePermCertificate(mCert.get());
-    }
-  }
-}
 
 static uint32_t getCertType(CERTCertificate* cert) {
   nsNSSCertTrust trust(cert->trust);
@@ -185,21 +169,6 @@ nsNSSCertificate::GetIsBuiltInRoot(bool* aIsBuiltInRoot) {
   if (rv != pkix::Result::Success) {
     return NS_ERROR_FAILURE;
   }
-  return NS_OK;
-}
-
-nsresult nsNSSCertificate::MarkForPermDeletion() {
-  // make sure user is logged in to the token
-  nsCOMPtr<nsIInterfaceRequestor> ctx = new PipUIContext();
-
-  if (mCert->slot && PK11_NeedLogin(mCert->slot) &&
-      !PK11_NeedUserInit(mCert->slot) && !PK11_IsInternal(mCert->slot)) {
-    if (SECSuccess != PK11_Authenticate(mCert->slot, true, ctx)) {
-      return NS_ERROR_FAILURE;
-    }
-  }
-
-  mPermDelete = true;
   return NS_OK;
 }
 
@@ -600,7 +569,8 @@ nsNSSCertificate::GetIssuerName(nsAString& _issuerName) {
 NS_IMETHODIMP
 nsNSSCertificate::GetSerialNumber(nsAString& _serialNumber) {
   _serialNumber.Truncate();
-  UniquePORTString tmpstr(CERT_Hexify(&mCert->serialNumber, 1));
+  UniquePORTString tmpstr(
+      CERT_Hexify(&mCert->serialNumber, true /* use colon delimiters */));
   if (tmpstr) {
     _serialNumber = NS_ConvertASCIItoUTF16(tmpstr.get());
     return NS_OK;
@@ -618,8 +588,8 @@ nsresult nsNSSCertificate::GetCertificateHash(nsAString& aFingerprint,
     return rv;
   }
 
-  // CERT_Hexify's second argument is an int that is interpreted as a boolean
-  UniquePORTString fpStr(CERT_Hexify(const_cast<SECItem*>(&digest.get()), 1));
+  UniquePORTString fpStr(CERT_Hexify(const_cast<SECItem*>(&digest.get()),
+                                     true /* use colon delimiters */));
   if (!fpStr) {
     return NS_ERROR_FAILURE;
   }
@@ -663,10 +633,24 @@ NS_IMETHODIMP
 nsNSSCertificate::GetSha256SubjectPublicKeyInfoDigest(
     nsACString& aSha256SPKIDigest) {
   aSha256SPKIDigest.Truncate();
+
+  pkix::Input certInput;
+  pkix::Result result = certInput.Init(mCert->derCert.data, mCert->derCert.len);
+  if (result != pkix::Result::Success) {
+    return NS_ERROR_INVALID_ARG;
+  }
+  // NB: since we're not building a trust path, the endEntityOrCA parameter is
+  // irrelevant.
+  pkix::BackCert cert(certInput, pkix::EndEntityOrCA::MustBeEndEntity, nullptr);
+  result = cert.Init();
+  if (result != pkix::Result::Success) {
+    return NS_ERROR_INVALID_ARG;
+  }
+  pkix::Input derPublicKey = cert.GetSubjectPublicKeyInfo();
   Digest digest;
-  nsresult rv = digest.DigestBuf(SEC_OID_SHA256, mCert->derPublicKey.data,
-                                 mCert->derPublicKey.len);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
+  nsresult rv = digest.DigestBuf(SEC_OID_SHA256, derPublicKey.UnsafeGetData(),
+                                 derPublicKey.GetLength());
+  if (NS_FAILED(rv)) {
     return rv;
   }
   rv = Base64Encode(nsDependentCSubstring(
@@ -710,23 +694,17 @@ CERTCertificate* nsNSSCertificate::GetCert() {
 NS_IMETHODIMP
 nsNSSCertificate::GetValidity(nsIX509CertValidity** aValidity) {
   NS_ENSURE_ARG(aValidity);
-
   if (!mCert) {
     return NS_ERROR_FAILURE;
   }
-
-  nsCOMPtr<nsIX509CertValidity> validity = new nsX509CertValidity(mCert);
+  pkix::Input certInput;
+  pkix::Result rv = certInput.Init(mCert->derCert.data, mCert->derCert.len);
+  if (rv != pkix::Success) {
+    return NS_ERROR_FAILURE;
+  }
+  nsCOMPtr<nsIX509CertValidity> validity = new X509CertValidity(certInput);
   validity.forget(aValidity);
   return NS_OK;
-}
-
-NS_IMETHODIMP
-nsNSSCertificate::GetASN1Structure(nsIASN1Object** aASN1Structure) {
-  NS_ENSURE_ARG_POINTER(aASN1Structure);
-  if (!NS_IsMainThread()) {
-    return NS_ERROR_NOT_SAME_THREAD;
-  }
-  return CreateASN1Struct(aASN1Structure);
 }
 
 NS_IMETHODIMP
@@ -843,7 +821,7 @@ nsNSSCertificate::Write(nsIObjectOutputStream* aStream) {
     return rv;
   }
   return aStream->WriteBytes(
-      AsBytes(MakeSpan(mCert->derCert.data, mCert->derCert.len)));
+      AsBytes(Span(mCert->derCert.data, mCert->derCert.len)));
 }
 
 // NB: Any updates (except disk-only fields) must be kept in sync with

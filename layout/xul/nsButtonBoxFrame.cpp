@@ -68,14 +68,12 @@ void nsButtonBoxFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
 
   mButtonBoxListener = new nsButtonBoxListener(this);
 
-  mContent->AddSystemEventListener(NS_LITERAL_STRING("blur"),
-                                   mButtonBoxListener, false);
+  mContent->AddSystemEventListener(u"blur"_ns, mButtonBoxListener, false);
 }
 
 void nsButtonBoxFrame::DestroyFrom(nsIFrame* aDestructRoot,
                                    PostDestroyData& aPostDestroyData) {
-  mContent->RemoveSystemEventListener(NS_LITERAL_STRING("blur"),
-                                      mButtonBoxListener, false);
+  mContent->RemoveSystemEventListener(u"blur"_ns, mButtonBoxListener, false);
 
   mButtonBoxListener->mButtonBoxFrame = nullptr;
   mButtonBoxListener = nullptr;
@@ -157,7 +155,15 @@ nsresult nsButtonBoxFrame::HandleEvent(nsPresContext* aPresContext,
 
     case eMouseClick: {
       WidgetMouseEvent* mouseEvent = aEvent->AsMouseEvent();
-      if (mouseEvent->IsLeftClickEvent()) {
+
+      if (mouseEvent->IsLeftClickEvent()
+#ifdef XP_MACOSX
+          // On Mac, ctrl-click will send a context menu event from the widget,
+          // so we don't want to dispatch widget command if it is redispatched
+          // from the mouse event with ctrl key is pressed.
+          && !mouseEvent->IsControl()
+#endif
+      ) {
         MouseClicked(mouseEvent);
       }
       break;

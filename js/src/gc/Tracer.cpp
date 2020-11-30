@@ -37,75 +37,126 @@ void CheckTracedThing(JSTracer* trc, T thing);
 }  // namespace js
 
 /*** Callback Tracer Dispatch ***********************************************/
+
+static inline JSObject* DispatchToOnEdge(GenericTracer* trc, JSObject* obj) {
+  return trc->onObjectEdge(obj);
+}
+static inline JSString* DispatchToOnEdge(GenericTracer* trc, JSString* str) {
+  return trc->onStringEdge(str);
+}
+static inline JS::Symbol* DispatchToOnEdge(GenericTracer* trc,
+                                           JS::Symbol* sym) {
+  return trc->onSymbolEdge(sym);
+}
+static inline JS::BigInt* DispatchToOnEdge(GenericTracer* trc, JS::BigInt* bi) {
+  return trc->onBigIntEdge(bi);
+}
+static inline js::BaseScript* DispatchToOnEdge(GenericTracer* trc,
+                                               js::BaseScript* script) {
+  return trc->onScriptEdge(script);
+}
+static inline js::Shape* DispatchToOnEdge(GenericTracer* trc,
+                                          js::Shape* shape) {
+  return trc->onShapeEdge(shape);
+}
+static inline js::ObjectGroup* DispatchToOnEdge(GenericTracer* trc,
+                                                js::ObjectGroup* group) {
+  return trc->onObjectGroupEdge(group);
+}
+static inline js::BaseShape* DispatchToOnEdge(GenericTracer* trc,
+                                              js::BaseShape* base) {
+  return trc->onBaseShapeEdge(base);
+}
+static inline js::jit::JitCode* DispatchToOnEdge(GenericTracer* trc,
+                                                 js::jit::JitCode* code) {
+  return trc->onJitCodeEdge(code);
+}
+static inline js::Scope* DispatchToOnEdge(GenericTracer* trc,
+                                          js::Scope* scope) {
+  return trc->onScopeEdge(scope);
+}
+static inline js::RegExpShared* DispatchToOnEdge(GenericTracer* trc,
+                                                 js::RegExpShared* shared) {
+  return trc->onRegExpSharedEdge(shared);
+}
+
 template <typename T>
-bool DoCallback(JS::CallbackTracer* trc, T** thingp, const char* name) {
+bool DoCallback(GenericTracer* trc, T** thingp, const char* name) {
   CheckTracedThing(trc, *thingp);
   JS::AutoTracingName ctx(trc, name);
 
-  return trc->dispatchToOnEdge(thingp);
+  T* thing = *thingp;
+  T* post = DispatchToOnEdge(trc, thing);
+  if (post != thing) {
+    *thingp = post;
+  }
+
+  return post;
 }
 #define INSTANTIATE_ALL_VALID_TRACE_FUNCTIONS(name, type, _, _1) \
-  template bool DoCallback<type>(JS::CallbackTracer*, type**, const char*);
+  template bool DoCallback<type>(GenericTracer*, type**, const char*);
 JS_FOR_EACH_TRACEKIND(INSTANTIATE_ALL_VALID_TRACE_FUNCTIONS);
 #undef INSTANTIATE_ALL_VALID_TRACE_FUNCTIONS
 
 template <typename T>
-bool DoCallback(JS::CallbackTracer* trc, T* thingp, const char* name) {
+bool DoCallback(GenericTracer* trc, T* thingp, const char* name) {
+  JS::AutoTracingName ctx(trc, name);
+
   // Return true by default. For some types the lambda below won't be called.
   bool ret = true;
-  auto thing = MapGCThingTyped(*thingp, [trc, name, &ret](auto t) {
-    if (!DoCallback(trc, &t, name)) {
+  auto thing = MapGCThingTyped(*thingp, [trc, &ret](auto thing) {
+    CheckTracedThing(trc, thing);
+
+    auto* post = DispatchToOnEdge(trc, thing);
+    if (!post) {
       ret = false;
       return TaggedPtr<T>::empty();
     }
-    return TaggedPtr<T>::wrap(t);
+
+    return TaggedPtr<T>::wrap(post);
   });
+
   // Only update *thingp if the value changed, to avoid TSan false positives for
   // template objects when using DumpHeapTracer or UbiNode tracers while Ion
   // compiling off-thread.
   if (thing.isSome() && thing.value() != *thingp) {
     *thingp = thing.value();
   }
+
   return ret;
 }
-template bool DoCallback<JS::Value>(JS::CallbackTracer*, JS::Value*,
-                                    const char*);
-template bool DoCallback<JS::PropertyKey>(JS::CallbackTracer*, JS::PropertyKey*,
+template bool DoCallback<JS::Value>(GenericTracer*, JS::Value*, const char*);
+template bool DoCallback<JS::PropertyKey>(GenericTracer*, JS::PropertyKey*,
                                           const char*);
-template bool DoCallback<TaggedProto>(JS::CallbackTracer*, TaggedProto*,
+template bool DoCallback<TaggedProto>(GenericTracer*, TaggedProto*,
                                       const char*);
 
-void JS::CallbackTracer::getTracingEdgeName(char* buffer, size_t bufferSize) {
+void JS::TracingContext::getEdgeName(char* buffer, size_t bufferSize) {
   MOZ_ASSERT(bufferSize > 0);
-  if (contextFunctor_) {
-    (*contextFunctor_)(this, buffer, bufferSize);
+  if (functor_) {
+    (*functor_)(this, buffer, bufferSize);
     return;
   }
-  if (contextIndex_ != InvalidIndex) {
-    snprintf(buffer, bufferSize, "%s[%zu]", contextName_, contextIndex_);
+  if (index_ != InvalidIndex) {
+    snprintf(buffer, bufferSize, "%s[%zu]", name_, index_);
     return;
   }
-  snprintf(buffer, bufferSize, "%s", contextName_);
+  snprintf(buffer, bufferSize, "%s", name_);
 }
 
 /*** Public Tracing API *****************************************************/
 
 JS_PUBLIC_API void JS::TraceChildren(JSTracer* trc, GCCellPtr thing) {
-  js::TraceChildren(trc, thing.asCell(), thing.kind());
-}
-
-void js::TraceChildren(JSTracer* trc, void* thing, JS::TraceKind kind) {
-  MOZ_ASSERT(thing);
-  ApplyGCThingTyped(thing, kind, [trc](auto t) {
+  ApplyGCThingTyped(thing.asCell(), thing.kind(), [trc](auto t) {
     MOZ_ASSERT_IF(t->runtimeFromAnyThread() != trc->runtime(),
-                  ThingIsPermanentAtomOrWellKnownSymbol(t) ||
+                  t->isPermanentAndMayBeShared() ||
                       t->zoneFromAnyThread()->isSelfHostingZone());
     t->traceChildren(trc);
   });
 }
 
-JS_PUBLIC_API void JS::TraceIncomingCCWs(
-    JSTracer* trc, const JS::CompartmentSet& compartments) {
+void js::gc::TraceIncomingCCWs(JSTracer* trc,
+                               const JS::CompartmentSet& compartments) {
   for (CompartmentsIter source(trc->runtime()); !source.done(); source.next()) {
     if (compartments.has(source)) {
       continue;
@@ -218,9 +269,8 @@ static const char* StringKindHeader(JSString* str) {
   return "linear: ";
 }
 
-JS_PUBLIC_API void JS_GetTraceThingInfo(char* buf, size_t bufsize,
-                                        JSTracer* trc, void* thing,
-                                        JS::TraceKind kind, bool details) {
+void js::gc::GetTraceThingInfo(char* buf, size_t bufsize, void* thing,
+                               JS::TraceKind kind, bool details) {
   const char* name = nullptr; /* silence uninitialized warning */
   size_t n;
 
@@ -312,7 +362,7 @@ JS_PUBLIC_API void JS_GetTraceThingInfo(char* buf, size_t bufsize,
       }
 
       case JS::TraceKind::Script: {
-        js::BaseScript* script = static_cast<js::BaseScript*>(thing);
+        auto* script = static_cast<js::BaseScript*>(thing);
         snprintf(buf, bufsize, " %s:%u", script->filename(), script->lineno());
         break;
       }
@@ -341,7 +391,7 @@ JS_PUBLIC_API void JS_GetTraceThingInfo(char* buf, size_t bufsize,
       }
 
       case JS::TraceKind::Symbol: {
-        JS::Symbol* sym = static_cast<JS::Symbol*>(thing);
+        auto* sym = static_cast<JS::Symbol*>(thing);
         if (JSAtom* desc = sym->description()) {
           *buf++ = ' ';
           bufsize--;
@@ -353,7 +403,7 @@ JS_PUBLIC_API void JS_GetTraceThingInfo(char* buf, size_t bufsize,
       }
 
       case JS::TraceKind::Scope: {
-        js::Scope* scope = static_cast<js::Scope*>(thing);
+        auto* scope = static_cast<js::Scope*>(thing);
         snprintf(buf, bufsize, " %s", js::ScopeKindString(scope->kind()));
         break;
       }
@@ -365,9 +415,9 @@ JS_PUBLIC_API void JS_GetTraceThingInfo(char* buf, size_t bufsize,
   buf[bufsize - 1] = '\0';
 }
 
-JS::CallbackTracer::CallbackTracer(JSContext* cx,
-                                   WeakMapTraceKind weakTraceKind)
-    : CallbackTracer(cx->runtime(), weakTraceKind) {}
+JS::CallbackTracer::CallbackTracer(JSContext* cx, JS::TracerKind kind,
+                                   JS::TraceOptions options)
+    : CallbackTracer(cx->runtime(), kind, options) {}
 
 uint32_t JSTracer::gcNumberForMarking() const {
   MOZ_ASSERT(isMarkingTracer());

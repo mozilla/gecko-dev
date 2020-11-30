@@ -20,13 +20,14 @@ fn main() {
     let cfg = glean_core::Configuration {
         data_path,
         application_id: "org.mozilla.glean_core.example".into(),
+        language_binding_name: "Rust".into(),
         upload_enabled: true,
         max_events: None,
         delay_ping_lifetime_io: false,
     };
     let mut glean = Glean::new(cfg).unwrap();
-    glean.register_ping_type(&PingType::new("baseline", true, false));
-    glean.register_ping_type(&PingType::new("metrics", true, false));
+    glean.register_ping_type(&PingType::new("baseline", true, false, vec![]));
+    glean.register_ping_type(&PingType::new("metrics", true, false, vec![]));
 
     let local_metric: StringMetric = StringMetric::new(CommonMetricData {
         name: "local_metric".into(),
@@ -67,10 +68,10 @@ fn main() {
 
     let ping_maker = PingMaker::new();
     let ping = ping_maker
-        .collect_string(&glean, glean.get_ping_by_name("baseline").unwrap())
+        .collect_string(&glean, glean.get_ping_by_name("baseline").unwrap(), None)
         .unwrap();
     println!("Baseline Ping:\n{}", ping);
 
-    let ping = ping_maker.collect_string(&glean, glean.get_ping_by_name("metrics").unwrap());
+    let ping = ping_maker.collect_string(&glean, glean.get_ping_by_name("metrics").unwrap(), None);
     println!("Metrics Ping: {:?}", ping);
 }

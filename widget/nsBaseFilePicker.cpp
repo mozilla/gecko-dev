@@ -144,7 +144,7 @@ class nsBaseFilePickerEnumerator : public nsSimpleEnumerator {
 nsBaseFilePicker::nsBaseFilePicker()
     : mAddToRecentDocs(true), mMode(nsIFilePicker::modeOpen) {}
 
-nsBaseFilePicker::~nsBaseFilePicker() {}
+nsBaseFilePicker::~nsBaseFilePicker() = default;
 
 NS_IMETHODIMP nsBaseFilePicker::Init(mozIDOMWindowProxy* aParent,
                                      const nsAString& aTitle, int16_t aMode) {
@@ -233,7 +233,7 @@ nsBaseFilePicker::AppendFilters(int32_t aFilterMask) {
     titleBundle->GetStringFromName("appsTitle", title);
     // Pass the magic string "..apps" to the platform filepicker, which it
     // should recognize and do the correct platform behavior for.
-    AppendFilter(title, NS_LITERAL_STRING("..apps"));
+    AppendFilter(title, u"..apps"_ns);
   }
   return NS_OK;
 }

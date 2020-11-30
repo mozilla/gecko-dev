@@ -10,6 +10,7 @@
 #include "nsTArray.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/StaticMutex.h"
+#include "mozilla/StaticPrefs_network.h"
 #include "mozilla/StaticPtr.h"
 #include "nsXULAppAPI.h"
 #include "TransportSecurityInfo.h"  // For EVStatus
@@ -18,11 +19,14 @@ namespace mozilla {
 namespace net {
 
 struct SessionCacheInfo {
+  SessionCacheInfo Clone() const;
+
   psm::EVStatus mEVStatus = psm::EVStatus::NotEV;
   uint16_t mCertificateTransparencyStatus =
       nsITransportSecurityInfo::CERTIFICATE_TRANSPARENCY_NOT_APPLICABLE;
   nsTArray<uint8_t> mServerCertBytes;
   Maybe<nsTArray<nsTArray<uint8_t>>> mSucceededCertChainBytes;
+  Maybe<bool> mIsBuiltCertChainRootBuiltInRoot;
 };
 
 class SSLTokensCache : public nsIMemoryReporter {
@@ -35,10 +39,11 @@ class SSLTokensCache : public nsIMemoryReporter {
   static nsresult Init();
   static nsresult Shutdown();
 
-  static bool IsEnabled() { return sEnabled; }
-
   static nsresult Put(const nsACString& aKey, const uint8_t* aToken,
                       uint32_t aTokenLen, nsITransportSecurityInfo* aSecInfo);
+  static nsresult Put(const nsACString& aKey, const uint8_t* aToken,
+                      uint32_t aTokenLen, nsITransportSecurityInfo* aSecInfo,
+                      PRUint32 aExpirationTime);
   static nsresult Get(const nsACString& aKey, nsTArray<uint8_t>& aToken);
   static bool GetSessionCacheInfo(const nsACString& aKey,
                                   SessionCacheInfo& aResult);
@@ -51,7 +56,6 @@ class SSLTokensCache : public nsIMemoryReporter {
 
   nsresult RemoveLocked(const nsACString& aKey);
 
-  void InitPrefs();
   void EvictIfNecessary();
   void LogStats();
 
@@ -59,10 +63,6 @@ class SSLTokensCache : public nsIMemoryReporter {
 
   static mozilla::StaticRefPtr<SSLTokensCache> gInstance;
   static StaticMutex sLock;
-
-  static Atomic<bool, Relaxed> sEnabled;
-  // Capacity of the cache in kilobytes
-  static Atomic<uint32_t, Relaxed> sCapacity;
 
   uint32_t mCacheSize;  // Actual cache size in bytes
 

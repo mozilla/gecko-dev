@@ -4,27 +4,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_SVGViewportElement_h
-#define mozilla_dom_SVGViewportElement_h
+#ifndef DOM_SVG_SVGVIEWPORTELEMENT_H_
+#define DOM_SVG_SVGVIEWPORTELEMENT_H_
 
 #include "mozilla/Attributes.h"
-#include "mozilla/dom/FromParser.h"
+#include "mozilla/SVGImageContext.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/dom/FromParser.h"
 #include "nsIContentInlines.h"
 #include "SVGAnimatedEnumeration.h"
 #include "SVGAnimatedLength.h"
 #include "SVGAnimatedPreserveAspectRatio.h"
 #include "SVGAnimatedViewBox.h"
 #include "SVGGraphicsElement.h"
-#include "SVGImageContext.h"
-#include "nsISVGPoint.h"
+#include "SVGPoint.h"
 #include "SVGPreserveAspectRatio.h"
-
-class nsSVGOuterSVGFrame;
-class nsSVGViewportFrame;
 
 namespace mozilla {
 class AutoPreserveAspectRatioOverride;
+class SVGOuterSVGFrame;
+class SVGViewportFrame;
 
 namespace dom {
 class DOMSVGAnimatedPreserveAspectRatio;
@@ -43,8 +42,8 @@ class svgFloatSize {
 };
 
 class SVGViewportElement : public SVGGraphicsElement {
-  friend class ::nsSVGOuterSVGFrame;
-  friend class ::nsSVGViewportFrame;
+  friend class mozilla::SVGOuterSVGFrame;
+  friend class mozilla::SVGViewportFrame;
 
  protected:
   explicit SVGViewportElement(
@@ -52,6 +51,8 @@ class SVGViewportElement : public SVGGraphicsElement {
   ~SVGViewportElement() = default;
 
  public:
+  bool IsNodeOfType(uint32_t aFlags) const override;
+
   // nsIContent interface
   NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
 
@@ -127,7 +128,7 @@ class SVGViewportElement : public SVGGraphicsElement {
   /**
    * Returns true if either this is an SVG <svg> element that is the child of
    * another non-foreignObject SVG element, or this is a SVG <symbol> element
-   * this is the root of a use-element shadow tree.
+   * that is the root of a use-element shadow tree.
    */
   bool IsInner() const {
     const nsIContent* parent = GetFlattenedTreeParent();
@@ -143,11 +144,11 @@ class SVGViewportElement : public SVGGraphicsElement {
  protected:
   // implementation helpers:
 
-  bool IsRoot() const {
+  bool IsRootSVGSVGElement() const {
     NS_ASSERTION((IsInUncomposedDoc() && !GetParent()) ==
                      (OwnerDoc()->GetRootElement() == this),
                  "Can't determine if we're root");
-    return IsInUncomposedDoc() && !GetParent();
+    return !GetParent() && IsInUncomposedDoc() && IsSVGElement(nsGkAtoms::svg);
   }
 
   /**
@@ -165,12 +166,6 @@ class SVGViewportElement : public SVGGraphicsElement {
    */
   SVGViewBox GetViewBoxWithSynthesis(float aViewportWidth,
                                      float aViewportHeight) const;
-
-  /**
-   * Retrieve the value of currentScale and currentTranslate.
-   */
-  virtual SVGPoint GetCurrentTranslate() const { return SVGPoint(0.0f, 0.0f); }
-  virtual float GetCurrentScale() const { return 1.0f; }
 
   enum { ATTR_X, ATTR_Y, ATTR_WIDTH, ATTR_HEIGHT };
   SVGAnimatedLength mLengthAttributes[4];
@@ -206,4 +201,4 @@ class SVGViewportElement : public SVGGraphicsElement {
 
 }  // namespace mozilla
 
-#endif  // SVGViewportElement_h
+#endif  // DOM_SVG_SVGVIEWPORTELEMENT_H_

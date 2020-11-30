@@ -118,7 +118,7 @@ var s = f(function () {});  // display name: s<
 ```
 
 ### `parameterNames`
-If the referent is a debuggee function, the names of the its parameters,
+If the referent is a debuggee function, the names of its parameters,
 as an array of strings. If the referent is not a debuggee function, or
 not a function at all, this is `undefined`.
 
@@ -128,9 +128,9 @@ is `undefined`.
 
 If the referent is a function proxy, return an empty array.
 
-If the referent uses destructuring parameters, then the array's elements
-reflect the structure of the parameters. For example, if the referent is
-a function declared in this way:
+If the function uses destructuring parameters, the corresponding array elements
+are `undefined`. For example, if the referent is a function declared in this
+way:
 
 ```js
 function f(a, [b, c], {d, e:f}) { ... }
@@ -140,7 +140,7 @@ then this `Debugger.Object` instance's `parameterNames` property would
 have the value:
 
 ```js
-["a", ["b", "c"], {d:"d", e:"f"}]
+["a", undefined, undefined]
 ```
 
 ### `script`
@@ -153,6 +153,9 @@ If the referent is a function that is debuggee code, a
 [`Debugger.Environment`][environment] instance representing the lexical
 environment enclosing the function when it was created. If the referent
 is a function proxy or not debuggee code, this is `undefined`.
+
+### `isError`
+`true` if the referent is any potentially wrapped Error; `false` otherwise.
 
 ### `errorMessageName`
 If the referent is an error created with an engine internal message template
@@ -506,7 +509,7 @@ follows the [invocation function conventions][inv fr].
 If the referent is a global object, evaluate <i>code</i> in that global
 environment, and return a [completion value][cv] describing how it completed.
 <i>Code</i> is a string. All extant handler methods, breakpoints,
-and so on remain active during the call. This function
+and so on remain active during the call (pending note below). This function
 follows the [invocation function conventions][inv fr].
 If the referent is not a global object, throw a `TypeError` exception.
 
@@ -519,6 +522,10 @@ mode code, variable declarations in <i>code</i> affect the referent global
 object.
 
 The <i>options</i> argument is as for [`Debugger.Frame.prototype.eval`][fr eval].
+
+Note: If this method is called on an object whose owner
+[Debugger object][debugger-object] has an onNativeCall handler, only hooks
+on objects associated with that debugger will be called during the evaluation.
 
 ### `executeInGlobalWithBindings(code, bindings, [options])`
 Like `executeInGlobal`, but evaluate <i>code</i> using the referent as the
@@ -545,6 +552,10 @@ declarative environment, which is the eval code's `LexicalEnvironment`.)
 
 The <i>options</i> argument is as for [`Debugger.Frame.prototype.eval`][fr eval].
 
+Note: If this method is called on an object whose owner
+[Debugger object][debugger-object] has an onNativeCall handler, only hooks
+on objects associated with that debugger will be called during the evaluation.
+
 ### `createSource(options)`
 If the referent is a global object, return a new JavaScript source in the
 global's realm which has its properties filled in according to the `options`
@@ -557,7 +568,7 @@ exception.  The `options` object can have the following properties:
     If not specified, the source map URL can be filled in if specified by
     the source's text.
   * `isScriptElement`: Optional boolean which will set the source's
-    `introductionType` to `"scriptElement"` if specified.  Otherwise, the
+    `introductionType` to `"inlineScript"` if specified.  Otherwise, the
     source's `introductionType` will be `undefined`.
 
 ### `asEnvironment()`

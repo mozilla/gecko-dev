@@ -200,11 +200,11 @@ def cleanupMeta(meta):
         # If the negative tag exists, phase needs to be present and set
         if meta["negative"].get("phase") not in ("early", "runtime"):
             print("Warning: the negative.phase is not properly set.\n" +
-                  "Ref https://github.com/tc39/test262/blob/master/INTERPRETING.md#negative")
+                  "Ref https://github.com/tc39/test262/blob/main/INTERPRETING.md#negative")
         # If the negative tag exists, type is required
         if "type" not in meta["negative"]:
             print("Warning: the negative.type is not set.\n" +
-                  "Ref https://github.com/tc39/test262/blob/master/INTERPRETING.md#negative")
+                  "Ref https://github.com/tc39/test262/blob/main/INTERPRETING.md#negative")
 
     return meta
 
@@ -230,7 +230,7 @@ def mergeMeta(reftest, frontmatter, includes):
     if info:
         # Open some space in an existing info text
         if "info" in frontmatter:
-            frontmatter["info"] += "\n\n  \%" % info
+            frontmatter["info"] += "\n\n  \%s" % info
         else:
             frontmatter["info"] = info
 

@@ -218,7 +218,7 @@ class CxxCodeGen(CodePrinter, Visitor):
             self.printdent()
 
         if md.warn_unused:
-            self.write('MOZ_MUST_USE ')
+            self.write('[[nodiscard]] ')
 
         if md.methodspec == MethodSpec.STATIC:
             self.write('static ')
@@ -508,9 +508,9 @@ class CxxCodeGen(CodePrinter, Visitor):
         self.printdent()
         sd.decl.accept(self)
         if sd.initargs is not None:
-            self.write('(')
+            self.write('{')
             self.writeDeclList(sd.initargs)
-            self.write(')')
+            self.write('}')
         if sd.init is not None:
             self.write(' = ')
             sd.init.accept(self)

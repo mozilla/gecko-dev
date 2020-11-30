@@ -13,8 +13,6 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
-import android.support.annotation.Nullable;
-import android.util.Log;
 
 import org.mozilla.geckoview.GeckoRuntime;
 import org.mozilla.geckoview.test.util.UiThreadUtils;
@@ -86,7 +84,7 @@ public class TestCrashHandler extends Service {
 
             @Override
             public void onServiceDisconnected(ComponentName className) {
-                mService = null;
+                disconnect();
             }
         };
 
@@ -138,6 +136,8 @@ public class TestCrashHandler extends Service {
         public void disconnect() {
             if (mDoUnbind) {
                 mContext.unbindService(mConnection);
+                mService = null;
+                mDoUnbind = false;
             }
             mThread.quitSafely();
         }

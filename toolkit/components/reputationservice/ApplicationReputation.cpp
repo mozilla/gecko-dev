@@ -159,6 +159,10 @@ const char* const ApplicationReputationService::kBinaryFileExtensions[] = {
     //".001",
     //".7z",
     //".ace",
+    //".accda", exec       // MS Access database
+    //".accdb", exec       // MS Access database
+    //".accde", exec       // MS Access database
+    //".accdr", exec       // MS Access database
     ".action",  // Mac script
     //".ad", exec // Windows
     //".ade", exec  // MS Access
@@ -192,8 +196,9 @@ const char* const ApplicationReputationService::kBinaryFileExtensions[] = {
     ".cab",        // Windows archive
     ".caction",    // Automator action
     ".cdr",        // Mac disk image
-    ".cfg",        // Windows
-    ".chi",        // Windows Help
+    //".cer", exec // Signed certificate file
+    ".cfg",  // Windows
+    ".chi",  // Windows Help
     //".chm", exec // Windows Help
     ".class",  // Java
     //".cmd", exec // Windows executable
@@ -214,6 +219,7 @@ const char* const ApplicationReputationService::kBinaryFileExtensions[] = {
     ".deb",         // Linux package
     ".definition",  // Automator action
     ".desktop",     // A shortcut that runs other files
+    //".der", exec  // Signed certificate
     ".dex",         // Android
     ".dht",         // HTML
     ".dhtm",        // HTML
@@ -237,6 +243,7 @@ const char* const ApplicationReputationService::kBinaryFileExtensions[] = {
     ".eml",         // MS Outlook
     //".exe", exec // Windows executable
     //".fat",
+    //".fileloc", exec  // Apple finder internet location data file
     ".fon",  // Windows font
     //".fxp", exec // MS FoxPro
     ".gadget",  // Windows
@@ -477,6 +484,7 @@ const char* const ApplicationReputationService::kBinaryFileExtensions[] = {
     //".vsx",  exec  // MS Visio
     //".vtx",  exec  // MS Visio
     //".wav",
+    //".webloc",  // MacOS website location file
     //".webp",
     ".website",   // Windows
     ".wflow",     // Automator action
@@ -507,6 +515,7 @@ const char* const ApplicationReputationService::kBinaryFileExtensions[] = {
     ".xml",     // MS Excel
     ".xnk",     // MS Exchange
     ".xrm-ms",  // Windows
+    ".xsd",     // XML schema definition
     ".xsl",     // XML Stylesheet
     //".xxe",
     ".xz",     // Linux archive (xz)
@@ -947,35 +956,35 @@ ClientDownloadRequest::DownloadType PendingLookup::GetDownloadType(
 
   // From
   // https://cs.chromium.org/chromium/src/chrome/common/safe_browsing/download_protection_util.cc?l=17
-  if (StringEndsWith(aFilename, NS_LITERAL_CSTRING(".zip"))) {
+  if (StringEndsWith(aFilename, ".zip"_ns)) {
     return ClientDownloadRequest::ZIPPED_EXECUTABLE;
-  } else if (StringEndsWith(aFilename, NS_LITERAL_CSTRING(".apk"))) {
+  } else if (StringEndsWith(aFilename, ".apk"_ns)) {
     return ClientDownloadRequest::ANDROID_APK;
-  } else if (StringEndsWith(aFilename, NS_LITERAL_CSTRING(".app")) ||
-             StringEndsWith(aFilename, NS_LITERAL_CSTRING(".applescript")) ||
-             StringEndsWith(aFilename, NS_LITERAL_CSTRING(".cdr")) ||
-             StringEndsWith(aFilename, NS_LITERAL_CSTRING(".dart")) ||
-             StringEndsWith(aFilename, NS_LITERAL_CSTRING(".dc42")) ||
-             StringEndsWith(aFilename, NS_LITERAL_CSTRING(".diskcopy42")) ||
-             StringEndsWith(aFilename, NS_LITERAL_CSTRING(".dmg")) ||
-             StringEndsWith(aFilename, NS_LITERAL_CSTRING(".dmgpart")) ||
-             StringEndsWith(aFilename, NS_LITERAL_CSTRING(".dvdr")) ||
-             StringEndsWith(aFilename, NS_LITERAL_CSTRING(".img")) ||
-             StringEndsWith(aFilename, NS_LITERAL_CSTRING(".imgpart")) ||
-             StringEndsWith(aFilename, NS_LITERAL_CSTRING(".iso")) ||
-             StringEndsWith(aFilename, NS_LITERAL_CSTRING(".mpkg")) ||
-             StringEndsWith(aFilename, NS_LITERAL_CSTRING(".ndif")) ||
-             StringEndsWith(aFilename, NS_LITERAL_CSTRING(".osas")) ||
-             StringEndsWith(aFilename, NS_LITERAL_CSTRING(".osax")) ||
-             StringEndsWith(aFilename, NS_LITERAL_CSTRING(".pkg")) ||
-             StringEndsWith(aFilename, NS_LITERAL_CSTRING(".scpt")) ||
-             StringEndsWith(aFilename, NS_LITERAL_CSTRING(".scptd")) ||
-             StringEndsWith(aFilename, NS_LITERAL_CSTRING(".seplugin")) ||
-             StringEndsWith(aFilename, NS_LITERAL_CSTRING(".smi")) ||
-             StringEndsWith(aFilename, NS_LITERAL_CSTRING(".sparsebundle")) ||
-             StringEndsWith(aFilename, NS_LITERAL_CSTRING(".sparseimage")) ||
-             StringEndsWith(aFilename, NS_LITERAL_CSTRING(".toast")) ||
-             StringEndsWith(aFilename, NS_LITERAL_CSTRING(".udif"))) {
+  } else if (StringEndsWith(aFilename, ".app"_ns) ||
+             StringEndsWith(aFilename, ".applescript"_ns) ||
+             StringEndsWith(aFilename, ".cdr"_ns) ||
+             StringEndsWith(aFilename, ".dart"_ns) ||
+             StringEndsWith(aFilename, ".dc42"_ns) ||
+             StringEndsWith(aFilename, ".diskcopy42"_ns) ||
+             StringEndsWith(aFilename, ".dmg"_ns) ||
+             StringEndsWith(aFilename, ".dmgpart"_ns) ||
+             StringEndsWith(aFilename, ".dvdr"_ns) ||
+             StringEndsWith(aFilename, ".img"_ns) ||
+             StringEndsWith(aFilename, ".imgpart"_ns) ||
+             StringEndsWith(aFilename, ".iso"_ns) ||
+             StringEndsWith(aFilename, ".mpkg"_ns) ||
+             StringEndsWith(aFilename, ".ndif"_ns) ||
+             StringEndsWith(aFilename, ".osas"_ns) ||
+             StringEndsWith(aFilename, ".osax"_ns) ||
+             StringEndsWith(aFilename, ".pkg"_ns) ||
+             StringEndsWith(aFilename, ".scpt"_ns) ||
+             StringEndsWith(aFilename, ".scptd"_ns) ||
+             StringEndsWith(aFilename, ".seplugin"_ns) ||
+             StringEndsWith(aFilename, ".smi"_ns) ||
+             StringEndsWith(aFilename, ".sparsebundle"_ns) ||
+             StringEndsWith(aFilename, ".sparseimage"_ns) ||
+             StringEndsWith(aFilename, ".toast"_ns) ||
+             StringEndsWith(aFilename, ".udif"_ns)) {
     return ClientDownloadRequest::MAC_EXECUTABLE;
   }
 
@@ -990,12 +999,10 @@ nsresult PendingLookup::LookupNext() {
   // If a url is in blocklist we should call PendingLookup::OnComplete directly.
   MOZ_ASSERT(mBlocklistCount == 0);
 
-  int index = mAnylistSpecs.Length() - 1;
   nsCString spec;
-  if (index >= 0) {
+  if (!mAnylistSpecs.IsEmpty()) {
     // Check the source URI only.
-    spec = mAnylistSpecs[index];
-    mAnylistSpecs.RemoveElementAt(index);
+    spec = mAnylistSpecs.PopLastElement();
     RefPtr<PendingDBLookup> lookup(new PendingDBLookup(this));
 
     // We don't need to check whitelist if the file is not a binary file.
@@ -1004,11 +1011,9 @@ nsresult PendingLookup::LookupNext() {
     return lookup->LookupSpec(spec, type);
   }
 
-  index = mBlocklistSpecs.Length() - 1;
-  if (index >= 0) {
+  if (!mBlocklistSpecs.IsEmpty()) {
     // Check the referrer and redirect chain.
-    spec = mBlocklistSpecs[index];
-    mBlocklistSpecs.RemoveElementAt(index);
+    spec = mBlocklistSpecs.PopLastElement();
     RefPtr<PendingDBLookup> lookup(new PendingDBLookup(this));
     return lookup->LookupSpec(spec, LookupType::BlocklistOnly);
   }
@@ -1024,11 +1029,9 @@ nsresult PendingLookup::LookupNext() {
   MOZ_ASSERT_IF(!mIsBinaryFile, mAllowlistSpecs.Length() == 0);
 
   // Only binary signatures remain.
-  index = mAllowlistSpecs.Length() - 1;
-  if (index >= 0) {
-    spec = mAllowlistSpecs[index];
+  if (!mAllowlistSpecs.IsEmpty()) {
+    spec = mAllowlistSpecs.PopLastElement();
     LOG(("PendingLookup::LookupNext: checking %s on allowlist", spec.get()));
-    mAllowlistSpecs.RemoveElementAt(index);
     RefPtr<PendingDBLookup> lookup(new PendingDBLookup(this));
     return lookup->LookupSpec(spec, LookupType::AllowlistOnly);
   }
@@ -1242,10 +1245,11 @@ nsresult PendingLookup::AddRedirects(nsIArray* aRedirects) {
 
     nsCOMPtr<nsIPrincipal> principal;
     rv = redirectEntry->GetPrincipal(getter_AddRefs(principal));
+    auto* basePrin = BasePrincipal::Cast(principal);
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsIURI> uri;
-    rv = principal->GetURI(getter_AddRefs(uri));
+    rv = basePrin->GetURI(getter_AddRefs(uri));
     NS_ENSURE_SUCCESS(rv, rv);
 
     // Add the spec to our list of local lookups. The most recent redirect is
@@ -1429,7 +1433,7 @@ nsresult PendingLookup::DoLookupInternal() {
     nsAutoCString errorName;
     mozilla::GetErrorName(rv, errorName);
     LOG(("No suggested filename [rv = %s, this = %p]", errorName.get(), this));
-    mFileName = EmptyCString();
+    mFileName.Truncate();
   }
 
   // We can skip parsing certificate for non-binary files because we only
@@ -1661,8 +1665,7 @@ nsresult PendingLookup::SendRemoteQueryInternal(Reason& aReason) {
 
   if (LOG_ENABLED()) {
     nsAutoCString serializedStr(serialized.c_str(), serialized.length());
-    serializedStr.ReplaceSubstring(NS_LITERAL_CSTRING("\0"),
-                                   NS_LITERAL_CSTRING("\\0"));
+    serializedStr.ReplaceSubstring("\0"_ns, "\\0"_ns);
 
     LOG(("Serialized protocol buffer [this = %p]: (length=%d) %s", this,
          serializedStr.Length(), serializedStr.get()));
@@ -1682,7 +1685,7 @@ nsresult PendingLookup::SendRemoteQueryInternal(Reason& aReason) {
                        nullptr,  // aLoadingNode
                        nsContentUtils::GetSystemPrincipal(),
                        nullptr,  // aTriggeringPrincipal
-                       nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+                       nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
                        nsIContentPolicy::TYPE_OTHER, getter_AddRefs(mChannel));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1702,8 +1705,8 @@ nsresult PendingLookup::SendRemoteQueryInternal(Reason& aReason) {
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = uploadChannel->ExplicitSetUploadStream(
-      sstream, NS_LITERAL_CSTRING("application/octet-stream"),
-      serialized.size(), NS_LITERAL_CSTRING("POST"), false);
+      sstream, "application/octet-stream"_ns, serialized.size(), "POST"_ns,
+      false);
   NS_ENSURE_SUCCESS(rv, rv);
 
   uint32_t timeoutMs =

@@ -14,22 +14,35 @@
 #include "nsThreadUtils.h"
 #include "SharedSurface.h"
 
+#ifdef MOZ_WIDGET_ANDROID
+#  include "mozilla/layers/AndroidHardwareBuffer.h"
+#endif
+
 using namespace mozilla::gl;
 
 namespace mozilla {
 namespace layers {
 
+/* static */
+already_AddRefed<TextureClient> SharedSurfaceTextureData::CreateTextureClient(
+    const layers::SurfaceDescriptor& aDesc, const gfx::SurfaceFormat aFormat,
+    gfx::IntSize aSize, TextureFlags aFlags, LayersIPCChannel* aAllocator) {
+  auto data = MakeUnique<SharedSurfaceTextureData>(aDesc, aFormat, aSize);
+  return TextureClient::CreateWithData(data.release(), aFlags, aAllocator);
+}
+
 SharedSurfaceTextureData::SharedSurfaceTextureData(
-    UniquePtr<gl::SharedSurface> surf)
-    : mSurf(std::move(surf)) {}
+    const SurfaceDescriptor& desc, const gfx::SurfaceFormat format,
+    const gfx::IntSize size)
+    : mDesc(desc), mFormat(format), mSize(size) {}
 
 SharedSurfaceTextureData::~SharedSurfaceTextureData() = default;
 
 void SharedSurfaceTextureData::Deallocate(LayersIPCChannel*) {}
 
 void SharedSurfaceTextureData::FillInfo(TextureData::Info& aInfo) const {
-  aInfo.size = mSurf->mSize;
-  aInfo.format = gfx::SurfaceFormat::UNKNOWN;
+  aInfo.size = mSize;
+  aInfo.format = mFormat;
   aInfo.hasIntermediateBuffer = false;
   aInfo.hasSynchronization = false;
   aInfo.supportsMoz2D = false;
@@ -37,26 +50,104 @@ void SharedSurfaceTextureData::FillInfo(TextureData::Info& aInfo) const {
 }
 
 bool SharedSurfaceTextureData::Serialize(SurfaceDescriptor& aOutDescriptor) {
-  return mSurf->ToSurfaceDescriptor(&aOutDescriptor);
+  if (mDesc.type() !=
+      SurfaceDescriptor::TSurfaceDescriptorAndroidHardwareBuffer) {
+    aOutDescriptor = mDesc;
+    return true;
+  }
+
+#ifdef MOZ_WIDGET_ANDROID
+  // File descriptor is created heare for reducing its allocation.
+  const SurfaceDescriptorAndroidHardwareBuffer& desc =
+      mDesc.get_SurfaceDescriptorAndroidHardwareBuffer();
+  RefPtr<AndroidHardwareBuffer> buffer =
+      AndroidHardwareBufferManager::Get()->GetBuffer(desc.bufferId());
+  if (!buffer) {
+    return false;
+  }
+
+  int fd[2] = {};
+  if (socketpair(AF_UNIX, SOCK_SEQPACKET, 0, fd) != 0) {
+    return false;
+  }
+
+  UniqueFileHandle readerFd(fd[0]);
+  UniqueFileHandle writerFd(fd[1]);
+
+  // Send the AHardwareBuffer to an AF_UNIX socket. It does not acquire or
+  // retain a reference to the buffer object. The caller is therefore
+  // responsible for ensuring that the buffer remains alive through the lifetime
+  // of this file descriptor.
+  int ret = buffer->SendHandleToUnixSocket(writerFd.get());
+  if (ret < 0) {
+    return false;
+  }
+
+  aOutDescriptor = layers::SurfaceDescriptorAndroidHardwareBuffer(
+      ipc::FileDescriptor(readerFd.release()), buffer->mId, buffer->mSize,
+      buffer->mFormat);
+  return true;
+#else
+  MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+  return false;
+#endif
+}
+
+TextureFlags SharedSurfaceTextureData::GetTextureFlags() const {
+  TextureFlags flags = TextureFlags::NO_FLAGS;
+
+#ifdef MOZ_WIDGET_ANDROID
+  if (mDesc.type() ==
+      SurfaceDescriptor::TSurfaceDescriptorAndroidHardwareBuffer) {
+    flags |= TextureFlags::WAIT_HOST_USAGE_END;
+  }
+#endif
+  return flags;
+}
+
+Maybe<uint64_t> SharedSurfaceTextureData::GetBufferId() const {
+#ifdef MOZ_WIDGET_ANDROID
+  if (mDesc.type() ==
+      SurfaceDescriptor::TSurfaceDescriptorAndroidHardwareBuffer) {
+    const SurfaceDescriptorAndroidHardwareBuffer& desc =
+        mDesc.get_SurfaceDescriptorAndroidHardwareBuffer();
+    return Some(desc.bufferId());
+  }
+#endif
+  return Nothing();
+}
+
+mozilla::ipc::FileDescriptor SharedSurfaceTextureData::GetAcquireFence() {
+#ifdef MOZ_WIDGET_ANDROID
+  if (mDesc.type() ==
+      SurfaceDescriptor::TSurfaceDescriptorAndroidHardwareBuffer) {
+    const SurfaceDescriptorAndroidHardwareBuffer& desc =
+        mDesc.get_SurfaceDescriptorAndroidHardwareBuffer();
+    RefPtr<AndroidHardwareBuffer> buffer =
+        AndroidHardwareBufferManager::Get()->GetBuffer(desc.bufferId());
+    if (!buffer) {
+      return ipc::FileDescriptor();
+    }
+
+    return buffer->GetAcquireFence();
+  }
+#endif
+  return ipc::FileDescriptor();
+}
+
+/*
+static TextureFlags FlagsFrom(const SharedSurfaceDescriptor& desc) {
+  auto flags = TextureFlags::ORIGIN_BOTTOM_LEFT;
+  if (!desc.isPremultAlpha) {
+    flags |= TextureFlags::NON_PREMULTIPLIED;
+  }
+  return flags;
 }
 
 SharedSurfaceTextureClient::SharedSurfaceTextureClient(
-    SharedSurfaceTextureData* aData, TextureFlags aFlags,
-    LayersIPCChannel* aAllocator)
-    : TextureClient(aData, aFlags, aAllocator) {
-  mWorkaroundAnnoyingSharedSurfaceLifetimeIssues = true;
-}
-
-already_AddRefed<SharedSurfaceTextureClient> SharedSurfaceTextureClient::Create(
-    UniquePtr<gl::SharedSurface> surf, gl::SurfaceFactory* factory,
-    LayersIPCChannel* aAllocator, TextureFlags aFlags) {
-  if (!surf) {
-    return nullptr;
-  }
-  TextureFlags flags = aFlags | TextureFlags::RECYCLE | surf->GetTextureFlags();
-  SharedSurfaceTextureData* data =
-      new SharedSurfaceTextureData(std::move(surf));
-  return MakeAndAddRef<SharedSurfaceTextureClient>(data, flags, aAllocator);
+    const SharedSurfaceDescriptor& aDesc, LayersIPCChannel* aAllocator)
+    : TextureClient(new SharedSurfaceTextureData(desc), FlagsFrom(desc),
+aAllocator) { mWorkaroundAnnoyingSharedSurfaceLifetimeIssues = true;
 }
 
 SharedSurfaceTextureClient::~SharedSurfaceTextureClient() {
@@ -80,6 +171,7 @@ SharedSurfaceTextureClient::~SharedSurfaceTextureClient() {
     delete data;
   }
 }
+*/
 
 }  // namespace layers
 }  // namespace mozilla

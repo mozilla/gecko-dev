@@ -96,12 +96,12 @@ bool DebuggerNotificationObserver::Disconnect(
 
 bool DebuggerNotificationObserver::AddListener(
     DebuggerNotificationCallback& aHandlerFn) {
-  nsTObserverArray<RefPtr<DebuggerNotificationCallback>>::ForwardIterator iter(
-      mEventListenerCallbacks);
-  while (iter.HasMore()) {
-    if (*iter.GetNext().get() == aHandlerFn) {
-      return false;
-    }
+  const auto [begin, end] = mEventListenerCallbacks.NonObservingRange();
+  if (std::any_of(begin, end,
+                  [&](const RefPtr<DebuggerNotificationCallback>& callback) {
+                    return *callback == aHandlerFn;
+                  })) {
+    return false;
   }
 
   RefPtr<DebuggerNotificationCallback> handlerFn(&aHandlerFn);
@@ -111,11 +111,11 @@ bool DebuggerNotificationObserver::AddListener(
 
 bool DebuggerNotificationObserver::RemoveListener(
     DebuggerNotificationCallback& aHandlerFn) {
-  nsTObserverArray<RefPtr<DebuggerNotificationCallback>>::ForwardIterator iter(
-      mEventListenerCallbacks);
-  for (uint32_t i = 0; iter.HasMore(); i++) {
+  for (nsTObserverArray<RefPtr<DebuggerNotificationCallback>>::ForwardIterator
+           iter(mEventListenerCallbacks);
+       iter.HasMore();) {
     if (*iter.GetNext().get() == aHandlerFn) {
-      mEventListenerCallbacks.RemoveElementAt(i);
+      iter.Remove();
       return true;
     }
   }
@@ -139,12 +139,9 @@ void DebuggerNotificationObserver::NotifyListeners(
   RefPtr<DebuggerNotification> debuggerNotification(
       aNotification->CloneInto(mOwnerGlobal));
 
-  nsTObserverArray<RefPtr<DebuggerNotificationCallback>>::ForwardIterator iter(
-      mEventListenerCallbacks);
-
-  while (iter.HasMore()) {
-    RefPtr<DebuggerNotificationCallback> cb(iter.GetNext());
-    cb->Call(*debuggerNotification);
+  for (RefPtr<DebuggerNotificationCallback> callback :
+       mEventListenerCallbacks.ForwardRange()) {
+    callback->Call(*debuggerNotification);
   }
 }
 

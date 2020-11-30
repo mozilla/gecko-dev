@@ -7,6 +7,7 @@
 const Services = require("Services");
 const promise = require("promise");
 const EventEmitter = require("devtools/shared/event-emitter");
+const flags = require("devtools/shared/flags");
 const { executeSoon } = require("devtools/shared/DevToolsUtils");
 const { Toolbox } = require("devtools/client/framework/toolbox");
 const createStore = require("devtools/client/inspector/store");
@@ -16,12 +17,6 @@ const InspectorStyleChangeTracker = require("devtools/client/inspector/shared/st
 // during toolbox destruction. See bug 1402779.
 const Promise = require("Promise");
 
-loader.lazyRequireGetter(
-  this,
-  "initCssProperties",
-  "devtools/shared/fronts/css-properties",
-  true
-);
 loader.lazyRequireGetter(
   this,
   "HTMLBreadcrumbs",
@@ -84,6 +79,9 @@ const { LocalizationHelper, localizeMarkup } = require("devtools/shared/l10n");
 const INSPECTOR_L10N = new LocalizationHelper(
   "devtools/client/locales/inspector.properties"
 );
+const {
+  FluentL10n,
+} = require("devtools/client/shared/fluent-l10n/fluent-l10n");
 
 // Sidebar dimensions
 const INITIAL_SIDEBAR_SIZE = 350;
@@ -147,12 +145,12 @@ function Inspector(toolbox) {
   EventEmitter.decorate(this);
 
   this._toolbox = toolbox;
-  this._target = toolbox.target;
   this.panelDoc = window.document;
   this.panelWin = window;
   this.panelWin.inspector = this;
   this.telemetry = toolbox.telemetry;
   this.store = createStore();
+  this.isReady = false;
 
   // Map [panel id => panel instance]
   // Stores all the instances of sidebar panels like rule view, computed view, ...
@@ -172,8 +170,12 @@ function Inspector(toolbox) {
   this.onHostChanged = this.onHostChanged.bind(this);
   this.onMarkupLoaded = this.onMarkupLoaded.bind(this);
   this.onNewSelection = this.onNewSelection.bind(this);
-  this.onNewRoot = this.onNewRoot.bind(this);
+  this.onResourceAvailable = this.onResourceAvailable.bind(this);
+  this.onRootNodeAvailable = this.onRootNodeAvailable.bind(this);
   this.onPanelWindowResize = this.onPanelWindowResize.bind(this);
+  this.onPickerCanceled = this.onPickerCanceled.bind(this);
+  this.onPickerHovered = this.onPickerHovered.bind(this);
+  this.onPickerPicked = this.onPickerPicked.bind(this);
   this.onShowBoxModelHighlighterForNode = this.onShowBoxModelHighlighterForNode.bind(
     this
   );
@@ -195,10 +197,27 @@ Inspector.prototype = {
     // Localize all the nodes containing a data-localization attribute.
     localizeMarkup(this.panelDoc);
 
+    this._fluentL10n = new FluentL10n();
+    await this._fluentL10n.init(["devtools/client/compatibility.ftl"]);
+
+    // The markup view will be initialized in onRootNodeAvailable, which will be
+    // called through watchTargets and _onTargetAvailable, when a root node is
+    // available for the top-level target.
+    this._onFirstMarkupLoaded = this.once("markuploaded");
+
     await this.toolbox.targetList.watchTargets(
       [this.toolbox.targetList.TYPES.FRAME],
       this._onTargetAvailable,
       this._onTargetDestroyed
+    );
+
+    await this.toolbox.resourceWatcher.watchResources(
+      [
+        this.toolbox.resourceWatcher.TYPES.ROOT_NODE,
+        // To observe CSS change before opening changes view.
+        this.toolbox.resourceWatcher.TYPES.CSS_CHANGE,
+      ],
+      { onAvailable: this.onResourceAvailable }
     );
 
     // Store the URL of the target page prior to navigation in order to ensure
@@ -206,14 +225,12 @@ Inspector.prototype = {
     this.previousURL = this.currentTarget.url;
     this.styleChangeTracker = new InspectorStyleChangeTracker(this);
 
-    this._markupBox = this.panelDoc.getElementById("markup-box");
-
     return this._deferredOpen();
   },
 
-  async _onTargetAvailable({ type, targetFront, isTopLevel }) {
+  async _onTargetAvailable({ targetFront }) {
     // Ignore all targets but the top level one
-    if (!isTopLevel) {
+    if (!targetFront.isTopLevel) {
       return;
     }
 
@@ -223,28 +240,13 @@ Inspector.prototype = {
 
     await Promise.all([
       this._getCssProperties(),
-      this._getDefaultSelection(),
       this._getAccessibilityFront(),
     ]);
-
-    // When we navigate to another process and switch to a new
-    // target and the inspector is already ready, we want to
-    // update the markup view accordingly. So force a new-root event.
-    // For the initial panel startup, the initial top level target
-    // update the markup view from _deferredOpen.
-    // We might want to followup here in order to share the same
-    // codepath between the initial top level target and the next
-    // one we switch to. i.e. extract from deferredOpen code
-    // which has to be called only once on inspector startup.
-    // Then move the rest to onNewRoot and always call onNewRoot from here.
-    if (this.isReady) {
-      this.onNewRoot();
-    }
   },
 
-  _onTargetDestroyed({ type, targetFront, isTopLevel }) {
+  _onTargetDestroyed({ targetFront }) {
     // Ignore all targets but the top level one
-    if (!isTopLevel) {
+    if (!targetFront.isTopLevel) {
       return;
     }
     targetFront.off("will-navigate", this._onBeforeNavigate);
@@ -255,6 +257,8 @@ Inspector.prototype = {
 
   async initInspectorFront(targetFront) {
     this.inspectorFront = await targetFront.getFront("inspector");
+    // TODO: Remove highlighter for top-level target once all tests and code paths are
+    // migrated away from inspector.highlighter. Bug 1646028
     this.highlighter = this.inspectorFront.highlighter;
     this.walker = this.inspectorFront.walker;
   },
@@ -345,6 +349,17 @@ Inspector.prototype = {
     return this._cssProperties.cssProperties;
   },
 
+  get fluentL10n() {
+    return this._fluentL10n;
+  },
+
+  // Duration in milliseconds after which to hide the highlighter for the picked node.
+  // While testing, disable auto hiding to prevent intermittent test failures.
+  // Some tests are very slow. If the highlighter is hidden after a delay, the test may
+  // find itself midway through without a highlighter to test.
+  // This value is exposed on Inspector so individual tests can restore it when needed.
+  HIGHLIGHTER_AUTOHIDE_TIMER: flags.testing ? 0 : 1000,
+
   /**
    * Handle promise rejections for various asynchronous actions, and only log errors if
    * the inspector panel still exists.
@@ -358,18 +373,6 @@ Inspector.prototype = {
   },
 
   _deferredOpen: async function() {
-    const onMarkupLoaded = this.once("markuploaded");
-    this._initMarkup();
-    this.isReady = false;
-
-    // Set the node front so that the markup and sidebar panels will have the selected
-    // nodeFront ready when they're initialized.
-    if (this._defaultNode) {
-      this.selection.setNodeFront(this._defaultNode, {
-        reason: "inspector-open",
-      });
-    }
-
     // Setup the splitter before the sidebar is displayed so, we don't miss any events.
     this.setupSplitter();
 
@@ -382,7 +385,7 @@ Inspector.prototype = {
     // Setup the sidebar panels.
     this.setupSidebar();
 
-    await onMarkupLoaded;
+    await this._onFirstMarkupLoaded;
     this.isReady = true;
 
     // All the components are initialized. Take care of the remaining initialization
@@ -390,12 +393,13 @@ Inspector.prototype = {
     this.breadcrumbs = new HTMLBreadcrumbs(this);
     this.setupExtensionSidebars();
     this.setupSearchBox();
-    await this.setupToolbar();
 
     this.onNewSelection();
 
-    this.walker.on("new-root", this.onNewRoot);
     this.toolbox.on("host-changed", this.onHostChanged);
+    this.toolbox.nodePicker.on("picker-node-hovered", this.onPickerHovered);
+    this.toolbox.nodePicker.on("picker-node-canceled", this.onPickerCanceled);
+    this.toolbox.nodePicker.on("picker-node-picked", this.onPickerPicked);
     this.selection.on("new-node-front", this.onNewSelection);
     this.selection.on("detached-front", this.onDetached);
 
@@ -416,13 +420,11 @@ Inspector.prototype = {
     this._defaultNode = null;
     this.selection.setNodeFront(null);
     this._destroyMarkup();
-    this._pendingSelection = null;
+    this._pendingSelectionUnique = null;
   },
 
-  _getCssProperties: function() {
-    return initCssProperties(this.toolbox).then(cssProperties => {
-      this._cssProperties = cssProperties;
-    }, this._handleRejectionIfNotDestroyed);
+  _getCssProperties: async function() {
+    this._cssProperties = await this.currentTarget.getFront("cssProperties");
   },
 
   _getAccessibilityFront: async function() {
@@ -432,81 +434,53 @@ Inspector.prototype = {
     return this.accessibilityFront;
   },
 
-  _getDefaultSelection: function() {
-    // This may throw if the document is still loading and we are
-    // refering to a dead about:blank document
-    return this._getDefaultNodeForSelection().catch(
-      this._handleRejectionIfNotDestroyed
-    );
-  },
-
   /**
    * Return a promise that will resolve to the default node for selection.
+   *
+   * @param {NodeFront} rootNodeFront
+   *        The current root node front for the top walker.
    */
-  _getDefaultNodeForSelection: function() {
+  _getDefaultNodeForSelection: async function(rootNodeFront) {
     if (this._defaultNode) {
       return this._defaultNode;
     }
+
+    // Save the _pendingSelectionUnique on the current inspector instance.
+    const pendingSelectionUnique = Symbol("pending-selection");
+    this._pendingSelectionUnique = pendingSelectionUnique;
+
+    if (this._pendingSelectionUnique !== pendingSelectionUnique) {
+      // If this method was called again while waiting, bail out.
+      return null;
+    }
+
     const walker = this.walker;
-    let rootNode = null;
-    const pendingSelection = this._pendingSelection;
+    const cssSelectors = this.selectionCssSelectors;
+    // Try to find a default node using three strategies:
+    const defaultNodeSelectors = [
+      // - first try to match css selectors for the selection
+      () => (cssSelectors.length ? walker.findNodeFront(cssSelectors) : null),
+      // - otherwise try to get the "body" element
+      () => walker.querySelector(rootNodeFront, "body"),
+      // - finally get the documentElement element if nothing else worked.
+      () => walker.documentElement(),
+    ];
 
-    // A helper to tell if the target has or is about to navigate.
-    // this._pendingSelection changes on "will-navigate" and "new-root" events.
-    const hasNavigated = () => {
-      return pendingSelection !== this._pendingSelection;
-    };
-
-    // If available, set either the previously selected node or the body
-    // as default selected, else set documentElement
-    return walker
-      .getRootNode()
-      .then(node => {
-        if (hasNavigated()) {
-          return promise.reject(
-            "navigated; resolution of _defaultNode aborted"
-          );
-        }
-
-        rootNode = node;
-        if (this.selectionCssSelectors.length) {
-          return walker.findNodeFront(this.selectionCssSelectors);
-        }
+    // Try all default node selectors until a valid node is found.
+    for (const selector of defaultNodeSelectors) {
+      const node = await selector();
+      if (this._pendingSelectionUnique !== pendingSelectionUnique) {
+        // If this method was called again while waiting, bail out.
         return null;
-      })
-      .then(front => {
-        if (hasNavigated()) {
-          return promise.reject(
-            "navigated; resolution of _defaultNode aborted"
-          );
-        }
+      }
 
-        if (front) {
-          return front;
-        }
-        return walker.querySelector(rootNode, "body");
-      })
-      .then(front => {
-        if (hasNavigated()) {
-          return promise.reject(
-            "navigated; resolution of _defaultNode aborted"
-          );
-        }
-
-        if (front) {
-          return front;
-        }
-        return this.walker.documentElement();
-      })
-      .then(node => {
-        if (hasNavigated()) {
-          return promise.reject(
-            "navigated; resolution of _defaultNode aborted"
-          );
-        }
+      if (node) {
         this._defaultNode = node;
         return node;
-      });
+      }
+    }
+
+    return null;
   },
 
   /**
@@ -1044,6 +1018,9 @@ Inspector.prototype = {
     const sidebar = this.panelDoc.getElementById("inspector-sidebar");
     const options = {
       showAllTabsMenu: true,
+      allTabsMenuButtonTooltip: INSPECTOR_L10N.getStr(
+        "allTabsMenuButton.tooltip"
+      ),
       sidebarToggleButton: {
         collapsed: !this.is3PaneModeEnabled,
         collapsePaneTitle: INSPECTOR_L10N.getStr("inspector.hideThreePaneMode"),
@@ -1075,39 +1052,21 @@ Inspector.prototype = {
     this.addRuleView({ defaultTab });
 
     // Inspector sidebar panels in order of appearance.
-    const sidebarPanels = [
-      {
-        id: "layoutview",
-        title: INSPECTOR_L10N.getStr("inspector.sidebar.layoutViewTitle2"),
-      },
-      {
-        id: "computedview",
-        title: INSPECTOR_L10N.getStr("inspector.sidebar.computedViewTitle"),
-      },
-      {
-        id: "changesview",
-        title: INSPECTOR_L10N.getStr("inspector.sidebar.changesViewTitle"),
-      },
-      {
-        id: "fontinspector",
-        title: INSPECTOR_L10N.getStr("inspector.sidebar.fontInspectorTitle"),
-      },
-      {
-        id: "animationinspector",
-        title: INSPECTOR_L10N.getStr(
-          "inspector.sidebar.animationInspectorTitle"
-        ),
-      },
-    ];
+    const sidebarPanels = [];
+    sidebarPanels.push({
+      id: "layoutview",
+      title: INSPECTOR_L10N.getStr("inspector.sidebar.layoutViewTitle2"),
+    });
 
-    if (
-      Services.prefs.getBoolPref("devtools.inspector.new-rulesview.enabled")
-    ) {
-      sidebarPanels.push({
-        id: "newruleview",
-        title: INSPECTOR_L10N.getStr("inspector.sidebar.ruleViewTitle"),
-      });
-    }
+    sidebarPanels.push({
+      id: "computedview",
+      title: INSPECTOR_L10N.getStr("inspector.sidebar.computedViewTitle"),
+    });
+
+    sidebarPanels.push({
+      id: "changesview",
+      title: INSPECTOR_L10N.getStr("inspector.sidebar.changesViewTitle"),
+    });
 
     if (
       Services.prefs.getBoolPref("devtools.inspector.compatibility.enabled")
@@ -1117,6 +1076,25 @@ Inspector.prototype = {
         title: INSPECTOR_L10N.getStr(
           "inspector.sidebar.compatibilityViewTitle"
         ),
+      });
+    }
+
+    sidebarPanels.push({
+      id: "fontinspector",
+      title: INSPECTOR_L10N.getStr("inspector.sidebar.fontInspectorTitle"),
+    });
+
+    sidebarPanels.push({
+      id: "animationinspector",
+      title: INSPECTOR_L10N.getStr("inspector.sidebar.animationInspectorTitle"),
+    });
+
+    if (
+      Services.prefs.getBoolPref("devtools.inspector.new-rulesview.enabled")
+    ) {
+      sidebarPanels.push({
+        id: "newruleview",
+        title: INSPECTOR_L10N.getStr("inspector.sidebar.ruleViewTitle"),
       });
     }
 
@@ -1318,10 +1296,24 @@ Inspector.prototype = {
     }
   },
 
+  onResourceAvailable: function(resources) {
+    for (const resource of resources) {
+      if (
+        resource.resourceType === this.toolbox.resourceWatcher.TYPES.ROOT_NODE
+      ) {
+        const rootNodeFront = resource;
+        const isTopLevelTarget = !!resource.targetFront.isTopLevel;
+        if (rootNodeFront.isTopLevelDocument && isTopLevelTarget) {
+          this.onRootNodeAvailable(rootNodeFront);
+        }
+      }
+    }
+  },
+
   /**
    * Reset the inspector on new root mutation.
    */
-  onNewRoot: function() {
+  onRootNodeAvailable: async function(rootNodeFront) {
     // Record new-root timing for telemetry
     this._newRootStart = this.panelWin.performance.now();
 
@@ -1329,26 +1321,23 @@ Inspector.prototype = {
     this.selection.setNodeFront(null);
     this._destroyMarkup();
 
-    const onNodeSelected = defaultNode => {
-      // Cancel this promise resolution as a new one had
-      // been queued up.
-      if (this._pendingSelection != onNodeSelected) {
+    try {
+      const defaultNode = await this._getDefaultNodeForSelection(rootNodeFront);
+      if (!defaultNode) {
         return;
       }
-      this._pendingSelection = null;
-      this.selection.setNodeFront(defaultNode, { reason: "navigateaway" });
 
-      this.once("markuploaded", this.onMarkupLoaded);
+      this.selection.setNodeFront(defaultNode, {
+        reason: "inspector-default-selection",
+      });
+
       this._initMarkup();
 
       // Setup the toolbar again, since its content may depend on the current document.
       this.setupToolbar();
-    };
-    this._pendingSelection = onNodeSelected;
-    this._getDefaultNodeForSelection().then(
-      onNodeSelected,
-      this._handleRejectionIfNotDestroyed
-    );
+    } catch (e) {
+      this._handleRejectionIfNotDestroyed(e);
+    }
   },
 
   /**
@@ -1647,12 +1636,8 @@ Inspector.prototype = {
     }
     this._destroyed = true;
 
-    this._target.threadFront.off("paused", this.handleThreadPaused);
-    this._target.threadFront.off("resumed", this.handleThreadResumed);
-
-    if (this.walker) {
-      this.walker.off("new-root", this.onNewRoot);
-    }
+    this.currentTarget.threadFront.off("paused", this.handleThreadPaused);
+    this.currentTarget.threadFront.off("resumed", this.handleThreadResumed);
 
     this.cancelUpdate();
 
@@ -1665,6 +1650,9 @@ Inspector.prototype = {
     this.sidebar.off("show", this.onSidebarShown);
     this.sidebar.off("hide", this.onSidebarHidden);
     this.sidebar.off("destroy", this.onSidebarHidden);
+    this.toolbox.nodePicker.off("picker-node-canceled", this.onPickerCanceled);
+    this.toolbox.nodePicker.off("picker-node-hovered", this.onPickerHovered);
+    this.toolbox.nodePicker.off("picker-node-picked", this.onPickerPicked);
     this.currentTarget.off("will-navigate", this._onBeforeNavigate);
 
     for (const [, panel] of this._panels) {
@@ -1702,17 +1690,21 @@ Inspector.prototype = {
     this.styleChangeTracker.destroy();
     this.searchboxShortcuts.destroy();
 
-    this.toolbox.targetList.unwatchTargets(
-      [this.toolbox.targetList.TYPES.FRAME],
+    const { targetList, resourceWatcher } = this.toolbox;
+    targetList.unwatchTargets(
+      [targetList.TYPES.FRAME],
       this._onTargetAvailable,
       this._onTargetDestroyed
+    );
+    resourceWatcher.unwatchResources(
+      [resourceWatcher.TYPES.ROOT_NODE, resourceWatcher.TYPES.CSS_CHANGE],
+      { onAvailable: this.onResourceAvailable }
     );
 
     this._is3PaneModeChromeEnabled = null;
     this._is3PaneModeEnabled = null;
     this._markupBox = null;
     this._markupFrame = null;
-    this._target = null;
     this._toolbox = null;
     this.breadcrumbs = null;
     this.panelDoc = null;
@@ -1727,6 +1719,8 @@ Inspector.prototype = {
   },
 
   _initMarkup: function() {
+    this.once("markuploaded", this.onMarkupLoaded);
+
     if (!this._markupFrame) {
       this._markupFrame = this.panelDoc.createElement("iframe");
       this._markupFrame.setAttribute(
@@ -1737,6 +1731,7 @@ Inspector.prototype = {
       // This is needed to enable tooltips inside the iframe document.
       this._markupFrame.setAttribute("tooltip", "aHTMLTooltip");
 
+      this._markupBox = this.panelDoc.getElementById("markup-box");
       this._markupBox.style.visibility = "hidden";
       this._markupBox.appendChild(this._markupFrame);
 
@@ -1769,7 +1764,9 @@ Inspector.prototype = {
       destroyPromise = promise.resolve();
     }
 
-    this._markupBox.style.visibility = "hidden";
+    if (this._markupBox) {
+      this._markupBox.style.visibility = "hidden";
+    }
 
     return destroyPromise;
   },
@@ -1784,14 +1781,14 @@ Inspector.prototype = {
     this.toolbox.tellRDMAboutPickerState(true, PICKER_TYPES.EYEDROPPER);
     this.inspectorFront.once("color-pick-canceled", this.onEyeDropperDone);
     this.inspectorFront.once("color-picked", this.onEyeDropperDone);
-    this.walker.once("new-root", this.onEyeDropperDone);
+    this.once("new-root", this.onEyeDropperDone);
   },
 
   stopEyeDropperListeners: function() {
     this.toolbox.tellRDMAboutPickerState(false, PICKER_TYPES.EYEDROPPER);
     this.inspectorFront.off("color-pick-canceled", this.onEyeDropperDone);
     this.inspectorFront.off("color-picked", this.onEyeDropperDone);
-    this.walker.off("new-root", this.onEyeDropperDone);
+    this.off("new-root", this.onEyeDropperDone);
   },
 
   onEyeDropperDone: function() {
@@ -1891,9 +1888,10 @@ Inspector.prototype = {
   async screenshotNode() {
     // Bug 1332936 - it's possible to call `screenshotNode` while the BoxModel highlighter
     // is still visible, therefore showing it in the picture.
-    // To avoid that, we have to hide it before taking the screenshot. The `hideBoxModel`
-    // will do that, calling `hide` for the highlighter only if previously shown.
-    await this.highlighter.hideBoxModel();
+    // Note that other highlighters will still be visible. See Bug 1663881
+    await this.highlighters.hideHighlighterType(
+      this.highlighters.TYPES.BOXMODEL
+    );
 
     const clipboardEnabled = Services.prefs.getBoolPref(
       "devtools.screenshot.clipboard.enabled"
@@ -1929,7 +1927,35 @@ Inspector.prototype = {
    *         Options passed to the highlighter actor.
    */
   onShowBoxModelHighlighterForNode(nodeFront, options) {
-    nodeFront.highlighterFront.highlight(nodeFront, options);
+    // As React components aren't destroyed when the panel closes,
+    // this function may still be called and throw because of destroyed fronts.
+    if (this._destroyed) {
+      return;
+    }
+    this.highlighters.showHighlighterTypeForNode(
+      this.highlighters.TYPES.BOXMODEL,
+      nodeFront,
+      options
+    );
+  },
+
+  onPickerCanceled() {
+    this.highlighters.hideHighlighterType(this.highlighters.TYPES.BOXMODEL);
+  },
+
+  onPickerHovered(nodeFront) {
+    this.highlighters.showHighlighterTypeForNode(
+      this.highlighters.TYPES.BOXMODEL,
+      nodeFront
+    );
+  },
+
+  onPickerPicked(nodeFront) {
+    this.highlighters.showHighlighterTypeForNode(
+      this.highlighters.TYPES.BOXMODEL,
+      nodeFront,
+      { duration: this.HIGHLIGHTER_AUTOHIDE_TIMER }
+    );
   },
 
   async inspectNodeActor(nodeActor, inspectFromAnnotation) {

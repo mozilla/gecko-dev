@@ -10,8 +10,7 @@
 #include "mozilla/ArrayUtils.h"
 
 #include "jit/CompactBuffer.h"
-#include "jit/IonCode.h"
-#include "jit/JitRealm.h"
+#include "jit/JitCode.h"
 #include "jit/shared/Assembler-shared.h"
 #include "jit/x86-shared/Constants-x86-shared.h"
 
@@ -161,11 +160,6 @@ static_assert(JitStackAlignment % sizeof(Value) == 0 &&
                   JitStackValueAlignment >= 1,
               "Stack alignment should be a non-zero multiple of sizeof(Value)");
 
-// This boolean indicates whether we support SIMD instructions flavoured for
-// this architecture or not. Rather than a method in the LIRGenerator, it is
-// here such that it is accessible from the entire codebase. Once full support
-// for SIMD is reached on all tier-1 platforms, this constant can be deleted.
-static constexpr bool SupportsSimd = false;
 static constexpr uint32_t SimdMemoryAlignment = 16;
 
 static_assert(CodeAlignment % SimdMemoryAlignment == 0,
@@ -183,6 +177,11 @@ static_assert(JitStackAlignment % SimdMemoryAlignment == 0,
 
 static constexpr uint32_t WasmStackAlignment = SimdMemoryAlignment;
 static constexpr uint32_t WasmTrapInstructionLength = 2;
+
+// The offsets are dynamically asserted during
+// code generation in the prologue/epilogue.
+static constexpr uint32_t WasmCheckedCallEntryOffset = 0u;
+static constexpr uint32_t WasmCheckedTailEntryOffset = 16u;
 
 struct ImmTag : public Imm32 {
   explicit ImmTag(JSValueTag mask) : Imm32(int32_t(mask)) {}
@@ -229,14 +228,13 @@ static constexpr ValueOperand JSReturnOperand{JSReturnReg_Type,
                                               JSReturnReg_Data};
 
 class Assembler : public AssemblerX86Shared {
-  void writeRelocation(JmpSrc src) {
-    jumpRelocations_.writeUnsigned(src.offset());
-  }
+  Vector<RelativePatch, 8, SystemAllocPolicy> jumps_;
+
   void addPendingJump(JmpSrc src, ImmPtr target, RelocationKind kind) {
     enoughMemory_ &=
         jumps_.append(RelativePatch(src.offset(), target.value, kind));
     if (kind == RelocationKind::JITCODE) {
-      writeRelocation(src);
+      jumpRelocations_.writeUnsigned(src.offset());
     }
   }
 
@@ -258,6 +256,15 @@ class Assembler : public AssemblerX86Shared {
   // Copy the assembly code to the given buffer, and perform any pending
   // relocations relying on the target address.
   void executableCopy(uint8_t* buffer);
+
+  void assertNoGCThings() const {
+#ifdef DEBUG
+    MOZ_ASSERT(dataRelocations_.length() == 0);
+    for (auto& j : jumps_) {
+      MOZ_ASSERT(j.kind == RelocationKind::HARDCODED);
+    }
+#endif
+  }
 
   // Actual assembly emitting functions.
 
@@ -461,30 +468,6 @@ class Assembler : public AssemblerX86Shared {
     MOZ_ASSERT(src0.size() == 16);
     MOZ_ASSERT(dest.size() == 16);
     masm.vsubpd_rr(src1.encoding(), src0.encoding(), dest.encoding());
-  }
-
-  void vpunpckldq(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
-    MOZ_ASSERT(HasSSE2());
-    MOZ_ASSERT(src0.size() == 16);
-    MOZ_ASSERT(src1.size() == 16);
-    MOZ_ASSERT(dest.size() == 16);
-    masm.vpunpckldq_rr(src1.encoding(), src0.encoding(), dest.encoding());
-  }
-  void vpunpckldq(const Operand& src1, FloatRegister src0, FloatRegister dest) {
-    MOZ_ASSERT(HasSSE2());
-    MOZ_ASSERT(src0.size() == 16);
-    MOZ_ASSERT(dest.size() == 16);
-    switch (src1.kind()) {
-      case Operand::MEM_REG_DISP:
-        masm.vpunpckldq_mr(src1.disp(), src1.base(), src0.encoding(),
-                           dest.encoding());
-        break;
-      case Operand::MEM_ADDRESS32:
-        masm.vpunpckldq_mr(src1.address(), src0.encoding(), dest.encoding());
-        break;
-      default:
-        MOZ_CRASH("unexpected operand kind");
-    }
   }
 
   void fild(const Operand& src) {

@@ -121,8 +121,7 @@ void PaintThread::InitPaintWorkers() {
   MOZ_ASSERT(NS_IsMainThread());
   int32_t count = PaintThread::CalculatePaintWorkerCount();
   if (count != 1) {
-    mPaintWorkers =
-        SharedThreadPool::Get(NS_LITERAL_CSTRING("PaintWorker"), count);
+    mPaintWorkers = SharedThreadPool::Get("PaintWorker"_ns, count);
     mPaintWorkers->SetThreadStackSize(GetPaintThreadStackSize());
   }
 }
@@ -234,8 +233,8 @@ void PaintThread::AsyncPaintTask(CompositorBridgeChild* aBridge,
     // UnscaledFont objects, gets destroyed on the main thread (See bug
     // 1404742). This assumes (unflushed) target DrawTargets do not themselves
     // hold on to UnscaledFonts.
-    NS_ReleaseOnMainThreadSystemGroup("PaintTask::DrawTargetCapture",
-                                      aTask->mCapture.forget());
+    NS_ReleaseOnMainThread("PaintTask::DrawTargetCapture",
+                           aTask->mCapture.forget());
   }
 
   if (aBridge->NotifyFinishedAsyncWorkerPaint(aTask)) {

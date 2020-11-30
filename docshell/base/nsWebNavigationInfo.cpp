@@ -5,6 +5,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsWebNavigationInfo.h"
+
+#include "mozilla/dom/BrowsingContext.h"
 #include "nsIWebNavigation.h"
 #include "nsServiceManagerUtils.h"
 #include "nsIDocumentLoaderFactory.h"
@@ -32,10 +34,9 @@ uint32_t nsWebNavigationInfo::IsTypeSupported(const nsACString& aType,
   // an nsSHistory, but not much we can do with that).  So if we start using
   // it here, we need to be careful to get to the docshell correctly.
   nsCOMPtr<nsIDocShell> docShell(do_QueryInterface(aWebNav));
-  bool pluginsAllowed = true;
-  if (docShell) {
-    docShell->GetAllowPlugins(&pluginsAllowed);
-  }
+  auto* browsingContext = docShell ? docShell->GetBrowsingContext() : nullptr;
+  bool pluginsAllowed =
+      browsingContext ? browsingContext->GetAllowPlugins() : true;
 
   return IsTypeSupported(aType, pluginsAllowed);
 }

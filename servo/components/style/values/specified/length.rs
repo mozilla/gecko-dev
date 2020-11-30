@@ -28,8 +28,8 @@ use std::ops::{Add, Mul};
 use style_traits::values::specified::AllowedNumericType;
 use style_traits::{ParseError, SpecifiedValueInfo, StyleParseErrorKind};
 
-pub use super::image::{EndingShape as GradientEndingShape, Gradient};
 pub use super::image::Image;
+pub use super::image::{EndingShape as GradientEndingShape, Gradient};
 pub use crate::values::specified::calc::CalcLengthPercentage;
 
 /// Number of app units per pixel
@@ -241,7 +241,7 @@ impl FontRelativeLength {
                 let reference_size = if context.builder.is_root_element || context.in_media_query {
                     reference_font_size
                 } else {
-                    computed::Length::new(context.device().root_font_size().to_f32_px())
+                    context.device().root_font_size()
                 };
                 (reference_size, length)
             },
@@ -1226,12 +1226,12 @@ impl Size {
     ) -> Result<Self, ParseError<'i>> {
         #[cfg(feature = "gecko")]
         {
-            if let Ok(l) = input.try(computed::ExtremumLength::parse) {
+            if let Ok(l) = input.try_parse(computed::ExtremumLength::parse) {
                 return Ok(GenericSize::ExtremumLength(l));
             }
         }
 
-        if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
+        if input.try_parse(|i| i.expect_ident_matching("auto")).is_ok() {
             return Ok(GenericSize::Auto);
         }
 
@@ -1267,12 +1267,12 @@ impl MaxSize {
     ) -> Result<Self, ParseError<'i>> {
         #[cfg(feature = "gecko")]
         {
-            if let Ok(l) = input.try(computed::ExtremumLength::parse) {
+            if let Ok(l) = input.try_parse(computed::ExtremumLength::parse) {
                 return Ok(GenericMaxSize::ExtremumLength(l));
             }
         }
 
-        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+        if input.try_parse(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(GenericMaxSize::None);
         }
 

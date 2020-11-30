@@ -16,6 +16,7 @@
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/TreeContentViewBinding.h"
+#include "mozilla/dom/XULTreeElement.h"
 #include "nsServiceManagerUtils.h"
 #include "mozilla/dom/Document.h"
 
@@ -37,7 +38,7 @@ class Row {
         mSubtreeSize(0),
         mFlags(0) {}
 
-  ~Row() {}
+  ~Row() = default;
 
   void SetContainer(bool aContainer) {
     aContainer ? mFlags |= ROW_FLAG_CONTAINER : mFlags &= ~ROW_FLAG_CONTAINER;
@@ -540,11 +541,11 @@ void nsTreeContentView::ToggleOpenState(int32_t aRow, ErrorResult& aError) {
   Row* row = mRows[aRow].get();
 
   if (row->IsOpen())
-    row->mContent->SetAttr(kNameSpaceID_None, nsGkAtoms::open,
-                           NS_LITERAL_STRING("false"), true);
+    row->mContent->SetAttr(kNameSpaceID_None, nsGkAtoms::open, u"false"_ns,
+                           true);
   else
-    row->mContent->SetAttr(kNameSpaceID_None, nsGkAtoms::open,
-                           NS_LITERAL_STRING("true"), true);
+    row->mContent->SetAttr(kNameSpaceID_None, nsGkAtoms::open, u"true"_ns,
+                           true);
 }
 
 NS_IMETHODIMP

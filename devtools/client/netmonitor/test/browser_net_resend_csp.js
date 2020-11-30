@@ -9,7 +9,9 @@
  */
 
 add_task(async function() {
-  const { tab, monitor } = await initNetMonitor(CSP_RESEND_URL);
+  const { tab, monitor } = await initNetMonitor(CSP_RESEND_URL, {
+    requestCount: 1,
+  });
   const { document, store, windowRequire } = monitor.panelWin;
   const Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
   store.dispatch(Actions.batchEnable(false));
@@ -50,7 +52,7 @@ add_task(async function() {
   const policies = cspOBJ["csp-policies"];
   is(policies.length, 1, "CSP: should be one policy");
   const policy = policies[0];
-  is(policy["img-src"], "*", "CSP: img-src should be *");
+  is(`${policy["img-src"]}`, "*", "CSP: img-src should be *");
 
   return teardown(monitor);
 });

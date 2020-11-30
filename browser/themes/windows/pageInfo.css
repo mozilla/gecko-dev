@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-@import "chrome://global/skin/";
+@import "chrome://global/skin/global.css";
 @namespace html url("http://www.w3.org/1999/xhtml");
 
 #topBar {
   -moz-window-dragging: drag;
   border-bottom: 1px solid ThreeDLightShadow;
   padding-inline-start: 10px;
-  background-color: -moz-Field;
-  color: -moz-FieldText;
+  background-color: Field;
+  color: FieldText;
 }
 
 /* View buttons */
@@ -20,7 +20,7 @@
 
 #viewGroup > radio {
   list-style-image: url("chrome://browser/skin/pageInfo.png");
-  -moz-appearance: none;
+  appearance: none;
   min-width: 4.5em;
   margin: 0;
   padding: 3px;
@@ -151,8 +151,9 @@ treechildren::-moz-tree-cell-text(broken) {
 #permList {
   margin: .5em;
   overflow: auto;
-  -moz-appearance: listbox;
-  color: -moz-fieldtext;
+  appearance: auto;
+  -moz-default-appearance: listbox;
+  color: FieldText;
 }
 
 .permission {

@@ -76,9 +76,9 @@ void nsFrameManager::InsertFrames(nsContainerFrame* aParentFrame,
   MOZ_ASSERT(
       !aPrevFrame ||
           (!aPrevFrame->GetNextContinuation() ||
-           (((aPrevFrame->GetNextContinuation()->GetStateBits() &
-              NS_FRAME_IS_OVERFLOW_CONTAINER)) &&
-            !(aPrevFrame->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER))),
+           (aPrevFrame->GetNextContinuation()->HasAnyStateBits(
+                NS_FRAME_IS_OVERFLOW_CONTAINER) &&
+            !aPrevFrame->HasAnyStateBits(NS_FRAME_IS_OVERFLOW_CONTAINER))),
       "aPrevFrame must be the last continuation in its chain!");
 
   if (aParentFrame->IsAbsoluteContainer() &&
@@ -104,7 +104,7 @@ void nsFrameManager::RemoveFrame(ChildListID aListID, nsIFrame* aOldFrame) {
                    // nsCSSFrameConstructor::RemoveFloatingFirstLetterFrames
                    aOldFrame->IsTextFrame(),
                "Must remove first continuation.");
-  NS_ASSERTION(!(aOldFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW &&
+  NS_ASSERTION(!(aOldFrame->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW) &&
                  aOldFrame->GetPlaceholderFrame()),
                "Must call RemoveFrame on placeholder for out-of-flows.");
   nsContainerFrame* parentFrame = aOldFrame->GetParent();
@@ -163,12 +163,9 @@ void nsFrameManager::CaptureFrameState(nsIFrame* aFrame,
   CaptureFrameStateFor(aFrame, aState);
 
   // Now capture state recursively for the frame hierarchy rooted at aFrame
-  nsIFrame::ChildListIterator lists(aFrame);
-  for (; !lists.IsDone(); lists.Next()) {
-    nsFrameList::Enumerator childFrames(lists.CurrentList());
-    for (; !childFrames.AtEnd(); childFrames.Next()) {
-      nsIFrame* child = childFrames.get();
-      if (child->GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
+  for (const auto& childList : aFrame->ChildLists()) {
+    for (nsIFrame* child : childList.mList) {
+      if (child->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW)) {
         // We'll pick it up when we get to its placeholder
         continue;
       }
@@ -236,11 +233,9 @@ void nsFrameManager::RestoreFrameState(nsIFrame* aFrame,
   RestoreFrameStateFor(aFrame, aState);
 
   // Now restore state recursively for the frame hierarchy rooted at aFrame
-  nsIFrame::ChildListIterator lists(aFrame);
-  for (; !lists.IsDone(); lists.Next()) {
-    nsFrameList::Enumerator childFrames(lists.CurrentList());
-    for (; !childFrames.AtEnd(); childFrames.Next()) {
-      RestoreFrameState(childFrames.get(), aState);
+  for (const auto& childList : aFrame->ChildLists()) {
+    for (nsIFrame* child : childList.mList) {
+      RestoreFrameState(child, aState);
     }
   }
 }

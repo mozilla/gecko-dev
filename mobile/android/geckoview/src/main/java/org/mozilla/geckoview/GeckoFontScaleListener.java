@@ -6,7 +6,6 @@
 package org.mozilla.geckoview;
 
 import org.mozilla.gecko.util.ThreadUtils;
-import org.mozilla.geckoview.GeckoRuntimeSettings;
 
 import android.annotation.SuppressLint;
 import android.content.ContentResolver;
@@ -14,7 +13,7 @@ import android.content.Context;
 import android.database.ContentObserver;
 import android.net.Uri;
 import android.provider.Settings;
-import android.support.annotation.UiThread;
+import androidx.annotation.UiThread;
 import android.util.Log;
 
 /**
@@ -156,6 +155,10 @@ import android.util.Log;
 
         if (!stopping) { // Either we were enabled, or else the system font scale changed.
             fontScale = Settings.System.getFloat(contentResolver, Settings.System.FONT_SCALE, DEFAULT_FONT_SCALE);
+            // Older Android versions don't sanitize the FONT_SCALE value. See Bug 1656078.
+            if (fontScale < 0) {
+                fontScale = DEFAULT_FONT_SCALE;
+            }
         } else { // We were turned off.
             fontScale = mPrevGeckoFontScale;
         }

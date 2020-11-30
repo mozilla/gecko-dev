@@ -29,6 +29,8 @@
 #include "nsTArray.h"
 #include "nsWrapperCache.h"
 
+class nsIPrincipal;
+
 class nsDOMMutationObserver;
 using mozilla::dom::MutationObservingInfo;
 
@@ -82,15 +84,15 @@ class nsDOMMutationRecord final : public nsISupports, public nsWrapperCache {
   }
 
   void GetAddedAnimations(AnimationArray& aRetVal) const {
-    aRetVal = mAddedAnimations;
+    aRetVal = mAddedAnimations.Clone();
   }
 
   void GetRemovedAnimations(AnimationArray& aRetVal) const {
-    aRetVal = mRemovedAnimations;
+    aRetVal = mRemovedAnimations.Clone();
   }
 
   void GetChangedAnimations(AnimationArray& aRetVal) const {
-    aRetVal = mChangedAnimations;
+    aRetVal = mChangedAnimations.Clone();
   }
 
   nsCOMPtr<nsINode> mTarget;
@@ -461,7 +463,7 @@ class nsDOMMutationObserver final : public nsISupports, public nsWrapperCache {
 
   void Observe(nsINode& aTarget,
                const mozilla::dom::MutationObserverInit& aOptions,
-               mozilla::ErrorResult& aRv);
+               nsIPrincipal& aSubjectPrincipal, mozilla::ErrorResult& aRv);
 
   void Disconnect();
 

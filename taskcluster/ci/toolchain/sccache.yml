@@ -4,8 +4,11 @@
 ---
 job-defaults:
     description: "sccache toolchain build"
+    attributes:
+        local-toolchain: true
     treeherder:
         symbol: TL(sccache)
+    run-on-projects: [trunk]
     run:
         using: toolchain-script
         script: build-sccache.sh
@@ -33,10 +36,7 @@ macosx64-sccache:
     worker:
         max-run-time: 1800
         env:
-            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/macosx64/cross-clang.manifest"
-    run-on-projects:
-        - trunk
-        - try
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/macosx64/cross-releng.manifest"
     run:
         arguments: ['x86_64-apple-darwin']
         resources:
@@ -47,7 +47,7 @@ macosx64-sccache:
         toolchain:
             - linux64-rust-macos-1.41
             - linux64-clang-9
-            - linux64-cctools-port
+            - linux64-cctools-port-clang-9
             - linux64-llvm-dsymutil
             - linux64-binutils
 

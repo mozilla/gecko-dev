@@ -39,13 +39,13 @@ flat varying int vFuncs[4];
 
 #ifdef WR_VERTEX_SHADER
 
-in int aFilterRenderTaskAddress;
-in int aFilterInput1TaskAddress;
-in int aFilterInput2TaskAddress;
-in int aFilterKind;
-in int aFilterInputCount;
-in int aFilterGenericInt;
-in ivec2 aFilterExtraDataAddress;
+PER_INSTANCE in int aFilterRenderTaskAddress;
+PER_INSTANCE in int aFilterInput1TaskAddress;
+PER_INSTANCE in int aFilterInput2TaskAddress;
+PER_INSTANCE in int aFilterKind;
+PER_INSTANCE in int aFilterInputCount;
+PER_INSTANCE in int aFilterGenericInt;
+PER_INSTANCE in ivec2 aFilterExtraDataAddress;
 
 struct FilterTask {
     RenderTaskCommonData common_data;
@@ -509,7 +509,7 @@ vec4 composite(vec4 Cs, vec4 Cb, int mode) {
 
 vec4 sampleInUvRect(sampler2DArray sampler, vec3 uv, vec4 uvRect) {
     vec2 clamped = clamp(uv.xy, uvRect.xy, uvRect.zw);
-    return texture(sampler, vec3(clamped, uv.z), 0.0);
+    return texture(sampler, vec3(clamped, uv.z));
 }
 
 void main(void) {

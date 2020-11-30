@@ -13,6 +13,18 @@ namespace mozilla {
 // therefore be disabled. Bug 1065561 tracks its removal.
 bool BrowserTabsRemoteAutostart();
 uint32_t GetMaxWebProcessCount();
+
+// Returns the value of the fission.autostart pref. Since fission can be
+// disabled on a per-window basis, this should only be used when you need the
+// global value of the pref. For other use cases, you should use
+// nsILoadContext::UseRemoteSubframes instead. This will also check for special
+// conditions, like safe mode, which may require fission to be disabled, or
+// environment variable MOZ_FORCE_ENABLE_FISSION, used by mach run to
+// enable fission regardless of pref settings.
+bool FissionAutostart();
+
+// Returns true if fission.sessionHistoryInParent or FissionAutostart() is true.
+bool SessionHistoryInParent();
 }
 
 %}
@@ -31,6 +43,93 @@ interface nsIXULRuntime : nsISupports
    * Whether the application was launched in safe mode.
    */
   readonly attribute boolean inSafeMode;
+
+  /**
+   * The status of a given normandy experiment.
+   */
+  cenum ExperimentStatus : 8 {
+    // The user is not actively enrolled in the experiment.
+    eExperimentStatusUnenrolled = 0,
+    // The user is enrolled in the control group, and should see the default
+    // behavior.
+    eExperimentStatusControl = 1,
+    // The user is enrolled in the treatment group, and should see the
+    // experimental behavior which is being tested.
+    eExperimentStatusTreatment = 2,
+    // The user was enrolled in the experiment, but became ineligible due to
+    // manually modifying a relevant preference.
+    eExperimentStatusDisqualified = 3,
+
+    eExperimentStatusCount,
+  };
+
+  // NOTE: Please do not add new values to this enum without also updating the
+  // mapping in aboutSupport.js
+  cenum FissionDecisionStatus : 8 {
+    eFissionStatusUnknown = 0,
+    // Fission is disabled because the user is in the control group of a
+    // Normandy experiment.
+    eFissionExperimentControl = 1,
+    // Fission is enabled because the user is in the treatment group of a
+    // Normandy experiment.
+    eFissionExperimentTreatment = 2,
+    // Fission is disabled because the `MOZ_FORCE_DISABLE_E10S` environment
+    // variable is set.
+    eFissionDisabledByE10sEnv = 3,
+    // Fission is enabled because the `MOZ_FORCE_ENABLE_FISSION` environment
+    // variable is set.
+    eFissionEnabledByEnv = 4,
+    // Fission is disabled because the current session is running in safe
+    // mode.
+    eFissionDisabledBySafeMode = 5,
+    // Fission is enabled because the "fission.autostart" preference is true
+    // by default.
+    eFissionEnabledByDefault = 6,
+    // Fission is disabled because the "fission.autostart" preference is false
+    // by default.
+    eFissionDisabledByDefault = 7,
+    // Fission is enabled because the "fission.autostart" preference was
+    // turned on by the user.
+    eFissionEnabledByUserPref = 8,
+    // Fission is enabled because the "fission.autostart" preference was
+    // turned on by the user.
+    eFissionDisabledByUserPref = 9,
+    // Fission is disabled because e10s is disabled for some other reason.
+    eFissionDisabledByE10sOther = 10,
+  };
+
+  /**
+   * Whether Fission should be automatically enabled for new browser windows.
+   * This may not match the value of the 'fission.autostart' pref.
+   *
+   * This value is guaranteed to remain constant for the length of a browser
+   * session.
+   */
+  readonly attribute boolean fissionAutostart;
+
+  /**
+   * The user's enrollment status in the Fission experiment at process startup.
+   * See `ExperimentStatus` for the potential values.
+   *
+   * Only available in the parent process.
+   *
+   * This value is guaranteed to remain constant for the length of a browser
+   * session.
+   */
+  readonly attribute nsIXULRuntime_ExperimentStatus fissionExperimentStatus;
+
+  /**
+   * The deciding factor which caused Fission to be enabled or disabled in
+   * this session. The string version is the same of the name of the constant,
+   * without the leading `eFission`, and with an initial lower-case letter.
+   */
+  readonly attribute nsIXULRuntime_FissionDecisionStatus fissionDecisionStatus;
+  readonly attribute ACString fissionDecisionStatusString;
+
+  /**
+   * Whether session history is stored in the parent process.
+   */
+  readonly attribute boolean sessionHistoryInParent;
 
   /**
    * Whether to write console errors to a log file. If a component
@@ -103,7 +202,7 @@ interface nsIXULRuntime : nsISupports
    * a URI if Fission is enabled, so don't use it for any kind of
    * telemetry.
    */
-  readonly attribute AString remoteType;
+  readonly attribute AUTF8String remoteType;
 
   /**
    * If true, browser tabs may be opened by default in a different process
@@ -212,4 +311,20 @@ interface nsIXULRuntime : nsISupports
    * |mozilla::LauncherRegistryInfo::EnabledState| values.
    */
   readonly attribute uint32_t launcherProcessState;
+
+  /**
+   * Returns the last application version that used the current profile or null
+   * if the last version could not be found (compatibility.ini was either
+   * missing or invalid). Throws NS_ERROR_UNAVAILABLE if called from a content
+   * process.
+   */
+  readonly attribute ACString lastAppVersion;
+
+  /**
+   * Returns the last application build ID that used the current profile or null
+   * if the last build ID could not be found (compatibility.ini was either
+   * missing or invalid). Throws NS_ERROR_UNAVAILABLE if called from a content
+   * process.
+   */
+  readonly attribute ACString lastAppBuildID;
 };

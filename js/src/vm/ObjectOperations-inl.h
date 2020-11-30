@@ -53,7 +53,7 @@ inline bool GetPrototype(JSContext* cx, JS::Handle<JSObject*> obj,
     return Proxy::getPrototype(cx, obj, protop);
   }
 
-  protop.set(obj->taggedProto().toObjectOrNull());
+  protop.set(obj->staticPrototype());
   return true;
 }
 
@@ -331,7 +331,7 @@ inline bool PutProperty(JSContext* cx, JS::Handle<JSObject*> obj,
   JS::Rooted<JS::Value> receiver(cx, JS::ObjectValue(*obj));
   JS::ObjectOpResult result;
   return SetProperty(cx, obj, id, v, receiver, result) &&
-         result.checkStrictErrorOrWarning(cx, obj, id, strict);
+         result.checkStrictModeError(cx, obj, id, strict);
 }
 
 /*

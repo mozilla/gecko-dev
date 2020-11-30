@@ -9,22 +9,16 @@
 .statistics-panel {
   display: flex;
   height: 100vh;
-}
-
-.statistics-panel .devtools-toolbarbutton.back-button {
-  min-width: 4em;
-  margin: 0;
-  padding: 0;
-  border-radius: 0;
-  border-top: none;
-  border-bottom: none;
-  border-inline-start: none;
+  overflow: auto;
 }
 
 .statistics-panel .back-button {
   height: -moz-fit-content;
-  padding: 10px 15px;
-  margin: 15px;
+  position: absolute;
+  padding: 7px 5px;
+  margin: 0px;
+  top: 8px;
+  inset-inline-start: 8px;
 }
 
 .theme-light .statistics-panel .back-button {

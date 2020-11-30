@@ -51,6 +51,7 @@
 #include "mozilla/Unused.h"
 #include "mozilla/Telemetry.h"
 
+#include "mozilla/dom/IOUtils.h"
 #include "mozilla/dom/workerinternals/RuntimeService.h"
 
 // Normally, the number of milliseconds that AsyncShutdown waits until
@@ -183,11 +184,15 @@ void RunWatchdog(void* arg) {
     // The shutdown steps are not completed yet. Let's report the last one.
     if (!sShutdownNotified) {
       const char* lastStep = nullptr;
-      for (size_t i = 0; i < ArrayLength(sShutdownSteps); ++i) {
-        if (sShutdownSteps[i].mTicks == -1) {
+      // Looping inverse here to make the search more robust in case
+      // the observer that triggers UpdateHeartbeat was not called
+      // at all or in the expected order on some step. This should
+      // give us always the last known ShutdownStep.
+      for (int i = ArrayLength(sShutdownSteps) - 1; i >= 0; --i) {
+        if (sShutdownSteps[i].mTicks > -1) {
+          lastStep = sShutdownSteps[i].mTopic;
           break;
         }
-        lastStep = sShutdownSteps[i].mTopic;
       }
 
       if (lastStep) {
@@ -226,16 +231,6 @@ void RunWatchdog(void* arg) {
 // thread rather than usual XPCOM I/O simply because we outlive XPCOM and its
 // threads.
 //
-
-// Utility class, used by UniquePtr<> to close nspr files.
-class PR_CloseDelete {
- public:
-  constexpr PR_CloseDelete() = default;
-
-  PR_CloseDelete(const PR_CloseDelete& aOther) = default;
-
-  void operator()(PRFileDesc* aPtr) const { PR_Close(aPtr); }
-};
 
 //
 // Communication between the main thread and the writer thread.
@@ -450,7 +445,7 @@ void nsTerminator::StartWriter() {
     return;
   }
 
-  rv = profLD->Append(NS_LITERAL_STRING("ShutdownDuration.json"));
+  rv = profLD->Append(u"ShutdownDuration.json"_ns);
   if (NS_FAILED(rv)) {
     return;
   }
@@ -506,7 +501,7 @@ nsTerminator::Observe(nsISupports*, const char* aTopic, const char16_t*) {
 void nsTerminator::UpdateHeartbeat(const char* aTopic) {
   // Reset the clock, find out how long the current phase has lasted.
   uint32_t ticks = gHeartbeat.exchange(0);
-  if (mCurrentStep > 0) {
+  if (mCurrentStep >= 0) {
     sShutdownSteps[mCurrentStep].mTicks = ticks;
   }
 

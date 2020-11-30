@@ -4,27 +4,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_SVGMaskElement_h
-#define mozilla_dom_SVGMaskElement_h
+#ifndef DOM_SVG_SVGMASKELEMENT_H_
+#define DOM_SVG_SVGMASKELEMENT_H_
 
 #include "SVGAnimatedEnumeration.h"
 #include "SVGAnimatedLength.h"
 #include "mozilla/dom/SVGElement.h"
 
-class nsSVGMaskFrame;
-
 nsresult NS_NewSVGMaskElement(
     nsIContent** aResult, already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
 
 namespace mozilla {
+class SVGMaskFrame;
+
 namespace dom {
 
 //--------------------- Masks ------------------------
 
-typedef SVGElement SVGMaskElementBase;
+using SVGMaskElementBase = SVGElement;
 
 class SVGMaskElement final : public SVGMaskElementBase {
-  friend class ::nsSVGMaskFrame;
+  friend class mozilla::SVGMaskFrame;
 
  protected:
   friend nsresult(::NS_NewSVGMaskElement(
@@ -39,7 +39,7 @@ class SVGMaskElement final : public SVGMaskElementBase {
   virtual nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
   NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
 
-  // nsSVGSVGElement methods:
+  // SVGSVGElement methods:
   virtual bool HasValidDimensions() const override;
 
   // WebIDL
@@ -66,4 +66,4 @@ class SVGMaskElement final : public SVGMaskElementBase {
 }  // namespace dom
 }  // namespace mozilla
 
-#endif  // mozilla_dom_SVGMaskElement_h
+#endif  // DOM_SVG_SVGMASKELEMENT_H_

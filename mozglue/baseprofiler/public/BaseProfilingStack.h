@@ -13,8 +13,8 @@
 
 #include "BaseProfiler.h"
 
-#ifndef MOZ_BASE_PROFILER
-#  error Do not #include this header when MOZ_BASE_PROFILER is not #defined.
+#ifndef MOZ_GECKO_PROFILER
+#  error Do not #include this header when MOZ_GECKO_PROFILER is not #defined.
 #endif
 
 #include <algorithm>
@@ -135,17 +135,17 @@ class ProfilingStackFrame {
   // Stack pointer for non-JS stack frames, the script pointer otherwise.
   Atomic<void*, ReleaseAcquire> spOrScript;
 
-  // The bytecode offset for JS stack frames.
-  // Must not be used on non-JS frames; it'll contain either the default 0,
-  // or a leftover value from a previous JS stack frame that was using this
-  // ProfilingStackFrame object.
-  Atomic<int32_t, ReleaseAcquire> pcOffsetIfJS_;
-
   // ID of the JS Realm for JS stack frames.
   // Must not be used on non-JS frames; it'll contain either the default 0,
   // or a leftover value from a previous JS stack frame that was using this
   // ProfilingStackFrame object.
   mozilla::Atomic<uint64_t, mozilla::ReleaseAcquire> realmID_;
+
+  // The bytecode offset for JS stack frames.
+  // Must not be used on non-JS frames; it'll contain either the default 0,
+  // or a leftover value from a previous JS stack frame that was using this
+  // ProfilingStackFrame object.
+  Atomic<int32_t, ReleaseAcquire> pcOffsetIfJS_;
 
   // Bits 0...8 hold the Flags. Bits 9...31 hold the category pair.
   Atomic<uint32_t, ReleaseAcquire> flagsAndCategoryPair_;
@@ -166,8 +166,7 @@ class ProfilingStackFrame {
     return *this;
   }
 
-  // 9 bits for the flags.
-  // That leaves 32 - 9 = 23 bits for the category pair.
+  // Reserve up to 16 bits for flags, and 16 for category pair.
   enum class Flags : uint32_t {
     // The first three flags describe the kind of the frame and are
     // mutually exclusive. (We still give them individual bits for
@@ -209,7 +208,13 @@ class ProfilingStackFrame {
     // and to be replaced by the subcategory's label.
     LABEL_DETERMINED_BY_CATEGORY_PAIR = 1 << 8,
 
-    FLAGS_BITCOUNT = 9,
+    // Frame dynamic string does not contain user data.
+    NONSENSITIVE = 1 << 9,
+
+    // A JS Baseline Interpreter frame.
+    IS_BLINTERP_FRAME = 1 << 10,
+
+    FLAGS_BITCOUNT = 16,
     FLAGS_MASK = (1 << FLAGS_BITCOUNT) - 1
   };
 
@@ -359,7 +364,7 @@ class ProfilingStackFrame {
 //
 class ProfilingStack final {
  public:
-  ProfilingStack() : stackPointer(0) {}
+  ProfilingStack() = default;
 
   MFBT_API ~ProfilingStack();
 
@@ -465,7 +470,7 @@ class ProfilingStack final {
   // This is an atomic variable that uses ReleaseAcquire memory ordering.
   // See the "Concurrency considerations" paragraph at the top of this file
   // for more details.
-  Atomic<uint32_t, ReleaseAcquire> stackPointer;
+  Atomic<uint32_t, ReleaseAcquire> stackPointer{0};
 };
 
 class AutoGeckoProfilerEntry;

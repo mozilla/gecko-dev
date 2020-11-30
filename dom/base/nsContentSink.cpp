@@ -12,11 +12,14 @@
 #include "nsContentSink.h"
 #include "mozilla/Components.h"
 #include "mozilla/PresShell.h"
+#include "mozilla/StaticPrefs_browser.h"
+#include "mozilla/StaticPrefs_content.h"
 #include "mozilla/dom/Document.h"
-#include "mozilla/dom/MutationObservers.h"
+#include "mozilla/dom/LinkStyle.h"
 #include "mozilla/css/Loader.h"
+#include "mozilla/dom/MutationObservers.h"
 #include "mozilla/dom/SRILogHelper.h"
-#include "nsStyleLinkElement.h"
+#include "mozilla/StoragePrincipalHelper.h"
 #include "nsIDocShell.h"
 #include "nsILoadContext.h"
 #include "nsIPrefetchService.h"
@@ -179,30 +182,36 @@ NS_IMETHODIMP
 nsContentSink::StyleSheetLoaded(StyleSheet* aSheet, bool aWasDeferred,
                                 nsresult aStatus) {
   MOZ_ASSERT(!mRunsToCompletion, "How come a fragment parser observed sheets?");
-  if (!aWasDeferred) {
-    MOZ_ASSERT(mPendingSheetCount > 0, "How'd that happen?");
-    --mPendingSheetCount;
+  if (aWasDeferred) {
+    return NS_OK;
+  }
+  MOZ_ASSERT(mPendingSheetCount > 0, "How'd that happen?");
+  --mPendingSheetCount;
 
-    if (mPendingSheetCount == 0 &&
-        (mDeferredLayoutStart || mDeferredFlushTags)) {
-      if (mDeferredFlushTags) {
-        FlushTags();
-      }
-      if (mDeferredLayoutStart) {
-        // We might not have really started layout, since this sheet was still
-        // loading.  Do it now.  Probably doesn't matter whether we do this
-        // before or after we unblock scripts, but before feels saner.  Note
-        // that if mDeferredLayoutStart is true, that means any subclass
-        // StartLayout() stuff that needs to happen has already happened, so we
-        // don't need to worry about it.
-        StartLayout(false);
-      }
-
-      // Go ahead and try to scroll to our ref if we have one
-      ScrollToRef();
+  const bool loadedAllSheets = !mPendingSheetCount;
+  if (loadedAllSheets && (mDeferredLayoutStart || mDeferredFlushTags)) {
+    if (mDeferredFlushTags) {
+      FlushTags();
+    }
+    if (mDeferredLayoutStart) {
+      // We might not have really started layout, since this sheet was still
+      // loading.  Do it now.  Probably doesn't matter whether we do this
+      // before or after we unblock scripts, but before feels saner.  Note
+      // that if mDeferredLayoutStart is true, that means any subclass
+      // StartLayout() stuff that needs to happen has already happened, so
+      // we don't need to worry about it.
+      StartLayout(false);
     }
 
-    mScriptLoader->RemoveParserBlockingScriptExecutionBlocker();
+    // Go ahead and try to scroll to our ref if we have one
+    ScrollToRef();
+  }
+
+  mScriptLoader->RemoveParserBlockingScriptExecutionBlocker();
+
+  if (loadedAllSheets &&
+      mDocument->GetReadyStateEnum() >= Document::READYSTATE_INTERACTIVE) {
+    mScriptLoader->DeferCheckpointReached();
   }
 
   return NS_OK;
@@ -220,8 +229,7 @@ nsresult nsContentSink::ProcessHTTPHeaders(nsIChannel* aChannel) {
 
   nsAutoCString linkHeader;
 
-  nsresult rv =
-      httpchannel->GetResponseHeader(NS_LITERAL_CSTRING("link"), linkHeader);
+  nsresult rv = httpchannel->GetResponseHeader("link"_ns, linkHeader);
   if (NS_SUCCEEDED(rv) && !linkHeader.IsEmpty()) {
     mDocument->SetHeaderData(nsGkAtoms::link,
                              NS_ConvertASCIItoUTF16(linkHeader));
@@ -239,17 +247,6 @@ nsresult nsContentSink::ProcessHTTPHeaders(nsIChannel* aChannel) {
   }
 
   return NS_OK;
-}
-
-nsresult nsContentSink::ProcessHeaderData(nsAtom* aHeader,
-                                          const nsAString& aValue,
-                                          nsIContent* aContent) {
-  nsresult rv = NS_OK;
-  // necko doesn't process headers coming in from the parser
-
-  mDocument->SetHeaderData(aHeader, aValue);
-
-  return rv;
 }
 
 void nsContentSink::DoProcessLinkHeader() {
@@ -348,6 +345,9 @@ nsresult nsContentSink::ProcessLinkHeader(const nsAString& aLinkData) {
   nsAutoString rel;
   nsAutoString title;
   nsAutoString titleStar;
+  nsAutoString integrity;
+  nsAutoString srcset;
+  nsAutoString sizes;
   nsAutoString type;
   nsAutoString media;
   nsAutoString anchor;
@@ -551,6 +551,18 @@ nsresult nsContentSink::ProcessLinkHeader(const nsAString& aLinkData) {
             if (referrerPolicy.IsEmpty()) {
               referrerPolicy = value;
             }
+          } else if (attr.LowerCaseEqualsLiteral("integrity")) {
+            if (integrity.IsEmpty()) {
+              integrity = value;
+            }
+          } else if (attr.LowerCaseEqualsLiteral("imagesrcset")) {
+            if (srcset.IsEmpty()) {
+              srcset = value;
+            }
+          } else if (attr.LowerCaseEqualsLiteral("imagesizes")) {
+            if (sizes.IsEmpty()) {
+              sizes = value;
+            }
           }
         }
       }
@@ -564,14 +576,17 @@ nsresult nsContentSink::ProcessLinkHeader(const nsAString& aLinkData) {
         rv = ProcessLinkFromHeader(
             anchor, href, rel,
             // prefer RFC 5987 variant over non-I18zed version
-            titleStar.IsEmpty() ? title : titleStar, type, media, crossOrigin,
-            referrerPolicy, as);
+            titleStar.IsEmpty() ? title : titleStar, integrity, srcset, sizes,
+            type, media, crossOrigin, referrerPolicy, as);
       }
 
       href.Truncate();
       rel.Truncate();
       title.Truncate();
       type.Truncate();
+      integrity.Truncate();
+      srcset.Truncate();
+      sizes.Truncate();
       media.Truncate();
       anchor.Truncate();
       referrerPolicy.Truncate();
@@ -586,11 +601,11 @@ nsresult nsContentSink::ProcessLinkHeader(const nsAString& aLinkData) {
 
   href.Trim(" \t\n\r\f");  // trim HTML5 whitespace
   if (!href.IsEmpty() && !rel.IsEmpty()) {
-    rv =
-        ProcessLinkFromHeader(anchor, href, rel,
-                              // prefer RFC 5987 variant over non-I18zed version
-                              titleStar.IsEmpty() ? title : titleStar, type,
-                              media, crossOrigin, referrerPolicy, as);
+    rv = ProcessLinkFromHeader(
+        anchor, href, rel,
+        // prefer RFC 5987 variant over non-I18zed version
+        titleStar.IsEmpty() ? title : titleStar, integrity, srcset, sizes, type,
+        media, crossOrigin, referrerPolicy, as);
   }
 
   return rv;
@@ -598,10 +613,11 @@ nsresult nsContentSink::ProcessLinkHeader(const nsAString& aLinkData) {
 
 nsresult nsContentSink::ProcessLinkFromHeader(
     const nsAString& aAnchor, const nsAString& aHref, const nsAString& aRel,
-    const nsAString& aTitle, const nsAString& aType, const nsAString& aMedia,
-    const nsAString& aCrossOrigin, const nsAString& aReferrerPolicy,
-    const nsAString& aAs) {
-  uint32_t linkTypes = nsStyleLinkElement::ParseLinkTypes(aRel);
+    const nsAString& aTitle, const nsAString& aIntegrity,
+    const nsAString& aSrcset, const nsAString& aSizes, const nsAString& aType,
+    const nsAString& aMedia, const nsAString& aCrossOrigin,
+    const nsAString& aReferrerPolicy, const nsAString& aAs) {
+  uint32_t linkTypes = LinkStyle::ParseLinkTypes(aRel);
 
   // The link relation may apply to a different resource, specified
   // in the anchor parameter. For the link relations supported so far,
@@ -613,35 +629,38 @@ nsresult nsContentSink::ProcessLinkFromHeader(
 
   if (nsContentUtils::PrefetchPreloadEnabled(mDocShell)) {
     // prefetch href if relation is "next" or "prefetch"
-    if ((linkTypes & nsStyleLinkElement::eNEXT) ||
-        (linkTypes & nsStyleLinkElement::ePREFETCH) ||
-        (linkTypes & nsStyleLinkElement::ePRELOAD)) {
-      PrefetchPreloadHref(aHref, linkTypes, aAs, aType, aMedia);
+    if ((linkTypes & LinkStyle::eNEXT) || (linkTypes & LinkStyle::ePREFETCH)) {
+      PrefetchHref(aHref, aAs, aType, aMedia);
     }
 
-    if (!aHref.IsEmpty() && (linkTypes & nsStyleLinkElement::eDNS_PREFETCH)) {
+    if (!aHref.IsEmpty() && (linkTypes & LinkStyle::eDNS_PREFETCH)) {
       PrefetchDNS(aHref);
     }
 
-    if (!aHref.IsEmpty() && (linkTypes & nsStyleLinkElement::ePRECONNECT)) {
+    if (!aHref.IsEmpty() && (linkTypes & LinkStyle::ePRECONNECT)) {
       Preconnect(aHref, aCrossOrigin);
+    }
+
+    if (linkTypes & LinkStyle::ePRELOAD) {
+      PreloadHref(aHref, aAs, aType, aMedia, aIntegrity, aSrcset, aSizes,
+                  aCrossOrigin, aReferrerPolicy);
     }
   }
 
   // is it a stylesheet link?
-  if (!(linkTypes & nsStyleLinkElement::eSTYLESHEET)) {
+  if (!(linkTypes & LinkStyle::eSTYLESHEET)) {
     return NS_OK;
   }
 
-  bool isAlternate = linkTypes & nsStyleLinkElement::eALTERNATE;
-  return ProcessStyleLinkFromHeader(aHref, isAlternate, aTitle, aType, aMedia,
-                                    aReferrerPolicy);
+  bool isAlternate = linkTypes & LinkStyle::eALTERNATE;
+  return ProcessStyleLinkFromHeader(aHref, isAlternate, aTitle, aIntegrity,
+                                    aType, aMedia, aReferrerPolicy);
 }
 
 nsresult nsContentSink::ProcessStyleLinkFromHeader(
     const nsAString& aHref, bool aAlternate, const nsAString& aTitle,
-    const nsAString& aType, const nsAString& aMedia,
-    const nsAString& aReferrerPolicy) {
+    const nsAString& aIntegrity, const nsAString& aType,
+    const nsAString& aMedia, const nsAString& aReferrerPolicy) {
   if (aAlternate && aTitle.IsEmpty()) {
     // alternates must have title return without error, for now
     return NS_OK;
@@ -682,8 +701,8 @@ nsresult nsContentSink::ProcessStyleLinkFromHeader(
       CORS_NONE,
       aTitle,
       aMedia,
-      /* integrity = */ EmptyString(),
-      /* nonce = */ EmptyString(),
+      aIntegrity,
+      /* nonce = */ u""_ns,
       aAlternate ? Loader::HasAlternateRel::Yes : Loader::HasAlternateRel::No,
       Loader::IsInline::No,
       Loader::IsExplicitlyEnabled::No,
@@ -703,52 +722,9 @@ nsresult nsContentSink::ProcessStyleLinkFromHeader(
   return NS_OK;
 }
 
-nsresult nsContentSink::ProcessMETATag(nsIContent* aContent) {
-  NS_ASSERTION(aContent, "missing meta-element");
-  MOZ_ASSERT(aContent->IsElement());
-
-  Element* element = aContent->AsElement();
-
-  nsresult rv = NS_OK;
-
-  // set any HTTP-EQUIV data into document's header data as well as url
-  nsAutoString header;
-  element->GetAttr(kNameSpaceID_None, nsGkAtoms::httpEquiv, header);
-  if (!header.IsEmpty()) {
-    // Ignore META REFRESH when document is sandboxed from automatic features.
-    nsContentUtils::ASCIIToLower(header);
-    if (nsGkAtoms::refresh->Equals(header) &&
-        (mDocument->GetSandboxFlags() & SANDBOXED_AUTOMATIC_FEATURES)) {
-      return NS_OK;
-    }
-
-    nsAutoString result;
-    element->GetAttr(kNameSpaceID_None, nsGkAtoms::content, result);
-    if (!result.IsEmpty()) {
-      RefPtr<nsAtom> fieldAtom(NS_Atomize(header));
-      rv = ProcessHeaderData(fieldAtom, result, element);
-    }
-  }
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (element->AttrValueIs(kNameSpaceID_None, nsGkAtoms::name,
-                           nsGkAtoms::handheldFriendly, eIgnoreCase)) {
-    nsAutoString result;
-    element->GetAttr(kNameSpaceID_None, nsGkAtoms::content, result);
-    if (!result.IsEmpty()) {
-      nsContentUtils::ASCIIToLower(result);
-      mDocument->SetHeaderData(nsGkAtoms::handheldFriendly, result);
-    }
-  }
-
-  return rv;
-}
-
-void nsContentSink::PrefetchPreloadHref(const nsAString& aHref,
-                                        uint32_t aLinkTypes,
-                                        const nsAString& aAs,
-                                        const nsAString& aType,
-                                        const nsAString& aMedia) {
+void nsContentSink::PrefetchHref(const nsAString& aHref, const nsAString& aAs,
+                                 const nsAString& aType,
+                                 const nsAString& aMedia) {
   nsCOMPtr<nsIPrefetchService> prefetchService(components::Prefetch::Service());
   if (prefetchService) {
     // construct URI using document charset
@@ -756,49 +732,59 @@ void nsContentSink::PrefetchPreloadHref(const nsAString& aHref,
     nsCOMPtr<nsIURI> uri;
     NS_NewURI(getter_AddRefs(uri), aHref, encoding, mDocument->GetDocBaseURI());
     if (uri) {
-      bool preload = !!(aLinkTypes & nsStyleLinkElement::ePRELOAD);
-      nsContentPolicyType policyType;
+      auto referrerInfo = MakeRefPtr<ReferrerInfo>(*mDocument);
+      referrerInfo = referrerInfo->CloneWithNewOriginalReferrer(mDocumentURI);
 
-      if (preload) {
-        nsAttrValue asAttr;
-        HTMLLinkElement::ParseAsValue(aAs, asAttr);
-        policyType = HTMLLinkElement::AsValueToContentPolicy(asAttr);
-
-        if (policyType == nsIContentPolicy::TYPE_INVALID) {
-          // Ignore preload with a wrong or empty as attribute.
-          return;
-        }
-
-        nsAutoString mimeType;
-        nsAutoString notUsed;
-        nsContentUtils::SplitMimeType(aType, mimeType, notUsed);
-        if (!HTMLLinkElement::CheckPreloadAttrs(asAttr, mimeType, aMedia,
-                                                mDocument)) {
-          policyType = nsIContentPolicy::TYPE_INVALID;
-        }
-      }
-
-      nsCOMPtr<nsIReferrerInfo> referrerInfo = new ReferrerInfo();
-      referrerInfo->InitWithDocument(mDocument);
-      referrerInfo = static_cast<ReferrerInfo*>(referrerInfo.get())
-                         ->CloneWithNewOriginalReferrer(mDocumentURI);
-
-      if (preload) {
-        prefetchService->PreloadURI(uri, referrerInfo, mDocument, policyType);
-      } else {
-        prefetchService->PrefetchURI(
-            uri, referrerInfo, mDocument,
-            aLinkTypes & nsStyleLinkElement::ePREFETCH);
-      }
+      prefetchService->PrefetchURI(uri, referrerInfo, mDocument, true);
     }
   }
+}
+
+void nsContentSink::PreloadHref(const nsAString& aHref, const nsAString& aAs,
+                                const nsAString& aType, const nsAString& aMedia,
+                                const nsAString& aIntegrity,
+                                const nsAString& aSrcset,
+                                const nsAString& aSizes, const nsAString& aCORS,
+                                const nsAString& aReferrerPolicy) {
+  nsAttrValue asAttr;
+  HTMLLinkElement::ParseAsValue(aAs, asAttr);
+  auto policyType = HTMLLinkElement::AsValueToContentPolicy(asAttr);
+
+  if (policyType == nsIContentPolicy::TYPE_INVALID) {
+    // Ignore preload with a wrong or empty as attribute.
+    return;
+  }
+
+  nsAutoString mimeType;
+  nsAutoString notUsed;
+  nsContentUtils::SplitMimeType(aType, mimeType, notUsed);
+  if (!HTMLLinkElement::CheckPreloadAttrs(asAttr, mimeType, aMedia,
+                                          mDocument)) {
+    policyType = nsIContentPolicy::TYPE_INVALID;
+  }
+
+  auto encoding = mDocument->GetDocumentCharacterSet();
+  nsCOMPtr<nsIURI> uri;
+  NS_NewURI(getter_AddRefs(uri), aHref, encoding, mDocument->GetDocBaseURI());
+
+  if (!uri) {
+    // URL parsing failed.
+    return;
+  }
+
+  auto referrerInfo = MakeRefPtr<ReferrerInfo>(*mDocument);
+  referrerInfo = referrerInfo->CloneWithNewOriginalReferrer(mDocumentURI);
+
+  mDocument->Preloads().PreloadLinkHeader(uri, aHref, policyType, aAs, aType,
+                                          aIntegrity, aSrcset, aSizes, aCORS,
+                                          aReferrerPolicy, referrerInfo);
 }
 
 void nsContentSink::PrefetchDNS(const nsAString& aHref) {
   nsAutoString hostname;
   bool isHttps = false;
 
-  if (StringBeginsWith(aHref, NS_LITERAL_STRING("//"))) {
+  if (StringBeginsWith(aHref, u"//"_ns)) {
     hostname = Substring(aHref, 2);
   } else {
     nsCOMPtr<nsIURI> uri;
@@ -819,9 +805,11 @@ void nsContentSink::PrefetchDNS(const nsAString& aHref) {
   }
 
   if (!hostname.IsEmpty() && nsHTMLDNSPrefetch::IsAllowed(mDocument)) {
-    nsHTMLDNSPrefetch::PrefetchLow(
-        hostname, isHttps, mDocument->NodePrincipal()->OriginAttributesRef(),
-        mDocument->GetChannel()->GetTRRMode());
+    OriginAttributes oa;
+    StoragePrincipalHelper::GetOriginAttributesForNetworkState(mDocument, oa);
+
+    nsHTMLDNSPrefetch::PrefetchLow(hostname, isHttps, oa,
+                                   mDocument->GetChannel()->GetTRRMode());
   }
 }
 
@@ -1124,6 +1112,12 @@ void nsContentSink::StartLayout(bool aIgnorePendingSheets) {
 
   mDeferredLayoutStart = false;
 
+  if (aIgnorePendingSheets) {
+    nsContentUtils::ReportToConsole(
+        nsIScriptError::warningFlag, "Layout"_ns, mDocument,
+        nsContentUtils::eLAYOUT_PROPERTIES, "ForcedLayoutStart");
+  }
+
   // Notify on all our content.  If none of our presshells have started layout
   // yet it'll be a no-op except for updating our data structures, a la
   // UpdateChildCounts() (because we don't want to double-notify on whatever we
@@ -1375,15 +1369,16 @@ void nsContentSink::EndUpdate(Document* aDocument) {
 }
 
 void nsContentSink::DidBuildModelImpl(bool aTerminated) {
-  if (mDocument) {
-    MOZ_ASSERT(aTerminated || mDocument->GetReadyStateEnum() ==
-                                  Document::READYSTATE_LOADING,
-               "Bad readyState");
-    mDocument->SetReadyStateInternal(Document::READYSTATE_INTERACTIVE);
-  }
+  MOZ_ASSERT(aTerminated ||
+                 mDocument->GetReadyStateEnum() == Document::READYSTATE_LOADING,
+             "Bad readyState");
+  mDocument->SetReadyStateInternal(Document::READYSTATE_INTERACTIVE);
 
   if (mScriptLoader) {
     mScriptLoader->ParsingComplete(aTerminated);
+    if (!mPendingSheetCount) {
+      mScriptLoader->DeferCheckpointReached();
+    }
   }
 
   if (!mDocument->HaveFiredDOMTitleChange()) {
@@ -1511,15 +1506,14 @@ void nsContentSink::NotifyDocElementCreated(Document* aDoc) {
   }
   if (fireInitialInsertion) {
     observerService->NotifyObservers(ToSupports(aDoc),
-                                     "initial-document-element-inserted",
-                                     EmptyString().get());
+                                     "initial-document-element-inserted", u"");
   }
-  observerService->NotifyObservers(
-      ToSupports(aDoc), "document-element-inserted", EmptyString().get());
+  observerService->NotifyObservers(ToSupports(aDoc),
+                                   "document-element-inserted", u"");
 
-  nsContentUtils::DispatchChromeEvent(
-      aDoc, ToSupports(aDoc), NS_LITERAL_STRING("DOMDocElementInserted"),
-      CanBubble::eYes, Cancelable::eNo);
+  nsContentUtils::DispatchChromeEvent(aDoc, ToSupports(aDoc),
+                                      u"DOMDocElementInserted"_ns,
+                                      CanBubble::eYes, Cancelable::eNo);
 }
 
 NS_IMETHODIMP

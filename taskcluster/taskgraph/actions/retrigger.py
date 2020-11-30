@@ -11,7 +11,6 @@ import sys
 import logging
 import textwrap
 
-from slugid import nice as slugid
 from .util import (
     combine_task_graph_files,
     create_tasks,
@@ -67,14 +66,13 @@ def retrigger_decision_action(parameters, graph_config, input, task_group_id, ta
     # absolute timestamps relative to the current time.
     task = taskcluster.get_task_definition(task_id)
     task = relativize_datestamps(task)
-    create_task_from_def(slugid(), task, parameters['level'])
+    create_task_from_def(task, parameters['level'])
 
 
 @register_callback_action(
     title='Retrigger',
     name='retrigger',
     symbol='rt',
-    generic=True,
     description=(
         'Create a clone of the task.'
     ),
@@ -107,7 +105,6 @@ def retrigger_decision_action(parameters, graph_config, input, task_group_id, ta
     name='retrigger',
     cb_name='retrigger-disabled',
     symbol='rt',
-    generic=True,
     description=(
         'Create a clone of the task.\n\n'
         'This type of task should typically be re-run instead of re-triggered.'
@@ -187,7 +184,6 @@ def retrigger_action(parameters, graph_config, input, task_group_id, task_id):
 @register_callback_action(
     title='Rerun',
     name='rerun',
-    generic=True,
     symbol='rr',
     description=(
         'Rerun a task.\n\n'
@@ -232,7 +228,6 @@ def _rerun_task(task_id, label):
     title='Retrigger',
     name='retrigger-multiple',
     symbol='rt',
-    generic=True,
     description=(
         'Create a clone of the task.'
     ),

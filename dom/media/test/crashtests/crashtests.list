@@ -1,5 +1,5 @@
 load 0-timescale.html # bug 1229166
-skip-if(Android) load 459439-1.html # bug 888557
+skip-if(Android) pref(media.autoplay.default,0) load 459439-1.html # bug 888557
 load 466607-1.html
 load 466945-1.html
 load 468763-1.html
@@ -7,7 +7,7 @@ load 474744-1.html
 HTTP load 481136-1.html # needs to be HTTP to recognize the ogg as an audio file?
 load 492286-1.xhtml
 load 493915-1.html
-load 495794-1.html
+pref(media.autoplay.default,0) load 495794-1.html
 load 497734-1.xhtml
 load 497734-2.html
 load 576612-1.html
@@ -17,7 +17,9 @@ skip-if(Android&&AndroidVersion=='22') HTTP load 795892-1.html # bug 1358718
 load 844563.html
 load 846612.html
 skip-if(verify&&isDebugBuild&&gtkWidget) load 852838.html
+load 865004.html
 load 865537-1.html
+load 865550.html
 skip-if(verify&&isDebugBuild&&gtkWidget) load 868504.html
 skip-if(verify&&isDebugBuild&&gtkWidget) load 874869.html
 skip-if(verify&&isDebugBuild&&gtkWidget) load 874915.html
@@ -98,7 +100,9 @@ load 1411322.html
 load 1450845.html
 load disconnect-wrong-destination.html
 load analyser-channels-1.html
+load audiocontext-after-unload-1.html
 skip-if(verify&&isDebugBuild&&gtkWidget) load audiocontext-double-suspend.html
+skip-if(Android) load audioworkletnode-after-unload-1.html # Needs secure context
 load buffer-source-duration-1.html
 skip-if(verify&&isDebugBuild&&gtkWidget) load buffer-source-ended-1.html
 load buffer-source-resampling-start-1.html
@@ -134,3 +138,5 @@ pref(media.autoplay.default,0) load 1587248.html
 load 1594466.html
 load 1604941.html
 skip-if(!winWidget) load 1608286.html
+load channel-count-in-metadata-different-than-in-content.mp4 # Bug 1584959
+load mp4_box_emptyrange.mp4 # Bug 1667480

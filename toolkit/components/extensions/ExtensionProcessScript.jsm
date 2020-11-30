@@ -46,8 +46,13 @@ function getData(extension, key = "") {
 // We need to avoid touching Services.appinfo here in order to prevent
 // the wrong version from being cached during xpcshell test startup.
 // eslint-disable-next-line mozilla/use-services
-const appinfo = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime);
-const isContentProcess = appinfo.processType == appinfo.PROCESS_TYPE_CONTENT;
+XPCOMUtils.defineLazyGetter(this, "isContentProcess", () => {
+  return Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT;
+});
+
+XPCOMUtils.defineLazyGetter(this, "isContentScriptProcess", () => {
+  return isContentProcess || !WebExtensionPolicy.useRemoteWebExtensions;
+});
 
 var extensions = new DefaultWeakMap(policy => {
   return new ExtensionChild.BrowserExtensionContent(policy);
@@ -64,9 +69,7 @@ class ExtensionGlobal {
 
     this.frameData = null;
 
-    MessageChannel.addListener(global, "Extension:Capture", this);
     MessageChannel.addListener(global, "Extension:DetectLanguage", this);
-    MessageChannel.addListener(global, "Extension:Execute", this);
     MessageChannel.addListener(global, "WebNavigation:GetFrame", this);
     MessageChannel.addListener(global, "WebNavigation:GetAllFrames", this);
   }
@@ -197,6 +200,11 @@ ExtensionManager = {
         ({ backgroundScripts } = getData(extension, "extendedData") || {});
       }
 
+      let { backgroundWorkerScript } = extension;
+      if (!backgroundWorkerScript && WebExtensionPolicy.isExtensionProcess) {
+        ({ backgroundWorkerScript } = getData(extension, "extendedData") || {});
+      }
+
       policy = new WebExtensionPolicy({
         id: extension.id,
         mozExtensionHostname: extension.uuid,
@@ -205,7 +213,7 @@ ExtensionManager = {
 
         isPrivileged: extension.isPrivileged,
         permissions: extension.permissions,
-        allowedOrigins: extension.whiteListedHosts,
+        allowedOrigins: extension.allowedOrigins,
         webAccessibleResources: extension.webAccessibleResources,
 
         extensionPageCSP: extension.extensionPageCSP,
@@ -214,6 +222,7 @@ ExtensionManager = {
         localizeCallback,
 
         backgroundScripts,
+        backgroundWorkerScript,
 
         contentScripts: extension.contentScripts,
       });
@@ -392,7 +401,9 @@ var ExtensionProcessScript = {
   },
 
   preloadContentScript(contentScript) {
-    ExtensionContent.contentScripts.get(contentScript).preload();
+    if (isContentScriptProcess) {
+      ExtensionContent.contentScripts.get(contentScript).preload();
+    }
   },
 
   loadContentScript(contentScript, window) {

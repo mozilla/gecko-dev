@@ -19,12 +19,15 @@ dictionary SVGBoundingBoxOptions {
 
 [Exposed=Window]
 interface SVGGraphicsElement : SVGElement {
+  [Pure]
+  attribute boolean autofocus;
+
   readonly attribute SVGAnimatedTransformList transform;
 
   readonly attribute SVGElement? nearestViewportElement;
   readonly attribute SVGElement? farthestViewportElement;
 
-  [NewObject, Throws]
+  [NewObject]
   SVGRect getBBox(optional SVGBoundingBoxOptions aOptions = {});
   // Not implemented
   // SVGRect getStrokeBBox();

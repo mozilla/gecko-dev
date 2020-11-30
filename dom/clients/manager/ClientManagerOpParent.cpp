@@ -25,7 +25,7 @@ void ClientManagerOpParent::DoServiceOp(Method aMethod, Args&&... aArgs) {
   // ActorDestroy() which ensures neither lambda is called if the actor
   // is destroyed before the source operation completes.
   p->Then(
-       GetCurrentThreadSerialEventTarget(), __func__,
+       GetCurrentSerialEventTarget(), __func__,
        [this](const mozilla::dom::ClientOpResult& aResult) {
          mPromiseRequestHolder.Complete();
          Unused << PClientManagerOpParent::Send__delete__(this, aResult);
@@ -68,10 +68,8 @@ void ClientManagerOpParent::Init(const ClientOpConstructorArgs& aArgs) {
       break;
     }
     case ClientOpConstructorArgs::TClientOpenWindowArgs: {
-      RefPtr<ContentParent> contentParent =
-          BackgroundParent::GetContentParent(Manager()->Manager());
       DoServiceOp(&ClientManagerService::OpenWindow,
-                  aArgs.get_ClientOpenWindowArgs(), contentParent.forget());
+                  aArgs.get_ClientOpenWindowArgs());
       break;
     }
     default: {

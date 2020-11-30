@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "SSLTokensCache.h"
+#include "mozilla/ArrayAlgorithm.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Logging.h"
 #include "nsIOService.h"
@@ -13,12 +14,6 @@
 
 namespace mozilla {
 namespace net {
-
-static bool const kDefaultEnabled = false;
-Atomic<bool, Relaxed> SSLTokensCache::sEnabled(kDefaultEnabled);
-
-static uint32_t const kDefaultCapacity = 2048;  // 2MB
-Atomic<uint32_t, Relaxed> SSLTokensCache::sCapacity(kDefaultCapacity);
 
 static LazyLogModule gSSLTokensCacheLog("SSLTokensCache");
 #undef LOG
@@ -35,6 +30,20 @@ class ExpirationComparator {
     return a->mExpirationTime < b->mExpirationTime;
   }
 };
+
+SessionCacheInfo SessionCacheInfo::Clone() const {
+  SessionCacheInfo result;
+  result.mEVStatus = mEVStatus;
+  result.mCertificateTransparencyStatus = mCertificateTransparencyStatus;
+  result.mServerCertBytes = mServerCertBytes.Clone();
+  result.mSucceededCertChainBytes =
+      mSucceededCertChainBytes
+          ? Some(TransformIntoNewArray(
+                *mSucceededCertChainBytes,
+                [](const auto& element) { return element.Clone(); }))
+          : Nothing();
+  return result;
+}
 
 StaticRefPtr<SSLTokensCache> SSLTokensCache::gInstance;
 StaticMutex SSLTokensCache::sLock;
@@ -67,18 +76,18 @@ NS_IMPL_ISUPPORTS(SSLTokensCache, nsIMemoryReporter)
 nsresult SSLTokensCache::Init() {
   StaticMutexAutoLock lock(sLock);
 
-  if (nsIOService::UseSocketProcess()) {
-    if (!XRE_IsSocketProcess()) {
-      return NS_OK;
-    }
-  } else if (!XRE_IsParentProcess()) {
+  // SSLTokensCache should be only used in parent process and socket process.
+  // Ideally, parent process should not use this when socket process is enabled.
+  // However, some xpcsehll tests may need to create and use sockets directly,
+  // so we still allow to use this in parent process no matter socket process is
+  // enabled or not.
+  if (!(XRE_IsSocketProcess() || XRE_IsParentProcess())) {
     return NS_OK;
   }
 
   MOZ_ASSERT(!gInstance);
 
   gInstance = new SSLTokensCache();
-  gInstance->InitPrefs();
 
   RegisterWeakMemoryReporter(gInstance);
 
@@ -110,6 +119,26 @@ SSLTokensCache::~SSLTokensCache() { LOG(("SSLTokensCache::~SSLTokensCache")); }
 nsresult SSLTokensCache::Put(const nsACString& aKey, const uint8_t* aToken,
                              uint32_t aTokenLen,
                              nsITransportSecurityInfo* aSecInfo) {
+  PRUint32 expirationTime;
+  SSLResumptionTokenInfo tokenInfo;
+  if (SSL_GetResumptionTokenInfo(aToken, aTokenLen, &tokenInfo,
+                                 sizeof(tokenInfo)) != SECSuccess) {
+    LOG(("  cannot get expiration time from the token, NSS error %d",
+         PORT_GetError()));
+    return NS_ERROR_FAILURE;
+  }
+
+  expirationTime = tokenInfo.expirationTime;
+  SSL_DestroyResumptionTokenInfo(&tokenInfo);
+
+  return Put(aKey, aToken, aTokenLen, aSecInfo, expirationTime);
+}
+
+// static
+nsresult SSLTokensCache::Put(const nsACString& aKey, const uint8_t* aToken,
+                             uint32_t aTokenLen,
+                             nsITransportSecurityInfo* aSecInfo,
+                             PRUint32 aExpirationTime) {
   StaticMutexAutoLock lock(sLock);
 
   LOG(("SSLTokensCache::Put [key=%s, tokenLen=%u]",
@@ -123,17 +152,6 @@ nsresult SSLTokensCache::Put(const nsACString& aKey, const uint8_t* aToken,
   if (!aSecInfo) {
     return NS_ERROR_FAILURE;
   }
-
-  PRUint32 expirationTime;
-  SSLResumptionTokenInfo tokenInfo;
-  if (SSL_GetResumptionTokenInfo(aToken, aTokenLen, &tokenInfo,
-                                 sizeof(tokenInfo)) != SECSuccess) {
-    LOG(("  cannot get expiration time from the token, NSS error %d",
-         PORT_GetError()));
-    return NS_ERROR_FAILURE;
-  }
-  expirationTime = tokenInfo.expirationTime;
-  SSL_DestroyResumptionTokenInfo(&tokenInfo);
 
   nsCOMPtr<nsIX509Cert> cert;
   aSecInfo->GetServerCert(getter_AddRefs(cert));
@@ -154,6 +172,7 @@ nsresult SSLTokensCache::Put(const nsACString& aKey, const uint8_t* aToken,
     return rv;
   }
 
+  Maybe<bool> isBuiltCertChainRootBuiltInRoot;
   if (!succeededCertArray.IsEmpty()) {
     succeededCertChainBytes.emplace();
     for (const auto& cert : succeededCertArray) {
@@ -164,6 +183,13 @@ nsresult SSLTokensCache::Put(const nsACString& aKey, const uint8_t* aToken,
       }
       succeededCertChainBytes->AppendElement(std::move(rawCert));
     }
+
+    bool builtInRoot = false;
+    rv = aSecInfo->GetIsBuiltCertChainRootBuiltInRoot(&builtInRoot);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+    isBuiltCertChainRootBuiltInRoot.emplace(builtInRoot);
   }
 
   bool isEV;
@@ -191,14 +217,18 @@ nsresult SSLTokensCache::Put(const nsACString& aKey, const uint8_t* aToken,
     rec->Reset();
   }
 
-  rec->mExpirationTime = expirationTime;
+  rec->mExpirationTime = aExpirationTime;
   MOZ_ASSERT(rec->mToken.IsEmpty());
   rec->mToken.AppendElements(aToken, aTokenLen);
 
   rec->mSessionCacheInfo.mServerCertBytes = std::move(certBytes);
 
   rec->mSessionCacheInfo.mSucceededCertChainBytes =
-      std::move(succeededCertChainBytes);
+      succeededCertChainBytes
+          ? Some(TransformIntoNewArray(
+                *succeededCertChainBytes,
+                [](auto& element) { return nsTArray(std::move(element)); }))
+          : Nothing();
 
   if (isEV) {
     rec->mSessionCacheInfo.mEVStatus = psm::EVStatus::EV;
@@ -206,6 +236,9 @@ nsresult SSLTokensCache::Put(const nsACString& aKey, const uint8_t* aToken,
 
   rec->mSessionCacheInfo.mCertificateTransparencyStatus =
       certificateTransparencyStatus;
+
+  rec->mSessionCacheInfo.mIsBuiltCertChainRootBuiltInRoot =
+      std::move(isBuiltCertChainRootBuiltInRoot);
 
   gInstance->mCacheSize += rec->Size();
 
@@ -232,7 +265,7 @@ nsresult SSLTokensCache::Get(const nsACString& aKey,
 
   if (gInstance->mTokenCacheRecords.Get(aKey, &rec)) {
     if (rec->mToken.Length()) {
-      aToken = rec->mToken;
+      aToken = rec->mToken.Clone();
       return NS_OK;
     }
   }
@@ -257,7 +290,7 @@ bool SSLTokensCache::GetSessionCacheInfo(const nsACString& aKey,
   TokenCacheRecord* rec = nullptr;
 
   if (gInstance->mTokenCacheRecords.Get(aKey, &rec)) {
-    aResult = rec->mSessionCacheInfo;
+    aResult = rec->mSessionCacheInfo.Clone();
     return true;
   }
 
@@ -303,15 +336,9 @@ nsresult SSLTokensCache::RemoveLocked(const nsACString& aKey) {
   return NS_OK;
 }
 
-void SSLTokensCache::InitPrefs() {
-  Preferences::AddAtomicBoolVarCache(
-      &sEnabled, "network.ssl_tokens_cache_enabled", kDefaultEnabled);
-  Preferences::AddAtomicUintVarCache(
-      &sCapacity, "network.ssl_tokens_cache_capacity", kDefaultCapacity);
-}
-
 void SSLTokensCache::EvictIfNecessary() {
-  uint32_t capacity = sCapacity << 10;  // kilobytes to bytes
+  // kilobytes to bytes
+  uint32_t capacity = StaticPrefs::network_ssl_tokens_cache_capacity() << 10;
   if (mCacheSize <= capacity) {
     return;
   }
@@ -368,7 +395,7 @@ SSLTokensCache::CollectReports(nsIHandleReportCallback* aHandleReport,
 // static
 void SSLTokensCache::Clear() {
   LOG(("SSLTokensCache::Clear"));
-  if (!sEnabled) {
+  if (!StaticPrefs::network_ssl_tokens_cache_enabled()) {
     return;
   }
 

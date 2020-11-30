@@ -6,19 +6,12 @@
 #ifndef nsIContent_h___
 #define nsIContent_h___
 
-#include "mozilla/Attributes.h"
 #include "mozilla/FlushType.h"
-#include "mozilla/dom/BorrowedAttrInfo.h"
-#include "nsCaseTreatment.h"  // for enum, cannot be forward-declared
 #include "nsINode.h"
 #include "nsStringFwd.h"
-#include "nsISupportsImpl.h"
 
 // Forward declarations
-class nsAtom;
 class nsIURI;
-class nsAttrValue;
-class nsAttrName;
 class nsTextFragment;
 class nsIFrame;
 
@@ -75,8 +68,11 @@ class nsIContent : public nsINode {
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ICONTENT_IID)
 
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS_FINAL_DELETECYCLECOLLECTABLE
+
   NS_DECL_CYCLE_COLLECTION_CLASS(nsIContent)
+
+  NS_DECL_DOMARENA_DESTROY
 
   NS_IMPL_FROMNODE_HELPER(nsIContent, IsContent())
 
@@ -183,16 +179,6 @@ class nsIContent : public nsINode {
    * first non chrome-only/native anonymous ancestor.
    */
   nsIContent* FindFirstNonChromeOnlyAccessContent() const;
-
-  /**
-   * Returns true if and only if this node has a parent, but is not in
-   * its parent's child list.
-   *
-   * FIXME(emilio): Remove along nsINode::IsInAnonymousSubtree.
-   */
-  bool IsRootOfAnonymousSubtree() const {
-    return IsRootOfNativeAnonymousSubtree();
-  }
 
   /**
    * Return true iff this node is in an HTML document (in the HTML5 sense of
@@ -619,7 +605,7 @@ class nsIContent : public nsINode {
    * If this content has independent selection, e.g., if this is input field
    * or textarea, this return TRUE.  Otherwise, false.
    */
-  bool HasIndependentSelection();
+  bool HasIndependentSelection() const;
 
   /**
    * If the content is a part of HTML editor, this returns editing

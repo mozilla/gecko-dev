@@ -62,7 +62,7 @@ class nsNumberControlFrame final : public nsTextControlFrame {
 
 #ifdef DEBUG_FRAME_DUMP
   nsresult GetFrameName(nsAString& aResult) const override {
-    return MakeFrameName(NS_LITERAL_STRING("NumberControl"), aResult);
+    return MakeFrameName(u"NumberControl"_ns, aResult);
   }
 #endif
 
@@ -102,10 +102,6 @@ class nsNumberControlFrame final : public nsTextControlFrame {
   bool ShouldUseNativeStyleForSpinner() const;
 
  private:
-  already_AddRefed<Element> MakeAnonymousElement(Element* aParent,
-                                                 nsAtom* aTagName,
-                                                 PseudoStyleType aPseudoType);
-
   // See nsNumberControlFrame::CreateAnonymousContent for a description of
   // these.
   nsCOMPtr<Element> mOuterWrapper;

@@ -21,6 +21,7 @@
 #include "js/Printf.h"
 #include "util/Memory.h"
 #include "vm/ArrayBufferObject.h"
+#include "vm/Warnings.h"  // js:WarnNumberASCII
 #include "wasm/WasmBaselineCompile.h"
 #include "wasm/WasmInstance.h"
 #include "wasm/WasmSerialize.h"
@@ -44,11 +45,9 @@ using mozilla::MakeEnumeratedRange;
 #  endif
 #endif
 
-// More sanity checks.
-
-static_assert(MaxMemoryInitialPages <=
+static_assert(MaxMemoryPages ==
                   ArrayBufferObject::MaxBufferByteLength / PageSize,
-              "Memory sizing constraint");
+              "invariant");
 
 // All plausible targets must be able to do at least IEEE754 double
 // loads/stores, hence the lower limit of 8.  Some Intel processors support
@@ -78,6 +77,9 @@ Val::Val(const LitVal& val) {
     case ValType::F64:
       u.f64_ = val.f64();
       return;
+    case ValType::V128:
+      u.v128_ = val.v128();
+      return;
     case ValType::Ref:
       u.ref_ = val.ref();
       return;
@@ -105,8 +107,7 @@ const JSClass WasmValueBox::class_ = {
     "WasmValueBox", JSCLASS_HAS_RESERVED_SLOTS(RESERVED_SLOTS)};
 
 WasmValueBox* WasmValueBox::create(JSContext* cx, HandleValue val) {
-  WasmValueBox* obj = (WasmValueBox*)NewObjectWithGivenProto(
-      cx, &WasmValueBox::class_, nullptr);
+  WasmValueBox* obj = NewObjectWithGivenProto<WasmValueBox>(cx, nullptr);
   if (!obj) {
     return nullptr;
   }
@@ -160,38 +161,6 @@ Value wasm::UnboxFuncRef(FuncRef val) {
   MOZ_ASSERT_IF(fn, fn->is<JSFunction>());
   result.setObjectOrNull(fn);
   return result;
-}
-
-bool js::IsBoxedWasmAnyRef(JSContext* cx, unsigned argc, Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-  MOZ_ASSERT(args.length() == 1);
-  args.rval().setBoolean(args[0].isObject() &&
-                         args[0].toObject().is<WasmValueBox>());
-  return true;
-}
-
-bool js::IsBoxableWasmAnyRef(JSContext* cx, unsigned argc, Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-  MOZ_ASSERT(args.length() == 1);
-  args.rval().setBoolean(!(args[0].isObject() || args[0].isNull()));
-  return true;
-}
-
-bool js::BoxWasmAnyRef(JSContext* cx, unsigned argc, Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-  MOZ_ASSERT(args.length() == 1);
-  WasmValueBox* box = WasmValueBox::create(cx, args[0]);
-  if (!box) return false;
-  args.rval().setObject(*box);
-  return true;
-}
-
-bool js::UnboxBoxedWasmAnyRef(JSContext* cx, unsigned argc, Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-  MOZ_ASSERT(args.length() == 1);
-  WasmValueBox* box = &args[0].toObject().as<WasmValueBox>();
-  args.rval().set(box->value());
-  return true;
 }
 
 bool wasm::IsRoundingFunction(SymbolicAddress callee, jit::RoundingMode* mode) {
@@ -254,12 +223,13 @@ static bool IsImmediateType(ValType vt) {
     case ValType::I64:
     case ValType::F32:
     case ValType::F64:
+    case ValType::V128:
       return true;
     case ValType::Ref:
       switch (vt.refTypeKind()) {
         case RefType::Func:
-        case RefType::Any:
-        case RefType::Null:
+        case RefType::Extern:
+        case RefType::Eq:
           return true;
         case RefType::TypeIndex:
           return false;
@@ -280,14 +250,16 @@ static unsigned EncodeImmediateType(ValType vt) {
       return 2;
     case ValType::F64:
       return 3;
+    case ValType::V128:
+      return 4;
     case ValType::Ref:
       switch (vt.refTypeKind()) {
         case RefType::Func:
-          return 4;
-        case RefType::Any:
           return 5;
-        case RefType::Null:
+        case RefType::Extern:
           return 6;
+        case RefType::Eq:
+          return 7;
         case RefType::TypeIndex:
           break;
       }
@@ -494,14 +466,14 @@ size_t Export::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const {
 }
 
 size_t ElemSegment::serializedSize() const {
-  return sizeof(kind) + sizeof(tableIndex) + sizeof(elementType) +
+  return sizeof(kind) + sizeof(tableIndex) + sizeof(elemType) +
          sizeof(offsetIfActive) + SerializedPodVectorSize(elemFuncIndices);
 }
 
 uint8_t* ElemSegment::serialize(uint8_t* cursor) const {
   cursor = WriteBytes(cursor, &kind, sizeof(kind));
   cursor = WriteBytes(cursor, &tableIndex, sizeof(tableIndex));
-  cursor = WriteBytes(cursor, &elementType, sizeof(elementType));
+  cursor = WriteBytes(cursor, &elemType, sizeof(elemType));
   cursor = WriteBytes(cursor, &offsetIfActive, sizeof(offsetIfActive));
   cursor = SerializePodVector(cursor, elemFuncIndices);
   return cursor;
@@ -510,7 +482,7 @@ uint8_t* ElemSegment::serialize(uint8_t* cursor) const {
 const uint8_t* ElemSegment::deserialize(const uint8_t* cursor) {
   (cursor = ReadBytes(cursor, &kind, sizeof(kind))) &&
       (cursor = ReadBytes(cursor, &tableIndex, sizeof(tableIndex))) &&
-      (cursor = ReadBytes(cursor, &elementType, sizeof(elementType))) &&
+      (cursor = ReadBytes(cursor, &elemType, sizeof(elemType))) &&
       (cursor = ReadBytes(cursor, &offsetIfActive, sizeof(offsetIfActive))) &&
       (cursor = DeserializePodVector(cursor, &elemFuncIndices));
   return cursor;
@@ -588,8 +560,10 @@ bool wasm::IsValidARMImmediate(uint32_t i) {
   return valid;
 }
 
-uint32_t wasm::RoundUpToNextValidARMImmediate(uint32_t i) {
-  MOZ_ASSERT(i <= 0xff000000);
+uint64_t wasm::RoundUpToNextValidARMImmediate(uint64_t i) {
+  MOZ_ASSERT(i <= HighestValidARMImmediate);
+  static_assert(HighestValidARMImmediate == 0xff000000,
+                "algorithm relies on specific constant");
 
   if (i <= 16 * 1024 * 1024) {
     i = i ? mozilla::RoundUpPow2(i) : 0;
@@ -610,7 +584,7 @@ bool wasm::IsValidBoundsCheckImmediate(uint32_t i) {
 #endif
 }
 
-size_t wasm::ComputeMappedSize(uint32_t maxSize) {
+size_t wasm::ComputeMappedSize(uint64_t maxSize) {
   MOZ_ASSERT(maxSize % PageSize == 0);
 
   // It is the bounds-check limit, not the mapped size, that gets baked into
@@ -618,9 +592,9 @@ size_t wasm::ComputeMappedSize(uint32_t maxSize) {
   // *before* adding in the guard page.
 
 #ifdef JS_CODEGEN_ARM
-  uint32_t boundsCheckLimit = RoundUpToNextValidARMImmediate(maxSize);
+  uint64_t boundsCheckLimit = RoundUpToNextValidARMImmediate(maxSize);
 #else
-  uint32_t boundsCheckLimit = maxSize;
+  uint64_t boundsCheckLimit = maxSize;
 #endif
   MOZ_ASSERT(IsValidBoundsCheckImmediate(boundsCheckLimit));
 
@@ -631,7 +605,7 @@ size_t wasm::ComputeMappedSize(uint32_t maxSize) {
 
 /* static */
 DebugFrame* DebugFrame::from(Frame* fp) {
-  MOZ_ASSERT(fp->tls->instance->code().metadata().debugEnabled);
+  MOZ_ASSERT(fp->instance()->code().metadata().debugEnabled);
   auto* df =
       reinterpret_cast<DebugFrame*>((uint8_t*)fp - DebugFrame::offsetOfFrame());
   MOZ_ASSERT(fp->instance() == df->instance());
@@ -708,81 +682,58 @@ bool DebugFrame::getLocal(uint32_t localIndex, MutableHandleValue vp) {
     case jit::MIRType::RefOrNull:
       vp.set(ObjectOrNullValue(*(JSObject**)dataPtr));
       break;
+#ifdef ENABLE_WASM_SIMD
+    case jit::MIRType::Simd128:
+      vp.set(NumberValue(0));
+      break;
+#endif
     default:
       MOZ_CRASH("local type");
   }
   return true;
 }
 
-bool DebugFrame::updateReturnJSValue() {
-  hasCachedReturnJSValue_ = true;
-  ValTypeVector results;
-  if (!instance()->debug().debugGetResultTypes(funcIndex(), &results)) {
-    return false;
+bool DebugFrame::updateReturnJSValue(JSContext* cx) {
+  MutableHandleValue rval =
+      MutableHandleValue::fromMarkedLocation(&cachedReturnJSValue_);
+  rval.setUndefined();
+  flags_.hasCachedReturnJSValue = true;
+  ResultType resultType = instance()->debug().debugGetResultType(funcIndex());
+  Maybe<char*> stackResultsLoc;
+  if (ABIResultIter::HasStackResults(resultType)) {
+    stackResultsLoc = Some(static_cast<char*>(stackResultsPointer_));
   }
-  if (results.length() == 0) {
-    cachedReturnJSValue_.setUndefined();
-    return true;
-  }
-  MOZ_ASSERT(results.length() == 1, "multi-value return unimplemented");
-  switch (results[0].kind()) {
-    case ValType::I32:
-      cachedReturnJSValue_.setInt32(resultI32_);
-      break;
-    case ValType::I64:
-      // Just display as a Number; it's ok if we lose some precision
-      cachedReturnJSValue_.setDouble((double)resultI64_);
-      break;
-    case ValType::F32:
-      cachedReturnJSValue_.setDouble(JS::CanonicalizeNaN(resultF32_));
-      break;
-    case ValType::F64:
-      cachedReturnJSValue_.setDouble(JS::CanonicalizeNaN(resultF64_));
-      break;
-    case ValType::Ref:
-      switch (results[0].refTypeKind()) {
-        case RefType::TypeIndex:
-          cachedReturnJSValue_ = ObjectOrNullValue((JSObject*)resultRef_);
-          break;
-        case RefType::Func:
-          cachedReturnJSValue_ =
-              UnboxFuncRef(FuncRef::fromAnyRefUnchecked(resultAnyRef_));
-          break;
-        case RefType::Any:
-        case RefType::Null:
-          cachedReturnJSValue_ = UnboxAnyRef(resultAnyRef_);
-          break;
-      }
-      break;
-    default:
-      MOZ_CRASH("result type");
-  }
-  return true;
+  DebugCodegen(DebugChannel::Function,
+               "wasm-function[%d] updateReturnJSValue [", funcIndex());
+  bool ok =
+      ResultsToJSValue(cx, resultType, registerResults_, stackResultsLoc, rval);
+  DebugCodegen(DebugChannel::Function, "]\n");
+  return ok;
 }
 
 HandleValue DebugFrame::returnValue() const {
-  MOZ_ASSERT(hasCachedReturnJSValue_);
+  MOZ_ASSERT(flags_.hasCachedReturnJSValue);
   return HandleValue::fromMarkedLocation(&cachedReturnJSValue_);
 }
 
 void DebugFrame::clearReturnJSValue() {
-  hasCachedReturnJSValue_ = true;
+  flags_.hasCachedReturnJSValue = true;
   cachedReturnJSValue_.setUndefined();
 }
 
 void DebugFrame::observe(JSContext* cx) {
-  if (!observing_) {
+  if (!flags_.observing) {
     instance()->debug().adjustEnterAndLeaveFrameTrapsState(
         cx, /* enabled = */ true);
-    observing_ = true;
+    flags_.observing = true;
   }
 }
 
 void DebugFrame::leave(JSContext* cx) {
-  if (observing_) {
+  if (flags_.observing) {
     instance()->debug().adjustEnterAndLeaveFrameTrapsState(
         cx, /* enabled = */ false);
-    observing_ = false;
+    flags_.observing = false;
   }
 }
 
@@ -868,7 +819,7 @@ CodeRange::CodeRange(Kind kind, uint32_t funcIndex, Offsets offsets)
     : begin_(offsets.begin), ret_(0), end_(offsets.end), kind_(kind) {
   u.funcIndex_ = funcIndex;
   u.func.lineOrBytecode_ = 0;
-  u.func.beginToNormalEntry_ = 0;
+  u.func.beginToUncheckedCallEntry_ = 0;
   u.func.beginToTierEntry_ = 0;
   MOZ_ASSERT(isEntry());
   MOZ_ASSERT(begin_ <= end_);
@@ -897,7 +848,7 @@ CodeRange::CodeRange(Kind kind, uint32_t funcIndex, CallableOffsets offsets)
   MOZ_ASSERT(ret_ < end_);
   u.funcIndex_ = funcIndex;
   u.func.lineOrBytecode_ = 0;
-  u.func.beginToNormalEntry_ = 0;
+  u.func.beginToUncheckedCallEntry_ = 0;
   u.func.beginToTierEntry_ = 0;
 }
 
@@ -924,11 +875,11 @@ CodeRange::CodeRange(uint32_t funcIndex, uint32_t funcLineOrBytecode,
       kind_(Function) {
   MOZ_ASSERT(begin_ < ret_);
   MOZ_ASSERT(ret_ < end_);
-  MOZ_ASSERT(offsets.normalEntry - begin_ <= UINT8_MAX);
+  MOZ_ASSERT(offsets.uncheckedCallEntry - begin_ <= UINT8_MAX);
   MOZ_ASSERT(offsets.tierEntry - begin_ <= UINT8_MAX);
   u.funcIndex_ = funcIndex;
   u.func.lineOrBytecode_ = funcLineOrBytecode;
-  u.func.beginToNormalEntry_ = offsets.normalEntry - begin_;
+  u.func.beginToUncheckedCallEntry_ = offsets.uncheckedCallEntry - begin_;
   u.func.beginToTierEntry_ = offsets.tierEntry - begin_;
 }
 
@@ -984,8 +935,7 @@ void wasm::Log(JSContext* cx, const char* fmt, ...) {
   va_start(args, fmt);
 
   if (UniqueChars chars = JS_vsmprintf(fmt, args)) {
-    JS_ReportErrorFlagsAndNumberASCII(cx, JSREPORT_WARNING, GetErrorMessage,
-                                      nullptr, JSMSG_WASM_VERBOSE, chars.get());
+    WarnNumberASCII(cx, JSMSG_WASM_VERBOSE, chars.get());
     if (cx->isExceptionPending()) {
       cx->clearPendingException();
     }
@@ -1016,4 +966,65 @@ void wasm::DebugCodegen(DebugChannel channel, const char* fmt, ...) {
   vfprintf(stderr, fmt, ap);
   va_end(ap);
 #endif
+}
+
+UniqueChars wasm::ToString(ValType type) {
+  const char* literal = nullptr;
+  switch (type.kind()) {
+    case ValType::I32:
+      literal = "i32";
+      break;
+    case ValType::I64:
+      literal = "i64";
+      break;
+    case ValType::V128:
+      literal = "v128";
+      break;
+    case ValType::F32:
+      literal = "f32";
+      break;
+    case ValType::F64:
+      literal = "f64";
+      break;
+    case ValType::Ref:
+      if (type.isNullable() && !type.isTypeIndex()) {
+        switch (type.refTypeKind()) {
+          case RefType::Func:
+            literal = "funcref";
+            break;
+          case RefType::Extern:
+            literal = "externref";
+            break;
+          case RefType::Eq:
+            literal = "eqref";
+            break;
+          case RefType::TypeIndex:
+            MOZ_ASSERT_UNREACHABLE();
+        }
+      } else {
+        const char* heapType = nullptr;
+        switch (type.refTypeKind()) {
+          case RefType::Func:
+            heapType = "func";
+            break;
+          case RefType::Extern:
+            heapType = "extern";
+            break;
+          case RefType::Eq:
+            heapType = "eq";
+            break;
+          case RefType::TypeIndex:
+            return JS_smprintf("(ref %s%d)", type.isNullable() ? "null " : "",
+                               type.refType().typeIndex());
+        }
+        return JS_smprintf("(ref %s%s)", type.isNullable() ? "null " : "",
+                           heapType);
+      }
+      break;
+  }
+  return JS_smprintf("%s", literal);
+}
+
+UniqueChars wasm::ToString(const Maybe<ValType>& type) {
+  return type ? ToString(type.ref()) : JS_smprintf("%s", "void");
 }

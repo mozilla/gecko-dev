@@ -26,6 +26,9 @@
 #include "YCbCrUtils.h"
 #include <algorithm>
 #include "ImageContainer.h"
+#ifdef MOZ_WIDGET_GTK
+#  include "mozilla/WidgetUtilsGtk.h"
+#endif
 
 namespace mozilla {
 using namespace mozilla::gfx;
@@ -372,7 +375,7 @@ static RefPtr<gfx::Path> BuildPathFromPolygon(const RefPtr<DrawTarget>& aDT,
 
 static void DrawSurface(gfx::DrawTarget* aDest, const gfx::Rect& aDestRect,
                         const gfx::Rect& /* aClipRect */,
-                        const gfx::Color& aColor,
+                        const gfx::DeviceColor& aColor,
                         const gfx::DrawOptions& aOptions,
                         gfx::SourceSurface* aMask,
                         const gfx::Matrix* aMaskTransform) {
@@ -380,7 +383,8 @@ static void DrawSurface(gfx::DrawTarget* aDest, const gfx::Rect& aDestRect,
 }
 
 static void DrawSurface(gfx::DrawTarget* aDest, const gfx::Polygon& aPolygon,
-                        const gfx::Rect& aClipRect, const gfx::Color& aColor,
+                        const gfx::Rect& aClipRect,
+                        const gfx::DeviceColor& aColor,
                         const gfx::DrawOptions& aOptions,
                         gfx::SourceSurface* aMask,
                         const gfx::Matrix* aMaskTransform) {
@@ -586,6 +590,15 @@ static bool AttemptVideoConvertAndScale(
             ptrdiff_t(dstRect.Y()) * dstStride,
         dstStride);
     aDest->ReleaseBits(dstData);
+#  ifdef MOZ_WIDGET_GTK
+    if (mozilla::widget::IsMainWindowTransparent()) {
+      gfx::Rect rect(dstRect.X(), dstRect.Y(), dstRect.Width(),
+                     dstRect.Height());
+      aDest->FillRect(rect, ColorPattern(DeviceColor(0, 0, 0, 1)),
+                      DrawOptions(1.f, CompositionOp::OP_ADD));
+      aDest->Flush();
+    }
+#  endif
     return true;
   } else
 #endif  // MOZILLA_SSE_HAVE_CPUID_DETECTION
@@ -669,6 +682,10 @@ void BasicCompositor::DrawGeometry(
   // offset can be anywhere.
   IntRect clipRectInRenderTargetSpace =
       aClipRect + mRenderTarget->GetClipSpaceOrigin();
+  if (Maybe<IntRect> rtClip = mRenderTarget->GetClipRect()) {
+    clipRectInRenderTargetSpace =
+        clipRectInRenderTargetSpace.Intersect(*rtClip);
+  }
   buffer->PushClipRect(Rect(clipRectInRenderTargetSpace));
   Rect deviceSpaceClipRect(clipRectInRenderTargetSpace - offset);
 
@@ -1035,21 +1052,29 @@ Maybe<gfx::IntRect> BasicCompositor::BeginRenderingToNativeLayer(
     const nsIntRegion& aOpaqueRegion, NativeLayer* aNativeLayer) {
   IntRect rect = aNativeLayer->GetRect();
 
+  // We only support a single invalid rect per native layer. This is a
+  // limitation that's imposed by the AttemptVideo[ConvertAnd]Scale functions,
+  // which require knowing the combined clip in DrawGeometry and can only handle
+  // a single clip rect.
+  IntRect invalidRect;
   if (mShouldInvalidateWindow) {
-    mInvalidRegion = rect;
+    invalidRect = rect;
   } else {
-    mInvalidRegion.And(aInvalidRegion, rect);
+    IntRegion invalidRegion;
+    invalidRegion.And(aInvalidRegion, rect);
+    if (invalidRegion.IsEmpty()) {
+      return Nothing();
+    }
+    invalidRect = invalidRegion.GetBounds();
   }
-
-  if (mInvalidRegion.IsEmpty()) {
-    return Nothing();
-  }
+  mInvalidRegion = invalidRect;
 
   RefPtr<CompositingRenderTarget> target;
   aNativeLayer->SetSurfaceIsFlipped(false);
-  IntRegion invalidRelativeToLayer = mInvalidRegion.MovedBy(-rect.TopLeft());
+  IntRegion invalidRelativeToLayer = invalidRect - rect.TopLeft();
   RefPtr<DrawTarget> dt = aNativeLayer->NextSurfaceAsDrawTarget(
-      invalidRelativeToLayer, BackendType::SKIA);
+      gfx::IntRect({}, aNativeLayer->GetSize()), invalidRelativeToLayer,
+      BackendType::SKIA);
   if (!dt) {
     return Nothing();
   }
@@ -1062,20 +1087,17 @@ Maybe<gfx::IntRect> BasicCompositor::BeginRenderingToNativeLayer(
   MOZ_RELEASE_ASSERT(target);
   SetRenderTarget(target);
 
-  gfxUtils::ClipToRegion(mRenderTarget->mDrawTarget, mInvalidRegion);
-
-  mRenderTarget->mDrawTarget->PushClipRect(Rect(aClipRect.valueOr(rect)));
+  IntRect clipRect = invalidRect;
+  if (aClipRect) {
+    clipRect = clipRect.Intersect(*aClipRect);
+  }
+  mRenderTarget->SetClipRect(Some(clipRect));
 
   return Some(rect);
 }
 
 void BasicCompositor::EndRenderingToNativeLayer() {
-  // Pop aClipRect/bounds rect
-  mRenderTarget->mDrawTarget->PopClip();
-
-  // Pop mInvalidRegion
-  mRenderTarget->mDrawTarget->PopClip();
-
+  mRenderTarget->SetClipRect(Nothing());
   SetRenderTarget(mNativeLayersReferenceRT);
 
   MOZ_RELEASE_ASSERT(mCurrentNativeLayer);
@@ -1095,8 +1117,9 @@ void BasicCompositor::EndFrame() {
       float g = float(rand()) / float(RAND_MAX);
       float b = float(rand()) / float(RAND_MAX);
       // We're still clipped to mInvalidRegion, so just fill the bounds.
-      mRenderTarget->mDrawTarget->FillRect(Rect(mInvalidRegion.GetBounds()),
-                                           ColorPattern(Color(r, g, b, 0.2f)));
+      mRenderTarget->mDrawTarget->FillRect(
+          Rect(mInvalidRegion.GetBounds()),
+          ColorPattern(DeviceColor(r, g, b, 0.2f)));
     }
 
     // Pop aInvalidRegion
@@ -1145,7 +1168,7 @@ void BasicCompositor::TryToEndRemoteDrawing() {
     RefPtr<Runnable> runnable =
         NS_NewRunnableFunction("layers::BasicCompositor::TryToEndRemoteDrawing",
                                [self]() { self->TryToEndRemoteDrawing(); });
-    MessageLoop::current()->PostDelayedTask(runnable.forget(), retryMs);
+    GetCurrentSerialEventTarget()->DelayedDispatch(runnable.forget(), retryMs);
   } else {
     EndRemoteDrawing();
   }

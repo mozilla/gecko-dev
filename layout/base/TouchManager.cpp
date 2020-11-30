@@ -10,6 +10,7 @@
 #include "mozilla/dom/EventTarget.h"
 #include "mozilla/PresShell.h"
 #include "nsIFrame.h"
+#include "nsLayoutUtils.h"
 #include "nsView.h"
 #include "PositionedEventTargeting.h"
 
@@ -19,12 +20,14 @@ namespace mozilla {
 
 nsDataHashtable<nsUint32HashKey, TouchManager::TouchInfo>*
     TouchManager::sCaptureTouchList;
+layers::LayersId TouchManager::sCaptureTouchLayersId;
 
 /*static*/
 void TouchManager::InitializeStatics() {
   NS_ASSERTION(!sCaptureTouchList, "InitializeStatics called multiple times!");
   sCaptureTouchList =
       new nsDataHashtable<nsUint32HashKey, TouchManager::TouchInfo>;
+  sCaptureTouchLayersId = layers::LayersId{0};
 }
 
 /*static*/
@@ -40,7 +43,7 @@ void TouchManager::Init(PresShell* aPresShell, Document* aDocument) {
 }
 
 void TouchManager::Destroy() {
-  EvictTouches();
+  EvictTouches(mDocument);
   mDocument = nullptr;
   mPresShell = nullptr;
 }
@@ -83,7 +86,8 @@ void TouchManager::EvictTouchPoint(RefPtr<Touch>& aTouch,
 }
 
 /*static*/
-void TouchManager::AppendToTouchList(WidgetTouchEvent::TouchArray* aTouchList) {
+void TouchManager::AppendToTouchList(
+    WidgetTouchEvent::TouchArrayBase* aTouchList) {
   for (auto iter = sCaptureTouchList->Iter(); !iter.Done(); iter.Next()) {
     RefPtr<Touch>& touch = iter.Data().mTouch;
     touch->mChanged = false;
@@ -91,12 +95,13 @@ void TouchManager::AppendToTouchList(WidgetTouchEvent::TouchArray* aTouchList) {
   }
 }
 
-void TouchManager::EvictTouches() {
+void TouchManager::EvictTouches(Document* aLimitToDocument) {
   WidgetTouchEvent::AutoTouchArray touches;
   AppendToTouchList(&touches);
   for (uint32_t i = 0; i < touches.Length(); ++i) {
-    EvictTouchPoint(touches[i], mDocument);
+    EvictTouchPoint(touches[i], aLimitToDocument);
   }
+  sCaptureTouchLayersId = layers::LayersId{0};
 }
 
 /* static */
@@ -109,15 +114,6 @@ nsIFrame* TouchManager::SetupTarget(WidgetTouchEvent* aEvent,
     return aFrame;
   }
 
-  uint32_t flags = 0;
-  // Setting this flag will skip the scrollbars on the root frame from
-  // participating in hit-testing, and we only want that to happen on
-  // zoomable platforms (for now).
-  dom::Document* doc = aFrame->PresContext()->Document();
-  if (nsLayoutUtils::AllowZoomingForDocument(doc)) {
-    flags |= INPUT_IGNORE_ROOT_SCROLL_FRAME;
-  }
-
   nsIFrame* target = aFrame;
   for (int32_t i = aEvent->mTouches.Length(); i;) {
     --i;
@@ -126,9 +122,10 @@ nsIFrame* TouchManager::SetupTarget(WidgetTouchEvent* aEvent,
     int32_t id = touch->Identifier();
     if (!TouchManager::HasCapturedTouch(id)) {
       // find the target for this touch
+      RelativeTo relativeTo{aFrame};
       nsPoint eventPoint = nsLayoutUtils::GetEventCoordinatesRelativeTo(
-          aEvent, touch->mRefPoint, aFrame);
-      target = FindFrameTargetedByInputEvent(aEvent, aFrame, eventPoint, flags);
+          aEvent, touch->mRefPoint, relativeTo);
+      target = FindFrameTargetedByInputEvent(aEvent, relativeTo, eventPoint);
       if (target) {
         nsCOMPtr<nsIContent> targetContent;
         target->GetContentForEvent(aEvent, getter_AddRefs(targetContent));
@@ -231,11 +228,15 @@ bool TouchManager::PreHandleEvent(WidgetEvent* aEvent, nsEventStatus* aStatus,
       // the start of a new touch session and evict any old touches in the
       // queue
       if (touchEvent->mTouches.Length() == 1) {
-        WidgetTouchEvent::AutoTouchArray touches;
-        AppendToTouchList(&touches);
-        for (uint32_t i = 0; i < touches.Length(); ++i) {
-          EvictTouchPoint(touches[i]);
-        }
+        EvictTouches();
+        // Per
+        // https://w3c.github.io/touch-events/#touchevent-implementer-s-note,
+        // all touch event should be dispatched to the same document that first
+        // touch event associated to. We cache layers id of the first touchstart
+        // event, all subsequent touch events will use the same layers id.
+        sCaptureTouchLayersId = aEvent->mLayersId;
+      } else {
+        touchEvent->mLayersId = sCaptureTouchLayersId;
       }
       // Add any new touches to the queue
       WidgetTouchEvent::TouchArray& touches = touchEvent->mTouches;
@@ -264,6 +265,7 @@ bool TouchManager::PreHandleEvent(WidgetEvent* aEvent, nsEventStatus* aStatus,
       // Check for touches that changed. Mark them add to queue
       WidgetTouchEvent* touchEvent = aEvent->AsTouchEvent();
       WidgetTouchEvent::TouchArray& touches = touchEvent->mTouches;
+      touchEvent->mLayersId = sCaptureTouchLayersId;
       bool haveChanged = false;
       for (int32_t i = touches.Length(); i;) {
         --i;
@@ -337,6 +339,7 @@ bool TouchManager::PreHandleEvent(WidgetEvent* aEvent, nsEventStatus* aStatus,
       // need to make sure we only remove touches that are ending here
       WidgetTouchEvent* touchEvent = aEvent->AsTouchEvent();
       WidgetTouchEvent::TouchArray& touches = touchEvent->mTouches;
+      touchEvent->mLayersId = sCaptureTouchLayersId;
       for (int32_t i = touches.Length(); i;) {
         --i;
         Touch* touch = touches[i];
@@ -374,6 +377,7 @@ bool TouchManager::PreHandleEvent(WidgetEvent* aEvent, nsEventStatus* aStatus,
       // is received.
       WidgetTouchEvent* touchEvent = aEvent->AsTouchEvent();
       WidgetTouchEvent::TouchArray& touches = touchEvent->mTouches;
+      touchEvent->mLayersId = sCaptureTouchLayersId;
       for (uint32_t i = 0; i < touches.Length(); ++i) {
         Touch* touch = touches[i];
         if (!touch) {

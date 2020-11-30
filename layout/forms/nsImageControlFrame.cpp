@@ -43,7 +43,7 @@ class nsImageControlFrame final : public nsImageFrame,
 
 #ifdef DEBUG_FRAME_DUMP
   nsresult GetFrameName(nsAString& aResult) const final {
-    return MakeFrameName(NS_LITERAL_STRING("ImageControl"), aResult);
+    return MakeFrameName(u"ImageControl"_ns, aResult);
   }
 #endif
 
@@ -58,7 +58,7 @@ nsImageControlFrame::nsImageControlFrame(ComputedStyle* aStyle,
                                          nsPresContext* aPresContext)
     : nsImageFrame(aStyle, aPresContext, kClassID) {}
 
-nsImageControlFrame::~nsImageControlFrame() {}
+nsImageControlFrame::~nsImageControlFrame() = default;
 
 void nsImageControlFrame::DestroyFrom(nsIFrame* aDestructRoot,
                                       PostDestroyData& aPostDestroyData) {
@@ -127,20 +127,21 @@ nsresult nsImageControlFrame::HandleEvent(nsPresContext* aPresContext,
   }
 
   if (IsContentDisabled()) {
-    return nsFrame::HandleEvent(aPresContext, aEvent, aEventStatus);
+    return nsIFrame::HandleEvent(aPresContext, aEvent, aEventStatus);
   }
 
   *aEventStatus = nsEventStatus_eIgnore;
 
   if (aEvent->mMessage == eMouseUp &&
-      aEvent->AsMouseEvent()->mButton == MouseButton::eLeft) {
+      aEvent->AsMouseEvent()->mButton == MouseButton::ePrimary) {
     // Store click point for HTMLInputElement::SubmitNamesValues
     // Do this on MouseUp because the specs don't say and that's what IE does
     nsIntPoint* lastClickPoint = static_cast<nsIntPoint*>(
         mContent->GetProperty(nsGkAtoms::imageClickedPoint));
     if (lastClickPoint) {
       // normally lastClickedPoint is not null, as it's allocated in Init()
-      nsPoint pt = nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, this);
+      nsPoint pt = nsLayoutUtils::GetEventCoordinatesRelativeTo(
+          aEvent, RelativeTo{this});
       TranslateEventCoords(pt, *lastClickPoint);
     }
   }

@@ -312,19 +312,20 @@ import org.mozilla.gecko.gfx.GeckoSurface;
 
         private synchronized void onRelease(final Sample sample, final boolean render) {
             final Output output = mSentOutputs.poll();
-            if (output == null) {
-                if (DEBUG) {
-                    Log.d(LOGTAG, sample + " already released");
-                }
-                return;
+            if (output != null) {
+                mCodec.releaseOutputBuffer(output.index, render);
+                mSamplePool.recycleOutput(output.sample);
+            } else if (DEBUG) {
+                Log.d(LOGTAG, sample + " already released");
             }
-            mCodec.releaseOutputBuffer(output.index, render);
-            mSamplePool.recycleOutput(output.sample);
 
             sample.dispose();
         }
 
-        private void onFormatChanged(final MediaFormat format) {
+        private synchronized void onFormatChanged(final MediaFormat format) {
+            if (mStopped) {
+                return;
+            }
             try {
                 mCallbacks.onOutputFormatChanged(new FormatParam(format));
             } catch (RemoteException re) {
@@ -358,6 +359,7 @@ import org.mozilla.gecko.gfx.GeckoSurface;
     }
 
     private volatile ICodecCallbacks mCallbacks;
+    private GeckoSurface mSurface;
     private AsyncCodec mCodec;
     private InputProcessor mInputProcessor;
     private OutputProcessor mOutputProcessor;
@@ -427,6 +429,7 @@ import org.mozilla.gecko.gfx.GeckoSurface;
             mSamplePool = new SamplePool(name, renderToSurface);
             if (renderToSurface) {
                 mIsTunneledPlaybackSupported = mCodec.isTunneledPlaybackSupported(mime);
+                mSurface = surface; // Take ownership of surface.
             }
             if (DEBUG) {
                 Log.d(LOGTAG, codec.toString() + " created. Render to surface?" + renderToSurface);
@@ -648,5 +651,9 @@ import org.mozilla.gecko.gfx.GeckoSurface;
         mSamplePool = null;
         mCallbacks.asBinder().unlinkToDeath(this, 0);
         mCallbacks = null;
+        if (mSurface != null) {
+            mSurface.release();
+            mSurface = null;
+        }
     }
 }

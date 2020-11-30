@@ -15,8 +15,35 @@ conforms to recommendations.
 
 .. container:: blockIndicator warning
 
-   Firefox code base uses the `Google Coding style for C++
-   code <https://google.github.io/styleguide/cppguide.html>`__
+   The Firefox code base adopts parts of the `Google Coding style for C++
+   code <https://google.github.io/styleguide/cppguide.html>`__, but not all of its rules.
+   A few rules are followed across the code base, others are intended to be
+   followed in new or significantly revised code. We may extend this list in the
+   future, when we evaluate the Google Coding Style for C++ Code further and/or update
+   our coding practices. However, the plan is not to adopt all rules of the Google Coding
+   Style for C++ Code. Some rules are explicitly unlikely to be adopted at any time.
+
+   Followed across the code base:
+
+   - `Formatting <https://google.github.io/styleguide/cppguide.html#Formatting>`__,
+     except for subsections noted here otherwise
+   - `Implicit Conversions <https://google.github.io/styleguide/cppguide.html#Implicit_Conversions>`__,
+     which is enforced by a custom clang-plugin check, unless explicitly overridden using
+     ``MOZ_IMPLICIT``
+
+   Followed in new/significantly revised code:
+
+   - `Include guards <https://google.github.io/styleguide/cppguide.html#The__define_Guard>`__
+
+   Unlikely to be ever adopted:
+
+   - `Forward declarations <https://google.github.io/styleguide/cppguide.html#Forward_Declarations>`__
+   - `Formatting/Conditionals <https://google.github.io/styleguide/cppguide.html#Conditionals>`__
+     w.r.t. curly braces around inner statements, we require them in all cases where the
+     Google style allows to leave them out for single-line conditional statements
+
+   This list reflects the state of the Google Google Coding Style for C++ Code as of
+   2020-07-17. It may become invalid when the Google modifies its Coding Style.
 
 
 Formatting code
@@ -496,7 +523,7 @@ explicitly mark the return value should always be checked. For example:
    create();
 
    // for C++, add this in *declaration*, do not add it again in implementation.
-   MOZ_MUST_USE nsresult
+   [[nodiscard]] nsresult
    DoSomething();
 
 There are some exceptions:
@@ -511,7 +538,7 @@ There are some exceptions:
    SomeMap::GetValue(const nsString& key, nsString& value);
 
 If most callers need to check the output value first, then adding
-``MOZ_MUST_USE`` might be too verbose. In this case, change the return value
+``[[nodiscard]]`` might be too verbose. In this case, change the return value
 to void might be a reasonable choice.
 
 There is also a static analysis attribute ``MOZ_MUST_USE_TYPE``, which can
@@ -656,16 +683,28 @@ found.
 Strings
 -------
 
--  String arguments to functions should be declared as ``nsAString``.
--  Use ``EmptyString()`` and ``EmptyCString()`` instead of
-   ``NS_LITERAL_STRING("")`` or ``nsAutoString empty;``.
--  Use ``str.IsEmpty()`` instead of ``str.Length() == 0``.
--  Use ``str.Truncate()`` instead of ``str.SetLength(0)`` or
-   ``str.Assign(EmptyString())``.
--  For constant strings, use ``NS_LITERAL_STRING("...")`` instead of
-   ``NS_ConvertASCIItoUCS2("...")``, ``AssignWithConversion("...")``,
-   ``EqualsWithConversion("...")``, or ``nsAutoString()``
+.. note::
+
+   This section overlaps with the more verbose advice given in
+   `Internal strings <https://wiki.developer.mozilla.org/en-US/docs/Mozilla/Tech/XPCOM/Guide/Internal_strings>`__.
+   These should eventually be merged. For now, please refer to that guide for
+   more advice.
+
+-  String arguments to functions should be declared as ``[const] nsA[C]String&``.
+-  Prefer using string literals. In particular, use empty string literals,
+   i.e. ``u""_ns`` or ``""_ns``, instead of ``Empty[C]String()`` or
+   ``const nsAuto[C]String empty;``. Use ``Empty[C]String()`` only if you
+   specifically need a ``const ns[C]String&``, e.g. with the ternary operator
+   or when you need to return/bind to a reference or take the address of the
+   empty string.
+-  For 16-bit literal strings, use ``u"..."_ns`` or, if necessary
+   ``NS_LITERAL_STRING_FROM_CSTRING(...)`` instead of ``nsAutoString()``
+   or other ways that would do a run-time conversion.
+   See :ref:`Avoid runtime conversion of string literals` below.
 -  To compare a string with a literal, use ``.EqualsLiteral("...")``.
+-  Use ``str.IsEmpty()`` instead of ``str.Length() == 0``.
+-  Use ``str.Truncate()`` instead of ``str.SetLength(0)``,
+   ``str.Assign(""_ns)`` or ``str.AssignLiteral("")``.
 -  Don't use functions from ``ctype.h`` (``isdigit()``, ``isalpha()``,
    etc.) or from ``strings.h`` (``strcasecmp()``, ``strncasecmp()``).
    These are locale-sensitive, which makes them inappropriate for
@@ -764,14 +803,16 @@ Free the string manually:
      nsMemory::Free(warning);
 
 
-Use MOZ_UTF16() or NS_LITERAL_STRING() to avoid runtime string conversion
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Avoid runtime conversion of string literals
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 It is very common to need to assign the value of a literal string, such
 as ``"Some String"``, into a unicode buffer. Instead of using ``nsString``'s
-``AssignLiteral`` and ``AppendLiteral``, use ``NS_LITERAL_STRING()``
+``AssignLiteral`` and ``AppendLiteral``, use a user-defined literal like `u"foo"_ns`
 instead. On most platforms, this will force the compiler to compile in a
-raw unicode string, and assign it directly.
+raw unicode string, and assign it directly. In cases where the literal is defined
+via a macro that is used in both 8-bit and 16-bit ways, you can use
+`NS_LITERAL_STRING_FROM_CSTRING` to do the conversion at compile time.
 
 Incorrect:
 
@@ -788,7 +829,7 @@ Correct:
 
 .. code-block:: cpp
 
-   NS_NAMED_LITERAL_STRING(warning, "danger will robinson!");
+   constexpr auto warning = u"danger will robinson!"_ns;
    ...
    // if you'll be using the 'warning' string, you can still use it as before:
    foo->SetStringValue(warning);
@@ -796,13 +837,20 @@ Correct:
    bar->SetUnicodeValue(warning.get());
 
    // alternatively, use the wide string directly:
-   foo->SetStringValue(NS_LITERAL_STRING("danger will robinson!"));
+   foo->SetStringValue(u"danger will robinson!"_ns);
    ...
-   bar->SetUnicodeValue(MOZ_UTF16("danger will robinson!"));
 
-.. note::
+   // if a macro is the source of a 8-bit literal and you cannot change it, use
+   // NS_LITERAL_STRING_FROM_CSTRING, but only if necessary.
+   #define MY_MACRO_LITERAL "danger will robinson!"
+   foo->SetStringValue(NS_LITERAL_STRING_FROM_CSTRING(MY_MACRO_LITERAL));
 
-   Note: Named literal strings cannot yet be static.
+   // If you need to pass to a raw const char16_t *, there's no benefit to
+   // go through our string classes at all, just do...
+   bar->SetUnicodeValue(u"danger will robinson!");
+
+   // .. or, again, if a macro is the source of a 8-bit literal
+   bar->SetUnicodeValue(u"" MY_MACRO_LITERAL);
 
 
 Usage of PR_(MAX|MIN|ABS|ROUNDUP) macro calls

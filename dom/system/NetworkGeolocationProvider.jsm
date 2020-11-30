@@ -9,10 +9,17 @@ const { XPCOMUtils } = ChromeUtils.import(
 );
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
-XPCOMUtils.defineLazyGlobalGetters(this, ["XMLHttpRequest"]);
+XPCOMUtils.defineLazyModuleGetters(this, {
+  clearTimeout: "resource://gre/modules/Timer.jsm",
+  LocationHelper: "resource://gre/modules/LocationHelper.jsm",
+  setTimeout: "resource://gre/modules/Timer.jsm",
+});
+
+XPCOMUtils.defineLazyGlobalGetters(this, ["fetch"]);
 
 // GeolocationPositionError has no interface object, so we can't use that here.
 const POSITION_UNAVAILABLE = 2;
+const TELEMETRY_KEY = "REGION_LOCATION_SERVICES_DIFFERENCE";
 
 XPCOMUtils.defineLazyPreferenceGetter(
   this,
@@ -225,7 +232,7 @@ function NetworkGeoCoordsObject(lat, lon, acc) {
 }
 
 NetworkGeoCoordsObject.prototype = {
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIDOMGeoPositionCoords]),
+  QueryInterface: ChromeUtils.generateQI(["nsIDOMGeoPositionCoords"]),
 };
 
 function NetworkGeoPositionObject(lat, lng, acc) {
@@ -235,11 +242,10 @@ function NetworkGeoPositionObject(lat, lng, acc) {
 }
 
 NetworkGeoPositionObject.prototype = {
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIDOMGeoPosition]),
+  QueryInterface: ChromeUtils.generateQI(["nsIDOMGeoPosition"]),
 };
 
 function NetworkGeolocationProvider() {
-  this.mode = "provider";
   /*
     The _wifiMonitorTimeout controls how long we wait on receiving an update
     from the Wifi subsystem.  If this timer fires, we believe the Wifi scan has
@@ -266,9 +272,9 @@ function NetworkGeolocationProvider() {
 
   XPCOMUtils.defineLazyPreferenceGetter(
     this,
-    "_wifiScanningEnabledCountry",
-    "geo.provider-country.network.scan",
-    true
+    "_wifiCompareURL",
+    "geo.provider.network.compare.url",
+    null
   );
 
   this.wifiService = null;
@@ -279,17 +285,15 @@ function NetworkGeolocationProvider() {
 NetworkGeolocationProvider.prototype = {
   classID: Components.ID("{77DA64D3-7458-4920-9491-86CC9914F904}"),
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIGeolocationProvider,
-    Ci.nsIWifiListener,
-    Ci.nsITimerCallback,
-    Ci.nsIObserver,
+    "nsIGeolocationProvider",
+    "nsIWifiListener",
+    "nsITimerCallback",
+    "nsIObserver",
   ]),
   listener: null,
 
   get isWifiScanningEnabled() {
-    return Cc["@mozilla.org/wifi/monitor;1"] && this.mode == "provider"
-      ? this._wifiScanningEnabled
-      : this._wifiScanningEnabledCountry;
+    return Cc["@mozilla.org/wifi/monitor;1"] && this._wifiScanningEnabled;
   },
 
   resetTimer() {
@@ -362,30 +366,9 @@ NetworkGeolocationProvider.prototype = {
     // we got some wifi data, rearm the timer.
     this.resetTimer();
 
-    function isPublic(ap) {
-      let mask = "_nomap";
-      let result = ap.ssid.indexOf(mask, ap.ssid.length - mask.length);
-      if (result != -1) {
-        LOG("Filtering out " + ap.ssid + " " + result);
-        return false;
-      }
-      return true;
-    }
-
-    function sort(a, b) {
-      return b.signal - a.signal;
-    }
-
-    function encode(ap) {
-      return { macAddress: ap.mac, signalStrength: ap.signal };
-    }
-
     let wifiData = null;
     if (accessPoints) {
-      wifiData = accessPoints
-        .filter(isPublic)
-        .sort(sort)
-        .map(encode);
+      wifiData = LocationHelper.formatWifiAccessPoints(accessPoints);
     }
     this.sendLocationRequest(wifiData);
   },
@@ -416,54 +399,12 @@ NetworkGeolocationProvider.prototype = {
   },
 
   /**
-   * One-shot country identifier fetch.
-   *
-   * @param  {Function} statusCallback This method is called for each
-   *                                   intermediate result with the current
-   *                                   state of the request as argument.
-   * @return {Promise<String>} A promise that is resolved with a country code or
-   *                           rejected with an error.
-   */
-  async getCountry(statusCallback) {
-    this.mode = "provider-country";
-
-    let self = this;
-    let promise = new Promise((resolve, reject) => {
-      this.watch({
-        update(country) {
-          resolve(country);
-          self.shutdown();
-        },
-        notifyError(code, message) {
-          reject(message);
-          self.shutdown();
-        },
-        notifyStatus(status) {
-          if (statusCallback) {
-            statusCallback(status);
-          }
-        },
-      });
-    }).finally(() => {
-      this.mode = "provider";
-    });
-
-    this.startup();
-    Services.tm.dispatchToMainThread(() => this.sendLocationRequest(null));
-
-    return promise;
-  },
-
-  /**
    * After wifi (and possible cell tower) data has been gathered, this method is
    * invoked to perform the request to network geolocation provider.
    * The result of each request is sent to all registered listener (@see watch)
    * by invoking its respective `update`, `notifyError` or `notifyStatus`
    * callbacks.
-   * `update` is called upon a successful request with its response data; in the
-   * 'provider-country' mode this will be a country code string and in the
-   * 'provider' mode - the default mode of  operation for this class - this will
-   * be a `NetworkGeoPositionObject` instance.
+   * `update` is called upon a successful request with its response data; this will be a `NetworkGeoPositionObject` instance.
    * `notifyError` is called whenever the request gets an error from the local
    * network subsystem, the server or simply times out.
    * `notifyStatus` is called for each status change of the request that may be
@@ -480,100 +421,102 @@ NetworkGeolocationProvider.prototype = {
    *                          ]
    *                          </code>
    */
-  sendLocationRequest(wifiData) {
+  async sendLocationRequest(wifiData) {
     let data = { cellTowers: undefined, wifiAccessPoints: undefined };
     if (wifiData && wifiData.length >= 2) {
       data.wifiAccessPoints = wifiData;
     }
 
-    // The 'provider' mode is the only one that supports response caching at the
-    // moment.
-    if (this.mode == "provider") {
-      let useCached = isCachedRequestMoreAccurateThanServerRequest(
-        data.cellTowers,
-        data.wifiAccessPoints
-      );
+    let useCached = isCachedRequestMoreAccurateThanServerRequest(
+      data.cellTowers,
+      data.wifiAccessPoints
+    );
 
-      LOG("Use request cache:" + useCached + " reason:" + gDebugCacheReasoning);
+    LOG("Use request cache:" + useCached + " reason:" + gDebugCacheReasoning);
 
-      if (useCached) {
-        gCachedRequest.location.timestamp = Date.now();
-        if (this.listener) {
-          this.listener.update(gCachedRequest.location);
-        }
-        return;
+    if (useCached) {
+      gCachedRequest.location.timestamp = Date.now();
+      if (this.listener) {
+        this.listener.update(gCachedRequest.location);
       }
+      return;
     }
 
     // From here on, do a network geolocation request //
-    let url = Services.urlFormatter.formatURLPref(
-      "geo." + this.mode + ".network.url"
-    );
+    let url = Services.urlFormatter.formatURLPref("geo.provider.network.url");
     LOG("Sending request");
 
-    let xhr = new XMLHttpRequest();
-    this.onStatus(false, "xhr-start");
+    let result;
     try {
-      xhr.open("POST", url, true);
-      xhr.channel.loadFlags = Ci.nsIChannel.LOAD_ANONYMOUS;
-    } catch (e) {
-      this.onStatus(true, "xhr-error");
-      return;
-    }
-    xhr.setRequestHeader("Content-Type", "application/json; charset=UTF-8");
-    xhr.responseType = "json";
-    xhr.mozBackgroundRequest = true;
-    // The timeout value doesn't need to change in a different mode.
-    xhr.timeout = Services.prefs.getIntPref("geo.provider.network.timeout");
-    xhr.ontimeout = () => {
-      LOG("Location request XHR timed out.");
-      this.onStatus(true, "xhr-timeout");
-    };
-    xhr.onerror = () => {
-      this.onStatus(true, "xhr-error");
-    };
-    xhr.onload = () => {
+      result = await this.makeRequest(url, wifiData);
       LOG(
-        "server returned status: " +
-          xhr.status +
-          " --> " +
-          JSON.stringify(xhr.response)
+        `geo provider reported: ${result.location.lng}:${result.location.lat}`
       );
-      if (
-        (xhr.channel instanceof Ci.nsIHttpChannel && xhr.status != 200) ||
-        !xhr.response
-      ) {
-        this.onStatus(true, !xhr.response ? "xhr-empty" : "xhr-error");
-        return;
-      }
-
-      let newLocation;
-      if (this.mode == "provider-country") {
-        newLocation = xhr.response && xhr.response.country_code;
-      } else {
-        newLocation = new NetworkGeoPositionObject(
-          xhr.response.location.lat,
-          xhr.response.location.lng,
-          xhr.response.accuracy
-        );
-      }
+      let newLocation = new NetworkGeoPositionObject(
+        result.location.lat,
+        result.location.lng,
+        result.accuracy
+      );
 
       if (this.listener) {
         this.listener.update(newLocation);
       }
 
-      if (this.mode == "provider") {
-        gCachedRequest = new CachedRequest(
-          newLocation,
-          data.cellTowers,
-          data.wifiAccessPoints
-        );
+      gCachedRequest = new CachedRequest(
+        newLocation,
+        data.cellTowers,
+        data.wifiAccessPoints
+      );
+    } catch (err) {
+      LOG("Location request hit error: " + err.name);
+      Cu.reportError(err);
+      if (err.name == "AbortError") {
+        this.onStatus(true, "xhr-timeout");
+      } else {
+        this.onStatus(true, "xhr-error");
       }
+    }
+
+    if (!this._wifiCompareURL) {
+      return;
+    }
+
+    let compareUrl = Services.urlFormatter.formatURL(this._wifiCompareURL);
+    let compare = await this.makeRequest(compareUrl, wifiData);
+    let distance = LocationHelper.distance(result.location, compare.location);
+    LOG(
+      `compare reported reported: ${compare.location.lng}:${compare.location.lat}`
+    );
+    LOG(`distance between results: ${distance}`);
+    if (!isNaN(distance)) {
+      Services.telemetry.getHistogramById(TELEMETRY_KEY).add(distance);
+    }
+  },
+
+  async makeRequest(url, wifiData) {
+    this.onStatus(false, "xhr-start");
+
+    let fetchController = new AbortController();
+    let fetchOpts = {
+      method: "POST",
+      headers: { "Content-Type": "application/json; charset=UTF-8" },
+      credentials: "omit",
+      signal: fetchController.signal,
     };
 
-    var requestData = JSON.stringify(data);
-    LOG("sending " + requestData);
-    xhr.send(requestData);
+    if (wifiData) {
+      fetchOpts.body = JSON.stringify({ wifiAccessPoints: wifiData });
+    }
+
+    let timeoutId = setTimeout(
+      () => fetchController.abort(),
+      Services.prefs.getIntPref("geo.provider.network.timeout")
+    );
+
+    let req = await fetch(url, fetchOpts);
+    clearTimeout(timeoutId);
+    let result = req.json();
+    return result;
   },
 };
 

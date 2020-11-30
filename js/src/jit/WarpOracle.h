@@ -7,36 +7,14 @@
 #ifndef jit_WarpOracle_h
 #define jit_WarpOracle_h
 
+#include "jit/JitAllocPolicy.h"
 #include "jit/JitContext.h"
+#include "jit/WarpSnapshot.h"
 
 namespace js {
 namespace jit {
 
 class MIRGenerator;
-
-// Snapshot data for a single JSScript.
-class WarpScriptSnapshot {
-  JSScript* script_;
-
- public:
-  explicit WarpScriptSnapshot(JSScript* script) : script_(script) {}
-
-  JSScript* script() const { return script_; }
-};
-
-// Data allocated by WarpOracle on the main thread that's used off-thread by
-// WarpBuilder to build the MIR graph.
-//
-// TODO: trace IC data in IonCompileTask::trace (like MRootList for non-Warp).
-class WarpSnapshot {
-  // The script to compile.
-  WarpScriptSnapshot* script_;
-
- public:
-  explicit WarpSnapshot(WarpScriptSnapshot* script) : script_(script) {}
-
-  WarpScriptSnapshot* script() const { return script_; }
-};
 
 // WarpOracle creates a WarpSnapshot data structure that's used by WarpBuilder
 // to generate the MIR graph off-thread.
@@ -44,18 +22,37 @@ class MOZ_STACK_CLASS WarpOracle {
   JSContext* cx_;
   MIRGenerator& mirGen_;
   TempAllocator& alloc_;
-  HandleScript script_;
+  HandleScript outerScript_;
+  WarpBailoutInfo bailoutInfo_;
+  WarpScriptSnapshotList scriptSnapshots_;
 
-  mozilla::GenericErrorResult<AbortReason> abort(AbortReason r);
-  mozilla::GenericErrorResult<AbortReason> abort(AbortReason r,
-                                                 const char* message, ...);
-
-  AbortReasonOr<WarpScriptSnapshot*> createScriptSnapshot(HandleScript script);
+  // List of nursery objects to copy to the snapshot. See WarpObjectField.
+  // The HashMap is used to de-duplicate the Vector. It maps each object to the
+  // corresponding nursery index (index into the Vector).
+  // Note: this stores raw object pointers because WarpOracle can't GC.
+  Vector<JSObject*, 8, SystemAllocPolicy> nurseryObjects_;
+  using NurseryObjectsMap =
+      HashMap<JSObject*, uint32_t, DefaultHasher<JSObject*>, SystemAllocPolicy>;
+  NurseryObjectsMap nurseryObjectsMap_;
 
  public:
-  WarpOracle(JSContext* cx, MIRGenerator& mirGen, HandleScript script);
+  WarpOracle(JSContext* cx, MIRGenerator& mirGen, HandleScript outerScript);
+  ~WarpOracle() { scriptSnapshots_.clear(); }
+
+  MIRGenerator& mirGen() { return mirGen_; }
+  WarpBailoutInfo& bailoutInfo() { return bailoutInfo_; }
+
+  MOZ_MUST_USE bool registerNurseryObject(JSObject* obj,
+                                          uint32_t* nurseryIndex);
 
   AbortReasonOr<WarpSnapshot*> createSnapshot();
+
+  mozilla::GenericErrorResult<AbortReason> abort(HandleScript script,
+                                                 AbortReason r);
+  mozilla::GenericErrorResult<AbortReason> abort(HandleScript script,
+                                                 AbortReason r,
+                                                 const char* message, ...);
+  void addScriptSnapshot(WarpScriptSnapshot* scriptSnapshot);
 };
 
 }  // namespace jit

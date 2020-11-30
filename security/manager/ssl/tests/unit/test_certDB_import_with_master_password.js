@@ -37,7 +37,7 @@ const gCertificateDialogs = {
     ok(false, "getPKCS12FilePassword() should not have been called");
   },
 
-  QueryInterface: ChromeUtils.generateQI([Ci.nsICertificateDialogs]),
+  QueryInterface: ChromeUtils.generateQI(["nsICertificateDialogs"]),
 };
 
 var gMockPrompter = {
@@ -55,7 +55,7 @@ var gMockPrompter = {
     }
     equal(
       text,
-      "Please enter your master password.",
+      "Please enter your Primary Password.",
       "password prompt text should be as expected"
     );
     equal(checkMsg, null, "checkMsg should be null");
@@ -64,7 +64,7 @@ var gMockPrompter = {
     return true;
   },
 
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIPrompt]),
+  QueryInterface: ChromeUtils.generateQI(["nsIPrompt"]),
 
   // Again with the arrow function issue.
   getInterface(iid) {
@@ -72,7 +72,7 @@ var gMockPrompter = {
       return this;
     }
 
-    throw new Error(Cr.NS_ERROR_NO_INTERFACE);
+    throw Components.Exception("", Cr.NS_ERROR_NO_INTERFACE);
   },
 };
 

@@ -59,10 +59,10 @@ class TouchManager {
                                           const WidgetTouchEvent* aEvent);
 
  private:
-  void EvictTouches();
+  void EvictTouches(dom::Document* aLimitToDocument = nullptr);
   static void EvictTouchPoint(RefPtr<dom::Touch>& aTouch,
-                              dom::Document* aLimitToDocument = nullptr);
-  static void AppendToTouchList(WidgetTouchEvent::TouchArray* aTouchList);
+                              dom::Document* aLimitToDocument);
+  static void AppendToTouchList(WidgetTouchEvent::TouchArrayBase* aTouchList);
 
   RefPtr<PresShell> mPresShell;
   RefPtr<dom::Document> mDocument;
@@ -72,7 +72,9 @@ class TouchManager {
     nsCOMPtr<nsIContent> mNonAnonymousTarget;
     bool mConvertToPointer;
   };
+
   static nsDataHashtable<nsUint32HashKey, TouchInfo>* sCaptureTouchList;
+  static layers::LayersId sCaptureTouchLayersId;
 };
 
 }  // namespace mozilla

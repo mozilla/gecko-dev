@@ -171,8 +171,9 @@ const PluginManager = {
 
     let pluginID = propertyBag.getPropertyAsUint32("pluginID");
     let pluginDumpID = propertyBag.getPropertyAsAString("pluginDumpID");
+    let pluginName = propertyBag.getPropertyAsACString("pluginName");
     if (pluginDumpID) {
-      this.gmpCrashes.set(pluginID, { pluginDumpID, pluginID });
+      this.gmpCrashes.set(pluginID, { pluginDumpID, pluginID, pluginName });
     }
 
     // Only the parent process gets the gmp-plugin-crash observer
@@ -182,7 +183,6 @@ const PluginManager = {
     // created, which will contact us again, when we'll use the
     // gmpCrashes collection to respond.
     if (Services.ppmm) {
-      let pluginName = propertyBag.getPropertyAsAString("pluginName");
       Services.ppmm.broadcastAsyncMessage("gmp-plugin-crash", {
         pluginName,
         pluginID,
@@ -675,7 +675,7 @@ class PluginParent extends JSWindowActorParent {
 
     // Configure the notification bar
     let priority = notificationBox.PRIORITY_WARNING_MEDIUM;
-    let iconURL = "chrome://global/skin/plugins/pluginGeneric.svg";
+    let iconURL = "chrome://global/skin/plugins/plugin.svg";
     let reloadLabel = gNavigatorBundle.GetStringFromName(
       "crashedpluginsMessage.reloadButton.label"
     );
@@ -736,6 +736,9 @@ class PluginParent extends JSWindowActorParent {
     let crashurl = Services.urlFormatter.formatURLPref("app.support.baseURL");
     crashurl += "plugin-crashed-notificationbar";
     link.href = crashurl;
+    // Append a blank text node to make sure we don't put
+    // the link right next to the end of the message text.
+    notification.messageText.appendChild(new Text(" "));
     notification.messageText.appendChild(link);
   }
 }

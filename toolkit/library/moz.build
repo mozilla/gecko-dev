@@ -90,12 +90,12 @@ def Libxul(name, output_category=None):
 
     # Generate GDB pretty printer-autoload files only on Linux. OSX's GDB is
     # too old to support Python pretty-printers; if this changes, we could
-    # make this 'ifdef GNU_CC'.
+    # make this 'ifdef __GNUC__'.
     if CONFIG['OS_ARCH'] == 'Linux':
         # Create a GDB Python auto-load file alongside the libxul shared library
         # in the build directory.
         DEFINES['topsrcdir'] = TOPSRCDIR
-        OBJDIR_PP_FILES.toolkit.library.gtest += ['../libxul.so-gdb.py.in']
+        OBJDIR_FILES.toolkit.library.build += ['../libxul.so-gdb.py']
 
 
 # The real libxul definition is in ./build/moz.build, but we define a
@@ -147,11 +147,6 @@ USE_LIBS += [
     'sqlite',
     'zlib',
 ]
-
-if CONFIG['USE_ICU']:
-    USE_LIBS += [
-        'icu',
-    ]
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gtk':
     USE_LIBS += [
@@ -288,15 +283,6 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gtk':
 if CONFIG['MOZ_ENABLE_LIBPROXY']:
     OS_LIBS += CONFIG['MOZ_LIBPROXY_LIBS']
 
-if CONFIG['OS_ARCH'] == 'SunOS':
-    OS_LIBS += [
-        'elf',
-    ]
-    if CONFIG['CC_TYPE'] in ('clang', 'gcc'):
-        OS_LIBS += [
-            'demangle',
-        ]
-
 if CONFIG['OS_ARCH'] == 'FreeBSD':
     OS_LIBS += [
         'util',
@@ -369,12 +355,13 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
 # buildid hard coded in it. Then we make that source file depend on all the
 # objects files that constitute libxul, so that if any of the files linked into
 # libxul is rebuilt, we refresh the buildid and link it into libxul.
-SOURCES += ['!buildid.cpp']
-if CONFIG['MOZ_WIDGET_TOOLKIT'] in ('cocoa', 'uikit'):
-    libxul_list = 'XUL'
-else:
-    libxul_list = '%sxul_%s' % (
-        CONFIG['DLL_PREFIX'], CONFIG['DLL_SUFFIX'].lstrip('.').replace('.','_'))
-GeneratedFile('buildid.cpp', script = 'gen_buildid.py',
-              inputs=['!build/%s.list' % libxul_list])
 
+if CONFIG['COMPILE_ENVIRONMENT']:
+    SOURCES += ['!buildid.cpp']
+    if CONFIG['MOZ_WIDGET_TOOLKIT'] in ('cocoa', 'uikit'):
+        libxul_list = 'XUL'
+    else:
+        libxul_list = '%sxul_%s' % (
+            CONFIG['DLL_PREFIX'], CONFIG['DLL_SUFFIX'].lstrip('.').replace('.','_'))
+    GeneratedFile('buildid.cpp', script = 'gen_buildid.py',
+                  inputs=['!build/%s.list' % libxul_list])

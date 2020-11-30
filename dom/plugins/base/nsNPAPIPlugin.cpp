@@ -13,6 +13,8 @@
 #include "prenv.h"
 
 #include "jsfriendapi.h"
+#include "js/friend/WindowProxy.h"  // js::ToWindowIfWindowProxy
+#include "js/Object.h"              // JS::GetCompartment
 
 #include "nsPluginHost.h"
 #include "nsNPAPIPlugin.h"
@@ -936,16 +938,13 @@ bool _evaluate(NPP npp, NPObject* npobj, NPString* script, NPVariant* result) {
 
   nsIPrincipal* principal = doc->NodePrincipal();
 
-  nsAutoCString specStr;
+  nsCString specStr;
   const char* spec;
 
-  nsCOMPtr<nsIURI> uri;
-  principal->GetURI(getter_AddRefs(uri));
+  principal->GetAsciiSpec(specStr);
+  spec = specStr.get();
 
-  if (uri) {
-    uri->GetSpec(specStr);
-    spec = specStr.get();
-  } else {
+  if (specStr.IsEmpty()) {
     // No URI in a principal means it's the system principal. If the
     // document URI is a chrome:// URI, pass that in as the URI of the
     // script, else pass in null for the filename as there's no way to
@@ -953,8 +952,7 @@ bool _evaluate(NPP npp, NPObject* npobj, NPString* script, NPVariant* result) {
     // also means that the script gets treated by XPConnect as if it
     // needs additional protection, which is what we want for unknown
     // chrome code anyways.
-
-    uri = doc->GetDocumentURI();
+    nsCOMPtr<nsIURI> uri = doc->GetDocumentURI();
     if (uri && uri->SchemeIs("chrome")) {
       uri->GetSpec(specStr);
       spec = specStr.get();
@@ -976,9 +974,8 @@ bool _evaluate(NPP npp, NPObject* npobj, NPString* script, NPVariant* result) {
   }
   // nsNPObjWrapper::GetNewOrUsed returns an object in the current compartment
   // of the JSContext (it might be a CCW).
-  MOZ_RELEASE_ASSERT(
-      js::GetObjectCompartment(obj) == js::GetContextCompartment(cx),
-      "nsNPObjWrapper::GetNewOrUsed must wrap its return value");
+  MOZ_RELEASE_ASSERT(JS::GetCompartment(obj) == js::GetContextCompartment(cx),
+                     "nsNPObjWrapper::GetNewOrUsed must wrap its return value");
   obj = JS::CurrentGlobalOrNull(cx);
   MOZ_ASSERT(obj);
   nsresult rv = NS_OK;

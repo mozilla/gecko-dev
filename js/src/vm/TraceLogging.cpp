@@ -23,12 +23,11 @@
 #include "util/Text.h"
 #include "vm/Activation.h"  // js::ActivationIterator
 #include "vm/FrameIter.h"   // js::JitFrameIter
+#include "vm/JSContext.h"
 #include "vm/JSScript.h"
 #include "vm/Runtime.h"
 #include "vm/Time.h"
 #include "vm/TraceLoggingGraph.h"
-
-#include "jit/JitFrames-inl.h"
 
 using namespace js;
 
@@ -1354,7 +1353,7 @@ TraceLoggerThread* TraceLoggerThreadState::forCurrentThread(
       logger->initGraph();
     }
 
-    if (CurrentHelperThread() ? helperThreadEnabled : mainThreadEnabled) {
+    if (cx->isHelperThreadContext() ? helperThreadEnabled : mainThreadEnabled) {
       logger->enable();
     }
   }

@@ -14,7 +14,7 @@ import android.media.AudioManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import android.text.Editable;
 import android.text.Selection;
 import android.text.SpannableString;
@@ -229,7 +229,8 @@ import java.lang.reflect.Proxy;
 
     @Override
     public boolean performEditorAction(final int editorAction) {
-        if (editorAction == EditorInfo.IME_ACTION_PREVIOUS) {
+        if (editorAction == EditorInfo.IME_ACTION_PREVIOUS &&
+            !mIMEActionHint.equals("previous")) {
             // This action is [Previous] key on FireTV's keyboard.
             // [Previous] closes software keyboard, and don't generate any keyboard event.
             getView().post(new Runnable() {
@@ -450,7 +451,7 @@ import java.lang.reflect.Proxy;
 
     @Override // SessionTextInput.EditableListener
     public void onDefaultKeyEvent(final KeyEvent event) {
-        ThreadUtils.postToUiThread(new Runnable() {
+        ThreadUtils.runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 GeckoInputConnection.this.performDefaultKeyAction(event);
@@ -639,7 +640,9 @@ import java.lang.reflect.Proxy;
         switch (keyCode) {
             case KeyEvent.KEYCODE_ENTER:
                 if ((event.getFlags() & KeyEvent.FLAG_EDITOR_ACTION) != 0 &&
-                        mIMEActionHint.equalsIgnoreCase("next")) {
+                        mIMEActionHint.equals("maybenext")) {
+                    // XXX It is not good to dispatch tab key for web compatibility.
+                    // See https://github.com/w3c/uievents/issues/253 and bug 1600540.
                     return new KeyEvent(event.getDownTime(), event.getEventTime(), event.getAction(), KeyEvent.KEYCODE_TAB, 0);
                 }
                 break;

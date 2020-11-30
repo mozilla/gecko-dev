@@ -125,9 +125,25 @@ class CustomRequestPanel extends Component {
             : { method: val.trim() };
         break;
       case "custom-postdata-value":
+        // Update "content-length" header value to reflect change
+        // in post data field.
+        const { requestHeaders } = request;
+        const newHeaders = requestHeaders.headers.map(header => {
+          if (header.name.toLowerCase() == "content-length") {
+            return {
+              name: header.name,
+              value: val.length,
+            };
+          }
+          return header;
+        });
+
         data = {
           requestPostData: {
             postData: { text: val },
+          },
+          requestHeaders: {
+            headers: newHeaders,
           },
         };
         break;
@@ -190,7 +206,7 @@ class CustomRequestPanel extends Component {
     if (requestHeaders) {
       headers = requestHeaders.customHeadersValue
         ? requestHeaders.customHeadersValue
-        : writeHeaderText(requestHeaders.headers);
+        : writeHeaderText(requestHeaders.headers).trim();
     }
     const queryArray = url ? parseQueryString(getUrlQuery(url)) : [];
     let params = customQueryValue;
@@ -199,10 +215,9 @@ class CustomRequestPanel extends Component {
         ? queryArray.map(({ name, value }) => name + "=" + value).join("\n")
         : "";
     }
-    const postData =
-      requestPostData && requestPostData.postData.text
-        ? requestPostData.postData.text
-        : "";
+    const postData = requestPostData?.postData.text
+      ? requestPostData.postData.text
+      : "";
 
     return div(
       { className: "custom-request-panel" },

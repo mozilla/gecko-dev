@@ -11,7 +11,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 from taskgraph.util.taskcluster import get_artifact_prefix
 
-SECRET_SCOPE = 'secrets:get:project/releng/gecko/{}/level-{}/{}'
+SECRET_SCOPE = 'secrets:get:project/releng/{trust_domain}/{kind}/level-{level}/{secret}'
 
 
 def add_cache(job, taskdesc, name, mount_point, skip_untrusted=False):
@@ -81,21 +81,22 @@ def support_vcs_checkout(config, job, taskdesc, sparse=False):
     worker = job['worker']
     is_mac = worker['os'] == 'macosx'
     is_win = worker['os'] == 'windows'
-    is_linux = worker['os'] == 'linux'
+    is_linux = worker['os'] == 'linux' or 'linux-bitbar'
+    is_docker = worker['implementation'] == 'docker-worker'
     assert is_mac or is_win or is_linux
 
     if is_win:
         checkoutdir = './build'
         geckodir = '{}/src'.format(checkoutdir)
         hgstore = 'y:/hg-shared'
-    elif is_mac:
-        checkoutdir = './checkouts'
-        geckodir = '{}/gecko'.format(checkoutdir)
-        hgstore = '{}/hg-shared'.format(checkoutdir)
-    else:
+    elif is_docker:
         checkoutdir = '{workdir}/checkouts'.format(**job['run'])
         geckodir = '{}/gecko'.format(checkoutdir)
         hgstore = '{}/hg-store'.format(checkoutdir)
+    else:
+        checkoutdir = './checkouts'
+        geckodir = '{}/gecko'.format(checkoutdir)
+        hgstore = '{}/hg-shared'.format(checkoutdir)
 
     cache_name = 'checkouts'
 
@@ -180,9 +181,15 @@ def setup_secrets(config, job, taskdesc):
     secrets = job['run']['secrets']
     if secrets is True:
         secrets = ['*']
-    for sec in secrets:
-        taskdesc['scopes'].append(SECRET_SCOPE.format(
-            job['treeherder']['kind'], config.params['level'], sec))
+    for secret in secrets:
+        taskdesc["scopes"].append(
+            SECRET_SCOPE.format(
+                trust_domain=config.graph_config["trust-domain"],
+                kind=job["treeherder"]["kind"],
+                level=config.params["level"],
+                secret=secret,
+            )
+        )
 
 
 def add_tooltool(config, job, taskdesc, internal=False):
@@ -198,8 +205,7 @@ def add_tooltool(config, job, taskdesc, internal=False):
     """
 
     if job['worker']['implementation'] in ('docker-worker',):
-        level = config.params['level']
-        add_cache(job, taskdesc, 'tooltool-cache'.format(level),
+        add_cache(job, taskdesc, 'tooltool-cache',
                   '{workdir}/tooltool-cache'.format(**job['run']))
 
         taskdesc['worker'].setdefault('env', {}).update({

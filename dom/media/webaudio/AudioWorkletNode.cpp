@@ -8,23 +8,55 @@
 
 #include "AudioParamMap.h"
 #include "js/Array.h"  // JS::{Get,Set}ArrayLength, JS::NewArrayLength
+#include "js/Exception.h"
+#include "js/experimental/TypedData.h"  // JS_NewFloat32Array, JS_GetFloat32ArrayData, JS_GetTypedArrayLength, JS_GetArrayBufferViewBuffer
 #include "mozilla/dom/AudioWorkletNodeBinding.h"
+#include "mozilla/dom/AudioParamMapBinding.h"
+#include "mozilla/dom/RootedDictionary.h"
+#include "mozilla/dom/ErrorEvent.h"
+#include "nsIScriptGlobalObject.h"
+#include "AudioParam.h"
+#include "AudioDestinationNode.h"
 #include "mozilla/dom/MessageChannel.h"
 #include "mozilla/dom/MessagePort.h"
+#include "nsReadableUtils.h"
+#include "mozilla/Span.h"
 #include "PlayingRefChangeHandler.h"
 #include "nsPrintfCString.h"
+#include "Tracing.h"
 
 namespace mozilla {
 namespace dom {
 
 NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(AudioWorkletNode, AudioNode)
-NS_IMPL_CYCLE_COLLECTION_INHERITED(AudioWorkletNode, AudioNode, mPort)
+NS_IMPL_CYCLE_COLLECTION_INHERITED(AudioWorkletNode, AudioNode, mPort,
+                                   mParameters)
+
+struct NamedAudioParamTimeline {
+  explicit NamedAudioParamTimeline(const AudioParamDescriptor& aParamDescriptor)
+      : mName(aParamDescriptor.mName),
+        mTimeline(aParamDescriptor.mDefaultValue) {}
+  const nsString mName;
+  AudioParamTimeline mTimeline;
+};
+
+struct ProcessorErrorDetails {
+  ProcessorErrorDetails() : mLineno(0), mColno(0) {}
+  unsigned mLineno;
+  unsigned mColno;
+  nsString mFilename;
+  nsString mMessage;
+};
 
 class WorkletNodeEngine final : public AudioNodeEngine {
  public:
   WorkletNodeEngine(AudioWorkletNode* aNode,
+                    AudioDestinationNode* aDestinationNode,
+                    nsTArray<NamedAudioParamTimeline>&& aParamTimelines,
                     const Optional<Sequence<uint32_t>>& aOutputChannelCount)
-      : AudioNodeEngine(aNode) {
+      : AudioNodeEngine(aNode),
+        mDestination(aDestinationNode->Track()),
+        mParamTimelines(std::move(aParamTimelines)) {
     if (aOutputChannelCount.WasPassed()) {
       mOutputChannelCount = aOutputChannelCount.Value();
     }
@@ -34,18 +66,30 @@ class WorkletNodeEngine final : public AudioNodeEngine {
   void ConstructProcessor(AudioWorkletImpl* aWorkletImpl,
                           const nsAString& aName,
                           NotNull<StructuredCloneHolder*> aSerializedOptions,
-                          UniqueMessagePortId& aPortIdentifier);
+                          UniqueMessagePortId& aPortIdentifier,
+                          AudioNodeTrack* aTrack);
+
+  void RecvTimelineEvent(uint32_t aIndex, AudioTimelineEvent& aEvent) override {
+    MOZ_ASSERT(mDestination);
+    WebAudioUtils::ConvertAudioTimelineEventToTicks(aEvent, mDestination);
+
+    if (aIndex < mParamTimelines.Length()) {
+      mParamTimelines[aIndex].mTimeline.InsertEvent<int64_t>(aEvent);
+    } else {
+      NS_ERROR("Bad WorkletNodeEngine timeline event index");
+    }
+  }
 
   void ProcessBlock(AudioNodeTrack* aTrack, GraphTime aFrom,
                     const AudioBlock& aInput, AudioBlock* aOutput,
                     bool* aFinished) override {
     MOZ_ASSERT(InputCount() <= 1);
     MOZ_ASSERT(OutputCount() <= 1);
-    ProcessBlocksOnPorts(aTrack, MakeSpan(&aInput, InputCount()),
-                         MakeSpan(aOutput, OutputCount()), aFinished);
+    ProcessBlocksOnPorts(aTrack, aFrom, Span(&aInput, InputCount()),
+                         Span(aOutput, OutputCount()), aFinished);
   }
 
-  void ProcessBlocksOnPorts(AudioNodeTrack* aTrack,
+  void ProcessBlocksOnPorts(AudioNodeTrack* aTrack, GraphTime aFrom,
                             Span<const AudioBlock> aInput,
                             Span<AudioBlock> aOutput, bool* aFinished) override;
 
@@ -55,7 +99,7 @@ class WorkletNodeEngine final : public AudioNodeEngine {
 
   // Vector<T> supports non-memmovable types such as PersistentRooted
   // (without any need to jump through hoops like
-  // DECLARE_USE_COPY_CONSTRUCTORS_FOR_TEMPLATE for nsTArray).
+  // MOZ_DECLARE_RELOCATE_USING_MOVE_CONSTRUCTOR_FOR_TEMPLATE for nsTArray).
   // PersistentRooted is used because these AudioWorkletGlobalScope scope
   // objects may be kept alive as long as the AudioWorkletNode in the
   // main-thread global.
@@ -70,24 +114,35 @@ class WorkletNodeEngine final : public AudioNodeEngine {
     Vector<Channels, 1> mPorts;
     JS::PersistentRooted<JSObject*> mJSArray;
   };
+  struct ParameterValues {
+    Vector<JS::PersistentRooted<JSObject*>> mFloat32Arrays;
+    JS::PersistentRooted<JSObject*> mJSObject;
+  };
 
  private:
-  void SendProcessorError();
+  size_t ParameterCount() { return mParamTimelines.Length(); }
+  void SendProcessorError(AudioNodeTrack* aTrack, JSContext* aCx);
   bool CallProcess(AudioNodeTrack* aTrack, JSContext* aCx,
                    JS::Handle<JS::Value> aCallable);
   void ProduceSilence(AudioNodeTrack* aTrack, Span<AudioBlock> aOutput);
+  void SendErrorToMainThread(AudioNodeTrack* aTrack,
+                             const ProcessorErrorDetails& aDetails);
 
   void ReleaseJSResources() {
     mInputs.mPorts.clearAndFree();
     mOutputs.mPorts.clearAndFree();
+    mParameters.mFloat32Arrays.clearAndFree();
     mInputs.mJSArray.reset();
     mOutputs.mJSArray.reset();
+    mParameters.mJSObject.reset();
     mGlobal = nullptr;
     // This is equivalent to setting [[callable process]] to false.
     mProcessor.reset();
   }
 
+  RefPtr<AudioNodeTrack> mDestination;
   nsTArray<uint32_t> mOutputChannelCount;
+  nsTArray<NamedAudioParamTimeline> mParamTimelines;
   // The AudioWorkletGlobalScope-associated objects referenced from
   // WorkletNodeEngine are typically kept alive as long as the
   // AudioWorkletNode in the main-thread global.  The objects must be released
@@ -97,14 +152,15 @@ class WorkletNodeEngine final : public AudioNodeEngine {
   // process shutdown, in which case NotifyForcedShutdown() is called on the
   // rendering thread.
   //
-  // mInputs and mOutputs keep references to all objects passed to process(),
-  // for reuse of the same objects.  The JS objects are all in the compartment
-  // of the realm of mGlobal.  Properties on the objects may be replaced by
-  // script, so don't assume that getting indexed properties on the JS arrays
-  // will return the same objects.  Only objects and buffers created by the
-  // implementation are modified or read by the implementation.
+  // mInputs, mOutputs and mParameters keep references to all objects passed to
+  // process(), for reuse of the same objects.  The JS objects are all in the
+  // compartment of the realm of mGlobal.  Properties on the objects may be
+  // replaced by script, so don't assume that getting indexed properties on the
+  // JS arrays will return the same objects.  Only objects and buffers created
+  // by the implementation are modified or read by the implementation.
   Ports mInputs;
   Ports mOutputs;
+  ParameterValues mParameters;
 
   RefPtr<AudioWorkletGlobalScope> mGlobal;
   JS::PersistentRooted<JSObject*> mProcessor;
@@ -121,37 +177,96 @@ class WorkletNodeEngine final : public AudioNodeEngine {
   bool mKeepEngineActive = true;
 };
 
-void WorkletNodeEngine::SendProcessorError() {
-  /**
-   * https://webaudio.github.io/web-audio-api/#dom-audioworkletnode-onprocessorerror
-   * TODO: bug 1558124
-   * queue a task on the control thread to fire onprocessorerror event
-   * to the node.
-   */
+void WorkletNodeEngine::SendErrorToMainThread(
+    AudioNodeTrack* aTrack, const ProcessorErrorDetails& aDetails) {
+  RefPtr<AudioNodeTrack> track = aTrack;
+  NS_DispatchToMainThread(NS_NewRunnableFunction(
+      "WorkletNodeEngine::SendProcessorError",
+      [track = std::move(track), aDetails]() mutable {
+        AudioWorkletNode* node =
+            static_cast<AudioWorkletNode*>(track->Engine()->NodeMainThread());
+        if (!node) {
+          return;
+        }
+        node->DispatchProcessorErrorEvent(aDetails);
+      }));
+}
 
-  /**
-   * Note that once an exception is thrown, the processor will output silence
-   * throughout its lifetime.
-   */
+void WorkletNodeEngine::SendProcessorError(AudioNodeTrack* aTrack,
+                                           JSContext* aCx) {
+  // Note that once an exception is thrown, the processor will output silence
+  // throughout its lifetime.
   ReleaseJSResources();
+  // The processor errored out while getting a context, try to tell the node
+  // anyways.
+  if (!aCx || !JS_IsExceptionPending(aCx)) {
+    ProcessorErrorDetails details;
+    details.mMessage.Assign(u"Unknown processor error");
+    SendErrorToMainThread(aTrack, details);
+    return;
+  }
+
+  JS::ExceptionStack exnStack(aCx);
+  if (JS::StealPendingExceptionStack(aCx, &exnStack)) {
+    JS::ErrorReportBuilder jsReport(aCx);
+    if (!jsReport.init(aCx, exnStack,
+                       JS::ErrorReportBuilder::WithSideEffects)) {
+      ProcessorErrorDetails details;
+      details.mMessage.Assign(u"Unknown processor error");
+      SendErrorToMainThread(aTrack, details);
+      // Set the exception and stack back to have it in the console with a stack
+      // trace.
+      JS::SetPendingExceptionStack(aCx, exnStack);
+      return;
+    }
+
+    ProcessorErrorDetails details;
+
+    CopyUTF8toUTF16(mozilla::MakeStringSpan(jsReport.report()->filename),
+                    details.mFilename);
+
+    xpc::ErrorReport::ErrorReportToMessageString(jsReport.report(),
+                                                 details.mMessage);
+    details.mLineno = jsReport.report()->lineno;
+    details.mColno = jsReport.report()->column;
+    MOZ_ASSERT(!jsReport.report()->isMuted);
+
+    SendErrorToMainThread(aTrack, details);
+
+    // Set the exception and stack back to have it in the console with a stack
+    // trace.
+    JS::SetPendingExceptionStack(aCx, exnStack);
+  } else {
+    NS_WARNING("No exception, but processor errored out?");
+  }
 }
 
 void WorkletNodeEngine::ConstructProcessor(
     AudioWorkletImpl* aWorkletImpl, const nsAString& aName,
     NotNull<StructuredCloneHolder*> aSerializedOptions,
-    UniqueMessagePortId& aPortIdentifier) {
+    UniqueMessagePortId& aPortIdentifier, AudioNodeTrack* aTrack) {
   MOZ_ASSERT(mInputs.mPorts.empty() && mOutputs.mPorts.empty());
   RefPtr<AudioWorkletGlobalScope> global = aWorkletImpl->GetGlobalScope();
-  MOZ_ASSERT(global);  // global has already been used to register processor
-  JS::RootingContext* cx = RootingCx();
+  if (!global) {
+    // A global was previously used to register this kind of processor.  If it
+    // no longer exists now, that is because the document is going away and so
+    // there is no need to send an error.
+    return;
+  }
+  AutoJSAPI api;
+  if (NS_WARN_IF(!api.Init(global))) {
+    SendProcessorError(aTrack, nullptr);
+    return;
+  }
+  JSContext* cx = api.cx();
   mProcessor.init(cx);
-  if (!global->ConstructProcessor(aName, aSerializedOptions, aPortIdentifier,
-                                  &mProcessor) ||
+  if (!global->ConstructProcessor(cx, aName, aSerializedOptions,
+                                  aPortIdentifier, &mProcessor) ||
       // mInputs and mOutputs outer arrays are fixed length and so much of the
       // initialization need only be performed once (i.e. here).
       NS_WARN_IF(!mInputs.mPorts.growBy(InputCount())) ||
       NS_WARN_IF(!mOutputs.mPorts.growBy(OutputCount()))) {
-    SendProcessorError();
+    SendProcessorError(aTrack, cx);
     return;
   }
   mGlobal = std::move(global);
@@ -162,6 +277,39 @@ void WorkletNodeEngine::ConstructProcessor(
   }
   for (auto& port : mOutputs.mPorts) {
     port.mJSArray.init(cx);
+  }
+  JSObject* object = JS_NewPlainObject(cx);
+  if (NS_WARN_IF(!object)) {
+    SendProcessorError(aTrack, cx);
+    return;
+  }
+
+  mParameters.mJSObject.init(cx, object);
+  if (NS_WARN_IF(!mParameters.mFloat32Arrays.growBy(ParameterCount()))) {
+    SendProcessorError(aTrack, cx);
+    return;
+  }
+  for (size_t i = 0; i < mParamTimelines.Length(); i++) {
+    auto& float32ArraysRef = mParameters.mFloat32Arrays;
+    float32ArraysRef[i].init(cx);
+    JSObject* array = JS_NewFloat32Array(cx, WEBAUDIO_BLOCK_SIZE);
+    if (NS_WARN_IF(!array)) {
+      SendProcessorError(aTrack, cx);
+      return;
+    }
+
+    float32ArraysRef[i] = array;
+    if (NS_WARN_IF(!JS_DefineUCProperty(
+            cx, mParameters.mJSObject, mParamTimelines[i].mName.get(),
+            mParamTimelines[i].mName.Length(), float32ArraysRef[i],
+            JSPROP_ENUMERATE))) {
+      SendProcessorError(aTrack, cx);
+      return;
+    }
+  }
+  if (NS_WARN_IF(!JS_FreezeObject(cx, mParameters.mJSObject))) {
+    SendProcessorError(aTrack, cx);
+    return;
   }
 }
 
@@ -265,13 +413,15 @@ static bool PrepareBufferArrays(JSContext* aCx, Span<const AudioBlock> aBlocks,
 // do not run until after ProcessBlocksOnPorts() has returned.
 bool WorkletNodeEngine::CallProcess(AudioNodeTrack* aTrack, JSContext* aCx,
                                     JS::Handle<JS::Value> aCallable) {
+  TRACE();
+
   JS::RootedVector<JS::Value> argv(aCx);
   if (NS_WARN_IF(!argv.resize(3))) {
     return false;
   }
   argv[0].setObject(*mInputs.mJSArray);
   argv[1].setObject(*mOutputs.mJSArray);
-  // TODO: argv[2].setObject() for parameters.
+  argv[2].setObject(*mParameters.mJSObject);
   JS::Rooted<JS::Value> rval(aCx);
   if (!JS::Call(aCx, mProcessor, aCallable, argv, &rval)) {
     return false;
@@ -307,11 +457,13 @@ void WorkletNodeEngine::ProduceSilence(AudioNodeTrack* aTrack,
 }
 
 void WorkletNodeEngine::ProcessBlocksOnPorts(AudioNodeTrack* aTrack,
+                                             GraphTime aFrom,
                                              Span<const AudioBlock> aInput,
                                              Span<AudioBlock> aOutput,
                                              bool* aFinished) {
   MOZ_ASSERT(aInput.Length() == InputCount());
   MOZ_ASSERT(aOutput.Length() == OutputCount());
+  TRACE();
 
   bool isSilent = true;
   if (mProcessor) {
@@ -348,6 +500,10 @@ void WorkletNodeEngine::ProcessBlocksOnPorts(AudioNodeTrack* aTrack,
 
   AutoEntryScript aes(mGlobal, "Worklet Process");
   JSContext* cx = aes.cx();
+  auto produceSilenceWithError = MakeScopeExit([this, aTrack, cx, &aOutput] {
+    SendProcessorError(aTrack, cx);
+    ProduceSilence(aTrack, aOutput);
+  });
 
   JS::Rooted<JS::Value> process(cx);
   if (!JS_GetProperty(cx, mProcessor, "process", &process) ||
@@ -355,8 +511,6 @@ void WorkletNodeEngine::ProcessBlocksOnPorts(AudioNodeTrack* aTrack,
       !PrepareBufferArrays(cx, aInput, &mInputs, ArrayElementInit::None) ||
       !PrepareBufferArrays(cx, aOutput, &mOutputs, ArrayElementInit::Zero)) {
     // process() not callable or OOM.
-    SendProcessorError();
-    ProduceSilence(aTrack, aOutput);
     return;
   }
 
@@ -381,15 +535,40 @@ void WorkletNodeEngine::ProcessBlocksOnPorts(AudioNodeTrack* aTrack,
     }
   }
 
+  TrackTime tick = mDestination->GraphTimeToTrackTime(aFrom);
+  // Compute and copy parameter values to JS objects.
+  for (size_t i = 0; i < mParamTimelines.Length(); ++i) {
+    const auto& float32Arrays = mParameters.mFloat32Arrays[i];
+    uint32_t length = JS_GetTypedArrayLength(float32Arrays);
+
+    // If the Float32Array that is supposed to hold the values for a particular
+    // AudioParam has been detached, error out. This is being worked on in
+    // https://github.com/WebAudio/web-audio-api/issues/1933 and
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=1619486
+    if (length != WEBAUDIO_BLOCK_SIZE) {
+      return;
+    }
+    JS::AutoCheckCannotGC nogc;
+    bool isShared;
+    float* dest = JS_GetFloat32ArrayData(float32Arrays, &isShared, nogc);
+    MOZ_ASSERT(!isShared);  // Was created as unshared
+
+    size_t frames =
+        mParamTimelines[i].mTimeline.HasSimpleValue() ? 1 : WEBAUDIO_BLOCK_SIZE;
+    mParamTimelines[i].mTimeline.GetValuesAtTime(tick, dest, frames);
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=1616599
+    if (frames == 1) {
+      std::fill_n(dest + 1, WEBAUDIO_BLOCK_SIZE - 1, dest[0]);
+    }
+  }
+
   if (!CallProcess(aTrack, cx, process)) {
     // An exception occurred.
-    SendProcessorError();
     /**
      * https://webaudio.github.io/web-audio-api/#dom-audioworkletnode-onprocessorerror
      * Note that once an exception is thrown, the processor will output silence
      * throughout its lifetime.
      */
-    ProduceSilence(aTrack, aOutput);
     return;
   }
 
@@ -398,8 +577,15 @@ void WorkletNodeEngine::ProcessBlocksOnPorts(AudioNodeTrack* aTrack,
     AudioBlock* output = &aOutput[o];
     size_t channelCount = output->ChannelCount();
     const auto& float32Arrays = mOutputs.mPorts[o].mFloat32Arrays;
-    JS::AutoCheckCannotGC nogc;
     for (size_t c = 0; c < channelCount; ++c) {
+      uint32_t length = JS_GetTypedArrayLength(float32Arrays[c]);
+      if (length != WEBAUDIO_BLOCK_SIZE) {
+        // ArrayBuffer has been detached.  Behavior is unspecified.
+        // https://github.com/WebAudio/web-audio-api/issues/1933 and
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=1619486
+        return;
+      }
+      JS::AutoCheckCannotGC nogc;
       bool isShared;
       const float* src =
           JS_GetFloat32ArrayData(float32Arrays[c], &isShared, nogc);
@@ -407,6 +593,8 @@ void WorkletNodeEngine::ProcessBlocksOnPorts(AudioNodeTrack* aTrack,
       PodCopy(output->ChannelFloatsForWrite(c), src, WEBAUDIO_BLOCK_SIZE);
     }
   }
+
+  produceSilenceWithError.release();  // have output and no error
 }
 
 AudioWorkletNode::AudioWorkletNode(AudioContext* aAudioContext,
@@ -418,6 +606,45 @@ AudioWorkletNode::AudioWorkletNode(AudioContext* aAudioContext,
       mInputCount(aOptions.mNumberOfInputs),
       mOutputCount(aOptions.mNumberOfOutputs) {}
 
+void AudioWorkletNode::InitializeParameters(
+    nsTArray<NamedAudioParamTimeline>* aParamTimelines, ErrorResult& aRv) {
+  MOZ_ASSERT(!mParameters, "Only initialize the `parameters` attribute once.");
+  MOZ_ASSERT(aParamTimelines);
+
+  AudioContext* context = Context();
+  const AudioParamDescriptorMap* parameterDescriptors =
+      context->GetParamMapForWorkletName(mNodeName);
+  MOZ_ASSERT(parameterDescriptors);
+
+  size_t audioParamIndex = 0;
+  aParamTimelines->SetCapacity(parameterDescriptors->Length());
+
+  for (size_t i = 0; i < parameterDescriptors->Length(); i++) {
+    auto& paramEntry = (*parameterDescriptors)[i];
+    CreateAudioParam(audioParamIndex++, paramEntry.mName,
+                     paramEntry.mDefaultValue, paramEntry.mMinValue,
+                     paramEntry.mMaxValue);
+    aParamTimelines->AppendElement(paramEntry);
+  }
+}
+
+void AudioWorkletNode::SendParameterData(
+    const Optional<Record<nsString, double>>& aParameterData) {
+  MOZ_ASSERT(mTrack, "This method only works if the track has been created.");
+  nsAutoString name;
+  if (aParameterData.WasPassed()) {
+    const auto& paramData = aParameterData.Value();
+    for (const auto& paramDataEntry : paramData.Entries()) {
+      for (auto& audioParam : mParams) {
+        audioParam->GetName(name);
+        if (paramDataEntry.mKey.Equals(name)) {
+          audioParam->SetValue(paramDataEntry.mValue);
+        }
+      }
+    }
+  }
+}
+
 /* static */
 already_AddRefed<AudioWorkletNode> AudioWorkletNode::Constructor(
     const GlobalObject& aGlobal, AudioContext& aAudioContext,
@@ -425,16 +652,15 @@ already_AddRefed<AudioWorkletNode> AudioWorkletNode::Constructor(
     ErrorResult& aRv) {
   /**
    * 1. If nodeName does not exist as a key in the BaseAudioContext’s node
-   *    name to parameter descriptor map, throw a NotSupportedError exception
+   *    name to parameter descriptor map, throw a InvalidStateError exception
    *    and abort these steps.
    */
   const AudioParamDescriptorMap* parameterDescriptors =
       aAudioContext.GetParamMapForWorkletName(aName);
   if (!parameterDescriptors) {
     // Not using nsPrintfCString in case aName has embedded nulls.
-    aRv.ThrowNotSupportedError(
-        NS_LITERAL_CSTRING("Unknown AudioWorklet name '") +
-        NS_ConvertUTF16toUTF8(aName) + NS_LITERAL_CSTRING("'"));
+    aRv.ThrowInvalidStateError("Unknown AudioWorklet name '"_ns +
+                               NS_ConvertUTF16toUTF8(aName) + "'"_ns);
     return nullptr;
   }
 
@@ -549,11 +775,24 @@ already_AddRefed<AudioWorkletNode> AudioWorkletNode::Constructor(
    */
   audioWorkletNode->mPort = messageChannel->Port1();
 
-  auto engine =
-      new WorkletNodeEngine(audioWorkletNode, aOptions.mOutputChannelCount);
+  /**
+   * 11. Let parameterDescriptors be the result of retrieval of nodeName from
+   * node name to parameter descriptor map.
+   */
+  nsTArray<NamedAudioParamTimeline> paramTimelines;
+  audioWorkletNode->InitializeParameters(&paramTimelines, aRv);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return nullptr;
+  }
+
+  auto engine = new WorkletNodeEngine(
+      audioWorkletNode, aAudioContext.Destination(), std::move(paramTimelines),
+      aOptions.mOutputChannelCount);
   audioWorkletNode->mTrack = AudioNodeTrack::Create(
       &aAudioContext, engine, AudioNodeTrack::NO_TRACK_FLAGS,
       aAudioContext.Graph());
+
+  audioWorkletNode->SendParameterData(aOptions.mParameterData);
 
   /**
    * 12. Queue a control message to invoke the constructor of the
@@ -566,17 +805,28 @@ already_AddRefed<AudioWorkletNode> AudioWorkletNode::Constructor(
   auto workletImpl = static_cast<AudioWorkletImpl*>(worklet->Impl());
   audioWorkletNode->mTrack->SendRunnable(NS_NewRunnableFunction(
       "WorkletNodeEngine::ConstructProcessor",
-      // MOZ_CAN_RUN_SCRIPT_BOUNDARY until Runnable::Run is MOZ_CAN_RUN_SCRIPT.
-      // See bug 1535398.
+  // MOZ_CAN_RUN_SCRIPT_BOUNDARY until Runnable::Run is MOZ_CAN_RUN_SCRIPT.
+  // See bug 1535398.
+  //
+  // Note that clang and gcc have mutually incompatible rules about whether
+  // attributes should come before or after the `mutable` keyword here, so
+  // use a compatibility hack until we can switch to the standardized
+  // [[attr]] syntax (bug 1627007).
+#ifdef __clang__
+#  define AND_MUTABLE(macro) macro mutable
+#else
+#  define AND_MUTABLE(macro) mutable macro
+#endif
       [track = audioWorkletNode->mTrack,
        workletImpl = RefPtr<AudioWorkletImpl>(workletImpl),
        name = nsString(aName), options = std::move(serializedOptions),
        portId = std::move(processorPortId)]()
-          MOZ_CAN_RUN_SCRIPT_BOUNDARY mutable {
+          AND_MUTABLE(MOZ_CAN_RUN_SCRIPT_BOUNDARY) {
             auto engine = static_cast<WorkletNodeEngine*>(track->Engine());
-            engine->ConstructProcessor(workletImpl, name,
-                                       WrapNotNull(options.get()), portId);
+            engine->ConstructProcessor(
+                workletImpl, name, WrapNotNull(options.get()), portId, track);
           }));
+#undef AND_MUTABLE
 
   // [[active source]] is initially true and so at least the first process()
   // call will not be skipped when there are no active inputs.
@@ -585,9 +835,36 @@ already_AddRefed<AudioWorkletNode> AudioWorkletNode::Constructor(
   return audioWorkletNode.forget();
 }
 
-AudioParamMap* AudioWorkletNode::GetParameters(ErrorResult& aRv) const {
-  aRv.Throw(NS_ERROR_NOT_IMPLEMENTED);
-  return nullptr;
+AudioParamMap* AudioWorkletNode::GetParameters(ErrorResult& aRv) {
+  if (!mParameters) {
+    RefPtr<AudioParamMap> parameters = new AudioParamMap(this);
+    nsAutoString name;
+    for (const auto& audioParam : mParams) {
+      audioParam->GetName(name);
+      AudioParamMap_Binding::MaplikeHelpers::Set(parameters, name, *audioParam,
+                                                 aRv);
+      if (NS_WARN_IF(aRv.Failed())) {
+        return nullptr;
+      }
+    }
+    mParameters = std::move(parameters);
+  }
+  return mParameters.get();
+}
+
+void AudioWorkletNode::DispatchProcessorErrorEvent(
+    const ProcessorErrorDetails& aDetails) {
+  if (HasListenersFor(nsGkAtoms::onprocessorerror)) {
+    RootedDictionary<ErrorEventInit> init(RootingCx());
+    init.mMessage = aDetails.mMessage;
+    init.mFilename = aDetails.mFilename;
+    init.mLineno = aDetails.mLineno;
+    init.mColno = aDetails.mColno;
+    RefPtr<ErrorEvent> errorEvent =
+        ErrorEvent::Constructor(this, u"processorerror"_ns, init);
+    MOZ_ASSERT(errorEvent);
+    DispatchTrustedEvent(errorEvent);
+  }
 }
 
 JSObject* AudioWorkletNode::WrapObject(JSContext* aCx,

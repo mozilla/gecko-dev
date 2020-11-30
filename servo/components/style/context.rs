@@ -5,11 +5,9 @@
 //! The context within which style is calculated.
 
 #[cfg(feature = "servo")]
-use crate::animation::Animation;
+use crate::animation::DocumentAnimationSet;
 use crate::bloom::StyleBloom;
 use crate::data::{EagerPseudoStyles, ElementData};
-#[cfg(feature = "servo")]
-use crate::dom::OpaqueNode;
 use crate::dom::{SendElement, TElement};
 use crate::font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")]
@@ -25,26 +23,20 @@ use crate::shared_lock::StylesheetGuards;
 use crate::sharing::StyleSharingCache;
 use crate::stylist::Stylist;
 use crate::thread_state::{self, ThreadState};
-use crate::timer::Timer;
 use crate::traversal::DomTraversal;
 use crate::traversal_flags::TraversalFlags;
 use app_units::Au;
-#[cfg(feature = "servo")]
-use crossbeam_channel::Sender;
 use euclid::default::Size2D;
 use euclid::Scale;
 use fxhash::FxHashMap;
-#[cfg(feature = "servo")]
-use parking_lot::RwLock;
 use selectors::matching::ElementSelectorFlags;
 use selectors::NthIndexCache;
+#[cfg(feature = "gecko")]
 use servo_arc::Arc;
 #[cfg(feature = "servo")]
 use servo_atoms::Atom;
 use std::fmt;
 use std::ops;
-#[cfg(feature = "servo")]
-use std::sync::Mutex;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 #[cfg(feature = "servo")]
@@ -53,22 +45,6 @@ use time;
 use uluru::{Entry, LRUCache};
 
 pub use selectors::matching::QuirksMode;
-
-/// This structure is used to create a local style context from a shared one.
-#[cfg(feature = "servo")]
-pub struct ThreadLocalStyleContextCreationInfo {
-    new_animations_sender: Sender<Animation>,
-}
-
-#[cfg(feature = "servo")]
-impl ThreadLocalStyleContextCreationInfo {
-    /// Trivially constructs a `ThreadLocalStyleContextCreationInfo`.
-    pub fn new(animations_sender: Sender<Animation>) -> Self {
-        ThreadLocalStyleContextCreationInfo {
-            new_animations_sender: animations_sender,
-        }
-    }
-}
 
 /// A global options structure for the style system. We use this instead of
 /// opts to abstract across Gecko and Servo.
@@ -176,9 +152,9 @@ pub struct SharedStyleContext<'a> {
     /// Guards for pre-acquired locks
     pub guards: StylesheetGuards<'a>,
 
-    /// The current timer for transitions and animations. This is needed to test
-    /// them.
-    pub timer: Timer,
+    /// The current time for transitions and animations. This is needed to ensure
+    /// a consistent sampling time and also to adjust the time for testing.
+    pub current_time_for_animations: f64,
 
     /// Flags controlling how we traverse the tree.
     pub traversal_flags: TraversalFlags,
@@ -186,21 +162,13 @@ pub struct SharedStyleContext<'a> {
     /// A map with our snapshots in order to handle restyle hints.
     pub snapshot_map: &'a SnapshotMap,
 
-    /// The animations that are currently running.
+    /// The state of all animations for our styled elements.
     #[cfg(feature = "servo")]
-    pub running_animations: Arc<RwLock<FxHashMap<OpaqueNode, Vec<Animation>>>>,
-
-    /// The list of animations that have expired since the last style recalculation.
-    #[cfg(feature = "servo")]
-    pub expired_animations: Arc<RwLock<FxHashMap<OpaqueNode, Vec<Animation>>>>,
+    pub animations: DocumentAnimationSet,
 
     /// Paint worklets
     #[cfg(feature = "servo")]
     pub registered_speculative_painters: &'a dyn RegisteredSpeculativePainters,
-
-    /// Data needed to create the thread-local style context from the shared one.
-    #[cfg(feature = "servo")]
-    pub local_context_creation_data: Mutex<ThreadLocalStyleContextCreationInfo>,
 }
 
 impl<'a> SharedStyleContext<'a> {
@@ -737,10 +705,6 @@ pub struct ThreadLocalStyleContext<E: TElement> {
     pub rule_cache: RuleCache,
     /// The bloom filter used to fast-reject selector-matching.
     pub bloom_filter: StyleBloom<E>,
-    /// A channel on which new animations that have been triggered by style
-    /// recalculation can be sent.
-    #[cfg(feature = "servo")]
-    pub new_animations_sender: Sender<Animation>,
     /// A set of tasks to be run (on the parent thread) in sequential mode after
     /// the rest of the styling is complete. This is useful for
     /// infrequently-needed non-threadsafe operations.
@@ -774,12 +738,6 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
             sharing_cache: StyleSharingCache::new(),
             rule_cache: RuleCache::new(),
             bloom_filter: StyleBloom::new(),
-            new_animations_sender: shared
-                .local_context_creation_data
-                .lock()
-                .unwrap()
-                .new_animations_sender
-                .clone(),
             tasks: SequentialTaskList(Vec::new()),
             selector_flags: SelectorFlagsMap::new(),
             statistics: PerThreadTraversalStatistics::default(),

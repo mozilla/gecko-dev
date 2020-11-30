@@ -24,6 +24,7 @@
 #include "js/Utility.h"
 #include "vm/GlobalObject.h"
 #include "vm/JSContext.h"
+#include "vm/PlainObject.h"  // js::PlainObject
 #include "vm/Realm.h"
 #include "vm/SavedStacks.h"
 
@@ -238,14 +239,6 @@ bool DebuggerMemory::CallData::drainAllocationsLog() {
       return false;
     }
 
-    RootedValue ctorName(cx, NullValue());
-    if (entry.ctorName) {
-      ctorName.setString(entry.ctorName);
-    }
-    if (!DefineDataProperty(cx, obj, cx->names().constructor, ctorName)) {
-      return false;
-    }
-
     RootedValue size(cx, NumberValue(entry.size));
     if (!DefineDataProperty(cx, obj, cx->names().size, size)) {
       return false;
@@ -349,13 +342,11 @@ bool DebuggerMemory::CallData::getAllocationsLogOverflowed() {
 }
 
 bool DebuggerMemory::CallData::getOnGarbageCollection() {
-  return Debugger::getHookImpl(cx, args, *memory->getDebugger(),
-                               Debugger::OnGarbageCollection);
+  return Debugger::getGarbageCollectionHook(cx, args, *memory->getDebugger());
 }
 
 bool DebuggerMemory::CallData::setOnGarbageCollection() {
-  return Debugger::setHookImpl(cx, args, *memory->getDebugger(),
-                               Debugger::OnGarbageCollection);
+  return Debugger::setGarbageCollectionHook(cx, args, *memory->getDebugger());
 }
 
 /* Debugger.Memory.prototype.takeCensus */

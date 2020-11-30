@@ -1,12 +1,18 @@
 "use strict";
 
 const SUGGEST_URLBAR_PREF = "browser.urlbar.suggest.searches";
+const MAX_FORM_HISTORY_PREF = "browser.urlbar.maxHistoricalSearchSuggestions";
 const TEST_ENGINE_BASENAME = "searchSuggestionEngine.xml";
 
 // Must run first.
 add_task(async function prepare() {
-  let suggestionsEnabled = Services.prefs.getBoolPref(SUGGEST_URLBAR_PREF);
-  Services.prefs.setBoolPref(SUGGEST_URLBAR_PREF, true);
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [SUGGEST_URLBAR_PREF, true],
+      [MAX_FORM_HISTORY_PREF, 2],
+    ],
+  });
+
   let engine = await SearchTestUtils.promiseNewSearchEngine(
     getRootDirectory(gTestPath) + TEST_ENGINE_BASENAME
   );
@@ -14,12 +20,12 @@ add_task(async function prepare() {
   await Services.search.setDefault(engine);
 
   registerCleanupFunction(async function() {
-    Services.prefs.setBoolPref(SUGGEST_URLBAR_PREF, suggestionsEnabled);
     await Services.search.setDefault(oldDefaultEngine);
 
     // Clicking urlbar results causes visits to their associated pages, so clear
     // that history now.
     await PlacesUtils.history.clear();
+    await UrlbarTestUtils.formHistory.clear();
   });
 
   // Move the mouse away from the urlbar one-offs so that a one-off engine is
@@ -40,7 +46,6 @@ add_task(async function heuristicResultMouse() {
     gURLBar.focus();
     await UrlbarTestUtils.promiseAutocompleteResultPopup({
       window,
-      waitForFocus: SimpleTest.waitForFocus,
       value: "heuristicResult",
     });
     let result = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
@@ -54,6 +59,7 @@ add_task(async function heuristicResultMouse() {
     EventUtils.synthesizeMouseAtCenter(element, {});
     await loadPromise;
     BrowserTestUtils.removeTab(tab);
+    await UrlbarTestUtils.formHistory.clear();
   });
 });
 
@@ -63,7 +69,6 @@ add_task(async function heuristicResultKeyboard() {
     gURLBar.focus();
     await UrlbarTestUtils.promiseAutocompleteResultPopup({
       window,
-      waitForFocus: SimpleTest.waitForFocus,
       value: "heuristicResult",
     });
     let result = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
@@ -76,6 +81,7 @@ add_task(async function heuristicResultKeyboard() {
     EventUtils.sendKey("return");
     await loadPromise;
     BrowserTestUtils.removeTab(tab);
+    await UrlbarTestUtils.formHistory.clear();
   });
 });
 
@@ -85,7 +91,6 @@ add_task(async function searchSuggestionMouse() {
     gURLBar.focus();
     await UrlbarTestUtils.promiseAutocompleteResultPopup({
       window,
-      waitForFocus: SimpleTest.waitForFocus,
       value: "searchSuggestion",
     });
     let idx = await getFirstSuggestionIndex();
@@ -98,6 +103,7 @@ add_task(async function searchSuggestionMouse() {
     EventUtils.synthesizeMouseAtCenter(element, {});
     await loadPromise;
     BrowserTestUtils.removeTab(tab);
+    await UrlbarTestUtils.formHistory.clear();
   });
 });
 
@@ -107,7 +113,6 @@ add_task(async function searchSuggestionKeyboard() {
     gURLBar.focus();
     await UrlbarTestUtils.promiseAutocompleteResultPopup({
       window,
-      waitForFocus: SimpleTest.waitForFocus,
       value: "searchSuggestion",
     });
     let idx = await getFirstSuggestionIndex();
@@ -119,6 +124,58 @@ add_task(async function searchSuggestionKeyboard() {
     EventUtils.sendKey("return");
     await loadPromise;
     BrowserTestUtils.removeTab(tab);
+    await UrlbarTestUtils.formHistory.clear();
+  });
+});
+
+add_task(async function formHistoryMouse() {
+  await compareCounts(async function() {
+    await UrlbarTestUtils.formHistory.add(["foofoo", "foobar"]);
+    let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
+    gURLBar.focus();
+    await UrlbarTestUtils.promiseAutocompleteResultPopup({
+      window,
+      value: "foo",
+    });
+    let index = await getFirstSuggestionIndex();
+    Assert.greaterOrEqual(index, 0, "there should be a first suggestion");
+    let result = await UrlbarTestUtils.getDetailsOfResultAt(window, index);
+    Assert.equal(result.type, UrlbarUtils.RESULT_TYPE.SEARCH);
+    Assert.equal(result.source, UrlbarUtils.RESULT_SOURCE.HISTORY);
+    let loadPromise = BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+    let element = await UrlbarTestUtils.waitForAutocompleteResultAt(
+      window,
+      index
+    );
+    EventUtils.synthesizeMouseAtCenter(element, {});
+    await loadPromise;
+    BrowserTestUtils.removeTab(tab);
+    await UrlbarTestUtils.formHistory.clear();
+  });
+});
+
+add_task(async function formHistoryKeyboard() {
+  await compareCounts(async function() {
+    await UrlbarTestUtils.formHistory.add(["foofoo", "foobar"]);
+    let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
+    gURLBar.focus();
+    await UrlbarTestUtils.promiseAutocompleteResultPopup({
+      window,
+      value: "foo",
+    });
+    let index = await getFirstSuggestionIndex();
+    Assert.greaterOrEqual(index, 0, "there should be a first suggestion");
+    let result = await UrlbarTestUtils.getDetailsOfResultAt(window, index);
+    Assert.equal(result.type, UrlbarUtils.RESULT_TYPE.SEARCH);
+    Assert.equal(result.source, UrlbarUtils.RESULT_SOURCE.HISTORY);
+    let loadPromise = BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+    while (index--) {
+      EventUtils.sendKey("down");
+    }
+    EventUtils.sendKey("return");
+    await loadPromise;
+    BrowserTestUtils.removeTab(tab);
+    await UrlbarTestUtils.formHistory.clear();
   });
 });
 
@@ -137,16 +194,10 @@ async function compareCounts(clickCallback) {
   // * FHR
 
   let engine = await Services.search.getDefault();
-  let engineID = "org.mozilla.testsearchsuggestions";
 
-  let histogramKey = engineID + ".urlbar";
+  let histogramKey = `other-${engine.name}.urlbar`;
   let histogram = Services.telemetry.getKeyedHistogramById("SEARCH_COUNTS");
   histogram.clear();
-
-  // FHR -- first make sure the engine has an identifier so that FHR is happy.
-  Object.defineProperty(engine.wrappedJSObject, "identifier", {
-    value: engineID,
-  });
 
   gURLBar.focus();
   await clickCallback();

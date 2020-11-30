@@ -20,6 +20,9 @@
 #include "nsIChannel.h"
 #include "nsIScriptError.h"
 #include "nsIEnterprisePolicies.h"
+#include "nsIClassInfoImpl.h"
+
+#include "mozilla/ipc/URIUtils.h"
 
 namespace mozilla {
 namespace net {
@@ -237,11 +240,10 @@ nsAboutProtocolHandler::NewChannel(nsIURI* uri, nsILoadInfo* aLoadInfo,
                      "nsIAboutModule->newChannel(aURI, aLoadInfo) needs to "
                      "set LoadInfo");
         AutoTArray<nsString, 2> params = {
-            NS_LITERAL_STRING("nsIAboutModule->newChannel(aURI)"),
-            NS_LITERAL_STRING("nsIAboutModule->newChannel(aURI, aLoadInfo)")};
+            u"nsIAboutModule->newChannel(aURI)"_ns,
+            u"nsIAboutModule->newChannel(aURI, aLoadInfo)"_ns};
         nsContentUtils::ReportToConsole(
-            nsIScriptError::warningFlag,
-            NS_LITERAL_CSTRING("Security by Default"),
+            nsIScriptError::warningFlag, "Security by Default"_ns,
             nullptr,  // aDocument
             nsContentUtils::eNECKO_PROPERTIES, "APIDeprecationWarning", params);
         (*result)->SetLoadInfo(aLoadInfo);
@@ -263,7 +265,7 @@ nsAboutProtocolHandler::NewChannel(nsIURI* uri, nsILoadInfo* aLoadInfo,
         nsCOMPtr<nsIWritablePropertyBag2> writableBag =
             do_QueryInterface(*result);
         if (writableBag) {
-          writableBag->SetPropertyAsInterface(NS_LITERAL_STRING("baseURI"),
+          writableBag->SetPropertyAsInterface(u"baseURI"_ns,
                                               aboutURI->GetBaseURI());
         }
       }
@@ -337,10 +339,17 @@ nsSafeAboutProtocolHandler::AllowPort(int32_t port, const char* scheme,
 
 ////////////////////////////////////////////////////////////
 // nsNestedAboutURI implementation
+
+NS_IMPL_CLASSINFO(nsNestedAboutURI, nullptr, nsIClassInfo::THREADSAFE,
+                  NS_NESTEDABOUTURI_CID);
+// Empty CI getter. We only need nsIClassInfo for Serialization
+NS_IMPL_CI_INTERFACE_GETTER0(nsNestedAboutURI)
+
 NS_INTERFACE_MAP_BEGIN(nsNestedAboutURI)
   if (aIID.Equals(kNestedAboutURICID))
     foundInterface = static_cast<nsIURI*>(this);
   else
+    NS_IMPL_QUERY_CLASSINFO(nsNestedAboutURI)
 NS_INTERFACE_MAP_END_INHERITING(nsSimpleNestedURI)
 
 // nsISerializable
@@ -395,6 +404,43 @@ nsNestedAboutURI::Write(nsIObjectOutputStream* aStream) {
   return NS_OK;
 }
 
+NS_IMETHODIMP_(void)
+nsNestedAboutURI::Serialize(mozilla::ipc::URIParams& aParams) {
+  using namespace mozilla::ipc;
+
+  NestedAboutURIParams params;
+  URIParams nestedParams;
+
+  nsSimpleNestedURI::Serialize(nestedParams);
+  params.nestedParams() = nestedParams;
+
+  if (mBaseURI) {
+    SerializeURI(mBaseURI, params.baseURI());
+  }
+
+  aParams = params;
+}
+
+bool nsNestedAboutURI::Deserialize(const mozilla::ipc::URIParams& aParams) {
+  using namespace mozilla::ipc;
+
+  if (aParams.type() != URIParams::TNestedAboutURIParams) {
+    NS_ERROR("Received unknown parameters from the other process!");
+    return false;
+  }
+
+  const NestedAboutURIParams& params = aParams.get_NestedAboutURIParams();
+  if (!nsSimpleNestedURI::Deserialize(params.nestedParams())) {
+    return false;
+  }
+
+  mBaseURI = nullptr;
+  if (params.baseURI()) {
+    mBaseURI = DeserializeURI(*params.baseURI());
+  }
+  return true;
+}
+
 // nsSimpleURI
 /* virtual */ nsSimpleURI* nsNestedAboutURI::StartClone(
     nsSimpleURI::RefHandlingEnum aRefHandlingMode, const nsACString& aNewRef) {
@@ -436,13 +482,6 @@ nsNestedAboutURI::Mutate(nsIURIMutator** aMutator) {
     return rv;
   }
   mutator.forget(aMutator);
-  return NS_OK;
-}
-
-// nsIClassInfo
-NS_IMETHODIMP
-nsNestedAboutURI::GetClassIDNoAlloc(nsCID* aClassIDNoAlloc) {
-  *aClassIDNoAlloc = kNestedAboutURICID;
   return NS_OK;
 }
 

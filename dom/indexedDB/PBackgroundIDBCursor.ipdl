@@ -7,8 +7,8 @@ include protocol PBackgroundIDBVersionChangeTransaction;
 include protocol PBackgroundMutableFile;
 include protocol PChildToParentStream; // FIXME: bug 792908
 include protocol PFileDescriptorSet; // FIXME: bug 792908
-include protocol PIPCBlobInputStream; // FIXME: bug 792908
 include protocol PParentToChildStream; // FIXME: bug 792908
+include protocol PRemoteLazyInputStream; // FIXME: bug 792908
 
 include PBackgroundIDBSharedTypes;
 
@@ -84,7 +84,7 @@ union CursorResponse
   IndexKeyCursorResponse[];
 };
 
-protocol PBackgroundIDBCursor
+refcounted protocol PBackgroundIDBCursor
 {
   manager PBackgroundIDBTransaction or PBackgroundIDBVersionChangeTransaction;
 

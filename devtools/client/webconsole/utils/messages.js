@@ -4,10 +4,14 @@
 
 "use strict";
 
+const Services = require("Services");
 const l10n = require("devtools/client/webconsole/utils/l10n");
 const {
   getUrlDetails,
 } = require("devtools/client/netmonitor/src/utils/request-utils");
+const {
+  ResourceWatcher,
+} = require("devtools/shared/resources/resource-watcher");
 
 // URL Regex, common idioms:
 //
@@ -75,63 +79,66 @@ const {
   NetworkEventMessage,
 } = require("devtools/client/webconsole/types");
 
-function prepareMessage(packet, idGenerator) {
-  if (!packet.source) {
-    packet = transformPacket(packet);
+function prepareMessage(resource, idGenerator) {
+  if (!resource.source) {
+    resource = transformResource(resource);
   }
 
-  if (packet.allowRepeating) {
-    packet.repeatId = getRepeatId(packet);
+  if (resource.allowRepeating) {
+    resource.repeatId = getRepeatId(resource);
   }
-  packet.id = idGenerator.getNextId(packet);
-  return packet;
+  resource.id = idGenerator.getNextId(resource);
+  return resource;
 }
 
 /**
- * Transforms a packet from Firefox RDP structure to Chrome RDP structure.
+ * Transforms a resource given its type.
+ *
+ * @param {Object} resource: This can be either a simple RDP packet or an object emitted
+ *                           by the Resource API.
  */
-function transformPacket(packet) {
-  if (packet._type) {
-    packet = convertCachedPacket(packet);
-  }
+function transformResource(resource) {
+  switch (resource.resourceType || resource.type) {
+    case ResourceWatcher.TYPES.CONSOLE_MESSAGE: {
+      return transformConsoleAPICallResource(resource);
+    }
 
-  switch (packet.type) {
-    case "consoleAPICall": {
-      return transformConsoleAPICallPacket(packet);
+    case ResourceWatcher.TYPES.PLATFORM_MESSAGE: {
+      return transformPlatformMessageResource(resource);
+    }
+
+    case ResourceWatcher.TYPES.ERROR_MESSAGE: {
+      return transformPageErrorResource(resource);
+    }
+
+    case ResourceWatcher.TYPES.CSS_MESSAGE: {
+      return transformCSSMessageResource(resource);
+    }
+
+    case ResourceWatcher.TYPES.NETWORK_EVENT: {
+      return transformNetworkEventResource(resource);
     }
 
     case "will-navigate": {
-      return transformNavigationMessagePacket(packet);
-    }
-
-    case "logMessage": {
-      return transformLogMessagePacket(packet);
-    }
-
-    case "pageError": {
-      return transformPageErrorPacket(packet);
-    }
-
-    case "networkEvent": {
-      return transformNetworkEventPacket(packet);
+      return transformNavigationMessagePacket(resource);
     }
 
     case "evaluationResult":
     default: {
-      return transformEvaluationResultPacket(packet);
+      return transformEvaluationResultPacket(resource);
     }
   }
 }
 
 // eslint-disable-next-line complexity
-function transformConsoleAPICallPacket(packet) {
-  const { message } = packet;
+function transformConsoleAPICallResource(consoleMessageResource) {
+  const { message, targetFront } = consoleMessageResource;
 
   let parameters = message.arguments;
   let type = message.level;
   let level = getLevelFromType(type);
   let messageText = null;
-  const timer = message.timer;
+  const { timer } = message;
 
   // Special per-type conversion.
   switch (type) {
@@ -258,6 +265,7 @@ function transformConsoleAPICallPacket(packet) {
   }
 
   return new ConsoleMessage({
+    targetFront,
     source: MESSAGE_SOURCE.CONSOLE_API,
     type,
     level,
@@ -269,7 +277,6 @@ function transformConsoleAPICallPacket(packet) {
     userProvidedStyles: message.styles,
     prefix: message.prefix,
     private: message.private,
-    executionPoint: message.executionPoint,
     logpointId: message.logpointId,
     chromeContext: message.chromeContext,
   });
@@ -282,14 +289,16 @@ function transformNavigationMessagePacket(packet) {
     type: MESSAGE_TYPE.NAVIGATION_MARKER,
     level: MESSAGE_LEVEL.LOG,
     messageText: l10n.getFormatStr("webconsole.navigated", [url]),
-    timeStamp: Date.now(),
+    timeStamp: packet.timeStamp,
+    allowRepeating: false,
   });
 }
 
-function transformLogMessagePacket(packet) {
-  const { message, timeStamp } = packet;
+function transformPlatformMessageResource(platformMessageResource) {
+  const { message, timeStamp, targetFront } = platformMessageResource;
 
   return new ConsoleMessage({
+    targetFront,
     source: MESSAGE_SOURCE.CONSOLE_API,
     type: MESSAGE_TYPE.LOG,
     level: MESSAGE_LEVEL.LOG,
@@ -300,10 +309,10 @@ function transformLogMessagePacket(packet) {
   });
 }
 
-function transformPageErrorPacket(packet) {
-  const { pageError } = packet;
+function transformPageErrorResource(pageErrorResource, override = {}) {
+  const { pageError, targetFront } = pageErrorResource;
   let level = MESSAGE_LEVEL.ERROR;
-  if (pageError.warning || pageError.strict) {
+  if (pageError.warning) {
     level = MESSAGE_LEVEL.WARN;
   } else if (pageError.info) {
     level = MESSAGE_LEVEL.INFO;
@@ -318,51 +327,58 @@ function transformPageErrorPacket(packet) {
       }
     : null;
 
-  const matchesCSS = pageError.category == "CSS Parser";
-  const messageSource = matchesCSS
-    ? MESSAGE_SOURCE.CSS
-    : MESSAGE_SOURCE.JAVASCRIPT;
-  return new ConsoleMessage({
-    innerWindowID: pageError.innerWindowID,
-    source: messageSource,
-    type: MESSAGE_TYPE.LOG,
-    level,
-    category: pageError.category,
-    messageText: pageError.errorMessage,
-    stacktrace: pageError.stacktrace ? pageError.stacktrace : null,
-    frame,
-    errorMessageName: pageError.errorMessageName,
-    exceptionDocURL: pageError.exceptionDocURL,
-    timeStamp: pageError.timeStamp,
-    notes: pageError.notes,
-    private: pageError.private,
-    executionPoint: pageError.executionPoint,
-    chromeContext: pageError.chromeContext,
-    // Backward compatibility: cssSelectors might not be available when debugging
-    // Firefox 67 or older.
-    // Remove `|| ""` when Firefox 68 is on the release channel.
-    cssSelectors: pageError.cssSelectors || "",
+  return new ConsoleMessage(
+    Object.assign(
+      {
+        targetFront,
+        innerWindowID: pageError.innerWindowID,
+        source: MESSAGE_SOURCE.JAVASCRIPT,
+        type: MESSAGE_TYPE.LOG,
+        level,
+        category: pageError.category,
+        messageText: pageError.errorMessage,
+        stacktrace: pageError.stacktrace ? pageError.stacktrace : null,
+        frame,
+        errorMessageName: pageError.errorMessageName,
+        exceptionDocURL: pageError.exceptionDocURL,
+        hasException: pageError.hasException,
+        parameters: pageError.hasException ? [pageError.exception] : null,
+        timeStamp: pageError.timeStamp,
+        notes: pageError.notes,
+        private: pageError.private,
+        chromeContext: pageError.chromeContext,
+        isPromiseRejection: pageError.isPromiseRejection,
+      },
+      override
+    )
+  );
+}
+
+function transformCSSMessageResource(cssMessageResource) {
+  return transformPageErrorResource(cssMessageResource, {
+    cssSelectors: cssMessageResource.cssSelectors,
+    source: MESSAGE_SOURCE.CSS,
   });
 }
 
-function transformNetworkEventPacket(packet) {
-  const { networkEvent } = packet;
-
+function transformNetworkEventResource(networkEventResource) {
   return new NetworkEventMessage({
-    actor: networkEvent.actor,
-    isXHR: networkEvent.isXHR,
-    request: networkEvent.request,
-    response: networkEvent.response,
-    timeStamp: networkEvent.timeStamp,
-    totalTime: networkEvent.totalTime,
-    url: networkEvent.request.url,
-    urlDetails: getUrlDetails(networkEvent.request.url),
-    method: networkEvent.request.method,
-    updates: networkEvent.updates,
-    cause: networkEvent.cause,
-    private: networkEvent.private,
-    securityState: networkEvent.securityState,
-    chromeContext: networkEvent.chromeContext,
+    targetFront: networkEventResource.targetFront,
+    actor: networkEventResource.actor,
+    isXHR: networkEventResource.isXHR,
+    request: networkEventResource.request,
+    response: networkEventResource.response,
+    timeStamp: networkEventResource.timeStamp,
+    totalTime: networkEventResource.totalTime,
+    url: networkEventResource.request.url,
+    urlDetails: getUrlDetails(networkEventResource.request.url),
+    method: networkEventResource.request.method,
+    updates: networkEventResource.updates,
+    cause: networkEventResource.cause,
+    private: networkEventResource.private,
+    securityState: networkEventResource.securityState,
+    chromeContext: networkEventResource.chromeContext,
+    blockedReason: networkEventResource.blockedReason,
   });
 }
 
@@ -373,6 +389,7 @@ function transformEvaluationResultPacket(packet) {
     exceptionDocURL,
     exception,
     exceptionStack,
+    hasException,
     frame,
     result,
     helperResult,
@@ -380,22 +397,27 @@ function transformEvaluationResultPacket(packet) {
     notes,
   } = packet;
 
-  const parameter =
-    helperResult && helperResult.object ? helperResult.object : result;
+  let parameter;
 
-  if (helperResult && helperResult.type === "error") {
+  if (hasException) {
+    // If we have an exception, we prefix it, and we reset the exception message, as we're
+    // not going to use it.
+    parameter = exception;
+    exceptionMessage = null;
+  } else if (helperResult?.object) {
+    parameter = helperResult.object;
+  } else if (helperResult?.type === "error") {
     try {
       exceptionMessage = l10n.getStr(helperResult.message);
     } catch (ex) {
       exceptionMessage = helperResult.message;
     }
-  } else if (typeof exception === "string") {
-    // Wrap thrown strings in Error objects, so `throw "foo"` outputs "Error: foo"
-    exceptionMessage = new Error(exceptionMessage).toString();
+  } else {
+    parameter = result;
   }
 
   const level =
-    typeof exceptionMessage !== "undefined" && exceptionMessage !== null
+    typeof exceptionMessage !== "undefined" && packet.exceptionMessage !== null
       ? MESSAGE_LEVEL.ERROR
       : MESSAGE_LEVEL.LOG;
 
@@ -405,6 +427,7 @@ function transformEvaluationResultPacket(packet) {
     helperType: helperResult ? helperResult.type : null,
     level,
     messageText: exceptionMessage,
+    hasException,
     parameters: [parameter],
     errorMessageName,
     exceptionDocURL,
@@ -432,7 +455,6 @@ function getRepeatId(message) {
       userProvidedStyles: message.userProvidedStyles,
       private: message.private,
       stacktrace: message.stacktrace,
-      executionPoint: message.executionPoint,
     },
     function(_, value) {
       if (typeof value === "bigint") {
@@ -446,30 +468,6 @@ function getRepeatId(message) {
       return value;
     }
   );
-}
-
-function convertCachedPacket(packet) {
-  // The devtools server provides cached message packets in a different shape, so we
-  // transform them here.
-  let convertPacket = {};
-  if (packet._type === "ConsoleAPI") {
-    convertPacket.message = packet;
-    convertPacket.type = "consoleAPICall";
-  } else if (packet._type === "PageError") {
-    convertPacket.pageError = packet;
-    convertPacket.type = "pageError";
-  } else if (packet._type === "NetworkEvent") {
-    convertPacket.networkEvent = packet;
-    convertPacket.type = "networkEvent";
-  } else if (packet._type === "LogMessage") {
-    convertPacket = {
-      ...packet,
-      type: "logMessage",
-    };
-  } else {
-    throw new Error("Unexpected packet type: " + packet._type);
-  }
-  return convertPacket;
 }
 
 /**
@@ -559,9 +557,17 @@ function createWarningGroupMessage(id, type, firstMessage) {
 function getWarningGroupLabel(firstMessage) {
   if (
     isContentBlockingMessage(firstMessage) ||
+    isStorageIsolationMessage(firstMessage) ||
     isTrackingProtectionMessage(firstMessage)
   ) {
     return replaceURL(firstMessage.messageText, "<URL>");
+  }
+
+  if (isCookieSameSiteMessage(firstMessage)) {
+    if (Services.prefs.getBoolPref("network.cookie.sameSite.laxByDefault")) {
+      return l10n.getStr("webconsole.group.cookieSameSiteLaxByDefaultEnabled2");
+    }
+    return l10n.getStr("webconsole.group.cookieSameSiteLaxByDefaultDisabled2");
   }
 
   return "";
@@ -623,8 +629,16 @@ function getWarningGroupType(message) {
     return MESSAGE_TYPE.CONTENT_BLOCKING_GROUP;
   }
 
+  if (isStorageIsolationMessage(message)) {
+    return MESSAGE_TYPE.STORAGE_ISOLATION_GROUP;
+  }
+
   if (isTrackingProtectionMessage(message)) {
     return MESSAGE_TYPE.TRACKING_PROTECTION_GROUP;
+  }
+
+  if (isCookieSameSiteMessage(message)) {
+    return MESSAGE_TYPE.COOKIE_SAMESITE_GROUP;
   }
 
   return null;
@@ -654,7 +668,9 @@ function getParentWarningGroupMessageId(message) {
 function isWarningGroup(message) {
   return (
     message.type === MESSAGE_TYPE.CONTENT_BLOCKING_GROUP ||
+    message.type === MESSAGE_TYPE.STORAGE_ISOLATION_GROUP ||
     message.type === MESSAGE_TYPE.TRACKING_PROTECTION_GROUP ||
+    message.type === MESSAGE_TYPE.COOKIE_SAMESITE_GROUP ||
     message.type === MESSAGE_TYPE.CORS_GROUP ||
     message.type === MESSAGE_TYPE.CSP_GROUP
   );
@@ -676,6 +692,16 @@ function isContentBlockingMessage(message) {
 }
 
 /**
+ * Returns true if the message is a storage isolation message.
+ * @param {ConsoleMessage} message
+ * @returns {Boolean}
+ */
+function isStorageIsolationMessage(message) {
+  const { category } = message;
+  return category == "cookiePartitionedForeign";
+}
+
+/**
  * Returns true if the message is a tracking protection message.
  * @param {ConsoleMessage} message
  * @returns {Boolean}
@@ -683,6 +709,16 @@ function isContentBlockingMessage(message) {
 function isTrackingProtectionMessage(message) {
   const { category } = message;
   return category == "Tracking Protection";
+}
+
+/**
+ * Returns true if the message is a cookie message.
+ * @param {ConsoleMessage} message
+ * @returns {Boolean}
+ */
+function isCookieSameSiteMessage(message) {
+  const { category } = message;
+  return category == "cookieSameSite";
 }
 
 function getArrayTypeNames() {
@@ -721,15 +757,55 @@ function getDescriptorValue(descriptor) {
   return descriptor;
 }
 
+function getNaturalOrder(messageA, messageB) {
+  const aFirst = -1;
+  const bFirst = 1;
+
+  // It can happen that messages are emitted in the same microsecond, making their
+  // timestamp similar. In such case, we rely on which message came first through
+  // the console API service, checking their id, except for expression result, which we'll
+  // always insert after because console API messages emitted from the expression need to
+  // be rendered before.
+  if (messageA.timeStamp === messageB.timeStamp) {
+    if (messageA.type === "result") {
+      return bFirst;
+    }
+
+    if (messageB.type === "result") {
+      return aFirst;
+    }
+
+    if (
+      !Number.isNaN(parseInt(messageA.id, 10)) &&
+      !Number.isNaN(parseInt(messageB.id, 10))
+    ) {
+      return parseInt(messageA.id, 10) < parseInt(messageB.id, 10)
+        ? aFirst
+        : bFirst;
+    }
+  }
+  return messageA.timeStamp < messageB.timeStamp ? aFirst : bFirst;
+}
+
+function isMessageNetworkError(message) {
+  return (
+    message.source === MESSAGE_SOURCE.NETWORK &&
+    message?.response?.status &&
+    message.response.status.toString().match(/^[4,5]\d\d$/)
+  );
+}
+
 module.exports = {
   createWarningGroupMessage,
   getArrayTypeNames,
   getDescriptorValue,
   getInitialMessageCountForViewport,
+  getNaturalOrder,
   getParentWarningGroupMessageId,
   getWarningGroupType,
   isContentBlockingMessage,
   isGroupType,
+  isMessageNetworkError,
   isPacketPrivate,
   isWarningGroup,
   l10n,

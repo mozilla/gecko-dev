@@ -107,7 +107,7 @@ std::string VersionString(uint16_t version) {
 }
 
 // The default anti-replay window for tests.  Tests that rely on a different
-// value call SSL_InitAntiReplay directly.
+// value call ResetAntiReplay directly.
 static PRTime kAntiReplayWindow = 100 * PR_USEC_PER_SEC;
 
 TlsConnectTestBase::TlsConnectTestBase(SSLProtocolVariant variant,
@@ -401,6 +401,15 @@ void TlsConnectTestBase::CheckConnected() {
   server_->CheckSecretsDestroyed();
 }
 
+void TlsConnectTestBase::CheckEarlyDataLimit(
+    const std::shared_ptr<TlsAgent>& agent, size_t expected_size) {
+  SSLPreliminaryChannelInfo preinfo;
+  SECStatus rv =
+      SSL_GetPreliminaryChannelInfo(agent->ssl_fd(), &preinfo, sizeof(preinfo));
+  EXPECT_EQ(SECSuccess, rv);
+  EXPECT_EQ(expected_size, static_cast<size_t>(preinfo.maxEarlyDataSize));
+}
+
 void TlsConnectTestBase::CheckKeys(SSLKEAType kea_type, SSLNamedGroup kea_group,
                                    SSLAuthType auth_type,
                                    SSLSignatureScheme sig_scheme) const {
@@ -518,6 +527,14 @@ void TlsConnectTestBase::ConfigureVersion(uint16_t version) {
 void TlsConnectTestBase::SetExpectedVersion(uint16_t version) {
   client_->SetExpectedVersion(version);
   server_->SetExpectedVersion(version);
+}
+
+void TlsConnectTestBase::AddPsk(const ScopedPK11SymKey& psk, std::string label,
+                                SSLHashType hash, uint16_t zeroRttSuite) {
+  client_->AddPsk(psk, label, hash, zeroRttSuite);
+  server_->AddPsk(psk, label, hash, zeroRttSuite);
+  client_->ExpectPsk();
+  server_->ExpectPsk();
 }
 
 void TlsConnectTestBase::DisableAllCiphers() {
@@ -756,7 +773,7 @@ void TlsConnectTestBase::ZeroRttSendReceive(
         << "Unexpected error: " << PORT_ErrorToName(PORT_GetError());
   }
 
-  // Do a second read. this should fail.
+  // Do a second read. This should fail.
   rv = PR_Read(server_->ssl_fd(), buf.data(), k0RttDataLen);
   EXPECT_EQ(SECFailure, rv);
   EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PORT_GetError());

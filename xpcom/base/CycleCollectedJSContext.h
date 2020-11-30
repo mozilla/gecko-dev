@@ -10,28 +10,23 @@
 #include <queue>
 
 #include "mozilla/Attributes.h"
-#include "mozilla/DeferredFinalize.h"
-#include "mozilla/LinkedList.h"
-#include "mozilla/mozalloc.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/AtomList.h"
 #include "mozilla/dom/Promise.h"
-#include "jsapi.h"
 #include "js/GCVector.h"
 #include "js/Promise.h"
 
 #include "nsCOMPtr.h"
-#include "nsCycleCollectionParticipant.h"
 #include "nsTArray.h"
 
 class nsCycleCollectionNoteRootCallback;
 class nsIRunnable;
 class nsThread;
-class nsWrapperCache;
 
 namespace mozilla {
 class AutoSlowOperation;
 
+class CycleCollectedJSContext;
 class CycleCollectedJSRuntime;
 
 namespace dom {
@@ -83,6 +78,40 @@ class MicroTaskRunnable {
 
  protected:
   virtual ~MicroTaskRunnable() = default;
+};
+
+// Support for JS FinalizationRegistry objects, which allow a JS callback to be
+// registered that is called when objects die.
+//
+// We keep a vector of functions that call back into the JS engine along
+// with their associated incumbent globals, one per FinalizationRegistry object
+// that has pending cleanup work. These are run in their own task.
+class FinalizationRegistryCleanup {
+ public:
+  explicit FinalizationRegistryCleanup(CycleCollectedJSContext* aContext);
+  void Init();
+  void Destroy();
+  void QueueCallback(JSFunction* aDoCleanup, JSObject* aIncumbentGlobal);
+  MOZ_CAN_RUN_SCRIPT void DoCleanup();
+
+ private:
+  static void QueueCallback(JSFunction* aDoCleanup, JSObject* aIncumbentGlobal,
+                            void* aData);
+
+  class CleanupRunnable;
+
+  struct Callback {
+    JSFunction* mCallbackFunction;
+    JSObject* mIncumbentGlobal;
+    void trace(JSTracer* trc);
+  };
+
+  // This object is part of CycleCollectedJSContext, so it's safe to have a raw
+  // pointer to its containing context here.
+  CycleCollectedJSContext* mContext;
+
+  using CallbackVector = JS::GCVector<Callback, 0, InfallibleAllocPolicy>;
+  JS::PersistentRooted<CallbackVector> mCallbacks;
 };
 
 class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
@@ -262,9 +291,6 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
   class SavedMicroTaskQueue;
   js::UniquePtr<SavedJobQueue> saveJobQueue(JSContext*) override;
 
-  static void CleanupFinalizationGroupCallback(JSObject* aGroup, void* aData);
-  void QueueFinalizationGroupForCleanup(JSObject* aGroup);
-
  private:
   CycleCollectedJSRuntime* mRuntime;
 
@@ -339,14 +365,7 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
     PromiseArray mUnhandledRejections;
   };
 
-  // Support for JS FinalizationGroup objects.
-  //
-  // These allow a JS callback to be registered that is called when an object
-  // dies. The browser part of the implementation keeps a vector of
-  // FinalizationGroups with pending callbacks here.
-  friend class CleanupFinalizationGroupsRunnable;
-  using ObjectVector = JS::GCVector<JSObject*, 0, InfallibleAllocPolicy>;
-  JS::PersistentRooted<ObjectVector> mFinalizationGroupsToCleanUp;
+  FinalizationRegistryCleanup mFinalizationRegistryCleanup;
 };
 
 class MOZ_STACK_CLASS nsAutoMicroTask {

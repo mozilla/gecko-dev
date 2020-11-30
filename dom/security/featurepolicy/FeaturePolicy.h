@@ -7,11 +7,9 @@
 #ifndef mozilla_dom_FeaturePolicy_h
 #define mozilla_dom_FeaturePolicy_h
 
-#include "mozilla/Attributes.h"
-#include "mozilla/dom/BindingUtils.h"
-#include "mozilla/dom/Feature.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsString.h"
+#include "nsIPrincipal.h"
+#include "nsStringFwd.h"
 #include "nsTArray.h"
 #include "nsWrapperCache.h"
 
@@ -20,8 +18,7 @@
  * ~~~~~~~~~~~~~
  *
  * Each document and each HTMLIFrameElement have a FeaturePolicy object which is
- * used to allow or deny features in their contexts. FeaturePolicy is active
- * when pref dom.security.featurePolicy.enabled is set to true.
+ * used to allow or deny features in their contexts.
  *
  * FeaturePolicy is composed by a set of directives configured by the
  * 'Feature-Policy' HTTP Header and the 'allow' attribute in HTMLIFrameElements.
@@ -55,12 +52,12 @@
  * HTTP header support.
  **/
 
-class nsIHttpChannel;
 class nsINode;
 
 namespace mozilla {
 namespace dom {
 class Document;
+class Feature;
 
 class FeaturePolicyUtils;
 
@@ -79,6 +76,8 @@ class FeaturePolicy final : public nsISupports, public nsWrapperCache {
   void SetDefaultOrigin(nsIPrincipal* aPrincipal) {
     mDefaultOrigin = aPrincipal;
   }
+
+  void SetSrcOrigin(nsIPrincipal* aPrincipal) { mSrcOrigin = aPrincipal; }
 
   nsIPrincipal* DefaultOrigin() const { return mDefaultOrigin; }
 
@@ -115,6 +114,8 @@ class FeaturePolicy final : public nsISupports, public nsWrapperCache {
   bool AllowsFeatureExplicitlyInAncestorChain(const nsAString& aFeatureName,
                                               nsIPrincipal* aOrigin) const;
 
+  bool IsSameOriginAsSrc(nsIPrincipal* aPrincipal) const;
+
   // WebIDL internal methods.
 
   JSObject* WrapObject(JSContext* aCx,
@@ -134,19 +135,21 @@ class FeaturePolicy final : public nsISupports, public nsWrapperCache {
   void GetAllowlistForFeature(const nsAString& aFeatureName,
                               nsTArray<nsString>& aList) const;
 
-  void GetInheritedDeniedFeatureNames(
-      nsTArray<nsString>& aInheritedDeniedFeatureNames) {
-    aInheritedDeniedFeatureNames = mInheritedDeniedFeatureNames;
+  const nsTArray<nsString>& InheritedDeniedFeatureNames() const {
+    return mInheritedDeniedFeatureNames;
+  }
+
+  const nsTArray<nsString>& AttributeEnabledFeatureNames() const {
+    return mAttributeEnabledFeatureNames;
   }
 
   void SetInheritedDeniedFeatureNames(
       const nsTArray<nsString>& aInheritedDeniedFeatureNames) {
-    mInheritedDeniedFeatureNames = aInheritedDeniedFeatureNames;
+    mInheritedDeniedFeatureNames = aInheritedDeniedFeatureNames.Clone();
   }
 
-  void GetDeclaredString(nsAString& aDeclaredString) {
-    aDeclaredString = mDeclaredString;
-  }
+  const nsAString& DeclaredString() const { return mDeclaredString; }
+
   nsIPrincipal* GetSelfOrigin() const { return mSelfOrigin; }
   nsIPrincipal* GetSrcOrigin() const { return mSrcOrigin; }
 
@@ -172,6 +175,9 @@ class FeaturePolicy final : public nsISupports, public nsWrapperCache {
   // This is set in sub-contexts when the parent blocks some feature for the
   // current context.
   nsTArray<nsString> mInheritedDeniedFeatureNames;
+
+  // The list of features that have been enabled via MaybeSetAllowedPolicy.
+  nsTArray<nsString> mAttributeEnabledFeatureNames;
 
   // This is set of feature names when the parent allows all for that feature.
   nsTArray<nsString> mParentAllowedAllFeatures;

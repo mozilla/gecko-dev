@@ -101,7 +101,6 @@ class DebugState {
                              uint32_t offset);
   void clearBreakpointsIn(JSFreeOp* fp, WasmInstanceObject* instance,
                           js::Debugger* dbg, JSObject* handler);
-  void clearAllBreakpoints(JSFreeOp* fp, WasmInstanceObject* instance);
 
   // When the Code is debug-enabled, single-stepping mode can be toggled on
   // the granularity of individual functions.
@@ -116,8 +115,12 @@ class DebugState {
                                        ValTypeVector* locals,
                                        size_t* argsLength,
                                        StackResults* stackResults);
-  MOZ_MUST_USE bool debugGetResultTypes(uint32_t funcIndex,
-                                        ValTypeVector* results);
+  // Invariant: the result of getDebugResultType can only be used as long as
+  // code_->metadata() is live.  See MetaData::getFuncResultType for more
+  // information.
+  ResultType debugGetResultType(uint32_t funcIndex) const {
+    return metadata().getFuncResultType(funcIndex);
+  }
   MOZ_MUST_USE bool getGlobal(Instance& instance, uint32_t globalIndex,
                               MutableHandleValue vp);
 

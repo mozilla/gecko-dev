@@ -8,6 +8,7 @@
 
 #include "mozilla/layers/IAPZCTreeManager.h"
 #include "nsContainerFrame.h"
+#include "nsIFrameInlines.h"
 #include "nsIScrollableFrame.h"
 #include "nsLayoutUtils.h"
 
@@ -46,7 +47,7 @@ static void UpdateAllowedBehavior(StyleTouchAction aTouchActionValue,
 }
 
 TouchBehaviorFlags TouchActionHelper::GetAllowedTouchBehavior(
-    nsIWidget* aWidget, nsIFrame* aRootFrame,
+    nsIWidget* aWidget, RelativeTo aRootFrame,
     const LayoutDeviceIntPoint& aPoint) {
   TouchBehaviorFlags behavior = AllowedTouchBehavior::VERTICAL_PAN |
                                 AllowedTouchBehavior::HORIZONTAL_PAN |
@@ -56,9 +57,7 @@ TouchBehaviorFlags TouchActionHelper::GetAllowedTouchBehavior(
   nsPoint relativePoint =
       nsLayoutUtils::GetEventCoordinatesRelativeTo(aWidget, aPoint, aRootFrame);
 
-  nsIFrame* target = nsLayoutUtils::GetFrameForPoint(
-      aRootFrame, relativePoint,
-      nsLayoutUtils::FrameForPointOption::IgnoreRootScrollFrame);
+  nsIFrame* target = nsLayoutUtils::GetFrameForPoint(aRootFrame, relativePoint);
   if (!target) {
     return behavior;
   }

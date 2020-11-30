@@ -10,6 +10,7 @@
  */
 
 import { removeDocument } from "../utils/editor";
+import { recordEvent } from "../utils/telemetry";
 import { selectSource } from "./sources";
 
 import {
@@ -19,11 +20,10 @@ import {
 } from "../selectors";
 
 import type { Action, ThunkArgs } from "./types";
-import type { Source, Context } from "../types";
+import type { Source, Context, SourceId, URL } from "../types";
 
 export function updateTab(source: Source, framework: string): Action {
-  const { url, id: sourceId } = source;
-  const isOriginal = source.isOriginal;
+  const { url, id: sourceId, isOriginal } = source;
 
   return {
     type: "UPDATE_TAB",
@@ -35,8 +35,7 @@ export function updateTab(source: Source, framework: string): Action {
 }
 
 export function addTab(source: Source): Action {
-  const { url, id: sourceId } = source;
-  const isOriginal = source.isOriginal;
+  const { url, id: sourceId, isOriginal } = source;
 
   return {
     type: "ADD_TAB",
@@ -46,7 +45,7 @@ export function addTab(source: Source): Action {
   };
 }
 
-export function moveTab(url: string, tabIndex: number): Action {
+export function moveTab(url: URL, tabIndex: number): Action {
   return {
     type: "MOVE_TAB",
     url,
@@ -54,7 +53,10 @@ export function moveTab(url: string, tabIndex: number): Action {
   };
 }
 
-export function moveTabBySourceId(sourceId: string, tabIndex: number): Action {
+export function moveTabBySourceId(
+  sourceId: SourceId,
+  tabIndex: number
+): Action {
   return {
     type: "MOVE_TAB_BY_SOURCE_ID",
     sourceId,
@@ -66,7 +68,11 @@ export function moveTabBySourceId(sourceId: string, tabIndex: number): Action {
  * @memberof actions/tabs
  * @static
  */
-export function closeTab(cx: Context, source: Source) {
+export function closeTab(
+  cx: Context,
+  source: Source,
+  reason: string = "click"
+) {
   return ({ dispatch, getState, client }: ThunkArgs) => {
     removeDocument(source.id);
 
@@ -75,6 +81,11 @@ export function closeTab(cx: Context, source: Source) {
 
     const sourceId = getNewSelectedSourceId(getState(), tabs);
     dispatch(selectSource(cx, sourceId));
+
+    recordEvent("close_source_tab", {
+      reason,
+      num_tabs: tabs.length,
+    });
   };
 }
 

@@ -17,6 +17,7 @@ const {
   TOGGLE_COLUMN,
   WATERFALL_RESIZE,
   SET_COLUMNS_WIDTH,
+  SET_HEADERS_URL_PREVIEW_EXPANDED,
   OPEN_ACTION_BAR,
 } = require("devtools/client/netmonitor/src/constants");
 
@@ -32,7 +33,7 @@ const DEVTOOLS_DISABLE_CACHE_PREF = "devtools.cache.disabled";
  * @param {boolean} open - expected network details panel open state
  */
 function openNetworkDetails(open) {
-  return (dispatch, getState) => {
+  return ({ dispatch, getState }) => {
     const visibleRequestItems = getDisplayedRequests(getState());
     const defaultSelectedId = visibleRequestItems.length
       ? visibleRequestItems[0].id
@@ -192,7 +193,7 @@ function setColumnsWidth(widths) {
  * Toggle network details panel.
  */
 function toggleNetworkDetails() {
-  return (dispatch, getState) =>
+  return ({ dispatch, getState }) =>
     dispatch(openNetworkDetails(!getState().ui.networkDetailsOpen));
 }
 
@@ -200,7 +201,7 @@ function toggleNetworkDetails() {
  * Toggle network action panel.
  */
 function toggleNetworkActionBar() {
-  return (dispatch, getState) =>
+  return ({ dispatch, getState }) =>
     dispatch(openNetworkActionBar(!getState().ui.networkActionOpen));
 }
 
@@ -208,7 +209,7 @@ function toggleNetworkActionBar() {
  * Toggle persistent logs status.
  */
 function togglePersistentLogs() {
-  return (dispatch, getState) =>
+  return ({ dispatch, getState }) =>
     dispatch(enablePersistentLogs(!getState().ui.persistentLogsEnabled));
 }
 
@@ -216,7 +217,7 @@ function togglePersistentLogs() {
  * Toggle browser cache status.
  */
 function toggleBrowserCache() {
-  return (dispatch, getState) =>
+  return ({ dispatch, getState }) =>
     dispatch(disableBrowserCache(!getState().ui.browserCacheDisabled));
 }
 
@@ -224,8 +225,15 @@ function toggleBrowserCache() {
  * Toggle performance statistics panel.
  */
 function toggleStatistics(connector) {
-  return (dispatch, getState) =>
+  return ({ dispatch, getState }) =>
     dispatch(openStatistics(connector, !getState().ui.statisticsOpen));
+}
+
+function setHeadersUrlPreviewExpanded(expanded) {
+  return {
+    type: SET_HEADERS_URL_PREVIEW_EXPANDED,
+    expanded,
+  };
 }
 
 module.exports = {
@@ -246,4 +254,5 @@ module.exports = {
   togglePersistentLogs,
   toggleBrowserCache,
   toggleStatistics,
+  setHeadersUrlPreviewExpanded,
 };

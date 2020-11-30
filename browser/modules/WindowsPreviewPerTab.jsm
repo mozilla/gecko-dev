@@ -173,7 +173,7 @@ function PreviewController(win, tab) {
 }
 
 PreviewController.prototype = {
-  QueryInterface: ChromeUtils.generateQI([Ci.nsITaskbarPreviewController]),
+  QueryInterface: ChromeUtils.generateQI(["nsITaskbarPreviewController"]),
 
   destroy() {
     this.tab.removeEventListener("TabAttrModified", this);
@@ -247,19 +247,12 @@ PreviewController.prototype = {
     // don't discard the cache of previews.
   },
 
-  async updateTitleAndTooltip() {
-    let { id, args } = this.win.tabbrowser.getWindowTitleForBrowser(
+  updateTitleAndTooltip() {
+    let title = this.win.tabbrowser.getWindowTitleForBrowser(
       this.linkedBrowser
     );
-    let title = await this.win.tabbrowser.ownerDocument.l10n.formatValue(
-      id,
-      args
-    );
-    // Since the previous call is async, the `this.preview` may become empty.
-    if (this.preview) {
-      this.preview.title = title;
-      this.preview.tooltip = title;
-    }
+    this.preview.title = title;
+    this.preview.tooltip = title;
   },
 
   // nsITaskbarPreviewController
@@ -911,9 +904,9 @@ var AeroPeek = {
   },
 
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsISupportsWeakReference,
-    Ci.nsINavHistoryObserver,
-    Ci.nsIObserver,
+    "nsISupportsWeakReference",
+    "nsINavHistoryObserver",
+    "nsIObserver",
   ]),
 };
 

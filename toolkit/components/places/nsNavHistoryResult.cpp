@@ -380,10 +380,10 @@ nsNavHistoryResultNode::GetTags(nsAString& aTags) {
 
   nsNavHistory* history = nsNavHistory::GetHistoryService();
   NS_ENSURE_STATE(history);
-  nsresult rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("tags_folder"),
-                                      history->GetTagsFolder());
+  nsresult rv =
+      stmt->BindInt64ByName("tags_folder"_ns, history->GetTagsFolder());
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"), mURI);
+  rv = URIBinder::Bind(stmt, "page_url"_ns, mURI);
   NS_ENSURE_SUCCESS(rv, rv);
 
   bool hasTags = false;
@@ -1559,7 +1559,7 @@ nsNavHistoryQueryResultNode::nsNavHistoryQueryResultNode(
       mLiveUpdate(getUpdateRequirements(aQuery, aOptions, &mHasSearchTerms)),
       mContentsValid(false),
       mBatchChanges(0),
-      mTransitions(aQuery->Transitions()) {}
+      mTransitions(aQuery->Transitions().Clone()) {}
 
 nsNavHistoryQueryResultNode::~nsNavHistoryQueryResultNode() {
   // Remove this node from result's observers.  We don't need to be notified
@@ -1725,7 +1725,7 @@ nsNavHistoryQueryResultNode::GetFolderItemId(int64_t* aItemId) {
 
 NS_IMETHODIMP
 nsNavHistoryQueryResultNode::GetTargetFolderGuid(nsACString& aGuid) {
-  aGuid = EmptyCString();
+  aGuid.Truncate();
   return NS_OK;
 }
 
@@ -2597,7 +2597,7 @@ nsNavHistoryFolderResultNode::nsNavHistoryFolderResultNode(
     const nsACString& aTitle, nsNavHistoryQueryOptions* aOptions,
     int64_t aFolderId)
     : nsNavHistoryContainerResultNode(
-          EmptyCString(), aTitle, 0, nsNavHistoryResultNode::RESULT_TYPE_FOLDER,
+          ""_ns, aTitle, 0, nsNavHistoryResultNode::RESULT_TYPE_FOLDER,
           aOptions),
       mContentsValid(false),
       mTargetFolderItemId(aFolderId),
@@ -2719,9 +2719,9 @@ nsNavHistoryFolderResultNode::GetQuery(nsINavHistoryQuery** _query) {
 
   nsTArray<nsCString> parents;
   // query just has the folder ID set and nothing else
-  if (!parents.AppendElement(mTargetFolderGuid)) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
+  // XXX(Bug 1631371) Check if this should use a fallible operation as it
+  // pretended earlier, or change the return type to void.
+  parents.AppendElement(mTargetFolderGuid);
   nsresult rv = query->SetParents(parents);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -3144,7 +3144,7 @@ nsresult nsNavHistoryQueryResultNode::OnMobilePrefChanged(bool newValue) {
 
   // We're removing the mobile folder, so find it.
   int32_t existingIndex;
-  FindChildByGuid(NS_LITERAL_CSTRING(MOBILE_BOOKMARKS_VIRTUAL_GUID),
+  FindChildByGuid(nsLiteralCString(MOBILE_BOOKMARKS_VIRTUAL_GUID),
                   &existingIndex);
 
   if (existingIndex == -1) {
@@ -3375,10 +3375,9 @@ nsNavHistoryFolderResultNode::OnItemMoved(
   RESTART_AND_RETURN_IF_ASYNC_PENDING();
 
   bool excludeItems = mOptions->ExcludeItems();
-  if (excludeItems &&
-      (aItemType == nsINavBookmarksService::TYPE_SEPARATOR ||
-       (aItemType == nsINavBookmarksService::TYPE_BOOKMARK &&
-        !StringBeginsWith(aURI, NS_LITERAL_CSTRING("place:"))))) {
+  if (excludeItems && (aItemType == nsINavBookmarksService::TYPE_SEPARATOR ||
+                       (aItemType == nsINavBookmarksService::TYPE_BOOKMARK &&
+                        !StringBeginsWith(aURI, "place:"_ns)))) {
     // This is a bookmark or a separator, so we don't need to handle this if
     // we're excluding items.
     return NS_OK;
@@ -3445,7 +3444,7 @@ nsNavHistoryFolderResultNode::OnItemMoved(
  * Separator nodes do not hold any data.
  */
 nsNavHistorySeparatorResultNode::nsNavHistorySeparatorResultNode()
-    : nsNavHistoryResultNode(EmptyCString(), EmptyCString(), 0, 0) {}
+    : nsNavHistoryResultNode(""_ns, ""_ns, 0, 0) {}
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsNavHistoryResult)
 
@@ -3774,7 +3773,7 @@ void nsNavHistoryResult::requestRefresh(
   PR_BEGIN_MACRO                                                             \
   FolderObserverList* _fol = BookmarkFolderObserversForId(_folderId, false); \
   if (_fol) {                                                                \
-    FolderObserverList _listCopy(*_fol);                                     \
+    FolderObserverList _listCopy(_fol->Clone());                             \
     for (uint32_t _fol_i = 0; _fol_i < _listCopy.Length(); ++_fol_i) {       \
       if (_listCopy[_fol_i]) _listCopy[_fol_i]->_functionCall;               \
     }                                                                        \
@@ -3783,7 +3782,7 @@ void nsNavHistoryResult::requestRefresh(
 #define ENUMERATE_LIST_OBSERVERS(_listType, _functionCall, _observersList, \
                                  _conditionCall)                           \
   PR_BEGIN_MACRO                                                           \
-  _listType _listCopy(_observersList);                                     \
+  _listType _listCopy(_observersList.Clone());                             \
   for (uint32_t _obs_i = 0; _obs_i < _listCopy.Length(); ++_obs_i) {       \
     if (_listCopy[_obs_i] && _listCopy[_obs_i]->_conditionCall)            \
       _listCopy[_obs_i]->_functionCall;                                    \

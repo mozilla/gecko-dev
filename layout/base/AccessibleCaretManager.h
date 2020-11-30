@@ -213,7 +213,7 @@ class AccessibleCaretManager {
       nsIContent** aOutContent = nullptr,
       int32_t* aOutContentOffset = nullptr) const;
 
-  nsresult DragCaretInternal(const nsPoint& aPoint);
+  MOZ_CAN_RUN_SCRIPT nsresult DragCaretInternal(const nsPoint& aPoint);
   nsPoint AdjustDragBoundary(const nsPoint& aPoint) const;
 
   // Start the selection scroll timer if the caret is being dragged out of
@@ -230,7 +230,7 @@ class AccessibleCaretManager {
   // See the mRefCnt assertions in AccessibleCaretEventHub.
   //
   // Returns whether mPresShell we're holding is still valid.
-  MOZ_MUST_USE MOZ_CAN_RUN_SCRIPT bool FlushLayout();
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT bool FlushLayout();
 
   dom::Element* GetEditingHostForFrame(nsIFrame* aFrame) const;
   dom::Selection* GetSelection() const;

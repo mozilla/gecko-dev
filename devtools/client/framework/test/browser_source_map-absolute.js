@@ -10,7 +10,7 @@
 const { PromiseTestUtils } = ChromeUtils.import(
   "resource://testing-common/PromiseTestUtils.jsm"
 );
-PromiseTestUtils.whitelistRejectionsGlobally(/this\.worker is null/);
+PromiseTestUtils.allowMatchingRejectionsGlobally(/this\.worker is null/);
 
 // Empty page
 const PAGE_URL = `${URL_ROOT}doc_empty-tab-01.html`;
@@ -27,8 +27,10 @@ add_task(async function() {
   await sourceSeen;
 
   info(`checking original location for ${JS_URL}:6`);
-  const newLoc = await service.originalPositionFor(JS_URL, 6, 4);
+  const newLoc = await await new Promise(r =>
+    service.subscribeByURL(JS_URL, 6, 4, r)
+  );
 
-  is(newLoc.sourceUrl, ORIGINAL_URL, "check mapped URL");
+  is(newLoc.url, ORIGINAL_URL, "check mapped URL");
   is(newLoc.line, 4, "check mapped line number");
 });

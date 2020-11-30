@@ -49,21 +49,12 @@ skip-if(!this.hasOwnProperty("Intl")) script test262/built-ins/String/prototype/
 # Skip intl402 tests when Intl isn't available.
 skip-if(!this.hasOwnProperty("Intl")) include test262/intl402/jstests.list
 
-# Skip Intl.Locale tests when the addIntlExtras helper isn't available.
-skip-if(!this.hasOwnProperty('addIntlExtras')) include test262/intl402/Locale/jstests.list
-skip-if(!this.hasOwnProperty('addIntlExtras')) script test262/intl402/Intl/getCanonicalLocales/Locale-object.js
-
-# Skip Intl.ListFormat tests when the addIntlExtras helper isn't available.
-skip-if(!this.hasOwnProperty('addIntlExtras')) include test262/intl402/ListFormat/jstests.list
+# Skip Intl.DisplayNames tests when the addIntlExtras helper isn't available.
+skip-if(!this.hasOwnProperty('addIntlExtras')) include test262/intl402/DisplayNames/jstests.list
 
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1415303
 skip-if(!this.hasOwnProperty("Atomics")) include test262/built-ins/Atomics/jstests.list
 skip-if(!this.hasOwnProperty("SharedArrayBuffer")) include test262/built-ins/SharedArrayBuffer/jstests.list
-
-# https://bugzilla.mozilla.org/show_bug.cgi?id=1611782
-skip-if(release_or_beta) script test262/intl402/RelativeTimeFormat/constructor/constructor/options-throwing-getters.js
-skip-if(release_or_beta) script test262/intl402/RelativeTimeFormat/constructor/constructor/options-order.js
-skip-if(release_or_beta) script test262/intl402/RelativeTimeFormat/constructor/constructor/options-numberingSystem-invalid.js
 
 
 #####################################
@@ -109,6 +100,7 @@ skip-if(!xulRuntime.shell) script test262/language/global-code/script-decl-lex-r
 skip-if(!xulRuntime.shell) script test262/language/global-code/script-decl-var.js
 skip-if(!xulRuntime.shell) script test262/language/global-code/script-decl-func-err-non-configurable.js
 skip-if(!xulRuntime.shell) script test262/language/global-code/script-decl-func.js
+skip-if(!xulRuntime.shell) script test262/built-ins/Array/prototype/methods-called-as-functions.js
 
 # Calls preventExtensions() on the WindowProxy object.
 skip-if(!xulRuntime.shell) script test262/language/global-code/script-decl-func-err-non-extensible.js
@@ -138,12 +130,21 @@ skip-if(!xulRuntime.shell) script test262/language/global-code/decl-func.js
 skip-if(!xulRuntime.shell) script test262/language/global-code/decl-var.js
 
 # Atomics tests (Atomics/notify, Atomics/wait) are disabled because our $.agent implementation needs getSharedArrayBuffer, setSharedArrayBuffer and evalInWorker: https://bugzilla.mozilla.org/show_bug.cgi?id=1598612
+# And also: https://bugzil.la/1349863
 skip-if(!xulRuntime.shell) include test262/built-ins/Atomics/notify/jstests.list
 skip-if(!xulRuntime.shell) include test262/built-ins/Atomics/wait/jstests.list
+
 
 ##################################################
 # Test262 tests skipped due to SpiderMonkey bugs #
 ##################################################
+
+# https://bugzilla.mozilla.org/show_bug.cgi?id=1670124
+skip script test262/language/expressions/template-literal/invalid-legacy-octal-escape-sequence-8.js
+skip script test262/language/literals/string/legacy-non-octal-escape-sequence-8-strict-strict.js
+skip script test262/language/expressions/template-literal/invalid-legacy-octal-escape-sequence-9.js
+skip script test262/language/literals/string/legacy-non-octal-escape-sequence-9-strict-strict.js
+skip script test262/language/expressions/tagged-template/invalid-escape-sequences.js
 
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1079853
 skip script test262/built-ins/TypedArray/prototype/every/BigInt/callbackfn-detachbuffer.js
@@ -156,6 +157,7 @@ skip script test262/built-ins/TypedArray/prototype/findIndex/BigInt/predicate-ma
 skip script test262/built-ins/TypedArray/prototype/findIndex/predicate-may-detach-buffer.js
 skip script test262/built-ins/TypedArray/prototype/forEach/BigInt/callbackfn-detachbuffer.js
 skip script test262/built-ins/TypedArray/prototype/forEach/callbackfn-detachbuffer.js
+skip script test262/built-ins/TypedArray/prototype/includes/detached-buffer-tointeger.js
 skip script test262/built-ins/TypedArray/prototype/map/BigInt/callbackfn-detachbuffer.js
 skip script test262/built-ins/TypedArray/prototype/map/callbackfn-detachbuffer.js
 skip script test262/built-ins/TypedArray/prototype/reduce/BigInt/callbackfn-detachbuffer.js
@@ -195,7 +197,10 @@ skip script test262/built-ins/TypedArrayConstructors/internals/Set/detached-buff
 skip script test262/built-ins/TypedArrayConstructors/internals/Set/detached-buffer.js
 skip script test262/built-ins/TypedArrayConstructors/internals/Set/tonumber-value-detached-buffer.js
 
-# https://bugzilla.mozilla.org/show_bug.cgi?id=1317405
+# Lazily resolved "name" and "length" properties on functions violate property key order.
+# https://bugzilla.mozilla.org/show_bug.cgi?id=1629803
+skip script test262/built-ins/Object/keys/order-after-define-property.js
+skip script test262/built-ins/Object/entries/order-after-define-property.js
 skip script test262/language/computed-property-names/class/static/method-number.js
 skip script test262/language/computed-property-names/class/static/method-string.js
 skip script test262/language/computed-property-names/class/static/method-symbol.js
@@ -251,9 +256,24 @@ skip script test262/language/expressions/prefix-decrement/S11.4.5_A6_T2.js
 skip script test262/language/expressions/prefix-increment/S11.4.4_A5_T5.js
 skip script test262/language/expressions/prefix-increment/S11.4.4_A6_T1.js
 skip script test262/language/expressions/prefix-increment/S11.4.4_A6_T2.js
+skip script test262/language/expressions/logical-assignment/lgcl-nullish-assignment-operator-lhs-before-rhs.js
+skip script test262/language/expressions/logical-assignment/lgcl-and-assignment-operator-lhs-before-rhs.js
+skip script test262/language/expressions/logical-assignment/lgcl-or-assignment-operator-lhs-before-rhs.js
 
 # https://bugzilla.mozilla.org/show_bug.cgi?id=944846
 skip script test262/built-ins/Number/prototype/toExponential/return-values.js
+
+# https://bugzilla.mozilla.org/show_bug.cgi?id=1670495
+skip script test262/language/identifier-resolution/assign-to-global-undefined-strict.js
+
+# https://bugzilla.mozilla.org/show_bug.cgi?id=1670496
+skip script test262/intl402/DateTimeFormat/constructor-options-order-fractionalSecondDigits.js
+
+# https://bugzilla.mozilla.org/show_bug.cgi?id=1662977
+skip script test262/intl402/NumberFormat/dft-currency-mnfd-range-check-mxfd.js
+
+# https://bugzilla.mozilla.org/show_bug.cgi?id=1670502
+skip script test262/built-ins/Function/prototype/toString/built-in-function-object.js
 
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1225839
 ignore-flag(--more-compartments) script test262/built-ins/Function/internals/Call/class-ctor-realm.js
@@ -343,24 +363,6 @@ skip script test262/language/statements/while/cptn-no-iter.js
 skip script test262/language/statements/with/cptn-abrupt-empty.js
 skip script test262/language/statements/with/cptn-nrml.js
 
-# Dependent on evalInWorker, setSharedArrayBuffer, and
-# getSharedArrayBuffer, plus the test cases can't actually run in the
-# browser even if that were fixed, https://bugzil.la/1349863
-skip-if(!xulRuntime.shell) script test262/built-ins/Atomics/wait/negative-timeout.js
-skip-if(!xulRuntime.shell) script test262/built-ins/Atomics/wait/was-woken.js
-skip-if(!xulRuntime.shell) script test262/built-ins/Atomics/wait/did-timeout.js
-skip-if(!xulRuntime.shell) script test262/built-ins/Atomics/wait/good-views.js
-skip-if(!xulRuntime.shell) script test262/built-ins/Atomics/wait/no-spurious-wakeup.js
-skip-if(!xulRuntime.shell) script test262/built-ins/Atomics/wait/nan-timeout.js
-skip-if(!xulRuntime.shell) script test262/built-ins/Atomics/wake/wake-all.js
-skip-if(!xulRuntime.shell) script test262/built-ins/Atomics/wake/wake-zero.js
-skip-if(!xulRuntime.shell) script test262/built-ins/Atomics/wake/wake-negative.js
-skip-if(!xulRuntime.shell) script test262/built-ins/Atomics/wake/wake-nan.js
-skip-if(!xulRuntime.shell) script test262/built-ins/Atomics/wake/wake-two.js
-skip-if(!xulRuntime.shell) script test262/built-ins/Atomics/wake/wake-in-order.js
-skip-if(!xulRuntime.shell) script test262/built-ins/Atomics/wake/wake-one.js
-skip-if(!xulRuntime.shell) script test262/built-ins/Atomics/wake/wake-all-on-loc.js
-
 # Hoisted block-level function named "arguments" not initialized with undefined per B.3.3.1
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1339123
 skip script test262/annexB/language/function-code/block-decl-func-skip-arguments.js
@@ -368,15 +370,6 @@ skip script test262/annexB/language/function-code/block-decl-func-skip-arguments
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1407587
 skip script test262/language/expressions/assignment/destructuring/keyed-destructuring-property-reference-target-evaluation-order.js
 skip script test262/language/expressions/assignment/destructuring/iterator-destructuring-property-reference-target-evaluation-order.js
-
-# https://bugzilla.mozilla.org/show_bug.cgi?id=1558971
-skip script test262/language/expressions/await/await-monkey-patched-promise.js
-skip script test262/language/expressions/await/async-await-interleaved.js
-skip script test262/language/expressions/await/for-await-of-interleaved.js
-skip script test262/language/expressions/await/async-generator-interleaved.js
-skip script test262/language/statements/for-await-of/async-from-sync-iterator-continuation-abrupt-completion-get-constructor.js
-skip script test262/language/statements/for-await-of/ticks-with-async-iter-resolved-promise-and-constructor-lookup-two.js
-skip script test262/language/statements/for-await-of/ticks-with-sync-iter-resolved-promise-and-constructor-lookup.js
 
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1321616
 skip script test262/annexB/built-ins/Function/createdynfn-no-line-terminator-html-close-comment-body.js
@@ -391,6 +384,7 @@ ignore-flag(--more-compartments) script test262/built-ins/RegExp/prototype/globa
 ignore-flag(--more-compartments) script test262/built-ins/RegExp/prototype/sticky/cross-realm.js
 ignore-flag(--more-compartments) script test262/built-ins/RegExp/prototype/ignoreCase/cross-realm.js
 ignore-flag(--more-compartments) script test262/built-ins/RegExp/prototype/unicode/cross-realm.js
+ignore-flag(--more-compartments) script test262/built-ins/RegExp/prototype/dotAll/cross-realm.js
 ignore-flag(--more-compartments) script test262/built-ins/RegExp/prototype/source/cross-realm.js
 
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1545038
@@ -416,58 +410,255 @@ ignore-flag(--more-compartments) script test262/built-ins/Proxy/construct/return
 ignore-flag(--more-compartments) script test262/built-ins/Proxy/construct/return-not-object-throws-boolean-realm.js
 ignore-flag(--more-compartments) script test262/built-ins/Proxy/construct/return-not-object-throws-boolean-realm.js
 
-# https://bugzilla.mozilla.org/show_bug.cgi?id=1560355
-skip-if(release_or_beta) skip script test262/intl402/DateTimeFormat/numbering-system-calendar-options.js
-skip-if(release_or_beta) skip script test262/intl402/DateTimeFormat/constructor-calendar-numberingSystem-order.js
-skip-if(release_or_beta) skip script test262/intl402/NumberFormat/numbering-system-options.js
-skip-if(release_or_beta) skip script test262/intl402/NumberFormat/constructor-numberingSystem-order.js
-skip-if(release_or_beta) skip script test262/intl402/NumberFormat/constructor-options-throwing-getters.js
-
-# https://bugzilla.mozilla.org/show_bug.cgi?id=1277801
-skip script test262/built-ins/Object/prototype/toString/symbol-tag-non-str-builtin.js
-
-# https://bugzilla.mozilla.org/show_bug.cgi?id=1589095
-# Intl.ListFormat doesn't yet support "disjunction" and "unit" types
-# Intl.ListFormat doesn't yet support "short" and "narrow" styles
-skip script test262/intl402/ListFormat/prototype/formatToParts/en-us-disjunction.js
-skip script test262/intl402/ListFormat/prototype/formatToParts/es-es-narrow.js
-skip script test262/intl402/ListFormat/prototype/formatToParts/en-us-unit.js
-skip script test262/intl402/ListFormat/prototype/formatToParts/en-us-narrow.js
-skip script test262/intl402/ListFormat/prototype/formatToParts/es-es-long.js
-skip script test262/intl402/ListFormat/prototype/formatToParts/es-es-short.js
-skip script test262/intl402/ListFormat/prototype/formatToParts/en-us-short.js
-skip script test262/intl402/ListFormat/prototype/resolvedOptions/type.js
-skip script test262/intl402/ListFormat/prototype/format/es-es-narrow.js
-skip script test262/intl402/ListFormat/prototype/format/en-us-disjunction.js
-skip script test262/intl402/ListFormat/prototype/format/en-us-unit.js
-skip script test262/intl402/ListFormat/prototype/format/en-us-narrow.js
-skip script test262/intl402/ListFormat/prototype/format/es-es-long.js
-skip script test262/intl402/ListFormat/prototype/format/es-es-short.js
-skip script test262/intl402/ListFormat/prototype/format/en-us-short.js
-skip script test262/intl402/ListFormat/constructor/constructor/options-style-valid.js
-skip script test262/intl402/ListFormat/constructor/constructor/options-toobject-prototype.js
-skip script test262/intl402/ListFormat/constructor/constructor/options-order.js
-skip script test262/intl402/ListFormat/constructor/constructor/options-type-valid.js
-
-# https://bugzilla.mozilla.org/show_bug.cgi?id=1591099
-skip script test262/intl402/ListFormat/constructor/constructor/proto-from-ctor-realm.js
-skip script test262/intl402/Locale/proto-from-ctor-realm.js
-
-# https://bugzilla.mozilla.org/show_bug.cgi?id=1277801
+# https://bugzilla.mozilla.org/show_bug.cgi?id=1362154
 skip script test262/built-ins/String/prototype/replaceAll/searchValue-replacer-RegExp-call.js
 
-# https://bugzilla.mozilla.org/show_bug.cgi?id=1610512
-skip script test262/intl402/NumberFormat/prototype/formatToParts/signDisplay-en-US.js
-skip script test262/intl402/NumberFormat/prototype/formatToParts/signDisplay-zh-TW.js
-skip script test262/intl402/NumberFormat/prototype/formatToParts/signDisplay-ja-JP.js
-skip script test262/intl402/NumberFormat/prototype/formatToParts/signDisplay-ko-KR.js
-skip script test262/intl402/NumberFormat/prototype/formatToParts/signDisplay-de-DE.js
-skip script test262/intl402/NumberFormat/prototype/format/signDisplay-en-US.js
-skip script test262/intl402/NumberFormat/prototype/format/signDisplay-zh-TW.js
-skip script test262/intl402/NumberFormat/prototype/format/signDisplay-ja-JP.js
-skip script test262/intl402/NumberFormat/prototype/format/signDisplay-ko-KR.js
-skip script test262/intl402/NumberFormat/prototype/format/signDisplay-de-DE.js
-skip script test262/intl402/NumberFormat/prototype/format/signDisplay-rounding.js
+# Depends upon the SharedArrayBuffer constructor being defined as a global
+# property -- and right now, it's only defined for cross-site-isolated pages
+# that request it using COOP/COEP.
+fails-if(!xulRuntime.shell) script test262/built-ins/ArrayBuffer/prototype/byteLength/this-is-sharedarraybuffer.js
+fails-if(!xulRuntime.shell) script test262/built-ins/ArrayBuffer/prototype/slice/this-is-sharedarraybuffer.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/add/bigint/bad-range.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/add/bigint/good-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/add/validate-arraytype-before-index-coercion.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/add/validate-arraytype-before-value-coercion.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/add/bad-range.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/add/expected-return-value.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/add/good-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/add/non-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/and/bigint/bad-range.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/and/bigint/good-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/and/validate-arraytype-before-index-coercion.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/and/validate-arraytype-before-value-coercion.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/and/bad-range.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/and/expected-return-value.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/and/good-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/and/non-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/compareExchange/bigint/bad-range.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/compareExchange/bigint/good-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/compareExchange/validate-arraytype-before-expectedValue-coercion.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/compareExchange/validate-arraytype-before-index-coercion.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/compareExchange/validate-arraytype-before-replacementValue-coercion.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/compareExchange/bad-range.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/compareExchange/expected-return-value.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/compareExchange/good-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/compareExchange/non-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/exchange/bigint/bad-range.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/exchange/bigint/good-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/exchange/validate-arraytype-before-index-coercion.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/exchange/validate-arraytype-before-value-coercion.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/exchange/bad-range.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/exchange/expected-return-value.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/exchange/good-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/exchange/non-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/load/bigint/bad-range.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/load/bigint/good-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/load/validate-arraytype-before-index-coercion.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/load/bad-range.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/load/expected-return-value.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/load/good-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/load/non-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/or/bigint/bad-range.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/or/bigint/good-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/or/validate-arraytype-before-index-coercion.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/or/validate-arraytype-before-value-coercion.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/or/bad-range.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/or/expected-return-value.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/or/good-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/or/non-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/store/bigint/bad-range.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/store/bigint/good-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/store/validate-arraytype-before-index-coercion.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/store/validate-arraytype-before-value-coercion.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/store/bad-range.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/store/expected-return-value-negative-zero.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/store/expected-return-value.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/store/good-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/store/non-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/sub/bigint/bad-range.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/sub/bigint/good-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/sub/validate-arraytype-before-index-coercion.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/sub/validate-arraytype-before-value-coercion.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/sub/bad-range.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/sub/expected-return-value.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/sub/good-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/sub/non-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/xor/bigint/bad-range.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/xor/bigint/good-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/xor/validate-arraytype-before-index-coercion.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/xor/validate-arraytype-before-value-coercion.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/xor/bad-range.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/xor/expected-return-value.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/xor/good-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/Atomics/xor/non-views.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/buffer-does-not-have-arraybuffer-data-throws-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/buffer-reference-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/byteoffset-is-negative-throws-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/custom-proto-access-throws-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/custom-proto-if-not-object-fallbacks-to-default-prototype-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/custom-proto-if-object-is-used-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/defined-bytelength-and-byteoffset-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/defined-byteoffset-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/defined-byteoffset-undefined-bytelength-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/excessive-bytelength-throws-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/excessive-byteoffset-throws-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/instance-extensibility-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/negative-bytelength-throws-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/negative-byteoffset-throws-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/newtarget-undefined-throws-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/prototype/buffer/return-buffer-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/prototype/buffer/this-has-no-dataview-internal-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/prototype/byteLength/return-bytelength-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/prototype/byteLength/this-has-no-dataview-internal-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/prototype/byteOffset/return-byteoffset-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/prototype/byteOffset/this-has-no-dataview-internal-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/prototype/getInt32/index-is-out-of-range-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/prototype/getInt32/negative-byteoffset-throws-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/prototype/getInt32/return-abrupt-from-tonumber-byteoffset-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/prototype/getInt32/return-abrupt-from-tonumber-byteoffset-symbol-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/prototype/getInt32/return-value-clean-arraybuffer-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/prototype/getInt32/return-values-custom-offset-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/prototype/getInt32/return-values-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/prototype/getInt32/this-has-no-dataview-internal-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/prototype/getInt32/to-boolean-littleendian-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/prototype/getInt32/toindex-byteoffset-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/proto-from-ctor-realm-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/return-abrupt-tonumber-bytelength-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/return-abrupt-tonumber-bytelength-symbol-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/return-abrupt-tonumber-byteoffset-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/return-abrupt-tonumber-byteoffset-symbol-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/return-instance-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/toindex-bytelength-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/DataView/toindex-byteoffset-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/byteLength/invoked-as-accessor.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/byteLength/invoked-as-func.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/byteLength/length.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/byteLength/name.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/byteLength/prop-desc.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/byteLength/return-bytelength.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/byteLength/this-has-no-typedarrayname-internal.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/byteLength/this-is-arraybuffer.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/byteLength/this-is-not-object.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/context-is-not-arraybuffer-object.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/context-is-not-object.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/descriptor.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/end-default-if-absent.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/end-default-if-undefined.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/end-exceeds-length.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/extensible.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/length.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/name.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/negative-end.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/negative-start.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/nonconstructor.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/number-conversion.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/species-constructor-is-not-object.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/species-constructor-is-undefined.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/species-is-not-constructor.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/species-is-not-object.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/species-is-null.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/species-is-undefined.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/species-returns-larger-arraybuffer.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/species-returns-not-arraybuffer.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/species-returns-same-arraybuffer.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/species-returns-smaller-arraybuffer.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/species.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/start-default-if-absent.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/start-default-if-undefined.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/start-exceeds-end.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/start-exceeds-length.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/this-is-arraybuffer.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/tointeger-conversion-end.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/tointeger-conversion-start.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/Symbol.toStringTag.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/constructor.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/allocation-limit.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/data-allocation-after-object-creation.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/init-zero.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/length-is-absent.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/length-is-too-large-throws.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/length.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/negative-length-throws.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/newtarget-prototype-is-not-object.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/proto-from-ctor-realm.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype-from-newtarget.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/return-abrupt-from-length-symbol.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/return-abrupt-from-length.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/toindex-length.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/undefined-newtarget-throws.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/zero-length.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors/buffer-arg/excessive-length-throws-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors/buffer-arg/excessive-offset-throws-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors/buffer-arg/invoked-with-undefined-newtarget-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors/buffer-arg/is-referenced-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors/buffer-arg/length-access-throws-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors/buffer-arg/length-is-symbol-throws-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors/buffer-arg/new-instance-extensibility-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors/buffer-arg/proto-from-ctor-realm-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors/buffer-arg/returns-new-instance-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors/buffer-arg/toindex-bytelength-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors/buffer-arg/toindex-byteoffset-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors/buffer-arg/typedarray-backed-by-sharedarraybuffer.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors/buffer-arg/use-custom-proto-if-object-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors/buffer-arg/use-default-proto-if-custom-proto-is-not-object-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors-bigint/buffer-arg/bufferbyteoffset-throws-from-modulo-element-size-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors-bigint/buffer-arg/byteoffset-is-negative-throws-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors-bigint/buffer-arg/byteoffset-is-negative-zero-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors-bigint/buffer-arg/byteoffset-is-symbol-throws-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors-bigint/buffer-arg/byteoffset-throws-from-modulo-element-size-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors-bigint/buffer-arg/byteoffset-to-number-throws-sab.j
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors-bigint/buffer-arg/custom-proto-access-throws-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors-bigint/buffer-arg/defined-length-and-offset-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors-bigint/buffer-arg/defined-length-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors-bigint/buffer-arg/defined-negative-length-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors-bigint/buffer-arg/defined-offset-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors-bigint/buffer-arg/excessive-length-throws-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors-bigint/buffer-arg/excessive-offset-throws-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors-bigint/buffer-arg/invoked-with-undefined-newtarget-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors-bigint/buffer-arg/is-referenced-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors-bigint/buffer-arg/length-access-throws-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors-bigint/buffer-arg/length-is-symbol-throws-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors-bigint/buffer-arg/new-instance-extensibility-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors-bigint/buffer-arg/proto-from-ctor-realm-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors-bigint/buffer-arg/returns-new-instance-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors-bigint/buffer-arg/toindex-bytelength-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors-bigint/buffer-arg/toindex-byteoffset-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors-bigint/buffer-arg/typedarray-backed-by-sharedarraybuffer.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors-bigint/buffer-arg/use-custom-proto-if-object-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors-bigint/buffer-arg/use-default-proto-if-custom-proto-is-not-object-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors/buffer-arg/bufferbyteoffset-throws-from-modulo-element-size-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors/buffer-arg/byteoffset-is-negative-throws-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors/buffer-arg/byteoffset-is-negative-zero-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors/buffer-arg/byteoffset-is-symbol-throws-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors/buffer-arg/byteoffset-throws-from-modulo-element-size-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors/buffer-arg/byteoffset-to-number-throws-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors/buffer-arg/custom-proto-access-throws-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors/buffer-arg/defined-length-and-offset-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors/buffer-arg/defined-length-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors/buffer-arg/defined-negative-length-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/ctors/buffer-arg/defined-offset-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/internals/Get/BigInt/indexed-value-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/internals/Get/indexed-value-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArray/prototype/set/BigInt/typedarray-arg-set-values-diff-buffer-other-type-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArray/prototype/set/BigInt/typedarray-arg-set-values-diff-buffer-same-type-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArray/prototype/set/BigInt/typedarray-arg-set-values-same-buffer-same-type-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArray/prototype/set/typedarray-arg-set-values-diff-buffer-other-type-conversions-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArray/prototype/set/typedarray-arg-set-values-diff-buffer-other-type-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArray/prototype/set/typedarray-arg-set-values-diff-buffer-same-type-sab.js
+fails-if(!xulRuntime.shell) script test262/built-ins/TypedArray/prototype/set/typedarray-arg-set-values-same-buffer-same-type-sab.js
+
+# Can be enabled when Intl.DisplayNames is no longer installed through addIntlExtras.
+skip script test262/intl402/DisplayNames/proto-from-ctor-realm.js
+skip script test262/intl402/DisplayNames/prototype/resolvedOptions/return-object.js
+
+# Can also be enabled when Intl.DisplayNames is no longer installed through addIntlExtras.
+# addIntlExtras exposes the mozIntl.DisplayNames constructor, which supports date-time types. This
+# tests expects that date-time types throw a TypeError.
+# https://github.com/tc39/proposal-intl-displaynames/issues/75
+skip script test262/intl402/DisplayNames/options-type-invalid-throws.js
+
+# https://bugzilla.mozilla.org/show_bug.cgi?id=1648202
+skip script test262/built-ins/RegExp/named-groups/non-unicode-property-names-valid.js
 
 
 ###########################################################
@@ -482,16 +673,6 @@ skip script test262/harness/detachArrayBuffer.js
 # Tests disabled due to invalid test expectations  #
 ####################################################
 
-# See review notes for https://github.com/tc39/ecma402/pull/347
-skip script test262/intl402/DateTimeFormat/constructor-options-fractionalSecondDigits-valid.js
-
-# Draft proposal doesn't yet implement the changes proposed in
-# <https://github.com/tc39/proposal-unified-intl-numberformat/issues/63>.
-skip script test262/intl402/NumberFormat/constructor-unit.js
-
-# The `intrinsicDefaultProto` for AggregateError is AggregateError.prototype.
-skip script test262/built-ins/AggregateError/newtarget-proto-fallback.js
-
 # The test exposes a potential spec issue in InitializeDateTimeFormat:
 # Let's assume the locale is "en", adding likely subtags results in "en-Latn-US".
 # Consulting CLDR's supplementalData.xml shows for the "US" region:
@@ -499,20 +680,377 @@ skip script test262/built-ins/AggregateError/newtarget-proto-fallback.js
 # So preferred is "h" (= hour-cycle "h12") and additionally allowed is "H" (=hc "h23").
 # But InitializeDateTimeFormat defaults for hour12=false and hcDefault="h12" the
 # hour-cycle to "h24", which isn't allowed per the above CLDR data.
+# https://github.com/tc39/ecma402/issues/402
 skip script test262/intl402/DateTimeFormat/prototype/resolvedOptions/hourCycle-default.js
 
-# https://github.com/tc39/test262/pull/2464 only added a new test, but didn't
-# update the existing tests.
-skip script test262/language/statements/class/subclass/class-definition-null-proto-super.js
-skip script test262/language/expressions/super/call-proto-not-ctor.js
+# Tests not yet updated for https://github.com/tc39/proposal-intl-displaynames/pull/83
+skip script test262/intl402/DisplayNames/locales-length-tolength-throws.js
+skip script test262/intl402/DisplayNames/locales-length-poison-throws.js
+skip script test262/intl402/DisplayNames/length.js
 
-# Tests expects RangeError, but should instead expect TypeError.
-skip script test262/intl402/NumberFormat/constructor-order.js
 
-# Tests not updated to follow new language tag canonicalisation.
-skip script test262/intl402/Locale/constructor-non-iana-canon.js
-skip script test262/intl402/Intl/getCanonicalLocales/preferred-variant.js
-skip script test262/intl402/Intl/getCanonicalLocales/non-iana-canon.js
+##############################################
+# Enable Iterator Helpers tests in the shell #
+##############################################
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/asynciterator.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/length.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/name.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/proto.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/constructor.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/constructor-subclassable.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/constructor-throw-when-called-directly.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/constructor-throw-without-new.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/every/async-writes.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/every/check-fn-after-getting-iterator.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/every/coerce-result-to-boolean.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/every/descriptor.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/every/error-from-correct-realm.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/every/fn-not-callable-throws.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/every/fn-throws-close-iterator.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/every/interleaving-calls.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/every/length.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/every/name.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/every/next-throws-iterator-not-closed.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/every/proxy.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/every/return-true-if-all-match.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/every/short-circuit-on-false.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/every/this-not-iterator-throws.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/every/value-throws-iterator-not-closed.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/find/async-writes.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/find/check-fn-after-getting-iterator.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/find/coerce-result-to-boolean.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/find/descriptor.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/find/error-from-correct-realm.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/find/fn-not-callable-throws.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/find/fn-throws-close-iterator.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/find/interleaving-calls.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/find/length.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/find/name.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/find/next-throws-iterator-not-closed.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/find/proxy.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/find/return-undefined-if-none-match.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/find/short-circuit-on-match.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/find/this-not-iterator-throws.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/find/value-throws-iterator-not-closed.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/forEach/async-writes.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/forEach/check-fn-after-getting-iterator.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/forEach/descriptor.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/forEach/error-from-correct-realm.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/forEach/fn-not-callable-throws.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/forEach/fn-throws-close-iterator.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/forEach/forEach.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/forEach/interleaving-calls.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/forEach/length.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/forEach/name.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/forEach/next-throws-iterator-not-closed.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/forEach/proxy.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/forEach/this-not-iterator-throws.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/forEach/value-throws-iterator-not-closed.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/reduce/async-writes.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/reduce/check-fn-after-getting-iterator.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/reduce/accumulator-set-to-initial-value.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/reduce/descriptor.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/reduce/empty-iterator-without-initial-value-throws.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/reduce/error-from-correct-realm.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/reduce/interleaving-calls.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/reduce/iterator-empty-return-initial-value.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/reduce/iterator-next-return-non-object-throws.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/reduce/left-associative.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/reduce/length.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/reduce/name.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/reduce/next-throws-iterator-not-closed.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/reduce/no-initial-value-set-accumulator-to-first-value.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/reduce/proxy.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/reduce/reduce.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/reduce/reducer-not-callable-throws.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/reduce/reducer-throws-iterator-closed.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/reduce/this-not-iterator-throws.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/reduce/value-throws-iterator-not-closed.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/some/async-writes.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/some/check-fn-after-getting-iterator.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/some/coerce-result-to-boolean.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/some/descriptor.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/some/error-from-correct-realm.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/some/fn-not-callable-throws.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/some/fn-throws-close-iterator.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/some/interleaving-calls.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/some/length.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/some/name.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/some/next-throws-iterator-not-closed.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/some/proxy.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/some/return-false-if-none-match.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/some/short-circuit-on-true.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/some/this-not-iterator-throws.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/some/value-throws-iterator-not-closed.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/toArray/async-writes.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/toArray/check-fn-after-getting-iterator.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/toArray/create-in-current-realm.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/toArray/descriptor.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/toArray/interleaving-calls.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/toArray/iterator-empty.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/toArray/length.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/toArray/name.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/toArray/next-throws.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/toArray/proxy.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/toArray/this-not-iterator-throws.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/toArray/toArray.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/toArray/value-throws-iterator-not-closed.js
 
-# DST issues, bug 1620825.
-skip script test262/built-ins/Date/parse/without-utc-offset.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/async-iterator-helpers-from-other-global.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/clobber-symbol.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/generator-methods-throw-on-iterator-helpers.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/iterator-helper-methods-throw-on-generators.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-from-other-global.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-handle-empty-iterators.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-interleaved.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-iterator-closed-on-call-throws.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-iterator-closed-on-yield-throws.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-iterator-not-closed-on-next-throws.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-iterator-not-closed-on-next-returns-reject.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-iterator-not-closed-on-next-promise-executor-throws.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-iterator-not-closed-on-next-then-throws.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-iterator-not-closed-on-next-get-then-throws.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-iterator-not-closed-on-value-throws.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-iterator-returns-done-generator-finishes.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-multiple-return-close-iterator-once.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-multiple-throw-close-iterator-once.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-mutate-iterator.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-mutate-iterator-after-done.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-not-close-iterator-next-reject.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-pass-through-lastValue.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-pass-value-through-chain.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-proxy-accesses.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-return-closes-iterator.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-return-new-iterator-result.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-reentry-not-close-iterator.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-throw-closes-iterator-before-next.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-throw-eagerly-on-next-non-callable.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-throw-eagerly-on-non-callable.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-throw-eagerly-on-non-iterator.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-throw-next-done-throws.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-throw-next-not-object.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/lazy-methods-throw-on-reentry.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/take-drop-throw-eagerly-on-negative.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/take-drop-throw-eagerly-on-non-integer.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/asIndexedPairs/asIndexedPairs.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/asIndexedPairs/length.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/asIndexedPairs/name.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/drop/drop.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/drop/drop-more-than-available.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/drop/length.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/drop/name.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/filter/coerce-result-to-boolean.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/filter/filter.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/filter/length.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/filter/name.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/flatMap/close-iterator-when-inner-complete-throws.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/flatMap/close-iterator-when-inner-next-throws.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/flatMap/close-iterator-when-inner-value-throws.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/flatMap/flatMap.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/flatMap/inner-empty-iterable.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/flatMap/inner-generator.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/flatMap/length.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/flatMap/name.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/flatMap/throw-when-inner-not-iterable.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/map/length.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/map/map.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/map/name.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/take/close-iterator-when-none-remaining.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/take/length.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/take/name.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/take/take.js
+shell-option(--enable-iterator-helpers) script non262/AsyncIterator/prototype/take/take-more-than-available.js
+
+shell-option(--enable-iterator-helpers) script non262/Iterator/iterator.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/length.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/name.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/proto.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/constructor.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/constructor-subclassable.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/constructor-throw-when-called-directly.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/constructor-throw-without-new.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/from/call-from-with-different-this.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/from/Iterator.from-descriptor.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/from/Iterator.from-length.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/from/Iterator.from-name.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/from/iterator-not-callable-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/from/modify-next.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/from/modify-return.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/from/modify-throw.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/from/o-not-object-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/from/proxy-not-wrapped.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/from/proxy-wrap-next.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/from/proxy-wrap-return.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/from/proxy-wrap-throw.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/from/return-iterator-if-iterable.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/from/return-wrapper-if-not-iterable.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/from/return-wrapper-if-not-iterator-instance.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/from/wrap-functions-on-other-global.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/from/wrap-method-with-non-wrap-this-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/from/wrap-next-forwards-value.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/from/wrap-next-not-object-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/from/wrap-new-global.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/from/wrap-return-closes-iterator.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/from/wrap-throw.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/every/check-fn-after-getting-iterator.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/every/coerce-result-to-boolean.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/every/descriptor.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/every/error-from-correct-realm.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/every/fn-not-callable-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/every/fn-throws-close-iterator.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/every/length.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/every/name.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/every/next-throws-iterator-not-closed.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/every/proxy.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/every/return-true-if-all-match.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/every/short-circuit-on-false.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/every/this-not-iterator-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/every/value-throws-iterator-not-closed.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/find/check-fn-after-getting-iterator.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/find/coerce-result-to-boolean.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/find/descriptor.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/find/error-from-correct-realm.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/find/fn-not-callable-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/find/fn-throws-close-iterator.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/find/length.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/find/name.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/find/next-throws-iterator-not-closed.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/find/proxy.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/find/return-undefined-if-none-match.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/find/short-circuit-on-match.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/find/this-not-iterator-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/find/value-throws-iterator-not-closed.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/forEach/check-fn-after-getting-iterator.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/forEach/descriptor.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/forEach/error-from-correct-realm.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/forEach/fn-not-callable-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/forEach/fn-throws-close-iterator.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/forEach/forEach.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/forEach/length.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/forEach/name.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/forEach/next-throws-iterator-not-closed.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/forEach/proxy.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/forEach/this-not-iterator-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/forEach/value-throws-iterator-not-closed.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/reduce/check-fn-after-getting-iterator.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/reduce/accumulator-set-to-initial-value.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/reduce/descriptor.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/reduce/empty-iterator-without-initial-value-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/reduce/error-from-correct-realm.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/reduce/iterator-empty-return-initial-value.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/reduce/iterator-next-return-non-object-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/reduce/left-associative.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/reduce/length.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/reduce/name.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/reduce/next-throws-iterator-not-closed.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/reduce/no-initial-value-set-accumulator-to-first-value.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/reduce/proxy.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/reduce/reduce.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/reduce/reducer-not-callable-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/reduce/reducer-throws-iterator-closed.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/reduce/this-not-iterator-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/reduce/value-throws-iterator-not-closed.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/some/check-fn-after-getting-iterator.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/some/coerce-result-to-boolean.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/some/descriptor.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/some/error-from-correct-realm.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/some/fn-not-callable-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/some/fn-throws-close-iterator.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/some/length.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/some/name.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/some/next-throws-iterator-not-closed.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/some/proxy.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/some/return-false-if-none-match.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/some/short-circuit-on-true.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/some/this-not-iterator-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/some/value-throws-iterator-not-closed.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/toArray/create-in-current-realm.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/toArray/descriptor.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/toArray/iterator-empty.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/toArray/length.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/toArray/name.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/toArray/next-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/toArray/proxy.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/toArray/this-not-iterator-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/toArray/toArray.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/toArray/value-throws-iterator-not-closed.js
+
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/generator-methods-throw-on-iterator-helpers.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/iterator-helpers-from-other-global.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/iterator-helper-methods-throw-on-generators.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/lazy-methods-from-other-global.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/lazy-methods-handle-empty-iterators.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/lazy-methods-interleaved.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/lazy-methods-iterator-closed-on-call-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/lazy-methods-iterator-closed-on-yield-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/lazy-methods-iterator-not-closed-on-next-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/lazy-methods-iterator-not-closed-on-value-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/lazy-methods-iterator-returns-done-generator-finishes.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/lazy-methods-multiple-return-close-iterator-once.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/lazy-methods-multiple-throw-close-iterator-once.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/lazy-methods-pass-through-lastValue.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/lazy-methods-pass-value-through-chain.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/lazy-methods-proxy-accesses.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/lazy-methods-return-closes-iterator.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/lazy-methods-return-new-iterator-result.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/lazy-methods-reentry-not-close-iterator.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/lazy-methods-throw-closes-iterator-before-next.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/lazy-methods-throw-eagerly-on-next-non-callable.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/lazy-methods-throw-eagerly-on-non-callable.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/lazy-methods-throw-eagerly-on-non-iterator.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/lazy-methods-throw-next-done-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/lazy-methods-throw-next-not-object.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/lazy-methods-throw-on-reentry.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/take-drop-throw-eagerly-on-negative.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/take-drop-throw-eagerly-on-non-integer.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/asIndexedPairs/asIndexedPairs.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/asIndexedPairs/length.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/asIndexedPairs/name.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/drop/drop.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/drop/length.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/drop/drop-more-than-available.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/drop/name.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/filter/coerce-result-to-boolean.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/filter/filter.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/filter/length.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/filter/name.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/flatMap/close-iterator-when-inner-complete-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/flatMap/close-iterator-when-inner-next-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/flatMap/close-iterator-when-inner-value-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/flatMap/flatMap.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/flatMap/inner-empty-iterable.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/flatMap/inner-generator.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/flatMap/length.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/flatMap/name.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/flatMap/throw-when-inner-not-iterable.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/map/call-next-on-iterator-while-iterating.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/map/clobber-symbol.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/map/interleaved-map-calls.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/map/length.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/map/map.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/map/mapper-not-callable-throw.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/map/mutate-iterator-after-done.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/map/mutate-iterator.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/map/name.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/map/output-at-generator-end.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/map/pass-lastValue-to-next.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/map/prototype.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/map/proxy-abrupt-completion-in-iteratorValue.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/map/proxy-abrupt-completion-in-yield.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/map/proxy-abrupt-completion.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/map/proxy-accesses.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/map/reenter-map-generator-from-mapper.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/map/this-not-iterator-throw.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/map/this-value-array-throws.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/map/throw-when-iterator-returns-non-object.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/map/values-pass-through-chained-maps-to-next.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/take/close-iterator-when-none-remaining.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/take/length.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/take/name.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/take/take.js
+shell-option(--enable-iterator-helpers) script non262/Iterator/prototype/take/take-more-than-available.js
+
+# Enable private methods in Reflect.parse tests.
+# Private methods currently need private fields to be enabled as well.
+shell-option(--enable-private-fields) script non262/reflect-parse/classes.js
+shell-option(--enable-private-methods) script non262/reflect-parse/classes.js

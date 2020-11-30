@@ -8,11 +8,9 @@ include('../templates.mozbuild')
 
 DIRS += [
     'acorn',
-    'adb',
-    'client',
     'css',
+    'compatibility',
     'discovery',
-    'fronts',
     'heapsnapshot',
     'inspector',
     'jsbeautify',
@@ -73,7 +71,6 @@ DevToolsModules(
     'picker-constants.js',
     'plural-form.js',
     'protocol.js',
-    'service-workers-debug-helper.js',
     'system.js',
     'task.js',
     'ThreadSafeDevToolsUtils.js',

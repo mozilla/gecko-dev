@@ -32,11 +32,16 @@ import type { Action, ThunkArgs } from "../types";
 import { selectSource } from "./select";
 import type {
   Source,
+  SourceId,
   SourceContent,
   SourceActor,
   Context,
   SourceLocation,
 } from "../../types";
+
+function getPrettyOriginalSourceURL(generatedSource: Source) {
+  return getPrettySourceURL(generatedSource.url || generatedSource.id);
+}
 
 export async function prettyPrintSource(
   sourceMaps: typeof SourceMaps,
@@ -48,7 +53,7 @@ export async function prettyPrintSource(
     throw new Error("Can't prettify non-javascript files.");
   }
 
-  const url = getPrettySourceURL(generatedSource.url);
+  const url = getPrettyOriginalSourceURL(generatedSource);
   const { code, mappings } = await prettyPrint({
     text: content.value,
     url,
@@ -66,10 +71,10 @@ export async function prettyPrintSource(
   };
 }
 
-export function createPrettySource(cx: Context, sourceId: string) {
+export function createPrettySource(cx: Context, sourceId: SourceId) {
   return async ({ dispatch, getState, sourceMaps }: ThunkArgs) => {
     const source = getSourceFromId(getState(), sourceId);
-    const url = getPrettySourceURL(source.url || source.id);
+    const url = getPrettyOriginalSourceURL(source);
     const id = generatedToOriginalId(sourceId, url);
 
     const prettySource = {
@@ -79,8 +84,6 @@ export function createPrettySource(cx: Context, sourceId: string) {
       isBlackBoxed: false,
       isPrettyPrinted: true,
       isWasm: false,
-      introductionUrl: null,
-      introductionType: undefined,
       isExtension: false,
       extensionName: null,
       isOriginal: true,
@@ -128,7 +131,7 @@ function selectPrettyLocation(
  *          A promise that resolves to [aSource, prettyText] or rejects to
  *          [aSource, error].
  */
-export function togglePrettyPrint(cx: Context, sourceId: string) {
+export function togglePrettyPrint(cx: Context, sourceId: SourceId) {
   return async ({ dispatch, getState, client, sourceMaps }: ThunkArgs) => {
     const source = getSource(getState(), sourceId);
     if (!source) {

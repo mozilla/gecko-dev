@@ -8,22 +8,46 @@
 #define jit_BaselineIC_h
 
 #include "mozilla/Assertions.h"
+#include "mozilla/Attributes.h"
 
-#include "builtin/TypedObject.h"
+#include <stddef.h>
+#include <stdint.h>
+#include <utility>
+
 #include "gc/Barrier.h"
 #include "gc/GC.h"
+#include "gc/Rooting.h"
 #include "jit/BaselineICList.h"
-#include "jit/BaselineJIT.h"
 #include "jit/ICState.h"
+#include "jit/ICStubSpace.h"
+#include "jit/JitCode.h"
+#include "jit/JitOptions.h"
+#include "jit/Registers.h"
+#include "jit/RegisterSets.h"
+#include "jit/shared/Assembler-shared.h"
 #include "jit/SharedICRegisters.h"
-#include "js/GCVector.h"
+#include "js/TypeDecls.h"
+#include "js/Value.h"
 #include "vm/ArrayObject.h"
-#include "vm/BytecodeUtil.h"
-#include "vm/JSContext.h"
-#include "vm/Realm.h"
+#include "vm/JSScript.h"
+
+class JS_PUBLIC_API JSTracer;
 
 namespace js {
+
+class StackTypeSet;
+
+MOZ_COLD void ReportOutOfMemory(JSContext* cx);
+
 namespace jit {
+
+class BaselineFrame;
+class CacheIRStubInfo;
+class ICScript;
+class MacroAssembler;
+
+enum class TailCallVMFunctionId;
+enum class VMFunctionId;
 
 // [SMDOC] JIT Inline Caches (ICs)
 //
@@ -258,7 +282,7 @@ class ICEntry {
     return script->offsetToPC(pcOffset());
   }
 
-  static inline size_t offsetOfFirstStub() {
+  static constexpr size_t offsetOfFirstStub() {
     return offsetof(ICEntry, firstStub_);
   }
 
@@ -373,7 +397,7 @@ class ICStubIterator {
 
   bool atEnd() const { return currentStub_ == (ICStub*)fallbackStub_; }
 
-  void unlink(JSContext* cx);
+  void unlink(JSContext* cx, JSScript* script);
 };
 
 //
@@ -630,6 +654,10 @@ class ICStub {
   static bool NonCacheIRStubMakesGCCalls(Kind kind);
   bool makesGCCalls() const;
 
+  // Returns the number of times this stub has been entered. Must only be called
+  // on stubs that have an enteredCount_ field (CacheIR or fallback stubs).
+  uint32_t getEnteredCount() const;
+
   // Optimized stubs get purged on GC.  But some stubs can be active on the
   // stack during GC - specifically the ones that can make calls.  To ensure
   // that these do not get purged, all stubs that can make calls are allocated
@@ -638,6 +666,9 @@ class ICStub {
     MOZ_ASSERT(next());
     return makesGCCalls();
   }
+
+  const CacheIRStubInfo* cacheIRStubInfo() const;
+  const uint8_t* cacheIRStubData();
 };
 
 class ICFallbackStub : public ICStub {
@@ -647,38 +678,23 @@ class ICFallbackStub : public ICStub {
   // Fallback stubs need these fields to easily add new stubs to
   // the linked list of stubs for an IC.
 
-  // The IC entry for this linked list of stubs.
-  ICEntry* icEntry_;
+  // The IC entry in JitScript for this linked list of stubs.
+  ICEntry* icEntry_ = nullptr;
 
   // The state of this IC
-  ICState state_;
+  ICState state_{};
 
   // Counts the number of times the stub was entered
   //
   // See Bug 1494473 comment 6 for a mechanism to handle overflow if overflow
   // becomes a concern.
-  uint32_t enteredCount_;
-
-  // A pointer to the location stub pointer that needs to be
-  // changed to add a new "last" stub immediately before the fallback
-  // stub.  This'll start out pointing to the icEntry's "firstStub_"
-  // field, and as new stubs are added, it'll point to the current
-  // last stub's "next_" field.
-  ICStub** lastStubPtrAddr_;
+  uint32_t enteredCount_ = 0;
 
   ICFallbackStub(Kind kind, TrampolinePtr stubCode)
-      : ICStub(kind, ICStub::Fallback, stubCode.value),
-        icEntry_(nullptr),
-        state_(),
-        enteredCount_(0),
-        lastStubPtrAddr_(nullptr) {}
+      : ICStub(kind, ICStub::Fallback, stubCode.value) {}
 
   ICFallbackStub(Kind kind, Trait trait, TrampolinePtr stubCode)
-      : ICStub(kind, trait, stubCode.value),
-        icEntry_(nullptr),
-        state_(),
-        enteredCount_(0),
-        lastStubPtrAddr_(nullptr) {
+      : ICStub(kind, trait, stubCode.value) {
     MOZ_ASSERT(trait == ICStub::Fallback || trait == ICStub::MonitoredFallback);
   }
 
@@ -687,26 +703,26 @@ class ICFallbackStub : public ICStub {
 
   inline size_t numOptimizedStubs() const { return state_.numOptimizedStubs(); }
 
+  bool newStubIsFirstStub() const {
+    return (state_.mode() == ICState::Mode::Specialized &&
+            numOptimizedStubs() == 0);
+  }
+
   ICState& state() { return state_; }
 
-  // The icEntry and lastStubPtrAddr_ fields can't be initialized when the stub
-  // is created since the stub is created at compile time, and we won't know the
-  // IC entry address until after compile when the JitScript is created.  This
-  // method allows these fields to be fixed up at that point.
+  // The icEntry_ field can't be initialized when the stub is created since we
+  // won't know the ICEntry address until we add the stub to JitScript. This
+  // method allows this field to be fixed up at that point.
   void fixupICEntry(ICEntry* icEntry) {
     MOZ_ASSERT(icEntry_ == nullptr);
-    MOZ_ASSERT(lastStubPtrAddr_ == nullptr);
     icEntry_ = icEntry;
-    lastStubPtrAddr_ = icEntry_->addressOfFirstStub();
   }
 
   // Add a new stub to the IC chain terminated by this fallback stub.
   void addNewStub(ICStub* stub) {
-    MOZ_ASSERT(*lastStubPtrAddr_ == this);
     MOZ_ASSERT(stub->next() == nullptr);
-    stub->setNext(this);
-    *lastStubPtrAddr_ = stub;
-    lastStubPtrAddr_ = stub->addressOfNext();
+    stub->setNext(icEntry_->firstStub());
+    icEntry_->setFirstStub(stub);
     state_.trackAttached();
   }
 
@@ -716,29 +732,23 @@ class ICFallbackStub : public ICStub {
 
   ICStubIterator beginChain() { return ICStubIterator(this); }
 
-  bool hasStub(ICStub::Kind kind) const {
-    for (ICStubConstIterator iter = beginChainConst(); !iter.atEnd(); iter++) {
-      if (iter->kind() == kind) {
-        return true;
-      }
-    }
-    return false;
+  void discardStubs(JSContext* cx, JSScript* script);
+
+  void clearUsedByTranspiler() { state_.clearUsedByTranspiler(); }
+  void setUsedByTranspiler() { state_.setUsedByTranspiler(); }
+
+  TrialInliningState trialInliningState() const {
+    return state_.trialInliningState();
+  }
+  void setTrialInliningState(TrialInliningState state) {
+    state_.setTrialInliningState(state);
   }
 
-  unsigned numStubsWithKind(ICStub::Kind kind) const {
-    unsigned count = 0;
-    for (ICStubConstIterator iter = beginChainConst(); !iter.atEnd(); iter++) {
-      if (iter->kind() == kind) {
-        count++;
-      }
-    }
-    return count;
-  }
+  // If the transpiler optimized based on this IC, invalidate the script's Warp
+  // code.
+  void maybeInvalidateWarp(JSContext* cx, JSScript* script);
 
-  void discardStubs(JSContext* cx);
-
-  void unlinkStub(Zone* zone, ICStub* prev, ICStub* stub);
-  void unlinkStubsWithKind(JSContext* cx, ICStub::Kind kind);
+  void unlinkStubDontInvalidateWarp(Zone* zone, ICStub* prev, ICStub* stub);
 
   // Return the number of times this stub has successfully provided a value to
   // the caller.
@@ -748,8 +758,11 @@ class ICFallbackStub : public ICStub {
 };
 
 // Shared trait for all CacheIR stubs.
-template <typename T>
-class ICCacheIR_Trait {
+template <typename Base>
+class ICCacheIR_Trait : public Base {
+  // Flags stored in the uint16_t extra_ field in ICStub.
+  static constexpr uint16_t PreliminaryObjectBit = 1 << 0;
+
  protected:
   const CacheIRStubInfo* stubInfo_;
 
@@ -757,33 +770,39 @@ class ICCacheIR_Trait {
   //
   // See Bug 1494473 comment 6 for a mechanism to handle overflow if overflow
   // becomes a concern.
-  uint32_t enteredCount_;
+  uint32_t enteredCount_ = 0;
 
  public:
-  explicit ICCacheIR_Trait(const CacheIRStubInfo* stubInfo)
-      : stubInfo_(stubInfo), enteredCount_(0) {}
+  template <typename... Args>
+  explicit ICCacheIR_Trait(const CacheIRStubInfo* stubInfo, Args&&... args)
+      : Base(args...), stubInfo_(stubInfo) {}
 
   const CacheIRStubInfo* stubInfo() const { return stubInfo_; }
+  uint8_t* stubDataStart();
 
   // Return the number of times this stub has successfully provided a value to
   // the caller.
   uint32_t enteredCount() const { return enteredCount_; }
   void resetEnteredCount() { enteredCount_ = 0; }
 
-  static size_t offsetOfEnteredCount() { return offsetof(T, enteredCount_); }
+  void notePreliminaryObject() { this->extra_ |= PreliminaryObjectBit; }
+  bool hasPreliminaryObject() const {
+    return (this->extra_ & PreliminaryObjectBit) != 0;
+  }
+
+  static constexpr size_t offsetOfEnteredCount() {
+    using T = ICCacheIR_Trait<Base>;
+    return offsetof(T, enteredCount_);
+  }
 };
 
 // Base class for Trait::Regular CacheIR stubs
-class ICCacheIR_Regular : public ICStub,
-                          public ICCacheIR_Trait<ICCacheIR_Regular> {
+class ICCacheIR_Regular : public ICCacheIR_Trait<ICStub> {
+  using Base = ICCacheIR_Trait<ICStub>;
+
  public:
   ICCacheIR_Regular(JitCode* stubCode, const CacheIRStubInfo* stubInfo)
-      : ICStub(ICStub::CacheIR_Regular, stubCode), ICCacheIR_Trait(stubInfo) {}
-
-  void notePreliminaryObject() { extra_ = 1; }
-  bool hasPreliminaryObject() const { return extra_; }
-
-  uint8_t* stubDataStart();
+      : Base(stubInfo, ICStub::CacheIR_Regular, stubCode) {}
 };
 
 // Monitored stubs are IC stubs that feed a single resulting value out to a
@@ -814,22 +833,18 @@ class ICMonitoredStub : public ICStub {
   }
 };
 
-class ICCacheIR_Monitored : public ICMonitoredStub,
-                            public ICCacheIR_Trait<ICCacheIR_Monitored> {
+class ICCacheIR_Monitored : public ICCacheIR_Trait<ICMonitoredStub> {
+  using Base = ICCacheIR_Trait<ICMonitoredStub>;
+
  public:
   ICCacheIR_Monitored(JitCode* stubCode, ICStub* firstMonitorStub,
                       const CacheIRStubInfo* stubInfo)
-      : ICMonitoredStub(ICStub::CacheIR_Monitored, stubCode, firstMonitorStub),
-        ICCacheIR_Trait(stubInfo) {}
-
-  void notePreliminaryObject() { extra_ = 1; }
-  bool hasPreliminaryObject() const { return extra_; }
-
-  uint8_t* stubDataStart();
+      : Base(stubInfo, ICStub::CacheIR_Monitored, stubCode, firstMonitorStub) {}
 };
 
-class ICCacheIR_Updated : public ICStub,
-                          public ICCacheIR_Trait<ICCacheIR_Updated> {
+class ICCacheIR_Updated : public ICCacheIR_Trait<ICStub> {
+  using Base = ICCacheIR_Trait<ICStub>;
+
   uint32_t numOptimizedStubs_;
 
   GCPtrObjectGroup updateStubGroup_;
@@ -842,8 +857,7 @@ class ICCacheIR_Updated : public ICStub,
 
  public:
   ICCacheIR_Updated(JitCode* stubCode, const CacheIRStubInfo* stubInfo)
-      : ICStub(ICStub::CacheIR_Updated, ICStub::Updated, stubCode),
-        ICCacheIR_Trait(stubInfo),
+      : Base(stubInfo, ICStub::CacheIR_Updated, ICStub::Updated, stubCode),
         numOptimizedStubs_(0),
         updateStubGroup_(nullptr),
         updateStubId_(JSID_EMPTY),
@@ -852,8 +866,6 @@ class ICCacheIR_Updated : public ICStub,
   GCPtrObjectGroup& updateStubGroup() { return updateStubGroup_; }
   GCPtrId& updateStubId() { return updateStubId_; }
 
-  uint8_t* stubDataStart();
-
   inline ICStub* firstUpdateStub() const { return firstUpdateStub_; }
 
   static inline size_t offsetOfFirstUpdateStub() {
@@ -861,9 +873,6 @@ class ICCacheIR_Updated : public ICStub,
   }
 
   inline uint32_t numOptimizedStubs() const { return numOptimizedStubs_; }
-
-  void notePreliminaryObject() { extra_ = 1; }
-  bool hasPreliminaryObject() const { return extra_; }
 
   MOZ_MUST_USE bool initUpdatingChain(JSContext* cx, ICStubSpace* space);
 
@@ -1017,11 +1026,13 @@ class ICStubCompiler : public ICStubCompilerBase {
  public:
   virtual ICStub* getStub(ICStubSpace* space) = 0;
 
-  static ICStubSpace* StubSpaceForStub(bool makesGCCalls, JSScript* script);
+  static ICStubSpace* StubSpaceForStub(bool makesGCCalls, JSScript* script,
+                                       ICScript* icScript);
 
   ICStubSpace* getStubSpace(JSScript* outerScript) {
+    MOZ_ASSERT(IsTypeInferenceEnabled());
     return StubSpaceForStub(ICStub::NonCacheIRStubMakesGCCalls(kind),
-                            outerScript);
+                            outerScript, /*icScript = */ nullptr);
   }
 };
 
@@ -1583,6 +1594,15 @@ class ICHasOwn_Fallback : public ICFallbackStub {
       : ICFallbackStub(ICStub::HasOwn_Fallback, stubCode) {}
 };
 
+// CheckPrivateField
+//      JSOp::CheckPrivateField
+class ICCheckPrivateField_Fallback : public ICFallbackStub {
+  friend class ICStubSpace;
+
+  explicit ICCheckPrivateField_Fallback(TrampolinePtr stubCode)
+      : ICFallbackStub(ICStub::CheckPrivateField_Fallback, stubCode) {}
+};
+
 // GetName
 //      JSOp::GetName
 //      JSOp::GetGName
@@ -1622,6 +1642,8 @@ class ICGetProp_Fallback : public ICMonitoredFallbackStub {
       : ICMonitoredFallbackStub(ICStub::GetProp_Fallback, stubCode) {}
 
  public:
+  // Whether this bytecode op called a getter. This is used by IonBuilder.
+  // To improve performance, the flag is not set if WarpBuilder is enabled.
   static const size_t ACCESSED_GETTER_BIT = 1;
 
   void noteAccessedGetter() { extra_ |= (1u << ACCESSED_GETTER_BIT); }
@@ -1678,6 +1700,13 @@ class ICGetIterator_Fallback : public ICFallbackStub {
       : ICFallbackStub(ICStub::GetIterator_Fallback, stubCode) {}
 };
 
+class ICOptimizeSpreadCall_Fallback : public ICFallbackStub {
+  friend class ICStubSpace;
+
+  explicit ICOptimizeSpreadCall_Fallback(TrampolinePtr stubCode)
+      : ICFallbackStub(ICStub::OptimizeSpreadCall_Fallback, stubCode) {}
+};
+
 // InstanceOf
 //      JSOp::Instanceof
 class ICInstanceOf_Fallback : public ICFallbackStub {
@@ -1695,9 +1724,13 @@ class ICTypeOf_Fallback : public ICFallbackStub {
 
   explicit ICTypeOf_Fallback(TrampolinePtr stubCode)
       : ICFallbackStub(ICStub::TypeOf_Fallback, stubCode) {}
+};
 
- public:
-  static const uint32_t MAX_OPTIMIZED_STUBS = 6;
+class ICToPropertyKey_Fallback : public ICFallbackStub {
+  friend class ICStubSpace;
+
+  explicit ICToPropertyKey_Fallback(TrampolinePtr stubCode)
+      : ICFallbackStub(ICStub::ToPropertyKey_Fallback, stubCode) {}
 };
 
 class ICRest_Fallback : public ICFallbackStub {
@@ -1717,17 +1750,17 @@ class ICRest_Fallback : public ICFallbackStub {
 
 // UnaryArith
 //     JSOp::BitNot
+//     JSOp::Pos
 //     JSOp::Neg
 //     JSOp::Inc
 //     JSOp::Dec
+//     JSOp::ToNumeric
 
 class ICUnaryArith_Fallback : public ICFallbackStub {
   friend class ICStubSpace;
 
   explicit ICUnaryArith_Fallback(TrampolinePtr stubCode)
-      : ICFallbackStub(UnaryArith_Fallback, stubCode) {
-    extra_ = 0;
-  }
+      : ICFallbackStub(UnaryArith_Fallback, stubCode) {}
 
  public:
   bool sawDoubleResult() { return extra_; }
@@ -1752,7 +1785,7 @@ class ICCompare_Fallback : public ICFallbackStub {
 };
 
 // BinaryArith
-//      JSOp::Add, JSOp::Sub, JSOp::Mul, JOP_DIV, JSOp::Mod
+//      JSOp::Add, JSOp::Sub, JSOp::Mul, JSOp::Div, JSOp::Mod, JSOp::Pow,
 //      JSOp::BitAnd, JSOp::BitXor, JSOp::BitOr
 //      JSOp::Lsh, JSOp::Rsh, JSOp::Ursh
 
@@ -1760,9 +1793,7 @@ class ICBinaryArith_Fallback : public ICFallbackStub {
   friend class ICStubSpace;
 
   explicit ICBinaryArith_Fallback(TrampolinePtr stubCode)
-      : ICFallbackStub(BinaryArith_Fallback, stubCode) {
-    extra_ = 0;
-  }
+      : ICFallbackStub(BinaryArith_Fallback, stubCode) {}
 
   static const uint16_t SAW_DOUBLE_RESULT_BIT = 0x1;
 
@@ -1778,7 +1809,7 @@ class ICBinaryArith_Fallback : public ICFallbackStub {
 class ICNewArray_Fallback : public ICFallbackStub {
   friend class ICStubSpace;
 
-  GCPtrObject templateObject_;
+  GCPtrArrayObject templateObject_;
 
   // The group used for objects created here is always available, even if the
   // template object itself is not.
@@ -1790,9 +1821,9 @@ class ICNewArray_Fallback : public ICFallbackStub {
         templateGroup_(templateGroup) {}
 
  public:
-  GCPtrObject& templateObject() { return templateObject_; }
+  GCPtrArrayObject& templateObject() { return templateObject_; }
 
-  void setTemplateObject(JSObject* obj) {
+  void setTemplateObject(ArrayObject* obj) {
     MOZ_ASSERT(obj->group() == templateGroup());
     templateObject_ = obj;
   }
@@ -1821,21 +1852,6 @@ class ICNewObject_Fallback : public ICFallbackStub {
 
   void setTemplateObject(JSObject* obj) { templateObject_ = obj; }
 };
-
-inline bool IsCacheableDOMProxy(JSObject* obj) {
-  if (!obj->is<ProxyObject>()) {
-    return false;
-  }
-
-  const BaseProxyHandler* handler = obj->as<ProxyObject>().handler();
-  if (handler->family() != GetDOMProxyHandlerFamily()) {
-    return false;
-  }
-
-  // Some DOM proxies have dynamic prototypes.  We can't really cache those very
-  // well.
-  return obj->hasStaticPrototype();
-}
 
 struct IonOsrTempData;
 
@@ -1887,6 +1903,12 @@ extern bool DoHasOwnFallback(JSContext* cx, BaselineFrame* frame,
                              ICHasOwn_Fallback* stub, HandleValue keyValue,
                              HandleValue objValue, MutableHandleValue res);
 
+extern bool DoCheckPrivateFieldFallback(JSContext* cx, BaselineFrame* frame,
+                                        ICCheckPrivateField_Fallback* stub,
+                                        HandleValue objValue,
+                                        HandleValue keyValue,
+                                        MutableHandleValue res);
+
 extern bool DoGetNameFallback(JSContext* cx, BaselineFrame* frame,
                               ICGetName_Fallback* stub, HandleObject envChain,
                               MutableHandleValue res);
@@ -1916,6 +1938,11 @@ extern bool DoGetIteratorFallback(JSContext* cx, BaselineFrame* frame,
                                   ICGetIterator_Fallback* stub,
                                   HandleValue value, MutableHandleValue res);
 
+extern bool DoOptimizeSpreadCallFallback(JSContext* cx, BaselineFrame* frame,
+                                         ICOptimizeSpreadCall_Fallback* stub,
+                                         HandleValue value,
+                                         MutableHandleValue res);
+
 extern bool DoInstanceOfFallback(JSContext* cx, BaselineFrame* frame,
                                  ICInstanceOf_Fallback* stub, HandleValue lhs,
                                  HandleValue rhs, MutableHandleValue res);
@@ -1923,6 +1950,10 @@ extern bool DoInstanceOfFallback(JSContext* cx, BaselineFrame* frame,
 extern bool DoTypeOfFallback(JSContext* cx, BaselineFrame* frame,
                              ICTypeOf_Fallback* stub, HandleValue val,
                              MutableHandleValue res);
+
+extern bool DoToPropertyKeyFallback(JSContext* cx, BaselineFrame* frame,
+                                    ICToPropertyKey_Fallback* stub,
+                                    HandleValue val, MutableHandleValue res);
 
 extern bool DoRestFallback(JSContext* cx, BaselineFrame* frame,
                            ICRest_Fallback* stub, MutableHandleValue res);

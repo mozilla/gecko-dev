@@ -4,79 +4,48 @@
 
 import re
 import os
-import signal
-import subprocess
+import sys
 from collections import defaultdict
 
-from mozfile import which
+from mozbuild.base import MozbuildObject
+
+topsrcdir = MozbuildObject.from_environment().topsrcdir
+
 from mozlint import result
 from mozlint.pathutils import get_ancestors_by_name
-from mozprocess import ProcessHandlerMixin
+from mozlint.util.implementation import LintProcess
 
 
-YAMLLINT_FORMAT_REGEX = re.compile('(.*):(.*):(.*): \[(error|warning)\] (.*) \((.*)\)$')
+YAMLLINT_FORMAT_REGEX = re.compile("(.*):(.*):(.*): \[(error|warning)\] (.*) \((.*)\)$")
 
 results = []
 
 
-class YAMLLintProcess(ProcessHandlerMixin):
-    def __init__(self, config, *args, **kwargs):
-        self.config = config
-        kwargs['processOutputLine'] = [self.process_line]
-        kwargs['universal_newlines'] = True
-        ProcessHandlerMixin.__init__(self, *args, **kwargs)
-
+class YAMLLintProcess(LintProcess):
     def process_line(self, line):
         try:
             match = YAMLLINT_FORMAT_REGEX.match(line)
             abspath, line, col, level, message, code = match.groups()
         except AttributeError:
-            print('Unable to match yaml regex against output: {}'.format(line))
+            print("Unable to match yaml regex against output: {}".format(line))
             return
 
-        res = {'path': os.path.relpath(str(abspath), self.config['root']),
-               'message': str(message),
-               'level': 'error',
-               'lineno': line,
-               'column': col,
-               'rule': code,
-               }
+        res = {
+            "path": os.path.relpath(str(abspath), self.config["root"]),
+            "message": str(message),
+            "level": "error",
+            "lineno": line,
+            "column": col,
+            "rule": code,
+        }
 
         results.append(result.from_config(self.config, **res))
 
-    def run(self, *args, **kwargs):
-        # protect against poor SIGINT handling. Handle it here instead
-        # so we can kill the process without a cryptic traceback.
-        orig = signal.signal(signal.SIGINT, signal.SIG_IGN)
-        ProcessHandlerMixin.run(self, *args, **kwargs)
-        signal.signal(signal.SIGINT, orig)
 
+def get_yamllint_version():
+    from yamllint import APP_VERSION
 
-def get_yamllint_binary(mc_root):
-    """
-    Returns the path of the first yamllint binary available
-    if not found returns None
-    """
-    binary = os.environ.get('YAMLLINT')
-    if binary:
-        return binary
-
-    # yamllint is vendored in mozilla-central: let's use this
-    # if no environment variable is found.
-    return os.path.join(mc_root, 'third_party', 'python', 'yamllint')
-
-
-def _run_pip(*args):
-    """
-    Helper function that runs pip with subprocess
-    """
-    try:
-        subprocess.check_output(['pip'] + list(args),
-                                stderr=subprocess.STDOUT)
-        return True
-    except subprocess.CalledProcessError as e:
-        print(e.output)
-        return False
+    return APP_VERSION
 
 
 def run_process(config, cmd):
@@ -92,35 +61,42 @@ def gen_yamllint_args(cmdargs, paths=None, conf_file=None):
     args = cmdargs[:]
     if isinstance(paths, str):
         paths = [paths]
-    if conf_file and conf_file != 'default':
-        return args + ['-c', conf_file] + paths
+    if conf_file and conf_file != "default":
+        return args + ["-c", conf_file] + paths
     return args + paths
 
 
 def lint(files, config, **lintargs):
-    log = lintargs['log']
+    log = lintargs["log"]
 
-    binary = get_yamllint_binary(lintargs['root'])
+    log.debug("Version: {}".format(get_yamllint_version()))
 
     cmdargs = [
-        which('python'),
-        binary,
-        '-f', 'parsable'
+        sys.executable,
+        os.path.join(topsrcdir, "mach"),
+        "python",
+        "--",
+        "-m",
+        "yamllint",
+        "-f",
+        "parsable",
     ]
-    log.debug("Command: {}".format(' '.join(cmdargs)))
+    log.debug("Command: {}".format(" ".join(cmdargs)))
 
     config = config.copy()
-    config['root'] = lintargs['root']
+    config["root"] = lintargs["root"]
 
     # Run any paths with a .yamllint file in the directory separately so
     # it gets picked up. This means only .yamllint files that live in
     # directories that are explicitly included will be considered.
     paths_by_config = defaultdict(list)
     for f in files:
-        conf_files = get_ancestors_by_name('.yamllint', f, config['root'])
-        paths_by_config[conf_files[0] if conf_files else 'default'].append(f)
+        conf_files = get_ancestors_by_name(".yamllint", f, config["root"])
+        paths_by_config[conf_files[0] if conf_files else "default"].append(f)
 
     for conf_file, paths in paths_by_config.items():
-        run_process(config, gen_yamllint_args(cmdargs, conf_file=conf_file, paths=paths))
+        run_process(
+            config, gen_yamllint_args(cmdargs, conf_file=conf_file, paths=paths)
+        )
 
     return results

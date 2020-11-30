@@ -30,7 +30,6 @@ interface nsILoginManagerStorage : nsISupports {
    */
   Promise initialize();
 
-
   /**
    * Ensures that all data has been written to disk and all files are closed.
    *
@@ -42,7 +41,6 @@ interface nsILoginManagerStorage : nsISupports {
    * @rejects JavaScript exception.
    */
   Promise terminate();
-
 
   /**
    * Store a new login in the storage module.
@@ -63,7 +61,6 @@ interface nsILoginManagerStorage : nsISupports {
    */
   nsILoginInfo addLogin(in nsILoginInfo aLogin, [optional] in boolean aPreEncrypted, [optional] in jsval aPlaintextUsername, [optional] in jsval aPlaintextPassword);
 
-
   /**
    * Remove a login from the storage module.
    *
@@ -74,7 +71,6 @@ interface nsILoginManagerStorage : nsISupports {
    * values of any nsILoginMetaInfo properties are ignored.
    */
   void removeLogin(in nsILoginInfo aLogin);
-
 
   /**
    * Modify an existing login in the storage module.
@@ -97,7 +93,6 @@ interface nsILoginManagerStorage : nsISupports {
    */
   void modifyLogin(in nsILoginInfo oldLogin, in nsISupports newLoginData);
 
-
   /**
    * Record that the password of a saved login was used (e.g. submitted or copied).
    *
@@ -110,7 +105,6 @@ interface nsILoginManagerStorage : nsISupports {
    */
   void recordPasswordUse(in nsILoginInfo aLogin);
 
-
   /**
    * Remove all stored logins.
    *
@@ -120,10 +114,11 @@ interface nsILoginManagerStorage : nsISupports {
    */
   void removeAllLogins();
 
-
   /**
    * Fetch all logins in the login manager. An array is always returned;
    * if there are no logins the array is empty.
+   *
+   * @deprecated Use `getAllLoginsAsync` instead.
    *
    * @return An array of nsILoginInfo objects.
    */
@@ -152,6 +147,7 @@ interface nsILoginManagerStorage : nsISupports {
   /**
    * Search for logins in the login manager. An array is always returned;
    * if there are no logins the array is empty.
+   *
    * @deprecated New code should use `searchLoginsAsync`.
    *             Only autocomplete, prompt, and test code still use this.
    *
@@ -167,6 +163,8 @@ interface nsILoginManagerStorage : nsISupports {
    * Search for logins matching the specified criteria. Called when looking
    * for logins that might be applicable to a form or authentication request.
    *
+   * @deprecated Use `searchLoginsAsync` instead.
+   *
    * @param aOrigin
    *        The origin to restrict searches to. For example: "http://www.site.com".
    * @param aActionURL
@@ -181,7 +179,6 @@ interface nsILoginManagerStorage : nsISupports {
    */
   Array<nsILoginInfo> findLogins(in AString aOrigin, in AString aActionOrigin,
 				 in AString aHttpRealm);
-
 
   /**
    * Search for logins matching the specified criteria, as with
@@ -205,6 +202,38 @@ interface nsILoginManagerStorage : nsISupports {
    */
   unsigned long countLogins(in AString aOrigin, in AString aActionOrigin,
                             in AString aHttpRealm);
+
+  /**
+   * Returns the "sync id" used by Sync to know whether the store is current with
+   * respect to the sync servers.
+   *
+   * Returns null if the data doesn't exist or if the data can't be
+   * decrypted (including if the master-password prompt is cancelled). This is
+   * OK for Sync as it can't even begin syncing if the master-password is
+   * locked as the sync encrytion keys are stored in this login manager.
+   */
+  Promise getSyncID();
+
+  /**
+   * Sets the "sync id" used by Sync to know whether the store is current with
+   * respect to the sync servers. May be set to null.
+   *
+   * Throws if the data can't be encrypted (including if the master-password
+   * prompt is cancelled)
+   */
+  Promise setSyncID(in AString syncID);
+
+  /**
+   * Returns the timestamp of the last sync as a double (in seconds since Epoch
+   * rounded to two decimal places), or 0.0 if the data doesn't exist.
+   */
+  Promise getLastSync();
+
+  /**
+   * Sets the timestamp of the last sync.
+   */
+  Promise setLastSync(in double timestamp);
+
   /**
    * True when a master password prompt is being shown.
    */

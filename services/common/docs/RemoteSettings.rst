@@ -4,7 +4,7 @@
 Remote Settings
 ===============
 
-The `remote-settings.js <https://dxr.mozilla.org/mozilla-central/source/services/settings/remote-settings.js>`_ module offers the ability to fetch remote settings that are kept in sync with Mozilla servers.
+The `remote-settings.js <https://searchfox.org/mozilla-central/source/services/settings/remote-settings.js>`_ module offers the ability to fetch remote settings that are kept in sync with Mozilla servers.
 
 
 Usage
@@ -132,11 +132,11 @@ Remote files are not downloaded automatically. In order to keep attachments in s
     });
 
 The provided helper will:
-- fetch the remote binary content
-- write the file in the profile folder
-- check the file size
-- check the content SHA256 hash
-- do nothing if the file is already present and sound locally.
+  - fetch the remote binary content
+  - write the file in the profile folder
+  - check the file size
+  - check the content SHA256 hash
+  - do nothing if the file is already present and sound locally.
 
 .. important::
 
@@ -146,15 +146,30 @@ The provided helper will:
     - preserve bandwidth
     - resume downloads of large files
 
-.. notes::
+.. note::
 
     The ``download()`` method does not return a file path but instead a ``file://`` URL which points to the locally-downloaded file.
     This will allow us to package attachments as part of a Firefox release (see `Bug 1542177 <https://bugzilla.mozilla.org/show_bug.cgi?id=1542177>`_)
     and return them to calling code as ``resource://`` from within a package archive.
 
-.. notes::
+.. note::
+
+    By default, the ``download()`` method is prone to leaving extraneous files in the profile directory
+    (see `Bug 1634127 <https://bugzilla.mozilla.org/show_bug.cgi?id=1634127>`_).
+    Pass the ``useCache`` option to use an IndexedDB-based cache, and unlock the following features:
+
+    The ``fallbackToCache`` option allows callers to fall back to the cached file and record, if the requested record's attachment fails to download.
+    This enables callers to always have a valid pair of attachment and record,
+    provided that the attachment has been retrieved at least once.
+
+    The ``fallbackToDump`` option activates a fallback to a dump that has been
+    packaged with the client, when other ways to load the attachment have failed.
+    See :ref:`_services/packaging-attachments` for more information.
+
+.. note::
 
     A ``downloadAsBytes()`` method returning an ``ArrayBuffer`` is also available, if writing the attachment into the user profile is not necessary.
+
 
 
 .. _services/initial-data:
@@ -168,12 +183,60 @@ The JSON dump will serve as the default dataset for ``.get()``, instead of doing
 
 #. Place the JSON dump of the server records in the ``services/settings/dumps/main/`` folder
 #. Add the filename to the ``FINAL_TARGET_FILES`` list in ``services/settings/dumps/main/moz.build``
+#. Add the filename to the ``[browser]`` section of ``mobile/android/installer/package-manifest.in`` IF the file should be bundled with Android.
 
 Now, when ``RemoteSettings("some-key").get()`` is called from an empty profile, the ``some-key.json`` file is going to be loaded before the results are returned.
 
+JSON dumps in the tree are periodically updated by ``taskcluster/docker/periodic-updates/scripts/periodic_file_updates.sh``.
+
 .. note::
 
-    JSON dumps are not shipped on Android to minimize the installer size.
+   The example above uses "main" because that's the default bucket name.
+   If you have customized the bucket name, use the actual bucket name instead of "main".
+
+.. _services/packaging-attachments:
+
+Packaging attachments
+~~~~~~~~~~~~~~~~~~~~~
+
+Attachments are not included in the JSON dumps by default. You may choose to package the attachment
+with the client, for example if it is important to have the data available at the first startup
+without requiring network activity. Or if most users would download the attachment anyway.
+Only package attachments if needed, since they increase the file size of the Firefox installer.
+
+To package an attachment for consumers of the `download()` method:
+
+#. Select the desired attachment record from the JSON dump of the server records, and place it at
+   ``services/settings/dumps/<bucket name>/<collection name>/<attachment id>.meta.json``.
+   The ``<attachment id>`` defaults to the ``id`` field of the record. If this ``id`` is not fixed,
+   you must choose a custom ID that can be relied upon as a long-term attachment identifier. See
+   the notes below for more details.
+#. Download the attachment associated with the record, and place it at
+   ``services/settings/dumps/<bucket name>/<collection name>/<attachment id>``.
+#. Update ``taskcluster/docker/periodic-updates/scripts/periodic_file_updates.sh`` and add the attachment,
+   by editing the ``compare_remote_settings_files`` function and describing the attachment.
+   Unlike JSON dumps, attachments must explicitly be listed in that update script, because the
+   attachment selection logic needs to be codified in a ``jq`` filter in the script.
+   For an example, see `Bug 1636158 <https://bugzilla.mozilla.org/show_bug.cgi?id=1636158>`_.
+#. Register the location of the ``<attachment id>.meta.json`` and ``<attachment id>`` in the
+   ``moz.build`` file of the collection folder, and possibly ``package-manifest.in``,
+   as described in `the previous section about registering JSON dumps <services/initial-data>`.
+
+.. note::
+
+   ``<attachment id>`` is used to derive the file names of the packaged attachment dump, and as the
+   key for the (optional) cache where attachment updates from the network are saved. If the cache
+   is enabled, the attachment identifier is expected to be fixed across client application updates.
+   If that expectation cannot be met, the ``attachmentId`` option of the ``download`` method of the
+   attachment downloader should be used to override the attachment ID with a custom (stable) value.
+
+.. note::
+
+   The contents of the ``.meta.json`` file is already contained within the records, but separated
+   from the main set of records to ensure the availability of the original record with the data,
+   independently of the packaged or downloaded records.
+   This file may become optional in a future update, see `Bug 1640059 <https://bugzilla.mozilla.org/show_bug.cgi?id=1640059>`_.
+
 
 Targets and A/B testing
 =======================
@@ -357,34 +420,34 @@ You can forge a ``payload`` that contains the events attributes as described abo
 Manipulate local data
 ---------------------
 
-A handle on the local collection can be obtained with ``openCollection()``.
+A handle on the underlying database can be obtained through the ``.db`` attribute.
 
 .. code-block:: js
 
-    const collection = await RemoteSettings("a-key").openCollection();
+    const db = await RemoteSettings("a-key").db;
 
 And records can be created manually (as if they were synchronized from the server):
 
 .. code-block:: js
 
-    const record = await collection.create({
+    const record = await db.create({
       id: "a-custom-string-or-uuid",
       domain: "website.com",
       usernameSelector: "#login-account",
       passwordSelector: "#pass-signin",
-    }, { synced: true });
+    });
 
 If no timestamp is set, any call to ``.get()`` will trigger the load of initial data (JSON dump) if any, or a synchronization will be triggered. To avoid that, store a fake timestamp:
 
 .. code-block:: js
 
-    await collection.db.saveLastModified(42);
+    await db.saveLastModified(42);
 
 In order to bypass the potential target filtering of ``RemoteSettings("key").get()``, the low-level listing of records can be obtained with ``collection.list()``:
 
 .. code-block:: js
 
-    const { data: subset } = await collection.list({
+    const { data: subset } = await db.list({
       filters: {
         "property": "value"
       }
@@ -394,9 +457,7 @@ The local data can be flushed with ``clear()``:
 
 .. code-block:: js
 
-    await collection.clear()
-
-For further documentation in collection API, checkout the `kinto.js library <https://kintojs.readthedocs.io/>`_, which is in charge of the IndexedDB interactions behind-the-scenes.
+    await db.clear()
 
 
 Misc

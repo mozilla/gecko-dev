@@ -19,13 +19,13 @@ function run_test() {
     invalidateCachesOnRestart: function invalidateCachesOnRestart() {
       // Do nothing
     },
-    QueryInterface: ChromeUtils.generateQI([Ci.nsIXULRuntime]),
+    QueryInterface: ChromeUtils.generateQI(["nsIXULRuntime"]),
   };
 
   let xulRuntimeFactory = {
     createInstance(outer, iid) {
       if (outer != null) {
-        throw new Error(Cr.NS_ERROR_NO_AGGREGATION);
+        throw Components.Exception("", Cr.NS_ERROR_NO_AGGREGATION);
       }
       return xulRuntime.QueryInterface(iid);
     },

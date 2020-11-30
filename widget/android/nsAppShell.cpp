@@ -9,6 +9,7 @@
 #include "base/message_loop.h"
 #include "base/task.h"
 #include "mozilla/Hal.h"
+#include "nsExceptionHandler.h"
 #include "nsIScreen.h"
 #include "nsWindow.h"
 #include "nsThreadUtils.h"
@@ -32,13 +33,15 @@
 #include "mozilla/dom/BrowserChild.h"
 #include "mozilla/intl/OSPreferences.h"
 #include "mozilla/ipc/GeckoChildProcessHost.h"
+#include "mozilla/java/GeckoAppShellNatives.h"
+#include "mozilla/java/GeckoThreadNatives.h"
+#include "mozilla/java/XPCOMEventTargetNatives.h"
 #include "mozilla/widget/ScreenManager.h"
 #include "prenv.h"
 
 #include "AndroidBridge.h"
 #include "AndroidBridgeUtilities.h"
 #include "AndroidSurfaceTexture.h"
-#include "GeneratedJNINatives.h"
 #include <android/log.h>
 #include <pthread.h>
 #include <wchar.h>
@@ -216,7 +219,8 @@ class GeckoThreadSupport final
     nsCOMPtr<nsIAppStartup> appStartup = components::AppStartup::Service();
 
     if (appStartup) {
-      appStartup->Quit(nsIAppStartup::eForceQuit);
+      bool userAllowedQuit = true;
+      appStartup->Quit(nsIAppStartup::eForceQuit, &userAllowedQuit);
     }
   }
 
@@ -256,6 +260,12 @@ class GeckoAppShellSupport final
 
     obsServ->NotifyObservers(nullptr, aTopic->ToCString().get(),
                              aData ? aData->ToString().get() : nullptr);
+  }
+
+  static void AppendAppNotesToCrashReport(jni::String::Param aNotes) {
+    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(aNotes);
+    CrashReporter::AppendAppNotesToCrashReport(aNotes->ToCString());
   }
 
   static void OnSensorChanged(int32_t aType, float aX, float aY, float aZ,
@@ -345,9 +355,9 @@ class XPCOMEventTargetWrapper final
 
   static void Init() {
     java::XPCOMEventTarget::Natives<XPCOMEventTargetWrapper>::Init();
-    CreateWrapper(NS_LITERAL_STRING("main"), do_GetMainThread());
+    CreateWrapper(u"main"_ns, do_GetMainThread());
     if (XRE_IsParentProcess()) {
-      CreateWrapper(NS_LITERAL_STRING("launcher"), ipc::GetIPCLauncher());
+      CreateWrapper(u"launcher"_ns, ipc::GetIPCLauncher());
     }
   }
 
@@ -500,9 +510,6 @@ void nsAppShell::RecordLatencies() {
   }
 }
 
-#define PREFNAME_COALESCE_TOUCHES "dom.event.touch.coalescing.enabled"
-static const char* kObservedPrefs[] = {PREFNAME_COALESCE_TOUCHES, nullptr};
-
 nsresult nsAppShell::Init() {
   nsresult rv = nsBaseAppShell::Init();
   nsCOMPtr<nsIObserverService> obsServ =
@@ -526,9 +533,6 @@ nsresult nsAppShell::Init() {
   if (sPowerManagerService)
     sPowerManagerService->AddWakeLockListener(sWakeLockListener);
 
-  Preferences::AddStrongObservers(this, kObservedPrefs);
-  mAllowCoalescingTouches =
-      Preferences::GetBool(PREFNAME_COALESCE_TOUCHES, true);
   return rv;
 }
 
@@ -548,13 +552,6 @@ nsAppShell::Observe(nsISupports* aSubject, const char* aTopic,
     // or we'll see crashes, as the app shell outlives XPConnect.
     mObserversHash.Clear();
     return nsBaseAppShell::Observe(aSubject, aTopic, aData);
-
-  } else if (!strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID) && aData &&
-             nsDependentString(aData).Equals(
-                 NS_LITERAL_STRING(PREFNAME_COALESCE_TOUCHES))) {
-    mAllowCoalescingTouches =
-        Preferences::GetBool(PREFNAME_COALESCE_TOUCHES, true);
-    return NS_OK;
 
   } else if (!strcmp(aTopic, "browser-delayed-startup-finished")) {
     NS_CreateServicesFromCategory("browser-delayed-startup-finished", nullptr,
@@ -591,8 +588,7 @@ nsAppShell::Observe(nsISupports* aSubject, const char* aTopic,
     }
   } else if (!strcmp(aTopic, "quit-application")) {
     if (jni::IsAvailable()) {
-      const bool restarting =
-          aData && NS_LITERAL_STRING("restart").Equals(aData);
+      const bool restarting = aData && u"restart"_ns.Equals(aData);
       java::GeckoThread::SetState(restarting
                                       ? java::GeckoThread::State::RESTARTING()
                                       : java::GeckoThread::State::EXITING());
@@ -672,7 +668,6 @@ bool nsAppShell::ProcessNextNativeEvent(bool mayWait) {
       AUTO_PROFILER_LABEL("nsAppShell::ProcessNextNativeEvent:Wait", IDLE);
       mozilla::BackgroundHangMonitor().NotifyWait();
 
-      AUTO_PROFILER_THREAD_SLEEP;
       curEvent = mEventQueue.Pop(/* mayWait */ true);
     }
   }
@@ -742,8 +737,11 @@ already_AddRefed<nsIURI> nsAppShell::ResolveURI(const nsCString& aUriStr) {
   }
 
   nsCOMPtr<nsIURIFixup> fixup = components::URIFixup::Service();
-  if (fixup && NS_SUCCEEDED(fixup->CreateFixupURI(aUriStr, 0, nullptr,
-                                                  getter_AddRefs(uri)))) {
+  nsCOMPtr<nsIURIFixupInfo> fixupInfo;
+  if (fixup &&
+      NS_SUCCEEDED(fixup->GetFixupURIInfo(aUriStr, nsIURIFixup::FIXUP_FLAG_NONE,
+                                          getter_AddRefs(fixupInfo))) &&
+      NS_SUCCEEDED(fixupInfo->GetPreferredURI(getter_AddRefs(uri)))) {
     return uri.forget();
   }
   return nullptr;

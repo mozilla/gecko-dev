@@ -220,7 +220,7 @@ nsresult txKeyHash::init() {
  * @param aUse    use-expression
  * @return false if an error occurred, true otherwise
  */
-bool txXSLKey::addKey(nsAutoPtr<txPattern>&& aMatch, nsAutoPtr<Expr>&& aUse) {
+bool txXSLKey::addKey(UniquePtr<txPattern>&& aMatch, UniquePtr<Expr>&& aUse) {
   if (!aMatch || !aUse) return false;
 
   Key* key = mKeys.AppendElement();
@@ -242,7 +242,7 @@ nsresult txXSLKey::indexSubtreeRoot(const txXPathNode& aRoot,
                                     txKeyValueHash& aKeyValueHash,
                                     txExecutionState& aEs) {
   txKeyValueHashKey key(mName, txXPathNodeUtils::getUniqueIdentifier(aRoot),
-                        EmptyString());
+                        u""_ns);
   return indexTree(aRoot, key, aKeyValueHash, aEs);
 }
 

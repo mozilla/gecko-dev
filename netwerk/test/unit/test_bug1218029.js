@@ -1,6 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
+"use strict";
+
 var tests = [
   { data: "", chunks: [], status: Cr.NS_OK, consume: [], dataChunks: [""] },
   {
@@ -67,7 +69,7 @@ function execute_test(test) {
 
   let channel = {
     contentLength: -1,
-    QueryInterface: ChromeUtils.generateQI([Ci.nsIChannel]),
+    QueryInterface: ChromeUtils.generateQI(["nsIChannel"]),
   };
 
   let chunkIndex = 0;
@@ -91,7 +93,7 @@ function execute_test(test) {
       chunkIndex++;
     },
     QueryInterface: ChromeUtils.generateQI([
-      Ci.nsIIncrementalStreamLoaderObserver,
+      "nsIIncrementalStreamLoaderObserver",
     ]),
   };
 

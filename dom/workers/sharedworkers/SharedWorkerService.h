@@ -7,6 +7,7 @@
 #ifndef mozilla_dom_SharedWorkerService_h
 #define mozilla_dom_SharedWorkerService_h
 
+#include "mozilla/dom/quota/CheckedUnsafePtr.h"
 #include "nsISupportsImpl.h"
 #include "nsTArray.h"
 
@@ -49,8 +50,8 @@ class SharedWorkerService final {
   void RemoveWorkerManagerOnMainThread(SharedWorkerManager* aManager);
 
  private:
-  SharedWorkerService();
-  ~SharedWorkerService();
+  SharedWorkerService() = default;
+  ~SharedWorkerService() = default;
 
   void ErrorPropagationOnMainThread(nsIEventTarget* aBackgroundEventTarget,
                                     SharedWorkerParent* aActor,

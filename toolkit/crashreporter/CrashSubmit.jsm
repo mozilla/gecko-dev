@@ -9,9 +9,6 @@ const { FileUtils } = ChromeUtils.import(
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
-const { AppConstants } = ChromeUtils.import(
-  "resource://gre/modules/AppConstants.jsm"
-);
 XPCOMUtils.defineLazyGlobalGetters(this, [
   "File",
   "FormData",
@@ -125,27 +122,6 @@ function getPendingMinidump(id) {
   });
 }
 
-async function synthesizeExtraFile(extra) {
-  let url =
-    "ServerURL=https://crash-reports.replay.io:8002/submit?id=" +
-    Services.appinfo.ID +
-    "&version=" +
-    Services.appinfo.version +
-    "&buildid=" +
-    Services.appinfo.appBuildID;
-  let data = {
-    ServerURL: url,
-    Vendor: Services.appinfo.vendor,
-    ProductName: Services.appinfo.name,
-    ProductID: Services.appinfo.ID,
-    Version: Services.appinfo.version,
-    BuildID: Services.appinfo.appBuildID,
-    ReleaseChannel: AppConstants.MOZ_UPDATE_CHANNEL,
-  };
-
-  await OS.File.writeAtomic(extra, JSON.stringify(data), { encoding: "utf-8" });
-}
-
 async function writeSubmittedReportAsync(crashID, viewURL) {
   let strings = await getL10nStrings();
   let data = strings.crashid.replace("%s", crashID);
@@ -222,7 +198,8 @@ Submitter.prototype = {
 
       if (
         (data.length == 2 &&
-          (data[0] == "CrashID" && true/*SUBMISSION_REGEX.test(data[1])*/)) ||
+          data[0] == "CrashID" &&
+          true/*SUBMISSION_REGEX.test(data[1])*/) ||
         data[0] == "ViewURL"
       ) {
         parsedResponse[data[0]] = data[1];
@@ -380,14 +357,10 @@ Submitter.prototype = {
       OS.File.exists(memory),
     ]);
 
-    if (!dumpExists) {
+    if (!dumpExists || !extraExists) {
       this.notifyStatus(FAILED);
       this.cleanup();
       return this.submitStatusPromise;
-    }
-
-    if (!extraExists) {
-      await synthesizeExtraFile(extra);
     }
 
     this.dump = dump;

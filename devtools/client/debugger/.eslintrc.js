@@ -3,7 +3,6 @@
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
 module.exports = {
-  parser: "babel-eslint",
   plugins: [
     "react",
     "mozilla",
@@ -96,6 +95,10 @@ module.exports = {
 
     "flowtype/define-flow-type": 1,
     "flowtype/use-flow-type": 1,
+
+    // Incompatible with jest-in-case cases. See related GitHub issue
+    // https://github.com/jest-community/eslint-plugin-jest/issues/534
+    "jest/no-standalone-expect": "off",
 
     // Disallow flow control that escapes from "finally".
     "no-unsafe-finally": "error",

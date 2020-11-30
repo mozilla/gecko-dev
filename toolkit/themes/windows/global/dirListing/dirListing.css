@@ -6,8 +6,7 @@
   background-color: -moz-dialog;
   color: -moz-dialogtext;
   font: message-box;
-  padding-left: 2em;
-  padding-right: 2em;
+  padding-inline: 2em;
 }
 
 body {
@@ -17,8 +16,8 @@ body {
   min-width: 30em;
   max-width: 65em;
   margin: 4em auto;
-  background-color: -moz-field;
-  color: -moz-fieldtext;
+  background-color: Field;
+  color: FieldText;
 }
 
 h1 {
@@ -34,6 +33,11 @@ a {
 
 a:hover {
   text-decoration: underline;
+}
+
+/* ensure multiple spaces are shown correctly. */
+td:first-child > a {
+  white-space: pre;
 }
 
 p {
@@ -85,8 +89,7 @@ td:not(:first-child) {
 }
 
 .up::before {
-  margin-inline-end: 4px;
-  margin-inline-start: -20px;
+  margin-inline: -20px 4px;
   vertical-align: middle;
 %ifdef MOZ_WIDGET_GTK
   content: url(moz-icon://stock/gtk-go-up?size=menu);

@@ -18,6 +18,8 @@ from argparse import ArgumentParser
 from collections import defaultdict
 from copy import deepcopy
 
+import six
+
 import mozinfo
 import moznetwork
 import mozprofile
@@ -289,7 +291,7 @@ class BaseMarionetteArguments(ArgumentParser):
                           action='append',
                           metavar='PREF=VALUE',
                           dest='prefs_args',
-                          help="A preference to set. Must be a key-value pair separated by a ':'.")
+                          help="set a browser preference; repeat for multiple preferences.")
         self.add_argument('--preferences',
                           action='append',
                           dest='prefs_files',
@@ -638,7 +640,7 @@ class BaseMarionetteTestRunner(object):
 
         def update(d, u):
             """Update a dictionary that may contain nested dictionaries."""
-            for k, v in u.iteritems():
+            for k, v in six.iteritems(u):
                 o = d.get(k, {})
                 if isinstance(v, dict) and isinstance(o, dict):
                     d[k] = update(d.get(k, {}), v)
@@ -662,9 +664,9 @@ class BaseMarionetteTestRunner(object):
                     with open(path) as f:
                         data.append(json.loads(f.read()))
                 except ValueError as e:
-                    exc, val, tb = sys.exc_info()
                     msg = "JSON file ({0}) is not properly formatted: {1}"
-                    reraise(exc, msg.format(os.path.abspath(path), e.message), tb)
+                    reraise(ValueError, ValueError(msg.format(
+                        os.path.abspath(path), e)), sys.exc_info()[2])
         return data
 
     @property
@@ -774,9 +776,9 @@ class BaseMarionetteTestRunner(object):
                     connection.connect((host, int(port)))
                     connection.close()
                 except Exception as e:
-                    exc, val, tb = sys.exc_info()
+                    exc_cls, _, tb = sys.exc_info()
                     msg = "Connection attempt to {0}:{1} failed with error: {2}"
-                    reraise(exc, msg.format(host, port, e), tb)
+                    reraise(exc_cls, exc_cls(msg.format(host, port, e)), tb)
         if self.workspace:
             kwargs['workspace'] = self.workspace_path
         if self.headless:
@@ -1076,10 +1078,10 @@ class BaseMarionetteTestRunner(object):
     def run_test_sets(self):
         if len(self.tests) < 1:
             raise Exception('There are no tests to run.')
-        elif self.total_chunks > len(self.tests):
+        elif self.total_chunks is not None and self.total_chunks > len(self.tests):
             raise ValueError('Total number of chunks must be between 1 and {}.'
                              .format(len(self.tests)))
-        if self.total_chunks > 1:
+        if self.total_chunks is not None and self.total_chunks > 1:
             chunks = [[] for i in range(self.total_chunks)]
             for i, test in enumerate(self.tests):
                 target_chunk = i % self.total_chunks

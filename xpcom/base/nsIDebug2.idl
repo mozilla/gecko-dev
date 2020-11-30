@@ -86,4 +86,18 @@ interface nsIDebug2 : nsISupports
      * @param aMessage the string to pass to panic!().
      */
     void rustPanic(in string aMessage);
+
+    /**
+     * Request the process to log a message for a target and level from Rust code.
+     *
+     * @param aTarget the string representing the log target.
+     * @param aMessage the string representing the log message.
+     */
+    void rustLog(in string aTarget,
+                 in string aMessage);
+
+    /**
+     * Cause an Out of Memory Crash.
+     */
+    void crashWithOOM();
 };

@@ -1,3 +1,5 @@
+"use strict";
+
 const ReferrerInfo = Components.Constructor(
   "@mozilla.org/referrer-info;1",
   "nsIReferrerInfo",
@@ -15,7 +17,7 @@ function getTestReferrer(server_uri, referer_uri, isPrivate = false) {
     uri,
     loadingPrincipal: principal,
     contentPolicyType: Ci.nsIContentPolicy.TYPE_OTHER,
-    securityFlags: Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+    securityFlags: Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
   });
 
   chan.QueryInterface(Ci.nsIHttpChannel);

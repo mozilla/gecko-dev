@@ -351,7 +351,10 @@ function fakeNow(...args) {
   const modules = [
     ChromeUtils.import("resource://gre/modules/TelemetrySession.jsm", null),
     ChromeUtils.import("resource://gre/modules/TelemetryEnvironment.jsm", null),
-    ChromeUtils.import("resource://gre/modules/TelemetryController.jsm", null),
+    ChromeUtils.import(
+      "resource://gre/modules/TelemetryControllerParent.jsm",
+      null
+    ),
     ChromeUtils.import("resource://gre/modules/TelemetryStorage.jsm", null),
     ChromeUtils.import("resource://gre/modules/TelemetrySend.jsm", null),
     ChromeUtils.import(
@@ -398,7 +401,7 @@ function fakeMidnightPingFuzzingDelay(delayMs) {
 
 function fakeGeneratePingId(func) {
   let module = ChromeUtils.import(
-    "resource://gre/modules/TelemetryController.jsm",
+    "resource://gre/modules/TelemetryControllerParent.jsm",
     null
   );
   module.Policy.generatePingId = func;
@@ -406,7 +409,7 @@ function fakeGeneratePingId(func) {
 
 function fakeCachedClientId(uuid) {
   let module = ChromeUtils.import(
-    "resource://gre/modules/TelemetryController.jsm",
+    "resource://gre/modules/TelemetryControllerParent.jsm",
     null
   );
   module.Policy.getCachedClientID = () => uuid;
@@ -436,6 +439,20 @@ function fakeIntlReady() {
   Services.obs.notifyObservers(null, "browser-delayed-startup-finished");
 }
 
+// Override the uninstall ping file names
+function fakeUninstallPingPath(aPathFcn) {
+  const m = ChromeUtils.import(
+    "resource://gre/modules/TelemetryStorage.jsm",
+    null
+  );
+  m.Policy.getUninstallPingPath =
+    aPathFcn ||
+    (id => ({
+      directory: new FileUtils.File(OS.Constants.Path.profileDir),
+      file: `uninstall_ping_0123456789ABCDEF_${id}.json`,
+    }));
+}
+
 // Return a date that is |offset| ms in the future from |date|.
 function futureDate(date, offset) {
   return new Date(date.getTime() + offset);
@@ -448,7 +465,10 @@ function truncateToDays(aMsec) {
 // Returns a promise that resolves to true when the passed promise rejects,
 // false otherwise.
 function promiseRejects(promise) {
-  return promise.then(() => false, () => true);
+  return promise.then(
+    () => false,
+    () => true
+  );
 }
 
 // Generates a random string of at least a specific length.
@@ -523,9 +543,6 @@ if (runningInParent) {
   // Speed up child process accumulations
   Services.prefs.setIntPref(TelemetryUtils.Preferences.IPCBatchTimeout, 10);
 
-  // Ensure we're not in a GeckoView-like environment by default
-  Services.prefs.setBoolPref("toolkit.telemetry.isGeckoViewMode", false);
-
   // Make sure ecosystem telemetry is disabled, no matter which build
   // Individual tests will enable it when appropriate
   Services.prefs.setBoolPref(
@@ -561,6 +578,12 @@ if (runningInParent) {
 TelemetryController.testInitLogging();
 
 // Avoid timers interrupting test behavior.
-fakeSchedulerTimer(() => {}, () => {});
+fakeSchedulerTimer(
+  () => {},
+  () => {}
+);
 // Make pind sending predictable.
 fakeMidnightPingFuzzingDelay(0);
+
+// Avoid using the directory service, which is not registered in some tests.
+fakeUninstallPingPath();

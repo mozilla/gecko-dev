@@ -21,6 +21,13 @@ interface nsIRemoteTab : nsISupports
   attribute boolean docShellIsActive;
 
   /**
+   * Manages the flag of the remote docshell, which is used to determine if the
+   * media element in that remote docshell should be suspended when the docshell
+   * is inactive.
+   */
+  attribute boolean suspendMediaWhenInactive;
+
+  /**
    * When set to true, this tells the child to paint and upload layers to
    * the compositor. When set to false, previous layers are cleared from
    * the compositor, but only if preserveLayers is also set to false.
@@ -70,12 +77,6 @@ interface nsIRemoteTab : nsISupports
   void transmitPermissionsForPrincipal(in nsIPrincipal aPrincipal);
 
   /**
-   * True if any of the frames loaded in the tab have registered
-   * an onbeforeunload event handler.
-   */
-  readonly attribute boolean hasBeforeUnload;
-
-  /**
    * Notify APZ to start autoscrolling.
    * (aAnchorX, aAnchorY) are the coordinates of the autoscroll anchor,
    * in CSS coordinates relative to the screen. aScrollId and
@@ -121,8 +122,4 @@ interface nsIRemoteTab : nsISupports
    * Notify the remote tab that the resolution has changed.
    */
   [noscript] void notifyResolutionChanged();
-  /**
-   * Notify the remote tab that system theme has changed.
-   */
-  [noscript] void notifyThemeChanged();
 };

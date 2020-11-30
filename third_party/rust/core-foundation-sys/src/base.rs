@@ -8,23 +8,23 @@
 // except according to those terms.
 
 use std::cmp::Ordering;
-use std::os::raw::{c_uint, c_long, c_ulong, c_void, c_int};
+use std::os::raw::{c_uint, c_void, c_int};
 use string::CFStringRef;
 
 pub type Boolean = u8;
-pub type CFIndex = c_long;
 pub type mach_port_t = c_uint;
 pub type CFAllocatorRef = *const c_void;
 pub type CFNullRef = *const c_void;
-pub type CFHashCode = c_ulong;
-pub type CFTypeID = c_ulong;
 pub type CFTypeRef = *const c_void;
-pub type CFOptionFlags = u32;
 pub type OSStatus = i32;
 pub type SInt32 = c_int;
+pub type CFTypeID = usize;
+pub type CFOptionFlags = usize;
+pub type CFHashCode = usize;
+pub type CFIndex = isize;
 
-#[repr(i64)]
-#[derive(Clone, Copy)]
+#[repr(isize)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum CFComparisonResult {
     LessThan = -1,
     EqualTo = 0,
@@ -71,13 +71,13 @@ pub type CFAllocatorPreferredSizeCallBack = extern "C" fn(size: CFIndex, hint: C
 pub struct CFAllocatorContext {
     pub version: CFIndex,
     pub info: *mut c_void,
-    pub retain: CFAllocatorRetainCallBack,
-    pub release: CFAllocatorReleaseCallBack,
-    pub copyDescription: CFAllocatorCopyDescriptionCallBack,
-    pub allocate: CFAllocatorAllocateCallBack,
-    pub reallocate: CFAllocatorReallocateCallBack,
-    pub deallocate: CFAllocatorDeallocateCallBack,
-    pub preferredSize: CFAllocatorPreferredSizeCallBack
+    pub retain: Option<CFAllocatorRetainCallBack>,
+    pub release: Option<CFAllocatorReleaseCallBack>,
+    pub copyDescription: Option<CFAllocatorCopyDescriptionCallBack>,
+    pub allocate: Option<CFAllocatorAllocateCallBack>,
+    pub reallocate: Option<CFAllocatorReallocateCallBack>,
+    pub deallocate: Option<CFAllocatorDeallocateCallBack>,
+    pub preferredSize: Option<CFAllocatorPreferredSizeCallBack>
 }
 
 /// Trait for all types which are Core Foundation reference types.
@@ -106,6 +106,9 @@ impl<T> TCFTypeRef for *mut T {
         ptr as *const T as *mut T
     }
 }
+
+/// Constant used by some functions to indicate failed searches.
+pub static kCFNotFound: CFIndex = -1;
 
 extern {
     /*

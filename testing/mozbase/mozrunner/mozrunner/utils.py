@@ -155,7 +155,7 @@ def test_environment(xrePath, env=None, crashreporter=True, debugger=False,
                 llvmSymbolizerDir = xrePath
             llvmsym = os.path.join(
                 llvmSymbolizerDir,
-                "llvm-symbolizer" + mozinfo.info["bin_suffix"].encode('ascii'))
+                "llvm-symbolizer" + mozinfo.info["bin_suffix"])
             if os.path.isfile(llvmsym):
                 env["ASAN_SYMBOLIZER_PATH"] = llvmsym
                 log.info("INFO | runtests.py | ASan using symbolizer at %s"
@@ -175,7 +175,7 @@ def test_environment(xrePath, env=None, crashreporter=True, debugger=False,
 
             # Only 4 GB RAM or less available? Use custom ASan options to reduce
             # the amount of resources required to do the tests. Standard options
-            # will otherwise lead to OOM conditions on the current test slaves.
+            # will otherwise lead to OOM conditions on the current test machines.
             message = "INFO | runtests.py | ASan running in %s configuration"
             asanOptions = []
             if totalMemory <= 1024 * 1024 * 4:
@@ -224,7 +224,7 @@ def test_environment(xrePath, env=None, crashreporter=True, debugger=False,
     return env
 
 
-def get_stack_fixer_function(utilityPath, symbolsPath):
+def get_stack_fixer_function(utilityPath, symbolsPath, hideErrors=False):
     """
     Return a stack fixing function, if possible, to use on output lines.
 
@@ -237,9 +237,7 @@ def get_stack_fixer_function(utilityPath, symbolsPath):
         return None
 
     if os.getenv('MOZ_DISABLE_STACK_FIX', 0):
-        return None
-
-    if mozinfo.isMac and not mozinfo.automation:
+        print("WARNING: No stack-fixing will occur because MOZ_DISABLE_STACK_FIX is set")
         return None
 
     def import_stack_fixer_module(module_name):
@@ -249,35 +247,22 @@ def get_stack_fixer_function(utilityPath, symbolsPath):
         return module
 
     if symbolsPath and os.path.exists(symbolsPath):
-        # Run each line through a function in fix_stack_using_bpsyms.py (uses breakpad
-        # symbol files).
-        # This method is preferred for Tinderbox builds, since native
-        # symbols may have been stripped.
-        stack_fixer_module = import_stack_fixer_module(
-            'fix_stack_using_bpsyms')
+        # Run each line through fix_stacks.py, using breakpad symbol files.
+        # This method is preferred for automation, since native symbols may
+        # have been stripped.
+        stack_fixer_module = import_stack_fixer_module('fix_stacks')
 
         def stack_fixer_function(line):
-            return stack_fixer_module.fixSymbols(line, symbolsPath)
+            return stack_fixer_module.fixSymbols(
+                line, slowWarning=True, breakpadSymsDir=symbolsPath, hide_errors=hideErrors)
 
-    elif mozinfo.isMac:
-        # Run each line through fix_macosx_stack.py (uses atos).
-        # This method is preferred for developer machines, so we don't
-        # have to run "make buildsymbols".
-        stack_fixer_module = import_stack_fixer_module(
-            'fix_macosx_stack')
-
-        def stack_fixer_function(line):
-            return stack_fixer_module.fixSymbols(line)
-
-    elif mozinfo.isLinux:
-        # Run each line through fix_linux_stack.py (uses addr2line).
-        # This method is preferred for developer machines, so we don't
-        # have to run "make buildsymbols".
-        stack_fixer_module = import_stack_fixer_module(
-            'fix_linux_stack')
+    elif mozinfo.isLinux or mozinfo.isMac or mozinfo.isWin:
+        # Run each line through fix_stacks.py. This method is preferred for
+        # developer machines, so we don't have to run "mach buildsymbols".
+        stack_fixer_module = import_stack_fixer_module('fix_stacks')
 
         def stack_fixer_function(line):
-            return stack_fixer_module.fixSymbols(line)
+            return stack_fixer_module.fixSymbols(line, slowWarning=True, hide_errors=hideErrors)
 
     else:
         return None

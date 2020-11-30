@@ -326,7 +326,7 @@ function doLogout() {
 
 // load a new device
 function doLoad() {
-  window.docShell.rootTreeItem.domWindow.open(
+  window.browsingContext.topChromeWindow.open(
     "load_device.xhtml",
     "loaddevice",
     "chrome,centerscreen,modal"
@@ -365,7 +365,7 @@ function changePassword() {
   let objects = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
   objects.appendElement(selected_slot.getToken());
   params.objects = objects;
-  window.docShell.rootTreeItem.domWindow.openDialog(
+  window.browsingContext.topChromeWindow.openDialog(
     "changepassword.xhtml",
     "",
     "chrome,centerscreen,modal",
@@ -414,7 +414,7 @@ function toggleFIPS() {
     var internal_token = tokendb.getInternalKeyToken(); // nsIPK11Token
     if (!internal_token.hasPassword) {
       // Token has either no or an empty password.
-      doPrompt("fips-nonempty-password-required");
+      doPrompt("fips-nonempty-primary-password-required");
       return;
     }
   }

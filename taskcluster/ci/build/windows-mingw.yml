@@ -12,6 +12,8 @@ job-defaults:
         actions: [build]
         script: mozharness/scripts/fx_desktop_build.py
         need-xvfb: false
+    optimization:
+        skip-unless-expanded: null
 
 win32-mingwclang/opt:
     description: "Win32 MinGW-Clang Opt"
@@ -32,7 +34,8 @@ win32-mingwclang/opt:
             - builds/releng_base_windows_32_mingw_builds.py
             - builds/releng_sub_windows_configs/32_mingwclang.py
         mozconfig-variant: mingwclang
-    run-on-projects: ['try', 'release']
+    run-on-projects: ['mozilla-central', 'mozilla-esr78']
+    use-sccache: true
     fetches:
         toolchain:
             - mingw32-rust
@@ -65,6 +68,8 @@ win32-mingwclang/debug:
             - builds/releng_base_windows_32_mingw_builds.py
             - builds/releng_sub_windows_configs/32_mingwclang.py
         mozconfig-variant: mingwclang-debug
+    run-on-projects: ['mozilla-central', 'mozilla-esr78']
+    use-sccache: true
     fetches:
         toolchain:
             - mingw32-rust
@@ -97,7 +102,8 @@ win64-mingwclang/opt:
             - builds/releng_base_windows_64_mingw_builds.py
             - builds/releng_sub_windows_configs/64_mingwclang.py
         mozconfig-variant: mingwclang
-    run-on-projects: ['try', 'release']
+    run-on-projects: ['mozilla-central', 'mozilla-esr78']
+    use-sccache: true
     fetches:
         toolchain:
             - mingw32-rust
@@ -130,6 +136,8 @@ win64-mingwclang/debug:
             - builds/releng_base_windows_64_mingw_builds.py
             - builds/releng_sub_windows_configs/64_mingwclang.py
         mozconfig-variant: mingwclang-debug
+    run-on-projects: ['mozilla-central', 'mozilla-esr78']
+    use-sccache: true
     fetches:
         toolchain:
             - mingw32-rust

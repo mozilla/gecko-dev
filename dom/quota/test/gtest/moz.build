@@ -6,7 +6,10 @@
 
 UNIFIED_SOURCES = [
     'TestCheckedUnsafePtr.cpp',
+    'TestEncryptedStream.cpp',
+    'TestQuotaCommon.cpp',
     'TestQuotaManager.cpp',
+    'TestUsageInfo.cpp',
 ]
 
 include('/ipc/chromium/chromium-config.mozbuild')

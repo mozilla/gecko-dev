@@ -29,6 +29,7 @@ const {
 const actions = require("devtools/client/application/src/actions/index");
 
 const { WorkersListener } = require("devtools/client/shared/workers-listener");
+const Telemetry = require("devtools/client/shared/telemetry");
 
 const {
   services,
@@ -38,6 +39,8 @@ const App = createFactory(
   require("devtools/client/application/src/components/App")
 );
 
+const { safeAsyncMethod } = require("devtools/shared/async-utils");
+
 /**
  * Global Application object in this panel. This object is expected by panel.js and is
  * called to start the UI for the panel.
@@ -46,18 +49,23 @@ window.Application = {
   async bootstrap({ toolbox, panel }) {
     // bind event handlers to `this`
     this.handleOnNavigate = this.handleOnNavigate.bind(this);
-    this.updateWorkers = this.updateWorkers.bind(this);
     this.updateDomain = this.updateDomain.bind(this);
-    this.updateCanDebugWorkers = this.updateCanDebugWorkers.bind(this);
     this.onTargetAvailable = this.onTargetAvailable.bind(this);
     this.onTargetDestroyed = this.onTargetDestroyed.bind(this);
+
+    // wrap updateWorkers to swallow rejections occurring after destroy
+    this.safeUpdateWorkers = safeAsyncMethod(
+      () => this.updateWorkers(),
+      () => this._destroyed
+    );
 
     this.toolbox = toolbox;
     // NOTE: the client is the same through the lifecycle of the toolbox, even
     // though we get it from toolbox.target
     this.client = toolbox.target.client;
 
-    this.store = configureStore();
+    this.telemetry = new Telemetry();
+    this.store = configureStore(this.telemetry, toolbox.sessionId);
     this.actions = bindActionCreators(actions, this.store.dispatch);
 
     services.init(this.toolbox);
@@ -65,16 +73,13 @@ window.Application = {
 
     await this.updateWorkers();
     this.workersListener = new WorkersListener(this.client.mainRoot);
-    this.workersListener.addListener(this.updateWorkers);
+    this.workersListener.addListener(this.safeUpdateWorkers);
 
-    this.deviceFront = await this.client.mainRoot.getFront("device");
-    await this.updateCanDebugWorkers();
-    if (this.deviceFront) {
-      this.canDebugWorkersListener = this.deviceFront.on(
-        "can-debug-sw-updated",
-        this.updateCanDebugWorkers
-      );
-    }
+    const deviceFront = await this.client.mainRoot.getFront("device");
+    const { canDebugServiceWorkers } = await deviceFront.getDescription();
+    this.actions.updateCanDebugWorkers(
+      canDebugServiceWorkers && services.features.doesDebuggerSupportWorkers
+    );
 
     // awaiting for watchTargets will return the targets that are currently
     // available, so we can have our first render with all the data ready
@@ -99,26 +104,12 @@ window.Application = {
   },
 
   async updateWorkers() {
-    const { service } = await this.client.mainRoot.listAllWorkers();
-    // filter out workers that don't have an URL or a scope
-    // TODO: Bug 1595138 investigate why we lack those properties
-    const workers = service.filter(x => x.url && x.scope);
-
-    this.actions.updateWorkers(workers);
+    const registrationsWithWorkers = await this.client.mainRoot.listAllServiceWorkers();
+    this.actions.updateWorkers(registrationsWithWorkers);
   },
 
   updateDomain() {
     this.actions.updateDomain(this.toolbox.target.url);
-  },
-
-  async updateCanDebugWorkers() {
-    const canDebugWorkers = this.deviceFront
-      ? (await this.deviceFront.getDescription()).canDebugServiceWorkers
-      : false;
-
-    this.actions.updateCanDebugWorkers(
-      canDebugWorkers && services.features.doesDebuggerSupportWorkers
-    );
   },
 
   setupTarget(targetFront) {
@@ -130,16 +121,16 @@ window.Application = {
     targetFront.off("navigate", this.handleOnNavigate);
   },
 
-  onTargetAvailable({ targetFront, isTopLevel }) {
-    if (!isTopLevel) {
+  onTargetAvailable({ targetFront }) {
+    if (!targetFront.isTopLevel) {
       return; // ignore target frames that are not top level for now
     }
 
     this.setupTarget(targetFront);
   },
 
-  onTargetDestroyed({ targetFront, isTopLevel }) {
-    if (!isTopLevel) {
+  onTargetDestroyed({ targetFront }) {
+    if (!targetFront.isTopLevel) {
       return; // ignore target frames that are not top level for now
     }
 
@@ -148,9 +139,6 @@ window.Application = {
 
   destroy() {
     this.workersListener.removeListener();
-    if (this.deviceFront) {
-      this.deviceFront.off("can-debug-sw-updated", this.updateCanDebugWorkers);
-    }
 
     this.toolbox.targetList.unwatchTargets(
       [this.toolbox.targetList.TYPES.FRAME],
@@ -165,6 +153,6 @@ window.Application = {
     this.toolbox = null;
     this.client = null;
     this.workersListener = null;
-    this.deviceFront = null;
+    this._destroyed = true;
   },
 };

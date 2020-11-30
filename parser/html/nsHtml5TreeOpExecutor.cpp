@@ -63,7 +63,7 @@ class nsHtml5ExecutorReflusher : public Runnable {
       nsCOMPtr<nsIRunnable> flusher = this;
       if (NS_SUCCEEDED(
               doc->Dispatch(TaskCategory::Network, flusher.forget()))) {
-        PROFILER_ADD_MARKER("HighPrio blocking parser flushing(2)", DOM);
+        PROFILER_MARKER_UNTYPED("HighPrio blocking parser flushing(2)", DOM);
         return NS_OK;
       }
     }
@@ -176,7 +176,7 @@ nsHtml5TreeOpExecutor::DidBuildModel(bool aTerminated) {
   }
 
   if (!destroying) {
-    mDocument->TriggerInitialDocumentTranslation();
+    mDocument->OnParsingCompleted();
 
     if (!mLayoutStarted) {
       // We never saw the body, and layout never got started. Force
@@ -244,7 +244,7 @@ nsHtml5TreeOpExecutor::SetParser(nsParserBase* aParser) {
   return NS_OK;
 }
 
-void nsHtml5TreeOpExecutor::InitialDocumentTranslationCompleted() {
+void nsHtml5TreeOpExecutor::InitialTranslationCompleted() {
   nsContentSink::StartLayout(false);
 }
 
@@ -819,18 +819,17 @@ void nsHtml5TreeOpExecutor::MaybeComplainAboutCharset(const char* aMsgId,
   mAlreadyComplainedAboutCharset = true;
   nsContentUtils::ReportToConsole(
       aError ? nsIScriptError::errorFlag : nsIScriptError::warningFlag,
-      NS_LITERAL_CSTRING("HTML parser"), mDocument,
-      nsContentUtils::eHTMLPARSER_PROPERTIES, aMsgId, nsTArray<nsString>(),
-      nullptr, EmptyString(), aLineNumber);
+      "HTML parser"_ns, mDocument, nsContentUtils::eHTMLPARSER_PROPERTIES,
+      aMsgId, nsTArray<nsString>(), nullptr, u""_ns, aLineNumber);
 }
 
 void nsHtml5TreeOpExecutor::ComplainAboutBogusProtocolCharset(Document* aDoc) {
   NS_ASSERTION(!mAlreadyComplainedAboutCharset,
                "How come we already managed to complain?");
   mAlreadyComplainedAboutCharset = true;
-  nsContentUtils::ReportToConsole(
-      nsIScriptError::errorFlag, NS_LITERAL_CSTRING("HTML parser"), aDoc,
-      nsContentUtils::eHTMLPARSER_PROPERTIES, "EncProtocolUnsupported");
+  nsContentUtils::ReportToConsole(nsIScriptError::errorFlag, "HTML parser"_ns,
+                                  aDoc, nsContentUtils::eHTMLPARSER_PROPERTIES,
+                                  "EncProtocolUnsupported");
 }
 
 void nsHtml5TreeOpExecutor::MaybeComplainAboutDeepTree(uint32_t aLineNumber) {
@@ -839,9 +838,9 @@ void nsHtml5TreeOpExecutor::MaybeComplainAboutDeepTree(uint32_t aLineNumber) {
   }
   mAlreadyComplainedAboutDeepTree = true;
   nsContentUtils::ReportToConsole(
-      nsIScriptError::errorFlag, NS_LITERAL_CSTRING("HTML parser"), mDocument,
+      nsIScriptError::errorFlag, "HTML parser"_ns, mDocument,
       nsContentUtils::eHTMLPARSER_PROPERTIES, "errDeepTree",
-      nsTArray<nsString>(), nullptr, EmptyString(), aLineNumber);
+      nsTArray<nsString>(), nullptr, u""_ns, aLineNumber);
 }
 
 nsHtml5Parser* nsHtml5TreeOpExecutor::GetParser() {
@@ -1004,10 +1003,12 @@ void nsHtml5TreeOpExecutor::PreloadStyle(const nsAString& aURL,
                           aLinkPreload);
 }
 
-void nsHtml5TreeOpExecutor::PreloadImage(
-    const nsAString& aURL, const nsAString& aCrossOrigin,
-    const nsAString& aSrcset, const nsAString& aSizes,
-    const nsAString& aImageReferrerPolicy) {
+void nsHtml5TreeOpExecutor::PreloadImage(const nsAString& aURL,
+                                         const nsAString& aCrossOrigin,
+                                         const nsAString& aSrcset,
+                                         const nsAString& aSizes,
+                                         const nsAString& aImageReferrerPolicy,
+                                         bool aLinkPreload) {
   nsCOMPtr<nsIURI> baseURI = BaseURIForPreload();
   bool isImgSet = false;
   nsCOMPtr<nsIURI> uri =
@@ -1016,7 +1017,7 @@ void nsHtml5TreeOpExecutor::PreloadImage(
     // use document wide referrer policy
     mDocument->MaybePreLoadImage(uri, aCrossOrigin,
                                  GetPreloadReferrerPolicy(aImageReferrerPolicy),
-                                 isImgSet);
+                                 isImgSet, aLinkPreload);
   }
 }
 
@@ -1027,6 +1028,28 @@ void nsHtml5TreeOpExecutor::PreloadPictureSource(const nsAString& aSrcset,
                                                  const nsAString& aType,
                                                  const nsAString& aMedia) {
   mDocument->PreloadPictureImageSource(aSrcset, aSizes, aType, aMedia);
+}
+
+void nsHtml5TreeOpExecutor::PreloadFont(const nsAString& aURL,
+                                        const nsAString& aCrossOrigin,
+                                        const nsAString& aReferrerPolicy) {
+  nsCOMPtr<nsIURI> uri = ConvertIfNotPreloadedYet(aURL);
+  if (!uri) {
+    return;
+  }
+
+  mDocument->Preloads().PreloadFont(uri, aCrossOrigin, aReferrerPolicy);
+}
+
+void nsHtml5TreeOpExecutor::PreloadFetch(const nsAString& aURL,
+                                         const nsAString& aCrossOrigin,
+                                         const nsAString& aReferrerPolicy) {
+  nsCOMPtr<nsIURI> uri = ConvertIfNotPreloadedYet(aURL);
+  if (!uri) {
+    return;
+  }
+
+  mDocument->Preloads().PreloadFetch(uri, aCrossOrigin, aReferrerPolicy);
 }
 
 void nsHtml5TreeOpExecutor::PreloadOpenPicture() {
@@ -1054,6 +1077,8 @@ void nsHtml5TreeOpExecutor::SetSpeculationBase(const nsAString& aURL) {
   DebugOnly<nsresult> rv = NS_NewURI(getter_AddRefs(mSpeculationBaseURI), aURL,
                                      encoding, mDocument->GetDocumentURI());
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Failed to create a URI");
+
+  mDocument->Preloads().SetSpeculationBase(mSpeculationBaseURI);
 }
 
 void nsHtml5TreeOpExecutor::UpdateReferrerInfoFromMeta(

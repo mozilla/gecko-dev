@@ -17,15 +17,16 @@
 #include "jsapi.h"  // JS_EnsureLinearString, JS_GC, JS_Get{Latin1,TwoByte}LinearStringChars, JS_GetStringLength, JS_ValueToFunction
 #include "jstypes.h"  // JS_PUBLIC_API
 
-#include "js/CompilationAndEvaluation.h"  // JS::Evaluate{,DontInflate}
+#include "js/CompilationAndEvaluation.h"  // JS::Evaluate
 #include "js/CompileOptions.h"            // JS::CompileOptions
 #include "js/Conversions.h"               // JS::ToString
 #include "js/MemoryFunctions.h"           // JS_malloc
 #include "js/RootingAPI.h"                // JS::MutableHandle, JS::Rooted
 #include "js/SourceText.h"                // JS::SourceOwnership, JS::SourceText
-#include "js/UniquePtr.h"                 // js::UniquePtr
-#include "js/Utility.h"                   // JS::FreePolicy
-#include "js/Value.h"  // JS::NullValue, JS::ObjectValue, JS::Value
+#include "js/String.h"  // JS::GetLatin1LinearStringChars, JS::GetTwoByteLinearStringChars, JS::StringHasLatin1Chars
+#include "js/UniquePtr.h"  // js::UniquePtr
+#include "js/Utility.h"    // JS::FreePolicy
+#include "js/Value.h"      // JS::NullValue, JS::ObjectValue, JS::Value
 #include "jsapi-tests/tests.h"
 #include "vm/Compression.h"  // js::Compressor::CHUNK_SIZE
 #include "vm/JSFunction.h"   // JSFunction::getOrCreateScript
@@ -60,18 +61,6 @@ static Source<Unit> MakeSourceAllWhitespace(JSContext* cx, size_t len) {
   return source;
 }
 
-static bool Evaluate(JSContext* cx, const JS::CompileOptions& options,
-                     JS::SourceText<char16_t>& sourceText) {
-  JS::Rooted<JS::Value> dummy(cx);
-  return JS::Evaluate(cx, options, sourceText, &dummy);
-}
-
-static bool Evaluate(JSContext* cx, const JS::CompileOptions& options,
-                     JS::SourceText<Utf8Unit>& sourceText) {
-  JS::Rooted<JS::Value> dummy(cx);
-  return JS::EvaluateDontInflate(cx, options, sourceText, &dummy);
-}
-
 template <typename Unit>
 static JSFunction* EvaluateChars(JSContext* cx, Source<Unit> chars, size_t len,
                                  char functionName, const char* func) {
@@ -85,8 +74,11 @@ static JSFunction* EvaluateChars(JSContext* cx, Source<Unit> chars, size_t len,
     return nullptr;
   }
 
-  if (!Evaluate(cx, options, sourceText)) {
-    return nullptr;
+  {
+    JS::Rooted<JS::Value> dummy(cx);
+    if (!JS::Evaluate(cx, options, sourceText, &dummy)) {
+      return nullptr;
+    }
   }
 
   // Evaluate the name of that function.
@@ -194,11 +186,11 @@ static bool IsExpectedFunctionString(JS::Handle<JSString*> str,
   };
 
   bool hasExpectedContents;
-  if (JS_StringHasLatin1Chars(str)) {
-    const JS::Latin1Char* chars = JS_GetLatin1LinearStringChars(nogc, lstr);
+  if (JS::StringHasLatin1Chars(str)) {
+    const JS::Latin1Char* chars = JS::GetLatin1LinearStringChars(nogc, lstr);
     hasExpectedContents = CheckContents(chars);
   } else {
-    const char16_t* chars = JS_GetTwoByteLinearStringChars(nogc, lstr);
+    const char16_t* chars = JS::GetTwoByteLinearStringChars(nogc, lstr);
     hasExpectedContents = CheckContents(chars);
   }
 

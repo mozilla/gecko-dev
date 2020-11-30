@@ -12,9 +12,45 @@ const EXCLUDED_FILES = {
 };
 
 const whatwgUrl = `
-(() => { 
-  importScripts("resource://devtools/client/shared/vendor/whatwg-url.js");
-  return { URL }
+(() => {
+  let factory;
+  function define(...args) {
+    if (factory) {
+      throw new Error("expected a single define call");
+    }
+
+    if (
+      args.length !== 2 ||
+      !Array.isArray(args[0]) ||
+      args[0].length !== 0 ||
+      typeof args[1] !== "function"
+    ) {
+      throw new Error("whatwg-url had unexpected factory arguments.");
+    }
+
+    factory = args[1];
+  }
+  define.amd = true;
+
+  const existingDefine = Object.getOwnPropertyDescriptor(globalThis, "define");
+  globalThis.define = define;
+  let err;
+  try {
+    importScripts("resource://devtools/client/shared/vendor/whatwg-url.js");
+
+    if (!factory) {
+      throw new Error("Failed to load whatwg-url factory");
+    }
+  } finally {
+    if (existingDefine) {
+      Object.defineProperty(globalThis, "define", existingDefine);
+    } else {
+      delete globalThis.define;
+    }
+
+  }
+
+  return factory();
 })()
 `
 
@@ -23,7 +59,7 @@ module.exports = Object.assign(
     "./source-editor": "devtools/client/sourceeditor/editor",
     "../editor/source-editor": "devtools/client/sourceeditor/editor",
     "./test-flag": "devtools/shared/flags",
-    "./fronts-device": "devtools/shared/fronts/device",
+    "./fronts-device": "devtools/client/fronts/device",
     immutable: "devtools/client/shared/vendor/immutable",
     lodash: "devtools/client/shared/vendor/lodash",
     react: "devtools/client/shared/vendor/react",
@@ -36,8 +72,8 @@ module.exports = Object.assign(
     "devtools-modules/src/menu/menu-item":
       "devtools/client/framework/menu-item",
     "devtools-services": "Services",
-    "wasmparser/dist/WasmParser": "devtools/client/shared/vendor/WasmParser",
-    "wasmparser/dist/WasmDis": "devtools/client/shared/vendor/WasmDis",
+    "wasmparser/dist/cjs/WasmParser": "devtools/client/shared/vendor/WasmParser",
+    "wasmparser/dist/cjs/WasmDis": "devtools/client/shared/vendor/WasmDis",
     "whatwg-url": `var ${whatwgUrl}`,
   },
   EXCLUDED_FILES

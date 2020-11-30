@@ -115,7 +115,6 @@ class nsIncrementalDownload final : public nsIIncrementalDownload,
   nsresult ClearRequestHeader(nsIHttpChannel* channel);
 
   nsCOMPtr<nsIRequestObserver> mObserver;
-  nsCOMPtr<nsISupports> mObserverContext;
   nsCOMPtr<nsIProgressEventSink> mProgressSink;
   nsCOMPtr<nsIURI> mURI;
   nsCOMPtr<nsIURI> mFinalURI;
@@ -174,8 +173,7 @@ void nsIncrementalDownload::UpdateProgress() {
   mLastProgressUpdate = PR_Now();
 
   if (mProgressSink)
-    mProgressSink->OnProgress(this, mObserverContext, mCurrentSize + mChunkLen,
-                              mTotalSize);
+    mProgressSink->OnProgress(this, mCurrentSize + mChunkLen, mTotalSize);
 }
 
 nsresult nsIncrementalDownload::CallOnStartRequest() {
@@ -196,7 +194,6 @@ void nsIncrementalDownload::CallOnStopRequest() {
 
   mObserver->OnStopRequest(this, mStatus);
   mObserver = nullptr;
-  mObserverContext = nullptr;
 }
 
 nsresult nsIncrementalDownload::StartTimer(int32_t interval) {
@@ -216,15 +213,15 @@ nsresult nsIncrementalDownload::ProcessTimeout() {
   // Fetch next chunk
 
   nsCOMPtr<nsIChannel> channel;
-  nsresult rv = NS_NewChannel(getter_AddRefs(channel), mFinalURI,
-                              nsContentUtils::GetSystemPrincipal(),
-                              nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
-                              nsIContentPolicy::TYPE_OTHER,
-                              nullptr,  // nsICookieJarSettings
-                              nullptr,  // PerformanceStorage
-                              nullptr,  // loadGroup
-                              this,     // aCallbacks
-                              mLoadFlags);
+  nsresult rv = NS_NewChannel(
+      getter_AddRefs(channel), mFinalURI, nsContentUtils::GetSystemPrincipal(),
+      nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
+      nsIContentPolicy::TYPE_OTHER,
+      nullptr,  // nsICookieJarSettings
+      nullptr,  // PerformanceStorage
+      nullptr,  // loadGroup
+      this,     // aCallbacks
+      mLoadFlags);
 
   if (NS_FAILED(rv)) return rv;
 
@@ -243,12 +240,11 @@ nsresult nsIncrementalDownload::ProcessTimeout() {
     nsAutoCString range;
     MakeRangeSpec(mCurrentSize, mTotalSize, mChunkSize, mInterval == 0, range);
 
-    rv = http->SetRequestHeader(NS_LITERAL_CSTRING("Range"), range, false);
+    rv = http->SetRequestHeader("Range"_ns, range, false);
     if (NS_FAILED(rv)) return rv;
 
     if (!mPartialValidator.IsEmpty()) {
-      rv = http->SetRequestHeader(NS_LITERAL_CSTRING("If-Range"),
-                                  mPartialValidator, false);
+      rv = http->SetRequestHeader("If-Range"_ns, mPartialValidator, false);
       if (NS_FAILED(rv)) {
         LOG(
             ("nsIncrementalDownload::ProcessTimeout\n"
@@ -257,15 +253,13 @@ nsresult nsIncrementalDownload::ProcessTimeout() {
     }
 
     if (mCacheBust) {
-      rv = http->SetRequestHeader(NS_LITERAL_CSTRING("Cache-Control"),
-                                  NS_LITERAL_CSTRING("no-cache"), false);
+      rv = http->SetRequestHeader("Cache-Control"_ns, "no-cache"_ns, false);
       if (NS_FAILED(rv)) {
         LOG(
             ("nsIncrementalDownload::ProcessTimeout\n"
              "    failed to set request header: If-Range\n"));
       }
-      rv = http->SetRequestHeader(NS_LITERAL_CSTRING("Pragma"),
-                                  NS_LITERAL_CSTRING("no-cache"), false);
+      rv = http->SetRequestHeader("Pragma"_ns, "no-cache"_ns, false);
       if (NS_FAILED(rv)) {
         LOG(
             ("nsIncrementalDownload::ProcessTimeout\n"
@@ -468,7 +462,6 @@ nsIncrementalDownload::Start(nsIRequestObserver* observer,
   if (NS_FAILED(rv)) return rv;
 
   mObserver = observer;
-  mObserverContext = context;
   mProgressSink = do_QueryInterface(observer);  // ok if null
 
   mIsPending = true;
@@ -532,7 +525,7 @@ nsIncrementalDownload::OnStartRequest(nsIRequest* request) {
       int64_t startByte = 0;
       bool confirmedOK = false;
 
-      rv = http->GetResponseHeader(NS_LITERAL_CSTRING("Content-Range"), buf);
+      rv = http->GetResponseHeader("Content-Range"_ns, buf);
       if (NS_FAILED(rv))
         return rv;  // it isn't a useful 206 without a CONTENT-RANGE of some
                     // sort
@@ -588,13 +581,11 @@ nsIncrementalDownload::OnStartRequest(nsIRequest* request) {
     // Update knowledge of mFinalURI
     rv = http->GetURI(getter_AddRefs(mFinalURI));
     if (NS_FAILED(rv)) return rv;
-    Unused << http->GetResponseHeader(NS_LITERAL_CSTRING("Etag"),
-                                      mPartialValidator);
-    if (StringBeginsWith(mPartialValidator, NS_LITERAL_CSTRING("W/")))
+    Unused << http->GetResponseHeader("Etag"_ns, mPartialValidator);
+    if (StringBeginsWith(mPartialValidator, "W/"_ns))
       mPartialValidator.Truncate();  // don't use weak validators
     if (mPartialValidator.IsEmpty()) {
-      rv = http->GetResponseHeader(NS_LITERAL_CSTRING("Last-Modified"),
-                                   mPartialValidator);
+      rv = http->GetResponseHeader("Last-Modified"_ns, mPartialValidator);
       if (NS_FAILED(rv)) {
         LOG(
             ("nsIncrementalDownload::OnStartRequest\n"
@@ -606,7 +597,7 @@ nsIncrementalDownload::OnStartRequest(nsIRequest* request) {
       // OK, read the Content-Range header to determine the total size of this
       // download file.
       nsAutoCString buf;
-      rv = http->GetResponseHeader(NS_LITERAL_CSTRING("Content-Range"), buf);
+      rv = http->GetResponseHeader("Content-Range"_ns, buf);
       if (NS_FAILED(rv)) return rv;
       int32_t slash = buf.FindChar('/');
       if (slash == kNotFound) {
@@ -749,8 +740,7 @@ nsresult nsIncrementalDownload::ClearRequestHeader(nsIHttpChannel* channel) {
 
   // We don't support encodings -- they make the Content-Length not equal
   // to the actual size of the data.
-  return channel->SetRequestHeader(NS_LITERAL_CSTRING("Accept-Encoding"),
-                                   NS_LITERAL_CSTRING(""), false);
+  return channel->SetRequestHeader("Accept-Encoding"_ns, ""_ns, false);
 }
 
 // nsIChannelEventSink
@@ -768,7 +758,7 @@ nsIncrementalDownload::AsyncOnChannelRedirect(
   nsCOMPtr<nsIHttpChannel> newHttpChannel = do_QueryInterface(newChannel);
   NS_ENSURE_STATE(newHttpChannel);
 
-  NS_NAMED_LITERAL_CSTRING(rangeHdr, "Range");
+  constexpr auto rangeHdr = "Range"_ns;
 
   nsresult rv = ClearRequestHeader(newHttpChannel);
   if (NS_FAILED(rv)) return rv;
@@ -785,16 +775,14 @@ nsIncrementalDownload::AsyncOnChannelRedirect(
   mPartialValidator.Truncate();
 
   if (mCacheBust) {
-    rv =
-        newHttpChannel->SetRequestHeader(NS_LITERAL_CSTRING("Cache-Control"),
-                                         NS_LITERAL_CSTRING("no-cache"), false);
+    rv = newHttpChannel->SetRequestHeader("Cache-Control"_ns, "no-cache"_ns,
+                                          false);
     if (NS_FAILED(rv)) {
       LOG(
           ("nsIncrementalDownload::AsyncOnChannelRedirect\n"
            "    failed to set request header: Cache-Control\n"));
     }
-    rv = newHttpChannel->SetRequestHeader(
-        NS_LITERAL_CSTRING("Pragma"), NS_LITERAL_CSTRING("no-cache"), false);
+    rv = newHttpChannel->SetRequestHeader("Pragma"_ns, "no-cache"_ns, false);
     if (NS_FAILED(rv)) {
       LOG(
           ("nsIncrementalDownload::AsyncOnChannelRedirect\n"

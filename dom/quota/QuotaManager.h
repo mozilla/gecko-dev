@@ -256,9 +256,8 @@ class QuotaManager final : public BackgroundThreadObject {
   // for the given process.
   void AbortOperationsForProcess(ContentParentId aContentParentId);
 
-  nsresult GetDirectoryForOrigin(PersistenceType aPersistenceType,
-                                 const nsACString& aASCIIOrigin,
-                                 nsIFile** aDirectory) const;
+  Result<nsCOMPtr<nsIFile>, nsresult> GetDirectoryForOrigin(
+      PersistenceType aPersistenceType, const nsACString& aASCIIOrigin) const;
 
   nsresult RestoreDirectoryMetadata2(nsIFile* aDirectory, bool aPersistent);
 
@@ -297,7 +296,7 @@ class QuotaManager final : public BackgroundThreadObject {
   already_AddRefed<DirectoryLock> OpenDirectory(
       PersistenceType aPersistenceType, const nsACString& aGroup,
       const nsACString& aOrigin, Client::Type aClientType, bool aExclusive,
-      OpenDirectoryListener* aOpenListener);
+      RefPtr<OpenDirectoryListener> aOpenListener);
 
   // XXX RemoveMe once bug 1170279 gets fixed.
   already_AddRefed<DirectoryLock> OpenDirectoryInternal(
@@ -338,18 +337,22 @@ class QuotaManager final : public BackgroundThreadObject {
 
   nsresult EnsureStorageIsInitialized();
 
-  nsresult EnsureStorageAndOriginIsInitialized(PersistenceType aPersistenceType,
-                                               const nsACString& aSuffix,
-                                               const nsACString& aGroup,
-                                               const nsACString& aOrigin,
-                                               Client::Type aClientType,
-                                               nsIFile** aDirectory);
-
-  nsresult EnsureStorageAndOriginIsInitializedInternal(
+  /**
+   * @returns a Result with the success value pointing to the storage directory
+   * for the origin.
+   */
+  Result<nsCOMPtr<nsIFile>, nsresult> EnsureStorageAndOriginIsInitialized(
       PersistenceType aPersistenceType, const nsACString& aSuffix,
       const nsACString& aGroup, const nsACString& aOrigin,
-      const Nullable<Client::Type>& aClientType, nsIFile** aDirectory,
-      bool* aCreated = nullptr);
+      Client::Type aClientType);
+
+  // Returns a pair of an nsIFile object referring to the directory, and a bool
+  // indicating whether the directory was newly created.
+  Result<std::pair<nsCOMPtr<nsIFile>, bool>, nsresult>
+  EnsureStorageAndOriginIsInitializedInternal(
+      PersistenceType aPersistenceType, const nsACString& aSuffix,
+      const nsACString& aGroup, const nsACString& aOrigin,
+      const Nullable<Client::Type>& aClientType);
 
   nsresult EnsurePersistentOriginIsInitialized(const nsACString& aSuffix,
                                                const nsACString& aGroup,
@@ -410,6 +413,8 @@ class QuotaManager final : public BackgroundThreadObject {
 
   const nsString& GetBasePath() const { return mBasePath; }
 
+  const nsString& GetStorageName() const { return mStorageName; }
+
   const nsString& GetStoragePath() const { return mStoragePath; }
 
   const nsString& GetStoragePath(PersistenceType aPersistenceType) const {
@@ -459,7 +464,8 @@ class QuotaManager final : public BackgroundThreadObject {
 
   static void ChromeOrigin(nsACString& aOrigin);
 
-  static bool AreOriginsEqualOnDisk(nsACString& aOrigin1, nsACString& aOrigin2);
+  static bool AreOriginsEqualOnDisk(const nsACString& aOrigin1,
+                                    const nsACString& aOrigin2);
 
   static bool ParseOrigin(const nsACString& aOrigin, nsCString& aSpec,
                           OriginAttributes* aAttrs);
@@ -467,11 +473,11 @@ class QuotaManager final : public BackgroundThreadObject {
   static void InvalidateQuotaCache();
 
  private:
-  QuotaManager();
+  QuotaManager(const nsAString& aBasePath, const nsAString& aStorageName);
 
   virtual ~QuotaManager();
 
-  nsresult Init(const nsAString& aBaseDirPath);
+  nsresult Init();
 
   void Shutdown();
 
@@ -479,17 +485,18 @@ class QuotaManager final : public BackgroundThreadObject {
       const Nullable<PersistenceType>& aPersistenceType,
       const nsACString& aGroup, const OriginScope& aOriginScope,
       const Nullable<Client::Type>& aClientType, bool aExclusive,
-      bool aInternal, OpenDirectoryListener* aOpenListener, bool& aBlockedOut);
+      bool aInternal, RefPtr<OpenDirectoryListener> aOpenListener,
+      bool& aBlockedOut);
 
   already_AddRefed<DirectoryLockImpl> CreateDirectoryLockForEviction(
       PersistenceType aPersistenceType, const nsACString& aGroup,
       const nsACString& aOrigin);
 
-  void RegisterDirectoryLock(DirectoryLockImpl* aLock);
+  void RegisterDirectoryLock(DirectoryLockImpl& aLock);
 
-  void UnregisterDirectoryLock(DirectoryLockImpl* aLock);
+  void UnregisterDirectoryLock(DirectoryLockImpl& aLock);
 
-  void RemovePendingDirectoryLock(DirectoryLockImpl* aLock);
+  void RemovePendingDirectoryLock(DirectoryLockImpl& aLock);
 
   uint64_t LockedCollectOriginsForEviction(
       uint64_t aMinSizeToBeFreed, nsTArray<RefPtr<DirectoryLockImpl>>& aLocks);
@@ -505,10 +512,11 @@ class QuotaManager final : public BackgroundThreadObject {
       PersistenceType aPersistenceType, const nsACString& aGroup,
       const nsACString& aOrigin);
 
-  nsresult MaybeUpgradeFromIndexedDBDirectoryToPersistentStorageDirectory();
+  nsresult UpgradeFromIndexedDBDirectoryToPersistentStorageDirectory(
+      nsIFile* aIndexedDBDir);
 
-  nsresult
-  MaybeUpgradeFromPersistentStorageDirectoryToDefaultStorageDirectory();
+  nsresult UpgradeFromPersistentStorageDirectoryToDefaultStorageDirectory(
+      nsIFile* aPersistentStorageDir);
 
   template <typename Helper>
   nsresult UpgradeStorage(const int32_t aOldVersion, const int32_t aNewVersion,
@@ -531,8 +539,10 @@ class QuotaManager final : public BackgroundThreadObject {
   nsresult CreateLocalStorageArchiveConnectionFromWebAppsStore(
       mozIStorageConnection** aConnection);
 
-  nsresult CreateLocalStorageArchiveConnection(
-      mozIStorageConnection** aConnection, bool& aNewlyCreated);
+  // The second object in the pair is used to signal if the localStorage
+  // archive database was newly created or recreated.
+  Result<std::pair<nsCOMPtr<mozIStorageConnection>, bool>, nsresult>
+  CreateLocalStorageArchiveConnection();
 
   nsresult RecreateLocalStorageArchive(
       nsCOMPtr<mozIStorageConnection>& aConnection);
@@ -559,7 +569,7 @@ class QuotaManager final : public BackgroundThreadObject {
   void DeleteFilesForOrigin(PersistenceType aPersistenceType,
                             const nsACString& aOrigin);
 
-  void FinalizeOriginEviction(nsTArray<RefPtr<DirectoryLockImpl>>& aLocks);
+  void FinalizeOriginEviction(nsTArray<RefPtr<DirectoryLockImpl>>&& aLocks);
 
   void ReleaseIOThreadObjects() {
     AssertIsOnIOThread();
@@ -636,6 +646,7 @@ class QuotaManager final : public BackgroundThreadObject {
   InitializationInfo mInitializationInfo;
 
   nsString mBasePath;
+  nsString mStorageName;
   nsString mIndexedDBPath;
   nsString mStoragePath;
   nsString mPermanentStoragePath;

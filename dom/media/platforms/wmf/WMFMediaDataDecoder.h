@@ -86,7 +86,7 @@ class WMFMediaDataDecoder
     : public MediaDataDecoder,
       public DecoderDoctorLifeLogger<WMFMediaDataDecoder> {
  public:
-  WMFMediaDataDecoder(MFTManager* aOutputSource, TaskQueue* aTaskQueue);
+  explicit WMFMediaDataDecoder(MFTManager* aOutputSource);
   ~WMFMediaDataDecoder();
 
   RefPtr<MediaDataDecoder::InitPromise> Init() override;
@@ -102,8 +102,7 @@ class WMFMediaDataDecoder
   bool IsHardwareAccelerated(nsACString& aFailureReason) const override;
 
   nsCString GetDescriptionName() const override {
-    return mMFTManager ? mMFTManager->GetDescriptionName()
-                       : NS_LITERAL_CSTRING("");
+    return mMFTManager ? mMFTManager->GetDescriptionName() : ""_ns;
   }
 
   ConversionRequired NeedsConversion() const override {
@@ -131,8 +130,6 @@ class WMFMediaDataDecoder
   // Called on the task queue. Orders the MFT to drain, and then extracts
   // all available output.
   RefPtr<DecodePromise> ProcessDrain();
-
-  RefPtr<ShutdownPromise> ProcessShutdown();
 
   const RefPtr<TaskQueue> mTaskQueue;
 

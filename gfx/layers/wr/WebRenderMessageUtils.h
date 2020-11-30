@@ -12,6 +12,7 @@
 #include "ipc/IPCMessageUtils.h"
 #include "mozilla/webrender/webrender_ffi.h"
 #include "mozilla/webrender/WebRenderTypes.h"
+#include "mozilla/dom/MediaIPCUtils.h"
 
 namespace IPC {
 
@@ -108,12 +109,6 @@ struct ParamTraits<mozilla::wr::LayoutRect>
 template <>
 struct ParamTraits<mozilla::wr::LayoutPoint>
     : public PlainOldDataSerializer<mozilla::wr::LayoutPoint> {};
-
-template <>
-struct ParamTraits<mozilla::wr::RenderRoot>
-    : public ContiguousEnumSerializerInclusive<
-          mozilla::wr::RenderRoot, mozilla::wr::RenderRoot::Default,
-          mozilla::wr::kHighestRenderRoot> {};
 
 template <>
 struct ParamTraits<mozilla::wr::ImageRendering>

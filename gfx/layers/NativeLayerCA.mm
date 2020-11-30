@@ -18,7 +18,10 @@
 #include "GLContextCGL.h"
 #include "GLContextProvider.h"
 #include "MozFramebuffer.h"
+#include "mozilla/gfx/Swizzle.h"
+#include "mozilla/layers/ScreenshotGrabber.h"
 #include "mozilla/layers/SurfacePoolCA.h"
+#include "mozilla/webrender/RenderMacIOSurfaceTextureHost.h"
 #include "ScopedGLHelpers.h"
 
 @interface CALayer (PrivateSetContentsOpaque)
@@ -32,9 +35,53 @@ using gfx::IntPoint;
 using gfx::IntSize;
 using gfx::IntRect;
 using gfx::IntRegion;
+using gfx::DataSourceSurface;
+using gfx::Matrix4x4;
 using gfx::SurfaceFormat;
 using gl::GLContext;
 using gl::GLContextCGL;
+
+// Utility classes for NativeLayerRootSnapshotter (NLRS) profiler screenshots.
+
+class RenderSourceNLRS : public profiler_screenshots::RenderSource {
+ public:
+  explicit RenderSourceNLRS(UniquePtr<gl::MozFramebuffer>&& aFramebuffer)
+      : RenderSource(aFramebuffer->mSize), mFramebuffer(std::move(aFramebuffer)) {}
+  auto& FB() { return *mFramebuffer; }
+
+ protected:
+  UniquePtr<gl::MozFramebuffer> mFramebuffer;
+};
+
+class DownscaleTargetNLRS : public profiler_screenshots::DownscaleTarget {
+ public:
+  DownscaleTargetNLRS(gl::GLContext* aGL, UniquePtr<gl::MozFramebuffer>&& aFramebuffer)
+      : profiler_screenshots::DownscaleTarget(aFramebuffer->mSize),
+        mGL(aGL),
+        mRenderSource(new RenderSourceNLRS(std::move(aFramebuffer))) {}
+  already_AddRefed<profiler_screenshots::RenderSource> AsRenderSource() override {
+    return do_AddRef(mRenderSource);
+  };
+  bool DownscaleFrom(profiler_screenshots::RenderSource* aSource, const IntRect& aSourceRect,
+                     const IntRect& aDestRect) override;
+
+ protected:
+  RefPtr<gl::GLContext> mGL;
+  RefPtr<RenderSourceNLRS> mRenderSource;
+};
+
+class AsyncReadbackBufferNLRS : public profiler_screenshots::AsyncReadbackBuffer {
+ public:
+  AsyncReadbackBufferNLRS(gl::GLContext* aGL, const IntSize& aSize, GLuint aBufferHandle)
+      : profiler_screenshots::AsyncReadbackBuffer(aSize), mGL(aGL), mBufferHandle(aBufferHandle) {}
+  void CopyFrom(profiler_screenshots::RenderSource* aSource) override;
+  bool MapAndCopyInto(DataSourceSurface* aSurface, const IntSize& aReadSize) override;
+
+ protected:
+  virtual ~AsyncReadbackBufferNLRS();
+  RefPtr<gl::GLContext> mGL;
+  GLuint mBufferHandle = 0;
+};
 
 // Needs to be on the stack whenever CALayer mutations are performed.
 // (Mutating CALayers outside of a transaction can result in permanently stuck rendering, because
@@ -92,6 +139,11 @@ already_AddRefed<NativeLayer> NativeLayerRootCA::CreateLayer(
     const IntSize& aSize, bool aIsOpaque, SurfacePoolHandle* aSurfacePoolHandle) {
   RefPtr<NativeLayer> layer =
       new NativeLayerCA(aSize, aIsOpaque, aSurfacePoolHandle->AsSurfacePoolHandleCA());
+  return layer.forget();
+}
+
+already_AddRefed<NativeLayer> NativeLayerRootCA::CreateLayerForExternalTexture(bool aIsOpaque) {
+  RefPtr<NativeLayer> layer = new NativeLayerCA(aIsOpaque);
   return layer.forget();
 }
 
@@ -263,8 +315,8 @@ void NativeLayerRootCA::Representation::Commit(WhichRepresentation aRepresentati
 
   nsCString failureUnused;
   RefPtr<gl::GLContext> gl =
-      gl::GLContextProvider::CreateHeadless(gl::CreateContextFlags::ALLOW_OFFLINE_RENDERER |
-                                                gl::CreateContextFlags::REQUIRE_COMPAT_PROFILE,
+      gl::GLContextProvider::CreateHeadless({gl::CreateContextFlags::ALLOW_OFFLINE_RENDERER |
+                                             gl::CreateContextFlags::REQUIRE_COMPAT_PROFILE},
                                             &failureUnused);
   if (!gl) {
     return nullptr;
@@ -289,14 +341,14 @@ NativeLayerRootSnapshotterCA::~NativeLayerRootSnapshotterCA() {
   [mRenderer release];
 }
 
-bool NativeLayerRootSnapshotterCA::ReadbackPixels(const IntSize& aReadbackSize,
-                                                  SurfaceFormat aReadbackFormat,
-                                                  const Range<uint8_t>& aReadbackBuffer) {
-  if (aReadbackFormat != SurfaceFormat::B8G8R8A8) {
-    return false;
-  }
+already_AddRefed<profiler_screenshots::RenderSource>
+NativeLayerRootSnapshotterCA::GetWindowContents(const IntSize& aWindowSize) {
+  UpdateSnapshot(aWindowSize);
+  return do_AddRef(mSnapshot);
+}
 
-  CGRect bounds = CGRectMake(0, 0, aReadbackSize.width, aReadbackSize.height);
+void NativeLayerRootSnapshotterCA::UpdateSnapshot(const IntSize& aSize) {
+  CGRect bounds = CGRectMake(0, 0, aSize.width, aSize.height);
 
   {
     // Set the correct bounds and scale on the renderer and its root layer. CARenderer always
@@ -316,23 +368,25 @@ bool NativeLayerRootSnapshotterCA::ReadbackPixels(const IntSize& aReadbackSize,
   mGL->MakeCurrent();
 
   bool needToRedrawEverything = false;
-  if (!mFB || mFB->mSize != aReadbackSize) {
-    mFB = gl::MozFramebuffer::Create(mGL, aReadbackSize, 0, false);
-    if (!mFB) {
-      return false;
+  if (!mSnapshot || mSnapshot->Size() != aSize) {
+    mSnapshot = nullptr;
+    auto fb = gl::MozFramebuffer::Create(mGL, aSize, 0, false);
+    if (!fb) {
+      return;
     }
+    mSnapshot = new RenderSourceNLRS(std::move(fb));
     needToRedrawEverything = true;
   }
 
-  const gl::ScopedBindFramebuffer bindFB(mGL, mFB->mFB);
-  mGL->fViewport(0.0, 0.0, aReadbackSize.width, aReadbackSize.height);
+  const gl::ScopedBindFramebuffer bindFB(mGL, mSnapshot->FB().mFB);
+  mGL->fViewport(0.0, 0.0, aSize.width, aSize.height);
 
   // These legacy OpenGL function calls are part of CARenderer's API contract, see CARenderer.h.
   // The size passed to glOrtho must be the device pixel size of the render target, otherwise
   // CARenderer will produce incorrect results.
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  glOrtho(0.0, aReadbackSize.width, 0.0, aReadbackSize.height, -1, 1);
+  glOrtho(0.0, aSize.width, 0.0, aSize.height, -1, 1);
 
   float mediaTime = CACurrentMediaTime();
   [mRenderer beginFrameAtTime:mediaTime timeStamp:nullptr];
@@ -359,12 +413,49 @@ bool NativeLayerRootSnapshotterCA::ReadbackPixels(const IntSize& aReadbackSize,
   }
   [mRenderer render];
   [mRenderer endFrame];
+}
 
+bool NativeLayerRootSnapshotterCA::ReadbackPixels(const IntSize& aReadbackSize,
+                                                  SurfaceFormat aReadbackFormat,
+                                                  const Range<uint8_t>& aReadbackBuffer) {
+  if (aReadbackFormat != SurfaceFormat::B8G8R8A8) {
+    return false;
+  }
+
+  UpdateSnapshot(aReadbackSize);
+  if (!mSnapshot) {
+    return false;
+  }
+
+  const gl::ScopedBindFramebuffer bindFB(mGL, mSnapshot->FB().mFB);
   gl::ScopedPackState safePackState(mGL);
   mGL->fReadPixels(0.0f, 0.0f, aReadbackSize.width, aReadbackSize.height, LOCAL_GL_BGRA,
                    LOCAL_GL_UNSIGNED_BYTE, &aReadbackBuffer[0]);
 
   return true;
+}
+
+already_AddRefed<profiler_screenshots::DownscaleTarget>
+NativeLayerRootSnapshotterCA::CreateDownscaleTarget(const IntSize& aSize) {
+  auto fb = gl::MozFramebuffer::Create(mGL, aSize, 0, false);
+  if (!fb) {
+    return nullptr;
+  }
+  RefPtr<profiler_screenshots::DownscaleTarget> dt = new DownscaleTargetNLRS(mGL, std::move(fb));
+  return dt.forget();
+}
+
+already_AddRefed<profiler_screenshots::AsyncReadbackBuffer>
+NativeLayerRootSnapshotterCA::CreateAsyncReadbackBuffer(const IntSize& aSize) {
+  size_t bufferByteCount = aSize.width * aSize.height * 4;
+  GLuint bufferHandle = 0;
+  mGL->fGenBuffers(1, &bufferHandle);
+
+  gl::ScopedPackState scopedPackState(mGL);
+  mGL->fBindBuffer(LOCAL_GL_PIXEL_PACK_BUFFER, bufferHandle);
+  mGL->fPixelStorei(LOCAL_GL_PACK_ALIGNMENT, 1);
+  mGL->fBufferData(LOCAL_GL_PIXEL_PACK_BUFFER, bufferByteCount, nullptr, LOCAL_GL_STREAM_READ);
+  return MakeAndAddRef<AsyncReadbackBufferNLRS>(mGL, aSize, bufferHandle);
 }
 
 NativeLayerCA::NativeLayerCA(const IntSize& aSize, bool aIsOpaque,
@@ -375,6 +466,9 @@ NativeLayerCA::NativeLayerCA(const IntSize& aSize, bool aIsOpaque,
       mIsOpaque(aIsOpaque) {
   MOZ_RELEASE_ASSERT(mSurfacePoolHandle, "Need a non-null surface pool handle.");
 }
+
+NativeLayerCA::NativeLayerCA(bool aIsOpaque)
+    : mMutex("NativeLayerCA"), mSurfacePoolHandle(nullptr), mIsOpaque(aIsOpaque) {}
 
 NativeLayerCA::~NativeLayerCA() {
   if (mInProgressLockedIOSurface) {
@@ -391,6 +485,20 @@ NativeLayerCA::~NativeLayerCA() {
   for (const auto& surf : mSurfaces) {
     mSurfacePoolHandle->ReturnSurfaceToPool(surf.mEntry.mSurface);
   }
+}
+
+void NativeLayerCA::AttachExternalImage(wr::RenderTextureHost* aExternalImage) {
+  wr::RenderMacIOSurfaceTextureHost* texture = aExternalImage->AsRenderMacIOSurfaceTextureHost();
+  MOZ_ASSERT(texture);
+  mTextureHost = texture;
+  mSize = texture->GetSize(0);
+  mDisplayRect = IntRect(IntPoint{}, mSize);
+
+  ForAllRepresentations([&](Representation& r) {
+    r.mMutatedFrontSurface = true;
+    r.mMutatedDisplayRect = true;
+    r.mMutatedSize = true;
+  });
 }
 
 void NativeLayerCA::SetSurfaceIsFlipped(bool aIsFlipped) {
@@ -427,19 +535,33 @@ IntPoint NativeLayerCA::GetPosition() {
   return mPosition;
 }
 
+void NativeLayerCA::SetTransform(const Matrix4x4& aTransform) {
+  MutexAutoLock lock(mMutex);
+  MOZ_ASSERT(aTransform.IsRectilinear());
+
+  if (aTransform != mTransform) {
+    mTransform = aTransform;
+    ForAllRepresentations([&](Representation& r) { r.mMutatedTransform = true; });
+  }
+}
+
+void NativeLayerCA::SetSamplingFilter(gfx::SamplingFilter aSamplingFilter) {
+  MutexAutoLock lock(mMutex);
+
+  if (aSamplingFilter != mSamplingFilter) {
+    mSamplingFilter = aSamplingFilter;
+    ForAllRepresentations([&](Representation& r) { r.mMutatedSamplingFilter = true; });
+  }
+}
+
+Matrix4x4 NativeLayerCA::GetTransform() {
+  MutexAutoLock lock(mMutex);
+  return mTransform;
+}
+
 IntRect NativeLayerCA::GetRect() {
   MutexAutoLock lock(mMutex);
   return IntRect(mPosition, mSize);
-}
-
-void NativeLayerCA::SetValidRect(const gfx::IntRect& aValidRect) {
-  MutexAutoLock lock(mMutex);
-  mValidRect = aValidRect;
-}
-
-IntRect NativeLayerCA::GetValidRect() {
-  MutexAutoLock lock(mMutex);
-  return mValidRect;
 }
 
 void NativeLayerCA::SetBackingScale(float aBackingScale) {
@@ -468,6 +590,11 @@ void NativeLayerCA::SetClipRect(const Maybe<gfx::IntRect>& aClipRect) {
 Maybe<gfx::IntRect> NativeLayerCA::ClipRect() {
   MutexAutoLock lock(mMutex);
   return mClipRect;
+}
+
+gfx::IntRect NativeLayerCA::CurrentSurfaceDisplayRect() {
+  MutexAutoLock lock(mMutex);
+  return mDisplayRect;
 }
 
 NativeLayerCA::Representation::~Representation() {
@@ -519,44 +646,36 @@ bool NativeLayerCA::NextSurface(const MutexAutoLock& aLock) {
 }
 
 template <typename F>
-void NativeLayerCA::HandlePartialUpdate(const MutexAutoLock& aLock,
-                                        const gfx::IntRegion& aUpdateRegion, F&& aCopyFn) {
+void NativeLayerCA::HandlePartialUpdate(const MutexAutoLock& aLock, const IntRect& aDisplayRect,
+                                        const IntRegion& aUpdateRegion, F&& aCopyFn) {
   MOZ_RELEASE_ASSERT(IntRect({}, mSize).Contains(aUpdateRegion.GetBounds()),
                      "The update region should be within the surface bounds.");
+  MOZ_RELEASE_ASSERT(IntRect({}, mSize).Contains(aDisplayRect),
+                     "The display rect should be within the surface bounds.");
+
+  MOZ_RELEASE_ASSERT(!mInProgressUpdateRegion);
+  MOZ_RELEASE_ASSERT(!mInProgressDisplayRect);
+  mInProgressUpdateRegion = Some(aUpdateRegion);
+  mInProgressDisplayRect = Some(aDisplayRect);
 
   InvalidateRegionThroughoutSwapchain(aLock, aUpdateRegion);
 
-  gfx::IntRegion copyRegion;
-  copyRegion.Sub(mInProgressSurface->mInvalidRegion, aUpdateRegion);
+  if (mFrontSurface) {
+    // Copy not-overwritten valid content from mFrontSurface so that valid content never gets lost.
+    gfx::IntRegion copyRegion;
+    copyRegion.Sub(mInProgressSurface->mInvalidRegion, aUpdateRegion);
+    copyRegion.SubOut(mFrontSurface->mInvalidRegion);
 
-  // TODO(gw): !!!!! Need to get mac code updated to handle partial valid rect updates.
-
-  if (!copyRegion.IsEmpty()) {
-    // There are parts in mInProgressSurface which are invalid but which are not included in
-    // aUpdateRegion. We will obtain valid content for those parts by copying from a previous
-    // surface.
-    // MOZ_RELEASE_ASSERT(
-    //     mFrontSurface,
-    //     "The first call to NextSurface* must always update the entire layer. If this "
-    //     "is the second call, mFrontSurface will be Some().");
-
-    // // NotifySurfaceReady marks the entirety of mFrontSurface as valid.
-    // MOZ_RELEASE_ASSERT(mFrontSurface->mInvalidRegion.Intersect(copyRegion).IsEmpty(),
-    //                    "mFrontSurface should have valid content in the entire copy region,
-    //                    because " "the only invalidation since NotifySurfaceReady was
-    //                    aUpdateRegion, and " "aUpdateRegion has no overlap with copyRegion.");
-
-    if (mFrontSurface) {
+    if (!copyRegion.IsEmpty()) {
       // Now copy the valid content, using a caller-provided copy function.
       aCopyFn(mFrontSurface->mSurface, copyRegion);
       mInProgressSurface->mInvalidRegion.SubOut(copyRegion);
     }
   }
-
-  // MOZ_RELEASE_ASSERT(mInProgressSurface->mInvalidRegion == aUpdateRegion);
 }
 
-RefPtr<gfx::DrawTarget> NativeLayerCA::NextSurfaceAsDrawTarget(const gfx::IntRegion& aUpdateRegion,
+RefPtr<gfx::DrawTarget> NativeLayerCA::NextSurfaceAsDrawTarget(const IntRect& aDisplayRect,
+                                                               const IntRegion& aUpdateRegion,
                                                                gfx::BackendType aBackendType) {
   MutexAutoLock lock(mMutex);
   if (!NextSurface(lock)) {
@@ -568,7 +687,7 @@ RefPtr<gfx::DrawTarget> NativeLayerCA::NextSurfaceAsDrawTarget(const gfx::IntReg
   RefPtr<gfx::DrawTarget> dt = mInProgressLockedIOSurface->GetAsDrawTargetLocked(aBackendType);
 
   HandlePartialUpdate(
-      lock, aUpdateRegion,
+      lock, aDisplayRect, aUpdateRegion,
       [&](CFTypeRefPtr<IOSurfaceRef> validSource, const gfx::IntRegion& copyRegion) {
         RefPtr<MacIOSurface> source = new MacIOSurface(validSource);
         source->Lock(true);
@@ -587,7 +706,8 @@ RefPtr<gfx::DrawTarget> NativeLayerCA::NextSurfaceAsDrawTarget(const gfx::IntReg
   return dt;
 }
 
-Maybe<GLuint> NativeLayerCA::NextSurfaceAsFramebuffer(const gfx::IntRegion& aUpdateRegion,
+Maybe<GLuint> NativeLayerCA::NextSurfaceAsFramebuffer(const IntRect& aDisplayRect,
+                                                      const IntRegion& aUpdateRegion,
                                                       bool aNeedsDepth) {
   MutexAutoLock lock(mMutex);
   if (!NextSurface(lock)) {
@@ -601,7 +721,7 @@ Maybe<GLuint> NativeLayerCA::NextSurfaceAsFramebuffer(const gfx::IntRegion& aUpd
   }
 
   HandlePartialUpdate(
-      lock, aUpdateRegion,
+      lock, aDisplayRect, aUpdateRegion,
       [&](CFTypeRefPtr<IOSurfaceRef> validSource, const gfx::IntRegion& copyRegion) {
         // Copy copyRegion from validSource to fbo.
         MOZ_RELEASE_ASSERT(mSurfacePoolHandle->gl());
@@ -639,10 +759,20 @@ void NativeLayerCA::NotifySurfaceReady() {
     mFrontSurface = Nothing();
   }
 
+  MOZ_RELEASE_ASSERT(mInProgressUpdateRegion);
   IOSurfaceDecrementUseCount(mInProgressSurface->mSurface.get());
   mFrontSurface = std::move(mInProgressSurface);
-  mFrontSurface->mInvalidRegion = IntRect();
+  mFrontSurface->mInvalidRegion.SubOut(mInProgressUpdateRegion.extract());
   ForAllRepresentations([&](Representation& r) { r.mMutatedFrontSurface = true; });
+
+  MOZ_RELEASE_ASSERT(mInProgressDisplayRect);
+  if (!mDisplayRect.IsEqualInterior(*mInProgressDisplayRect)) {
+    mDisplayRect = *mInProgressDisplayRect;
+    ForAllRepresentations([&](Representation& r) { r.mMutatedDisplayRect = true; });
+  }
+  mInProgressDisplayRect = Nothing();
+  MOZ_RELEASE_ASSERT(mFrontSurface->mInvalidRegion.Intersect(mDisplayRect).IsEmpty(),
+                     "Parts of the display rect are invalid! This shouldn't happen.");
 }
 
 void NativeLayerCA::DiscardBackbuffers() {
@@ -672,9 +802,15 @@ void NativeLayerCA::ForAllRepresentations(F aFn) {
 
 void NativeLayerCA::ApplyChanges(WhichRepresentation aRepresentation) {
   MutexAutoLock lock(mMutex);
+  CFTypeRefPtr<IOSurfaceRef> surface;
+  if (mFrontSurface) {
+    surface = mFrontSurface->mSurface;
+  } else if (mTextureHost) {
+    surface = mTextureHost->GetSurface()->GetIOSurfaceRef();
+  }
   GetRepresentation(aRepresentation)
-      .ApplyChanges(mSize, mIsOpaque, mPosition, mClipRect, mBackingScale, mSurfaceIsFlipped,
-                    mFrontSurface ? mFrontSurface->mSurface : nullptr);
+      .ApplyChanges(mSize, mIsOpaque, mPosition, mTransform, mDisplayRect, mClipRect, mBackingScale,
+                    mSurfaceIsFlipped, mSamplingFilter, surface);
 }
 
 CALayer* NativeLayerCA::UnderlyingCALayer(WhichRepresentation aRepresentation) {
@@ -682,11 +818,11 @@ CALayer* NativeLayerCA::UnderlyingCALayer(WhichRepresentation aRepresentation) {
   return GetRepresentation(aRepresentation).UnderlyingCALayer();
 }
 
-void NativeLayerCA::Representation::ApplyChanges(const IntSize& aSize, bool aIsOpaque,
-                                                 const IntPoint& aPosition,
-                                                 const Maybe<IntRect>& aClipRect,
-                                                 float aBackingScale, bool aSurfaceIsFlipped,
-                                                 CFTypeRefPtr<IOSurfaceRef> aFrontSurface) {
+void NativeLayerCA::Representation::ApplyChanges(
+    const IntSize& aSize, bool aIsOpaque, const IntPoint& aPosition, const Matrix4x4& aTransform,
+    const IntRect& aDisplayRect, const Maybe<IntRect>& aClipRect, float aBackingScale,
+    bool aSurfaceIsFlipped, gfx::SamplingFilter aSamplingFilter,
+    CFTypeRefPtr<IOSurfaceRef> aFrontSurface) {
   if (!mWrappingCALayer) {
     mWrappingCALayer = [[CALayer layer] retain];
     mWrappingCALayer.position = NSZeroPoint;
@@ -711,7 +847,7 @@ void NativeLayerCA::Representation::ApplyChanges(const IntSize& aSize, bool aIsO
   bool shouldTintOpaqueness = StaticPrefs::gfx_core_animation_tint_opaque();
   if (shouldTintOpaqueness && !mOpaquenessTintLayer) {
     mOpaquenessTintLayer = [[CALayer layer] retain];
-    mOpaquenessTintLayer.position = mContentCALayer.position;
+    mOpaquenessTintLayer.position = NSZeroPoint;
     mOpaquenessTintLayer.bounds = mContentCALayer.bounds;
     mOpaquenessTintLayer.anchorPoint = NSZeroPoint;
     mOpaquenessTintLayer.contentsGravity = kCAGravityTopLeft;
@@ -739,11 +875,7 @@ void NativeLayerCA::Representation::ApplyChanges(const IntSize& aSize, bool aIsO
   //  Important: Always use integral numbers for the width and height of your layer.
   // We hope that this refers to integral physical pixels, and not to integral logical coordinates.
 
-  auto globalClipOrigin = aClipRect ? aClipRect->TopLeft() : gfx::IntPoint{};
-  auto globalLayerOrigin = aPosition;
-  auto clipToLayerOffset = globalLayerOrigin - globalClipOrigin;
-
-  if (mMutatedBackingScale) {
+  if (mMutatedBackingScale || mMutatedSize) {
     mContentCALayer.bounds =
         CGRectMake(0, 0, aSize.width / aBackingScale, aSize.height / aBackingScale);
     if (mOpaquenessTintLayer) {
@@ -752,32 +884,61 @@ void NativeLayerCA::Representation::ApplyChanges(const IntSize& aSize, bool aIsO
     mContentCALayer.contentsScale = aBackingScale;
   }
 
-  if (mMutatedBackingScale || mMutatedClipRect) {
+  if (mMutatedBackingScale || mMutatedPosition || mMutatedDisplayRect || mMutatedClipRect ||
+      mMutatedTransform || mMutatedSurfaceIsFlipped || mMutatedSize) {
+    Maybe<IntRect> clipFromDisplayRect;
+    if (!aDisplayRect.IsEqualInterior(IntRect({}, aSize))) {
+      // When the display rect is a subset of the layer, then we want to guarantee that no
+      // pixels outside that rect are sampled, since they might be uninitialized.
+      // Transforming the display rect into a post-transform clip only maintains this if
+      // it's an integer translation, which is all we support for this case currently.
+      MOZ_ASSERT(aTransform.Is2DIntegerTranslation());
+      clipFromDisplayRect =
+          Some(RoundedToInt(aTransform.TransformBounds(IntRectToRect(aDisplayRect + aPosition))));
+    }
+
+    auto effectiveClip = IntersectMaybeRects(aClipRect, clipFromDisplayRect);
+    auto globalClipOrigin = effectiveClip ? effectiveClip->TopLeft() : IntPoint();
+    auto clipToLayerOffset = -globalClipOrigin;
+
     mWrappingCALayer.position =
         CGPointMake(globalClipOrigin.x / aBackingScale, globalClipOrigin.y / aBackingScale);
-    if (aClipRect) {
+
+    if (effectiveClip) {
       mWrappingCALayer.masksToBounds = YES;
-      mWrappingCALayer.bounds =
-          CGRectMake(0, 0, aClipRect->Width() / aBackingScale, aClipRect->Height() / aBackingScale);
+      mWrappingCALayer.bounds = CGRectMake(0, 0, effectiveClip->Width() / aBackingScale,
+                                           effectiveClip->Height() / aBackingScale);
     } else {
       mWrappingCALayer.masksToBounds = NO;
     }
-  }
 
-  if (mMutatedBackingScale || mMutatedPosition || mMutatedClipRect) {
-    mContentCALayer.position =
-        CGPointMake(clipToLayerOffset.x / aBackingScale, clipToLayerOffset.y / aBackingScale);
-    if (mOpaquenessTintLayer) {
-      mOpaquenessTintLayer.position = mContentCALayer.position;
-    }
-  }
+    Matrix4x4 transform = aTransform;
+    transform.PreTranslate(aPosition.x, aPosition.y, 0);
+    transform.PostTranslate(clipToLayerOffset.x, clipToLayerOffset.y, 0);
 
-  if (mMutatedBackingScale || mMutatedSurfaceIsFlipped) {
     if (aSurfaceIsFlipped) {
-      CGFloat height = aSize.height / aBackingScale;
-      mContentCALayer.affineTransform = CGAffineTransformMake(1.0, 0.0, 0.0, -1.0, 0.0, height);
-    } else {
-      mContentCALayer.affineTransform = CGAffineTransformIdentity;
+      transform.PreTranslate(0, aSize.height, 0).PreScale(1, -1, 1);
+    }
+
+    CATransform3D transformCA{transform._11,
+                              transform._12,
+                              transform._13,
+                              transform._14,
+                              transform._21,
+                              transform._22,
+                              transform._23,
+                              transform._24,
+                              transform._31,
+                              transform._32,
+                              transform._33,
+                              transform._34,
+                              transform._41 / aBackingScale,
+                              transform._42 / aBackingScale,
+                              transform._43,
+                              transform._44};
+    mContentCALayer.transform = transformCA;
+    if (mOpaquenessTintLayer) {
+      mOpaquenessTintLayer.transform = mContentCALayer.transform;
     }
   }
 
@@ -785,11 +946,25 @@ void NativeLayerCA::Representation::ApplyChanges(const IntSize& aSize, bool aIsO
     mContentCALayer.contents = (id)aFrontSurface.get();
   }
 
+  if (mMutatedSamplingFilter) {
+    if (aSamplingFilter == gfx::SamplingFilter::POINT) {
+      mContentCALayer.minificationFilter = kCAFilterNearest;
+      mContentCALayer.magnificationFilter = kCAFilterNearest;
+    } else {
+      mContentCALayer.minificationFilter = kCAFilterLinear;
+      mContentCALayer.magnificationFilter = kCAFilterLinear;
+    }
+  }
+
   mMutatedPosition = false;
+  mMutatedTransform = false;
   mMutatedBackingScale = false;
+  mMutatedSize = false;
   mMutatedSurfaceIsFlipped = false;
+  mMutatedDisplayRect = false;
   mMutatedClipRect = false;
   mMutatedFrontSurface = false;
+  mMutatedSamplingFilter = false;
 }
 
 // Called when mMutex is already being held by the current thread.
@@ -825,6 +1000,77 @@ Maybe<NativeLayerCA::SurfaceWithInvalidRegion> NativeLayerCA::GetUnusedSurfaceAn
   mSurfaces = std::move(usedSurfaces);
 
   return unusedSurface;
+}
+
+bool DownscaleTargetNLRS::DownscaleFrom(profiler_screenshots::RenderSource* aSource,
+                                        const IntRect& aSourceRect, const IntRect& aDestRect) {
+  mGL->BlitHelper()->BlitFramebufferToFramebuffer(static_cast<RenderSourceNLRS*>(aSource)->FB().mFB,
+                                                  mRenderSource->FB().mFB, aSourceRect, aDestRect,
+                                                  LOCAL_GL_LINEAR);
+
+  return true;
+}
+
+void AsyncReadbackBufferNLRS::CopyFrom(profiler_screenshots::RenderSource* aSource) {
+  IntSize size = aSource->Size();
+  MOZ_RELEASE_ASSERT(Size() == size);
+
+  gl::ScopedPackState scopedPackState(mGL);
+  mGL->fBindBuffer(LOCAL_GL_PIXEL_PACK_BUFFER, mBufferHandle);
+  mGL->fPixelStorei(LOCAL_GL_PACK_ALIGNMENT, 1);
+  const gl::ScopedBindFramebuffer bindFB(mGL, static_cast<RenderSourceNLRS*>(aSource)->FB().mFB);
+  mGL->fReadPixels(0, 0, size.width, size.height, LOCAL_GL_RGBA, LOCAL_GL_UNSIGNED_BYTE, 0);
+}
+
+bool AsyncReadbackBufferNLRS::MapAndCopyInto(DataSourceSurface* aSurface,
+                                             const IntSize& aReadSize) {
+  MOZ_RELEASE_ASSERT(aReadSize <= aSurface->GetSize());
+
+  if (!mGL || !mGL->MakeCurrent()) {
+    return false;
+  }
+
+  gl::ScopedPackState scopedPackState(mGL);
+  mGL->fBindBuffer(LOCAL_GL_PIXEL_PACK_BUFFER, mBufferHandle);
+  mGL->fPixelStorei(LOCAL_GL_PACK_ALIGNMENT, 1);
+
+  const uint8_t* srcData = nullptr;
+  if (mGL->IsSupported(gl::GLFeature::map_buffer_range)) {
+    srcData = static_cast<uint8_t*>(mGL->fMapBufferRange(LOCAL_GL_PIXEL_PACK_BUFFER, 0,
+                                                         aReadSize.height * aReadSize.width * 4,
+                                                         LOCAL_GL_MAP_READ_BIT));
+  } else {
+    srcData =
+        static_cast<uint8_t*>(mGL->fMapBuffer(LOCAL_GL_PIXEL_PACK_BUFFER, LOCAL_GL_READ_ONLY));
+  }
+
+  if (!srcData) {
+    return false;
+  }
+
+  int32_t srcStride = mSize.width * 4;  // Bind() sets an alignment of 1
+  DataSourceSurface::ScopedMap map(aSurface, DataSourceSurface::WRITE);
+  uint8_t* destData = map.GetData();
+  int32_t destStride = map.GetStride();
+  SurfaceFormat destFormat = aSurface->GetFormat();
+  for (int32_t destRow = 0; destRow < aReadSize.height; destRow++) {
+    // Turn srcData upside down during the copy.
+    int32_t srcRow = aReadSize.height - 1 - destRow;
+    const uint8_t* src = &srcData[srcRow * srcStride];
+    uint8_t* dest = &destData[destRow * destStride];
+    SwizzleData(src, srcStride, SurfaceFormat::R8G8B8A8, dest, destStride, destFormat,
+                IntSize(aReadSize.width, 1));
+  }
+
+  mGL->fUnmapBuffer(LOCAL_GL_PIXEL_PACK_BUFFER);
+
+  return true;
+}
+
+AsyncReadbackBufferNLRS::~AsyncReadbackBufferNLRS() {
+  if (mGL && mGL->MakeCurrent()) {
+    mGL->fDeleteBuffers(1, &mBufferHandle);
+  }
 }
 
 }  // namespace layers

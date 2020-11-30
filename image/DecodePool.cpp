@@ -10,6 +10,7 @@
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Monitor.h"
+#include "mozilla/SchedulerGroup.h"
 #include "mozilla/StaticPrefs_image.h"
 #include "mozilla/TimeStamp.h"
 #include "nsCOMPtr.h"
@@ -91,7 +92,7 @@ class DecodePoolImpl {
     // pool explicitly. Otherwise we could try to shut down the same thread
     // twice.
     if (removed) {
-      SystemGroup::Dispatch(
+      SchedulerGroup::Dispatch(
           TaskCategory::Other,
           NewRunnableMethod("DecodePoolImpl::ShutdownThread", aThisThread,
                             &nsIThread::AsyncShutdown));
@@ -110,7 +111,7 @@ class DecodePoolImpl {
       MonitorAutoLock lock(mMonitor);
       mShuttingDown = true;
       mAvailableThreads = 0;
-      threads.SwapElements(mThreads);
+      threads = std::move(mThreads);
       mMonitor.NotifyAll();
     }
 
@@ -297,6 +298,11 @@ class DecodePoolWorker final : public Runnable {
   bool mShutdownIdle;
 };
 
+/// dav1d (used for AVIF decoding) crashes when decoding some images if the
+/// stack is too small. See related issue for AV1 decoding: bug 1474684.
+static constexpr uint32_t DECODE_POOL_STACK_SIZE =
+    std::max(nsIThreadManager::kThreadPoolStackSize, 512u * 1024u);
+
 bool DecodePoolImpl::CreateThread() {
   mMonitor.AssertCurrentThreadOwns();
   MOZ_ASSERT(mAvailableThreads > 0);
@@ -304,14 +310,15 @@ bool DecodePoolImpl::CreateThread() {
   bool shutdownIdle = mThreads.Length() >= mMaxIdleThreads;
   nsCOMPtr<nsIRunnable> worker = new DecodePoolWorker(this, shutdownIdle);
   nsCOMPtr<nsIThread> thread;
-  nsresult rv = NS_NewNamedThread(mThreadNaming.GetNextThreadName("ImgDecoder"),
-                                  getter_AddRefs(thread), worker,
-                                  nsIThreadManager::kThreadPoolStackSize);
+  nsresult rv =
+      NS_NewNamedThread(mThreadNaming.GetNextThreadName("ImgDecoder"),
+                        getter_AddRefs(thread), worker, DECODE_POOL_STACK_SIZE);
+
   if (NS_FAILED(rv) || !thread) {
     MOZ_ASSERT_UNREACHABLE("Should successfully create image decoding threads");
     return false;
   }
-  thread->SetNameForWakeupTelemetry(NS_LITERAL_CSTRING("ImgDecoder (all)"));
+  thread->SetNameForWakeupTelemetry("ImgDecoder (all)"_ns);
 
   mThreads.AppendElement(std::move(thread));
   --mAvailableThreads;

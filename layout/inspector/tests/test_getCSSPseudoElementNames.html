@@ -8,12 +8,14 @@
   <script type="application/javascript">
   const InspectorUtils = SpecialPowers.InspectorUtils;
 
+  // NOTE(emilio): When this changes, make sure to update _pseudoIsRelevant in devtools/server/actors/styles.js
   let expected = new Set([
     ":after",
     ":before",
     ":marker",
     ":backdrop",
     ":cue",
+    ":file-selector-button",
     ":first-letter",
     ":first-line",
     ":placeholder",
@@ -21,7 +23,6 @@
     ":-moz-color-swatch",
     ":-moz-focus-inner",
     ":-moz-focus-outer",
-    ":-moz-math-anonymous",
     ":-moz-meter-bar",
     ":-moz-placeholder",
     ":-moz-progress-bar",

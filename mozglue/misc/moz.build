@@ -9,6 +9,8 @@ FINAL_LIBRARY = 'mozglue'
 EXPORTS.mozilla += [
     'AutoProfilerLabel.h',
     'decimal/Decimal.h',
+    'decimal/DoubleConversion.h',
+    'MmapFaultHandler.h',
     'PlatformConditionVariable.h',
     'PlatformMutex.h',
     'Printf.h',
@@ -23,12 +25,15 @@ EXPORTS.mozilla.glue += [
 
 if CONFIG['OS_ARCH'] == 'WINNT':
     EXPORTS.mozilla += [
+        'PreXULSkeletonUI.h',
         'StackWalk_windows.h',
         'TimeStamp_windows.h',
+        'WindowsDpiAwareness.h',
     ]
 
 SOURCES += [
     'AutoProfilerLabel.cpp',
+    'MmapFaultHandler.cpp',
     'Printf.cpp',
     'StackWalk.cpp',
     'TimeStamp.cpp',
@@ -54,6 +59,7 @@ if CONFIG['OS_ARCH'] == 'WINNT':
         'WindowsUnicode.h',
     ]
     SOURCES += [
+        'PreXULSkeletonUI.cpp',
         'TimeStamp_windows.cpp',
         'WindowsMapRemoteView.cpp',
         'WindowsProcessMitigations.cpp',
@@ -82,7 +88,7 @@ else:
         'Mutex_posix.cpp',
     ]
 
-if CONFIG['MOZ_LINKER'] or CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
+if CONFIG['MOZ_LINKER'] and CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
     LOCAL_INCLUDES += [
         '/mozglue/linker',
     ]
@@ -94,3 +100,7 @@ SOURCES += [
 if CONFIG['CC_TYPE'] == 'clang':
     # Suppress warnings from third-party V8 Decimal code.
     SOURCES['decimal/Decimal.cpp'].flags += ['-Wno-implicit-fallthrough']
+
+for var in ('MOZ_APP_BASENAME', 'MOZ_APP_VENDOR'):
+    DEFINES[var] = '"%s"' % CONFIG[var]
+    

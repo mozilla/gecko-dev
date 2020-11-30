@@ -9,7 +9,7 @@
   <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"/>
   <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"/>
 
-  <hbox>
+  <hbox id="searchbox-container">
     <search-textbox id="searchbox"
                     oncommand="doSearch(this.value);"
                     placeholder="random placeholder"
@@ -29,7 +29,15 @@ var gLastTest;
 
 function doTests() {
   var textbox = $("searchbox");
-  var icons = textbox.querySelector(".textbox-search-icons");
+
+  // Reconnect the searchbox to ensure connectedCallback only runs once
+  // (bug 1650486).
+  textbox.remove();
+  $("searchbox-container").append(textbox);
+  is(textbox.shadowRoot.querySelectorAll(".textbox-search-sign").length, 1,
+      "only one search icon in the search box");
+
+  var icons = textbox._searchIcons;
   var searchIcon = icons.querySelector(".textbox-search-icon");
   var clearIcon = icons.querySelector(".textbox-search-clear");
 
@@ -91,7 +99,6 @@ function doTests() {
   textbox.value = "";
   textbox.searchButton = true;
   is(textbox.getAttribute("searchbutton"), "true", "searchbutton attribute set on the textbox");
-  is(searchIcon.getAttribute("searchbutton"), "true", "searchbutton attribute inherited to the search icon");
 
   textbox.value = "foo";
   is(icons.selectedPanel, searchIcon, "search icon displayed in search button mode if there's a value");
@@ -138,7 +145,7 @@ function doTests() {
   gExpectedValue = false;
   textbox.value = "foo";
   iconClick(searchIcon);
-  ok(gExpectedValue == false, "search *not* triggered when clicking the search icon in search button mode while the textbox is disabled");
+  ok(!gExpectedValue, "search *not* triggered when clicking the search icon in search button mode while the textbox is disabled");
   is(icons.selectedPanel, searchIcon, "search icon persists in search button mode when trying to submit while the textbox is disabled");
   textbox.disabled = false;
   ok(!searchIcon.hasAttribute("disabled"), "disabled attribute removed from the search icon");
@@ -146,7 +153,6 @@ function doTests() {
 
   textbox.searchButton = false;
   ok(!textbox.hasAttribute("searchbutton"), "searchbutton attribute removed from the textbox");
-  ok(!searchIcon.hasAttribute("searchbutton"), "searchbutton attribute removed from the search icon");
 
   gLastTest = true;
   gExpectedValue = "123";

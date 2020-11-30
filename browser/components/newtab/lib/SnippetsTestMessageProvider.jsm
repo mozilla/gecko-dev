@@ -10,6 +10,75 @@ const TEST_ICON_BW =
 
 const MESSAGES = () => [
   {
+    template: "simple_snippet",
+    template_version: "1.1.2",
+    content: {
+      text: "This is for <link0>preferences</link0> and <link1>about</link1>",
+      icon:
+        "https://snippets.cdn.mozilla.net/media/icons/1a8bb10e-8166-4e14-9e41-c1f85a41bcd2.png",
+      button_label: "Button Label",
+      section_title_icon:
+        "https://snippets.cdn.mozilla.net/media/icons/5878847e-a1fb-4204-aad9-09f6cf7f99ee.png",
+      section_title_text: "Messages from Firefox",
+      section_title_url:
+        "https://support.mozilla.org/kb/snippets-firefox-faq?utm_source=desktop-snippet&utm_medium=snippet&utm_campaign=&utm_term=&utm_content=",
+      tall: false,
+      block_button_text: "Remove this",
+      do_not_autoblock: true,
+      links: {
+        link0: {
+          action: "OPEN_PREFERENCES_PAGE",
+          entrypoint_value: "snippet",
+          args: "sync",
+        },
+        link1: {
+          action: "OPEN_ABOUT_PAGE",
+          args: "about",
+          entrypoint_name: "entryPoint",
+          entrypoint_value: "snippet",
+        },
+      },
+      button_action: "OPEN_PREFERENCES_PAGE",
+      button_entrypoint_value: "snippet",
+    },
+    id: "preview-13516_button_preferences",
+  },
+  {
+    template: "simple_snippet",
+    template_version: "1.1.2",
+    content: {
+      text: "This is for <link0>preferences</link0> and <link1>about</link1>",
+      icon:
+        "https://snippets.cdn.mozilla.net/media/icons/1a8bb10e-8166-4e14-9e41-c1f85a41bcd2.png",
+      button_label: "Button Label",
+      section_title_icon:
+        "https://snippets.cdn.mozilla.net/media/icons/5878847e-a1fb-4204-aad9-09f6cf7f99ee.png",
+      section_title_text: "Messages from Firefox",
+      section_title_url:
+        "https://support.mozilla.org/kb/snippets-firefox-faq?utm_source=desktop-snippet&utm_medium=snippet&utm_campaign=&utm_term=&utm_content=",
+      tall: false,
+      block_button_text: "Remove this",
+      do_not_autoblock: true,
+      links: {
+        link0: {
+          action: "OPEN_PREFERENCES_PAGE",
+          entrypoint_value: "snippet",
+        },
+        link1: {
+          action: "OPEN_ABOUT_PAGE",
+          args: "about",
+          entrypoint_name: "entryPoint",
+          entrypoint_value: "snippet",
+        },
+      },
+      button_action: "OPEN_ABOUT_PAGE",
+      button_action_args: "logins",
+      button_entrypoint_name: "entryPoint",
+      button_entrypoint_value: "snippet",
+    },
+    id: "preview-13517_button_about",
+  },
+  {
     id: "SIMPLE_TEST_1",
     template: "simple_snippet",
     campaign: "test_campaign_blocking",
@@ -197,7 +266,7 @@ const MESSAGES = () => [
       scene1_button_color: "#712b00",
       scene1_button_background_color: "#ff9400",
       scene1_section_title_icon:
-        "resource://activity-stream/data/content/assets/glyph-pocket-16.svg",
+        "chrome://activity-stream/content/data/content/assets/glyph-pocket-16.svg",
       scene1_section_title_text:
         "All the Firefox news that's fit to Firefox print!",
       scene2_title: "Let's do this!",
@@ -261,7 +330,7 @@ const MESSAGES = () => [
       scene1_title_icon_dark_theme: TEST_ICON_BW,
 
       scene1_section_title_icon:
-        "resource://activity-stream/data/content/assets/glyph-pocket-16.svg",
+        "chrome://activity-stream/content/data/content/assets/glyph-pocket-16.svg",
       scene1_section_title_text: "Firefox Accounts: Receivable benefits",
 
       scene2_text:
@@ -303,6 +372,37 @@ const MESSAGES = () => [
         "Send Firefox to your phone and take a powerful independent browser with you.",
       scene2_title: "Let's do this!",
 
+      error_text: "Oops, there was a problem.",
+      success_title: "Your download link was sent.",
+      success_text: "Check your device for the email message!",
+      links: {
+        privacyLink: {
+          url:
+            "https://www.mozilla.org/privacy/websites/?sample_rate=0.001&snippet_name=7894",
+        },
+      },
+    },
+  },
+  {
+    id: "SNIPPETS_SCENE2_SEND_TO_DEVICE_TEST",
+    template: "send_to_device_scene2_snippet",
+    content: {
+      include_sms: true,
+      locale: "en-CA",
+      country: "us",
+      message_id_sms: "ff-mobilesn-download",
+      message_id_email: "download-firefox-mobile",
+      scene2_icon: TEST_ICON,
+      section_title_icon:
+        "https://snippets.cdn.mozilla.net/media/icons/094b0707-ab65-4b2e-99a1-a84122b6ab26.png",
+      section_title_text: "Messages from Firefox",
+      section_title_url: "https://support.mozilla.org/kb",
+      scene2_button_label: "Send",
+      scene2_disclaimer_html:
+        "The intended recipient of the email must have consented. <privacyLink>Learn more</privacyLink>.",
+      scene2_input_placeholder: "Your email address or phone number",
+      scene2_text:
+        "Send Firefox to your phone and take a powerful independent browser with you.",
       error_text: "Oops, there was a problem.",
       success_title: "Your download link was sent.",
       success_text: "Check your device for the email message!",
@@ -376,7 +476,7 @@ const MESSAGES = () => [
       scene1_title_icon: TEST_ICON_16,
       scene1_title_icon_dark_theme: TEST_ICON_BW,
       scene1_section_title_icon:
-        "resource://activity-stream/data/content/assets/glyph-pocket-16.svg",
+        "chrome://activity-stream/content/data/content/assets/glyph-pocket-16.svg",
       scene1_section_title_text: "Send Firefox to your mobile device!",
 
       scene2_button_label: "Send",
@@ -479,7 +579,7 @@ const MESSAGES = () => [
       },
       block_button_text: "Block",
       section_title_icon:
-        "resource://activity-stream/data/content/assets/glyph-pocket-16.svg",
+        "chrome://activity-stream/content/data/content/assets/glyph-pocket-16.svg",
       section_title_text: "Messages from Mozilla",
     },
   },
@@ -494,7 +594,7 @@ const MESSAGES = () => [
         "Sync it, link it, take it with you. All this and more with a Firefox Account.",
       block_button_text: "Block",
       section_title_icon:
-        "resource://activity-stream/data/content/assets/glyph-pocket-16.svg",
+        "chrome://activity-stream/content/data/content/assets/glyph-pocket-16.svg",
       section_title_text: "Messages from Mozilla (click for info)",
       section_title_url: "https://www.mozilla.org/about",
     },

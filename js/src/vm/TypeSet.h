@@ -13,6 +13,7 @@
 #include "mozilla/Attributes.h"  // MOZ_ALWAYS_INLINE
 #include "mozilla/Likely.h"      // MOZ_UNLIKELY
 
+#include <initializer_list>
 #include <stdint.h>  // intptr_t, uintptr_t, uint8_t, uint32_t
 #include <stdio.h>   // FILE
 
@@ -22,6 +23,7 @@
 #include "jit/JitOptions.h"
 #include "js/GCAnnotations.h"  // JS_HAZ_GC_POINTER
 #include "js/Id.h"
+#include "js/ScalarType.h"  // js::Scalar::Type
 #include "js/TracingAPI.h"  // JSTracer
 #include "js/TypeDecls.h"   // IF_BIGINT
 #include "js/Utility.h"     // UniqueChars
@@ -45,7 +47,7 @@ namespace js {
 
 namespace jit {
 
-struct IonScript;
+class IonScript;
 class TempAllocator;
 
 }  // namespace jit
@@ -499,6 +501,9 @@ class TypeSet {
   /* Whether any values in this set might have the specified type. */
   bool mightBeMIRType(jit::MIRType type) const;
 
+  /* Get whether this type set is known to be a subset of the given types. */
+  bool isSubset(std::initializer_list<jit::MIRType> types) const;
+
   /*
    * Get whether this type set is known to be a subset of other.
    * This variant doesn't freeze constraints. That variant is called knownSubset
@@ -737,10 +742,11 @@ enum class DOMObjectKind : uint8_t { Proxy, Native, Unknown };
 
 class TemporaryTypeSet : public TypeSet {
  public:
-  TemporaryTypeSet() {}
+  TemporaryTypeSet() { MOZ_ASSERT(!jit::JitOptions.warpBuilder); }
   TemporaryTypeSet(LifoAlloc* alloc, Type type);
 
   TemporaryTypeSet(uint32_t flags, ObjectKey** objectSet) {
+    MOZ_ASSERT(!jit::JitOptions.warpBuilder);
     this->flags = flags;
     this->objectSet = objectSet;
   }

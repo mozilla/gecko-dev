@@ -9,7 +9,10 @@ user_pref("devtools.console.stdout.chrome", true);
 user_pref("browser.newtabpage.activity-stream.asrouter.providers.cfr", "[]");
 user_pref("browser.newtabpage.activity-stream.asrouter.providers.cfr-fxa", "[]");
 user_pref("browser.newtabpage.activity-stream.asrouter.providers.snippets", "[]");
-user_pref("browser.newtabpage.activity-stream.feeds.section.topstories", false);
+user_pref("browser.newtabpage.activity-stream.asrouter.providers.message-groups", "[]");
+user_pref("browser.newtabpage.activity-stream.asrouter.providers.whats-new-panel", "[]");
+user_pref("browser.newtabpage.activity-stream.asrouter.providers.messaging-experiments", "[]");
+user_pref("browser.newtabpage.activity-stream.feeds.system.topstories", false);
 user_pref("browser.newtabpage.activity-stream.feeds.snippets", false);
 user_pref("browser.newtabpage.activity-stream.tippyTop.service.endpoint", "");
 user_pref("browser.newtabpage.activity-stream.discoverystream.config", "[]");
@@ -22,8 +25,6 @@ user_pref("browser.pagethumbnails.capturing_disabled", true);
 // Tell the search service we are running in the US.  This also has the desired
 // side-effect of preventing our geoip lookup.
 user_pref("browser.search.region", "US");
-// This will prevent HTTP requests for region defaults.
-user_pref("browser.search.geoSpecificDefaults", false);
 // Disable webapp updates.  Yes, it is supposed to be an integer.
 user_pref("browser.webapps.checkForUpdates", 0);
 // We do not wish to display datareporting policy notifications as it might
@@ -58,7 +59,7 @@ user_pref("xpinstall.signatures.required", false);
 user_pref("services.settings.server", "http://localhost/remote-settings-dummy/v1");
 // Ensure autoplay is enabled for all platforms.
 user_pref("media.autoplay.default", 0); // 0=Allowed, 1=Blocked, 2=Prompt
-user_pref("media.autoplay.enabled.user-gestures-needed", true);
+user_pref("media.autoplay.blocking_policy", 0);
 user_pref("media.autoplay.ask-permission", false);
 user_pref("media.autoplay.block-webaudio", false);
 user_pref("media.allowed-to-play.enabled", true);
@@ -67,5 +68,7 @@ user_pref("media.block-autoplay-until-in-foreground", false);
 user_pref("toolkit.telemetry.coverage.endpoint.base", "http://localhost");
 // Don't ask for a request in testing unless explicitly set this as true.
 user_pref("media.geckoview.autoplay.request", false);
-// user_pref("geo.provider.network.url", "http://localhost/geoip-dummy");
-user_pref("geo.provider-country.network.url", "http://localhost/geoip-dummy");
+user_pref("geo.provider.network.compare.url", "");
+user_pref("browser.region.network.url", "");
+// Do not unload tabs on low memory when testing
+user_pref("browser.tabs.unloadOnLowMemory", false);

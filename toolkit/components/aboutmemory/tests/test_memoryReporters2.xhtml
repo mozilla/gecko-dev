@@ -18,10 +18,9 @@
 
   SimpleTest.waitForExplicitFinish();
   let socketProcessRunning = 0;
-  if (SpecialPowers.getBoolPref("network.process.enabled")) {
+  if (SpecialPowers.Services.io.socketProcessLaunched) {
     socketProcessRunning = 1;
   }
-
   let numToOpen = 3;
   const expectedNumRemotes = numToOpen + socketProcessRunning;
   let numReady = 0;
@@ -31,10 +30,9 @@
   let remotes = [];
   SpecialPowers.pushPrefEnv({"set": [["dom.ipc.processCount", 3]]}, function() {
     for (let i = 0; i < numToOpen; i++) {
-      let w = remotes[i] = docShell.rootTreeItem.domWindow.open("remote.xhtml", "", "chrome");
+      let w = remotes[i] = window.browsingContext.topChromeWindow.open("remote.xhtml", "", "chrome");
 
       w.addEventListener("load", function loadHandler() {
-        w.removeEventListener("load", loadHandler);
         let remoteBrowser = w.document.getElementById("remote");
         let mm = remoteBrowser.messageManager;
         mm.addMessageListener("test:ready", function readyHandler() {
@@ -46,7 +44,7 @@
           }
         });
         mm.loadFrameScript("data:," + encodeURI("sendAsyncMessage('test:ready');"), true);
-      });
+      }, {once: true});
     }
   });
 
@@ -90,7 +88,8 @@
           numEmptyProcesses++;
         } else {
           ok(processes[i].startsWith("Browser (") || processes[i].startsWith("Web Content (") ||
-             (processes[i].startsWith("SocketProcess") && socketProcessRunning),
+             (processes[i].startsWith("Socket (") && socketProcessRunning)
+             || processes[i].startsWith("web ("),
              "correct non-empty process name prefix: " + processes[i]);
           numNonEmptyProcesses++;
         }

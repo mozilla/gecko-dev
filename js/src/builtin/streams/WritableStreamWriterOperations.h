@@ -19,13 +19,17 @@ class JS_PUBLIC_API JSObject;
 
 namespace js {
 
+class PromiseObject;
 class WritableStreamDefaultWriter;
 
 extern JSObject* WritableStreamDefaultWriterAbort(
     JSContext* cx, JS::Handle<WritableStreamDefaultWriter*> unwrappedWriter,
     JS::Handle<JS::Value> reason);
 
-extern JSObject* WritableStreamDefaultWriterClose(
+extern PromiseObject* WritableStreamDefaultWriterClose(
+    JSContext* cx, JS::Handle<WritableStreamDefaultWriter*> unwrappedWriter);
+
+extern PromiseObject* WritableStreamDefaultWriterCloseWithErrorPropagation(
     JSContext* cx, JS::Handle<WritableStreamDefaultWriter*> unwrappedWriter);
 
 extern MOZ_MUST_USE bool WritableStreamDefaultWriterEnsureClosedPromiseRejected(
@@ -43,7 +47,7 @@ extern MOZ_MUST_USE bool WritableStreamDefaultWriterGetDesiredSize(
 extern MOZ_MUST_USE bool WritableStreamDefaultWriterRelease(
     JSContext* cx, JS::Handle<WritableStreamDefaultWriter*> unwrappedWriter);
 
-extern JSObject* WritableStreamDefaultWriterWrite(
+extern PromiseObject* WritableStreamDefaultWriterWrite(
     JSContext* cx, JS::Handle<WritableStreamDefaultWriter*> unwrappedWriter,
     JS::Handle<JS::Value> chunk);
 

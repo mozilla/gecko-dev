@@ -42,6 +42,44 @@ function toggle_quadtree() {
     }
 }
 
+function update_slice_visibility(max_slice) {
+	let content = frontbuffer.contentDocument;
+	update_slice_visibility_for_content(content, max_slice);
+}
+
+function update_slice_visibility_for_content(content, max_slice) {
+
+	intern = document.getElementById('intern').contentDocument;
+
+	for (let slice = 0; slice != max_slice; ++slice) {
+		var cbox_name = "slice_toggle" + slice;
+		let cbox = document.getElementById(cbox_name);
+		if( !cbox )
+			continue;
+		let checked = cbox.checked;
+		if (content) { // might fail due to cross scripting -- use SimpleHTTPServer
+			var id = "tile_slice" + slice + "_everything";
+			var group = content.getElementById(id);
+			if (group) {
+				if (checked)
+					group.style.display = "block";
+				else
+					group.style.display = "none";
+			}
+		}
+		if (intern) {
+			var id = "invalidation_slice" + slice;
+			var div = intern.getElementById(id);
+			if (div) {
+				if (checked)
+					div.style.display = "block";
+				else
+					div.style.display = "none";
+			}
+		}
+	}
+}
+
 // try to block repeated keypressed from causing flickering
 // when they land between go_to_svg returning and onload
 // firing.
@@ -66,6 +104,9 @@ function go_to_svg(index) {
     document.getElementById("text_frame_counter").innerHTML =
       svg_files[svg_index];
 
+	let content = backbuffer.contentDocument;
+	update_slice_visibility_for_content(content, 20);
+
     backbuffer.style.display = '';
     frontbuffer.style.display = 'none';
 
@@ -74,8 +115,8 @@ function go_to_svg(index) {
     backbuffer = t;
     is_loading = false;
   }
-  backbuffer.setAttribute('data', svg_files[svg_index]);
   document.getElementById('intern').src = intern_files[svg_index];
+  backbuffer.setAttribute('data', svg_files[svg_index]);
 
   // also see https://stackoverflow.com/a/29915275
 }

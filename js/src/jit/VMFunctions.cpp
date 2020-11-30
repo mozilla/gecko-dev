@@ -6,29 +6,39 @@
 
 #include "jit/VMFunctions.h"
 
+#include "mozilla/CheckedInt.h"
+#include "mozilla/FloatingPoint.h"
+
 #include "builtin/String.h"
-#include "builtin/TypedObject.h"
 #include "frontend/BytecodeCompiler.h"
 #include "jit/arm/Simulator-arm.h"
+#include "jit/AtomicOperations.h"
+#include "jit/AutoDetectInvalidation.h"
 #include "jit/BaselineIC.h"
+#include "jit/CalleeToken.h"
 #include "jit/JitFrames.h"
-#include "jit/JitRealm.h"
+#include "jit/JitRuntime.h"
 #include "jit/mips32/Simulator-mips32.h"
 #include "jit/mips64/Simulator-mips64.h"
+#include "js/friend/StackLimits.h"  // js::CheckRecursionLimitWithExtra
+#include "js/friend/WindowProxy.h"  // js::IsWindow
+#include "js/Printf.h"
 #include "vm/ArrayObject.h"
 #include "vm/EqualityOperations.h"  // js::StrictlyEqual
 #include "vm/Interpreter.h"
+#include "vm/PlainObject.h"  // js::PlainObject
 #include "vm/SelfHosting.h"
 #include "vm/TraceLogging.h"
 #include "vm/TypedArrayObject.h"
+#include "wasm/TypedObject.h"
 
 #include "debugger/DebugAPI-inl.h"
 #include "jit/BaselineFrame-inl.h"
-#include "jit/JitFrames-inl.h"
 #include "jit/VMFunctionList-inl.h"
 #include "vm/Interpreter-inl.h"
 #include "vm/JSScript-inl.h"
 #include "vm/NativeObject-inl.h"
+#include "vm/PlainObject-inl.h"  // js::CreateThis
 #include "vm/StringObject-inl.h"
 #include "vm/TypeInference-inl.h"
 
@@ -36,7 +46,492 @@ using namespace js;
 using namespace js::jit;
 
 namespace js {
+
+class ArgumentsObject;
+class NamedLambdaObject;
+class AsyncFunctionGeneratorObject;
+class RegExpObject;
+
 namespace jit {
+
+struct IonOsrTempData;
+
+struct PopValues {
+  uint8_t numValues;
+
+  explicit constexpr PopValues(uint8_t numValues) : numValues(numValues) {}
+};
+
+template <class>
+struct TypeToDataType { /* Unexpected return type for a VMFunction. */
+};
+template <>
+struct TypeToDataType<void> {
+  static const DataType result = Type_Void;
+};
+template <>
+struct TypeToDataType<bool> {
+  static const DataType result = Type_Bool;
+};
+template <>
+struct TypeToDataType<JSObject*> {
+  static const DataType result = Type_Object;
+};
+template <>
+struct TypeToDataType<JSFunction*> {
+  static const DataType result = Type_Object;
+};
+template <>
+struct TypeToDataType<NativeObject*> {
+  static const DataType result = Type_Object;
+};
+template <>
+struct TypeToDataType<PlainObject*> {
+  static const DataType result = Type_Object;
+};
+template <>
+struct TypeToDataType<InlineTypedObject*> {
+  static const DataType result = Type_Object;
+};
+template <>
+struct TypeToDataType<NamedLambdaObject*> {
+  static const DataType result = Type_Object;
+};
+template <>
+struct TypeToDataType<LexicalEnvironmentObject*> {
+  static const DataType result = Type_Object;
+};
+template <>
+struct TypeToDataType<ArgumentsObject*> {
+  static const DataType result = Type_Object;
+};
+template <>
+struct TypeToDataType<ArrayObject*> {
+  static const DataType result = Type_Object;
+};
+template <>
+struct TypeToDataType<TypedArrayObject*> {
+  static const DataType result = Type_Object;
+};
+template <>
+struct TypeToDataType<ArrayIteratorObject*> {
+  static const DataType result = Type_Object;
+};
+template <>
+struct TypeToDataType<StringIteratorObject*> {
+  static const DataType result = Type_Object;
+};
+template <>
+struct TypeToDataType<RegExpStringIteratorObject*> {
+  static const DataType result = Type_Object;
+};
+template <>
+struct TypeToDataType<JSString*> {
+  static const DataType result = Type_Object;
+};
+template <>
+struct TypeToDataType<JSLinearString*> {
+  static const DataType result = Type_Object;
+};
+
+template <>
+struct TypeToDataType<BigInt*> {
+  static const DataType result = Type_Object;
+};
+template <>
+struct TypeToDataType<HandleObject> {
+  static const DataType result = Type_Handle;
+};
+template <>
+struct TypeToDataType<HandleString> {
+  static const DataType result = Type_Handle;
+};
+template <>
+struct TypeToDataType<HandlePropertyName> {
+  static const DataType result = Type_Handle;
+};
+template <>
+struct TypeToDataType<HandleFunction> {
+  static const DataType result = Type_Handle;
+};
+template <>
+struct TypeToDataType<Handle<NativeObject*> > {
+  static const DataType result = Type_Handle;
+};
+template <>
+struct TypeToDataType<Handle<InlineTypedObject*> > {
+  static const DataType result = Type_Handle;
+};
+template <>
+struct TypeToDataType<Handle<ArrayObject*> > {
+  static const DataType result = Type_Handle;
+};
+template <>
+struct TypeToDataType<Handle<AbstractGeneratorObject*> > {
+  static const DataType result = Type_Handle;
+};
+template <>
+struct TypeToDataType<Handle<AsyncFunctionGeneratorObject*> > {
+  static const DataType result = Type_Handle;
+};
+template <>
+struct TypeToDataType<Handle<PlainObject*> > {
+  static const DataType result = Type_Handle;
+};
+template <>
+struct TypeToDataType<Handle<WithScope*> > {
+  static const DataType result = Type_Handle;
+};
+template <>
+struct TypeToDataType<Handle<LexicalScope*> > {
+  static const DataType result = Type_Handle;
+};
+template <>
+struct TypeToDataType<Handle<Scope*> > {
+  static const DataType result = Type_Handle;
+};
+template <>
+struct TypeToDataType<HandleScript> {
+  static const DataType result = Type_Handle;
+};
+template <>
+struct TypeToDataType<HandleValue> {
+  static const DataType result = Type_Handle;
+};
+template <>
+struct TypeToDataType<MutableHandleValue> {
+  static const DataType result = Type_Handle;
+};
+template <>
+struct TypeToDataType<HandleId> {
+  static const DataType result = Type_Handle;
+};
+template <>
+struct TypeToDataType<HandleBigInt> {
+  static const DataType result = Type_Handle;
+};
+
+// Convert argument types to properties of the argument known by the jit.
+template <class T>
+struct TypeToArgProperties {
+  static const uint32_t result =
+      (sizeof(T) <= sizeof(void*) ? VMFunctionData::Word
+                                  : VMFunctionData::Double);
+};
+template <>
+struct TypeToArgProperties<const Value&> {
+  static const uint32_t result =
+      TypeToArgProperties<Value>::result | VMFunctionData::ByRef;
+};
+template <>
+struct TypeToArgProperties<HandleObject> {
+  static const uint32_t result =
+      TypeToArgProperties<JSObject*>::result | VMFunctionData::ByRef;
+};
+template <>
+struct TypeToArgProperties<HandleString> {
+  static const uint32_t result =
+      TypeToArgProperties<JSString*>::result | VMFunctionData::ByRef;
+};
+template <>
+struct TypeToArgProperties<HandlePropertyName> {
+  static const uint32_t result =
+      TypeToArgProperties<PropertyName*>::result | VMFunctionData::ByRef;
+};
+template <>
+struct TypeToArgProperties<HandleFunction> {
+  static const uint32_t result =
+      TypeToArgProperties<JSFunction*>::result | VMFunctionData::ByRef;
+};
+template <>
+struct TypeToArgProperties<Handle<NativeObject*> > {
+  static const uint32_t result =
+      TypeToArgProperties<NativeObject*>::result | VMFunctionData::ByRef;
+};
+template <>
+struct TypeToArgProperties<Handle<InlineTypedObject*> > {
+  static const uint32_t result =
+      TypeToArgProperties<InlineTypedObject*>::result | VMFunctionData::ByRef;
+};
+template <>
+struct TypeToArgProperties<Handle<ArrayObject*> > {
+  static const uint32_t result =
+      TypeToArgProperties<ArrayObject*>::result | VMFunctionData::ByRef;
+};
+template <>
+struct TypeToArgProperties<Handle<AbstractGeneratorObject*> > {
+  static const uint32_t result =
+      TypeToArgProperties<AbstractGeneratorObject*>::result |
+      VMFunctionData::ByRef;
+};
+template <>
+struct TypeToArgProperties<Handle<AsyncFunctionGeneratorObject*> > {
+  static const uint32_t result =
+      TypeToArgProperties<AsyncFunctionGeneratorObject*>::result |
+      VMFunctionData::ByRef;
+};
+template <>
+struct TypeToArgProperties<Handle<PlainObject*> > {
+  static const uint32_t result =
+      TypeToArgProperties<PlainObject*>::result | VMFunctionData::ByRef;
+};
+template <>
+struct TypeToArgProperties<Handle<RegExpObject*> > {
+  static const uint32_t result =
+      TypeToArgProperties<RegExpObject*>::result | VMFunctionData::ByRef;
+};
+template <>
+struct TypeToArgProperties<Handle<WithScope*> > {
+  static const uint32_t result =
+      TypeToArgProperties<WithScope*>::result | VMFunctionData::ByRef;
+};
+template <>
+struct TypeToArgProperties<Handle<LexicalScope*> > {
+  static const uint32_t result =
+      TypeToArgProperties<LexicalScope*>::result | VMFunctionData::ByRef;
+};
+template <>
+struct TypeToArgProperties<Handle<Scope*> > {
+  static const uint32_t result =
+      TypeToArgProperties<Scope*>::result | VMFunctionData::ByRef;
+};
+template <>
+struct TypeToArgProperties<HandleScript> {
+  static const uint32_t result =
+      TypeToArgProperties<JSScript*>::result | VMFunctionData::ByRef;
+};
+template <>
+struct TypeToArgProperties<HandleValue> {
+  static const uint32_t result =
+      TypeToArgProperties<Value>::result | VMFunctionData::ByRef;
+};
+template <>
+struct TypeToArgProperties<MutableHandleValue> {
+  static const uint32_t result =
+      TypeToArgProperties<Value>::result | VMFunctionData::ByRef;
+};
+template <>
+struct TypeToArgProperties<HandleId> {
+  static const uint32_t result =
+      TypeToArgProperties<jsid>::result | VMFunctionData::ByRef;
+};
+template <>
+struct TypeToArgProperties<HandleShape> {
+  static const uint32_t result =
+      TypeToArgProperties<Shape*>::result | VMFunctionData::ByRef;
+};
+template <>
+struct TypeToArgProperties<HandleObjectGroup> {
+  static const uint32_t result =
+      TypeToArgProperties<ObjectGroup*>::result | VMFunctionData::ByRef;
+};
+template <>
+struct TypeToArgProperties<HandleBigInt> {
+  static const uint32_t result =
+      TypeToArgProperties<BigInt*>::result | VMFunctionData::ByRef;
+};
+
+// Convert argument type to whether or not it should be passed in a float
+// register on platforms that have them, like x64.
+template <class T>
+struct TypeToPassInFloatReg {
+  static const uint32_t result = 0;
+};
+template <>
+struct TypeToPassInFloatReg<double> {
+  static const uint32_t result = 1;
+};
+
+// Convert argument types to root types used by the gc, see MarkJitExitFrame.
+template <class T>
+struct TypeToRootType {
+  static const uint32_t result = VMFunctionData::RootNone;
+};
+template <>
+struct TypeToRootType<HandleObject> {
+  static const uint32_t result = VMFunctionData::RootObject;
+};
+template <>
+struct TypeToRootType<HandleString> {
+  static const uint32_t result = VMFunctionData::RootString;
+};
+template <>
+struct TypeToRootType<HandlePropertyName> {
+  static const uint32_t result = VMFunctionData::RootString;
+};
+template <>
+struct TypeToRootType<HandleFunction> {
+  static const uint32_t result = VMFunctionData::RootFunction;
+};
+template <>
+struct TypeToRootType<HandleValue> {
+  static const uint32_t result = VMFunctionData::RootValue;
+};
+template <>
+struct TypeToRootType<MutableHandleValue> {
+  static const uint32_t result = VMFunctionData::RootValue;
+};
+template <>
+struct TypeToRootType<HandleId> {
+  static const uint32_t result = VMFunctionData::RootId;
+};
+template <>
+struct TypeToRootType<HandleShape> {
+  static const uint32_t result = VMFunctionData::RootCell;
+};
+template <>
+struct TypeToRootType<HandleObjectGroup> {
+  static const uint32_t result = VMFunctionData::RootCell;
+};
+template <>
+struct TypeToRootType<HandleScript> {
+  static const uint32_t result = VMFunctionData::RootCell;
+};
+template <>
+struct TypeToRootType<Handle<NativeObject*> > {
+  static const uint32_t result = VMFunctionData::RootObject;
+};
+template <>
+struct TypeToRootType<Handle<InlineTypedObject*> > {
+  static const uint32_t result = VMFunctionData::RootObject;
+};
+template <>
+struct TypeToRootType<Handle<ArrayObject*> > {
+  static const uint32_t result = VMFunctionData::RootObject;
+};
+template <>
+struct TypeToRootType<Handle<AbstractGeneratorObject*> > {
+  static const uint32_t result = VMFunctionData::RootObject;
+};
+template <>
+struct TypeToRootType<Handle<AsyncFunctionGeneratorObject*> > {
+  static const uint32_t result = VMFunctionData::RootObject;
+};
+template <>
+struct TypeToRootType<Handle<PlainObject*> > {
+  static const uint32_t result = VMFunctionData::RootObject;
+};
+template <>
+struct TypeToRootType<Handle<RegExpObject*> > {
+  static const uint32_t result = VMFunctionData::RootObject;
+};
+template <>
+struct TypeToRootType<Handle<LexicalScope*> > {
+  static const uint32_t result = VMFunctionData::RootCell;
+};
+template <>
+struct TypeToRootType<Handle<WithScope*> > {
+  static const uint32_t result = VMFunctionData::RootCell;
+};
+template <>
+struct TypeToRootType<Handle<Scope*> > {
+  static const uint32_t result = VMFunctionData::RootCell;
+};
+template <>
+struct TypeToRootType<HandleBigInt> {
+  static const uint32_t result = VMFunctionData::RootBigInt;
+};
+template <class T>
+struct TypeToRootType<Handle<T> > {
+  // Fail for Handle types that aren't specialized above.
+};
+
+template <class>
+struct OutParamToDataType {
+  static const DataType result = Type_Void;
+};
+template <>
+struct OutParamToDataType<Value*> {
+  static const DataType result = Type_Value;
+};
+template <>
+struct OutParamToDataType<int*> {
+  static const DataType result = Type_Int32;
+};
+template <>
+struct OutParamToDataType<uint32_t*> {
+  static const DataType result = Type_Int32;
+};
+template <>
+struct OutParamToDataType<uint8_t**> {
+  static const DataType result = Type_Pointer;
+};
+template <>
+struct OutParamToDataType<IonOsrTempData**> {
+  static const DataType result = Type_Pointer;
+};
+template <>
+struct OutParamToDataType<bool*> {
+  static const DataType result = Type_Bool;
+};
+template <>
+struct OutParamToDataType<double*> {
+  static const DataType result = Type_Double;
+};
+template <>
+struct OutParamToDataType<MutableHandleValue> {
+  static const DataType result = Type_Handle;
+};
+template <>
+struct OutParamToDataType<MutableHandleObject> {
+  static const DataType result = Type_Handle;
+};
+template <>
+struct OutParamToDataType<MutableHandleString> {
+  static const DataType result = Type_Handle;
+};
+template <>
+struct OutParamToDataType<MutableHandleBigInt> {
+  static const DataType result = Type_Handle;
+};
+
+template <class>
+struct OutParamToRootType {
+  static const VMFunctionData::RootType result = VMFunctionData::RootNone;
+};
+template <>
+struct OutParamToRootType<MutableHandleValue> {
+  static const VMFunctionData::RootType result = VMFunctionData::RootValue;
+};
+template <>
+struct OutParamToRootType<MutableHandleObject> {
+  static const VMFunctionData::RootType result = VMFunctionData::RootObject;
+};
+template <>
+struct OutParamToRootType<MutableHandleString> {
+  static const VMFunctionData::RootType result = VMFunctionData::RootString;
+};
+template <>
+struct OutParamToRootType<MutableHandleBigInt> {
+  static const VMFunctionData::RootType result = VMFunctionData::RootBigInt;
+};
+
+// Construct a bit mask from a list of types.  The mask is constructed as an OR
+// of the mask produced for each argument. The result of each argument is
+// shifted by its index, such that the result of the first argument is on the
+// low bits of the mask, and the result of the last argument in part of the
+// high bits of the mask.
+template <template <typename> class Each, typename ResultType, size_t Shift,
+          typename... Args>
+struct BitMask;
+
+template <template <typename> class Each, typename ResultType, size_t Shift>
+struct BitMask<Each, ResultType, Shift> {
+  static constexpr ResultType result = ResultType();
+};
+
+template <template <typename> class Each, typename ResultType, size_t Shift,
+          typename HeadType, typename... TailTypes>
+struct BitMask<Each, ResultType, Shift, HeadType, TailTypes...> {
+  static_assert(ResultType(Each<HeadType>::result) < (1 << Shift),
+                "not enough bits reserved by the shift for individual results");
+  static_assert(sizeof...(TailTypes) < (8 * sizeof(ResultType) / Shift),
+                "not enough bits in the result type to store all bit masks");
+
+  static constexpr ResultType result =
+      ResultType(Each<HeadType>::result) |
+      (BitMask<Each, ResultType, Shift, TailTypes...>::result << Shift);
+};
 
 // Helper template to build the VMFunctionData for a function.
 template <typename... Args>
@@ -54,7 +549,7 @@ struct VMFunctionDataHelper<R (*)(JSContext*, Args...)>
   static constexpr RootType outParamRootType() {
     return OutParamToRootType<typename LastArg<Args...>::Type>::result;
   }
-  static constexpr size_t NbArgs() { return LastArg<Args...>::nbArgs; }
+  static constexpr size_t NbArgs() { return sizeof...(Args); }
   static constexpr size_t explicitArgs() {
     return NbArgs() - (outParam() != Type_Void ? 1 : 0);
   }
@@ -123,12 +618,12 @@ const VMFunctionData& GetVMFunction(TailCallVMFunctionId id) {
   return tailCallVMFunctions[size_t(id)];
 }
 
-static void* GetVMFunctionTarget(VMFunctionId id) {
-  return vmFunctionTargets[size_t(id)];
+static DynFn GetVMFunctionTarget(VMFunctionId id) {
+  return DynFn{vmFunctionTargets[size_t(id)]};
 }
 
-static void* GetVMFunctionTarget(TailCallVMFunctionId id) {
-  return tailCallVMFunctionTargets[size_t(id)];
+static DynFn GetVMFunctionTarget(TailCallVMFunctionId id) {
+  return DynFn{tailCallVMFunctionTargets[size_t(id)]};
 }
 
 template <typename IdT>
@@ -186,20 +681,13 @@ bool JitRuntime::generateVMWrappers(JSContext* cx, MacroAssembler& masm) {
   return true;
 }
 
-AutoDetectInvalidation::AutoDetectInvalidation(JSContext* cx,
-                                               MutableHandleValue rval)
-    : cx_(cx),
-      ionScript_(GetTopJitJSScript(cx)->ionScript()),
-      rval_(rval),
-      disabled_(false) {}
-
 bool InvokeFunction(JSContext* cx, HandleObject obj, bool constructing,
                     bool ignoresReturnValue, uint32_t argc, Value* argv,
                     MutableHandleValue rval) {
   TraceLoggerThread* logger = TraceLoggerForCurrentThread(cx);
   TraceLogStartEvent(logger, TraceLogger_Call);
 
-  AutoArrayRooter argvRoot(cx, argc + 1 + constructing, argv);
+  RootedExternalValueArray argvRoot(cx, argc + 1 + constructing, argv);
 
   // Data in the argument vector is arranged for a JIT -> JIT call.
   RootedValue thisv(cx, argv[0]);
@@ -376,26 +864,6 @@ template bool StrictlyEqual<EqualityKind::NotEqual>(JSContext* cx,
                                                     MutableHandleValue rhs,
                                                     bool* res);
 
-bool LessThan(JSContext* cx, MutableHandleValue lhs, MutableHandleValue rhs,
-              bool* res) {
-  return LessThanOperation(cx, lhs, rhs, res);
-}
-
-bool LessThanOrEqual(JSContext* cx, MutableHandleValue lhs,
-                     MutableHandleValue rhs, bool* res) {
-  return LessThanOrEqualOperation(cx, lhs, rhs, res);
-}
-
-bool GreaterThan(JSContext* cx, MutableHandleValue lhs, MutableHandleValue rhs,
-                 bool* res) {
-  return GreaterThanOperation(cx, lhs, rhs, res);
-}
-
-bool GreaterThanOrEqual(JSContext* cx, MutableHandleValue lhs,
-                        MutableHandleValue rhs, bool* res) {
-  return GreaterThanOrEqualOperation(cx, lhs, rhs, res);
-}
-
 template <EqualityKind Kind>
 bool StringsEqual(JSContext* cx, HandleString lhs, HandleString rhs,
                   bool* res) {
@@ -441,7 +909,7 @@ bool ArrayPopDense(JSContext* cx, HandleObject obj, MutableHandleValue rval) {
 
   AutoDetectInvalidation adi(cx, rval);
 
-  JS::AutoValueArray<2> argv(cx);
+  JS::RootedValueArray<2> argv(cx);
   argv[0].setUndefined();
   argv[1].setObject(*obj);
   if (!js::array_pop(cx, 0, argv.begin())) {
@@ -478,7 +946,7 @@ bool ArrayPushDense(JSContext* cx, HandleArrayObject arr, HandleValue v,
   ++frame;
   IonScript* ionScript = frame.ionScript();
 
-  JS::AutoValueArray<3> argv(cx);
+  JS::RootedValueArray<3> argv(cx);
   AutoDetectInvalidation adi(cx, argv[0], ionScript);
   argv[0].setUndefined();
   argv[1].setObject(*arr);
@@ -491,6 +959,10 @@ bool ArrayPushDense(JSContext* cx, HandleArrayObject arr, HandleValue v,
     *length = argv[0].toInt32();
     return true;
   }
+
+  // Without TI this should not happen, we should have bailed out before
+  // calling the VM function if we are about to overflow.
+  MOZ_ASSERT(IsTypeInferenceEnabled());
 
   // array_push changed the length to be larger than INT32_MAX. In this case
   // OBJECT_FLAG_LENGTH_OVERFLOW was set, TI invalidated the script, and the
@@ -507,7 +979,7 @@ bool ArrayShiftDense(JSContext* cx, HandleObject obj, MutableHandleValue rval) {
 
   AutoDetectInvalidation adi(cx, rval);
 
-  JS::AutoValueArray<2> argv(cx);
+  JS::RootedValueArray<2> argv(cx);
   argv[0].setUndefined();
   argv[1].setObject(*obj);
   if (!js::array_shift(cx, 0, argv.begin())) {
@@ -526,7 +998,7 @@ bool ArrayShiftDense(JSContext* cx, HandleObject obj, MutableHandleValue rval) {
 }
 
 JSString* ArrayJoin(JSContext* cx, HandleObject array, HandleString sep) {
-  JS::AutoValueArray<3> argv(cx);
+  JS::RootedValueArray<3> argv(cx);
   argv[0].setUndefined();
   argv[1].setObject(*array);
   argv[2].setString(sep);
@@ -561,7 +1033,7 @@ bool SetArrayLength(JSContext* cx, HandleObject obj, HandleValue value,
     MOZ_ALWAYS_TRUE(result.fail(JSMSG_READ_ONLY));
   }
 
-  return result.checkStrictErrorOrWarning(cx, obj, id, strict);
+  return result.checkStrictModeError(cx, obj, id, strict);
 }
 
 bool CharCodeAt(JSContext* cx, HandleString str, int32_t index,
@@ -582,6 +1054,18 @@ JSLinearString* StringFromCharCode(JSContext* cx, int32_t code) {
   }
 
   return NewStringCopyNDontDeflate<CanGC>(cx, &c, 1);
+}
+
+JSLinearString* StringFromCharCodeNoGC(JSContext* cx, int32_t code) {
+  AutoUnsafeCallWithABI unsafe;
+
+  char16_t c = char16_t(code);
+
+  if (StaticStrings::hasUnit(c)) {
+    return cx->staticStrings().getUnit(c);
+  }
+
+  return NewStringCopyNDontDeflate<NoGC>(cx, &c, 1);
 }
 
 JSString* StringFromCodePoint(JSContext* cx, int32_t codePoint) {
@@ -628,7 +1112,7 @@ bool SetProperty(JSContext* cx, HandleObject obj, HandlePropertyName name,
       return false;
     }
   }
-  return result.checkStrictErrorOrWarning(cx, obj, id, strict);
+  return result.checkStrictModeError(cx, obj, id, strict);
 }
 
 bool InterruptCheck(JSContext* cx) {
@@ -663,7 +1147,7 @@ bool OperatorIn(JSContext* cx, HandleValue key, HandleObject obj, bool* out) {
   return ToPropertyKey(cx, key, &id) && HasProperty(cx, obj, id, out);
 }
 
-bool OperatorInI(JSContext* cx, uint32_t index, HandleObject obj, bool* out) {
+bool OperatorInI(JSContext* cx, int32_t index, HandleObject obj, bool* out) {
   RootedValue key(cx, Int32Value(index));
   return OperatorIn(cx, key, obj, out);
 }
@@ -679,9 +1163,11 @@ bool GetIntrinsicValue(JSContext* cx, HandlePropertyName name,
   // purposes, as its side effect is not observable from JS. We are
   // guaranteed to bail out after this function, but because of its AliasSet,
   // type info will not be reflowed. Manually monitor here.
-  jsbytecode* pc;
-  JSScript* script = cx->currentScript(&pc);
-  JitScript::MonitorBytecodeType(cx, script, pc, rval);
+  if (!JitOptions.warpBuilder) {
+    jsbytecode* pc;
+    JSScript* script = cx->currentScript(&pc);
+    JitScript::MonitorBytecodeType(cx, script, pc, rval);
+  }
 
   return true;
 }
@@ -837,6 +1323,18 @@ void PostGlobalWriteBarrier(JSRuntime* rt, GlobalObject* obj) {
   }
 }
 
+bool GetInt32FromStringPure(JSContext* cx, JSString* str, int32_t* result) {
+  // We shouldn't GC here as this is called directly from IC code.
+  AutoUnsafeCallWithABI unsafe;
+
+  double d;
+  if (!StringToNumberPure(cx, str, &d)) {
+    return false;
+  }
+
+  return mozilla::NumberIsInt32(d, result);
+}
+
 int32_t GetIndexFromString(JSString* str) {
   // We shouldn't GC here as this is called directly from IC code.
   AutoUnsafeCallWithABI unsafe;
@@ -939,33 +1437,13 @@ JSObject* CreateGenerator(JSContext* cx, BaselineFrame* frame) {
 
 bool NormalSuspend(JSContext* cx, HandleObject obj, BaselineFrame* frame,
                    uint32_t frameSize, jsbytecode* pc) {
-  MOZ_ASSERT(JSOp(*pc) == JSOp::Yield || JSOp(*pc) == JSOp::Await);
+  MOZ_ASSERT(JSOp(*pc) == JSOp::InitialYield || JSOp(*pc) == JSOp::Yield ||
+             JSOp(*pc) == JSOp::Await);
 
-  uint32_t numValueSlots = frame->numValueSlots(frameSize);
-
-  MOZ_ASSERT(numValueSlots > frame->script()->nfixed());
-  uint32_t stackDepth = numValueSlots - frame->script()->nfixed();
-
-  // Return value is still on the stack.
-  MOZ_ASSERT(stackDepth >= 1);
-
-  // The expression stack slots are stored on the stack in reverse order, so
-  // we copy them to a Vector and pass a pointer to that instead. We use
-  // stackDepth - 1 because we don't want to include the return value.
-  RootedValueVector exprStack(cx);
-  if (!exprStack.reserve(stackDepth - 1)) {
-    return false;
-  }
-
-  size_t firstSlot = numValueSlots - stackDepth;
-  for (size_t i = 0; i < stackDepth - 1; i++) {
-    exprStack.infallibleAppend(*frame->valueSlot(firstSlot + i));
-  }
-
-  MOZ_ASSERT(exprStack.length() == stackDepth - 1);
-
-  return AbstractGeneratorObject::normalSuspend(
-      cx, obj, frame, pc, exprStack.begin(), stackDepth - 1);
+  // Minus one because we don't want to include the return value.
+  uint32_t numSlots = frame->numValueSlots(frameSize) - 1;
+  MOZ_ASSERT(numSlots >= frame->script()->nfixed());
+  return AbstractGeneratorObject::suspend(cx, obj, frame, pc, numSlots);
 }
 
 bool FinalSuspend(JSContext* cx, HandleObject obj, jsbytecode* pc) {
@@ -1293,8 +1771,19 @@ bool SetDenseElement(JSContext* cx, HandleNativeObject obj, int32_t index,
   return SetObjectElement(cx, obj, indexVal, value, strict);
 }
 
-void AutoDetectInvalidation::setReturnOverride() {
-  cx_->setIonReturnOverride(rval_.get());
+void AssertValidBigIntPtr(JSContext* cx, JS::BigInt* bi) {
+  AutoUnsafeCallWithABI unsafe;
+  // FIXME: check runtime?
+  MOZ_ASSERT(cx->zone() == bi->zone());
+  MOZ_ASSERT(bi->isAligned());
+  MOZ_ASSERT(bi->getAllocKind() == gc::AllocKind::BIGINT);
+}
+
+void AssertValidObjectOrNullPtr(JSContext* cx, JSObject* obj) {
+  AutoUnsafeCallWithABI unsafe;
+  if (obj) {
+    AssertValidObjectPtr(cx, obj);
+  }
 }
 
 void AssertValidObjectPtr(JSContext* cx, JSObject* obj) {
@@ -1315,13 +1804,6 @@ void AssertValidObjectPtr(JSContext* cx, JSObject* obj) {
     MOZ_ASSERT(gc::IsObjectAllocKind(kind));
   }
 #endif
-}
-
-void AssertValidObjectOrNullPtr(JSContext* cx, JSObject* obj) {
-  AutoUnsafeCallWithABI unsafe;
-  if (obj) {
-    AssertValidObjectPtr(cx, obj);
-  }
 }
 
 void AssertValidStringPtr(JSContext* cx, JSString* str) {
@@ -1375,14 +1857,6 @@ void AssertValidSymbolPtr(JSContext* cx, JS::Symbol* sym) {
   }
 
   MOZ_ASSERT(sym->getAllocKind() == gc::AllocKind::SYMBOL);
-}
-
-void AssertValidBigIntPtr(JSContext* cx, JS::BigInt* bi) {
-  AutoUnsafeCallWithABI unsafe;
-  // FIXME: check runtime?
-  MOZ_ASSERT(cx->zone() == bi->zone());
-  MOZ_ASSERT(bi->isAligned());
-  MOZ_ASSERT(bi->getAllocKind() == gc::AllocKind::BIGINT);
 }
 
 void AssertValidValue(JSContext* cx, Value* v) {
@@ -1462,33 +1936,14 @@ bool BaselineGetFunctionThis(JSContext* cx, BaselineFrame* frame,
   return GetFunctionThis(cx, frame, res);
 }
 
-bool CallNativeGetter(JSContext* cx, HandleFunction callee, HandleObject obj,
-                      MutableHandleValue result) {
+bool CallNativeGetter(JSContext* cx, HandleFunction callee,
+                      HandleValue receiver, MutableHandleValue result) {
   AutoRealm ar(cx, callee);
 
   MOZ_ASSERT(callee->isNative());
   JSNative natfun = callee->native();
 
-  JS::AutoValueArray<2> vp(cx);
-  vp[0].setObject(*callee.get());
-  vp[1].setObject(*obj.get());
-
-  if (!natfun(cx, 0, vp.begin())) {
-    return false;
-  }
-
-  result.set(vp[0]);
-  return true;
-}
-
-bool CallNativeGetterByValue(JSContext* cx, HandleFunction callee,
-                             HandleValue receiver, MutableHandleValue result) {
-  AutoRealm ar(cx, callee);
-
-  MOZ_ASSERT(callee->isNative());
-  JSNative natfun = callee->native();
-
-  JS::AutoValueArray<2> vp(cx);
+  JS::RootedValueArray<2> vp(cx);
   vp[0].setObject(*callee.get());
   vp[1].set(receiver);
 
@@ -1500,6 +1955,24 @@ bool CallNativeGetterByValue(JSContext* cx, HandleFunction callee,
   return true;
 }
 
+bool CallDOMGetter(JSContext* cx, const JSJitInfo* info, HandleObject obj,
+                   MutableHandleValue result) {
+  MOZ_ASSERT(info->type() == JSJitInfo::Getter);
+  MOZ_ASSERT(obj->isNative());
+  MOZ_ASSERT(obj->getClass()->isDOMClass());
+
+#ifdef DEBUG
+  DOMInstanceClassHasProtoAtDepth instanceChecker =
+      cx->runtime()->DOMcallbacks->instanceClassMatchesProto;
+  MOZ_ASSERT(instanceChecker(obj->getClass(), info->protoID, info->depth));
+#endif
+
+  // Loading DOM_OBJECT_SLOT, which must be the first slot.
+  JS::Value val = JS::GetReservedSlot(obj, 0);
+  JSJitGetterOp getter = info->getter;
+  return getter(cx, obj, val.toPrivate(), JSJitGetterCallArgs(result));
+}
+
 bool CallNativeSetter(JSContext* cx, HandleFunction callee, HandleObject obj,
                       HandleValue rhs) {
   AutoRealm ar(cx, callee);
@@ -1507,12 +1980,32 @@ bool CallNativeSetter(JSContext* cx, HandleFunction callee, HandleObject obj,
   MOZ_ASSERT(callee->isNative());
   JSNative natfun = callee->native();
 
-  JS::AutoValueArray<3> vp(cx);
+  JS::RootedValueArray<3> vp(cx);
   vp[0].setObject(*callee.get());
   vp[1].setObject(*obj.get());
   vp[2].set(rhs);
 
   return natfun(cx, 1, vp.begin());
+}
+
+bool CallDOMSetter(JSContext* cx, const JSJitInfo* info, HandleObject obj,
+                   HandleValue value) {
+  MOZ_ASSERT(info->type() == JSJitInfo::Setter);
+  MOZ_ASSERT(obj->isNative());
+  MOZ_ASSERT(obj->getClass()->isDOMClass());
+
+#ifdef DEBUG
+  DOMInstanceClassHasProtoAtDepth instanceChecker =
+      cx->runtime()->DOMcallbacks->instanceClassMatchesProto;
+  MOZ_ASSERT(instanceChecker(obj->getClass(), info->protoID, info->depth));
+#endif
+
+  // Loading DOM_OBJECT_SLOT, which must be the first slot.
+  JS::Value val = JS::GetReservedSlot(obj, 0);
+  JSJitSetterOp setter = info->setter;
+
+  RootedValue v(cx, value);
+  return setter(cx, obj, val.toPrivate(), JSJitSetterCallArgs(&v));
 }
 
 bool EqualStringsHelperPure(JSString* str1, JSString* str2) {
@@ -1531,14 +2024,6 @@ bool EqualStringsHelperPure(JSString* str1, JSString* str2) {
   }
 
   return EqualChars(&str1->asLinear(), str2Linear);
-}
-
-bool CheckIsCallable(JSContext* cx, HandleValue v, CheckIsCallableKind kind) {
-  if (!IsCallable(v)) {
-    return ThrowCheckIsCallable(cx, kind);
-  }
-
-  return true;
 }
 
 static bool MaybeTypedArrayIndexString(jsid id) {
@@ -1991,14 +2476,14 @@ bool IsPossiblyWrappedTypedArray(JSContext* cx, JSObject* obj, bool* result) {
   return true;
 }
 
-bool DoToNumber(JSContext* cx, HandleValue arg, MutableHandleValue ret) {
-  ret.set(arg);
-  return ToNumber(cx, ret);
+void* AllocateString(JSContext* cx) {
+  AutoUnsafeCallWithABI unsafe;
+  return js::AllocateString<JSString, NoGC>(cx, js::gc::TenuredHeap);
 }
 
-bool DoToNumeric(JSContext* cx, HandleValue arg, MutableHandleValue ret) {
-  ret.set(arg);
-  return ToNumeric(cx, ret);
+void* AllocateFatInlineString(JSContext* cx) {
+  AutoUnsafeCallWithABI unsafe;
+  return js::AllocateString<JSFatInlineString, NoGC>(cx, js::gc::TenuredHeap);
 }
 
 void* AllocateBigIntNoGC(JSContext* cx, bool requestMinorGC) {
@@ -2009,6 +2494,83 @@ void* AllocateBigIntNoGC(JSContext* cx, bool requestMinorGC) {
   }
 
   return js::AllocateBigInt<NoGC>(cx, gc::TenuredHeap);
+}
+
+void AllocateAndInitTypedArrayBuffer(JSContext* cx, TypedArrayObject* obj,
+                                     int32_t count) {
+  AutoUnsafeCallWithABI unsafe;
+  using mozilla::CheckedUint32;
+
+  obj->initPrivate(nullptr);
+
+  // Negative numbers or zero will bail out to the slow path, which in turn will
+  // raise an invalid argument exception or create a correct object with zero
+  // elements.
+  if (count <= 0 || uint32_t(count) >= INT32_MAX / obj->bytesPerElement()) {
+    obj->setFixedSlot(TypedArrayObject::LENGTH_SLOT, Int32Value(0));
+    return;
+  }
+
+  obj->setFixedSlot(TypedArrayObject::LENGTH_SLOT, Int32Value(count));
+
+  size_t nbytes = count * obj->bytesPerElement();
+  MOZ_ASSERT((CheckedUint32(nbytes) + sizeof(Value)).isValid(),
+             "RoundUp must not overflow");
+
+  nbytes = RoundUp(nbytes, sizeof(Value));
+  void* buf = cx->nursery().allocateZeroedBuffer(obj, nbytes,
+                                                 js::ArrayBufferContentsArena);
+  if (buf) {
+    InitObjectPrivate(obj, buf, nbytes, MemoryUse::TypedArrayElements);
+  }
+}
+
+void* CreateMatchResultFallbackFunc(JSContext* cx, gc::AllocKind kind,
+                                    size_t nDynamicSlots) {
+  AutoUnsafeCallWithABI unsafe;
+  return js::AllocateObject<NoGC>(cx, kind, nDynamicSlots, gc::DefaultHeap,
+                                  &ArrayObject::class_);
+}
+
+#ifdef JS_GC_PROBES
+void TraceCreateObject(JSObject* obj) {
+  AutoUnsafeCallWithABI unsafe;
+  js::gc::gcprobes::CreateObject(obj);
+}
+#endif
+
+#if JS_BITS_PER_WORD == 32
+BigInt* CreateBigIntFromInt64(JSContext* cx, uint32_t low, uint32_t high) {
+  uint64_t n = (static_cast<uint64_t>(high) << 32) + low;
+  return js::BigInt::createFromInt64(cx, n);
+}
+
+BigInt* CreateBigIntFromUint64(JSContext* cx, uint32_t low, uint32_t high) {
+  uint64_t n = (static_cast<uint64_t>(high) << 32) + low;
+  return js::BigInt::createFromUint64(cx, n);
+}
+#else
+BigInt* CreateBigIntFromInt64(JSContext* cx, uint64_t i64) {
+  return js::BigInt::createFromInt64(cx, i64);
+}
+
+BigInt* CreateBigIntFromUint64(JSContext* cx, uint64_t i64) {
+  return js::BigInt::createFromUint64(cx, i64);
+}
+#endif
+
+bool DoStringToInt64(JSContext* cx, HandleString str, uint64_t* res) {
+  BigInt* bi;
+  JS_TRY_VAR_OR_RETURN_FALSE(cx, bi, js::StringToBigInt(cx, str));
+
+  if (!bi) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_BIGINT_INVALID_SYNTAX);
+    return false;
+  }
+
+  *res = js::BigInt::toUint64(bi);
+  return true;
 }
 
 template <EqualityKind Kind>
@@ -2142,6 +2704,263 @@ template bool StringBigIntCompare<ComparisonKind::LessThan>(JSContext* cx,
                                                             bool* res);
 template bool StringBigIntCompare<ComparisonKind::GreaterThanOrEqual>(
     JSContext* cx, HandleString x, HandleBigInt y, bool* res);
+
+template <typename T>
+static int32_t AtomicsCompareExchange(TypedArrayObject* typedArray,
+                                      int32_t index, int32_t expected,
+                                      int32_t replacement) {
+  AutoUnsafeCallWithABI unsafe;
+
+  MOZ_ASSERT(!typedArray->hasDetachedBuffer());
+  MOZ_ASSERT(index >= 0 && uint32_t(index) < typedArray->length());
+
+  SharedMem<T*> addr = typedArray->dataPointerEither().cast<T*>();
+  return jit::AtomicOperations::compareExchangeSeqCst(addr + index, T(expected),
+                                                      T(replacement));
+}
+
+AtomicsCompareExchangeFn AtomicsCompareExchange(Scalar::Type elementType) {
+  switch (elementType) {
+    case Scalar::Int8:
+      return AtomicsCompareExchange<int8_t>;
+    case Scalar::Uint8:
+      return AtomicsCompareExchange<uint8_t>;
+    case Scalar::Int16:
+      return AtomicsCompareExchange<int16_t>;
+    case Scalar::Uint16:
+      return AtomicsCompareExchange<uint16_t>;
+    case Scalar::Int32:
+      return AtomicsCompareExchange<int32_t>;
+    case Scalar::Uint32:
+      return AtomicsCompareExchange<uint32_t>;
+    default:
+      MOZ_CRASH("Unexpected TypedArray type");
+  }
+}
+
+template <typename T>
+static int32_t AtomicsExchange(TypedArrayObject* typedArray, int32_t index,
+                               int32_t value) {
+  AutoUnsafeCallWithABI unsafe;
+
+  MOZ_ASSERT(!typedArray->hasDetachedBuffer());
+  MOZ_ASSERT(index >= 0 && uint32_t(index) < typedArray->length());
+
+  SharedMem<T*> addr = typedArray->dataPointerEither().cast<T*>();
+  return jit::AtomicOperations::exchangeSeqCst(addr + index, T(value));
+}
+
+AtomicsReadWriteModifyFn AtomicsExchange(Scalar::Type elementType) {
+  switch (elementType) {
+    case Scalar::Int8:
+      return AtomicsExchange<int8_t>;
+    case Scalar::Uint8:
+      return AtomicsExchange<uint8_t>;
+    case Scalar::Int16:
+      return AtomicsExchange<int16_t>;
+    case Scalar::Uint16:
+      return AtomicsExchange<uint16_t>;
+    case Scalar::Int32:
+      return AtomicsExchange<int32_t>;
+    case Scalar::Uint32:
+      return AtomicsExchange<uint32_t>;
+    default:
+      MOZ_CRASH("Unexpected TypedArray type");
+  }
+}
+
+template <typename T>
+static int32_t AtomicsAdd(TypedArrayObject* typedArray, int32_t index,
+                          int32_t value) {
+  AutoUnsafeCallWithABI unsafe;
+
+  MOZ_ASSERT(!typedArray->hasDetachedBuffer());
+  MOZ_ASSERT(index >= 0 && uint32_t(index) < typedArray->length());
+
+  SharedMem<T*> addr = typedArray->dataPointerEither().cast<T*>();
+  return jit::AtomicOperations::fetchAddSeqCst(addr + index, T(value));
+}
+
+AtomicsReadWriteModifyFn AtomicsAdd(Scalar::Type elementType) {
+  switch (elementType) {
+    case Scalar::Int8:
+      return AtomicsAdd<int8_t>;
+    case Scalar::Uint8:
+      return AtomicsAdd<uint8_t>;
+    case Scalar::Int16:
+      return AtomicsAdd<int16_t>;
+    case Scalar::Uint16:
+      return AtomicsAdd<uint16_t>;
+    case Scalar::Int32:
+      return AtomicsAdd<int32_t>;
+    case Scalar::Uint32:
+      return AtomicsAdd<uint32_t>;
+    default:
+      MOZ_CRASH("Unexpected TypedArray type");
+  }
+}
+
+template <typename T>
+static int32_t AtomicsSub(TypedArrayObject* typedArray, int32_t index,
+                          int32_t value) {
+  AutoUnsafeCallWithABI unsafe;
+
+  MOZ_ASSERT(!typedArray->hasDetachedBuffer());
+  MOZ_ASSERT(index >= 0 && uint32_t(index) < typedArray->length());
+
+  SharedMem<T*> addr = typedArray->dataPointerEither().cast<T*>();
+  return jit::AtomicOperations::fetchSubSeqCst(addr + index, T(value));
+}
+
+AtomicsReadWriteModifyFn AtomicsSub(Scalar::Type elementType) {
+  switch (elementType) {
+    case Scalar::Int8:
+      return AtomicsSub<int8_t>;
+    case Scalar::Uint8:
+      return AtomicsSub<uint8_t>;
+    case Scalar::Int16:
+      return AtomicsSub<int16_t>;
+    case Scalar::Uint16:
+      return AtomicsSub<uint16_t>;
+    case Scalar::Int32:
+      return AtomicsSub<int32_t>;
+    case Scalar::Uint32:
+      return AtomicsSub<uint32_t>;
+    default:
+      MOZ_CRASH("Unexpected TypedArray type");
+  }
+}
+
+template <typename T>
+static int32_t AtomicsAnd(TypedArrayObject* typedArray, int32_t index,
+                          int32_t value) {
+  AutoUnsafeCallWithABI unsafe;
+
+  MOZ_ASSERT(!typedArray->hasDetachedBuffer());
+  MOZ_ASSERT(index >= 0 && uint32_t(index) < typedArray->length());
+
+  SharedMem<T*> addr = typedArray->dataPointerEither().cast<T*>();
+  return jit::AtomicOperations::fetchAndSeqCst(addr + index, T(value));
+}
+
+AtomicsReadWriteModifyFn AtomicsAnd(Scalar::Type elementType) {
+  switch (elementType) {
+    case Scalar::Int8:
+      return AtomicsAnd<int8_t>;
+    case Scalar::Uint8:
+      return AtomicsAnd<uint8_t>;
+    case Scalar::Int16:
+      return AtomicsAnd<int16_t>;
+    case Scalar::Uint16:
+      return AtomicsAnd<uint16_t>;
+    case Scalar::Int32:
+      return AtomicsAnd<int32_t>;
+    case Scalar::Uint32:
+      return AtomicsAnd<uint32_t>;
+    default:
+      MOZ_CRASH("Unexpected TypedArray type");
+  }
+}
+
+template <typename T>
+static int32_t AtomicsOr(TypedArrayObject* typedArray, int32_t index,
+                         int32_t value) {
+  AutoUnsafeCallWithABI unsafe;
+
+  MOZ_ASSERT(!typedArray->hasDetachedBuffer());
+  MOZ_ASSERT(index >= 0 && uint32_t(index) < typedArray->length());
+
+  SharedMem<T*> addr = typedArray->dataPointerEither().cast<T*>();
+  return jit::AtomicOperations::fetchOrSeqCst(addr + index, T(value));
+}
+
+AtomicsReadWriteModifyFn AtomicsOr(Scalar::Type elementType) {
+  switch (elementType) {
+    case Scalar::Int8:
+      return AtomicsOr<int8_t>;
+    case Scalar::Uint8:
+      return AtomicsOr<uint8_t>;
+    case Scalar::Int16:
+      return AtomicsOr<int16_t>;
+    case Scalar::Uint16:
+      return AtomicsOr<uint16_t>;
+    case Scalar::Int32:
+      return AtomicsOr<int32_t>;
+    case Scalar::Uint32:
+      return AtomicsOr<uint32_t>;
+    default:
+      MOZ_CRASH("Unexpected TypedArray type");
+  }
+}
+
+template <typename T>
+static int32_t AtomicsXor(TypedArrayObject* typedArray, int32_t index,
+                          int32_t value) {
+  AutoUnsafeCallWithABI unsafe;
+
+  MOZ_ASSERT(!typedArray->hasDetachedBuffer());
+  MOZ_ASSERT(index >= 0 && uint32_t(index) < typedArray->length());
+
+  SharedMem<T*> addr = typedArray->dataPointerEither().cast<T*>();
+  return jit::AtomicOperations::fetchXorSeqCst(addr + index, T(value));
+}
+
+AtomicsReadWriteModifyFn AtomicsXor(Scalar::Type elementType) {
+  switch (elementType) {
+    case Scalar::Int8:
+      return AtomicsXor<int8_t>;
+    case Scalar::Uint8:
+      return AtomicsXor<uint8_t>;
+    case Scalar::Int16:
+      return AtomicsXor<int16_t>;
+    case Scalar::Uint16:
+      return AtomicsXor<uint16_t>;
+    case Scalar::Int32:
+      return AtomicsXor<int32_t>;
+    case Scalar::Uint32:
+      return AtomicsXor<uint32_t>;
+    default:
+      MOZ_CRASH("Unexpected TypedArray type");
+  }
+}
+
+bool GroupHasPropertyTypes(ObjectGroup* group, jsid* id, Value* v) {
+  AutoUnsafeCallWithABI unsafe;
+  if (group->unknownPropertiesDontCheckGeneration()) {
+    return true;
+  }
+  HeapTypeSet* propTypes = group->maybeGetPropertyDontCheckGeneration(*id);
+  if (!propTypes) {
+    return true;
+  }
+  if (!propTypes->nonConstantProperty()) {
+    return false;
+  }
+  return propTypes->hasType(TypeSet::GetValueType(*v));
+}
+
+void AssumeUnreachable(const char* output) {
+  MOZ_ReportAssertionFailure(output, __FILE__, __LINE__);
+}
+
+void Printf0(const char* output) {
+  AutoUnsafeCallWithABI unsafe;
+
+  // Use stderr instead of stdout because this is only used for debug
+  // output. stderr is less likely to interfere with the program's normal
+  // output, and it's always unbuffered.
+  fprintf(stderr, "%s", output);
+}
+
+void Printf1(const char* output, uintptr_t value) {
+  AutoUnsafeCallWithABI unsafe;
+  AutoEnterOOMUnsafeRegion oomUnsafe;
+  js::UniqueChars line = JS_sprintf_append(nullptr, output, value);
+  if (!line) {
+    oomUnsafe.crash("OOM at masm.printf");
+  }
+  fprintf(stderr, "%s", line.get());
+}
 
 }  // namespace jit
 }  // namespace js

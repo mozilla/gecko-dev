@@ -66,19 +66,37 @@ nsresult URLPreloader::CollectReports(nsIHandleReportCallback* aHandleReport,
                          elem->TypeString(), pathName.get());
 
     aHandleReport->Callback(
-        EmptyCString(), path, KIND_HEAP, UNITS_BYTES,
+        ""_ns, path, KIND_HEAP, UNITS_BYTES,
         elem->SizeOfIncludingThis(MallocSizeOf),
-        NS_LITERAL_CSTRING("Memory used to hold cache data for files which "
-                           "have been read or pre-loaded during this session."),
+        nsLiteralCString("Memory used to hold cache data for files which "
+                         "have been read or pre-loaded during this session."),
         aData);
   }
 
   return NS_OK;
 }
 
+// static
+already_AddRefed<URLPreloader> URLPreloader::Create(bool* aInitialized) {
+  // The static APIs like URLPreloader::Read work in the child process because
+  // they fall back to a synchronous read. The actual preloader must be
+  // explicitly initialized, and this should only be done in the parent.
+  MOZ_RELEASE_ASSERT(XRE_IsParentProcess());
+
+  RefPtr<URLPreloader> preloader = new URLPreloader();
+  if (preloader->InitInternal().isOk()) {
+    *aInitialized = true;
+    RegisterWeakMemoryReporter(preloader);
+  } else {
+    *aInitialized = false;
+  }
+
+  return preloader.forget();
+}
+
 URLPreloader& URLPreloader::GetSingleton() {
   if (!sSingleton) {
-    sSingleton = new URLPreloader();
+    sSingleton = Create(&sInitialized);
     ClearOnShutdown(&sSingleton);
   }
 
@@ -89,16 +107,10 @@ bool URLPreloader::sInitialized = false;
 
 StaticRefPtr<URLPreloader> URLPreloader::sSingleton;
 
-URLPreloader::URLPreloader() {
-  if (InitInternal().isOk()) {
-    sInitialized = true;
-    RegisterWeakMemoryReporter(this);
-  }
-}
-
 URLPreloader::~URLPreloader() {
   if (sInitialized) {
     UnregisterWeakMemoryReporter(this);
+    sInitialized = false;
   }
 }
 
@@ -122,28 +134,23 @@ Result<Ok, nsresult> URLPreloader::InitInternal() {
   mResProto = do_QueryInterface(ph, &rv);
   MOZ_TRY(rv);
 
-  mChromeReg = services::GetChromeRegistryService();
+  mChromeReg = services::GetChromeRegistry();
   if (!mChromeReg) {
     return Err(NS_ERROR_UNEXPECTED);
   }
 
-  if (XRE_IsParentProcess()) {
-    nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
+  nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
 
-    obs->AddObserver(this, DELAYED_STARTUP_TOPIC, false);
+  MOZ_TRY(obs->AddObserver(this, DELAYED_STARTUP_TOPIC, false));
 
-    MOZ_TRY(NS_GetSpecialDirectory("ProfLDS", getter_AddRefs(mProfD)));
-  } else {
-    mStartupFinished = true;
-    mReaderInitialized = true;
-  }
+  MOZ_TRY(NS_GetSpecialDirectory("ProfLDS", getter_AddRefs(mProfD)));
 
   return Ok();
 }
 
 URLPreloader& URLPreloader::ReInitialize() {
-  sSingleton = new URLPreloader();
-
+  MOZ_ASSERT(sSingleton);
+  sSingleton = Create(&sInitialized);
   return *sSingleton;
 }
 
@@ -156,10 +163,10 @@ Result<nsCOMPtr<nsIFile>, nsresult> URLPreloader::GetCacheFile(
   nsCOMPtr<nsIFile> cacheFile;
   MOZ_TRY(mProfD->Clone(getter_AddRefs(cacheFile)));
 
-  MOZ_TRY(cacheFile->AppendNative(NS_LITERAL_CSTRING("startupCache")));
+  MOZ_TRY(cacheFile->AppendNative("startupCache"_ns));
   Unused << cacheFile->Create(nsIFile::DIRECTORY_TYPE, 0777);
 
-  MOZ_TRY(cacheFile->Append(NS_LITERAL_STRING("urlCache") + suffix));
+  MOZ_TRY(cacheFile->Append(u"urlCache"_ns + suffix));
 
   return std::move(cacheFile);
 }
@@ -168,15 +175,14 @@ static const uint8_t URL_MAGIC[] = "mozURLcachev002";
 
 Result<nsCOMPtr<nsIFile>, nsresult> URLPreloader::FindCacheFile() {
   nsCOMPtr<nsIFile> cacheFile;
-  MOZ_TRY_VAR(cacheFile, GetCacheFile(NS_LITERAL_STRING(".bin")));
+  MOZ_TRY_VAR(cacheFile, GetCacheFile(u".bin"_ns));
 
   bool exists;
   MOZ_TRY(cacheFile->Exists(&exists));
   if (exists) {
-    MOZ_TRY(
-        cacheFile->MoveTo(nullptr, NS_LITERAL_STRING("urlCache-current.bin")));
+    MOZ_TRY(cacheFile->MoveTo(nullptr, u"urlCache-current.bin"_ns));
   } else {
-    MOZ_TRY(cacheFile->SetLeafName(NS_LITERAL_STRING("urlCache-current.bin")));
+    MOZ_TRY(cacheFile->SetLeafName(u"urlCache-current.bin"_ns));
     MOZ_TRY(cacheFile->Exists(&exists));
     if (!exists) {
       return Err(NS_ERROR_FILE_NOT_FOUND);
@@ -204,7 +210,7 @@ Result<Ok, nsresult> URLPreloader::WriteCache() {
   LOG(Debug, "Writing cache...");
 
   nsCOMPtr<nsIFile> cacheFile;
-  MOZ_TRY_VAR(cacheFile, GetCacheFile(NS_LITERAL_STRING("-new.bin")));
+  MOZ_TRY_VAR(cacheFile, GetCacheFile(u"-new.bin"_ns));
 
   bool exists;
   MOZ_TRY(cacheFile->Exists(&exists));
@@ -239,7 +245,7 @@ Result<Ok, nsresult> URLPreloader::WriteCache() {
     MOZ_TRY(Write(fd, buf.Get(), buf.cursor()));
   }
 
-  MOZ_TRY(cacheFile->MoveTo(nullptr, NS_LITERAL_STRING("urlCache.bin")));
+  MOZ_TRY(cacheFile->MoveTo(nullptr, u"urlCache.bin"_ns));
 
   NS_DispatchToMainThread(
       NewRunnableMethod("URLPreloader::Cleanup", this, &URLPreloader::Cleanup));
@@ -430,8 +436,8 @@ void URLPreloader::BeginBackgroundRead() {
   }
 }
 
-Result<const nsCString, nsresult> URLPreloader::ReadInternal(
-    const CacheKey& key, ReadType readType) {
+Result<nsCString, nsresult> URLPreloader::ReadInternal(const CacheKey& key,
+                                                       ReadType readType) {
   if (mStartupFinished) {
     URLEntry entry(key);
 
@@ -445,16 +451,16 @@ Result<const nsCString, nsresult> URLPreloader::ReadInternal(
   return entry->ReadOrWait(readType);
 }
 
-Result<const nsCString, nsresult> URLPreloader::ReadURIInternal(
-    nsIURI* uri, ReadType readType) {
+Result<nsCString, nsresult> URLPreloader::ReadURIInternal(nsIURI* uri,
+                                                          ReadType readType) {
   CacheKey key;
   MOZ_TRY_VAR(key, ResolveURI(uri));
 
   return ReadInternal(key, readType);
 }
 
-/* static */ Result<const nsCString, nsresult> URLPreloader::Read(
-    const CacheKey& key, ReadType readType) {
+/* static */ Result<nsCString, nsresult> URLPreloader::Read(const CacheKey& key,
+                                                            ReadType readType) {
   // If we're being called before the preloader has been initialized (i.e.,
   // before the profile has been initialized), just fall back to a synchronous
   // read. This happens when we're reading .ini and preference files that are
@@ -466,7 +472,7 @@ Result<const nsCString, nsresult> URLPreloader::ReadURIInternal(
   return GetSingleton().ReadInternal(key, readType);
 }
 
-/* static */ Result<const nsCString, nsresult> URLPreloader::ReadURI(
+/* static */ Result<nsCString, nsresult> URLPreloader::ReadURI(
     nsIURI* uri, ReadType readType) {
   if (!sInitialized) {
     return Err(NS_ERROR_NOT_INITIALIZED);
@@ -475,12 +481,12 @@ Result<const nsCString, nsresult> URLPreloader::ReadURIInternal(
   return GetSingleton().ReadURIInternal(uri, readType);
 }
 
-/* static */ Result<const nsCString, nsresult> URLPreloader::ReadFile(
+/* static */ Result<nsCString, nsresult> URLPreloader::ReadFile(
     nsIFile* file, ReadType readType) {
   return Read(CacheKey(file), readType);
 }
 
-/* static */ Result<const nsCString, nsresult> URLPreloader::Read(
+/* static */ Result<nsCString, nsresult> URLPreloader::Read(
     FileLocation& location, ReadType readType) {
   if (location.IsZip()) {
     if (location.GetBaseZip()) {
@@ -495,7 +501,7 @@ Result<const nsCString, nsresult> URLPreloader::ReadURIInternal(
   return ReadFile(file, readType);
 }
 
-/* static */ Result<const nsCString, nsresult> URLPreloader::ReadZip(
+/* static */ Result<nsCString, nsresult> URLPreloader::ReadZip(
     nsZipArchive* zip, const nsACString& path, ReadType readType) {
   // If the zip archive belongs to an Omnijar location, map it to a cache
   // entry, and cache it as normal. Otherwise, simply read the entry
@@ -586,7 +592,7 @@ Result<FileLocation, nsresult> URLPreloader::CacheKey::ToFileLocation() {
   return FileLocation(zip, mPath.get());
 }
 
-Result<const nsCString, nsresult> URLPreloader::URLEntry::Read() {
+Result<nsCString, nsresult> URLPreloader::URLEntry::Read() {
   FileLocation location;
   MOZ_TRY_VAR(location, ToFileLocation());
 
@@ -594,8 +600,8 @@ Result<const nsCString, nsresult> URLPreloader::URLEntry::Read() {
   return mData;
 }
 
-/* static */ Result<const nsCString, nsresult>
-URLPreloader::URLEntry::ReadLocation(FileLocation& location) {
+/* static */ Result<nsCString, nsresult> URLPreloader::URLEntry::ReadLocation(
+    FileLocation& location) {
   FileLocation::Data data;
   MOZ_TRY(location.GetData(data));
 
@@ -609,7 +615,7 @@ URLPreloader::URLEntry::ReadLocation(FileLocation& location) {
   return std::move(result);
 }
 
-Result<const nsCString, nsresult> URLPreloader::URLEntry::ReadOrWait(
+Result<nsCString, nsresult> URLPreloader::URLEntry::ReadOrWait(
     ReadType readType) {
   auto now = TimeStamp::Now();
   LOG(Info, "Reading %s\n", mPath.get());

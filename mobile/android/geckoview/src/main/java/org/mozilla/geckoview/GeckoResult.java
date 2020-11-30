@@ -9,10 +9,10 @@ import org.mozilla.gecko.util.XPCOMEventTarget;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
-import android.support.annotation.AnyThread;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.util.SimpleArrayMap;
+import androidx.annotation.AnyThread;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.collection.SimpleArrayMap;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -214,6 +214,7 @@ public class GeckoResult<T> {
     }
 
     public static final class UncaughtException extends RuntimeException {
+        @SuppressWarnings("checkstyle:javadocmethod")
         public UncaughtException(final Throwable cause) {
             super(cause);
         }
@@ -433,6 +434,25 @@ public class GeckoResult<T> {
             };
 
         return then(valueListener, exceptionListener);
+    }
+
+    /* package */ @NonNull GeckoResult<Void> getOrAccept(@Nullable final Consumer<T> valueConsumer) {
+        return getOrAccept(valueConsumer, null);
+    }
+
+    /* package */ @NonNull GeckoResult<Void> getOrAccept(@Nullable final Consumer<T> valueConsumer,
+                                                         @Nullable final Consumer<Throwable> exceptionConsumer) {
+        if (haveValue() && valueConsumer != null) {
+            valueConsumer.accept(mValue);
+            return GeckoResult.fromValue(null);
+        }
+
+        if (haveError() && exceptionConsumer != null) {
+            exceptionConsumer.accept(mError);
+            return GeckoResult.fromValue(null);
+        }
+
+        return accept(valueConsumer, exceptionConsumer);
     }
 
     /**

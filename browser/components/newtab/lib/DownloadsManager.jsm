@@ -12,7 +12,6 @@ const { actionTypes: at } = ChromeUtils.import(
 );
 
 XPCOMUtils.defineLazyModuleGetters(this, {
-  BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
   DownloadsCommon: "resource:///modules/DownloadsCommon.jsm",
   DownloadsViewUI: "resource:///modules/DownloadsViewUI.jsm",
   FileUtils: "resource://gre/modules/FileUtils.jsm",
@@ -36,6 +35,7 @@ this.DownloadsManager = class DownloadsManager {
   }
 
   formatDownload(download) {
+    let referrer = download.source.referrerInfo?.originalReferrer?.spec || null;
     return {
       hostname: new URL(download.source.url).hostname,
       url: download.source.url,
@@ -44,9 +44,7 @@ this.DownloadsManager = class DownloadsManager {
       description:
         DownloadsViewUI.getSizeWithUnits(download) ||
         DownloadsCommon.strings.sizeUnknown,
-      referrer: download.source.referrerInfo
-        ? download.source.referrerInfo.originalReferrer.spec
-        : null,
+      referrer,
       date_added: download.endTime,
     };
   }
@@ -174,12 +172,17 @@ this.DownloadsManager = class DownloadsManager {
         });
         break;
       case at.OPEN_DOWNLOAD_FILE:
+        const win = action._target.browser.ownerGlobal;
+        const openWhere =
+          action.data.event && win.whereToOpenLink(action.data.event);
         doDownloadAction(download => {
-          DownloadsCommon.openDownloadedFile(
-            new FileUtils.File(download.target.path),
-            null,
-            BrowserWindowTracker.getTopWindow()
-          );
+          DownloadsCommon.openDownload(download, {
+            // Replace "current" or unknown value with "tab" as the default behavior
+            // for opening downloads when handled internally
+            openWhere: ["window", "tab", "tabshifted"].includes(openWhere)
+              ? openWhere
+              : "tab",
+          });
         });
         break;
       case at.UNINIT:

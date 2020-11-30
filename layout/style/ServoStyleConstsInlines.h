@@ -10,6 +10,7 @@
 #define mozilla_ServoStyleConstsInlines_h
 
 #include "mozilla/ServoStyleConsts.h"
+#include "mozilla/AspectRatio.h"
 #include "mozilla/EndianUtils.h"
 #include "mozilla/URLExtraData.h"
 #include "nsGkAtoms.h"
@@ -216,7 +217,9 @@ inline bool StyleArcSlice<T>::IsEmpty() const {
 template <typename T>
 inline Span<const T> StyleArcSlice<T>::AsSpan() const {
   ASSERT_CANARY
-  return MakeSpan(_0.ptr->data.slice, Length());
+  // Explicitly specify template argument here to avoid instantiating Span<T>
+  // first and then implicitly converting to Span<const T>
+  return Span<const T>{_0.ptr->data.slice, Length()};
 }
 
 template <typename T>
@@ -236,7 +239,7 @@ inline StyleArcSlice<T>::~StyleArcSlice() {
   if (MOZ_LIKELY(!_0.ptr->DecrementRef())) {
     return;
   }
-  for (T& elem : MakeSpan(_0.ptr->data.slice, Length())) {
+  for (T& elem : Span(_0.ptr->data.slice, Length())) {
     elem.~T();
   }
   free(_0.ptr);  // Drop the allocation now.
@@ -485,6 +488,10 @@ using BorderRadius = StyleBorderRadius;
 bool StyleCSSPixelLength::IsZero() const { return _0 == 0.0f; }
 
 void StyleCSSPixelLength::ScaleBy(float aScale) { _0 *= aScale; }
+
+StyleCSSPixelLength StyleCSSPixelLength::ScaledBy(float aScale) const {
+  return FromPixels(ToCSSPixels() * aScale);
+}
 
 nscoord StyleCSSPixelLength::ToAppUnits() const {
   // We want to resolve the length part of the calc() expression rounding 0.5
@@ -966,6 +973,21 @@ template <>
 Maybe<StyleImage::ActualCropRect> StyleImage::ComputeActualCropRect() const;
 template <>
 void StyleImage::ResolveImage(dom::Document&, const StyleImage*);
+
+template <>
+inline AspectRatio StyleRatio<StyleNonNegativeNumber>::ToLayoutRatio() const {
+  // The Ratio may be 0/1 (zero) or 1/0 (infinity). There is a spec issue
+  // related to these special cases:
+  // https://github.com/w3c/csswg-drafts/issues/4572.
+  //
+  // For now, we accept these values, but layout AspectRatio makes these values
+  // 0.0.
+  //
+  // Note: a ratio of 0/0 behaves as the ratio 1/0 instead. So ToLayoutRatio()
+  //       also makes it as 0.0 for now.
+  // https://drafts.csswg.org/css-values-4/#ratios
+  return AspectRatio::FromSize(_0, _1);
+}
 
 }  // namespace mozilla
 

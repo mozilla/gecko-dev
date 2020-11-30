@@ -17,54 +17,56 @@
 #include "jstypes.h"           // JS_PUBLIC_API
 #include "NamespaceImports.h"  // ValueVector
 
-#include "frontend/AbstractScope.h"    // AbstractScope
-#include "frontend/BytecodeOffset.h"   // BytecodeOffset
-#include "frontend/JumpList.h"         // JumpTarget
-#include "frontend/NameCollections.h"  // AtomIndexMap, PooledMapPtr
-#include "frontend/ObjLiteral.h"       // ObjLiteralCreationData
-#include "frontend/ParseNode.h"        // BigIntLiteral
-#include "frontend/SourceNotes.h"      // jssrcnote
-#include "frontend/Stencil.h"          // Stencils
-#include "gc/Barrier.h"                // GCPtrObject, GCPtrScope, GCPtrValue
-#include "gc/Rooting.h"                // JS::Rooted
-#include "js/GCVariant.h"              // GCPolicy<mozilla::Variant>
-#include "js/GCVector.h"               // GCVector
-#include "js/TypeDecls.h"              // jsbytecode, JSContext
-#include "js/Value.h"                  // JS::Vector
-#include "js/Vector.h"                 // Vector
-#include "vm/JSScript.h"               // JSTryNote, JSTryNoteKind, ScopeNote
-#include "vm/Opcodes.h"                // JSOpLength_JumpTarget
+#include "frontend/AbstractScopePtr.h"  // AbstractScopePtr, ScopeIndex
+#include "frontend/BytecodeOffset.h"    // BytecodeOffset
+#include "frontend/CompilationInfo.h"   // CompilationInfo, CompilationGCOutput
+#include "frontend/JumpList.h"          // JumpTarget
+#include "frontend/NameCollections.h"   // AtomIndexMap, PooledMapPtr
+#include "frontend/ObjLiteral.h"        // ObjLiteralStencil
+#include "frontend/ParseNode.h"         // BigIntLiteral
+#include "frontend/SourceNotes.h"       // SrcNote
+#include "frontend/Stencil.h"           // Stencils
+#include "gc/Rooting.h"                 // JS::Rooted
+#include "js/GCVariant.h"               // GCPolicy<mozilla::Variant>
+#include "js/GCVector.h"                // GCVector
+#include "js/TypeDecls.h"               // jsbytecode, JSContext
+#include "js/Value.h"                   // JS::Vector
+#include "js/Vector.h"                  // Vector
+#include "vm/Opcodes.h"                 // JSOpLength_JumpTarget
+#include "vm/SharedStencil.h"           // TryNote, ScopeNote, GCThingIndex
+#include "vm/StencilEnums.h"            // TryNoteKind
 
 namespace js {
 
 class Scope;
 
-using BigIntVector = JS::GCVector<js::BigInt*>;
-
 namespace frontend {
 
-class BigIntLiteral;
-class ObjectBox;
+class FunctionBox;
 
 struct MOZ_STACK_CLASS GCThingList {
-  using ListType =
-      mozilla::Variant<JS::GCCellPtr, BigIntIndex, ObjLiteralCreationData,
-                       RegExpIndex, ScopeIndex>;
+  JSContext* cx;
   CompilationInfo& compilationInfo;
-  JS::RootedVector<ListType> vector;
-
-  // Last emitted object.
-  ObjectBox* lastbox = nullptr;
+  ScriptThingsVector vector;
 
   // Index of the first scope in the vector.
-  mozilla::Maybe<uint32_t> firstScopeIndex;
+  mozilla::Maybe<GCThingIndex> firstScopeIndex;
 
   explicit GCThingList(JSContext* cx, CompilationInfo& compilationInfo)
-      : compilationInfo(compilationInfo), vector(cx) {}
+      : cx(cx), compilationInfo(compilationInfo) {}
 
-  MOZ_MUST_USE bool append(ScopeIndex scope, uint32_t* index) {
-    *index = vector.length();
+  MOZ_MUST_USE bool append(const ParserAtom* atom, GCThingIndex* index) {
+    *index = GCThingIndex(vector.length());
+    if (!vector.append(mozilla::AsVariant(std::move(atom)))) {
+      js::ReportOutOfMemory(cx);
+      return false;
+    }
+    return true;
+  }
+  MOZ_MUST_USE bool append(ScopeIndex scope, GCThingIndex* index) {
+    *index = GCThingIndex(vector.length());
     if (!vector.append(mozilla::AsVariant(scope))) {
+      js::ReportOutOfMemory(cx);
       return false;
     }
     if (!firstScopeIndex) {
@@ -72,9 +74,37 @@ struct MOZ_STACK_CLASS GCThingList {
     }
     return true;
   }
-  MOZ_MUST_USE bool append(Scope* scope, uint32_t* index) {
-    *index = vector.length();
-    if (!vector.append(mozilla::AsVariant(JS::GCCellPtr(scope)))) {
+  MOZ_MUST_USE bool append(BigIntLiteral* literal, GCThingIndex* index) {
+    *index = GCThingIndex(vector.length());
+    if (!vector.append(mozilla::AsVariant(literal->index()))) {
+      js::ReportOutOfMemory(cx);
+      return false;
+    }
+    return true;
+  }
+  MOZ_MUST_USE bool append(RegExpLiteral* literal, GCThingIndex* index) {
+    *index = GCThingIndex(vector.length());
+    if (!vector.append(mozilla::AsVariant(literal->index()))) {
+      js::ReportOutOfMemory(cx);
+      return false;
+    }
+    return true;
+  }
+  MOZ_MUST_USE bool append(ObjLiteralIndex objlit, GCThingIndex* index) {
+    *index = GCThingIndex(vector.length());
+    if (!vector.append(mozilla::AsVariant(objlit))) {
+      js::ReportOutOfMemory(cx);
+      return false;
+    }
+    return true;
+  }
+  MOZ_MUST_USE bool append(FunctionBox* funbox, GCThingIndex* index);
+
+  MOZ_MUST_USE bool appendEmptyGlobalScope(GCThingIndex* index) {
+    *index = GCThingIndex(vector.length());
+    EmptyGlobalScopeType emptyGlobalScope;
+    if (!vector.append(mozilla::AsVariant(emptyGlobalScope))) {
+      js::ReportOutOfMemory(cx);
       return false;
     }
     if (!firstScopeIndex) {
@@ -82,68 +112,55 @@ struct MOZ_STACK_CLASS GCThingList {
     }
     return true;
   }
-  MOZ_MUST_USE bool append(BigIntLiteral* literal, uint32_t* index) {
-    *index = vector.length();
-    return vector.append(mozilla::AsVariant(literal->index()));
-  }
-  MOZ_MUST_USE bool append(RegExpLiteral* literal, uint32_t* index) {
-    *index = vector.length();
-    if (literal->isDeferred()) {
-      return vector.append(mozilla::AsVariant(literal->index()));
-    }
-    return vector.append(
-        mozilla::AsVariant(JS::GCCellPtr(literal->objbox()->object())));
-  }
-  MOZ_MUST_USE bool append(ObjLiteralCreationData&& objlit, uint32_t* index) {
-    *index = vector.length();
-    return vector.append(mozilla::AsVariant(std::move(objlit)));
-  }
-  MOZ_MUST_USE bool append(ObjectBox* obj, uint32_t* index);
 
   uint32_t length() const { return vector.length(); }
-  MOZ_MUST_USE bool finish(JSContext* cx, CompilationInfo& compilationInfo,
-                           mozilla::Span<JS::GCCellPtr> array);
-  void finishInnerFunctions();
 
-  AbstractScope getScope(size_t index) const {
-    auto& elem = vector[index].get();
-    if (elem.is<JS::GCCellPtr>()) {
-      return AbstractScope(&elem.as<JS::GCCellPtr>().as<Scope>());
-    }
-    return AbstractScope(compilationInfo, elem.as<ScopeIndex>());
-  }
+  const ScriptThingsVector& objects() { return vector; }
 
-  AbstractScope firstScope() const {
+  AbstractScopePtr getScope(size_t index) const;
+
+  // Index of scope within CompilationInfo or Nothing is the scope is
+  // EmptyGlobalScopeType.
+  mozilla::Maybe<ScopeIndex> getScopeIndex(size_t index) const;
+
+  AbstractScopePtr firstScope() const {
     MOZ_ASSERT(firstScopeIndex.isSome());
     return getScope(*firstScopeIndex);
   }
+
+  ScriptThingsVector stealGCThings() { return std::move(vector); }
 };
+
+MOZ_MUST_USE bool EmitScriptThingsVector(JSContext* cx,
+                                         CompilationInfo& compilationInfo,
+                                         CompilationGCOutput& gcOutput,
+                                         const ScriptThingsVector& objects,
+                                         mozilla::Span<JS::GCCellPtr> output);
 
 struct CGTryNoteList {
-  Vector<JSTryNote> list;
+  Vector<TryNote> list;
   explicit CGTryNoteList(JSContext* cx) : list(cx) {}
 
-  MOZ_MUST_USE bool append(JSTryNoteKind kind, uint32_t stackDepth,
+  MOZ_MUST_USE bool append(TryNoteKind kind, uint32_t stackDepth,
                            BytecodeOffset start, BytecodeOffset end);
+  mozilla::Span<const TryNote> span() const {
+    return {list.begin(), list.length()};
+  }
   size_t length() const { return list.length(); }
-  void finish(mozilla::Span<JSTryNote> array);
-};
-
-struct CGScopeNote : public ScopeNote {
-  // The end offset. Used to compute the length.
-  uint32_t end;
 };
 
 struct CGScopeNoteList {
-  Vector<CGScopeNote> list;
+  Vector<ScopeNote> list;
   explicit CGScopeNoteList(JSContext* cx) : list(cx) {}
 
-  MOZ_MUST_USE bool append(uint32_t scopeIndex, BytecodeOffset offset,
+  MOZ_MUST_USE bool append(GCThingIndex scopeIndex, BytecodeOffset offset,
                            uint32_t parent);
   void recordEnd(uint32_t index, BytecodeOffset offset);
   void recordEndFunctionBodyVar(uint32_t index);
+  mozilla::Span<const ScopeNote> span() const {
+    return {list.begin(), list.length()};
+  }
   size_t length() const { return list.length(); }
-  void finish(mozilla::Span<ScopeNote> array);
 
  private:
   void recordEndImpl(uint32_t index, uint32_t offset);
@@ -154,8 +171,10 @@ struct CGResumeOffsetList {
   explicit CGResumeOffsetList(JSContext* cx) : list(cx) {}
 
   MOZ_MUST_USE bool append(uint32_t offset) { return list.append(offset); }
+  mozilla::Span<const uint32_t> span() const {
+    return {list.begin(), list.length()};
+  }
   size_t length() const { return list.length(); }
-  void finish(mozilla::Span<uint32_t> array);
 };
 
 static constexpr size_t MaxBytecodeLength = INT32_MAX;
@@ -164,7 +183,7 @@ static constexpr size_t MaxSrcNotesLength = INT32_MAX;
 // Have a few inline elements, so as to avoid heap allocation for tiny
 // sequences.  See bug 1390526.
 typedef Vector<jsbytecode, 64> BytecodeVector;
-typedef Vector<jssrcnote, 64> SrcNotesVector;
+typedef Vector<js::SrcNote, 64> SrcNotesVector;
 
 // Bytecode and all data directly associated with specific opcode/index inside
 // bytecode is stored in this class.
@@ -354,8 +373,8 @@ class BytecodeSection {
   // we can get undefined behavior.
   uint32_t currentLine_;
 
-  // Zero-based column index on currentLine_ of last SRC_COLSPAN-annotated
-  // opcode.
+  // Zero-based column index on currentLine_ of last
+  // SrcNoteType::ColSpan-annotated opcode.
   //
   // WARNING: If this becomes out of sync with already-emitted srcnotes,
   // we can get undefined behavior.
@@ -406,11 +425,5 @@ class PerScriptData {
 
 } /* namespace frontend */
 } /* namespace js */
-
-namespace JS {
-template <typename T>
-struct GCPolicy<js::frontend::TypedIndex<T>>
-    : JS::IgnoreGCPolicy<js::frontend::TypedIndex<T>> {};
-}  // namespace JS
 
 #endif /* frontend_BytecodeSection_h */

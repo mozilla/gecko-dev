@@ -1,0 +1,79 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+/*
+ * A radiogroup styled to hide the radio buttons
+ * and present tab-like labels as buttons
+ */
+
+.toggle-group {
+  display: inline-flex;
+}
+
+.toggle-group-label {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  padding: 6px 10px;
+  background-color: var(--in-content-button-background);
+}
+
+.toggle-group-input {
+  position: absolute;
+  inset-inline-start: -100px;
+}
+
+.toggle-group-label-iconic::before {
+  width: 16px;
+  height: 16px;
+  margin-inline-end: 5px;
+  -moz-context-properties: fill;
+  fill: currentColor;
+}
+
+.toggle-group-label:first-of-type {
+  border-start-start-radius: 2px;
+  border-end-start-radius: 2px;
+}
+
+.toggle-group-label:last-of-type {
+  border-start-end-radius: 2px;
+  border-end-end-radius: 2px;
+}
+
+.toggle-group-input:not(:enabled) + .toggle-group-label {
+  opacity: 0.7;
+}
+
+.toggle-group-input:enabled + .toggle-group-label:hover {
+  background-color: var(--in-content-button-background-hover);
+}
+
+.toggle-group-input:enabled + .toggle-group-label:active {
+  background-color: var(--in-content-button-background-active);
+}
+
+.toggle-group-input:-moz-focusring + .toggle-group-label {
+  box-shadow: 0 0 0 1px var(--border-color), 0 0 0 4px rgba(10, 132, 255, 0.3);
+  outline: none;
+  z-index: 1;
+}
+
+.toggle-group-input:checked:-moz-focusring + .toggle-group-label {
+  box-shadow: 0 0 0 1px var(--in-content-border-active), 0 0 0 4px rgba(10, 132, 255, 0.3);
+}
+
+.toggle-group-input:enabled:checked + .toggle-group-label{
+  background-color: var(--in-content-primary-button-background);
+  color: var(--in-content-selected-text);
+}
+
+.toggle-group-input:enabled:checked + .toggle-group-label:hover {
+  background-color: var(--in-content-primary-button-background-hover);
+}
+
+.toggle-group-input:enabled:checked + .toggle-group-label:active {
+  background-color: var(--in-content-primary-button-background-active);
+}

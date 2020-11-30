@@ -1,7 +1,10 @@
 #![allow(dead_code)]
 
 use neqo_common::qinfo;
-use neqo_crypto::*;
+use neqo_crypto::{
+    AntiReplay, AuthenticationStatus, Client, HandshakeState, RecordList, Res, ResumptionToken,
+    SecretAgent, Server, ZeroRttCheckResult, ZeroRttChecker,
+};
 use std::mem;
 use std::time::Instant;
 use test_fixture::{anti_replay, fixture_init, now};
@@ -118,7 +121,7 @@ fn zero_rtt_setup(
     }
 }
 
-pub fn resumption_setup(mode: Resumption) -> (Option<AntiReplay>, Vec<u8>) {
+pub fn resumption_setup(mode: Resumption) -> (Option<AntiReplay>, ResumptionToken) {
     fixture_init();
 
     let mut client = Client::new("server.example").expect("should create client");
@@ -143,6 +146,6 @@ pub fn resumption_setup(mode: Resumption) -> (Option<AntiReplay>, Vec<u8>) {
 
     // `client` is about to go out of scope,
     // but we only need to keep the resumption token, so clone it.
-    let token = client.resumption_token().expect("token is present").clone();
+    let token = client.resumption_token().expect("token is present");
     (anti_replay, token)
 }

@@ -12,7 +12,7 @@ use ash::{extensions::khr, version::DeviceV1_0 as _, vk};
 use hal::{format::Format, window as w};
 use smallvec::SmallVec;
 
-use crate::{conv, native};
+use crate::{conv, info, native};
 use crate::{
     Backend,
     Device,
@@ -23,7 +23,6 @@ use crate::{
     RawInstance,
     VK_ENTRY,
 };
-
 
 #[derive(Debug, Default)]
 pub struct FramebufferCache {
@@ -69,7 +68,7 @@ impl SurfaceSwapchain {
         device.destroy_semaphore(self.semaphore.0, None);
         for frame in self.frames {
             device.destroy_image_view(frame.view, None);
-            for framebuffer in frame.framebuffers.0.lock().unwrap().framebuffers.drain() {
+            for framebuffer in frame.framebuffers.0.lock().unwrap().framebuffers.drain(..) {
                 device.destroy_framebuffer(framebuffer, None);
             }
         }
@@ -113,7 +112,7 @@ impl Instance {
         }
 
         let surface = {
-            let xlib_loader = khr::XlibSurface::new(entry, &self.raw.0);
+            let xlib_loader = khr::XlibSurface::new(entry, &self.raw.inner);
             let info = vk::XlibSurfaceCreateInfoKHR {
                 s_type: vk::StructureType::XLIB_SURFACE_CREATE_INFO_KHR,
                 p_next: ptr::null(),
@@ -149,7 +148,7 @@ impl Instance {
         }
 
         let surface = {
-            let xcb_loader = khr::XcbSurface::new(entry, &self.raw.0);
+            let xcb_loader = khr::XcbSurface::new(entry, &self.raw.inner);
             let info = vk::XcbSurfaceCreateInfoKHR {
                 s_type: vk::StructureType::XCB_SURFACE_CREATE_INFO_KHR,
                 p_next: ptr::null(),
@@ -180,7 +179,7 @@ impl Instance {
         }
 
         let surface = {
-            let w_loader = khr::WaylandSurface::new(entry, &self.raw.0);
+            let w_loader = khr::WaylandSurface::new(entry, &self.raw.inner);
             let info = vk::WaylandSurfaceCreateInfoKHR {
                 s_type: vk::StructureType::WAYLAND_SURFACE_CREATE_INFO_KHR,
                 p_next: ptr::null(),
@@ -202,7 +201,7 @@ impl Instance {
             .expect("Unable to load Vulkan entry points");
 
         let surface = {
-            let loader = khr::AndroidSurface::new(entry, &self.raw.0);
+            let loader = khr::AndroidSurface::new(entry, &self.raw.inner);
             let info = vk::AndroidSurfaceCreateInfoKHR {
                 s_type: vk::StructureType::ANDROID_SURFACE_CREATE_INFO_KHR,
                 p_next: ptr::null(),
@@ -234,7 +233,7 @@ impl Instance {
                 hinstance: hinstance as *mut _,
                 hwnd: hwnd as *mut _,
             };
-            let win32_loader = khr::Win32Surface::new(entry, &self.raw.0);
+            let win32_loader = khr::Win32Surface::new(entry, &self.raw.inner);
             unsafe {
                 win32_loader
                     .create_win32_surface(&info, None)
@@ -248,7 +247,7 @@ impl Instance {
     #[cfg(target_os = "macos")]
     pub fn create_surface_from_ns_view(&self, view: *mut c_void) -> Surface {
         use ash::extensions::mvk;
-        use core_graphics::{base::CGFloat, geometry::CGRect};
+        use core_graphics_types::{base::CGFloat, geometry::CGRect};
         use objc::runtime::{Object, BOOL, YES};
 
         // TODO: this logic is duplicated from gfx-backend-metal, refactor?
@@ -287,7 +286,7 @@ impl Instance {
         }
 
         let surface = {
-            let mac_os_loader = mvk::MacOSSurface::new(entry, &self.raw.0);
+            let mac_os_loader = mvk::MacOSSurface::new(entry, &self.raw.inner);
             let info = vk::MacOSSurfaceCreateInfoMVK {
                 s_type: vk::StructureType::MACOS_SURFACE_CREATE_INFO_M,
                 p_next: ptr::null(),
@@ -310,7 +309,7 @@ impl Instance {
             .as_ref()
             .expect("Unable to load Vulkan entry points");
 
-        let functor = khr::Surface::new(entry, &self.raw.0);
+        let functor = khr::Surface::new(entry, &self.raw.inner);
 
         let raw = Arc::new(RawSurface {
             handle: surface,
@@ -327,12 +326,18 @@ impl Instance {
 
 impl w::Surface<Backend> for Surface {
     fn supports_queue_family(&self, queue_family: &QueueFamily) -> bool {
-        unsafe {
+        match unsafe {
             self.raw.functor.get_physical_device_surface_support(
                 queue_family.device,
                 queue_family.index,
                 self.raw.handle,
             )
+        } {
+            Ok(ok) => ok,
+            Err(e) => {
+                error!("get_physical_device_surface_support error {:?}", e);
+                false
+            }
         }
     }
 
@@ -383,7 +388,9 @@ impl w::Surface<Backend> for Surface {
         w::SurfaceCapabilities {
             present_modes: raw_present_modes
                 .into_iter()
-                .fold(w::PresentMode::empty(), |u, m| { u | conv::map_vk_present_mode(m) }),
+                .fold(w::PresentMode::empty(), |u, m| {
+                    u | conv::map_vk_present_mode(m)
+                }),
             composite_alpha_modes: conv::map_vk_composite_alpha(caps.supported_composite_alpha),
             image_count: caps.min_image_count ..= max_images,
             current_extent,
@@ -443,13 +450,13 @@ impl w::PresentationSurface<Backend> for Surface {
         let old = self
             .swapchain
             .take()
-            .map(|ssc| ssc.release_resources(&device.raw.0));
+            .map(|ssc| ssc.release_resources(&device.shared.raw));
 
         let (swapchain, images) = device.create_swapchain(self, config, old)?;
 
         self.swapchain = Some(SurfaceSwapchain {
             swapchain,
-            device: Arc::clone(&device.raw),
+            device: Arc::clone(&device.shared),
             fence: device.create_fence(false).unwrap(),
             semaphore: device.create_semaphore().unwrap(),
             frames: images
@@ -482,7 +489,7 @@ impl w::PresentationSurface<Backend> for Surface {
 
     unsafe fn unconfigure_swapchain(&mut self, device: &Device) {
         if let Some(ssc) = self.swapchain.take() {
-            let swapchain = ssc.release_resources(&device.raw.0);
+            let swapchain = ssc.release_resources(&device.shared.raw);
             swapchain.functor.destroy_swapchain(swapchain.raw, None);
         }
     }
@@ -501,14 +508,14 @@ impl w::PresentationSurface<Backend> for Surface {
         timeout_ns = timeout_ns.saturating_sub(moment.elapsed().as_nanos() as u64);
         let fences = &[ssc.fence.0];
 
-        match ssc.device.0.wait_for_fences(fences, true, timeout_ns) {
+        match ssc.device.raw.wait_for_fences(fences, true, timeout_ns) {
             Ok(()) => {
-                ssc.device.0.reset_fences(fences).unwrap();
+                ssc.device.raw.reset_fences(fences).unwrap();
                 let frame = &ssc.frames[index as usize];
                 // We have just waited for the frame to be fully available on CPU.
                 // All the associated framebuffers are expected to be destroyed by now.
-                for framebuffer in frame.framebuffers.0.lock().unwrap().framebuffers.drain() {
-                    ssc.device.0.destroy_framebuffer(framebuffer, None);
+                for framebuffer in frame.framebuffers.0.lock().unwrap().framebuffers.drain(..) {
+                    ssc.device.raw.destroy_framebuffer(framebuffer, None);
                 }
                 let image = Self::SwapchainImage {
                     index,
@@ -533,9 +540,9 @@ impl w::PresentationSurface<Backend> for Surface {
             Err(vk::Result::ERROR_SURFACE_LOST_KHR) => {
                 Err(w::AcquireError::SurfaceLost(hal::device::SurfaceLost))
             }
-            Err(vk::Result::ERROR_OUT_OF_HOST_MEMORY) => Err(w::AcquireError::OutOfMemory(
-                hal::device::OutOfMemory::Host,
-            )),
+            Err(vk::Result::ERROR_OUT_OF_HOST_MEMORY) => {
+                Err(w::AcquireError::OutOfMemory(hal::device::OutOfMemory::Host))
+            }
             Err(vk::Result::ERROR_OUT_OF_DEVICE_MEMORY) => Err(w::AcquireError::OutOfMemory(
                 hal::device::OutOfMemory::Device,
             )),
@@ -550,6 +557,7 @@ impl w::PresentationSurface<Backend> for Surface {
 pub struct Swapchain {
     pub(crate) raw: vk::SwapchainKHR,
     pub(crate) functor: khr::Swapchain,
+    pub(crate) vendor_id: u32,
 }
 
 impl fmt::Debug for Swapchain {
@@ -574,6 +582,10 @@ impl w::Swapchain<Backend> for Swapchain {
             .acquire_next_image(self.raw, timeout_ns, semaphore, fence);
 
         match index {
+            // special case for Intel Vulkan returning bizzare values (ugh)
+            Ok((i, _)) if self.vendor_id == info::intel::VENDOR && i > 0x100 => {
+                Err(w::AcquireError::OutOfDate)
+            }
             Ok((i, true)) => Ok((i, Some(w::Suboptimal))),
             Ok((i, false)) => Ok((i, None)),
             Err(vk::Result::NOT_READY) => Err(w::AcquireError::NotReady),
@@ -582,9 +594,9 @@ impl w::Swapchain<Backend> for Swapchain {
             Err(vk::Result::ERROR_SURFACE_LOST_KHR) => {
                 Err(w::AcquireError::SurfaceLost(hal::device::SurfaceLost))
             }
-            Err(vk::Result::ERROR_OUT_OF_HOST_MEMORY) => Err(w::AcquireError::OutOfMemory(
-                hal::device::OutOfMemory::Host,
-            )),
+            Err(vk::Result::ERROR_OUT_OF_HOST_MEMORY) => {
+                Err(w::AcquireError::OutOfMemory(hal::device::OutOfMemory::Host))
+            }
             Err(vk::Result::ERROR_OUT_OF_DEVICE_MEMORY) => Err(w::AcquireError::OutOfMemory(
                 hal::device::OutOfMemory::Device,
             )),

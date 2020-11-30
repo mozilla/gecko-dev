@@ -13,6 +13,7 @@
 #include "frontend/BytecodeCompiler.h"
 #include "frontend/ParseNode.h"
 #include "frontend/ParseNodeVisitor.h"
+#include "frontend/ParserAtom.h"
 #include "frontend/SharedContext.h"
 #include "util/Poison.h"
 #include "util/StringBuffer.h"
@@ -28,7 +29,8 @@ class NameResolver : public ParseNodeVisitor<NameResolver> {
 
   static const size_t MaxParents = 100;
 
-  RootedAtom prefix_;
+  ParserAtomsTable& parserAtoms_;
+  const ParserAtom* prefix_;
 
   // Number of nodes in the parents array.
   size_t nparents_;
@@ -57,7 +59,7 @@ class NameResolver : public ParseNodeVisitor<NameResolver> {
    * given code like a["b c"], the front end will produce a ParseNodeKind::Dot
    * with a ParseNodeKind::Name child whose name contains spaces.
    */
-  bool appendPropertyReference(JSAtom* name) {
+  bool appendPropertyReference(const ParserAtom* name) {
     if (IsIdentifier(name)) {
       return buf_.append('.') && buf_.append(name);
     }
@@ -218,30 +220,32 @@ class NameResolver : public ParseNodeVisitor<NameResolver> {
    * assign to the function's displayAtom field.
    */
   MOZ_MUST_USE bool resolveFun(FunctionNode* funNode,
-                               MutableHandleAtom retAtom) {
+                               const ParserAtom** retId) {
     MOZ_ASSERT(funNode != nullptr);
-    RootedFunction fun(cx_, funNode->funbox()->function());
+
+    FunctionBox* funbox = funNode->funbox();
 
     MOZ_ASSERT(buf_.empty());
     auto resetBuf = mozilla::MakeScopeExit([&] { buf_.clear(); });
 
-    retAtom.set(nullptr);
+    *retId = nullptr;
 
     // If the function already has a name, use that.
-    if (fun->displayAtom() != nullptr) {
-      if (prefix_ == nullptr) {
-        retAtom.set(fun->displayAtom());
+    if (funbox->displayAtom()) {
+      if (!prefix_) {
+        *retId = funbox->displayAtom();
         return true;
       }
       if (!buf_.append(prefix_) || !buf_.append('/') ||
-          !buf_.append(fun->displayAtom()))
+          !buf_.append(funbox->displayAtom())) {
         return false;
-      retAtom.set(buf_.finishAtom());
-      return !!retAtom;
+      }
+      *retId = buf_.finishParserAtom(parserAtoms_);
+      return !!*retId;
     }
 
     // If a prefix is specified, then it is a form of namespace.
-    if (prefix_ != nullptr) {
+    if (prefix_) {
       if (!buf_.append(prefix_) || !buf_.append('/')) {
         return false;
       }
@@ -311,15 +315,15 @@ class NameResolver : public ParseNodeVisitor<NameResolver> {
       return true;
     }
 
-    retAtom.set(buf_.finishAtom());
-    if (!retAtom) {
+    *retId = buf_.finishParserAtom(parserAtoms_);
+    if (!*retId) {
       return false;
     }
 
     // Skip assigning the guessed name if the function has a (dynamically)
     // computed inferred name.
     if (!funNode->isDirectRHSAnonFunction()) {
-      fun->setGuessedAtom(retAtom);
+      funbox->setGuessedAtom(*retId);
     }
     return true;
   }
@@ -336,8 +340,8 @@ class NameResolver : public ParseNodeVisitor<NameResolver> {
 
  public:
   MOZ_MUST_USE bool visitFunction(FunctionNode* pn) {
-    RootedAtom savedPrefix(cx_, prefix_);
-    RootedAtom newPrefix(cx_);
+    const ParserAtom* savedPrefix = prefix_;
+    const ParserAtom* newPrefix = nullptr;
     if (!resolveFun(pn, &newPrefix)) {
       return false;
     }
@@ -436,8 +440,12 @@ class NameResolver : public ParseNodeVisitor<NameResolver> {
     return internalVisitSpecList(pn);
   }
 
-  explicit NameResolver(JSContext* cx)
-      : ParseNodeVisitor(cx), prefix_(cx), nparents_(0), buf_(cx) {}
+  explicit NameResolver(JSContext* cx, ParserAtomsTable& parserAtoms)
+      : ParseNodeVisitor(cx),
+        parserAtoms_(parserAtoms),
+        prefix_(nullptr),
+        nparents_(0),
+        buf_(cx) {}
 
   /*
    * Resolve names for all anonymous functions in the given ParseNode tree.
@@ -468,9 +476,10 @@ class NameResolver : public ParseNodeVisitor<NameResolver> {
 
 } /* anonymous namespace */
 
-bool frontend::NameFunctions(JSContext* cx, ParseNode* pn) {
+bool frontend::NameFunctions(JSContext* cx, ParserAtomsTable& parserAtoms,
+                             ParseNode* pn) {
   AutoTraceLog traceLog(TraceLoggerForCurrentThread(cx),
                         TraceLogger_BytecodeNameFunctions);
-  NameResolver nr(cx);
+  NameResolver nr(cx, parserAtoms);
   return nr.visit(pn);
 }

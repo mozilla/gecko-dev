@@ -44,6 +44,7 @@ struct IInterceptor : public IUnknown {
       REFIID aIid, InterceptorTargetPtr<IUnknown>& aTarget) = 0;
   virtual STDMETHODIMP GetInterceptorForIID(REFIID aIid,
                                             void** aOutInterceptor) = 0;
+  virtual STDMETHODIMP GetEventSink(IInterceptorSink** aSink) = 0;
 };
 
 /**
@@ -62,6 +63,11 @@ struct IInterceptor : public IUnknown {
  * We accomplish this by using COM aggregation, which means that the
  * ICallInterceptor delegates its IUnknown implementation to its outer object
  * (the mscom::Interceptor we implement and control).
+ *
+ * ACHTUNG! mscom::Interceptor uses FastMarshaler to disable COM garbage
+ * collection. If you use this class, you *must* call
+ * Interceptor::DisconnectRemotesForTarget when an object is no longer relevant.
+ * Otherwise, the object will never be released, causing a leak.
  */
 class Interceptor final : public WeakReferenceSupport,
                           public IStdMarshalInfo,
@@ -120,6 +126,12 @@ class Interceptor final : public WeakReferenceSupport,
       REFIID aIid, InterceptorTargetPtr<IUnknown>& aTarget) override;
   STDMETHODIMP GetInterceptorForIID(REFIID aIid,
                                     void** aOutInterceptor) override;
+
+  STDMETHODIMP GetEventSink(IInterceptorSink** aSink) override {
+    RefPtr<IInterceptorSink> sink = mEventSink;
+    sink.forget(aSink);
+    return mEventSink ? S_OK : S_FALSE;
+  }
 
  private:
   struct MapEntry {

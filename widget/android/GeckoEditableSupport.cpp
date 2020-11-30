@@ -13,6 +13,9 @@
 
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/IMEStateManager.h"
+#include "mozilla/java/GeckoEditableChildWrappers.h"
+#include "mozilla/java/GeckoServiceChildProcessWrappers.h"
+#include "mozilla/Logging.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_intl.h"
 #include "mozilla/TextComposition.h"
@@ -20,228 +23,21 @@
 #include "mozilla/TextEvents.h"
 #include "mozilla/ToString.h"
 #include "mozilla/dom/BrowserChild.h"
+#include "mozilla/widget/GeckoViewSupport.h"
 
 #include <android/api-level.h>
 #include <android/input.h>
 #include <android/log.h>
 
-#ifdef DEBUG_ANDROID_IME
-#  define ALOGIME(args...) \
-    __android_log_print(ANDROID_LOG_INFO, "GeckoEditableSupport", ##args)
+#ifdef NIGHTLY_BUILD
+static mozilla::LazyLogModule sGeckoEditableSupportLog("GeckoEditableSupport");
+#  define ALOGIME(...) \
+    MOZ_LOG(sGeckoEditableSupportLog, LogLevel::Debug, (__VA_ARGS__))
 #else
 #  define ALOGIME(args...) \
     do {                   \
     } while (0)
 #endif
-
-template <>
-const char nsWindow::NativePtr<mozilla::widget::GeckoEditableSupport>::sName[] =
-    "GeckoEditableSupport";
-
-enum {
-  AKEYCODE_dummy,  // Avoid enum without declarations.
-
-// These keycode masks are not defined in android/keycodes.h:
-// Note that the NDK unified headers always define these constants, so we
-// need to ensure we're _not_ using unified headers, by checking for the
-// absence of __ANDROID_API_X__ macros (e.g. __ANDROID_API_L__), which are
-// only defined by the unified headers.
-#if __ANDROID_API__ < 13 && !defined(__ANDROID_API_I__)
-  AKEYCODE_ESCAPE = 111,
-  AKEYCODE_FORWARD_DEL = 112,
-  AKEYCODE_CTRL_LEFT = 113,
-  AKEYCODE_CTRL_RIGHT = 114,
-  AKEYCODE_CAPS_LOCK = 115,
-  AKEYCODE_SCROLL_LOCK = 116,
-  AKEYCODE_META_LEFT = 117,
-  AKEYCODE_META_RIGHT = 118,
-  AKEYCODE_FUNCTION = 119,
-  AKEYCODE_SYSRQ = 120,
-  AKEYCODE_BREAK = 121,
-  AKEYCODE_MOVE_HOME = 122,
-  AKEYCODE_MOVE_END = 123,
-  AKEYCODE_INSERT = 124,
-  AKEYCODE_FORWARD = 125,
-  AKEYCODE_MEDIA_PLAY = 126,
-  AKEYCODE_MEDIA_PAUSE = 127,
-  AKEYCODE_MEDIA_CLOSE = 128,
-  AKEYCODE_MEDIA_EJECT = 129,
-  AKEYCODE_MEDIA_RECORD = 130,
-  AKEYCODE_F1 = 131,
-  AKEYCODE_F2 = 132,
-  AKEYCODE_F3 = 133,
-  AKEYCODE_F4 = 134,
-  AKEYCODE_F5 = 135,
-  AKEYCODE_F6 = 136,
-  AKEYCODE_F7 = 137,
-  AKEYCODE_F8 = 138,
-  AKEYCODE_F9 = 139,
-  AKEYCODE_F10 = 140,
-  AKEYCODE_F11 = 141,
-  AKEYCODE_F12 = 142,
-  AKEYCODE_NUM_LOCK = 143,
-  AKEYCODE_NUMPAD_0 = 144,
-  AKEYCODE_NUMPAD_1 = 145,
-  AKEYCODE_NUMPAD_2 = 146,
-  AKEYCODE_NUMPAD_3 = 147,
-  AKEYCODE_NUMPAD_4 = 148,
-  AKEYCODE_NUMPAD_5 = 149,
-  AKEYCODE_NUMPAD_6 = 150,
-  AKEYCODE_NUMPAD_7 = 151,
-  AKEYCODE_NUMPAD_8 = 152,
-  AKEYCODE_NUMPAD_9 = 153,
-  AKEYCODE_NUMPAD_DIVIDE = 154,
-  AKEYCODE_NUMPAD_MULTIPLY = 155,
-  AKEYCODE_NUMPAD_SUBTRACT = 156,
-  AKEYCODE_NUMPAD_ADD = 157,
-  AKEYCODE_NUMPAD_DOT = 158,
-  AKEYCODE_NUMPAD_COMMA = 159,
-  AKEYCODE_NUMPAD_ENTER = 160,
-  AKEYCODE_NUMPAD_EQUALS = 161,
-  AKEYCODE_NUMPAD_LEFT_PAREN = 162,
-  AKEYCODE_NUMPAD_RIGHT_PAREN = 163,
-  AKEYCODE_VOLUME_MUTE = 164,
-  AKEYCODE_INFO = 165,
-  AKEYCODE_CHANNEL_UP = 166,
-  AKEYCODE_CHANNEL_DOWN = 167,
-  AKEYCODE_ZOOM_IN = 168,
-  AKEYCODE_ZOOM_OUT = 169,
-  AKEYCODE_TV = 170,
-  AKEYCODE_WINDOW = 171,
-  AKEYCODE_GUIDE = 172,
-  AKEYCODE_DVR = 173,
-  AKEYCODE_BOOKMARK = 174,
-  AKEYCODE_CAPTIONS = 175,
-  AKEYCODE_SETTINGS = 176,
-  AKEYCODE_TV_POWER = 177,
-  AKEYCODE_TV_INPUT = 178,
-  AKEYCODE_STB_POWER = 179,
-  AKEYCODE_STB_INPUT = 180,
-  AKEYCODE_AVR_POWER = 181,
-  AKEYCODE_AVR_INPUT = 182,
-  AKEYCODE_PROG_RED = 183,
-  AKEYCODE_PROG_GREEN = 184,
-  AKEYCODE_PROG_YELLOW = 185,
-  AKEYCODE_PROG_BLUE = 186,
-  AKEYCODE_APP_SWITCH = 187,
-  AKEYCODE_BUTTON_1 = 188,
-  AKEYCODE_BUTTON_2 = 189,
-  AKEYCODE_BUTTON_3 = 190,
-  AKEYCODE_BUTTON_4 = 191,
-  AKEYCODE_BUTTON_5 = 192,
-  AKEYCODE_BUTTON_6 = 193,
-  AKEYCODE_BUTTON_7 = 194,
-  AKEYCODE_BUTTON_8 = 195,
-  AKEYCODE_BUTTON_9 = 196,
-  AKEYCODE_BUTTON_10 = 197,
-  AKEYCODE_BUTTON_11 = 198,
-  AKEYCODE_BUTTON_12 = 199,
-  AKEYCODE_BUTTON_13 = 200,
-  AKEYCODE_BUTTON_14 = 201,
-  AKEYCODE_BUTTON_15 = 202,
-  AKEYCODE_BUTTON_16 = 203,
-#endif
-#if __ANDROID_API__ < 14 && !defined(__ANDROID_API_I__)
-  AKEYCODE_LANGUAGE_SWITCH = 204,
-  AKEYCODE_MANNER_MODE = 205,
-  AKEYCODE_3D_MODE = 206,
-#endif
-#if __ANDROID_API__ < 15 && !defined(__ANDROID_API_J__)
-  AKEYCODE_CONTACTS = 207,
-  AKEYCODE_CALENDAR = 208,
-  AKEYCODE_MUSIC = 209,
-  AKEYCODE_CALCULATOR = 210,
-#endif
-#if __ANDROID_API__ < 16 && !defined(__ANDROID_API_J__)
-  AKEYCODE_ZENKAKU_HANKAKU = 211,
-  AKEYCODE_EISU = 212,
-  AKEYCODE_MUHENKAN = 213,
-  AKEYCODE_HENKAN = 214,
-  AKEYCODE_KATAKANA_HIRAGANA = 215,
-  AKEYCODE_YEN = 216,
-  AKEYCODE_RO = 217,
-  AKEYCODE_KANA = 218,
-  AKEYCODE_ASSIST = 219,
-#endif
-#if __ANDROID_API__ < 18 && !defined(__ANDROID_API_J_MR2__)
-  AKEYCODE_BRIGHTNESS_DOWN = 220,
-  AKEYCODE_BRIGHTNESS_UP = 221,
-#endif
-#if __ANDROID_API__ < 19 && !defined(__ANDROID_API_K__)
-  AKEYCODE_MEDIA_AUDIO_TRACK = 222,
-#endif
-#if __ANDROID_API__ < 20 && !defined(__ANDROID_API_L__)
-  AKEYCODE_SLEEP = 223,
-  AKEYCODE_WAKEUP = 224,
-#endif
-#if __ANDROID_API__ < 21 && !defined(__ANDROID_API_L__)
-  AKEYCODE_PAIRING = 225,
-  AKEYCODE_MEDIA_TOP_MENU = 226,
-  AKEYCODE_11 = 227,
-  AKEYCODE_12 = 228,
-  AKEYCODE_LAST_CHANNEL = 229,
-  AKEYCODE_TV_DATA_SERVICE = 230,
-  AKEYCODE_VOICE_ASSIST = 231,
-  AKEYCODE_TV_RADIO_SERVICE = 232,
-  AKEYCODE_TV_TELETEXT = 233,
-  AKEYCODE_TV_NUMBER_ENTRY = 234,
-  AKEYCODE_TV_TERRESTRIAL_ANALOG = 235,
-  AKEYCODE_TV_TERRESTRIAL_DIGITAL = 236,
-  AKEYCODE_TV_SATELLITE = 237,
-  AKEYCODE_TV_SATELLITE_BS = 238,
-  AKEYCODE_TV_SATELLITE_CS = 239,
-  AKEYCODE_TV_SATELLITE_SERVICE = 240,
-  AKEYCODE_TV_NETWORK = 241,
-  AKEYCODE_TV_ANTENNA_CABLE = 242,
-  AKEYCODE_TV_INPUT_HDMI_1 = 243,
-  AKEYCODE_TV_INPUT_HDMI_2 = 244,
-  AKEYCODE_TV_INPUT_HDMI_3 = 245,
-  AKEYCODE_TV_INPUT_HDMI_4 = 246,
-  AKEYCODE_TV_INPUT_COMPOSITE_1 = 247,
-  AKEYCODE_TV_INPUT_COMPOSITE_2 = 248,
-  AKEYCODE_TV_INPUT_COMPONENT_1 = 249,
-  AKEYCODE_TV_INPUT_COMPONENT_2 = 250,
-  AKEYCODE_TV_INPUT_VGA_1 = 251,
-  AKEYCODE_TV_AUDIO_DESCRIPTION = 252,
-  AKEYCODE_TV_AUDIO_DESCRIPTION_MIX_UP = 253,
-  AKEYCODE_TV_AUDIO_DESCRIPTION_MIX_DOWN = 254,
-  AKEYCODE_TV_ZOOM_MODE = 255,
-  AKEYCODE_TV_CONTENTS_MENU = 256,
-  AKEYCODE_TV_MEDIA_CONTEXT_MENU = 257,
-  AKEYCODE_TV_TIMER_PROGRAMMING = 258,
-  AKEYCODE_HELP = 259,
-#endif
-#if __ANDROID_API__ < 23 && !defined(__ANDROID_API_M__)
-  AKEYCODE_NAVIGATE_PREVIOUS = 260,
-  AKEYCODE_NAVIGATE_NEXT = 261,
-  AKEYCODE_NAVIGATE_IN = 262,
-  AKEYCODE_NAVIGATE_OUT = 263,
-  AKEYCODE_MEDIA_SKIP_FORWARD = 272,
-  AKEYCODE_MEDIA_SKIP_BACKWARD = 273,
-  AKEYCODE_MEDIA_STEP_FORWARD = 274,
-  AKEYCODE_MEDIA_STEP_BACKWARD = 275,
-#endif
-#if __ANDROID_API__ < 24 && !defined(__ANDROID_API_N__)
-  AKEYCODE_STEM_PRIMARY = 264,
-  AKEYCODE_STEM_1 = 265,
-  AKEYCODE_STEM_2 = 266,
-  AKEYCODE_STEM_3 = 267,
-  AKEYCODE_DPAD_UP_LEFT = 268,
-  AKEYCODE_DPAD_DOWN_LEFT = 269,
-  AKEYCODE_DPAD_UP_RIGHT = 270,
-  AKEYCODE_DPAD_DOWN_RIGHT = 271,
-  AKEYCODE_SOFT_SLEEP = 276,
-  AKEYCODE_CUT = 277,
-  AKEYCODE_COPY = 278,
-  AKEYCODE_PASTE = 279,
-#endif
-#if __ANDROID_API__ < 25 && !defined(__ANDROID_API_N_MR1__)
-  AKEYCODE_SYSTEM_NAVIGATION_UP = 280,
-  AKEYCODE_SYSTEM_NAVIGATION_DOWN = 281,
-  AKEYCODE_SYSTEM_NAVIGATION_LEFT = 282,
-  AKEYCODE_SYSTEM_NAVIGATION_RIGHT = 283,
-#endif
-};
 
 static uint32_t ConvertAndroidKeyCodeToDOMKeyCode(int32_t androidKeyCode) {
   // Special-case alphanumeric keycodes because they are most common.
@@ -668,8 +464,10 @@ void GeckoEditableSupport::OnKeyEvent(int32_t aAction, int32_t aKeyCode,
                   : widget ? widget->GetTextEventDispatcher() : nullptr;
   NS_ENSURE_TRUE_VOID(dispatcher && widget);
 
-  if (!aIsSynthesizedImeKey && mWindow) {
-    mWindow->UserActivity();
+  if (!aIsSynthesizedImeKey) {
+    if (nsWindow* window = GetNsWindow()) {
+      window->UserActivity();
+    }
   } else if (aIsSynthesizedImeKey && mIMEMaskEventsCount > 0) {
     // Don't synthesize editor keys when not focused.
     return;
@@ -705,7 +503,6 @@ void GeckoEditableSupport::OnKeyEvent(int32_t aAction, int32_t aKeyCode,
     // these keys are dispatched in sequence.
     mIMEKeyEvents.AppendElement(UniquePtr<WidgetEvent>(event.Duplicate()));
   } else {
-    RemoveComposition();
     NS_ENSURE_SUCCESS_VOID(BeginInputTransaction(dispatcher));
     dispatcher->DispatchKeyboardEvent(msg, event, status);
     if (widget->Destroyed() || status == nsEventStatus_eConsumeNoDefault) {
@@ -799,24 +596,30 @@ void GeckoEditableSupport::AddIMETextChange(const IMETextChange& aChange) {
       // No overlap between ranges
       continue;
     }
-    // When merging two ranges, there are generally four posibilities:
-    // [----(----]----), (----[----]----),
-    // [----(----)----], (----[----)----]
-    // where [----] is the first range and (----) is the second range
-    // As seen above, the start of the merged range is always the lesser
-    // of the two start offsets. OldEnd and NewEnd then need to be
-    // adjusted separately depending on the case. In any case, the change
-    // in text length of the merged range should be the sum of text length
-    // changes of the two original ranges, i.e.,
-    // newNewEnd - newOldEnd == newEnd1 - oldEnd1 + newEnd2 - oldEnd2
-    dst.mStart = std::min(dst.mStart, src.mStart);
-    if (src.mOldEnd < dst.mNewEnd) {
-      // New range overlaps or is within previous range; merge
-      dst.mNewEnd += src.mNewEnd - src.mOldEnd;
-    } else {  // src.mOldEnd >= dst.mNewEnd
-      // New range overlaps previous range; merge
-      dst.mOldEnd += src.mOldEnd - dst.mNewEnd;
-      dst.mNewEnd = src.mNewEnd;
+
+    if (src.mStart == dst.mStart && src.mNewEnd == dst.mNewEnd) {
+      // Same range. Adjust old end offset.
+      dst.mOldEnd = std::min(src.mOldEnd, dst.mOldEnd);
+    } else {
+      // When merging two ranges, there are generally four posibilities:
+      // [----(----]----), (----[----]----),
+      // [----(----)----], (----[----)----]
+      // where [----] is the first range and (----) is the second range
+      // As seen above, the start of the merged range is always the lesser
+      // of the two start offsets. OldEnd and NewEnd then need to be
+      // adjusted separately depending on the case. In any case, the change
+      // in text length of the merged range should be the sum of text length
+      // changes of the two original ranges, i.e.,
+      // newNewEnd - newOldEnd == newEnd1 - oldEnd1 + newEnd2 - oldEnd2
+      dst.mStart = std::min(dst.mStart, src.mStart);
+      if (src.mOldEnd < dst.mNewEnd) {
+        // New range overlaps or is within previous range; merge
+        dst.mNewEnd += src.mNewEnd - src.mOldEnd;
+      } else {  // src.mOldEnd >= dst.mNewEnd
+        // New range overlaps previous range; merge
+        dst.mOldEnd += src.mOldEnd - dst.mNewEnd;
+        dst.mNewEnd = src.mNewEnd;
+      }
     }
     // src merged to dst; delete src.
     mIMETextChanges.RemoveElementAt(srcIndex);
@@ -980,6 +783,10 @@ void GeckoEditableSupport::FlushIMEChanges(FlushChangesFlag aFlags) {
 }
 
 void GeckoEditableSupport::FlushIMEText(FlushChangesFlag aFlags) {
+  NS_WARNING_ASSERTION(
+      !mIMEDelaySynchronizeReply || !mIMEActiveCompositionCount,
+      "Cannot synchronize Java text with Gecko text");
+
   // Notify Java of the newly focused content
   mIMETextChanges.Clear();
   mIMESelectionChanged = true;
@@ -1053,8 +860,8 @@ bool GeckoEditableSupport::DoReplaceText(int32_t aStart, int32_t aEnd,
     return false;
   }
 
-  if (mWindow) {
-    mWindow->UserActivity();
+  if (nsWindow* window = GetNsWindow()) {
+    window->UserActivity();
   }
 
   /*
@@ -1082,7 +889,21 @@ bool GeckoEditableSupport::DoReplaceText(int32_t aStart, int32_t aEnd,
     // the replaced text does not match our composition.
     textChanged |= RemoveComposition();
 
+#ifdef NIGHTLY_BUILD
     {
+      nsEventStatus status = nsEventStatus_eIgnore;
+      WidgetQueryContentEvent selection(true, eQuerySelectedText, widget);
+      widget->DispatchEvent(&selection, status);
+      if (selection.mSucceeded) {
+        ALOGIME("IME: Current selection: { Offset=%u, Length=%u }",
+                selection.mReply.mOffset, selection.mReply.mString.Length());
+      }
+    }
+#endif
+
+    // If aStart or aEnd is negative value, we use current selection instead
+    // of updating the selection.
+    if (aStart >= 0 && aEnd >= 0) {
       // Use text selection to set target position(s) for
       // insert, or replace, of text.
       WidgetSelectionEvent event(true, eSetSelection, widget);
@@ -1094,6 +915,7 @@ bool GeckoEditableSupport::DoReplaceText(int32_t aStart, int32_t aEnd,
     }
 
     if (!mIMEKeyEvents.IsEmpty()) {
+      bool ignoreNextKeyPress = false;
       for (uint32_t i = 0; i < mIMEKeyEvents.Length(); i++) {
         const auto event = mIMEKeyEvents[i]->AsKeyboardEvent();
         // widget for duplicated events is initially nullptr.
@@ -1102,7 +924,16 @@ bool GeckoEditableSupport::DoReplaceText(int32_t aStart, int32_t aEnd,
         status = nsEventStatus_eIgnore;
         if (event->mMessage != eKeyPress) {
           mDispatcher->DispatchKeyboardEvent(event->mMessage, *event, status);
+          // Skip default processing. It means that next key press shouldn't
+          // be dispatched.
+          ignoreNextKeyPress = event->mMessage == eKeyDown &&
+                               status == nsEventStatus_eConsumeNoDefault;
         } else {
+          if (ignoreNextKeyPress) {
+            // Don't dispatch key press since previous key down is consumed.
+            ignoreNextKeyPress = false;
+            continue;
+          }
           mDispatcher->MaybeDispatchKeypressEvents(*event, status);
           if (status == nsEventStatus_eConsumeNoDefault) {
             textChanged = true;
@@ -1290,12 +1121,9 @@ bool GeckoEditableSupport::DoUpdateComposition(int32_t aStart, int32_t aEnd,
     string = composition->String();
   }
 
-#ifdef DEBUG_ANDROID_IME
-  const NS_ConvertUTF16toUTF8 data(string);
-  const char* text = data.get();
-  ALOGIME("IME: IME_SET_TEXT: text=\"%s\", length=%u, range=%u", text,
-          string.Length(), mIMERanges->Length());
-#endif  // DEBUG_ANDROID_IME
+  ALOGIME("IME: IME_SET_TEXT: text=\"%s\", length=%u, range=%zu",
+          NS_ConvertUTF16toUTF8(string).get(), string.Length(),
+          mIMERanges->Length());
 
   if (NS_WARN_IF(NS_FAILED(BeginInputTransaction(mDispatcher)))) {
     mIMERanges->Clear();
@@ -1315,6 +1143,67 @@ void GeckoEditableSupport::OnImeRequestCursorUpdates(int aRequestMode) {
   }
 
   mIMEMonitorCursor = (aRequestMode == EditableClient::START_MONITOR);
+}
+
+class MOZ_STACK_CLASS AutoSelectionRestore final {
+ public:
+  explicit AutoSelectionRestore(nsIWidget* widget,
+                                TextEventDispatcher* dispatcher)
+      : mWidget(widget), mDispatcher(dispatcher) {
+    MOZ_ASSERT(widget);
+    if (!dispatcher || !dispatcher->IsComposing()) {
+      mOffset = UINT32_MAX;
+      mLength = UINT32_MAX;
+      return;
+    }
+    WidgetQueryContentEvent selection(true, eQuerySelectedText, widget);
+    nsEventStatus status = nsEventStatus_eIgnore;
+    widget->DispatchEvent(&selection, status);
+    if (!selection.mSucceeded) {
+      mOffset = UINT32_MAX;
+      mLength = UINT32_MAX;
+      return;
+    }
+
+    mOffset = selection.mReply.mOffset;
+    mLength = selection.mReply.mString.Length();
+  }
+
+  ~AutoSelectionRestore() {
+    if (mWidget->Destroyed() || mOffset == UINT32_MAX) {
+      return;
+    }
+
+    WidgetSelectionEvent selection(true, eSetSelection, mWidget);
+    selection.mOffset = mOffset;
+    selection.mLength = mLength;
+    selection.mExpandToClusterBoundary = false;
+    selection.mReason = nsISelectionListener::IME_REASON;
+    nsEventStatus status = nsEventStatus_eIgnore;
+    mWidget->DispatchEvent(&selection, status);
+  }
+
+ private:
+  nsCOMPtr<nsIWidget> mWidget;
+  RefPtr<TextEventDispatcher> mDispatcher;
+  uint32_t mOffset;
+  uint32_t mLength;
+};
+
+void GeckoEditableSupport::OnImeRequestCommit() {
+  if (mIMEMaskEventsCount > 0) {
+    // Not focused.
+    return;
+  }
+
+  nsCOMPtr<nsIWidget> widget = GetWidget();
+  if (NS_WARN_IF(!widget)) {
+    return;
+  }
+
+  AutoSelectionRestore restore(widget, mDispatcher);
+
+  RemoveComposition(COMMIT_IME_COMPOSITION);
 }
 
 void GeckoEditableSupport::AsyncNotifyIME(int32_t aNotification) {
@@ -1373,7 +1262,8 @@ nsresult GeckoEditableSupport::NotifyIME(
         if (mIsRemote) {
           if (!mEditableAttached) {
             // Re-attach on focus; see OnRemovedFrom().
-            AttachNative(mEditable, this);
+            jni::NativeWeakPtrHolder<GeckoEditableSupport>::AttachExisting(
+                mEditable, do_AddRef(this));
             mEditableAttached = true;
           }
           // Because GeckoEditableSupport in content process doesn't
@@ -1384,6 +1274,9 @@ nsresult GeckoEditableSupport::NotifyIME(
         }
         mDispatcher = dispatcher;
         mIMEKeyEvents.Clear();
+
+        mIMEDelaySynchronizeReply = false;
+        mIMEActiveCompositionCount = 0;
         FlushIMEText();
 
         // IME will call requestCursorUpdates after getting context.
@@ -1407,6 +1300,7 @@ nsresult GeckoEditableSupport::NotifyIME(
           mIMEDelaySynchronizeReply = false;
           mIMEActiveSynchronizeCount = 0;
           mIMEActiveCompositionCount = 0;
+          mInputContext.ShutDown();
           mEditable->NotifyIME(EditableListener::NOTIFY_IME_OF_BLUR);
           OnRemovedFrom(mDispatcher);
         }
@@ -1483,7 +1377,7 @@ void GeckoEditableSupport::OnRemovedFrom(
 
   if (mIsRemote && mEditable->HasEditableParent()) {
     // When we're remote, detach every time.
-    OnDetach(NS_NewRunnableFunction(
+    OnWeakNonIntrusiveDetach(NS_NewRunnableFunction(
         "GeckoEditableSupport::OnRemovedFrom",
         [editable = java::GeckoEditableChild::GlobalRef(mEditable)] {
           DisposeNative(editable);
@@ -1503,18 +1397,20 @@ GeckoEditableSupport::GetIMENotificationRequests() {
 
 void GeckoEditableSupport::SetInputContext(const InputContext& aContext,
                                            const InputContextAction& aAction) {
+  // SetInputContext is called from chrome process only
+  MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(mEditable);
 
   ALOGIME(
-      "IME: SetInputContext: aContext.mIMEState={mEnabled=%s, mOpen=%s}, "
+      "IME: SetInputContext: aContext=%s, "
       "aAction={mCause=%s, mFocusChange=%s}",
-      ToString(aContext.mIMEState.mEnabled).c_str(),
-      ToString(aContext.mIMEState.mOpen).c_str(),
-      ToString(aAction.mCause).c_str(), ToString(aAction.mFocusChange).c_str());
+      ToString(aContext).c_str(), ToString(aAction.mCause).c_str(),
+      ToString(aAction.mFocusChange).c_str());
 
   mInputContext = aContext;
 
   if (mInputContext.mIMEState.mEnabled != IMEState::DISABLED &&
+      !mInputContext.mHTMLInputInputmode.EqualsLiteral("none") &&
       aAction.UserMightRequestOpenVKB()) {
     // Don't reset keyboard when we should simply open the vkb
     mEditable->NotifyIME(EditableListener::NOTIFY_IME_OPEN_VKB);
@@ -1549,10 +1445,13 @@ void GeckoEditableSupport::NotifyIMEContext(const InputContext& aContext,
 
   mEditable->NotifyIMEContext(
       aContext.mIMEState.mEnabled, aContext.mHTMLInputType,
-      aContext.mHTMLInputInputmode, aContext.mActionHint, flags);
+      aContext.mHTMLInputInputmode, aContext.mActionHint,
+      aContext.mAutocapitalize, flags);
 }
 
 InputContext GeckoEditableSupport::GetInputContext() {
+  // GetInputContext is called from chrome process only
+  MOZ_ASSERT(XRE_IsParentProcess());
   InputContext context = mInputContext;
   context.mIMEState.mOpen = IMEState::OPEN_STATE_NOT_SUPPORTED;
   return context;
@@ -1565,7 +1464,20 @@ void GeckoEditableSupport::TransferParent(jni::Object::Param aEditableParent) {
   // and focus information, so it can accept additional calls from us.
   if (mIMEFocusCount > 0) {
     mEditable->NotifyIME(EditableListener::NOTIFY_IME_OF_TOKEN);
-    NotifyIMEContext(mInputContext, InputContextAction());
+    if (mIsRemote) {
+      // GeckoEditableSupport::SetInputContext is called on chrome process
+      // only, so mInputContext may be still invalid since it is set after
+      // we have gotton focus.
+      RefPtr<GeckoEditableSupport> self(this);
+      nsAppShell::PostEvent([self = std::move(self)] {
+        NS_WARNING_ASSERTION(
+            self->mDispatcher,
+            "Text dispatcher is still null. Why don't we get focus yet?");
+        self->NotifyIMEContext(self->mInputContext, InputContextAction());
+      });
+    } else {
+      NotifyIMEContext(mInputContext, InputContextAction());
+    }
     mEditable->NotifyIME(EditableListener::NOTIFY_IME_OF_FOCUS);
     // We have focus, so don't destroy editable child.
     return;
@@ -1602,15 +1514,19 @@ void GeckoEditableSupport::SetOnBrowserChild(dom::BrowserChild* aBrowserChild) {
     // We need to set a new listener.
     const auto editableChild = java::GeckoEditableChild::New(
         /* parent */ nullptr, /* default */ false);
-    RefPtr<widget::GeckoEditableSupport> editableSupport =
-        new widget::GeckoEditableSupport(editableChild);
-
-    // Tell PuppetWidget to use our listener for IME operations.
-    widget->SetNativeTextEventDispatcherListener(editableSupport);
 
     // Temporarily attach so we can receive the initial editable parent.
-    AttachNative(editableChild, editableSupport);
-    editableSupport->mEditableAttached = true;
+    auto editableSupport =
+        jni::NativeWeakPtrHolder<GeckoEditableSupport>::Attach(editableChild,
+                                                               editableChild);
+    auto accEditableSupport(editableSupport.Access());
+    MOZ_RELEASE_ASSERT(accEditableSupport);
+
+    // Tell PuppetWidget to use our listener for IME operations.
+    widget->SetNativeTextEventDispatcherListener(
+        accEditableSupport.AsRefPtr().get());
+
+    accEditableSupport->mEditableAttached = true;
 
     // Connect the new child to a parent that corresponds to the BrowserChild.
     java::GeckoServiceChildProcess::GetEditableParent(editableChild, contentId,
@@ -1632,13 +1548,30 @@ void GeckoEditableSupport::SetOnBrowserChild(dom::BrowserChild* aBrowserChild) {
       static_cast<widget::GeckoEditableSupport*>(listener.get());
   if (!support->mEditableAttached) {
     // Temporarily attach so we can receive the initial editable parent.
-    AttachNative(support->GetJavaEditable(), support);
+    jni::NativeWeakPtrHolder<GeckoEditableSupport>::AttachExisting(
+        support->GetJavaEditable(), do_AddRef(support));
     support->mEditableAttached = true;
   }
 
   // Transfer to a new parent that corresponds to the BrowserChild.
   java::GeckoServiceChildProcess::GetEditableParent(support->GetJavaEditable(),
                                                     contentId, tabId);
+}
+
+nsIWidget* GeckoEditableSupport::GetWidget() const {
+  MOZ_ASSERT(NS_IsMainThread());
+  return mDispatcher ? mDispatcher->GetWidget() : GetNsWindow();
+}
+
+nsWindow* GeckoEditableSupport::GetNsWindow() const {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  auto acc(mWindow.Access());
+  if (!acc) {
+    return nullptr;
+  }
+
+  return acc->GetNsWindow();
 }
 
 }  // namespace widget

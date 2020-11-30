@@ -37,7 +37,13 @@ EXPORTS += [
 EXPORTS.mozilla.net += [
     'AltDataOutputStreamChild.h',
     'AltDataOutputStreamParent.h',
+    'AltServiceChild.h',
+    'AltServiceParent.h',
+    'AltSvcTransactionChild.h',
+    'AltSvcTransactionParent.h',
     'BackgroundChannelRegistrar.h',
+    'BackgroundDataBridgeChild.h',
+    'BackgroundDataBridgeParent.h',
     'ClassifierDummyChannel.h',
     'ClassifierDummyChannelChild.h',
     'ClassifierDummyChannelParent.h',
@@ -54,8 +60,10 @@ EXPORTS.mozilla.net += [
     'HttpTransactionChild.h',
     'HttpTransactionParent.h',
     'HttpTransactionShell.h',
+    'nsAHttpTransaction.h',
     'nsServerTiming.h',
     'NullHttpChannel.h',
+    'NullHttpTransaction.h',
     'ParentChannelListener.h',
     'PHttpChannelParams.h',
     'PSpdyPush.h',
@@ -70,9 +78,16 @@ UNIFIED_SOURCES += [
     'AltDataOutputStreamChild.cpp',
     'AltDataOutputStreamParent.cpp',
     'AlternateServices.cpp',
+    'AltServiceChild.cpp',
+    'AltServiceParent.cpp',
+    'AltSvcTransactionChild.cpp',
+    'AltSvcTransactionParent.cpp',
     'ASpdySession.cpp',
     'BackgroundChannelRegistrar.cpp',
+    'BackgroundDataBridgeChild.cpp',
+    'BackgroundDataBridgeParent.cpp',
     'CacheControlParser.cpp',
+    'CachePushChecker.cpp',
     'ClassifierDummyChannel.cpp',
     'ClassifierDummyChannelChild.cpp',
     'ClassifierDummyChannelParent.cpp',
@@ -132,7 +147,11 @@ SOURCES += [
 ]
 
 IPDL_SOURCES += [
+    'HttpChannelParams.ipdlh',
     'PAltDataOutputStream.ipdl',
+    'PAltService.ipdl',
+    'PAltSvcTransaction.ipdl',
+    'PBackgroundDataBridge.ipdl',
     'PClassifierDummyChannel.ipdl',
     'PHttpBackgroundChannel.ipdl',
     'PHttpChannel.ipdl',
@@ -149,6 +168,7 @@ LOCAL_INCLUDES += [
     '/extensions/auth',
     '/netwerk/base',
     '/netwerk/cookie',
+    '/netwerk/dns',
     '/netwerk/ipc',
     '/netwerk/socket/neqo_glue',
     '/netwerk/url-classifier',
@@ -164,12 +184,8 @@ XPCOM_MANIFESTS += [
 
 if CONFIG['OS_TARGET'] == 'Darwin':
     if not CONFIG['HOST_MAJOR_VERSION']:
-        DEFINES.update(
-            HAS_CONNECTX=True,
-        )
+        DEFINES['HAS_CONNECTX'] = True
     elif CONFIG['HOST_MAJOR_VERSION'] >= '15':
-        DEFINES.update(
-            HAS_CONNECTX=True,
-        )
+        DEFINES['HAS_CONNECTX'] = True
 
 include('/tools/fuzzing/libfuzzer-config.mozbuild')

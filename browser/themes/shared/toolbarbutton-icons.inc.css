@@ -28,6 +28,7 @@ toolbar[brighttext] {
   position: absolute;
   overflow: hidden;
   z-index: 2;
+  pointer-events: none;
 }
 
 .toolbarbutton-animatable-box > .toolbarbutton-animatable-image {
@@ -60,10 +61,10 @@ toolbar[brighttext] {
 
 /* The animations for the reload-button and stop-button are disabled
    outside of the nav-bar due to bug 1382894. */
-:-moz-any(#reload-button, #stop-button) > .toolbarbutton-animatable-box {
+:is(#reload-button, #stop-button) > .toolbarbutton-animatable-box {
   display: none;
 }
-#nav-bar-customization-target > #stop-reload-button > :-moz-any(#reload-button, #stop-button) > .toolbarbutton-animatable-box {
+#nav-bar-customization-target > #stop-reload-button > :is(#reload-button, #stop-button) > .toolbarbutton-animatable-box {
   display: block;
 }
 
@@ -205,7 +206,7 @@ toolbar[brighttext] {
 }
 
 #add-ons-button {
-  list-style-image: url("chrome://mozapps/skin/extensions/extensionGeneric-16.svg");
+  list-style-image: url("chrome://mozapps/skin/extensions/extension.svg");
 }
 
 #open-file-button {
@@ -279,16 +280,43 @@ toolbar[brighttext] {
   list-style-image: url("chrome://devtools/skin/images/cloud-recordings.svg");
 }
 
-#profiler-button {
-  list-style-image: url("chrome://devtools/skin/images/profiler-stopwatch.svg");
+#profiler-button > .toolbarbutton-icon {
+  list-style-image: url("chrome://devtools/skin/images/tool-profiler.svg");
 }
 
-#PanelUI-profilerIframe {
-  width: 450px;
+#profiler-button:not(.profiler-active) > image {
+  transform: scaleX(-1);
+}
+
+#profiler-button.profiler-active > image {
+  fill: #0060df;
+  fill-opacity: 1;
+  background-color: #0060df33;
+}
+
+#profiler-button.profiler-active:hover > image {
+  background-color: #0060df22;
+}
+
+#profiler-button.profiler-paused > image {
+  opacity: 0.4;
+}
+
+#profiler-button > .toolbarbutton-menu-dropmarker {
+  /* Inherit the fill and fill-opacity values from the toolbarbutton
+     instead of using the values from .toolbarbutton-menu-dropmarker */
+  -moz-context-properties: fill, fill-opacity;
+  fill: inherit;
+  fill-opacity: inherit;
+}
+
+.widget-overflow-list #profiler-button > .toolbarbutton-menu-dropmarker,
+#customization-palette #profiler-button > .toolbarbutton-menu-dropmarker {
+  display: none;
 }
 
 #preferences-button {
-  list-style-image: url("chrome://browser/skin/settings.svg");
+  list-style-image: url("chrome://global/skin/icons/settings.svg");
 }
 
 #PanelUI-menu-button {
@@ -296,6 +324,7 @@ toolbar[brighttext] {
 }
 
 #PanelUI-menu-button[badge-status="update-available"],
+#PanelUI-menu-button[badge-status="update-downloading"],
 #PanelUI-menu-button[badge-status="update-manual"],
 #PanelUI-menu-button[badge-status="update-restart"] {
   list-style-image: url("chrome://browser/skin/menu-badged.svg");
@@ -627,4 +656,7 @@ toolbarbutton.bookmark-item {
 
 #whats-new-menu-button {
   list-style-image: url("chrome://browser/skin/whatsnew.svg");
+}
+#ion-button {
+  list-style-image: url("chrome://browser/skin/ion.svg");
 }

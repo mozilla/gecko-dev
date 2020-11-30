@@ -372,10 +372,10 @@ OscillatorNode::OscillatorNode(AudioContext* aContext)
                                ChannelInterpretation::Speakers),
       mType(OscillatorType::Sine),
       mStartCalled(false) {
-  CreateAudioParam(mFrequency, OscillatorNodeEngine::FREQUENCY, "frequency",
-                   440.0f, -(aContext->SampleRate() / 2),
-                   aContext->SampleRate() / 2);
-  CreateAudioParam(mDetune, OscillatorNodeEngine::DETUNE, "detune", 0.0f);
+  mFrequency = CreateAudioParam(
+      OscillatorNodeEngine::FREQUENCY, u"frequency"_ns, 440.0f,
+      -(aContext->SampleRate() / 2), aContext->SampleRate() / 2);
+  mDetune = CreateAudioParam(OscillatorNodeEngine::DETUNE, u"detune"_ns, 0.0f);
   OscillatorNodeEngine* engine =
       new OscillatorNodeEngine(this, aContext->Destination());
   mTrack = AudioNodeTrack::Create(aContext, engine,
@@ -521,7 +521,7 @@ void OscillatorNode::NotifyMainThreadTrackEnded() {
         return NS_OK;
       }
 
-      mNode->DispatchTrustedEvent(NS_LITERAL_STRING("ended"));
+      mNode->DispatchTrustedEvent(u"ended"_ns);
       // Release track resources.
       mNode->DestroyMediaTrack();
       return NS_OK;

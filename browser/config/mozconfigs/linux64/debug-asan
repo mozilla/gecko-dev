@@ -3,7 +3,6 @@
 ac_add_options --enable-debug
 ac_add_options --enable-optimize="-O1"
 
-. $topsrcdir/build/mozconfig.stylo
 . $topsrcdir/build/mozconfig.wasm-sandboxing
 
 # ASan specific options on Linux
@@ -11,6 +10,16 @@ ac_add_options --enable-valgrind
 
 . $topsrcdir/build/unix/mozconfig.asan
 ac_add_options --disable-elf-hack
+
+# Build with fuzzing support, so this build can also be used
+# to analyze fuzzing bugs with rr.
+ac_add_options --enable-fuzzing
+
+export DUMP_SYMS="${MOZ_FETCHES_DIR}/dump_syms/dump_syms"
+
+# Include 'SourceRepository' in application.ini which
+# is used by Pernosco to locate source
+export MOZ_INCLUDE_SOURCE_INFO=1
 
 # Package js shell.
 export MOZ_PACKAGE_JSSHELL=1

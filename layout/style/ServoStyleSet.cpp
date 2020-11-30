@@ -12,6 +12,7 @@
 #include "mozilla/DocumentStyleRootIterator.h"
 #include "mozilla/EffectCompositor.h"
 #include "mozilla/IntegerRange.h"
+#include "mozilla/Keyframe.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/ServoBindings.h"
@@ -23,6 +24,18 @@
 #include "mozilla/StyleAnimationValue.h"
 #include "mozilla/css/Loader.h"
 #include "mozilla/dom/AnonymousContent.h"
+#include "mozilla/dom/CSSCounterStyleRule.h"
+#include "mozilla/dom/CSSRuleBinding.h"
+#include "mozilla/dom/CSSFontFaceRule.h"
+#include "mozilla/dom/CSSFontFeatureValuesRule.h"
+#include "mozilla/dom/CSSImportRule.h"
+#include "mozilla/dom/CSSMediaRule.h"
+#include "mozilla/dom/CSSMozDocumentRule.h"
+#include "mozilla/dom/CSSKeyframesRule.h"
+#include "mozilla/dom/CSSKeyframeRule.h"
+#include "mozilla/dom/CSSNamespaceRule.h"
+#include "mozilla/dom/CSSPageRule.h"
+#include "mozilla/dom/CSSSupportsRule.h"
 #include "mozilla/dom/ChildIterator.h"
 #include "mozilla/dom/FontFaceSet.h"
 #include "mozilla/dom/Element.h"
@@ -871,8 +884,7 @@ void ServoStyleSet::RuleAdded(StyleSheet& aSheet, css::Rule& aRule) {
     return;
   }
 
-  // FIXME(emilio): Could be more granular based on aRule.
-  MarkOriginsDirty(ToOriginFlags(aSheet.GetOrigin()));
+  RuleChangedInternal(aSheet, aRule, StyleRuleChangeKind::Insertion);
 }
 
 void ServoStyleSet::RuleRemoved(StyleSheet& aSheet, css::Rule& aRule) {
@@ -884,17 +896,60 @@ void ServoStyleSet::RuleRemoved(StyleSheet& aSheet, css::Rule& aRule) {
     return;
   }
 
-  // FIXME(emilio): Could be more granular based on aRule.
-  MarkOriginsDirty(ToOriginFlags(aSheet.GetOrigin()));
+  RuleChangedInternal(aSheet, aRule, StyleRuleChangeKind::Removal);
 }
 
-void ServoStyleSet::RuleChanged(StyleSheet& aSheet, css::Rule* aRule) {
+void ServoStyleSet::RuleChangedInternal(StyleSheet& aSheet, css::Rule& aRule,
+                                        StyleRuleChangeKind aKind) {
+  MOZ_ASSERT(aSheet.IsApplicable());
+  SetStylistStyleSheetsDirty();
+
+#define CASE_FOR(constant_, type_)                                       \
+  case CSSRule_Binding::constant_##_RULE:                                \
+    return Servo_StyleSet_##type_##RuleChanged(                          \
+        mRawSet.get(), static_cast<dom::CSS##type_##Rule&>(aRule).Raw(), \
+        &aSheet, aKind);
+
+  switch (aRule.Type()) {
+    CASE_FOR(COUNTER_STYLE, CounterStyle)
+    CASE_FOR(STYLE, Style)
+    CASE_FOR(IMPORT, Import)
+    CASE_FOR(MEDIA, Media)
+    CASE_FOR(KEYFRAMES, Keyframes)
+    CASE_FOR(FONT_FEATURE_VALUES, FontFeatureValues)
+    CASE_FOR(FONT_FACE, FontFace)
+    CASE_FOR(PAGE, Page)
+    CASE_FOR(DOCUMENT, MozDocument)
+    CASE_FOR(SUPPORTS, Supports)
+    // @namespace can only be inserted / removed when there are only other
+    // @namespace and @import rules, and can't be mutated.
+    case CSSRule_Binding::NAMESPACE_RULE:
+    case CSSRule_Binding::CHARSET_RULE:
+      break;
+    case CSSRule_Binding::KEYFRAME_RULE:
+      // FIXME: We should probably just forward to the parent @keyframes rule? I
+      // think that'd do the right thing, but meanwhile...
+      return MarkOriginsDirty(ToOriginFlags(aSheet.GetOrigin()));
+    default:
+      MOZ_ASSERT_UNREACHABLE("Unknown rule type changed");
+      return MarkOriginsDirty(ToOriginFlags(aSheet.GetOrigin()));
+  }
+
+#undef CASE_FOR
+}
+
+void ServoStyleSet::RuleChanged(StyleSheet& aSheet, css::Rule* aRule,
+                                StyleRuleChangeKind aKind) {
   if (!aSheet.IsApplicable()) {
     return;
   }
 
-  // FIXME(emilio): Could be more granular based on aRule.
-  MarkOriginsDirty(ToOriginFlags(aSheet.GetOrigin()));
+  if (!aRule) {
+    // FIXME: This is done for StyleSheet.media attribute changes and such
+    MarkOriginsDirty(ToOriginFlags(aSheet.GetOrigin()));
+  } else {
+    RuleChangedInternal(aSheet, *aRule, aKind);
+  }
 }
 
 #ifdef DEBUG
@@ -918,14 +973,14 @@ bool ServoStyleSet::GetKeyframesForName(const Element& aElement,
 
 nsTArray<ComputedKeyframeValues> ServoStyleSet::GetComputedKeyframeValuesFor(
     const nsTArray<Keyframe>& aKeyframes, Element* aElement,
-    const ComputedStyle* aStyle) {
+    PseudoStyleType aPseudoType, const ComputedStyle* aStyle) {
   nsTArray<ComputedKeyframeValues> result(aKeyframes.Length());
 
   // Construct each nsTArray<PropertyStyleAnimationValuePair> here.
   result.AppendElements(aKeyframes.Length());
 
-  Servo_GetComputedKeyframeValues(&aKeyframes, aElement, aStyle, mRawSet.get(),
-                                  &result);
+  Servo_GetComputedKeyframeValues(&aKeyframes, aElement, aPseudoType, aStyle,
+                                  mRawSet.get(), &result);
   return result;
 }
 
@@ -967,23 +1022,20 @@ already_AddRefed<RawServoAnimationValue> ServoStyleSet::ComputeAnimationValue(
 bool ServoStyleSet::EnsureUniqueInnerOnCSSSheets() {
   using SheetOwner = Variant<ServoStyleSet*, ShadowRoot*>;
 
-  AutoTArray<Pair<StyleSheet*, SheetOwner>, 32> queue;
+  AutoTArray<std::pair<StyleSheet*, SheetOwner>, 32> queue;
   EnumerateStyleSheets([&](StyleSheet& aSheet) {
-    queue.AppendElement(MakePair(&aSheet, SheetOwner{this}));
+    queue.AppendElement(std::make_pair(&aSheet, SheetOwner{this}));
   });
 
   EnumerateShadowRoots(*mDocument, [&](ShadowRoot& aShadowRoot) {
     for (auto index : IntegerRange(aShadowRoot.SheetCount())) {
       queue.AppendElement(
-          MakePair(aShadowRoot.SheetAt(index), SheetOwner{&aShadowRoot}));
+          std::make_pair(aShadowRoot.SheetAt(index), SheetOwner{&aShadowRoot}));
     }
   });
 
   while (!queue.IsEmpty()) {
-    uint32_t idx = queue.Length() - 1;
-    auto* sheet = queue[idx].first();
-    SheetOwner owner = queue[idx].second();
-    queue.RemoveElementAt(idx);
+    auto [sheet, owner] = queue.PopLastElement();
 
     // Only call EnsureUniqueInner for complete sheets. If we do call it on
     // incomplete sheets, we'll cause problems when the sheet is actually
@@ -997,7 +1049,7 @@ bool ServoStyleSet::EnsureUniqueInnerOnCSSSheets() {
 
     // Enqueue all the sheet's children.
     for (StyleSheet* child : sheet->ChildSheets()) {
-      queue.AppendElement(MakePair(child, owner));
+      queue.AppendElement(std::make_pair(child, owner));
     }
   }
 
@@ -1189,8 +1241,7 @@ void ServoStyleSet::RunPostTraversalTasks() {
     return;
   }
 
-  nsTArray<PostTraversalTask> tasks;
-  tasks.SwapElements(mPostTraversalTasks);
+  nsTArray<PostTraversalTask> tasks = std::move(mPostTraversalTasks);
 
   for (auto& task : tasks) {
     task.Run();

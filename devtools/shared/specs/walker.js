@@ -54,6 +54,14 @@ const walkerSpec = generateActorSpec({
     "new-mutations": {
       type: "newMutations",
     },
+    "root-available": {
+      type: "root-available",
+      node: Arg(0, "nullable:domnode"),
+    },
+    "root-destroyed": {
+      type: "root-destroyed",
+      node: Arg(0, "nullable:domnode"),
+    },
     "picker-node-picked": {
       type: "pickerNodePicked",
       node: Arg(0, "disconnectedNode"),
@@ -69,19 +77,16 @@ const walkerSpec = generateActorSpec({
     "picker-node-canceled": {
       type: "pickerNodeCanceled",
     },
-    // This event is no longer emitted on Firefox 70 or newer.
-    // It should still be declared in the specs. Otherwise, when we connect to
-    // Firefox 69 or older, event packets for "highlighter-ready" emitted by
-    // the server will be considered as responses to unrelated requests.
-    "highlighter-ready": {
-      type: "highlighter-ready",
-    },
     "display-change": {
       type: "display-change",
       nodes: Arg(0, "array:domnode"),
     },
     "scrollable-change": {
       type: "scrollable-change",
+      nodes: Arg(0, "array:domnode"),
+    },
+    "overflow-change": {
+      type: "overflow-change",
       nodes: Arg(0, "array:domnode"),
     },
     // The walker actor emits a useful "resize" event to its front to let
@@ -96,14 +101,6 @@ const walkerSpec = generateActorSpec({
   methods: {
     release: {
       release: true,
-    },
-    pick: {
-      request: {},
-      response: RetVal("disconnectedNode"),
-    },
-    cancelPick: {},
-    highlight: {
-      request: { node: Arg(0, "nullable:domnode") },
     },
     document: {
       request: { node: Arg(0, "nullable:domnode") },
@@ -353,14 +350,6 @@ const walkerSpec = generateActorSpec({
         node: RetVal("nullable:domnode"),
       },
     },
-    hasAccessibilityProperties: {
-      request: {
-        node: Arg(0, "nullable:domnode"),
-      },
-      response: {
-        value: RetVal("boolean"),
-      },
-    },
     setMutationBreakpoints: {
       request: {
         node: Arg(0, "nullable:domnode"),
@@ -376,6 +365,35 @@ const walkerSpec = generateActorSpec({
       },
       response: {
         nodeFront: RetVal("disconnectedNode"),
+      },
+    },
+    pick: {
+      request: {
+        doFocus: Arg(0, "nullable:boolean"),
+      },
+    },
+    cancelPick: {
+      request: {},
+      response: {},
+    },
+    watchRootNode: {
+      request: {},
+      response: {},
+    },
+    getOverflowCausingElements: {
+      request: {
+        node: Arg(0, "domnode"),
+      },
+      response: {
+        list: RetVal("disconnectedNodeArray"),
+      },
+    },
+    getScrollableAncestorNode: {
+      request: {
+        node: Arg(0, "domnode"),
+      },
+      response: {
+        node: RetVal("nullable:domnode"),
       },
     },
   },

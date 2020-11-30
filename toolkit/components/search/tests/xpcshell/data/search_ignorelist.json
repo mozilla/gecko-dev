@@ -46,33 +46,9 @@
               "purpose": "contextmenu"
             }
           ]
-        },
-        {
-          "template": "http://www.google.com/search",
-          "resultDomain": "purpose.google.com",
-          "rels": [
-          ],
-          "type": "application/x-moz-default-purpose",
-          "params": [
-            {
-              "name": "q",
-              "value": "{searchTerms}"
-            },
-            {
-              "name": "channel",
-              "value": "fflb",
-              "purpose": "keyword"
-            },
-            {
-              "name": "channel",
-              "value": "rcs",
-              "purpose": "contextmenu"
-            }
-          ]
         }
       ],
-      "queryCharset": "UTF-8",
-      "_readOnly": false
+      "queryCharset": "UTF-8"
     }
   ]
 }

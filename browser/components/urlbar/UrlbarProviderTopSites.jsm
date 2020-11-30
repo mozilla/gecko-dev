@@ -12,21 +12,17 @@ const { XPCOMUtils } = ChromeUtils.import(
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   AboutNewTab: "resource:///modules/AboutNewTab.jsm",
-  Log: "resource://gre/modules/Log.jsm",
   PlacesUtils: "resource://gre/modules/PlacesUtils.jsm",
-  PlacesSearchAutocompleteProvider:
-    "resource://gre/modules/PlacesSearchAutocompleteProvider.jsm",
   Services: "resource://gre/modules/Services.jsm",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.jsm",
   UrlbarProvider: "resource:///modules/UrlbarUtils.jsm",
   UrlbarProviderOpenTabs: "resource:///modules/UrlbarProviderOpenTabs.jsm",
   UrlbarResult: "resource:///modules/UrlbarResult.jsm",
+  UrlbarSearchUtils: "resource:///modules/UrlbarSearchUtils.jsm",
   UrlbarUtils: "resource:///modules/UrlbarUtils.jsm",
+  TOP_SITES_MAX_SITES_PER_ROW: "resource://activity-stream/common/Reducers.jsm",
+  TOP_SITES_DEFAULT_ROWS: "resource://activity-stream/common/Reducers.jsm",
 });
-
-XPCOMUtils.defineLazyGetter(this, "logger", () =>
-  Log.repository.getLogger("Urlbar.Provider.TopSites")
-);
 
 /**
  * This module exports a provider returning the user's newtab Top Sites.
@@ -38,8 +34,6 @@ XPCOMUtils.defineLazyGetter(this, "logger", () =>
 class ProviderTopSites extends UrlbarProvider {
   constructor() {
     super();
-    // Maps the running queries by queryContext.
-    this.queries = new Map();
   }
 
   get PRIORITY() {
@@ -70,19 +64,10 @@ class ProviderTopSites extends UrlbarProvider {
    * @returns {boolean} Whether this provider should be invoked for the search.
    */
   isActive(queryContext) {
-    // If top sites on new tab are disabled, the pref below will be false, and
-    // activity stream's top sites will be unavailable (an empty array), so we
-    // make this provider inactive.  For empty search strings, we instead show
-    // the most frecent URLs in the user's history from the UnifiedComplete
-    // provider.
     return (
-      UrlbarPrefs.get("update1") &&
-      UrlbarPrefs.get("openViewOnFocus") &&
+      !queryContext.restrictSource &&
       !queryContext.searchString &&
-      Services.prefs.getBoolPref(
-        "browser.newtabpage.activity-stream.feeds.topsites",
-        false
-      )
+      !queryContext.searchMode
     );
   }
 
@@ -104,25 +89,64 @@ class ProviderTopSites extends UrlbarProvider {
    *       is done searching AND returning results.
    */
   async startQuery(queryContext, addCallback) {
+    // If system.topsites is disabled, we would get stale or empty Top Sites
+    // data. We check this condition here instead of in isActive because we
+    // still want this provider to be restricting even if this is not true. If
+    // it wasn't restricting, we would show the results from UnifiedComplete's
+    // empty search behaviour. We aren't interested in those since they are very
+    // similar to Top Sites and thus might be confusing, especially since users
+    // can configure Top Sites but cannot configure the default empty search
+    // results. See bug 1623666.
+    if (
+      !UrlbarPrefs.get("suggest.topsites") ||
+      !Services.prefs.getBoolPref(
+        "browser.newtabpage.activity-stream.feeds.system.topsites",
+        false
+      )
+    ) {
+      return;
+    }
+
     let sites = AboutNewTab.getTopSites();
 
-    let instance = {};
-    this.queries.set(queryContext, instance);
+    let instance = this.queryInstance;
 
     // Filter out empty values. Site is empty when there's a gap between tiles
     // on about:newtab.
     sites = sites.filter(site => site);
-    // We want the top 8 sites.
-    sites = sites.slice(0, 8);
+
+    // This is done here, rather than in the global scope, because
+    // TOP_SITES_DEFAULT_ROWS causes the import of Reducers.jsm, and we want to
+    // do that only when actually querying for Top Sites.
+    if (this.topSitesRows === undefined) {
+      XPCOMUtils.defineLazyPreferenceGetter(
+        this,
+        "topSitesRows",
+        "browser.newtabpage.activity-stream.topSitesRows",
+        TOP_SITES_DEFAULT_ROWS
+      );
+    }
+
+    // We usually respect maxRichResults, though we never show a number of Top
+    // Sites greater than what is visible in the New Tab Page, because the
+    // additional ones couldn't be managed from the page.
+    let numTopSites = Math.min(
+      UrlbarPrefs.get("maxRichResults"),
+      TOP_SITES_MAX_SITES_PER_ROW * this.topSitesRows
+    );
+    sites = sites.slice(0, numTopSites);
 
     sites = sites.map(link => ({
       type: link.searchTopSite ? "search" : "url",
-      url: link.url,
+      url: link.url_urlbar || link.url,
+      isPinned: !!link.isPinned,
+      isSponsored: !!link.sponsored_position,
       // The newtab page allows the user to set custom site titles, which
       // are stored in `label`, so prefer it.  Search top sites currently
       // don't have titles but `hostname` instead.
       title: link.label || link.title || link.hostname || "",
-      favicon: link.favicon || link.tippyTopIcon || null,
+      favicon: link.smallFavicon || link.favicon || undefined,
+      sendAttributionRequest: !!link.sendAttributionRequest,
     }));
 
     for (let site of sites) {
@@ -135,17 +159,23 @@ class ProviderTopSites extends UrlbarProvider {
               title: site.title,
               url: site.url,
               icon: site.favicon,
+              isPinned: site.isPinned,
+              isSponsored: site.isSponsored,
+              sendAttributionRequest: site.sendAttributionRequest,
             })
           );
 
-          let tabs = UrlbarProviderOpenTabs.openTabs.get(
-            queryContext.userContextId || 0
-          );
+          let tabs;
+          if (UrlbarPrefs.get("suggest.openpage")) {
+            tabs = UrlbarProviderOpenTabs.openTabs.get(
+              queryContext.userContextId || 0
+            );
+          }
 
           if (tabs && tabs.includes(site.url.replace(/#.*$/, ""))) {
             result.type = UrlbarUtils.RESULT_TYPE.TAB_SWITCH;
             result.source = UrlbarUtils.RESULT_SOURCE.TABS;
-          } else {
+          } else if (UrlbarPrefs.get("suggest.bookmark")) {
             let bookmark = await PlacesUtils.bookmarks.fetch({
               url: new URL(result.payload.url),
             });
@@ -155,7 +185,7 @@ class ProviderTopSites extends UrlbarProvider {
           }
 
           // Our query has been cancelled.
-          if (!this.queries.get(queryContext)) {
+          if (instance != this.queryInstance) {
             break;
           }
 
@@ -163,9 +193,7 @@ class ProviderTopSites extends UrlbarProvider {
           break;
         }
         case "search": {
-          let engine = await PlacesSearchAutocompleteProvider.engineForAlias(
-            site.title
-          );
+          let engine = await UrlbarSearchUtils.engineForAlias(site.title);
 
           if (!engine && site.url) {
             // Look up the engine by its domain.
@@ -174,9 +202,9 @@ class ProviderTopSites extends UrlbarProvider {
               host = new URL(site.url).hostname;
             } catch (err) {}
             if (host) {
-              engine = await PlacesSearchAutocompleteProvider.engineForDomainPrefix(
-                host
-              );
+              engine = (
+                await UrlbarSearchUtils.enginesForDomainPrefix(host)
+              )[0];
             }
           }
 
@@ -185,7 +213,7 @@ class ProviderTopSites extends UrlbarProvider {
             break;
           }
 
-          if (!this.queries.get(queryContext)) {
+          if (instance != this.queryInstance) {
             break;
           }
 
@@ -195,10 +223,11 @@ class ProviderTopSites extends UrlbarProvider {
             ...UrlbarResult.payloadAndSimpleHighlights(queryContext.tokens, {
               title: site.title,
               keyword: site.title,
-              keywordOffer: UrlbarUtils.KEYWORD_OFFER.HIDE,
+              keywordOffer: UrlbarUtils.KEYWORD_OFFER.SHOW,
               engine: engine.name,
               query: "",
               icon: site.favicon,
+              isPinned: site.isPinned,
             })
           );
           addCallback(this, result);
@@ -209,17 +238,6 @@ class ProviderTopSites extends UrlbarProvider {
           break;
       }
     }
-    this.queries.delete(queryContext);
-  }
-
-  /**
-   * Cancels a running query,
-   * @param {UrlbarQueryContext} queryContext the query context object to cancel
-   *        query for.
-   */
-  cancelQuery(queryContext) {
-    logger.info(`Canceling query for ${queryContext.searchString}`);
-    this.queries.delete(queryContext);
   }
 }
 

@@ -11,7 +11,7 @@ namespace net {
 
 struct UrlClassifierFeaturePhishingProtection::PhishingProtectionFeature {
   const char* mName;
-  const char* mBlacklistPrefTables;
+  const char* mBlocklistPrefTables;
   bool (*mPref)();
 
   RefPtr<UrlClassifierFeaturePhishingProtection> mFeature;
@@ -36,13 +36,13 @@ UrlClassifierFeaturePhishingProtection::UrlClassifierFeaturePhishingProtection(
         aFeature)
     : UrlClassifierFeatureBase(
           nsDependentCString(aFeature.mName),
-          nsDependentCString(aFeature.mBlacklistPrefTables),
-          EmptyCString(),    // aPrefWhitelistPrefTbles,
-          EmptyCString(),    // aPrefBlacklistHosts
-          EmptyCString(),    // aPrefWhitelistHosts
-          EmptyCString(),    // aPrefBlacklistTableName
-          EmptyCString(),    // aPrefWhitelistTableName
-          EmptyCString()) {  // aPrefSkipHosts
+          nsDependentCString(aFeature.mBlocklistPrefTables),
+          ""_ns,    // aPrefEntitylistPrefTbles,
+          ""_ns,    // aPrefBlocklistHosts
+          ""_ns,    // aPrefEntitylistHosts
+          ""_ns,    // aPrefBlocklistTableName
+          ""_ns,    // aPrefEntitylistTableName
+          ""_ns) {  // aPrefExceptionHosts
 }
 
 /* static */

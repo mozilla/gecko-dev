@@ -33,26 +33,30 @@ window.onload = async function () {
     };
     const mockSourceMapService = {
       _update: function () {
-        this._callback(Services.prefs.getBoolPref(PREF),
-                       resolvedLocation.sourceUrl,
-                       resolvedLocation.line);
+        this._callback(Services.prefs.getBoolPref(PREF)
+          ? {
+              url: resolvedLocation.sourceUrl,
+              line: resolvedLocation.line,
+              column: undefined,
+            }
+          : null);
       },
-      subscribe: function (url, line, column, callback) {
+      subscribeByLocation: function (loc, callback) {
         this._callback = callback;
-	// Resolve immediately.
+        // Resolve immediately.
         this._update();
-      },
-      unsubscribe: function (url, line, column, callback) {
+
+        return () => {};
       },
     };
 
     const props = {
       onClick: () => {},
       frame: {
-	line: 97,
-	source: "https://bugzilla.mozilla.org/bundle.js",
+        line: 97,
+        source: "https://bugzilla.mozilla.org/bundle.js",
       },
-      sourceMapService: mockSourceMapService,
+      sourceMapURLService: mockSourceMapService,
     };
 
     const PREF = "devtools.source-map.client-service.enabled";

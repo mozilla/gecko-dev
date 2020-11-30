@@ -4,13 +4,11 @@
 
 //! Parsing stylesheets from bytes (not `&str`).
 
-extern crate encoding_rs;
-
 use crate::context::QuirksMode;
 use crate::error_reporting::ParseErrorReporter;
 use crate::media_queries::MediaList;
 use crate::shared_lock::SharedRwLock;
-use crate::stylesheets::{Origin, Stylesheet, StylesheetLoader, UrlExtraData};
+use crate::stylesheets::{AllowImportRules, Origin, Stylesheet, StylesheetLoader, UrlExtraData};
 use cssparser::{stylesheet_encoding, EncodingSupport};
 use servo_arc::Arc;
 use std::borrow::Cow;
@@ -78,6 +76,7 @@ impl Stylesheet {
             error_reporter,
             quirks_mode,
             0,
+            AllowImportRules::Yes,
         )
     }
 
@@ -100,6 +99,7 @@ impl Stylesheet {
             stylesheet_loader,
             error_reporter,
             0,
+            AllowImportRules::Yes,
         )
     }
 }

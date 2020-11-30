@@ -271,6 +271,42 @@ fn optimize_complex_addresses(pos: &mut EncCursor, inst: Inst, isa: &dyn TargetI
                         .replace(inst)
                         .sload32_complex(info.flags, &args, info.offset);
                 }
+                Opcode::Uload8x8 => {
+                    pos.func
+                        .dfg
+                        .replace(inst)
+                        .uload8x8_complex(info.flags, &args, info.offset);
+                }
+                Opcode::Sload8x8 => {
+                    pos.func
+                        .dfg
+                        .replace(inst)
+                        .sload8x8_complex(info.flags, &args, info.offset);
+                }
+                Opcode::Uload16x4 => {
+                    pos.func
+                        .dfg
+                        .replace(inst)
+                        .uload16x4_complex(info.flags, &args, info.offset);
+                }
+                Opcode::Sload16x4 => {
+                    pos.func
+                        .dfg
+                        .replace(inst)
+                        .sload16x4_complex(info.flags, &args, info.offset);
+                }
+                Opcode::Uload32x2 => {
+                    pos.func
+                        .dfg
+                        .replace(inst)
+                        .uload32x2_complex(info.flags, &args, info.offset);
+                }
+                Opcode::Sload32x2 => {
+                    pos.func
+                        .dfg
+                        .replace(inst)
+                        .sload32x2_complex(info.flags, &args, info.offset);
+                }
                 Opcode::Store => {
                     pos.func.dfg.replace(inst).store_complex(
                         info.flags,
@@ -305,7 +341,7 @@ fn optimize_complex_addresses(pos: &mut EncCursor, inst: Inst, isa: &dyn TargetI
                 }
                 _ => panic!("Unsupported load or store opcode"),
             },
-            InstructionData::BinaryImm {
+            InstructionData::BinaryImm64 {
                 opcode: Opcode::IaddImm,
                 arg,
                 imm,
@@ -350,7 +386,11 @@ fn optimize_complex_addresses(pos: &mut EncCursor, inst: Inst, isa: &dyn TargetI
     }
 
     let ok = pos.func.update_encoding(inst, isa).is_ok();
-    debug_assert!(ok);
+    debug_assert!(
+        ok,
+        "failed to update encoding for `{}`",
+        pos.func.dfg.display_inst(inst, isa)
+    );
 }
 
 //----------------------------------------------------------------------
@@ -360,10 +400,11 @@ fn optimize_complex_addresses(pos: &mut EncCursor, inst: Inst, isa: &dyn TargetI
 pub fn do_postopt(func: &mut Function, isa: &dyn TargetIsa) {
     let _tt = timing::postopt();
     let mut pos = EncCursor::new(func, isa);
+    let is_mach_backend = isa.get_mach_backend().is_some();
     while let Some(_block) = pos.next_block() {
         let mut last_flags_clobber = None;
         while let Some(inst) = pos.next_inst() {
-            if isa.uses_cpu_flags() {
+            if !is_mach_backend && isa.uses_cpu_flags() {
                 // Optimize instructions to make use of flags.
                 optimize_cpu_flags(&mut pos, inst, last_flags_clobber, isa);
 

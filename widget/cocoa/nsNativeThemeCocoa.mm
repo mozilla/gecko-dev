@@ -44,6 +44,7 @@
 #include "gfxContext.h"
 #include "gfxQuartzSurface.h"
 #include "gfxQuartzNativeDrawing.h"
+#include "gfxUtils.h"  // for ToDeviceColor
 #include <algorithm>
 
 using namespace mozilla;
@@ -273,8 +274,6 @@ static void DrawCellIncludingFocusRing(NSCell* aCell, NSRect aWithFrame, NSView*
 
 // Workaround for Bug 542048
 // On 64-bit, NSSearchFieldCells don't draw focus rings.
-#if defined(__x86_64__)
-
 @implementation SearchFieldCellWithFocusRing
 
 - (void)drawWithFrame:(NSRect)rect inView:(NSView*)controlView {
@@ -298,8 +297,6 @@ static void DrawCellIncludingFocusRing(NSCell* aCell, NSRect aWithFrame, NSView*
 
 @end
 
-#endif
-
 @interface ToolbarSearchFieldCellWithFocusRing : SearchFieldCellWithFocusRing
 @end
 
@@ -307,8 +304,13 @@ static void DrawCellIncludingFocusRing(NSCell* aCell, NSRect aWithFrame, NSView*
 
 - (BOOL)_isToolbarMode {
   // This function is called during -[NSSearchFieldCell drawWithFrame:inView:].
-  // Returning YES from it selects the style that's appropriate for search
-  // fields inside toolbars.
+  // On earlier macOS versions, returning YES from it selects the style
+  // that's appropriate for search fields inside toolbars. On Big Sur,
+  // returning YES causes the search field to be drawn incorrectly, with
+  // the toolbar gradient appearing as the field background.
+  if (nsCocoaFeatures::OnBigSurOrLater()) {
+    return NO;
+  }
   return YES;
 }
 
@@ -423,8 +425,9 @@ static BOOL IsActive(nsIFrame* aFrame, BOOL aIsToolbarControl) {
 }
 
 static bool IsInSourceList(nsIFrame* aFrame) {
-  for (nsIFrame* frame = aFrame->GetParent(); frame; frame = frame->GetParent()) {
-    if (frame->StyleDisplay()->mAppearance == StyleAppearance::MozMacSourceList) {
+  for (nsIFrame* frame = aFrame->GetParent(); frame;
+       frame = nsLayoutUtils::GetCrossDocParentFrame(frame)) {
+    if (frame->StyleDisplay()->EffectiveAppearance() == StyleAppearance::MozMacSourceList) {
       return true;
     }
   }
@@ -987,7 +990,7 @@ static bool IsToolbarStyleContainer(nsIFrame* aFrame) {
     return true;
   }
 
-  switch (aFrame->StyleDisplay()->mAppearance) {
+  switch (aFrame->StyleDisplay()->EffectiveAppearance()) {
     case StyleAppearance::Toolbar:
     case StyleAppearance::Statusbar:
       return true;
@@ -1162,18 +1165,19 @@ nsNativeThemeCocoa::MenuItemParams nsNativeThemeCocoa::ComputeMenuItemParams(
   return params;
 }
 
-static void SetCGContextFillColor(CGContextRef cgContext, const Color& aColor) {
-  CGContextSetRGBFillColor(cgContext, aColor.r, aColor.g, aColor.b, aColor.a);
+static void SetCGContextFillColor(CGContextRef cgContext, const sRGBColor& aColor) {
+  DeviceColor color = ToDeviceColor(aColor);
+  CGContextSetRGBFillColor(cgContext, color.r, color.g, color.b, color.a);
 }
 
 static void SetCGContextFillColor(CGContextRef cgContext, nscolor aColor) {
-  CGContextSetRGBFillColor(cgContext, NS_GET_R(aColor) / 255.0f, NS_GET_G(aColor) / 255.0f,
-                           NS_GET_B(aColor) / 255.0f, NS_GET_A(aColor) / 255.0f);
+  DeviceColor color = ToDeviceColor(aColor);
+  CGContextSetRGBFillColor(cgContext, color.r, color.g, color.b, color.a);
 }
 
 static void SetCGContextStrokeColor(CGContextRef cgContext, nscolor aColor) {
-  CGContextSetRGBStrokeColor(cgContext, NS_GET_R(aColor) / 255.0f, NS_GET_G(aColor) / 255.0f,
-                             NS_GET_B(aColor) / 255.0f, NS_GET_A(aColor) / 255.0f);
+  DeviceColor color = ToDeviceColor(aColor);
+  CGContextSetRGBStrokeColor(cgContext, color.r, color.g, color.b, color.a);
 }
 
 void nsNativeThemeCocoa::DrawMenuItem(CGContextRef cgContext, const CGRect& inBoxRect,
@@ -1207,6 +1211,21 @@ void nsNativeThemeCocoa::DrawMenuItem(CGContextRef cgContext, const CGRect& inBo
 
 void nsNativeThemeCocoa::DrawMenuSeparator(CGContextRef cgContext, const CGRect& inBoxRect,
                                            const MenuItemParams& aParams) {
+  // Workaround for visual artifacts issues with
+  // HIThemeDrawMenuSeparator on macOS Big Sur.
+  if (nsCocoaFeatures::OnBigSurOrLater()) {
+    CGRect separatorRect = inBoxRect;
+    separatorRect.size.height = 1;
+    separatorRect.size.width -= 42;
+    separatorRect.origin.x += 21;
+    // Use transparent black with an alpha similar to the native separator.
+    // The values 231 (menu background) and 205 (separator color) have been
+    // sampled from a window screenshot of a native context menu.
+    CGContextSetRGBFillColor(cgContext, 0.0, 0.0, 0.0, (231 - 205) / 231.0);
+    CGContextFillRect(cgContext, separatorRect);
+    return;
+  }
+
   ThemeMenuState menuState;
   if (aParams.disabled) {
     menuState = kThemeMenuDisabled;
@@ -1218,13 +1237,29 @@ void nsNativeThemeCocoa::DrawMenuSeparator(CGContextRef cgContext, const CGRect&
   HIThemeDrawMenuSeparator(&inBoxRect, &inBoxRect, &midi, cgContext, HITHEME_ORIENTATION);
 }
 
+static bool ShouldUnconditionallyDrawFocusRingIfFocused(nsIFrame* aFrame) {
+  // Mac always draws focus rings for textboxes and lists.
+  switch (aFrame->StyleDisplay()->EffectiveAppearance()) {
+    case StyleAppearance::NumberInput:
+    case StyleAppearance::Textfield:
+    case StyleAppearance::Textarea:
+    case StyleAppearance::Searchfield:
+    case StyleAppearance::Listbox:
+      return true;
+    default:
+      return false;
+  }
+}
+
 nsNativeThemeCocoa::ControlParams nsNativeThemeCocoa::ComputeControlParams(
     nsIFrame* aFrame, EventStates aEventState) {
   ControlParams params;
   params.disabled = IsDisabled(aFrame, aEventState);
   params.insideActiveWindow = FrameIsInActiveWindow(aFrame);
   params.pressed = aEventState.HasAllStates(NS_EVENT_STATE_ACTIVE | NS_EVENT_STATE_HOVER);
-  params.focused = aEventState.HasState(NS_EVENT_STATE_FOCUS);
+  params.focused = aEventState.HasState(NS_EVENT_STATE_FOCUS) &&
+                   (aEventState.HasState(NS_EVENT_STATE_FOCUSRING) ||
+                    ShouldUnconditionallyDrawFocusRingIfFocused(aFrame));
   params.rtl = IsFrameRTL(aFrame);
   return params;
 }
@@ -1312,19 +1347,14 @@ void nsNativeThemeCocoa::DrawDisclosureButton(CGContextRef cgContext, const HIRe
 
 void nsNativeThemeCocoa::DrawFocusOutline(CGContextRef cgContext, const HIRect& inBoxRect) {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
-
-  HIThemeFrameDrawInfo fdi;
-  fdi.version = 0;
-  fdi.kind = kHIThemeFrameTextFieldSquare;
-  fdi.state = kThemeStateActive;
-  fdi.isFocused = TRUE;
-
-#if DRAW_IN_FRAME_DEBUG
-  CGContextSetRGBFillColor(cgContext, 0.0, 0.0, 0.5, 0.25);
-  CGContextFillRect(cgContext, inBoxRect);
-#endif
-
-  HIThemeDrawFrame(&inBoxRect, &fdi, cgContext, HITHEME_ORIENTATION);
+  NSGraphicsContext* savedContext = [NSGraphicsContext currentContext];
+  [NSGraphicsContext setCurrentContext:[NSGraphicsContext graphicsContextWithGraphicsPort:cgContext
+                                                                                  flipped:YES]];
+  CGContextSaveGState(cgContext);
+  NSSetFocusRingStyle(NSFocusRingOnly);
+  NSRectFill(NSRectFromCGRect(inBoxRect));
+  CGContextRestoreGState(cgContext);
+  [NSGraphicsContext setCurrentContext:savedContext];
 
   NS_OBJC_END_TRY_ABORT_BLOCK;
 }
@@ -1746,7 +1776,7 @@ void nsNativeThemeCocoa::DrawTextBox(CGContextRef cgContext, const HIRect& inBox
                                      TextBoxParams aParams) {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
-  CGContextSetRGBFillColor(cgContext, 1.0, 1.0, 1.0, 1.0);
+  SetCGContextFillColor(cgContext, sRGBColor(1.0, 1.0, 1.0, 1.0));
   CGContextFillRect(cgContext, inBoxRect);
 
 #if DRAW_IN_FRAME_DEBUG
@@ -2017,28 +2047,6 @@ void nsNativeThemeCocoa::DrawTabPanel(CGContextRef cgContext, const HIRect& inBo
   NS_OBJC_END_TRY_ABORT_BLOCK;
 }
 
-nsNativeThemeCocoa::ScaleParams nsNativeThemeCocoa::ComputeXULScaleParams(nsIFrame* aFrame,
-                                                                          EventStates aEventState,
-                                                                          bool aIsHorizontal) {
-  ScaleParams params;
-  params.value = CheckIntAttr(aFrame, nsGkAtoms::curpos, 0);
-  params.min = CheckIntAttr(aFrame, nsGkAtoms::minpos, 0);
-  params.max = CheckIntAttr(aFrame, nsGkAtoms::maxpos, 100);
-  if (!params.max) {
-    params.max = 100;
-  }
-
-  params.reverse =
-      aFrame->GetContent()->IsElement() &&
-      aFrame->GetContent()->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::dir,
-                                                     NS_LITERAL_STRING("reverse"), eCaseMatters);
-  params.insideActiveWindow = FrameIsInActiveWindow(aFrame);
-  params.focused = aEventState.HasState(NS_EVENT_STATE_FOCUS);
-  params.disabled = IsDisabled(aFrame, aEventState);
-  params.horizontal = aIsHorizontal;
-  return params;
-}
-
 Maybe<nsNativeThemeCocoa::ScaleParams> nsNativeThemeCocoa::ComputeHTMLScaleParams(
     nsIFrame* aFrame, EventStates aEventState) {
   nsRangeFrame* rangeFrame = do_QueryFrame(aFrame);
@@ -2056,7 +2064,7 @@ Maybe<nsNativeThemeCocoa::ScaleParams> nsNativeThemeCocoa::ComputeHTMLScaleParam
   params.max = 1000;
   params.reverse = !isHorizontal || rangeFrame->IsRightToLeft();
   params.insideActiveWindow = FrameIsInActiveWindow(aFrame);
-  params.focused = aEventState.HasState(NS_EVENT_STATE_FOCUS);
+  params.focused = aEventState.HasState(NS_EVENT_STATE_FOCUSRING);
   params.disabled = IsDisabled(aFrame, aEventState);
   params.horizontal = isHorizontal;
   return Some(params);
@@ -2155,7 +2163,7 @@ nsNativeThemeCocoa::SegmentParams nsNativeThemeCocoa::ComputeSegmentParams(
   params.insideActiveWindow = FrameIsInActiveWindow(aFrame);
   params.pressed = IsPressedButton(aFrame);
   params.selected = IsSelectedButton(aFrame);
-  params.focused = aEventState.HasState(NS_EVENT_STATE_FOCUS);
+  params.focused = aEventState.HasState(NS_EVENT_STATE_FOCUSRING);
   bool isRTL = IsFrameRTL(aFrame);
   nsIFrame* left = GetAdjacentSiblingFrameWithSameAppearance(aFrame, isRTL);
   nsIFrame* right = GetAdjacentSiblingFrameWithSameAppearance(aFrame, !isRTL);
@@ -2177,9 +2185,82 @@ static SegmentedControlRenderSettings RenderSettingsForSegmentType(
   }
 }
 
+void nsNativeThemeCocoa::DrawSegmentBackground(CGContextRef cgContext, const HIRect& inBoxRect,
+                                               const SegmentParams& aParams) {
+  // On earlier macOS versions, the segment background is automatically
+  // drawn correctly and this method should not be used. ASSERT here
+  // to catch unnecessary usage, but the method implementation is not
+  // dependent on Big Sur in any way.
+  MOZ_ASSERT(nsCocoaFeatures::OnBigSurOrLater());
+
+  // Use colors resembling 10.15.
+  if (aParams.selected) {
+    DeviceColor color = ToDeviceColor(mozilla::gfx::sRGBColor::FromU8(93, 93, 93, 255));
+    CGContextSetRGBFillColor(cgContext, color.r, color.g, color.b, color.a);
+  } else {
+    DeviceColor color = ToDeviceColor(mozilla::gfx::sRGBColor::FromU8(247, 247, 247, 255));
+    CGContextSetRGBFillColor(cgContext, color.r, color.g, color.b, color.a);
+  }
+
+  // Create a rect for the background fill.
+  CGRect bgRect = inBoxRect;
+  bgRect.size.height -= 3.0;
+  bgRect.size.width -= 4.0;
+  bgRect.origin.x += 2.0;
+  bgRect.origin.y += 1.0;
+
+  // Round the corners unless the button is a middle button. Buttons in
+  // a grouping but on the edge will have the inner edge filled below.
+  if (aParams.atLeftEnd || aParams.atRightEnd) {
+    CGPathRef path = CGPathCreateWithRoundedRect(bgRect, 5, 4, nullptr);
+    CGContextAddPath(cgContext, path);
+    CGPathRelease(path);
+    CGContextClosePath(cgContext);
+    CGContextFillPath(cgContext);
+  }
+
+  // Handle buttons grouped together where either or both of
+  // the side edges do not have curved corners.
+  if (!aParams.atLeftEnd && aParams.atRightEnd) {
+    // Shift the rect left to draw the left side of the
+    // rect with right angle corners leaving the right side
+    // to have rounded corners drawn with the curve above.
+    // For example, the left side of the forward button in
+    // the Library window.
+    CGRect leftRectEdge = bgRect;
+    leftRectEdge.size.width -= 10;
+    leftRectEdge.origin.x -= 2;
+    CGContextFillRect(cgContext, leftRectEdge);
+  } else if (aParams.atLeftEnd && !aParams.atRightEnd) {
+    // Shift the rect right to draw the right side of the
+    // rect with right angle corners leaving the left side
+    // to have rounded corners drawn with the curve above.
+    // For example, the right side of the back button in
+    // the Library window.
+    CGRect rightRectEdge = bgRect;
+    rightRectEdge.size.width -= 10;
+    rightRectEdge.origin.x += 12;
+    CGContextFillRect(cgContext, rightRectEdge);
+  } else if (!aParams.atLeftEnd && !aParams.atRightEnd) {
+    // The middle button in a group of buttons. Widen the
+    // background rect to meet adjacent buttons seamlessly.
+    CGRect middleRect = bgRect;
+    middleRect.size.width += 4;
+    middleRect.origin.x -= 2;
+    CGContextFillRect(cgContext, middleRect);
+  }
+}
+
 void nsNativeThemeCocoa::DrawSegment(CGContextRef cgContext, const HIRect& inBoxRect,
                                      const SegmentParams& aParams) {
   SegmentedControlRenderSettings renderSettings = RenderSettingsForSegmentType(aParams.segmentType);
+
+  // On Big Sur, manually draw the background of the buttons to workaround a
+  // change in Big Sur where the backround is filled with the toolbar gradient.
+  if (nsCocoaFeatures::OnBigSurOrLater() &&
+      (aParams.segmentType == nsNativeThemeCocoa::SegmentType::eToolbarButton)) {
+    DrawSegmentBackground(cgContext, inBoxRect, aParams);
+  }
 
   NSControlSize controlSize = FindControlSize(inBoxRect.size.height, renderSettings.heights, 4.0f);
   CGRect drawRect = SeparatorAdjustedRect(inBoxRect, aParams);
@@ -2361,7 +2442,7 @@ static bool IsSmallScrollbar(nsIFrame* aFrame) {
   }
   nsIFrame* scrollbarFrame = GetParentScrollbarFrame(aFrame);
   if (scrollbarFrame &&
-      scrollbarFrame->StyleDisplay()->mAppearance == StyleAppearance::ScrollbarSmall) {
+      scrollbarFrame->StyleDisplay()->EffectiveAppearance() == StyleAppearance::ScrollbarSmall) {
     return true;
   }
   return false;
@@ -2388,68 +2469,74 @@ nsNativeThemeCocoa::ScrollbarParams nsNativeThemeCocoa::ComputeScrollbarParams(n
       params.faceColor = colors.thumb.CalcColor(*style);
     }
   }
+
   return params;
 }
 
 void nsNativeThemeCocoa::DrawScrollbarThumb(CGContextRef cgContext, const CGRect& inBoxRect,
                                             ScrollbarParams aParams) {
-  CGRect drawRect = inBoxRect;
-  if (aParams.custom) {
-    const CGFloat kWidthRatio = 8.0f / 15.0f;
-    const CGFloat kLengthReductionRatio = 2.0f / 15.0f;
-    const CGFloat kOrthogonalDirOffset = 4.0f / 15.0f;
-    const CGFloat kParallelDirOffset = 1.0f / 15.0f;
-    CGFloat baseSize, cornerWidth;
-    CGRect thumbRect = inBoxRect;
-    if (aParams.horizontal) {
-      baseSize = inBoxRect.size.height;
-      thumbRect.size.height *= kWidthRatio;
-      thumbRect.size.width -= baseSize * kLengthReductionRatio;
-      thumbRect.origin.y += baseSize * kOrthogonalDirOffset;
-      thumbRect.origin.x += baseSize * kParallelDirOffset;
-      cornerWidth = thumbRect.size.height / 2.0f;
-    } else {
-      baseSize = inBoxRect.size.width;
-      thumbRect.size.width *= kWidthRatio;
-      thumbRect.size.height -= baseSize * kLengthReductionRatio;
-      thumbRect.origin.x += baseSize * kOrthogonalDirOffset;
-      thumbRect.origin.y += baseSize * kParallelDirOffset;
-      cornerWidth = thumbRect.size.width / 2.0f;
+  // Compute the thumb thickness. This varies based on aParams.small, aParams.overlay and
+  // aParams.rolledOver. non-overlay: 6 / 8, overlay non-hovered: 5 / 7, overlay hovered: 9 / 11
+  CGFloat thickness = aParams.small ? 6.0f : 8.0f;
+  if (aParams.overlay) {
+    thickness -= 1.0f;
+    if (aParams.rolledOver) {
+      thickness += 4.0f;
     }
-    CGPathRef path = CGPathCreateWithRoundedRect(thumbRect, cornerWidth, cornerWidth, nullptr);
-    CGContextAddPath(cgContext, path);
-    CGPathRelease(path);
-    SetCGContextFillColor(cgContext, aParams.faceColor);
-    CGContextFillPath(cgContext);
-    return;
   }
 
-  if (aParams.overlay && !aParams.rolledOver) {
-    if (aParams.horizontal) {
-      drawRect.origin.y += 4;
-      drawRect.size.height -= 4;
+  // Compute the thumb rect.
+  CGFloat outerSpacing = (aParams.overlay || aParams.small) ? 1.0f : 2.0f;
+  CGRect thumbRect = CGRectInset(inBoxRect, 1.0f, 1.0f);
+  if (aParams.horizontal) {
+    thumbRect.origin.y = CGRectGetMaxY(thumbRect) - outerSpacing - thickness;
+    thumbRect.size.height = thickness;
+  } else {
+    if (aParams.rtl) {
+      thumbRect.origin.x = thumbRect.origin.x + outerSpacing;
     } else {
-      if (!aParams.rtl) {
-        drawRect.origin.x += 4;
-      }
-      drawRect.size.width -= 4;
+      thumbRect.origin.x = CGRectGetMaxX(thumbRect) - outerSpacing - thickness;
+    }
+    thumbRect.size.width = thickness;
+  }
+
+  // Compute the thumb fill color.
+  nscolor faceColor;
+  if (aParams.custom) {
+    faceColor = aParams.faceColor;
+  } else {
+    if (aParams.overlay) {
+      faceColor = aParams.onDarkBackground ? NS_RGBA(255, 255, 255, 128) : NS_RGBA(0, 0, 0, 128);
+    } else {
+      faceColor = aParams.rolledOver ? NS_RGBA(125, 125, 125, 255) : NS_RGBA(194, 194, 194, 255);
     }
   }
-  NSDictionary* options = @{
-    @"widget" : (aParams.overlay ? @"kCUIWidgetOverlayScrollBar" : @"scrollbar"),
-    @"size" : (aParams.small ? @"small" : @"regular"),
-    @"kCUIOrientationKey" : (aParams.horizontal ? @"kCUIOrientHorizontal" : @"kCUIOrientVertical"),
-    @"kCUIVariantKey" : (aParams.overlay && aParams.onDarkBackground ? @"kCUIVariantWhite" : @""),
-    @"indiconly" : [NSNumber numberWithBool:YES],
-    @"kCUIThumbProportionKey" : [NSNumber numberWithBool:YES],
-    @"is.flipped" : [NSNumber numberWithBool:YES],
-  };
-  if (aParams.rolledOver) {
-    NSMutableDictionary* mutableOptions = [options mutableCopy];
-    [mutableOptions setObject:@"rollover" forKey:@"state"];
-    options = mutableOptions;
+
+  // Fill the thumb shape with the color.
+  CGFloat cornerRadius = (aParams.horizontal ? thumbRect.size.height : thumbRect.size.width) / 2.0f;
+  CGPathRef path = CGPathCreateWithRoundedRect(thumbRect, cornerRadius, cornerRadius, nullptr);
+  CGContextAddPath(cgContext, path);
+  CGPathRelease(path);
+  SetCGContextFillColor(cgContext, faceColor);
+  CGContextFillPath(cgContext);
+
+  // Overlay scrollbars have an additional stroke around the fill.
+  if (aParams.overlay) {
+    CGFloat strokeOutset = aParams.onDarkBackground ? 0.3f : 0.5f;
+    CGFloat strokeWidth = aParams.onDarkBackground ? 0.6f : 0.8f;
+    nscolor strokeColor =
+        aParams.onDarkBackground ? NS_RGBA(0, 0, 0, 48) : NS_RGBA(255, 255, 255, 48);
+    CGRect thumbStrokeRect = CGRectInset(thumbRect, -strokeOutset, -strokeOutset);
+    CGFloat strokeRadius =
+        (aParams.horizontal ? thumbStrokeRect.size.height : thumbStrokeRect.size.width) / 2.0f;
+    CGPathRef path =
+        CGPathCreateWithRoundedRect(thumbStrokeRect, strokeRadius, strokeRadius, nullptr);
+    CGContextAddPath(cgContext, path);
+    CGPathRelease(path);
+    SetCGContextStrokeColor(cgContext, strokeColor);
+    CGContextSetLineWidth(cgContext, strokeWidth);
+    CGContextStrokePath(cgContext);
   }
-  RenderWithCoreUI(drawRect, cgContext, options, true);
 }
 
 struct ScrollbarTrackDecorationColors {
@@ -2480,73 +2567,59 @@ void nsNativeThemeCocoa::DrawScrollbarTrack(CGContextRef cgContext, const CGRect
     return;
   }
 
-  if (!aParams.custom) {
-    RenderWithCoreUI(
-        inBoxRect, cgContext,
-        [NSDictionary
-            dictionaryWithObjectsAndKeys:(aParams.overlay ? @"kCUIWidgetOverlayScrollBar"
-                                                          : @"scrollbar"),
-                                         @"widget", (aParams.small ? @"small" : @"regular"),
-                                         @"size",
-                                         (aParams.horizontal ? @"kCUIOrientHorizontal"
-                                                             : @"kCUIOrientVertical"),
-                                         @"kCUIOrientationKey",
-                                         (aParams.onDarkBackground ? @"kCUIVariantWhite" : @""),
-                                         @"kCUIVariantKey", [NSNumber numberWithBool:YES],
-                                         @"noindicator", [NSNumber numberWithBool:YES],
-                                         @"kCUIThumbProportionKey", [NSNumber numberWithBool:YES],
-                                         @"is.flipped", nil],
-        true);
-    return;
+  nscolor trackColor;
+  if (aParams.custom) {
+    trackColor = aParams.trackColor;
+  } else {
+    if (aParams.overlay) {
+      trackColor =
+          aParams.onDarkBackground ? NS_RGBA(201, 201, 201, 38) : NS_RGBA(250, 250, 250, 191);
+    } else {
+      trackColor = NS_RGBA(250, 250, 250, 255);
+    }
   }
 
-  // Paint the background color
-  SetCGContextFillColor(cgContext, aParams.trackColor);
-  CGContextFillRect(cgContext, inBoxRect);
-  // Paint decorations
-  ScrollbarTrackDecorationColors colors = ComputeScrollbarTrackDecorationColors(aParams.trackColor);
-  CGPoint innerPoints[2];
-  CGPoint shadowPoints[2];
-  CGPoint outerPoints[2];
-  if (aParams.horizontal) {
-    innerPoints[0].x = inBoxRect.origin.x;
-    innerPoints[0].y = inBoxRect.origin.y + 0.5f;
-    innerPoints[1].x = innerPoints[0].x + inBoxRect.size.width;
-    innerPoints[1].y = innerPoints[0].y;
-    shadowPoints[0].x = innerPoints[0].x;
-    shadowPoints[0].y = innerPoints[0].y + 1.0f;
-    shadowPoints[1].x = innerPoints[1].x;
-    shadowPoints[1].y = shadowPoints[0].y;
-    outerPoints[0].x = innerPoints[0].x;
-    outerPoints[0].y = innerPoints[0].y + inBoxRect.size.height - 1;
-    outerPoints[1].x = innerPoints[1].x;
-    outerPoints[1].y = outerPoints[0].y;
-  } else {
-    if (aParams.rtl) {
-      innerPoints[0].x = inBoxRect.origin.x + inBoxRect.size.width - 0.5f;
-      shadowPoints[0].x = innerPoints[0].x - 1.0f;
-      outerPoints[0].x = inBoxRect.origin.x + 0.5f;
+  CGFloat thickness = aParams.horizontal ? inBoxRect.size.height : inBoxRect.size.width;
+
+  // The scrollbar track is drawn as multiple non-overlapping segments, which make up lines of
+  // different widths and with slightly different shading.
+  ScrollbarTrackDecorationColors colors = ComputeScrollbarTrackDecorationColors(trackColor);
+  struct {
+    nscolor color;
+    CGFloat thickness;
+  } segments[] = {
+      {colors.mInnerColor, 1.0f},
+      {colors.mShadowColor, 1.0f},
+      {trackColor, thickness - 3.0f},
+      {colors.mOuterColor, 1.0f},
+  };
+
+  // Iterate over the segments "from inside to outside" and fill each segment.
+  // For horizontal scrollbars, iterate top to bottom.
+  // For vertical scrollbars, iterate left to right or right to left based on aParams.rtl.
+  CGRect segmentRect = inBoxRect;
+  for (const auto& segment : segments) {
+    if (aParams.horizontal) {
+      segmentRect.size.height = segment.thickness;
     } else {
-      innerPoints[0].x = inBoxRect.origin.x + 0.5f;
-      shadowPoints[0].x = innerPoints[0].x + 1.0f;
-      outerPoints[0].x = inBoxRect.origin.x + inBoxRect.size.width - 0.5f;
+      if (aParams.rtl) {
+        CGFloat rightEdge = segmentRect.origin.x + segmentRect.size.width;
+        segmentRect.origin.x = rightEdge - segment.thickness;
+      }
+      segmentRect.size.width = segment.thickness;
     }
-    innerPoints[0].y = inBoxRect.origin.y;
-    innerPoints[1].x = innerPoints[0].x;
-    innerPoints[1].y = innerPoints[0].y + inBoxRect.size.height;
-    shadowPoints[0].y = innerPoints[0].y;
-    shadowPoints[1].x = shadowPoints[0].x;
-    shadowPoints[1].y = innerPoints[1].y;
-    outerPoints[0].y = innerPoints[0].y;
-    outerPoints[1].x = outerPoints[0].x;
-    outerPoints[1].y = innerPoints[1].y;
+    SetCGContextFillColor(cgContext, segment.color);
+    CGContextFillRect(cgContext, segmentRect);
+    if (aParams.horizontal) {
+      segmentRect.origin.y += segment.thickness;
+    } else {
+      if (aParams.rtl) {
+        segmentRect.origin.x -= segment.thickness;
+      } else {
+        segmentRect.origin.x += segment.thickness;
+      }
+    }
   }
-  SetCGContextStrokeColor(cgContext, colors.mInnerColor);
-  CGContextStrokeLineSegments(cgContext, innerPoints, 2);
-  SetCGContextStrokeColor(cgContext, colors.mShadowColor);
-  CGContextStrokeLineSegments(cgContext, shadowPoints, 2);
-  SetCGContextStrokeColor(cgContext, colors.mOuterColor);
-  CGContextStrokeLineSegments(cgContext, outerPoints, 2);
 }
 
 void nsNativeThemeCocoa::DrawScrollCorner(CGContextRef cgContext, const CGRect& inBoxRect,
@@ -2601,15 +2674,15 @@ void nsNativeThemeCocoa::DrawScrollCorner(CGContextRef cgContext, const CGRect& 
   CGContextStrokeLineSegments(cgContext, outerPoints, 4);
 }
 
-static const Color kTooltipBackgroundColor(0.996, 1.000, 0.792, 0.950);
-static const Color kMultilineTextFieldTopBorderColor(0.4510, 0.4510, 0.4510, 1.0);
-static const Color kMultilineTextFieldSidesAndBottomBorderColor(0.6, 0.6, 0.6, 1.0);
-static const Color kListboxTopBorderColor(0.557, 0.557, 0.557, 1.0);
-static const Color kListBoxSidesAndBottomBorderColor(0.745, 0.745, 0.745, 1.0);
+static const sRGBColor kTooltipBackgroundColor(0.996, 1.000, 0.792, 0.950);
+static const sRGBColor kMultilineTextFieldTopBorderColor(0.4510, 0.4510, 0.4510, 1.0);
+static const sRGBColor kMultilineTextFieldSidesAndBottomBorderColor(0.6, 0.6, 0.6, 1.0);
+static const sRGBColor kListboxTopBorderColor(0.557, 0.557, 0.557, 1.0);
+static const sRGBColor kListBoxSidesAndBottomBorderColor(0.745, 0.745, 0.745, 1.0);
 
 void nsNativeThemeCocoa::DrawMultilineTextField(CGContextRef cgContext, const CGRect& inBoxRect,
                                                 bool aIsFocused) {
-  CGContextSetRGBFillColor(cgContext, 1.0, 1.0, 1.0, 1.0);
+  SetCGContextFillColor(cgContext, sRGBColor(1.0, 1.0, 1.0, 1.0));
 
   CGContextFillRect(cgContext, inBoxRect);
 
@@ -2650,6 +2723,37 @@ void nsNativeThemeCocoa::DrawSourceList(CGContextRef cgContext, const CGRect& in
   CGColorSpaceRelease(rgb);
 }
 
+void nsNativeThemeCocoa::DrawSourceListSelection(CGContextRef aContext, const CGRect& aRect,
+                                                 bool aWindowIsActive, bool aSelectionIsActive) {
+  if (!nsCocoaFeatures::OnYosemiteOrLater()) {
+    // Render with the 10.9 gradient style.
+    RenderWithCoreUI(
+        aRect, aContext,
+        [NSDictionary
+            dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:aSelectionIsActive], @"focus",
+                                         [NSNumber numberWithBool:YES], @"is.flipped",
+                                         @"kCUIVariantGradientSideBarSelection", @"kCUIVariantKey",
+                                         (aWindowIsActive ? @"normal" : @"inactive"), @"state",
+                                         @"gradient", @"widget", nil]);
+    return;
+  }
+
+  NSColor* fillColor;
+  if (aSelectionIsActive) {
+    // Active selection, blue or graphite.
+    fillColor = ControlAccentColor();
+  } else {
+    // Inactive selection, gray.
+    if (aWindowIsActive) {
+      fillColor = [NSColor colorWithWhite:0.871 alpha:1.0];
+    } else {
+      fillColor = [NSColor colorWithWhite:0.808 alpha:1.0];
+    }
+  }
+  CGContextSetFillColorWithColor(aContext, [fillColor CGColor]);
+  CGContextFillRect(aContext, aRect);
+}
+
 bool nsNativeThemeCocoa::IsParentScrollbarRolledOver(nsIFrame* aFrame) {
   nsIFrame* scrollbarFrame = GetParentScrollbarFrame(aFrame);
   return nsLookAndFeel::UseOverlayScrollbars()
@@ -2687,15 +2791,6 @@ Maybe<nsNativeThemeCocoa::WidgetInfo> nsNativeThemeCocoa::ComputeWidgetInfo(
   EventStates eventState = GetContentState(aFrame, aAppearance);
 
   switch (aAppearance) {
-    case StyleAppearance::Dialog:
-      if (IsWindowSheet(aFrame)) {
-        if (VibrancyManager::SystemSupportsVibrancy()) {
-          return Nothing();
-        }
-        return Some(WidgetInfo::SheetBackground());
-      }
-      return Some(WidgetInfo::DialogBackground());
-
     case StyleAppearance::Menupopup:
       if (VibrancyManager::SystemSupportsVibrancy()) {
         return Nothing();
@@ -2760,10 +2855,6 @@ Maybe<nsNativeThemeCocoa::WidgetInfo> nsNativeThemeCocoa::ComputeWidgetInfo(
         // and black text.)
         EventStates docState = aFrame->GetContent()->OwnerDoc()->GetDocumentState();
         bool isInActiveWindow = !docState.HasState(NS_DOCUMENT_STATE_WINDOW_INACTIVE);
-        if (!IsDisabled(aFrame, eventState) && isInActiveWindow &&
-            !QueueAnimatedContentForRefresh(aFrame->GetContent(), 10)) {
-          NS_WARNING("Unable to animate button!");
-        }
         bool hasDefaultButtonLook = isInActiveWindow && !eventState.HasState(NS_EVENT_STATE_ACTIVE);
         ButtonType buttonType =
             hasDefaultButtonLook ? ButtonType::eDefaultPushButton : ButtonType::eRegularPushButton;
@@ -2810,38 +2901,29 @@ Maybe<nsNativeThemeCocoa::WidgetInfo> nsNativeThemeCocoa::ComputeWidgetInfo(
           WidgetInfo::Button(ButtonParams{ComputeControlParams(aFrame, eventState), buttonType}));
     }
 
-    case StyleAppearance::ButtonBevel: {
-      bool isDefaultButton = IsDefaultButton(aFrame);
-      ButtonType buttonType =
-          isDefaultButton ? ButtonType::eDefaultBevelButton : ButtonType::eRegularBevelButton;
-      return Some(
-          WidgetInfo::Button(ButtonParams{ComputeControlParams(aFrame, eventState), buttonType}));
-    }
-
-    case StyleAppearance::InnerSpinButton: {
-      case StyleAppearance::Spinner:
-        bool isSpinner = (aAppearance == StyleAppearance::Spinner);
-        nsIContent* content = aFrame->GetContent();
-        if (isSpinner && content->IsHTMLElement()) {
-          // In HTML the theming for the spin buttons is drawn individually into
-          // their own backgrounds instead of being drawn into the background of
-          // their spinner parent as it is for XUL.
-          break;
+    case StyleAppearance::Spinner: {
+      bool isSpinner = (aAppearance == StyleAppearance::Spinner);
+      nsIContent* content = aFrame->GetContent();
+      if (isSpinner && content->IsHTMLElement()) {
+        // In HTML the theming for the spin buttons is drawn individually into
+        // their own backgrounds instead of being drawn into the background of
+        // their spinner parent as it is for XUL.
+        break;
+      }
+      SpinButtonParams params;
+      if (content->IsElement()) {
+        if (content->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::state, u"up"_ns,
+                                              eCaseMatters)) {
+          params.pressedButton = Some(SpinButton::eUp);
+        } else if (content->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::state,
+                                                     u"down"_ns, eCaseMatters)) {
+          params.pressedButton = Some(SpinButton::eDown);
         }
-        SpinButtonParams params;
-        if (content->IsElement()) {
-          if (content->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::state,
-                                                NS_LITERAL_STRING("up"), eCaseMatters)) {
-            params.pressedButton = Some(SpinButton::eUp);
-          } else if (content->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::state,
-                                                       NS_LITERAL_STRING("down"), eCaseMatters)) {
-            params.pressedButton = Some(SpinButton::eDown);
-          }
-        }
-        params.disabled = IsDisabled(aFrame, eventState);
-        params.insideActiveWindow = FrameIsInActiveWindow(aFrame);
+      }
+      params.disabled = IsDisabled(aFrame, eventState);
+      params.insideActiveWindow = FrameIsInActiveWindow(aFrame);
 
-        return Some(WidgetInfo::SpinButtons(params));
+      return Some(WidgetInfo::SpinButtons(params));
     }
 
     case StyleAppearance::SpinnerUpbutton:
@@ -2915,9 +2997,9 @@ Maybe<nsNativeThemeCocoa::WidgetInfo> nsNativeThemeCocoa::ComputeWidgetInfo(
     case StyleAppearance::Groupbox:
       return Some(WidgetInfo::GroupBox());
 
-    case StyleAppearance::MenulistTextfield:
     case StyleAppearance::Textfield:
     case StyleAppearance::NumberInput: {
+      // See ShouldUnconditionallyDrawFocusRingIfFocused.
       bool isFocused = eventState.HasState(NS_EVENT_STATE_FOCUS);
       // XUL textboxes set the native appearance on the containing box, while
       // concrete focus is set on the html:input element within it. We can
@@ -2929,16 +3011,15 @@ Maybe<nsNativeThemeCocoa::WidgetInfo> nsNativeThemeCocoa::ComputeWidgetInfo(
       }
 
       bool isDisabled = IsDisabled(aFrame, eventState) || IsReadOnly(aFrame);
-      bool borderless = (aAppearance == StyleAppearance::MenulistTextfield && !isFocused);
-      return Some(WidgetInfo::TextBox(TextBoxParams{isDisabled, isFocused, borderless}));
+      return Some(
+          WidgetInfo::TextBox(TextBoxParams{isDisabled, isFocused, /* borderless = */ false}));
     }
 
     case StyleAppearance::Searchfield:
       return Some(WidgetInfo::SearchField(ComputeSearchFieldParams(aFrame, eventState)));
 
     case StyleAppearance::ProgressBar: {
-      // Don't request repaints for scrollbars at 100% because those don't animate.
-      if (GetProgressValue(aFrame) < GetProgressMaxValue(aFrame)) {
+      if (IsIndeterminateProgress(aFrame, eventState)) {
         if (!QueueAnimatedContentForRefresh(aFrame->GetContent(), 30)) {
           NS_WARNING("Unable to animate progressbar!");
         }
@@ -2946,9 +3027,6 @@ Maybe<nsNativeThemeCocoa::WidgetInfo> nsNativeThemeCocoa::ComputeWidgetInfo(
       return Some(WidgetInfo::ProgressBar(
           ComputeProgressParams(aFrame, eventState, !IsVerticalProgress(aFrame))));
     }
-
-    case StyleAppearance::ProgressbarVertical:
-      return Some(WidgetInfo::ProgressBar(ComputeProgressParams(aFrame, eventState, false)));
 
     case StyleAppearance::Meter:
       return Some(WidgetInfo::Meter(ComputeMeterParams(aFrame)));
@@ -2971,7 +3049,7 @@ Maybe<nsNativeThemeCocoa::WidgetInfo> nsNativeThemeCocoa::ComputeWidgetInfo(
 
     case StyleAppearance::Treeitem:
     case StyleAppearance::Treeview:
-      return Some(WidgetInfo::ColorFill(Color(1.0, 1.0, 1.0, 1.0)));
+      return Some(WidgetInfo::ColorFill(sRGBColor(1.0, 1.0, 1.0, 1.0)));
 
     case StyleAppearance::Treeheader:
       // do nothing, taken care of by individual header cells
@@ -2979,16 +3057,6 @@ Maybe<nsNativeThemeCocoa::WidgetInfo> nsNativeThemeCocoa::ComputeWidgetInfo(
       // do nothing, taken care of by treeview header
     case StyleAppearance::Treeline:
       // do nothing, these lines don't exist on macos
-      break;
-
-    case StyleAppearance::ScaleHorizontal:
-    case StyleAppearance::ScaleVertical:
-      return Some(WidgetInfo::Scale(ComputeXULScaleParams(
-          aFrame, eventState, aAppearance == StyleAppearance::ScaleHorizontal)));
-
-    case StyleAppearance::ScalethumbHorizontal:
-    case StyleAppearance::ScalethumbVertical:
-      // do nothing, drawn by scale
       break;
 
     case StyleAppearance::Range: {
@@ -3036,11 +3104,8 @@ Maybe<nsNativeThemeCocoa::WidgetInfo> nsNativeThemeCocoa::ComputeWidgetInfo(
 
     case StyleAppearance::MozMacSourceListSelection:
     case StyleAppearance::MozMacActiveSourceListSelection: {
-      // If we're in XUL tree, we need to rely on the source list's clear
-      // background display item. If we cleared the background behind the
-      // selections, the source list would not pick up the right font
-      // smoothing background. So, to simplify a bit, we only support vibrancy
-      // if we're in a source list.
+      // We only support vibrancy for source list selections if we're inside
+      // a source list, because we need the background to be transparent.
       if (VibrancyManager::SystemSupportsVibrancy() && IsInSourceList(aFrame)) {
         return Nothing();
       }
@@ -3134,18 +3199,8 @@ void nsNativeThemeCocoa::RenderWidget(const WidgetInfo& aWidgetInfo, DrawTarget&
 
   switch (aWidgetInfo.Widget()) {
     case Widget::eColorFill: {
-      Color params = aWidgetInfo.Params<Color>();
+      sRGBColor params = aWidgetInfo.Params<sRGBColor>();
       SetCGContextFillColor(cgContext, params);
-      CGContextFillRect(cgContext, macRect);
-      break;
-    }
-    case Widget::eSheetBackground: {
-      HIThemeSetFill(kThemeBrushSheetBackgroundTransparent, NULL, cgContext, HITHEME_ORIENTATION);
-      CGContextFillRect(cgContext, macRect);
-      break;
-    }
-    case Widget::eDialogBackground: {
-      HIThemeSetFill(kThemeBrushDialogBackgroundActive, NULL, cgContext, HITHEME_ORIENTATION);
       CGContextFillRect(cgContext, macRect);
       break;
     }
@@ -3301,7 +3356,7 @@ void nsNativeThemeCocoa::RenderWidget(const WidgetInfo& aWidgetInfo, DrawTarget&
     case Widget::eListBox: {
       // We have to draw this by hand because kHIThemeFrameListBox drawing
       // is buggy on 10.5, see bug 579259.
-      CGContextSetRGBFillColor(cgContext, 1.0, 1.0, 1.0, 1.0);
+      SetCGContextFillColor(cgContext, sRGBColor(1.0, 1.0, 1.0, 1.0));
       CGContextFillRect(cgContext, macRect);
 
       float x = macRect.origin.x, y = macRect.origin.y;
@@ -3322,16 +3377,8 @@ void nsNativeThemeCocoa::RenderWidget(const WidgetInfo& aWidgetInfo, DrawTarget&
     case Widget::eActiveSourceListSelection:
     case Widget::eInactiveSourceListSelection: {
       bool isInActiveWindow = aWidgetInfo.Params<bool>();
-      BOOL isActiveSelection = aWidgetInfo.Widget() == Widget::eActiveSourceListSelection;
-      RenderWithCoreUI(
-          macRect, cgContext,
-          [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:isActiveSelection],
-                                                     @"focus", [NSNumber numberWithBool:YES],
-                                                     @"is.flipped",
-                                                     @"kCUIVariantGradientSideBarSelection",
-                                                     @"kCUIVariantKey",
-                                                     (isInActiveWindow ? @"normal" : @"inactive"),
-                                                     @"state", @"gradient", @"widget", nil]);
+      bool isActiveSelection = aWidgetInfo.Widget() == Widget::eActiveSourceListSelection;
+      DrawSourceListSelection(cgContext, macRect, isInActiveWindow, isActiveSelection);
       break;
     }
     case Widget::eTabPanel: {
@@ -3373,12 +3420,6 @@ bool nsNativeThemeCocoa::CreateWebRenderCommandsForWidget(
   //  - If the case in DrawWidgetBackground draws something complicated for the
   //    given widget type, return false here.
   switch (aAppearance) {
-    case StyleAppearance::Dialog:
-      if (IsWindowSheet(aFrame) && VibrancyManager::SystemSupportsVibrancy()) {
-        return true;
-      }
-      return false;
-
     case StyleAppearance::Menupopup:
       if (VibrancyManager::SystemSupportsVibrancy()) {
         return true;
@@ -3397,7 +3438,8 @@ bool nsNativeThemeCocoa::CreateWebRenderCommandsForWidget(
 
     case StyleAppearance::Tooltip:
       if (!VibrancyManager::SystemSupportsVibrancy()) {
-        aBuilder.PushRect(bounds, bounds, true, wr::ToColorF(kTooltipBackgroundColor));
+        aBuilder.PushRect(bounds, bounds, true,
+                          wr::ToColorF(ToDeviceColor(kTooltipBackgroundColor)));
       }
       return true;
 
@@ -3408,7 +3450,6 @@ bool nsNativeThemeCocoa::CreateWebRenderCommandsForWidget(
     case StyleAppearance::MozMacHelpButton:
     case StyleAppearance::MozMacDisclosureButtonOpen:
     case StyleAppearance::MozMacDisclosureButtonClosed:
-    case StyleAppearance::ButtonBevel:
     case StyleAppearance::Spinner:
     case StyleAppearance::SpinnerUpbutton:
     case StyleAppearance::SpinnerDownbutton:
@@ -3418,7 +3459,6 @@ bool nsNativeThemeCocoa::CreateWebRenderCommandsForWidget(
     case StyleAppearance::MozWindowTitlebar:
     case StyleAppearance::Statusbar:
     case StyleAppearance::Menulist:
-    case StyleAppearance::MenulistTextfield:
     case StyleAppearance::MenulistButton:
     case StyleAppearance::MozMenulistArrowButton:
     case StyleAppearance::Groupbox:
@@ -3426,15 +3466,12 @@ bool nsNativeThemeCocoa::CreateWebRenderCommandsForWidget(
     case StyleAppearance::NumberInput:
     case StyleAppearance::Searchfield:
     case StyleAppearance::ProgressBar:
-    case StyleAppearance::ProgressbarVertical:
     case StyleAppearance::Meter:
     case StyleAppearance::Treetwisty:
     case StyleAppearance::Treetwistyopen:
     case StyleAppearance::Treeheadercell:
     case StyleAppearance::Treeitem:
     case StyleAppearance::Treeview:
-    case StyleAppearance::ScaleHorizontal:
-    case StyleAppearance::ScaleVertical:
     case StyleAppearance::Range:
     case StyleAppearance::ScrollbarthumbVertical:
     case StyleAppearance::ScrollbarthumbHorizontal:
@@ -3460,13 +3497,18 @@ bool nsNativeThemeCocoa::CreateWebRenderCommandsForWidget(
       }
 
       // White background
-      aBuilder.PushRect(bounds, bounds, true, wr::ToColorF(Color(1.0, 1.0, 1.0, 1.0)));
+      aBuilder.PushRect(bounds, bounds, true,
+                        wr::ToColorF(ToDeviceColor(sRGBColor::OpaqueWhite())));
 
       wr::BorderSide side[4] = {
-          wr::ToBorderSide(kMultilineTextFieldTopBorderColor, StyleBorderStyle::Solid),
-          wr::ToBorderSide(kMultilineTextFieldSidesAndBottomBorderColor, StyleBorderStyle::Solid),
-          wr::ToBorderSide(kMultilineTextFieldSidesAndBottomBorderColor, StyleBorderStyle::Solid),
-          wr::ToBorderSide(kMultilineTextFieldSidesAndBottomBorderColor, StyleBorderStyle::Solid),
+          wr::ToBorderSide(ToDeviceColor(kMultilineTextFieldTopBorderColor),
+                           StyleBorderStyle::Solid),
+          wr::ToBorderSide(ToDeviceColor(kMultilineTextFieldSidesAndBottomBorderColor),
+                           StyleBorderStyle::Solid),
+          wr::ToBorderSide(ToDeviceColor(kMultilineTextFieldSidesAndBottomBorderColor),
+                           StyleBorderStyle::Solid),
+          wr::ToBorderSide(ToDeviceColor(kMultilineTextFieldSidesAndBottomBorderColor),
+                           StyleBorderStyle::Solid),
       };
 
       wr::BorderRadius borderRadius = wr::EmptyBorderRadius();
@@ -3482,13 +3524,17 @@ bool nsNativeThemeCocoa::CreateWebRenderCommandsForWidget(
 
     case StyleAppearance::Listbox: {
       // White background
-      aBuilder.PushRect(bounds, bounds, true, wr::ToColorF(Color(1.0, 1.0, 1.0, 1.0)));
+      aBuilder.PushRect(bounds, bounds, true,
+                        wr::ToColorF(ToDeviceColor(sRGBColor::OpaqueWhite())));
 
       wr::BorderSide side[4] = {
-          wr::ToBorderSide(kListboxTopBorderColor, StyleBorderStyle::Solid),
-          wr::ToBorderSide(kListBoxSidesAndBottomBorderColor, StyleBorderStyle::Solid),
-          wr::ToBorderSide(kListBoxSidesAndBottomBorderColor, StyleBorderStyle::Solid),
-          wr::ToBorderSide(kListBoxSidesAndBottomBorderColor, StyleBorderStyle::Solid),
+          wr::ToBorderSide(ToDeviceColor(kListboxTopBorderColor), StyleBorderStyle::Solid),
+          wr::ToBorderSide(ToDeviceColor(kListBoxSidesAndBottomBorderColor),
+                           StyleBorderStyle::Solid),
+          wr::ToBorderSide(ToDeviceColor(kListBoxSidesAndBottomBorderColor),
+                           StyleBorderStyle::Solid),
+          wr::ToBorderSide(ToDeviceColor(kListBoxSidesAndBottomBorderColor),
+                           StyleBorderStyle::Solid),
       };
 
       wr::BorderRadius borderRadius = wr::EmptyBorderRadius();
@@ -3531,6 +3577,7 @@ LayoutDeviceIntMargin nsNativeThemeCocoa::DirectionAwareMargin(const LayoutDevic
 static const LayoutDeviceIntMargin kAquaDropdownBorder(1, 22, 2, 5);
 static const LayoutDeviceIntMargin kAquaComboboxBorder(3, 20, 3, 4);
 static const LayoutDeviceIntMargin kAquaSearchfieldBorder(3, 5, 2, 19);
+static const LayoutDeviceIntMargin kAquaSearchfieldBorderBigSur(5, 5, 4, 26);
 
 LayoutDeviceIntMargin nsNativeThemeCocoa::GetWidgetBorder(nsDeviceContext* aContext,
                                                           nsIFrame* aFrame,
@@ -3568,7 +3615,12 @@ LayoutDeviceIntMargin nsNativeThemeCocoa::GetWidgetBorder(nsDeviceContext* aCont
       result = DirectionAwareMargin(kAquaDropdownBorder, aFrame);
       break;
 
-    case StyleAppearance::MenulistTextfield:
+    case StyleAppearance::Menuarrow:
+      if (nsCocoaFeatures::OnBigSurOrLater()) {
+        result.SizeTo(0, 0, 0, 28);
+      }
+      break;
+
     case StyleAppearance::NumberInput:
     case StyleAppearance::Textfield: {
       SInt32 frameOutset = 0;
@@ -3587,9 +3639,12 @@ LayoutDeviceIntMargin nsNativeThemeCocoa::GetWidgetBorder(nsDeviceContext* aCont
       result.SizeTo(1, 1, 1, 1);
       break;
 
-    case StyleAppearance::Searchfield:
-      result = DirectionAwareMargin(kAquaSearchfieldBorder, aFrame);
+    case StyleAppearance::Searchfield: {
+      auto border = nsCocoaFeatures::OnBigSurOrLater() ? kAquaSearchfieldBorderBigSur
+                                                       : kAquaSearchfieldBorder;
+      result = DirectionAwareMargin(border, aFrame);
       break;
+    }
 
     case StyleAppearance::Listbox: {
       SInt32 frameOutset = 0;
@@ -3659,6 +3714,14 @@ bool nsNativeThemeCocoa::GetWidgetPadding(nsDeviceContext* aContext, nsIFrame* a
     case StyleAppearance::Radio:
       aResult->SizeTo(0, 0, 0, 0);
       return true;
+
+    case StyleAppearance::Menuarrow:
+    case StyleAppearance::Searchfield:
+      if (nsCocoaFeatures::OnBigSurOrLater()) {
+        return true;
+      }
+      break;
+
     default:
       break;
   }
@@ -3682,7 +3745,6 @@ bool nsNativeThemeCocoa::GetWidgetOverflow(nsDeviceContext* aContext, nsIFrame* 
     case StyleAppearance::Menulist:
     case StyleAppearance::MenulistButton:
     case StyleAppearance::MozMenulistArrowButton:
-    case StyleAppearance::MenulistTextfield:
     case StyleAppearance::Checkbox:
     case StyleAppearance::Radio:
     case StyleAppearance::Tab:
@@ -3771,7 +3833,6 @@ nsNativeThemeCocoa::GetMinimumWidgetSize(nsPresContext* aPresContext, nsIFrame* 
       break;
     }
 
-    case StyleAppearance::InnerSpinButton:
     case StyleAppearance::Spinner:
     case StyleAppearance::SpinnerUpbutton:
     case StyleAppearance::SpinnerDownbutton: {
@@ -3794,15 +3855,13 @@ nsNativeThemeCocoa::GetMinimumWidgetSize(nsPresContext* aPresContext, nsIFrame* 
     }
 
     case StyleAppearance::Menulist:
-    case StyleAppearance::MenulistButton:
-    case StyleAppearance::MozMenulistArrowButton: {
+    case StyleAppearance::MenulistButton: {
       SInt32 popupHeight = 0;
       ::GetThemeMetric(kThemeMetricPopupButtonHeight, &popupHeight);
       aResult->SizeTo(0, popupHeight);
       break;
     }
 
-    case StyleAppearance::MenulistTextfield:
     case StyleAppearance::NumberInput:
     case StyleAppearance::Textfield:
     case StyleAppearance::Textarea:
@@ -3877,22 +3936,6 @@ nsNativeThemeCocoa::GetMinimumWidgetSize(nsPresContext* aPresContext, nsIFrame* 
       break;
     }
 
-    case StyleAppearance::ScaleHorizontal: {
-      SInt32 scaleHeight = 0;
-      ::GetThemeMetric(kThemeMetricHSliderHeight, &scaleHeight);
-      aResult->SizeTo(scaleHeight, scaleHeight);
-      *aIsOverridable = false;
-      break;
-    }
-
-    case StyleAppearance::ScaleVertical: {
-      SInt32 scaleWidth = 0;
-      ::GetThemeMetric(kThemeMetricVSliderWidth, &scaleWidth);
-      aResult->SizeTo(scaleWidth, scaleWidth);
-      *aIsOverridable = false;
-      break;
-    }
-
     case StyleAppearance::ScrollbarthumbHorizontal:
     case StyleAppearance::ScrollbarthumbVertical: {
       bool isSmall = IsSmallScrollbar(aFrame);
@@ -3914,35 +3957,20 @@ nsNativeThemeCocoa::GetMinimumWidgetSize(nsPresContext* aPresContext, nsIFrame* 
         } else {
           aResult->SizeTo(16, 16);
         }
-        break;
-      }
-
-      // yeah, i know i'm cheating a little here, but i figure that it
-      // really doesn't matter if the scrollbar is vertical or horizontal
-      // and the width metric is a really good metric for every piece
-      // of the scrollbar.
-
-      int32_t themeMetric =
-          IsSmallScrollbar(aFrame) ? kThemeMetricSmallScrollBarWidth : kThemeMetricScrollBarWidth;
-      SInt32 scrollbarWidth = 0;
-      ::GetThemeMetric(themeMetric, &scrollbarWidth);
-      aResult->SizeTo(scrollbarWidth, scrollbarWidth);
-      break;
-    }
-
-    case StyleAppearance::ScrollbarNonDisappearing: {
-      int32_t themeMetric = kThemeMetricScrollBarWidth;
-
-      if (aFrame) {
+      } else {
         if (IsSmallScrollbar(aFrame)) {
-          // XXX We're interested in the width of non-disappearing scrollbars
-          // to leave enough space for a dropmarker in non-native styled
-          // comboboxes (bug 869314). It isn't clear to me if comboboxes can
-          // ever have small scrollbars.
-          themeMetric = kThemeMetricSmallScrollBarWidth;
+          aResult->SizeTo(11, 11);
+        } else {
+          aResult->SizeTo(15, 15);
         }
       }
 
+      break;
+    }
+
+    case StyleAppearance::MozMenulistArrowButton:
+    case StyleAppearance::ScrollbarNonDisappearing: {
+      int32_t themeMetric = kThemeMetricScrollBarWidth;
       SInt32 scrollbarWidth = 0;
       ::GetThemeMetric(themeMetric, &scrollbarWidth);
       aResult->SizeTo(scrollbarWidth, scrollbarWidth);
@@ -4014,7 +4042,6 @@ nsNativeThemeCocoa::WidgetStateChanged(nsIFrame* aFrame, StyleAppearance aAppear
     case StyleAppearance::Groupbox:
     case StyleAppearance::Progresschunk:
     case StyleAppearance::ProgressBar:
-    case StyleAppearance::ProgressbarVertical:
     case StyleAppearance::Meter:
     case StyleAppearance::Meterchunk:
     case StyleAppearance::MozMacVibrancyLight:
@@ -4099,9 +4126,7 @@ bool nsNativeThemeCocoa::ThemeSupportsWidget(nsPresContext* aPresContext, nsIFra
     case StyleAppearance::Button:
     case StyleAppearance::ButtonArrowUp:
     case StyleAppearance::ButtonArrowDown:
-    case StyleAppearance::ButtonBevel:
     case StyleAppearance::Toolbarbutton:
-    case StyleAppearance::InnerSpinButton:
     case StyleAppearance::Spinner:
     case StyleAppearance::SpinnerUpbutton:
     case StyleAppearance::SpinnerDownbutton:
@@ -4114,7 +4139,6 @@ bool nsNativeThemeCocoa::ThemeSupportsWidget(nsPresContext* aPresContext, nsIFra
     case StyleAppearance::Toolbox:
     // case StyleAppearance::Toolbarbutton:
     case StyleAppearance::ProgressBar:
-    case StyleAppearance::ProgressbarVertical:
     case StyleAppearance::Progresschunk:
     case StyleAppearance::Meter:
     case StyleAppearance::Meterchunk:
@@ -4131,17 +4155,11 @@ bool nsNativeThemeCocoa::ThemeSupportsWidget(nsPresContext* aPresContext, nsIFra
     case StyleAppearance::Treeheadersortarrow:
     case StyleAppearance::Treeitem:
     case StyleAppearance::Treeline:
-    case StyleAppearance::MenulistTextfield:
     case StyleAppearance::MozMacSourceList:
     case StyleAppearance::MozMacSourceListSelection:
     case StyleAppearance::MozMacActiveSourceListSelection:
 
     case StyleAppearance::Range:
-
-    case StyleAppearance::ScaleHorizontal:
-    case StyleAppearance::ScalethumbHorizontal:
-    case StyleAppearance::ScaleVertical:
-    case StyleAppearance::ScalethumbVertical:
 
     case StyleAppearance::Scrollbar:
     case StyleAppearance::ScrollbarSmall:
@@ -4208,15 +4226,24 @@ bool nsNativeThemeCocoa::WidgetIsContainer(StyleAppearance aAppearance) {
 }
 
 bool nsNativeThemeCocoa::ThemeDrawsFocusForWidget(StyleAppearance aAppearance) {
-  if (aAppearance == StyleAppearance::MenulistButton || aAppearance == StyleAppearance::Button ||
-      aAppearance == StyleAppearance::MozMacHelpButton ||
-      aAppearance == StyleAppearance::MozMacDisclosureButtonOpen ||
-      aAppearance == StyleAppearance::MozMacDisclosureButtonClosed ||
-      aAppearance == StyleAppearance::Radio || aAppearance == StyleAppearance::Range ||
-      aAppearance == StyleAppearance::Checkbox)
-    return true;
-
-  return false;
+  switch (aAppearance) {
+    case StyleAppearance::Textarea:
+    case StyleAppearance::Textfield:
+    case StyleAppearance::Searchfield:
+    case StyleAppearance::NumberInput:
+    case StyleAppearance::Menulist:
+    case StyleAppearance::MenulistButton:
+    case StyleAppearance::Button:
+    case StyleAppearance::MozMacHelpButton:
+    case StyleAppearance::MozMacDisclosureButtonOpen:
+    case StyleAppearance::MozMacDisclosureButtonClosed:
+    case StyleAppearance::Radio:
+    case StyleAppearance::Range:
+    case StyleAppearance::Checkbox:
+      return true;
+    default:
+      return false;
+  }
 }
 
 bool nsNativeThemeCocoa::ThemeNeedsComboboxDropmarker() { return false; }
@@ -4234,13 +4261,11 @@ bool nsNativeThemeCocoa::WidgetAppearanceDependsOnWindowFocus(StyleAppearance aA
     case StyleAppearance::Menuitem:
     case StyleAppearance::Menuseparator:
     case StyleAppearance::Tooltip:
-    case StyleAppearance::InnerSpinButton:
     case StyleAppearance::Spinner:
     case StyleAppearance::SpinnerUpbutton:
     case StyleAppearance::SpinnerDownbutton:
     case StyleAppearance::Separator:
     case StyleAppearance::Toolbox:
-    case StyleAppearance::MenulistTextfield:
     case StyleAppearance::NumberInput:
     case StyleAppearance::Textfield:
     case StyleAppearance::Treeview:
@@ -4262,32 +4287,6 @@ bool nsNativeThemeCocoa::IsWindowSheet(nsIFrame* aFrame) {
     return false;
   }
   return (widget->WindowType() == eWindowType_sheet);
-}
-
-bool nsNativeThemeCocoa::NeedToClearBackgroundBehindWidget(nsIFrame* aFrame,
-                                                           StyleAppearance aAppearance) {
-  switch (aAppearance) {
-    case StyleAppearance::MozMacSourceList:
-    // If we're in a XUL tree, we don't want to clear the background behind the
-    // selections below, since that would make our source list to not pick up
-    // the right font smoothing background. But since we don't call this method
-    // in nsTreeBodyFrame::BuildDisplayList, we never get here.
-    case StyleAppearance::MozMacSourceListSelection:
-    case StyleAppearance::MozMacActiveSourceListSelection:
-    case StyleAppearance::MozMacVibrancyLight:
-    case StyleAppearance::MozMacVibrancyDark:
-    case StyleAppearance::MozMacVibrantTitlebarLight:
-    case StyleAppearance::MozMacVibrantTitlebarDark:
-    case StyleAppearance::Tooltip:
-    case StyleAppearance::Menupopup:
-    case StyleAppearance::Menuitem:
-    case StyleAppearance::Checkmenuitem:
-      return true;
-    case StyleAppearance::Dialog:
-      return IsWindowSheet(aFrame);
-    default:
-      return false;
-  }
 }
 
 nsITheme::ThemeGeometryType nsNativeThemeCocoa::ThemeGeometryTypeForWidget(
@@ -4342,10 +4341,8 @@ nsITheme::Transparency nsNativeThemeCocoa::GetWidgetTransparency(nsIFrame* aFram
   switch (aAppearance) {
     case StyleAppearance::Menupopup:
     case StyleAppearance::Tooltip:
-      return eTransparent;
-
     case StyleAppearance::Dialog:
-      return IsWindowSheet(aFrame) ? eTransparent : eOpaque;
+      return eTransparent;
 
     case StyleAppearance::ScrollbarSmall:
     case StyleAppearance::Scrollbar:

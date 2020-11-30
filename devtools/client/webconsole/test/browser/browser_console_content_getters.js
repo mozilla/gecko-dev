@@ -101,9 +101,6 @@ add_task(async function() {
   await testProxyGetter(oi);
   await testThrowingGetter(oi);
   await testLongStringGetter(oi, LONGSTRING);
-
-  info("Close the Browser Console");
-  await BrowserConsoleManager.toggleBrowserConsole();
 });
 
 async function testStringGetter(oi) {
@@ -523,7 +520,7 @@ async function testThrowingGetter(oi) {
 
   node = findObjectInspectorNode(oi, "myThrowingGetter");
   ok(
-    node.textContent.includes(`myThrowingGetter: Error: "myError"`),
+    node.textContent.includes(`myThrowingGetter: Error`),
     "throwing getter does show the error"
   );
   is(isObjectInspectorNodeExpandable(node), true, "The node can be expanded");

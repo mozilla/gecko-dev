@@ -36,7 +36,7 @@ class TransportSecurityInfo : public nsITransportSecurityInfo,
                               public nsISerializable,
                               public nsIClassInfo {
  protected:
-  virtual ~TransportSecurityInfo() {}
+  virtual ~TransportSecurityInfo() = default;
 
  public:
   TransportSecurityInfo();
@@ -122,14 +122,15 @@ class TransportSecurityInfo : public nsITransportSecurityInfo,
   // on the original TransportSecurityInfo).
   Atomic<bool> mCanceled;
 
+ protected:
   mutable ::mozilla::Mutex mMutex;
 
- protected:
   nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
   nsTArray<RefPtr<nsIX509Cert>> mSucceededCertChain;
   bool mNPNCompleted;
   nsCString mNegotiatedNPN;
   bool mResumed;
+  bool mIsBuiltCertChainRootBuiltInRoot;
 
  private:
   uint32_t mSecurityState;

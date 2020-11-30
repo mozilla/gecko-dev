@@ -8,6 +8,8 @@
 
 #include "jsexn.h"
 
+#include "js/friend/WindowProxy.h"  // js::IsWindowProxy
+#include "js/Object.h"              // JS::GetBuiltinClass
 #include "js/Proxy.h"
 #include "vm/ErrorObject.h"
 #include "vm/JSContext.h"
@@ -224,7 +226,7 @@ bool ForwardingProxyHandler::hasInstance(JSContext* cx, HandleObject proxy,
 bool ForwardingProxyHandler::getBuiltinClass(JSContext* cx, HandleObject proxy,
                                              ESClass* cls) const {
   RootedObject target(cx, proxy->as<ProxyObject>().target());
-  return GetBuiltinClass(cx, target, cls);
+  return JS::GetBuiltinClass(cx, target, cls);
 }
 
 bool ForwardingProxyHandler::isArray(JSContext* cx, HandleObject proxy,
@@ -280,6 +282,19 @@ JSObject* Wrapper::New(JSContext* cx, JSObject* obj, const Wrapper* handler,
   }
   RootedValue priv(cx, ObjectValue(*obj));
   return NewProxyObject(cx, handler, priv, options.proto(), options);
+}
+
+JSObject* Wrapper::NewSingleton(JSContext* cx, JSObject* obj,
+                                const Wrapper* handler,
+                                const WrapperOptions& options) {
+  // If this is a cross-compartment wrapper allocate it in the compartment's
+  // first global. See Compartment::globalForNewCCW.
+  mozilla::Maybe<AutoRealm> ar;
+  if (handler->isCrossCompartmentWrapper()) {
+    ar.emplace(cx, &cx->compartment()->globalForNewCCW());
+  }
+  RootedValue priv(cx, ObjectValue(*obj));
+  return NewSingletonProxyObject(cx, handler, priv, options.proto(), options);
 }
 
 JSObject* Wrapper::Renew(JSObject* existing, JSObject* obj,

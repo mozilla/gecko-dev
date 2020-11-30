@@ -14,7 +14,7 @@ add_task(async function testTempAllowThrows() {
   );
   let id = "notifications";
 
-  await BrowserTestUtils.withNewTab(principal.URI.spec, function(browser) {
+  await BrowserTestUtils.withNewTab(principal.spec, function(browser) {
     Assert.throws(function() {
       SitePermissions.setForPrincipal(
         principal,
@@ -35,7 +35,7 @@ add_task(async function testGetAllPermissionDetailsForBrowser() {
 
   let tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,
-    principal.URI.spec
+    principal.spec
   );
 
   Services.prefs.setIntPref("permissions.default.shortcuts", 2);
@@ -132,4 +132,74 @@ add_task(async function testGetAllPermissionDetailsForBrowser() {
   Services.prefs.clearUserPref("permissions.default.shortcuts");
 
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
+});
+
+add_task(async function testInvalidPrincipal() {
+  // Check that an error is thrown when an invalid principal argument is passed.
+  try {
+    SitePermissions.isSupportedPrincipal("file:///example.js");
+  } catch (e) {
+    Assert.equal(
+      e.message,
+      "Argument passed as principal is not an instance of Ci.nsIPrincipal"
+    );
+  }
+  try {
+    SitePermissions.removeFromPrincipal(null, "canvas");
+  } catch (e) {
+    Assert.equal(
+      e.message,
+      "Atleast one of the arguments, either principal or browser should not be null."
+    );
+  }
+  try {
+    SitePermissions.setForPrincipal(
+      "blah",
+      "camera",
+      SitePermissions.ALLOW,
+      SitePermissions.SCOPE_PERSISTENT,
+      gBrowser.selectedBrowser
+    );
+  } catch (e) {
+    Assert.equal(
+      e.message,
+      "Argument passed as principal is not an instance of Ci.nsIPrincipal"
+    );
+  }
+  try {
+    SitePermissions.getAllByPrincipal("blah");
+  } catch (e) {
+    Assert.equal(
+      e.message,
+      "Argument passed as principal is not an instance of Ci.nsIPrincipal"
+    );
+  }
+  try {
+    SitePermissions.getAllByPrincipal(null);
+  } catch (e) {
+    Assert.equal(e.message, "principal argument cannot be null.");
+  }
+  try {
+    SitePermissions.getForPrincipal(5, "camera");
+  } catch (e) {
+    Assert.equal(
+      e.message,
+      "Argument passed as principal is not an instance of Ci.nsIPrincipal"
+    );
+  }
+  // Check that no error is thrown when passing valid principal and browser arguments.
+  Assert.deepEqual(
+    SitePermissions.getForPrincipal(gBrowser.contentPrincipal, "camera"),
+    {
+      state: SitePermissions.UNKNOWN,
+      scope: SitePermissions.SCOPE_PERSISTENT,
+    }
+  );
+  Assert.deepEqual(
+    SitePermissions.getForPrincipal(null, "camera", gBrowser.selectedBrowser),
+    {
+      state: SitePermissions.UNKNOWN,
+      scope: SitePermissions.SCOPE_PERSISTENT,
+    }
+  );
 });

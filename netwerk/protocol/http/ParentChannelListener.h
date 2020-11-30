@@ -8,14 +8,13 @@
 #ifndef mozilla_net_ParentChannelListener_h
 #define mozilla_net_ParentChannelListener_h
 
+#include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "nsIAuthPromptProvider.h"
 #include "nsIInterfaceRequestor.h"
+#include "nsIMultiPartChannel.h"
 #include "nsINetworkInterceptController.h"
 #include "nsIStreamListener.h"
-#include "nsIMultiPartChannel.h"
-#include "nsIRemoteWindowContext.h"
-#include "mozilla/dom/CanonicalBrowsingContext.h"
-#include "mozilla/dom/CanonicalBrowsingContext.h"
+#include "nsIThreadRetargetableStreamListener.h"
 
 namespace mozilla {
 namespace net {
@@ -35,8 +34,8 @@ class ParentChannelListener final : public nsIInterfaceRequestor,
                                     public nsIStreamListener,
                                     public nsIMultiPartChannelListener,
                                     public nsINetworkInterceptController,
-                                    private nsIAuthPromptProvider,
-                                    private nsIRemoteWindowContext {
+                                    public nsIThreadRetargetableStreamListener,
+                                    private nsIAuthPromptProvider {
  public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIINTERFACEREQUESTOR
@@ -45,7 +44,7 @@ class ParentChannelListener final : public nsIInterfaceRequestor,
   NS_DECL_NSIMULTIPARTCHANNELLISTENER
   NS_DECL_NSINETWORKINTERCEPTCONTROLLER
   NS_DECL_NSIAUTHPROMPTPROVIDER
-  NS_DECL_NSIREMOTEWINDOWCONTEXT
+  NS_DECL_NSITHREADRETARGETABLESTREAMLISTENER
 
   NS_DECLARE_STATIC_IID_ACCESSOR(PARENT_CHANNEL_LISTENER)
 
@@ -54,49 +53,21 @@ class ParentChannelListener final : public nsIInterfaceRequestor,
       dom::CanonicalBrowsingContext* aBrowsingContext,
       bool aUsePrivateBrowsing);
 
-  // For channel diversion from child to parent.
-  void DivertTo(nsIStreamListener* aListener);
-  MOZ_MUST_USE nsresult SuspendForDiversion();
-
-  void SetupInterception(const nsHttpResponseHead& aResponseHead);
-  void SetupInterceptionAfterRedirect(bool aShouldIntercept);
-  void ClearInterceptedChannel(nsIStreamListener* aListener);
-
   // Called to set a new listener which replaces the old one after a redirect.
   void SetListenerAfterRedirect(nsIStreamListener* aListener);
 
-  dom::CanonicalBrowsingContext* GetBrowsingContext() {
+  dom::CanonicalBrowsingContext* GetBrowsingContext() const {
     return mBrowsingContext;
   }
 
  private:
   virtual ~ParentChannelListener();
 
-  // Private partner function to SuspendForDiversion.
-  void ResumeForDiversion();
-
   // Can be the original HttpChannelParent that created this object (normal
   // case), a different {HTTP|FTP}ChannelParent that we've been redirected to,
   // or some other listener that we have been diverted to via
   // nsIDivertableChannel.
   nsCOMPtr<nsIStreamListener> mNextListener;
-  // When set, no OnStart/OnData/OnStop calls should be received.
-  bool mSuspendedForDiversion;
-
-  // Set if this channel should be intercepted before it sets up the HTTP
-  // transaction.
-  bool mShouldIntercept;
-  // Set if this channel should suspend on interception.
-  bool mShouldSuspendIntercept;
-  // Set if the channel interception has been canceled.  Can be set before
-  // interception first occurs.  In this case cancelation is deferred until
-  // the interception takes place.
-  bool mInterceptCanceled;
-
-  UniquePtr<nsHttpResponseHead> mSynthesizedResponseHead;
-
-  // Handle to the channel wrapper if this channel has been intercepted.
-  nsCOMPtr<nsIInterceptedChannel> mInterceptedChannel;
 
   // This will be populated with a real network controller if parent-side
   // interception is enabled.
@@ -107,9 +78,6 @@ class ParentChannelListener final : public nsIInterfaceRequestor,
   // True if we received OnStartRequest for a nsIMultiPartChannel, and are
   // expected AllPartsStopped to be called when complete.
   bool mIsMultiPart = false;
-
-  // True if the nsILoadContext for this channel has private browsing enabled.
-  bool mUsePrivateBrowsing = false;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(ParentChannelListener, PARENT_CHANNEL_LISTENER)

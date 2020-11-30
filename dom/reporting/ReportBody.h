@@ -7,12 +7,13 @@
 #ifndef mozilla_dom_ReportBody_h
 #define mozilla_dom_ReportBody_h
 
-#include "mozilla/Attributes.h"
-#include "mozilla/dom/BindingUtils.h"
+#include "mozilla/Assertions.h"
+#include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsISupports.h"
 #include "nsWrapperCache.h"
 
-class nsPIDOMWindowInner;
+class nsIGlobalObject;
 
 namespace mozilla {
 
@@ -25,16 +26,16 @@ class ReportBody : public nsISupports, public nsWrapperCache {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(ReportBody)
 
-  explicit ReportBody(nsPIDOMWindowInner* aWindow);
+  explicit ReportBody(nsIGlobalObject* aGlobal);
 
-  nsPIDOMWindowInner* GetParentObject() const { return mWindow; }
+  nsIGlobalObject* GetParentObject() const { return mGlobal; }
 
   virtual void ToJSON(JSONWriter& aJSONWriter) const = 0;
 
  protected:
   virtual ~ReportBody();
 
-  nsCOMPtr<nsPIDOMWindowInner> mWindow;
+  nsCOMPtr<nsIGlobalObject> mGlobal;
 };
 
 }  // namespace dom

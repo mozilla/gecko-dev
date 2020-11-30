@@ -28,8 +28,12 @@ class CompositorWidgetParent final : public PCompositorWidgetParent,
 
   bool PreRender(WidgetRenderingContext*) override;
   void PostRender(WidgetRenderingContext*) override;
-  already_AddRefed<gfx::DrawTarget> StartRemoteDrawing() override;
-  void EndRemoteDrawing() override;
+  already_AddRefed<gfx::DrawTarget> StartRemoteDrawingInRegion(
+      LayoutDeviceIntRegion& aInvalidRegion,
+      layers::BufferMode* aBufferMode) override;
+  void EndRemoteDrawingInRegion(
+      gfx::DrawTarget* aDrawTarget,
+      const LayoutDeviceIntRegion& aInvalidRegion) override;
   bool NeedsToDeferEndRemoteDrawing() override;
   LayoutDeviceIntSize GetClientSize() override;
   already_AddRefed<gfx::DrawTarget> GetBackBufferDrawTarget(
@@ -70,9 +74,6 @@ class CompositorWidgetParent final : public PCompositorWidgetParent,
   // Transparency handling.
   mozilla::Atomic<nsTransparencyMode, MemoryOrdering::Relaxed>
       mTransparencyMode;
-
-  // Locked back buffer of BasicCompositor
-  uint8_t* mLockedBackBufferData;
 
   std::unique_ptr<remote_backbuffer::Client> mRemoteBackbufferClient;
 };

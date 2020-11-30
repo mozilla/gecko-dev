@@ -108,7 +108,7 @@ class CommandAction(argparse.Action):
             if command == 'help':
                 if args and args[0] not in ['-h', '--help']:
                     # Make sure args[0] is indeed a command.
-                    self._handle_command_help(parser, args[0], args, namespace.print_command)
+                    self._handle_command_help(parser, args[0], args)
                 else:
                     self._handle_main_help(parser, namespace.verbose)
                 sys.exit(0)
@@ -118,13 +118,13 @@ class CommandAction(argparse.Action):
                     # -- is in command arguments
                     if '-h' in args[:args.index('--')] or '--help' in args[:args.index('--')]:
                         # Honor -h or --help only if it appears before --
-                        self._handle_command_help(parser, command, args, namespace.print_command)
+                        self._handle_command_help(parser, command, args)
                         sys.exit(0)
                 else:
-                    self._handle_command_help(parser, command, args, namespace.print_command)
+                    self._handle_command_help(parser, command, args)
                     sys.exit(0)
         else:
-            raise NoCommandError()
+            raise NoCommandError(namespace)
 
         # First see if the this is a user-defined alias
         if command in self._context.settings.alias:
@@ -137,14 +137,9 @@ class CommandAction(argparse.Action):
             # Try to find similar commands, may raise UnknownCommandError.
             command = self._suggest_command(command)
 
-        # This is used by the `mach` driver to find the command name amidst
-        # global arguments.
-        if namespace.print_command:
-            print(command)
-            sys.exit(0)
-
         handler = self._mach_registrar.command_handlers.get(command)
 
+        prog = command
         usage = '%(prog)s [global arguments] ' + command + \
             ' [command arguments]'
 
@@ -160,6 +155,7 @@ class CommandAction(argparse.Action):
             elif args[0] in handler.subcommand_handlers:
                 subcommand = args[0]
                 handler = handler.subcommand_handlers[subcommand]
+                prog = prog + ' ' + subcommand
                 usage = '%(prog)s [global arguments] ' + command + ' ' + \
                     subcommand + ' [command arguments]'
                 args.pop(0)
@@ -179,6 +175,7 @@ class CommandAction(argparse.Action):
         if handler.parser:
             subparser = handler.parser
             subparser.context = self._context
+            subparser.prog = subparser.prog + ' ' + prog
             for arg in subparser._actions[:]:
                 if arg.nargs == argparse.REMAINDER:
                     subparser._actions.remove(arg)
@@ -261,10 +258,8 @@ class CommandAction(argparse.Action):
                 # out for the current context or not. Condition functions can be
                 # applied to the command's decorator.
                 if handler.conditions:
-                    if handler.pass_context:
-                        instance = handler.cls(self._context)
-                    else:
-                        instance = handler.cls()
+                    instance = handler.create_instance(self._context,
+                                                       handler.virtualenv_name)
 
                     is_filtered = False
                     for c in handler.conditions:
@@ -310,20 +305,7 @@ class CommandAction(argparse.Action):
                 group = extra_groups[group_name]
             group.add_argument(*arg[0], **arg[1])
 
-    def _handle_command_help(self, parser, command, args, print_command):
-        handler = self._mach_registrar.command_handlers.get(command)
-
-        if not handler:
-            raise UnknownCommandError(command, 'query')
-
-        if print_command:
-            print(command)
-            sys.exit(0)
-
-        if handler.subcommand_handlers:
-            self._handle_subcommand_help(parser, handler, args)
-            return
-
+    def _get_command_arguments_help(self, handler):
         # This code is worth explaining. Because we are doing funky things with
         # argument registration to allow the same option in both global and
         # command arguments, we can't simply put all arguments on the same
@@ -363,6 +345,20 @@ class CommandAction(argparse.Action):
 
         self._populate_command_group(c_parser, handler, group)
 
+        return c_parser
+
+    def _handle_command_help(self, parser, command, args):
+        handler = self._mach_registrar.command_handlers.get(command)
+
+        if not handler:
+            raise UnknownCommandError(command, 'query')
+
+        if handler.subcommand_handlers:
+            self._handle_subcommand_help(parser, handler, args)
+            return
+
+        c_parser = self._get_command_arguments_help(handler)
+
         # Set the long help of the command to the docstring (if present) or
         # the command decorator description argument (if present).
         if handler.docstring:
@@ -399,9 +395,13 @@ class CommandAction(argparse.Action):
         if handler.docstring:
             parser.description = format_docstring(handler.docstring)
 
+        c_parser = self._get_command_arguments_help(handler)
+
         parser.formatter_class = argparse.RawDescriptionHelpFormatter
 
         parser.print_help()
+        print('')
+        c_parser.print_help()
 
     def _handle_subcommand_help(self, parser, handler, args):
         subcommand = set(args).intersection(list(handler.subcommand_handlers.keys()))

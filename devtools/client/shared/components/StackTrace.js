@@ -40,14 +40,18 @@ class StackTrace extends Component {
       stacktrace: PropTypes.array.isRequired,
       onViewSourceInDebugger: PropTypes.func.isRequired,
       // Service to enable the source map feature.
-      sourceMapService: PropTypes.object,
+      sourceMapURLService: PropTypes.object,
     };
   }
 
   render() {
-    const { stacktrace, onViewSourceInDebugger, sourceMapService } = this.props;
+    const {
+      stacktrace,
+      onViewSourceInDebugger,
+      sourceMapURLService,
+    } = this.props;
 
-    if (!stacktrace) {
+    if (!stacktrace || !stacktrace.length) {
       return null;
     }
 
@@ -64,14 +68,13 @@ class StackTrace extends Component {
         );
       }
 
-      const source = s.filename;
       frames.push(
         "\t",
         Frame({
           key: `${i}-frame`,
           frame: {
             functionDisplayName: s.functionName,
-            source,
+            source: s.filename,
             line: s.lineNumber,
             column: s.columnNumber,
           },
@@ -79,7 +82,7 @@ class StackTrace extends Component {
           showAnonymousFunctionName: true,
           showFullSourceUrl: true,
           onClick: onViewSourceInDebugger,
-          sourceMapService,
+          sourceMapURLService,
         }),
         "\n"
       );

@@ -8,7 +8,6 @@
 #define mozilla_dom_HTMLIFrameElement_h
 
 #include "mozilla/Attributes.h"
-#include "mozilla/dom/FeaturePolicy.h"
 #include "nsGenericHTMLFrameElement.h"
 #include "nsDOMTokenList.h"
 
@@ -29,9 +28,7 @@ class HTMLIFrameElement final : public nsGenericHTMLFrameElement {
                                            nsGenericHTMLFrameElement)
 
   // Element
-  virtual bool IsInteractiveHTMLContent(bool aIgnoreTabindex) const override {
-    return true;
-  }
+  virtual bool IsInteractiveHTMLContent() const override { return true; }
 
   // nsIContent
   virtual bool ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
@@ -73,18 +70,15 @@ class HTMLIFrameElement final : public nsGenericHTMLFrameElement {
     }
     return mSandbox;
   }
+
   bool AllowFullscreen() const {
     return GetBoolAttr(nsGkAtoms::allowfullscreen);
   }
+
   void SetAllowFullscreen(bool aAllow, ErrorResult& aError) {
     SetHTMLBoolAttr(nsGkAtoms::allowfullscreen, aAllow, aError);
   }
-  bool AllowPaymentRequest() const {
-    return GetBoolAttr(nsGkAtoms::allowpaymentrequest);
-  }
-  void SetAllowPaymentRequest(bool aAllow, ErrorResult& aError) {
-    SetHTMLBoolAttr(nsGkAtoms::allowpaymentrequest, aAllow, aError);
-  }
+
   void GetWidth(DOMString& aWidth) { GetHTMLAttr(nsGkAtoms::width, aWidth); }
   void SetWidth(const nsAString& aWidth, ErrorResult& aError) {
     SetHTMLAttr(nsGkAtoms::width, aWidth, aError);
@@ -139,7 +133,7 @@ class HTMLIFrameElement final : public nsGenericHTMLFrameElement {
     SetHTMLAttr(nsGkAtoms::referrerpolicy, aReferrer, aError);
   }
   void GetReferrerPolicy(nsAString& aReferrer) {
-    GetEnumAttr(nsGkAtoms::referrerpolicy, EmptyCString().get(), aReferrer);
+    GetEnumAttr(nsGkAtoms::referrerpolicy, "", aReferrer);
   }
   Document* GetSVGDocument(nsIPrincipal& aSubjectPrincipal) {
     return GetContentDocument(aSubjectPrincipal);

@@ -5,6 +5,8 @@
 
 #include "txBufferingHandler.h"
 
+using mozilla::MakeUnique;
+
 class txOutputTransaction {
  public:
   enum txTransactionType {
@@ -149,7 +151,7 @@ class txAttributeAtomTransaction : public txOutputTransaction {
 
 txBufferingHandler::txBufferingHandler() : mCanAddAttribute(false) {
   MOZ_COUNT_CTOR(txBufferingHandler);
-  mBuffer = new txResultBuffer();
+  mBuffer = MakeUnique<txResultBuffer>();
 }
 
 txBufferingHandler::~txBufferingHandler() {
@@ -288,9 +290,9 @@ txResultBuffer::~txResultBuffer() {
 }
 
 nsresult txResultBuffer::addTransaction(txOutputTransaction* aTransaction) {
-  if (mTransactions.AppendElement(aTransaction) == nullptr) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
+  // XXX(Bug 1631371) Check if this should use a fallible operation as it
+  // pretended earlier, or change the return type to void.
+  mTransactions.AppendElement(aTransaction);
   return NS_OK;
 }
 

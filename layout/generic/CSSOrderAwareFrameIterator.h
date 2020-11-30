@@ -9,15 +9,11 @@
 #ifndef mozilla_CSSOrderAwareFrameIterator_h
 #define mozilla_CSSOrderAwareFrameIterator_h
 
-#include <algorithm>
+#include <limits>
 #include "nsFrameList.h"
 #include "nsIFrame.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Assertions.h"
-
-#if defined(__clang__) && __clang_major__ == 3 && __clang_minor__ <= 9
-#  define CLANG_CRASH_BUG 1
-#endif
 
 namespace mozilla {
 
@@ -111,9 +107,7 @@ class CSSOrderAwareFrameIteratorT {
       auto comparator = (aOrderProp == eUseBoxOrdinalGroup)
                             ? CSSBoxOrdinalGroupComparator
                             : CSSOrderComparator;
-
-      // XXX replace this with nsTArray::StableSort when bug 1147091 is fixed.
-      std::stable_sort(mArray->begin(), mArray->end(), comparator);
+      mArray->StableSort(comparator);
     }
 
     if (mSkipPlaceholders) {
@@ -125,8 +119,6 @@ class CSSOrderAwareFrameIteratorT {
   }
 
   bool IsForward() const;
-  Iterator begin(const nsFrameList& aList);
-  Iterator end(const nsFrameList& aList);
 
   nsIFrame* operator*() const {
     MOZ_ASSERT(!AtEnd());
@@ -150,10 +142,8 @@ class CSSOrderAwareFrameIteratorT {
   }
 
   void SetItemCount(size_t aItemCount) {
-#ifndef CLANG_CRASH_BUG
     MOZ_ASSERT(mIter.isSome() || aItemCount <= mArray->Length(),
                "item count mismatch");
-#endif
     mItemCount.emplace(aItemCount);
     // Note: it's OK if mItemIndex underflows -- ItemIndex()
     // will not be called unless there is at least one item.
@@ -182,10 +172,7 @@ class CSSOrderAwareFrameIteratorT {
   }
 
   bool AtEnd() const {
-#ifndef CLANG_CRASH_BUG
-    // Clang 3.6.2 crashes when compiling this assertion:
     MOZ_ASSERT(mIter.isSome() || mArrayIndex <= mArray->Length());
-#endif
     return mIter ? (*mIter == *mIterEnd) : mArrayIndex >= mArray->Length();
   }
 
@@ -236,11 +223,14 @@ class CSSOrderAwareFrameIteratorT {
 
   bool ItemsAreAlreadyInOrder() const { return mIter.isSome(); }
 
-  static bool CSSOrderComparator(nsIFrame* const& a, nsIFrame* const& b);
-  static bool CSSBoxOrdinalGroupComparator(nsIFrame* const& a,
-                                           nsIFrame* const& b);
-
  private:
+  Iterator begin(const nsFrameList& aList);
+  Iterator end(const nsFrameList& aList);
+
+  static int CSSOrderComparator(nsIFrame* const& a, nsIFrame* const& b);
+  static int CSSBoxOrdinalGroupComparator(nsIFrame* const& a,
+                                          nsIFrame* const& b);
+
   nsFrameList mChildren;
   // Used if child list is already in ascending 'order'.
   Maybe<Iterator> mIter;
@@ -262,10 +252,10 @@ class CSSOrderAwareFrameIteratorT {
 #endif
 };
 
-typedef CSSOrderAwareFrameIteratorT<nsFrameList::iterator>
-    CSSOrderAwareFrameIterator;
-typedef CSSOrderAwareFrameIteratorT<nsFrameList::reverse_iterator>
-    ReverseCSSOrderAwareFrameIterator;
+using CSSOrderAwareFrameIterator =
+    CSSOrderAwareFrameIteratorT<nsFrameList::iterator>;
+using ReverseCSSOrderAwareFrameIterator =
+    CSSOrderAwareFrameIteratorT<nsFrameList::reverse_iterator>;
 
 }  // namespace mozilla
 

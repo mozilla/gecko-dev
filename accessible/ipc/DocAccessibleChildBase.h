@@ -20,7 +20,8 @@ class AccShowEvent;
 
 class DocAccessibleChildBase : public PDocAccessibleChild {
  public:
-  explicit DocAccessibleChildBase(DocAccessible* aDoc) : mDoc(aDoc) {
+  explicit DocAccessibleChildBase(DocAccessible* aDoc)
+      : mDoc(aDoc), mIsRemoteConstructed(false) {
     MOZ_COUNT_CTOR(DocAccessibleChildBase);
   }
 
@@ -71,7 +72,13 @@ class DocAccessibleChildBase : public PDocAccessibleChild {
     }
   }
 
+  bool IsConstructedInParentProcess() const { return mIsRemoteConstructed; }
+  void SetConstructedInParentProcess() { mIsRemoteConstructed = true; }
+
   DocAccessible* mDoc;
+  bool mIsRemoteConstructed;
+
+  friend void DocAccessible::DoInitialUpdate();
 };
 
 }  // namespace a11y

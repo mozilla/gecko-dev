@@ -15,6 +15,7 @@
       this.mInput = null;
       this.mPopupOpen = false;
       this._currentIndex = 0;
+      this._disabledItemClicked = false;
 
       this.setListeners();
     }
@@ -25,7 +26,7 @@
       this.setAttribute("consumeoutsideclicks", "never");
 
       this.textContent = "";
-      this.appendChild(MozXULElement.parseXULToFragment(this._markup));
+      this.appendChild(this.constructor.fragment);
 
       /**
        * This is the default number of rows that we give the autocomplete
@@ -59,16 +60,23 @@
             }
 
             switch (event.type) {
+              case "mousedown":
+                this._disabledItemClicked = !!event.target.closest(
+                  "richlistitem"
+                )?.disabled;
+                break;
               case "mouseup":
                 // Don't call onPopupClick for the scrollbar buttons, thumb,
                 // slider, etc. If we hit the richlistbox and not a
                 // richlistitem, we ignore the event.
                 if (
                   event.target.closest("richlistbox,richlistitem").localName ==
-                  "richlistitem"
+                    "richlistitem" &&
+                  !this._disabledItemClicked
                 ) {
                   this.onPopupClick(event);
                 }
+                this._disabledItemClicked = false;
                 break;
               case "mousemove":
                 if (Date.now() - this.mLastMoveTime <= 30) {
@@ -97,6 +105,7 @@
           },
         };
       }
+      this.richlistbox.addEventListener("mousedown", this.listEvents);
       this.richlistbox.addEventListener("mouseup", this.listEvents);
       this.richlistbox.addEventListener("mousemove", this.listEvents);
     }
@@ -108,7 +117,7 @@
       return this._richlistbox;
     }
 
-    get _markup() {
+    static get markup() {
       return `
       <richlistbox class="autocomplete-richlistbox" flex="1"/>
     `;
@@ -337,10 +346,8 @@
         height = lastRowRect.bottom - firstRowRect.top + this._rlbPadding;
       }
 
-      let currentHeight = this.richlistbox.getBoundingClientRect().height;
-      if (height <= currentHeight) {
-        this._collapseUnusedItems();
-      }
+      this._collapseUnusedItems();
+
       this.richlistbox.style.removeProperty("height");
       // We need to get the ceiling of the calculated value to ensure that the box fully contains
       // all of its contents and doesn't cause a scrollbar since nsIBoxObject only expects a
@@ -394,6 +401,8 @@
             "autofill-clear-button",
             "autofill-insecureWarning",
             "generatedPassword",
+            "importableLearnMore",
+            "importableLogins",
             "insecureWarning",
             "loginsFooter",
             "loginWithOrigin",
@@ -423,6 +432,14 @@
               break;
             case "autofill-insecureWarning":
               options = { is: "autocomplete-creditcard-insecure-field" };
+              break;
+            case "importableLearnMore":
+              options = {
+                is: "autocomplete-importable-learn-more-richlistitem",
+              };
+              break;
+            case "importableLogins":
+              options = { is: "autocomplete-importable-logins-richlistitem" };
               break;
             case "generatedPassword":
               options = { is: "autocomplete-generated-password-richlistitem" };
@@ -531,6 +548,7 @@
 
     disconnectedCallback() {
       if (this.listEvents) {
+        this.richlistbox.removeEventListener("mousedown", this.listEvents);
         this.richlistbox.removeEventListener("mouseup", this.listEvents);
         this.richlistbox.removeEventListener("mousemove", this.listEvents);
         delete this.listEvents;

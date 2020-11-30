@@ -26,15 +26,20 @@ class WebExtensionDesktop(PerftestDesktop, WebExtension):
 
         # create the desktop browser runner
         LOG.info("creating browser runner using mozrunner")
-        self.output_handler = OutputHandler()
+        self.output_handler = OutputHandler(verbose=self.config["verbose"])
         process_args = {"processOutputLine": [self.output_handler]}
+        firefox_args = ["--allow-downgrade"]
         runner_cls = runners[self.config["app"]]
         self.runner = runner_cls(
             self.config["binary"],
             profile=self.profile,
+            cmdargs=firefox_args,
             process_args=process_args,
             symbols_path=self.config["symbols_path"],
         )
+
+        # Force Firefox to immediately exit for content crashes
+        self.runner.env["MOZ_CRASHREPORTER_SHUTDOWN"] = "1"
 
         if self.config["enable_webrender"]:
             self.runner.env["MOZ_WEBRENDER"] = "1"
@@ -54,6 +59,9 @@ class WebExtensionDesktop(PerftestDesktop, WebExtension):
 
         # give our control server the browser process so it can shut it down later
         self.control_server.browser_proc = proc
+
+    def process_exists(self):
+        return self.runner.is_running()
 
     def run_test(self, test, timeout):
         # tests will be run warm (i.e. NO browser restart between page-cycles)
@@ -87,7 +95,7 @@ class WebExtensionDesktop(PerftestDesktop, WebExtension):
             )
             mozpower_measurer.initialize_power_measurements()
 
-        if test.get("cold", False) is True:
+        if self.config.get("cold") or test.get("cold"):
             self.__run_test_cold(test, timeout)
         else:
             self.__run_test_warm(test, timeout)
@@ -164,7 +172,7 @@ class WebExtensionDesktop(PerftestDesktop, WebExtension):
             # set our control server flag to indicate we are running the browser/app
             self.control_server._finished = False
 
-            self.wait_for_test_finish(test, timeout)
+            self.wait_for_test_finish(test, timeout, self.process_exists)
 
     def __run_test_warm(self, test, timeout):
         self.run_test_setup(test)
@@ -178,7 +186,7 @@ class WebExtensionDesktop(PerftestDesktop, WebExtension):
         # set our control server flag to indicate we are running the browser/app
         self.control_server._finished = False
 
-        self.wait_for_test_finish(test, timeout)
+        self.wait_for_test_finish(test, timeout, self.process_exists)
 
     def run_test_teardown(self, test):
         # browser should be closed by now but this is a backup-shutdown (if not in debug-mode)

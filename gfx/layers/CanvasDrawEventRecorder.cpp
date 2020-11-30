@@ -8,6 +8,8 @@
 
 #include <string.h>
 
+#include "nsThreadUtils.h"
+
 namespace mozilla {
 namespace layers {
 
@@ -112,7 +114,6 @@ bool CanvasEventRingBuffer::WaitForAndRecalculateAvailableSpace() {
   uint32_t maxToWrite = kStreamSize - bufPos;
   mAvailable = std::min(maxToWrite, WaitForBytesToWrite());
   if (!mAvailable) {
-    mGood = false;
     mBufPos = nullptr;
     return false;
   }
@@ -173,7 +174,7 @@ bool CanvasEventRingBuffer::WaitForAndRecalculateAvailableData() {
   uint32_t maxToRead = kStreamSize - bufPos;
   mAvailable = std::min(maxToRead, WaitForBytesToRead());
   if (!mAvailable) {
-    mGood = false;
+    SetIsBad();
     mBufPos = nullptr;
     return false;
   }
@@ -229,6 +230,7 @@ void CanvasEventRingBuffer::CheckAndSignalReader() {
   do {
     switch (mRead->state) {
       case State::Processing:
+      case State::Failed:
         return;
       case State::AboutToWait:
         // The reader is making a decision about whether to wait. So, we must
@@ -328,7 +330,7 @@ bool CanvasEventRingBuffer::WaitForDataToRead(TimeDuration aTimeout,
 int32_t CanvasEventRingBuffer::ReadNextEvent() {
   int32_t nextEvent;
   ReadElement(*this, nextEvent);
-  while (nextEvent == kCheckpointEventType) {
+  while (nextEvent == kCheckpointEventType && good()) {
     ReadElement(*this, nextEvent);
   }
 
@@ -392,20 +394,23 @@ bool CanvasEventRingBuffer::WaitForReadCount(uint32_t aReadCount,
   mWrite->state = State::Waiting;
 
   // Wait unless we detect the reading side has closed.
-  while (!mWriterServices->ReaderClosed()) {
+  while (!mWriterServices->ReaderClosed() && mRead->state != State::Failed) {
     if (mWriterSemaphore->Wait(Some(aTimeout))) {
       MOZ_ASSERT(mOurCount - mRead->count <= requiredDifference);
       return true;
     }
   }
 
+  // Either the reader has failed or we're stopping writing for some other
+  // reason (e.g. shutdown), so mark us as failed so the reader is aware.
+  mWrite->state = State::Failed;
+  mGood = false;
   return false;
 }
 
 uint32_t CanvasEventRingBuffer::WaitForBytesToWrite() {
   uint32_t streamFullReadCount = mOurCount - kStreamSize;
   if (!WaitForReadCount(streamFullReadCount + 1, kTimeout)) {
-    mGood = false;
     return 0;
   }
 
@@ -435,6 +440,8 @@ void CanvasEventRingBuffer::ReturnWrite(const char* aData, size_t aSize) {
       bufRemaining = kStreamSize - bufPos;
       aData += availableToWrite;
       aSize -= availableToWrite;
+    } else if (mReaderServices->WriterClosed()) {
+      return;
     }
 
     availableToWrite = std::min(
@@ -455,7 +462,9 @@ void CanvasEventRingBuffer::ReturnRead(char* aOut, size_t aSize) {
   // nothing. So, wait until something has been written or the reader has
   // stopped processing.
   while (readCount == mRead->returnCount) {
-    if (mRead->state != State::Processing) {
+    // We recheck the count, because the other side can write all the data and
+    // started waiting in between these two lines.
+    if (mRead->state != State::Processing && readCount == mRead->returnCount) {
       return;
     }
   }
@@ -473,6 +482,8 @@ void CanvasEventRingBuffer::ReturnRead(char* aOut, size_t aSize) {
       bufRemaining = kStreamSize - bufPos;
       aOut += availableToRead;
       aSize -= availableToRead;
+    } else if (mWriterServices->ReaderClosed()) {
+      return;
     }
 
     availableToRead = std::min(bufRemaining, (mRead->returnCount - readCount));
@@ -481,6 +492,19 @@ void CanvasEventRingBuffer::ReturnRead(char* aOut, size_t aSize) {
   memcpy(aOut, mBuf + bufPos, aSize);
   readCount += aSize;
   mWrite->returnCount = readCount;
+}
+
+void CanvasDrawEventRecorder::RecordSourceSurfaceDestruction(void* aSurface) {
+  // We must only record things on the main thread and surfaces that have been
+  // recorded can sometimes be destroyed off the main thread.
+  if (NS_IsMainThread()) {
+    DrawEventRecorderPrivate::RecordSourceSurfaceDestruction(aSurface);
+    return;
+  }
+
+  NS_DispatchToMainThread(NewRunnableMethod<void*>(
+      "DrawEventRecorderPrivate::RecordSourceSurfaceDestruction", this,
+      &DrawEventRecorderPrivate::RecordSourceSurfaceDestruction, aSurface));
 }
 
 }  // namespace layers

@@ -12,7 +12,9 @@ add_task(async function() {
     set: [["devtools.netmonitor.features.webSockets", true]],
   });
 
-  const { tab, monitor } = await initNetMonitor(WS_PAGE_URL);
+  const { tab, monitor } = await initNetMonitor(WS_PAGE_URL, {
+    requestCount: 1,
+  });
   info("Starting test... ");
 
   const { document, store, windowRequire } = monitor.panelWin;
@@ -21,9 +23,11 @@ add_task(async function() {
   store.dispatch(Actions.batchEnable(false));
 
   // Wait for WS connection to be established + send messages
+  const onNetworkEvents = waitForNetworkEvents(monitor, 1);
   await SpecialPowers.spawn(tab.linkedBrowser, [], async () => {
     await content.wrappedJSObject.openConnection(1);
   });
+  await onNetworkEvents;
 
   const requests = document.querySelectorAll(".request-list-item");
   is(requests.length, 1, "There should be one request");
@@ -34,20 +38,20 @@ add_task(async function() {
   // Wait for all sent/received messages to be displayed in DevTools
   const wait = waitForDOM(
     document,
-    "#messages-panel .ws-frames-list-table .ws-frame-list-item",
+    "#messages-view .message-list-table .message-list-item",
     2
   );
 
-  // Click on the "Messages" panel
+  // Click on the "Response" panel
   EventUtils.sendMouseEvent(
     { type: "click" },
-    document.querySelector("#messages-tab")
+    document.querySelector("#response-tab")
   );
   await wait;
 
-  // Get all messages present in the "Messages" panel
+  // Get all messages present in the "Response" panel
   const frames = document.querySelectorAll(
-    "#messages-panel .ws-frames-list-table .ws-frame-list-item"
+    "#messages-view .message-list-table .message-list-item"
   );
 
   // Check expected results

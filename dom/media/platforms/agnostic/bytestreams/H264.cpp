@@ -1054,7 +1054,9 @@ uint32_t H264::ComputeMaxRefFrames(const mozilla::MediaByteBuffer* aExtraData) {
     }
     const uint8_t* p = reader.Read(nalLen);
     if (!p) {
-      return extradata.forget();
+      // The read failed, but we may already have some SPS + PPS data so
+      // break out of reading and process what we have, if any.
+      break;
     }
     uint8_t nalType = *p & 0x1f;
 
@@ -1319,8 +1321,8 @@ bool H264::DecodeRecoverySEI(const mozilla::MediaByteBuffer* aSEI,
 
   WriteExtraData(
       extraData, aProfile, aConstraints, aLevel,
-      MakeSpan<const uint8_t>(encodedSPS->Elements(), encodedSPS->Length()),
-      MakeSpan<const uint8_t>(PPS, sizeof(PPS)));
+      Span<const uint8_t>(encodedSPS->Elements(), encodedSPS->Length()),
+      Span<const uint8_t>(PPS, sizeof(PPS)));
 
   return extraData.forget();
 }

@@ -7,14 +7,25 @@
 //! [calc]: https://drafts.csswg.org/css-values/#calc-notation
 
 use crate::Zero;
-use style_traits::{CssWriter, ToCss};
-use std::fmt::{self, Write};
-use std::{cmp, mem};
-use std::ops::Add;
 use smallvec::SmallVec;
+use std::fmt::{self, Write};
+use std::ops::Add;
+use std::{cmp, mem};
+use style_traits::{CssWriter, ToCss};
 
 /// Whether we're a `min` or `max` function.
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize, ToAnimatedZero, ToResolvedValue, ToShmem)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Deserialize,
+    MallocSizeOf,
+    PartialEq,
+    Serialize,
+    ToAnimatedZero,
+    ToResolvedValue,
+    ToShmem,
+)]
 #[repr(u8)]
 pub enum MinMaxOp {
     /// `min()`
@@ -49,8 +60,25 @@ pub enum SortKey {
 ///
 /// FIXME: This would be much more elegant if we used `Self` in the types below,
 /// but we can't because of https://github.com/serde-rs/serde/issues/1565.
+///
+/// FIXME: The following annotations are to workaround an LLVM inlining bug, see
+/// bug 1631929.
+///
+/// cbindgen:destructor-attributes=MOZ_NEVER_INLINE
+/// cbindgen:copy-constructor-attributes=MOZ_NEVER_INLINE
+/// cbindgen:eq-attributes=MOZ_NEVER_INLINE
 #[repr(u8)]
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize, ToAnimatedZero, ToResolvedValue, ToShmem)]
+#[derive(
+    Clone,
+    Debug,
+    Deserialize,
+    MallocSizeOf,
+    PartialEq,
+    Serialize,
+    ToAnimatedZero,
+    ToResolvedValue,
+    ToShmem,
+)]
 pub enum GenericCalcNode<L> {
     /// A leaf node.
     Leaf(L),
@@ -73,7 +101,7 @@ pub enum GenericCalcNode<L> {
 pub use self::GenericCalcNode as CalcNode;
 
 /// A trait that represents all the stuff a valid leaf of a calc expression.
-pub trait CalcNodeLeaf : Clone + Sized + PartialOrd + PartialEq + ToCss {
+pub trait CalcNodeLeaf: Clone + Sized + PartialOrd + PartialEq + ToCss {
     /// Whether this value is known-negative.
     fn is_negative(&self) -> bool;
 
@@ -111,7 +139,9 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
     /// Tries to merge one sum to another, that is, perform `x` + `y`.
     fn try_sum_in_place(&mut self, other: &Self) -> Result<(), ()> {
         match (self, other) {
-            (&mut CalcNode::Leaf(ref mut one), &CalcNode::Leaf(ref other)) => one.try_sum_in_place(other),
+            (&mut CalcNode::Leaf(ref mut one), &CalcNode::Leaf(ref other)) => {
+                one.try_sum_in_place(other)
+            },
             _ => Err(()),
         }
     }
@@ -139,25 +169,35 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
             O: CalcNodeLeaf,
             F: FnMut(&L) -> O,
         {
-            children.iter().map(|c| c.map_leaves_internal(map)).collect()
+            children
+                .iter()
+                .map(|c| c.map_leaves_internal(map))
+                .collect()
         }
 
         match *self {
             Self::Leaf(ref l) => CalcNode::Leaf(map(l)),
             Self::Sum(ref c) => CalcNode::Sum(map_children(c, map)),
             Self::MinMax(ref c, op) => CalcNode::MinMax(map_children(c, map), op),
-            Self::Clamp { ref min, ref center, ref max } => {
+            Self::Clamp {
+                ref min,
+                ref center,
+                ref max,
+            } => {
                 let min = Box::new(min.map_leaves_internal(map));
                 let center = Box::new(center.map_leaves_internal(map));
                 let max = Box::new(max.map_leaves_internal(map));
                 CalcNode::Clamp { min, center, max }
-            }
+            },
         }
     }
 
     /// Resolves the expression returning a value of `O`, given a function to
     /// turn a leaf into the relevant value.
-    pub fn resolve<O>(&self, mut leaf_to_output_fn: impl FnMut(&L) -> Result<O, ()>) -> Result<O, ()>
+    pub fn resolve<O>(
+        &self,
+        mut leaf_to_output_fn: impl FnMut(&L) -> Result<O, ()>,
+    ) -> Result<O, ()>
     where
         O: PartialOrd + PartialEq + Add<Output = O> + Zero,
     {
@@ -192,7 +232,11 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 }
                 result
             },
-            Self::Clamp { ref min, ref center, ref max } => {
+            Self::Clamp {
+                ref min,
+                ref center,
+                ref max,
+            } => {
                 let min = min.resolve_internal(leaf_to_output_fn)?;
                 let center = center.resolve_internal(leaf_to_output_fn)?;
                 let max = max.resolve_internal(leaf_to_output_fn)?;
@@ -300,7 +344,7 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
             ($slot:expr) => {{
                 let dummy = Self::MinMax(Default::default(), MinMaxOp::Max);
                 let result = mem::replace($slot, dummy);
-                mem::replace(self, result);
+                *self = result;
             }};
         }
         match *self {
@@ -427,12 +471,12 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                     replace_self_with!(&mut children[0]);
                 } else {
                     // Else put our simplified children back.
-                    mem::replace(children_slot, children.into_boxed_slice().into());
+                    *children_slot = children.into_boxed_slice().into();
                 }
             },
             Self::Leaf(ref mut l) => {
                 l.simplify();
-            }
+            },
         }
     }
 

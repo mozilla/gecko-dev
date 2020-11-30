@@ -21,7 +21,7 @@ option(env='CBINDGEN', nargs=1, when=cbindgen_is_needed,
 def check_cbindgen_version(cbindgen, fatal=False):
     log.debug("trying cbindgen: %s" % cbindgen)
 
-    cbindgen_min_version = Version('0.13.1')
+    cbindgen_min_version = Version('0.15.0')
 
     # cbindgen x.y.z
     version = Version(check_cmd_output(cbindgen, '--version').strip().split(" ")[1])
@@ -68,16 +68,16 @@ def cbindgen(cbindgen_override, toolchain_search_path):
 set_config('CBINDGEN', cbindgen)
 
 # Bindgen can use rustfmt to format Rust file, but it's not required.
-js_option(env='RUSTFMT', nargs=1, help='Path to the rustfmt program')
+option(env='RUSTFMT', nargs=1, help='Path to the rustfmt program')
 
 rustfmt = check_prog('RUSTFMT', ['rustfmt'], paths=toolchain_search_path,
                      input='RUSTFMT', allow_missing=True)
 
 
-js_option('--with-libclang-path', nargs=1,
-          help='Absolute path to a directory containing Clang/LLVM libraries for bindgen (version 3.9.x or above)')
-js_option('--with-clang-path', nargs=1,
-          help='Absolute path to a Clang binary for bindgen (version 3.9.x or above)')
+option('--with-libclang-path', nargs=1,
+       help='Absolute path to a directory containing Clang/LLVM libraries for bindgen (version 3.9.x or above)')
+option('--with-clang-path', nargs=1,
+       help='Absolute path to a Clang binary for bindgen (version 3.9.x or above)')
 
 
 @depends('--with-clang-path', c_compiler, cxx_compiler, toolchain_search_path,
@@ -144,7 +144,7 @@ def bindgen_libclang_path(libclang_path, clang, library_name_info, host):
     libclang_choices.append('%sclang%s' % (library_name_info.dll.prefix,
                                            library_name_info.dll.suffix))
     if host.kernel == 'Linux':
-        libclang_choices.append('libclang.so.1')
+        libclang_choices.append('libclang.so.*')
 
     if host.os == 'OpenBSD':
         libclang_choices.append('libclang.so.*.*')
@@ -224,14 +224,14 @@ def bindgen_config_paths(clang, libclang, build_project):
 @imports(_from='textwrap', _import='dedent')
 def min_libclang_version(libclang):
     try:
-        lib = CDLL(libclang.encode('utf-8'))
-        # We want at least 4.0. The API we test below is enough for that.
+        lib = CDLL(libclang)
+        # We want at least 5.0. The API we test below is enough for that.
         # Just accessing it should throw if not found.
-        fun = lib.clang_EvalResult_getAsLongLong
+        fun = lib.clang_getAddressSpace
         return True
     except:
         die(dedent('''\
-        The libclang located at {} is too old (need at least 4.0).
+        The libclang located at {} is too old (need at least 5.0).
 
         Please make sure to update it or point to a newer libclang using
         --with-libclang-path.
@@ -289,9 +289,9 @@ def basic_bindgen_cflags(target, is_unix, compiler_info, android_cflags,
     return args + (clang_flags or [])
 
 
-js_option(env='BINDGEN_CFLAGS',
-          nargs=1,
-          help='Options bindgen should pass to the C/C++ parser')
+option(env='BINDGEN_CFLAGS',
+       nargs=1,
+       help='Options bindgen should pass to the C/C++ parser')
 
 
 @depends(basic_bindgen_cflags, 'BINDGEN_CFLAGS')

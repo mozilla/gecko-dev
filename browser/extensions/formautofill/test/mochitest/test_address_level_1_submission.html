@@ -28,6 +28,8 @@ const TEST_ADDRESSES = [{
 add_task(async function test_DE_is_valid_testcase() {
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["extensions.formautofill.addresses.enabled", true],
+      ["extensions.formautofill.addresses.capture.enabled", true],
       ["extensions.formautofill.supportedCountries", "US,CA,DE"],
     ],
   });
@@ -72,6 +74,8 @@ add_task(async function test_form_will_submit_without_sub_keys() {
   // Check if timesUsed is set correctly
   let matching = await checkAddresses(TEST_ADDRESSES);
   ok(matching, "Address saved as expected");
+
+  checkUsagePrefs(true, Date.now()/1000);
 
   await loadPromise;
   isnot(window.submit_frame.location.href, "about:blank", "Check form submitted");

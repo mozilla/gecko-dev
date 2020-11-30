@@ -19,10 +19,19 @@
 #ifndef wasm_gc_h
 #define wasm_gc_h
 
-#include "jit/MacroAssembler.h"
+#include "mozilla/BinarySearch.h"
+
+#include "jit/MacroAssembler.h"  // For ABIArgIter
+#include "js/AllocPolicy.h"
+#include "js/Vector.h"
 #include "util/Memory.h"
 
 namespace js {
+
+namespace jit {
+class MacroAssembler;
+}  // namespace jit
+
 namespace wasm {
 
 using namespace js::jit;
@@ -64,8 +73,8 @@ struct StackMap final {
   // Where is Frame* relative to the top?  This is an offset in words.
   uint32_t frameOffsetFromTop : 11;
 
-  // Notes the presence of a ref-typed DebugFrame.
-  uint32_t hasRefTypedDebugFrame : 1;
+  // Notes the presence of a DebugFrame which may contain GC-managed data.
+  uint32_t hasDebugFrame : 1;
 
  private:
   static constexpr uint32_t maxMappedWords = (1 << 30) - 1;
@@ -78,7 +87,7 @@ struct StackMap final {
       : numMappedWords(numMappedWords),
         numExitStubWords(0),
         frameOffsetFromTop(0),
-        hasRefTypedDebugFrame(0) {
+        hasDebugFrame(0) {
     const uint32_t nBitmap = calcNBitmap(numMappedWords);
     memset(bitmap, 0, nBitmap * sizeof(bitmap[0]));
   }
@@ -114,11 +123,11 @@ struct StackMap final {
     frameOffsetFromTop = nWords;
   }
 
-  // If the frame described by this StackMap includes a DebugFrame for a
-  // ref-typed return value, call here to record that fact.
-  void setHasRefTypedDebugFrame() {
-    MOZ_ASSERT(hasRefTypedDebugFrame == 0);
-    hasRefTypedDebugFrame = 1;
+  // If the frame described by this StackMap includes a DebugFrame, call here to
+  // record that fact.
+  void setHasDebugFrame() {
+    MOZ_ASSERT(hasDebugFrame == 0);
+    hasDebugFrame = 1;
   }
 
   inline void setBit(uint32_t bitIndex) {
@@ -227,8 +236,8 @@ class StackMaps {
     };
 
     size_t result;
-    if (BinarySearchIf(mapping_, 0, mapping_.length(), Comparator(nextInsnAddr),
-                       &result)) {
+    if (mozilla::BinarySearchIf(mapping_, 0, mapping_.length(),
+                                Comparator(nextInsnAddr), &result)) {
       return mapping_[result].map;
     }
 

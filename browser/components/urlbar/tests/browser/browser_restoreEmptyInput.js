@@ -7,14 +7,26 @@
 "use strict";
 
 add_task(async function test() {
-  await PlacesTestUtils.addVisits("http://example.com/");
+  for (let i = 0; i < 5; i++) {
+    await PlacesTestUtils.addVisits("http://example.com/");
+  }
+  // Update Top Sites to make sure the last Top Site is a URL. Otherwise, it
+  // would be a search shortcut and thus would not fill the Urlbar when
+  // selected.
+  await updateTopSites(sites => {
+    return (
+      sites &&
+      sites[sites.length - 1] &&
+      sites[sites.length - 1].url == "http://example.com/"
+    );
+  });
+
   registerCleanupFunction(async function() {
     await PlacesUtils.history.clear();
   });
 
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    waitForFocus: SimpleTest.waitForFocus,
     value: "",
     fireInputEvent: true,
   });

@@ -51,11 +51,11 @@ class CensusTreeItem extends Component {
     );
   }
 
-  toLabel(name, linkToDebugger) {
+  toLabel(name, onViewSourceInDebugger) {
     if (isSavedFrame(name)) {
       return Frame({
         frame: name,
-        onClick: () => linkToDebugger(name),
+        onClick: onViewSourceInDebugger,
         showFunctionName: true,
         showHost: true,
       });
@@ -111,7 +111,7 @@ class CensusTreeItem extends Component {
     let pointer;
     if (inverted && depth > 0) {
       pointer = dom.span({ className: "children-pointer" }, "↖");
-    } else if (!inverted && item.children && item.children.length) {
+    } else if (!inverted && item.children?.length) {
       pointer = dom.span({ className: "children-pointer" }, "↘");
     }
 

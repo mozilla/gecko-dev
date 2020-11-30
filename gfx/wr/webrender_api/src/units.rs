@@ -14,7 +14,7 @@
 
 pub use app_units::Au;
 use euclid::{Length, Rect, Scale, Size2D, Transform3D, Translation2D};
-use euclid::{Point2D, Point3D, Vector2D, Vector3D, SideOffsets2D};
+use euclid::{Point2D, Point3D, Vector2D, Vector3D, SideOffsets2D, Box2D};
 use euclid::HomogeneousVector;
 use peek_poke::PeekPoke;
 // local imports
@@ -60,6 +60,7 @@ pub type PictureSize = Size2D<f32, PicturePixel>;
 pub type PicturePoint3D = Point3D<f32, PicturePixel>;
 pub type PictureVector2D = Vector2D<f32, PicturePixel>;
 pub type PictureVector3D = Vector3D<f32, PicturePixel>;
+pub type PictureBox2D = Box2D<f32, PicturePixel>;
 
 /// Geometry gets rasterized in a given root coordinate space. This
 /// is often the root spatial node (world space), but may be a local
@@ -298,4 +299,26 @@ impl<U> RectExt for Rect<f32, U> {
     fn bottom_right(&self) -> Self::Point {
         self.max()
     }
+}
+
+// A few helpers to convert to cast between coordinate spaces that are often equivalent.
+
+#[inline]
+pub fn layout_rect_as_picture_rect(layout_rect: &LayoutRect) -> PictureRect {
+    layout_rect.cast_unit()
+}
+
+#[inline]
+pub fn layout_vector_as_picture_vector(layout_vector: LayoutVector2D) -> PictureVector2D {
+    layout_vector.cast_unit()
+}
+
+#[inline]
+pub fn device_size_as_framebuffer_size(framebuffer_size: DeviceIntSize) -> FramebufferIntSize {
+    framebuffer_size.cast_unit()
+}
+
+#[inline]
+pub fn device_rect_as_framebuffer_rect(framebuffer_rect: &DeviceIntRect) -> FramebufferIntRect {
+    framebuffer_rect.cast_unit()
 }

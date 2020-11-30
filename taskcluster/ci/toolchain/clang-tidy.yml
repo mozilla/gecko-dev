@@ -4,13 +4,15 @@
 ---
 job-defaults:
     description: "Clang-tidy build"
+    attributes:
+        local-toolchain: true
     index:
         product: static-analysis
     worker-type: b-linux-large
     worker:
         max-run-time: 3600
     run:
-        toolchain-artifact: public/build/clang-tidy.tar.xz
+        toolchain-artifact: public/build/clang-tidy.tar.zst
         resources:
             - 'build/clang-plugin/**/*.cpp'
             - 'build/clang-plugin/**/*.h'
@@ -19,12 +21,9 @@ job-defaults:
             - 'build/clang-plugin/moz.build'
             - 'build/clang-plugin/Makefile.in'
             - 'build/build-clang/build-clang.py'
-    run-on-projects:
-        - trunk
-        - try
     fetches:
         fetch:
-            - clang-9
+            - clang-10
 
 linux64-clang-tidy:
     index:
@@ -37,6 +36,8 @@ linux64-clang-tidy:
             - 'build/build-clang/clang-tidy-linux64.json'
         resources:
             - 'build/build-clang/clang-tidy-linux64.json'
+    run-on-projects:
+        - trunk
     fetches:
         toolchain:
             - linux64-binutils
@@ -50,7 +51,7 @@ macosx64-clang-tidy:
     worker-type: b-linux-large
     worker:
         env:
-            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/macosx64/cross-clang.manifest"
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/macosx64/cross-releng.manifest"
     run:
         using: toolchain-script
         script: build-clang.sh
@@ -60,11 +61,13 @@ macosx64-clang-tidy:
         resources:
             - 'build/build-clang/clang-tidy-macosx64.json'
             - 'taskcluster/scripts/misc/tooltool-download.sh'
+    run-on-projects:
+        - trunk
     fetches:
         toolchain:
             - linux64-binutils
-            - linux64-cctools-port
-            - linux64-clang-9
+            - linux64-cctools-port-clang-10
+            - linux64-clang-10
             - linux64-gcc-7
             - linux64-node
 
@@ -86,8 +89,9 @@ win64-clang-tidy:
             - 'build/build-clang/clang-tidy-win64.json'
         resources:
             - 'build/build-clang/clang-tidy-win64.json'
-        toolchain-artifact: public/build/clang-tidy.tar.bz2
         tooltool-downloads: internal
+    run-on-projects:
+        - trunk
     fetches:
         fetch:
             - cmake

@@ -47,7 +47,7 @@ class HTMLImageElement final : public nsGenericHTMLElement,
   }
 
   // Element
-  virtual bool IsInteractiveHTMLContent(bool aIgnoreTabindex) const override;
+  virtual bool IsInteractiveHTMLContent() const override;
 
   // EventTarget
   virtual void AsyncEventRunning(AsyncEventDispatcher* aEvent) override;
@@ -176,7 +176,7 @@ class HTMLImageElement final : public nsGenericHTMLElement,
     SetHTMLAttr(nsGkAtoms::referrerpolicy, aReferrer, aError);
   }
   void GetReferrerPolicy(nsAString& aReferrer) {
-    GetEnumAttr(nsGkAtoms::referrerpolicy, EmptyCString().get(), aReferrer);
+    GetEnumAttr(nsGkAtoms::referrerpolicy, "", aReferrer);
   }
   void SetDecoding(const nsAString& aDecoding, ErrorResult& aError) {
     SetHTMLAttr(nsGkAtoms::decoding, aDecoding, aError);
@@ -197,13 +197,11 @@ class HTMLImageElement final : public nsGenericHTMLElement,
     return mLazyLoading || mPendingImageLoadTask;
   }
 
+  bool IsLazyLoading() const { return mLazyLoading; }
+
   Loading LoadingState() const;
 
   already_AddRefed<Promise> Decode(ErrorResult& aRv);
-
-  ReferrerPolicy GetImageReferrerPolicy() override {
-    return GetReferrerPolicyAsEnum();
-  }
 
   MOZ_CAN_RUN_SCRIPT int32_t X();
   MOZ_CAN_RUN_SCRIPT int32_t Y();
@@ -375,15 +373,13 @@ class HTMLImageElement final : public nsGenericHTMLElement,
    *        previously set. This value should only be used when
    *        aValueMaybeChanged is true; when aValueMaybeChanged is false,
    *        aOldValue should be considered unreliable.
-   * @param aValueMaybeChanged will be false when this function is called from
-   *        OnAttrSetButNotChanged to indicate that the value was not changed.
    * @param aNotify Whether we plan to notify document observers.
    */
   void AfterMaybeChangeAttr(int32_t aNamespaceID, nsAtom* aName,
                             const nsAttrValueOrString& aValue,
                             const nsAttrValue* aOldValue,
                             nsIPrincipal* aMaybeScriptedPrincipal,
-                            bool aValueMaybeChanged, bool aNotify);
+                            bool aNotify);
 
   bool ShouldLoadImage() const;
 

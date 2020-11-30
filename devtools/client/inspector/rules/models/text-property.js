@@ -5,6 +5,9 @@
 "use strict";
 
 const { generateUUID } = require("devtools/shared/generate-uuid");
+const {
+  COMPATIBILITY_TOOLTIP_MESSAGE,
+} = require("devtools/client/inspector/rules/constants");
 
 loader.lazyRequireGetter(
   this,
@@ -15,7 +18,7 @@ loader.lazyRequireGetter(
 
 loader.lazyRequireGetter(
   this,
-  "hasCSSVariable",
+  "getCSSVariables",
   "devtools/client/inspector/rules/utils/utils",
   true
 );
@@ -60,8 +63,11 @@ class TextProperty {
     this.cssProperties = this.elementStyle.ruleView.cssProperties;
     this.panelDoc = this.elementStyle.ruleView.inspector.panelDoc;
     this.userProperties = this.elementStyle.store.userProperties;
+    // Names of CSS variables used in the value of this declaration.
+    this.usedVariables = new Set();
 
     this.updateComputed();
+    this.updateUsedVariables();
   }
 
   get computedProperties() {
@@ -101,6 +107,10 @@ class TextProperty {
    * if any.
    */
   updateEditor() {
+    // When the editor updates, reset the saved
+    // compatibility issues list as any updates
+    // may alter the compatibility status of declarations
+    this.rule.compatibilityIssues = null;
     if (this.editor) {
       this.editor.update();
     }
@@ -140,6 +150,18 @@ class TextProperty {
   }
 
   /**
+   * Extract all CSS variable names used in this declaration's value into a Set for
+   * easy querying. Call this method any time the declaration's value changes.
+   */
+  updateUsedVariables() {
+    this.usedVariables.clear();
+
+    for (const variable of getCSSVariables(this.value)) {
+      this.usedVariables.add(variable);
+    }
+  }
+
+  /**
    * Set all the values from another TextProperty instance into
    * this TextProperty instance.
    *
@@ -156,6 +178,7 @@ class TextProperty {
     }
 
     if (changed) {
+      this.updateUsedVariables();
       this.updateEditor();
     }
   }
@@ -164,10 +187,10 @@ class TextProperty {
     if (value !== this.value || force) {
       this.userProperties.setProperty(this.rule.domRule, this.name, value);
     }
-
-    return this.rule
-      .setPropertyValue(this, value, priority)
-      .then(() => this.updateEditor());
+    return this.rule.setPropertyValue(this, value, priority).then(() => {
+      this.updateUsedVariables();
+      this.updateEditor();
+    });
   }
 
   /**
@@ -180,6 +203,7 @@ class TextProperty {
   updateValue(value) {
     if (value !== this.value) {
       this.value = value;
+      this.updateUsedVariables();
       this.updateEditor();
     }
   }
@@ -261,6 +285,85 @@ class TextProperty {
   }
 
   /**
+   * Get compatibility issue linked with the textProp.
+   *
+   * @returns  A JSON objects with compatibility information in following form:
+   *    {
+   *      // A boolean to denote the compatibility status
+   *      isCompatible: <boolean>,
+   *      // The CSS declaration that has compatibility issues
+   *      property: <string>,
+   *      // The un-aliased root CSS declaration for the given property
+   *      rootProperty: <string>,
+   *      // The l10n message id for the tooltip message
+   *      msgId: <string>,
+   *      // Link to MDN documentation for the rootProperty
+   *      url: <string>,
+   *      // An array of all the browsers that don't support the given CSS rule
+   *      unsupportedBrowsers: <Array>,
+   *    }
+   */
+  async isCompatible() {
+    // This is a workaround for Bug 1648339
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=1648339
+    // that makes the tooltip icon inconsistent with the
+    // position of the rule it is associated with. Once solved,
+    // the compatibility data can be directly accessed from the
+    // declaration and this logic can be used to set isCompatible
+    // property directly to domRule in StyleRuleActor's form() method.
+    if (!this.enabled) {
+      return { isCompatible: true };
+    }
+
+    const compatibilityIssues = await this.rule.getCompatibilityIssues();
+    if (!compatibilityIssues.length) {
+      return { isCompatible: true };
+    }
+
+    const property = this.name;
+    const indexOfProperty = compatibilityIssues.findIndex(
+      issue => issue.property === property || issue.aliases?.includes(property)
+    );
+
+    if (indexOfProperty < 0) {
+      return { isCompatible: true };
+    }
+
+    const {
+      property: rootProperty,
+      deprecated,
+      experimental,
+      url,
+      unsupportedBrowsers,
+    } = compatibilityIssues[indexOfProperty];
+
+    let msgId = COMPATIBILITY_TOOLTIP_MESSAGE.default;
+    if (deprecated && experimental && !unsupportedBrowsers.length) {
+      msgId =
+        COMPATIBILITY_TOOLTIP_MESSAGE["deprecated-experimental-supported"];
+    } else if (deprecated && experimental) {
+      msgId = COMPATIBILITY_TOOLTIP_MESSAGE["deprecated-experimental"];
+    } else if (deprecated && !unsupportedBrowsers.length) {
+      msgId = COMPATIBILITY_TOOLTIP_MESSAGE["deprecated-supported"];
+    } else if (deprecated) {
+      msgId = COMPATIBILITY_TOOLTIP_MESSAGE.deprecated;
+    } else if (experimental && !unsupportedBrowsers.length) {
+      msgId = COMPATIBILITY_TOOLTIP_MESSAGE["experimental-supported"];
+    } else if (experimental) {
+      msgId = COMPATIBILITY_TOOLTIP_MESSAGE.experimental;
+    }
+
+    return {
+      isCompatible: false,
+      property,
+      rootProperty,
+      msgId,
+      url,
+      unsupportedBrowsers,
+    };
+  }
+
+  /**
    * Validate the name of this property.
    *
    * @return {Boolean} true if the property name is valid, false otherwise.
@@ -288,7 +391,7 @@ class TextProperty {
    * @return {Boolean}
    */
   hasCSSVariable(name) {
-    return hasCSSVariable(this.value, name);
+    return this.usedVariables.has(name);
   }
 }
 

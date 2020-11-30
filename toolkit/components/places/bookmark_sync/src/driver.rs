@@ -14,9 +14,7 @@ use moz_task::{Task, TaskRunnable, ThreadPtrHandle};
 use nserror::nsresult;
 use nsstring::{nsACString, nsCString, nsString};
 use storage_variant::HashPropertyBag;
-use xpcom::interfaces::{
-    mozISyncedBookmarksMirrorLogger, mozISyncedBookmarksMirrorProgressListener,
-};
+use xpcom::interfaces::{mozIServicesLogSink, mozISyncedBookmarksMirrorProgressListener};
 
 extern "C" {
     fn NS_GeneratePlacesGUID(guid: *mut nsACString) -> nsresult;
@@ -102,21 +100,21 @@ impl dogear::Driver for Driver {
                 "bookmark_sync::Driver::record_telemetry_event",
                 Box::new(task),
             )
-            .and_then(|r| r.dispatch(progress.owning_thread()));
+            .and_then(|r| TaskRunnable::dispatch(r, progress.owning_thread()));
         }
     }
 }
 
 pub struct Logger {
     pub max_level: LevelFilter,
-    logger: Option<ThreadPtrHandle<mozISyncedBookmarksMirrorLogger>>,
+    logger: Option<ThreadPtrHandle<mozIServicesLogSink>>,
 }
 
 impl Logger {
     #[inline]
     pub fn new(
         max_level: LevelFilter,
-        logger: Option<ThreadPtrHandle<mozISyncedBookmarksMirrorLogger>>,
+        logger: Option<ThreadPtrHandle<mozIServicesLogSink>>,
     ) -> Logger {
         Logger { max_level, logger }
     }
@@ -142,7 +140,7 @@ impl Log for Logger {
                         message,
                     };
                     let _ = TaskRunnable::new("bookmark_sync::Logger::log", Box::new(task))
-                        .and_then(|r| r.dispatch(logger.owning_thread()));
+                        .and_then(|r| TaskRunnable::dispatch(r, logger.owning_thread()));
                 }
                 Err(_) => {}
             }
@@ -155,7 +153,7 @@ impl Log for Logger {
 /// Logs a message to the mirror logger. This task is created on the async
 /// thread, and dispatched to the main thread.
 struct LogTask {
-    logger: ThreadPtrHandle<mozISyncedBookmarksMirrorLogger>,
+    logger: ThreadPtrHandle<mozIServicesLogSink>,
     level: Level,
     message: nsString,
 }

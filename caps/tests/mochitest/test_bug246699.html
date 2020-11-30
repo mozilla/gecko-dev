@@ -42,11 +42,11 @@ function inciteCaps(f) {
 }
 
 function tryChromeLoad() {
-    window.frames[0].location = "chrome://global/content/mozilla.xhtml";
+    window.frames[0].location = "chrome://global/content/mozilla.html";
 }
 
 function tryComponentsClasses() {
-    return SpecialPowers.Components.classes["@mozilla.org/dummy;1"];
+    return SpecialPowers.unwrap(SpecialPowers.Cc)["@mozilla.org/dummy;1"];
 }
 
 

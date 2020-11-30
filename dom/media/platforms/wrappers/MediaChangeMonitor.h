@@ -43,7 +43,7 @@ class MediaChangeMonitor : public MediaDataDecoder,
     if (mDecoder) {
       return mDecoder->GetDescriptionName();
     }
-    return NS_LITERAL_CSTRING("MediaChangeMonitor decoder (pending)");
+    return "MediaChangeMonitor decoder (pending)"_ns;
   }
   void SetSeekThreshold(const media::TimeUnit& aTime) override;
   bool SupportDecoderRecycling() const override {
@@ -76,9 +76,7 @@ class MediaChangeMonitor : public MediaDataDecoder,
  private:
   UniquePtr<CodecChangeMonitor> mChangeMonitor;
 
-  void AssertOnTaskQueue() const {
-    MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn());
-  }
+  void AssertOnThread() const { MOZ_ASSERT(mThread->IsOnCurrentThread()); }
 
   bool CanRecycleDecoder() const;
 
@@ -98,7 +96,7 @@ class MediaChangeMonitor : public MediaDataDecoder,
   VideoInfo mCurrentConfig;
   RefPtr<layers::KnowsCompositor> mKnowsCompositor;
   RefPtr<layers::ImageContainer> mImageContainer;
-  const RefPtr<TaskQueue> mTaskQueue;
+  nsCOMPtr<nsISerialEventTarget> mThread;
   RefPtr<MediaDataDecoder> mDecoder;
   MozPromiseRequestHolder<InitPromise> mInitPromiseRequest;
   MozPromiseHolder<InitPromise> mInitPromise;
@@ -123,6 +121,7 @@ class MediaChangeMonitor : public MediaDataDecoder,
   Maybe<MediaDataDecoder::ConversionRequired> mConversionRequired;
   // Used for debugging purposes only
   Atomic<bool> mInConstructor;
+  bool mDecoderInitialized = false;
 };
 
 }  // namespace mozilla

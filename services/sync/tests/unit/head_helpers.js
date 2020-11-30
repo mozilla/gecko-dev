@@ -278,7 +278,7 @@ function get_sync_test_telemetry() {
   let ns = {};
   ChromeUtils.import("resource://services-sync/telemetry.js", ns);
   ns.SyncTelemetry.tryRefreshDevices = function() {};
-  let testEngines = ["rotary", "steam", "sterling", "catapult"];
+  let testEngines = ["rotary", "steam", "sterling", "catapult", "nineties"];
   for (let engineName of testEngines) {
     ns.SyncTelemetry.allowedEngines.add(engineName);
   }
@@ -433,7 +433,8 @@ async function sync_and_validate_telem(
 async function sync_engine_and_validate_telem(
   engine,
   allowErrorPings,
-  onError
+  onError,
+  wantFullPing = false
 ) {
   let telem = get_sync_test_telemetry();
   let caughtError = null;
@@ -500,6 +501,8 @@ async function sync_engine_and_validate_telem(
           onError(ping.syncs[0], ping);
         }
         reject(caughtError);
+      } else if (wantFullPing) {
+        resolve(ping);
       } else {
         resolve(ping.syncs[0]);
       }
@@ -699,9 +702,20 @@ async function assertBookmarksTreeMatches(rootGuid, expected, message) {
   }
 }
 
-function bufferedBookmarksEnabled() {
-  return Services.prefs.getBoolPref(
-    "services.sync.engine.bookmarks.buffer",
-    false
+function add_bookmark_test(task) {
+  const { BookmarksEngine } = ChromeUtils.import(
+    "resource://services-sync/engines/bookmarks.js"
   );
+
+  add_task(async function() {
+    _(`Running bookmarks test ${task.name}`);
+    let engine = new BookmarksEngine(Service);
+    await engine.initialize();
+    await engine._resetClient();
+    try {
+      await task(engine);
+    } finally {
+      await engine.finalize();
+    }
+  });
 }

@@ -192,10 +192,11 @@ function showObjectInSidebar(front) {
   };
 }
 
-function reverseSearchInputToggle({ initialValue } = {}) {
+function reverseSearchInputToggle({ initialValue, access } = {}) {
   return {
     type: REVERSE_SEARCH_INPUT_TOGGLE,
     initialValue,
+    access,
   };
 }
 
@@ -209,12 +210,6 @@ function filterBarDisplayModeSet(displayMode) {
 function openSidebar(messageId, rootActorId) {
   return ({ dispatch }) => {
     dispatch(showMessageObjectInSidebar(rootActorId, messageId));
-  };
-}
-
-function timeWarp(executionPoint) {
-  return ({ client }) => {
-    client.timeWarp(executionPoint);
   };
 }
 
@@ -237,6 +232,5 @@ module.exports = {
   warningGroupsToggle,
   openLink,
   openSidebar,
-  timeWarp,
   autocompleteToggle,
 };

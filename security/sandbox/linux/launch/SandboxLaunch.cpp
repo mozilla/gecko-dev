@@ -10,6 +10,7 @@
 #include <sched.h>
 #include <setjmp.h>
 #include <signal.h>
+#include <sys/prctl.h>
 #include <sys/socket.h>
 #include <sys/syscall.h>
 #include <unistd.h>
@@ -32,6 +33,7 @@
 #include "mozilla/SandboxSettings.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPrefs_media.h"
+#include "mozilla/StaticPrefs_security.h"
 #include "mozilla/Unused.h"
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
@@ -169,14 +171,16 @@ static bool ContentNeedsSysVIPC() {
   }
 #endif
 
-  // Bug 1438391: VirtualGL uses SysV shm for images and configuration.
-  if (PR_GetEnv("VGL_ISACTIVE") != nullptr) {
-    return true;
-  }
+  if (!StaticPrefs::security_sandbox_content_headless_AtStartup()) {
+    // Bug 1438391: VirtualGL uses SysV shm for images and configuration.
+    if (PR_GetEnv("VGL_ISACTIVE") != nullptr) {
+      return true;
+    }
 
-  // The fglrx (ATI Catalyst) GPU drivers use SysV IPC.
-  if (HasAtiDrivers()) {
-    return true;
+    // The fglrx (ATI Catalyst) GPU drivers use SysV IPC.
+    if (HasAtiDrivers()) {
+      return true;
+    }
   }
 
   return false;
@@ -249,6 +253,10 @@ static int GetEffectiveSandboxLevel(GeckoProcessType aType) {
       return 0;
     case GeckoProcessType_RDD:
       return PR_GetEnv("MOZ_DISABLE_RDD_SANDBOX") == nullptr ? 1 : 0;
+    case GeckoProcessType_Socket:
+      // GetEffectiveSocketProcessSandboxLevel is main-thread-only due to prefs.
+      MOZ_ASSERT(NS_IsMainThread());
+      return GetEffectiveSocketProcessSandboxLevel();
     default:
       return 0;
   }
@@ -288,6 +296,10 @@ void SandboxLaunchPrepare(GeckoProcessType aType,
     } else {
       flags |= CLONE_NEWIPC;
     }
+
+    if (StaticPrefs::security_sandbox_content_headless_AtStartup()) {
+      aOptions->env_map["MOZ_HEADLESS"] = "1";
+    }
   }
 
   // Anything below this requires unprivileged user namespaces.
@@ -296,6 +308,12 @@ void SandboxLaunchPrepare(GeckoProcessType aType,
   }
 
   switch (aType) {
+    case GeckoProcessType_Socket:
+      if (level >= 1) {
+        canChroot = true;
+        flags |= CLONE_NEWIPC;
+      }
+      break;
     case GeckoProcessType_GMPlugin:
     case GeckoProcessType_RDD:
       if (level >= 1) {
@@ -306,11 +324,14 @@ void SandboxLaunchPrepare(GeckoProcessType aType,
     case GeckoProcessType_Content:
       if (level >= 4) {
         canChroot = true;
+
         // Unshare network namespace if allowed by graphics; see
         // function definition above for details.  (The display
         // local-ness is cached because it won't change.)
         static const bool canCloneNet =
-            IsDisplayLocal() && !PR_GetEnv("RENDERDOC_CAPTUREOPTS");
+            StaticPrefs::security_sandbox_content_headless_AtStartup() ||
+            (IsDisplayLocal() && !PR_GetEnv("RENDERDOC_CAPTUREOPTS"));
+
         if (canCloneNet) {
           flags |= CLONE_NEWNET;
         }
@@ -478,7 +499,9 @@ static int CloneCallee(void* aPtr) {
 // we don't currently support sandboxing under valgrind.
 MOZ_NEVER_INLINE MOZ_ASAN_BLACKLIST static pid_t DoClone(int aFlags,
                                                          jmp_buf* aCtx) {
-  uint8_t miniStack[PTHREAD_STACK_MIN];
+  static constexpr size_t kStackAlignment = 16;
+  uint8_t miniStack[PTHREAD_STACK_MIN]
+      __attribute__((aligned(kStackAlignment)));
 #ifdef __hppa__
   void* stackPtr = miniStack;
 #else
@@ -581,6 +604,7 @@ pid_t SandboxFork::Fork() {
   // WARNING: all code from this point on (and in StartChrootServer)
   // must be async signal safe.  In particular, it cannot do anything
   // that could allocate heap memory or use mutexes.
+  prctl(PR_SET_NAME, "Sandbox Forked");
 
   // Clear signal handlers in the child, under the assumption that any
   // actions they would take (running the crash reporter, manipulating
@@ -610,6 +634,7 @@ void SandboxFork::StartChrootServer() {
   if (pid > 0) {
     return;
   }
+  prctl(PR_SET_NAME, "Chroot Helper");
 
   LinuxCapabilities caps;
   caps.Effective(CAP_SYS_CHROOT) = true;

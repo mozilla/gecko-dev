@@ -6,10 +6,15 @@
 
 #include "MediaFormatReader.h"
 
+#include <algorithm>
+#include <map>
+#include <queue>
+
 #include "AllocationPolicy.h"
 #include "DecoderBenchmark.h"
 #include "GeckoProfiler.h"
 #include "MediaData.h"
+#include "MediaDataDecoderProxy.h"
 #include "MediaInfo.h"
 #include "VideoFrameContainer.h"
 #include "VideoUtils.h"
@@ -24,10 +29,6 @@
 #include "mozilla/Unused.h"
 #include "nsContentUtils.h"
 #include "nsPrintfCString.h"
-
-#include <algorithm>
-#include <map>
-#include <queue>
 
 using namespace mozilla::media;
 
@@ -99,6 +100,8 @@ void MediaFormatReader::ShutdownPromisePool::Track(
 }
 
 void MediaFormatReader::DecoderData::ShutdownDecoder() {
+  MOZ_ASSERT(mOwner->OnTaskQueue());
+
   MutexAutoLock lock(mMutex);
 
   if (!mDecoder) {
@@ -124,13 +127,16 @@ void MediaFormatReader::DecoderData::ShutdownDecoder() {
   // mShutdownPromisePool will handle the order of decoder shutdown so
   // we can forget mDecoder and be ready to create a new one.
   mDecoder = nullptr;
-  mDescription = NS_LITERAL_CSTRING("shutdown");
+  mDescription = "shutdown"_ns;
   mOwner->ScheduleUpdate(mType == MediaData::Type::AUDIO_DATA
                              ? TrackType::kAudioTrack
                              : TrackType::kVideoTrack);
 }
 
 void MediaFormatReader::DecoderData::Flush() {
+  AUTO_PROFILER_LABEL("MediaFormatReader::Flush", MEDIA_PLAYBACK);
+  MOZ_ASSERT(mOwner->OnTaskQueue());
+
   if (mFlushing || mFlushed) {
     // Flush still pending or already flushed, nothing more to do.
     return;
@@ -157,6 +163,8 @@ void MediaFormatReader::DecoderData::Flush() {
     mDecoder->Flush()->Then(
         mOwner->OwnerThread(), __func__,
         [type, this, p, d]() {
+          AUTO_PROFILER_LABEL("MediaFormatReader::Flush:Resolved",
+                              MEDIA_PLAYBACK);
           DDLOGEX2("MediaFormatReader::DecoderData", this, DDLogCategory::Log,
                    "flushed", DDNoValue{});
           if (!p->IsEmpty()) {
@@ -172,6 +180,8 @@ void MediaFormatReader::DecoderData::Flush() {
           mOwner->ScheduleUpdate(type);
         },
         [type, this, p, d](const MediaResult& aError) {
+          AUTO_PROFILER_LABEL("MediaFormatReader::Flush:Rejected",
+                              MEDIA_PLAYBACK);
           DDLOGEX2("MediaFormatReader::DecoderData", this, DDLogCategory::Log,
                    "flush_error", aError);
           if (!p->IsEmpty()) {
@@ -322,6 +332,7 @@ void MediaFormatReader::DecoderFactory::RunStage(Data& aData) {
 }
 
 MediaResult MediaFormatReader::DecoderFactory::DoCreateDecoder(Data& aData) {
+  AUTO_PROFILER_LABEL("DecoderFactory::DoCreateDecoder", MEDIA_PLAYBACK);
   auto& ownerData = aData.mOwnerData;
   auto& decoder = mOwner->GetDecoderData(aData.mTrack);
   auto& platform =
@@ -354,12 +365,17 @@ MediaResult MediaFormatReader::DecoderFactory::DoCreateDecoder(Data& aData) {
 
   switch (aData.mTrack) {
     case TrackInfo::kAudioTrack: {
-      aData.mDecoder = platform->CreateDecoder(
-          {*ownerData.GetCurrentInfo()->GetAsAudioInfo(), ownerData.mTaskQueue,
-           mOwner->mCrashHelper,
+      RefPtr<MediaDataDecoder> decoder = platform->CreateDecoder(
+          {*ownerData.GetCurrentInfo()->GetAsAudioInfo(), mOwner->mCrashHelper,
            CreateDecoderParams::UseNullDecoder(ownerData.mIsNullDecode),
            &result, TrackInfo::kAudioTrack,
            &mOwner->OnTrackWaitingForKeyProducer()});
+      if (!decoder) {
+        aData.mDecoder = nullptr;
+        break;
+      }
+      aData.mDecoder = new MediaDataDecoderProxy(
+          decoder.forget(), do_AddRef(ownerData.mTaskQueue.get()));
       break;
     }
 
@@ -369,8 +385,8 @@ MediaResult MediaFormatReader::DecoderFactory::DoCreateDecoder(Data& aData) {
       using Option = CreateDecoderParams::Option;
       using OptionSet = CreateDecoderParams::OptionSet;
 
-      aData.mDecoder = platform->CreateDecoder(
-          {*ownerData.GetCurrentInfo()->GetAsVideoInfo(), ownerData.mTaskQueue,
+      RefPtr<MediaDataDecoder> decoder = platform->CreateDecoder(
+          {*ownerData.GetCurrentInfo()->GetAsVideoInfo(),
            mOwner->mKnowsCompositor, mOwner->GetImageContainer(),
            mOwner->mCrashHelper,
            CreateDecoderParams::UseNullDecoder(ownerData.mIsNullDecode),
@@ -380,6 +396,12 @@ MediaResult MediaFormatReader::DecoderFactory::DoCreateDecoder(Data& aData) {
            OptionSet(ownerData.mHardwareDecodingDisabled
                          ? Option::HardwareDecoderNotAllowed
                          : Option::Default)});
+      if (!decoder) {
+        aData.mDecoder = nullptr;
+        break;
+      }
+      aData.mDecoder = new MediaDataDecoderProxy(
+          decoder.forget(), do_AddRef(ownerData.mTaskQueue.get()));
       break;
     }
 
@@ -397,6 +419,7 @@ MediaResult MediaFormatReader::DecoderFactory::DoCreateDecoder(Data& aData) {
 }
 
 void MediaFormatReader::DecoderFactory::DoInitDecoder(Data& aData) {
+  AUTO_PROFILER_LABEL("DecoderFactory::DoInitDecoder", MEDIA_PLAYBACK);
   auto& ownerData = aData.mOwnerData;
 
   DDLOGEX2("MediaFormatReader::DecoderFactory", this, DDLogCategory::Log,
@@ -405,6 +428,8 @@ void MediaFormatReader::DecoderFactory::DoInitDecoder(Data& aData) {
       ->Then(
           mOwner->OwnerThread(), __func__,
           [this, &aData, &ownerData](TrackType aTrack) {
+            AUTO_PROFILER_LABEL("DecoderFactory::DoInitDecoder:Resolved",
+                                MEDIA_PLAYBACK);
             aData.mInitRequest.Complete();
             aData.mStage = Stage::None;
             MutexAutoLock lock(ownerData.mMutex);
@@ -423,6 +448,8 @@ void MediaFormatReader::DecoderFactory::DoInitDecoder(Data& aData) {
             }
           },
           [this, &aData, &ownerData](const MediaResult& aError) {
+            AUTO_PROFILER_LABEL("DecoderFactory::DoInitDecoder:Rejected",
+                                MEDIA_PLAYBACK);
             aData.mInitRequest.Complete();
             MOZ_RELEASE_ASSERT(!ownerData.mDecoder,
                                "Can't have a decoder already set");
@@ -709,6 +736,7 @@ class MediaFormatReader::DemuxerProxy::Wrapper : public MediaTrackDemuxer {
 };
 
 RefPtr<MediaDataDemuxer::InitPromise> MediaFormatReader::DemuxerProxy::Init() {
+  AUTO_PROFILER_LABEL("DemuxerProxy::Init", MEDIA_PLAYBACK);
   using InitPromise = MediaDataDemuxer::InitPromise;
 
   RefPtr<Data> data = mData;
@@ -724,6 +752,7 @@ RefPtr<MediaDataDemuxer::InitPromise> MediaFormatReader::DemuxerProxy::Init() {
       ->Then(
           taskQueue, __func__,
           [data, taskQueue]() {
+            AUTO_PROFILER_LABEL("DemuxerProxy::Init:Resolved", MEDIA_PLAYBACK);
             if (!data->mDemuxer) {  // Was shutdown.
               return InitPromise::CreateAndReject(NS_ERROR_DOM_MEDIA_CANCELED,
                                                   __func__);
@@ -796,7 +825,7 @@ MediaFormatReader::DemuxerProxy::NotifyDataArrived() {
 
 MediaFormatReader::MediaFormatReader(MediaFormatReaderInit& aInit,
                                      MediaDataDemuxer* aDemuxer)
-    : mTaskQueue(new TaskQueue(GetMediaThreadPool(MediaThreadType::PLAYBACK),
+    : mTaskQueue(new TaskQueue(GetMediaThreadPool(MediaThreadType::CONTROLLER),
                                "MediaFormatReader::mTaskQueue",
                                /* aSupportsTailDispatch = */ true)),
       mAudio(this, MediaData::Type::AUDIO_DATA,
@@ -1052,6 +1081,7 @@ bool MediaFormatReader::IsWaitingOnCDMResource() {
 
 RefPtr<MediaFormatReader::MetadataPromise>
 MediaFormatReader::AsyncReadMetadata() {
+  AUTO_PROFILER_LABEL("MediaFormatReader::AsyncReadMetadata", MEDIA_PLAYBACK);
   MOZ_ASSERT(OnTaskQueue());
 
   MOZ_DIAGNOSTIC_ASSERT(mMetadataPromise.IsEmpty());
@@ -1074,6 +1104,7 @@ MediaFormatReader::AsyncReadMetadata() {
 }
 
 void MediaFormatReader::OnDemuxerInitDone(const MediaResult& aResult) {
+  AUTO_PROFILER_LABEL("MediaFormatReader::OnDemuxerInitDone", MEDIA_PLAYBACK);
   MOZ_ASSERT(OnTaskQueue());
   mDemuxerInitRequest.Complete();
 
@@ -1338,6 +1369,7 @@ RefPtr<MediaFormatReader::VideoDataPromise> MediaFormatReader::RequestVideoData(
 
 void MediaFormatReader::OnDemuxFailed(TrackType aTrack,
                                       const MediaResult& aError) {
+  AUTO_PROFILER_LABEL("MediaFormatReader::OnDemuxFailed", MEDIA_PLAYBACK);
   MOZ_ASSERT(OnTaskQueue());
   LOG("Failed to demux %s, failure:%s",
       aTrack == TrackType::kVideoTrack ? "video" : "audio",
@@ -1385,6 +1417,7 @@ void MediaFormatReader::OnDemuxFailed(TrackType aTrack,
 }
 
 void MediaFormatReader::DoDemuxVideo() {
+  AUTO_PROFILER_LABEL("MediaFormatReader::DoDemuxVideo", MEDIA_PLAYBACK);
   using SamplesPromise = MediaTrackDemuxer::SamplesPromise;
 
   DDLOG(DDLogCategory::Log, "video_demuxing", DDNoValue{});
@@ -1395,12 +1428,16 @@ void MediaFormatReader::DoDemuxVideo() {
     p = p->Then(
         OwnerThread(), __func__,
         [self](RefPtr<MediaTrackDemuxer::SamplesHolder> aSamples) {
+          AUTO_PROFILER_LABEL("MediaFormatReader::DoDemuxVideo:Resolved",
+                              MEDIA_PLAYBACK);
           DDLOGEX(self.get(), DDLogCategory::Log, "video_first_demuxed",
                   DDNoValue{});
           self->OnFirstDemuxCompleted(TrackInfo::kVideoTrack, aSamples);
           return SamplesPromise::CreateAndResolve(aSamples.forget(), __func__);
         },
         [self](const MediaResult& aError) {
+          AUTO_PROFILER_LABEL("MediaFormatReader::DoDemuxVideo:Rejected",
+                              MEDIA_PLAYBACK);
           DDLOGEX(self.get(), DDLogCategory::Log, "video_first_demuxing_error",
                   aError);
           self->OnFirstDemuxFailed(TrackInfo::kVideoTrack, aError);
@@ -1416,6 +1453,8 @@ void MediaFormatReader::DoDemuxVideo() {
 
 void MediaFormatReader::OnVideoDemuxCompleted(
     RefPtr<MediaTrackDemuxer::SamplesHolder> aSamples) {
+  AUTO_PROFILER_LABEL("MediaFormatReader::OnVideoDemuxCompleted",
+                      MEDIA_PLAYBACK);
   LOGV("%zu video samples demuxed (sid:%d)", aSamples->GetSamples().Length(),
        aSamples->GetSamples()[0]->mTrackInfo
            ? aSamples->GetSamples()[0]->mTrackInfo->GetID()
@@ -1463,6 +1502,7 @@ MediaFormatReader::RequestAudioData() {
 }
 
 void MediaFormatReader::DoDemuxAudio() {
+  AUTO_PROFILER_LABEL("MediaFormatReader::DoDemuxAudio", MEDIA_PLAYBACK);
   using SamplesPromise = MediaTrackDemuxer::SamplesPromise;
 
   DDLOG(DDLogCategory::Log, "audio_demuxing", DDNoValue{});
@@ -1473,12 +1513,16 @@ void MediaFormatReader::DoDemuxAudio() {
     p = p->Then(
         OwnerThread(), __func__,
         [self](RefPtr<MediaTrackDemuxer::SamplesHolder> aSamples) {
+          AUTO_PROFILER_LABEL("MediaFormatReader::DoDemuxAudio:Resolved",
+                              MEDIA_PLAYBACK);
           DDLOGEX(self.get(), DDLogCategory::Log, "audio_first_demuxed",
                   DDNoValue{});
           self->OnFirstDemuxCompleted(TrackInfo::kAudioTrack, aSamples);
           return SamplesPromise::CreateAndResolve(aSamples.forget(), __func__);
         },
         [self](const MediaResult& aError) {
+          AUTO_PROFILER_LABEL("MediaFormatReader::DoDemuxAudio:Rejected",
+                              MEDIA_PLAYBACK);
           DDLOGEX(self.get(), DDLogCategory::Log, "audio_first_demuxing_error",
                   aError);
           self->OnFirstDemuxFailed(TrackInfo::kAudioTrack, aError);
@@ -1507,6 +1551,7 @@ void MediaFormatReader::OnAudioDemuxCompleted(
 
 void MediaFormatReader::NotifyNewOutput(
     TrackType aTrack, MediaDataDecoder::DecodedData&& aResults) {
+  AUTO_PROFILER_LABEL("MediaFormatReader::NotifyNewOutput", MEDIA_PLAYBACK);
   MOZ_ASSERT(OnTaskQueue());
   auto& decoder = GetDecoderData(aTrack);
   if (aResults.IsEmpty()) {
@@ -1842,7 +1887,7 @@ void MediaFormatReader::HandleDemuxedSamples(
 
       // If flushing is required, it will clear our array of queued samples.
       // So we may need to make a copy.
-      samples = decoder.mQueuedSamples;
+      samples = decoder.mQueuedSamples.Clone();
       if (!recyclable) {
         LOG("Decoder does not support recycling, recreate decoder.");
         ShutdownDecoder(aTrack);
@@ -1972,6 +2017,7 @@ void MediaFormatReader::InternalSeek(TrackType aTrack,
 }
 
 void MediaFormatReader::DrainDecoder(TrackType aTrack) {
+  AUTO_PROFILER_LABEL("MediaFormatReader::DrainDecoder", MEDIA_PLAYBACK);
   MOZ_ASSERT(OnTaskQueue());
 
   auto& decoder = GetDecoderData(aTrack);
@@ -2017,6 +2063,7 @@ void MediaFormatReader::DrainDecoder(TrackType aTrack) {
 }
 
 void MediaFormatReader::Update(TrackType aTrack) {
+  AUTO_PROFILER_LABEL("MediaFormatReader::Update", MEDIA_PLAYBACK);
   MOZ_ASSERT(OnTaskQueue());
 
   if (mShutdown) {
@@ -2296,6 +2343,7 @@ void MediaFormatReader::Update(TrackType aTrack) {
 }
 
 void MediaFormatReader::ReturnOutput(MediaData* aData, TrackType aTrack) {
+  AUTO_PROFILER_LABEL("MediaFormatReader::ReturnOutput", MEDIA_PLAYBACK);
   MOZ_ASSERT(GetDecoderData(aTrack).HasPromise());
   MOZ_DIAGNOSTIC_ASSERT(aData->mType != MediaData::Type::NULL_DATA);
   LOG("Resolved data promise for %s [%" PRId64 ", %" PRId64 "]",
@@ -2370,6 +2418,7 @@ RefPtr<MediaFormatReader::WaitForDataPromise> MediaFormatReader::WaitForData(
 }
 
 nsresult MediaFormatReader::ResetDecode(TrackSet aTracks) {
+  AUTO_PROFILER_LABEL("MediaFormatReader::ResetDecode", MEDIA_PLAYBACK);
   MOZ_ASSERT(OnTaskQueue());
   LOGV("");
 
@@ -2446,6 +2495,8 @@ void MediaFormatReader::DropDecodedSamples(TrackType aTrack) {
 }
 
 void MediaFormatReader::SkipVideoDemuxToNextKeyFrame(TimeUnit aTimeThreshold) {
+  AUTO_PROFILER_LABEL("MediaFormatReader::SkipVideoDemuxToNextKeyFrame",
+                      MEDIA_PLAYBACK);
   MOZ_ASSERT(OnTaskQueue());
   LOG("Skipping up to %" PRId64, aTimeThreshold.ToMicroseconds());
 
@@ -2462,7 +2513,7 @@ void MediaFormatReader::SkipVideoDemuxToNextKeyFrame(TimeUnit aTimeThreshold) {
 }
 
 void MediaFormatReader::VideoSkipReset(uint32_t aSkipped) {
-  PROFILER_ADD_MARKER("SkippedVideoDecode", GRAPHICS);
+  PROFILER_MARKER_UNTYPED("SkippedVideoDecode", MEDIA_PLAYBACK);
   MOZ_ASSERT(OnTaskQueue());
 
   // Some frames may have been output by the decoder since we initiated the
@@ -2486,6 +2537,8 @@ void MediaFormatReader::VideoSkipReset(uint32_t aSkipped) {
 }
 
 void MediaFormatReader::OnVideoSkipCompleted(uint32_t aSkipped) {
+  AUTO_PROFILER_LABEL("MediaFormatReader::OnVideoSkipCompleted",
+                      MEDIA_PLAYBACK);
   MOZ_ASSERT(OnTaskQueue());
   LOG("Skipping succeeded, skipped %u frames", aSkipped);
   mSkipRequest.Complete();
@@ -2499,6 +2552,7 @@ void MediaFormatReader::OnVideoSkipCompleted(uint32_t aSkipped) {
 
 void MediaFormatReader::OnVideoSkipFailed(
     MediaTrackDemuxer::SkipFailureHolder aFailure) {
+  AUTO_PROFILER_LABEL("MediaFormatReader::OnVideoSkipFailed", MEDIA_PLAYBACK);
   MOZ_ASSERT(OnTaskQueue());
   LOG("Skipping failed, skipped %u frames", aFailure.mSkipped);
   mSkipRequest.Complete();
@@ -2531,6 +2585,7 @@ void MediaFormatReader::OnVideoSkipFailed(
 
 RefPtr<MediaFormatReader::SeekPromise> MediaFormatReader::Seek(
     const SeekTarget& aTarget) {
+  AUTO_PROFILER_LABEL("MediaFormatReader::Seek", MEDIA_PLAYBACK);
   MOZ_ASSERT(OnTaskQueue());
 
   LOG("aTarget=(%" PRId64 ")", aTarget.GetTime().ToMicroseconds());
@@ -2580,6 +2635,7 @@ void MediaFormatReader::ScheduleSeek() {
 }
 
 void MediaFormatReader::AttemptSeek() {
+  AUTO_PROFILER_LABEL("MediaFormatReader::AttemptSeek", MEDIA_PLAYBACK);
   MOZ_ASSERT(OnTaskQueue());
 
   mSeekScheduled = false;
@@ -2612,6 +2668,7 @@ void MediaFormatReader::AttemptSeek() {
 
 void MediaFormatReader::OnSeekFailed(TrackType aTrack,
                                      const MediaResult& aError) {
+  AUTO_PROFILER_LABEL("MediaFormatReader::OnSeekFailed", MEDIA_PLAYBACK);
   MOZ_ASSERT(OnTaskQueue());
   LOGV("%s failure:%s", TrackTypeToStr(aTrack), aError.ErrorName().get());
   if (aTrack == TrackType::kVideoTrack) {
@@ -2660,6 +2717,7 @@ void MediaFormatReader::OnSeekFailed(TrackType aTrack,
 }
 
 void MediaFormatReader::DoVideoSeek() {
+  AUTO_PROFILER_LABEL("MediaFormatReader::DoVideoSeek", MEDIA_PLAYBACK);
   MOZ_ASSERT(mPendingSeekTime.isSome());
   LOGV("Seeking video to %" PRId64, mPendingSeekTime.ref().ToMicroseconds());
   auto seekTime = mPendingSeekTime.ref();
@@ -2671,6 +2729,8 @@ void MediaFormatReader::DoVideoSeek() {
 }
 
 void MediaFormatReader::OnVideoSeekCompleted(TimeUnit aTime) {
+  AUTO_PROFILER_LABEL("MediaFormatReader::OnVideoSeekCompleted",
+                      MEDIA_PLAYBACK);
   MOZ_ASSERT(OnTaskQueue());
   LOGV("Video seeked to %" PRId64, aTime.ToMicroseconds());
   mVideo.mSeekRequest.Complete();
@@ -2695,6 +2755,7 @@ void MediaFormatReader::OnVideoSeekCompleted(TimeUnit aTime) {
 }
 
 void MediaFormatReader::OnVideoSeekFailed(const MediaResult& aError) {
+  AUTO_PROFILER_LABEL("MediaFormatReader::OnVideoSeekFailed", MEDIA_PLAYBACK);
   mPreviousDecodedKeyframeTime_us = sNoPreviousDecodedKeyframe;
   OnSeekFailed(TrackType::kVideoTrack, aError);
 }
@@ -2739,6 +2800,7 @@ void MediaFormatReader::SetVideoDecodeThreshold() {
 }
 
 void MediaFormatReader::DoAudioSeek() {
+  AUTO_PROFILER_LABEL("MediaFormatReader::DoAudioSeek", MEDIA_PLAYBACK);
   MOZ_ASSERT(mPendingSeekTime.isSome());
   LOGV("Seeking audio to %" PRId64, mPendingSeekTime.ref().ToMicroseconds());
   auto seekTime = mPendingSeekTime.ref();
@@ -2751,6 +2813,8 @@ void MediaFormatReader::DoAudioSeek() {
 
 void MediaFormatReader::OnAudioSeekCompleted(TimeUnit aTime) {
   MOZ_ASSERT(OnTaskQueue());
+  AUTO_PROFILER_LABEL("MediaFormatReader::OnAudioSeekCompleted",
+                      MEDIA_PLAYBACK);
   LOGV("Audio seeked to %" PRId64, aTime.ToMicroseconds());
   mAudio.mSeekRequest.Complete();
   mAudio.mFirstFrameTime = Some(aTime);
@@ -2759,6 +2823,7 @@ void MediaFormatReader::OnAudioSeekCompleted(TimeUnit aTime) {
 }
 
 void MediaFormatReader::OnAudioSeekFailed(const MediaResult& aError) {
+  AUTO_PROFILER_LABEL("MediaFormatReader::OnAudioSeekFailed", MEDIA_PLAYBACK);
   OnSeekFailed(TrackType::kAudioTrack, aError);
 }
 
@@ -2795,6 +2860,7 @@ void MediaFormatReader::NotifyTrackDemuxers() {
 }
 
 void MediaFormatReader::NotifyDataArrived() {
+  AUTO_PROFILER_LABEL("MediaFormatReader::NotifyDataArrived", MEDIA_PLAYBACK);
   MOZ_ASSERT(OnTaskQueue());
 
   if (mShutdown || !mDemuxer || !mDemuxerInitDone) {
@@ -2812,6 +2878,8 @@ void MediaFormatReader::NotifyDataArrived() {
       ->Then(
           OwnerThread(), __func__,
           [self]() {
+            AUTO_PROFILER_LABEL("MediaFormatReader::NotifyDataArrived:Resolved",
+                                MEDIA_PLAYBACK);
             self->mNotifyDataArrivedPromise.Complete();
             self->UpdateBuffered();
             self->NotifyTrackDemuxers();
@@ -2825,6 +2893,7 @@ void MediaFormatReader::NotifyDataArrived() {
 }
 
 void MediaFormatReader::UpdateBuffered() {
+  AUTO_PROFILER_LABEL("MediaFormatReader::UpdateBuffered", MEDIA_PLAYBACK);
   MOZ_ASSERT(OnTaskQueue());
 
   if (mShutdown) {
@@ -2916,8 +2985,8 @@ void MediaFormatReader::GetDebugInfo(dom::MediaFormatReaderDebugInfo& aInfo) {
     }
   }
 
-  aInfo.mAudioDecoderName = NS_ConvertUTF8toUTF16(audioDecoderName);
-  aInfo.mAudioType = NS_ConvertUTF8toUTF16(audioType);
+  CopyUTF8toUTF16(audioDecoderName, aInfo.mAudioDecoderName);
+  CopyUTF8toUTF16(audioType, aInfo.mAudioType);
   aInfo.mAudioChannels = audioInfo.mChannels;
   aInfo.mAudioRate = audioInfo.mRate / 1000.0f;
   aInfo.mAudioFramesDecoded = mAudio.mNumSamplesOutputTotal;
@@ -2946,8 +3015,8 @@ void MediaFormatReader::GetDebugInfo(dom::MediaFormatReaderDebugInfo& aInfo) {
     aInfo.mAudioState.mLastStreamSourceID = mAudio.mLastStreamSourceID;
   }
 
-  aInfo.mVideoDecoderName = NS_ConvertUTF8toUTF16(videoDecoderName);
-  aInfo.mVideoType = NS_ConvertUTF8toUTF16(videoType);
+  CopyUTF8toUTF16(videoDecoderName, aInfo.mVideoDecoderName);
+  CopyUTF8toUTF16(videoType, aInfo.mVideoType);
   aInfo.mVideoWidth =
       videoInfo.mDisplay.width < 0 ? 0 : videoInfo.mDisplay.width;
   aInfo.mVideoHeight =
@@ -3017,6 +3086,8 @@ void MediaFormatReader::SetNullDecode(TrackType aTrack, bool aIsNullDecode) {
 void MediaFormatReader::OnFirstDemuxCompleted(
     TrackInfo::TrackType aType,
     RefPtr<MediaTrackDemuxer::SamplesHolder> aSamples) {
+  AUTO_PROFILER_LABEL("MediaFormatReader::OnFirstDemuxCompleted",
+                      MEDIA_PLAYBACK);
   MOZ_ASSERT(OnTaskQueue());
 
   if (mShutdown) {

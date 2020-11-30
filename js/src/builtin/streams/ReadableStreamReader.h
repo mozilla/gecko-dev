@@ -23,6 +23,7 @@ struct JS_PUBLIC_API JSContext;
 
 namespace js {
 
+class PromiseObject;
 class ReadableStream;
 
 /**
@@ -117,10 +118,10 @@ class ReadableStreamDefaultReader : public ReadableStreamReader {
 };
 
 extern MOZ_MUST_USE ReadableStreamDefaultReader*
-CreateReadableStreamDefaultReader(
-    JSContext* cx, JS::Handle<ReadableStream*> unwrappedStream,
-    ForAuthorCodeBool forAuthorCode = ForAuthorCodeBool::No,
-    JS::Handle<JSObject*> proto = nullptr);
+CreateReadableStreamDefaultReader(JSContext* cx,
+                                  JS::Handle<ReadableStream*> unwrappedStream,
+                                  ForAuthorCodeBool forAuthorCode,
+                                  JS::Handle<JSObject*> proto = nullptr);
 
 extern MOZ_MUST_USE JSObject* ReadableStreamReaderGenericCancel(
     JSContext* cx, JS::Handle<ReadableStreamReader*> unwrappedReader,
@@ -134,7 +135,7 @@ extern MOZ_MUST_USE bool ReadableStreamReaderGenericInitialize(
 extern MOZ_MUST_USE bool ReadableStreamReaderGenericRelease(
     JSContext* cx, JS::Handle<ReadableStreamReader*> unwrappedReader);
 
-extern MOZ_MUST_USE JSObject* ReadableStreamDefaultReaderRead(
+extern MOZ_MUST_USE PromiseObject* ReadableStreamDefaultReaderRead(
     JSContext* cx, JS::Handle<ReadableStreamDefaultReader*> unwrappedReader);
 
 }  // namespace js
@@ -148,8 +149,7 @@ namespace js {
 
 extern MOZ_MUST_USE JSObject* CreateReadableStreamBYOBReader(
     JSContext* cx, JS::Handle<ReadableStream*> unwrappedStream,
-    ForAuthorCodeBool forAuthorCode = ForAuthorCodeBool::No,
-    JS::Handle<JSObject*> proto = nullptr);
+    ForAuthorCodeBool forAuthorCode, JS::Handle<JSObject*> proto = nullptr);
 
 }  // namespace js
 

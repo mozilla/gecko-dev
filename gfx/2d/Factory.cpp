@@ -26,6 +26,7 @@
 #ifdef XP_DARWIN
 #  include "ScaledFontMac.h"
 #  include "NativeFontResourceMac.h"
+#  include "UnscaledFontMac.h"
 #endif
 
 #ifdef MOZ_WIDGET_GTK
@@ -37,17 +38,20 @@
 #ifdef MOZ_WIDGET_ANDROID
 #  include "ScaledFontFreeType.h"
 #  include "NativeFontResourceFreeType.h"
+#  include "UnscaledFontFreeType.h"
 #endif
 
 #ifdef WIN32
 #  include "DrawTargetD2D1.h"
 #  include "ScaledFontDWrite.h"
 #  include "NativeFontResourceDWrite.h"
+#  include "UnscaledFontDWrite.h"
 #  include <d3d10_1.h>
 #  include <stdlib.h>
 #  include "HelpersD2D.h"
 #  include "DXVA2Manager.h"
 #  include "mozilla/layers/TextureD3D11.h"
+#  include "nsWindowsHelpers.h"
 #endif
 
 #include "DrawTargetCapture.h"
@@ -233,6 +237,12 @@ mozilla::gfx::Config* Factory::sConfig = nullptr;
 void Factory::Init(const Config& aConfig) {
   MOZ_ASSERT(!sConfig);
   sConfig = new Config(aConfig);
+
+#ifdef XP_DARWIN
+  NativeFontResourceMac::RegisterMemoryReporter();
+#else
+  NativeFontResource::RegisterMemoryReporter();
+#endif
 }
 
 void Factory::ShutDown() {
@@ -595,14 +605,24 @@ already_AddRefed<UnscaledFont> Factory::CreateUnscaledFontFromFontDescriptor(
     uint32_t aIndex) {
   switch (aType) {
 #ifdef WIN32
+    case FontType::DWRITE:
+      return UnscaledFontDWrite::CreateFromFontDescriptor(aData, aDataLength,
+                                                          aIndex);
     case FontType::GDI:
       return UnscaledFontGDI::CreateFromFontDescriptor(aData, aDataLength,
                                                        aIndex);
-#endif
-#ifdef MOZ_WIDGET_GTK
+#elif defined(XP_DARWIN)
+    case FontType::MAC:
+      return UnscaledFontMac::CreateFromFontDescriptor(aData, aDataLength,
+                                                       aIndex);
+#elif defined(MOZ_WIDGET_GTK)
     case FontType::FONTCONFIG:
       return UnscaledFontFontconfig::CreateFromFontDescriptor(
           aData, aDataLength, aIndex);
+#elif defined(MOZ_WIDGET_ANDROID)
+    case FontType::FREETYPE:
+      return UnscaledFontFreeType::CreateFromFontDescriptor(aData, aDataLength,
+                                                            aIndex);
 #endif
     default:
       gfxWarning() << "Invalid type specified for UnscaledFont font descriptor";
@@ -613,7 +633,7 @@ already_AddRefed<UnscaledFont> Factory::CreateUnscaledFontFromFontDescriptor(
 #ifdef XP_DARWIN
 already_AddRefed<ScaledFont> Factory::CreateScaledFontForMacFont(
     CGFontRef aCGFont, const RefPtr<UnscaledFont>& aUnscaledFont, Float aSize,
-    const Color& aFontSmoothingBackgroundColor, bool aUseFontSmoothing,
+    const DeviceColor& aFontSmoothingBackgroundColor, bool aUseFontSmoothing,
     bool aApplySyntheticBold) {
   return MakeAndAddRef<ScaledFontMac>(aCGFont, aUnscaledFont, aSize, false,
                                       aFontSmoothingBackgroundColor,
@@ -885,7 +905,7 @@ RefPtr<IDWriteFactory> Factory::EnsureDWriteFactory() {
 
   mDWriteFactoryInitialized = true;
 
-  HMODULE dwriteModule = LoadLibraryW(L"dwrite.dll");
+  HMODULE dwriteModule = LoadLibrarySystem32(L"dwrite.dll");
   decltype(DWriteCreateFactory)* createDWriteFactory =
       (decltype(DWriteCreateFactory)*)GetProcAddress(dwriteModule,
                                                      "DWriteCreateFactory");
@@ -920,7 +940,7 @@ RefPtr<IDWriteFontCollection> Factory::GetDWriteSystemFonts(bool aUpdate) {
   RefPtr<IDWriteFontCollection> systemFonts;
   HRESULT hr =
       mDWriteFactory->GetSystemFontCollection(getter_AddRefs(systemFonts));
-  if (FAILED(hr)) {
+  if (FAILED(hr) || !systemFonts) {
     // only crash some of the time so those experiencing this problem
     // don't stop using Firefox
     if ((rand() & 0x3f) == 0) {

@@ -35,7 +35,6 @@
 #include "nscore.h"
 #include "nsString.h"
 #include "mozilla/Span.h"
-#include "mozilla/TypeTraits.h"
 
 #ifdef XPCOM_GLUE
 #  error \
@@ -54,7 +53,7 @@ class nsTextFormatter {
                            const char16_t* aFmt, T... aArgs) {
     BoxedValue values[] = {BoxedValue(aArgs)...};
     return vsnprintf(aOut, aOutLen, aFmt,
-                     mozilla::MakeSpan(values, sizeof...(aArgs)));
+                     mozilla::Span(values, sizeof...(aArgs)));
   }
 
   /*
@@ -64,7 +63,7 @@ class nsTextFormatter {
   template <typename... T>
   static void ssprintf(nsAString& aOut, const char16_t* aFmt, T... aArgs) {
     BoxedValue values[] = {BoxedValue(aArgs)...};
-    vssprintf(aOut, aFmt, mozilla::MakeSpan(values, sizeof...(aArgs)));
+    vssprintf(aOut, aFmt, mozilla::Span(values, sizeof...(aArgs)));
   }
 
  private:

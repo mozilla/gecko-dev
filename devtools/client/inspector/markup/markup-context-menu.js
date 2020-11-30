@@ -368,38 +368,11 @@ class MarkupContextMenu {
       "temp" + i;
     }`;
 
-    const options = {
+    const res = await hud.evaluateJSAsync(evalString, {
       selectedNodeActor: this.selection.nodeFront.actorID,
-    };
-    const res = await hud.evaluateJSAsync(evalString, options);
+    });
     hud.setInputValue(res.result);
     this.inspector.emit("console-var-ready");
-  }
-
-  _buildA11YMenuItem(menu) {
-    if (
-      !(this.selection.isElementNode() || this.selection.isTextNode()) ||
-      !Services.prefs.getBoolPref("devtools.accessibility.enabled")
-    ) {
-      return;
-    }
-
-    const showA11YPropsItem = new MenuItem({
-      id: "node-menu-showaccessibilityproperties",
-      label: INSPECTOR_L10N.getStr(
-        "inspectorShowAccessibilityProperties.label"
-      ),
-      click: () => this._showAccessibilityProperties(),
-      disabled: true,
-    });
-
-    // Only attempt to determine if a11y props menu item needs to be enabled if
-    // AccessibilityFront is enabled.
-    if (this.inspector.accessibilityFront.enabled) {
-      this._updateA11YMenuItem(showA11YPropsItem);
-    }
-
-    menu.append(showA11YPropsItem);
   }
 
   _getAttributesSubmenu(isEditableElement) {
@@ -841,7 +814,17 @@ class MarkupContextMenu {
       })
     );
 
-    this._buildA11YMenuItem(menu);
+    if (this.selection.isElementNode() || this.selection.isTextNode()) {
+      menu.append(
+        new MenuItem({
+          id: "node-menu-showaccessibilityproperties",
+          label: INSPECTOR_L10N.getStr(
+            "inspectorShowAccessibilityProperties.label"
+          ),
+          click: () => this._showAccessibilityProperties(),
+        })
+      );
+    }
 
     if (this.selection.nodeFront.customElementLocation) {
       menu.append(
@@ -950,18 +933,6 @@ class MarkupContextMenu {
 
     menu.popup(screenX, screenY, this.toolbox.doc);
     return menu;
-  }
-
-  async _updateA11YMenuItem(menuItem) {
-    const hasA11YProps = await this.walker.hasAccessibilityProperties(
-      this.selection.nodeFront
-    );
-    if (hasA11YProps) {
-      const menuItemEl = Menu.getMenuElementById(menuItem.id, this.toolbox.doc);
-      menuItemEl.disabled = menuItem.disabled = false;
-    }
-
-    this.inspector.emit("node-menu-updated");
   }
 }
 

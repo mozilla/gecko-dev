@@ -15,25 +15,35 @@ typedef uint32_t HashNumber;
 #include "jsfriendapi.h"
 #include "js/Array.h"
 #include "js/ArrayBuffer.h"
+#include "js/CallArgs.h"
+#include "js/CallNonGenericMethod.h"
 #include "js/CompilationAndEvaluation.h"
 #include "js/CompileOptions.h"
 #include "js/ContextOptions.h"
 #include "js/Conversions.h"
 #include "js/Date.h"
+#include "js/experimental/JitInfo.h"
+#include "js/experimental/TypedData.h"
 #include "js/ForOfIterator.h"
+#include "js/friend/WindowProxy.h"
 #include "js/Initialization.h"
 #include "js/MemoryMetrics.h"
 #include "js/PropertySpec.h"
+#include "js/shadow/Object.h"
+#include "js/shadow/ObjectGroup.h"
+#include "js/shadow/Realm.h"
+#include "js/shadow/Zone.h"
 #include "js/SourceText.h"
+#include "js/String.h"
 #include "js/StructuredClone.h"
 #include "js/ValueArray.h"
 #include "js/Warnings.h"
 
 // Replacements for types that are too difficult for rust-bindgen.
 
-/// <div rustbindgen replaces="JS::detail::MaybeWrapped" />
+/// <div rustbindgen replaces="JS::detail::RootedPtr" />
 template <typename T>
-using replaces_MaybeWrapped = T;
+using replaces_RootedPtr = T;
 
 /// <div rustbindgen replaces="JS::MutableHandleIdVector" />
 struct MutableHandleIdVector_Simple {

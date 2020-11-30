@@ -14,14 +14,6 @@ ChromeUtils.defineModuleGetter(
   "resource://gre/modules/WebNavigationFrames.jsm"
 );
 
-function getDocShellOuterWindowId(docShell) {
-  if (!docShell) {
-    return undefined;
-  }
-
-  return docShell.domWindow.windowUtils.outerWindowID;
-}
-
 function loadListener(event) {
   let document = event.target;
   let window = document.defaultView;
@@ -42,8 +34,8 @@ addMessageListener("Extension:DisableWebNavigation", () => {
 
 var CreatedNavigationTargetListener = {
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIObserver,
-    Ci.nsISupportsWeakReference,
+    "nsIObserver",
+    "nsISupportsWeakReference",
   ]),
 
   init() {
@@ -92,10 +84,10 @@ var CreatedNavigationTargetListener = {
 
     const isSourceTab = docShell === sourceDocShell || isSourceTabDescendant;
 
-    const sourceFrameId = WebNavigationFrames.getDocShellFrameId(
-      sourceDocShell
+    const sourceFrameId = WebNavigationFrames.getFrameId(
+      sourceDocShell.browsingContext
     );
-    const createdOuterWindowId = getDocShellOuterWindowId(sourceDocShell);
+    const createdOuterWindowId = sourceDocShell?.outerWindowID;
 
     let url;
     if (props.hasKey("url")) {
@@ -377,9 +369,9 @@ var WebProgressListener = {
   },
 
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIWebProgressListener,
-    Ci.nsIWebProgressListener2,
-    Ci.nsISupportsWeakReference,
+    "nsIWebProgressListener",
+    "nsIWebProgressListener2",
+    "nsISupportsWeakReference",
   ]),
 };
 

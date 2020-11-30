@@ -1,6 +1,8 @@
 #!/bin/bash
-
 set -xe
+
+# Future products supporting Flatpaks will set this accordingly
+: PRODUCT                       "${PRODUCT:=firefox}"
 
 # Required env variables
 
@@ -48,6 +50,14 @@ $CURL -o "${WORKSPACE}/l10n_changesets.json" "$L10N_CHANGESETS"
 locales=$(python3 "$SCRIPT_DIRECTORY/extract_locales_from_l10n_json.py" "${WORKSPACE}/l10n_changesets.json")
 
 DISTRIBUTION_DIR="$SOURCE_DEST/distribution"
+if [[ "$PRODUCT" == "firefox" ]]; then
+    # Get Flatpak configuration
+    PARTNER_CONFIG_DIR="$WORKSPACE/partner_config"
+    git clone https://github.com/mozilla-partners/flatpak.git "$PARTNER_CONFIG_DIR"
+    mv "$PARTNER_CONFIG_DIR/desktop/flatpak/distribution" "$DISTRIBUTION_DIR"
+else
+    mkdir -p "$DISTRIBUTION_DIR"
+fi
 
 mkdir -p "$DISTRIBUTION_DIR/extensions"
 for locale in $locales; do
@@ -57,7 +67,6 @@ done
 
 envsubst < "$SCRIPT_DIRECTORY/org.mozilla.firefox.appdata.xml.in" > "${WORKSPACE}/org.mozilla.firefox.appdata.xml"
 cp -v "$SCRIPT_DIRECTORY/org.mozilla.firefox.desktop" "$WORKSPACE"
-cp -v "$SCRIPT_DIRECTORY/distribution.ini" "$WORKSPACE"
 # Add a group policy file to disable app updates, as those are handled by Flathub
 cp -v "$SCRIPT_DIRECTORY/policies.json" "$WORKSPACE"
 cp -v "$SCRIPT_DIRECTORY/default-preferences.js" "$WORKSPACE"
@@ -80,10 +89,17 @@ name=org.mozilla.firefox
 runtime=org.freedesktop.Platform/${ARCH}/${FREEDESKTOP_VERSION}
 sdk=org.freedesktop.Sdk/${ARCH}/${FREEDESKTOP_VERSION}
 base=app/org.mozilla.Firefox.BaseApp/${ARCH}/${FIREFOX_BASEAPP_CHANNEL}
+
 [Extension org.mozilla.firefox.Locale]
 directory=share/runtime/langpack
 autodelete=true
 locale-subset=true
+
+[Extension org.freedesktop.Platform.ffmpeg-full]
+directory=lib/ffmpeg
+add-ld-path=.
+no-autodownload=true
+version=${FREEDESKTOP_VERSION}
 EOF
 
 cat <<EOF > build/metadata.locale
@@ -98,11 +114,15 @@ appdir=build/files
 install -d "${appdir}/lib/"
 (cd "${appdir}/lib/" && tar jxf "${WORKSPACE}/firefox.tar.bz2")
 install -D -m644 -t "${appdir}/share/appdata" org.mozilla.firefox.appdata.xml
-appstream-compose --prefix="${appdir}" --origin=flatpak --basename=org.mozilla.firefox org.mozilla.firefox
 install -D -m644 -t "${appdir}/share/applications" org.mozilla.firefox.desktop
 for size in 16 32 48 64 128; do
     install -D -m644 "${appdir}/lib/firefox/browser/chrome/icons/default/default${size}.png" "${appdir}/share/icons/hicolor/${size}x${size}/apps/org.mozilla.firefox.png"
 done
+mkdir -p "${appdir}/lib/ffmpeg"
+
+appstream-compose --prefix="${appdir}" --origin=flatpak --basename=org.mozilla.firefox org.mozilla.firefox
+appstream-util mirror-screenshots "${appdir}"/share/app-info/xmls/org.mozilla.firefox.xml.gz "https://dl.flathub.org/repo/screenshots/org.mozilla.firefox-${FLATPAK_BRANCH}" build/screenshots "build/screenshots/org.mozilla.firefox-${FLATPAK_BRANCH}"
+
 # XXX: we used to `install -D` before which automatically created the components
 # of target, now we need to manually do this since we're symlinking
 mkdir -p "${appdir}/lib/firefox/distribution/extensions"
@@ -113,15 +133,18 @@ for locale in $locales; do
     install -D -m644 -t "${appdir}/share/runtime/langpack/${locale:0:2}/" "${DISTRIBUTION_DIR}/extensions/langpack-${locale}@firefox.mozilla.org.xpi"
     ln -sf "/app/share/runtime/langpack/${locale:0:2}/langpack-${locale}@firefox.mozilla.org.xpi" "${appdir}/lib/firefox/distribution/extensions/langpack-${locale}@firefox.mozilla.org.xpi"
 done
-install -D -m644 -t "${appdir}/lib/firefox/distribution" distribution.ini
+install -D -m644 -t "${appdir}/lib/firefox/distribution" "$DISTRIBUTION_DIR/distribution.ini"
 install -D -m644 -t "${appdir}/lib/firefox/distribution" policies.json
 install -D -m644 -t "${appdir}/lib/firefox/browser/defaults/preferences" default-preferences.js
 install -D -m755 launch-script.sh "${appdir}/bin/firefox"
 
 flatpak build-finish build                                      \
-        --share=ipc --socket=x11                                \
+        --share=ipc                                             \
         --share=network                                         \
         --socket=pulseaudio                                     \
+        --socket=x11                                            \
+        --socket=pcsc                                           \
+        --require-version=0.11.1                                \
         --persist=.mozilla                                      \
         --filesystem=xdg-download:rw                            \
         --device=all                                            \
@@ -131,11 +154,14 @@ flatpak build-finish build                                      \
         --talk-name=org.gnome.SessionManager                    \
         --talk-name=org.freedesktop.ScreenSaver                 \
         --talk-name="org.gtk.vfs.*"                             \
+        --talk-name=org.freedesktop.Notifications               \
+        --own-name="org.mpris.MediaPlayer2.firefox.*"           \
         --command=firefox
 
 flatpak build-export --disable-sandbox --no-update-summary --exclude='/share/runtime/langpack/*/*' repo build "$FLATPAK_BRANCH"
 flatpak build-export --disable-sandbox --no-update-summary --metadata=metadata.locale --files=files/share/runtime/langpack repo build "$FLATPAK_BRANCH"
-flatpak build-update-repo repo
+ostree commit --repo=repo --canonical-permissions --branch=screenshots/x86_64 build/screenshots
+flatpak build-update-repo --generate-static-deltas repo
 tar cvfJ flatpak.tar.xz repo
 
 mv -- flatpak.tar.xz "$TARGET_TAR_XZ_FULL_PATH"

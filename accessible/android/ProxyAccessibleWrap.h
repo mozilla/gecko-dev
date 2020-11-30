@@ -59,8 +59,8 @@ class ProxyAccessibleWrap : public AccessibleWrap {
   virtual bool GetSelectionBounds(int32_t* aStartOffset,
                                   int32_t* aEndOffset) override;
 
-  virtual void Pivot(int32_t aGranularity, bool aForward,
-                     bool aInclusive) override;
+  virtual void PivotTo(int32_t aGranularity, bool aForward,
+                       bool aInclusive) override;
 
   virtual void NavigateText(int32_t aGranularity, int32_t aStartOffset,
                             int32_t aEndOffset, bool aForward,
@@ -93,21 +93,18 @@ class DocProxyAccessibleWrap : public ProxyAccessibleWrap {
       : ProxyAccessibleWrap(aProxy) {
     mGenericTypes |= eDocument;
 
-    if (auto parent = ParentDocument()) {
-      mID = AcquireID();
-      parent->AddID(mID, this);
-    } else {
-      // top level
+    if (aProxy->IsTopLevel()) {
       mID = kNoID;
+    } else {
+      mID = AcquireID();
     }
   }
 
   virtual void Shutdown() override {
     if (mID) {
-      auto parent = ParentDocument();
-      if (parent) {
-        MOZ_ASSERT(mID != kNoID, "A non root accessible always has a parent");
-        parent->RemoveID(mID);
+      auto doc = static_cast<DocAccessibleParent*>(Proxy());
+      if (!doc->IsTopLevel()) {
+        MOZ_ASSERT(mID != kNoID, "A non root accessible must have an id");
         ReleaseID(mID);
       }
     }

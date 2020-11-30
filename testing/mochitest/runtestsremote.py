@@ -13,11 +13,10 @@ sys.path.insert(
         os.path.realpath(
             os.path.dirname(__file__))))
 
-from automation import Automation
 from remoteautomation import RemoteAutomation, fennecLogcatFilters
 from runtests import MochitestDesktop, MessageLogger
-from mochitest_options import MochitestArgumentParser
-from mozdevice import ADBDevice, ADBTimeoutError
+from mochitest_options import MochitestArgumentParser, build_obj
+from mozdevice import ADBDeviceFactory, ADBTimeoutError
 from mozscreenshot import dump_screen, dump_device_screen
 import mozinfo
 
@@ -32,7 +31,8 @@ class MochiRemote(MochitestDesktop):
         MochitestDesktop.__init__(self, options.flavor, vars(options))
 
         verbose = False
-        if options.log_tbpl_level == 'debug' or options.log_mach_level == 'debug':
+        if options.log_mach_verbose or options.log_tbpl_level == 'debug' or \
+           options.log_mach_level == 'debug' or options.log_raw_level == 'debug':
             verbose = True
         if hasattr(options, 'log'):
             delattr(options, 'log')
@@ -40,10 +40,12 @@ class MochiRemote(MochitestDesktop):
         self.certdbNew = True
         self.chromePushed = False
 
-        self.device = ADBDevice(adb=options.adbPath or 'adb',
-                                device=options.deviceSerial,
-                                test_root=options.remoteTestRoot,
-                                verbose=verbose)
+        expected = options.app.split('/')[-1]
+        self.device = ADBDeviceFactory(adb=options.adbPath or 'adb',
+                                       device=options.deviceSerial,
+                                       test_root=options.remoteTestRoot,
+                                       verbose=verbose,
+                                       run_as_package=expected)
 
         if options.remoteTestRoot is None:
             options.remoteTestRoot = self.device.test_root
@@ -51,9 +53,9 @@ class MochiRemote(MochitestDesktop):
         self.remoteLogFile = posixpath.join(options.remoteTestRoot, "logs", "mochitest.log")
         logParent = posixpath.dirname(self.remoteLogFile)
         self.device.rm(logParent, force=True, recursive=True)
-        self.device.mkdir(logParent)
+        self.device.mkdir(logParent, parents=True)
 
-        self.remoteProfile = posixpath.join(options.remoteTestRoot, "profile/")
+        self.remoteProfile = posixpath.join(options.remoteTestRoot, "profile")
         self.device.rm(self.remoteProfile, force=True, recursive=True)
 
         self.counts = dict()
@@ -81,13 +83,13 @@ class MochiRemote(MochitestDesktop):
 
         self.remoteMozLog = posixpath.join(options.remoteTestRoot, "mozlog")
         self.device.rm(self.remoteMozLog, force=True, recursive=True)
-        self.device.mkdir(self.remoteMozLog)
+        self.device.mkdir(self.remoteMozLog, parents=True)
 
         self.remoteChromeTestDir = posixpath.join(
             options.remoteTestRoot,
             "chrome")
         self.device.rm(self.remoteChromeTestDir, force=True, recursive=True)
-        self.device.mkdir(self.remoteChromeTestDir)
+        self.device.mkdir(self.remoteChromeTestDir, parents=True)
 
         procName = options.app.split('/')[-1]
         self.device.stop_application(procName)
@@ -136,23 +138,6 @@ class MochiRemote(MochitestDesktop):
                 return path
         return None
 
-    def makeLocalAutomation(self):
-        localAutomation = Automation()
-        localAutomation.IS_WIN32 = False
-        localAutomation.IS_LINUX = False
-        localAutomation.IS_MAC = False
-        localAutomation.UNIXISH = False
-        hostos = sys.platform
-        if (hostos == 'mac' or hostos == 'darwin'):
-            localAutomation.IS_MAC = True
-        elif (hostos == 'linux' or hostos == 'linux2'):
-            localAutomation.IS_LINUX = True
-            localAutomation.UNIXISH = True
-        elif (hostos == 'win32' or hostos == 'win64'):
-            localAutomation.BIN_SUFFIX = ".exe"
-            localAutomation.IS_WIN32 = True
-        return localAutomation
-
     # This seems kludgy, but this class uses paths from the remote host in the
     # options, except when calling up to the base class, which doesn't
     # understand the distinction.  This switches out the remote values for local
@@ -164,11 +149,11 @@ class MochiRemote(MochitestDesktop):
         remoteProfilePath = options.profilePath
         remoteUtilityPath = options.utilityPath
 
-        localAutomation = self.makeLocalAutomation()
         paths = [
             options.xrePath,
-            localAutomation.DIST_BIN,
         ]
+        if build_obj:
+            paths.append(os.path.join(build_obj.topobjdir, "dist", "bin"))
         options.xrePath = self.findPath(paths)
         if options.xrePath is None:
             self.log.error(
@@ -193,7 +178,7 @@ class MochiRemote(MochitestDesktop):
             sys.exit(1)
 
         xpcshell_path = os.path.join(options.utilityPath, xpcshell)
-        if localAutomation.elf_arm(xpcshell_path):
+        if RemoteAutomation.elf_arm(xpcshell_path):
             self.log.error('xpcshell at %s is an ARM binary; please use '
                            'the --utility-path argument to specify the path '
                            'to a desktop version.' % xpcshell_path)
@@ -226,7 +211,7 @@ class MochiRemote(MochitestDesktop):
         if options.testingModulesDir:
             try:
                 self.device.push(options.testingModulesDir, self.remoteModulesDir)
-                self.device.chmod(self.remoteModulesDir, recursive=True, root=True)
+                self.device.chmod(self.remoteModulesDir, recursive=True)
             except Exception:
                 self.log.error(
                     "Automation Error: Unable to copy test modules to device.")
@@ -254,7 +239,7 @@ class MochiRemote(MochitestDesktop):
         # we really need testConfig.js (for browser chrome)
         try:
             self.device.push(options.profilePath, self.remoteProfile)
-            self.device.chmod(self.remoteProfile, recursive=True, root=True)
+            self.device.chmod(self.remoteProfile, recursive=True)
         except Exception:
             self.log.error("Automation Error: Unable to copy profile to device.")
             raise
@@ -326,14 +311,14 @@ class MochiRemote(MochitestDesktop):
         return browserEnv
 
     def runApp(self, *args, **kwargs):
-        """front-end automation.py's `runApp` functionality until FennecRunner is written"""
+        """front-end automation's `runApp` functionality until FennecRunner is written"""
 
-        # automation.py/remoteautomation `runApp` takes the profile path,
+        # remoteautomation `runApp` takes the profile path,
         # whereas runtest.py's `runApp` takes a mozprofile object.
         if 'profileDir' not in kwargs and 'profile' in kwargs:
             kwargs['profileDir'] = kwargs.pop('profile').profile
 
-        # remove args not supported by automation.py
+        # remove args not supported by automation
         kwargs.pop('marionette_args', None)
 
         ret, _ = self.automation.runApp(*args, **kwargs)

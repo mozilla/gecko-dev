@@ -121,7 +121,7 @@ function openBrowserWindowIntl() {
     }
   }
 
-  gBrowserContext.browserWnd = window.docShell.rootTreeItem.domWindow.openDialog(
+  gBrowserContext.browserWnd = window.browsingContext.topChromeWindow.openDialog(
     AppConstants.BROWSER_CHROME_URL,
     "_blank",
     params,
@@ -135,6 +135,11 @@ function openBrowserWindowIntl() {
 
 function startBrowserTests() {
   if (gBrowserContext.startURL) {
+    // Make sure the window is the one loading our URL.
+    if (currentBrowser().contentWindow.location != gBrowserContext.startURL) {
+      setTimeout(startBrowserTests, 0);
+      return;
+    }
     // wait for load
     addA11yLoadEvent(gBrowserContext.testFunc, currentBrowser().contentWindow);
   } else {

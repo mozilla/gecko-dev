@@ -13,7 +13,9 @@ const BROTLI_REQUESTS = 1;
 add_task(async function() {
   const { L10N } = require("devtools/client/netmonitor/src/utils/l10n");
 
-  const { tab, monitor } = await initNetMonitor(BROTLI_URL);
+  const { tab, monitor } = await initNetMonitor(BROTLI_URL, {
+    requestCount: 1,
+  });
   info("Starting test... ");
 
   const { document, store, windowRequire } = monitor.panelWin;
@@ -53,7 +55,7 @@ add_task(async function() {
 
   const wait = waitForDOM(document, ".CodeMirror-code");
   const onResponseContent = monitor.panelWin.api.once(
-    EVENTS.RECEIVED_RESPONSE_CONTENT
+    TEST_EVENTS.RECEIVED_RESPONSE_CONTENT
   );
   store.dispatch(Actions.toggleNetworkDetails());
   EventUtils.sendMouseEvent(

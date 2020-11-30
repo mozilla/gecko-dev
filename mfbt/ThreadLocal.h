@@ -13,9 +13,10 @@
 #  include <pthread.h>
 #endif
 
+#include <type_traits>
+
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/TypeTraits.h"
 
 namespace mozilla {
 
@@ -110,8 +111,8 @@ class ThreadLocalKeyStorage {
   }
 
   inline bool set(const T aValue) {
-    void* h =
-        reinterpret_cast<void*>(static_cast<typename Helper<T>::Type>(aValue));
+    void* h = const_cast<void*>(reinterpret_cast<const void*>(
+        static_cast<typename Helper<T>::Type>(aValue)));
     return TlsSetValue(mKey, h);
   }
 
@@ -135,8 +136,8 @@ class ThreadLocalKeyStorage {
   }
 
   inline bool set(const T aValue) {
-    void* h =
-        reinterpret_cast<void*>(static_cast<typename Helper<T>::Type>(aValue));
+    const void* h = reinterpret_cast<const void*>(
+        static_cast<typename Helper<T>::Type>(aValue));
     return !pthread_setspecific(mKey, h);
   }
 
@@ -184,7 +185,7 @@ class ThreadLocal : public Storage<T> {
 
 template <typename T, template <typename U> class Storage>
 inline bool ThreadLocal<T, Storage>::init() {
-  static_assert(mozilla::IsPointer<T>::value || mozilla::IsIntegral<T>::value,
+  static_assert(std::is_pointer_v<T> || std::is_integral_v<T>,
                 "mozilla::ThreadLocal must be used with a pointer or "
                 "integral type");
   static_assert(sizeof(T) <= sizeof(void*),

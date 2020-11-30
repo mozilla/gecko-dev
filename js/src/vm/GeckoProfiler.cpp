@@ -17,9 +17,9 @@
 #include "jit/BaselineFrame.h"
 #include "jit/BaselineJIT.h"
 #include "jit/JitcodeMap.h"
-#include "jit/JitFrames.h"
-#include "jit/JitRealm.h"
+#include "jit/JitRuntime.h"
 #include "jit/JSJitFrameIter.h"
+#include "js/ProfilingStack.h"
 #include "js/TraceLoggerAPI.h"
 #include "util/StringBuffer.h"
 #include "vm/FrameIter.h"  // js::OnlyJSJitFrameIter
@@ -50,7 +50,8 @@ void GeckoProfilerThread::setProfilingStack(ProfilingStack* profilingStack,
   profilingStackIfEnabled_ = enabled ? profilingStack : nullptr;
 }
 
-void GeckoProfilerRuntime::setEventMarker(void (*fn)(const char*)) {
+void GeckoProfilerRuntime::setEventMarker(void (*fn)(const char*,
+                                                     const char*)) {
   eventMarker_ = fn;
 }
 
@@ -165,7 +166,7 @@ void GeckoProfilerRuntime::enable(bool enabled) {
 
 /* Lookup the string for the function/script, creating one if necessary */
 const char* GeckoProfilerRuntime::profileString(JSContext* cx,
-                                                JSScript* script) {
+                                                BaseScript* script) {
   ProfileStringMap::AddPtr s = strings().lookupForAdd(script);
 
   if (!s) {
@@ -183,7 +184,7 @@ const char* GeckoProfilerRuntime::profileString(JSContext* cx,
   return s->value().get();
 }
 
-void GeckoProfilerRuntime::onScriptFinalized(JSScript* script) {
+void GeckoProfilerRuntime::onScriptFinalized(BaseScript* script) {
   /*
    * This function is called whenever a script is destroyed, regardless of
    * whether profiling has been turned on, so don't invoke a function on an
@@ -196,11 +197,11 @@ void GeckoProfilerRuntime::onScriptFinalized(JSScript* script) {
   }
 }
 
-void GeckoProfilerRuntime::markEvent(const char* event) {
+void GeckoProfilerRuntime::markEvent(const char* event, const char* details) {
   MOZ_ASSERT(enabled());
   if (eventMarker_) {
     JS::AutoSuppressGCAnalysis nogc;
-    eventMarker_(event);
+    eventMarker_(event, details);
   }
 }
 
@@ -275,7 +276,7 @@ void GeckoProfilerThread::exit(JSContext* cx, JSScript* script) {
  */
 /* static */
 UniqueChars GeckoProfilerRuntime::allocProfileString(JSContext* cx,
-                                                     JSScript* script) {
+                                                     BaseScript* script) {
   // Note: this profiler string is regexp-matched by
   // devtools/client/profiler/cleopatra/js/parserWorker.js.
 
@@ -377,7 +378,7 @@ void GeckoProfilerThread::trace(JSTracer* trc) {
 
 void GeckoProfilerRuntime::fixupStringsMapAfterMovingGC() {
   for (ProfileStringMap::Enum e(strings()); !e.empty(); e.popFront()) {
-    JSScript* script = e.front().key();
+    BaseScript* script = e.front().key();
     if (IsForwarded(script)) {
       script = Forwarded(script);
       e.rekeyFront(script);
@@ -388,7 +389,7 @@ void GeckoProfilerRuntime::fixupStringsMapAfterMovingGC() {
 #ifdef JSGC_HASH_TABLE_CHECKS
 void GeckoProfilerRuntime::checkStringsMapAfterMovingGC() {
   for (auto r = strings().all(); !r.empty(); r.popFront()) {
-    JSScript* script = r.front().key();
+    BaseScript* script = r.front().key();
     CheckGCThingAfterMovingGC(script);
     auto ptr = strings().lookup(script);
     MOZ_RELEASE_ASSERT(ptr.found() && &*ptr == &r.front());
@@ -405,10 +406,8 @@ void ProfilingStackFrame::trace(JSTracer* trc) {
 }
 
 GeckoProfilerBaselineOSRMarker::GeckoProfilerBaselineOSRMarker(
-    JSContext* cx,
-    bool hasProfilerFrame MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
+    JSContext* cx, bool hasProfilerFrame)
     : profiler(&cx->geckoProfiler()) {
-  MOZ_GUARD_OBJECT_NOTIFIER_INIT;
   if (!hasProfilerFrame || !cx->runtime()->geckoProfiler().enabled()) {
     profiler = nullptr;
     return;
@@ -501,15 +500,13 @@ JS_FRIEND_API void js::EnableContextProfilingStack(JSContext* cx,
 }
 
 JS_FRIEND_API void js::RegisterContextProfilingEventMarker(
-    JSContext* cx, void (*fn)(const char*)) {
+    JSContext* cx, void (*fn)(const char*, const char*)) {
   MOZ_ASSERT(cx->runtime()->geckoProfiler().enabled());
   cx->runtime()->geckoProfiler().setEventMarker(fn);
 }
 
-AutoSuppressProfilerSampling::AutoSuppressProfilerSampling(
-    JSContext* cx MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
+AutoSuppressProfilerSampling::AutoSuppressProfilerSampling(JSContext* cx)
     : cx_(cx), previouslyEnabled_(cx->isProfilerSamplingEnabled()) {
-  MOZ_GUARD_OBJECT_NOTIFIER_INIT;
   if (previouslyEnabled_) {
     cx_->disableProfilerSampling();
   }
@@ -535,9 +532,9 @@ namespace JS {
     name,
 #define SUBCATEGORY_ENUMS_END_CATEGORY \
   };
-PROFILING_CATEGORY_LIST(SUBCATEGORY_ENUMS_BEGIN_CATEGORY,
-                        SUBCATEGORY_ENUMS_SUBCATEGORY,
-                        SUBCATEGORY_ENUMS_END_CATEGORY)
+MOZ_PROFILING_CATEGORY_LIST(SUBCATEGORY_ENUMS_BEGIN_CATEGORY,
+                            SUBCATEGORY_ENUMS_SUBCATEGORY,
+                            SUBCATEGORY_ENUMS_END_CATEGORY)
 #undef SUBCATEGORY_ENUMS_BEGIN_CATEGORY
 #undef SUBCATEGORY_ENUMS_SUBCATEGORY
 #undef SUBCATEGORY_ENUMS_END_CATEGORY
@@ -552,9 +549,9 @@ PROFILING_CATEGORY_LIST(SUBCATEGORY_ENUMS_BEGIN_CATEGORY,
    uint32_t(ProfilingSubcategory_##category::name), labelAsString},
 #define CATEGORY_INFO_END_CATEGORY
 const ProfilingCategoryPairInfo sProfilingCategoryPairInfo[] = {
-  PROFILING_CATEGORY_LIST(CATEGORY_INFO_BEGIN_CATEGORY,
-                          CATEGORY_INFO_SUBCATEGORY,
-                          CATEGORY_INFO_END_CATEGORY)
+  MOZ_PROFILING_CATEGORY_LIST(CATEGORY_INFO_BEGIN_CATEGORY,
+                              CATEGORY_INFO_SUBCATEGORY,
+                              CATEGORY_INFO_END_CATEGORY)
 };
 #undef CATEGORY_INFO_BEGIN_CATEGORY
 #undef CATEGORY_INFO_SUBCATEGORY

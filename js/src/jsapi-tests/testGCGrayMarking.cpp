@@ -32,10 +32,6 @@ struct GCManagedObjectWeakMap : public ObjectWeakMap {
 namespace JS {
 
 template <>
-struct DeletePolicy<js::GCManagedObjectWeakMap>
-    : public js::GCManagedDeletePolicy<js::GCManagedObjectWeakMap> {};
-
-template <>
 struct MapTypeToRootKind<js::GCManagedObjectWeakMap*> {
   static const JS::RootKind kind = JS::RootKind::Traceable;
 };
@@ -614,8 +610,8 @@ struct ColorCheckFunctor {
 
     // Shapes and symbols are never marked gray.
     jsid id = shape->propid();
-    if (JSID_IS_GCTHING(id) &&
-        !CheckCellColor(JSID_TO_GCTHING(id).asCell(), MarkColor::Black)) {
+    if (id.isGCThing() &&
+        !CheckCellColor(id.toGCCellPtr().asCell(), MarkColor::Black)) {
       return false;
     }
 

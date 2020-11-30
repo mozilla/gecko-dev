@@ -5,6 +5,7 @@
 PKT_SAVED_OVERLAY is the view itself and contains all of the methods to manipute the overlay and messaging.
 It does not contain any logic for saving or communication with the extension or server.
 */
+
 var PKT_SAVED_OVERLAY = function(options) {
   var myself = this;
   this.inited = false;
@@ -20,7 +21,7 @@ var PKT_SAVED_OVERLAY = function(options) {
   this.autocloseTimer = null;
   this.inoverflowmenu = false;
   this.dictJSON = {};
-  this.autocloseTiming = 3500;
+  this.autocloseTiming = 4500;
   this.autocloseTimingFinalState = 2000;
   this.mouseInside = false;
   this.userTags = [];
@@ -55,6 +56,8 @@ var PKT_SAVED_OVERLAY = function(options) {
       myself.startCloseTimer();
       return;
     }
+
+    $(".pkt_ext_subshell").show();
 
     thePKT_SAVED.sendMessage(
       "getSuggestedTags",
@@ -102,6 +105,13 @@ var PKT_SAVED_OVERLAY = function(options) {
     });
     this.wrapper.on("click", function(e) {
       myself.closeValid = false;
+    });
+    $("body").on("keydown", function(e) {
+      var key = e.keyCode || e.which;
+      if (key === 9) {
+        myself.mouseInside = true;
+        myself.stopCloseTimer();
+      }
     });
   };
   this.startCloseTimer = function(manualtime) {
@@ -260,6 +270,9 @@ var PKT_SAVED_OVERLAY = function(options) {
             if (e.which == 37) {
               myself.updateSlidingTagList();
             }
+            if (e.which === 9) {
+              $("a.pkt_ext_learn_more").focus();
+            }
           })
           .on("keypress", "input", function(e) {
             if (e.which == 13) {
@@ -291,14 +304,8 @@ var PKT_SAVED_OVERLAY = function(options) {
       },
       onShowDropdown() {
         if (myself.ho2 !== "show_prompt_preview") {
+          $(".pkt_ext_item_recs").hide(); // hide recs when tag input begins
           thePKT_SAVED.sendMessage("expandSavePanel");
-        }
-      },
-      onHideDropdown() {
-        if (!myself.ho2) {
-          thePKT_SAVED.sendMessage("collapseSavePanel");
-        } else if (myself.ho2 !== "show_prompt_preview") {
-          thePKT_SAVED.sendMessage("resizePanel", { width: 350, height: 200 });
         }
       },
     });
@@ -395,6 +402,7 @@ var PKT_SAVED_OVERLAY = function(options) {
   };
   this.initRemovePageInput = function() {
     $(".pkt_ext_removeitem").click(function(e) {
+      $(".pkt_ext_subshell").hide();
       if ($(this).parents(".pkt_ext_item_actions_disabled").length) {
         e.preventDefault();
         return;
@@ -513,6 +521,52 @@ var PKT_SAVED_OVERLAY = function(options) {
       myself.fillSuggestedTags();
     }
   };
+  this.renderItemRecs = function(data) {
+    if (data?.recommendations?.length) {
+      $("body").addClass("recs_enabled");
+      $(".pkt_ext_subshell").show();
+      // URL encode and append raw image source for Thumbor + CDN
+      data.recommendations = data.recommendations.map(rec => {
+        // Using array notation because there is a key titled `1` (`images` is an object)
+        let rawSource = rec?.item?.top_image_url || rec?.item?.images["1"]?.src;
+
+        // Append UTM to rec URLs (leave existing query strings intact)
+        if (rec?.item?.resolved_url && !rec.item.resolved_url.match(/\?/)) {
+          rec.item.resolved_url = `${rec.item.resolved_url}?utm_source=pocket-ff-recs`;
+        }
+
+        rec.item.encodedThumbURL = rawSource
+          ? encodeURIComponent(rawSource)
+          : null;
+
+        return rec;
+      });
+
+      // This is the ML model used to recommend the story.
+      // Right now this value is the same for all three items returned together,
+      // so we can just use the first item's value for all.
+      const model = data.recommendations[0].experiment;
+      $(".pkt_ext_item_recs").append(Handlebars.templates.item_recs(data));
+
+      // Resize popover to accomodate recs:
+      thePKT_SAVED.sendMessage("resizePanel", {
+        width: 350,
+        height: this.premiumStatus ? 535 : 424, // TODO: Dynamic height based on number of recs
+      });
+
+      $(".pkt_ext_item_recs_link").click(function(e) {
+        e.preventDefault();
+        const url = $(this).attr("href");
+        const position = $(".pkt_ext_item_recs_link").index(this);
+        thePKT_SAVED.sendMessage("openTabWithPocketUrl", {
+          url,
+          model,
+          position,
+        });
+        myself.closePopup();
+      });
+    }
+  };
   this.createSendToMobilePanel = function(ho2, displayName) {
     PKT_SENDTOMOBILE.create(ho2, displayName, myself.premiumDetailsAdded);
   };
@@ -601,7 +655,12 @@ PKT_SAVED_OVERLAY.prototype = {
   createPremiumFunctionality() {
     if (this.premiumStatus && !$(".pkt_ext_suggestedtag_detail").length) {
       this.premiumDetailsAdded = true;
-      $("body").append(Handlebars.templates.saved_premiumshell(this.dictJSON));
+
+      // Append shell for suggested tags
+      $("body .pkt_ext_subshell").prepend(
+        Handlebars.templates.saved_premiumshell(this.dictJSON)
+      );
+
       $(".pkt_ext_initload").append(
         Handlebars.templates.saved_premiumextras(this.dictJSON)
       );
@@ -686,6 +745,10 @@ PKT_SAVED.prototype = {
       }
 
       myself.overlay.showStateSaved(resp);
+    });
+
+    thePKT_SAVED.addMessageListener("renderItemRecs", function(payload) {
+      myself.overlay.renderItemRecs(payload);
     });
   },
 };

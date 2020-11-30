@@ -4,14 +4,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_SVGFETurbulenceElement_h
-#define mozilla_dom_SVGFETurbulenceElement_h
+#ifndef DOM_SVG_SVGFETURBULENCEELEMENT_H_
+#define DOM_SVG_SVGFETURBULENCEELEMENT_H_
 
 #include "SVGAnimatedEnumeration.h"
 #include "SVGAnimatedInteger.h"
 #include "SVGAnimatedNumber.h"
 #include "SVGAnimatedString.h"
-#include "SVGFilters.h"
+#include "mozilla/dom/SVGFilters.h"
 
 nsresult NS_NewSVGFETurbulenceElement(
     nsIContent** aResult, already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
@@ -19,7 +19,7 @@ nsresult NS_NewSVGFETurbulenceElement(
 namespace mozilla {
 namespace dom {
 
-typedef SVGFE SVGFETurbulenceElementBase;
+using SVGFETurbulenceElementBase = SVGFE;
 
 class SVGFETurbulenceElement : public SVGFETurbulenceElementBase {
   friend nsresult(::NS_NewSVGFETurbulenceElement(
@@ -37,7 +37,7 @@ class SVGFETurbulenceElement : public SVGFETurbulenceElementBase {
   virtual bool SubregionIsUnionOfRegions() override { return false; }
 
   virtual FilterPrimitiveDescription GetPrimitiveDescription(
-      nsSVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
+      SVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
       const nsTArray<bool>& aInputsAreTainted,
       nsTArray<RefPtr<SourceSurface>>& aInputImages) override;
   virtual bool AttributeAffectsRendering(int32_t aNameSpaceID,
@@ -89,4 +89,4 @@ class SVGFETurbulenceElement : public SVGFETurbulenceElementBase {
 }  // namespace dom
 }  // namespace mozilla
 
-#endif  // mozilla_dom_SVGFETurbulenceElement_h
+#endif  // DOM_SVG_SVGFETURBULENCEELEMENT_H_

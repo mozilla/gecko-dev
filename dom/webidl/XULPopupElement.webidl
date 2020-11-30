@@ -143,6 +143,12 @@ interface XULPopupElement : XULElement
   readonly attribute Node? triggerNode;
 
   /**
+   * True if the popup is anchored to a point or rectangle. False if it
+   * appears at a fixed screen coordinate.
+   */
+  readonly attribute boolean isAnchored;
+
+  /**
    * Retrieve the anchor that was specified to openPopup or for menupopups in a
    * menu, the parent menu.
    */
@@ -173,12 +179,6 @@ interface XULPopupElement : XULElement
    * Size the popup to the given dimensions
    */
   void sizeTo(long width, long height);
-
-  /** Returns the alignment position where the popup has appeared relative to its
-   *  anchor node or point, accounting for any flipping that occurred.
-   */
-  readonly attribute DOMString alignmentPosition;
-  readonly attribute long alignmentOffset;
 
   void setConstraintRect(DOMRectReadOnly rect);
 };

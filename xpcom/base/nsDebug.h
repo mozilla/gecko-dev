@@ -17,6 +17,7 @@
 #include <stdarg.h>
 
 #ifdef DEBUG
+#  include "mozilla/ErrorNames.h"
 #  include "mozilla/IntegerPrintfMacros.h"
 #  include "mozilla/Printf.h"
 #endif
@@ -38,7 +39,7 @@
  *
  *   Unused << NS_WARN_IF(NS_FAILED(FnWithSideEffects());
  *
- * (The |Unused <<| is necessary because of the MOZ_MUST_USE annotation.)
+ * (The |Unused <<| is necessary because of the [[nodiscard]] annotation.)
  *
  * However, note that the argument to this macro is evaluated in all builds. If
  * you just want a warning assertion, it is better to use NS_WARNING_ASSERTION
@@ -50,8 +51,8 @@
  */
 #ifdef __cplusplus
 #  ifdef DEBUG
-inline MOZ_MUST_USE bool NS_warn_if_impl(bool aCondition, const char* aExpr,
-                                         const char* aFile, int32_t aLine) {
+[[nodiscard]] inline bool NS_warn_if_impl(bool aCondition, const char* aExpr,
+                                          const char* aFile, int32_t aLine) {
   if (MOZ_UNLIKELY(aCondition)) {
     NS_DebugBreak(NS_DEBUG_WARNING, nullptr, aExpr, aFile, aLine);
   }
@@ -247,18 +248,22 @@ inline void MOZ_PretendNoReturn() MOZ_PRETEND_NORETURN_FOR_STATIC_ANALYSIS {}
 
 #if defined(DEBUG) && !defined(XPCOM_GLUE_AVOID_NSPR)
 
-#  define NS_ENSURE_SUCCESS_BODY(res, ret)            \
-    mozilla::SmprintfPointer msg = mozilla::Smprintf( \
-        "NS_ENSURE_SUCCESS(%s, %s) failed with "      \
-        "result 0x%" PRIX32,                          \
-        #res, #ret, static_cast<uint32_t>(__rv));     \
+#  define NS_ENSURE_SUCCESS_BODY(res, ret)                         \
+    const char* name = mozilla::GetStaticErrorName(__rv);          \
+    mozilla::SmprintfPointer msg = mozilla::Smprintf(              \
+        "NS_ENSURE_SUCCESS(%s, %s) failed with "                   \
+        "result 0x%" PRIX32 "%s%s%s",                              \
+        #res, #ret, static_cast<uint32_t>(__rv), name ? " (" : "", \
+        name ? name : "", name ? ")" : "");                        \
     NS_WARNING(msg.get());
 
-#  define NS_ENSURE_SUCCESS_BODY_VOID(res)            \
-    mozilla::SmprintfPointer msg = mozilla::Smprintf( \
-        "NS_ENSURE_SUCCESS_VOID(%s) failed with "     \
-        "result 0x%" PRIX32,                          \
-        #res, static_cast<uint32_t>(__rv));           \
+#  define NS_ENSURE_SUCCESS_BODY_VOID(res)                                     \
+    const char* name = mozilla::GetStaticErrorName(__rv);                      \
+    mozilla::SmprintfPointer msg = mozilla::Smprintf(                          \
+        "NS_ENSURE_SUCCESS_VOID(%s) failed with "                              \
+        "result 0x%" PRIX32 "%s%s%s",                                          \
+        #res, static_cast<uint32_t>(__rv), name ? " (" : "", name ? name : "", \
+        name ? ")" : "");                                                      \
     NS_WARNING(msg.get());
 
 #else
@@ -365,6 +370,15 @@ void vprintf_stderr(const char* aFmt, va_list aArgs) MOZ_FORMAT_PRINTF(1, 0);
  * (Producing multiple lines at once is fine.)
  */
 void fprintf_stderr(FILE* aFile, const char* aFmt, ...) MOZ_FORMAT_PRINTF(2, 3);
+
+/*
+ * print_stderr and fprint_stderr are like printf_stderr and fprintf_stderr,
+ * except they deal with Android logcat line length limitations. They do this
+ * by printing individual lines out of the provided stringstream using separate
+ * calls to logcat.
+ */
+void print_stderr(std::stringstream& aStr);
+void fprint_stderr(FILE* aFile, std::stringstream& aStr);
 
 #ifdef __cplusplus
 }

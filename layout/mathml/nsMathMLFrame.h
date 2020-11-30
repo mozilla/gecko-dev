@@ -11,7 +11,6 @@
 #include "nsFontMetrics.h"
 #include "nsMathMLOperators.h"
 #include "nsIMathMLFrame.h"
-#include "nsLayoutUtils.h"
 #include "nsBoundingMetrics.h"
 #include "nsIFrame.h"
 
@@ -90,13 +89,6 @@ class nsMathMLFrame : public nsIMathMLFrame {
 
   bool IsMrowLike() override { return false; }
 
-  // helper to give a ComputedStyle suitable for doing the stretching to the
-  // MathMLChar. Frame classes that use this should make the extra ComputedStyle
-  // accessible to the Style System via Get/Set AdditionalmComputedStyle.
-  static void ResolveMathMLCharStyle(
-      nsPresContext* aPresContext, nsIContent* aContent,
-      mozilla::ComputedStyle* aParenComputedStyle, nsMathMLChar* aMathMLChar);
-
   // helper to get the mEmbellishData of a frame
   // The MathML REC precisely defines an "embellished operator" as:
   // - an <mo> element;
@@ -168,18 +160,10 @@ class nsMathMLFrame : public nsIMathMLFrame {
 
   // helper methods for getting sup/subdrop's from a child
   static void GetSubDropFromChild(nsIFrame* aChild, nscoord& aSubDrop,
-                                  float aFontSizeInflation) {
-    RefPtr<nsFontMetrics> fm =
-        nsLayoutUtils::GetFontMetricsForFrame(aChild, aFontSizeInflation);
-    GetSubDrop(fm, aSubDrop);
-  }
+                                  float aFontSizeInflation);
 
   static void GetSupDropFromChild(nsIFrame* aChild, nscoord& aSupDrop,
-                                  float aFontSizeInflation) {
-    RefPtr<nsFontMetrics> fm =
-        nsLayoutUtils::GetFontMetricsForFrame(aChild, aFontSizeInflation);
-    GetSupDrop(fm, aSupDrop);
-  }
+                                  float aFontSizeInflation);
 
   static void GetSkewCorrectionFromChild(nsIFrame* aChild,
                                          nscoord& aSkewCorrection) {
@@ -238,7 +222,7 @@ class nsMathMLFrame : public nsIMathMLFrame {
     // should switch to this API in order to scale with changes of TextZoom
     emHeight = fm->EmHeight();
 #else
-    emHeight = NSToCoordRound(float(fm->Font().size));
+    emHeight = fm->Font().size.ToAppUnits();
 #endif
   }
 

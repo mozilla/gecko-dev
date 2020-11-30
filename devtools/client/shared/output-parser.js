@@ -16,12 +16,19 @@ const STYLE_INSPECTOR_PROPERTIES =
 const { LocalizationHelper } = require("devtools/shared/l10n");
 const STYLE_INSPECTOR_L10N = new LocalizationHelper(STYLE_INSPECTOR_PROPERTIES);
 
+const CONIC_GRADIENT_ENABLED = Services.prefs.getBoolPref(
+  "layout.css.conic-gradient.enabled"
+);
+
 // Functions that accept an angle argument.
 const ANGLE_TAKING_FUNCTIONS = [
   "linear-gradient",
   "-moz-linear-gradient",
   "repeating-linear-gradient",
   "-moz-repeating-linear-gradient",
+  ...(CONIC_GRADIENT_ENABLED
+    ? ["conic-gradient", "repeating-conic-gradient"]
+    : []),
   "rotate",
   "rotateX",
   "rotateY",
@@ -50,6 +57,9 @@ const COLOR_TAKING_FUNCTIONS = [
   "-moz-radial-gradient",
   "repeating-radial-gradient",
   "-moz-repeating-radial-gradient",
+  ...(CONIC_GRADIENT_ENABLED
+    ? ["conic-gradient", "repeating-conic-gradient"]
+    : []),
   "drop-shadow",
 ];
 // Functions that accept a shape argument.
@@ -198,16 +208,11 @@ OutputParser.prototype = {
       } else if (
         token.tokenType === "function" &&
         token.text === "var" &&
-        options.isVariableInUse
+        options.getVariableValue
       ) {
         sawVariable = true;
-        const variableNode = this._parseVariable(
-          token,
-          text,
-          tokenStream,
-          options
-        );
-        functionData.push(variableNode);
+        const { node } = this._parseVariable(token, text, tokenStream, options);
+        functionData.push(node);
       } else if (token.tokenType === "function") {
         ++depth;
       }
@@ -215,7 +220,7 @@ OutputParser.prototype = {
       if (
         token.tokenType !== "function" ||
         token.text !== "var" ||
-        !options.isVariableInUse
+        !options.getVariableValue
       ) {
         functionData.push(text.substring(token.startOffset, token.endOffset));
       }
@@ -242,10 +247,11 @@ OutputParser.prototype = {
    * @param  {Object} options
    *         The options object in use; @see _mergeOptions.
    * @return {Object}
-   *         A node for the variable, with the appropriate text and
-   *         title. Eg. a span with "var(--var1)" as the textContent
-   *         and a title for --var1 like "--var1 = 10" or
-   *         "--var1 is not set".
+   *         - node: A node for the variable, with the appropriate text and
+   *           title. Eg. a span with "var(--var1)" as the textContent
+   *           and a title for --var1 like "--var1 = 10" or
+   *           "--var1 is not set".
+   *         - value: The value for the variable.
    */
   _parseVariable: function(initialToken, text, tokenStream, options) {
     // Handle the "var(".
@@ -273,7 +279,7 @@ OutputParser.prototype = {
 
     // Get the variable value if it is in use.
     if (tokens && tokens.length === 1) {
-      varValue = options.isVariableInUse(tokens[0].text);
+      varValue = options.getVariableValue(tokens[0].text);
     }
 
     // Get the variable name.
@@ -320,7 +326,7 @@ OutputParser.prototype = {
     }
     variableNode.appendChild(this.doc.createTextNode(")"));
 
-    return variableNode;
+    return { node: variableNode, value: varValue };
   },
 
   /**
@@ -396,14 +402,25 @@ OutputParser.prototype = {
               );
             }
             ++parenDepth;
-          } else if (token.text === "var" && options.isVariableInUse) {
-            const variableNode = this._parseVariable(
+          } else if (token.text === "var" && options.getVariableValue) {
+            const { node: variableNode, value } = this._parseVariable(
               token,
               text,
               tokenStream,
               options
             );
-            this.parsed.push(variableNode);
+            if (
+              value &&
+              colorOK() &&
+              colorUtils.isValidCSSColor(value, this.cssColor4)
+            ) {
+              this._appendColor(value, {
+                ...options,
+                variableContainer: variableNode,
+              });
+            } else {
+              this.parsed.push(variableNode);
+            }
           } else {
             const { functionData, sawVariable } = this._parseMatchingParens(
               text,
@@ -1497,12 +1514,13 @@ OutputParser.prototype = {
         }
 
         // The swatch is a <span> instead of a <button> intentionally. See Bug 1597125.
-        // It is made keyboard accessbile via `tabindex` and has keydown handlers
+        // It is made keyboard accessible via `tabindex` and has keydown handlers
         // attached for pressing SPACE and RETURN in SwatchBasedEditorTooltip.js
         const swatch = this._createNode("span", attributes);
         this.colorSwatches.set(swatch, colorObj);
         swatch.addEventListener("mousedown", this._onColorSwatchMouseDown);
         EventEmitter.decorate(swatch);
+
         container.appendChild(swatch);
       }
 
@@ -1516,15 +1534,27 @@ OutputParser.prototype = {
       color = colorObj.toString();
       container.dataset.color = color;
 
-      const value = this._createNode(
-        "span",
-        {
-          class: options.colorClass,
-        },
-        color
-      );
+      // Next we create the markup to show the value of the property.
+      if (options.variableContainer) {
+        // If we are creating a color swatch for a CSS variable we simply reuse
+        // the markup created for the variableContainer.
+        if (options.colorClass) {
+          options.variableContainer.classList.add(options.colorClass);
+        }
+        container.appendChild(options.variableContainer);
+      } else {
+        // Otherwise we create a new element with the `color` as textContent.
+        const value = this._createNode(
+          "span",
+          {
+            class: options.colorClass,
+          },
+          color
+        );
 
-      container.appendChild(value);
+        container.appendChild(value);
+      }
+
       this.parsed.push(container);
     } else {
       this._appendTextNode(color);
@@ -1580,6 +1610,7 @@ OutputParser.prototype = {
     const val = color.nextColorUnit();
 
     swatch.nextElementSibling.textContent = val;
+    swatch.parentNode.dataset.color = val;
     swatch.emit("unit-change", val);
   },
 
@@ -1846,7 +1877,7 @@ OutputParser.prototype = {
    *           - fontFamilyClass: ""    // The class to be used for font families.
    *           - baseURI: undefined     // A string used to resolve
    *                                    // relative links.
-   *           - isVariableInUse        // A function taking a single
+   *           - getVariableValue       // A function taking a single
    *                                    // argument, the name of a variable.
    *                                    // This should return the variable's
    *                                    // value, if it is in use; or null.
@@ -1875,7 +1906,7 @@ OutputParser.prototype = {
       urlClass: "",
       fontFamilyClass: "",
       baseURI: undefined,
-      isVariableInUse: null,
+      getVariableValue: null,
       unmatchedVariableClass: null,
     };
 

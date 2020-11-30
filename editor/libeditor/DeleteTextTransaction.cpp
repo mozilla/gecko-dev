@@ -5,6 +5,7 @@
 
 #include "DeleteTextTransaction.h"
 
+#include "HTMLEditUtils.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/EditorBase.h"
 #include "mozilla/EditorDOMPoint.h"
@@ -94,28 +95,29 @@ bool DeleteTextTransaction::CanDoIt() const {
   if (NS_WARN_IF(!mTextNode) || NS_WARN_IF(!mEditorBase)) {
     return false;
   }
-  return mEditorBase->IsModifiableNode(*mTextNode);
+  return mEditorBase->IsTextEditor() ||
+         HTMLEditUtils::IsSimplyEditableNode(*mTextNode);
 }
 
-MOZ_CAN_RUN_SCRIPT_BOUNDARY
-NS_IMETHODIMP
-DeleteTextTransaction::DoTransaction() {
-  if (NS_WARN_IF(!mEditorBase) || NS_WARN_IF(!mTextNode)) {
+NS_IMETHODIMP DeleteTextTransaction::DoTransaction() {
+  if (NS_WARN_IF(!CanDoIt())) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
   // Get the text that we're about to delete
-  ErrorResult err;
-  mTextNode->SubstringData(mOffset, mLengthToDelete, mDeletedText, err);
-  if (NS_WARN_IF(err.Failed())) {
-    return err.StealNSResult();
+  ErrorResult error;
+  mTextNode->SubstringData(mOffset, mLengthToDelete, mDeletedText, error);
+  if (error.Failed()) {
+    NS_WARNING("Text::SubstringData() failed");
+    return error.StealNSResult();
   }
 
-  RefPtr<EditorBase> editorBase = mEditorBase;
-  RefPtr<Text> textNode = mTextNode;
-  editorBase->DoDeleteText(*textNode, mOffset, mLengthToDelete, err);
-  if (NS_WARN_IF(err.Failed())) {
-    return err.StealNSResult();
+  OwningNonNull<EditorBase> editorBase = *mEditorBase;
+  OwningNonNull<Text> textNode = *mTextNode;
+  editorBase->DoDeleteText(textNode, mOffset, mLengthToDelete, error);
+  if (error.Failed()) {
+    NS_WARNING("EditorBase::DoDeleteText() failed");
+    return error.StealNSResult();
   }
 
   editorBase->RangeUpdaterRef().SelAdjDeleteText(textNode, mOffset,
@@ -129,26 +131,23 @@ DeleteTextTransaction::DoTransaction() {
   if (NS_WARN_IF(!selection)) {
     return NS_ERROR_FAILURE;
   }
-  ErrorResult error;
-  selection->Collapse(EditorRawDOMPoint(textNode, mOffset), error);
-  if (NS_WARN_IF(error.Failed())) {
-    return error.StealNSResult();
-  }
-  return NS_OK;
+  selection->CollapseInLimiter(EditorRawDOMPoint(textNode, mOffset), error);
+  NS_WARNING_ASSERTION(!error.Failed(),
+                       "Selection::CollapseInLimiter() failed");
+  return error.StealNSResult();
 }
 
 // XXX: We may want to store the selection state and restore it properly.  Was
 //     it an insertion point or an extended selection?
-MOZ_CAN_RUN_SCRIPT_BOUNDARY
-NS_IMETHODIMP
-DeleteTextTransaction::UndoTransaction() {
-  if (NS_WARN_IF(!mTextNode) || NS_WARN_IF(!mEditorBase)) {
-    return NS_ERROR_NOT_INITIALIZED;
+NS_IMETHODIMP DeleteTextTransaction::UndoTransaction() {
+  if (NS_WARN_IF(!CanDoIt())) {
+    return NS_ERROR_NOT_AVAILABLE;
   }
   RefPtr<EditorBase> editorBase = mEditorBase;
   RefPtr<Text> textNode = mTextNode;
   ErrorResult error;
   editorBase->DoInsertText(*textNode, mOffset, mDeletedText, error);
+  NS_WARNING_ASSERTION(!error.Failed(), "EditorBase::DoInsertText() failed");
   return error.StealNSResult();
 }
 

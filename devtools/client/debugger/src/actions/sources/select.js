@@ -19,6 +19,7 @@ import { closeActiveSearch, updateActiveFileSearch } from "../ui";
 import { togglePrettyPrint } from "./prettyPrint";
 import { addTab, closeTab } from "../tabs";
 import { loadSourceText } from "./loadSourceText";
+import { mapDisplayNames } from "../pause";
 import { setBreakableLines } from ".";
 
 import { prefs } from "../../utils/prefs";
@@ -39,16 +40,19 @@ import {
 import type {
   SourceLocation,
   PartialPosition,
+  SourceId,
   Source,
   Context,
+  URL,
 } from "../../types";
 import type { ThunkArgs } from "../types";
+import type { SourceAction } from "../types/SourceAction";
 
 export const setSelectedLocation = (
   cx: Context,
   source: Source,
   location: SourceLocation
-) => ({
+): SourceAction => ({
   type: "SET_SELECTED_LOCATION",
   cx,
   source,
@@ -57,17 +61,17 @@ export const setSelectedLocation = (
 
 export const setPendingSelectedLocation = (
   cx: Context,
-  url: string,
+  url: URL,
   options?: PartialPosition
-) => ({
+): SourceAction => ({
   type: "SET_PENDING_SELECTED_LOCATION",
   cx,
   url,
-  line: options ? options.line : null,
-  column: options ? options.column : null,
+  line: options?.line,
+  column: options?.column,
 });
 
-export const clearSelectedLocation = (cx: Context) => ({
+export const clearSelectedLocation = (cx: Context): SourceAction => ({
   type: "CLEAR_SELECTED_LOCATION",
   cx,
 });
@@ -85,7 +89,7 @@ export const clearSelectedLocation = (cx: Context) => ({
  */
 export function selectSourceURL(
   cx: Context,
-  url: string,
+  url: URL,
   options?: PartialPosition
 ) {
   return async ({ dispatch, getState, sourceMaps }: ThunkArgs) => {
@@ -106,7 +110,7 @@ export function selectSourceURL(
  */
 export function selectSource(
   cx: Context,
-  sourceId: string,
+  sourceId: SourceId,
   options: PartialPosition = {}
 ) {
   return async ({ dispatch }: ThunkArgs) => {
@@ -156,7 +160,7 @@ export function selectLocation(
       source = getSourceFromId(getState(), location.sourceId);
     }
 
-    if (tabExists(getState(), source.id)) {
+    if (!tabExists(getState(), source.id)) {
       dispatch(addTab(source));
     }
 
@@ -185,8 +189,12 @@ export function selectLocation(
       dispatch(closeTab(cx, loadedSource));
     }
 
-    dispatch(setSymbols({ cx, source: loadedSource }));
+    await dispatch(setSymbols({ cx, source: loadedSource }));
     dispatch(setInScopeLines(cx));
+
+    if (cx.isPaused) {
+      await dispatch(mapDisplayNames(cx));
+    }
 
     // If a new source is selected update the file search results
     const newSource = getSelectedSource(getState());

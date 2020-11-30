@@ -10,7 +10,6 @@
 #include <functional>
 
 #include "mozilla/UniquePtr.h"
-#include "mozilla/ipc/Shmem.h"
 #include "base/process.h"
 #include "nsExceptionHandler.h"
 #include "nsThreadUtils.h"
@@ -20,16 +19,14 @@ namespace mozilla {
 namespace ipc {
 
 // This is the newer replacement for CrashReporterParent. It is created in
-// response to a InitCrashReporter message on a top-level actor, and simply
-// holds the metadata shmem alive until the process ends. When the process
-// terminates abnormally, the top-level should call GenerateCrashReport to
-// automatically integrate metadata.
+// response to a InitCrashReporter message on a top-level actor. When the
+// process terminates abnormally, the top-level should call GenerateCrashReport
+// to automatically integrate metadata.
 class CrashReporterHost {
-  typedef mozilla::ipc::Shmem Shmem;
   typedef CrashReporter::AnnotationTable AnnotationTable;
 
  public:
-  CrashReporterHost(GeckoProcessType aProcessType, const Shmem& aShmem,
+  CrashReporterHost(GeckoProcessType aProcessType,
                     CrashReporter::ThreadId aThreadId);
 
   // Helper function for generating a crash report for a process that probably
@@ -94,6 +91,14 @@ class CrashReporterHost {
     return mExtraAnnotations[CrashReporter::Annotation::additional_minidumps];
   }
 
+  // Return `true` if this crash reporter has been identified as a likely OOM.
+  //
+  // At the time of this writing, OOMs detection is considered reliable under
+  // Windows but other platforms quite often return false negatives.
+  //
+  // `CrashReporterHost::FinalizeCrashReport()` MUST have been called already.
+  bool IsLikelyOOM();
+
   // This is a static helper function to notify the crash service that a
   // crash has occurred and record the crash with telemetry. This can be called
   // from any thread, and if not called from the main thread, will post a
@@ -113,7 +118,6 @@ class CrashReporterHost {
 
  private:
   GeckoProcessType mProcessType;
-  Shmem mShmem;
   CrashReporter::ThreadId mThreadId;
   time_t mStartTime;
   AnnotationTable mExtraAnnotations;

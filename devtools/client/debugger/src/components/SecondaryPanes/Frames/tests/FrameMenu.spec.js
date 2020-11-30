@@ -7,7 +7,7 @@
 import FrameMenu from "../FrameMenu";
 import { kebabCase } from "lodash";
 
-import { showMenu } from "devtools-contextmenu";
+import { showMenu } from "../../../../context-menu/menu";
 import { copyToTheClipboard } from "../../../../utils/clipboard";
 import {
   makeMockFrame,
@@ -15,7 +15,7 @@ import {
   mockthreadcx,
 } from "../../../../utils/test-mockup";
 
-jest.mock("devtools-contextmenu", () => ({ showMenu: jest.fn() }));
+jest.mock("../../../../context-menu/menu", () => ({ showMenu: jest.fn() }));
 jest.mock("../../../../utils/clipboard", () => ({
   copyToTheClipboard: jest.fn(),
 }));
@@ -43,6 +43,7 @@ describe("FrameMenu", () => {
       toggleFrameworkGrouping,
       toggleBlackbox: jest.fn(),
       copyToTheClipboard,
+      restart: jest.fn(),
     };
     emptyFrame = {};
   });
@@ -52,10 +53,11 @@ describe("FrameMenu", () => {
   });
 
   it("sends three element in menuOpts to showMenu if source is present", () => {
+    const restartFrameId = generateMockId("restartFrame");
     const sourceId = generateMockId("copySourceUri2");
     const stacktraceId = generateMockId("copyStackTrace");
     const frameworkGroupingId = generateMockId("framework.enableGrouping");
-    const blackBoxId = generateMockId("sourceFooter.blackbox");
+    const blackBoxId = generateMockId("sourceFooter.ignore");
 
     FrameMenu(
       mockFrame,
@@ -69,6 +71,7 @@ describe("FrameMenu", () => {
     expect(showMenu).toHaveBeenCalledWith(mockEvent, receivedArray);
     const receivedArrayIds = receivedArray.map(item => item.id);
     expect(receivedArrayIds).toEqual([
+      restartFrameId,
       frameworkGroupingId,
       sourceId,
       blackBoxId,

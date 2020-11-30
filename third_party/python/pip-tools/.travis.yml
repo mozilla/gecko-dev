@@ -6,49 +6,27 @@ python:
   - "3.5"
   - "3.6"
   - "3.7"
+  - "3.8"
 
 env:
   # NOTE: keep this in sync with envlist in tox.ini for tox-travis.
-  - PIP=8.1.1
-  - PIP=9.0.1
-  - PIP=9.0.3
-  - PIP=10.0.1
-  - PIP=18.0
-  - PIP=19.0
   - PIP=latest
-  - PIP=master
+  - PIP=20.2  # TODO: update to 20.1 after pip-20.2 being released
+  - PIP=20.0
 
-cache: pip
+cache: false
 install:
-  - travis_retry pip install tox-travis
+  - travis_retry python -m pip install -U tox-travis virtualenv
 script:
   - tox
 
 stages:
-- baseline
 - test
 - name: deploy
   if: repo = jazzband/pip-tools AND tag IS present
 
 jobs:
-  exclude:
-    - python: "pypy3.5-6.0"
-      env: PIP=8.1.1
-
-    # Baseline jobs (included there/below).
-    - env: PIP=latest
-      python: "3.7"
-    - env: PIP=latest
-      python: "2.7"
-
   include:
-    # Baseline stage to abort early.
-    - stage: baseline
-      env: PIP=latest
-      python: "3.7"
-    - env: PIP=latest
-      python: "2.7"
-
     # QA checks.
     - env: TOXENV=checkqa
       python: 3.7
@@ -59,11 +37,6 @@ jobs:
     - env: TOXENV=readme
       python: 2.7
       after_success: skip  # No need coverage
-
-    # Default stage (used with matrix).
-    - stage: test
-      python: 3.8-dev
-      env: PIP=latest
 
     # Only test pypy/pypy3 with latest pip.
     - env: PIP=latest
@@ -89,11 +62,10 @@ jobs:
           repo: jazzband/pip-tools
   allow_failures:
     - env: PIP=master
-    - python: 3.8-dev
 
 after_success:
   - travis_retry pip install codecov coveralls
-  - codecov -n "py${TRAVIS_PYTHON_VERSION}-pip${PIP}-${TRAVIS_OS_NAME}"
+  - travis_retry codecov --required -n "py${TRAVIS_PYTHON_VERSION}-pip${PIP}-${TRAVIS_OS_NAME}"
   - "COVERALLS_PARALLEL=true coveralls"
 
 notifications:

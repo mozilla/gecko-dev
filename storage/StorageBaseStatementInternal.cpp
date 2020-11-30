@@ -177,10 +177,10 @@ StorageBaseStatementInternal::ExecuteAsync(
   StatementData data;
   nsresult rv = getAsynchronousStatementData(data);
   NS_ENSURE_SUCCESS(rv, rv);
-  NS_ENSURE_TRUE(stmts.AppendElement(data), NS_ERROR_OUT_OF_MEMORY);
+  stmts.AppendElement(data);
 
   // Dispatch to the background
-  return AsyncExecuteStatements::execute(stmts, mDBConnection,
+  return AsyncExecuteStatements::execute(std::move(stmts), mDBConnection,
                                          mNativeConnection, aCallback, _stmt);
 }
 

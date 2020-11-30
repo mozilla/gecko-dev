@@ -18,17 +18,21 @@ import android.os.Bundle;
 import android.os.LocaleList;
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.support.annotation.AnyThread;
-import android.support.annotation.IntDef;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.AnyThread;
+import androidx.annotation.IntDef;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import android.text.TextUtils;
+import android.util.Log;
 
 import org.mozilla.gecko.EventDispatcher;
+import org.mozilla.gecko.GeckoSystemStateListener;
 import org.mozilla.gecko.util.GeckoBundle;
 
 @AnyThread
 public final class GeckoRuntimeSettings extends RuntimeSettings {
+    private static final String LOGTAG = "GeckoRuntimeSettings";
+
     /**
      * Settings builder used to construct the settings object.
      */
@@ -47,7 +51,11 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
          * @param use A flag determining whether multiprocess should be enabled.
          *            Default is true.
          * @return This Builder instance.
+         *
+         * @deprecated This method will be removed in GeckoView 82, at which point GeckoView will
+         *             only operate in multiprocess mode.
          */
+        @Deprecated // Bug 1650118
         public @NonNull Builder useMultiprocess(final boolean use) {
             getSettings().mUseMultiprocess.set(use);
             return this;
@@ -281,6 +289,20 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
         }
 
         /**
+         * Set whether login forms should be filled automatically if only one
+         * viable candidate is provided via
+         * {@link Autocomplete.LoginStorageDelegate#onLoginFetch onLoginFetch}.
+         *
+         * @param enabled A flag determining whether login autofill should be
+         *                enabled.
+         * @return The builder instance.
+         */
+        public @NonNull Builder loginAutofillEnabled(final boolean enabled) {
+            getSettings().setLoginAutofillEnabled(enabled);
+            return this;
+        }
+
+        /**
          * When set, the specified {@link android.app.Service} will be started by
          * an {@link android.content.Intent} with action {@link GeckoRuntime#ACTION_CRASHED} when
          * a crash is encountered. Crash details can be found in the Intent extras, such as
@@ -329,6 +351,7 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
             return this;
         }
 
+        @SuppressWarnings("checkstyle:javadocmethod")
         public @NonNull Builder contentBlocking(
                 final @NonNull ContentBlocking.Settings cb) {
             getSettings().mContentBlocking = cb;
@@ -343,7 +366,7 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
          * @return This Builder instance.
          */
         public @NonNull Builder preferredColorScheme(final @ColorScheme int scheme) {
-            getSettings().mPreferredColorScheme.set(scheme);
+            getSettings().setPreferredColorScheme(scheme);
             return this;
         }
 
@@ -443,6 +466,7 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
 
     /* package */ ContentBlocking.Settings mContentBlocking;
 
+    @SuppressWarnings("checkstyle:javadocmethod")
     public @NonNull ContentBlocking.Settings getContentBlocking() {
         return mContentBlocking;
     }
@@ -461,8 +485,6 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
         "font.size.systemFontScale", 100);
     /* package */ final Pref<Integer> mFontInflationMinTwips = new Pref<>(
         "font.size.inflation.minTwips", 0);
-    /* package */ final Pref<Integer> mPreferredColorScheme = new Pref<>(
-        "ui.systemUsesDarkTheme", -1);
     /* package */ final Pref<Boolean> mInputAutoZoom = new Pref<>(
             "formhelper.autozoom", true);
     /* package */ final Pref<Boolean> mDoubleTapZooming = new Pref<>(
@@ -483,6 +505,10 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
             "browser.ui.zoom.force-user-scalable", false);
     /* package */ final Pref<Boolean> mUseMultiprocess = new Pref<>(
             "browser.tabs.remote.autostart", true);
+    /* package */ final Pref<Boolean> mAutofillLogins = new Pref<Boolean>(
+        "signon.autofillForms", true);
+
+    /* package */ int mPreferredColorScheme = COLOR_SCHEME_SYSTEM;
 
     /* package */ boolean mDebugPause;
     /* package */ boolean mUseMaxScreenDepth;
@@ -555,7 +581,11 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
      * Whether multiprocess is enabled.
      *
      * @return true if multiprocess is enabled, false otherwise.
+     *
+     * @deprecated This method will be removed in GeckoView 82, at which point GeckoView will only
+     *             operate in multiprocess mode.
      */
+    @Deprecated // Bug 1650118
     public boolean getUseMultiprocess() {
         return mUseMultiprocess.get();
     }
@@ -693,6 +723,7 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
         return null;
     }
 
+    @SuppressWarnings("checkstyle:javadocmethod")
     public @Nullable Class<? extends Service> getCrashHandler() {
         return mCrashHandler;
     }
@@ -889,13 +920,24 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
         return setFontSizeFactorInternal(fontSizeFactor);
     }
 
-    /* package */ @NonNull GeckoRuntimeSettings setFontSizeFactorInternal(
-            final float fontSizeFactor) {
+    private final static float DEFAULT_FONT_SIZE_FACTOR = 1f;
+
+    private float sanitizeFontSizeFactor(final float fontSizeFactor) {
         if (fontSizeFactor < 0) {
-            throw new IllegalArgumentException("fontSizeFactor cannot be < 0");
+            if (BuildConfig.DEBUG) {
+                throw new IllegalArgumentException("fontSizeFactor cannot be < 0");
+            } else {
+                Log.e(LOGTAG, "fontSizeFactor cannot be < 0");
+                return DEFAULT_FONT_SIZE_FACTOR;
+            }
         }
 
-        final int fontSizePercentage = Math.round(fontSizeFactor * 100);
+        return fontSizeFactor;
+    }
+
+    /* package */ @NonNull GeckoRuntimeSettings setFontSizeFactorInternal(
+            final float fontSizeFactor) {
+        final int fontSizePercentage = Math.round(sanitizeFontSizeFactor(fontSizeFactor) * 100);
         mFontSizeFactor.commit(fontSizePercentage);
         if (getFontInflationEnabled()) {
             final int scaledFontInflation = Math.round(FONT_INFLATION_BASE_VALUE * fontSizeFactor);
@@ -965,7 +1007,7 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
      * @return One of the {@link GeckoRuntimeSettings#COLOR_SCHEME_LIGHT COLOR_SCHEME_*} constants.
      */
     public @ColorScheme int getPreferredColorScheme() {
-        return mPreferredColorScheme.get();
+        return mPreferredColorScheme;
     }
 
     /**
@@ -976,7 +1018,10 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
      * @return This GeckoRuntimeSettings instance.
      */
     public @NonNull GeckoRuntimeSettings setPreferredColorScheme(final @ColorScheme int scheme) {
-        mPreferredColorScheme.commit(scheme);
+        if (mPreferredColorScheme != scheme) {
+            mPreferredColorScheme = scheme;
+            GeckoSystemStateListener.onDeviceChanged();
+        }
         return this;
     }
 
@@ -1040,6 +1085,7 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
         return this;
     }
 
+    @SuppressWarnings("checkstyle:javadocmethod")
     public @Nullable RuntimeTelemetry.Delegate getTelemetryDelegate() {
         return mTelemetryProxy.getDelegate();
     }
@@ -1087,6 +1133,30 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
         return this;
     }
 
+    /**
+     * Get whether login form autofill is enabled.
+     *
+     * @return True if login autofill is enabled.
+     */
+    public boolean getLoginAutofillEnabled() {
+        return mAutofillLogins.get();
+    }
+
+    /**
+     * Set whether login forms should be filled automatically if only one
+     * viable candidate is provided via
+     * {@link Autocomplete.LoginStorageDelegate#onLoginFetch onLoginFetch}.
+     *
+     * @param enabled A flag determining whether login autofill should be
+     *                enabled.
+     * @return The builder instance.
+     */
+    public @NonNull GeckoRuntimeSettings setLoginAutofillEnabled(
+            final boolean enabled) {
+        mAutofillLogins.commit(enabled);
+        return this;
+    }
+
     @Override // Parcelable
     public void writeToParcel(final Parcel out, final int flags) {
         super.writeToParcel(out, flags);
@@ -1105,6 +1175,7 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
     }
 
     // AIDL code may call readFromParcel even though it's not part of Parcelable.
+    @SuppressWarnings("checkstyle:javadocmethod")
     public void readFromParcel(final @NonNull Parcel source) {
         super.readFromParcel(source);
 

@@ -5,7 +5,6 @@
 #include "nsTouchBar.h"
 
 #include "mozilla/MacStringHelpers.h"
-#include "mozilla/Telemetry.h"
 #include "nsArrayUtils.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsIArray.h"
@@ -212,7 +211,7 @@ static const uint32_t kInputIconSize = 16;
 
 - (bool)updateItem:(TouchBarInput*)aInput {
   if (!mTouchBarHelper) {
-    return nil;
+    return false;
   }
 
   NSTouchBarItem* item = [self itemForIdentifier:[aInput nativeIdentifier]];
@@ -323,6 +322,9 @@ static const uint32_t kInputIconSize = 16;
   if ([input imageURI]) {
     [button setImagePosition:NSImageOnly];
     [self loadIconForInput:input forItem:aButton];
+    // Because we are hiding the title, NSAccessibility also does not get it.
+    // Therefore, set an accessibility label as alternative text for image-only buttons.
+    [button setAccessibilityLabel:[input title]];
   }
 
   [button setEnabled:![input isDisabled]];
@@ -588,10 +590,6 @@ static const uint32_t kInputIconSize = 16;
       titleToShare = nsCocoaUtils::ToNSString(title);
     }
   }
-
-  // If the user has gotten this far, they have clicked the share button so it
-  // is logged.
-  Telemetry::AccumulateCategorical(Telemetry::LABELS_TOUCHBAR_BUTTON_PRESSES::Share);
 
   return @[ urlToShare, titleToShare ];
 }

@@ -5,7 +5,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsURILoader.h"
-#include "nsAutoPtr.h"
 #include "nsIURIContentListener.h"
 #include "nsIContentHandler.h"
 #include "nsILoadGroup.h"
@@ -44,6 +43,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/Unused.h"
 #include "mozilla/StaticPrefs_dom.h"
+#include "mozilla/StaticPrefs_general.h"
 #include "nsContentUtils.h"
 
 mozilla::LazyLogModule nsURILoader::mLog("URILoader");
@@ -52,14 +52,6 @@ mozilla::LazyLogModule nsURILoader::mLog("URILoader");
 #define LOG_ERROR(args) \
   MOZ_LOG(nsURILoader::mLog, mozilla::LogLevel::Error, args)
 #define LOG_ENABLED() MOZ_LOG_TEST(nsURILoader::mLog, mozilla::LogLevel::Debug)
-
-static uint32_t sConvertDataLimit = 20;
-
-static bool InitPreferences() {
-  mozilla::Preferences::AddUintVarCache(
-      &sConvertDataLimit, "general.document_open_conversion_depth_limit", 20);
-  return true;
-}
 
 NS_IMPL_ADDREF(nsDocumentOpenInfo)
 NS_IMPL_RELEASE(nsDocumentOpenInfo)
@@ -76,14 +68,16 @@ nsDocumentOpenInfo::nsDocumentOpenInfo(nsIInterfaceRequestor* aWindowContext,
     : m_originalContext(aWindowContext),
       mFlags(aFlags),
       mURILoader(aURILoader),
-      mDataConversionDepthLimit(sConvertDataLimit) {}
+      mDataConversionDepthLimit(
+          StaticPrefs::general_document_open_conversion_depth_limit()) {}
 
 nsDocumentOpenInfo::nsDocumentOpenInfo(uint32_t aFlags,
                                        bool aAllowListenerConversions)
     : m_originalContext(nullptr),
       mFlags(aFlags),
       mURILoader(nullptr),
-      mDataConversionDepthLimit(sConvertDataLimit),
+      mDataConversionDepthLimit(
+          StaticPrefs::general_document_open_conversion_depth_limit()),
       mAllowListenerConversions(aAllowListenerConversions) {}
 
 nsDocumentOpenInfo::~nsDocumentOpenInfo() {}
@@ -133,37 +127,6 @@ NS_IMETHODIMP nsDocumentOpenInfo::OnStartRequest(nsIRequest* request) {
 
     if (204 == responseCode || 205 == responseCode) {
       return NS_BINDING_ABORTED;
-    }
-
-    static bool sLargeAllocationHeaderEnabled = false;
-    static bool sCachedLargeAllocationPref = false;
-    if (!sCachedLargeAllocationPref) {
-      sCachedLargeAllocationPref = true;
-      mozilla::Preferences::AddBoolVarCache(
-          &sLargeAllocationHeaderEnabled, "dom.largeAllocationHeader.enabled");
-    }
-
-    if (sLargeAllocationHeaderEnabled) {
-      if (StaticPrefs::dom_largeAllocation_testing_allHttpLoads()) {
-        nsCOMPtr<nsIURI> uri;
-        rv = httpChannel->GetURI(getter_AddRefs(uri));
-        if (NS_SUCCEEDED(rv) && uri) {
-          if ((uri->SchemeIs("http") || uri->SchemeIs("https")) &&
-              nsContentUtils::AttemptLargeAllocationLoad(httpChannel)) {
-            return NS_BINDING_ABORTED;
-          }
-        }
-      }
-
-      // If we have a Large-Allocation header, let's check if we should perform
-      // a process switch.
-      nsAutoCString largeAllocationHeader;
-      rv = httpChannel->GetResponseHeader(
-          NS_LITERAL_CSTRING("Large-Allocation"), largeAllocationHeader);
-      if (NS_SUCCEEDED(rv) &&
-          nsContentUtils::AttemptLargeAllocationLoad(httpChannel)) {
-        return NS_BINDING_ABORTED;
-      }
     }
   }
 
@@ -275,7 +238,7 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest* request,
     return NS_ERROR_FAILURE;
   }
 
-  NS_NAMED_LITERAL_CSTRING(anyType, "*/*");
+  constexpr auto anyType = "*/*"_ns;
   if (mContentType.IsEmpty() || mContentType == anyType) {
     rv = aChannel->GetContentType(mContentType);
     if (NS_FAILED(rv)) return rv;
@@ -288,7 +251,7 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest* request,
     // Reset to application/octet-stream for now; no one other than the
     // external helper app service should see APPLICATION_GUESS_FROM_EXT.
     mContentType = APPLICATION_OCTET_STREAM;
-    aChannel->SetContentType(NS_LITERAL_CSTRING(APPLICATION_OCTET_STREAM));
+    aChannel->SetContentType(nsLiteralCString(APPLICATION_OCTET_STREAM));
   }
 
   // Check whether the data should be forced to be handled externally.  This
@@ -432,13 +395,15 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest* request,
   // Before dispatching to the external helper app service, check for an HTTP
   // error page.  If we got one, we don't want to handle it with a helper app,
   // really.
+  // The WPT a-download-click-404.html requires us to silently handle this
+  // without displaying an error page, so we just return early here.
+  // See bug 1604308 for discussion around what the ideal behaviour is.
   nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(request));
   if (httpChannel) {
     bool requestSucceeded;
     rv = httpChannel->GetRequestSucceeded(&requestSucceeded);
     if (NS_FAILED(rv) || !requestSucceeded) {
-      // returning error from OnStartRequest will cancel the channel
-      return NS_ERROR_FILE_NOT_FOUND;
+      return NS_OK;
     }
   }
 
@@ -462,7 +427,7 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest* request,
 
     if (isGuessFromExt) {
       mContentType = APPLICATION_GUESS_FROM_EXT;
-      aChannel->SetContentType(NS_LITERAL_CSTRING(APPLICATION_GUESS_FROM_EXT));
+      aChannel->SetContentType(nsLiteralCString(APPLICATION_GUESS_FROM_EXT));
     }
 
     rv = TryExternalHelperApp(helperAppService, aChannel);
@@ -552,7 +517,7 @@ nsresult nsDocumentOpenInfo::ConvertData(nsIRequest* request,
 }
 
 nsresult nsDocumentOpenInfo::TryStreamConversion(nsIChannel* aChannel) {
-  NS_NAMED_LITERAL_CSTRING(anyType, "*/*");
+  constexpr auto anyType = "*/*"_ns;
   nsresult rv = ConvertData(aChannel, m_contentListener, mContentType, anyType);
   if (NS_FAILED(rv)) {
     m_targetStreamListener = nullptr;
@@ -722,19 +687,6 @@ NS_IMETHODIMP nsURILoader::OpenURI(nsIChannel* channel, uint32_t aFlags,
     }
   }
 
-  if (aFlags & nsIURILoader::REDIRECTED_CHANNEL) {
-    // Our channel was redirected from another process, so doesn't need to
-    // be opened again. However, it does need its listener hooked up
-    // correctly.
-    if (nsCOMPtr<nsIChildChannel> childChannel = do_QueryInterface(channel)) {
-      return childChannel->CompleteRedirectSetup(loader, nullptr);
-    }
-
-    // It's possible for the redirected channel to not implement
-    // nsIChildChannel and be entirely local (like srcdoc). In that case we
-    // can just open the local instance and it will work.
-  }
-
   // This method is not complete. Eventually, we should first go
   // to the content listener and ask them for a protocol handler...
   // if they don't give us one, we need to go to the registry and get
@@ -765,27 +717,6 @@ nsresult nsURILoader::OpenChannel(nsIChannel* channel, uint32_t aFlags,
     uri->GetAsciiSpec(spec);
     LOG(("nsURILoader::OpenChannel for %s", spec.get()));
   }
-
-  // Let the window context's uriListener know that the open is starting. This
-  // gives that window a chance to abort the load process.
-  nsCOMPtr<nsIURIContentListener> winContextListener(
-      do_GetInterface(aWindowContext));
-  if (winContextListener) {
-    nsCOMPtr<nsIURI> uri;
-    channel->GetURI(getter_AddRefs(uri));
-    if (uri) {
-      bool doAbort = false;
-      winContextListener->OnStartURIOpen(uri, &doAbort);
-
-      if (doAbort) {
-        LOG(("  OnStartURIOpen aborted load"));
-        return NS_ERROR_WONT_HANDLE_CONTENT;
-      }
-    }
-  }
-
-  static bool once = InitPreferences();
-  mozilla::Unused << once;
 
   // we need to create a DocumentOpenInfo object which will go ahead and open
   // the url and discover the content type....

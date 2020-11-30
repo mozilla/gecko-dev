@@ -42,7 +42,7 @@ class nsSoundPlayer : public mozilla::Runnable {
         mSoundData(nullptr) {}
 
   nsSoundPlayer(const uint8_t* aData, size_t aSize)
-      : mozilla::Runnable("nsSoundPlayer"), mSoundName(EmptyString()) {
+      : mozilla::Runnable("nsSoundPlayer"), mSoundName(u""_ns) {
     MOZ_ASSERT(aSize > 0, "Size should not be zero");
     MOZ_ASSERT(aData, "Data shoud not be null");
 
@@ -189,11 +189,12 @@ NS_IMETHODIMP nsSound::Play(nsIURL* aURL) {
 #endif
 
   nsCOMPtr<nsIStreamLoader> loader;
-  rv = NS_NewStreamLoader(getter_AddRefs(loader), aURL,
-                          this,  // aObserver
-                          nsContentUtils::GetSystemPrincipal(),
-                          nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
-                          nsIContentPolicy::TYPE_OTHER);
+  rv = NS_NewStreamLoader(
+      getter_AddRefs(loader), aURL,
+      this,  // aObserver
+      nsContentUtils::GetSystemPrincipal(),
+      nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
+      nsIContentPolicy::TYPE_OTHER);
   return rv;
 }
 

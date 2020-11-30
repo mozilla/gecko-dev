@@ -83,15 +83,12 @@ const { fxAccounts } = ChromeUtils.import(
 function getEngineModules() {
   let result = {
     Addons: { module: "addons.js", symbol: "AddonsEngine" },
+    Bookmarks: { module: "bookmarks.js", symbol: "BookmarksEngine" },
     Form: { module: "forms.js", symbol: "FormEngine" },
     History: { module: "history.js", symbol: "HistoryEngine" },
     Password: { module: "passwords.js", symbol: "PasswordEngine" },
     Prefs: { module: "prefs.js", symbol: "PrefsEngine" },
     Tab: { module: "tabs.js", symbol: "TabEngine" },
-    ExtensionStorage: {
-      module: "extension-storage.js",
-      symbol: "ExtensionStorageEngine",
-    },
   };
   if (Svc.Prefs.get("engine.addresses.available", false)) {
     result.Addresses = {
@@ -105,11 +102,11 @@ function getEngineModules() {
       symbol: "CreditCardsEngine",
     };
   }
-  result.Bookmarks = {
-    module: "bookmarks.js",
-    controllingPref: "services.sync.engine.bookmarks.buffer",
-    whenFalse: "BookmarksEngine",
-    whenTrue: "BufferedBookmarksEngine",
+  result["Extension-Storage"] = {
+    module: "extension-storage.js",
+    controllingPref: "webextensions.storage.sync.kinto",
+    whenTrue: "ExtensionStorageEngineKinto",
+    whenFalse: "ExtensionStorageEngineBridge",
   };
   return result;
 }
@@ -269,9 +266,9 @@ Sync11Service.prototype = {
     // Fetch keys.
     let cryptoKeys = new CryptoWrapper(CRYPTO_COLLECTION, KEYS_WBO);
     try {
-      let cryptoResp = (await cryptoKeys.fetch(
-        this.resource(this.cryptoKeysURL)
-      )).response;
+      let cryptoResp = (
+        await cryptoKeys.fetch(this.resource(this.cryptoKeysURL))
+      ).response;
 
       // Save out the ciphertext for when we reupload. If there's a bug in
       // CollectionKeyManager, this will prevent us from uploading junk.
@@ -545,8 +542,8 @@ Sync11Service.prototype = {
   },
 
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIObserver,
-    Ci.nsISupportsWeakReference,
+    "nsIObserver",
+    "nsISupportsWeakReference",
   ]),
 
   observe(subject, topic, data) {
@@ -711,9 +708,9 @@ Sync11Service.prototype = {
         if (infoCollections && CRYPTO_COLLECTION in infoCollections) {
           try {
             cryptoKeys = new CryptoWrapper(CRYPTO_COLLECTION, KEYS_WBO);
-            let cryptoResp = (await cryptoKeys.fetch(
-              this.resource(this.cryptoKeysURL)
-            )).response;
+            let cryptoResp = (
+              await cryptoKeys.fetch(this.resource(this.cryptoKeysURL))
+            ).response;
 
             if (cryptoResp.success) {
               await this.handleFetchedKeys(syncKeyBundle, cryptoKeys);

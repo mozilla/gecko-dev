@@ -23,7 +23,7 @@ void nsSplittableFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
     SetPrevInFlow(aPrevInFlow);
     aPrevInFlow->SetNextInFlow(this);
   }
-  nsFrame::Init(aContent, aParent, aPrevInFlow);
+  nsIFrame::Init(aContent, aParent, aPrevInFlow);
 }
 
 void nsSplittableFrame::DestroyFrom(nsIFrame* aDestructRoot,
@@ -34,7 +34,7 @@ void nsSplittableFrame::DestroyFrom(nsIFrame* aDestructRoot,
   }
 
   // Let the base class destroy the frame
-  nsFrame::DestroyFrom(aDestructRoot, aPostDestroyData);
+  nsIFrame::DestroyFrom(aDestructRoot, aPostDestroyData);
 }
 
 nsIFrame* nsSplittableFrame::GetPrevContinuation() const {
@@ -110,8 +110,8 @@ bool nsSplittableFrame::IsInNextContinuationChain(nsIFrame* aFrame1,
 #endif
 
 nsIFrame* nsSplittableFrame::GetPrevInFlow() const {
-  return (GetStateBits() & NS_FRAME_IS_FLUID_CONTINUATION) ? mPrevContinuation
-                                                           : nullptr;
+  return HasAnyStateBits(NS_FRAME_IS_FLUID_CONTINUATION) ? mPrevContinuation
+                                                         : nullptr;
 }
 
 void nsSplittableFrame::SetPrevInFlow(nsIFrame* aFrame) {
@@ -124,8 +124,8 @@ void nsSplittableFrame::SetPrevInFlow(nsIFrame* aFrame) {
 }
 
 nsIFrame* nsSplittableFrame::GetNextInFlow() const {
-  return mNextContinuation && (mNextContinuation->GetStateBits() &
-                               NS_FRAME_IS_FLUID_CONTINUATION)
+  return mNextContinuation && mNextContinuation->HasAnyStateBits(
+                                  NS_FRAME_IS_FLUID_CONTINUATION)
              ? mNextContinuation
              : nullptr;
 }
@@ -189,7 +189,7 @@ nscoord nsSplittableFrame::ConsumedBSize(WritingMode aWM) const {
 
   for (nsIFrame* prev = GetPrevContinuation(); prev;
        prev = prev->GetPrevContinuation()) {
-    bSize += prev->ContentBSize(aWM);
+    bSize += prev->ContentSize(aWM).BSize(aWM);
   }
   return bSize;
 }
@@ -211,7 +211,7 @@ nscoord nsSplittableFrame::GetEffectiveComputedBSize(
   // BSize may be consumed by positioning it below the legend.  So we always
   // report zero for true overflow containers here.
   // XXXmats: hmm, can we fix this so that the sizes actually adds up instead?
-  if (IS_TRUE_OVERFLOW_CONTAINER(this) &&
+  if (IsTrueOverflowContainer() &&
       Style()->GetPseudoType() == PseudoStyleType::fieldsetContent) {
     for (nsFieldSetFrame* fieldset = do_QueryFrame(GetParent()); fieldset;
          fieldset = static_cast<nsFieldSetFrame*>(fieldset->GetPrevInFlow())) {
@@ -225,16 +225,17 @@ nscoord nsSplittableFrame::GetEffectiveComputedBSize(
 
 nsIFrame::LogicalSides nsSplittableFrame::GetLogicalSkipSides(
     const ReflowInput* aReflowInput) const {
-  if (IS_TRUE_OVERFLOW_CONTAINER(this)) {
-    return LogicalSides(eLogicalSideBitsBBoth);
+  LogicalSides skip(mWritingMode);
+  if (IsTrueOverflowContainer()) {
+    skip |= eLogicalSideBitsBBoth;
+    return skip;
   }
 
   if (MOZ_UNLIKELY(StyleBorder()->mBoxDecorationBreak ==
                    StyleBoxDecorationBreak::Clone)) {
-    return LogicalSides();
+    return skip;
   }
 
-  LogicalSides skip;
   if (GetPrevContinuation()) {
     skip |= eLogicalSideBitsBStart;
   }
@@ -255,7 +256,7 @@ nsIFrame::LogicalSides nsSplittableFrame::GetLogicalSkipSides(
     }
   } else {
     nsIFrame* nif = GetNextContinuation();
-    if (nif && !IS_TRUE_OVERFLOW_CONTAINER(nif)) {
+    if (nif && !nif->IsTrueOverflowContainer()) {
       skip |= eLogicalSideBitsBEnd;
     }
   }
@@ -270,13 +271,16 @@ nsIFrame::LogicalSides nsSplittableFrame::GetLogicalSkipSides(
 }
 
 LogicalSides nsSplittableFrame::PreReflowBlockLevelLogicalSkipSides() const {
-  if (MOZ_UNLIKELY(IS_TRUE_OVERFLOW_CONTAINER(this))) {
-    return LogicalSides(mozilla::eLogicalSideBitsBBoth);
+  LogicalSides skip(mWritingMode);
+  if (MOZ_UNLIKELY(IsTrueOverflowContainer())) {
+    skip |= mozilla::eLogicalSideBitsBBoth;
+    return skip;
   }
   if (MOZ_LIKELY(StyleBorder()->mBoxDecorationBreak !=
                  StyleBoxDecorationBreak::Clone) &&
       GetPrevInFlow()) {
-    return LogicalSides(mozilla::eLogicalSideBitsBStart);
+    skip |= mozilla::eLogicalSideBitsBStart;
+    return skip;
   }
-  return LogicalSides();
+  return skip;
 }

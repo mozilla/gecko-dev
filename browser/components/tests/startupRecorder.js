@@ -5,8 +5,8 @@
 const Cm = Components.manager;
 Cm.QueryInterface(Ci.nsIServiceManager);
 
-const { XPCOMUtils } = ChromeUtils.import(
-  "resource://gre/modules/XPCOMUtils.jsm"
+const { ComponentUtils } = ChromeUtils.import(
+  "resource://gre/modules/ComponentUtils.jsm"
 );
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { AppConstants } = ChromeUtils.import(
@@ -76,14 +76,10 @@ function startupRecorder() {
 startupRecorder.prototype = {
   classID: Components.ID("{11c095b2-e42e-4bdf-9dd0-aed87595f6a4}"),
 
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIObserver]),
+  QueryInterface: ChromeUtils.generateQI(["nsIObserver"]),
 
   record(name) {
-    if (!Services.prefs.getBoolPref("browser.startup.record", false)) {
-      return;
-    }
-
-    Services.profiler.AddMarker("startupRecorder:" + name);
+    ChromeUtils.addProfilerMarker("startupRecorder:" + name);
     this.data.code[name] = {
       components: Cu.loadedComponents,
       modules: Cu.loadedModules,
@@ -102,17 +98,35 @@ startupRecorder.prototype = {
 
   observe(subject, topic, data) {
     if (topic == "app-startup") {
+      if (
+        !Services.prefs.getBoolPref("browser.startup.record", false) &&
+        !Services.prefs.getBoolPref("browser.startup.recordImages", false)
+      ) {
+        this._resolve();
+        this._resolve = null;
+        return;
+      }
+
       // We can't ensure our observer will be called first or last, so the list of
       // topics we observe here should avoid the topics used to trigger things
       // during startup (eg. the topics observed by BrowserGlue.jsm).
       let topics = [
         "profile-do-change", // This catches stuff loaded during app-startup
         "toplevel-window-ready", // Catches stuff from final-ui-startup
-        "image-loading",
-        "image-drawing",
         firstPaintNotification,
         "sessionstore-windows-restored",
+        "browser-startup-idle-tasks-finished",
       ];
+
+      if (Services.prefs.getBoolPref("browser.startup.recordImages", false)) {
+        // For code simplicify, recording images excludes the other startup
+        // recorder behaviors, so we can observe only the image topics.
+        topics = [
+          "image-loading",
+          "image-drawing",
+          "browser-startup-idle-tasks-finished",
+        ];
+      }
       for (let t of topics) {
         Services.obs.addObserver(this, t);
       }
@@ -145,10 +159,7 @@ startupRecorder.prototype = {
 
     Services.obs.removeObserver(this, topic);
 
-    if (
-      topic == firstPaintNotification &&
-      Services.prefs.getBoolPref("browser.startup.record", false)
-    ) {
+    if (topic == firstPaintNotification) {
       // Because of the check for navigator:browser we made earlier, we know
       // that if we got here, then the subject must be the first browser window.
       win = subject;
@@ -162,63 +173,51 @@ startupRecorder.prototype = {
     }
 
     if (topic == "sessionstore-windows-restored") {
-      if (!Services.prefs.getBoolPref("browser.startup.record", false)) {
-        this._resolve();
-        this._resolve = null;
-        return;
-      }
-
       // We use idleDispatchToMainThread here to record the set of
       // loaded scripts after we are fully done with startup and ready
       // to react to user events.
       Services.tm.dispatchToMainThread(
         this.record.bind(this, "before handling user events")
       );
-
-      // 10 is an arbitrary value here, it needs to be at least 2 to avoid
-      // races with code initializing itself using idle callbacks.
-      (function waitForIdle(callback, count = 10) {
-        if (count) {
-          Services.tm.idleDispatchToMainThread(() =>
-            waitForIdle(callback, count - 1)
-          );
-        } else {
-          callback();
-        }
-      })(() => {
-        this.record("before becoming idle");
+    } else if (topic == "browser-startup-idle-tasks-finished") {
+      if (Services.prefs.getBoolPref("browser.startup.recordImages", false)) {
         Services.obs.removeObserver(this, "image-drawing");
         Services.obs.removeObserver(this, "image-loading");
-        win.removeEventListener("MozAfterPaint", afterPaintListener);
-        win = null;
-        this.data.frames = paints;
-        this.data.prefStats = {};
-        if (AppConstants.DEBUG) {
-          Services.prefs.readStats(
-            (key, value) => (this.data.prefStats[key] = value)
-          );
-        }
-        paints = null;
+        this._resolve();
+        this._resolve = null;
+        return;
+      }
 
-        let env = Cc["@mozilla.org/process/environment;1"].getService(
-          Ci.nsIEnvironment
+      this.record("before becoming idle");
+      win.removeEventListener("MozAfterPaint", afterPaintListener);
+      win = null;
+      this.data.frames = paints;
+      this.data.prefStats = {};
+      if (AppConstants.DEBUG) {
+        Services.prefs.readStats(
+          (key, value) => (this.data.prefStats[key] = value)
         );
-        if (!env.exists("MOZ_PROFILER_STARTUP")) {
-          this._resolve();
-          this._resolve = null;
-          return;
-        }
+      }
+      paints = null;
 
-        Services.profiler.getProfileDataAsync().then(profileData => {
-          this.data.profile = profileData;
-          // There's no equivalent StartProfiler call in this file because the
-          // profiler is started using the MOZ_PROFILER_STARTUP environment
-          // variable in browser/base/content/test/performance/browser.ini
-          Services.profiler.StopProfiler();
+      let env = Cc["@mozilla.org/process/environment;1"].getService(
+        Ci.nsIEnvironment
+      );
+      if (!env.exists("MOZ_PROFILER_STARTUP")) {
+        this._resolve();
+        this._resolve = null;
+        return;
+      }
 
-          this._resolve();
-          this._resolve = null;
-        });
+      Services.profiler.getProfileDataAsync().then(profileData => {
+        this.data.profile = profileData;
+        // There's no equivalent StartProfiler call in this file because the
+        // profiler is started using the MOZ_PROFILER_STARTUP environment
+        // variable in browser/base/content/test/performance/browser.ini
+        Services.profiler.StopProfiler();
+
+        this._resolve();
+        this._resolve = null;
       });
     } else {
       const topicsToNames = {
@@ -231,4 +230,4 @@ startupRecorder.prototype = {
   },
 };
 
-this.NSGetFactory = XPCOMUtils.generateNSGetFactory([startupRecorder]);
+this.NSGetFactory = ComponentUtils.generateNSGetFactory([startupRecorder]);

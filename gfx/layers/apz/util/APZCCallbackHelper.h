@@ -8,11 +8,10 @@
 
 #include "InputData.h"
 #include "LayersTypes.h"
+#include "Units.h"
 #include "mozilla/EventForwards.h"
-#include "mozilla/layers/APZUtils.h"
 #include "mozilla/layers/MatrixMessage.h"
-#include "mozilla/layers/RepaintRequest.h"
-#include "nsRefreshDriver.h"
+#include "nsRefreshObservers.h"
 
 #include <functional>
 
@@ -30,6 +29,8 @@ class PresShell;
 
 namespace layers {
 
+struct RepaintRequest;
+
 typedef std::function<void(uint64_t, const nsTArray<TouchBehaviorFlags>&)>
     SetAllowedTouchBehaviorCallback;
 
@@ -38,7 +39,7 @@ class DisplayportSetListener : public nsAPostRefreshObserver {
  public:
   DisplayportSetListener(nsIWidget* aWidget, PresShell* aPresShell,
                          const uint64_t& aInputBlockId,
-                         const nsTArray<SLGuidAndRenderRoot>& aTargets);
+                         const nsTArray<ScrollableLayerGuid>& aTargets);
   virtual ~DisplayportSetListener();
   bool Register();
   void DidRefresh() override;
@@ -47,7 +48,7 @@ class DisplayportSetListener : public nsAPostRefreshObserver {
   RefPtr<nsIWidget> mWidget;
   RefPtr<PresShell> mPresShell;
   uint64_t mInputBlockId;
-  nsTArray<SLGuidAndRenderRoot> mTargets;
+  nsTArray<ScrollableLayerGuid> mTargets;
 };
 
 /* This class contains some helper methods that facilitate implementing the
@@ -97,29 +98,6 @@ class APZCCallbackHelper {
   static PresShell* GetRootContentDocumentPresShellForContent(
       nsIContent* aContent);
 
-  /* Apply an "input transform" to the given |aInput| and return the transformed
-     value. The input transform applied is the one for the content element
-     corresponding to |aGuid|; this is populated in a previous call to
-     UpdateCallbackTransform. See that method's documentations for details. This
-     method additionally adjusts |aInput| by inversely scaling by the provided
-     pres shell resolution, to cancel out a compositor-side transform (added in
-     bug 1076241) that APZ doesn't unapply. */
-  static CSSPoint ApplyCallbackTransform(const CSSPoint& aInput,
-                                         const ScrollableLayerGuid& aGuid);
-
-  /* Same as above, but operates on LayoutDeviceIntPoint.
-     Requires an additonal |aScale| parameter to convert between CSS and
-     LayoutDevice space. */
-  static mozilla::LayoutDeviceIntPoint ApplyCallbackTransform(
-      const LayoutDeviceIntPoint& aPoint, const ScrollableLayerGuid& aGuid,
-      const CSSToLayoutDeviceScale& aScale);
-
-  /* Convenience function for applying a callback transform to all refpoints
-   * in the input event. */
-  static void ApplyCallbackTransform(WidgetEvent& aEvent,
-                                     const ScrollableLayerGuid& aGuid,
-                                     const CSSToLayoutDeviceScale& aScale);
-
   /* Dispatch a widget event via the widget stored in the event, if any.
    * In a child process, allows the BrowserParent event-capture mechanism to
    * intercept the event. */
@@ -133,12 +111,13 @@ class APZCCallbackHelper {
 
   /* Dispatch a mouse event with the given parameters.
    * Return whether or not any listeners have called preventDefault on the
-   * event. */
+   * event.
+   * This is a lightweight wrapper around nsContentUtils::SendMouseEvent()
+   * and as such expects |aPoint| to be in layout coordinates. */
   MOZ_CAN_RUN_SCRIPT
   static bool DispatchMouseEvent(PresShell* aPresShell, const nsString& aType,
                                  const CSSPoint& aPoint, int32_t aButton,
                                  int32_t aClickCount, int32_t aModifiers,
-                                 bool aIgnoreRootScrollFrame,
                                  unsigned short aInputSourceArg,
                                  uint32_t aPointerId);
 
@@ -170,8 +149,9 @@ class APZCCallbackHelper {
       uint64_t aInputBlockId);
 
   /* Figure out the allowed touch behaviors of each touch point in |aEvent|
-   * and send that information to the provided callback. */
-  static void SendSetAllowedTouchBehaviorNotification(
+   * and send that information to the provided callback. Also returns the
+   * allowed touch behaviors. */
+  static nsTArray<TouchBehaviorFlags> SendSetAllowedTouchBehaviorNotification(
       nsIWidget* aWidget, mozilla::dom::Document* aDocument,
       const WidgetTouchEvent& aEvent, uint64_t aInputBlockId,
       const SetAllowedTouchBehaviorCallback& aCallback);
@@ -193,12 +173,12 @@ class APZCCallbackHelper {
 
   static void CancelAutoscroll(const ScrollableLayerGuid::ViewID& aScrollId);
 
-  static ScreenMargin AdjustDisplayPortForScrollDelta(
-      const RepaintRequest& aRequest, const CSSPoint& aActualScrollOffset);
-
   /*
-   * Check if the scrollable frame is currently in the middle of an async
-   * or smooth scroll. We want to discard certain scroll input if this is
+   * Check if the scrollable frame is currently in the middle of a main thread
+   * async or smooth scroll, or has already requested some other apz scroll that
+   * hasn't been acknowledged by apz.
+   *
+   * We want to discard apz updates to the main-thread scroll offset if this is
    * true to prevent clobbering higher priority origins.
    */
   static bool IsScrollInProgress(nsIScrollableFrame* aFrame);
@@ -208,8 +188,10 @@ class APZCCallbackHelper {
    * will dispatch appropriate WidgetSimpleGestureEvent events to gecko.
    */
   static void NotifyPinchGesture(PinchGestureInput::PinchGestureType aType,
+                                 const LayoutDevicePoint& aFocusPoint,
                                  LayoutDeviceCoord aSpanChange,
-                                 Modifiers aModifiers, nsIWidget* aWidget);
+                                 Modifiers aModifiers,
+                                 const nsCOMPtr<nsIWidget>& aWidget);
 
  private:
   static uint64_t sLastTargetAPZCNotificationInputBlock;

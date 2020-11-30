@@ -91,7 +91,7 @@ var SiteDataTestUtils = {
       origin
     );
     Services.cookies.add(
-      principal.URI.host,
+      principal.host,
       principal.URI.pathQueryRef,
       name,
       value,
@@ -99,9 +99,50 @@ var SiteDataTestUtils = {
       false,
       false,
       Date.now() + 24000 * 60 * 60,
-      {},
-      Ci.nsICookie.SAMESITE_NONE
+      principal.originAttributes,
+      Ci.nsICookie.SAMESITE_NONE,
+      Ci.nsICookie.SCHEME_UNSET
     );
+  },
+
+  /**
+   * Adds a new localStorage entry for the specified origin, with the specified contents.
+   *
+   * @param {String} origin - the origin of the site to add test data for
+   * @param {String} key [optional] - the localStorage key
+   * @param {String} value [optional] - the localStorage value
+   */
+  addToLocalStorage(origin, key = "foo", value = "bar") {
+    let principal = Services.scriptSecurityManager.createContentPrincipalFromOrigin(
+      origin
+    );
+    let storage = Services.domStorageManager.createStorage(
+      null,
+      principal,
+      principal,
+      ""
+    );
+    storage.setItem("key", "value");
+  },
+
+  /**
+   * Checks whether the given origin is storing data in localStorage
+   *
+   * @param {String} origin - the origin of the site to check
+   *
+   * @returns {Boolean} whether the origin has localStorage data
+   */
+  hasLocalStorage(origin) {
+    let principal = Services.scriptSecurityManager.createContentPrincipalFromOrigin(
+      origin
+    );
+    let storage = Services.domStorageManager.createStorage(
+      null,
+      principal,
+      principal,
+      ""
+    );
+    return !!storage.length;
   },
 
   /**
@@ -149,7 +190,7 @@ var SiteDataTestUtils = {
           principal.originAttributes,
           cookie.originAttributes
         ) &&
-        cookie.host.includes(principal.URI.host)
+        cookie.host.includes(principal.host)
       ) {
         return true;
       }
@@ -254,7 +295,7 @@ var SiteDataTestUtils = {
     return new Promise(resolve => {
       let listener = {
         onRegister: registration => {
-          if (registration.principal.URI.host != url.host) {
+          if (registration.principal.host != url.host) {
             return;
           }
           swm.removeListener(listener);
@@ -281,7 +322,7 @@ var SiteDataTestUtils = {
     return new Promise(resolve => {
       let listener = {
         onUnregister: registration => {
-          if (registration.principal.URI.host != url.host) {
+          if (registration.principal.host != url.host) {
             return;
           }
           swm.removeListener(listener);

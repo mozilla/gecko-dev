@@ -14,8 +14,8 @@ use storage::Conn;
 use thin_vec::ThinVec;
 use xpcom::{
     interfaces::{
-        mozIPlacesPendingOperation, mozIStorageConnection, mozISyncedBookmarksMirrorCallback,
-        mozISyncedBookmarksMirrorLogger, mozISyncedBookmarksMirrorProgressListener,
+        mozIPlacesPendingOperation, mozIServicesLogSink, mozIStorageConnection,
+        mozISyncedBookmarksMirrorCallback, mozISyncedBookmarksMirrorProgressListener,
     },
     RefPtr, XpCom,
 };
@@ -29,7 +29,7 @@ use crate::store;
 #[refcnt = "nonatomic"]
 pub struct InitSyncedBookmarksMerger {
     db: RefCell<Option<Conn>>,
-    logger: RefCell<Option<RefPtr<mozISyncedBookmarksMirrorLogger>>>,
+    logger: RefCell<Option<RefPtr<mozIServicesLogSink>>>,
 }
 
 impl SyncedBookmarksMerger {
@@ -56,16 +56,16 @@ impl SyncedBookmarksMerger {
         Ok(())
     }
 
-    xpcom_method!(get_logger => GetLogger() -> *const mozISyncedBookmarksMirrorLogger);
-    fn get_logger(&self) -> Result<RefPtr<mozISyncedBookmarksMirrorLogger>, nsresult> {
+    xpcom_method!(get_logger => GetLogger() -> *const mozIServicesLogSink);
+    fn get_logger(&self) -> Result<RefPtr<mozIServicesLogSink>, nsresult> {
         match *self.logger.borrow() {
             Some(ref logger) => Ok(logger.clone()),
             None => Err(NS_OK),
         }
     }
 
-    xpcom_method!(set_logger => SetLogger(logger: *const mozISyncedBookmarksMirrorLogger));
-    fn set_logger(&self, logger: Option<&mozISyncedBookmarksMirrorLogger>) -> Result<(), nsresult> {
+    xpcom_method!(set_logger => SetLogger(logger: *const mozIServicesLogSink));
+    fn set_logger(&self, logger: Option<&mozIServicesLogSink>) -> Result<(), nsresult> {
         self.logger.replace(logger.map(RefPtr::new));
         Ok(())
     }
@@ -108,7 +108,7 @@ impl SyncedBookmarksMerger {
             "bookmark_sync::SyncedBookmarksMerger::merge",
             Box::new(task),
         )?;
-        runnable.dispatch(&async_thread)?;
+        TaskRunnable::dispatch(runnable, &async_thread)?;
         let op = MergeOp::new(controller);
         Ok(RefPtr::new(op.coerce()))
     }
@@ -125,7 +125,7 @@ struct MergeTask {
     db: Conn,
     controller: Arc<AbortController>,
     max_log_level: LevelFilter,
-    logger: Option<ThreadPtrHandle<mozISyncedBookmarksMirrorLogger>>,
+    logger: Option<ThreadPtrHandle<mozIServicesLogSink>>,
     local_time_millis: i64,
     remote_time_millis: i64,
     weak_uploads: Vec<nsString>,
@@ -138,7 +138,7 @@ impl MergeTask {
     fn new(
         db: &Conn,
         controller: Arc<AbortController>,
-        logger: Option<RefPtr<mozISyncedBookmarksMirrorLogger>>,
+        logger: Option<RefPtr<mozIServicesLogSink>>,
         local_time_seconds: i64,
         remote_time_seconds: i64,
         weak_uploads: Vec<nsString>,
@@ -152,18 +152,15 @@ impl MergeTask {
                 Some(level)
             })
             .map(|level| match level as i64 {
-                mozISyncedBookmarksMirrorLogger::LEVEL_ERROR => LevelFilter::Error,
-                mozISyncedBookmarksMirrorLogger::LEVEL_WARN => LevelFilter::Warn,
-                mozISyncedBookmarksMirrorLogger::LEVEL_DEBUG => LevelFilter::Debug,
-                mozISyncedBookmarksMirrorLogger::LEVEL_TRACE => LevelFilter::Trace,
+                mozIServicesLogSink::LEVEL_ERROR => LevelFilter::Error,
+                mozIServicesLogSink::LEVEL_WARN => LevelFilter::Warn,
+                mozIServicesLogSink::LEVEL_DEBUG => LevelFilter::Debug,
+                mozIServicesLogSink::LEVEL_TRACE => LevelFilter::Trace,
                 _ => LevelFilter::Off,
             })
             .unwrap_or(LevelFilter::Off);
         let logger = match logger {
-            Some(logger) => Some(ThreadPtrHolder::new(
-                cstr!("mozISyncedBookmarksMirrorLogger"),
-                logger,
-            )?),
+            Some(logger) => Some(ThreadPtrHolder::new(cstr!("mozIServicesLogSink"), logger)?),
             None => None,
         };
         let progress = callback

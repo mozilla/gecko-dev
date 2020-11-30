@@ -21,6 +21,7 @@ job-defaults:
         symbol: Bpgo(run)
         kind: build
         tier: 1
+    run-on-projects: ['release']
 
 jobs:
     linux-shippable/opt:
@@ -47,7 +48,7 @@ jobs:
             cwd: '{checkout}'
             command: >
                 ./taskcluster/scripts/misc/run-profileserver.sh
-        run-on-projects: ['try', 'release']
+        run-on-projects: ['release']
         fetches:
             toolchain:
                 - linux64-clang
@@ -67,7 +68,7 @@ jobs:
             env:
                 NEED_XVFB: "true"
             max-run-time: 1200
-            docker-image: {in-tree: debian9-amd64-build}
+            docker-image: {in-tree: debian10-amd64-build}
             artifacts:
                 - type: directory
                   name: public/build
@@ -82,7 +83,7 @@ jobs:
                 - linux64-clang
                 - linux64-minidump-stackwalk
 
-    android-api-16/pgo:
+    android-api-16-shippable/opt:
         description: "Android 4.0 api-16+ Profile Generation"
         shipping-phase: build
         shipping-product: fennec
@@ -93,7 +94,7 @@ jobs:
             platform: android-4-0-armv7-api16/pgo
         worker-type: t-linux-xlarge-pgo
         worker:
-            max-run-time: 5400
+            max-run-time: 1800
             docker-image: {in-tree: ubuntu1804-test}
             env:
                 WORKING_DIR: "/builds/worker"
@@ -143,7 +144,7 @@ jobs:
             command: ./taskcluster/scripts/misc/run-profileserver.sh
         fetches:
             toolchain:
-                - win64-clang-cl
+                - win64-clang-cl-2stage
                 - win32-minidump-stackwalk
 
     win64-shippable/opt:
@@ -171,7 +172,7 @@ jobs:
             command: ./taskcluster/scripts/misc/run-profileserver.sh
         fetches:
             toolchain:
-                - win64-clang-cl
+                - win64-clang-cl-2stage
                 - win32-minidump-stackwalk
 
     macosx64-shippable/opt:

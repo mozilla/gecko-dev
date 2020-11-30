@@ -28,11 +28,14 @@ const RESIZE_DEBOUNCE_RATE_MS = 500;
  *
  * @param id (Number)
  *   A unique numeric ID for the window, used for Telemetry Events.
- * @param originatingBrowser (xul:browser)
- *   The <xul:browser> that the Picture-in-Picture video is coming from.
+ * @param wgp (WindowGlobalParent)
+ *   The WindowGlobalParent that is hosting the originating video.
+ * @param videoRef {ContentDOMReference}
+ *    A reference to the video element that a Picture-in-Picture window
+ *    is being created for
  */
-function setupPlayer(id, originatingBrowser) {
-  Player.init(id, originatingBrowser);
+function setupPlayer(id, wgp, videoRef) {
+  Player.init(id, wgp, videoRef);
 }
 
 /**
@@ -65,8 +68,11 @@ let Player = {
   WINDOW_EVENTS: [
     "click",
     "contextmenu",
+    "dblclick",
     "keydown",
     "mouseout",
+    "MozDOMFullscreen:Entered",
+    "MozDOMFullscreen:Exited",
     "resize",
     "unload",
   ],
@@ -96,10 +102,13 @@ let Player = {
    *
    * @param id (Number)
    *   A unique numeric ID for the window, used for Telemetry Events.
-   * @param originatingBrowser (xul:browser)
-   *   The <xul:browser> that the Picture-in-Picture video is coming from.
+   * @param wgp (WindowGlobalParent)
+   *   The WindowGlobalParent that is hosting the originating video.
+   * @param videoRef {ContentDOMReference}
+   *    A reference to the video element that a Picture-in-Picture window
+   *    is being created for
    */
-  init(id, originatingBrowser) {
+  init(id, wgp, videoRef) {
     this.id = id;
 
     let holder = document.querySelector(".player-holder");
@@ -107,13 +116,24 @@ let Player = {
     browser.remove();
 
     browser.setAttribute("nodefaultsrc", "true");
-    browser.sameProcessAsFrameLoader = originatingBrowser.frameLoader;
+
+    // Set the specific remoteType and browsingContextGroupID to use for the
+    // initial about:blank load. The combination of these two properties will
+    // ensure that the browser loads in the same process as our originating
+    // browser.
+    browser.setAttribute("remoteType", wgp.domProcess.remoteType);
+    browser.setAttribute(
+      "initialBrowsingContextGroupId",
+      wgp.browsingContext.group.id
+    );
     holder.appendChild(browser);
 
     this.actor = browser.browsingContext.currentWindowGlobal.getActor(
       "PictureInPicture"
     );
-    this.actor.sendAsyncMessage("PictureInPicture:SetupPlayer");
+    this.actor.sendAsyncMessage("PictureInPicture:SetupPlayer", {
+      videoRef,
+    });
 
     for (let eventType of this.WINDOW_EVENTS) {
       addEventListener(eventType, this);
@@ -151,6 +171,13 @@ let Player = {
     });
 
     this.computeAndSetMinimumSize(window.outerWidth, window.outerHeight);
+
+    // alwaysontop windows are not focused by default, so we have to do it
+    // ourselves. We use requestAnimationFrame since we have to wait until the
+    // window is visible before it can focus.
+    window.requestAnimationFrame(() => {
+      window.focus();
+    });
   },
 
   uninit() {
@@ -171,6 +198,11 @@ let Player = {
         break;
       }
 
+      case "dblclick": {
+        this.onDblClick(event);
+        break;
+      }
+
       case "keydown": {
         if (event.keyCode == KeyEvent.DOM_VK_TAB) {
           this.controls.setAttribute("keying", true);
@@ -179,9 +211,12 @@ let Player = {
           this.controls.hasAttribute("keying")
         ) {
           this.controls.removeAttribute("keying");
+
+          // We preventDefault to avoid exiting fullscreen if we happen
+          // to be in it.
+          event.preventDefault();
         } else if (
           Services.prefs.getBoolPref(KEYBOARD_CONTROLS_ENABLED_PREF, false) &&
-          !this.controls.hasAttribute("keying") &&
           (event.keyCode != KeyEvent.DOM_VK_SPACE || !event.target.id)
         ) {
           // Pressing "space" fires a "keydown" event which can also trigger a control
@@ -195,6 +230,28 @@ let Player = {
 
       case "mouseout": {
         this.onMouseOut(event);
+        break;
+      }
+
+      // Normally, the DOMFullscreenParent / DOMFullscreenChild actors
+      // would take care of firing the `fullscreen-painted` notification,
+      // however, those actors are only ever instantiated when a <browser>
+      // is fullscreened, and not a <body> element in a parent-process
+      // chrome privileged DOM window.
+      //
+      // Rather than trying to re-engineer JSWindowActors to be re-usable for
+      // this edge-case, we do the work of firing fullscreen-painted when
+      // transitioning in and out of fullscreen ourselves here.
+      case "MozDOMFullscreen:Entered":
+      // Intentional fall-through
+      case "MozDOMFullscreen:Exited": {
+        let { lastTransactionId } = window.windowUtils;
+        window.addEventListener("MozAfterPaint", function onPainted(event) {
+          if (event.transactionId > lastTransactionId) {
+            window.removeEventListener("MozAfterPaint", onPainted);
+            Services.obs.notifyObservers(window, "fullscreen-painted");
+          }
+        });
         break;
       }
 
@@ -212,6 +269,17 @@ let Player = {
         this.uninit();
         break;
       }
+    }
+  },
+
+  onDblClick(event) {
+    if (event.target.id == "controls") {
+      if (document.fullscreenElement == document.body) {
+        document.exitFullscreen();
+      } else {
+        document.body.requestFullscreen();
+      }
+      event.preventDefault();
     }
   },
 
@@ -279,6 +347,10 @@ let Player = {
   onResize(event) {
     this.resizeDebouncer.disarm();
     this.resizeDebouncer.arm();
+  },
+
+  onCommand(event) {
+    PictureInPicture.closePipWindow({ reason: "player-shortcut" });
   },
 
   get controls() {

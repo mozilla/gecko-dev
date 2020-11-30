@@ -4,10 +4,11 @@
 ---
 job-defaults:
     description: "sccache-dist toolchain archive build"
+    attributes:
+        local-toolchain: true
     worker-type: b-linux
     run-on-projects:
         - trunk
-        - try
     run:
         using: toolchain-script
         script: build-dist-toolchains.sh
@@ -20,9 +21,10 @@ clang-dist-toolchain:
     run:
         arguments: ['clang']
         toolchain-artifact: public/build/clang-dist-toolchain.tar.xz
+    use-sccache: true
     fetches:
         toolchain:
-            - linux64-clang-9-cross
+            - linux64-clang
             - linux64-sccache
 
 rustc-dist-toolchain:
@@ -33,7 +35,8 @@ rustc-dist-toolchain:
     run:
         arguments: ['rustc']
         toolchain-artifact: public/build/rustc-dist-toolchain.tar.xz
+    use-sccache: true
     fetches:
         toolchain:
-            - linux64-rust-cross-1.41
+            - linux64-rust-cross
             - linux64-sccache

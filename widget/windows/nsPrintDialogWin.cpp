@@ -92,6 +92,10 @@ nsPrintDialogServiceWin::ShowPageSetup(nsPIDOMWindowOuter* aParent,
     return status == 0 ? NS_ERROR_ABORT : NS_OK;
   }
 
+  // We don't call nsPrintSettingsService::SavePrintSettingsToPrefs here since
+  // it's called for us in printPageSetup.js.  Maybe we should move that call
+  // here for consistency with the other platforms though?
+
   return rv;
 }
 
@@ -128,9 +132,9 @@ nsresult nsPrintDialogServiceWin::DoDialog(mozIDOMWindowProxy* aParent,
   array->AppendElement(blkSupps);
 
   nsCOMPtr<mozIDOMWindowProxy> dialog;
-  nsresult rv = mWatcher->OpenWindow(aParent, aChromeURL, "_blank",
-                                     "centerscreen,chrome,modal,titlebar",
-                                     array, getter_AddRefs(dialog));
+  nsresult rv = mWatcher->OpenWindow(
+      aParent, nsDependentCString(aChromeURL), "_blank"_ns,
+      "centerscreen,chrome,modal,titlebar"_ns, array, getter_AddRefs(dialog));
 
   return rv;
 }

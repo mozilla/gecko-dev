@@ -7,6 +7,7 @@
 #include "mozilla/dom/SVGFEImageElement.h"
 
 #include "mozilla/EventStates.h"
+#include "mozilla/SVGObserverUtils.h"
 #include "mozilla/dom/SVGFEImageElementBinding.h"
 #include "mozilla/dom/SVGFilterElement.h"
 #include "mozilla/dom/UserActivation.h"
@@ -14,9 +15,7 @@
 #include "mozilla/RefPtr.h"
 #include "nsContentUtils.h"
 #include "nsLayoutUtils.h"
-#include "nsSVGUtils.h"
 #include "nsNetUtil.h"
-#include "SVGObserverUtils.h"
 #include "imgIContainer.h"
 #include "gfx2DGlue.h"
 
@@ -53,7 +52,7 @@ SVGFEImageElement::SVGFEImageElement(
   AddStatesSilently(NS_EVENT_STATE_BROKEN);
 }
 
-SVGFEImageElement::~SVGFEImageElement() { DestroyImageLoadingContent(); }
+SVGFEImageElement::~SVGFEImageElement() { nsImageLoadingContent::Destroy(); }
 
 //----------------------------------------------------------------------
 
@@ -88,6 +87,10 @@ nsresult SVGFEImageElement::LoadSVGImage(bool aForce, bool aNotify) {
   return LoadImage(href, aForce, aNotify, eImageLoadType_Normal);
 }
 
+bool SVGFEImageElement::ShouldLoadImage() const {
+  return LoadingEnabled() && OwnerDoc()->ShouldLoadImages();
+}
+
 //----------------------------------------------------------------------
 // EventTarget methods:
 
@@ -114,7 +117,9 @@ nsresult SVGFEImageElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
   if (aName == nsGkAtoms::href && (aNamespaceID == kNameSpaceID_XLink ||
                                    aNamespaceID == kNameSpaceID_None)) {
     if (aValue) {
-      LoadSVGImage(true, aNotify);
+      if (ShouldLoadImage()) {
+        LoadSVGImage(true, aNotify);
+      }
     } else {
       CancelImageRequests(aNotify);
     }
@@ -139,8 +144,9 @@ nsresult SVGFEImageElement::BindToTree(BindContext& aContext,
 
   nsImageLoadingContent::BindToTree(aContext, aParent);
 
-  if (mStringAttributes[HREF].IsExplicitlySet() ||
-      mStringAttributes[XLINK_HREF].IsExplicitlySet()) {
+  if ((mStringAttributes[HREF].IsExplicitlySet() ||
+       mStringAttributes[XLINK_HREF].IsExplicitlySet()) &&
+      ShouldLoadImage()) {
     nsContentUtils::AddScriptRunner(
         NewRunnableMethod("dom::SVGFEImageElement::MaybeLoadSVGImage", this,
                           &SVGFEImageElement::MaybeLoadSVGImage));
@@ -159,6 +165,11 @@ EventStates SVGFEImageElement::IntrinsicState() const {
          nsImageLoadingContent::ImageState();
 }
 
+void SVGFEImageElement::DestroyContent() {
+  nsImageLoadingContent::Destroy();
+  SVGFEImageElementBase::DestroyContent();
+}
+
 //----------------------------------------------------------------------
 // nsINode methods
 
@@ -174,7 +185,7 @@ already_AddRefed<DOMSVGAnimatedString> SVGFEImageElement::Href() {
 // nsIDOMSVGFEImageElement methods
 
 FilterPrimitiveDescription SVGFEImageElement::GetPrimitiveDescription(
-    nsSVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
+    SVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
     const nsTArray<bool>& aInputsAreTainted,
     nsTArray<RefPtr<SourceSurface>>& aInputImages) {
   nsIFrame* frame = GetPrimaryFrame();
@@ -319,10 +330,9 @@ SVGFEImageElement::FrameCreated(nsIFrame* aFrame) {
 //----------------------------------------------------------------------
 // imgINotificationObserver methods
 
-NS_IMETHODIMP
-SVGFEImageElement::Notify(imgIRequest* aRequest, int32_t aType,
-                          const nsIntRect* aData) {
-  nsresult rv = nsImageLoadingContent::Notify(aRequest, aType, aData);
+void SVGFEImageElement::Notify(imgIRequest* aRequest, int32_t aType,
+                               const nsIntRect* aData) {
+  nsImageLoadingContent::Notify(aRequest, aType, aData);
 
   if (aType == imgINotificationObserver::SIZE_AVAILABLE) {
     // Request a decode
@@ -341,8 +351,6 @@ SVGFEImageElement::Notify(imgIRequest* aRequest, int32_t aType,
           static_cast<SVGFilterElement*>(GetParent()));
     }
   }
-
-  return rv;
 }
 
 }  // namespace dom

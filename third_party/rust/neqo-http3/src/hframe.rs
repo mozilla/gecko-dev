@@ -4,37 +4,34 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::hsettings_frame::HSettings;
+use crate::settings::HSettings;
 use neqo_common::{
-    hex, qdebug, qtrace, Decoder, Encoder, IncrementalDecoder, IncrementalDecoderResult,
+    hex_with_len, qtrace, Decoder, Encoder, IncrementalDecoderBuffer, IncrementalDecoderIgnore,
+    IncrementalDecoderUint,
 };
+use neqo_crypto::random;
 use neqo_transport::Connection;
-
+use std::convert::TryFrom;
 use std::mem;
 
 use crate::{Error, Res};
 
-pub type HFrameType = u64;
+pub(crate) type HFrameType = u64;
 
-pub const H3_FRAME_TYPE_DATA: HFrameType = 0x0;
-pub const H3_FRAME_TYPE_HEADERS: HFrameType = 0x1;
+pub(crate) const H3_FRAME_TYPE_DATA: HFrameType = 0x0;
+pub(crate) const H3_FRAME_TYPE_HEADERS: HFrameType = 0x1;
 const H3_FRAME_TYPE_CANCEL_PUSH: HFrameType = 0x3;
-const H3_FRAME_TYPE_SETTINGS: HFrameType = 0x4;
+pub(crate) const H3_FRAME_TYPE_SETTINGS: HFrameType = 0x4;
 const H3_FRAME_TYPE_PUSH_PROMISE: HFrameType = 0x5;
 const H3_FRAME_TYPE_GOAWAY: HFrameType = 0x7;
 const H3_FRAME_TYPE_MAX_PUSH_ID: HFrameType = 0xd;
-const H3_FRAME_TYPE_DUPLICATE_PUSH: HFrameType = 0xe;
 
-#[derive(Copy, Clone, PartialEq)]
-pub enum HStreamType {
-    Control,
-    Request,
-    Push,
-}
+pub const H3_RESERVED_FRAME_TYPES: &[HFrameType] = &[0x2, 0x6, 0x8, 0x9];
 
+const MAX_READ_SIZE: usize = 4096;
 // data for DATA frame is not read into HFrame::Data.
 #[derive(PartialEq, Debug)]
-pub enum HFrame {
+pub(crate) enum HFrame {
     Data {
         len: u64, // length of the data
     },
@@ -57,9 +54,7 @@ pub enum HFrame {
     MaxPushId {
         push_id: u64,
     },
-    DuplicatePush {
-        push_id: u64,
-    },
+    Grease,
 }
 
 impl HFrame {
@@ -72,7 +67,10 @@ impl HFrame {
             Self::PushPromise { .. } => H3_FRAME_TYPE_PUSH_PROMISE,
             Self::Goaway { .. } => H3_FRAME_TYPE_GOAWAY,
             Self::MaxPushId { .. } => H3_FRAME_TYPE_MAX_PUSH_ID,
-            Self::DuplicatePush { .. } => H3_FRAME_TYPE_DUPLICATE_PUSH,
+            Self::Grease => {
+                let r = random(7);
+                Decoder::from(&r).decode_uint(7).unwrap() * 0x1f + 0x21
+            }
         }
     }
 
@@ -113,42 +111,26 @@ impl HFrame {
                     enc_inner.encode_varint(*push_id);
                 });
             }
-            Self::DuplicatePush { push_id } => {
-                enc.encode_vvec_with(|enc_inner| {
-                    enc_inner.encode_varint(*push_id);
-                });
+            Self::Grease => {
+                // Encode some number of random bytes.
+                let r = random(8);
+                enc.encode_vvec(&r[1..usize::from(1 + (r[0] & 0x7))]);
             }
         }
     }
-
-    pub fn is_allowed(&self, s: HStreamType) -> bool {
-        match self {
-            Self::Data { .. } => !(s == HStreamType::Control),
-            Self::Headers { .. } => !(s == HStreamType::Control),
-            Self::CancelPush { .. } => (s == HStreamType::Control),
-            Self::Settings { .. } => (s == HStreamType::Control),
-            Self::PushPromise { .. } => (s == HStreamType::Request),
-            Self::Goaway { .. } => (s == HStreamType::Control),
-            Self::MaxPushId { .. } => (s == HStreamType::Control),
-            Self::DuplicatePush { .. } => (s == HStreamType::Request),
-        }
-    }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Clone, Debug)]
 enum HFrameReaderState {
-    BeforeFrame,
-    GetType,
-    GetLength,
-    GetData,
-    UnknownFrameDischargeData,
-    Done,
+    GetType { decoder: IncrementalDecoderUint },
+    GetLength { decoder: IncrementalDecoderUint },
+    GetData { decoder: IncrementalDecoderBuffer },
+    UnknownFrameDischargeData { decoder: IncrementalDecoderIgnore },
 }
 
 #[derive(Debug)]
-pub struct HFrameReader {
+pub(crate) struct HFrameReader {
     state: HFrameReaderState,
-    decoder: IncrementalDecoder,
     hframe_type: u64,
     hframe_len: u64,
     payload: Vec<u8>,
@@ -161,169 +143,176 @@ impl Default for HFrameReader {
 }
 
 impl HFrameReader {
+    #[must_use]
     pub fn new() -> Self {
         Self {
-            state: HFrameReaderState::BeforeFrame,
+            state: HFrameReaderState::GetType {
+                decoder: IncrementalDecoderUint::default(),
+            },
             hframe_type: 0,
             hframe_len: 0,
-            decoder: IncrementalDecoder::decode_varint(),
             payload: Vec::new(),
         }
     }
 
-    pub fn reset(&mut self) {
-        self.state = HFrameReaderState::BeforeFrame;
-        self.decoder = IncrementalDecoder::decode_varint();
+    fn reset(&mut self) {
+        self.state = HFrameReaderState::GetType {
+            decoder: IncrementalDecoderUint::default(),
+        };
     }
 
-    // returns true if quic stream was closed.
-    pub fn receive(&mut self, conn: &mut Connection, stream_id: u64) -> Res<bool> {
+    fn min_remaining(&self) -> usize {
+        match &self.state {
+            HFrameReaderState::GetType { decoder } | HFrameReaderState::GetLength { decoder } => {
+                decoder.min_remaining()
+            }
+            HFrameReaderState::GetData { decoder } => decoder.min_remaining(),
+            HFrameReaderState::UnknownFrameDischargeData { decoder } => decoder.min_remaining(),
+        }
+    }
+
+    fn decoding_in_progress(&self) -> bool {
+        if let HFrameReaderState::GetType { decoder } = &self.state {
+            decoder.decoding_in_progress()
+        } else {
+            true
+        }
+    }
+
+    /// returns true if quic stream was closed.
+    /// # Errors
+    /// May return `HttpFrame` if a frame cannot be decoded.
+    /// and `TransportStreamDoesNotExist` if `stream_recv` fails.
+    pub fn receive(
+        &mut self,
+        conn: &mut Connection,
+        stream_id: u64,
+    ) -> Res<(Option<HFrame>, bool)> {
         loop {
-            let to_read = std::cmp::min(self.decoder.min_remaining(), 4096);
+            let to_read = std::cmp::min(self.min_remaining(), MAX_READ_SIZE);
             let mut buf = vec![0; to_read];
-            let fin;
-            let mut input = match conn.stream_recv(stream_id, &mut buf[..]) {
-                Ok((0, true)) => {
-                    qtrace!([conn], "HFrameReader::receive: stream has been closed");
-                    break match self.state {
-                        HFrameReaderState::BeforeFrame => Ok(true),
-                        _ => Err(Error::HttpFrameError),
-                    };
-                }
-                Ok((0, false)) => break Ok(false),
-                Ok((amount, f)) => {
+            let (output, read, fin) = match conn
+                .stream_recv(stream_id, &mut buf)
+                .map_err(|e| Error::map_stream_recv_errors(&e))?
+            {
+                (0, f) => (None, false, f),
+                (amount, f) => {
                     qtrace!(
                         [conn],
                         "HFrameReader::receive: reading {} byte, fin={}",
                         amount,
                         f
                     );
-                    fin = f;
-                    Decoder::from(&buf[..amount])
-                }
-                Err(e) => {
-                    qdebug!(
-                        [conn],
-                        "HFrameReader::receive: error reading data from stream {}: {:?}",
-                        stream_id,
-                        e
-                    );
-                    break Err(e.into());
+                    (self.consume(Decoder::from(&buf[..amount]))?, true, f)
                 }
             };
 
-            let progress = self.decoder.consume(&mut input);
-            match self.state {
-                HFrameReaderState::BeforeFrame | HFrameReaderState::GetType => match progress {
-                    IncrementalDecoderResult::Uint(v) => {
-                        qtrace!([conn], "HFrameReader::receive: read frame type {}", v);
-                        self.hframe_type = v;
-                        self.decoder = IncrementalDecoder::decode_varint();
-                        self.state = HFrameReaderState::GetLength;
-                    }
-                    IncrementalDecoderResult::InProgress => {
-                        self.state = HFrameReaderState::GetType;
-                    }
-                    _ => panic!("We must be in one of the states above"),
-                },
-
-                HFrameReaderState::GetLength => {
-                    match progress {
-                        IncrementalDecoderResult::Uint(len) => {
-                            qtrace!(
-                                [conn],
-                                "HFrameReader::receive: frame type {} length {}",
-                                self.hframe_type,
-                                len
-                            );
-                            self.hframe_len = len;
-                            self.state = match self.hframe_type {
-                                // DATA payload are left on the quic stream and picked up separately
-                                H3_FRAME_TYPE_DATA => HFrameReaderState::Done,
-
-                                // for other frames get all data before decoding.
-                                H3_FRAME_TYPE_CANCEL_PUSH
-                                | H3_FRAME_TYPE_SETTINGS
-                                | H3_FRAME_TYPE_GOAWAY
-                                | H3_FRAME_TYPE_MAX_PUSH_ID
-                                | H3_FRAME_TYPE_DUPLICATE_PUSH
-                                | H3_FRAME_TYPE_PUSH_PROMISE
-                                | H3_FRAME_TYPE_HEADERS => {
-                                    if len == 0 {
-                                        HFrameReaderState::Done
-                                    } else {
-                                        self.decoder = IncrementalDecoder::decode(len as usize);
-                                        HFrameReaderState::GetData
-                                    }
-                                }
-                                _ => {
-                                    if len == 0 {
-                                        self.decoder = IncrementalDecoder::decode_varint();
-                                        HFrameReaderState::BeforeFrame
-                                    } else {
-                                        self.decoder = IncrementalDecoder::ignore(len as usize);
-                                        HFrameReaderState::UnknownFrameDischargeData
-                                    }
-                                }
-                            };
-                        }
-                        IncrementalDecoderResult::InProgress => {}
-                        _ => panic!("We must be in one of the states above"),
-                    }
-                }
-                HFrameReaderState::GetData => {
-                    match progress {
-                        IncrementalDecoderResult::Buffer(data) => {
-                            qtrace!(
-                                [conn],
-                                "received frame {}: {}",
-                                self.hframe_type,
-                                hex(&data[..])
-                            );
-                            self.payload = data;
-                            self.state = HFrameReaderState::Done;
-                        }
-                        IncrementalDecoderResult::InProgress => {}
-                        _ => panic!("We must be in one of the states above"),
-                    };
-                }
-                HFrameReaderState::UnknownFrameDischargeData => {
-                    match progress {
-                        IncrementalDecoderResult::Ignored => {
-                            self.reset();
-                        }
-                        IncrementalDecoderResult::InProgress => {}
-                        _ => panic!("We must be in one of the states above"),
-                    };
-                }
-                HFrameReaderState::Done => {
-                    break Ok(fin);
-                }
-            };
-
-            if self.state == HFrameReaderState::Done {
-                break Ok(fin);
+            if output.is_some() {
+                break Ok((output, fin));
             }
 
             if fin {
-                if self.state == HFrameReaderState::BeforeFrame {
-                    break Ok(fin);
+                if self.decoding_in_progress() {
+                    break Err(Error::HttpFrame);
                 } else {
-                    break Err(Error::HttpFrameError);
+                    break Ok((None, fin));
                 }
+            }
+
+            if !read {
+                // There was no new data, exit the loop.
+                break Ok((None, false));
             }
         }
     }
 
-    pub fn done(&self) -> bool {
-        self.state == HFrameReaderState::Done
+    /// # Errors
+    /// May return `HttpFrame` if a frame cannot be decoded.
+    fn consume(&mut self, mut input: Decoder) -> Res<Option<HFrame>> {
+        match &mut self.state {
+            HFrameReaderState::GetType { decoder } => {
+                if let Some(v) = decoder.consume(&mut input) {
+                    qtrace!("HFrameReader::receive: read frame type {}", v);
+                    self.hframe_type = v;
+                    if H3_RESERVED_FRAME_TYPES.contains(&self.hframe_type) {
+                        return Err(Error::HttpFrameUnexpected);
+                    }
+                    self.state = HFrameReaderState::GetLength {
+                        decoder: IncrementalDecoderUint::default(),
+                    };
+                }
+            }
+
+            HFrameReaderState::GetLength { decoder } => {
+                if let Some(len) = decoder.consume(&mut input) {
+                    qtrace!(
+                        "HFrameReader::receive: frame type {} length {}",
+                        self.hframe_type,
+                        len
+                    );
+                    self.hframe_len = len;
+                    self.state = match self.hframe_type {
+                        // DATA payload are left on the quic stream and picked up separately
+                        H3_FRAME_TYPE_DATA => {
+                            return Ok(Some(self.get_frame()?));
+                        }
+
+                        // for other frames get all data before decoding.
+                        H3_FRAME_TYPE_CANCEL_PUSH
+                        | H3_FRAME_TYPE_SETTINGS
+                        | H3_FRAME_TYPE_GOAWAY
+                        | H3_FRAME_TYPE_MAX_PUSH_ID
+                        | H3_FRAME_TYPE_PUSH_PROMISE
+                        | H3_FRAME_TYPE_HEADERS => {
+                            if len == 0 {
+                                return Ok(Some(self.get_frame()?));
+                            } else {
+                                HFrameReaderState::GetData {
+                                    decoder: IncrementalDecoderBuffer::new(
+                                        usize::try_from(len).or(Err(Error::HttpFrame))?,
+                                    ),
+                                }
+                            }
+                        }
+                        _ => {
+                            if len == 0 {
+                                HFrameReaderState::GetType {
+                                    decoder: IncrementalDecoderUint::default(),
+                                }
+                            } else {
+                                HFrameReaderState::UnknownFrameDischargeData {
+                                    decoder: IncrementalDecoderIgnore::new(
+                                        usize::try_from(len).or(Err(Error::HttpFrame))?,
+                                    ),
+                                }
+                            }
+                        }
+                    };
+                }
+            }
+            HFrameReaderState::GetData { decoder } => {
+                if let Some(data) = decoder.consume(&mut input) {
+                    qtrace!(
+                        "received frame {}: {}",
+                        self.hframe_type,
+                        hex_with_len(&data[..])
+                    );
+                    self.payload = data;
+                    return Ok(Some(self.get_frame()?));
+                }
+            }
+            HFrameReaderState::UnknownFrameDischargeData { decoder } => {
+                if decoder.consume(&mut input) {
+                    self.reset();
+                }
+            }
+        }
+        Ok(None)
     }
 
-    pub fn get_frame(&mut self) -> Res<HFrame> {
-        if self.state != HFrameReaderState::Done {
-            return Err(Error::NotEnoughData);
-        }
-
+    /// # Errors
+    /// May return `HttpFrame` if a frame cannot be decoded.
+    fn get_frame(&mut self) -> Res<HFrame> {
         let payload = mem::replace(&mut self.payload, Vec::new());
         let mut dec = Decoder::from(&payload[..]);
         let f = match self.hframe_type {
@@ -334,45 +323,30 @@ impl HFrameReader {
                 header_block: dec.decode_remainder().to_vec(),
             },
             H3_FRAME_TYPE_CANCEL_PUSH => HFrame::CancelPush {
-                push_id: match dec.decode_varint() {
-                    Some(v) => v,
-                    _ => return Err(Error::NotEnoughData),
-                },
+                push_id: dec.decode_varint().ok_or(Error::HttpFrame)?,
             },
             H3_FRAME_TYPE_SETTINGS => {
                 let mut settings = HSettings::default();
-                settings.decode_frame_contents(&mut dec)?;
+                settings.decode_frame_contents(&mut dec).map_err(|e| {
+                    if e == Error::HttpSettings {
+                        e
+                    } else {
+                        Error::HttpFrame
+                    }
+                })?;
                 HFrame::Settings { settings }
             }
-            H3_FRAME_TYPE_PUSH_PROMISE => {
-                let push_id = match dec.decode_varint() {
-                    Some(v) => v,
-                    _ => return Err(Error::NotEnoughData),
-                };
-                HFrame::PushPromise {
-                    push_id,
-                    header_block: dec.decode_remainder().to_vec(),
-                }
-            }
+            H3_FRAME_TYPE_PUSH_PROMISE => HFrame::PushPromise {
+                push_id: dec.decode_varint().ok_or(Error::HttpFrame)?,
+                header_block: dec.decode_remainder().to_vec(),
+            },
             H3_FRAME_TYPE_GOAWAY => HFrame::Goaway {
-                stream_id: match dec.decode_varint() {
-                    Some(v) => v,
-                    _ => return Err(Error::NotEnoughData),
-                },
+                stream_id: dec.decode_varint().ok_or(Error::HttpFrame)?,
             },
             H3_FRAME_TYPE_MAX_PUSH_ID => HFrame::MaxPushId {
-                push_id: match dec.decode_varint() {
-                    Some(v) => v,
-                    _ => return Err(Error::NotEnoughData),
-                },
+                push_id: dec.decode_varint().ok_or(Error::HttpFrame)?,
             },
-            H3_FRAME_TYPE_DUPLICATE_PUSH => HFrame::DuplicatePush {
-                push_id: match dec.decode_varint() {
-                    Some(v) => v,
-                    _ => return Err(Error::NotEnoughData),
-                },
-            },
-            _ => panic!("We should not be in state Done with unknown frame type!"),
+            _ => panic!("We should not be calling this function with unknown frame type!"),
         };
         self.reset();
         Ok(f)
@@ -381,12 +355,11 @@ impl HFrameReader {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::hsettings_frame::{HSetting, HSettingType};
+    use super::{Decoder, Encoder, Error, HFrame, HFrameReader, HSettings};
+    use crate::settings::{HSetting, HSettingType};
     use neqo_crypto::AuthenticationStatus;
-    use neqo_transport::StreamType;
-    use num_traits::Num;
-    use test_fixture::*;
+    use neqo_transport::{Connection, StreamType};
+    use test_fixture::{connect, default_client, default_server, fixture_init, now};
 
     #[allow(clippy::many_single_char_names)]
     fn enc_dec(f: &HFrame, st: &str, remaining: usize) {
@@ -403,10 +376,10 @@ mod tests {
         let out = conn_c.process(None, now());
         let out = conn_s.process(out.dgram(), now());
         let out = conn_c.process(out.dgram(), now());
-        conn_s.process(out.dgram(), now());
+        let _ = conn_s.process(out.dgram(), now());
         conn_c.authenticated(AuthenticationStatus::Ok, now());
         let out = conn_c.process(None, now());
-        conn_s.process(out.dgram(), now());
+        let _ = conn_s.process(out.dgram(), now());
 
         // create a stream
         let stream_id = conn_s.stream_create(StreamType::BiDi).unwrap();
@@ -414,32 +387,20 @@ mod tests {
         let mut fr: HFrameReader = HFrameReader::new();
 
         // conver string into u8 vector
-        let mut buf: Vec<u8> = Vec::new();
-        if st.len() % 2 != 0 {
-            panic!("Needs to be even length");
-        }
-        for i in 0..st.len() / 2 {
-            let x = st.get(i * 2..i * 2 + 2);
-            let v = <u8 as Num>::from_str_radix(x.unwrap(), 16).unwrap();
-            buf.push(v);
-        }
-        conn_s.stream_send(stream_id, &buf).unwrap();
+        let buf = Encoder::from_hex(st);
+        conn_s.stream_send(stream_id, &buf[..]).unwrap();
         let out = conn_s.process(None, now());
-        conn_c.process(out.dgram(), now());
+        let _ = conn_c.process(out.dgram(), now());
 
-        assert_eq!(Ok(false), fr.receive(&mut conn_c, stream_id));
+        let (frame, fin) = fr.receive(&mut conn_c, stream_id).unwrap();
+        assert_eq!(fin, false);
+        assert!(frame.is_some());
+        assert_eq!(*f, frame.unwrap());
 
         // Check remaining data.
-        let mut buf = [0u8; 100];
+        let mut buf = [0_u8; 100];
         let (amount, _) = conn_c.stream_recv(stream_id, &mut buf).unwrap();
         assert_eq!(amount, remaining);
-
-        assert!(fr.done());
-        if let Ok(f2) = fr.get_frame() {
-            assert_eq!(*f, f2);
-        } else {
-            panic!("wrong frame type");
-        }
     }
 
     #[test]
@@ -492,127 +453,88 @@ mod tests {
     }
 
     #[test]
-    fn test_duplicate_push_frame4() {
-        let f = HFrame::DuplicatePush { push_id: 5 };
-        enc_dec(&f, "0e0105", 0);
+    fn grease() {
+        fn make_grease() -> u64 {
+            let mut enc = Encoder::default();
+            HFrame::Grease.encode(&mut enc);
+            let mut dec = Decoder::from(&enc);
+            let ft = dec.decode_varint().unwrap();
+            assert_eq!((ft - 0x21) % 0x1f, 0);
+            let body = dec.decode_vvec().unwrap();
+            assert!(body.len() <= 7);
+            ft
+        }
+
+        fixture_init();
+        let t1 = make_grease();
+        let t2 = make_grease();
+        assert_ne!(t1, t2);
     }
 
-    // We have 2 code paths in frame_reader:
-    // 1) All frames except DATA (here we test SETTING and SETTINGS with larger varints and PUSH_PROMISE)
-    // 1) DATA
+    struct HFrameReaderTest {
+        pub fr: HFrameReader,
+        pub conn_c: Connection,
+        pub conn_s: Connection,
+        pub stream_id: u64,
+    }
 
-    // Test SETTINGS
+    impl HFrameReaderTest {
+        pub fn new() -> Self {
+            let (conn_c, mut conn_s) = connect();
+            let stream_id = conn_s.stream_create(StreamType::BiDi).unwrap();
+            Self {
+                fr: HFrameReader::new(),
+                conn_c,
+                conn_s,
+                stream_id,
+            }
+        }
+
+        fn process(&mut self, v: &[u8]) -> Option<HFrame> {
+            self.conn_s.stream_send(self.stream_id, v).unwrap();
+            let out = self.conn_s.process(None, now());
+            let _ = self.conn_c.process(out.dgram(), now());
+            let (frame, fin) = self.fr.receive(&mut self.conn_c, self.stream_id).unwrap();
+            assert_eq!(fin, false);
+            frame
+        }
+    }
+
+    // Test receiving byte by byte for a SETTINGS frame.
     #[test]
     fn test_frame_reading_with_stream_settings1() {
-        let (mut conn_c, mut conn_s) = connect();
-
-        // create a stream
-        let stream_id = conn_s.stream_create(StreamType::BiDi).unwrap();
-
-        let mut fr: HFrameReader = HFrameReader::new();
+        let mut fr = HFrameReaderTest::new();
 
         // Send and read settings frame 040406040804
-        conn_s.stream_send(stream_id, &[0x4]).unwrap();
-        let out = conn_s.process(None, now());
-        conn_c.process(out.dgram(), now());
-        assert_eq!(Ok(false), fr.receive(&mut conn_c, stream_id));
+        assert!(fr.process(&[0x4]).is_none());
+        assert!(fr.process(&[0x4]).is_none());
+        assert!(fr.process(&[0x6]).is_none());
+        assert!(fr.process(&[0x4]).is_none());
+        assert!(fr.process(&[0x8]).is_none());
+        let frame = fr.process(&[0x4]);
 
-        conn_s.stream_send(stream_id, &[0x4]).unwrap();
-        let out = conn_s.process(None, now());
-        conn_c.process(out.dgram(), now());
-        assert_eq!(Ok(false), fr.receive(&mut conn_c, stream_id));
-
-        conn_s.stream_send(stream_id, &[0x6]).unwrap();
-        let out = conn_s.process(None, now());
-        conn_c.process(out.dgram(), now());
-        assert_eq!(Ok(false), fr.receive(&mut conn_c, stream_id));
-
-        conn_s.stream_send(stream_id, &[0x4]).unwrap();
-        let out = conn_s.process(None, now());
-        conn_c.process(out.dgram(), now());
-        assert_eq!(Ok(false), fr.receive(&mut conn_c, stream_id));
-
-        conn_s.stream_send(stream_id, &[0x8]).unwrap();
-        let out = conn_s.process(None, now());
-        conn_c.process(out.dgram(), now());
-        assert_eq!(Ok(false), fr.receive(&mut conn_c, stream_id));
-
-        conn_s.stream_send(stream_id, &[0x4]).unwrap();
-        let out = conn_s.process(None, now());
-        conn_c.process(out.dgram(), now());
-        assert_eq!(Ok(false), fr.receive(&mut conn_c, stream_id));
-
-        assert!(fr.done());
-        let f = fr.get_frame();
-        if let HFrame::Settings { settings } = f.unwrap() {
+        assert!(frame.is_some());
+        if let HFrame::Settings { settings } = frame.unwrap() {
             assert!(settings.len() == 1);
-            //            for i in settings.iter() {
             assert!(settings[0] == HSetting::new(HSettingType::MaxHeaderListSize, 4));
         } else {
             panic!("wrong frame type");
         }
     }
 
-    // Test SETTINGS with larger varints
+    // Test receiving byte by byte for a SETTINGS frame with larger varints
     #[test]
     fn test_frame_reading_with_stream_settings2() {
-        let (mut conn_c, mut conn_s) = connect();
-
-        // create a stream
-        let stream_id = conn_s.stream_create(StreamType::BiDi).unwrap();
-
-        let mut fr: HFrameReader = HFrameReader::new();
+        let mut fr = HFrameReaderTest::new();
 
         // Read settings frame 400406064004084100
-        conn_s.stream_send(stream_id, &[0x40]).unwrap();
-        let out = conn_s.process(None, now());
-        conn_c.process(out.dgram(), now());
-        assert_eq!(Ok(false), fr.receive(&mut conn_c, stream_id));
+        for i in &[0x40, 0x04, 0x06, 0x06, 0x40, 0x04, 0x08, 0x41] {
+            assert!(fr.process(&[*i]).is_none());
+        }
+        let frame = fr.process(&[0x0]);
 
-        conn_s.stream_send(stream_id, &[0x4]).unwrap();
-        let out = conn_s.process(None, now());
-        conn_c.process(out.dgram(), now());
-        assert_eq!(Ok(false), fr.receive(&mut conn_c, stream_id));
-
-        conn_s.stream_send(stream_id, &[0x6]).unwrap();
-        let out = conn_s.process(None, now());
-        conn_c.process(out.dgram(), now());
-        assert_eq!(Ok(false), fr.receive(&mut conn_c, stream_id));
-
-        conn_s.stream_send(stream_id, &[0x6]).unwrap();
-        let out = conn_s.process(None, now());
-        conn_c.process(out.dgram(), now());
-        assert_eq!(Ok(false), fr.receive(&mut conn_c, stream_id));
-
-        conn_s.stream_send(stream_id, &[0x40]).unwrap();
-        let out = conn_s.process(None, now());
-        conn_c.process(out.dgram(), now());
-        assert_eq!(Ok(false), fr.receive(&mut conn_c, stream_id));
-
-        conn_s.stream_send(stream_id, &[0x4]).unwrap();
-        let out = conn_s.process(None, now());
-        conn_c.process(out.dgram(), now());
-        assert_eq!(Ok(false), fr.receive(&mut conn_c, stream_id));
-
-        conn_s.stream_send(stream_id, &[0x8]).unwrap();
-        let out = conn_s.process(None, now());
-        conn_c.process(out.dgram(), now());
-        assert_eq!(Ok(false), fr.receive(&mut conn_c, stream_id));
-
-        conn_s.stream_send(stream_id, &[0x41]).unwrap();
-        let out = conn_s.process(None, now());
-        conn_c.process(out.dgram(), now());
-        assert_eq!(Ok(false), fr.receive(&mut conn_c, stream_id));
-
-        conn_s.stream_send(stream_id, &[0x0]).unwrap();
-        let out = conn_s.process(None, now());
-        conn_c.process(out.dgram(), now());
-        assert_eq!(Ok(false), fr.receive(&mut conn_c, stream_id));
-
-        assert!(fr.done());
-        let f = fr.get_frame();
-        assert!(f.is_ok());
-        if let HFrame::Settings { settings } = f.unwrap() {
+        assert!(frame.is_some());
+        if let HFrame::Settings { settings } = frame.unwrap() {
             assert!(settings.len() == 1);
             assert!(settings[0] == HSetting::new(HSettingType::MaxHeaderListSize, 4));
         } else {
@@ -620,52 +542,22 @@ mod tests {
         }
     }
 
-    // Test PUSH_PROMISE
+    // Test receiving byte by byte for a PUSH_PROMISE frame.
     #[test]
     fn test_frame_reading_with_stream_push_promise() {
-        let (mut conn_c, mut conn_s) = connect();
+        let mut fr = HFrameReaderTest::new();
 
-        // create a stream
-        let stream_id = conn_s.stream_create(StreamType::BiDi).unwrap();
+        // Read push-promise frame 05054101010203
+        for i in &[0x05, 0x05, 0x41, 0x01, 0x01, 0x02] {
+            assert!(fr.process(&[*i]).is_none());
+        }
+        let frame = fr.process(&[0x3]);
 
-        let mut fr: HFrameReader = HFrameReader::new();
-
-        // Read pushpromise frame 05054101010203
-        conn_s.stream_send(stream_id, &[0x5]).unwrap();
-        let out = conn_s.process(None, now());
-        conn_c.process(out.dgram(), now());
-        assert_eq!(Ok(false), fr.receive(&mut conn_c, stream_id));
-
-        conn_s.stream_send(stream_id, &[0x5]).unwrap();
-        let out = conn_s.process(None, now());
-        conn_c.process(out.dgram(), now());
-        assert_eq!(Ok(false), fr.receive(&mut conn_c, stream_id));
-
-        conn_s.stream_send(stream_id, &[0x41]).unwrap();
-        let out = conn_s.process(None, now());
-        conn_c.process(out.dgram(), now());
-        assert_eq!(Ok(false), fr.receive(&mut conn_c, stream_id));
-
-        conn_s
-            .stream_send(stream_id, &[0x1, 0x1, 0x2, 0x3])
-            .unwrap();
-        let out = conn_s.process(None, now());
-        conn_c.process(out.dgram(), now());
-        assert_eq!(Ok(false), fr.receive(&mut conn_c, stream_id));
-
-        // headers are still on the stream.
-        // assert that we do not have any more date on the stream
-        let mut buf = [0u8; 100];
-        let (amount, _) = conn_c.stream_recv(stream_id, &mut buf).unwrap();
-        assert_eq!(amount, 0);
-
-        assert!(fr.done());
-        let f = fr.get_frame();
-        assert!(f.is_ok());
+        assert!(frame.is_some());
         if let HFrame::PushPromise {
             push_id,
             header_block,
-        } = f.unwrap()
+        } = frame.unwrap()
         {
             assert_eq!(push_id, 257);
             assert_eq!(header_block, &[0x1, 0x2, 0x3]);
@@ -677,69 +569,38 @@ mod tests {
     // Test DATA
     #[test]
     fn test_frame_reading_with_stream_data() {
-        let (mut conn_c, mut conn_s) = connect();
-
-        // create a stream
-        let stream_id = conn_s.stream_create(StreamType::BiDi).unwrap();
-
-        let mut fr: HFrameReader = HFrameReader::new();
+        let mut fr = HFrameReaderTest::new();
 
         // Read data frame 0003010203
-        conn_s
-            .stream_send(stream_id, &[0x0, 0x3, 0x1, 0x2, 0x3])
-            .unwrap();
-        let out = conn_s.process(None, now());
-        conn_c.process(out.dgram(), now());
-        assert_eq!(Ok(false), fr.receive(&mut conn_c, stream_id));
+        let frame = fr.process(&[0x0, 0x3, 0x1, 0x2, 0x3]).unwrap();
+        assert!(matches!(frame, HFrame::Data { len } if len == 3));
 
         // payloead is still on the stream.
         // assert that we have 3 bytes in the stream
-        let mut buf = [0u8; 100];
-        let (amount, _) = conn_c.stream_recv(stream_id, &mut buf).unwrap();
+        let mut buf = [0_u8; 100];
+        let (amount, _) = fr.conn_c.stream_recv(fr.stream_id, &mut buf).unwrap();
         assert_eq!(amount, 3);
-
-        assert!(fr.done());
-        let f = fr.get_frame();
-        assert!(f.is_ok());
-        if let HFrame::Data { len } = f.unwrap() {
-            assert!(len == 3);
-        } else {
-            panic!("wrong frame type");
-        }
     }
 
     // Test an unknown frame
     #[test]
     fn test_unknown_frame() {
-        let (mut conn_c, mut conn_s) = connect();
-
-        // create a stream
-        let stream_id = conn_s.stream_create(StreamType::BiDi).unwrap();
-
-        let mut fr: HFrameReader = HFrameReader::new();
-
         // Construct an unknown frame.
         const UNKNOWN_FRAME_LEN: usize = 832;
+
+        let mut fr = HFrameReaderTest::new();
+
         let mut enc = Encoder::with_capacity(UNKNOWN_FRAME_LEN + 4);
-        enc.encode_varint(1028u64); // Arbitrary type.
+        enc.encode_varint(1028_u64); // Arbitrary type.
         enc.encode_varint(UNKNOWN_FRAME_LEN as u64);
         let mut buf: Vec<_> = enc.into();
         buf.resize(UNKNOWN_FRAME_LEN + buf.len(), 0);
-        conn_s.stream_send(stream_id, &buf).unwrap();
-        let out = conn_s.process(None, now());
-        conn_c.process(out.dgram(), now());
-        assert_eq!(Ok(false), fr.receive(&mut conn_c, stream_id));
+        assert!(fr.process(&buf).is_none());
 
         // now receive a CANCEL_PUSH fram to see that frame reader is ok.
-        conn_s.stream_send(stream_id, &[0x03, 0x01, 0x05]).unwrap();
-        let out = conn_s.process(None, now());
-        conn_c.process(out.dgram(), now());
-        assert_eq!(Ok(false), fr.receive(&mut conn_c, stream_id));
-
-        assert!(fr.done());
-        let f = fr.get_frame();
-        assert!(f.is_ok());
-        if let HFrame::CancelPush { push_id } = f.unwrap() {
+        let frame = fr.process(&[0x03, 0x01, 0x05]);
+        assert!(frame.is_some());
+        if let HFrame::CancelPush { push_id } = frame.unwrap() {
             assert!(push_id == 5);
         } else {
             panic!("wrong frame type");
@@ -762,48 +623,46 @@ mod tests {
 
     fn test_reading_frame(
         buf: &[u8],
-        test_to_send: FrameReadingTestSend,
-        expected_result: FrameReadingTestExpect,
+        test_to_send: &FrameReadingTestSend,
+        expected_result: &FrameReadingTestExpect,
     ) {
-        let (mut conn_c, mut conn_s) = connect();
+        let mut fr = HFrameReaderTest::new();
 
-        // create a stream
-        let stream_id = conn_s.stream_create(StreamType::BiDi).unwrap();
-
-        conn_s.stream_send(stream_id, &buf).unwrap();
+        fr.conn_s.stream_send(fr.stream_id, &buf).unwrap();
         if let FrameReadingTestSend::DataWithFin = test_to_send {
-            conn_s.stream_close_send(stream_id).unwrap();
+            fr.conn_s.stream_close_send(fr.stream_id).unwrap();
         }
 
-        let out = conn_s.process(None, now());
-        conn_c.process(out.dgram(), now());
+        let out = fr.conn_s.process(None, now());
+        let _ = fr.conn_c.process(out.dgram(), now());
 
         if let FrameReadingTestSend::DataThenFin = test_to_send {
-            conn_s.stream_close_send(stream_id).unwrap();
-            let out = conn_s.process(None, now());
-            conn_c.process(out.dgram(), now());
+            fr.conn_s.stream_close_send(fr.stream_id).unwrap();
+            let out = fr.conn_s.process(None, now());
+            let _ = fr.conn_c.process(out.dgram(), now());
         }
 
-        let mut fr = HFrameReader::new();
-        let rv = fr.receive(&mut conn_c, stream_id);
+        let rv = fr.fr.receive(&mut fr.conn_c, fr.stream_id);
 
         match expected_result {
-            FrameReadingTestExpect::Error => assert_eq!(Err(Error::HttpFrameError), rv),
+            FrameReadingTestExpect::Error => assert_eq!(Err(Error::HttpFrame), rv),
             FrameReadingTestExpect::Incomplete => {
-                assert_eq!(Ok(false), rv);
-                assert_eq!(false, fr.done());
+                assert_eq!(Ok((None, false)), rv);
             }
             FrameReadingTestExpect::FrameComplete => {
-                assert_eq!(Ok(false), rv);
-                assert_eq!(true, fr.done());
+                let (f, fin) = rv.unwrap();
+                assert_eq!(fin, false);
+                assert!(f.is_some());
             }
             FrameReadingTestExpect::FrameAndStreamComplete => {
-                assert_eq!(Ok(true), rv);
-                assert_eq!(true, fr.done());
+                let (f, fin) = rv.unwrap();
+                assert_eq!(fin, true);
+                assert!(f.is_some());
             }
             FrameReadingTestExpect::StreamDoneWithoutFrame => {
-                assert_eq!(Ok(true), rv);
-                assert_eq!(false, fr.done());
+                let (f, fin) = rv.unwrap();
+                assert_eq!(fin, true);
+                assert!(f.is_none());
             }
         };
     }
@@ -813,7 +672,7 @@ mod tests {
         // Construct an unknown frame.
         const UNKNOWN_FRAME_LEN: usize = 832;
         let mut enc = Encoder::with_capacity(UNKNOWN_FRAME_LEN + 4);
-        enc.encode_varint(1028u64); // Arbitrary type.
+        enc.encode_varint(1028_u64); // Arbitrary type.
         enc.encode_varint(UNKNOWN_FRAME_LEN as u64);
         let mut buf: Vec<_> = enc.into();
         buf.resize(UNKNOWN_FRAME_LEN + buf.len(), 0);
@@ -822,34 +681,34 @@ mod tests {
         for i in 1..len {
             test_reading_frame(
                 &buf[..i],
-                FrameReadingTestSend::OnlyData,
-                FrameReadingTestExpect::Incomplete,
+                &FrameReadingTestSend::OnlyData,
+                &FrameReadingTestExpect::Incomplete,
             );
             test_reading_frame(
                 &buf[..i],
-                FrameReadingTestSend::DataWithFin,
-                FrameReadingTestExpect::Error,
+                &FrameReadingTestSend::DataWithFin,
+                &FrameReadingTestExpect::Error,
             );
             test_reading_frame(
                 &buf[..i],
-                FrameReadingTestSend::DataThenFin,
-                FrameReadingTestExpect::Error,
+                &FrameReadingTestSend::DataThenFin,
+                &FrameReadingTestExpect::Error,
             );
         }
         test_reading_frame(
             &buf,
-            FrameReadingTestSend::OnlyData,
-            FrameReadingTestExpect::Incomplete,
+            &FrameReadingTestSend::OnlyData,
+            &FrameReadingTestExpect::Incomplete,
         );
         test_reading_frame(
             &buf,
-            FrameReadingTestSend::DataWithFin,
-            FrameReadingTestExpect::StreamDoneWithoutFrame,
+            &FrameReadingTestSend::DataWithFin,
+            &FrameReadingTestExpect::StreamDoneWithoutFrame,
         );
         test_reading_frame(
             &buf,
-            FrameReadingTestSend::DataThenFin,
-            FrameReadingTestExpect::StreamDoneWithoutFrame,
+            &FrameReadingTestSend::DataThenFin,
+            &FrameReadingTestExpect::StreamDoneWithoutFrame,
         );
     }
 
@@ -863,53 +722,53 @@ mod tests {
         for i in 1..len {
             test_reading_frame(
                 &buf[..i],
-                FrameReadingTestSend::OnlyData,
+                &FrameReadingTestSend::OnlyData,
                 if i >= done_state {
-                    FrameReadingTestExpect::FrameComplete
+                    &FrameReadingTestExpect::FrameComplete
                 } else {
-                    FrameReadingTestExpect::Incomplete
+                    &FrameReadingTestExpect::Incomplete
                 },
             );
             test_reading_frame(
                 &buf[..i],
-                FrameReadingTestSend::DataWithFin,
+                &FrameReadingTestSend::DataWithFin,
                 match i.cmp(&done_state) {
-                    Ordering::Greater => FrameReadingTestExpect::FrameComplete,
-                    Ordering::Equal => FrameReadingTestExpect::FrameAndStreamComplete,
-                    Ordering::Less => FrameReadingTestExpect::Error,
+                    Ordering::Greater => &FrameReadingTestExpect::FrameComplete,
+                    Ordering::Equal => &FrameReadingTestExpect::FrameAndStreamComplete,
+                    Ordering::Less => &FrameReadingTestExpect::Error,
                 },
             );
             test_reading_frame(
                 &buf[..i],
-                FrameReadingTestSend::DataThenFin,
+                &FrameReadingTestSend::DataThenFin,
                 match i.cmp(&done_state) {
-                    Ordering::Greater => FrameReadingTestExpect::FrameComplete,
-                    Ordering::Equal => FrameReadingTestExpect::FrameAndStreamComplete,
-                    Ordering::Less => FrameReadingTestExpect::Error,
+                    Ordering::Greater => &FrameReadingTestExpect::FrameComplete,
+                    Ordering::Equal => &FrameReadingTestExpect::FrameAndStreamComplete,
+                    Ordering::Less => &FrameReadingTestExpect::Error,
                 },
             );
         }
         test_reading_frame(
             buf,
-            FrameReadingTestSend::OnlyData,
-            FrameReadingTestExpect::FrameComplete,
+            &FrameReadingTestSend::OnlyData,
+            &FrameReadingTestExpect::FrameComplete,
         );
         test_reading_frame(
             buf,
-            FrameReadingTestSend::DataWithFin,
+            &FrameReadingTestSend::DataWithFin,
             if buf.len() == done_state {
-                FrameReadingTestExpect::FrameAndStreamComplete
+                &FrameReadingTestExpect::FrameAndStreamComplete
             } else {
-                FrameReadingTestExpect::FrameComplete
+                &FrameReadingTestExpect::FrameComplete
             },
         );
         test_reading_frame(
             buf,
-            FrameReadingTestSend::DataThenFin,
+            &FrameReadingTestSend::DataThenFin,
             if buf.len() == done_state {
-                FrameReadingTestExpect::FrameAndStreamComplete
+                &FrameReadingTestExpect::FrameAndStreamComplete
             } else {
-                FrameReadingTestExpect::FrameComplete
+                &FrameReadingTestExpect::FrameComplete
             },
         );
     }
@@ -993,30 +852,23 @@ mod tests {
         f.encode(&mut enc);
         let buf: Vec<_> = enc.into();
         test_complete_and_incomplete_frame(&buf, buf.len());
-
-        // H3_FRAME_TYPE_DUPLICATE_PUSH
-        let f = HFrame::DuplicatePush { push_id: 5 };
-        let mut enc = Encoder::default();
-        f.encode(&mut enc);
-        let buf: Vec<_> = enc.into();
-        test_complete_and_incomplete_frame(&buf, buf.len());
     }
 
     // Test closing a stream before any frame is sent should not cause an error.
     #[test]
     fn test_frame_reading_when_stream_is_closed_before_sending_data() {
-        let (mut conn_c, mut conn_s) = connect();
+        let mut fr = HFrameReaderTest::new();
 
-        // create a stream
-        let stream_id = conn_s.stream_create(StreamType::BiDi).unwrap();
-        conn_s.stream_send(stream_id, &[0x00]).unwrap();
-        let out = conn_s.process(None, now());
-        conn_c.process(out.dgram(), now());
+        fr.conn_s.stream_send(fr.stream_id, &[0x00]).unwrap();
+        let out = fr.conn_s.process(None, now());
+        let _ = fr.conn_c.process(out.dgram(), now());
 
-        let mut fr: HFrameReader = HFrameReader::new();
-        assert_eq!(Ok(()), conn_c.stream_close_send(stream_id));
-        let out = conn_c.process(None, now());
-        conn_s.process(out.dgram(), now());
-        assert_eq!(Ok(true), fr.receive(&mut conn_s, stream_id));
+        assert_eq!(Ok(()), fr.conn_c.stream_close_send(fr.stream_id));
+        let out = fr.conn_c.process(None, now());
+        let _ = fr.conn_s.process(out.dgram(), now());
+        assert_eq!(
+            Ok((None, true)),
+            fr.fr.receive(&mut fr.conn_s, fr.stream_id)
+        );
     }
 }

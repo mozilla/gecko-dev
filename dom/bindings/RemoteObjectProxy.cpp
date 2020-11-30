@@ -7,6 +7,7 @@
 #include "RemoteObjectProxy.h"
 #include "AccessCheck.h"
 #include "jsfriendapi.h"
+#include "js/Object.h"  // JS::GetClass
 #include "xpcprivate.h"
 
 namespace mozilla {
@@ -31,7 +32,7 @@ bool RemoteObjectProxyBase::defineProperty(
   // step 3 and
   // https://html.spec.whatwg.org/multipage/browsers.html#location-defineownproperty
   // step 2
-  return ReportCrossOriginDenial(aCx, aId, NS_LITERAL_CSTRING("define"));
+  return ReportCrossOriginDenial(aCx, aId, "define"_ns);
 }
 
 bool RemoteObjectProxyBase::ownPropertyKeys(
@@ -60,7 +61,7 @@ bool RemoteObjectProxyBase::delete_(JSContext* aCx,
   // https://html.spec.whatwg.org/multipage/browsers.html#windowproxy-delete
   // step 3 and
   // https://html.spec.whatwg.org/multipage/browsers.html#location-delete step 2
-  return ReportCrossOriginDenial(aCx, aId, NS_LITERAL_CSTRING("delete"));
+  return ReportCrossOriginDenial(aCx, aId, "delete"_ns);
 }
 
 bool RemoteObjectProxyBase::getPrototypeIfOrdinary(
@@ -142,7 +143,7 @@ void RemoteObjectProxyBase::GetOrCreateProxyObject(
     // During a transplant, we put an object that is temporarily not a
     // proxy object into the map. Make sure that we don't return one of
     // these objects in the middle of a transplant.
-    MOZ_RELEASE_ASSERT(js::GetObjectClass(aProxy) == aClasp);
+    MOZ_RELEASE_ASSERT(JS::GetClass(aProxy) == aClasp);
 
     return;
   }
@@ -168,7 +169,7 @@ void RemoteObjectProxyBase::GetOrCreateProxyObject(
   // not have the same class as aClasp to ensure that the release assert earlier
   // in this function will actually fire if we try to return a proxy object in
   // the middle of a transplant.
-  MOZ_ASSERT_IF(aTransplantTo, js::GetObjectClass(aTransplantTo) != aClasp);
+  MOZ_ASSERT_IF(aTransplantTo, JS::GetClass(aTransplantTo) != aClasp);
 
   if (!map.add(result, aNative, aTransplantTo ? aTransplantTo : obj)) {
     return;

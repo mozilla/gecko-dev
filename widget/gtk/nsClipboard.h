@@ -8,6 +8,7 @@
 #ifndef __nsClipboard_h_
 #define __nsClipboard_h_
 
+#include "mozilla/UniquePtr.h"
 #include "nsIClipboard.h"
 #include "nsIObserver.h"
 #include <gtk/gtk.h>
@@ -38,7 +39,7 @@ class nsRetrievalContext {
 
   virtual bool HasSelectionSupport(void) = 0;
 
-  virtual ~nsRetrievalContext(){};
+  virtual ~nsRetrievalContext() = default;
 };
 
 class nsClipboard : public nsIClipboard, public nsIObserver {
@@ -78,7 +79,7 @@ class nsClipboard : public nsIClipboard, public nsIObserver {
   nsCOMPtr<nsIClipboardOwner> mGlobalOwner;
   nsCOMPtr<nsITransferable> mSelectionTransferable;
   nsCOMPtr<nsITransferable> mGlobalTransferable;
-  nsAutoPtr<nsRetrievalContext> mContext;
+  mozilla::UniquePtr<nsRetrievalContext> mContext;
 };
 
 extern const int kClipboardTimeout;

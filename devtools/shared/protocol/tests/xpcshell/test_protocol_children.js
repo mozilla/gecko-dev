@@ -94,7 +94,7 @@ const childSpec = protocol.generateActorSpec({
 var ChildActor = protocol.ActorClassWithSpec(childSpec, {
   // Actors returned by this actor should be owned by the root actor.
   marshallPool() {
-    return this.parent();
+    return this.getParent();
   },
 
   toString() {
@@ -145,7 +145,7 @@ var ChildActor = protocol.ActorClassWithSpec(childSpec, {
   },
 
   getSibling(id) {
-    return this.parent().getChild(id);
+    return this.getParent().getChild(id);
   },
 
   emitEvents() {
@@ -161,8 +161,8 @@ var ChildActor = protocol.ActorClassWithSpec(childSpec, {
 });
 
 class ChildFront extends protocol.FrontClassWithSpec(childSpec) {
-  constructor(client) {
-    super(client);
+  constructor(client, targetFront, parentFront) {
+    super(client, targetFront, parentFront);
 
     this.before("event1", this.onEvent1.bind(this));
     this.before("event2", this.onEvent2a.bind(this));
@@ -175,7 +175,7 @@ class ChildFront extends protocol.FrontClassWithSpec(childSpec) {
   }
 
   marshallPool() {
-    return this.parent();
+    return this.getParent();
   }
 
   toString() {
@@ -339,8 +339,8 @@ const RootActor = protocol.ActorClassWithSpec(rootSpec, {
 });
 
 class RootFront extends protocol.FrontClassWithSpec(rootSpec) {
-  constructor(client) {
-    super(client);
+  constructor(client, targetFront, parentFront) {
+    super(client, targetFront, parentFront);
     this.actorID = "root";
     // Root actor owns itself.
     this.manage(this);
@@ -352,7 +352,11 @@ class RootFront extends protocol.FrontClassWithSpec(rootSpec) {
 
   getTemporaryChild(id) {
     if (!this._temporaryHolder) {
-      this._temporaryHolder = new protocol.Front(this.conn);
+      this._temporaryHolder = new protocol.Front(
+        this.conn,
+        this.targetFront,
+        this
+      );
       this._temporaryHolder.actorID = this.actorID + "_temp";
       this.manage(this._temporaryHolder);
     }
@@ -377,6 +381,12 @@ function expectRootChildren(size) {
     Assert.equal(childFront._poolMap.size, 0);
   }
 }
+protocol.registerFront(RootFront);
+
+function childrenOfType(pool, type) {
+  const children = [...rootFront.poolChildren()];
+  return children.filter(child => child instanceof type);
+}
 
 add_task(async function() {
   DevToolsServer.createRootActor = conn => {
@@ -394,7 +404,7 @@ add_task(async function() {
   });
   Assert.equal(applicationType, "xpcshell-tests");
 
-  rootFront = new RootFront(client);
+  rootFront = client.mainRoot;
 
   await testSimpleChildren(trace);
   await testDetail(trace);
@@ -404,6 +414,7 @@ add_task(async function() {
   await testManyChildren(trace);
   await testGenerator(trace);
   await testPolymorphism(trace);
+  await testUnmanageChildren(trace);
 
   await client.close();
 });
@@ -711,4 +722,18 @@ async function testPolymorphism(trace) {
   Assert.throws(() => {
     rootFront.requestPolymorphism(0, rootFront);
   }, /Was expecting one of these actors 'childActor,otherChildActor' but instead got an actor of type: 'root'/);
+}
+
+async function testUnmanageChildren(trace) {
+  // There is already one front of type OtherChildFront
+  Assert.equal(childrenOfType(rootFront, OtherChildFront).length, 1);
+
+  // Create another front of type OtherChildFront
+  const front = await rootFront.getPolymorphism(1);
+  Assert.ok(front instanceof OtherChildFront);
+  Assert.equal(childrenOfType(rootFront, OtherChildFront).length, 2);
+
+  // Remove all fronts of type OtherChildFront
+  rootFront.unmanageChildren(OtherChildFront);
+  Assert.equal(childrenOfType(rootFront, OtherChildFront).length, 0);
 }

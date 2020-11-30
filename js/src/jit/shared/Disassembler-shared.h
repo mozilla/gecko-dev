@@ -8,21 +8,23 @@
 #define jit_shared_Disassembler_shared_h
 
 #include "mozilla/Atomics.h"
+#include "mozilla/Attributes.h"
 
-#include "jit/Label.h"
-#ifdef JS_DISASM_SUPPORTED
-#  include "jit/shared/IonAssemblerBuffer.h"
-#endif
-
-using js::Sprinter;
-using js::jit::Label;
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #if defined(JS_DISASM_ARM) || defined(JS_DISASM_ARM64)
 #  define JS_DISASM_SUPPORTED
 #endif
 
 namespace js {
+
+class Sprinter;
+
 namespace jit {
+
+class Label;
 
 // A wrapper around spew/disassembly functionality.  The disassembler is built
 // on a per-instruction disassembler (as in our ARM, ARM64 back-ends) and
@@ -82,7 +84,7 @@ class DisassemblerSpew {
     const bool bound;
     const bool valid;
 #else
-    LabelDoc() {}
+    LabelDoc() = default;
     LabelDoc(uint32_t, bool) {}
 #endif
   };
@@ -108,7 +110,7 @@ class DisassemblerSpew {
     explicit LiteralDoc(float v) : type(Type::F32) { value.f32 = v; }
     explicit LiteralDoc(double v) : type(Type::F64) { value.f64 = v; }
 #else
-    LiteralDoc() {}
+    LiteralDoc() = default;
     explicit LiteralDoc(int32_t) {}
     explicit LiteralDoc(uint32_t) {}
     explicit LiteralDoc(int64_t) {}

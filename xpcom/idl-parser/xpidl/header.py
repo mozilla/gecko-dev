@@ -7,12 +7,12 @@
 
 """Print a C++ header file for the IDL files specified on the command line"""
 
-import sys
+from __future__ import absolute_import
+
 import os.path
 import re
-import xpidl
+from xpidl import xpidl
 import itertools
-import glob
 
 printdoccomments = False
 
@@ -33,8 +33,8 @@ def attributeParamName(a):
     return "a" + firstCap(a.name)
 
 
-def attributeParamNames(a, getter):
-    if getter and a.notxpcom:
+def attributeParamNames(a, getter, return_param=True):
+    if getter and (a.notxpcom or not return_param):
         l = []
     else:
         l = [attributeParamName(a)]
@@ -46,6 +46,24 @@ def attributeParamNames(a, getter):
 def attributeNativeName(a, getter):
     binaryname = a.binaryname is not None and a.binaryname or firstCap(a.name)
     return "%s%s" % (getter and 'Get' or 'Set', binaryname)
+
+
+def attributeAttributes(a, getter):
+    ret = ""
+
+    if a.must_use:
+        ret = "[[nodiscard]] " + ret
+
+    # Ideally, we'd set MOZ_CAN_RUN_SCRIPT in the "scriptable and not
+    # builtinclass" case too, so we'd just have memberCanRunScript() check
+    # explicit_setter_can_run_script/explicit_setter_can_run_script and call it
+    # here.  But that would likely require a fair amount of Gecko-side
+    # annotation work.  See bug 1534292.
+    if ((a.explicit_getter_can_run_script and getter) or
+        (a.explicit_setter_can_run_script and not getter)):
+        ret = "MOZ_CAN_RUN_SCRIPT " + ret
+
+    return ret
 
 
 def attributeReturnType(a, getter, macro):
@@ -67,21 +85,11 @@ def attributeReturnType(a, getter, macro):
         else:
             ret = "%s_(%s)" % (macro, ret)
 
-    if a.must_use:
-        ret = "MOZ_MUST_USE " + ret
-    # Ideally, we'd set MOZ_CAN_RUN_SCRIPT in the "scriptable and not
-    # builtinclass" case too, so we'd just have memberCanRunScript() check
-    # explicit_setter_can_run_script/explicit_setter_can_run_script and call it
-    # here.  But that would likely require a fair amount of Gecko-side
-    # annotation work.  See bug 1534292.
-    if ((a.explicit_getter_can_run_script and getter) or
-        (a.explicit_setter_can_run_script and not getter)):
-        ret = "MOZ_CAN_RUN_SCRIPT " + ret
-    return ret
+    return attributeAttributes(a, getter) + ret
 
 
-def attributeParamlist(a, getter):
-    if getter and a.notxpcom:
+def attributeParamlist(a, getter, return_param=True):
+    if getter and (a.notxpcom or not return_param):
         l = []
     else:
         l = ["%s%s" % (a.realtype.nativeType(getter and 'out' or 'in'),
@@ -103,6 +111,22 @@ def methodNativeName(m):
     return m.binaryname is not None and m.binaryname or firstCap(m.name)
 
 
+def methodAttributes(m):
+    ret = ""
+
+    if m.must_use:
+        ret = "[[nodiscard]] " + ret
+
+    # Ideally, we'd set MOZ_CAN_RUN_SCRIPT in the "scriptable and not
+    # builtinclass" case too, so we'd just have memberCanRunScript() check
+    # explicit_can_run_script and call it here.  But that would likely require
+    # a fair amount of Gecko-side annotation work.  See bug 1534292.
+    if m.explicit_can_run_script:
+        ret = "MOZ_CAN_RUN_SCRIPT " + ret
+
+    return ret
+
+
 def methodReturnType(m, macro):
     """macro should be NS_IMETHOD or NS_IMETHODIMP"""
     if m.notxpcom:
@@ -121,15 +145,7 @@ def methodReturnType(m, macro):
         else:
             ret = "%s_(%s)" % (macro, ret)
 
-    if m.must_use:
-        ret = "MOZ_MUST_USE " + ret
-    # Ideally, we'd set MOZ_CAN_RUN_SCRIPT in the "scriptable and not
-    # builtinclass" case too, so we'd just have memberCanRunScript() check
-    # explicit_can_run_script and call it here.  But that would likely require
-    # a fair amount of Gecko-side annotation work.  See bug 1534292.
-    if m.explicit_can_run_script:
-        ret = "MOZ_CAN_RUN_SCRIPT " + ret
-    return ret
+    return methodAttributes(m) + ret
 
 
 def methodAsNative(m, declType='NS_IMETHOD'):
@@ -138,7 +154,7 @@ def methodAsNative(m, declType='NS_IMETHOD'):
                           paramlistAsNative(m))
 
 
-def paramlistAsNative(m, empty='void'):
+def paramlistAsNative(m, empty='void', return_param=True):
     l = [paramAsNative(p) for p in m.params]
 
     if m.implicit_jscontext:
@@ -147,13 +163,10 @@ def paramlistAsNative(m, empty='void'):
     if m.optional_argc:
         l.append('uint8_t _argc')
 
-    if not m.notxpcom and m.realtype.name != 'void':
-        l.append(paramAsNative(xpidl.Param(paramtype='out',
-                                           type=None,
-                                           name='_retval',
-                                           attlist=[],
-                                           location=None,
-                                           realtype=m.realtype)))
+    if not m.notxpcom and m.realtype.name != 'void' and return_param:
+        l.append(paramAsNative(xpidl.Param(
+            paramtype='out', type=None, name='_retval', attlist=[],
+            location=None, realtype=m.realtype)))
 
     # Set any optional out params to default to nullptr. Skip if we just added
     # extra non-optional args to l.
@@ -192,7 +205,7 @@ def paramAsNative(p):
                        default_spec)
 
 
-def paramlistNames(m):
+def paramlistNames(m, return_param=True):
     names = [p.name for p in m.params]
 
     if m.implicit_jscontext:
@@ -201,7 +214,7 @@ def paramlistNames(m):
     if m.optional_argc:
         names.append('_argc')
 
-    if not m.notxpcom and m.realtype.name != 'void':
+    if not m.notxpcom and m.realtype.name != 'void' and return_param:
         names.append('_retval')
 
     if len(names) == 0:
@@ -210,7 +223,7 @@ def paramlistNames(m):
 
 
 header = """/*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM %(filename)s
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM $SRCDIR/%(relpath)s
  */
 
 #ifndef __gen_%(basename)s_h__
@@ -257,8 +270,8 @@ def idl_basename(f):
     return os.path.basename(f).rpartition('.')[0]
 
 
-def print_header(idl, fd, filename):
-    fd.write(header % {'filename': filename,
+def print_header(idl, fd, filename, relpath):
+    fd.write(header % {'relpath': relpath,
                        'basename': idl_basename(filename)})
 
     foundinc = False
@@ -274,20 +287,19 @@ def print_header(idl, fd, filename):
     # Include some extra files if any attributes are infallible.
     interfaces = [p for p in idl.productions if p.kind == 'interface']
     wroteRunScriptIncludes = False
+    wroteInfallibleIncludes = False
     for iface in interfaces:
-        attrs = [m for m in iface.members if isinstance(m, xpidl.Attribute)]
-        for attr in attrs:
-            if attr.infallible:
+        for member in iface.members:
+            if not isinstance(member, xpidl.Attribute) and not isinstance(member, xpidl.Method):
+                continue
+            if not wroteInfallibleIncludes and member.infallible:
                 fd.write(infallible_includes)
-                break
-
-        if not wroteRunScriptIncludes:
-            methods = [m for m in iface.members if isinstance(m, xpidl.Method)]
-            for member in itertools.chain(attrs, methods):
-                if memberCanRunScript(member):
-                    fd.write(can_run_script_includes)
-                    wroteRunScriptIncludes = True
-                    break
+                wroteInfallibleIncludes = True
+            if not wroteRunScriptIncludes and memberCanRunScript(member):
+                fd.write(can_run_script_includes)
+                wroteRunScriptIncludes = True
+        if wroteRunScriptIncludes and wroteInfallibleIncludes:
+            break
 
     fd.write('\n')
     fd.write(header_end)
@@ -349,6 +361,12 @@ iface_prolog = """ {
 
 """
 
+iface_scriptable = """\
+  /* Used by ToJSValue to check which scriptable interface is implemented. */
+  using ScriptableInterfaceType = %(name)s;
+
+"""
+
 iface_epilog = """};
 
   NS_DEFINE_STATIC_IID_ACCESSOR(%(name)s, %(defname)s_IID)
@@ -372,8 +390,8 @@ iface_forward_safe = """
 /* Use this macro to declare functions that forward the behavior of this interface to another object in a safe way. */
 #define NS_FORWARD_SAFE_%(macroname)s(_to) """  # NOQA: E501
 
-attr_builtin_infallible_tmpl = """\
-  inline %(realtype)s%(nativename)s(%(args)s)
+builtin_infallible_tmpl = """\
+  %(attributes)sinline %(realtype)s %(nativename)s(%(args)s)
   {
     %(realtype)sresult;
     mozilla::DebugOnly<nsresult> rv = %(nativename)s(%(argnames)s&result);
@@ -385,8 +403,8 @@ attr_builtin_infallible_tmpl = """\
 # NOTE: We don't use RefPtr::forget here because we don't want to need the
 # definition of %(realtype)s in scope, which we would need for the
 # AddRef/Release calls.
-attr_refcnt_infallible_tmpl = """\
-  inline already_AddRefed<%(realtype)s>%(nativename)s(%(args)s)
+refcnt_infallible_tmpl = """\
+  %(attributes)s inline already_AddRefed<%(realtype)s> %(nativename)s(%(args)s)
   {
     %(realtype)s* result = nullptr;
     mozilla::DebugOnly<nsresult> rv = %(nativename)s(%(argnames)s&result);
@@ -394,6 +412,37 @@ attr_refcnt_infallible_tmpl = """\
     return already_AddRefed<%(realtype)s>(result);
   }
 """
+
+
+def infallibleDecl(member):
+    isattr = isinstance(member, xpidl.Attribute)
+    ismethod = isinstance(member, xpidl.Method)
+    assert isattr or ismethod
+
+    realtype = member.realtype.nativeType('in')
+    tmpl = builtin_infallible_tmpl
+
+    if member.realtype.kind != 'builtin' and member.realtype.kind != 'cenum':
+        assert realtype.endswith(' *'), "bad infallible type"
+        tmpl = refcnt_infallible_tmpl
+        realtype = realtype[:-2]  # strip trailing pointer
+
+    if isattr:
+        nativename = attributeNativeName(member, getter=True)
+        args = attributeParamlist(member, getter=True, return_param=False)
+        argnames = attributeParamNames(member, getter=True, return_param=False)
+        attributes = attributeAttributes(member, getter=True)
+    else:
+        nativename = methodNativeName(member)
+        args = paramlistAsNative(member, return_param=False)
+        argnames = paramlistNames(member, return_param=False)
+        attributes = methodAttributes(member)
+
+    return tmpl % {'attributes': attributes,
+                   'realtype': realtype,
+                   'nativename': nativename,
+                   'args': args,
+                   'argnames': argnames + ', ' if argnames else ''}
 
 
 def write_interface(iface, fd):
@@ -443,6 +492,9 @@ def write_interface(iface, fd):
         fd.write("  %s%s = 0;\n\n" % (runScriptAnnotation(m),
                                       methodAsNative(m)))
 
+        if m.infallible:
+            fd.write(infallibleDecl(m))
+
     def write_attr_decl(a):
         printComments(fd, a.doccomments, '  ')
 
@@ -451,18 +503,7 @@ def write_interface(iface, fd):
         fd.write("  %s%s = 0;\n" % (runScriptAnnotation(a),
                                     attributeAsNative(a, True)))
         if a.infallible:
-            realtype = a.realtype.nativeType('in')
-            tmpl = attr_builtin_infallible_tmpl
-
-            if a.realtype.kind != 'builtin' and a.realtype.kind != 'cenum':
-                assert realtype.endswith(' *'), "bad infallible type"
-                tmpl = attr_refcnt_infallible_tmpl
-                realtype = realtype[:-2]  # strip trailing pointer
-
-            fd.write(tmpl % {'realtype': realtype,
-                             'nativename': attributeNativeName(a, getter=True),
-                             'args': '' if not a.implicit_jscontext else 'JSContext* cx',
-                             'argnames': '' if not a.implicit_jscontext else 'cx, '})
+            fd.write(infallibleDecl(a))
 
         if not a.readonly:
             fd.write("  %s%s = 0;\n" % (runScriptAnnotation(a),
@@ -475,7 +516,7 @@ def write_interface(iface, fd):
 
     names = uuid_decoder.match(iface.attributes.uuid).groupdict()
     m3str = names['m3'] + names['m4']
-    names['m3joined'] = ", ".join(["0x%s" % m3str[i:i+2] for i in xrange(0, 16, 2)])
+    names['m3joined'] = ", ".join(["0x%s" % m3str[i:i+2] for i in range(0, 16, 2)])
 
     if iface.name[2] == 'I':
         implclass = iface.name[:2] + iface.name[3:]
@@ -505,6 +546,9 @@ def write_interface(iface, fd):
     if iface.base:
         fd.write(" : public %s" % iface.base)
     fd.write(iface_prolog % names)
+
+    if iface.attributes.scriptable:
+        fd.write(iface_scriptable % names)
 
     for key, group in itertools.groupby(iface.members, key=type):
         if key == xpidl.ConstMember:
@@ -593,19 +637,7 @@ def write_interface(iface, fd):
 
 
 def main(outputfile):
-    cachedir = os.path.dirname(outputfile.name if outputfile else '') or '.'
-    if not os.path.isdir(cachedir):
-        os.mkdir(cachedir)
-    sys.path.append(cachedir)
-
-    # Delete the lex/yacc files.  Ply is too stupid to regenerate them
-    # properly
-    for fileglobs in [os.path.join(cachedir, f) for f in ["xpidllex.py*", "xpidlyacc.py*"]]:
-        for filename in glob.glob(fileglobs):
-            os.remove(filename)
-
-    # Instantiate the parser.
-    xpidl.IDLParser(outputdir=cachedir)
+    xpidl.IDLParser()
 
 
 if __name__ == '__main__':

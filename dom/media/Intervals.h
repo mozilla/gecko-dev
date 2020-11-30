@@ -20,8 +20,9 @@ class IntervalSet;
 }  // namespace mozilla
 
 template <class E>
-struct nsTArray_CopyChooser<mozilla::media::IntervalSet<E>> {
-  typedef nsTArray_CopyWithConstructors<mozilla::media::IntervalSet<E>> Type;
+struct nsTArray_RelocationStrategy<mozilla::media::IntervalSet<E>> {
+  typedef nsTArray_RelocateUsingMoveConstructor<mozilla::media::IntervalSet<E>>
+      Type;
 };
 
 namespace mozilla {
@@ -251,7 +252,7 @@ class IntervalSet {
   IntervalSet() = default;
   virtual ~IntervalSet() = default;
 
-  IntervalSet(const SelfType& aOther) : mIntervals(aOther.mIntervals) {}
+  IntervalSet(const SelfType& aOther) : mIntervals(aOther.mIntervals.Clone()) {}
 
   IntervalSet(SelfType&& aOther) {
     mIntervals.AppendElements(std::move(aOther.mIntervals));
@@ -278,7 +279,7 @@ class IntervalSet {
   }
 
   SelfType& operator=(const SelfType& aOther) {
-    mIntervals = aOther.mIntervals;
+    mIntervals = aOther.mIntervals.Clone();
     return *this;
   }
 
@@ -608,6 +609,23 @@ class IntervalSet {
     for (const auto& interval : mIntervals) {
       if (interval.IntersectsStrict(aInterval)) {
         return true;
+      }
+    }
+    return false;
+  }
+
+  // Returns if there's any intersection between this and aOther.
+  bool IntersectsStrict(const SelfType& aOther) const {
+    const ContainerType& other = aOther.mIntervals;
+    IndexType i = 0, j = 0;
+    for (; i < mIntervals.Length() && j < other.Length();) {
+      if (mIntervals[i].IntersectsStrict(other[j])) {
+        return true;
+      }
+      if (mIntervals[i].mEnd < other[j].mEnd) {
+        i++;
+      } else {
+        j++;
       }
     }
     return false;

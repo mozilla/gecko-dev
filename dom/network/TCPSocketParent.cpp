@@ -51,7 +51,7 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(TCPSocketParentBase)
 
 TCPSocketParentBase::TCPSocketParentBase() : mIPCOpen(false) {}
 
-TCPSocketParentBase::~TCPSocketParentBase() {}
+TCPSocketParentBase::~TCPSocketParentBase() = default;
 
 void TCPSocketParentBase::ReleaseIPDLReference() {
   MOZ_ASSERT(mIPCOpen);
@@ -127,13 +127,13 @@ mozilla::ipc::IPCResult TCPSocketParent::RecvData(const SendableData& aData) {
         return IPC_FAIL_NO_REASON(this);
       }
       Optional<uint32_t> byteLength(buffer.Length());
-      mSocket->Send(autoCx, data, 0, byteLength, rv);
+      mSocket->Send(data, 0, byteLength, rv);
       break;
     }
 
     case SendableData::TnsCString: {
       const nsCString& strData = aData.get_nsCString();
-      mSocket->Send(nullptr, strData, rv);
+      mSocket->Send(strData, rv);
       break;
     }
 
@@ -153,8 +153,8 @@ mozilla::ipc::IPCResult TCPSocketParent::RecvClose() {
 void TCPSocketParent::FireErrorEvent(const nsAString& aName,
                                      const nsAString& aType,
                                      TCPReadyState aReadyState) {
-  SendEvent(NS_LITERAL_STRING("error"),
-            TCPError(nsString(aName), nsString(aType)), aReadyState);
+  SendEvent(u"error"_ns, TCPError(nsString(aName), nsString(aType)),
+            aReadyState);
 }
 
 void TCPSocketParent::FireEvent(const nsAString& aType,
@@ -164,18 +164,17 @@ void TCPSocketParent::FireEvent(const nsAString& aType,
 
 void TCPSocketParent::FireArrayBufferDataEvent(nsTArray<uint8_t>& aBuffer,
                                                TCPReadyState aReadyState) {
-  nsTArray<uint8_t> arr;
-  arr.SwapElements(aBuffer);
+  nsTArray<uint8_t> arr = std::move(aBuffer);
 
   SendableData data(arr);
-  SendEvent(NS_LITERAL_STRING("data"), data, aReadyState);
+  SendEvent(u"data"_ns, data, aReadyState);
 }
 
 void TCPSocketParent::FireStringDataEvent(const nsACString& aData,
                                           TCPReadyState aReadyState) {
   SendableData data((nsCString(aData)));
 
-  SendEvent(NS_LITERAL_STRING("data"), data, aReadyState);
+  SendEvent(u"data"_ns, data, aReadyState);
 }
 
 void TCPSocketParent::SendEvent(const nsAString& aType, CallbackData aData,

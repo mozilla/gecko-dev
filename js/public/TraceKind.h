@@ -12,6 +12,8 @@
 #include "js/TypeDecls.h"
 
 // Forward declarations of all the types a TraceKind can denote.
+class JSLinearString;
+
 namespace js {
 class BaseScript;
 class BaseShape;
@@ -120,6 +122,21 @@ inline constexpr bool IsCCTraceKind(JS::TraceKind aKind) {
   }
 }
 
+// Helper for SFINAE to ensure certain methods are only used on appropriate base
+// types. This avoids common footguns such as `Cell::is<JSFunction>()` which
+// match any type of JSObject.
+template <typename T>
+struct IsBaseTraceType : std::false_type {};
+
+#define JS_EXPAND_DEF(_, type, _1, _2) \
+  template <>                          \
+  struct IsBaseTraceType<type> : std::true_type {};
+JS_FOR_EACH_TRACEKIND(JS_EXPAND_DEF);
+#undef JS_EXPAND_DEF
+
+template <typename T>
+inline constexpr bool IsBaseTraceType_v = IsBaseTraceType<T>::value;
+
 // Map from all public types to their trace kind.
 #define JS_EXPAND_DEF(name, type, _, _1)                   \
   template <>                                              \
@@ -128,6 +145,19 @@ inline constexpr bool IsCCTraceKind(JS::TraceKind aKind) {
   };
 JS_FOR_EACH_TRACEKIND(JS_EXPAND_DEF);
 #undef JS_EXPAND_DEF
+
+template <>
+struct MapTypeToTraceKind<JSLinearString> {
+  static const JS::TraceKind kind = JS::TraceKind::String;
+};
+template <>
+struct MapTypeToTraceKind<JSFunction> {
+  static const JS::TraceKind kind = JS::TraceKind::Object;
+};
+template <>
+struct MapTypeToTraceKind<JSScript> {
+  static const JS::TraceKind kind = JS::TraceKind::Script;
+};
 
 // RootKind is closely related to TraceKind. Whereas TraceKind's indices are
 // laid out for convenient embedding as a pointer tag, the indicies of RootKind
@@ -188,11 +218,6 @@ template <>
 struct MapTypeToRootKind<jsid> {
   static const JS::RootKind kind = JS::RootKind::Id;
 };
-template <>
-struct MapTypeToRootKind<JSFunction*> : public MapTypeToRootKind<JSObject*> {};
-template <>
-struct MapTypeToRootKind<JSScript*>
-    : public MapTypeToRootKind<js::BaseScript*> {};
 
 // Fortunately, few places in the system need to deal with fully abstract
 // cells. In those places that do, we generally want to move to a layout

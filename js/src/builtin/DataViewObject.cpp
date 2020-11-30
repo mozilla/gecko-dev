@@ -6,9 +6,9 @@
 
 #include "builtin/DataViewObject.h"
 
-#include "mozilla/Alignment.h"
 #include "mozilla/Casting.h"
 #include "mozilla/EndianUtils.h"
+#include "mozilla/IntegerTypeTraits.h"
 #include "mozilla/WrappingOperations.h"
 
 #include <algorithm>
@@ -20,7 +20,9 @@
 
 #include "builtin/Array.h"
 #include "jit/AtomicOperations.h"
+#include "jit/InlinableNatives.h"
 #include "js/Conversions.h"
+#include "js/experimental/TypedData.h"  // JS_NewDataView
 #include "js/PropertySpec.h"
 #include "js/Wrapper.h"
 #include "util/Windows.h"
@@ -30,6 +32,7 @@
 #include "vm/JSContext.h"
 #include "vm/JSObject.h"
 #include "vm/SharedMem.h"
+#include "vm/Uint8Clamped.h"
 #include "vm/WrapperObject.h"
 
 #include "gc/Nursery-inl.h"
@@ -248,92 +251,30 @@ bool DataViewObject::construct(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 template <typename NativeType>
-/* static */
-SharedMem<uint8_t*> DataViewObject::getDataPointer(JSContext* cx,
-                                                   Handle<DataViewObject*> obj,
-                                                   uint64_t offset,
+SharedMem<uint8_t*> DataViewObject::getDataPointer(uint64_t offset,
                                                    bool* isSharedMemory) {
-  const size_t TypeSize = sizeof(NativeType);
-  if (offset > UINT32_MAX - TypeSize || offset + TypeSize > obj->byteLength()) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_OFFSET_OUT_OF_DATAVIEW);
-    return SharedMem<uint8_t*>::unshared(nullptr);
-  }
+  MOZ_ASSERT(offsetIsInBounds<NativeType>(offset));
 
   MOZ_ASSERT(offset < UINT32_MAX);
-  *isSharedMemory = obj->isSharedMemory();
-  return obj->dataPointerEither().cast<uint8_t*>() + uint32_t(offset);
+  *isSharedMemory = this->isSharedMemory();
+  return dataPointerEither().cast<uint8_t*>() + uint32_t(offset);
 }
 
-static inline bool needToSwapBytes(bool littleEndian) {
-#if MOZ_LITTLE_ENDIAN()
-  return !littleEndian;
-#else
-  return littleEndian;
-#endif
+template <typename T>
+static inline std::enable_if_t<sizeof(T) != 1> SwapBytes(T* value,
+                                                         bool isLittleEndian) {
+  if (isLittleEndian) {
+    mozilla::NativeEndian::swapToLittleEndianInPlace(value, 1);
+  } else {
+    mozilla::NativeEndian::swapToBigEndianInPlace(value, 1);
+  }
 }
 
-static inline uint8_t swapBytes(uint8_t x) { return x; }
-
-static inline uint16_t swapBytes(uint16_t x) {
-  return ((x & 0xff) << 8) | (x >> 8);
+template <typename T>
+static inline std::enable_if_t<sizeof(T) == 1> SwapBytes(T* value,
+                                                         bool isLittleEndian) {
+  // mozilla::NativeEndian doesn't support int8_t/uint8_t types.
 }
-
-static inline uint32_t swapBytes(uint32_t x) {
-  return ((x & 0xff) << 24) | ((x & 0xff00) << 8) | ((x & 0xff0000) >> 8) |
-         ((x & 0xff000000) >> 24);
-}
-
-static inline uint64_t swapBytes(uint64_t x) {
-  uint32_t a = x & UINT32_MAX;
-  uint32_t b = x >> 32;
-  return (uint64_t(swapBytes(a)) << 32) | swapBytes(b);
-}
-
-template <typename DataType>
-struct DataToRepType {
-  using result = DataType;
-};
-template <>
-struct DataToRepType<int8_t> {
-  using result = uint8_t;
-};
-template <>
-struct DataToRepType<uint8_t> {
-  using result = uint8_t;
-};
-template <>
-struct DataToRepType<int16_t> {
-  using result = uint16_t;
-};
-template <>
-struct DataToRepType<uint16_t> {
-  using result = uint16_t;
-};
-template <>
-struct DataToRepType<int32_t> {
-  using result = uint32_t;
-};
-template <>
-struct DataToRepType<uint32_t> {
-  using result = uint32_t;
-};
-template <>
-struct DataToRepType<int64_t> {
-  using result = uint64_t;
-};
-template <>
-struct DataToRepType<uint64_t> {
-  using result = uint64_t;
-};
-template <>
-struct DataToRepType<float> {
-  using result = uint32_t;
-};
-template <>
-struct DataToRepType<double> {
-  using result = uint64_t;
-};
 
 static inline void Memcpy(uint8_t* dest, uint8_t* src, size_t nbytes) {
   memcpy(dest, src, nbytes);
@@ -351,81 +292,94 @@ static inline void Memcpy(SharedMem<uint8_t*> dest, uint8_t* src,
 
 template <typename DataType, typename BufferPtrType>
 struct DataViewIO {
-  using ReadWriteType = typename DataToRepType<DataType>::result;
+  using ReadWriteType =
+      typename mozilla::UnsignedStdintTypeForSize<sizeof(DataType)>::Type;
 
   static constexpr auto alignMask =
-      std::min<size_t>(MOZ_ALIGNOF(void*), sizeof(DataType)) - 1;
+      std::min<size_t>(alignof(void*), sizeof(DataType)) - 1;
 
   static void fromBuffer(DataType* dest, BufferPtrType unalignedBuffer,
-                         bool wantSwap) {
+                         bool isLittleEndian) {
     MOZ_ASSERT((reinterpret_cast<uintptr_t>(dest) & alignMask) == 0);
     Memcpy((uint8_t*)dest, unalignedBuffer, sizeof(ReadWriteType));
-    if (wantSwap) {
-      ReadWriteType* rwDest = reinterpret_cast<ReadWriteType*>(dest);
-      *rwDest = swapBytes(*rwDest);
-    }
+    ReadWriteType* rwDest = reinterpret_cast<ReadWriteType*>(dest);
+    SwapBytes(rwDest, isLittleEndian);
   }
 
   static void toBuffer(BufferPtrType unalignedBuffer, const DataType* src,
-                       bool wantSwap) {
+                       bool isLittleEndian) {
     MOZ_ASSERT((reinterpret_cast<uintptr_t>(src) & alignMask) == 0);
     ReadWriteType temp = *reinterpret_cast<const ReadWriteType*>(src);
-    if (wantSwap) {
-      temp = swapBytes(temp);
-    }
+    SwapBytes(&temp, isLittleEndian);
     Memcpy(unalignedBuffer, (uint8_t*)&temp, sizeof(ReadWriteType));
   }
 };
 
 template <typename NativeType>
+NativeType DataViewObject::read(uint64_t offset, bool isLittleEndian) {
+  bool isSharedMemory;
+  SharedMem<uint8_t*> data =
+      getDataPointer<NativeType>(offset, &isSharedMemory);
+  MOZ_ASSERT(data);
+
+  NativeType val = 0;
+  if (isSharedMemory) {
+    DataViewIO<NativeType, SharedMem<uint8_t*>>::fromBuffer(&val, data,
+                                                            isLittleEndian);
+  } else {
+    DataViewIO<NativeType, uint8_t*>::fromBuffer(&val, data.unwrapUnshared(),
+                                                 isLittleEndian);
+  }
+
+  return val;
+}
+
+template uint32_t DataViewObject::read(uint64_t offset, bool isLittleEndian);
+
+// https://tc39.github.io/ecma262/#sec-getviewvalue
+// GetViewValue ( view, requestIndex, isLittleEndian, type )
+template <typename NativeType>
 /* static */
 bool DataViewObject::read(JSContext* cx, Handle<DataViewObject*> obj,
                           const CallArgs& args, NativeType* val) {
-  // Steps 1-2. done by the caller
-  // Step 3. unnecessary assert
+  // Step 1. done by the caller
+  // Step 2. unnecessary assert
 
-  // Step 4.
+  // Step 3.
   uint64_t getIndex;
   if (!ToIndex(cx, args.get(0), &getIndex)) {
     return false;
   }
 
-  // Step 5.
+  // Step 4.
   bool isLittleEndian = args.length() >= 2 && ToBoolean(args[1]);
 
-  // Steps 6-7.
+  // Steps 5-6.
   if (obj->hasDetachedBuffer()) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_TYPED_ARRAY_DETACHED);
     return false;
   }
 
-  // Steps 8-12.
-  bool isSharedMemory;
-  SharedMem<uint8_t*> data = DataViewObject::getDataPointer<NativeType>(
-      cx, obj, getIndex, &isSharedMemory);
-  if (!data) {
+  // Steps 7-10.
+  if (!obj->offsetIsInBounds<NativeType>(getIndex)) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_OFFSET_OUT_OF_DATAVIEW);
     return false;
   }
 
-  // Step 13.
-  if (isSharedMemory) {
-    DataViewIO<NativeType, SharedMem<uint8_t*>>::fromBuffer(
-        val, data, needToSwapBytes(isLittleEndian));
-  } else {
-    DataViewIO<NativeType, uint8_t*>::fromBuffer(
-        val, data.unwrapUnshared(), needToSwapBytes(isLittleEndian));
-  }
+  // Steps 11-12.
+  *val = obj->read<NativeType>(getIndex, isLittleEndian);
   return true;
 }
 
 template <typename T>
 static inline T WrappingConvert(int32_t value) {
-  if (std::is_unsigned<T>::value) {
+  if (std::is_unsigned_v<T>) {
     return static_cast<T>(value);
   }
 
-  return WrapToSigned(static_cast<typename std::make_unsigned<T>::type>(value));
+  return WrapToSigned(static_cast<typename std::make_unsigned_t<T>>(value));
 }
 
 template <typename NativeType>
@@ -483,16 +437,16 @@ template <typename NativeType>
 /* static */
 bool DataViewObject::write(JSContext* cx, Handle<DataViewObject*> obj,
                            const CallArgs& args) {
-  // Steps 1-2. done by the caller
-  // Step 3. unnecessary assert
+  // Step 1. done by the caller
+  // Step 2. unnecessary assert
 
-  // Step 4.
+  // Step 3.
   uint64_t getIndex;
   if (!ToIndex(cx, args.get(0), &getIndex)) {
     return false;
   }
 
-  // Step 5. Extended by the BigInt proposal to call either ToBigInt or ToNumber
+  // Steps 4-5. Call ToBigInt(value) or ToNumber(value) depending on the type.
   NativeType value;
   if (!WebIDLCast(cx, args.get(1), &value)) {
     return false;
@@ -515,21 +469,25 @@ bool DataViewObject::write(JSContext* cx, Handle<DataViewObject*> obj,
     return false;
   }
 
-  // Steps 9-13.
-  bool isSharedMemory;
-  SharedMem<uint8_t*> data = DataViewObject::getDataPointer<NativeType>(
-      cx, obj, getIndex, &isSharedMemory);
-  if (!data) {
+  // Steps 9-12.
+  if (!obj->offsetIsInBounds<NativeType>(getIndex)) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_OFFSET_OUT_OF_DATAVIEW);
     return false;
   }
 
-  // Step 14.
+  // Steps 13-14.
+  bool isSharedMemory;
+  SharedMem<uint8_t*> data =
+      obj->getDataPointer<NativeType>(getIndex, &isSharedMemory);
+  MOZ_ASSERT(data);
+
   if (isSharedMemory) {
-    DataViewIO<NativeType, SharedMem<uint8_t*>>::toBuffer(
-        data, &value, needToSwapBytes(isLittleEndian));
+    DataViewIO<NativeType, SharedMem<uint8_t*>>::toBuffer(data, &value,
+                                                          isLittleEndian);
   } else {
     DataViewIO<NativeType, uint8_t*>::toBuffer(data.unwrapUnshared(), &value,
-                                               needToSwapBytes(isLittleEndian));
+                                               isLittleEndian);
   }
   return true;
 }
@@ -1014,30 +972,50 @@ const JSClass DataViewObject::class_ = {
     &DataViewObjectClassOps, &DataViewObject::classSpec_};
 
 const JSClass DataViewObject::protoClass_ = {
-    js_Object_str, JSCLASS_HAS_CACHED_PROTO(JSProto_DataView),
+    "DataView.prototype", JSCLASS_HAS_CACHED_PROTO(JSProto_DataView),
     JS_NULL_CLASS_OPS, &DataViewObject::classSpec_};
 
 const JSFunctionSpec DataViewObject::methods[] = {
-    JS_FN("getInt8", DataViewObject::fun_getInt8, 1, 0),
-    JS_FN("getUint8", DataViewObject::fun_getUint8, 1, 0),
-    JS_FN("getInt16", DataViewObject::fun_getInt16, 1, 0),
-    JS_FN("getUint16", DataViewObject::fun_getUint16, 1, 0),
-    JS_FN("getInt32", DataViewObject::fun_getInt32, 1, 0),
-    JS_FN("getUint32", DataViewObject::fun_getUint32, 1, 0),
-    JS_FN("getFloat32", DataViewObject::fun_getFloat32, 1, 0),
-    JS_FN("getFloat64", DataViewObject::fun_getFloat64, 1, 0),
-    JS_FN("getBigInt64", DataViewObject::fun_getBigInt64, 1, 0),
-    JS_FN("getBigUint64", DataViewObject::fun_getBigUint64, 1, 0),
-    JS_FN("setInt8", DataViewObject::fun_setInt8, 2, 0),
-    JS_FN("setUint8", DataViewObject::fun_setUint8, 2, 0),
-    JS_FN("setInt16", DataViewObject::fun_setInt16, 2, 0),
-    JS_FN("setUint16", DataViewObject::fun_setUint16, 2, 0),
-    JS_FN("setInt32", DataViewObject::fun_setInt32, 2, 0),
-    JS_FN("setUint32", DataViewObject::fun_setUint32, 2, 0),
-    JS_FN("setFloat32", DataViewObject::fun_setFloat32, 2, 0),
-    JS_FN("setFloat64", DataViewObject::fun_setFloat64, 2, 0),
-    JS_FN("setBigInt64", DataViewObject::fun_setBigInt64, 2, 0),
-    JS_FN("setBigUint64", DataViewObject::fun_setBigUint64, 2, 0),
+    JS_INLINABLE_FN("getInt8", DataViewObject::fun_getInt8, 1, 0,
+                    DataViewGetInt8),
+    JS_INLINABLE_FN("getUint8", DataViewObject::fun_getUint8, 1, 0,
+                    DataViewGetUint8),
+    JS_INLINABLE_FN("getInt16", DataViewObject::fun_getInt16, 1, 0,
+                    DataViewGetInt16),
+    JS_INLINABLE_FN("getUint16", DataViewObject::fun_getUint16, 1, 0,
+                    DataViewGetUint16),
+    JS_INLINABLE_FN("getInt32", DataViewObject::fun_getInt32, 1, 0,
+                    DataViewGetInt32),
+    JS_INLINABLE_FN("getUint32", DataViewObject::fun_getUint32, 1, 0,
+                    DataViewGetUint32),
+    JS_INLINABLE_FN("getFloat32", DataViewObject::fun_getFloat32, 1, 0,
+                    DataViewGetFloat32),
+    JS_INLINABLE_FN("getFloat64", DataViewObject::fun_getFloat64, 1, 0,
+                    DataViewGetFloat64),
+    JS_INLINABLE_FN("getBigInt64", DataViewObject::fun_getBigInt64, 1, 0,
+                    DataViewGetBigInt64),
+    JS_INLINABLE_FN("getBigUint64", DataViewObject::fun_getBigUint64, 1, 0,
+                    DataViewGetBigUint64),
+    JS_INLINABLE_FN("setInt8", DataViewObject::fun_setInt8, 2, 0,
+                    DataViewSetInt8),
+    JS_INLINABLE_FN("setUint8", DataViewObject::fun_setUint8, 2, 0,
+                    DataViewSetUint8),
+    JS_INLINABLE_FN("setInt16", DataViewObject::fun_setInt16, 2, 0,
+                    DataViewSetInt16),
+    JS_INLINABLE_FN("setUint16", DataViewObject::fun_setUint16, 2, 0,
+                    DataViewSetUint16),
+    JS_INLINABLE_FN("setInt32", DataViewObject::fun_setInt32, 2, 0,
+                    DataViewSetInt32),
+    JS_INLINABLE_FN("setUint32", DataViewObject::fun_setUint32, 2, 0,
+                    DataViewSetUint32),
+    JS_INLINABLE_FN("setFloat32", DataViewObject::fun_setFloat32, 2, 0,
+                    DataViewSetFloat32),
+    JS_INLINABLE_FN("setFloat64", DataViewObject::fun_setFloat64, 2, 0,
+                    DataViewSetFloat64),
+    JS_INLINABLE_FN("setBigInt64", DataViewObject::fun_setBigInt64, 2, 0,
+                    DataViewSetBigInt64),
+    JS_INLINABLE_FN("setBigUint64", DataViewObject::fun_setBigUint64, 2, 0,
+                    DataViewSetBigUint64),
     JS_FS_END};
 
 const JSPropertySpec DataViewObject::properties[] = {

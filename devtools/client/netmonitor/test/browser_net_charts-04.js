@@ -11,7 +11,7 @@
 add_task(async function() {
   const { L10N } = require("devtools/client/netmonitor/src/utils/l10n");
 
-  const { monitor } = await initNetMonitor(SIMPLE_URL);
+  const { monitor } = await initNetMonitor(SIMPLE_URL, { requestCount: 1 });
   info("Starting test... ");
 
   const { document, windowRequire } = monitor.panelWin;
@@ -34,7 +34,7 @@ add_task(async function() {
     },
   });
 
-  const node = table.node;
+  const { node } = table;
   const title = node.querySelector(".table-chart-title");
   const grid = node.querySelector(".table-chart-grid");
   const totals = node.querySelector(".table-chart-totals");

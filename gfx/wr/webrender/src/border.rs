@@ -5,15 +5,17 @@
 use api::{BorderRadius, BorderSide, BorderStyle, ColorF, ColorU};
 use api::{NormalBorder as ApiNormalBorder, RepeatMode};
 use api::units::*;
+use crate::clip::ClipChainId;
 use crate::ellipse::Ellipse;
 use euclid::vec2;
 use crate::scene_building::SceneBuilder;
+use crate::spatial_tree::SpatialNodeIndex;
 use crate::gpu_types::{BorderInstance, BorderSegment, BrushFlags};
 use crate::prim_store::{BorderSegmentInfo, BrushSegment, NinePatchDescriptor};
-use crate::prim_store::{EdgeAaSegmentMask, ScrollNodeAndClipChain};
 use crate::prim_store::borders::{NormalBorderPrim, NormalBorderData};
 use crate::util::{lerp, RectHelpers};
 use crate::internal_types::LayoutPrimitiveInfo;
+use crate::segment::EdgeAaSegmentMask;
 
 // Using 2048 as the maximum radius in device space before which we
 // start stretching is up for debate.
@@ -33,7 +35,7 @@ pub const MAX_DASH_COUNT: u32 = 2048;
 //           all the border structs with hashable
 //           variants...
 
-#[derive(Clone, Debug, Hash, MallocSizeOf, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Hash, MallocSizeOf, PartialEq, Eq)]
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct BorderRadiusAu {
@@ -214,13 +216,15 @@ impl<'a> SceneBuilder<'a> {
         info: &LayoutPrimitiveInfo,
         border: &ApiNormalBorder,
         widths: LayoutSideOffsets,
-        clip_and_scroll: ScrollNodeAndClipChain,
+        spatial_node_index: SpatialNodeIndex,
+        clip_chain_id: ClipChainId,
     ) {
         let mut border = *border;
         ensure_no_corner_overlap(&mut border.radius, info.rect.size);
 
         self.add_primitive(
-            clip_and_scroll,
+            spatial_node_index,
+            clip_chain_id,
             info,
             Vec::new(),
             NormalBorderPrim {
@@ -1064,12 +1068,12 @@ fn add_corner_segment(
         return;
     }
 
-    let segment_rect = image_rect.intersection(&non_overlapping_rect)
-        .unwrap_or_else(LayoutRect::zero);
-
-    if segment_rect.size.width <= 0. || segment_rect.size.height <= 0. {
-        return;
-    }
+    let segment_rect = match image_rect.intersection(&non_overlapping_rect) {
+        Some(rect) => rect,
+        None => {
+            return;
+        }
+    };
 
     let texture_rect = segment_rect
         .translate(-image_rect.origin.to_vector())
@@ -1352,7 +1356,7 @@ impl NinePatchDescriptor {
             repeat_vertical: RepeatMode,
             extra_flags: BrushFlags,
         ) {
-            if uv_rect.uv1.x < uv_rect.uv0.x || uv_rect.uv1.y < uv_rect.uv0.y {
+            if uv_rect.uv1.x <= uv_rect.uv0.x || uv_rect.uv1.y <= uv_rect.uv0.y {
                 return;
             }
 

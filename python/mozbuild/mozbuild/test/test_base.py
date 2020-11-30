@@ -212,7 +212,7 @@ class TestMozbuildObject(unittest.TestCase):
             context.log_manager = None
             context.detect_virtualenv_mozinfo = False
 
-            o = MachCommandBase(context)
+            o = MachCommandBase(context, None)
 
             self.assertEqual(o.topobjdir, mozpath.normsep(topobjdir))
             self.assertEqual(o.topsrcdir, mozpath.normsep(topsrcdir))
@@ -282,7 +282,7 @@ class TestMozbuildObject(unittest.TestCase):
             sys.stdout = StringIO()
             try:
                 with self.assertRaises(SystemExit):
-                    MachCommandBase(context)
+                    MachCommandBase(context, None)
 
                 self.assertTrue(sys.stdout.getvalue().startswith(
                     'Ambiguous object directory detected.'))
@@ -304,10 +304,9 @@ class TestMozbuildObject(unittest.TestCase):
                 fh.write("topsrcdir = '%s'\n" % topsrcdir)
                 fh.write("mozconfig = None\n")
                 fh.write("defines = { 'FOO': 'foo' }\n")
-                fh.write("non_global_defines = ['BAR']\n")
                 fh.write("substs = { 'QUX': 'qux' }\n")
                 fh.write("__all__ = ['topobjdir', 'topsrcdir', 'defines', "
-                         "'non_global_defines', 'substs', 'mozconfig']")
+                         "'substs', 'mozconfig']")
 
             base = self.get_base(topobjdir=d)
 

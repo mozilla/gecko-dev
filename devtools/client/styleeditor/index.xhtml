@@ -12,6 +12,7 @@
 <?xml-stylesheet href="chrome://global/skin/global.css" type="text/css"?>
 <?xml-stylesheet href="chrome://devtools/content/shared/widgets/widgets.css" type="text/css"?>
 <?xml-stylesheet href="chrome://devtools/content/shared/splitview.css" type="text/css"?>
+<?xml-stylesheet href="chrome://devtools/content/shared/toolbarbutton.css" type="text/css"?>
 <?xml-stylesheet href="chrome://devtools/skin/chart.css" type="text/css"?>
 <?xml-stylesheet href="chrome://devtools/skin/widgets.css" type="text/css"?>
 <?xml-stylesheet href="chrome://devtools/skin/splitview.css" type="text/css"?>
@@ -50,7 +51,7 @@
       <menuitem id="cMenu_undo"
                 data-l10n-id="text-action-undo" command="cmd_undo"/>
       <menuseparator/>
-      <menuitem id="cMenu_cut" 
+      <menuitem id="cMenu_cut"
                 data-l10n-id="text-action-cut" command="cmd_cut"/>
       <menuitem id="cMenu_copy"
                 data-l10n-id="text-action-copy" command="cmd_copy"/>
@@ -111,9 +112,9 @@
         <html:div class="splitview-nav placeholder empty">
           <html:p><html:strong
             data-l10n-id="styleeditor-no-stylesheet"
-          ></html:strong></html:p>  
+          ></html:strong></html:p>
           <html:p
-            data-l10n-id="styleeditor-no-stylesheet-tip"><html:a class="style-editor-newButton" 
+            data-l10n-id="styleeditor-no-stylesheet-tip"><html:a class="style-editor-newButton"
                                                                 data-l10n-name="append-new-stylesheet" href="#"/></html:p>
             </html:div>
 
@@ -145,7 +146,7 @@
                data-l10n-id="styleeditor-editor-textbox"/>
           <splitter class="devtools-side-splitter"/>
           <vbox class="stylesheet-sidebar theme-sidebar" hidden="true">
-            <toolbar class="devtools-toolbar" 
+            <toolbar class="devtools-toolbar"
               data-l10n-id="styleeditor-media-rules">
             </toolbar>
             <vbox class="stylesheet-media-container" flex="1">

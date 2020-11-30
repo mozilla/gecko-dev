@@ -4,6 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#define MOZ_USE_LAUNCHER_ERROR
+
 #include "nsWindowsDllInterceptor.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Attributes.h"
@@ -16,10 +18,23 @@
 
 #include "DllBlocklistInit.h"
 #include "freestanding/DllBlocklist.h"
+#include "freestanding/FunctionTableResolver.h"
 
 #if defined(_MSC_VER)
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 #endif
+
+namespace {
+
+template <typename T>
+T* GetRemoteAddress(T* aLocalAddress, HMODULE aLocal, HMODULE aRemote) {
+  ptrdiff_t diff =
+      mozilla::nt::PEHeaders::HModuleToBaseAddr<uint8_t*>(aRemote) -
+      mozilla::nt::PEHeaders::HModuleToBaseAddr<uint8_t*>(aLocal);
+  return reinterpret_cast<T*>(reinterpret_cast<uint8_t*>(aLocalAddress) + diff);
+}
+
+}  // namespace
 
 namespace mozilla {
 
@@ -29,7 +44,8 @@ namespace mozilla {
 // it is able to execute before ASAN itself has even initialized.
 // Also, AArch64 has not been tested with this.
 LauncherVoidResultWithLineInfo InitializeDllBlocklistOOP(
-    const wchar_t* aFullImagePath, HANDLE aChildProcess) {
+    const wchar_t* aFullImagePath, HANDLE aChildProcess,
+    const IMAGE_THUNK_DATA*) {
   return mozilla::Ok();
 }
 
@@ -41,7 +57,13 @@ LauncherVoidResultWithLineInfo InitializeDllBlocklistOOPFromLauncher(
 #else
 
 static LauncherVoidResultWithLineInfo InitializeDllBlocklistOOPInternal(
-    const wchar_t* aFullImagePath, HANDLE aChildProcess) {
+    const wchar_t* aFullImagePath, HANDLE aChildProcess,
+    const IMAGE_THUNK_DATA* aCachedNtdllThunk) {
+  freestanding::gK32.Init();
+  if (freestanding::gK32.IsInitialized()) {
+    freestanding::gK32.Transfer(aChildProcess, &freestanding::gK32);
+  }
+
   CrossProcessDllInterceptor intcpt(aChildProcess);
   intcpt.Init(L"ntdll.dll");
 
@@ -49,13 +71,13 @@ static LauncherVoidResultWithLineInfo InitializeDllBlocklistOOPInternal(
       aChildProcess, intcpt, "NtMapViewOfSection",
       &freestanding::patched_NtMapViewOfSection);
   if (!ok) {
-    return LAUNCHER_ERROR_GENERIC();
+    return LAUNCHER_ERROR_FROM_DETOUR_ERROR(intcpt.GetLastDetourError());
   }
 
   ok = freestanding::stub_LdrLoadDll.SetDetour(
       aChildProcess, intcpt, "LdrLoadDll", &freestanding::patched_LdrLoadDll);
   if (!ok) {
-    return LAUNCHER_ERROR_GENERIC();
+    return LAUNCHER_ERROR_FROM_DETOUR_ERROR(intcpt.GetLastDetourError());
   }
 
   // Because aChildProcess has just been created in a suspended state, its
@@ -81,10 +103,21 @@ static LauncherVoidResultWithLineInfo InitializeDllBlocklistOOPInternal(
     return LAUNCHER_ERROR_FROM_WIN32(ERROR_BAD_EXE_FORMAT);
   }
 
+  // We used to pass ourModule to RestoreImportDirectory based on the assumption
+  // that the executable is mapped onto the same address in a different process,
+  // but our telemetry told us it was not guaranteed.  That's why we retrieve
+  // HMODULE from |aChildProcess|.
+  LauncherResult<HMODULE> remoteImageBaseResult =
+      nt::GetProcessExeModule(aChildProcess);
+  if (remoteImageBaseResult.isErr()) {
+    return remoteImageBaseResult.propagateErr();
+  }
+  HMODULE remoteImageBase = remoteImageBaseResult.unwrap();
+
   // As part of our mitigation of binary tampering, copy our import directory
   // from the original in our executable file.
   LauncherVoidResult importDirRestored = RestoreImportDirectory(
-      aFullImagePath, ourExeImage, aChildProcess, ourModule);
+      aFullImagePath, ourExeImage, aChildProcess, remoteImageBase);
   if (importDirRestored.isErr()) {
     return importDirRestored;
   }
@@ -94,18 +127,26 @@ static LauncherVoidResultWithLineInfo InitializeDllBlocklistOOPInternal(
     return LAUNCHER_ERROR_FROM_WIN32(ERROR_BAD_EXE_FORMAT);
   }
 
-  auto ntdllBoundaries = ntdllImage.GetBounds();
-  if (!ntdllBoundaries) {
-    return LAUNCHER_ERROR_FROM_WIN32(ERROR_BAD_EXE_FORMAT);
-  }
+  // If we have a cached IAT i.e. |aCachedNtdllThunk| is non-null, we can
+  // safely copy it to |aChildProcess| even if the local IAT has been modified.
+  // If |aCachedNtdllThunk| is null, we've failed to cache the IAT or we're in
+  // the launcher process where there is no chance to cache the IAT.  In those
+  // cases, we retrieve the IAT with the boundary check to avoid a modified IAT
+  // from being copied into |aChildProcess|.
+  Maybe<Span<IMAGE_THUNK_DATA> > ntdllThunks;
+  if (aCachedNtdllThunk) {
+    ntdllThunks = ourExeImage.GetIATThunksForModule("ntdll.dll");
+  } else {
+    Maybe<Range<const uint8_t> > ntdllBoundaries = ntdllImage.GetBounds();
+    if (!ntdllBoundaries) {
+      return LAUNCHER_ERROR_FROM_WIN32(ERROR_BAD_EXE_FORMAT);
+    }
 
-  // Before copying IAT into a new process, we check each IAT entry is within
-  // the image of ntdll.dll or not.  Since no functions exported from ntdll.dll
-  // is forwarded, if we find an entry outside the boundary, it should be
-  // modified by an external program and we cannot copy IAT because the address
-  // will be invalid in a different process.
-  Maybe<Span<IMAGE_THUNK_DATA> > ntdllThunks =
-      ourExeImage.GetIATThunksForModule("ntdll.dll", ntdllBoundaries.ptr());
+    // We can use GetIATThunksForModule() to check whether IAT is modified
+    // or not because no functions exported from ntdll.dll is forwarded.
+    ntdllThunks =
+        ourExeImage.GetIATThunksForModule("ntdll.dll", ntdllBoundaries.ptr());
+  }
   if (!ntdllThunks) {
     return LAUNCHER_ERROR_FROM_WIN32(ERROR_INVALID_DATA);
   }
@@ -113,17 +154,22 @@ static LauncherVoidResultWithLineInfo InitializeDllBlocklistOOPInternal(
   SIZE_T bytesWritten;
 
   {  // Scope for prot
-    PIMAGE_THUNK_DATA firstIatThunk = ntdllThunks.value().data();
+    PIMAGE_THUNK_DATA firstIatThunkDst = ntdllThunks.value().data();
+    const IMAGE_THUNK_DATA* firstIatThunkSrc =
+        aCachedNtdllThunk ? aCachedNtdllThunk : firstIatThunkDst;
     SIZE_T iatLength = ntdllThunks.value().LengthBytes();
 
-    AutoVirtualProtect prot(firstIatThunk, iatLength, PAGE_READWRITE,
+    firstIatThunkDst =
+        GetRemoteAddress(firstIatThunkDst, ourModule, remoteImageBase);
+
+    AutoVirtualProtect prot(firstIatThunkDst, iatLength, PAGE_READWRITE,
                             aChildProcess);
     if (!prot) {
       return LAUNCHER_ERROR_FROM_MOZ_WINDOWS_ERROR(prot.GetError());
     }
 
-    ok = !!::WriteProcessMemory(aChildProcess, firstIatThunk, firstIatThunk,
-                                iatLength, &bytesWritten);
+    ok = !!::WriteProcessMemory(aChildProcess, firstIatThunkDst,
+                                firstIatThunkSrc, iatLength, &bytesWritten);
     if (!ok || bytesWritten != iatLength) {
       return LAUNCHER_ERROR_FROM_LAST();
     }
@@ -138,8 +184,10 @@ static LauncherVoidResultWithLineInfo InitializeDllBlocklistOOPInternal(
     newFlags |= eDllBlocklistInitFlagIsChildProcess;
   }
 
-  ok = !!::WriteProcessMemory(aChildProcess, &gBlocklistInitFlags, &newFlags,
-                              sizeof(newFlags), &bytesWritten);
+  ok = !!::WriteProcessMemory(
+      aChildProcess,
+      GetRemoteAddress(&gBlocklistInitFlags, ourModule, remoteImageBase),
+      &newFlags, sizeof(newFlags), &bytesWritten);
   if (!ok || bytesWritten != sizeof(newFlags)) {
     return LAUNCHER_ERROR_FROM_LAST();
   }
@@ -148,20 +196,36 @@ static LauncherVoidResultWithLineInfo InitializeDllBlocklistOOPInternal(
 }
 
 LauncherVoidResultWithLineInfo InitializeDllBlocklistOOP(
-    const wchar_t* aFullImagePath, HANDLE aChildProcess) {
+    const wchar_t* aFullImagePath, HANDLE aChildProcess,
+    const IMAGE_THUNK_DATA* aCachedNtdllThunk) {
   // We come here when the browser process launches a sandbox process.
   // If the launcher process already failed to bootstrap the browser process,
-  // we should not attempt to bootstrap a child process.
+  // we should not attempt to bootstrap a child process because it's likely
+  // to fail again.  Instead, we only restore the import directory entry.
   if (!(gBlocklistInitFlags & eDllBlocklistInitFlagWasBootstrapped)) {
-    return Ok();
+    HMODULE exeImageBase;
+#  if defined(_MSC_VER)
+    exeImageBase = reinterpret_cast<HMODULE>(&__ImageBase);
+#  else
+    exeImageBase = ::GetModuleHandleW(nullptr);
+#  endif  // defined(_MSC_VER)
+
+    mozilla::nt::PEHeaders localImage(exeImageBase);
+    if (!localImage) {
+      return LAUNCHER_ERROR_FROM_WIN32(ERROR_BAD_EXE_FORMAT);
+    }
+
+    return RestoreImportDirectory(aFullImagePath, localImage, aChildProcess);
   }
 
-  return InitializeDllBlocklistOOPInternal(aFullImagePath, aChildProcess);
+  return InitializeDllBlocklistOOPInternal(aFullImagePath, aChildProcess,
+                                           aCachedNtdllThunk);
 }
 
 LauncherVoidResultWithLineInfo InitializeDllBlocklistOOPFromLauncher(
     const wchar_t* aFullImagePath, HANDLE aChildProcess) {
-  return InitializeDllBlocklistOOPInternal(aFullImagePath, aChildProcess);
+  return InitializeDllBlocklistOOPInternal(aFullImagePath, aChildProcess,
+                                           nullptr);
 }
 
 #endif  // defined(MOZ_ASAN) || defined(_M_ARM64)

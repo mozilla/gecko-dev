@@ -25,6 +25,11 @@ toolkit.jar:
    content/global/aboutwebrtc/aboutWebrtc.html (aboutwebrtc/aboutWebrtc.html)
    content/global/aboutSupport.js
 *  content/global/aboutSupport.xhtml
+#ifdef MOZ_GLEAN
+   content/global/aboutGlean.js
+   content/global/aboutGlean.html
+   content/global/aboutGlean.css
+#endif
    content/global/aboutTelemetry.js
    content/global/aboutTelemetry.xhtml
    content/global/aboutTelemetry.css
@@ -52,7 +57,7 @@ toolkit.jar:
    content/global/filepicker.properties
    content/global/customElements.js
    content/global/globalOverlay.js
-   content/global/mozilla.xhtml
+   content/global/mozilla.html
    content/global/aboutMozilla.css
    content/global/preferencesBindings.js
    content/global/process-content.js
@@ -87,6 +92,7 @@ toolkit.jar:
    content/global/elements/general.js          (widgets/general.js)
    content/global/elements/menu.js             (widgets/menu.js)
    content/global/elements/menupopup.js        (widgets/menupopup.js)
+   content/global/elements/moz-input-box.js    (widgets/moz-input-box.js)
    content/global/elements/notificationbox.js  (widgets/notificationbox.js)
    content/global/elements/panel.js            (widgets/panel.js)
    content/global/elements/pluginProblem.js    (widgets/pluginProblem.js)
@@ -101,7 +107,6 @@ toolkit.jar:
    content/global/elements/stringbundle.js     (widgets/stringbundle.js)
    content/global/elements/tabbox.js           (widgets/tabbox.js)
    content/global/elements/text.js             (widgets/text.js)
-   content/global/elements/textbox.js          (widgets/textbox.js)
    content/global/elements/toolbarbutton.js    (widgets/toolbarbutton.js)
    content/global/elements/videocontrols.js    (widgets/videocontrols.js)
    content/global/elements/tree.js             (widgets/tree.js)
@@ -111,3 +116,6 @@ toolkit.jar:
 #endif
    content/global/gmp-sources/openh264.json    (gmp-sources/openh264.json)
    content/global/gmp-sources/widevinecdm.json (gmp-sources/widevinecdm.json)
+
+# Third party files
+   content/global/third_party/d3/d3.js         (/third_party/js/d3/d3.js)

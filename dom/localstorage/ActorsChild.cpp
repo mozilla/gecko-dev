@@ -133,12 +133,9 @@ mozilla::ipc::IPCResult LSObserverChild::RecvObserve(
     return IPC_OK();
   }
 
-  nsresult rv;
-  nsCOMPtr<nsIPrincipal> principal =
-      PrincipalInfoToPrincipal(aPrincipalInfo, &rv);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return IPC_FAIL_NO_REASON(this);
-  }
+  LS_TRY_INSPECT(const auto& principal,
+                 PrincipalInfoToPrincipal(aPrincipalInfo),
+                 IPC_FAIL_NO_REASON(this));
 
   Storage::NotifyChange(/* aStorage */ nullptr, principal, aKey,
                         aOldValue.AsString(), aNewValue.AsString(),
@@ -212,7 +209,7 @@ mozilla::ipc::IPCResult LSRequestChild::RecvReady() {
 
   // We only expect this to return false if the channel has been closed, but
   // PBackground's channel never gets shutdown.
-  MOZ_DIAGNOSTIC_ALWAYS_TRUE(SendFinish());
+  MOZ_ALWAYS_TRUE(SendFinish());
 
   return IPC_OK();
 }

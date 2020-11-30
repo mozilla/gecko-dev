@@ -21,12 +21,12 @@ function run_test() {
   standardInit();
 
   Assert.equal(
-    gUpdateManager.updateCount,
+    gUpdateManager.getUpdateCount(),
     0,
     "the update manager updateCount attribute" + MSG_SHOULD_EQUAL
   );
   Assert.equal(
-    gUpdateManager.activeUpdate.state,
+    gUpdateManager.downloadingUpdate.state,
     STATE_DOWNLOADING,
     "the update manager activeUpdate state attribute" + MSG_SHOULD_EQUAL
   );

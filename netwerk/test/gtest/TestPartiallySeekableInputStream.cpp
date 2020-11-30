@@ -7,7 +7,7 @@
 #include "nsStringStream.h"
 #include "mozilla/net/PartiallySeekableInputStream.h"
 
-using mozilla::GetCurrentThreadSerialEventTarget;
+using mozilla::GetCurrentSerialEventTarget;
 using mozilla::SpinEventLoopUntil;
 using mozilla::net::PartiallySeekableInputStream;
 
@@ -304,8 +304,7 @@ TEST(TestPartiallySeekableInputStream, AsyncInputStreamLength)
 
   RefPtr<testing::LengthCallback> callback = new testing::LengthCallback();
 
-  nsresult rv =
-      qi->AsyncLengthWait(callback, GetCurrentThreadSerialEventTarget());
+  nsresult rv = qi->AsyncLengthWait(callback, GetCurrentSerialEventTarget());
   ASSERT_EQ(NS_OK, rv);
 
   MOZ_ALWAYS_TRUE(SpinEventLoopUntil([&]() { return callback->Called(); }));
@@ -329,8 +328,7 @@ TEST(TestPartiallySeekableInputStream, NegativeAsyncInputStreamLength)
 
   RefPtr<testing::LengthCallback> callback = new testing::LengthCallback();
 
-  nsresult rv =
-      qi->AsyncLengthWait(callback, GetCurrentThreadSerialEventTarget());
+  nsresult rv = qi->AsyncLengthWait(callback, GetCurrentSerialEventTarget());
   ASSERT_EQ(NS_OK, rv);
 
   MOZ_ALWAYS_TRUE(SpinEventLoopUntil([&]() { return callback->Called(); }));
@@ -353,15 +351,143 @@ TEST(TestPartiallySeekableInputStream, AbortLengthCallback)
   ASSERT_TRUE(!!qi);
 
   RefPtr<testing::LengthCallback> callback1 = new testing::LengthCallback();
-  nsresult rv =
-      qi->AsyncLengthWait(callback1, GetCurrentThreadSerialEventTarget());
+  nsresult rv = qi->AsyncLengthWait(callback1, GetCurrentSerialEventTarget());
   ASSERT_EQ(NS_OK, rv);
 
   RefPtr<testing::LengthCallback> callback2 = new testing::LengthCallback();
-  rv = qi->AsyncLengthWait(callback2, GetCurrentThreadSerialEventTarget());
+  rv = qi->AsyncLengthWait(callback2, GetCurrentSerialEventTarget());
   ASSERT_EQ(NS_OK, rv);
 
   MOZ_ALWAYS_TRUE(SpinEventLoopUntil([&]() { return callback2->Called(); }));
   ASSERT_TRUE(!callback1->Called());
   ASSERT_EQ(-1, callback2->Size());
+}
+
+TEST(TestPartiallySeekableInputStream, AsyncWaitAfterConsumed)
+{
+  nsCString buf{"The Quick Brown Fox Jumps over the Lazy Dog"};
+  const size_t bufsize = 44;
+
+  auto stream = MakeRefPtr<testing::AsyncStringStream>(buf);
+  nsCOMPtr<nsIAsyncInputStream> psis =
+      new PartiallySeekableInputStream(stream.forget(), bufsize);
+  ASSERT_TRUE(psis);
+
+  auto callback = MakeRefPtr<testing::InputStreamCallback>();
+
+  nsresult rv = psis->AsyncWait(callback, 0, 0, GetCurrentSerialEventTarget());
+  ASSERT_EQ(NS_OK, rv);
+
+  MOZ_ALWAYS_TRUE(SpinEventLoopUntil([&]() { return callback->Called(); }));
+
+  char rdbuf[bufsize] = {'\0'};
+  uint32_t count;
+  ASSERT_EQ(NS_OK, psis->Read(rdbuf, sizeof(rdbuf), &count));
+  ASSERT_STREQ(rdbuf, buf.Data());
+
+  callback = MakeRefPtr<testing::InputStreamCallback>();
+
+  rv = psis->AsyncWait(callback, 0, 0, GetCurrentSerialEventTarget());
+  ASSERT_EQ(NS_OK, rv);
+
+  MOZ_ALWAYS_TRUE(SpinEventLoopUntil([&]() { return callback->Called(); }));
+
+  memset(rdbuf, 0x0, bufsize);
+  ASSERT_EQ(NS_OK, psis->Read(rdbuf, sizeof(rdbuf), &count));
+  ASSERT_EQ(0U, count);
+}
+
+TEST(TestPartiallySeekableInputStream, AsyncWaitAfterClosed)
+{
+  nsCString buf{"The Quick Brown Fox Jumps over the Lazy Dog"};
+  const size_t bufsize = 44;
+
+  auto stream = MakeRefPtr<testing::AsyncStringStream>(buf);
+  nsCOMPtr<nsIAsyncInputStream> psis =
+      new PartiallySeekableInputStream(stream.forget(), bufsize);
+  ASSERT_TRUE(psis);
+
+  auto callback = MakeRefPtr<testing::InputStreamCallback>();
+
+  nsresult rv = psis->AsyncWait(callback, 0, 0, GetCurrentSerialEventTarget());
+  ASSERT_EQ(NS_OK, rv);
+
+  MOZ_ALWAYS_TRUE(SpinEventLoopUntil([&]() { return callback->Called(); }));
+
+  ASSERT_EQ(NS_OK, psis->Close());
+
+  callback = MakeRefPtr<testing::InputStreamCallback>();
+
+  rv = psis->AsyncWait(callback, 0, 0, GetCurrentSerialEventTarget());
+  ASSERT_EQ(NS_OK, rv);
+
+  MOZ_ALWAYS_TRUE(SpinEventLoopUntil([&]() { return callback->Called(); }));
+}
+
+TEST(TestPartiallySeekableInputStream, AsyncLengthWaitAfterClosed)
+{
+  nsCString buf{"The Quick Brown Fox Jumps over the Lazy Dog"};
+
+  auto stream = MakeRefPtr<testing::LengthInputStream>(buf, false, true);
+  nsCOMPtr<nsIInputStream> psis =
+      new PartiallySeekableInputStream(stream.forget());
+
+  nsCOMPtr<nsIAsyncInputStreamLength> qi = do_QueryInterface(psis);
+  ASSERT_TRUE(qi);
+
+  auto callback = MakeRefPtr<testing::LengthCallback>();
+
+  nsresult rv = qi->AsyncLengthWait(callback, GetCurrentSerialEventTarget());
+  ASSERT_EQ(NS_OK, rv);
+
+  MOZ_ALWAYS_TRUE(SpinEventLoopUntil([&]() { return callback->Called(); }));
+  ASSERT_EQ(buf.Length(), callback->Size());
+
+  ASSERT_EQ(NS_OK, psis->Close());
+
+  callback = MakeRefPtr<testing::LengthCallback>();
+
+  rv = qi->AsyncLengthWait(callback, GetCurrentSerialEventTarget());
+  ASSERT_EQ(NS_OK, rv);
+
+  MOZ_ALWAYS_TRUE(SpinEventLoopUntil([&]() { return callback->Called(); }));
+  ASSERT_EQ(-1, callback->Size());
+}
+
+TEST(TestPartiallySeekableInputStream, AsyncLengthWaitAfterConsumed)
+{
+  nsCString buf{"The Quick Brown Fox Jumps over the Lazy Dog"};
+  const size_t bufsize = 44;
+
+  auto stream = MakeRefPtr<testing::LengthInputStream>(buf, false, true);
+  nsCOMPtr<nsIInputStream> psis =
+      new PartiallySeekableInputStream(stream.forget());
+
+  nsCOMPtr<nsIAsyncInputStreamLength> qi = do_QueryInterface(psis);
+  ASSERT_TRUE(qi);
+
+  auto callback = MakeRefPtr<testing::LengthCallback>();
+
+  nsresult rv = qi->AsyncLengthWait(callback, GetCurrentSerialEventTarget());
+  ASSERT_EQ(NS_OK, rv);
+
+  MOZ_ALWAYS_TRUE(SpinEventLoopUntil([&]() { return callback->Called(); }));
+  ASSERT_EQ(buf.Length(), callback->Size());
+
+  char rdbuf[bufsize] = {'\0'};
+  uint32_t count;
+  ASSERT_EQ(NS_OK, psis->Read(rdbuf, sizeof(rdbuf), &count));
+  ASSERT_STREQ(rdbuf, buf.Data());
+
+  callback = MakeRefPtr<testing::LengthCallback>();
+
+  rv = qi->AsyncLengthWait(callback, GetCurrentSerialEventTarget());
+  ASSERT_EQ(NS_OK, rv);
+
+  MOZ_ALWAYS_TRUE(SpinEventLoopUntil([&]() { return callback->Called(); }));
+  ASSERT_EQ(0U, callback->Size());
+
+  memset(rdbuf, 0x0, bufsize);
+  ASSERT_EQ(NS_OK, psis->Read(rdbuf, sizeof(rdbuf), &count));
+  ASSERT_EQ(0U, count);
 }

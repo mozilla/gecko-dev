@@ -7,6 +7,15 @@ let { LoginBreaches } = ChromeUtils.import(
 let { RemoteSettings } = ChromeUtils.import(
   "resource://services-settings/remote-settings.js"
 );
+let { _AboutLogins } = ChromeUtils.import(
+  "resource:///actors/AboutLoginsParent.jsm"
+);
+let { OSKeyStoreTestUtils } = ChromeUtils.import(
+  "resource://testing-common/OSKeyStoreTestUtils.jsm"
+);
+let { LoginTestUtils } = ChromeUtils.import(
+  "resource://testing-common/LoginTestUtils.jsm"
+);
 
 let nsLoginInfo = new Components.Constructor(
   "@mozilla.org/login-manager/loginInfo;1",
@@ -56,26 +65,30 @@ async function addLogin(login) {
       Ci.nsIWritablePropertyBag2
     );
     matchData.setPropertyAsAUTF8String("guid", login.guid);
-    if (!Services.logins.searchLogins(matchData).length) {
+
+    let logins = Services.logins.searchLogins(matchData);
+    if (!logins.length) {
       return;
     }
-    Services.logins.removeLogin(login);
+    // Use the login that was returned from searchLogins
+    // in case the initial login object was changed by the test code,
+    // since removeLogin makes sure that the login argument exactly
+    // matches the login that it will be removing.
+    Services.logins.removeLogin(logins[0]);
   });
   return login;
 }
 
 let EXPECTED_BREACH = null;
 let EXPECTED_ERROR_MESSAGE = null;
-add_task(async function setup() {
-  const collection = await RemoteSettings(
-    LoginBreaches.REMOTE_SETTINGS_COLLECTION
-  ).openCollection();
+add_task(async function setup_head() {
+  const db = await RemoteSettings(LoginBreaches.REMOTE_SETTINGS_COLLECTION).db;
   if (EXPECTED_BREACH) {
-    await collection.create(EXPECTED_BREACH, {
+    await db.create(EXPECTED_BREACH, {
       useRecordId: true,
     });
   }
-  await collection.db.saveLastModified(42);
+  await db.importChanges({}, 42);
   if (EXPECTED_BREACH) {
     await RemoteSettings(LoginBreaches.REMOTE_SETTINGS_COLLECTION).emit(
       "sync",
@@ -88,6 +101,12 @@ add_task(async function setup() {
       // Ignore warnings and non-errors.
       return;
     }
+
+    if (msg.errorMessage.includes('Unknown event: ["jsonfile", "load"')) {
+      // Ignore telemetry errors from JSONFile.jsm.
+      return;
+    }
+
     if (
       msg.errorMessage == "Refreshing device list failed." ||
       msg.errorMessage == "Skipping device list refresh; not signed in"
@@ -133,7 +152,64 @@ add_task(async function setup() {
 
   registerCleanupFunction(async () => {
     EXPECTED_ERROR_MESSAGE = null;
-    await collection.clear();
+    await db.clear();
+    Services.telemetry.clearEvents();
     SpecialPowers.postConsoleSentinel();
   });
 });
+
+/**
+ * Waits for the master password prompt and performs an action.
+ * @param {string} action Set to "authenticate" to log in or "cancel" to
+ *        close the dialog without logging in.
+ */
+function waitForMPDialog(action) {
+  const BRAND_BUNDLE = Services.strings.createBundle(
+    "chrome://branding/locale/brand.properties"
+  );
+  const BRAND_FULL_NAME = BRAND_BUNDLE.GetStringFromName("brandFullName");
+  let dialogShown = TestUtils.topicObserved("common-dialog-loaded");
+  return dialogShown.then(function([subject]) {
+    let dialog = subject.Dialog;
+    let expected = "Password Required - " + BRAND_FULL_NAME;
+    is(dialog.args.title, expected, "Dialog is the Master Password dialog");
+    if (action == "authenticate") {
+      SpecialPowers.wrap(dialog.ui.password1Textbox).setUserInput(
+        LoginTestUtils.masterPassword.masterPassword
+      );
+      dialog.ui.button0.click();
+    } else if (action == "cancel") {
+      dialog.ui.button1.click();
+    }
+    return BrowserTestUtils.waitForEvent(window, "DOMModalDialogClosed");
+  });
+}
+
+/**
+ * Allows for tests to reset the MP auth expiration and
+ * return a promise that will resolve after the MP dialog has
+ * been presented.
+ *
+ * @param {string} action Set to "authenticate" to log in or "cancel" to
+ *        close the dialog without logging in.
+ * @returns {Promise} Resolves after the MP dialog has been presented and actioned upon
+ */
+function forceAuthTimeoutAndWaitForMPDialog(action) {
+  const AUTH_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes (duplicated from AboutLoginsParent.jsm)
+  _AboutLogins._authExpirationTime -= AUTH_TIMEOUT_MS + 1;
+  return waitForMPDialog(action);
+}
+
+/**
+ * Allows for tests to reset the OS auth expiration and
+ * return a promise that will resolve after the OS auth dialog has
+ * been presented.
+ *
+ * @param {bool} loginResult True if the auth prompt should pass, otherwise false will fail
+ * @returns {Promise} Resolves after the OS auth dialog has been presented
+ */
+function forceAuthTimeoutAndWaitForOSKeyStoreLogin({ loginResult }) {
+  const AUTH_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes (duplicated from AboutLoginsParent.jsm)
+  _AboutLogins._authExpirationTime -= AUTH_TIMEOUT_MS + 1;
+  return OSKeyStoreTestUtils.waitForOSKeyStoreLogin(loginResult);
+}

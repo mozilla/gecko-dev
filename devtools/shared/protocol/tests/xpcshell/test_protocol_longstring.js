@@ -13,7 +13,7 @@ var EventEmitter = require("devtools/shared/event-emitter");
 var { LongStringActor } = require("devtools/server/actors/string");
 
 // The test implicitly relies on this.
-require("devtools/shared/fronts/string");
+require("devtools/client/fronts/string");
 
 function simpleHello() {
   return {
@@ -100,6 +100,7 @@ class RootFront extends protocol.FrontClassWithSpec(rootSpec) {
     this.manage(this);
   }
 }
+protocol.registerFront(RootFront);
 
 function run_test() {
   DevToolsServer.createRootActor = conn => {
@@ -107,6 +108,7 @@ function run_test() {
   };
 
   DevToolsServer.init();
+
   const trace = connectPipeTracing();
   const client = new DevToolsClient(trace);
   let rootFront;
@@ -119,7 +121,7 @@ function run_test() {
   };
 
   client.connect().then(([applicationType, traits]) => {
-    rootFront = new RootFront(client);
+    rootFront = client.mainRoot;
 
     // Root actor has no children yet.
     expectRootChildren(0);

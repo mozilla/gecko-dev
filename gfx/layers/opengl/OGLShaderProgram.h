@@ -7,10 +7,11 @@
 #ifndef GFX_OGLSHADERPROGRAM_H
 #define GFX_OGLSHADERPROGRAM_H
 
+#include <string>
+#include <utility>
+
 #include "GLContext.h"  // for fast inlines of glUniform*
 #include "OGLShaderConfig.h"
-
-#include <string>
 
 namespace mozilla {
 namespace layers {
@@ -48,10 +49,10 @@ struct ProgramProfileOGL {
   std::string mFragmentShaderString;
 
   // the vertex attributes
-  nsTArray<Pair<nsCString, GLuint>> mAttributes;
+  CopyableTArray<std::pair<nsCString, GLuint>> mAttributes;
 
   KnownUniform mUniforms[KnownUniform::KnownUniformCount];
-  nsTArray<const char*> mDefines;
+  CopyableTArray<const char*> mDefines;
   size_t mTextureCount;
 
   ProgramProfileOGL() : mTextureCount(0) {}
@@ -207,7 +208,7 @@ class ShaderProgramOGL {
     SetUniform(KnownUniform::BackdropTexture, aUnit);
   }
 
-  void SetRenderColor(const gfx::Color& aColor) {
+  void SetRenderColor(const gfx::DeviceColor& aColor) {
     SetUniform(KnownUniform::RenderColor, aColor);
   }
 
@@ -278,7 +279,7 @@ class ShaderProgramOGL {
   }
 
   void SetUniform(KnownUniform::KnownUniformName aKnownUniform,
-                  const gfx::Color& aColor) {
+                  const gfx::DeviceColor& aColor) {
     ASSERT_THIS_PROGRAM;
     NS_ASSERTION(
         aKnownUniform >= 0 && aKnownUniform < KnownUniform::KnownUniformCount,
@@ -383,6 +384,19 @@ class ShaderProgramOGL {
     KnownUniform& ku(mProfile.mUniforms[aKnownUniform]);
     if (ku.UpdateUniform(9, aFloatValues)) {
       mGL->fUniformMatrix3fv(ku.mLocation, 1, false, ku.mValue.f16v);
+    }
+  }
+
+  void SetVec3fvUniform(KnownUniform::KnownUniformName aKnownUniform,
+                        const float* aFloatValues) {
+    ASSERT_THIS_PROGRAM;
+    NS_ASSERTION(
+        aKnownUniform >= 0 && aKnownUniform < KnownUniform::KnownUniformCount,
+        "Invalid known uniform");
+
+    KnownUniform& ku(mProfile.mUniforms[aKnownUniform]);
+    if (ku.UpdateUniform(3, aFloatValues)) {
+      mGL->fUniform3fv(ku.mLocation, 1, ku.mValue.f16v);
     }
   }
 

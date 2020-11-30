@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::{AlphaType, DocumentLayer, PremultipliedColorF, YuvFormat, YuvColorSpace};
+use api::{AlphaType, PremultipliedColorF, YuvFormat, YuvColorSpace};
 use api::units::*;
+use crate::segment::EdgeAaSegmentMask;
 use crate::spatial_tree::{SpatialTree, ROOT_SPATIAL_NODE_INDEX, SpatialNodeIndex};
 use crate::gpu_cache::{GpuCacheAddress, GpuDataRequest};
 use crate::internal_types::FastHashMap;
-use crate::prim_store::EdgeAaSegmentMask;
+use crate::prim_store::ClipData;
 use crate::render_task::RenderTaskAddress;
 use crate::renderer::ShaderColorMode;
 use std::i32;
@@ -25,15 +26,6 @@ pub const VECS_PER_TRANSFORM: usize = 8;
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct ZBufferId(pub i32);
 
-// We get 24 bits of Z value - use up 22 bits of it to give us
-// 4 bits to account for GPU issues. This seems to manifest on
-// some GPUs under certain perspectives due to z interpolation
-// precision problems.
-const MAX_DOCUMENT_LAYERS : i8 = 1 << 3;
-const MAX_ITEMS_PER_DOCUMENT_LAYER : i32 = 1 << 19;
-const MAX_DOCUMENT_LAYER_VALUE : i8 = MAX_DOCUMENT_LAYERS / 2 - 1;
-const MIN_DOCUMENT_LAYER_VALUE : i8 = -MAX_DOCUMENT_LAYERS / 2;
-
 impl ZBufferId {
     pub fn invalid() -> Self {
         ZBufferId(i32::MAX)
@@ -44,48 +36,24 @@ impl ZBufferId {
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct ZBufferIdGenerator {
-    base: i32,
     next: i32,
+    max_depth_ids: i32,
 }
 
 impl ZBufferIdGenerator {
-    pub fn new(layer: DocumentLayer) -> Self {
-        debug_assert!(layer >= MIN_DOCUMENT_LAYER_VALUE);
-        debug_assert!(layer <= MAX_DOCUMENT_LAYER_VALUE);
+    pub fn new(max_depth_ids: i32) -> Self {
         ZBufferIdGenerator {
-            base: layer as i32 * MAX_ITEMS_PER_DOCUMENT_LAYER,
-            next: 0
+            next: 0,
+            max_depth_ids,
         }
     }
 
     pub fn next(&mut self) -> ZBufferId {
-        debug_assert!(self.next < MAX_ITEMS_PER_DOCUMENT_LAYER);
-        let id = ZBufferId(self.next + self.base);
+        debug_assert!(self.next < self.max_depth_ids);
+        let id = ZBufferId(self.next);
         self.next += 1;
         id
     }
-}
-
-/// A shader kind identifier that can be used by a generic-shader to select the behavior at runtime.
-///
-/// Not all brush kinds need to be present in this enum, only those we want to support in the generic
-/// brush shader.
-/// Do not use the 24 lowest bits. This will be packed with other information in the vertex attributes.
-/// The constants must match the corresponding defines in brush_multi.glsl.
-#[repr(i32)]
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum BrushShaderKind {
-    None            = 0,
-    Solid           = 1,
-    Image           = 2,
-    Text            = 3,
-    LinearGradient  = 4,
-    RadialGradient  = 5,
-    ConicGradient   = 6,
-    Blend           = 7,
-    MixBlend        = 8,
-    Yuv             = 9,
-    Opacity         = 10,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -179,6 +147,62 @@ pub struct BorderInstance {
     pub clip_params: [f32; 8],
 }
 
+#[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "capture", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
+#[repr(C)]
+pub struct ClipMaskInstanceCommon {
+    pub sub_rect: DeviceRect,
+    pub task_origin: DevicePoint,
+    pub screen_origin: DevicePoint,
+    pub device_pixel_scale: f32,
+    pub clip_transform_id: TransformPaletteId,
+    pub prim_transform_id: TransformPaletteId,
+}
+
+#[derive(Debug)]
+#[cfg_attr(feature = "capture", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
+#[repr(C)]
+pub struct ClipMaskInstanceImage {
+    pub common: ClipMaskInstanceCommon,
+    pub tile_rect: LayoutRect,
+    pub resource_address: GpuCacheAddress,
+    pub local_rect: LayoutRect,
+}
+
+#[derive(Debug)]
+#[cfg_attr(feature = "capture", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
+#[repr(C)]
+pub struct ClipMaskInstanceRect {
+    pub common: ClipMaskInstanceCommon,
+    pub local_pos: LayoutPoint,
+    pub clip_data: ClipData,
+}
+
+#[derive(Debug)]
+#[cfg_attr(feature = "capture", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
+#[repr(C)]
+pub struct BoxShadowData {
+    pub src_rect_size: LayoutSize,
+    pub clip_mode: i32,
+    pub stretch_mode_x: i32,
+    pub stretch_mode_y: i32,
+    pub dest_rect: LayoutRect,
+}
+
+#[derive(Debug)]
+#[cfg_attr(feature = "capture", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
+#[repr(C)]
+pub struct ClipMaskInstanceBoxShadow {
+    pub common: ClipMaskInstanceCommon,
+    pub resource_address: GpuCacheAddress,
+    pub shadow_data: BoxShadowData,
+}
+
 /// A clipping primitive drawn into the clipping mask.
 /// Could be an image or a rectangle, which defines the
 /// way `address` is treated.
@@ -197,16 +221,6 @@ pub struct ClipMaskInstance {
     pub task_origin: DevicePoint,
     pub screen_origin: DevicePoint,
     pub device_pixel_scale: f32,
-}
-
-/// A border corner dot or dash drawn into the clipping mask.
-#[derive(Debug, Copy, Clone)]
-#[cfg_attr(feature = "capture", derive(Serialize))]
-#[cfg_attr(feature = "replay", derive(Deserialize))]
-#[repr(C)]
-pub struct ClipMaskBorderCornerDotDash {
-    pub clip_mask_instance: ClipMaskInstance,
-    pub dot_dash_data: [f32; 8],
 }
 
 // 16 bytes per instance should be enough for anyone!
@@ -238,6 +252,8 @@ impl ResolveInstanceData {
 }
 
 /// Vertex format for picture cache composite shader.
+/// When editing the members, update desc::COMPOSITE
+/// so its list of instance_attributes matches:
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub struct CompositeInstance {
@@ -250,7 +266,8 @@ pub struct CompositeInstance {
 
     // Packed into a single vec4 (aParams)
     z_id: f32,
-    yuv_color_space: f32,       // YuvColorSpace
+    color_space_or_uv_type: f32, // YuvColorSpace for YUV;
+                                 // UV coordinate space for RGB
     yuv_format: f32,            // YuvFormat
     yuv_rescale: f32,
 
@@ -269,16 +286,38 @@ impl CompositeInstance {
         layer: f32,
         z_id: ZBufferId,
     ) -> Self {
+        let uv = TexelRect::new(0.0, 0.0, 1.0, 1.0);
         CompositeInstance {
             rect,
             clip_rect,
             color,
             z_id: z_id.0 as f32,
-            yuv_color_space: 0.0,
+            color_space_or_uv_type: pack_as_float(0u32),
             yuv_format: 0.0,
             yuv_rescale: 0.0,
             texture_layers: [layer, 0.0, 0.0],
-            uv_rects: [TexelRect::invalid(); 3],
+            uv_rects: [uv, uv, uv],
+        }
+    }
+
+    pub fn new_rgb(
+        rect: DeviceRect,
+        clip_rect: DeviceRect,
+        color: PremultipliedColorF,
+        layer: f32,
+        z_id: ZBufferId,
+        uv_rect: TexelRect,
+    ) -> Self {
+        CompositeInstance {
+            rect,
+            clip_rect,
+            color,
+            z_id: z_id.0 as f32,
+            color_space_or_uv_type: pack_as_float(1u32),
+            yuv_format: 0.0,
+            yuv_rescale: 0.0,
+            texture_layers: [layer, 0.0, 0.0],
+            uv_rects: [uv_rect, uv_rect, uv_rect],
         }
     }
 
@@ -297,13 +336,21 @@ impl CompositeInstance {
             clip_rect,
             color: PremultipliedColorF::WHITE,
             z_id: z_id.0 as f32,
-            yuv_color_space: pack_as_float(yuv_color_space as u32),
+            color_space_or_uv_type: pack_as_float(yuv_color_space as u32),
             yuv_format: pack_as_float(yuv_format as u32),
             yuv_rescale,
             texture_layers,
             uv_rects,
         }
     }
+}
+
+/// Vertex format for issuing colored quads.
+#[derive(Debug, Clone)]
+#[repr(C)]
+pub struct ClearInstance {
+    pub rect: [f32; 4],
+    pub color: [f32; 4],
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -423,8 +470,7 @@ impl GlyphInstance {
                 (subpx_dir as u32 as i32) << 24
                 | (color_mode as u32 as i32) << 16
                 | glyph_index_in_text_run,
-                glyph_uv_rect.as_int()
-                | ((BrushShaderKind::Text as i32) << 24),
+                glyph_uv_rect.as_int(),
             ],
         }
     }
@@ -486,7 +532,6 @@ pub struct BrushInstance {
     pub edge_flags: EdgeAaSegmentMask,
     pub brush_flags: BrushFlags,
     pub resource_address: i32,
-    pub brush_kind: BrushShaderKind,
 }
 
 impl From<BrushInstance> for PrimitiveInstanceData {
@@ -499,8 +544,7 @@ impl From<BrushInstance> for PrimitiveInstanceData {
                 instance.segment_index
                 | ((instance.edge_flags.bits() as i32) << 16)
                 | ((instance.brush_flags.bits() as i32) << 24),
-                instance.resource_address
-                | ((instance.brush_kind as i32) << 24),
+                instance.resource_address,
             ]
         }
     }

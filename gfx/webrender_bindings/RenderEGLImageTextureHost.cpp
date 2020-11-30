@@ -21,20 +21,12 @@ RenderEGLImageTextureHost::RenderEGLImageTextureHost(EGLImage aImage,
       mSize(aSize),
       mTextureTarget(LOCAL_GL_TEXTURE_2D),
       mTextureHandle(0) {
-  MOZ_COUNT_CTOR_INHERITED(RenderEGLImageTextureHost, RenderTextureHostOGL);
+  MOZ_COUNT_CTOR_INHERITED(RenderEGLImageTextureHost, RenderTextureHost);
 }
 
 RenderEGLImageTextureHost::~RenderEGLImageTextureHost() {
-  MOZ_COUNT_DTOR_INHERITED(RenderEGLImageTextureHost, RenderTextureHostOGL);
+  MOZ_COUNT_DTOR_INHERITED(RenderEGLImageTextureHost, RenderTextureHost);
   DeleteTextureHandle();
-}
-
-GLuint RenderEGLImageTextureHost::GetGLHandle(uint8_t aChannelIndex) const {
-  return mTextureHandle;
-}
-
-gfx::IntSize RenderEGLImageTextureHost::GetSize(uint8_t aChannelIndex) const {
-  return mSize;
 }
 
 wr::WrExternalImage RenderEGLImageTextureHost::Lock(
@@ -59,8 +51,8 @@ wr::WrExternalImage RenderEGLImageTextureHost::Lock(
   if (mSync) {
     const auto& gle = gl::GLContextEGL::Cast(mGL);
     const auto& egl = gle->mEgl;
-    MOZ_ASSERT(egl->IsExtensionSupported(gl::GLLibraryEGL::KHR_fence_sync));
-    status = egl->fClientWaitSync(egl->Display(), mSync, 0, LOCAL_EGL_FOREVER);
+    MOZ_ASSERT(egl->IsExtensionSupported(gl::EGLExtension::KHR_fence_sync));
+    status = egl->fClientWaitSync(mSync, 0, LOCAL_EGL_FOREVER);
     // We do not need to delete sync here. It is deleted by
     // SharedSurface_EGLImage.
     mSync = 0;

@@ -15,6 +15,8 @@ namespace dom {
 class AudioParamMap;
 struct AudioWorkletNodeOptions;
 class MessagePort;
+struct NamedAudioParamTimeline;
+struct ProcessorErrorDetails;
 
 class AudioWorkletNode : public AudioNode {
  public:
@@ -28,7 +30,7 @@ class AudioWorkletNode : public AudioNode {
       const nsAString& aName, const AudioWorkletNodeOptions& aOptions,
       ErrorResult& aRv);
 
-  AudioParamMap* GetParameters(ErrorResult& aRv) const;
+  AudioParamMap* GetParameters(ErrorResult& aRv);
 
   MessagePort* Port() const { return mPort; };
 
@@ -39,6 +41,7 @@ class AudioWorkletNode : public AudioNode {
   uint16_t NumberOfInputs() const override { return mInputCount; }
   uint16_t NumberOfOutputs() const override { return mOutputCount; }
   const char* NodeType() const override { return "AudioWorkletNode"; }
+  void DispatchProcessorErrorEvent(const ProcessorErrorDetails& aDetails);
 
   size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const override;
   size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const override;
@@ -47,9 +50,14 @@ class AudioWorkletNode : public AudioNode {
   AudioWorkletNode(AudioContext* aAudioContext, const nsAString& aName,
                    const AudioWorkletNodeOptions& aOptions);
   ~AudioWorkletNode() = default;
+  void InitializeParameters(nsTArray<NamedAudioParamTimeline>* aParamTimelines,
+                            ErrorResult& aRv);
+  void SendParameterData(
+      const Optional<Record<nsString, double>>& aParameterData);
 
   nsString mNodeName;
   RefPtr<MessagePort> mPort;
+  RefPtr<AudioParamMap> mParameters;
   uint16_t mInputCount;
   uint16_t mOutputCount;
 };

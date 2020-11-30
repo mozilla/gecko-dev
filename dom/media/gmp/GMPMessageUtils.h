@@ -6,14 +6,7 @@
 #ifndef GMPMessageUtils_h_
 #define GMPMessageUtils_h_
 
-// On Linux X11 headers define Status which ends up colliding with the Status
-// enum from the Widevine headers in unified builds. Make sure it's undefined
-// before we include our headers.
-#ifdef Status
-#  undef Status
-#endif
-
-#include "content_decryption_module.h"
+#include "gmp-sanitized-cdm-exports.h"
 #include "gmp-video-codec.h"
 #include "gmp-video-frame-encoded.h"
 #include "IPCMessageUtils.h"
@@ -56,10 +49,10 @@ struct ParamTraits<GMPBufferType>
                                       GMP_BufferInvalid> {};
 
 template <>
-struct ParamTraits<GMPEncryptionScheme>
-    : public ContiguousEnumSerializer<
-          GMPEncryptionScheme, GMPEncryptionScheme::kGMPEncryptionNone,
-          GMPEncryptionScheme::kGMPEncryptionInvalid> {};
+struct ParamTraits<cdm::EncryptionScheme>
+    : public ContiguousEnumSerializerInclusive<
+          cdm::EncryptionScheme, cdm::EncryptionScheme::kUnencrypted,
+          cdm::EncryptionScheme::kCbcs> {};
 
 template <>
 struct ParamTraits<cdm::HdcpVersion>

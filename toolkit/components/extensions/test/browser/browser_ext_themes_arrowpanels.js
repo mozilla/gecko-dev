@@ -2,8 +2,10 @@
 
 function openIdentityPopup() {
   let promise = BrowserTestUtils.waitForEvent(
-    gIdentityHandler._identityPopup,
-    "popupshown"
+    window,
+    "popupshown",
+    true,
+    event => event.target == gIdentityHandler._identityPopup
   );
   gIdentityHandler._identityBox.click();
   return promise;
@@ -70,6 +72,12 @@ add_task(async function test_popup_styling(browser, accDoc) {
         arrowContentComputedStyle.getPropertyValue("color"),
         `rgb(${hexToRGB(POPUP_TEXT_COLOR).join(", ")})`,
         "Popup text color should have been themed"
+      );
+
+      Assert.equal(
+        arrowContentComputedStyle.getPropertyValue("--panel-description-color"),
+        `rgba(${hexToRGB(POPUP_TEXT_COLOR).join(", ")}, 0.65)`,
+        "Popup text description color should have been themed"
       );
 
       // Ensure popup border color was set properly

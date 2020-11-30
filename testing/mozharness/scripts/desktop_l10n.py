@@ -112,13 +112,12 @@ class DesktopSingleLocale(LocalesMixin, AutomationMixin,
 
         bootstrap_env['L10NBASEDIR'] = abs_dirs['abs_l10n_dir']
         if self.query_is_nightly():
-            bootstrap_env["IS_NIGHTLY"] = "yes"
             # we might set update_channel explicitly
             if config.get('update_channel'):
                 update_channel = config['update_channel']
             else:  # Let's just give the generic channel based on branch.
                 update_channel = "nightly-%s" % (config['branch'],)
-            if isinstance(update_channel, unicode):
+            if not isinstance(update_channel, bytes):
                 update_channel = update_channel.encode("utf-8")
             bootstrap_env["MOZ_UPDATE_CHANNEL"] = update_channel
             self.info("Update channel set to: {}".format(bootstrap_env["MOZ_UPDATE_CHANNEL"]))

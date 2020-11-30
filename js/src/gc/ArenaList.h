@@ -244,17 +244,6 @@ class FreeLists {
 };
 
 class ArenaLists {
-  JS::Zone* zone_;
-
-  ZoneData<FreeLists> freeLists_;
-
-  ArenaListData<AllAllocKindArray<ArenaList>> arenaLists_;
-
-  ArenaList& arenaLists(AllocKind i) { return arenaLists_.ref()[i]; }
-  const ArenaList& arenaLists(AllocKind i) const {
-    return arenaLists_.ref()[i];
-  }
-
   enum class ConcurrentUse : uint32_t {
     None,
     BackgroundFinalize,
@@ -264,22 +253,21 @@ class ArenaLists {
   using ConcurrentUseState =
       mozilla::Atomic<ConcurrentUse, mozilla::SequentiallyConsistent>;
 
+  JS::Zone* zone_;
+
   // Whether this structure can be accessed by other threads.
   UnprotectedData<AllAllocKindArray<ConcurrentUseState>> concurrentUseState_;
 
-  ConcurrentUseState& concurrentUse(AllocKind i) {
-    return concurrentUseState_.ref()[i];
-  }
-  ConcurrentUse concurrentUse(AllocKind i) const {
-    return concurrentUseState_.ref()[i];
-  }
+  ZoneData<FreeLists> freeLists_;
+
+  /* The main list of arenas for each alloc kind. */
+  ArenaListData<AllAllocKindArray<ArenaList>> arenaLists_;
+
+  /* For each arena kind, a list of arenas allocated during marking. */
+  ArenaListData<AllAllocKindArray<ArenaList>> newArenasInMarkPhase_;
 
   /* For each arena kind, a list of arenas remaining to be swept. */
-  MainThreadOrGCTaskData<AllAllocKindArray<Arena*>> arenaListsToSweep_;
-  Arena*& arenaListsToSweep(AllocKind i) { return arenaListsToSweep_.ref()[i]; }
-  Arena* arenaListsToSweep(AllocKind i) const {
-    return arenaListsToSweep_.ref()[i];
-  }
+  MainThreadOrGCTaskData<AllAllocKindArray<Arena*>> arenasToSweep_;
 
   /* During incremental sweeping, a list of the arenas already swept. */
   ZoneOrGCTaskData<AllocKind> incrementalSweptArenaKind;
@@ -290,11 +278,13 @@ class ArenaLists {
   ZoneData<Arena*> gcShapeArenasToUpdate;
   ZoneData<Arena*> gcAccessorShapeArenasToUpdate;
   ZoneData<Arena*> gcScriptArenasToUpdate;
+  ZoneData<Arena*> gcNewScriptArenasToUpdate;
   ZoneData<Arena*> gcObjectGroupArenasToUpdate;
+  ZoneData<Arena*> gcNewObjectGroupArenasToUpdate;
 
   // The list of empty arenas which are collected during the sweep phase and
   // released at the end of sweeping every sweep group.
-  ZoneData<Arena*> savedEmptyArenas;
+  ZoneOrGCTaskData<Arena*> savedEmptyArenas;
 
  public:
   explicit ArenaLists(JS::Zone* zone);
@@ -310,6 +300,7 @@ class ArenaLists {
   inline Arena* getFirstArena(AllocKind thingKind) const;
   inline Arena* getFirstArenaToSweep(AllocKind thingKind) const;
   inline Arena* getFirstSweptArena(AllocKind thingKind) const;
+  inline Arena* getFirstNewArenaInMarkPhase(AllocKind thingKind) const;
   inline Arena* getArenaAfterCursor(AllocKind thingKind) const;
 
   inline bool arenaListsAreEmpty() const;
@@ -341,7 +332,7 @@ class ArenaLists {
   void queueForegroundObjectsForSweep(JSFreeOp* fop);
   void queueForegroundThingsForSweep();
 
-  void releaseForegroundSweptEmptyArenas();
+  Arena* takeSweptEmptyArenas();
 
   bool foregroundFinalize(JSFreeOp* fop, AllocKind thingKind,
                           js::SliceBudget& sliceBudget,
@@ -350,7 +341,34 @@ class ArenaLists {
 
   void setParallelAllocEnabled(bool enabled);
 
+  inline void mergeNewArenasInMarkPhase();
+
+  void checkGCStateNotInUse();
+  void checkSweepStateNotInUse();
+  void checkNoArenasToUpdate();
+  void checkNoArenasToUpdateForKind(AllocKind kind);
+
  private:
+  ArenaList& arenaList(AllocKind i) { return arenaLists_.ref()[i]; }
+  const ArenaList& arenaList(AllocKind i) const { return arenaLists_.ref()[i]; }
+
+  ArenaList& newArenasInMarkPhase(AllocKind i) {
+    return newArenasInMarkPhase_.ref()[i];
+  }
+  const ArenaList& newArenasInMarkPhase(AllocKind i) const {
+    return newArenasInMarkPhase_.ref()[i];
+  }
+
+  ConcurrentUseState& concurrentUse(AllocKind i) {
+    return concurrentUseState_.ref()[i];
+  }
+  ConcurrentUse concurrentUse(AllocKind i) const {
+    return concurrentUseState_.ref()[i];
+  }
+
+  Arena*& arenasToSweep(AllocKind i) { return arenasToSweep_.ref()[i]; }
+  Arena* arenasToSweep(AllocKind i) const { return arenasToSweep_.ref()[i]; }
+
   inline JSRuntime* runtime();
   inline JSRuntime* runtimeFromAnyThread();
 
@@ -364,6 +382,8 @@ class ArenaLists {
   TenuredCell* refillFreeListAndAllocate(FreeLists& freeLists,
                                          AllocKind thingKind,
                                          ShouldCheckThresholds checkThresholds);
+
+  void addNewArena(Arena* arena, AllocKind thingKind);
 
   friend class GCRuntime;
   friend class js::Nursery;

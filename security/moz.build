@@ -72,7 +72,7 @@ if CONFIG['MOZ_BUILD_APP'].startswith('comm/'):
 
 # We run shlibsign as part of packaging, not build.
 gyp_vars['sign_libs'] = 0
-gyp_vars['python'] = CONFIG['PYTHON']
+gyp_vars['python'] = CONFIG['PYTHON3']
 # The NSS gyp files do not have a default for this.
 gyp_vars['nss_dist_dir'] = '$PRODUCT_DIR/dist'
 # NSS wants to put public headers in $nss_dist_dir/public/nss by default,
@@ -136,13 +136,9 @@ if CONFIG['OS_TARGET'] == 'WINNT':
     if CONFIG['CPU_ARCH'] == 'x86':
         # This should really be the default.
         sandbox_vars['ASFLAGS'] = ['-safeseh']
-    if CONFIG['MOZ_FOLD_LIBS_FLAGS']:
-        sandbox_vars['CFLAGS'] += CONFIG['MOZ_FOLD_LIBS_FLAGS']
 if CONFIG['OS_TARGET'] == 'Android':
     sandbox_vars['CFLAGS'] = [
         '-include', TOPSRCDIR + '/security/manager/android_stub.h',
-        # Setting sandbox_vars['DEFINES'] is broken currently.
-        '-DCHECK_FORK_GETPID',
     ]
     if CONFIG['ANDROID_VERSION']:
         sandbox_vars['CFLAGS'] += ['-DANDROID_VERSION=' + CONFIG['ANDROID_VERSION']]

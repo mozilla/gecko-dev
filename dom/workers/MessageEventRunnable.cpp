@@ -97,9 +97,9 @@ bool MessageEventRunnable::DispatchDOMEvent(JSContext* aCx,
   }
 
   RefPtr<MessageEvent> event = new MessageEvent(aTarget, nullptr, nullptr);
-  event->InitMessageEvent(nullptr, NS_LITERAL_STRING("message"), CanBubble::eNo,
-                          Cancelable::eNo, messageData, EmptyString(),
-                          EmptyString(), nullptr, ports);
+  event->InitMessageEvent(nullptr, u"message"_ns, CanBubble::eNo,
+                          Cancelable::eNo, messageData, u""_ns, u""_ns, nullptr,
+                          ports);
 
   event->SetTrusted(true);
 
@@ -148,8 +148,8 @@ void MessageEventRunnable::DispatchError(JSContext* aCx,
   init.mBubbles = false;
   init.mCancelable = false;
 
-  RefPtr<Event> event = MessageEvent::Constructor(
-      aTarget, NS_LITERAL_STRING("messageerror"), init);
+  RefPtr<Event> event =
+      MessageEvent::Constructor(aTarget, u"messageerror"_ns, init);
   event->SetTrusted(true);
 
   aTarget->DispatchEvent(*event);

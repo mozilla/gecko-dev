@@ -12,94 +12,40 @@ const { PSEUDO_CLASSES } = require("devtools/shared/css/constants");
 const { nodeSpec, nodeListSpec } = require("devtools/shared/specs/node");
 loader.lazyRequireGetter(
   this,
-  "getCssPath",
-  "devtools/shared/inspector/css-logic",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "getXPath",
-  "devtools/shared/inspector/css-logic",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "findCssSelector",
-  "devtools/shared/inspector/css-logic",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "findAllCssSelectors",
+  ["getCssPath", "getXPath", "findCssSelector", "findAllCssSelectors"],
   "devtools/shared/inspector/css-logic",
   true
 );
 
 loader.lazyRequireGetter(
   this,
-  "isAfterPseudoElement",
-  "devtools/shared/layout/utils",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "isAnonymous",
-  "devtools/shared/layout/utils",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "isBeforePseudoElement",
-  "devtools/shared/layout/utils",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "isDirectShadowHostChild",
-  "devtools/shared/layout/utils",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "isMarkerPseudoElement",
-  "devtools/shared/layout/utils",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "isNativeAnonymous",
-  "devtools/shared/layout/utils",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "isShadowHost",
-  "devtools/shared/layout/utils",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "isShadowRoot",
-  "devtools/shared/layout/utils",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "getShadowRootMode",
-  "devtools/shared/layout/utils",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "isRemoteFrame",
+  [
+    "isAfterPseudoElement",
+    "isAnonymous",
+    "isBeforePseudoElement",
+    "isDirectShadowHostChild",
+    "isMarkerPseudoElement",
+    "isNativeAnonymous",
+    "isShadowHost",
+    "isShadowRoot",
+    "getShadowRootMode",
+    "isRemoteFrame",
+  ],
   "devtools/shared/layout/utils",
   true
 );
 
 loader.lazyRequireGetter(
   this,
-  "InspectorActorUtils",
-  "devtools/server/actors/inspector/utils"
+  [
+    "getBackgroundColor",
+    "getClosestBackgroundColor",
+    "getNodeDisplayName",
+    "imageToImageData",
+    "isNodeDead",
+  ],
+  "devtools/server/actors/inspector/utils",
+  true
 );
 loader.lazyRequireGetter(
   this,
@@ -123,18 +69,6 @@ loader.lazyRequireGetter(
   this,
   "EventCollector",
   "devtools/server/actors/inspector/event-collector",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "DocumentWalker",
-  "devtools/server/actors/inspector/document-walker",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "scrollbarTreeWalkerFilter",
-  "devtools/server/actors/inspector/utils",
   true
 );
 loader.lazyRequireGetter(
@@ -163,9 +97,18 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
 
     // Store the original display type and scrollable state and whether or not the node is
     // displayed to track changes when reflows occur.
+    const wasScrollable = this.isScrollable;
+
     this.currentDisplayType = this.displayType;
     this.wasDisplayed = this.isDisplayed;
-    this.wasScrollable = this.isScrollable;
+    this.wasScrollable = wasScrollable;
+
+    if (wasScrollable) {
+      this.walker.updateOverflowCausingElements(
+        this,
+        this.walker.overflowCausingElementsMap
+      );
+    }
   },
 
   toString: function() {
@@ -200,7 +143,7 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
     }
 
     if (this.slotchangeListener) {
-      if (!InspectorActorUtils.isNodeDead(this)) {
+      if (!isNodeDead(this)) {
         this.rawNode.removeEventListener("slotchange", this.slotchangeListener);
       }
       this.slotchangeListener = null;
@@ -230,11 +173,13 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
       namespaceURI: this.rawNode.namespaceURI,
       nodeName: this.rawNode.nodeName,
       nodeValue: this.rawNode.nodeValue,
-      displayName: InspectorActorUtils.getNodeDisplayName(this.rawNode),
+      displayName: getNodeDisplayName(this.rawNode),
       numChildren: this.numChildren,
       inlineTextChild: inlineTextChild ? inlineTextChild.form() : undefined,
       displayType: this.displayType,
       isScrollable: this.isScrollable,
+      isTopLevelDocument: this.isTopLevelDocument,
+      causesOverflow: this.walker.overflowCausingElementsMap.has(this.rawNode),
 
       // doctype attributes
       name: this.rawNode.name,
@@ -261,10 +206,7 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
         this.rawNode.ownerDocument.contentType === "text/html",
       hasEventListeners: this._hasEventListeners,
       traits: {
-        // Added in FF72
-        supportsGetAllSelectors: true,
-        // Added in FF72
-        supportsWaitForFrameLoad: true,
+        supportsIsTopLevelDocument: true,
       },
     };
 
@@ -323,6 +265,10 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
     return isRemoteFrame(this.rawNode);
   },
 
+  get isTopLevelDocument() {
+    return this.rawNode === this.walker.rootDoc;
+  },
+
   // Estimate the number of children that the walker will return without making
   // a call to children() if possible.
   get numChildren() {
@@ -373,10 +319,7 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
    */
   get displayType() {
     // Consider all non-element nodes as displayed.
-    if (
-      InspectorActorUtils.isNodeDead(this) ||
-      this.rawNode.nodeType !== Node.ELEMENT_NODE
-    ) {
+    if (isNodeDead(this) || this.rawNode.nodeType !== Node.ELEMENT_NODE) {
       return null;
     }
 
@@ -408,27 +351,10 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
    * Check whether the node currently has scrollbars and is scrollable.
    */
   get isScrollable() {
-    // Check first if the element has an overflow area, bail out if not.
-    if (
-      this.rawNode.clientHeight === this.rawNode.scrollHeight &&
-      this.rawNode.clientWidth === this.rawNode.scrollWidth
-    ) {
-      return false;
-    }
-
-    // If it does, then check it also has scrollbars.
-    try {
-      const walker = new DocumentWalker(
-        this.rawNode,
-        this.rawNode.ownerGlobal,
-        { filter: scrollbarTreeWalkerFilter }
-      );
-      return !!walker.firstChild();
-    } catch (e) {
-      // We have no access to a DOM object. This is probably due to a CORS
-      // violation. Using try / catch is the only way to avoid this error.
-      return false;
-    }
+    return (
+      this.rawNode.nodeType === Node.ELEMENT_NODE &&
+      this.rawNode.hasVisibleScrollbars
+    );
   },
 
   /**
@@ -455,7 +381,7 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
   get _hasEventListeners() {
     // We need to pass a debugger instance from this compartment because
     // otherwise we can't make use of it inside the event-collector module.
-    const dbg = this.parent().targetActor.makeDebugger();
+    const dbg = this.getParent().targetActor.makeDebugger();
     return this._eventCollector.hasEventListeners(this.rawNode, dbg);
   },
 
@@ -519,7 +445,7 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
     // Create debugger object for the customElement function.
     const global = Cu.getGlobalForObject(customElement);
 
-    const dbg = this.parent().targetActor.makeDebugger();
+    const dbg = this.getParent().targetActor.makeDebugger();
 
     // If we hit a <browser> element of Firefox, its global will be the chrome window
     // which is system principal and will be in the same compartment as the debuggee.
@@ -630,14 +556,12 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
    * transfered in the longstring back to the client will be that much smaller
    */
   getImageData: function(maxDim) {
-    return InspectorActorUtils.imageToImageData(this.rawNode, maxDim).then(
-      imageData => {
-        return {
-          data: LongStringActor(this.conn, imageData.data),
-          size: imageData.size,
-        };
-      }
-    );
+    return imageToImageData(this.rawNode, maxDim).then(imageData => {
+      return {
+        data: LongStringActor(this.conn, imageData.data),
+        size: imageData.size,
+      };
+    });
   },
 
   /**
@@ -712,7 +636,7 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
    *         rgba(255, 255, 255, 1) if no background color is found.
    */
   getClosestBackgroundColor: function() {
-    return InspectorActorUtils.getClosestBackgroundColor(this.rawNode);
+    return getClosestBackgroundColor(this.rawNode);
   },
 
   /**
@@ -725,7 +649,7 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
    *         Object with one or more of the following properties: value, min, max
    */
   getBackgroundColor: function() {
-    return InspectorActorUtils.getBackgroundColor(this);
+    return getBackgroundColor(this);
   },
 
   /**
@@ -762,8 +686,6 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
  * Server side of a node list as returned by querySelectorAll()
  */
 const NodeListActor = protocol.ActorClassWithSpec(nodeListSpec, {
-  typeName: "domnodelist",
-
   initialize: function(walker, nodeList) {
     protocol.Actor.prototype.initialize.call(this);
     this.walker = walker;
@@ -810,7 +732,7 @@ const NodeListActor = protocol.ActorClassWithSpec(nodeListSpec, {
   items: function(start = 0, end = this.nodeList.length) {
     const items = Array.prototype.slice
       .call(this.nodeList, start, end)
-      .map(item => this.walker._ref(item));
+      .map(item => this.walker._getOrCreateNodeActor(item));
     return this.walker.attachElements(items);
   },
 

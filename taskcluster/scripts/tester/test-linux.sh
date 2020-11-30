@@ -38,6 +38,7 @@ fi
 : NEED_XVFB                     ${NEED_XVFB:=true}
 : NEED_WINDOW_MANAGER           ${NEED_WINDOW_MANAGER:=false}
 : NEED_PULSEAUDIO               ${NEED_PULSEAUDIO:=false}
+: NEED_COMPIZ                   ${NEED_COPMPIZ:=false}
 : START_VNC                     ${START_VNC:=false}
 : TASKCLUSTER_INTERACTIVE       ${TASKCLUSTER_INTERACTIVE:=false}
 : mozharness args               "${@}"
@@ -59,7 +60,7 @@ maybe_start_pulse() {
     if $NEED_PULSEAUDIO; then
         # call pulseaudio for Ubuntu only
         if [ $DISTRIBUTION == "Ubuntu" ]; then
-            pulseaudio --fail --daemonize --start
+            pulseaudio --daemonize --log-level=4 --log-time=1 --log-target=stderr --start --fail -vvvvv --exit-idle-time=-1 --cleanup-shm --dump-conf
         fi
     fi
 }
@@ -72,10 +73,24 @@ fi
 if [[ -z ${MOZHARNESS_SCRIPT} ]]; then fail "MOZHARNESS_SCRIPT is not set"; fi
 if [[ -z ${MOZHARNESS_CONFIG} ]]; then fail "MOZHARNESS_CONFIG is not set"; fi
 
+if [ $MOZ_ENABLE_WAYLAND ]; then
+  NEED_XVFB=true
+fi
+
 # make sure artifact directories exist
 mkdir -p "$WORKSPACE/logs"
 mkdir -p "$WORKING_DIR/artifacts/public"
 mkdir -p "$WORKSPACE/build/blobber_upload_dir"
+
+cleanup_mutter() {
+    local mutter_pids=`ps aux | grep 'mutter --wayland' | grep -v grep | awk '{print $2}'`
+    if [ "$mutter_pids" != "" ]; then
+        echo "Killing the following Mutter processes: $mutter_pids"
+        sudo kill $mutter_pids
+    else
+        echo "No Mutter processes to kill"
+    fi
+}
 
 cleanup() {
     local rv=$?
@@ -85,6 +100,9 @@ cleanup() {
     fi
     if $NEED_XVFB; then
         cleanup_xvfb
+    fi
+    if [ $MOZ_ENABLE_WAYLAND ]; then
+        cleanup_mutter
     fi
     exit $rv
 }
@@ -137,6 +155,10 @@ if $NEED_XVFB; then
     # note that this file is not available when run under native-worker
     . $HOME/scripts/xvfb.sh
     start_xvfb '1600x1200x24' 0
+    if [ $MOZ_ENABLE_WAYLAND ]; then
+        mutter --wayland &
+        export WAYLAND_DISPLAY=wayland-0
+    fi
 fi
 
 if $START_VNC; then
@@ -150,7 +172,13 @@ if $NEED_WINDOW_MANAGER; then
         echo DESKTOP_SESSION=ubuntu > $HOME/.xsessionrc
     elif [ $DISTRIBUTION == "Ubuntu" ] && [ $RELEASE == "18.04" ]; then
         echo export DESKTOP_SESSION=gnome > $HOME/.xsessionrc
-        echo export XDG_SESSION_TYPE=x11 >> $HOME/.xsessionrc
+        echo export XDG_CURRENT_DESKTOP=GNOME > $HOME/.xsessionrc
+        if [ $MOZ_ENABLE_WAYLAND ]; then
+            echo export XDG_SESSION_TYPE=wayland >> $HOME/.xsessionrc
+            echo export XDG_RUNTIME_DIR=/run/user/$(id -u) >> $HOME/.xsessionrc
+        else
+            echo export XDG_SESSION_TYPE=x11 >> $HOME/.xsessionrc
+        fi
     else
         :
     fi
@@ -178,8 +206,15 @@ if $NEED_WINDOW_MANAGER; then
     eval `echo '' | /usr/bin/gnome-keyring-daemon -r -d --unlock --components=secrets`
 fi
 
-if [ $DISTRIBUTION == "Ubuntu" ] && [ $RELEASE == "16.04" ]; then
+if [[ $NEED_COMPIZ == true ]]  && [[ $RELEASE == 16.04 ]]; then
     compiz 2>&1 &
+elif [[ $NEED_COMPIZ == true ]] && [[ $RELEASE == 18.04 ]]; then
+    compiz --replace 2>&1 &
+fi
+
+# Bug 1607713 - set cursor position to 0,0 to avoid odd libx11 interaction
+if [ $NEED_WINDOW_MANAGER ] && [ $DISPLAY == ':0' ]; then
+    xwit -root -warp 0 0
 fi
 
 maybe_start_pulse
@@ -204,7 +239,7 @@ fi
 
 # Use |mach python| if a source checkout exists so in-tree packages are
 # available.
-[[ -x "${GECKO_PATH}/mach" ]] && python="${GECKO_PATH}/mach python" || python="python2.7"
+[[ -x "${GECKO_PATH}/mach" ]] && python="python2.7 ${GECKO_PATH}/mach python" || python="python2.7"
 
 # Save the computed mozharness command to a binary which is useful for
 # interactive mode.
@@ -230,6 +265,6 @@ fi
 # Run a custom mach command (this is typically used by action tasks to run
 # harnesses in a particular way)
 if [ "$CUSTOM_MACH_COMMAND" ]; then
-    eval "'$WORKSPACE/build/tests/mach' ${CUSTOM_MACH_COMMAND}"
+    eval "'$WORKSPACE/build/tests/mach' ${CUSTOM_MACH_COMMAND} ${@}"
     exit $?
 fi

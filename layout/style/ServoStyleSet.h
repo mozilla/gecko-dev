@@ -26,7 +26,8 @@
 #include "nsIMemoryReporter.h"
 
 namespace mozilla {
-enum class MediaFeatureChangeReason : uint8_t;
+enum class MediaFeatureChangeReason : uint16_t;
+enum class StyleRuleChangeKind : uint32_t;
 namespace css {
 class Rule;
 }  // namespace css
@@ -117,7 +118,7 @@ class ServoStyleSet {
   // are mutated from CSSOM.
   void RuleAdded(StyleSheet&, css::Rule&);
   void RuleRemoved(StyleSheet&, css::Rule&);
-  void RuleChanged(StyleSheet&, css::Rule* aRule);
+  void RuleChanged(StyleSheet&, css::Rule*, StyleRuleChangeKind);
   void SheetCloned(StyleSheet&) { mNeedsRestyleAfterEnsureUniqueInner = true; }
   void ImportRuleLoaded(dom::CSSImportRule&, StyleSheet&);
 
@@ -337,7 +338,7 @@ class ServoStyleSet {
 
   nsTArray<ComputedKeyframeValues> GetComputedKeyframeValuesFor(
       const nsTArray<Keyframe>& aKeyframes, dom::Element* aElement,
-      const ComputedStyle* aStyle);
+      PseudoStyleType aPseudoType, const ComputedStyle* aStyle);
 
   void GetAnimationValues(
       RawServoDeclarationBlock* aDeclarations, dom::Element* aElement,
@@ -447,6 +448,8 @@ class ServoStyleSet {
   friend class PostTraversalTask;
 
   bool ShouldTraverseInParallel() const;
+
+  void RuleChangedInternal(StyleSheet&, css::Rule&, StyleRuleChangeKind);
 
   /**
    * Forces all the ShadowRoot styles to be dirty.
@@ -603,7 +606,7 @@ class UACacheReporter final : public nsIMemoryReporter {
   NS_DECL_NSIMEMORYREPORTER
 
  private:
-  ~UACacheReporter() {}
+  ~UACacheReporter() = default;
 };
 
 }  // namespace mozilla

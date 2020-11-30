@@ -9,9 +9,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <title data-localization="addNewAddressTitle"/>
-  <link rel="stylesheet" href="resource://formautofill/editDialog-shared.css"/>
-  <link rel="stylesheet" href="resource://formautofill/editAddress.css"/>
-  <link rel="stylesheet" href="resource://formautofill/editDialog.css"/>
+  <link rel="stylesheet" href="chrome://formautofill/content/skin/editDialog-shared.css"/>
+  <link rel="stylesheet" href="chrome://formautofill/content/skin/editAddress.css"/>
+  <link rel="stylesheet" href="chrome://formautofill/content/skin/editDialog.css"/>
   <script src="chrome://formautofill/content/l10n.js"></script>
   <script src="chrome://formautofill/content/editDialog.js"></script>
   <script src="chrome://formautofill/content/autofillEditForms.js"></script>
@@ -70,7 +70,7 @@
       <span data-localization="country" class="label-text"/>
     </label>
     <label id="tel-container" class="container">
-      <input id="tel" type="tel"/>
+      <input id="tel" type="tel" dir="auto"/>
       <span data-localization="tel" class="label-text"/>
     </label>
     <label id="email-container" class="container">
@@ -79,9 +79,9 @@
     </label>
   </form>
   <div id="controls-container">
+    <span id="country-warning-message" data-localization="countryWarningMessage2"/>
     <button id="cancel" data-localization="cancelBtnLabel"/>
     <button id="save" data-localization="saveBtnLabel"/>
-    <span id="country-warning-message" data-localization="countryWarningMessage2"/>
   </div>
   <script><![CDATA[
     "use strict";

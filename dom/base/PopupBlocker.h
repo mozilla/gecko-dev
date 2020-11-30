@@ -7,6 +7,7 @@
 #ifndef mozilla_dom_PopupBlocker_h
 #define mozilla_dom_PopupBlocker_h
 
+#include "Element.h"
 #include "mozilla/BasicEvents.h"
 
 class nsIPrincipal;
@@ -42,6 +43,8 @@ class PopupBlocker final {
   // This method checks if the principal is allowed by open popups by user
   // permissions. In this case, the caller should not block popups.
   static bool CanShowPopupByPermission(nsIPrincipal* aPrincipal);
+
+  static uint32_t GetPopupPermission(nsIPrincipal* aPrincipal);
 
   // This method returns true if the caller is allowed to show a popup, and it
   // consumes the popup token for the current event. There is just 1 popup

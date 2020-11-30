@@ -32,11 +32,8 @@ class nsTPriorityQueue {
    */
   explicit nsTPriorityQueue(const Compare& aComp) : mCompare(aComp) {}
 
-  /**
-   * Copy constructor
-   */
-  nsTPriorityQueue(const nsTPriorityQueue& aOther)
-      : mElements(aOther.mElements), mCompare(aOther.mCompare) {}
+  nsTPriorityQueue(nsTPriorityQueue&&) = default;
+  nsTPriorityQueue& operator=(nsTPriorityQueue&&) = default;
 
   /**
    * @return True if the queue is empty or false otherwise.
@@ -65,11 +62,8 @@ class nsTPriorityQueue {
    * @param aElement The element to add
    * @return true on success, false on out of memory.
    */
-  bool Push(const T& aElement) {
-    T* elem = mElements.AppendElement(aElement);
-    if (!elem) {
-      return false;  // Out of memory
-    }
+  void Push(T&& aElement) {
+    mElements.AppendElement(std::move(aElement));
 
     // Sift up
     size_type i = mElements.Length() - 1;
@@ -78,11 +72,9 @@ class nsTPriorityQueue {
       if (mCompare.LessThan(mElements[parent], mElements[i])) {
         break;
       }
-      Swap(i, parent);
+      std::swap(mElements[i], mElements[parent]);
       i = parent;
     }
-
-    return true;
   }
 
   /**
@@ -93,29 +85,34 @@ class nsTPriorityQueue {
    */
   T Pop() {
     MOZ_ASSERT(!mElements.IsEmpty(), "Empty queue");
-    T pop = mElements[0];
+    T pop = std::move(mElements[0]);
+
+    const size_type newLength = mElements.Length() - 1;
+    if (newLength == 0) {
+      mElements.Clear();
+      return pop;
+    }
 
     // Move last to front
-    mElements[0] = mElements[mElements.Length() - 1];
-    mElements.TruncateLength(mElements.Length() - 1);
+    mElements[0] = mElements.PopLastElement();
 
     // Sift down
     size_type i = 0;
-    while (2 * i + 1 < mElements.Length()) {
+    while (2 * i + 1 < newLength) {
       size_type swap = i;
       size_type l_child = 2 * i + 1;
       if (mCompare.LessThan(mElements[l_child], mElements[i])) {
         swap = l_child;
       }
       size_type r_child = l_child + 1;
-      if (r_child < mElements.Length() &&
+      if (r_child < newLength &&
           mCompare.LessThan(mElements[r_child], mElements[swap])) {
         swap = r_child;
       }
       if (swap == i) {
         break;
       }
-      Swap(i, swap);
+      std::swap(mElements[i], mElements[swap]);
       i = swap;
     }
 
@@ -136,16 +133,13 @@ class nsTPriorityQueue {
    */
   const T* Elements() const { return mElements.Elements(); }
 
- protected:
-  /**
-   * Swaps the elements at the specified indices.
-   */
-  void Swap(size_type aIndexA, size_type aIndexB) {
-    T temp = mElements[aIndexA];
-    mElements[aIndexA] = mElements[aIndexB];
-    mElements[aIndexB] = temp;
+  nsTPriorityQueue Clone() const {
+    auto res = nsTPriorityQueue{mCompare};
+    res.mElements = mElements.Clone();
+    return res;
   }
 
+ protected:
   nsTArray<T> mElements;
   Compare mCompare;  // Comparator object
 };

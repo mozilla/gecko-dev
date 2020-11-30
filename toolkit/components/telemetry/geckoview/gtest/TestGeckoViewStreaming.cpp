@@ -5,8 +5,10 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "mozilla/Telemetry.h"
 #include "nsThreadUtils.h"
 #include "TelemetryFixture.h"
+#include "TelemetryTestHelpers.h"
 #include "streaming/GeckoViewStreamingTelemetry.h"
 
 using namespace mozilla;
@@ -23,10 +25,9 @@ namespace {
 const char* kGeckoViewStreamingPref = "toolkit.telemetry.geckoview.streaming";
 const char* kBatchTimeoutPref = "toolkit.telemetry.geckoview.batchDurationMS";
 
-NS_NAMED_LITERAL_CSTRING(kTestHgramName, "TELEMETRY_TEST_STREAMING");
-NS_NAMED_LITERAL_CSTRING(kTestHgramName2, "TELEMETRY_TEST_STREAMING_2");
-NS_NAMED_LITERAL_CSTRING(kTestCategoricalName,
-                         "TELEMETRY_TEST_CATEGORICAL_OPTOUT");
+constexpr auto kTestHgramName = "TELEMETRY_TEST_STREAMING"_ns;
+constexpr auto kTestHgramName2 = "TELEMETRY_TEST_STREAMING_2"_ns;
+constexpr auto kTestCategoricalName = "TELEMETRY_TEST_CATEGORICAL_OPTOUT"_ns;
 const HistogramID kTestHgram = Telemetry::TELEMETRY_TEST_STREAMING;
 const HistogramID kTestHgram2 = Telemetry::TELEMETRY_TEST_STREAMING_2;
 
@@ -64,7 +65,7 @@ TEST_F(TelemetryStreamingFixture, HistogramSamples) {
   const uint32_t kSampleOne = 401;
   const uint32_t kSampleTwo = 2019;
 
-  nsTArray<uint32_t> samplesArray;
+  CopyableTArray<uint32_t> samplesArray;
   samplesArray.AppendElement(kSampleOne);
   samplesArray.AppendElement(kSampleTwo);
 
@@ -83,7 +84,7 @@ TEST_F(TelemetryStreamingFixture, CategoricalHistogramSamples) {
       Telemetry::LABELS_TELEMETRY_TEST_CATEGORICAL_OPTOUT::CommonLabel;
   auto kSampleTwo = Telemetry::LABELS_TELEMETRY_TEST_CATEGORICAL_OPTOUT::Label5;
 
-  nsTArray<uint32_t> samplesArray;
+  CopyableTArray<uint32_t> samplesArray;
   samplesArray.AppendElement(static_cast<uint32_t>(kSampleOne));
   samplesArray.AppendElement(static_cast<uint32_t>(kSampleOne));
   samplesArray.AppendElement(static_cast<uint32_t>(kSampleTwo));
@@ -103,10 +104,10 @@ TEST_F(TelemetryStreamingFixture, MultipleHistograms) {
   const uint32_t kSample1 = 400;
   const uint32_t kSample2 = 1 << 31;
   const uint32_t kSample3 = 7;
-  nsTArray<uint32_t> samplesArray1;
+  CopyableTArray<uint32_t> samplesArray1;
   samplesArray1.AppendElement(kSample1);
   samplesArray1.AppendElement(kSample2);
-  nsTArray<uint32_t> samplesArray2;
+  CopyableTArray<uint32_t> samplesArray2;
   samplesArray2.AppendElement(kSample3);
 
   auto md = MakeRefPtr<MockDelegate>();
@@ -126,11 +127,11 @@ TEST_F(TelemetryStreamingFixture, MultipleHistograms) {
 // If we can find a way to convert the expectation's arg into an stl container,
 // we can use gmock's own ::testing::UnorderedElementsAre() instead.
 auto MatchUnordered(uint32_t sample1, uint32_t sample2) {
-  nsTArray<uint32_t> samplesArray1;
+  CopyableTArray<uint32_t> samplesArray1;
   samplesArray1.AppendElement(sample1);
   samplesArray1.AppendElement(sample2);
 
-  nsTArray<uint32_t> samplesArray2;
+  CopyableTArray<uint32_t> samplesArray2;
   samplesArray2.AppendElement(sample2);
   samplesArray2.AppendElement(sample1);
 
@@ -172,12 +173,12 @@ TEST_F(TelemetryStreamingFixture, MultipleThreads) {
 }
 
 TEST_F(TelemetryStreamingFixture, ScalarValues) {
-  NS_NAMED_LITERAL_CSTRING(kBoolScalarName, "telemetry.test.boolean_kind");
-  NS_NAMED_LITERAL_CSTRING(kStringScalarName, "telemetry.test.string_kind");
-  NS_NAMED_LITERAL_CSTRING(kUintScalarName, "telemetry.test.unsigned_int_kind");
+  constexpr auto kBoolScalarName = "telemetry.test.boolean_kind"_ns;
+  constexpr auto kStringScalarName = "telemetry.test.string_kind"_ns;
+  constexpr auto kUintScalarName = "telemetry.test.unsigned_int_kind"_ns;
 
   const bool kBoolScalarValue = true;
-  NS_NAMED_LITERAL_CSTRING(kStringScalarValue, "a string scalar value");
+  constexpr auto kStringScalarValue = "a string scalar value"_ns;
   const uint32_t kUintScalarValue = 42;
 
   auto md = MakeRefPtr<MockDelegate>();
@@ -212,7 +213,7 @@ TEST_F(TelemetryStreamingFixture, ExpiredHistogram) {
 }
 
 TEST_F(TelemetryStreamingFixture, SendOnAppBackground) {
-  NS_NAMED_LITERAL_CSTRING(kBoolScalarName, "telemetry.test.boolean_kind");
+  constexpr auto kBoolScalarName = "telemetry.test.boolean_kind"_ns;
   const bool kBoolScalarValue = true;
   const char* kApplicationBackgroundTopic = "application-background";
 

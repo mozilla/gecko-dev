@@ -25,7 +25,10 @@ EXPORTS.mozilla += [
     'RemoteDecoderManagerParent.h',
     'RemoteDecoderModule.h',
     'RemoteDecoderParent.h',
+    'RemoteImageHolder.h',
+    'RemoteMediaData.h',
     'RemoteMediaDataDecoder.h',
+    'ShmemRecycleAllocator.h',
 ]
 
 EXPORTS.mozilla.dom += [
@@ -45,6 +48,8 @@ SOURCES += [
     'RemoteDecoderManagerParent.cpp',
     'RemoteDecoderModule.cpp',
     'RemoteDecoderParent.cpp',
+    'RemoteImageHolder.cpp',
+    'RemoteMediaData.cpp',
     'RemoteMediaDataDecoder.cpp',
     'RemoteVideoDecoder.cpp',
 ]

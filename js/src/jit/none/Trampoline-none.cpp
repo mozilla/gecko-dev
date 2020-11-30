@@ -6,6 +6,7 @@
 
 #include "jit/Bailouts.h"
 #include "jit/BaselineIC.h"
+#include "jit/JitRuntime.h"
 #include "vm/Realm.h"
 
 using namespace js;
@@ -17,7 +18,10 @@ using namespace js::jit;
 
 void JitRuntime::generateEnterJIT(JSContext*, MacroAssembler&) { MOZ_CRASH(); }
 void JitRuntime::generateInvalidator(MacroAssembler&, Label*) { MOZ_CRASH(); }
-void JitRuntime::generateArgumentsRectifier(MacroAssembler&) { MOZ_CRASH(); }
+void JitRuntime::generateArgumentsRectifier(MacroAssembler&,
+                                            ArgumentsRectifierKind kind) {
+  MOZ_CRASH();
+}
 JitRuntime::BailoutTable JitRuntime::generateBailoutTable(MacroAssembler&,
                                                           Label*, uint32_t) {
   MOZ_CRASH();
@@ -28,7 +32,7 @@ void JitRuntime::generateBailoutHandler(MacroAssembler&, Label*) {
 uint32_t JitRuntime::generatePreBarrier(JSContext*, MacroAssembler&, MIRType) {
   MOZ_CRASH();
 }
-void JitRuntime::generateExceptionTailStub(MacroAssembler&, void*, Label*) {
+void JitRuntime::generateExceptionTailStub(MacroAssembler&, Label*) {
   MOZ_CRASH();
 }
 void JitRuntime::generateBailoutTailStub(MacroAssembler&, Label*) {
@@ -39,7 +43,7 @@ void JitRuntime::generateProfilerExitFrameTailStub(MacroAssembler&, Label*) {
 }
 
 bool JitRuntime::generateVMWrapper(JSContext*, MacroAssembler&,
-                                   const VMFunctionData&, void*, uint32_t*) {
+                                   const VMFunctionData&, DynFn, uint32_t*) {
   MOZ_CRASH();
 }
 

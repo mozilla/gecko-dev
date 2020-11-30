@@ -22,6 +22,7 @@
 #include "mozilla/Preferences.h"    // for Preferences
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/StaticPrefs_layers.h"
+#include "mozilla/StaticPrefs_nglayout.h"
 #include "mozilla/gfx/BasePoint.h"  // for BasePoint
 #include "mozilla/gfx/Matrix.h"     // for Matrix4x4, Matrix
 #include "mozilla/gfx/Triangle.h"   // for Triangle
@@ -57,7 +58,10 @@
 #  include "mozilla/widget/GtkCompositorWidget.h"
 #endif
 #if MOZ_WIDGET_ANDROID
-#  include "GeneratedJNIWrappers.h"
+#  include "GLContextEGL.h"
+#  include "GLLibraryEGL.h"
+#  include "mozilla/java/GeckoSurfaceTextureWrappers.h"
+#  include "mozilla/layers/AndroidHardwareBuffer.h"
 #endif
 
 #include "GeckoProfiler.h"
@@ -242,14 +246,12 @@ already_AddRefed<mozilla::gl::GLContext> CompositorOGL::CreateContext() {
 
   // Allow to create offscreen GL context for main Layer Manager
   if (!context && gfxEnv::LayersPreferOffscreen()) {
-    SurfaceCaps caps = SurfaceCaps::ForRGB();
-    caps.preserve = false;
-    caps.bpp16 = gfxVars::OffscreenFormat() == SurfaceFormat::R5G6B5_UINT16;
-
     nsCString discardFailureId;
-    context = GLContextProvider::CreateOffscreen(
-        mSurfaceSize, caps, CreateContextFlags::REQUIRE_COMPAT_PROFILE,
-        &discardFailureId);
+    context = GLContextProvider::CreateHeadless(
+        {CreateContextFlags::REQUIRE_COMPAT_PROFILE}, &discardFailureId);
+    if (!context->CreateOffscreenDefaultFb(mSurfaceSize)) {
+      context = nullptr;
+    }
   }
 
   if (!context) {
@@ -396,7 +398,8 @@ bool CompositorOGL::Initialize(nsCString* const out_failureReason) {
   mGLContext->fEnable(LOCAL_GL_BLEND);
 
   // initialise a common shader to check that we can actually compile a shader
-  RefPtr<EffectSolidColor> effect = new EffectSolidColor(Color(0, 0, 0, 0));
+  RefPtr<EffectSolidColor> effect =
+      new EffectSolidColor(DeviceColor(0, 0, 0, 0));
   ShaderConfigOGL config = GetShaderConfigFor(effect);
   if (!GetShaderProgramFor(config)) {
     *out_failureReason = "FEATURE_FAILURE_OPENGL_COMPILE_SHADER";
@@ -517,21 +520,21 @@ bool CompositorOGL::Initialize(nsCString* const out_failureReason) {
 
   if (console) {
     nsString msg;
-    msg += NS_LITERAL_STRING(
-        "OpenGL compositor Initialized Succesfully.\nVersion: ");
+    msg += nsLiteralString(
+        u"OpenGL compositor Initialized Succesfully.\nVersion: ");
     msg += NS_ConvertUTF8toUTF16(nsDependentCString(
         (const char*)mGLContext->fGetString(LOCAL_GL_VERSION)));
-    msg += NS_LITERAL_STRING("\nVendor: ");
+    msg += u"\nVendor: "_ns;
     msg += NS_ConvertUTF8toUTF16(nsDependentCString(
         (const char*)mGLContext->fGetString(LOCAL_GL_VENDOR)));
-    msg += NS_LITERAL_STRING("\nRenderer: ");
+    msg += u"\nRenderer: "_ns;
     msg += NS_ConvertUTF8toUTF16(nsDependentCString(
         (const char*)mGLContext->fGetString(LOCAL_GL_RENDERER)));
-    msg += NS_LITERAL_STRING("\nFBO Texture Target: ");
+    msg += u"\nFBO Texture Target: "_ns;
     if (mFBOTextureTarget == LOCAL_GL_TEXTURE_2D)
-      msg += NS_LITERAL_STRING("TEXTURE_2D");
+      msg += u"TEXTURE_2D"_ns;
     else
-      msg += NS_LITERAL_STRING("TEXTURE_RECTANGLE");
+      msg += u"TEXTURE_RECTANGLE"_ns;
     console->LogStringMessage(msg.get());
   }
 
@@ -599,18 +602,12 @@ void CompositorOGL::PrepareViewport(CompositingRenderTargetOGL* aRenderTarget) {
     viewMatrix.PreScale(1.0f, -1.0f);
 
     MOZ_ASSERT(mCurrentRenderTarget, "No destination");
-    // If we're drawing directly to the window then we want to offset
-    // drawing by the render offset.
-    if (!mTarget && mCurrentRenderTarget->IsWindow()) {
-      viewMatrix.PreTranslate(mRenderOffset.x, mRenderOffset.y);
-    }
 
     Matrix4x4 matrix3d = Matrix4x4::From2D(viewMatrix);
     matrix3d._33 = 0.0f;
     mProjMatrix = matrix3d;
     mGLContext->fDepthRange(0.0f, 1.0f);
   } else {
-    // XXX take into account mRenderOffset
     bool depthEnable;
     float zNear, zFar;
     aRenderTarget->GetProjection(mProjMatrix, depthEnable, zNear, zFar);
@@ -767,8 +764,8 @@ CompositorOGL::RenderTargetForNativeLayer(NativeLayer* aNativeLayer,
   IntRect layerRect = aNativeLayer->GetRect();
   IntRegion invalidRelativeToLayer =
       aInvalidRegion.MovedBy(-layerRect.TopLeft());
-  Maybe<GLuint> fbo =
-      aNativeLayer->NextSurfaceAsFramebuffer(invalidRelativeToLayer, false);
+  Maybe<GLuint> fbo = aNativeLayer->NextSurfaceAsFramebuffer(
+      gfx::IntRect({}, aNativeLayer->GetSize()), invalidRelativeToLayer, false);
   if (!fbo) {
     return nullptr;
   }
@@ -944,7 +941,8 @@ void CompositorOGL::EndRenderingToNativeLayer() {
     float g = float(rand()) / float(RAND_MAX);
     float b = float(rand()) / float(RAND_MAX);
     EffectChain effectChain;
-    effectChain.mPrimaryEffect = new EffectSolidColor(Color(r, g, b, 0.2f));
+    effectChain.mPrimaryEffect =
+        new EffectSolidColor(DeviceColor(r, g, b, 0.2f));
     // If we're clipping the render target to the invalid rect, then the
     // current render target is still clipped, so just fill the bounds.
     IntRect rect = mCurrentRenderTarget->GetRect();
@@ -1467,13 +1465,8 @@ void CompositorOGL::DrawGeometry(const Geometry& aGeometry,
   IntPoint offset = mCurrentRenderTarget->GetOrigin();
   clipRect -= offset;
 
-  // clipRect is in destination coordinate space (after all
-  // transforms and offsets have been applied) so if our
-  // drawing is going to be shifted by mRenderOffset then we need
-  // to shift the clip rect by the same amount.
   if (!mTarget && mCurrentRenderTarget->IsWindow()) {
-    clipRect.MoveBy(mRenderOffset.x + mSurfaceOrigin.x,
-                    mRenderOffset.y - mSurfaceOrigin.y);
+    clipRect.MoveBy(mSurfaceOrigin.x, -mSurfaceOrigin.y);
   }
 
   ScopedGLState scopedScissorTestState(mGLContext, LOCAL_GL_SCISSOR_TEST, true);
@@ -1502,7 +1495,7 @@ void CompositorOGL::DrawGeometry(const Geometry& aGeometry,
 
   // Determine the color if this is a color shader and fold the opacity into
   // the color since color shaders don't have an opacity uniform.
-  Color color;
+  DeviceColor color;
   if (aEffectChain.mPrimaryEffect->mType == EffectTypes::SOLID_COLOR) {
     EffectSolidColor* effectSolidColor =
         static_cast<EffectSolidColor*>(aEffectChain.mPrimaryEffect.get());
@@ -2070,6 +2063,22 @@ void CompositorOGL::InsertFrameDoneSync() {
   }
   mThisFrameDoneSync =
       mGLContext->fFenceSync(LOCAL_GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+#elif defined(MOZ_WIDGET_ANDROID)
+  const auto& gle = gl::GLContextEGL::Cast(mGLContext);
+  const auto& egl = gle->mEgl;
+
+  EGLSync sync = nullptr;
+  if (AndroidHardwareBufferApi::Get()) {
+    sync = egl->fCreateSync(LOCAL_EGL_SYNC_NATIVE_FENCE_ANDROID, nullptr);
+  }
+  if (sync) {
+    int fenceFd = egl->fDupNativeFenceFDANDROID(sync);
+    if (fenceFd >= 0) {
+      mReleaseFenceFd = ipc::FileDescriptor(UniqueFileHandle(fenceFd));
+    }
+    egl->fDestroySync(sync);
+    sync = nullptr;
+  }
 #endif
 }
 
@@ -2084,6 +2093,8 @@ void CompositorOGL::WaitForGPU() {
   mPreviousFrameDoneSync = mThisFrameDoneSync;
   mThisFrameDoneSync = nullptr;
 }
+
+ipc::FileDescriptor CompositorOGL::GetReleaseFence() { return mReleaseFenceFd; }
 
 RefPtr<SurfacePoolHandle> CompositorOGL::GetSurfacePoolHandle() {
 #ifdef XP_MACOSX
@@ -2156,9 +2167,6 @@ void CompositorOGL::CopyToTarget(DrawTarget* aTarget,
 void CompositorOGL::Pause() {
 #ifdef MOZ_WIDGET_ANDROID
   if (!gl() || gl()->IsDestroyed()) return;
-  gl()->MakeCurrent();
-  java::GeckoSurfaceTexture::DestroyUnused((int64_t)mGLContext.get());
-  java::GeckoSurfaceTexture::DetachAllFromGLContext((int64_t)mGLContext.get());
   // ReleaseSurface internally calls MakeCurrent
   gl()->ReleaseSurface();
 #elif defined(MOZ_WAYLAND)

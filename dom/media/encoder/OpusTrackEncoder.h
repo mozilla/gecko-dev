@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <speex/speex_resampler.h>
+#include "TimeUnits.h"
 #include "TrackEncoder.h"
 
 struct OpusEncoder;
@@ -35,16 +36,38 @@ class OpusTrackEncoder : public AudioTrackEncoder {
 
   nsresult GetEncodedTrack(nsTArray<RefPtr<EncodedFrame>>& aData) override;
 
+  /**
+   * The encoder lookahead at 48k rate.
+   */
+  int GetLookahead() const;
+
  protected:
-  int GetPacketDuration() override;
+  /**
+   * The number of frames, in the input rate mTrackRate, needed to fill an
+   * encoded opus packet. A frame is a sample per channel.
+   */
+  int NumInputFramesPerPacket() const override;
 
-  nsresult Init(int aChannels, int aSamplingRate) override;
+  nsresult Init(int aChannels) override;
 
+  /**
+   * The number of frames, in the output rate (see GetOutputSampleRate), needed
+   * to fill an encoded opus packet. A frame is a sample per channel.
+   */
+  int NumOutputFramesPerPacket() const;
+
+  /**
+   * True if the input needs to be resampled to be fed to the underlying opus
+   * encoder.
+   */
+  bool NeedsResampler() const;
+
+ public:
   /**
    * Get the samplerate of the data to be fed to the Opus encoder. This might be
    * different from the input samplerate if resampling occurs.
    */
-  int GetOutputSampleRate();
+  const TrackRate mOutputSampleRate;
 
  private:
   /**
@@ -61,12 +84,19 @@ class OpusTrackEncoder : public AudioTrackEncoder {
   AudioSegment mSourceSegment;
 
   /**
-   * Total samples of delay added by codec, can be queried by the encoder. From
-   * the perspective of decoding, real data begins this many samples late, so
-   * the encoder needs to append this many null samples to the end of stream,
-   * in order to align the time of input and output.
+   * Total samples of delay added by codec (in rate mOutputSampleRate), can
+   * be queried by the encoder. From the perspective of decoding, real data
+   * begins this many samples late, so the encoder needs to append this many
+   * null samples to the end of stream, in order to align the time of input and
+   * output.
    */
   int mLookahead;
+
+  /**
+   * Number of mLookahead samples that has been written. When non-zero and equal
+   * to mLookahead, encoding is complete.
+   */
+  int mLookaheadWritten;
 
   /**
    * If the input sample rate does not divide 48kHz evenly, the input data are
@@ -80,8 +110,10 @@ class OpusTrackEncoder : public AudioTrackEncoder {
    */
   nsTArray<AudioDataValue> mResampledLeftover;
 
-  // TimeStamp in microseconds.
-  uint64_t mOutputTimeStamp;
+  /**
+   * Number of audio frames encoded, in kOpusSamplingRate.
+   */
+  uint64_t mNumOutputFrames;
 };
 
 }  // namespace mozilla

@@ -18,6 +18,13 @@ ChromeUtils.defineModuleGetter(
   "resource://gre/modules/LoginHelper.jsm"
 );
 
+XPCOMUtils.defineLazyServiceGetter(
+  this,
+  "usernameAutocompleteSearch",
+  "@mozilla.org/autocomplete/search;1?name=login-doorhanger-username",
+  "nsIAutoCompleteSimpleSearch"
+);
+
 XPCOMUtils.defineLazyGetter(this, "strBundle", () => {
   return Services.strings.createBundle(
     "chrome://passwordmgr/locale/passwordmgr.properties"
@@ -43,10 +50,10 @@ const VISIBILITY_TOGGLE_MAX_PW_AGE_MS = 2 * 60 * 1000; // 2 minutes
  * Constants for password prompt telemetry.
  */
 const PROMPT_DISPLAYED = 0;
-
 const PROMPT_ADD_OR_UPDATE = 1;
-const PROMPT_NOTNOW = 2;
+const PROMPT_NOTNOW_OR_DONTUPDATE = 2;
 const PROMPT_NEVER = 3;
+const PROMPT_DELETE = 3;
 
 /**
  * The minimum age of a doorhanger in ms before it will get removed after a locationchange
@@ -59,6 +66,34 @@ const NOTIFICATION_TIMEOUT_MS = 10 * 1000; // 10 seconds
  */
 const ATTENTION_NOTIFICATION_TIMEOUT_MS = 60 * 1000; // 1 minute
 
+function autocompleteSelected(popup) {
+  let doc = popup.ownerDocument;
+  let nameField = doc.getElementById("password-notification-username");
+  let passwordField = doc.getElementById("password-notification-password");
+
+  let activeElement = nameField.ownerDocument.activeElement;
+  if (activeElement == nameField) {
+    popup.onUsernameSelect();
+  } else if (activeElement == passwordField) {
+    popup.onPasswordSelect();
+  }
+}
+
+const observer = {
+  QueryInterface: ChromeUtils.generateQI(["nsIObserver"]),
+
+  // nsIObserver
+  observe(subject, topic, data) {
+    switch (topic) {
+      case "autocomplete-did-enter-text": {
+        let input = subject.QueryInterface(Ci.nsIAutoCompleteInput);
+        autocompleteSelected(input.popupElement);
+        break;
+      }
+    }
+  },
+};
+
 /**
  * Implements interfaces for prompting the user to enter/save/change login info
  * found in HTML forms.
@@ -69,14 +104,37 @@ class LoginManagerPrompter {
   }
 
   get QueryInterface() {
-    return ChromeUtils.generateQI([Ci.nsILoginManagerPrompter]);
+    return ChromeUtils.generateQI(["nsILoginManagerPrompter"]);
   }
 
+  /**
+   * Called when we detect a password or username that is not yet saved as
+   * an existing login.
+   *
+   * @param {Element} aBrowser
+   *                  The browser element that the request came from.
+   * @param {nsILoginInfo} aLogin
+   *                       The new login from the page form.
+   * @param {boolean} [dismissed = false]
+   *                  If the prompt should be automatically dismissed on being shown.
+   * @param {boolean} [notifySaved = false]
+   *                  Whether the notification should indicate that a login has been saved
+   * @param {string} [autoSavedLoginGuid = ""]
+   *                 A guid value for the old login to be removed if the changes match it
+   *                 to a different login
+   * @param {object?} possibleValues
+   *                 Contains values from anything that we think, but are not sure, might be
+   *                 a username or password.  Has two properties, 'usernames' and 'passwords'.
+   * @param {Set<String>} possibleValues.usernames
+   * @param {Set<String>} possibleValues.passwords
+   */
   promptToSavePassword(
     aBrowser,
     aLogin,
     dismissed = false,
-    notifySaved = false
+    notifySaved = false,
+    autoFilledLoginGuid = "",
+    possibleValues = undefined
   ) {
     log.debug("promptToSavePassword");
     let inPrivateBrowsing = PrivateBrowsingUtils.isBrowserPrivate(aBrowser);
@@ -88,8 +146,10 @@ class LoginManagerPrompter {
         dismissed: inPrivateBrowsing || dismissed,
         extraAttr: notifySaved ? "attention" : "",
       },
+      possibleValues,
       {
         notifySaved,
+        autoFilledLoginGuid,
       }
     );
     Services.obs.notifyObservers(aLogin, "passwordmgr-prompt-save");
@@ -115,16 +175,32 @@ class LoginManagerPrompter {
    * @param {string} [options.autoSavedLoginGuid = ""]
    *        A string guid value for the auto-saved login to be removed if the changes
    *        match it to a different login
+   * @param {string} [options.autoFilledLoginGuid = ""]
+   *        A string guid value for the autofilled login
+   * @param {object?} possibleValues
+   *                 Contains values from anything that we think, but are not sure, might be
+   *                 a username or password.  Has two properties, 'usernames' and 'passwords'.
+   * @param {Set<String>} possibleValues.usernames
+   * @param {Set<String>} possibleValues.passwords
    */
   static _showLoginCaptureDoorhanger(
     browser,
     login,
     type,
     showOptions = {},
-    { notifySaved = false, messageStringID, autoSavedLoginGuid = "" } = {}
+    possibleValues = undefined,
+    {
+      notifySaved = false,
+      messageStringID,
+      autoSavedLoginGuid = "",
+      autoFilledLoginGuid = "",
+    } = {}
   ) {
     log.debug(
       `_showLoginCaptureDoorhanger, got autoSavedLoginGuid: ${autoSavedLoginGuid}`
+    );
+    log.debug(
+      `_showLoginCaptureDoorhanger, got autoFilledLoginGuid: ${autoFilledLoginGuid}`
     );
 
     let saveMsgNames = {
@@ -163,15 +239,17 @@ class LoginManagerPrompter {
         ? "PWMGR_PROMPT_REMEMBER_ACTION"
         : "PWMGR_PROMPT_UPDATE_ACTION";
     let histogram = Services.telemetry.getHistogramById(histogramName);
-    histogram.add(PROMPT_DISPLAYED);
-    Services.obs.notifyObservers(
-      null,
-      "weave:telemetry:histogram",
-      histogramName
-    );
 
     let chromeDoc = browser.ownerDocument;
     let currentNotification;
+
+    let wasModifiedEvent = {
+      // Values are mutated
+      did_edit_un: "false",
+      did_select_un: "false",
+      did_edit_pw: "false",
+      did_select_pw: "false",
+    };
 
     let updateButtonStatus = element => {
       let mainActionButton = element.button;
@@ -230,6 +308,7 @@ class LoginManagerPrompter {
       let nameField = chromeDoc.getElementById(
         "password-notification-username"
       );
+
       nameField.placeholder = usernamePlaceholder;
       nameField.value = login.username;
 
@@ -243,6 +322,7 @@ class LoginManagerPrompter {
       // Ensure the type is reset so the field is masked.
       passwordField.type = "password";
       passwordField.value = login.password;
+
       updateButtonLabel();
     };
 
@@ -258,6 +338,28 @@ class LoginManagerPrompter {
     let onInput = () => {
       readDataFromUI();
       updateButtonLabel();
+    };
+
+    let onUsernameInput = () => {
+      wasModifiedEvent.did_edit_un = "true";
+      wasModifiedEvent.did_select_un = "false";
+      onInput();
+    };
+
+    let onUsernameSelect = () => {
+      wasModifiedEvent.did_edit_un = "false";
+      wasModifiedEvent.did_select_un = "true";
+    };
+
+    let onPasswordInput = () => {
+      wasModifiedEvent.did_edit_pw = "true";
+      wasModifiedEvent.did_select_pw = "false";
+      onInput();
+    };
+
+    let onPasswordSelect = () => {
+      wasModifiedEvent.did_edit_pw = "false";
+      wasModifiedEvent.did_select_pw = "true";
     };
 
     let onKeyUp = e => {
@@ -282,6 +384,12 @@ class LoginManagerPrompter {
       }
       passwordField.selectionStart = selectionStart;
       passwordField.selectionEnd = selectionEnd;
+    };
+
+    let togglePopup = event => {
+      event.target.parentElement
+        .getElementsByClassName("ac-has-end-icon")[0]
+        .toggleHistoryPopup();
     };
 
     let persistData = () => {
@@ -350,7 +458,12 @@ class LoginManagerPrompter {
       ) {
         // We only want to touch the login's use count and last used time.
         log.debug("persistData: Touch matched login", loginToUpdate.guid);
-        Services.logins.recordPasswordUse(loginToUpdate);
+        Services.logins.recordPasswordUse(
+          loginToUpdate,
+          PrivateBrowsingUtils.isBrowserPrivate(browser),
+          loginToUpdate.username ? "form_password" : "form_login",
+          !!autoFilledLoginGuid
+        );
       } else {
         log.debug("persistData: Update matched login", loginToUpdate.guid);
         this._updateLogin(loginToUpdate, login);
@@ -374,11 +487,50 @@ class LoginManagerPrompter {
       label: this._getLocalizedString(initialMsgNames.buttonLabel),
       accessKey: this._getLocalizedString(initialMsgNames.buttonAccessKey),
       callback: () => {
+        readDataFromUI();
+        if (
+          type == "password-save" &&
+          !Services.policies.isAllowed("removeMasterPassword")
+        ) {
+          if (!LoginHelper.isMasterPasswordSet()) {
+            browser.ownerGlobal.openDialog(
+              "chrome://mozapps/content/preferences/changemp.xhtml",
+              "",
+              "centerscreen,chrome,modal,titlebar"
+            );
+            if (!LoginHelper.isMasterPasswordSet()) {
+              return;
+            }
+          }
+        }
         histogram.add(PROMPT_ADD_OR_UPDATE);
         if (histogramName == "PWMGR_PROMPT_REMEMBER_ACTION") {
           Services.obs.notifyObservers(browser, "LoginStats:NewSavedPassword");
+        } else if (histogramName == "PWMGR_PROMPT_UPDATE_ACTION") {
+          Services.obs.notifyObservers(browser, "LoginStats:LoginUpdateSaved");
+        } else {
+          throw new Error("Unknown histogram");
         }
-        readDataFromUI();
+
+        let eventObject;
+        if (type == "password-change") {
+          eventObject = "update";
+        } else if (type == "password-save") {
+          eventObject = "save";
+        } else {
+          throw new Error(
+            `Unexpected doorhanger type. Expected either 'password-save' or 'password-change', got ${type}`
+          );
+        }
+
+        Services.telemetry.recordEvent(
+          "pwmgr",
+          "doorhanger_submitted",
+          eventObject,
+          null,
+          wasModifiedEvent
+        );
+
         persistData();
         Services.obs.notifyObservers(
           null,
@@ -396,7 +548,7 @@ class LoginManagerPrompter {
           initialMsgNames.secondaryButtonAccessKey
         ),
         callback: () => {
-          histogram.add(PROMPT_NOTNOW);
+          histogram.add(PROMPT_NOTNOW_OR_DONTUPDATE);
           Services.obs.notifyObservers(
             null,
             "weave:telemetry:histogram",
@@ -424,6 +576,38 @@ class LoginManagerPrompter {
       });
     }
 
+    // Include a "Delete this login" button when updating an existing password
+    if (type == "password-change") {
+      secondaryActions.push({
+        label: this._getLocalizedString("updateLoginButtonDelete.label"),
+        accessKey: this._getLocalizedString(
+          "updateLoginButtonDelete.accesskey"
+        ),
+        callback: async () => {
+          histogram.add(PROMPT_DELETE);
+          Services.obs.notifyObservers(
+            null,
+            "weave:telemetry:histogram",
+            histogramName
+          );
+          const matchingLogins = await Services.logins.searchLoginsAsync({
+            guid: login.guid,
+            origin: login.origin,
+          });
+          Services.logins.removeLogin(matchingLogins[0]);
+          browser.focus();
+          // The "password-notification-icon" and "notification-icon-box" are hidden
+          // at this point, so approximate the location with the next closest,
+          // visible icon as the anchor.
+          const anchor = browser.ownerDocument.getElementById("identity-icon");
+          log.debug("Showing the ConfirmationHint");
+          anchor.ownerGlobal.ConfirmationHint.show(anchor, "loginRemoved", {
+            hideArrow: true,
+          });
+        },
+      });
+    }
+
     let usernamePlaceholder = this._getLocalizedString("noUsernamePlaceholder");
     let togglePasswordLabel = this._getLocalizedString("togglePasswordLabel");
     let togglePasswordAccessKey = this._getLocalizedString(
@@ -439,109 +623,168 @@ class LoginManagerPrompter {
       showOptions.dismissed && showOptions.extraAttr == "attention"
         ? ATTENTION_NOTIFICATION_TIMEOUT_MS
         : NOTIFICATION_TIMEOUT_MS;
-    PopupNotifications.show(
+
+    let options = Object.assign(
+      {
+        timeout: Date.now() + timeoutMs,
+        persistWhileVisible: true,
+        passwordNotificationType: type,
+        hideClose: true,
+        eventCallback(topic) {
+          switch (topic) {
+            case "showing":
+              log.debug("showing");
+              currentNotification = this;
+
+              // Record the first time this instance of the doorhanger is shown.
+              if (!this.timeShown) {
+                histogram.add(PROMPT_DISPLAYED);
+                Services.obs.notifyObservers(
+                  null,
+                  "weave:telemetry:histogram",
+                  histogramName
+                );
+              }
+
+              chromeDoc
+                .getElementById("password-notification-password")
+                .removeAttribute("focused");
+              chromeDoc
+                .getElementById("password-notification-username")
+                .removeAttribute("focused");
+              chromeDoc
+                .getElementById("password-notification-username")
+                .addEventListener("input", onUsernameInput);
+              chromeDoc
+                .getElementById("password-notification-username")
+                .addEventListener("keyup", onKeyUp);
+              chromeDoc
+                .getElementById("password-notification-password")
+                .addEventListener("keyup", onKeyUp);
+              chromeDoc
+                .getElementById("password-notification-password")
+                .addEventListener("input", onPasswordInput);
+              chromeDoc
+                .getElementById("password-notification-username-dropmarker")
+                .addEventListener("click", togglePopup);
+
+              LoginManagerPrompter._getUsernameSuggestions(
+                login,
+                possibleValues?.usernames
+              ).then(usernameSuggestions => {
+                let dropmarker = chromeDoc?.getElementById(
+                  "password-notification-username-dropmarker"
+                );
+                if (dropmarker) {
+                  dropmarker.hidden = !usernameSuggestions.length;
+                }
+
+                let usernameField = chromeDoc?.getElementById(
+                  "password-notification-username"
+                );
+                if (usernameField) {
+                  usernameField.classList.toggle(
+                    "ac-has-end-icon",
+                    !!usernameSuggestions.length
+                  );
+                }
+              });
+
+              let toggleBtn = chromeDoc.getElementById(
+                "password-notification-visibilityToggle"
+              );
+
+              if (
+                Services.prefs.getBoolPref(
+                  "signon.rememberSignons.visibilityToggle"
+                )
+              ) {
+                toggleBtn.addEventListener("command", onVisibilityToggle);
+                toggleBtn.setAttribute("label", togglePasswordLabel);
+                toggleBtn.setAttribute("accesskey", togglePasswordAccessKey);
+
+                let hideToggle =
+                  LoginHelper.isMasterPasswordSet() ||
+                  // Don't show the toggle when the login was autofilled
+                  !!autoFilledLoginGuid ||
+                  // Dismissed-by-default prompts should still show the toggle.
+                  (this.timeShown && this.wasDismissed) ||
+                  // If we are only adding a username then the password is
+                  // one that is already saved and we don't want to reveal
+                  // it as the submitter of this form may not be the account
+                  // owner, they may just be using the saved password.
+                  (messageStringID == "updateLoginMsgAddUsername" &&
+                    login.timePasswordChanged <
+                      Date.now() - VISIBILITY_TOGGLE_MAX_PW_AGE_MS);
+                toggleBtn.setAttribute("hidden", hideToggle);
+              }
+
+              let popup = chromeDoc.getElementById("PopupAutoComplete");
+              popup.onUsernameSelect = onUsernameSelect;
+              popup.onPasswordSelect = onPasswordSelect;
+
+              LoginManagerPrompter._setUsernameAutocomplete(
+                login,
+                possibleValues?.usernames
+              );
+
+              break;
+            case "shown": {
+              log.debug("shown");
+              writeDataToUI();
+              let anchorIcon = this.anchorElement;
+              if (anchorIcon && this.options.extraAttr == "attention") {
+                anchorIcon.removeAttribute("extraAttr");
+                delete this.options.extraAttr;
+              }
+              break;
+            }
+            case "dismissed":
+              // Note that this can run after `showing` but before `shown` upon tab switch.
+              this.wasDismissed = true;
+            // Fall through.
+            case "removed": {
+              // Note that this can run after `showing` and `shown` for the
+              // notification it's replacing.
+              log.debug(topic);
+              currentNotification = null;
+
+              let usernameField = chromeDoc.getElementById(
+                "password-notification-username"
+              );
+              usernameField.removeEventListener("input", onUsernameInput);
+              usernameField.removeEventListener("keyup", onKeyUp);
+              let passwordField = chromeDoc.getElementById(
+                "password-notification-password"
+              );
+              passwordField.removeEventListener("input", onPasswordInput);
+              passwordField.removeEventListener("keyup", onKeyUp);
+              passwordField.removeEventListener("command", onVisibilityToggle);
+              chromeDoc
+                .getElementById("password-notification-username-dropmarker")
+                .removeEventListener("click", togglePopup);
+              break;
+            }
+          }
+          return false;
+        },
+      },
+      showOptions
+    );
+
+    let notification = PopupNotifications.show(
       browser,
       notificationID,
       promptMsg,
       "password-notification-icon",
       mainAction,
       secondaryActions,
-      Object.assign(
-        {
-          timeout: Date.now() + timeoutMs,
-          persistWhileVisible: true,
-          passwordNotificationType: type,
-          hideClose: true,
-          eventCallback(topic) {
-            switch (topic) {
-              case "showing":
-                currentNotification = this;
-                chromeDoc
-                  .getElementById("password-notification-password")
-                  .removeAttribute("focused");
-                chromeDoc
-                  .getElementById("password-notification-username")
-                  .removeAttribute("focused");
-                chromeDoc
-                  .getElementById("password-notification-username")
-                  .addEventListener("input", onInput);
-                chromeDoc
-                  .getElementById("password-notification-username")
-                  .addEventListener("keyup", onKeyUp);
-                chromeDoc
-                  .getElementById("password-notification-password")
-                  .addEventListener("keyup", onKeyUp);
-                chromeDoc
-                  .getElementById("password-notification-password")
-                  .addEventListener("input", onInput);
-                let toggleBtn = chromeDoc.getElementById(
-                  "password-notification-visibilityToggle"
-                );
-
-                if (
-                  Services.prefs.getBoolPref(
-                    "signon.rememberSignons.visibilityToggle"
-                  )
-                ) {
-                  toggleBtn.addEventListener("command", onVisibilityToggle);
-                  toggleBtn.setAttribute("label", togglePasswordLabel);
-                  toggleBtn.setAttribute("accesskey", togglePasswordAccessKey);
-                  let hideToggle =
-                    LoginHelper.isMasterPasswordSet() ||
-                    // Dismissed-by-default prompts should still show the toggle.
-                    (this.timeShown && this.wasDismissed) ||
-                    // If we are only adding a username then the password is
-                    // one that is already saved and we don't want to reveal
-                    // it as the submitter of this form may not be the account
-                    // owner, they may just be using the saved password.
-                    (messageStringID == "updateLoginMsgAddUsername" &&
-                      login.timePasswordChanged <
-                        Date.now() - VISIBILITY_TOGGLE_MAX_PW_AGE_MS);
-                  toggleBtn.setAttribute("hidden", hideToggle);
-                }
-                break;
-              case "shown": {
-                writeDataToUI();
-                let anchorIcon = this.anchorElement;
-                if (anchorIcon && this.options.extraAttr == "attention") {
-                  anchorIcon.removeAttribute("extraAttr");
-                  delete this.options.extraAttr;
-                }
-                break;
-              }
-              case "dismissed":
-                this.wasDismissed = true;
-                readDataFromUI();
-              // Fall through.
-              case "removed":
-                currentNotification = null;
-                chromeDoc
-                  .getElementById("password-notification-username")
-                  .removeEventListener("input", onInput);
-                chromeDoc
-                  .getElementById("password-notification-username")
-                  .removeEventListener("keyup", onKeyUp);
-                chromeDoc
-                  .getElementById("password-notification-password")
-                  .removeEventListener("input", onInput);
-                chromeDoc
-                  .getElementById("password-notification-password")
-                  .removeEventListener("keyup", onKeyUp);
-                chromeDoc
-                  .getElementById("password-notification-visibilityToggle")
-                  .removeEventListener("command", onVisibilityToggle);
-                break;
-            }
-            return false;
-          },
-        },
-        showOptions
-      )
+      options
     );
 
     if (notifySaved) {
-      let notification = PopupNotifications.getNotification(notificationID);
       let anchor = notification.anchorElement;
+      log.debug("Showing the ConfirmationHint");
       anchor.ownerGlobal.ConfirmationHint.show(anchor, "passwordSaved");
     }
   }
@@ -564,6 +807,11 @@ class LoginManagerPrompter {
    * @param {string} [autoSavedLoginGuid = ""]
    *                 A guid value for the old login to be removed if the changes match it
    *                 to a different login
+   * @param {object?} possibleValues
+   *                 Contains values from anything that we think, but are not sure, might be
+   *                 a username or password.  Has two properties, 'usernames' and 'passwords'.
+   * @param {Set<String>} possibleValues.usernames
+   * @param {Set<String>} possibleValues.passwords
    */
   promptToChangePassword(
     aBrowser,
@@ -571,7 +819,9 @@ class LoginManagerPrompter {
     aNewLogin,
     dismissed = false,
     notifySaved = false,
-    autoSavedLoginGuid = ""
+    autoSavedLoginGuid = "",
+    autoFilledLoginGuid = "",
+    possibleValues = undefined
   ) {
     let login = aOldLogin.clone();
     login.origin = aNewLogin.origin;
@@ -599,10 +849,12 @@ class LoginManagerPrompter {
         dismissed,
         extraAttr: notifySaved ? "attention" : "",
       },
+      possibleValues,
       {
         notifySaved,
         messageStringID,
         autoSavedLoginGuid,
+        autoFilledLoginGuid,
       }
     );
 
@@ -668,6 +920,9 @@ class LoginManagerPrompter {
 
   /* ---------- Internal Methods ---------- */
 
+  /**
+   * Helper method to update and persist an existing nsILoginInfo object with new property values.
+   */
   static _updateLogin(login, aNewLogin) {
     var now = Date.now();
     var propBag = Cc["@mozilla.org/hash-property-bag;1"].createInstance(
@@ -683,6 +938,10 @@ class LoginManagerPrompter {
     propBag.setProperty("timePasswordChanged", now);
     propBag.setProperty("timeLastUsed", now);
     propBag.setProperty("timesUsedIncrement", 1);
+    // Note that we don't call `recordPasswordUse` so telemetry won't record a
+    // use in this case though that is normally correct since we would instead
+    // record the save/update in a separate probe and recording it in both would
+    // be wrong.
     Services.logins.modifyLogin(login, propBag);
   }
 
@@ -757,7 +1016,89 @@ class LoginManagerPrompter {
         (includeGUID && includeGUID == l.guid)
     );
   }
+
+  /**
+   * Set the values that will be used the next time the username autocomplete popup is opened.
+   *
+   * @param {nsILoginInfo} login - used only for its information about the current domain.
+   * @param {Set<String>?} possibleUsernames - values that we believe may be new/changed login usernames.
+   */
+  static async _setUsernameAutocomplete(login, possibleUsernames = new Set()) {
+    let result = Cc["@mozilla.org/autocomplete/simple-result;1"].createInstance(
+      Ci.nsIAutoCompleteSimpleResult
+    );
+    result.setDefaultIndex(0);
+
+    let usernames = await this._getUsernameSuggestions(
+      login,
+      possibleUsernames
+    );
+    for (let { text, style } of usernames) {
+      let value = text;
+      let comment = "";
+      let image = "";
+      let _style = style;
+      result.appendMatch(value, comment, image, _style);
+    }
+
+    if (usernames.length) {
+      result.setSearchResult(Ci.nsIAutoCompleteResult.RESULT_SUCCESS);
+    } else {
+      result.setSearchResult(Ci.nsIAutoCompleteResult.RESULT_NOMATCH);
+    }
+
+    usernameAutocompleteSearch.overrideNextResult(result);
+  }
+
+  /**
+   * @param {nsILoginInfo} login - used only for its information about the current domain.
+   * @param {Set<String>?} possibleUsernames - values that we believe may be new/changed login usernames.
+   *
+   * @returns {object[]} an ordered list of usernames to be used the next time the username autocomplete popup is opened.
+   */
+  static async _getUsernameSuggestions(login, possibleUsernames = new Set()) {
+    if (!Services.prefs.getBoolPref("signon.capture.inputChanges.enabled")) {
+      return [];
+    }
+
+    // Don't reprompt for Primary Password, as we already prompted at least once
+    // to show the doorhanger if it is locked
+    if (!Services.logins.isLoggedIn) {
+      return [];
+    }
+
+    let baseDomainLogins = await Services.logins.searchLoginsAsync({
+      origin: login.origin,
+      schemeUpgrades: LoginHelper.schemeUpgrades,
+      acceptDifferentSubdomains: true,
+    });
+
+    let saved = baseDomainLogins.map(login => {
+      return { text: login.username, style: "login" };
+    });
+    let possible = [...possibleUsernames].map(username => {
+      return { text: username, style: "possible-username" };
+    });
+
+    return possible
+      .concat(saved)
+      .reduce((acc, next) => {
+        let alreadyInAcc =
+          acc.findIndex(entry => entry.text == next.text) != -1;
+        if (!alreadyInAcc) {
+          acc.push(next);
+        } else if (next.style == "possible-username") {
+          let existingIndex = acc.findIndex(entry => entry.text == next.text);
+          acc[existingIndex] = next;
+        }
+        return acc;
+      }, [])
+      .filter(suggestion => !!suggestion.text);
+  }
 }
+
+// Add this observer once for the process.
+Services.obs.addObserver(observer, "autocomplete-did-enter-text");
 
 XPCOMUtils.defineLazyGetter(this, "log", () => {
   return LoginHelper.createLogger("LoginManagerPrompter");

@@ -16,7 +16,7 @@
 
 <script class="testbody" type="text/javascript">
 
-var mainWindow = window.docShell.rootTreeItem.domWindow;
+var mainWindow = window.browsingContext.topChromeWindow;
 var contentPage1 = "http://www.itisatrap.org/tests/toolkit/components/url-classifier/tests/mochitest/whitelistFrame.html";
 var contentPage2 = "http://example.com/tests/toolkit/components/url-classifier/tests/mochitest/whitelistFrame.html";
 
@@ -109,6 +109,7 @@ function checkLoads(aWindow, aWhitelisted, tpEnabled) {
 
 SpecialPowers.pushPrefEnv(
   {"set": [["privacy.trackingprotection.enabled", true],
+           ["privacy.trackingprotection.testing.report_blocked_node", true],
            ["channelclassifier.allowlist_example", true]]},
   test);
 

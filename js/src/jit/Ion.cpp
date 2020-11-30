@@ -6,6 +6,7 @@
 
 #include "jit/Ion.h"
 
+#include "mozilla/CheckedInt.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/MemoryReporting.h"
@@ -17,25 +18,33 @@
 #include "gc/PublicIterators.h"
 #include "jit/AliasAnalysis.h"
 #include "jit/AlignmentMaskAnalysis.h"
+#include "jit/AutoWritableJitCode.h"
 #include "jit/BacktrackingAllocator.h"
 #include "jit/BaselineFrame.h"
 #include "jit/BaselineInspector.h"
 #include "jit/BaselineJIT.h"
 #include "jit/CacheIRSpewer.h"
 #include "jit/CodeGenerator.h"
+#include "jit/CompileInfo.h"
 #include "jit/EdgeCaseAnalysis.h"
 #include "jit/EffectiveAddressAnalysis.h"
+#include "jit/ExecutableAllocator.h"
 #include "jit/FoldLinearArithConstants.h"
+#include "jit/InlineScriptTree.h"
 #include "jit/InstructionReordering.h"
 #include "jit/IonAnalysis.h"
 #include "jit/IonBuilder.h"
 #include "jit/IonCompileTask.h"
 #include "jit/IonIC.h"
 #include "jit/IonOptimizationLevels.h"
+#include "jit/IonScript.h"
 #include "jit/JitcodeMap.h"
 #include "jit/JitCommon.h"
+#include "jit/JitFrames.h"
 #include "jit/JitRealm.h"
+#include "jit/JitRuntime.h"
 #include "jit/JitSpewer.h"
+#include "jit/JitZone.h"
 #include "jit/LICM.h"
 #include "jit/Linker.h"
 #include "jit/LIR.h"
@@ -43,6 +52,7 @@
 #include "jit/PerfSpewer.h"
 #include "jit/RangeAnalysis.h"
 #include "jit/ScalarReplacement.h"
+#include "jit/ScriptFromCalleeToken.h"
 #include "jit/Sink.h"
 #include "jit/ValueNumbering.h"
 #include "jit/WarpBuilder.h"
@@ -52,7 +62,7 @@
 #include "js/UniquePtr.h"
 #include "util/Memory.h"
 #include "util/Windows.h"
-#include "vm/HelperThreads.h"
+#include "vm/HelperThreadState.h"
 #include "vm/Realm.h"
 #include "vm/TraceLogging.h"
 #ifdef MOZ_VTUNE
@@ -61,8 +71,8 @@
 
 #include "debugger/DebugAPI-inl.h"
 #include "gc/GC-inl.h"
-#include "jit/JitFrames-inl.h"
 #include "jit/MacroAssembler-inl.h"
+#include "jit/SafepointIndex-inl.h"
 #include "jit/shared/Lowering-shared-inl.h"
 #include "vm/EnvironmentObject-inl.h"
 #include "vm/GeckoProfiler-inl.h"
@@ -75,34 +85,11 @@
 #  include <sys/system_properties.h>
 #endif
 
+using mozilla::CheckedInt;
 using mozilla::DebugOnly;
 
 using namespace js;
 using namespace js::jit;
-
-JitRuntime::JitRuntime()
-    : nextCompilationId_(0),
-      exceptionTailOffset_(0),
-      bailoutTailOffset_(0),
-      profilerExitFrameTailOffset_(0),
-      enterJITOffset_(0),
-      bailoutHandlerOffset_(0),
-      argumentsRectifierOffset_(0),
-      argumentsRectifierReturnOffset_(0),
-      invalidatorOffset_(0),
-      lazyLinkStubOffset_(0),
-      interpreterStubOffset_(0),
-      doubleToInt32ValueStubOffset_(0),
-      debugTrapHandlers_(),
-      baselineInterpreter_(),
-      trampolineCode_(nullptr),
-      jitcodeGlobalTable_(nullptr),
-#ifdef DEBUG
-      ionBailAfter_(0),
-#endif
-      numFinishedOffThreadTasks_(0),
-      ionLazyLinkListSize_(0) {
-}
 
 JitRuntime::~JitRuntime() {
   MOZ_ASSERT(numFinishedOffThreadTasks_ == 0);
@@ -189,15 +176,18 @@ bool JitRuntime::generateTrampolines(JSContext* cx) {
 
   // The arguments rectifier has to use the same frame layout as the function
   // frames it rectifies.
-  static_assert(std::is_base_of<JitFrameLayout, RectifierFrameLayout>::value,
+  static_assert(std::is_base_of_v<JitFrameLayout, RectifierFrameLayout>,
                 "a rectifier frame can be used with jit frame");
-  static_assert(std::is_base_of<JitFrameLayout, WasmToJSJitFrameLayout>::value,
+  static_assert(std::is_base_of_v<JitFrameLayout, WasmToJSJitFrameLayout>,
                 "wasm frames simply are jit frames");
   static_assert(sizeof(JitFrameLayout) == sizeof(WasmToJSJitFrameLayout),
                 "thus a rectifier frame can be used with a wasm frame");
 
-  JitSpew(JitSpew_Codegen, "# Emitting sequential arguments rectifier");
-  generateArgumentsRectifier(masm);
+  JitSpew(JitSpew_Codegen, "# Emitting arguments rectifier");
+  generateArgumentsRectifier(masm, ArgumentsRectifierKind::Normal);
+
+  JitSpew(JitSpew_Codegen, "# Emitting trial inlining arguments rectifier");
+  generateArgumentsRectifier(masm, ArgumentsRectifierKind::TrialInlining);
 
   JitSpew(JitSpew_Codegen, "# Emitting EnterJIT sequence");
   generateEnterJIT(cx, masm);
@@ -240,8 +230,7 @@ bool JitRuntime::generateTrampolines(JSContext* cx) {
   generateProfilerExitFrameTailStub(masm, &profilerExitTail);
 
   JitSpew(JitSpew_Codegen, "# Emitting exception tail stub");
-  void* handler = JS_FUNC_TO_DATA_PTR(void*, jit::HandleException);
-  generateExceptionTailStub(masm, handler, &profilerExitTail);
+  generateExceptionTailStub(masm, &profilerExitTail);
 
   Linker linker(masm);
   trampolineCode_ = linker.newCode(cx, CodeKind::Other);
@@ -345,13 +334,14 @@ void JitRealm::performStubReadBarriers(uint32_t stubsToBarrier) const {
 
 static bool LinkCodeGen(JSContext* cx, CodeGenerator* codegen,
                         HandleScript script,
-                        CompilerConstraintList* constraints) {
+                        CompilerConstraintList* constraints,
+                        const WarpSnapshot* snapshot) {
   TraceLoggerThread* logger = TraceLoggerForCurrentThread(cx);
   TraceLoggerEvent event(TraceLogger_AnnotateScripts, script);
   AutoTraceLog logScript(logger, event);
   AutoTraceLog logLink(logger, TraceLogger_IonLinking);
 
-  if (!codegen->link(cx, constraints)) {
+  if (!codegen->link(cx, constraints, snapshot)) {
     return false;
   }
 
@@ -366,7 +356,8 @@ static bool LinkBackgroundCodeGen(JSContext* cx, IonCompileTask* task) {
 
   JitContext jctx(cx, &task->alloc());
   RootedScript script(cx, task->script());
-  return LinkCodeGen(cx, codegen, script, task->constraints());
+  return LinkCodeGen(cx, codegen, script, task->constraints(),
+                     task->snapshot());
 }
 
 void jit::LinkIonScript(JSContext* cx, HandleScript calleeScript) {
@@ -415,7 +406,8 @@ uint8_t* jit::LazyLinkTopActivation(JSContext* cx,
 }
 
 /* static */
-void JitRuntime::Trace(JSTracer* trc, const AutoAccessAtomsZone& access) {
+void JitRuntime::TraceAtomZoneRoots(JSTracer* trc,
+                                    const AutoAccessAtomsZone& access) {
   MOZ_ASSERT(!JS::RuntimeHeapIsMinorCollecting());
 
   // Shared stubs are allocated in the atoms zone, so do not iterate
@@ -545,18 +537,18 @@ template JitCode* JitCode::New<NoGC>(JSContext* cx, uint8_t* code,
 void JitCode::copyFrom(MacroAssembler& masm) {
   // Store the JitCode pointer in the JitCodeHeader so we can recover the
   // gcthing from relocation tables.
-  JitCodeHeader::FromExecutable(code_)->init(this);
+  JitCodeHeader::FromExecutable(raw())->init(this);
 
   insnSize_ = masm.instructionsSize();
-  masm.executableCopy(code_);
+  masm.executableCopy(raw());
 
   jumpRelocTableBytes_ = masm.jumpRelocationTableBytes();
-  masm.copyJumpRelocationTable(code_ + jumpRelocTableOffset());
+  masm.copyJumpRelocationTable(raw() + jumpRelocTableOffset());
 
   dataRelocTableBytes_ = masm.dataRelocationTableBytes();
-  masm.copyDataRelocationTable(code_ + dataRelocTableOffset());
+  masm.copyDataRelocationTable(raw() + dataRelocTableOffset());
 
-  masm.processCodeLabels(code_);
+  masm.processCodeLabels(raw());
 }
 
 void JitCode::traceChildren(JSTracer* trc) {
@@ -567,12 +559,12 @@ void JitCode::traceChildren(JSTracer* trc) {
   }
 
   if (jumpRelocTableBytes_) {
-    uint8_t* start = code_ + jumpRelocTableOffset();
+    uint8_t* start = raw() + jumpRelocTableOffset();
     CompactBufferReader reader(start, start + jumpRelocTableBytes_);
     MacroAssembler::TraceJumpRelocations(trc, this, reader);
   }
   if (dataRelocTableBytes_) {
-    uint8_t* start = code_ + dataRelocTableOffset();
+    uint8_t* start = raw() + dataRelocTableOffset();
     CompactBufferReader reader(start, start + dataRelocTableBytes_);
     MacroAssembler::TraceDataRelocations(trc, this, reader);
   }
@@ -597,11 +589,11 @@ void JitCode::finalize(JSFreeOp* fop) {
   // With W^X JIT code, reprotecting memory for each JitCode instance is
   // slow, so we record the ranges and poison them later all at once. It's
   // safe to ignore OOM here, it just means we won't poison the code.
-  if (fop->appendJitPoisonRange(JitPoisonRange(pool_, code_ - headerSize_,
+  if (fop->appendJitPoisonRange(JitPoisonRange(pool_, raw() - headerSize_,
                                                headerSize_ + bufferSize_))) {
     pool_->addRef();
   }
-  code_ = nullptr;
+  setHeaderPtr(nullptr);
 
   // Code buffers are stored inside ExecutablePools. Pools are refcounted.
   // Releasing the pool may free it. Horrible hack: if we are using perf
@@ -616,138 +608,121 @@ void JitCode::finalize(JSFreeOp* fop) {
   pool_ = nullptr;
 }
 
-IonScript::IonScript(IonCompilationId compilationId)
-    : method_(nullptr),
-      osrPc_(nullptr),
-      osrEntryOffset_(0),
-      skipArgCheckEntryOffset_(0),
-      invalidateEpilogueOffset_(0),
-      invalidateEpilogueDataOffset_(0),
-      numBailouts_(0),
-      hasProfilingInstrumentation_(false),
-      recompiling_(false),
-      runtimeData_(0),
-      runtimeSize_(0),
-      icIndex_(0),
-      icEntries_(0),
-      safepointIndexOffset_(0),
-      safepointIndexEntries_(0),
-      safepointsStart_(0),
-      safepointsSize_(0),
-      frameSlots_(0),
-      argumentSlots_(0),
-      frameSize_(0),
-      bailoutTable_(0),
-      bailoutEntries_(0),
-      osiIndexOffset_(0),
-      osiIndexEntries_(0),
-      snapshots_(0),
-      snapshotsListSize_(0),
-      snapshotsRVATableSize_(0),
-      recovers_(0),
-      recoversSize_(0),
-      constantTable_(0),
-      constantEntries_(0),
-      invalidationCount_(0),
+IonScript::IonScript(IonCompilationId compilationId, uint32_t frameSlots,
+                     uint32_t argumentSlots, uint32_t frameSize,
+                     OptimizationLevel optimizationLevel)
+    : frameSlots_(frameSlots),
+      argumentSlots_(argumentSlots),
+      frameSize_(frameSize),
       compilationId_(compilationId),
-      optimizationLevel_(OptimizationLevel::Normal),
-      osrPcMismatchCounter_(0) {}
+      optimizationLevel_(optimizationLevel) {}
 
 IonScript* IonScript::New(JSContext* cx, IonCompilationId compilationId,
                           uint32_t frameSlots, uint32_t argumentSlots,
                           uint32_t frameSize, size_t snapshotsListSize,
                           size_t snapshotsRVATableSize, size_t recoversSize,
                           size_t bailoutEntries, size_t constants,
-                          size_t safepointIndices, size_t osiIndices,
-                          size_t icEntries, size_t runtimeSize,
-                          size_t safepointsSize,
+                          size_t nurseryObjects, size_t safepointIndices,
+                          size_t osiIndices, size_t icEntries,
+                          size_t runtimeSize, size_t safepointsSize,
                           OptimizationLevel optimizationLevel) {
-  constexpr size_t DataAlignment = sizeof(void*);
-
   if (snapshotsListSize >= MAX_BUFFER_SIZE ||
       (bailoutEntries >= MAX_BUFFER_SIZE / sizeof(uint32_t))) {
     ReportOutOfMemory(cx);
     return nullptr;
   }
 
-  // This should not overflow on x86, because the memory is already allocated
-  // *somewhere* and if their total overflowed there would be no memory left
-  // at all.
-  size_t paddedSnapshotsSize =
-      AlignBytes(snapshotsListSize + snapshotsRVATableSize, DataAlignment);
-  size_t paddedRecoversSize = AlignBytes(recoversSize, DataAlignment);
-  size_t paddedBailoutSize =
-      AlignBytes(bailoutEntries * sizeof(uint32_t), DataAlignment);
-  size_t paddedConstantsSize =
-      AlignBytes(constants * sizeof(Value), DataAlignment);
-  size_t paddedSafepointIndicesSize =
-      AlignBytes(safepointIndices * sizeof(SafepointIndex), DataAlignment);
-  size_t paddedOsiIndicesSize =
-      AlignBytes(osiIndices * sizeof(OsiIndex), DataAlignment);
-  size_t paddedICEntriesSize =
-      AlignBytes(icEntries * sizeof(uint32_t), DataAlignment);
-  size_t paddedRuntimeSize = AlignBytes(runtimeSize, DataAlignment);
-  size_t paddedSafepointSize = AlignBytes(safepointsSize, DataAlignment);
+  // Verify the hardcoded sizes in header are accurate.
+  static_assert(SizeOf_OsiIndex == sizeof(OsiIndex),
+                "IonScript has wrong size for OsiIndex");
+  static_assert(SizeOf_SafepointIndex == sizeof(SafepointIndex),
+                "IonScript has wrong size for SafepointIndex");
+  static_assert(SizeOf_SnapshotOffset == sizeof(SnapshotOffset),
+                "IonScript has wrong size for SnapshotOffset");
 
-  size_t bytes = paddedRuntimeSize + paddedICEntriesSize +
-                 paddedSafepointIndicesSize + paddedSafepointSize +
-                 paddedBailoutSize + paddedOsiIndicesSize +
-                 paddedSnapshotsSize + paddedRecoversSize + paddedConstantsSize;
+  CheckedInt<Offset> allocSize = sizeof(IonScript);
+  allocSize += CheckedInt<Offset>(constants) * sizeof(Value);
+  allocSize += CheckedInt<Offset>(runtimeSize);
+  allocSize += CheckedInt<Offset>(nurseryObjects) * sizeof(HeapPtrObject);
+  allocSize += CheckedInt<Offset>(osiIndices) * sizeof(OsiIndex);
+  allocSize += CheckedInt<Offset>(safepointIndices) * sizeof(SafepointIndex);
+  allocSize += CheckedInt<Offset>(bailoutEntries) * sizeof(SnapshotOffset);
+  allocSize += CheckedInt<Offset>(icEntries) * sizeof(uint32_t);
+  allocSize += CheckedInt<Offset>(safepointsSize);
+  allocSize += CheckedInt<Offset>(snapshotsListSize);
+  allocSize += CheckedInt<Offset>(snapshotsRVATableSize);
+  allocSize += CheckedInt<Offset>(recoversSize);
 
-  IonScript* script = cx->pod_malloc_with_extra<IonScript, uint8_t>(bytes);
-  if (!script) {
+  if (!allocSize.isValid()) {
+    ReportAllocationOverflow(cx);
     return nullptr;
   }
-  new (script) IonScript(compilationId);
 
-  uint32_t offsetCursor = sizeof(IonScript);
+  void* raw = cx->pod_malloc<uint8_t>(allocSize.value());
+  MOZ_ASSERT(uintptr_t(raw) % alignof(IonScript) == 0);
+  if (!raw) {
+    return nullptr;
+  }
+  IonScript* script = new (raw) IonScript(
+      compilationId, frameSlots, argumentSlots, frameSize, optimizationLevel);
 
-  script->runtimeData_ = offsetCursor;
-  script->runtimeSize_ = runtimeSize;
-  offsetCursor += paddedRuntimeSize;
+  Offset offsetCursor = sizeof(IonScript);
 
-  script->icIndex_ = offsetCursor;
-  script->icEntries_ = icEntries;
-  offsetCursor += paddedICEntriesSize;
+  MOZ_ASSERT(offsetCursor % alignof(Value) == 0);
+  script->constantTableOffset_ = offsetCursor;
+  offsetCursor += constants * sizeof(Value);
 
-  script->safepointIndexOffset_ = offsetCursor;
-  script->safepointIndexEntries_ = safepointIndices;
-  offsetCursor += paddedSafepointIndicesSize;
+  MOZ_ASSERT(offsetCursor % alignof(uint64_t) == 0);
+  script->runtimeDataOffset_ = offsetCursor;
+  offsetCursor += runtimeSize;
 
-  script->safepointsStart_ = offsetCursor;
-  script->safepointsSize_ = safepointsSize;
-  offsetCursor += paddedSafepointSize;
+  MOZ_ASSERT(offsetCursor % alignof(HeapPtrObject) == 0);
+  script->initElements<HeapPtrObject>(offsetCursor, nurseryObjects);
+  script->nurseryObjectsOffset_ = offsetCursor;
+  offsetCursor += nurseryObjects * sizeof(HeapPtrObject);
 
-  script->bailoutTable_ = offsetCursor;
-  script->bailoutEntries_ = bailoutEntries;
-  offsetCursor += paddedBailoutSize;
-
+  MOZ_ASSERT(offsetCursor % alignof(OsiIndex) == 0);
   script->osiIndexOffset_ = offsetCursor;
-  script->osiIndexEntries_ = osiIndices;
-  offsetCursor += paddedOsiIndicesSize;
+  offsetCursor += osiIndices * sizeof(OsiIndex);
 
-  script->snapshots_ = offsetCursor;
-  script->snapshotsListSize_ = snapshotsListSize;
-  script->snapshotsRVATableSize_ = snapshotsRVATableSize;
-  offsetCursor += paddedSnapshotsSize;
+  MOZ_ASSERT(offsetCursor % alignof(SafepointIndex) == 0);
+  script->safepointIndexOffset_ = offsetCursor;
+  offsetCursor += safepointIndices * sizeof(SafepointIndex);
 
-  script->recovers_ = offsetCursor;
-  script->recoversSize_ = recoversSize;
-  offsetCursor += paddedRecoversSize;
+  MOZ_ASSERT(offsetCursor % alignof(SnapshotOffset) == 0);
+  script->bailoutTableOffset_ = offsetCursor;
+  offsetCursor += bailoutEntries * sizeof(SnapshotOffset);
 
-  script->constantTable_ = offsetCursor;
-  script->constantEntries_ = constants;
-  offsetCursor += paddedConstantsSize;
+  MOZ_ASSERT(offsetCursor % alignof(uint32_t) == 0);
+  script->icIndexOffset_ = offsetCursor;
+  offsetCursor += icEntries * sizeof(uint32_t);
 
-  script->allocBytes_ = sizeof(IonScript) + bytes;
-  MOZ_ASSERT(offsetCursor == script->allocBytes_);
+  script->safepointsOffset_ = offsetCursor;
+  offsetCursor += safepointsSize;
 
-  script->frameSlots_ = frameSlots;
-  script->argumentSlots_ = argumentSlots;
+  script->snapshotsOffset_ = offsetCursor;
+  offsetCursor += snapshotsListSize;
 
-  script->frameSize_ = frameSize;
+  script->rvaTableOffset_ = offsetCursor;
+  offsetCursor += snapshotsRVATableSize;
 
-  script->optimizationLevel_ = optimizationLevel;
+  script->recoversOffset_ = offsetCursor;
+  offsetCursor += recoversSize;
+
+  script->allocBytes_ = offsetCursor;
+
+  MOZ_ASSERT(script->numConstants() == constants);
+  MOZ_ASSERT(script->runtimeSize() == runtimeSize);
+  MOZ_ASSERT(script->numNurseryObjects() == nurseryObjects);
+  MOZ_ASSERT(script->numOsiIndices() == osiIndices);
+  MOZ_ASSERT(script->numSafepointIndices() == safepointIndices);
+  MOZ_ASSERT(script->numBailoutEntries() == bailoutEntries);
+  MOZ_ASSERT(script->numICs() == icEntries);
+  MOZ_ASSERT(script->safepointsSize() == safepointsSize);
+  MOZ_ASSERT(script->snapshotsListSize() == snapshotsListSize);
+  MOZ_ASSERT(script->snapshotsRVATableSize() == snapshotsRVATableSize);
+  MOZ_ASSERT(script->recoversSize() == recoversSize);
+  MOZ_ASSERT(script->endOffset() == offsetCursor);
 
   return script;
 }
@@ -761,6 +736,10 @@ void IonScript::trace(JSTracer* trc) {
     TraceEdge(trc, &getConstant(i), "constant");
   }
 
+  for (size_t i = 0; i < numNurseryObjects(); i++) {
+    TraceEdge(trc, &nurseryObjects()[i], "nursery-object");
+  }
+
   // Trace caches so that the JSScript pointer can be updated if moved.
   for (size_t i = 0; i < numICs(); i++) {
     getICFromIndex(i).trace(trc, this);
@@ -768,52 +747,55 @@ void IonScript::trace(JSTracer* trc) {
 }
 
 /* static */
-void IonScript::writeBarrierPre(Zone* zone, IonScript* ionScript) {
+void IonScript::preWriteBarrier(Zone* zone, IonScript* ionScript) {
   if (zone->needsIncrementalBarrier()) {
     ionScript->trace(zone->barrierTracer());
   }
 }
 
 void IonScript::copySnapshots(const SnapshotWriter* writer) {
-  MOZ_ASSERT(writer->listSize() == snapshotsListSize_);
-  memcpy((uint8_t*)this + snapshots_, writer->listBuffer(), snapshotsListSize_);
+  MOZ_ASSERT(writer->listSize() == snapshotsListSize());
+  memcpy(offsetToPointer<uint8_t>(snapshotsOffset()), writer->listBuffer(),
+         snapshotsListSize());
 
-  MOZ_ASSERT(snapshotsRVATableSize_);
-  MOZ_ASSERT(writer->RVATableSize() == snapshotsRVATableSize_);
-  memcpy((uint8_t*)this + snapshots_ + snapshotsListSize_,
-         writer->RVATableBuffer(), snapshotsRVATableSize_);
+  MOZ_ASSERT(snapshotsRVATableSize());
+  MOZ_ASSERT(writer->RVATableSize() == snapshotsRVATableSize());
+  memcpy(offsetToPointer<uint8_t>(rvaTableOffset()), writer->RVATableBuffer(),
+         snapshotsRVATableSize());
 }
 
 void IonScript::copyRecovers(const RecoverWriter* writer) {
-  MOZ_ASSERT(writer->size() == recoversSize_);
-  memcpy((uint8_t*)this + recovers_, writer->buffer(), recoversSize_);
+  MOZ_ASSERT(writer->size() == recoversSize());
+  memcpy(offsetToPointer<uint8_t>(recoversOffset()), writer->buffer(),
+         recoversSize());
 }
 
 void IonScript::copySafepoints(const SafepointWriter* writer) {
-  MOZ_ASSERT(writer->size() == safepointsSize_);
-  memcpy((uint8_t*)this + safepointsStart_, writer->buffer(), safepointsSize_);
+  MOZ_ASSERT(writer->size() == safepointsSize());
+  memcpy(offsetToPointer<uint8_t>(safepointsOffset()), writer->buffer(),
+         safepointsSize());
 }
 
 void IonScript::copyBailoutTable(const SnapshotOffset* table) {
-  memcpy(bailoutTable(), table, bailoutEntries_ * sizeof(uint32_t));
+  memcpy(bailoutTable(), table, numBailoutEntries() * sizeof(SnapshotOffset));
 }
 
 void IonScript::copyConstants(const Value* vp) {
-  for (size_t i = 0; i < constantEntries_; i++) {
+  for (size_t i = 0; i < numConstants(); i++) {
     constants()[i].init(vp[i]);
   }
 }
 
-void IonScript::copySafepointIndices(const SafepointIndex* si) {
-  // Jumps in the caches reflect the offset of those jumps in the compiled
-  // code, not the absolute positions of the jumps. Update according to the
-  // final code address now.
+void IonScript::copySafepointIndices(const CodegenSafepointIndex* si) {
+  // Convert CodegenSafepointIndex to more compact form.
   SafepointIndex* table = safepointIndices();
-  memcpy(table, si, safepointIndexEntries_ * sizeof(SafepointIndex));
+  for (size_t i = 0; i < numSafepointIndices(); ++i) {
+    table[i] = SafepointIndex(si[i]);
+  }
 }
 
 void IonScript::copyOsiIndices(const OsiIndex* oi) {
-  memcpy(osiIndices(), oi, osiIndexEntries_ * sizeof(OsiIndex));
+  memcpy(osiIndices(), oi, numOsiIndices() * sizeof(OsiIndex));
 }
 
 void IonScript::copyRuntimeData(const uint8_t* data) {
@@ -830,16 +812,16 @@ void IonScript::copyICEntries(const uint32_t* icEntries) {
 }
 
 const SafepointIndex* IonScript::getSafepointIndex(uint32_t disp) const {
-  MOZ_ASSERT(safepointIndexEntries_ > 0);
+  MOZ_ASSERT(numSafepointIndices() > 0);
 
   const SafepointIndex* table = safepointIndices();
-  if (safepointIndexEntries_ == 1) {
+  if (numSafepointIndices() == 1) {
     MOZ_ASSERT(disp == table[0].displacement());
     return &table[0];
   }
 
   size_t minEntry = 0;
-  size_t maxEntry = safepointIndexEntries_ - 1;
+  size_t maxEntry = numSafepointIndices() - 1;
   uint32_t min = table[minEntry].displacement();
   uint32_t max = table[maxEntry].displacement();
 
@@ -880,7 +862,7 @@ const SafepointIndex* IonScript::getSafepointIndex(uint32_t disp) const {
 }
 
 const OsiIndex* IonScript::getOsiIndex(uint32_t disp) const {
-  const OsiIndex* end = osiIndices() + osiIndexEntries_;
+  const OsiIndex* end = osiIndices() + numOsiIndices();
   for (const OsiIndex* it = osiIndices(); it != end; ++it) {
     if (it->returnPointDisplacement() == disp) {
       return it;
@@ -900,6 +882,22 @@ const OsiIndex* IonScript::getOsiIndex(uint8_t* retAddr) const {
 }
 
 void IonScript::Destroy(JSFreeOp* fop, IonScript* script) {
+  // Make sure there are no pointers into the IonScript's nursery objects list
+  // in the store buffer. Because this can be called during sweeping when
+  // discarding JIT code, we have to lock the store buffer when we find an
+  // object that's (still) in the nursery.
+  mozilla::Maybe<gc::AutoLockStoreBuffer> lock;
+  for (size_t i = 0, len = script->numNurseryObjects(); i < len; i++) {
+    JSObject* obj = script->nurseryObjects()[i];
+    if (!IsInsideNursery(obj)) {
+      continue;
+    }
+    if (lock.isNothing()) {
+      lock.emplace(&fop->runtime()->gc.storeBuffer());
+    }
+    script->nurseryObjects()[i] = HeapPtrObject();
+  }
+
   // This allocation is tracked by JSScript::setIonScriptImpl.
   fop->deleteUntracked(script);
 }
@@ -929,6 +927,8 @@ bool OptimizeMIR(MIRGenerator* mir) {
 
   gs.spewPass("BuildSSA");
   AssertBasicGraphCoherency(graph);
+
+  DumpMIRExpressions(graph, mir->outerInfo(), "BuildSSA");
 
   if (!JitOptions.disablePgo && !mir->compilingWasm()) {
     AutoTraceLog log(logger, TraceLogger_PruneUnusedBranches);
@@ -1356,6 +1356,15 @@ bool OptimizeMIR(MIRGenerator* mir) {
   }
 
   if (!mir->compilingWasm()) {
+    AutoTraceLog log(logger, TraceLogger_FoldLoadsWithUnbox);
+    if (!FoldLoadsWithUnbox(mir, graph)) {
+      return false;
+    }
+    gs.spewPass("FoldLoadsWithUnbox");
+    AssertGraphCoherency(graph);
+  }
+
+  if (!mir->compilingWasm()) {
     AutoTraceLog log(logger, TraceLogger_AddKeepAliveInstructions);
     if (!AddKeepAliveInstructions(graph)) {
       return false;
@@ -1366,7 +1375,7 @@ bool OptimizeMIR(MIRGenerator* mir) {
 
   AssertGraphCoherency(graph, /* force = */ true);
 
-  DumpMIRExpressions(graph);
+  DumpMIRExpressions(graph, mir->outerInfo(), "BeforeLIR");
 
   return true;
 }
@@ -1470,7 +1479,8 @@ CodeGenerator* CompileBackEnd(MIRGenerator* mir, WarpSnapshot* snapshot) {
   MOZ_ASSERT(!!snapshot == JitOptions.warpBuilder);
 
   if (snapshot) {
-    WarpBuilder builder(*snapshot, *mir);
+    WarpCompilation comp(mir->alloc());
+    WarpBuilder builder(*snapshot, *mir, &comp);
     if (!builder.build()) {
       return nullptr;
     }
@@ -1598,6 +1608,8 @@ static AbortReasonOr<WarpSnapshot*> CreateWarpSnapshot(JSContext* cx,
   // BuildMIR.
   gc::AutoSuppressGC suppressGC(cx);
 
+  SpewBeginFunction(mirGen, script);
+
   WarpOracle oracle(cx, *mirGen, script);
 
   AbortReasonOr<WarpSnapshot*> result = oracle.createSnapshot();
@@ -1690,6 +1702,10 @@ static AbortReason IonCompile(JSContext* cx, HandleScript script,
     script->ionScript()->setRecompiling();
   }
 
+  if (osrPc) {
+    script->jitScript()->setHadIonOSR();
+  }
+
   WarpSnapshot* snapshot = nullptr;
   if (JitOptions.warpBuilder) {
     AbortReasonOr<WarpSnapshot*> result =
@@ -1755,7 +1771,7 @@ static AbortReason IonCompile(JSContext* cx, HandleScript script,
       return AbortReason::Disable;
     }
 
-    succeeded = LinkCodeGen(cx, codegen.get(), script, constraints);
+    succeeded = LinkCodeGen(cx, codegen.get(), script, constraints, snapshot);
   }
 
   if (succeeded) {
@@ -1850,8 +1866,10 @@ static bool ScriptIsTooLarge(JSContext* cx, JSScript* script) {
                                 : JitOptions.ionMaxLocalsAndArgsMainThread;
 
   if (script->length() > maxScriptSize || numLocalsAndArgs > maxLocalsAndArgs) {
-    JitSpew(JitSpew_IonAbort, "Script too large (%zu bytes) (%zu locals/args)",
-            script->length(), numLocalsAndArgs);
+    JitSpew(JitSpew_IonAbort,
+            "Script too large (%zu bytes) (%zu locals/args) @ %s:%u:%u",
+            script->length(), numLocalsAndArgs, script->filename(),
+            script->lineno(), script->column());
     TrackIonAbort(cx, script, script->code(), "too large");
     return true;
   }
@@ -2018,9 +2036,6 @@ MethodStatus jit::CanEnterIon(JSContext* cx, RunState& state) {
     return Method_Skipped;
   }
 
-  // If constructing, allocate a new |this| object before building Ion.
-  // Creating |this| is done before building Ion because it may change the
-  // type information and invalidate compilation results.
   if (state.isInvoke()) {
     InvokeState& invoke = *state.asInvoke();
 
@@ -2045,6 +2060,10 @@ MethodStatus jit::CanEnterIon(JSContext* cx, RunState& state) {
         CanEnterBaselineMethod<BaselineTier::Compiler>(cx, state);
     if (status != Method_Compiled) {
       return status;
+    }
+    // Bytecode analysis may forbid compilation for a script.
+    if (!script->canIonCompile()) {
+      return Method_CantCompile;
     }
   }
 
@@ -2145,7 +2164,8 @@ static MethodStatus BaselineCanEnterAtBranch(JSContext* cx, HandleScript script,
   bool force = false;
   if (script->hasIonScript() && pc != script->ionScript()->osrPc()) {
     uint32_t count = script->ionScript()->incrOsrPcMismatchCounter();
-    if (count <= JitOptions.osrPcMismatchesBeforeRecompile) {
+    if (count <= JitOptions.osrPcMismatchesBeforeRecompile &&
+        !JitOptions.eagerIonCompilation()) {
       return Method_Skipped;
     }
     force = true;
@@ -2703,12 +2723,12 @@ void jit::Invalidate(JSContext* cx, JSScript* script, bool resetUses,
     }
 
     // Construct the descriptive string.
-    UniqueChars buf = JS_smprintf("Invalidate %s:%u:%u", filename,
-                                  script->lineno(), script->column());
+    UniqueChars buf =
+        JS_smprintf("%s:%u:%u", filename, script->lineno(), script->column());
 
     // Ignore the event on allocation failure.
     if (buf) {
-      cx->runtime()->geckoProfiler().markEvent(buf.get());
+      cx->runtime()->geckoProfiler().markEvent("Invalidate", buf.get());
     }
   }
 

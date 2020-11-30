@@ -28,7 +28,7 @@ xul|richlistitem[originaltype="autofill-insecureWarning"] {
   --label-text-color: #262626;
   --comment-text-color: #646464;
   --warning-text-color: #646464;
-  --btn-text-color: -moz-FieldText;
+  --btn-text-color: FieldText;
 
   --default-font-size: 12;
   --label-affix-font-size: 10;
@@ -62,8 +62,7 @@ xul|richlistitem[originaltype="autofill-insecureWarning"] {
   margin: 0;
   border-bottom: 1px solid rgba(38,38,38,.15);
   padding: var(--item-padding-vertical) 0;
-  padding-inline-start: var(--item-padding-horizontal);
-  padding-inline-end: var(--item-padding-horizontal);
+  padding-inline: var(--item-padding-horizontal);
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -89,19 +88,22 @@ xul|richlistitem[originaltype="autofill-insecureWarning"] {
 }
 
 .autofill-item-box:not([ac-image=""]) > .profile-label-col::before {
-  margin-right: 5px;
+  margin-inline-end: 5px;
   float: inline-start;
   content: "";
   width: 16px;
   height: 16px;
   background-image: var(--primary-icon);
-  background-size: 16px 16px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
   -moz-context-properties: fill;
   fill: #4D4D4D;
 }
 
 .autofill-item-box > .profile-label-col > .profile-label {
   font-size: calc(var(--label-font-size) / var(--default-font-size) * 1em);
+  unicode-bidi: plaintext;
 }
 
 .autofill-item-box > .profile-label-col > .profile-label-affix {
@@ -117,6 +119,7 @@ xul|richlistitem[originaltype="autofill-insecureWarning"] {
 
 .autofill-item-box > .profile-comment-col > .profile-comment {
   font-size: calc(var(--comment-font-size) / var(--default-font-size) * 1em);
+  unicode-bidi: plaintext;
 }
 
 .autofill-item-box[size="small"] {
@@ -175,8 +178,7 @@ xul|richlistitem[originaltype="autofill-insecureWarning"] {
 
 .autofill-insecure-item::before {
   display: block;
-  margin-inline-start: 4px;
-  margin-inline-end: 8px;
+  margin-inline: 4px 8px;
   content: "";
   width: 16px;
   height: 16px;

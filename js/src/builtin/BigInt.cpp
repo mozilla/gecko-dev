@@ -8,7 +8,6 @@
 
 #include "jsapi.h"
 
-#include "builtin/TypedObject.h"
 #include "gc/Tracer.h"
 #include "js/PropertySpec.h"
 #include "js/TracingAPI.h"
@@ -207,16 +206,15 @@ const ClassSpec BigIntObject::classSpec_ = {
     BigIntObject::methods,
     BigIntObject::properties};
 
-// The class is named "Object" as a workaround for bug 1277801.
 const JSClass BigIntObject::class_ = {
-    "Object",
+    "BigInt",
     JSCLASS_HAS_CACHED_PROTO(JSProto_BigInt) |
         JSCLASS_HAS_RESERVED_SLOTS(RESERVED_SLOTS),
     JS_NULL_CLASS_OPS, &BigIntObject::classSpec_};
 
 const JSClass BigIntObject::protoClass_ = {
-    js_Object_str, JSCLASS_HAS_CACHED_PROTO(JSProto_BigInt), JS_NULL_CLASS_OPS,
-    &BigIntObject::classSpec_};
+    "BigInt.prototype", JSCLASS_HAS_CACHED_PROTO(JSProto_BigInt),
+    JS_NULL_CLASS_OPS, &BigIntObject::classSpec_};
 
 const JSPropertySpec BigIntObject::properties[] = {
     // BigInt proposal section 5.3.5

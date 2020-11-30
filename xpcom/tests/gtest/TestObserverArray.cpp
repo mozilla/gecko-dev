@@ -7,6 +7,7 @@
 #include "nsTObserverArray.h"
 #include "gtest/gtest.h"
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/UniquePtr.h"
 
 using namespace mozilla;
 
@@ -29,6 +30,7 @@ typedef nsTObserverArray<int> IntArray;
         << "During test " << testNum << ", iterator finished too early"; \
   } while (0)
 
+// XXX Split this up into independent test cases
 TEST(ObserverArray, Tests)
 {
   IntArray arr;
@@ -154,3 +156,418 @@ TEST(ObserverArray, Tests)
    * In that case BackwardIterator does not traverse the newly prepended Element
    */
 }
+
+TEST(ObserverArray, ForwardIterator_Remove)
+{
+  static const int expected[] = {3, 4};
+
+  IntArray arr;
+  arr.AppendElement(3);
+  arr.AppendElement(4);
+
+  size_t count = 0;
+  for (auto iter = IntArray::ForwardIterator{arr}; iter.HasMore();) {
+    const int next = iter.GetNext();
+    iter.Remove();
+
+    ASSERT_EQ(expected[count++], next);
+  }
+  ASSERT_EQ(2u, count);
+}
+
+TEST(ObserverArray, RangeBasedFor_Value_Forward_NonEmpty)
+{
+  IntArray arr;
+  arr.AppendElement(3);
+  arr.AppendElement(4);
+
+  size_t iterations = 0;
+  int sum = 0;
+  for (int element : arr.ForwardRange()) {
+    sum += element;
+    ++iterations;
+  }
+
+  EXPECT_EQ(2u, iterations);
+  EXPECT_EQ(7, sum);
+}
+
+TEST(ObserverArray, RangeBasedFor_Value_Forward_RemoveCurrent)
+{
+  IntArray arr;
+  arr.AppendElement(3);
+  arr.AppendElement(4);
+
+  size_t iterations = 0;
+  int sum = 0;
+  for (int element : arr.ForwardRange()) {
+    sum += element;
+    ++iterations;
+    arr.RemoveElementAt(0);
+  }
+
+  EXPECT_EQ(2u, iterations);
+  EXPECT_EQ(7, sum);
+}
+
+TEST(ObserverArray, RangeBasedFor_Value_Forward_Append)
+{
+  IntArray arr;
+  arr.AppendElement(3);
+  arr.AppendElement(4);
+
+  size_t iterations = 0;
+  int sum = 0;
+  for (int element : arr.ForwardRange()) {
+    if (!iterations) {
+      arr.AppendElement(5);
+    }
+    sum += element;
+    ++iterations;
+  }
+
+  EXPECT_EQ(3u, iterations);
+  EXPECT_EQ(12, sum);
+}
+
+TEST(ObserverArray, RangeBasedFor_Value_Forward_Prepend)
+{
+  IntArray arr;
+  arr.AppendElement(3);
+  arr.AppendElement(4);
+
+  size_t iterations = 0;
+  int sum = 0;
+  for (int element : arr.ForwardRange()) {
+    if (!iterations) {
+      arr.InsertElementAt(0, 5);
+    }
+    sum += element;
+    ++iterations;
+  }
+
+  EXPECT_EQ(2u, iterations);
+  EXPECT_EQ(7, sum);
+}
+
+TEST(ObserverArray, RangeBasedFor_Value_Forward_Empty)
+{
+  IntArray arr;
+
+  size_t iterations = 0;
+  for (int element : arr.ForwardRange()) {
+    (void)element;
+    ++iterations;
+  }
+
+  EXPECT_EQ(0u, iterations);
+}
+
+TEST(ObserverArray, RangeBasedFor_Reference_Forward_NonEmpty)
+{
+  const auto arr = [] {
+    nsTObserverArray<UniquePtr<int>> arr;
+    arr.AppendElement(MakeUnique<int>(3));
+    arr.AppendElement(MakeUnique<int>(4));
+    return arr;
+  }();
+
+  size_t iterations = 0;
+  int sum = 0;
+  for (const UniquePtr<int>& element : arr.ForwardRange()) {
+    sum += *element;
+    ++iterations;
+  }
+
+  EXPECT_EQ(2u, iterations);
+  EXPECT_EQ(7, sum);
+}
+
+TEST(ObserverArray, RangeBasedFor_NonConstReference_Forward_NonEmpty)
+{
+  nsTObserverArray<UniquePtr<int>> arr;
+  arr.AppendElement(MakeUnique<int>(3));
+  arr.AppendElement(MakeUnique<int>(4));
+
+  size_t iterations = 0;
+  int sum = 0;
+  for (UniquePtr<int>& element : arr.ForwardRange()) {
+    sum += *element;
+    ++iterations;
+  }
+
+  EXPECT_EQ(2u, iterations);
+  EXPECT_EQ(7, sum);
+}
+
+TEST(ObserverArray, RangeBasedFor_Value_Backward_NonEmpty)
+{
+  IntArray arr;
+  arr.AppendElement(3);
+  arr.AppendElement(4);
+
+  size_t iterations = 0;
+  int sum = 0;
+  for (int element : arr.BackwardRange()) {
+    sum += element;
+    ++iterations;
+  }
+
+  EXPECT_EQ(2u, iterations);
+  EXPECT_EQ(7, sum);
+}
+
+TEST(ObserverArray, RangeBasedFor_Value_Backward_RemoveCurrent)
+{
+  IntArray arr;
+  arr.AppendElement(3);
+  arr.AppendElement(4);
+
+  size_t iterations = 0;
+  int sum = 0;
+  for (int element : arr.BackwardRange()) {
+    sum += element;
+    ++iterations;
+    arr.RemoveElementAt(arr.Length() - 1);
+  }
+
+  EXPECT_EQ(2u, iterations);
+  EXPECT_EQ(7, sum);
+}
+
+TEST(ObserverArray, RangeBasedFor_Value_Backward_Append)
+{
+  IntArray arr;
+  arr.AppendElement(3);
+  arr.AppendElement(4);
+
+  size_t iterations = 0;
+  int sum = 0;
+  for (int element : arr.BackwardRange()) {
+    if (!iterations) {
+      arr.AppendElement(5);
+    }
+    sum += element;
+    ++iterations;
+  }
+
+  EXPECT_EQ(2u, iterations);
+  EXPECT_EQ(7, sum);
+}
+
+TEST(ObserverArray, RangeBasedFor_Value_Backward_Prepend)
+{
+  IntArray arr;
+  arr.AppendElement(3);
+  arr.AppendElement(4);
+
+  size_t iterations = 0;
+  int sum = 0;
+  for (int element : arr.BackwardRange()) {
+    if (!iterations) {
+      arr.InsertElementAt(0, 5);
+    }
+    sum += element;
+    ++iterations;
+  }
+
+  EXPECT_EQ(3u, iterations);
+  EXPECT_EQ(12, sum);
+}
+
+TEST(ObserverArray, RangeBasedFor_Value_Backward_Empty)
+{
+  IntArray arr;
+
+  size_t iterations = 0;
+  for (int element : arr.BackwardRange()) {
+    (void)element;
+    ++iterations;
+  }
+
+  EXPECT_EQ(0u, iterations);
+}
+
+TEST(ObserverArray, RangeBasedFor_Reference_Backward_NonEmpty)
+{
+  const auto arr = [] {
+    nsTObserverArray<UniquePtr<int>> arr;
+    arr.AppendElement(MakeUnique<int>(3));
+    arr.AppendElement(MakeUnique<int>(4));
+    return arr;
+  }();
+
+  size_t iterations = 0;
+  int sum = 0;
+  for (const UniquePtr<int>& element : arr.BackwardRange()) {
+    sum += *element;
+    ++iterations;
+  }
+
+  EXPECT_EQ(2u, iterations);
+  EXPECT_EQ(7, sum);
+}
+
+TEST(ObserverArray, RangeBasedFor_NonConstReference_Backward_NonEmpty)
+{
+  nsTObserverArray<UniquePtr<int>> arr;
+  arr.AppendElement(MakeUnique<int>(3));
+  arr.AppendElement(MakeUnique<int>(4));
+
+  size_t iterations = 0;
+  int sum = 0;
+  for (UniquePtr<int>& element : arr.BackwardRange()) {
+    sum += *element;
+    ++iterations;
+  }
+
+  EXPECT_EQ(2u, iterations);
+  EXPECT_EQ(7, sum);
+}
+
+TEST(ObserverArray, RangeBasedFor_Value_EndLimited_NonEmpty)
+{
+  IntArray arr;
+  arr.AppendElement(3);
+  arr.AppendElement(4);
+
+  size_t iterations = 0;
+  int sum = 0;
+  for (int element : arr.EndLimitedRange()) {
+    sum += element;
+    ++iterations;
+  }
+
+  EXPECT_EQ(2u, iterations);
+  EXPECT_EQ(7, sum);
+}
+
+TEST(ObserverArray, RangeBasedFor_Value_EndLimited_RemoveCurrent)
+{
+  IntArray arr;
+  arr.AppendElement(3);
+  arr.AppendElement(4);
+
+  size_t iterations = 0;
+  int sum = 0;
+  for (int element : arr.EndLimitedRange()) {
+    sum += element;
+    ++iterations;
+    arr.RemoveElementAt(0);
+  }
+
+  EXPECT_EQ(2u, iterations);
+  EXPECT_EQ(7, sum);
+}
+
+TEST(ObserverArray, RangeBasedFor_Value_EndLimited_Append)
+{
+  IntArray arr;
+  arr.AppendElement(3);
+  arr.AppendElement(4);
+
+  size_t iterations = 0;
+  int sum = 0;
+  for (int element : arr.EndLimitedRange()) {
+    if (!iterations) {
+      arr.AppendElement(5);
+    }
+    sum += element;
+    ++iterations;
+  }
+
+  EXPECT_EQ(2u, iterations);
+  EXPECT_EQ(7, sum);
+}
+
+TEST(ObserverArray, RangeBasedFor_Value_EndLimited_Prepend)
+{
+  IntArray arr;
+  arr.AppendElement(3);
+  arr.AppendElement(4);
+
+  size_t iterations = 0;
+  int sum = 0;
+  for (int element : arr.EndLimitedRange()) {
+    if (!iterations) {
+      arr.InsertElementAt(0, 5);
+    }
+    sum += element;
+    ++iterations;
+  }
+
+  EXPECT_EQ(2u, iterations);
+  EXPECT_EQ(7, sum);
+}
+
+TEST(ObserverArray, RangeBasedFor_Value_EndLimited_Empty)
+{
+  IntArray arr;
+
+  size_t iterations = 0;
+  for (int element : arr.EndLimitedRange()) {
+    (void)element;
+    ++iterations;
+  }
+
+  EXPECT_EQ(0u, iterations);
+}
+
+TEST(ObserverArray, RangeBasedFor_Reference_EndLimited_NonEmpty)
+{
+  const auto arr = [] {
+    nsTObserverArray<UniquePtr<int>> arr;
+    arr.AppendElement(MakeUnique<int>(3));
+    arr.AppendElement(MakeUnique<int>(4));
+    return arr;
+  }();
+
+  size_t iterations = 0;
+  int sum = 0;
+  for (const UniquePtr<int>& element : arr.EndLimitedRange()) {
+    sum += *element;
+    ++iterations;
+  }
+
+  EXPECT_EQ(2u, iterations);
+  EXPECT_EQ(7, sum);
+}
+
+TEST(ObserverArray, RangeBasedFor_NonConstReference_EndLimited_NonEmpty)
+{
+  nsTObserverArray<UniquePtr<int>> arr;
+  arr.AppendElement(MakeUnique<int>(3));
+  arr.AppendElement(MakeUnique<int>(4));
+
+  size_t iterations = 0;
+  int sum = 0;
+  for (UniquePtr<int>& element : arr.EndLimitedRange()) {
+    sum += *element;
+    ++iterations;
+  }
+
+  EXPECT_EQ(2u, iterations);
+  EXPECT_EQ(7, sum);
+}
+
+TEST(ObserverArray, RangeBasedFor_Reference_NonObserving_NonEmpty)
+{
+  const auto arr = [] {
+    nsTObserverArray<UniquePtr<int>> arr;
+    arr.AppendElement(MakeUnique<int>(3));
+    arr.AppendElement(MakeUnique<int>(4));
+    return arr;
+  }();
+
+  size_t iterations = 0;
+  int sum = 0;
+  for (const UniquePtr<int>& element : arr.NonObservingRange()) {
+    sum += *element;
+    ++iterations;
+  }
+
+  EXPECT_EQ(2u, iterations);
+  EXPECT_EQ(7, sum);
+}
+
+// TODO add tests for EndLimitedIterator

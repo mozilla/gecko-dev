@@ -34,8 +34,8 @@ use crate::Zero;
 use app_units::Au;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::{Deserialize, Serialize};
-use std::fmt::{self, Write};
 use std::borrow::Cow;
+use std::fmt::{self, Write};
 use style_traits::values::specified::AllowedNumericType;
 use style_traits::{CssWriter, ToCss};
 
@@ -193,10 +193,18 @@ impl LengthPercentage {
         Self::new_length(Length::new(1.))
     }
 
+    /// 0%
+    #[inline]
+    pub fn zero_percent() -> Self {
+        Self::new_percent(Percentage::zero())
+    }
+
     fn to_calc_node(&self) -> Cow<CalcNode> {
         match self.unpack() {
             Unpacked::Length(l) => Cow::Owned(CalcNode::Leaf(CalcLengthPercentageLeaf::Length(l))),
-            Unpacked::Percentage(p) => Cow::Owned(CalcNode::Leaf(CalcLengthPercentageLeaf::Percentage(p))),
+            Unpacked::Percentage(p) => {
+                Cow::Owned(CalcNode::Leaf(CalcLengthPercentageLeaf::Percentage(p)))
+            },
             Unpacked::Calc(p) => Cow::Borrowed(&p.node),
         }
     }
@@ -235,20 +243,20 @@ impl LengthPercentage {
         let mut node = v.to_calc_node().into_owned();
         node.negate();
 
-        let new_node = CalcNode::Sum(vec![
-            CalcNode::Leaf(CalcLengthPercentageLeaf::Percentage(Percentage::hundred())),
-            node,
-        ].into());
+        let new_node = CalcNode::Sum(
+            vec![
+                CalcNode::Leaf(CalcLengthPercentageLeaf::Percentage(Percentage::hundred())),
+                node,
+            ]
+            .into(),
+        );
 
         Self::new_calc(new_node, clamping_mode)
     }
 
     /// Constructs a `calc()` value.
     #[inline]
-    pub fn new_calc(
-        mut node: CalcNode,
-        clamping_mode: AllowedNumericType,
-    ) -> Self {
+    pub fn new_calc(mut node: CalcNode, clamping_mode: AllowedNumericType) -> Self {
         node.simplify_and_sort();
 
         match node {
@@ -261,13 +269,11 @@ impl LengthPercentage {
                         Self::new_percent(Percentage(clamping_mode.clamp(p.0)))
                     },
                 }
-            }
-            _ => {
-                Self::new_calc_unchecked(Box::new(CalcLengthPercentage {
-                    clamping_mode,
-                    node,
-                }))
-            }
+            },
+            _ => Self::new_calc_unchecked(Box::new(CalcLengthPercentage {
+                clamping_mode,
+                node,
+            })),
         }
     }
 
@@ -450,7 +456,7 @@ impl LengthPercentage {
             UnpackedMut::Calc(ref mut c) => {
                 c.clamping_mode = AllowedNumericType::NonNegative;
                 self
-            }
+            },
         }
     }
 }
@@ -571,7 +577,17 @@ impl<'de> Deserialize<'de> for LengthPercentage {
 }
 
 /// The leaves of a `<length-percentage>` calc expression.
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize, ToAnimatedZero, ToCss, ToResolvedValue)]
+#[derive(
+    Clone,
+    Debug,
+    Deserialize,
+    MallocSizeOf,
+    PartialEq,
+    Serialize,
+    ToAnimatedZero,
+    ToCss,
+    ToResolvedValue,
+)]
 #[allow(missing_docs)]
 #[repr(u8)]
 pub enum CalcLengthPercentageLeaf {
@@ -603,8 +619,10 @@ impl PartialOrd for CalcLengthPercentageLeaf {
                 match *self {
                     Length(..) | Percentage(..) => {},
                 }
-                unsafe { debug_unreachable!("Forgot a branch?"); }
-            }
+                unsafe {
+                    debug_unreachable!("Forgot a branch?");
+                }
+            },
         }
     }
 }
@@ -664,7 +682,9 @@ impl calc::CalcNodeLeaf for CalcLengthPercentageLeaf {
 pub type CalcNode = calc::GenericCalcNode<CalcLengthPercentageLeaf>;
 
 /// The representation of a calc() function with mixed lengths and percentages.
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize, ToAnimatedZero, ToResolvedValue, ToCss)]
+#[derive(
+    Clone, Debug, Deserialize, MallocSizeOf, Serialize, ToAnimatedZero, ToResolvedValue, ToCss,
+)]
 #[repr(C)]
 pub struct CalcLengthPercentage {
     #[animation(constant)]
@@ -678,12 +698,15 @@ impl CalcLengthPercentage {
     #[inline]
     fn resolve(&self, basis: Length) -> Length {
         // unwrap() is fine because the conversion below is infallible.
-        let px = self.node.resolve(|l| {
-            Ok(match *l {
-                CalcLengthPercentageLeaf::Length(l) => l.px(),
-                CalcLengthPercentageLeaf::Percentage(ref p) => basis.px() * p.0,
+        let px = self
+            .node
+            .resolve(|l| {
+                Ok(match *l {
+                    CalcLengthPercentageLeaf::Length(l) => l.px(),
+                    CalcLengthPercentageLeaf::Percentage(ref p) => basis.px() * p.0,
+                })
             })
-        }).unwrap();
+            .unwrap();
         Length::new(self.clamping_mode.clamp(px))
     }
 }
@@ -720,24 +743,16 @@ impl specified::CalcLengthPercentage {
         use crate::values::specified::calc::Leaf;
         use crate::values::specified::length::NoCalcLength;
 
-        let node = self.node.map_leaves(|leaf| {
-            match *leaf {
-                Leaf::Percentage(p) => CalcLengthPercentageLeaf::Percentage(Percentage(p)),
-                Leaf::Length(l) => {
-                    CalcLengthPercentageLeaf::Length(match l {
-                        NoCalcLength::Absolute(ref abs) => {
-                            zoom_fn(abs.to_computed_value(context))
-                        },
-                        NoCalcLength::FontRelative(ref fr) => {
-                            fr.to_computed_value(context, base_size)
-                        },
-                        other => other.to_computed_value(context),
-                    })
-                },
-                Leaf::Number(..) |
-                Leaf::Angle(..) |
-                Leaf::Time(..) => unreachable!("Shouldn't have parsed"),
-            }
+        let node = self.node.map_leaves(|leaf| match *leaf {
+            Leaf::Percentage(p) => CalcLengthPercentageLeaf::Percentage(Percentage(p)),
+            Leaf::Length(l) => CalcLengthPercentageLeaf::Length(match l {
+                NoCalcLength::Absolute(ref abs) => zoom_fn(abs.to_computed_value(context)),
+                NoCalcLength::FontRelative(ref fr) => fr.to_computed_value(context, base_size),
+                other => other.to_computed_value(context),
+            }),
+            Leaf::Number(..) | Leaf::Angle(..) | Leaf::Time(..) => {
+                unreachable!("Shouldn't have parsed")
+            },
         });
 
         LengthPercentage::new_calc(node, self.clamping_mode)
@@ -782,12 +797,12 @@ impl specified::CalcLengthPercentage {
 
         specified::CalcLengthPercentage {
             clamping_mode: computed.clamping_mode,
-            node: computed.node.map_leaves(|l| {
-                match l {
-                    CalcLengthPercentageLeaf::Length(ref l) => Leaf::Length(NoCalcLength::from_px(l.px())),
-                    CalcLengthPercentageLeaf::Percentage(ref p) => Leaf::Percentage(p.0),
-                }
-            })
+            node: computed.node.map_leaves(|l| match l {
+                CalcLengthPercentageLeaf::Length(ref l) => {
+                    Leaf::Length(NoCalcLength::from_px(l.px()))
+                },
+                CalcLengthPercentageLeaf::Percentage(ref p) => Leaf::Percentage(p.0),
+            }),
         }
     }
 }
@@ -813,7 +828,10 @@ impl Animate for LengthPercentage {
                 one.mul_by(l as f32);
                 other.mul_by(r as f32);
 
-                Self::new_calc(CalcNode::Sum(vec![one, other].into()), AllowedNumericType::All)
+                Self::new_calc(
+                    CalcNode::Sum(vec![one, other].into()),
+                    AllowedNumericType::All,
+                )
             },
         })
     }

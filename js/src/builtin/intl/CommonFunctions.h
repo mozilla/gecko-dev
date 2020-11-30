@@ -8,16 +8,18 @@
 #define builtin_intl_CommonFunctions_h
 
 #include "mozilla/Assertions.h"
-#include "mozilla/TypeTraits.h"
 
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
+#include <type_traits>
 
 #include "js/RootingAPI.h"
 #include "js/Vector.h"
 #include "unicode/utypes.h"
 #include "vm/StringType.h"
+
+struct UFormattedValue;
 
 namespace js {
 
@@ -99,7 +101,7 @@ extern UniqueChars EncodeLocale(JSContext* cx, JSString* locale);
 
 // Starting with ICU 59, UChar defaults to char16_t.
 static_assert(
-    mozilla::IsSame<UChar, char16_t>::value,
+    std::is_same_v<UChar, char16_t>,
     "SpiderMonkey doesn't support redefining UChar to a different type");
 
 // The inline capacity we use for a Vector<char16_t>.  Use this to ensure that
@@ -116,11 +118,20 @@ static int32_t CallICU(JSContext* cx, const ICUStringFunction& strFn,
   int32_t size = strFn(chars.begin(), chars.length(), &status);
   if (status == U_BUFFER_OVERFLOW_ERROR) {
     MOZ_ASSERT(size >= 0);
+
+    // Some ICU functions (e.g. uloc_getDisplayName) return one less character
+    // than the actual minimum size when U_BUFFER_OVERFLOW_ERROR is raised,
+    // resulting in later reporting U_STRING_NOT_TERMINATED_WARNING. So add plus
+    // one here and then assert U_STRING_NOT_TERMINATED_WARNING isn't raised.
+    size++;
+
     if (!chars.resize(size_t(size))) {
       return -1;
     }
     status = U_ZERO_ERROR;
-    strFn(chars.begin(), size, &status);
+    size = strFn(chars.begin(), size, &status);
+
+    MOZ_ASSERT(status != U_STRING_NOT_TERMINATED_WARNING);
   }
   if (U_FAILURE(status)) {
     ReportInternalError(cx);
@@ -147,6 +158,9 @@ static JSString* CallICU(JSContext* cx, const ICUStringFunction& strFn) {
 void AddICUCellMemory(JSObject* obj, size_t nbytes);
 
 void RemoveICUCellMemory(JSFreeOp* fop, JSObject* obj, size_t nbytes);
+
+JSString* FormattedValueToString(JSContext* cx,
+                                 const UFormattedValue* formattedValue);
 
 }  // namespace intl
 

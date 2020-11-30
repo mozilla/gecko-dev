@@ -10,8 +10,16 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   Services: "resource://gre/modules/Services.jsm",
   EveryWindow: "resource:///modules/EveryWindow.jsm",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.jsm",
+  Preferences: "resource://gre/modules/Preferences.jsm",
+  SpecialMessageActions:
+    "resource://messaging-system/lib/SpecialMessageActions.jsm",
   RemoteL10n: "resource://activity-stream/lib/RemoteL10n.jsm",
 });
+ChromeUtils.defineModuleGetter(
+  this,
+  "PanelMultiView",
+  "resource:///modules/PanelMultiView.jsm"
+);
 XPCOMUtils.defineLazyServiceGetter(
   this,
   "TrackingDBService",
@@ -51,20 +59,15 @@ class _ToolbarPanelHub {
     this.state = {};
   }
 
-  async init(waitForInitialized, { getMessages, dispatch, handleUserAction }) {
+  async init(waitForInitialized, { getMessages, dispatch }) {
     this._getMessages = getMessages;
     this._dispatch = dispatch;
-    this._handleUserAction = handleUserAction;
     // Wait for ASRouter messages to become available in order to know
     // if we can show the What's New panel
     await waitForInitialized;
-    if (this.whatsNewPanelEnabled) {
-      // Enable the application menu button so that the user can access
-      // the panel outside of the toolbar button
-      this.enableAppmenuButton();
-    }
-    // Listen for pref changes that could turn off the feature
-    Services.prefs.addObserver(WHATSNEW_ENABLED_PREF, this);
+    // Enable the application menu button so that the user can access
+    // the panel outside of the toolbar button
+    await this.enableAppmenuButton();
 
     this.state = {
       protectionPanelMessageSeen: Services.prefs.getBoolPref(
@@ -77,17 +80,6 @@ class _ToolbarPanelHub {
   uninit() {
     EveryWindow.unregisterCallback(TOOLBAR_BUTTON_ID);
     EveryWindow.unregisterCallback(APPMENU_BUTTON_ID);
-    Services.prefs.removeObserver(WHATSNEW_ENABLED_PREF, this);
-  }
-
-  observe(aSubject, aTopic, aPrefName) {
-    switch (aPrefName) {
-      case WHATSNEW_ENABLED_PREF:
-        if (!this.whatsNewPanelEnabled) {
-          this.uninit();
-        }
-        break;
-    }
   }
 
   get messages() {
@@ -98,14 +90,31 @@ class _ToolbarPanelHub {
     });
   }
 
-  get whatsNewPanelEnabled() {
-    return Services.prefs.getBoolPref(WHATSNEW_ENABLED_PREF, false);
+  toggleWhatsNewPref(event) {
+    Preferences.set(WHATSNEW_ENABLED_PREF, event.target.checked);
+    this.sendUserEventTelemetry(
+      event.target.ownerGlobal,
+      "WNP_PREF_TOGGLE",
+      // Message id is not applicable in this case, the notification state
+      // is not related to a particular message
+      { id: "n/a" },
+      { value: { prefValue: event.target.checked } }
+    );
   }
 
   maybeInsertFTL(win) {
     win.MozXULElement.insertFTLIfNeeded("browser/newtab/asrouter.ftl");
     win.MozXULElement.insertFTLIfNeeded("browser/branding/brandings.ftl");
     win.MozXULElement.insertFTLIfNeeded("browser/branding/sync-brand.ftl");
+  }
+
+  maybeLoadCustomElement(win) {
+    if (!win.customElements.get("remote-text")) {
+      Services.scriptloader.loadSubScript(
+        "resource://activity-stream/data/custom-elements/paragraph.js",
+        win
+      );
+    }
   }
 
   // Turns on the Appmenu (hamburger menu) button for all open windows and future windows.
@@ -170,25 +179,28 @@ class _ToolbarPanelHub {
 
   // Render what's new messages into the panel.
   async renderMessages(win, doc, containerId, options = {}) {
+    // Set the checked status of the footer checkbox
+    let value = Preferences.get(WHATSNEW_ENABLED_PREF);
+    let checkbox = win.document.getElementById("panelMenu-toggleWhatsNew");
+
+    checkbox.checked = value;
+
+    this.maybeLoadCustomElement(win);
     const messages =
       (options.force && options.messages) ||
       (await this.messages).sort(this._sortWhatsNewMessages);
-    const container = doc.getElementById(containerId);
+    const container = PanelMultiView.getViewNode(doc, containerId);
 
     if (messages) {
       // Targeting attribute state might have changed making new messages
       // available and old messages invalid, we need to refresh
-      for (const prevMessageEl of container.querySelectorAll(
-        ".whatsNew-message"
-      )) {
-        container.removeChild(prevMessageEl);
-      }
+      this.removeMessages(win, containerId);
       let previousDate = 0;
       // Get and store any variable part of the message content
       this.state.contentArguments = await this._contentArguments();
       for (let message of messages) {
         container.appendChild(
-          await this._createMessageElements(win, doc, message, previousDate)
+          this._createMessageElements(win, doc, message, previousDate)
         );
         previousDate = message.content.published_date;
       }
@@ -216,9 +228,10 @@ class _ToolbarPanelHub {
 
   removeMessages(win, containerId) {
     const doc = win.document;
-    const messageNodes = doc
-      .getElementById(containerId)
-      .querySelectorAll(".whatsNew-message");
+    const messageNodes = PanelMultiView.getViewNode(
+      doc,
+      containerId
+    ).querySelectorAll(".whatsNew-message");
     for (const messageNode of messageNodes) {
       messageNode.remove();
     }
@@ -236,16 +249,16 @@ class _ToolbarPanelHub {
       Cu.reportError(e);
       url = message.content.cta_url;
     }
-    this._handleUserAction({
-      target: win,
-      data: {
+    SpecialMessageActions.handleAction(
+      {
         type: message.content.cta_type,
         data: {
           args: url,
-          where: "tabshifted",
+          where: message.content.cta_where || "tabshifted",
         },
       },
-    });
+      win.browser
+    );
 
     this.sendUserEventTelemetry(win, "CLICK", message);
   }
@@ -267,15 +280,15 @@ class _ToolbarPanelHub {
     });
   }
 
-  async _createMessageElements(win, doc, message, previousDate) {
+  _createMessageElements(win, doc, message, previousDate) {
     const { content } = message;
-    const messageEl = await this._createElement(doc, "div");
+    const messageEl = RemoteL10n.createElement(doc, "div");
     messageEl.classList.add("whatsNew-message");
 
     // Only render date if it is different from the one rendered before.
     if (content.published_date !== previousDate) {
       messageEl.appendChild(
-        await this._createElement(doc, "p", {
+        RemoteL10n.createElement(doc, "p", {
           classList: "whatsNew-message-date",
           content: new Date(content.published_date).toLocaleDateString(
             "default",
@@ -289,24 +302,28 @@ class _ToolbarPanelHub {
       );
     }
 
-    const wrapperEl = await this._createElement(doc, "button");
+    const wrapperEl = RemoteL10n.createElement(doc, "button");
     wrapperEl.doCommand = () => this._dispatchUserAction(win, message);
     wrapperEl.classList.add("whatsNew-message-body");
     messageEl.appendChild(wrapperEl);
 
     if (content.icon_url) {
       wrapperEl.classList.add("has-icon");
-      const iconEl = await this._createElement(doc, "img");
+      const iconEl = RemoteL10n.createElement(doc, "img");
       iconEl.src = content.icon_url;
       iconEl.classList.add("whatsNew-message-icon");
-      await this._setTextAttribute(iconEl, "alt", content.icon_alt);
+      if (content.icon_alt && content.icon_alt.string_id) {
+        doc.l10n.setAttributes(iconEl, content.icon_alt.string_id);
+      } else {
+        iconEl.setAttribute("alt", content.icon_alt);
+      }
       wrapperEl.appendChild(iconEl);
     }
 
-    wrapperEl.appendChild(await this._createMessageContent(win, doc, content));
+    wrapperEl.appendChild(this._createMessageContent(win, doc, content));
 
     if (content.link_text) {
-      const anchorEl = await this._createElement(doc, "a", {
+      const anchorEl = RemoteL10n.createElement(doc, "a", {
         classList: "text-link",
         content: content.link_text,
       });
@@ -323,62 +340,74 @@ class _ToolbarPanelHub {
   /**
    * Return message title (optional subtitle) and body
    */
-  async _createMessageContent(win, doc, content) {
+  _createMessageContent(win, doc, content) {
     const wrapperEl = new win.DocumentFragment();
 
     wrapperEl.appendChild(
-      await this._createElement(doc, "h2", {
+      RemoteL10n.createElement(doc, "h2", {
         classList: "whatsNew-message-title",
         content: content.title,
+        attributes: this.state.contentArguments,
       })
     );
 
     switch (content.layout) {
       case "tracking-protections":
-        await wrapperEl.appendChild(
-          await this._createElement(doc, "h4", {
+        wrapperEl.appendChild(
+          RemoteL10n.createElement(doc, "h4", {
             classList: "whatsNew-message-subtitle",
             content: content.subtitle,
+            attributes: this.state.contentArguments,
           })
         );
         wrapperEl.appendChild(
-          await this._createElement(doc, "h2", {
+          RemoteL10n.createElement(doc, "h2", {
             classList: "whatsNew-message-title-large",
             content: this.state.contentArguments[
               content.layout_title_content_variable
             ],
+            attributes: this.state.contentArguments,
           })
         );
         break;
     }
 
     wrapperEl.appendChild(
-      await this._createElement(doc, "p", { content: content.body })
+      RemoteL10n.createElement(doc, "p", {
+        content: content.body,
+        classList: "whatsNew-message-content",
+        attributes: this.state.contentArguments,
+      })
     );
 
     return wrapperEl;
   }
 
-  async _createHeroElement(win, doc, message) {
-    const messageEl = await this._createElement(doc, "div");
+  _createHeroElement(win, doc, message) {
+    this.maybeLoadCustomElement(win);
+
+    const messageEl = RemoteL10n.createElement(doc, "div");
     messageEl.setAttribute("id", "protections-popup-message");
     messageEl.classList.add("whatsNew-hero-message");
-    const wrapperEl = await this._createElement(doc, "div");
+    const wrapperEl = RemoteL10n.createElement(doc, "div");
     wrapperEl.classList.add("whatsNew-message-body");
     messageEl.appendChild(wrapperEl);
 
     wrapperEl.appendChild(
-      await this._createElement(doc, "h2", {
+      RemoteL10n.createElement(doc, "h2", {
         classList: "whatsNew-message-title",
         content: message.content.title,
       })
     );
     wrapperEl.appendChild(
-      await this._createElement(doc, "p", { content: message.content.body })
+      RemoteL10n.createElement(doc, "p", {
+        classList: "protections-popup-content",
+        content: message.content.body,
+      })
     );
 
     if (message.content.link_text) {
-      let linkEl = await this._createElement(doc, "a", {
+      let linkEl = RemoteL10n.createElement(doc, "a", {
         classList: "text-link",
         content: message.content.link_text,
       });
@@ -390,18 +419,6 @@ class _ToolbarPanelHub {
     }
 
     return messageEl;
-  }
-
-  async _createElement(doc, elem, options = {}) {
-    const node = doc.createElementNS("http://www.w3.org/1999/xhtml", elem);
-    if (options.classList) {
-      node.classList.add(options.classList);
-    }
-    if (options.content) {
-      await this._setString(node, options.content);
-    }
-
-    return node;
   }
 
   async _contentArguments() {
@@ -445,43 +462,6 @@ class _ToolbarPanelHub {
     };
   }
 
-  // If `string_id` is present it means we are relying on fluent for translations.
-  // Otherwise, we have a vanilla string.
-  async _setString(el, stringObj) {
-    if (stringObj && stringObj.string_id) {
-      const [{ value }] = await RemoteL10n.l10n.formatMessages([
-        {
-          id: stringObj.string_id,
-          // Pass all available arguments to Fluent
-          args: this.state.contentArguments,
-        },
-      ]);
-      el.textContent = value;
-    } else {
-      el.textContent = stringObj;
-    }
-  }
-
-  // If `string_id` is present it means we are relying on fluent for translations.
-  // Otherwise, we have a vanilla string.
-  async _setTextAttribute(el, attr, stringObj) {
-    if (stringObj && stringObj.string_id) {
-      const [{ attributes }] = await RemoteL10n.l10n.formatMessages([
-        {
-          id: stringObj.string_id,
-          // Pass all available arguments to Fluent
-          args: this.state.contentArguments,
-        },
-      ]);
-      if (attributes) {
-        const { value } = attributes.find(({ name }) => name === attr);
-        el.setAttribute(attr, value);
-      }
-    } else {
-      el.setAttribute(attr, stringObj);
-    }
-  }
-
   async _showAppmenuButton(win) {
     this.maybeInsertFTL(win);
     await this._showElement(
@@ -491,8 +471,11 @@ class _ToolbarPanelHub {
     );
   }
 
-  _hideAppmenuButton(win) {
-    this._hideElement(win.browser.ownerDocument, APPMENU_BUTTON_ID);
+  _hideAppmenuButton(win, windowClosed) {
+    // No need to do something if the window is going away
+    if (!windowClosed) {
+      this._hideElement(win.browser.ownerDocument, APPMENU_BUTTON_ID);
+    }
   }
 
   _showToolbarButton(win) {
@@ -505,21 +488,23 @@ class _ToolbarPanelHub {
     this._hideElement(win.browser.ownerDocument, TOOLBAR_BUTTON_ID);
   }
 
-  async _showElement(document, id, string_id) {
-    const el = document.getElementById(id);
-    await this._setTextAttribute(el, "label", { string_id });
-    await this._setTextAttribute(el, "tooltiptext", { string_id });
+  _showElement(document, id, string_id) {
+    const el = PanelMultiView.getViewNode(document, id);
+    document.l10n.setAttributes(el, string_id);
     el.removeAttribute("hidden");
   }
 
   _hideElement(document, id) {
-    document.getElementById(id).setAttribute("hidden", true);
+    const el = PanelMultiView.getViewNode(document, id);
+    if (el) {
+      el.setAttribute("hidden", true);
+    }
   }
 
   _sendTelemetry(ping) {
     this._dispatch({
       type: "TOOLBAR_PANEL_TELEMETRY",
-      data: { action: "cfr_user_event", source: "CFR", ...ping },
+      data: { action: "whats-new-panel_user_event", ...ping },
     });
   }
 
@@ -568,7 +553,7 @@ class _ToolbarPanelHub {
         triggerId: "protectionsPanelOpen",
       });
       if (message) {
-        const messageEl = await this._createHeroElement(win, doc, message);
+        const messageEl = this._createHeroElement(win, doc, message);
         container.appendChild(messageEl);
         infoButton.addEventListener("click", toggleMessage);
         this.sendUserEventTelemetry(win, "IMPRESSION", message);

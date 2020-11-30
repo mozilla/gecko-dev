@@ -27,7 +27,6 @@ from voluptuous import Required, Optional
 
 
 beetmover_description_schema = schema.extend({
-    Required('depname', default='build'): text_type,
     Optional('label'): text_type,
     Optional('treeherder'): task_description_schema['treeherder'],
 
@@ -134,7 +133,7 @@ def craft_release_properties(config, job):
     release_properties = beetmover_craft_release_properties(config, job)
 
     release_properties['artifact-id'] = get_geckoview_artifact_id(
-        job['attributes']['build_platform'], job['attributes'].get('update-channel')
+        config, job['attributes']['build_platform'], job['attributes'].get('update-channel')
     )
     release_properties['app-name'] = 'geckoview'
 

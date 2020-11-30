@@ -92,17 +92,19 @@ NS_IMETHODIMP nsReadConfig::Observe(nsISupports* aSubject, const char* aTopic,
     if (NS_FAILED(rv)) {
       if (sandboxEnabled) {
         nsContentUtils::ReportToConsoleNonLocalized(
-            NS_LITERAL_STRING("Autoconfig is sandboxed by default. See "
-                              "https://support.mozilla.org/products/"
-                              "firefox-enterprise for more information."),
-            nsIScriptError::warningFlag, NS_LITERAL_CSTRING("autoconfig"),
-            nullptr);
+            u"Autoconfig is sandboxed by default. See "
+            "https://support.mozilla.org/products/"
+            "firefox-enterprise for more information."_ns,
+            nsIScriptError::warningFlag, "autoconfig"_ns, nullptr);
       } else {
         rv = DisplayError();
         if (NS_FAILED(rv)) {
           nsCOMPtr<nsIAppStartup> appStartup =
               components::AppStartup::Service();
-          if (appStartup) appStartup->Quit(nsIAppStartup::eAttemptQuit);
+          if (appStartup) {
+            bool userAllowedQuit = true;
+            appStartup->Quit(nsIAppStartup::eAttemptQuit, &userAllowedQuit);
+          }
         }
       }
     }
@@ -130,7 +132,7 @@ nsresult nsReadConfig::readConfigFile() {
       prefService->GetDefaultBranch(nullptr, getter_AddRefs(defaultPrefBranch));
   if (NS_FAILED(rv)) return rv;
 
-  NS_NAMED_LITERAL_CSTRING(channel, MOZ_STRINGIFY(MOZ_UPDATE_CHANNEL));
+  constexpr auto channel = nsLiteralCString{MOZ_STRINGIFY(MOZ_UPDATE_CHANNEL)};
 
   bool sandboxEnabled =
       channel.EqualsLiteral("beta") || channel.EqualsLiteral("release");
@@ -257,7 +259,7 @@ nsresult nsReadConfig::openAndEvaluateJSFile(const char* aFileName,
     nsCOMPtr<nsIChannel> channel;
     rv = NS_NewChannel(getter_AddRefs(channel), uri,
                        nsContentUtils::GetSystemPrincipal(),
-                       nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+                       nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
                        nsIContentPolicy::TYPE_OTHER);
     NS_ENSURE_SUCCESS(rv, rv);
 

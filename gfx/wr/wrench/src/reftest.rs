@@ -19,6 +19,7 @@ use std::process::Command;
 use std::sync::mpsc::Receiver;
 use webrender::RenderResults;
 use webrender::api::*;
+use webrender::render_api::*;
 use webrender::api::units::*;
 use crate::wrench::{Wrench, WrenchThing};
 use crate::yaml_frame_reader::YamlFrameReader;
@@ -112,7 +113,7 @@ pub struct Reftest {
     disable_dual_source_blending: bool,
     allow_mipmaps: bool,
     zoom_factor: f32,
-    allow_sacrificing_subpixel_aa: Option<bool>,
+    force_subpixel_aa_where_possible: Option<bool>,
 }
 
 impl Reftest {
@@ -373,46 +374,27 @@ impl ReftestManifest {
             let mut zoom_factor = 1.0;
             let mut allow_mipmaps = false;
             let mut dirty_region_index = 0;
-            let mut allow_sacrificing_subpixel_aa = None;
+            let mut force_subpixel_aa_where_possible = None;
 
-            let mut paths = vec![];
-            for (i, token) in tokens.iter().enumerate() {
-                match *token {
-                    "include" => {
-                        assert!(i == 0, "include must be by itself");
-                        let include = dir.join(tokens[1]);
-
-                        reftests.append(
-                            &mut ReftestManifest::new(include.as_path(), environment, options).reftests,
-                        );
-
-                        break;
-                    }
-                    platform if platform.starts_with("skip_on") => {
-                        // e.g. skip_on(android,debug) will skip only when
-                        // running on a debug android build.
-                        let (_, args, _) = parse_function(platform);
-                        if args.iter().all(|arg| environment.has(arg)) {
-                            break;
-                        }
-                    }
-                    platform if platform.starts_with("platform") => {
-                        let (_, args, _) = parse_function(platform);
-                        if !args.iter().any(|arg| arg == &environment.platform) {
-                            // Skip due to platform not matching
-                            break;
-                        }
-                    }
-                    function if function.starts_with("zoom") => {
+            let mut parse_command = |token: &str| -> bool {
+                match token {
+                   function if function.starts_with("zoom(") => {
                         let (_, args, _) = parse_function(function);
                         zoom_factor = args[0].parse().unwrap();
                     }
-                    function if function.starts_with("allow_sacrificing_subpixel_aa") => {
+                    function if function.starts_with("force_subpixel_aa_where_possible(") => {
                         let (_, args, _) = parse_function(function);
-                        allow_sacrificing_subpixel_aa = Some(args[0].parse().unwrap());
+                        force_subpixel_aa_where_possible = Some(args[0].parse().unwrap());
                     }
-                    function if function.starts_with("fuzzy-range") => {  // make sure this comes before 'fuzzy'
-                        let (_, args, _) = parse_function(function);
+                    function if function.starts_with("fuzzy-range(") ||
+                                function.starts_with("fuzzy-range-if(") => {
+                        let (_, mut args, _) = parse_function(function);
+                        if function.starts_with("fuzzy-range-if(") {
+                            if !environment.parse_condition(args.remove(0)).expect("unknown condition") {
+                                return true;
+                            }
+                            fuzziness.clear();
+                        }
                         let num_range = args.len() / 2;
                         for range in 0..num_range {
                             let mut max = args[range * 2 + 0];
@@ -428,26 +410,33 @@ impl ReftestManifest {
                             fuzziness.push(RefTestFuzzy { max_difference, num_differences });
                         }
                     }
-                    function if function.starts_with("fuzzy") => {
-                        let (_, args, _) = parse_function(function);
+                    function if function.starts_with("fuzzy(") ||
+                                function.starts_with("fuzzy-if(") => {
+                        let (_, mut args, _) = parse_function(function);
+                        if function.starts_with("fuzzy-if(") {
+                            if !environment.parse_condition(args.remove(0)).expect("unknown condition") {
+                                return true;
+                            }
+                            fuzziness.clear();
+                        }
                         let max_difference = args[0].parse().unwrap();
                         let num_differences = args[1].parse().unwrap();
                         assert!(fuzziness.is_empty()); // if this fires, consider fuzzy-range instead
                         fuzziness.push(RefTestFuzzy { max_difference, num_differences });
                     }
-                    function if function.starts_with("draw_calls") => {
+                    function if function.starts_with("draw_calls(") => {
                         let (_, args, _) = parse_function(function);
                         extra_checks.push(ExtraCheck::DrawCalls(args[0].parse().unwrap()));
                     }
-                    function if function.starts_with("alpha_targets") => {
+                    function if function.starts_with("alpha_targets(") => {
                         let (_, args, _) = parse_function(function);
                         extra_checks.push(ExtraCheck::AlphaTargets(args[0].parse().unwrap()));
                     }
-                    function if function.starts_with("color_targets") => {
+                    function if function.starts_with("color_targets(") => {
                         let (_, args, _) = parse_function(function);
                         extra_checks.push(ExtraCheck::ColorTargets(args[0].parse().unwrap()));
                     }
-                    function if function.starts_with("dirty") => {
+                    function if function.starts_with("dirty(") => {
                         let (_, args, _) = parse_function(function);
                         let region: String = args[0].parse().unwrap();
                         extra_checks.push(ExtraCheck::DirtyRegion {
@@ -456,7 +445,7 @@ impl ReftestManifest {
                         });
                         dirty_region_index += 1;
                     }
-                    options if options.starts_with("options") => {
+                    options if options.starts_with("options(") => {
                         let (_, args, _) = parse_function(options);
                         if args.iter().any(|arg| arg == &OPTION_DISABLE_SUBPX) {
                             font_render_mode = Some(FontRenderMode::Alpha);
@@ -471,6 +460,24 @@ impl ReftestManifest {
                             allow_mipmaps = true;
                         }
                     }
+                    _ => return false,
+                }
+                return true;
+            };
+
+            let mut paths = vec![];
+            for (i, token) in tokens.iter().enumerate() {
+                match *token {
+                    "include" => {
+                        assert!(i == 0, "include must be by itself");
+                        let include = dir.join(tokens[1]);
+
+                        reftests.append(
+                            &mut ReftestManifest::new(include.as_path(), environment, options).reftests,
+                        );
+
+                        break;
+                    }
                     "==" => {
                         op = Some(ReftestOp::Equal);
                     }
@@ -483,8 +490,21 @@ impl ReftestManifest {
                     "!*" => {
                         op = Some(ReftestOp::Inaccurate);
                     }
+                    cond if cond.starts_with("if(") => {
+                        let (_, args, _) = parse_function(cond);
+                        if environment.parse_condition(args[0]).expect("unknown condition") {
+                            for command in &args[1..] {
+                                parse_command(command);
+                            }
+                        }
+                    }
+                    command if parse_command(command) => {}
                     _ => {
-                        paths.push(dir.join(*token));
+                        match environment.parse_condition(*token) {
+                            Some(true) => {}
+                            Some(false) => break,
+                            _ => paths.push(dir.join(*token)),
+                        }
                     }
                 }
             }
@@ -541,7 +561,7 @@ impl ReftestManifest {
                 disable_dual_source_blending,
                 allow_mipmaps,
                 zoom_factor,
-                allow_sacrificing_subpixel_aa,
+                force_subpixel_aa_where_possible,
             });
         }
 
@@ -570,10 +590,10 @@ struct ReftestEnvironment {
 }
 
 impl ReftestEnvironment {
-    fn new() -> Self {
+    fn new(wrench: &Wrench, window: &WindowWrapper) -> Self {
         Self {
-            platform: Self::platform(),
-            version: Self::version(),
+            platform: Self::platform(wrench, window),
+            version: Self::version(wrench, window),
             mode: Self::mode(),
         }
     }
@@ -594,8 +614,10 @@ impl ReftestEnvironment {
         env::var(envkey).is_ok()
     }
 
-    fn platform() -> &'static str {
-        if cfg!(target_os = "windows") {
+    fn platform(_wrench: &Wrench, window: &WindowWrapper) -> &'static str {
+        if window.is_software() {
+            "swgl"
+        } else if cfg!(target_os = "windows") {
             "win"
         } else if cfg!(target_os = "linux") {
             "linux"
@@ -608,8 +630,10 @@ impl ReftestEnvironment {
         }
     }
 
-    fn version() -> Option<semver::Version> {
-        if cfg!(target_os = "macos") {
+    fn version(_wrench: &Wrench, window: &WindowWrapper) -> Option<semver::Version> {
+        if window.is_software() {
+            None
+        } else if cfg!(target_os = "macos") {
             use std::str;
             let version_bytes = Command::new("defaults")
                 .arg("read")
@@ -642,6 +666,40 @@ impl ReftestEnvironment {
             "release"
         }
     }
+
+    fn parse_condition(&self, token: &str) -> Option<bool> {
+        match token {
+            platform if platform.starts_with("skip_on(") => {
+                // e.g. skip_on(android,debug) will skip only when
+                // running on a debug android build.
+                let (_, args, _) = parse_function(platform);
+                Some(!args.iter().all(|arg| self.has(arg)))
+            }
+            platform if platform.starts_with("env(") => {
+                // non-negated version of skip_on for nested conditions
+                let (_, args, _) = parse_function(platform);
+                Some(args.iter().all(|arg| self.has(arg)))
+            }
+            platform if platform.starts_with("platform(") => {
+                let (_, args, _) = parse_function(platform);
+                // Skip due to platform not matching
+                Some(args.iter().any(|arg| arg == &self.platform))
+            }
+            op if op.starts_with("not(") => {
+                let (_, args, _) = parse_function(op);
+                Some(!self.parse_condition(args[0]).expect("unknown condition"))
+            }
+            op if op.starts_with("or(") => {
+                let (_, args, _) = parse_function(op);
+                Some(args.iter().any(|arg| self.parse_condition(arg).expect("unknown condition")))
+            }
+            op if op.starts_with("and(") => {
+                let (_, args, _) = parse_function(op);
+                Some(args.iter().all(|arg| self.parse_condition(arg).expect("unknown condition")))
+            }
+            _ => None,
+        }
+    }
 }
 
 pub struct ReftestHarness<'a> {
@@ -652,7 +710,7 @@ pub struct ReftestHarness<'a> {
 }
 impl<'a> ReftestHarness<'a> {
     pub fn new(wrench: &'a mut Wrench, window: &'a mut WindowWrapper, rx: &'a Receiver<NotifierEvent>) -> Self {
-        let environment = ReftestEnvironment::new();
+        let environment = ReftestEnvironment::new(wrench, window);
         ReftestHarness { wrench, window, rx, environment }
     }
 
@@ -689,7 +747,9 @@ impl<'a> ReftestHarness<'a> {
     }
 
     fn run_reftest(&mut self, t: &Reftest) -> bool {
-        println!("REFTEST {}", t);
+        let test_name = t.to_string();
+        println!("REFTEST {}", test_name);
+        profile_scope!("wrench reftest", text: &test_name);
 
         self.wrench
             .api
@@ -697,10 +757,10 @@ impl<'a> ReftestHarness<'a> {
                 DebugCommand::ClearCaches(ClearCache::all())
             );
 
-        let quality_settings = match t.allow_sacrificing_subpixel_aa {
-            Some(allow_sacrificing_subpixel_aa) => {
+        let quality_settings = match t.force_subpixel_aa_where_possible {
+            Some(force_subpixel_aa_where_possible) => {
                 QualitySettings {
-                    allow_sacrificing_subpixel_aa,
+                    force_subpixel_aa_where_possible,
                 }
             }
             None => {
@@ -786,7 +846,14 @@ impl<'a> ReftestHarness<'a> {
         }
 
         let reference = match reference_image {
-            Some(image) => image,
+            Some(image) => {
+                let save_all_png = false; // flip to true to update all the tests!
+                if save_all_png {
+                    let img = images.last().unwrap();
+                    save_flipped(&t.reference, img.data.clone(), img.size);
+                }
+                image
+            }
             None => {
                 let output = self.render_yaml(
                     &t.reference,

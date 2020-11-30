@@ -11,7 +11,7 @@
  * Having problems?
  *
  * See the User Manual at:
- *   http://www.mozilla.org/projects/xpcom/nsCOMPtr.html
+ *   https://developer.mozilla.org/en-US/docs/Mozilla/Tech/XPCOM/Using_nsCOMPtr
  *
  *
  * nsCOMPtr
@@ -20,13 +20,13 @@
  *                      -- scc
  */
 
+#include <type_traits>
 #include <utility>
 
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/TypeTraits.h"
 #include "nsCycleCollectionNoteChild.h"
 #include "nsDebug.h"  // for |NS_ASSERTION|
 #include "nsISupportsUtils.h"  // for |nsresult|, |NS_ADDREF|, |NS_GET_TEMPLATE_IID| et al
@@ -203,8 +203,7 @@ namespace mozilla {
 // variety of smart pointer types in addition to raw pointers. These types
 // include RefPtr<>, nsCOMPtr<>, and OwningNonNull<>.
 template <class T>
-using PointedToType =
-    typename mozilla::RemovePointer<decltype(&*mozilla::DeclVal<T>())>::Type;
+using PointedToType = std::remove_pointer_t<decltype(&*std::declval<T>())>;
 }  // namespace mozilla
 
 #ifdef NSCAP_FEATURE_USE_BASE
@@ -346,7 +345,20 @@ class nsCOMPtr_base {
   void NS_FASTCALL assign_from_query_referent(const nsQueryReferent&,
                                               const nsIID&);
   void NS_FASTCALL assign_from_helper(const nsCOMPtr_helper&, const nsIID&);
-  void** NS_FASTCALL begin_assignment();
+// Since in most cases, begin_assignment is called on a default-constructed
+// nsCOMPtr, the call to assign_assuming_AddRef becomes a no-op in release
+// builds. However, the compiler does not always optimize this away and emits a
+// call to begin_assignment without MOZ_ALWAYS_INLINE. When logging is enabled,
+// this might cause code bloat, so we MOZ_NEVER_INLINE in that case.
+#ifdef NSCAP_LOG_EXTERNAL_ASSIGNMENT
+  MOZ_NEVER_INLINE
+#else
+  MOZ_ALWAYS_INLINE
+#endif
+  void** NS_FASTCALL begin_assignment() {
+    assign_assuming_AddRef(nullptr);
+    return reinterpret_cast<void**>(&mRawPtr);
+  }
 
  protected:
   NS_MAY_ALIAS_PTR(nsISupports) MOZ_OWNING_REF mRawPtr;
@@ -1173,7 +1185,7 @@ template <typename U>
 void nsCOMPtr<T>::assign_from_qi(const nsQueryInterface<U> aQI,
                                  const nsIID& aIID) {
   static_assert(
-      !(mozilla::IsSame<T, U>::value || std::is_base_of<T, U>::value),
+      !(std::is_same_v<T, U> || std::is_base_of<T, U>::value),
       "don't use do_QueryInterface for compile-time-determinable casts");
   void* newRawPtr;
   if (NS_FAILED(aQI(aIID, &newRawPtr))) {
@@ -1187,7 +1199,7 @@ template <typename U>
 void nsCOMPtr<T>::assign_from_qi_with_error(
     const nsQueryInterfaceWithError<U>& aQI, const nsIID& aIID) {
   static_assert(
-      !(mozilla::IsSame<T, U>::value || std::is_base_of<T, U>::value),
+      !(std::is_same_v<T, U> || std::is_base_of<T, U>::value),
       "don't use do_QueryInterface for compile-time-determinable casts");
   void* newRawPtr;
   if (NS_FAILED(aQI(aIID, &newRawPtr))) {
@@ -1507,5 +1519,21 @@ template <class T>
 RefPtr<T> ToRefPtr(nsCOMPtr<T>&& aObj) {
   return aObj.forget();
 }
+
+// Integration with ResultExtensions.h
+template <typename R>
+auto ResultRefAsParam(nsCOMPtr<R>& aResult) {
+  return getter_AddRefs(aResult);
+}
+
+namespace mozilla::detail {
+template <typename T>
+struct outparam_as_pointer;
+
+template <typename T>
+struct outparam_as_pointer<nsGetterAddRefs<T>> {
+  using type = T**;
+};
+}  // namespace mozilla::detail
 
 #endif  // !defined(nsCOMPtr_h___)

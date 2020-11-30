@@ -27,7 +27,7 @@
 #include "nsUnicharInputStream.h"
 #include "prio.h"
 
-#define MOZ_PERSONAL_DICT_NAME "persdict.dat"
+#define MOZ_PERSONAL_DICT_NAME u"persdict.dat"
 
 /**
  * This is the most braindead implementation of a personal dictionary possible.
@@ -61,9 +61,8 @@ class mozPersonalDictionaryLoader final : public mozilla::Runnable {
     mDict->SyncLoad();
 
     // Release the dictionary on the main thread
-    NS_ReleaseOnMainThreadSystemGroup(
-        "mozPersonalDictionaryLoader::mDict",
-        mDict.forget().downcast<mozIPersonalDictionary>());
+    NS_ReleaseOnMainThread("mozPersonalDictionaryLoader::mDict",
+                           mDict.forget().downcast<mozIPersonalDictionary>());
 
     return NS_OK;
   }
@@ -78,7 +77,7 @@ class mozPersonalDictionarySave final : public mozilla::Runnable {
                                      nsCOMPtr<nsIFile> aFile,
                                      nsTArray<nsString>&& aDictWords)
       : mozilla::Runnable("mozPersonalDictionarySave"),
-        mDictWords(aDictWords),
+        mDictWords(std::move(aDictWords)),
         mFile(aFile),
         mDict(aDict) {}
 
@@ -133,9 +132,8 @@ class mozPersonalDictionarySave final : public mozilla::Runnable {
     }
 
     // Release the dictionary on the main thread.
-    NS_ReleaseOnMainThreadSystemGroup(
-        "mozPersonalDictionarySave::mDict",
-        mDict.forget().downcast<mozIPersonalDictionary>());
+    NS_ReleaseOnMainThread("mozPersonalDictionarySave::mDict",
+                           mDict.forget().downcast<mozIPersonalDictionary>());
 
     return NS_OK;
   }
@@ -213,7 +211,7 @@ nsresult mozPersonalDictionary::LoadInternal() {
     return NS_ERROR_FAILURE;
   }
 
-  rv = mFile->Append(NS_LITERAL_STRING(MOZ_PERSONAL_DICT_NAME));
+  rv = mFile->Append(nsLiteralString(MOZ_PERSONAL_DICT_NAME));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -341,7 +339,7 @@ NS_IMETHODIMP mozPersonalDictionary::Save() {
                                getter_AddRefs(theFile));
   if (NS_FAILED(res)) return res;
   if (!theFile) return NS_ERROR_FAILURE;
-  res = theFile->Append(NS_LITERAL_STRING(MOZ_PERSONAL_DICT_NAME));
+  res = theFile->Append(nsLiteralString(MOZ_PERSONAL_DICT_NAME));
   if (NS_FAILED(res)) return res;
 
   nsCOMPtr<nsIEventTarget> target =

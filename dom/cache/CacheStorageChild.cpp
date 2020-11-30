@@ -10,6 +10,7 @@
 #include "mozilla/dom/cache/CacheChild.h"
 #include "mozilla/dom/cache/CacheOpChild.h"
 #include "mozilla/dom/cache/CacheStorage.h"
+#include "mozilla/dom/cache/CacheWorkerRef.h"
 
 namespace mozilla {
 namespace dom {
@@ -19,12 +20,12 @@ namespace cache {
 void DeallocPCacheStorageChild(PCacheStorageChild* aActor) { delete aActor; }
 
 CacheStorageChild::CacheStorageChild(CacheStorage* aListener,
-                                     CacheWorkerRef* aWorkerRef)
+                                     SafeRefPtr<CacheWorkerRef> aWorkerRef)
     : mListener(aListener), mNumChildActors(0), mDelayedDestroy(false) {
   MOZ_COUNT_CTOR(cache::CacheStorageChild);
   MOZ_DIAGNOSTIC_ASSERT(mListener);
 
-  SetWorkerRef(aWorkerRef);
+  SetWorkerRef(std::move(aWorkerRef));
 }
 
 CacheStorageChild::~CacheStorageChild() {
@@ -44,7 +45,9 @@ void CacheStorageChild::ExecuteOp(nsIGlobalObject* aGlobal, Promise* aPromise,
                                   const CacheOpArgs& aArgs) {
   mNumChildActors += 1;
   Unused << SendPCacheOpConstructor(
-      new CacheOpChild(GetWorkerRef(), aGlobal, aParent, aPromise), aArgs);
+      new CacheOpChild(GetWorkerRefPtr().clonePtr(), aGlobal, aParent,
+                       aPromise),
+      aArgs);
 }
 
 void CacheStorageChild::StartDestroyFromListener() {

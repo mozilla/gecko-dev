@@ -23,6 +23,7 @@ bool is_glcontext_gles(void* glcontext_ptr);
 bool is_glcontext_angle(void* glcontext_ptr);
 bool gfx_use_wrench();
 const char* gfx_wr_resource_path_override();
+bool gfx_wr_use_optimized_shaders();
 void gfx_critical_note(const char* msg);
 void gfx_critical_error(const char* msg);
 void gecko_printf_stderr_output(const char* msg);
@@ -33,6 +34,7 @@ void gecko_profiler_unregister_thread();
 
 void gecko_profiler_start_marker(const char* name);
 void gecko_profiler_end_marker(const char* name);
+void gecko_profiler_event_marker(const char* name);
 void gecko_profiler_add_text_marker(const char* name, const char* text_ptr,
                                     size_t text_len, uint64_t microseconds);
 bool gecko_profiler_thread_is_being_profiled();
@@ -73,6 +75,9 @@ struct WrWindowId;
 struct DocumentId;
 struct WrPipelineInfo;
 
+struct WrPipelineIdAndEpoch;
+using WrPipelineIdEpochs = nsTArray<WrPipelineIdAndEpoch>;
+
 const uint64_t ROOT_CLIP_CHAIN = ~0;
 
 }  // namespace wr
@@ -86,10 +91,15 @@ void apz_run_updater(mozilla::wr::WrWindowId aWindowId);
 void apz_deregister_updater(mozilla::wr::WrWindowId aWindowId);
 
 void apz_register_sampler(mozilla::wr::WrWindowId aWindowId);
-void apz_sample_transforms(mozilla::wr::WrWindowId aWindowId,
-                           mozilla::wr::Transaction* aTransaction,
-                           mozilla::wr::DocumentId aRenderRootId);
+void apz_sample_transforms(
+    mozilla::wr::WrWindowId aWindowId, mozilla::wr::Transaction* aTransaction,
+    const mozilla::wr::WrPipelineIdEpochs* aPipelineEpochs);
 void apz_deregister_sampler(mozilla::wr::WrWindowId aWindowId);
+
+void omta_register_sampler(mozilla::wr::WrWindowId aWindowId);
+void omta_sample(mozilla::wr::WrWindowId aWindowId,
+                 mozilla::wr::Transaction* aTransaction);
+void omta_deregister_sampler(mozilla::wr::WrWindowId aWindowId);
 }  // extern "C"
 
 // Work-around wingdi.h define which conflcits with WR color constant

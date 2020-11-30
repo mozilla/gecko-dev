@@ -9,27 +9,16 @@ mod texture;
 use crate::{
     conv,
     hub::Storage,
-    id::{BindGroupId, SamplerId, TextureViewId, TypedId},
-    resource,
-    Backend,
-    Epoch,
-    FastHashMap,
-    Index,
-    RefCount,
+    id::{self, TypedId},
+    resource, Epoch, FastHashMap, Index, RefCount,
 };
 
 use std::{
-    borrow::Borrow,
-    collections::hash_map::Entry,
-    fmt,
-    marker::PhantomData,
-    ops,
-    vec::Drain,
+    borrow::Borrow, collections::hash_map::Entry, fmt, marker::PhantomData, ops, vec::Drain,
 };
 
-pub use buffer::BufferState;
-pub use texture::TextureState;
-
+pub(crate) use buffer::BufferState;
+pub(crate) use texture::TextureState;
 
 /// A single unit of state tracking. It keeps an initial
 /// usage as well as the last/current one, similar to `Range`.
@@ -122,7 +111,7 @@ struct Resource<S> {
 /// A structure containing all the information about a particular resource
 /// transition. User code should be able to generate a pipeline barrier
 /// based on the contents.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct PendingTransition<S: ResourceState> {
     pub id: S::Id,
     pub selector: S::Selector,
@@ -137,9 +126,10 @@ impl PendingTransition<BufferState> {
     ) -> hal::memory::Barrier<'a, B> {
         log::trace!("\tbuffer -> {:?}", self);
         hal::memory::Barrier::Buffer {
-            states: conv::map_buffer_state(self.usage.start) .. conv::map_buffer_state(self.usage.end),
+            states: conv::map_buffer_state(self.usage.start)
+                ..conv::map_buffer_state(self.usage.end),
             target: &buf.raw,
-            range: None .. None,
+            range: hal::buffer::SubRange::WHOLE,
             families: None,
         }
     }
@@ -155,11 +145,11 @@ impl PendingTransition<TextureState> {
         let aspects = tex.full_range.aspects;
         hal::memory::Barrier::Image {
             states: conv::map_texture_state(self.usage.start, aspects)
-                .. conv::map_texture_state(self.usage.end, aspects),
+                ..conv::map_texture_state(self.usage.end, aspects),
             target: &tex.raw,
             range: hal::image::SubresourceRange {
                 aspects,
-                .. self.selector
+                ..self.selector
             },
             families: None,
         }
@@ -173,16 +163,14 @@ pub struct ResourceTracker<S: ResourceState> {
     /// Temporary storage for collecting transitions.
     temp: Vec<PendingTransition<S>>,
     /// The backend variant for all the tracked resources.
-    backend: Backend,
+    backend: wgt::Backend,
 }
 
 impl<S: ResourceState + fmt::Debug> fmt::Debug for ResourceTracker<S> {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         self.map
             .iter()
-            .map(|(&index, res)| {
-                ((index, res.epoch), &res.state)
-            })
+            .map(|(&index, res)| ((index, res.epoch), &res.state))
             .collect::<FastHashMap<_, _>>()
             .fmt(formatter)
     }
@@ -190,7 +178,7 @@ impl<S: ResourceState + fmt::Debug> fmt::Debug for ResourceTracker<S> {
 
 impl<S: ResourceState> ResourceTracker<S> {
     /// Create a new empty tracker.
-    pub fn new(backend: Backend) -> Self {
+    pub fn new(backend: wgt::Backend) -> Self {
         ResourceTracker {
             map: FastHashMap::default(),
             temp: Vec::new(),
@@ -257,12 +245,7 @@ impl<S: ResourceState> ResourceTracker<S> {
     /// Initialize a resource to be used.
     ///
     /// Returns false if the resource is already registered.
-    pub fn init(
-        &mut self,
-        id: S::Id,
-        ref_count: RefCount,
-        state: S,
-    ) -> Result<(), &S> {
+    pub fn init(&mut self, id: S::Id, ref_count: RefCount, state: S) -> Result<(), &S> {
         let (index, epoch, backend) = id.unzip();
         debug_assert_eq!(backend, self.backend);
         match self.map.entry(index) {
@@ -274,9 +257,7 @@ impl<S: ResourceState> ResourceTracker<S> {
                 });
                 Ok(())
             }
-            Entry::Occupied(e) => {
-                Err(&e.into_mut().state)
-            }
+            Entry::Occupied(e) => Err(&e.into_mut().state),
         }
     }
 
@@ -295,7 +276,7 @@ impl<S: ResourceState> ResourceTracker<S> {
     /// Make sure that a resource is tracked, and return a mutable
     /// reference to it.
     fn get_or_insert<'a>(
-        self_backend: Backend,
+        self_backend: wgt::Backend,
         map: &'a mut FastHashMap<Index, Resource<S>>,
         id: S::Id,
         ref_count: &RefCount,
@@ -357,9 +338,7 @@ impl<S: ResourceState> ResourceTracker<S> {
                 Entry::Occupied(e) => {
                     assert_eq!(e.get().epoch, new.epoch);
                     let id = S::Id::zip(index, new.epoch, self.backend);
-                    e.into_mut()
-                        .state
-                        .merge(id, &new.state, None)?;
+                    e.into_mut().state.merge(id, &new.state, None)?;
                 }
             }
         }
@@ -368,10 +347,7 @@ impl<S: ResourceState> ResourceTracker<S> {
 
     /// Merge another tracker, adding it's transitions to `self`.
     /// Transitions the current usage to the new one.
-    pub fn merge_replace<'a>(
-        &'a mut self,
-        other: &'a Self,
-    ) -> Drain<PendingTransition<S>> {
+    pub fn merge_replace<'a>(&'a mut self, other: &'a Self) -> Drain<PendingTransition<S>> {
         for (&index, new) in other.map.iter() {
             match self.map.entry(index) {
                 Entry::Vacant(e) => {
@@ -425,7 +401,6 @@ impl<S: ResourceState> ResourceTracker<S> {
     }
 }
 
-
 impl<I: Copy + fmt::Debug + TypedId> ResourceState for PhantomData<I> {
     type Id = I;
     type Selector = ();
@@ -459,26 +434,29 @@ impl<I: Copy + fmt::Debug + TypedId> ResourceState for PhantomData<I> {
 
 pub const DUMMY_SELECTOR: () = ();
 
-
 /// A set of trackers for all relevant resources.
 #[derive(Debug)]
-pub struct TrackerSet {
+pub(crate) struct TrackerSet {
     pub buffers: ResourceTracker<BufferState>,
     pub textures: ResourceTracker<TextureState>,
-    pub views: ResourceTracker<PhantomData<TextureViewId>>,
-    pub bind_groups: ResourceTracker<PhantomData<BindGroupId>>,
-    pub samplers: ResourceTracker<PhantomData<SamplerId>>,
+    pub views: ResourceTracker<PhantomData<id::TextureViewId>>,
+    pub bind_groups: ResourceTracker<PhantomData<id::BindGroupId>>,
+    pub samplers: ResourceTracker<PhantomData<id::SamplerId>>,
+    pub compute_pipes: ResourceTracker<PhantomData<id::ComputePipelineId>>,
+    pub render_pipes: ResourceTracker<PhantomData<id::RenderPipelineId>>,
 }
 
 impl TrackerSet {
     /// Create an empty set.
-    pub fn new(backend: Backend) -> Self {
+    pub fn new(backend: wgt::Backend) -> Self {
         TrackerSet {
             buffers: ResourceTracker::new(backend),
             textures: ResourceTracker::new(backend),
             views: ResourceTracker::new(backend),
             bind_groups: ResourceTracker::new(backend),
             samplers: ResourceTracker::new(backend),
+            compute_pipes: ResourceTracker::new(backend),
+            render_pipes: ResourceTracker::new(backend),
         }
     }
 
@@ -489,6 +467,8 @@ impl TrackerSet {
         self.views.clear();
         self.bind_groups.clear();
         self.samplers.clear();
+        self.compute_pipes.clear();
+        self.render_pipes.clear();
     }
 
     /// Try to optimize the tracking representation.
@@ -498,6 +478,8 @@ impl TrackerSet {
         self.views.optimize();
         self.bind_groups.optimize();
         self.samplers.optimize();
+        self.compute_pipes.optimize();
+        self.render_pipes.optimize();
     }
 
     /// Merge all the trackers of another instance by extending
@@ -508,9 +490,13 @@ impl TrackerSet {
         self.views.merge_extend(&other.views).unwrap();
         self.bind_groups.merge_extend(&other.bind_groups).unwrap();
         self.samplers.merge_extend(&other.samplers).unwrap();
+        self.compute_pipes
+            .merge_extend(&other.compute_pipes)
+            .unwrap();
+        self.render_pipes.merge_extend(&other.render_pipes).unwrap();
     }
 
-    pub fn backend(&self) -> Backend {
+    pub fn backend(&self) -> wgt::Backend {
         self.buffers.backend
     }
 }

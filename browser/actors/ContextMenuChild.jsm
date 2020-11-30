@@ -566,7 +566,8 @@ class ContextMenuChild extends JSWindowActorChild {
       baseURI,
     } = doc;
     docLocation = docLocation && docLocation.spec;
-    let frameOuterWindowID = WebNavigationFrames.getFrameId(doc.defaultView);
+    let frameID = WebNavigationFrames.getFrameId(doc.defaultView);
+    let frameBrowsingContextID = doc.defaultView.docShell.browsingContext.id;
     let loginFillInfo = LoginManagerChild.forWindow(
       doc.defaultView
     ).getFieldContext(aEvent.composedTarget);
@@ -628,7 +629,7 @@ class ContextMenuChild extends JSWindowActorChild {
     let referrerInfo = Cc["@mozilla.org/referrer-info;1"].createInstance(
       Ci.nsIReferrerInfo
     );
-    referrerInfo.initWithNode(aEvent.composedTarget);
+    referrerInfo.initWithElement(aEvent.composedTarget);
     referrerInfo = E10SUtils.serializeReferrerInfo(referrerInfo);
 
     // In the case "onLink" we may have to send link referrerInfo to use in
@@ -638,7 +639,7 @@ class ContextMenuChild extends JSWindowActorChild {
       linkReferrerInfo = Cc["@mozilla.org/referrer-info;1"].createInstance(
         Ci.nsIReferrerInfo
       );
-      linkReferrerInfo.initWithNode(context.link);
+      linkReferrerInfo.initWithElement(context.link);
     }
 
     let target = context.target;
@@ -682,7 +683,8 @@ class ContextMenuChild extends JSWindowActorChild {
       userContextId,
       customMenuItems,
       contentDisposition,
-      frameOuterWindowID,
+      frameID,
+      frameBrowsingContextID,
       disableSetDesktopBackground,
       parentAllowsMixedContent,
     };
@@ -873,7 +875,6 @@ class ContextMenuChild extends JSWindowActorChild {
     context.onCTPPlugin = false;
     context.onDRMMedia = false;
     context.onPiPVideo = false;
-    context.onMediaStreamVideo = false;
     context.onEditable = false;
     context.onImage = false;
     context.onKeywordField = false;
@@ -898,9 +899,15 @@ class ContextMenuChild extends JSWindowActorChild {
       context.target.ownerDocument.effectiveStoragePrincipal;
     context.csp = E10SUtils.serializeCSP(context.target.ownerDocument.csp);
 
-    context.frameOuterWindowID = WebNavigationFrames.getFrameId(
+    context.frameID = WebNavigationFrames.getFrameId(
       context.target.ownerGlobal
     );
+
+    context.frameOuterWindowID =
+      context.target.ownerGlobal.docShell.outerWindowID;
+
+    context.frameBrowsingContextID =
+      context.target.ownerGlobal.browsingContext.id;
 
     // Check if we are in the PDF Viewer.
     context.inPDFViewer =
@@ -998,9 +1005,20 @@ class ContextMenuChild extends JSWindowActorChild {
       // currentRequestFinalURI.  We should use that as the URL for purposes of
       // deciding on the filename, if it is present. It might not be present
       // if images are blocked.
-      context.mediaURL = (
-        context.target.currentRequestFinalURI || context.target.currentURI
-      ).spec;
+      //
+      // It is important to check both the final and the current URI, as they
+      // could be different blob URIs, see bug 1625786.
+      context.mediaURL = (() => {
+        let finalURI = context.target.currentRequestFinalURI?.spec;
+        if (finalURI && this._isMediaURLReusable(finalURI)) {
+          return finalURI;
+        }
+        let currentURI = context.target.currentURI?.spec;
+        if (currentURI && this._isMediaURLReusable(currentURI)) {
+          return currentURI;
+        }
+        return "";
+      })();
 
       const descURL = context.target.getAttribute("longdesc");
 
@@ -1026,8 +1044,6 @@ class ContextMenuChild extends JSWindowActorChild {
       if (context.target.isCloningElementVisually) {
         context.onPiPVideo = true;
       }
-
-      context.onMediaStreamVideo = !!context.target.srcObject;
 
       // Firefox always creates a HTMLVideoElement when loading an ogg file
       // directly. If the media is actually audio, be smarter and provide a
@@ -1210,5 +1226,21 @@ class ContextMenuChild extends JSWindowActorChild {
         context.shouldInitInlineSpellCheckerUIWithChildren = true;
       }
     }
+  }
+
+  _destructionObservers = new Set();
+  registerDestructionObserver(obj) {
+    this._destructionObservers.add(obj);
+  }
+
+  unregisterDestructionObserver(obj) {
+    this._destructionObservers.delete(obj);
+  }
+
+  didDestroy() {
+    for (let obs of this._destructionObservers) {
+      obs.actorDestroyed(this);
+    }
+    this._destructionObservers = null;
   }
 }

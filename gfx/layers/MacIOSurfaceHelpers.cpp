@@ -98,7 +98,7 @@ CreateSourceSurfaceFromLockedMacIOSurface(MacIOSurface* aSurface) {
                             0 /* not used */, mappedSurface.mData,
                             mappedSurface.mStride, 0, 0, size.width,
                             size.height, size.width, size.height,
-                            libyuv::kRotate0, libyuv::FOURCC_UYVY);
+                            libyuv::kRotate0, libyuv::FOURCC_YUYV);
     } else {
       /* Convert to YV16 */
       size_t cbCrWidth = (ioWidth + 1) >> 1;
@@ -120,6 +120,9 @@ CreateSourceSurfaceFromLockedMacIOSurface(MacIOSurface* aSurface) {
       for (size_t i = 0; i < ioHeight; i++) {
         uint8_t* rowSrc = src + bytesPerRow * i;
         for (size_t j = 0; j < cbCrWidth; j++) {
+          *yDest = *rowSrc;
+          yDest++;
+          rowSrc++;
           *cbDest = *rowSrc;
           cbDest++;
           rowSrc++;
@@ -128,9 +131,6 @@ CreateSourceSurfaceFromLockedMacIOSurface(MacIOSurface* aSurface) {
           rowSrc++;
           *crDest = *rowSrc;
           crDest++;
-          rowSrc++;
-          *yDest = *rowSrc;
-          yDest++;
           rowSrc++;
         }
         if (strideDelta) {

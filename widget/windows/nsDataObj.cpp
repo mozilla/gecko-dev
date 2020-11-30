@@ -76,7 +76,7 @@ nsresult nsDataObj::CStream::Init(nsIURI* pSourceURI,
   }
   nsresult rv;
   rv = NS_NewChannel(getter_AddRefs(mChannel), pSourceURI, aRequestingPrincipal,
-                     nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_INHERITS,
+                     nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_INHERITS_SEC_CONTEXT,
                      aContentPolicyType,
                      nullptr,  // nsICookieJarSettings
                      nullptr,  // PerformanceStorage
@@ -430,14 +430,11 @@ STDMETHODIMP nsDataObj::CMemStream::Stat(STATSTG* statstg, DWORD dwFlags) {
   memset((void*)statstg, 0, sizeof(STATSTG));
 
   if (dwFlags != STATFLAG_NONAME) {
-    const nsString& wideFileName = EmptyString();
-
-    uint32_t nMaxNameLength = (wideFileName.Length() * 2) + 2;
-    void* retBuf = CoTaskMemAlloc(nMaxNameLength);  // freed by caller
+    constexpr size_t kMaxNameLength = sizeof(wchar_t);
+    void* retBuf = CoTaskMemAlloc(kMaxNameLength);  // freed by caller
     if (!retBuf) return STG_E_INSUFFICIENTMEMORY;
 
-    ZeroMemory(retBuf, nMaxNameLength);
-    memcpy(retBuf, wideFileName.get(), wideFileName.Length() * 2);
+    ZeroMemory(retBuf, kMaxNameLength);
     statstg->pwcsName = (LPOLESTR)retBuf;
   }
 
@@ -477,8 +474,7 @@ nsDataObj::nsDataObj(nsIURI* uri)
       mTransferable(nullptr),
       mIsAsyncMode(FALSE),
       mIsInOperation(FALSE) {
-  mIOThread = new LazyIdleThread(DEFAULT_THREAD_TIMEOUT_MS,
-                                 NS_LITERAL_CSTRING("nsDataObj"),
+  mIOThread = new LazyIdleThread(DEFAULT_THREAD_TIMEOUT_MS, "nsDataObj"_ns,
                                  LazyIdleThread::ManualShutdown);
   m_enumFE = new CEnumFormatEtc();
   m_enumFE->AddRef();
@@ -958,7 +954,7 @@ nsDataObj::GetDib(const nsACString& inFlavor, FORMATETC& aFormat,
   nsCOMPtr<imgITools> imgTools =
       do_CreateInstance("@mozilla.org/image/tools;1");
 
-  nsAutoString options(NS_LITERAL_STRING("bpp=32;"));
+  nsAutoString options(u"bpp=32;"_ns);
   if (aFormat.cfFormat == CF_DIBV5) {
     options.AppendLiteral("version=5");
   } else {
@@ -966,7 +962,7 @@ nsDataObj::GetDib(const nsACString& inFlavor, FORMATETC& aFormat,
   }
 
   nsCOMPtr<nsIInputStream> inputStream;
-  nsresult rv = imgTools->EncodeImage(image, NS_LITERAL_CSTRING(IMAGE_BMP),
+  nsresult rv = imgTools->EncodeImage(image, nsLiteralCString(IMAGE_BMP),
                                       options, getter_AddRefs(inputStream));
   if (NS_FAILED(rv) || !inputStream) {
     return E_FAIL;
@@ -1360,6 +1356,11 @@ nsDataObj ::GetFileContentsInternetShortcut(FORMATETC& aFE, STGMEDIUM& aSTG) {
   ::GlobalUnlock(globalMem.get());
 
   if (aFE.tymed & TYMED_ISTREAM) {
+    if (!mIsInOperation) {
+      // The drop target didn't initiate an async operation.
+      // We can't block CMemStream::Read.
+      event = nullptr;
+    }
     RefPtr<IStream> stream =
         new CMemStream(globalMem.disown(), totalLen, event.forget());
     stream.forget(&aSTG.pstm);
@@ -1607,8 +1608,8 @@ HRESULT nsDataObj::DropImage(FORMATETC& aFE, STGMEDIUM& aSTG) {
     nsCOMPtr<imgITools> imgTools =
         do_CreateInstance("@mozilla.org/image/tools;1");
     nsCOMPtr<nsIInputStream> inputStream;
-    rv = imgTools->EncodeImage(image, NS_LITERAL_CSTRING(IMAGE_BMP),
-                               NS_LITERAL_STRING("bpp=32;version=3"),
+    rv = imgTools->EncodeImage(image, nsLiteralCString(IMAGE_BMP),
+                               u"bpp=32;version=3"_ns,
                                getter_AddRefs(inputStream));
     if (NS_FAILED(rv) || !inputStream) {
       return E_FAIL;
@@ -1969,9 +1970,9 @@ nsresult nsDataObj ::BuildPlatformHTML(const char* inOurHTML,
       (kSourceURLLength > 0 ? strlen(startSourceURLPrefix) : 0) +
       kSourceURLLength + (4 * kNumberLength);
 
-  NS_NAMED_LITERAL_CSTRING(htmlHeaderString, "<html><body>\r\n");
+  constexpr auto htmlHeaderString = "<html><body>\r\n"_ns;
 
-  NS_NAMED_LITERAL_CSTRING(fragmentHeaderString, "<!--StartFragment-->");
+  constexpr auto fragmentHeaderString = "<!--StartFragment-->"_ns;
 
   nsDependentCString trailingString(
       "<!--EndFragment-->\r\n"
@@ -2015,7 +2016,7 @@ nsresult nsDataObj ::BuildPlatformHTML(const char* inOurHTML,
   clipboardString.Append(inHTMLString);
   clipboardString.Append(trailingString);
 
-  *outPlatformHTML = ToNewCString(clipboardString);
+  *outPlatformHTML = ToNewCString(clipboardString, mozilla::fallible);
   if (!*outPlatformHTML) return NS_ERROR_OUT_OF_MEMORY;
 
   return NS_OK;

@@ -139,6 +139,19 @@ static void testTHashtable(nsTHashtable<EntityToUnicodeEntry>& hash,
 
   uint32_t count = nsTIterPrint(hash);
   EXPECT_EQ(count, numEntries);
+
+  for (const auto& entry :
+       const_cast<const nsTHashtable<EntityToUnicodeEntry>&>(hash)) {
+    static_assert(std::is_same_v<decltype(entry), const EntityToUnicodeEntry&>);
+  }
+  for (auto& entry : hash) {
+    static_assert(std::is_same_v<decltype(entry), EntityToUnicodeEntry&>);
+  }
+
+  EXPECT_EQ(numEntries == ENTITY_COUNT ? 6 : 0,
+            std::count_if(hash.cbegin(), hash.cend(), [](const auto& entry) {
+              return entry.mNode->mUnicode >= 170;
+            }));
 }
 
 //
@@ -266,6 +279,19 @@ TEST(Hashtable, THashtable)
 
   count = nsTIterPrint(EntityToUnicode);
   ASSERT_EQ(count, uint32_t(0));
+}
+
+TEST(Hashtable, PtrHashtable)
+{
+  nsTHashtable<nsPtrHashKey<int>> hash;
+
+  for (const auto& entry :
+       const_cast<const nsTHashtable<nsPtrHashKey<int>>&>(hash)) {
+    static_assert(std::is_same_v<decltype(entry), const nsPtrHashKey<int>&>);
+  }
+  for (auto& entry : hash) {
+    static_assert(std::is_same_v<decltype(entry), nsPtrHashKey<int>&>);
+  }
 }
 
 TEST(Hashtable, Move)
@@ -412,7 +438,7 @@ TEST(Hashtables, ClassHashtable)
     ASSERT_TRUE(EntToUniClass.Get(nsDependentCString(entity.mStr), &myChar));
   }
 
-  ASSERT_FALSE(EntToUniClass.Get(NS_LITERAL_CSTRING("xxxx"), &myChar));
+  ASSERT_FALSE(EntToUniClass.Get("xxxx"_ns, &myChar));
 
   uint32_t count = 0;
   for (auto iter = EntToUniClass.Iter(); !iter.Done(); iter.Next()) {
@@ -693,6 +719,52 @@ TEST(Hashtables, ClassHashtable_LookupForAdd)
   ASSERT_TRUE(0 == EntToUniClass.Count());
 }
 
+TEST(Hashtables, ClassHashtable_LookupOrAdd_Present)
+{
+  nsClassHashtable<nsCStringHashKey, TestUniChar> EntToUniClass(ENTITY_COUNT);
+
+  for (const auto& entity : gEntities) {
+    EntToUniClass.Put(nsDependentCString(entity.mStr),
+                      mozilla::MakeUnique<TestUniCharDerived>(entity.mUnicode));
+  }
+
+  auto* entry = EntToUniClass.LookupOrAdd("uml"_ns, 42);
+  EXPECT_EQ(168u, entry->GetChar());
+}
+
+TEST(Hashtables, ClassHashtable_LookupOrAdd_NotPresent)
+{
+  nsClassHashtable<nsCStringHashKey, TestUniChar> EntToUniClass(ENTITY_COUNT);
+
+  // This is going to insert a TestUniChar.
+  auto* entry = EntToUniClass.LookupOrAdd("uml"_ns, 42);
+  EXPECT_EQ(42u, entry->GetChar());
+}
+
+TEST(Hashtables, ClassHashtable_LookupOrAddFromFactory_Present)
+{
+  nsClassHashtable<nsCStringHashKey, TestUniChar> EntToUniClass(ENTITY_COUNT);
+
+  for (const auto& entity : gEntities) {
+    EntToUniClass.Put(nsDependentCString(entity.mStr),
+                      mozilla::MakeUnique<TestUniCharDerived>(entity.mUnicode));
+  }
+
+  auto* entry = EntToUniClass.LookupOrAddFromFactory(
+      "uml"_ns, [] { return mozilla::MakeUnique<TestUniCharDerived>(42); });
+  EXPECT_EQ(168u, entry->GetChar());
+}
+
+TEST(Hashtables, ClassHashtable_LookupOrAddFromFactory_NotPresent)
+{
+  nsClassHashtable<nsCStringHashKey, TestUniChar> EntToUniClass(ENTITY_COUNT);
+
+  // This is going to insert a TestUniCharDerived.
+  auto* entry = EntToUniClass.LookupOrAddFromFactory(
+      "uml"_ns, [] { return mozilla::MakeUnique<TestUniCharDerived>(42); });
+  EXPECT_EQ(42u, entry->GetChar());
+}
+
 TEST(Hashtables, RefPtrHashtable)
 {
   // check a RefPtr-hashtable
@@ -711,7 +783,7 @@ TEST(Hashtables, RefPtrHashtable)
     ASSERT_TRUE(EntToUniClass.Get(nsDependentCString(entity.mStr), &myChar));
   }
 
-  ASSERT_FALSE(EntToUniClass.Get(NS_LITERAL_CSTRING("xxxx"), &myChar));
+  ASSERT_FALSE(EntToUniClass.Get("xxxx"_ns, &myChar));
 
   uint32_t count = 0;
   for (auto iter = EntToUniClass.Iter(); !iter.Done(); iter.Next()) {

@@ -11,7 +11,6 @@
 
 #include "mozilla/Attributes.h"
 #include "nsContainerFrame.h"
-#include "nsIFrameInlines.h"  // for methods used by IS_TRUE_OVERFLOW_CONTAINER
 
 /**
  * nsColumnSetFrame implements CSS multi-column layout.
@@ -50,11 +49,6 @@ class nsColumnSetFrame final : public nsContainerFrame {
     return frame->GetContentInsertionFrame();
   }
 
-  bool IsFrameOfType(uint32_t aFlags) const override {
-    return nsContainerFrame::IsFrameOfType(
-        aFlags & ~(nsIFrame::eCanContainOverflowContainers));
-  }
-
   void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                         const nsDisplayListSet& aLists) override;
 
@@ -70,7 +64,7 @@ class nsColumnSetFrame final : public nsContainerFrame {
 
 #ifdef DEBUG_FRAME_DUMP
   nsresult GetFrameName(nsAString& aResult) const override {
-    return MakeFrameName(NS_LITERAL_STRING("ColumnSet"), aResult);
+    return MakeFrameName(u"ColumnSet"_ns, aResult);
   }
 #endif
 
@@ -101,10 +95,10 @@ class nsColumnSetFrame final : public nsContainerFrame {
     // The width (inline-size) of each column gap.
     nscoord mColGap = NS_UNCONSTRAINEDSIZE;
 
-    // The maximum bSize of any individual column during a reflow iteration.
-    // This parameter is set during each iteration of the binary search for
-    // the best column block-size.
-    nscoord mColMaxBSize = NS_UNCONSTRAINEDSIZE;
+    // The available block-size of each individual column. This parameter is set
+    // during each iteration of the binary search for the best column
+    // block-size.
+    nscoord mColBSize = NS_UNCONSTRAINEDSIZE;
 
     // A boolean controlling whether or not we are balancing.
     bool mIsBalancing = false;
@@ -138,6 +132,10 @@ class nsColumnSetFrame final : public nsContainerFrame {
     // The maximum "content block-size" of all columns that overflowed
     // their available block-size
     nscoord mMaxOverflowingBSize = 0;
+
+    // The number of columns (starting from 1 because we have at least one
+    // column). It can be less than ReflowConfig::mUsedColCount.
+    int32_t mColCount = 1;
 
     // This flag determines whether the last reflow of children exceeded the
     // computed block-size of the column set frame. If so, we set the bSize to
@@ -196,13 +194,6 @@ class nsColumnSetFrame final : public nsContainerFrame {
                             ColumnBalanceData aColData,
                             ReflowOutput& aDesiredSize,
                             bool aUnboundedLastColumn, nsReflowStatus& aStatus);
-
-  /**
-   * Retrieve the available block-size for content of this frame. The available
-   * content block-size is the available block-size for the frame, minus borders
-   * and padding.
-   */
-  nscoord GetAvailableContentBSize(const ReflowInput& aReflowInput) const;
 
   void ForEachColumnRule(
       const std::function<void(const nsRect& lineRect)>& aSetLineRect,

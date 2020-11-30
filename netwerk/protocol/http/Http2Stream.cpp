@@ -1048,23 +1048,21 @@ nsresult Http2Stream::ConvertResponseHeaders(Http2Decompressor* decompressor,
         httpResponseCode));
   if (mIsTunnel) {
     LOG3(("Http2Stream %p Tunnel Response code %d", this, httpResponseCode));
-    if ((httpResponseCode / 100) != 2) {
+    // 1xx response is simply skipeed and a final response is expected.
+    // 2xx response needs to be encrypted.
+    if ((httpResponseCode / 100) > 2) {
       MapStreamToPlainText();
     }
-    MapStreamToHttpConnection(httpResponseCode);
-    ClearTransactionsBlockedOnTunnel();
+    if (MapStreamToHttpConnection(aHeadersOut, httpResponseCode)) {
+      // Process transactions only if we have a final response, i.e., response
+      // code >= 200.
+      ClearTransactionsBlockedOnTunnel();
+    }
   } else if (mIsWebsocket) {
     LOG3(("Http2Stream %p websocket response code %d", this, httpResponseCode));
     if (httpResponseCode == 200) {
-      MapStreamToHttpConnection();
+      MapStreamToHttpConnection(aHeadersOut);
     }
-  }
-
-  if (httpResponseCode == 101) {
-    // 8.1.1 of h2 disallows 101.. throw PROTOCOL_ERROR on stream
-    LOG3(("Http2Stream::ConvertResponseHeaders %p Error - status == 101\n",
-          this));
-    return NS_ERROR_ILLEGAL_VALUE;
   }
 
   if (httpResponseCode == 421) {
@@ -1625,14 +1623,15 @@ void Http2Stream::MapStreamToPlainText() {
   qiTrans->ForcePlainText();
 }
 
-void Http2Stream::MapStreamToHttpConnection(int32_t httpResponseCode) {
+bool Http2Stream::MapStreamToHttpConnection(const nsACString& aFlat407Headers,
+                                            int32_t aHttpResponseCode) {
   RefPtr<SpdyConnectTransaction> qiTrans(
       mTransaction->QuerySpdyConnectTransaction());
   MOZ_ASSERT(qiTrans);
 
-  qiTrans->MapStreamToHttpConnection(mSocketTransport,
-                                     mTransaction->ConnectionInfo(),
-                                     mIsTunnel ? httpResponseCode : -1);
+  return qiTrans->MapStreamToHttpConnection(
+      mSocketTransport, mTransaction->ConnectionInfo(), aFlat407Headers,
+      mIsTunnel ? aHttpResponseCode : -1);
 }
 
 // -----------------------------------------------------------------------------

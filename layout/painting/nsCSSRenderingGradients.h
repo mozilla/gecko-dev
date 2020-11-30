@@ -7,11 +7,11 @@
 #ifndef nsCSSRenderingGradients_h__
 #define nsCSSRenderingGradients_h__
 
-#include "nsLayoutUtils.h"
 #include "nsStyleStruct.h"
 #include "Units.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/gfx/2D.h"
+#include "mozilla/webrender/webrender_ffi.h"
 
 namespace mozilla {
 
@@ -27,11 +27,11 @@ class DisplayListBuilder;
 // a color.
 struct ColorStop {
   ColorStop() : mPosition(0), mIsMidpoint(false) {}
-  ColorStop(double aPosition, bool aIsMidPoint, const gfx::Color& aColor)
+  ColorStop(double aPosition, bool aIsMidPoint, const gfx::sRGBColor& aColor)
       : mPosition(aPosition), mIsMidpoint(aIsMidPoint), mColor(aColor) {}
   double mPosition;  // along the gradient line; 0=start, 1=end
   bool mIsMidpoint;
-  gfx::Color mColor;
+  gfx::sRGBColor mColor;
 };
 
 class nsCSSGradientRenderer final {

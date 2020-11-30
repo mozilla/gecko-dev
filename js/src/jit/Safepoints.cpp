@@ -9,8 +9,10 @@
 #include "mozilla/MathAlgorithms.h"
 
 #include "jit/BitSet.h"
+#include "jit/IonScript.h"
 #include "jit/JitSpewer.h"
 #include "jit/LIR.h"
+#include "jit/SafepointIndex.h"
 
 using namespace js;
 using namespace jit;
@@ -166,7 +168,7 @@ void SafepointWriter::writeSlotsOrElementsSlots(LSafepoint* safepoint) {
       MOZ_CRASH();
     }
 #ifdef JS_JITSPEW
-    JitSpew(JitSpew_Safepoints, "    slots/elements slot: %d", slots[i].slot);
+    JitSpew(JitSpew_Safepoints, "    slots/elements slot: %u", slots[i].slot);
 #endif
     stream_.writeUnsigned(slots[i].slot);
   }
@@ -365,7 +367,7 @@ void SafepointWriter::encode(LSafepoint* safepoint) {
 }
 
 void SafepointWriter::endEntry() {
-  JitSpew(JitSpew_Safepoints, "    -- entry ended at %d",
+  JitSpew(JitSpew_Safepoints, "    -- entry ended at %u",
           uint32_t(stream_.length()));
 }
 

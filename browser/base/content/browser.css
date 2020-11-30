@@ -10,7 +10,7 @@ body {
   padding: 0;
   height: 100%;
   width: 100%;
-  overflow: -moz-hidden-unscrollable;
+  overflow: clip;
 }
 
 :root {
@@ -61,7 +61,7 @@ body {
 }
 
 /* Prevent shrinking the page content to 0 height and width */
-.browserStack > browser {
+.browserStack {
   min-height: 25px;
   min-width: 25px;
 }
@@ -93,7 +93,7 @@ body {
 #toolbar-menubar[autohide="true"][inactive="true"]:not([customizing="true"]) {
   min-height: 0 !important;
   height: 0 !important;
-  -moz-appearance: none !important;
+  appearance: none !important;
 }
 %endif
 
@@ -167,8 +167,8 @@ panelview[mainview] > .panel-header {
 }
 
 #tabbrowser-tabs[hasadjacentnewtabbutton]:not([overflow="true"]) ~ #new-tab-button,
-#tabbrowser-tabs[overflow="true"] > .tabbrowser-arrowscrollbox > #tabs-newtab-button,
-#tabbrowser-tabs:not([hasadjacentnewtabbutton]) > .tabbrowser-arrowscrollbox > #tabs-newtab-button,
+#tabbrowser-tabs[overflow="true"] > #tabbrowser-arrowscrollbox > #tabs-newtab-button,
+#tabbrowser-tabs:not([hasadjacentnewtabbutton]) > #tabbrowser-arrowscrollbox > #tabs-newtab-button,
 #TabsToolbar[customizing="true"] #tabs-newtab-button {
   display: none;
 }
@@ -222,13 +222,13 @@ panelview[mainview] > .panel-header {
 }
 %endif
 
-#tabbrowser-tabs[positionpinnedtabs] > .tabbrowser-arrowscrollbox > .tabbrowser-tab[pinned] {
+#tabbrowser-tabs[positionpinnedtabs] > #tabbrowser-arrowscrollbox > .tabbrowser-tab[pinned] {
   position: fixed !important;
   display: block;
 }
 
-#tabbrowser-tabs[movingtab] > .tabbrowser-arrowscrollbox > .tabbrowser-tab[selected],
-#tabbrowser-tabs[movingtab] > .tabbrowser-arrowscrollbox > .tabbrowser-tab[multiselected] {
+#tabbrowser-tabs[movingtab] > #tabbrowser-arrowscrollbox > .tabbrowser-tab[selected],
+#tabbrowser-tabs[movingtab] > #tabbrowser-arrowscrollbox > .tabbrowser-tab[multiselected] {
   position: relative;
   z-index: 2;
   pointer-events: none; /* avoid blocking dragover events on scroll buttons */
@@ -269,7 +269,7 @@ panelview[mainview] > .panel-header {
  * from the overflow menu, but we still don't want to render them outside of
  * the customization target. */
 toolbar[overflowable][customizing] > .customization-target {
-  overflow: -moz-hidden-unscrollable;
+  overflow: clip;
 }
 
 toolbar:not([overflowing]) > .overflow-button,
@@ -277,6 +277,7 @@ toolbar[customizing] > .overflow-button {
   display: none;
 }
 
+toolbar[customizing] #ion-button,
 toolbar[customizing] #whats-new-menu-button {
   display: none;
 }
@@ -325,6 +326,11 @@ toolbar[customizing] #whats-new-menu-button {
 }
 %endif
 
+:root:not([sizemode=maximized]) .titlebar-restore,
+:root[sizemode=maximized] .titlebar-max {
+  display: none;
+}
+
 %ifdef MENUBAR_CAN_AUTOHIDE
 #toolbar-menubar[autohide=true]:not([inactive]) + #TabsToolbar > .titlebar-buttonbox-container {
   visibility: hidden;
@@ -344,7 +350,8 @@ toolbar[customizing] #whats-new-menu-button {
 }
 
 .titlebar-buttonbox {
-  -moz-appearance: -moz-window-button-box;
+  appearance: auto;
+  -moz-default-appearance: -moz-window-button-box;
   position: relative;
 }
 
@@ -363,7 +370,8 @@ toolbarpaletteitem {
 
 %ifdef XP_MACOSX
 #titlebar-fullscreen-button {
-  -moz-appearance: -moz-mac-fullscreen-button;
+  appearance: auto;
+  -moz-default-appearance: -moz-mac-fullscreen-button;
 }
 
 /**
@@ -482,13 +490,13 @@ toolbarpaletteitem[place="toolbar"] {
 #bookmarks-toolbar-placeholder,
 #bookmarks-toolbar-button,
 toolbarpaletteitem > #personal-bookmarks > #PlacesToolbar,
-#personal-bookmarks:-moz-any([overflowedItem=true], [cui-areatype="menu-panel"]) > #PlacesToolbar {
+#personal-bookmarks:is([overflowedItem=true], [cui-areatype="menu-panel"]) > #PlacesToolbar {
   display: none;
 }
 
 toolbarpaletteitem[place="toolbar"] > #personal-bookmarks > #bookmarks-toolbar-placeholder,
 toolbarpaletteitem[place="palette"] > #personal-bookmarks > #bookmarks-toolbar-button,
-#personal-bookmarks:-moz-any([overflowedItem=true], [cui-areatype="menu-panel"]) > #bookmarks-toolbar-button {
+#personal-bookmarks:is([overflowedItem=true], [cui-areatype="menu-panel"]) > #bookmarks-toolbar-button {
   display: -moz-box;
 }
 
@@ -527,14 +535,6 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
 /* Ensure stop-button and reload-button are displayed correctly when in the overflow menu */
 .widget-overflow-list > #stop-reload-button > .toolbarbutton-1 {
   -moz-box-flex: 1;
-}
-
-#appMenu_historyMenu > .bookmark-item,
-#appMenu-library-recentlyClosedTabs > .panel-subview-body > .bookmark-item,
-#appMenu-library-recentlyClosedWindows > .panel-subview-body > .bookmark-item,
-#appMenu-library-recentHighlights > .bookmark-item,
-#panelMenu_bookmarksMenu > .bookmark-item {
-  max-width: none;
 }
 
 %ifdef XP_MACOSX
@@ -581,8 +581,7 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
  *
  * Attribute is controlled by browser.js:/gRemoteControl.
  */
-:root[remotecontrol] #urlbar:not(.megabar),
-:root[remotecontrol] #urlbar.megabar > #urlbar-background {
+:root[remotecontrol] #urlbar-background {
   background: repeating-linear-gradient(
     -45deg,
     transparent,
@@ -598,6 +597,7 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
   position: relative;
   direction: ltr;
 }
+
 #urlbar-scheme {
   position: absolute;
   height: 100%;
@@ -606,31 +606,38 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
   pointer-events: none;
 }
 
-/* Visible if the urlbar is not focused and it overflows at the start.
-   Uses the required-valid trick to check if it contains a value */
-#urlbar[textoverflow="left"][hasrtldomain]:not([focused]) > #urlbar-input-container > .urlbar-input-box > #urlbar-scheme:valid {
-  visibility: visible;
-}
-
-/* Fade out URL on overflow
-   This mask may be overriden when a Contextual Feature Recommendation is shown,
-   see browser/themes/shared/urlbar-searchbar.inc.css for details */
-#urlbar[textoverflow="right"]:not([focused]) > #urlbar-input-container > .urlbar-input-box > #urlbar-input {
-  mask-image: linear-gradient(to left, transparent, black 3ch);
-}
-
-#urlbar[textoverflow="left"][rtltext]:not([focused]) > #urlbar-input-container > .urlbar-input-box > #urlbar-input {
-  mask-image: linear-gradient(to right, transparent, black 3ch);
-}
-
-#urlbar[textoverflow="left"][hasrtldomain]:not([focused]) > #urlbar-input-container > .urlbar-input-box > #urlbar-input {
-  mask-image: linear-gradient(to right, transparent var(--urlbar-scheme-size), black calc(var(--urlbar-scheme-size) + 3ch));
-}
-
 #urlbar-input {
   mask-repeat: no-repeat;
   unicode-bidi: plaintext;
   text-align: match-parent;
+}
+
+#urlbar:not([focused])[domaindir="ltr"]> #urlbar-input-container > .urlbar-input-box > #urlbar-input {
+  direction: ltr;
+  unicode-bidi: embed;
+}
+
+/* The following rules apply overflow masks to the unfocused urlbar
+   This mask may be overriden when a Contextual Feature Recommendation is shown,
+   see browser/themes/shared/urlbar-searchbar.inc.css for details */
+
+#urlbar:not([focused])[textoverflow="both"] > #urlbar-input-container > .urlbar-input-box > #urlbar-input {
+  mask-image: linear-gradient(to right, transparent, black 3ch, black calc(100% - 3ch), transparent);
+}
+#urlbar:not([focused])[textoverflow="right"] > #urlbar-input-container > .urlbar-input-box > #urlbar-input {
+  mask-image: linear-gradient(to left, transparent, black 3ch);
+}
+#urlbar:not([focused])[textoverflow="left"] > #urlbar-input-container > .urlbar-input-box > #urlbar-input {
+  mask-image: linear-gradient(to right, transparent, black 3ch);
+}
+
+/* The protocol is visible if there is an RTL domain and we overflow to the left.
+   Uses the required-valid trick to check if it contains a value */
+#urlbar:not([focused])[textoverflow="left"][domaindir="rtl"] > #urlbar-input-container > .urlbar-input-box > #urlbar-scheme:valid {
+  visibility: visible;
+}
+#urlbar:not([focused])[textoverflow="left"][domaindir="rtl"] > #urlbar-input-container > .urlbar-input-box > #urlbar-input {
+  mask-image: linear-gradient(to right, transparent var(--urlbar-scheme-size), black calc(var(--urlbar-scheme-size) + 3ch));
 }
 
 /* Apply crisp rendering for favicons at exactly 2dppx resolution */
@@ -641,15 +648,18 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
 }
 
 #urlbar[actionoverride] > #urlbar-input-container > #urlbar-label-box,
-#urlbar:not([actiontype="switchtab"]):not([actiontype="extension"]) > #urlbar-input-container > #urlbar-label-box,
+#urlbar:not([actiontype="switchtab"]):not([actiontype="extension"]):not([searchmode]) > #urlbar-input-container > #urlbar-label-box,
 #urlbar:not([actiontype="switchtab"]) > #urlbar-input-container > #urlbar-label-box > #urlbar-label-switchtab,
-#urlbar:not([actiontype="extension"]) > #urlbar-input-container > #urlbar-label-box > #urlbar-label-extension {
+#urlbar:not([actiontype="extension"]) > #urlbar-input-container > #urlbar-label-box > #urlbar-label-extension,
+#urlbar[searchmode][breakout-extend] > #urlbar-input-container > #urlbar-label-box,
+#urlbar:not([searchmode]) > #urlbar-input-container > #urlbar-label-box > #urlbar-label-search-mode,
+#urlbar[breakout-extend] > #urlbar-input-container > #urlbar-label-box > #urlbar-label-search-mode {
   display: none;
 }
 
 #PopupAutoComplete > richlistbox > richlistitem[originaltype="loginsFooter"] {
   -moz-box-pack: center;
-  color: -moz-fieldText;
+  color: FieldText;
   min-height: 2.6666em;
   border-top: 1px solid rgba(38,38,38,.15);
   background-color: hsla(0,0%,80%,.35); /* match arrowpanel-dimmed */;
@@ -667,6 +677,7 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
   min-width: 17em;
 }
 
+#PopupAutoComplete[resultstyles~="importableLogins"],
 #PopupAutoComplete[resultstyles~="generatedPassword"] {
   min-width: 22em;
 }
@@ -693,7 +704,6 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
 #urlbar-input-container[pageproxystate=invalid] > #page-action-buttons > .urlbar-page-action,
 #identity-box.chromeUI ~ #page-action-buttons > .urlbar-page-action:not(#star-button-box),
 #urlbar[usertyping] > #urlbar-input-container > #page-action-buttons > #urlbar-zoom-button,
-#urlbar[usertyping] > #urlbar-input-container > .urlbar-history-dropmarker,
 #urlbar:not([usertyping]) > #urlbar-input-container > #urlbar-go-button,
 #urlbar:not([focused]) > #urlbar-input-container > #urlbar-go-button {
   display: none;
@@ -724,8 +734,8 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
   min-width: 280px;
 }
 
-#identity-icon-labels {
-  max-width: 10em;
+#identity-box {
+  max-width: calc(30px + 10em);
 }
 
 @media (max-width: 770px) {
@@ -738,8 +748,8 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
   :root[customizing] #urlbar-container {
     min-width: 245px;
   }
-  #identity-icon-labels {
-    max-width: 50px;
+  #identity-box {
+    max-width: 80px;
   }
   /* Contenxtual identity labels are user-customizable and can be very long,
      so we only show the colored icon when the window gets small. */
@@ -765,20 +775,12 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
   #nav-bar[downloadsbuttonshown] #urlbar-container {
     min-width: 225px;
   }
-  #identity-icon-labels {
-    max-width: 40px;
+  #identity-box {
+    max-width: 70px;
   }
   #urlbar-zoom-button {
     display: none;
   }
-}
-
-#identity-icon-country-label {
-  direction: ltr;
-}
-
-#identity-box.verifiedIdentity > #identity-icon-labels > #identity-icon-label {
-  margin-inline-end: 0.25em !important;
 }
 
 /* Flexible spacer sizing (gets overridden in the navbar) */
@@ -858,6 +860,13 @@ menupopup[emptyplacesresult="true"] > .hide-if-empty-places-result {
   background: url("chrome://browser/content/history-swipe-arrow.svg")
               center left / 64px 128px no-repeat transparent;
   transform: rotate(180deg);
+}
+
+/* Pocket */
+:root[pocketdisabled=true] #context-pocket,
+:root[pocketdisabled=true] #context-savelinktopocket,
+:root[pocketdisabled=true] #appMenu-library-pocket-button {
+  display: none;
 }
 
 /*  Full Screen UI */
@@ -940,7 +949,7 @@ menupopup[emptyplacesresult="true"] > .hide-if-empty-places-result {
   position: absolute;
 }
 
-browser[tabmodalPromptShowing] {
+browser[tabmodalPromptShowing], browser[tabDialogShowing] {
   -moz-user-focus: none !important;
 }
 
@@ -977,7 +986,7 @@ browser[tabmodalPromptShowing] {
   transition: opacity 120ms ease-out, visibility 120ms;
 }
 
-#statuspanel[type=overLink] > #statuspanel-inner {
+#statuspanel:is([type=overLink], [inactive][previoustype=overLink]) > #statuspanel-inner {
   direction: ltr;
 }
 
@@ -1029,7 +1038,7 @@ toolbarpaletteitem[place="palette"] > #downloads-button[indicator] > .toolbarbut
 
 /* Give this menupopup an arrow panel styling */
 #BMB_bookmarksPopup {
-  -moz-appearance: none;
+  appearance: none;
   background: transparent;
   border: none;
   /* The popup inherits -moz-image-region from the button, must reset it */
@@ -1037,6 +1046,7 @@ toolbarpaletteitem[place="palette"] > #downloads-button[indicator] > .toolbarbut
 }
 
 @supports -moz-bool-pref("xul.panel-animations.enabled") {
+@media (prefers-reduced-motion: no-preference) {
 %ifdef MOZ_WIDGET_COCOA
   /* On Mac, use the properties "-moz-window-transform" and "-moz-window-opacity"
      instead of "transform" and "opacity" for these animations.
@@ -1100,6 +1110,7 @@ toolbarpaletteitem[place="palette"] > #downloads-button[indicator] > .toolbarbut
     transform: none;
   }
 %endif
+}
 }
 
 /* Apply crisp rendering for favicons at exactly 2dppx resolution */
@@ -1169,8 +1180,7 @@ toolbarpaletteitem[place="palette"] > #downloads-button[indicator] > .toolbarbut
 }
 
 toolbarpaletteitem[dragover] {
-  border-left-color: transparent;
-  border-right-color: transparent;
+  border-inline-color: transparent;
 }
 
 #customization-palette-container {
@@ -1314,7 +1324,7 @@ toolbarpaletteitem > toolbaritem {
 }
 
 .dragfeedback-tab {
-  -moz-appearance: none;
+  appearance: none;
   opacity: 0.65;
   -moz-window-shadow: none;
 }
@@ -1352,6 +1362,53 @@ toolbarpaletteitem > toolbaritem {
   visibility: visible;
 }
 
+/* Print pending */
+.printSettingsBrowser {
+  width: 250px !important;
+}
+
+.previewStack {
+  background-color: #f9f9fa;
+  color: #0c0c0d;
+}
+
+.previewRendering {
+  background-image: url("chrome://browser/skin/tabbrowser/pendingpaint.png");
+  background-repeat: no-repeat;
+  background-size: 60px 60px;
+  background-position: center center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  visibility: hidden;
+}
+
+.previewStack[rendering=true] > .previewRendering {
+  visibility: visible;
+}
+
+.printPreviewBrowser {
+  opacity: 1;
+  transition: opacity 60ms;
+}
+
+.previewStack[rendering=true] > .printPreviewBrowser {
+  opacity: 0;
+  transition: opacity 1ms 250ms;
+}
+
+.print-pending-label {
+  margin-top: 110px;
+  font-size: large;
+}
+
+@media (prefers-color-scheme: dark) {
+  .previewStack {
+    background-color: #2A2A2E;
+    color: rgb(249, 249, 250);
+  }
+}
+
 /* WebExtension Sidebars */
 #sidebar-box[sidebarcommand$="-sidebar-action"] > #sidebar-header > #sidebar-switcher-target > #sidebar-icon {
   list-style-image: var(--webextension-menuitem-image, inherit);
@@ -1372,13 +1429,9 @@ toolbar[keyNav=true]:not([collapsed=true]):not([customizing=true]) toolbartabsto
 }
 
 /* Frame used for rendering the DevTools inspector highlighters */
-iframe.devtools-highlighter-renderer {
+:root > iframe.devtools-highlighter-renderer {
   border: none;
   pointer-events: none;
-}
-
-/* Highlighter for the Browser Toolbox */
-:root > iframe.devtools-highlighter-renderer {
   position: fixed;
   top: 0;
   left: 0;
@@ -1387,7 +1440,89 @@ iframe.devtools-highlighter-renderer {
   z-index: 2;
 }
 
-/* Highlighter for web content */
-.browserStack > iframe.devtools-highlighter-renderer {
-  -moz-box-flex: 1;
+/**
+ * Tab Dialogs
+ */
+
+.dialogStack {
+  /* Should outrank the z-index values of other UI elements, particularly the devtools
+     splitter element. */
+  z-index: 2;
 }
+
+.dialogOverlay {
+  visibility: hidden;
+}
+
+.dialogOverlay[topmost="true"] {
+  background-color: rgba(0,0,0,0.5);
+  z-index: 1;
+}
+
+.dialogBox {
+  background-clip: content-box;
+  box-shadow: 0 2px 6px 0 rgba(0,0,0,0.3);
+  display: -moz-box;
+  margin: 0;
+  /* Make dialogs overlap with upper chrome UI */
+  margin-top: -5px;
+  padding: 0;
+  overflow-x: auto;
+}
+
+.dialogBox[resizable="true"] {
+  resize: both;
+  overflow: hidden;
+  min-height: 20em;
+  min-width: 66ch;
+}
+
+.dialogBox[sizeto="available"] {
+  --box-inline-margin: 4px;
+  --box-block-margin: 4px;
+  --box-ideal-width: 1000;
+  --box-ideal-height: 650;
+  --box-max-width-margin: calc(100vw - 2 * var(--box-inline-margin));
+  --box-max-height-margin: calc(100vh - var(--box-top-px) - var(--box-block-margin));
+  --box-max-width-ratio: 70vw;
+  --box-max-height-ratio: calc(var(--box-ideal-height) / var(--box-ideal-width) * var(--box-max-width-ratio));
+  max-width: min(max(var(--box-ideal-width) * 1px, var(--box-max-width-ratio)), var(--box-max-width-margin));
+  max-height: min(max(var(--box-ideal-height) * 1px, var(--box-max-height-ratio)), var(--box-max-height-margin));
+  width: 100vw;
+  height: 100vh;
+}
+
+@media (min-width: 550px) {
+  .dialogBox[sizeto="available"] {
+    --box-inline-margin: min(calc(4px + (100vw - 550px) / 4), 16px);
+  }
+}
+
+@media (min-width: 800px) {
+  .dialogBox[sizeto="available"] {
+    --box-inline-margin: min(calc(16px + (100vw - 800px) / 4), 32px);
+  }
+}
+
+@media (min-height: 350px) {
+  .dialogBox[sizeto="available"] {
+    --box-block-margin: min(calc(4px + (100vh - 350px) / 4), 16px);
+  }
+}
+
+@media (min-height: 550px) {
+  .dialogBox[sizeto="available"] {
+    --box-block-margin: min(calc(16px + (100vh - 550px) / 4), 32px);
+  }
+}
+
+.dialogFrame {
+  margin: 0;
+  -moz-box-flex: 1;
+  /* Default dialog dimensions */
+  width: 66ch;
+}
+
+/**
+ * End Tab Dialogs
+ */

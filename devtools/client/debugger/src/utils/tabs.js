@@ -6,6 +6,7 @@
 
 import type { PersistedTab, VisibleTab } from "../reducers/tabs";
 import type { TabList, Tab, TabsSources } from "../reducers/types";
+import type { URL } from "../types";
 
 /*
  * Finds the hidden tabs by comparing the tabs' top offset.
@@ -22,35 +23,30 @@ export function getHiddenTabs(
   sourceTabEls: Array<any>
 ): TabsSources {
   sourceTabEls = [].slice.call(sourceTabEls);
-  function getTopOffset() {
+  function getTopOffset(): number {
     const topOffsets = sourceTabEls.map(t => t.getBoundingClientRect().top);
     return Math.min(...topOffsets);
   }
 
-  function hasTopOffset(el) {
+  function hasTopOffset(el): boolean {
     // adding 10px helps account for cases where the tab might be offset by
     // styling such as selected tabs which don't have a border.
     const tabTopOffset = getTopOffset();
     return el.getBoundingClientRect().top > tabTopOffset + 10;
   }
 
-  return sourceTabs.filter((tab, index) => {
+  return sourceTabs.filter((tab, index: number) => {
     const element = sourceTabEls[index];
     return element && hasTopOffset(element);
   });
 }
 
-export function getFramework(tabs: TabList, url: string) {
+export function getFramework(tabs: TabList, url: URL): string {
   const tab = tabs.find(t => t.url === url);
-
-  if (tab) {
-    return tab.framework;
-  }
-
-  return "";
+  return tab?.framework ?? "";
 }
 
-export function getTabMenuItems() {
+export function getTabMenuItems(): Object {
   return {
     closeTab: {
       id: "node-menu-close-tab",
@@ -82,10 +78,10 @@ export function getTabMenuItems() {
       accesskey: L10N.getStr("sourceTabs.revealInTree.accesskey"),
       disabled: false,
     },
-    copyToClipboard: {
-      id: "node-menu-copy-to-clipboard",
-      label: L10N.getStr("copyToClipboard.label"),
-      accesskey: L10N.getStr("copyToClipboard.accesskey"),
+    copySource: {
+      id: "node-menu-copy-source",
+      label: L10N.getStr("copySource.label"),
+      accesskey: L10N.getStr("copySource.accesskey"),
       disabled: false,
     },
     copySourceUri2: {
@@ -96,8 +92,8 @@ export function getTabMenuItems() {
     },
     toggleBlackBox: {
       id: "node-menu-blackbox",
-      label: L10N.getStr("blackboxContextItem.blackbox"),
-      accesskey: L10N.getStr("blackboxContextItem.blackbox.accesskey"),
+      label: L10N.getStr("ignoreContextItem.ignore"),
+      accesskey: L10N.getStr("ignoreContextItem.ignore.accesskey"),
       disabled: false,
     },
     prettyPrint: {
@@ -109,16 +105,12 @@ export function getTabMenuItems() {
   };
 }
 
-export function isSimilarTab(tab: Tab, url: string, isOriginal: boolean) {
+export function isSimilarTab(tab: Tab, url: URL, isOriginal: boolean): boolean {
   return tab.url === url && tab.isOriginal === isOriginal;
 }
 
 export function persistTabs(tabs: VisibleTab[]): PersistedTab[] {
   return [...tabs]
     .filter(tab => tab.url)
-    .map(tab => {
-      const newTab = { ...tab };
-      newTab.sourceId = null;
-      return newTab;
-    });
+    .map(tab => ({ ...tab, sourceId: null }));
 }

@@ -30,6 +30,7 @@
 struct nsStyleDisplay;
 struct nsGenConInitializer;
 
+class nsBlockFrame;
 class nsContainerFrame;
 class nsFirstLineFrame;
 class nsFirstLetterFrame;
@@ -44,6 +45,7 @@ namespace mozilla {
 
 class ComputedStyle;
 class PresShell;
+class PrintedSheetFrame;
 
 namespace dom {
 
@@ -109,7 +111,7 @@ class nsCSSFrameConstructor final : public nsFrameManager {
 
   // aChild is the child being inserted for inserts, and the first
   // child being appended for appends.
-  bool MaybeConstructLazily(Operation aOperation, nsIContent* aChild);
+  void ConstructLazily(Operation aOperation, nsIContent* aChild);
 
 #ifdef DEBUG
   void CheckBitsForLazyFrameConstruction(nsIContent* aParent);
@@ -198,40 +200,22 @@ class nsCSSFrameConstructor final : public nsFrameManager {
    * inserts/appends as passed from the presshell, except for the insert of the
    * root element, which is always non-lazy.
    *
-   * Even if the aInsertionKind passed to ContentAppended/Inserted is
-   * Async we still may not be able to construct lazily, so we call
-   * MaybeConstructLazily.  MaybeConstructLazily does not allow lazy
-   * construction if any of the following are true:
-   *  -we are in chrome
-   *  -the container is in a native anonymous subtree
-   *  -the container is XUL
-   *  -is any of the appended/inserted nodes are XUL or editable
-   *  -(for inserts) the child is anonymous.  In the append case this function
-   *   must not be called with anonymous children.
-   * The XUL and chrome checks are because XBL bindings only get applied at
-   * frame construction time and some things depend on the bindings getting
-   * attached synchronously.
-   *
-   * If MaybeConstructLazily returns false we construct as usual, but if it
-   * returns true then it adds NODE_NEEDS_FRAME bits to the newly
+   * If we construct lazily, then we add NODE_NEEDS_FRAME bits to the newly
    * inserted/appended nodes and adds NODE_DESCENDANTS_NEED_FRAMES bits to the
    * container and up along the parent chain until it hits the root or another
    * node with that bit set. Then it posts a restyle event to ensure that a
    * flush happens to construct those frames.
    *
-   * When the flush happens the presshell calls
-   * nsCSSFrameConstructor::CreateNeededFrames. CreateNeededFrames follows any
-   * nodes with NODE_DESCENDANTS_NEED_FRAMES set down the content tree looking
-   * for nodes with NODE_NEEDS_FRAME set. It calls ContentAppended for any runs
-   * of nodes with NODE_NEEDS_FRAME set that are at the end of their childlist,
-   * and ContentRangeInserted for any other runs that aren't.
+   * When the flush happens the RestyleManager walks the dirty nodes during
+   * ProcessPostTraversal, and ends up calling Content{Appended,Inserted} with
+   * InsertionKind::Sync in ProcessRestyledFrames.
    *
    * If a node is removed from the document then we don't bother unsetting any
    * of the lazy bits that might be set on it, its descendants, or any of its
    * ancestor nodes because that is a slow operation, the work might be wasted
    * if another node gets inserted in its place, and we can clear the bits
-   * quicker by processing the content tree from top down the next time we call
-   * CreateNeededFrames. (We do clear the bits when BindToTree is called on any
+   * quicker by processing the content tree from top down the next time we
+   * reconstruct frames. (We do clear the bits when BindToTree is called on any
    * nsIContent; so any nodes added to the document will not have any lazy bits
    * set.)
    */
@@ -315,7 +299,7 @@ class nsCSSFrameConstructor final : public nsFrameManager {
   bool DestroyFramesFor(Element* aElement);
 
   // Request to create a continuing frame.  This method never returns null.
-  nsIFrame* CreateContinuingFrame(nsPresContext* aPresContext, nsIFrame* aFrame,
+  nsIFrame* CreateContinuingFrame(nsIFrame* aFrame,
                                   nsContainerFrame* aParentFrame,
                                   bool aIsFluid = true);
 
@@ -366,6 +350,10 @@ class nsCSSFrameConstructor final : public nsFrameManager {
       nsContainerFrame* aRootElementFrame, nsFrameConstructorState&,
       nsFrameList&);
 
+  mozilla::PrintedSheetFrame* ConstructPrintedSheetFrame(
+      PresShell* aPresShell, nsContainerFrame* aParentFrame,
+      nsIFrame* aPrevSheetFrame);
+
   nsContainerFrame* ConstructPageFrame(PresShell* aPresShell,
                                        nsContainerFrame* aParentFrame,
                                        nsIFrame* aPrevPageFrame,
@@ -377,6 +365,20 @@ class nsCSSFrameConstructor final : public nsFrameManager {
 
   already_AddRefed<ComputedStyle> ResolveComputedStyle(nsIContent* aContent);
 
+  enum class ItemFlag : uint8_t {
+    // Allow page-break before and after items to be created if the
+    // style asks for them.
+    AllowPageBreak,
+    IsGeneratedContent,
+    IsWithinSVGText,
+    // The item allows items to be created for SVG <textPath> children.
+    AllowTextPathChild,
+    // The item is content created by an nsIAnonymousContentCreator frame.
+    IsAnonymousContentCreatorContent,
+  };
+
+  using ItemFlags = mozilla::EnumSet<ItemFlag>;
+
   // Add the frame construction items for the given aContent and aParentFrame
   // to the list.  This might add more than one item in some rare cases.
   // If aSuppressWhiteSpaceOptimizations is true, optimizations that
@@ -387,7 +389,7 @@ class nsCSSFrameConstructor final : public nsFrameManager {
                                  bool aSuppressWhiteSpaceOptimizations,
                                  const InsertionPoint& aInsertion,
                                  FrameConstructionItemList& aItems,
-                                 uint32_t aFlags = 0);
+                                 ItemFlags = {});
 
   // Helper method for AddFrameConstructionItems etc.
   // Unsets the need-frame/restyle bits on aContent.
@@ -404,11 +406,11 @@ class nsCSSFrameConstructor final : public nsFrameManager {
                                    bool aSuppressWhiteSpaceOptimizations,
                                    nsContainerFrame* aParentFrame,
                                    FrameConstructionItemList& aItems,
-                                   uint32_t aFlags = 0);
+                                   ItemFlags = {});
 
   // Construct the frames for the document element.  This can return null if the
-  // document element is display:none, or if the document element has a
-  // not-yet-loaded XBL binding, or if it's an SVG element that's not <svg>.
+  // document element is display:none, or if it's an SVG element that's not
+  // <svg>, etc.
   nsIFrame* ConstructDocElementFrame(Element* aDocElement);
 
   // Set up our mDocElementContainingBlock correctly for the given root
@@ -767,18 +769,18 @@ class nsCSSFrameConstructor final : public nsFrameManager {
 
   const FrameConstructionData* FindDataForContent(nsIContent&, ComputedStyle&,
                                                   nsIFrame* aParentFrame,
-                                                  uint32_t aFlags);
+                                                  ItemFlags aFlags);
 
   // aParentFrame might be null.  If it is, that means it was an inline frame.
   static const FrameConstructionData* FindTextData(const Text&,
                                                    nsIFrame* aParentFrame);
   const FrameConstructionData* FindElementData(const Element&, ComputedStyle&,
                                                nsIFrame* aParentFrame,
-                                               uint32_t aFlags);
+                                               ItemFlags aFlags);
   const FrameConstructionData* FindElementTagData(const Element&,
                                                   ComputedStyle&,
                                                   nsIFrame* aParentFrame,
-                                                  uint32_t aFlags);
+                                                  ItemFlags aFlags);
 
   /* A function that takes an integer, content, style, and array of
      FrameConstructionDataByInts and finds the appropriate frame construction
@@ -819,12 +821,12 @@ class nsCSSFrameConstructor final : public nsFrameManager {
     void SetLineBoundaryAtEnd(bool aBoundary) {
       mLineBoundaryAtEnd = aBoundary;
     }
-    void SetParentHasNoXBLChildren(bool aHasNoXBLChildren) {
-      mParentHasNoXBLChildren = aHasNoXBLChildren;
+    void SetParentHasNoShadowDOM(bool aValue) {
+      mParentHasNoShadowDOM = aValue;
     }
     bool HasLineBoundaryAtStart() { return mLineBoundaryAtStart; }
     bool HasLineBoundaryAtEnd() { return mLineBoundaryAtEnd; }
-    bool ParentHasNoXBLChildren() { return mParentHasNoXBLChildren; }
+    bool ParentHasNoShadowDOM() { return mParentHasNoShadowDOM; }
     bool IsEmpty() const { return mItems.isEmpty(); }
     bool AnyItemsNeedBlockParent() const { return mLineParticipantCount != 0; }
     bool AreAllItemsInline() const { return mInlineCount == mItemCount; }
@@ -872,8 +874,7 @@ class nsCSSFrameConstructor final : public nsFrameManager {
      public:
       explicit Iterator(FrameConstructionItemList& aList)
           : mCurrent(aList.mItems.getFirst()), mList(aList) {}
-      Iterator(const Iterator& aOther)
-          : mCurrent(aOther.mCurrent), mList(aOther.mList) {}
+      Iterator(const Iterator& aOther) = default;
 
       bool operator==(const Iterator& aOther) const {
         MOZ_ASSERT(&mList == &aOther.mList, "Iterators for different lists?");
@@ -987,7 +988,7 @@ class nsCSSFrameConstructor final : public nsFrameManager {
           mItemCount(0),
           mLineBoundaryAtStart(false),
           mLineBoundaryAtEnd(false),
-          mParentHasNoXBLChildren(false) {
+          mParentHasNoShadowDOM(false) {
       MOZ_COUNT_CTOR(FrameConstructionItemList);
       memset(mDesiredParentCounts, 0, sizeof(mDesiredParentCounts));
     }
@@ -1042,8 +1043,8 @@ class nsCSSFrameConstructor final : public nsFrameManager {
     // True if there is guaranteed to be a line boundary after the
     // frames created by these items
     bool mLineBoundaryAtEnd;
-    // True if the parent is guaranteed to have no XBL anonymous children
-    bool mParentHasNoXBLChildren;
+    // True if the parent is guaranteed to have no shadow tree.
+    bool mParentHasNoShadowDOM;
   };
 
   /* A struct representing a list of FrameConstructionItems on the stack. */
@@ -1081,7 +1082,6 @@ class nsCSSFrameConstructor final : public nsFrameManager {
           mSuppressWhiteSpaceOptimizations(aSuppressWhiteSpaceOptimizations),
           mIsText(false),
           mIsGeneratedContent(false),
-          mIsAnonymousContentCreatorContent(false),
           mIsRootPopupgroup(false),
           mIsAllInline(false),
           mIsBlock(false),
@@ -1142,8 +1142,6 @@ class nsCSSFrameConstructor final : public nsFrameManager {
     // Whether this is a generated content container.
     // If it is, mContent is a strong pointer.
     bool mIsGeneratedContent : 1;
-    // Whether this is an item for nsIAnonymousContentCreator content.
-    bool mIsAnonymousContentCreatorContent : 1;
     // Whether this is an item for the root popupgroup.
     bool mIsRootPopupgroup : 1;
     // Whether construction from this item will create only frames that are
@@ -1370,6 +1368,8 @@ class nsCSSFrameConstructor final : public nsFrameManager {
                                                              ComputedStyle&);
   static const FrameConstructionData* FindImgControlData(const Element&,
                                                          ComputedStyle&);
+  static const FrameConstructionData* FindSearchControlData(const Element&,
+                                                            ComputedStyle&);
   static const FrameConstructionData* FindInputData(const Element&,
                                                     ComputedStyle&);
   static const FrameConstructionData* FindObjectData(const Element&,
@@ -1393,20 +1393,6 @@ class nsCSSFrameConstructor final : public nsFrameManager {
                                       nsContainerFrame* aParentFrame,
                                       nsFrameList& aFrameList);
 
-  // possible flags for AddFrameConstructionItemInternal's aFlags argument
-  /* Allow xbl:base to affect the tag/namespace used. */
-#define ITEM_ALLOW_XBL_BASE 0x1
-  /* Allow page-break before and after items to be created if the
-     style asks for them. */
-#define ITEM_ALLOW_PAGE_BREAK 0x2
-  /* The item is a generated content item. */
-#define ITEM_IS_GENERATED_CONTENT 0x4
-  /* The item is within an SVG text block frame. */
-#define ITEM_IS_WITHIN_SVG_TEXT 0x8
-  /* The item allows items to be created for SVG <textPath> children. */
-#define ITEM_ALLOWS_TEXT_PATH_CHILD 0x10
-  /* The item is content created by an nsIAnonymousContentCreator frame */
-#define ITEM_IS_ANONYMOUSCONTENTCREATOR_CONTENT 0x20
   // The guts of AddFrameConstructionItems
   // aParentFrame might be null.  If it is, that means it was an
   // inline frame.
@@ -1414,8 +1400,7 @@ class nsCSSFrameConstructor final : public nsFrameManager {
                                          nsIContent* aContent,
                                          nsContainerFrame* aParentFrame,
                                          bool aSuppressWhiteSpaceOptimizations,
-                                         ComputedStyle* aComputedStyle,
-                                         uint32_t aFlags,
+                                         ComputedStyle*, ItemFlags,
                                          FrameConstructionItemList& aItems);
 
   /**
@@ -1455,9 +1440,6 @@ class nsCSSFrameConstructor final : public nsFrameManager {
 
   // Function to find FrameConstructionData for an element.  Will return
   // null if the element is not XUL.
-  //
-  // NOTE(emilio): This gets the overloaded tag and namespace id since they can
-  // be overriden by extends="" in XBL.
   static const FrameConstructionData* FindXULTagData(const Element&,
                                                      ComputedStyle&);
   // XUL data-finding helper functions and structures
@@ -1492,7 +1474,7 @@ class nsCSSFrameConstructor final : public nsFrameManager {
       mozilla::PseudoStyleType aInnerPseudo, bool aCandidateRootFrame);
 
   /**
-   * Construct an nsSVGOuterSVGFrame.
+   * Construct an SVGOuterSVGFrame.
    */
   nsIFrame* ConstructOuterSVG(nsFrameConstructorState& aState,
                               FrameConstructionItem& aItem,
@@ -1501,7 +1483,7 @@ class nsCSSFrameConstructor final : public nsFrameManager {
                               nsFrameList& aFrameList);
 
   /**
-   * Construct an nsSVGMarkerFrame.
+   * Construct an SVGMarkerFrame.
    */
   nsIFrame* ConstructMarker(nsFrameConstructorState& aState,
                             FrameConstructionItem& aItem,
@@ -1564,13 +1546,16 @@ class nsCSSFrameConstructor final : public nsFrameManager {
   void AddFCItemsForAnonymousContent(
       nsFrameConstructorState& aState, nsContainerFrame* aFrame,
       const nsTArray<nsIAnonymousContentCreator::ContentInfo>& aAnonymousItems,
-      FrameConstructionItemList& aItemsToConstruct, uint32_t aExtraFlags = 0);
+      FrameConstructionItemList& aItemsToConstruct, ItemFlags aExtraFlags = {});
 
   /**
    * Construct the frames for the children of aContent.  "children" is defined
    * as "whatever FlattenedChildIterator returns for aContent".  This means
-   * we're basically operating on children in the "flattened tree" per
-   * sXBL/XBL2. This method will also handle constructing ::before, ::after,
+   * we're basically operating on children in the "flattened tree":
+   *
+   *   https://drafts.csswg.org/css-scoping/#flat-tree
+   *
+   * This method will also handle constructing ::before, ::after,
    * ::first-letter, and ::first-line frames, as needed and if allowed.
    *
    * If the parent is a float containing block, this method will handle pushing
@@ -1672,14 +1657,12 @@ class nsCSSFrameConstructor final : public nsFrameManager {
   // not null).
   bool MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame);
 
-  nsIFrame* CreateContinuingOuterTableFrame(PresShell* aPresShell,
-                                            nsPresContext* aPresContext,
-                                            nsIFrame* aFrame,
+  nsIFrame* CreateContinuingOuterTableFrame(nsIFrame* aFrame,
                                             nsContainerFrame* aParentFrame,
                                             nsIContent* aContent,
                                             ComputedStyle* aComputedStyle);
 
-  nsIFrame* CreateContinuingTableFrame(PresShell* aPresShell, nsIFrame* aFrame,
+  nsIFrame* CreateContinuingTableFrame(nsIFrame* aFrame,
                                        nsContainerFrame* aParentFrame,
                                        nsIContent* aContent,
                                        ComputedStyle* aComputedStyle);
@@ -2051,8 +2034,8 @@ class nsCSSFrameConstructor final : public nsFrameManager {
   // The skip parameters are used to ignore a range of children when looking
   // for a sibling. All nodes starting from aStartSkipChild and up to but not
   // including aEndSkipChild will be skipped over when looking for sibling
-  // frames. Skipping a range can deal with XBL but not when there are multiple
-  // insertion points.
+  // frames. Skipping a range can deal with shadow DOM, but not when there are
+  // multiple insertion points.
   nsIFrame* GetInsertionPrevSibling(InsertionPoint* aInsertion,  // inout
                                     nsIContent* aChild, bool* aIsAppend,
                                     bool* aIsRangeInsertSafe,

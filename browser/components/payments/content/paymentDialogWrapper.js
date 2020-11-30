@@ -40,7 +40,7 @@ ChromeUtils.defineModuleGetter(
 ChromeUtils.defineModuleGetter(
   this,
   "OSKeyStore",
-  "resource://formautofill/OSKeyStore.jsm"
+  "resource://gre/modules/OSKeyStore.jsm"
 );
 ChromeUtils.defineModuleGetter(
   this,
@@ -68,8 +68,10 @@ XPCOMUtils.defineLazyGetter(this, "reauthPasswordPromptMessage", () => {
   const brandShortName = FormAutofillUtils.brandBundle.GetStringFromName(
     "brandShortName"
   );
+  // The string name for Mac is changed because the value needed updating.
+  const platform = AppConstants.platform.replace("macosx", "macos");
   return FormAutofillUtils.stringBundle.formatStringFromName(
-    `useCreditCardPasswordPrompt.${AppConstants.platform}`,
+    `useCreditCardPasswordPrompt.${platform}`,
     [brandShortName]
   );
 });
@@ -135,8 +137,8 @@ var paymentDialogWrapper = {
   temporaryStore: null,
 
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIObserver,
-    Ci.nsISupportsWeakReference,
+    "nsIObserver",
+    "nsISupportsWeakReference",
   ]),
 
   /**

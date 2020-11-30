@@ -51,6 +51,9 @@ glob:**/*.ini
 glob:**/*.list
 path:testing/mozbase/manifestparser
 path:testing/runtimes
+path:testing/web-platform/tests/
+path:testing/web-platform/mozilla/tests/
+glob:testing/web-platform/*.py
 
 # For scheduling android-gradle-dependencies.
 path:mobile/android/config/
@@ -62,6 +65,7 @@ path:.cron.yml
 
 # for the wrench-deps toolchain task
 path:gfx/wr/Cargo.lock
+path:gfx/wr/ci-scripts/
 
 # for the wgpu-deps toolchain task
 path:gfx/wgpu/Cargo.lock
@@ -73,9 +77,17 @@ path:other-licenses/bsdiff/
 path:other-licenses/nsis/Contrib/CityHash/cityhash/
 path:toolkit/mozapps/update/updater
 
+# for the minidump_stackwalk toolchain task
+path:toolkit/crashreporter
+path:tools/crashreporter/
+path:mfbt
+path:config/external/zlib
+path:build/moz.configure
+
 # for the browsertime toolchain task
 path:tools/browsertime/mach_commands.py
 path:tools/browsertime/package.json
+path:tools/browsertime/package-lock.json
 
 # for the geckodriver toolchain task
 path:testing/geckodriver

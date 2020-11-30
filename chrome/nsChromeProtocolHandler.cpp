@@ -119,8 +119,7 @@ nsChromeProtocolHandler::NewChannel(nsIURI* aURI, nsILoadInfo* aLoadInfo,
   if (!nsChromeRegistry::gChromeRegistry) {
     // We don't actually want this ref, we just want the service to
     // initialize if it hasn't already.
-    nsCOMPtr<nsIChromeRegistry> reg =
-        mozilla::services::GetChromeRegistryService();
+    nsCOMPtr<nsIChromeRegistry> reg = mozilla::services::GetChromeRegistry();
     NS_ENSURE_TRUE(nsChromeRegistry::gChromeRegistry, NS_ERROR_FAILURE);
   }
 
@@ -172,7 +171,7 @@ nsChromeProtocolHandler::NewChannel(nsIURI* aURI, nsILoadInfo* aLoadInfo,
   nsCOMPtr<nsIURL> url = do_QueryInterface(aURI);
   nsAutoCString path;
   rv = url->GetPathQueryRef(path);
-  if (StringBeginsWith(path, NS_LITERAL_CSTRING("/content/"))) {
+  if (StringBeginsWith(path, "/content/"_ns)) {
     result->SetOwner(nsContentUtils::GetSystemPrincipal());
   }
 
@@ -181,7 +180,7 @@ nsChromeProtocolHandler::NewChannel(nsIURI* aURI, nsILoadInfo* aLoadInfo,
   // and with startupcache not at all), but this is where we would start
   // if we need to re-add.
   // See bug 531886, bug 533038.
-  result->SetContentCharset(NS_LITERAL_CSTRING("UTF-8"));
+  result->SetContentCharset("UTF-8"_ns);
 
   *aResult = result;
   NS_ADDREF(*aResult);

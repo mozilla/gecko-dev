@@ -13,9 +13,10 @@ use crate::font_metrics::FontMetricsProvider;
 use crate::gecko_bindings::structs::{ServoStyleSetSizes, StyleRuleInclusion};
 use crate::invalidation::element::invalidation_map::InvalidationMap;
 use crate::invalidation::media_queries::{EffectiveMediaQueryResults, ToMediaListKey};
+use crate::invalidation::stylesheets::RuleChangeKind;
 use crate::media_queries::Device;
 use crate::properties::{self, CascadeMode, ComputedValues};
-use crate::properties::{AnimationRules, PropertyDeclarationBlock};
+use crate::properties::{AnimationDeclarations, PropertyDeclarationBlock};
 use crate::rule_cache::{RuleCache, RuleCacheConditions};
 use crate::rule_collector::{containing_shadow_ignoring_svg_use, RuleCollector};
 use crate::rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
@@ -42,8 +43,7 @@ use selectors::attr::{CaseSensitivity, NamespaceConstraint};
 use selectors::bloom::BloomFilter;
 use selectors::matching::VisitedHandlingMode;
 use selectors::matching::{matches_selector, ElementSelectorFlags, MatchingContext, MatchingMode};
-use selectors::parser::{AncestorHashes, Combinator, Component, Selector};
-use selectors::parser::{SelectorIter, Visit};
+use selectors::parser::{AncestorHashes, Combinator, Component, Selector, SelectorIter};
 use selectors::visitor::SelectorVisitor;
 use selectors::NthIndexCache;
 use servo_arc::{Arc, ArcBorrow};
@@ -606,6 +606,18 @@ impl Stylist {
             .remove_stylesheet(Some(&self.device), sheet, guard)
     }
 
+    /// Notify of a change of a given rule.
+    pub fn rule_changed(
+        &mut self,
+        sheet: &StylistSheet,
+        rule: &CssRule,
+        guard: &SharedRwLockReadGuard,
+        change_kind: RuleChangeKind,
+    ) {
+        self.stylesheets
+            .rule_changed(Some(&self.device), sheet, rule, guard, change_kind)
+    }
+
     /// Appends a new stylesheet to the current set.
     #[inline]
     pub fn sheet_count(&self, origin: Origin) -> usize {
@@ -975,7 +987,7 @@ impl Stylist {
             Some(&pseudo),
             None,
             None,
-            AnimationRules(None, None),
+            /* animation_declarations = */ Default::default(),
             rule_inclusion,
             &mut declarations,
             &mut matching_context,
@@ -1005,7 +1017,7 @@ impl Stylist {
                 Some(&pseudo),
                 None,
                 None,
-                AnimationRules(None, None),
+                /* animation_declarations = */ Default::default(),
                 rule_inclusion,
                 &mut declarations,
                 &mut matching_context,
@@ -1128,7 +1140,7 @@ impl Stylist {
         pseudo_element: Option<&PseudoElement>,
         style_attribute: Option<ArcBorrow<Locked<PropertyDeclarationBlock>>>,
         smil_override: Option<ArcBorrow<Locked<PropertyDeclarationBlock>>>,
-        animation_rules: AnimationRules,
+        animation_declarations: AnimationDeclarations,
         rule_inclusion: RuleInclusion,
         applicable_declarations: &mut ApplicableDeclarationList,
         context: &mut MatchingContext<E::Impl>,
@@ -1143,7 +1155,7 @@ impl Stylist {
             pseudo_element,
             style_attribute,
             smil_override,
-            animation_rules,
+            animation_declarations,
             rule_inclusion,
             applicable_declarations,
             context,
@@ -1319,12 +1331,6 @@ impl Stylist {
         use crate::font_metrics::get_metrics_provider_for_product;
 
         let block = declarations.read_with(guards.author);
-        let iter_declarations = || {
-            block
-                .declaration_importance_iter()
-                .map(|(declaration, _)| (declaration, Origin::Author))
-        };
-
         let metrics = get_metrics_provider_for_product();
 
         // We don't bother inserting these declarations in the rule tree, since
@@ -1333,12 +1339,14 @@ impl Stylist {
         // TODO(emilio): Now that we fixed bug 1493420, we should consider
         // reversing this as it shouldn't be slow anymore, and should avoid
         // generating two instantiations of apply_declarations.
-        properties::apply_declarations::<E, _, _>(
+        properties::apply_declarations::<E, _>(
             &self.device,
             /* pseudo = */ None,
             self.rule_tree.root(),
             guards,
-            iter_declarations,
+            block
+                .declaration_importance_iter()
+                .map(|(declaration, _)| (declaration, Origin::Author)),
             Some(parent_style),
             Some(parent_style),
             Some(parent_style),
@@ -1530,11 +1538,11 @@ impl SelectorMapEntry for RevalidationSelectorAndHashes {
 /// A selector visitor implementation that collects all the state the Stylist
 /// cares about a selector.
 struct StylistSelectorVisitor<'a> {
-    /// Whether the selector needs revalidation for the style sharing cache.
-    needs_revalidation: bool,
     /// Whether we've past the rightmost compound selector, not counting
     /// pseudo-elements.
     passed_rightmost_selector: bool,
+    /// Whether the selector needs revalidation for the style sharing cache.
+    needs_revalidation: &'a mut bool,
     /// The filter with all the id's getting referenced from rightmost
     /// selectors.
     mapped_ids: &'a mut PrecomputedHashSet<Atom>,
@@ -1582,19 +1590,31 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
     type Impl = SelectorImpl;
 
     fn visit_complex_selector(&mut self, combinator: Option<Combinator>) -> bool {
-        self.needs_revalidation =
-            self.needs_revalidation || combinator.map_or(false, |c| c.is_sibling());
+        *self.needs_revalidation =
+            *self.needs_revalidation || combinator.map_or(false, |c| c.is_sibling());
 
-        // NOTE(emilio): This works properly right now because we can't store
-        // complex selectors in nested selectors, otherwise we may need to
-        // rethink this.
-        //
-        // Also, note that this call happens before we visit any of the simple
+        // NOTE(emilio): this call happens before we visit any of the simple
         // selectors in the next ComplexSelector, so we can use this to skip
         // looking at them.
         self.passed_rightmost_selector = self.passed_rightmost_selector ||
             !matches!(combinator, None | Some(Combinator::PseudoElement));
 
+        true
+    }
+
+    fn visit_selector_list(&mut self, list: &[Selector<Self::Impl>]) -> bool {
+        for selector in list {
+            let mut nested = StylistSelectorVisitor {
+                passed_rightmost_selector: false,
+                needs_revalidation: &mut *self.needs_revalidation,
+                attribute_dependencies: &mut *self.attribute_dependencies,
+                state_dependencies: &mut *self.state_dependencies,
+                document_state_dependencies: &mut *self.document_state_dependencies,
+                mapped_ids: &mut *self.mapped_ids,
+            };
+            let _ret = selector.visit(&mut nested);
+            debug_assert!(_ret, "We never return false");
+        }
         true
     }
 
@@ -1610,7 +1630,7 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
     }
 
     fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
-        self.needs_revalidation = self.needs_revalidation ||
+        *self.needs_revalidation = *self.needs_revalidation ||
             component_needs_revalidation(s, self.passed_rightmost_selector);
 
         match *s {
@@ -2022,8 +2042,9 @@ impl CascadeData {
 
                         if rebuild_kind.should_rebuild_invalidation() {
                             self.invalidation_map.note_selector(selector, quirks_mode)?;
+                            let mut needs_revalidation = false;
                             let mut visitor = StylistSelectorVisitor {
-                                needs_revalidation: false,
+                                needs_revalidation: &mut needs_revalidation,
                                 passed_rightmost_selector: false,
                                 attribute_dependencies: &mut self.attribute_dependencies,
                                 state_dependencies: &mut self.state_dependencies,
@@ -2033,7 +2054,7 @@ impl CascadeData {
 
                             rule.selector.visit(&mut visitor);
 
-                            if visitor.needs_revalidation {
+                            if needs_revalidation {
                                 self.selectors_for_cache_revalidation.insert(
                                     RevalidationSelectorAndHashes::new(
                                         rule.selector.clone(),
@@ -2365,14 +2386,15 @@ pub fn needs_revalidation_for_testing(s: &Selector<SelectorImpl>) -> bool {
     let mut mapped_ids = Default::default();
     let mut state_dependencies = ElementState::empty();
     let mut document_state_dependencies = DocumentState::empty();
+    let mut needs_revalidation = false;
     let mut visitor = StylistSelectorVisitor {
-        needs_revalidation: false,
         passed_rightmost_selector: false,
+        needs_revalidation: &mut needs_revalidation,
         attribute_dependencies: &mut attribute_dependencies,
         state_dependencies: &mut state_dependencies,
         document_state_dependencies: &mut document_state_dependencies,
         mapped_ids: &mut mapped_ids,
     };
     s.visit(&mut visitor);
-    visitor.needs_revalidation
+    needs_revalidation
 }

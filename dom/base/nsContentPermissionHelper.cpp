@@ -34,7 +34,7 @@ using mozilla::Unused;  // <snicker>
 using namespace mozilla::dom;
 using namespace mozilla;
 using DelegateInfo = PermissionDelegateHandler::PermissionDelegateInfo;
-#define kVisibilityChange "visibilitychange"
+#define kVisibilityChange u"visibilitychange"
 
 class VisibilityChangeListener final : public nsIDOMEventListener {
  public:
@@ -63,7 +63,7 @@ VisibilityChangeListener::VisibilityChangeListener(
   mWindow = do_GetWeakReference(aWindow);
   nsCOMPtr<Document> doc = aWindow->GetExtantDoc();
   if (doc) {
-    doc->AddSystemEventListener(NS_LITERAL_STRING(kVisibilityChange),
+    doc->AddSystemEventListener(nsLiteralString(kVisibilityChange),
                                 /* listener */ this,
                                 /* use capture */ true,
                                 /* wants untrusted */ false);
@@ -96,7 +96,7 @@ void VisibilityChangeListener::RemoveListener() {
 
   nsCOMPtr<EventTarget> target = window->GetExtantDoc();
   if (target) {
-    target->RemoveSystemEventListener(NS_LITERAL_STRING(kVisibilityChange),
+    target->RemoveSystemEventListener(nsLiteralString(kVisibilityChange),
                                       /* listener */ this,
                                       /* use capture */ true);
   }
@@ -155,7 +155,7 @@ ContentPermissionRequestParent::ContentPermissionRequestParent(
   mPrincipal = aPrincipal;
   mTopLevelPrincipal = aTopLevelPrincipal;
   mElement = aElement;
-  mRequests = aRequests;
+  mRequests = aRequests.Clone();
   mIsHandlingUserInput = aIsHandlingUserInput;
   mMaybeUnsafePermissionDelegate = aMaybeUnsafePermissionDelegate;
 }
@@ -205,7 +205,7 @@ NS_IMPL_ISUPPORTS(ContentPermissionType, nsIContentPermissionType)
 ContentPermissionType::ContentPermissionType(
     const nsACString& aType, const nsTArray<nsString>& aOptions) {
   mType = aType;
-  mOptions = aOptions;
+  mOptions = aOptions.Clone();
 }
 
 ContentPermissionType::~ContentPermissionType() = default;
@@ -845,7 +845,7 @@ nsContentPermissionRequestProxy::~nsContentPermissionRequestProxy() = default;
 
 nsresult nsContentPermissionRequestProxy::Init(
     const nsTArray<PermissionRequest>& requests) {
-  mPermissionRequests = requests;
+  mPermissionRequests = requests.Clone();
   mRequester = new nsContentPermissionRequesterProxy(mParent);
 
   nsCOMPtr<nsIContentPermissionPrompt> prompt =

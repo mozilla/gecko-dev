@@ -6,6 +6,7 @@
 
 #include "mozilla/ArrayUtils.h"
 
+#include "nsAppRunner.h"
 #include "nsSystemInfo.h"
 #include "prsystem.h"
 #include "prio.h"
@@ -56,7 +57,7 @@
 
 #ifdef MOZ_WIDGET_ANDROID
 #  include "AndroidBuild.h"
-#  include "GeneratedJNIWrappers.h"
+#  include "mozilla/java/GeckoAppShellWrappers.h"
 #  include "mozilla/jni/Utils.h"
 #endif
 
@@ -701,19 +702,19 @@ nsresult CollectProcessInfo(ProcessInfo& info) {
   MOZ_ASSERT(sizeof(sysctlValue32) == len);
 
 #elif defined(XP_LINUX) && !defined(ANDROID)
-  // Get vendor, family, model, stepping, physical cores, L3 cache size
+  // Get vendor, family, model, stepping, physical cores
   // from /proc/cpuinfo file
   {
     std::map<nsCString, nsCString> keyValuePairs;
     SimpleParseKeyValuePairs("/proc/cpuinfo", keyValuePairs);
 
     // cpuVendor from "vendor_id"
-    info.cpuVendor.Assign(keyValuePairs[NS_LITERAL_CSTRING("vendor_id")]);
+    info.cpuVendor.Assign(keyValuePairs["vendor_id"_ns]);
 
     {
       // cpuFamily from "cpu family"
       Tokenizer::Token t;
-      Tokenizer p(keyValuePairs[NS_LITERAL_CSTRING("cpu family")]);
+      Tokenizer p(keyValuePairs["cpu family"_ns]);
       if (p.Next(t) && t.Type() == Tokenizer::TOKEN_INTEGER &&
           t.AsInteger() <= INT32_MAX) {
         cpuFamily = static_cast<int>(t.AsInteger());
@@ -723,7 +724,7 @@ nsresult CollectProcessInfo(ProcessInfo& info) {
     {
       // cpuModel from "model"
       Tokenizer::Token t;
-      Tokenizer p(keyValuePairs[NS_LITERAL_CSTRING("model")]);
+      Tokenizer p(keyValuePairs["model"_ns]);
       if (p.Next(t) && t.Type() == Tokenizer::TOKEN_INTEGER &&
           t.AsInteger() <= INT32_MAX) {
         cpuModel = static_cast<int>(t.AsInteger());
@@ -733,7 +734,7 @@ nsresult CollectProcessInfo(ProcessInfo& info) {
     {
       // cpuStepping from "stepping"
       Tokenizer::Token t;
-      Tokenizer p(keyValuePairs[NS_LITERAL_CSTRING("stepping")]);
+      Tokenizer p(keyValuePairs["stepping"_ns]);
       if (p.Next(t) && t.Type() == Tokenizer::TOKEN_INTEGER &&
           t.AsInteger() <= INT32_MAX) {
         cpuStepping = static_cast<int>(t.AsInteger());
@@ -743,27 +744,10 @@ nsresult CollectProcessInfo(ProcessInfo& info) {
     {
       // physicalCPUs from "cpu cores"
       Tokenizer::Token t;
-      Tokenizer p(keyValuePairs[NS_LITERAL_CSTRING("cpu cores")]);
+      Tokenizer p(keyValuePairs["cpu cores"_ns]);
       if (p.Next(t) && t.Type() == Tokenizer::TOKEN_INTEGER &&
           t.AsInteger() <= INT32_MAX) {
         physicalCPUs = static_cast<int>(t.AsInteger());
-      }
-    }
-
-    {
-      // cacheSizeL3 from "cache size"
-      Tokenizer::Token t;
-      Tokenizer p(keyValuePairs[NS_LITERAL_CSTRING("cache size")]);
-      if (p.Next(t) && t.Type() == Tokenizer::TOKEN_INTEGER &&
-          t.AsInteger() <= INT32_MAX) {
-        cacheSizeL3 = static_cast<int>(t.AsInteger());
-        if (p.Next(t) && t.Type() == Tokenizer::TOKEN_WORD &&
-            t.AsString() != NS_LITERAL_CSTRING("KB")) {
-          // If we get here, there was some text after the cache size value
-          // and that text was not KB.  For now, just don't report the
-          // L3 cache.
-          cacheSizeL3 = -1;
-        }
       }
     }
   }
@@ -793,6 +777,20 @@ nsresult CollectProcessInfo(ProcessInfo& info) {
       if (p.Next(t) && t.Type() == Tokenizer::TOKEN_INTEGER &&
           t.AsInteger() <= INT32_MAX) {
         cacheSizeL2 = static_cast<int>(t.AsInteger());
+      }
+    }
+  }
+
+  {
+    // Get cacheSizeL3 from yet another file
+    std::ifstream input("/sys/devices/system/cpu/cpu0/cache/index3/size");
+    std::string line;
+    if (getline(input, line)) {
+      Tokenizer::Token t;
+      Tokenizer p(line.c_str(), nullptr, "K");
+      if (p.Next(t) && t.Type() == Tokenizer::TOKEN_INTEGER &&
+          t.AsInteger() <= INT32_MAX) {
+        cacheSizeL3 = static_cast<int>(t.AsInteger());
       }
     }
   }
@@ -848,7 +846,8 @@ nsresult nsSystemInfo::Init() {
     const char* name;
   } items[] = {{PR_SI_SYSNAME, "name"},
                {PR_SI_ARCHITECTURE, "arch"},
-               {PR_SI_RELEASE, "version"}};
+               {PR_SI_RELEASE, "version"},
+               {PR_SI_RELEASE_BUILD, "build"}};
 
   for (uint32_t i = 0; i < (sizeof(items) / sizeof(items[0])); i++) {
     char buf[SYS_INFO_BUFFER_LENGTH];
@@ -868,11 +867,11 @@ nsresult nsSystemInfo::Init() {
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Additional informations not available through PR_GetSystemInfo.
-  SetInt32Property(NS_LITERAL_STRING("pagesize"), PR_GetPageSize());
-  SetInt32Property(NS_LITERAL_STRING("pageshift"), PR_GetPageShift());
-  SetInt32Property(NS_LITERAL_STRING("memmapalign"), PR_GetMemMapAlignment());
-  SetUint64Property(NS_LITERAL_STRING("memsize"), PR_GetPhysicalMemorySize());
-  SetUint32Property(NS_LITERAL_STRING("umask"), nsSystemInfo::gUserUmask);
+  SetInt32Property(u"pagesize"_ns, PR_GetPageSize());
+  SetInt32Property(u"pageshift"_ns, PR_GetPageShift());
+  SetInt32Property(u"memmapalign"_ns, PR_GetMemMapAlignment());
+  SetUint64Property(u"memsize"_ns, PR_GetPhysicalMemorySize());
+  SetUint32Property(u"umask"_ns, nsSystemInfo::gUserUmask);
 
   uint64_t virtualMem = 0;
 
@@ -884,8 +883,7 @@ nsresult nsSystemInfo::Init() {
     virtualMem = memStat.ullTotalVirtual;
   }
 #endif
-  if (virtualMem)
-    SetUint64Property(NS_LITERAL_STRING("virtualmemsize"), virtualMem);
+  if (virtualMem) SetUint64Property(u"virtualmemsize"_ns, virtualMem);
 
   for (uint32_t i = 0; i < ArrayLength(cpuPropItems); i++) {
     rv = SetPropertyAsBool(NS_ConvertASCIItoUTF16(cpuPropItems[i].name),
@@ -902,7 +900,7 @@ nsresult nsSystemInfo::Init() {
 #  else
       false;
 #  endif
-  rv = SetPropertyAsBool(NS_LITERAL_STRING("isMinGW"), !!isMinGW);
+  rv = SetPropertyAsBool(u"isMinGW"_ns, !!isMinGW);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -912,24 +910,21 @@ nsresult nsSystemInfo::Init() {
   if (NS_SUCCEEDED(
           GetWindowsSecurityCenterInfo(avInfo, antiSpyInfo, firewallInfo))) {
     if (!avInfo.IsEmpty()) {
-      rv = SetPropertyAsAString(NS_LITERAL_STRING("registeredAntiVirus"),
-                                avInfo);
+      rv = SetPropertyAsAString(u"registeredAntiVirus"_ns, avInfo);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return rv;
       }
     }
 
     if (!antiSpyInfo.IsEmpty()) {
-      rv = SetPropertyAsAString(NS_LITERAL_STRING("registeredAntiSpyware"),
-                                antiSpyInfo);
+      rv = SetPropertyAsAString(u"registeredAntiSpyware"_ns, antiSpyInfo);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return rv;
       }
     }
 
     if (!firewallInfo.IsEmpty()) {
-      rv = SetPropertyAsAString(NS_LITERAL_STRING("registeredFirewall"),
-                                firewallInfo);
+      rv = SetPropertyAsAString(u"registeredFirewall"_ns, firewallInfo);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return rv;
       }
@@ -941,7 +936,7 @@ nsresult nsSystemInfo::Init() {
 #if defined(XP_MACOSX)
   nsAutoCString modelId;
   if (NS_SUCCEEDED(GetAppleModelId(modelId))) {
-    rv = SetPropertyAsACString(NS_LITERAL_STRING("appleModelId"), modelId);
+    rv = SetPropertyAsACString(u"appleModelId"_ns, modelId);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 #endif
@@ -985,8 +980,7 @@ nsresult nsSystemInfo::Init() {
   }
 #  endif
 
-  rv = SetPropertyAsACString(NS_LITERAL_STRING("secondaryLibrary"),
-                             secondaryLibrary);
+  rv = SetPropertyAsACString(u"secondaryLibrary"_ns, secondaryLibrary);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -1001,23 +995,21 @@ nsresult nsSystemInfo::Init() {
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
   SandboxInfo sandInfo = SandboxInfo::Get();
 
-  SetPropertyAsBool(NS_LITERAL_STRING("hasSeccompBPF"),
+  SetPropertyAsBool(u"hasSeccompBPF"_ns,
                     sandInfo.Test(SandboxInfo::kHasSeccompBPF));
-  SetPropertyAsBool(NS_LITERAL_STRING("hasSeccompTSync"),
+  SetPropertyAsBool(u"hasSeccompTSync"_ns,
                     sandInfo.Test(SandboxInfo::kHasSeccompTSync));
-  SetPropertyAsBool(NS_LITERAL_STRING("hasUserNamespaces"),
+  SetPropertyAsBool(u"hasUserNamespaces"_ns,
                     sandInfo.Test(SandboxInfo::kHasUserNamespaces));
-  SetPropertyAsBool(NS_LITERAL_STRING("hasPrivilegedUserNamespaces"),
+  SetPropertyAsBool(u"hasPrivilegedUserNamespaces"_ns,
                     sandInfo.Test(SandboxInfo::kHasPrivilegedUserNamespaces));
 
   if (sandInfo.Test(SandboxInfo::kEnabledForContent)) {
-    SetPropertyAsBool(NS_LITERAL_STRING("canSandboxContent"),
-                      sandInfo.CanSandboxContent());
+    SetPropertyAsBool(u"canSandboxContent"_ns, sandInfo.CanSandboxContent());
   }
 
   if (sandInfo.Test(SandboxInfo::kEnabledForMedia)) {
-    SetPropertyAsBool(NS_LITERAL_STRING("canSandboxMedia"),
-                      sandInfo.CanSandboxMedia());
+    SetPropertyAsBool(u"canSandboxMedia"_ns, sandInfo.CanSandboxMedia());
   }
 #endif  // XP_LINUX && MOZ_SANDBOX
 
@@ -1030,9 +1022,9 @@ nsresult nsSystemInfo::Init() {
 // Chrome works around this by hardcoding an Android version when a
 // numeric version can't be obtained. We're doing the same.
 // This version will need to be updated whenever there is a new official
-// Android release.
-// See: https://cs.chromium.org/chromium/src/base/sys_info_android.cc?l=61
-#  define DEFAULT_ANDROID_VERSION "6.0.99"
+// Android release. Search for "kDefaultAndroidMajorVersion" in:
+// https://source.chromium.org/chromium/chromium/src/+/master:base/system/sys_info_android.cc
+#  define DEFAULT_ANDROID_VERSION u"10.0.99"
 
 /* static */
 void nsSystemInfo::GetAndroidSystemInfo(AndroidSystemInfo* aInfo) {
@@ -1060,7 +1052,7 @@ void nsSystemInfo::GetAndroidSystemInfo(AndroidSystemInfo* aInfo) {
   int num_read = sscanf(NS_ConvertUTF16toUTF8(str).get(), "%d.%d.%d",
                         &major_version, &minor_version, &bugfix_version);
   if (num_read == 0) {
-    aInfo->release_version() = NS_LITERAL_STRING(DEFAULT_ANDROID_VERSION);
+    aInfo->release_version() = nsLiteralString(DEFAULT_ANDROID_VERSION);
   } else {
     aInfo->release_version() = str;
   }
@@ -1071,31 +1063,29 @@ void nsSystemInfo::GetAndroidSystemInfo(AndroidSystemInfo* aInfo) {
 
 void nsSystemInfo::SetupAndroidInfo(const AndroidSystemInfo& aInfo) {
   if (!aInfo.device().IsEmpty()) {
-    SetPropertyAsAString(NS_LITERAL_STRING("device"), aInfo.device());
+    SetPropertyAsAString(u"device"_ns, aInfo.device());
   }
   if (!aInfo.manufacturer().IsEmpty()) {
-    SetPropertyAsAString(NS_LITERAL_STRING("manufacturer"),
-                         aInfo.manufacturer());
+    SetPropertyAsAString(u"manufacturer"_ns, aInfo.manufacturer());
   }
   if (!aInfo.release_version().IsEmpty()) {
-    SetPropertyAsAString(NS_LITERAL_STRING("release_version"),
-                         aInfo.release_version());
+    SetPropertyAsAString(u"release_version"_ns, aInfo.release_version());
   }
-  SetPropertyAsBool(NS_LITERAL_STRING("tablet"), aInfo.isTablet());
+  SetPropertyAsBool(u"tablet"_ns, aInfo.isTablet());
   // NSPR "version" is the kernel version. For Android we want the Android
   // version. Rename SDK version to version and put the kernel version into
   // kernel_version.
   nsAutoString str;
-  nsresult rv = GetPropertyAsAString(NS_LITERAL_STRING("version"), str);
+  nsresult rv = GetPropertyAsAString(u"version"_ns, str);
   if (NS_SUCCEEDED(rv)) {
-    SetPropertyAsAString(NS_LITERAL_STRING("kernel_version"), str);
+    SetPropertyAsAString(u"kernel_version"_ns, str);
   }
   // When JNI is not available (eg. in xpcshell tests), sdk_version is 0.
   if (aInfo.sdk_version() != 0) {
     if (!aInfo.hardware().IsEmpty()) {
-      SetPropertyAsAString(NS_LITERAL_STRING("hardware"), aInfo.hardware());
+      SetPropertyAsAString(u"hardware"_ns, aInfo.hardware());
     }
-    SetPropertyAsInt32(NS_LITERAL_STRING("version"), aInfo.sdk_version());
+    SetPropertyAsInt32(u"version"_ns, aInfo.sdk_version());
   }
 }
 #endif  // MOZ_WIDGET_ANDROID

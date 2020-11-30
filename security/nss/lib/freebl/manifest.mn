@@ -107,7 +107,7 @@ ECL_HDRS = ecl-exp.h ecl.h ecp.h ecl-priv.h
 ECL_SRCS = ecl.c ecl_mult.c ecl_gf.c \
 	ecp_aff.c ecp_jac.c ecp_mont.c \
 	ec_naf.c ecp_jm.c ecp_256.c ecp_384.c ecp_521.c \
-	ecp_256_32.c ecp_25519.c
+	ecp_256_32.c ecp_25519.c ecp_secp384r1.c ecp_secp521r1.c
 SHA_SRCS = sha_fast.c
 MPCPU_SRCS = mpcpucache.c
 VERIFIED_SRCS = $(NULL)
@@ -123,10 +123,9 @@ CSRCS = \
 	cmac.c \
 	alghmac.c \
 	rawhash.c \
-	alg2268.c \
 	arcfour.c \
 	arcfive.c \
-    crypto_primitives.c \
+	crypto_primitives.c \
 	blake2b.c \
 	desblapi.c \
 	des.c \
@@ -150,7 +149,6 @@ CSRCS = \
 	rsapkcs.c \
 	shvfy.c \
 	tlsprfalg.c \
-	seed.c \
 	jpake.c \
 	$(MPI_SRCS) \
 	$(MPCPU_SRCS) \
@@ -160,6 +158,14 @@ CSRCS = \
 	$(LOWHASH_SRCS) \
 	$(EXTRA_SRCS) \
 	$(NULL)
+
+ifndef NSS_DISABLE_DEPRECATED_SEED
+	CSRCS += deprecated/seed.c
+endif
+
+ifndef NSS_DISABLE_DEPRECATED_RC2
+	CSRCS += deprecated/alg2268.c
+endif
 
 ALL_CSRCS := $(CSRCS)
 

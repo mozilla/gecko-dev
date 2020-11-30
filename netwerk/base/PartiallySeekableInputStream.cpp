@@ -56,7 +56,9 @@ PartiallySeekableInputStream::PartiallySeekableInputStream(
       mWeakCloneableInputStream(nullptr),
       mWeakIPCSerializableInputStream(nullptr),
       mWeakAsyncInputStream(nullptr),
-      mCachedBuffer(aClonedFrom->mCachedBuffer),
+      mWeakInputStreamLength(nullptr),
+      mWeakAsyncInputStreamLength(nullptr),
+      mCachedBuffer(aClonedFrom->mCachedBuffer.Clone()),
       mBufferSize(aClonedFrom->mBufferSize),
       mPos(aClonedFrom->mPos),
       mClosed(aClonedFrom->mClosed),
@@ -233,12 +235,20 @@ PartiallySeekableInputStream::AsyncWait(nsIInputStreamCallback* aCallback,
                                         uint32_t aRequestedCount,
                                         nsIEventTarget* aEventTarget) {
   if (mClosed) {
-    return NS_BASE_STREAM_CLOSED;
+    if (aCallback) {
+      if (aEventTarget) {
+        nsCOMPtr<nsIInputStreamCallback> callable = NS_NewInputStreamReadyEvent(
+            "PartiallySeekableInputStream::OnInputStreamReady", aCallback,
+            aEventTarget);
+        callable->OnInputStreamReady(this);
+      } else {
+        aCallback->OnInputStreamReady(this);
+      }
+    }
+
+    return NS_OK;
   }
 
-  NS_ENSURE_STATE(mWeakAsyncInputStream);
-
-  nsCOMPtr<nsIInputStreamCallback> callback = aCallback ? this : nullptr;
   {
     MutexAutoLock lock(mMutex);
     if (mAsyncWaitCallback && aCallback) {
@@ -248,6 +258,8 @@ PartiallySeekableInputStream::AsyncWait(nsIInputStreamCallback* aCallback,
     mAsyncWaitCallback = aCallback;
   }
 
+  NS_ENSURE_STATE(mWeakAsyncInputStream);
+  nsCOMPtr<nsIInputStreamCallback> callback = aCallback ? this : nullptr;
   return mWeakAsyncInputStream->AsyncWait(callback, aFlags, aRequestedCount,
                                           aEventTarget);
 }
@@ -377,6 +389,22 @@ PartiallySeekableInputStream::Length(int64_t* aLength) {
 NS_IMETHODIMP
 PartiallySeekableInputStream::AsyncLengthWait(
     nsIInputStreamLengthCallback* aCallback, nsIEventTarget* aEventTarget) {
+  if (mClosed) {
+    if (aCallback) {
+      const RefPtr<PartiallySeekableInputStream> self = this;
+      const nsCOMPtr<nsIInputStreamLengthCallback> callback = aCallback;
+      nsCOMPtr<nsIRunnable> runnable = NS_NewRunnableFunction(
+          "PartiallySeekableInputStream::OnInputStreamLengthReady",
+          [self, callback] { callback->OnInputStreamLengthReady(self, -1); });
+      if (aEventTarget) {
+        aEventTarget->Dispatch(runnable, NS_DISPATCH_NORMAL);
+      } else {
+        runnable->Run();
+      }
+    }
+    return NS_OK;
+  }
+
   NS_ENSURE_STATE(mWeakAsyncInputStreamLength);
 
   nsCOMPtr<nsIInputStreamLengthCallback> callback = aCallback ? this : nullptr;

@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "DefaultURI.h"
+#include "nsIClassInfoImpl.h"
 #include "nsIObjectInputStream.h"
 #include "nsIObjectOutputStream.h"
-
 namespace mozilla {
 namespace net {
 
@@ -16,23 +16,37 @@ namespace net {
     }                                                \
   }
 
-#define ASSIGN_AND_ADDREF_THIS(ptrToMutator) \
-  do {                                       \
-    if (ptrToMutator) {                      \
-      NS_ADDREF(*ptrToMutator = this);       \
-    }                                        \
+#define ASSIGN_AND_ADDREF_THIS(ptrToMutator)    \
+  do {                                          \
+    if (ptrToMutator) {                         \
+      *(ptrToMutator) = do_AddRef(this).take(); \
+    }                                           \
   } while (0)
 
 static NS_DEFINE_CID(kDefaultURICID, NS_DEFAULTURI_CID);
 
+//----------------------------------------------------------------------------
+// nsIClassInfo
+//----------------------------------------------------------------------------
+
+NS_IMPL_CLASSINFO(DefaultURI, nullptr, nsIClassInfo::THREADSAFE,
+                  NS_DEFAULTURI_CID)
+// Empty CI getter. We only need nsIClassInfo for Serialization
+NS_IMPL_CI_INTERFACE_GETTER0(DefaultURI)
+
+//----------------------------------------------------------------------------
+// nsISupports
+//----------------------------------------------------------------------------
+
 NS_IMPL_ADDREF(DefaultURI)
 NS_IMPL_RELEASE(DefaultURI)
 NS_INTERFACE_TABLE_HEAD(DefaultURI)
-  NS_INTERFACE_TABLE(DefaultURI, nsIURI, nsISerializable, nsIClassInfo)
+  NS_INTERFACE_TABLE(DefaultURI, nsIURI, nsISerializable)
   NS_INTERFACE_TABLE_TO_MAP_SEGUE
-  if (aIID.Equals(kDefaultURICID))
+  NS_IMPL_QUERY_CLASSINFO(DefaultURI)
+  if (aIID.Equals(kDefaultURICID)) {
     foundInterface = static_cast<nsIURI*>(this);
-  else
+  } else
     NS_INTERFACE_MAP_ENTRY(nsISizeOf)
 NS_INTERFACE_MAP_END
 
@@ -48,45 +62,6 @@ NS_IMETHODIMP DefaultURI::Read(nsIObjectInputStream* aInputStream) {
 NS_IMETHODIMP DefaultURI::Write(nsIObjectOutputStream* aOutputStream) {
   nsAutoCString spec(mURL->Spec());
   return aOutputStream->WriteStringZ(spec.get());
-}
-
-//----------------------------------------------------------------------------
-// nsIClassInfo
-//----------------------------------------------------------------------------
-
-NS_IMETHODIMP DefaultURI::GetInterfaces(nsTArray<nsIID>& aInterfaces) {
-  aInterfaces.Clear();
-  return NS_OK;
-}
-
-NS_IMETHODIMP DefaultURI::GetScriptableHelper(nsIXPCScriptable** _retval) {
-  *_retval = nullptr;
-  return NS_OK;
-}
-
-NS_IMETHODIMP DefaultURI::GetContractID(nsACString& aContractID) {
-  aContractID.SetIsVoid(true);
-  return NS_OK;
-}
-
-NS_IMETHODIMP DefaultURI::GetClassDescription(nsACString& aClassDescription) {
-  aClassDescription.SetIsVoid(true);
-  return NS_OK;
-}
-
-NS_IMETHODIMP DefaultURI::GetClassID(nsCID** aClassID) {
-  *aClassID = (nsCID*)moz_xmalloc(sizeof(nsCID));
-  return GetClassIDNoAlloc(*aClassID);
-}
-
-NS_IMETHODIMP DefaultURI::GetFlags(uint32_t* aFlags) {
-  *aFlags = nsIClassInfo::MAIN_THREAD_ONLY;
-  return NS_OK;
-}
-
-NS_IMETHODIMP DefaultURI::GetClassIDNoAlloc(nsCID* aClassIDNoAlloc) {
-  *aClassIDNoAlloc = kDefaultURICID;
-  return NS_OK;
 }
 
 //----------------------------------------------------------------------------
@@ -153,8 +128,7 @@ NS_IMETHODIMP DefaultURI::GetHost(nsACString& aHost) {
   // enclosed in brackets. Ideally we want to change that, but for the sake of
   // consitency we'll leave it like that for the moment.
   // Bug 1603199 should fix this.
-  if (StringBeginsWith(aHost, NS_LITERAL_CSTRING("[")) &&
-      StringEndsWith(aHost, NS_LITERAL_CSTRING("]")) &&
+  if (StringBeginsWith(aHost, "["_ns) && StringEndsWith(aHost, "]"_ns) &&
       aHost.FindChar(':') != kNotFound) {
     aHost = Substring(aHost, 1, aHost.Length() - 2);
   }
@@ -409,7 +383,7 @@ DefaultURI::Mutator::SetUserPass(const nsACString& aUserPass,
   int32_t index = aUserPass.FindChar(':');
   if (index == kNotFound) {
     mMutator->SetUsername(aUserPass);
-    mMutator->SetPassword(EmptyCString());
+    mMutator->SetPassword(""_ns);
     return mMutator->GetStatus();
   }
 
@@ -488,14 +462,14 @@ DefaultURI::Mutator::SetPathQueryRef(const nsACString& aPathQueryRef,
     return NS_ERROR_NULL_POINTER;
   }
   if (aPathQueryRef.IsEmpty()) {
-    mMutator->SetFilePath(EmptyCString());
-    mMutator->SetQuery(EmptyCString());
-    mMutator->SetRef(EmptyCString());
+    mMutator->SetFilePath(""_ns);
+    mMutator->SetQuery(""_ns);
+    mMutator->SetRef(""_ns);
     return mMutator->GetStatus();
   }
 
   nsAutoCString pathQueryRef(aPathQueryRef);
-  if (!StringBeginsWith(pathQueryRef, NS_LITERAL_CSTRING("/"))) {
+  if (!StringBeginsWith(pathQueryRef, "/"_ns)) {
     pathQueryRef.Insert('/', 0);
   }
 

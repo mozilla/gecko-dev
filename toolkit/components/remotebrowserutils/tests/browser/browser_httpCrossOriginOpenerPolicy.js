@@ -5,11 +5,10 @@ const { E10SUtils } = ChromeUtils.import(
 );
 
 const COOP_PREF = "browser.tabs.remote.useCrossOriginOpenerPolicy";
-const DOCUMENT_CHANNEL_PREF = "browser.tabs.documentchannel";
 
 async function setPref() {
   await SpecialPowers.pushPrefEnv({
-    set: [[COOP_PREF, true], [DOCUMENT_CHANNEL_PREF, true]],
+    set: [[COOP_PREF, true]],
   });
 }
 
@@ -55,11 +54,9 @@ async function test_coop(
 
       let browser = gBrowser.selectedBrowser;
       let firstRemoteType = browser.remoteType;
-      let firstProcessID = browser.frameLoader.remoteTab.osPid;
+      let firstBC = browser.browsingContext;
 
-      info(
-        `firstProcessID: ${firstProcessID} firstRemoteType: ${firstRemoteType}`
-      );
+      info(`firstBC: ${firstBC.id} remoteType: ${firstRemoteType}`);
 
       if (startRemoteTypeCheck) {
         startRemoteTypeCheck(firstRemoteType);
@@ -77,26 +74,16 @@ async function test_coop(
       info(`Navigated to: ${target}`);
       browser = gBrowser.selectedBrowser;
       let secondRemoteType = browser.remoteType;
-      let secondProcessID = browser.frameLoader.remoteTab.osPid;
+      let secondBC = browser.browsingContext;
 
-      info(
-        `secondProcessID: ${secondProcessID} secondRemoteType: ${secondRemoteType}`
-      );
+      info(`secondBC: ${secondBC.id} remoteType: ${secondRemoteType}`);
       if (targetRemoteTypeCheck) {
         targetRemoteTypeCheck(secondRemoteType);
       }
       if (expectedProcessSwitch) {
-        Assert.notEqual(
-          firstProcessID,
-          secondProcessID,
-          `from: ${start} to ${target}`
-        );
+        Assert.notEqual(firstBC.id, secondBC.id, `from: ${start} to ${target}`);
       } else {
-        Assert.equal(
-          firstProcessID,
-          secondProcessID,
-          `from: ${start} to ${target}`
-        );
+        Assert.equal(firstBC.id, secondBC.id, `from: ${start} to ${target}`);
       }
     }
   );
@@ -177,7 +164,7 @@ add_task(async function test_multiple_nav_process_switches() {
       waitForStateStop: true,
     },
     async function(browser) {
-      let prevPID = browser.frameLoader.remoteTab.osPid;
+      let prevBC = browser.browsingContext;
 
       let target = httpURL("coop_header.sjs?.", "https://example.org");
       await performLoad(
@@ -189,10 +176,8 @@ add_task(async function test_multiple_nav_process_switches() {
         async () => BrowserTestUtils.loadURI(browser, target)
       );
 
-      let currentPID = browser.frameLoader.remoteTab.osPid;
-
-      Assert.equal(prevPID, currentPID);
-      prevPID = currentPID;
+      Assert.equal(prevBC, browser.browsingContext);
+      prevBC = browser.browsingContext;
 
       target = httpURL(
         "coop_header.sjs?coop=same-origin",
@@ -207,10 +192,8 @@ add_task(async function test_multiple_nav_process_switches() {
         async () => BrowserTestUtils.loadURI(browser, target)
       );
 
-      currentPID = browser.frameLoader.remoteTab.osPid;
-
-      Assert.notEqual(prevPID, currentPID);
-      prevPID = currentPID;
+      Assert.notEqual(prevBC, browser.browsingContext);
+      prevBC = browser.browsingContext;
 
       target = httpURL(
         "coop_header.sjs?coop=same-origin",
@@ -225,10 +208,8 @@ add_task(async function test_multiple_nav_process_switches() {
         async () => BrowserTestUtils.loadURI(browser, target)
       );
 
-      currentPID = browser.frameLoader.remoteTab.osPid;
-
-      Assert.notEqual(prevPID, currentPID);
-      prevPID = currentPID;
+      Assert.notEqual(prevBC, browser.browsingContext);
+      prevBC = browser.browsingContext;
 
       target = httpURL(
         "coop_header.sjs?coop=same-origin&index=4",
@@ -243,10 +224,7 @@ add_task(async function test_multiple_nav_process_switches() {
         async () => BrowserTestUtils.loadURI(browser, target)
       );
 
-      currentPID = browser.frameLoader.remoteTab.osPid;
-
-      Assert.equal(prevPID, currentPID);
-      prevPID = currentPID;
+      Assert.equal(prevBC, browser.browsingContext);
     }
   );
 });

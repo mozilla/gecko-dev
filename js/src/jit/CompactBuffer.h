@@ -7,7 +7,11 @@
 #ifndef jit_Compactbuffer_h
 #define jit_Compactbuffer_h
 
-#include "jit/IonTypes.h"
+#include "mozilla/Assertions.h"
+
+#include <stddef.h>
+#include <stdint.h>
+
 #include "js/AllocPolicy.h"
 #include "js/Vector.h"
 
@@ -83,7 +87,15 @@ class CompactBufferReader {
     }
     return result;
   }
-
+  // Reads a value written by writeUnsigned15Bit.
+  uint32_t readUnsigned15Bit() {
+    uint8_t byte = readByte();
+    uint32_t val = byte >> 1;
+    if (byte & 1) {
+      val |= uint32_t(readByte()) << 7;
+    }
+    return val;
+  }
   void* readRawPointer() {
     uintptr_t ptrWord = 0;
     for (unsigned i = 0; i < sizeof(uintptr_t); i++) {
@@ -119,12 +131,26 @@ class CompactBufferWriter {
   // assert.
   void writeByte(uint32_t byte) {
     MOZ_ASSERT(byte <= 0xFF);
-    enoughMemory_ &= buffer_.append(byte);
+    if (!buffer_.append(byte)) {
+      enoughMemory_ = false;
+    }
   }
   void writeByteAt(uint32_t pos, uint32_t byte) {
     MOZ_ASSERT(byte <= 0xFF);
     if (!oom()) {
       buffer_[pos] = byte;
+    }
+  }
+  // Writes a variable-length value similar to writeUnsigned, but optimized for
+  // small 15-bit values that fit in one or two variable-length-encoded bytes.
+  // Must be read using readUnsigned15Bit.
+  void writeUnsigned15Bit(uint32_t value) {
+    uint8_t byte1 = ((value & 0x7F) << 1) | (value > 0x7F);
+    writeByte(byte1);
+    value >>= 7;
+    if (value) {
+      MOZ_ASSERT(value <= 0xFF);
+      writeByte(value);
     }
   }
   void writeUnsigned(uint32_t value) {
@@ -177,7 +203,7 @@ class CompactBufferWriter {
     uint8_t* endPtr = buffer() + length();
     reinterpret_cast<uint32_t*>(endPtr)[-1] = value;
   }
-  void writeRawPointer(void* ptr) {
+  void writeRawPointer(const void* ptr) {
     uintptr_t ptrWord = reinterpret_cast<uintptr_t>(ptr);
     for (unsigned i = 0; i < sizeof(uintptr_t); i++) {
       writeByte((ptrWord >> (i * 8)) & 0xFF);

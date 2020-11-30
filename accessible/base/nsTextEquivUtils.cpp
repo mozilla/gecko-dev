@@ -193,8 +193,7 @@ nsresult nsTextEquivUtils::AppendFromAccessible(Accessible* aAccessible,
   // into subtree if accessible allows "text equivalent from subtree rule" or
   // it's not root and not control.
   if (isEmptyTextEquiv) {
-    uint32_t nameRule = GetRoleRule(aAccessible->Role());
-    if (nameRule & eNameFromSubtreeIfReqRule) {
+    if (ShouldIncludeInSubtreeCalculation(aAccessible)) {
       rv = AppendFromAccessibleChildren(aAccessible, aString);
       NS_ENSURE_SUCCESS(rv, rv);
 
@@ -311,9 +310,9 @@ bool nsTextEquivUtils::AppendString(nsAString* aString,
 }
 
 uint32_t nsTextEquivUtils::GetRoleRule(role aRole) {
-#define ROLE(geckoRole, stringRole, atkRole, macRole, msaaRole, ia2Role, \
-             androidClass, nameRule)                                     \
-  case roles::geckoRole:                                                 \
+#define ROLE(geckoRole, stringRole, atkRole, macRole, macSubrole, msaaRole, \
+             ia2Role, androidClass, nameRule)                               \
+  case roles::geckoRole:                                                    \
     return nameRule;
 
   switch (aRole) {
@@ -323,4 +322,34 @@ uint32_t nsTextEquivUtils::GetRoleRule(role aRole) {
   }
 
 #undef ROLE
+}
+
+bool nsTextEquivUtils::ShouldIncludeInSubtreeCalculation(
+    Accessible* aAccessible) {
+  uint32_t nameRule = GetRoleRule(aAccessible->Role());
+  if (nameRule == eNameFromSubtreeRule) {
+    return true;
+  }
+  if (!(nameRule & eNameFromSubtreeIfReqRule)) {
+    return false;
+  }
+
+  if (aAccessible == sInitiatorAcc) {
+    // We're calculating the text equivalent for this accessible, but this
+    // accessible should only be included when calculating the text equivalent
+    // for something else.
+    return false;
+  }
+
+  // sInitiatorAcc can be null when, for example, Accessible::Value calls
+  // GetTextEquivFromSubtree.
+  role initiatorRole = sInitiatorAcc ? sInitiatorAcc->Role() : roles::NOTHING;
+  if (initiatorRole == roles::OUTLINEITEM &&
+      aAccessible->Role() == roles::GROUPING) {
+    // Child treeitems are contained in a group. We don't want to include those
+    // in the parent treeitem's text equivalent.
+    return false;
+  }
+
+  return true;
 }

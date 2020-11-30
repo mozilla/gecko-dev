@@ -281,35 +281,28 @@ struct KerxSubTableFormat1
 
 	  hb_glyph_position_t &o = buffer->pos[idx];
 
-	  /* Testing shows that CoreText only applies kern (cross-stream or not)
-	   * if none has been applied by previous subtables.  That is, it does
-	   * NOT seem to accumulate as otherwise implied by specs. */
-
-	  /* The following flag is undocumented in the spec, but described
-	   * in the 'kern' table example. */
-	  if (v == -0x8000)
-	  {
-	    o.attach_type() = ATTACH_TYPE_NONE;
-	    o.attach_chain() = 0;
-	    o.x_offset = o.y_offset = 0;
-	  }
-	  else if (HB_DIRECTION_IS_HORIZONTAL (buffer->props.direction))
+	  if (HB_DIRECTION_IS_HORIZONTAL (buffer->props.direction))
 	  {
 	    if (crossStream)
 	    {
-	      if (buffer->pos[idx].attach_type() && !buffer->pos[idx].y_offset)
+	      /* The following flag is undocumented in the spec, but described
+	       * in the 'kern' table example. */
+	      if (v == -0x8000)
 	      {
-		o.y_offset = c->font->em_scale_y (v);
+		o.attach_type() = ATTACH_TYPE_NONE;
+		o.attach_chain() = 0;
+		o.y_offset = 0;
+	      }
+	      else if (o.attach_type())
+	      {
+		o.y_offset += c->font->em_scale_y (v);
 		buffer->scratch_flags |= HB_BUFFER_SCRATCH_FLAG_HAS_GPOS_ATTACHMENT;
 	      }
 	    }
 	    else if (buffer->info[idx].mask & kern_mask)
 	    {
-	      if (!buffer->pos[idx].x_offset)
-	      {
-		buffer->pos[idx].x_advance += c->font->em_scale_x (v);
-		buffer->pos[idx].x_offset += c->font->em_scale_x (v);
-	      }
+	      o.x_advance += c->font->em_scale_x (v);
+	      o.x_offset += c->font->em_scale_x (v);
 	    }
 	  }
 	  else
@@ -317,19 +310,22 @@ struct KerxSubTableFormat1
 	    if (crossStream)
 	    {
 	      /* CoreText doesn't do crossStream kerning in vertical.  We do. */
-	      if (buffer->pos[idx].attach_type() && !buffer->pos[idx].x_offset)
+	      if (v == -0x8000)
 	      {
-		o.x_offset = c->font->em_scale_x (v);
+		o.attach_type() = ATTACH_TYPE_NONE;
+		o.attach_chain() = 0;
+		o.x_offset = 0;
+	      }
+	      else if (o.attach_type())
+	      {
+		o.x_offset += c->font->em_scale_x (v);
 		buffer->scratch_flags |= HB_BUFFER_SCRATCH_FLAG_HAS_GPOS_ATTACHMENT;
 	      }
 	    }
 	    else if (buffer->info[idx].mask & kern_mask)
 	    {
-	      if (!buffer->pos[idx].y_offset)
-	      {
-		buffer->pos[idx].y_advance += c->font->em_scale_y (v);
-		buffer->pos[idx].y_offset += c->font->em_scale_y (v);
-	      }
+	      o.y_advance += c->font->em_scale_y (v);
+	      o.y_offset += c->font->em_scale_y (v);
 	    }
 	  }
 	}
@@ -512,11 +508,13 @@ struct KerxSubTableFormat4
 	{
 	  case 0: /* Control Point Actions.*/
 	  {
-	    /* indexed into glyph outline. */
-	    const HBUINT16 *data = &ankrData[entry.data.ankrActionIndex];
+	    /* Indexed into glyph outline. */
+	    /* Each action (record in ankrData) contains two 16-bit fields, so we must
+	       double the ankrActionIndex to get the correct offset here. */
+	    const HBUINT16 *data = &ankrData[entry.data.ankrActionIndex * 2];
 	    if (!c->sanitizer.check_array (data, 2)) return;
-	    HB_UNUSED unsigned int markControlPoint = *data++;
-	    HB_UNUSED unsigned int currControlPoint = *data++;
+	    unsigned int markControlPoint = *data++;
+	    unsigned int currControlPoint = *data++;
 	    hb_position_t markX = 0;
 	    hb_position_t markY = 0;
 	    hb_position_t currX = 0;
@@ -538,8 +536,10 @@ struct KerxSubTableFormat4
 
 	  case 1: /* Anchor Point Actions. */
 	  {
-	   /* Indexed into 'ankr' table. */
-	    const HBUINT16 *data = &ankrData[entry.data.ankrActionIndex];
+	    /* Indexed into 'ankr' table. */
+	    /* Each action (record in ankrData) contains two 16-bit fields, so we must
+	       double the ankrActionIndex to get the correct offset here. */
+	    const HBUINT16 *data = &ankrData[entry.data.ankrActionIndex * 2];
 	    if (!c->sanitizer.check_array (data, 2)) return;
 	    unsigned int markAnchorPoint = *data++;
 	    unsigned int currAnchorPoint = *data++;
@@ -557,7 +557,9 @@ struct KerxSubTableFormat4
 
 	  case 2: /* Control Point Coordinate Actions. */
 	  {
-	    const FWORD *data = (const FWORD *) &ankrData[entry.data.ankrActionIndex];
+	    /* Each action contains four 16-bit fields, so we multiply the ankrActionIndex
+	       by 4 to get the correct offset for the given action. */
+	    const FWORD *data = (const FWORD *) &ankrData[entry.data.ankrActionIndex * 4];
 	    if (!c->sanitizer.check_array (data, 4)) return;
 	    int markX = *data++;
 	    int markY = *data++;
@@ -891,7 +893,7 @@ struct KerxTable
       reverse = bool (st->u.header.coverage & st->u.header.Backwards) !=
 		HB_DIRECTION_IS_BACKWARD (c->buffer->props.direction);
 
-      if (!c->buffer->message (c->font, "start %c%c%c%c subtable %d", HB_UNTAG (thiz()->tableTag), c->lookup_index))
+      if (!c->buffer->message (c->font, "start subtable %d", c->lookup_index))
 	goto skip;
 
       if (!seenCrossStream &&
@@ -923,7 +925,7 @@ struct KerxTable
       if (reverse)
 	c->buffer->reverse ();
 
-      (void) c->buffer->message (c->font, "end %c%c%c%c subtable %d", HB_UNTAG (thiz()->tableTag), c->lookup_index);
+      (void) c->buffer->message (c->font, "end subtable %d", c->lookup_index);
 
     skip:
       st = &StructAfter<SubTable> (*st);

@@ -81,10 +81,18 @@ already_AddRefed<DOMSVGAnimatedLength> SVGEllipseElement::Ry() {
 bool SVGEllipseElement::HasValidDimensions() const {
   float rx, ry;
 
-  MOZ_ASSERT(GetPrimaryFrame());
-  SVGGeometryProperty::ResolveAll<SVGT::Rx, SVGT::Ry>(this, &rx, &ry);
-
-  return rx > 0 && ry > 0;
+  if (SVGGeometryProperty::ResolveAll<SVGT::Rx, SVGT::Ry>(this, &rx, &ry)) {
+    return rx > 0 && ry > 0;
+  }
+  // This function might be called for an element in display:none subtree
+  // (e.g. SMIL animateMotion), we fall back to use SVG attributes.
+  bool hasRx = mLengthAttributes[RX].IsExplicitlySet();
+  bool hasRy = mLengthAttributes[RY].IsExplicitlySet();
+  if ((hasRx && mLengthAttributes[RX].GetAnimValInSpecifiedUnits() <= 0) ||
+      (hasRy && mLengthAttributes[RY].GetAnimValInSpecifiedUnits() <= 0)) {
+    return false;
+  }
+  return hasRx || hasRy;
 }
 
 SVGElement::LengthAttributesInfo SVGEllipseElement::GetLengthInfo() {
@@ -100,9 +108,10 @@ bool SVGEllipseElement::GetGeometryBounds(
     const Matrix& aToBoundsSpace, const Matrix* aToNonScalingStrokeSpace) {
   float x, y, rx, ry;
 
-  MOZ_ASSERT(GetPrimaryFrame());
-  SVGGeometryProperty::ResolveAll<SVGT::Cx, SVGT::Cy, SVGT::Rx, SVGT::Ry>(
-      this, &x, &y, &rx, &ry);
+  DebugOnly<bool> ok =
+      SVGGeometryProperty::ResolveAll<SVGT::Cx, SVGT::Cy, SVGT::Rx, SVGT::Ry>(
+          this, &x, &y, &rx, &ry);
+  MOZ_ASSERT(ok, "SVGGeometryProperty::ResolveAll failed");
 
   if (rx <= 0.f || ry <= 0.f) {
     // Rendering of the element is disabled
@@ -139,9 +148,13 @@ bool SVGEllipseElement::GetGeometryBounds(
 already_AddRefed<Path> SVGEllipseElement::BuildPath(PathBuilder* aBuilder) {
   float x, y, rx, ry;
 
-  SVGGeometryProperty::ResolveAllAllowFallback<SVGT::Cx, SVGT::Cy, SVGT::Rx,
-                                               SVGT::Ry>(this, &x, &y, &rx,
-                                                         &ry);
+  if (!SVGGeometryProperty::ResolveAllAllowFallback<SVGT::Cx, SVGT::Cy,
+                                                    SVGT::Rx, SVGT::Ry>(
+          this, &x, &y, &rx, &ry)) {
+    // This function might be called for element in display:none subtree
+    // (e.g. getTotalLength), we fall back to use SVG attributes.
+    GetAnimatedLengthValues(&x, &y, &rx, &ry, nullptr);
+  }
 
   if (rx <= 0.0f || ry <= 0.0f) {
     return nullptr;

@@ -14,12 +14,14 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/MemoryReporting.h"
 
+#include "builtin/SelfHostingDefines.h"
 #include "gc/Barrier.h"
 #include "vm/ReceiverGuard.h"
 #include "vm/Stack.h"
 
 namespace js {
 
+class PlainObject;
 class PropertyIteratorObject;
 
 struct NativeIterator {
@@ -89,15 +91,24 @@ struct NativeIterator {
  private:
   static constexpr uint32_t FlagsBits = 3;
   static constexpr uint32_t FlagsMask = (1 << FlagsBits) - 1;
+
+ public:
   static constexpr uint32_t PropCountLimit = 1 << (32 - FlagsBits);
+
+ private:
+  // While in compartment->enumerators, these form a doubly linked list.
+  NativeIterator* next_ = nullptr;
+  NativeIterator* prev_ = nullptr;
 
   // Stores Flags bits in the lower bits and the initial property count above
   // them.
   uint32_t flagsAndCount_ = 0;
 
-  /* While in compartment->enumerators, these form a doubly linked list. */
-  NativeIterator* next_ = nullptr;
-  NativeIterator* prev_ = nullptr;
+#ifdef DEBUG
+  // If true, this iterator may contain indexed properties that came from
+  // objects on the prototype chain. This is used by certain debug assertions.
+  bool maybeHasIndexedPropertiesFromProto_ = false;
+#endif
 
   // END OF PROPERTIES
 
@@ -233,22 +244,29 @@ struct NativeIterator {
 
   size_t allocationSize() const;
 
+#ifdef DEBUG
+  void setMaybeHasIndexedPropertiesFromProto() {
+    maybeHasIndexedPropertiesFromProto_ = true;
+  }
+  bool maybeHasIndexedPropertiesFromProto() const {
+    return maybeHasIndexedPropertiesFromProto_;
+  }
+#endif
+
  private:
   uint32_t flags() const { return flagsAndCount_ & FlagsMask; }
 
   uint32_t initialPropertyCount() const { return flagsAndCount_ >> FlagsBits; }
 
+  static uint32_t initialFlagsAndCount(uint32_t count) {
+    // No flags are initially set.
+    MOZ_ASSERT(count < PropCountLimit);
+    return count << FlagsBits;
+  }
+
   void setFlags(uint32_t flags) {
     MOZ_ASSERT((flags & ~FlagsMask) == 0);
     flagsAndCount_ = (initialPropertyCount() << FlagsBits) | flags;
-  }
-
-  MOZ_MUST_USE bool setInitialPropertyCount(uint32_t count) {
-    if (count >= PropCountLimit) {
-      return false;
-    }
-    flagsAndCount_ = (count << FlagsBits) | flags();
-    return true;
   }
 
   void markInitialized() {
@@ -375,24 +393,24 @@ class ArrayIteratorObject : public NativeObject {
   static const JSClass class_;
 };
 
-ArrayIteratorObject* NewArrayIteratorObject(
-    JSContext* cx, NewObjectKind newKind = GenericObject);
+ArrayIteratorObject* NewArrayIteratorTemplate(JSContext* cx);
+ArrayIteratorObject* NewArrayIterator(JSContext* cx);
 
 class StringIteratorObject : public NativeObject {
  public:
   static const JSClass class_;
 };
 
-StringIteratorObject* NewStringIteratorObject(
-    JSContext* cx, NewObjectKind newKind = GenericObject);
+StringIteratorObject* NewStringIteratorTemplate(JSContext* cx);
+StringIteratorObject* NewStringIterator(JSContext* cx);
 
 class RegExpStringIteratorObject : public NativeObject {
  public:
   static const JSClass class_;
 };
 
-RegExpStringIteratorObject* NewRegExpStringIteratorObject(
-    JSContext* cx, NewObjectKind newKind = GenericObject);
+RegExpStringIteratorObject* NewRegExpStringIteratorTemplate(JSContext* cx);
+RegExpStringIteratorObject* NewRegExpStringIterator(JSContext* cx);
 
 MOZ_MUST_USE bool EnumerateProperties(JSContext* cx, HandleObject obj,
                                       MutableHandleIdVector props);
@@ -412,6 +430,12 @@ extern bool SuppressDeletedProperty(JSContext* cx, HandleObject obj, jsid id);
 extern bool SuppressDeletedElement(JSContext* cx, HandleObject obj,
                                    uint32_t index);
 
+#ifdef DEBUG
+extern void AssertDenseElementsNotIterated(NativeObject* obj);
+#else
+inline void AssertDenseElementsNotIterated(NativeObject* obj) {}
+#endif
+
 /*
  * IteratorMore() returns the next iteration value. If no value is available,
  * MagicValue(JS_NO_ITER_VALUE) is returned.
@@ -426,10 +450,60 @@ inline Value IteratorMore(JSObject* iterobj) {
  * Create an object of the form { value: VALUE, done: DONE }.
  * ES 2017 draft 7.4.7.
  */
-extern JSObject* CreateIterResultObject(JSContext* cx, HandleValue value,
-                                        bool done);
+extern PlainObject* CreateIterResultObject(JSContext* cx, HandleValue value,
+                                           bool done);
 
 enum class IteratorKind { Sync, Async };
+
+/*
+ * Global Iterator constructor.
+ * Iterator Helpers proposal 2.1.3.
+ */
+class IteratorObject : public NativeObject {
+ public:
+  static const JSClass class_;
+  static const JSClass protoClass_;
+};
+
+/*
+ * Wrapper for iterators created via Iterator.from.
+ * Iterator Helpers proposal 2.1.3.3.1.1.
+ */
+class WrapForValidIteratorObject : public NativeObject {
+ public:
+  static const JSClass class_;
+
+  enum { IteratedSlot, SlotCount };
+
+  static_assert(
+      IteratedSlot == ITERATED_SLOT,
+      "IteratedSlot must match self-hosting define for iterated object slot.");
+};
+
+WrapForValidIteratorObject* NewWrapForValidIterator(JSContext* cx);
+
+/*
+ * Generator-esque object returned by Iterator Helper methods.
+ */
+class IteratorHelperObject : public NativeObject {
+ public:
+  static const JSClass class_;
+
+  enum {
+    // The implementation (an instance of one of the generators in
+    // builtin/Iterator.js).
+    // Never null.
+    GeneratorSlot,
+
+    SlotCount,
+  };
+
+  static_assert(GeneratorSlot == ITERATOR_HELPER_GENERATOR_SLOT,
+                "GeneratorSlot must match self-hosting define for generator "
+                "object slot.");
+};
+
+IteratorHelperObject* NewIteratorHelper(JSContext* cx);
 
 } /* namespace js */
 

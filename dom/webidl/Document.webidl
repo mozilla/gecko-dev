@@ -241,6 +241,7 @@ partial interface Document {
    *
    * @see <https://developer.mozilla.org/en/DOM/document.mozSetImageElement>
    */
+  [UseCounter]
   void mozSetImageElement(DOMString aImageElementId,
                           Element? aImageElement);
 
@@ -327,6 +328,9 @@ partial interface Document {
 
   [Func="Document::CallerIsTrustedAboutNetError", Throws]
   NetErrorInfo getNetErrorInfo();
+
+  [Func="Document::CallerIsTrustedAboutNetError"]
+  attribute boolean allowDeprecatedTls;
 };
 
 // https://w3c.github.io/page-visibility/#extensions-to-the-document-interface
@@ -388,6 +392,13 @@ partial interface Document {
   // The principal to use for the storage area of this document
   [ChromeOnly]
   readonly attribute Principal effectiveStoragePrincipal;
+
+  // You should probably not be using this principal getter since it performs
+  // no checks to ensure that the partitioned principal should really be used
+  // here.  It is only designed to be used in very specific circumstances, such
+  // as when inheriting the document/storage principal.
+  [ChromeOnly]
+  readonly attribute Principal partitionedPrincipal;
 
   // The principal to use for the content blocking allow list
   [ChromeOnly]
@@ -471,6 +482,15 @@ partial interface Document {
   readonly attribute long  popupRangeOffset;
   [ChromeOnly]
   attribute Node? tooltipNode;
+
+  /**
+   * Returns all the shadow roots connected to the document, in no particular
+   * order, and without regard to open/closed-ness. Also returns UA widgets
+   * (like <video> controls), which can be checked using
+   * ShadowRoot.isUAWidget().
+   */
+  [ChromeOnly]
+  sequence<ShadowRoot> getConnectedShadowRoots();
 };
 
 dictionary BlockParsingOptions {

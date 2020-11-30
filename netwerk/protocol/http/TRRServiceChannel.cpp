@@ -8,7 +8,9 @@
 #include "TRRServiceChannel.h"
 
 #include "HttpLog.h"
+#include "AltServiceChild.h"
 #include "mozilla/StaticPrefs_network.h"
+#include "mozilla/Unused.h"
 #include "nsDNSPrefetch.h"
 #include "nsEscape.h"
 #include "nsHttpTransaction.h"
@@ -16,16 +18,54 @@
 #include "nsIHttpPushListener.h"
 #include "nsIProtocolProxyService2.h"
 #include "nsIOService.h"
-#include "nsIURIFixup.h"
 #include "nsISeekableStream.h"
 #include "nsURLHelper.h"
+#include "ProxyConfigLookup.h"
+#include "TRRLoadInfo.h"
 #include "ReferrerInfo.h"
+#include "TRR.h"
 
 namespace mozilla {
 namespace net {
 
 NS_IMPL_ADDREF(TRRServiceChannel)
-NS_IMPL_RELEASE(TRRServiceChannel)
+
+// Because nsSupportsWeakReference isn't thread-safe we must ensure that
+// TRRServiceChannel is destroyed on the target thread. Any Release() called
+// on a different thread is dispatched to the target thread.
+bool TRRServiceChannel::DispatchRelease() {
+  if (mCurrentEventTarget->IsOnCurrentThread()) {
+    return false;
+  }
+
+  mCurrentEventTarget->Dispatch(
+      NewNonOwningRunnableMethod("net::TRRServiceChannel::Release", this,
+                                 &TRRServiceChannel::Release),
+      NS_DISPATCH_NORMAL);
+
+  return true;
+}
+
+NS_IMETHODIMP_(MozExternalRefCountType)
+TRRServiceChannel::Release() {
+  nsrefcnt count = mRefCnt - 1;
+  if (DispatchRelease()) {
+    // Redispatched to the target thread.
+    return count;
+  }
+
+  MOZ_ASSERT(0 != mRefCnt, "dup release");
+  count = --mRefCnt;
+  NS_LOG_RELEASE(this, count, "TRRServiceChannel");
+
+  if (0 == count) {
+    mRefCnt = 1;
+    delete (this);
+    return 0;
+  }
+
+  return count;
+}
 
 NS_INTERFACE_MAP_BEGIN(TRRServiceChannel)
   NS_INTERFACE_MAP_ENTRY(nsIRequest)
@@ -48,7 +88,8 @@ TRRServiceChannel::TRRServiceChannel()
     : HttpAsyncAborter<TRRServiceChannel>(this),
       mTopWindowOriginComputed(false),
       mPushedStreamId(0),
-      mCurrentEventTarget(GetCurrentThreadEventTarget()) {
+      mProxyRequest(nullptr, "TRRServiceChannel::mProxyRequest"),
+      mCurrentEventTarget(GetCurrentEventTarget()) {
   LOG(("TRRServiceChannel ctor [this=%p]\n", this));
 }
 
@@ -67,15 +108,21 @@ TRRServiceChannel::Cancel(nsresult status) {
 
   mCanceled = true;
   mStatus = status;
-  if (mProxyRequest) {
-    nsCOMPtr<nsICancelable> proxyRequet;
-    proxyRequet.swap(mProxyRequest);
+
+  nsCOMPtr<nsICancelable> proxyRequest;
+  {
+    auto req = mProxyRequest.Lock();
+    proxyRequest.swap(*req);
+  }
+
+  if (proxyRequest) {
     NS_DispatchToMainThread(
         NS_NewRunnableFunction(
             "CancelProxyRequest",
-            [proxyRequet, status]() { proxyRequet->Cancel(status); }),
+            [proxyRequest, status]() { proxyRequest->Cancel(status); }),
         NS_DISPATCH_NORMAL);
   }
+
   CancelNetworkRequest(status);
   return NS_OK;
 }
@@ -146,6 +193,12 @@ TRRServiceChannel::AsyncOpen(nsIStreamListener* aListener) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
+  nsAutoCString scheme;
+  mURI->GetScheme(scheme);
+  if (!scheme.LowerCaseEqualsLiteral("https")) {
+    return NS_ERROR_FAILURE;
+  }
+
   nsresult rv = NS_CheckPortSafety(mURI);
   if (NS_FAILED(rv)) {
     ReleaseListeners();
@@ -200,37 +253,37 @@ nsresult TRRServiceChannel::ResolveProxy() {
 
   MOZ_ASSERT(NS_IsMainThread());
 
-  nsresult rv;
-  nsCOMPtr<nsIChannel> channel;
-  rv = NS_NewChannel(getter_AddRefs(channel), mURI,
-                     nsContentUtils::GetSystemPrincipal(),
-                     nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
-                     nsIContentPolicy::TYPE_OTHER);
-  if (NS_SUCCEEDED(rv)) {
-    nsCOMPtr<nsIProtocolProxyService> pps =
-        do_GetService(NS_PROTOCOLPROXYSERVICE_CONTRACTID, &rv);
-    if (NS_SUCCEEDED(rv)) {
-      // using the nsIProtocolProxyService2 allows a minor performance
-      // optimization, but if an add-on has only provided the original interface
-      // then it is ok to use that version.
-      nsCOMPtr<nsIProtocolProxyService2> pps2 = do_QueryInterface(pps);
-      if (pps2) {
-        rv = pps2->AsyncResolve2(channel, mProxyResolveFlags, this, nullptr,
-                                 getter_AddRefs(mProxyRequest));
-      } else {
-        rv = pps->AsyncResolve(channel, mProxyResolveFlags, this, nullptr,
-                               getter_AddRefs(mProxyRequest));
-      }
-    }
-  }
+  // TODO: bug 1625171. Consider moving proxy resolution to socket process.
+  RefPtr<TRRServiceChannel> self = this;
+  nsCOMPtr<nsICancelable> proxyRequest;
+  nsresult rv = ProxyConfigLookup::Create(
+      [self](nsIProxyInfo* aProxyInfo, nsresult aStatus) {
+        self->OnProxyAvailable(nullptr, nullptr, aProxyInfo, aStatus);
+      },
+      mURI, mProxyResolveFlags, getter_AddRefs(proxyRequest));
 
   if (NS_FAILED(rv)) {
     if (!mCurrentEventTarget->IsOnCurrentThread()) {
-      mCurrentEventTarget->Dispatch(
+      return mCurrentEventTarget->Dispatch(
           NewRunnableMethod<nsresult>("TRRServiceChannel::AsyncAbort", this,
                                       &TRRServiceChannel::AsyncAbort, rv),
           NS_DISPATCH_NORMAL);
     }
+  }
+
+  {
+    auto req = mProxyRequest.Lock();
+    // We only set mProxyRequest if the channel hasn't already been cancelled
+    // on another thread.
+    if (!mCanceled) {
+      *req = proxyRequest.forget();
+    }
+  }
+
+  // If the channel has been cancelled, we go ahead and cancel the proxy
+  // request right here.
+  if (proxyRequest) {
+    proxyRequest->Cancel(mStatus);
   }
 
   return rv;
@@ -258,7 +311,10 @@ TRRServiceChannel::OnProxyAvailable(nsICancelable* request, nsIChannel* channel,
 
   MOZ_ASSERT(mCurrentEventTarget->IsOnCurrentThread());
 
-  mProxyRequest = nullptr;
+  {
+    auto proxyRequest = mProxyRequest.Lock();
+    *proxyRequest = nullptr;
+  }
 
   nsresult rv;
 
@@ -310,11 +366,13 @@ nsresult TRRServiceChannel::BeginConnect() {
   rv = mURI->GetScheme(scheme);
   if (NS_SUCCEEDED(rv)) rv = mURI->GetAsciiHost(host);
   if (NS_SUCCEEDED(rv)) rv = mURI->GetPort(&port);
-  if (NS_SUCCEEDED(rv)) mURI->GetUsername(mUsername);
   if (NS_SUCCEEDED(rv)) rv = mURI->GetAsciiSpec(mSpec);
   if (NS_FAILED(rv)) {
     return rv;
   }
+
+  // Just a warning here because some nsIURIs do not implement this method.
+  Unused << NS_WARN_IF(NS_FAILED(mURI->GetUsername(mUsername)));
 
   // Reject the URL if it doesn't specify a host
   if (host.IsEmpty()) {
@@ -331,18 +389,24 @@ nsresult TRRServiceChannel::BeginConnect() {
   mRequestHead.SetOrigin(scheme, host, port);
 
   RefPtr<nsHttpConnectionInfo> connInfo = new nsHttpConnectionInfo(
-      host, port, EmptyCString(), mUsername, GetTopWindowOrigin(), proxyInfo,
+      host, port, ""_ns, mUsername, GetTopWindowOrigin(), proxyInfo,
       OriginAttributes(), isHttps);
-  mAllowAltSvc = (mAllowAltSvc && !gHttpHandler->IsSpdyBlacklisted(connInfo));
+  // TODO: Bug 1622778 for using AltService in socket process.
+  mAllowAltSvc = XRE_IsParentProcess() && mAllowAltSvc;
+  bool http2Allowed = !gHttpHandler->IsHttp2Excluded(connInfo);
+  bool http3Allowed = !mUpgradeProtocolCallback && !mProxyInfo &&
+                      !(mCaps & NS_HTTP_BE_CONSERVATIVE) && !mBeConservative &&
+                      !gHttpHandler->IsHttp3Excluded(connInfo);
 
   RefPtr<AltSvcMapping> mapping;
   if (!mConnectionInfo && mAllowAltSvc &&  // per channel
-      !(mLoadFlags & LOAD_FRESH_CONNECTION) &&
+      (http2Allowed || http3Allowed) && !(mLoadFlags & LOAD_FRESH_CONNECTION) &&
       AltSvcMapping::AcceptableProxy(proxyInfo) &&
       (scheme.EqualsLiteral("http") || scheme.EqualsLiteral("https")) &&
       (mapping = gHttpHandler->GetAltServiceMapping(
            scheme, host, port, mPrivateBrowsing, IsIsolated(),
-           GetTopWindowOrigin(), OriginAttributes()))) {
+           GetTopWindowOrigin(), OriginAttributes(), http2Allowed,
+           http3Allowed))) {
     LOG(("TRRServiceChannel %p Alt Service Mapping Found %s://%s:%d [%s]\n",
          this, scheme.get(), mapping->AlternateHost().get(),
          mapping->AlternatePort(), mapping->HashKey().get()));
@@ -378,7 +442,7 @@ nsresult TRRServiceChannel::BeginConnect() {
 
   // Need to re-ask the handler, since mConnectionInfo may not be the connInfo
   // we used earlier
-  if (gHttpHandler->IsSpdyBlacklisted(mConnectionInfo)) {
+  if (gHttpHandler->IsHttp2Excluded(mConnectionInfo)) {
     mAllowSpdy = 0;
     mCaps |= NS_HTTP_DISALLOW_SPDY;
     mConnectionInfo->SetNoSpdy(true);
@@ -416,13 +480,13 @@ nsresult TRRServiceChannel::BeginConnect() {
     // just the initial document resets the whole pool
     if (mLoadFlags & LOAD_INITIAL_DOCUMENT_URI) {
       gHttpHandler->AltServiceCache()->ClearAltServiceMappings();
-      rv = gHttpHandler->ConnMgr()->DoShiftReloadConnectionCleanup(
+      rv = gHttpHandler->ConnMgr()->DoShiftReloadConnectionCleanupWithConnInfo(
           mConnectionInfo);
       if (NS_FAILED(rv)) {
-        LOG(
-            ("TRRServiceChannel::BeginConnect "
-             "DoShiftReloadConnectionCleanup failed: %08x [this=%p]",
-             static_cast<uint32_t>(rv), this));
+        LOG((
+            "TRRServiceChannel::BeginConnect "
+            "DoShiftReloadConnectionCleanupWithConnInfo failed: %08x [this=%p]",
+            static_cast<uint32_t>(rv), this));
       }
     }
   }
@@ -538,17 +602,7 @@ nsresult TRRServiceChannel::SetupTransaction() {
     if (NS_FAILED(rv)) return rv;
     if (!buf.IsEmpty() && ((strncmp(mSpec.get(), "http:", 5) == 0) ||
                            strncmp(mSpec.get(), "https:", 6) == 0)) {
-      nsCOMPtr<nsIURIFixup> urifixup = services::GetURIFixup();
-      if (NS_WARN_IF(!urifixup)) {
-        return NS_ERROR_FAILURE;
-      }
-
-      nsCOMPtr<nsIURI> tempURI;
-      nsresult rv = urifixup->CreateExposableURI(mURI, getter_AddRefs(tempURI));
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
-
+      nsCOMPtr<nsIURI> tempURI = nsIOService::CreateExposableURI(mURI);
       rv = tempURI->GetAsciiSpec(path);
       if (NS_FAILED(rv)) return rv;
       requestURI = &path;
@@ -680,9 +734,11 @@ nsresult TRRServiceChannel::OnPush(uint32_t aPushedStreamId,
     return NS_ERROR_FAILURE;
   }
 
+  nsCOMPtr<nsILoadInfo> loadInfo =
+      static_cast<TRRLoadInfo*>(mLoadInfo.get())->Clone();
   nsCOMPtr<nsIChannel> pushHttpChannel;
   rv = gHttpHandler->CreateTRRServiceChannel(pushResource, nullptr, 0, nullptr,
-                                             nullptr,
+                                             loadInfo,
                                              getter_AddRefs(pushHttpChannel));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -790,6 +846,19 @@ nsresult TRRServiceChannel::CallOnStartRequest() {
     return NS_OK;
   }
 
+  // DoApplyContentConversions can only be called on the main thread.
+  if (NS_IsMainThread()) {
+    nsCOMPtr<nsIStreamListener> listener;
+    rv =
+        DoApplyContentConversions(mListener, getter_AddRefs(listener), nullptr);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+
+    AfterApplyContentConversions(rv, listener);
+    return NS_OK;
+  }
+
   Suspend();
 
   RefPtr<TRRServiceChannel> self = this;
@@ -821,13 +890,12 @@ void TRRServiceChannel::AfterApplyContentConversions(
         NS_NewRunnableFunction(
             "TRRServiceChannel::AfterApplyContentConversions",
             [self, aResult, listener]() {
+              self->Resume();
               self->AfterApplyContentConversions(aResult, listener);
             }),
         NS_DISPATCH_NORMAL);
     return;
   }
-
-  Resume();
 
   if (mCanceled) {
     return;
@@ -900,6 +968,14 @@ void TRRServiceChannel::ProcessAltService() {
                             userName(mUsername), topWindowOrigin,
                             privateBrowsing(mPrivateBrowsing), isIsolated,
                             callbacks, proxyInfo, caps(mCaps)]() {
+    if (XRE_IsSocketProcess()) {
+      AltServiceChild::ProcessHeader(
+          altSvc, scheme, originHost, originPort, userName, topWindowOrigin,
+          privateBrowsing, isIsolated, callbacks, proxyInfo,
+          caps & NS_HTTP_DISALLOW_SPDY, OriginAttributes());
+      return;
+    }
+
     AltSvcMapping::ProcessHeader(
         altSvc, scheme, originHost, originPort, userName, topWindowOrigin,
         privateBrowsing, isIsolated, callbacks, proxyInfo,
@@ -950,6 +1026,18 @@ TRRServiceChannel::OnStartRequest(nsIRequest* request) {
       if ((httpStatus < 500) && (httpStatus != 421) && (httpStatus != 407)) {
         ProcessAltService();
       }
+
+      if (httpStatus == 300 || httpStatus == 301 || httpStatus == 302 ||
+          httpStatus == 303 || httpStatus == 307 || httpStatus == 308) {
+        nsresult rv = SyncProcessRedirection(httpStatus);
+        if (NS_SUCCEEDED(rv)) {
+          return rv;
+        }
+
+        mStatus = rv;
+        DoNotifyListener();
+        return rv;
+      }
     } else {
       NS_WARNING("No response head in OnStartRequest");
     }
@@ -962,6 +1050,124 @@ TRRServiceChannel::OnStartRequest(nsIRequest* request) {
   }
 
   return CallOnStartRequest();
+}
+
+nsresult TRRServiceChannel::SyncProcessRedirection(uint32_t aHttpStatus) {
+  nsAutoCString location;
+
+  // if a location header was not given, then we can't perform the redirect,
+  // so just carry on as though this were a normal response.
+  if (NS_FAILED(mResponseHead->GetHeader(nsHttp::Location, location))) {
+    return NS_ERROR_FAILURE;
+  }
+
+  // make sure non-ASCII characters in the location header are escaped.
+  nsAutoCString locationBuf;
+  if (NS_EscapeURL(location.get(), -1, esc_OnlyNonASCII | esc_Spaces,
+                   locationBuf)) {
+    location = locationBuf;
+  }
+
+  LOG(("redirecting to: %s [redirection-limit=%u]\n", location.get(),
+       uint32_t(mRedirectionLimit)));
+
+  nsCOMPtr<nsIURI> redirectURI;
+  nsresult rv = NS_NewURI(getter_AddRefs(redirectURI), location);
+
+  if (NS_FAILED(rv)) {
+    LOG(("Invalid URI for redirect: Location: %s\n", location.get()));
+    return NS_ERROR_CORRUPTED_CONTENT;
+  }
+
+  // move the reference of the old location to the new one if the new
+  // one has none.
+  PropagateReferenceIfNeeded(mURI, redirectURI);
+
+  bool rewriteToGET =
+      ShouldRewriteRedirectToGET(aHttpStatus, mRequestHead.ParsedMethod());
+
+  // Let's not rewrite the method to GET for TRR requests.
+  if (rewriteToGET) {
+    return NS_ERROR_FAILURE;
+  }
+
+  // If the method is not safe (such as POST, PUT, DELETE, ...)
+  if (!mRequestHead.IsSafeMethod()) {
+    LOG(("TRRServiceChannel: unsafe redirect to:%s\n", location.get()));
+  }
+
+  uint32_t redirectFlags;
+  if (nsHttp::IsPermanentRedirect(aHttpStatus)) {
+    redirectFlags = nsIChannelEventSink::REDIRECT_PERMANENT;
+  } else {
+    redirectFlags = nsIChannelEventSink::REDIRECT_TEMPORARY;
+  }
+
+  nsCOMPtr<nsIChannel> newChannel;
+  nsCOMPtr<nsILoadInfo> redirectLoadInfo =
+      static_cast<TRRLoadInfo*>(mLoadInfo.get())->Clone();
+  rv = gHttpHandler->CreateTRRServiceChannel(redirectURI, nullptr, 0, nullptr,
+                                             redirectLoadInfo,
+                                             getter_AddRefs(newChannel));
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  rv = SetupReplacementChannel(redirectURI, newChannel, !rewriteToGET,
+                               redirectFlags);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  // Make sure to do this after we received redirect veto answer,
+  // i.e. after all sinks had been notified
+  newChannel->SetOriginalURI(mOriginalURI);
+
+  rv = newChannel->AsyncOpen(mListener);
+  LOG(("  new channel AsyncOpen returned %" PRIX32, static_cast<uint32_t>(rv)));
+
+  // close down this channel
+  Cancel(NS_BINDING_REDIRECTED);
+
+  ReleaseListeners();
+
+  return NS_OK;
+}
+
+nsresult TRRServiceChannel::SetupReplacementChannel(nsIURI* aNewURI,
+                                                    nsIChannel* aNewChannel,
+                                                    bool aPreserveMethod,
+                                                    uint32_t aRedirectFlags) {
+  LOG(
+      ("TRRServiceChannel::SetupReplacementChannel "
+       "[this=%p newChannel=%p preserveMethod=%d]",
+       this, aNewChannel, aPreserveMethod));
+
+  nsresult rv = HttpBaseChannel::SetupReplacementChannel(
+      aNewURI, aNewChannel, aPreserveMethod, aRedirectFlags);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  rv = CheckRedirectLimit(aRedirectFlags);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aNewChannel);
+  if (!httpChannel) {
+    MOZ_ASSERT(false);
+    return NS_ERROR_FAILURE;
+  }
+
+  // convey the mApplyConversion flag (bug 91862)
+  nsCOMPtr<nsIEncodedChannel> encodedChannel = do_QueryInterface(httpChannel);
+  if (encodedChannel) {
+    encodedChannel->SetApplyConversion(mApplyConversion);
+  }
+
+  // Apply TRR specific settings.
+  return TRR::SetupTRRServiceChannelInternal(
+      httpChannel,
+      mRequestHead.ParsedMethod() == nsHttpRequestHead::kMethod_Get);
 }
 
 NS_IMETHODIMP
@@ -1052,13 +1258,6 @@ TRRServiceChannel::OnLookupComplete(nsICancelable* request, nsIDNSRecord* rec,
 }
 
 NS_IMETHODIMP
-TRRServiceChannel::OnLookupByTypeComplete(nsICancelable* aRequest,
-                                          nsIDNSByTypeRecord* aRes,
-                                          nsresult aStatus) {
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 TRRServiceChannel::LogBlockedCORSRequest(const nsAString& aMessage,
                                          const nsACString& aCategory) {
   return NS_ERROR_NOT_IMPLEMENTED;
@@ -1073,6 +1272,11 @@ TRRServiceChannel::LogMimeTypeMismatch(const nsACString& aMessageName,
 
 NS_IMETHODIMP
 TRRServiceChannel::SetupFallbackChannel(const char* aFallbackKey) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+TRRServiceChannel::GetIsAuthChannel(bool* aIsAuthChannel) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -1310,6 +1514,19 @@ TRRServiceChannel::GetResponseEnd(TimeStamp* _retval) {
     *_retval = mTransactionTimings.responseEnd;
   return NS_OK;
 }
+
+NS_IMETHODIMP TRRServiceChannel::SetLoadGroup(nsILoadGroup* aLoadGroup) {
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+TRRServiceChannel::TimingAllowCheck(nsIPrincipal* aOrigin, bool* aResult) {
+  NS_ENSURE_ARG_POINTER(aResult);
+  *aResult = true;
+  return NS_OK;
+}
+
+bool TRRServiceChannel::SameOriginWithOriginalUri(nsIURI* aURI) { return true; }
 
 }  // namespace net
 }  // namespace mozilla

@@ -7,6 +7,7 @@
 import argparse
 import json
 import logging
+import multiprocessing
 import re
 import os
 import platform
@@ -58,7 +59,7 @@ parser.add_argument('--platform', '-p', type=str, metavar='PLATFORM',
                     'by buildbot to override the variant\'s "debug" setting. The platform can be '
                     'used to specify 32 vs 64 bits.')
 parser.add_argument('--timeout', '-t', type=int, metavar='TIMEOUT',
-                    default=10800,
+                    default=12600,
                     help='kill job after TIMEOUT seconds')
 parser.add_argument('--objdir', type=str, metavar='DIR',
                     default=env.get('OBJDIR', os.path.join(DIR.source, 'obj-spider')),
@@ -217,12 +218,10 @@ if word_bits is None:
 
 if 'compiler' in variant:
     compiler = variant['compiler']
-elif platform.system() == 'Darwin':
-    compiler = 'clang'
 elif platform.system() == 'Windows':
-    compiler = 'cl'
+    compiler = 'clang-cl'
 else:
-    compiler = 'gcc'
+    compiler = 'clang'
 
 # Need a platform name to use as a key in variant files.
 if args.platform:
@@ -239,7 +238,10 @@ else:
 
 info("using compiler '{}'".format(compiler))
 
-cxx = {'clang': 'clang++', 'gcc': 'g++', 'cl': 'cl'}.get(compiler)
+cxx = {'clang': 'clang++',
+       'gcc': 'g++',
+       'cl': 'cl',
+       'clang-cl': 'clang-cl'}.get(compiler)
 
 compiler_dir = env.get('GCCDIR', os.path.join(DIR.fetches, compiler))
 info("looking for compiler under {}/".format(compiler_dir))
@@ -491,6 +493,14 @@ if 'all' in args.skip_tests.split(","):
 if platform.system() == 'Windows':
     env['JITTEST_EXTRA_ARGS'] = "-j1 " + env.get('JITTEST_EXTRA_ARGS', '')
 
+# Bug 1557130 - Atomics tests can create many additional threads which can
+# lead to resource exhaustion, resulting in intermittent failures. This was
+# only seen on beefy machines (> 32 cores), so limit the number of parallel
+# workers for now.
+if platform.system() == 'Windows':
+    worker_count = min(multiprocessing.cpu_count(), 16)
+    env['JSTESTS_EXTRA_ARGS'] = "-j{} ".format(worker_count) + env.get('JSTESTS_EXTRA_ARGS', '')
+
 if use_minidump:
     # Set up later js invocations to run with the breakpad injector loaded.
     # Originally, I intended for this to be used with LD_PRELOAD, but when
@@ -502,36 +512,40 @@ if use_minidump:
 
 # Always run all enabled tests, even if earlier ones failed. But return the
 # first failed status.
-results = []
+results = [('(make-nonempty)', 0)]
 
 if 'checks' in test_suites:
-    results.append(run_test_command([MAKE, 'check']))
+    results.append(('make check', run_test_command([MAKE, 'check'])))
 
 if 'jittest' in test_suites:
-    results.append(run_test_command([MAKE, 'check-jit-test']))
+    results.append(('make check-jit-test', run_test_command([MAKE, 'check-jit-test'])))
 if 'jsapitests' in test_suites:
     jsapi_test_binary = os.path.join(OBJDIR, 'dist', 'bin', 'jsapi-tests')
     test_env = env.copy()
+    test_env['TOPSRCDIR'] = DIR.source
     if use_minidump and platform.system() == 'Linux':
         test_env['LD_PRELOAD'] = injector_lib
     st = run_test_command([jsapi_test_binary], env=test_env)
     if st < 0:
         print("PROCESS-CRASH | jsapi-tests | application crashed")
         print("Return code: {}".format(st))
-    results.append(st)
+    results.append(('jsapi-tests', st))
 if 'jstests' in test_suites:
-    results.append(run_test_command([MAKE, 'check-jstests']))
+    results.append(('jstests', run_test_command([MAKE, 'check-jstests'])))
 if 'gdb' in test_suites:
     test_script = os.path.join(DIR.js_src, "gdb", "run-tests.py")
     auto_args = ["-s", "-o", "--no-progress"] if AUTOMATION else []
     extra_args = env.get('GDBTEST_EXTRA_ARGS', '').split(' ')
-    results.append(run_test_command([PYTHON, test_script, *auto_args, *extra_args, OBJDIR]))
+    results.append((
+        'gdb',
+        run_test_command([PYTHON, test_script, *auto_args, *extra_args, OBJDIR])
+    ))
 
 # FIXME bug 1291449: This would be unnecessary if we could run msan with -mllvm
 # -msan-keep-going, but in clang 3.8 it causes a hang during compilation.
 if variant.get('ignore-test-failures'):
     logging.warning("Ignoring test results %s" % (results,))
-    results = [0]
+    results = [('ignored', 0)]
 
 if args.variant == 'msan':
     files = filter(lambda f: f.startswith("sanitize_log."), os.listdir(OUTDIR))
@@ -563,7 +577,7 @@ if args.variant == 'msan':
         max_allowed = variant['max-errors']
         print("Found %d errors out of %d allowed" % (len(sites), max_allowed))
         if len(sites) > max_allowed:
-            results.append(1)
+            results.append(('too many msan errors', 1))
 
     # Gather individual results into a tarball. Note that these are
     # distinguished only by pid of the JS process running within each test, so
@@ -576,7 +590,7 @@ if args.variant == 'msan':
 
 # Generate stacks from minidumps.
 if use_minidump:
-    venv_python = os.path.join(OBJDIR, "_virtualenvs", "init", "bin", "python")
+    venv_python = os.path.join(OBJDIR, "_virtualenvs", "init_py3", "bin", "python3")
     run_command([
         venv_python,
         os.path.join(DIR.source, "testing/mozbase/mozcrash/mozcrash/mozcrash.py"),
@@ -584,6 +598,7 @@ if use_minidump:
         os.path.join(OBJDIR, "dist/crashreporter-symbols"),
     ])
 
-for st in results:
-    if st != 0:
-        sys.exit(st)
+for name, st in results:
+    print("exit status %d for '%s'" % (st, name))
+
+sys.exit(max(st for _, st in results))

@@ -108,7 +108,7 @@ class CRLiteState {
   }
 }
 CRLiteState.prototype.QueryInterface = ChromeUtils.generateQI([
-  Ci.nsICRLiteState,
+  "nsICRLiteState",
 ]);
 
 class CertInfo {
@@ -118,7 +118,7 @@ class CertInfo {
     this.trust = Ci.nsICertStorage.TRUST_INHERIT;
   }
 }
-CertInfo.prototype.QueryInterface = ChromeUtils.generateQI([Ci.nsICertInfo]);
+CertInfo.prototype.QueryInterface = ChromeUtils.generateQI(["nsICertInfo"]);
 
 class RevocationState {
   constructor(state) {
@@ -134,7 +134,7 @@ class IssuerAndSerialRevocationState extends RevocationState {
   }
 }
 IssuerAndSerialRevocationState.prototype.QueryInterface = ChromeUtils.generateQI(
-  [Ci.nsIIssuerAndSerialRevocationState]
+  ["nsIIssuerAndSerialRevocationState"]
 );
 
 class SubjectAndPubKeyRevocationState extends RevocationState {
@@ -145,7 +145,7 @@ class SubjectAndPubKeyRevocationState extends RevocationState {
   }
 }
 SubjectAndPubKeyRevocationState.prototype.QueryInterface = ChromeUtils.generateQI(
-  [Ci.nsISubjectAndPubKeyRevocationState]
+  ["nsISubjectAndPubKeyRevocationState"]
 );
 
 function setRevocations(certStorage, revocations) {
@@ -284,24 +284,13 @@ async function updatePinningList({ data: { current: records } }) {
   // write each KeyPin entry to the preload list
   for (let item of records) {
     try {
-      const { pinType, pins = [], versions } = item;
-      if (versions.includes(Services.appinfo.version)) {
-        if (pinType == "KeyPin" && pins.length) {
-          siteSecurityService.setKeyPins(
-            item.hostName,
-            item.includeSubdomains,
-            item.expires,
-            pins,
-            true
-          );
-        }
-        if (pinType == "STSPin") {
-          siteSecurityService.setHSTSPreload(
-            item.hostName,
-            item.includeSubdomains,
-            item.expires
-          );
-        }
+      const { pinType, versions } = item;
+      if (versions.includes(Services.appinfo.version) && pinType == "STSPin") {
+        siteSecurityService.setHSTSPreload(
+          item.hostName,
+          item.includeSubdomains,
+          item.expires
+        );
       }
     } catch (e) {
       // Prevent errors relating to individual preload entries from causing sync to fail.
@@ -424,22 +413,11 @@ class IntermediatePreloads {
         }
       );
     });
-    let col;
-    try {
-      col = await this.client.openCollection();
-    } catch (err) {
-      log.warn(`Unable to open intermediate preloading collection: ${err}`);
-      // Re-purpose the "emptyAttachment" category to indicate opening the collection failed.
-      Services.telemetry
-        .getHistogramById(INTERMEDIATES_ERRORS_TELEMETRY)
-        .add("emptyAttachment");
-      return;
-    }
     // If we don't have prior data, make it so we re-load everything.
     if (!hasPriorCertData) {
       let current;
       try {
-        current = (await col.list({ order: "" })).data; // no sort needed.
+        current = await this.client.db.list();
       } catch (err) {
         log.warn(`Unable to list intermediate preloading collection: ${err}`);
         // Re-purpose the "failedToFetch" category to indicate listing the collection failed.
@@ -450,11 +428,11 @@ class IntermediatePreloads {
       }
       const toReset = current.filter(record => record.cert_import_complete);
       try {
-        await col.db.execute(transaction => {
-          toReset.forEach(record => {
-            transaction.update({ ...record, cert_import_complete: false });
-          });
-        });
+        await this.client.db.importChanges(
+          undefined, // do not touch metadata.
+          undefined, // do not touch collection timestamp.
+          toReset.map(r => ({ ...r, cert_import_complete: false }))
+        );
       } catch (err) {
         log.warn(`Unable to update intermediate preloading collection: ${err}`);
         // Re-purpose the "unexpectedLength" category to indicate updating the collection failed.
@@ -466,7 +444,7 @@ class IntermediatePreloads {
     }
     let current;
     try {
-      current = (await col.list({ order: "" })).data; // no sort needed.
+      current = await this.client.db.list();
     } catch (err) {
       log.warn(`Unable to list intermediate preloading collection: ${err}`);
       // Re-purpose the "failedToFetch" category to indicate listing the collection failed.
@@ -519,11 +497,11 @@ class IntermediatePreloads {
       return;
     }
     try {
-      await col.db.execute(transaction => {
-        recordsToUpdate.forEach(record => {
-          transaction.update({ ...record, cert_import_complete: true });
-        });
-      });
+      await this.client.db.importChanges(
+        undefined, // do not touch metadata.
+        undefined, // do not touch collection timestamp.
+        recordsToUpdate.map(r => ({ ...r, cert_import_complete: true }))
+      );
     } catch (err) {
       log.warn(`Unable to update intermediate preloading collection: ${err}`);
       // Re-purpose the "unexpectedLength" category to indicate updating the collection failed.
@@ -535,7 +513,7 @@ class IntermediatePreloads {
 
     let finalCurrent;
     try {
-      finalCurrent = (await col.list({ order: "" })).data; // no sort needed.
+      finalCurrent = await this.client.db.list();
     } catch (err) {
       log.warn(`Unable to list intermediate preloading collection: ${err}`);
       // Re-purpose the "failedToFetch" category to indicate listing the collection failed.
@@ -547,6 +525,7 @@ class IntermediatePreloads {
     const finalWaiting = finalCurrent.filter(
       record => !record.cert_import_complete
     );
+
     const countPreloaded = finalCurrent.length - finalWaiting.length;
 
     TelemetryStopwatch.finish(INTERMEDIATES_UPDATE_MS_TELEMETRY);
@@ -722,35 +701,10 @@ class IntermediatePreloads {
   }
 }
 
-function filterToDate(filter) {
-  return new Date(filter.details.name.replace(/-(full|diff)$/, ""));
-}
-
 // Helper function to compare filters. One filter is "less than" another filter (i.e. it sorts
-// earlier) if its date is older than the other. Non-incremental filters sort earlier than
-// incremental filters of the same date.
+// earlier) if its timestamp is farther in the past than the other.
 function compareFilters(filterA, filterB) {
-  let timeA = filterToDate(filterA);
-  let timeB = filterToDate(filterB);
-  // If timeA is older (i.e. it is less than) timeB, it sorts earlier, so return a value less than
-  // 0.
-  if (timeA < timeB) {
-    return -1;
-  }
-  if (timeA == timeB) {
-    let incrementalA = filterA.details.name.includes("-diff");
-    let incrementalB = filterB.details.name.includes("-diff");
-    if (incrementalA == incrementalB) {
-      return 0;
-    }
-    // If filterA is non-incremental, it sorts earlier, so return a value less than 0.
-    if (!incrementalA) {
-      return -1;
-    }
-  }
-  // Otherwise, timeB is less recent or they have the same time but filterB is non-incremental while
-  // filterA is incremental, so B sorts earlier, so return a value greater than 1.
-  return 1;
+  return filterA.effectiveTimestamp - filterB.effectiveTimestamp;
 }
 
 class CRLiteFilters {
@@ -780,8 +734,7 @@ class CRLiteFilters {
       );
       return;
     }
-    let col = await this.client.openCollection();
-    let { data: current } = await col.list();
+    let current = await this.client.db.list();
     let fullFilters = current.filter(filter => !filter.incremental);
     if (fullFilters.length < 1) {
       log.debug("no full CRLite filters to download?");
@@ -802,8 +755,26 @@ class CRLiteFilters {
         filter.incremental && compareFilters(filter, fullFilter) > 0
     );
     incrementalFilters.sort(compareFilters);
+    // Map of id to filter where that filter's parent has the given id.
+    let parentIdMap = {};
+    for (let filter of incrementalFilters) {
+      if (filter.parent in parentIdMap) {
+        log.debug(`filter with parent id ${filter.parent} already seen?`);
+      } else {
+        parentIdMap[filter.parent] = filter;
+      }
+    }
+    let filtersToDownload = [];
+    let nextFilter = fullFilter;
+    while (nextFilter) {
+      filtersToDownload.push(nextFilter);
+      nextFilter = parentIdMap[nextFilter.id];
+    }
     let filtersDownloaded = [];
-    for (let filter of [fullFilter].concat(incrementalFilters)) {
+    const certList = Cc["@mozilla.org/security/certstorage;1"].getService(
+      Ci.nsICertStorage
+    );
+    for (let filter of filtersToDownload) {
       try {
         // If we've already downloaded this, the backend should just grab it from its cache.
         let localURI = await this.client.attachments.download(filter);
@@ -811,12 +782,9 @@ class CRLiteFilters {
         let bytes = new Uint8Array(buffer);
         log.debug(`Downloaded ${filter.details.name}: ${bytes.length} bytes`);
         filtersDownloaded.push(filter.details.name);
-        if (filter.details.name.endsWith("-full")) {
-          let timestamp = filterToDate(filter).getTime() / 1000;
+        if (!filter.incremental) {
+          let timestamp = Math.floor(filter.effectiveTimestamp / 1000);
           log.debug(`setting CRLite filter timestamp to ${timestamp}`);
-          const certList = Cc["@mozilla.org/security/certstorage;1"].getService(
-            Ci.nsICertStorage
-          );
           await new Promise(resolve => {
             certList.setFullCRLiteFilter(bytes, timestamp, rv => {
               log.debug(`setFullCRLiteFilter: ${rv}`);
@@ -824,9 +792,13 @@ class CRLiteFilters {
             });
           });
         } else {
-          log.debug(
-            "downloaded filter diff, but we don't support consuming them yet."
-          );
+          log.debug("adding incremental update");
+          await new Promise(resolve => {
+            certList.addCRLiteStash(bytes, rv => {
+              log.debug(`addCRLiteStash: ${rv}`);
+              resolve();
+            });
+          });
         }
       } catch (e) {
         log.debug(e);

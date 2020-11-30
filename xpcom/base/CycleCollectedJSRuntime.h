@@ -11,6 +11,7 @@
 
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/DeferredFinalize.h"
+#include "mozilla/HashTable.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/mozalloc.h"
 #include "mozilla/MemoryReporting.h"
@@ -85,9 +86,64 @@ class JSZoneParticipant : public nsCycleCollectionParticipant {
 
 class IncrementalFinalizeRunnable;
 
-struct JSHolderInfo {
-  void* mHolder;
-  nsScriptObjectTracer* mTracer;
+// A map from JS holders to tracer objects, where the values are stored in
+// SegmentedVector to speed up iteration.
+class JSHolderMap {
+ public:
+  enum WhichHolders { AllHolders, HoldersInCollectingZones };
+
+  JSHolderMap();
+
+  // Call functor |f| for each holder.
+  template <typename F>
+  void ForEach(F&& f, WhichHolders aWhich = AllHolders);
+
+  bool Has(void* aHolder) const;
+  nsScriptObjectTracer* Get(void* aHolder) const;
+  nsScriptObjectTracer* GetAndRemove(void* aHolder);
+  void Put(void* aHolder, nsScriptObjectTracer* aTracer, JS::Zone* aZone);
+
+  size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const;
+
+ private:
+  struct Entry {
+    void* mHolder;
+    nsScriptObjectTracer* mTracer;
+#ifdef DEBUG
+    JS::Zone* mZone;
+#endif
+
+    Entry();
+    Entry(void* aHolder, nsScriptObjectTracer* aTracer, JS::Zone* aZone);
+  };
+
+  using EntryMap = mozilla::HashMap<void*, Entry*, DefaultHasher<void*>,
+                                    InfallibleAllocPolicy>;
+
+  using EntryVector = SegmentedVector<Entry, 256, InfallibleAllocPolicy>;
+
+  using EntryVectorMap =
+      mozilla::HashMap<JS::Zone*, UniquePtr<EntryVector>,
+                       DefaultHasher<JS::Zone*>, InfallibleAllocPolicy>;
+
+  template <typename F>
+  void ForEach(EntryVector& aJSHolders, const F& f, JS::Zone* aZone);
+
+  bool RemoveEntry(EntryVector& aJSHolders, Entry* aEntry);
+
+  // A map from a holder pointer to a pointer to an entry in a vector.
+  EntryMap mJSHolderMap;
+
+  // A vector of holders not associated with a particular zone or that can
+  // contain pointers to GC things in more than one zone.
+  EntryVector mAnyZoneJSHolders;
+
+  // A map from a zone to a vector of holders that only contain pointers to GC
+  // things in that zone.
+  //
+  // Currently this will only contain wrapper cache wrappers since these are the
+  // only holders to pass a zone parameter through to AddJSHolder.
+  EntryVectorMap mPerZoneJSHolders;
 };
 
 class CycleCollectedJSRuntime {
@@ -142,7 +198,8 @@ class CycleCollectedJSRuntime {
 
   void TraverseZone(JS::Zone* aZone, nsCycleCollectionTraversalCallback& aCb);
 
-  static void TraverseObjectShim(void* aData, JS::GCCellPtr aThing);
+  static void TraverseObjectShim(void* aData, JS::GCCellPtr aThing,
+                                 const JS::AutoRequireNoGC& nogc);
 
   void TraverseNativeRoots(nsCycleCollectionNoteRootCallback& aCb);
 
@@ -159,8 +216,12 @@ class CycleCollectedJSRuntime {
 
   static bool ContextCallback(JSContext* aCx, unsigned aOperation, void* aData);
 
+  static void* BeforeWaitCallback(uint8_t* aMemory);
+  static void AfterWaitCallback(void* aCookie);
+
   virtual void TraceNativeBlackRoots(JSTracer* aTracer){};
-  void TraceNativeGrayRoots(JSTracer* aTracer);
+  void TraceNativeGrayRoots(JSTracer* aTracer,
+                            JSHolderMap::WhichHolders aWhich);
 
  public:
   void FinalizeDeferredThings(
@@ -241,10 +302,10 @@ class CycleCollectedJSRuntime {
   }
 
  public:
-  void AddJSHolder(void* aHolder, nsScriptObjectTracer* aTracer);
+  void AddJSHolder(void* aHolder, nsScriptObjectTracer* aTracer,
+                   JS::Zone* aZone);
   void RemoveJSHolder(void* aHolder);
 #ifdef DEBUG
-  bool IsJSHolder(void* aHolder);
   void AssertNoObjectsToTrace(void* aPossibleJSHolder);
 #endif
 
@@ -310,8 +371,7 @@ class CycleCollectedJSRuntime {
 
   mozilla::TimeStamp mLatestNurseryCollectionStart;
 
-  SegmentedVector<JSHolderInfo, 1024, InfallibleAllocPolicy> mJSHolders;
-  nsDataHashtable<nsPtrHashKey<void>, JSHolderInfo*> mJSHolderMap;
+  JSHolderMap mJSHolders;
 
   typedef nsDataHashtable<nsFuncPtrHashKey<DeferredFinalizeFunction>, void*>
       DeferredFinalizerTable;

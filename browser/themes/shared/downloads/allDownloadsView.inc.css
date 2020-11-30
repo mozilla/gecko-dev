@@ -11,7 +11,7 @@
 
 #downloadsRichListBox {
   /** The default listbox appearance comes with an unwanted margin. **/
-  -moz-appearance: none;
+  appearance: none;
   margin: 0;
 }
 
@@ -66,7 +66,7 @@
 }
 
 .downloadButton {
-  -moz-appearance: none;
+  appearance: none;
   -moz-box-align: center;
   background: transparent;
   min-width: 0;
@@ -78,7 +78,7 @@
 }
 
 .downloadButton > .button-box {
-  -moz-appearance: none;
+  appearance: none;
   padding: 2px !important;
 }
 
@@ -96,12 +96,12 @@
 
 .downloadButton:hover > .button-box {
   background-color: graytext;
-  color: -moz-field;
+  color: Field;
   border-radius: 50%;
 }
 
 .downloadButton:hover:active > .button-box {
-  background-color: -moz-fieldtext;
+  background-color: FieldText;
 }
 
 @itemFocused@ > .downloadButton:hover > .button-box {
@@ -110,8 +110,8 @@
 }
 
 @itemFocused@ > .downloadButton:hover:active > .button-box {
-  background-color: -moz-field;
-  color: -moz-fieldtext;
+  background-color: Field;
+  color: FieldText;
 }
 
 /*** Button icons ***/

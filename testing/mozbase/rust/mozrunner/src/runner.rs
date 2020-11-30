@@ -89,21 +89,17 @@ pub enum RunnerError {
 
 impl fmt::Display for RunnerError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.description().fmt(f)
+        match *self {
+            RunnerError::Io(ref err) => match err.kind() {
+                ErrorKind::NotFound => "no such file or directory".fmt(f),
+                _ => err.fmt(f),
+            },
+            RunnerError::PrefReader(ref err) => err.fmt(f),
+        }
     }
 }
 
 impl Error for RunnerError {
-    fn description(&self) -> &str {
-        match *self {
-            RunnerError::Io(ref err) => match err.kind() {
-                ErrorKind::NotFound => "no such file or directory",
-                _ => err.description(),
-            },
-            RunnerError::PrefReader(ref err) => err.description(),
-        }
-    }
-
     fn cause(&self) -> Option<&dyn Error> {
         Some(match *self {
             RunnerError::Io(ref err) => err as &dyn Error,
@@ -158,9 +154,19 @@ impl RunnerProcess for FirefoxProcess {
     }
 
     fn kill(&mut self) -> io::Result<process::ExitStatus> {
-        debug!("Killing process {}", self.process.id());
-        self.process.kill()?;
-        self.process.wait()
+        match self.try_wait() {
+            // child has already exited, reap its exit code
+            Ok(Some(status)) => return Ok(status),
+
+            // child still running, kill it
+            Ok(None) => {
+                debug!("Killing process {}", self.process.id());
+                self.process.kill()?;
+                return self.process.wait();
+            }
+
+            Err(e) => return Err(e),
+        }
     }
 }
 

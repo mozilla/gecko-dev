@@ -10,6 +10,7 @@
 #include "GPUParent.h"
 #include "gfxConfig.h"
 #include "gfxCrashReporterUtils.h"
+#include "GfxInfoBase.h"
 #include "gfxPlatform.h"
 #include "GLContextProvider.h"
 #include "GPUProcessHost.h"
@@ -29,7 +30,7 @@
 #include "mozilla/ipc/ProcessChild.h"
 #include "mozilla/layers/APZInputBridgeParent.h"
 #include "mozilla/layers/APZThreadUtils.h"
-#include "mozilla/layers/APZUtils.h"  // for apz::InitializeGlobalState
+#include "mozilla/layers/APZPublicUtils.h"  // for apz::InitializeGlobalState
 #include "mozilla/layers/CompositorBridgeParent.h"
 #include "mozilla/layers/CompositorManagerParent.h"
 #include "mozilla/layers/CompositorThread.h"
@@ -87,7 +88,10 @@ GPUParent::GPUParent() : mLaunchTime(TimeStamp::Now()) { sGPUParent = this; }
 GPUParent::~GPUParent() { sGPUParent = nullptr; }
 
 /* static */
-GPUParent* GPUParent::GetSingleton() { return sGPUParent; }
+GPUParent* GPUParent::GetSingleton() {
+  MOZ_DIAGNOSTIC_ASSERT(sGPUParent);
+  return sGPUParent;
+}
 
 bool GPUParent::Init(base::ProcessId aParentPid, const char* aParentBuildID,
                      MessageLoop* aIOLoop, UniquePtr<IPC::Channel> aChannel) {
@@ -132,7 +136,7 @@ bool GPUParent::Init(base::ProcessId aParentPid, const char* aParentBuildID,
 #endif
 
   CompositorThreadHolder::Start();
-  APZThreadUtils::SetControllerThread(MessageLoop::current());
+  APZThreadUtils::SetControllerThread(NS_GetCurrentThread());
   apz::InitializeGlobalState();
   LayerTreeOwnerTracker::Initialize();
   CompositorBridgeParent::InitializeStatics();
@@ -174,7 +178,8 @@ already_AddRefed<PAPZInputBridgeParent> GPUParent::AllocPAPZInputBridgeParent(
 
 mozilla::ipc::IPCResult GPUParent::RecvInit(
     nsTArray<GfxVarUpdate>&& vars, const DevicePrefs& devicePrefs,
-    nsTArray<LayerTreeIdMapping>&& aMappings) {
+    nsTArray<LayerTreeIdMapping>&& aMappings,
+    nsTArray<GfxInfoFeatureStatus>&& aFeatures) {
   for (const auto& var : vars) {
     gfxVars::ApplyUpdate(var);
   }
@@ -187,6 +192,7 @@ mozilla::ipc::IPCResult GPUParent::RecvInit(
   gfxConfig::Inherit(Feature::ADVANCED_LAYERS, devicePrefs.advancedLayers());
   gfxConfig::Inherit(Feature::DIRECT2D, devicePrefs.useD2D1());
   gfxConfig::Inherit(Feature::WEBGPU, devicePrefs.webGPU());
+  gfxConfig::Inherit(Feature::D3D11_HW_ANGLE, devicePrefs.d3d11HwAngle());
 
   {  // Let the crash reporter know if we've got WR enabled or not. For other
     // processes this happens in gfxPlatform::InitWebRenderConfig.
@@ -201,6 +207,8 @@ mozilla::ipc::IPCResult GPUParent::RecvInit(
     LayerTreeOwnerTracker::Get()->Map(map.layersId(), map.ownerId());
   }
 
+  widget::GfxInfoBase::SetFeatureStatus(std::move(aFeatures));
+
   // We bypass gfxPlatform::Init, so we must initialize any relevant libraries
   // here that would normally be initialized there.
   SkGraphics::Init();
@@ -209,8 +217,11 @@ mozilla::ipc::IPCResult GPUParent::RecvInit(
   if (gfxConfig::IsEnabled(Feature::D3D11_COMPOSITING)) {
     if (DeviceManagerDx::Get()->CreateCompositorDevices() &&
         gfxVars::RemoteCanvasEnabled()) {
-      MOZ_ALWAYS_TRUE(DeviceManagerDx::Get()->CreateCanvasDevice());
-      MOZ_ALWAYS_TRUE(Factory::EnsureDWriteFactory());
+      if (DeviceManagerDx::Get()->CreateCanvasDevice()) {
+        MOZ_ALWAYS_TRUE(Factory::EnsureDWriteFactory());
+      } else {
+        gfxWarning() << "Failed to create canvas device.";
+      }
     }
   }
   if (gfxVars::UseWebRender()) {
@@ -256,6 +267,10 @@ mozilla::ipc::IPCResult GPUParent::RecvInit(
 
     SkInitCairoFT(true);
   }
+
+  // Ensure that GfxInfo::Init is called on the main thread.
+  nsCOMPtr<nsIGfxInfo> gfxInfo = services::GetGfxInfo();
+  Unused << gfxInfo;
 #endif
 
   // Make sure to do this *after* we update gfxVars above.
@@ -402,10 +417,10 @@ mozilla::ipc::IPCResult GPUParent::RecvSimulateDeviceReset(
   DeviceManagerDx::Get()->ForceDeviceReset(
       ForcedDeviceResetReason::COMPOSITOR_UPDATED);
   DeviceManagerDx::Get()->MaybeResetAndReacquireDevices();
+#endif
   if (gfxVars::UseWebRender()) {
     wr::RenderThread::Get()->SimulateDeviceReset();
   }
-#endif
   RecvGetDeviceStatus(aOut);
   return IPC_OK();
 }
@@ -480,7 +495,8 @@ void GPUParent::GetGPUProcessName(nsACString& aStr) {
 
 mozilla::ipc::IPCResult GPUParent::RecvRequestMemoryReport(
     const uint32_t& aGeneration, const bool& aAnonymize,
-    const bool& aMinimizeMemoryUsage, const Maybe<FileDescriptor>& aDMDFile) {
+    const bool& aMinimizeMemoryUsage, const Maybe<FileDescriptor>& aDMDFile,
+    const RequestMemoryReportResolver& aResolver) {
   nsAutoCString processName;
   GetGPUProcessName(processName);
 
@@ -489,9 +505,7 @@ mozilla::ipc::IPCResult GPUParent::RecvRequestMemoryReport(
       [&](const MemoryReport& aReport) {
         Unused << GetSingleton()->SendAddMemoryReport(aReport);
       },
-      [&](const uint32_t& aGeneration) {
-        return GetSingleton()->SendFinishMemoryReport(aGeneration);
-      });
+      aResolver);
   return IPC_OK();
 }
 
@@ -520,72 +534,80 @@ void GPUParent::ActorDestroy(ActorDestroyReason aWhy) {
     ProcessChild::QuickExit();
   }
 
-#ifdef XP_WIN
-  wmf::MFShutdown();
-#endif
-
 #ifndef NS_FREE_PERMANENT_DATA
+#  ifdef XP_WIN
+  wmf::MFShutdown();
+#  endif
   // No point in going through XPCOM shutdown because we don't keep persistent
   // state.
   ProcessChild::QuickExit();
 #endif
 
-#ifdef MOZ_GECKO_PROFILER
-  if (mProfilerController) {
-    mProfilerController->Shutdown();
-    mProfilerController = nullptr;
-  }
-#endif
-
-  if (mVsyncBridge) {
-    mVsyncBridge->Shutdown();
-    mVsyncBridge = nullptr;
-  }
-  RemoteDecoderManagerParent::ShutdownVideoBridge();
-  CompositorThreadHolder::Shutdown();
-  // There is a case that RenderThread exists when gfxVars::UseWebRender() is
-  // false. This could happen when WebRender was fallbacked to compositor.
-  if (wr::RenderThread::Get()) {
-    wr::RenderThread::ShutDown();
-  }
+  // Wait until all RemoteDecoderManagerParent have closed.
+  mShutdownBlockers.WaitUntilClear(10 * 1000 /* 10s timeout*/)
+      ->Then(GetCurrentSerialEventTarget(), __func__, [this]() {
 #ifdef XP_WIN
-  if (widget::WinCompositorWindowThread::Get()) {
-    widget::WinCompositorWindowThread::ShutDown();
-  }
+        wmf::MFShutdown();
 #endif
 
-  image::ImageMemoryReporter::ShutdownForWebRender();
+#ifdef MOZ_GECKO_PROFILER
+        if (mProfilerController) {
+          mProfilerController->Shutdown();
+          mProfilerController = nullptr;
+        }
+#endif
 
-  // Shut down the default GL context provider.
-  gl::GLContextProvider::Shutdown();
+        if (mVsyncBridge) {
+          mVsyncBridge->Shutdown();
+          mVsyncBridge = nullptr;
+        }
+        RemoteDecoderManagerParent::ShutdownVideoBridge();
+        CompositorThreadHolder::Shutdown();
+        // There is a case that RenderThread exists when gfxVars::UseWebRender()
+        // is false. This could happen when WebRender was fallbacked to
+        // compositor.
+        if (wr::RenderThread::Get()) {
+          wr::RenderThread::ShutDown();
+        }
+#ifdef XP_WIN
+        if (widget::WinCompositorWindowThread::Get()) {
+          widget::WinCompositorWindowThread::ShutDown();
+        }
+#endif
+
+        image::ImageMemoryReporter::ShutdownForWebRender();
+
+        // Shut down the default GL context provider.
+        gl::GLContextProvider::Shutdown();
 
 #if defined(XP_WIN)
-  // The above shutdown calls operate on the available context providers on
-  // most platforms.  Windows is a "special snowflake", though, and has three
-  // context providers available, so we have to shut all of them down.
-  // We should only support the default GL provider on Windows; then, this
-  // could go away. Unfortunately, we currently support WGL (the default) for
-  // WebGL on Optimus.
-  gl::GLContextProviderEGL::Shutdown();
+        // The above shutdown calls operate on the available context providers
+        // on most platforms.  Windows is a "special snowflake", though, and has
+        // three context providers available, so we have to shut all of them
+        // down. We should only support the default GL provider on Windows;
+        // then, this could go away. Unfortunately, we currently support WGL
+        // (the default) for WebGL on Optimus.
+        gl::GLContextProviderEGL::Shutdown();
 #endif
 
-  Factory::ShutDown();
+        Factory::ShutDown();
 
-  // We bypass gfxPlatform shutdown, so we must shutdown any libraries here
-  // that would normally be handled by it.
+    // We bypass gfxPlatform shutdown, so we must shutdown any libraries here
+    // that would normally be handled by it.
 #ifdef NS_FREE_PERMANENT_DATA
-  SkGraphics::PurgeFontCache();
-  cairo_debug_reset_static_data();
+        SkGraphics::PurgeFontCache();
+        cairo_debug_reset_static_data();
 #endif
 
 #if defined(XP_WIN)
-  DeviceManagerDx::Shutdown();
+        DeviceManagerDx::Shutdown();
 #endif
-  LayerTreeOwnerTracker::Shutdown();
-  gfxVars::Shutdown();
-  gfxConfig::Shutdown();
-  CrashReporterClient::DestroySingleton();
-  XRE_ShutdownChildProcess();
+        LayerTreeOwnerTracker::Shutdown();
+        gfxVars::Shutdown();
+        gfxConfig::Shutdown();
+        CrashReporterClient::DestroySingleton();
+        XRE_ShutdownChildProcess();
+      });
 }
 
 }  // namespace mozilla::gfx

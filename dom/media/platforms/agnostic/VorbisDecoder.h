@@ -32,7 +32,7 @@ class VorbisDataDecoder : public MediaDataDecoder,
   RefPtr<FlushPromise> Flush() override;
   RefPtr<ShutdownPromise> Shutdown() override;
   nsCString GetDescriptionName() const override {
-    return NS_LITERAL_CSTRING("vorbis audio decoder");
+    return "vorbis audio decoder"_ns;
   }
 
   // Return true if mimetype is Vorbis
@@ -41,10 +41,9 @@ class VorbisDataDecoder : public MediaDataDecoder,
 
  private:
   nsresult DecodeHeader(const unsigned char* aData, size_t aLength);
-  RefPtr<DecodePromise> ProcessDecode(MediaRawData* aSample);
 
   const AudioInfo& mInfo;
-  const RefPtr<TaskQueue> mTaskQueue;
+  nsCOMPtr<nsISerialEventTarget> mThread;
 
   // Vorbis decoder state
   vorbis_info mVorbisInfo;

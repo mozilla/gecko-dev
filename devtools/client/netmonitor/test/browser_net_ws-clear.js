@@ -12,7 +12,9 @@ add_task(async function() {
     set: [["devtools.netmonitor.features.webSockets", true]],
   });
 
-  const { tab, monitor } = await initNetMonitor(WS_PAGE_URL);
+  const { tab, monitor } = await initNetMonitor(WS_PAGE_URL, {
+    requestCount: 1,
+  });
   info("Starting test... ");
 
   const { document, store, windowRequire } = monitor.panelWin;
@@ -21,10 +23,12 @@ add_task(async function() {
   store.dispatch(Actions.batchEnable(false));
 
   // Wait for WS connection(s) to be established + send messages
+  const onNetworkEvents = waitForNetworkEvents(monitor, 2);
   await SpecialPowers.spawn(tab.linkedBrowser, [], async () => {
     await content.wrappedJSObject.openConnection(2);
     await content.wrappedJSObject.openConnection(1);
   });
+  await onNetworkEvents;
 
   const requests = document.querySelectorAll(".request-list-item");
   is(requests.length, 2, "There should be two requests");
@@ -32,23 +36,23 @@ add_task(async function() {
   // Wait for all sent/received messages to be displayed in DevTools
   let wait = waitForDOM(
     document,
-    "#messages-panel .ws-frames-list-table .ws-frame-list-item",
+    "#messages-view .message-list-table .message-list-item",
     4
   );
 
   // Select the first request
   EventUtils.sendMouseEvent({ type: "mousedown" }, requests[0]);
 
-  // Click on the "Messages" panel
+  // Click on the "Response" panel
   EventUtils.sendMouseEvent(
     { type: "click" },
-    document.querySelector("#messages-tab")
+    document.querySelector("#response-tab")
   );
   await wait;
 
-  // Get all messages present in the "Messages" panel
+  // Get all messages present in the "Response" panel
   const frames = document.querySelectorAll(
-    "#messages-panel .ws-frames-list-table .ws-frame-list-item"
+    "#messages-view .message-list-table .message-list-item"
   );
 
   // Check expected results
@@ -56,25 +60,25 @@ add_task(async function() {
 
   // Clear messages
   const clearButton = document.querySelector(
-    "#messages-panel .ws-frames-list-clear-button"
+    "#messages-view .message-list-clear-button"
   );
   clearButton.click();
   is(
-    document.querySelectorAll(".ws-frame-list-empty-notice").length,
+    document.querySelectorAll(".message-list-empty-notice").length,
     1,
     "Empty notice visible"
   );
 
   // Select the second request and check that the messages are not cleared
-  EventUtils.sendMouseEvent({ type: "mousedown" }, requests[1]);
   wait = waitForDOM(
     document,
-    "#messages-panel .ws-frames-list-table .ws-frame-list-item",
+    "#messages-view .message-list-table .message-list-item",
     2
   );
+  EventUtils.sendMouseEvent({ type: "mousedown" }, requests[1]);
   await wait;
   const secondRequestFrames = document.querySelectorAll(
-    "#messages-panel .ws-frames-list-table .ws-frame-list-item"
+    "#messages-view .message-list-table .message-list-item"
   );
   is(secondRequestFrames.length, 2, "There should be two frames");
 

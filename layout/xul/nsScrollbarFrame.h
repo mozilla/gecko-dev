@@ -49,7 +49,7 @@ class nsScrollbarFrame final : public nsBoxFrame,
 
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const override {
-    return MakeFrameName(NS_LITERAL_STRING("ScrollbarFrame"), aResult);
+    return MakeFrameName(u"ScrollbarFrame"_ns, aResult);
   }
 #endif
 
@@ -97,7 +97,7 @@ class nsScrollbarFrame final : public nsBoxFrame,
    * scrollframe by setting its height or width to zero, that will
    * hide the children too.
    */
-  virtual bool DoesClipChildren() override { return true; }
+  virtual bool DoesClipChildrenInBothAxes() override { return true; }
 
   virtual nsresult GetXULMargin(nsMargin& aMargin) override;
 

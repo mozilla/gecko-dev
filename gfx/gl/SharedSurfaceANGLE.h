@@ -7,6 +7,7 @@
 #define SHARED_SURFACE_ANGLE_H_
 
 #include <windows.h>
+#include <memory>
 #include "SharedSurface.h"
 
 struct IDXGIKeyedMutex;
@@ -16,35 +17,23 @@ namespace mozilla {
 namespace gl {
 
 class GLContext;
-class GLLibraryEGL;
+class EglDisplay;
 
-class SharedSurface_ANGLEShareHandle : public SharedSurface {
+class SharedSurface_ANGLEShareHandle final : public SharedSurface {
  public:
-  static UniquePtr<SharedSurface_ANGLEShareHandle> Create(
-      GLContext* gl, EGLConfig config, const gfx::IntSize& size, bool hasAlpha);
-
-  static SharedSurface_ANGLEShareHandle* Cast(SharedSurface* surf) {
-    MOZ_ASSERT(surf->mType == SharedSurfaceType::EGLSurfaceANGLE);
-
-    return (SharedSurface_ANGLEShareHandle*)surf;
-  }
-
- protected:
-  GLLibraryEGL* const mEGL;
+  const std::weak_ptr<EglDisplay> mEGL;
   const EGLSurface mPBuffer;
-
- public:
   const HANDLE mShareHandle;
+  const RefPtr<IDXGIKeyedMutex> mKeyedMutex;
 
- protected:
-  RefPtr<IDXGIKeyedMutex> mKeyedMutex;
+  static UniquePtr<SharedSurface_ANGLEShareHandle> Create(
+      const SharedSurfaceDesc&);
 
-  SharedSurface_ANGLEShareHandle(GLContext* gl, GLLibraryEGL* egl,
-                                 const gfx::IntSize& size, bool hasAlpha,
+ private:
+  SharedSurface_ANGLEShareHandle(const SharedSurfaceDesc&,
+                                 const std::weak_ptr<EglDisplay>& egl,
                                  EGLSurface pbuffer, HANDLE shareHandle,
                                  const RefPtr<IDXGIKeyedMutex>& keyedMutex);
-
-  EGLDisplay Display();
 
  public:
   virtual ~SharedSurface_ANGLEShareHandle();
@@ -57,36 +46,20 @@ class SharedSurface_ANGLEShareHandle : public SharedSurface {
   virtual void ProducerReadAcquireImpl() override;
   virtual void ProducerReadReleaseImpl() override;
 
-  virtual bool ToSurfaceDescriptor(
-      layers::SurfaceDescriptor* const out_descriptor) override;
-
-  virtual bool ReadbackBySharedHandle(
-      gfx::DataSourceSurface* out_surface) override;
+  Maybe<layers::SurfaceDescriptor> ToSurfaceDescriptor() override;
 };
 
-class SurfaceFactory_ANGLEShareHandle : public SurfaceFactory {
- protected:
-  GLContext* const mProdGL;
-  GLLibraryEGL* const mEGL;
-  const EGLConfig mConfig;
-
+class SurfaceFactory_ANGLEShareHandle final : public SurfaceFactory {
  public:
-  static UniquePtr<SurfaceFactory_ANGLEShareHandle> Create(
-      GLContext* gl, const SurfaceCaps& caps,
-      const RefPtr<layers::LayersIPCChannel>& allocator,
-      const layers::TextureFlags& flags);
+  static UniquePtr<SurfaceFactory_ANGLEShareHandle> Create(GLContext& gl);
 
- protected:
-  SurfaceFactory_ANGLEShareHandle(
-      GLContext* gl, const SurfaceCaps& caps,
-      const RefPtr<layers::LayersIPCChannel>& allocator,
-      const layers::TextureFlags& flags, GLLibraryEGL* egl, EGLConfig config);
+ private:
+  explicit SurfaceFactory_ANGLEShareHandle(const PartialSharedSurfaceDesc& desc)
+      : SurfaceFactory(desc) {}
 
-  virtual UniquePtr<SharedSurface> CreateShared(
-      const gfx::IntSize& size) override {
-    bool hasAlpha = mReadCaps.alpha;
-    return SharedSurface_ANGLEShareHandle::Create(mProdGL, mConfig, size,
-                                                  hasAlpha);
+  virtual UniquePtr<SharedSurface> CreateSharedImpl(
+      const SharedSurfaceDesc& desc) override {
+    return SharedSurface_ANGLEShareHandle::Create(desc);
   }
 };
 

@@ -86,6 +86,12 @@ const Curl = {
     // Add URL.
     addParam(data.url);
 
+    // Disable globbing if the URL contains brackets.
+    // cURL also globs braces but they are already percent-encoded.
+    if (data.url.includes("[") || data.url.includes("]")) {
+      addParam("--globoff");
+    }
+
     let postDataText = null;
     const multipartRequest = utils.isMultipartRequest(data);
 
@@ -113,7 +119,7 @@ const Curl = {
       ["PUT", "POST", "PATCH"].includes(data.method)
     ) {
       postDataText = data.postDataText;
-      addPostData("--data");
+      addPostData("--data-raw");
       addPostData(utils.writePostDataTextParams(postDataText));
       ignoredHeaders.add("content-length");
     }
@@ -419,7 +425,12 @@ const CurlUtils = {
    * Credit: Google DevTools
    */
   escapeStringWin: function(str) {
-    /* Replace quote by double quote (but not by \") because it is
+    /*
+       Replace dollar sign because of commands (e.g $(cmd.exe)) in
+       powershell when using double quotes.
+       Useful details http://www.rlmueller.net/PowerShellEscape.htm
+
+       Replace quote by double quote (but not by \") because it is
        recognized by both cmd.exe and MS Crt arguments parser.
 
        Replace % by "%" because it could be expanded to an environment
@@ -441,6 +452,7 @@ const CurlUtils = {
     return (
       '"' +
       str
+        .replace(/\$/g, "`$")
         .replace(/"/g, '""')
         .replace(/%/g, '"%"')
         .replace(/\\/g, "\\\\")

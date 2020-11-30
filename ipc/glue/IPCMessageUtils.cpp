@@ -19,10 +19,6 @@ bool ByteLengthIsValid(uint32_t aNumElements, size_t aElementSize,
   return true;
 }
 
-void WriteParams(Message* aMsg) {}
-
-bool ReadParams(const Message* aMsg, PickleIterator* aIter) { return true; }
-
 void ParamTraits<JSStructuredCloneData>::Write(Message* aMsg, const paramType& aParam) {
   MOZ_ASSERT(!(aParam.Size() % sizeof(uint64_t)));
   WriteParam(aMsg, aParam.Size());

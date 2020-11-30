@@ -1,4 +1,4 @@
-// |reftest| skip -- class-fields-private is not supported
+// |reftest| shell-option(--enable-private-fields) skip-if(!xulRuntime.shell) -- requires shell-options
 // This file was procedurally generated from the following sources:
 // - src/class-elements/eval-err-contains-supercall-2.case
 // - src/class-elements/initializer-eval-super-call/cls-decl-private-fields-eval.template

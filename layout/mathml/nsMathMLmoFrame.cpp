@@ -19,16 +19,13 @@ using namespace mozilla;
 // <mo> -- operator, fence, or separator - implementation
 //
 
-// additional ComputedStyle to be used by our MathMLChar.
-#define NS_MATHML_CHAR_STYLE_CONTEXT_INDEX 0
-
 nsIFrame* NS_NewMathMLmoFrame(PresShell* aPresShell, ComputedStyle* aStyle) {
   return new (aPresShell) nsMathMLmoFrame(aStyle, aPresShell->GetPresContext());
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsMathMLmoFrame)
 
-nsMathMLmoFrame::~nsMathMLmoFrame() {}
+nsMathMLmoFrame::~nsMathMLmoFrame() = default;
 
 static const char16_t kApplyFunction = char16_t(0x2061);
 static const char16_t kInvisibleTimes = char16_t(0x2062);
@@ -109,11 +106,10 @@ void nsMathMLmoFrame::ProcessTextData() {
   }
 
   // don't bother doing anything special if we don't have a single child
-  nsPresContext* presContext = PresContext();
   if (mFrames.GetLength() != 1) {
     data.Truncate();  // empty data to reset the char
     mMathMLChar.SetData(data);
-    ResolveMathMLCharStyle(presContext, mContent, mComputedStyle, &mMathMLChar);
+    mMathMLChar.SetComputedStyle(Style());
     return;
   }
 
@@ -168,7 +164,7 @@ void nsMathMLmoFrame::ProcessTextData() {
       (mEmbellishData.direction != NS_STRETCH_DIRECTION_UNSUPPORTED);
   if (isMutable) mFlags |= NS_MATHML_OPERATOR_MUTABLE;
 
-  ResolveMathMLCharStyle(presContext, mContent, mComputedStyle, &mMathMLChar);
+  mMathMLChar.SetComputedStyle(Style());
 }
 
 // get our 'form' and lookup in the Operator Dictionary to fetch
@@ -346,7 +342,7 @@ void nsMathMLmoFrame::ProcessOperatorData() {
       // tuning if we don't want too much extra space when we are a script.
       // (with its fonts, TeX sets lspace=0 & rspace=0 as soon as scriptlevel>0.
       // Our fonts can be anything, so...)
-      if (StyleFont()->mScriptLevel > 0 &&
+      if (StyleFont()->mMathDepth > 0 &&
           !NS_MATHML_OPERATOR_HAS_EMBELLISH_ANCESTOR(mFlags)) {
         mEmbellishData.leadingSpace /= 2;
         mEmbellishData.trailingSpace /= 2;
@@ -546,7 +542,7 @@ static uint32_t GetStretchHint(nsOperatorFlags aFlags,
     // stretchy are true or false (see bug 69325).
     // . largeopOnly is taken if largeop=true and stretchy=false
     // . largeop is taken if largeop=true and stretchy=true
-    if (aStyleFont->mMathDisplay == NS_MATHML_DISPLAYSTYLE_BLOCK &&
+    if (aStyleFont->mMathStyle == NS_STYLE_MATH_STYLE_NORMAL &&
         NS_MATHML_OPERATOR_IS_LARGEOP(aFlags)) {
       stretchHint = NS_STRETCH_LARGEOP;  // (largeopOnly, not mask!)
       if (NS_MATHML_OPERATOR_IS_INTEGRAL(aFlags)) {
@@ -942,8 +938,7 @@ nsresult nsMathMLmoFrame::Place(DrawTarget* aDrawTarget, bool aPlaceOrigin,
      Stretch() method.
   */
 
-  if (!aPlaceOrigin &&
-      StyleFont()->mMathDisplay == NS_MATHML_DISPLAYSTYLE_BLOCK &&
+  if (!aPlaceOrigin && StyleFont()->mMathStyle == NS_STYLE_MATH_STYLE_NORMAL &&
       NS_MATHML_OPERATOR_IS_LARGEOP(mFlags) && UseMathMLChar()) {
     nsBoundingMetrics newMetrics;
     rv = mMathMLChar.Stretch(
@@ -1052,25 +1047,7 @@ nsresult nsMathMLmoFrame::AttributeChanged(int32_t aNameSpaceID,
                                               aModType);
 }
 
-// ----------------------
-// No need to track the ComputedStyle given to our MathML char.
-// the Style System will use these to pass the proper ComputedStyle to our
-// MathMLChar
-ComputedStyle* nsMathMLmoFrame::GetAdditionalComputedStyle(
-    int32_t aIndex) const {
-  switch (aIndex) {
-    case NS_MATHML_CHAR_STYLE_CONTEXT_INDEX:
-      return mMathMLChar.GetComputedStyle();
-    default:
-      return nullptr;
-  }
-}
-
-void nsMathMLmoFrame::SetAdditionalComputedStyle(
-    int32_t aIndex, ComputedStyle* aComputedStyle) {
-  switch (aIndex) {
-    case NS_MATHML_CHAR_STYLE_CONTEXT_INDEX:
-      mMathMLChar.SetComputedStyle(aComputedStyle);
-      break;
-  }
+void nsMathMLmoFrame::DidSetComputedStyle(ComputedStyle* aOldStyle) {
+  nsMathMLTokenFrame::DidSetComputedStyle(aOldStyle);
+  mMathMLChar.SetComputedStyle(Style());
 }

@@ -82,21 +82,21 @@ int dav1d_get_shear_params(Dav1dWarpedMotionParams *const wm) {
 
     if (mat[2] <= 0) return 1;
 
-    wm->alpha = iclip_wmp(mat[2] - 0x10000);
-    wm->beta = iclip_wmp(mat[3]);
+    wm->u.p.alpha = iclip_wmp(mat[2] - 0x10000);
+    wm->u.p.beta = iclip_wmp(mat[3]);
 
     int shift;
     const int y = apply_sign(resolve_divisor_32(abs(mat[2]), &shift), mat[2]);
     const int64_t v1 = ((int64_t) mat[4] * 0x10000) * y;
     const int rnd = (1 << shift) >> 1;
-    wm->gamma = iclip_wmp(apply_sign64((int) ((llabs(v1) + rnd) >> shift), v1));
+    wm->u.p.gamma = iclip_wmp(apply_sign64((int) ((llabs(v1) + rnd) >> shift), v1));
     const int64_t v2 = ((int64_t) mat[3] * mat[4]) * y;
-    wm->delta = iclip_wmp(mat[5] -
+    wm->u.p.delta = iclip_wmp(mat[5] -
                           apply_sign64((int) ((llabs(v2) + rnd) >> shift), v2) -
                           0x10000);
 
-    return (4 * abs(wm->alpha) + 7 * abs(wm->beta) >= 0x10000) ||
-           (4 * abs(wm->gamma) + 4 * abs(wm->delta) >= 0x10000);
+    return (4 * abs(wm->u.p.alpha) + 7 * abs(wm->u.p.beta) >= 0x10000) ||
+           (4 * abs(wm->u.p.gamma) + 4 * abs(wm->u.p.delta) >= 0x10000);
 }
 
 static int resolve_divisor_64(const uint64_t d, int *const shift) {
@@ -128,6 +128,22 @@ static int get_mult_shift_diag(const int64_t px,
                                         ((1LL << shift) >> 1)) >> shift),
                                 v1);
     return iclip(v2, 0xe001, 0x11fff);
+}
+
+void dav1d_set_affine_mv2d(const int bw4, const int bh4,
+                           const mv mv, Dav1dWarpedMotionParams *const wm,
+                           const int bx4, const int by4)
+{
+    int32_t *const mat = wm->matrix;
+    const int rsuy = 2 * bh4 - 1;
+    const int rsux = 2 * bw4 - 1;
+    const int isuy = by4 * 4 + rsuy;
+    const int isux = bx4 * 4 + rsux;
+
+    mat[0] = iclip(mv.x * 0x2000 - (isux * (mat[2] - 0x10000) + isuy * mat[3]),
+                   -0x800000, 0x7fffff);
+    mat[1] = iclip(mv.y * 0x2000 - (isux * mat[4] + isuy * (mat[5] - 0x10000)),
+                   -0x800000, 0x7fffff);
 }
 
 int dav1d_find_affine_int(const int (*pts)[2][2], const int np,

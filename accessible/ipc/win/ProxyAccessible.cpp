@@ -460,9 +460,39 @@ static IA2TextBoundaryType GetIA2TextBoundary(
       return IA2_TEXT_BOUNDARY_WORD;
     case nsIAccessibleText::BOUNDARY_LINE_START:
       return IA2_TEXT_BOUNDARY_LINE;
+    case nsIAccessibleText::BOUNDARY_PARAGRAPH:
+      return IA2_TEXT_BOUNDARY_PARAGRAPH;
     default:
       MOZ_CRASH();
   }
+}
+
+int32_t ProxyAccessible::OffsetAtPoint(int32_t aX, int32_t aY,
+                                       uint32_t aCoordinateType) {
+  RefPtr<IAccessibleText> acc = QueryInterface<IAccessibleText>(this);
+  if (!acc) {
+    return -1;
+  }
+
+  IA2CoordinateType coordType;
+  if (aCoordinateType ==
+      nsIAccessibleCoordinateType::COORDTYPE_SCREEN_RELATIVE) {
+    coordType = IA2_COORDTYPE_SCREEN_RELATIVE;
+  } else if (aCoordinateType ==
+             nsIAccessibleCoordinateType::COORDTYPE_PARENT_RELATIVE) {
+    coordType = IA2_COORDTYPE_PARENT_RELATIVE;
+  } else {
+    MOZ_CRASH("unsupported coord type");
+  }
+
+  long offset;
+  HRESULT hr = acc->get_offsetAtPoint(
+      static_cast<long>(aX), static_cast<long>(aY), coordType, &offset);
+  if (FAILED(hr)) {
+    return -1;
+  }
+
+  return static_cast<int32_t>(offset);
 }
 
 bool ProxyAccessible::TextSubstring(int32_t aStartOffset, int32_t aEndOffset,
@@ -736,6 +766,50 @@ void ProxyAccessible::TakeFocus() {
     return;
   }
   acc->accSelect(SELFLAG_TAKEFOCUS, kChildIdSelf);
+}
+
+ProxyAccessible* ProxyAccessible::ChildAtPoint(
+    int32_t aX, int32_t aY, Accessible::EWhichChildAtPoint aWhichChild) {
+  RefPtr<IAccessible2_2> target = QueryInterface<IAccessible2_2>(this);
+  if (!target) {
+    return nullptr;
+  }
+  DocAccessibleParent* doc = Document();
+  ProxyAccessible* proxy = this;
+  // accHitTest only does direct children, but we might want the deepest child.
+  for (;;) {
+    VARIANT childVar;
+    if (FAILED(target->accHitTest(aX, aY, &childVar)) ||
+        childVar.vt == VT_EMPTY) {
+      return nullptr;
+    }
+    if (childVar.vt == VT_I4 && childVar.lVal == CHILDID_SELF) {
+      break;
+    }
+    MOZ_ASSERT(childVar.vt == VT_DISPATCH && childVar.pdispVal);
+    target = nullptr;
+    childVar.pdispVal->QueryInterface(IID_IAccessible2_2,
+                                      getter_AddRefs(target));
+    childVar.pdispVal->Release();
+    if (!target) {
+      return nullptr;
+    }
+    // We can't always use GetProxyFor because it can't cross document
+    // boundaries.
+    if (proxy->ChildrenCount() == 1) {
+      proxy = proxy->ChildAt(0);
+      if (proxy->IsDoc()) {
+        // We're crossing into a child document.
+        doc = proxy->AsDoc();
+      }
+    } else {
+      proxy = GetProxyFor(doc, target);
+    }
+    if (aWhichChild == Accessible::eDirectChild) {
+      break;
+    }
+  }
+  return proxy;
 }
 
 }  // namespace a11y

@@ -10,7 +10,7 @@
 #include "MediaInfo.h"
 #include "PDMFactory.h"
 #include "mozilla/ClearOnShutdown.h"
-#include "mozilla/SystemGroup.h"
+#include "mozilla/SchedulerGroup.h"
 #ifdef MOZ_WIDGET_ANDROID
 #  include "mozilla/jni/Utils.h"
 #endif
@@ -93,7 +93,7 @@ NotNull<AllocPolicy*> GlobalAllocPolicy::Instance(TrackType aTrack) {
   StaticMutexAutoLock lock(sMutex);
   if (aTrack == TrackType::kAudioTrack) {
     static RefPtr<AllocPolicyImpl> sAudioPolicy = []() {
-      SystemGroup::Dispatch(
+      SchedulerGroup::Dispatch(
           TaskCategory::Other,
           NS_NewRunnableFunction(
               "GlobalAllocPolicy::GlobalAllocPolicy:Audio", []() {
@@ -104,7 +104,7 @@ NotNull<AllocPolicy*> GlobalAllocPolicy::Instance(TrackType aTrack) {
     return WrapNotNull(sAudioPolicy.get());
   }
   static RefPtr<AllocPolicyImpl> sVideoPolicy = []() {
-    SystemGroup::Dispatch(
+    SchedulerGroup::Dispatch(
         TaskCategory::Other,
         NS_NewRunnableFunction(
             "GlobalAllocPolicy::GlobalAllocPolicy:Audio", []() {
@@ -189,7 +189,7 @@ RefPtr<ShutdownPromise> AllocationWrapper::Shutdown() {
   RefPtr<MediaDataDecoder> decoder = std::move(mDecoder);
   RefPtr<Token> token = std::move(mToken);
   return decoder->Shutdown()->Then(
-      AbstractThread::GetCurrent(), __func__,
+      GetCurrentSerialEventTarget(), __func__,
       [token]() { return ShutdownPromise::CreateAndResolve(true, __func__); });
 }
 /* static */ RefPtr<AllocationWrapper::AllocateDecoderPromise>
@@ -198,7 +198,6 @@ AllocationWrapper::CreateDecoder(const CreateDecoderParams& aParams,
   // aParams.mConfig is guaranteed to stay alive during the lifetime of the
   // MediaDataDecoder, so keeping a pointer to the object is safe.
   const TrackInfo* config = &aParams.mConfig;
-  RefPtr<TaskQueue> taskQueue = aParams.mTaskQueue;
   DecoderDoctorDiagnostics* diagnostics = aParams.mDiagnostics;
   RefPtr<layers::ImageContainer> imageContainer = aParams.mImageContainer;
   RefPtr<layers::KnowsCompositor> knowsCompositor = aParams.mKnowsCompositor;
@@ -215,7 +214,7 @@ AllocationWrapper::CreateDecoder(const CreateDecoderParams& aParams,
       (aPolicy ? aPolicy : GlobalAllocPolicy::Instance(aParams.mType))
           ->Alloc()
           ->Then(
-              AbstractThread::GetCurrent(), __func__,
+              GetCurrentSerialEventTarget(), __func__,
               [=](RefPtr<Token> aToken) {
                 // result may not always be updated by
                 // PDMFactory::CreateDecoder either when the creation
@@ -227,7 +226,6 @@ AllocationWrapper::CreateDecoder(const CreateDecoderParams& aParams,
                                                 TrackTypeToStr(type)));
                 RefPtr<PDMFactory> pdm = new PDMFactory();
                 CreateDecoderParams params{*config,
-                                           taskQueue,
                                            diagnostics,
                                            imageContainer,
                                            &result,

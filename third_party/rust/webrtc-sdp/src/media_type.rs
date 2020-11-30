@@ -540,8 +540,13 @@ mod tests {
                     cbr: false,
                     max_fr: 0,
                     maxplaybackrate: 48000,
+                    maxaveragebitrate: 0,
+                    ptime: 0,
+                    minptime: 0,
+                    maxptime: 0,
                     encodings: Vec::new(),
                     dtmf_tones: "".to_string(),
+                    rtx: None,
                     unknown_tokens: Vec::new()
                 }
             },))

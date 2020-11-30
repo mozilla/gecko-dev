@@ -9,7 +9,7 @@
  */
 
 var { DevToolsServer } = require("devtools/server/devtools-server");
-var { DevToolsClient } = require("devtools/shared/client/devtools-client");
+var { DevToolsClient } = require("devtools/client/devtools-client");
 
 const TAB1_URL = "data:text/html;charset=utf-8,first-tab";
 const TAB2_URL = "data:text/html;charset=utf-8,second-tab";
@@ -100,6 +100,7 @@ async function continue_remove_tab(client, tab) {
   removeTab(tab);
 
   const tabs = await client.mainRoot.listTabs();
+
   // Verify that tabs are no longer included in listTabs.
   const foundTab1 = tabs.some(grip => grip.url == TAB1_URL);
   const foundTab2 = tabs.some(grip => grip.url == TAB2_URL);

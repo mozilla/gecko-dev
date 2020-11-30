@@ -56,7 +56,10 @@ typedef MALLOC_USABLE_SIZE_CONST_PTR void* usable_ptr_t;
 
 typedef size_t arena_id_t;
 
-#define ARENA_FLAG_RANDOMIZE_SMALL 1
+#define ARENA_FLAG_RANDOMIZE_SMALL_MASK 0x3
+#define ARENA_FLAG_RANDOMIZE_SMALL_DEFAULT 0
+#define ARENA_FLAG_RANDOMIZE_SMALL_ENABLED 1
+#define ARENA_FLAG_RANDOMIZE_SMALL_DISABLED 2
 
 typedef struct arena_params_s {
   size_t mMaxDirty;
@@ -72,11 +75,12 @@ typedef struct arena_params_s {
 // file.
 typedef struct {
   // Run-time configuration settings.
-  bool opt_junk;     // Fill allocated memory with kAllocJunk?
-  bool opt_zero;     // Fill allocated memory with 0x0?
-  size_t narenas;    // Number of arenas.
-  size_t quantum;    // Allocation quantum.
-  size_t small_max;  // Max quantum-spaced allocation size.
+  bool opt_junk;       // Fill allocated memory with kAllocJunk?
+  bool opt_zero;       // Fill allocated memory with 0x0?
+  size_t narenas;      // Number of arenas.
+  size_t quantum;      // Allocation quantum.
+  size_t quantum_max;  // Max quantum-spaced allocation size.
+  // The next size class, sub-pagesize's max is always page_size/2.
   size_t large_max;  // Max sub-chunksize allocation size.
   size_t chunksize;  // Size of each virtual memory mapping.
   size_t page_size;  // Size of pages.
@@ -94,6 +98,18 @@ typedef struct {
                        // allocator.
   size_t bin_unused;   // Bytes committed to a bin but currently unused.
 } jemalloc_stats_t;
+
+typedef struct {
+  size_t size;               // The size of objects in this bin, zero if this
+                             // bin stats array entry is unused (no more bins).
+  size_t num_non_full_runs;  // The number of non-full runs
+  size_t num_runs;           // The number of runs in this bin
+  size_t bytes_unused;       // The unallocated bytes across all these bins
+  size_t bytes_total;        // The total storage area for runs in this bin,
+                             // excluding headers..
+} jemalloc_bin_stats_t;
+
+#define JEMALLOC_MAX_STATS_BINS 40
 
 enum PtrInfoTag {
   // The pointer is not currently known to the allocator.

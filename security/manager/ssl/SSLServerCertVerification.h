@@ -6,16 +6,20 @@
 #ifndef _SSLSERVERCERTVERIFICATION_H
 #define _SSLSERVERCERTVERIFICATION_H
 
+#include "CertVerifier.h"
+#include "ScopedNSSTypes.h"
 #include "mozilla/Maybe.h"
+#include "mozpkix/pkix.h"
 #include "nsTArray.h"
 #include "nsThreadUtils.h"
-#include "ScopedNSSTypes.h"
+#include "prerror.h"
+#include "prio.h"
 #include "seccomon.h"
 #include "secoidt.h"
-#include "prio.h"
-#include "prerror.h"
 
 class nsNSSCertificate;
+
+using namespace mozilla::pkix;
 
 namespace mozilla {
 namespace psm {
@@ -45,7 +49,8 @@ class BaseSSLServerCertVerificationResult {
                         nsTArray<nsTArray<uint8_t>>&& aPeerCertChain,
                         uint16_t aCertificateTransparencyStatus,
                         EVStatus aEVStatus, bool aSucceeded,
-                        PRErrorCode aFinalError, uint32_t aCollectedErrors) = 0;
+                        PRErrorCode aFinalError, uint32_t aCollectedErrors,
+                        bool aIsBuiltCertChainRootBuiltInRoot) = 0;
 };
 
 // Dispatched to the STS thread to notify the infoObject of the verification
@@ -68,7 +73,8 @@ class SSLServerCertVerificationResult final
                 nsTArray<nsTArray<uint8_t>>&& aPeerCertChain,
                 uint16_t aCertificateTransparencyStatus, EVStatus aEVStatus,
                 bool aSucceeded, PRErrorCode aFinalError,
-                uint32_t aCollectedErrors) override;
+                uint32_t aCollectedErrors,
+                bool aIsBuiltCertChainRootBuiltInRoot) override;
 
  private:
   ~SSLServerCertVerificationResult() = default;
@@ -82,6 +88,73 @@ class SSLServerCertVerificationResult final
   bool mSucceeded;
   PRErrorCode mFinalError;
   uint32_t mCollectedErrors;
+  bool mIsBuiltCertChainRootBuiltInRoot;
+};
+
+class SSLServerCertVerificationJob : public Runnable {
+ public:
+  SSLServerCertVerificationJob(const SSLServerCertVerificationJob&) = delete;
+
+  // Must be called only on the socket transport thread
+  static SECStatus Dispatch(uint64_t addrForLogging, void* aPinArg,
+                            const UniqueCERTCertificate& serverCert,
+                            nsTArray<nsTArray<uint8_t>>&& peerCertChain,
+                            const nsACString& aHostName, int32_t aPort,
+                            const OriginAttributes& aOriginAttributes,
+                            Maybe<nsTArray<uint8_t>>& stapledOCSPResponse,
+                            Maybe<nsTArray<uint8_t>>& sctsFromTLSExtension,
+                            Maybe<DelegatedCredentialInfo>& dcInfo,
+                            uint32_t providerFlags, Time time, PRTime prtime,
+                            uint32_t certVerifierFlags,
+                            BaseSSLServerCertVerificationResult* aResultTask);
+
+ private:
+  NS_DECL_NSIRUNNABLE
+
+  // Must be called only on the socket transport thread
+  SSLServerCertVerificationJob(uint64_t addrForLogging, void* aPinArg,
+                               const UniqueCERTCertificate& cert,
+                               nsTArray<nsTArray<uint8_t>>&& peerCertChain,
+                               const nsACString& aHostName, int32_t aPort,
+                               const OriginAttributes& aOriginAttributes,
+                               Maybe<nsTArray<uint8_t>>& stapledOCSPResponse,
+                               Maybe<nsTArray<uint8_t>>& sctsFromTLSExtension,
+                               Maybe<DelegatedCredentialInfo>& dcInfo,
+                               uint32_t providerFlags, Time time, PRTime prtime,
+                               uint32_t certVerifierFlags,
+                               BaseSSLServerCertVerificationResult* aResultTask)
+      : Runnable("psm::SSLServerCertVerificationJob"),
+        mAddrForLogging(addrForLogging),
+        mPinArg(aPinArg),
+        mCert(CERT_DupCertificate(cert.get())),
+        mPeerCertChain(std::move(peerCertChain)),
+        mHostName(aHostName),
+        mPort(aPort),
+        mOriginAttributes(aOriginAttributes),
+        mProviderFlags(providerFlags),
+        mCertVerifierFlags(certVerifierFlags),
+        mTime(time),
+        mPRTime(prtime),
+        mStapledOCSPResponse(std::move(stapledOCSPResponse)),
+        mSCTsFromTLSExtension(std::move(sctsFromTLSExtension)),
+        mDCInfo(std::move(dcInfo)),
+        mResultTask(aResultTask) {}
+
+  uint64_t mAddrForLogging;
+  void* mPinArg;
+  const UniqueCERTCertificate mCert;
+  nsTArray<nsTArray<uint8_t>> mPeerCertChain;
+  nsCString mHostName;
+  int32_t mPort;
+  OriginAttributes mOriginAttributes;
+  const uint32_t mProviderFlags;
+  const uint32_t mCertVerifierFlags;
+  const Time mTime;
+  const PRTime mPRTime;
+  Maybe<nsTArray<uint8_t>> mStapledOCSPResponse;
+  Maybe<nsTArray<uint8_t>> mSCTsFromTLSExtension;
+  Maybe<DelegatedCredentialInfo> mDCInfo;
+  RefPtr<BaseSSLServerCertVerificationResult> mResultTask;
 };
 
 }  // namespace psm

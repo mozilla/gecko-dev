@@ -1,3 +1,48 @@
+Overview of changes leading to 2.6.8
+Monday, June 22, 2020
+====================================
+- New API to fetch glyph alternates from GSUB table.
+- hb-coretext build fix for macOS < 10.10.
+- Meson build fixes, cmake port removal is postponed but please prepare for
+  it and give us feedback.
+  Autotools is still our main build system however please consider
+  experimenting with meson also for packaging the library.
+- New API:
++hb_ot_layout_lookup_get_glyph_alternates()
+
+
+Overview of changes leading to 2.6.7
+Wednesday, June 3, 2020
+====================================
+- Update to Unicode 13.0.0.
+- Fix hb_ot_layout_get_ligature_carets for fonts without lcar table, it was
+  completely broken for all the other fonts since 2.1.2.
+- As a part of our migration to meson, this release will be the last one
+  to provide cmake port files but autotools still is our main build system.
+  There is a possibility that the next version or the after be released
+  using meson.
+
+
+Overview of changes leading to 2.6.6
+Tuesday, May 12, 2020
+====================================
+- A fix in AAT kerning for Geeza Pro.
+- Better support for resource fork fonts on macOS.
+
+
+Overview of changes leading to 2.6.5
+Friday, April 17, 2020
+====================================
+- Add experimental meson build system.  Autotools is still the primary
+  and supported build system.
+- AAT is now always preferred for horizontal scripts when both AAT and OT
+  layout tables exist at the same time.
+- Subsetter improvements.
+- New API:
++hb_ft_font_lock_face()
++hb_ft_font_unlock_face()
+
+
 Overview of changes leading to 2.6.4
 Monday, October 29, 2019
 ====================================

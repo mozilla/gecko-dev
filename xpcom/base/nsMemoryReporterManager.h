@@ -16,6 +16,10 @@
 #include "nsServiceManagerUtils.h"
 #include "nsDataHashtable.h"
 
+#ifdef XP_WIN
+#  include <windows.h>
+#endif  // XP_WIN
+
 namespace mozilla {
 class MemoryReportingProcess;
 namespace dom {
@@ -142,24 +146,22 @@ class nsMemoryReporterManager final : public nsIMemoryReporterManager,
   // Functions that (a) implement distinguished amounts, and (b) are outside of
   // this module.
   struct AmountFns {
-    mozilla::InfallibleAmountFn mJSMainRuntimeGCHeap;
-    mozilla::InfallibleAmountFn mJSMainRuntimeTemporaryPeak;
-    mozilla::InfallibleAmountFn mJSMainRuntimeCompartmentsSystem;
-    mozilla::InfallibleAmountFn mJSMainRuntimeCompartmentsUser;
-    mozilla::InfallibleAmountFn mJSMainRuntimeRealmsSystem;
-    mozilla::InfallibleAmountFn mJSMainRuntimeRealmsUser;
+    mozilla::InfallibleAmountFn mJSMainRuntimeGCHeap = nullptr;
+    mozilla::InfallibleAmountFn mJSMainRuntimeTemporaryPeak = nullptr;
+    mozilla::InfallibleAmountFn mJSMainRuntimeCompartmentsSystem = nullptr;
+    mozilla::InfallibleAmountFn mJSMainRuntimeCompartmentsUser = nullptr;
+    mozilla::InfallibleAmountFn mJSMainRuntimeRealmsSystem = nullptr;
+    mozilla::InfallibleAmountFn mJSMainRuntimeRealmsUser = nullptr;
 
-    mozilla::InfallibleAmountFn mImagesContentUsedUncompressed;
+    mozilla::InfallibleAmountFn mImagesContentUsedUncompressed = nullptr;
 
-    mozilla::InfallibleAmountFn mStorageSQLite;
+    mozilla::InfallibleAmountFn mStorageSQLite = nullptr;
 
-    mozilla::InfallibleAmountFn mLowMemoryEventsVirtual;
-    mozilla::InfallibleAmountFn mLowMemoryEventsCommitSpace;
-    mozilla::InfallibleAmountFn mLowMemoryEventsPhysical;
+    mozilla::InfallibleAmountFn mLowMemoryEventsVirtual = nullptr;
+    mozilla::InfallibleAmountFn mLowMemoryEventsCommitSpace = nullptr;
+    mozilla::InfallibleAmountFn mLowMemoryEventsPhysical = nullptr;
 
-    mozilla::InfallibleAmountFn mGhostWindows;
-
-    AmountFns() { mozilla::PodZero(this); }
+    mozilla::InfallibleAmountFn mGhostWindows = nullptr;
   };
   AmountFns mAmountFns;
 
@@ -172,24 +174,32 @@ class nsMemoryReporterManager final : public nsIMemoryReporterManager,
 
   // Convenience function to get USS easily from other code.  This is useful
   // when debugging unshared memory pages for forked processes.
-  static int64_t ResidentUnique();
+  //
+  // Returns 0 if, for some reason, the resident unique memory cannot be
+  // determined - typically if there is a race between us and someone else
+  // closing the process and we lost that race.
+#ifdef XP_WIN
+  static int64_t ResidentUnique(HANDLE aProcess = nullptr);
+#elif XP_MACOSX
+  static int64_t ResidentUnique(mach_port_t aPort = 0);
+#else
+  static int64_t ResidentUnique(pid_t aPid = 0);
+#endif  // XP_{WIN, MACOSX, LINUX, *}
 
   // Functions that measure per-tab memory consumption.
   struct SizeOfTabFns {
-    mozilla::JSSizeOfTabFn mJS;
-    mozilla::NonJSSizeOfTabFn mNonJS;
-
-    SizeOfTabFns() { mozilla::PodZero(this); }
+    mozilla::JSSizeOfTabFn mJS = nullptr;
+    mozilla::NonJSSizeOfTabFn mNonJS = nullptr;
   };
   SizeOfTabFns mSizeOfTabFns;
 
  private:
-  MOZ_MUST_USE nsresult RegisterReporterHelper(nsIMemoryReporter* aReporter,
-                                               bool aForce, bool aStrongRef,
-                                               bool aIsAsync);
+  [[nodiscard]] nsresult RegisterReporterHelper(nsIMemoryReporter* aReporter,
+                                                bool aForce, bool aStrongRef,
+                                                bool aIsAsync);
 
-  MOZ_MUST_USE nsresult StartGettingReports();
-  // No MOZ_MUST_USE here because ignoring the result is common and reasonable.
+  [[nodiscard]] nsresult StartGettingReports();
+  // No [[nodiscard]] here because ignoring the result is common and reasonable.
   nsresult FinishReporting();
 
   void DispatchReporter(nsIMemoryReporter* aReporter, bool aIsAsync,
@@ -274,7 +284,7 @@ class nsMemoryReporterManager final : public nsIMemoryReporterManager,
   nsCOMPtr<nsIEventTarget> mThreadPool;
 
   PendingProcessesState* GetStateForGeneration(uint32_t aGeneration);
-  static MOZ_MUST_USE bool StartChildReport(
+  [[nodiscard]] static bool StartChildReport(
       mozilla::MemoryReportingProcess* aChild,
       const PendingProcessesState* aState);
 };

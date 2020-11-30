@@ -8,22 +8,28 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-use std::fmt;
-use std::io;
+use std::{
+    fmt,
+    io,
+    path::PathBuf,
+};
 
 use bincode::Error as BincodeError;
 
-use crate::backend::traits::BackendError;
-use crate::error::StoreError;
+use crate::{
+    backend::traits::BackendError,
+    error::StoreError,
+};
 
 #[derive(Debug)]
 pub enum ErrorImpl {
     KeyValuePairNotFound,
-    DbPoisonError,
+    EnvPoisonError,
     DbsFull,
     DbsIllegalOpen,
     DbNotFoundError,
     DbIsForeignError,
+    UnsuitableEnvironmentPath(PathBuf),
     IoError(io::Error),
     BincodeError(BincodeError),
 }
@@ -34,11 +40,12 @@ impl fmt::Display for ErrorImpl {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             ErrorImpl::KeyValuePairNotFound => write!(fmt, "KeyValuePairNotFound (safe mode)"),
-            ErrorImpl::DbPoisonError => write!(fmt, "DbPoisonError (safe mode)"),
+            ErrorImpl::EnvPoisonError => write!(fmt, "EnvPoisonError (safe mode)"),
             ErrorImpl::DbsFull => write!(fmt, "DbsFull (safe mode)"),
             ErrorImpl::DbsIllegalOpen => write!(fmt, "DbIllegalOpen (safe mode)"),
             ErrorImpl::DbNotFoundError => write!(fmt, "DbNotFoundError (safe mode)"),
             ErrorImpl::DbIsForeignError => write!(fmt, "DbIsForeignError (safe mode)"),
+            ErrorImpl::UnsuitableEnvironmentPath(_) => write!(fmt, "UnsuitableEnvironmentPath (safe mode)"),
             ErrorImpl::IoError(e) => e.fmt(fmt),
             ErrorImpl::BincodeError(e) => e.fmt(fmt),
         }
@@ -47,9 +54,16 @@ impl fmt::Display for ErrorImpl {
 
 impl Into<StoreError> for ErrorImpl {
     fn into(self) -> StoreError {
+        // The `StoreError::KeyValuePairBadSize` error is unused, because this
+        // backend supports keys and values of arbitrary sizes.
+        // The `StoreError::MapFull` and `StoreError::ReadersFull` are
+        // unimplemented yet, but they should be in the future.
         match self {
             ErrorImpl::KeyValuePairNotFound => StoreError::KeyValuePairNotFound,
-            ErrorImpl::BincodeError(_) => StoreError::DatabaseInvalid,
+            ErrorImpl::BincodeError(_) => StoreError::FileInvalid,
+            ErrorImpl::DbsFull => StoreError::DbsFull,
+            ErrorImpl::UnsuitableEnvironmentPath(path) => StoreError::UnsuitableEnvironmentPath(path),
+            ErrorImpl::IoError(error) => StoreError::IoError(error),
             _ => StoreError::SafeModeError(self),
         }
     }

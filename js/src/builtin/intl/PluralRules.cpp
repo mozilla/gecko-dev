@@ -25,6 +25,7 @@
 #include "unicode/utypes.h"
 #include "vm/GlobalObject.h"
 #include "vm/JSContext.h"
+#include "vm/PlainObject.h"  // js::PlainObject
 #include "vm/StringType.h"
 
 #include "vm/JSObject-inl.h"
@@ -52,7 +53,7 @@ const JSClassOps PluralRulesObject::classOps_ = {
 };
 
 const JSClass PluralRulesObject::class_ = {
-    js_Object_str,
+    "Intl.PluralRules",
     JSCLASS_HAS_RESERVED_SLOTS(PluralRulesObject::SLOT_COUNT) |
         JSCLASS_HAS_CACHED_PROTO(JSProto_PluralRules) |
         JSCLASS_FOREGROUND_FINALIZE,
@@ -77,6 +78,10 @@ static const JSFunctionSpec pluralRules_methods[] = {
     JS_SELF_HOSTED_FN("select", "Intl_PluralRules_select", 1, 0),
     JS_FN(js_toSource_str, pluralRules_toSource, 0, 0), JS_FS_END};
 
+static const JSPropertySpec pluralRules_properties[] = {
+    JS_STRING_SYM_PS(toStringTag, "Intl.PluralRules", JSPROP_READONLY),
+    JS_PS_END};
+
 static bool PluralRules(JSContext* cx, unsigned argc, Value* vp);
 
 const ClassSpec PluralRulesObject::classSpec_ = {
@@ -85,7 +90,7 @@ const ClassSpec PluralRulesObject::classSpec_ = {
     pluralRules_static_methods,
     nullptr,
     pluralRules_methods,
-    nullptr,
+    pluralRules_properties,
     nullptr,
     ClassSpec::DontDefineConstructor};
 

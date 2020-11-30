@@ -7,12 +7,18 @@
 
 #include "gtest/gtest.h"
 
+#include "gfxTypes.h"
 #include "nsRect.h"
 #include "gfxRect.h"
+#include "mozilla/gfx/Rect.h"
+#include "mozilla/gfx/RectAbsolute.h"
 #include "mozilla/WritingModes.h"
 #ifdef XP_WIN
 #  include <windows.h>
 #endif
+
+using mozilla::gfx::IntRect;
+using mozilla::gfx::IntRectAbsolute;
 
 template <class RectType>
 static bool TestConstructors() {

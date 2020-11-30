@@ -34,7 +34,7 @@ html,
 body {
     margin: 0;
     padding: 0;
-    -moz-user-select: none;
+    user-select: none;
     font-family: sans-serif;
     -moz-text-size-adjust: none;
     background-color: var(--background-color);
@@ -241,7 +241,7 @@ body {
 }
 
 #new-pref-type {
-    -moz-appearance: none;
+    appearance: none;
     color: inherit;
     border-inline-start: 1px solid var(--deemphasized-border-color) !important;
     text-align: center;

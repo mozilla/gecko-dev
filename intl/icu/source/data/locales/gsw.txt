@@ -180,7 +180,7 @@ gsw{
             }
         }
     }
-    Version{"36"}
+    Version{"37"}
     calendar{
         buddhist{
             DateTimePatterns{

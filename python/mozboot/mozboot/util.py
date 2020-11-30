@@ -7,7 +7,13 @@ from __future__ import absolute_import, print_function, unicode_literals
 import hashlib
 import os
 
+from mozbuild.virtualenv import VirtualenvHelper
+
+
 here = os.path.join(os.path.dirname(__file__))
+
+
+MINIMUM_RUST_VERSION = '1.43.0'
 
 
 def get_state_dir(srcdir=False):
@@ -32,7 +38,7 @@ def get_state_dir(srcdir=False):
     srcdir = os.path.abspath(MozbuildObject.from_environment(cwd=here).topsrcdir)
     # Shortening to 12 characters makes these directories a bit more manageable
     # in a terminal and is more than good enough for this purpose.
-    srcdir_hash = hashlib.sha256(srcdir).hexdigest()[:12]
+    srcdir_hash = hashlib.sha256(srcdir.encode("utf-8")).hexdigest()[:12]
 
     state_dir = os.path.join(state_dir, 'srcdirs', '{}-{}'.format(
         os.path.basename(srcdir), srcdir_hash))
@@ -48,3 +54,14 @@ def get_state_dir(srcdir=False):
             fh.write(srcdir)
 
     return state_dir
+
+
+def get_mach_virtualenv_root(state_dir=None, py2=False):
+    return os.path.join(
+        state_dir or get_state_dir(), '_virtualenvs',
+        'mach_py2' if py2 else 'mach')
+
+
+def get_mach_virtualenv_binary(state_dir=None, py2=False):
+    root = get_mach_virtualenv_root(state_dir=state_dir, py2=py2)
+    return VirtualenvHelper(root).python_path

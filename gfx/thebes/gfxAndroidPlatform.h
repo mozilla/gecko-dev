@@ -18,7 +18,7 @@ class FontListEntry;
 };  // namespace mozilla
 using mozilla::dom::FontListEntry;
 
-class gfxAndroidPlatform : public gfxPlatform {
+class gfxAndroidPlatform final : public gfxPlatform {
  public:
   gfxAndroidPlatform();
   virtual ~gfxAndroidPlatform();
@@ -32,20 +32,15 @@ class gfxAndroidPlatform : public gfxPlatform {
 
   gfxImageFormat GetOffscreenFormat() override { return mOffscreenFormat; }
 
-  // to support IPC font list (sharing between chrome and content)
-  void GetSystemFontList(nsTArray<FontListEntry>* retValue);
-
   // platform implementations of font functions
   gfxPlatformFontList* CreatePlatformFontList() override;
 
-  void GetCommonFallbackFonts(uint32_t aCh, uint32_t aNextCh, Script aRunScript,
-                              nsTArray<const char*>& aFontList) override;
+  void ReadSystemFontList(
+      nsTArray<mozilla::dom::SystemFontListEntry>* aFontList) override;
 
-  gfxFontGroup* CreateFontGroup(const mozilla::FontFamilyList& aFontFamilyList,
-                                const gfxFontStyle* aStyle,
-                                gfxTextPerfMetrics* aTextPerf,
-                                gfxUserFontSet* aUserFontSet,
-                                gfxFloat aDevToCssSize) override;
+  void GetCommonFallbackFonts(uint32_t aCh, Script aRunScript,
+                              eFontPresentation aPresentation,
+                              nsTArray<const char*>& aFontList) override;
 
   bool FontHintingEnabled() override;
   bool RequiresLinearZoom() override;
@@ -54,6 +49,8 @@ class gfxAndroidPlatform : public gfxPlatform {
       override;
 
  protected:
+  void InitAcceleration() override;
+
   bool AccelerateLayersByDefault() override { return true; }
 
   bool CheckVariationFontSupport() override {

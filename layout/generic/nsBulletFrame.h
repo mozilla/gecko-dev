@@ -10,7 +10,7 @@
 #define nsBulletFrame_h___
 
 #include "mozilla/Attributes.h"
-#include "nsFrame.h"
+#include "nsIFrame.h"
 
 #include "imgIContainer.h"
 #include "imgINotificationObserver.h"
@@ -40,7 +40,7 @@ class nsBulletListener final : public imgINotificationObserver {
  * A simple class that manages the layout and rendering of html bullets.
  * This class also supports the CSS list-style properties.
  */
-class nsBulletFrame final : public nsFrame {
+class nsBulletFrame final : public nsIFrame {
   typedef mozilla::image::ImgDrawResult ImgDrawResult;
 
  public:
@@ -50,15 +50,14 @@ class nsBulletFrame final : public nsFrame {
 #endif
 
   explicit nsBulletFrame(ComputedStyle* aStyle, nsPresContext* aPresContext)
-      : nsFrame(aStyle, aPresContext, kClassID),
+      : nsIFrame(aStyle, aPresContext, kClassID),
         mPadding(GetWritingMode()),
         mIntrinsicSize(GetWritingMode()),
         mRequestRegistered(false) {}
 
   virtual ~nsBulletFrame();
 
-  NS_IMETHOD Notify(imgIRequest* aRequest, int32_t aType,
-                    const nsIntRect* aData);
+  void Notify(imgIRequest* aRequest, int32_t aType, const nsIntRect* aData);
 
   // nsIFrame
   virtual void DestroyFrom(nsIFrame* aDestructRoot,
@@ -84,7 +83,7 @@ class nsBulletFrame final : public nsFrame {
     if (aFlags & (eSupportsCSSTransforms | eSupportsContainLayoutAndPaint)) {
       return false;
     }
-    return nsFrame::IsFrameOfType(aFlags & ~nsIFrame::eLineParticipant);
+    return nsIFrame::IsFrameOfType(aFlags & ~nsIFrame::eLineParticipant);
   }
 
   // nsBulletFrame
@@ -119,7 +118,7 @@ class nsBulletFrame final : public nsFrame {
 
   float GetFontSizeInflation() const;
   bool HasFontSizeInflation() const {
-    return (GetStateBits() & BULLET_FRAME_HAS_FONT_INFLATION) != 0;
+    return HasAnyStateBits(BULLET_FRAME_HAS_FONT_INFLATION);
   }
   void SetFontSizeInflation(float aInflation);
 
@@ -129,7 +128,7 @@ class nsBulletFrame final : public nsFrame {
   already_AddRefed<imgIContainer> GetImage() const;
 
  protected:
-  nsresult OnSizeAvailable(imgIRequest* aRequest, imgIContainer* aImage);
+  void OnSizeAvailable(imgIRequest* aRequest, imgIContainer* aImage);
 
   void AppendSpacingToPadding(nsFontMetrics* aFontMetrics,
                               mozilla::LogicalMargin* aPadding);

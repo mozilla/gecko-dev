@@ -2,11 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#define VECS_PER_YUV_BRUSH 1
-#define VECS_PER_SPECIFIC_BRUSH VECS_PER_YUV_BRUSH
-
-#define WR_BRUSH_VS_FUNCTION yuv_brush_vs
-#define WR_BRUSH_FS_FUNCTION yuv_brush_fs
+#define VECS_PER_SPECIFIC_BRUSH 1
 
 #include shared,prim_shared,brush,yuv
 
@@ -14,17 +10,20 @@
 varying vec2 vLocalPos;
 #endif
 
-varying vec3 vUv_Y;
+flat varying vec3 vYuvLayers;
+
+varying vec2 vUv_Y;
 flat varying vec4 vUvBounds_Y;
 
-varying vec3 vUv_U;
+varying vec2 vUv_U;
 flat varying vec4 vUvBounds_U;
 
-varying vec3 vUv_V;
+varying vec2 vUv_V;
 flat varying vec4 vUvBounds_V;
 
 flat varying float vCoefficient;
 flat varying mat3 vYuvColorMatrix;
+flat varying vec3 vYuvOffsetVector;
 flat varying int vFormat;
 
 #ifdef WR_VERTEX_SHADER
@@ -40,7 +39,7 @@ YuvPrimitive fetch_yuv_primitive(int address) {
     return YuvPrimitive(data.x, int(data.y), int(data.z));
 }
 
-void yuv_brush_vs(
+void brush_vs(
     VertexInfo vi,
     int prim_address,
     RectWithSize local_rect,
@@ -58,6 +57,7 @@ void yuv_brush_vs(
     vCoefficient = prim.coefficient;
 
     vYuvColorMatrix = get_yuv_color_matrix(prim.color_space);
+    vYuvOffsetVector = get_yuv_offset_vector(prim.color_space);
     vFormat = prim.yuv_format;
 
 #ifdef WR_FEATURE_ALPHA_PASS
@@ -68,28 +68,33 @@ void yuv_brush_vs(
         ImageResource res_y = fetch_image_resource(prim_user_data.x);
         ImageResource res_u = fetch_image_resource(prim_user_data.y);
         ImageResource res_v = fetch_image_resource(prim_user_data.z);
-        write_uv_rect(res_y.uv_rect.p0, res_y.uv_rect.p1, res_y.layer, f, TEX_SIZE(sColor0), vUv_Y, vUvBounds_Y);
-        write_uv_rect(res_u.uv_rect.p0, res_u.uv_rect.p1, res_u.layer, f, TEX_SIZE(sColor1), vUv_U, vUvBounds_U);
-        write_uv_rect(res_v.uv_rect.p0, res_v.uv_rect.p1, res_v.layer, f, TEX_SIZE(sColor2), vUv_V, vUvBounds_V);
+        write_uv_rect(res_y.uv_rect.p0, res_y.uv_rect.p1, f, TEX_SIZE(sColor0), vUv_Y, vUvBounds_Y);
+        write_uv_rect(res_u.uv_rect.p0, res_u.uv_rect.p1, f, TEX_SIZE(sColor1), vUv_U, vUvBounds_U);
+        write_uv_rect(res_v.uv_rect.p0, res_v.uv_rect.p1, f, TEX_SIZE(sColor2), vUv_V, vUvBounds_V);
+        vYuvLayers = vec3(res_y.layer, res_u.layer, res_v.layer);
     } else if (vFormat == YUV_FORMAT_NV12) {
         ImageResource res_y = fetch_image_resource(prim_user_data.x);
         ImageResource res_u = fetch_image_resource(prim_user_data.y);
-        write_uv_rect(res_y.uv_rect.p0, res_y.uv_rect.p1, res_y.layer, f, TEX_SIZE(sColor0), vUv_Y, vUvBounds_Y);
-        write_uv_rect(res_u.uv_rect.p0, res_u.uv_rect.p1, res_u.layer, f, TEX_SIZE(sColor1), vUv_U, vUvBounds_U);
+        write_uv_rect(res_y.uv_rect.p0, res_y.uv_rect.p1,  f, TEX_SIZE(sColor0), vUv_Y, vUvBounds_Y);
+        write_uv_rect(res_u.uv_rect.p0, res_u.uv_rect.p1, f, TEX_SIZE(sColor1), vUv_U, vUvBounds_U);
+        vYuvLayers = vec3(res_y.layer, res_u.layer, 0.0);
     } else if (vFormat == YUV_FORMAT_INTERLEAVED) {
         ImageResource res_y = fetch_image_resource(prim_user_data.x);
-        write_uv_rect(res_y.uv_rect.p0, res_y.uv_rect.p1, res_y.layer, f, TEX_SIZE(sColor0), vUv_Y, vUvBounds_Y);
+        write_uv_rect(res_y.uv_rect.p0, res_y.uv_rect.p1, f, TEX_SIZE(sColor0), vUv_Y, vUvBounds_Y);
+        vYuvLayers = vec3(res_y.layer, 0.0, 0.0);
     }
 }
 #endif
 
 #ifdef WR_FRAGMENT_SHADER
 
-Fragment yuv_brush_fs() {
+Fragment brush_fs() {
     vec4 color = sample_yuv(
         vFormat,
         vYuvColorMatrix,
+        vYuvOffsetVector,
         vCoefficient,
+        vYuvLayers,
         vUv_Y,
         vUv_U,
         vUv_V,

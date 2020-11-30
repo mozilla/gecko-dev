@@ -6,15 +6,10 @@
 
 package org.mozilla.geckoview;
 
-import android.support.annotation.AnyThread;
-import android.support.annotation.NonNull;
-
-import org.json.JSONException;
-import org.json.JSONObject;
+import androidx.annotation.AnyThread;
+import androidx.annotation.NonNull;
 
 import org.mozilla.gecko.annotation.WrapForJNI;
-import org.mozilla.gecko.EventDispatcher;
-import org.mozilla.gecko.util.GeckoBundle;
 import org.mozilla.gecko.mozglue.JNIObject;
 import org.mozilla.gecko.GeckoThread;
 
@@ -22,45 +17,7 @@ import org.mozilla.gecko.GeckoThread;
  * The telemetry API gives access to telemetry data of the Gecko runtime.
  */
 public final class RuntimeTelemetry {
-    private final EventDispatcher mEventDispatcher;
-
-    /* package */ RuntimeTelemetry(final @NonNull GeckoRuntime runtime) {
-        mEventDispatcher = EventDispatcher.getInstance();
-    }
-
-    /**
-     * Retrieve all telemetry snapshots.
-     * The response bundle will contain following snapshots:
-     * <ul>
-     * <li>histograms</li>
-     * <li>keyedHistograms</li>
-     * <li>scalars</li>
-     * <li>keyedScalars</li>
-     * </ul>
-     *
-     * @param clear Whether the retrieved snapshots should be cleared.
-     * @return A {@link GeckoResult} with the GeckoBundle snapshot results.
-     */
-    @AnyThread
-    public @NonNull GeckoResult<JSONObject> getSnapshots(final boolean clear) {
-        final GeckoBundle msg = new GeckoBundle(1);
-        msg.putBoolean("clear", clear);
-
-        final CallbackResult<JSONObject> result = new CallbackResult<JSONObject>() {
-            @Override
-            public void sendSuccess(final Object value) {
-                try {
-                    complete(((GeckoBundle) value).toJSONObject());
-                } catch (JSONException ex) {
-                    completeExceptionally(ex);
-                }
-            }
-        };
-
-        mEventDispatcher.dispatch("GeckoView:TelemetrySnapshots", msg, result);
-
-        return result;
-    }
+    protected RuntimeTelemetry() {}
 
     /**
      * The runtime telemetry metric object.

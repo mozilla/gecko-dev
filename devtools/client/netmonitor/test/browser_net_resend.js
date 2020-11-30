@@ -13,7 +13,9 @@ const ADD_UA_HEADER = "User-Agent: Custom-Agent";
 const ADD_POSTDATA = "&t3=t4";
 
 add_task(async function() {
-  const { tab, monitor } = await initNetMonitor(POST_DATA_URL);
+  const { tab, monitor } = await initNetMonitor(POST_DATA_URL, {
+    requestCount: 1,
+  });
   info("Starting test... ");
 
   const { document, store, windowRequire, connector } = monitor.panelWin;
@@ -90,7 +92,7 @@ add_task(async function() {
     "The sent request is selected"
   );
   is(
-    document.querySelector(".network-details-panel"),
+    document.querySelector(".network-details-bar"),
     null,
     "The detail panel is hidden"
   );
@@ -107,7 +109,7 @@ add_task(async function() {
   }
 
   function testCustomItemChanged(item, orig) {
-    const url = item.url;
+    const { url } = item;
     const expectedUrl = orig.url + "&" + ADD_QUERY;
 
     is(url, expectedUrl, "menu item is updated to reflect url entered in form");

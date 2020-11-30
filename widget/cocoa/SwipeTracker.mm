@@ -14,6 +14,7 @@
 #include "mozilla/dom/SimpleGestureEventBinding.h"
 #include "nsAlgorithm.h"
 #include "nsChildView.h"
+#include "nsRefreshDriver.h"
 #include "UnitTransforms.h"
 
 // These values were tweaked to make the physics feel similar to the native swipe.
@@ -137,7 +138,7 @@ void SwipeTracker::StartAnimating(double aTargetValue) {
   // unregister ourselves.
   MOZ_ASSERT(!mRegisteredWithRefreshDriver);
   if (mRefreshDriver) {
-    mRefreshDriver->AddRefreshObserver(this, FlushType::Style);
+    mRefreshDriver->AddRefreshObserver(this, FlushType::Style, "Swipe animation");
     mRegisteredWithRefreshDriver = true;
   }
 }

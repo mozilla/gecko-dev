@@ -18,9 +18,10 @@ def iter_modules_in_path(*paths):
     paths = [os.path.abspath(os.path.normcase(p)) + os.sep
              for p in paths]
     for name, module in sys.modules.items():
-        if not hasattr(module, '__file__'):
+        if getattr(module, '__file__', None) is None:
             continue
-
+        if module.__file__ is None:
+            continue
         path = module.__file__
 
         if path.endswith('.pyc'):
@@ -45,7 +46,7 @@ def python_executable_version(exe):
 def _find_python_executable(major):
     if major not in (2, 3):
         raise ValueError('Expected a Python major version of 2 or 3')
-    min_versions = {2: '2.7.0', 3: '3.5.0'}
+    min_versions = {2: '2.7.0', 3: '3.6.0'}
 
     def ret(min_version=min_versions[major]):
         from mozfile import which

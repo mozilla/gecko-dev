@@ -162,7 +162,7 @@ function FullHashMatch(table, hash, duration) {
 }
 
 FullHashMatch.prototype = {
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIFullHashMatch]),
+  QueryInterface: ChromeUtils.generateQI(["nsIFullHashMatch"]),
 
   tableName: null,
   fullHash: null,
@@ -198,11 +198,11 @@ function HashCompleter() {
 HashCompleter.prototype = {
   classID: Components.ID("{9111de73-9322-4bfc-8b65-2b727f3e6ec8}"),
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIUrlClassifierHashCompleter,
-    Ci.nsIRunnable,
-    Ci.nsIObserver,
-    Ci.nsISupportsWeakReference,
-    Ci.nsITimerCallback,
+    "nsIUrlClassifierHashCompleter",
+    "nsIRunnable",
+    "nsIObserver",
+    "nsISupportsWeakReference",
+    "nsITimerCallback",
   ]),
 
   // This is mainly how the HashCompleter interacts with other components.
@@ -215,7 +215,7 @@ HashCompleter.prototype = {
     aCallback
   ) {
     if (!aGethashUrl) {
-      throw Cr.NS_ERROR_NOT_INITIALIZED;
+      throw Components.Exception("", Cr.NS_ERROR_NOT_INITIALIZED);
     }
 
     // Check ongoing requests before creating a new HashCompleteRequest
@@ -287,7 +287,7 @@ HashCompleter.prototype = {
       for (var url in this._backoffs) {
         this._backoffs[url] = null;
       }
-      throw Cr.NS_ERROR_NOT_INITIALIZED;
+      throw Components.Exception("", Cr.NS_ERROR_NOT_INITIALIZED);
     }
 
     // If we don't have an in-flight request, make one
@@ -372,9 +372,9 @@ function HashCompleterRequest(aCompleter, aGethashUrl) {
 }
 HashCompleterRequest.prototype = {
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIRequestObserver,
-    Ci.nsIStreamListener,
-    Ci.nsIObserver,
+    "nsIRequestObserver",
+    "nsIStreamListener",
+    "nsIObserver",
   ]),
 
   // This is called by the HashCompleter to add a hash and callback to the
@@ -883,7 +883,7 @@ HashCompleterRequest.prototype = {
     this.telemetryClockStart = 0;
 
     if (this._shuttingDown) {
-      throw Cr.NS_ERROR_ABORT;
+      throw Components.Exception("", Cr.NS_ERROR_ABORT);
     }
 
     // Default HTTP status to service unavailable, in case we can't retrieve

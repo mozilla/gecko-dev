@@ -80,7 +80,7 @@ class TrackInfo {
   media::TimeUnit mMediaTime;
   CryptoTrack mCrypto;
 
-  nsTArray<MetadataTag> mTags;
+  CopyableTArray<MetadataTag> mTags;
 
   // True if the track is gonna be (decrypted)/decoded and
   // rendered directly by non-gecko components.
@@ -118,7 +118,7 @@ class TrackInfo {
     mCrypto = aOther.mCrypto;
     mIsRenderedExternally = aOther.mIsRenderedExternally;
     mType = aOther.mType;
-    mTags = aOther.mTags;
+    mTags = aOther.mTags.Clone();
     MOZ_COUNT_CTOR(TrackInfo);
   }
   bool IsEqualTo(const TrackInfo& rhs) const;
@@ -145,9 +145,7 @@ class VideoInfo : public TrackInfo {
       : VideoInfo(gfx::IntSize(aWidth, aHeight)) {}
 
   explicit VideoInfo(const gfx::IntSize& aSize)
-      : TrackInfo(kVideoTrack, NS_LITERAL_STRING("2"),
-                  NS_LITERAL_STRING("main"), EmptyString(), EmptyString(), true,
-                  2),
+      : TrackInfo(kVideoTrack, u"2"_ns, u"main"_ns, u""_ns, u""_ns, true, 2),
         mDisplay(aSize),
         mStereoMode(StereoMode::MONO),
         mImage(aSize),
@@ -269,9 +267,7 @@ class VideoInfo : public TrackInfo {
 class AudioInfo : public TrackInfo {
  public:
   AudioInfo()
-      : TrackInfo(kAudioTrack, NS_LITERAL_STRING("1"),
-                  NS_LITERAL_STRING("main"), EmptyString(), EmptyString(), true,
-                  1),
+      : TrackInfo(kAudioTrack, u"1"_ns, u"main"_ns, u""_ns, u""_ns, true, 1),
         mRate(0),
         mChannels(0),
         mChannelMap(AudioConfig::ChannelLayout::UNKNOWN_MAP),
@@ -336,9 +332,9 @@ class EncryptionInfo {
     nsString mType;
 
     // Encryption data.
-    nsTArray<uint8_t> mInitData;
+    CopyableTArray<uint8_t> mInitData;
   };
-  typedef nsTArray<InitData> InitDatas;
+  typedef CopyableTArray<InitData> InitDatas;
 
   // True if the stream has encryption metadata
   bool IsEncrypted() const { return mEncrypted; }

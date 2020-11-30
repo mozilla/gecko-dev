@@ -9,7 +9,28 @@ const gExpectedHistory = {
   entries: [],
 };
 
-function get_remote_history(browser) {
+async function get_remote_history(browser) {
+  if (SpecialPowers.Services.appinfo.sessionHistoryInParent) {
+    let sessionHistory = browser.browsingContext?.sessionHistory;
+    if (!sessionHistory) {
+      return null;
+    }
+
+    let result = {
+      index: sessionHistory.index,
+      entries: [],
+    };
+
+    for (let i = 0; i < sessionHistory.count; i++) {
+      let entry = sessionHistory.getEntryAtIndex(i);
+      result.entries.push({
+        uri: entry.URI.spec,
+        title: entry.title,
+      });
+    }
+    return result;
+  }
+
   return SpecialPowers.spawn(browser, [], () => {
     let webNav = content.docShell.QueryInterface(Ci.nsIWebNavigation);
     let sessionHistory = webNav.sessionHistory;
@@ -71,7 +92,7 @@ var waitForLoad = async function(uri) {
   };
   gBrowser.selectedBrowser.webNavigation.loadURI(uri, loadURIOptions);
 
-  await BrowserTestUtils.browserStopped(gBrowser);
+  await BrowserTestUtils.browserStopped(gBrowser, uri);
 
   // Some of the documents we're using in this test use Fluent,
   // and they may finish localization later.
@@ -101,7 +122,7 @@ var waitForLoadWithFlags = async function(
     triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
   });
 
-  await BrowserTestUtils.browserStopped(gBrowser);
+  await BrowserTestUtils.browserStopped(gBrowser, uri);
   if (!(flags & Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_HISTORY)) {
     if (flags & Ci.nsIWebNavigation.LOAD_FLAGS_REPLACE_HISTORY) {
       gExpectedHistory.entries.pop();
@@ -133,6 +154,10 @@ var forward = async function() {
 // Tests that navigating from a page that should be in the remote process and
 // a page that should be in the main process works and retains history
 add_task(async function test_navigation() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.navigation.requireUserInteraction", false]],
+  });
+
   let expectedRemote = gMultiProcessBrowser;
 
   info("1");
@@ -172,7 +197,7 @@ add_task(async function test_navigation() {
   // Load a non-remote page
   await waitForLoad("about:robots");
   await TestUtils.waitForCondition(
-    () => gBrowser.selectedBrowser.contentTitle != "about:robots",
+    () => !!gBrowser.selectedBrowser.contentTitle.length,
     "Waiting for about:robots title to update"
   );
   is(
@@ -214,6 +239,10 @@ add_task(async function test_navigation() {
     permanentKey,
     "browser.permanentKey is still the same"
   );
+  await TestUtils.waitForCondition(
+    () => !!gBrowser.selectedBrowser.contentTitle.length,
+    "Waiting for about:robots title to update"
+  );
   await check_history();
 
   info("6");
@@ -242,6 +271,10 @@ add_task(async function test_navigation() {
     permanentKey,
     "browser.permanentKey is still the same"
   );
+  await TestUtils.waitForCondition(
+    () => !!gBrowser.selectedBrowser.contentTitle.length,
+    "Waiting for about:robots title to update"
+  );
   await check_history();
 
   info("8");
@@ -260,6 +293,10 @@ add_task(async function test_navigation() {
 
   info("9");
   await back();
+  await TestUtils.waitForCondition(
+    () => !!gBrowser.selectedBrowser.contentTitle.length,
+    "Waiting for about:robots title to update"
+  );
   is(
     gBrowser.selectedBrowser.isRemoteBrowser,
     false,
@@ -417,7 +454,7 @@ add_task(async function test_loadflags() {
   // Load a non-remote page
   await waitForLoadWithFlags("about:robots");
   await TestUtils.waitForCondition(
-    () => gBrowser.selectedBrowser.contentTitle != "about:robots",
+    () => !!gBrowser.selectedBrowser.contentTitle.length,
     "Waiting for about:robots title to update"
   );
   is(

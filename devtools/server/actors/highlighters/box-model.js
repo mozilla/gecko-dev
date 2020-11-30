@@ -9,8 +9,6 @@ const {
 } = require("devtools/server/actors/highlighters/auto-refresh");
 const {
   CanvasFrameAnonymousContentHelper,
-  createNode,
-  createSVGNode,
   getBindingElementAndPseudo,
   hasPseudoClassLock,
   isNodeValid,
@@ -107,12 +105,7 @@ class BoxModelHighlighter extends AutoRefreshHighlighter {
       this.highlighterEnv,
       this._buildMarkup.bind(this)
     );
-
-    /**
-     * Optionally customize each region's fill color by adding an entry to the
-     * regionFill property: `highlighter.regionFill.margin = "red";
-     */
-    this.regionFill = {};
+    this.isReady = this.markup.initialize();
 
     this.onPageHide = this.onPageHide.bind(this);
     this.onWillNavigate = this.onWillNavigate.bind(this);
@@ -123,10 +116,18 @@ class BoxModelHighlighter extends AutoRefreshHighlighter {
     pageListenerTarget.addEventListener("pagehide", this.onPageHide);
   }
 
-  _buildMarkup() {
-    const doc = this.win.document;
+  /**
+   * Static getter that indicates that BoxModelHighlighter supports
+   * highlighting in XUL windows.
+   */
+  static get XULSupported() {
+    return true;
+  }
 
-    const highlighterContainer = doc.createElement("div");
+  _buildMarkup() {
+    const highlighterContainer = this.markup.anonymousContentDocument.createElement(
+      "div"
+    );
     highlighterContainer.className = "highlighter-container box-model";
     // We need a better solution for how to handle the highlighter from the
     // accessibility standpoint. For now, in order to avoid displaying it in the
@@ -135,7 +136,7 @@ class BoxModelHighlighter extends AutoRefreshHighlighter {
     highlighterContainer.setAttribute("aria-hidden", "true");
 
     // Build the root wrapper, used to adapt to the page zoom.
-    const rootWrapper = createNode(this.win, {
+    const rootWrapper = this.markup.createNode({
       parent: highlighterContainer,
       attributes: {
         id: "root",
@@ -147,7 +148,7 @@ class BoxModelHighlighter extends AutoRefreshHighlighter {
 
     // Building the SVG element with its polygons and lines
 
-    const svg = createSVGNode(this.win, {
+    const svg = this.markup.createSVGNode({
       nodeType: "svg",
       parent: rootWrapper,
       attributes: {
@@ -160,7 +161,7 @@ class BoxModelHighlighter extends AutoRefreshHighlighter {
       prefix: this.ID_CLASS_PREFIX,
     });
 
-    const regions = createSVGNode(this.win, {
+    const regions = this.markup.createSVGNode({
       nodeType: "g",
       parent: svg,
       attributes: {
@@ -171,7 +172,7 @@ class BoxModelHighlighter extends AutoRefreshHighlighter {
     });
 
     for (const region of BOX_MODEL_REGIONS) {
-      createSVGNode(this.win, {
+      this.markup.createSVGNode({
         nodeType: "path",
         parent: regions,
         attributes: {
@@ -184,7 +185,7 @@ class BoxModelHighlighter extends AutoRefreshHighlighter {
     }
 
     for (const side of BOX_MODEL_SIDES) {
-      createSVGNode(this.win, {
+      this.markup.createSVGNode({
         nodeType: "line",
         parent: svg,
         attributes: {
@@ -199,7 +200,7 @@ class BoxModelHighlighter extends AutoRefreshHighlighter {
 
     // Building the nodeinfo bar markup
 
-    const infobarContainer = createNode(this.win, {
+    const infobarContainer = this.markup.createNode({
       parent: rootWrapper,
       attributes: {
         class: "infobar-container",
@@ -210,7 +211,7 @@ class BoxModelHighlighter extends AutoRefreshHighlighter {
       prefix: this.ID_CLASS_PREFIX,
     });
 
-    const infobar = createNode(this.win, {
+    const infobar = this.markup.createNode({
       parent: infobarContainer,
       attributes: {
         class: "infobar",
@@ -218,14 +219,14 @@ class BoxModelHighlighter extends AutoRefreshHighlighter {
       prefix: this.ID_CLASS_PREFIX,
     });
 
-    const texthbox = createNode(this.win, {
+    const texthbox = this.markup.createNode({
       parent: infobar,
       attributes: {
         class: "infobar-text",
       },
       prefix: this.ID_CLASS_PREFIX,
     });
-    createNode(this.win, {
+    this.markup.createNode({
       nodeType: "span",
       parent: texthbox,
       attributes: {
@@ -234,7 +235,7 @@ class BoxModelHighlighter extends AutoRefreshHighlighter {
       },
       prefix: this.ID_CLASS_PREFIX,
     });
-    createNode(this.win, {
+    this.markup.createNode({
       nodeType: "span",
       parent: texthbox,
       attributes: {
@@ -243,7 +244,7 @@ class BoxModelHighlighter extends AutoRefreshHighlighter {
       },
       prefix: this.ID_CLASS_PREFIX,
     });
-    createNode(this.win, {
+    this.markup.createNode({
       nodeType: "span",
       parent: texthbox,
       attributes: {
@@ -252,7 +253,7 @@ class BoxModelHighlighter extends AutoRefreshHighlighter {
       },
       prefix: this.ID_CLASS_PREFIX,
     });
-    createNode(this.win, {
+    this.markup.createNode({
       nodeType: "span",
       parent: texthbox,
       attributes: {
@@ -261,7 +262,7 @@ class BoxModelHighlighter extends AutoRefreshHighlighter {
       },
       prefix: this.ID_CLASS_PREFIX,
     });
-    createNode(this.win, {
+    this.markup.createNode({
       nodeType: "span",
       parent: texthbox,
       attributes: {
@@ -271,7 +272,7 @@ class BoxModelHighlighter extends AutoRefreshHighlighter {
       prefix: this.ID_CLASS_PREFIX,
     });
 
-    createNode(this.win, {
+    this.markup.createNode({
       nodeType: "span",
       parent: texthbox,
       attributes: {
@@ -281,7 +282,7 @@ class BoxModelHighlighter extends AutoRefreshHighlighter {
       prefix: this.ID_CLASS_PREFIX,
     });
 
-    createNode(this.win, {
+    this.markup.createNode({
       nodeType: "span",
       parent: texthbox,
       attributes: {
@@ -519,12 +520,6 @@ class BoxModelHighlighter extends AutoRefreshHighlighter {
       const boxType = BOX_MODEL_REGIONS[i];
       const nextBoxType = BOX_MODEL_REGIONS[i + 1];
       const box = this.getElement(boxType);
-
-      if (this.regionFill[boxType]) {
-        box.setAttribute("style", "fill:" + this.regionFill[boxType]);
-      } else {
-        box.setAttribute("style", "");
-      }
 
       // Highlight all quads for this region by setting the "d" attribute of the
       // corresponding <path>.

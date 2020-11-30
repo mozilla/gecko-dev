@@ -8,6 +8,7 @@
 
 #include "builtin/DataViewObject.h"
 #include "gc/Nursery.h"
+#include "js/experimental/TypedData.h"  // JS_GetArrayBufferView{Data,Buffer,Length,ByteOffset}, JS_GetObjectAsArrayBufferView, JS_IsArrayBufferViewObject
 #include "js/SharedArrayBuffer.h"
 #include "vm/JSContext.h"
 #include "vm/TypedArrayObject.h"
@@ -31,9 +32,9 @@ void ArrayBufferViewObject::trace(JSTracer* trc, JSObject* objArg) {
 
   // Update obj's data pointer if it moved.
   if (bufSlot.isObject()) {
-    if (IsArrayBuffer(&bufSlot.toObject())) {
+    if (gc::MaybeForwardedObjectIs<ArrayBufferObject>(&bufSlot.toObject())) {
       ArrayBufferObject& buf =
-          AsArrayBuffer(MaybeForwarded(&bufSlot.toObject()));
+          gc::MaybeForwardedObjectAs<ArrayBufferObject>(&bufSlot.toObject());
       uint32_t offset = uint32_t(obj->getFixedSlot(BYTEOFFSET_SLOT).toInt32());
       MOZ_ASSERT(offset <= INT32_MAX);
 

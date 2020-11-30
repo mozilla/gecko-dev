@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "DocumentChannelChild.h"
+#include "nsIObjectLoadingContent.h"
 
 using namespace mozilla::dom;
 using namespace mozilla::ipc;
@@ -26,12 +27,13 @@ NS_INTERFACE_MAP_END_INHERITING(DocumentChannel)
 NS_IMPL_ADDREF_INHERITED(DocumentChannelChild, DocumentChannel)
 NS_IMPL_RELEASE_INHERITED(DocumentChannelChild, DocumentChannel)
 
-DocumentChannelChild::DocumentChannelChild(
-    nsDocShellLoadState* aLoadState, net::LoadInfo* aLoadInfo,
-    nsLoadFlags aLoadFlags, uint32_t aLoadType, uint32_t aCacheKey,
-    bool aIsActive, bool aIsTopLevelDoc, bool aHasNonEmptySandboxingFlags)
-    : DocumentChannel(aLoadState, aLoadInfo, aLoadFlags, aLoadType, aCacheKey,
-                      aIsActive, aIsTopLevelDoc, aHasNonEmptySandboxingFlags) {
+DocumentChannelChild::DocumentChannelChild(nsDocShellLoadState* aLoadState,
+                                           net::LoadInfo* aLoadInfo,
+                                           nsLoadFlags aLoadFlags,
+                                           uint32_t aCacheKey,
+                                           bool aUriModified, bool aIsXFOError)
+    : DocumentChannel(aLoadState, aLoadInfo, aLoadFlags, aCacheKey,
+                      aUriModified, aIsXFOError) {
   LOG(("DocumentChannelChild ctor [this=%p, uri=%s]", this,
        aLoadState->URI()->GetSpecOrDefault().get()));
 }
@@ -45,8 +47,6 @@ DocumentChannelChild::AsyncOpen(nsIStreamListener* aListener) {
   nsresult rv = NS_OK;
 
   nsCOMPtr<nsIStreamListener> listener = aListener;
-  rv = nsContentSecurityManager::doContentSecurityCheck(this, listener);
-  NS_ENSURE_SUCCESS(rv, rv);
 
   NS_ENSURE_TRUE(gNeckoChild, NS_ERROR_FAILURE);
   NS_ENSURE_ARG_POINTER(listener);
@@ -58,8 +58,10 @@ DocumentChannelChild::AsyncOpen(nsIStreamListener* aListener) {
   rv = NS_CheckPortSafety(mURI);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // add ourselves to the load group.
-  if (mLoadGroup) {
+  bool isNotDownload = mLoadState->FileName().IsVoid();
+
+  // If not a download, add ourselves to the load group
+  if (isNotDownload && mLoadGroup) {
     // During this call, we can re-enter back into the DocumentChannelChild to
     // call SetNavigationTiming.
     mLoadGroup->AddRequest(this, nullptr);
@@ -74,26 +76,25 @@ DocumentChannelChild::AsyncOpen(nsIStreamListener* aListener) {
 
   gHttpHandler->OnOpeningDocumentRequest(this);
 
+  RefPtr<nsDocShell> docShell = GetDocShell();
+  if (!docShell) {
+    return NS_ERROR_FAILURE;
+  }
+
+  // `loadingContext` is the BC that is initiating the resource load.
+  // For normal subdocument loads, the BC is the one that the subdoc will load
+  // into. For <object>/<embed> it's the embedder doc's BC.
+  RefPtr<BrowsingContext> loadingContext = docShell->GetBrowsingContext();
+  if (!loadingContext || loadingContext->IsDiscarded()) {
+    return NS_ERROR_FAILURE;
+  }
+
   DocumentChannelCreationArgs args;
 
   args.loadState() = mLoadState->Serialize();
-  Maybe<LoadInfoArgs> maybeArgs;
-  rv = LoadInfoToLoadInfoArgs(mLoadInfo, &maybeArgs);
-  NS_ENSURE_SUCCESS(rv, rv);
-  MOZ_DIAGNOSTIC_ASSERT(maybeArgs);
-
-  args.loadInfo() = *maybeArgs;
-  args.loadFlags() = mLoadFlags;
-  args.loadType() = mLoadType;
   args.cacheKey() = mCacheKey;
-  args.isActive() = mIsActive;
-  args.isTopLevelDoc() = mIsTopLevelDoc;
-  args.hasNonEmptySandboxingFlags() = mHasNonEmptySandboxingFlags;
   args.channelId() = mChannelId;
   args.asyncOpenTime() = mAsyncOpenTime;
-  args.documentOpenFlags() = mDocumentOpenFlags;
-  args.pluginsAllowed() = mPluginsAllowed;
-  args.outerWindowId() = mLoadInfo->GetOuterWindowID();
 
   Maybe<IPCClientInfo> ipcClientInfo;
   if (mInitialClientInfo.isSome()) {
@@ -105,23 +106,41 @@ DocumentChannelChild::AsyncOpen(nsIStreamListener* aListener) {
     args.timing() = Some(mTiming);
   }
 
-  nsCOMPtr<nsIBrowserChild> iBrowserChild;
-  NS_QueryNotificationCallbacks(mCallbacks, mLoadGroup,
-                                NS_GET_TEMPLATE_IID(nsIBrowserChild),
-                                getter_AddRefs(iBrowserChild));
-  BrowserChild* browserChild = static_cast<BrowserChild*>(iBrowserChild.get());
-  if (MissingRequiredBrowserChild(browserChild, "documentchannel")) {
-    return NS_ERROR_ILLEGAL_VALUE;
+  switch (mLoadInfo->GetExternalContentPolicyType()) {
+    case nsIContentPolicy::TYPE_DOCUMENT:
+    case nsIContentPolicy::TYPE_SUBDOCUMENT: {
+      DocumentCreationArgs docArgs;
+      docArgs.uriModified() = mUriModified;
+      docArgs.isXFOError() = mIsXFOError;
+
+      args.elementCreationArgs() = docArgs;
+      break;
+    }
+
+    case nsIContentPolicy::TYPE_OBJECT: {
+      ObjectCreationArgs objectArgs;
+      objectArgs.embedderInnerWindowId() = InnerWindowIDForExtantDoc(docShell);
+      objectArgs.loadFlags() = mLoadFlags;
+      objectArgs.contentPolicyType() = mLoadInfo->InternalContentPolicyType();
+      objectArgs.isUrgentStart() = UserActivation::IsHandlingUserInput();
+
+      args.elementCreationArgs() = objectArgs;
+      break;
+    }
   }
 
-  if (!GetDocShell() || !GetDocShell()->GetBrowsingContext() ||
-      GetDocShell()->GetBrowsingContext()->IsDiscarded()) {
-    return NS_ERROR_FAILURE;
+  switch (mLoadInfo->GetExternalContentPolicyType()) {
+    case nsIContentPolicy::TYPE_DOCUMENT:
+    case nsIContentPolicy::TYPE_SUBDOCUMENT:
+      MOZ_ALWAYS_SUCCEEDS(loadingContext->SetCurrentLoadIdentifier(
+          Some(mLoadState->GetLoadIdentifier())));
+      break;
+
+    default:
+      break;
   }
 
-  gNeckoChild->SendPDocumentChannelConstructor(
-      this, browserChild, GetDocShell()->GetBrowsingContext(),
-      IPC::SerializedLoadContext(this), args);
+  gNeckoChild->SendPDocumentChannelConstructor(this, loadingContext, args);
 
   mIsPending = true;
   mWasOpened = true;
@@ -136,60 +155,22 @@ IPCResult DocumentChannelChild::RecvFailedAsyncOpen(
   return IPC_OK();
 }
 
-void DocumentChannelChild::ShutdownListeners(nsresult aStatusCode) {
-  LOG(("DocumentChannelChild ShutdownListeners [this=%p, status=%" PRIx32 "]",
-       this, static_cast<uint32_t>(aStatusCode)));
-  mStatus = aStatusCode;
-
-  nsCOMPtr<nsIStreamListener> l = mListener;
-  if (l) {
-    l->OnStartRequest(this);
-  }
-
-  mIsPending = false;
-
-  l = mListener;  // it might have changed!
-  if (l) {
-    l->OnStopRequest(this, aStatusCode);
-  }
-  mListener = nullptr;
-  mCallbacks = nullptr;
-
-  if (mLoadGroup) {
-    mLoadGroup->RemoveRequest(this, nullptr, aStatusCode);
-    mLoadGroup = nullptr;
-  }
-
-  if (CanSend()) {
-    Send__delete__(this);
-  }
-}
-
 IPCResult DocumentChannelChild::RecvDisconnectChildListeners(
-    const nsresult& aStatus, const nsresult& aLoadGroupStatus) {
-  MOZ_ASSERT(NS_FAILED(aStatus));
-  mStatus = aLoadGroupStatus;
-  // Make sure we remove from the load group before
-  // setting mStatus, as existing tests expect the
-  // status to be successful when we disconnect.
-  if (mLoadGroup) {
-    mLoadGroup->RemoveRequest(this, nullptr, aStatus);
-    mLoadGroup = nullptr;
+    const nsresult& aStatus, const nsresult& aLoadGroupStatus,
+    bool aSwitchedProcess) {
+  // If this is a normal failure, then we want to disconnect our listeners and
+  // notify them of the failure. If this is a process switch, then we can just
+  // ignore it silently, and trust that the switch will shut down our docshell
+  // and cancel us when it's ready.
+  if (!aSwitchedProcess) {
+    DisconnectChildListeners(aStatus, aLoadGroupStatus);
   }
-
-  ShutdownListeners(aStatus);
-  return IPC_OK();
-}
-
-IPCResult DocumentChannelChild::RecvDeleteSelf() {
-  // This calls NeckoChild::DeallocPGenericChannel(), which deletes |this| if
-  // IPDL holds the last reference.  Don't rely on |this| existing after here!
-  Send__delete__(this);
   return IPC_OK();
 }
 
 IPCResult DocumentChannelChild::RecvRedirectToRealChannel(
     RedirectToRealChannelArgs&& aArgs,
+    nsTArray<Endpoint<extensions::PStreamFilterParent>>&& aEndpoints,
     RedirectToRealChannelResolver&& aResolve) {
   LOG(("DocumentChannelChild RecvRedirectToRealChannel [this=%p, uri=%s]", this,
        aArgs.uri()->GetSpecOrDefault().get()));
@@ -211,8 +192,6 @@ IPCResult DocumentChannelChild::RecvRedirectToRealChannel(
   MOZ_ALWAYS_SUCCEEDS(LoadInfoArgsToLoadInfo(
       aArgs.loadInfo(), cspToInheritLoadingDocument, getter_AddRefs(loadInfo)));
 
-  mLastVisitInfo = std::move(aArgs.lastVisitInfo());
-  mRedirects = std::move(aArgs.redirects());
   mRedirectResolver = std::move(aResolve);
 
   nsCOMPtr<nsIChannel> newChannel;
@@ -220,7 +199,7 @@ IPCResult DocumentChannelChild::RecvRedirectToRealChannel(
               nsDocShell::InternalLoad::INTERNAL_LOAD_FLAGS_IS_SRCDOC) ||
              aArgs.srcdocData().IsVoid());
   nsresult rv = nsDocShell::CreateRealChannelForDocument(
-      getter_AddRefs(newChannel), aArgs.uri(), loadInfo, nullptr, nullptr,
+      getter_AddRefs(newChannel), aArgs.uri(), loadInfo, nullptr,
       aArgs.newLoadFlags(), aArgs.srcdocData(), aArgs.baseUri());
   if (newChannel) {
     newChannel->SetLoadGroup(mLoadGroup);
@@ -275,6 +254,12 @@ IPCResult DocumentChannelChild::RecvRedirectToRealChannel(
         *aArgs.contentDispositionFilename());
   }
 
+  nsDocShell* docShell = GetDocShell();
+  if (docShell && aArgs.loadingSessionHistoryInfo().isSome()) {
+    docShell->SetLoadingSessionHistoryInfo(
+        aArgs.loadingSessionHistoryInfo().ref());
+  }
+
   // transfer any properties. This appears to be entirely a content-side
   // interface and isn't copied across to the parent. Copying the values
   // for this from this into the new actor will work, since the parent
@@ -297,6 +282,7 @@ IPCResult DocumentChannelChild::RecvRedirectToRealChannel(
     }
   }
   mRedirectChannel = newChannel;
+  mStreamFilterEndpoints = std::move(aEndpoints);
 
   rv = gHttpHandler->AsyncOnChannelRedirect(
       this, newChannel, aArgs.redirectFlags(), GetMainThreadEventTarget());
@@ -306,6 +292,48 @@ IPCResult DocumentChannelChild::RecvRedirectToRealChannel(
   }
 
   // scopeExit will call CrossProcessRedirectFinished(rv) here
+  return IPC_OK();
+}
+
+IPCResult DocumentChannelChild::RecvUpgradeObjectLoad(
+    UpgradeObjectLoadResolver&& aResolve) {
+  // We're doing a load for an <object> or <embed> element if we got here.
+  MOZ_ASSERT(mLoadFlags & nsIRequest::LOAD_HTML_OBJECT_DATA,
+             "Should have LOAD_HTML_OBJECT_DATA set");
+  MOZ_ASSERT(!(mLoadFlags & nsIChannel::LOAD_DOCUMENT_URI),
+             "Shouldn't be a LOAD_DOCUMENT_URI load yet");
+  MOZ_ASSERT(mLoadInfo->GetExternalContentPolicyType() ==
+                 nsIContentPolicy::TYPE_OBJECT,
+             "Should have the TYPE_OBJECT content policy type");
+
+  // If our load has already failed, or been cancelled, abort this attempt to
+  // upgade the load.
+  if (NS_FAILED(mStatus)) {
+    aResolve(nullptr);
+    return IPC_OK();
+  }
+
+  nsCOMPtr<nsIObjectLoadingContent> loadingContent;
+  NS_QueryNotificationCallbacks(this, loadingContent);
+  if (!loadingContent) {
+    return IPC_FAIL(this, "Channel is not for ObjectLoadingContent!");
+  }
+
+  // We're upgrading to a document channel now. Add the LOAD_DOCUMENT_URI flag
+  // after-the-fact.
+  mLoadFlags |= nsIChannel::LOAD_DOCUMENT_URI;
+
+  RefPtr<BrowsingContext> browsingContext;
+  nsresult rv = loadingContent->UpgradeLoadToDocument(
+      this, getter_AddRefs(browsingContext));
+  if (NS_FAILED(rv) || !browsingContext) {
+    // Oops! Looks like something went wrong, so let's bail out.
+    mLoadFlags &= ~nsIChannel::LOAD_DOCUMENT_URI;
+    aResolve(nullptr);
+    return IPC_OK();
+  }
+
+  aResolve(browsingContext);
   return IPC_OK();
 }
 
@@ -330,12 +358,17 @@ DocumentChannelChild::OnRedirectVerifyCallback(nsresult aStatusCode) {
   if (NS_SUCCEEDED(rv)) {
     if (nsCOMPtr<nsIChildChannel> childChannel =
             do_QueryInterface(redirectChannel)) {
-      rv = childChannel->CompleteRedirectSetup(mListener, nullptr);
+      rv = childChannel->CompleteRedirectSetup(mListener);
     } else {
       rv = redirectChannel->AsyncOpen(mListener);
     }
   } else {
     redirectChannel->SetNotificationCallbacks(nullptr);
+  }
+
+  for (auto& endpoint : mStreamFilterEndpoints) {
+    extensions::StreamFilterParent::Attach(redirectChannel,
+                                           std::move(endpoint));
   }
 
   redirectResolver(rv);
@@ -358,40 +391,6 @@ DocumentChannelChild::OnRedirectVerifyCallback(nsresult aStatusCode) {
   }
 
   return NS_OK;
-}
-
-IPCResult DocumentChannelChild::RecvConfirmRedirect(
-    LoadInfoArgs&& aLoadInfo, nsIURI* aNewUri,
-    ConfirmRedirectResolver&& aResolve) {
-  // This is effectively the same as AsyncOnChannelRedirect, except since we're
-  // not propagating the redirect into this process, we don't have an nsIChannel
-  // for the redirection and we have to do the checks manually.
-  // This just checks CSP thus far, hopefully there's not much else needed.
-  RefPtr<dom::Document> cspToInheritLoadingDocument;
-  nsCOMPtr<nsIContentSecurityPolicy> policy = mLoadState->Csp();
-  if (policy) {
-    nsWeakPtr ctx =
-        static_cast<nsCSPContext*>(policy.get())->GetLoadingContext();
-    cspToInheritLoadingDocument = do_QueryReferent(ctx);
-  }
-  nsCOMPtr<nsILoadInfo> loadInfo;
-  MOZ_ALWAYS_SUCCEEDS(LoadInfoArgsToLoadInfo(Some(std::move(aLoadInfo)),
-                                             cspToInheritLoadingDocument,
-                                             getter_AddRefs(loadInfo)));
-
-  nsCOMPtr<nsIURI> originalUri;
-  GetOriginalURI(getter_AddRefs(originalUri));
-  Maybe<nsresult> cancelCode;
-  nsresult rv = CSPService::ConsultCSPForRedirect(originalUri, aNewUri,
-                                                  loadInfo, cancelCode);
-  aResolve(Tuple<const nsresult&, const Maybe<nsresult>&>(rv, cancelCode));
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult DocumentChannelChild::RecvAttachStreamFilter(
-    Endpoint<extensions::PStreamFilterParent>&& aEndpoint) {
-  extensions::StreamFilterParent::Attach(this, std::move(aEndpoint));
-  return IPC_OK();
 }
 
 NS_IMETHODIMP

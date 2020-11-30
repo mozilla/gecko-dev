@@ -179,8 +179,8 @@ class nsBaseHashtable
     }
   }
 
-  MOZ_MUST_USE bool Put(KeyType aKey, const UserDataType& aData,
-                        const fallible_t&) {
+  [[nodiscard]] bool Put(KeyType aKey, const UserDataType& aData,
+                         const fallible_t&) {
     EntryType* ent = this->PutEntry(aKey, mozilla::fallible);
     if (!ent) {
       return false;
@@ -202,7 +202,8 @@ class nsBaseHashtable
     }
   }
 
-  MOZ_MUST_USE bool Put(KeyType aKey, UserDataType&& aData, const fallible_t&) {
+  [[nodiscard]] bool Put(KeyType aKey, UserDataType&& aData,
+                         const fallible_t&) {
     EntryType* ent = this->PutEntry(aKey, mozilla::fallible);
     if (!ent) {
       return false;
@@ -269,7 +270,7 @@ class nsBaseHashtable
       mEntry = nullptr;
     }
 
-    MOZ_MUST_USE DataType& Data() {
+    [[nodiscard]] DataType& Data() {
       MOZ_ASSERT(!!*this, "must have an entry to access its value");
       return mEntry->mData;
     }
@@ -307,7 +308,7 @@ class nsBaseHashtable
    * lookups.  If you want to insert a new entry if one does not exist, then use
    * LookupForAdd instead, see below.
    */
-  MOZ_MUST_USE LookupResult Lookup(KeyType aKey) {
+  [[nodiscard]] LookupResult Lookup(KeyType aKey) {
     return LookupResult(this->GetEntry(aKey), *this);
   }
 
@@ -365,7 +366,7 @@ class nsBaseHashtable
       mEntry = nullptr;
     }
 
-    MOZ_MUST_USE DataType& Data() {
+    [[nodiscard]] DataType& Data() {
       MOZ_ASSERT(mTableGeneration == mTable.GetGeneration());
       MOZ_ASSERT(mEntry);
       return mEntry->mData;
@@ -397,7 +398,7 @@ class nsBaseHashtable
    * hashtable if one doesn't exist before but would like to avoid two hashtable
    * lookups.
    */
-  MOZ_MUST_USE EntryPtr LookupForAdd(KeyType aKey) {
+  [[nodiscard]] EntryPtr LookupForAdd(KeyType aKey) {
     auto count = Count();
     EntryType* ent = this->PutEntry(aKey);
     return EntryPtr(*this, ent, count == Count());
@@ -441,90 +442,13 @@ class nsBaseHashtable
     return Iterator(const_cast<nsBaseHashtable*>(this));
   }
 
-  // STL-style iterators to allow the use in range-based for loops, e.g.
-  template <typename T>
-  class base_iterator
-      : public std::iterator<std::forward_iterator_tag, T, int32_t> {
-   public:
-    using typename std::iterator<std::forward_iterator_tag, T,
-                                 int32_t>::value_type;
-    using typename std::iterator<std::forward_iterator_tag, T,
-                                 int32_t>::difference_type;
+  using typename nsTHashtable<EntryType>::iterator;
+  using typename nsTHashtable<EntryType>::const_iterator;
 
-    using iterator_type = base_iterator;
-    using const_iterator_type = base_iterator<const T>;
-
-    using EndIteratorTag = PLDHashTable::Iterator::EndIteratorTag;
-
-    base_iterator(base_iterator&& aOther) = default;
-
-    base_iterator& operator=(base_iterator&& aOther) {
-      // User-defined because the move assignment operator is deleted in
-      // PLDHashtable::Iterator.
-      return operator=(static_cast<const base_iterator&>(aOther));
-    }
-
-    base_iterator(const base_iterator& aOther)
-        : mIterator{aOther.mIterator.Clone()} {}
-    base_iterator& operator=(const base_iterator& aOther) {
-      // Since PLDHashTable::Iterator has no assignment operator, we destroy and
-      // recreate mIterator.
-      mIterator.~Iterator();
-      new (&mIterator) PLDHashTable::Iterator(aOther.mIterator.Clone());
-      return *this;
-    }
-
-    explicit base_iterator(PLDHashTable::Iterator aFrom)
-        : mIterator{std::move(aFrom)} {}
-
-    explicit base_iterator(const nsBaseHashtable* aTable)
-        : mIterator{&const_cast<nsBaseHashtable*>(aTable)->mTable} {}
-
-    base_iterator(const nsBaseHashtable* aTable, EndIteratorTag aTag)
-        : mIterator{&const_cast<nsBaseHashtable*>(aTable)->mTable, aTag} {}
-
-    bool operator==(const iterator_type& aRhs) const {
-      return mIterator == aRhs.mIterator;
-    }
-    bool operator!=(const iterator_type& aRhs) const {
-      return !(*this == aRhs);
-    }
-
-    value_type* operator->() const {
-      return static_cast<value_type*>(mIterator.Get());
-    }
-    value_type& operator*() const {
-      return *static_cast<value_type*>(mIterator.Get());
-    }
-
-    iterator_type& operator++() {
-      mIterator.Next();
-      return *this;
-    }
-    iterator_type operator++(int) {
-      iterator_type it = *this;
-      ++*this;
-      return it;
-    }
-
-    operator const_iterator_type() const {
-      return const_iterator_type{mIterator.Clone()};
-    }
-
-   private:
-    PLDHashTable::Iterator mIterator;
-  };
-  using const_iterator = base_iterator<const EntryType>;
-  using iterator = base_iterator<EntryType>;
-
-  iterator begin() { return iterator{this}; }
-  const_iterator begin() const { return const_iterator{this}; }
-  const_iterator cbegin() const { return begin(); }
-  iterator end() { return iterator{this, typename iterator::EndIteratorTag{}}; }
-  const_iterator end() const {
-    return const_iterator{this, typename const_iterator::EndIteratorTag{}};
-  }
-  const_iterator cend() const { return end(); }
+  using nsTHashtable<EntryType>::begin;
+  using nsTHashtable<EntryType>::end;
+  using nsTHashtable<EntryType>::cbegin;
+  using nsTHashtable<EntryType>::cend;
 
   /**
    * reset the hashtable, removing all entries

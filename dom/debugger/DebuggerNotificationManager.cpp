@@ -44,26 +44,16 @@ bool DebuggerNotificationManager::Detach(
 }
 
 bool DebuggerNotificationManager::HasListeners() {
-  nsTObserverArray<RefPtr<DebuggerNotificationObserver>>::ForwardIterator iter(
-      mNotificationObservers);
-
-  while (iter.HasMore()) {
-    RefPtr<DebuggerNotificationObserver> observer(iter.GetNext());
-    if (observer->HasListeners()) {
-      return true;
-    }
-  }
-
-  return false;
+  const auto [begin, end] = mNotificationObservers.NonObservingRange();
+  return std::any_of(begin, end, [](const auto& observer) {
+    return observer->HasListeners();
+  });
 }
 
 void DebuggerNotificationManager::NotifyListeners(
     DebuggerNotification* aNotification) {
-  nsTObserverArray<RefPtr<DebuggerNotificationObserver>>::ForwardIterator iter(
-      mNotificationObservers);
-
-  while (iter.HasMore()) {
-    RefPtr<DebuggerNotificationObserver> observer(iter.GetNext());
+  for (RefPtr<DebuggerNotificationObserver> observer :
+       mNotificationObservers.ForwardRange()) {
     observer->NotifyListeners(aNotification);
   }
 }

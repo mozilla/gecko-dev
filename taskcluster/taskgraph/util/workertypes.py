@@ -13,16 +13,11 @@ WORKER_TYPES = {
     'gce/gecko-1-b-linux': ('docker-worker', 'linux'),
     'gce/gecko-2-b-linux': ('docker-worker', 'linux'),
     'gce/gecko-3-b-linux': ('docker-worker', 'linux'),
-    'releng-hardware/gecko-1-b-win2012-gamma': ('generic-worker', 'windows'),
     'invalid/invalid': ('invalid', None),
     'invalid/always-optimized': ('always-optimized', None),
-    'scriptworker-prov-v1/pushapk-v1': ('push-apk', None),
     "scriptworker-prov-v1/signing-linux-v1": ('scriptworker-signing', None),
     "scriptworker-k8s/gecko-3-shipit": ('shipit', None),
     "scriptworker-k8s/gecko-1-shipit": ('shipit', None),
-    'terraform-packet/gecko-t-linux': ('docker-worker', 'linux'),
-    'releng-hardware/gecko-t-osx-1014': ('generic-worker', 'macosx'),
-    'releng-hardware/gecko-t-osx-1014-power': ('generic-worker', 'macosx'),
 }
 
 
@@ -60,11 +55,15 @@ def _get(graph_config, alias, level, release_level):
     worker_config['provisioner'] = evaluate_keyed_by(
         worker_config['provisioner'],
         "worker-type alias {} field provisioner".format(alias),
-        {"level": level}).format(level=level, alias=alias)
+        {"level": level}).format(**{
+            "trust-domain": graph_config['trust-domain'], "level": level, "alias": alias,
+        })
     worker_config['worker-type'] = evaluate_keyed_by(
         worker_config['worker-type'],
         "worker-type alias {} field worker-type".format(alias),
-        {"level": level, 'release-level': release_level}).format(level=level, alias=alias)
+        {"level": level, 'release-level': release_level}).format(**{
+            "trust-domain": graph_config['trust-domain'], "level": level, "alias": alias,
+        })
 
     return worker_config
 

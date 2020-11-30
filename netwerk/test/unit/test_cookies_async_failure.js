@@ -18,69 +18,55 @@
 //    This should result in an abort of the database rebuild; the partially-
 //    built database should be moved to 'cookies.sqlite.bak-rebuild'.
 
-var test_generator = do_run_test();
+"use strict";
 
-function run_test() {
-  do_test_pending();
-  do_run_generator(test_generator);
-}
+let profile;
+let cookie;
 
-function finish_test() {
-  executeSoon(function() {
-    test_generator.return();
-    do_test_finished();
-  });
-}
-
-function* do_run_test() {
+add_task(async () => {
   // Set up a profile.
-  this.profile = do_get_profile();
+  profile = do_get_profile();
 
   // Allow all cookies.
   Services.prefs.setIntPref("network.cookie.cookieBehavior", 0);
+  Services.prefs.setBoolPref(
+    "network.cookieJarSettings.unblocked_for_testing",
+    true
+  );
+
+  // The server.
+  const hosts = ["foo.com", "hither.com", "haithur.com", "bar.com"];
+  for (let i = 0; i < 3000; ++i) {
+    hosts.push(i + ".com");
+  }
+  CookieXPCShellUtils.createServer({ hosts });
 
   // Get the cookie file and the backup file.
   Assert.ok(!do_get_cookie_file(profile).exists());
   Assert.ok(!do_get_backup_file(profile).exists());
 
   // Create a cookie object for testing.
-  this.now = Date.now() * 1000;
-  this.futureExpiry = Math.round(this.now / 1e6 + 1000);
-  this.cookie = new Cookie(
+  let now = Date.now() * 1000;
+  let futureExpiry = Math.round(now / 1e6 + 1000);
+  cookie = new Cookie(
     "oh",
     "hai",
     "bar.com",
     "/",
-    this.futureExpiry,
-    this.now,
-    this.now,
+    futureExpiry,
+    now,
+    now,
     false,
     false,
     false
   );
 
-  this.sub_generator = run_test_1(test_generator);
-  sub_generator.next();
-  yield;
-
-  this.sub_generator = run_test_2(test_generator);
-  sub_generator.next();
-  yield;
-
-  this.sub_generator = run_test_3(test_generator);
-  sub_generator.next();
-  yield;
-
-  this.sub_generator = run_test_4(test_generator);
-  sub_generator.next();
-  yield;
-
-  this.sub_generator = run_test_5(test_generator);
-  sub_generator.next();
-  yield;
-
-  finish_test();
-}
+  await run_test_1();
+  await run_test_2();
+  await run_test_3();
+  await run_test_4();
+  await run_test_5();
+});
 
 function do_get_backup_file(profile) {
   let file = profile.clone();
@@ -125,23 +111,23 @@ function do_corrupt_db(file) {
   return size;
 }
 
-function* run_test_1(generator) {
+async function run_test_1() {
   // Load the profile and populate it.
-  let uri = NetUtil.newURI("http://foo.com/");
-  Services.cookies.setCookieString(uri, "oh=hai; max-age=1000", null);
+  await CookieXPCShellUtils.setCookieToDocument(
+    "http://foo.com/",
+    "oh=hai; max-age=1000"
+  );
 
   // Close the profile.
-  do_close_profile(sub_generator);
-  yield;
+  await promise_close_profile();
 
   // Open a database connection now, before we load the profile and begin
   // asynchronous write operations.
-  let db = new CookieDatabaseConnection(do_get_cookie_file(profile), 11);
+  let db = new CookieDatabaseConnection(do_get_cookie_file(profile), 12);
   Assert.equal(do_count_cookies_in_db(db.db), 1);
 
   // Load the profile, and wait for async read completion...
-  do_load_profile(sub_generator);
-  yield;
+  await promise_load_profile();
 
   // Insert a row.
   db.insertCookie(cookie);
@@ -158,7 +144,8 @@ function* run_test_1(generator) {
     cookie.isSession,
     cookie.expiry,
     {},
-    Ci.nsICookie.SAMESITE_NONE
+    Ci.nsICookie.SAMESITE_NONE,
+    Ci.nsICookie.SCHEME_HTTPS
   );
 
   // Check that the cookie service accepted the new cookie.
@@ -177,22 +164,16 @@ function* run_test_1(generator) {
   // the chaos status.
   for (let i = 0; i < 10; ++i) {
     Assert.equal(Services.cookiemgr.countCookiesFromHost(cookie.host), 1);
-    executeSoon(function() {
-      do_run_generator(sub_generator);
-    });
-    yield;
+    await new Promise(resolve => executeSoon(resolve));
   }
 
   // Wait for the cookie service to rename the old database and rebuild if not yet.
   if (!isRebuildingDone) {
     Services.obs.removeObserver(rebuildingObserve, "cookie-db-rebuilding");
-    new _observer(sub_generator, "cookie-db-rebuilding");
-    yield;
+    await new _promise_observer("cookie-db-rebuilding");
   }
-  executeSoon(function() {
-    do_run_generator(sub_generator);
-  });
-  yield;
+
+  await new Promise(resolve => executeSoon(resolve));
 
   // At this point, the cookies should still be in memory.
   Assert.equal(Services.cookiemgr.countCookiesFromHost("foo.com"), 1);
@@ -200,8 +181,7 @@ function* run_test_1(generator) {
   Assert.equal(do_count_cookies(), 2);
 
   // Close the profile.
-  do_close_profile(sub_generator);
-  yield;
+  await promise_close_profile();
 
   // Check that the original database was renamed, and that it contains the
   // original cookie.
@@ -220,30 +200,39 @@ function* run_test_1(generator) {
   Assert.equal(dbcookie.value, "hallo");
 
   // Close the profile.
-  do_close_profile(sub_generator);
-  yield;
+  await promise_close_profile();
 
   // Clean up.
   do_get_cookie_file(profile).remove(false);
   do_get_backup_file(profile).remove(false);
   Assert.ok(!do_get_cookie_file(profile).exists());
   Assert.ok(!do_get_backup_file(profile).exists());
-  do_run_generator(generator);
 }
 
-function* run_test_2(generator) {
+async function run_test_2() {
   // Load the profile and populate it.
   do_load_profile();
-  Services.cookies.runInTransaction(_ => {
+
+  Services.cookiesvc.runInTransaction(_ => {
+    let uri = NetUtil.newURI("http://foo.com/");
+    const channel = NetUtil.newChannel({
+      uri,
+      loadUsingSystemPrincipal: true,
+      contentPolicyType: Ci.nsIContentPolicy.TYPE_DOCUMENT,
+    });
+
     for (let i = 0; i < 3000; ++i) {
       let uri = NetUtil.newURI("http://" + i + ".com/");
-      Services.cookies.setCookieString(uri, "oh=hai; max-age=1000", null);
+      Services.cookiesvc.setCookieStringFromHttp(
+        uri,
+        "oh=hai; max-age=1000",
+        channel
+      );
     }
   });
 
   // Close the profile.
-  do_close_profile(sub_generator);
-  yield;
+  await promise_close_profile();
 
   // Corrupt the database file.
   let size = do_corrupt_db(do_get_cookie_file(profile));
@@ -260,8 +249,7 @@ function* run_test_2(generator) {
   Assert.equal(do_count_cookies(), 0);
 
   // Close the profile.
-  do_close_profile(sub_generator);
-  yield;
+  await promise_close_profile();
 
   // Check that the original database was renamed.
   Assert.ok(do_get_backup_file(profile).exists());
@@ -274,46 +262,53 @@ function* run_test_2(generator) {
   Assert.equal(do_count_cookies(), 0);
 
   // Close the profile.
-  do_close_profile(sub_generator);
-  yield;
+  await promise_close_profile();
 
   // Clean up.
   do_get_cookie_file(profile).remove(false);
   do_get_backup_file(profile).remove(false);
   Assert.ok(!do_get_cookie_file(profile).exists());
   Assert.ok(!do_get_backup_file(profile).exists());
-  do_run_generator(generator);
 }
 
-function* run_test_3(generator) {
+async function run_test_3() {
   // Set the maximum cookies per base domain limit to a large value, so that
   // corrupting the database is easier.
   Services.prefs.setIntPref("network.cookie.maxPerHost", 3000);
 
   // Load the profile and populate it.
   do_load_profile();
-  Services.cookies.runInTransaction(_ => {
+  Services.cookiesvc.runInTransaction(_ => {
+    let uri = NetUtil.newURI("http://hither.com/");
+    let channel = NetUtil.newChannel({
+      uri,
+      loadUsingSystemPrincipal: true,
+      contentPolicyType: Ci.nsIContentPolicy.TYPE_DOCUMENT,
+    });
     for (let i = 0; i < 10; ++i) {
-      let uri = NetUtil.newURI("http://hither.com/");
-      Services.cookies.setCookieString(
+      Services.cookiesvc.setCookieStringFromHttp(
         uri,
         "oh" + i + "=hai; max-age=1000",
-        null
+        channel
       );
     }
+    uri = NetUtil.newURI("http://haithur.com/");
+    channel = NetUtil.newChannel({
+      uri,
+      loadUsingSystemPrincipal: true,
+      contentPolicyType: Ci.nsIContentPolicy.TYPE_DOCUMENT,
+    });
     for (let i = 10; i < 3000; ++i) {
-      let uri = NetUtil.newURI("http://haithur.com/");
-      Services.cookies.setCookieString(
+      Services.cookiesvc.setCookieStringFromHttp(
         uri,
         "oh" + i + "=hai; max-age=1000",
-        null
+        channel
       );
     }
   });
 
   // Close the profile.
-  do_close_profile(sub_generator);
-  yield;
+  await promise_close_profile();
 
   // Corrupt the database file.
   let size = do_corrupt_db(do_get_cookie_file(profile));
@@ -330,8 +325,8 @@ function* run_test_3(generator) {
   Assert.equal(Services.cookiemgr.countCookiesFromHost("haithur.com"), 0);
 
   // Close the profile.
-  do_close_profile(sub_generator);
-  yield;
+  await promise_close_profile();
+
   let db = Services.storage.openDatabase(do_get_cookie_file(profile));
   Assert.equal(do_count_cookies_in_db(db, "hither.com"), 0);
   Assert.equal(do_count_cookies_in_db(db), 0);
@@ -353,8 +348,8 @@ function* run_test_3(generator) {
   Assert.equal(do_count_cookies(), 0);
 
   // Close the profile.
-  do_close_profile(sub_generator);
-  yield;
+  await promise_close_profile();
+
   db = Services.storage.openDatabase(do_get_cookie_file(profile));
   Assert.equal(do_count_cookies_in_db(db), 0);
   db.close();
@@ -368,22 +363,30 @@ function* run_test_3(generator) {
   do_get_backup_file(profile).remove(false);
   Assert.ok(!do_get_cookie_file(profile).exists());
   Assert.ok(!do_get_backup_file(profile).exists());
-  do_run_generator(generator);
 }
 
-function* run_test_4(generator) {
+async function run_test_4() {
   // Load the profile and populate it.
   do_load_profile();
-  Services.cookies.runInTransaction(_ => {
+  Services.cookiesvc.runInTransaction(_ => {
+    let uri = NetUtil.newURI("http://foo.com/");
+    let channel = NetUtil.newChannel({
+      uri,
+      loadUsingSystemPrincipal: true,
+      contentPolicyType: Ci.nsIContentPolicy.TYPE_DOCUMENT,
+    });
     for (let i = 0; i < 3000; ++i) {
       let uri = NetUtil.newURI("http://" + i + ".com/");
-      Services.cookies.setCookieString(uri, "oh=hai; max-age=1000", null);
+      Services.cookiesvc.setCookieStringFromHttp(
+        uri,
+        "oh=hai; max-age=1000",
+        channel
+      );
     }
   });
 
   // Close the profile.
-  do_close_profile(sub_generator);
-  yield;
+  await promise_close_profile();
 
   // Corrupt the database file.
   let size = do_corrupt_db(do_get_cookie_file(profile));
@@ -400,16 +403,17 @@ function* run_test_4(generator) {
 
   // Queue up an INSERT for the same base domain. This should also go into
   // memory and be written out during database rebuild.
-  let uri = NetUtil.newURI("http://0.com/");
-  Services.cookies.setCookieString(uri, "oh2=hai; max-age=1000", null);
+  await CookieXPCShellUtils.setCookieToDocument(
+    "http://0.com/",
+    "oh2=hai; max-age=1000"
+  );
 
   // At this point, the cookies should still be in memory.
   Assert.equal(Services.cookiemgr.countCookiesFromHost("0.com"), 1);
   Assert.equal(do_count_cookies(), 1);
 
   // Close the profile.
-  do_close_profile(sub_generator);
-  yield;
+  await promise_close_profile();
 
   // Check that the original database was renamed.
   Assert.ok(do_get_backup_file(profile).exists());
@@ -421,32 +425,42 @@ function* run_test_4(generator) {
   Assert.equal(do_count_cookies(), 1);
 
   // Close the profile.
-  do_close_profile(sub_generator);
-  yield;
+  await promise_close_profile();
 
   // Clean up.
   do_get_cookie_file(profile).remove(false);
   do_get_backup_file(profile).remove(false);
   Assert.ok(!do_get_cookie_file(profile).exists());
   Assert.ok(!do_get_backup_file(profile).exists());
-  do_run_generator(generator);
 }
 
-function* run_test_5(generator) {
+async function run_test_5() {
   // Load the profile and populate it.
   do_load_profile();
-  Services.cookies.runInTransaction(_ => {
+  Services.cookiesvc.runInTransaction(_ => {
     let uri = NetUtil.newURI("http://bar.com/");
-    Services.cookies.setCookieString(uri, "oh=hai; path=/; max-age=1000", null);
+    const channel = NetUtil.newChannel({
+      uri,
+      loadUsingSystemPrincipal: true,
+      contentPolicyType: Ci.nsIContentPolicy.TYPE_DOCUMENT,
+    });
+    Services.cookiesvc.setCookieStringFromHttp(
+      uri,
+      "oh=hai; path=/; max-age=1000",
+      channel
+    );
     for (let i = 0; i < 3000; ++i) {
       let uri = NetUtil.newURI("http://" + i + ".com/");
-      Services.cookies.setCookieString(uri, "oh=hai; max-age=1000", null);
+      Services.cookiesvc.setCookieStringFromHttp(
+        uri,
+        "oh=hai; max-age=1000",
+        channel
+      );
     }
   });
 
   // Close the profile.
-  do_close_profile(sub_generator);
-  yield;
+  await promise_close_profile();
 
   // Corrupt the database file.
   let size = do_corrupt_db(do_get_cookie_file(profile));
@@ -468,7 +482,7 @@ function* run_test_5(generator) {
 
   // Open a database connection, and write a row that will trigger a constraint
   // violation.
-  let db = new CookieDatabaseConnection(do_get_cookie_file(profile), 11);
+  let db = new CookieDatabaseConnection(do_get_cookie_file(profile), 12);
   db.insertCookie(cookie);
   Assert.equal(do_count_cookies_in_db(db.db, "bar.com"), 1);
   Assert.equal(do_count_cookies_in_db(db.db), 1);
@@ -484,13 +498,11 @@ function* run_test_5(generator) {
 
   // Close the profile. We do not need to wait for completion, because the
   // database has already been closed. Ensure the cookie file is unlocked.
-  do_close_profile(sub_generator);
-  yield;
+  await promise_close_profile();
 
   // Clean up.
   do_get_cookie_file(profile).remove(false);
   do_get_backup_file(profile).remove(false);
   Assert.ok(!do_get_cookie_file(profile).exists());
   Assert.ok(!do_get_backup_file(profile).exists());
-  do_run_generator(generator);
 }

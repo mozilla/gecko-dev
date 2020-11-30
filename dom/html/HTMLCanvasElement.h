@@ -20,6 +20,7 @@
 #  include "mozilla/gfx/Rect.h"
 #  include "mozilla/layers/LayersTypes.h"
 
+class nsDisplayListBuilder;
 class nsICanvasRenderingContextInternal;
 class nsITimerCallback;
 enum class gfxAlphaType;
@@ -29,7 +30,6 @@ namespace mozilla {
 class ClientWebGLContext;
 
 namespace layers {
-class AsyncCanvasRenderer;
 class CanvasRenderer;
 class CanvasLayer;
 class Image;
@@ -43,6 +43,9 @@ namespace gfx {
 class SourceSurface;
 class VRLayerChild;
 }  // namespace gfx
+namespace webgpu {
+class CanvasContext;
+}  // namespace webgpu
 
 namespace dom {
 class BlobCallback;
@@ -86,10 +89,8 @@ class HTMLCanvasElementObserver final : public nsIObserver,
  * will be given a copy of the just-painted canvas.
  * All FrameCaptureListeners get the same copy.
  */
-class FrameCaptureListener : public SupportsWeakPtr<FrameCaptureListener> {
+class FrameCaptureListener : public SupportsWeakPtr {
  public:
-  MOZ_DECLARE_WEAKREFERENCE_TYPENAME(FrameCaptureListener)
-
   FrameCaptureListener() : mFrameCaptureRequested(false) {}
 
   /*
@@ -116,10 +117,10 @@ class FrameCaptureListener : public SupportsWeakPtr<FrameCaptureListener> {
 };
 
 class HTMLCanvasElement final : public nsGenericHTMLElement,
-                                public CanvasRenderingContextHelper {
+                                public CanvasRenderingContextHelper,
+                                public SupportsWeakPtr {
   enum { DEFAULT_CANVAS_WIDTH = 300, DEFAULT_CANVAS_HEIGHT = 150 };
 
-  typedef layers::AsyncCanvasRenderer AsyncCanvasRenderer;
   typedef layers::CanvasRenderer CanvasRenderer;
   typedef layers::CanvasLayer CanvasLayer;
   typedef layers::Layer Layer;
@@ -231,12 +232,9 @@ class HTMLCanvasElement final : public nsGenericHTMLElement,
    */
   void InvalidateCanvas();
 
-  /*
-   * Get the number of contexts in this canvas, and request a context at
-   * an index.
-   */
-  int32_t CountContexts();
-  nsICanvasRenderingContextInternal* GetContextAtIndex(int32_t index);
+  nsICanvasRenderingContextInternal* GetCurrentContext() {
+    return mCurrentContext;
+  }
 
   /*
    * Returns true if the canvas context content is guaranteed to be opaque
@@ -325,22 +323,13 @@ class HTMLCanvasElement final : public nsGenericHTMLElement,
   layers::LayersBackend GetCompositorBackendType() const;
 
   void OnVisibilityChange();
-
   void OnMemoryPressure();
-
   void OnDeviceReset();
-
-  static void SetAttrFromAsyncCanvasRenderer(AsyncCanvasRenderer* aRenderer);
-  static void InvalidateFromAsyncCanvasRenderer(AsyncCanvasRenderer* aRenderer);
 
   already_AddRefed<layers::SharedSurfaceTextureClient> GetVRFrame();
   void ClearVRFrame();
 
   bool MaybeModified() const { return mMaybeModified; };
-
-  AsyncCanvasRenderer* GetAsyncCanvasRenderer();
-
-  layers::OOPCanvasRenderer* GetOOPCanvasRenderer();
 
  protected:
   virtual ~HTMLCanvasElement();
@@ -374,6 +363,7 @@ class HTMLCanvasElement final : public nsGenericHTMLElement,
 
  public:
   ClientWebGLContext* GetWebGLContext();
+  webgpu::CanvasContext* GetWebGPUContext();
 
  protected:
   bool mResetLayer;
@@ -384,8 +374,7 @@ class HTMLCanvasElement final : public nsGenericHTMLElement,
   RefPtr<HTMLCanvasPrintState> mPrintState;
   nsTArray<WeakPtr<FrameCaptureListener>> mRequestedFrameListeners;
   RefPtr<RequestedFrameRefreshObserver> mRequestedFrameRefreshObserver;
-  RefPtr<AsyncCanvasRenderer> mAsyncCanvasRenderer;
-  RefPtr<layers::OOPCanvasRenderer> mOOPCanvasRenderer;
+  RefPtr<CanvasRenderer> mCanvasRenderer;
   RefPtr<OffscreenCanvas> mOffscreenCanvas;
   RefPtr<HTMLCanvasElementObserver> mContextObserver;
 

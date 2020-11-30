@@ -33,7 +33,7 @@ class RemoteMediaDataDecoder
   // MediaDataDecoder
   RefPtr<InitPromise> Init() override;
   RefPtr<DecodePromise> Decode(MediaRawData* aSample) override;
-  bool CanDecodeBatch() override { return true; }
+  bool CanDecodeBatch() const override { return true; }
   RefPtr<DecodePromise> DecodeBatch(
       nsTArray<RefPtr<MediaRawData>>&& aSamples) override;
   RefPtr<DecodePromise> Drain() override;
@@ -54,7 +54,7 @@ class RemoteMediaDataDecoder
   RefPtr<IRemoteDecoderChild> mChild;
   // Only ever written/modified during decoder initialisation.
   // As such can be accessed from any threads after that.
-  nsCString mDescription = NS_LITERAL_CSTRING("RemoteMediaDataDecoder");
+  nsCString mDescription = "RemoteMediaDataDecoder"_ns;
   bool mIsHardwareAccelerated = false;
   nsCString mHardwareAcceleratedReason;
   ConversionRequired mConversion = ConversionRequired::kNeedNone;

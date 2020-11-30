@@ -3,6 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+"use strict";
+
 const { HttpServer } = ChromeUtils.import("resource://testing-common/httpd.js");
 
 const gDashboard = Cc["@mozilla.org/network/dashboard;1"].getService(
@@ -48,6 +50,13 @@ add_test(function test_dns() {
 });
 
 add_test(function test_sockets() {
+  // TODO: enable this test in bug 1581892.
+  if (mozinfo.socketprocess_networking) {
+    info("skip test_sockets");
+    run_next_test();
+    return;
+  }
+
   let sts = Cc["@mozilla.org/network/socket-transport-service;1"].getService(
     Ci.nsISocketTransportService
   );

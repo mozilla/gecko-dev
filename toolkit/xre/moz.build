@@ -15,6 +15,7 @@ if CONFIG['OS_ARCH'] == 'WINNT':
 MOCHITEST_MANIFESTS += ['test/mochitest.ini']
 BROWSER_CHROME_MANIFESTS += ['test/browser.ini']
 XPCSHELL_TESTS_MANIFESTS += ['test/xpcshell.ini']
+MARIONETTE_UNIT_MANIFESTS += ['test/marionette/marionette.ini']
 
 XPIDL_SOURCES += [
     'nsINativeAppSupport.idl',
@@ -48,6 +49,7 @@ if CONFIG['MOZ_INSTRUMENT_EVENT_LOOP']:
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
     EXPORTS.mozilla += [
         'AssembleCmdLine.h',
+        'DllPrefetchExperimentRegistryInfo.h',
         'ModuleVersionInfo.h',
         'PolicyChecks.h',
         'UntrustedModulesProcessor.h',
@@ -56,6 +58,7 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
     ]
     UNIFIED_SOURCES += [
         '/toolkit/mozapps/update/common/updateutils_win.cpp',
+        'DllPrefetchExperimentRegistryInfo.cpp',
         'ModuleEvaluator.cpp',
         'ModuleVersionInfo.cpp',
         'nsNativeAppSupportWin.cpp',

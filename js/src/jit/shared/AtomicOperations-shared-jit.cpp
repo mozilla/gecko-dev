@@ -13,6 +13,7 @@
 #include "jit/IonTypes.h"
 #include "jit/MacroAssembler.h"
 #include "jit/RegisterSets.h"
+#include "js/ScalarType.h"  // js::Scalar::Type
 #include "util/Poison.h"
 
 #include "jit/MacroAssembler-inl.h"
@@ -875,8 +876,8 @@ bool InitializeJittedAtomics() {
   masm.executableCopy(code);
 
   // Reprotect the whole region to avoid having separate RW and RX mappings.
-  if (!ExecutableAllocator::makeExecutableAndFlushICache(code,
-                                                         roundedCodeLength)) {
+  if (!ExecutableAllocator::makeExecutableAndFlushICache(
+          FlushICacheSpec::LocalThreadOnly, code, roundedCodeLength)) {
     DeallocateExecutableMemory(code, roundedCodeLength);
     return false;
   }

@@ -6,8 +6,9 @@
   margin-bottom: .5em;
 }
 
-/**** folder menulist ****/
-.folder-icon > .menulist-label-box > .menulist-icon {
+/* Folder menulist */
+
+#editBMPanel_folderMenuList::part(icon) {
   width: 16px;
   height: 16px;
 }
@@ -22,8 +23,7 @@
   fill: currentColor;
 }
 
-
-/**** expanders ****/
+/* Expanders */
 
 .expander-up,
 .expander-down {
@@ -33,16 +33,17 @@
 }
 
 .expander-up > .button-box {
-  -moz-appearance: button-arrow-up;
+  appearance: auto;
+  -moz-default-appearance: button-arrow-up;
 }
 
 .expander-down > .button-box {
-  -moz-appearance: button-arrow-down;
+  appearance: auto;
+  -moz-default-appearance: button-arrow-down;
 }
 
 #editBMPanel_folderTree {
-  margin-top: 2px;
-  margin-bottom: 2px;
+  margin-block: 2px;
 }
 
 /* Hide the value column of the tag autocomplete popup
@@ -55,13 +56,13 @@
 }
 
 #editBMPanel_tagsSelector > richlistitem > image {
-  -moz-appearance: checkbox;
+  appearance: auto;
+  -moz-default-appearance: checkbox;
   -moz-box-align: center;
   margin: 0 2px;
   min-width: 13px;
   min-height: 13px;
 }
-
 
 /* Bookmark panel dropdown menu items */
 #editBMPanel_folderMenuList[selectedGuid="toolbar_____"],

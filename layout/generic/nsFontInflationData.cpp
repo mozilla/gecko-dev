@@ -27,7 +27,7 @@ NS_DECLARE_FRAME_PROPERTY_DELETABLE(FontInflationDataProperty,
     const nsIFrame* aFrame) {
   // We have one set of font inflation data per block formatting context.
   const nsIFrame* bfc = FlowRootFor(aFrame);
-  NS_ASSERTION(bfc->GetStateBits() & NS_FRAME_FONT_INFLATION_FLOW_ROOT,
+  NS_ASSERTION(bfc->HasAnyStateBits(NS_FRAME_FONT_INFLATION_FLOW_ROOT),
                "should have found a flow root");
   MOZ_ASSERT(aFrame->GetWritingMode().IsVertical() ==
                  bfc->GetWritingMode().IsVertical(),
@@ -40,7 +40,7 @@ NS_DECLARE_FRAME_PROPERTY_DELETABLE(FontInflationDataProperty,
 bool nsFontInflationData::UpdateFontInflationDataISizeFor(
     const ReflowInput& aReflowInput) {
   nsIFrame* bfc = aReflowInput.mFrame;
-  NS_ASSERTION(bfc->GetStateBits() & NS_FRAME_FONT_INFLATION_FLOW_ROOT,
+  NS_ASSERTION(bfc->HasAnyStateBits(NS_FRAME_FONT_INFLATION_FLOW_ROOT),
                "should have been given a flow root");
   nsFontInflationData* data = bfc->GetProperty(FontInflationDataProperty());
   bool oldInflationEnabled;
@@ -64,7 +64,7 @@ bool nsFontInflationData::UpdateFontInflationDataISizeFor(
 
 /* static */
 void nsFontInflationData::MarkFontInflationDataTextDirty(nsIFrame* aBFCFrame) {
-  NS_ASSERTION(aBFCFrame->GetStateBits() & NS_FRAME_FONT_INFLATION_FLOW_ROOT,
+  NS_ASSERTION(aBFCFrame->HasAnyStateBits(NS_FRAME_FONT_INFLATION_FLOW_ROOT),
                "should have been given a flow root");
 
   nsFontInflationData* data =
@@ -167,7 +167,7 @@ static nscoord ComputeDescendantISize(const ReflowInput& aAncestorReflowInput,
 
 void nsFontInflationData::UpdateISize(const ReflowInput& aReflowInput) {
   nsIFrame* bfc = aReflowInput.mFrame;
-  NS_ASSERTION(bfc->GetStateBits() & NS_FRAME_FONT_INFLATION_FLOW_ROOT,
+  NS_ASSERTION(bfc->HasAnyStateBits(NS_FRAME_FONT_INFLATION_FLOW_ROOT),
                "must be block formatting context");
 
   nsIFrame* firstInflatableDescendant =
@@ -249,7 +249,7 @@ void nsFontInflationData::UpdateISize(const ReflowInput& aReflowInput) {
                                                     : list.LastChild();
          kid; kid = (aDirection == eFromStart) ? kid->GetNextSibling()
                                                : kid->GetPrevSibling()) {
-      if (kid->GetStateBits() & NS_FRAME_FONT_INFLATION_FLOW_ROOT) {
+      if (kid->HasAnyStateBits(NS_FRAME_FONT_INFLATION_FLOW_ROOT)) {
         // Goes in a different set of inflation data.
         continue;
       }
@@ -320,12 +320,9 @@ void nsFontInflationData::ScanTextIn(nsIFrame* aFrame) {
   // FIXME: Should probably only scan the text that's actually going to
   // be inflated!
 
-  nsIFrame::ChildListIterator lists(aFrame);
-  for (; !lists.IsDone(); lists.Next()) {
-    nsFrameList::Enumerator kids(lists.CurrentList());
-    for (; !kids.AtEnd(); kids.Next()) {
-      nsIFrame* kid = kids.get();
-      if (kid->GetStateBits() & NS_FRAME_FONT_INFLATION_FLOW_ROOT) {
+  for (const auto& childList : aFrame->ChildLists()) {
+    for (nsIFrame* kid : childList.mList) {
+      if (kid->HasAnyStateBits(NS_FRAME_FONT_INFLATION_FLOW_ROOT)) {
         // Goes in a different set of inflation data.
         continue;
       }
@@ -338,7 +335,7 @@ void nsFontInflationData::ScanTextIn(nsIFrame* aFrame) {
               ComputeApproximateLengthWithWhitespaceCompression(
                   content->AsText(), kid->StyleText());
           if (len != 0) {
-            nscoord fontSize = kid->StyleFont()->mFont.size;
+            nscoord fontSize = kid->StyleFont()->mFont.size.ToAppUnits();
             if (fontSize > 0) {
               mTextAmount += fontSize * len;
             }
@@ -347,20 +344,20 @@ void nsFontInflationData::ScanTextIn(nsIFrame* aFrame) {
       } else if (fType == LayoutFrameType::TextInput) {
         // We don't want changes to the amount of text in a text input
         // to change what we count towards inflation.
-        nscoord fontSize = kid->StyleFont()->mFont.size;
+        nscoord fontSize = kid->StyleFont()->mFont.size.ToAppUnits();
         int32_t charCount = static_cast<nsTextControlFrame*>(kid)->GetCols();
         mTextAmount += charCount * fontSize;
       } else if (fType == LayoutFrameType::ComboboxControl) {
         // See textInputFrame above (with s/amount of text/selected option/).
         // Don't just recurse down to the list control inside, since we
         // need to exclude the display frame.
-        nscoord fontSize = kid->StyleFont()->mFont.size;
+        nscoord fontSize = kid->StyleFont()->mFont.size.ToAppUnits();
         int32_t charCount = CharCountOfLargestOption(
             static_cast<nsComboboxControlFrame*>(kid)->GetDropDown());
         mTextAmount += charCount * fontSize;
       } else if (fType == LayoutFrameType::ListControl) {
         // See textInputFrame above (with s/amount of text/selected option/).
-        nscoord fontSize = kid->StyleFont()->mFont.size;
+        nscoord fontSize = kid->StyleFont()->mFont.size.ToAppUnits();
         int32_t charCount = CharCountOfLargestOption(kid);
         mTextAmount += charCount * fontSize;
       } else {

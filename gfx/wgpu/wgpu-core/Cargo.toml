@@ -1,12 +1,12 @@
 [package]
 name = "wgpu-core"
-version = "0.1.0"
+version = "0.5.0"
 authors = [
 	"Dzmitry Malyshau <kvark@mozilla.com>",
 	"Joshua Groves <josh@joshgroves.com>",
 ]
 edition = "2018"
-description = "WebGPU core logic on gfx-hal/rendy"
+description = "WebGPU core logic on gfx-hal"
 homepage = "https://github.com/gfx-rs/wgpu"
 repository = "https://github.com/gfx-rs/wgpu"
 keywords = ["graphics"]
@@ -16,7 +16,8 @@ license = "MPL-2.0"
 
 [features]
 default = []
-metal-auto-capture = ["gfx-backend-metal/auto-capture"]
+trace = ["ron", "serde", "wgt/trace"]
+replay = ["serde", "wgt/replay"]
 #NOTE: glutin feature is not stable, use at your own risk
 #glutin = ["gfx-backend-gl/glutin"]
 
@@ -26,27 +27,43 @@ bitflags = "1.0"
 copyless = "0.1"
 fxhash = "0.2"
 log = "0.4"
-hal = { package = "gfx-hal", version = "0.4" }
-gfx-backend-empty = { version = "0.4" }
-parking_lot = "0.9"
-peek-poke = { git = "https://github.com/kvark/peek-poke", rev = "969bd7fe2be1a83f87916dc8b388c63cfd457075" }
-rendy-memory = "0.5"
-rendy-descriptor = "0.5"
+hal = { package = "gfx-hal", version = "0.5" }
+gfx-backend-empty = "0.5"
+gfx-descriptor = "0.1"
+gfx-memory = "0.1"
+parking_lot = "0.10"
+peek-poke = "0.2"
+raw-window-handle = { version = "0.3", optional = true }
+ron = { version = "0.6.2", optional = true }
 serde = { version = "1.0", features = ["serde_derive"], optional = true }
-smallvec = "1.0"
-vec_map = "0.8"
+smallvec = "1"
+spirv_headers = { version = "1.4.2" }
+vec_map = "0.8.1"
+
+[dependencies.naga]
+git = "https://github.com/gfx-rs/naga"
+rev = "bce6358eb1026c13d2f1c6d365af37afe8869a86"
+
+[dependencies.wgt]
+path = "../wgpu-types"
+package = "wgpu-types"
+version = "0.5"
+features = ["peek-poke"]
 
 [target.'cfg(any(target_os = "ios", target_os = "macos"))'.dependencies]
-gfx-backend-metal = { version = "0.4" }
-gfx-backend-vulkan = { version = "0.4", optional = true }
+gfx-backend-metal = { version = "0.5.6" }
+gfx-backend-vulkan = { version = "0.5.11", optional = true }
 
 [target.'cfg(all(unix, not(target_os = "ios"), not(target_os = "macos")))'.dependencies]
-gfx-backend-vulkan = { version = "0.4", features = ["x11"] }
+gfx-backend-vulkan = { version = "0.5.11" }
 
 [target.'cfg(windows)'.dependencies]
-gfx-backend-dx12 = { version = "0.4.1" }
-gfx-backend-dx11 = { version = "0.4" }
-gfx-backend-vulkan = { version = "0.4" }
+gfx-backend-dx12 = { version = "0.5" }
+gfx-backend-dx11 = { version = "0.5" }
+gfx-backend-vulkan = { version = "0.5.11" }
 
 [target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows", target_os = "dragonfly", target_os = "freebsd"))'.dependencies]
 battery = { version = "0.7", optional = true }
+
+[dev-dependencies]
+loom = "0.3"

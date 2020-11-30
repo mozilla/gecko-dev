@@ -71,7 +71,6 @@
 
 #ifdef MOZ_X11
 #  include "mozilla/X11Util.h"
-using mozilla::DefaultXDisplay;
 #endif
 
 #ifdef XP_WIN
@@ -133,7 +132,7 @@ class PluginBackgroundSink : public ReadbackSink {
 };
 
 nsPluginFrame::nsPluginFrame(ComputedStyle* aStyle, nsPresContext* aPresContext)
-    : nsFrame(aStyle, aPresContext, kClassID),
+    : nsIFrame(aStyle, aPresContext, kClassID),
       mInstanceOwner(nullptr),
       mOuterView(nullptr),
       mInnerView(nullptr),
@@ -151,7 +150,7 @@ nsPluginFrame::~nsPluginFrame() {
 NS_QUERYFRAME_HEAD(nsPluginFrame)
   NS_QUERYFRAME_ENTRY(nsPluginFrame)
   NS_QUERYFRAME_ENTRY(nsIObjectFrame)
-NS_QUERYFRAME_TAIL_INHERITING(nsFrame)
+NS_QUERYFRAME_TAIL_INHERITING(nsIFrame)
 
 #ifdef ACCESSIBILITY
 a11y::AccType nsPluginFrame::AccessibleType() { return a11y::ePluginType; }
@@ -169,7 +168,7 @@ void nsPluginFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
   MOZ_LOG(sPluginFrameLog, LogLevel::Debug,
           ("Initializing nsPluginFrame %p for content %p\n", this, aContent));
 
-  nsFrame::Init(aContent, aParent, aPrevInFlow);
+  nsIFrame::Init(aContent, aParent, aPrevInFlow);
   CreateView();
 }
 
@@ -198,7 +197,7 @@ void nsPluginFrame::DestroyFrom(nsIFrame* aDestructRoot,
     mBackgroundSink->Destroy();
   }
 
-  nsFrame::DestroyFrom(aDestructRoot, aPostDestroyData);
+  nsIFrame::DestroyFrom(aDestructRoot, aPostDestroyData);
 }
 
 /* virtual */
@@ -213,12 +212,12 @@ void nsPluginFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle) {
     }
   }
 
-  nsFrame::DidSetComputedStyle(aOldComputedStyle);
+  nsIFrame::DidSetComputedStyle(aOldComputedStyle);
 }
 
 #ifdef DEBUG_FRAME_DUMP
 nsresult nsPluginFrame::GetFrameName(nsAString& aResult) const {
-  return MakeFrameName(NS_LITERAL_STRING("PluginFrame"), aResult);
+  return MakeFrameName(u"PluginFrame"_ns, aResult);
 }
 #endif
 
@@ -392,7 +391,7 @@ void nsPluginFrame::GetWidgetConfiguration(
   nsIWidget::Configuration* configuration = aConfigurations->AppendElement();
   configuration->mChild = mWidget;
   configuration->mBounds = mNextConfigurationBounds;
-  configuration->mClipRegion = mNextConfigurationClipRegion;
+  configuration->mClipRegion = mNextConfigurationClipRegion.Clone();
 #if defined(XP_WIN) || defined(MOZ_WIDGET_GTK)
   if (XRE_IsContentProcess()) {
     configuration->mWindowID =
@@ -706,7 +705,7 @@ void nsPluginFrame::SetInstanceOwner(nsPluginInstanceOwner* aOwner) {
 
 bool nsPluginFrame::IsFocusable(int32_t* aTabIndex, bool aWithMouse) {
   if (aTabIndex) *aTabIndex = -1;
-  return nsFrame::IsFocusable(aTabIndex, aWithMouse);
+  return nsIFrame::IsFocusable(aTabIndex, aWithMouse);
 }
 
 bool nsPluginFrame::IsHidden(bool aCheckVisibilityStyle) const {
@@ -785,13 +784,13 @@ void nsPluginFrame::DidReflow(nsPresContext* aPresContext,
                               const ReflowInput* aReflowInput) {
   // Do this check before calling the superclass, as that clears
   // NS_FRAME_FIRST_REFLOW
-  if (GetStateBits() & NS_FRAME_FIRST_REFLOW) {
+  if (HasAnyStateBits(NS_FRAME_FIRST_REFLOW)) {
     nsCOMPtr<nsIObjectLoadingContent> objContent(do_QueryInterface(mContent));
     NS_ASSERTION(objContent, "Why not an object loading content?");
     objContent->HasNewFrame(this);
   }
 
-  nsFrame::DidReflow(aPresContext, aReflowInput);
+  nsIFrame::DidReflow(aPresContext, aReflowInput);
 
   if (HasView()) {
     nsView* view = GetView();
@@ -992,8 +991,7 @@ nsresult nsPluginFrame::PluginEventNotifier::Run() {
 }
 
 void nsPluginFrame::NotifyPluginReflowObservers() {
-  nsContentUtils::AddScriptRunner(
-      new PluginEventNotifier(NS_LITERAL_STRING("reflow")));
+  nsContentUtils::AddScriptRunner(new PluginEventNotifier(u"reflow"_ns));
 }
 
 void nsPluginFrame::DidSetWidgetGeometry() {
@@ -1478,13 +1476,13 @@ nsresult nsPluginFrame::HandleEvent(nsPresContext* aPresContext,
   mInstanceOwner->ConsiderNewEventloopNestingLevel();
 
   if (anEvent->mMessage == ePluginActivate) {
-    nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+    nsFocusManager* fm = nsFocusManager::GetFocusManager();
     if (fm) {
       RefPtr<dom::Element> elem = GetContent()->AsElement();
       return fm->SetFocus(elem, 0);
     }
   } else if (anEvent->mMessage == ePluginFocus) {
-    nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+    nsFocusManager* fm = nsFocusManager::GetFocusManager();
     if (fm) {
       RefPtr<dom::Element> elem = GetContent()->AsElement();
       return fm->FocusPlugin(elem);
@@ -1500,7 +1498,7 @@ nsresult nsPluginFrame::HandleEvent(nsPresContext* aPresContext,
   }
 
 #ifdef XP_WIN
-  rv = nsFrame::HandleEvent(aPresContext, anEvent, anEventStatus);
+  rv = nsIFrame::HandleEvent(aPresContext, anEvent, anEventStatus);
   return rv;
 #endif
 
@@ -1525,10 +1523,10 @@ nsresult nsPluginFrame::HandleEvent(nsPresContext* aPresContext,
   }
 #endif
 
-  rv = nsFrame::HandleEvent(aPresContext, anEvent, anEventStatus);
+  rv = nsIFrame::HandleEvent(aPresContext, anEvent, anEventStatus);
 
   // We need to be careful from this point because the call to
-  // nsFrame::HandleEvent() might have killed us.
+  // nsIFrame::HandleEvent() might have killed us.
 
 #ifdef XP_MACOSX
   if (anEvent->mMessage == eMouseUp) {
@@ -1604,7 +1602,7 @@ Maybe<nsIFrame::Cursor> nsPluginFrame::GetCursor(const nsPoint& aPoint) {
     return Nothing();
   }
 
-  return nsFrame::GetCursor(aPoint);
+  return nsIFrame::GetCursor(aPoint);
 }
 
 void nsPluginFrame::SetIsDocumentActive(bool aIsActive) {
@@ -1632,7 +1630,7 @@ nsIObjectFrame* nsPluginFrame::GetNextObjectFrame(nsPresContext* aPresContext,
 }
 
 /*static*/
-void nsPluginFrame::BeginSwapDocShells(nsISupports* aSupports, void*) {
+void nsPluginFrame::BeginSwapDocShells(nsISupports* aSupports) {
   MOZ_ASSERT(aSupports, "null parameter");
   nsCOMPtr<nsIContent> content(do_QueryInterface(aSupports));
   if (!content) {
@@ -1651,7 +1649,7 @@ void nsPluginFrame::BeginSwapDocShells(nsISupports* aSupports, void*) {
 }
 
 /*static*/
-void nsPluginFrame::EndSwapDocShells(nsISupports* aSupports, void*) {
+void nsPluginFrame::EndSwapDocShells(nsISupports* aSupports) {
   MOZ_ASSERT(aSupports, "null parameter");
   nsCOMPtr<nsIContent> content(do_QueryInterface(aSupports));
   if (!content) {

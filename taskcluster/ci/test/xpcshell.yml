@@ -6,7 +6,7 @@ job-defaults:
     suite: xpcshell
     variants:
         by-test-platform:
-            linux1804-64/debug: ['fission']
+            linux1804-64/debug: ['fission', 'socketprocess_networking']
             default: ['fission']
     target:
         by-test-platform:
@@ -60,8 +60,9 @@ xpcshell:
         by-test-platform:
             macosx.*(?!-ccov)...../.*: 5400
             windows(7-32|10-64)(-shippable)?/opt: 5400
-            .*-ccov/.*: 5400
+            .*-ccov/.*: 7200
             .*-tsan/opt: 7200
+            android-em-7.*: 5400
             default: 2700
     allow-software-gl-layers: false
     tier:
@@ -91,5 +92,6 @@ xpcshell:
                     - win32-minidump-stackwalk
                     - win32-fix-stacks
                 android-em-7.*:
+                    - android-emulator-linux
                     - linux64-node
                     - linux64-minidump-stackwalk

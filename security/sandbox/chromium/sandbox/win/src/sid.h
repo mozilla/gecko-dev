@@ -7,7 +7,7 @@
 
 #include <windows.h>
 
-#include "base/strings/string16.h"
+#include <string>
 
 namespace sandbox {
 
@@ -52,6 +52,8 @@ class Sid {
                                 PDWORD sub_authorities);
   // Create the restricted all application packages sid.
   static Sid AllRestrictedApplicationPackages();
+  // Generate a random SID value.
+  static Sid GenerateRandomSid();
 
   // Returns sid_.
   PSID GetPSID() const;
@@ -60,7 +62,7 @@ class Sid {
   bool IsValid() const;
 
   // Converts the SID to a SDDL format string.
-  bool ToSddlString(base::string16* sddl_string) const;
+  bool ToSddlString(std::wstring* sddl_string) const;
 
  private:
   Sid();

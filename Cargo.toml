@@ -8,14 +8,16 @@ members = [
   "js/rust",
   "js/src",
   "js/src/frontend/smoosh",
-  "js/src/frontend/binast", # Code generator.
   "js/src/rust",
   "js/src/wasm/cranelift",
+  "netwerk/test/http3server",
   "security/manager/ssl/osclientcerts",
   "testing/geckodriver",
+  "toolkit/components/updateagent",
   "toolkit/crashreporter/rust",
   "toolkit/library/gtest/rust",
   "toolkit/library/rust/",
+  "toolkit/mozapps/defaultagent/rust",
 ]
 
 # Excluded crates may be built as dependencies, but won't be considered members
@@ -37,11 +39,9 @@ exclude = [
 
   # Excluded because they are used only as dependencies, not top-level targets,
   # so we don't need to vendor their dev-dependencies.
-  "dom/webauthn/u2f-hid-rs",
   "gfx/webrender_bindings",
   "media/mp4parse-rust/mp4parse",
   "media/mp4parse-rust/mp4parse_capi",
-  "media/mp4parse-rust/mp4parse_fallible",
   "xpcom/rust/gkrust_utils",
   "tools/lint/test/files/clippy",
   "tools/fuzzing/rust",
@@ -62,22 +62,21 @@ opt-level = 2
 rpath = false
 debug-assertions = false
 panic = "abort"
-codegen-units = 1
 
 [patch.crates-io]
 libudev-sys = { path = "dom/webauthn/libudev-sys" }
 packed_simd = { git = "https://github.com/hsivonen/packed_simd", rev="3541e3818fdc7c2a24f87e3459151a4ce955a67a" }
-rlbox_lucet_sandbox = { git = "https://github.com/PLSysSec/rlbox_lucet_sandbox/", rev="d510da5999a744c563b0acd18056069d1698273f" }
+rlbox_lucet_sandbox = { git = "https://github.com/PLSysSec/rlbox_lucet_sandbox/", rev="ed8bac8812e9f335d5fadd0f4ece96981aba88a3" }
 nix = { git = "https://github.com/shravanrn/nix/", branch = "r0.13.1", rev="4af6c367603869a30fddb5ffb0aba2b9477ba92e" }
-spirv_cross = { git = "https://github.com/kvark/spirv_cross", branch = "wgpu", rev = "9cb4de489bf80b2b23efffe5a79afb7db6247ba4" }
+spirv_cross = { git = "https://github.com/kvark/spirv_cross", branch = "wgpu3", rev = "20191ad2f370afd6d247edcb9ff9da32d3bedb9c" }
 # failure's backtrace feature might break our builds, see bug 1608157.
 failure = { git = "https://github.com/badboy/failure", rev = "64af847bc5fdcb6d2438bec8a6030812a80519a5" }
 failure_derive = { git = "https://github.com/badboy/failure", rev = "64af847bc5fdcb6d2438bec8a6030812a80519a5" }
 
 [patch.crates-io.cranelift-codegen]
-git = "https://github.com/bytecodealliance/cranelift"
-rev = "98c818c129979e98a3db150f8f9698f6451b7ef7"
+git = "https://github.com/bytecodealliance/wasmtime"
+rev = "e22e2c3722f2fbccd3c8d3230119fa04c332c69c"
 
 [patch.crates-io.cranelift-wasm]
-git = "https://github.com/bytecodealliance/cranelift"
-rev = "98c818c129979e98a3db150f8f9698f6451b7ef7"
+git = "https://github.com/bytecodealliance/wasmtime"
+rev = "e22e2c3722f2fbccd3c8d3230119fa04c332c69c"

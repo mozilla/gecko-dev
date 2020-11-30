@@ -5,7 +5,7 @@
 // @flow
 
 import ReactDOM from "react-dom";
-import { onConnect } from "./client";
+import { onConnect, onDisconnect } from "./client";
 import { teardownWorkers } from "./utils/bootstrap";
 import sourceQueue from "./utils/source-queue";
 
@@ -15,17 +15,25 @@ function unmountRoot() {
 }
 
 module.exports = {
-  bootstrap: ({ targetList, devToolsClient, workers, panel }: any) =>
+  bootstrap: ({
+    targetList,
+    resourceWatcher,
+    devToolsClient,
+    workers,
+    panel,
+  }: any) =>
     onConnect(
       {
         tab: { clientType: "firefox" },
         targetList,
+        resourceWatcher,
         devToolsClient,
       },
       workers,
       panel
     ),
   destroy: () => {
+    onDisconnect();
     unmountRoot();
     sourceQueue.clear();
     teardownWorkers();

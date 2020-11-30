@@ -71,36 +71,6 @@ class CanvasTranslator final : public gfx::InlineTranslator,
   void ActorDestroy(ActorDestroyReason why) final;
 
   /**
-   * Used by the compositor thread to get the SurfaceDescriptor associated with
-   * the DrawTarget from another process.
-   *
-   * @param aDrawTarget the key to find the TextureData
-   * @returns the SurfaceDescriptor associated with the key
-   */
-  UniquePtr<SurfaceDescriptor> LookupSurfaceDescriptorForClientDrawTarget(
-      const uintptr_t aDrawTarget);
-
-  /**
-   * Initializes a canvas translator for a particular TextureType, which
-   * translates events from a CanvasEventRingBuffer.
-   *
-   * @param aTextureType the TextureType the translator will create
-   * @param aReadHandle handle to the shared memory for the
-   * CanvasEventRingBuffer
-   * @param aReaderSem reading blocked semaphore for the CanvasEventRingBuffer
-   * @param aWriterSem writing blocked semaphore for the CanvasEventRingBuffer
-   * @param aReaderServices provides functions required by the reader
-   * @returns true if the initialization works, false otherwise
-   */
-  bool Init(const TextureType& aTextureType,
-            const ipc::SharedMemoryBasic::Handle& aReadHandle,
-            const CrossProcessSemaphoreHandle& aReaderSem,
-            const CrossProcessSemaphoreHandle& aWriterSem,
-            UniquePtr<CanvasEventRingBuffer::ReaderServices> aReaderServices);
-
-  bool IsValid() { return mIsValid; }
-
-  /**
    * Translates events until no more are available or the end of a transaction
    * If this returns false the caller of this is responsible for re-calling
    * this function.
@@ -145,6 +115,14 @@ class CanvasTranslator final : public gfx::InlineTranslator,
   }
 
   /**
+   * Set the texture ID that will be used as a lookup for the texture created by
+   * the next CreateDrawTarget.
+   */
+  void SetNextTextureId(int64_t aNextTextureId) {
+    mNextTextureId = aNextTextureId;
+  }
+
+  /**
    * Used during playback of events to create DrawTargets. For the
    * CanvasTranslator this means creating TextureDatas and getting the
    * DrawTargets from those.
@@ -159,30 +137,28 @@ class CanvasTranslator final : public gfx::InlineTranslator,
       gfx::SurfaceFormat aFormat) final;
 
   /**
-   * Get the TextureData associated with a DrawTarget from another process.
+   * Get the TextureData associated with a TextureData from another process.
    *
-   * @param aDrawTarget the key used to find the TextureData
+   * @param aTextureId the key used to find the TextureData
    * @returns the TextureData found
    */
-  TextureData* LookupTextureData(gfx::ReferencePtr aDrawTarget);
+  TextureData* LookupTextureData(int64_t aTextureId);
 
   /**
-   * Waits for the SurfaceDescriptor associated with a DrawTarget from another
+   * Waits for the SurfaceDescriptor associated with a TextureData from another
    * process to be created and then returns it.
    *
-   * @param aDrawTarget the key used to find the TextureData
+   * @param aTextureId the key used to find the SurfaceDescriptor
    * @returns the SurfaceDescriptor found
    */
-  UniquePtr<SurfaceDescriptor> WaitForSurfaceDescriptor(
-      gfx::ReferencePtr aDrawTarget);
+  UniquePtr<SurfaceDescriptor> WaitForSurfaceDescriptor(int64_t aTextureId);
 
   /**
-   * Removes the DrawTarget and other objects associated with a DrawTarget from
-   * another process.
+   * Removes the texture and other objects associated with a texture ID.
    *
-   * @param aDrawTarget the key to the objects to remove
+   * @param aTextureId the texture ID to remove
    */
-  void RemoveDrawTarget(gfx::ReferencePtr aDrawTarget) final;
+  void RemoveTexture(int64_t aTextureId);
 
   /**
    * Removes the SourceSurface and other objects associated with a SourceSurface
@@ -242,6 +218,11 @@ class CanvasTranslator final : public gfx::InlineTranslator,
   UniquePtr<gfx::DataSourceSurface::ScopedMap> GetPreparedMap(
       gfx::ReferencePtr aSurface);
 
+  /**
+   * @return the BackendType being used for translation
+   */
+  gfx::BackendType GetBackendType() { return mBackendType; }
+
  private:
   explicit CanvasTranslator(
       already_AddRefed<CanvasThreadHolder> aCanvasThreadHolder);
@@ -254,12 +235,13 @@ class CanvasTranslator final : public gfx::InlineTranslator,
 
   void FinishShutdown();
 
+  void Deactivate();
+
   TextureData* CreateTextureData(TextureType aTextureType,
                                  const gfx::IntSize& aSize,
                                  gfx::SurfaceFormat aFormat);
 
-  void AddSurfaceDescriptor(gfx::ReferencePtr aRefPtr,
-                            TextureData* atextureData);
+  void AddSurfaceDescriptor(int64_t aTextureId, TextureData* atextureData);
 
   bool HandleExtensionEvent(int32_t aType);
 
@@ -277,16 +259,21 @@ class CanvasTranslator final : public gfx::InlineTranslator,
   UniquePtr<CanvasEventRingBuffer> mStream;
   TextureType mTextureType = TextureType::Unknown;
   UniquePtr<TextureData> mReferenceTextureData;
-  typedef std::unordered_map<void*, UniquePtr<TextureData>> TextureMap;
+  // Sometimes during device reset our reference DrawTarget can be null, so we
+  // hold the BackendType separately.
+  gfx::BackendType mBackendType = gfx::BackendType::NONE;
+  typedef std::unordered_map<int64_t, UniquePtr<TextureData>> TextureMap;
   TextureMap mTextureDatas;
+  int64_t mNextTextureId = -1;
   nsRefPtrHashtable<nsPtrHashKey<void>, gfx::DataSourceSurface> mDataSurfaces;
   gfx::ReferencePtr mMappedSurface;
   UniquePtr<gfx::DataSourceSurface::ScopedMap> mPreparedMap;
-  typedef std::unordered_map<void*, UniquePtr<SurfaceDescriptor>> DescriptorMap;
+  typedef std::unordered_map<int64_t, UniquePtr<SurfaceDescriptor>>
+      DescriptorMap;
   DescriptorMap mSurfaceDescriptors;
   Monitor mSurfaceDescriptorsMonitor{
       "CanvasTranslator::mSurfaceDescriptorsMonitor"};
-  bool mIsValid = true;
+  Atomic<bool> mDeactivated{false};
   bool mIsInTransaction = false;
   bool mDeviceResetInProgress = false;
 };

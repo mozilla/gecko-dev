@@ -6,10 +6,10 @@
 
 #include "gc/Barrier.h"
 
-#include "builtin/TypedObject.h"
 #include "gc/Policy.h"
 #include "jit/Ion.h"
 #include "js/HashTable.h"
+#include "js/shadow/Zone.h"  // JS::shadow::Zone
 #include "js/Value.h"
 #include "vm/BigIntType.h"  // JS::BigInt
 #include "vm/EnvironmentObject.h"
@@ -45,7 +45,7 @@ bool HeapSlot::preconditionForSet(NativeObject* owner, Kind kind,
   return &owner->getDenseElement(slot - numShifted) == (const Value*)this;
 }
 
-void HeapSlot::assertPreconditionForWriteBarrierPost(
+void HeapSlot::assertPreconditionForPostWriteBarrier(
     NativeObject* obj, Kind kind, uint32_t slot, const Value& target) const {
   if (kind == Slot) {
     MOZ_ASSERT(obj->getSlotAddressUnchecked(slot)->get() == target);
@@ -71,19 +71,23 @@ bool CurrentThreadIsIonCompilingSafeForMinorGC() {
 }
 
 bool CurrentThreadIsGCMarking() {
-  return TlsContext.get()->gcUse == JSContext::GCUse::Marking;
+  JSContext* cx = MaybeGetJSContext();
+  return cx && cx->gcUse == JSContext::GCUse::Marking;
 }
 
 bool CurrentThreadIsGCSweeping() {
-  return TlsContext.get()->gcUse == JSContext::GCUse::Sweeping;
+  JSContext* cx = MaybeGetJSContext();
+  return cx && cx->gcUse == JSContext::GCUse::Sweeping;
 }
 
 bool CurrentThreadIsGCFinalizing() {
-  return TlsContext.get()->gcUse == JSContext::GCUse::Finalizing;
+  JSContext* cx = MaybeGetJSContext();
+  return cx && cx->gcUse == JSContext::GCUse::Finalizing;
 }
 
 bool CurrentThreadIsTouchingGrayThings() {
-  return TlsContext.get()->isTouchingGrayThings;
+  JSContext* cx = MaybeGetJSContext();
+  return cx && cx->isTouchingGrayThings;
 }
 
 AutoTouchingGrayThings::AutoTouchingGrayThings() {
@@ -98,16 +102,102 @@ AutoTouchingGrayThings::~AutoTouchingGrayThings() {
 
 #endif  // DEBUG
 
-/* static */ void InternalBarrierMethods<Value>::readBarrier(const Value& v) {
-  ApplyGCThingTyped(v, [](auto t) { t->readBarrier(t); });
+// Tagged pointer barriers
+//
+// It's tempting to use ApplyGCThingTyped to dispatch to the typed barrier
+// functions (e.g. gc::ReadBarrier(JSObject*)) but this does not compile well
+// (clang generates 1580 bytes on x64 versus 296 bytes for this implementation
+// of ValueReadBarrier).
+//
+// Instead, check known special cases and call the generic barrier functions.
+
+static MOZ_ALWAYS_INLINE bool ValueIsPermanent(const Value& value) {
+  gc::Cell* cell = value.toGCThing();
+
+  if (value.isString()) {
+    return cell->as<JSString>()->isPermanentAndMayBeShared();
+  }
+
+  if (value.isSymbol()) {
+    return cell->as<JS::Symbol>()->isPermanentAndMayBeShared();
+  }
+
+#ifdef DEBUG
+  // Using mozilla::DebugOnly here still generated code in opt builds.
+  bool isPermanent = MapGCThingTyped(value, [](auto t) {
+                       return t->isPermanentAndMayBeShared();
+                     }).value();
+  MOZ_ASSERT(!isPermanent);
+#endif
+
+  return false;
 }
 
-/* static */ void InternalBarrierMethods<Value>::preBarrier(const Value& v) {
-  ApplyGCThingTyped(v, [](auto t) { t->writeBarrierPre(t); });
+void gc::ValueReadBarrier(const Value& v) {
+  MOZ_ASSERT(v.isGCThing());
+
+  if (!ValueIsPermanent(v)) {
+    ReadBarrierImpl(v.toGCThing());
+  }
 }
 
-/* static */ void InternalBarrierMethods<jsid>::preBarrier(jsid id) {
-  ApplyGCThingTyped(id, [](auto t) { t->writeBarrierPre(t); });
+void gc::ValuePreWriteBarrier(const Value& v) {
+  MOZ_ASSERT(v.isGCThing());
+
+  if (!ValueIsPermanent(v)) {
+    PreWriteBarrierImpl(v.toGCThing());
+  }
+}
+
+static MOZ_ALWAYS_INLINE bool IdIsPermanent(jsid id) {
+  gc::Cell* cell = id.toGCThing();
+
+  if (id.isString()) {
+    return cell->as<JSString>()->isPermanentAndMayBeShared();
+  }
+
+  if (id.isSymbol()) {
+    return cell->as<JS::Symbol>()->isPermanentAndMayBeShared();
+  }
+
+#ifdef DEBUG
+  bool isPermanent = MapGCThingTyped(id, [](auto t) {
+                       return t->isPermanentAndMayBeShared();
+                     }).value();
+  MOZ_ASSERT(!isPermanent);
+#endif
+
+  return false;
+}
+
+void gc::IdPreWriteBarrier(jsid id) {
+  MOZ_ASSERT(id.isGCThing());
+
+  if (!IdIsPermanent(id)) {
+    PreWriteBarrierImpl(&id.toGCThing()->asTenured());
+  }
+}
+
+static MOZ_ALWAYS_INLINE bool CellPtrIsPermanent(JS::GCCellPtr thing) {
+  if (thing.mayBeOwnedByOtherRuntime()) {
+    return true;
+  }
+
+#ifdef DEBUG
+  bool isPermanent = MapGCThingTyped(
+      thing, [](auto t) { return t->isPermanentAndMayBeShared(); });
+  MOZ_ASSERT(!isPermanent);
+#endif
+
+  return false;
+}
+
+void gc::CellPtrPreWriteBarrier(JS::GCCellPtr thing) {
+  MOZ_ASSERT(thing);
+
+  if (!CellPtrIsPermanent(thing)) {
+    PreWriteBarrierImpl(thing.asCell());
+  }
 }
 
 template <typename T>

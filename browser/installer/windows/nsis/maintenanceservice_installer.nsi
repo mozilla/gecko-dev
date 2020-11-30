@@ -37,7 +37,7 @@ Var BrandFullName
 !insertmacro GetParameters
 !insertmacro GetSize
 
-; The test slaves use this fallback key to run tests.
+; The test machines use this fallback key to run tests.
 ; And anyone that wants to run tests themselves should already have 
 ; this installed.
 !define FallbackKey \
@@ -242,6 +242,14 @@ Function un.RenameDelete
   ClearErrors
 FunctionEnd
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; NOTE: The maintenance service uninstaller does not currently get updated when
+; the service itself does during application updates. Under normal use, only
+; running the Firefox installer will generate a new maintenance service
+; uninstaller. That means anything added here will not be seen by users until
+; they run a new Firefox installer. Fixing this is tracked in
+; https://bugzilla.mozilla.org/show_bug.cgi?id=1665193
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Section "Uninstall"
   ; Delete the service so that no updates will be attempted
   ExecWait '"$INSTDIR\maintenanceservice.exe" uninstall'
@@ -317,6 +325,7 @@ Section "Uninstall"
   RMDir /REBOOTOK "$APPDATA\Mozilla"
   RMDir /REBOOTOK "$INSTDIR\logs"
   RMDir /REBOOTOK "$INSTDIR\update"
+  RMDir /REBOOTOK "$INSTDIR\UpdateLogs"
   RMDir /REBOOTOK "$INSTDIR"
 
   ${If} ${RunningX64}

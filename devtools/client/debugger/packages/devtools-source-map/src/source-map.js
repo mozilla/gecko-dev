@@ -48,7 +48,11 @@ type Range = {
 };
 export type SourceMapInput = {|
   id: SourceId,
+  // This URL isn't actually used in the source-map module, but we have it
+  // passed in so that the Toolbox can throw a more useful error message
+  // if the sourcemap for a given generated source file fails to load.
   url: string,
+  sourceMapBaseURL: string,
   sourceMapURL: string,
   isWasm: boolean,
 |};
@@ -368,7 +372,7 @@ async function getOriginalSourceText(
   const { urlsById, map } = data;
 
   const url = urlsById.get(originalSourceId);
-  let text = map.sourceContentFor(url);
+  let text = map.sourceContentFor(url, true);
   if (!text) {
     try {
       const response = await networkRequest(url, {

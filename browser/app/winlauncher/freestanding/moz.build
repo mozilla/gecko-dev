@@ -15,6 +15,7 @@ NO_PGO = True
 
 UNIFIED_SOURCES += [
     'DllBlocklist.cpp',
+    'FunctionTableResolver.cpp',
     'LoaderPrivateAPI.cpp',
     'ModuleLoadFrame.cpp',
 ]
@@ -41,7 +42,7 @@ OS_LIBS += [
     'ntdll_freestanding',
 ]
 
-if CONFIG['COMPILE_ENVIRONMENT']:
+if CONFIG['COMPILE_ENVIRONMENT'] and CONFIG['LLVM_DLLTOOL']:
     GeneratedFile(
         '%sntdll_freestanding.%s' % (CONFIG['LIB_PREFIX'],
                                      CONFIG['LIB_SUFFIX']),

@@ -22,6 +22,7 @@
 #include "mozilla/layers/SharedSurfacesChild.h"  // for SharedSurfacesAnimation
 #include "mozilla/layers/SharedRGBImage.h"
 #include "mozilla/layers/TextureClientRecycleAllocator.h"
+#include "mozilla/StaticPrefs_layers.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "nsISupportsUtils.h"  // for NS_IF_ADDREF
 #include "YCbCrUtils.h"        // for YCbCr conversions
@@ -31,6 +32,7 @@
 
 #ifdef XP_MACOSX
 #  include "mozilla/gfx/QuartzSupport.h"
+#  include "MacIOSurfaceImage.h"
 #endif
 
 #ifdef XP_WIN
@@ -84,10 +86,7 @@ UniquePtr<uint8_t[]> BufferRecycleBin::GetBuffer(uint32_t aSize) {
     return UniquePtr<uint8_t[]>(new (fallible) uint8_t[aSize]);
   }
 
-  uint32_t last = mRecycledBuffers.Length() - 1;
-  UniquePtr<uint8_t[]> result = std::move(mRecycledBuffers[last]);
-  mRecycledBuffers.RemoveElementAt(last);
-  return result;
+  return mRecycledBuffers.PopLastElement();
 }
 
 void BufferRecycleBin::ClearRecycledBuffers() {
@@ -234,16 +233,22 @@ RefPtr<PlanarYCbCrImage> ImageContainer::CreatePlanarYCbCrImage() {
   if (mImageClient && mImageClient->AsImageClientSingle()) {
     return new SharedPlanarYCbCrImage(mImageClient);
   }
+  if (mRecycleAllocator) {
+    return new SharedPlanarYCbCrImage(mRecycleAllocator);
+  }
   return mImageFactory->CreatePlanarYCbCrImage(mScaleHint, mRecycleBin);
 }
 
 RefPtr<SharedRGBImage> ImageContainer::CreateSharedRGBImage() {
   RecursiveMutexAutoLock lock(mRecursiveMutex);
   EnsureImageClient();
-  if (!mImageClient || !mImageClient->AsImageClientSingle()) {
-    return nullptr;
+  if (mImageClient && mImageClient->AsImageClientSingle()) {
+    return new SharedRGBImage(mImageClient);
   }
-  return new SharedRGBImage(mImageClient);
+  if (mRecycleAllocator) {
+    return new SharedRGBImage(mRecycleAllocator);
+  }
+  return nullptr;
 }
 
 void ImageContainer::SetCurrentImageInternal(
@@ -290,7 +295,7 @@ void ImageContainer::SetCurrentImageInternal(
     }
   }
 
-  mCurrentImages.SwapElements(newImages);
+  mCurrentImages = std::move(newImages);
 }
 
 void ImageContainer::ClearImagesFromImageBridge() {
@@ -299,6 +304,7 @@ void ImageContainer::ClearImagesFromImageBridge() {
 }
 
 void ImageContainer::SetCurrentImages(const nsTArray<NonOwningImage>& aImages) {
+  AUTO_PROFILER_LABEL("ImageContainer::SetCurrentImages", GRAPHICS);
   MOZ_ASSERT(!aImages.IsEmpty());
   RecursiveMutexAutoLock lock(mRecursiveMutex);
   if (mIsAsync) {
@@ -373,7 +379,7 @@ void ImageContainer::GetCurrentImages(nsTArray<OwningImage>* aImages,
                                       uint32_t* aGenerationCounter) {
   RecursiveMutexAutoLock lock(mRecursiveMutex);
 
-  *aImages = mCurrentImages;
+  *aImages = mCurrentImages.Clone();
   if (aGenerationCounter) {
     *aGenerationCounter = mGenerationCounter;
   }
@@ -416,6 +422,28 @@ void ImageContainer::NotifyDropped(uint32_t aDropped) {
   mDroppedImageCount += aDropped;
 }
 
+void ImageContainer::EnsureRecycleAllocatorForRDD(
+    KnowsCompositor* aKnowsCompositor) {
+  MOZ_ASSERT(!mIsAsync);
+  MOZ_ASSERT(!mImageClient);
+  MOZ_ASSERT(XRE_IsRDDProcess());
+
+  if (mRecycleAllocator &&
+      aKnowsCompositor == mRecycleAllocator->GetKnowsCompositor()) {
+    return;
+  }
+
+  if (!StaticPrefs::layers_recycle_allocator_rdd_AtStartup()) {
+    return;
+  }
+
+  static const uint32_t MAX_POOLED_VIDEO_COUNT = 5;
+
+  mRecycleAllocator =
+      new layers::TextureClientRecycleAllocator(aKnowsCompositor);
+  mRecycleAllocator->SetMaxPoolSize(MAX_POOLED_VIDEO_COUNT);
+}
+
 #ifdef XP_WIN
 D3D11YCbCrRecycleAllocator* ImageContainer::GetD3D11YCbCrRecycleAllocator(
     KnowsCompositor* aKnowsCompositor) {
@@ -432,6 +460,17 @@ D3D11YCbCrRecycleAllocator* ImageContainer::GetD3D11YCbCrRecycleAllocator(
   mD3D11YCbCrRecycleAllocator =
       new D3D11YCbCrRecycleAllocator(aKnowsCompositor);
   return mD3D11YCbCrRecycleAllocator;
+}
+#endif
+
+#ifdef XP_MACOSX
+MacIOSurfaceRecycleAllocator*
+ImageContainer::GetMacIOSurfaceRecycleAllocator() {
+  if (!mMacIOSurfaceRecycleAllocator) {
+    mMacIOSurfaceRecycleAllocator = new MacIOSurfaceRecycleAllocator();
+  }
+
+  return mMacIOSurfaceRecycleAllocator;
 }
 #endif
 
@@ -626,9 +665,16 @@ already_AddRefed<gfx::SourceSurface> PlanarYCbCrImage::GetAsSourceSurface() {
   return surface.forget();
 }
 
+PlanarYCbCrImage::~PlanarYCbCrImage() {
+  NS_ReleaseOnMainThread("PlanarYCbCrImage::mSourceSurface",
+                         mSourceSurface.forget());
+}
+
 NVImage::NVImage() : Image(nullptr, ImageFormat::NV_IMAGE), mBufferSize(0) {}
 
-NVImage::~NVImage() = default;
+NVImage::~NVImage() {
+  NS_ReleaseOnMainThread("NVImage::mSourceSurface", mSourceSurface.forget());
+}
 
 IntSize NVImage::GetSize() const { return mSize; }
 
@@ -644,13 +690,13 @@ already_AddRefed<SourceSurface> NVImage::GetAsSourceSurface() {
   // logics in PlanarYCbCrImage::GetAsSourceSurface().
   const int bufferLength = mData.mYSize.height * mData.mYStride +
                            mData.mCbCrSize.height * mData.mCbCrSize.width * 2;
-  auto* buffer = new uint8_t[bufferLength];
+  UniquePtr<uint8_t[]> buffer(new uint8_t[bufferLength]);
 
   Data aData = mData;
   aData.mCbCrStride = aData.mCbCrSize.width;
   aData.mCbSkip = 0;
   aData.mCrSkip = 0;
-  aData.mYChannel = buffer;
+  aData.mYChannel = buffer.get();
   aData.mCbChannel = aData.mYChannel + aData.mYSize.height * aData.mYStride;
   aData.mCrChannel =
       aData.mCbChannel + aData.mCbCrSize.height * aData.mCbCrStride;
@@ -695,9 +741,6 @@ already_AddRefed<SourceSurface> NVImage::GetAsSourceSurface() {
                          mapping.GetStride());
 
   mSourceSurface = surface;
-
-  // Release the temporary buffer.
-  delete[] buffer;
 
   return surface.forget();
 }
@@ -749,8 +792,8 @@ bool NVImage::SetData(const Data& aData) {
 
 const NVImage::Data* NVImage::GetData() const { return &mData; }
 
-UniquePtr<uint8_t> NVImage::AllocateBuffer(uint32_t aSize) {
-  UniquePtr<uint8_t> buffer(new uint8_t[aSize]);
+UniquePtr<uint8_t[]> NVImage::AllocateBuffer(uint32_t aSize) {
+  UniquePtr<uint8_t[]> buffer(new uint8_t[aSize]);
   return buffer;
 }
 
@@ -767,7 +810,10 @@ SourceSurfaceImage::SourceSurfaceImage(gfx::SourceSurface* aSourceSurface)
       mSourceSurface(aSourceSurface),
       mTextureFlags(TextureFlags::DEFAULT) {}
 
-SourceSurfaceImage::~SourceSurfaceImage() = default;
+SourceSurfaceImage::~SourceSurfaceImage() {
+  NS_ReleaseOnMainThread("SourceSurfaceImage::mSourceSurface",
+                         mSourceSurface.forget());
+}
 
 TextureClient* SourceSurfaceImage::GetTextureClient(
     KnowsCompositor* aKnowsCompositor) {

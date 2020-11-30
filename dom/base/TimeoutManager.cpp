@@ -16,7 +16,7 @@
 #include "nsINamed.h"
 #include "mozilla/dom/DocGroup.h"
 #include "mozilla/dom/PopupBlocker.h"
-#include "mozilla/dom/TabGroup.h"
+#include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/TimeoutHandler.h"
 #include "TimeoutExecutor.h"
 #include "TimeoutBudgetManager.h"
@@ -243,13 +243,18 @@ TimeDuration TimeoutManager::MinSchedulingDelay() const {
       isBackground ? TimeDuration::FromMilliseconds(
                          StaticPrefs::dom_min_background_timeout_value())
                    : TimeDuration();
-  if (BudgetThrottlingEnabled(isBackground) &&
-      mExecutionBudget < TimeDuration()) {
+  bool budgetThrottlingEnabled = BudgetThrottlingEnabled(isBackground);
+  if (budgetThrottlingEnabled && mExecutionBudget < TimeDuration()) {
     // Only throttle if execution budget is less than 0
     double factor = 1.0 / GetRegenerationFactor(mWindow.IsBackgroundInternal());
     return TimeDuration::Max(unthrottled, -mExecutionBudget.MultDouble(factor));
   }
-  //
+  if (!budgetThrottlingEnabled && isBackground) {
+    return TimeDuration::FromMilliseconds(
+        StaticPrefs::
+            dom_min_background_timeout_value_without_budget_throttling());
+  }
+
   return unthrottled;
 }
 
@@ -299,8 +304,7 @@ bool TimeoutManager::IsInvalidFiringId(uint32_t aFiringId) const {
   return !mFiringIdStack.Contains(aFiringId);
 }
 
-// The number of nested timeouts before we start clamping. HTML5 says 1, WebKit
-// uses 5.
+// The number of nested timeouts before we start clamping. HTML says 5.
 #define DOM_CLAMP_TIMEOUT_NESTING_LEVEL 5u
 
 TimeDuration TimeoutManager::CalculateDelay(Timeout* aTimeout) const {
@@ -522,9 +526,10 @@ nsresult TimeoutManager::SetTimeout(TimeoutHandler* aHandler, int32_t interval,
 
   Timeouts::SortBy sort(mWindow.IsFrozen() ? Timeouts::SortBy::TimeRemaining
                                            : Timeouts::SortBy::TimeWhen);
-  mTimeouts.Insert(timeout, sort);
 
   timeout->mTimeoutId = GetTimeoutId(aReason);
+  mTimeouts.Insert(timeout, sort);
+
   *aReturn = timeout->mTimeoutId;
 
   MOZ_LOG(
@@ -558,35 +563,31 @@ bool TimeoutManager::ClearTimeoutInternal(int32_t aTimerId,
   uint32_t timerId = (uint32_t)aTimerId;
   Timeouts& timeouts = aIsIdle ? mIdleTimeouts : mTimeouts;
   RefPtr<TimeoutExecutor>& executor = aIsIdle ? mIdleExecutor : mExecutor;
-  bool firstTimeout = true;
   bool deferredDeletion = false;
-  bool cleared = false;
 
-  timeouts.ForEachAbortable([&](Timeout* aTimeout) {
-    MOZ_LOG(gTimeoutLog, LogLevel::Debug,
-            ("Clear%s(TimeoutManager=%p, timeout=%p, aTimerId=%u, ID=%u)\n",
-             aTimeout->mIsInterval ? "Interval" : "Timeout", this, aTimeout,
-             timerId, aTimeout->mTimeoutId));
-
-    if (aTimeout->mTimeoutId == timerId && aTimeout->mReason == aReason) {
-      if (aTimeout->mRunning) {
-        /* We're running from inside the aTimeout. Mark this
-           aTimeout for deferred deletion by the code in
-           RunTimeout() */
-        aTimeout->mIsInterval = false;
-        deferredDeletion = true;
-      } else {
-        /* Delete the aTimeout from the pending aTimeout list */
-        aTimeout->remove();
-      }
-      cleared = true;
-      return true;  // abort!
-    }
-
-    firstTimeout = false;
-
+  Timeout* timeout = timeouts.GetTimeout(timerId, aReason);
+  if (!timeout) {
     return false;
-  });
+  }
+  bool firstTimeout = timeout == timeouts.GetFirst();
+
+  MOZ_LOG(gTimeoutLog, LogLevel::Debug,
+          ("%s(TimeoutManager=%p, timeout=%p, ID=%u)\n",
+           timeout->mReason == Timeout::Reason::eIdleCallbackTimeout
+               ? "CancelIdleCallback"
+               : timeout->mIsInterval ? "ClearInterval" : "ClearTimeout",
+           this, timeout, timeout->mTimeoutId));
+
+  if (timeout->mRunning) {
+    /* We're running from inside the timeout. Mark this
+       timeout for deferred deletion by the code in
+       RunTimeout() */
+    timeout->mIsInterval = false;
+    deferredDeletion = true;
+  } else {
+    /* Delete the aTimeout from the pending aTimeout list */
+    timeout->remove();
+  }
 
   // We don't need to reschedule the executor if any of the following are true:
   //  * If the we weren't cancelling the first timeout, then the executor's
@@ -597,7 +598,7 @@ bool TimeoutManager::ClearTimeoutInternal(int32_t aTimerId,
   //  * If the window has become suspended then we should not start executing
   //    Timeouts.
   if (!firstTimeout || deferredDeletion || mWindow.IsSuspended()) {
-    return cleared;
+    return true;
   }
 
   // Stop the executor and restart it at the next soonest deadline.
@@ -612,7 +613,7 @@ bool TimeoutManager::ClearTimeoutInternal(int32_t aTimerId,
       MOZ_ALWAYS_SUCCEEDS(MaybeSchedule(nextTimeout->When()));
     }
   }
-  return cleared;
+  return true;
 }
 
 void TimeoutManager::RunTimeout(const TimeStamp& aNow,
@@ -1089,6 +1090,7 @@ void TimeoutManager::Timeouts::Insert(Timeout* aTimeout, SortBy aSortBy) {
 
   // Now link in aTimeout after prevSibling.
   if (prevSibling) {
+    aTimeout->SetTimeoutContainer(mTimeouts);
     prevSibling->setNext(aTimeout);
   } else {
     InsertFront(aTimeout);
@@ -1343,5 +1345,5 @@ void TimeoutManager::EndSyncOperation() {
 }
 
 nsIEventTarget* TimeoutManager::EventTarget() {
-  return mWindow.EventTargetFor(TaskCategory::Timer);
+  return mWindow.GetBrowsingContextGroup()->GetTimerEventQueue();
 }

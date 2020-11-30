@@ -39,6 +39,7 @@ namespace jit {
                                       \
   _(In_Fallback)                      \
   _(HasOwn_Fallback)                  \
+  _(CheckPrivateField_Fallback)       \
                                       \
   _(GetName_Fallback)                 \
                                       \
@@ -50,9 +51,13 @@ namespace jit {
                                       \
   _(GetIterator_Fallback)             \
                                       \
+  _(OptimizeSpreadCall_Fallback)      \
+                                      \
   _(InstanceOf_Fallback)              \
                                       \
   _(TypeOf_Fallback)                  \
+                                      \
+  _(ToPropertyKey_Fallback)           \
                                       \
   _(Rest_Fallback)                    \
                                       \
@@ -87,13 +92,16 @@ namespace jit {
   _(SetElem)                                   \
   _(In)                                        \
   _(HasOwn)                                    \
+  _(CheckPrivateField)                         \
   _(GetName)                                   \
   _(BindName)                                  \
   _(GetIntrinsic)                              \
   _(SetProp)                                   \
   _(GetIterator)                               \
+  _(OptimizeSpreadCall)                        \
   _(InstanceOf)                                \
   _(TypeOf)                                    \
+  _(ToPropertyKey)                             \
   _(Rest)                                      \
   _(BinaryArith)                               \
   _(Compare)                                   \

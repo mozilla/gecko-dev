@@ -5,106 +5,76 @@
 // tests the translation infobar, using a fake 'Translation' implementation.
 
 var tmp = {};
-ChromeUtils.import("resource:///modules/translation/Translation.jsm", tmp);
-var { Translation } = tmp;
+ChromeUtils.import(
+  "resource:///modules/translation/TranslationParent.jsm",
+  tmp
+);
+var { Translation, TranslationParent } = tmp;
 
+const kDetectLanguagePref = "browser.translation.detectLanguage";
 const kShowUIPref = "browser.translation.ui.show";
 
-function waitForCondition(condition, nextTest, errorMsg) {
-  var tries = 0;
-  var interval = setInterval(function() {
-    if (tries >= 30) {
-      ok(false, errorMsg);
-      moveOn();
-    }
-    var conditionPassed;
-    try {
-      conditionPassed = condition();
-    } catch (e) {
-      ok(false, e + "\n" + e.stack);
-      conditionPassed = false;
-    }
-    if (conditionPassed) {
-      moveOn();
-    }
-    tries++;
-  }, 100);
-  var moveOn = function() {
-    clearInterval(interval);
-    nextTest();
-  };
-}
+const text =
+  "Il y a aujourd'hui trois cent quarante-huit ans six mois et dix-neuf jours que les Parisiens s'éveillèrent au bruit de toutes les cloches sonnant à grande volée dans la triple enceinte de la Cité, de l'Université et de la Ville.";
+const EXAMPLE_URL =
+  "http://example.com/document-builder.sjs?html=<html><body>" +
+  text +
+  "</body></html>";
 
-var TranslationStub = {
+// Create a subclass that overrides the translation functions. This can be
+// instantiated separately from the normal actor creation process. This will
+// allow testing translations even when the browser.translation.detectLanguage
+// preference is disabled.
+class TranslationStub extends TranslationParent {
+  constructor(browser) {
+    super();
+    this._browser = browser;
+  }
+
+  get browser() {
+    return this._browser;
+  }
+
+  sendAsyncMessage(name, data) {}
+
   translate(aFrom, aTo) {
     this.state = Translation.STATE_TRANSLATING;
     this.translatedFrom = aFrom;
     this.translatedTo = aTo;
-  },
+  }
 
   _reset() {
     this.translatedFrom = "";
     this.translatedTo = "";
-  },
+  }
 
   failTranslation() {
     this.state = Translation.STATE_ERROR;
     this._reset();
-  },
+  }
 
   finishTranslation() {
     this.showTranslatedContent();
     this.state = Translation.STATE_TRANSLATED;
     this._reset();
-  },
-};
+  }
+}
 
 function showTranslationUI(aDetectedLanguage) {
   let browser = gBrowser.selectedBrowser;
-  Translation.documentStateReceived(browser, {
+  let translation = new TranslationStub(browser);
+  translation.documentStateReceived({
     state: Translation.STATE_OFFER,
     originalShown: true,
     detectedLanguage: aDetectedLanguage,
   });
-  let ui = browser.translationUI;
-  for (let name of [
-    "translate",
-    "_reset",
-    "failTranslation",
-    "finishTranslation",
-  ]) {
-    ui[name] = TranslationStub[name];
-  }
-  return ui.notificationBox.getNotificationWithValue("translation");
+  return translation.notificationBox.getNotificationWithValue("translation");
 }
 
 function hasTranslationInfoBar() {
   return !!gBrowser
     .getNotificationBox()
     .getNotificationWithValue("translation");
-}
-
-function test() {
-  waitForExplicitFinish();
-
-  Services.prefs.setBoolPref(kShowUIPref, true);
-  let tab = BrowserTestUtils.addTab(gBrowser);
-  gBrowser.selectedTab = tab;
-  BrowserTestUtils.browserLoaded(tab.linkedBrowser).then(() => {
-    TranslationStub.browser = gBrowser.selectedBrowser;
-    registerCleanupFunction(function() {
-      gBrowser.removeTab(tab);
-      Services.prefs.clearUserPref(kShowUIPref);
-    });
-    run_tests(() => {
-      finish();
-    });
-  });
-
-  BrowserTestUtils.loadURI(
-    gBrowser.selectedBrowser,
-    "data:text/plain,test page"
-  );
 }
 
 function checkURLBarIcon(aExpectTranslated = false) {
@@ -120,12 +90,23 @@ function checkURLBarIcon(aExpectTranslated = false) {
   );
 }
 
-function run_tests(aFinishCallback) {
+add_task(async function test_infobar() {
+  await SpecialPowers.pushPrefEnv({
+    set: [[kShowUIPref, true]],
+  });
+
+  let tab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    "data:text/plain,test page"
+  );
+
+  TranslationStub.browser = gBrowser.selectedBrowser;
+
   info("Show an info bar saying the current page is in French");
   let notif = showTranslationUI("fr");
   is(
     notif.state,
-    Translation.STATE_OFFER,
+    "" + Translation.STATE_OFFER,
     "the infobar is offering translation"
   );
   is(
@@ -139,7 +120,7 @@ function run_tests(aFinishCallback) {
   notif._getAnonElt("translate").click();
   is(
     notif.state,
-    Translation.STATE_TRANSLATING,
+    "" + Translation.STATE_TRANSLATING,
     "the infobar is in the translating state"
   );
   ok(
@@ -156,14 +137,14 @@ function run_tests(aFinishCallback) {
 
   info("Make the translation fail and check we are in the error state.");
   notif.translation.failTranslation();
-  is(notif.state, Translation.STATE_ERROR, "infobar in the error state");
+  is(notif.state, "" + Translation.STATE_ERROR, "infobar in the error state");
   checkURLBarIcon();
 
   info("Click the try again button");
   notif._getAnonElt("tryAgain").click();
   is(
     notif.state,
-    Translation.STATE_TRANSLATING,
+    "" + Translation.STATE_TRANSLATING,
     "infobar in the translating state"
   );
   ok(
@@ -184,7 +165,7 @@ function run_tests(aFinishCallback) {
   notif.translation.finishTranslation();
   is(
     notif.state,
-    Translation.STATE_TRANSLATED,
+    "" + Translation.STATE_TRANSLATED,
     "infobar in the translated state"
   );
   checkURLBarIcon(true);
@@ -229,7 +210,7 @@ function run_tests(aFinishCallback) {
   from.doCommand();
   is(
     notif.state,
-    Translation.STATE_TRANSLATING,
+    "" + Translation.STATE_TRANSLATING,
     "infobar in the translating state"
   );
   ok(
@@ -254,7 +235,7 @@ function run_tests(aFinishCallback) {
   to.doCommand();
   is(
     notif.state,
-    Translation.STATE_TRANSLATING,
+    "" + Translation.STATE_TRANSLATING,
     "infobar in the translating state"
   );
   ok(
@@ -276,7 +257,7 @@ function run_tests(aFinishCallback) {
   notif = showTranslationUI("fr");
   is(
     notif.state,
-    Translation.STATE_OFFER,
+    "" + Translation.STATE_OFFER,
     "the infobar is offering translation"
   );
   is(
@@ -289,7 +270,7 @@ function run_tests(aFinishCallback) {
   notif._getAnonElt("translate").click();
   is(
     notif.state,
-    Translation.STATE_TRANSLATING,
+    "" + Translation.STATE_TRANSLATING,
     "the infobar is in the translating state"
   );
   ok(
@@ -324,12 +305,45 @@ function run_tests(aFinishCallback) {
   // Clicking the anchor element causes a 'showing' event to be sent
   // asynchronously to our callback that will then show the infobar.
   PopupNotifications.getNotification("translate").anchorElement.click();
-  waitForCondition(
+
+  await BrowserTestUtils.waitForCondition(
     hasTranslationInfoBar,
-    () => {
-      ok(hasTranslationInfoBar(), "there's a 'translate' notification");
-      aFinishCallback();
-    },
     "timeout waiting for the info bar to reappear"
   );
-}
+
+  ok(hasTranslationInfoBar(), "there's a 'translate' notification");
+
+  await BrowserTestUtils.removeTab(tab);
+});
+
+add_task(async function test_infobar_using_page() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [kDetectLanguagePref, true],
+      [kShowUIPref, true],
+    ],
+  });
+
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, EXAMPLE_URL);
+
+  await BrowserTestUtils.waitForCondition(
+    hasTranslationInfoBar,
+    "timeout waiting for the info bar to reappear"
+  );
+
+  let notificationBox = gBrowser.getNotificationBox(tab.linkedBrowser);
+  let notif = notificationBox.getNotificationWithValue("translation");
+  is(
+    notif.state,
+    "" + Translation.STATE_OFFER,
+    "the infobar is offering translation"
+  );
+  is(
+    notif._getAnonElt("detectedLanguage").value,
+    "fr",
+    "The detected language is displayed"
+  );
+  checkURLBarIcon();
+
+  await BrowserTestUtils.removeTab(tab);
+});

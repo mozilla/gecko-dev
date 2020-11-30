@@ -2,28 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#define VECS_PER_RADIAL_GRADIENT_BRUSH 2
-#define VECS_PER_SPECIFIC_BRUSH VECS_PER_RADIAL_GRADIENT_BRUSH
-
-#define WR_BRUSH_VS_FUNCTION radial_gradient_brush_vs
-#define WR_BRUSH_FS_FUNCTION radial_gradient_brush_fs
+#define VECS_PER_SPECIFIC_BRUSH 2
 
 #include shared,prim_shared,brush
 
-#define V_GRADIENT_ADDRESS  flat_varying_highp_int_address_0
+flat varying HIGHP_FS_ADDRESS int v_gradient_address;
 
-#define V_CENTER            flat_varying_vec4_0.xy
-#define V_START_RADIUS      flat_varying_vec4_0.z
-#define V_END_RADIUS        flat_varying_vec4_0.w
+flat varying vec2 v_center;
+flat varying float v_start_radius;
+flat varying float v_radius_scale;
 
-#define V_REPEATED_SIZE     flat_varying_vec4_1.xy
-#define V_GRADIENT_REPEAT   flat_varying_vec4_1.z
+flat varying vec2 v_repeated_size;
+flat varying float v_gradient_repeat;
 
-#define V_POS               varying_vec4_0.zw
+varying vec2 v_pos;
 
 #ifdef WR_FEATURE_ALPHA_PASS
-#define V_LOCAL_POS         varying_vec4_0.xy
-#define V_TILE_REPEAT       flat_varying_vec4_2.xy
+varying vec2 v_local_pos;
+flat varying vec2 v_tile_repeat;
 #endif
 
 #ifdef WR_VERTEX_SHADER
@@ -45,7 +41,7 @@ RadialGradient fetch_radial_gradient(int address) {
     );
 }
 
-void radial_gradient_brush_vs(
+void brush_vs(
     VertexInfo vi,
     int prim_address,
     RectWithSize local_rect,
@@ -60,117 +56,78 @@ void radial_gradient_brush_vs(
     RadialGradient gradient = fetch_radial_gradient(prim_address);
 
     if ((brush_flags & BRUSH_FLAG_SEGMENT_RELATIVE) != 0) {
-        V_POS = (vi.local_pos - segment_rect.p0) / segment_rect.size;
-        V_POS = V_POS * (texel_rect.zw - texel_rect.xy) + texel_rect.xy;
-        V_POS = V_POS * local_rect.size;
+        v_pos = (vi.local_pos - segment_rect.p0) / segment_rect.size;
+        v_pos = v_pos * (texel_rect.zw - texel_rect.xy) + texel_rect.xy;
+        v_pos = v_pos * local_rect.size;
     } else {
-        V_POS = vi.local_pos - local_rect.p0;
+        v_pos = vi.local_pos - local_rect.p0;
     }
 
-    V_CENTER = gradient.center_start_end_radius.xy;
-    V_START_RADIUS = gradient.center_start_end_radius.z;
-    V_END_RADIUS = gradient.center_start_end_radius.w;
+    v_center = gradient.center_start_end_radius.xy;
+    v_start_radius = gradient.center_start_end_radius.z;
+    if (gradient.center_start_end_radius.z != gradient.center_start_end_radius.w) {
+      // Store 1/rd where rd = end_radius - start_start
+      v_radius_scale = 1.0 / (gradient.center_start_end_radius.w - gradient.center_start_end_radius.z);
+    } else {
+      // If rd = 0, we can't get its reciprocal. Instead, just use a zero scale.
+      v_radius_scale = 0.0;
+    }
 
     // Transform all coordinates by the y scale so the
     // fragment shader can work with circles
     vec2 tile_repeat = local_rect.size / gradient.stretch_size;
-    V_POS.y *= gradient.ratio_xy;
-    V_CENTER.y *= gradient.ratio_xy;
-    V_REPEATED_SIZE = gradient.stretch_size;
-    V_REPEATED_SIZE.y *=  gradient.ratio_xy;
+    v_pos.y *= gradient.ratio_xy;
+    v_center.y *= gradient.ratio_xy;
+    v_repeated_size = gradient.stretch_size;
+    v_repeated_size.y *=  gradient.ratio_xy;
 
-    V_GRADIENT_ADDRESS = prim_user_data.x;
+    v_gradient_address = prim_user_data.x;
 
     // Whether to repeat the gradient instead of clamping.
-    V_GRADIENT_REPEAT = float(gradient.extend_mode != EXTEND_MODE_CLAMP);
+    v_gradient_repeat = float(gradient.extend_mode != EXTEND_MODE_CLAMP);
 
 #ifdef WR_FEATURE_ALPHA_PASS
-    V_TILE_REPEAT = tile_repeat.xy;
-    V_LOCAL_POS = vi.local_pos;
+    v_tile_repeat = tile_repeat.xy;
+    v_local_pos = vi.local_pos;
 #endif
 }
 #endif
 
 #ifdef WR_FRAGMENT_SHADER
-Fragment radial_gradient_brush_fs() {
+Fragment brush_fs() {
 
 #ifdef WR_FEATURE_ALPHA_PASS
     // Handle top and left inflated edges (see brush_image).
-    vec2 local_pos = max(V_POS, vec2(0.0));
+    vec2 local_pos = max(v_pos, vec2(0.0));
 
     // Apply potential horizontal and vertical repetitions.
-    vec2 pos = mod(local_pos, V_REPEATED_SIZE);
+    vec2 pos = mod(local_pos, v_repeated_size);
 
-    vec2 prim_size = V_REPEATED_SIZE * V_TILE_REPEAT;
+    vec2 prim_size = v_repeated_size * v_tile_repeat;
     // Handle bottom and right inflated edges (see brush_image).
     if (local_pos.x >= prim_size.x) {
-        pos.x = V_REPEATED_SIZE.x;
+        pos.x = v_repeated_size.x;
     }
     if (local_pos.y >= prim_size.y) {
-        pos.y = V_REPEATED_SIZE.y;
+        pos.y = v_repeated_size.y;
     }
 #else
     // Apply potential horizontal and vertical repetitions.
-    vec2 pos = mod(V_POS, V_REPEATED_SIZE);
+    vec2 pos = mod(v_pos, v_repeated_size);
 #endif
 
-    vec2 pd = pos - V_CENTER;
-    float rd = V_END_RADIUS - V_START_RADIUS;
+    // Solve for t in length(pd) = v_start_radius + t * rd
+    vec2 pd = pos - v_center;
+    float offset = (length(pd) - v_start_radius) * v_radius_scale;
 
-    // Solve for t in length(t - pd) = V_START_RADIUS + t * rd
-    // using a quadratic equation in form of At^2 - 2Bt + C = 0
-    float A = -(rd * rd);
-    float B = V_START_RADIUS * rd;
-    float C = dot(pd, pd) - V_START_RADIUS * V_START_RADIUS;
-
-    float offset;
-    if (A == 0.0) {
-        // Since A is 0, just solve for -2Bt + C = 0
-        if (B == 0.0) {
-            discard;
-        }
-        float t = 0.5 * C / B;
-        if (V_START_RADIUS + rd * t >= 0.0) {
-            offset = t;
-        } else {
-            discard;
-        }
-    } else {
-        float discr = B * B - A * C;
-        if (discr < 0.0) {
-            discard;
-        }
-        discr = sqrt(discr);
-        float t0 = (B + discr) / A;
-        float t1 = (B - discr) / A;
-        if (V_START_RADIUS + rd * t0 >= 0.0) {
-            offset = t0;
-        } else if (V_START_RADIUS + rd * t1 >= 0.0) {
-            offset = t1;
-        } else {
-            discard;
-        }
-    }
-
-    vec4 color = sample_gradient(V_GRADIENT_ADDRESS,
+    vec4 color = sample_gradient(v_gradient_address,
                                  offset,
-                                 V_GRADIENT_REPEAT);
+                                 v_gradient_repeat);
 
 #ifdef WR_FEATURE_ALPHA_PASS
-    color *= init_transform_fs(V_LOCAL_POS);
+    color *= init_transform_fs(v_local_pos);
 #endif
 
     return Fragment(color);
 }
 #endif
-
-// Undef macro names that could be re-defined by other shaders.
-#undef V_GRADIENT_ADDRESS
-#undef V_CENTER
-#undef V_START_RADIUS
-#undef V_END_RADIUS
-#undef V_REPEATED_SIZE
-#undef V_GRADIENT_REPEAT
-#undef V_POS
-#undef V_LOCAL_POS
-#undef V_TILE_REPEAT

@@ -41,6 +41,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   TestUtils: "resource://testing-common/TestUtils.jsm",
   AppConstants: "resource://gre/modules/AppConstants.jsm",
   PlacesUtils: "resource://gre/modules/PlacesUtils.jsm",
+  PlacesDBUtils: "resource://gre/modules/PlacesDBUtils.jsm",
 });
 
 XPCOMUtils.defineLazyGetter(this, "SMALLPNG_DATA_URI", function() {
@@ -725,7 +726,7 @@ NavBookmarkObserver.prototype = {
   onItemChanged() {},
   onItemVisited() {},
   onItemMoved() {},
-  QueryInterface: ChromeUtils.generateQI([Ci.nsINavBookmarkObserver]),
+  QueryInterface: ChromeUtils.generateQI(["nsINavBookmarkObserver"]),
 };
 
 /**
@@ -742,7 +743,7 @@ NavHistoryObserver.prototype = {
   onClearHistory() {},
   onPageChanged() {},
   onDeleteVisits() {},
-  QueryInterface: ChromeUtils.generateQI([Ci.nsINavHistoryObserver]),
+  QueryInterface: ChromeUtils.generateQI(["nsINavHistoryObserver"]),
 };
 
 /**
@@ -768,7 +769,7 @@ NavHistoryResultObserver.prototype = {
   nodeTitleChanged() {},
   nodeURIChanged() {},
   sortingChanged() {},
-  QueryInterface: ChromeUtils.generateQI([Ci.nsINavHistoryResultObserver]),
+  QueryInterface: ChromeUtils.generateQI(["nsINavHistoryResultObserver"]),
 };
 
 function checkBookmarkObject(info) {

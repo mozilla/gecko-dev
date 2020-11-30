@@ -4,7 +4,7 @@
 
 // @flow
 
-import type { Source, Range, SourceLocation, Context } from "../../types";
+import type { Source, Range, SourceLocation, Context, URL } from "../../types";
 
 import type {
   ActiveSearchType,
@@ -32,6 +32,18 @@ export type UIAction =
     |}
   | {|
       +type: "TOGGLE_INLINE_PREVIEW",
+      +value: boolean,
+    |}
+  | {|
+      +type: "TOGGLE_EDITOR_WRAPPING",
+      +value: boolean,
+    |}
+  | {|
+      +type: "TOGGLE_SOURCE_MAPS_ENABLED",
+      +value: boolean,
+    |}
+  | {|
+      +type: "TOGGLE_JAVASCRIPT_ENABLED",
       +value: boolean,
     |}
   | {|
@@ -69,7 +81,8 @@ export type UIAction =
   | {|
       +type: "SET_PROJECT_DIRECTORY_ROOT",
       +cx: Context,
-      +url: string,
+      +url: URL,
+      +name: string,
     |}
   | {|
       +type: "SET_PRIMARY_PANE_TAB",

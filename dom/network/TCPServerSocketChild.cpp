@@ -28,7 +28,7 @@ NS_INTERFACE_MAP_END
 
 TCPServerSocketChildBase::TCPServerSocketChildBase() : mIPCOpen(false) {}
 
-TCPServerSocketChildBase::~TCPServerSocketChildBase() {}
+TCPServerSocketChildBase::~TCPServerSocketChildBase() = default;
 
 NS_IMETHODIMP_(MozExternalRefCountType) TCPServerSocketChild::Release(void) {
   nsrefcnt refcnt = TCPServerSocketChildBase::Release();
@@ -39,11 +39,9 @@ NS_IMETHODIMP_(MozExternalRefCountType) TCPServerSocketChild::Release(void) {
   return refcnt;
 }
 
-TCPServerSocketChild::TCPServerSocketChild(TCPServerSocket* aServerSocket,
-                                           uint16_t aLocalPort,
-                                           uint16_t aBacklog,
-                                           bool aUseArrayBuffers,
-                                           nsIEventTarget* aIPCEventTarget) {
+TCPServerSocketChild::TCPServerSocketChild(
+    TCPServerSocket* aServerSocket, uint16_t aLocalPort, uint16_t aBacklog,
+    bool aUseArrayBuffers, nsISerialEventTarget* aIPCEventTarget) {
   mServerSocket = aServerSocket;
   if (aIPCEventTarget) {
     gNeckoChild->SetEventTargetForActor(this, aIPCEventTarget);
@@ -65,7 +63,7 @@ void TCPServerSocketChildBase::AddIPDLReference() {
   this->AddRef();
 }
 
-TCPServerSocketChild::~TCPServerSocketChild() {}
+TCPServerSocketChild::~TCPServerSocketChild() = default;
 
 mozilla::ipc::IPCResult TCPServerSocketChild::RecvCallbackAccept(
     PTCPSocketChild* psocket) {

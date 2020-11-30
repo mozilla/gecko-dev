@@ -1,3 +1,5 @@
+"use strict";
+
 const { HttpServer } = ChromeUtils.import("resource://testing-common/httpd.js");
 const { MockRegistrar } = ChromeUtils.import(
   "resource://testing-common/MockRegistrar.jsm"
@@ -13,7 +15,7 @@ XPCOMUtils.defineLazyGetter(this, "systemSettings", function() {
     mainThreadOnly: true,
     PACURI: "http://localhost:" + httpserv.identity.primaryPort + "/redirect",
     getProxyForURI(aURI) {
-      throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+      throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
     },
   };
 });

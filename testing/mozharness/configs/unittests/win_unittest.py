@@ -34,7 +34,7 @@ config = {
     "installer_path": INSTALLER_PATH,
     "binary_path": BINARY_PATH,
     "xpcshell_name": XPCSHELL_NAME,
-    "virtualenv_modules": ['pypiwin32'],
+    "virtualenv_modules": ['pypiwin32', 'six==1.13.0', 'vcversioner==2.16.0.0'],
     "virtualenv_path": 'venv',
 
     "exe_suffix": EXE_SUFFIX,
@@ -115,6 +115,7 @@ config = {
         },
         "xpcshell": {
             "options": [
+                "--self-test",
                 "--symbols-path=%(symbols_path)s",
                 "--test-plugin-path=%(test_plugin_path)s",
                 "--log-raw=%(raw_log_file)s",
@@ -230,7 +231,7 @@ config = {
             'name': 'disable windows security and maintenance notifications',
             'cmd': [
                 'powershell', '-command',
-                '"&{$p=\'HKCU:SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.SecurityAndMaintenance\';if(!(Test-Path -Path $p)){&New-Item -Path $p -Force}&Set-ItemProperty -Path $p -Name Enabled -Value 0}"'  # noqa
+                '"&{$p=\'HKCU:SOFTWARE\Microsoft\Windows\CurrentVersion\\Notifications\Settings\Windows.SystemToast.SecurityAndMaintenance\';if(!(Test-Path -Path $p)){&New-Item -Path $p -Force}&Set-ItemProperty -Path $p -Name Enabled -Value 0}"'  # noqa
             ],
             'architectures': ['32bit', '64bit'],
             'halt_on_failure': True,
@@ -261,6 +262,16 @@ config = {
             'cmd': [
                 'powershell', '-command',
                 '"&{&Stop-Process -ProcessName explorer}"'
+            ],
+            'architectures': ['32bit', '64bit'],
+            'halt_on_failure': True,
+            'enabled': True
+        },
+        {
+            'name': 'prepare chrome profile',
+            'cmd': [
+                'powershell', '-command',
+                'if (test-path ${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe) {start chrome; Start-Sleep -s 30; taskkill /F /IM chrome.exe /T}'
             ],
             'architectures': ['32bit', '64bit'],
             'halt_on_failure': True,

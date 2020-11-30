@@ -229,7 +229,7 @@ describe("AboutPreferences Feed", () => {
         assert.calledWith(
           node.setAttribute,
           "src",
-          "resource://activity-stream/data/content/assets/glyph-webextension-16.svg"
+          "chrome://activity-stream/content/data/content/assets/glyph-webextension-16.svg"
         );
       });
       it("should use desired glyph icon", () => {
@@ -240,7 +240,7 @@ describe("AboutPreferences Feed", () => {
         assert.calledWith(
           node.setAttribute,
           "src",
-          "resource://activity-stream/data/content/assets/glyph-highlights-16.svg"
+          "chrome://activity-stream/content/data/content/assets/glyph-highlights-16.svg"
         );
       });
       it("should use specified chrome icon", () => {
@@ -304,6 +304,13 @@ describe("AboutPreferences Feed", () => {
         testRender();
 
         assert.calledWith(node.setAttribute, "data-l10n-id", titleString);
+      });
+      it("should set node hidden to true", () => {
+        prefStructure[0].pref.nestedPrefs[0].hidden = true;
+
+        testRender();
+
+        assert.isTrue(node.hidden);
       });
       it("should add a change event", () => {
         testRender();

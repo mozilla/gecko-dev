@@ -2,8 +2,8 @@
 
 **A [Bytecode Alliance](https://bytecodealliance.org/) project**
 
-[![Build Status](https://travis-ci.org/yurydelendik/wasmparser.rs.svg?branch=master)](https://travis-ci.org/yurydelendik/wasmparser.rs)
 [![crates.io link](https://img.shields.io/crates/v/wasmparser.svg)](https://crates.io/crates/wasmparser)
+[![docs.rs docs](https://img.shields.io/static/v1?label=docs&message=wasmparser&color=blue&style=flat-square)](https://docs.rs/wasmparser/)
 
 The decoder library provides lightweight and fast decoding/parsing of WebAssembly binary files.
 

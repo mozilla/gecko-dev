@@ -8,7 +8,6 @@
 
 #include "SVGElement.h"
 #include "DOMSVGNumber.h"
-#include "mozAutoDocUpdate.h"
 #include "nsError.h"
 #include "SVGAnimatedNumberList.h"
 #include "mozilla/dom/SVGNumberListBinding.h"
@@ -74,36 +73,6 @@ JSObject* DOMSVGNumberList::WrapObject(JSContext* cx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return mozilla::dom::SVGNumberList_Binding::Wrap(cx, this, aGivenProto);
 }
-
-//----------------------------------------------------------------------
-// Helper class: AutoChangeNumberListNotifier
-// Stack-based helper class to pair calls to WillChangeNumberList and
-// DidChangeNumberList.
-class MOZ_RAII AutoChangeNumberListNotifier : public mozAutoDocUpdate {
- public:
-  explicit AutoChangeNumberListNotifier(
-      DOMSVGNumberList* aNumberList MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : mozAutoDocUpdate(aNumberList->Element()->GetComposedDoc(), true),
-        mNumberList(aNumberList) {
-    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    MOZ_ASSERT(mNumberList, "Expecting non-null numberList");
-    mEmptyOrOldValue = mNumberList->Element()->WillChangeNumberList(
-        mNumberList->AttrEnum(), *this);
-  }
-
-  ~AutoChangeNumberListNotifier() {
-    mNumberList->Element()->DidChangeNumberList(mNumberList->AttrEnum(),
-                                                mEmptyOrOldValue, *this);
-    if (mNumberList->IsAnimating()) {
-      mNumberList->Element()->AnimationNeedsResample();
-    }
-  }
-
- private:
-  DOMSVGNumberList* const mNumberList;
-  nsAttrValue mEmptyOrOldValue;
-  MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
 
 void DOMSVGNumberList::InternalListLengthWillChange(uint32_t aNewLength) {
   uint32_t oldLength = mItems.Length();

@@ -37,13 +37,10 @@ class CacheObserver : public nsIObserver, public nsSupportsWeakReference {
   {
     return StaticPrefs::browser_cache_disk_metadata_memory_limit();
   }
-  static uint32_t MemoryCacheCapacity();  // result in kilobytes.
-  static uint32_t DiskCacheCapacity()     // result in kilobytes.
-  {
-    return sDiskCacheCapacity;
-  }
-  static void SetDiskCacheCapacity(uint32_t);  // parameter in kilobytes.
-  static uint32_t DiskFreeSpaceSoftLimit()     // result in kilobytes.
+  static uint32_t MemoryCacheCapacity();            // result in kilobytes.
+  static uint32_t DiskCacheCapacity();              // result in kilobytes.
+  static void SetSmartDiskCacheCapacity(uint32_t);  // parameter in kilobytes.
+  static uint32_t DiskFreeSpaceSoftLimit()          // result in kilobytes.
   {
     return StaticPrefs::browser_cache_disk_free_space_soft_limit();
   }
@@ -78,15 +75,6 @@ class CacheObserver : public nsIObserver, public nsSupportsWeakReference {
     return StaticPrefs::privacy_sanitize_sanitizeOnShutdown() &&
            StaticPrefs::privacy_clearOnShutdown_cache();
   }
-  static bool CacheFSReported() { return sCacheFSReported; }
-  static void SetCacheFSReported();
-  static bool HashStatsReported() { return sHashStatsReported; }
-  static void SetHashStatsReported();
-  static uint32_t CacheAmountWritten()  // result in kilobytes
-  {
-    return sCacheAmountWritten;
-  }
-  static void SetCacheAmountWritten(uint32_t);  // parameter in kilobytes.
   static void ParentDirOverride(nsIFile** aDir);
 
   static bool EntryIsTooBig(int64_t aSize, bool aUsingDisk);
@@ -103,19 +91,12 @@ class CacheObserver : public nsIObserver, public nsSupportsWeakReference {
  private:
   static StaticRefPtr<CacheObserver> sSelf;
 
-  void StoreDiskCacheCapacity();
-  void StoreCacheFSReported();
-  void StoreHashStatsReported();
-  void StoreCacheAmountWritten();
   void AttachToPreferences();
 
   static int32_t sAutoMemoryCacheCapacity;
-  static Atomic<uint32_t, Relaxed> sDiskCacheCapacity;
+  static Atomic<uint32_t, Relaxed> sSmartDiskCacheCapacity;
   static float sHalfLifeHours;
-  static bool sCacheFSReported;
-  static bool sHashStatsReported;
   static Atomic<PRIntervalTime> sShutdownDemandedTime;
-  static Atomic<uint32_t, Relaxed> sCacheAmountWritten;
 
   // Non static properties, accessible via sSelf
   nsCOMPtr<nsIFile> mCacheParentDirectoryOverride;

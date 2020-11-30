@@ -24,6 +24,8 @@
 #  include "nsXULAppAPI.h"
 #endif
 #include "Tracing.h"
+#include "webaudio/blink/DenormalDisabler.h"
+#include "AudioThreadRegistry.h"
 
 // Use abort() instead of exception in SoundTouch.
 #define ST_NO_EXCEPTION_HANDLING 1
@@ -136,7 +138,9 @@ AudioStream::AudioStream(DataSource& aSource)
       mTimeStretcher(nullptr),
       mState(INITIALIZED),
       mDataSource(aSource),
-      mPrefillQuirk(false) {
+      mPrefillQuirk(false),
+      mAudioThreadId(0),
+      mSandboxed(CubebUtils::SandboxEnabled()) {
 #if defined(XP_WIN)
   if (XRE_IsContentProcess()) {
     audio::AudioNotificationReceiver::Register(this);
@@ -268,8 +272,6 @@ int AudioStream::InvokeCubeb(Function aFunction, Args&&... aArgs) {
 nsresult AudioStream::Init(uint32_t aNumChannels,
                            AudioConfig::ChannelLayout::ChannelMap aChannelMap,
                            uint32_t aRate, AudioDeviceInfo* aSinkInfo) {
-  StartAudioCallbackTracing();
-
   auto startTime = TimeStamp::Now();
   TRACE();
 
@@ -428,8 +430,6 @@ void AudioStream::Shutdown() {
     // Must not try to shut down cubeb from within the lock!  wasapi may still
     // call our callback after Pause()/stop()!?! Bug 996162
     mCubebStream.reset();
-
-    StopAudioCallbackTracing();
   }
 
   mState = SHUTDOWN;
@@ -466,6 +466,7 @@ int64_t AudioStream::GetPositionInFrames() {
 }
 
 int64_t AudioStream::GetPositionInFramesUnlocked() {
+  TRACE();
   mMonitor.AssertCurrentThreadOwns();
 
   if (mState == ERRORED) {
@@ -494,7 +495,7 @@ bool AudioStream::IsValidAudioFormat(Chunk* aChunk) {
 }
 
 void AudioStream::GetUnprocessed(AudioBufferWriter& aWriter) {
-  TRACE_AUDIO_CALLBACK();
+  TRACE();
   mMonitor.AssertCurrentThreadOwns();
 
   // Flush the timestretcher pipeline, if we were playing using a playback rate
@@ -530,7 +531,7 @@ void AudioStream::GetUnprocessed(AudioBufferWriter& aWriter) {
 }
 
 void AudioStream::GetTimeStretched(AudioBufferWriter& aWriter) {
-  TRACE_AUDIO_CALLBACK();
+  TRACE();
   mMonitor.AssertCurrentThreadOwns();
 
   // We need to call the non-locking version, because we already have the lock.
@@ -578,9 +579,25 @@ void AudioStream::GetTimeStretched(AudioBufferWriter& aWriter) {
       aWriter.Available());
 }
 
+bool AudioStream::CheckThreadIdChanged() {
+#ifdef MOZ_GECKO_PROFILER
+  auto id = profiler_current_thread_id();
+  if (id != mAudioThreadId) {
+    mAudioThreadId = id;
+    return true;
+  }
+#endif
+  return false;
+}
+
 long AudioStream::DataCallback(void* aBuffer, long aFrames) {
+  if (!mSandboxed && CheckThreadIdChanged()) {
+    CubebUtils::GetAudioThreadRegistry()->Register(mAudioThreadId);
+  }
+  WebCore::DenormalDisabler disabler;
+
   TRACE_AUDIO_CALLBACK_BUDGET(aFrames, mAudioClock.GetInputRate());
-  TRACE_AUDIO_CALLBACK();
+  TRACE();
   MonitorAutoLock mon(mMonitor);
   MOZ_ASSERT(mState != SHUTDOWN, "No data callback after shutdown");
 
@@ -589,8 +606,8 @@ long AudioStream::DataCallback(void* aBuffer, long aFrames) {
   }
 
   auto writer = AudioBufferWriter(
-      MakeSpan<AudioDataValue>(reinterpret_cast<AudioDataValue*>(aBuffer),
-                               mOutChannels * aFrames),
+      Span<AudioDataValue>(reinterpret_cast<AudioDataValue*>(aBuffer),
+                           mOutChannels * aFrames),
       mOutChannels, aFrames);
 
   if (mPrefillQuirk) {
@@ -632,6 +649,9 @@ long AudioStream::DataCallback(void* aBuffer, long aFrames) {
   mDumpFile.Write(static_cast<const AudioDataValue*>(aBuffer),
                   aFrames * mOutChannels);
 
+  if (!mSandboxed && writer.Available() != 0) {
+    CubebUtils::GetAudioThreadRegistry()->Unregister(mAudioThreadId);
+  }
   return aFrames - writer.Available();
 }
 

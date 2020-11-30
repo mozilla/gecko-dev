@@ -10,9 +10,9 @@ import org.mozilla.gecko.util.GeckoBundle;
 
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.support.annotation.AnyThread;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.AnyThread;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.util.Arrays;
 
@@ -80,6 +80,7 @@ public class WebPushSubscription implements Parcelable {
     @NonNull
     public final byte[] authSecret;
 
+    @SuppressWarnings("checkstyle:javadocmethod")
     public WebPushSubscription(final @NonNull String scope,
                                final @NonNull String endpoint,
                                final @Nullable byte[] appServerKey,

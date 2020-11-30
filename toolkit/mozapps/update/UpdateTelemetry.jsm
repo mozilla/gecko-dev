@@ -80,7 +80,7 @@ var AUSTLMY = {
   CHK_NO_OS_VERSION: 30,
   // Unable to check for updates due to no OS ABI (no notification)
   CHK_NO_OS_ABI: 31,
-  // Invalid url for app.update.url default preference (no notification)
+  // Invalid update url (no notification)
   CHK_INVALID_DEFAULT_URL: 32,
   // Update elevation failures or cancelations threshold reached for this
   // version, OSX only (no notification)
@@ -505,18 +505,6 @@ var AUSTLMY = {
         // count type histogram
         Services.telemetry.getHistogramById(id).add();
       }
-    } catch (e) {
-      Cu.reportError(e);
-    }
-  },
-
-  /**
-   * Submit a telemetry ping for a boolean scalar when we attempt to fix
-   * the update directory permissions this session.
-   */
-  pingFixUpdateDirectoryPermissionsAttempted: function UT_PFUDPA() {
-    try {
-      Services.telemetry.scalarSet("update.fix_permissions_attempted", true);
     } catch (e) {
       Cu.reportError(e);
     }

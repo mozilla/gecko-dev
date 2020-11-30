@@ -12,11 +12,8 @@
  *
  * This file should also not contain any app specific styling.  Defaults for
  * widgets of a particular application should be in that application's style
- * sheet.  For example, style definitions for navigator can be found in
- * navigator.css.
- *
- * THIS FILE IS LOCKED DOWN.  YOU ARE NOT ALLOWED TO MODIFY IT WITHOUT FIRST
- * HAVING YOUR CHANGES REVIEWED BY enndeakin@gmail.com
+ * sheet.  For example, style definitions for browser can be found in
+ * browser.css.
  */
 
 @import url("chrome://global/skin/tooltip.css");
@@ -98,7 +95,7 @@ iframe {
 /******** window & page ******/
 
 window {
-  overflow: -moz-hidden-unscrollable;
+  overflow: clip;
   -moz-box-orient: vertical;
 }
 
@@ -115,18 +112,22 @@ label.text-link, label[onclick] {
 
 label html|span.accesskey {
   text-decoration: underline;
+  text-decoration-skip-ink: none;
 }
 
 /********** toolbarbutton **********/
 
-toolbarbutton:not([type="menu"]) > .toolbarbutton-menu-dropmarker,
 toolbar[mode="icons"] .toolbarbutton-text,
-toolbar[mode="icons"] .toolbarbutton-multiline-text,
 toolbar[mode="text"] .toolbarbutton-icon,
-.toolbarbutton-multiline-text:not([wrap="true"]),
-.toolbarbutton-text[wrap="true"],
 html|label.toolbarbutton-badge:empty {
   display: none;
+}
+
+/********** button **********/
+
+button {
+  -moz-default-appearance: button;
+  appearance: auto;
 }
 
 /******** browser, editor, iframe ********/
@@ -143,6 +144,15 @@ iframe {
   iframe {
     display: block;
   }
+}
+
+/* Allow the browser to shrink below its intrinsic size, to match legacy
+ * behavior */
+browser {
+  align-self: stretch;
+  justify-self: stretch;
+  min-height: 0;
+  min-width: 0;
 }
 
 /*********** popup notification ************/
@@ -241,7 +251,10 @@ tooltip {
   margin-top: 21px;
 }
 
+% excluding Android here to work around bug 1637975:
+%ifndef ANDROID
 @supports -moz-bool-pref("xul.panel-animations.enabled") {
+@media (prefers-reduced-motion: no-preference) {
 %ifdef MOZ_WIDGET_COCOA
   /* On Mac, use the properties "-moz-window-transform" and "-moz-window-opacity"
      instead of "transform" and "opacity" for these animations.
@@ -306,6 +319,8 @@ tooltip {
   }
 %endif
 }
+}
+%endif
 
 panel[type="arrow"][animating] {
   pointer-events: none;
@@ -340,7 +355,7 @@ treecolpicker {
 
 treechildren {
   display: -moz-box;
-  -moz-user-select: none;
+  user-select: none;
   -moz-box-flex: 1;
 }
 
@@ -445,7 +460,7 @@ tooltip[titletip="true"] {
 /********** textbox **********/
 
 search-textbox {
-  -moz-user-select: text;
+  user-select: text;
   text-shadow: none;
 }
 
@@ -475,7 +490,7 @@ search-textbox {
 .autocomplete-richlistitem {
   -moz-box-orient: vertical;
   -moz-box-align: center;
-  overflow: -moz-hidden-unscrollable;
+  overflow: clip;
 }
 
 %endif
@@ -494,8 +509,8 @@ search-textbox {
 
 /********** menulist **********/
 
-menulist[popuponly="true"] {
-  -moz-appearance: none !important;
+menulist[popuponly] {
+  appearance: none !important;
   margin: 0 !important;
   height: 0 !important;
   min-height: 0 !important;
@@ -582,8 +597,6 @@ label, button, image {
   display: -moz-inline-box;
 }
 
-.menulist-highlightable-label:not([highlightable="true"]),
-.menulist-label[highlightable="true"],
 .menu-iconic-highlightable-text:not([highlightable="true"]),
 .menu-iconic-text[highlightable="true"] {
   display: none;

@@ -31,6 +31,9 @@ namespace gl {
 class GLContextCGL;
 class MozFramebuffer;
 }  // namespace gl
+namespace wr {
+class RenderMacIOSurfaceTextureHost;
+}  // namespace wr
 
 namespace layers {
 
@@ -107,6 +110,9 @@ class NativeLayerRootCA : public NativeLayerRoot {
   void SetBackingScale(float aBackingScale);
   float BackingScale();
 
+  already_AddRefed<NativeLayer> CreateLayerForExternalTexture(
+      bool aIsOpaque) override;
+
  protected:
   explicit NativeLayerRootCA(CALayer* aLayer);
   ~NativeLayerRootCA() override;
@@ -144,6 +150,8 @@ class NativeLayerRootCA : public NativeLayerRoot {
   bool mCommitPending = false;
 };
 
+class RenderSourceNLRS;
+
 class NativeLayerRootSnapshotterCA final : public NativeLayerRootSnapshotter {
  public:
   static UniquePtr<NativeLayerRootSnapshotterCA> Create(
@@ -153,16 +161,24 @@ class NativeLayerRootSnapshotterCA final : public NativeLayerRootSnapshotter {
   bool ReadbackPixels(const gfx::IntSize& aReadbackSize,
                       gfx::SurfaceFormat aReadbackFormat,
                       const Range<uint8_t>& aReadbackBuffer) override;
+  already_AddRefed<profiler_screenshots::RenderSource> GetWindowContents(
+      const gfx::IntSize& aWindowSize) override;
+  already_AddRefed<profiler_screenshots::DownscaleTarget> CreateDownscaleTarget(
+      const gfx::IntSize& aSize) override;
+  already_AddRefed<profiler_screenshots::AsyncReadbackBuffer>
+  CreateAsyncReadbackBuffer(const gfx::IntSize& aSize) override;
 
  protected:
   NativeLayerRootSnapshotterCA(NativeLayerRootCA* aLayerRoot,
                                RefPtr<gl::GLContext>&& aGL,
                                CALayer* aRootCALayer);
+  void UpdateSnapshot(const gfx::IntSize& aSize);
 
   RefPtr<NativeLayerRootCA> mLayerRoot;
   RefPtr<gl::GLContext> mGL;
-  UniquePtr<gl::MozFramebuffer>
-      mFB;  // can be null, recreated when aReadbackSize changes
+
+  // Can be null. Created and updated in UpdateSnapshot.
+  RefPtr<RenderSourceNLRS> mSnapshot;
   CARenderer* mRenderer = nullptr;  // strong
 };
 
@@ -185,27 +201,33 @@ class NativeLayerCA : public NativeLayer {
   gfx::IntSize GetSize() override;
   void SetPosition(const gfx::IntPoint& aPosition) override;
   gfx::IntPoint GetPosition() override;
+  void SetTransform(const gfx::Matrix4x4& aTransform) override;
+  gfx::Matrix4x4 GetTransform() override;
   gfx::IntRect GetRect() override;
-  void SetValidRect(const gfx::IntRect& aValidRect) override;
-  gfx::IntRect GetValidRect() override;
+  void SetSamplingFilter(gfx::SamplingFilter aSamplingFilter) override;
   RefPtr<gfx::DrawTarget> NextSurfaceAsDrawTarget(
-      const gfx::IntRegion& aUpdateRegion,
+      const gfx::IntRect& aDisplayRect, const gfx::IntRegion& aUpdateRegion,
       gfx::BackendType aBackendType) override;
-  Maybe<GLuint> NextSurfaceAsFramebuffer(const gfx::IntRegion& aUpdateRegion,
+  Maybe<GLuint> NextSurfaceAsFramebuffer(const gfx::IntRect& aDisplayRect,
+                                         const gfx::IntRegion& aUpdateRegion,
                                          bool aNeedsDepth) override;
   void NotifySurfaceReady() override;
   void DiscardBackbuffers() override;
   bool IsOpaque() override;
   void SetClipRect(const Maybe<gfx::IntRect>& aClipRect) override;
   Maybe<gfx::IntRect> ClipRect() override;
+  gfx::IntRect CurrentSurfaceDisplayRect() override;
   void SetSurfaceIsFlipped(bool aIsFlipped) override;
   bool SurfaceIsFlipped() override;
+
+  void AttachExternalImage(wr::RenderTextureHost* aExternalImage) override;
 
  protected:
   friend class NativeLayerRootCA;
 
   NativeLayerCA(const gfx::IntSize& aSize, bool aIsOpaque,
                 SurfacePoolHandleCA* aSurfacePoolHandle);
+  explicit NativeLayerCA(bool aIsOpaque);
   ~NativeLayerCA() override;
 
   // Gets the next surface for drawing from our swap chain and stores it in
@@ -233,14 +255,15 @@ class NativeLayerCA : public NativeLayer {
                                           CFTypeRefPtr<IOSurfaceRef> aSurface,
                                           bool aNeedsDepth);
 
-  // Invalidate aUpdateRegion and make sure that mInProgressSurface has valid
-  // content everywhere outside aUpdateRegion, so that only aUpdateRegion needs
-  // to be drawn. If content needs to be copied from a previous surface, aCopyFn
-  // is called to do the copying.
+  // Invalidate aUpdateRegion and make sure that mInProgressSurface retains any
+  // valid content from the previous surface outside of aUpdateRegion, so that
+  // only aUpdateRegion needs to be drawn. If content needs to be copied,
+  // aCopyFn is called to do the copying.
   // aCopyFn: Fn(CFTypeRefPtr<IOSurfaceRef> aValidSourceIOSurface,
   //             const gfx::IntRegion& aCopyRegion) -> void
   template <typename F>
   void HandlePartialUpdate(const MutexAutoLock&,
+                           const gfx::IntRect& aDisplayRect,
                            const gfx::IntRegion& aUpdateRegion, F&& aCopyFn);
 
   struct SurfaceWithInvalidRegion {
@@ -268,23 +291,31 @@ class NativeLayerCA : public NativeLayer {
     // before the call.
     void ApplyChanges(const gfx::IntSize& aSize, bool aIsOpaque,
                       const gfx::IntPoint& aPosition,
+                      const gfx::Matrix4x4& aTransform,
+                      const gfx::IntRect& aDisplayRect,
                       const Maybe<gfx::IntRect>& aClipRect, float aBackingScale,
                       bool aSurfaceIsFlipped,
+                      gfx::SamplingFilter aSamplingFilter,
                       CFTypeRefPtr<IOSurfaceRef> aFrontSurface);
 
     // Lazily initialized by first call to ApplyChanges. mWrappingLayer is the
-    // layer that applies mClipRect (if set), and mContentCALayer is the layer
-    // that hosts the IOSurface. We do not share clip layers between consecutive
-    // NativeLayerCA objects with the same clip rect.
+    // layer that applies the intersection of mDisplayRect and mClipRect (if
+    // set), and mContentCALayer is the layer that hosts the IOSurface. We do
+    // not share clip layers between consecutive NativeLayerCA objects with the
+    // same clip rect.
     CALayer* mWrappingCALayer = nullptr;      // strong
     CALayer* mContentCALayer = nullptr;       // strong
     CALayer* mOpaquenessTintLayer = nullptr;  // strong
 
     bool mMutatedPosition = true;
+    bool mMutatedTransform = true;
+    bool mMutatedDisplayRect = true;
     bool mMutatedClipRect = true;
     bool mMutatedBackingScale = true;
+    bool mMutatedSize = true;
     bool mMutatedSurfaceIsFlipped = true;
     bool mMutatedFrontSurface = true;
+    bool mMutatedSamplingFilter = true;
   };
 
   Representation& GetRepresentation(WhichRepresentation aRepresentation);
@@ -326,6 +357,8 @@ class NativeLayerCA : public NativeLayer {
   // the matching call to NotifySurfaceReady.
   // Will only be Some() between calls to NextSurface and NotifySurfaceReady.
   Maybe<SurfaceWithInvalidRegion> mInProgressSurface;
+  Maybe<gfx::IntRegion> mInProgressUpdateRegion;
+  Maybe<gfx::IntRect> mInProgressDisplayRect;
 
   // The surface that the most recent call to NotifySurfaceReady was for.
   // Will be Some() after the first call to NotifySurfaceReady, for the rest of
@@ -341,14 +374,17 @@ class NativeLayerCA : public NativeLayer {
   RefPtr<MacIOSurface> mInProgressLockedIOSurface;
 
   RefPtr<SurfacePoolHandleCA> mSurfacePoolHandle;
+  RefPtr<wr::RenderMacIOSurfaceTextureHost> mTextureHost;
 
   Representation mOnscreenRepresentation;
   Representation mOffscreenRepresentation;
 
   gfx::IntPoint mPosition;
-  gfx::IntRect mValidRect;
-  const gfx::IntSize mSize;
+  gfx::Matrix4x4 mTransform;
+  gfx::IntRect mDisplayRect;
+  gfx::IntSize mSize;
   Maybe<gfx::IntRect> mClipRect;
+  gfx::SamplingFilter mSamplingFilter = gfx::SamplingFilter::POINT;
   float mBackingScale = 1.0f;
   bool mSurfaceIsFlipped = false;
   const bool mIsOpaque = false;

@@ -8,6 +8,7 @@
 
 #include "jit/IonAnalysis.h"
 #include "jit/MIR.h"
+#include "jit/MIRGenerator.h"
 #include "jit/MIRGraph.h"
 #include "util/CheckedArithmetic.h"
 
@@ -15,7 +16,7 @@ using namespace js;
 using namespace jit;
 
 static void AnalyzeLsh(TempAllocator& alloc, MLsh* lsh) {
-  if (lsh->specialization() != MIRType::Int32) {
+  if (lsh->type() != MIRType::Int32) {
     return;
   }
 
@@ -53,7 +54,7 @@ static void AnalyzeLsh(TempAllocator& alloc, MLsh* lsh) {
     }
 
     MAdd* add = use->consumer()->toDefinition()->toAdd();
-    if (add->specialization() != MIRType::Int32 || !add->isTruncated()) {
+    if (add->type() != MIRType::Int32 || !add->isTruncated()) {
       break;
     }
 
@@ -147,7 +148,7 @@ static void AnalyzeLoadUnboxedScalar(MLoadUnboxedScalar* load) {
 
   MAdd* add = load->getOperand(1)->toAdd();
 
-  if (add->specialization() != MIRType::Int32 || !add->hasUses() ||
+  if (add->type() != MIRType::Int32 || !add->hasUses() ||
       add->truncateKind() != MDefinition::TruncateKind::Truncate) {
     return;
   }

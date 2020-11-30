@@ -168,8 +168,6 @@ add_task(async function test_filter_isActive() {
         add(this, match);
       }
     }
-    cancelQuery(context) {}
-    pickResult(result) {}
   }
   UrlbarProvidersManager.registerProvider(new NoInvokeProvider());
 
@@ -212,8 +210,6 @@ add_task(async function test_filter_queryContext() {
     async startQuery(context, add) {
       Assert.ok(false, "Provider should no be invoked");
     }
-    cancelQuery(context) {}
-    pickResult(result) {}
   }
   UrlbarProvidersManager.registerProvider(new NoInvokeProvider());
 
@@ -227,9 +223,9 @@ add_task(async function test_filter_queryContext() {
   UrlbarProvidersManager.unregisterProvider({ name: "BadProvider" });
 });
 
-add_task(async function test_nofilter_immediate() {
+add_task(async function test_nofilter_heuristic() {
   // Checks that even if a provider returns a result that should be filtered out
-  // it will still be invoked if it's of type immediate, and only the heuristic
+  // it will still be invoked if it's of type heuristic, and only the heuristic
   // result is returned.
   let matches = [
     new UrlbarResult(
@@ -247,7 +243,7 @@ add_task(async function test_nofilter_immediate() {
   let providerName = registerBasicTestProvider(
     matches,
     undefined,
-    UrlbarUtils.PROVIDER_TYPE.IMMEDIATE
+    UrlbarUtils.PROVIDER_TYPE.HEURISTIC
   );
 
   let context = createContext(undefined, {
@@ -305,7 +301,7 @@ add_task(async function test_nofilter_restrict() {
       return "MyProvider";
     }
     get type() {
-      return UrlbarUtils.PROVIDER_TYPE.IMMEDIATE;
+      return UrlbarUtils.PROVIDER_TYPE.PROFILE;
     }
     isActive(context) {
       Assert.equal(context.sources.length, 1, "Check acceptable sources");
@@ -317,8 +313,6 @@ add_task(async function test_nofilter_restrict() {
         add(this, match);
       }
     }
-    cancelQuery(context) {}
-    pickResult(result) {}
   }
   let provider = new TestProvider();
   UrlbarProvidersManager.registerProvider(provider);
@@ -359,30 +353,16 @@ add_task(async function test_filter_priority() {
   /**
    * A test provider.
    */
-  class TestProvider extends UrlbarProvider {
+  class TestProvider extends UrlbarTestUtils.TestProvider {
     constructor(priority, shouldBeInvoked, namePart = "") {
       super();
       this._priority = priority;
-      this._name = `Provider-${priority}` + namePart;
+      this._name = `${priority}` + namePart;
       this._shouldBeInvoked = shouldBeInvoked;
-    }
-    get name() {
-      return this._name;
-    }
-    get type() {
-      return UrlbarUtils.PROVIDER_TYPE.PROFILE;
-    }
-    isActive(context) {
-      return true;
-    }
-    getPriority(context) {
-      return this._priority;
     }
     async startQuery(context, add) {
       Assert.ok(this._shouldBeInvoked, `${this.name} was invoked`);
     }
-    cancelQuery(context) {}
-    pickResult(result) {}
   }
 
   // Test all possible orderings of the providers to make sure the logic that

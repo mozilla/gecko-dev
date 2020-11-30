@@ -21,12 +21,15 @@ from mozbuild.base import MachCommandConditions
 from mozbuild.frontend.emitter import TreeMetadataEmitter
 from mozbuild.frontend.reader import BuildReader
 from mozbuild.mozinfo import write_mozinfo
-from mozbuild.util import FileAvoidWrite
 from itertools import chain
 
 from mozbuild.backend import (
     backends,
     get_backend_class,
+)
+from mozbuild.util import (
+    FileAvoidWrite,
+    process_time,
 )
 
 
@@ -58,9 +61,8 @@ files by running:
 '''.strip()
 
 
-def config_status(topobjdir='.', topsrcdir='.', defines=None,
-                  non_global_defines=None, substs=None, source=None,
-                  mozconfig=None, args=sys.argv[1:]):
+def config_status(topobjdir='.', topsrcdir='.', defines=None, substs=None,
+                  source=None, mozconfig=None, args=sys.argv[1:]):
     '''Main function, providing config.status functionality.
 
     Contrary to config.status, it doesn't use CONFIG_FILES or CONFIG_HEADERS
@@ -108,16 +110,15 @@ def config_status(topobjdir='.', topsrcdir='.', defines=None,
 
     # Without -n, the current directory is meant to be the top object directory
     if not options.not_topobjdir:
-        topobjdir = os.path.abspath('.')
+        topobjdir = os.path.realpath('.')
 
-    env = ConfigEnvironment(topsrcdir, topobjdir, defines=defines,
-                            non_global_defines=non_global_defines, substs=substs,
+    env = ConfigEnvironment(topsrcdir, topobjdir, defines=defines, substs=substs,
                             source=source, mozconfig=mozconfig)
 
     with FileAvoidWrite(os.path.join(topobjdir, 'mozinfo.json')) as f:
         write_mozinfo(f, env, os.environ)
 
-    cpu_start = time.clock()
+    cpu_start = process_time()
     time_start = time.time()
 
     # Make appropriate backend instances, defaulting to RecursiveMakeBackend,
@@ -153,7 +154,7 @@ def config_status(topobjdir='.', topsrcdir='.', defines=None,
             summary = obj.gyp_summary()
             print(summary, file=sys.stderr)
 
-    cpu_time = time.clock() - cpu_start
+    cpu_time = process_time() - cpu_start
     wall_time = time.time() - time_start
     efficiency = cpu_time / wall_time if wall_time else 100
     untracked = wall_time - execution_time

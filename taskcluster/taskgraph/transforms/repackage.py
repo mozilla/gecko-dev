@@ -25,9 +25,6 @@ from voluptuous import Required, Optional, Extra
 
 
 packaging_description_schema = schema.extend({
-    # depname is used in taskref's to identify the taskID of the signed things
-    Required('depname', default='build'): text_type,
-
     # unique label to describe this repackaging task
     Optional('label'): text_type,
 
@@ -70,7 +67,7 @@ packaging_description_schema = schema.extend({
 
         # if true, perform a checkout of a comm-central based branch inside the
         # gecko checkout
-        Required('comm-checkout', default=False): bool,
+        Optional('comm-checkout'): bool,
     }
 })
 
@@ -195,7 +192,7 @@ def make_repackage_description(config, jobs):
 def make_job_description(config, jobs):
     for job in jobs:
         dep_job = job['primary-dependency']
-        dependencies = {dep_job.attributes.get('kind'): dep_job.label}
+        dependencies = {dep_job.kind: dep_job.label}
 
         attributes = copy_attributes_from_dependent_job(dep_job)
         attributes['repackage_type'] = 'repackage'
@@ -205,10 +202,7 @@ def make_job_description(config, jobs):
             attributes['locale'] = locale
 
         treeherder = job.get('treeherder', {})
-        if attributes.get('nightly'):
-            treeherder.setdefault('symbol', 'Nr')
-        else:
-            treeherder.setdefault('symbol', 'Rpk')
+        treeherder.setdefault('symbol', 'Rpk')
         dep_th_platform = dep_job.task.get('extra', {}).get('treeherder-platform')
         treeherder.setdefault('platform', dep_th_platform)
         treeherder.setdefault('tier', 1)
@@ -306,8 +300,10 @@ def make_job_description(config, jobs):
             'description': description,
             'worker-type': worker_type,
             'dependencies': dependencies,
+            'if-dependencies': [dep_job.kind],
             'attributes': attributes,
             'run-on-projects': dep_job.attributes.get('run_on_projects'),
+            'optimization': dep_job.optimization,
             'treeherder': treeherder,
             'routes': job.get('routes', []),
             'extra': job.get('extra', {}),

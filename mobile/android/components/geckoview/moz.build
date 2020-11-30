@@ -4,6 +4,15 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+SOURCES += [
+    'GeckoViewExternalAppService.cpp',
+    'GeckoViewStreamListener.cpp'
+]
+EXPORTS += [
+    'GeckoViewExternalAppService.h',
+    'GeckoViewStreamListener.h'
+]
+
 if CONFIG['MOZ_ANDROID_HISTORY']:
     EXPORTS += [
         'GeckoViewHistory.h',
@@ -11,18 +20,27 @@ if CONFIG['MOZ_ANDROID_HISTORY']:
     SOURCES += [
         'GeckoViewHistory.cpp',
     ]
-    XPCOM_MANIFESTS += [
-        'components.conf',
-    ]
     include('/ipc/chromium/chromium-config.mozbuild')
+
+XPCOM_MANIFESTS += [
+    'components.conf',
+]
 
 EXTRA_COMPONENTS += [
     'GeckoView.manifest',
-    'GeckoViewExternalAppService.js',
-    'GeckoViewPermission.js',
-    'GeckoViewPrompt.js',
-    'GeckoViewPush.js',
-    'GeckoViewStartup.js',
+]
+
+EXTRA_JS_MODULES += [
+    'ColorPickerDelegate.jsm',
+    'FilePickerDelegate.jsm',
+    'GeckoViewPermission.jsm',
+    'GeckoViewPrompt.jsm',
+    'GeckoViewPrompter.jsm',
+    'GeckoViewPush.jsm',
+    'GeckoViewStartup.jsm',
+    'LoginStorageDelegate.jsm',
+    'PromptCollection.jsm',
+    'ShareDelegate.jsm',
 ]
 
 FINAL_LIBRARY = 'xul'

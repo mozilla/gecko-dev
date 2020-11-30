@@ -5,7 +5,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
+#include "js/Array.h"   // JS::GetArrayLength, JS::IsArrayObject
+#include "js/Object.h"  // JS::GetClass
 #include "jsapi-tests/tests.h"
 
 static bool constructHook(JSContext* cx, unsigned argc, JS::Value* vp) {
@@ -18,7 +19,7 @@ static bool constructHook(JSContext* cx, unsigned argc, JS::Value* vp) {
     JS_ReportErrorASCII(cx, "test failed, could not construct object");
     return false;
   }
-  if (strcmp(JS_GetClass(obj)->name, "Object") != 0) {
+  if (strcmp(JS::GetClass(obj)->name, "Object") != 0) {
     JS_ReportErrorASCII(cx, "test failed, wrong class for 'this'");
     return false;
   }
@@ -212,7 +213,7 @@ BEGIN_TEST(testNewObject_Subclassing) {
   CHECK_SAME(result, JS::TrueValue());
 
   EVAL("myObj", &result);
-  CHECK_EQUAL(JS_GetClass(&result.toObject()), &Base_class);
+  CHECK_EQUAL(JS::GetClass(&result.toObject()), &Base_class);
 
   return true;
 }

@@ -5,6 +5,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "gfxTelemetry.h"
 
+#include "mozilla/Assertions.h"
+
 namespace mozilla {
 namespace gfx {
 
@@ -56,8 +58,8 @@ const char* FeatureStatusToString(FeatureStatus aStatus) {
       return "blocked-release-channel-android";
     case FeatureStatus::Denied:
       return "denied";
-    case FeatureStatus::Blacklisted:
-      return "blacklisted";
+    case FeatureStatus::Blocklisted:
+      return "blocklisted";
     case FeatureStatus::OptIn:
       return "opt-in";
     case FeatureStatus::Failed:

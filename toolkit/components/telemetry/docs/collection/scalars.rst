@@ -18,8 +18,8 @@ The serialized scalar data is submitted with the :doc:`main pings <../data/main-
 
 The API
 =======
-Scalar probes can be managed either through the `nsITelemetry interface <https://dxr.mozilla.org/mozilla-central/source/toolkit/components/telemetry/core/nsITelemetry.idl>`_
-or the `C++ API <https://dxr.mozilla.org/mozilla-central/source/toolkit/components/telemetry/core/Telemetry.h>`_.
+Scalar probes can be managed either through the `nsITelemetry interface <https://searchfox.org/mozilla-central/source/toolkit/components/telemetry/core/nsITelemetry.idl>`_
+or the `C++ API <https://searchfox.org/mozilla-central/source/toolkit/components/telemetry/core/Telemetry.h>`_.
 
 JS API
 ------
@@ -36,7 +36,7 @@ Probes in privileged JavaScript code can use the following functions to manipula
   Services.telemetry.keyedScalarSetMaximum(aName, aKey, aValue);
 
 These functions can throw if, for example, an operation is performed on a scalar type that doesn't support it
-(e.g. calling scalarSetMaximum on a scalar of the string kind). Please look at the `code documentation <https://dxr.mozilla.org/mozilla-central/search?q=regexp%3ATelemetryScalar%3A%3A(Set%7CAdd)+file%3ATelemetryScalar.cpp&redirect=false>`_ for
+(e.g. calling scalarSetMaximum on a scalar of the string kind). Please look at the `code documentation <https://searchfox.org/mozilla-central/search?q=TelemetryScalar%3A%3A%28Set%7CAdd%29&path=TelemetryScalar.cpp&case=false&regexp=true>`_ for
 additional information.
 
 .. _registerscalars:
@@ -84,9 +84,12 @@ Example:
   // Now scalars can be recorded.
   Services.telemetry.scalarSet("myAddon.category.counter_scalar", 37);
 
+
+.. _scalars-c++-API:
+
 C++ API
 -------
-Probes in native code can use the more convenient helper functions declared in `Telemetry.h <https://dxr.mozilla.org/mozilla-central/source/toolkit/components/telemetry/core/Telemetry.h>`_:
+Probes in native code can use the more convenient helper functions declared in `Telemetry.h <https://searchfox.org/mozilla-central/source/toolkit/components/telemetry/core/Telemetry.h>`_:
 
 .. code-block:: cpp
 
@@ -108,7 +111,7 @@ Probes in native code can use the more convenient helper functions declared in `
 The YAML definition file
 ========================
 Scalar probes are required to be registered, both for validation and transparency reasons,
-in the `Scalars.yaml <https://dxr.mozilla.org/mozilla-central/source/toolkit/components/telemetry/Scalars.yaml>`_
+in the `Scalars.yaml <https://searchfox.org/mozilla-central/source/toolkit/components/telemetry/Scalars.yaml>`_
 definition file.
 
 The probes in the definition file are represented in a fixed-depth, two-level structure:
@@ -151,6 +154,8 @@ A probe can be defined as follows:
         notification_emails:
           - telemetry-client-dev@mozilla.com
 
+.. _scalars-required-fields:
+
 Required Fields
 ---------------
 
@@ -163,7 +168,7 @@ Required Fields
 
   - ``firefox`` - Collected in Firefox Desktop for submission via Firefox Telemetry.
   - ``fennec`` - Collected in Firefox for Android for submission via Firefox Mobile Telemetry.
-  - ``geckoview`` - Collected in GeckoView-based Android products and surfaced via `GeckoViewTelemetryController.jsm <https://hg.mozilla.org/mozilla-central/raw-file/tip/toolkit/components/telemetry/geckoview/GeckoViewTelemetryController.jsm>`__.
+  - ``geckoview_streaming`` - See :doc:`this guide <../start/report-gecko-telemetry-in-glean>` for how to stream data through geckoview to the Glean SDK.
 
 - ``record_in_processes``: A list of processes the scalar is allowed to record in. Currently supported values are:
 
@@ -194,7 +199,7 @@ String type restrictions
 To prevent abuses, the content of a string scalar is limited to 50 characters in length. Trying
 to set a longer string will result in an error and no string being set.
 
-.. _scalars.keyed-scalars:
+.. _scalars-keyed-scalars:
 
 Keyed Scalars
 -------------
@@ -238,7 +243,7 @@ Making a scalar measurement is a two step process:
 
 Registering the scalar
 ----------------------
-Let's start by registering two probes in the `Scalars.yaml <https://dxr.mozilla.org/mozilla-central/source/toolkit/components/telemetry/Scalars.yaml>`_ definition file: a simple boolean scalar and a keyed unsigned scalar.
+Let's start by registering two probes in the `Scalars.yaml <https://searchfox.org/mozilla-central/source/toolkit/components/telemetry/Scalars.yaml>`_ definition file: a simple boolean scalar and a keyed unsigned scalar.
 
 .. code-block:: yaml
 
@@ -289,7 +294,7 @@ Changing the demo scalars from privileged JavaScript code is straightforward:
   // "ui.download_button_activated" scalar, by 1.
   Services.telemetry.keyedScalarAdd("ui.download_button_activated", "mouse_click", 1);
 
-More usage examples can be found in the tests covering the `JS Scalars API <https://dxr.mozilla.org/mozilla-central/source/toolkit/components/telemetry/tests/unit/test_TelemetryScalars.js>`_ and `child processes scalars <https://dxr.mozilla.org/mozilla-central/source/toolkit/components/telemetry/tests/unit/test_ChildScalars.js>`_.
+More usage examples can be found in the tests covering the `JS Scalars API <https://searchfox.org/mozilla-central/source/toolkit/components/telemetry/tests/unit/test_TelemetryScalars.js>`_ and `child processes scalars <https://searchfox.org/mozilla-central/source/toolkit/components/telemetry/tests/unit/test_ChildScalars.js>`_.
 
 Using the C++ API
 -----------------
@@ -300,15 +305,16 @@ Native code can take advantage of Scalars as well, by including the ``Telemetry.
     Telemetry::ScalarSet(Telemetry::ScalarID::PROFILE_WAS_RESET, false);
 
     Telemetry::ScalarAdd(Telemetry::ScalarID::UI_DOWNLOAD_BUTTON_ACTIVATED,
-                         NS_LITERAL_STRING("touchscreen"), 1);
+                         u"touchscreen"_ns, 1);
 
-The ``ScalarID`` enum is automatically generated by the build process, with an example being available `here <https://dxr.mozilla.org/mozilla-central/search?q=path%3ATelemetryScalarEnums.h&redirect=false>`_ .
+The ``ScalarID`` enum is automatically generated by the build process, with an example being available `here <https://searchfox.org/mozilla-central/search?q=path%3ATelemetryScalarEnums.h&redirect=false>`_ .
 
-Other examples can be found in the `test coverage <https://dxr.mozilla.org/mozilla-central/source/toolkit/components/telemetry/tests/gtest/TestScalars.cpp>`_ for the scalars C++ API.
+Other examples can be found in the `test coverage <https://searchfox.org/mozilla-central/source/toolkit/components/telemetry/tests/gtest/TestScalars.cpp>`_ for the scalars C++ API.
 
 Version History
 ===============
 
+- Firefox 79:  ``geckoview`` support removed (see `bug 1620395 <https://bugzilla.mozilla.org/show_bug.cgi?id=1620395>`__).
 - Firefox 50: Initial scalar support (`bug 1276195 <https://bugzilla.mozilla.org/show_bug.cgi?id=1276195>`_).
 - Firefox 51: Added keyed scalars (`bug 1277806 <https://bugzilla.mozilla.org/show_bug.cgi?id=1277806>`_).
 - Firefox 53: Added child process scalars (`bug 1278556 <https://bugzilla.mozilla.org/show_bug.cgi?id=1278556>`_).

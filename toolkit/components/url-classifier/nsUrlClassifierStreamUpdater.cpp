@@ -24,6 +24,7 @@
 #include "nsIInterfaceRequestor.h"
 #include "mozilla/LoadContext.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/StaticPrefs_urlclassifier.h"
 #include "nsContentUtils.h"
 #include "nsIURLFormatter.h"
 #include "Classifier.h"
@@ -32,15 +33,9 @@
 using namespace mozilla::safebrowsing;
 using namespace mozilla;
 
-#define DEFAULT_RESPONSE_TIMEOUT_MS 15 * 1000
-#define DEFAULT_TIMEOUT_MS 60 * 1000
-static_assert(DEFAULT_TIMEOUT_MS > DEFAULT_RESPONSE_TIMEOUT_MS,
-              "General timeout must be greater than reponse timeout");
+#define MIN_TIMEOUT_MS (60 * 1000)
 
 static const char* gQuitApplicationMessage = "quit-application";
-
-static uint32_t sResponseTimeoutMs = DEFAULT_RESPONSE_TIMEOUT_MS;
-static uint32_t sTimeoutMs = DEFAULT_TIMEOUT_MS;
 
 // Limit the list file size to 32mb
 const uint32_t MAX_FILE_SIZE = (32 * 1024 * 1024);
@@ -74,7 +69,7 @@ static MOZ_FORMAT_PRINTF(1, 2) void TrimAndLog(const char* aFmt, ...) {
   nsString trimmed;
   nsresult rv = urlFormatter->TrimSensitiveURLs(raw, trimmed);
   if (NS_FAILED(rv)) {
-    trimmed = EmptyString();
+    trimmed.Truncate();
   }
 
   // Use %s so we aren't exposing random strings to printf interpolation.
@@ -134,7 +129,7 @@ nsresult nsUrlClassifierStreamUpdater::FetchUpdate(
                        nsIChannel::LOAD_BYPASS_URL_CLASSIFIER;
   rv = NS_NewChannel(getter_AddRefs(mChannel), aUpdateUrl,
                      nsContentUtils::GetSystemPrincipal(),
-                     nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+                     nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
                      nsIContentPolicy::TYPE_OTHER,
                      nullptr,  // nsICookieJarSettings
                      nullptr,  // aPerformanceStorage
@@ -148,6 +143,8 @@ nsresult nsUrlClassifierStreamUpdater::FetchUpdate(
   mozilla::OriginAttributes attrs;
   attrs.mFirstPartyDomain.AssignLiteral(NECKO_SAFEBROWSING_FIRST_PARTY_DOMAIN);
   loadInfo->SetOriginAttributes(attrs);
+  // allow deprecated HTTP request from SystemPrincipal
+  loadInfo->SetAllowDeprecatedSystemRequests(true);
 
   mBeganStream = false;
 
@@ -165,9 +162,8 @@ nsresult nsUrlClassifierStreamUpdater::FetchUpdate(
     nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(mChannel, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = httpChannel->SetRequestHeader(
-        NS_LITERAL_CSTRING("X-HTTP-Method-Override"),
-        NS_LITERAL_CSTRING("POST"), false);
+    rv = httpChannel->SetRequestHeader("X-HTTP-Method-Override"_ns, "POST"_ns,
+                                       false);
     NS_ENSURE_SUCCESS(rv, rv);
   } else if (!aRequestPayload.IsEmpty()) {
     rv = AddRequestBody(aRequestPayload);
@@ -178,16 +174,14 @@ nsresult nsUrlClassifierStreamUpdater::FetchUpdate(
   // purposes.
   // This is only used for testing and should be deleted.
   if (aUpdateUrl->SchemeIs("file") || aUpdateUrl->SchemeIs("data")) {
-    mChannel->SetContentType(
-        NS_LITERAL_CSTRING("application/vnd.google.safebrowsing-update"));
+    mChannel->SetContentType("application/vnd.google.safebrowsing-update"_ns);
   } else {
     // We assume everything else is an HTTP request.
 
     // Disable keepalive.
     nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(mChannel, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = httpChannel->SetRequestHeader(NS_LITERAL_CSTRING("Connection"),
-                                       NS_LITERAL_CSTRING("close"), false);
+    rv = httpChannel->SetRequestHeader("Connection"_ns, "close"_ns, false);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -198,33 +192,26 @@ nsresult nsUrlClassifierStreamUpdater::FetchUpdate(
   mTelemetryClockStart = PR_IntervalNow();
   mStreamTable = aStreamTable;
 
-  static bool preferencesInitialized = false;
-
-  if (!preferencesInitialized) {
-    mozilla::Preferences::AddUintVarCache(
-        &sTimeoutMs, "urlclassifier.update.timeout_ms", DEFAULT_TIMEOUT_MS);
-    mozilla::Preferences::AddUintVarCache(
-        &sResponseTimeoutMs, "urlclassifier.update.response_timeout_ms",
-        DEFAULT_RESPONSE_TIMEOUT_MS);
-    preferencesInitialized = true;
-  }
-
-  if (sResponseTimeoutMs > sTimeoutMs) {
+  if (StaticPrefs::urlclassifier_update_response_timeout_ms() >
+      StaticPrefs::urlclassifier_update_timeout_ms()) {
     NS_WARNING(
         "Safe Browsing response timeout is greater than the general "
         "timeout. Disabling these update timeouts.");
     return NS_OK;
   }
   MOZ_TRY_VAR(mResponseTimeoutTimer,
-              NS_NewTimerWithCallback(this, sResponseTimeoutMs,
-                                      nsITimer::TYPE_ONE_SHOT));
+              NS_NewTimerWithCallback(
+                  this, StaticPrefs::urlclassifier_update_response_timeout_ms(),
+                  nsITimer::TYPE_ONE_SHOT));
 
-  MOZ_TRY_VAR(mTimeoutTimer, NS_NewTimerWithCallback(this, sTimeoutMs,
-                                                     nsITimer::TYPE_ONE_SHOT));
+  MOZ_TRY_VAR(mTimeoutTimer,
+              NS_NewTimerWithCallback(
+                  this, StaticPrefs::urlclassifier_update_timeout_ms(),
+                  nsITimer::TYPE_ONE_SHOT));
 
-  if (sTimeoutMs < DEFAULT_TIMEOUT_MS) {
+  if (StaticPrefs::urlclassifier_update_timeout_ms() < MIN_TIMEOUT_MS) {
     LOG(("Download update timeout %d ms (< %d ms) would be too small",
-         sTimeoutMs, DEFAULT_TIMEOUT_MS));
+         StaticPrefs::urlclassifier_update_timeout_ms(), MIN_TIMEOUT_MS));
   }
 
   return NS_OK;
@@ -334,7 +321,7 @@ nsUrlClassifierStreamUpdater::DownloadUpdates(
 
   nsTArray<nsCString> tables;
   mozilla::safebrowsing::Classifier::SplitTables(aRequestTables, tables);
-  urlUtil->GetTelemetryProvider(tables.SafeElementAt(0, EmptyCString()),
+  urlUtil->GetTelemetryProvider(tables.SafeElementAt(0, ""_ns),
                                 mTelemetryProvider);
 
   mCurrentRequest = MakeUnique<UpdateRequest>();
@@ -347,8 +334,7 @@ nsUrlClassifierStreamUpdater::DownloadUpdates(
 
   LOG(("FetchUpdate: %s", mCurrentRequest->mUrl.Data()));
 
-  return FetchUpdate(aUpdateUrl, aRequestPayload, aIsPostRequest,
-                     EmptyCString());
+  return FetchUpdate(aUpdateUrl, aRequestPayload, aIsPostRequest, ""_ns);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -365,17 +351,17 @@ nsUrlClassifierStreamUpdater::UpdateUrlRequested(const nsACString& aUrl,
   }
 
   // Allow data: and file: urls for unit testing purposes, otherwise assume http
-  if (StringBeginsWith(aUrl, NS_LITERAL_CSTRING("data:")) ||
-      StringBeginsWith(aUrl, NS_LITERAL_CSTRING("file:"))) {
+  if (StringBeginsWith(aUrl, "data:"_ns) ||
+      StringBeginsWith(aUrl, "file:"_ns)) {
     update->mUrl = aUrl;
   } else {
     // For unittesting update urls to localhost should use http, not https
     // (otherwise the connection will fail silently, since there will be no
     // cert available).
-    if (!StringBeginsWith(aUrl, NS_LITERAL_CSTRING("localhost"))) {
-      update->mUrl = NS_LITERAL_CSTRING("https://") + aUrl;
+    if (!StringBeginsWith(aUrl, "localhost"_ns)) {
+      update->mUrl = "https://"_ns + aUrl;
     } else {
-      update->mUrl = NS_LITERAL_CSTRING("http://") + aUrl;
+      update->mUrl = "http://"_ns + aUrl;
     }
   }
   update->mTable = aTable;
@@ -391,7 +377,7 @@ nsresult nsUrlClassifierStreamUpdater::FetchNext() {
   PendingUpdate& update = mPendingUpdates[0];
   LOG(("Fetching update url: %s\n", update.mUrl.get()));
   nsresult rv =
-      FetchUpdate(update.mUrl, EmptyCString(),
+      FetchUpdate(update.mUrl, ""_ns,
                   true,  // This method is for v2 and v2 is always a POST.
                   update.mTable);
   if (NS_FAILED(rv)) {
@@ -506,7 +492,7 @@ nsUrlClassifierStreamUpdater::UpdateSuccess(uint32_t requestedTimeout) {
     successCallback->HandleEvent(strTimeout);
   } else if (downloadErrorCallback) {
     downloadErrorCallback->HandleEvent(mDownloadErrorStatusStr);
-    mDownloadErrorStatusStr = EmptyCString();
+    mDownloadErrorStatusStr.Truncate();
     LOG(("Notify download error callback in UpdateSuccess [this=%p]", this));
   }
   // Now fetch the next request
@@ -534,7 +520,7 @@ nsUrlClassifierStreamUpdater::UpdateError(nsresult result) {
   } else if (downloadErrorCallback) {
     LOG(("Notify download error callback in UpdateError [this=%p]", this));
     downloadErrorCallback->HandleEvent(mDownloadErrorStatusStr);
-    mDownloadErrorStatusStr = EmptyCString();
+    mDownloadErrorStatusStr.Truncate();
   }
 
   return NS_OK;
@@ -553,14 +539,13 @@ nsresult nsUrlClassifierStreamUpdater::AddRequestBody(
   nsCOMPtr<nsIUploadChannel> uploadChannel = do_QueryInterface(mChannel, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = uploadChannel->SetUploadStream(strStream,
-                                      NS_LITERAL_CSTRING("text/plain"), -1);
+  rv = uploadChannel->SetUploadStream(strStream, "text/plain"_ns, -1);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(mChannel, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = httpChannel->SetRequestMethod(NS_LITERAL_CSTRING("POST"));
+  rv = httpChannel->SetRequestMethod("POST"_ns);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;

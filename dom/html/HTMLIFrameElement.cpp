@@ -66,11 +66,8 @@ HTMLIFrameElement::~HTMLIFrameElement() = default;
 
 NS_IMPL_ELEMENT_CLONE(HTMLIFrameElement)
 
-void HTMLIFrameElement::BindToBrowsingContext(
-    BrowsingContext* aBrowsingContext) {
-  if (StaticPrefs::dom_security_featurePolicy_enabled()) {
-    RefreshFeaturePolicy(true /* parse the feature policy attribute */);
-  }
+void HTMLIFrameElement::BindToBrowsingContext(BrowsingContext*) {
+  RefreshFeaturePolicy(true /* parse the feature policy attribute */);
 }
 
 bool HTMLIFrameElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
@@ -171,14 +168,11 @@ nsresult HTMLIFrameElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
       }
     }
 
-    if (StaticPrefs::dom_security_featurePolicy_enabled()) {
-      if (aName == nsGkAtoms::allow || aName == nsGkAtoms::src ||
-          aName == nsGkAtoms::srcdoc || aName == nsGkAtoms::sandbox) {
-        RefreshFeaturePolicy(true /* parse the feature policy attribute */);
-      } else if (aName == nsGkAtoms::allowfullscreen ||
-                 aName == nsGkAtoms::allowpaymentrequest) {
-        RefreshFeaturePolicy(false /* parse the feature policy attribute */);
-      }
+    if (aName == nsGkAtoms::allow || aName == nsGkAtoms::src ||
+        aName == nsGkAtoms::srcdoc || aName == nsGkAtoms::sandbox) {
+      RefreshFeaturePolicy(true /* parse the feature policy attribute */);
+    } else if (aName == nsGkAtoms::allowfullscreen) {
+      RefreshFeaturePolicy(false /* parse the feature policy attribute */);
     }
   }
   return nsGenericHTMLFrameElement::AfterSetAttr(
@@ -256,7 +250,8 @@ void HTMLIFrameElement::MaybeStoreCrossOriginFeaturePolicy() {
     return;
   }
 
-  browsingContext->SetFeaturePolicy(mFeaturePolicy);
+  // Return value of setting synced field should be checked. See bug 1656492.
+  Unused << browsingContext->SetFeaturePolicy(mFeaturePolicy);
 }
 
 already_AddRefed<nsIPrincipal>
@@ -282,8 +277,6 @@ HTMLIFrameElement::GetFeaturePolicyDefaultOrigin() const {
 }
 
 void HTMLIFrameElement::RefreshFeaturePolicy(bool aParseAllowAttribute) {
-  MOZ_ASSERT(StaticPrefs::dom_security_featurePolicy_enabled());
-
   if (aParseAllowAttribute) {
     mFeaturePolicy->ResetDeclaredPolicy();
 
@@ -302,12 +295,8 @@ void HTMLIFrameElement::RefreshFeaturePolicy(bool aParseAllowAttribute) {
     }
   }
 
-  if (AllowPaymentRequest()) {
-    mFeaturePolicy->MaybeSetAllowedPolicy(NS_LITERAL_STRING("payment"));
-  }
-
   if (AllowFullscreen()) {
-    mFeaturePolicy->MaybeSetAllowedPolicy(NS_LITERAL_STRING("fullscreen"));
+    mFeaturePolicy->MaybeSetAllowedPolicy(u"fullscreen"_ns);
   }
 
   mFeaturePolicy->InheritPolicy(OwnerDoc()->FeaturePolicy());

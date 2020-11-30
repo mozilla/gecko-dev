@@ -6,6 +6,8 @@
 let engine;
 let originalDefaultEngine;
 
+SearchTestUtils.initXPCShellAddonManager(this);
+
 /**
  * A simple observer to ensure we get only the expected notifications.
  */
@@ -67,13 +69,9 @@ add_task(async function setup() {
   originalDefaultEngine = await Services.search.getDefault();
 });
 
-add_task(async function test_addingEngine() {
+add_task(async function test_addingEngine_opensearch() {
   const addEngineObserver = new SearchObserver(
     [
-      // engine-changed
-      // While we're installing the engine, we modify it, which notifies.
-      // See bug 606886.
-      SearchUtils.MODIFIED_TYPE.CHANGED,
       // engine-loaded
       // Engine was loaded.
       SearchUtils.MODIFIED_TYPE.LOADED,
@@ -84,12 +82,34 @@ add_task(async function test_addingEngine() {
     true
   );
 
-  await Services.search.addEngine(gDataUrl + "engine.xml", null, false);
+  await Services.search.addOpenSearchEngine(gDataUrl + "engine.xml", null);
 
   engine = await addEngineObserver.promise;
 
   let retrievedEngine = Services.search.getEngineByName("Test search engine");
   Assert.equal(engine, retrievedEngine);
+});
+
+add_task(async function test_addingEngine_webExtension() {
+  const addEngineObserver = new SearchObserver(
+    [
+      // engine-added
+      // Engine was added to the store by the search service.
+      SearchUtils.MODIFIED_TYPE.ADDED,
+    ],
+    true
+  );
+
+  let extension = await SearchTestUtils.installSearchExtension({
+    name: "Example Engine",
+  });
+  await extension.awaitStartup();
+
+  let webExtensionEngine = await addEngineObserver.promise;
+
+  let retrievedEngine = Services.search.getEngineByName("Example Engine");
+  Assert.equal(webExtensionEngine, retrievedEngine);
+  await extension.unload();
 });
 
 async function defaultNotificationTest(

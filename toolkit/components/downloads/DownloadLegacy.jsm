@@ -19,6 +19,11 @@ ChromeUtils.defineModuleGetter(
   "Downloads",
   "resource://gre/modules/Downloads.jsm"
 );
+ChromeUtils.defineModuleGetter(
+  this,
+  "DownloadError",
+  "resource://gre/modules/DownloadCore.jsm"
+);
 
 /**
  * nsITransfer implementation that provides a bridge to a Download object.
@@ -56,9 +61,9 @@ DownloadLegacyTransfer.prototype = {
   classID: Components.ID("{1b4c85df-cbdd-4bb6-b04e-613caece083c}"),
 
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIWebProgressListener,
-    Ci.nsIWebProgressListener2,
-    Ci.nsITransfer,
+    "nsIWebProgressListener",
+    "nsIWebProgressListener2",
+    "nsITransfer",
   ]),
 
   // nsIWebProgressListener
@@ -117,11 +122,6 @@ DownloadLegacyTransfer.prototype = {
             // Only cancel if the object executing the download is still running.
             if (this._cancelable && !this._componentFailed) {
               this._cancelable.cancel(Cr.NS_ERROR_ABORT);
-              if (this._cancelable instanceof Ci.nsIWebBrowserPersist) {
-                // This component will not send the STATE_STOP notification.
-                download.saver.onTransferFinished(Cr.NS_ERROR_ABORT);
-                this._cancelable = null;
-              }
             }
           });
         })
@@ -269,9 +269,79 @@ DownloadLegacyTransfer.prototype = {
     aStartTime,
     aTempFile,
     aCancelable,
-    aIsPrivate
+    aIsPrivate,
+    aDownloadClassification
   ) {
-    this._cancelable = aCancelable;
+    return this._nsITransferInitInternal(
+      aSource,
+      aTarget,
+      aDisplayName,
+      aMIMEInfo,
+      aStartTime,
+      aTempFile,
+      aCancelable,
+      aIsPrivate,
+      aDownloadClassification
+    );
+  },
+
+  // nsITransfer
+  initWithBrowsingContext(
+    aSource,
+    aTarget,
+    aDisplayName,
+    aMIMEInfo,
+    aStartTime,
+    aTempFile,
+    aCancelable,
+    aIsPrivate,
+    aDownloadClassification,
+    aBrowsingContext,
+    aHandleInternally
+  ) {
+    let browsingContextId;
+    let userContextId;
+    if (aBrowsingContext && aBrowsingContext.currentWindowGlobal) {
+      browsingContextId = aBrowsingContext.id;
+      let windowGlobal = aBrowsingContext.currentWindowGlobal;
+      let originAttributes = windowGlobal.documentPrincipal.originAttributes;
+      userContextId = originAttributes.userContextId;
+    }
+    return this._nsITransferInitInternal(
+      aSource,
+      aTarget,
+      aDisplayName,
+      aMIMEInfo,
+      aStartTime,
+      aTempFile,
+      aCancelable,
+      aIsPrivate,
+      aDownloadClassification,
+      userContextId,
+      browsingContextId,
+      aHandleInternally
+    );
+  },
+
+  _nsITransferInitInternal(
+    aSource,
+    aTarget,
+    aDisplayName,
+    aMIMEInfo,
+    aStartTime,
+    aTempFile,
+    aCancelable,
+    isPrivate,
+    aDownloadClassification,
+    userContextId = 0,
+    browsingContextId = 0,
+    handleInternally = false
+  ) {
+    if (aDownloadClassification == Ci.nsITransfer.DOWNLOAD_ACCEPTABLE) {
+      // Only keep a refrence if it acceptable, as the download was canceled
+      // already if it isn't.
+      this._cancelable = aCancelable;
+    }
 
     let launchWhenSucceeded = false,
       contentType = null,
@@ -290,12 +360,16 @@ DownloadLegacyTransfer.prototype = {
         launcherPath = appHandler.executable.path;
       }
     }
-
     // Create a new Download object associated to a DownloadLegacySaver, and
     // wait for it to be available.  This operation may cause the entire
     // download system to initialize before the object is created.
-    Downloads.createDownload({
-      source: { url: aSource.spec, isPrivate: aIsPrivate },
+    let serialisedDownload = {
+      source: {
+        url: aSource.spec,
+        isPrivate,
+        userContextId,
+        browsingContextId,
+      },
       target: {
         path: aTarget.QueryInterface(Ci.nsIFileURL).file.path,
         partFilePath: aTempFile && aTempFile.path,
@@ -304,8 +378,21 @@ DownloadLegacyTransfer.prototype = {
       launchWhenSucceeded,
       contentType,
       launcherPath,
-    })
-      .then(aDownload => {
+      handleInternally,
+    };
+
+    // In case the Download was classified as insecure/dangerous
+    // it is already canceled, so we need to generate and attach the
+    // corresponding error to the download.
+    if (aDownloadClassification == Ci.nsITransfer.DOWNLOAD_POTENTIALLY_UNSAFE) {
+      serialisedDownload.errorObj = {
+        becauseBlockedByReputationCheck: true,
+        reputationCheckVerdict: DownloadError.BLOCK_VERDICT_INSECURE,
+      };
+    }
+
+    Downloads.createDownload(serialisedDownload)
+      .then(async aDownload => {
         // Legacy components keep partial data when they use a ".part" file.
         if (aTempFile) {
           aDownload.tryToKeepPartialData = true;
@@ -319,9 +406,14 @@ DownloadLegacyTransfer.prototype = {
         this._resolveDownload(aDownload);
 
         // Add the download to the list, allowing it to be seen and canceled.
-        return Downloads.getList(Downloads.ALL).then(list =>
-          list.add(aDownload)
-        );
+        await (await Downloads.getList(Downloads.ALL)).add(aDownload);
+        if (serialisedDownload.errorObj) {
+          // In case we added an already canceled dummy download
+          // we need to manually trigger a change event
+          // as all the animations for finishing downloads are
+          // listening on onChange.
+          aDownload._notifyChange();
+        }
       })
       .catch(Cu.reportError);
   },

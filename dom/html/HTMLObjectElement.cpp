@@ -49,12 +49,12 @@ HTMLObjectElement::~HTMLObjectElement() {
   OnFocusBlurPlugin(this, false);
 #endif
   UnregisterActivityObserver();
-  DestroyImageLoadingContent();
+  nsImageLoadingContent::Destroy();
 }
 
-bool HTMLObjectElement::IsInteractiveHTMLContent(bool aIgnoreTabindex) const {
+bool HTMLObjectElement::IsInteractiveHTMLContent() const {
   return HasAttr(kNameSpaceID_None, nsGkAtoms::usemap) ||
-         nsGenericHTMLFormElement::IsInteractiveHTMLContent(aIgnoreTabindex);
+         nsGenericHTMLFormElement::IsInteractiveHTMLContent();
 }
 
 void HTMLObjectElement::AsyncEventRunning(AsyncEventDispatcher* aEvent) {
@@ -447,7 +447,7 @@ uint32_t HTMLObjectElement::GetCapabilities() const {
 }
 
 void HTMLObjectElement::DestroyContent() {
-  nsObjectLoadingContent::DestroyContent();
+  nsObjectLoadingContent::Destroy();
   nsGenericHTMLFormElement::DestroyContent();
 }
 

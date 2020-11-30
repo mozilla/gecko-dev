@@ -4,7 +4,7 @@
 
 "use strict";
 
-var EXPORTED_SYMBOLS = ["AsyncPrefs"];
+var EXPORTED_SYMBOLS = ["AsyncPrefs", "AsyncPrefsChild", "AsyncPrefsParent"];
 
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
@@ -18,8 +18,40 @@ const kAllowedPrefs = new Set([
   "testing.allowed-prefs.some-char-pref",
   "testing.allowed-prefs.some-int-pref",
 
+  "browser.contentblocking.report.hide_lockwise_app",
+  "browser.contentblocking.report.hide_vpn_banner",
+  "browser.contentblocking.report.show_mobile_app",
+
   "narrate.rate",
   "narrate.voice",
+
+  "pdfjs.cursorToolOnLoad",
+  "pdfjs.database",
+  "pdfjs.defaultZoomValue",
+  "pdfjs.disablePageLabels",
+  "pdfjs.enabledCache.state",
+  "pdfjs.enablePermissions",
+  "pdfjs.enablePrintAutoRotate",
+  "pdfjs.enableWebGL",
+  "pdfjs.externalLinkTarget",
+  "pdfjs.historyUpdateUrl",
+  "pdfjs.ignoreDestinationZoom",
+  "pdfjs..migrationVersion",
+  "pdfjs.pdfBugEnabled",
+  "pdfjs.previousHandler.alwaysAskBeforeHandling",
+  "pdfjs.previousHandler.preferredAction",
+  "pdfjs.renderer",
+  "pdfjs.renderInteractiveForms",
+  "pdfjs.sidebarViewOnLoad",
+  "pdfjs.scrollModeOnLoad",
+  "pdfjs.spreadModeOnLoad",
+  "pdfjs.textLayerMode",
+  "pdfjs.useOnlyCssZoom",
+  "pdfjs.viewOnLoad",
+  "pdfjs.disableAutoFetch",
+  "pdfjs.disableFontFace",
+  "pdfjs.disableRange",
+  "pdfjs.disableStream",
 
   "reader.font_size",
   "reader.font_type",
@@ -29,8 +61,7 @@ const kAllowedPrefs = new Set([
 
   "security.ssl.errorReporting.automatic",
   "security.tls.version.enable-deprecated",
-  "browser.contentblocking.report.hide_lockwise_app",
-  "browser.contentblocking.report.show_mobile_app",
+  "security.xfocsp.errorReporting.automatic",
 ]);
 
 const kPrefTypeMap = new Map([
@@ -65,146 +96,90 @@ function maybeReturnErrorForSet(pref, value) {
   return false;
 }
 
-var AsyncPrefs;
-if (kInChildProcess) {
-  let gUniqueId = 0;
-  let gMsgMap = new Map();
+class AsyncPrefsChild extends JSProcessActorChild {
+  set(pref, value) {
+    let error = maybeReturnErrorForSet(pref, value);
+    if (error) {
+      return Promise.reject(error);
+    }
 
-  AsyncPrefs = {
-    set(pref, value) {
-      let error = maybeReturnErrorForSet(pref, value);
-      if (error) {
-        return Promise.reject(error);
-      }
+    return this.sendQuery("AsyncPrefs:SetPref", {
+      pref,
+      value,
+    });
+  }
 
-      let msgId = ++gUniqueId;
-      return new Promise((resolve, reject) => {
-        gMsgMap.set(msgId, { resolve, reject });
-        Services.cpmm.sendAsyncMessage("AsyncPrefs:SetPref", {
-          pref,
-          value,
-          msgId,
-        });
-      });
-    },
+  reset(pref) {
+    let error = maybeReturnErrorForReset(pref);
+    if (error) {
+      return Promise.reject(error);
+    }
 
-    reset(pref) {
-      let error = maybeReturnErrorForReset(pref);
-      if (error) {
-        return Promise.reject(error);
-      }
+    return this.sendQuery("AsyncPrefs:ResetPref", { pref });
+  }
+}
 
-      let msgId = ++gUniqueId;
-      return new Promise((resolve, reject) => {
-        gMsgMap.set(msgId, { resolve, reject });
-        Services.cpmm.sendAsyncMessage("AsyncPrefs:ResetPref", { pref, msgId });
-      });
-    },
+var AsyncPrefs = {
+  set(pref, value) {
+    if (kInChildProcess) {
+      return ChromeUtils.domProcessChild
+        .getActor("AsyncPrefs")
+        .set(pref, value);
+    }
+    return AsyncPrefsParent.set(pref, value);
+  },
 
-    receiveMessage(msg) {
-      let promiseRef = gMsgMap.get(msg.data.msgId);
-      if (promiseRef) {
-        gMsgMap.delete(msg.data.msgId);
-        if (msg.data.success) {
-          promiseRef.resolve();
-        } else {
-          promiseRef.reject(msg.data.message);
-        }
-      }
-    },
-  };
+  reset(pref, value) {
+    if (kInChildProcess) {
+      return ChromeUtils.domProcessChild.getActor("AsyncPrefs").reset(pref);
+    }
+    return AsyncPrefsParent.reset(pref);
+  },
+};
 
-  Services.cpmm.addMessageListener("AsyncPrefs:PrefSetFinished", AsyncPrefs);
-  Services.cpmm.addMessageListener("AsyncPrefs:PrefResetFinished", AsyncPrefs);
-} else {
-  AsyncPrefs = {
-    methodForType: {
-      number: "setIntPref",
-      boolean: "setBoolPref",
-      string: "setCharPref",
-    },
+const methodForType = {
+  number: "setIntPref",
+  boolean: "setBoolPref",
+  string: "setCharPref",
+};
 
-    set(pref, value) {
-      let error = maybeReturnErrorForSet(pref, value);
-      if (error) {
-        return Promise.reject(error);
-      }
-      let methodToUse = this.methodForType[typeof value];
-      try {
-        Services.prefs[methodToUse](pref, value);
-        return Promise.resolve(value);
-      } catch (ex) {
-        Cu.reportError(ex);
-        return Promise.reject(ex.message);
-      }
-    },
+class AsyncPrefsParent extends JSProcessActorParent {
+  static set(pref, value) {
+    let error = maybeReturnErrorForSet(pref, value);
+    if (error) {
+      return Promise.reject(error);
+    }
+    let methodToUse = methodForType[typeof value];
+    try {
+      Services.prefs[methodToUse](pref, value);
+    } catch (ex) {
+      Cu.reportError(ex);
+      return Promise.reject(ex.message);
+    }
 
-    reset(pref) {
-      let error = maybeReturnErrorForReset(pref);
-      if (error) {
-        return Promise.reject(error);
-      }
+    return Promise.resolve(value);
+  }
 
-      try {
-        Services.prefs.clearUserPref(pref);
-        return Promise.resolve();
-      } catch (ex) {
-        Cu.reportError(ex);
-        return Promise.reject(ex.message);
-      }
-    },
+  static reset(pref) {
+    let error = maybeReturnErrorForReset(pref);
+    if (error) {
+      return Promise.reject(error);
+    }
 
-    receiveMessage(msg) {
-      if (msg.name == "AsyncPrefs:SetPref") {
-        this.onPrefSet(msg);
-      } else {
-        this.onPrefReset(msg);
-      }
-    },
+    try {
+      Services.prefs.clearUserPref(pref);
+    } catch (ex) {
+      Cu.reportError(ex);
+      return Promise.reject(ex.message);
+    }
 
-    onPrefReset(msg) {
-      let { pref, msgId } = msg.data;
-      this.reset(pref).then(
-        function() {
-          msg.target.sendAsyncMessage("AsyncPrefs:PrefResetFinished", {
-            msgId,
-            success: true,
-          });
-        },
-        function(msg) {
-          msg.target.sendAsyncMessage("AsyncPrefs:PrefResetFinished", {
-            msgId,
-            success: false,
-            message: msg,
-          });
-        }
-      );
-    },
+    return Promise.resolve();
+  }
 
-    onPrefSet(msg) {
-      let { pref, value, msgId } = msg.data;
-      this.set(pref, value).then(
-        function() {
-          msg.target.sendAsyncMessage("AsyncPrefs:PrefSetFinished", {
-            msgId,
-            success: true,
-          });
-        },
-        function(msg) {
-          msg.target.sendAsyncMessage("AsyncPrefs:PrefSetFinished", {
-            msgId,
-            success: false,
-            message: msg,
-          });
-        }
-      );
-    },
-
-    init() {
-      // PLEASE KEEP THIS LIST IN SYNC WITH THE LISTENERS ADDED IN nsBrowserGlue
-      Services.ppmm.addMessageListener("AsyncPrefs:SetPref", this);
-      Services.ppmm.addMessageListener("AsyncPrefs:ResetPref", this);
-      // PLEASE KEEP THIS LIST IN SYNC WITH THE LISTENERS ADDED IN nsBrowserGlue
-    },
-  };
+  receiveMessage(msg) {
+    if (msg.name == "AsyncPrefs:SetPref") {
+      return AsyncPrefsParent.set(msg.data.pref, msg.data.value);
+    }
+    return AsyncPrefsParent.reset(msg.data.pref);
+  }
 }

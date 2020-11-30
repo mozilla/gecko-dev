@@ -18,17 +18,18 @@
 #include "nsIDocShell.h"
 #include "nsILoadContext.h"
 #include "mozilla/dom/Element.h"
+#include "DesktopBackgroundImage.h"
 
 #include <Carbon/Carbon.h>
 #include <CoreFoundation/CoreFoundation.h>
 #include <ApplicationServices/ApplicationServices.h>
 
 using mozilla::dom::Element;
+using mozilla::widget::SetDesktopImage;
 
-#define NETWORK_PREFPANE \
-  NS_LITERAL_CSTRING("/System/Library/PreferencePanes/Network.prefPane")
+#define NETWORK_PREFPANE "/System/Library/PreferencePanes/Network.prefPane"_ns
 #define DESKTOP_PREFPANE \
-  NS_LITERAL_CSTRING(    \
+  nsLiteralCString(      \
       "/System/Library/PreferencePanes/DesktopScreenEffectsPref.prefPane")
 
 #define SAFARI_BUNDLE_IDENTIFIER "com.apple.Safari"
@@ -150,9 +151,8 @@ nsMacShellService::SetDesktopBackground(Element* aElement, int32_t aPosition,
     loadContext = do_QueryInterface(docShell);
   }
 
-  nsCOMPtr<nsIReferrerInfo> referrerInfo = new mozilla::dom::ReferrerInfo();
-  referrerInfo->InitWithNode(aElement);
-
+  auto referrerInfo =
+      mozilla::MakeRefPtr<mozilla::dom::ReferrerInfo>(*aElement);
   return wbp->SaveURI(imageURI, aElement->NodePrincipal(), 0, referrerInfo,
                       nullptr, nullptr, mBackgroundFile,
                       nsIContentPolicy::TYPE_IMAGE, loadContext);
@@ -199,64 +199,20 @@ NS_IMETHODIMP
 nsMacShellService::OnStateChange(nsIWebProgress* aWebProgress,
                                  nsIRequest* aRequest, uint32_t aStateFlags,
                                  nsresult aStatus) {
-  if (aStateFlags & STATE_STOP) {
+  if (NS_SUCCEEDED(aStatus) && (aStateFlags & STATE_STOP) &&
+      (aRequest == nullptr)) {
     nsCOMPtr<nsIObserverService> os(
         do_GetService("@mozilla.org/observer-service;1"));
     if (os)
       os->NotifyObservers(nullptr, "shell:desktop-background-changed", nullptr);
 
     bool exists = false;
-    mBackgroundFile->Exists(&exists);
-    if (!exists) return NS_OK;
-
-    nsAutoCString nativePath;
-    mBackgroundFile->GetNativePath(nativePath);
-
-    AEDesc tAEDesc = {typeNull, nil};
-    OSErr err = noErr;
-    AliasHandle aliasHandle = nil;
-    FSRef pictureRef;
-    OSStatus status;
-
-    // Convert the path into a FSRef
-    status =
-        ::FSPathMakeRef((const UInt8*)nativePath.get(), &pictureRef, nullptr);
-    if (status == noErr) {
-      err = ::FSNewAlias(nil, &pictureRef, &aliasHandle);
-      if (err == noErr && aliasHandle == nil) err = paramErr;
-
-      if (err == noErr) {
-        // We need the descriptor (based on the picture file reference)
-        // for the 'Set Desktop Picture' apple event.
-        char handleState = ::HGetState((Handle)aliasHandle);
-        ::HLock((Handle)aliasHandle);
-        err = ::AECreateDesc(typeAlias, *aliasHandle,
-                             GetHandleSize((Handle)aliasHandle), &tAEDesc);
-        // unlock the alias handler
-        ::HSetState((Handle)aliasHandle, handleState);
-        ::DisposeHandle((Handle)aliasHandle);
-      }
-      if (err == noErr) {
-        AppleEvent tAppleEvent;
-        OSType sig = 'MACS';
-        AEBuildError tAEBuildError;
-        // Create a 'Set Desktop Pictue' Apple Event
-        err =
-            ::AEBuildAppleEvent(kAECoreSuite, kAESetData, typeApplSignature,
-                                &sig, sizeof(OSType), kAutoGenerateReturnID,
-                                kAnyTransactionID, &tAppleEvent, &tAEBuildError,
-                                "'----':'obj '{want:type (prop),form:prop"
-                                ",seld:type('dpic'),from:'null'()},data:(@)",
-                                &tAEDesc);
-        if (err == noErr) {
-          AppleEvent reply = {typeNull, nil};
-          // Sent the event we built, the reply event isn't necessary
-          err = ::AESend(&tAppleEvent, &reply, kAENoReply, kAENormalPriority,
-                         kNoTimeOut, nil, nil);
-          ::AEDisposeDesc(&tAppleEvent);
-        }
-      }
+    nsresult rv = mBackgroundFile->Exists(&exists);
+    if (NS_FAILED(rv) || !exists) {
+      return NS_OK;
     }
+
+    SetDesktopImage(mBackgroundFile);
   }
 
   return NS_OK;

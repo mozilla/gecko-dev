@@ -5,6 +5,7 @@
 from __future__ import absolute_import, print_function
 
 backends = {
+    'Clangd': 'mozbuild.backend.clangd',
     'ChromeMap': 'mozbuild.codecoverage.chrome_map',
     'CompileDB': 'mozbuild.compilation.database',
     'CppEclipse': 'mozbuild.backend.cpp_eclipse',
@@ -13,8 +14,8 @@ backends = {
     'GnConfigGen': 'mozbuild.gn_processor',
     'GnMozbuildWriter': 'mozbuild.gn_processor',
     'RecursiveMake': 'mozbuild.backend.recursivemake',
+    'StaticAnalysis': 'mozbuild.backend.static_analysis',
     'TestManifest': 'mozbuild.backend.test_manifest',
-    'Tup': 'mozbuild.backend.tup',
     'VisualStudio': 'mozbuild.backend.visualstudio',
 }
 

@@ -18,8 +18,8 @@ add_task(async function test_API_directly() {
   setAndLockPref("policies.test.boolPref", false);
   checkLockedPref("policies.test.boolPref", false);
 
-  setAndLockPref("policies.test.intPref", 0);
-  checkLockedPref("policies.test.intPref", 0);
+  setAndLockPref("policies.test.intPref", 2);
+  checkLockedPref("policies.test.intPref", 2);
 
   setAndLockPref("policies.test.stringPref", "policies test");
   checkLockedPref("policies.test.stringPref", "policies test");
@@ -33,7 +33,7 @@ add_task(async function test_API_directly() {
   checkLockedPref("policies.test.boolPref", false);
 
   Services.prefs.setIntPref("policies.test.intPref", 10);
-  checkLockedPref("policies.test.intPref", 0);
+  checkLockedPref("policies.test.intPref", 2);
 
   Services.prefs.setStringPref("policies.test.stringPref", "policies test");
   checkLockedPref("policies.test.stringPref", "policies test");
@@ -148,9 +148,8 @@ add_task(async function test_pref_tracker() {
     false,
     "test1.pref1 got unlocked"
   );
-  is(
-    Services.prefs.getStringPref("test1.pref3", undefined),
-    undefined,
+  ok(
+    !Services.prefs.getStringPref("test1.pref3", undefined),
     "test1.pref3 should have had its value unset"
   );
   is(

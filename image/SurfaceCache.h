@@ -11,18 +11,18 @@
 #ifndef mozilla_image_SurfaceCache_h
 #define mozilla_image_SurfaceCache_h
 
-#include "mozilla/Maybe.h"  // for Maybe
-#include "mozilla/NotNull.h"
-#include "mozilla/MemoryReporting.h"  // for MallocSizeOf
 #include "mozilla/HashFunctions.h"    // for HashGeneric and AddToHash
+#include "mozilla/Maybe.h"            // for Maybe
+#include "mozilla/MemoryReporting.h"  // for MallocSizeOf
+#include "mozilla/NotNull.h"
+#include "mozilla/SVGImageContext.h"  // for SVGImageContext
+#include "mozilla/gfx/2D.h"           // for SourceSurface
+#include "mozilla/gfx/Point.h"        // for mozilla::gfx::IntSize
 #include "gfx2DGlue.h"
-#include "gfxPoint.h"           // for gfxSize
-#include "nsCOMPtr.h"           // for already_AddRefed
-#include "mozilla/gfx/Point.h"  // for mozilla::gfx::IntSize
-#include "mozilla/gfx/2D.h"     // for SourceSurface
+#include "gfxPoint.h"  // for gfxSize
+#include "nsCOMPtr.h"  // for already_AddRefed
 #include "PlaybackType.h"
 #include "SurfaceFlags.h"
-#include "SVGImageContext.h"  // for SVGImageContext
 
 namespace mozilla {
 namespace image {
@@ -443,6 +443,18 @@ struct SurfaceCache {
    * @return clamped size for the given image and size to rasterize at.
    */
   static IntSize ClampSize(const ImageKey aImageKey, const IntSize& aSize);
+
+  /**
+   * Release image on main thread.
+   * The function uses SurfaceCache to release pending releasing images quickly.
+   */
+  static void ReleaseImageOnMainThread(already_AddRefed<image::Image> aImage,
+                                       bool aAlwaysProxy = false);
+
+  /**
+   * Clear all pending releasing images.
+   */
+  static void ClearReleasingImages();
 
  private:
   virtual ~SurfaceCache() = 0;  // Forbid instantiation.

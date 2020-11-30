@@ -9,6 +9,13 @@
 
 "use strict";
 
+// Worker contexts do not support Services; in that case we have to rely
+// on the support URL redirection.
+const Services = require("Services");
+const supportBaseURL = !isWorker
+  ? Services.urlFormatter.formatURLPref("app.support.baseURL")
+  : "https://support.mozilla.org/kb/";
+
 const baseErrorURL =
   "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Errors/";
 const params =
@@ -114,6 +121,8 @@ const TLS_LEARN_MORE =
   "https://blog.mozilla.org/security/2018/10/15/removing-old-versions-of-tls/";
 const X_FRAME_OPTIONS_LEARN_MORE =
   "https://developer.mozilla.org/docs/Web/HTTP/Headers/X-Frame-Options";
+const REQUEST_STORAGE_ACCESS_LEARN_MORE =
+  "https://developer.mozilla.org/docs/Web/API/Document/requestStorageAccess";
 const ErrorCategories = {
   "X-Frame-Options": X_FRAME_OPTIONS_LEARN_MORE,
   "Insecure Password Field": INSECURE_PASSWORDS_LEARN_MORE,
@@ -126,6 +135,8 @@ const ErrorCategories = {
   MIMEMISMATCH: MIME_TYPE_MISMATCH_LEARN_MORE,
   "source map": SOURCE_MAP_LEARN_MORE,
   TLS: TLS_LEARN_MORE,
+  requestStorageAccess: REQUEST_STORAGE_ACCESS_LEARN_MORE,
+  HTTPSOnly: supportBaseURL + "https-only-prefs",
 };
 
 const baseCorsErrorUrl =
@@ -159,6 +170,7 @@ const StorageAccessPolicyErrorDocs = {
   cookieBlockedTracker: "CookieBlockedTracker",
   cookieBlockedAll: "CookieBlockedAll",
   cookieBlockedForeign: "CookieBlockedForeign",
+  cookiePartitionedForeign: "CookiePartitionedForeign",
 };
 
 exports.GetURL = error => {

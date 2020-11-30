@@ -32,7 +32,7 @@ exports[`DebugTargetInfo component Connection info renders the expected snapshot
     </span>
   </span>
   <span
-    className="iconized-label"
+    className="iconized-label debug-target-title"
   >
     <img
       alt="toolbox.debugTargetInfo.targetType.tab"
@@ -43,11 +43,55 @@ exports[`DebugTargetInfo component Connection info renders the expected snapshot
     >
       Test Tab Name
     </b>
-    <span
-      className="devtools-ellipsis-text"
+  </span>
+  <div
+    className="debug-target-navigation"
+  >
+    <button
+      className="iconized-label navigation-button qa-back-button"
+      onClick={[Function]}
+      title="toolbox.debugTargetInfo.back"
     >
-      http://some.target/url
-    </span>
+      <img
+        alt="toolbox.debugTargetInfo.back"
+        src="chrome://browser/skin/back.svg"
+      />
+    </button>
+    <button
+      className="iconized-label navigation-button qa-forward-button"
+      onClick={[Function]}
+      title="toolbox.debugTargetInfo.forward"
+    >
+      <img
+        alt="toolbox.debugTargetInfo.forward"
+        src="chrome://browser/skin/forward.svg"
+      />
+    </button>
+    <button
+      className="iconized-label navigation-button qa-reload-button"
+      onClick={[Function]}
+      title="toolbox.debugTargetInfo.reload"
+    >
+      <img
+        alt="toolbox.debugTargetInfo.reload"
+        src="chrome://browser/skin/reload.svg"
+      />
+    </button>
+  </div>
+  <span
+    className="debug-target-url"
+  >
+    <form
+      className="debug-target-url-form"
+      onSubmit={[Function]}
+    >
+      <input
+        className="devtools-textinput debug-target-url-input"
+        defaultValue="http://some.target/url"
+        onChange={[Function]}
+        onFocus={[Function]}
+      />
+    </form>
   </span>
 </header>
 `;
@@ -84,7 +128,7 @@ exports[`DebugTargetInfo component Target icon renders the expected snapshot for
     </span>
   </span>
   <span
-    className="iconized-label"
+    className="iconized-label debug-target-title"
   >
     <img
       alt="toolbox.debugTargetInfo.targetType.process"
@@ -95,8 +139,12 @@ exports[`DebugTargetInfo component Target icon renders the expected snapshot for
     >
       Test Tab Name
     </b>
+  </span>
+  <span
+    className="debug-target-url"
+  >
     <span
-      className="devtools-ellipsis-text"
+      className="debug-target-url-readonly devtools-ellipsis-text"
     >
       http://some.target/url
     </span>
@@ -136,7 +184,7 @@ exports[`DebugTargetInfo component Target icon renders the expected snapshot for
     </span>
   </span>
   <span
-    className="iconized-label"
+    className="iconized-label debug-target-title"
   >
     <img
       alt="toolbox.debugTargetInfo.targetType.tab"
@@ -147,11 +195,55 @@ exports[`DebugTargetInfo component Target icon renders the expected snapshot for
     >
       Test Tab Name
     </b>
-    <span
-      className="devtools-ellipsis-text"
+  </span>
+  <div
+    className="debug-target-navigation"
+  >
+    <button
+      className="iconized-label navigation-button qa-back-button"
+      onClick={[Function]}
+      title="toolbox.debugTargetInfo.back"
     >
-      http://some.target/url
-    </span>
+      <img
+        alt="toolbox.debugTargetInfo.back"
+        src="chrome://browser/skin/back.svg"
+      />
+    </button>
+    <button
+      className="iconized-label navigation-button qa-forward-button"
+      onClick={[Function]}
+      title="toolbox.debugTargetInfo.forward"
+    >
+      <img
+        alt="toolbox.debugTargetInfo.forward"
+        src="chrome://browser/skin/forward.svg"
+      />
+    </button>
+    <button
+      className="iconized-label navigation-button qa-reload-button"
+      onClick={[Function]}
+      title="toolbox.debugTargetInfo.reload"
+    >
+      <img
+        alt="toolbox.debugTargetInfo.reload"
+        src="chrome://browser/skin/reload.svg"
+      />
+    </button>
+  </div>
+  <span
+    className="debug-target-url"
+  >
+    <form
+      className="debug-target-url-form"
+      onSubmit={[Function]}
+    >
+      <input
+        className="devtools-textinput debug-target-url-input"
+        defaultValue="http://some.target/url"
+        onChange={[Function]}
+        onFocus={[Function]}
+      />
+    </form>
   </span>
 </header>
 `;
@@ -188,7 +280,7 @@ exports[`DebugTargetInfo component Target icon renders the expected snapshot for
     </span>
   </span>
   <span
-    className="iconized-label"
+    className="iconized-label debug-target-title"
   >
     <img
       alt="toolbox.debugTargetInfo.targetType.worker"
@@ -199,8 +291,12 @@ exports[`DebugTargetInfo component Target icon renders the expected snapshot for
     >
       Test Tab Name
     </b>
+  </span>
+  <span
+    className="debug-target-url"
+  >
     <span
-      className="devtools-ellipsis-text"
+      className="debug-target-url-readonly devtools-ellipsis-text"
     >
       http://some.target/url
     </span>
@@ -240,7 +336,7 @@ exports[`DebugTargetInfo component Target icon renders the expected snapshot for
     </span>
   </span>
   <span
-    className="iconized-label"
+    className="iconized-label debug-target-title"
   >
     <img
       alt="toolbox.debugTargetInfo.targetType.extension"
@@ -251,8 +347,12 @@ exports[`DebugTargetInfo component Target icon renders the expected snapshot for
     >
       Test Tab Name
     </b>
+  </span>
+  <span
+    className="debug-target-url"
+  >
     <span
-      className="devtools-ellipsis-text"
+      className="debug-target-url-readonly devtools-ellipsis-text"
     >
       http://some.target/url
     </span>
@@ -281,7 +381,7 @@ exports[`DebugTargetInfo component Target title renders the expected snapshot fo
     />
   </span>
   <span
-    className="iconized-label"
+    className="iconized-label debug-target-title"
   >
     <img
       alt="toolbox.debugTargetInfo.targetType.tab"
@@ -292,11 +392,55 @@ exports[`DebugTargetInfo component Target title renders the expected snapshot fo
     >
       Test Tab Name
     </b>
-    <span
-      className="devtools-ellipsis-text"
+  </span>
+  <div
+    className="debug-target-navigation"
+  >
+    <button
+      className="iconized-label navigation-button qa-back-button"
+      onClick={[Function]}
+      title="toolbox.debugTargetInfo.back"
     >
-      http://some.target/url
-    </span>
+      <img
+        alt="toolbox.debugTargetInfo.back"
+        src="chrome://browser/skin/back.svg"
+      />
+    </button>
+    <button
+      className="iconized-label navigation-button qa-forward-button"
+      onClick={[Function]}
+      title="toolbox.debugTargetInfo.forward"
+    >
+      <img
+        alt="toolbox.debugTargetInfo.forward"
+        src="chrome://browser/skin/forward.svg"
+      />
+    </button>
+    <button
+      className="iconized-label navigation-button qa-reload-button"
+      onClick={[Function]}
+      title="toolbox.debugTargetInfo.reload"
+    >
+      <img
+        alt="toolbox.debugTargetInfo.reload"
+        src="chrome://browser/skin/reload.svg"
+      />
+    </button>
+  </div>
+  <span
+    className="debug-target-url"
+  >
+    <form
+      className="debug-target-url-form"
+      onSubmit={[Function]}
+    >
+      <input
+        className="devtools-textinput debug-target-url-input"
+        defaultValue="http://some.target/url"
+        onChange={[Function]}
+        onFocus={[Function]}
+      />
+    </form>
   </span>
 </header>
 `;
@@ -322,17 +466,61 @@ exports[`DebugTargetInfo component Target title renders the expected snapshot fo
     />
   </span>
   <span
-    className="iconized-label"
+    className="iconized-label debug-target-title"
   >
     <img
       alt="toolbox.debugTargetInfo.targetType.tab"
       src="chrome://devtools/skin/images/globe.svg"
     />
-    <span
-      className="devtools-ellipsis-text"
+  </span>
+  <div
+    className="debug-target-navigation"
+  >
+    <button
+      className="iconized-label navigation-button qa-back-button"
+      onClick={[Function]}
+      title="toolbox.debugTargetInfo.back"
     >
-      http://some.target/without/a/name
-    </span>
+      <img
+        alt="toolbox.debugTargetInfo.back"
+        src="chrome://browser/skin/back.svg"
+      />
+    </button>
+    <button
+      className="iconized-label navigation-button qa-forward-button"
+      onClick={[Function]}
+      title="toolbox.debugTargetInfo.forward"
+    >
+      <img
+        alt="toolbox.debugTargetInfo.forward"
+        src="chrome://browser/skin/forward.svg"
+      />
+    </button>
+    <button
+      className="iconized-label navigation-button qa-reload-button"
+      onClick={[Function]}
+      title="toolbox.debugTargetInfo.reload"
+    >
+      <img
+        alt="toolbox.debugTargetInfo.reload"
+        src="chrome://browser/skin/reload.svg"
+      />
+    </button>
+  </div>
+  <span
+    className="debug-target-url"
+  >
+    <form
+      className="debug-target-url-form"
+      onSubmit={[Function]}
+    >
+      <input
+        className="devtools-textinput debug-target-url-input"
+        defaultValue="http://some.target/without/a/name"
+        onChange={[Function]}
+        onFocus={[Function]}
+      />
+    </form>
   </span>
 </header>
 `;

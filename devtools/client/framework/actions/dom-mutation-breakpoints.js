@@ -32,8 +32,8 @@ function createDOMMutationBreakpoint(nodeFront, mutationType) {
   assert(typeof nodeFront === "object" && nodeFront);
   assert(typeof mutationType === "string");
 
-  return async function(dispatch) {
-    const walker = nodeFront.parent();
+  return async function({ dispatch, getState }) {
+    const walker = nodeFront.walkerFront;
 
     dispatch({
       type: "ADD_DOM_MUTATION_BREAKPOINT",
@@ -52,8 +52,8 @@ function deleteDOMMutationBreakpoint(nodeFront, mutationType) {
   assert(typeof nodeFront === "object" && nodeFront);
   assert(typeof mutationType === "string");
 
-  return async function(dispatch) {
-    const walker = nodeFront.parent();
+  return async function({ dispatch, getState }) {
+    const walker = nodeFront.walkerFront;
     await walker.setMutationBreakpoints(nodeFront, {
       [mutationType]: false,
     });
@@ -67,7 +67,7 @@ function deleteDOMMutationBreakpoint(nodeFront, mutationType) {
 }
 
 function updateBreakpointsForMutations(mutationItems) {
-  return async function(dispatch, getState) {
+  return async function({ dispatch, getState }) {
     const removedNodeFronts = [];
     const changedNodeFronts = new Set();
 
@@ -126,13 +126,13 @@ function toggleDOMMutationBreakpointState(id, enabled) {
   assert(typeof id === "string");
   assert(typeof enabled === "boolean");
 
-  return async function(dispatch, getState) {
+  return async function({ dispatch, getState }) {
     const bp = getDOMMutationBreakpoint(getState(), id);
     if (!bp) {
       throw new Error(`No DOM mutation BP with ID ${id}`);
     }
 
-    const walker = bp.nodeFront.parent();
+    const walker = bp.nodeFront.getParent();
     await walker.setMutationBreakpoints(bp.nodeFront, {
       [bp.mutationType]: enabled,
     });

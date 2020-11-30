@@ -12,9 +12,7 @@
   font-size: inherit;
   border: 1px;
   background-color: var(--theme-sidebar-background);
-  line-height: 16px;
-  padding-top: 1px;
-  padding-bottom: 1px;
+  height: 24px;
   padding-inline-start: 19px;
   padding-inline-end: 12px;
   color: var(--theme-body-color);
@@ -37,12 +35,21 @@
 }
 
 .input-expression::placeholder {
-  font-style: italic;
-  color: var(--theme-comment);
+  color: var(--theme-text-color-alt);
+  opacity: 1;
 }
 
 .input-expression:focus {
   cursor: text;
+}
+
+.expressions-list .expression-input-container {
+  height: var(--expression-item-height);
+}
+
+.expressions-list .input-expression {
+  /* Prevent vertical bounce when editing an existing Watch Expression */
+  height: 100%;
 }
 
 .expressions-list {
@@ -123,6 +130,7 @@
 
 .expression-content .object-node {
   padding-inline-start: 0px;
+  cursor: default;
 }
 
 .expressions-list .tree.object-inspector .node.object-node {

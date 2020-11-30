@@ -41,6 +41,9 @@ namespace TestStrings {
 
 using mozilla::BlackBox;
 using mozilla::fallible;
+using mozilla::IsAscii;
+using mozilla::IsUtf8;
+using mozilla::Span;
 
 #define TestExample1                                                           \
   "Sed ut perspiciatis unde omnis iste natus error sit voluptatem "            \
@@ -165,11 +168,11 @@ class Strings : public ::testing::Test {
     mExample5Utf8.AssignASCII(TestExample5);
 
     // Use span to make the resulting string as ordinary as possible
-    mAsciiOneUtf8.Append(MakeSpan(mExample3Utf8).To(1));
-    mAsciiThreeUtf8.Append(MakeSpan(mExample3Utf8).To(3));
-    mAsciiFifteenUtf8.Append(MakeSpan(mExample3Utf8).To(15));
-    mAsciiHundredUtf8.Append(MakeSpan(mExample3Utf8).To(100));
-    mAsciiThousandUtf8.Append(MakeSpan(mExample3Utf8).To(1000));
+    mAsciiOneUtf8.Append(Span(mExample3Utf8).To(1));
+    mAsciiThreeUtf8.Append(Span(mExample3Utf8).To(3));
+    mAsciiFifteenUtf8.Append(Span(mExample3Utf8).To(15));
+    mAsciiHundredUtf8.Append(Span(mExample3Utf8).To(100));
+    mAsciiThousandUtf8.Append(Span(mExample3Utf8).To(1000));
 
     ReadFile("ar.txt", mArUtf8);
     ReadFile("de.txt", mDeUtf8);
@@ -205,65 +208,65 @@ class Strings : public ::testing::Test {
     LossyCopyUTF16toASCII(mDeEditUtf16, mDeEditLatin1);
 
     // Use span to make the resulting string as ordinary as possible
-    mArOneUtf16.Append(MakeSpan(mArUtf16).To(1));
-    mDeOneUtf16.Append(MakeSpan(mDeUtf16).To(1));
-    mDeEditOneUtf16.Append(MakeSpan(mDeEditUtf16).To(1));
-    mRuOneUtf16.Append(MakeSpan(mRuUtf16).To(1));
-    mThOneUtf16.Append(MakeSpan(mThUtf16).To(1));
-    mJaOneUtf16.Append(MakeSpan(mJaUtf16).To(1));
-    mKoOneUtf16.Append(MakeSpan(mKoUtf16).To(1));
-    mTrOneUtf16.Append(MakeSpan(mTrUtf16).To(1));
-    mViOneUtf16.Append(MakeSpan(mViUtf16).To(1));
+    mArOneUtf16.Append(Span(mArUtf16).To(1));
+    mDeOneUtf16.Append(Span(mDeUtf16).To(1));
+    mDeEditOneUtf16.Append(Span(mDeEditUtf16).To(1));
+    mRuOneUtf16.Append(Span(mRuUtf16).To(1));
+    mThOneUtf16.Append(Span(mThUtf16).To(1));
+    mJaOneUtf16.Append(Span(mJaUtf16).To(1));
+    mKoOneUtf16.Append(Span(mKoUtf16).To(1));
+    mTrOneUtf16.Append(Span(mTrUtf16).To(1));
+    mViOneUtf16.Append(Span(mViUtf16).To(1));
 
-    mDeEditOneLatin1.Append(MakeSpan(mDeEditLatin1).To(1));
+    mDeEditOneLatin1.Append(Span(mDeEditLatin1).To(1));
 
-    mArThreeUtf16.Append(MakeSpan(mArUtf16).To(3));
-    mDeThreeUtf16.Append(MakeSpan(mDeUtf16).To(3));
-    mDeEditThreeUtf16.Append(MakeSpan(mDeEditUtf16).To(3));
-    mRuThreeUtf16.Append(MakeSpan(mRuUtf16).To(3));
-    mThThreeUtf16.Append(MakeSpan(mThUtf16).To(3));
-    mJaThreeUtf16.Append(MakeSpan(mJaUtf16).To(3));
-    mKoThreeUtf16.Append(MakeSpan(mKoUtf16).To(3));
-    mTrThreeUtf16.Append(MakeSpan(mTrUtf16).To(3));
-    mViThreeUtf16.Append(MakeSpan(mViUtf16).To(3));
+    mArThreeUtf16.Append(Span(mArUtf16).To(3));
+    mDeThreeUtf16.Append(Span(mDeUtf16).To(3));
+    mDeEditThreeUtf16.Append(Span(mDeEditUtf16).To(3));
+    mRuThreeUtf16.Append(Span(mRuUtf16).To(3));
+    mThThreeUtf16.Append(Span(mThUtf16).To(3));
+    mJaThreeUtf16.Append(Span(mJaUtf16).To(3));
+    mKoThreeUtf16.Append(Span(mKoUtf16).To(3));
+    mTrThreeUtf16.Append(Span(mTrUtf16).To(3));
+    mViThreeUtf16.Append(Span(mViUtf16).To(3));
 
-    mDeEditThreeLatin1.Append(MakeSpan(mDeEditLatin1).To(3));
+    mDeEditThreeLatin1.Append(Span(mDeEditLatin1).To(3));
 
-    mArFifteenUtf16.Append(MakeSpan(mArUtf16).To(15));
-    mDeFifteenUtf16.Append(MakeSpan(mDeUtf16).To(15));
-    mDeEditFifteenUtf16.Append(MakeSpan(mDeEditUtf16).To(15));
-    mRuFifteenUtf16.Append(MakeSpan(mRuUtf16).To(15));
-    mThFifteenUtf16.Append(MakeSpan(mThUtf16).To(15));
-    mJaFifteenUtf16.Append(MakeSpan(mJaUtf16).To(15));
-    mKoFifteenUtf16.Append(MakeSpan(mKoUtf16).To(15));
-    mTrFifteenUtf16.Append(MakeSpan(mTrUtf16).To(15));
-    mViFifteenUtf16.Append(MakeSpan(mViUtf16).To(15));
+    mArFifteenUtf16.Append(Span(mArUtf16).To(15));
+    mDeFifteenUtf16.Append(Span(mDeUtf16).To(15));
+    mDeEditFifteenUtf16.Append(Span(mDeEditUtf16).To(15));
+    mRuFifteenUtf16.Append(Span(mRuUtf16).To(15));
+    mThFifteenUtf16.Append(Span(mThUtf16).To(15));
+    mJaFifteenUtf16.Append(Span(mJaUtf16).To(15));
+    mKoFifteenUtf16.Append(Span(mKoUtf16).To(15));
+    mTrFifteenUtf16.Append(Span(mTrUtf16).To(15));
+    mViFifteenUtf16.Append(Span(mViUtf16).To(15));
 
-    mDeEditFifteenLatin1.Append(MakeSpan(mDeEditLatin1).To(15));
+    mDeEditFifteenLatin1.Append(Span(mDeEditLatin1).To(15));
 
-    mArHundredUtf16.Append(MakeSpan(mArUtf16).To(100));
-    mDeHundredUtf16.Append(MakeSpan(mDeUtf16).To(100));
-    mDeEditHundredUtf16.Append(MakeSpan(mDeEditUtf16).To(100));
-    mRuHundredUtf16.Append(MakeSpan(mRuUtf16).To(100));
-    mThHundredUtf16.Append(MakeSpan(mThUtf16).To(100));
-    mJaHundredUtf16.Append(MakeSpan(mJaUtf16).To(100));
-    mKoHundredUtf16.Append(MakeSpan(mKoUtf16).To(100));
-    mTrHundredUtf16.Append(MakeSpan(mTrUtf16).To(100));
-    mViHundredUtf16.Append(MakeSpan(mViUtf16).To(100));
+    mArHundredUtf16.Append(Span(mArUtf16).To(100));
+    mDeHundredUtf16.Append(Span(mDeUtf16).To(100));
+    mDeEditHundredUtf16.Append(Span(mDeEditUtf16).To(100));
+    mRuHundredUtf16.Append(Span(mRuUtf16).To(100));
+    mThHundredUtf16.Append(Span(mThUtf16).To(100));
+    mJaHundredUtf16.Append(Span(mJaUtf16).To(100));
+    mKoHundredUtf16.Append(Span(mKoUtf16).To(100));
+    mTrHundredUtf16.Append(Span(mTrUtf16).To(100));
+    mViHundredUtf16.Append(Span(mViUtf16).To(100));
 
-    mDeEditHundredLatin1.Append(MakeSpan(mDeEditLatin1).To(100));
+    mDeEditHundredLatin1.Append(Span(mDeEditLatin1).To(100));
 
-    mArThousandUtf16.Append(MakeSpan(mArUtf16).To(1000));
-    mDeThousandUtf16.Append(MakeSpan(mDeUtf16).To(1000));
-    mDeEditThousandUtf16.Append(MakeSpan(mDeEditUtf16).To(1000));
-    mRuThousandUtf16.Append(MakeSpan(mRuUtf16).To(1000));
-    mThThousandUtf16.Append(MakeSpan(mThUtf16).To(1000));
-    mJaThousandUtf16.Append(MakeSpan(mJaUtf16).To(1000));
-    mKoThousandUtf16.Append(MakeSpan(mKoUtf16).To(1000));
-    mTrThousandUtf16.Append(MakeSpan(mTrUtf16).To(1000));
-    mViThousandUtf16.Append(MakeSpan(mViUtf16).To(1000));
+    mArThousandUtf16.Append(Span(mArUtf16).To(1000));
+    mDeThousandUtf16.Append(Span(mDeUtf16).To(1000));
+    mDeEditThousandUtf16.Append(Span(mDeEditUtf16).To(1000));
+    mRuThousandUtf16.Append(Span(mRuUtf16).To(1000));
+    mThThousandUtf16.Append(Span(mThUtf16).To(1000));
+    mJaThousandUtf16.Append(Span(mJaUtf16).To(1000));
+    mKoThousandUtf16.Append(Span(mKoUtf16).To(1000));
+    mTrThousandUtf16.Append(Span(mTrUtf16).To(1000));
+    mViThousandUtf16.Append(Span(mViUtf16).To(1000));
 
-    mDeEditThousandLatin1.Append(MakeSpan(mDeEditLatin1).To(1000));
+    mDeEditThousandLatin1.Append(Span(mDeEditLatin1).To(1000));
 
     CopyUTF16toUTF8(mArOneUtf16, mArOneUtf8);
     CopyUTF16toUTF8(mDeOneUtf16, mDeOneUtf8);
@@ -567,7 +570,7 @@ TEST_F(Strings, DependentStrings) {
 
 TEST_F(Strings, assign) {
   nsCString result;
-  test_assign_helper(NS_LITERAL_CSTRING("a") + NS_LITERAL_CSTRING("b"), result);
+  test_assign_helper("a"_ns + "b"_ns, result);
   EXPECT_STREQ(result.get(), "ab");
 }
 
@@ -578,7 +581,7 @@ TEST_F(Strings, assign_c) {
 }
 
 TEST_F(Strings, test1) {
-  NS_NAMED_LITERAL_STRING(empty, "");
+  constexpr auto empty = u""_ns;
   const nsAString& aStr = empty;
 
   nsAutoString buf(aStr);
@@ -662,7 +665,7 @@ TEST_F(Strings, findinreadable) {
   nsACString::const_iterator delim_begin(begin), delim_end(end);
 
   // Search for last !/ at the end of the string
-  EXPECT_TRUE(FindInReadable(NS_LITERAL_CSTRING("!/"), delim_begin, delim_end));
+  EXPECT_TRUE(FindInReadable("!/"_ns, delim_begin, delim_end));
   char* r = ToNewCString(Substring(delim_begin, delim_end));
   // Should match the first "!/" but not the last
   EXPECT_NE(delim_end, end);
@@ -673,8 +676,7 @@ TEST_F(Strings, findinreadable) {
   delim_end = end;
 
   // Search for first jar:
-  EXPECT_TRUE(
-      FindInReadable(NS_LITERAL_CSTRING("jar:"), delim_begin, delim_end));
+  EXPECT_TRUE(FindInReadable("jar:"_ns, delim_begin, delim_end));
 
   r = ToNewCString(Substring(delim_begin, delim_end));
   // Should not match the first jar:, but the second one
@@ -686,8 +688,7 @@ TEST_F(Strings, findinreadable) {
   delim_begin = begin;
   delim_begin++;
   delim_end = end;
-  EXPECT_TRUE(
-      FindInReadable(NS_LITERAL_CSTRING("jar:"), delim_begin, delim_end));
+  EXPECT_TRUE(FindInReadable("jar:"_ns, delim_begin, delim_end));
 
   r = ToNewCString(Substring(delim_begin, delim_end));
   // Should not match the first jar:, but the second one
@@ -696,8 +697,7 @@ TEST_F(Strings, findinreadable) {
   free(r);
 
   // Should not find a match
-  EXPECT_FALSE(
-      FindInReadable(NS_LITERAL_CSTRING("gecko"), delim_begin, delim_end));
+  EXPECT_FALSE(FindInReadable("gecko"_ns, delim_begin, delim_end));
 
   // When no match is found, range should be empty
   EXPECT_EQ(delim_begin, delim_end);
@@ -706,8 +706,7 @@ TEST_F(Strings, findinreadable) {
   delim_begin = begin;
   for (int i = 0; i < 6; i++) delim_begin++;
   delim_end = end;
-  EXPECT_FALSE(
-      FindInReadable(NS_LITERAL_CSTRING("jar:"), delim_begin, delim_end));
+  EXPECT_FALSE(FindInReadable("jar:"_ns, delim_begin, delim_end));
 
   // When no match is found, range should be empty
   EXPECT_EQ(delim_begin, delim_end);
@@ -716,8 +715,7 @@ TEST_F(Strings, findinreadable) {
   delim_begin = begin;
   delim_end = end;
   for (int i = 0; i < 7; i++) delim_end--;
-  EXPECT_FALSE(
-      FindInReadable(NS_LITERAL_CSTRING("classic"), delim_begin, delim_end));
+  EXPECT_FALSE(FindInReadable("classic"_ns, delim_begin, delim_end));
 
   // When no match is found, range should be empty
   EXPECT_EQ(delim_begin, delim_end);
@@ -735,8 +733,7 @@ TEST_F(Strings, rfindinreadable) {
   nsACString::const_iterator delim_begin(begin), delim_end(end);
 
   // Search for last !/ at the end of the string
-  EXPECT_TRUE(
-      RFindInReadable(NS_LITERAL_CSTRING("!/"), delim_begin, delim_end));
+  EXPECT_TRUE(RFindInReadable("!/"_ns, delim_begin, delim_end));
   char* r = ToNewCString(Substring(delim_begin, delim_end));
   // Should match the last "!/"
   EXPECT_EQ(delim_end, end);
@@ -747,8 +744,7 @@ TEST_F(Strings, rfindinreadable) {
   delim_end = end;
 
   // Search for last jar: but not the first one...
-  EXPECT_TRUE(
-      RFindInReadable(NS_LITERAL_CSTRING("jar:"), delim_begin, delim_end));
+  EXPECT_TRUE(RFindInReadable("jar:"_ns, delim_begin, delim_end));
 
   r = ToNewCString(Substring(delim_begin, delim_end));
   // Should not match the first jar:, but the second one
@@ -760,8 +756,7 @@ TEST_F(Strings, rfindinreadable) {
   delim_begin = begin;
   delim_end = begin;
   for (int i = 0; i < 6; i++) delim_end++;
-  EXPECT_TRUE(
-      RFindInReadable(NS_LITERAL_CSTRING("jar:"), delim_begin, delim_end));
+  EXPECT_TRUE(RFindInReadable("jar:"_ns, delim_begin, delim_end));
 
   r = ToNewCString(Substring(delim_begin, delim_end));
   // Should not match the first jar:, but the second one
@@ -772,8 +767,7 @@ TEST_F(Strings, rfindinreadable) {
   // Should not find a match
   delim_begin = begin;
   delim_end = end;
-  EXPECT_FALSE(
-      RFindInReadable(NS_LITERAL_CSTRING("gecko"), delim_begin, delim_end));
+  EXPECT_FALSE(RFindInReadable("gecko"_ns, delim_begin, delim_end));
 
   // When no match is found, range should be empty
   EXPECT_EQ(delim_begin, delim_end);
@@ -782,8 +776,7 @@ TEST_F(Strings, rfindinreadable) {
   delim_begin = begin;
   for (int i = 0; i < 6; i++) delim_begin++;
   delim_end = end;
-  EXPECT_FALSE(
-      RFindInReadable(NS_LITERAL_CSTRING("jar:"), delim_begin, delim_end));
+  EXPECT_FALSE(RFindInReadable("jar:"_ns, delim_begin, delim_end));
 
   // When no match is found, range should be empty
   EXPECT_EQ(delim_begin, delim_end);
@@ -792,8 +785,7 @@ TEST_F(Strings, rfindinreadable) {
   delim_begin = begin;
   delim_end = end;
   for (int i = 0; i < 7; i++) delim_end--;
-  EXPECT_FALSE(
-      RFindInReadable(NS_LITERAL_CSTRING("classic"), delim_begin, delim_end));
+  EXPECT_FALSE(RFindInReadable("classic"_ns, delim_begin, delim_end));
 
   // When no match is found, range should be empty
   EXPECT_EQ(delim_begin, delim_end);
@@ -964,8 +956,8 @@ TEST_F(Strings, concat) {
   nsCString bar("bar");
   const nsACString& barRef = bar;
 
-  const nsPromiseFlatCString& result = PromiseFlatCString(
-      NS_LITERAL_CSTRING("foo") + NS_LITERAL_CSTRING(",") + barRef);
+  const nsPromiseFlatCString& result =
+      PromiseFlatCString("foo"_ns + ","_ns + barRef);
   EXPECT_STREQ(result.get(), "foo,bar");
 }
 
@@ -1092,6 +1084,14 @@ TEST_F(Strings, appendint64) {
   str.Truncate();
   str.AppendInt(maxint_plus1, 16);
   EXPECT_TRUE(str.Equals(maxint_plus1_expected_x));
+}
+
+TEST_F(Strings, inttotstring) {
+  EXPECT_EQ("42"_ns, IntToCString(42));
+  EXPECT_EQ(u"42"_ns, IntToString(42));
+
+  EXPECT_EQ("2a"_ns, IntToCString(42, 16));
+  EXPECT_EQ(u"2a"_ns, IntToString(42, 16));
 }
 
 TEST_F(Strings, appendfloat) {
@@ -1284,7 +1284,7 @@ static void test_parse_string_helper(const char* str, char separator, int len,
                                      const char* s1, const char* s2) {
   nsCString data(str);
   nsTArray<nsCString> results;
-  EXPECT_TRUE(ParseString(data, separator, results));
+  ParseString(data, separator, results);
   EXPECT_EQ(int(results.Length()), len);
   const char* strings[] = {s1, s2};
   for (int i = 0; i < len; ++i) {
@@ -1327,13 +1327,12 @@ static void test_strip_chars_helper(const char16_t* str, const char16_t* strip,
 
 TEST(String, strip_chars)
 {
-  test_strip_chars_helper(u"foo \r \nbar", u" \n\r",
-                          NS_LITERAL_STRING("foobar"));
-  test_strip_chars_helper(u"\r\nfoo\r\n", u" \n\r", NS_LITERAL_STRING("foo"));
-  test_strip_chars_helper(u"foo", u" \n\r", NS_LITERAL_STRING("foo"));
-  test_strip_chars_helper(u"foo", u"fo", NS_LITERAL_STRING(""));
-  test_strip_chars_helper(u"foo", u"foo", NS_LITERAL_STRING(""));
-  test_strip_chars_helper(u" foo", u" ", NS_LITERAL_STRING("foo"));
+  test_strip_chars_helper(u"foo \r \nbar", u" \n\r", u"foobar"_ns);
+  test_strip_chars_helper(u"\r\nfoo\r\n", u" \n\r", u"foo"_ns);
+  test_strip_chars_helper(u"foo", u" \n\r", u"foo"_ns);
+  test_strip_chars_helper(u"foo", u"fo", u""_ns);
+  test_strip_chars_helper(u"foo", u"foo", u""_ns);
+  test_strip_chars_helper(u" foo", u" ", u"foo"_ns);
 }
 
 TEST_F(Strings, append_with_capacity) {
@@ -1397,12 +1396,14 @@ TEST_F(Strings, legacy_set_length_semantics) {
 #endif
 
 TEST_F(Strings, bulk_write) {
-  nsresult rv;
   nsCString s;
   const char* ptrTwoThousand;
   {
-    auto handle = s.BulkWrite(500, 0, true, rv);
-    EXPECT_EQ(rv, NS_OK);
+    auto handleOrErr = s.BulkWrite(500, 0, true);
+    EXPECT_TRUE(handleOrErr.isOk());
+
+    auto handle = handleOrErr.unwrap();
+
     auto span = handle.AsSpan();
     for (auto&& c : span) {
       c = 'a';
@@ -1427,11 +1428,10 @@ TEST_F(Strings, bulk_write) {
 }
 
 TEST_F(Strings, bulk_write_fail) {
-  nsresult rv;
   nsCString s;
   {
-    auto handle = s.BulkWrite(500, 0, true, rv);
-    EXPECT_EQ(rv, NS_OK);
+    auto handleOrErr = s.BulkWrite(500, 0, true);
+    EXPECT_TRUE(handleOrErr.isOk());
   }
   EXPECT_EQ(s.Length(), 3U);
   EXPECT_TRUE(s.Equals(u8"\uFFFD"));
@@ -1540,20 +1540,19 @@ static void test_tofloat_helper(const nsString& aStr, float aExpected,
 }
 
 TEST_F(Strings, tofloat) {
-  test_tofloat_helper(NS_LITERAL_STRING("42"), 42.f, true);
-  test_tofloat_helper(NS_LITERAL_STRING("42.0"), 42.f, true);
-  test_tofloat_helper(NS_LITERAL_STRING("-42"), -42.f, true);
-  test_tofloat_helper(NS_LITERAL_STRING("+42"), 42, true);
-  test_tofloat_helper(NS_LITERAL_STRING("13.37"), 13.37f, true);
-  test_tofloat_helper(NS_LITERAL_STRING("1.23456789"), 1.23456789f, true);
-  test_tofloat_helper(NS_LITERAL_STRING("1.98765432123456"), 1.98765432123456f,
-                      true);
-  test_tofloat_helper(NS_LITERAL_STRING("0"), 0.f, true);
-  test_tofloat_helper(NS_LITERAL_STRING("1.e5"), 100000, true);
-  test_tofloat_helper(NS_LITERAL_STRING(""), 0.f, false);
-  test_tofloat_helper(NS_LITERAL_STRING("42foo"), 42.f, false);
-  test_tofloat_helper(NS_LITERAL_STRING("foo"), 0.f, false);
-  test_tofloat_helper(NS_LITERAL_STRING("1.5e-"), 1.5f, false);
+  test_tofloat_helper(u"42"_ns, 42.f, true);
+  test_tofloat_helper(u"42.0"_ns, 42.f, true);
+  test_tofloat_helper(u"-42"_ns, -42.f, true);
+  test_tofloat_helper(u"+42"_ns, 42, true);
+  test_tofloat_helper(u"13.37"_ns, 13.37f, true);
+  test_tofloat_helper(u"1.23456789"_ns, 1.23456789f, true);
+  test_tofloat_helper(u"1.98765432123456"_ns, 1.98765432123456f, true);
+  test_tofloat_helper(u"0"_ns, 0.f, true);
+  test_tofloat_helper(u"1.e5"_ns, 100000, true);
+  test_tofloat_helper(u""_ns, 0.f, false);
+  test_tofloat_helper(u"42foo"_ns, 42.f, false);
+  test_tofloat_helper(u"foo"_ns, 0.f, false);
+  test_tofloat_helper(u"1.5e-"_ns, 1.5f, false);
 }
 
 static void test_tofloat_allow_trailing_chars_helper(const nsString& aStr,
@@ -1569,17 +1568,12 @@ static void test_tofloat_allow_trailing_chars_helper(const nsString& aStr,
 }
 
 TEST_F(Strings, ToFloatAllowTrailingChars) {
-  test_tofloat_allow_trailing_chars_helper(NS_LITERAL_STRING(""), 0.f, false);
-  test_tofloat_allow_trailing_chars_helper(NS_LITERAL_STRING("foo"), 0.f,
-                                           false);
-  test_tofloat_allow_trailing_chars_helper(NS_LITERAL_STRING("42foo"), 42.f,
-                                           true);
-  test_tofloat_allow_trailing_chars_helper(NS_LITERAL_STRING("42-5"), 42.f,
-                                           true);
-  test_tofloat_allow_trailing_chars_helper(NS_LITERAL_STRING("13.37.8"), 13.37f,
-                                           true);
-  test_tofloat_allow_trailing_chars_helper(NS_LITERAL_STRING("1.5e-"), 1.5f,
-                                           true);
+  test_tofloat_allow_trailing_chars_helper(u""_ns, 0.f, false);
+  test_tofloat_allow_trailing_chars_helper(u"foo"_ns, 0.f, false);
+  test_tofloat_allow_trailing_chars_helper(u"42foo"_ns, 42.f, true);
+  test_tofloat_allow_trailing_chars_helper(u"42-5"_ns, 42.f, true);
+  test_tofloat_allow_trailing_chars_helper(u"13.37.8"_ns, 13.37f, true);
+  test_tofloat_allow_trailing_chars_helper(u"1.5e-"_ns, 1.5f, true);
 }
 
 static void test_todouble_helper(const nsString& aStr, double aExpected,
@@ -1594,22 +1588,21 @@ static void test_todouble_helper(const nsString& aStr, double aExpected,
 }
 
 TEST_F(Strings, todouble) {
-  test_todouble_helper(NS_LITERAL_STRING("42"), 42, true);
-  test_todouble_helper(NS_LITERAL_STRING("42.0"), 42, true);
-  test_todouble_helper(NS_LITERAL_STRING("-42"), -42, true);
-  test_todouble_helper(NS_LITERAL_STRING("+42"), 42, true);
-  test_todouble_helper(NS_LITERAL_STRING("13.37"), 13.37, true);
-  test_todouble_helper(NS_LITERAL_STRING("1.23456789"), 1.23456789, true);
-  test_todouble_helper(NS_LITERAL_STRING("1.98765432123456"), 1.98765432123456,
+  test_todouble_helper(u"42"_ns, 42, true);
+  test_todouble_helper(u"42.0"_ns, 42, true);
+  test_todouble_helper(u"-42"_ns, -42, true);
+  test_todouble_helper(u"+42"_ns, 42, true);
+  test_todouble_helper(u"13.37"_ns, 13.37, true);
+  test_todouble_helper(u"1.23456789"_ns, 1.23456789, true);
+  test_todouble_helper(u"1.98765432123456"_ns, 1.98765432123456, true);
+  test_todouble_helper(u"123456789.98765432123456"_ns, 123456789.98765432123456,
                        true);
-  test_todouble_helper(NS_LITERAL_STRING("123456789.98765432123456"),
-                       123456789.98765432123456, true);
-  test_todouble_helper(NS_LITERAL_STRING("0"), 0, true);
-  test_todouble_helper(NS_LITERAL_STRING("1.e5"), 100000, true);
-  test_todouble_helper(NS_LITERAL_STRING(""), 0, false);
-  test_todouble_helper(NS_LITERAL_STRING("42foo"), 42, false);
-  test_todouble_helper(NS_LITERAL_STRING("foo"), 0, false);
-  test_todouble_helper(NS_LITERAL_STRING("1.5e-"), 1.5, false);
+  test_todouble_helper(u"0"_ns, 0, true);
+  test_todouble_helper(u"1.e5"_ns, 100000, true);
+  test_todouble_helper(u""_ns, 0, false);
+  test_todouble_helper(u"42foo"_ns, 42, false);
+  test_todouble_helper(u"foo"_ns, 0, false);
+  test_todouble_helper(u"1.5e-"_ns, 1.5, false);
 }
 
 static void test_todouble_allow_trailing_chars_helper(const nsString& aStr,
@@ -1625,16 +1618,12 @@ static void test_todouble_allow_trailing_chars_helper(const nsString& aStr,
 }
 
 TEST_F(Strings, ToDoubleAllowTrailingChars) {
-  test_todouble_allow_trailing_chars_helper(NS_LITERAL_STRING(""), 0, false);
-  test_todouble_allow_trailing_chars_helper(NS_LITERAL_STRING("foo"), 0, false);
-  test_todouble_allow_trailing_chars_helper(NS_LITERAL_STRING("42foo"), 42,
-                                            true);
-  test_todouble_allow_trailing_chars_helper(NS_LITERAL_STRING("42-5"), 42,
-                                            true);
-  test_todouble_allow_trailing_chars_helper(NS_LITERAL_STRING("13.37.8"), 13.37,
-                                            true);
-  test_todouble_allow_trailing_chars_helper(NS_LITERAL_STRING("1.5e-"), 1.5,
-                                            true);
+  test_todouble_allow_trailing_chars_helper(u""_ns, 0, false);
+  test_todouble_allow_trailing_chars_helper(u"foo"_ns, 0, false);
+  test_todouble_allow_trailing_chars_helper(u"42foo"_ns, 42, true);
+  test_todouble_allow_trailing_chars_helper(u"42-5"_ns, 42, true);
+  test_todouble_allow_trailing_chars_helper(u"13.37.8"_ns, 13.37, true);
+  test_todouble_allow_trailing_chars_helper(u"1.5e-"_ns, 1.5, true);
 }
 
 TEST_F(Strings, Split) {
@@ -1706,9 +1695,9 @@ TEST_F(Strings, Split) {
   counter = 0;
   for (const nsAString& token : wide.Split(' ')) {
     if (counter == 0) {
-      EXPECT_TRUE(token.Equals(NS_LITERAL_STRING("hello")));
+      EXPECT_TRUE(token.Equals(u"hello"_ns));
     } else if (counter == 1) {
-      EXPECT_TRUE(token.Equals(NS_LITERAL_STRING("world")));
+      EXPECT_TRUE(token.Equals(u"world"_ns));
     }
     counter++;
   }
@@ -1943,6 +1932,40 @@ TEST_F(Strings, latin1_to_utf8) {
   CopyLatin1toUTF8(s, t);
   // EqualsLiteral requires ASCII
   EXPECT_TRUE(t.Equals("\xC3\xA4"));
+}
+
+TEST_F(Strings, ConvertToSpan) {
+  nsString string;
+
+  // from const string
+  {
+    const auto& constStringRef = string;
+
+    auto span = Span{constStringRef};
+    static_assert(std::is_same_v<decltype(span), Span<const char16_t>>);
+  }
+
+  // from non-const string
+  {
+    auto span = Span{string};
+    static_assert(std::is_same_v<decltype(span), Span<char16_t>>);
+  }
+
+  nsCString cstring;
+
+  // from const string
+  {
+    const auto& constCStringRef = cstring;
+
+    auto span = Span{constCStringRef};
+    static_assert(std::is_same_v<decltype(span), Span<const char>>);
+  }
+
+  // from non-const string
+  {
+    auto span = Span{cstring};
+    static_assert(std::is_same_v<decltype(span), Span<char>>);
+  }
 }
 
 // Note the five calls in the loop, so divide by 100k
@@ -2447,9 +2470,9 @@ CONVERSION_BENCH(PerfUTF8toUTF16VIThousand, CopyUTF8toUTF16, mViThousandUtf8,
                  nsAutoString);
 
 // Tests for usability of nsTLiteralString in constant expressions.
-static_assert(NS_LITERAL_STRING("").IsEmpty());
+static_assert(u""_ns.IsEmpty());
 
-constexpr auto testStringA = NS_LITERAL_STRING("a");
+constexpr auto testStringA = u"a"_ns;
 static_assert(!testStringA.IsEmpty());
 static_assert(!testStringA.IsVoid());
 static_assert(testStringA.IsLiteral());

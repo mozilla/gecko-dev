@@ -1,6 +1,7 @@
 //! Result and error types representing the outcome of compiling a function.
 
 use crate::verifier::VerifierErrors;
+use std::string::String;
 use thiserror::Error;
 
 /// A compilation error.
@@ -20,7 +21,7 @@ pub enum CodegenError {
     /// Cranelift can compile very large and complicated functions, but the [implementation has
     /// limits][limits] that cause compilation to fail when they are exceeded.
     ///
-    /// [limits]: https://cranelift.readthedocs.io/en/latest/ir.html#implementation-limits
+    /// [limits]: https://github.com/bytecodealliance/wasmtime/blob/main/cranelift/docs/ir.md#implementation-limits
     #[error("Implementation limit exceeded")]
     ImplLimitExceeded,
 
@@ -30,6 +31,17 @@ pub enum CodegenError {
     /// is exceeded, compilation fails.
     #[error("Code for function is too large")]
     CodeTooLarge,
+
+    /// Something is not supported by the code generator. This might be an indication that a
+    /// feature is used without explicitly enabling it, or that something is temporarily
+    /// unsupported by a given target backend.
+    #[error("Unsupported feature: {0}")]
+    Unsupported(String),
+
+    /// A failure to map Cranelift register representation to a DWARF register representation.
+    #[cfg(feature = "unwind")]
+    #[error("Register mapping error")]
+    RegisterMappingError(crate::isa::unwind::systemv::RegisterMappingError),
 }
 
 /// A convenient alias for a `Result` that uses `CodegenError` as the error type.

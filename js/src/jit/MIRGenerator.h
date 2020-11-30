@@ -10,24 +10,30 @@
 // This file declares the data structures used to build a control-flow graph
 // containing MIR.
 
+#include "mozilla/Assertions.h"
 #include "mozilla/Atomics.h"
+#include "mozilla/Attributes.h"
+#include "mozilla/Result.h"
 
 #include <stdarg.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #include "jit/CompileInfo.h"
+#include "jit/CompileWrappers.h"
 #include "jit/JitAllocPolicy.h"
-#include "jit/JitRealm.h"
-#include "jit/MIR.h"
+#include "jit/JitContext.h"
+#include "jit/JitSpewer.h"
 #ifdef JS_ION_PERF
 #  include "jit/PerfSpewer.h"
 #endif
-#include "jit/RegisterSets.h"
-#include "vm/JSContext.h"
-#include "vm/Realm.h"
+#include "js/Utility.h"
+#include "vm/GeckoProfiler.h"
 
 namespace js {
 namespace jit {
 
+class JitRuntime;
 class MIRGraph;
 class OptimizationInfo;
 
@@ -38,7 +44,7 @@ class MIRGenerator final {
                const CompileInfo* outerInfo,
                const OptimizationInfo* optimizationInfo);
 
-  void initMinWasmHeapLength(uint32_t init) { minWasmHeapLength_ = init; }
+  void initMinWasmHeapLength(uint64_t init) { minWasmHeapLength_ = init; }
 
   TempAllocator& alloc() { return *alloc_; }
   MIRGraph& graph() { return *graph_; }
@@ -77,9 +83,11 @@ class MIRGenerator final {
   // off-thread compilation can report what error got encountered.
   void setOffThreadStatus(AbortReasonOr<Ok> result) {
     MOZ_ASSERT(offThreadStatus_.isOk());
-    offThreadStatus_ = result;
+    offThreadStatus_ = std::move(result);
   }
-  AbortReasonOr<Ok> getOffThreadStatus() const { return offThreadStatus_; }
+  const AbortReasonOr<Ok>& getOffThreadStatus() const {
+    return offThreadStatus_;
+  }
 
   MOZ_MUST_USE bool instrumentedProfiling() {
     if (!instrumentedProfilingIsCached_) {
@@ -94,6 +102,8 @@ class MIRGenerator final {
   }
 
   bool stringsCanBeInNursery() const { return stringsCanBeInNursery_; }
+
+  bool bigIntsCanBeInNursery() const { return bigIntsCanBeInNursery_; }
 
   bool safeForMinorGC() const { return safeForMinorGC_; }
   void setNotSafeForMinorGC() { safeForMinorGC_ = false; }
@@ -113,7 +123,7 @@ class MIRGenerator final {
     MOZ_ASSERT(wasmMaxStackArgBytes_ == 0);
     wasmMaxStackArgBytes_ = n;
   }
-  uint32_t minWasmHeapLength() const { return minWasmHeapLength_; }
+  uint64_t minWasmHeapLength() const { return minWasmHeapLength_; }
 
   void setNeedsOverrecursedCheck() { needsOverrecursedCheck_ = true; }
   bool needsOverrecursedCheck() const { return needsOverrecursedCheck_; }
@@ -143,8 +153,9 @@ class MIRGenerator final {
   bool instrumentedProfilingIsCached_;
   bool safeForMinorGC_;
   bool stringsCanBeInNursery_;
+  bool bigIntsCanBeInNursery_;
 
-  uint32_t minWasmHeapLength_;
+  uint64_t minWasmHeapLength_;
 
 #if defined(JS_ION_PERF)
   WasmPerfSpewer wasmPerfSpewer_;

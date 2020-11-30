@@ -32,6 +32,8 @@ add_task(async function tabsSendMessageReply() {
                 browser.tabs.sendMessage(tabId, "respond-soon", resolve)
               ),
               browser.tabs.sendMessage(tabId, "respond-promise"),
+              browser.tabs.sendMessage(tabId, "respond-promise-false"),
+              browser.tabs.sendMessage(tabId, "respond-false"),
               browser.tabs.sendMessage(tabId, "respond-never"),
               new Promise(resolve => {
                 browser.runtime.sendMessage("respond-never", response => {
@@ -47,6 +49,19 @@ add_task(async function tabsSendMessageReply() {
                 .catch(error => Promise.resolve({ error })),
 
               browser.tabs
+                .sendMessage(tabId, "respond-uncloneable")
+                .catch(error => Promise.resolve({ error })),
+              browser.tabs
+                .sendMessage(tabId, "reject-uncloneable")
+                .catch(error => Promise.resolve({ error })),
+              browser.tabs
+                .sendMessage(tabId, "reject-undefined")
+                .catch(error => Promise.resolve({ error })),
+              browser.tabs
+                .sendMessage(tabId, "throw-undefined")
+                .catch(error => Promise.resolve({ error })),
+
+              browser.tabs
                 .sendMessage(firstTab, "no-listener")
                 .catch(error => Promise.resolve({ error })),
             ])
@@ -57,10 +72,16 @@ add_task(async function tabsSendMessageReply() {
                   respondNow2,
                   respondSoon,
                   respondPromise,
+                  respondPromiseFalse,
+                  respondFalse,
                   respondNever,
                   respondNever2,
                   respondError,
                   throwError,
+                  respondUncloneable,
+                  rejectUncloneable,
+                  rejectUndefined,
+                  throwUndefined,
                   noListener,
                 ]) => {
                   browser.test.assertEq(
@@ -90,6 +111,16 @@ add_task(async function tabsSendMessageReply() {
                     "Got the expected promise response"
                   );
                   browser.test.assertEq(
+                    false,
+                    respondPromiseFalse,
+                    "Got the expected false value as a promise result"
+                  );
+                  browser.test.assertEq(
+                    undefined,
+                    respondFalse,
+                    "Got the expected no-response when onMessage returns false"
+                  );
+                  browser.test.assertEq(
                     undefined,
                     respondNever,
                     "Got the expected no-response resolution"
@@ -109,6 +140,27 @@ add_task(async function tabsSendMessageReply() {
                     "throw-error",
                     throwError.error.message,
                     "Got the expected thrown error response"
+                  );
+
+                  browser.test.assertEq(
+                    "Could not establish connection. Receiving end does not exist.",
+                    respondUncloneable.error.message,
+                    "An uncloneable response should be ignored"
+                  );
+                  browser.test.assertEq(
+                    "An unexpected error occurred",
+                    rejectUncloneable.error.message,
+                    "Got the expected error for a rejection with an uncloneable value"
+                  );
+                  browser.test.assertEq(
+                    "An unexpected error occurred",
+                    rejectUndefined.error.message,
+                    "Got the expected error for a void rejection"
+                  );
+                  browser.test.assertEq(
+                    "An unexpected error occurred",
+                    throwUndefined.error.message,
+                    "Got the expected error for a void throw"
                   );
 
                   browser.test.assertEq(
@@ -151,10 +203,24 @@ add_task(async function tabsSendMessageReply() {
             return true;
           } else if (msg == "respond-promise") {
             return Promise.resolve(msg);
+          } else if (msg == "respond-promise-false") {
+            return Promise.resolve(false);
+          } else if (msg == "respond-false") {
+            // return false means that respond() is not expected to be called.
+            setTimeout(() => respond("should be ignored"));
+            return false;
           } else if (msg == "respond-never") {
             return undefined;
           } else if (msg == "respond-error") {
             return Promise.reject(new Error(msg));
+          } else if (msg === "respond-uncloneable") {
+            return Promise.resolve(window);
+          } else if (msg === "reject-uncloneable") {
+            return Promise.reject(window);
+          } else if (msg == "reject-undefined") {
+            return Promise.reject();
+          } else if (msg == "throw-undefined") {
+            throw undefined; // eslint-disable-line no-throw-literal
           } else if (msg == "throw-error") {
             throw new Error(msg);
           }
@@ -294,14 +360,17 @@ add_task(async function tabsSendMessageNoExceptionOnNonExistentTab() {
         "http://example.com/mochitest/browser/browser/components/extensions/test/browser/file_dummy.html";
       let tab = await browser.tabs.create({ url });
 
-      try {
-        browser.tabs.sendMessage(tab.id, "message");
-        browser.tabs.sendMessage(tab.id + 100, "message");
-      } catch (e) {
-        browser.test.fail(
-          "no exception should be raised on tabs.sendMessage to nonexistent tabs"
-        );
-      }
+      await browser.test.assertRejects(
+        browser.tabs.sendMessage(tab.id, "message"),
+        /Could not establish connection. Receiving end does not exist./,
+        "exception should be raised on tabs.sendMessage to nonexistent tab"
+      );
+
+      await browser.test.assertRejects(
+        browser.tabs.sendMessage(tab.id + 100, "message"),
+        /Could not establish connection. Receiving end does not exist./,
+        "exception should be raised on tabs.sendMessage to nonexistent tab"
+      );
 
       await browser.tabs.remove(tab.id);
 

@@ -8,9 +8,10 @@
 #define GFX_DISPLAY_ITEM_CACHE_H
 
 #include "mozilla/webrender/WebRenderAPI.h"
-#include "mozilla/Maybe.h"
 #include "nsTArray.h"
 
+class nsDisplayList;
+class nsDisplayListBuilder;
 class nsPaintedDisplayItem;
 
 namespace mozilla {
@@ -28,7 +29,17 @@ class CacheStats {
   void Reset() { mCached = mReused = mTotal = 0; }
 
   void Print() {
-    printf("Cached: %zu, Reused: %zu, Total: %zu\n", mCached, mReused, mTotal);
+    static uint64_t avgC = 1;
+    static uint64_t avgR = 1;
+    static uint64_t avgT = 1;
+
+    avgC += mCached;
+    avgR += mReused;
+    avgT += mTotal;
+
+    printf("Cached: %zu (avg: %f), Reused: %zu (avg: %f), Total: %zu\n",
+           mCached, (double)avgC / (double)avgT, mReused,
+           (double)avgR / (double)avgT, mTotal);
   }
 
   void AddCached() { mCached++; }
@@ -52,104 +63,145 @@ class CacheStats {
  */
 class DisplayItemCache final {
  public:
-  DisplayItemCache() : mMaxCacheSize(0), mNextIndex(0) {}
-
-  bool IsEnabled() const { return mMaxCacheSize > 0; }
+  DisplayItemCache();
 
   /**
-   * Updates the cache state based on the given display list build information
-   * and pipeline id.
-   *
-   * This is necessary because Gecko display items can only be reused for the
-   * partial display list builds following a full display list build.
+   * Clears the cache.
    */
-  void UpdateState(const bool aPartialDisplayListBuildFailed,
-                   const wr::PipelineId& aPipelineId);
+  void Clear();
+
+  /**
+   * Sets the initial and max cache size to given |aInitialSize| and |aMaxSize|.
+   */
+  void SetCapacity(const size_t aInitialSize, const size_t aMaximumSize);
+
+  /**
+   * Sets the display list used by the cache.
+   */
+  void SetDisplayList(nsDisplayListBuilder* aBuilder, nsDisplayList* aList);
+
+  /**
+   * Sets the pipeline id used by the cache.
+   */
+  void SetPipelineId(const wr::PipelineId& aPipelineId);
+
+  /**
+   * Enables caching immediately if the cache is valid, and display list is set.
+   */
+  void SkipWaitingForPartialDisplayList() {
+    mCaching = mDisplayList && !mInvalid;
+  }
+
+  /**
+   * Returns true if display item caching is enabled, otherwise false.
+   */
+  bool IsEnabled() const { return !mSuppressed && mMaximumSize > 0; }
+
+  /**
+   * Suppress display item caching. This doesn't clear any existing cached
+   * items or change the underlying capacity, it just makes IsEnabled() return
+   * false. It is not meant to be flipped in the middle of a display list build,
+   * but rather set before the display list build starts to suppress use of the
+   * cache for that display list build.
+   */
+  bool SetSuppressed(bool aSuppressed) {
+    if (aSuppressed == mSuppressed) {
+      return mSuppressed;
+    }
+    mSuppressed = aSuppressed;
+    return !mSuppressed;
+  }
+
+  /**
+   * Returns true if there are no cached items, otherwise false.
+   */
+  bool IsEmpty() const { return mFreeSlots.Length() == CurrentSize(); }
+
+  /**
+   * Returns true if the cache has reached the maximum size, otherwise false.
+   */
+  bool IsFull() const {
+    return mFreeSlots.IsEmpty() && CurrentSize() == mMaximumSize;
+  }
 
   /**
    * Returns the current cache size.
    */
-  size_t CurrentCacheSize() const {
-    return IsEnabled() ? mCachedItemState.Length() : 0;
-  }
+  size_t CurrentSize() const { return mSlots.Length(); }
 
   /**
-   * Sets the initial and max cache size to given |aInitialSize| and |aMaxSize|.
-   *
-   * Currently the cache size is constant, but a good improvement would be to
-   * set the initial and maximum size based on the display list length.
+   * If there are free slots in the cache, assigns a cache slot to the given
+   * display item |aItem| and returns it. Otherwise returns Nothing().
    */
-  void SetCapacity(const size_t aInitialSize, const size_t aMaxSize) {
-    mMaxCacheSize = aMaxSize;
-    mCachedItemState.SetCapacity(aMaxSize);
-    mCachedItemState.SetLength(aInitialSize);
-    mFreeList.SetCapacity(aMaxSize);
-  }
+  Maybe<uint16_t> AssignSlot(nsPaintedDisplayItem* aItem);
 
   /**
-   * If the given display item |aItem| can be cached, update the cache state of
-   * the item and tell WR DisplayListBuilder |aBuilder| to cache WR display
-   * items until |EndCaching()| is called.
-   *
-   * If the display item cannot be cached, this function does nothing.
+   * Marks the slot with the given |slotIndex| occupied and used.
+   * Also stores the current space and clipchain |aSpaceAndClip|.
    */
-  void MaybeStartCaching(nsPaintedDisplayItem* aItem,
-                         wr::DisplayListBuilder& aBuilder);
+  void MarkSlotOccupied(uint16_t slotIndex,
+                        const wr::WrSpaceAndClipChain& aSpaceAndClip);
 
   /**
-   * Tell WR DisplayListBuilder |aBuilder| to stop caching WR display items.
-   *
-   * If the display item cannot be cached, this function does nothing.
+   * Returns the slot index of the the given display item |aItem|, if the item
+   * can be reused. The current space and clipchain |aSpaceAndClip| is used to
+   * check whether the cached item is still valid.
+   * If the item cannot be reused, returns Nothing().
    */
-  void MaybeEndCaching(wr::DisplayListBuilder& aBuilder);
-
-  /**
-   * If the given |aItem| has been cached, tell WR DisplayListBuilder |aBuilder|
-   * to reuse it.
-   * Returns true if the item was reused, otherwise returns false.
-   */
-  bool ReuseItem(nsPaintedDisplayItem* aItem, wr::DisplayListBuilder& aBuilder);
+  Maybe<uint16_t> CanReuseItem(nsPaintedDisplayItem* aItem,
+                               const wr::WrSpaceAndClipChain& aSpaceAndClip);
 
   CacheStats& Stats() { return mCacheStats; }
 
  private:
-  struct CacheEntry {
+  struct Slot {
+    Slot() : mSpaceAndClip{}, mOccupied(false), mUsed(false) {}
+
     wr::WrSpaceAndClipChain mSpaceAndClip;
-    bool mCached;
+    bool mOccupied;
     bool mUsed;
   };
 
-  Maybe<uint16_t> GetNextCacheIndex() {
-    if (mFreeList.IsEmpty()) {
-      return Nothing();
-    }
+  void FreeUnusedSlots();
+  Maybe<uint16_t> GetNextFreeSlot();
+  bool GrowIfPossible();
+  void UpdateState();
 
-    return Some(mFreeList.PopLastElement());
-  }
+  // The lifetime of display lists exceed the lifetime of DisplayItemCache.
+  // This pointer stores the address of the display list that is using this
+  // cache, and it is only used for pointer comparisons.
+  nsDisplayList* mDisplayList;
 
-  /**
-   * Iterates through |mCachedItemState| and adds unused entries to free list.
-   * If |aAddAll| is true, adds every entry regardless of the state.
-   */
-  void PopulateFreeList(const bool aAddAll);
+  size_t mMaximumSize;
+  nsTArray<Slot> mSlots;
+  nsTArray<uint16_t> mFreeSlots;
 
-  /**
-   * Returns true if the given |aPipelineId| is different from the previous one,
-   * otherwise returns false.
-   */
-  bool UpdatePipelineId(const wr::PipelineId& aPipelineId) {
-    const bool isSame = mPreviousPipelineId.refOr(aPipelineId) == aPipelineId;
-    mPreviousPipelineId = Some(aPipelineId);
-    return !isSame;
-  }
+  wr::PipelineId mPipelineId;
+  bool mCaching;
+  bool mInvalid;
+  bool mSuppressed;
 
-  nsTArray<CacheEntry> mCachedItemState;
-  nsTArray<uint16_t> mFreeList;
-  size_t mMaxCacheSize;
-  uint16_t mNextIndex;
-  Maybe<uint16_t> mCurrentIndex;
-  Maybe<wr::PipelineId> mPreviousPipelineId;
   CacheStats mCacheStats;
+};
+
+class MOZ_RAII AutoDisplayItemCacheSuppressor {
+ public:
+  explicit AutoDisplayItemCacheSuppressor(DisplayItemCache* aCache)
+      : mCache(aCache) {
+    mWasSuppressed = mCache->SetSuppressed(true);
+  }
+
+  // Note that this restores the original state rather than unconditionally
+  // unsuppressing the cache for future-proofing/robustification. Currently
+  // we only ever use this RAII in one non-recursive function, but we might
+  // decide to expand its usage to other scenarios and end up with nested
+  // suppressions, in which case restoring the state back to what we found it
+  // is better.
+  ~AutoDisplayItemCacheSuppressor() { mCache->SetSuppressed(mWasSuppressed); }
+
+ private:
+  DisplayItemCache* mCache;
+  bool mWasSuppressed;
 };
 
 }  // namespace layers

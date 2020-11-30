@@ -10,12 +10,12 @@ const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
 const Message = createFactory(
   require("devtools/client/webconsole/components/Output/Message")
 );
-
+const GripMessageBody = require("devtools/client/webconsole/components/Output/GripMessageBody");
 loader.lazyGetter(this, "REPS", function() {
-  return require("devtools/client/shared/components/reps/reps").REPS;
+  return require("devtools/client/shared/components/reps/index").REPS;
 });
 loader.lazyGetter(this, "MODE", function() {
-  return require("devtools/client/shared/components/reps/reps").MODE;
+  return require("devtools/client/shared/components/reps/index").MODE;
 });
 
 PageError.displayName = "PageError";
@@ -41,14 +41,11 @@ function PageError(props) {
     repeat,
     serviceContainer,
     timestampsVisible,
-    isPaused,
     maybeScrollToBottom,
     inWarningGroup,
-    pausedExecutionPoint,
   } = props;
   const {
     id: messageId,
-    executionPoint,
     source,
     type,
     level,
@@ -58,22 +55,49 @@ function PageError(props) {
     exceptionDocURL,
     timeStamp,
     notes,
+    parameters,
+    hasException,
+    isPromiseRejection,
   } = message;
 
-  const messageBody = REPS.StringRep.rep({
-    object: messageText,
-    mode: MODE.LONG,
+  const messageBody = [];
+
+  const repsProps = {
     useQuotes: false,
     escapeWhitespace: false,
-    urlCropLimit: 120,
     openLink: serviceContainer.openLink,
-  });
+  };
+
+  if (hasException) {
+    const prefix = `Uncaught${isPromiseRejection ? " (in promise)" : ""} `;
+    messageBody.push(
+      prefix,
+      GripMessageBody({
+        key: "body",
+        dispatch,
+        messageId,
+        grip: parameters[0],
+        serviceContainer,
+        type,
+        customFormat: true,
+        maybeScrollToBottom,
+        ...repsProps,
+      })
+    );
+  } else {
+    messageBody.push(
+      REPS.StringRep.rep({
+        key: "bodytext",
+        object: messageText,
+        mode: MODE.LONG,
+        ...repsProps,
+      })
+    );
+  }
 
   return Message({
     dispatch,
     messageId,
-    executionPoint,
-    isPaused,
     open,
     collapsible: Array.isArray(stacktrace),
     source,
@@ -93,7 +117,6 @@ function PageError(props) {
     timestampsVisible,
     maybeScrollToBottom,
     message,
-    pausedExecutionPoint,
   });
 }
 

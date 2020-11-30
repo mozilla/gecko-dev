@@ -16,7 +16,7 @@ namespace layout {
 
 NS_IMPL_ISUPPORTS(RemotePrintJobChild, nsIWebProgressListener)
 
-RemotePrintJobChild::RemotePrintJobChild() {}
+RemotePrintJobChild::RemotePrintJobChild() = default;
 
 nsresult RemotePrintJobChild::InitializePrint(const nsString& aDocumentTitle,
                                               const nsString& aPrintToFile,
@@ -54,12 +54,12 @@ void RemotePrintJobChild::SetNextPageFD(
   mNextPageFD = PR_ImportFile(PROsfd(handle.release()));
 }
 
-void RemotePrintJobChild::ProcessPage() {
+void RemotePrintJobChild::ProcessPage(nsTArray<uint64_t>&& aDeps) {
   MOZ_ASSERT(mPagePrintTimer);
 
   mPagePrintTimer->WaitForRemotePrint();
   if (!mDestroyed) {
-    Unused << SendProcessPage();
+    Unused << SendProcessPage(std::move(aDeps));
   }
 }
 
@@ -153,7 +153,7 @@ RemotePrintJobChild::OnContentBlockingEvent(nsIWebProgress* aProgress,
 
 // End of nsIWebProgressListener
 
-RemotePrintJobChild::~RemotePrintJobChild() {}
+RemotePrintJobChild::~RemotePrintJobChild() = default;
 
 void RemotePrintJobChild::ActorDestroy(ActorDestroyReason aWhy) {
   mPagePrintTimer = nullptr;

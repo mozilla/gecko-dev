@@ -6,32 +6,18 @@
 
 const EXPORTED_SYMBOLS = ["Layout"];
 
+const { Assert } = ChromeUtils.import("resource://testing-common/Assert.jsm");
 const { CommonUtils } = ChromeUtils.import(
   "chrome://mochitests/content/browser/accessible/tests/browser/Common.jsm"
 );
-
-function CSSToDevicePixels(win, x, y, width, height) {
-  const winUtil = win.windowUtils;
-  const ratio = winUtil.screenPixelsPerCSSPixel;
-
-  // CSS pixels and ratio can be not integer. Device pixels are always integer.
-  // Do our best and hope it works.
-  return [
-    Math.round(x * ratio),
-    Math.round(y * ratio),
-    Math.round(width * ratio),
-    Math.round(height * ratio),
-  ];
-}
 
 const Layout = {
   /**
    * Zoom the given document.
    */
   zoomDocument(doc, zoom) {
-    const docShell = doc.defaultView.docShell;
-    const docViewer = docShell.contentViewer;
-    docViewer.fullZoom = zoom;
+    const bc = BrowsingContext.getFromWindow(doc.defaultView);
+    bc.fullZoom = zoom;
   },
 
   /**
@@ -44,104 +30,17 @@ const Layout = {
   },
 
   /**
-   * Test text position at the given offset.
-   */
-  testTextPos(id, offset, point, coordOrigin) {
-    const [expectedX, expectedY] = point;
-
-    const xObj = {};
-    const yObj = {};
-    const hyperText = CommonUtils.getAccessible(id, [Ci.nsIAccessibleText]);
-    hyperText.getCharacterExtents(offset, xObj, yObj, {}, {}, coordOrigin);
-
-    is(
-      xObj.value,
-      expectedX,
-      `Wrong x coordinate at offset ${offset} for ${CommonUtils.prettyName(id)}`
-    );
-    ok(
-      yObj.value - expectedY < 2 && expectedY - yObj.value < 2,
-      `Wrong y coordinate at offset ${offset} for ${CommonUtils.prettyName(
-        id
-      )} - got ${
-        yObj.value
-      }, expected ${expectedY}. The difference doesn't exceed 1.`
-    );
-  },
-
-  /**
-   * is() function checking the expected value is within the range.
+   * Assert.is() function checking the expected value is within the range.
    */
   isWithin(expected, got, within, msg) {
     if (Math.abs(got - expected) <= within) {
-      ok(true, `${msg} - Got ${got}`);
+      Assert.ok(true, `${msg} - Got ${got}`);
     } else {
-      ok(
+      Assert.ok(
         false,
         `${msg} - Got ${got}, expected ${expected} with error of ${within}`
       );
     }
-  },
-
-  /**
-   * Test text bounds that is enclosed betwene the given offsets.
-   */
-  testTextBounds(id, startOffset, endOffset, rect, coordOrigin) {
-    const [expectedX, expectedY, expectedWidth, expectedHeight] = rect;
-
-    const xObj = {};
-    const yObj = {};
-    const widthObj = {};
-    const heightObj = {};
-    const hyperText = CommonUtils.getAccessible(id, [Ci.nsIAccessibleText]);
-    hyperText.getRangeExtents(
-      startOffset,
-      endOffset,
-      xObj,
-      yObj,
-      widthObj,
-      heightObj,
-      coordOrigin
-    );
-
-    // x
-    is(
-      xObj.value,
-      expectedX,
-      `Wrong x coordinate of text between offsets (${startOffset}, ${endOffset}) for ${CommonUtils.prettyName(
-        id
-      )}`
-    );
-
-    // y
-    this.isWithin(
-      yObj.value,
-      expectedY,
-      1,
-      `y coord of text between offsets (${startOffset}, ${endOffset}) for ${CommonUtils.prettyName(
-        id
-      )}`
-    );
-
-    // Width
-    const msg = `Wrong width of text between offsets (${startOffset}, ${endOffset}) for ${CommonUtils.prettyName(
-      id
-    )}`;
-    if (widthObj.value == expectedWidth) {
-      ok(true, msg);
-    } else {
-      todo(false, msg);
-    } // fails on some windows machines
-
-    // Height
-    this.isWithin(
-      heightObj.value,
-      expectedHeight,
-      1,
-      `height of text between offsets (${startOffset}, ${endOffset}) for ${CommonUtils.prettyName(
-        id
-      )}`
-    );
   },
 
   /**
@@ -178,25 +77,25 @@ const Layout = {
       x.value / dpr,
       xInCSS.value,
       1,
-      "Heights in CSS pixels is calculated correctly"
+      "X in CSS pixels is calculated correctly"
     );
     this.isWithin(
       y.value / dpr,
       yInCSS.value,
       1,
-      "Heights in CSS pixels is calculated correctly"
+      "Y in CSS pixels is calculated correctly"
     );
     this.isWithin(
       width.value / dpr,
       widthInCSS.value,
       1,
-      "Heights in CSS pixels is calculated correctly"
+      "Width in CSS pixels is calculated correctly"
     );
     this.isWithin(
       height.value / dpr,
       heightInCSS.value,
       1,
-      "Heights in CSS pixels is calculated correctly"
+      "Height in CSS pixels is calculated correctly"
     );
 
     return [x.value, y.value, width.value, height.value];
@@ -219,6 +118,20 @@ const Layout = {
     );
 
     return [x.value, y.value, width.value, height.value];
+  },
+
+  CSSToDevicePixels(win, x, y, width, height) {
+    const winUtil = win.windowUtils;
+    const ratio = winUtil.screenPixelsPerCSSPixel;
+
+    // CSS pixels and ratio can be not integer. Device pixels are always integer.
+    // Do our best and hope it works.
+    return [
+      Math.round(x * ratio),
+      Math.round(y * ratio),
+      Math.round(width * ratio),
+      Math.round(height * ratio),
+    ];
   },
 
   /**
@@ -257,7 +170,7 @@ const Layout = {
       height = rect.height;
     }
 
-    return CSSToDevicePixels(
+    return this.CSSToDevicePixels(
       elmWindow,
       x + elmWindow.mozInnerScreenX,
       y + elmWindow.mozInnerScreenY,

@@ -4,11 +4,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_SVGFEDisplacementMapElement_h
-#define mozilla_dom_SVGFEDisplacementMapElement_h
+#ifndef DOM_SVG_SVGFEDISPLACEMENTMAPELEMENT_H_
+#define DOM_SVG_SVGFEDISPLACEMENTMAPELEMENT_H_
 
 #include "SVGAnimatedEnumeration.h"
-#include "SVGFilters.h"
+#include "mozilla/dom/SVGFilters.h"
 
 nsresult NS_NewSVGFEDisplacementMapElement(
     nsIContent** aResult, already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
@@ -16,7 +16,7 @@ nsresult NS_NewSVGFEDisplacementMapElement(
 namespace mozilla {
 namespace dom {
 
-typedef SVGFE SVGFEDisplacementMapElementBase;
+using SVGFEDisplacementMapElementBase = SVGFE;
 
 class SVGFEDisplacementMapElement : public SVGFEDisplacementMapElementBase {
  protected:
@@ -31,7 +31,7 @@ class SVGFEDisplacementMapElement : public SVGFEDisplacementMapElementBase {
 
  public:
   virtual FilterPrimitiveDescription GetPrimitiveDescription(
-      nsSVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
+      SVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
       const nsTArray<bool>& aInputsAreTainted,
       nsTArray<RefPtr<SourceSurface>>& aInputImages) override;
   virtual bool AttributeAffectsRendering(int32_t aNameSpaceID,
@@ -86,4 +86,4 @@ class SVGFEDisplacementMapElement : public SVGFEDisplacementMapElementBase {
 }  // namespace dom
 }  // namespace mozilla
 
-#endif  // mozilla_dom_SVGFEDisplacementMapElement_h
+#endif  // DOM_SVG_SVGFEDISPLACEMENTMAPELEMENT_H_

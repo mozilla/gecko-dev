@@ -1,13 +1,15 @@
 #![cfg_attr(feature = "deny-warnings", deny(warnings))]
 #![warn(clippy::pedantic)]
 
-use neqo_crypto::*;
+use neqo_crypto::constants::{HandshakeMessage, TLS_HS_CLIENT_HELLO, TLS_HS_ENCRYPTED_EXTENSIONS};
+use neqo_crypto::ext::{ExtensionHandler, ExtensionHandlerResult, ExtensionWriterResult};
+use neqo_crypto::{Client, Server};
 use std::cell::RefCell;
 use std::rc::Rc;
 use test_fixture::fixture_init;
 
 mod handshake;
-use crate::handshake::*;
+use crate::handshake::connect;
 
 struct NoopExtensionHandler;
 impl ExtensionHandler for NoopExtensionHandler {}
@@ -78,14 +80,14 @@ fn simple_extension() {
     let mut server = Server::new(&["key"]).expect("should create server");
 
     let client_handler = Rc::new(RefCell::new(SimpleExtensionHandler::default()));
-    let ch2 = Rc::clone(&client_handler);
+    let ch = Rc::clone(&client_handler);
     client
-        .extension_handler(0xffff, ch2)
+        .extension_handler(0xffff, ch)
         .expect("client handler installed");
     let server_handler = Rc::new(RefCell::new(SimpleExtensionHandler::default()));
-    let sh2 = Rc::clone(&server_handler);
+    let sh = Rc::clone(&server_handler);
     server
-        .extension_handler(0xffff, sh2)
+        .extension_handler(0xffff, sh)
         .expect("server handler installed");
 
     connect(&mut client, &mut server);

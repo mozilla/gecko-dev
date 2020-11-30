@@ -7,13 +7,10 @@
 #ifndef mozilla_layers_CanvasThread_h
 #define mozilla_layers_CanvasThread_h
 
-#include "base/thread.h"
 #include "mozilla/layers/CompositorThread.h"
 #include "mozilla/DataMutex.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/TaskQueue.h"
-#include "mozilla/UniquePtr.h"
-#include "nsISupports.h"
 #include "nsIThreadPool.h"
 
 namespace mozilla {
@@ -80,17 +77,14 @@ class CanvasThreadHolder final {
   already_AddRefed<TaskQueue> CreateWorkerTaskQueue();
 
  private:
-  static void StaticRelease(
-      already_AddRefed<CanvasThreadHolder> aCanvasThreadHolder);
-
   static StaticDataMutex<StaticRefPtr<CanvasThreadHolder>> sCanvasThreadHolder;
 
-  CanvasThreadHolder(UniquePtr<base::Thread> aCanvasThread,
+  CanvasThreadHolder(already_AddRefed<nsISerialEventTarget> aCanvasThread,
                      already_AddRefed<nsIThreadPool> aCanvasWorkers);
 
   ~CanvasThreadHolder();
 
-  UniquePtr<base::Thread> mCanvasThread;
+  nsCOMPtr<nsISerialEventTarget> mCanvasThread;
   RefPtr<nsIThreadPool> mCanvasWorkers;
 
   // Hold a reference to prevent the compositor thread ending.

@@ -24,14 +24,14 @@ use crate::backend::traits::{
 };
 
 #[derive(Debug)]
-pub struct RoTransactionImpl<'env>(pub(crate) lmdb::RoTransaction<'env>);
+pub struct RoTransactionImpl<'t>(pub(crate) lmdb::RoTransaction<'t>);
 
-impl<'env> BackendRoTransaction for RoTransactionImpl<'env> {
-    type Error = ErrorImpl;
+impl<'t> BackendRoTransaction for RoTransactionImpl<'t> {
     type Database = DatabaseImpl;
+    type Error = ErrorImpl;
 
     fn get(&self, db: &Self::Database, key: &[u8]) -> Result<&[u8], Self::Error> {
-        self.0.get(db.0, &key).map_err(ErrorImpl)
+        self.0.get(db.0, &key).map_err(ErrorImpl::LmdbError)
     }
 
     fn abort(self) {
@@ -39,46 +39,46 @@ impl<'env> BackendRoTransaction for RoTransactionImpl<'env> {
     }
 }
 
-impl<'env> BackendRoCursorTransaction<'env> for RoTransactionImpl<'env> {
-    type RoCursor = RoCursorImpl<'env>;
+impl<'t> BackendRoCursorTransaction<'t> for RoTransactionImpl<'t> {
+    type RoCursor = RoCursorImpl<'t>;
 
-    fn open_ro_cursor(&'env self, db: &Self::Database) -> Result<Self::RoCursor, Self::Error> {
-        self.0.open_ro_cursor(db.0).map(RoCursorImpl).map_err(ErrorImpl)
+    fn open_ro_cursor(&'t self, db: &Self::Database) -> Result<Self::RoCursor, Self::Error> {
+        self.0.open_ro_cursor(db.0).map(RoCursorImpl).map_err(ErrorImpl::LmdbError)
     }
 }
 
 #[derive(Debug)]
-pub struct RwTransactionImpl<'env>(pub(crate) lmdb::RwTransaction<'env>);
+pub struct RwTransactionImpl<'t>(pub(crate) lmdb::RwTransaction<'t>);
 
-impl<'env> BackendRwTransaction for RwTransactionImpl<'env> {
-    type Error = ErrorImpl;
+impl<'t> BackendRwTransaction for RwTransactionImpl<'t> {
     type Database = DatabaseImpl;
+    type Error = ErrorImpl;
     type Flags = WriteFlagsImpl;
 
     fn get(&self, db: &Self::Database, key: &[u8]) -> Result<&[u8], Self::Error> {
-        self.0.get(db.0, &key).map_err(ErrorImpl)
+        self.0.get(db.0, &key).map_err(ErrorImpl::LmdbError)
     }
 
     fn put(&mut self, db: &Self::Database, key: &[u8], value: &[u8], flags: Self::Flags) -> Result<(), Self::Error> {
-        self.0.put(db.0, &key, &value, flags.0).map_err(ErrorImpl)
+        self.0.put(db.0, &key, &value, flags.0).map_err(ErrorImpl::LmdbError)
     }
 
     #[cfg(not(feature = "db-dup-sort"))]
     fn del(&mut self, db: &Self::Database, key: &[u8]) -> Result<(), Self::Error> {
-        self.0.del(db.0, &key, None).map_err(ErrorImpl)
+        self.0.del(db.0, &key, None).map_err(ErrorImpl::LmdbError)
     }
 
     #[cfg(feature = "db-dup-sort")]
     fn del(&mut self, db: &Self::Database, key: &[u8], value: Option<&[u8]>) -> Result<(), Self::Error> {
-        self.0.del(db.0, &key, value).map_err(ErrorImpl)
+        self.0.del(db.0, &key, value).map_err(ErrorImpl::LmdbError)
     }
 
     fn clear_db(&mut self, db: &Self::Database) -> Result<(), Self::Error> {
-        self.0.clear_db(db.0).map_err(ErrorImpl)
+        self.0.clear_db(db.0).map_err(ErrorImpl::LmdbError)
     }
 
     fn commit(self) -> Result<(), Self::Error> {
-        self.0.commit().map_err(ErrorImpl)
+        self.0.commit().map_err(ErrorImpl::LmdbError)
     }
 
     fn abort(self) {
@@ -86,10 +86,10 @@ impl<'env> BackendRwTransaction for RwTransactionImpl<'env> {
     }
 }
 
-impl<'env> BackendRwCursorTransaction<'env> for RwTransactionImpl<'env> {
-    type RoCursor = RoCursorImpl<'env>;
+impl<'t> BackendRwCursorTransaction<'t> for RwTransactionImpl<'t> {
+    type RoCursor = RoCursorImpl<'t>;
 
-    fn open_ro_cursor(&'env self, db: &Self::Database) -> Result<Self::RoCursor, Self::Error> {
-        self.0.open_ro_cursor(db.0).map(RoCursorImpl).map_err(ErrorImpl)
+    fn open_ro_cursor(&'t self, db: &Self::Database) -> Result<Self::RoCursor, Self::Error> {
+        self.0.open_ro_cursor(db.0).map(RoCursorImpl).map_err(ErrorImpl::LmdbError)
     }
 }

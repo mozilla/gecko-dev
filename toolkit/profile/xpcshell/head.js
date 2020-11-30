@@ -41,7 +41,7 @@ const ShellService = {
     let factory = {
       createInstance(outer, iid) {
         if (outer != null) {
-          throw Cr.NS_ERROR_NO_AGGREGATION;
+          throw Components.Exception("", Cr.NS_ERROR_NO_AGGREGATION);
         }
 
         return ShellService.QueryInterface(iid);
@@ -60,7 +60,7 @@ const ShellService = {
     return gIsDefaultApp;
   },
 
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIToolkitShellService]),
+  QueryInterface: ChromeUtils.generateQI(["nsIToolkitShellService"]),
   ID: Components.ID("{ce724e0c-ed70-41c9-ab31-1033b0b591be}"),
   CONTRACT: "@mozilla.org/toolkit/shell-service;1",
 };

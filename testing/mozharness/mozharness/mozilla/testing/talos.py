@@ -8,7 +8,6 @@
 run talos tests in a virtualenv
 """
 
-import argparse
 import io
 import os
 import sys
@@ -129,18 +128,6 @@ class Talos(TestingMixin, MercurialScript, TooltoolMixin,
           "default": None,
           "help": "extra options to talos"
           }],
-        [["--geckoProfile"], {
-            "dest": "gecko_profile",
-            "action": "store_true",
-            "default": False,
-            "help": argparse.SUPPRESS
-        }],
-        [["--geckoProfileInterval"], {
-            "dest": "gecko_profile_interval",
-            "type": "int",
-            "default": 0,
-            "help": argparse.SUPPRESS
-        }],
         [["--gecko-profile"], {
             "dest": "gecko_profile",
             "action": "store_true",
@@ -176,8 +163,8 @@ class Talos(TestingMixin, MercurialScript, TooltoolMixin,
             "metavar": "PREF=VALUE",
             "dest": "extra_prefs",
             "default": [],
-            "help": "Defines an extra user preference."}
-         ],
+            "help": "Set a browser preference. May be used multiple times.",
+         }],
     ] + testing_config_options + copy.deepcopy(code_coverage_config_options)
 
     def __init__(self, **kwargs):
@@ -210,7 +197,6 @@ class Talos(TestingMixin, MercurialScript, TooltoolMixin,
         self.obj_path = self.config.get("obj_path")
         self.tests = None
         self.gecko_profile = self.config.get('gecko_profile') or \
-            "--geckoProfile" in self.config.get("talos_extra_options", []) or \
             "--gecko-profile" in self.config.get("talos_extra_options", [])
         self.gecko_profile_interval = self.config.get('gecko_profile_interval')
         self.pagesets_name = None
@@ -432,7 +418,7 @@ class Talos(TestingMixin, MercurialScript, TooltoolMixin,
         return options
 
     def populate_webroot(self):
-        """Populate the production test slaves' webroots"""
+        """Populate the production test machines' webroots"""
         self.talos_path = os.path.join(
             self.query_abs_dirs()['abs_test_install_dir'], 'talos'
         )
@@ -570,10 +556,6 @@ class Talos(TestingMixin, MercurialScript, TooltoolMixin,
                                      os.path.basename(_python_interp),
                                      'site-packages')
 
-            # if  running gecko profiling  install the requirements
-            if self.gecko_profile:
-                self._install_view_gecko_profile_req()
-
             sys.path.append(_path)
             return
 
@@ -603,18 +585,6 @@ class Talos(TestingMixin, MercurialScript, TooltoolMixin,
             requirements=[os.path.join(self.talos_path,
                                        'requirements.txt')]
         )
-        self._install_view_gecko_profile_req()
-
-    def _install_view_gecko_profile_req(self):
-        # if running locally and gecko profiing is on, we will be using the
-        # view-gecko-profile tool which has its own requirements too
-        if self.gecko_profile and self.run_local:
-            tools = os.path.join(self.config['repo_path'], 'testing', 'tools')
-            view_gecko_profile_req = os.path.join(tools,
-                                                  'view_gecko_profile',
-                                                  'requirements.txt')
-            self.info("installing requirements for the view-gecko-profile tool")
-            self.install_module(requirements=[view_gecko_profile_req])
 
     def _validate_treeherder_data(self, parser):
         # late import is required, because install is done in create_virtualenv

@@ -17,6 +17,7 @@ class MultiTouchInput;
 class ScrollWheelInput;
 class MouseInput;
 class PanGestureInput;
+class PinchGestureInput;
 class KeyboardInput;
 
 namespace layers {
@@ -26,6 +27,7 @@ class TouchBlockState;
 class WheelBlockState;
 class DragBlockState;
 class PanGestureBlockState;
+class PinchGestureBlockState;
 class KeyboardBlockState;
 
 /**
@@ -39,6 +41,7 @@ class QueuedInput {
   QueuedInput(const ScrollWheelInput& aInput, WheelBlockState& aBlock);
   QueuedInput(const MouseInput& aInput, DragBlockState& aBlock);
   QueuedInput(const PanGestureInput& aInput, PanGestureBlockState& aBlock);
+  QueuedInput(const PinchGestureInput& aInput, PinchGestureBlockState& aBlock);
   QueuedInput(const KeyboardInput& aInput, KeyboardBlockState& aBlock);
 
   InputData* Input();

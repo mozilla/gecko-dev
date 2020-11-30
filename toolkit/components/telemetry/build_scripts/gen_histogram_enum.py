@@ -28,7 +28,7 @@ header = """
 #ifndef mozilla_TelemetryHistogramEnums_h
 #define mozilla_TelemetryHistogramEnums_h
 
-#include "mozilla/TemplateLib.h"
+#include <type_traits>
 
 namespace mozilla {
 namespace Telemetry {
@@ -110,14 +110,15 @@ def main(output, *filenames):
         print("  %s" % ",\n  ".join(labels), file=output)
         print("};", file=output)
 
-    print("\ntemplate<class T> struct IsCategoricalLabelEnum : FalseType {};", file=output)
+    print("\ntemplate<class T> struct IsCategoricalLabelEnum : std::false_type {};", file=output)
     for name, _, _ in enums:
-        print("template<> struct IsCategoricalLabelEnum<%s> : TrueType {};" % name, file=output)
+        print("template<> struct IsCategoricalLabelEnum<%s> : std::true_type {};" % name,
+              file=output)
 
     print("\ntemplate<class T> struct CategoricalLabelId {};", file=output)
     for name, _, id in enums:
         print("template<> struct CategoricalLabelId<%s> : "
-              "IntegralConstant<uint32_t, %s> {};" % (name, id), file=output)
+              "std::integral_constant<uint32_t, %s> {};" % (name, id), file=output)
 
     # Footer.
     print(footer, file=output)

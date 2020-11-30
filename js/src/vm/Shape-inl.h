@@ -9,8 +9,6 @@
 
 #include "vm/Shape.h"
 
-#include "mozilla/TypeTraits.h"
-
 #include "gc/Allocator.h"
 #include "vm/Interpreter.h"
 #include "vm/JSObject.h"
@@ -127,13 +125,13 @@ inline Shape* Shape::new_(JSContext* cx, Handle<StackShape> other,
 }
 
 inline void Shape::updateBaseShapeAfterMovingGC() {
-  BaseShape* base = base_;
+  BaseShape* base = this->base();
   if (IsForwarded(base)) {
-    base_.unsafeSet(Forwarded(base));
+    unbarrieredSetHeaderPtr(Forwarded(base));
   }
 }
 
-static inline void GetterSetterWriteBarrierPost(AccessorShape* shape) {
+static inline void GetterSetterPostWriteBarrier(AccessorShape* shape) {
   // If the shape contains any nursery pointers then add it to a vector on the
   // zone that we fixup on minor GC. Prevent this vector growing too large
   // since we don't tolerate OOM here.
@@ -158,7 +156,7 @@ static inline void GetterSetterWriteBarrierPost(AccessorShape* shape) {
   {
     AutoEnterOOMUnsafeRegion oomUnsafe;
     if (!nurseryShapes.append(shape)) {
-      oomUnsafe.crash("GetterSetterWriteBarrierPost");
+      oomUnsafe.crash("GetterSetterPostWriteBarrier");
     }
   }
 
@@ -174,7 +172,7 @@ inline AccessorShape::AccessorShape(const StackShape& other, uint32_t nfixed)
       rawGetter(other.rawGetter),
       rawSetter(other.rawSetter) {
   MOZ_ASSERT(getAllocKind() == gc::AllocKind::ACCESSOR_SHAPE);
-  GetterSetterWriteBarrierPost(this);
+  GetterSetterPostWriteBarrier(this);
 }
 
 inline void Shape::initDictionaryShape(const StackShape& child, uint32_t nfixed,
@@ -213,7 +211,7 @@ inline void Shape::setDictionaryNextPtr(DictionaryShapeLink next) {
 inline void Shape::dictNextPreWriteBarrier() {
   // Only object pointers are traced, so we only need to barrier those.
   if (dictNext.isObject()) {
-    JSObject::writeBarrierPre(dictNext.toObject());
+    gc::PreWriteBarrier(dictNext.toObject());
   }
 }
 
@@ -230,7 +228,7 @@ inline GCPtrShape* DictionaryShapeLink::prevPtr() {
 template <class ObjectSubclass>
 /* static */ inline bool EmptyShape::ensureInitialCustomShape(
     JSContext* cx, Handle<ObjectSubclass*> obj) {
-  static_assert(std::is_base_of<JSObject, ObjectSubclass>::value,
+  static_assert(std::is_base_of_v<JSObject, ObjectSubclass>,
                 "ObjectSubclass must be a subclass of JSObject");
 
   // If the provided object has a non-empty shape, it was given the cached
@@ -266,13 +264,13 @@ inline AutoRooterGetterSetter::Inner::Inner(uint8_t attrs, GetterOp* pgetter_,
                                             SetterOp* psetter_)
     : attrs(attrs), pgetter(pgetter_), psetter(psetter_) {}
 
-inline AutoRooterGetterSetter::AutoRooterGetterSetter(
-    JSContext* cx, uint8_t attrs, GetterOp* pgetter,
-    SetterOp* psetter MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL) {
+inline AutoRooterGetterSetter::AutoRooterGetterSetter(JSContext* cx,
+                                                      uint8_t attrs,
+                                                      GetterOp* pgetter,
+                                                      SetterOp* psetter) {
   if (attrs & (JSPROP_GETTER | JSPROP_SETTER)) {
     inner.emplace(cx, Inner(attrs, pgetter, psetter));
   }
-  MOZ_GUARD_OBJECT_NOTIFIER_INIT;
 }
 
 static inline uint8_t GetPropertyAttributes(JSObject* obj,
@@ -421,7 +419,7 @@ MOZ_ALWAYS_INLINE Shape* Shape::searchNoHashify(Shape* start, jsid id) {
     JSContext* cx, HandleNativeObject obj, HandleId id, uint32_t slot,
     unsigned attrs) {
   MOZ_ASSERT(!JSID_IS_VOID(id));
-  MOZ_ASSERT(obj->uninlinedNonProxyIsExtensible());
+  MOZ_ASSERT_IF(!id.isPrivateName(), obj->uninlinedNonProxyIsExtensible());
   MOZ_ASSERT(!obj->containsPure(id));
 
   AutoKeepShapeCaches keep(cx);
@@ -442,7 +440,7 @@ MOZ_ALWAYS_INLINE Shape* Shape::searchNoHashify(Shape* start, jsid id) {
     JSContext* cx, HandleNativeObject obj, HandleId id, GetterOp getter,
     SetterOp setter, unsigned attrs) {
   MOZ_ASSERT(!JSID_IS_VOID(id));
-  MOZ_ASSERT(obj->uninlinedNonProxyIsExtensible());
+  MOZ_ASSERT_IF(!id.isPrivateName(), obj->uninlinedNonProxyIsExtensible());
   MOZ_ASSERT(!obj->containsPure(id));
 
   AutoKeepShapeCaches keep(cx);

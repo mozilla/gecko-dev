@@ -47,26 +47,6 @@ void nsNumberControlFrame::DestroyFrom(nsIFrame* aDestructRoot,
   nsTextControlFrame::DestroyFrom(aDestructRoot, aPostDestroyData);
 }
 
-already_AddRefed<Element> nsNumberControlFrame::MakeAnonymousElement(
-    Element* aParent, nsAtom* aTagName, PseudoStyleType aPseudoType) {
-  // Get the NodeInfoManager and tag necessary to create the anonymous divs.
-  Document* doc = mContent->GetComposedDoc();
-  RefPtr<Element> resultElement = doc->CreateHTMLElement(aTagName);
-  resultElement->SetPseudoElementType(aPseudoType);
-
-  if (aPseudoType == PseudoStyleType::mozNumberSpinDown ||
-      aPseudoType == PseudoStyleType::mozNumberSpinUp) {
-    resultElement->SetAttr(kNameSpaceID_None, nsGkAtoms::aria_hidden,
-                           NS_LITERAL_STRING("true"), false);
-  }
-
-  if (aParent) {
-    aParent->AppendChildTo(resultElement, false);
-  }
-
-  return resultElement.forget();
-}
-
 nsresult nsNumberControlFrame::CreateAnonymousContent(
     nsTArray<ContentInfo>& aElements) {
   // We create an anonymous tree for our input element that is structured as
@@ -85,8 +65,7 @@ nsresult nsNumberControlFrame::CreateAnonymousContent(
   // nsNumberControlFrame::DestroyFrom.
 
   // Create the anonymous outer wrapper:
-  mOuterWrapper = MakeAnonymousElement(nullptr, nsGkAtoms::div,
-                                       PseudoStyleType::mozNumberWrapper);
+  mOuterWrapper = MakeAnonElement(PseudoStyleType::mozComplexControlWrapper);
 
   // We want to do this now, rather than on the caller, so that the
   // AppendChildTo calls below know that they are anonymous already. This is
@@ -107,23 +86,20 @@ nsresult nsNumberControlFrame::CreateAnonymousContent(
     }
   }
 
-  if (StyleDisplay()->mAppearance == StyleAppearance::Textfield) {
+  if (StyleDisplay()->EffectiveAppearance() == StyleAppearance::Textfield) {
     // The author has elected to hide the spinner by setting this
     // -moz-appearance. We will reframe if it changes.
     return NS_OK;
   }
 
   // Create the ::-moz-number-spin-box pseudo-element:
-  mSpinBox = MakeAnonymousElement(mOuterWrapper, nsGkAtoms::div,
-                                  PseudoStyleType::mozNumberSpinBox);
+  mSpinBox = MakeAnonElement(PseudoStyleType::mozNumberSpinBox, mOuterWrapper);
 
   // Create the ::-moz-number-spin-up pseudo-element:
-  mSpinUp = MakeAnonymousElement(mSpinBox, nsGkAtoms::div,
-                                 PseudoStyleType::mozNumberSpinUp);
+  mSpinUp = MakeAnonElement(PseudoStyleType::mozNumberSpinUp, mSpinBox);
 
   // Create the ::-moz-number-spin-down pseudo-element:
-  mSpinDown = MakeAnonymousElement(mSpinBox, nsGkAtoms::div,
-                                   PseudoStyleType::mozNumberSpinDown);
+  mSpinDown = MakeAnonElement(PseudoStyleType::mozNumberSpinDown, mSpinBox);
 
   return NS_OK;
 }
@@ -196,7 +172,7 @@ int32_t nsNumberControlFrame::GetSpinButtonForPointerEvent(
     // default UA style sheet. See the comment in forms.css for why.
     LayoutDeviceIntPoint absPoint = aEvent->mRefPoint;
     nsPoint point = nsLayoutUtils::GetEventCoordinatesRelativeTo(
-        aEvent, absPoint, mSpinBox->GetPrimaryFrame());
+        aEvent, absPoint, RelativeTo{mSpinBox->GetPrimaryFrame()});
     if (point != nsPoint(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE)) {
       if (point.y < mSpinBox->GetPrimaryFrame()->GetSize().height / 2) {
         return eSpinButtonUp;
@@ -231,9 +207,8 @@ bool nsNumberControlFrame::SpinnerDownButtonIsDepressed() const {
       ->NumberSpinnerDownButtonIsDepressed();
 }
 
-#define STYLES_DISABLING_NATIVE_THEMING                          \
-  NS_AUTHOR_SPECIFIED_BACKGROUND | NS_AUTHOR_SPECIFIED_PADDING | \
-      NS_AUTHOR_SPECIFIED_BORDER
+#define STYLES_DISABLING_NATIVE_THEMING \
+  NS_AUTHOR_SPECIFIED_BORDER_OR_BACKGROUND | NS_AUTHOR_SPECIFIED_PADDING
 
 bool nsNumberControlFrame::ShouldUseNativeStyleForSpinner() const {
   MOZ_ASSERT(mSpinUp && mSpinDown,
@@ -243,12 +218,12 @@ bool nsNumberControlFrame::ShouldUseNativeStyleForSpinner() const {
   nsIFrame* spinDownFrame = mSpinDown->GetPrimaryFrame();
 
   return spinUpFrame &&
-         spinUpFrame->StyleDisplay()->mAppearance ==
+         spinUpFrame->StyleDisplay()->EffectiveAppearance() ==
              StyleAppearance::SpinnerUpbutton &&
          !PresContext()->HasAuthorSpecifiedRules(
              spinUpFrame, STYLES_DISABLING_NATIVE_THEMING) &&
          spinDownFrame &&
-         spinDownFrame->StyleDisplay()->mAppearance ==
+         spinDownFrame->StyleDisplay()->EffectiveAppearance() ==
              StyleAppearance::SpinnerDownbutton &&
          !PresContext()->HasAuthorSpecifiedRules(
              spinDownFrame, STYLES_DISABLING_NATIVE_THEMING);

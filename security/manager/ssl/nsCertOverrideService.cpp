@@ -10,6 +10,7 @@
 #include "ScopedNSSTypes.h"
 #include "SharedSSLState.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/TaskQueue.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TextUtils.h"
 #include "mozilla/Unused.h"
@@ -37,6 +38,82 @@ using namespace mozilla;
 using namespace mozilla::psm;
 
 #define CERT_OVERRIDE_FILE_NAME "cert_override.txt"
+
+class WriterRunnable : public Runnable {
+ public:
+  WriterRunnable(nsCertOverrideService* aService, nsCString& aData,
+                 nsCOMPtr<nsIFile> aFile)
+      : Runnable("nsCertOverrideService::WriterRunnable"),
+        mCertOverrideService(aService),
+        mData(aData),
+        mFile(std::move(aFile)) {}
+
+  NS_IMETHOD
+  Run() override {
+    mCertOverrideService->AssertOnTaskQueue();
+    nsresult rv;
+
+    nsCOMPtr<nsIOutputStream> outputStream;
+    rv = NS_NewSafeLocalFileOutputStream(
+        getter_AddRefs(outputStream), mFile,
+        PR_CREATE_FILE | PR_TRUNCATE | PR_WRONLY);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    const char* ptr = mData.get();
+    uint32_t remaining = mData.Length();
+    uint32_t written = 0;
+    while (remaining > 0) {
+      rv = outputStream->Write(ptr, remaining, &written);
+      NS_ENSURE_SUCCESS(rv, rv);
+      remaining -= written;
+      ptr += written;
+    }
+
+    nsCOMPtr<nsISafeOutputStream> safeStream = do_QueryInterface(outputStream);
+    MOZ_ASSERT(safeStream);
+    rv = safeStream->Finish();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return NS_OK;
+  }
+
+ private:
+  const RefPtr<nsCertOverrideService> mCertOverrideService;
+  nsCString mData;
+  const nsCOMPtr<nsIFile> mFile;
+};
+
+NS_IMPL_ISUPPORTS(nsCertOverride, nsICertOverride)
+
+NS_IMETHODIMP
+nsCertOverride::GetAsciiHost(/*out*/ nsACString& aAsciiHost) {
+  aAsciiHost = mAsciiHost;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCertOverride::GetDbKey(/*out*/ nsACString& aDBKey) {
+  aDBKey = mDBKey;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCertOverride::GetPort(/*out*/ int32_t* aPort) {
+  *aPort = mPort;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCertOverride::GetIsTemporary(/*out*/ bool* aIsTemporary) {
+  *aIsTemporary = mIsTemporary;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCertOverride::GetHostPort(/*out*/ nsACString& aHostPort) {
+  nsCertOverrideService::GetHostWithPort(mAsciiHost, mPort, aHostPort);
+  return NS_OK;
+}
 
 void nsCertOverride::convertBitsToString(OverrideBits ob,
                                          /*out*/ nsACString& str) {
@@ -83,18 +160,43 @@ void nsCertOverride::convertStringToBits(const nsACString& str,
 }
 
 NS_IMPL_ISUPPORTS(nsCertOverrideService, nsICertOverrideService, nsIObserver,
-                  nsISupportsWeakReference)
+                  nsISupportsWeakReference, nsIAsyncShutdownBlocker)
 
 nsCertOverrideService::nsCertOverrideService()
-    : mDisableAllSecurityCheck(false), mMutex("nsCertOverrideService.mutex") {}
+    : mDisableAllSecurityCheck(false), mMutex("nsCertOverrideService.mutex") {
+  nsCOMPtr<nsIEventTarget> target =
+      do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID);
+  MOZ_ASSERT(target);
 
-nsCertOverrideService::~nsCertOverrideService() {}
+  mWriterTaskQueue = new TaskQueue(target.forget());
+}
+
+nsCertOverrideService::~nsCertOverrideService() = default;
+
+static nsCOMPtr<nsIAsyncShutdownClient> GetShutdownBarrier() {
+  nsCOMPtr<nsIAsyncShutdownService> svc =
+      mozilla::services::GetAsyncShutdownService();
+  MOZ_RELEASE_ASSERT(svc);
+
+  nsCOMPtr<nsIAsyncShutdownClient> barrier;
+  nsresult rv = svc->GetProfileBeforeChange(getter_AddRefs(barrier));
+
+  MOZ_RELEASE_ASSERT(NS_SUCCEEDED(rv));
+  MOZ_RELEASE_ASSERT(barrier);
+  return barrier;
+}
 
 nsresult nsCertOverrideService::Init() {
   if (!NS_IsMainThread()) {
     MOZ_ASSERT_UNREACHABLE("nsCertOverrideService initialized off main thread");
     return NS_ERROR_NOT_SAME_THREAD;
   }
+
+  nsresult rv = GetShutdownBarrier()->AddBlocker(
+      this, NS_LITERAL_STRING_FROM_CSTRING(__FILE__), __LINE__,
+      u"nsCertOverrideService shutdown"_ns);
+  // If that failed, we're likely getting initialized during shutdown.
+  NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIObserverService> observerService =
       mozilla::services::GetObserverService();
@@ -132,7 +234,7 @@ nsCertOverrideService::Observe(nsISupports*, const char* aTopic,
     nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR,
                                          getter_AddRefs(mSettingsFile));
     if (NS_SUCCEEDED(rv)) {
-      mSettingsFile->AppendNative(NS_LITERAL_CSTRING(CERT_OVERRIDE_FILE_NAME));
+      mSettingsFile->AppendNative(nsLiteralCString(CERT_OVERRIDE_FILE_NAME));
     } else {
       mSettingsFile = nullptr;
     }
@@ -152,8 +254,8 @@ void nsCertOverrideService::RemoveAllTemporaryOverrides() {
   MutexAutoLock lock(mMutex);
   for (auto iter = mSettingsTable.Iter(); !iter.Done(); iter.Next()) {
     nsCertOverrideEntry* entry = iter.Get();
-    if (entry->mSettings.mIsTemporary) {
-      entry->mSettings.mCert = nullptr;
+    if (entry->mSettings->mIsTemporary) {
+      entry->mSettings->mCert = nullptr;
       iter.Remove();
     }
   }
@@ -253,22 +355,7 @@ nsresult nsCertOverrideService::Write(const MutexAutoLock& aProofOfLock) {
     return NS_OK;
   }
 
-  nsresult rv;
-  nsCOMPtr<nsIOutputStream> fileOutputStream;
-  rv = NS_NewSafeLocalFileOutputStream(getter_AddRefs(fileOutputStream),
-                                       mSettingsFile, -1, 0600);
-  if (NS_FAILED(rv)) {
-    NS_ERROR("failed to open cert_warn_settings.txt for writing");
-    return rv;
-  }
-
-  // get a buffered output stream 4096 bytes big, to optimize writes
-  nsCOMPtr<nsIOutputStream> bufferedOutputStream;
-  rv = NS_NewBufferedOutputStream(getter_AddRefs(bufferedOutputStream),
-                                  fileOutputStream.forget(), 4096);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
+  nsCString output;
 
   static const char kHeader[] =
       "# PSM Certificate Override Settings file" NS_LINEBREAK
@@ -276,49 +363,43 @@ nsresult nsCertOverrideService::Write(const MutexAutoLock& aProofOfLock) {
 
   /* see ::Read for file format */
 
-  uint32_t unused;
-  bufferedOutputStream->Write(kHeader, sizeof(kHeader) - 1, &unused);
+  output.Append(kHeader);
 
   static const char kTab[] = "\t";
   for (auto iter = mSettingsTable.Iter(); !iter.Done(); iter.Next()) {
     nsCertOverrideEntry* entry = iter.Get();
 
-    const nsCertOverride& settings = entry->mSettings;
-    if (settings.mIsTemporary) {
+    RefPtr<nsCertOverride> settings = entry->mSettings;
+    if (settings->mIsTemporary) {
       continue;
     }
 
     nsAutoCString bits_string;
-    nsCertOverride::convertBitsToString(settings.mOverrideBits, bits_string);
+    nsCertOverride::convertBitsToString(settings->mOverrideBits, bits_string);
 
-    bufferedOutputStream->Write(entry->mHostWithPort.get(),
-                                entry->mHostWithPort.Length(), &unused);
-    bufferedOutputStream->Write(kTab, sizeof(kTab) - 1, &unused);
-    bufferedOutputStream->Write(sSHA256OIDString, sizeof(sSHA256OIDString) - 1,
-                                &unused);
-    bufferedOutputStream->Write(kTab, sizeof(kTab) - 1, &unused);
-    bufferedOutputStream->Write(settings.mFingerprint.get(),
-                                settings.mFingerprint.Length(), &unused);
-    bufferedOutputStream->Write(kTab, sizeof(kTab) - 1, &unused);
-    bufferedOutputStream->Write(bits_string.get(), bits_string.Length(),
-                                &unused);
-    bufferedOutputStream->Write(kTab, sizeof(kTab) - 1, &unused);
-    bufferedOutputStream->Write(settings.mDBKey.get(), settings.mDBKey.Length(),
-                                &unused);
-    bufferedOutputStream->Write(NS_LINEBREAK, NS_LINEBREAK_LEN, &unused);
+    output.Append(entry->mHostWithPort);
+    output.Append(kTab);
+    output.Append(sSHA256OIDString);
+    output.Append(kTab);
+    output.Append(settings->mFingerprint);
+    output.Append(kTab);
+    output.Append(bits_string);
+    output.Append(kTab);
+    output.Append(settings->mDBKey);
+    output.Append(NS_LINEBREAK);
   }
 
-  // All went ok. Maybe except for problems in Write(), but the stream detects
-  // that for us
-  nsCOMPtr<nsISafeOutputStream> safeStream =
-      do_QueryInterface(bufferedOutputStream);
-  MOZ_ASSERT(safeStream, "Expected a safe output stream!");
-  if (safeStream) {
-    rv = safeStream->Finish();
-    if (NS_FAILED(rv)) {
-      NS_WARNING("failed to save cert warn settings file! possible dataloss");
-      return rv;
-    }
+  // Make a clone of the file to pass to the WriterRunnable.
+  nsCOMPtr<nsIFile> file;
+  nsresult rv;
+  rv = mSettingsFile->Clone(getter_AddRefs(file));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIRunnable> runnable = new WriterRunnable(this, output, file);
+  rv = mWriterTaskQueue->Dispatch(runnable.forget());
+
+  if (NS_FAILED(rv)) {
+    return rv;
   }
 
   return NS_OK;
@@ -405,7 +486,7 @@ nsCertOverrideService::RememberTemporaryValidityOverrideUsingFingerprint(
                  nullptr,  // No cert to keep alive
                  true,     // temporary
                  aCertFingerprint, (nsCertOverride::OverrideBits)aOverrideBits,
-                 EmptyCString(),  // dbkey
+                 ""_ns,  // dbkey
                  lock);
 
   return NS_OK;
@@ -445,7 +526,7 @@ nsCertOverrideService::HasMatchingOverride(const nsACString& aHostName,
 
   nsAutoCString hostPort;
   GetHostWithPort(aHostName, aPort, hostPort);
-  nsCertOverride settings;
+  RefPtr<nsCertOverride> settings;
 
   {
     MutexAutoLock lock(mMutex);
@@ -453,11 +534,11 @@ nsCertOverrideService::HasMatchingOverride(const nsACString& aHostName,
 
     if (!entry) return NS_OK;
 
-    settings = entry->mSettings;  // copy
+    settings = entry->mSettings;
   }
 
-  *aOverrideBits = static_cast<uint32_t>(settings.mOverrideBits);
-  *aIsTemporary = settings.mIsTemporary;
+  *aOverrideBits = static_cast<uint32_t>(settings->mOverrideBits);
+  *aIsTemporary = settings->mIsTemporary;
 
   nsAutoCString fpStr;
   nsresult rv;
@@ -467,7 +548,7 @@ nsCertOverrideService::HasMatchingOverride(const nsACString& aHostName,
     return rv;
   }
 
-  *_retval = settings.mFingerprint.Equals(fpStr);
+  *_retval = settings->mFingerprint.Equals(fpStr);
   return NS_OK;
 }
 
@@ -488,16 +569,18 @@ nsresult nsCertOverrideService::AddEntryToList(
 
   entry->mHostWithPort = hostPort;
 
-  nsCertOverride& settings = entry->mSettings;
-  settings.mAsciiHost = aHostName;
-  settings.mPort = aPort;
-  settings.mIsTemporary = aIsTemporary;
-  settings.mFingerprint = fingerprint;
-  settings.mOverrideBits = ob;
-  settings.mDBKey = dbKey;
+  RefPtr<nsCertOverride> settings(new nsCertOverride());
+
+  settings->mAsciiHost = aHostName;
+  settings->mPort = aPort;
+  settings->mIsTemporary = aIsTemporary;
+  settings->mFingerprint = fingerprint;
+  settings->mOverrideBits = ob;
+  settings->mDBKey = dbKey;
   // remove whitespace from stored dbKey for backwards compatibility
-  settings.mDBKey.StripWhitespace();
-  settings.mCert = aCert;
+  settings->mDBKey.StripWhitespace();
+  settings->mCert = aCert;
+  entry->mSettings = settings;
 
   return NS_OK;
 }
@@ -560,7 +643,7 @@ void nsCertOverrideService::CountPermanentOverrideTelemetry(
     const MutexAutoLock& aProofOfLock) {
   uint32_t overrideCount = 0;
   for (auto iter = mSettingsTable.Iter(); !iter.Done(); iter.Next()) {
-    if (!iter.Get()->mSettings.mIsTemporary) {
+    if (!iter.Get()->mSettings->mIsTemporary) {
       overrideCount++;
     }
   }
@@ -589,19 +672,19 @@ nsCertOverrideService::IsCertUsedForOverrides(nsIX509Cert* aCert,
   {
     MutexAutoLock lock(mMutex);
     for (auto iter = mSettingsTable.Iter(); !iter.Done(); iter.Next()) {
-      const nsCertOverride& settings = iter.Get()->mSettings;
+      RefPtr<nsCertOverride> settings = iter.Get()->mSettings;
 
-      if ((settings.mIsTemporary && !aCheckTemporaries) ||
-          (!settings.mIsTemporary && !aCheckPermanents)) {
+      if ((settings->mIsTemporary && !aCheckTemporaries) ||
+          (!settings->mIsTemporary && !aCheckPermanents)) {
         continue;
       }
 
-      if (matchesDBKey(aCert, settings.mDBKey)) {
+      if (matchesDBKey(aCert, settings->mDBKey)) {
         nsAutoCString cert_fingerprint;
         nsresult rv =
             GetCertFingerprintByOidTag(aCert, SEC_OID_SHA256, cert_fingerprint);
         if (NS_SUCCEEDED(rv) &&
-            settings.mFingerprint.Equals(cert_fingerprint)) {
+            settings->mFingerprint.Equals(cert_fingerprint)) {
           counter++;
         }
       }
@@ -646,21 +729,33 @@ nsresult nsCertOverrideService::EnumerateCertOverrides(
     nsIX509Cert* aCert, CertOverrideEnumerator aEnumerator, void* aUserData) {
   MutexAutoLock lock(mMutex);
   for (auto iter = mSettingsTable.Iter(); !iter.Done(); iter.Next()) {
-    const nsCertOverride& settings = iter.Get()->mSettings;
+    const RefPtr<nsCertOverride> settings = iter.Get()->mSettings;
 
     if (!aCert) {
       aEnumerator(settings, aUserData);
     } else {
-      if (matchesDBKey(aCert, settings.mDBKey)) {
+      if (matchesDBKey(aCert, settings->mDBKey)) {
         nsAutoCString cert_fingerprint;
         nsresult rv =
             GetCertFingerprintByOidTag(aCert, SEC_OID_SHA256, cert_fingerprint);
         if (NS_SUCCEEDED(rv) &&
-            settings.mFingerprint.Equals(cert_fingerprint)) {
+            settings->mFingerprint.Equals(cert_fingerprint)) {
           aEnumerator(settings, aUserData);
         }
       }
     }
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCertOverrideService::GetOverrides(
+    /*out*/ nsTArray<RefPtr<nsICertOverride>>& retval) {
+  MutexAutoLock lock(mMutex);
+  for (auto iter = mSettingsTable.Iter(); !iter.Done(); iter.Next()) {
+    const RefPtr<nsICertOverride> settings = iter.Get()->mSettings;
+
+    retval.AppendElement(settings);
   }
   return NS_OK;
 }
@@ -677,4 +772,24 @@ void nsCertOverrideService::GetHostWithPort(const nsACString& aHostName,
     hostPort.AppendInt(aPort);
   }
   _retval.Assign(hostPort);
+}
+
+// nsIAsyncShutdownBlocker implementation
+NS_IMETHODIMP
+nsCertOverrideService::GetName(nsAString& aName) {
+  aName = u"nsCertOverrideService: shutdown"_ns;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCertOverrideService::GetState(nsIPropertyBag**) { return NS_OK; }
+
+NS_IMETHODIMP
+nsCertOverrideService::BlockShutdown(nsIAsyncShutdownClient*) {
+  mWriterTaskQueue->BeginShutdown();
+  mWriterTaskQueue->AwaitShutdownAndIdle();
+
+  nsresult rv = GetShutdownBarrier()->RemoveBlocker(this);
+  MOZ_RELEASE_ASSERT(NS_SUCCEEDED(rv));
+  return NS_OK;
 }

@@ -97,39 +97,6 @@ BreakpointActor.prototype = {
       script.clearBreakpoint(this, offset);
     }
 
-    // When replaying, logging breakpoints are handled using an API to get logged
-    // messages from throughout the recording.
-    if (this.threadActor.dbg.replaying && this.options.logGroupId) {
-      const { logGroupId } = this.options;
-
-      if (oldOptions && oldOptions.logGroupId == logGroupId) {
-        return;
-      }
-      for (const offset of offsets) {
-        const { lineNumber, columnNumber } = script.getOffsetLocation(offset);
-        script.replayVirtualConsoleLog({
-          offset,
-          text: this.options.logValue,
-          condition: this.options.condition,
-          messageCallback: (executionPoint, rv) => {
-            const message = {
-              filename: script.url,
-              lineNumber,
-              columnNumber,
-              executionPoint,
-              arguments: rv,
-              logpointId: logGroupId,
-            };
-            this.threadActor._parent._consoleActor.onConsoleAPICall(message);
-          },
-          validCallback: () => {
-            return this.options && this.options.logGroupId == logGroupId;
-          },
-        });
-      }
-      return;
-    }
-
     // In all other cases, this is used as a script breakpoint handler.
     for (const offset of offsets) {
       script.setBreakpoint(offset, this);
@@ -180,10 +147,9 @@ BreakpointActor.prototype = {
     // Don't pause if we are currently stepping (in or over) or the frame is
     // black-boxed.
     const location = this.threadActor.sources.getFrameLocation(frame);
-    const { sourceActor, line, column } = location;
 
     if (
-      this.threadActor.sources.isBlackBoxed(sourceActor.url, line, column) ||
+      this.threadActor.sources.isFrameBlackBoxed(frame) ||
       this.threadActor.skipBreakpoints
     ) {
       return undefined;
@@ -191,11 +157,11 @@ BreakpointActor.prototype = {
 
     // If we're trying to pop this frame, and we see a breakpoint at
     // the spot at which popping started, ignore it.  See bug 970469.
-    const locationAtFinish = frame.onPop && frame.onPop.location;
+    const locationAtFinish = frame.onPop?.location;
     if (
       locationAtFinish &&
-      locationAtFinish.line === line &&
-      locationAtFinish.column === column
+      locationAtFinish.line === location.line &&
+      locationAtFinish.column === location.column
     ) {
       return undefined;
     }
@@ -241,9 +207,9 @@ BreakpointActor.prototype = {
   delete: function() {
     // Remove from the breakpoint store.
     this.threadActor.breakpointActorMap.deleteActor(this.location);
-    this.threadActor.threadLifetimePool.removeActor(this);
     // Remove the actual breakpoint from the associated scripts.
     this.removeScripts();
+    this.destroy();
   },
 };
 

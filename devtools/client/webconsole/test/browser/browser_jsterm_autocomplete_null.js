@@ -52,12 +52,14 @@ add_task(async function() {
   is(popup.isOpen, false, "popup is closed");
 
   info(`Check that no error was logged`);
-  await waitFor(() => findMessage(hud, "", ".message.error")).then(
+  await waitFor(() =>
+    findMessage(hud, "", ".message.error:not(.network)")
+  ).then(
     message => {
       ok(false, `Got error ${JSON.stringify(message.textContent)}`);
     },
     error => {
-      if (!error.includes("waitFor - timed out")) {
+      if (!error.message.includes("Failed waitFor")) {
         throw error;
       }
       ok(true, `No error was logged`);

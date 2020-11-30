@@ -1,30 +1,24 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+% This Source Code Form is subject to the terms of the Mozilla Public
+% License, v. 2.0. If a copy of the MPL was not distributed with this
+% file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 /* ===== global.css =====================================================
   == Styles that apply everywhere.
   ======================================================================= */
-
-/* all localizable skin settings shall live here */
-@import url("chrome://global/locale/intl.css");
-@import url("chrome://global/content/widgets.css");
-
-@namespace xul url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
-@namespace html url("http://www.w3.org/1999/xhtml");
 
 %include ../../shared/global.inc.css
 
 :root {
   /* ::::: Variables ::::: */
   --arrowpanel-padding: 10px;
-  --default-arrowpanel-background: -moz-field;
-  --default-arrowpanel-color: -moz-fieldText;
+  --default-arrowpanel-background: Field;
+  --default-arrowpanel-color: FieldText;
   --default-arrowpanel-border-color: ThreeDShadow;
   --arrowpanel-background: var(--default-arrowpanel-background);
   --arrowpanel-color: var(--default-arrowpanel-color);
   --arrowpanel-border-color: var(--default-arrowpanel-border-color);
   --panel-disabled-color: GrayText;
+  --panel-description-color: GrayText;
   /* ::::: Styles ::::: */
   background-color: -moz-Dialog;
   color: -moz-DialogText;
@@ -37,9 +31,10 @@
   }
 }
 
-/* ::::: alert icons :::::*/
+/* ::::: Alert icons :::::*/
 
 .message-icon,
+.alert-dialog #infoIcon,
 .alert-icon,
 .error-icon,
 .question-icon {
@@ -54,8 +49,6 @@
 .alert-dialog #infoIcon,
 .alert-icon {
   list-style-image: url("chrome://global/skin/icons/warning.svg");
-  width: 32px;
-  height: 32px;
 }
 
 .error-icon {
@@ -64,6 +57,9 @@
 
 .question-icon {
   list-style-image: url("chrome://global/skin/icons/help.svg");
+  -moz-context-properties: fill, fill-opacity;
+  fill: currentColor;
+  fill-opacity: 0.8;
 }
 
 /* ::::: iframe ::::: */
@@ -89,7 +85,7 @@ xul|toolbar[mode="text"] .toolbarbutton-text {
   margin: 3px 5px !important;
 }
 
-/* ::::: print preview ::::: */
+/* ::::: Print preview ::::: */
 
 .print-preview-navigate-button {
   min-width: 1.9em;
@@ -120,7 +116,7 @@ html|*#print-preview-pageNumber {
   margin: 0 4px;
 }
 
-/* ::::: miscellaneous formatting ::::: */
+/* ::::: Miscellaneous formatting ::::: */
 
 :root[lwtheme-image]:-moz-lwtheme-darktext {
   text-shadow: 0 -0.5px 1.5px white;
@@ -149,24 +145,20 @@ xul|separator.groove:not([orient="vertical"]) {
   border-top: 1px solid ThreeDShadow;
   border-bottom: 1px solid ThreeDHighlight;
   height: 0;
-  margin-top: 0.4em;
-  margin-bottom: 0.4em;
+  margin-block: 0.4em;
 }
 xul|separator.groove[orient="vertical"] {
   border-left: 1px solid ThreeDShadow;
   border-right: 1px solid ThreeDHighlight;
   width: 0;
-  margin-left: 0.4em;
-  margin-right: 0.4em;
+  margin-inline: 0.4em;
 }
 
 xul|description,
 xul|label {
   cursor: default;
-  margin-top: 1px;
-  margin-bottom: 2px;
-  margin-inline-start: 6px;
-  margin-inline-end: 5px;
+  margin-block: 1px 2px;
+  margin-inline: 6px 5px;
 }
 
 xul|description {

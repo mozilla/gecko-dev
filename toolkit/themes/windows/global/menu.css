@@ -18,7 +18,8 @@ menubar {
 menu,
 menuitem,
 menucaption {
-  -moz-appearance: menuitem;
+  appearance: auto;
+  -moz-default-appearance: menuitem;
   -moz-box-align: center;
   list-style-image: none;
   -moz-image-region: auto;
@@ -47,7 +48,7 @@ menucaption {
   font-weight: bold;
 }
 
-/* ..... internal content .... */
+/* ..... Internal content .... */
 
 .menu-accel,
 .menu-iconic-accel,
@@ -59,7 +60,8 @@ menucaption {
 
 .menu-text {
   padding-inline-start: 1.45em !important;
-  -moz-appearance: menuitemtext;
+  appearance: auto;
+  -moz-default-appearance: menuitemtext;
 }
 
 .menu-text,
@@ -70,8 +72,7 @@ menucaption {
 
 .menu-accel,
 .menu-iconic-accel {
-  margin-inline-start: 0.74em !important;
-  margin-inline-end: 1.35em !important;
+  margin-inline: 0.74em 1.35em !important;
 }
 
 .menu-iconic-left {
@@ -85,14 +86,16 @@ menucaption {
 
 .menu-iconic > .menu-iconic-left,
 .menuitem-iconic > .menu-iconic-left {
-  -moz-appearance: menuimage;
+  appearance: auto;
+  -moz-default-appearance: menuimage;
   padding-top: 2px;
 }
 
 /* ..... menu arrow box ..... */
 
 .menu-right {
-  -moz-appearance: menuarrow;
+  appearance: auto;
+  -moz-default-appearance: menuarrow;
   margin-inline-end: -2px;
   list-style-image: none;
   min-width: 1.28em;
@@ -116,7 +119,7 @@ menubar > menu[_moz-menuactive="true"]:not([disabled="true"]) {
 }
 
 menubar > menu:-moz-lwtheme {
-  -moz-appearance: none;
+  appearance: none;
   border-color: transparent;
 }
 
@@ -132,7 +135,8 @@ menubar > menu:-moz-lwtheme[_moz-menuactive="true"]:not([disabled="true"]) {
 
 @media (-moz-windows-default-theme) {
   menubar > menu:-moz-lwtheme {
-    -moz-appearance: menuitem;
+    appearance: auto;
+    -moz-default-appearance: menuitem;
   }
 
   menubar > menu:-moz-lwtheme[_moz-menuactive="true"]:not([disabled="true"]) {
@@ -150,7 +154,7 @@ menubar > menu:-moz-window-inactive {
 /* ..... internal content .... */
 
 .menubar-text {
-  margin: 1px 6px 2px 6px !important;
+  margin: 1px 6px 2px !important;
 }
 
 /* ::::: menu/menuitems in popups ::::: */
@@ -176,12 +180,11 @@ menulist > menupopup {
 menulist > menupopup > menuitem,
 menulist > menupopup > menucaption,
 menulist > menupopup > menu {
-  -moz-appearance: none !important;
+  appearance: none !important;
   border: 1px solid transparent;
-  padding-inline-start: 5px;
-  padding-inline-end: 5px;
+  padding-inline: 5px;
   max-width: none;
-  color: -moz-FieldText;
+  color: FieldText;
 }
 
 menulist > menupopup > menuitem[_moz-menuactive="true"],
@@ -218,7 +221,7 @@ menulist > menupopup > menuitem[_moz-menuactive="true"][disabled="true"] {
   }
 }
 
-menulist > menupopup > :-moz-any(menuitem, menucaption):not(.menuitem-iconic) > .menu-iconic-text {
+menulist > menupopup > :is(menuitem, menucaption):not(.menuitem-iconic) > .menu-iconic-text {
   margin: 0 !important;
 }
 
@@ -226,19 +229,23 @@ menulist > menupopup > :-moz-any(menuitem, menucaption):not(.menuitem-iconic) > 
 
 menuitem[type="checkbox"],
 menuitem[checked="true"] {
-  -moz-appearance: checkmenuitem;
+  appearance: auto;
+  -moz-default-appearance: checkmenuitem;
 }
 menuitem[type="checkbox"] > .menu-iconic-left,
 menuitem[checked="true"] > .menu-iconic-left {
-  -moz-appearance: menucheckbox;
+  appearance: auto;
+  -moz-default-appearance: menucheckbox;
   padding-top: 0;
 }
 
 menuitem[type="radio"] {
-  -moz-appearance: radiomenuitem;
+  appearance: auto;
+  -moz-default-appearance: radiomenuitem;
 }
 menuitem[type="radio"] > .menu-iconic-left {
-  -moz-appearance: menuradio;
+  appearance: auto;
+  -moz-default-appearance: menuradio;
   padding-top: 0;
 }
 
@@ -253,14 +260,17 @@ menuitem[type="radio"] > .menu-iconic-left > .menu-iconic-icon {
 /* ::::: menuseparator ::::: */
 
 menuseparator {
-  -moz-appearance: menuseparator;
-  padding: 3px 1px 4px 1px;
+  appearance: auto;
+  -moz-default-appearance: menuseparator;
+  padding: 3px 1px 4px;
   border-top: 1px solid ThreeDShadow;
   border-bottom: 1px solid ThreeDHighlight;
 }
 
 menulist > menupopup > menuseparator {
-  padding: 6px 0 5px 0;
+  padding: 6px 0 5px;
   border-top: 1px solid #000000;
   border-bottom: none;
 }
+
+%include ../../shared/menu-scrolling.inc.css

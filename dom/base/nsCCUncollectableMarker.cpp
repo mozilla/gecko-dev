@@ -31,6 +31,7 @@
 #include "mozilla/dom/ChromeMessageBroadcaster.h"
 #include "mozilla/dom/ContentFrameMessageManager.h"
 #include "mozilla/dom/ContentProcessMessageManager.h"
+#include "mozilla/dom/CustomElementRegistry.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/ParentProcessMessageManager.h"
 #include "mozilla/dom/BrowserChild.h"
@@ -39,6 +40,7 @@
 #include "nsObserverService.h"
 #include "nsFocusManager.h"
 #include "nsIInterfaceRequestorUtils.h"
+#include "nsIXULRuntime.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -245,11 +247,15 @@ void MarkDocShell(nsIDocShellTreeItem* aNode, bool aCleanupJS) {
 
   nsCOMPtr<nsIWebNavigation> webNav = do_QueryInterface(shell);
   RefPtr<ChildSHistory> history = webNav->GetSessionHistory();
-  if (history) {
+  IgnoredErrorResult ignore;
+  nsISHistory* legacyHistory =
+      history ? history->GetLegacySHistory(ignore) : nullptr;
+  if (legacyHistory) {
+    MOZ_DIAGNOSTIC_ASSERT(!mozilla::SessionHistoryInParent());
     int32_t historyCount = history->Count();
     for (int32_t i = 0; i < historyCount; ++i) {
       nsCOMPtr<nsISHEntry> shEntry;
-      history->LegacySHistory()->GetEntryAtIndex(i, getter_AddRefs(shEntry));
+      legacyHistory->GetEntryAtIndex(i, getter_AddRefs(shEntry));
 
       MarkSHEntry(shEntry, aCleanupJS);
     }
@@ -309,8 +315,9 @@ nsresult nsCCUncollectableMarker::Observe(nsISupports* aSubject,
                    !strcmp(aTopic, "cycle-collector-forget-skippable"),
                "wrong topic");
 
-  // JS cleanup can be slow. Do it only if there has been a GC.
-  const bool cleanupJS = nsJSContext::CleanupsSinceLastGC() == 0 &&
+  // JS cleanup can be slow. Do it only if this is the first forget-skippable
+  // after a GC.
+  const bool cleanupJS = nsJSContext::HasHadCleanupSinceLastGC() &&
                          !strcmp(aTopic, "cycle-collector-forget-skippable");
 
   const bool prepareForCC = !strcmp(aTopic, "cycle-collector-begin");
@@ -466,6 +473,10 @@ void mozilla::dom::TraceBlackJS(JSTracer* aTrc, bool aIsShutdownGC) {
             EventListenerManager* elm = inner->GetExistingListenerManager();
             if (elm) {
               elm->TraceListeners(aTrc);
+            }
+            CustomElementRegistry* cer = inner->GetExistingCustomElements();
+            if (cer) {
+              cer->TraceDefinitions(aTrc);
             }
           }
         }

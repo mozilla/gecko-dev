@@ -41,7 +41,7 @@ class COMPtrHolder {
 
   Interface* Get() const { return mPtr.get(); }
 
-  MOZ_MUST_USE Interface* Release() { return mPtr.release(); }
+  [[nodiscard]] Interface* Release() { return mPtr.release(); }
 
   void Set(COMPtrType&& aPtr) { mPtr = std::forward<COMPtrType>(aPtr); }
 
@@ -183,8 +183,7 @@ struct ParamTraits<mozilla::mscom::COMPtrHolder<Interface, _IID>> {
     mozilla::mscom::ProxyStream proxyStream(_IID, buf.get(), length, &env);
     if (!proxyStream.IsValid()) {
       CrashReporter::AnnotateCrashReport(
-          CrashReporter::Annotation::ProxyStreamValid,
-          NS_LITERAL_CSTRING("false"));
+          CrashReporter::Annotation::ProxyStreamValid, "false"_ns);
       return false;
     }
 

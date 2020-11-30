@@ -7,6 +7,8 @@
 #ifndef nsAtom_h
 #define nsAtom_h
 
+#include <type_traits>
+
 #include "nsISupportsImpl.h"
 #include "nsString.h"
 #include "mozilla/Atomics.h"
@@ -57,8 +59,10 @@ class nsAtom {
   uint32_t GetLength() const { return mLength; }
 
   operator mozilla::Span<const char16_t>() const {
-    return mozilla::MakeSpan(static_cast<const char16_t*>(GetUTF16String()),
-                             GetLength());
+    // Explicitly specify template argument here to avoid instantiating
+    // Span<char16_t> first and then implicitly converting to Span<const
+    // char16_t>
+    return mozilla::Span<const char16_t>{GetUTF16String(), GetLength()};
   }
 
   void ToString(nsAString& aString) const;
@@ -87,7 +91,7 @@ class nsAtom {
   inline MozExternalRefCountType AddRef();
   inline MozExternalRefCountType Release();
 
-  typedef mozilla::TrueType HasThreadSafeRefCnt;
+  using HasThreadSafeRefCnt = std::true_type;
 
  protected:
   // Used by nsStaticAtom.

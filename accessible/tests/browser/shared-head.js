@@ -13,7 +13,8 @@
             CURRENT_CONTENT_DIR, loadScripts, loadContentScripts, snippetToURL,
             Cc, Cu, arrayFromChildren, forceGC, contentSpawnMutation,
             DEFAULT_IFRAME_ID, DEFAULT_IFRAME_DOC_BODY_ID, invokeContentTask,
-            matchContentDoc, currentContentDoc */
+            matchContentDoc, currentContentDoc, getContentDPR,
+            waitForImageMap, getContentBoundsForDOMElm */
 
 const CURRENT_FILE_DIR = "/browser/accessible/tests/browser/";
 
@@ -220,6 +221,20 @@ function invokeFocus(browser, id) {
 }
 
 /**
+ * Get DPR for a specific content window.
+ * @param  browser
+ *         Browser for which we want its content window's DPR reported.
+ *
+ * @return {Promise}
+ *         Promise with the value that resolves to the devicePixelRatio of the
+ *         content window of a given browser.
+ *
+ */
+function getContentDPR(browser) {
+  return invokeContentTask(browser, [], () => content.window.devicePixelRatio);
+}
+
+/**
  * Asynchronously perform a task in content (in content process if e10s is
  * enabled, or in fission process if fission is enabled and a fission frame is
  * present).
@@ -339,7 +354,7 @@ function wrapWithIFrame(doc, options = {}) {
   if (options.remoteIframe) {
     const srcURL = new URL(`http://example.net/document-builder.sjs`);
     if (doc.endsWith("html")) {
-      srcURL.searchParams.append("file", `${CURRENT_FILE_DIR}e10s/${doc}`);
+      srcURL.searchParams.append("file", `${CURRENT_FILE_DIR}${doc}`);
     } else {
       srcURL.searchParams.append(
         "html",
@@ -356,7 +371,7 @@ function wrapWithIFrame(doc, options = {}) {
   } else {
     const mimeType = doc.endsWith("xhtml") ? XHTML_MIME_TYPE : HTML_MIME_TYPE;
     if (doc.endsWith("html")) {
-      doc = loadHTMLFromFile(`${CURRENT_FILE_DIR}e10s/${doc}`);
+      doc = loadHTMLFromFile(`${CURRENT_FILE_DIR}${doc}`);
       doc = doc.replace(
         /<body[.\s\S]*?>/,
         `<body ${attrsToString(iframeDocBodyAttrs)}>`
@@ -417,7 +432,7 @@ function accessibleTask(doc, task, options = {}) {
     gIsIframe = options.iframe || gIsRemoteIframe;
     let url;
     if (doc.endsWith("html") && !gIsIframe) {
-      url = `${CURRENT_CONTENT_DIR}e10s/${doc}`;
+      url = `${CURRENT_CONTENT_DIR}${doc}`;
     } else {
       url = snippetToURL(doc, options);
     }
@@ -461,8 +476,9 @@ function accessibleTask(doc, task, options = {}) {
         await SimpleTest.promiseFocus(browser);
         await loadContentScripts(browser, "Common.jsm");
 
-        ok(Services.appinfo.browserTabsRemoteAutostart, "e10s enabled");
-        ok(browser.isRemoteBrowser, "Actually remote browser");
+        if (Services.appinfo.browserTabsRemoteAutostart) {
+          ok(browser.isRemoteBrowser, "Actually remote browser");
+        }
 
         const { accessible: docAccessible } = await onContentDocLoad;
         let iframeDocAccessible;
@@ -676,4 +692,38 @@ async function contentSpawnMutation(browser, waitFor, func, args = []) {
   });
 
   return events;
+}
+
+async function waitForImageMap(browser, accDoc, id = "imgmap") {
+  const acc = findAccessibleChildByID(accDoc, id);
+  if (acc.firstChild) {
+    return;
+  }
+
+  const onReorder = waitForEvent(EVENT_REORDER, id);
+  // Wave over image map
+  await invokeContentTask(browser, [id], contentId => {
+    const { ContentTaskUtils } = ChromeUtils.import(
+      "resource://testing-common/ContentTaskUtils.jsm"
+    );
+    const EventUtils = ContentTaskUtils.getEventUtils(content);
+    EventUtils.synthesizeMouse(
+      content.document.getElementById(contentId),
+      10,
+      10,
+      { type: "mousemove" },
+      content
+    );
+  });
+  await onReorder;
+}
+
+async function getContentBoundsForDOMElm(browser, id) {
+  return invokeContentTask(browser, [id], contentId => {
+    const { Layout: LayoutUtils } = ChromeUtils.import(
+      "chrome://mochitests/content/browser/accessible/tests/browser/Layout.jsm"
+    );
+
+    return LayoutUtils.getBoundsForDOMElm(contentId, content.document);
+  });
 }

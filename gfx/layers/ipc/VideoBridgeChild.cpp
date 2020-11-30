@@ -8,6 +8,8 @@
 #include "VideoBridgeParent.h"
 #include "CompositorThread.h"
 #include "mozilla/dom/ContentChild.h"
+#include "transport/runnable_utils.h"
+#include "SynchronousTask.h"
 
 namespace mozilla {
 namespace layers {
@@ -47,7 +49,7 @@ void VideoBridgeChild::Shutdown() {
 
 VideoBridgeChild::VideoBridgeChild()
     : mIPDLSelfRef(this),
-      mMessageLoop(MessageLoop::current()),
+      mThread(GetCurrentSerialEventTarget()),
       mCanSend(true) {}
 
 VideoBridgeChild::~VideoBridgeChild() = default;
@@ -57,6 +59,15 @@ VideoBridgeChild* VideoBridgeChild::GetSingleton() { return sVideoBridge; }
 bool VideoBridgeChild::AllocUnsafeShmem(
     size_t aSize, ipc::SharedMemory::SharedMemoryType aType,
     ipc::Shmem* aShmem) {
+  if (!mThread->IsOnCurrentThread()) {
+    return DispatchAllocShmemInternal(aSize, aType, aShmem,
+                                      true);  // true: unsafe
+  }
+
+  if (!CanSend()) {
+    return false;
+  }
+
   return PVideoBridgeChild::AllocUnsafeShmem(aSize, aType, aShmem);
 }
 
@@ -67,8 +78,69 @@ bool VideoBridgeChild::AllocShmem(size_t aSize,
   return PVideoBridgeChild::AllocShmem(aSize, aType, aShmem);
 }
 
+void VideoBridgeChild::ProxyAllocShmemNow(SynchronousTask* aTask, size_t aSize,
+                                          SharedMemory::SharedMemoryType aType,
+                                          ipc::Shmem* aShmem, bool aUnsafe,
+                                          bool* aSuccess) {
+  AutoCompleteTask complete(aTask);
+
+  if (!CanSend()) {
+    return;
+  }
+
+  bool ok = false;
+  if (aUnsafe) {
+    ok = AllocUnsafeShmem(aSize, aType, aShmem);
+  } else {
+    ok = AllocShmem(aSize, aType, aShmem);
+  }
+  *aSuccess = ok;
+}
+
+bool VideoBridgeChild::DispatchAllocShmemInternal(
+    size_t aSize, SharedMemory::SharedMemoryType aType, ipc::Shmem* aShmem,
+    bool aUnsafe) {
+  SynchronousTask task("AllocatorProxy alloc");
+
+  bool success = false;
+  RefPtr<Runnable> runnable = WrapRunnable(
+      RefPtr<VideoBridgeChild>(this), &VideoBridgeChild::ProxyAllocShmemNow,
+      &task, aSize, aType, aShmem, aUnsafe, &success);
+  GetThread()->Dispatch(runnable.forget());
+
+  task.Wait();
+
+  return success;
+}
+
+void VideoBridgeChild::ProxyDeallocShmemNow(SynchronousTask* aTask,
+                                            ipc::Shmem* aShmem, bool* aResult) {
+  AutoCompleteTask complete(aTask);
+
+  if (!CanSend()) {
+    return;
+  }
+  *aResult = DeallocShmem(*aShmem);
+}
+
 bool VideoBridgeChild::DeallocShmem(ipc::Shmem& aShmem) {
-  return PVideoBridgeChild::DeallocShmem(aShmem);
+  if (GetThread()->IsOnCurrentThread()) {
+    if (!CanSend()) {
+      return false;
+    }
+    return PVideoBridgeChild::DeallocShmem(aShmem);
+  }
+
+  SynchronousTask task("AllocatorProxy Dealloc");
+  bool result = false;
+
+  RefPtr<Runnable> runnable = WrapRunnable(
+      RefPtr<VideoBridgeChild>(this), &VideoBridgeChild::ProxyDeallocShmemNow,
+      &task, &aShmem, &result);
+  GetThread()->Dispatch(runnable.forget());
+
+  task.Wait();
+  return result;
 }
 
 PTextureChild* VideoBridgeChild::AllocPTextureChild(const SurfaceDescriptor&,
@@ -93,7 +165,7 @@ void VideoBridgeChild::ActorDealloc() { mIPDLSelfRef = nullptr; }
 PTextureChild* VideoBridgeChild::CreateTexture(
     const SurfaceDescriptor& aSharedData, const ReadLockDescriptor& aReadLock,
     LayersBackend aLayersBackend, TextureFlags aFlags, uint64_t aSerial,
-    wr::MaybeExternalImageId& aExternalImageId, nsIEventTarget* aTarget) {
+    wr::MaybeExternalImageId& aExternalImageId, nsISerialEventTarget* aTarget) {
   MOZ_ASSERT(CanSend());
   return SendPTextureConstructor(aSharedData, aReadLock, aLayersBackend, aFlags,
                                  aSerial);

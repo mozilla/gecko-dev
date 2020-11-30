@@ -62,7 +62,7 @@ var SessionCookiesInternal = {
         );
       } catch (ex) {
         Cu.reportError(
-          `nsCookieService::CookieExists failed with error '${ex}' for '${JSON.stringify(
+          `CookieService::CookieExists failed with error '${ex}' for '${JSON.stringify(
             cookie
           )}'.`
         );
@@ -79,11 +79,12 @@ var SessionCookiesInternal = {
             /* isSession = */ true,
             expiry,
             cookie.originAttributes || {},
-            cookie.sameSite || Ci.nsICookie.SAMESITE_NONE
+            cookie.sameSite || Ci.nsICookie.SAMESITE_NONE,
+            cookie.schemeMap || Ci.nsICookie.SCHEME_HTTPS
           );
         } catch (ex) {
           Cu.reportError(
-            `nsCookieService::Add failed with error '${ex}' for cookie ${JSON.stringify(
+            `CookieService::Add failed with error '${ex}' for cookie ${JSON.stringify(
               cookie
             )}.`
           );
@@ -245,6 +246,10 @@ var CookieStore = {
 
     if (cookie.sameSite) {
       jscookie.sameSite = cookie.sameSite;
+    }
+
+    if (cookie.schemeMap) {
+      jscookie.schemeMap = cookie.schemeMap;
     }
 
     this._entries.set(this._getKeyForCookie(cookie), jscookie);

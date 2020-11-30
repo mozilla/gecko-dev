@@ -27,7 +27,6 @@
 #include "mozilla/layers/ImageHost.h"
 #include "mozilla/layers/LayerManagerComposite.h"
 #include "TreeTraversal.h"  // for ForEachNode
-#include "LayersLogging.h"
 
 // LayerTreeInvalidation debugging
 #define LTI_DEBUG 0
@@ -619,7 +618,7 @@ struct ColorLayerProperties : public LayerPropertiesBase {
     return true;
   }
 
-  Color mColor;
+  DeviceColor mColor;
   IntRect mBounds;
 };
 

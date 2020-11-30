@@ -35,7 +35,6 @@ LayoutDeviceIntMargin HeadlessThemeGTK::GetWidgetBorder(
       result.left = 7;
       break;
     case StyleAppearance::FocusOutline:
-    case StyleAppearance::MenulistTextfield:
     case StyleAppearance::NumberInput:
     case StyleAppearance::Textfield:
       result.top = 5;
@@ -49,7 +48,6 @@ LayoutDeviceIntMargin HeadlessThemeGTK::GetWidgetBorder(
     case StyleAppearance::Treeview:
     case StyleAppearance::Treeheadersortarrow:
     case StyleAppearance::ProgressBar:
-    case StyleAppearance::ProgressbarVertical:
     case StyleAppearance::SpinnerUpbutton:
     case StyleAppearance::SpinnerDownbutton:
     case StyleAppearance::SpinnerTextfield:
@@ -218,12 +216,10 @@ HeadlessThemeGTK::GetMinimumWidgetSize(nsPresContext* aPresContext,
       aResult->height = 16;
       *aIsOverridable = false;
       break;
-    case StyleAppearance::InnerSpinButton:
     case StyleAppearance::Spinner:
       aResult->width = 14;
       aResult->height = 26;
       break;
-    case StyleAppearance::MenulistTextfield:
     case StyleAppearance::NumberInput:
     case StyleAppearance::Textfield:
       aResult->width = 0;
@@ -269,15 +265,9 @@ HeadlessThemeGTK::GetMinimumWidgetSize(nsPresContext* aPresContext,
       aResult->height = 28;
       *aIsOverridable = false;
       break;
-    case StyleAppearance::ScalethumbHorizontal:
     case StyleAppearance::RangeThumb:
       aResult->width = 14;
       aResult->height = 18;
-      *aIsOverridable = false;
-      break;
-    case StyleAppearance::ScalethumbVertical:
-      aResult->width = 18;
-      aResult->height = 13;
       *aIsOverridable = false;
       break;
     case StyleAppearance::Menuseparator:
@@ -342,13 +332,11 @@ HeadlessThemeGTK::ThemeSupportsWidget(nsPresContext* aPresContext,
     case StyleAppearance::Treetwistyopen:
     case StyleAppearance::ProgressBar:
     case StyleAppearance::Progresschunk:
-    case StyleAppearance::ProgressbarVertical:
     case StyleAppearance::Tab:
     case StyleAppearance::Tabpanels:
     case StyleAppearance::TabScrollArrowBack:
     case StyleAppearance::TabScrollArrowForward:
     case StyleAppearance::Tooltip:
-    case StyleAppearance::InnerSpinButton:
     case StyleAppearance::Spinner:
     case StyleAppearance::SpinnerUpbutton:
     case StyleAppearance::SpinnerDownbutton:
@@ -369,11 +357,6 @@ HeadlessThemeGTK::ThemeSupportsWidget(nsPresContext* aPresContext,
     case StyleAppearance::Menulist:
     case StyleAppearance::MenulistButton:
     case StyleAppearance::MenulistText:
-    case StyleAppearance::MenulistTextfield:
-    case StyleAppearance::ScaleHorizontal:
-    case StyleAppearance::ScaleVertical:
-    case StyleAppearance::ScalethumbHorizontal:
-    case StyleAppearance::ScalethumbVertical:
     case StyleAppearance::Range:
     case StyleAppearance::RangeThumb:
     case StyleAppearance::CheckboxContainer:

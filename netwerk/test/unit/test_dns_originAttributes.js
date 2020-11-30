@@ -1,3 +1,5 @@
+"use strict";
+
 var dns = Cc["@mozilla.org/network/dns-service;1"].getService(Ci.nsIDNSService);
 var threadManager = Cc["@mozilla.org/thread-manager;1"].getService(
   Ci.nsIThreadManager
@@ -7,6 +9,7 @@ var mainThread = threadManager.currentThread;
 var listener1 = {
   onLookupComplete(inRequest, inRecord, inStatus) {
     Assert.equal(inStatus, Cr.NS_OK);
+    inRecord.QueryInterface(Ci.nsIDNSAddrRecord);
     var answer = inRecord.getNextAddrAsString();
     Assert.ok(answer == "127.0.0.1" || answer == "::1");
     test2();
@@ -17,6 +20,7 @@ var listener1 = {
 var listener2 = {
   onLookupComplete(inRequest, inRecord, inStatus) {
     Assert.equal(inStatus, Cr.NS_OK);
+    inRecord.QueryInterface(Ci.nsIDNSAddrRecord);
     var answer = inRecord.getNextAddrAsString();
     Assert.ok(answer == "127.0.0.1" || answer == "::1");
     test3();
@@ -39,7 +43,9 @@ function run_test() {
   do_test_pending();
   dns.asyncResolve(
     "localhost",
+    Ci.nsIDNSService.RESOLVE_TYPE_DEFAULT,
     0,
+    null, // resolverInfo
     listener1,
     mainThread,
     firstOriginAttributes
@@ -52,7 +58,9 @@ function test2() {
   do_test_pending();
   dns.asyncResolve(
     "localhost",
+    Ci.nsIDNSService.RESOLVE_TYPE_DEFAULT,
     Ci.nsIDNSService.RESOLVE_OFFLINE,
+    null, // resolverInfo
     listener2,
     mainThread,
     firstOriginAttributes
@@ -67,7 +75,9 @@ function test3() {
   try {
     dns.asyncResolve(
       "localhost",
+      Ci.nsIDNSService.RESOLVE_TYPE_DEFAULT,
       Ci.nsIDNSService.RESOLVE_OFFLINE,
+      null, // resolverInfo
       listener3,
       mainThread,
       secondOriginAttributes

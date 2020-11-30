@@ -102,9 +102,9 @@ function LoginManagerAuthPromptFactory() {
 LoginManagerAuthPromptFactory.prototype = {
   classID: Components.ID("{749e62f4-60ae-4569-a8a2-de78b649660e}"),
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIPromptFactory,
-    Ci.nsIObserver,
-    Ci.nsISupportsWeakReference,
+    "nsIPromptFactory",
+    "nsIObserver",
+    "nsISupportsWeakReference",
   ]),
 
   _asyncPrompts: {},
@@ -155,18 +155,22 @@ LoginManagerAuthPromptFactory.prototype = {
       prompt.channel,
       prompt.authInfo
     );
-    var hasLogins = Services.logins.countLogins(origin, null, httpRealm) > 0;
-    if (
-      !hasLogins &&
-      LoginHelper.schemeUpgrades &&
-      origin.startsWith("https://")
-    ) {
-      let httpOrigin = origin.replace(/^https:\/\//, "http://");
-      hasLogins = Services.logins.countLogins(httpOrigin, null, httpRealm) > 0;
-    }
-    if (hasLogins && Services.logins.uiBusy) {
-      this.log("_doAsyncPrompt:run bypassed, master password UI busy");
-      return;
+
+    if (Services.logins.uiBusy) {
+      let hasLogins = Services.logins.countLogins(origin, null, httpRealm) > 0;
+      if (
+        !hasLogins &&
+        LoginHelper.schemeUpgrades &&
+        origin.startsWith("https://")
+      ) {
+        let httpOrigin = origin.replace(/^https:\/\//, "http://");
+        hasLogins =
+          Services.logins.countLogins(httpOrigin, null, httpRealm) > 0;
+      }
+      if (hasLogins) {
+        this.log("_doAsyncPrompt:run bypassed, master password UI busy");
+        return;
+      }
     }
 
     var self = this;
@@ -295,9 +299,9 @@ function LoginManagerAuthPrompter() {}
 LoginManagerAuthPrompter.prototype = {
   classID: Components.ID("{8aa66d77-1bbb-45a6-991e-b8f47751c291}"),
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIAuthPrompt,
-    Ci.nsIAuthPrompt2,
-    Ci.nsILoginManagerAuthPrompter,
+    "nsIAuthPrompt",
+    "nsIAuthPrompt2",
+    "nsILoginManagerAuthPrompter",
   ]),
 
   _factory: null,
@@ -461,6 +465,7 @@ LoginManagerAuthPrompter.prototype = {
       }
     }
 
+    let autofilled = !!aPassword.value;
     var ok = Services.prompt.promptUsernameAndPassword(
       this._chromeWindow,
       aDialogTitle,
@@ -504,7 +509,12 @@ LoginManagerAuthPrompter.prototype = {
       this._updateLogin(selectedLogin, newLogin);
     } else {
       this.log("Login unchanged, no further action needed.");
-      Services.logins.recordPasswordUse(selectedLogin);
+      Services.logins.recordPasswordUse(
+        selectedLogin,
+        this._inPrivateBrowsing,
+        "prompt_login",
+        autofilled
+      );
     }
 
     return ok;
@@ -644,6 +654,7 @@ LoginManagerAuthPrompter.prototype = {
     var canAutologin = false;
     var notifyObj;
     var foundLogins;
+    let autofilled = false;
 
     try {
       this.log("===== promptAuth called =====");
@@ -679,13 +690,14 @@ LoginManagerAuthPrompter.prototype = {
           selectedLogin.username,
           selectedLogin.password
         );
+        autofilled = true;
 
         // Allow automatic proxy login
         if (
           aAuthInfo.flags & Ci.nsIAuthInformation.AUTH_PROXY &&
           !(aAuthInfo.flags & Ci.nsIAuthInformation.PREVIOUS_FAILED) &&
           Services.prefs.getBoolPref("signon.autologin.proxy") &&
-          !this._inPrivateBrowsing
+          !PrivateBrowsingUtils.permanentPrivateBrowsing
         ) {
           this.log("Autologin enabled, skipping auth prompt.");
           canAutologin = true;
@@ -744,14 +756,29 @@ LoginManagerAuthPrompter.prototype = {
           this._browser
         );
       }
-      ok = Services.prompt.promptAuth(
-        this._chromeWindow,
-        aChannel,
-        aLevel,
-        aAuthInfo,
-        checkboxLabel,
-        checkbox
-      );
+      if (this._browser) {
+        ok = Services.prompt.promptAuthBC(
+          this._browser.browsingContext,
+          LoginManagerAuthPrompter.promptAuthModalType,
+          aChannel,
+          aLevel,
+          aAuthInfo,
+          checkboxLabel,
+          checkbox
+        );
+      } else {
+        // Can't tab prompt without browser. Fallback to window prompt.
+        // For cases where this._chromeWindow is defined, this will keep our
+        // parent relationship intact as opposed to passing null above.
+        ok = Services.prompt.promptAuth(
+          this._chromeWindow,
+          aChannel,
+          aLevel,
+          aAuthInfo,
+          checkboxLabel,
+          checkbox
+        );
+      }
     }
 
     let [username, password] = this._GetAuthInfo(aAuthInfo);
@@ -827,7 +854,12 @@ LoginManagerAuthPrompter.prototype = {
         }
       } else {
         this.log("Login unchanged, no further action needed.");
-        Services.logins.recordPasswordUse(selectedLogin);
+        Services.logins.recordPasswordUse(
+          selectedLogin,
+          this._inPrivateBrowsing,
+          "auth_login",
+          autofilled
+        );
       }
     } catch (e) {
       Cu.reportError("LoginManagerAuthPrompter: Fail2 in promptAuth: " + e);
@@ -931,66 +963,6 @@ LoginManagerAuthPrompter.prototype = {
   },
 
   /**
-   * Called when we detect a new login in a form submission,
-   * asks the user what to do.
-   */
-  _showSaveLoginDialog(aLogin) {
-    const buttonFlags =
-      Ci.nsIPrompt.BUTTON_POS_1_DEFAULT +
-      Ci.nsIPrompt.BUTTON_TITLE_IS_STRING * Ci.nsIPrompt.BUTTON_POS_0 +
-      Ci.nsIPrompt.BUTTON_TITLE_IS_STRING * Ci.nsIPrompt.BUTTON_POS_1 +
-      Ci.nsIPrompt.BUTTON_TITLE_IS_STRING * Ci.nsIPrompt.BUTTON_POS_2;
-
-    var displayHost = this._getShortDisplayHost(aLogin.origin);
-
-    var dialogText;
-    if (aLogin.username) {
-      var displayUser = this._sanitizeUsername(aLogin.username);
-      dialogText = this._getLocalizedString("rememberPasswordMsg", [
-        displayUser,
-        displayHost,
-      ]);
-    } else {
-      dialogText = this._getLocalizedString("rememberPasswordMsgNoUsername", [
-        displayHost,
-      ]);
-    }
-    var dialogTitle = this._getLocalizedString("savePasswordTitle");
-    var neverButtonText = this._getLocalizedString("neverForSiteButtonText");
-    var rememberButtonText = this._getLocalizedString("rememberButtonText");
-    var notNowButtonText = this._getLocalizedString("notNowButtonText");
-
-    this.log("Prompting user to save/ignore login");
-    var userChoice = Services.prompt.confirmEx(
-      this._chromeWindow,
-      dialogTitle,
-      dialogText,
-      buttonFlags,
-      rememberButtonText,
-      notNowButtonText,
-      neverButtonText,
-      null,
-      {}
-    );
-    //  Returns:
-    //   0 - Save the login
-    //   1 - Ignore the login this time
-    //   2 - Never save logins for this site
-    if (userChoice == 2) {
-      this.log("Disabling " + aLogin.origin + " logins by request.");
-      Services.logins.setLoginSavingEnabled(aLogin.origin, false);
-    } else if (userChoice == 0) {
-      this.log("Saving login for " + aLogin.origin);
-      Services.logins.addLogin(aLogin);
-    } else {
-      // userChoice == 1 --> just ignore the login.
-      this.log("Ignoring login.");
-    }
-
-    Services.obs.notifyObservers(aLogin, "passwordmgr-prompt-save");
-  },
-
-  /**
    * Shows the Change Password popup notification.
    *
    * @param aBrowser
@@ -1056,48 +1028,6 @@ LoginManagerAuthPrompter.prototype = {
     );
   },
 
-  /**
-   * Shows the Change Password dialog.
-   */
-  _showChangeLoginDialog(aOldLogin, aNewLogin) {
-    const buttonFlags = Ci.nsIPrompt.STD_YES_NO_BUTTONS;
-
-    var dialogText;
-    if (aOldLogin.username) {
-      dialogText = this._getLocalizedString("updatePasswordMsg", [
-        aOldLogin.username,
-      ]);
-    } else {
-      dialogText = this._getLocalizedString("updatePasswordMsgNoUser");
-    }
-
-    var dialogTitle = this._getLocalizedString("passwordChangeTitle");
-
-    // returns 0 for yes, 1 for no.
-    var ok = !Services.prompt.confirmEx(
-      this._chromeWindow,
-      dialogTitle,
-      dialogText,
-      buttonFlags,
-      null,
-      null,
-      null,
-      null,
-      {}
-    );
-    if (ok) {
-      this.log("Updating password for user " + aOldLogin.username);
-      this._updateLogin(aOldLogin, aNewLogin);
-    }
-
-    let oldGUID = aOldLogin.QueryInterface(Ci.nsILoginMetaInfo).guid;
-    Services.obs.notifyObservers(
-      aNewLogin,
-      "passwordmgr-prompt-change",
-      oldGUID
-    );
-  },
-
   /* ---------- Internal Methods ---------- */
 
   _updateLogin(login, aNewLogin) {
@@ -1115,6 +1045,8 @@ LoginManagerAuthPrompter.prototype = {
     propBag.setProperty("timePasswordChanged", now);
     propBag.setProperty("timeLastUsed", now);
     propBag.setProperty("timesUsedIncrement", 1);
+    // Note that we don't call `recordPasswordUse` so we won't potentially record
+    // both a use and a save/update. See bug 1640096.
     Services.logins.modifyLogin(login, propBag);
   },
 
@@ -1122,22 +1054,17 @@ LoginManagerAuthPrompter.prototype = {
    * Given a content DOM window, returns the chrome window and browser it's in.
    */
   _getChromeWindow(aWindow) {
-    // Handle non-e10s toolkit consumers.
-    if (!Cu.isCrossProcessWrapper(aWindow)) {
-      let browser = aWindow.docShell.chromeEventHandler;
-      if (!browser) {
-        return null;
-      }
-
-      let chromeWin = browser.ownerGlobal;
-      if (!chromeWin) {
-        return null;
-      }
-
-      return { win: chromeWin, browser };
+    let browser = aWindow.docShell.chromeEventHandler;
+    if (!browser) {
+      return null;
     }
 
-    return null;
+    let chromeWin = browser.ownerGlobal;
+    if (!chromeWin) {
+      return null;
+    }
+
+    return { win: chromeWin, browser };
   },
 
   _getNotifyWindow() {
@@ -1367,7 +1294,7 @@ LoginManagerAuthPrompter.prototype = {
 
   _newAsyncPromptConsumer(aCallback, aContext) {
     return {
-      QueryInterface: ChromeUtils.generateQI([Ci.nsICancelable]),
+      QueryInterface: ChromeUtils.generateQI(["nsICancelable"]),
       callback: aCallback,
       context: aContext,
       cancel() {
@@ -1383,6 +1310,13 @@ XPCOMUtils.defineLazyGetter(LoginManagerAuthPrompter.prototype, "log", () => {
   let logger = LoginHelper.createLogger("LoginManagerAuthPrompter");
   return logger.log.bind(logger);
 });
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  LoginManagerAuthPrompter,
+  "promptAuthModalType",
+  "prompts.modalType.httpAuth",
+  Services.prompt.MODAL_TYPE_WINDOW
+);
 
 const EXPORTED_SYMBOLS = [
   "LoginManagerAuthPromptFactory",

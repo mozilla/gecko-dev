@@ -8,7 +8,6 @@
 
 #include "mozilla/Attributes.h"
 #include "nsLeafFrame.h"
-#include "nsBox.h"
 
 namespace mozilla {
 class PresShell;
@@ -48,8 +47,9 @@ class nsLeafBoxFrame : public nsLeafFrame {
   virtual mozilla::LogicalSize ComputeAutoSize(
       gfxContext* aRenderingContext, mozilla::WritingMode aWM,
       const mozilla::LogicalSize& aCBSize, nscoord aAvailableISize,
-      const mozilla::LogicalSize& aMargin, const mozilla::LogicalSize& aBorder,
-      const mozilla::LogicalSize& aPadding, ComputeSizeFlags aFlags) override;
+      const mozilla::LogicalSize& aMargin,
+      const mozilla::LogicalSize& aBorderPadding,
+      mozilla::ComputeSizeFlags aFlags) override;
 
   virtual void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
                       const ReflowInput& aReflowInput,
@@ -64,7 +64,7 @@ class nsLeafBoxFrame : public nsLeafFrame {
   virtual void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                                 const nsDisplayListSet& aLists) override;
 
-  virtual bool ComputesOwnOverflowArea() override { return false; }
+  virtual bool XULComputesOwnOverflowArea() override { return false; }
 
  protected:
   NS_IMETHOD DoXULLayout(nsBoxLayoutState& aState) override;

@@ -173,6 +173,12 @@ class nsNavHistory final : public nsSupportsWeakReference,
   static void GetMonthName(const PRExplodedTime& aTime, nsACString& aResult);
   static void GetMonthYear(const PRExplodedTime& aTime, nsACString& aResult);
 
+  // Returns true if the provided URI spec and scheme is allowed in history
+  static nsresult CanAddURIToHistory(nsIURI* aURI, bool* aCanAdd);
+
+  // The max URI spec length allowed for a URI to be added to history
+  static uint32_t MaxURILength();
+
   // Returns whether history is enabled or not.
   bool IsHistoryDisabled() { return !mHistoryEnabled; }
 
@@ -545,13 +551,13 @@ class nsNavHistory final : public nsSupportsWeakReference,
 
 /* Returns true if the given URI represents a history query. */
 inline bool IsQueryURI(const nsCString& uri) {
-  return StringBeginsWith(uri, NS_LITERAL_CSTRING(PLACES_URI_PREFIX));
+  return StringBeginsWith(uri, nsLiteralCString(PLACES_URI_PREFIX));
 }
 
 /* Extracts the query string from a query URI. */
 inline const nsDependentCSubstring QueryURIToQuery(const nsCString& uri) {
   NS_ASSERTION(IsQueryURI(uri), "should only be called for query URIs");
-  return Substring(uri, NS_LITERAL_CSTRING(PLACES_URI_PREFIX).Length());
+  return Substring(uri, nsLiteralCString(PLACES_URI_PREFIX).Length());
 }
 
 #endif  // nsNavHistory_h_

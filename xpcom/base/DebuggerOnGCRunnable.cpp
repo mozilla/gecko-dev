@@ -10,8 +10,8 @@
 
 #include "js/Debug.h"
 #include "mozilla/CycleCollectedJSContext.h"
-#include "mozilla/SystemGroup.h"
 #include "mozilla/dom/ScriptSettings.h"
+#include "mozilla/SchedulerGroup.h"
 
 namespace mozilla {
 
@@ -26,8 +26,8 @@ nsresult DebuggerOnGCRunnable::Enqueue(JSContext* aCx,
   RefPtr<DebuggerOnGCRunnable> runOnGC =
       new DebuggerOnGCRunnable(std::move(gcEvent));
   if (NS_IsMainThread()) {
-    return SystemGroup::Dispatch(TaskCategory::GarbageCollection,
-                                 runOnGC.forget());
+    return SchedulerGroup::Dispatch(TaskCategory::GarbageCollection,
+                                    runOnGC.forget());
   } else {
     return NS_DispatchToCurrentThread(runOnGC);
   }
@@ -35,7 +35,7 @@ nsresult DebuggerOnGCRunnable::Enqueue(JSContext* aCx,
 
 NS_IMETHODIMP
 DebuggerOnGCRunnable::Run() {
-  AutoJSAPI jsapi;
+  dom::AutoJSAPI jsapi;
   jsapi.Init();
   if (!JS::dbg::FireOnGarbageCollectionHook(jsapi.cx(), std::move(mGCData))) {
     return NS_ERROR_OUT_OF_MEMORY;

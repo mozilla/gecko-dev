@@ -9,21 +9,25 @@
 
 #include "mozilla/SandboxBroker.h"
 
+#include <mutex>
+
 namespace mozilla {
 
 class SandboxBrokerPolicyFactory {
  public:
-  SandboxBrokerPolicyFactory();
+  SandboxBrokerPolicyFactory() = default;
 
   UniquePtr<SandboxBroker::Policy> GetContentPolicy(int aPid,
                                                     bool aFileProcess);
 
   static UniquePtr<SandboxBroker::Policy> GetUtilityPolicy(int aPid);
+  static UniquePtr<SandboxBroker::Policy> GetSocketProcessPolicy(int aPid);
 
  private:
   UniquePtr<const SandboxBroker::Policy> mCommonContentPolicy;
-  static void AddDynamicPathList(SandboxBroker::Policy* policy,
-                                 const char* aPathListPref, int perms);
+  std::once_flag mContentInited;
+
+  void InitContentPolicy();
 };
 
 }  // namespace mozilla

@@ -65,7 +65,12 @@ describe("selectLayoutRender", () => {
       type: "foo",
       feed: { url: "foo.com" },
       properties: { items: 2 },
-      data: { recommendations: [{ id: "foo", pos: 0 }, { id: "bar", pos: 1 }] },
+      data: {
+        recommendations: [
+          { id: "foo", pos: 0 },
+          { id: "bar", pos: 1 },
+        ],
+      },
     });
   });
 
@@ -926,6 +931,7 @@ describe("selectLayoutRender", () => {
       state: store.getState().DiscoveryStream,
       prefs: {
         "feeds.topsites": true,
+        "feeds.system.topstories": true,
         "feeds.section.topstories": true,
       },
     });

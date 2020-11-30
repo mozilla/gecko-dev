@@ -55,9 +55,8 @@ class CGLLibrary {
 
 CGLLibrary sCGLLibrary;
 
-GLContextCGL::GLContextCGL(CreateContextFlags flags, const SurfaceCaps& caps,
-                           NSOpenGLContext* context, bool isOffscreen)
-    : GLContext(flags, caps, nullptr, isOffscreen), mContext(context) {
+GLContextCGL::GLContextCGL(const GLContextDesc& desc, NSOpenGLContext* context)
+    : GLContext(desc), mContext(context) {
   CGDisplayRegisterReconfigurationCallback(DisplayReconfigurationCallback, this);
 }
 
@@ -227,10 +226,6 @@ Maybe<SymbolLoader> GLContextCGL::GetSymbolLoader() const {
   return Some(SymbolLoader(*lib));
 }
 
-already_AddRefed<GLContext> GLContextProviderCGL::CreateWrappingExisting(void*, void*) {
-  return nullptr;
-}
-
 already_AddRefed<GLContext> GLContextProviderCGL::CreateForCompositorWidget(
     CompositorWidget* aCompositorWidget, bool aWebRender, bool aForceAccelerated) {
   CreateContextFlags flags = CreateContextFlags::ALLOW_OFFLINE_RENDERER;
@@ -241,10 +236,10 @@ already_AddRefed<GLContext> GLContextProviderCGL::CreateForCompositorWidget(
     flags |= CreateContextFlags::REQUIRE_COMPAT_PROFILE;
   }
   nsCString failureUnused;
-  return CreateHeadless(flags, &failureUnused);
+  return CreateHeadless({flags}, &failureUnused);
 }
 
-static already_AddRefed<GLContextCGL> CreateOffscreenFBOContext(CreateContextFlags flags) {
+static RefPtr<GLContextCGL> CreateOffscreenFBOContext(GLContextCreateDesc desc) {
   if (!sCGLLibrary.EnsureInitialized()) {
     return nullptr;
   }
@@ -252,6 +247,7 @@ static already_AddRefed<GLContextCGL> CreateOffscreenFBOContext(CreateContextFla
   NSOpenGLContext* context = nullptr;
 
   std::vector<NSOpenGLPixelFormatAttribute> attribs;
+  auto& flags = desc.flags;
 
   if (!StaticPrefs::gl_allow_high_power()) {
     flags &= ~CreateContextFlags::HIGH_POWER;
@@ -285,43 +281,25 @@ static already_AddRefed<GLContextCGL> CreateOffscreenFBOContext(CreateContextFla
     return nullptr;
   }
 
-  RefPtr<GLContextCGL> glContext = new GLContextCGL(flags, SurfaceCaps::Any(), context, true);
+  RefPtr<GLContextCGL> glContext = new GLContextCGL({desc, true}, context);
 
   if (flags & CreateContextFlags::PREFER_MULTITHREADED) {
     CGLEnable(glContext->GetCGLContext(), kCGLCEMPEngine);
   }
-  return glContext.forget();
+  return glContext;
 }
 
-already_AddRefed<GLContext> GLContextProviderCGL::CreateHeadless(CreateContextFlags flags,
+already_AddRefed<GLContext> GLContextProviderCGL::CreateHeadless(const GLContextCreateDesc& desc,
                                                                  nsACString* const out_failureId) {
-  RefPtr<GLContextCGL> gl;
-  gl = CreateOffscreenFBOContext(flags);
+  auto gl = CreateOffscreenFBOContext(desc);
   if (!gl) {
-    *out_failureId = NS_LITERAL_CSTRING("FEATURE_FAILURE_CGL_FBO");
+    *out_failureId = "FEATURE_FAILURE_CGL_FBO"_ns;
     return nullptr;
   }
 
   if (!gl->Init()) {
-    *out_failureId = NS_LITERAL_CSTRING("FEATURE_FAILURE_CGL_INIT");
+    *out_failureId = "FEATURE_FAILURE_CGL_INIT"_ns;
     NS_WARNING("Failed during Init.");
-    return nullptr;
-  }
-
-  return gl.forget();
-}
-
-already_AddRefed<GLContext> GLContextProviderCGL::CreateOffscreen(const IntSize& size,
-                                                                  const SurfaceCaps& minCaps,
-                                                                  CreateContextFlags flags,
-                                                                  nsACString* const out_failureId) {
-  RefPtr<GLContext> gl = CreateHeadless(flags, out_failureId);
-  if (!gl) {
-    return nullptr;
-  }
-
-  if (!gl->InitOffscreen(size, minCaps)) {
-    *out_failureId = NS_LITERAL_CSTRING("FEATURE_FAILURE_CGL_INIT");
     return nullptr;
   }
 
@@ -337,7 +315,7 @@ GLContext* GLContextProviderCGL::GetGlobalContext() {
 
     MOZ_RELEASE_ASSERT(!gGlobalContext);
     nsCString discardFailureId;
-    RefPtr<GLContext> temp = CreateHeadless(CreateContextFlags::NONE, &discardFailureId);
+    RefPtr<GLContext> temp = CreateHeadless({}, &discardFailureId);
     gGlobalContext = temp;
 
     if (!gGlobalContext) {

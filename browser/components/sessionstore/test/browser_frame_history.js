@@ -10,6 +10,10 @@
 
 // Loading a toplevel frameset
 add_task(async function() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.navigation.requireUserInteraction", false]],
+  });
+
   let testURL =
     getRootDirectory(gTestPath) + "browser_frame_history_index.html";
   let tab = BrowserTestUtils.addTab(gBrowser, testURL);
@@ -58,7 +62,7 @@ add_task(async function() {
   );
   for (let i = 0; i < frames.length; i++) {
     is(
-      frames[i].contentDocument.location,
+      frames[i].contentDocument.location.href,
       getRootDirectory(gTestPath) +
         "browser_frame_history_" +
         expectedURLEnds[i],
@@ -120,7 +124,7 @@ add_task(async function() {
     .contentDocument.getElementsByTagName("frame");
   for (let i = 0; i < frames.length; i++) {
     is(
-      frames[i].contentDocument.location,
+      frames[i].contentDocument.location.href,
       getRootDirectory(gTestPath) +
         "browser_frame_history_" +
         expectedURLEnds[i],

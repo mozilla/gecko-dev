@@ -7,18 +7,21 @@
 #ifndef jit_JitAllocPolicy_h
 #define jit_JitAllocPolicy_h
 
+#include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/GuardObjects.h"
+#include "mozilla/Likely.h"
 #include "mozilla/OperatorNewExtensions.h"
-#include "mozilla/TypeTraits.h"
+#include "mozilla/TemplateLib.h"
 
 #include <algorithm>
+#include <stddef.h>
+#include <string.h>
+#include <type_traits>
 #include <utility>
 
 #include "ds/LifoAlloc.h"
 #include "jit/InlineList.h"
-#include "jit/JitContext.h"
-#include "vm/JSContext.h"
+#include "js/Utility.h"
 
 namespace js {
 namespace jit {
@@ -123,25 +126,6 @@ class JitAllocPolicy {
   }
 };
 
-class AutoJitContextAlloc {
-  TempAllocator tempAlloc_;
-  JitContext* jcx_;
-  TempAllocator* prevAlloc_;
-
- public:
-  explicit AutoJitContextAlloc(JSContext* cx)
-      : tempAlloc_(&cx->tempLifoAlloc()),
-        jcx_(GetJitContext()),
-        prevAlloc_(jcx_->temp) {
-    jcx_->temp = &tempAlloc_;
-  }
-
-  ~AutoJitContextAlloc() {
-    MOZ_ASSERT(jcx_->temp == &tempAlloc_);
-    jcx_->temp = prevAlloc_;
-  }
-};
-
 struct TempObject {
   inline void* operator new(size_t nbytes,
                             TempAllocator::Fallible view) noexcept(true) {
@@ -152,13 +136,13 @@ struct TempObject {
   }
   template <class T>
   inline void* operator new(size_t nbytes, T* pos) {
-    static_assert(mozilla::IsConvertible<T*, TempObject*>::value,
+    static_assert(std::is_convertible_v<T*, TempObject*>,
                   "Placement new argument type must inherit from TempObject");
     return pos;
   }
   template <class T>
   inline void* operator new(size_t nbytes, mozilla::NotNullTag, T* pos) {
-    static_assert(mozilla::IsConvertible<T*, TempObject*>::value,
+    static_assert(std::is_convertible_v<T*, TempObject*>,
                   "Placement new argument type must inherit from TempObject");
     MOZ_ASSERT(pos);
     return pos;

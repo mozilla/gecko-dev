@@ -33,6 +33,17 @@ const SECOND_MS = 1000;
 const MINUTE_MS = SECOND_MS * 60;
 const HOUR_MS = MINUTE_MS * 60;
 
+const MOCK_SCOPED_KEY = {
+  k:
+    "3TVYx0exDTbrc5SGMkNg_C_eoNfjV0elHClP7npHrAtrlJu-esNyTUQaR6UcJBVYilPr8-T4BqWlIp4TOpKavA",
+  kid: "1569964308879-5y6waestOxDDM-Ia4_2u1Q",
+  kty: "oct",
+  scope: "https://identity.mozilla.com/apps/oldsync",
+};
+
+const MOCK_ACCESS_TOKEN =
+  "e3c5caf17f27a0d9e351926a928938b3737df43e91d4992a5a5fca9a7bdef8ba";
+
 var globalIdentityConfig = makeIdentityConfig();
 var globalBrowseridManager = new BrowserIDManager();
 configureFxAccountIdentity(globalBrowseridManager, globalIdentityConfig);
@@ -51,31 +62,17 @@ MockFxAccountsClient.prototype = {
   accountStatus() {
     return Promise.resolve(true);
   },
+  getScopedKeyData() {
+    return Promise.resolve({
+      "https://identity.mozilla.com/apps/oldsync": {
+        identifier: "https://identity.mozilla.com/apps/oldsync",
+        keyRotationSecret:
+          "0000000000000000000000000000000000000000000000000000000000000000",
+        keyRotationTimestamp: 1234567890123,
+      },
+    });
+  },
 };
-
-function MockFxAccounts() {
-  let fxa = new FxAccounts({
-    _now_is: Date.now(),
-
-    now() {
-      return this._now_is;
-    },
-
-    fxAccountsClient: new MockFxAccountsClient(),
-  });
-  fxa._internal.currentAccountState.getCertificate = function(
-    data,
-    keyPair,
-    mustBeValidUntil
-  ) {
-    this.cert = {
-      validUntil: fxa._internal.now() + CERT_LIFETIME,
-      cert: "certificate",
-    };
-    return Promise.resolve(this.cert.cert);
-  };
-  return fxa;
-}
 
 add_test(function test_initial_state() {
   _("Verify initial state");
@@ -89,6 +86,75 @@ add_task(async function test_initialialize() {
   await globalBrowseridManager._ensureValidToken();
   Assert.ok(!!globalBrowseridManager._token);
   Assert.ok(globalBrowseridManager._hasValidToken());
+});
+
+add_task(async function test_initialialize_via_oauth_token() {
+  _("Verify start after fetching token using the oauth token flow");
+  Services.prefs.setBoolPref("identity.sync.useOAuthForSyncToken", true);
+  let browseridManager = new BrowserIDManager();
+
+  let identityConfig = makeIdentityConfig();
+  let fxaInternal = makeFxAccountsInternalMock(identityConfig);
+  configureFxAccountIdentity(browseridManager, identityConfig, fxaInternal);
+  browseridManager._fxaService._internal.initialize();
+  browseridManager._fxaService.getOAuthToken = () =>
+    Promise.resolve(MOCK_ACCESS_TOKEN);
+
+  await browseridManager._ensureValidToken();
+  Assert.ok(!!browseridManager._token);
+  Assert.ok(browseridManager._hasValidToken());
+  Services.prefs.setBoolPref("identity.sync.useOAuthForSyncToken", false);
+});
+
+add_task(async function test_refreshOAuthTokenOn401() {
+  _("Refreshes the FXA OAuth token after a 401.");
+  Services.prefs.setBoolPref("identity.sync.useOAuthForSyncToken", true);
+  let getTokenCount = 0;
+  let browseridManager = new BrowserIDManager();
+  let identityConfig = makeIdentityConfig();
+  let fxaInternal = makeFxAccountsInternalMock(identityConfig);
+  configureFxAccountIdentity(browseridManager, identityConfig, fxaInternal);
+  browseridManager._fxaService._internal.initialize();
+  browseridManager._fxaService.getOAuthToken = () => {
+    ++getTokenCount;
+    return Promise.resolve(MOCK_ACCESS_TOKEN);
+  };
+
+  let didReturn401 = false;
+  let didReturn200 = false;
+  let mockTSC = mockTokenServer(() => {
+    if (getTokenCount <= 1) {
+      didReturn401 = true;
+      return {
+        status: 401,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({}),
+      };
+    }
+    didReturn200 = true;
+    return {
+      status: 200,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        id: "id",
+        key: "key",
+        api_endpoint: "http://example.com/",
+        uid: "uid",
+        duration: 300,
+      }),
+    };
+  });
+
+  browseridManager._tokenServerClient = mockTSC;
+
+  await browseridManager._ensureValidToken();
+
+  Assert.equal(getTokenCount, 2);
+  Assert.ok(didReturn401);
+  Assert.ok(didReturn200);
+  Assert.ok(browseridManager._token);
+  Assert.ok(browseridManager._hasValidToken());
+  Services.prefs.setBoolPref("identity.sync.useOAuthForSyncToken", false);
 });
 
 add_task(async function test_initialializeWithAuthErrorAndDeletedAccount() {
@@ -542,6 +608,7 @@ add_task(async function test_getKeysErrorWithBackoff() {
 
   let config = makeIdentityConfig();
   // We want no kSync, kXCS, kExtSync or kExtKbHash so we attempt to fetch them.
+  delete config.fxaccount.user.scopedKeys;
   delete config.fxaccount.user.kSync;
   delete config.fxaccount.user.kXCS;
   delete config.fxaccount.user.kExtSync;
@@ -584,6 +651,7 @@ add_task(async function test_getKeysErrorWithRetry() {
 
   let config = makeIdentityConfig();
   // We want no kSync, kXCS, kExtSync or kExtKbHash so we attempt to fetch them.
+  delete config.fxaccount.user.scopedKeys;
   delete config.fxaccount.user.kSync;
   delete config.fxaccount.user.kXCS;
   delete config.fxaccount.user.kExtSync;
@@ -669,6 +737,7 @@ add_task(async function test_getGetKeysFailing401() {
   _("Arrange for a 401 - Sync should reflect an auth error.");
   let config = makeIdentityConfig();
   // We want no kSync, kXCS, kExtSync or kExtKbHash so we attempt to fetch them.
+  delete config.fxaccount.user.scopedKeys;
   delete config.fxaccount.user.kSync;
   delete config.fxaccount.user.kXCS;
   delete config.fxaccount.user.kExtSync;
@@ -696,6 +765,7 @@ add_task(async function test_getGetKeysFailing503() {
   _("Arrange for a 503 - Sync should reflect a network error.");
   let config = makeIdentityConfig();
   // We want no kSync, kXCS, kExtSync or kExtKbHash so we attempt to fetch them.
+  delete config.fxaccount.user.scopedKeys;
   delete config.fxaccount.user.kSync;
   delete config.fxaccount.user.kXCS;
   delete config.fxaccount.user.kExtSync;
@@ -723,13 +793,14 @@ add_task(async function test_getGetKeysFailing503() {
 
 add_task(async function test_getKeysMissing() {
   _(
-    "BrowserIDManager correctly handles getKeys succeeding but not returning keys."
+    "BrowserIDManager correctly handles getKeyForScope succeeding but not returning the key."
   );
 
   let browseridManager = new BrowserIDManager();
   let identityConfig = makeIdentityConfig();
   // our mock identity config already has kSync, kXCS, kExtSync and kExtKbHash - remove them or we never
   // try and fetch them.
+  delete identityConfig.fxaccount.user.scopedKeys;
   delete identityConfig.fxaccount.user.kSync;
   delete identityConfig.fxaccount.user.kXCS;
   delete identityConfig.fxaccount.user.kExtSync;
@@ -753,30 +824,64 @@ add_task(async function test_getKeysMissing() {
     },
     // And the keys object with a mock that returns no keys.
     keys: {
-      fetchAndUnwrapKeys() {
-        return Promise.resolve({});
+      getKeyForScope() {
+        return Promise.resolve(null);
       },
     },
   });
-
-  // Add a mock to the currentAccountState object.
-  fxa._internal.currentAccountState.getCertificate = function(
-    data,
-    keyPair,
-    mustBeValidUntil
-  ) {
-    this.cert = {
-      validUntil: fxa._internal.now() + CERT_LIFETIME,
-      cert: "certificate",
-    };
-    return Promise.resolve(this.cert.cert);
-  };
 
   browseridManager._fxaService = fxa;
 
   await Assert.rejects(
     browseridManager._ensureValidToken(),
-    /user data missing: kSync, kXCS, kExtSync, kExtKbHash/
+    /browser does not have the sync key, cannot sync/
+  );
+});
+
+add_task(async function test_getKeysUnexpecedError() {
+  _(
+    "BrowserIDManager correctly handles getKeyForScope throwing an unexpected error."
+  );
+
+  let browseridManager = new BrowserIDManager();
+  let identityConfig = makeIdentityConfig();
+  // our mock identity config already has kSync, kXCS, kExtSync and kExtKbHash - remove them or we never
+  // try and fetch them.
+  delete identityConfig.fxaccount.user.scopedKeys;
+  delete identityConfig.fxaccount.user.kSync;
+  delete identityConfig.fxaccount.user.kXCS;
+  delete identityConfig.fxaccount.user.kExtSync;
+  delete identityConfig.fxaccount.user.kExtKbHash;
+  identityConfig.fxaccount.user.keyFetchToken = "keyFetchToken";
+
+  configureFxAccountIdentity(browseridManager, identityConfig);
+
+  // Mock a fxAccounts object
+  let fxa = new FxAccounts({
+    fxAccountsClient: new MockFxAccountsClient(),
+    newAccountState(credentials) {
+      // We only expect this to be called with null indicating the (mock)
+      // storage should be read.
+      if (credentials) {
+        throw new Error("Not expecting to have credentials passed");
+      }
+      let storageManager = new MockFxaStorageManager();
+      storageManager.initialize(identityConfig.fxaccount.user);
+      return new AccountState(storageManager);
+    },
+    // And the keys object with a mock that returns no keys.
+    keys: {
+      async getKeyForScope() {
+        throw new Error("well that was unexpected");
+      },
+    },
+  });
+
+  browseridManager._fxaService = fxa;
+
+  await Assert.rejects(
+    browseridManager._ensureValidToken(),
+    /well that was unexpected/
   );
 });
 
@@ -787,6 +892,7 @@ add_task(async function test_signedInUserMissing() {
 
   let browseridManager = new BrowserIDManager();
   // Delete stored keys and the key fetch token.
+  delete globalIdentityConfig.fxaccount.user.scopedKeys;
   delete globalIdentityConfig.fxaccount.user.kSync;
   delete globalIdentityConfig.fxaccount.user.kXCS;
   delete globalIdentityConfig.fxaccount.user.kExtSync;

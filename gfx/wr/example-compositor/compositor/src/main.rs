@@ -210,6 +210,7 @@ fn push_rotated_rect(
                 clip_id: ClipId::root(root_pipeline_id),
             },
         ),
+        rect,
         color,
     );
 }
@@ -237,8 +238,6 @@ fn build_display_list(
         Some(scroll_id),
         LayoutRect::new(LayoutPoint::zero(), layout_size),
         LayoutRect::new(LayoutPoint::zero(), layout_size),
-        Vec::new(),
-        None,
         ScrollSensitivity::Script,
         LayoutVector2D::zero(),
     );
@@ -248,6 +247,7 @@ fn build_display_list(
             LayoutRect::new(LayoutPoint::zero(), layout_size).inflate(-10.0, -10.0),
             fixed_space_info,
         ),
+        LayoutRect::new(LayoutPoint::zero(), layout_size).inflate(-10.0, -10.0),
         ColorF::new(0.8, 0.8, 0.8, 1.0),
     );
 
@@ -363,7 +363,6 @@ fn main() {
     let opts = webrender::RendererOptions {
         clear_color: Some(ColorF::new(1.0, 1.0, 1.0, 1.0)),
         debug_flags,
-        enable_picture_caching: true,
         compositor_config,
         ..webrender::RendererOptions::default()
     };
@@ -383,7 +382,6 @@ fn main() {
         notifier,
         opts,
         None,
-        device_size,
     ).unwrap();
     let api = sender.create_api();
     let document_id = api.add_document(device_size, 0);
@@ -399,7 +397,7 @@ fn main() {
     txn.set_root_pipeline(root_pipeline_id);
 
     if let Invalidations::Scrolling = inv_mode {
-        let mut root_builder = DisplayListBuilder::new(root_pipeline_id, layout_size);
+        let mut root_builder = DisplayListBuilder::new(root_pipeline_id);
 
         build_display_list(
             &mut root_builder,
@@ -437,7 +435,7 @@ fn main() {
 
             match inv_mode {
                 Invalidations::Small | Invalidations::Large => {
-                    let mut root_builder = DisplayListBuilder::new(root_pipeline_id, layout_size);
+                    let mut root_builder = DisplayListBuilder::new(root_pipeline_id);
 
                     build_display_list(
                         &mut root_builder,

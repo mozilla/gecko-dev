@@ -34,7 +34,7 @@ interface Element : Node {
   readonly attribute DOMTokenList classList;
 
   // https://drafts.csswg.org/css-shadow-parts/#idl
-  [SameObject, PutForwards=value, Pref="layout.css.shadow-parts.enabled"]
+  [SameObject, PutForwards=value]
   readonly attribute DOMTokenList part;
 
   [SameObject]
@@ -97,6 +97,13 @@ interface Element : Node {
   [ChromeOnly]
   readonly attribute float fontSizeInflation;
 
+  /**
+   * Returns the pseudo-element string if this element represents a
+   * pseudo-element, or null otherwise.
+   */
+  [ChromeOnly]
+  readonly attribute DOMString? implementedPseudoElement;
+
   // Selectors API
   /**
    * Returns whether this element would be selected by the given selector
@@ -126,12 +133,14 @@ interface Element : Node {
    * element.
    *
    */
+  [UseCounter]
   void setCapture(optional boolean retargetToElement = false);
 
   /**
    * If this element has captured the mouse, release the capture. If another
    * element has captured the mouse, this method has no effect.
    */
+  [UseCounter]
   void releaseCapture();
 
   /*
@@ -279,6 +288,8 @@ Element includes NonDocumentTypeChildNode;
 Element includes ParentNode;
 Element includes Animatable;
 Element includes GeometryUtils;
+Element includes AccessibilityRole;
+Element includes AriaAttributes;
 
 // https://fullscreen.spec.whatwg.org/#api
 partial interface Element {
@@ -320,6 +331,12 @@ partial interface Element {
   sequence<Grid> getGridFragments();
 
   /**
+   * Returns whether there are any grid fragments on this element.
+   */
+  [ChromeOnly, Pure]
+  boolean hasGridFragments();
+
+  /**
    * Returns a sequence of all the descendent elements of this element
    * that have display:grid or display:inline-grid style and generate
    * a frame.
@@ -336,6 +353,13 @@ partial interface Element {
   void setAttributeDevtools(DOMString name, DOMString value);
   [ChromeOnly, CEReactions, Throws]
   void setAttributeDevtoolsNS(DOMString? namespace, DOMString name, DOMString value);
+
+  /**
+   * Provide a direct way to determine if this Element has visible
+   * scrollbars. Flushes layout.
+   */
+  [ChromeOnly]
+  readonly attribute boolean hasVisibleScrollbars;
 };
 
 // These variables are used in vtt.js, they are used for positioning vtt cues.

@@ -35,7 +35,7 @@ addRDMTask(
     await testResetWhenResizingViewport(ui);
     await testChangingDevicePixelRatio(ui);
   },
-  { usingBrowserUI: true, waitForDeviceList: true }
+  { waitForDeviceList: true }
 );
 
 async function waitStartup(ui) {
@@ -84,9 +84,7 @@ async function testResetWhenResizingViewport(ui) {
     ui,
     ".viewport-vertical-resize-handle",
     [-10, -10],
-    [testDevice.width, testDevice.height - 10],
-    [0, -10],
-    ui
+    [0, -10]
   );
   await deviceRemoved;
 

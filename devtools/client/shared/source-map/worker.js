@@ -92,6 +92,17 @@ const {
 const sourceMapRequests = new Map();
 
 function clearSourceMaps() {
+  for (const [, metadataPromise] of sourceMapRequests) {
+    // The source-map module leaks memory unless `.destroy` is called on
+    // the consumer instances when they are no longer being used.
+    metadataPromise.then(metadata => {
+      if (metadata) {
+        metadata.map.destroy();
+      }
+    }, // We don't want this to cause any unhandled rejection errors.
+    () => {});
+  }
+
   sourceMapRequests.clear();
 }
 
@@ -488,8 +499,8 @@ WorkerDispatcher.prototype = {
   start(url, win = window) {
     this.worker = new win.Worker(url);
 
-    this.worker.onerror = () => {
-      console.error(`Error in worker ${url}`);
+    this.worker.onerror = err => {
+      console.error(`Error in worker ${url}`, err.message);
     };
   },
 
@@ -1775,7 +1786,7 @@ async function getOriginalSourceText(originalSourceId) {
     map
   } = data;
   const url = urlsById.get(originalSourceId);
-  let text = map.sourceContentFor(url);
+  let text = map.sourceContentFor(url, true);
 
   if (!text) {
     try {
@@ -2044,7 +2055,7 @@ exports.encode = function(number) {
  * * https://bugzilla.mozilla.org/show_bug.cgi?id=1374505
  * * https://bugs.chromium.org/p/chromium/issues/detail?id=734880
  */
-module.exports = __webpack_require__(507).URL;
+module.exports = __webpack_require__(533).URL;
 
 
 /***/ }),
@@ -3857,12 +3868,14 @@ function hasOriginalURL(url) {
 }
 
 function _resolveSourceMapURL(source) {
-  const {
-    url = "",
-    sourceMapURL = ""
+  let {
+    sourceMapBaseURL,
+    sourceMapURL
   } = source;
+  sourceMapBaseURL = sourceMapBaseURL || "";
+  sourceMapURL = sourceMapURL || "";
 
-  if (!url) {
+  if (!sourceMapBaseURL) {
     // If the source doesn't have a URL, don't resolve anything.
     return {
       sourceMapURL,
@@ -3870,13 +3883,20 @@ function _resolveSourceMapURL(source) {
     };
   }
 
-  const resolvedURL = new URL(sourceMapURL, url);
-  const resolvedString = resolvedURL.toString();
-  let baseURL = resolvedString; // When the sourceMap is a data: URL, fall back to using the
-  // source's URL, if possible.
+  let resolvedString;
+  let baseURL; // When the sourceMap is a data: URL, fall back to using the source's URL,
+  // if possible. We don't use `new URL` here because it will be _very_ slow
+  // for large inlined source-maps, and we don't actually need to parse them.
 
-  if (resolvedURL.protocol == "data:") {
-    baseURL = url;
+  if (sourceMapURL.startsWith("data:")) {
+    resolvedString = sourceMapURL;
+    baseURL = sourceMapBaseURL;
+  } else {
+    resolvedString = new URL(sourceMapURL, // If the URL is a data: URL, the sourceMapURL needs to be absolute, so
+    // we might as well pass `undefined` to avoid parsing a potentially
+    // very large data: URL for no reason.
+    sourceMapBaseURL.startsWith("data:") ? undefined : sourceMapBaseURL).toString();
+    baseURL = resolvedString;
   }
 
   return {
@@ -4119,18 +4139,6 @@ module.exports = {
 
 /***/ }),
 
-/***/ 507:
-/***/ (function(module, exports) {
-
-module.exports = 
-(() => { 
-  importScripts("resource://devtools/client/shared/vendor/whatwg-url.js");
-  return { URL }
-})()
-;
-
-/***/ }),
-
 /***/ 510:
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -4237,7 +4245,7 @@ async function convertToJSON(buffer) {
   // Note: We don't 'await' here because it could mean that multiple
   // calls to 'convertToJSON' could cause multiple fetches to be started.
   cachedWasmModule = cachedWasmModule || loadConverterModule();
-  return convertDwarf(buffer, (await cachedWasmModule));
+  return convertDwarf(buffer, await cachedWasmModule);
 }
 
 async function loadConverterModule() {
@@ -4862,6 +4870,54 @@ function setAssetRootURL(assetRoot) {
 module.exports = {
   setAssetRootURL
 };
+
+/***/ }),
+
+/***/ 533:
+/***/ (function(module, exports) {
+
+module.exports = 
+(() => {
+  let factory;
+  function define(...args) {
+    if (factory) {
+      throw new Error("expected a single define call");
+    }
+
+    if (
+      args.length !== 2 ||
+      !Array.isArray(args[0]) ||
+      args[0].length !== 0 ||
+      typeof args[1] !== "function"
+    ) {
+      throw new Error("whatwg-url had unexpected factory arguments.");
+    }
+
+    factory = args[1];
+  }
+  define.amd = true;
+
+  const existingDefine = Object.getOwnPropertyDescriptor(globalThis, "define");
+  globalThis.define = define;
+  let err;
+  try {
+    importScripts("resource://devtools/client/shared/vendor/whatwg-url.js");
+
+    if (!factory) {
+      throw new Error("Failed to load whatwg-url factory");
+    }
+  } finally {
+    if (existingDefine) {
+      Object.defineProperty(globalThis, "define", existingDefine);
+    } else {
+      delete globalThis.define;
+    }
+
+  }
+
+  return factory();
+})()
+;
 
 /***/ }),
 

@@ -6,18 +6,29 @@
  * This file contains utilities that can be shared between xpcshell tests and mochitests.
  */
 
+// The marker phases.
+const INSTANT = 0;
+const INTERVAL = 1;
+const INTERVAL_START = 2;
+const INTERVAL_END = 3;
+
 // This Services declaration may shadow another from head.js, so define it as
 // a var rather than a const.
 var { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 const defaultSettings = {
-  entries: 1000000, // 9MB
+  entries: 8 * 1024 * 1024, // 8M entries = 64MB
   interval: 1, // ms
   features: ["threads"],
   threads: ["GeckoMain"],
 };
 
 function startProfiler(callersSettings) {
+  if (Services.profiler.IsActive()) {
+    throw new Error(
+      "The profiler must not be active before starting it in a test."
+    );
+  }
   const settings = Object.assign({}, defaultSettings, callersSettings);
   Services.profiler.StartProfiler(
     settings.entries,
@@ -90,6 +101,27 @@ function getPayloadsOfType(thread, type) {
 }
 
 /**
+ * Applies the marker schema to create individual objects for each marker
+ *
+ * @param {Object} thread The thread from a profile.
+ * @return {Array} The markers.
+ */
+function getInflatedMarkerData(thread) {
+  const { markers, stringTable } = thread;
+  return markers.data.map(markerTuple => {
+    const marker = {};
+    for (const [key, tupleIndex] of Object.entries(markers.schema)) {
+      marker[key] = markerTuple[tupleIndex];
+      if (key === "name") {
+        // Use the string from the string table.
+        marker[key] = stringTable[marker[key]];
+      }
+    }
+    return marker;
+  });
+}
+
+/**
  * It can be helpful to force the profiler to collect a JavaScript sample. This
  * function spins on a while loop until at least one more sample is collected.
  *
@@ -116,7 +148,7 @@ function captureAtLeastOneJsSample() {
  * @returns {Promise<Profile>}
  */
 async function stopAndGetProfile() {
-  Services.profiler.PauseSampling();
+  Services.profiler.Pause();
   const profile = await Services.profiler.getProfileDataAsync();
   Services.profiler.StopProfiler();
   return profile;

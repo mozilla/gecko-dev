@@ -39,8 +39,6 @@ exports[`Frames Blackboxed Frames filters blackboxed frames 1`] = `
           "source": Object {
             "extensionName": null,
             "id": "1",
-            "introductionType": undefined,
-            "introductionUrl": null,
             "isBlackBoxed": false,
             "isExtension": false,
             "isOriginal": false,
@@ -52,6 +50,7 @@ exports[`Frames Blackboxed Frames filters blackboxed frames 1`] = `
           "state": "on-stack",
           "this": Object {},
           "thread": "FakeThread",
+          "type": "call",
         }
       }
       frameworkGroupingOn={false}
@@ -87,8 +86,6 @@ exports[`Frames Blackboxed Frames filters blackboxed frames 1`] = `
           "source": Object {
             "extensionName": null,
             "id": "1",
-            "introductionType": undefined,
-            "introductionUrl": null,
             "isBlackBoxed": false,
             "isExtension": false,
             "isOriginal": false,
@@ -100,6 +97,7 @@ exports[`Frames Blackboxed Frames filters blackboxed frames 1`] = `
           "state": "on-stack",
           "this": Object {},
           "thread": "FakeThread",
+          "type": "call",
         }
       }
       shouldMapDisplayName={true}
@@ -138,8 +136,6 @@ exports[`Frames Blackboxed Frames filters blackboxed frames 1`] = `
           "source": Object {
             "extensionName": null,
             "id": "1",
-            "introductionType": undefined,
-            "introductionUrl": null,
             "isBlackBoxed": false,
             "isExtension": false,
             "isOriginal": false,
@@ -151,6 +147,7 @@ exports[`Frames Blackboxed Frames filters blackboxed frames 1`] = `
           "state": "on-stack",
           "this": Object {},
           "thread": "FakeThread",
+          "type": "call",
         }
       }
       frameworkGroupingOn={false}
@@ -186,8 +183,6 @@ exports[`Frames Blackboxed Frames filters blackboxed frames 1`] = `
           "source": Object {
             "extensionName": null,
             "id": "1",
-            "introductionType": undefined,
-            "introductionUrl": null,
             "isBlackBoxed": false,
             "isExtension": false,
             "isOriginal": false,
@@ -199,6 +194,7 @@ exports[`Frames Blackboxed Frames filters blackboxed frames 1`] = `
           "state": "on-stack",
           "this": Object {},
           "thread": "FakeThread",
+          "type": "call",
         }
       }
       shouldMapDisplayName={true}

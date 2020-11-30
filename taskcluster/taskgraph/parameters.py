@@ -7,6 +7,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import io
+import logging
 import os.path
 import json
 from datetime import datetime
@@ -27,6 +28,8 @@ from six import text_type
 
 from . import GECKO
 from .util.attributes import release_level
+
+logger = logging.getLogger(__name__)
 
 
 class ParameterMismatch(Exception):
@@ -58,6 +61,7 @@ def get_app_version(product_dir='browser'):
 
 base_schema = Schema({
     Required('app_version'): text_type,
+    Required('backstop'): bool,
     Required('base_repository'): text_type,
     Required('build_date'): int,
     Required('build_number'): int,
@@ -76,6 +80,7 @@ base_schema = Schema({
     Required('message'): text_type,
     Required('moz_build_date'): text_type,
     Required('next_version'): Any(None, text_type),
+    Required('optimize_strategies'): Any(None, text_type),
     Required('optimize_target_tasks'): bool,
     Required('owner'): text_type,
     Required('phabricator_diff'): Any(None, text_type),
@@ -83,7 +88,8 @@ base_schema = Schema({
     Required('pushdate'): int,
     Required('pushlog_id'): text_type,
     Required('release_enable_emefree'): bool,
-    Required('release_enable_partners'): bool,
+    Required('release_enable_partner_repack'): bool,
+    Required('release_enable_partner_attribution'): bool,
     Required('release_eta'): Any(None, text_type),
     Required('release_history'): {text_type: dict},
     Required('release_partners'): Any(None, [text_type]),
@@ -93,8 +99,11 @@ base_schema = Schema({
     Required('release_product'): Any(None, text_type),
     Required('required_signoffs'): [text_type],
     Required('signoff_urls'): dict,
+    # target-kind is not included, since it should never be
+    # used at run-time
     Required('target_tasks_method'): text_type,
     Required('tasks_for'): text_type,
+    Required('test_manifest_loader'): text_type,
     Required('try_mode'): Any(None, text_type),
     Required('try_options'): Any(None, dict),
     Required('try_task_config'): dict,
@@ -141,6 +150,7 @@ class Parameters(ReadOnlyDict):
 
         defaults = {
             'app_version': get_app_version(),
+            'backstop': False,
             'base_repository': 'https://hg.mozilla.org/mozilla-unified',
             'build_date': seconds_from_epoch,
             'build_number': 1,
@@ -155,6 +165,7 @@ class Parameters(ReadOnlyDict):
             'message': '',
             'moz_build_date': six.ensure_text(now.strftime("%Y%m%d%H%M%S")),
             'next_version': None,
+            'optimize_strategies': None,
             'optimize_target_tasks': True,
             'owner': 'nobody@mozilla.com',
             'phabricator_diff': None,
@@ -162,7 +173,8 @@ class Parameters(ReadOnlyDict):
             'pushdate': seconds_from_epoch,
             'pushlog_id': '0',
             'release_enable_emefree': False,
-            'release_enable_partners': False,
+            'release_enable_partner_repack': False,
+            'release_enable_partner_attribution': False,
             'release_eta': '',
             'release_history': {},
             'release_partners': [],
@@ -174,6 +186,7 @@ class Parameters(ReadOnlyDict):
             'signoff_urls': {},
             'target_tasks_method': 'default',
             'tasks_for': 'hg-push',
+            'test_manifest_loader': 'default',
             'try_mode': None,
             'try_options': None,
             'try_task_config': {},
@@ -247,7 +260,7 @@ def load_parameters_file(filename, strict=True, overrides=None, trust_domain=Non
         task-id=fdtgsD5DQUmAQZEaGMvQ4Q
         project=mozilla-central
     """
-    import urllib
+    import requests
     from taskgraph.util.taskcluster import get_artifact_url, find_task_id
     from taskgraph.util import yaml
 
@@ -279,7 +292,10 @@ def load_parameters_file(filename, strict=True, overrides=None, trust_domain=Non
 
         if task_id:
             filename = get_artifact_url(task_id, 'public/parameters.yml')
-        f = urllib.urlopen(filename)
+        logger.info("Loading parameters from {}".format(filename))
+        resp = requests.get(filename, stream=True)
+        resp.raise_for_status()
+        f = resp.raw
 
     if filename.endswith('.yml'):
         kwargs = yaml.load_stream(f)

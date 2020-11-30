@@ -6,8 +6,7 @@
 
 #include "mozilla/dom/SVGFEGaussianBlurElement.h"
 #include "mozilla/dom/SVGFEGaussianBlurElementBinding.h"
-#include "nsSVGFilterInstance.h"
-#include "nsSVGUtils.h"
+#include "mozilla/SVGFilterInstance.h"
 
 NS_IMPL_NS_NEW_SVG_ELEMENT(FEGaussianBlur)
 
@@ -58,7 +57,7 @@ void SVGFEGaussianBlurElement::SetStdDeviation(float stdDeviationX,
 }
 
 FilterPrimitiveDescription SVGFEGaussianBlurElement::GetPrimitiveDescription(
-    nsSVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
+    SVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
     const nsTArray<bool>& aInputsAreTainted,
     nsTArray<RefPtr<SourceSurface>>& aInputImages) {
   float stdX = aInstance->GetPrimitiveNumber(SVGContentUtils::X,

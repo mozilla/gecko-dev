@@ -24,6 +24,14 @@ AddonTestUtils.overrideCertDB();
 
 createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "42");
 
+// Currently security.tls.version.min has a different default
+// value in Nightly and Beta as opposed to Release builds.
+const tlsMinPref = Services.prefs.getIntPref("security.tls.version.min");
+if (tlsMinPref != 1 && tlsMinPref != 3) {
+  ok(false, "This test expects security.tls.version.min set to 1 or 3.");
+}
+const tlsMinVer = tlsMinPref === 3 ? "TLSv1.2" : "TLSv1";
+
 add_task(async function test_privacy() {
   // Create an object to hold the values to which we will initialize the prefs.
   const SETTINGS = {
@@ -268,6 +276,11 @@ add_task(async function test_privacy() {
 });
 
 add_task(async function test_privacy_other_prefs() {
+  registerCleanupFunction(() => {
+    Services.prefs.clearUserPref("security.tls.version.min");
+    Services.prefs.clearUserPref("security.tls.version.max");
+  });
+
   const cookieSvc = Ci.nsICookieService;
 
   // Create an object to hold the values to which we will initialize the prefs.
@@ -279,7 +292,7 @@ add_task(async function test_privacy_other_prefs() {
       "media.peerconnection.ice.proxy_only": false,
     },
     "network.tlsVersionRestriction": {
-      "security.tls.version.min": 1,
+      "security.tls.version.min": tlsMinPref,
       "security.tls.version.max": 4,
     },
     "network.peerConnectionEnabled": {
@@ -295,7 +308,7 @@ add_task(async function test_privacy_other_prefs() {
       "privacy.resistFingerprinting": true,
     },
     "websites.firstPartyIsolate": {
-      "privacy.firstparty.isolate": true,
+      "privacy.firstparty.isolate": false,
     },
     "websites.cookieConfig": {
       "network.cookie.cookieBehavior": cookieSvc.BEHAVIOR_ACCEPT,
@@ -322,6 +335,9 @@ add_task(async function test_privacy_other_prefs() {
     case cookieSvc.BEHAVIOR_REJECT_TRACKER:
       defaultBehavior = "reject_trackers";
       break;
+    case cookieSvc.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN:
+      defaultBehavior = "reject_trackers_and_partition_foreign";
+      break;
     default:
       ok(
         false,
@@ -339,9 +355,20 @@ add_task(async function test_privacy_other_prefs() {
       let settingData;
       switch (msg) {
         case "set":
-          await apiObj.set(data);
+          try {
+            await apiObj.set(data);
+          } catch (e) {
+            browser.test.sendMessage("settingThrowsException", {
+              message: e.message,
+            });
+            break;
+          }
           settingData = await apiObj.get({});
           browser.test.sendMessage("settingData", settingData);
+          break;
+        case "get":
+          settingData = await apiObj.get({});
+          browser.test.sendMessage("gettingData", settingData);
           break;
       }
     });
@@ -387,7 +414,30 @@ add_task(async function test_privacy_other_prefs() {
       equal(
         Preferences.get(pref),
         expected[pref],
-        `${pref} set correctly for ${value}`
+        `${pref} set correctly for ${expected[pref]}`
+      );
+    }
+  }
+
+  async function testSettingException(setting, value, expected) {
+    extension.sendMessage("set", { value: value }, setting);
+    let data = await extension.awaitMessage("settingThrowsException");
+    equal(data.message, expected);
+  }
+
+  async function testGetting(getting, expected, expectedValue) {
+    extension.sendMessage("get", null, getting);
+    let data = await extension.awaitMessage("gettingData");
+    deepEqual(
+      data.value,
+      expectedValue,
+      `Got expected result on getting ${getting}`
+    );
+    for (let pref in expected) {
+      equal(
+        Preferences.get(pref),
+        expected[pref],
+        `${pref} get correctly for ${expected[pref]}`
       );
     }
   }
@@ -454,13 +504,6 @@ add_task(async function test_privacy_other_prefs() {
   });
   await testSetting("websites.resistFingerprinting", true, {
     "privacy.resistFingerprinting": true,
-  });
-
-  await testSetting("websites.firstPartyIsolate", false, {
-    "privacy.firstparty.isolate": false,
-  });
-  await testSetting("websites.firstPartyIsolate", true, {
-    "privacy.firstparty.isolate": true,
   });
 
   await testSetting("websites.trackingProtectionMode", "always", {
@@ -565,6 +608,91 @@ add_task(async function test_privacy_other_prefs() {
     },
     { behavior: "reject_trackers", nonPersistentCookies: false }
   );
+  await testSetting(
+    "websites.cookieConfig",
+    { behavior: "reject_trackers_and_partition_foreign" },
+    {
+      "network.cookie.cookieBehavior":
+        cookieSvc.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN,
+      "network.cookie.lifetimePolicy": cookieSvc.ACCEPT_NORMALLY,
+    },
+    {
+      behavior: "reject_trackers_and_partition_foreign",
+      nonPersistentCookies: false,
+    }
+  );
+
+  // 1. Can't enable FPI when cookie behavior is "reject_trackers_and_partition_foreign"
+  await testSettingException(
+    "websites.firstPartyIsolate",
+    true,
+    "Can't enable firstPartyIsolate when cookieBehavior is 'reject_trackers_and_partition_foreign'"
+  );
+
+  // 2. Change cookieConfig to reject_trackers should work normally.
+  await testSetting(
+    "websites.cookieConfig",
+    { behavior: "reject_trackers" },
+    {
+      "network.cookie.cookieBehavior": cookieSvc.BEHAVIOR_REJECT_TRACKER,
+      "network.cookie.lifetimePolicy": cookieSvc.ACCEPT_NORMALLY,
+    },
+    { behavior: "reject_trackers", nonPersistentCookies: false }
+  );
+
+  // 3. Enable FPI
+  await testSetting("websites.firstPartyIsolate", true, {
+    "privacy.firstparty.isolate": true,
+  });
+
+  // 4. When FPI is enabled, change setting to "reject_trackers_and_partition_foreign" is invalid
+  await testSettingException(
+    "websites.cookieConfig",
+    { behavior: "reject_trackers_and_partition_foreign" },
+    "Invalid cookieConfig 'reject_trackers_and_partition_foreign' when firstPartyIsolate is enabled"
+  );
+
+  // 5. Set conflict settings manually and check prefs.
+  Preferences.set("network.cookie.cookieBehavior", 5);
+  await testGetting(
+    "websites.firstPartyIsolate",
+    { "privacy.firstparty.isolate": true },
+    true
+  );
+  await testGetting(
+    "websites.cookieConfig",
+    {
+      "network.cookie.cookieBehavior":
+        cookieSvc.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN,
+      "network.cookie.lifetimePolicy": cookieSvc.ACCEPT_NORMALLY,
+    },
+    {
+      behavior: "reject_trackers_and_partition_foreign",
+      nonPersistentCookies: false,
+    }
+  );
+
+  // 6. It is okay to set current saved value.
+  await testSetting("websites.firstPartyIsolate", true, {
+    "privacy.firstparty.isolate": true,
+  });
+  await testSetting(
+    "websites.cookieConfig",
+    { behavior: "reject_trackers_and_partition_foreign" },
+    {
+      "network.cookie.cookieBehavior":
+        cookieSvc.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN,
+      "network.cookie.lifetimePolicy": cookieSvc.ACCEPT_NORMALLY,
+    },
+    {
+      behavior: "reject_trackers_and_partition_foreign",
+      nonPersistentCookies: false,
+    }
+  );
+
+  await testSetting("websites.firstPartyIsolate", false, {
+    "privacy.firstparty.isolate": false,
+  });
 
   await testSetting(
     "network.tlsVersionRestriction",
@@ -578,44 +706,11 @@ add_task(async function test_privacy_other_prefs() {
     }
   );
 
-  // Invalid update (TLSv <= 1.2)
-  await testSetting(
-    "network.tlsVersionRestriction",
-    {
-      minimum: "invalid",
-      maximum: "TLSv1.1",
-    },
-    {
-      "security.tls.version.min": 1,
-      "security.tls.version.max": 2,
-    },
-    {
-      minimum: "TLSv1",
-      maximum: "TLSv1.1",
-    }
-  );
-
-  await testSetting(
-    "network.tlsVersionRestriction",
-    {
-      minimum: "invalid",
-      maximum: "invalid",
-    },
-    {
-      "security.tls.version.min": 1,
-      "security.tls.version.max": 4,
-    },
-    {
-      minimum: "TLSv1",
-      maximum: "TLSv1.3",
-    }
-  );
-
+  // Single values
   await testSetting(
     "network.tlsVersionRestriction",
     {
       minimum: "TLSv1.3",
-      maximum: "invalid",
     },
     {
       "security.tls.version.min": 4,
@@ -627,6 +722,50 @@ add_task(async function test_privacy_other_prefs() {
     }
   );
 
+  // Single values
+  await testSetting(
+    "network.tlsVersionRestriction",
+    {
+      minimum: "TLSv1.3",
+    },
+    {
+      "security.tls.version.min": 4,
+      "security.tls.version.max": 4,
+    },
+    {
+      minimum: "TLSv1.3",
+      maximum: "TLSv1.3",
+    }
+  );
+
+  // Invalid values.
+  await testSettingException(
+    "network.tlsVersionRestriction",
+    {
+      minimum: "invalid",
+      maximum: "invalid",
+    },
+    "Setting TLS version invalid is not allowed for security reasons."
+  );
+
+  // Invalid values.
+  await testSettingException(
+    "network.tlsVersionRestriction",
+    {
+      minimum: "invalid2",
+    },
+    "Setting TLS version invalid2 is not allowed for security reasons."
+  );
+
+  // Invalid values.
+  await testSettingException(
+    "network.tlsVersionRestriction",
+    {
+      maximum: "invalid3",
+    },
+    "Setting TLS version invalid3 is not allowed for security reasons."
+  );
+
   await testSetting(
     "network.tlsVersionRestriction",
     {
@@ -648,12 +787,111 @@ add_task(async function test_privacy_other_prefs() {
       maximum: "TLSv1.2",
     },
     {
-      "security.tls.version.min": 1,
+      "security.tls.version.min": tlsMinPref,
       "security.tls.version.max": 3,
     },
     {
-      minimum: "TLSv1",
+      minimum: tlsMinVer,
       maximum: "TLSv1.2",
+    }
+  );
+
+  // Not supported version.
+  if (tlsMinPref === 3) {
+    await testSettingException(
+      "network.tlsVersionRestriction",
+      {
+        minimum: "TLSv1",
+      },
+      "Setting TLS version TLSv1 is not allowed for security reasons."
+    );
+
+    await testSettingException(
+      "network.tlsVersionRestriction",
+      {
+        minimum: "TLSv1.1",
+      },
+      "Setting TLS version TLSv1.1 is not allowed for security reasons."
+    );
+
+    await testSettingException(
+      "network.tlsVersionRestriction",
+      {
+        maximum: "TLSv1",
+      },
+      "Setting TLS version TLSv1 is not allowed for security reasons."
+    );
+
+    await testSettingException(
+      "network.tlsVersionRestriction",
+      {
+        maximum: "TLSv1.1",
+      },
+      "Setting TLS version TLSv1.1 is not allowed for security reasons."
+    );
+  }
+
+  // Min vs Max
+  await testSettingException(
+    "network.tlsVersionRestriction",
+    {
+      minimum: "TLSv1.3",
+      maximum: "TLSv1.2",
+    },
+    "Setting TLS min version grater than the max version is not allowed."
+  );
+
+  // Min vs Max (with default max)
+  await testSetting(
+    "network.tlsVersionRestriction",
+    {
+      minimum: "TLSv1.2",
+      maximum: "TLSv1.2",
+    },
+    {
+      "security.tls.version.min": 3,
+      "security.tls.version.max": 3,
+    }
+  );
+  await testSettingException(
+    "network.tlsVersionRestriction",
+    {
+      minimum: "TLSv1.3",
+    },
+    "Setting TLS min version grater than the max version is not allowed."
+  );
+
+  // Max vs Min
+  await testSetting(
+    "network.tlsVersionRestriction",
+    {
+      minimum: "TLSv1.3",
+      maximum: "TLSv1.3",
+    },
+    {
+      "security.tls.version.min": 4,
+      "security.tls.version.max": 4,
+    }
+  );
+  await testSettingException(
+    "network.tlsVersionRestriction",
+    {
+      maximum: "TLSv1.2",
+    },
+    "Setting TLS max version lower than the min version is not allowed."
+  );
+
+  // Empty value.
+  await testSetting(
+    "network.tlsVersionRestriction",
+    {},
+    {
+      "security.tls.version.min": tlsMinPref,
+      "security.tls.version.max": 4,
+    },
+    {
+      minimum: tlsMinVer,
+      maximum: "TLSv1.3",
     }
   );
 

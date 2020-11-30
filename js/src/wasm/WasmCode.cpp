@@ -376,7 +376,7 @@ UniqueModuleSegment ModuleSegment::create(Tier tier, const Bytes& unlinkedBytes,
                                        linkData);
 }
 
-bool ModuleSegment::initialize(const CodeTier& codeTier,
+bool ModuleSegment::initialize(IsTier2 isTier2, const CodeTier& codeTier,
                                const LinkData& linkData,
                                const Metadata& metadata,
                                const MetadataTier& metadataTier) {
@@ -384,9 +384,15 @@ bool ModuleSegment::initialize(const CodeTier& codeTier,
     return false;
   }
 
+  // Optimized compilation finishes on a background thread, so we must make sure
+  // to flush the icaches of all the executing threads.
+  FlushICacheSpec flushIcacheSpec = isTier2 == IsTier2::Tier2
+                                        ? FlushICacheSpec::AllThreads
+                                        : FlushICacheSpec::LocalThreadOnly;
+
   // Reprotect the whole region to avoid having separate RW and RX mappings.
   if (!ExecutableAllocator::makeExecutableAndFlushICache(
-          base(), RoundupCodeLength(length()))) {
+          flushIcacheSpec, base(), RoundupCodeLength(length()))) {
     return false;
   }
 
@@ -613,6 +619,11 @@ bool LazyStubSegment::addStubs(size_t codeLength,
     codeRanges_.back().offsetBy(offsetInSegment);
     i++;
 
+#ifdef ENABLE_WASM_SIMD
+    if (funcExports[funcExportIndex].funcType().hasV128ArgOrRet()) {
+      continue;
+    }
+#endif
     if (funcExports[funcExportIndex]
             .funcType()
             .temporarilyUnsupportedReftypeForEntry()) {
@@ -656,6 +667,7 @@ static constexpr unsigned LAZY_STUB_LIFO_DEFAULT_CHUNK_SIZE = 8 * 1024;
 
 bool LazyStubTier::createMany(const Uint32Vector& funcExportIndices,
                               const CodeTier& codeTier,
+                              bool flushAllThreadsIcaches,
                               size_t* stubSegmentIndex) {
   MOZ_ASSERT(funcExportIndices.length());
 
@@ -668,20 +680,23 @@ bool LazyStubTier::createMany(const Uint32Vector& funcExportIndices,
   const FuncExportVector& funcExports = metadata.funcExports;
   uint8_t* moduleSegmentBase = codeTier.segment().base();
 
-  bool bigIntEnabled = codeTier.code().metadata().bigIntEnabled;
-
   CodeRangeVector codeRanges;
   DebugOnly<uint32_t> numExpectedRanges = 0;
   for (uint32_t funcExportIndex : funcExportIndices) {
     const FuncExport& fe = funcExports[funcExportIndex];
-    numExpectedRanges +=
-        fe.funcType().temporarilyUnsupportedReftypeForEntry() ? 1 : 2;
+    // Entries with unsupported types get only the interp exit
+    bool unsupportedType =
+#ifdef ENABLE_WASM_SIMD
+        fe.funcType().hasV128ArgOrRet() ||
+#endif
+        fe.funcType().temporarilyUnsupportedReftypeForEntry();
+    numExpectedRanges += (unsupportedType ? 1 : 2);
     void* calleePtr =
-        moduleSegmentBase + metadata.codeRange(fe).funcNormalEntry();
+        moduleSegmentBase + metadata.codeRange(fe).funcUncheckedCallEntry();
     Maybe<ImmPtr> callee;
     callee.emplace(calleePtr, ImmPtr::NoCheckToken());
     if (!GenerateEntryStubs(masm, funcExportIndex, fe, callee,
-                            /* asmjs */ false, bigIntEnabled, &codeRanges)) {
+                            /* asmjs */ false, &codeRanges)) {
       return false;
     }
   }
@@ -731,7 +746,13 @@ bool LazyStubTier::createMany(const Uint32Vector& funcExportIndices,
     Assembler::Bind(codePtr, label);
   }
 
-  if (!ExecutableAllocator::makeExecutableAndFlushICache(codePtr, codeLength)) {
+  // Optimized compilation finishes on a background thread, so we must make sure
+  // to flush the icaches of all the executing threads.
+  FlushICacheSpec flushIcacheSpec = flushAllThreadsIcaches
+                                        ? FlushICacheSpec::AllThreads
+                                        : FlushICacheSpec::LocalThreadOnly;
+  if (!ExecutableAllocator::makeExecutableAndFlushICache(flushIcacheSpec,
+                                                         codePtr, codeLength)) {
     return false;
   }
 
@@ -757,10 +778,14 @@ bool LazyStubTier::createMany(const Uint32Vector& funcExportIndices,
     MOZ_ALWAYS_TRUE(
         exports_.insert(exports_.begin() + exportIndex, std::move(lazyExport)));
 
-    // Functions with unsupported reftypes in their sig have only one entry
+    // Functions with unsupported types in their sig have only one entry
     // (interp).  All other functions get an extra jit entry.
-    interpRangeIndex +=
-        fe.funcType().temporarilyUnsupportedReftypeForEntry() ? 1 : 2;
+    bool unsupportedType =
+#ifdef ENABLE_WASM_SIMD
+        fe.funcType().hasV128ArgOrRet() ||
+#endif
+        fe.funcType().temporarilyUnsupportedReftypeForEntry();
+    interpRangeIndex += (unsupportedType ? 1 : 2);
   }
 
   return true;
@@ -773,20 +798,32 @@ bool LazyStubTier::createOne(uint32_t funcExportIndex,
     return false;
   }
 
+  // This happens on the executing thread (called via GetInterpEntry), so no
+  // need to flush the icaches on all the threads.
+  bool flushAllThreadIcaches = false;
+
   size_t stubSegmentIndex;
-  if (!createMany(funcExportIndexes, codeTier, &stubSegmentIndex)) {
+  if (!createMany(funcExportIndexes, codeTier, flushAllThreadIcaches,
+                  &stubSegmentIndex)) {
     return false;
   }
 
   const UniqueLazyStubSegment& segment = stubSegments_[stubSegmentIndex];
   const CodeRangeVector& codeRanges = segment->codeRanges();
 
-  // Functions that have unsupported reftypes in their sig don't get a jit
+  // Functions that have unsupported types in their sig don't get a jit
   // entry.
   if (codeTier.metadata()
           .funcExports[funcExportIndex]
           .funcType()
-          .temporarilyUnsupportedReftypeForEntry()) {
+          .temporarilyUnsupportedReftypeForEntry()
+#ifdef ENABLE_WASM_SIMD
+      || codeTier.metadata()
+             .funcExports[funcExportIndex]
+             .funcType()
+             .hasV128ArgOrRet()
+#endif
+  ) {
     MOZ_ASSERT(codeRanges.length() >= 1);
     MOZ_ASSERT(codeRanges.back().isInterpEntry());
     return true;
@@ -809,8 +846,13 @@ bool LazyStubTier::createTier2(const Uint32Vector& funcExportIndices,
     return true;
   }
 
+  // This compilation happens on a background compiler thread, so the icache may
+  // need to be flushed on all the threads.
+  bool flushAllThreadIcaches = true;
+
   size_t stubSegmentIndex;
-  if (!createMany(funcExportIndices, codeTier, &stubSegmentIndex)) {
+  if (!createMany(funcExportIndices, codeTier, flushAllThreadIcaches,
+                  &stubSegmentIndex)) {
     return false;
   }
 
@@ -899,8 +941,7 @@ size_t Metadata::serializedSize() const {
   return sizeof(pod()) + SerializedVectorSize(funcTypeIds) +
          SerializedPodVectorSize(globals) + SerializedPodVectorSize(tables) +
          sizeof(moduleName) + SerializedPodVectorSize(funcNames) +
-         filename.serializedSize() + sourceMapURL.serializedSize() +
-         sizeof(uint8_t);
+         filename.serializedSize() + sourceMapURL.serializedSize();
 }
 
 uint8_t* Metadata::serialize(uint8_t* cursor) const {
@@ -914,12 +955,10 @@ uint8_t* Metadata::serialize(uint8_t* cursor) const {
   cursor = SerializePodVector(cursor, funcNames);
   cursor = filename.serialize(cursor);
   cursor = sourceMapURL.serialize(cursor);
-  cursor = WriteScalar(cursor, uint8_t(omitsBoundsChecks));
   return cursor;
 }
 
 /* static */ const uint8_t* Metadata::deserialize(const uint8_t* cursor) {
-  uint8_t scalarOmitsBoundsChecks = 0;
   (cursor = ReadBytes(cursor, &pod(), sizeof(pod()))) &&
       (cursor = DeserializeVector(cursor, &funcTypeIds)) &&
       (cursor = DeserializePodVector(cursor, &globals)) &&
@@ -927,12 +966,10 @@ uint8_t* Metadata::serialize(uint8_t* cursor) const {
       (cursor = ReadBytes(cursor, &moduleName, sizeof(moduleName))) &&
       (cursor = DeserializePodVector(cursor, &funcNames)) &&
       (cursor = filename.deserialize(cursor)) &&
-      (cursor = sourceMapURL.deserialize(cursor)) &&
-      (cursor = ReadScalar<uint8_t>(cursor, &scalarOmitsBoundsChecks));
+      (cursor = sourceMapURL.deserialize(cursor));
   debugEnabled = false;
   debugFuncArgTypes.clear();
   debugFuncReturnTypes.clear();
-  omitsBoundsChecks = !!scalarOmitsBoundsChecks;
   return cursor;
 }
 
@@ -1017,15 +1054,15 @@ bool Metadata::getFuncName(NameContext ctx, uint32_t funcIndex,
   return AppendFunctionIndexName(funcIndex, name);
 }
 
-bool CodeTier::initialize(const Code& code, const LinkData& linkData,
-                          const Metadata& metadata) {
+bool CodeTier::initialize(IsTier2 isTier2, const Code& code,
+                          const LinkData& linkData, const Metadata& metadata) {
   MOZ_ASSERT(!initialized());
   code_ = &code;
 
   MOZ_ASSERT(lazyStubs_.lock()->empty());
 
   // See comments in CodeSegment::initialize() for why this must be last.
-  if (!segment_->initialize(*this, linkData, metadata, *metadata_)) {
+  if (!segment_->initialize(isTier2, *this, linkData, metadata, *metadata_)) {
     return false;
   }
 
@@ -1136,7 +1173,7 @@ Code::Code(UniqueCodeTier tier1, const Metadata& metadata,
 bool Code::initialize(const LinkData& linkData) {
   MOZ_ASSERT(!initialized());
 
-  if (!tier1_->initialize(*this, linkData, *metadata_)) {
+  if (!tier1_->initialize(IsTier2::NotTier2, *this, linkData, *metadata_)) {
     return false;
   }
 
@@ -1149,7 +1186,7 @@ bool Code::setTier2(UniqueCodeTier tier2, const LinkData& linkData) const {
   MOZ_RELEASE_ASSERT(tier2->tier() == Tier::Optimized &&
                      tier1_->tier() == Tier::Baseline);
 
-  if (!tier2->initialize(*this, linkData, *metadata_)) {
+  if (!tier2->initialize(IsTier2::Tier2, *this, linkData, *metadata_)) {
     return false;
   }
 

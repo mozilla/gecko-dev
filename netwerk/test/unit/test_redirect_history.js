@@ -1,3 +1,5 @@
+"use strict";
+
 const { HttpServer } = ChromeUtils.import("resource://testing-common/httpd.js");
 const ReferrerInfo = Components.Constructor(
   "@mozilla.org/referrer-info;1",
@@ -33,7 +35,7 @@ function finish_test(request, buffer) {
   Assert.equal(numRedirects - 1, redirectChain.length);
   for (let i = 0; i < numRedirects - 1; ++i) {
     let principal = redirectChain[i].principal;
-    Assert.equal(URL + redirects[i], principal.URI.spec);
+    Assert.equal(URL + redirects[i], principal.spec);
     Assert.equal(redirectChain[i].referrerURI.spec, "http://test.com/");
     Assert.equal(redirectChain[i].remoteAddress, "127.0.0.1");
   }

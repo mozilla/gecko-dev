@@ -8,7 +8,6 @@
 
 #include "mozilla/dom/SVGComponentTransferFunctionElement.h"
 #include "mozilla/dom/SVGFEComponentTransferElementBinding.h"
-#include "nsSVGUtils.h"
 #include "mozilla/gfx/2D.h"
 
 NS_IMPL_NS_NEW_SVG_ELEMENT(FEComponentTransfer)
@@ -50,7 +49,7 @@ SVGFEComponentTransferElement::GetStringInfo() {
 
 FilterPrimitiveDescription
 SVGFEComponentTransferElement::GetPrimitiveDescription(
-    nsSVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
+    SVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
     const nsTArray<bool>& aInputsAreTainted,
     nsTArray<RefPtr<SourceSurface>>& aInputImages) {
   RefPtr<SVGComponentTransferFunctionElement> childForChannel[4];

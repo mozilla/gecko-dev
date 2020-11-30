@@ -37,6 +37,8 @@ typedef MozPromise</* Dummy */ bool,
                    /* IsExclusive = */ true>
     StyleSheetParsePromise;
 
+enum class StyleRuleChangeKind : uint32_t;
+
 namespace css {
 class GroupRule;
 class Loader;
@@ -84,10 +86,10 @@ enum class StyleSheetState : uint8_t {
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(StyleSheetState)
 
 class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
-  StyleSheet(const StyleSheet& aCopy, StyleSheet* aParentToUse,
+  StyleSheet(const StyleSheet& aCopy, StyleSheet* aParentSheetToUse,
              dom::CSSImportRule* aOwnerRuleToUse,
              dom::DocumentOrShadowRoot* aDocOrShadowRootToUse,
-             nsINode* aOwningNodeToUse);
+             dom::Document* aConstructorDocToUse, nsINode* aOwningNodeToUse);
 
   virtual ~StyleSheet();
 
@@ -119,8 +121,7 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
 
   // Common code that needs to be called after servo finishes parsing. This is
   // shared between the parallel and sequential paths.
-  void FinishAsyncParse(
-      already_AddRefed<RawServoStyleSheetContents> aSheetContents);
+  void FinishAsyncParse(already_AddRefed<RawServoStyleSheetContents>);
 
   // Similar to `ParseSheet`, but guarantees that
   // parsing will be performed synchronously.
@@ -156,21 +157,6 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
 
   // Returns the stylesheet's Servo origin as a StyleOrigin value.
   StyleOrigin GetOrigin() const;
-
-  /**
-   * The different changes that a stylesheet may go through.
-   *
-   * Used by the StyleSets in order to handle more efficiently some kinds of
-   * changes.
-   */
-  enum class ChangeType {
-    Added,
-    Removed,
-    ApplicableStateChanged,
-    RuleAdded,
-    RuleRemoved,
-    RuleChanged,
-  };
 
   void SetOwningNode(nsINode* aOwningNode) { mOwningNode = aOwningNode; }
 
@@ -221,6 +207,13 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
       dom::DocumentOrShadowRoot* aCloneDocumentOrShadowRoot,
       nsINode* aCloneOwningNode) const;
 
+  /**
+   * Creates a clone of the adopted style sheet as though it were constructed
+   * by aConstructorDocument. This should only be used for printing.
+   */
+  already_AddRefed<StyleSheet> CloneAdoptedSheet(
+      dom::Document& aConstructorDocument) const;
+
   bool HasForcedUniqueInner() const {
     return bool(mState & State::ForcedUniqueInner);
   }
@@ -237,24 +230,16 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
 
   void EnsureUniqueInner();
 
-  // style sheet owner info
-  enum AssociationMode : uint8_t {
-    // OwnedByDocumentOrShadowRoot means mDocumentOrShadowRoot owns us (possibly
-    // via a chain of other stylesheets).
-    OwnedByDocumentOrShadowRoot,
-    // NotOwnedByDocument means we're owned by something that might have a
-    // different lifetime than mDocument.
-    NotOwnedByDocumentOrShadowRoot
-  };
+  // Returns the DocumentOrShadowRoot* that owns us, if any.
+  //
+  // TODO(emilio): Maybe rename to GetOwner*() or such? Might be
+  // confusing with nsINode::OwnerDoc and such.
   dom::DocumentOrShadowRoot* GetAssociatedDocumentOrShadowRoot() const;
 
-  // Whether this stylesheet is kept alive by the associated document or
-  // associated shadow root's document somehow, and thus at least has the same
-  // lifetime as GetAssociatedDocument().
-  bool IsKeptAliveByDocument() const;
-
-  // Returns the document whose styles this sheet is affecting.
-  dom::Document* GetComposedDoc() const;
+  // Whether this stylesheet is kept alive by the associated or constructor
+  // document somehow, and thus at least has the same lifetime as
+  // GetAssociatedDocument().
+  dom::Document* GetKeptAliveByDocument() const;
 
   // If this is a constructed style sheet, return mConstructorDocument.
   // Otherwise return the document we're associated to,
@@ -263,15 +248,14 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
   // Non-null iff GetAssociatedDocumentOrShadowRoot is non-null.
   dom::Document* GetAssociatedDocument() const;
 
-  void SetAssociatedDocumentOrShadowRoot(dom::DocumentOrShadowRoot*,
-                                         AssociationMode);
+  void SetAssociatedDocumentOrShadowRoot(dom::DocumentOrShadowRoot*);
   void ClearAssociatedDocumentOrShadowRoot() {
-    SetAssociatedDocumentOrShadowRoot(nullptr, NotOwnedByDocumentOrShadowRoot);
+    SetAssociatedDocumentOrShadowRoot(nullptr);
   }
 
   nsINode* GetOwnerNode() const { return mOwningNode; }
 
-  StyleSheet* GetParentSheet() const { return mParent; }
+  StyleSheet* GetParentSheet() const { return mParentSheet; }
 
   void SetOwnerRule(dom::CSSImportRule* aOwnerRule) {
     mOwnerRule = aOwnerRule; /* Not ref counted */
@@ -335,8 +319,8 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
   }
 
   size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const;
-#ifdef DEBUG
-  void List(FILE* aOut = stdout, int32_t aIndex = 0) const;
+#if defined(DEBUG) || defined(MOZ_LAYOUT_DEBUGGER)
+  void List(FILE* aOut = stdout, int32_t aIndex = 0);
 #endif
 
   // WebIDL StyleSheet API
@@ -393,8 +377,14 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
   // True if the sheet was created through the Constructable StyleSheets API
   bool IsConstructed() const { return !!mConstructorDocument; }
 
+  // True if any of this sheet's ancestors were created through the
+  // Constructable StyleSheets API
+  bool SelfOrAncestorIsConstructed() const {
+    return OutermostSheet().IsConstructed();
+  }
+
   // Ture if the sheet's constructor document matches the given document
-  bool ConstructorDocumentMatches(dom::Document& aDocument) const {
+  bool ConstructorDocumentMatches(const dom::Document& aDocument) const {
     return mConstructorDocument == &aDocument;
   }
 
@@ -422,8 +412,8 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
   // Called when a rule changes from CSSOM.
   //
   // FIXME(emilio): This shouldn't allow null, but MediaList doesn't know about
-  // it's owning media rule, plus it's used for the stylesheet media itself.
-  void RuleChanged(css::Rule*);
+  // its owning media rule, plus it's used for the stylesheet media itself.
+  void RuleChanged(css::Rule*, StyleRuleChangeKind);
 
   void AddStyleSet(ServoStyleSet* aStyleSet);
   void DropStyleSet(ServoStyleSet* aStyleSet);
@@ -437,8 +427,10 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
 
   // Copy the contents of this style sheet into the shared memory buffer managed
   // by aBuilder.  Returns the pointer into the buffer that the sheet contents
-  // were stored at.  (The returned pointer is to an Arc<Locked<Rules>> value.)
-  const ServoCssRules* ToShared(RawServoSharedMemoryBuilder* aBuilder);
+  // were stored at.  (The returned pointer is to an Arc<Locked<Rules>> value,
+  // or null, with a filled in aErrorMessage, on failure.)
+  const ServoCssRules* ToShared(RawServoSharedMemoryBuilder* aBuilder,
+                                nsCString& aErrorMessage);
 
   // Sets the contents of this style sheet to the specified aSharedRules
   // pointer, which must be a pointer somewhere in the aSharedMemory buffer
@@ -464,12 +456,17 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
     mState |= State::ModifiedRules | State::ModifiedRulesForDevtools;
   }
 
-  // Returns the ShadowRoot that contains this stylesheet or our ancestor
-  // stylesheet, if any.
-  //
-  // TODO(emilio): This may need to have multiple shadow roots with
-  // constructable stylesheets.
-  dom::ShadowRoot* GetContainingShadow() const;
+  const StyleSheet& OutermostSheet() const {
+    auto* current = this;
+    while (current->mParentSheet) {
+      MOZ_ASSERT(!current->mDocumentOrShadowRoot,
+                 "Shouldn't be set on child sheets");
+      MOZ_ASSERT(!current->mConstructorDocument,
+                 "Shouldn't be set on child sheets");
+      current = current->mParentSheet;
+    }
+    return *current;
+  }
 
   StyleSheetInfo& Inner() {
     MOZ_ASSERT(mInner);
@@ -520,8 +517,6 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
   // assertion will fail if the expectation does not match reality.
   void ApplicableStateChanged(bool aApplicable);
 
-  void UnparentChildren();
-
   void LastRelease();
 
   // Return success if the subject principal subsumes the principal of our
@@ -542,7 +537,13 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
   // Return whether the given @import rule has pending child sheet.
   static bool RuleHasPendingChildSheet(css::Rule* aRule);
 
-  StyleSheet* mParent;  // weak ref
+  StyleSheet* mParentSheet;  // weak ref
+
+  // A pointer to the sheets relevant global object.
+  // This is populated when the sheet gets an associated document.
+  // This is required for the sheet to be able to create a promise.
+  // https://html.spec.whatwg.org/#concept-relevant-everything
+  nsCOMPtr<nsIGlobalObject> mRelevantGlobal;
 
   RefPtr<dom::Document> mConstructorDocument;
 
@@ -568,12 +569,6 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
   css::SheetParsingMode mParsingMode;
 
   State mState;
-
-  // mAssociationMode determines whether mDocumentOrShadowRoot directly owns us
-  // (in the sense that if it's known-live then we're known-live).
-  //
-  // Always NotOwnedByDocumentOrShadowRoot when mDocumentOrShadowRoot is null.
-  AssociationMode mAssociationMode;
 
   // Core information we get from parsed sheets, which are shared amongst
   // StyleSheet clones.

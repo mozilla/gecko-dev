@@ -24,12 +24,15 @@ const {
   SELECT_PAGE_SUCCESS,
   SELECTED_RUNTIME_ID_UPDATED,
   SHOW_PROFILER_DIALOG,
+  SWITCH_PROFILER_CONTEXT,
   USB_RUNTIMES_SCAN_START,
   USB_RUNTIMES_SCAN_SUCCESS,
 } = require("devtools/client/aboutdebugging/src/constants");
 
 const NetworkLocationsModule = require("devtools/client/aboutdebugging/src/modules/network-locations");
-const { adbAddon } = require("devtools/shared/adb/adb-addon");
+const {
+  adbAddon,
+} = require("devtools/client/shared/remote-debugging/adb/adb-addon");
 const {
   refreshUSBRuntimes,
 } = require("devtools/client/aboutdebugging/src/modules/usb-runtimes");
@@ -37,7 +40,7 @@ const {
 const Actions = require("devtools/client/aboutdebugging/src/actions/index");
 
 function selectPage(page, runtimeId) {
-  return async (dispatch, getState) => {
+  return async ({ dispatch, getState }) => {
     dispatch({ type: SELECT_PAGE_START });
 
     try {
@@ -94,19 +97,27 @@ function updateDebugTargetCollapsibility(key, isCollapsed) {
 }
 
 function addNetworkLocation(location) {
-  return (dispatch, getState) => {
+  return ({ dispatch, getState }) => {
     NetworkLocationsModule.addNetworkLocation(location);
   };
 }
 
 function removeNetworkLocation(location) {
-  return (dispatch, getState) => {
+  return ({ dispatch, getState }) => {
     NetworkLocationsModule.removeNetworkLocation(location);
   };
 }
 
 function showProfilerDialog() {
   return { type: SHOW_PROFILER_DIALOG };
+}
+
+/**
+ * The profiler can switch between "devtools-remote" and "aboutprofiling-remote"
+ * page contexts.
+ */
+function switchProfilerContext(profilerContext) {
+  return { type: SWITCH_PROFILER_CONTEXT, profilerContext };
 }
 
 function hideProfilerDialog() {
@@ -122,7 +133,7 @@ function updateAdbReady(isAdbReady) {
 }
 
 function updateNetworkLocations(locations) {
-  return async (dispatch, getState) => {
+  return async ({ dispatch, getState }) => {
     dispatch({ type: NETWORK_LOCATIONS_UPDATE_START });
     try {
       await dispatch(Actions.updateNetworkRuntimes(locations));
@@ -134,7 +145,7 @@ function updateNetworkLocations(locations) {
 }
 
 function installAdbAddon() {
-  return async (dispatch, getState) => {
+  return async ({ dispatch, getState }) => {
     dispatch({ type: ADB_ADDON_INSTALL_START });
 
     try {
@@ -149,7 +160,7 @@ function installAdbAddon() {
 }
 
 function uninstallAdbAddon() {
-  return async (dispatch, getState) => {
+  return async ({ dispatch, getState }) => {
     dispatch({ type: ADB_ADDON_UNINSTALL_START });
 
     try {
@@ -162,7 +173,7 @@ function uninstallAdbAddon() {
 }
 
 function scanUSBRuntimes() {
-  return async (dispatch, getState) => {
+  return async ({ dispatch, getState }) => {
     // do not re-scan if we are already doing it
     if (getState().ui.isScanningUsb) {
       return;
@@ -182,6 +193,7 @@ module.exports = {
   scanUSBRuntimes,
   selectPage,
   showProfilerDialog,
+  switchProfilerContext,
   uninstallAdbAddon,
   updateAdbAddonStatus,
   updateAdbReady,

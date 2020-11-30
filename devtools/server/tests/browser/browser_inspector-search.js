@@ -183,6 +183,18 @@ add_task(async function() {
             },
           ],
         },
+        {
+          desc: "Search using XPath grouping expression",
+          search: "(//*)[2]",
+          expected: [{ node: inspectee.querySelector("head"), type: "xpath" }],
+        },
+        {
+          desc: "Search using XPath function",
+          search: "id('arrows')",
+          expected: [
+            { node: inspectee.querySelector("#arrows"), type: "xpath" },
+          ],
+        },
       ];
 
       const isDeeply = (a, b, msg) => {
@@ -224,7 +236,10 @@ add_task(async function() {
       results = walkerSearch.search("before element");
       isDeeply(
         results,
-        [{ node: styleText, type: "text" }, { node: beforeElt, type: "text" }],
+        [
+          { node: styleText, type: "text" },
+          { node: beforeElt, type: "text" },
+        ],
         "Text search works for pseudo element"
       );
 
@@ -242,7 +257,10 @@ add_task(async function() {
       results = walkerSearch.search("after element");
       isDeeply(
         results,
-        [{ node: styleText, type: "text" }, { node: afterElt, type: "text" }],
+        [
+          { node: styleText, type: "text" },
+          { node: afterElt, type: "text" },
+        ],
         "Text search works for pseudo element"
       );
 

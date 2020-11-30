@@ -200,9 +200,8 @@ void nsDeckFrame::Animate(nsIFrame* aParentBox, bool start) {
       imgFrame->StopAnimation();
   }
 
-  for (nsIFrame::ChildListIterator childLists(aParentBox); !childLists.IsDone();
-       childLists.Next()) {
-    for (nsIFrame* child : childLists.CurrentList()) {
+  for (const auto& childList : aParentBox->ChildLists()) {
+    for (nsIFrame* child : childList.mList) {
       Animate(child, start);
     }
   }
@@ -219,7 +218,7 @@ nsDeckFrame::DoXULLayout(nsBoxLayoutState& aState) {
   nsresult rv = nsBoxFrame::DoXULLayout(aState);
 
   // run though each child. Hide all but the selected one
-  nsIFrame* box = nsBox::GetChildXULBox(this);
+  nsIFrame* box = nsIFrame::GetChildXULBox(this);
 
   nscoord count = 0;
   while (box) {

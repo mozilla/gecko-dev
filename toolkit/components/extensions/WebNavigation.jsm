@@ -55,7 +55,7 @@ var Manager = {
 
     Services.obs.addObserver(this, "webNavigation-createdNavigationTarget");
 
-    if (AppConstants.platform != "android") {
+    if (AppConstants.MOZ_BUILD_APP == "browser") {
       ClickHandlerParent.addContentClickListener(this);
     }
 
@@ -76,7 +76,7 @@ var Manager = {
     Services.obs.removeObserver(this, "urlbar-user-start-navigation");
     Services.obs.removeObserver(this, "webNavigation-createdNavigationTarget");
 
-    if (AppConstants.platform != "android") {
+    if (AppConstants.MOZ_BUILD_APP == "browser") {
       ClickHandlerParent.removeContentClickListener(this);
     }
 
@@ -130,8 +130,8 @@ var Manager = {
    * to keep track of the urlbar user interaction.
    */
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIObserver,
-    Ci.nsISupportsWeakReference,
+    "nsIObserver",
+    "nsISupportsWeakReference",
   ]),
 
   /**
@@ -152,7 +152,7 @@ var Manager = {
       const {
         createdTabBrowser,
         url,
-        sourceFrameOuterWindowID,
+        sourceFrameID,
         sourceTabBrowser,
       } = subject.wrappedJSObject;
 
@@ -162,7 +162,7 @@ var Manager = {
         {},
         {
           sourceTabBrowser,
-          sourceFrameId: sourceFrameOuterWindowID,
+          sourceFrameId: sourceFrameID,
           url,
         }
       );

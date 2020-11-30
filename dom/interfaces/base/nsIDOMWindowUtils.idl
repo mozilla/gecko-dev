@@ -205,13 +205,19 @@ interface nsIDOMWindowUtils : nsISupports {
    * Note that on some platforms, scrollbars don't take up layout space
    * ("overlay scrollbars"). On such platforms, the returned sizes are
    * always zero.
+   *
+   * Layout scrollbars that normally take up space but were only shown to
+   * scroll the visual viewport inside the layout viewport (the layout viewport
+   * cannot be scrolled) do not take up space but they still return their size
+   * from this function.
    */
   void getScrollbarSizes(in Element aElement,
                          out uint32_t aVerticalScrollbarWidth,
                          out uint32_t aHorizontalScrollbarHeight);
 
   /**
-   * Get/set the resolution at which rescalable web content is drawn.
+   * Get/set the resolution at which rescalable web content is drawn for
+   * testing purposes.
    *
    * Setting a new resolution does *not* trigger reflow.  This API is
    * entirely separate from textZoom and fullZoom; a resolution scale
@@ -225,10 +231,13 @@ interface nsIDOMWindowUtils : nsISupports {
    * so that it is displayed at a correspondingly larger or smaller size,
    * without the need for the caller to set an additional transform.
    *
-   * This can be used to implement a non-reflowing scale-zoom, e.g.
-   * for pinch-zoom on mobile platforms.
+   * The purpose of this API is to allow tests to simulate many of the effects
+   * a non-reflowing scale-zoom, e.g. for pinch-zoom on mobile platforms, and
+   * should be only used for testing purposes.
    *
    * The caller of this method must have chrome privileges.
+   *
+   * This is intended to be used by test code only!
    */
   void setResolutionAndScaleTo(in float aResolution);
 
@@ -256,6 +265,12 @@ interface nsIDOMWindowUtils : nsISupports {
   attribute boolean isFirstPaint;
 
   uint32_t getPresShellId();
+
+  /**
+   * Returns whether a given header and value is a CORS-safelisted request
+   * header per https://fetch.spec.whatwg.org/#cors-safelisted-request-header
+   */
+  boolean isCORSSafelistedRequestHeader(in ACString name, in ACString value);
 
   /**
    * Following modifiers are for sent*Event() except sendNative*Event().
@@ -652,6 +667,17 @@ interface nsIDOMWindowUtils : nsISupports {
   void clearNativeTouchSequence([optional] in nsIObserver aObserver);
 
   /**
+   * Clears the SharedStyleSheetCache.
+   */
+  void clearSharedStyleSheetCache();
+
+  /**
+   * Returns the number of stylesheets that have been parsed on this document.
+   * Useful to test caching.
+   */
+  readonly attribute unsigned long parsedStyleSheets;
+
+  /**
    * See nsIWidget::ActivateNativeMenuItemAt
    *
    * Cannot be accessed from unprivileged context (not content-accessible)
@@ -871,6 +897,13 @@ interface nsIDOMWindowUtils : nsISupports {
    * Returns the scroll position of the window's visual viewport.
    */
   void getVisualViewportOffset(out long aOffsetX, out long aOffsetY);
+
+  /**
+   * Transforms the passed in rect from layout relative coords (relative to
+   * this document) to be is visual coords.
+   */
+  DOMRect transformRectLayoutToVisual(in float aX, in float aY,
+                                      in float aWidth, in float aHeight);
 
   /**
    * Sets the maximum height of the dynamic toolbar in Screen pixel units.
@@ -1272,15 +1305,11 @@ interface nsIDOMWindowUtils : nsISupports {
                                            in AString aPropertyName);
 
   /**
-   * Get the id of the outer window of this window.  This will never throw.
+   * DEPRECATED. Use WindowGlobalChild.outerWindowId instead.
+   *
+   * Get the id of the outer window of this window.
    */
-  readonly attribute unsigned long long outerWindowID;
-
-  /**
-   * Get the id of the current inner window of this window.  If there
-   * is no current inner window, throws NS_ERROR_NOT_AVAILABLE.
-   */
-  readonly attribute unsigned long long currentInnerWindowID;
+  readonly attribute unsigned long long deprecatedOuterWindowID;
 
   /**
    * Put the window into a state where scripts are frozen and events
@@ -1297,12 +1326,12 @@ interface nsIDOMWindowUtils : nsISupports {
   /**
    * Is the window is in a modal state? [See enterModalState()]
    */
-  [noscript] boolean isInModalState();
+  boolean isInModalState();
 
   /**
-   * Request set internal desktopMode flag change.
+   * Internal desktopMode flag.
    */
-  void setDesktopModeViewport(in boolean aDesktopModeViewport);
+  attribute boolean desktopModeViewport;
 
   /**
    * Suspend/resume timeouts on this window and its descendant windows.
@@ -1347,6 +1376,13 @@ interface nsIDOMWindowUtils : nsISupports {
   readonly attribute unsigned long currentMaxAudioChannels;
 
   /**
+   * Returns the mean round trip latency in seconds for the default input and
+   * output device, and the stddev of this latency, as a two element array when
+   * the Promise succeeds.
+   */
+  Promise defaultDevicesRoundTripLatency();
+
+  /**
    * Returns the preferred sample rate of the current audio device.
    */
   readonly attribute unsigned long currentPreferredSampleRate;
@@ -1385,12 +1421,6 @@ interface nsIDOMWindowUtils : nsISupports {
    * The DPI of the display
    */
   readonly attribute float displayDPI;
-
-  /**
-   * Return this window's frame element.
-   * Ignores all chrome/content or mozbrowser boundaries.
-   */
-  readonly attribute Element containerElement;
 
   /**
    * advanceTimeAndRefresh allows the caller to take over the refresh
@@ -1457,6 +1487,15 @@ interface nsIDOMWindowUtils : nsISupports {
   bool flushApzRepaints();
 
   /**
+   * Sets a flag on the element to forcibly disable APZ on it. This affects
+   * the result of nsLayoutUtils::ShouldDisableApzForElement when called on
+   * this element. This function also schedules a repaint to ensure that the
+   * change takes effect. Note that this is not reversible; it is intended for
+   * use by test code only.
+   */
+  void disableApzForElement(in Element aElement);
+
+  /**
    * Ask APZ to pan and zoom to the focused input element.
    */
   [can_run_script] void zoomToFocusedInput();
@@ -1496,6 +1535,16 @@ interface nsIDOMWindowUtils : nsISupports {
    * Get the action hint of the currently focused html input, if any.
    */
   readonly attribute AString focusedActionHint;
+
+  /**
+   * Get the inputmode of the currently focused editing host, if any.
+   */
+  readonly attribute AString focusedInputMode;
+
+  /**
+   * Get the autocapitalize of the currently focused editing host, if any.
+   */
+  readonly attribute AString focusedAutocapitalize;
 
   /**
    * Find the view ID for a given element. This is the reverse of
@@ -1559,16 +1608,9 @@ interface nsIDOMWindowUtils : nsISupports {
   boolean getFileReferences(in AString aDatabaseName, in long long aId,
                             [optional] in jsval aOptions,
                             [optional] out long aRefCnt,
-                            [optional] out long aDBRefCnt,
-                            [optional] out long aSliceRefCnt);
+                            [optional] out long aDBRefCnt);
 
   void flushPendingFileDeletions();
-
-  /**
-   * Return whether incremental GC has been disabled due to a binary add-on.
-   */
-  [implicit_jscontext]
-  boolean isIncrementalGCEnabled();
 
   /**
    * Begin opcode-level profiling of all JavaScript execution in the window's
@@ -1933,6 +1975,14 @@ interface nsIDOMWindowUtils : nsISupports {
   void wrCapture();
 
   /**
+   * Start capturing the contents of the current WebRender frame and
+   * save them to a folder relative to the current working directory,
+   * as well as any frames generated from this point onward. If called
+   * again, it will stop capturing.
+   */
+  void wrToggleCaptureSequence();
+
+  /**
    * Toggle recording of composition on and off.
    *
    * This is equivalent to calling |startCompositionRecorder()| or
@@ -1961,17 +2011,19 @@ interface nsIDOMWindowUtils : nsISupports {
   Promise stopCompositionRecording(in boolean aWriteToDisk);
 
   /**
-   * Toggle transaction logging on and off.
-   */
-  void setTransactionLogging(in boolean aValue);
-
-  /**
    * Returns whether the document we're associated to has recorded a given CSS
    * property via the use counter mechanism.
    *
    * Throws if there's no document or the property is invalid.
    */
   bool isCssPropertyRecordedInUseCounter(in ACString aProperty);
+
+  /**
+   * Calls SetInitialViewport on the MobileViewportManager, which effectively
+   * causes it to refresh all of its internal state and update things that
+   * need updating.
+   */
+  void resetMobileViewportManager();
 
   /**
    * NOTE: Currently works only on GTK+.
@@ -1985,18 +2037,6 @@ interface nsIDOMWindowUtils : nsISupports {
    * Use this instead of window.mozPaintCount
    */
   readonly attribute unsigned long long paintCount;
-
-  /**
-   * Simulate the system setting corresponding to 'prefers-reduced-motion'
-   * media queries feature is changed to 'on' or 'off'.
-   *
-   * This function doesn't work on Windows.
-   */
-  void setPrefersReducedMotionOverrideForTest(in boolean aValue);
-  /**
-   * Reset the internal state to be used for above setPrefersReducedMotion.
-   */
-  void resetPrefersReducedMotionOverrideForTest();
 
   // These consts are only for testing purposes.
   const long DEFAULT_MOUSE_POINTER_ID = 0;
@@ -2033,6 +2073,18 @@ interface nsIDOMWindowUtils : nsISupports {
 
   // Returns true if we are using overlay scrollbars.
   readonly attribute bool usesOverlayScrollbars;
+
+  // Returns true if we are effectively throttling frame requests.
+  readonly attribute bool effectivelyThrottlesFrameRequests;
+
+  // Returns the ID for the underlying window widget, which can
+  // be compared against the rawId from a nsIMediaDevice to determine
+  // if the window is being shared.
+  //
+  // Using this only makes sense in the parent process, and the function
+  // will intentionally crash any non-parent process that tries to access
+  // it.
+  readonly attribute AString webrtcRawDeviceId;
 };
 
 [scriptable, uuid(c694e359-7227-4392-a138-33c0cc1f15a6)]

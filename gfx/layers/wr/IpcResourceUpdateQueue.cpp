@@ -72,11 +72,9 @@ layers::OffsetRange ShmSegmentsWriter::Write(Range<uint8_t> aBytes) {
       if (!AllocChunk()) {
         // Allocation failed, so roll back to the state at the start of this
         // Write() call and abort.
-        for (size_t i = mSmallAllocs.Length(); currAllocLen < i; i--) {
-          MOZ_ASSERT(i > 0);
-          RefCountedShmem& shm = mSmallAllocs.ElementAt(i - 1);
+        while (mSmallAllocs.Length() > currAllocLen) {
+          RefCountedShmem shm = mSmallAllocs.PopLastElement();
           RefCountedShm::Dealloc(mShmAllocator, shm);
-          mSmallAllocs.RemoveElementAt(i - 1);
         }
         MOZ_ASSERT(mSmallAllocs.Length() == currAllocLen);
         return layers::OffsetRange(0, start, 0);
@@ -145,8 +143,8 @@ void ShmSegmentsWriter::Flush(nsTArray<RefCountedShmem>& aSmallAllocs,
                               nsTArray<ipc::Shmem>& aLargeAllocs) {
   MOZ_ASSERT(aSmallAllocs.IsEmpty());
   MOZ_ASSERT(aLargeAllocs.IsEmpty());
-  mSmallAllocs.SwapElements(aSmallAllocs);
-  mLargeAllocs.SwapElements(aLargeAllocs);
+  aSmallAllocs = std::move(mSmallAllocs);
+  aLargeAllocs = std::move(mLargeAllocs);
   mCursor = 0;
 }
 
@@ -230,12 +228,12 @@ bool ShmSegmentsReader::Read(const layers::OffsetRange& aRange,
   size_t initialLength = aInto.Length();
 
   size_t srcCursor = aRange.start();
-  int remainingBytesToCopy = aRange.length();
+  size_t remainingBytesToCopy = aRange.length();
   while (remainingBytesToCopy > 0) {
     const size_t shm_idx = srcCursor / mChunkSize;
     const size_t ptrOffset = srcCursor % mChunkSize;
     const size_t copyRange =
-        std::min<int>(remainingBytesToCopy, mChunkSize - ptrOffset);
+        std::min(remainingBytesToCopy, mChunkSize - ptrOffset);
     uint8_t* srcPtr =
         RefCountedShm::GetBytes(mSmallAllocs[shm_idx]) + ptrOffset;
 
@@ -248,40 +246,71 @@ bool ShmSegmentsReader::Read(const layers::OffsetRange& aRange,
   return aInto.Length() - initialLength == aRange.length();
 }
 
+Maybe<Range<uint8_t>> ShmSegmentsReader::GetReadPointerLarge(
+    const layers::OffsetRange& aRange) {
+  // source = zero is for small allocs.
+  MOZ_RELEASE_ASSERT(aRange.source() != 0);
+  if (aRange.source() > mLargeAllocs.Length()) {
+    return Nothing();
+  }
+  size_t id = aRange.source() - 1;
+  const ipc::Shmem& shm = mLargeAllocs[id];
+  if (shm.Size<uint8_t>() < aRange.length()) {
+    return Nothing();
+  }
+
+  uint8_t* srcPtr = shm.get<uint8_t>();
+  return Some(Range<uint8_t>(srcPtr, aRange.length()));
+}
+
+Maybe<Range<uint8_t>> ShmSegmentsReader::GetReadPointer(
+    const layers::OffsetRange& aRange) {
+  if (aRange.length() == 0) {
+    return Some(Range<uint8_t>());
+  }
+
+  if (aRange.source() != 0) {
+    return GetReadPointerLarge(aRange);
+  }
+
+  if (mChunkSize == 0 ||
+      aRange.start() + aRange.length() > mChunkSize * mSmallAllocs.Length()) {
+    return Nothing();
+  }
+
+  size_t srcCursor = aRange.start();
+  size_t remainingBytesToCopy = aRange.length();
+  const size_t shm_idx = srcCursor / mChunkSize;
+  const size_t ptrOffset = srcCursor % mChunkSize;
+  // Return nothing if we can't return a pointer to the full range
+  if (mChunkSize - ptrOffset < remainingBytesToCopy) {
+    return Nothing();
+  }
+  uint8_t* srcPtr = RefCountedShm::GetBytes(mSmallAllocs[shm_idx]) + ptrOffset;
+  return Some(Range<uint8_t>(srcPtr, remainingBytesToCopy));
+}
+
 IpcResourceUpdateQueue::IpcResourceUpdateQueue(
-    layers::WebRenderBridgeChild* aAllocator, wr::RenderRoot aRenderRoot,
-    size_t aChunkSize)
-    : mWriter(aAllocator, aChunkSize), mRenderRoot(aRenderRoot) {}
+    layers::WebRenderBridgeChild* aAllocator, size_t aChunkSize)
+    : mWriter(aAllocator, aChunkSize) {}
 
 IpcResourceUpdateQueue::IpcResourceUpdateQueue(
     IpcResourceUpdateQueue&& aOther) noexcept
     : mWriter(std::move(aOther.mWriter)),
-      mUpdates(std::move(aOther.mUpdates)),
-      mRenderRoot(aOther.mRenderRoot) {
-  for (auto renderRoot : wr::kNonDefaultRenderRoots) {
-    mSubQueues[renderRoot] = std::move(aOther.mSubQueues[renderRoot]);
-  }
-}
+      mUpdates(std::move(aOther.mUpdates)) {}
 
 IpcResourceUpdateQueue& IpcResourceUpdateQueue::operator=(
     IpcResourceUpdateQueue&& aOther) noexcept {
   MOZ_ASSERT(IsEmpty(), "Will forget existing updates!");
   mWriter = std::move(aOther.mWriter);
   mUpdates = std::move(aOther.mUpdates);
-  mRenderRoot = aOther.mRenderRoot;
-  for (auto renderRoot : wr::kNonDefaultRenderRoots) {
-    mSubQueues[renderRoot] = std::move(aOther.mSubQueues[renderRoot]);
-  }
   return *this;
 }
 
 void IpcResourceUpdateQueue::ReplaceResources(IpcResourceUpdateQueue&& aOther) {
   MOZ_ASSERT(IsEmpty(), "Will forget existing updates!");
-  MOZ_ASSERT(!aOther.HasAnySubQueue(), "Subqueues will be lost!");
-  MOZ_ASSERT(mRenderRoot == aOther.mRenderRoot);
   mWriter = std::move(aOther.mWriter);
   mUpdates = std::move(aOther.mUpdates);
-  mRenderRoot = aOther.mRenderRoot;
 }
 
 bool IpcResourceUpdateQueue::AddImage(ImageKey key,
@@ -309,9 +338,15 @@ bool IpcResourceUpdateQueue::AddBlobImage(BlobImageKey key,
   return true;
 }
 
-void IpcResourceUpdateQueue::AddExternalImage(wr::ExternalImageId aExtId,
-                                              wr::ImageKey aKey) {
-  mUpdates.AppendElement(layers::OpAddExternalImage(aExtId, aKey));
+void IpcResourceUpdateQueue::AddPrivateExternalImage(
+    wr::ExternalImageId aExtId, wr::ImageKey aKey, wr::ImageDescriptor aDesc) {
+  mUpdates.AppendElement(
+      layers::OpAddPrivateExternalImage(aExtId, aKey, aDesc));
+}
+
+void IpcResourceUpdateQueue::AddSharedExternalImage(wr::ExternalImageId aExtId,
+                                                    wr::ImageKey aKey) {
+  mUpdates.AppendElement(layers::OpAddSharedExternalImage(aExtId, aKey));
 }
 
 void IpcResourceUpdateQueue::PushExternalImageForTexture(
@@ -351,11 +386,17 @@ bool IpcResourceUpdateQueue::UpdateBlobImage(BlobImageKey aKey,
   return true;
 }
 
-void IpcResourceUpdateQueue::UpdateExternalImage(wr::ExternalImageId aExtId,
-                                                 wr::ImageKey aKey,
-                                                 ImageIntRect aDirtyRect) {
+void IpcResourceUpdateQueue::UpdatePrivateExternalImage(
+    wr::ExternalImageId aExtId, wr::ImageKey aKey,
+    const wr::ImageDescriptor& aDesc, ImageIntRect aDirtyRect) {
   mUpdates.AppendElement(
-      layers::OpUpdateExternalImage(aExtId, aKey, aDirtyRect));
+      layers::OpUpdatePrivateExternalImage(aExtId, aKey, aDesc, aDirtyRect));
+}
+
+void IpcResourceUpdateQueue::UpdateSharedExternalImage(
+    wr::ExternalImageId aExtId, wr::ImageKey aKey, ImageIntRect aDirtyRect) {
+  mUpdates.AppendElement(
+      layers::OpUpdateSharedExternalImage(aExtId, aKey, aDirtyRect));
 }
 
 void IpcResourceUpdateQueue::SetBlobImageVisibleArea(
@@ -416,8 +457,7 @@ void IpcResourceUpdateQueue::Flush(
     nsTArray<layers::OpUpdateResource>& aUpdates,
     nsTArray<layers::RefCountedShmem>& aSmallAllocs,
     nsTArray<ipc::Shmem>& aLargeAllocs) {
-  aUpdates.Clear();
-  mUpdates.SwapElements(aUpdates);
+  aUpdates = std::move(mUpdates);
   mWriter.Flush(aSmallAllocs, aLargeAllocs);
 }
 
@@ -432,12 +472,6 @@ bool IpcResourceUpdateQueue::IsEmpty() const {
 void IpcResourceUpdateQueue::Clear() {
   mWriter.Clear();
   mUpdates.Clear();
-
-  for (auto& subQueue : mSubQueues) {
-    if (subQueue) {
-      subQueue->Clear();
-    }
-  }
 }
 
 // static

@@ -4,7 +4,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "CanvasImageCache.h"
-#include "nsAutoPtr.h"
 #include "nsIImageLoadingContent.h"
 #include "nsExpirationTracker.h"
 #include "imgIRequest.h"
@@ -14,7 +13,7 @@
 #include "nsContentUtils.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_canvas.h"
-#include "mozilla/SystemGroup.h"
+#include "mozilla/UniquePtr.h"
 #include "mozilla/gfx/2D.h"
 #include "gfx2DGlue.h"
 
@@ -82,7 +81,7 @@ class ImageCacheEntry : public PLDHashEntryHdr {
   }
   enum { ALLOW_MEMMOVE = true };
 
-  nsAutoPtr<ImageCacheEntryData> mData;
+  UniquePtr<ImageCacheEntryData> mData;
 };
 
 /**
@@ -216,9 +215,7 @@ class CanvasImageCacheShutdownObserver final : public nsIObserver {
 };
 
 ImageCache::ImageCache()
-    : nsExpirationTracker<ImageCacheEntryData, 4>(
-          GENERATION_MS, "ImageCache",
-          SystemGroup::EventTargetFor(TaskCategory::Other)),
+    : nsExpirationTracker<ImageCacheEntryData, 4>(GENERATION_MS, "ImageCache"),
       mTotal(0) {
   mImageCacheObserver = new ImageCacheObserver(this);
   MOZ_RELEASE_ASSERT(mImageCacheObserver,
@@ -276,11 +273,11 @@ void CanvasImageCache::NotifyDrawImage(Element* aImage,
     if (entry->mData->mSourceSurface) {
       // We are overwriting an existing entry.
       gImageCache->mTotal -= entry->mData->SizeInBytes();
-      gImageCache->RemoveObject(entry->mData);
+      gImageCache->RemoveObject(entry->mData.get());
       gImageCache->mAllCanvasCache.RemoveEntry(allCanvasCacheKey);
     }
 
-    gImageCache->AddObject(entry->mData);
+    gImageCache->AddObject(entry->mData.get());
     entry->mData->mSourceSurface = aSource;
     entry->mData->mSize = aSize;
     entry->mData->mIntrinsicSize = aIntrinsicSize;
@@ -344,7 +341,7 @@ SourceSurface* CanvasImageCache::LookupCanvas(Element* aImage,
 
   MOZ_ASSERT(aSizeOut);
 
-  gImageCache->MarkUsed(entry->mData);
+  gImageCache->MarkUsed(entry->mData.get());
   *aSizeOut = entry->mData->mSize;
   *aIntrinsicSizeOut = entry->mData->mIntrinsicSize;
   return entry->mData->mSourceSurface;

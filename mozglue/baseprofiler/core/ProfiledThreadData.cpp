@@ -4,18 +4,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "ProfiledThreadData.h"
+
 #include "BaseProfiler.h"
+#include "ProfileBuffer.h"
 
-#ifdef MOZ_BASE_PROFILER
+#include "mozilla/BaseProfileJSONWriter.h"
 
-#  include "ProfiledThreadData.h"
-
-#  include "ProfileBuffer.h"
-#  include "BaseProfileJSONWriter.h"
-
-#  if defined(GP_OS_darwin)
-#    include <pthread.h>
-#  endif
+#if defined(GP_OS_darwin)
+#  include <pthread.h>
+#endif
 
 namespace mozilla {
 namespace baseprofiler {
@@ -28,6 +26,7 @@ ProfiledThreadData::~ProfiledThreadData() {}
 void ProfiledThreadData::StreamJSON(const ProfileBuffer& aBuffer,
                                     SpliceableJSONWriter& aWriter,
                                     const std::string& aProcessName,
+                                    const std::string& aETLDplus1,
                                     const TimeStamp& aProcessStartTime,
                                     double aSinceTime) {
   UniqueStacks uniqueStacks;
@@ -35,9 +34,9 @@ void ProfiledThreadData::StreamJSON(const ProfileBuffer& aBuffer,
   aWriter.Start();
   {
     StreamSamplesAndMarkers(mThreadInfo->Name(), mThreadInfo->ThreadId(),
-                            aBuffer, aWriter, aProcessName, aProcessStartTime,
-                            mThreadInfo->RegisterTime(), mUnregisterTime,
-                            aSinceTime, uniqueStacks);
+                            aBuffer, aWriter, aProcessName, aETLDplus1,
+                            aProcessStartTime, mThreadInfo->RegisterTime(),
+                            mUnregisterTime, aSinceTime, uniqueStacks);
 
     aWriter.StartObjectProperty("stackTable");
     {
@@ -82,14 +81,12 @@ void ProfiledThreadData::StreamJSON(const ProfileBuffer& aBuffer,
   aWriter.End();
 }
 
-void StreamSamplesAndMarkers(const char* aName, int aThreadId,
-                             const ProfileBuffer& aBuffer,
-                             SpliceableJSONWriter& aWriter,
-                             const std::string& aProcessName,
-                             const TimeStamp& aProcessStartTime,
-                             const TimeStamp& aRegisterTime,
-                             const TimeStamp& aUnregisterTime,
-                             double aSinceTime, UniqueStacks& aUniqueStacks) {
+void StreamSamplesAndMarkers(
+    const char* aName, int aThreadId, const ProfileBuffer& aBuffer,
+    SpliceableJSONWriter& aWriter, const std::string& aProcessName,
+    const std::string& aETLDplus1, const TimeStamp& aProcessStartTime,
+    const TimeStamp& aRegisterTime, const TimeStamp& aUnregisterTime,
+    double aSinceTime, UniqueStacks& aUniqueStacks) {
   aWriter.StringProperty(
       "processType",
       "(unknown)" /* XRE_GeckoProcessTypeToString(XRE_GetProcessType()) */);
@@ -103,12 +100,15 @@ void StreamSamplesAndMarkers(const char* aName, int aThreadId,
     // profilers should end up in the same track, at which point this won't be
     // necessary anymore. See meta bug 1557566.
     name += " (pre-xul)";
-    aWriter.StringProperty("name", name.c_str());
+    aWriter.StringProperty("name", name);
   }
 
   // Use given process name (if any).
   if (!aProcessName.empty()) {
-    aWriter.StringProperty("processName", aProcessName.c_str());
+    aWriter.StringProperty("processName", aProcessName);
+  }
+  if (!aETLDplus1.empty()) {
+    aWriter.StringProperty("eTLD+1", aETLDplus1);
   }
 
   aWriter.IntProperty("tid", static_cast<int64_t>(aThreadId));
@@ -153,7 +153,9 @@ void StreamSamplesAndMarkers(const char* aName, int aThreadId,
     {
       JSONSchemaWriter schema(aWriter);
       schema.WriteField("name");
-      schema.WriteField("time");
+      schema.WriteField("startTime");
+      schema.WriteField("endTime");
+      schema.WriteField("phase");
       schema.WriteField("category");
       schema.WriteField("data");
     }
@@ -170,5 +172,3 @@ void StreamSamplesAndMarkers(const char* aName, int aThreadId,
 
 }  // namespace baseprofiler
 }  // namespace mozilla
-
-#endif  // MOZ_BASE_PROFILER

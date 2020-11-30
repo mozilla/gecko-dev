@@ -10,6 +10,7 @@
 #include "ipc/IPCMessageUtils.h"
 #include "js/TypeDecls.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/UniquePtr.h"
 
 namespace mozilla {
 namespace layers {
@@ -29,6 +30,7 @@ struct LayerTransforms {
 
   gfx::Point GetAverage();
   gfx::Point GetStdDev();
+  bool Sanitize();
 
   // 60 fps * 5 seconds worth of data
   AutoTArray<gfx::Point, 300> mTransforms;
@@ -46,7 +48,9 @@ class LayerTransformRecorder {
  private:
   float CalculateFrameUniformity(uintptr_t aLayer);
   LayerTransforms* GetLayerTransforms(uintptr_t aLayer);
-  std::map<uintptr_t, LayerTransforms*> mFrameTransforms;
+  using FrameTransformMap =
+      std::map<uintptr_t, mozilla::UniquePtr<LayerTransforms>>;
+  FrameTransformMap mFrameTransforms;
 };
 
 }  // namespace layers

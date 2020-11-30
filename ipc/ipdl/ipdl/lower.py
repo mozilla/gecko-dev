@@ -13,6 +13,7 @@ from ipdl.cxx.ast import *
 from ipdl.cxx.code import *
 from ipdl.direct_call import VIRTUAL_CALL_CLASSES, DIRECT_CALL_OVERRIDES
 from ipdl.type import ActorType, UnionType, TypeVisitor, builtinHeaderIncludes
+from ipdl.util import hash_str
 
 
 # -----------------------------------------------------------------------------
@@ -58,7 +59,7 @@ lowered form of |tu|'''
 ##
 
 def hashfunc(value):
-    h = hash(value) % 2**32
+    h = hash_str(value) % 2**32
     if h < 0:
         h += 2**32
     return h
@@ -942,6 +943,8 @@ IPDL union type."""
     def callOperatorEq(self, rhs):
         if self.ipdltype.isIPDL() and self.ipdltype.isActor():
             rhs = ExprCast(rhs, self.bareType(), const=True)
+        elif self.ipdltype.isIPDL() and self.ipdltype.isArray() and not isinstance(rhs, ExprMove):
+            rhs = ExprCall(ExprSelect(rhs, '.', 'Clone'), args=[])
         return ExprAssn(ExprDeref(self.callGetPtr()), rhs)
 
     def callCtor(self, expr=None):
@@ -951,6 +954,8 @@ IPDL union type."""
             args = None
         elif self.ipdltype.isIPDL() and self.ipdltype.isActor():
             args = [ExprCast(expr, self.bareType(), const=True)]
+        elif self.ipdltype.isIPDL() and self.ipdltype.isArray() and not isinstance(expr, ExprMove):
+            args = [ExprCall(ExprSelect(expr, '.', 'Clone'), args=[])]
         else:
             args = [expr]
 
@@ -1450,7 +1455,7 @@ with some new IPDL/C++ nodes that are tuned for C++ codegen."""
 
             # Compute a permutation of the fields for in-memory storage such
             # that the memory layout of the structure will be well-packed.
-            permutation = range(len(newfields))
+            permutation = list(range(len(newfields)))
 
             # Note that the results of `pod_size` ensure that non-POD fields
             # sort before POD ones.
@@ -1894,7 +1899,6 @@ class _ParamTraits():
     @classmethod
     def readSentinel(cls, msgvar, itervar, sentinelKey, sentinelFail):
         # Read the sentinel
-        assert sentinelKey
         read = ExprCall(ExprSelect(msgvar, '->', 'ReadSentinel'),
                         args=[itervar, ExprLiteral.Int(hashfunc(sentinelKey))])
         ifsentinel = StmtIf(ExprNot(read))
@@ -2179,12 +2183,11 @@ class _ParamTraits():
 
         prelude = [
             Typedef(cxxtype, alias),
-            StmtDecl(Decl(Type.INT, typevar.name)),
         ]
 
         writeswitch = StmtSwitch(typevar)
         write = prelude + [
-            StmtExpr(ExprAssn(typevar, ud.callType(cls.var))),
+            StmtDecl(Decl(Type.INT, typevar.name), init=ud.callType(cls.var)),
             cls.checkedWrite(None,
                              typevar,
                              cls.msgvar,
@@ -2196,6 +2199,7 @@ class _ParamTraits():
 
         readswitch = StmtSwitch(typevar)
         read = prelude + [
+            StmtDecl(Decl(Type.INT, typevar.name), init=ExprLiteral.ZERO),
             cls._checkedRead(None,
                              ExprAddrOf(typevar),
                              uniontype.name(),
@@ -2458,31 +2462,32 @@ def _generateCxxStruct(sd):
     # The default copy, move, and assignment constructors, and the default
     # destructor, will do the right thing.
 
-    # bool operator==(const Struct& _o)
-    ovar = ExprVar('_o')
-    opeqeq = MethodDefn(MethodDecl(
-        'operator==',
-        params=[Decl(constreftype, ovar.name)],
-        ret=Type.BOOL,
-        const=True))
-    for f in sd.fields_ipdl_order():
-        ifneq = StmtIf(ExprNot(
-            ExprBinary(ExprCall(f.getMethod()), '==',
-                       ExprCall(f.getMethod(ovar)))))
-        ifneq.addifstmt(StmtReturn.FALSE)
-        opeqeq.addstmt(ifneq)
-    opeqeq.addstmt(StmtReturn.TRUE)
-    struct.addstmts([opeqeq, Whitespace.NL])
+    if sd.comparable:
+        # bool operator==(const Struct& _o)
+        ovar = ExprVar('_o')
+        opeqeq = MethodDefn(MethodDecl(
+            'operator==',
+            params=[Decl(constreftype, ovar.name)],
+            ret=Type.BOOL,
+            const=True))
+        for f in sd.fields_ipdl_order():
+            ifneq = StmtIf(ExprNot(
+                ExprBinary(ExprCall(f.getMethod()), '==',
+                           ExprCall(f.getMethod(ovar)))))
+            ifneq.addifstmt(StmtReturn.FALSE)
+            opeqeq.addstmt(ifneq)
+        opeqeq.addstmt(StmtReturn.TRUE)
+        struct.addstmts([opeqeq, Whitespace.NL])
 
-    # bool operator!=(const Struct& _o)
-    opneq = MethodDefn(MethodDecl(
-        'operator!=',
-        params=[Decl(constreftype, ovar.name)],
-        ret=Type.BOOL,
-        const=True))
-    opneq.addstmt(StmtReturn(ExprNot(ExprCall(ExprVar('operator=='),
-                                              args=[ovar]))))
-    struct.addstmts([opneq, Whitespace.NL])
+        # bool operator!=(const Struct& _o)
+        opneq = MethodDefn(MethodDecl(
+            'operator!=',
+            params=[Decl(constreftype, ovar.name)],
+            ret=Type.BOOL,
+            const=True))
+        opneq.addstmt(StmtReturn(ExprNot(ExprCall(ExprVar('operator=='),
+                                                  args=[ovar]))))
+        struct.addstmts([opneq, Whitespace.NL])
 
     # field1& f1()
     # const field1& f1() const
@@ -2519,10 +2524,21 @@ def _generateCxxStruct(sd):
         struct.addstmts([method])
 
     # members
-    struct.addstmts([StmtDecl(Decl(f.bareType(), f.memberVar().name))
+    struct.addstmts([StmtDecl(Decl(_effectiveMemberType(f), f.memberVar().name))
                      for f in sd.fields_member_order()])
 
     return forwarddeclstmts, fulldecltypes, struct
+
+
+def _effectiveMemberType(f):
+    effective_type = f.bareType()
+    # Structs must be copyable for backwards compatibility reasons, so we use
+    # CopyableTArray<T> as their member type for arrays. This is not exposed
+    # in the method signatures, these keep using nsTArray<T>, which is a base
+    # class of CopyableTArray<T>.
+    if effective_type.name == "nsTArray":
+        effective_type.name = "CopyableTArray"
+    return effective_type
 
 # --------------------------------------------------
 
@@ -2939,42 +2955,43 @@ def _generateCxxUnion(ud):
     ])
     cls.addstmts([opeq, Whitespace.NL])
 
-    # bool operator==(const T&)
-    for c in ud.components:
+    if ud.comparable:
+        # bool operator==(const T&)
+        for c in ud.components:
+            opeqeq = MethodDefn(MethodDecl(
+                'operator==',
+                params=[Decl(c.inType(), rhsvar.name)],
+                ret=Type.BOOL,
+                const=True))
+            opeqeq.addstmt(StmtReturn(ExprBinary(
+                ExprCall(ExprVar(c.getTypeName())), '==', rhsvar)))
+            cls.addstmts([opeqeq, Whitespace.NL])
+
+        # bool operator==(const Union&)
         opeqeq = MethodDefn(MethodDecl(
             'operator==',
-            params=[Decl(c.inType(), rhsvar.name)],
+            params=[Decl(inClsType, rhsvar.name)],
             ret=Type.BOOL,
             const=True))
-        opeqeq.addstmt(StmtReturn(ExprBinary(
-            ExprCall(ExprVar(c.getTypeName())), '==', rhsvar)))
+        iftypesmismatch = StmtIf(ExprBinary(ud.callType(), '!=',
+                                            ud.callType(rhsvar)))
+        iftypesmismatch.addifstmt(StmtReturn.FALSE)
+        opeqeq.addstmts([iftypesmismatch, Whitespace.NL])
+
+        opeqeqswitch = StmtSwitch(ud.callType())
+        for c in ud.components:
+            case = StmtBlock()
+            case.addstmt(StmtReturn(ExprBinary(
+                ExprCall(ExprVar(c.getTypeName())), '==',
+                ExprCall(ExprSelect(rhsvar, '.', c.getTypeName())))))
+            opeqeqswitch.addcase(CaseLabel(c.enum()), case)
+        opeqeqswitch.addcase(
+            DefaultLabel(),
+            StmtBlock([_logicError('unreached'),
+                       StmtReturn.FALSE]))
+        opeqeq.addstmt(opeqeqswitch)
+
         cls.addstmts([opeqeq, Whitespace.NL])
-
-    # bool operator==(const Union&)
-    opeqeq = MethodDefn(MethodDecl(
-        'operator==',
-        params=[Decl(inClsType, rhsvar.name)],
-        ret=Type.BOOL,
-        const=True))
-    iftypesmismatch = StmtIf(ExprBinary(ud.callType(), '!=',
-                                        ud.callType(rhsvar)))
-    iftypesmismatch.addifstmt(StmtReturn.FALSE)
-    opeqeq.addstmts([iftypesmismatch, Whitespace.NL])
-
-    opeqeqswitch = StmtSwitch(ud.callType())
-    for c in ud.components:
-        case = StmtBlock()
-        case.addstmt(StmtReturn(ExprBinary(
-            ExprCall(ExprVar(c.getTypeName())), '==',
-            ExprCall(ExprSelect(rhsvar, '.', c.getTypeName())))))
-        opeqeqswitch.addcase(CaseLabel(c.enum()), case)
-    opeqeqswitch.addcase(
-        DefaultLabel(),
-        StmtBlock([_logicError('unreached'),
-                   StmtReturn.FALSE]))
-    opeqeq.addstmt(opeqeqswitch)
-
-    cls.addstmts([opeqeq, Whitespace.NL])
 
     # accessors for each type: operator T&, operator const T&,
     # T& get(), const T& get()
@@ -2999,16 +3016,6 @@ def _generateCxxUnion(ud):
         ])
 
         cls.addstmts([getvalue, getconstvalue])
-
-        if not _cxxTypeCanOnlyMove(c.ipdltype):
-            readvalue = MethodDefn(MethodDecl(
-                'get', ret=Type.VOID, const=True,
-                params=[Decl(c.ptrToType(), 'aOutValue')]))
-            readvalue.addstmts([
-                StmtExpr(ExprAssn(ExprDeref(ExprVar('aOutValue')),
-                                  ExprCall(getConstValueVar)))
-            ])
-            cls.addstmt(readvalue)
 
         optype = MethodDefn(MethodDecl('', typeop=c.refType(), force_inline=True))
         optype.addstmt(StmtReturn(ExprCall(getValueVar)))
@@ -3270,7 +3277,6 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
             #include "prenv.h"
             #endif  // DEBUG
 
-            #include "base/id_map.h"
             #include "mozilla/Tainting.h"
             #include "mozilla/ipc/MessageChannel.h"
             #include "mozilla/ipc/ProtocolUtils.h"
@@ -3294,8 +3300,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
             inherits.append(Inherit(p.managerInterfaceType(), viz='public'))
 
         if hasAsyncReturns:
-            inherits.append(Inherit(Type('SupportsWeakPtr', T=ExprVar(self.clsname)),
-                                    viz='public'))
+            inherits.append(Inherit(Type('SupportsWeakPtr'), viz='public'))
             self.hdrfile.addthing(CppDirective('include', '"mozilla/WeakPtr.h"'))
 
         if ptype.isToplevel() and self.side == 'parent':
@@ -3308,15 +3313,6 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
             self.clsname,
             inherits=inherits,
             abstract=True)
-
-        if hasAsyncReturns:
-            self.cls.addstmts([
-                Label.PUBLIC,
-                Whitespace('', indent=True),
-                ExprCall(ExprVar('MOZ_DECLARE_WEAKREFERENCE_TYPENAME'),
-                         [ExprVar(self.clsname)]),
-                Whitespace.NL
-            ])
 
         self.cls.addstmt(Label.PRIVATE)
         friends = _FindFriends().findFriends(ptype)
@@ -4416,7 +4412,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         idvar, saveIdStmts = self.saveActorId(md)
         case.addstmts(
             stmts
-            + [StmtDecl(Decl(r.bareType(self.side), r.var().name))
+            + [StmtDecl(Decl(r.bareType(self.side), r.var().name), initargs=[])
                 for r in md.returns]
             # alloc the actor, register it under the foreign ID
             + [self.callAllocActor(md, retsems='in', side=self.side)]
@@ -4443,7 +4439,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         idvar, saveIdStmts = self.saveActorId(md)
         case.addstmts(
             stmts
-            + [StmtDecl(Decl(r.bareType(self.side), r.var().name))
+            + [StmtDecl(Decl(r.bareType(self.side), r.var().name), initargs=[])
                 for r in md.returns]
             + self.invokeRecvHandler(md, implicit=False)
             + [Whitespace.NL]
@@ -4466,7 +4462,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
                                         errfnSent=errfnSentinel(_Result.ValuError))
 
         idvar, saveIdStmts = self.saveActorId(md)
-        declstmts = [StmtDecl(Decl(r.bareType(self.side), r.var().name))
+        declstmts = [StmtDecl(Decl(r.bareType(self.side), r.var().name), initargs=[])
                      for r in md.returns]
         if md.decl.type.isAsync() and md.returns:
             declstmts = self.makeResolver(md, errfnRecv, routingId=idvar)
@@ -4521,34 +4517,34 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
                                 init=ExprCall(ExprVar('ChannelSend'),
                                               args=[self.replyvar])),
                        failifsendok])
-        if len(md.returns) > 1:
-            resolvedecl = Decl(_tuple([p.moveType(self.side) for p in md.returns],
-                                      const=True, ref=True),
-                               'aParam')
-            destructexpr = ExprCall(ExprVar('Tie'),
-                                    args=[p.var() for p in md.returns])
-        else:
-            resolvedecl = Decl(md.returns[0].moveType(self.side), 'aParam')
-            destructexpr = md.returns[0].var()
         selfvar = ExprVar('self__')
         ifactorisdead = StmtIf(ExprNot(selfvar))
         ifactorisdead.addifstmts([
             _printWarningMessage("Not resolving response because actor is dead."),
             StmtReturn()])
         resolverfn = ExprLambda([ExprVar.THIS, selfvar, routingId, seqno],
-                                [resolvedecl])
+                                [Decl(Type.AUTORVAL, 'aParam')])
         resolverfn.addstmts([ifactorisdead]
                             + [StmtDecl(Decl(Type.BOOL, resolve.name),
-                                        init=ExprLiteral.TRUE)]
-                            + [StmtDecl(Decl(p.bareType(self.side), p.var().name))
-                                for p in md.returns]
-                            + [StmtExpr(ExprAssn(destructexpr, ExprMove(ExprVar('aParam')))),
-                                StmtDecl(Decl(Type('IPC::Message', ptr=True), self.replyvar.name),
-                                         init=ExprCall(ExprVar(md.pqReplyCtorFunc()),
-                                                       args=[routingId]))]
+                                        init=ExprLiteral.TRUE)])
+        fwdparam = ExprCode("std::forward<decltype(aParam)>(aParam)")
+        if len(md.returns) > 1:
+            resolverfn.addstmts([StmtDecl(Decl(p.bareType(self.side), p.var().name), initargs=[])
+                                    for p in md.returns]
+                                + [StmtExpr(ExprAssn(ExprCall(ExprVar('Tie'),
+                                                        args=[p.var() for p in md.returns]),
+                                                     fwdparam))])
+        else:
+            resolverfn.addstmts([StmtDecl(Decl(md.returns[0].bareType(self.side),
+                                               md.returns[0].var().name),
+                                          init=fwdparam)])
+        resolverfn.addstmts([StmtDecl(Decl(Type('IPC::Message', ptr=True),
+                                           self.replyvar.name),
+                                      init=ExprCall(ExprVar(md.pqReplyCtorFunc()),
+                                                    args=[routingId]))]
                             + [_ParamTraits.checkedWrite(None, resolve, self.replyvar,
                                                          sentinelKey=resolve.name, actor=selfvar)]
-                            + [_ParamTraits.checkedWrite(r.ipdltype, r.var(), self.replyvar,
+                            + [_ParamTraits.checkedWrite(r.ipdltype, ExprMove(r.var()), self.replyvar,
                                                          sentinelKey=r.name, actor=selfvar)
                                 for r in md.returns])
         resolverfn.addstmts(sendmsg)
@@ -4605,7 +4601,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
             [StmtDecl(Decl(_iterType(ptr=False), itervar.name),
                       initargs=[msgvar])]
             # declare varCopy for each variable to deserialize.
-            + [StmtDecl(Decl(p.bareType(side), p.var().name + 'Copy'))
+            + [StmtDecl(Decl(p.bareType(side), p.var().name + 'Copy'), initargs=[])
                 for p in params]
             + [Whitespace.NL]
             #  checked Read(&(varCopy), &(msgverify__), &(msgverifyIter__))
@@ -4655,7 +4651,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
             # to construct the "real" actor
             handlevar = self.handlevar
             handletype = Type('ActorHandle')
-            decls = [StmtDecl(Decl(handletype, handlevar.name))]
+            decls = [StmtDecl(Decl(handletype, handlevar.name), initargs=[])]
             reads = [_ParamTraits.checkedRead(None, ExprAddrOf(handlevar), msgexpr,
                                               ExprAddrOf(self.itervar),
                                               errfn, "'%s'" % handletype.name,
@@ -4667,7 +4663,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
                                    (Type('Tainted', T=p.bareType(side))
                                     if md.decl.type.tainted else
                                     p.bareType(side)),
-                                   p.var().name))
+                                   p.var().name), initargs=[])
                       for p in md.params[start:]])
         reads.extend([_ParamTraits.checkedRead(p.ipdltype,
                                                ExprAddrOf(p.var()),
@@ -4694,13 +4690,13 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         isctor = md.decl.type.isCtor()
         resolve = ExprVar('resolve__')
         reason = ExprVar('reason__')
-        desresolve = [StmtDecl(Decl(Type.BOOL, resolve.name)),
+        desresolve = [StmtDecl(Decl(Type.BOOL, resolve.name), init=ExprLiteral.FALSE),
                       _ParamTraits.checkedRead(None, ExprAddrOf(resolve), msgexpr,
                                                ExprAddrOf(itervar),
                                                errfn, "'%s'" % resolve.name,
                                                sentinelKey=resolve.name, errfnSentinel=errfnSent,
                                                actor=ExprVar.THIS)]
-        desrej = [StmtDecl(Decl(_ResponseRejectReason.Type(), reason.name)),
+        desrej = [StmtDecl(Decl(_ResponseRejectReason.Type(), reason.name), initargs=[]),
                   _ParamTraits.checkedRead(None, ExprAddrOf(reason), msgexpr,
                                            ExprAddrOf(itervar),
                                            errfn, "'%s'" % reason.name,
@@ -4727,7 +4723,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
             # to construct the "real" actor
             handlevar = self.handlevar
             handletype = Type('ActorHandle')
-            decls = [StmtDecl(Decl(handletype, handlevar.name))]
+            decls = [StmtDecl(Decl(handletype, handlevar.name), initargs=[])]
             reads = [_ParamTraits.checkedRead(None, ExprAddrOf(handlevar), msgexpr,
                                               ExprAddrOf(itervar),
                                               errfn, "'%s'" % handletype.name,
@@ -4736,7 +4732,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
             start = 1
 
         stmts = (
-            decls + [StmtDecl(Decl(p.bareType(side), p.var().name))
+            decls + [StmtDecl(Decl(p.bareType(side), p.var().name), initargs=[])
                      for p in md.returns]
             + [Whitespace.NL]
             + reads + [_ParamTraits.checkedRead(p.ipdltype, ExprAddrOf(p.var()),
@@ -4759,7 +4755,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         itervar = self.itervar
         declstmts = []
         if decls:
-            declstmts = [StmtDecl(Decl(p.bareType(side), p.var().name))
+            declstmts = [StmtDecl(Decl(p.bareType(side), p.var().name), initargs=[])
                          for p in md.returns]
         stmts.extend(
             [Whitespace.NL,
@@ -4818,7 +4814,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
               self.logMessage(md, msgexpr, 'Sending ', actor),
               self.profilerLabel(md)]
              + [Whitespace.NL,
-                StmtDecl(Decl(Type.BOOL, sendok.name)),
+                StmtDecl(Decl(Type.BOOL, sendok.name), init=ExprLiteral.FALSE),
                 StmtBlock([
                     StmtExpr(ExprAssn(sendok, ExprCall(
                         send, args=[msgexpr, ExprAddrOf(replyexpr)]
@@ -4855,6 +4851,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         stmt = StmtCode(
             '''
             RefPtr<${promise}> promise__ = new ${promise}(__func__);
+            promise__->UseDirectTaskDispatch(__func__);
             ${send}($,{args});
             return promise__;
             ''',

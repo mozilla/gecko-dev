@@ -162,7 +162,7 @@ void SpeechSynthesis::Cancel() {
   if (!mSpeechQueue.IsEmpty() && HasSpeakingTask()) {
     // Remove all queued utterances except for current one, we will remove it
     // in OnEnd
-    mSpeechQueue.RemoveElementsAt(1, mSpeechQueue.Length() - 1);
+    mSpeechQueue.RemoveLastElements(mSpeechQueue.Length() - 1);
   } else {
     mSpeechQueue.Clear();
   }
@@ -290,7 +290,7 @@ SpeechSynthesis::Observe(nsISupports* aSubject, const char* aTopic,
     nsCOMPtr<nsIDocShell> docShell = window ? window->GetDocShell() : nullptr;
 
     if (!nsContentUtils::ShouldResistFingerprinting(docShell)) {
-      DispatchTrustedEvent(NS_LITERAL_STRING("voiceschanged"));
+      DispatchTrustedEvent(u"voiceschanged"_ns);
       // If we have a pending item, and voices become available, speak it.
       if (!mCurrentTask && !mHoldQueue && HasVoices()) {
         AdvanceQueue();

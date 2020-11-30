@@ -37,6 +37,7 @@ let suffixes = [
   "import.js",
   "worker.js",
   "sharedworker.js",
+  "font.woff",
 ];
 
 // A random value for isolating video/audio elements across different tests.
@@ -82,7 +83,7 @@ function observeChannels(onChannel) {
   // We use a dummy proxy filter to catch all channels, even those that do not
   // generate an "http-on-modify-request" notification, such as link preconnects.
   let proxyFilter = {
-    applyFilter(aProxyService, aChannel, aProxy, aCallback) {
+    applyFilter(aChannel, aProxy, aCallback) {
       // We have the channel; provide it to the callback.
       onChannel(aChannel);
       // Pass on aProxy unmodified.
@@ -151,6 +152,7 @@ async function doInit(aMode) {
     set: [
       ["network.predictor.enabled", false],
       ["network.predictor.enable-prefetch", false],
+      ["privacy.partition.network_state", false],
     ],
   });
   clearAllImageCaches();
@@ -171,6 +173,8 @@ async function doTest(aBrowser) {
   };
 
   await SpecialPowers.spawn(aBrowser, [argObj], async function(arg) {
+    content.windowUtils.clearSharedStyleSheetCache();
+
     let videoURL = arg.urlPrefix + "file_thirdPartyChild.video.ogv";
     let audioURL = arg.urlPrefix + "file_thirdPartyChild.audio.ogg";
     let trackURL = arg.urlPrefix + "file_thirdPartyChild.track.vtt";

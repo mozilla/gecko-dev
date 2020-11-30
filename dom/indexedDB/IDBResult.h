@@ -23,34 +23,22 @@ enum class IDBSpecialValue {
 };
 
 namespace detail {
-template <typename T>
-struct OkType final {
-  T mValue;
-};
-
-template <>
-struct OkType<void> final {};
 
 template <IDBSpecialValue Value>
 using SpecialConstant = std::integral_constant<IDBSpecialValue, Value>;
-using FailureType = detail::SpecialConstant<IDBSpecialValue::Failure>;
-using InvalidType = detail::SpecialConstant<IDBSpecialValue::Invalid>;
+using FailureType = SpecialConstant<IDBSpecialValue::Failure>;
+using InvalidType = SpecialConstant<IDBSpecialValue::Invalid>;
 struct ExceptionType final {};
-struct VoidType final {};
 }  // namespace detail
 
-namespace {
-template <typename T>
-constexpr inline detail::OkType<std::remove_reference_t<T>> Ok(T&& aValue) {
-  return {std::forward<T>(aValue)};
-}
-
-constexpr inline detail::OkType<void> Ok() { return {}; }
-
+// Put these in a subnamespace to avoid conflicts from the combination of 1.
+// using namespace mozilla::dom::indexedDB; in cpp files, 2. the unified build
+// and 3. mozilla::dom::Exception
+namespace SpecialValues {
 constexpr const detail::FailureType Failure;
 constexpr const detail::InvalidType Invalid;
 constexpr const detail::ExceptionType Exception;
-}  // namespace
+}  // namespace SpecialValues
 
 namespace detail {
 template <IDBSpecialValue... Elements>
@@ -72,66 +60,75 @@ struct IsSortedSet<First> : std::true_type {};
 template <>
 struct IsSortedSet<> : std::true_type {};
 
-// IDBResultBase contains the bulk of the implementation of IDBResult, namely
-// functionality that's applicable to all values of T.
-template <typename T, IDBSpecialValue... S>
-class IDBResultBase {
+template <IDBSpecialValue... S>
+class IDBError {
   // This assertion ensures that permutations of the set of possible special
   // values don't create distinct types.
-  static_assert(detail::IsSortedSet<S...>::value,
+  static_assert(IsSortedSet<S...>::value,
                 "special value list must be sorted and unique");
 
-  template <typename R, IDBSpecialValue... U>
-  friend class IDBResultBase;
-
- protected:
-  using ValueType = detail::OkType<T>;
+  template <IDBSpecialValue... U>
+  friend class IDBError;
 
  public:
-  // Construct a normal result. Use the Ok function to create an object of type
-  // ValueType.
-  MOZ_IMPLICIT IDBResultBase(const ValueType& aValue) : mVariant(aValue) {}
+  MOZ_IMPLICIT IDBError(nsresult aRv) : mVariant(ErrorResult{aRv}) {}
 
-  MOZ_IMPLICIT IDBResultBase(detail::ExceptionType)
-      : mVariant(detail::ExceptionType{}) {}
+  IDBError(ExceptionType, ErrorResult&& aErrorResult)
+      : mVariant(std::move(aErrorResult)) {}
 
   template <IDBSpecialValue Special>
-  MOZ_IMPLICIT IDBResultBase(detail::SpecialConstant<Special>)
-      : mVariant(detail::SpecialConstant<Special>{}) {}
+  MOZ_IMPLICIT IDBError(SpecialConstant<Special>)
+      : mVariant(SpecialConstant<Special>{}) {}
+
+  IDBError(IDBError&&) = default;
+  IDBError& operator=(IDBError&&) = default;
 
   // Construct an IDBResult from another IDBResult whose set of possible special
   // values is a subset of this one's.
   template <IDBSpecialValue... U>
-  MOZ_IMPLICIT IDBResultBase(const IDBResultBase<T, U...>& aOther)
+  MOZ_IMPLICIT IDBError(IDBError<U...>&& aOther)
       : mVariant(aOther.mVariant.match(
-            [](auto& aVariant) { return VariantType{aVariant}; })) {}
+            [](auto& aVariant) { return VariantType{std::move(aVariant)}; })) {}
 
-  // Test whether the result is a normal return value. The choice of the first
-  // parameter's type makes it possible to write `result.Is(Ok, rv)`, promoting
-  // readability and uniformity with other functions in the overload set.
-  bool Is(detail::OkType<void> (*)(), const ErrorResult& aRv) const {
-    AssertConsistency(aRv);
-    return mVariant.template is<ValueType>();
-  }
-
-  bool Is(detail::ExceptionType, const ErrorResult& aRv) const {
-    AssertConsistency(aRv);
-    return mVariant.template is<detail::ExceptionType>();
-  }
+  bool Is(ExceptionType) const { return mVariant.template is<ErrorResult>(); }
 
   template <IDBSpecialValue Special>
-  bool Is(detail::SpecialConstant<Special>, const ErrorResult& aRv) const {
-    AssertConsistency(aRv);
-    return mVariant.template is<detail::SpecialConstant<Special>>();
+  bool Is(SpecialConstant<Special>) const {
+    return mVariant.template is<SpecialConstant<Special>>();
+  }
+
+  ErrorResult& AsException() { return mVariant.template as<ErrorResult>(); }
+
+  template <typename... SpecialValueMappers>
+  ErrorResult ExtractErrorResult(SpecialValueMappers... aSpecialValueMappers) {
+#if defined(__clang__) || (defined(__GNUC__) && __GNUC__ >= 8)
+    return mVariant.match(
+        [](ErrorResult& aException) { return std::move(aException); },
+        [aSpecialValueMappers](const SpecialConstant<S>& aSpecialValue) {
+          return ErrorResult{aSpecialValueMappers(aSpecialValue)};
+        }...);
+#else
+    // gcc 7 doesn't accept the kind of parameter pack expansion above,
+    // probably due to https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47226
+    return mVariant.match([aSpecialValueMappers...](auto& aValue) {
+      if constexpr (std::is_same_v<ErrorResult&, decltype(aValue)>) {
+        return std::move(aValue);
+      } else {
+        return ErrorResult{aSpecialValueMappers(aValue)...};
+      }
+    });
+#endif
+  }
+
+  template <typename... SpecialValueMappers>
+  nsresult ExtractNSResult(SpecialValueMappers... aSpecialValueMappers) {
+    return mVariant.match(
+        [](ErrorResult& aException) { return aException.StealNSResult(); },
+        aSpecialValueMappers...);
   }
 
  protected:
-  void AssertConsistency(const ErrorResult& aRv) const {
-    MOZ_ASSERT(aRv.Failed() == mVariant.template is<detail::ExceptionType>());
-  }
-
-  using VariantType =
-      Variant<ValueType, detail::ExceptionType, detail::SpecialConstant<S>...>;
+  using VariantType = Variant<ErrorResult, SpecialConstant<S>...>;
 
   VariantType mVariant;
 };
@@ -141,28 +138,21 @@ class IDBResultBase {
 // regular return value, while S is a list of special values that can be
 // returned by the particular algorithm.
 template <typename T, IDBSpecialValue... S>
-class MOZ_MUST_USE_TYPE IDBResult : public detail::IDBResultBase<T, S...> {
- public:
-  using IDBResult::IDBResultBase::IDBResultBase;
+using IDBResult = Result<T, detail::IDBError<S...>>;
 
-  // Get a reference to the regular return value, asserting that this object
-  // is indeed a regular return value.
-  T& Unwrap(const ErrorResult& aRv) {
-    return const_cast<T&>(static_cast<const IDBResult*>(this)->Unwrap(aRv));
-  }
+template <nsresult E>
+nsresult InvalidMapsTo(const indexedDB::detail::InvalidType&) {
+  return E;
+}
 
-  const T& Unwrap(const ErrorResult& aRv) const {
-    this->AssertConsistency(aRv);
-    return this->mVariant.template as<typename IDBResult::ValueType>().mValue;
-  }
-};
+inline detail::IDBError<> IDBException(nsresult aRv) {
+  return {SpecialValues::Exception, ErrorResult{aRv}};
+}
 
-template <IDBSpecialValue... S>
-class MOZ_MUST_USE_TYPE IDBResult<void, S...>
-    : public detail::IDBResultBase<void, S...> {
- public:
-  using IDBResult::IDBResultBase::IDBResultBase;
-};
+template <IDBSpecialValue Special>
+detail::IDBError<Special> IDBError(detail::SpecialConstant<Special> aResult) {
+  return {aResult};
+}
 
 }  // namespace indexedDB
 }  // namespace dom

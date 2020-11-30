@@ -149,8 +149,6 @@ enum class ScrollFlags {
 
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(ScrollFlags)
 
-enum class ScrollableDirection { Horizontal, Vertical, Either };
-
 // See comment at declaration of RenderDocument() for the detail.
 enum class RenderDocumentFlags {
   None = 0,
@@ -161,6 +159,7 @@ enum class RenderDocumentFlags {
   AsyncDecodeImages = 1 << 4,
   DocumentRelative = 1 << 5,
   DrawWindowNotFlushing = 1 << 6,
+  UseHighQualityScaling = 1 << 7,
 };
 
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(RenderDocumentFlags)
@@ -176,6 +175,7 @@ MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(RenderImageFlags)
 
 enum class ResolutionChangeOrigin : uint8_t {
   Apz,
+  Test,
   MainThreadRestore,
   MainThreadAdjustment,
 };

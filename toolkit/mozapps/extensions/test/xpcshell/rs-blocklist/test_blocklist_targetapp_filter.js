@@ -13,16 +13,15 @@ let client;
 
 async function clear_state() {
   // Clear local DB.
-  const collection = await client.openCollection();
-  await collection.clear();
+  await client.db.clear();
 }
 
 async function createRecords(records) {
-  const collection = await client.openCollection();
-  for (const record of records) {
-    await collection.create(record);
-  }
-  collection.db.saveLastModified(42); // Simulate sync (and prevent load dump).
+  const withId = records.map((record, i) => ({
+    id: `record-${i}`,
+    ...record,
+  }));
+  return client.db.importChanges({}, 42, withId);
 }
 
 function run_test() {
@@ -40,6 +39,23 @@ function run_test() {
 
   run_next_test();
 }
+
+add_task(async function test_supports_filter_expressions() {
+  await createRecords([
+    {
+      matchName: "Adobe Flex",
+      filter_expression: 'env.appinfo.ID == "xpcshell@tests.mozilla.org"',
+    },
+    {
+      matchName: "Adobe Flex",
+      filter_expression: "1 == 2",
+    },
+  ]);
+
+  const list = await client.get();
+  equal(list.length, 1);
+});
+add_task(clear_state);
 
 add_task(async function test_returns_all_without_target() {
   await createRecords([

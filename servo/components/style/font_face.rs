@@ -122,7 +122,7 @@ macro_rules! impl_range {
             ) -> Result<Self, ParseError<'i>> {
                 let first = $component::parse(context, input)?;
                 let second = input
-                    .try(|input| $component::parse(context, input))
+                    .try_parse(|input| $component::parse(context, input))
                     .unwrap_or_else(|_| first.clone());
                 Ok($range(first, second))
             }
@@ -236,7 +236,7 @@ impl Parse for FontStyle {
             GenericFontStyle::Italic => FontStyle::Italic,
             GenericFontStyle::Oblique(angle) => {
                 let second_angle = input
-                    .try(|input| SpecifiedFontStyle::parse_angle(context, input))
+                    .try_parse(|input| SpecifiedFontStyle::parse_angle(context, input))
                     .unwrap_or_else(|_| angle.clone());
 
                 FontStyle::Oblique(angle, second_angle)
@@ -383,7 +383,7 @@ impl Parse for Source {
         input: &mut Parser<'i, 't>,
     ) -> Result<Source, ParseError<'i>> {
         if input
-            .try(|input| input.expect_function_matching("local"))
+            .try_parse(|input| input.expect_function_matching("local"))
             .is_ok()
         {
             return input
@@ -395,7 +395,7 @@ impl Parse for Source {
 
         // Parsing optional format()
         let format_hints = if input
-            .try(|input| input.expect_function_matching("format"))
+            .try_parse(|input| input.expect_function_matching("format"))
             .is_ok()
         {
             input.parse_nested_block(|input| {
@@ -456,9 +456,9 @@ macro_rules! font_face_descriptors_common {
             pub fn decl_to_css(&self, dest: &mut CssStringWriter) -> fmt::Result {
                 $(
                     if let Some(ref value) = self.$ident {
-                        dest.write_str(concat!("  ", $name, ": "))?;
+                        dest.write_str(concat!($name, ": "))?;
                         ToCss::to_css(value, &mut CssWriter::new(dest))?;
-                        dest.write_str(";\n")?;
+                        dest.write_str("; ")?;
                     }
                 )*
                 Ok(())
@@ -469,8 +469,11 @@ macro_rules! font_face_descriptors_common {
            type Declaration = ();
            type Error = StyleParseErrorKind<'i>;
 
-           fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
-                              -> Result<(), ParseError<'i>> {
+           fn parse_value<'t>(
+               &mut self,
+               name: CowRcStr<'i>,
+               input: &mut Parser<'i, 't>,
+            ) -> Result<(), ParseError<'i>> {
                 match_ignore_ascii_case! { &*name,
                     $(
                         $name if is_descriptor_enabled!($name) => {
@@ -493,7 +496,7 @@ macro_rules! font_face_descriptors_common {
 impl ToCssWithGuard for FontFaceRuleData {
     // Serialization of FontFaceRule is not specced.
     fn to_css(&self, _guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
-        dest.write_str("@font-face {\n")?;
+        dest.write_str("@font-face { ")?;
         self.decl_to_css(dest)?;
         dest.write_str("}")
     }

@@ -30,6 +30,7 @@
 
 #include "mozilla/Casting.h"
 #include "mozilla/DebugOnly.h"
+#include "mozilla/EndianUtils.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/Likely.h"
 #include "mozilla/MathAlgorithms.h"
@@ -41,6 +42,7 @@
 #include "js/UniquePtr.h"
 #include "js/Utility.h"
 #include "threading/LockGuard.h"
+#include "vm/JSContext.h"
 #include "vm/Runtime.h"
 #include "vm/SharedMem.h"
 #include "wasm/WasmInstance.h"
@@ -2380,8 +2382,8 @@ typedef int32_t (*Prototype_Int32_GeneralGeneralInt32Int32)(int32_t, int32_t,
 typedef int32_t (*Prototype_General_GeneralInt32)(int32_t, int32_t);
 typedef int32_t (*Prototype_General_GeneralInt32Int32)(int32_t, int32_t,
                                                        int32_t);
-typedef int32_t (*Prototype_General_GeneralInt32Int32General)(int32_t, int32_t,
-                                                              int32_t, int32_t);
+typedef int32_t (*Prototype_General_GeneralInt32General)(int32_t, int32_t,
+                                                         int32_t);
 
 // Fill the volatile registers with scratch values.
 //
@@ -2913,11 +2915,10 @@ void Simulator::softwareInterrupt(SimInstruction* instr) {
           setCallResult(result);
           break;
         }
-        case Args_General_GeneralInt32Int32General: {
-          Prototype_General_GeneralInt32Int32General target =
-              reinterpret_cast<Prototype_General_GeneralInt32Int32General>(
-                  external);
-          int64_t result = target(arg0, arg1, arg2, arg3);
+        case Args_General_GeneralInt32General: {
+          Prototype_General_GeneralInt32General target =
+              reinterpret_cast<Prototype_General_GeneralInt32General>(external);
+          int64_t result = target(arg0, arg1, arg2);
           scratchVolatileRegisters(/* scratchFloat = true */);
           setCallResult(result);
           break;
@@ -3712,6 +3713,25 @@ void Simulator::decodeType3(SimInstruction* instr) {
                   // Sxtb.
                   set_register(rd, (int32_t)(int8_t)(rm_val & 0xFF));
                 }
+              } else if (instr->bits(20, 16) == 0b1'1111 &&
+                         instr->bits(11, 4) == 0b1111'0011) {
+                // Rev
+                uint32_t rm_val = get_register(instr->rmValue());
+
+                static_assert(MOZ_LITTLE_ENDIAN());
+                set_register(rd,
+                             mozilla::NativeEndian::swapToBigEndian(rm_val));
+              } else if (instr->bits(20, 16) == 0b1'1111 &&
+                         instr->bits(11, 4) == 0b1111'1011) {
+                // Rev16
+                uint32_t rm_val = get_register(instr->rmValue());
+
+                static_assert(MOZ_LITTLE_ENDIAN());
+                uint32_t hi = mozilla::NativeEndian::swapToBigEndian(
+                    uint16_t(rm_val >> 16));
+                uint32_t lo =
+                    mozilla::NativeEndian::swapToBigEndian(uint16_t(rm_val));
+                set_register(rd, (hi << 16) | lo);
               } else {
                 MOZ_CRASH();
               }
@@ -3757,6 +3777,15 @@ void Simulator::decodeType3(SimInstruction* instr) {
                                                 instr->bits(11, 10));
                   set_register(rd, rn_val + (rm_val & 0xFFFF));
                 }
+              } else if (instr->bits(20, 16) == 0b1'1111 &&
+                         instr->bits(11, 4) == 0b1111'1011) {
+                // Revsh
+                uint32_t rm_val = get_register(instr->rmValue());
+
+                static_assert(MOZ_LITTLE_ENDIAN());
+                set_register(
+                    rd, int32_t(int16_t(mozilla::NativeEndian::swapToBigEndian(
+                            uint16_t(rm_val)))));
               } else {
                 MOZ_CRASH();
               }

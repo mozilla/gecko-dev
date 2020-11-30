@@ -16,7 +16,7 @@ namespace mozilla {
 class PresShell;
 }  // namespace mozilla
 
-// Page frame class used by the simple page sequence frame
+// Page content frame class. Represents a page's content, in paginated mode.
 class nsPageContentFrame final : public mozilla::ViewportFrame {
  public:
   NS_DECL_FRAMEARENA_HELPERS(nsPageContentFrame)
@@ -26,18 +26,18 @@ class nsPageContentFrame final : public mozilla::ViewportFrame {
   friend class nsPageFrame;
 
   // nsIFrame
-  virtual void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
-                      const ReflowInput& aReflowInput,
-                      nsReflowStatus& aStatus) override;
+  void Reflow(nsPresContext* aPresContext, ReflowOutput& aReflowOutput,
+              const ReflowInput& aReflowInput,
+              nsReflowStatus& aStatus) override;
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const override {
+  bool IsFrameOfType(uint32_t aFlags) const override {
     return ViewportFrame::IsFrameOfType(
         aFlags & ~(nsIFrame::eCanContainOverflowContainers));
   }
 
-  virtual void SetSharedPageData(nsSharedPageData* aPD) { mPD = aPD; }
+  void SetSharedPageData(nsSharedPageData* aPD) { mPD = aPD; }
 
-  virtual bool HasTransformGetter() const override { return true; }
+  bool HasTransformGetter() const override { return true; }
 
   /**
    * Return our canvas frame.
@@ -46,7 +46,7 @@ class nsPageContentFrame final : public mozilla::ViewportFrame {
 
 #ifdef DEBUG_FRAME_DUMP
   // Debugging
-  virtual nsresult GetFrameName(nsAString& aResult) const override;
+  nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
  protected:
@@ -54,7 +54,9 @@ class nsPageContentFrame final : public mozilla::ViewportFrame {
                               nsPresContext* aPresContext)
       : ViewportFrame(aStyle, aPresContext, kClassID) {}
 
-  nsSharedPageData* mPD;
+  // Note: this will be set before reflow, and it's strongly owned by our
+  // nsPageSequenceFrame, which outlives us.
+  nsSharedPageData* mPD = nullptr;
 };
 
 #endif /* nsPageContentFrame_h___ */

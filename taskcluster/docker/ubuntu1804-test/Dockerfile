@@ -72,7 +72,6 @@ ENV DISPLAY :0
 
 # Add utilities and configuration
 COPY    dot-files/config        /builds/worker/.config
-COPY    dot-files/pulse         /builds/worker/.pulse
 
 # Disable apport (app crash reporter) to avoid stealing focus from test runs
 ADD apport /etc/default/apport
@@ -99,6 +98,9 @@ RUN     chmod +x /bin/taskcluster-interactive-shell
 # gnome-keyring-daemon without first clearing the capability, it would just exit with the message
 # "Operation not permitted". Luckily it doesn't actually require the capability.
 RUN     setcap -r /usr/bin/gnome-keyring-daemon
+
+# Bug 1638183 - increase xserver maximum client count
+COPY     dot-files/config/xorg/99-serverflags.conf     /usr/share/X11/xorg.conf.d/
 
 # Ubuntu 18.04 (or any other GNOME3 based systems) needs dbus to have various
 # test function as expected. Use entrypoint to initialize dbus as root.

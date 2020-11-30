@@ -7,6 +7,7 @@
 #include "EffectSet.h"
 #include "mozilla/dom/Element.h"  // For Element
 #include "mozilla/RestyleManager.h"
+#include "mozilla/LayerAnimationInfo.h"
 #include "nsCSSPseudoElements.h"         // For PseudoStyleType
 #include "nsCycleCollectionNoteChild.h"  // For CycleCollectionNoteChild
 #include "nsPresContext.h"
@@ -121,6 +122,17 @@ EffectSet* EffectSet::GetEffectSetForStyleFrame(const nsIFrame* aStyleFrame) {
   }
 
   return GetEffectSet(target->mElement, target->mPseudoType);
+}
+
+/* static */
+EffectSet* EffectSet::GetEffectSetForEffect(
+    const dom::KeyframeEffect* aEffect) {
+  NonOwningAnimationTarget target = aEffect->GetAnimationTarget();
+  if (!target) {
+    return nullptr;
+  }
+
+  return EffectSet::GetEffectSet(target.mElement, target.mPseudoType);
 }
 
 /* static */

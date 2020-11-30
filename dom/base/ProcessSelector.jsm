@@ -8,25 +8,14 @@ function RandomSelector() {}
 
 RandomSelector.prototype = {
   classID: Components.ID("{c616fcfd-9737-41f1-aa74-cee72a38f91b}"),
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIContentProcessProvider]),
+  QueryInterface: ChromeUtils.generateQI(["nsIContentProcessProvider"]),
 
-  provideProcess(aType, aOpener, aProcesses, aMaxCount) {
+  provideProcess(aType, aProcesses, aMaxCount) {
     if (aProcesses.length < aMaxCount) {
       return Ci.nsIContentProcessProvider.NEW_PROCESS;
     }
 
-    let startIdx = Math.floor(Math.random() * aMaxCount);
-    let curIdx = startIdx;
-
-    do {
-      if (aProcesses[curIdx].opener === aOpener) {
-        return curIdx;
-      }
-
-      curIdx = (curIdx + 1) % aMaxCount;
-    } while (curIdx !== startIdx);
-
-    return Ci.nsIContentProcessProvider.NEW_PROCESS;
+    return Math.floor(Math.random() * aMaxCount);
   },
 };
 
@@ -36,30 +25,34 @@ function MinTabSelector() {}
 
 MinTabSelector.prototype = {
   classID: Components.ID("{2dc08eaf-6eef-4394-b1df-a3a927c1290b}"),
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIContentProcessProvider]),
+  QueryInterface: ChromeUtils.generateQI(["nsIContentProcessProvider"]),
 
-  provideProcess(aType, aOpener, aProcesses, aMaxCount) {
-    if (aProcesses.length < aMaxCount) {
-      return Ci.nsIContentProcessProvider.NEW_PROCESS;
-    }
-
+  provideProcess(aType, aProcesses, aMaxCount) {
     let min = Number.MAX_VALUE;
     let candidate = Ci.nsIContentProcessProvider.NEW_PROCESS;
 
-    // Note, that at this point aMaxCount is in the valid range and
-    // the reason for not using aProcesses.length here is because if we keep
-    // processes alive for testing but want a test to use only single
+    // The reason for not directly using aProcesses.length here is because if
+    // we keep processes alive for testing but want a test to use only single
     // content process we can just keep relying on dom.ipc.processCount = 1
     // this way.
-    for (let i = 0; i < aMaxCount; i++) {
+    let numIters = Math.min(aProcesses.length, aMaxCount);
+
+    for (let i = 0; i < numIters; i++) {
       let process = aProcesses[i];
       let tabCount = process.tabCount;
-      if (process.opener === aOpener && tabCount < min) {
+      if (tabCount < min) {
         min = tabCount;
         candidate = i;
       }
     }
 
+    // If all current processes have at least one tab and we have not yet
+    // reached the maximum, spawn a new process.
+    if (min > 0 && aProcesses.length < aMaxCount) {
+      return Ci.nsIContentProcessProvider.NEW_PROCESS;
+    }
+
+    // Otherwise we use candidate.
     return candidate;
   },
 };

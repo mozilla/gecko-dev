@@ -12,10 +12,11 @@
 #include "mozilla/Array.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/SandboxLaunch.h"
 #include "mozilla/SandboxSettings.h"
+#include "mozilla/StaticPrefs_security.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/UniquePtrExtensions.h"
-#include "mozilla/SandboxLaunch.h"
 #include "mozilla/dom/ContentChild.h"
 #include "nsPrintfCString.h"
 #include "nsString.h"
@@ -86,10 +87,12 @@ static void AddMesaSysfsPaths(SandboxBroker::Policy* aPolicy) {
             // broker.  To match this, allow the canonical paths.
             UniqueFreePtr<char[]> realSysPath(realpath(sysPath.get(), nullptr));
             if (realSysPath) {
-              static const Array<const char*, 7> kMesaAttrSuffixes = {
-                  "revision",         "vendor", "device", "subsystem_vendor",
-                  "subsystem_device", "uevent", "config"};
-              for (const auto attrSuffix : kMesaAttrSuffixes) {
+              constexpr const char* kMesaAttrSuffixes[] = {
+                  "config",    "device",           "revision",
+                  "subsystem", "subsystem_device", "subsystem_vendor",
+                  "uevent",    "vendor",
+              };
+              for (const auto& attrSuffix : kMesaAttrSuffixes) {
                 nsPrintfCString attrPath("%s/%s", realSysPath.get(),
                                          attrSuffix);
                 aPolicy->AddPath(rdonly, attrPath.get());
@@ -180,7 +183,7 @@ static void AddPathsFromFileInternal(SandboxBroker::Policy* aPolicy,
     line.EndReading(end);
     token_end = end;
 
-    if (FindInReadable(NS_LITERAL_CSTRING("include "), start, token_end)) {
+    if (FindInReadable("include "_ns, start, token_end)) {
       nsAutoCString includes(Substring(token_end, end));
       for (const nsACString& includeGlob : includes.Split(' ')) {
         // Glob path might be relative, so add cwd if so.
@@ -248,8 +251,24 @@ static void AddPathsFromFile(SandboxBroker::Policy* aPolicy,
 }
 
 static void AddLdconfigPaths(SandboxBroker::Policy* aPolicy) {
-  nsAutoCString ldConfig(NS_LITERAL_CSTRING("/etc/ld.so.conf"));
+  nsAutoCString ldConfig("/etc/ld.so.conf"_ns);
   AddPathsFromFile(aPolicy, ldConfig);
+}
+
+static void AddLdLibraryEnvPaths(SandboxBroker::Policy* aPolicy) {
+  nsAutoCString LdLibraryEnv(PR_GetEnv("LD_LIBRARY_PATH"));
+  // The items in LD_LIBRARY_PATH can be separated by either colons or
+  // semicolons, according to the ld.so(8) man page, and empirically it
+  // seems to be allowed to mix them (i.e., a:b;c is a list with 3 elements).
+  // There is no support for escaping the delimiters, fortunately (for us).
+  LdLibraryEnv.ReplaceChar(';', ':');
+  for (const nsACString& libPath : LdLibraryEnv.Split(':')) {
+    char* resolvedPath = realpath(PromiseFlatCString(libPath).get(), nullptr);
+    if (resolvedPath) {
+      aPolicy->AddDir(rdonly, resolvedPath);
+      free(resolvedPath);
+    }
+  }
 }
 
 static void AddSharedMemoryPaths(SandboxBroker::Policy* aPolicy, pid_t aPid) {
@@ -259,17 +278,35 @@ static void AddSharedMemoryPaths(SandboxBroker::Policy* aPolicy, pid_t aPid) {
   }
 }
 
-SandboxBrokerPolicyFactory::SandboxBrokerPolicyFactory() {
+static void AddDynamicPathList(SandboxBroker::Policy* policy,
+                               const char* aPathListPref, int perms) {
+  nsAutoCString pathList;
+  nsresult rv = Preferences::GetCString(aPathListPref, pathList);
+  if (NS_SUCCEEDED(rv)) {
+    for (const nsACString& path : pathList.Split(',')) {
+      nsCString trimPath(path);
+      trimPath.Trim(" ", true, true);
+      policy->AddDynamic(perms, trimPath.get());
+    }
+  }
+}
+
+void SandboxBrokerPolicyFactory::InitContentPolicy() {
+  const bool headless =
+      StaticPrefs::security_sandbox_content_headless_AtStartup();
+
   // Policy entries that are the same in every process go here, and
   // are cached over the lifetime of the factory.
   SandboxBroker::Policy* policy = new SandboxBroker::Policy;
   // Write permssions
   //
-  // Bug 1308851: NVIDIA proprietary driver when using WebGL
-  policy->AddFilePrefix(rdwr, "/dev", "nvidia");
+  if (!headless) {
+    // Bug 1308851: NVIDIA proprietary driver when using WebGL
+    policy->AddFilePrefix(rdwr, "/dev", "nvidia");
 
-  // Bug 1312678: radeonsi/Intel with DRI when using WebGL
-  policy->AddDir(rdwr, "/dev/dri");
+    // Bug 1312678: Mesa with DRI when using WebGL
+    policy->AddDir(rdwr, "/dev/dri");
+  }
 
   // Bug 1575985: WASM library sandbox needs RW access to /dev/null
   policy->AddPath(rdwr, "/dev/null");
@@ -293,12 +330,18 @@ SandboxBrokerPolicyFactory::SandboxBrokerPolicyFactory() {
   policy->AddDir(rdonly, "/nix/store");
   policy->AddDir(rdonly, "/run/host/fonts");
   policy->AddDir(rdonly, "/run/host/user-fonts");
+  policy->AddDir(rdonly, "/var/cache/fontconfig");
 
-  AddMesaSysfsPaths(policy);
+  if (!headless) {
+    AddMesaSysfsPaths(policy);
+  }
   AddLdconfigPaths(policy);
+  AddLdLibraryEnvPaths(policy);
 
-  // Bug 1385715: NVIDIA PRIME support
-  policy->AddPath(rdonly, "/proc/modules");
+  if (!headless) {
+    // Bug 1385715: NVIDIA PRIME support
+    policy->AddPath(rdonly, "/proc/modules");
+  }
 
   // Allow access to XDG_CONFIG_PATH and XDG_CONFIG_DIRS
   if (const auto xdgConfigPath = PR_GetEnv("XDG_CONFIG_PATH")) {
@@ -326,12 +369,13 @@ SandboxBrokerPolicyFactory::SandboxBrokerPolicyFactory() {
     policy->AddDir(rdonly, PromiseFlatCString(fontPath).get());
   }
 
-  // Extra configuration dirs in the homedir that we want to allow read
+  // Extra configuration/cache dirs in the homedir that we want to allow read
   // access to.
-  mozilla::Array<const char*, 3> extraConfDirs = {
+  mozilla::Array<const char*, 4> extraConfDirs = {
       ".config",  // Fallback if XDG_CONFIG_PATH isn't set
       ".themes",
       ".fonts",
+      ".cache/fontconfig",
   };
 
   nsCOMPtr<nsIFile> homeDir;
@@ -357,9 +401,9 @@ SandboxBrokerPolicyFactory::SandboxBrokerPolicyFactory() {
     // ~/.local/share (for themes)
     rv = homeDir->Clone(getter_AddRefs(confDir));
     if (NS_SUCCEEDED(rv)) {
-      rv = confDir->AppendNative(NS_LITERAL_CSTRING(".local"));
+      rv = confDir->AppendNative(".local"_ns);
       if (NS_SUCCEEDED(rv)) {
-        rv = confDir->AppendNative(NS_LITERAL_CSTRING("share"));
+        rv = confDir->AppendNative("share"_ns);
       }
       if (NS_SUCCEEDED(rv)) {
         nsAutoCString tmpPath;
@@ -373,7 +417,7 @@ SandboxBrokerPolicyFactory::SandboxBrokerPolicyFactory() {
     // ~/.fonts.conf (Fontconfig)
     rv = homeDir->Clone(getter_AddRefs(confDir));
     if (NS_SUCCEEDED(rv)) {
-      rv = confDir->AppendNative(NS_LITERAL_CSTRING(".fonts.conf"));
+      rv = confDir->AppendNative(".fonts.conf"_ns);
       if (NS_SUCCEEDED(rv)) {
         nsAutoCString tmpPath;
         rv = confDir->GetNativePath(tmpPath);
@@ -386,7 +430,7 @@ SandboxBrokerPolicyFactory::SandboxBrokerPolicyFactory() {
     // .pangorc
     rv = homeDir->Clone(getter_AddRefs(confDir));
     if (NS_SUCCEEDED(rv)) {
-      rv = confDir->AppendNative(NS_LITERAL_CSTRING(".pangorc"));
+      rv = confDir->AppendNative(".pangorc"_ns);
       if (NS_SUCCEEDED(rv)) {
         nsAutoCString tmpPath;
         rv = confDir->GetNativePath(tmpPath);
@@ -450,87 +494,44 @@ SandboxBrokerPolicyFactory::SandboxBrokerPolicyFactory() {
   }
 #endif
 
-  // Allow Primus to contact the Bumblebee daemon to manage GPU
-  // switching on NVIDIA Optimus systems.
-  const char* bumblebeeSocket = PR_GetEnv("BUMBLEBEE_SOCKET");
-  if (bumblebeeSocket == nullptr) {
-    bumblebeeSocket = "/var/run/bumblebee.socket";
-  }
-  policy->AddPath(SandboxBroker::MAY_CONNECT, bumblebeeSocket);
+  if (!headless) {
+    // Allow Primus to contact the Bumblebee daemon to manage GPU
+    // switching on NVIDIA Optimus systems.
+    const char* bumblebeeSocket = PR_GetEnv("BUMBLEBEE_SOCKET");
+    if (bumblebeeSocket == nullptr) {
+      bumblebeeSocket = "/var/run/bumblebee.socket";
+    }
+    policy->AddPath(SandboxBroker::MAY_CONNECT, bumblebeeSocket);
 
 #if defined(MOZ_WIDGET_GTK)
-  // Allow local X11 connections, for Primus and VirtualGL to contact
-  // the secondary X server. No exception for Wayland.
+    // Allow local X11 connections, for Primus and VirtualGL to contact
+    // the secondary X server. No exception for Wayland.
 #  if defined(MOZ_WAYLAND)
-  if (GDK_IS_X11_DISPLAY(gdk_display_get_default())) {
-    policy->AddPrefix(SandboxBroker::MAY_CONNECT, "/tmp/.X11-unix/X");
-  }
+    if (GDK_IS_X11_DISPLAY(gdk_display_get_default())) {
+      policy->AddPrefix(SandboxBroker::MAY_CONNECT, "/tmp/.X11-unix/X");
+    }
 #  else
-  policy->AddPrefix(SandboxBroker::MAY_CONNECT, "/tmp/.X11-unix/X");
+    policy->AddPrefix(SandboxBroker::MAY_CONNECT, "/tmp/.X11-unix/X");
 #  endif
-  if (const auto xauth = PR_GetEnv("XAUTHORITY")) {
-    policy->AddPath(rdonly, xauth);
-  }
+    if (const auto xauth = PR_GetEnv("XAUTHORITY")) {
+      policy->AddPath(rdonly, xauth);
+    }
 #endif
-
-  mCommonContentPolicy.reset(policy);
-}
-
-UniquePtr<SandboxBroker::Policy> SandboxBrokerPolicyFactory::GetContentPolicy(
-    int aPid, bool aFileProcess) {
-  // Policy entries that vary per-process (currently the only reason
-  // that can happen is because they contain the pid) are added here,
-  // as well as entries that depend on preferences or paths not available
-  // in early startup.
-
-  MOZ_ASSERT(NS_IsMainThread());
-  // The file broker is used at level 2 and up.
-  if (GetEffectiveContentSandboxLevel() <= 1) {
-    return nullptr;
   }
-
-  MOZ_ASSERT(mCommonContentPolicy);
-  UniquePtr<SandboxBroker::Policy> policy(
-      new SandboxBroker::Policy(*mCommonContentPolicy));
-
-  const int level = GetEffectiveContentSandboxLevel();
 
   // Read any extra paths that will get write permissions,
   // configured by the user or distro
-  AddDynamicPathList(policy.get(),
-                     "security.sandbox.content.write_path_whitelist", rdwr);
+  AddDynamicPathList(policy, "security.sandbox.content.write_path_whitelist",
+                     rdwr);
 
   // Whitelisted for reading by the user/distro
-  AddDynamicPathList(policy.get(),
-                     "security.sandbox.content.read_path_whitelist", rdonly);
-
-  // No read blocking at level 2 and below.
-  // file:// processes also get global read permissions
-  // This requires accessing user preferences so we can only do it now.
-  // Our constructor is initialized before user preferences are read in.
-  if (level <= 2 || aFileProcess) {
-    policy->AddDir(rdonly, "/");
-    // Any other read-only rules will be removed as redundant by
-    // Policy::FixRecursivePermissions, so there's no need to
-    // early-return here.
-  }
-
-  // Bug 1198550: the profiler's replacement for dl_iterate_phdr
-  policy->AddPath(rdonly, nsPrintfCString("/proc/%d/maps", aPid).get());
-
-  // Bug 1198552: memory reporting.
-  policy->AddPath(rdonly, nsPrintfCString("/proc/%d/statm", aPid).get());
-  policy->AddPath(rdonly, nsPrintfCString("/proc/%d/smaps", aPid).get());
-
-  // Bug 1384804, notably comment 15
-  // Used by libnuma, included by x265/ffmpeg, who falls back
-  // to get_mempolicy if this fails
-  policy->AddPath(rdonly, nsPrintfCString("/proc/%d/status", aPid).get());
+  AddDynamicPathList(policy, "security.sandbox.content.read_path_whitelist",
+                     rdonly);
 
   // Add write permissions on the content process specific temporary dir.
   nsCOMPtr<nsIFile> tmpDir;
-  nsresult rv = NS_GetSpecialDirectory(NS_APP_CONTENT_PROCESS_TEMP_DIR,
-                                       getter_AddRefs(tmpDir));
+  rv = NS_GetSpecialDirectory(NS_APP_CONTENT_PROCESS_TEMP_DIR,
+                              getter_AddRefs(tmpDir));
   if (NS_SUCCEEDED(rv)) {
     nsAutoCString tmpPath;
     rv = tmpDir->GetNativePath(tmpPath);
@@ -540,8 +541,7 @@ UniquePtr<SandboxBroker::Policy> SandboxBrokerPolicyFactory::GetContentPolicy(
   }
 
   // userContent.css and the extensions dir sit in the profile, which is
-  // normally blocked and we can't get the profile dir earlier in startup,
-  // so this must happen here.
+  // normally blocked.
   nsCOMPtr<nsIFile> profileDir;
   rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR,
                               getter_AddRefs(profileDir));
@@ -549,7 +549,7 @@ UniquePtr<SandboxBroker::Policy> SandboxBrokerPolicyFactory::GetContentPolicy(
     nsCOMPtr<nsIFile> workDir;
     rv = profileDir->Clone(getter_AddRefs(workDir));
     if (NS_SUCCEEDED(rv)) {
-      rv = workDir->AppendNative(NS_LITERAL_CSTRING("chrome"));
+      rv = workDir->AppendNative("chrome"_ns);
       if (NS_SUCCEEDED(rv)) {
         nsAutoCString tmpPath;
         rv = workDir->GetNativePath(tmpPath);
@@ -560,7 +560,7 @@ UniquePtr<SandboxBroker::Policy> SandboxBrokerPolicyFactory::GetContentPolicy(
     }
     rv = profileDir->Clone(getter_AddRefs(workDir));
     if (NS_SUCCEEDED(rv)) {
-      rv = workDir->AppendNative(NS_LITERAL_CSTRING("extensions"));
+      rv = workDir->AppendNative("extensions"_ns);
       if (NS_SUCCEEDED(rv)) {
         nsAutoCString tmpPath;
         rv = workDir->GetNativePath(tmpPath);
@@ -571,6 +571,7 @@ UniquePtr<SandboxBroker::Policy> SandboxBrokerPolicyFactory::GetContentPolicy(
     }
   }
 
+  const int level = GetEffectiveContentSandboxLevel();
   bool allowPulse = false;
   bool allowAlsa = false;
   if (level < 4) {
@@ -589,8 +590,6 @@ UniquePtr<SandboxBroker::Policy> SandboxBrokerPolicyFactory::GetContentPolicy(
 
   if (allowPulse) {
     policy->AddDir(rdwrcr, "/dev/shm");
-  } else {
-    AddSharedMemoryPaths(policy.get(), aPid);
   }
 
 #ifdef MOZ_WIDGET_GTK
@@ -619,29 +618,63 @@ UniquePtr<SandboxBroker::Policy> SandboxBrokerPolicyFactory::GetContentPolicy(
 
   // Bug 1434711 - AMDGPU-PRO crashes if it can't read it's marketing ids
   // and various other things
-  if (HasAtiDrivers()) {
+  if (!headless && HasAtiDrivers()) {
     policy->AddDir(rdonly, "/opt/amdgpu/share");
     policy->AddPath(rdonly, "/sys/module/amdgpu");
     // AMDGPU-PRO's MESA version likes to readlink a lot of things here
     policy->AddDir(access, "/sys");
   }
 
-  // Return the common policy.
-  policy->FixRecursivePermissions();
-  return policy;
+  mCommonContentPolicy.reset(policy);
 }
 
-void SandboxBrokerPolicyFactory::AddDynamicPathList(
-    SandboxBroker::Policy* policy, const char* aPathListPref, int perms) {
-  nsAutoCString pathList;
-  nsresult rv = Preferences::GetCString(aPathListPref, pathList);
-  if (NS_SUCCEEDED(rv)) {
-    for (const nsACString& path : pathList.Split(',')) {
-      nsCString trimPath(path);
-      trimPath.Trim(" ", true, true);
-      policy->AddDynamic(perms, trimPath.get());
-    }
+UniquePtr<SandboxBroker::Policy> SandboxBrokerPolicyFactory::GetContentPolicy(
+    int aPid, bool aFileProcess) {
+  // Policy entries that vary per-process (because they depend on the
+  // pid or content subtype) are added here.
+
+  MOZ_ASSERT(NS_IsMainThread());
+
+  const int level = GetEffectiveContentSandboxLevel();
+  // The file broker is used at level 2 and up.
+  if (level <= 1) {
+    return nullptr;
   }
+
+  std::call_once(mContentInited, [this] { InitContentPolicy(); });
+  MOZ_ASSERT(mCommonContentPolicy);
+  UniquePtr<SandboxBroker::Policy> policy(
+      new SandboxBroker::Policy(*mCommonContentPolicy));
+
+  // No read blocking at level 2 and below.
+  // file:// processes also get global read permissions
+  if (level <= 2 || aFileProcess) {
+    policy->AddDir(rdonly, "/");
+    // Any other read-only rules will be removed as redundant by
+    // Policy::FixRecursivePermissions, so there's no need to
+    // early-return here.
+  }
+
+  // Access to /dev/shm is restricted to a per-process prefix to
+  // prevent interfering with other processes or with services outside
+  // the browser (e.g., PulseAudio).
+  AddSharedMemoryPaths(policy.get(), aPid);
+
+  // Bug 1198550: the profiler's replacement for dl_iterate_phdr
+  policy->AddPath(rdonly, nsPrintfCString("/proc/%d/maps", aPid).get());
+
+  // Bug 1198552: memory reporting.
+  policy->AddPath(rdonly, nsPrintfCString("/proc/%d/statm", aPid).get());
+  policy->AddPath(rdonly, nsPrintfCString("/proc/%d/smaps", aPid).get());
+
+  // Bug 1384804, notably comment 15
+  // Used by libnuma, included by x265/ffmpeg, who falls back
+  // to get_mempolicy if this fails
+  policy->AddPath(rdonly, nsPrintfCString("/proc/%d/status", aPid).get());
+
+  // Finalize the policy.
+  policy->FixRecursivePermissions();
+  return policy;
 }
 
 /* static */ UniquePtr<SandboxBroker::Policy>
@@ -649,6 +682,60 @@ SandboxBrokerPolicyFactory::GetUtilityPolicy(int aPid) {
   auto policy = MakeUnique<SandboxBroker::Policy>();
 
   AddSharedMemoryPaths(policy.get(), aPid);
+
+  // FIXME (bug 1662321): we should fix nsSystemInfo so that every
+  // child process doesn't need to re-read these files to get the info
+  // the parent process already has.
+  policy->AddPath(rdonly, "/proc/cpuinfo");
+  policy->AddPath(rdonly,
+                  "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq");
+  policy->AddPath(rdonly, "/sys/devices/system/cpu/cpu0/cache/index2/size");
+  policy->AddPath(rdonly, "/sys/devices/system/cpu/cpu0/cache/index3/size");
+
+  if (policy->IsEmpty()) {
+    policy = nullptr;
+  }
+  return policy;
+}
+
+/* static */ UniquePtr<SandboxBroker::Policy>
+SandboxBrokerPolicyFactory::GetSocketProcessPolicy(int aPid) {
+  auto policy = MakeUnique<SandboxBroker::Policy>();
+
+  policy->AddPath(rdonly, "/dev/urandom");
+  policy->AddPath(rdonly, "/proc/cpuinfo");
+  policy->AddPath(rdonly, "/proc/meminfo");
+  policy->AddDir(rdonly, "/sys/devices/cpu");
+  policy->AddDir(rdonly, "/sys/devices/system/cpu");
+  policy->AddDir(rdonly, "/lib");
+  policy->AddDir(rdonly, "/lib64");
+  policy->AddDir(rdonly, "/usr/lib");
+  policy->AddDir(rdonly, "/usr/lib32");
+  policy->AddDir(rdonly, "/usr/lib64");
+  policy->AddDir(rdonly, "/usr/share");
+  policy->AddDir(rdonly, "/usr/local/share");
+  policy->AddDir(rdonly, "/etc");
+
+  AddLdconfigPaths(policy.get());
+
+  // Socket process sandbox needs to allow shmem in order to support
+  // profiling.  See Bug 1626385.
+  AddSharedMemoryPaths(policy.get(), aPid);
+
+  // Firefox binary dir.
+  // Note that unlike the previous cases, we use NS_GetSpecialDirectory
+  // instead of GetSpecialSystemDirectory. The former requires a working XPCOM
+  // system, which may not be the case for some tests. For querying for the
+  // location of XPCOM things, we can use it anyway.
+  nsCOMPtr<nsIFile> ffDir;
+  nsresult rv = NS_GetSpecialDirectory(NS_GRE_DIR, getter_AddRefs(ffDir));
+  if (NS_SUCCEEDED(rv)) {
+    nsAutoCString tmpPath;
+    rv = ffDir->GetNativePath(tmpPath);
+    if (NS_SUCCEEDED(rv)) {
+      policy->AddDir(rdonly, tmpPath.get());
+    }
+  }
 
   if (policy->IsEmpty()) {
     policy = nullptr;

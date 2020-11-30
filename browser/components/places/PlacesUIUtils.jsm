@@ -18,6 +18,7 @@ XPCOMUtils.defineLazyGlobalGetters(this, ["Element"]);
 XPCOMUtils.defineLazyModuleGetters(this, {
   AppConstants: "resource://gre/modules/AppConstants.jsm",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
+  CustomizableUI: "resource:///modules/CustomizableUI.jsm",
   OpenInTabsUtils: "resource:///modules/OpenInTabsUtils.jsm",
   PlacesTransactions: "resource://gre/modules/PlacesTransactions.jsm",
   PlacesUtils: "resource://gre/modules/PlacesUtils.jsm",
@@ -48,16 +49,6 @@ const PREF_LOAD_BOOKMARKS_IN_BACKGROUND =
 const PREF_LOAD_BOOKMARKS_IN_TABS = "browser.tabs.loadBookmarksInTabs";
 
 let InternalFaviconLoader = {
-  /**
-   * This gets called for every inner window that is destroyed.
-   * In the parent process, we process the destruction ourselves. In the child process,
-   * we notify the parent which will then process it based on that message.
-   */
-  observe(subject, topic, data) {
-    let innerWindowID = subject.QueryInterface(Ci.nsISupportsPRUint64).data;
-    this.removeRequestsForInner(innerWindowID);
-  },
-
   /**
    * Actually cancel the request, and clear the timeout for cancelling it.
    */
@@ -176,10 +167,9 @@ let InternalFaviconLoader = {
     }
     this._initialized = true;
 
-    Services.obs.addObserver(this, "inner-window-destroyed");
-    Services.ppmm.addMessageListener("Toolkit:inner-window-destroyed", msg => {
-      this.removeRequestsForInner(msg.data);
-    });
+    Services.obs.addObserver(windowGlobal => {
+      this.removeRequestsForInner(windowGlobal.innerWindowId);
+    }, "window-global-destroyed");
   },
 
   loadFavicon(browser, principal, pageURI, uri, expiration, iconURI) {
@@ -244,19 +234,6 @@ let InternalFaviconLoader = {
 var PlacesUIUtils = {
   LAST_USED_FOLDERS_META_KEY: "bookmarks/lastusedfolders",
 
-  /**
-   * Makes a URI from a spec, and do fixup
-   * @param   aSpec
-   *          The string spec of the URI
-   * @return A URI object for the spec.
-   */
-  createFixedURI: function PUIU_createFixedURI(aSpec) {
-    return Services.uriFixup.createFixupURI(
-      aSpec,
-      Ci.nsIURIFixup.FIXUP_FLAG_NONE
-    );
-  },
-
   getFormattedString: function PUIU_getFormattedString(key, params) {
     return bundle.formatStringFromName(key, params);
   },
@@ -293,16 +270,16 @@ var PlacesUIUtils = {
   /**
    * Shows the bookmark dialog corresponding to the specified info.
    *
-   * @param aInfo
+   * @param {object} aInfo
    *        Describes the item to be edited/added in the dialog.
    *        See documentation at the top of bookmarkProperties.js
-   * @param aWindow
+   * @param {DOMWindow} [aParentWindow]
    *        Owner window for the new dialog.
    *
    * @see documentation at the top of bookmarkProperties.js
    * @return The guid of the item that was created or edited, undefined otherwise.
    */
-  showBookmarkDialog(aInfo, aParentWindow) {
+  showBookmarkDialog(aInfo, aParentWindow = null) {
     // Preserve size attributes differently based on the fact the dialog has
     // a folder picker or not, since it needs more horizontal space than the
     // other controls.
@@ -325,6 +302,10 @@ var PlacesUIUtils = {
       await batchBlockingDeferred.promise;
     });
 
+    if (!aParentWindow) {
+      aParentWindow = Services.wm.getMostRecentWindow(null);
+    }
+
     aParentWindow.openDialog(dialogURL, "", features, aInfo);
 
     let bookmarkGuid =
@@ -337,6 +318,35 @@ var PlacesUIUtils = {
     }
 
     return bookmarkGuid;
+  },
+
+  /**
+   * Bookmarks one or more pages. If there is more than one, this will create
+   * the bookmarks in a new folder.
+   *
+   * @param {array.<nsIURI>} URIList
+   *   The list of URIs to bookmark.
+   * @param {array.<string>} [hiddenRows]
+   *   An array of rows to be hidden.
+   * @param {DOMWindow} [window]
+   *   The window to use as the parent to display the bookmark dialog.
+   */
+  showBookmarkPagesDialog(URIList, hiddenRows = [], win = null) {
+    if (!URIList.length) {
+      return;
+    }
+
+    const bookmarkDialogInfo = { action: "add", hiddenRows };
+    if (URIList.length > 1) {
+      bookmarkDialogInfo.type = "folder";
+      bookmarkDialogInfo.URIList = URIList;
+    } else {
+      bookmarkDialogInfo.type = "bookmark";
+      bookmarkDialogInfo.title = URIList[0].title;
+      bookmarkDialogInfo.uri = URIList[0].uri;
+    }
+
+    PlacesUIUtils.showBookmarkDialog(bookmarkDialogInfo, win);
   },
 
   /**
@@ -431,6 +441,10 @@ var PlacesUIUtils = {
       return null;
     }
     if (popupNode) {
+      let isManaged = !!popupNode.closest("#managed-bookmarks");
+      if (isManaged) {
+        return this.managedBookmarksController;
+      }
       let view = this.getViewForNode(popupNode);
       if (view && view._contextMenuShown) {
         return view.controllers.getControllerForCommand(command);
@@ -498,7 +512,9 @@ var PlacesUIUtils = {
    * TRANSITION_LINK.
    */
   markPageAsTyped: function PUIU_markPageAsTyped(aURL) {
-    PlacesUtils.history.markPageAsTyped(this.createFixedURI(aURL));
+    PlacesUtils.history.markPageAsTyped(
+      Services.uriFixup.getFixupURIInfo(aURL).preferredURI
+    );
   },
 
   /**
@@ -509,7 +525,9 @@ var PlacesUIUtils = {
    * If this is not called visits will be marked as TRANSITION_LINK.
    */
   markPageAsFollowedBookmark: function PUIU_markPageAsFollowedBookmark(aURL) {
-    PlacesUtils.history.markPageAsFollowedBookmark(this.createFixedURI(aURL));
+    PlacesUtils.history.markPageAsFollowedBookmark(
+      Services.uriFixup.getFixupURIInfo(aURL).preferredURI
+    );
   },
 
   /**
@@ -519,7 +537,9 @@ var PlacesUIUtils = {
    * so automatic visits can be correctly ignored.
    */
   markPageAsFollowedLink: function PUIU_markPageAsFollowedLink(aURL) {
-    PlacesUtils.history.markPageAsFollowedLink(this.createFixedURI(aURL));
+    PlacesUtils.history.markPageAsFollowedLink(
+      Services.uriFixup.getFixupURIInfo(aURL).preferredURI
+    );
   },
 
   /**
@@ -650,7 +670,7 @@ var PlacesUIUtils = {
   /** aItemsToOpen needs to be an array of objects of the form:
    * {uri: string, isBookmark: boolean}
    */
-  _openTabset: function PUIU__openTabset(aItemsToOpen, aEvent, aWindow) {
+  openTabset(aItemsToOpen, aEvent, aWindow) {
     if (!aItemsToOpen.length) {
       return;
     }
@@ -679,9 +699,15 @@ var PlacesUIUtils = {
       : "window";
     if (where == "window") {
       // There is no browser window open, thus open a new one.
-      var uriList = PlacesUtils.toISupportsString(urls.join("|"));
-      var args = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
-      args.appendElement(uriList);
+      let args = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
+      let stringsToLoad = Cc["@mozilla.org/array;1"].createInstance(
+        Ci.nsIMutableArray
+      );
+      urls.forEach(url =>
+        stringsToLoad.appendElement(PlacesUtils.toISupportsString(url))
+      );
+      args.appendElement(stringsToLoad);
+
       browserWindow = Services.ww.openWindow(
         aWindow,
         AppConstants.BROWSER_CHROME_URL,
@@ -734,7 +760,7 @@ var PlacesUIUtils = {
       }
     }
     if (OpenInTabsUtils.confirmOpenInTabs(urlsToOpen.length, window)) {
-      this._openTabset(urlsToOpen, event, window);
+      this.openTabset(urlsToOpen, event, window);
     }
   },
 
@@ -1131,6 +1157,248 @@ var PlacesUIUtils = {
     if (win.top.XULBrowserWindow) {
       win.top.XULBrowserWindow.setOverLink(url);
     }
+  },
+
+  /**
+   * Uncollapses PersonalToolbar if its collapsed status is not
+   * persisted, and user customized it or changed default bookmarks.
+   *
+   * If the user does not have a persisted value for the toolbar's
+   * "collapsed" attribute, try to determine whether it's customized.
+   *
+   * @param {Boolean} aForceVisible Set to true to ignore if the user had
+   * previously collapsed the toolbar manually.
+   */
+  NUM_TOOLBAR_BOOKMARKS_TO_UNHIDE: 3,
+  maybeToggleBookmarkToolbarVisibility(aForceVisible = false) {
+    const BROWSER_DOCURL = AppConstants.BROWSER_CHROME_URL;
+    let xulStore = Services.xulStore;
+
+    if (
+      aForceVisible ||
+      !xulStore.hasValue(BROWSER_DOCURL, "PersonalToolbar", "collapsed")
+    ) {
+      // We consider the toolbar customized if it has more than NUM_TOOLBAR_BOOKMARKS_TO_UNHIDE
+      // children, or if it has a persisted currentset value.
+      let toolbarIsCustomized = xulStore.hasValue(
+        BROWSER_DOCURL,
+        "PersonalToolbar",
+        "currentset"
+      );
+
+      if (
+        aForceVisible ||
+        toolbarIsCustomized ||
+        PlacesUtils.getChildCountForFolder(PlacesUtils.bookmarks.toolbarGuid) >
+          this.NUM_TOOLBAR_BOOKMARKS_TO_UNHIDE
+      ) {
+        Services.obs.notifyObservers(
+          null,
+          "browser-set-toolbar-visibility",
+          JSON.stringify([CustomizableUI.AREA_BOOKMARKS, "true"])
+        );
+      }
+    }
+  },
+
+  maybeToggleBookmarkToolbarVisibilityAfterMigration() {
+    if (
+      Services.prefs.getBoolPref(
+        "browser.migrate.showBookmarksToolbarAfterMigration"
+      )
+    ) {
+      this.maybeToggleBookmarkToolbarVisibility(true);
+    }
+  },
+
+  async managedPlacesContextShowing(event) {
+    let menupopup = event.target;
+    let document = menupopup.ownerDocument;
+    let window = menupopup.ownerGlobal;
+    // We need to populate the submenus in order to have information
+    // to show the context menu.
+    if (
+      menupopup.triggerNode.id == "managed-bookmarks" &&
+      !menupopup.triggerNode.menupopup.hasAttribute("hasbeenopened")
+    ) {
+      await window.PlacesToolbarHelper.populateManagedBookmarks(
+        menupopup.triggerNode.menupopup
+      );
+    }
+    let linkItems = [
+      "placesContext_open:newtab",
+      "placesContext_open:newwindow",
+      "placesContext_open:newprivatewindow",
+      "placesContext_openSeparator",
+      "placesContext_copy",
+    ];
+    Array.from(menupopup.children).forEach(function(child) {
+      if (!(child.id in linkItems)) {
+        child.hidden = true;
+      }
+    });
+    // Store triggerNode in controller for checking if commands are enabled
+    this.managedBookmarksController.triggerNode = menupopup.triggerNode;
+    // Container in this context means a folder.
+    let isFolder = menupopup.triggerNode.hasAttribute("container");
+    let openContainerInTabs_menuitem = document.getElementById(
+      "placesContext_openContainer:tabs"
+    );
+    if (isFolder) {
+      // Disable the openContainerInTabs menuitem if there
+      // are no children of the menu that have links.
+      let menuitems = menupopup.triggerNode.menupopup.children;
+      let openContainerInTabs = Array.from(menuitems).some(
+        menuitem => menuitem.link
+      );
+      openContainerInTabs_menuitem.disabled = !openContainerInTabs;
+    } else {
+      document.getElementById(
+        "placesContext_open:newprivatewindow"
+      ).hidden = PrivateBrowsingUtils.isWindowPrivate(window);
+    }
+    openContainerInTabs_menuitem.hidden = !isFolder;
+    linkItems.forEach(id => (document.getElementById(id).hidden = isFolder));
+
+    event.target.ownerGlobal.updateCommands("places");
+  },
+
+  placesContextShowing(event) {
+    let menupopup = event.target;
+    let isManaged = !!menupopup.triggerNode.closest("#managed-bookmarks");
+    if (isManaged) {
+      this.managedPlacesContextShowing(event);
+      return true;
+    }
+    let document = menupopup.ownerDocument;
+    menupopup._view = this.getViewForNode(document.popupNode);
+    if (!this.openInTabClosesMenu) {
+      document
+        .getElementById("placesContext_open:newtab")
+        .setAttribute("closemenu", "single");
+    }
+    return menupopup._view.buildContextMenu(menupopup);
+  },
+
+  placesContextHiding(event) {
+    let menupopup = event.target;
+    if (menupopup._view) {
+      menupopup._view.destroyContextMenu();
+    }
+  },
+
+  openSelectionInTabs(event) {
+    let isManaged = !!event.target.parentNode.triggerNode.closest(
+      "#managed-bookmarks"
+    );
+    let controller;
+    if (isManaged) {
+      controller = this.managedBookmarksController;
+    } else {
+      let document = event.target.ownerDocument;
+      controller = PlacesUIUtils.getViewForNode(document.popupNode).controller;
+    }
+    controller.openSelectionInTabs(event);
+  },
+
+  managedBookmarksController: {
+    triggerNode: null,
+
+    openSelectionInTabs(event) {
+      let window = event.target.ownerGlobal;
+      let menuitems = event.target.parentNode.triggerNode.menupopup.children;
+      let items = [];
+      for (let i = 0; i < menuitems.length; i++) {
+        if (menuitems[i].link) {
+          let item = {};
+          item.uri = menuitems[i].link;
+          item.isBookmark = true;
+          items.push(item);
+        }
+      }
+      PlacesUIUtils.openTabset(items, event, window);
+    },
+
+    isCommandEnabled(command) {
+      switch (command) {
+        case "placesCmd_copy":
+        case "placesCmd_open:window":
+        case "placesCmd_open:privatewindow":
+        case "placesCmd_open:tab": {
+          return true;
+        }
+      }
+      return false;
+    },
+
+    doCommand(command) {
+      let window = this.triggerNode.ownerGlobal;
+      switch (command) {
+        case "placesCmd_copy":
+          // This is a little hacky, but there is a lot of code in Places that handles
+          // clipboard stuff, so it's easier to reuse.
+          let node = {};
+          node.type = 0;
+          node.title = this.triggerNode.label;
+          node.uri = this.triggerNode.link;
+
+          // Copied from _populateClipboard in controller.js
+
+          // This order is _important_! It controls how this and other applications
+          // select data to be inserted based on type.
+          let contents = [
+            { type: PlacesUtils.TYPE_X_MOZ_URL, entries: [] },
+            { type: PlacesUtils.TYPE_HTML, entries: [] },
+            { type: PlacesUtils.TYPE_UNICODE, entries: [] },
+          ];
+
+          contents.forEach(function(content) {
+            content.entries.push(PlacesUtils.wrapNode(node, content.type));
+          });
+
+          let xferable = Cc[
+            "@mozilla.org/widget/transferable;1"
+          ].createInstance(Ci.nsITransferable);
+          xferable.init(null);
+
+          function addData(type, data) {
+            xferable.addDataFlavor(type);
+            xferable.setTransferData(
+              type,
+              PlacesUtils.toISupportsString(data),
+              data.length * 2
+            );
+          }
+
+          contents.forEach(function(content) {
+            addData(content.type, content.entries.join(PlacesUtils.endl));
+          });
+
+          Services.clipboard.setData(
+            xferable,
+            null,
+            Ci.nsIClipboard.kGlobalClipboard
+          );
+          break;
+        case "placesCmd_open:privatewindow":
+          window.openUILinkIn(this.triggerNode.link, "window", {
+            triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
+            private: true,
+          });
+          break;
+        case "placesCmd_open:window":
+          window.openUILinkIn(this.triggerNode.link, "window", {
+            triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
+            private: false,
+          });
+          break;
+        case "placesCmd_open:tab": {
+          window.openUILinkIn(this.triggerNode.link, "tab", {
+            triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
+          });
+        }
+      }
+    },
   },
 };
 

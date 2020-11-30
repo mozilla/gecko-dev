@@ -15,8 +15,8 @@ Services.scriptloader.loadSubScript(
 );
 
 var { Toolbox } = require("devtools/client/framework/toolbox");
-var { Task } = require("devtools/shared/task");
-var asyncStorage = require("devtools/shared/async-storage");
+const { Task } = require("devtools/shared/task");
+const asyncStorage = require("devtools/shared/async-storage");
 
 const {
   getSelectedLocation,
@@ -36,35 +36,6 @@ function logThreadEvents(dbg, event) {
   thread.on(event, function onEvent(...args) {
     info(`Thread event '${event}' fired.`);
   });
-}
-
-/**
- * Wait for a predicate to return a result.
- *
- * @param function condition
- *        Invoked once in a while until it returns a truthy value. This should be an
- *        idempotent function, since we have to run it a second time after it returns
- *        true in order to return the value.
- * @param string message [optional]
- *        A message to output if the condition fails.
- * @param number interval [optional]
- *        How often the predicate is invoked, in milliseconds.
- * @return object
- *         A promise that is resolved with the result of the condition.
- */
-async function waitFor(
-  condition,
-  message = "waitFor",
-  interval = 10,
-  maxTries = 500
-) {
-  await BrowserTestUtils.waitForCondition(
-    condition,
-    message,
-    interval,
-    maxTries
-  );
-  return condition();
 }
 
 // Wait until an action of `type` is dispatched. This is different
@@ -319,6 +290,10 @@ function getVisibleSelectedFrameLine(dbg) {
   return frame && frame.location.line;
 }
 
+function waitForPausedLine(dbg, line) {
+  return waitForState(dbg, () => getVisibleSelectedFrameLine(dbg) == line);
+}
+
 /**
  * Assert that the debugger is paused at the correct location.
  *
@@ -358,8 +333,8 @@ function assertDebugLine(dbg, line, column) {
   }
 
   ok(
-    lineInfo.wrapClass.includes("new-debug-line"),
-    "Line is highlighted as paused"
+    lineInfo?.wrapClass.includes("new-debug-line"),
+    `Line ${line} is not highlighted as paused`
   );
 
   const debugLine =
@@ -390,6 +365,7 @@ function assertDebugLine(dbg, line, column) {
 
     ok(classMatch, "expression is highlighted as paused");
   }
+  info(`Paused on line ${line}`);
 }
 
 /**
@@ -453,10 +429,11 @@ function assertPausedAtSourceAndLine(dbg, expectedSourceId, expectedLine) {
   );
 }
 
-// Get any workers associated with the debugger.
-async function getThreads(dbg) {
-  await dbg.actions.updateThreads();
-  return dbg.selectors.getThreads();
+async function waitForThreadCount(dbg, count) {
+  return waitForState(
+    dbg,
+    state => dbg.selectors.getThreads(state).length == count
+  );
 }
 
 async function waitForLoadedScopes(dbg) {
@@ -575,11 +552,13 @@ async function clearDebuggerPreferences(prefs = []) {
   Services.prefs.clearUserPref("devtools.debugger.ignore-caught-exceptions");
   Services.prefs.clearUserPref("devtools.debugger.pending-selected-location");
   Services.prefs.clearUserPref("devtools.debugger.expressions");
+  Services.prefs.clearUserPref("devtools.debugger.breakpoints-visible");
   Services.prefs.clearUserPref("devtools.debugger.call-stack-visible");
   Services.prefs.clearUserPref("devtools.debugger.scopes-visible");
   Services.prefs.clearUserPref("devtools.debugger.skip-pausing");
   Services.prefs.clearUserPref("devtools.debugger.map-scopes-enabled");
   await pushPref("devtools.debugger.log-actions", true);
+
   for (const pref of prefs) {
     await pushPref(...pref);
   }
@@ -1127,8 +1106,8 @@ const startKey = isMac
 
 const keyMappings = {
   close: { code: "w", modifiers: cmdOrCtrl },
-  commandKeyDown: {code: "VK_META", modifiers: {type: "keydown"}},
-  commandKeyUp: {code: "VK_META", modifiers: {type: "keyup"}},
+  commandKeyDown: { code: "VK_META", modifiers: { type: "keydown" } },
+  commandKeyUp: { code: "VK_META", modifiers: { type: "keyup" } },
   debugger: { code: "s", modifiers: shiftOrAlt },
   // test conditional panel shortcut
   toggleCondPanel: { code: "b", modifiers: cmdShift },
@@ -1274,7 +1253,7 @@ const selectors = {
     `.expressions-list .expression-container:nth-child(${i}) .object-delimiter + *`,
   expressionClose: i =>
     `.expressions-list .expression-container:nth-child(${i}) .close`,
-  expressionInput: ".expressions-list  input.input-expression",
+  expressionInput: ".watch-expressions-pane input.input-expression",
   expressionNodes: ".expressions-list .tree-node",
   expressionPlus: ".watch-expressions-pane button.plus",
   expressionRefresh: ".watch-expressions-pane button.refresh",
@@ -1379,6 +1358,8 @@ const selectors = {
   previewPopupInvokeGetterButton: ".preview-popup .invoke-getter",
   previewPopupObjectNumber: ".preview-popup .objectBox-number",
   previewPopupObjectObject: ".preview-popup .objectBox-object",
+  sourceTreeRootNode: ".sources-panel .node .window",
+  sourceTreeFolderNode: ".sources-panel .node .folder",
 };
 
 function getSelector(elementName, ...args) {
@@ -1441,8 +1422,8 @@ function clickElementWithSelector(dbg, selector) {
   clickDOMElement(dbg, findElementWithSelector(dbg, selector));
 }
 
-function clickDOMElement(dbg, element) {
-  EventUtils.synthesizeMouseAtCenter(element, {}, dbg.win);
+function clickDOMElement(dbg, element, options = {}) {
+  EventUtils.synthesizeMouseAtCenter(element, options, dbg.win);
 }
 
 function dblClickElement(dbg, elementName, ...args) {
@@ -1488,15 +1469,34 @@ async function clickGutter(dbg, line) {
   clickDOMElement(dbg, el);
 }
 
-function selectContextMenuItem(dbg, selector) {
+async function cmdClickGutter(dbg, line) {
+  const el = await codeMirrorGutterElement(dbg, line);
+  clickDOMElement(dbg, el, cmdOrCtrl);
+}
+
+function findContextMenu(dbg, selector) {
   // the context menu is in the toolbox window
   const doc = dbg.toolbox.topDoc;
 
   // there are several context menus, we want the one with the menu-api
   const popup = doc.querySelector('menupopup[menu-api="true"]');
 
-  const item = popup.querySelector(selector);
+  return popup.querySelector(selector);
+}
+
+async function waitForContextMenu(dbg, selector) {
+  await waitFor(() => findContextMenu(dbg, selector));
+  return findContextMenu(dbg, selector);
+}
+
+function selectContextMenuItem(dbg, selector) {
+  const item = findContextMenu(dbg, selector);
   return EventUtils.synthesizeMouseAtCenter(item, {}, dbg.toolbox.topWindow);
+}
+
+async function assertContextMenuLabel(dbg, selector, label) {
+  const item = await waitForContextMenu(dbg, selector);
+  is(item.label, label, "The label of the context menu item shown to the user");
 }
 
 async function typeInPanel(dbg, text) {
@@ -1813,9 +1813,10 @@ async function waitForBreakableLine(dbg, source, lineNumber) {
 async function waitForSourceCount(dbg, i) {
   // We are forced to wait until the DOM nodes appear because the
   // source tree batches its rendering.
+  info(`waiting for ${i} sources`);
   await waitUntil(() => {
     return findAllElements(dbg, "sourceNodes").length === i;
-  }, `waiting for ${i} sources`);
+  });
 }
 
 async function assertSourceCount(dbg, count) {
@@ -1980,16 +1981,45 @@ function setInputValue(hud, value) {
   return onValueSet;
 }
 
+
+function assertMenuItemChecked(menuItem, isChecked) {
+  is(
+    !!menuItem.getAttribute("aria-checked"),
+    isChecked,
+    `Item has expected state: ${isChecked ? "checked" : "unchecked"}`
+  );
+}
+
+async function toggleDebbuggerSettingsMenuItem(dbg, { className, isChecked }) {
+  const menuButton = findElementWithSelector(dbg, ".debugger-settings-menu-button");
+  const { parent } = dbg.panel.panelWin;
+  const { document } = parent;
+
+  menuButton.click();
+  // Waits for the debugger settings panel to appear.
+  await waitFor(() => document.querySelector("#debugger-settings-menu-list"));
+
+  const menuItem = document.querySelector(className);
+
+  assertMenuItemChecked(menuItem, isChecked);
+
+  menuItem.click();
+
+  // Waits for the debugger settings panel to disappear.
+  await waitFor(() => menuButton.getAttribute("aria-expanded") === "false");
+}
+
+
 const { PromiseTestUtils } = ChromeUtils.import(
   "resource://testing-common/PromiseTestUtils.jsm"
 );
 
 // Debugger operations that are canceled because they were rendered obsolete by
 // a navigation or pause/resume end up as uncaught rejections. These never
-// indicate errors and are whitelisted in all debugger tests.
-PromiseTestUtils.whitelistRejectionsGlobally(/Page has navigated/);
-PromiseTestUtils.whitelistRejectionsGlobally(/Current thread has changed/);
-PromiseTestUtils.whitelistRejectionsGlobally(
+// indicate errors and are allowed in all debugger tests.
+PromiseTestUtils.allowMatchingRejectionsGlobally(/Page has navigated/);
+PromiseTestUtils.allowMatchingRejectionsGlobally(/Current thread has changed/);
+PromiseTestUtils.allowMatchingRejectionsGlobally(
   /Current thread has paused or resumed/
 );
-PromiseTestUtils.whitelistRejectionsGlobally(/Connection closed/);
+PromiseTestUtils.allowMatchingRejectionsGlobally(/Connection closed/);

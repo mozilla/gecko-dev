@@ -24,13 +24,14 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   Storage: "resource://normandy/lib/Storage.jsm",
   FilterExpressions:
     "resource://gre/modules/components-utils/FilterExpressions.jsm",
+  TargetingContext: "resource://messaging-system/targeting/Targeting.jsm",
   NormandyApi: "resource://normandy/lib/NormandyApi.jsm",
   ClientEnvironment: "resource://normandy/lib/ClientEnvironment.jsm",
   CleanupManager: "resource://normandy/lib/CleanupManager.jsm",
   Uptake: "resource://normandy/lib/Uptake.jsm",
   ActionsManager: "resource://normandy/lib/ActionsManager.jsm",
   BaseAction: "resource://normandy/actions/BaseAction.jsm",
-  Kinto: "resource://services-common/kinto-offline-client.js",
+  RemoteSettingsClient: "resource://services-settings/RemoteSettingsClient.jsm",
   clearTimeout: "resource://gre/modules/Timer.jsm",
   setTimeout: "resource://gre/modules/Timer.jsm",
 });
@@ -42,15 +43,13 @@ const TIMER_NAME = "recipe-client-addon-run";
 const REMOTE_SETTINGS_COLLECTION = "normandy-recipes-capabilities";
 const PREF_CHANGED_TOPIC = "nsPref:changed";
 
-const PREF_PREFIX = "app.normandy";
-const RUN_INTERVAL_PREF = `${PREF_PREFIX}.run_interval_seconds`;
-const FIRST_RUN_PREF = `${PREF_PREFIX}.first_run`;
-const SHIELD_ENABLED_PREF = `${PREF_PREFIX}.enabled`;
-const DEV_MODE_PREF = `${PREF_PREFIX}.dev_mode`;
-const API_URL_PREF = `${PREF_PREFIX}.api_url`;
-const LAZY_CLASSIFY_PREF = `${PREF_PREFIX}.experiments.lazy_classify`;
-const LAST_BUILDID_PREF = `${PREF_PREFIX}.last_seen_buildid`;
-const ONSYNC_SKEW_SEC_PREF = `${PREF_PREFIX}.onsync_skew_sec`;
+const RUN_INTERVAL_PREF = "app.normandy.run_interval_seconds";
+const FIRST_RUN_PREF = "app.normandy.first_run";
+const SHIELD_ENABLED_PREF = "app.normandy.enabled";
+const DEV_MODE_PREF = "app.normandy.dev_mode";
+const API_URL_PREF = "app.normandy.api_url";
+const LAZY_CLASSIFY_PREF = "app.normandy.experiments.lazy_classify";
+const ONSYNC_SKEW_SEC_PREF = "app.normandy.onsync_skew_sec";
 
 // Timer last update preference.
 // see https://searchfox.org/mozilla-central/rev/11cfa0462/toolkit/components/timermanager/UpdateTimerManager.jsm#8
@@ -103,16 +102,9 @@ var RecipeRunner = {
     // If we've seen a build ID from a previous run that doesn't match the
     // current build ID, run immediately. This is probably an upgrade or
     // downgrade, which may cause recipe eligibility to change.
-    let lastSeenBuildID = Services.prefs.getCharPref(LAST_BUILDID_PREF, "");
     let hasNewBuildID =
-      lastSeenBuildID && Services.appinfo.appBuildID != lastSeenBuildID;
-
-    if (hasNewBuildID || !lastSeenBuildID) {
-      Services.prefs.setCharPref(
-        LAST_BUILDID_PREF,
-        Services.appinfo.appBuildID
-      );
-    }
+      Services.appinfo.lastAppBuildID != null &&
+      Services.appinfo.lastAppBuildID != Services.appinfo.appBuildID;
 
     // Dev mode is a mode used for development and QA that bypasses the normal
     // timer function of Normandy, to make testing more convenient.
@@ -458,11 +450,77 @@ var RecipeRunner = {
    * @return {Promise<BaseAction.suitability>} The recipe's suitability
    */
   async getRecipeSuitability(recipe, signature) {
+    let generator = this.getAllSuitabilities(recipe, signature);
+    // For our purposes, only the first suitability matters, so pull the first
+    // value out of the async generator. This additionally guarantees if we fail
+    // a security or compatibility check, we won't continue to run other checks,
+    // which is good for the general case of running recipes.
+    let { value: suitability } = await generator.next();
+    switch (suitability) {
+      case BaseAction.suitability.SIGNATURE_ERROR: {
+        await Uptake.reportRecipe(recipe, Uptake.RECIPE_INVALID_SIGNATURE);
+        break;
+      }
+
+      case BaseAction.suitability.CAPABILITES_MISMATCH: {
+        await Uptake.reportRecipe(
+          recipe,
+          Uptake.RECIPE_INCOMPATIBLE_CAPABILITIES
+        );
+        break;
+      }
+
+      case BaseAction.suitability.FILTER_MATCH: {
+        // No telemetry needs to be sent for this right now.
+        break;
+      }
+
+      case BaseAction.suitability.FILTER_MISMATCH: {
+        // This represents a terminal state for the given recipe, so
+        // report its outcome. Others are reported when executed in
+        // ActionsManager.
+        await Uptake.reportRecipe(recipe, Uptake.RECIPE_DIDNT_MATCH_FILTER);
+        break;
+      }
+
+      case BaseAction.suitability.FILTER_ERROR: {
+        await Uptake.reportRecipe(recipe, Uptake.RECIPE_FILTER_BROKEN);
+        break;
+      }
+
+      case BaseAction.suitability.ARGUMENTS_INVALID: {
+        // This shouldn't ever occur, since the arguments schema is checked by
+        // BaseAction itself.
+        throw new Error(`Shouldn't get ${suitability} in RecipeRunner`);
+      }
+
+      default: {
+        throw new Error(`Unexpected recipe suitability ${suitability}`);
+      }
+    }
+
+    return suitability;
+  },
+
+  /**
+   * Some uses cases, such as Normandy Devtools, want the status of all
+   * suitabilities, not only the most important one. This checks the cases of
+   * suitabilities in order from most blocking to least blocking. The first
+   * yielded is the "primary" suitability to pass on to actions.
+   *
+   * If this function yields only [FILTER_MATCH], then the recipe fully matches
+   * and should be executed. If any other statuses are yielded, then the recipe
+   * should not be executed as normal.
+   *
+   * This is a generator so that the execution can be halted as needed. For
+   * example, after receiving a signature error, a caller can stop advancing
+   * the iterator to avoid exposing the browser to unneeded risk.
+   */
+  async *getAllSuitabilities(recipe, signature) {
     try {
       await NormandyApi.verifyObjectSignature(recipe, signature, "recipe");
     } catch (e) {
-      await Uptake.reportRecipe(recipe, Uptake.RECIPE_INVALID_SIGNATURE);
-      return BaseAction.suitability.SIGNATURE_ERROR;
+      yield BaseAction.suitability.SIGNATURE_ERROR;
     }
 
     const runnerCapabilities = this.getCapabilities();
@@ -476,36 +534,25 @@ var RecipeRunner = {
                 Array.from(runnerCapabilities)
               )}`
           );
-          await Uptake.reportRecipe(
-            recipe,
-            Uptake.RECIPE_INCOMPATIBLE_CAPABILITIES
-          );
-          return BaseAction.suitability.CAPABILITES_MISMATCH;
+          yield BaseAction.suitability.CAPABILITES_MISMATCH;
         }
       }
     }
 
     const context = this.getFilterContext(recipe);
-    let result;
+    const targetingContext = new TargetingContext();
     try {
-      result = await FilterExpressions.eval(recipe.filter_expression, context);
+      if (await targetingContext.eval(recipe.filter_expression, context)) {
+        yield BaseAction.suitability.FILTER_MATCH;
+      } else {
+        yield BaseAction.suitability.FILTER_MISMATCH;
+      }
     } catch (err) {
       log.error(
         `Error checking filter for "${recipe.name}". Filter: [${recipe.filter_expression}]. Error: "${err}"`
       );
-      await Uptake.reportRecipe(recipe, Uptake.RECIPE_FILTER_BROKEN);
-      return BaseAction.suitability.FILTER_ERROR;
+      yield BaseAction.suitability.FILTER_ERROR;
     }
-
-    if (!result) {
-      // This represents a terminal state for the given recipe, so
-      // report its outcome. Others are reported when executed in
-      // ActionsManager.
-      await Uptake.reportRecipe(recipe, Uptake.RECIPE_DIDNT_MATCH_FILTER);
-      return BaseAction.suitability.FILTER_MISMATCH;
-    }
-
-    return BaseAction.suitability.FILTER_MATCH;
   },
 
   /**
@@ -556,12 +603,17 @@ var RecipeRunner = {
      * "normandy-recipes-capabilities" collection now.
      */
     async migration01RemoveOldRecipesCollection() {
-      const kintoCollection = new Kinto({
-        bucket: "main",
-        adapter: Kinto.adapters.IDB,
-        adapterOptions: { dbName: "remote-settings" },
-      }).collection("normandy-recipes");
-      await kintoCollection.clear();
+      // Don't bother to open IDB and clear on clean profiles.
+      const lastCheckPref =
+        "services.settings.main.normandy-recipes.last_check";
+      if (Services.prefs.prefHasUserValue(lastCheckPref)) {
+        // We instantiate a client, but it won't take part of sync.
+        const client = new RemoteSettingsClient("normandy-recipes", {
+          bucketNamePref: "services.settings.default_bucket",
+        });
+        await client.db.clear();
+        Services.prefs.clearUserPref(lastCheckPref);
+      }
     },
   },
 };

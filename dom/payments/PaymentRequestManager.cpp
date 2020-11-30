@@ -152,10 +152,10 @@ void ConvertDetailsInit(JSContext* aCx, const PaymentDetailsInit& aDetails,
 
   aIPCDetails =
       IPCPaymentDetails(id, total, displayItems, shippingOptions, modifiers,
-                        EmptyString(),   // error message
-                        EmptyString(),   // shippingAddressErrors
-                        EmptyString(),   // payerErrors
-                        EmptyString());  // paymentMethodErrors
+                        u""_ns,   // error message
+                        u""_ns,   // shippingAddressErrors
+                        u""_ns,   // payerErrors
+                        u""_ns);  // paymentMethodErrors
 }
 
 void ConvertDetailsUpdate(JSContext* aCx, const PaymentDetailsUpdate& aDetails,
@@ -211,7 +211,7 @@ void ConvertDetailsUpdate(JSContext* aCx, const PaymentDetailsUpdate& aDetails,
     }
   }
 
-  aIPCDetails = IPCPaymentDetails(EmptyString(),  // id
+  aIPCDetails = IPCPaymentDetails(u""_ns,  // id
                                   total, displayItems, shippingOptions,
                                   modifiers, error, shippingAddressErrors,
                                   payerErrors, paymentMethodErrors);
@@ -246,7 +246,8 @@ void ConvertResponseData(const IPCPaymentResponseData& aIPCData,
       bData.expiryYear = data.expiryYear();
       bData.cardSecurityCode = data.cardSecurityCode();
       bData.billingAddress.country = data.billingAddress().country();
-      bData.billingAddress.addressLine = data.billingAddress().addressLine();
+      bData.billingAddress.addressLine =
+          data.billingAddress().addressLine().Clone();
       bData.billingAddress.region = data.billingAddress().region();
       bData.billingAddress.regionCode = data.billingAddress().regionCode();
       bData.billingAddress.city = data.billingAddress().city();
@@ -550,7 +551,7 @@ void PaymentRequestManager::AbortPayment(PaymentRequest* aRequest,
 void PaymentRequestManager::CompletePayment(PaymentRequest* aRequest,
                                             const PaymentComplete& aComplete,
                                             ErrorResult& aRv, bool aTimedOut) {
-  nsString completeStatusString(NS_LITERAL_STRING("unknown"));
+  nsString completeStatusString(u"unknown"_ns);
   if (aTimedOut) {
     completeStatusString.AssignLiteral("timeout");
   } else {
@@ -683,13 +684,16 @@ nsresult PaymentRequestManager::RespondPayment(
           break;
         }
       }
+      // If PaymentActionResponse is not PAYMENT_ACCEPTED, no need to keep the
+      // PaymentRequestChild instance. Otherwise, keep PaymentRequestChild for
+      // merchants call PaymentResponse.complete()
+      if (rejectedReason.Failed()) {
+        NotifyRequestDone(aRequest);
+      }
       aRequest->RespondShowPayment(response.methodName(), responseData,
                                    response.payerName(), response.payerEmail(),
                                    response.payerPhone(),
                                    std::move(rejectedReason));
-      if (rejectedReason.Failed()) {
-        NotifyRequestDone(aRequest);
-      }
       break;
     }
     case IPCPaymentActionResponse::TIPCPaymentAbortActionResponse: {

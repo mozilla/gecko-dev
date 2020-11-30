@@ -5,6 +5,7 @@
 #include "LoadContextInfo.h"
 
 #include "mozilla/dom/ToJSValue.h"
+#include "mozilla/StoragePrincipalHelper.h"
 #include "nsDocShell.h"
 #include "nsIChannel.h"
 #include "nsILoadContext.h"
@@ -120,7 +121,7 @@ LoadContextInfo* GetLoadContextInfo(nsIChannel* aChannel) {
   }
 
   OriginAttributes oa;
-  NS_GetOriginAttributes(aChannel, oa);
+  StoragePrincipalHelper::GetOriginAttributesForNetworkState(aChannel, oa);
   MOZ_ASSERT(pb == (oa.mPrivateBrowsingId > 0));
 
   return new LoadContextInfo(anon, oa);

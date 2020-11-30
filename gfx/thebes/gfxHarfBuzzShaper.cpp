@@ -40,7 +40,6 @@ using namespace mozilla::unicode;  // for Unicode property lookup
 
 gfxHarfBuzzShaper::gfxHarfBuzzShaper(gfxFont* aFont)
     : gfxFontShaper(aFont),
-      mHBFace(aFont->GetFontEntry()->GetHBFace()),
       mHBFont(nullptr),
       mBuffer(nullptr),
       mCallbackData(),
@@ -75,7 +74,6 @@ gfxHarfBuzzShaper::~gfxHarfBuzzShaper() {
   hb_blob_destroy(mLocaTable);
   hb_blob_destroy(mGlyfTable);
   hb_font_destroy(mHBFont);
-  hb_face_destroy(mHBFace);
   hb_buffer_destroy(mBuffer);
 }
 
@@ -122,9 +120,17 @@ hb_codepoint_t gfxHarfBuzzShaper::GetNominalGlyph(
   }
 
   if (!gid) {
-    // if there's no glyph for &nbsp;, just use the space glyph instead
-    if (unicode == 0xA0) {
-      gid = mFont->GetSpaceGlyph();
+    switch (unicode) {
+      case 0xA0:
+        // if there's no glyph for &nbsp;, just use the space glyph instead.
+        gid = mFont->GetSpaceGlyph();
+        break;
+      case 0x2010:
+      case 0x2011:
+        // For Unicode HYPHEN and NON-BREAKING HYPHEN, fall back to the ASCII
+        // HYPHEN-MINUS as a substitute.
+        gid = GetNominalGlyph('-');
+        break;
     }
   }
 
@@ -1108,6 +1114,7 @@ static void AddOpenTypeFeature(const uint32_t& aTag, uint32_t& aValue,
  */
 
 static hb_font_funcs_t* sHBFontFuncs = nullptr;
+static hb_font_funcs_t* sNominalGlyphFunc = nullptr;
 static hb_unicode_funcs_t* sHBUnicodeFuncs = nullptr;
 static const hb_script_t sMathScript =
     hb_ot_tag_to_script(HB_TAG('m', 'a', 't', 'h'));
@@ -1139,6 +1146,12 @@ bool gfxHarfBuzzShaper::Initialize() {
                                                nullptr, nullptr);
     hb_font_funcs_set_glyph_h_kerning_func(sHBFontFuncs, HBGetHKerning, nullptr,
                                            nullptr);
+    hb_font_funcs_make_immutable(sHBFontFuncs);
+
+    sNominalGlyphFunc = hb_font_funcs_create();
+    hb_font_funcs_set_nominal_glyph_func(sNominalGlyphFunc, HBGetNominalGlyph,
+                                         nullptr, nullptr);
+    hb_font_funcs_make_immutable(sNominalGlyphFunc);
 
     sHBUnicodeFuncs = hb_unicode_funcs_create(hb_unicode_funcs_get_empty());
     hb_unicode_funcs_set_mirroring_func(sHBUnicodeFuncs, HBGetMirroring,
@@ -1153,6 +1166,7 @@ bool gfxHarfBuzzShaper::Initialize() {
                                       nullptr, nullptr);
     hb_unicode_funcs_set_decompose_func(sHBUnicodeFuncs, HBUnicodeDecompose,
                                         nullptr, nullptr);
+    hb_unicode_funcs_make_immutable(sHBUnicodeFuncs);
 
     UErrorCode error = U_ZERO_ERROR;
     sNormalizer = unorm2_getNFCInstance(&error);
@@ -1189,18 +1203,36 @@ bool gfxHarfBuzzShaper::Initialize() {
   hb_buffer_set_cluster_level(mBuffer,
                               HB_BUFFER_CLUSTER_LEVEL_MONOTONE_CHARACTERS);
 
-  mHBFont = hb_font_create(mHBFace);
-  if (mFont->GetFontEntry()->HasFontTable(TRUETYPE_TAG('C', 'F', 'F', ' '))) {
-    hb_ot_font_set_funcs(mHBFont);
-  } else {
-    hb_font_set_funcs(mHBFont, sHBFontFuncs, &mCallbackData, nullptr);
+  auto* funcs =
+      mFont->GetFontEntry()->HasFontTable(TRUETYPE_TAG('C', 'F', 'F', ' '))
+          ? sNominalGlyphFunc
+          : sHBFontFuncs;
+  mHBFont = CreateHBFont(mFont, funcs, &mCallbackData);
+
+  return true;
+}
+
+hb_font_t* gfxHarfBuzzShaper::CreateHBFont(gfxFont* aFont,
+                                           hb_font_funcs_t* aFontFuncs,
+                                           FontCallbackData* aCallbackData) {
+  hb_face_t* hbFace = aFont->GetFontEntry()->GetHBFace();
+  hb_font_t* result = hb_font_create(hbFace);
+  hb_face_destroy(hbFace);
+
+  if (aFontFuncs && aCallbackData) {
+    if (aFontFuncs == sNominalGlyphFunc) {
+      hb_font_t* subfont = hb_font_create_sub_font(result);
+      hb_font_destroy(result);
+      result = subfont;
+    }
+    hb_font_set_funcs(result, aFontFuncs, aCallbackData, nullptr);
   }
-  hb_font_set_ppem(mHBFont, mFont->GetAdjustedSize(), mFont->GetAdjustedSize());
-  uint32_t scale = FloatToFixed(mFont->GetAdjustedSize());  // 16.16 fixed-point
-  hb_font_set_scale(mHBFont, scale, scale);
+  hb_font_set_ppem(result, aFont->GetAdjustedSize(), aFont->GetAdjustedSize());
+  uint32_t scale = FloatToFixed(aFont->GetAdjustedSize());  // 16.16 fixed-point
+  hb_font_set_scale(result, scale, scale);
 
   AutoTArray<gfxFontVariation, 8> vars;
-  entry->GetVariationsForStyle(vars, *mFont->GetStyle());
+  aFont->GetFontEntry()->GetVariationsForStyle(vars, *aFont->GetStyle());
   if (vars.Length() > 0) {
     // Fortunately, the hb_variation_t struct is compatible with our
     // gfxFontVariation, so we can simply cast here.
@@ -1211,10 +1243,10 @@ bool gfxHarfBuzzShaper::Initialize() {
                 offsetof(hb_variation_t, value),
         "Gecko vs HarfBuzz struct mismatch!");
     auto hbVars = reinterpret_cast<const hb_variation_t*>(vars.Elements());
-    hb_font_set_variations(mHBFont, hbVars, vars.Length());
+    hb_font_set_variations(result, hbVars, vars.Length());
   }
 
-  return true;
+  return result;
 }
 
 bool gfxHarfBuzzShaper::LoadHmtxTable() {
@@ -1677,11 +1709,9 @@ nsresult gfxHarfBuzzShaper::SetGlyphsFromRun(gfxShapedText* aShapedText,
         }
       }
 
-      bool isClusterStart = charGlyphs[baseCharIndex].IsClusterStart();
-      aShapedText->SetGlyphs(aOffset + baseCharIndex,
-                             CompressedGlyph::MakeComplex(
-                                 isClusterStart, true, detailedGlyphs.Length()),
-                             detailedGlyphs.Elements());
+      aShapedText->SetDetailedGlyphs(aOffset + baseCharIndex,
+                                     detailedGlyphs.Length(),
+                                     detailedGlyphs.Elements());
 
       detailedGlyphs.Clear();
     }
@@ -1692,7 +1722,7 @@ nsresult gfxHarfBuzzShaper::SetGlyphsFromRun(gfxShapedText* aShapedText,
            baseCharIndex < int32_t(wordLength)) {
       CompressedGlyph& g = charGlyphs[baseCharIndex];
       NS_ASSERTION(!g.IsSimpleGlyph(), "overwriting a simple glyph");
-      g.SetComplex(g.IsClusterStart(), false, 0);
+      g.SetComplex(g.IsClusterStart(), false);
     }
 
     glyphStart = glyphEnd;

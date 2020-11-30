@@ -24,7 +24,7 @@ const startId          = 8;
 const elemId           = 9;
 const codeId           = 10;
 const dataId           = 11;
-const gcFeatureOptInId = 42;
+const dataCountId      = 12;
 
 // User-defined section names
 const nameName         = "name";
@@ -39,9 +39,11 @@ const I32Code          = 0x7f;
 const I64Code          = 0x7e;
 const F32Code          = 0x7d;
 const F64Code          = 0x7c;
+const V128Code         = 0x7b;
 const AnyFuncCode      = 0x70;
-const AnyrefCode       = 0x6f;
-const RefCode          = 0x6d;
+const ExternRefCode    = 0x6f;
+const EqRefCode        = 0x6d;
+const OptRefCode       = 0x6c;
 const FuncCode         = 0x60;
 const VoidCode         = 0x40;
 
@@ -53,6 +55,7 @@ const CallCode         = 0x10;
 const CallIndirectCode = 0x11;
 const DropCode         = 0x1a;
 const SelectCode       = 0x1b;
+const LocalGetCode     = 0x20;
 const I32Load          = 0x28;
 const I64Load          = 0x29;
 const F32Load          = 0x2a;
@@ -102,8 +105,30 @@ const RefNullCode      = 0xd0;
 const RefIsNullCode    = 0xd1;
 const RefFuncCode      = 0xd2;
 
+// SIMD opcodes
+const V128LoadCode = 0x00;
+const V128StoreCode = 0x0b;
+
+// Experimental SIMD opcodes as of August, 2020.
+const I32x4DotSI16x8Code = 0xba;
+const F32x4CeilCode = 0xd8;
+const F32x4FloorCode = 0xd9;
+const F32x4TruncCode = 0xda;
+const F32x4NearestCode = 0xdb;
+const F64x2CeilCode = 0xdc;
+const F64x2FloorCode = 0xdd;
+const F64x2TruncCode = 0xde;
+const F64x2NearestCode = 0xdf;
+const F32x4PMinCode = 0xea;
+const F32x4PMaxCode = 0xeb;
+const F64x2PMinCode = 0xf6;
+const F64x2PMaxCode = 0xf7;
+const V128Load32ZeroCode = 0xfc;
+const V128Load64ZeroCode = 0xfd;
+
 const FirstInvalidOpcode = 0xc5;
-const LastInvalidOpcode = 0xfb;
+const LastInvalidOpcode = 0xfa;
+const GcPrefix = 0xfb;
 const MiscPrefix = 0xfc;
 const SimdPrefix = 0xfd;
 const ThreadPrefix = 0xfe;
@@ -140,7 +165,7 @@ const definedOpcodes =
      0xc0, 0xc1, 0xc2, 0xc3, 0xc4,
      0xd0, 0xd1, 0xd2,
      0xf0,
-     0xfc, 0xfe, 0xff ];
+     0xfc, 0xfd, 0xfe, 0xff ];
 
 const undefinedOpcodes = (function () {
     let a = [];
@@ -166,10 +191,10 @@ const TableInitCode = 0x0c;     // Pending
 const ElemDropCode = 0x0d;      // Pending
 const TableCopyCode = 0x0e;     // Pending
 
-const StructNew = 0x50;         // UNOFFICIAL
-const StructGet = 0x51;         // UNOFFICIAL
-const StructSet = 0x52;         // UNOFFICIAL
-const StructNarrow = 0x53;      // UNOFFICIAL
+const StructNew = 0x00;         // UNOFFICIAL
+const StructGet = 0x03;         // UNOFFICIAL
+const StructSet = 0x06;         // UNOFFICIAL
+const StructNarrow = 0x07;      // UNOFFICIAL
 
 // DefinitionKind
 const FunctionCode     = 0x00;
@@ -243,10 +268,6 @@ function moduleWithSections(sectionArray) {
     return toU8(bytes);
 }
 
-function gcFeatureOptInSection(version) {
-    return { name: gcFeatureOptInId, body: [ version & 0x7F ] }
-}
-
 function sigSection(sigs) {
     var body = [];
     body.push(...varU32(sigs.length));
@@ -303,8 +324,15 @@ function exportSection(exports) {
     body.push(...varU32(exports.length));
     for (let exp of exports) {
         body.push(...string(exp.name));
-        body.push(...varU32(FunctionCode));
-        body.push(...varU32(exp.funcIndex));
+        if (exp.hasOwnProperty("funcIndex")) {
+            body.push(...varU32(FunctionCode));
+            body.push(...varU32(exp.funcIndex));
+        } else if (exp.hasOwnProperty("memIndex")) {
+            body.push(...varU32(MemoryCode));
+            body.push(...varU32(exp.memIndex));
+        } else {
+            throw "Bad export " + exp;
+        }
     }
     return { name: exportId, body };
 }
@@ -339,6 +367,26 @@ function dataSection(segmentArrays) {
             body.push(...varU32(elem));
     }
     return { name: dataId, body };
+}
+
+function dataCountSection(count) {
+    var body = [];
+    body.push(...varU32(count));
+    return { name: dataCountId, body };
+}
+
+function globalSection(globalArray) {
+    var body = [];
+    body.push(...varU32(globalArray.length));
+    for (let globalObj of globalArray) {
+        // Value type
+        body.push(...varU32(globalObj.valType));
+        // Flags
+        body.push(globalObj.flags & 255);
+        // Initializer expression
+        body.push(...globalObj.initExpr);
+    }
+    return { name: globalId, body };
 }
 
 function elemSection(elemArrays) {

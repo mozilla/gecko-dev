@@ -7,7 +7,6 @@
 #ifndef mozilla_dom_BlobURL_h
 #define mozilla_dom_BlobURL_h
 
-#include "mozilla/Attributes.h"
 #include "nsCOMPtr.h"
 #include "nsISerializable.h"
 #include "nsSimpleURI.h"
@@ -41,7 +40,6 @@ class BlobURL final : public mozilla::net::nsSimpleURI {
  public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSISERIALIZABLE
-  NS_DECL_NSICLASSINFO
 
   // Override CloneInternal() and EqualsInternal()
   virtual nsresult CloneInternal(RefHandlingEnum aRefHandlingMode,
@@ -87,7 +85,7 @@ class BlobURL final : public mozilla::net::nsSimpleURI {
       return NS_ERROR_NOT_IMPLEMENTED;
     }
 
-    MOZ_MUST_USE NS_IMETHOD Read(nsIObjectInputStream* aStream) override {
+    [[nodiscard]] NS_IMETHOD Read(nsIObjectInputStream* aStream) override {
       return InitFromInputStream(aStream);
     }
 

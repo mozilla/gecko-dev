@@ -13,12 +13,11 @@
 #include "mozilla/Likely.h"      // MOZ_UNLIKELY
 #include "mozilla/Maybe.h"       // mozilla::Maybe
 
-#include "jit/BaselineFrame.h"   // js::jit::BaselineFrame
-#include "jit/JSJitFrameIter.h"  // js::jit::CalleeToken
-#include "vm/FrameIter.h"        // js::FrameIter
-#include "vm/JitActivation.h"    // js::jit::JitActivation
-#include "vm/JSContext.h"        // JSContext
-#include "vm/Stack.h"            // js::AbstractFramePtr
+#include "jit/CalleeToken.h"   // js::jit::CalleeToken
+#include "vm/FrameIter.h"      // js::FrameIter
+#include "vm/JitActivation.h"  // js::jit::JitActivation
+#include "vm/JSContext.h"      // JSContext
+#include "vm/Stack.h"          // js::AbstractFramePtr
 
 namespace js {
 
@@ -125,27 +124,6 @@ LiveSavedFrameCache::FramePtr::create(const FrameIter& iter) {
   }
   if (afp.isRematerializedFrame()) {
     return mozilla::Some(FramePtr(afp.asRematerializedFrame()));
-  }
-
-  MOZ_CRASH("unexpected frame type");
-}
-
-/* static */ inline LiveSavedFrameCache::FramePtr
-LiveSavedFrameCache::FramePtr::create(AbstractFramePtr afp) {
-  MOZ_ASSERT(afp);
-
-  if (afp.isBaselineFrame()) {
-    js::jit::CommonFrameLayout* common = afp.asBaselineFrame()->framePrefix();
-    return FramePtr(common);
-  }
-  if (afp.isInterpreterFrame()) {
-    return FramePtr(afp.asInterpreterFrame());
-  }
-  if (afp.isWasmDebugFrame()) {
-    return FramePtr(afp.asWasmDebugFrame());
-  }
-  if (afp.isRematerializedFrame()) {
-    return FramePtr(afp.asRematerializedFrame());
   }
 
   MOZ_CRASH("unexpected frame type");

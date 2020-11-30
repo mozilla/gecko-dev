@@ -10,8 +10,6 @@
 #   .extra file instead of the annotation name
 # - ping: A boolean that indicates whether the annotation is whitelisted for
 #   going into the crash ping, if not specified this defaults to false
-# - content: A boolean that indicates whether the field will be included in
-#   subprocess reports, if not specified this defaults to true
 
 A11yHandlerRegistered:
   description: >
@@ -89,6 +87,11 @@ AppInitDLLs:
     reflects the contents of the AppInit_DLLs registry key.
   type: string
 
+ApplicationBuildID:
+  description: >
+    Product application's build ID.
+  type: string
+
 AsyncShutdownModule:
   description: >
     Holds the contents of the AsyncShutdown.js script
@@ -161,6 +164,12 @@ BlocklistInitFailed:
     Set to 1 if the DLL blocklist could not be initialized.
   type: boolean
   ping: true
+
+Breadcrumbs:
+  description: >
+    Trail of events that occurred before a report. this will consist of multiple breadcrumbs with
+    timestamp, message, category, level, type and data in JSON format.
+  type: string
 
 BreakpadReserveAddress:
   description: >
@@ -290,6 +299,7 @@ DOMFissionEnabled:
     Set to 1 when DOM fission is enabled, and subframes are potentially loaded
     in a separate process.
   type: boolean
+  ping: true
 
 DOMIPCEnabled:
   description: >
@@ -313,6 +323,12 @@ ExpectedStreamLen:
     Expected length of an IPC proxy stream.
   type: integer
 
+ExperimentalFeatures:
+  description: >
+    Comma-separated list of enabled experimental features from about:preferences#experimental.
+  type: string
+  ping: true
+
 FlashProcessDump:
   description: >
     Type of process the flash plugin is running in, can be either "Broker" or
@@ -324,14 +340,12 @@ FramePoisonBase:
     Base pointer of the memory area used for the poison value we place in freed
     memory.
   type: string
-  content: false
 
 FramePoisonSize:
   description: >
     Size of the memory area used for the poison value we place in freed
     memory.
   type: integer
-  content: false
 
 GetHGlobalFromStreamFailure:
   description: >
@@ -440,7 +454,6 @@ IndexedDBShutdownTimeout:
     selected object properties. Properties which contain origin strings are
     anonymized.
   type: string
-  content: false
   ping: true
 
 InstallTime:
@@ -557,6 +570,18 @@ JavaStackTrace:
     uncaught Java exception.
   type: string
 
+JSActorMessage:
+  description: >
+    If an actor is currently treating a message, this is the name of the message.
+    Otherwise, empty.
+  type: string
+
+JSActorName:
+  description: >
+    If an actor is currently treating a message, this is the name of the actor.
+    Otherwise, empty.
+  type: string
+
 JSLargeAllocationFailure:
   description: >
     A large allocation couldn't be satisfied, check the JSOutOfMemory
@@ -595,7 +620,6 @@ LocalStorageShutdownTimeout:
     selected object properties. Properties which contain origin strings are
     anonymized.
   type: string
-  content: false
   ping: true
 
 LowCommitSpaceEvents:
@@ -790,14 +814,12 @@ StartupCrash:
   description: >
     If set to 1 then this crash occurred during startup.
   type: boolean
-  content: false
   ping: true
 
 StartupTime:
   description: >
     The time when Firefox was launched expressed in seconds since the Epoch.
   type: integer
-  content: false
 
 StatFailure:
   description: >
@@ -811,6 +833,13 @@ StorageConnectionNotClosed:
     closed during shutdown. The annotation holds the filename of the database
     associated with the connection.
   type: string
+
+SubmittedFromInfobar:
+  description: >
+    This annotation is set to 1 when the crash report has been manually
+    submitted from Firefox info-bar or has been automatically submitted after
+    the user opted-in to auto-submission.
+  type: boolean
 
 SystemMemoryUsePercentage:
   description: >
@@ -920,7 +949,6 @@ URL:
   description: >
     URL being loaded.
   type: string
-  content: false
 
 User32BeforeBlocklist:
   description: >

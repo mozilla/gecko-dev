@@ -10,17 +10,21 @@
   min-height: 20px;
   border: 0;
   border-radius: 0;
-  padding: 0px 1px 0px 1px;
+  padding: 0 1px;
 }
 
 #PopupAutoComplete > richlistbox > richlistitem > .ac-site-icon {
-  margin-inline-start: 4px;
-  margin-inline-end: 0;
+  margin-inline: 4px 0;
 }
 
 #PopupAutoComplete > richlistbox > richlistitem > .ac-title {
   font: icon;
   margin-inline-start: 4px;
+}
+
+#PopupAutoComplete > richlistbox > richlistitem[originaltype="importableLearnMore"] {
+  padding-bottom: 2px;
+  padding-inline-start: 21px;
 }
 
 #PopupAutoComplete > richlistbox {
@@ -47,10 +51,15 @@
   margin: 0;
 }
 
+#PopupAutoComplete > richlistbox > richlistitem[originaltype="login"] > .ac-site-icon,
+#PopupAutoComplete > richlistbox > richlistitem[originaltype="possible-username"] > .ac-site-icon,
 #PopupAutoComplete > richlistbox > richlistitem > .two-line-wrapper > .ac-site-icon {
   display: block;
-  margin-inline-start: auto;
-  margin-inline-end: 4px;
+  margin-inline: 4px;
+}
+
+#PopupAutoComplete > richlistbox > richlistitem[originaltype="possible-username"] > .ac-site-icon {
+  visibility: hidden;
 }
 
 #PopupAutoComplete > richlistbox > richlistitem > .two-line-wrapper > .labels-wrapper {
@@ -68,6 +77,7 @@
 }
 
 #PopupAutoComplete > richlistbox > richlistitem[originaltype="generatedPassword"] > .two-line-wrapper > .labels-wrapper > .generated-password-autosave,
+#PopupAutoComplete > richlistbox > richlistitem[originaltype="importableLearnMore"] > .ac-title,
 #PopupAutoComplete > richlistbox > richlistitem > .two-line-wrapper > .labels-wrapper > .line2-label {
   padding-top: 2px !important;
   opacity: .6;
@@ -77,13 +87,17 @@
 #PopupAutoComplete > richlistbox > richlistitem[originaltype="generatedPassword"] > .two-line-wrapper > .ac-site-icon,
 #PopupAutoComplete > richlistbox > richlistitem[originaltype="loginWithOrigin"] > .two-line-wrapper > .ac-site-icon,
 #PopupAutoComplete > richlistbox > richlistitem[originaltype="login"] > .ac-site-icon {
-  display: initial;
-  list-style-image: url(chrome://browser/skin/login.svg);
-  -moz-context-properties: fill;
   fill: GrayText;
+  list-style-image: url(chrome://browser/skin/login.svg);
+}
+
+#PopupAutoComplete > richlistbox > richlistitem[originaltype="importableLogins"] > .two-line-wrapper > .ac-site-icon {
+  fill: GrayText;
+  list-style-image: url(chrome://browser/skin/import.svg);
 }
 
 #PopupAutoComplete > richlistbox > richlistitem[originaltype="generatedPassword"][selected] > .two-line-wrapper > .ac-site-icon,
+#PopupAutoComplete > richlistbox > richlistitem[originaltype="importableLogins"][selected] > .two-line-wrapper > .ac-site-icon,
 #PopupAutoComplete > richlistbox > richlistitem[originaltype="loginWithOrigin"][selected] > .two-line-wrapper > .ac-site-icon,
 #PopupAutoComplete > richlistbox > richlistitem[originaltype="login"] > .ac-site-icon[selected] {
   fill: HighlightText;
@@ -91,8 +105,10 @@
 
 /* Login form autocompletion with origin showing and generated passwords */
 #PopupAutoComplete > richlistbox > richlistitem[originaltype="generatedPassword"] > .two-line-wrapper,
+#PopupAutoComplete > richlistbox > richlistitem[originaltype="importableLogins"] > .two-line-wrapper,
 #PopupAutoComplete > richlistbox > richlistitem[originaltype="loginWithOrigin"] > .two-line-wrapper {
   padding: 4px;
+  padding-inline-start: 0;
 }
 
 #PopupAutoComplete > richlistbox > richlistitem[originaltype="generatedPassword"]:not([collapsed="true"]) {
@@ -126,8 +142,7 @@
 #PopupAutoComplete > richlistbox > richlistitem[originaltype="insecureWarning"] {
   background-color: var(--arrowpanel-dimmed);
   border-bottom: 1px solid var(--panel-separator-color);
-  padding-bottom: 4px;
-  padding-top: 4px;
+  padding-block: 4px;
 }
 
 #PopupAutoComplete > richlistbox > richlistitem[originaltype="insecureWarning"][selected] {
@@ -136,8 +151,12 @@
 }
 
 #PopupAutoComplete > richlistbox > richlistitem[originaltype="insecureWarning"] > .ac-title {
-  color: GrayText;
+  color: var(--grey-60);
   font-size: 1em;
+}
+
+#PopupAutoComplete > richlistbox > richlistitem[originaltype="insecureWarning"] > .ac-title .ac-emphasize-text-title {
+  font-weight: 600;
 }
 
 #PopupAutoComplete > richlistbox > richlistitem[originaltype="insecureWarning"][selected] > .ac-title {
@@ -147,5 +166,5 @@
 #PopupAutoComplete > richlistbox > richlistitem[originaltype="insecureWarning"] > .ac-site-icon {
   list-style-image: url(chrome://browser/skin/connection-mixed-active-loaded.svg);
   -moz-context-properties: fill;
-  fill: GrayText;
+  fill: var(--grey-60);
 }

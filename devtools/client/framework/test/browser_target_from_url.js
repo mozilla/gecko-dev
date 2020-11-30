@@ -38,7 +38,7 @@ add_task(async function() {
   }
 
   info("Test browser window");
-  let windowId = window.windowUtils.outerWindowID;
+  let windowId = window.docShell.outerWindowID;
   target = await targetFromURL(
     new URL("http://foo?type=window&id=" + windowId)
   );
@@ -130,7 +130,7 @@ async function testRemoteTCP() {
 
   const settings = target.client._transport.connectionSettings;
   is(settings.host, "127.0.0.1");
-  is(settings.port, port);
+  is(parseInt(settings.port, 10), port);
   is(settings.webSocket, false);
 
   await target.client.close();
@@ -152,7 +152,7 @@ async function testRemoteWebSocket() {
 
   const settings = target.client._transport.connectionSettings;
   is(settings.host, "127.0.0.1");
-  is(settings.port, port);
+  is(parseInt(settings.port, 10), port);
   is(settings.webSocket, true);
   await target.client.close();
 

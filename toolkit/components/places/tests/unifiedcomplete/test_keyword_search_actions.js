@@ -25,24 +25,44 @@ add_task(async function test_keyword_search() {
     { uri: uri3 },
     { uri: uri6 },
   ]);
-  await addBookmark({ uri: uri1, title: "Keyword", keyword: "key" });
-  await addBookmark({
+  await PlacesTestUtils.addBookmarkWithDetails({
+    uri: uri1,
+    title: "Keyword",
+    keyword: "key",
+  });
+  await PlacesTestUtils.addBookmarkWithDetails({
     uri: uri1,
     title: "Post",
     keyword: "post",
     postData: "post_search=%s",
   });
-  await addBookmark({ uri: uri3, title: "Encoded", keyword: "encoded" });
-  await addBookmark({ uri: uri4, title: "Charset", keyword: "charset" });
-  await addBookmark({ uri: uri2, title: "Noparam", keyword: "noparam" });
-  await addBookmark({
+  await PlacesTestUtils.addBookmarkWithDetails({
+    uri: uri3,
+    title: "Encoded",
+    keyword: "encoded",
+  });
+  await PlacesTestUtils.addBookmarkWithDetails({
+    uri: uri4,
+    title: "Charset",
+    keyword: "charset",
+  });
+  await PlacesTestUtils.addBookmarkWithDetails({
+    uri: uri2,
+    title: "Noparam",
+    keyword: "noparam",
+  });
+  await PlacesTestUtils.addBookmarkWithDetails({
     uri: uri2,
     title: "Noparam-Post",
     keyword: "post_noparam",
     postData: "noparam=1",
   });
-  await addBookmark({ uri: uri5, title: "Keyword", keyword: "key2" });
-  await addBookmark({
+  await PlacesTestUtils.addBookmarkWithDetails({
+    uri: uri5,
+    title: "Keyword",
+    keyword: "key2",
+  });
+  await PlacesTestUtils.addBookmarkWithDetails({
     uri: uri6,
     title: "Charset-history",
     keyword: "charset_history",
@@ -229,18 +249,6 @@ add_task(async function test_keyword_search() {
         style: ["action", "keyword", "heuristic"],
       },
     ],
-  });
-
-  info("Bug 420328: no-param keyword with a param");
-  await check_autocomplete({
-    search: "noparam foo",
-    searchParam: "enable-actions",
-    matches: [makeSearchMatch("noparam foo", { heuristic: true })],
-  });
-  await check_autocomplete({
-    search: "post_noparam foo",
-    searchParam: "enable-actions",
-    matches: [makeSearchMatch("post_noparam foo", { heuristic: true })],
   });
 
   info("escaping with default UTF-8 charset");

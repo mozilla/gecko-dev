@@ -111,7 +111,7 @@ ${helpers.predefined_type(
     ${helpers.predefined_type(
         "mask-position-" + axis,
         "position::" + direction + "Position",
-        "computed::LengthPercentage::zero()",
+        "computed::LengthPercentage::zero_percent()",
         engines="gecko",
         extra_prefixes="webkit",
         initial_specified_value="specified::PositionComponent::Center",
@@ -165,6 +165,7 @@ ${helpers.single_keyword(
     "mask-composite",
     "add subtract intersect exclude",
     engines="gecko",
+    gecko_enum_prefix="StyleMaskComposite",
     vector=True,
     extra_prefixes="webkit",
     animation_value_type="discrete",

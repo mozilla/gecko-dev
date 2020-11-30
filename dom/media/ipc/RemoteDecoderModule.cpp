@@ -5,27 +5,26 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "RemoteDecoderModule.h"
 
-#include "base/thread.h"
-#include "mozilla/dom/ContentChild.h"  // for launching RDD w/ ContentChild
-#include "mozilla/layers/SynchronousTask.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/SyncRunnable.h"
+#include "mozilla/dom/ContentChild.h"  // for launching RDD w/ ContentChild
+#include "mozilla/layers/SynchronousTask.h"
 
 #ifdef MOZ_AV1
 #  include "AOMDecoder.h"
 #endif
+#include "OpusDecoder.h"
 #include "RemoteAudioDecoder.h"
 #include "RemoteDecoderManagerChild.h"
 #include "RemoteMediaDataDecoder.h"
 #include "RemoteVideoDecoder.h"
-#include "OpusDecoder.h"
 #include "VideoUtils.h"
 #include "VorbisDecoder.h"
 #include "WAVDecoder.h"
+#include "nsIXULRuntime.h"  // for BrowserTabsRemoteAutostart
 
 namespace mozilla {
 
-using base::Thread;
 using dom::ContentChild;
 using namespace ipc;
 using namespace layers;
@@ -33,7 +32,17 @@ using namespace layers;
 StaticMutex RemoteDecoderModule::sLaunchMonitor;
 
 RemoteDecoderModule::RemoteDecoderModule()
-    : mManagerThread(RemoteDecoderManagerChild::GetManagerThread()) {}
+    : mManagerThread(RemoteDecoderManagerChild::GetManagerThread()) {
+  MOZ_DIAGNOSTIC_ASSERT(mManagerThread);
+}
+
+/* static */
+void RemoteDecoderModule::Init() {
+  if (!BrowserTabsRemoteAutostart()) {
+    return;
+  }
+  RemoteDecoderManagerChild::InitializeThread();
+}
 
 bool RemoteDecoderModule::SupportsMimeType(
     const nsACString& aMimeType, DecoderDoctorDiagnostics* aDiagnostics) const {
@@ -68,7 +77,7 @@ bool RemoteDecoderModule::SupportsMimeType(
   return supports;
 }
 
-void RemoteDecoderModule::LaunchRDDProcessIfNeeded() {
+void RemoteDecoderModule::LaunchRDDProcessIfNeeded() const {
   if (!XRE_IsContentProcess()) {
     return;
   }
@@ -89,30 +98,23 @@ void RemoteDecoderModule::LaunchRDDProcessIfNeeded() {
   // LaunchRDDProcess which will launch RDD if necessary, and setup the
   // IPC connections between *this* content process and the RDD process.
   bool needsLaunch = true;
-  if (mManagerThread) {
-    RefPtr<Runnable> task = NS_NewRunnableFunction(
-        "RemoteDecoderModule::LaunchRDDProcessIfNeeded-CheckSend", [&]() {
-          if (RemoteDecoderManagerChild::GetRDDProcessSingleton()) {
-            needsLaunch =
-                !RemoteDecoderManagerChild::GetRDDProcessSingleton()->CanSend();
-          }
-        });
-    SyncRunnable::DispatchToThread(mManagerThread, task);
-  }
+  RefPtr<Runnable> task = NS_NewRunnableFunction(
+      "RemoteDecoderModule::LaunchRDDProcessIfNeeded-CheckSend", [&]() {
+        if (RemoteDecoderManagerChild::GetRDDProcessSingleton()) {
+          needsLaunch =
+              !RemoteDecoderManagerChild::GetRDDProcessSingleton()->CanSend();
+        }
+      });
+  SyncRunnable::DispatchToThread(mManagerThread, task);
 
   if (needsLaunch) {
     ContentChild::GetSingleton()->LaunchRDDProcess();
-    mManagerThread = RemoteDecoderManagerChild::GetManagerThread();
   }
 }
 
 already_AddRefed<MediaDataDecoder> RemoteDecoderModule::CreateAudioDecoder(
     const CreateDecoderParams& aParams) {
   LaunchRDDProcessIfNeeded();
-
-  if (!mManagerThread) {
-    return nullptr;
-  }
 
   // OpusDataDecoder will check this option to provide the same info
   // that IsDefaultPlaybackDeviceMono provides.  We want to avoid calls
@@ -159,10 +161,6 @@ already_AddRefed<MediaDataDecoder> RemoteDecoderModule::CreateAudioDecoder(
 already_AddRefed<MediaDataDecoder> RemoteDecoderModule::CreateVideoDecoder(
     const CreateDecoderParams& aParams) {
   LaunchRDDProcessIfNeeded();
-
-  if (!mManagerThread) {
-    return nullptr;
-  }
 
   RefPtr<RemoteVideoDecoderChild> child = new RemoteVideoDecoderChild();
   MediaResult result(NS_OK);

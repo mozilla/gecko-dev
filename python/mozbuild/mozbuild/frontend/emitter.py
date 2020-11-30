@@ -174,7 +174,7 @@ class TreeMetadataEmitter(LoggingMixin):
 
             if isinstance(out, Context):
                 # Keep all contexts around, we will need them later.
-                contexts[out.objdir] = out
+                contexts[os.path.normcase(out.objdir)] = out
 
                 start = time.time()
                 # We need to expand the generator for the timings to work.
@@ -224,7 +224,7 @@ class TreeMetadataEmitter(LoggingMixin):
                                  (self.config.substs.get('XPCOM_ROOT'),
                                   XPCOMComponentManifests, xpcom_attrs)):
             if root:
-                collection = cls(contexts[root])
+                collection = cls(contexts[os.path.normcase(root)])
                 for var, src_getter in attrs:
                     src_getter(collection).update(self._idls[var])
 
@@ -244,7 +244,7 @@ class TreeMetadataEmitter(LoggingMixin):
             if lib.link_into not in self._libs:
                 raise SandboxValidationError(
                     'FINAL_LIBRARY ("%s") does not match any LIBRARY_NAME'
-                    % lib.link_into, contexts[lib.objdir])
+                    % lib.link_into, contexts[os.path.normcase(lib.objdir)])
             candidates = self._libs[lib.link_into]
 
             # When there are multiple candidates, but all are in the same
@@ -261,7 +261,7 @@ class TreeMetadataEmitter(LoggingMixin):
                     'FINAL_LIBRARY ("%s") matches a LIBRARY_NAME defined in '
                     'multiple places:\n    %s' % (lib.link_into,
                                                   '\n    '.join(l.objdir for l in candidates)),
-                    contexts[lib.objdir])
+                    contexts[os.path.normcase(lib.objdir)])
 
         # ...and USE_LIBS linkage.
         for context, obj, variable in self._linkage:
@@ -286,7 +286,7 @@ class TreeMetadataEmitter(LoggingMixin):
                     'library names:\n    %s\n\nMaybe you can remove the '
                     'static "%s" library?' % (lib.basename,
                                               '\n    '.join(shared_libs), lib.basename),
-                    contexts[lib.objdir])
+                    contexts[os.path.normcase(lib.objdir)])
 
         @memoize
         def rust_libraries(obj):
@@ -313,7 +313,7 @@ class TreeMetadataEmitter(LoggingMixin):
                 % (what, '\n'.join(
                     '  - %s' % r.basename
                     for r in sorted(rust_libs, key=lambda r: r.basename))),
-                contexts[obj.objdir])
+                contexts[os.path.normcase(obj.objdir)])
 
         # Propagate LIBRARY_DEFINES to all child libraries recursively.
         def propagate_defines(outerlib, defines):
@@ -840,7 +840,8 @@ class TreeMetadataEmitter(LoggingMixin):
                         defines = lib.defines.get_defines()
                     yield GeneratedFile(context, script,
                                         'generate_symbols_file', lib.symbols_file,
-                                        [symbols_file], defines, py2=True)
+                                        [symbols_file], defines,
+                                        required_during_compile=[lib.symbols_file])
             if static_lib:
                 is_rust_library = context.get('IS_RUST_LIBRARY')
                 if is_rust_library:
@@ -1088,7 +1089,6 @@ class TreeMetadataEmitter(LoggingMixin):
         varlist = [
             'EXTRA_DSO_LDOPTS',
             'RCFILE',
-            'RESFILE',
             'RCINCLUDE',
             'WIN32_EXE_LDFLAGS',
             'USE_EXTENSION_MANIFEST',
@@ -1137,11 +1137,6 @@ class TreeMetadataEmitter(LoggingMixin):
                 path = mozpath.relpath(deffile.full_path, context.objdir)
             else:
                 path = deffile.target_basename
-
-            # We don't have any better way to indicate that the def file
-            # is a dependency to whatever we're building beyond stuffing
-            # it into EXTRA_DEPS.
-            passthru.variables['EXTRA_DEPS'] = [path]
 
             if context.config.substs.get('GNU_CC'):
                 computed_link_flags.resolve_flags('DEFFILE', [path])
@@ -1410,14 +1405,11 @@ class TreeMetadataEmitter(LoggingMixin):
                                             context.config.substs.get('NASM_ASFLAGS', []))
 
         if context.get('USE_INTEGRATED_CLANGCL_AS') is True:
-            clangcl = context.config.substs.get('CLANG_CL')
-            if not clangcl:
+            if context.config.substs.get('CC_TYPE') != 'clang-cl':
                 raise SandboxValidationError('clang-cl is not available', context)
-            passthru.variables['AS'] = 'clang-cl'
+            passthru.variables['AS'] = context.config.substs.get('CC')
             passthru.variables['AS_DASH_C_FLAG'] = '-c'
             passthru.variables['ASOUTOPTION'] = '-o '
-            computed_as_flags.resolve_flags('OS',
-                                            context.config.substs.get('CLANGCL_ASFLAGS', []))
 
         if passthru.variables:
             yield passthru
@@ -1478,7 +1470,7 @@ class TreeMetadataEmitter(LoggingMixin):
                                   'action', 'process_define_files.py')
             yield GeneratedFile(context, script, 'process_define_file',
                                 six.text_type(path),
-                                [Path(context, path + '.in')], py2=True)
+                                [Path(context, path + '.in')])
 
         generated_files = context.get('GENERATED_FILES') or []
         localized_generated_files = context.get('LOCALIZED_GENERATED_FILES') or []
@@ -1520,9 +1512,9 @@ class TreeMetadataEmitter(LoggingMixin):
                             % (f, p.full_path), context)
                     inputs.append(p)
 
-                yield GeneratedFile(context, script, method, outputs, inputs,
-                                    flags.flags, localized=localized, force=flags.force,
-                                    py2=flags.py2)
+                yield GeneratedFile(
+                    context, script, method, outputs, inputs, flags.flags,
+                    localized=localized, force=flags.force)
 
     def _process_test_manifests(self, context):
         for prefix, info in TEST_MANIFESTS.items():

@@ -8,7 +8,6 @@
 
 #include "frontend/BytecodeEmitter.h"  // BytecodeEmitter
 #include "frontend/EmitterScope.h"     // EmitterScope
-#include "frontend/SourceNotes.h"      // SRC_*
 #include "vm/Opcodes.h"                // JSOp
 
 using namespace js;
@@ -30,10 +29,10 @@ bool BreakableControl::patchBreaks(BytecodeEmitter* bce) {
   return bce->emitJumpTargetAndPatch(breaks);
 }
 
-LabelControl::LabelControl(BytecodeEmitter* bce, JSAtom* label,
+LabelControl::LabelControl(BytecodeEmitter* bce, const ParserAtom* label,
                            BytecodeOffset startOffset)
     : BreakableControl(bce, StatementKind::Label),
-      label_(bce->cx, label),
+      label_(label),
       startOffset_(startOffset) {}
 
 LoopControl::LoopControl(BytecodeEmitter* bce, StatementKind loopKind)
@@ -87,7 +86,7 @@ bool LoopControl::emitLoopHead(BytecodeEmitter* bce,
 }
 
 bool LoopControl::emitLoopEnd(BytecodeEmitter* bce, JSOp op,
-                              JSTryNoteKind tryNoteKind) {
+                              TryNoteKind tryNoteKind) {
   JumpList jump;
   if (!bce->emitJumpNoFallthrough(op, &jump)) {
     return false;

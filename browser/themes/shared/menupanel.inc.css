@@ -26,13 +26,13 @@
 }
 
 #appMenu-addons-button {
-  list-style-image: url(chrome://mozapps/skin/extensions/extensionGeneric-16.svg);
+  list-style-image: url(chrome://mozapps/skin/extensions/extension.svg);
 }
 
 #PanelUI-fxa-menu-sync-prefs-button,
 #PanelUI-fxa-menu-account-devices-button,
 #appMenu-preferences-button {
-  list-style-image: url(chrome://browser/skin/settings.svg);
+  list-style-image: url(chrome://global/skin/icons/settings.svg);
 }
 
 #appMenu-customize-button {
@@ -42,6 +42,10 @@
 #appMenu-find-button,
 #panelMenu_searchBookmarks {
   list-style-image: url(chrome://browser/skin/search-glass.svg);
+}
+
+#appMenu_help_importFromAnotherBrowser {
+  list-style-image: url(chrome://browser/skin/import.svg);
 }
 
 #appMenu-taskmanager-button {

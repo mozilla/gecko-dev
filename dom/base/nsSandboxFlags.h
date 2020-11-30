@@ -116,5 +116,18 @@ const unsigned long SANDBOXED_PRESENTATION = 0x4000;
  */
 const unsigned long SANDBOXED_STORAGE_ACCESS = 0x8000;
 
-const unsigned long SANDBOX_ALL_FLAGS = 0xFFFF;
+/**
+ * This flag prevents content from navigating their top-level browsing
+ * context only when the user hasn't interacted with the browser.
+ */
+const unsigned long SANDBOXED_TOPLEVEL_NAVIGATION_USER_ACTIVATION = 0x20000;
+
+/**
+ * This flag disables content from initiating or instantiating downloads,
+ * whether through downloading hyperlinks or through navigation that gets
+ * handled as a download.
+ */
+const unsigned long SANDBOXED_ALLOW_DOWNLOADS = 0x10000;
+
+const unsigned long SANDBOX_ALL_FLAGS = 0xFFFFF;
 #endif

@@ -143,18 +143,17 @@ PostMessageEvent::Run() {
 
       if (mCallerWindowID == 0) {
         rv = errorObject->Init(
-            errorText, NS_ConvertUTF8toUTF16(mScriptLocation.value()),
-            EmptyString(), 0, 0, nsIScriptError::errorFlag, "DOM Window",
-            mIsFromPrivateWindow, mProvidedPrincipal->IsSystemPrincipal());
+            errorText, NS_ConvertUTF8toUTF16(mScriptLocation.value()), u""_ns,
+            0, 0, nsIScriptError::errorFlag, "DOM Window", mIsFromPrivateWindow,
+            mProvidedPrincipal->IsSystemPrincipal());
       } else if (callerURI) {
-        rv = errorObject->InitWithSourceURI(errorText, callerURI, EmptyString(),
-                                            0, 0, nsIScriptError::errorFlag,
+        rv = errorObject->InitWithSourceURI(errorText, callerURI, u""_ns, 0, 0,
+                                            nsIScriptError::errorFlag,
                                             "DOM Window", mCallerWindowID);
       } else {
         rv = errorObject->InitWithWindowID(
-            errorText, NS_ConvertUTF8toUTF16(mScriptLocation.value()),
-            EmptyString(), 0, 0, nsIScriptError::errorFlag, "DOM Window",
-            mCallerWindowID);
+            errorText, NS_ConvertUTF8toUTF16(mScriptLocation.value()), u""_ns,
+            0, 0, nsIScriptError::errorFlag, "DOM Window", mCallerWindowID);
       }
       NS_ENSURE_SUCCESS(rv, rv);
 
@@ -181,6 +180,11 @@ PostMessageEvent::Run() {
 
   if (targetWindow->IsSharedMemoryAllowed()) {
     cloneDataPolicy.allowSharedMemoryObjects();
+  }
+
+  if (mHolder.empty()) {
+    DispatchError(cx, targetWindow, eventTarget);
+    return NS_OK;
   }
 
   StructuredCloneHolder* holder;
@@ -216,9 +220,9 @@ PostMessageEvent::Run() {
     return NS_OK;
   }
 
-  event->InitMessageEvent(nullptr, NS_LITERAL_STRING("message"), CanBubble::eNo,
-                          Cancelable::eNo, messageData, mCallerOrigin,
-                          EmptyString(), source, ports);
+  event->InitMessageEvent(nullptr, u"message"_ns, CanBubble::eNo,
+                          Cancelable::eNo, messageData, mCallerOrigin, u""_ns,
+                          source, ports);
 
   Dispatch(targetWindow, event);
   recordreplay::RecordReplayAssert("PostMessageEvent::Run #3");
@@ -237,8 +241,8 @@ void PostMessageEvent::DispatchError(JSContext* aCx,
     init.mSource.SetValue().SetAsWindowProxy() = mSource;
   }
 
-  RefPtr<Event> event = MessageEvent::Constructor(
-      aEventTarget, NS_LITERAL_STRING("messageerror"), init);
+  RefPtr<Event> event =
+      MessageEvent::Constructor(aEventTarget, u"messageerror"_ns, init);
   Dispatch(aTargetWindow, event);
 }
 

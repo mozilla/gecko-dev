@@ -8,6 +8,7 @@
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Range.h"
+#include "mozilla/Sprintf.h"
 
 #include "xpcprivate.h"
 #include "nsIScriptError.h"
@@ -24,13 +25,15 @@
 #include "jsfriendapi.h"
 #include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
 #include "js/CharacterEncoding.h"
+#include "js/experimental/TypedData.h"  // JS_GetArrayBufferViewType, JS_GetArrayBufferViewData, JS_GetTypedArrayLength, JS_IsTypedArrayObject
 #include "js/MemoryFunctions.h"
+#include "js/Object.h"  // JS::GetClass
+#include "js/String.h"  // JS::StringHasLatin1Chars
 
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/DOMException.h"
 #include "mozilla/dom/PrimitiveConversions.h"
 #include "mozilla/dom/Promise.h"
-#include "mozilla/jsipc/CrossProcessObjectWrappers.h"
 
 using namespace xpc;
 using namespace mozilla;
@@ -46,27 +49,11 @@ using namespace JS;
 
 #define ILLEGAL_CHAR_RANGE(c) (0 != ((c)&0x80))
 
-/***********************************************************/
-
-static JSObject* UnwrapNativeCPOW(nsISupports* wrapper) {
-  nsCOMPtr<nsIXPConnectWrappedJS> underware = do_QueryInterface(wrapper);
-  if (underware) {
-    // The analysis falsely believes that ~nsCOMPtr can GC because it could
-    // drop the refcount to zero, but that can't happen here.
-    JS::AutoSuppressGCAnalysis nogc;
-    JSObject* mainObj = underware->GetJSObject();
-    if (mainObj && mozilla::jsipc::IsWrappedCPOW(mainObj)) {
-      return mainObj;
-    }
-  }
-  return nullptr;
-}
-
 /***************************************************************************/
 
 // static
 bool XPCConvert::GetISupportsFromJSObject(JSObject* obj, nsISupports** iface) {
-  const JSClass* jsclass = js::GetObjectClass(obj);
+  const JSClass* jsclass = JS::GetClass(obj);
   MOZ_ASSERT(jsclass, "obj has no class");
   if (jsclass && (jsclass->flags & JSCLASS_HAS_PRIVATE) &&
       (jsclass->flags & JSCLASS_PRIVATE_IS_NSISUPPORTS)) {
@@ -276,7 +263,7 @@ bool XPCConvert::NativeData2JS(JSContext* cx, MutableHandleValue d,
         }
 
         size_t written = LossyConvertUtf8toLatin1(
-            *utf8String, MakeSpan(reinterpret_cast<char*>(buffer.get()), len));
+            *utf8String, Span(reinterpret_cast<char*>(buffer.get()), len));
         buffer[written] = 0;
 
         // written can never exceed len, so the truncation is OK.
@@ -314,8 +301,8 @@ bool XPCConvert::NativeData2JS(JSContext* cx, MutableHandleValue d,
       // code units in the source. That's why it's OK to claim the
       // output buffer has len + 1 space but then still expect to
       // have space for the zero terminator.
-      size_t written = ConvertUtf8toUtf16(
-          *utf8String, MakeSpan(buffer.get(), allocLen.value()));
+      size_t written =
+          ConvertUtf8toUtf16(*utf8String, Span(buffer.get(), allocLen.value()));
       MOZ_RELEASE_ASSERT(written <= len);
       buffer[written] = 0;
 
@@ -418,9 +405,9 @@ static bool CheckChar16InCharRange(char16_t c) {
     /* U+0080/U+0100 - U+FFFF data lost. */
     static const size_t MSG_BUF_SIZE = 64;
     char msg[MSG_BUF_SIZE];
-    snprintf(msg, MSG_BUF_SIZE,
-             "char16_t out of char range; high bits of data lost: 0x%x",
-             int(c));
+    SprintfLiteral(msg,
+                   "char16_t out of char range; high bits of data lost: 0x%x",
+                   int(c));
     NS_WARNING(msg);
     return false;
   }
@@ -582,7 +569,7 @@ bool XPCConvert::JSData2Native(JSContext* cx, void* d, HandleValue s,
       }
 
 #ifdef DEBUG
-      if (JS_StringHasLatin1Chars(str)) {
+      if (JS::StringHasLatin1Chars(str)) {
         size_t len;
         AutoCheckCannotGC nogc;
         const Latin1Char* chars =
@@ -701,7 +688,7 @@ bool XPCConvert::JSData2Native(JSContext* cx, void* d, HandleValue s,
       }
 
       mozilla::DebugOnly<size_t> written = JS::DeflateStringToUTF8Buffer(
-          linear, mozilla::MakeSpan(rs->BeginWriting(), utf8Length));
+          linear, mozilla::Span(rs->BeginWriting(), utf8Length));
       MOZ_ASSERT(written == utf8Length);
 
       return true;
@@ -940,35 +927,6 @@ bool XPCConvert::NativeInterface2JSObject(JSContext* cx, MutableHandleValue d,
     return true;
   }
 
-  // NOTE(nika): Remove if Promise becomes non-nsISupports
-  if (iid->Equals(NS_GET_IID(nsISupports))) {
-    // Check for a Promise being returned via nsISupports.  In that
-    // situation, we want to dig out its underlying JS object and return
-    // that.
-    RefPtr<Promise> promise = do_QueryObject(aHelper.Object());
-    if (promise) {
-      flat = promise->PromiseObj();
-      if (!JS_WrapObject(cx, &flat)) {
-        return false;
-      }
-      d.setObjectOrNull(flat);
-      return true;
-    }
-  }
-
-  // Don't double wrap CPOWs. This is a temporary measure for compatibility
-  // with objects that don't provide necessary QIs (such as objects under
-  // the new DOM bindings). We expect the other side of the CPOW to have
-  // the appropriate wrappers in place.
-  RootedObject cpow(cx, UnwrapNativeCPOW(aHelper.Object()));
-  if (cpow) {
-    if (!JS_WrapObject(cx, &cpow)) {
-      return false;
-    }
-    d.setObject(*cpow);
-    return true;
-  }
-
   // Go ahead and create an XPCWrappedNative for this object.
   RefPtr<XPCNativeInterface> iface = XPCNativeInterface::GetNewOrUsed(cx, iid);
   if (!iface) {
@@ -1087,18 +1045,6 @@ bool XPCConvert::JSObject2NativeInterface(JSContext* cx, void** dest,
 
       return false;
     }
-
-    // NOTE(nika): Remove if Promise becomes non-nsISupports
-    // Deal with Promises being passed as nsISupports.  In that situation we
-    // want to create a dom::Promise and use that.
-    if (iid->Equals(NS_GET_IID(nsISupports))) {
-      RootedObject innerObj(RootingCx(), inner);
-      if (IsPromiseObject(innerObj)) {
-        nsIGlobalObject* glob = NativeGlobal(innerObj);
-        RefPtr<Promise> p = Promise::CreateFromExisting(glob, innerObj);
-        return p && NS_SUCCEEDED(p->QueryInterface(*iid, dest));
-      }
-    }
   }
 
   RefPtr<nsXPCWrappedJS> wrapper;
@@ -1166,8 +1112,7 @@ nsresult XPCConvert::ConstructException(nsresult rv, const char* message,
     msgStr.AppendPrintf(format, msg, ifaceName, methodName);
   }
 
-  RefPtr<Exception> e =
-      new Exception(msgStr, rv, EmptyCString(), nullptr, data);
+  RefPtr<Exception> e = new Exception(msgStr, rv, ""_ns, nullptr, data);
 
   if (cx && jsExceptionPtr) {
     e->StowJSVal(*jsExceptionPtr);
@@ -1202,7 +1147,7 @@ static nsresult JSErrorToXPCException(JSContext* cx, const char* toStringResult,
   RefPtr<nsScriptError> data;
   if (report) {
     nsAutoString bestMessage;
-    if (report && report->message()) {
+    if (report->message()) {
       CopyUTF8toUTF16(mozilla::MakeStringSpan(report->message().c_str()),
                       bestMessage);
     } else if (toStringResult) {
@@ -1212,14 +1157,15 @@ static nsresult JSErrorToXPCException(JSContext* cx, const char* toStringResult,
     }
 
     const char16_t* linebuf = report->linebuf();
+    uint32_t flags = report->isWarning() ? nsIScriptError::warningFlag
+                                         : nsIScriptError::errorFlag;
 
     data = new nsScriptError();
     data->nsIScriptError::InitWithWindowID(
         bestMessage, NS_ConvertASCIItoUTF16(report->filename),
         linebuf ? nsDependentString(linebuf, report->linebufLength())
                 : EmptyString(),
-        report->lineno, report->tokenOffset(), report->flags,
-        NS_LITERAL_CSTRING("XPConnect JavaScript"),
+        report->lineno, report->tokenOffset(), flags, "XPConnect JavaScript"_ns,
         nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(cx));
   }
 

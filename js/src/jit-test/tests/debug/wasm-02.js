@@ -1,4 +1,4 @@
-// |jit-test| skip-if: !wasmDebuggingIsSupported()
+// |jit-test| skip-if: !wasmDebuggingEnabled()
 
 // Tests that wasm module scripts are available via onNewScript.
 
@@ -10,11 +10,11 @@ dbg.onNewScript = (script) => {
   gotScript = script;
 }
 
-g.eval(`o = new WebAssembly.Instance(new WebAssembly.Module(wasmTextToBinary('(module (func) (export "" 0))')));`);
+g.eval(`o = new WebAssembly.Instance(new WebAssembly.Module(wasmTextToBinary('(module (func) (export "" (func 0)))')));`);
 assertEq(gotScript.format, "wasm");
 
 var gotScript2 = gotScript;
-g.eval(`o = new WebAssembly.Instance(new WebAssembly.Module(wasmTextToBinary('(module (func) (export "a" 0))')));`);
+g.eval(`o = new WebAssembly.Instance(new WebAssembly.Module(wasmTextToBinary('(module (func) (export "a" (func 0)))')));`);
 assertEq(gotScript.format, "wasm");
 
 // The two wasm Debugger.Scripts are distinct.

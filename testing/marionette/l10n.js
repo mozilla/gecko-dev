@@ -4,6 +4,8 @@
 
 "use strict";
 
+const EXPORTED_SYMBOLS = ["l10n"];
+
 /**
  * An API which allows Marionette to handle localized content.
  *
@@ -20,18 +22,16 @@ const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
+XPCOMUtils.defineLazyModuleGetters(this, {
+  error: "chrome://marionette/content/error.js",
+});
+
 XPCOMUtils.defineLazyGlobalGetters(this, ["DOMParser"]);
 XPCOMUtils.defineLazyGetter(this, "domParser", () => {
   const parser = new DOMParser();
   parser.forceEnableDTD();
   return parser;
 });
-
-const { NoSuchElementError } = ChromeUtils.import(
-  "chrome://marionette/content/error.js"
-);
-
-this.EXPORTED_SYMBOLS = ["l10n"];
 
 /** @namespace */
 this.l10n = {};
@@ -64,7 +64,9 @@ l10n.localizeEntity = function(urls, id) {
   let element = doc.querySelector("elem[id='elementID']");
 
   if (element === null) {
-    throw new NoSuchElementError(`Entity with id='${id}' hasn't been found`);
+    throw new error.NoSuchElementError(
+      `Entity with id='${id}' hasn't been found`
+    );
   }
 
   return element.textContent;
@@ -98,7 +100,9 @@ l10n.localizeProperty = function(urls, id) {
   }
 
   if (property === null) {
-    throw new NoSuchElementError(`Property with ID '${id}' hasn't been found`);
+    throw new error.NoSuchElementError(
+      `Property with ID '${id}' hasn't been found`
+    );
   }
 
   return property;

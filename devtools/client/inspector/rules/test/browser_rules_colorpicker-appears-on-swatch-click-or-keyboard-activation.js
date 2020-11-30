@@ -24,11 +24,11 @@ add_task(async function() {
   const propertiesToTest = ["color", "background-color", "border"];
 
   for (const property of propertiesToTest) {
-    info("Testing that the colorpicker appears on swatch click");
+    info(`Test that the colorpicker appears on swatch click for ${property}`);
     await testColorPickerAppearsOnColorSwatchActivation(view, property);
 
     info(
-      "Testing that swatch is focusable and colorpicker can be activated with a keyboard"
+      `Test that swatch is focusable and colorpicker can be activated with a keyboard for ${property}`
     );
     await testColorPickerAppearsOnColorSwatchActivation(view, property, true);
   }
@@ -43,7 +43,7 @@ async function testColorPickerAppearsOnColorSwatchActivation(
   const swatch = value.querySelector(".ruleview-colorswatch");
 
   const cPicker = view.tooltips.getTooltip("colorPicker");
-  ok(cPicker, "The rule-view has the expected colorPicker property");
+  ok(cPicker, "The rule-view has an expected colorPicker widget");
 
   const cPickerPanel = cPicker.tooltip.panel;
   ok(cPickerPanel, "The XUL panel for the color picker exists");
@@ -65,11 +65,8 @@ async function testColorPickerAppearsOnColorSwatchActivation(
   }
   await onColorPickerReady;
 
-  ok(true, "The color picker was shown on click of the color swatch");
-  ok(
-    !inplaceEditor(swatch.parentNode),
-    "The inplace editor wasn't shown as a result of the color swatch click"
-  );
+  info("The color picker was displayed");
+  ok(!inplaceEditor(swatch.parentNode), "The inplace editor wasn't displayed");
 
   await hideTooltipAndWaitForRuleViewChanged(cPicker, view);
 }

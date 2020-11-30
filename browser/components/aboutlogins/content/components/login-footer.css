@@ -12,20 +12,18 @@ footer {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  margin-top: 20px;
+  margin-block: 20px;
 }
 
 footer > p {
   display: inline-block;
   line-height: 1.5;
-  padding-inline-end: 70px;
   margin: 0;
   margin-inline-end: auto;
 }
 
 footer > .buttons {
   display: inline-block;
-  margin-inline-end: auto;
 }
 
 footer button {
@@ -46,6 +44,7 @@ footer button:not(.close) img {
 
 footer .app-store img {
   height: 40px;
+  padding: 10px;
 }
 
 footer .play-store img {

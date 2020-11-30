@@ -21,9 +21,11 @@ EXPORTS.mozilla = [
     'Array.h',
     'ArrayUtils.h',
     'Assertions.h',
+    'AtomicBitfields.h',
     'Atomics.h',
     'Attributes.h',
     'BinarySearch.h',
+    'BitSet.h',
     'BloomFilter.h',
     'Buffer.h',
     'BufferList.h',
@@ -31,6 +33,7 @@ EXPORTS.mozilla = [
     'ChaosMode.h',
     'Char16.h',
     'CheckedInt.h',
+    'CompactPair.h',
     'Compiler.h',
     'Compression.h',
     'DbgMacro.h',
@@ -46,8 +49,8 @@ EXPORTS.mozilla = [
     'FastBernoulliTrial.h',
     'FloatingPoint.h',
     'FStream.h',
+    'FunctionRef.h',
     'FunctionTypeTraits.h',
-    'GuardObjects.h',
     'HashFunctions.h',
     'HashTable.h',
     'HelperMacros.h',
@@ -71,7 +74,6 @@ EXPORTS.mozilla = [
     'NotNull.h',
     'Opaque.h',
     'OperatorNewExtensions.h',
-    'Pair.h',
     'Path.h',
     'PodOperations.h',
     'Poison.h',
@@ -137,9 +139,10 @@ if CONFIG['OS_ARCH'] == 'WINNT':
     EXPORTS.mozilla += [
         'WindowsVersion.h',
     ]
-elif CONFIG['OS_ARCH'] == 'Linux':
+
+if CONFIG['MOZ_TSAN']:
     EXPORTS.mozilla += [
-        'LinuxSignal.h',
+        'TsanOptions.h',
     ]
 
 UNIFIED_SOURCES += [
@@ -165,14 +168,17 @@ UNIFIED_SOURCES += [
     'Utf8.cpp',
 ]
 
-if CONFIG['MOZ_BUILD_APP'] not in ('memory', 'tools/crashreporter', 'tools/update-packaging'):
+if CONFIG['MOZ_BUILD_APP'] not in (
+        'memory',
+        'tools/crashreporter',
+        'tools/update-packaging',
+        'tools/update-programs',
+    ):
     # RecordReplay.cpp uses files from js/
     UNIFIED_SOURCES += [
         'RecordReplay.cpp',
     ]
-
-    # Building MFBT tests adds a large overhead when building
-    # tools/crashreporter.
+    # Building MFBT tests adds a large overhead when building.
     TEST_DIRS += ['tests']
 
 DEFINES['IMPL_MFBT'] = True

@@ -43,12 +43,14 @@
 #include "nsThreadUtils.h"
 #include "nsNetUtil.h"
 #include "nsNetCID.h"
-#include "mozilla/StaticPtr.h"
+#include "mozilla/RandomNum.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/Unused.h"
+#include "mozilla/dom/RTCDataChannelBinding.h"
+#include "mozilla/dom/RTCStatsReportBinding.h"
 #ifdef MOZ_PEERCONNECTION
-#  include "mtransport/runnable_utils.h"
-#  include "signaling/src/peerconnection/MediaTransportHandler.h"
+#  include "transport/runnable_utils.h"
+#  include "jsapi/MediaTransportHandler.h"
 #  include "mediapacket.h"
 #endif
 
@@ -67,8 +69,6 @@
     } while (0)
 #endif
 
-static bool sctp_initialized;
-
 namespace mozilla {
 
 LazyLogModule gDataChannelLog("DataChannel");
@@ -77,43 +77,55 @@ static LazyLogModule gSCTPLog("SCTP");
 #define SCTP_LOG(args) \
   MOZ_LOG(mozilla::gSCTPLog, mozilla::LogLevel::Debug, args)
 
-class DataChannelConnectionShutdown : public nsITimerCallback {
- public:
-  explicit DataChannelConnectionShutdown(DataChannelConnection* aConnection)
-      : mConnection(aConnection) {
-    mTimer = NS_NewTimer();  // we'll crash if this fails
-    mTimer->InitWithCallback(this, 30 * 1000, nsITimer::TYPE_ONE_SHOT);
+static void debug_printf(const char* format, ...) {
+  va_list ap;
+  char buffer[1024];
+
+  if (MOZ_LOG_TEST(gSCTPLog, LogLevel::Debug)) {
+    va_start(ap, format);
+#ifdef _WIN32
+    if (vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, format, ap) > 0) {
+#else
+    if (VsprintfLiteral(buffer, format, ap) > 0) {
+#endif
+      SCTP_LOG(("%s", buffer));
+    }
+    va_end(ap);
   }
+}
 
-  NS_IMETHODIMP Notify(nsITimer* aTimer) override;
-
+class DataChannelRegistry : public nsIObserver {
+ public:
   NS_DECL_THREADSAFE_ISUPPORTS
 
+  static uintptr_t Register(DataChannelConnection* aConnection) {
+    StaticMutexAutoLock lock(sInstanceMutex);
+    if (NS_WARN_IF(!Instance())) {
+      return 0;
+    }
+    return Instance()->RegisterImpl(aConnection);
+  }
+
+  static void Deregister(uintptr_t aId) {
+    StaticMutexAutoLock lock(sInstanceMutex);
+    if (NS_WARN_IF(!Instance())) {
+      return;
+    }
+    Instance()->DeregisterImpl(aId);
+  }
+
+  static RefPtr<DataChannelConnection> Lookup(uintptr_t aId) {
+    StaticMutexAutoLock lock(sInstanceMutex);
+    if (NS_WARN_IF(!Instance())) {
+      return nullptr;
+    }
+    return Instance()->LookupImpl(aId);
+  }
+
  private:
-  virtual ~DataChannelConnectionShutdown() { mTimer->Cancel(); }
-
-  RefPtr<DataChannelConnection> mConnection;
-  nsCOMPtr<nsITimer> mTimer;
-};
-
-class DataChannelShutdown;
-
-StaticRefPtr<DataChannelShutdown> sDataChannelShutdown;
-
-class DataChannelShutdown : public nsIObserver {
- public:
-  // This needs to be tied to some object that is guaranteed to be
-  // around (singleton likely) unless we want to shutdown sctp whenever
-  // we're not using it (and in which case we'd keep a refcnt'd object
-  // ref'd by each DataChannelConnection to release the SCTP usrlib via
-  // sctp_finish). Right now, the single instance of this class is
-  // owned by the observer service and a StaticRefPtr.
-
-  NS_DECL_ISUPPORTS
-
-  DataChannelShutdown() = default;
-
-  void Init() {
+  // This is a singleton class, so don't let just anyone create one of these
+  DataChannelRegistry() {
+    ASSERT_WEBRTC(NS_IsMainThread());
     nsCOMPtr<nsIObserverService> observerService =
         mozilla::services::GetObserverService();
     if (!observerService) return;
@@ -122,82 +134,138 @@ class DataChannelShutdown : public nsIObserver {
         observerService->AddObserver(this, "xpcom-will-shutdown", false);
     MOZ_ASSERT(rv == NS_OK);
     (void)rv;
+    // TODO(bug 1646716): usrsctp_finish is racy, so we init in the c'tor.
+    InitUsrSctp();
+  }
+
+  static RefPtr<DataChannelRegistry>& Instance() {
+    // Lazy-create static registry.
+    static RefPtr<DataChannelRegistry> sRegistry = new DataChannelRegistry;
+    return sRegistry;
   }
 
   NS_IMETHOD Observe(nsISupports* aSubject, const char* aTopic,
                      const char16_t* aData) override {
-    // Note: MainThread
+    ASSERT_WEBRTC(NS_IsMainThread());
     if (strcmp(aTopic, "xpcom-will-shutdown") == 0) {
-      DC_DEBUG(("Shutting down SCTP"));
-      if (sctp_initialized) {
-        usrsctp_finish();
-        sctp_initialized = false;
+      RefPtr<DataChannelRegistry> self = this;
+      {
+        StaticMutexAutoLock lock(sInstanceMutex);
+        Instance() = nullptr;
       }
+
+      // |self| is the only reference now
+
+      if (NS_WARN_IF(!mConnections.empty())) {
+        MOZ_ASSERT(false);
+        mConnections.clear();
+      }
+
+      // TODO(bug 1646716): usrsctp_finish is racy, so we wait until xpcom
+      // shutdown for this.
+      DeinitUsrSctp();
       nsCOMPtr<nsIObserverService> observerService =
           mozilla::services::GetObserverService();
-      if (!observerService) return NS_ERROR_FAILURE;
+      if (NS_WARN_IF(!observerService)) {
+        return NS_ERROR_FAILURE;
+      }
 
       nsresult rv =
           observerService->RemoveObserver(this, "xpcom-will-shutdown");
       MOZ_ASSERT(rv == NS_OK);
       (void)rv;
-
-      {
-        StaticMutexAutoLock lock(sLock);
-        sConnections = nullptr;  // clears as well
-      }
-      sDataChannelShutdown = nullptr;
     }
+
     return NS_OK;
   }
 
-  void CreateConnectionShutdown(DataChannelConnection* aConnection) {
-    StaticMutexAutoLock lock(sLock);
-    if (!sConnections) {
-      sConnections = new nsTArray<RefPtr<DataChannelConnectionShutdown>>();
-    }
-    sConnections->AppendElement(new DataChannelConnectionShutdown(aConnection));
+  uintptr_t RegisterImpl(DataChannelConnection* aConnection) {
+    ASSERT_WEBRTC(NS_IsMainThread());
+    // TODO(bug 1646716): usrsctp_finish is racy, so we init in the c'tor.
+    // if (mConnections.empty()) {
+    //  InitUsrSctp();
+    //}
+    mConnections.emplace(mNextId, aConnection);
+    return mNextId++;
   }
 
-  void RemoveConnectionShutdown(
-      DataChannelConnectionShutdown* aConnectionShutdown) {
-    StaticMutexAutoLock lock(sLock);
-    if (sConnections) {
-      sConnections->RemoveElement(aConnectionShutdown);
-    }
+  void DeregisterImpl(uintptr_t aId) {
+    ASSERT_WEBRTC(NS_IsMainThread());
+    mConnections.erase(aId);
+    // TODO(bug 1646716): usrsctp_finish is racy, so we wait until xpcom
+    // shutdown for this.
+    // if (mConnections.empty()) {
+    //  DeinitUsrSctp();
+    //}
   }
 
- private:
-  // The only instance of DataChannelShutdown is owned by the observer
-  // service, so there is no need to call RemoveObserver here.
-  virtual ~DataChannelShutdown() = default;
+  RefPtr<DataChannelConnection> LookupImpl(uintptr_t aId) {
+    auto it = mConnections.find(aId);
+    if (NS_WARN_IF(it == mConnections.end())) {
+      return nullptr;
+    }
+    return it->second;
+  }
 
-  // protects sConnections
-  static StaticMutex sLock;
-  static StaticAutoPtr<nsTArray<RefPtr<DataChannelConnectionShutdown>>>
-      sConnections;
+  virtual ~DataChannelRegistry() = default;
+
+#ifdef SCTP_DTLS_SUPPORTED
+  static int SctpDtlsOutput(void* addr, void* buffer, size_t length,
+                            uint8_t tos, uint8_t set_df) {
+    uintptr_t id = reinterpret_cast<uintptr_t>(addr);
+    RefPtr<DataChannelConnection> connection = DataChannelRegistry::Lookup(id);
+    if (NS_WARN_IF(!connection)) {
+      return 0;
+    }
+    return connection->SctpDtlsOutput(addr, buffer, length, tos, set_df);
+  }
+#endif
+
+  void InitUsrSctp() {
+    DC_DEBUG(("sctp_init"));
+#ifdef MOZ_PEERCONNECTION
+    usrsctp_init(0, DataChannelRegistry::SctpDtlsOutput, debug_printf);
+#else
+    MOZ_CRASH("Trying to use SCTP/DTLS without dom/media/webrtc/transport");
+#endif
+
+    // Set logging to SCTP:LogLevel::Debug to get SCTP debugs
+    if (MOZ_LOG_TEST(gSCTPLog, LogLevel::Debug)) {
+      usrsctp_sysctl_set_sctp_debug_on(SCTP_DEBUG_ALL);
+    }
+
+    // Do not send ABORTs in response to INITs (1).
+    // Do not send ABORTs for received Out of the Blue packets (2).
+    usrsctp_sysctl_set_sctp_blackhole(2);
+
+    // Disable the Explicit Congestion Notification extension (currently not
+    // supported by the Firefox code)
+    usrsctp_sysctl_set_sctp_ecn_enable(0);
+
+    // Enable interleaving messages for different streams (incoming)
+    // See: https://tools.ietf.org/html/rfc6458#section-8.1.20
+    usrsctp_sysctl_set_sctp_default_frag_interleave(2);
+
+    // Disabling authentication and dynamic address reconfiguration as neither
+    // of them are used for data channel and only result in additional code
+    // paths being used.
+    usrsctp_sysctl_set_sctp_asconf_enable(0);
+    usrsctp_sysctl_set_sctp_auth_enable(0);
+  }
+
+  void DeinitUsrSctp() {
+    DC_DEBUG(("Shutting down SCTP"));
+    usrsctp_finish();
+  }
+
+  uintptr_t mNextId = 1;
+  std::map<uintptr_t, RefPtr<DataChannelConnection>> mConnections;
+  static StaticMutex sInstanceMutex;
 };
 
-StaticMutex DataChannelShutdown::sLock;
-StaticAutoPtr<nsTArray<RefPtr<DataChannelConnectionShutdown>>>
-    DataChannelShutdown::sConnections;
+StaticMutex DataChannelRegistry::sInstanceMutex;
 
-NS_IMPL_ISUPPORTS(DataChannelShutdown, nsIObserver);
-
-NS_IMPL_ISUPPORTS(DataChannelConnectionShutdown, nsITimerCallback)
-
-NS_IMETHODIMP
-DataChannelConnectionShutdown::Notify(nsITimer* aTimer) {
-  // safely release reference to ourself
-  RefPtr<DataChannelConnectionShutdown> grip(this);
-  // Might not be set. We don't actually use the |this| pointer in
-  // RemoveConnectionShutdown right now, which makes this a bit gratuitous
-  // anyway...
-  if (sDataChannelShutdown) {
-    sDataChannelShutdown->RemoveConnectionShutdown(this);
-  }
-  return NS_OK;
-}
+NS_IMPL_ISUPPORTS(DataChannelRegistry, nsIObserver);
 
 OutgoingMsg::OutgoingMsg(struct sctp_sendv_spa& info, const uint8_t* data,
                          size_t length)
@@ -232,12 +300,18 @@ BufferedOutgoingMsg::~BufferedOutgoingMsg() {
 static int receive_cb(struct socket* sock, union sctp_sockstore addr,
                       void* data, size_t datalen, struct sctp_rcvinfo rcv,
                       int flags, void* ulp_info) {
-  DataChannelConnection* connection =
-      static_cast<DataChannelConnection*>(ulp_info);
+  DC_DEBUG(("In receive_cb, ulp_info=%p", ulp_info));
+  uintptr_t id = reinterpret_cast<uintptr_t>(ulp_info);
+  RefPtr<DataChannelConnection> connection = DataChannelRegistry::Lookup(id);
+  if (!connection) {
+    MOZ_ASSERT(false);
+    return 0;
+  }
   return connection->ReceiveCallback(sock, data, datalen, rcv, flags);
 }
 
-static DataChannelConnection* GetConnectionFromSocket(struct socket* sock) {
+static RefPtr<DataChannelConnection> GetConnectionFromSocket(
+    struct socket* sock) {
   struct sockaddr* addrs = nullptr;
   int naddrs = usrsctp_getladdrs(sock, 0, &addrs);
   if (naddrs <= 0 || addrs[0].sa_family != AF_CONN) {
@@ -250,8 +324,8 @@ static DataChannelConnection* GetConnectionFromSocket(struct socket* sock) {
   // pointer that created them, so [0] is as good as any other.
   struct sockaddr_conn* sconn =
       reinterpret_cast<struct sockaddr_conn*>(&addrs[0]);
-  DataChannelConnection* connection =
-      reinterpret_cast<DataChannelConnection*>(sconn->sconn_addr);
+  uintptr_t id = reinterpret_cast<uintptr_t>(sconn->sconn_addr);
+  RefPtr<DataChannelConnection> connection = DataChannelRegistry::Lookup(id);
   usrsctp_freeladdrs(addrs);
 
   return connection;
@@ -259,30 +333,13 @@ static DataChannelConnection* GetConnectionFromSocket(struct socket* sock) {
 
 // called when the buffer empties to the threshold value
 static int threshold_event(struct socket* sock, uint32_t sb_free) {
-  DataChannelConnection* connection = GetConnectionFromSocket(sock);
+  RefPtr<DataChannelConnection> connection = GetConnectionFromSocket(sock);
   if (connection) {
     connection->SendDeferredMessages();
   } else {
     DC_ERROR(("Can't find connection for socket %p", sock));
   }
   return 0;
-}
-
-static void debug_printf(const char* format, ...) {
-  va_list ap;
-  char buffer[1024];
-
-  if (MOZ_LOG_TEST(gSCTPLog, LogLevel::Debug)) {
-    va_start(ap, format);
-#ifdef _WIN32
-    if (vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, format, ap) > 0) {
-#else
-    if (VsprintfLiteral(buffer, format, ap) > 0) {
-#endif
-      SCTP_LOG(("%s", buffer));
-    }
-    va_end(ap);
-  }
 }
 
 DataChannelConnection::~DataChannelConnection() {
@@ -351,31 +408,23 @@ void DataChannelConnection::DestroyOnSTS(struct socket* aMasterSocket,
   if (aSocket && aSocket != aMasterSocket) usrsctp_close(aSocket);
   if (aMasterSocket) usrsctp_close(aMasterSocket);
 
-  usrsctp_deregister_address(static_cast<void*>(this));
-  DC_DEBUG(("Deregistered %p from the SCTP stack.", static_cast<void*>(this)));
+  usrsctp_deregister_address(reinterpret_cast<void*>(mId));
+  DC_DEBUG(
+      ("Deregistered %p from the SCTP stack.", reinterpret_cast<void*>(mId)));
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
   mShutdown = true;
 #endif
 
   disconnect_all();
   mTransportHandler = nullptr;
-
-  // we may have queued packet sends on STS after this; dispatch to ourselves
-  // before finishing here so we can be sure there aren't anymore runnables
-  // active that can try to touch the flow. DON'T use RUN_ON_THREAD, it
-  // queue-jumps!
-  mSTS->Dispatch(WrapRunnable(RefPtr<DataChannelConnection>(this),
-                              &DataChannelConnection::DestroyOnSTSFinal),
-                 NS_DISPATCH_NORMAL);
-}
-
-void DataChannelConnection::DestroyOnSTSFinal() {
-  sDataChannelShutdown->CreateConnectionShutdown(this);
+  GetMainThreadEventTarget()->Dispatch(NS_NewRunnableFunction(
+      "DataChannelConnection::Destroy",
+      [id = mId]() { DataChannelRegistry::Deregister(id); }));
 }
 
 Maybe<RefPtr<DataChannelConnection>> DataChannelConnection::Create(
     DataChannelConnection::DataConnectionListener* aListener,
-    nsIEventTarget* aTarget, MediaTransportHandler* aHandler,
+    nsISerialEventTarget* aTarget, MediaTransportHandler* aHandler,
     const uint16_t aLocalPort, const uint16_t aNumStreams,
     const Maybe<uint64_t>& aMaxMessageSize) {
   ASSERT_WEBRTC(NS_IsMainThread());
@@ -389,7 +438,7 @@ Maybe<RefPtr<DataChannelConnection>> DataChannelConnection::Create(
 
 DataChannelConnection::DataChannelConnection(
     DataChannelConnection::DataConnectionListener* aListener,
-    nsIEventTarget* aTarget, MediaTransportHandler* aHandler)
+    nsISerialEventTarget* aTarget, MediaTransportHandler* aHandler)
     : NeckoTargetHolder(aTarget),
       mLock("netwerk::sctp::DataChannelConnection"),
       mListener(aListener),
@@ -421,38 +470,9 @@ bool DataChannelConnection::Init(const uint16_t aLocalPort,
     // MutexAutoLock lock(mLock); Not needed since we're on mainthread always
     mLocalPort = aLocalPort;
     SetMaxMessageSize(aMaxMessageSize.isSome(), aMaxMessageSize.valueOr(0));
-
-    if (!sctp_initialized) {
-      DC_DEBUG(("sctp_init"));
-#ifdef MOZ_PEERCONNECTION
-      usrsctp_init(0, DataChannelConnection::SctpDtlsOutput, debug_printf);
-#else
-      MOZ_CRASH("Trying to use SCTP/DTLS without mtransport");
-#endif
-
-      // Set logging to SCTP:LogLevel::Debug to get SCTP debugs
-      if (MOZ_LOG_TEST(gSCTPLog, LogLevel::Debug)) {
-        usrsctp_sysctl_set_sctp_debug_on(SCTP_DEBUG_ALL);
-      }
-
-      // Do not send ABORTs in response to INITs (1).
-      // Do not send ABORTs for received Out of the Blue packets (2).
-      usrsctp_sysctl_set_sctp_blackhole(2);
-
-      // Disable the Explicit Congestion Notification extension (currently not
-      // supported by the Firefox code)
-      usrsctp_sysctl_set_sctp_ecn_enable(0);
-
-      // Enable interleaving messages for different streams (incoming)
-      // See: https://tools.ietf.org/html/rfc6458#section-8.1.20
-      usrsctp_sysctl_set_sctp_default_frag_interleave(2);
-
-      sctp_initialized = true;
-
-      sDataChannelShutdown = new DataChannelShutdown();
-      sDataChannelShutdown->Init();
-    }
   }
+
+  mId = DataChannelRegistry::Register(this);
 
   // XXX FIX! make this a global we get once
   // Find the STS thread
@@ -463,7 +483,8 @@ bool DataChannelConnection::Init(const uint16_t aLocalPort,
   // Open sctp with a callback
   if ((mMasterSocket = usrsctp_socket(
            AF_CONN, SOCK_STREAM, IPPROTO_SCTP, receive_cb, threshold_event,
-           usrsctp_sysctl_get_sctp_sendspace() / 2, this)) == nullptr) {
+           usrsctp_sysctl_get_sctp_sendspace() / 2,
+           reinterpret_cast<void*>(mId))) == nullptr) {
     return false;
   }
 
@@ -581,8 +602,13 @@ bool DataChannelConnection::Init(const uint16_t aLocalPort,
   }
 
   mSocket = nullptr;
-  usrsctp_register_address(static_cast<void*>(this));
-  DC_DEBUG(("Registered %p within the SCTP stack.", static_cast<void*>(this)));
+  mSTS->Dispatch(
+      NS_NewRunnableFunction("DataChannelConnection::Init", [id = mId]() {
+        usrsctp_register_address(reinterpret_cast<void*>(id));
+        DC_DEBUG(("Registered %p within the SCTP stack.",
+                  reinterpret_cast<void*>(id)));
+      }));
+
   return true;
 
 error_cleanup:
@@ -641,6 +667,60 @@ void DataChannelConnection::SetMaxMessageSize(bool aMaxMessageSizeSet,
 }
 
 uint64_t DataChannelConnection::GetMaxMessageSize() { return mMaxMessageSize; }
+
+void DataChannelConnection::AppendStatsToReport(
+    const UniquePtr<dom::RTCStatsCollection>& aReport,
+    const DOMHighResTimeStamp aTimestamp) const {
+  ASSERT_WEBRTC(NS_IsMainThread());
+  nsString temp;
+  for (const RefPtr<DataChannel>& chan : mChannels.GetAll()) {
+    // If channel is empty, ignore
+    if (!chan) {
+      continue;
+    }
+    mozilla::dom::RTCDataChannelStats stats;
+    nsString id = u"dc"_ns;
+    id.AppendInt(chan->GetStream());
+    stats.mId.Construct(id);
+    chan->GetLabel(temp);
+    stats.mTimestamp.Construct(aTimestamp);
+    stats.mType.Construct(mozilla::dom::RTCStatsType::Data_channel);
+    stats.mLabel.Construct(temp);
+    chan->GetProtocol(temp);
+    stats.mProtocol.Construct(temp);
+    stats.mDataChannelIdentifier.Construct(chan->GetStream());
+    {
+      using State = mozilla::dom::RTCDataChannelState;
+      State state;
+      switch (chan->GetReadyState()) {
+        case CONNECTING:
+          state = State::Connecting;
+          break;
+        case OPEN:
+          state = State::Open;
+          break;
+        case CLOSING:
+          state = State::Closing;
+          break;
+        case CLOSED:
+          state = State::Closed;
+          break;
+        default:
+          MOZ_ASSERT(false, "Unknown DataChannel state");
+          continue;
+      };
+      stats.mState.Construct(state);
+    }
+    auto counters = chan->GetTrafficCounters();
+    stats.mMessagesSent.Construct(counters.mMessagesSent);
+    stats.mBytesSent.Construct(counters.mBytesSent);
+    stats.mMessagesReceived.Construct(counters.mMessagesReceived);
+    stats.mBytesReceived.Construct(counters.mBytesReceived);
+    if (!aReport->mDataChannelStats.AppendElement(stats, fallible)) {
+      mozalloc_handle_oom(0);
+    }
+  }
+}
 
 #ifdef MOZ_PEERCONNECTION
 
@@ -715,6 +795,8 @@ void DataChannelConnection::SetSignals(const std::string& aTransportId) {
   mTransportId = aTransportId;
   mTransportHandler->SignalPacketReceived.connect(
       this, &DataChannelConnection::SctpDtlsInput);
+  mTransportHandler->SignalStateChange.connect(
+      this, &DataChannelConnection::TransportStateChange);
   // SignalStateChange() doesn't call you with the initial state
   if (mTransportHandler->GetState(mTransportId, false) ==
       TransportLayer::TS_OPEN) {
@@ -722,15 +804,21 @@ void DataChannelConnection::SetSignals(const std::string& aTransportId) {
     CompleteConnect();
   } else {
     DC_DEBUG(("Setting transport signals, dtls not open yet"));
-    mTransportHandler->SignalStateChange.connect(
-        this, &DataChannelConnection::TransportStateChange);
   }
 }
 
 void DataChannelConnection::TransportStateChange(
     const std::string& aTransportId, TransportLayer::State aState) {
-  if (aState == TransportLayer::TS_OPEN && aTransportId == mTransportId) {
-    CompleteConnect();
+  if (aTransportId == mTransportId) {
+    if (aState == TransportLayer::TS_OPEN) {
+      DC_DEBUG(("Transport is open!"));
+      CompleteConnect();
+    } else if (aState == TransportLayer::TS_CLOSED ||
+               aState == TransportLayer::TS_NONE ||
+               aState == TransportLayer::TS_ERROR) {
+      DC_DEBUG(("Transport is closed!"));
+      Stop();
+    }
   }
 }
 
@@ -750,7 +838,7 @@ void DataChannelConnection::CompleteConnect() {
   addr.sconn_len = sizeof(addr);
 #  endif
   addr.sconn_port = htons(mLocalPort);
-  addr.sconn_addr = static_cast<void*>(this);
+  addr.sconn_addr = reinterpret_cast<void*>(mId);
 
   DC_DEBUG(("Calling usrsctp_bind"));
   int r = usrsctp_bind(mMasterSocket, reinterpret_cast<struct sockaddr*>(&addr),
@@ -816,18 +904,15 @@ void DataChannelConnection::ProcessQueuedOpens() {
 
   // Can't copy nsDeque's.  Move into temp array since any that fail will
   // go back to mPending
-  nsDeque temp;
-  DataChannel* temp_channel;  // really already_AddRefed<>
-  while (nullptr !=
-         (temp_channel = static_cast<DataChannel*>(mPending.PopFront()))) {
-    temp.Push(static_cast<void*>(temp_channel));
+  nsRefPtrDeque<DataChannel> temp;
+  RefPtr<DataChannel> temp_channel;
+  while (nullptr != (temp_channel = mPending.PopFront())) {
+    temp.Push(temp_channel.forget());
   }
 
   RefPtr<DataChannel> channel;
-  // All these entries have an AddRef(); make that explicit now via the
-  // dont_AddRef()
-  while (nullptr !=
-         (channel = dont_AddRef(static_cast<DataChannel*>(temp.PopFront())))) {
+
+  while (nullptr != (channel = temp.PopFront())) {
     if (channel->mFlags & DATA_CHANNEL_FLAGS_FINISH_OPEN) {
       DC_DEBUG(("Processing queued open for %p (%u)", channel.get(),
                 channel->mStream));
@@ -860,7 +945,8 @@ void DataChannelConnection::SctpDtlsInput(const std::string& aTransportId,
   }
   // Pass the data to SCTP
   MutexAutoLock lock(mLock);
-  usrsctp_conninput(static_cast<void*>(this), packet.data(), packet.len(), 0);
+  usrsctp_conninput(reinterpret_cast<void*>(mId), packet.data(), packet.len(),
+                    0);
 }
 
 void DataChannelConnection::SendPacket(std::unique_ptr<MediaPacket>&& packet) {
@@ -875,12 +961,10 @@ void DataChannelConnection::SendPacket(std::unique_ptr<MediaPacket>&& packet) {
       }));
 }
 
-/* static */
 int DataChannelConnection::SctpDtlsOutput(void* addr, void* buffer,
                                           size_t length, uint8_t tos,
                                           uint8_t set_df) {
-  DataChannelConnection* peer = static_cast<DataChannelConnection*>(addr);
-  MOZ_DIAGNOSTIC_ASSERT(!peer->mShutdown);
+  MOZ_DIAGNOSTIC_ASSERT(!mShutdown);
 
   if (MOZ_LOG_TEST(gSCTPLog, LogLevel::Debug)) {
     char* buf;
@@ -901,12 +985,12 @@ int DataChannelConnection::SctpDtlsOutput(void* addr, void* buffer,
   packet->SetType(MediaPacket::SCTP);
   packet->Copy(static_cast<const uint8_t*>(buffer), length);
 
-  if (NS_IsMainThread() && peer->mDeferSend) {
-    peer->mDeferredSend.emplace_back(std::move(packet));
+  if (NS_IsMainThread() && mDeferSend) {
+    mDeferredSend.emplace_back(std::move(packet));
     return 0;
   }
 
-  peer->SendPacket(std::move(packet));
+  SendPacket(std::move(packet));
   return 0;  // cheat!  Packets can always be dropped later anyways
 }
 #endif
@@ -1206,10 +1290,10 @@ int DataChannelConnection::SendOpenRequestMessage(
   // careful - request struct include one char for the label
   const int req_size = sizeof(struct rtcweb_datachannel_open_request) - 1 +
                        label_len + proto_len;
-  struct rtcweb_datachannel_open_request* req =
-      (struct rtcweb_datachannel_open_request*)moz_xmalloc(req_size);
+  UniqueFreePtr<struct rtcweb_datachannel_open_request> req(
+      (struct rtcweb_datachannel_open_request*)moz_xmalloc(req_size));
 
-  memset(req, 0, req_size);
+  memset(req.get(), 0, req_size);
   req->msg_type = DATA_CHANNEL_OPEN_REQUEST;
   switch (prPolicy) {
     case SCTP_PR_SCTP_NONE:
@@ -1222,7 +1306,6 @@ int DataChannelConnection::SendOpenRequestMessage(
       req->channel_type = DATA_CHANNEL_PARTIAL_RELIABLE_REXMIT;
       break;
     default:
-      free(req);
       return EINVAL;
   }
   if (unordered) {
@@ -1239,9 +1322,7 @@ int DataChannelConnection::SendOpenRequestMessage(
   memcpy(&req->label[label_len], PromiseFlatCString(protocol).get(), proto_len);
 
   // TODO: req_size is an int... that looks hairy
-  int error = SendControlMessage((const uint8_t*)req, req_size, stream);
-
-  free(req);
+  int error = SendControlMessage((const uint8_t*)req.get(), req_size, stream);
   return error;
 }
 
@@ -1473,21 +1554,17 @@ void DataChannelConnection::HandleOpenRequestMessage(
 void DataChannelConnection::DeliverQueuedData(uint16_t stream) {
   mLock.AssertCurrentThreadOwns();
 
-  uint32_t i = 0;
-  while (i < mQueuedData.Length()) {
-    // Careful! we may modify the array length from within the loop!
-    if (mQueuedData[i]->mStream == stream) {
+  mQueuedData.RemoveElementsBy([stream, this](const auto& dataItem) {
+    const bool match = dataItem->mStream == stream;
+    if (match) {
       DC_DEBUG(("Delivering queued data for stream %u, length %u", stream,
-                mQueuedData[i]->mLength));
+                dataItem->mLength));
       // Deliver the queued data
-      HandleDataMessage(mQueuedData[i]->mData, mQueuedData[i]->mLength,
-                        mQueuedData[i]->mPpid, mQueuedData[i]->mStream,
-                        mQueuedData[i]->mFlags);
-      mQueuedData.RemoveElementAt(i);
-      continue;  // don't bump index since we removed the element
+      HandleDataMessage(dataItem->mData, dataItem->mLength, dataItem->mPpid,
+                        dataItem->mStream, dataItem->mFlags);
     }
-    i++;
-  }
+    return match;
+  });
 }
 
 // Caller must ensure that length <= SIZE_MAX
@@ -1685,6 +1762,12 @@ void DataChannelConnection::HandleDataMessage(const void* data, size_t length,
       DC_ERROR(("Unknown data PPID %" PRIu32, ppid));
       return;
   }
+
+  channel->WithTrafficCounters(
+      [&data_length](DataChannel::TrafficCounters& counters) {
+        counters.mMessagesReceived++;
+        counters.mBytesReceived += data_length;
+      });
 
   // Notify onmessage
   DC_DEBUG(("%s: sending ON_DATA_%s%s for %p", __FUNCTION__,
@@ -2285,6 +2368,7 @@ int DataChannelConnection::ReceiveCallback(struct socket* sock, void* data,
                                            size_t datalen,
                                            struct sctp_rcvinfo rcv, int flags) {
   ASSERT_WEBRTC(!NS_IsMainThread());
+  DC_DEBUG(("In ReceiveCallback"));
 
   if (!data) {
     DC_DEBUG(("ReceiveCallback: SCTP has finished shutting down"));
@@ -2421,10 +2505,7 @@ already_AddRefed<DataChannel> DataChannelConnection::OpenFinish(
     DC_DEBUG(("Queuing channel %p (%u) to finish open", channel.get(), stream));
     // Also serves to mark we told the app
     channel->mFlags |= DATA_CHANNEL_FLAGS_FINISH_OPEN;
-    // we need a ref for the nsDeQue and one to return
-    DataChannel* rawChannel = channel;
-    rawChannel->AddRef();
-    mPending.Push(rawChannel);
+    mPending.Push(channel);
     return channel.forget();
   }
 
@@ -2846,8 +2927,7 @@ void DataChannelConnection::ReadBlob(
     // Bug 966602:  Doesn't return an error to the caller via onerror.
     // We must release DataChannelConnection on MainThread to avoid issues (bug
     // 876167) aThis is now owned by the runnable; release it there
-    NS_ReleaseOnMainThreadSystemGroup("DataChannelBlobSendRunnable",
-                                      runnable.forget());
+    NS_ReleaseOnMainThread("DataChannelBlobSendRunnable", runnable.forget());
     return;
   }
   aBlob->Close();
@@ -2880,13 +2960,22 @@ int DataChannelConnection::SendDataMsgCommon(uint16_t stream,
   }
 
   auto& channel = *channelPtr;
-
+  int err = 0;
   if (isBinary) {
-    return SendDataMsg(channel, data, len, DATA_CHANNEL_PPID_BINARY_PARTIAL,
-                       DATA_CHANNEL_PPID_BINARY);
+    err = SendDataMsg(channel, data, len, DATA_CHANNEL_PPID_BINARY_PARTIAL,
+                      DATA_CHANNEL_PPID_BINARY);
+  } else {
+    err = SendDataMsg(channel, data, len, DATA_CHANNEL_PPID_DOMSTRING_PARTIAL,
+                      DATA_CHANNEL_PPID_DOMSTRING);
   }
-  return SendDataMsg(channel, data, len, DATA_CHANNEL_PPID_DOMSTRING_PARTIAL,
-                     DATA_CHANNEL_PPID_DOMSTRING);
+  if (!err) {
+    channel.WithTrafficCounters([&len](DataChannel::TrafficCounters& counters) {
+      counters.mMessagesSent++;
+      counters.mBytesSent += len;
+    });
+  }
+
+  return err;
 }
 
 void DataChannelConnection::Stop() {
@@ -2962,8 +3051,7 @@ void DataChannelConnection::CloseAll() {
 
   // Clean up any pending opens for channels
   RefPtr<DataChannel> channel;
-  while (nullptr != (channel = dont_AddRef(
-                         static_cast<DataChannel*>(mPending.PopFront())))) {
+  while (nullptr != (channel = mPending.PopFront())) {
     DC_DEBUG(("closing pending channel %p, stream %u", channel.get(),
               channel->mStream));
     channel->Close();  // also releases the ref on each iteration
@@ -3256,6 +3344,11 @@ void DataChannel::SendOrQueue(DataChannelOnMessageAvailable* aMessage) {
   mMainThreadEventTarget->Dispatch(runnable.forget());
 }
 
+DataChannel::TrafficCounters DataChannel::GetTrafficCounters() const {
+  MutexAutoLock lock(mStatsLock);
+  return mTrafficCounters;
+}
+
 bool DataChannel::EnsureValidStream(ErrorResult& aRv) {
   MOZ_ASSERT(mConnection);
   if (mConnection && mStream != INVALID_STREAM) {
@@ -3263,6 +3356,12 @@ bool DataChannel::EnsureValidStream(ErrorResult& aRv) {
   }
   aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
   return false;
+}
+
+void DataChannel::WithTrafficCounters(
+    const std::function<void(TrafficCounters&)>& aFn) {
+  MutexAutoLock lock(mStatsLock);
+  aFn(mTrafficCounters);
 }
 
 }  // namespace mozilla

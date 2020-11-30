@@ -96,8 +96,8 @@ function setupBrowser() {
     browser.addProgressListener(
       {
         QueryInterface: ChromeUtils.generateQI([
-          Ci.nsIWebProgressListener,
-          Ci.nsISupportsWeakReference,
+          "nsIWebProgressListener",
+          "nsISupportsWeakReference",
         ]),
         onLocationChange(aWebProgress, aRequest, aLocation, aFlags) {
           // When URL changes, update the URL in the URL bar and update
@@ -212,10 +212,12 @@ function setupUrlBar() {
       if (PrivateBrowsingUtils.isWindowPrivate(window)) {
         flags |= Services.uriFixup.FIXUP_FLAG_PRIVATE_CONTEXT;
       }
+      let { preferredURI } = Services.uriFixup.getFixupURIInfo(
+        valueToFixUp,
+        flags
+      );
 
-      let uriToLoad = Services.uriFixup.createFixupURI(valueToFixUp, flags);
-
-      browser.loadUrlWithSystemPrincipal(uriToLoad.spec);
+      browser.loadUrlWithSystemPrincipal(preferredURI.spec);
       browser.focus();
     }
   });

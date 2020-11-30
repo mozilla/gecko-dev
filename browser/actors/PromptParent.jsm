@@ -18,6 +18,17 @@ ChromeUtils.defineModuleGetter(
   "resource://gre/modules/Services.jsm"
 );
 
+const { XPCOMUtils } = ChromeUtils.import(
+  "resource://gre/modules/XPCOMUtils.jsm"
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "tabChromePromptSubDialog",
+  "prompts.tabChromePromptSubDialog",
+  false
+);
+
 /**
  * @typedef {Object} Prompt
  * @property {Function} resolver
@@ -39,7 +50,7 @@ class PromptParent extends JSWindowActorParent {
   didDestroy() {
     // In the event that the subframe or tab crashed, make sure that
     // we close any active Prompts.
-    this.forceClosePrompts(this.browsingContext);
+    this.forceClosePrompts();
   }
 
   /**
@@ -47,8 +58,6 @@ class PromptParent extends JSWindowActorParent {
    * We need to track a Prompt so that we can, for example, force-close the
    * TabModalPrompt if the originating subframe or tab unloads or crashes.
    *
-   * @param {BrowsingContext} browsingContext
-   *        The BrowsingContext from which the request to open the Prompt came.
    * @param {Object} tabModalPrompt
    *        The TabModalPrompt that will be shown to the user.
    * @param {string} id
@@ -59,11 +68,11 @@ class PromptParent extends JSWindowActorParent {
    *           Resolves with the arguments returned from the TabModalPrompt when it
    *           is dismissed.
    */
-  registerPrompt(browsingContext, tabModalPrompt, id) {
-    let prompts = gBrowserPrompts.get(browsingContext);
+  registerPrompt(tabModalPrompt, id) {
+    let prompts = gBrowserPrompts.get(this.browsingContext);
     if (!prompts) {
       prompts = new Map();
-      gBrowserPrompts.set(browsingContext, prompts);
+      gBrowserPrompts.set(this.browsingContext, prompts);
     }
 
     let promise = new Promise(resolve => {
@@ -80,79 +89,42 @@ class PromptParent extends JSWindowActorParent {
    * Removes a Prompt for a BrowsingContext with a particular ID from the registry.
    * This needs to be done to avoid leaking <xul:browser>'s.
    *
-   * @param {BrowsingContext} browsingContext
-   *        The BrowsingContext from which the request to open the Prompt came.
    * @param {string} id
    *        A unique ID to differentiate multiple Prompts coming from the same
    *        BrowsingContext.
    */
-  unregisterPrompt(browsingContext, id) {
-    let prompts = gBrowserPrompts.get(browsingContext);
+  unregisterPrompt(id) {
+    let prompts = gBrowserPrompts.get(this.browsingContext);
     if (prompts) {
       prompts.delete(id);
     }
   }
 
   /**
-   * Programmatically closes a Prompt, without waiting for the TabModalPrompt to
-   * return with any arguments.
-   *
-   * @param {BrowsingContext} browsingContext
-   *        The BrowsingContext from which the request to open the Prompt came.
-   * @param {string} id
-   *        A unique ID to differentiate multiple Prompts coming from the same
-   *        BrowsingContext.
+   * Programmatically closes all Prompts for the current BrowsingContext.
    */
-  forceClosePrompt(browsingContext, id) {
-    let prompts = gBrowserPrompts.get(browsingContext);
-    let prompt = prompts.get(id);
-    if (prompt && prompt.tabModalPrompt) {
-      prompt.tabModalPrompt.abortPrompt();
-    }
-  }
+  forceClosePrompts() {
+    let prompts = gBrowserPrompts.get(this.browsingContext) || [];
 
-  /**
-   * Programmatically closes all Prompts for a BrowsingContext.
-   *
-   * @param {BrowsingContext} browsingContext
-   *        The BrowsingContext from which the request to open the Prompts came.
-   */
-  forceClosePrompts(browsingContext) {
-    let prompts = gBrowserPrompts.get(browsingContext) || [];
-
-    for (let prompt of prompts) {
-      if (prompt.tabModalPrompt) {
-        prompt.tabModalPrompt.abortPrompt();
-      }
+    for (let [, prompt] of prompts) {
+      prompt.tabModalPrompt && prompt.tabModalPrompt.abortPrompt();
     }
   }
 
   receiveMessage(message) {
-    let browsingContext = this.browsingContext;
     let args = message.data;
     let id = args._remoteId;
 
     switch (message.name) {
       case "Prompt:Open": {
-        const COMMON_DIALOG = "chrome://global/content/commonDialog.xhtml";
-        const SELECT_DIALOG = "chrome://global/content/selectDialog.xhtml";
-
-        let topPrincipal =
-          browsingContext.top.currentWindowGlobal.documentPrincipal;
-        args.showAlertOrigin = topPrincipal.equals(args.promptPrincipal);
-
-        if (message.data.tabPrompt) {
-          return this.openTabPrompt(message.data, browsingContext, id);
+        if (
+          args.modalType === Ci.nsIPrompt.MODAL_TYPE_CONTENT ||
+          (args.modalType === Ci.nsIPrompt.MODAL_TYPE_TAB &&
+            !tabChromePromptSubDialog)
+        ) {
+          return this.openContentPrompt(args, id);
         }
-        let uri =
-          message.data.promptType == "select" ? SELECT_DIALOG : COMMON_DIALOG;
-
-        let browser = browsingContext.top.embedderElement;
-        return this.openModalWindow(uri, message.data, browser);
-      }
-      case "Prompt:ForceClose": {
-        this.forceClosePrompt(browsingContext, id);
-        break;
+        return this.openChromePrompt(args);
       }
     }
 
@@ -166,25 +138,33 @@ class PromptParent extends JSWindowActorParent {
    * @param {Object} args
    *        The arguments passed up from the BrowsingContext to be passed directly
    *        to the TabModalPrompt.
-   * @param {BrowsingContext} browsingContext
-   *        The BrowsingContext from which the request to open the Prompts came.
    * @param {string} id
    *        A unique ID to differentiate multiple Prompts coming from the same
    *        BrowsingContext.
    * @return {Promise}
+   *         Resolves when the TabModalPrompt is dismissed.
    * @resolves {Object}
-   *           Resolves with the arguments returned from the TabModalPrompt when it
-   *           is dismissed.
+   *           The arguments returned from the TabModalPrompt.
    */
-  openTabPrompt(args, browsingContext, id) {
-    let browser = browsingContext.top.embedderElement;
+  openContentPrompt(args, id) {
+    let browser = this.browsingContext.top.embedderElement;
+    if (!browser) {
+      throw new Error("Cannot tab-prompt without a browser!");
+    }
     let window = browser.ownerGlobal;
     let tabPrompt = window.gBrowser.getTabModalPromptBox(browser);
     let newPrompt;
     let needRemove = false;
 
-    let onPromptClose = forceCleanup => {
-      let promptData = gBrowserPrompts.get(browsingContext);
+    // If the page which called the prompt is different from the the top context
+    // where we show the prompt, ask the prompt implementation to display the origin.
+    // For example, this can happen if a cross origin subframe shows a prompt.
+    args.showCallerOrigin =
+      args.promptPrincipal &&
+      !browser.contentPrincipal.equals(args.promptPrincipal);
+
+    let onPromptClose = () => {
+      let promptData = gBrowserPrompts.get(this.browsingContext);
       if (!promptData || !promptData.has(id)) {
         throw new Error(
           "Failed to close a prompt since it wasn't registered for some reason."
@@ -202,11 +182,14 @@ class PromptParent extends JSWindowActorParent {
         needRemove = true;
       }
 
-      this.unregisterPrompt(browsingContext, id);
+      this.unregisterPrompt(id);
 
-      PromptUtils.fireDialogEvent(window, "DOMModalDialogClosed", browser);
+      PromptUtils.fireDialogEvent(window, "DOMModalDialogClosed", browser, {
+        wasPermitUnload: args.inPermitUnload,
+        areLeaving: args.ok,
+      });
       resolver(args);
-      browser.leaveModalState();
+      browser.maybeLeaveModalState();
     };
 
     try {
@@ -226,7 +209,7 @@ class PromptParent extends JSWindowActorParent {
       args.promptActive = true;
 
       newPrompt = tabPrompt.appendPrompt(args, onPromptClose);
-      let promise = this.registerPrompt(browsingContext, newPrompt, id);
+      let promise = this.registerPrompt(newPrompt, id);
 
       if (needRemove) {
         tabPrompt.removePrompt(newPrompt);
@@ -242,42 +225,77 @@ class PromptParent extends JSWindowActorParent {
   }
 
   /**
-   * Opens a window-modal prompt for a BrowsingContext, and puts the associated
+   * Opens a window prompt for a BrowsingContext, and puts the associated
    * browser in the modal state until the prompt is closed.
    *
-   * @param {string} uri
-   *        The URI to a XUL document to be loaded in a modal window.
    * @param {Object} args
    *        The arguments passed up from the BrowsingContext to be passed
    *        directly to the modal window.
-   * @param {Element} browser
-   *        The <xul:browser> from which the request to open the window-modal
-   *        prompt came.
    * @return {Promise}
+   *         Resolves when the window prompt is dismissed.
    * @resolves {Object}
-   *           Resolves with the arguments returned from the window-modal
-   *           prompt when it is dismissed.
+   *           The arguments returned from the window prompt.
    */
-  openModalWindow(uri, args, browser) {
-    let window = browser.ownerGlobal;
+  async openChromePrompt(args) {
+    const COMMON_DIALOG = "chrome://global/content/commonDialog.xhtml";
+    const SELECT_DIALOG = "chrome://global/content/selectDialog.xhtml";
+    let uri = args.promptType == "select" ? SELECT_DIALOG : COMMON_DIALOG;
+
+    let browsingContext = this.browsingContext.top;
+
+    let browser = browsingContext.embedderElement;
+    let win;
+
+    // If we are a chrome actor we can use the associated chrome win.
+    if (!browsingContext.isContent && browsingContext.window) {
+      win = browsingContext.window;
+    } else {
+      win = browser?.ownerGlobal;
+    }
+
+    // There's a requirement for prompts to be blocked if a window is
+    // passed and that window is hidden (eg, auth prompts are suppressed if the
+    // passed window is the hidden window).
+    // See bug 875157 comment 30 for more..
+    if (win?.winUtils && !win.winUtils.isParentWindowMainWidgetVisible) {
+      throw new Error("Cannot call openModalWindow on a hidden window");
+    }
+
     try {
-      browser.enterModalState();
-      PromptUtils.fireDialogEvent(window, "DOMWillOpenModalDialog", browser);
+      if (browser) {
+        browser.enterModalState();
+        PromptUtils.fireDialogEvent(win, "DOMWillOpenModalDialog", browser);
+      }
+
+      args.promptAborted = false;
+
       let bag = PromptUtils.objectToPropBag(args);
 
-      Services.ww.openWindow(
-        window,
-        uri,
-        "_blank",
-        "centerscreen,chrome,modal,titlebar",
-        bag
-      );
+      if (args.modalType === Services.prompt.MODAL_TYPE_TAB) {
+        if (!browser) {
+          throw new Error("Cannot tab-prompt without a browser!");
+        }
+        // Tab
+        let dialogBox = win.gBrowser.getTabDialogBox(browser);
+        await dialogBox.open(uri, { features: "resizable=no" }, bag);
+      } else {
+        // Window
+        Services.ww.openWindow(
+          win,
+          uri,
+          "_blank",
+          "centerscreen,chrome,modal,titlebar",
+          bag
+        );
+      }
 
       PromptUtils.propBagToObject(bag, args);
     } finally {
-      browser.leaveModalState();
-      PromptUtils.fireDialogEvent(window, "DOMModalDialogClosed", browser);
+      if (browser) {
+        browser.leaveModalState();
+        PromptUtils.fireDialogEvent(win, "DOMModalDialogClosed", browser);
+      }
     }
-    return Promise.resolve(args);
+    return args;
   }
 }

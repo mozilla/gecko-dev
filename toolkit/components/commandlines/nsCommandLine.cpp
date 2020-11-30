@@ -73,11 +73,8 @@ nsCommandLine::FindFlag(const nsAString& aFlag, bool aCaseSensitive,
                         int32_t* aResult) {
   NS_ENSURE_ARG(!aFlag.IsEmpty());
 
-  nsDefaultStringComparator caseCmp;
-  nsCaseInsensitiveStringComparator caseICmp;
-  nsStringComparator& c = aCaseSensitive
-                              ? static_cast<nsStringComparator&>(caseCmp)
-                              : static_cast<nsStringComparator&>(caseICmp);
+  auto c = aCaseSensitive ? nsTDefaultStringComparator<char16_t>
+                          : nsCaseInsensitiveStringComparator;
 
   for (uint32_t f = 0; f < mArgs.Length(); f++) {
     const nsString& arg = mArgs[f];
@@ -99,9 +96,7 @@ nsCommandLine::RemoveArguments(int32_t aStart, int32_t aEnd) {
   NS_ENSURE_ARG_MIN(aStart, 0);
   NS_ENSURE_ARG_MAX(uint32_t(aEnd) + 1, mArgs.Length());
 
-  for (int32_t i = aEnd; i >= aStart; --i) {
-    mArgs.RemoveElementAt(i);
-  }
+  mArgs.RemoveElementsRange(mArgs.begin() + aStart, mArgs.begin() + aEnd + 1);
 
   return NS_OK;
 }

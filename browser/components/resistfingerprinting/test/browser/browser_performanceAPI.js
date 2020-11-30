@@ -31,56 +31,10 @@ const PERFORMANCE_TIMINGS = [
   "loadEventEnd",
 ];
 
-let isRounded = (x, expectedPrecision) => {
-  let rounded = Math.floor(x / expectedPrecision) * expectedPrecision;
-  // First we do the perfectly normal check that should work just fine
-  if (rounded === x || x === 0) {
-    return true;
-  }
-
-  // When we're diving by non-whole numbers, we may not get perfect
-  // multiplication/division because of floating points.
-  // When dealing with ms since epoch, a double's precision is on the order
-  // of 1/5 of a microsecond, so we use a value a little higher than that as
-  // our epsilon.
-  // To be clear, this error is introduced in our re-calculation of 'rounded'
-  // above in JavaScript.
-  if (Math.abs(rounded - x + expectedPrecision) < 0.0005) {
-    return true;
-  } else if (Math.abs(rounded - x) < 0.0005) {
-    return true;
-  }
-
-  // Then we handle the case where you're sub-millisecond and the timer is not
-  // We check that the timer is not sub-millisecond by assuming it is not if it
-  // returns an even number of milliseconds
-  if (expectedPrecision < 1 && Math.round(x) == x) {
-    if (Math.round(rounded) == x) {
-      return true;
-    }
-  }
-
-  ok(
-    false,
-    "Looming Test Failure, Additional Debugging Info: Expected Precision: " +
-      expectedPrecision +
-      " Measured Value: " +
-      x +
-      " Rounded Vaue: " +
-      rounded +
-      " Fuzzy1: " +
-      Math.abs(rounded - x + expectedPrecision) +
-      " Fuzzy 2: " +
-      Math.abs(rounded - x)
-  );
-
-  return false;
-};
-
 let setupTest = async function(
-  tab,
   resistFingerprinting,
   reduceTimerPrecision,
+  crossOriginIsolated,
   expectedPrecision,
   runTests,
   workerCall
@@ -93,8 +47,19 @@ let setupTest = async function(
         "privacy.resistFingerprinting.reduceTimerPrecision.microseconds",
         expectedPrecision * 1000,
       ],
+      ["browser.tabs.remote.useCrossOriginOpenerPolicy", crossOriginIsolated],
+      ["browser.tabs.remote.useCrossOriginEmbedderPolicy", crossOriginIsolated],
     ],
   });
+
+  let url = crossOriginIsolated
+    ? `https://example.com/browser/browser/components/resistfingerprinting` +
+      `/test/browser/coop_header.sjs?crossOriginIsolated=${crossOriginIsolated}`
+    : TEST_PATH + "file_dummy.html";
+
+  let win = await BrowserTestUtils.openNewBrowserWindow();
+  let tab = await BrowserTestUtils.openNewForegroundTab(win.gBrowser, url);
+
   // No matter what we set the precision to, if we're in ResistFingerprinting mode
   // we use the larger of the precision pref and the constant 100ms
   if (resistFingerprinting) {
@@ -106,21 +71,26 @@ let setupTest = async function(
       {
         list: PERFORMANCE_TIMINGS,
         precision: expectedPrecision,
-        isRoundedFunc: isRounded.toString(),
+        isRoundedFunc: isTimeValueRounded.toString(),
         workerCall,
       },
     ],
     runTests
   );
+
+  if (crossOriginIsolated) {
+    let remoteType = tab.linkedBrowser.remoteType;
+    ok(
+      remoteType.startsWith(E10SUtils.WEB_REMOTE_COOP_COEP_TYPE_PREFIX),
+      `${remoteType} expected to be coop+coep`
+    );
+  }
+
+  await BrowserTestUtils.closeWindow(win);
 };
 // ================================================================================================
 // ================================================================================================
 add_task(async function runRPTests() {
-  let tab = await BrowserTestUtils.openNewForegroundTab(
-    gBrowser,
-    TEST_PATH + "file_dummy.html"
-  );
-
   let runTests = async function(data) {
     let timerlist = data.list;
     let expectedPrecision = data.precision;
@@ -135,13 +105,25 @@ add_task(async function runRPTests() {
         content.performance.timeOrigin
     );
 
-    // Check that whether the performance timing API is correctly spoofed.
+    // Check that the performance timing API is correctly spoofed. In
+    // particular, check if domainLookupStart and domainLookupEnd return
+    // fetchStart, and if everything else is clamped to the expected precision.
     for (let time of timerlist) {
-      is(
-        content.performance.timing[time],
-        0,
-        `For resistFingerprinting, the timing(${time}) is not correctly spoofed.`
-      );
+      if (time == "domainLookupStart" || time == "domainLookupEnd") {
+        is(
+          content.performance.timing[time],
+          content.performance.timing.fetchStart,
+          `For resistFingerprinting, the timing(${time}) is not correctly spoofed.`
+        );
+      } else {
+        ok(
+          isRounded(content.performance.timing[time], expectedPrecision),
+          `For resistFingerprinting with expected precision ` +
+            expectedPrecision +
+            `, the timing(${time}) is not correctly rounded: ` +
+            content.performance.timing[time]
+        );
+      }
     }
 
     // Try to add some entries.
@@ -167,21 +149,18 @@ add_task(async function runRPTests() {
     );
   };
 
-  await setupTest(tab, true, true, 100, runTests);
-  await setupTest(tab, true, false, 13, runTests);
-  await setupTest(tab, true, false, 0.13, runTests);
-
-  BrowserTestUtils.removeTab(tab);
+  await setupTest(true, true, false, 200, runTests);
+  await setupTest(true, true, false, 100, runTests);
+  await setupTest(true, false, false, 13, runTests);
+  await setupTest(true, false, false, 0.13, runTests);
+  await setupTest(true, true, true, 100, runTests);
+  await setupTest(true, false, true, 13, runTests);
+  await setupTest(true, false, true, 0.13, runTests);
 });
 
 // ================================================================================================
 // ================================================================================================
 add_task(async function runRTPTests() {
-  let tab = await BrowserTestUtils.openNewForegroundTab(
-    gBrowser,
-    TEST_PATH + "file_dummy.html"
-  );
-
   let runTests = async function(data) {
     let timerlist = data.list;
     let expectedPrecision = data.precision;
@@ -217,6 +196,7 @@ add_task(async function runRTPTests() {
       content.performance.getEntries().length,
       4,
       "For reduceTimerPrecision, there should be 4 entries for performance.getEntries()"
+      // PerformanceNavigationTiming, PerformanceMark, PerformanceMark, PerformanceMeasure
     );
     for (var i = 0; i < 4; i++) {
       let startTime = content.performance.getEntries()[i].startTime;
@@ -255,11 +235,10 @@ add_task(async function runRTPTests() {
     content.performance.clearResourceTimings();
   };
 
-  await setupTest(tab, false, true, 100, runTests);
-  await setupTest(tab, false, true, 13, runTests);
-  await setupTest(tab, false, true, 0.13, runTests);
-
-  BrowserTestUtils.removeTab(tab);
+  await setupTest(false, true, false, 100, runTests);
+  await setupTest(false, true, false, 13, runTests);
+  await setupTest(false, true, false, 0.13, runTests);
+  await setupTest(false, true, true, 0.005, runTests);
 });
 
 // ================================================================================================
@@ -286,27 +265,13 @@ let runWorkerTest = async function(data) {
 };
 
 add_task(async function runRPTestsForWorker() {
-  let tab = await BrowserTestUtils.openNewForegroundTab(
-    gBrowser,
-    TEST_PATH + "file_dummy.html"
-  );
-
-  await setupTest(tab, true, true, 100, runWorkerTest, "runRPTests");
-  await setupTest(tab, true, false, 13, runWorkerTest, "runRPTests");
-  await setupTest(tab, true, true, 0.13, runWorkerTest, "runRPTests");
-
-  BrowserTestUtils.removeTab(tab);
+  await setupTest(true, true, false, 100, runWorkerTest, "runRPTests");
+  await setupTest(true, false, false, 13, runWorkerTest, "runRPTests");
+  await setupTest(true, true, false, 0.13, runWorkerTest, "runRPTests");
 });
 
 add_task(async function runRTPTestsForWorker() {
-  let tab = await BrowserTestUtils.openNewForegroundTab(
-    gBrowser,
-    TEST_PATH + "file_dummy.html"
-  );
-
-  await setupTest(tab, false, true, 100, runWorkerTest, "runRTPTests");
-  await setupTest(tab, false, true, 13, runWorkerTest, "runRTPTests");
-  await setupTest(tab, false, true, 0.13, runWorkerTest, "runRTPTests");
-
-  BrowserTestUtils.removeTab(tab);
+  await setupTest(false, true, false, 100, runWorkerTest, "runRTPTests");
+  await setupTest(false, true, false, 13, runWorkerTest, "runRTPTests");
+  await setupTest(false, true, false, 0.13, runWorkerTest, "runRTPTests");
 });

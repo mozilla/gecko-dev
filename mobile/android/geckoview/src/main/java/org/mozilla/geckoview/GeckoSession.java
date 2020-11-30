@@ -10,12 +10,10 @@ import java.io.ByteArrayInputStream;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.ref.WeakReference;
-import java.nio.ByteBuffer;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.AbstractSequentialList;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -44,23 +42,24 @@ import org.mozilla.gecko.util.ThreadUtils;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.net.Uri;
 import android.os.Binder;
-import android.os.IBinder;
 import android.os.IInterface;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.SystemClock;
-import android.support.annotation.AnyThread;
-import android.support.annotation.IntDef;
-import android.support.annotation.LongDef;
-import android.support.annotation.Nullable;
-import android.support.annotation.NonNull;
-import android.support.annotation.StringDef;
-import android.support.annotation.UiThread;
+import androidx.annotation.AnyThread;
+import androidx.annotation.IntDef;
+import androidx.annotation.LongDef;
+import androidx.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.StringDef;
+import androidx.annotation.UiThread;
+import android.text.TextUtils;
 import android.util.Base64;
 import android.util.Log;
 import android.util.LongSparseArray;
@@ -72,7 +71,7 @@ import android.view.inputmethod.ExtractedTextRequest;
 import android.view.View;
 import android.view.ViewStructure;
 
-public class GeckoSession implements Parcelable {
+public class GeckoSession {
     private static final String LOGTAG = "GeckoSession";
     private static final boolean DEBUG = false;
 
@@ -128,7 +127,6 @@ public class GeckoSession implements Parcelable {
     // All fields are accessed on UI thread only.
     private PanZoomController mPanZoomController = new PanZoomController(this);
     private OverscrollEdgeEffect mOverscroll;
-    private DynamicToolbarAnimator mToolbar;
     private CompositorController mController;
     private Autofill.Support mAutofillSupport;
 
@@ -156,36 +154,14 @@ public class GeckoSession implements Parcelable {
     // gfx/layers/ipc/UiCompositorControllerMessageTypes.h and must be kept in sync. Any
     // new AnimatorMessageType added here must also be added there.
     //
-    // Sent from compositor when the static toolbar wants to hide.
-    /* package */ final static int STATIC_TOOLBAR_NEEDS_UPDATE      = 0;
-    // Sent from compositor when the static toolbar image has been updated and is ready to
-    // animate.
-    /* package */ final static int STATIC_TOOLBAR_READY             = 1;
-    // Sent to compositor when the real toolbar has been hidden.
-    /* package */ final static int TOOLBAR_HIDDEN                   = 2;
-    // Sent to compositor when the real toolbar is visible.
-    /* package */ final static int TOOLBAR_VISIBLE                  = 3;
-    // Sent from compositor when the static toolbar has been made visible so the real
-    // toolbar should be shown.
-    /* package */ final static int TOOLBAR_SHOW                     = 4;
     // Sent from compositor after first paint
-    /* package */ final static int FIRST_PAINT                      = 5;
-    // Sent to compositor requesting toolbar be shown immediately
-    /* package */ final static int REQUEST_SHOW_TOOLBAR_IMMEDIATELY = 6;
-    // Sent to compositor requesting toolbar be shown animated
-    /* package */ final static int REQUEST_SHOW_TOOLBAR_ANIMATED    = 7;
-    // Sent to compositor requesting toolbar be hidden immediately
-    /* package */ final static int REQUEST_HIDE_TOOLBAR_IMMEDIATELY = 8;
-    // Sent to compositor requesting toolbar be hidden animated
-    /* package */ final static int REQUEST_HIDE_TOOLBAR_ANIMATED    = 9;
+    /* package */ final static int FIRST_PAINT                      = 0;
     // Sent from compositor when a layer has been updated
-    /* package */ final static int LAYERS_UPDATED                   = 10;
-    // Sent to compositor when the toolbar snapshot fails.
-    /* package */ final static int TOOLBAR_SNAPSHOT_FAILED          = 11;
+    /* package */ final static int LAYERS_UPDATED                   = 1;
     // Special message sent from UiCompositorControllerChild once it is open
-    /* package */ final static int COMPOSITOR_CONTROLLER_OPEN       = 20;
+    /* package */ final static int COMPOSITOR_CONTROLLER_OPEN       = 2;
     // Special message sent from controller to query if the compositor controller is open.
-    /* package */ final static int IS_COMPOSITOR_CONTROLLER_OPEN    = 21;
+    /* package */ final static int IS_COMPOSITOR_CONTROLLER_OPEN    = 3;
 
     /* protected */ class Compositor extends JNIObject {
         public boolean isReady() {
@@ -230,9 +206,6 @@ public class GeckoSession implements Parcelable {
         public native void setFixedBottomOffset(int offset);
 
         @WrapForJNI(calledFrom = "ui", dispatchTo = "current")
-        public native void setPinned(boolean pinned, int reason);
-
-        @WrapForJNI(calledFrom = "ui", dispatchTo = "current")
         public native void sendToolbarAnimatorMessage(int message);
 
         @WrapForJNI(calledFrom = "ui")
@@ -244,17 +217,14 @@ public class GeckoSession implements Parcelable {
         public native void setDefaultClearColor(int color);
 
         @WrapForJNI(calledFrom = "ui", dispatchTo = "current")
-        /* package */ native void requestScreenPixels(final GeckoResult<ByteBuffer> result,
+        /* package */ native void requestScreenPixels(final GeckoResult<Bitmap> result,
+                                                      final Bitmap target,
                                                       final int x, final int y,
                                                       final int srcWidth, final int srcHeight,
                                                       final int outWidth, final int outHeight);
 
         @WrapForJNI(calledFrom = "ui", dispatchTo = "current")
         public native void enableLayerUpdateNotifications(boolean enable);
-
-        @WrapForJNI(calledFrom = "ui", dispatchTo = "current")
-        public native void sendToolbarPixelsToCompositor(final int width, final int height,
-                                                         final int[] pixels);
 
         // The compositor invokes this function just before compositing a frame where the
         // document is different from the document composited on the last frame. In these
@@ -299,6 +269,7 @@ public class GeckoSession implements Parcelable {
             new String[]{
                 "GeckoView:OnVisited",
                 "GeckoView:GetVisited",
+                "GeckoView:StateUpdated",
             }
         ) {
             @Override
@@ -334,6 +305,33 @@ public class GeckoSession implements Parcelable {
                     result.accept(
                         visited -> callback.sendSuccess(visited),
                         exception -> callback.sendError("Failed to fetch visited statuses for URIs"));
+                } else if ("GeckoView:StateUpdated".equals(event)) {
+
+                    final GeckoBundle update = message.getBundle("data");
+
+                    if (update == null) {
+                        return;
+                    }
+                    final int previousHistorySize = mStateCache.size();
+                    mStateCache.updateSessionState(update);
+
+                    ProgressDelegate progressDelegate = getProgressDelegate();
+                    if (progressDelegate != null) {
+                        progressDelegate.onSessionStateChange(GeckoSession.this, new SessionState(mStateCache));
+                    }
+
+                    if (update.getBundle("historychange") != null) {
+                        final SessionState state = new SessionState(mStateCache);
+
+                        delegate.onHistoryStateChange(GeckoSession.this, state);
+
+                        // If the previous history was larger than one entry and the new size is one, it means the
+                        // History has been purged and the navigation delegate needs to be update.
+                        if ((previousHistorySize > 1) && (state.size() == 1) && mNavigationHandler.getDelegate() != null) {
+                            mNavigationHandler.getDelegate().onCanGoForward(GeckoSession.this, false);
+                            mNavigationHandler.getDelegate().onCanGoBack(GeckoSession.this, false);
+                        }
+                    }
                 }
             }
         };
@@ -348,7 +346,7 @@ public class GeckoSession implements Parcelable {
                 "GeckoView:ContentKill",
                 "GeckoView:ContextMenu",
                 "GeckoView:DOMMetaViewportFit",
-                "GeckoView:DOMTitleChanged",
+                "GeckoView:PageTitleChanged",
                 "GeckoView:DOMWindowClose",
                 "GeckoView:ExternalResponse",
                 "GeckoView:FocusRequest",
@@ -356,6 +354,7 @@ public class GeckoSession implements Parcelable {
                 "GeckoView:FullScreenExit",
                 "GeckoView:WebAppManifest",
                 "GeckoView:FirstContentfulPaint",
+                "GeckoView:PaintStatusReset",
             }
         ) {
             @Override
@@ -387,7 +386,7 @@ public class GeckoSession implements Parcelable {
                 } else if ("GeckoView:DOMMetaViewportFit".equals(event)) {
                     delegate.onMetaViewportFitChange(GeckoSession.this,
                                                      message.getString("viewportfit"));
-                } else if ("GeckoView:DOMTitleChanged".equals(event)) {
+                } else if ("GeckoView:PageTitleChanged".equals(event)) {
                     delegate.onTitleChange(GeckoSession.this,
                                            message.getString("title"));
                 } else if ("GeckoView:FocusRequest".equals(event)) {
@@ -413,6 +412,8 @@ public class GeckoSession implements Parcelable {
                     }
                 } else if ("GeckoView:FirstContentfulPaint".equals(event)) {
                     delegate.onFirstContentfulPaint(GeckoSession.this);
+                } else if ("GeckoView:PaintStatusReset".equals(event)) {
+                    delegate.onPaintStatusReset(GeckoSession.this);
                 }
             }
         };
@@ -476,7 +477,8 @@ public class GeckoSession implements Parcelable {
                               message.getString("triggerUri"),
                               message.getInt("where"),
                               message.getInt("flags"),
-                              message.getBoolean("hasUserGesture"));
+                              message.getBoolean("hasUserGesture"),
+                              /* isDirectNavigation */ false);
 
                     if (!IntentUtils.isUriSafeForScheme(request.uri)) {
                         callback.sendError("Blocked unsafe intent URI");
@@ -606,7 +608,7 @@ public class GeckoSession implements Parcelable {
                 "GeckoView:PageStop",
                 "GeckoView:ProgressChanged",
                 "GeckoView:SecurityChanged",
-                "GeckoView:StateUpdated"
+                "GeckoView:StateUpdated",
             }
         ) {
             @Override
@@ -628,23 +630,11 @@ public class GeckoSession implements Parcelable {
                     final GeckoBundle identity = message.getBundle("identity");
                     delegate.onSecurityChange(GeckoSession.this, new ProgressDelegate.SecurityInformation(identity));
                 } else if ("GeckoView:StateUpdated".equals(event)) {
-                    final HistoryDelegate historyDelegate = getHistoryDelegate();
                     final GeckoBundle update = message.getBundle("data");
                     if (update != null) {
-                        final int previousHistorySize = mStateCache.size();
-                        mStateCache.updateSessionState(update);
-                        final SessionState state = new SessionState(mStateCache);
-                        delegate.onSessionStateChange(GeckoSession.this, state);
-                        if (update.getBundle("historychange") != null) {
-                            if (historyDelegate != null) {
-                                historyDelegate.onHistoryStateChange(GeckoSession.this, state);
-                            }
-                            // If the previous history was larger than one entry and the new size is one, it means the
-                            // History has been purged and the navigation delegate needs to be update.
-                            if ((previousHistorySize > 1) && (state.size() == 1) && mNavigationHandler.getDelegate() != null) {
-                                mNavigationHandler.getDelegate().onCanGoForward(GeckoSession.this, false);
-                                mNavigationHandler.getDelegate().onCanGoBack(GeckoSession.this, false);
-                            }
+                        if (getHistoryDelegate() == null) {
+                            mStateCache.updateSessionState(update);
+                            delegate.onSessionStateChange(GeckoSession.this, new SessionState(mStateCache));
                         }
                     }
                 }
@@ -735,6 +725,8 @@ public class GeckoSession implements Parcelable {
                         type = PermissionDelegate.PERMISSION_AUTOPLAY_INAUDIBLE;
                     } else if ("autoplay-media-audible".equals(typeString)) {
                         type = PermissionDelegate.PERMISSION_AUTOPLAY_AUDIBLE;
+                    } else if ("media-key-system-access".equals(typeString)) {
+                        type = PermissionDelegate.PERMISSION_MEDIA_KEY_SYSTEM_ACCESS;
                     } else {
                         throw new IllegalArgumentException("Unknown permission request: " + typeString);
                     }
@@ -892,14 +884,18 @@ public class GeckoSession implements Parcelable {
         }
     };
 
+    private final MediaSession.Handler mMediaSessionHandler =
+            new MediaSession.Handler(this);
 
     /* package */ int handlersCount;
 
-    private final GeckoSessionHandler<?>[] mSessionHandlers = new GeckoSessionHandler<?>[] {
-        mContentHandler, mHistoryHandler, mMediaHandler, mNavigationHandler,
-        mPermissionHandler, mProcessHangHandler, mProgressHandler, mScrollHandler,
-        mSelectionActionDelegate, mContentBlockingHandler
-    };
+    private final GeckoSessionHandler<?>[] mSessionHandlers =
+            new GeckoSessionHandler<?>[] {
+                mContentHandler, mHistoryHandler, mMediaHandler,
+                mNavigationHandler, mPermissionHandler, mProcessHangHandler,
+                mProgressHandler, mScrollHandler, mSelectionActionDelegate,
+                mContentBlockingHandler, mMediaSessionHandler
+            };
 
     private static class PermissionCallback implements
         PermissionDelegate.Callback, PermissionDelegate.MediaCallback {
@@ -1076,46 +1072,6 @@ public class GeckoSession implements Parcelable {
         @WrapForJNI(dispatchTo = "proxy", stubName = "Close")
         private native void nativeClose();
 
-        // Assign a new set of Java session objects to the underlying Gecko window.
-        // This replaces previously assigned objects from open() or transfer() calls.
-        public synchronized void transfer(final GeckoSession owner,
-                                          final NativeQueue queue,
-                                          final Compositor compositor,
-                                          final EventDispatcher dispatcher,
-                                          final SessionAccessibility.NativeProvider sessionAccessibility,
-                                          final GeckoBundle initData) {
-            if (mNativeQueue == null) {
-                // Already closed.
-                return;
-            }
-
-            final GeckoSession oldOwner = mOwner.get();
-            if (oldOwner != null && owner != oldOwner) {
-                oldOwner.abandonWindow();
-            }
-
-            mOwner = new WeakReference<>(owner);
-
-            if (GeckoThread.isStateAtLeast(GeckoThread.State.PROFILE_READY)) {
-                nativeTransfer(queue, compositor, dispatcher, sessionAccessibility, initData);
-            } else {
-                GeckoThread.queueNativeCallUntil(GeckoThread.State.PROFILE_READY,
-                        this, "nativeTransfer",
-                        NativeQueue.class, queue,
-                        Compositor.class, compositor,
-                        EventDispatcher.class, dispatcher,
-                        SessionAccessibility.NativeProvider.class, sessionAccessibility,
-                        GeckoBundle.class, initData);
-            }
-
-            if (mNativeQueue != queue) {
-                // Reset the old queue to prevent old events from affecting this window.
-                // Gecko will call onReady later with the new queue if needed.
-                mNativeQueue.reset(State.INITIAL);
-                mNativeQueue = queue;
-            }
-        }
-
         @WrapForJNI(dispatchTo = "proxy", stubName = "Transfer")
         private native void nativeTransfer(NativeQueue queue, Compositor compositor,
                                            EventDispatcher dispatcher,
@@ -1155,6 +1111,67 @@ public class GeckoSession implements Parcelable {
             close();
             disposeNative();
         }
+
+        @WrapForJNI(calledFrom = "gecko")
+        private GeckoResult<Boolean> onLoadRequest(final @NonNull String uri, final int windowType,
+                                                   final int flags, final @Nullable String triggeringUri,
+                                                   final boolean hasUserGesture, final boolean isTopLevel) {
+            final GeckoSession session = (mOwner == null) ? null : mOwner.get();
+            if (session == null) {
+                // Don't handle any load request if we can't get the session for some reason.
+                return GeckoResult.fromValue(false);
+            }
+            GeckoResult<Boolean> res = new GeckoResult<>();
+
+            ThreadUtils.postToUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    final NavigationDelegate delegate = session.getNavigationDelegate();
+
+                    if (delegate == null) {
+                        res.complete(false);
+                        return;
+                    }
+
+                    final String trigger = TextUtils.isEmpty(triggeringUri) ? null : triggeringUri;
+                    final NavigationDelegate.LoadRequest req = new NavigationDelegate.LoadRequest(uri,
+                            trigger, windowType, flags, hasUserGesture, false /* isDirectNavigation */);
+                    final GeckoResult<AllowOrDeny> reqResponse = isTopLevel ?
+                            delegate.onLoadRequest(session, req) :
+                            delegate.onSubframeLoadRequest(session, req);
+
+                    if (reqResponse == null) {
+                        res.complete(false);
+                        return;
+                    }
+
+                    reqResponse.accept(value -> {
+                        if (value == AllowOrDeny.DENY) {
+                            res.complete(true);
+                        } else {
+                            res.complete(false);
+                        }
+                    }, ex -> {
+                        // This is incredibly ugly and unreadable because checkstyle sucks.
+                            res.complete(false);
+                        });
+                }
+            });
+
+            return res;
+        }
+
+        @WrapForJNI(calledFrom = "ui")
+        private void passExternalWebResponse(final WebResponse response) {
+            GeckoSession session = mOwner.get();
+            if (session == null) {
+                return;
+            }
+            ContentDelegate delegate = session.getContentDelegate();
+            if (delegate != null) {
+                delegate.onExternalResponse(session, response);
+            }
+        }
     }
 
     private class Listener implements BundleEventListener {
@@ -1183,10 +1200,12 @@ public class GeckoSession implements Parcelable {
     protected @Nullable Window mWindow;
     private GeckoSessionSettings mSettings;
 
+    @SuppressWarnings("checkstyle:javadocmethod")
     public GeckoSession() {
         this(null);
     }
 
+    @SuppressWarnings("checkstyle:javadocmethod")
     public GeckoSession(final @Nullable GeckoSessionSettings settings) {
         mSettings = new GeckoSessionSettings(settings, this);
         mListener.registerListeners();
@@ -1218,89 +1237,12 @@ public class GeckoSession implements Parcelable {
         onWindowChanged(WINDOW_TRANSFER_OUT, /* inProgress */ false);
     }
 
-    private void transferFrom(final Window window,
-                              final GeckoSessionSettings settings,
-                              final String id) {
-        if (isOpen()) {
-            // We will leak the existing Window if we transfer in another one.
-            throw new IllegalStateException("Session is open");
+    /* package */ boolean equalsId(final GeckoSession other) {
+        if (other == null) {
+            return false;
         }
 
-        if (window != null) {
-            onWindowChanged(WINDOW_TRANSFER_IN, /* inProgress */ true);
-        }
-
-        mWindow = window;
-        mSettings = new GeckoSessionSettings(settings, this);
-        mId = id;
-
-        if (mWindow != null) {
-            mWindow.transfer(this, mNativeQueue, mCompositor,
-                    mEventDispatcher, mAccessibility != null ? mAccessibility.nativeProvider : null,
-                    createInitData());
-            onWindowChanged(WINDOW_TRANSFER_IN, /* inProgress */ false);
-            mWebExtensionController.setRuntime(mWindow.runtime);
-        }
-    }
-
-    /* package */ void transferFrom(final GeckoSession session) {
-        transferFrom(session.mWindow, session.mSettings, session.mId);
-        session.mWindow = null;
-    }
-
-    @Override // Parcelable
-    @AnyThread
-    public int describeContents() {
-        return 0;
-    }
-
-    @Override // Parcelable
-    @AnyThread
-    public void writeToParcel(final Parcel out, final int flags) {
-        out.writeStrongInterface(mWindow);
-        out.writeParcelable(mSettings, flags);
-        out.writeString(mId);
-    }
-
-    // AIDL code may call readFromParcel even though it's not part of Parcelable.
-    @AnyThread
-    public void readFromParcel(final @NonNull Parcel source) {
-        final IBinder binder = source.readStrongBinder();
-        final IInterface ifce = (binder != null) ?
-                binder.queryLocalInterface(Window.class.getName()) : null;
-        final Window window = (ifce instanceof Window) ? (Window) ifce : null;
-        final GeckoSessionSettings settings =
-                source.readParcelable(getClass().getClassLoader());
-        final String id = source.readString();
-        transferFrom(window, settings, id);
-    }
-
-    public static final Creator<GeckoSession> CREATOR = new Creator<GeckoSession>() {
-        @Override
-        @AnyThread
-        public GeckoSession createFromParcel(final Parcel in) {
-            final GeckoSession session = new GeckoSession();
-            session.readFromParcel(in);
-            return session;
-        }
-
-        @Override
-        @AnyThread
-        public GeckoSession[] newArray(final int size) {
-            return new GeckoSession[size];
-        }
-    };
-
-    @Override
-    @AnyThread
-    public int hashCode() {
-        return mId.hashCode();
-    }
-
-    @Override
-    @AnyThread
-    public boolean equals(final Object obj) {
-        return obj instanceof GeckoSession && mId.equals(((GeckoSession) obj).mId);
+        return mId.equals(other.mId);
     }
 
     /**
@@ -1408,8 +1350,13 @@ public class GeckoSession implements Parcelable {
 
         onWindowChanged(WINDOW_CLOSE, /* inProgress */ true);
 
+        // We need to ensure the compositor releases any Surface it currently holds.
+        onSurfaceDestroyed();
+
         mWindow.close();
         mWindow.disposeNative();
+        // Can't access the compositor after we dispose of the window
+        mCompositorReady = false;
         mWindow = null;
 
         onWindowChanged(WINDOW_CLOSE, /* inProgress */ false);
@@ -1514,39 +1461,314 @@ public class GeckoSession implements Parcelable {
     public static final int LOAD_FLAGS_REPLACE_HISTORY = 1 << 6;
 
     /**
-     * Formats the map of additional request headers into an ArrayList
-     * @param additionalHeaders Request headers to be formatted
-     * @return Correctly formatted request headers as a ArrayList
+     * Filter headers according to the CORS safelisted rules.
+     *
+     * See <a href="https://developer.mozilla.org/en-US/docs/Glossary/CORS-safelisted_request_header">
+     *  CORS-safelisted request header
+     * </a>.
      */
-    private ArrayList<String> additionalHeadersToStringArray(final @NonNull Map<String, String> additionalHeaders) {
-        ArrayList<String> headers = new ArrayList<String>();
-        for (String key : additionalHeaders.keySet()) {
-            // skip null key if one exists
-            if (key == null)
-                continue;
+    public static final int HEADER_FILTER_CORS_SAFELISTED = 1;
+    /**
+     * Allows most headers.
+     *
+     * Note: the <code>Host</code> and <code>Connection</code>
+     * headers are still ignored.
+     *
+     * This should only be used when input is hard-coded from the app or when
+     * properly sanitized, as some headers could cause unexpected consequences
+     * and security issues.
+     *
+     * Only use this if you know what you're doing.
+     */
+    public static final int HEADER_FILTER_UNRESTRICTED_UNSAFE = 2;
 
-            headers.add( String.format("%s:%s", key, additionalHeaders.get(key)) );
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef(value = {HEADER_FILTER_CORS_SAFELISTED, HEADER_FILTER_UNRESTRICTED_UNSAFE})
+            /* package */ @interface HeaderFilter {}
+
+    /**
+     * Main entry point for loading URIs into a {@link GeckoSession}.
+     *
+     * The simplest use case is loading a URIs with no extra options, this can
+     * be accomplished by specifying the URI in {@link #uri} and then calling
+     * {@link #load}, e.g.
+     *
+     * <pre><code>
+     *     session.load(new Loader().uri("http://mozilla.org"));
+     * </code></pre>
+     *
+     * This class can also be used to load <code>data:</code> URIs, either from
+     * a <code>byte[]</code> array or a <code>String</code> using {@link
+     * #data}, e.g.
+     *
+     * <pre><code>
+     *     session.load(new Loader().data("the data:1234,5678", "text/plain"));
+     * </code></pre>
+     *
+     * This class also allows you to specify some extra data, e.g. you can set
+     * a referrer using {@link #referrer} which can either be a {@link
+     * GeckoSession} or a plain URL string. You can also specify some Load
+     * Flags using {@link #flags}.
+     *
+     * The class is structured as a Builder, so method calls can be easily
+     * chained, e.g.
+     *
+     * <pre><code>
+     *     session.load(new Loader()
+     *          .url("http://mozilla.org")
+     *          .referrer("http://my-referrer.com")
+     *          .flags(...));
+     * </code></pre>
+     */
+    @AnyThread
+    public static class Loader {
+        private String mUri;
+        private GeckoSession mReferrerSession;
+        private String mReferrerUri;
+        private GeckoBundle mHeaders;
+        private @LoadFlags int mLoadFlags = LOAD_FLAGS_NONE;
+        private boolean mIsDataUri;
+        private @HeaderFilter int mHeaderFilter = HEADER_FILTER_CORS_SAFELISTED;
+
+        private static @NonNull String createDataUri(@NonNull final byte[] bytes,
+                                                    @Nullable final String mimeType) {
+            return String.format("data:%s;base64,%s", mimeType != null ? mimeType : "",
+                    Base64.encodeToString(bytes, Base64.NO_WRAP));
         }
-        return headers;
+
+        private static @NonNull String createDataUri(@NonNull final String data,
+                                                    @Nullable final String mimeType) {
+            return String.format("data:%s,%s", mimeType != null ? mimeType : "", data);
+        }
+
+        /**
+         * Set the URI of the resource to load.
+         * @param uri a String containg the URI
+         * @return this {@link Loader} instance.
+         */
+        @NonNull
+        public Loader uri(final @NonNull String uri) {
+            mUri = uri;
+            mIsDataUri = false;
+            return this;
+        }
+
+        /**
+         * Set the URI of the resource to load.
+         * @param uri a {@link Uri} instance
+         * @return this {@link Loader} instance.
+         */
+        @NonNull
+        public Loader uri(final @NonNull Uri uri) {
+            mUri = uri.toString();
+            mIsDataUri = false;
+            return this;
+        }
+
+        /**
+         * Set the data URI of the resource to load.
+         * @param bytes a <code>byte</code> array containing the data to load.
+         * @param mimeType a <code>String</code> containing the mime type for this
+         *                 data URI, e.g. "text/plain"
+         * @return this {@link Loader} instance.
+         */
+        @NonNull
+        public Loader data(final @NonNull byte[] bytes, final @Nullable String mimeType) {
+            mUri = createDataUri(bytes, mimeType);
+            mIsDataUri = true;
+            return this;
+        }
+
+        /**
+         * Set the data URI of the resource to load.
+         * @param data a <code>String</code> array containing the data to load.
+         * @param mimeType a <code>String</code> containing the mime type for this
+         *                 data URI, e.g. "text/plain"
+         * @return this {@link Loader} instance.
+         */
+        @NonNull
+        public Loader data(final @NonNull String data, final @Nullable String mimeType) {
+            mUri = createDataUri(data, mimeType);
+            mIsDataUri = true;
+            return this;
+        }
+
+        /**
+         * Set the referrer for this load.
+         * @param referrer a <code>GeckoSession</code> that will be used as the referrer
+         * @return this {@link Loader} instance.
+         */
+        @NonNull
+        public Loader referrer(final @NonNull GeckoSession referrer) {
+            mReferrerSession = referrer;
+            return this;
+        }
+
+        /**
+         * Set the referrer for this load.
+         * @param referrerUri a {@link Uri} that will be used as the referrer
+         * @return this {@link Loader} instance.
+         */
+        @NonNull
+        public Loader referrer(final @NonNull Uri referrerUri) {
+            mReferrerUri = referrerUri != null ? referrerUri.toString() : null;
+            return this;
+        }
+
+        /**
+         * Set the referrer for this load.
+         * @param referrerUri a <code>String</code> containing the URI
+         *                 that will be used as the referrer
+         * @return this {@link Loader} instance.
+         */
+        @NonNull
+        public Loader referrer(final @NonNull String referrerUri) {
+            mReferrerUri = referrerUri;
+            return this;
+        }
+
+        /**
+         * Add headers for this load.
+         *
+         * Note: only CORS safelisted headers are allowed by default. To modify this
+         * behavior use {@link #headerFilter}.
+         *
+         * See <a href="https://developer.mozilla.org/en-US/docs/Glossary/CORS-safelisted_request_header">
+         *  CORS-safelisted request header
+         * </a>.
+         *
+         * @param headers a <code>Map</code> containing headers that will
+         *                be added to this load.
+         * @return this {@link Loader} instance.
+         */
+        @NonNull
+        public Loader additionalHeaders(final @NonNull Map<String, String> headers) {
+            final GeckoBundle bundle = new GeckoBundle(headers.size());
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                if (entry.getKey() == null) {
+                    // Ignore null keys
+                    continue;
+                }
+                bundle.putString(entry.getKey(), entry.getValue());
+            }
+            mHeaders = bundle;
+            return this;
+        }
+
+        /**
+         * Modify the header filter behavior. By default only CORS safelisted headers are allowed.
+         *
+         * @param filter one of the
+         *               {@link GeckoSession#HEADER_FILTER_CORS_SAFELISTED HEADER_FILTER_*}
+         *               constants.
+         * @return this {@link Loader} instance.
+         */
+        @NonNull
+        public Loader headerFilter(final @HeaderFilter int filter) {
+            mHeaderFilter = filter;
+            return this;
+        }
+
+        /**
+         * Set the load flags for this load.
+         * @param flags the load flags to use, an OR-ed value of
+         *              {@link #LOAD_FLAGS_NONE LOAD_FLAGS_*} that will be used as the referrer
+         * @return this {@link Loader} instance.
+         */
+        @NonNull
+        public Loader flags(final @LoadFlags int flags) {
+            mLoadFlags = flags;
+            return this;
+        }
+    }
+
+    /**
+     * Load page using the {@link Loader} specified.
+     *
+     * @param request Loader for this request.
+     * @see Loader
+     */
+    @AnyThread
+    public void load(final @NonNull Loader request) {
+        if (request.mUri == null) {
+            throw new IllegalArgumentException(
+                    "You need to specify at least one between `uri` and `data`.");
+        }
+
+        if (request.mReferrerUri != null && request.mReferrerSession != null) {
+            throw new IllegalArgumentException(
+                    "Cannot specify both a referrer session and a referrer URI.");
+        }
+
+        final int loadFlags = request.mIsDataUri
+                // If this is a data: load then we need to force allow it.
+                ? request.mLoadFlags | LOAD_FLAGS_FORCE_ALLOW_DATA_URI
+                : request.mLoadFlags;
+
+        // For performance reasons we short-circuit the delegate here
+        // instead of making Gecko call it for direct loadUri calls.
+        final NavigationDelegate.LoadRequest loadRequest =
+                new NavigationDelegate.LoadRequest(
+                        request.mUri,
+                        null, /* triggerUri */
+                        1, /* geckoTarget: OPEN_CURRENTWINDOW */
+                        0, /* flags */
+                        false, /* hasUserGesture */
+                        true /* isDirectNavigation */);
+
+        shouldLoadUri(loadRequest).getOrAccept(allowOrDeny -> {
+            if (allowOrDeny == AllowOrDeny.DENY) {
+                return;
+            }
+
+            final GeckoBundle msg = new GeckoBundle();
+            msg.putString("uri", request.mUri);
+            msg.putInt("flags", loadFlags);
+            msg.putInt("headerFilter", request.mHeaderFilter);
+
+            if (request.mReferrerUri != null) {
+                msg.putString("referrerUri", request.mReferrerUri);
+            }
+
+            if (request.mReferrerSession != null) {
+                msg.putString("referrerSessionId", request.mReferrerSession.mId);
+            }
+
+            if (request.mHeaders != null) {
+                msg.putBundle("headers", request.mHeaders);
+            }
+
+            mEventDispatcher.dispatch("GeckoView:LoadUri", msg);
+        });
     }
 
     /**
      * Load the given URI.
+     *
+     * Convenience method for <pre><code>
+     *     session.load(new Loader().uri(uri));
+     * </code></pre>
+     *
      * @param uri The URI of the resource to load.
      */
     @AnyThread
     public void loadUri(final @NonNull String uri) {
-        loadUri(uri, (GeckoSession)null, LOAD_FLAGS_NONE, (Map<String, String>) null);
+        load(new Loader().uri(uri));
     }
 
     /**
      * Load the given URI with specified HTTP request headers.
      * @param uri The URI of the resource to load.
      * @param additionalHeaders any additional request headers used with the load
+     * @deprecated Use {@link #load} instead.
      */
     @AnyThread
+    @Deprecated
     public void loadUri(final @NonNull String uri, final @Nullable Map<String, String> additionalHeaders) {
-        loadUri(uri, (GeckoSession)null, LOAD_FLAGS_NONE, additionalHeaders);
+        load(new Loader()
+                .uri(uri)
+                .headerFilter(HEADER_FILTER_UNRESTRICTED_UNSAFE)
+                .additionalHeaders(additionalHeaders));
     }
 
     /**
@@ -1554,10 +1776,15 @@ public class GeckoSession implements Parcelable {
      *
      * @param uri the URI to load
      * @param flags the load flags to use, an OR-ed value of {@link #LOAD_FLAGS_NONE LOAD_FLAGS_*}
+     * @deprecated Use {@link #load} instead.
      */
     @AnyThread
+    @Deprecated
     public void loadUri(final @NonNull String uri, final @LoadFlags int flags) {
-        loadUri(uri, (GeckoSession)null, flags, (Map<String, String>) null);
+        load(new Loader()
+                .uri(uri)
+                .headerFilter(HEADER_FILTER_UNRESTRICTED_UNSAFE)
+                .flags(flags));
     }
 
     /**
@@ -1566,11 +1793,17 @@ public class GeckoSession implements Parcelable {
      * @param uri the URI to load
      * @param referrer the referrer, may be null
      * @param flags the load flags to use, an OR-ed value of {@link #LOAD_FLAGS_NONE LOAD_FLAGS_*}
+     * @deprecated Use {@link #load} instead.
      */
     @AnyThread
+    @Deprecated
     public void loadUri(final @NonNull String uri, final @Nullable String referrer,
                         final @LoadFlags int flags) {
-        loadUri(uri, referrer, flags, (Map<String, String>) null);
+        load(new Loader()
+                .uri(uri)
+                .headerFilter(HEADER_FILTER_UNRESTRICTED_UNSAFE)
+                .referrer(referrer)
+                .flags(flags));
     }
 
     /**
@@ -1580,22 +1813,18 @@ public class GeckoSession implements Parcelable {
      * @param referrer the referrer, may be null
      * @param flags the load flags to use, an OR-ed value of {@link #LOAD_FLAGS_NONE LOAD_FLAGS_*}
      * @param additionalHeaders any additional request headers used with the load
+     * @deprecated Use {@link #load} instead.
      */
     @AnyThread
+    @Deprecated
     public void loadUri(final @NonNull String uri, final @Nullable String referrer,
                         final @LoadFlags int flags, final @Nullable Map<String, String> additionalHeaders) {
-        final GeckoBundle msg = new GeckoBundle();
-        msg.putString("uri", uri);
-        msg.putInt("flags", flags);
-
-        if (referrer != null) {
-            msg.putString("referrerUri", referrer);
-        }
-
-        if (additionalHeaders != null) {
-            msg.putStringArray("headers", additionalHeadersToStringArray(additionalHeaders));
-        }
-        mEventDispatcher.dispatch("GeckoView:LoadUri", msg);
+        load(new Loader()
+                .uri(uri)
+                .headerFilter(HEADER_FILTER_UNRESTRICTED_UNSAFE)
+                .referrer(referrer)
+                .flags(flags)
+                .additionalHeaders(additionalHeaders));
     }
 
     /**
@@ -1606,11 +1835,17 @@ public class GeckoSession implements Parcelable {
      * @param uri the URI to load
      * @param referrer the referring GeckoSession, may be null
      * @param flags the load flags to use, an OR-ed value of {@link #LOAD_FLAGS_NONE LOAD_FLAGS_*}
+     * @deprecated Use {@link #load} instead.
      */
     @AnyThread
+    @Deprecated
     public void loadUri(final @NonNull String uri, final @Nullable GeckoSession referrer,
                         final @LoadFlags int flags) {
-        loadUri(uri, referrer, flags, (Map<String, String>) null);
+        load(new Loader()
+                .uri(uri)
+                .headerFilter(HEADER_FILTER_UNRESTRICTED_UNSAFE)
+                .referrer(referrer)
+                .flags(flags));
     }
 
     /**
@@ -1622,51 +1857,86 @@ public class GeckoSession implements Parcelable {
      * @param referrer the referring GeckoSession, may be null
      * @param flags the load flags to use, an OR-ed value of {@link #LOAD_FLAGS_NONE LOAD_FLAGS_*}
      * @param additionalHeaders any additional request headers used with the load
+     * @deprecated Use {@link #load} instead.
      */
     @AnyThread
+    @Deprecated
     public void loadUri(final @NonNull String uri, final @Nullable GeckoSession referrer,
                         final @LoadFlags int flags, final @Nullable Map<String, String> additionalHeaders) {
-        final GeckoBundle msg = new GeckoBundle();
-        msg.putString("uri", uri);
-        msg.putInt("flags", flags);
+        load(new Loader()
+                .uri(uri)
+                .headerFilter(HEADER_FILTER_UNRESTRICTED_UNSAFE)
+                .referrer(referrer)
+                .additionalHeaders(additionalHeaders)
+                .flags(flags));
+    }
 
-        if (referrer != null) {
-            msg.putString("referrerSessionId", referrer.mId);
+    private GeckoResult<AllowOrDeny> shouldLoadUri(final NavigationDelegate.LoadRequest request) {
+        final NavigationDelegate delegate = mNavigationHandler.getDelegate();
+        if (delegate == null) {
+            return GeckoResult.fromValue(AllowOrDeny.ALLOW);
         }
 
-        if (additionalHeaders != null) {
-            msg.putStringArray("headers", additionalHeadersToStringArray(additionalHeaders));
-        }
-        mEventDispatcher.dispatch("GeckoView:LoadUri", msg);
+        final GeckoResult<AllowOrDeny> result = new GeckoResult<>();
+
+        ThreadUtils.runOnUiThread(() -> {
+            final GeckoResult<AllowOrDeny> delegateResult =
+                    delegate.onLoadRequest(this, request);
+
+            if (delegateResult == null) {
+                result.complete(AllowOrDeny.ALLOW);
+            } else {
+                delegateResult.getOrAccept(
+                    allowOrDeny -> result.complete(allowOrDeny),
+                    error -> result.completeExceptionally(error)
+                );
+            }
+        });
+
+        return result;
     }
 
     /**
      * Load the given URI.
      * @param uri The URI of the resource to load.
+     * @deprecated Use {@link #load} instead.
      */
     @AnyThread
+    @Deprecated
     public void loadUri(final @NonNull Uri uri) {
-        loadUri(uri.toString(), (GeckoSession)null, LOAD_FLAGS_NONE, (Map<String, String>) null);
+        load(new Loader()
+                .headerFilter(HEADER_FILTER_UNRESTRICTED_UNSAFE)
+                .uri(uri));
     }
 
     /**
      * Load the given URI with specified HTTP request headers.
      * @param uri The URI of the resource to load.
      * @param additionalHeaders any additional request headers used with the load
+     * @deprecated Use {@link #load} instead.
      */
     @AnyThread
+    @Deprecated
     public void loadUri(final @NonNull Uri uri, final @Nullable Map<String, String> additionalHeaders) {
-        loadUri(uri.toString(), (GeckoSession)null, LOAD_FLAGS_NONE, additionalHeaders);
+        load(new Loader()
+                .uri(uri)
+                .headerFilter(HEADER_FILTER_UNRESTRICTED_UNSAFE)
+                .additionalHeaders(additionalHeaders));
     }
 
     /**
      * Load the given URI with the specified referrer and load type.
      * @param uri the URI to load
      * @param flags the load flags to use, an OR-ed value of {@link #LOAD_FLAGS_NONE LOAD_FLAGS_*}
+     * @deprecated Use {@link #load} instead.
      */
     @AnyThread
+    @Deprecated
     public void loadUri(final @NonNull Uri uri, final @LoadFlags int flags) {
-        loadUri(uri.toString(), (GeckoSession)null, flags, (Map<String, String>) null);
+        load(new Loader()
+                .uri(uri)
+                .headerFilter(HEADER_FILTER_UNRESTRICTED_UNSAFE)
+                .flags(flags));
     }
 
     /**
@@ -1674,11 +1944,17 @@ public class GeckoSession implements Parcelable {
      * @param uri the URI to load
      * @param referrer the Uri to use as the referrer
      * @param flags the load flags to use, an OR-ed value of {@link #LOAD_FLAGS_NONE LOAD_FLAGS_*}
+     * @deprecated Use {@link #load} instead.
      */
     @AnyThread
+    @Deprecated
     public void loadUri(final @NonNull Uri uri, final @Nullable Uri referrer,
                         final @LoadFlags int flags) {
-        loadUri(uri.toString(), referrer != null ? referrer.toString() : null, flags, (Map<String, String>) null);
+        load(new Loader()
+                .uri(uri)
+                .headerFilter(HEADER_FILTER_UNRESTRICTED_UNSAFE)
+                .referrer(referrer)
+                .flags(flags));
     }
 
     /**
@@ -1687,11 +1963,18 @@ public class GeckoSession implements Parcelable {
      * @param referrer the Uri to use as the referrer
      * @param flags the load flags to use, an OR-ed value of {@link #LOAD_FLAGS_NONE LOAD_FLAGS_*}
      * @param additionalHeaders any additional request headers used with the load
+     * @deprecated Use {@link #load} instead.
      */
     @AnyThread
+    @Deprecated
     public void loadUri(final @NonNull Uri uri, final @Nullable Uri referrer,
                         final @LoadFlags int flags, final @Nullable Map<String, String> additionalHeaders) {
-        loadUri(uri.toString(), referrer != null ? referrer.toString() : null, flags, additionalHeaders);
+        load(new Loader()
+                .uri(uri)
+                .headerFilter(HEADER_FILTER_UNRESTRICTED_UNSAFE)
+                .referrer(referrer)
+                .flags(flags)
+                .additionalHeaders(additionalHeaders));
     }
 
     /**
@@ -1700,15 +1983,12 @@ public class GeckoSession implements Parcelable {
      * @param data a String representing the data
      * @param mimeType the mime type of the data, e.g. "text/plain". Maybe be null, in
      *                 which case the type is guessed.
-     *
+     * @deprecated Use {@link #load} instead.
      */
     @AnyThread
+    @Deprecated
     public void loadString(@NonNull final String data, @Nullable final String mimeType) {
-        if (data == null) {
-            throw new IllegalArgumentException("data cannot be null");
-        }
-
-        loadUri(createDataUri(data, mimeType), (GeckoSession)null, LOAD_FLAGS_NONE);
+        load(new Loader().data(data, mimeType));
     }
 
     /**
@@ -1717,14 +1997,12 @@ public class GeckoSession implements Parcelable {
      * @param bytes    the data to load
      * @param mimeType the mime type of the data, e.g. video/mp4. May be null, in which
      *                 case the type is guessed.
+     * @deprecated Use {@link #load} instead.
      */
     @AnyThread
+    @Deprecated
     public void loadData(@NonNull final byte[] bytes, @Nullable final String mimeType) {
-        if (bytes == null) {
-            throw new IllegalArgumentException("data cannot be null");
-        }
-
-        loadUri(createDataUri(bytes, mimeType), (GeckoSession)null, LOAD_FLAGS_FORCE_ALLOW_DATA_URI);
+        load(new Loader().data(bytes, mimeType));
     }
 
     /**
@@ -1734,10 +2012,10 @@ public class GeckoSession implements Parcelable {
      * @return a URI String
      */
     @AnyThread
+    @Deprecated
     public static @NonNull String createDataUri(@NonNull final byte[] bytes,
                                                 @Nullable final String mimeType) {
-        return String.format("data:%s;base64,%s", mimeType != null ? mimeType : "",
-                             Base64.encodeToString(bytes, Base64.NO_WRAP));
+        return Loader.createDataUri(bytes, mimeType);
     }
 
     /**
@@ -1747,9 +2025,10 @@ public class GeckoSession implements Parcelable {
      * @return a URI String
      */
     @AnyThread
+    @Deprecated
     public static @NonNull String createDataUri(@NonNull final String data,
                                                 @Nullable final String mimeType) {
-        return String.format("data:%s,%s", mimeType != null ? mimeType : "", data);
+        return Loader.createDataUri(data, mimeType);
     }
 
     /**
@@ -1954,7 +2233,7 @@ public class GeckoSession implements Parcelable {
             mEventDispatcher.dispatch("GeckoView:FlushSessionState", null);
         }
 
-        ThreadUtils.postToUiThread(
+        ThreadUtils.runOnUiThread(
             () -> getAutofillSupport().onActiveChanged(active)
         );
     }
@@ -2091,6 +2370,7 @@ public class GeckoSession implements Parcelable {
             mState = new GeckoBundle(state);
         }
 
+        @SuppressWarnings("checkstyle:javadocmethod")
         public SessionState(final @NonNull SessionState state) {
             mState = new GeckoBundle(state.mState);
         }
@@ -2177,6 +2457,7 @@ public class GeckoSession implements Parcelable {
         }
 
         // AIDL code may call readFromParcel even though it's not part of Parcelable.
+        @SuppressWarnings("checkstyle:javadocmethod")
         public void readFromParcel(final @NonNull Parcel source) {
             if (source.readString() == null) {
                 Log.w(LOGTAG, "Can't reproduce session state from Parcel");
@@ -2339,6 +2620,7 @@ public class GeckoSession implements Parcelable {
     }
 
     @AnyThread
+    @SuppressWarnings("checkstyle:javadocmethod")
     public @NonNull GeckoSessionSettings getSettings() {
         return mSettings;
     }
@@ -2427,6 +2709,7 @@ public class GeckoSession implements Parcelable {
     }
 
     @UiThread
+    @SuppressWarnings("checkstyle:javadocmethod")
     public @Nullable ScrollDelegate getScrollDelegate() {
         ThreadUtils.assertOnUiThread();
         return mScrollHandler.getDelegate();
@@ -2524,6 +2807,25 @@ public class GeckoSession implements Parcelable {
         return mMediaHandler.getDelegate();
     }
 
+    /**
+     * Set the media session delegate.
+     * This will replace the current handler.
+     * @param delegate An implementation of {@link MediaSession.Delegate}.
+     */
+    @AnyThread
+    public void setMediaSessionDelegate(
+            final @Nullable MediaSession.Delegate delegate) {
+        mMediaSessionHandler.setDelegate(delegate, this);
+    }
+
+    /**
+     * Get the media session delegate.
+     * @return The current media session delegate.
+     */
+    @AnyThread
+    public @Nullable MediaSession.Delegate getMediaSessionDelegate() {
+        return mMediaSessionHandler.getDelegate();
+    }
 
     /**
      * Get the current selection action delegate for this GeckoSession.
@@ -2556,6 +2858,18 @@ public class GeckoSession implements Parcelable {
                 final PromptDelegate.AlertPrompt prompt =
                     new PromptDelegate.AlertPrompt(title, msg);
                 res = delegate.onAlertPrompt(session, prompt);
+                break;
+            }
+            case "beforeUnload": {
+                final PromptDelegate.BeforeUnloadPrompt prompt =
+                    new PromptDelegate.BeforeUnloadPrompt();
+                res = delegate.onBeforeUnloadPrompt(session, prompt);
+                break;
+            }
+            case "repost": {
+                final PromptDelegate.RepostConfirmPrompt prompt =
+                    new PromptDelegate.RepostConfirmPrompt();
+                res = delegate.onRepostConfirmPrompt(session, prompt);
                 break;
             }
             case "button": {
@@ -2673,8 +2987,7 @@ public class GeckoSession implements Parcelable {
                 res = delegate.onSharePrompt(session, prompt);
                 break;
             }
-            case "loginStorage": {
-                final int lsType = message.getInt("lsType");
+            case "Autocomplete:Save:Login": {
                 final int hint = message.getInt("hint");
                 final GeckoBundle[] loginBundles =
                     message.getBundleArray("logins");
@@ -2683,17 +2996,44 @@ public class GeckoSession implements Parcelable {
                     break;
                 }
 
-                final LoginStorage.LoginEntry[] logins =
-                    new LoginStorage.LoginEntry[loginBundles.length];
+                final Autocomplete.LoginSaveOption[] options =
+                    new Autocomplete.LoginSaveOption[loginBundles.length];
 
-                for (int i = 0; i < logins.length; ++i) {
-                    logins[i] = new LoginStorage.LoginEntry(loginBundles[i]);
+                for (int i = 0; i < options.length; ++i) {
+                    options[i] = new Autocomplete.LoginSaveOption(
+                            new Autocomplete.LoginEntry(loginBundles[i]),
+                            hint);
                 }
 
-                final PromptDelegate.LoginStoragePrompt prompt =
-                    new PromptDelegate.LoginStoragePrompt(lsType, hint, logins);
+                final PromptDelegate.AutocompleteRequest
+                    <Autocomplete.LoginSaveOption> request =
+                    new PromptDelegate.AutocompleteRequest<>(options);
 
-                res = delegate.onLoginStoragePrompt(session, prompt);
+                res = delegate.onLoginSave(session, request);
+                break;
+            }
+            case "Autocomplete:Select:Login": {
+                final GeckoBundle[] optionBundles =
+                    message.getBundleArray("options");
+
+                if (optionBundles == null) {
+                    break;
+                }
+
+                final Autocomplete.LoginSelectOption[] options =
+                    new Autocomplete.LoginSelectOption[optionBundles.length];
+
+                for (int i = 0; i < options.length; ++i) {
+                    options[i] = Autocomplete.LoginSelectOption.fromBundle(
+                        optionBundles[i]);
+                }
+
+                final PromptDelegate.AutocompleteRequest
+                    <Autocomplete.LoginSelectOption> request =
+                    new PromptDelegate.AutocompleteRequest<>(options);
+
+                res = delegate.onLoginSelect(session, request);
+
                 break;
             }
             default: {
@@ -2716,10 +3056,6 @@ public class GeckoSession implements Parcelable {
     protected void setShouldPinOnScreen(final boolean pinned) {
         if (DEBUG) {
             ThreadUtils.assertOnUiThread();
-        }
-
-        if (mToolbar != null) {
-            mToolbar.setPinned(pinned, DynamicToolbarAnimator.PinReason.CARET_DRAG);
         }
 
         mShouldPinOnScreen = pinned;
@@ -3019,6 +3355,9 @@ public class GeckoSession implements Parcelable {
              */
             public final @Nullable String srcUri;
 
+            // TODO: Bug 1595822 make public
+            final List<WebExtension.Menu> extensionMenus;
+
             protected ContextElement(
                     final @Nullable String baseUri,
                     final @Nullable String linkUri,
@@ -3032,6 +3371,7 @@ public class GeckoSession implements Parcelable {
                 this.altText = altText;
                 this.type = getType(typeStr);
                 this.srcUri = srcUri;
+                this.extensionMenus = null;
             }
 
             private static int getType(final String name) {
@@ -3062,15 +3402,24 @@ public class GeckoSession implements Parcelable {
                                    @NonNull ContextElement element) {}
 
         /**
-         * This is fired when there is a response that cannot be handled
-         * by Gecko (e.g., a download).
-         *
-         * @param session the GeckoSession that received the external response.
-         * @param response the WebResponseInfo for the external response
+         * @deprecated Use {@link ContentDelegate#onExternalResponse(GeckoSession, WebResponse)}
+         * instead. This method will be removed in GeckoView 85.
          */
+        @Deprecated // Bug 1530022
+        @SuppressWarnings("checkstyle:javadocmethod")
         @UiThread
         default void onExternalResponse(@NonNull GeckoSession session,
                                         @NonNull WebResponseInfo response) {}
+
+        /**
+         * This is fired when there is a response that cannot be handled
+         * by Gecko (e.g., a download).
+         *  @param session the GeckoSession that received the external response.
+         * @param response the external WebResponse.
+         */
+        @UiThread
+        default void onExternalResponse(@NonNull GeckoSession session,
+                                        @NonNull WebResponse response) {}
 
         /**
          * The content process hosting this GeckoSession has crashed. The
@@ -3109,9 +3458,10 @@ public class GeckoSession implements Parcelable {
         /**
          * Notification that the first content paint has occurred.
          * This callback is invoked for the first content paint after
-         * a page has been loaded. The function {@link #onFirstComposite(GeckoSession)}
-         * will be called once the compositor has started rendering. However, it is
-         * possible for the compositor to start rendering before there is any content to render.
+         * a page has been loaded, or after a {@link #onPaintStatusReset(GeckoSession)}
+         * event. The function {@link #onFirstComposite(GeckoSession)} will be called
+         * once the compositor has started rendering. However, it is possible for the
+         * compositor to start rendering before there is any content to render.
          * onFirstContentfulPaint() is called once some content has been rendered. It may be nothing
          * more than the page background color. It is not an indication that the whole page has
          * been rendered.
@@ -3119,6 +3469,21 @@ public class GeckoSession implements Parcelable {
          */
         @UiThread
         default void onFirstContentfulPaint(@NonNull GeckoSession session) {}
+
+        /**
+         * Notification that the paint status has been reset.
+         *
+         * This callback is invoked whenever the painted content is no longer being
+         * displayed. This can occur in response to the session being paused.
+         * After this has fired the compositor may continue rendering, but may not
+         * render the page content. This callback can therefore be used in conjunction
+         * with {@link #onFirstContentfulPaint(GeckoSession)} to determine when there is
+         * valid content being rendered.
+         *
+         * @param session The GeckoSession that had the paint status reset event.
+         */
+        @UiThread
+        default void onPaintStatusReset(@NonNull GeckoSession session) {}
 
         /**
          * This is fired when the loaded document has a valid Web App Manifest present.
@@ -3276,7 +3641,7 @@ public class GeckoSession implements Parcelable {
 
             /**
              * Checks if the passed action is available
-             * @param action An {@link SelectionActionDelegateAction} to perform
+             * @param action An {@link SelectionActionDelegate} to perform
              * @return True if the action is available.
              */
             @AnyThread
@@ -3285,10 +3650,10 @@ public class GeckoSession implements Parcelable {
             }
 
             /**
-             * Execute an {@link SelectionActionDelegateAction} action.
+             * Execute an {@link SelectionActionDelegate} action.
              *
              * @throws IllegalStateException If the action was not available.
-             * @param action A {@link SelectionActionDelegateAction} action.
+             * @param action A {@link SelectionActionDelegate} action.
              */
             @AnyThread
             public void execute(@NonNull @SelectionActionDelegateAction final String action) {
@@ -3521,12 +3886,14 @@ public class GeckoSession implements Parcelable {
                                       @Nullable final String triggerUri,
                                       final int geckoTarget,
                                       final int flags,
-                                      final boolean hasUserGesture) {
+                                      final boolean hasUserGesture,
+                                      final boolean isDirectNavigation) {
                 this.uri = uri;
                 this.triggerUri = triggerUri;
                 this.target = convertGeckoTarget(geckoTarget);
                 this.isRedirect = (flags & LOAD_REQUEST_IS_REDIRECT) != 0;
                 this.hasUserGesture = hasUserGesture;
+                this.isDirectNavigation = isDirectNavigation;
             }
 
             /**
@@ -3538,6 +3905,7 @@ public class GeckoSession implements Parcelable {
                 target = 0;
                 isRedirect = false;
                 hasUserGesture = false;
+                isDirectNavigation = false;
             }
 
             // This needs to match nsIBrowserDOMWindow.idl
@@ -3583,6 +3951,12 @@ public class GeckoSession implements Parcelable {
              */
             public final boolean hasUserGesture;
 
+            /**
+             * This load request was initiated by a direct navigation from the
+             * application. E.g. when calling {@link GeckoSession#loadUri}.
+             */
+            public final boolean isDirectNavigation;
+
             @Override
             public String toString() {
                 final StringBuilder out = new StringBuilder("LoadRequest { ");
@@ -3592,6 +3966,7 @@ public class GeckoSession implements Parcelable {
                     .append(", target: " + target)
                     .append(", isRedirect: " + isRedirect)
                     .append(", hasUserGesture: " + hasUserGesture)
+                    .append(", fromLoadUri: " + hasUserGesture)
                     .append(" }");
                 return out.toString();
             }
@@ -3616,6 +3991,24 @@ public class GeckoSession implements Parcelable {
         @UiThread
         default @Nullable GeckoResult<AllowOrDeny> onLoadRequest(@NonNull GeckoSession session,
                                                                  @NonNull LoadRequest request) {
+            return null;
+        }
+
+        /**
+         * A request to load a URI in a non-top-level context.
+         *
+         * @param session The GeckoSession that initiated the callback.
+         * @param request The {@link LoadRequest} containing the request details.
+         *
+         * @return A {@link GeckoResult} with a {@link AllowOrDeny} value which indicates whether
+         *         or not the load was handled. If unhandled, Gecko will continue the
+         *         load as normal. If handled (a {@link AllowOrDeny#DENY DENY} value), Gecko
+         *         will abandon the load. A null return value is interpreted as
+         *         {@link AllowOrDeny#ALLOW ALLOW} (unhandled).
+         */
+        @UiThread
+        default @Nullable GeckoResult<AllowOrDeny> onSubframeLoadRequest(@NonNull GeckoSession session,
+                                                                         @NonNull LoadRequest request) {
             return null;
         }
 
@@ -3648,6 +4041,7 @@ public class GeckoSession implements Parcelable {
          *         - document.addCertException(isTemporary), returns Promise
          *         - document.getFailedCertSecurityInfo(), returns FailedCertSecurityInfo
          *         - document.getNetErrorInfo(), returns NetErrorInfo
+         *         - document.allowDeprecatedTls, a property indicating whether or not TLS 1.0/1.1 is allowed
          * @see <a href="https://searchfox.org/mozilla-central/source/dom/webidl/FailedCertSecurityInfo.webidl">FailedCertSecurityInfo IDL</a>
          * @see <a href="https://searchfox.org/mozilla-central/source/dom/webidl/NetErrorInfo.webidl">NetErrorInfo IDL</a>
          */
@@ -3763,6 +4157,55 @@ public class GeckoSession implements Parcelable {
                 } else {
                     callback.sendSuccess(mResult);
                 }
+            }
+        }
+
+        /**
+         * BeforeUnloadPrompt represents the onbeforeunload prompt.
+         * See https://developer.mozilla.org/en-US/docs/Web/API/WindowEventHandlers/onbeforeunload
+         */
+        class BeforeUnloadPrompt extends BasePrompt {
+            protected BeforeUnloadPrompt() {
+                super(null);
+            }
+
+            /**
+             * Confirms the prompt.
+             *
+             * @param allowOrDeny whether the navigation should be allowed to continue or not.
+             *
+             * @return A {@link PromptResponse} which can be used to complete
+             *         the {@link GeckoResult} associated with this prompt.
+             */
+            @UiThread
+            public @NonNull PromptResponse confirm(final @Nullable AllowOrDeny allowOrDeny) {
+                ensureResult().putBoolean("allow", allowOrDeny != AllowOrDeny.DENY);
+                return super.confirm();
+            }
+        }
+
+        /**
+         * RepostConfirmPrompt represents a prompt shown whenever the browser
+         * needs to resubmit POST data (e.g. due to page refresh).
+         */
+        class RepostConfirmPrompt extends BasePrompt {
+            protected RepostConfirmPrompt() {
+                super(null);
+            }
+
+            /**
+             * Confirms the prompt.
+             *
+             * @param allowOrDeny whether the browser should allow resubmitting
+             *                    data.
+             *
+             * @return A {@link PromptResponse} which can be used to complete
+             *         the {@link GeckoResult} associated with this prompt.
+             */
+            @UiThread
+            public @NonNull PromptResponse confirm(final @Nullable AllowOrDeny allowOrDeny) {
+                ensureResult().putBoolean("allow", allowOrDeny != AllowOrDeny.DENY);
+                return super.confirm();
             }
         }
 
@@ -4616,93 +5059,45 @@ public class GeckoSession implements Parcelable {
         }
 
         /**
-         * LoginStoragePrompt contains the information necessary to handle a
-         * login storage request.
+         * Request containing information required to resolve Autocomplete
+         * prompt requests.
          */
-        public class LoginStoragePrompt extends BasePrompt {
-            @Retention(RetentionPolicy.SOURCE)
-            @IntDef({ Type.SAVE })
-            /* package */ @interface LoginStorageType {}
-
-            // Sync with LoginStorageDelegate.Type in GeckoViewPrompt.js
+        public class AutocompleteRequest<T extends Autocomplete.Option<?>>
+                extends BasePrompt {
             /**
-             * Possible type of a {@link LoginStoragePrompt}.
+             * The Autocomplete options for this request.
+             * This can contain a single or multiple entries.
              */
-            public static class Type {
-                public static final int SAVE = 1;
+            public final @NonNull T[] options;
 
-                protected Type() {}
-            }
-
-            @Retention(RetentionPolicy.SOURCE)
-            @IntDef(flag = true,
-                    value = { Hint.NONE })
-            /* package */ @interface LoginStorageHint {}
-
-            public static class Hint {
-                public static final int NONE = 0;
-
-                protected Hint() {}
-            }
-
-            /**
-             * The type of the prompt request, one of {@link LoginStoragePrompt.Type}.
-             */
-            public final @LoginStorageType int type;
-
-            /**
-             * The hint may provide some additional information on the nature or
-             * confidence level of the prompt request to support appropriate
-             * prompting styles. A flag combination of {@link LoginStoragePrompt.Hint}.
-             */
-            public final @LoginStorageHint int hint;
-
-            /**
-             * The logins that are subject to the prompt request.
-             * For {@link Type#SAVE}, it holds one
-             * {@link LoginStorage.LoginEntry} depicting the entry to be saved.
-             */
-            public final @NonNull LoginStorage.LoginEntry[] logins;
-
-            protected LoginStoragePrompt(
-                    final @LoginStorageType int type,
-                    final @LoginStorageHint int hint,
-                    final @NonNull LoginStorage.LoginEntry[] logins) {
+            protected AutocompleteRequest(final @NonNull T[] options) {
                 super(null);
-
-                this.type = type;
-                this.hint = hint;
-                this.logins = logins;
+                this.options = options;
             }
 
             /**
-             * Confirm the prompt by responding with a
-             * {@link LoginStorage.LoginEntry}.
-             * For {@link Type#SAVE}, confirm with the entry to be saved. This
-             * can be the original entry as provided by logins[0] or a modified
-             * entry based on that.
-             * Confirming a {@link Type#SAVE} prompt request triggers a
-             * {@link LoginStorage.Delegate#onLoginSave} request in the runtime
-             * delegate with the confirmed login entry.
+             * Confirm the request by responding with a selection.
+             * See the PromptDelegate callbacks for specifics.
              *
-             * @param login A {@link LoginStorage.LoginEntry} specifying the
-             *              login entry saved.
+             * @param selection The {@link Autocomplete.Option} used to confirm
+             *                  the request.
              *
-             * @return A {@link PromptResponse} which can be used to complete the
-             *         {@link GeckoResult} associated with this prompt.
+             * @return A {@link PromptResponse} which can be used to complete
+             *         the {@link GeckoResult} associated with this prompt.
              */
             @UiThread
             public @NonNull PromptResponse confirm(
-                    final @NonNull LoginStorage.LoginEntry login) {
-                ensureResult().putBundle("login", login.toBundle());
+                    final @NonNull Autocomplete.Option<?> selection) {
+                ensureResult().putBundle("selection", selection.toBundle());
                 return super.confirm();
             }
 
             /**
-             * Dismisses the prompt.
+             * Dismiss the request.
+             * See the PromptDelegate callbacks for specifics.
              *
-             * @return A {@link PromptResponse} which can be used to complete the
-             *         {@link GeckoResult} associated with this prompt.
+             * @return A {@link PromptResponse} which can be used to complete
+             *         the {@link GeckoResult} associated with this prompt.
              */
             @UiThread
             public @NonNull PromptResponse dismiss() {
@@ -4723,6 +5118,48 @@ public class GeckoSession implements Parcelable {
         @UiThread
         default @Nullable GeckoResult<PromptResponse> onAlertPrompt(@NonNull final GeckoSession session,
                                                                     @NonNull final AlertPrompt prompt) {
+            return null;
+        }
+
+        /**
+         * Display a onbeforeunload prompt.
+         *
+         * See https://developer.mozilla.org/en-US/docs/Web/API/WindowEventHandlers/onbeforeunload
+         * See {@link BeforeUnloadPrompt}
+         *
+         * @param session GeckoSession that triggered the prompt
+         * @param prompt the {@link BeforeUnloadPrompt} that describes the
+         *               prompt.
+         * @return A {@link GeckoResult} resolving to {@link AllowOrDeny#ALLOW}
+         *         if the page is allowed to continue with the navigation or
+         *         {@link AllowOrDeny#DENY} otherwise.
+         */
+        @UiThread
+        default @Nullable GeckoResult<PromptResponse> onBeforeUnloadPrompt(
+                @NonNull final GeckoSession session,
+                @NonNull final BeforeUnloadPrompt prompt
+        ) {
+            return null;
+        }
+
+        /**
+         * Display a POST resubmission confirmation prompt.
+         *
+         * This prompt will trigger whenever refreshing or navigating to a page needs resubmitting
+         * POST data that has been submitted already.
+         *
+         * @param session GeckoSession that triggered the prompt
+         * @param prompt the {@link RepostConfirmPrompt} that describes the
+         *               prompt.
+         * @return A {@link GeckoResult} resolving to {@link AllowOrDeny#ALLOW}
+         *         if the page is allowed to continue with the navigation and resubmit the POST
+         *         data or {@link AllowOrDeny#DENY} otherwise.
+         */
+        @UiThread
+        default @Nullable GeckoResult<PromptResponse> onRepostConfirmPrompt(
+                @NonNull final GeckoSession session,
+                @NonNull final RepostConfirmPrompt prompt
+        ) {
             return null;
         }
 
@@ -4865,20 +5302,57 @@ public class GeckoSession implements Parcelable {
         }
 
         /**
-         * Handle a login storage prompt.
+         * Handle a login save prompt request.
          * This is triggered by the user entering new or modified login
          * credentials into a login form.
          *
-         * @param session GeckoSession that triggered the prompt.
-         * @param prompt The {@link LoginStoragePrompt} that describes the prompt.
+         * @param session The {@link GeckoSession} that triggered the request.
+         * @param request The {@link AutocompleteRequest} containing the request
+         *                details.
          *
-         * @return A {@link GeckoResult} resolving to a {@link PromptResponse}
-         *         which includes all necessary information to resolve the prompt.
+         * @return A {@link GeckoResult} resolving to a {@link PromptResponse}.
+         *
+         *         Confirm the request with an {@link Autocomplete.Option}
+         *         to trigger a
+         *         {@link Autocomplete.LoginStorageDelegate#onLoginSave} request
+         *         to save the given selection.
+         *         The confirmed selection may be an entry out of the request's
+         *         options, a modified option, or a freshly created login entry.
+         *
+         *         Dismiss the request to deny the saving request.
          */
         @UiThread
-        default @Nullable GeckoResult<PromptResponse> onLoginStoragePrompt(
+        default @Nullable GeckoResult<PromptResponse> onLoginSave(
                 @NonNull final GeckoSession session,
-                @NonNull final LoginStoragePrompt prompt) {
+                @NonNull final AutocompleteRequest<Autocomplete.LoginSaveOption>
+                    request) {
+            return null;
+        }
+
+        /**
+         * Handle a login selection prompt request.
+         * This is triggered by the user focusing on a login username field.
+         *
+         * @param session The {@link GeckoSession} that triggered the request.
+         * @param request The {@link AutocompleteRequest} containing the request
+         *                details.
+         *
+         * @return A {@link GeckoResult} resolving to a {@link PromptResponse}
+         *
+         *         Confirm the request with an {@link Autocomplete.Option}
+         *         to let GeckoView fill out the login forms with the given
+         *         selection details.
+         *         The confirmed selection may be an entry out of the request's
+         *         options, a modified option, or a freshly created login entry.
+         *
+         *         Dismiss the request to deny autocompletion for the detected
+         *         form.
+         */
+        @UiThread
+        default @Nullable GeckoResult<PromptResponse> onLoginSelect(
+                @NonNull final GeckoSession session,
+                @NonNull final AutocompleteRequest<Autocomplete.LoginSelectOption>
+                    request) {
             return null;
         }
     }
@@ -4924,21 +5398,6 @@ public class GeckoSession implements Parcelable {
             mOverscroll = new OverscrollEdgeEffect(this);
         }
         return mOverscroll;
-    }
-
-    /**
-     * Get the DynamicToolbarAnimator instance for this session.
-     *
-     * @return DynamicToolbarAnimator instance.
-     */
-    @UiThread
-    public @NonNull DynamicToolbarAnimator getDynamicToolbarAnimator() {
-        ThreadUtils.assertOnUiThread();
-
-        if (mToolbar == null) {
-            mToolbar = new DynamicToolbarAnimator(this);
-        }
-        return mToolbar;
     }
 
     /**
@@ -5105,6 +5564,11 @@ public class GeckoSession implements Parcelable {
          * Permission for allowing autoplay of audible video.
          */
         int PERMISSION_AUTOPLAY_AUDIBLE = 5;
+
+        /**
+         * Permission for accessing system media keys used to decode DRM media.
+         */
+        int PERMISSION_MEDIA_KEY_SYSTEM_ACCESS = 6;
 
         /**
          * Callback interface for notifying the result of a permission request.
@@ -5359,7 +5823,8 @@ public class GeckoSession implements Parcelable {
             PermissionDelegate.PERMISSION_PERSISTENT_STORAGE,
             PermissionDelegate.PERMISSION_XR,
             PermissionDelegate.PERMISSION_AUTOPLAY_INAUDIBLE,
-            PermissionDelegate.PERMISSION_AUTOPLAY_AUDIBLE})
+            PermissionDelegate.PERMISSION_AUTOPLAY_AUDIBLE,
+            PermissionDelegate.PERMISSION_MEDIA_KEY_SYSTEM_ACCESS})
     /* package */ @interface Permission {}
 
     /**
@@ -5587,12 +6052,7 @@ public class GeckoSession implements Parcelable {
 
                 // Delay calling onCompositorReady to avoid deadlock due
                 // to synchronous call to the compositor.
-                ThreadUtils.postToUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        onCompositorReady();
-                    }
-                });
+                ThreadUtils.postToUiThread(this::onCompositorReady);
                 break;
             }
 
@@ -5614,22 +6074,8 @@ public class GeckoSession implements Parcelable {
                 break;
             }
 
-            case STATIC_TOOLBAR_READY:
-            case TOOLBAR_SHOW: {
-                if (mToolbar != null) {
-                    mToolbar.handleToolbarAnimatorMessage(message);
-                    // Update window bounds due to toolbar visibility change.
-                    onWindowBoundsChanged();
-                }
-                break;
-            }
-
             default: {
-                if (mToolbar != null) {
-                    mToolbar.handleToolbarAnimatorMessage(message);
-                } else {
-                    Log.w(LOGTAG, "Unexpected message: " + message);
-                }
+                Log.w(LOGTAG, "Unexpected message: " + message);
                 break;
             }
         }
@@ -5659,10 +6105,6 @@ public class GeckoSession implements Parcelable {
             // compositor now that the compositor is ready.
             onSurfaceChanged(mSurface, mOffsetX, mOffsetY, mWidth, mHeight);
             mSurface = null;
-        }
-
-        if (mToolbar != null) {
-            mToolbar.onCompositorReady();
         }
 
         if (mFixedBottomOffset != 0) {
@@ -5721,12 +6163,7 @@ public class GeckoSession implements Parcelable {
                           mHeight + ")"));
         }
 
-        final int toolbarHeight;
-        if (mToolbar != null) {
-            toolbarHeight = mToolbar.getCurrentToolbarHeight();
-        } else {
-            toolbarHeight = 0;
-        }
+        final int toolbarHeight = 0;
 
         mClientTop = mTop + toolbarHeight;
         // If the view is not tall enough to even fix the toolbar we just
@@ -5962,6 +6399,7 @@ public class GeckoSession implements Parcelable {
         }
 
         @UiThread
+        @SuppressWarnings("checkstyle:javadocmethod")
         default void onHistoryStateChange(@NonNull GeckoSession session, @NonNull HistoryList historyList) {}
     }
 

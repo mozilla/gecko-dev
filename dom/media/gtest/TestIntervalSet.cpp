@@ -8,6 +8,7 @@
 #include "TimeUnits.h"
 #include "Intervals.h"
 #include <algorithm>
+#include <type_traits>
 #include <vector>
 
 using namespace mozilla;
@@ -705,13 +706,14 @@ TEST(IntervalSet, StaticAssert)
   media::Interval<int> i;
 
   static_assert(
-      mozilla::IsSame<nsTArray_CopyChooser<IntIntervals>::Type,
-                      nsTArray_CopyWithConstructors<IntIntervals>>::value,
+      std::is_same_v<nsTArray_RelocationStrategy<IntIntervals>::Type,
+                     nsTArray_RelocateUsingMoveConstructor<IntIntervals>>,
       "Must use copy constructor");
-  static_assert(mozilla::IsSame<
-                    nsTArray_CopyChooser<media::TimeIntervals>::Type,
-                    nsTArray_CopyWithConstructors<media::TimeIntervals>>::value,
-                "Must use copy constructor");
+  static_assert(
+      std::is_same_v<
+          nsTArray_RelocationStrategy<media::TimeIntervals>::Type,
+          nsTArray_RelocateUsingMoveConstructor<media::TimeIntervals>>,
+      "Must use copy constructor");
 }
 
 TEST(IntervalSet, Substraction)

@@ -132,6 +132,7 @@ static struct cubeb_ops const cbjack_ops = {
   .stream_reset_default_device = NULL,
   .stream_get_position = cbjack_stream_get_position,
   .stream_get_latency = cbjack_get_latency,
+  .stream_get_input_latency = NULL,
   .stream_set_volume = cbjack_stream_set_volume,
   .stream_get_current_device = cbjack_stream_get_current_device,
   .stream_device_destroy = cbjack_stream_device_destroy,
@@ -289,9 +290,9 @@ cbjack_xrun_callback(void * arg)
   cubeb * ctx = (cubeb *)arg;
 
   float delay = api_jack_get_xrun_delayed_usecs(ctx->jack_client);
-  int fragments = (int)ceilf( ((delay / 1000000.0) * ctx->jack_sample_rate )
-                             / (float)(ctx->jack_buffer_size) );
-  ctx->jack_xruns += fragments;
+  float fragments = ceilf(((delay / 1000000.0) * ctx->jack_sample_rate) / ctx->jack_buffer_size);
+
+  ctx->jack_xruns += (unsigned int)fragments;
   return 0;
 }
 
@@ -331,8 +332,10 @@ static int
 cbjack_process(jack_nframes_t nframes, void * arg)
 {
   cubeb * ctx = (cubeb *)arg;
-  int t_jack_xruns = ctx->jack_xruns;
+  unsigned int t_jack_xruns = ctx->jack_xruns;
   int i;
+
+  ctx->jack_xruns = 0;
 
   for (int j = 0; j < MAX_STREAMS; j++) {
     cubeb_stream *stm = &ctx->streams[j];
@@ -343,10 +346,7 @@ cbjack_process(jack_nframes_t nframes, void * arg)
       continue;
 
     // handle xruns by skipping audio that should have been played
-    for (i = 0; i < t_jack_xruns; i++) {
-        stm->position += ctx->fragment_size * stm->ratio;
-    }
-    ctx->jack_xruns -= t_jack_xruns;
+    stm->position += t_jack_xruns * ctx->fragment_size * stm->ratio;
 
     if (!stm->ports_ready)
       continue;

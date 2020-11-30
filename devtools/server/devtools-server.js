@@ -131,6 +131,14 @@ var DevToolsServer = {
 
     this._initialized = true;
     this._onSocketListenerAccepted = this._onSocketListenerAccepted.bind(this);
+
+    if (!isWorker) {
+      // Mochitests watch this observable in order to register the custom actor
+      // test-actor.js.
+      // Services.obs is not available in workers.
+      const subject = { wrappedJSObject: ActorRegistry };
+      Services.obs.notifyObservers(subject, "devtools-server-initialized");
+    }
   },
 
   get protocol() {
@@ -337,11 +345,14 @@ var DevToolsServer = {
     return this._onConnection(transport, prefix, true);
   },
 
-  connectToParentWindowActor(prefix, devtoolsFrameActor) {
+  connectToParentWindowActor(devtoolsFrameActor, forwardingPrefix) {
     this._checkInit();
-    const transport = new JsWindowActorTransport(devtoolsFrameActor, prefix);
+    const transport = new JsWindowActorTransport(
+      devtoolsFrameActor,
+      forwardingPrefix
+    );
 
-    return this._onConnection(transport, prefix, true);
+    return this._onConnection(transport, forwardingPrefix, true);
   },
 
   /**

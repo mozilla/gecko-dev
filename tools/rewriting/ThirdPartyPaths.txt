@@ -2,8 +2,8 @@ browser/components/newtab/vendor/
 browser/components/pocket/content/panels/js/vendor/
 browser/components/translation/cld2/
 browser/extensions/formautofill/content/third-party/
+browser/extensions/formautofill/test/fixtures/third_party/
 browser/extensions/screenshots/build/raven.js
-build/pymake
 devtools/client/debugger/flow-typed/npm/
 devtools/client/inspector/markup/test/lib_*
 devtools/client/jsonview/lib/require.js
@@ -36,6 +36,7 @@ dom/media/platforms/ffmpeg/libav53/
 dom/media/platforms/ffmpeg/libav54/
 dom/media/platforms/ffmpeg/libav55/
 dom/media/webaudio/test/blink/
+dom/media/webrtc/transport/third_party/
 dom/media/webspeech/recognition/endpointer.cc
 dom/media/webspeech/recognition/endpointer.h
 dom/media/webspeech/recognition/energy_endpointer.cc
@@ -62,6 +63,24 @@ gfx/qcms/
 gfx/sfntly/
 gfx/skia/
 gfx/vr/service/openvr/
+gfx/vr/service/openvr/headers/openvr.h
+gfx/vr/service/openvr/src/README
+gfx/vr/service/openvr/src/dirtools_public.cpp
+gfx/vr/service/openvr/src/dirtools_public.h
+gfx/vr/service/openvr/src/envvartools_public.cpp
+gfx/vr/service/openvr/src/envvartools_public.h
+gfx/vr/service/openvr/src/hmderrors_public.cpp
+gfx/vr/service/openvr/src/hmderrors_public.h
+gfx/vr/service/openvr/src/ivrclientcore.h
+gfx/vr/service/openvr/src/openvr_api_public.cpp
+gfx/vr/service/openvr/src/pathtools_public.cpp
+gfx/vr/service/openvr/src/pathtools_public.h
+gfx/vr/service/openvr/src/sharedlibtools_public.cpp
+gfx/vr/service/openvr/src/sharedlibtools_public.h
+gfx/vr/service/openvr/src/strtools_public.cpp
+gfx/vr/service/openvr/src/strtools_public.h
+gfx/vr/service/openvr/src/vrpathregistry_public.cpp
+gfx/vr/service/openvr/src/vrpathregistry_public.h
 gfx/wr/
 gfx/ycbcr/
 intl/icu/
@@ -81,6 +100,7 @@ js/src/vtune/jitprofiling.c
 js/src/vtune/jitprofiling.h
 js/src/vtune/legacy/
 js/src/zydis/
+layout/docs/css-grid-3/
 media/ffvpx/
 media/kiss_fft/
 media/libaom/
@@ -101,7 +121,6 @@ media/libvpx/
 media/libwebp/
 media/libyuv/
 media/mp4parse-rust/
-media/mtransport/third_party/
 media/openmax_dl/
 media/openmax_il/
 media/webrtc/signaling/src/sdp/sipcc/
@@ -130,7 +149,7 @@ security/sandbox/chromium-shim/
 testing/gtest/gmock/
 testing/gtest/gtest/
 testing/mochitest/MochiKit/
-testing/mochitest/pywebsocket
+testing/mochitest/pywebsocket3/
 testing/mochitest/tests/MochiKit-1.4.2/
 testing/modules/ajv-4.1.1.js
 testing/modules/sinon-7.2.7.js
@@ -150,6 +169,8 @@ toolkit/components/normandy/vendor/
 toolkit/components/protobuf/
 toolkit/components/url-classifier/chromium/
 toolkit/components/utils/mozjexl.js
+toolkit/components/viaduct/fetch_msg_types.pb.cc
+toolkit/components/viaduct/fetch_msg_types.pb.h
 toolkit/crashreporter/breakpad-client/
 toolkit/crashreporter/google-breakpad/
 tools/fuzzing/libfuzzer/

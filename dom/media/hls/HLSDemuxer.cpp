@@ -12,6 +12,9 @@
 
 #include "HLSUtils.h"
 #include "MediaCodec.h"
+#include "mozilla/java/GeckoAudioInfoWrappers.h"
+#include "mozilla/java/GeckoHLSDemuxerWrapperNatives.h"
+#include "mozilla/java/GeckoVideoInfoWrappers.h"
 #include "mozilla/Unused.h"
 #include "nsPrintfCString.h"
 
@@ -124,7 +127,7 @@ class HLSDemuxer::HLSDemuxerCallbacksSupport
 };
 
 HLSDemuxer::HLSDemuxer(int aPlayerId)
-    : mTaskQueue(new TaskQueue(GetMediaThreadPool(MediaThreadType::PLAYBACK),
+    : mTaskQueue(new TaskQueue(GetMediaThreadPool(MediaThreadType::CONTROLLER),
                                /* aSupportsTailDispatch = */ false)) {
   MOZ_ASSERT(NS_IsMainThread());
   HLSDemuxerCallbacksSupport::Init();
@@ -443,11 +446,10 @@ CryptoSample HLSTrackDemuxer::ExtractCryptoSample(
       msg = "Error when extracting clear data.";
       break;
     }
-    // Data in mPlainSizes is uint16_t, NumBytesOfClearData is int32_t
-    // , so need a for loop to copy
-    for (const auto& b : clearData->GetElements()) {
-      crypto.mPlainSizes.AppendElement(b);
-    }
+    auto&& clearArr = clearData->GetElements();
+    // Data in mPlainSizes is uint32_t, NumBytesOfClearData is int32_t
+    crypto.mPlainSizes.AppendElements(reinterpret_cast<uint32_t*>(&clearArr[0]),
+                                      clearArr.Length());
 
     mozilla::jni::IntArray::LocalRef encryptedData;
     if (NS_FAILED(aCryptoInfo->NumBytesOfEncryptedData(&encryptedData))) {

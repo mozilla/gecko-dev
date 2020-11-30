@@ -4,7 +4,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import os
-import sys
 import glob
 import shutil
 import errno
@@ -34,9 +33,17 @@ def copy_dir_contents(src, dest):
                 raise Exception('Directory not copied. Error: %s' % e)
 
 
-def write_cmake(module_path):
+def write_cmake(module_path, import_options):
     names = ['  ' + os.path.basename(f) for f in glob.glob("%s/*.cpp" % module_path)]
-    names += ['  ' + os.path.basename(f) for f in glob.glob("%s/external/*.cpp" % module_path)]
+
+    if import_options["external"]:
+        names += ['  ' + os.path.join("external", os.path.basename(f))
+                  for f in glob.glob("%s/external/*.cpp" % (module_path))]
+
+    if import_options["alpha"]:
+        names += ['  ' + os.path.join("alpha", os.path.basename(f))
+                  for f in glob.glob("%s/alpha/*.cpp" % (module_path))]
+
     with open(os.path.join(module_path, 'CMakeLists.txt'), 'w') as f:
         f.write("""set(LLVM_LINK_COMPONENTS support)
 
@@ -58,40 +65,20 @@ add_clang_library(clangTidyMozillaModule
   )""" % {'names': "\n".join(names)})
 
 
-def add_item_to_cmake_section(cmake_path, section, library):
+def add_moz_module(cmake_path):
     with open(cmake_path, 'r') as f:
         lines = f.readlines()
     f.close()
 
-    libs = []
-    seen_target_libs = False
-    for line in lines:
-        if line.find(section) > -1:
-            seen_target_libs = True
-        elif seen_target_libs:
-            if line.find(')') > -1:
-                break
-            else:
-                libs.append(line.strip())
-    libs.append(library)
-    libs = sorted(libs, key=lambda s: s.lower())
+    try:
+        idx = lines.index('set(ALL_CLANG_TIDY_CHECKS\n')
+        lines.insert(idx + 1, '  clangTidyMozillaModule\n')
 
-    with open(cmake_path, 'w') as f:
-        seen_target_libs = False
-        for line in lines:
-            if line.find(section) > -1:
-                seen_target_libs = True
+        with open(cmake_path, 'w') as f:
+            for line in lines:
                 f.write(line)
-                f.writelines(['  ' + p + '\n' for p in libs])
-                continue
-            elif seen_target_libs:
-                if line.find(')') > -1:
-                    seen_target_libs = False
-                else:
-                    continue
-            f.write(line)
-
-    f.close()
+    except ValueError:
+        raise Exception('Unable to find ALL_CLANG_TIDY_CHECKS in {}'.format(cmake_path))
 
 
 def write_third_party_paths(mozilla_path, module_path):
@@ -114,7 +101,7 @@ def generate_thread_allows(mozilla_path, module_path):
         f.write(ThreadAllows.generate_allows({files, names}))
 
 
-def do_import(mozilla_path, clang_tidy_path):
+def do_import(mozilla_path, clang_tidy_path, import_options):
     module = 'mozilla'
     module_path = os.path.join(clang_tidy_path, module)
     try:
@@ -126,15 +113,12 @@ def do_import(mozilla_path, clang_tidy_path):
     copy_dir_contents(mozilla_path, module_path)
     write_third_party_paths(mozilla_path, module_path)
     generate_thread_allows(mozilla_path, module_path)
-    write_cmake(module_path)
-    add_item_to_cmake_section(os.path.join(module_path, '..', 'plugin',
-                                           'CMakeLists.txt'),
-                              'LINK_LIBS', 'clangTidyMozillaModule')
-    add_item_to_cmake_section(os.path.join(module_path, '..', 'tool',
-                                           'CMakeLists.txt'),
-                              'PRIVATE', 'clangTidyMozillaModule')
+    write_cmake(module_path, import_options)
+    add_moz_module(os.path.join(module_path, '..', 'CMakeLists.txt'))
     with open(os.path.join(module_path, '..', 'CMakeLists.txt'), 'a') as f:
         f.write('add_subdirectory(%s)\n' % module)
+    # A better place for this would be in `ClangTidyForceLinker.h` but `ClangTidyMain.cpp`
+    # is also OK.
     with open(os.path.join(module_path, '..', 'tool', 'ClangTidyMain.cpp'), 'a') as f:
         f.write('''
 // This anchor is used to force the linker to link the MozillaModule.
@@ -145,23 +129,36 @@ static int LLVM_ATTRIBUTE_UNUSED MozillaModuleAnchorDestination =
 
 
 def main():
-    if len(sys.argv) != 3:
-        print("""\
-Usage: import_mozilla_checks.py <mozilla-clang-plugin-path> <clang-tidy-path>
-Imports the Mozilla static analysis checks into a clang-tidy source tree.
-""")
+    import argparse
 
-        return
+    parser = argparse.ArgumentParser(
+        usage="import_mozilla_checks.py <mozilla-clang-plugin-path> <clang-tidy-path> [option]",
+        description="Imports the Mozilla static analysis checks into a clang-tidy source tree."
+    )
+    parser.add_argument('mozilla_path',
+                        help="Full path to mozilla-central/build/clang-plugin")
+    parser.add_argument('clang_tidy_path',
+                        help="Full path to llvm-project/clang-tools-extra/clang-tidy")
+    parser.add_argument('--import-alpha',
+                        help="Enable import of in-tree alpha checks",
+                        action="store_true")
+    parser.add_argument('--import-external',
+                        help="Enable import of in-tree external checks",
+                        action="store_true")
+    args = parser.parse_args()
 
-    mozilla_path = sys.argv[1]
-    if not os.path.isdir(mozilla_path):
+    if not os.path.isdir(args.mozilla_path):
         print("Invalid path to mozilla clang plugin")
 
-    clang_tidy_path = sys.argv[2]
-    if not os.path.isdir(mozilla_path):
+    if not os.path.isdir(args.clang_tidy_path):
         print("Invalid path to clang-tidy source directory")
 
-    do_import(mozilla_path, clang_tidy_path)
+    import_options = {
+      "alpha": args.import_alpha,
+      "external": args.import_external
+    }
+
+    do_import(args.mozilla_path, args.clang_tidy_path, import_options)
 
 
 if __name__ == '__main__':

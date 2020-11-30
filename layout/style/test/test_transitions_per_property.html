@@ -64,7 +64,6 @@ var FUNC_NEGATIVE = "cubic-bezier(0.25, -2, 0.75, 1)";
 var FUNC_OVERONE = "cubic-bezier(0.25, 0, 0.75, 3)";
 
 var supported_properties = {
-    "backdrop-filter" : [ test_filter_transition ],
     "border-bottom-left-radius": [ test_radius_transition ],
     "border-bottom-right-radius": [ test_radius_transition ],
     "border-top-left-radius": [ test_radius_transition ],
@@ -354,6 +353,10 @@ var supported_properties = {
     ],
 };
 
+if (IsCSSPropertyPrefEnabled("layout.css.backdrop-filter.enabled") && IsWebRenderEnabled()) {
+  supported_properties["backdrop-filter"] = [ test_filter_transition ];
+}
+
 if (IsCSSPropertyPrefEnabled("layout.css.motion-path.enabled")) {
   supported_properties["offset-path"] = [ test_path_function ];
   supported_properties["offset-distance"] =
@@ -423,11 +426,9 @@ if (IsCSSPropertyPrefEnabled("layout.css.individual-transform.enabled")) {
   supported_properties["translate"] = [ test_translate_transition ];
 }
 
-if (IsCSSPropertyPrefEnabled("layout.css.scrollbar-color.enabled")) {
-  supported_properties["scrollbar-color"] = [
-    test_scrollbar_color_transition,
-  ];
-}
+supported_properties["scrollbar-color"] = [
+  test_scrollbar_color_transition,
+];
 
 // For properties which are well-tested by web-platform-tests, we don't need to
 // test animations/transitions again on them.

@@ -28,7 +28,6 @@ TASKBAR_AUTOHIDE_REG_PATH = {
 config = {
     "options": [
         "--prefs-root=%(test_path)s/prefs",
-        "--processes=1",
         "--config=%(test_path)s/wptrunner.ini",
         "--ca-cert-path=%(test_path)s/tests/tools/certs/cacert.pem",
         "--host-key-path=%(test_path)s/tests/tools/certs/web-platform.test.key",
@@ -106,8 +105,7 @@ config = {
         },
     ],
 
-    # this would normally be in "exes", but "exes" is clobbered by remove_executables
-    "geckodriver": os.path.join("%(abs_test_bin_dir)s", "geckodriver.exe"),
+    "geckodriver": os.path.join("%(abs_fetches_dir)s", "geckodriver.exe"),
 
     "per_test_category": "web-platform",
 }

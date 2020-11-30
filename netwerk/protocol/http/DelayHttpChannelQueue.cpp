@@ -7,6 +7,10 @@
 #include "DelayHttpChannelQueue.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPtr.h"
+#include "mozilla/TimeStamp.h"
+#include "nsIObserverService.h"
+#include "nsHttpChannel.h"
+#include "nsThreadManager.h"
 
 using namespace mozilla;
 using namespace mozilla::net;
@@ -102,8 +106,7 @@ void DelayHttpChannelQueue::FireQueue() {
   // TODO: get this from the DOM clock?
   TimeStamp ts = TimeStamp::Now();
 
-  FallibleTArray<RefPtr<nsHttpChannel>> queue;
-  queue.SwapElements(mQueue);
+  FallibleTArray<RefPtr<nsHttpChannel>> queue = std::move(mQueue);
 
   for (RefPtr<nsHttpChannel>& channel : queue) {
     channel->AsyncOpenFinal(ts);

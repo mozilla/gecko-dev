@@ -2,30 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#define VECS_PER_OPACITY_BRUSH 3
-#define VECS_PER_SPECIFIC_BRUSH VECS_PER_OPACITY_BRUSH
-
-#define WR_BRUSH_VS_FUNCTION opacity_brush_vs
-#define WR_BRUSH_FS_FUNCTION opacity_brush_fs
+#define VECS_PER_SPECIFIC_BRUSH 3
 
 #include shared,prim_shared,brush
 
 // Interpolated UV coordinates to sample.
-#define V_UV                varying_vec4_0.zw
-#define V_LOCAL_POS         varying_vec4_0.xy
+varying vec2 v_uv;
+varying vec2 v_local_pos;
 
-// Normalized bounds of the source image in the texture.
-#define V_UV_BOUNDS         flat_varying_vec4_1
+// Normalized bounds of the source image in the texture, adjusted to avoid
+// sampling artifacts.
+flat varying vec4 v_uv_sample_bounds;
 
 // Layer index to sample.
-#define V_LAYER             flat_varying_vec4_2.x
 // Flag to allow perspective interpolation of UV.
-#define V_PERSPECTIVE       flat_varying_vec4_2.y
+flat varying vec2 v_layer_and_perspective;
 
-#define V_OPACITY           flat_varying_vec4_2.z
+flat varying float v_opacity;
 
 #ifdef WR_VERTEX_SHADER
-void opacity_brush_vs(
+void brush_vs(
     VertexInfo vi,
     int prim_address,
     RectWithSize local_rect,
@@ -47,45 +43,37 @@ void opacity_brush_vs(
     vec2 uv = mix(uv0, uv1, f);
     float perspective_interpolate = (brush_flags & BRUSH_FLAG_PERSPECTIVE_INTERPOLATION) != 0 ? 1.0 : 0.0;
 
-    V_UV = uv / texture_size * mix(vi.world_pos.w, 1.0, perspective_interpolate);
-    V_LAYER = res.layer;
-    V_PERSPECTIVE = perspective_interpolate;
+    v_uv = uv / texture_size * mix(vi.world_pos.w, 1.0, perspective_interpolate);
+    v_layer_and_perspective.x = res.layer;
+    v_layer_and_perspective.y = perspective_interpolate;
 
-    // TODO: The image shader treats this differently: deflate the rect by half a pixel on each side and
-    // clamp the uv in the frame shader. Does it make sense to do the same here?
-    V_UV_BOUNDS = vec4(uv0, uv1) / texture_size.xyxy;
-    V_LOCAL_POS = vi.local_pos;
+    v_uv_sample_bounds = vec4(uv0 + vec2(0.5), uv1 - vec2(0.5)) / texture_size.xyxy;
 
-    V_OPACITY = float(prim_user_data.y) / 65536.0;
+    #ifdef WR_FEATURE_ANTIALIASING
+        v_local_pos = vi.local_pos;
+    #endif
+
+    v_opacity = float(prim_user_data.y) / 65536.0;
 }
 #endif
 
 #ifdef WR_FRAGMENT_SHADER
-Fragment opacity_brush_fs() {
-    float perspective_divisor = mix(gl_FragCoord.w, 1.0, V_PERSPECTIVE);
-    vec2 uv = V_UV * perspective_divisor;
-    vec4 Cs = texture(sColor0, vec3(uv, V_LAYER));
+Fragment brush_fs() {
+    float perspective_divisor = mix(gl_FragCoord.w, 1.0, v_layer_and_perspective.y);
+    vec2 uv = v_uv * perspective_divisor;
+    // Clamp the uvs to avoid sampling artifacts.
+    uv = clamp(uv, v_uv_sample_bounds.xy, v_uv_sample_bounds.zw);
 
-    // Un-premultiply the input.
-    float alpha = Cs.a;
-    vec3 color = alpha != 0.0 ? Cs.rgb / alpha : Cs.rgb;
+    // No need to un-premultiply since we'll only apply a factor to the alpha.
+    vec4 color = texture(sColor0, vec3(uv, v_layer_and_perspective.x));
 
-    alpha *= V_OPACITY;
+    float alpha = v_opacity;
 
-    // Fail-safe to ensure that we don't sample outside the rendered
-    // portion of a blend source.
-    alpha *= min(point_inside_rect(uv, V_UV_BOUNDS.xy, V_UV_BOUNDS.zw),
-                 init_transform_fs(V_LOCAL_POS));
+    #ifdef WR_FEATURE_ANTIALIASING
+        alpha *= init_transform_fs(v_local_pos);
+    #endif
 
-    // Pre-multiply the alpha into the output value.
-    return Fragment(alpha * vec4(color, 1.0));
+    // Pre-multiply the contribution of the opacity factor.
+    return Fragment(alpha * color);
 }
 #endif
-
-// Undef macro names that could be re-defined by other shaders.
-#undef V_UV
-#undef V_LOCAL_POS
-#undef V_UV_BOUNDS
-#undef V_LAYER
-#undef V_PERSPECTIVE
-#undef V_OPACITY

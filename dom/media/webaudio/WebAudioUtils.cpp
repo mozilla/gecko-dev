@@ -13,6 +13,8 @@
 #include "nsIScriptError.h"
 #include "AudioEventTimeline.h"
 
+#include "mozilla/SchedulerGroup.h"
+
 namespace mozilla {
 
 LazyLogModule gWebAudioAPILog("WebAudioAPI");
@@ -99,7 +101,7 @@ void WebAudioUtils::LogToDeveloperConsole(uint64_t aWindowID,
     nsCOMPtr<nsIRunnable> task = NS_NewRunnableFunction(
         "dom::WebAudioUtils::LogToDeveloperConsole",
         [aWindowID, aKey] { LogToDeveloperConsole(aWindowID, aKey); });
-    SystemGroup::Dispatch(TaskCategory::Other, task.forget());
+    SchedulerGroup::Dispatch(TaskCategory::Other, task.forget());
     return;
   }
 
@@ -111,7 +113,7 @@ void WebAudioUtils::LogToDeveloperConsole(uint64_t aWindowID,
   }
 
   nsAutoString spec;
-  uint32_t aLineNumber, aColumnNumber;
+  uint32_t aLineNumber = 0, aColumnNumber = 0;
   JSContext* cx = nsContentUtils::GetCurrentJSContext();
   if (cx) {
     nsJSUtils::GetCallingLocation(cx, spec, &aLineNumber, &aColumnNumber);
@@ -134,7 +136,7 @@ void WebAudioUtils::LogToDeveloperConsole(uint64_t aWindowID,
     return;
   }
 
-  errorObject->InitWithWindowID(result, spec, EmptyString(), aLineNumber,
+  errorObject->InitWithWindowID(result, spec, u""_ns, aLineNumber,
                                 aColumnNumber, nsIScriptError::warningFlag,
                                 "Web Audio", aWindowID);
   console->LogMessage(errorObject);

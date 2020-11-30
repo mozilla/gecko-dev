@@ -6,7 +6,9 @@
 
 #include "nsPageSequenceFrame.h"
 
+#include "mozilla/Logging.h"
 #include "mozilla/PresShell.h"
+#include "mozilla/PrintedSheetFrame.h"
 #include "mozilla/dom/HTMLCanvasElement.h"
 #include "mozilla/StaticPresData.h"
 
@@ -29,13 +31,11 @@
 #include "nsICanvasRenderingContextInternal.h"
 #include "nsServiceManagerUtils.h"
 #include <algorithm>
-
-#define OFFSET_NOT_SET -1
+#include <limits>
 
 using namespace mozilla;
 using namespace mozilla::dom;
 
-#include "mozilla/Logging.h"
 mozilla::LazyLogModule gLayoutPrintingLog("printing-layout");
 
 #define PR_PL(_p1) MOZ_LOG(gLayoutPrintingLog, mozilla::LogLevel::Debug, _p1)
@@ -48,32 +48,96 @@ nsPageSequenceFrame* NS_NewPageSequenceFrame(PresShell* aPresShell,
 
 NS_IMPL_FRAMEARENA_HELPERS(nsPageSequenceFrame)
 
+static const nsPagesPerSheetInfo kSupportedPagesPerSheet[] = {
+    {1, 1, 1},  // Note: we default to this if no match is found.
+    // {2, ... }, // XXXdholbert Coming in bug 1669905.
+    {4, 2, 2},
+    // {6, ... }, // XXXdholbert Coming in bug 1669905.
+    {9, 3, 3},
+    {16, 4, 4},
+};
+
+inline void SanityCheckPagesPerSheetInfo() {
+#ifdef DEBUG
+  // Sanity-checks:
+  MOZ_ASSERT(ArrayLength(kSupportedPagesPerSheet) > 0,
+             "Should have at least one pages-per-sheet option.");
+  MOZ_ASSERT(kSupportedPagesPerSheet[0].mNumPages == 1,
+             "The 0th index is reserved for default 1-page-per-sheet entry");
+
+  uint16_t prevInfoPPS = 0;
+  for (const auto& info : kSupportedPagesPerSheet) {
+    MOZ_ASSERT(info.mNumPages > prevInfoPPS,
+               "page count field should be nonzero & monotonically increase");
+    // The uint32_t cast here is to ensure this assertion is robust even if the
+    // mNumRows * mNumCols multiplication would overflow past the maximum
+    // representable uint16_t value. That overflow would be bad because it
+    // could result in us incorrectly passing this assertion.  We prevent this
+    // problem by doing the operation in 32-bit number space; that way, the
+    // multiplication (of two known-to-be-16-bit values) can't overflow.
+    MOZ_ASSERT(
+        (uint32_t)info.mNumRows * (uint32_t)info.mNumCols == info.mNumPages,
+        "page count should match rows*cols");
+    prevInfoPPS = info.mNumPages;
+  }
+#endif
+}
+
+const nsPagesPerSheetInfo& nsPagesPerSheetInfo::LookupInfo(int32_t aPPS) {
+  SanityCheckPagesPerSheetInfo();
+
+  // Walk the array, looking for a match:
+  for (const auto& info : kSupportedPagesPerSheet) {
+    if (aPPS == info.mNumPages) {
+      return info;
+    }
+  }
+
+  NS_WARNING("Unsupported pages-per-sheet value");
+  // If no match was found, return the first entry (for 1 page per sheet).
+  return kSupportedPagesPerSheet[0];
+}
+
+const nsPagesPerSheetInfo* nsSharedPageData::PagesPerSheetInfo() {
+  if (mPagesPerSheetInfo) {
+    return mPagesPerSheetInfo;
+  }
+
+  int32_t pagesPerSheet;
+  if (!mPrintSettings ||
+      NS_FAILED(mPrintSettings->GetNumPagesPerSheet(&pagesPerSheet))) {
+    // If we can't read the value from print settings, just fall back to 1.
+    pagesPerSheet = 1;
+  }
+
+  mPagesPerSheetInfo = &nsPagesPerSheetInfo::LookupInfo(pagesPerSheet);
+  return mPagesPerSheetInfo;
+}
+
 nsPageSequenceFrame::nsPageSequenceFrame(ComputedStyle* aStyle,
                                          nsPresContext* aPresContext)
     : nsContainerFrame(aStyle, aPresContext, kClassID),
-      mTotalPages(-1),
+      mMaxSheetSize(mWritingMode),
+      mScrollportSize(mWritingMode),
       mCalledBeginPage(false),
       mCurrentCanvasListSetup(false) {
-  nscoord halfInch = PresContext()->CSSTwipsToAppUnits(NS_INCHES_TO_TWIPS(0.5));
-  mMargin.SizeTo(halfInch, halfInch, halfInch, halfInch);
-
-  mPageData = new nsSharedPageData();
+  mPageData = MakeUnique<nsSharedPageData>();
   mPageData->mHeadFootFont =
       *PresContext()
            ->Document()
            ->GetFontPrefsForLang(aStyle->StyleFont()->mLanguage)
            ->GetDefaultFont(StyleGenericFontFamily::Serif);
-  mPageData->mHeadFootFont.size = nsPresContext::CSSPointsToAppUnits(10);
+  mPageData->mHeadFootFont.size =
+      Length::FromPixels(CSSPixel::FromPoints(10.0f));
+  mPageData->mPrintSettings = aPresContext->GetPrintSettings();
+  MOZ_RELEASE_ASSERT(mPageData->mPrintSettings, "How?");
 
   // Doing this here so we only have to go get these formats once
   SetPageNumberFormat("pagenumber", "%1$d", true);
   SetPageNumberFormat("pageofpages", "%1$d of %2$d", false);
 }
 
-nsPageSequenceFrame::~nsPageSequenceFrame() {
-  delete mPageData;
-  ResetPrintCanvasList();
-}
+nsPageSequenceFrame::~nsPageSequenceFrame() { ResetPrintCanvasList(); }
 
 NS_QUERYFRAME_HEAD(nsPageSequenceFrame)
   NS_QUERYFRAME_ENTRY(nsPageSequenceFrame)
@@ -81,22 +145,57 @@ NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
 
 //----------------------------------------------------------------------
 
-void nsPageSequenceFrame::SetDesiredSize(ReflowOutput& aDesiredSize,
-                                         const ReflowInput& aReflowInput,
-                                         nscoord aWidth, nscoord aHeight) {
-  // Aim to fill the whole size of the document, not only so we
-  // can act as a background in print preview but also handle overflow
-  // in child page frames correctly.
+float nsPageSequenceFrame::GetPrintPreviewScale() const {
+  nsPresContext* pc = PresContext();
+  float scale = pc->GetPrintPreviewScaleForSequenceFrame();
+
+  WritingMode wm = GetWritingMode();
+  if (pc->IsScreen() && MOZ_LIKELY(mScrollportSize.ISize(wm) > 0 &&
+                                   mScrollportSize.BSize(wm) > 0)) {
+    // For print preview, scale down as-needed to ensure that each of our
+    // sheets will fit in the the scrollport.
+
+    // Check if the current scale is sufficient for our sheets to fit in inline
+    // axis (and if not, reduce the scale so that it will fit).
+    nscoord scaledISize = NSToCoordCeil(mMaxSheetSize.ISize(wm) * scale);
+    if (scaledISize > mScrollportSize.ISize(wm)) {
+      scale *= float(mScrollportSize.ISize(wm)) / float(scaledISize);
+    }
+
+    // Further reduce the scale (if needed) to be sure each sheet will fit in
+    // block axis, too.
+    // NOTE: in general, a scrollport's BSize *could* be unconstrained,
+    // i.e. sized to its contents. If that happens, then shrinking the contents
+    // to fit the scrollport is not a meaningful operation in this axis, so we
+    // skip over this.  But we can be pretty sure that the print-preview UI
+    // will have given the scrollport a fixed size; hence the MOZ_LIKELY here.
+    if (MOZ_LIKELY(mScrollportSize.BSize(wm) != NS_UNCONSTRAINEDSIZE)) {
+      nscoord scaledBSize = NSToCoordCeil(mMaxSheetSize.BSize(wm) * scale);
+      if (scaledBSize > mScrollportSize.BSize(wm)) {
+        scale *= float(mScrollportSize.BSize(wm)) / float(scaledBSize);
+      }
+    }
+  }
+  return scale;
+}
+
+void nsPageSequenceFrame::PopulateReflowOutput(
+    ReflowOutput& aReflowOutput, const ReflowInput& aReflowInput) {
+  // Aim to fill the whole available space, not only so we can act as a
+  // background in print preview but also handle overflow in child page frames
+  // correctly.
   // Use availableISize so we don't cause a needless horizontal scrollbar.
+  float scale = GetPrintPreviewScale();
+
   WritingMode wm = aReflowInput.GetWritingMode();
-  nscoord scaledWidth = aWidth * PresContext()->GetPrintPreviewScale();
-  nscoord scaledHeight = aHeight * PresContext()->GetPrintPreviewScale();
+  nscoord iSize = wm.IsVertical() ? mSize.Height() : mSize.Width();
+  nscoord bSize = wm.IsVertical() ? mSize.Width() : mSize.Height();
 
-  nscoord scaledISize = (wm.IsVertical() ? scaledHeight : scaledWidth);
-  nscoord scaledBSize = (wm.IsVertical() ? scaledWidth : scaledHeight);
-
-  aDesiredSize.ISize(wm) = std::max(scaledISize, aReflowInput.AvailableISize());
-  aDesiredSize.BSize(wm) = std::max(scaledBSize, aReflowInput.ComputedBSize());
+  aReflowOutput.ISize(wm) =
+      std::max(NSToCoordFloor(iSize * scale), aReflowInput.AvailableISize());
+  aReflowOutput.BSize(wm) =
+      std::max(NSToCoordFloor(bSize * scale), aReflowInput.ComputedBSize());
+  aReflowOutput.SetOverflowAreasToDesiredBounds();
 }
 
 // Helper function to compute the offset needed to center a child
@@ -112,9 +211,9 @@ nscoord nsPageSequenceFrame::ComputeCenteringMargin(
   // print-preview scale factor, via ComputePageSequenceTransform().
   // We really want to center *that scaled-up rendering* inside of
   // aContainerContentBoxWidth.  So, we scale up its margin-box here...
-  auto ppScale = PresContext()->GetPrintPreviewScale();
+  float scale = GetPrintPreviewScale();
   nscoord scaledChildMarginBoxWidth =
-      NSToCoordRound(childMarginBoxWidth * ppScale);
+      NSToCoordRound(childMarginBoxWidth * scale);
 
   // ...and see we how much space is left over, when we subtract that scaled-up
   // size from the container width:
@@ -130,7 +229,7 @@ nscoord nsPageSequenceFrame::ComputeCenteringMargin(
   // of the extra space.  And then, we have to scale that space back down, so
   // that it'll produce the correct scaled-up amount when we render (because
   // rendering will scale it back up):
-  return NSToCoordRound(scaledExtraSpace * 0.5 / ppScale);
+  return NSToCoordRound(scaledExtraSpace * 0.5 / scale);
 }
 
 /*
@@ -139,107 +238,96 @@ nscoord nsPageSequenceFrame::ComputeCenteringMargin(
  * arranged in the same orientation, regardless of writing mode.
  */
 void nsPageSequenceFrame::Reflow(nsPresContext* aPresContext,
-                                 ReflowOutput& aDesiredSize,
+                                 ReflowOutput& aReflowOutput,
                                  const ReflowInput& aReflowInput,
                                  nsReflowStatus& aStatus) {
   MarkInReflow();
   MOZ_ASSERT(aPresContext->IsRootPaginatedDocument(),
              "A Page Sequence is only for real pages");
   DO_GLOBAL_REFLOW_COUNT("nsPageSequenceFrame");
-  DISPLAY_REFLOW(aPresContext, this, aReflowInput, aDesiredSize, aStatus);
+  DISPLAY_REFLOW(aPresContext, this, aReflowInput, aReflowOutput, aStatus);
   MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
   NS_FRAME_TRACE_REFLOW_IN("nsPageSequenceFrame::Reflow");
 
+  auto CenterPages = [&] {
+    for (nsIFrame* child : mFrames) {
+      nsMargin pageCSSMargin = child->GetUsedMargin();
+      nscoord centeringMargin =
+          ComputeCenteringMargin(aReflowInput.ComputedWidth(),
+                                 child->GetRect().Width(), pageCSSMargin);
+      nscoord newX = pageCSSMargin.left + centeringMargin;
+
+      // Adjust the child's x-position:
+      child->MovePositionBy(nsPoint(newX - child->GetNormalPosition().x, 0));
+    }
+  };
+
+  if (aPresContext->IsScreen()) {
+    // When we're displayed on-screen, the computed size that we're given is
+    // the size of our scrollport. We need to save this for use in
+    // GetPrintPreviewScale.
+    mScrollportSize = aReflowInput.ComputedSize();
+  }
+
   // Don't do incremental reflow until we've taught tables how to do
   // it right in paginated mode.
-  if (!(GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
+  if (!HasAnyStateBits(NS_FRAME_FIRST_REFLOW)) {
     // Return our desired size
-    SetDesiredSize(aDesiredSize, aReflowInput, mSize.width, mSize.height);
-    aDesiredSize.SetOverflowAreasToDesiredBounds();
-    FinishAndStoreOverflow(&aDesiredSize);
+    PopulateReflowOutput(aReflowOutput, aReflowInput);
+    FinishAndStoreOverflow(&aReflowOutput);
 
-    if (GetRect().Width() != aDesiredSize.Width()) {
-      // Our width is changing; we need to re-center our children (our pages).
-      for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
-        nsIFrame* child = e.get();
-        nsMargin pageCSSMargin = child->GetUsedMargin();
-        nscoord centeringMargin =
-            ComputeCenteringMargin(aReflowInput.ComputedWidth(),
-                                   child->GetRect().Width(), pageCSSMargin);
-        nscoord newX = pageCSSMargin.left + centeringMargin;
-
-        // Adjust the child's x-position:
-        child->MovePositionBy(nsPoint(newX - child->GetNormalPosition().x, 0));
-      }
+    if (GetSize() != aReflowOutput.PhysicalSize()) {
+      CenterPages();
     }
     return;
   }
 
-  // See if we can get a Print Settings from the Context
-  if (!mPageData->mPrintSettings &&
-      aPresContext->Medium() == nsGkAtoms::print) {
-    mPageData->mPrintSettings = aPresContext->GetPrintSettings();
-  }
+  nsIntMargin unwriteableTwips =
+      mPageData->mPrintSettings->GetUnwriteableMarginInTwips();
 
-  // now get out margins & edges
-  if (mPageData->mPrintSettings) {
-    nsIntMargin unwriteableTwips;
-    mPageData->mPrintSettings->GetUnwriteableMarginInTwips(unwriteableTwips);
-    NS_ASSERTION(unwriteableTwips.left >= 0 && unwriteableTwips.top >= 0 &&
-                     unwriteableTwips.right >= 0 &&
-                     unwriteableTwips.bottom >= 0,
-                 "Unwriteable twips should be non-negative");
+  nsIntMargin edgeTwips = mPageData->mPrintSettings->GetEdgeInTwips();
 
-    nsIntMargin marginTwips;
-    mPageData->mPrintSettings->GetMarginInTwips(marginTwips);
-    mMargin = nsPresContext::CSSTwipsToAppUnits(marginTwips + unwriteableTwips);
+  // sanity check the values. three inches are sometimes needed
+  int32_t threeInches = NS_INCHES_TO_INT_TWIPS(3.0);
+  edgeTwips.EnsureAtMost(
+      nsIntMargin(threeInches, threeInches, threeInches, threeInches));
+  edgeTwips.EnsureAtLeast(unwriteableTwips);
 
-    int16_t printType;
-    mPageData->mPrintSettings->GetPrintRange(&printType);
-    mPrintRangeType = printType;
+  mPageData->mEdgePaperMargin = nsPresContext::CSSTwipsToAppUnits(edgeTwips);
 
-    nsIntMargin edgeTwips;
-    mPageData->mPrintSettings->GetEdgeInTwips(edgeTwips);
+  // Get the custom page-range state:
+  mPageData->mPrintSettings->GetStartPageRange(&mPageData->mFromPageNum);
+  mPageData->mPrintSettings->GetEndPageRange(&mPageData->mToPageNum);
+  mPageData->mPrintSettings->GetPageRanges(mPageData->mPageRanges);
 
-    // sanity check the values. three inches are sometimes needed
-    int32_t inchInTwips = NS_INCHES_TO_INT_TWIPS(3.0);
-    edgeTwips.top = clamped(edgeTwips.top, 0, inchInTwips);
-    edgeTwips.bottom = clamped(edgeTwips.bottom, 0, inchInTwips);
-    edgeTwips.left = clamped(edgeTwips.left, 0, inchInTwips);
-    edgeTwips.right = clamped(edgeTwips.right, 0, inchInTwips);
+  int16_t printType;
+  mPageData->mPrintSettings->GetPrintRange(&printType);
+  mPageData->mDoingPageRange =
+      nsIPrintSettings::kRangeSpecifiedPageRange == printType;
 
-    mPageData->mEdgePaperMargin =
-        nsPresContext::CSSTwipsToAppUnits(edgeTwips + unwriteableTwips);
-  }
-
-  // *** Special Override ***
-  // If this is a sub-sdoc (meaning it doesn't take the whole page)
-  // and if this Document is in the upper left hand corner
-  // we need to suppress the top margin or it will reflow too small
-
-  nsSize pageSize = aPresContext->GetPageSize();
-
-  mPageData->mReflowSize = pageSize;
-  mPageData->mReflowMargin = mMargin;
-
-  // We use the CSS "margin" property on the -moz-page pseudoelement
-  // to determine the space between each page in print preview.
-  // Keep a running y-offset for each page.
+  // We use the CSS "margin" property on the -moz-printed-sheet pseudoelement
+  // to determine the space between each printed sheet in print preview.
+  // Keep a running y-offset for each printed sheet.
   nscoord y = 0;
-  nscoord maxXMost = 0;
 
-  // Tile the pages vertically
-  ReflowOutput kidSize(aReflowInput);
-  for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
-    nsIFrame* kidFrame = e.get();
+  // These represent the maximum sheet size across all our sheets (in each
+  // axis), inflated a bit to account for the -moz-printed-sheet 'margin'.
+  nscoord maxInflatedSheetWidth = 0;
+  nscoord maxInflatedSheetHeight = 0;
+
+  // Tile the sheets vertically
+  for (nsIFrame* kidFrame : mFrames) {
     // Set the shared data into the page frame before reflow
-    nsPageFrame* pf = static_cast<nsPageFrame*>(kidFrame);
-    pf->SetSharedPageData(mPageData);
+    MOZ_ASSERT(kidFrame->IsPrintedSheetFrame(),
+               "we're only expecting PrintedSheetFrame as children");
+    auto* sheet = static_cast<PrintedSheetFrame*>(kidFrame);
+    sheet->SetSharedPageData(mPageData.get());
 
-    // Reflow the page
+    // Reflow the sheet
     ReflowInput kidReflowInput(
         aPresContext, aReflowInput, kidFrame,
-        LogicalSize(kidFrame->GetWritingMode(), pageSize));
+        LogicalSize(kidFrame->GetWritingMode(), aPresContext->GetPageSize()));
+    ReflowOutput kidReflowOutput(kidReflowInput);
     nsReflowStatus status;
 
     kidReflowInput.SetComputedISize(kidReflowInput.AvailableISize());
@@ -252,94 +340,84 @@ void nsPageSequenceFrame::Reflow(nsPresContext* aPresContext,
 
     nscoord x = pageCSSMargin.left;
 
-    // Place and size the page.
-    ReflowChild(kidFrame, aPresContext, kidSize, kidReflowInput, x, y,
+    // Place and size the sheet.
+    ReflowChild(kidFrame, aPresContext, kidReflowOutput, kidReflowInput, x, y,
                 ReflowChildFlags::Default, status);
 
-    // If the page is narrower than our width, then center it horizontally:
-    x += ComputeCenteringMargin(aReflowInput.ComputedWidth(), kidSize.Width(),
-                                pageCSSMargin);
-
-    FinishReflowChild(kidFrame, aPresContext, kidSize, &kidReflowInput, x, y,
-                      ReflowChildFlags::Default);
-    y += kidSize.Height();
+    FinishReflowChild(kidFrame, aPresContext, kidReflowOutput, &kidReflowInput,
+                      x, y, ReflowChildFlags::Default);
+    y += kidReflowOutput.Height();
     y += pageCSSMargin.bottom;
 
-    maxXMost = std::max(maxXMost, x + kidSize.Width() + pageCSSMargin.right);
+    maxInflatedSheetWidth =
+        std::max(maxInflatedSheetWidth,
+                 kidReflowOutput.Width() + pageCSSMargin.LeftRight());
+    maxInflatedSheetHeight =
+        std::max(maxInflatedSheetHeight,
+                 kidReflowOutput.Height() + pageCSSMargin.TopBottom());
 
-    // Is the page complete?
+    // Is the sheet complete?
     nsIFrame* kidNextInFlow = kidFrame->GetNextInFlow();
 
     if (status.IsFullyComplete()) {
       NS_ASSERTION(!kidNextInFlow, "bad child flow list");
     } else if (!kidNextInFlow) {
-      // The page isn't complete and it doesn't have a next-in-flow, so
-      // create a continuing page.
-      nsIFrame* continuingPage =
-          aPresContext->PresShell()->FrameConstructor()->CreateContinuingFrame(
-              aPresContext, kidFrame, this);
+      // The sheet isn't complete and it doesn't have a next-in-flow, so
+      // create a continuing sheet.
+      nsIFrame* continuingSheet =
+          PresShell()->FrameConstructor()->CreateContinuingFrame(kidFrame,
+                                                                 this);
 
       // Add it to our child list
-      mFrames.InsertFrame(nullptr, kidFrame, continuingPage);
+      mFrames.InsertFrame(nullptr, kidFrame, continuingSheet);
     }
-  }
-
-  // Get Total Page Count
-  // XXXdholbert technically we could calculate this in the loop above,
-  // instead of needing a separate walk.
-  int32_t pageTot = mFrames.GetLength();
-
-  // Set Page Number Info
-  int32_t pageNum = 1;
-  for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
-    MOZ_ASSERT(e.get()->IsPageFrame(),
-               "only expecting nsPageFrame children. Other children will make "
-               "this static_cast bogus & probably violate other assumptions");
-    nsPageFrame* pf = static_cast<nsPageFrame*>(e.get());
-    pf->SetPageNumInfo(pageNum, pageTot);
-    pageNum++;
   }
 
   nsAutoString formattedDateString;
   PRTime now = PR_Now();
   if (NS_SUCCEEDED(DateTimeFormat::FormatPRTime(
-          kDateFormatShort, kTimeFormatNoSeconds, now, formattedDateString))) {
+          kDateFormatShort, kTimeFormatShort, now, formattedDateString))) {
     SetDateTimeStr(formattedDateString);
+  }
+
+  // cache the size so we can set the desired size for the other reflows that
+  // happen.  Since we're tiling our sheets vertically: in the x axis, we are
+  // as wide as our widest sheet (inflated via "margin"); and in the y axis,
+  // we're as tall as the sum of our sheets' inflated heights, which the 'y'
+  // variable is conveniently storing at this point.
+  mSize = nsSize(maxInflatedSheetWidth, y);
+
+  if (aPresContext->IsScreen()) {
+    // Also cache the maximum size of all our sheets, to use together with the
+    // scrollport size (available as our computed size, and captured higher up
+    // in this function), so that we can scale to ensure that every sheet will
+    // fit in the scrollport.
+    WritingMode wm = aReflowInput.GetWritingMode();
+    mMaxSheetSize =
+        LogicalSize(wm, nsSize(maxInflatedSheetWidth, maxInflatedSheetHeight));
   }
 
   // Return our desired size
   // Adjust the reflow size by PrintPreviewScale so the scrollbars end up the
   // correct size
-  SetDesiredSize(aDesiredSize, aReflowInput, maxXMost, y);
+  PopulateReflowOutput(aReflowOutput, aReflowInput);
 
-  aDesiredSize.SetOverflowAreasToDesiredBounds();
-  FinishAndStoreOverflow(&aDesiredSize);
+  FinishAndStoreOverflow(&aReflowOutput);
 
-  // cache the size so we can set the desired size
-  // for the other reflows that happen
-  mSize.width = maxXMost;
-  mSize.height = y;
+  // Now center our pages.
+  CenterPages();
 
   NS_FRAME_TRACE_REFLOW_OUT("nsPageSequenceFrame::Reflow", aStatus);
-  NS_FRAME_SET_TRUNCATION(aStatus, aReflowInput, aDesiredSize);
+  NS_FRAME_SET_TRUNCATION(aStatus, aReflowInput, aReflowOutput);
 }
 
 //----------------------------------------------------------------------
 
 #ifdef DEBUG_FRAME_DUMP
 nsresult nsPageSequenceFrame::GetFrameName(nsAString& aResult) const {
-  return MakeFrameName(NS_LITERAL_STRING("PageSequence"), aResult);
+  return MakeFrameName(u"PageSequence"_ns, aResult);
 }
 #endif
-
-//====================================================================
-//== Asynch Printing
-//====================================================================
-void nsPageSequenceFrame::GetPrintRange(int32_t* aFromPage,
-                                        int32_t* aToPage) const {
-  *aFromPage = mFromPageNum;
-  *aToPage = mToPageNum;
-}
 
 // Helper Function
 void nsPageSequenceFrame::SetPageNumberFormat(const char* aPropName,
@@ -375,29 +453,17 @@ nsresult nsPageSequenceFrame::StartPrint(nsPresContext* aPresContext,
     mPageData->mDocURL = aDocURL;
   }
 
-  aPrintSettings->GetStartPageRange(&mFromPageNum);
-  aPrintSettings->GetEndPageRange(&mToPageNum);
-  aPrintSettings->GetPageRanges(mPageRanges);
-
-  mDoingPageRange =
-      nsIPrintSettings::kRangeSpecifiedPageRange == mPrintRangeType;
-
   // If printing a range of pages make sure at least the starting page
   // number is valid
-  mTotalPages = mFrames.GetLength();
-
-  if (mDoingPageRange) {
-    if (mFromPageNum > mTotalPages) {
+  if (mPageData->mDoingPageRange) {
+    if (mPageData->mFromPageNum > mPageData->mRawNumPages) {
       return NS_ERROR_INVALID_ARG;
     }
   }
 
   // Begin printing of the document
-  nsresult rv = NS_OK;
-
-  mPageNum = 1;
-
-  return rv;
+  mCurrentSheetIdx = 0;
+  return NS_OK;
 }
 
 static void GetPrintCanvasElementsInFrame(
@@ -405,12 +471,8 @@ static void GetPrintCanvasElementsInFrame(
   if (!aFrame) {
     return;
   }
-  for (nsIFrame::ChildListIterator childLists(aFrame); !childLists.IsDone();
-       childLists.Next()) {
-    nsFrameList children = childLists.CurrentList();
-    for (nsFrameList::Enumerator e(children); !e.AtEnd(); e.Next()) {
-      nsIFrame* child = e.get();
-
+  for (const auto& childList : aFrame->ChildLists()) {
+    for (nsIFrame* child : childList.mList) {
       // Check if child is a nsHTMLCanvasFrame.
       nsHTMLCanvasFrame* canvasFrame = do_QueryFrame(child);
 
@@ -440,79 +502,31 @@ static void GetPrintCanvasElementsInFrame(
   }
 }
 
-void nsPageSequenceFrame::DetermineWhetherToPrintPage() {
-  // See whether we should print this page
-  mPrintThisPage = true;
-  bool printEvenPages, printOddPages;
-  mPageData->mPrintSettings->GetPrintOptions(nsIPrintSettings::kPrintEvenPages,
-                                             &printEvenPages);
-  mPageData->mPrintSettings->GetPrintOptions(nsIPrintSettings::kPrintOddPages,
-                                             &printOddPages);
-
-  // If printing a range of pages check whether the page number is in the
-  // range of pages to print
-  if (mDoingPageRange) {
-    if (mPageNum < mFromPageNum) {
-      mPrintThisPage = false;
-    } else if (mPageNum > mToPageNum) {
-      mPageNum++;
-      mPrintThisPage = false;
-      return;
-    } else {
-      int32_t length = mPageRanges.Length();
-
-      // Page ranges are pairs (start, end)
-      if (length && (length % 2 == 0)) {
-        mPrintThisPage = false;
-
-        int32_t i;
-        for (i = 0; i < length; i += 2) {
-          if (mPageRanges[i] <= mPageNum && mPageNum <= mPageRanges[i + 1]) {
-            mPrintThisPage = true;
-            break;
-          }
-        }
-      }
-    }
-  }
-
-  // Check for printing of odd and even pages
-  if (mPageNum & 0x1) {
-    if (!printOddPages) {
-      mPrintThisPage = false;  // don't print odd numbered page
-    }
-  } else {
-    if (!printEvenPages) {
-      mPrintThisPage = false;  // don't print even numbered page
-    }
-  }
-}
-
-nsIFrame* nsPageSequenceFrame::GetCurrentPageFrame() {
-  int32_t i = 1;
-  for (nsFrameList::Enumerator childFrames(mFrames); !childFrames.AtEnd();
-       childFrames.Next()) {
-    if (i == mPageNum) {
-      return childFrames.get();
+nsIFrame* nsPageSequenceFrame::GetCurrentSheetFrame() {
+  uint32_t i = 0;
+  for (nsIFrame* child : mFrames) {
+    if (i == mCurrentSheetIdx) {
+      return child;
     }
     ++i;
   }
   return nullptr;
 }
 
-nsresult nsPageSequenceFrame::PrePrintNextPage(nsITimerCallback* aCallback,
-                                               bool* aDone) {
-  nsIFrame* currentPage = GetCurrentPageFrame();
-  if (!currentPage) {
+nsresult nsPageSequenceFrame::PrePrintNextSheet(nsITimerCallback* aCallback,
+                                                bool* aDone) {
+  nsIFrame* currentSheet = GetCurrentSheetFrame();
+  if (!currentSheet) {
     *aDone = true;
     return NS_ERROR_FAILURE;
   }
 
-  DetermineWhetherToPrintPage();
-  // Nothing to do if the current page doesn't get printed OR rendering to
-  // preview. For preview, the `CallPrintCallback` is called from within the
-  // HTMLCanvasElement::HandlePrintCallback.
-  if (!mPrintThisPage || !PresContext()->IsRootPaginatedDocument()) {
+  if (!PresContext()->IsRootPaginatedDocument()) {
+    // XXXdholbert I don't think this clause is ever actually visited in
+    // practice... Maybe we should warn & return a failure code?  There used to
+    // be a comment here explaining why we don't need to proceed past this
+    // point for print preview, but in fact, this function isn't even called for
+    // print preview.
     *aDone = true;
     return NS_OK;
   }
@@ -521,9 +535,9 @@ nsresult nsPageSequenceFrame::PrePrintNextPage(nsITimerCallback* aCallback,
   // process for all the canvas.
   if (!mCurrentCanvasListSetup) {
     mCurrentCanvasListSetup = true;
-    GetPrintCanvasElementsInFrame(currentPage, &mCurrentCanvasList);
+    GetPrintCanvasElementsInFrame(currentSheet, &mCurrentCanvasList);
 
-    if (mCurrentCanvasList.Length() != 0) {
+    if (!mCurrentCanvasList.IsEmpty()) {
       nsresult rv = NS_OK;
 
       // Begin printing of the document
@@ -543,8 +557,7 @@ nsresult nsPageSequenceFrame::PrePrintNextPage(nsITimerCallback* aCallback,
         return NS_ERROR_FAILURE;
       }
 
-      for (int32_t i = mCurrentCanvasList.Length() - 1; i >= 0; i--) {
-        HTMLCanvasElement* canvas = mCurrentCanvasList[i];
+      for (HTMLCanvasElement* canvas : Reversed(mCurrentCanvasList)) {
         nsIntSize size = canvas->GetSize();
 
         RefPtr<DrawTarget> canvasTarget =
@@ -553,7 +566,7 @@ nsresult nsPageSequenceFrame::PrePrintNextPage(nsITimerCallback* aCallback,
           continue;
         }
 
-        nsICanvasRenderingContextInternal* ctx = canvas->GetContextAtIndex(0);
+        nsICanvasRenderingContextInternal* ctx = canvas->GetCurrentContext();
         if (!ctx) {
           continue;
         }
@@ -577,9 +590,7 @@ nsresult nsPageSequenceFrame::PrePrintNextPage(nsITimerCallback* aCallback,
     }
   }
   uint32_t doneCounter = 0;
-  for (int32_t i = mCurrentCanvasList.Length() - 1; i >= 0; i--) {
-    HTMLCanvasElement* canvas = mCurrentCanvasList[i];
-
+  for (HTMLCanvasElement* canvas : mCurrentCanvasList) {
     if (canvas->IsPrintCallbackDone()) {
       doneCounter++;
     }
@@ -600,7 +611,7 @@ void nsPageSequenceFrame::ResetPrintCanvasList() {
   mCurrentCanvasListSetup = false;
 }
 
-nsresult nsPageSequenceFrame::PrintNextPage() {
+nsresult nsPageSequenceFrame::PrintNextSheet() {
   // Note: When print al the pages or a page range the printed page shows the
   // actual page number, when printing selection it prints the page number
   // starting with the first page of the selection. For example if the user has
@@ -608,50 +619,46 @@ nsresult nsPageSequenceFrame::PrintNextPage() {
   // print are 1 and then two (which is different than printing a page range,
   // where the page numbers would have been 2 and then 3)
 
-  nsIFrame* currentPageFrame = GetCurrentPageFrame();
-  if (!currentPageFrame) {
+  nsIFrame* currentSheetFrame = GetCurrentSheetFrame();
+  if (!currentSheetFrame) {
     return NS_ERROR_FAILURE;
   }
 
   nsresult rv = NS_OK;
 
-  DetermineWhetherToPrintPage();
+  nsDeviceContext* dc = PresContext()->DeviceContext();
 
-  if (mPrintThisPage) {
-    nsDeviceContext* dc = PresContext()->DeviceContext();
-
-    if (PresContext()->IsRootPaginatedDocument()) {
-      if (!mCalledBeginPage) {
-        // We must make sure BeginPage() has been called since some printing
-        // backends can't give us a valid rendering context for a [physical]
-        // page otherwise.
-        PR_PL(("\n"));
-        PR_PL(("***************** BeginPage *****************\n"));
-        rv = dc->BeginPage();
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
+  if (PresContext()->IsRootPaginatedDocument()) {
+    if (!mCalledBeginPage) {
+      // We must make sure BeginPage() has been called since some printing
+      // backends can't give us a valid rendering context for a [physical]
+      // page otherwise.
+      PR_PL(("\n"));
+      PR_PL(("***************** BeginPage *****************\n"));
+      rv = dc->BeginPage();
+      NS_ENSURE_SUCCESS(rv, rv);
     }
-
-    PR_PL(
-        ("SeqFr::PrintNextPage -> %p PageNo: %d", currentPageFrame, mPageNum));
-
-    // CreateRenderingContext can fail
-    RefPtr<gfxContext> gCtx = dc->CreateRenderingContext();
-    NS_ENSURE_TRUE(gCtx, NS_ERROR_OUT_OF_MEMORY);
-
-    nsRect drawingRect(nsPoint(0, 0), currentPageFrame->GetSize());
-    nsRegion drawingRegion(drawingRect);
-    nsLayoutUtils::PaintFrame(gCtx, currentPageFrame, drawingRegion,
-                              NS_RGBA(0, 0, 0, 0),
-                              nsDisplayListBuilderMode::Painting,
-                              nsLayoutUtils::PaintFrameFlags::SyncDecodeImages);
   }
+
+  PR_PL(("SeqFr::PrintNextSheet -> %p SheetIdx: %d", currentSheetFrame,
+         mCurrentSheetIdx));
+
+  // CreateRenderingContext can fail
+  RefPtr<gfxContext> gCtx = dc->CreateRenderingContext();
+  NS_ENSURE_TRUE(gCtx, NS_ERROR_OUT_OF_MEMORY);
+
+  nsRect drawingRect(nsPoint(0, 0), currentSheetFrame->GetSize());
+  nsRegion drawingRegion(drawingRect);
+  nsLayoutUtils::PaintFrame(gCtx, currentSheetFrame, drawingRegion,
+                            NS_RGBA(0, 0, 0, 0),
+                            nsDisplayListBuilderMode::Painting,
+                            nsLayoutUtils::PaintFrameFlags::SyncDecodeImages);
   return rv;
 }
 
 nsresult nsPageSequenceFrame::DoPageEnd() {
   nsresult rv = NS_OK;
-  if (PresContext()->IsRootPaginatedDocument() && mPrintThisPage) {
+  if (PresContext()->IsRootPaginatedDocument()) {
     PR_PL(("***************** End Page (DoPageEnd) *****************\n"));
     rv = PresContext()->DeviceContext()->EndPage();
     NS_ENSURE_SUCCESS(rv, rv);
@@ -660,14 +667,16 @@ nsresult nsPageSequenceFrame::DoPageEnd() {
   ResetPrintCanvasList();
   mCalledBeginPage = false;
 
-  mPageNum++;
+  mCurrentSheetIdx++;
 
   return rv;
 }
 
-inline gfx::Matrix4x4 ComputePageSequenceTransform(nsIFrame* aFrame,
-                                                   float aAppUnitsPerPixel) {
-  float scale = aFrame->PresContext()->GetPrintPreviewScale();
+gfx::Matrix4x4 ComputePageSequenceTransform(nsIFrame* aFrame,
+                                            float aAppUnitsPerPixel) {
+  MOZ_ASSERT(aFrame->IsPageSequenceFrame());
+  float scale =
+      static_cast<nsPageSequenceFrame*>(aFrame)->GetPrintPreviewScale();
   return gfx::Matrix4x4::Scaling(scale, scale, 1);
 }
 
@@ -687,10 +696,10 @@ void nsPageSequenceFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
 
     nsIFrame* child = PrincipalChildList().FirstChild();
     nsRect visible = aBuilder->GetVisibleRect();
-    visible.ScaleInverseRoundOut(PresContext()->GetPrintPreviewScale());
+    visible.ScaleInverseRoundOut(GetPrintPreviewScale());
 
     while (child) {
-      if (child->GetVisualOverflowRectRelativeToParent().Intersects(visible)) {
+      if (child->InkOverflowRectRelativeToParent().Intersects(visible)) {
         nsDisplayListBuilder::AutoBuildingDisplayList buildingForChild(
             aBuilder, child, visible - child->GetPosition(),
             visible - child->GetPosition());
@@ -702,7 +711,7 @@ void nsPageSequenceFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   }
 
   content.AppendNewToTop<nsDisplayTransform>(aBuilder, this, &content,
-                                             content.GetBuildingRect(), 0,
+                                             content.GetBuildingRect(),
                                              ::ComputePageSequenceTransform);
 
   aLists.Content()->AppendToTop(&content);
@@ -730,7 +739,11 @@ void nsPageSequenceFrame::SetDateTimeStr(const nsAString& aDateTimeStr) {
 
 void nsPageSequenceFrame::AppendDirectlyOwnedAnonBoxes(
     nsTArray<OwnedAnonBox>& aResult) {
-  if (mFrames.NotEmpty()) {
-    aResult.AppendElement(mFrames.FirstChild());
-  }
+  MOZ_ASSERT(
+      mFrames.FirstChild() && mFrames.FirstChild()->IsPrintedSheetFrame(),
+      "nsPageSequenceFrame must have a PrintedSheetFrame child");
+  // Only append the first child; all our children are expected to be
+  // continuations of each other, and our anon box handling always walks
+  // continuations.
+  aResult.AppendElement(mFrames.FirstChild());
 }

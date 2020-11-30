@@ -43,11 +43,11 @@ RefPtr<MediaDataDecoder::DecodePromise> DummyMediaDataDecoder::Decode(
   }
 
   // Frames come out in DTS order but we need to output them in PTS order.
-  mReorderQueue.Push(data);
+  mReorderQueue.Push(std::move(data));
 
   if (mReorderQueue.Length() > mMaxRefFrames) {
-    return DecodePromise::CreateAndResolve(
-        DecodedData{mReorderQueue.Pop().get()}, __func__);
+    return DecodePromise::CreateAndResolve(DecodedData{mReorderQueue.Pop()},
+                                           __func__);
   }
   return DecodePromise::CreateAndResolve(DecodedData(), __func__);
 }
@@ -55,7 +55,7 @@ RefPtr<MediaDataDecoder::DecodePromise> DummyMediaDataDecoder::Decode(
 RefPtr<MediaDataDecoder::DecodePromise> DummyMediaDataDecoder::Drain() {
   DecodedData samples;
   while (!mReorderQueue.IsEmpty()) {
-    samples.AppendElement(mReorderQueue.Pop().get());
+    samples.AppendElement(mReorderQueue.Pop());
   }
   return DecodePromise::CreateAndResolve(std::move(samples), __func__);
 }
@@ -66,7 +66,7 @@ RefPtr<MediaDataDecoder::FlushPromise> DummyMediaDataDecoder::Flush() {
 }
 
 nsCString DummyMediaDataDecoder::GetDescriptionName() const {
-  return NS_LITERAL_CSTRING("blank media data decoder");
+  return "blank media data decoder"_ns;
 }
 
 MediaDataDecoder::ConversionRequired DummyMediaDataDecoder::NeedsConversion()

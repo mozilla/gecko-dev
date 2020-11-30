@@ -19,12 +19,16 @@
 #include "NamespaceImports.h"
 
 #include "js/ErrorReport.h"
+#include "js/friend/ErrorMessages.h"  // JSErr_Limit
 #include "js/RootingAPI.h"
 #include "js/TypeDecls.h"
 #include "js/UniquePtr.h"
 #include "js/Utility.h"
 
+extern const JSErrorFormatString js_ErrorFormatString[JSErr_Limit];
+
 namespace js {
+
 class ErrorObject;
 
 UniquePtr<JSErrorNotes::Note> CopyErrorNote(JSContext* cx,
@@ -38,13 +42,13 @@ JSString* ComputeStackString(JSContext* cx);
 
 /*
  * Given a JSErrorReport, check to see if there is an exception associated with
- * the error number.  If there is, then create an appropriate exception object,
- * set it as the pending exception, and set the JSREPORT_EXCEPTION flag on the
- * error report.
+ * the error number.  If there is, then create an appropriate Error object,
+ * set it as the pending exception.
  *
  * It's possible we fail (due to OOM or some other error) and end up setting
- * cx->exception to a different exception. The original error described by
- * *reportp typically won't be reported anywhere in this case.
+ * JSContext::unwrappedException to a different exception.
+ * The original error described by reportp typically won't be reported anywhere
+ * in this case.
  *
  * If the error code is unrecognized, or if we decided to do nothing in order to
  * avoid recursion, we simply return and this error is just being swept under

@@ -61,9 +61,9 @@ void HTMLSharedElement::DoneAddingChildren(bool aHaveNotified) {
       doc->OnL10nResourceContainerParsed();
     }
 
-    RefPtr<AsyncEventDispatcher> asyncDispatcher = new AsyncEventDispatcher(
-        this, NS_LITERAL_STRING("DOMHeadElementParsed"), CanBubble::eYes,
-        ChromeOnlyDispatch::eYes);
+    RefPtr<AsyncEventDispatcher> asyncDispatcher =
+        new AsyncEventDispatcher(this, u"DOMHeadElementParsed"_ns,
+                                 CanBubble::eYes, ChromeOnlyDispatch::eYes);
     // Always run async in order to avoid running script when the content
     // sink isn't expecting it.
     asyncDispatcher->PostDOMEvent();
@@ -192,7 +192,7 @@ static void SetBaseTargetUsingFirstBaseWithTarget(Document* aDocument,
     }
   }
 
-  aDocument->SetBaseTarget(EmptyString());
+  aDocument->SetBaseTarget(u""_ns);
 }
 
 nsresult HTMLSharedElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,

@@ -237,19 +237,19 @@ bool OSPreferences::GetDateTimeConnectorPattern(const nsACString& aLocale,
 NS_IMETHODIMP
 OSPreferences::GetSystemLocales(nsTArray<nsCString>& aRetVal) {
   if (!mSystemLocales.IsEmpty()) {
-    aRetVal = mSystemLocales;
+    aRetVal = mSystemLocales.Clone();
     return NS_OK;
   }
 
   if (ReadSystemLocales(aRetVal)) {
-    mSystemLocales = aRetVal;
+    mSystemLocales = aRetVal.Clone();
     return NS_OK;
   }
 
   // If we failed to get the system locale, we still need
   // to return something because there are tests out there that
   // depend on system locale to be set.
-  aRetVal.AppendElement(NS_LITERAL_CSTRING("en-US"));
+  aRetVal.AppendElement("en-US"_ns);
   return NS_ERROR_FAILURE;
 }
 
@@ -270,12 +270,12 @@ OSPreferences::GetSystemLocale(nsACString& aRetVal) {
 NS_IMETHODIMP
 OSPreferences::GetRegionalPrefsLocales(nsTArray<nsCString>& aRetVal) {
   if (!mRegionalPrefsLocales.IsEmpty()) {
-    aRetVal = mRegionalPrefsLocales;
+    aRetVal = mRegionalPrefsLocales.Clone();
     return NS_OK;
   }
 
   if (ReadRegionalPrefsLocales(aRetVal)) {
-    mRegionalPrefsLocales = aRetVal;
+    mRegionalPrefsLocales = aRetVal.Clone();
     return NS_OK;
   }
 

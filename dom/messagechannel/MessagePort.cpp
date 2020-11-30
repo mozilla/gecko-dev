@@ -99,6 +99,10 @@ class PostMessageRunnable final : public CancelableRunnable {
   void DispatchMessage() const {
     NS_ASSERT_OWNINGTHREAD(Runnable);
 
+    if (NS_FAILED(mPort->CheckCurrentGlobalCorrectness())) {
+      return;
+    }
+
     nsCOMPtr<nsIGlobalObject> globalObject = mPort->GetParentObject();
 
     AutoJSAPI jsapi;
@@ -152,16 +156,16 @@ class PostMessageRunnable final : public CancelableRunnable {
       return;
     }
 
-    event->InitMessageEvent(nullptr, NS_LITERAL_STRING("message"),
-                            CanBubble::eNo, Cancelable::eNo, value,
-                            EmptyString(), EmptyString(), nullptr, ports);
+    event->InitMessageEvent(nullptr, u"message"_ns, CanBubble::eNo,
+                            Cancelable::eNo, value, u""_ns, u""_ns, nullptr,
+                            ports);
     event->SetTrusted(true);
 
     mPort->DispatchEvent(*event);
   }
 
  private:
-  ~PostMessageRunnable() {}
+  ~PostMessageRunnable() = default;
 
   RefPtr<MessagePort> mPort;
   RefPtr<SharedMessageBody> mData;
@@ -204,7 +208,7 @@ MessagePort::MessagePort(nsIGlobalObject* aGlobal, State aState)
       mHasBeenTransferredOrClosed(false) {
   MOZ_ASSERT(aGlobal);
 
-  mIdentifier = new MessagePortIdentifier();
+  mIdentifier = MakeUnique<MessagePortIdentifier>();
   mIdentifier->neutered() = true;
   mIdentifier->sequenceId() = 0;
 }
@@ -830,22 +834,9 @@ void MessagePort::RemoveDocFromBFCache() {
     return;
   }
 
-  nsPIDOMWindowInner* window = GetOwner();
-  if (!window) {
-    return;
+  if (nsPIDOMWindowInner* window = GetOwner()) {
+    window->RemoveFromBFCacheSync();
   }
-
-  Document* doc = window->GetExtantDoc();
-  if (!doc) {
-    return;
-  }
-
-  nsCOMPtr<nsIBFCacheEntry> bfCacheEntry = doc->GetBFCacheEntry();
-  if (!bfCacheEntry) {
-    return;
-  }
-
-  bfCacheEntry->RemoveFromBFCacheSync();
 }
 
 /* static */
@@ -875,7 +866,7 @@ void MessagePort::DispatchError() {
   init.mCancelable = false;
 
   RefPtr<Event> event =
-      MessageEvent::Constructor(this, NS_LITERAL_STRING("messageerror"), init);
+      MessageEvent::Constructor(this, u"messageerror"_ns, init);
   event->SetTrusted(true);
 
   DispatchEvent(*event);

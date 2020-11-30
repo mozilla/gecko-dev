@@ -20,7 +20,6 @@ import android.util.Log;
 
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.annotation.WebRTCJNITarget;
-import org.mozilla.gecko.permissions.Permissions;
 
 import org.webrtc.CameraEnumerator;
 import org.webrtc.CameraEnumerationAndroid.CaptureFormat;
@@ -57,7 +56,16 @@ public class VideoCaptureDeviceInfoAndroid {
           }
 
           CaptureCapabilityAndroid device = new CaptureCapabilityAndroid();
-          device.name = camera;
+
+          // The only way to plumb through whether the device is front facing
+          // or not is by the name, but the name we receive depends upon the
+          // camera API in use. For the Camera1 API, this information is
+          // already present, but that is not the case when using Camera2.
+          // Later on, we look up the camera by name, so we have to use a
+          // format this is easy to undo. Ideally, libwebrtc would expose
+          // camera facing in VideoCaptureCapability and none of this would be
+          // necessary.
+          device.name = "Facing " + (enumerator.isFrontFacing(camera) ? "front" : "back") + ":" + camera;
 
           // This isn't part of the new API, but we don't call
           // GetDeviceOrientation() anywhere, so this value is unused.
@@ -80,7 +88,11 @@ public class VideoCaptureDeviceInfoAndroid {
               i++;
           }
           device.frontFacing = enumerator.isFrontFacing(camera);
-          allDevices.add(device);
+          if (device.frontFacing) {
+            allDevices.add(0, device);
+          } else {
+            allDevices.add(device);
+          }
       }
 
       return allDevices.toArray(new CaptureCapabilityAndroid[0]);

@@ -10,6 +10,7 @@
 
 #include "jit/CodeGenerator.h"
 #include "jit/MIR.h"
+#include "js/ScalarType.h"  // js::Scalar::Type
 
 #include "jit/MacroAssembler-inl.h"
 #include "jit/shared/CodeGenerator-shared-inl.h"
@@ -38,7 +39,7 @@ Operand CodeGeneratorX64::ToOperand64(const LInt64Allocation& a64) {
   if (a.isGeneralReg()) {
     return Operand(a.toGeneralReg()->reg());
   }
-  return Operand(masm.getStackPointer(), ToStackOffset(a));
+  return Operand(ToAddress(a));
 }
 
 FrameSizeClass FrameSizeClass::FromDepth(uint32_t frameDepth) {
@@ -66,46 +67,51 @@ void CodeGenerator::visitBox(LBox* box) {
 void CodeGenerator::visitUnbox(LUnbox* unbox) {
   MUnbox* mir = unbox->mir();
 
+  Register result = ToRegister(unbox->output());
+
   if (mir->fallible()) {
     const ValueOperand value = ToValue(unbox, LUnbox::Input);
-    Assembler::Condition cond;
+    Label bail;
     switch (mir->type()) {
       case MIRType::Int32:
-        cond = masm.testInt32(Assembler::NotEqual, value);
+        masm.fallibleUnboxInt32(value, result, &bail);
         break;
       case MIRType::Boolean:
-        cond = masm.testBoolean(Assembler::NotEqual, value);
+        masm.fallibleUnboxBoolean(value, result, &bail);
         break;
       case MIRType::Object:
-        cond = masm.testObject(Assembler::NotEqual, value);
+        masm.fallibleUnboxObject(value, result, &bail);
         break;
       case MIRType::String:
-        cond = masm.testString(Assembler::NotEqual, value);
+        masm.fallibleUnboxString(value, result, &bail);
         break;
       case MIRType::Symbol:
-        cond = masm.testSymbol(Assembler::NotEqual, value);
+        masm.fallibleUnboxSymbol(value, result, &bail);
         break;
       case MIRType::BigInt:
-        cond = masm.testBigInt(Assembler::NotEqual, value);
+        masm.fallibleUnboxBigInt(value, result, &bail);
         break;
       default:
         MOZ_CRASH("Given MIRType cannot be unboxed.");
     }
-    bailoutIf(cond, unbox->snapshot());
-  } else {
-#ifdef DEBUG
-    Operand input = ToOperand(unbox->getOperand(LUnbox::Input));
-    JSValueTag tag = MIRTypeToTag(mir->type());
-    Label ok;
-    masm.splitTag(input, ScratchReg);
-    masm.branch32(Assembler::Equal, ScratchReg, Imm32(tag), &ok);
-    masm.assumeUnreachable("Infallible unbox type mismatch");
-    masm.bind(&ok);
-#endif
+    bailoutFrom(&bail, unbox->snapshot());
+    return;
   }
 
+  // Infallible unbox.
+
   Operand input = ToOperand(unbox->getOperand(LUnbox::Input));
-  Register result = ToRegister(unbox->output());
+
+#ifdef DEBUG
+  // Assert the types match.
+  JSValueTag tag = MIRTypeToTag(mir->type());
+  Label ok;
+  masm.splitTag(input, ScratchReg);
+  masm.branch32(Assembler::Equal, ScratchReg, Imm32(tag), &ok);
+  masm.assumeUnreachable("Infallible unbox type mismatch");
+  masm.bind(&ok);
+#endif
+
   switch (mir->type()) {
     case MIRType::Int32:
       masm.unboxInt32(input, result);
@@ -319,6 +325,16 @@ void CodeGenerator::visitUDivOrModI64(LUDivOrModI64* lir) {
   masm.bind(&done);
 }
 
+void CodeGenerator::visitWasmRegisterResult(LWasmRegisterResult* lir) {
+  if (JitOptions.spectreIndexMasking) {
+    if (MWasmRegisterResult* mir = lir->mir()) {
+      if (mir->type() == MIRType::Int32) {
+        masm.movl(ToRegister(lir->output()), ToRegister(lir->output()));
+      }
+    }
+  }
+}
+
 void CodeGenerator::visitWasmSelectI64(LWasmSelectI64* lir) {
   MOZ_ASSERT(lir->mir()->type() == MIRType::Int64);
 
@@ -380,6 +396,7 @@ void CodeGeneratorX64::wasmStore(const wasm::MemoryAccessDesc& access,
         masm.movl(cst, dstAddr);
         break;
       case Scalar::Int64:
+      case Scalar::Simd128:
       case Scalar::Float32:
       case Scalar::Float64:
       case Scalar::Uint8Clamped:
@@ -443,7 +460,7 @@ void CodeGeneratorX64::emitWasmStore(T* ins) {
 void CodeGenerator::visitWasmStore(LWasmStore* ins) { emitWasmStore(ins); }
 
 void CodeGenerator::visitWasmStoreI64(LWasmStoreI64* ins) {
-  emitWasmStore(ins);
+  MOZ_CRASH("Unused on this platform");
 }
 
 void CodeGenerator::visitWasmCompareExchangeHeap(
@@ -559,6 +576,22 @@ void CodeGenerator::visitTruncateDToInt32(LTruncateDToInt32* ins) {
   // implementation, this should handle most doubles and we can just
   // call a stub if it fails.
   emitTruncateDouble(input, output, ins->mir());
+}
+
+void CodeGenerator::visitWasmBuiltinTruncateDToInt32(
+    LWasmBuiltinTruncateDToInt32* lir) {
+  FloatRegister input = ToFloatRegister(lir->getOperand(0));
+  Register output = ToRegister(lir->getDef(0));
+
+  emitTruncateDouble(input, output, lir->mir());
+}
+
+void CodeGenerator::visitWasmBuiltinTruncateFToInt32(
+    LWasmBuiltinTruncateFToInt32* lir) {
+  FloatRegister input = ToFloatRegister(lir->getOperand(0));
+  Register output = ToRegister(lir->getDef(0));
+
+  emitTruncateFloat32(input, output, lir->mir());
 }
 
 void CodeGenerator::visitTruncateFToInt32(LTruncateFToInt32* ins) {

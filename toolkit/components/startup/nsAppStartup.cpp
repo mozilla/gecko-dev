@@ -24,9 +24,9 @@
 #include "nsString.h"
 #include "mozilla/AppShutdown.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/ProfilerMarkers.h"
 #include "mozilla/ResultExtensions.h"
 #include "mozilla/Unused.h"
-#include "GeckoProfiler.h"
 
 #include "prprf.h"
 #include "nsIInterfaceRequestorUtils.h"
@@ -183,26 +183,25 @@ nsresult nsAppStartup::Init() {
   // This last event is only interesting to us for xperf-based measures
 
   // Initialize interaction with profiler
-  mProbesManager = new ProbeManager(
-      kApplicationTracingCID, NS_LITERAL_CSTRING("Application startup probe"));
+  mProbesManager =
+      new ProbeManager(kApplicationTracingCID, "Application startup probe"_ns);
   // Note: The operation is meant mostly for in-house profiling.
   // Therefore, we do not warn if probes manager cannot be initialized
 
   if (mProbesManager) {
     mPlacesInitCompleteProbe = mProbesManager->GetProbe(
-        kPlacesInitCompleteCID, NS_LITERAL_CSTRING("places-init-complete"));
+        kPlacesInitCompleteCID, "places-init-complete"_ns);
     NS_WARNING_ASSERTION(mPlacesInitCompleteProbe,
                          "Cannot initialize probe 'places-init-complete'");
 
     mSessionWindowRestoredProbe = mProbesManager->GetProbe(
-        kSessionStoreWindowRestoredCID,
-        NS_LITERAL_CSTRING("sessionstore-windows-restored"));
+        kSessionStoreWindowRestoredCID, "sessionstore-windows-restored"_ns);
     NS_WARNING_ASSERTION(
         mSessionWindowRestoredProbe,
         "Cannot initialize probe 'sessionstore-windows-restored'");
 
-    mXPCOMShutdownProbe = mProbesManager->GetProbe(
-        kXPCOMShutdownCID, NS_LITERAL_CSTRING("xpcom-shutdown"));
+    mXPCOMShutdownProbe =
+        mProbesManager->GetProbe(kXPCOMShutdownCID, "xpcom-shutdown"_ns);
     NS_WARNING_ASSERTION(mXPCOMShutdownProbe,
                          "Cannot initialize probe 'xpcom-shutdown'");
 
@@ -275,7 +274,8 @@ nsAppStartup::Run(void) {
   // Make sure that the appropriate quit notifications have been dispatched
   // regardless of whether the event loop has spun or not. Note that this call
   // is a no-op if Quit has already been called previously.
-  Quit(eForceQuit);
+  bool userAllowedQuit = true;
+  Quit(eForceQuit, &userAllowedQuit);
 
   nsresult retval = NS_OK;
   if (mozilla::AppShutdown::IsRestarting()) {
@@ -286,8 +286,13 @@ nsAppStartup::Run(void) {
 }
 
 NS_IMETHODIMP
-nsAppStartup::Quit(uint32_t aMode) {
+nsAppStartup::Quit(uint32_t aMode, bool* aUserAllowedQuit) {
   uint32_t ferocity = (aMode & 0xF);
+
+  // If the shutdown was cancelled due to a hidden window or
+  // because one of the windows was not permitted to be closed,
+  // return NS_OK with |aUserAllowedQuit| = false.
+  *aUserAllowedQuit = false;
 
   // Quit the application. We will asynchronously call the appshell's
   // Exit() method via nsAppExitEvent to allow one last pass
@@ -349,16 +354,19 @@ nsAppStartup::Quit(uint32_t aMode) {
           windowEnumerator->GetNext(getter_AddRefs(window));
           nsCOMPtr<nsPIDOMWindowOuter> domWindow(do_QueryInterface(window));
           if (domWindow) {
-            if (!domWindow->CanClose()) return NS_OK;
+            if (!domWindow->CanClose()) {
+              return NS_OK;
+            }
           }
           windowEnumerator->HasMoreElements(&more);
         }
       }
     }
 
-    PROFILER_ADD_MARKER("Shutdown start", OTHER);
+    PROFILER_MARKER_UNTYPED("Shutdown start", OTHER);
     mozilla::RecordShutdownStartTimeStamp();
 
+    *aUserAllowedQuit = true;
     mShuttingDown = true;
     auto shutdownMode = ((aMode & eRestart) != 0)
                             ? mozilla::AppShutdownMode::Restart
@@ -496,7 +504,10 @@ nsAppStartup::ExitLastWindowClosingSurvivalArea(void) {
   NS_ASSERTION(mConsiderQuitStopper > 0, "consider quit stopper out of bounds");
   --mConsiderQuitStopper;
 
-  if (mRunning) Quit(eConsiderQuit);
+  if (mRunning) {
+    bool userAllowedQuit = false;
+    Quit(eConsiderQuit, &userAllowedQuit);
+  }
 
   return NS_OK;
 }
@@ -582,10 +593,8 @@ nsAppStartup::GetInterrupted(bool* aInterrupted) {
 NS_IMETHODIMP
 nsAppStartup::CreateChromeWindow(nsIWebBrowserChrome* aParent,
                                  uint32_t aChromeFlags,
-                                 nsIRemoteTab* aOpeningTab,
-                                 mozIDOMWindowProxy* aOpener,
-                                 uint64_t aNextRemoteTabId, bool* aCancel,
-                                 nsIWebBrowserChrome** _retval) {
+                                 nsIOpenWindowInfo* aOpenWindowInfo,
+                                 bool* aCancel, nsIWebBrowserChrome** _retval) {
   NS_ENSURE_ARG_POINTER(aCancel);
   NS_ENSURE_ARG_POINTER(_retval);
   *aCancel = false;
@@ -612,14 +621,14 @@ nsAppStartup::CreateChromeWindow(nsIWebBrowserChrome* aParent,
                  "may work.");
 
     if (appParent)
-      appParent->CreateNewWindow(aChromeFlags, aOpeningTab, aOpener,
-                                 aNextRemoteTabId, getter_AddRefs(newWindow));
+      appParent->CreateNewWindow(aChromeFlags, aOpenWindowInfo,
+                                 getter_AddRefs(newWindow));
     // And if it fails, don't try again without a parent. It could fail
     // intentionally (bug 115969).
   } else {  // try using basic methods:
-    MOZ_RELEASE_ASSERT(aNextRemoteTabId == 0,
-                       "Unexpected aNextRemoteTabId, we shouldn't ever have a "
-                       "next actor ID without a parent");
+    MOZ_RELEASE_ASSERT(!aOpenWindowInfo,
+                       "Unexpected aOpenWindowInfo, we shouldn't ever have an "
+                       "nsIOpenWindowInfo without a parent");
 
     /* You really shouldn't be making dependent windows without a parent.
       But unparented modal (and therefore dependent) windows happen
@@ -633,8 +642,7 @@ nsAppStartup::CreateChromeWindow(nsIWebBrowserChrome* aParent,
 
     appShell->CreateTopLevelWindow(
         0, 0, aChromeFlags, nsIAppShellService::SIZE_TO_CONTENT,
-        nsIAppShellService::SIZE_TO_CONTENT, aOpeningTab, aOpener,
-        getter_AddRefs(newWindow));
+        nsIAppShellService::SIZE_TO_CONTENT, getter_AddRefs(newWindow));
   }
 
   // if anybody gave us anything to work with, use it
@@ -943,7 +951,8 @@ nsAppStartup::TrackStartupCrashEnd() {
 NS_IMETHODIMP
 nsAppStartup::RestartInSafeMode(uint32_t aQuitMode) {
   PR_SetEnv("MOZ_SAFE_MODE_RESTART=1");
-  this->Quit(aQuitMode | nsIAppStartup::eRestart);
+  bool userAllowedQuit = false;
+  this->Quit(aQuitMode | nsIAppStartup::eRestart, &userAllowedQuit);
 
   return NS_OK;
 }

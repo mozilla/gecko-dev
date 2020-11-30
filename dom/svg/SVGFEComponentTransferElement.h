@@ -4,10 +4,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_SVGFEComponentTransferElement_h
-#define mozilla_dom_SVGFEComponentTransferElement_h
+#ifndef DOM_SVG_SVGFECOMPONENTTRANSFERELEMENT_H_
+#define DOM_SVG_SVGFECOMPONENTTRANSFERELEMENT_H_
 
-#include "SVGFilters.h"
+#include "mozilla/dom/SVGFilters.h"
 
 nsresult NS_NewSVGFEComponentTransferElement(
     nsIContent** aResult, already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
@@ -15,7 +15,7 @@ nsresult NS_NewSVGFEComponentTransferElement(
 namespace mozilla {
 namespace dom {
 
-typedef SVGFE SVGFEComponentTransferElementBase;
+using SVGFEComponentTransferElementBase = SVGFE;
 
 class SVGFEComponentTransferElement : public SVGFEComponentTransferElementBase {
   friend nsresult(::NS_NewSVGFEComponentTransferElement(
@@ -31,7 +31,7 @@ class SVGFEComponentTransferElement : public SVGFEComponentTransferElementBase {
 
  public:
   virtual FilterPrimitiveDescription GetPrimitiveDescription(
-      nsSVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
+      SVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
       const nsTArray<bool>& aInputsAreTainted,
       nsTArray<RefPtr<SourceSurface>>& aInputImages) override;
   virtual bool AttributeAffectsRendering(int32_t aNameSpaceID,
@@ -58,4 +58,4 @@ class SVGFEComponentTransferElement : public SVGFEComponentTransferElementBase {
 }  // namespace dom
 }  // namespace mozilla
 
-#endif  // mozilla_dom_SVGFEComponentTransferElement_h
+#endif  // DOM_SVG_SVGFECOMPONENTTRANSFERELEMENT_H_

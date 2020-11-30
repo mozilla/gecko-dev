@@ -5,8 +5,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "WMFDecoderModule.h"
+
 #include <algorithm>
 #include <vector>
+
 #include "DriverCrashGuard.h"
 #include "GfxDriverInfo.h"
 #include "MFTDecoder.h"
@@ -134,8 +136,7 @@ already_AddRefed<MediaDataDecoder> WMFDecoderModule::CreateVideoDecoder(
     return nullptr;
   }
 
-  RefPtr<MediaDataDecoder> decoder =
-      new WMFMediaDataDecoder(manager.release(), aParams.mTaskQueue);
+  RefPtr<MediaDataDecoder> decoder = new WMFMediaDataDecoder(manager.release());
 
   return decoder.forget();
 }
@@ -149,8 +150,7 @@ already_AddRefed<MediaDataDecoder> WMFDecoderModule::CreateAudioDecoder(
     return nullptr;
   }
 
-  RefPtr<MediaDataDecoder> decoder =
-      new WMFMediaDataDecoder(manager.release(), aParams.mTaskQueue);
+  RefPtr<MediaDataDecoder> decoder = new WMFMediaDataDecoder(manager.release());
   return decoder.forget();
 }
 
@@ -210,6 +210,7 @@ bool WMFDecoderModule::Supports(const TrackInfo& aTrackInfo,
     return true;
   }
   if (aTrackInfo.mMimeType.EqualsLiteral("audio/mpeg") &&
+      !StaticPrefs::media_ffvpx_mp3_enabled() &&
       CanCreateWMFDecoder<CLSID_CMP3DecMediaObject>()) {
     return true;
   }

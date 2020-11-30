@@ -12,32 +12,24 @@
 #  include <Windows.Media.h>
 #  include <wrl.h>
 
-#  include "mozilla\dom\MediaController.h"
-#  include "mozilla\dom\MediaControlKeysEvent.h"
-#  include "mozilla\Maybe.h"
+#  include "mozilla/dom/FetchImageHelper.h"
+#  include "mozilla/dom/MediaController.h"
+#  include "mozilla/dom/MediaControlKeySource.h"
+#  include "mozilla/UniquePtr.h"
 
 using ISMTC = ABI::Windows::Media::ISystemMediaTransportControls;
 using SMTCProperty = ABI::Windows::Media::SystemMediaTransportControlsProperty;
-using IMSTCDisplayUpdater =
+using ISMTCDisplayUpdater =
     ABI::Windows::Media::ISystemMediaTransportControlsDisplayUpdater;
 
-struct SMTCControlAttributes {
-  bool mEnabled;
-  bool mPlayPauseEnabled;
-  bool mNextEnabled;
-  bool mPreviousEnabled;
+using ABI::Windows::Foundation::IAsyncOperation;
+using ABI::Windows::Storage::Streams::IDataWriter;
+using ABI::Windows::Storage::Streams::IRandomAccessStream;
+using ABI::Windows::Storage::Streams::IRandomAccessStreamReference;
+using Microsoft::WRL::ComPtr;
 
-  static constexpr SMTCControlAttributes EnableAll() {
-    return {true, true, true, true};
-  }
-  static constexpr SMTCControlAttributes DisableAll() {
-    return {false, false, false, false};
-  }
-};
-
-class WindowsSMTCProvider final
-    : public mozilla::dom::MediaControlKeysEventSource {
-  NS_INLINE_DECL_REFCOUNTING(WindowsSMTCProvider, override)
+class WindowsSMTCProvider final : public mozilla::dom::MediaControlKeySource {
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(WindowsSMTCProvider, override)
 
  public:
   WindowsSMTCProvider();
@@ -46,36 +38,86 @@ class WindowsSMTCProvider final
   bool Open() override;
   void Close() override;
 
-  // Sets the state of the UI Panel (enabled, can use PlayPause, Next, Previous
-  // Buttons)
-  bool SetControlAttributes(SMTCControlAttributes aAttributes);
+  void SetPlaybackState(
+      mozilla::dom::MediaSessionPlaybackState aState) override;
 
-  void SetPlaybackState(mozilla::dom::PlaybackState aState) override;
+  void SetMediaMetadata(
+      const mozilla::dom::MediaMetadataBase& aMetadata) override;
 
-  // Sets the Thumbnail for the currently playing media to the given URL.
-  // Note: This method does not call update(), you need to do that manually.
-  bool SetThumbnail(const wchar_t* aUrl);
-
-  // Sets the Metadata for the currently playing media and sets the playback
-  // type to "MUSIC" Note: This method does not call update(), you need to do
-  // that manually.
-  bool SetMusicMetadata(mozilla::Maybe<const wchar_t*> aArtist,
-                        const wchar_t* aTitle,
-                        mozilla::Maybe<const wchar_t*> aAlbumArtist);
+  void SetSupportedMediaKeys(const MediaKeysArray& aSupportedKeys) override;
 
  private:
   ~WindowsSMTCProvider();
   void UnregisterEvents();
   bool RegisterEvents();
-  bool InitDisplayAndControls();
-  void OnButtonPressed(mozilla::dom::MediaControlKeysEvent aEvent);
 
-  // This method flushes the changed Media Metadata to the OS.
-  bool Update();
+  void OnButtonPressed(mozilla::dom::MediaControlKey aKey) const;
+  // Enable the SMTC interface
+  bool EnableControl(bool aEnabled) const;
+  // Sets the play, pause, next, previous buttons on the SMTC interface by
+  // mSupportedKeys
+  bool UpdateButtons() const;
+  bool IsKeySupported(mozilla::dom::MediaControlKey aKey) const;
+  bool EnableKey(mozilla::dom::MediaControlKey aKey, bool aEnable) const;
+
+  bool InitDisplayAndControls();
+
+  // Sets the Metadata for the currently playing media and sets the playback
+  // type to "MUSIC"
+  bool SetMusicMetadata(const wchar_t* aArtist, const wchar_t* aTitle,
+                        const wchar_t* aAlbumArtist);
+
+  // Sets one of the artwork to the SMTC interface asynchronously
+  void LoadThumbnail(const nsTArray<mozilla::dom::MediaImage>& aArtwork);
+  // Stores the image at index aIndex of the mArtwork to the Thumbnail
+  // asynchronously
+  void LoadImageAtIndex(const size_t aIndex);
+  // Stores the raw binary data of an image to mImageStream and set it to the
+  // Thumbnail asynchronously
+  void LoadImage(const char* aImageData, uint32_t aDataSize);
+  // Sets the Thumbnail to the image stored in mImageStream
+  bool SetThumbnail(const nsAString& aUrl);
+  void ClearThumbnail();
+
+  bool UpdateThumbnail(const nsAString& aUrl);
+  void CancelPendingStoreAsyncOperation() const;
+
+  void ClearMetadata();
 
   bool mInitialized = false;
-  Microsoft::WRL::ComPtr<ISMTC> mControls;
-  Microsoft::WRL::ComPtr<IMSTCDisplayUpdater> mDisplay;
+
+  // A bit table indicating what keys are enabled
+  uint32_t mSupportedKeys = 0;
+
+  ComPtr<ISMTC> mControls;
+  ComPtr<ISMTCDisplayUpdater> mDisplay;
+
+  // Use mImageDataWriter to write the binary data of image into mImageStream
+  // and refer the image by mImageStreamReference and then set it to the SMTC
+  // interface
+  ComPtr<IDataWriter> mImageDataWriter;
+  ComPtr<IRandomAccessStream> mImageStream;
+  ComPtr<IRandomAccessStreamReference> mImageStreamReference;
+  ComPtr<IAsyncOperation<unsigned int>> mStoreAsyncOperation;
+
+  // mThumbnailUrl is the url of the current Thumbnail
+  // mProcessingUrl is the url that is being processed. The process starts from
+  // fetching an image from the url and then storing the fetched image to the
+  // mImageStream. If mProcessingUrl is not empty, it means there is an image is
+  // in processing
+  // mThumbnailUrl and mProcessingUrl won't be set at the same time and they can
+  // only be touched on main thread
+  nsString mThumbnailUrl;
+  nsString mProcessingUrl;
+
+  // mArtwork can only be used in main thread in case of data racing
+  CopyableTArray<mozilla::dom::MediaImage> mArtwork;
+  size_t mNextImageIndex;
+
+  mozilla::UniquePtr<mozilla::dom::FetchImageHelper> mImageFetcher;
+  mozilla::MozPromiseRequestHolder<mozilla::dom::ImagePromise>
+      mImageFetchRequest;
+
   HWND mWindow;  // handle to the invisible window
 
   // EventRegistrationTokens are used to have a handle on a callback (to remove

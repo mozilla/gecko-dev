@@ -15,6 +15,10 @@
 #  include "nsRect.h"
 #endif
 
+#ifdef MOZ_WIDGET_COCOA
+#  include "mozilla/a11y/Role.h"
+#endif
+
 namespace mozilla {
 namespace a11y {
 
@@ -98,7 +102,8 @@ void ProxyFocusEvent(ProxyAccessible* aTarget,
 void ProxyCaretMoveEvent(ProxyAccessible* aTarget,
                          const LayoutDeviceIntRect& aCaretRect);
 #else
-void ProxyCaretMoveEvent(ProxyAccessible* aTarget, int32_t aOffset);
+void ProxyCaretMoveEvent(ProxyAccessible* aTarget, int32_t aOffset,
+                         bool aIsSelectionCollapsed);
 #endif
 void ProxyTextChangeEvent(ProxyAccessible* aTarget, const nsString& aStr,
                           int32_t aStart, uint32_t aLen, bool aIsInsert,
@@ -135,6 +140,14 @@ void ProxyBatch(ProxyAccessible* aDocument, const uint64_t aBatchType,
 bool LocalizeString(
     const char* aToken, nsAString& aLocalized,
     const nsTArray<nsString>& aFormatString = nsTArray<nsString>());
+#endif
+
+#ifdef MOZ_WIDGET_COCOA
+class TextRangeData;
+void ProxyTextSelectionChangeEvent(ProxyAccessible* aTarget,
+                                   const nsTArray<TextRangeData>& aSelection);
+
+void ProxyRoleChangedEvent(ProxyAccessible* aTarget, const a11y::role& aRole);
 #endif
 
 }  // namespace a11y

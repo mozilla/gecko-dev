@@ -7,7 +7,15 @@ with Files('**'):
 
 FINAL_TARGET_FILES.actors += [
     'BrowserTabParent.jsm',
+    'ContentDelegateChild.jsm',
+    'ContentDelegateParent.jsm',
     'GeckoViewContentChild.jsm',
+    'GeckoViewContentParent.jsm',
+    'GeckoViewPromptChild.jsm',
+    'GeckoViewSettingsChild.jsm',
     'LoadURIDelegateChild.jsm',
+    'ProgressDelegateChild.jsm',
+    'ProgressDelegateParent.jsm',
+    'ScrollDelegateChild.jsm',
     'WebBrowserChromeChild.jsm',
 ]

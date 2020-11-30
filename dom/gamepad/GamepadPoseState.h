@@ -36,9 +36,15 @@ enum class GamepadCapabilityFlags : uint16_t {
    */
   Cap_GripSpacePosition = 1 << 5,
   /**
+   * Cap_PositionEmulated is set if the VRDisplay is capable of setting a
+   * emulated position (e.g. neck model) even if still doesn't support 6DOF
+   * tracking.
+   */
+  Cap_PositionEmulated = 1 << 6,
+  /**
    * Cap_All used for validity checking during IPC serialization
    */
-  Cap_All = (1 << 6) - 1
+  Cap_All = (1 << 7) - 1
 };
 
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(GamepadCapabilityFlags)

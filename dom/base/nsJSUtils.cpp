@@ -14,10 +14,9 @@
 #include "nsJSUtils.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
-#include "js/BinASTFormat.h"  // JS::BinASTFormat
 #include "js/CompilationAndEvaluation.h"
 #include "js/Date.h"
-#include "js/Modules.h"  // JS::CompileModule{,DontInflate}, JS::GetModuleScript, JS::Module{Instantiate,Evaluate}
+#include "js/Modules.h"  // JS::CompileModule, JS::GetModuleScript, JS::Module{Instantiate,Evaluate}
 #include "js/OffThreadScriptCompilation.h"
 #include "js/SourceText.h"
 #include "nsIScriptContext.h"
@@ -185,7 +184,13 @@ nsresult nsJSUtils::ExecutionContext::JoinCompile(
   MOZ_ASSERT(!mWantsReturnValue);
   MOZ_ASSERT(!mExpectScopeChain);
   MOZ_ASSERT(!mScript);
-  mScript.set(JS::FinishOffThreadScript(mCx, *aOffThreadToken));
+
+  if (mEncodeBytecode) {
+    mScript.set(JS::FinishOffThreadScriptAndStartIncrementalEncoding(
+        mCx, *aOffThreadToken));
+  } else {
+    mScript.set(JS::FinishOffThreadScript(mCx, *aOffThreadToken));
+  }
   *aOffThreadToken = nullptr;  // Mark the token as having been finished.
   if (!mScript) {
     mSkip = true;
@@ -193,33 +198,7 @@ nsresult nsJSUtils::ExecutionContext::JoinCompile(
     return mRv;
   }
 
-  if (mEncodeBytecode && !StartIncrementalEncoding(mCx, mScript)) {
-    mSkip = true;
-    mRv = EvaluationExceptionToNSResult(mCx);
-    return mRv;
-  }
-
   return NS_OK;
-}
-
-static JSScript* CompileScript(
-    JSContext* aCx, JS::Handle<JS::StackGCVector<JSObject*>> aScopeChain,
-    JS::CompileOptions& aCompileOptions, JS::SourceText<char16_t>& aSrcBuf) {
-  return aScopeChain.length() == 0
-             ? JS::Compile(aCx, aCompileOptions, aSrcBuf)
-             : JS::CompileForNonSyntacticScope(aCx, aCompileOptions, aSrcBuf);
-}
-
-static JSScript* CompileScript(
-    JSContext* aCx, JS::Handle<JS::StackGCVector<JSObject*>> aScopeChain,
-    JS::CompileOptions& aCompileOptions, JS::SourceText<Utf8Unit>& aSrcBuf) {
-  // Once the UTF-8 overloads don't inflate, we can get rid of these two
-  // |CompileScript| overloads and just call the JSAPI directly in the one
-  // caller.
-  return aScopeChain.length() == 0
-             ? JS::CompileDontInflate(aCx, aCompileOptions, aSrcBuf)
-             : JS::CompileForNonSyntacticScopeDontInflate(aCx, aCompileOptions,
-                                                          aSrcBuf);
 }
 
 template <typename Unit>
@@ -236,14 +215,19 @@ nsresult nsJSUtils::ExecutionContext::InternalCompile(
 #endif
 
   MOZ_ASSERT(!mScript);
-  mScript = CompileScript(mCx, mScopeChain, aCompileOptions, aSrcBuf);
-  if (!mScript) {
-    mSkip = true;
-    mRv = EvaluationExceptionToNSResult(mCx);
-    return mRv;
+
+  if (mScopeChain.length() != 0) {
+    aCompileOptions.setNonSyntacticScope(true);
   }
 
-  if (mEncodeBytecode && !StartIncrementalEncoding(mCx, mScript)) {
+  if (mEncodeBytecode) {
+    mScript =
+        JS::CompileAndStartIncrementalEncoding(mCx, aCompileOptions, aSrcBuf);
+  } else {
+    mScript = JS::Compile(mCx, aCompileOptions, aSrcBuf);
+  }
+
+  if (!mScript) {
     mSkip = true;
     mRv = EvaluationExceptionToNSResult(mCx);
     return mRv;
@@ -288,8 +272,8 @@ nsresult nsJSUtils::ExecutionContext::Decode(
   }
 
   MOZ_ASSERT(!mWantsReturnValue);
-  JS::TranscodeResult tr =
-      JS::DecodeScript(mCx, aBytecodeBuf, &mScript, aBytecodeIndex);
+  JS::TranscodeResult tr = JS::DecodeScriptMaybeStencil(
+      mCx, aCompileOptions, aBytecodeBuf, &mScript, aBytecodeIndex);
   // These errors are external parameters which should be handled before the
   // decoding phase, and which are the only reasons why you might want to
   // fallback on decoding failures.
@@ -325,70 +309,12 @@ nsresult nsJSUtils::ExecutionContext::JoinDecode(
 
 nsresult nsJSUtils::ExecutionContext::JoinDecodeBinAST(
     JS::OffThreadToken** aOffThreadToken) {
-#ifdef JS_BUILD_BINAST
-  if (mSkip) {
-    return mRv;
-  }
-
-  MOZ_ASSERT(!mWantsReturnValue);
-  MOZ_ASSERT(!mExpectScopeChain);
-
-  mScript.set(JS::FinishOffThreadBinASTDecode(mCx, *aOffThreadToken));
-  *aOffThreadToken = nullptr;  // Mark the token as having been finished.
-
-  if (!mScript) {
-    mSkip = true;
-    mRv = EvaluationExceptionToNSResult(mCx);
-    return mRv;
-  }
-
-  if (mEncodeBytecode && !StartIncrementalEncoding(mCx, mScript)) {
-    mSkip = true;
-    mRv = EvaluationExceptionToNSResult(mCx);
-    return mRv;
-  }
-
-  return NS_OK;
-#else
   return NS_ERROR_NOT_IMPLEMENTED;
-#endif
 }
 
 nsresult nsJSUtils::ExecutionContext::DecodeBinAST(
     JS::CompileOptions& aCompileOptions, const uint8_t* aBuf, size_t aLength) {
-#ifdef JS_BUILD_BINAST
-  MOZ_ASSERT(mScopeChain.length() == 0,
-             "BinAST decoding is not supported in non-syntactic scopes");
-
-  if (mSkip) {
-    return mRv;
-  }
-
-  MOZ_ASSERT(aBuf);
-  MOZ_ASSERT(mRetValue.isUndefined());
-#  ifdef DEBUG
-  mWantsReturnValue = !aCompileOptions.noScriptRval;
-#  endif
-
-  mScript.set(JS::DecodeBinAST(mCx, aCompileOptions, aBuf, aLength,
-                               JS::BinASTFormat::Multipart));
-
-  if (!mScript) {
-    mSkip = true;
-    mRv = EvaluationExceptionToNSResult(mCx);
-    return mRv;
-  }
-
-  if (mEncodeBytecode && !StartIncrementalEncoding(mCx, mScript)) {
-    mSkip = true;
-    mRv = EvaluationExceptionToNSResult(mCx);
-    return mRv;
-  }
-
-  return NS_OK;
-#else
   return NS_ERROR_NOT_IMPLEMENTED;
-#endif
 }
 
 JSScript* nsJSUtils::ExecutionContext::GetScript() {
@@ -475,21 +401,6 @@ nsresult nsJSUtils::ExecutionContext::ExecScript(
   return NS_OK;
 }
 
-static JSObject* CompileModule(JSContext* aCx,
-                               JS::CompileOptions& aCompileOptions,
-                               JS::SourceText<char16_t>& aSrcBuf) {
-  return JS::CompileModule(aCx, aCompileOptions, aSrcBuf);
-}
-
-static JSObject* CompileModule(JSContext* aCx,
-                               JS::CompileOptions& aCompileOptions,
-                               JS::SourceText<Utf8Unit>& aSrcBuf) {
-  // Once compile-UTF-8-without-inflating is stable, it'll be renamed to remove
-  // the "DontInflate" suffix, these two overloads can be removed, and
-  // |JS::CompileModule| can be used in the sole caller below.
-  return JS::CompileModuleDontInflate(aCx, aCompileOptions, aSrcBuf);
-}
-
 template <typename Unit>
 static nsresult CompileJSModule(JSContext* aCx, JS::SourceText<Unit>& aSrcBuf,
                                 JS::Handle<JSObject*> aEvaluationGlobal,
@@ -506,7 +417,7 @@ static nsresult CompileJSModule(JSContext* aCx, JS::SourceText<Unit>& aSrcBuf,
 
   NS_ENSURE_TRUE(xpc::Scriptability::Get(aEvaluationGlobal).Allowed(), NS_OK);
 
-  JSObject* module = CompileModule(aCx, aCompileOptions, aSrcBuf);
+  JSObject* module = JS::CompileModule(aCx, aCompileOptions, aSrcBuf);
   if (!module) {
     return NS_ERROR_FAILURE;
   }
@@ -531,27 +442,6 @@ nsresult nsJSUtils::CompileModule(JSContext* aCx,
                                   JS::MutableHandle<JSObject*> aModule) {
   return CompileJSModule(aCx, aSrcBuf, aEvaluationGlobal, aCompileOptions,
                          aModule);
-}
-
-nsresult nsJSUtils::InitModuleSourceElement(JSContext* aCx,
-                                            JS::Handle<JSObject*> aModule,
-                                            nsIScriptElement* aElement) {
-  JS::Rooted<JS::Value> value(aCx);
-  nsresult rv = nsContentUtils::WrapNative(aCx, aElement, &value,
-                                           /* aAllowWrapping = */ true);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  MOZ_ASSERT(value.isObject());
-  JS::Rooted<JSObject*> object(aCx, &value.toObject());
-
-  JS::Rooted<JSScript*> script(aCx, JS::GetModuleScript(aModule));
-  if (!JS::InitScriptSourceElement(aCx, script, object, nullptr)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  return NS_OK;
 }
 
 nsresult nsJSUtils::ModuleInstantiate(JSContext* aCx,

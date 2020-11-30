@@ -76,7 +76,19 @@ bool WindowNamedPropertiesHandler::getOwnPropDescriptor(
     JSContext* aCx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
     bool /* unused */, JS::MutableHandle<JS::PropertyDescriptor> aDesc) const {
   if (!JSID_IS_STRING(aId)) {
-    // Nothing to do if we're resolving a non-string property.
+    if (aId.isWellKnownSymbol(JS::SymbolCode::toStringTag)) {
+      JS::Rooted<JSString*> toStringTagStr(
+          aCx, JS_NewStringCopyZ(aCx, "WindowProperties"));
+      if (!toStringTagStr) {
+        return false;
+      }
+
+      JS::Rooted<JS::Value> v(aCx, JS::StringValue(toStringTagStr));
+      FillPropertyDescriptor(aDesc, aProxy, JSPROP_READONLY, v);
+      return true;
+    }
+
+    // Nothing to do if we're resolving another non-string property.
     return true;
   }
 
@@ -169,7 +181,7 @@ bool WindowNamedPropertiesHandler::ownPropNames(
   nsGlobalWindowOuter* outer = win->GetOuterWindowInternal();
   if (outer) {
     if (BrowsingContext* bc = outer->GetBrowsingContext()) {
-      for (const auto& child : bc->GetChildren()) {
+      for (const auto& child : bc->Children()) {
         const nsString& name = child->Name();
         if (!name.IsEmpty() && !names.Contains(name)) {
           // Make sure we really would expose it from getOwnPropDescriptor.
@@ -187,8 +199,13 @@ bool WindowNamedPropertiesHandler::ownPropNames(
   names.Clear();
   Document* doc = win->GetExtantDoc();
   if (!doc || !doc->IsHTMLOrXHTML()) {
-    return true;
+    // Define to @@toStringTag on this object to keep Object.prototype.toString
+    // backwards compatible.
+    JS::Rooted<jsid> toStringTagId(aCx, SYMBOL_TO_JSID(JS::GetWellKnownSymbol(
+                                            aCx, JS::SymbolCode::toStringTag)));
+    return aProps.append(toStringTagId);
   }
+
   nsHTMLDocument* document = doc->AsHTMLDocument();
   // Document names are enumerable, so we want to get them no matter what flags
   // is.
@@ -196,6 +213,12 @@ bool WindowNamedPropertiesHandler::ownPropNames(
 
   JS::RootedVector<jsid> docProps(aCx);
   if (!AppendNamedPropertyIds(aCx, aProxy, names, false, &docProps)) {
+    return false;
+  }
+
+  JS::Rooted<jsid> toStringTagId(aCx, SYMBOL_TO_JSID(JS::GetWellKnownSymbol(
+                                          aCx, JS::SymbolCode::toStringTag)));
+  if (!docProps.append(toStringTagId)) {
     return false;
   }
 
@@ -225,16 +248,16 @@ static const DOMIfaceAndProtoJSClass WindowNamedPropertiesClass = {
 // static
 JSObject* WindowNamedPropertiesHandler::Create(JSContext* aCx,
                                                JS::Handle<JSObject*> aProto) {
+  js::ProxyOptions options;
+  options.setClass(&WindowNamedPropertiesClass.mBase);
+
   // Note: since the scope polluter proxy lives on the window's prototype
   // chain, it needs a singleton type to avoid polluting type information
   // for properties on the window.
-  js::ProxyOptions options;
-  options.setSingleton(true);
-  options.setClass(&WindowNamedPropertiesClass.mBase);
-
-  JS::Rooted<JSObject*> gsp(aCx);
-  gsp = js::NewProxyObject(aCx, WindowNamedPropertiesHandler::getInstance(),
-                           JS::NullHandleValue, aProto, options);
+  JS::Rooted<JSObject*> gsp(
+      aCx, js::NewSingletonProxyObject(
+               aCx, WindowNamedPropertiesHandler::getInstance(),
+               JS::NullHandleValue, aProto, options));
   if (!gsp) {
     return nullptr;
   }

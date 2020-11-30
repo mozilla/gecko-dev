@@ -7,6 +7,7 @@
 #include "mozilla/dom/HTMLMediaElement.h"
 #include "mozilla/Logging.h"
 #include "mozilla/StaticPrefs_media.h"
+#include "nsGlobalWindowInner.h"
 
 mozilla::LazyLogModule gGVAutoplayRequestLog("GVAutoplay");
 
@@ -118,12 +119,11 @@ void GVAutoplayPermissionRequest::CreateRequest(nsGlobalWindowInner* aWindow,
 
 GVAutoplayPermissionRequest::GVAutoplayPermissionRequest(
     nsGlobalWindowInner* aWindow, BrowsingContext* aContext, RType aType)
-    : ContentPermissionRequestBase(
-          aWindow->GetPrincipal(), aWindow,
-          NS_LITERAL_CSTRING(""),  // No testing pref used in this class
-          aType == RType::eAUDIBLE
-              ? NS_LITERAL_CSTRING("autoplay-media-audible")
-              : NS_LITERAL_CSTRING("autoplay-media-inaudible")),
+    : ContentPermissionRequestBase(aWindow->GetPrincipal(), aWindow,
+                                   ""_ns,  // No testing pref used in this class
+                                   aType == RType::eAUDIBLE
+                                       ? "autoplay-media-audible"_ns
+                                       : "autoplay-media-inaudible"_ns),
       mType(aType),
       mContext(aContext) {
   MOZ_ASSERT(mContext);
@@ -145,9 +145,11 @@ void GVAutoplayPermissionRequest::SetRequestStatus(RStatus aStatus) {
   MOZ_ASSERT(mContext);
   AssertIsOnMainThread();
   if (mType == RType::eAUDIBLE) {
-    mContext->SetGVAudibleAutoplayRequestStatus(aStatus);
+    // Return value of setting synced field should be checked. See bug 1656492.
+    Unused << mContext->SetGVAudibleAutoplayRequestStatus(aStatus);
   } else {
-    mContext->SetGVInaudibleAutoplayRequestStatus(aStatus);
+    // Return value of setting synced field should be checked. See bug 1656492.
+    Unused << mContext->SetGVInaudibleAutoplayRequestStatus(aStatus);
   }
 }
 

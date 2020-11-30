@@ -11,11 +11,6 @@ dnl the user the option of enabling it.
 dnl ============================================================================
 AC_DEFUN([MOZ_RTTI],
 [
-MOZ_ARG_ENABLE_BOOL(cpp-rtti,
-[  --enable-cpp-rtti       Enable C++ RTTI ],
-[ _MOZ_USE_RTTI=1 ],
-[ _MOZ_USE_RTTI= ])
-
 if test -z "$_MOZ_USE_RTTI"; then
     if test "$GNU_CC"; then
         CXXFLAGS="$CXXFLAGS -fno-rtti"
@@ -42,15 +37,6 @@ fi
 
 AC_SUBST(MOZ_NO_DEBUG_RTL)
 
-MOZ_DEBUG_ENABLE_DEFS="DEBUG"
-MOZ_ARG_WITH_STRING(debug-label,
-[  --with-debug-label=LABELS
-                          Define DEBUG_<value> for each comma-separated
-                          value given.],
-[ for option in `echo $withval | sed 's/,/ /g'`; do
-    MOZ_DEBUG_ENABLE_DEFS="$MOZ_DEBUG_ENABLE_DEFS DEBUG_${option}"
-done])
-
 if test -n "$MOZ_DEBUG"; then
     if test -n "$COMPILE_ENVIRONMENT"; then
         AC_MSG_CHECKING([for valid debug flags])
@@ -66,14 +52,7 @@ if test -n "$MOZ_DEBUG"; then
         fi
         CFLAGS=$_SAVE_CFLAGS
     fi
-
-    MOZ_DEBUG_DEFINES="$MOZ_DEBUG_ENABLE_DEFS"
-else
-    MOZ_DEBUG_DEFINES="NDEBUG TRIMMED"
 fi
-
-AC_SUBST_LIST(MOZ_DEBUG_DEFINES)
-
 ])
 
 dnl A high level macro for selecting compiler options.
@@ -98,11 +77,6 @@ fi
 dnl ========================================================
 dnl = Identical Code Folding
 dnl ========================================================
-
-MOZ_ARG_DISABLE_BOOL(icf,
-[  --disable-icf          Disable Identical Code Folding],
-    MOZ_DISABLE_ICF=1,
-    MOZ_DISABLE_ICF= )
 
 if test "$GNU_CC" -a "$GCC_USE_GNU_LD" -a -z "$MOZ_DISABLE_ICF" -a -z "$DEVELOPER_OPTIONS"; then
     AC_CACHE_CHECK([whether the linker supports Identical Code Folding],
@@ -135,7 +109,7 @@ dnl ========================================================
 dnl = Automatically remove dead symbols
 dnl ========================================================
 
-if test "$GNU_CC" -a "$GCC_USE_GNU_LD" -a -z "$DEVELOPER_OPTIONS"; then
+if test "$GNU_CC" -a "$GCC_USE_GNU_LD" -a -z "$DEVELOPER_OPTIONS" -a -z "$MOZ_PROFILE_GENERATE"; then
     if test -n "$MOZ_DEBUG_FLAGS"; then
         dnl See bug 670659
         AC_CACHE_CHECK([whether removing dead symbols breaks debugging],
@@ -146,8 +120,8 @@ if test "$GNU_CC" -a "$GCC_USE_GNU_LD" -a -z "$DEVELOPER_OPTIONS"; then
             if AC_TRY_COMMAND([${CC-cc} -o conftest.${ac_objext} $CFLAGS $MOZ_DEBUG_FLAGS -c conftest.${ac_ext} 1>&2]) &&
                 AC_TRY_COMMAND([${CC-cc} -o conftest${ac_exeext} $LDFLAGS $MOZ_DEBUG_FLAGS -Wl,--gc-sections conftest.${ac_objext} $LIBS 1>&2]) &&
                 test -s conftest${ac_exeext} -a -s conftest.${ac_objext}; then
-                 if test "`$PYTHON -m mozbuild.configure.check_debug_ranges conftest.${ac_objext} conftest.${ac_ext}`" = \
-                         "`$PYTHON -m mozbuild.configure.check_debug_ranges conftest${ac_exeext} conftest.${ac_ext}`"; then
+                 if test "`$PYTHON3 -m mozbuild.configure.check_debug_ranges conftest.${ac_objext} conftest.${ac_ext}`" = \
+                         "`$PYTHON3 -m mozbuild.configure.check_debug_ranges conftest${ac_exeext} conftest.${ac_ext}`"; then
                      GC_SECTIONS_BREAKS_DEBUG_RANGES=no
                  else
                      GC_SECTIONS_BREAKS_DEBUG_RANGES=yes

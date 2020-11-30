@@ -7,6 +7,7 @@
 #ifndef MOZILLA_LAYERS_COMPOSITORTYPES_H
 #define MOZILLA_LAYERS_COMPOSITORTYPES_H
 
+#include <iosfwd>
 #include <stdint.h>       // for uint32_t
 #include <sys/types.h>    // for int32_t
 #include "LayersTypes.h"  // for LayersBackend, etc
@@ -79,13 +80,19 @@ enum class TextureFlags : uint32_t {
   BLOCKING_READ_LOCK = 1 << 16,
   // Keep TextureClient alive when host side is used
   WAIT_HOST_USAGE_END = 1 << 17,
+  // The texture is guaranteed to have alpha 1.0 everywhere; some backends
+  // have trouble with RGBX/BGRX formats, so we use RGBA/BGRA but set this
+  // hint when we know alpha is opaque (eg. WebGL)
+  IS_OPAQUE = 1 << 18,
 
   // OR union of all valid bits
-  ALL_BITS = (1 << 18) - 1,
+  ALL_BITS = (1 << 19) - 1,
   // the default flags
   DEFAULT = NO_FLAGS
 };
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(TextureFlags)
+
+std::ostream& operator<<(std::ostream& aStream, const TextureFlags& aFlags);
 
 static inline bool TextureRequiresLocking(TextureFlags aFlags) {
   // If we're not double buffered, or uploading
@@ -181,6 +188,7 @@ struct TextureFactoryIdentifier {
   bool mSupportsPartialUploads;
   bool mSupportsComponentAlpha;
   bool mUsingAdvancedLayers;
+  bool mUsingSoftwareWebRender;
   SyncHandle mSyncHandle;
 
   explicit TextureFactoryIdentifier(
@@ -203,6 +211,7 @@ struct TextureFactoryIdentifier {
         mSupportsPartialUploads(aSupportsPartialUploads),
         mSupportsComponentAlpha(aSupportsComponentAlpha),
         mUsingAdvancedLayers(false),
+        mUsingSoftwareWebRender(false),
         mSyncHandle(aSyncHandle) {}
 
   bool operator==(const TextureFactoryIdentifier& aOther) const {
@@ -218,6 +227,7 @@ struct TextureFactoryIdentifier {
            mSupportsPartialUploads == aOther.mSupportsPartialUploads &&
            mSupportsComponentAlpha == aOther.mSupportsComponentAlpha &&
            mUsingAdvancedLayers == aOther.mUsingAdvancedLayers &&
+           mUsingSoftwareWebRender == aOther.mUsingSoftwareWebRender &&
            mSyncHandle == aOther.mSyncHandle;
   }
 };

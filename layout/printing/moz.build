@@ -28,7 +28,6 @@ UNIFIED_SOURCES += [
     'nsPrintData.cpp',
     'nsPrintJob.cpp',
     'nsPrintObject.cpp',
-    'PrintPreviewUserEventSuppressor.cpp',
     'PrintTranslator.cpp',
 ]
 
@@ -38,5 +37,6 @@ FINAL_LIBRARY = 'xul'
 LOCAL_INCLUDES += [
     '../base',
     '/dom/base',
-    '/gfx/2d/'
+    '/gfx/2d/',
+    '/netwerk/base/',
 ]

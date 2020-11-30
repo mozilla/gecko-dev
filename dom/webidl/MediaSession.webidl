@@ -7,14 +7,21 @@
  * https://w3c.github.io/mediasession/#idl-index
  */
 
-// TODO: Implement MediaSessionPlaybackState (bug 1582508)
+enum MediaSessionPlaybackState {
+  "none",
+  "paused",
+  "playing"
+};
 
-// TODO: Implement the missing seek* (bug 1580623) and skipad (bug 1582569) actions
 enum MediaSessionAction {
   "play",
   "pause",
+  "seekbackward",
+  "seekforward",
   "previoustrack",
   "nexttrack",
+  "skipad",
+  "seekto",
   "stop",
 };
 
@@ -24,11 +31,12 @@ callback MediaSessionActionHandler = void(MediaSessionActionDetails details);
 interface MediaSession {
   attribute MediaMetadata? metadata;
 
-  // TODO: attribute MediaSessionPlaybackState playbackState; (bug 1582508)
+  attribute MediaSessionPlaybackState playbackState;
 
   void setActionHandler(MediaSessionAction action, MediaSessionActionHandler? handler);
 
-  // TODO: void setPositionState(optional MediaPositionState? state); (bug 1582509)
+  [Throws]
+  void setPositionState(optional MediaPositionState state = {});
 
   // Fire the action handler. It's test-only for now.
   [ChromeOnly]
@@ -62,8 +70,16 @@ dictionary MediaImage {
   DOMString type = "";
 };
 
+// Spec issue https://github.com/w3c/mediasession/issues/254
 dictionary MediaSessionActionDetails {
   required MediaSessionAction action;
+  double seekOffset;
+  double seekTime;
+  boolean fastSeek;
 };
 
-// TODO: Implement MediaPositionState (bug 1582509)
+dictionary MediaPositionState {
+  double duration;
+  double playbackRate;
+  double position;
+};

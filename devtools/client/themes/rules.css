@@ -185,6 +185,7 @@
 .ruleview-overridden-rule-filter[hidden],
 .ruleview-warning[hidden],
 .ruleview-unused-warning[hidden],
+.ruleview-compatibility-warning[hidden],
 .ruleview-used[hidden],
 .ruleview-overridden .ruleview-grid {
   display: none;
@@ -376,7 +377,7 @@
 /* The SVG checkbox on Windows and Linux */
 :root[platform="win"] .ruleview-enableproperty,
 :root[platform="linux"] .ruleview-enableproperty {
-  -moz-appearance: none;
+  appearance: none;
   float: left;
   left: -27px;
   box-sizing: content-box;
@@ -411,11 +412,13 @@
 }
 
 :root[platform="mac"] .ruleview-enableproperty {
-  -moz-appearance: checkbox;
+  appearance: auto;
+  -moz-default-appearance: checkbox;
 }
 
 .ruleview-warning,
-.ruleview-unused-warning {
+.ruleview-unused-warning,
+.ruleview-compatibility-warning {
   display: inline-block;
   width: 12px;
   height: 12px;
@@ -435,7 +438,14 @@
   fill: var(--theme-icon-dimmed-color);
 }
 
-.ruleview-unused-warning:hover {
+.ruleview-compatibility-warning {
+  background-image: url(chrome://devtools/skin/images/report.svg);
+  background-color: var(--theme-sidebar-background);
+  fill: var(--theme-icon-dimmed-color);
+}
+
+.ruleview-unused-warning:hover,
+.ruleview-compatibility-warning:hover {
   fill: var(--theme-icon-color);
   stroke: var(--theme-icon-color);
 }
@@ -750,6 +760,7 @@
   align-items: center;
   justify-content: center;
   font-weight: 600;
+  direction: ltr;
 }
 
 #print-simulation-toggle::before {
@@ -772,10 +783,6 @@
 
 #color-scheme-simulation-toggle[state="light"]::before {
   fill: #bbb;
-}
-
-#color-scheme-simulation-toggle[state="no-preference"]::before {
-  fill-opacity: 0.5;
 }
 
 .flash-out {

@@ -107,6 +107,18 @@ pub enum SystemColor {
     IMESelectedConvertedTextUnderline,
     #[css(skip)]
     SpellCheckerUnderline,
+    #[css(skip)]
+    ThemedScrollbar,
+    #[css(skip)]
+    ThemedScrollbarInactive,
+    #[css(skip)]
+    ThemedScrollbarThumb,
+    #[css(skip)]
+    ThemedScrollbarThumbHover,
+    #[css(skip)]
+    ThemedScrollbarThumbActive,
+    #[css(skip)]
+    ThemedScrollbarThumbInactive,
     Activeborder,
     Activecaption,
     Appworkspace,
@@ -140,8 +152,10 @@ pub enum SystemColor {
     Windowframe,
     Windowtext,
     MozButtondefault,
-    MozDefaultColor,
-    MozDefaultBackgroundColor,
+    #[parse(aliases = "-moz-default-color")]
+    Canvastext,
+    #[parse(aliases = "-moz-default-background-color")]
+    Canvas,
     MozDialog,
     MozDialogtext,
     /// Used to highlight valid regions to drop something onto.
@@ -230,15 +244,24 @@ pub enum SystemColor {
     /// colors.
     MozNativehyperlinktext,
 
-    MozHyperlinktext,
-    MozActivehyperlinktext,
-    MozVisitedhyperlinktext,
+    #[parse(aliases = "-moz-hyperlinktext")]
+    Linktext,
+    #[parse(aliases = "-moz-activehyperlinktext")]
+    Activetext,
+    #[parse(aliases = "-moz-visitedhyperlinktext")]
+    Visitedtext,
 
     /// Combobox widgets
     MozComboboxtext,
     MozCombobox,
 
     MozGtkInfoBarText,
+
+    /// Color of tree column headers
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
+    MozColheadertext,
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
+    MozColheaderhovertext,
 
     #[css(skip)]
     End, // Just for array-indexing purposes.
@@ -253,11 +276,11 @@ impl SystemColor {
         let prefs = cx.device().pref_sheet_prefs();
 
         convert_nscolor_to_computedcolor(match *self {
-            SystemColor::MozDefaultColor => prefs.mDefaultColor,
-            SystemColor::MozDefaultBackgroundColor => prefs.mDefaultBackgroundColor,
-            SystemColor::MozHyperlinktext => prefs.mLinkColor,
-            SystemColor::MozActivehyperlinktext => prefs.mActiveLinkColor,
-            SystemColor::MozVisitedhyperlinktext => prefs.mVisitedLinkColor,
+            SystemColor::Canvastext => prefs.mDefaultColor,
+            SystemColor::Canvas => prefs.mDefaultBackgroundColor,
+            SystemColor::Linktext => prefs.mLinkColor,
+            SystemColor::Activetext => prefs.mActiveLinkColor,
+            SystemColor::Visitedtext => prefs.mVisitedLinkColor,
 
             _ => unsafe {
                 bindings::Gecko_GetLookAndFeelSystemColor(*self as i32, cx.device().document())
@@ -351,7 +374,7 @@ impl Parse for Color {
         input.reset(&start);
 
         let compontent_parser = ColorComponentParser(&*context);
-        match input.try(|i| CSSParserColor::parse_with(&compontent_parser, i)) {
+        match input.try_parse(|i| CSSParserColor::parse_with(&compontent_parser, i)) {
             Ok(value) => Ok(match value {
                 CSSParserColor::CurrentColor => Color::CurrentColor,
                 CSSParserColor::RGBA(rgba) => Color::Numeric {
@@ -362,7 +385,7 @@ impl Parse for Color {
             Err(e) => {
                 #[cfg(feature = "gecko")]
                 {
-                    if let Ok(system) = input.try(|i| SystemColor::parse(context, i)) {
+                    if let Ok(system) = input.try_parse(|i| SystemColor::parse(context, i)) {
                         return Ok(Color::System(system));
                     }
                 }
@@ -446,7 +469,7 @@ impl Color {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        input.try(|i| Self::parse(context, i)).or_else(|e| {
+        input.try_parse(|i| Self::parse(context, i)).or_else(|e| {
             if !allow_quirks.allowed(context.quirks_mode) {
                 return Err(e);
             }
@@ -517,15 +540,6 @@ impl Color {
         debug_assert_eq!(written, 6);
         parse_hash_color(&serialization)
             .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-    }
-
-    /// Returns true if the color is completely transparent, and false
-    /// otherwise.
-    pub fn is_transparent(&self) -> bool {
-        match *self {
-            Color::Numeric { ref parsed, .. } => parsed.alpha == 0,
-            _ => false,
-        }
     }
 }
 

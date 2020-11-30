@@ -36,52 +36,6 @@ const AVAILABLE_UA_OVERRIDES = [
   },
   {
     /*
-     * Bug 1563839 - rolb.santanderbank.com - Build UA override
-     * WebCompat issue #33462 - https://webcompat.com/issues/33462
-     *
-     * santanderbank expects UA to have 'like Gecko', otherwise it runs
-     * xmlDoc.onload whose support has been dropped. It results in missing labels in forms
-     * and some other issues.  Adding 'like Gecko' fixes those issues.
-     */
-    id: "bug1563839",
-    platform: "all",
-    domain: "rolb.santanderbank.com",
-    bug: "1563839",
-    config: {
-      matches: [
-        "*://*.santander.co.uk/*",
-        "*://bob.santanderbank.com/*",
-        "*://rolb.santanderbank.com/*",
-      ],
-      uaTransformer: originalUA => {
-        return originalUA.replace("Gecko", "like Gecko");
-      },
-    },
-  },
-  {
-    /*
-     * Bug 1577179 - UA override for supportforms.embarcadero.com
-     * WebCompat issue #34682 - https://webcompat.com/issues/34682
-     *
-     * supportforms.embarcadero.com has a constant onchange event on a product selector
-     * which makes it unusable. Spoofing as Chrome allows to stop event from firing
-     */
-    id: "bug1577179",
-    platform: "all",
-    domain: "supportforms.embarcadero.com",
-    bug: "1577179",
-    config: {
-      matches: ["*://supportforms.embarcadero.com/*"],
-      uaTransformer: originalUA => {
-        return (
-          UAHelpers.getPrefix(originalUA) +
-          " AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36"
-        );
-      },
-    },
-  },
-  {
-    /*
      * Bug 1577519 - att.tv - Create a UA override for att.tv for playback on desktop
      * WebCompat issue #3846 - https://webcompat.com/issues/3846
      *
@@ -279,7 +233,8 @@ const AVAILABLE_UA_OVERRIDES = [
     /*
      * Bug 969844 - mobile.de sends desktop site to Firefox on Android
      *
-     * mobile.de sends the desktop site to Fennec. Spooing as Chrome works fine.
+     * mobile.de sends the desktop site to Firefox Mobile.
+     * Spoofing as Chrome works fine.
      */
     id: "bug969844",
     platform: "android",
@@ -314,36 +269,13 @@ const AVAILABLE_UA_OVERRIDES = [
   },
   {
     /*
-     * Bug 1508516 - cineflix.com.br - Add UA override for cineflix.com.br/m/
-     * WebCompat issue #21553 - https://webcompat.com/issues/21553
-     *
-     * The site renders a blank page with any Firefox snipped in the UA as it
-     * is running into an exception. Spoofing as Chrome makes the site work
-     * fine.
-     */
-    id: "bug1508516",
-    platform: "android",
-    domain: "cineflix.com.br",
-    bug: "1508516",
-    config: {
-      matches: ["*://*.cineflix.com.br/m/*"],
-      uaTransformer: originalUA => {
-        return (
-          UAHelpers.getPrefix(originalUA) +
-          " AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.91 Mobile Safari/537.36"
-        );
-      },
-    },
-  },
-  {
-    /*
      * Bug 1509873 - zmags.com - Add UA override for secure.viewer.zmags.com
      * WebCompat issue #21576 - https://webcompat.com/issues/21576
      *
-     * The zmags viewer locks out Fennec with a "Browser unsupported" message,
-     * but tests showed that it works just fine with a Chrome UA. Outreach
-     * attempts were unsuccessful, and as the site has a relatively high rank,
-     * we alter the UA.
+     * The zmags viewer locks out Firefox Mobile with a "Browser unsupported"
+     * message, but tests showed that it works just fine with a Chrome UA.
+     * Outreach attempts were unsuccessful, and as the site has a relatively
+     * high rank, we alter the UA.
      */
     id: "bug1509873",
     platform: "android",
@@ -405,8 +337,8 @@ const AVAILABLE_UA_OVERRIDES = [
      *
      * ceskatelevize sets streamingProtocol depending on the User-Agent it sees
      * in the request headers, returning DASH for Chrome, HLS for iOS,
-     * and Flash for Fennec. Since Fennec has no Flash, the video doesn't work.
-     * Spoofing as Chrome makes the video play
+     * and Flash for Firefox Mobile. Since Mobile has no Flash, the video
+     * doesn't work. Spoofing as Chrome makes the video play
      */
     id: "bug1574564",
     platform: "android",
@@ -504,28 +436,6 @@ const AVAILABLE_UA_OVERRIDES = [
   },
   {
     /*
-     * Bug 1610370 - UA override for answers.yahoo.com on Firefox for Android
-     * WebCompat issue #5460 - https://webcompat.com/issues/5460
-     *
-     * answers.yahoo.com is not showing lazy loaded content based on UA detection
-     * When spoofing as Chrome it's possible to load the content
-     */
-    id: "bug1610370",
-    platform: "android",
-    domain: "answers.yahoo.com",
-    bug: "1610370",
-    config: {
-      matches: ["https://answers.yahoo.com/*"],
-      uaTransformer: originalUA => {
-        return (
-          UAHelpers.getPrefix(originalUA) +
-          " AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Mobile Safari/537.36"
-        );
-      },
-    },
-  },
-  {
-    /*
      * Bug 1595215 - UA overrides for Uniqlo sites
      * Webcompat issue #38825 - https://webcompat.com/issues/38825
      *
@@ -585,33 +495,6 @@ const AVAILABLE_UA_OVERRIDES = [
   },
   {
     /*
-     * Bug 1622059 - UA overrides for img.weblogssl.com breakage
-     * Webcompat issue #49166 - https://webcompat.com/issues/49166
-     * Webcompat issue #48650 - https://webcompat.com/issues/48650
-     * Webcompat issue #48787 - https://webcompat.com/issues/48787
-     *
-     * These pages throw due to some poor UA sniffing assumptions, so
-     * we add a "Version/99.0" token so comments will be visible. They
-     * all share a common file hosted at:
-     * https://img.weblogssl.com/LPbackend/prod/v2/js
-     */
-    id: "bug1622059",
-    platform: "android",
-    domain: "img.weblogssl.com",
-    bug: "1622059",
-    config: {
-      matches: [
-        "*://www.genbeta.com/*",
-        "*://www.xataka.com/*",
-        "*://www.xatakandroid.com/*",
-      ],
-      uaTransformer: originalUA => {
-        return originalUA + " Version/99.0";
-      },
-    },
-  },
-  {
-    /*
      * Bug 1622081 - UA override for m2.bmo.com
      * Webcompat issue #45019 - https://webcompat.com/issues/45019
      *
@@ -626,6 +509,171 @@ const AVAILABLE_UA_OVERRIDES = [
       matches: ["*://m2.bmo.com/*"],
       uaTransformer: originalUA => {
         return originalUA + " Chrome";
+      },
+    },
+  },
+  {
+    /*
+     * Bug 1628462 - UA override for app.pixton.com
+     * Webcompat issue #43438 - https://webcompat.com/issues/43438
+     *
+     * app.pixton.com is showing unsupported message for both Firefox
+     * desktop and mobile. Spoofing as Chrome allows to access the site
+     */
+    id: "bug1628462",
+    platform: "all",
+    domain: "app.pixton.com",
+    bug: "1628462",
+    config: {
+      matches: ["https://*.pixton.com/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
+  {
+    /*
+     * Bug 1628455 - UA override for autotrader.ca
+     * Webcompat issue #50961 - https://webcompat.com/issues/50961
+     *
+     * autotrader.ca is showing desktop site for Firefox on Android
+     * based on server side UA detection. Spoofing as Chrome allows to
+     * get mobile experience
+     */
+    id: "bug1628455",
+    platform: "android",
+    domain: "autotrader.ca",
+    bug: "1628455",
+    config: {
+      matches: ["https://*.autotrader.ca/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
+  {
+    /*
+     * Bug 1630280 - UA override for dominos.ch
+     * Webcompat issue #48273 - https://webcompat.com/issues/48273
+     *
+     * dominos.ch is suggesting downloading their native app and showing
+     * an overlay that can't be removed in Firefox for Android. Spoofing
+     * as Chrome allows to continue to the site
+     */
+    id: "bug1630280",
+    platform: "android",
+    domain: "dominos.ch",
+    bug: "1630280",
+    config: {
+      matches: ["https://*.dominos.ch/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
+  {
+    /*
+     * Bug 1563839 - rolb.santanderbank.com - Build UA override
+     * Bug 1646791 - bancosantander.es - Re-add UA override.
+     * Bug 1665129 - *.gruposantander.es - Add wildcard domains.
+     * WebCompat issue #33462 - https://webcompat.com/issues/33462
+     * SuMo request - https://support.mozilla.org/es/questions/1291085
+     *
+     * santanderbank expects UA to have 'like Gecko', otherwise it runs
+     * xmlDoc.onload whose support has been dropped. It results in missing labels in forms
+     * and some other issues.  Adding 'like Gecko' fixes those issues.
+     */
+    id: "bug1646791",
+    platform: "all",
+    domain: "santanderbank.com",
+    bug: "1646791",
+    config: {
+      matches: [
+        "*://*.bancosantander.es/*",
+        "*://*.gruposantander.es/*",
+        "*://*.santander.co.uk/*",
+        "*://bob.santanderbank.com/*",
+        "*://rolb.santanderbank.com/*",
+      ],
+      uaTransformer: originalUA => {
+        return originalUA.replace("Gecko", "like Gecko");
+      },
+    },
+  },
+  {
+    /*
+     * Bug 1651292 - UA override for www.jp.square-enix.com
+     * Webcompat issue #53018 - https://webcompat.com/issues/53018
+     *
+     * Unless the UA string contains "Chrome 66+", a section of
+     * www.jp.square-enix.com will show a never ending LOADING
+     * page.
+     */
+    id: "bug1651292",
+    platform: "android",
+    domain: "www.jp.square-enix.com",
+    bug: "1651292",
+    config: {
+      matches: ["*://www.jp.square-enix.com/music/sem/page/FF7R/ost/*"],
+      uaTransformer: originalUA => {
+        return originalUA + " Chrome/83";
+      },
+    },
+  },
+  {
+    /*
+     * Bug 1654888 - UA override for ebuyer.com
+     * Webcompat issue #52463 - https://webcompat.com/issues/52463
+     *
+     * This site returns desktop site based on server side UA detection.
+     * Spoofing as Chrome allows to get mobile experience
+     */
+    id: "bug1654888",
+    platform: "android",
+    domain: "ebuyer.com",
+    bug: "1654888",
+    config: {
+      matches: ["*://*.ebuyer.com/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
+  {
+    /*
+     * Bug 1664174 - UA override for indiatimes.com
+     * Webcompat issue #57961 - https://webcompat.com/issues/57961
+     *
+     * This site returns desktop site based on server side UA detection.
+     * Spoofing as Chrome allows to get mobile experience
+     */
+    id: "bug1664174",
+    platform: "android",
+    domain: "indiatimes.com",
+    bug: "1664174",
+    config: {
+      matches: ["*://*.indiatimes.com/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
+  {
+    /*
+     * Bug 1666754 - Mobile UA override for lffl.org
+     * Bug 1665720 - lffl.org article page takes 2x as much time to load on Moto G
+     *
+     * This site returns desktop site based on server side UA detection.
+     * Spoofing as Chrome allows to get mobile experience
+     */
+    id: "bug1666754",
+    platform: "android",
+    domain: "lffl.org",
+    bug: "1666754",
+    config: {
+      matches: ["*://*.lffl.org/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
       },
     },
   },

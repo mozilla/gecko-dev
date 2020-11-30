@@ -35,7 +35,7 @@
 
 #downloads-indicator-progress-inner {
   background: url("chrome://browser/skin/downloads/download-icons.svg#progress-bar-fg") left no-repeat;
-  margin-right: 16px;
+  margin-inline-end: 16px;
   -moz-context-properties: fill;
   fill: var(--toolbarbutton-icon-fill-attention);
   background-size: 16px;
@@ -51,27 +51,15 @@
 }
 
 #downloads-indicator-progress-inner:-moz-locale-dir(rtl) {
-  background-position: right;
-  animation-name: indicatorArrowProgressRTL;
-  margin-left: 16px;
-  margin-right: 0;
+  background-position-x: right;
 }
 
 @keyframes indicatorArrowProgress {
   0% {
-    margin-right: 15px;
+    margin-inline-end: 15px;
   }
   100% {
-    margin-right: 1px;
-  }
-}
-
-@keyframes indicatorArrowProgressRTL {
-  0% {
-    margin-left: 15px;
-  }
-  100% {
-    margin-left: 1px;
+    margin-inline-end: 1px;
   }
 }
 
@@ -86,7 +74,7 @@
   border-radius: 50%;
   /* "!important" is necessary to override the rule in toolbarbutton.css */
   margin-top: -1px !important;
-  margin-right: -2px !important;
+  margin-inline-end: -2px !important;
 }
 
 #downloads-button[cui-areatype="toolbar"] > .toolbarbutton-badge-stack > .toolbarbutton-badge {

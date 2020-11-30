@@ -38,7 +38,7 @@ loader.lazyRequireGetter(
 loader.lazyRequireGetter(
   this,
   "DevToolsClient",
-  "devtools/shared/client/devtools-client",
+  "devtools/client/devtools-client",
   true
 );
 loader.lazyRequireGetter(
@@ -59,8 +59,8 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   this,
-  "AppConstants",
-  "resource://gre/modules/AppConstants.jsm",
+  "toggleEnableDevToolsPopup",
+  "devtools/client/framework/enable-devtools-popup",
   true
 );
 loader.lazyImporter(
@@ -76,6 +76,10 @@ const L10N = new LocalizationHelper(
 
 const BROWSER_STYLESHEET_URL = "chrome://devtools/skin/devtools-browser.css";
 
+// XXX: This could also be moved to DevToolsStartup, which is the first
+// "entry point" for DevTools shortcuts and forwards the events
+// devtools-browser.
+const DEVTOOLS_F12_DISABLED_PREF = "devtools.experiment.f12.shortcut_disabled";
 /**
  * gDevToolsBrowser exposes functions to connect the gDevTools instance with a
  * Firefox instance.
@@ -144,29 +148,6 @@ var gDevToolsBrowser = (exports.gDevToolsBrowser = {
       "menu_browserContentToolbox",
       remoteEnabled && win.gMultiProcessBrowser
     );
-
-    // The profiler's popup is experimental. The plan is to eventually turn it on
-    // everywhere, but while it's under active development we don't want everyone
-    // having it enabled. For now the default pref is to turn it on with Nightly,
-    // with the option to flip the pref in other releases. This feature flag will
-    // go away once it is fully shipped.
-    const isPopupFeatureFlagEnabled = Services.prefs.getBoolPref(
-      "devtools.performance.popup.feature-flag",
-      AppConstants.NIGHTLY_BUILD
-    );
-    // If the feature flag is disabled, hide the menu item.
-    toggleMenuItem("menu_toggleProfilerButtonMenu", isPopupFeatureFlagEnabled);
-
-    if (isPopupFeatureFlagEnabled) {
-      // Did the user enable the profiler button in the menu? If it is then update the
-      // initial UI to show the menu item as checked.
-      if (
-        Services.prefs.getBoolPref("devtools.performance.popup.enabled", false)
-      ) {
-        const cmd = doc.getElementById("menu_toggleProfilerButtonMenu");
-        cmd.setAttribute("checked", "true");
-      }
-    }
   },
 
   /**
@@ -328,8 +309,25 @@ var gDevToolsBrowser = (exports.gDevToolsBrowser = {
     // Otherwise implement all other key shortcuts individually here
     switch (key.id) {
       case "toggleToolbox":
-      case "toggleToolboxF12":
         await gDevToolsBrowser.toggleToolboxCommand(window.gBrowser, startTime);
+        break;
+      case "toggleToolboxF12":
+        // See Bug 1630228. F12 is responsible for most of the accidental usage
+        // of DevTools. The preference here is used as part of an experiment to
+        // disable the F12 shortcut by default.
+        const isF12Disabled = Services.prefs.getBoolPref(
+          DEVTOOLS_F12_DISABLED_PREF,
+          false
+        );
+
+        if (isF12Disabled) {
+          toggleEnableDevToolsPopup(window.document, startTime);
+        } else {
+          await gDevToolsBrowser.toggleToolboxCommand(
+            window.gBrowser,
+            startTime
+          );
+        }
         break;
       case "browserToolbox":
         BrowserToolboxLauncher.init();
@@ -420,13 +418,17 @@ var gDevToolsBrowser = (exports.gDevToolsBrowser = {
    * Open a window-hosted toolbox to debug the worker associated to the provided
    * worker actor.
    *
-   * @param  {WorkerTargetFront} workerTargetFront
-   *         worker actor front to debug
+   * @param  {WorkerDescriptorFront} workerDescriptorFront
+   *         descriptor front of the worker to debug
    * @param  {String} toolId (optional)
    *        The id of the default tool to show
    */
-  async openWorkerToolbox(workerTarget, toolId) {
-    await gDevTools.showToolbox(workerTarget, toolId, Toolbox.HostType.WINDOW);
+  async openWorkerToolbox(workerDescriptorFront, toolId) {
+    await gDevTools.showToolbox(
+      workerDescriptorFront,
+      toolId,
+      Toolbox.HostType.WINDOW
+    );
   },
 
   /**
@@ -523,7 +525,7 @@ var gDevToolsBrowser = (exports.gDevToolsBrowser = {
     }
 
     debugService.activationHandler = function(window) {
-      const chromeWindow = window.docShell.rootTreeItem.domWindow;
+      const chromeWindow = window.browsingContext.topChromeWindow;
 
       let setupFinished = false;
       slowScriptDebugHandler(chromeWindow.gBrowser.selectedTab, () => {
@@ -814,7 +816,7 @@ Services.obs.addObserver(gDevToolsBrowser, "devtools:loader:destroy");
 // Fake end of browser window load event for all already opened windows
 // that is already fully loaded.
 for (const win of Services.wm.getEnumerator(gDevTools.chromeWindowType)) {
-  if (win.gBrowserInit && win.gBrowserInit.delayedStartupFinished) {
+  if (win.gBrowserInit?.delayedStartupFinished) {
     gDevToolsBrowser._registerBrowserWindow(win);
   }
 }

@@ -4,10 +4,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef MOZILLA_DOMSVGTRANSFORMLIST_H__
-#define MOZILLA_DOMSVGTRANSFORMLIST_H__
+#ifndef DOM_SVG_DOMSVGTRANSFORMLIST_H_
+#define DOM_SVG_DOMSVGTRANSFORMLIST_H_
 
 #include "DOMSVGAnimatedTransformList.h"
+#include "mozAutoDocUpdate.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsDebug.h"
 #include "SVGTransformList.h"
@@ -18,9 +19,43 @@
 namespace mozilla {
 
 namespace dom {
+struct DOMMatrix2DInit;
+class DOMSVGTransform;
 class SVGElement;
 class SVGMatrix;
-class DOMSVGTransform;
+
+//----------------------------------------------------------------------
+// Helper class: AutoChangeTransformListNotifier
+// Stack-based helper class to pair calls to WillChangeTransformList and
+// DidChangeTransformList. Used by DOMSVGTransform and DOMSVGTransformList.
+template <class T>
+class MOZ_RAII AutoChangeTransformListNotifier {
+ public:
+  explicit AutoChangeTransformListNotifier(T* aValue) : mValue(aValue) {
+    MOZ_ASSERT(mValue, "Expecting non-null value");
+    // If we don't have an owner then changes don't affect anything else.
+    if (mValue->HasOwner()) {
+      mUpdateBatch.emplace(mValue->Element()->GetComposedDoc(), true);
+      mEmptyOrOldValue =
+          mValue->Element()->WillChangeTransformList(mUpdateBatch.ref());
+    }
+  }
+
+  ~AutoChangeTransformListNotifier() {
+    if (mValue->HasOwner()) {
+      mValue->Element()->DidChangeTransformList(mEmptyOrOldValue,
+                                                mUpdateBatch.ref());
+      if (mValue->IsAnimating()) {
+        mValue->Element()->AnimationNeedsResample();
+      }
+    }
+  }
+
+ private:
+  T* const mValue;
+  Maybe<mozAutoDocUpdate> mUpdateBatch;
+  nsAttrValue mEmptyOrOldValue;
+};
 
 /**
  * Class DOMSVGTransformList
@@ -31,6 +66,7 @@ class DOMSVGTransform;
  * See the architecture comment in DOMSVGAnimatedTransformList.h.
  */
 class DOMSVGTransformList final : public nsISupports, public nsWrapperCache {
+  template <class T>
   friend class AutoChangeTransformListNotifier;
   friend class dom::DOMSVGTransform;
 
@@ -76,6 +112,12 @@ class DOMSVGTransformList final : public nsISupports, public nsWrapperCache {
   /// Called to notify us to synchronize our length and detach excess items.
   void InternalListLengthWillChange(uint32_t aNewLength);
 
+  /*
+   * List classes always have an owner. We need this so that templates that work
+   * on lists and elements can check ownership where elements may be unowned.
+   */
+  bool HasOwner() const { return true; }
+
   /**
    * Returns true if our attribute is animating (in which case our animVal is
    * not simply a mirror of our baseVal).
@@ -113,7 +155,7 @@ class DOMSVGTransformList final : public nsISupports, public nsWrapperCache {
     return InsertItemBefore(newItem, LengthNoFlush(), error);
   }
   already_AddRefed<dom::DOMSVGTransform> CreateSVGTransformFromMatrix(
-      dom::SVGMatrix& matrix);
+      const DOMMatrix2DInit& aMatrix, ErrorResult& aRv);
   already_AddRefed<dom::DOMSVGTransform> Consolidate(ErrorResult& error);
   uint32_t Length() const { return NumberOfItems(); }
 
@@ -153,4 +195,4 @@ class DOMSVGTransformList final : public nsISupports, public nsWrapperCache {
 }  // namespace dom
 }  // namespace mozilla
 
-#endif  // MOZILLA_DOMSVGTRANSFORMLIST_H__
+#endif  // DOM_SVG_DOMSVGTRANSFORMLIST_H_

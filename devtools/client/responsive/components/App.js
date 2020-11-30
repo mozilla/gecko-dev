@@ -18,9 +18,6 @@ const { connect } = require("devtools/client/shared/vendor/react-redux");
 const Toolbar = createFactory(
   require("devtools/client/responsive/components/Toolbar")
 );
-const Viewports = createFactory(
-  require("devtools/client/responsive/components/Viewports")
-);
 
 loader.lazyGetter(this, "DeviceModal", () =>
   createFactory(require("devtools/client/responsive/components/DeviceModal"))
@@ -79,7 +76,6 @@ class App extends PureComponent {
 
     this.onAddCustomDevice = this.onAddCustomDevice.bind(this);
     this.onBrowserContextMenu = this.onBrowserContextMenu.bind(this);
-    this.onBrowserMounted = this.onBrowserMounted.bind(this);
     this.onChangeDevice = this.onChangeDevice.bind(this);
     this.onChangeNetworkThrottling = this.onChangeNetworkThrottling.bind(this);
     this.onChangePixelRatio = this.onChangePixelRatio.bind(this);
@@ -88,14 +84,12 @@ class App extends PureComponent {
     this.onChangeViewportOrientation = this.onChangeViewportOrientation.bind(
       this
     );
-    this.onContentResize = this.onContentResize.bind(this);
     this.onDeviceListUpdate = this.onDeviceListUpdate.bind(this);
     this.onEditCustomDevice = this.onEditCustomDevice.bind(this);
     this.onExit = this.onExit.bind(this);
     this.onRemoveCustomDevice = this.onRemoveCustomDevice.bind(this);
     this.onRemoveDeviceAssociation = this.onRemoveDeviceAssociation.bind(this);
     this.doResizeViewport = this.doResizeViewport.bind(this);
-    this.onResizeViewport = this.onResizeViewport.bind(this);
     this.onRotateViewport = this.onRotateViewport.bind(this);
     this.onScreenshot = this.onScreenshot.bind(this);
     this.onToggleLeftAlignment = this.onToggleLeftAlignment.bind(this);
@@ -106,9 +100,6 @@ class App extends PureComponent {
     this.onToggleUserAgentInput = this.onToggleUserAgentInput.bind(this);
     this.onUpdateDeviceDisplayed = this.onUpdateDeviceDisplayed.bind(this);
     this.onUpdateDeviceModal = this.onUpdateDeviceModal.bind(this);
-    this.onUpdateDeviceSelectorMenu = this.onUpdateDeviceSelectorMenu.bind(
-      this
-    );
   }
 
   componentWillUnmount() {
@@ -124,12 +115,6 @@ class App extends PureComponent {
     // Update the position of remote browser so that makes the context menu to show at
     // proper position before showing.
     this.browser.frameLoader.requestUpdatePosition();
-  }
-
-  onBrowserMounted(browser) {
-    this.browser = browser;
-    this.browser.addEventListener("contextmenu", this.onBrowserContextMenu);
-    window.postMessage({ type: "browser-mounted" }, "*");
   }
 
   onChangeDevice(id, device, deviceType) {
@@ -218,17 +203,6 @@ class App extends PureComponent {
     }
   }
 
-  onContentResize({ width, height }) {
-    window.postMessage(
-      {
-        type: "content-resize",
-        width,
-        height,
-      },
-      "*"
-    );
-  }
-
   onDeviceListUpdate(devices) {
     updatePreferredDevices(devices);
   }
@@ -295,19 +269,6 @@ class App extends PureComponent {
     this.props.dispatch(resizeViewport(id, width, height));
   }
 
-  onResizeViewport({ width, height }) {
-    // This is the response function that listens to changes to the size
-    // and sends out a "viewport-resize" message with the new size.
-    window.postMessage(
-      {
-        type: "viewport-resize",
-        width,
-        height,
-      },
-      "*"
-    );
-  }
-
   /**
    * Dispatches the rotateViewport action creator. This utilized by the RDM toolbar as
    * a prop.
@@ -348,6 +309,15 @@ class App extends PureComponent {
 
     this.onChangeViewportOrientation(id, type, angle, true);
     this.props.dispatch(rotateViewport(id));
+
+    window.postMessage(
+      {
+        type: "viewport-resize",
+        height: viewport.width,
+        width: viewport.height,
+      },
+      "*"
+    );
   }
 
   onScreenshot() {
@@ -357,15 +327,13 @@ class App extends PureComponent {
   onToggleLeftAlignment() {
     this.props.dispatch(toggleLeftAlignment());
 
-    if (Services.prefs.getBoolPref("devtools.responsive.browserUI.enabled")) {
-      window.postMessage(
-        {
-          type: "toggle-left-alignment",
-          leftAlignmentEnabled: this.props.leftAlignmentEnabled,
-        },
-        "*"
-      );
-    }
+    window.postMessage(
+      {
+        type: "toggle-left-alignment",
+        leftAlignmentEnabled: this.props.leftAlignmentEnabled,
+      },
+      "*"
+    );
   }
 
   onToggleReloadOnTouchSimulation() {
@@ -386,27 +354,7 @@ class App extends PureComponent {
 
   onUpdateDeviceModal(isOpen, modalOpenedFromViewport) {
     this.props.dispatch(updateDeviceModal(isOpen, modalOpenedFromViewport));
-
-    if (Services.prefs.getBoolPref("devtools.responsive.browserUI.enabled")) {
-      window.postMessage({ type: "update-device-modal", isOpen }, "*");
-    }
-  }
-
-  onUpdateDeviceSelectorMenu(isOpen) {
-    if (Services.prefs.getBoolPref("devtools.responsive.browserUI.enabled")) {
-      const rdmToolbar = window.parent.document.querySelector(".rdm-toolbar");
-      const browserStackEl = rdmToolbar.parentNode;
-
-      // Guarantee a fixed height for the HTMLTooltip to render inside.
-      const style = window.getComputedStyle(browserStackEl);
-      rdmToolbar.style.height = style.height;
-
-      if (isOpen) {
-        browserStackEl.classList.add("device-selector-menu-opened");
-      }
-
-      window.postMessage({ type: "update-device-toolbar-height", isOpen }, "*");
-    }
+    window.postMessage({ type: "update-device-modal", isOpen }, "*");
   }
 
   render() {
@@ -414,20 +362,17 @@ class App extends PureComponent {
 
     const {
       onAddCustomDevice,
-      onBrowserMounted,
       onChangeDevice,
       onChangeNetworkThrottling,
       onChangePixelRatio,
       onChangeTouchSimulation,
       onChangeUserAgent,
-      onContentResize,
       onDeviceListUpdate,
       onEditCustomDevice,
       onExit,
       onRemoveCustomDevice,
       onRemoveDeviceAssociation,
       doResizeViewport,
-      onResizeViewport,
       onRotateViewport,
       onScreenshot,
       onToggleLeftAlignment,
@@ -436,7 +381,6 @@ class App extends PureComponent {
       onToggleUserAgentInput,
       onUpdateDeviceDisplayed,
       onUpdateDeviceModal,
-      onUpdateDeviceSelectorMenu,
     } = this;
 
     if (!viewports.length) {
@@ -475,19 +419,7 @@ class App extends PureComponent {
         onToggleReloadOnUserAgent,
         onToggleUserAgentInput,
         onUpdateDeviceModal,
-        onUpdateDeviceSelectorMenu,
       }),
-      !Services.prefs.getBoolPref("devtools.responsive.browserUI.enabled")
-        ? Viewports({
-            screenshot,
-            viewports,
-            onBrowserMounted,
-            onContentResize,
-            onRemoveDeviceAssociation,
-            doResizeViewport,
-            onResizeViewport,
-          })
-        : null,
       devices.isModalOpen
         ? DeviceModal({
             deviceAdderViewportTemplate,

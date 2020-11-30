@@ -9,7 +9,7 @@
 
 #include "mozilla/UniquePtr.h"
 #include "mozilla/ServoBindingTypes.h"
-#include "nsAutoPtr.h"
+#include "mozilla/FunctionRef.h"
 #include "nsISupports.h"
 #include "nsIContent.h"
 #include "nsString.h"
@@ -32,6 +32,10 @@ class ResponsiveImageSelector {
 
   explicit ResponsiveImageSelector(nsIContent* aContent);
   explicit ResponsiveImageSelector(dom::Document* aDocument);
+
+  // Parses the raw candidates and calls into the callback for each one of them.
+  static void ParseSourceSet(const nsAString& aSrcSet,
+                             FunctionRef<void(ResponsiveImageCandidate&&)>);
 
   // NOTE ABOUT CURRENT SELECTION
   //
@@ -89,7 +93,7 @@ class ResponsiveImageSelector {
  private:
   // Append a candidate unless its selector is duplicated by a higher priority
   // candidate
-  void AppendCandidateIfUnique(const ResponsiveImageCandidate& aCandidate);
+  void AppendCandidateIfUnique(ResponsiveImageCandidate&& aCandidate);
 
   // Append a default candidate with this URL if necessary. Does not check if
   // the array already contains one, use SetDefaultSource instead.
@@ -128,8 +132,8 @@ class ResponsiveImageSelector {
 class ResponsiveImageCandidate {
  public:
   ResponsiveImageCandidate();
-  ResponsiveImageCandidate(const nsAString& aURLString, double aDensity,
-                           nsIPrincipal* aTriggeringPrincipal = nullptr);
+  ResponsiveImageCandidate(const ResponsiveImageCandidate&) = delete;
+  ResponsiveImageCandidate(ResponsiveImageCandidate&&) = default;
 
   void SetURLSpec(const nsAString& aURLString);
   void SetTriggeringPrincipal(nsIPrincipal* aPrincipal);
@@ -154,8 +158,8 @@ class ResponsiveImageCandidate {
   // Check if our parameter (which does not include the url) is identical
   bool HasSameParameter(const ResponsiveImageCandidate& aOther) const;
 
-  const nsAString& URLString() const;
-  nsIPrincipal* TriggeringPrincipal() const;
+  const nsAString& URLString() const { return mURLString; }
+  nsIPrincipal* TriggeringPrincipal() const { return mTriggeringPrincipal; }
 
   // Compute and return the density relative to a selector.
   double Density(ResponsiveImageSelector* aSelector) const;
@@ -163,24 +167,33 @@ class ResponsiveImageCandidate {
   // avoid having each call re-compute the width.
   double Density(double aMatchingWidth) const;
 
-  // If this selector is computed from the selector's matching width.
-  bool IsComputedFromWidth() const;
+  // Append the descriptors for this candidate serialized as a string.
+  void AppendDescriptors(nsAString&) const;
 
-  enum eCandidateType {
-    eCandidateType_Invalid,
-    eCandidateType_Density,
+  bool IsValid() const { return mType != CandidateType::Invalid; }
+
+  // If this selector is computed from the selector's matching width.
+  bool IsComputedFromWidth() const {
+    return mType == CandidateType::ComputedFromWidth;
+  }
+
+  bool IsDefault() const { return mType == CandidateType::Default; }
+
+  enum class CandidateType : uint8_t {
+    Invalid,
+    Density,
     // Treated as 1.0 density, but a separate type so we can update the
     // responsive candidates and default separately
-    eCandidateType_Default,
-    eCandidateType_ComputedFromWidth
+    Default,
+    ComputedFromWidth
   };
 
-  eCandidateType Type() const { return mType; }
+  CandidateType Type() const { return mType; }
 
  private:
   nsString mURLString;
   nsCOMPtr<nsIPrincipal> mTriggeringPrincipal;
-  eCandidateType mType;
+  CandidateType mType;
   union {
     double mDensity;
     int32_t mWidth;

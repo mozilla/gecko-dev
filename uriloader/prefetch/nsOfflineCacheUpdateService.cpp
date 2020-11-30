@@ -523,7 +523,9 @@ static nsresult OfflineAppPermForPrincipal(nsIPrincipal* aPrincipal,
   if (!aPrincipal) return NS_ERROR_INVALID_ARG;
 
   nsCOMPtr<nsIURI> uri;
-  aPrincipal->GetURI(getter_AddRefs(uri));
+  // Casting to BasePrincipal, as we can't get InnerMost URI otherwise
+  auto* basePrincipal = BasePrincipal::Cast(aPrincipal);
+  basePrincipal->GetURI(getter_AddRefs(uri));
 
   if (!uri) return NS_OK;
 
@@ -551,8 +553,7 @@ static nsresult OfflineAppPermForPrincipal(nsIPrincipal* aPrincipal,
   }
 
   uint32_t perm;
-  const nsLiteralCString permName = pinned ? NS_LITERAL_CSTRING("pin-app")
-                                           : NS_LITERAL_CSTRING("offline-app");
+  const nsLiteralCString permName = pinned ? "pin-app"_ns : "offline-app"_ns;
   permissionManager->TestExactPermissionFromPrincipal(aPrincipal, permName,
                                                       &perm);
 
@@ -600,7 +601,9 @@ nsOfflineCacheUpdateService::AllowOfflineApp(nsIPrincipal* aPrincipal) {
   }
 
   nsCOMPtr<nsIURI> uri;
-  aPrincipal->GetURI(getter_AddRefs(uri));
+  // Casting to BasePrincipal, as we can't get InnerMost URI otherwise
+  auto* basePrincipal = BasePrincipal::Cast(aPrincipal);
+  basePrincipal->GetURI(getter_AddRefs(uri));
 
   if (!uri) {
     return NS_ERROR_NOT_AVAILABLE;
@@ -634,9 +637,8 @@ nsOfflineCacheUpdateService::AllowOfflineApp(nsIPrincipal* aPrincipal) {
     if (!permissionManager) return NS_ERROR_NOT_AVAILABLE;
 
     rv = permissionManager->AddFromPrincipal(
-        aPrincipal, NS_LITERAL_CSTRING("offline-app"),
-        nsIPermissionManager::ALLOW_ACTION, nsIPermissionManager::EXPIRE_NEVER,
-        0);
+        aPrincipal, "offline-app"_ns, nsIPermissionManager::ALLOW_ACTION,
+        nsIPermissionManager::EXPIRE_NEVER, 0);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 

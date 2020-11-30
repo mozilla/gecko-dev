@@ -10,6 +10,7 @@
 #include "nsPIDOMWindow.h"
 #include "nsNetUtil.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/ShadowRoot.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/Document.h"
 #include "nsVariant.h"
@@ -57,15 +58,14 @@ nsresult nsXMLPrettyPrinter::PrettyPrint(Document* aDocument,
 
   // Load the XSLT
   nsCOMPtr<nsIURI> xslUri;
-  rv = NS_NewURI(
-      getter_AddRefs(xslUri),
-      NS_LITERAL_CSTRING("chrome://global/content/xml/XMLPrettyPrint.xsl"));
+  rv = NS_NewURI(getter_AddRefs(xslUri),
+                 "chrome://global/content/xml/XMLPrettyPrint.xsl"_ns);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<Document> xslDocument;
   rv = nsSyncLoadService::LoadDocument(
       xslUri, nsIContentPolicy::TYPE_XSLT, nsContentUtils::GetSystemPrincipal(),
-      nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL, nullptr,
+      nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL, nullptr,
       aDocument->CookieJarSettings(), true, ReferrerPolicy::_empty,
       getter_AddRefs(xslDocument));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -85,7 +85,7 @@ nsresult nsXMLPrettyPrinter::PrettyPrint(Document* aDocument,
   }
 
   // Attach an UA Widget Shadow Root on it.
-  rootElement->AttachAndSetUAShadowRoot();
+  rootElement->AttachAndSetUAShadowRoot(Element::NotifyUAWidgetSetup::No);
   RefPtr<ShadowRoot> shadowRoot = rootElement->GetShadowRoot();
   MOZ_RELEASE_ASSERT(shadowRoot && shadowRoot->IsUAWidget(),
                      "There should be a UA Shadow Root here.");

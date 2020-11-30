@@ -116,7 +116,7 @@ mozharness_run_schema = Schema({
     Required('comm-checkout'): bool,
 
     # Base work directory used to set up the task.
-    Required('workdir'): text_type,
+    Optional('workdir'): text_type,
 })
 
 
@@ -148,9 +148,9 @@ def mozharness_on_docker_worker_setup(config, job, taskdesc):
                                   "'use-magic-mh-args' on docker-workers")
 
     # Running via mozharness assumes an image that contains build.sh:
-    # by default, debian7-amd64-build, but it could be another image (like
+    # by default, debian8-amd64-build, but it could be another image (like
     # android-build).
-    worker.setdefault('docker-image', {'in-tree': 'debian7-amd64-build'})
+    worker.setdefault('docker-image', {'in-tree': 'debian8-amd64-build'})
 
     worker.setdefault('artifacts', []).append({
         'name': 'public/logs',
@@ -191,7 +191,7 @@ def mozharness_on_docker_worker_setup(config, job, taskdesc):
     extra_config = run.pop('extra-config', {})
     extra_config['objdir'] = 'obj-build'
     env['EXTRA_MOZHARNESS_CONFIG'] = six.ensure_text(
-        json.dumps(extra_config))
+        json.dumps(extra_config, sort_keys=True))
 
     if 'job-script' in run:
         env['JOB_SCRIPT'] = run['job-script']
@@ -277,7 +277,7 @@ def mozharness_on_generic_worker(config, job, taskdesc):
     extra_config = run.pop('extra-config', {})
     extra_config['objdir'] = 'obj-build'
     env['EXTRA_MOZHARNESS_CONFIG'] = six.ensure_text(
-        json.dumps(extra_config))
+        json.dumps(extra_config, sort_keys=True))
 
     # The windows generic worker uses batch files to pass environment variables
     # to commands.  Setting a variable to empty in a batch file unsets, so if
@@ -332,7 +332,7 @@ def mozharness_on_generic_worker(config, job, taskdesc):
         "{}/third_party/python/six".format(env['GECKO_PATH']),
     ])
 
-    if taskdesc.get('needs-sccache'):
+    if taskdesc.get('use-sccache'):
         worker['command'] = [
             # Make the comment part of the first command, as it will help users to
             # understand what is going on, and why these steps are implemented.

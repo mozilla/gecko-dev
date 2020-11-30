@@ -10,6 +10,8 @@
 #[macro_use]
 extern crate arrayref;
 extern crate memmap;
+#[macro_use]
+extern crate log;
 
 use std::slice;
 use std::str;
@@ -430,7 +432,7 @@ pub struct Hyphenator<'a>(&'a [u8]);
 impl Hyphenator<'_> {
     /// Return a Hyphenator that wraps the given buffer.
     /// This does *not* check that the given buffer is in fact a valid hyphenation table.
-    /// Use is_valid_hyphenator() to determine whether it is usable.
+    /// Use `is_valid_hyphenator()` to determine whether it is usable.
     /// (Calling hyphenation methods on a Hyphenator that wraps arbitrary,
     /// unvalidated data is not unsafe, but may panic.)
     pub fn new(buffer: &[u8]) -> Hyphenator {
@@ -621,7 +623,7 @@ impl Hyphenator<'_> {
 ///
 /// # Safety
 ///
-/// This is unsafe for the same reason Mmap::map() is unsafe:
+/// This is unsafe for the same reason `Mmap::map()` is unsafe:
 /// mapped_hyph does not guarantee safety if the mapped file is modified
 /// (e.g. by another process) while we're using it.
 ///

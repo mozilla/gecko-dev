@@ -12,7 +12,6 @@
 #include "nsINetworkInterceptController.h"
 #include "nsIInputStream.h"
 #include "nsICacheInfoChannel.h"
-#include "nsIChannelWithDivertableParentListener.h"
 #include "nsIThreadRetargetableRequest.h"
 #include "nsIThreadRetargetableStreamListener.h"
 
@@ -57,7 +56,6 @@ class InterceptedHttpChannel final
       public nsICacheInfoChannel,
       public nsIAsyncVerifyRedirectCallback,
       public nsIStreamListener,
-      public nsIChannelWithDivertableParentListener,
       public nsIThreadRetargetableRequest,
       public nsIThreadRetargetableStreamListener {
   NS_DECL_ISUPPORTS_INHERITED
@@ -66,7 +64,6 @@ class InterceptedHttpChannel final
   NS_DECL_NSIASYNCVERIFYREDIRECTCALLBACK
   NS_DECL_NSIREQUESTOBSERVER
   NS_DECL_NSISTREAMLISTENER
-  NS_DECL_NSICHANNELWITHDIVERTABLEPARENTLISTENER
   NS_DECL_NSITHREADRETARGETABLEREQUEST
   NS_DECL_NSITHREADRETARGETABLESTREAMLISTENER
 
@@ -81,7 +78,6 @@ class InterceptedHttpChannel final
   nsCOMPtr<nsIInterceptedBodyCallback> mBodyCallback;
   nsCOMPtr<nsICacheInfoChannel> mSynthesizedCacheInfo;
   RefPtr<nsInputStreamPump> mPump;
-  RefPtr<ADivertableParentChannel> mParentChannel;
   TimeStamp mFinishResponseStart;
   TimeStamp mFinishResponseEnd;
   Atomic<int64_t> mProgress;
@@ -92,7 +88,6 @@ class InterceptedHttpChannel final
   nsString mStatusHost;
   enum { Invalid = 0, Synthesized, Reset } mSynthesizedOrReset;
   Atomic<bool> mCallingStatusAndProgress;
-  bool mDiverting;
 
   InterceptedHttpChannel(PRTime aCreationTime,
                          const TimeStamp& aCreationTimestamp,
@@ -101,7 +96,7 @@ class InterceptedHttpChannel final
 
   virtual void ReleaseListeners() override;
 
-  virtual MOZ_MUST_USE nsresult SetupReplacementChannel(
+  [[nodiscard]] virtual nsresult SetupReplacementChannel(
       nsIURI* aURI, nsIChannel* aChannel, bool aPreserveMethod,
       uint32_t aRedirectFlags) override;
 
@@ -163,6 +158,9 @@ class InterceptedHttpChannel final
 
   NS_IMETHOD
   SetupFallbackChannel(const char* aFallbackKey) override;
+
+  NS_IMETHOD
+  GetIsAuthChannel(bool* aIsAuthChannel) override;
 
   NS_IMETHOD
   SetPriority(int32_t aPriority) override;

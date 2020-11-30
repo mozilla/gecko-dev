@@ -16,9 +16,10 @@ use rayon::{ThreadPool, ThreadPoolBuilder};
 use rayon::prelude::*;
 use std::collections::HashMap;
 use std::sync::Arc;
-use webrender::api::{self, DisplayListBuilder, DocumentId, PipelineId, PrimitiveFlags, RenderApi, Transaction};
+use webrender::api::{self, DisplayListBuilder, DocumentId, PipelineId, PrimitiveFlags};
 use webrender::api::{ColorF, CommonItemProperties, SpaceAndClipInfo, ImageDescriptorFlags};
 use webrender::api::units::*;
+use webrender::render_api::*;
 use webrender::euclid::size2;
 
 // This example shows how to implement a very basic BlobImageHandler that can only render
@@ -48,7 +49,7 @@ fn deserialize_blob(blob: &[u8]) -> Result<ImageRenderingCommands, ()> {
 fn render_blob(
     commands: Arc<ImageRenderingCommands>,
     descriptor: &api::BlobImageDescriptor,
-    tile: Option<TileOffset>,
+    tile: TileOffset,
 ) -> api::BlobImageResult {
     let color = *commands;
 
@@ -62,10 +63,7 @@ fn render_blob(
 
     // Generate a per-tile pattern to see it in the demo. For a real use case it would not
     // make sense for the rendered content to depend on its tile.
-    let tile_checker = match tile {
-        Some(tile) => (tile.x % 2 == 0) != (tile.y % 2 == 0),
-        None => true,
-    };
+    let tile_checker = (tile.x % 2 == 0) != (tile.y % 2 == 0);
 
     let [w, h] = descriptor.rect.size.to_array();
     let offset = descriptor.rect.origin;
@@ -136,8 +134,12 @@ impl CheckerboardRenderer {
 }
 
 impl api::BlobImageHandler for CheckerboardRenderer {
+    fn create_similar(&self) -> Box<dyn api::BlobImageHandler> {
+        Box::new(CheckerboardRenderer::new(Arc::clone(&self.workers)))
+    }
+
     fn add(&mut self, key: api::BlobImageKey, cmds: Arc<api::BlobImageData>,
-           _visible_rect: &DeviceIntRect, _: Option<api::TileSize>) {
+           _visible_rect: &DeviceIntRect, _: api::TileSize) {
         self.image_cmds
             .insert(key, Arc::new(deserialize_blob(&cmds[..]).unwrap()));
     }
@@ -200,7 +202,7 @@ struct App {}
 impl Example for App {
     fn render(
         &mut self,
-        api: &RenderApi,
+        api: &mut RenderApi,
         builder: &mut DisplayListBuilder,
         txn: &mut Transaction,
         _device_size: DeviceIntSize,

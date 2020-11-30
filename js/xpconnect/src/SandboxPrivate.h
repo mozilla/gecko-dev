@@ -7,17 +7,20 @@
 #ifndef __SANDBOXPRIVATE_H__
 #define __SANDBOXPRIVATE_H__
 
+#include "mozilla/WeakPtr.h"
 #include "nsIGlobalObject.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsIPrincipal.h"
 #include "nsWeakReference.h"
 #include "nsWrapperCache.h"
 
+#include "js/Object.h"  // JS::GetPrivate, JS::SetPrivate
 #include "js/RootingAPI.h"
 
 class SandboxPrivate : public nsIGlobalObject,
                        public nsIScriptObjectPrincipal,
                        public nsSupportsWeakReference,
+                       public mozilla::SupportsWeakPtr,
                        public nsWrapperCache {
  public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -33,7 +36,7 @@ class SandboxPrivate : public nsIGlobalObject,
     // The type used to cast to void needs to match the one in GetPrivate.
     nsIScriptObjectPrincipal* sop =
         static_cast<nsIScriptObjectPrincipal*>(sbp.forget().take());
-    JS_SetPrivate(global, sop);
+    JS::SetPrivate(global, sop);
 
     // Never collect the global while recording or replaying, so that the
     // principal reference is not released at a non-deterministic point.
@@ -43,12 +46,14 @@ class SandboxPrivate : public nsIGlobalObject,
   static SandboxPrivate* GetPrivate(JSObject* obj) {
     // The type used to cast to void needs to match the one in Create.
     return static_cast<SandboxPrivate*>(
-        static_cast<nsIScriptObjectPrincipal*>(JS_GetPrivate(obj)));
+        static_cast<nsIScriptObjectPrincipal*>(JS::GetPrivate(obj)));
   }
 
   nsIPrincipal* GetPrincipal() override { return mPrincipal; }
 
   nsIPrincipal* GetEffectiveStoragePrincipal() override { return mPrincipal; }
+
+  nsIPrincipal* PartitionedPrincipal() override { return mPrincipal; }
 
   JSObject* GetGlobalJSObject() override { return GetWrapper(); }
   JSObject* GetGlobalJSObjectPreserveColor() const override {
@@ -70,7 +75,7 @@ class SandboxPrivate : public nsIGlobalObject,
  private:
   explicit SandboxPrivate(nsIPrincipal* principal) : mPrincipal(principal) {}
 
-  virtual ~SandboxPrivate() {}
+  virtual ~SandboxPrivate() = default;
 
   nsCOMPtr<nsIPrincipal> mPrincipal;
 };

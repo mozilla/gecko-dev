@@ -18,6 +18,8 @@ export class InfoGroup extends HTMLElement {
     this.attachShadow({ mode: "open" }).appendChild(
       infoGroupTemplate.content.cloneNode(true)
     );
+    document.l10n.connectRoot(this.shadowRoot);
+    document.l10n.translateFragment(this.shadowRoot);
     this.render();
   }
 
@@ -37,6 +39,11 @@ export class InfoGroup extends HTMLElement {
 
     if (this.item.sectionId === "issuer-name") {
       this.setLinkToTab();
+    }
+
+    let criticalIcon = this.shadowRoot.querySelector("#critical-info");
+    if (!this.item.Critical) {
+      criticalIcon.style.visibility = "hidden";
     }
   }
 

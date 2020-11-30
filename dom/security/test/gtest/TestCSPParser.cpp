@@ -89,8 +89,8 @@ nsresult runTest(
 
   // for testing the parser we only need to set a principal which is needed
   // to translate the keyword 'self' into an actual URI.
-  rv = csp->SetRequestContextWithPrincipal(selfURIPrincipal, selfURI,
-                                           EmptyString(), 0);
+  rv =
+      csp->SetRequestContextWithPrincipal(selfURIPrincipal, selfURI, u""_ns, 0);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // append a policy
@@ -146,18 +146,8 @@ nsresult runTestSuite(const PolicyTest* aPolicies, uint32_t aPolicyCount,
                       uint32_t aExpectedPolicyCount) {
   nsresult rv;
   nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
-  bool experimentalEnabledCache = false;
-  bool strictDynamicEnabledCache = false;
   bool navigateTo = false;
   if (prefs) {
-    prefs->GetBoolPref("security.csp.experimentalEnabled",
-                       &experimentalEnabledCache);
-    prefs->SetBoolPref("security.csp.experimentalEnabled", true);
-
-    prefs->GetBoolPref("security.csp.enableStrictDynamic",
-                       &strictDynamicEnabledCache);
-    prefs->SetBoolPref("security.csp.enableStrictDynamic", true);
-
     prefs->GetBoolPref("security.csp.enableNavigateTo", &navigateTo);
     prefs->SetBoolPref("security.csp.enableNavigateTo", true);
   }
@@ -169,10 +159,6 @@ nsresult runTestSuite(const PolicyTest* aPolicies, uint32_t aPolicyCount,
   }
 
   if (prefs) {
-    prefs->SetBoolPref("security.csp.experimentalEnabled",
-                       experimentalEnabledCache);
-    prefs->SetBoolPref("security.csp.enableStrictDynamic",
-                       strictDynamicEnabledCache);
     prefs->SetBoolPref("security.csp.enableNavigateTo", navigateTo);
   }
 
@@ -413,6 +399,12 @@ TEST(CSPParser, SimplePolicies)
 {
   static const PolicyTest policies[] = {
       // clang-format off
+    { "frame-src intent:",
+      "frame-src intent:" },
+    { "frame-src intent://host.name",
+      "frame-src intent://host.name" },
+    { "frame-src intent://my.host.link/",
+      "frame-src intent://my.host.link/" },
     { "default-src *",
       "default-src *" },
     { "default-src https:",

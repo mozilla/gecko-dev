@@ -128,14 +128,19 @@ must read::
     # Specify the macOS SDK to use
     ac_add_options --with-macos-sdk=/path/to/MacOSX-SDKs/MacOSX10.11.sdk
 
-  You can get the right macOS SDK from the `MacOSX-SDKs repository <https://github.com/phracker/MacOSX-SDKs/>`_
-  or by downloading an old version of XCode from `developer.apple.com <https://developer.apple.com>`_ and unpacking the SKD from it.
+  You can get the right macOS SDK by downloading an old version of XCode from
+  `developer.apple.com <https://developer.apple.com>`_ and unpacking the SDK
+  from it.
 
 * When attempting to get your client running, the output of ``sccache -s`` should
   be consulted to confirm compilations are being distributed. To receive helpful
   logging from the local daemon in case they aren't, run
-  ``SCCACHE_NO_DAEMON=1 RUST_LOG=sccache=trace path/to/sccache --start-server``
-  in a terminal window separate from your build prior to building.
+  ``SCCACHE_NO_DAEMON=1 SCCACHE_LOG=sccache=trace path/to/sccache --start-server``
+  in a terminal window separate from your build prior to building. *NOTE* use
+  ``RUST_LOG`` instead of ``SCCACHE_LOG`` if your build of ``sccache`` does not
+  include `pull request 822
+  <https://github.com/mozilla/sccache/pull/822>`_. (``sccache`` binaries from
+  ``mach bootstrap`` do include this PR.)
 
 * Run ``./mach build -j<value>`` with an appropriately large ``<value>``.
   ``sccache --dist-status`` should provide the number of cores available to you
@@ -178,9 +183,12 @@ similar.
 
   Extra logging may be helpful when setting up a server. To enable logging,
   run your server with
-  ``sudo env RUST_LOG=sccache=trace ~/.mozbuild/sccache/sccache-dist server --config ~/.config/sccache/server.conf``
+  ``sudo env SCCACHE_LOG=sccache=trace ~/.mozbuild/sccache/sccache-dist server --config ~/.config/sccache/server.conf``
   (or similar). *NOTE* ``sudo`` *must* come before setting environment variables
-  for this to work.
+  for this to work. *NOTE* use ``RUST_LOG`` instead of ``SCCACHE_LOG`` if your
+  build of ``sccache`` does not include `pull request 822
+  <https://github.com/mozilla/sccache/pull/822>`_. (``sccache`` binaries from
+  ``mach bootstrap`` do include this PR.)
 
   As when configuring a client, the scheduler url to use is:
   ``https://sccache1.corpdmz.<OFFICE>.mozilla.com``, where <OFFICE> is an

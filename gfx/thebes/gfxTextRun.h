@@ -27,9 +27,10 @@
 #include "harfbuzz/hb.h"
 #include "nsUnicodeScriptCodes.h"
 #include "nsColor.h"
+#include "nsFrameList.h"
 #include "X11UndefineNone.h"
 
-#ifdef DEBUG
+#ifdef DEBUG_FRAME_DUMP
 #  include <stdio.h>
 #endif
 
@@ -651,8 +652,6 @@ class gfxTextRun : public gfxShapedText {
    */
   void FetchGlyphExtents(DrawTarget* aRefDrawTarget);
 
-  uint32_t CountMissingGlyphs() const;
-
   const GlyphRun* GetGlyphRuns(uint32_t* aNumGlyphRuns) const {
     if (mHasGlyphRunArray) {
       *aNumGlyphRuns = mGlyphRunArray.Length();
@@ -758,8 +757,8 @@ class gfxTextRun : public gfxShapedText {
     return advance;
   }
 
-#ifdef DEBUG
-  void Dump(FILE* aOutput);
+#ifdef DEBUG_FRAME_DUMP
+  void Dump(FILE* aOutput = stderr);
 #endif
 
  protected:
@@ -879,17 +878,49 @@ class gfxTextRun : public gfxShapedText {
   nsTextFrameUtils::Flags
       mFlags2;  // additional flags (see also gfxShapedText::mFlags)
 
-  bool mSkipDrawing;  // true if the font group we used had a user font
-                      // download that's in progress, so we should hide text
-                      // until the download completes (or timeout fires)
-  bool mReleasedFontGroup;  // we already called NS_RELEASE on
-                            // mFontGroup, so don't do it again
-  bool mHasGlyphRunArray;   // whether we're using an array or
-                            // just storing a single glyphrun
+  bool mDontSkipDrawing;  // true if the text run must not skip drawing, even if
+                          // waiting for a user font download, e.g. because we
+                          // are using it to draw canvas text
+  bool mReleasedFontGroup;                // we already called NS_RELEASE on
+                                          // mFontGroup, so don't do it again
+  bool mReleasedFontGroupSkippedDrawing;  // whether our old mFontGroup value
+                                          // was set to skip drawing
+  bool mHasGlyphRunArray;                 // whether we're using an array or
+                                          // just storing a single glyphrun
 
   // shaping state for handling variant fallback features
   // such as subscript/superscript variant glyphs
   ShapingState mShapingState;
+};
+
+enum class FallbackTypes : uint8_t {
+  // Font fallback used a font configured in Preferences
+  FallbackToPrefsFont = 1 << 0,
+  // Font fallback used a font with FontVisibility::Base
+  FallbackToBaseFont = 1 << 1,
+  // Font fallback used a font with FontVisibility::LangPack
+  FallbackToLangPackFont = 1 << 2,
+  // Font fallback used a font with FontVisibility::User
+  FallbackToUserFont = 1 << 3,
+  // Rendered missing-glyph because no font available for the character
+  MissingFont = 1 << 4,
+  // Rendered missing-glyph but a LangPack font could have been used
+  MissingFontLangPack = 1 << 5,
+  // Rendered missing-glyph but a User font could have been used
+  MissingFontUser = 1 << 6,
+};
+
+MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(FallbackTypes)
+
+struct FontMatchingStats {
+  // Set of names that have been looked up (whether successfully or not).
+  nsTHashtable<nsCStringHashKey> mFamilyNames;
+  // Number of font-family names resolved at each level of visibility.
+  uint32_t mBaseFonts = 0;
+  uint32_t mLangPackFonts = 0;
+  uint32_t mUserFonts = 0;
+  uint32_t mWebFonts = 0;
+  FallbackTypes mFallbacks = FallbackTypes(0);
 };
 
 class gfxFontGroup final : public gfxTextRunFactory {
@@ -902,9 +933,12 @@ class gfxFontGroup final : public gfxTextRunFactory {
 
   gfxFontGroup(const mozilla::FontFamilyList& aFontFamilyList,
                const gfxFontStyle* aStyle, gfxTextPerfMetrics* aTextPerf,
+               FontMatchingStats* aFontMatchingStats,
                gfxUserFontSet* aUserFontSet, gfxFloat aDevToCssSize);
 
   virtual ~gfxFontGroup();
+
+  gfxFontGroup(const gfxFontGroup& aOther) = delete;
 
   // Returns first valid font in the fontlist or default font.
   // Initiates userfont loads if userfont not loaded.
@@ -919,8 +953,6 @@ class gfxFontGroup final : public gfxTextRunFactory {
   gfxFont* GetFirstMathFont();
 
   const gfxFontStyle* GetStyle() const { return &mStyle; }
-
-  gfxFontGroup* Copy(const gfxFontStyle* aStyle);
 
   /**
    * The listed characters should be treated as invisible and zero-width
@@ -1081,10 +1113,12 @@ class gfxFontGroup final : public gfxTextRunFactory {
 
   // search through pref fonts for a character, return nullptr if no matching
   // pref font
-  gfxFont* WhichPrefFontSupportsChar(uint32_t aCh, uint32_t aNextCh);
+  gfxFont* WhichPrefFontSupportsChar(uint32_t aCh, uint32_t aNextCh,
+                                     eFontPresentation aPresentation);
 
   gfxFont* WhichSystemFontSupportsChar(uint32_t aCh, uint32_t aNextCh,
-                                       Script aRunScript);
+                                       Script aRunScript,
+                                       eFontPresentation aPresentation);
 
   template <typename T>
   void ComputeRanges(nsTArray<TextRange>& aRanges, const T* aString,
@@ -1271,7 +1305,8 @@ class gfxFontGroup final : public gfxTextRunFactory {
 
     bool IsSharedFamily() const { return mIsSharedFamily; }
     bool IsUserFontContainer() const {
-      return FontEntry()->mIsUserFontContainer;
+      gfxFontEntry* fe = FontEntry();
+      return fe && fe->mIsUserFontContainer;
     }
     bool IsLoading() const { return mLoading; }
     bool IsInvalid() const { return mInvalid; }
@@ -1288,8 +1323,8 @@ class gfxFontGroup final : public gfxTextRunFactory {
         return false;
       }
       MOZ_ASSERT(IsUserFontContainer());
-      return static_cast<gfxUserFontEntry*>(FontEntry())
-          ->CharacterInUnicodeRange(aCh);
+      auto* ufe = static_cast<gfxUserFontEntry*>(FontEntry());
+      return ufe && ufe->CharacterInUnicodeRange(aCh);
     }
 
     void SetFont(gfxFont* aFont) {
@@ -1351,6 +1386,8 @@ class gfxFontGroup final : public gfxTextRunFactory {
                              // rebuild font list if needed
 
   gfxTextPerfMetrics* mTextPerf;
+
+  FontMatchingStats* mFontMatchingStats;
 
   // Cache a textrun representing an ellipsis (useful for CSS text-overflow)
   // at a specific appUnitsPerDevPixel size and orientation
@@ -1433,12 +1470,17 @@ class gfxFontGroup final : public gfxTextRunFactory {
   // Helper for font-matching:
   // search all faces in a family for a fallback in cases where it's unclear
   // whether the family might have a font for a given character
-  gfxFont* FindFallbackFaceForChar(const FamilyFace& aFamily, uint32_t aCh);
+  gfxFont* FindFallbackFaceForChar(const FamilyFace& aFamily, uint32_t aCh,
+                                   uint32_t aNextCh,
+                                   eFontPresentation aPresentation);
 
   gfxFont* FindFallbackFaceForChar(mozilla::fontlist::Family* aFamily,
-                                   uint32_t aCh);
+                                   uint32_t aCh, uint32_t aNextCh,
+                                   eFontPresentation aPresentation);
 
-  gfxFont* FindFallbackFaceForChar(gfxFontFamily* aFamily, uint32_t aCh);
+  gfxFont* FindFallbackFaceForChar(gfxFontFamily* aFamily, uint32_t aCh,
+                                   uint32_t aNextCh,
+                                   eFontPresentation aPresentation);
 
   // helper methods for looking up fonts
 

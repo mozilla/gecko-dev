@@ -68,7 +68,10 @@ const CONFIG = [
 
 function fetchWithConfig(name, version) {
   Services.appinfo = { name, version };
-  return engineSelector.fetchEngineConfiguration("default", "default");
+  return engineSelector.fetchEngineConfiguration({
+    locale: "default",
+    region: "default",
+  });
 }
 
 const engineSelector = new SearchEngineSelector();
@@ -107,19 +110,20 @@ const tests = [
 ];
 
 add_task(async function setup() {
-  await useTestEngines("data", null, CONFIG);
+  await SearchTestUtils.useTestEngines("data", null, CONFIG);
   await AddonTestUtils.promiseStartupManager();
 
-  await engineSelector.init();
+  let confUrl = `data:application/json,${JSON.stringify(CONFIG)}`;
+  Services.prefs.setStringPref("search.config.url", confUrl);
 });
 
 add_task(async function test_application_name() {
   for (const { name, version, expected } of tests) {
     Services.appinfo = { name, version };
-    let { engines } = await engineSelector.fetchEngineConfiguration(
-      "default",
-      "default"
-    );
+    let { engines } = await engineSelector.fetchEngineConfiguration({
+      locale: "default",
+      region: "default",
+    });
     const engineIds = engines.map(obj => obj.webExtension.id);
     Assert.deepEqual(
       engineIds,

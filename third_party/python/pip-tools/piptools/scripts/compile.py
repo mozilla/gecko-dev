@@ -2,32 +2,66 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
+import shlex
 import sys
 import tempfile
+import warnings
 
+from click import Command
 from click.utils import safecall
+from pip._internal.commands import create_command
+from pip._internal.req.constructors import install_req_from_line
+from pip._internal.utils.misc import redact_auth_from_url
 
 from .. import click
-from .._compat import install_req_from_line, parse_requirements
+from .._compat import parse_requirements
+from ..cache import DependencyCache
 from ..exceptions import PipToolsError
+from ..locations import CACHE_DIR
 from ..logging import log
-from ..pip import get_pip_command, pip_defaults
 from ..repositories import LocalRequirementsRepository, PyPIRepository
 from ..resolver import Resolver
-from ..utils import (
-    UNSAFE_PACKAGES,
-    dedup,
-    is_pinned_requirement,
-    key_from_ireq,
-    key_from_req,
-)
+from ..utils import UNSAFE_PACKAGES, dedup, is_pinned_requirement, key_from_ireq
 from ..writer import OutputWriter
 
 DEFAULT_REQUIREMENTS_FILE = "requirements.in"
 DEFAULT_REQUIREMENTS_OUTPUT_FILE = "requirements.txt"
 
 
-@click.command()
+def _get_default_option(option_name):
+    """
+    Get default value of the pip's option (including option from pip.conf)
+    by a given option name.
+    """
+    install_command = create_command("install")
+    default_values = install_command.parser.get_default_values()
+    return getattr(default_values, option_name)
+
+
+class BaseCommand(Command):
+    _os_args = None
+
+    def parse_args(self, ctx, args):
+        """
+        Override base `parse_args` to store the argument part of `sys.argv`.
+        """
+        self._os_args = set(args)
+        return super(BaseCommand, self).parse_args(ctx, args)
+
+    def has_arg(self, arg_name):
+        """
+        Detect whether a given arg name (including negative counterparts
+        to the arg, e.g. --no-arg) is present in the argument part of `sys.argv`.
+        """
+        command_options = {option.name: option for option in self.params}
+        option = command_options[arg_name]
+        args = set(option.opts + option.secondary_opts)
+        return bool(self._os_args & args)
+
+
+@click.command(
+    cls=BaseCommand, context_settings={"help_option_names": ("-h", "--help")}
+)
 @click.version_option()
 @click.pass_context
 @click.option("-v", "--verbose", count=True, help="Show more output")
@@ -61,7 +95,9 @@ DEFAULT_REQUIREMENTS_OUTPUT_FILE = "requirements.txt"
 @click.option(
     "-i",
     "--index-url",
-    help="Change index URL (defaults to {})".format(pip_defaults.index_url),
+    help="Change index URL (defaults to {index_url})".format(
+        index_url=redact_auth_from_url(_get_default_option("index_url"))
+    ),
     envvar="PIP_INDEX_URL",
 )
 @click.option(
@@ -93,7 +129,7 @@ DEFAULT_REQUIREMENTS_OUTPUT_FILE = "requirements.txt"
     "--index/--no-index",
     is_flag=True,
     default=True,
-    help="Add index URL to generated file",
+    help="DEPRECATED: Add index URL to generated file",
 )
 @click.option(
     "--emit-trusted-host/--no-emit-trusted-host",
@@ -148,6 +184,15 @@ DEFAULT_REQUIREMENTS_OUTPUT_FILE = "requirements.txt"
     help="Generate pip 8 style hashes in the resulting requirements file.",
 )
 @click.option(
+    "--reuse-hashes/--no-reuse-hashes",
+    is_flag=True,
+    default=True,
+    help=(
+        "Improve the speed of --generate-hashes by reusing the hashes from an "
+        "existing output file."
+    ),
+)
+@click.option(
     "--max-rounds",
     default=10,
     help="Maximum number of rounds before resolving the requirements aborts.",
@@ -156,10 +201,32 @@ DEFAULT_REQUIREMENTS_OUTPUT_FILE = "requirements.txt"
 @click.option(
     "--build-isolation/--no-build-isolation",
     is_flag=True,
-    default=False,
+    default=True,
     help="Enable isolation when building a modern source distribution. "
     "Build dependencies specified by PEP 518 must be already installed "
     "if build isolation is disabled.",
+)
+@click.option(
+    "--emit-find-links/--no-emit-find-links",
+    is_flag=True,
+    default=True,
+    help="Add the find-links option to generated file",
+)
+@click.option(
+    "--cache-dir",
+    help="Store the cache data in DIRECTORY.",
+    default=CACHE_DIR,
+    envvar="PIP_TOOLS_CACHE_DIR",
+    show_default=True,
+    show_envvar=True,
+    type=click.Path(file_okay=False, writable=True),
+)
+@click.option("--pip-args", help="Arguments to pass directly to the pip command.")
+@click.option(
+    "--emit-index-url/--no-emit-index-url",
+    is_flag=True,
+    default=True,
+    help="Add index URL to generated file",
 )
 def cli(
     ctx,
@@ -183,9 +250,14 @@ def cli(
     output_file,
     allow_unsafe,
     generate_hashes,
+    reuse_hashes,
     src_files,
     max_rounds,
     build_isolation,
+    emit_find_links,
+    cache_dir,
+    pip_args,
+    emit_index_url,
 ):
     """Compiles requirements.txt from requirements.in specs."""
     log.verbosity = verbose - quiet
@@ -225,12 +297,24 @@ def cli(
         # Close the file at the end of the context execution
         ctx.call_on_close(safecall(output_file.close_intelligently))
 
+    if cli.has_arg("index") and cli.has_arg("emit_index_url"):
+        raise click.BadParameter(
+            "--index/--no-index and --emit-index-url/--no-emit-index-url "
+            "are mutually exclusive."
+        )
+    elif cli.has_arg("index"):
+        warnings.warn(
+            "--index and --no-index are deprecated and will be removed "
+            "in future versions. Use --emit-index-url/--no-emit-index-url instead.",
+            category=FutureWarning,
+        )
+        emit_index_url = index
+
     ###
     # Setup
     ###
 
-    pip_command = get_pip_command()
-
+    right_args = shlex.split(pip_args or "")
     pip_args = []
     if find_links:
         for link in find_links:
@@ -250,36 +334,45 @@ def cli(
         for host in trusted_host:
             pip_args.extend(["--trusted-host", host])
 
-    pip_options, _ = pip_command.parse_args(pip_args)
+    if not build_isolation:
+        pip_args.append("--no-build-isolation")
+    pip_args.extend(right_args)
 
-    session = pip_command._build_session(pip_options)
-    repository = PyPIRepository(pip_options, session, build_isolation)
+    repository = PyPIRepository(pip_args, cache_dir=cache_dir)
 
     # Parse all constraints coming from --upgrade-package/-P
     upgrade_reqs_gen = (install_req_from_line(pkg) for pkg in upgrade_packages)
     upgrade_install_reqs = {
-        key_from_req(install_req.req): install_req for install_req in upgrade_reqs_gen
+        key_from_ireq(install_req): install_req for install_req in upgrade_reqs_gen
     }
+
+    existing_pins_to_upgrade = set()
 
     # Proxy with a LocalRequirementsRepository if --upgrade is not specified
     # (= default invocation)
     if not upgrade and os.path.exists(output_file.name):
+        # Use a temporary repository to ensure outdated(removed) options from
+        # existing requirements.txt wouldn't get into the current repository.
+        tmp_repository = PyPIRepository(pip_args, cache_dir=cache_dir)
         ireqs = parse_requirements(
             output_file.name,
-            finder=repository.finder,
-            session=repository.session,
-            options=pip_options,
+            finder=tmp_repository.finder,
+            session=tmp_repository.session,
+            options=tmp_repository.options,
         )
 
         # Exclude packages from --upgrade-package/-P from the existing
-        # constraints
-        existing_pins = {
-            key_from_req(ireq.req): ireq
-            for ireq in ireqs
-            if is_pinned_requirement(ireq)
-            and key_from_req(ireq.req) not in upgrade_install_reqs
-        }
-        repository = LocalRequirementsRepository(existing_pins, repository)
+        # constraints, and separately gather pins to be upgraded
+        existing_pins = {}
+        for ireq in filter(is_pinned_requirement, ireqs):
+            key = key_from_ireq(ireq)
+            if key in upgrade_install_reqs:
+                existing_pins_to_upgrade.add(key)
+            else:
+                existing_pins[key] = ireq
+        repository = LocalRequirementsRepository(
+            existing_pins, repository, reuse_hashes=reuse_hashes
+        )
 
     ###
     # Parsing/collecting initial requirements
@@ -299,28 +392,42 @@ def cli(
 
                 dist = run_setup(src_file)
                 tmpfile.write("\n".join(dist.install_requires))
+                comes_from = "{name} ({filename})".format(
+                    name=dist.get_name(), filename=src_file
+                )
             else:
                 tmpfile.write(sys.stdin.read())
+                comes_from = "-r -"
             tmpfile.flush()
-            constraints.extend(
+            reqs = list(
                 parse_requirements(
                     tmpfile.name,
                     finder=repository.finder,
                     session=repository.session,
-                    options=pip_options,
+                    options=repository.options,
                 )
             )
+            for req in reqs:
+                req.comes_from = comes_from
+            constraints.extend(reqs)
         else:
             constraints.extend(
                 parse_requirements(
                     src_file,
                     finder=repository.finder,
                     session=repository.session,
-                    options=pip_options,
+                    options=repository.options,
                 )
             )
 
-    constraints.extend(upgrade_install_reqs.values())
+    primary_packages = {
+        key_from_ireq(ireq) for ireq in constraints if not ireq.constraint
+    }
+
+    allowed_upgrades = primary_packages | existing_pins_to_upgrade
+    constraints.extend(
+        ireq for key, ireq in upgrade_install_reqs.items() if key in allowed_upgrades
+    )
 
     # Filter out pip environment markers which do not match (PEP496)
     constraints = [
@@ -328,22 +435,23 @@ def cli(
     ]
 
     log.debug("Using indexes:")
-    # remove duplicate index urls before processing
-    repository.finder.index_urls = list(dedup(repository.finder.index_urls))
-    for index_url in repository.finder.index_urls:
-        log.debug("  {}".format(index_url))
+    with log.indentation():
+        for index_url in dedup(repository.finder.index_urls):
+            log.debug(redact_auth_from_url(index_url))
 
     if repository.finder.find_links:
         log.debug("")
-        log.debug("Configuration:")
-        for find_link in repository.finder.find_links:
-            log.debug("  -f {}".format(find_link))
+        log.debug("Using links:")
+        with log.indentation():
+            for find_link in dedup(repository.finder.find_links):
+                log.debug(redact_auth_from_url(find_link))
 
     try:
         resolver = Resolver(
             constraints,
             repository,
             prereleases=repository.finder.allow_all_prereleases or pre,
+            cache=DependencyCache(cache_dir),
             clear_caches=rebuild,
             allow_unsafe=allow_unsafe,
         )
@@ -362,57 +470,27 @@ def cli(
     # Output
     ##
 
-    # Compute reverse dependency annotations statically, from the
-    # dependency cache that the resolver has populated by now.
-    #
-    # TODO (1a): reverse deps for any editable package are lost
-    #            what SHOULD happen is that they are cached in memory, just
-    #            not persisted to disk!
-    #
-    # TODO (1b): perhaps it's easiest if the dependency cache has an API
-    #            that could take InstallRequirements directly, like:
-    #
-    #              cache.set(ireq, ...)
-    #
-    #            then, when ireq is editable, it would store in
-    #
-    #              editables[egg_name][link_without_fragment] = deps
-    #              editables['pip-tools']['git+...ols.git@future'] = {
-    #                  'click>=3.0', 'six'
-    #              }
-    #
-    #            otherwise:
-    #
-    #              self[as_name_version_tuple(ireq)] = {'click>=3.0', 'six'}
-    #
-    reverse_dependencies = None
-    if annotate:
-        reverse_dependencies = resolver.reverse_dependencies(results)
-
     writer = OutputWriter(
         src_files,
         output_file,
         click_ctx=ctx,
         dry_run=dry_run,
         emit_header=header,
-        emit_index=index,
+        emit_index_url=emit_index_url,
         emit_trusted_host=emit_trusted_host,
         annotate=annotate,
         generate_hashes=generate_hashes,
         default_index_url=repository.DEFAULT_INDEX_URL,
         index_urls=repository.finder.index_urls,
-        trusted_hosts=pip_options.trusted_hosts,
+        trusted_hosts=repository.finder.trusted_hosts,
         format_control=repository.finder.format_control,
         allow_unsafe=allow_unsafe,
         find_links=repository.finder.find_links,
+        emit_find_links=emit_find_links,
     )
     writer.write(
         results=results,
         unsafe_requirements=resolver.unsafe_constraints,
-        reverse_dependencies=reverse_dependencies,
-        primary_packages={
-            key_from_ireq(ireq) for ireq in constraints if not ireq.constraint
-        },
         markers={
             key_from_ireq(ireq): ireq.markers for ireq in constraints if ireq.markers
         },
@@ -420,4 +498,4 @@ def cli(
     )
 
     if dry_run:
-        log.warning("Dry-run, so nothing updated.")
+        log.info("Dry-run, so nothing updated.")

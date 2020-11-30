@@ -15,14 +15,14 @@
 
 #include "jstypes.h"  // JS_PUBLIC_API
 
-#include "jit/JSJitFrameIter.h"  // js::jit::CalleeToken
-#include "js/CallArgs.h"         // JS::CallArgs
-#include "js/RootingAPI.h"       // JS::Handle, JS::Rooted
-#include "js/TypeDecls.h"        // jsbytecode
-#include "js/UniquePtr.h"        // js::UniquePtr
-#include "js/Value.h"            // JS::Value
-#include "vm/SavedFrame.h"       // js::SavedFrame
-#include "vm/Stack.h"            // js::InterpreterRegs
+#include "jit/CalleeToken.h"  // js::jit::CalleeToken
+#include "js/CallArgs.h"      // JS::CallArgs
+#include "js/RootingAPI.h"    // JS::Handle, JS::Rooted
+#include "js/TypeDecls.h"     // jsbytecode
+#include "js/UniquePtr.h"     // js::UniquePtr
+#include "js/Value.h"         // JS::Value
+#include "vm/SavedFrame.h"    // js::SavedFrame
+#include "vm/Stack.h"         // js::InterpreterRegs
 
 struct JS_PUBLIC_API JSContext;
 
@@ -281,9 +281,6 @@ class LiveSavedFrameCache {
     // If iter's frame is of a type that can be cached, construct a FramePtr
     // for its frame. Otherwise, return Nothing.
     static inline mozilla::Maybe<FramePtr> create(const FrameIter& iter);
-
-    // Construct a FramePtr from an AbstractFramePtr. This always succeeds.
-    static inline FramePtr create(AbstractFramePtr abstractFramePtr);
 
     inline bool hasCachedSavedFrame() const;
     inline void setHasCachedSavedFrame();

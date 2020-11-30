@@ -1,6 +1,5 @@
 from __future__ import absolute_import, print_function
 import os
-import shutil
 import time
 
 from marionette_harness import MarionetteTestCase
@@ -152,7 +151,8 @@ class TestFirefoxRefresh(MarionetteTestCase):
           // Expire in 15 minutes:
           let expireTime = Math.floor(Date.now() / 1000) + 15 * 60;
           Services.cookies.add(arguments[0], arguments[1], arguments[2], arguments[3],
-                               true, false, false, expireTime, {}, Ci.nsICookie.SAMESITE_NONE);
+                               true, false, false, expireTime, {},
+                               Ci.nsICookie.SAMESITE_NONE, Ci.nsICookie.SCHEME_UNSET);
         """, script_args=(self._cookieHost, self._cookiePath, self._cookieName, self._cookieValue))
 
     def createSession(self):
@@ -247,6 +247,8 @@ class TestFirefoxRefresh(MarionetteTestCase):
           const BROWSER_DOCURL = AppConstants.BROWSER_CHROME_URL;
           return Services.xulStore.getValue(BROWSER_DOCURL, "PersonalToolbar", "collapsed");
         """)
+        if toolbarVisible == "":
+            toolbarVisible = "false"
         self.assertEqual(toolbarVisible, "false")
 
     def checkHistory(self):
@@ -500,23 +502,12 @@ class TestFirefoxRefresh(MarionetteTestCase):
         # Super
         MarionetteTestCase.tearDown(self)
 
-        # Some helpers to deal with removing a load of files
-        import errno
-        import stat
-
-        def handleRemoveReadonly(func, path, exc):
-            excvalue = exc[1]
-            if func in (os.rmdir, os.remove) and excvalue.errno == errno.EACCES:
-                os.chmod(path, stat.S_IRWXU | stat.S_IRWXG |
-                         stat.S_IRWXO)  # 0777
-                func(path)
-            else:
-                raise
+        # A helper to deal with removing a load of files
+        import mozfile
 
         for cleanup in self.cleanups:
             if cleanup.desktop_backup_path:
-                shutil.rmtree(cleanup.desktop_backup_path,
-                              ignore_errors=False, onerror=handleRemoveReadonly)
+                mozfile.remove(cleanup.desktop_backup_path)
 
             if cleanup.reset_profile_path:
                 # Remove ourselves from profiles.ini
@@ -529,12 +520,10 @@ class TestFirefoxRefresh(MarionetteTestCase):
                 # Remove the local profile dir if it's not the same as the profile dir:
                 different_path = cleanup.reset_profile_local_path != cleanup.reset_profile_path
                 if cleanup.reset_profile_local_path and different_path:
-                    shutil.rmtree(cleanup.reset_profile_local_path,
-                                  ignore_errors=False, onerror=handleRemoveReadonly)
+                    mozfile.remove(cleanup.reset_profile_local_path)
 
                 # And delete all the files.
-                shutil.rmtree(cleanup.reset_profile_path,
-                              ignore_errors=False, onerror=handleRemoveReadonly)
+                mozfile.remove(cleanup.reset_profile_path)
 
     def doReset(self):
         profileName = "marionette-test-profile-" + str(int(time.time() * 1000))

@@ -21,9 +21,9 @@ RenderPipeline::~RenderPipeline() { Cleanup(); }
 void RenderPipeline::Cleanup() {
   if (mValid && mParent) {
     mValid = false;
-    WebGPUChild* bridge = mParent->mBridge;
+    auto bridge = mParent->GetBridge();
     if (bridge && bridge->IsOpen()) {
-      bridge->DestroyRenderPipeline(mId);
+      bridge->SendRenderPipelineDestroy(mId);
     }
   }
 }

@@ -5,9 +5,10 @@
         "id": "plainengine@search.mozilla.org"
       },
       "orderHint": 10000,
+      "sendAttributionRequest": true,
       "appliesTo": [{
         "included": { "everywhere": true },
-        "default": "yes"
+        "default": "yes-if-no-other"
       }]
     },
     {
@@ -16,7 +17,11 @@
       },
       "orderHint": 7000,
       "appliesTo": [{
-        "included": { "everywhere": true }
+        "included": { "regions": ["tr"] },
+        "default": "yes"
+      }, {
+        "included": { "everywhere": true },
+        "sendAttributionRequest": true
       }]
     },
     {
@@ -26,7 +31,8 @@
       },
       "orderHint": 6000,
       "appliesTo": [{
-        "included": { "regions": ["an"] }
+        "included": { "regions": ["an"] },
+        "default": "yes"
       }]
     },
     {

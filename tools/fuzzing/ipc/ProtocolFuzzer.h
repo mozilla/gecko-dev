@@ -10,6 +10,7 @@
 #include "chrome/common/ipc_message.h"
 
 #include "mozilla/RefPtr.h"
+#include "mozilla/UniquePtrExtensions.h"
 #include "mozilla/dom/ContentParent.h"
 
 namespace mozilla {
@@ -18,18 +19,20 @@ namespace ipc {
 class ProtocolFuzzerHelper {
  public:
   static mozilla::dom::ContentParent* CreateContentParent(
-      mozilla::dom::ContentParent* aOpener, const nsAString& aRemoteType);
+      const nsACString& aRemoteType);
 
   static void CompositorBridgeParentSetup();
 
   static void AddShmemToProtocol(IToplevelProtocol* aProtocol,
                                  Shmem::SharedMemory* aSegment, int32_t aId) {
-    aProtocol->mShmemMap.AddWithID(aSegment, aId);
+    MOZ_ASSERT(!aProtocol->mShmemMap.Contains(aId),
+               "Don't insert with an existing ID");
+    aProtocol->mShmemMap.Put(aId, aSegment);
   }
 
   static void RemoveShmemFromProtocol(IToplevelProtocol* aProtocol,
                                       int32_t aId) {
-    aProtocol->mShmemMap.RemoveIfPresent(aId);
+    aProtocol->mShmemMap.Remove(aId);
   }
 };
 
@@ -90,7 +93,7 @@ void FuzzProtocol(T* aProtocol, const uint8_t* aData, size_t aSize,
     // and then that many bytes.
 
     if (m.is_sync()) {
-      nsAutoPtr<IPC::Message> reply;
+      UniquePtr<IPC::Message> reply;
       aProtocol->OnMessageReceived(m, *getter_Transfers(reply));
     } else {
       aProtocol->OnMessageReceived(m);

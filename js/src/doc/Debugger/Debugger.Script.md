@@ -139,6 +139,28 @@ var s = f(function () {});  // display name: s<
 
 **If the instance refers to WebAssembly code**, throw a `TypeError`.
 
+### `parameterNames`
+**If the instance refers to a `JSScript`**, the names of its parameters,
+as an array of strings. If the script is not a function script this is
+`undefined`.
+
+If the function uses destructuring parameters, the corresponding array elements
+are `undefined`. For example, if the referent is a function script declared in this
+way:
+
+```js
+function f(a, [b, c], {d, e:f}) { ... }
+```
+
+then this `Debugger.Script` instance's `parameterNames` property would
+have the value:
+
+```js
+["a", undefined, undefined]
+```
+
+**If the instance refers to WebAssembly code**, throw a `TypeError`.
+
 ### `url`
 **If the instance refers to a `JSScript`**, the filename or URL from which
 this script's code was loaded. For scripts created by `eval` or the
@@ -334,18 +356,6 @@ same location(s) as <i>handler</i>, they remain in place.
 this script. If <i>offset</i> is present, remove all breakpoints set at
 that offset in this script; if <i>offset</i> is not a valid bytecode
 offset in this script, throw an error.
-
-### `getSuccessorOffsets(offset)`
-**If the instance refers to a `JSScript`**, return an array
-containing the offsets of all bytecodes in the script which are
-immediate successors of <i>offset</i> via non-exceptional control
-flow paths.
-
-### `getPredecessorOffsets(offset)`
-**If the instance refers to a `JSScript`**, return an array
-containing the offsets of all bytecodes in the script for which
-<i>offset</i> is an immediate successor via non-exceptional
-control flow paths.
 
 ### `getEffectfulOffsets()`
 **If the instance refers to a `JSScript`**, return an array

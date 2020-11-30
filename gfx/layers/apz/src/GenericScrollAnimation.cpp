@@ -57,7 +57,7 @@ void GenericScrollAnimation::Update(TimeStamp aTime,
 
 bool GenericScrollAnimation::DoSample(FrameMetrics& aFrameMetrics,
                                       const TimeDuration& aDelta) {
-  TimeStamp now = mApzc.GetFrameTime();
+  TimeStamp now = mApzc.GetFrameTime().Time();
   CSSToParentLayerScale2D zoom = aFrameMetrics.GetZoom();
 
   // If the animation is finished, make sure the final position is correct by
@@ -65,9 +65,9 @@ bool GenericScrollAnimation::DoSample(FrameMetrics& aFrameMetrics,
   // function as normal.
   bool finished = mAnimationPhysics->IsFinished(now);
   nsPoint sampledDest = mAnimationPhysics->PositionAt(now);
-  ParentLayerPoint displacement =
-      (CSSPoint::FromAppUnits(sampledDest) - aFrameMetrics.GetScrollOffset()) *
-      zoom;
+  ParentLayerPoint displacement = (CSSPoint::FromAppUnits(sampledDest) -
+                                   aFrameMetrics.GetVisualScrollOffset()) *
+                                  zoom;
 
   if (finished) {
     mApzc.mX.SetVelocity(0);

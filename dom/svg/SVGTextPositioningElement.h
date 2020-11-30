@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_SVGTextPositioningElement_h
-#define mozilla_dom_SVGTextPositioningElement_h
+#ifndef DOM_SVG_SVGTEXTPOSITIONINGELEMENT_H_
+#define DOM_SVG_SVGTEXTPOSITIONINGELEMENT_H_
 
 #include "mozilla/dom/SVGTextContentElement.h"
 #include "SVGAnimatedLengthList.h"
@@ -17,7 +17,7 @@ class SVGAnimatedLengthList;
 namespace dom {
 class DOMSVGAnimatedLengthList;
 class DOMSVGAnimatedNumberList;
-typedef SVGTextContentElement SVGTextPositioningElementBase;
+using SVGTextPositioningElementBase = SVGTextContentElement;
 
 class SVGTextPositioningElement : public SVGTextPositioningElementBase {
  public:
@@ -48,4 +48,4 @@ class SVGTextPositioningElement : public SVGTextPositioningElementBase {
 }  // namespace dom
 }  // namespace mozilla
 
-#endif  // mozilla_dom_SVGTextPositioningElement_h
+#endif  // DOM_SVG_SVGTEXTPOSITIONINGELEMENT_H_

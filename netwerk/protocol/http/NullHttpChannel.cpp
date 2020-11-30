@@ -26,7 +26,7 @@ NullHttpChannel::NullHttpChannel(nsIHttpChannel* chan)
   nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
   ssm->GetChannelURIPrincipal(chan, getter_AddRefs(mResourcePrincipal));
 
-  Unused << chan->GetResponseHeader(NS_LITERAL_CSTRING("Timing-Allow-Origin"),
+  Unused << chan->GetResponseHeader("Timing-Allow-Origin"_ns,
                                     mTimingAllowOriginHeader);
   chan->GetURI(getter_AddRefs(mURI));
   chan->GetOriginalURI(getter_AddRefs(mOriginalURI));
@@ -143,6 +143,13 @@ NullHttpChannel::SetRequestHeader(const nsACString& aHeader,
 }
 
 NS_IMETHODIMP
+NullHttpChannel::SetNewReferrerInfo(const nsACString& aUrl,
+                                    nsIReferrerInfo::ReferrerPolicyIDL aPolicy,
+                                    bool aSendReferrer) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
 NullHttpChannel::SetEmptyRequestHeader(const nsACString& aHeader) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -228,6 +235,12 @@ NullHttpChannel::GetOriginalResponseHeader(const nsACString& header,
 
 NS_IMETHODIMP
 NullHttpChannel::VisitOriginalResponseHeaders(nsIHttpHeaderVisitor* aVisitor) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+NullHttpChannel::ShouldStripRequestBodyHeader(const nsACString& aMethod,
+                                              bool* aResult) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -743,7 +756,7 @@ NullHttpChannel::TimingAllowCheck(nsIPrincipal* aOrigin, bool* _retval) {
   }
 
   nsAutoCString origin;
-  nsContentUtils::GetASCIIOrigin(aOrigin, origin);
+  aOrigin->GetAsciiOrigin(origin);
 
   if (mTimingAllowOriginHeader == origin) {
     *_retval = true;

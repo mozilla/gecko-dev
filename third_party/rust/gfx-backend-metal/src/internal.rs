@@ -14,7 +14,6 @@ use storage_map::{StorageMap, StorageMapGuard};
 
 use std::mem;
 
-
 pub type FastStorageMap<K, V> = StorageMap<RawRwLock, FastHashMap<K, V>>;
 pub type FastStorageGuard<'a, V> = StorageMapGuard<'a, RawRwLock, V>;
 
@@ -299,7 +298,7 @@ impl ImageClearPipes {
             for (i, &format) in key.color_formats.iter().enumerate() {
                 pipeline
                     .color_attachments()
-                    .object_at(i)
+                    .object_at(i as u64)
                     .unwrap()
                     .set_pixel_format(format);
             }
@@ -333,7 +332,7 @@ impl ImageClearPipes {
                 .object_at(i)
                 .expect("too many vertex attributes");
             mtl_attribute_desc.set_buffer_index(0);
-            mtl_attribute_desc.set_offset((i * mem::size_of::<[f32; 4]>()) as _);
+            mtl_attribute_desc.set_offset(i * mem::size_of::<[f32; 4]>() as u64);
             mtl_attribute_desc.set_format(metal::MTLVertexFormat::Float4);
         }
         pipeline.set_vertex_descriptor(Some(&vertex_descriptor));
@@ -429,7 +428,7 @@ impl ImageBlitPipes {
                 .object_at(i)
                 .expect("too many vertex attributes");
             mtl_attribute_desc.set_buffer_index(0);
-            mtl_attribute_desc.set_offset((i * mem::size_of::<[f32; 4]>()) as _);
+            mtl_attribute_desc.set_offset(i * mem::size_of::<[f32; 4]>() as u64);
             mtl_attribute_desc.set_format(metal::MTLVertexFormat::Float4);
         }
         pipeline.set_vertex_descriptor(Some(&vertex_descriptor));
@@ -451,7 +450,11 @@ pub struct ServicePipes {
 
 impl ServicePipes {
     pub fn new(device: &metal::DeviceRef) -> Self {
-        let data = include_bytes!("./../shaders/gfx_shaders.metallib");
+        let data = if cfg!(target_os = "macos") {
+            &include_bytes!("./../shaders/gfx-shaders-macos.metallib")[..]
+        } else {
+            &include_bytes!("./../shaders/gfx-shaders-ios.metallib")[..]
+        };
         let library = device.new_library_with_data(data).unwrap();
 
         let copy_buffer = Self::create_copy_buffer(&library, device);
@@ -489,7 +492,7 @@ impl ServicePipes {
             buffers.object_at(2).unwrap().set_mutability(metal::MTLMutability::Immutable);
         }*/
 
-        unsafe { device.new_compute_pipeline_state(&pipeline) }.unwrap()
+        device.new_compute_pipeline_state(&pipeline).unwrap()
     }
 
     fn create_fill_buffer(
@@ -508,7 +511,7 @@ impl ServicePipes {
             buffers.object_at(1).unwrap().set_mutability(metal::MTLMutability::Immutable);
         }*/
 
-        unsafe { device.new_compute_pipeline_state(&pipeline) }.unwrap()
+        device.new_compute_pipeline_state(&pipeline).unwrap()
     }
 
     pub(crate) fn simple_blit(

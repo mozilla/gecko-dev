@@ -5,6 +5,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 XPIDL_SOURCES += [
+    'nsIDirectTaskDispatcher.idl',
     'nsIEnvironment.idl',
     'nsIEventTarget.idl',
     'nsIIdlePeriod.idl',
@@ -40,7 +41,6 @@ EXPORTS += [
 ]
 
 EXPORTS.mozilla += [
-    'AbstractEventQueue.h',
     'AbstractThread.h',
     'BlockingResourceBase.h',
     'CondVar.h',
@@ -50,6 +50,7 @@ EXPORTS.mozilla += [
     'EventQueue.h',
     'IdlePeriodState.h',
     'IdleTaskRunner.h',
+    'InputTaskManager.h',
     'LazyIdleThread.h',
     'MainThreadIdlePeriod.h',
     'Monitor.h',
@@ -57,7 +58,6 @@ EXPORTS.mozilla += [
     'MozPromiseInlines.h',
     'Mutex.h',
     'PerformanceCounter.h',
-    'PrioritizedEventQueue.h',
     'Queue.h',
     'RecursiveMutex.h',
     'ReentrantMonitor.h',
@@ -68,8 +68,8 @@ EXPORTS.mozilla += [
     'StateWatching.h',
     'SynchronizedEventQueue.h',
     'SyncRunnable.h',
-    'SystemGroup.h',
     'TaskCategory.h',
+    'TaskController.h',
     'TaskDispatcher.h',
     'TaskQueue.h',
     'ThreadBound.h',
@@ -89,6 +89,7 @@ UNIFIED_SOURCES += [
     'EventQueue.cpp',
     'IdlePeriodState.cpp',
     'InputEventStatistics.cpp',
+    'InputTaskManager.cpp',
     'LazyIdleThread.cpp',
     'MainThreadIdlePeriod.cpp',
     'nsEnvironment.cpp',
@@ -101,13 +102,12 @@ UNIFIED_SOURCES += [
     'nsThreadUtils.cpp',
     'nsTimerImpl.cpp',
     'PerformanceCounter.cpp',
-    'PrioritizedEventQueue.cpp',
     'RecursiveMutex.cpp',
     'RWLock.cpp',
     'SchedulerGroup.cpp',
     'SharedThreadPool.cpp',
     'SynchronizedEventQueue.cpp',
-    'SystemGroup.cpp',
+    'TaskController.cpp',
     'TaskQueue.cpp',
     'ThreadEventQueue.cpp',
     'ThreadEventTarget.cpp',

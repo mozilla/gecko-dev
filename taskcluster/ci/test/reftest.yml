@@ -10,17 +10,15 @@ job-defaults:
             android-em-7.*: geckoview-androidTest.apk
             android-hw-.*: geckoview-androidTest.apk
             default: null
-    variants:
-        by-test-platform:
-            linux1804-64/debug: ['fission']
-            default: ['fission']
+    variants: ['fission']
     fission-tier: 2
     run-on-projects:
         by-test-platform:
-            android-hw-.*-qr/debug: ['try', 'mozilla-central']
-            android-hw-.*-qr/opt: ['try', 'mozilla-central', 'autoland']
+            android-hw-.*-qr/debug: ['mozilla-central']
+            android-hw-.*-qr/opt: ['mozilla-central', 'autoland']
             windows10-aarch64/.*: []  # Specific repos enabled below
             default: built-projects
+    test-manifest-loader: null  # don't load tests in the taskgraph
     mozharness:
         script:
             by-test-platform:
@@ -45,6 +43,7 @@ job-defaults:
 
 crashtest:
     description: "Crashtest run"
+    schedules-component: crashtest
     treeherder-symbol: R(C)
     chunks:
         by-test-platform:
@@ -53,7 +52,7 @@ crashtest:
     e10s: true
     run-on-projects:
         by-test-platform:
-            windows10-aarch64/.*: ['try', 'mozilla-central', 'mozilla-beta', 'mozilla-release']
+            windows10-aarch64/.*: ['mozilla-central', 'mozilla-beta', 'mozilla-release']
             default: built-projects
     max-run-time: 3600
     tier:
@@ -61,6 +60,28 @@ crashtest:
             windows10-aarch64.*: 2
             android-hw-.*-qr/.*: 2
             default: default
+    fission-tier:
+        by-test-platform:
+            linux1804-64-qr/debug: 1
+            default: 2
+    fission-run-on-projects:
+        by-test-platform:
+            linux1804-64-qr/debug: ['trunk']
+            default: []
+
+crashtest-qr:
+    description: "Crashtest Webrender run"
+    schedules-component: crashtest
+    treeherder-symbol: R(C)
+    chunks: 1
+    e10s: true
+    run-on-projects: built-projects
+    max-run-time: 1200
+    tier: 2
+    virtualization:
+        by-test-platform:
+            windows10-64.*: hardware
+            default: virtual
 
 jsreftest:
     description: "JS Reftest run"
@@ -91,13 +112,25 @@ jsreftest:
     tier: default
     run-on-projects:
         by-test-platform:
-            android-hw-.*-api-16/debug: ['try', 'mozilla-central']
+            android-hw-.*-aarch64(?:-shippable)?/.*: ['mozilla-central', 'release']
+            android-hw-.*-api-16(?:-shippable)?/.*: ['mozilla-central', 'release']
             default: built-projects
+    virtualization:
+        by-test-platform:
+            windows10-64.*: hardware
+            default: virtual
 
 reftest:
     description: "Reftest run"
     treeherder-symbol: R(R)
-    virtualization: virtual-with-gpu
+    virtualization:
+        by-test-platform:
+            windows10-64.*: hardware
+            default: virtual-with-gpu
+    variants:
+        by-test-platform:
+            linux1804-64-qr/debug: ['webrender-sw', 'fission']
+            default: ['fission']
     chunks:
         by-test-platform:
             android-em-7.*: 2
@@ -114,7 +147,7 @@ reftest:
     e10s: true
     run-on-projects:
         by-test-platform:
-            windows10-aarch64/.*: ['try', 'mozilla-central', 'mozilla-beta', 'mozilla-release']
+            windows10-aarch64/.*: ['mozilla-central', 'mozilla-beta', 'mozilla-release']
             default: built-projects
     max-run-time:
         by-test-platform:
@@ -144,6 +177,22 @@ reftest:
             linux1804-64-qr/debug: ['trunk']
             default: []
 
+reftest-qr:
+    description: "Reftest webrender run"
+    treeherder-symbol: R(R)
+    chunks: 2
+    e10s: true
+    run-on-projects: built-projects
+    max-run-time: 2400
+    mozharness:
+        chunked: true
+    tier: 2
+    virtualization:
+        by-test-platform:
+            windows10-64.*: hardware
+            default: virtual
+
+
 reftest-gpu:
     description: "Reftest GPU run"
     treeherder-symbol: R(Rg)
@@ -165,7 +214,10 @@ reftest-gpu:
 reftest-no-accel:
     description: "Reftest not accelerated run"
     treeherder-symbol: R(Ru)
-    virtualization: virtual-with-gpu
+    virtualization:
+        by-test-platform:
+            windows10-64.*: hardware
+            default: virtual-with-gpu
     run-on-projects:
         by-test-platform:
             windows10.*: []

@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+"use strict";
 
 // checking to make sure we don't hang as per 1038304
 // offline so url isn't impt
@@ -36,7 +37,7 @@ function run_test() {
       null, // aLoadingNode
       Services.scriptSecurityManager.getSystemPrincipal(),
       null, // aTriggeringPrincipal
-      Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+      Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
       Ci.nsIContentPolicy.TYPE_WEBSOCKET
     );
 

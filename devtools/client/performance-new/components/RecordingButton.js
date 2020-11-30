@@ -53,75 +53,6 @@ const selectors = require("devtools/client/performance-new/store/selectors");
  * @extends {React.PureComponent<Props>}
  */
 class RecordingButton extends PureComponent {
-  /** @param {Props} props */
-  constructor(props) {
-    super(props);
-    this._getProfileAndStopProfiler = () =>
-      this.props.getProfileAndStopProfiler(window);
-  }
-
-  /** @param {{
-   *   disabled?: boolean,
-   *   label?: React.ReactNode,
-   *   onClick?: any,
-   *   additionalMessage?: React.ReactNode,
-   *   isPrimary?: boolean,
-   *   pageContext?: PageContext,
-   *   additionalButton?: {
-   *     label: string,
-   *     onClick: any,
-   *   },
-   * }} buttonSettings
-   */
-  renderButton(buttonSettings) {
-    const {
-      disabled,
-      label,
-      onClick,
-      additionalMessage,
-      isPrimary,
-      // pageContext,
-      additionalButton,
-    } = buttonSettings;
-
-    const nbsp = "\u00A0";
-    const showAdditionalMessage = false;
-    // TODO - Bug 1615431 - This feature needs to be migrated to about:profiling.
-    // const showAdditionalMessage = pageContext === "aboutprofiling" && additionalMessage;
-    const buttonClass = isPrimary ? "primary" : "default";
-
-    return div(
-      { className: "perf-button-container" },
-      showAdditionalMessage
-        ? div(
-            { className: "perf-additional-message" },
-            additionalMessage || nbsp
-          )
-        : null,
-      div(
-        null,
-        button(
-          {
-            className: `perf-photon-button perf-photon-button-${buttonClass} perf-button`,
-            disabled,
-            onClick,
-          },
-          label
-        ),
-        additionalButton
-          ? button(
-              {
-                className: `perf-photon-button perf-photon-button-default perf-button`,
-                onClick: additionalButton.onClick,
-                disabled,
-              },
-              additionalButton.label
-            )
-          : null
-      )
-    );
-  }
-
   render() {
     const {
       startRecording,
@@ -129,11 +60,13 @@ class RecordingButton extends PureComponent {
       recordingState,
       isSupportedPlatform,
       recordingUnexpectedlyStopped,
+      getProfileAndStopProfiler,
     } = this.props;
 
     if (!isSupportedPlatform) {
-      return this.renderButton({
-        label: "Start recording",
+      return renderButton({
+        label: startRecordingLabel(),
+        isPrimary: true,
         disabled: true,
         additionalMessage:
           "Your platform is not supported. The Gecko Profiler only " +
@@ -147,39 +80,42 @@ class RecordingButton extends PureComponent {
         return null;
 
       case "available-to-record":
-        return this.renderButton({
+        return renderButton({
           onClick: startRecording,
-          label: span(
-            null,
-            img({
-              className: "perf-button-image",
-              src: "chrome://devtools/skin/images/tool-profiler.svg",
-            }),
-            "Start recording"
-          ),
+          isPrimary: true,
+          label: startRecordingLabel(),
           additionalMessage: recordingUnexpectedlyStopped
             ? div(null, "The recording was stopped by another tool.")
             : null,
         });
 
       case "request-to-stop-profiler":
-        return this.renderButton({
+        return renderButton({
           label: "Stopping recording",
           disabled: true,
         });
 
       case "request-to-get-profile-and-stop-profiler":
-        return this.renderButton({
+        return renderButton({
           label: "Capturing profile",
           disabled: true,
         });
 
       case "request-to-start-recording":
       case "recording":
-        return this.renderButton({
-          label: "Capture recording",
+        return renderButton({
+          label: span(
+            null,
+            "Capture recording",
+            img({
+              className: "perf-button-image",
+              alt: "",
+              /* This icon is actually the "open in new page" icon. */
+              src: "chrome://devtools/skin/images/dock-undock.svg",
+            })
+          ),
           isPrimary: true,
-          onClick: this._getProfileAndStopProfiler,
+          onClick: getProfileAndStopProfiler,
           disabled: recordingState === "request-to-start-recording",
           additionalButton: {
             label: "Cancel recording",
@@ -188,15 +124,9 @@ class RecordingButton extends PureComponent {
         });
 
       case "locked-by-private-browsing":
-        return this.renderButton({
-          label: span(
-            null,
-            img({
-              className: "perf-button-image",
-              src: "chrome://devtools/skin/images/tool-profiler.svg",
-            }),
-            "Start recording"
-          ),
+        return renderButton({
+          label: startRecordingLabel(),
+          isPrimary: true,
           disabled: true,
           additionalMessage: `The profiler is disabled when Private Browsing is enabled.
                               Close all Private Windows to re-enable the profiler`,
@@ -206,6 +136,75 @@ class RecordingButton extends PureComponent {
         throw new Error("Unhandled recording state");
     }
   }
+}
+
+/**
+ * @param {{
+ *   disabled?: boolean,
+ *   label?: React.ReactNode,
+ *   onClick?: any,
+ *   additionalMessage?: React.ReactNode,
+ *   isPrimary?: boolean,
+ *   pageContext?: PageContext,
+ *   additionalButton?: {
+ *     label: string,
+ *     onClick: any,
+ *   },
+ * }} buttonSettings
+ */
+function renderButton(buttonSettings) {
+  const {
+    disabled,
+    label,
+    onClick,
+    additionalMessage,
+    isPrimary,
+    // pageContext,
+    additionalButton,
+  } = buttonSettings;
+
+  const buttonClass = isPrimary ? "primary" : "default";
+
+  return div(
+    { className: "perf-button-container" },
+    div(
+      null,
+      button(
+        {
+          className: `perf-photon-button perf-photon-button-${buttonClass} perf-button`,
+          disabled,
+          onClick,
+        },
+        label
+      ),
+      additionalButton
+        ? button(
+            {
+              className: `perf-photon-button perf-photon-button-default perf-button`,
+              onClick: additionalButton.onClick,
+              disabled,
+            },
+            additionalButton.label
+          )
+        : null
+    ),
+    additionalMessage
+      ? div({ className: "perf-additional-message" }, additionalMessage)
+      : null
+  );
+}
+
+function startRecordingLabel() {
+  return span(
+    null,
+    "Start recording",
+    img({
+      className: "perf-button-image",
+      alt: "",
+      /* This icon is actually the "open in new page" icon. */
+      src: "chrome://devtools/skin/images/dock-undock.svg",
+    })
+  );
 }
 
 /**
@@ -230,7 +229,4 @@ const mapDispatchToProps = {
   getProfileAndStopProfiler: actions.getProfileAndStopProfiler,
 };
 
-module.exports = connect(
-  mapStateToProps,
-  mapDispatchToProps
-)(RecordingButton);
+module.exports = connect(mapStateToProps, mapDispatchToProps)(RecordingButton);

@@ -1,5 +1,7 @@
-/* Any copyright is dedicated to the Public Domain.
- * http://creativecommons.org/publicdomain/zero/1.0/ */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
+
 
 /**
  * Tests that a chrome debugger can be created in a new process.
@@ -7,44 +9,16 @@
 
 // There are shutdown issues for which multiple rejections are left uncaught.
 // See bug 1018184 for resolving these issues.
-PromiseTestUtils.whitelistRejectionsGlobally(/File closed/);
-PromiseTestUtils.whitelistRejectionsGlobally(/NS_ERROR_FAILURE/);
+PromiseTestUtils.allowMatchingRejectionsGlobally(/File closed/);
+PromiseTestUtils.allowMatchingRejectionsGlobally(/NS_ERROR_FAILURE/);
 
 requestLongerTimeout(5);
 
 const { BrowserToolboxLauncher } = ChromeUtils.import("resource://devtools/client/framework/browser-toolbox/Launcher.jsm");
 let gProcess = undefined;
 
-function initChromeDebugger() {
-  info("Initializing a chrome debugger process.");
-  return new Promise(resolve => {
-    BrowserToolboxLauncher.init(onClose, _process => {
-      info("Browser toolbox process started successfully.");
-      resolve(_process);
-    });
-  });
-}
-
-function onClose() {
-  is(
-    gProcess._dbgProcess.exitCode,
-    Services.appinfo.OS == "WINNT" ? -9 : -15,
-    "The remote debugger process didn't die cleanly."
-  );
-
-  info("process exit value: " + gProcess._dbgProcess.exitCode);
-
-  info("profile path: " + gProcess._dbgProfilePath);
-
-  finish();
-}
-
-registerCleanupFunction(function() {
-  gProcess = null;
-});
-
 add_task(async function() {
-  // Windows XP and 8.1 test slaves are terribly slow at this test.
+  // Windows XP and 8.1 test machines are terribly slow at this test.
   await pushPref("devtools.chrome.enabled", true);
   await pushPref("devtools.debugger.remote-enabled", true);
 
@@ -83,4 +57,32 @@ add_task(async function() {
   info("profile path: " + gProcess._dbgProfilePath);
 
   await gProcess.close();
+});
+
+function initChromeDebugger() {
+  info("Initializing a chrome debugger process.");
+  return new Promise(resolve => {
+    BrowserToolboxLauncher.init(onClose, _process => {
+      info("Browser toolbox process started successfully.");
+      resolve(_process);
+    });
+  });
+}
+
+function onClose() {
+  is(
+    gProcess._dbgProcess.exitCode,
+    Services.appinfo.OS == "WINNT" ? -9 : -15,
+    "The remote debugger process didn't die cleanly."
+  );
+
+  info("process exit value: " + gProcess._dbgProcess.exitCode);
+
+  info("profile path: " + gProcess._dbgProfilePath);
+
+  finish();
+}
+
+registerCleanupFunction(function() {
+  gProcess = null;
 });

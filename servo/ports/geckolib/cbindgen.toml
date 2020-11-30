@@ -30,7 +30,7 @@ line_length = 80
 tab_width = 2
 language = "C++"
 namespaces = ["mozilla"]
-includes = ["mozilla/ServoStyleConstsForwards.h"]
+includes = ["mozilla/ServoStyleConstsForwards.h", "mozilla/ServoStyleSet.h"]
 
 [parse]
 parse_deps = true
@@ -84,6 +84,7 @@ include = [
   "ComputedFontWeightRange",
   "ComputedTimingFunction",
   "ComputedValueFlags",
+  "ContrastPref",
   "CursorKind",
   "DisplayOutside",
   "DisplayInside",
@@ -203,6 +204,8 @@ include = [
   "ComputedJustifyItems",
   "AlignContent",
   "JustifyContent",
+  "AlignTracks",
+  "JustifyTracks",
   "TransformStyle",
   "Image",
   "ClipPath",
@@ -215,6 +218,10 @@ include = [
   "SVGWidth",
   "TextAlign",
   "TextAlignLast",
+  "FontSizeKeyword",
+  "AspectRatio",
+  "DefaultFontSizes",
+  "RuleChangeKind",
 ]
 item_types = ["enums", "structs", "unions", "typedefs", "functions", "constants"]
 renaming_overrides_prefixing = true
@@ -231,6 +238,7 @@ renaming_overrides_prefixing = true
 "nsACString" = "nsACString"
 "nsAString" = "nsAString"
 "nsString" = "nsString"
+"CopyableTArray" = "CopyableTArray"
 "nsTArray" = "nsTArray"
 "nsPresContext" = "nsPresContext"
 "ComputedTiming" = "ComputedTiming"
@@ -272,10 +280,14 @@ renaming_overrides_prefixing = true
 
 [export.body]
 "CSSPixelLength" = """
+  static StyleCSSPixelLength FromPixels(CSSCoord aCoord) { return {aCoord}; }
+  static StyleCSSPixelLength Zero() { return FromPixels(0.0f); }
+
   inline nscoord ToAppUnits() const;
   inline bool IsZero() const;
   CSSCoord ToCSSPixels() const { return _0; }
   inline void ScaleBy(float);
+  inline StyleCSSPixelLength ScaledBy(float) const;
 """
 
 "GenericCalcNode" = """
@@ -412,8 +424,10 @@ renaming_overrides_prefixing = true
   inline const T& Get(WritingMode, LogicalSide) const;
   inline const T& GetIStart(WritingMode) const;
   inline const T& GetBStart(WritingMode) const;
+  inline const T& Start(LogicalAxis, WritingMode) const;
   inline const T& GetIEnd(WritingMode) const;
   inline const T& GetBEnd(WritingMode) const;
+  inline const T& End(LogicalAxis, WritingMode) const;
 
   inline T& Get(mozilla::Side);
   inline T& Get(WritingMode, LogicalSide);
@@ -450,7 +464,7 @@ renaming_overrides_prefixing = true
 """
 
 # TODO(emilio): Add hooks to cbindgen to be able to generate MOZ_MUST_USE_TYPE
-# or MOZ_MUST_USE on the functions.
+# or [[nodiscard]] on the functions.
 "Owned" = """
   UniquePtr<GeckoType> Consume() {
     UniquePtr<GeckoType> ret(ptr);
@@ -524,11 +538,11 @@ renaming_overrides_prefixing = true
   inline ~StyleOwnedSlice();
 
   Span<const T> AsSpan() const {
-    return MakeSpan(ptr, len);
+    return {ptr, len};
   }
 
   size_t Length() const {
-    return AsSpan().Length();
+    return len;
   }
 
   bool IsEmpty() const { return Length() == 0; }
@@ -546,7 +560,7 @@ renaming_overrides_prefixing = true
   // Increase the reference count.
   inline void IncrementRef();
   // Release the reference count, and return whether the result must be freed or not.
-  MOZ_MUST_USE inline bool DecrementRef();
+  [[nodiscard]] inline bool DecrementRef();
 """
 
 "ArcSlice" = """
@@ -812,4 +826,19 @@ renaming_overrides_prefixing = true
 
   // Returns whether this image has been resolved.
   bool IsResolved() const;
+"""
+
+"Ratio" = """
+  inline AspectRatio ToLayoutRatio() const;
+"""
+
+"GenericAspectRatio" = """
+  bool HasRatio() const { return ratio.IsRatio(); }
+  bool HasFiniteRatio() const {
+    return HasRatio() && ratio.AsRatio().ToLayoutRatio();
+  }
+
+  static StyleGenericAspectRatio Auto() {
+    return {true, StylePreferredRatio<N>::None()};
+  }
 """

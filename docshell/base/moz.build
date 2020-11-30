@@ -74,6 +74,7 @@ EXPORTS.mozilla += [
 EXPORTS.mozilla.dom += [
     'BrowsingContext.h',
     'BrowsingContextGroup.h',
+    'BrowsingContextWebProgress.h',
     'CanonicalBrowsingContext.h',
     'ChildProcessChannelListener.h',
     'SyncedContext.h',
@@ -85,15 +86,16 @@ UNIFIED_SOURCES += [
     'BaseHistory.cpp',
     'BrowsingContext.cpp',
     'BrowsingContextGroup.cpp',
+    'BrowsingContextWebProgress.cpp',
     'CanonicalBrowsingContext.cpp',
     'ChildProcessChannelListener.cpp',
     'LoadContext.cpp',
     'nsAboutRedirector.cpp',
-    'nsDefaultURIFixup.cpp',
     'nsDocShell.cpp',
     'nsDocShellEditorData.cpp',
     'nsDocShellEnumerator.cpp',
     'nsDocShellLoadState.cpp',
+    'nsDocShellTelemetryUtils.cpp',
     'nsDocShellTreeOwner.cpp',
     'nsDSURIContentListener.cpp',
     'nsPingListener.cpp',
@@ -124,3 +126,7 @@ LOCAL_INCLUDES += [
 
 if CONFIG['CC_TYPE'] in ('clang', 'gcc'):
     CXXFLAGS += ['-Wno-error=shadow']
+
+EXTRA_JS_MODULES += [
+    'URIFixup.jsm'
+]

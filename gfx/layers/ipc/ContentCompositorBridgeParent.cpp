@@ -10,14 +10,12 @@
 
 #include "LayerTransactionParent.h"   // for LayerTransactionParent
 #include "apz/src/APZCTreeManager.h"  // for APZCTreeManager
-#include "base/message_loop.h"        // for MessageLoop
-#include "base/task.h"                // for CancelableTask, etc
-#include "base/thread.h"              // for Thread
 #include "gfxUtils.h"
 #ifdef XP_WIN
 #  include "mozilla/gfx/DeviceManagerDx.h"  // for DeviceManagerDx
 #  include "mozilla/layers/ImageDataSerializer.h"
 #endif
+#include "mozilla/D3DMessageUtils.h"  // for DxgiAdapterDesc
 #include "mozilla/dom/WebGLParent.h"
 #include "mozilla/ipc/Transport.h"           // for Transport
 #include "mozilla/layers/AnimationHelper.h"  // for CompositorAnimationStorage
@@ -67,7 +65,7 @@ void ContentCompositorBridgeParent::ActorDestroy(ActorDestroyReason aWhy) {
 
   // We must keep this object alive untill the code handling message
   // reception is finished on this thread.
-  MessageLoop::current()->PostTask(NewRunnableMethod(
+  GetCurrentSerialEventTarget()->Dispatch(NewRunnableMethod(
       "layers::ContentCompositorBridgeParent::DeferredDestroy", this,
       &ContentCompositorBridgeParent::DeferredDestroy));
 }
@@ -148,13 +146,10 @@ ContentCompositorBridgeParent::AllocPAPZCTreeManagerParent(
     RefPtr<APZCTreeManager> temp = new APZCTreeManager(dummyId);
     RefPtr<APZUpdater> tempUpdater = new APZUpdater(temp, false);
     tempUpdater->ClearTree(dummyId);
-    return new APZCTreeManagerParent(
-        WRRootId(aLayersId, gfxUtils::GetContentRenderRoot()), temp,
-        tempUpdater);
+    return new APZCTreeManagerParent(aLayersId, temp, tempUpdater);
   }
 
-  state.mParent->AllocateAPZCTreeManagerParent(
-      lock, WRRootId(aLayersId, gfxUtils::GetContentRenderRoot()), state);
+  state.mParent->AllocateAPZCTreeManagerParent(lock, aLayersId, state);
   return state.mApzcTreeManagerParent;
 }
 bool ContentCompositorBridgeParent::DeallocPAPZCTreeManagerParent(
@@ -229,13 +224,12 @@ ContentCompositorBridgeParent::AllocPWebRenderBridgeParent(
     }
   }
 
-  nsTArray<RefPtr<wr::WebRenderAPI>> apis;
-  bool cloneSuccess = false;
+  RefPtr<wr::WebRenderAPI> api;
   if (root) {
-    cloneSuccess = root->CloneWebRenderAPIs(apis);
+    api = root->GetWebRenderAPI();
   }
 
-  if (!cloneSuccess) {
+  if (!root || !api) {
     // This could happen when this function is called after
     // CompositorBridgeParent destruction. This was observed during Tab move
     // between different windows.
@@ -243,17 +237,18 @@ ContentCompositorBridgeParent::AllocPWebRenderBridgeParent(
         nsPrintfCString("Created child without a matching parent? root %p",
                         root.get())
             .get());
+    nsCString error("NO_PARENT");
     WebRenderBridgeParent* parent =
-        WebRenderBridgeParent::CreateDestroyed(aPipelineId);
+        WebRenderBridgeParent::CreateDestroyed(aPipelineId, std::move(error));
     parent->AddRef();  // IPDL reference
     return parent;
   }
 
+  api = api->Clone();
   RefPtr<AsyncImagePipelineManager> holder = root->AsyncImageManager();
-  RefPtr<CompositorAnimationStorage> animStorage = cbp->GetAnimationStorage();
   WebRenderBridgeParent* parent = new WebRenderBridgeParent(
-      this, aPipelineId, nullptr, root->CompositorScheduler(), std::move(apis),
-      std::move(holder), std::move(animStorage), cbp->GetVsyncInterval());
+      this, aPipelineId, nullptr, root->CompositorScheduler(), std::move(api),
+      std::move(holder), cbp->GetVsyncInterval());
   parent->AddRef();  // IPDL reference
 
   {  // scope lock
@@ -353,7 +348,7 @@ void ContentCompositorBridgeParent::ShadowLayersUpdated(
   UpdateIndirectTree(id, shadowRoot, aInfo.targetConfig());
 
   // Cache the plugin data for this remote layer tree
-  state->mPluginData = aInfo.plugins();
+  state->mPluginData = aInfo.plugins().Clone();
   state->mUpdatedPluginDataAvailable = true;
 
   state->mParent->NotifyShadowTreeTransaction(
@@ -382,16 +377,16 @@ void ContentCompositorBridgeParent::ShadowLayersUpdated(
       ContentBuildPayload(const mozilla::TimeStamp& aStartTime,
                           const mozilla::TimeStamp& aEndTime)
           : ProfilerMarkerPayload(aStartTime, aEndTime) {}
-      mozilla::BlocksRingBuffer::Length TagAndSerializationBytes()
+      mozilla::ProfileBufferEntryWriter::Length TagAndSerializationBytes()
           const override {
         return CommonPropsTagAndSerializationBytes();
       }
       void SerializeTagAndPayload(
-          mozilla::BlocksRingBuffer::EntryWriter& aEntryWriter) const override {
+          mozilla::ProfileBufferEntryWriter& aEntryWriter) const override {
         static const DeserializerTag tag = TagForDeserializer(Deserialize);
         SerializeTagAndCommonProps(tag, aEntryWriter);
       }
-      void StreamPayload(SpliceableJSONWriter& aWriter,
+      void StreamPayload(mozilla::baseprofiler::SpliceableJSONWriter& aWriter,
                          const TimeStamp& aProcessStartTime,
                          UniqueStacks& aUniqueStacks) const override {
         StreamCommonProps("CONTENT_FULL_PAINT_TIME", aWriter, aProcessStartTime,
@@ -402,7 +397,7 @@ void ContentCompositorBridgeParent::ShadowLayersUpdated(
       explicit ContentBuildPayload(CommonProps&& aCommonProps)
           : ProfilerMarkerPayload(std::move(aCommonProps)) {}
       static mozilla::UniquePtr<ProfilerMarkerPayload> Deserialize(
-          mozilla::BlocksRingBuffer::EntryReader& aEntryReader) {
+          mozilla::ProfileBufferEntryReader& aEntryReader) {
         ProfilerMarkerPayload::CommonProps props =
             DeserializeCommonProps(aEntryReader);
         return UniquePtr<ProfilerMarkerPayload>(
@@ -413,7 +408,7 @@ void ContentCompositorBridgeParent::ShadowLayersUpdated(
     profiler_add_marker_for_thread(
         profiler_current_thread_id(), JS::ProfilingCategoryPair::GRAPHICS,
         "CONTENT_FULL_PAINT_TIME",
-        MakeUnique<ContentBuildPayload>(aInfo.transactionStart(), endTime));
+        ContentBuildPayload(aInfo.transactionStart(), endTime));
   }
 #endif
   Telemetry::Accumulate(
@@ -514,11 +509,11 @@ void ContentCompositorBridgeParent::ApplyAsyncProperties(
 }
 
 void ContentCompositorBridgeParent::SetTestAsyncScrollOffset(
-    const WRRootId& aLayersId, const ScrollableLayerGuid::ViewID& aScrollId,
+    const LayersId& aLayersId, const ScrollableLayerGuid::ViewID& aScrollId,
     const CSSPoint& aPoint) {
   MOZ_ASSERT(aLayersId.IsValid());
   const CompositorBridgeParent::LayerTreeState* state =
-      CompositorBridgeParent::GetIndirectShadowTree(aLayersId.mLayersId);
+      CompositorBridgeParent::GetIndirectShadowTree(aLayersId);
   if (!state) {
     return;
   }
@@ -528,11 +523,11 @@ void ContentCompositorBridgeParent::SetTestAsyncScrollOffset(
 }
 
 void ContentCompositorBridgeParent::SetTestAsyncZoom(
-    const WRRootId& aLayersId, const ScrollableLayerGuid::ViewID& aScrollId,
+    const LayersId& aLayersId, const ScrollableLayerGuid::ViewID& aScrollId,
     const LayerToParentLayerScale& aZoom) {
   MOZ_ASSERT(aLayersId.IsValid());
   const CompositorBridgeParent::LayerTreeState* state =
-      CompositorBridgeParent::GetIndirectShadowTree(aLayersId.mLayersId);
+      CompositorBridgeParent::GetIndirectShadowTree(aLayersId);
   if (!state) {
     return;
   }
@@ -542,32 +537,7 @@ void ContentCompositorBridgeParent::SetTestAsyncZoom(
 }
 
 void ContentCompositorBridgeParent::FlushApzRepaints(
-    const WRRootId& aLayersId) {
-  MOZ_ASSERT(aLayersId.IsValid());
-  const CompositorBridgeParent::LayerTreeState* state =
-      CompositorBridgeParent::GetIndirectShadowTree(aLayersId.mLayersId);
-  if (!state || !state->mParent) {
-    return;
-  }
-
-  state->mParent->FlushApzRepaints(aLayersId);
-}
-
-void ContentCompositorBridgeParent::GetAPZTestData(const WRRootId& aLayersId,
-                                                   APZTestData* aOutData) {
-  MOZ_ASSERT(aLayersId.IsValid());
-  const CompositorBridgeParent::LayerTreeState* state =
-      CompositorBridgeParent::GetIndirectShadowTree(aLayersId.mLayersId);
-  if (!state || !state->mParent) {
-    return;
-  }
-
-  state->mParent->GetAPZTestData(aLayersId, aOutData);
-}
-
-void ContentCompositorBridgeParent::SetConfirmedTargetAPZC(
-    const LayersId& aLayersId, const uint64_t& aInputBlockId,
-    const nsTArray<SLGuidAndRenderRoot>& aTargets) {
+    const LayersId& aLayersId) {
   MOZ_ASSERT(aLayersId.IsValid());
   const CompositorBridgeParent::LayerTreeState* state =
       CompositorBridgeParent::GetIndirectShadowTree(aLayersId);
@@ -575,7 +545,45 @@ void ContentCompositorBridgeParent::SetConfirmedTargetAPZC(
     return;
   }
 
-  state->mParent->SetConfirmedTargetAPZC(aLayersId, aInputBlockId, aTargets);
+  state->mParent->FlushApzRepaints(aLayersId);
+}
+
+void ContentCompositorBridgeParent::GetAPZTestData(const LayersId& aLayersId,
+                                                   APZTestData* aOutData) {
+  MOZ_ASSERT(aLayersId.IsValid());
+  const CompositorBridgeParent::LayerTreeState* state =
+      CompositorBridgeParent::GetIndirectShadowTree(aLayersId);
+  if (!state || !state->mParent) {
+    return;
+  }
+
+  state->mParent->GetAPZTestData(aLayersId, aOutData);
+}
+
+void ContentCompositorBridgeParent::GetFrameUniformity(
+    const LayersId& aLayersId, FrameUniformityData* aOutData) {
+  MOZ_ASSERT(aLayersId.IsValid());
+  const CompositorBridgeParent::LayerTreeState* state =
+      CompositorBridgeParent::GetIndirectShadowTree(aLayersId);
+  if (!state || !state->mParent) {
+    return;
+  }
+
+  state->mParent->GetFrameUniformity(aLayersId, aOutData);
+}
+
+void ContentCompositorBridgeParent::SetConfirmedTargetAPZC(
+    const LayersId& aLayersId, const uint64_t& aInputBlockId,
+    nsTArray<ScrollableLayerGuid>&& aTargets) {
+  MOZ_ASSERT(aLayersId.IsValid());
+  const CompositorBridgeParent::LayerTreeState* state =
+      CompositorBridgeParent::GetIndirectShadowTree(aLayersId);
+  if (!state || !state->mParent) {
+    return;
+  }
+
+  state->mParent->SetConfirmedTargetAPZC(aLayersId, aInputBlockId,
+                                         std::move(aTargets));
 }
 
 AsyncCompositionManager* ContentCompositorBridgeParent::GetCompositionManager(
@@ -658,10 +666,9 @@ ContentCompositorBridgeParent::RecvReleasePCanvasParent() {
 }
 
 UniquePtr<SurfaceDescriptor>
-ContentCompositorBridgeParent::LookupSurfaceDescriptorForClientDrawTarget(
-    const uintptr_t aDrawTarget) {
-  return mCanvasTranslator->WaitForSurfaceDescriptor(
-      reinterpret_cast<void*>(aDrawTarget));
+ContentCompositorBridgeParent::LookupSurfaceDescriptorForClientTexture(
+    const int64_t aTextureId) {
+  return mCanvasTranslator->WaitForSurfaceDescriptor(aTextureId);
 }
 
 bool ContentCompositorBridgeParent::IsSameProcess() const {
@@ -768,11 +775,9 @@ mozilla::ipc::IPCResult ContentCompositorBridgeParent::RecvPreferredDXGIAdapter(
 }
 
 already_AddRefed<dom::PWebGLParent>
-ContentCompositorBridgeParent::AllocPWebGLParent(
-    const webgl::InitContextDesc& aInitDesc,
-    webgl::InitContextResult* const out) {
-  RefPtr<dom::PWebGLParent> ret = dom::WebGLParent::Create(aInitDesc, out);
-  return ret.forget();
+ContentCompositorBridgeParent::AllocPWebGLParent() {
+  RefPtr<dom::PWebGLParent> parent = new dom::WebGLParent();
+  return parent.forget();
 }
 
 }  // namespace layers

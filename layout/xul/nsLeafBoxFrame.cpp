@@ -47,7 +47,7 @@ void nsLeafBoxFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
                           nsIFrame* aPrevInFlow) {
   nsLeafFrame::Init(aContent, aParent, aPrevInFlow);
 
-  if (GetStateBits() & NS_FRAME_FONT_INFLATION_CONTAINER) {
+  if (HasAnyStateBits(NS_FRAME_FONT_INFLATION_CONTAINER)) {
     AddStateBits(NS_FRAME_FONT_INFLATION_FLOW_ROOT);
   }
 }
@@ -116,12 +116,11 @@ nscoord nsLeafBoxFrame::GetIntrinsicISize() {
 LogicalSize nsLeafBoxFrame::ComputeAutoSize(
     gfxContext* aRenderingContext, WritingMode aWM, const LogicalSize& aCBSize,
     nscoord aAvailableISize, const LogicalSize& aMargin,
-    const LogicalSize& aBorder, const LogicalSize& aPadding,
-    ComputeSizeFlags aFlags) {
+    const LogicalSize& aBorderPadding, ComputeSizeFlags aFlags) {
   // Important: NOT calling our direct superclass here!
-  return nsFrame::ComputeAutoSize(aRenderingContext, aWM, aCBSize,
-                                  aAvailableISize, aMargin, aBorder, aPadding,
-                                  aFlags);
+  return nsIFrame::ComputeAutoSize(aRenderingContext, aWM, aCBSize,
+                                   aAvailableISize, aMargin, aBorderPadding,
+                                   aFlags);
 }
 
 void nsLeafBoxFrame::Reflow(nsPresContext* aPresContext,
@@ -202,7 +201,7 @@ void nsLeafBoxFrame::Reflow(nsPresContext* aPresContext,
     prefSize = GetXULPrefSize(state);
     nsSize minSize = GetXULMinSize(state);
     nsSize maxSize = GetXULMaxSize(state);
-    prefSize = BoundsCheck(minSize, prefSize, maxSize);
+    prefSize = XULBoundsCheck(minSize, prefSize, maxSize);
   }
 
   // get our desiredSize
@@ -269,7 +268,7 @@ void nsLeafBoxFrame::Reflow(nsPresContext* aPresContext,
 
 #ifdef DEBUG_FRAME_DUMP
 nsresult nsLeafBoxFrame::GetFrameName(nsAString& aResult) const {
-  return MakeFrameName(NS_LITERAL_STRING("LeafBox"), aResult);
+  return MakeFrameName(u"LeafBox"_ns, aResult);
 }
 #endif
 
@@ -281,28 +280,33 @@ nsresult nsLeafBoxFrame::CharacterDataChanged(
 
 /* virtual */
 nsSize nsLeafBoxFrame::GetXULPrefSize(nsBoxLayoutState& aState) {
-  return nsBox::GetXULPrefSize(aState);
+  return nsIFrame::GetUncachedXULPrefSize(aState);
 }
 
 /* virtual */
 nsSize nsLeafBoxFrame::GetXULMinSize(nsBoxLayoutState& aState) {
-  return nsBox::GetXULMinSize(aState);
+  return nsIFrame::GetUncachedXULMinSize(aState);
 }
 
 /* virtual */
 nsSize nsLeafBoxFrame::GetXULMaxSize(nsBoxLayoutState& aState) {
-  return nsBox::GetXULMaxSize(aState);
+  return nsIFrame::GetUncachedXULMaxSize(aState);
 }
 
 /* virtual */
-nscoord nsLeafBoxFrame::GetXULFlex() { return nsBox::GetXULFlex(); }
+nscoord nsLeafBoxFrame::GetXULFlex() {
+  nscoord flex = 0;
+  nsIFrame::AddXULFlex(this, flex);
+  return flex;
+}
 
 /* virtual */
 nscoord nsLeafBoxFrame::GetXULBoxAscent(nsBoxLayoutState& aState) {
-  return nsBox::GetXULBoxAscent(aState);
+  if (IsXULCollapsed()) {
+    return 0;
+  }
+  return GetXULPrefSize(aState).height;
 }
 
 NS_IMETHODIMP
-nsLeafBoxFrame::DoXULLayout(nsBoxLayoutState& aState) {
-  return nsBox::DoXULLayout(aState);
-}
+nsLeafBoxFrame::DoXULLayout(nsBoxLayoutState& aState) { return NS_OK; }

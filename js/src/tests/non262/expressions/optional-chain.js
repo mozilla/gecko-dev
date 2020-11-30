@@ -48,6 +48,19 @@ function shouldThrowTypeError(func, messagePrefix) {
     if (!error.message.includes(messagePrefix))
         throw new Error(`TypeError has wrong message!, expected ${messagePrefix} but got ${error.message}`);
 }
+
+function shouldThrowReferenceError(script) {
+    let error;
+    try {
+        eval(script);
+    } catch (e) {
+        error = e;
+    }
+
+    if (!(error instanceof ReferenceError))
+        throw new Error('Expected ReferenceError!');
+}
+
 function testBasicSuccessCases() {
     shouldBe(undefined?.valueOf(), undefined);
     shouldBe(null?.valueOf(), undefined);
@@ -172,9 +185,30 @@ shouldThrowSyntaxError('class C {} new C?.();')
 shouldThrowSyntaxError('function foo() { new?.target; }');
 shouldThrowSyntaxError('function tag() {} tag?.``;');
 shouldThrowSyntaxError('const o = { tag() {} }; o?.tag``;');
+shouldThrowReferenceError('`${G}`?.r');
 
 // NOT an optional chain
 shouldBe(false?.4:5, 5);
+
+// Special case: binary operators that follow a binary expression
+shouldThrowReferenceError('(0 || 1 << x)?.$');
+shouldThrowReferenceError('(0 || 1 >> x)?.$');
+shouldThrowReferenceError('(0 || 1 >>> x)?.$');
+shouldThrowReferenceError('(0 || 1 + x)?.$');
+shouldThrowReferenceError('(0 || 1 - x)?.$');
+shouldThrowReferenceError('(0 || 1 % x)?.$');
+shouldThrowReferenceError('(0 || 1 / x)?.$');
+shouldThrowReferenceError('(0 || 1 == x)?.$');
+shouldThrowReferenceError('(0 || 1 != x)?.$');
+shouldThrowReferenceError('(0 || 1 !== x)?.$');
+shouldThrowReferenceError('(0 || 1 === x)?.$');
+shouldThrowReferenceError('(0 || 1 <= x)?.$');
+shouldThrowReferenceError('(0 || 1 >= x)?.$');
+shouldThrowReferenceError('(0 || 1 ** x)?.$');
+shouldThrowReferenceError('(0 || 1 | x)?.$');
+shouldThrowReferenceError('(0 || 1 & x)?.$');
+shouldThrowReferenceError('(0 || 1 instanceof x)?.$');
+shouldThrowReferenceError('(0 || "foo" in x)?.$');
 
 function testSideEffectCountFunction() {
   let count = 0;
@@ -218,7 +252,10 @@ shouldBe(({a : {b: undefined}}).a.b?.()?.()(), undefined);
 shouldBe(({a : {b: () => undefined}}).a.b?.()?.(), undefined);
 shouldThrowTypeError(() => delete ({a : {b: undefined}}).a?.b.b.c, '(intermediate value).a.b is undefined');
 shouldBe(delete ({a : {b: undefined}}).a?.["b"]?.["b"], true);
+shouldBe(delete undefined ?.x[y+1], true);
 shouldThrowTypeError(() => (({a : {b: () => undefined}}).a.b?.())(), 'undefined is not a function');
+shouldThrowTypeError(() => (delete[1]?.r[delete[1]?.r1]), "[...].r is undefined");
+shouldThrowTypeError(() => (delete[1]?.r[[1]?.r1]), "[...].r is undefined");
 
 if (typeof reportCompare === "function")
   reportCompare(true, true);

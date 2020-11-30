@@ -9,8 +9,9 @@
 
 #include "jit/arm64/vixl/Assembler-vixl.h"
 
-#include "jit/JitRealm.h"
+#include "jit/CompactBuffer.h"
 #include "jit/shared/Disassembler-shared.h"
+#include "wasm/WasmTypes.h"
 
 namespace js {
 namespace jit {
@@ -55,6 +56,24 @@ struct ScratchFloat32Scope : public AutoFloatRegisterScope {
       : AutoFloatRegisterScope(masm, ScratchFloat32Reg) {}
 };
 
+#ifdef ENABLE_WASM_SIMD
+static constexpr FloatRegister ReturnSimd128Reg = {FloatRegisters::v0,
+                                                   FloatRegisters::Simd128};
+static constexpr FloatRegister ScratchSimd128Reg = {FloatRegisters::v31,
+                                                    FloatRegisters::Simd128};
+struct ScratchSimd128Scope : public AutoFloatRegisterScope {
+  explicit ScratchSimd128Scope(MacroAssembler& masm)
+      : AutoFloatRegisterScope(masm, ScratchSimd128Reg) {}
+};
+#else
+struct ScratchSimd128Scope : public AutoFloatRegisterScope {
+  explicit ScratchSimd128Scope(MacroAssembler& masm)
+      : AutoFloatRegisterScope(masm, ScratchDoubleReg) {
+    MOZ_CRASH("SIMD not enabled");
+  }
+};
+#endif
+
 static constexpr Register InvalidReg{Registers::Invalid};
 static constexpr FloatRegister InvalidFloatReg = {};
 
@@ -78,9 +97,6 @@ static constexpr Register ZeroRegister{Registers::sp};
 static constexpr ARMRegister ZeroRegister64 = {Registers::sp, 64};
 static constexpr ARMRegister ZeroRegister32 = {Registers::sp, 32};
 
-static constexpr FloatRegister ReturnSimd128Reg = InvalidFloatReg;
-static constexpr FloatRegister ScratchSimd128Reg = InvalidFloatReg;
-
 // StackPointer is intentionally undefined on ARM64 to prevent misuse:
 //  using sp as a base register is only valid if sp % 16 == 0.
 static constexpr Register RealStackPointer{Registers::sp};
@@ -88,9 +104,6 @@ static constexpr Register RealStackPointer{Registers::sp};
 static constexpr Register PseudoStackPointer{Registers::x28};
 static constexpr ARMRegister PseudoStackPointer64 = {Registers::x28, 64};
 static constexpr ARMRegister PseudoStackPointer32 = {Registers::x28, 32};
-
-// StackPointer for use by irregexp.
-static constexpr Register RegExpStackPointer = PseudoStackPointer;
 
 static constexpr Register IntArgReg0{Registers::x0};
 static constexpr Register IntArgReg1{Registers::x1};
@@ -163,11 +176,6 @@ static_assert(JitStackAlignment % sizeof(Value) == 0 &&
                   JitStackValueAlignment >= 1,
               "Stack alignment should be a non-zero multiple of sizeof(Value)");
 
-// This boolean indicates whether we support SIMD instructions flavoured for
-// this architecture or not. Rather than a method in the LIRGenerator, it is
-// here such that it is accessible from the entire codebase. Once full support
-// for SIMD is reached on all tier-1 platforms, this constant can be deleted.
-static constexpr bool SupportsSimd = false;
 static constexpr uint32_t SimdMemoryAlignment = 16;
 
 static_assert(CodeAlignment % SimdMemoryAlignment == 0,
@@ -180,14 +188,10 @@ static_assert(CodeAlignment % SimdMemoryAlignment == 0,
 static const uint32_t WasmStackAlignment = SimdMemoryAlignment;
 static const uint32_t WasmTrapInstructionLength = 4;
 
-// Does this architecture support SIMD conversions between Uint32x4 and
-// Float32x4?
-static constexpr bool SupportsUint32x4FloatConversions = false;
-
-// Does this architecture support comparisons of unsigned integer vectors?
-static constexpr bool SupportsUint8x16Compares = false;
-static constexpr bool SupportsUint16x8Compares = false;
-static constexpr bool SupportsUint32x4Compares = false;
+// The offsets are dynamically asserted during
+// code generation in the prologue/epilogue.
+static constexpr uint32_t WasmCheckedCallEntryOffset = 0u;
+static constexpr uint32_t WasmCheckedTailEntryOffset = 32u;
 
 class Assembler : public vixl::Assembler {
  public:
@@ -289,21 +293,14 @@ class Assembler : public vixl::Assembler {
   static bool SupportsFloatingPoint() { return true; }
   static bool SupportsUnalignedAccesses() { return true; }
   static bool SupportsFastUnalignedAccesses() { return true; }
-  static bool SupportsSimd() { return js::jit::SupportsSimd; }
+  static bool SupportsWasmSimd() { return true; }
 
   static bool HasRoundInstruction(RoundingMode mode) { return false; }
-
-  // Tracks a jump that is patchable after finalization.
-  void addJumpRelocation(BufferOffset src, RelocationKind reloc);
 
  protected:
   // Add a jump whose target is unknown until finalization.
   // The jump may not be patched at runtime.
   void addPendingJump(BufferOffset src, ImmPtr target, RelocationKind kind);
-
-  // Add a jump whose target is unknown until finalization, and may change
-  // thereafter. The jump is patchable at runtime.
-  size_t addPatchableJump(BufferOffset src, RelocationKind kind);
 
  public:
   static uint32_t PatchWrite_NearCallSize() { return 4; }
@@ -383,19 +380,6 @@ class Assembler : public vixl::Assembler {
   }
 
  protected:
-  // Because jumps may be relocated to a target inaccessible by a short jump,
-  // each relocatable jump must have a unique entry in the extended jump table.
-  // Valid relocatable targets are of type RelocationKind::JITCODE.
-  struct JumpRelocation {
-    BufferOffset
-        jump;  // Offset to the short jump, from the start of the code buffer.
-    uint32_t
-        extendedTableIndex;  // Unique index within the extended jump table.
-
-    JumpRelocation(BufferOffset jump, uint32_t extendedTableIndex)
-        : jump(jump), extendedTableIndex(extendedTableIndex) {}
-  };
-
   // Structure for fixing up pc-relative loads/jumps when the machine
   // code gets moved (executable copy, gc, etc.).
   struct RelativePatch {

@@ -11,9 +11,14 @@
 
 #include <taskschd.h>
 
+#include "readstrings.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/ScopeExit.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/WinHeaderOnlyUtils.h"
+#include "WindowsDefaultBrowser.h"
+
+#include "DefaultBrowser.h"
 
 const wchar_t* kTaskVendor = L"" MOZ_APP_VENDOR;
 // kTaskName should have the unique token appended before being used.
@@ -38,10 +43,49 @@ struct SysFreeStringDeleter {
 };
 using BStrPtr = mozilla::UniquePtr<OLECHAR, SysFreeStringDeleter>;
 
+bool GetTaskDescription(mozilla::UniquePtr<wchar_t[]>& description) {
+  mozilla::UniquePtr<wchar_t[]> installPath;
+  bool success = GetInstallDirectory(installPath);
+  if (!success) {
+    LOG_ERROR_MESSAGE(L"Failed to get install directory");
+    return false;
+  }
+  const wchar_t* iniFormat = L"%s\\defaultagent_localized.ini";
+  int bufferSize = _scwprintf(iniFormat, installPath.get());
+  ++bufferSize;  // Extra character for terminating null
+  mozilla::UniquePtr<wchar_t[]> iniPath =
+      mozilla::MakeUnique<wchar_t[]>(bufferSize);
+  _snwprintf_s(iniPath.get(), bufferSize, _TRUNCATE, iniFormat,
+               installPath.get());
+
+  IniReader reader(iniPath.get());
+  reader.AddKey("DefaultBrowserAgentTaskDescription", &description);
+  int status = reader.Read();
+  if (status != OK) {
+    LOG_ERROR_MESSAGE(L"Failed to read task description: %d", status);
+    return false;
+  }
+  return true;
+}
+
 HRESULT RegisterTask(const wchar_t* uniqueToken,
                      BSTR startTime /* = nullptr */) {
+  // Do data migration during the task installation. This might seem like it
+  // belongs in UpdateTask, but we want to be able to call
+  //    RemoveTask();
+  //    RegisterTask();
+  // and still have data migration happen. Also, UpdateTask calls this function,
+  // so migration will still get run in that case.
+  MaybeMigrateCurrentDefault();
+
   // Make sure we don't try to register a task that already exists.
   RemoveTask(uniqueToken);
+
+  // If we create a folder and then fail to create the task, we need to
+  // remember to delete the folder so that whatever set of permissions it ends
+  // up with doesn't interfere with trying to create the task again later, and
+  // so that we don't just leave an empty folder behind.
+  bool createdFolder = false;
 
   HRESULT hr = S_OK;
   RefPtr<ITaskService> scheduler;
@@ -61,15 +105,36 @@ HRESULT RegisterTask(const wchar_t* uniqueToken,
                                    getter_AddRefs(taskFolder)))) {
     hr = rootFolder->CreateFolder(vendorBStr.get(), VARIANT{},
                                   getter_AddRefs(taskFolder));
-    // The folder already existing isn't an error.
-    if (FAILED(hr) && hr != HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS)) {
+    if (SUCCEEDED(hr)) {
+      createdFolder = true;
+    } else if (hr != HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS)) {
+      // The folder already existing isn't an error, but anything else is.
       LOG_ERROR(hr);
       return hr;
     }
   }
 
+  auto cleanupFolder =
+      mozilla::MakeScopeExit([hr, createdFolder, &rootFolder, &vendorBStr] {
+        if (createdFolder && FAILED(hr)) {
+          // If this fails, we can't really handle that intelligently, so
+          // don't even bother to check the return code.
+          rootFolder->DeleteFolder(vendorBStr.get(), 0);
+        }
+      });
+
   RefPtr<ITaskDefinition> newTask;
   ENSURE(scheduler->NewTask(0, getter_AddRefs(newTask)));
+
+  mozilla::UniquePtr<wchar_t[]> description;
+  if (!GetTaskDescription(description)) {
+    return E_FAIL;
+  }
+  BStrPtr descriptionBstr = BStrPtr(SysAllocString(description.get()));
+
+  RefPtr<IRegistrationInfo> taskRegistration;
+  ENSURE(newTask->get_RegistrationInfo(getter_AddRefs(taskRegistration)));
+  ENSURE(taskRegistration->put_Description(descriptionBstr.get()));
 
   RefPtr<ITaskSettings> taskSettings;
   ENSURE(newTask->get_Settings(getter_AddRefs(taskSettings)));
@@ -77,9 +142,9 @@ HRESULT RegisterTask(const wchar_t* uniqueToken,
   ENSURE(taskSettings->put_MultipleInstances(TASK_INSTANCES_IGNORE_NEW));
   ENSURE(taskSettings->put_StartWhenAvailable(VARIANT_TRUE));
   ENSURE(taskSettings->put_StopIfGoingOnBatteries(VARIANT_FALSE));
-  // This cryptic string means "5 minutes". So, if the task runs for longer
+  // This cryptic string means "35 minutes". So, if the task runs for longer
   // than that, the process will be killed, because that should never happen.
-  BStrPtr execTimeLimitBStr = BStrPtr(SysAllocString(L"PT5M"));
+  BStrPtr execTimeLimitBStr = BStrPtr(SysAllocString(L"PT35M"));
   ENSURE(taskSettings->put_ExecutionTimeLimit(execTimeLimitBStr.get()));
 
   RefPtr<IRegistrationInfo> regInfo;
@@ -161,7 +226,10 @@ HRESULT RegisterTask(const wchar_t* uniqueToken,
       BStrPtr(SysAllocString(mozilla::GetFullBinaryPath().get()));
   ENSURE(execAction->put_Path(binaryPathBStr.get()));
 
-  BStrPtr argsBStr = BStrPtr(SysAllocString(L"do-task"));
+  std::wstring taskArgs = L"do-task \"";
+  taskArgs += uniqueToken;
+  taskArgs += L"\"";
+  BStrPtr argsBStr = BStrPtr(SysAllocString(taskArgs.c_str()));
   ENSURE(execAction->put_Arguments(argsBStr.get()));
 
   std::wstring taskName(kTaskName);
@@ -180,7 +248,7 @@ HRESULT UpdateTask(const wchar_t* uniqueToken) {
   RefPtr<ITaskService> scheduler;
   HRESULT hr = S_OK;
   ENSURE(CoCreateInstance(CLSID_TaskScheduler, nullptr, CLSCTX_INPROC_SERVER,
-    IID_ITaskService, getter_AddRefs(scheduler)));
+                          IID_ITaskService, getter_AddRefs(scheduler)));
 
   ENSURE(scheduler->Connect(VARIANT{}, VARIANT{}, VARIANT{}, VARIANT{}));
 

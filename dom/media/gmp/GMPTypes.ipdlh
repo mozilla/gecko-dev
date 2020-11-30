@@ -5,24 +5,33 @@
 
 include "GMPMessageUtils.h";
 
+using cdm::EncryptionScheme from "gmp-sanitized-cdm-exports.h";
 using GMPBufferType from "gmp-video-codec.h";
-using GMPEncryptionScheme from "gmp-video-codec.h";
 
 namespace mozilla {
 namespace gmp {
 
+// GMP processes are associated with a specific node ID, so all GMP requests
+// which have the same node ID will use the same GMP process. Depending on the
+// use case, the node ID may be represented by a string (such as when used for
+// WebRTC) or by this structure, which is populated according to the origin
+// initiating the request. Both behave similarly but communicate their request
+// for a GMP via PGMPServiceChild::SendLaunchGMP or
+// PGMPServiceChild::SendLaunchGMPForNodeId respectively. In either case the
+// node ID is eventually converted to a string to pass over IPC. For this
+// structure, the process ensures the strings are unique for the combination of
+// origin, top level origin and GMP name.
 struct NodeIdData {
   nsString mOrigin;
   nsString mTopLevelOrigin;
   nsString mGMPName;
 };
 
-struct GMPVideoEncodedFrameData
-{
+struct GMPVideoEncodedFrameData {
   uint32_t mEncodedWidth;
   uint32_t mEncodedHeight;
-  uint64_t mTimestamp; // microseconds
-  uint64_t mDuration; // microseconds
+  uint64_t mTimestamp;  // microseconds
+  uint64_t mDuration;   // microseconds
   uint32_t mFrameType;
   uint32_t mSize;
   GMPBufferType mBufferType;
@@ -30,22 +39,20 @@ struct GMPVideoEncodedFrameData
   bool mCompleteFrame;
 };
 
-struct GMPPlaneData
-{
+struct GMPPlaneData {
   int32_t mSize;
   int32_t mStride;
   Shmem mBuffer;
 };
 
-struct GMPVideoi420FrameData
-{
+struct GMPVideoi420FrameData {
   GMPPlaneData mYPlane;
   GMPPlaneData mUPlane;
   GMPPlaneData mVPlane;
   int32_t mWidth;
   int32_t mHeight;
-  uint64_t mTimestamp; // microseconds
-  uint64_t mDuration; // microseconds
+  uint64_t mTimestamp;  // microseconds
+  uint64_t mDuration;   // microseconds
 };
 
 struct CDMInputBuffer {
@@ -54,11 +61,11 @@ struct CDMInputBuffer {
   uint8_t[] mIV;
   int64_t mTimestamp;
   int64_t mDuration;
-  uint16_t[] mClearBytes;
+  uint32_t[] mClearBytes;
   uint32_t[] mCipherBytes;
   uint8_t mCryptByteBlock;
   uint8_t mSkipByteBlock;
-  GMPEncryptionScheme mEncryptionScheme;
+  EncryptionScheme mEncryptionScheme;
 };
 
 struct CDMVideoDecoderConfig {
@@ -68,7 +75,7 @@ struct CDMVideoDecoderConfig {
   int32_t mImageWidth;
   int32_t mImageHeight;
   uint8_t[] mExtraData;
-  GMPEncryptionScheme mEncryptionScheme;
+  EncryptionScheme mEncryptionScheme;
 };
 
 struct CDMKeyInformation {
@@ -93,5 +100,5 @@ struct CDMVideoFrame {
   int64_t mDuration;
 };
 
-}
-}
+}  // namespace gmp
+}  // namespace mozilla

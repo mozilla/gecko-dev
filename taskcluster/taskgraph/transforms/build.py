@@ -11,6 +11,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.attributes import RELEASE_PROJECTS
 from taskgraph.util.schema import resolve_keyed_by
+from taskgraph.util.treeherder import add_suffix
 from taskgraph.util.workertypes import worker_type_implementation
 
 from mozbuild.artifact_builds import JOB_CHOICES as ARTIFACT_JOBS
@@ -31,7 +32,7 @@ def set_defaults(config, jobs):
         worker = job.setdefault('worker', {})
         worker.setdefault('env', {})
         if worker_os == "linux":
-            worker.setdefault('docker-image', {'in-tree': 'debian7-amd64-build'})
+            worker.setdefault('docker-image', {'in-tree': 'debian8-amd64-build'})
             worker['chain-of-trust'] = True
         elif worker_os == "windows":
             worker['chain-of-trust'] = True
@@ -118,11 +119,32 @@ def mozconfig(config, jobs):
 
 
 @transforms.add
+def use_artifact(config, jobs):
+    if config.params.is_try():
+        use_artifact = config.params['try_task_config'].get('use-artifact-builds', False)
+    else:
+        use_artifact = False
+    for job in jobs:
+        if (
+            config.kind == "build"
+            and use_artifact
+            and job.get("index", {}).get("job-name") in ARTIFACT_JOBS
+            # If tests aren't packaged, then we are not able to rebuild all the packages
+            and job['worker']['env'].get('MOZ_AUTOMATION_PACKAGE_TESTS') == '1'
+        ):
+            job['treeherder']['symbol'] = add_suffix(job['treeherder']['symbol'], 'a')
+            job['worker']['env']['USE_ARTIFACT'] = '1'
+            job['attributes']['artifact-build'] = True
+        yield job
+
+
+@transforms.add
 def use_profile_data(config, jobs):
     for job in jobs:
         use_pgo = job.pop('use-pgo', False)
         disable_pgo = config.params['try_task_config'].get('disable-pgo', False)
-        if not use_pgo or disable_pgo:
+        artifact_build = job['attributes'].get('artifact-build')
+        if not use_pgo or disable_pgo or artifact_build:
             yield job
             continue
 
@@ -147,14 +169,12 @@ def use_profile_data(config, jobs):
 
 
 @transforms.add
-def set_env(config, jobs):
-    """Set extra environment variables from try command line."""
-    env = []
-    if config.params['try_mode'] == 'try_option_syntax':
-        env = config.params['try_options']['env'] or []
+def resolve_keys(config, jobs):
     for job in jobs:
-        if env:
-            job['worker']['env'].update(dict(x.split('=') for x in env))
+        resolve_keyed_by(
+            job, 'use-sccache', item_name=job['name'],
+            **{'release-level': config.params.release_level()}
+        )
         yield job
 
 
@@ -168,26 +188,8 @@ def enable_full_crashsymbols(config, jobs):
         enable_full_crashsymbols = job['attributes'].get('enable-full-crashsymbols')
         if enable_full_crashsymbols and config.params['project'] in branches:
             logger.debug("Enabling full symbol generation for %s", job['name'])
+            job['worker']['env']['MOZ_ENABLE_FULL_SYMBOLS'] = '1'
         else:
             logger.debug("Disabling full symbol generation for %s", job['name'])
-            job['worker']['env']['MOZ_DISABLE_FULL_SYMBOLS'] = '1'
             job['attributes'].pop('enable-full-crashsymbols', None)
-        yield job
-
-
-@transforms.add
-def use_artifact(config, jobs):
-    if config.params['try_mode'] == 'try_task_config':
-        use_artifact = config.params['try_task_config'] \
-            .get('use-artifact-builds', False)
-    elif config.params['try_mode'] == 'try_option_syntax':
-        use_artifact = config.params['try_options'].get('artifact')
-    else:
-        use_artifact = False
-    for job in jobs:
-        if (config.kind == 'build' and use_artifact and
-            not job.get('attributes', {}).get('nightly', False) and
-            job.get('index', {}).get('job-name') in ARTIFACT_JOBS):
-            job['treeherder']['symbol'] += 'a'
-            job['worker']['env']['USE_ARTIFACT'] = '1'
         yield job

@@ -1,3 +1,5 @@
+"use strict";
+
 const URL = "ftp://localhost/bug515583/";
 
 const tests = [
@@ -57,7 +59,7 @@ function storeData(status, entry) {
     isPending() {
       return this.pending;
     },
-    QueryInterface: ChromeUtils.generateQI([Ci.nsIChannel]),
+    QueryInterface: ChromeUtils.generateQI(["nsIChannel"]),
   };
 
   converter.onStartRequest(channel, null);

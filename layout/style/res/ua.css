@@ -64,6 +64,7 @@
   outline-offset: inherit;
   column-span: inherit; /* needed if <table> has "column-span:all" */
   contain: inherit; /* needed if table has 'contain:layout' or 'paint' */
+  scroll-margin: inherit;  /* Bug 1633192 */
 }
 
 *|*::-moz-table-row {
@@ -132,6 +133,7 @@
 /* https://drafts.csswg.org/css-lists-3/#ua-stylesheet */
 *|*::marker {
   text-align: end;
+  text-transform: none;
   unicode-bidi: isolate;
   font-variant-numeric: tabular-nums;
 }
@@ -150,6 +152,11 @@
 *|*:any-link:-moz-focusring {
   /* Don't specify the outline-color, we should always use initial value. */
   outline: 1px dotted;
+}
+
+/* Inert subtrees */
+*|*:-moz-inert {
+  -moz-inert: inert;
 }
 
 /* Miscellaneous */
@@ -247,9 +254,6 @@
 
 *|*::-moz-viewport-scroll {
   overflow: auto;
-%ifdef XP_WIN
-  resize: both;
-%endif
 }
 
 *|*::-moz-column-set,
@@ -295,14 +299,21 @@
   height: 100%;
 }
 
-*|*::-moz-page {
-  /* Individual page in print/print preview. Visual styles may only appear
-   * in print preview. */
+*|*::-moz-printed-sheet {
+  /* Individual sheet of paper in print/print preview. Visual styles may only
+   * appear in print preview. */
   display: block;
   background: white;
   box-shadow: 5px 5px 8px #202020;
   box-decoration-break: clone;
+  /* TODO: Remove margin if viewport is small or something? */
   margin: 0.125in 0.25in;
+}
+
+@media (monochrome) and (-moz-print-preview) {
+  *|*::-moz-page {
+    filter: grayscale(1);
+  }
 }
 
 *|*::-moz-pagecontent {
@@ -405,8 +416,7 @@ div:-moz-native-anonymous.moz-accessiblecaret {
   z-index: 2147483647;
 }
 
-div:-moz-native-anonymous.moz-accessiblecaret > #text-overlay,
-div:-moz-native-anonymous.moz-accessiblecaret > #image {
+div:-moz-native-anonymous.moz-accessiblecaret > :is(#text-overlay, #image) {
   width: 100%;
 
   /* Override this property in moz-custom-content-container to make dummy touch
@@ -425,8 +435,7 @@ div:-moz-native-anonymous.moz-accessiblecaret.normal > #image {
   background-image: url("resource://gre-resources/accessiblecaret-normal@1x.png");
 }
 
-div:-moz-native-anonymous.moz-accessiblecaret.left > #text-overlay,
-div:-moz-native-anonymous.moz-accessiblecaret.left > #image {
+div:-moz-native-anonymous.moz-accessiblecaret.left > :is(#text-overlay, #image) {
   margin-left: -39%;
 }
 
@@ -434,8 +443,7 @@ div:-moz-native-anonymous.moz-accessiblecaret.left > #image {
   background-image: url("resource://gre-resources/accessiblecaret-tilt-left@1x.png");
 }
 
-div:-moz-native-anonymous.moz-accessiblecaret.right > #text-overlay,
-div:-moz-native-anonymous.moz-accessiblecaret.right > #image {
+div:-moz-native-anonymous.moz-accessiblecaret.right > :is(#text-overlay, #image) {
   margin-left: 41%;
 }
 
@@ -490,8 +498,7 @@ div:-moz-native-anonymous.moz-accessiblecaret.none {
 }
 
 %ifdef ANDROID
-div:-moz-native-anonymous.moz-accessiblecaret > #text-overlay,
-div:-moz-native-anonymous.moz-accessiblecaret > #image {
+div:-moz-native-anonymous.moz-accessiblecaret > :is(#text-overlay, #image) {
   /* border: 0.1px solid red; */ /* Uncomment border to see the touch target. */
   padding-left: 59%; /* Enlarge the touch area. ((48-22)/2)px / 22px ~= 59% */
   padding-right: 59%; /* Enlarge the touch area. */
@@ -506,8 +513,7 @@ div:-moz-native-anonymous.moz-accessiblecaret.normal > #image {
   background-image: url("chrome://geckoview/skin/images/accessiblecaret-normal-hdpi.png");
 }
 
-div:-moz-native-anonymous.moz-accessiblecaret.left > #text-overlay,
-div:-moz-native-anonymous.moz-accessiblecaret.left > #image {
+div:-moz-native-anonymous.moz-accessiblecaret.left > :is(#text-overlay, #image) {
   margin-left: -109%;
 }
 
@@ -515,8 +521,7 @@ div:-moz-native-anonymous.moz-accessiblecaret.left > #image {
   background-image: url("chrome://geckoview/skin/images/accessiblecaret-tilt-left-hdpi.png");
 }
 
-div:-moz-native-anonymous.moz-accessiblecaret.right > #text-overlay,
-div:-moz-native-anonymous.moz-accessiblecaret.right > #image {
+div:-moz-native-anonymous.moz-accessiblecaret.right > :is(#text-overlay, #image) {
   margin-left: -12%;
 }
 

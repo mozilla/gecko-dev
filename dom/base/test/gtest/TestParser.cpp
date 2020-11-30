@@ -18,11 +18,10 @@
 TEST(TestParser, TestParserMain)
 {
   bool allTestsPassed = false;
-  NS_NAMED_LITERAL_STRING(
-      htmlInput,
-      "<html><head>"
+  constexpr auto htmlInput =
+      u"<html><head>"
       "<meta http-equiv=\"content-type\" content=\"text/html; charset=\">"
-      "</head><body>Hello <b>Thunderbird!</b></body></html>");
+      "</head><body>Hello <b>Thunderbird!</b></body></html>"_ns;
 
   do {
     // Parse the HTML source.
@@ -38,8 +37,8 @@ TEST(TestParser, TestParserMain)
     nsCOMPtr<nsIDocumentEncoder> encoder =
         do_createDocumentEncoder("text/html");
     if (!encoder) break;
-    nsresult rv = encoder->Init(document, NS_LITERAL_STRING("text/html"),
-                                nsIDocumentEncoder::OutputRaw);
+    nsresult rv =
+        encoder->Init(document, u"text/html"_ns, nsIDocumentEncoder::OutputRaw);
     if (NS_FAILED(rv)) break;
     nsString parsed;
     rv = encoder->EncodeToString(parsed);

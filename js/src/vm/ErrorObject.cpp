@@ -32,6 +32,7 @@
 #include "js/Conversions.h"
 #include "js/ErrorReport.h"
 #include "js/ForOfIterator.h"
+#include "js/friend/StackLimits.h"  // js::CheckRecursionLimit
 #include "js/PropertySpec.h"
 #include "js/RootingAPI.h"
 #include "js/TypeDecls.h"
@@ -63,11 +64,11 @@
 
 using namespace js;
 
-#define IMPLEMENT_ERROR_PROTO_CLASS(name)                        \
-  {                                                              \
-    js_Object_str, JSCLASS_HAS_CACHED_PROTO(JSProto_##name),     \
-        JS_NULL_CLASS_OPS,                                       \
-        &ErrorObject::classSpecs[JSProto_##name - JSProto_Error] \
+#define IMPLEMENT_ERROR_PROTO_CLASS(name)                         \
+  {                                                               \
+#    name ".prototype", JSCLASS_HAS_CACHED_PROTO(JSProto_##name), \
+        JS_NULL_CLASS_OPS,                                        \
+        &ErrorObject::classSpecs[JSProto_##name - JSProto_Error]  \
   }
 
 const JSClass ErrorObject::protoClasses[JSEXN_ERROR_LIMIT] = {
@@ -104,16 +105,12 @@ static const JSPropertySpec error_properties[] = {
     JS_PSGS("stack", ErrorObject::getStack, ErrorObject::setStack, 0),
     JS_PS_END};
 
-static const JSPropertySpec AggregateError_properties[] = {
-    COMMON_ERROR_PROPERTIES(AggregateError),
-    // Only AggregateError.prototype has .errors!
-    JS_PSG("errors", AggregateErrorObject::getErrors, 0), JS_PS_END};
-
 #define IMPLEMENT_NATIVE_ERROR_PROPERTIES(name)       \
   static const JSPropertySpec name##_properties[] = { \
       COMMON_ERROR_PROPERTIES(name), JS_PS_END};
 
 IMPLEMENT_NATIVE_ERROR_PROPERTIES(InternalError)
+IMPLEMENT_NATIVE_ERROR_PROPERTIES(AggregateError)
 IMPLEMENT_NATIVE_ERROR_PROPERTIES(EvalError)
 IMPLEMENT_NATIVE_ERROR_PROPERTIES(RangeError)
 IMPLEMENT_NATIVE_ERROR_PROPERTIES(ReferenceError)
@@ -156,18 +153,15 @@ const ClassSpec ErrorObject::classSpecs[JSEXN_ERROR_LIMIT] = {
     IMPLEMENT_NONGLOBAL_ERROR_SPEC(LinkError),
     IMPLEMENT_NONGLOBAL_ERROR_SPEC(RuntimeError)};
 
-#define IMPLEMENT_ERROR_CLASS_FROM(clazz, name)                  \
-  {                                                              \
-    js_Error_str, /* yes, really */                              \
-        JSCLASS_HAS_CACHED_PROTO(JSProto_##name) |               \
-            JSCLASS_HAS_RESERVED_SLOTS(clazz::RESERVED_SLOTS) |  \
-            JSCLASS_BACKGROUND_FINALIZE,                         \
-        &ErrorObjectClassOps,                                    \
-        &ErrorObject::classSpecs[JSProto_##name - JSProto_Error] \
+#define IMPLEMENT_ERROR_CLASS(name)                                   \
+  {                                                                   \
+#    name,                                                            \
+        JSCLASS_HAS_CACHED_PROTO(JSProto_##name) |                    \
+            JSCLASS_HAS_RESERVED_SLOTS(ErrorObject::RESERVED_SLOTS) | \
+            JSCLASS_BACKGROUND_FINALIZE,                              \
+        &ErrorObjectClassOps,                                         \
+        &ErrorObject::classSpecs[JSProto_##name - JSProto_Error]      \
   }
-
-#define IMPLEMENT_ERROR_CLASS(name) \
-  IMPLEMENT_ERROR_CLASS_FROM(ErrorObject, name)
 
 static void exn_finalize(JSFreeOp* fop, JSObject* obj);
 
@@ -187,10 +181,10 @@ static const JSClassOps ErrorObjectClassOps = {
 
 const JSClass ErrorObject::classes[JSEXN_ERROR_LIMIT] = {
     IMPLEMENT_ERROR_CLASS(Error), IMPLEMENT_ERROR_CLASS(InternalError),
-    IMPLEMENT_ERROR_CLASS_FROM(AggregateErrorObject, AggregateError),
-    IMPLEMENT_ERROR_CLASS(EvalError), IMPLEMENT_ERROR_CLASS(RangeError),
-    IMPLEMENT_ERROR_CLASS(ReferenceError), IMPLEMENT_ERROR_CLASS(SyntaxError),
-    IMPLEMENT_ERROR_CLASS(TypeError), IMPLEMENT_ERROR_CLASS(URIError),
+    IMPLEMENT_ERROR_CLASS(AggregateError), IMPLEMENT_ERROR_CLASS(EvalError),
+    IMPLEMENT_ERROR_CLASS(RangeError), IMPLEMENT_ERROR_CLASS(ReferenceError),
+    IMPLEMENT_ERROR_CLASS(SyntaxError), IMPLEMENT_ERROR_CLASS(TypeError),
+    IMPLEMENT_ERROR_CLASS(URIError),
     // These Error subclasses are not accessible via the global object:
     IMPLEMENT_ERROR_CLASS(DebuggeeWouldRun),
     IMPLEMENT_ERROR_CLASS(CompileError), IMPLEMENT_ERROR_CLASS(LinkError),
@@ -311,6 +305,9 @@ static ArrayObject* IterableToArray(JSContext* cx, HandleValue iterable) {
   }
 
   RootedArrayObject array(cx, NewDenseEmptyArray(cx));
+  if (!array) {
+    return nullptr;
+  }
 
   RootedValue nextValue(cx);
   while (true) {
@@ -344,26 +341,31 @@ static bool AggregateError(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  // Step 3 (Inlined IterableToList).
-
+  // TypeError anyway, but this gives a better error message.
   if (!args.requireAtLeast(cx, "AggregateError", 1)) {
     return false;
   }
+
+  // 9.1.13 OrdinaryCreateFromConstructor, step 3.
+  // Step 3.
+  Rooted<ErrorObject*> obj(
+      cx, CreateErrorObject(cx, args, 1, JSEXN_AGGREGATEERR, proto));
+  if (!obj) {
+    return false;
+  }
+
+  // Step 4.
 
   RootedArrayObject errorsList(cx, IterableToArray(cx, args.get(0)));
   if (!errorsList) {
     return false;
   }
 
-  // 9.1.13 OrdinaryCreateFromConstructor, step 3.
   // Step 5.
-  auto* obj = CreateErrorObject(cx, args, 1, JSEXN_AGGREGATEERR, proto);
-  if (!obj) {
+  RootedValue errorsVal(cx, JS::ObjectValue(*errorsList));
+  if (!NativeDefineDataProperty(cx, obj, cx->names().errors, errorsVal, 0)) {
     return false;
   }
-
-  // Step 4.
-  obj->as<AggregateErrorObject>().setAggregateErrors(errorsList);
 
   // Step 6.
   args.rval().setObject(*obj);
@@ -792,73 +794,5 @@ static bool exn_toSource(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   args.rval().setString(str);
-  return true;
-}
-
-ArrayObject* js::AggregateErrorObject::aggregateErrors() const {
-  const Value& val = getReservedSlot(AGGREGATE_ERRORS_SLOT);
-  if (val.isUndefined()) {
-    return nullptr;
-  }
-  return &val.toObject().as<ArrayObject>();
-}
-
-void js::AggregateErrorObject::setAggregateErrors(ArrayObject* errors) {
-  MOZ_ASSERT(!aggregateErrors(),
-             "aggregated errors mustn't be modified once set");
-  setReservedSlot(AGGREGATE_ERRORS_SLOT, ObjectValue(*errors));
-}
-
-static inline bool IsAggregateError(HandleValue v) {
-  return v.isObject() && v.toObject().is<AggregateErrorObject>();
-}
-
-// get AggregateError.prototype.errors
-bool js::AggregateErrorObject::getErrors(JSContext* cx, unsigned argc,
-                                         Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-
-  // Steps 1-4.
-  return CallNonGenericMethod<IsAggregateError, getErrors_impl>(cx, args);
-}
-
-// get AggregateError.prototype.errors
-bool js::AggregateErrorObject::getErrors_impl(JSContext* cx,
-                                              const CallArgs& args) {
-  MOZ_ASSERT(IsAggregateError(args.thisv()));
-
-  auto* obj = &args.thisv().toObject().as<AggregateErrorObject>();
-
-  // Step 5.
-  // Create a copy of the [[AggregateErrors]] list.
-
-  RootedArrayObject errorsList(cx, obj->aggregateErrors());
-
-  // [[AggregateErrors]] may be absent when this error was created through
-  // JS_ReportError.
-  if (!errorsList) {
-    ArrayObject* result = NewDenseEmptyArray(cx);
-    if (!result) {
-      return false;
-    }
-
-    args.rval().setObject(*result);
-    return true;
-  }
-
-  uint32_t length = errorsList->length();
-
-  ArrayObject* result = NewDenseFullyAllocatedArray(cx, length);
-  if (!result) {
-    return false;
-  }
-
-  result->setLength(cx, length);
-
-  if (length > 0) {
-    result->initDenseElements(errorsList, 0, length);
-  }
-
-  args.rval().setObject(*result);
   return true;
 }

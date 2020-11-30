@@ -35,6 +35,11 @@ class GamepadManager final : public nsIObserver {
   // Get the singleton service
   static already_AddRefed<GamepadManager> GetService();
 
+  // Our gamepad index has VR_GAMEPAD_IDX_OFFSET while GamepadChannelType
+  // is from VRManager.
+  static uint32_t GetGamepadIndexWithServiceType(
+      uint32_t aIndex, GamepadServiceType aServiceType);
+
   void BeginShutdown();
   void StopMonitoring();
 
@@ -114,11 +119,7 @@ class GamepadManager final : public nsIObserver {
   // true when shutdown has begun
   bool mShuttingDown;
 
-  // Gamepad IPDL child
-  // This pointer is only used by this singleton instance and
-  // will be destroyed during the IPDL shutdown chain, so we
-  // don't need to refcount it here.
-  nsTArray<GamepadEventChannelChild*> mChannelChildren;
+  RefPtr<GamepadEventChannelChild> mChannelChild;
 
  private:
   nsresult Init();
@@ -128,7 +129,11 @@ class GamepadManager final : public nsIObserver {
 
   bool SetGamepadByEvent(const GamepadChangeEvent& aEvent,
                          nsGlobalWindowInner* aWindow = nullptr);
-
+  // To avoid unintentionally causing the gamepad be activated.
+  // Returns false if this gamepad hasn't been seen by this window
+  // and the axis move data is less than AXIS_FIRST_INTENT_THRESHOLD_VALUE.
+  bool AxisMoveIsFirstIntent(nsGlobalWindowInner* aWindow, uint32_t aIndex,
+                             const GamepadChangeEvent& aEvent);
   bool MaybeWindowHasSeenGamepad(nsGlobalWindowInner* aWindow, uint32_t aIndex);
   // Returns true if we have already sent data from this gamepad
   // to this window. This should only return true if the user
@@ -139,10 +144,6 @@ class GamepadManager final : public nsIObserver {
   // Indicate that a window has received data from a gamepad.
   void SetWindowHasSeenGamepad(nsGlobalWindowInner* aWindow, uint32_t aIndex,
                                bool aHasSeen = true);
-  // Our gamepad index has VR_GAMEPAD_IDX_OFFSET while GamepadChannelType
-  // is from VRManager.
-  uint32_t GetGamepadIndexWithServiceType(
-      uint32_t aIndex, GamepadServiceType aServiceType) const;
 
   // Gamepads connected to the system. Copies of these are handed out
   // to each window.

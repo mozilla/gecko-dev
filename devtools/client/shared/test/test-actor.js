@@ -1,13 +1,12 @@
 /* Any copyright is dedicated to the Public Domain.
  http://creativecommons.org/publicdomain/zero/1.0/ */
 
-/* exported TestActor, TestActorFront */
+/* exported TestActor, TestFront */
 
 "use strict";
 
 // A helper actor for inspector and markupview tests.
-
-const { Ci, Cu } = require("chrome");
+const { Ci, Cu, Cc } = require("chrome");
 const Services = require("Services");
 const {
   getRect,
@@ -60,7 +59,7 @@ function getHighlighterCanvasFrameHelper(conn, actorID) {
 }
 
 var testSpec = protocol.generateActorSpec({
-  typeName: "testActor",
+  typeName: "test",
 
   methods: {
     getNumberOfElementMatches: {
@@ -296,8 +295,9 @@ var testSpec = protocol.generateActorSpec({
   },
 });
 
-var TestActor = (exports.TestActor = protocol.ActorClassWithSpec(testSpec, {
+var TestActor = protocol.ActorClassWithSpec(testSpec, {
   initialize: function(conn, targetActor, options) {
+    protocol.Actor.prototype.initialize.call(this, conn);
     this.conn = conn;
     this.targetActor = targetActor;
   },
@@ -476,8 +476,8 @@ var TestActor = (exports.TestActor = protocol.ActorClassWithSpec(testSpec, {
         resolve();
       }
 
-      const docShell = this.content.docShell;
-      docShell.contentViewer.fullZoom = level;
+      const bc = this.content.docShell.browsingContext;
+      bc.fullZoom = level;
     });
   },
 
@@ -838,12 +838,48 @@ var TestActor = (exports.TestActor = protocol.ActorClassWithSpec(testSpec, {
   getWindowDimensions: function() {
     return getWindowDimensions(this.content);
   },
-}));
+});
+exports.TestActor = TestActor;
 
-class TestActorFront extends protocol.FrontClassWithSpec(testSpec) {
-  constructor(client, highlighter) {
-    super(client);
-    this.highlighter = highlighter;
+class TestFront extends protocol.FrontClassWithSpec(testSpec) {
+  constructor(client, targetFront, parentFront) {
+    super(client, targetFront, parentFront);
+    this.formAttributeName = "testActor";
+  }
+
+  async initialize() {
+    // TODO: Remove reference to highlighter from top-level target after
+    // updating all non-Inspector consumers for the highlighter. Bug 1623667
+    const inspectorFront = await this.targetFront.getFront("inspector");
+    this._highlighter = inspectorFront.highlighter;
+  }
+
+  /**
+   * Override the highlighter getter with a custom method that returns
+   * the currently active highlighter instance.
+   *
+   * @param {Function|Highlighter} _customHighlighterGetter
+   */
+  set highlighter(_customHighlighterGetter) {
+    if (typeof _customHighlighterGetter === "function") {
+      this._customHighlighterGetter = _customHighlighterGetter;
+    } else {
+      this._customHighlighterGetter = null;
+      this._highlighter = _customHighlighterGetter;
+    }
+  }
+
+  /**
+   * The currently active highlighter instance.
+   * If there is a custom getter for the highlighter, return its result.
+   *
+   * @return {Highlighter|null}
+   */
+  get highlighter() {
+    if (this._customHighlighterGetter) {
+      return this._customHighlighterGetter();
+    }
+    return this._highlighter;
   }
 
   /**
@@ -871,7 +907,7 @@ class TestActorFront extends protocol.FrontClassWithSpec(testSpec) {
    * Get the value of an attribute on one of the highlighter's node.
    * @param {String} nodeID The Id of the node in the highlighter.
    * @param {String} name The name of the attribute.
-   * @param {Object} highlighter Optional custom highlither to target
+   * @param {Object} highlighter Optional custom highlighter to target
    * @return {String} value
    */
   getHighlighterNodeAttribute(nodeID, name, highlighter) {
@@ -893,6 +929,12 @@ class TestActorFront extends protocol.FrontClassWithSpec(testSpec) {
    * Is the highlighter currently visible on the page?
    */
   isHighlighting() {
+    // Once the highlighter is hidden, the reference to it is lost.
+    // Assume it is not highlighting.
+    if (!this.highlighter) {
+      return false;
+    }
+
     return this.getHighlighterNodeAttribute(
       "box-model-elements",
       "hidden"
@@ -1172,8 +1214,7 @@ class TestActorFront extends protocol.FrontClassWithSpec(testSpec) {
     return { d, points };
   }
 }
-exports.TestActorFront = TestActorFront;
-
+protocol.registerFront(TestFront);
 /**
  * Check whether a point is included in a polygon.
  * Taken and tweaked from:

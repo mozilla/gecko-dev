@@ -14,8 +14,7 @@
   fill: currentColor;
   width: 30px;
   min-width: 30px;
-  margin-inline-start: 0;
-  margin-inline-end: 0;
+  margin-inline: 0;
 }
 
 .menu {
@@ -54,7 +53,7 @@
 }
 
 .menuitem-button:dir(rtl) {
-  background-position: right 8px center;
+  background-position-x: right 8px;
 }
 
 .menuitem-separator {
@@ -67,12 +66,20 @@
   background-image: url("chrome://global/skin/icons/help.svg");
 }
 
-.menuitem-import {
+.menuitem-import-browser {
   background-image: url("chrome://browser/skin/import.svg");
 }
 
+.menuitem-import-file {
+  background-image: url("chrome://browser/skin/open.svg");
+}
+
+.menuitem-export {
+  background-image: url("chrome://browser/skin/save.svg");
+}
+
 .menuitem-preferences {
-  background-image: url("chrome://browser/skin/settings.svg");
+  background-image: url("chrome://global/skin/icons/settings.svg");
 }
 
 .menuitem-mobile-ios {

@@ -100,7 +100,13 @@ async function promptNoDelegateScreenSharing(aThirdPartyOrgin) {
   // The 'Remember this decision' checkbox is hidden.
   const checkbox = notification.checkbox;
   ok(!!checkbox, "checkbox is present");
-  ok(checkbox.hidden, "checkbox is not visible");
+
+  if (ALLOW_SILENCING_NOTIFICATIONS) {
+    ok(!checkbox.hidden, "Notification silencing checkbox is visible");
+  } else {
+    ok(checkbox.hidden, "checkbox is not visible");
+  }
+
   ok(!checkbox.checked, "checkbox not checked");
 
   // Check the label of the notification should be the first party
@@ -237,7 +243,7 @@ var gTests = [
         noWindowOrScreenItem,
         "'Select Window or Screen' is the selected item"
       );
-      is(menulist.value, -1, "no window or screen is selected by default");
+      is(menulist.value, "-1", "no window or screen is selected by default");
       ok(
         noWindowOrScreenItem.disabled,
         "'Select Window or Screen' item is disabled"
@@ -357,7 +363,7 @@ var gTests = [
             "expected " + Object.keys(expected).join(" and ") + " to be shared"
           );
 
-          await closeStream(false, "frame1");
+          await closeStream(false, aIframeId);
         } else if (aExpect == PromptResult.DENY) {
           const observerPromise = expectObserverCalled(
             "recording-window-ended"
@@ -409,6 +415,46 @@ var gTests = [
         PromptResult.ALLOW
       );
 
+      // Wildcard attributes still get delegation when their src is unchanged.
+      await checkPersistentPermission(
+        Perms.PROMPT_ACTION,
+        "camera",
+        "frame4",
+        PromptResult.PROMPT
+      );
+      await checkPersistentPermission(
+        Perms.DENY_ACTION,
+        "camera",
+        "frame4",
+        PromptResult.DENY
+      );
+      await checkPersistentPermission(
+        Perms.ALLOW_ACTION,
+        "camera",
+        "frame4",
+        PromptResult.ALLOW
+      );
+
+      // Wildcard attributes still get delegation when their src is unchanged.
+      await checkPersistentPermission(
+        Perms.PROMPT_ACTION,
+        "microphone",
+        "frame4",
+        PromptResult.PROMPT
+      );
+      await checkPersistentPermission(
+        Perms.DENY_ACTION,
+        "microphone",
+        "frame4",
+        PromptResult.DENY
+      );
+      await checkPersistentPermission(
+        Perms.ALLOW_ACTION,
+        "microphone",
+        "frame4",
+        PromptResult.ALLOW
+      );
+
       await checkPersistentPermission(
         Perms.PROMPT_ACTION,
         "screen",
@@ -426,6 +472,12 @@ var gTests = [
         Perms.ALLOW_ACTION,
         "screen",
         "frame1",
+        PromptResult.PROMPT
+      );
+      await checkPersistentPermission(
+        Perms.ALLOW_ACTION,
+        "screen",
+        "frame4",
         PromptResult.PROMPT
       );
 
@@ -541,21 +593,69 @@ var gTests = [
       await checkTempPermission("screen");
     },
   },
+  {
+    desc:
+      "Don't reprompt while actively sharing in maybe unsafe permission delegation",
+    run: async function checkNoRepromptNoDelegate() {
+      // Change location to ensure that we're treated as potentially unsafe.
+      await promiseChangeLocationFrame(
+        "frame4",
+        "https://test2.example.com/browser/browser/base/content/test/webrtc/get_user_media.html"
+      );
 
-  {
-    desc:
-      "Prompt and display both first party and third party origin in maybe unsafe permission delegation",
-    run: async function checkPromptNoDelegate() {
-      await promptNoDelegate("test1.example.com");
-      await promptNoDelegate("test1.example.com", true, false);
-      await promptNoDelegate("test1.example.com", false, true);
-    },
-  },
-  {
-    desc:
-      "Prompt and display both first party and third party origin when sharing screen in unsafe permission delegation",
-    run: async function checkPromptNoDelegateScreenSharing() {
-      await promptNoDelegateScreenSharing("test1.example.com");
+      // Check that we get a prompt.
+      let observerPromise = expectObserverCalled("getUserMedia:request");
+      let promise = promisePopupNotificationShown("webRTC-shareDevices");
+      await promiseRequestDevice(true, true, "frame4");
+      await promise;
+      await observerPromise;
+
+      // Check the secondName of the notification should be the third party
+      is(
+        PopupNotifications.getNotification("webRTC-shareDevices").options
+          .secondName,
+        "test2.example.com",
+        "Use third party's origin as secondName"
+      );
+
+      const notification = PopupNotifications.panel.firstElementChild;
+      let indicator = promiseIndicatorWindow();
+      let observerPromise1 = expectObserverCalled(
+        "getUserMedia:response:allow"
+      );
+      let observerPromise2 = expectObserverCalled("recording-device-events");
+      await promiseMessage("ok", () =>
+        EventUtils.synthesizeMouseAtCenter(notification.button, {})
+      );
+      await observerPromise1;
+      await observerPromise2;
+
+      let state = await getMediaCaptureState();
+      is(!!state.audio, true, "expected microphone to be shared");
+      is(!!state.video, true, "expected camera to be shared");
+      await indicator;
+      await checkSharingUI({ audio: true, video: true });
+
+      // Check that we now don't get a prompt.
+      observerPromise = expectObserverCalled("getUserMedia:request");
+      observerPromise1 = expectObserverCalled("getUserMedia:response:allow");
+      observerPromise2 = expectObserverCalled("recording-device-events");
+      promise = promiseMessage("ok");
+      await promiseRequestDevice(true, true, "frame4");
+      await promise;
+      await observerPromise;
+
+      await promiseNoPopupNotification("webRTC-shareDevices");
+      await observerPromise1;
+      await observerPromise2;
+
+      state = await getMediaCaptureState();
+      is(!!state.audio, true, "expected microphone to be shared");
+      is(!!state.video, true, "expected camera to be shared");
+      await checkSharingUI({ audio: true, video: true });
+
+      // Cleanup.
+      await closeStream(false, "frame4");
     },
   },
   {
@@ -569,7 +669,6 @@ var gTests = [
       await promptNoDelegate("test2.example.com");
     },
   },
-
   {
     desc:
       "Change location, prompt and display both first party and third party origin when sharing screen in unsafe permission delegation",
@@ -581,12 +680,17 @@ var gTests = [
       await promptNoDelegateScreenSharing("test2.example.com");
     },
   },
-
   {
     desc:
       "Prompt and display both first party and third party origin and temporary deny in frame does not change permission scope",
     skipObserverVerification: true,
     run: async function checkPromptBothOriginsTempDenyFrame() {
+      // Change location to ensure that we're treated as potentially unsafe.
+      await promiseChangeLocationFrame(
+        "frame4",
+        "https://test2.example.com/browser/browser/base/content/test/webrtc/get_user_media.html"
+      );
+
       // Persistent allowed first party origin
       let browser = gBrowser.selectedBrowser;
       let uri = gBrowser.selectedBrowser.documentURI;
@@ -678,7 +782,6 @@ add_task(async function test() {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["permissions.delegation.enabled", true],
-      ["dom.security.featurePolicy.enabled", true],
       ["dom.security.featurePolicy.header.enabled", true],
       ["dom.security.featurePolicy.webidl.enabled", true],
     ],

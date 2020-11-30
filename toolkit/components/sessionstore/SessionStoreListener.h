@@ -65,11 +65,22 @@ class ContentSessionStore {
   // Return true if there is a new storage change which is appended.
   bool AppendSessionStorageChange(StorageEvent* aEvent);
 
+  void SetSHistoryChanged();
+  // request "collect sessionHistory" which is happened in the parent process
+  void SetSHistoryFromParentChanged();
+  bool GetAndClearSHistoryChanged() {
+    bool ret = mSHistoryChanged;
+    mSHistoryChanged = false;
+    mSHistoryChangedFromParent = false;
+    return ret;
+  }
+
   void OnDocumentStart();
   void OnDocumentEnd();
   bool UpdateNeeded() {
     return mPrivateChanged || mDocCapChanged || IsScrollPositionChanged() ||
-           IsFormDataChanged() || IsStorageUpdated();
+           IsFormDataChanged() || IsStorageUpdated() || mSHistoryChanged ||
+           mSHistoryChangedFromParent;
   }
 
  private:
@@ -97,6 +108,15 @@ class ContentSessionStore {
   nsTArray<nsCString> mOrigins;
   nsTArray<nsString> mKeys;
   nsTArray<nsString> mValues;
+  // mSHistoryChanged means there are history changes which are found
+  // in the child process. The flag is set when
+  //    1. webProgress changes to STATE_START
+  //    2. webProgress changes to STATE_STOP
+  //    3. receiving "DOMTitleChanged" event
+  bool mSHistoryChanged;
+  // mSHistoryChangedFromParent means there are history changes which
+  // are found by session history listener in the parent process.
+  bool mSHistoryChangedFromParent;
 };
 
 class TabListener : public nsIDOMEventListener,
@@ -114,6 +134,7 @@ class TabListener : public nsIDOMEventListener,
   void RemoveListeners();
   void SetEpoch(uint32_t aEpoch) { mEpoch = aEpoch; }
   uint32_t GetEpoch() { return mEpoch; }
+  void UpdateSHistoryChanges(bool aImmediately);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(TabListener, nsIDOMEventListener)

@@ -49,6 +49,15 @@ NS_IMPL_NSIURIMUTATOR_ISUPPORTS(SubstitutingURL::Mutator, nsIURISetters,
                                 nsIURLMutator, nsIFileURLMutator,
                                 nsISerializable)
 
+NS_IMPL_CLASSINFO(SubstitutingURL, nullptr, nsIClassInfo::THREADSAFE,
+                  NS_SUBSTITUTINGURL_CID)
+// Empty CI getter. We only need nsIClassInfo for Serialization
+NS_IMPL_CI_INTERFACE_GETTER0(SubstitutingURL)
+
+NS_IMPL_ADDREF_INHERITED(SubstitutingURL, nsStandardURL)
+NS_IMPL_RELEASE_INHERITED(SubstitutingURL, nsStandardURL)
+NS_IMPL_QUERY_INTERFACE_CI_INHERITED0(SubstitutingURL, nsStandardURL)
+
 nsresult SubstitutingURL::EnsureFile() {
   nsAutoCString ourScheme;
   nsresult rv = GetScheme(ourScheme);
@@ -86,12 +95,6 @@ nsresult SubstitutingURL::EnsureFile() {
 nsStandardURL* SubstitutingURL::StartClone() {
   SubstitutingURL* clone = new SubstitutingURL();
   return clone;
-}
-
-NS_IMETHODIMP
-SubstitutingURL::GetClassIDNoAlloc(nsCID* aClassIDNoAlloc) {
-  *aClassIDNoAlloc = kSubstitutingURLCID;
-  return NS_OK;
 }
 
 void SubstitutingURL::Serialize(ipc::URIParams& aParams) {
@@ -462,7 +465,7 @@ nsresult SubstitutingProtocolHandler::SetSubstitutionWithFlags(
       AutoWriteLock lock(mSubstitutionsLock);
       mSubstitutions.Remove(root);
     }
-    NotifyObservers(root, baseURI);
+
     return SendSubstitution(root, baseURI, flags);
   }
 
@@ -485,7 +488,7 @@ nsresult SubstitutingProtocolHandler::SetSubstitutionWithFlags(
       entry.baseURI = baseURI;
       entry.flags = flags;
     }
-    NotifyObservers(root, baseURI);
+
     return SendSubstitution(root, baseURI, flags);
   }
 
@@ -505,7 +508,7 @@ nsresult SubstitutingProtocolHandler::SetSubstitutionWithFlags(
     entry.baseURI = newBaseURI;
     entry.flags = flags;
   }
-  NotifyObservers(root, baseURI);
+
   return SendSubstitution(root, newBaseURI, flags);
 }
 
@@ -617,8 +620,7 @@ nsresult SubstitutingProtocolHandler::ResolveURI(nsIURI* uri,
     if (baseDir) {
       nsAutoCString basePath;
       rv = baseURI->GetFilePath(basePath);
-      if (NS_SUCCEEDED(rv) &&
-          !StringEndsWith(basePath, NS_LITERAL_CSTRING("/"))) {
+      if (NS_SUCCEEDED(rv) && !StringEndsWith(basePath, "/"_ns)) {
         // Cf. the assertion above, path already starts with a /, so prefixing
         // with a string that doesn't end with one will leave us wit the right
         // amount of /.
@@ -645,35 +647,6 @@ nsresult SubstitutingProtocolHandler::ResolveURI(nsIURI* uri,
             ("%s\n -> %s\n", spec.get(), PromiseFlatCString(result).get()));
   }
   return rv;
-}
-
-nsresult SubstitutingProtocolHandler::AddObserver(
-    nsISubstitutionObserver* aObserver) {
-  NS_ENSURE_ARG(aObserver);
-  if (mObservers.Contains(aObserver)) {
-    return NS_ERROR_DUPLICATE_HANDLE;
-  }
-
-  mObservers.AppendElement(aObserver);
-  return NS_OK;
-}
-
-nsresult SubstitutingProtocolHandler::RemoveObserver(
-    nsISubstitutionObserver* aObserver) {
-  NS_ENSURE_ARG(aObserver);
-  if (!mObservers.Contains(aObserver)) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  mObservers.RemoveElement(aObserver);
-  return NS_OK;
-}
-
-void SubstitutingProtocolHandler::NotifyObservers(const nsACString& aRoot,
-                                                  nsIURI* aBaseURI) {
-  for (size_t i = 0; i < mObservers.Length(); ++i) {
-    mObservers[i]->OnSetSubstitution(aRoot, aBaseURI);
-  }
 }
 
 }  // namespace net

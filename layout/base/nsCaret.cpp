@@ -125,7 +125,7 @@ nsresult nsCaret::Init(PresShell* aPresShell) {
   NS_ASSERTION(mPresShell, "Hey, pres shell should support weak refs");
 
   mShowDuringSelection =
-      LookAndFeel::GetInt(LookAndFeel::eIntID_ShowCaretDuringSelection,
+      LookAndFeel::GetInt(LookAndFeel::IntID::ShowCaretDuringSelection,
                           mShowDuringSelection ? 1 : 0) != 0;
 
   RefPtr<Selection> selection =
@@ -154,9 +154,9 @@ nsCaret::Metrics nsCaret::ComputeMetrics(nsIFrame* aFrame, int32_t aOffset,
   // Compute nominal sizes in appunits
   nscoord caretWidth =
       (aCaretHeight *
-       LookAndFeel::GetFloat(LookAndFeel::eFloatID_CaretAspectRatio, 0.0f)) +
+       LookAndFeel::GetFloat(LookAndFeel::FloatID::CaretAspectRatio, 0.0f)) +
       nsPresContext::CSSPixelsToAppUnits(
-          LookAndFeel::GetInt(LookAndFeel::eIntID_CaretWidth, 1));
+          LookAndFeel::GetInt(LookAndFeel::IntID::CaretWidth, 1));
 
   if (DrawCJKCaret(aFrame, aOffset)) {
     caretWidth += nsPresContext::CSSPixelsToAppUnits(1);
@@ -249,7 +249,7 @@ nsRect nsCaret::GetGeometryForFrame(nsIFrame* aFrame, int32_t aFrameOffset,
   if (!frame) {
     frame = aFrame;
   }
-  NS_ASSERTION(!(frame->GetStateBits() & NS_FRAME_IN_REFLOW),
+  NS_ASSERTION(!frame->HasAnyStateBits(NS_FRAME_IN_REFLOW),
                "We should not be in the middle of reflow");
   nscoord baseline = frame->GetCaretBaseline();
   nscoord ascent = 0, descent = 0;
@@ -335,13 +335,13 @@ nsRect nsCaret::GetGeometryForFrame(nsIFrame* aFrame, int32_t aFrameOffset,
     // then snap it back, put it as close to the edge as it can.
     if (vertical) {
       nscoord overflow = caretInScroll.YMost() -
-                         scrolled->GetVisualOverflowRectRelativeToSelf().height;
+                         scrolled->InkOverflowRectRelativeToSelf().height;
       if (overflow > 0) {
         rect.y -= overflow;
       }
     } else {
       nscoord overflow = caretInScroll.XMost() -
-                         scrolled->GetVisualOverflowRectRelativeToSelf().width;
+                         scrolled->InkOverflowRectRelativeToSelf().width;
       if (overflow > 0) {
         rect.x -= overflow;
       }
@@ -383,14 +383,10 @@ nsIFrame* nsCaret::GetFrameAndOffset(Selection* aSelection,
   nsIContent* contentNode = focusNode->AsContent();
   nsFrameSelection* frameSelection = aSelection->GetFrameSelection();
   nsBidiLevel bidiLevel = frameSelection->GetCaretBidiLevel();
-  nsIFrame* frame;
-  nsresult rv = nsCaret::GetCaretFrameForNodeOffset(
+
+  return nsCaret::GetCaretFrameForNodeOffset(
       frameSelection, contentNode, focusOffset, frameSelection->GetHint(),
-      bidiLevel, &frame, aUnadjustedFrame, aFrameOffset);
-  if (NS_FAILED(rv) || !frame) {
-    return nullptr;
-  }
-  return frame;
+      bidiLevel, aUnadjustedFrame, aFrameOffset);
 }
 
 /* static */
@@ -571,7 +567,7 @@ void nsCaret::ResetBlinking() {
   }
 
   uint32_t blinkRate = static_cast<uint32_t>(LookAndFeel::GetInt(
-      LookAndFeel::eIntID_CaretBlinkTime, kDefaultCaretBlinkRate));
+      LookAndFeel::IntID::CaretBlinkTime, kDefaultCaretBlinkRate));
   if (mBlinkRate == blinkRate) {
     // If the rate hasn't changed, then there is nothing to do.
     return;
@@ -609,27 +605,32 @@ void nsCaret::StopBlinking() {
   }
 }
 
-nsresult nsCaret::GetCaretFrameForNodeOffset(
+nsIFrame* nsCaret::GetCaretFrameForNodeOffset(
     nsFrameSelection* aFrameSelection, nsIContent* aContentNode,
     int32_t aOffset, CaretAssociationHint aFrameHint, nsBidiLevel aBidiLevel,
-    nsIFrame** aReturnFrame, nsIFrame** aReturnUnadjustedFrame,
-    int32_t* aReturnOffset) {
-  if (!aFrameSelection) return NS_ERROR_FAILURE;
+    nsIFrame** aReturnUnadjustedFrame, int32_t* aReturnOffset) {
+  if (!aFrameSelection) {
+    return nullptr;
+  }
+
   PresShell* presShell = aFrameSelection->GetPresShell();
   if (!presShell) {
-    return NS_ERROR_FAILURE;
+    return nullptr;
   }
 
   if (!aContentNode || !aContentNode->IsInComposedDoc() ||
-      presShell->GetDocument() != aContentNode->GetComposedDoc())
-    return NS_ERROR_FAILURE;
+      presShell->GetDocument() != aContentNode->GetComposedDoc()) {
+    return nullptr;
+  }
 
   nsIFrame* theFrame = nullptr;
   int32_t theFrameOffset = 0;
 
   theFrame = nsFrameSelection::GetFrameForNodeOffset(
       aContentNode, aOffset, aFrameHint, &theFrameOffset);
-  if (!theFrame) return NS_ERROR_FAILURE;
+  if (!theFrame) {
+    return nullptr;
+  }
 
   if (aReturnUnadjustedFrame) {
     *aReturnUnadjustedFrame = theFrame;
@@ -776,9 +777,8 @@ nsresult nsCaret::GetCaretFrameForNodeOffset(
     }
   }
 
-  *aReturnFrame = theFrame;
   *aReturnOffset = theFrameOffset;
-  return NS_OK;
+  return theFrame;
 }
 
 size_t nsCaret::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {

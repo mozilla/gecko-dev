@@ -5,8 +5,8 @@
 
 package org.mozilla.geckoview.test;
 
-import org.json.JSONObject;
 import org.mozilla.geckoview.AllowOrDeny;
+import org.mozilla.geckoview.ContentBlocking;
 import org.mozilla.geckoview.GeckoDisplay;
 import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoSession;
@@ -23,13 +23,13 @@ import android.content.Intent;
 import android.graphics.SurfaceTexture;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import android.view.Surface;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 
 public class TestRunnerActivity extends Activity {
@@ -39,7 +39,7 @@ public class TestRunnerActivity extends Activity {
 
     static GeckoRuntime sRuntime;
 
-    private GeckoSession mActiveSession;
+    private GeckoSession mPopupSession;
     private GeckoSession mSession;
     private GeckoView mView;
     private boolean mKillProcessOnDestroy;
@@ -78,7 +78,9 @@ public class TestRunnerActivity extends Activity {
         return sRuntime.getWebExtensionController();
     }
 
-    private HashSet<GeckoSession> mOwnedSessions = new HashSet<>();
+    // Keeps track of all sessions for this test runner. The top session in the deque is the
+    // current active session for extension purposes.
+    private ArrayDeque<GeckoSession> mOwnedSessions = new ArrayDeque<>();
 
     private GeckoSession.PermissionDelegate mPermissionDelegate = new GeckoSession.PermissionDelegate() {
         @Override
@@ -99,16 +101,6 @@ public class TestRunnerActivity extends Activity {
         }
 
         @Override
-        public void onCanGoBack(GeckoSession session, boolean canGoBack) {
-
-        }
-
-        @Override
-        public void onCanGoForward(GeckoSession session, boolean canGoForward) {
-
-        }
-
-        @Override
         public GeckoResult<AllowOrDeny> onLoadRequest(GeckoSession session,
                                                   LoadRequest request) {
             // Allow Gecko to load all URIs
@@ -117,10 +109,11 @@ public class TestRunnerActivity extends Activity {
 
         @Override
         public GeckoResult<GeckoSession> onNewSession(GeckoSession session, String uri) {
-            webExtensionController().setTabActive(mActiveSession, false);
-            mActiveSession = createBackgroundSession(session.getSettings());
-            webExtensionController().setTabActive(mActiveSession, true);
-            return GeckoResult.fromValue(mActiveSession);
+            webExtensionController().setTabActive(mOwnedSessions.peek(), false);
+            GeckoSession newSession = createBackgroundSession(session.getSettings(),
+                                                              /* active */ true);
+            webExtensionController().setTabActive(newSession, true);
+            return GeckoResult.fromValue(newSession);
         }
 
         @Override
@@ -138,33 +131,8 @@ public class TestRunnerActivity extends Activity {
         }
 
         @Override
-        public void onTitleChange(GeckoSession session, String title) {
-
-        }
-
-        @Override
-        public void onFocusRequest(GeckoSession session) {
-
-        }
-
-        @Override
         public void onCloseRequest(GeckoSession session) {
             closeSession(session);
-        }
-
-        @Override
-        public void onFullScreen(GeckoSession session, boolean fullScreen) {
-
-        }
-
-        @Override
-        public void onContextMenu(GeckoSession session, int screenX, int screenY,
-                                  ContextElement element) {
-
-        }
-
-        @Override
-        public void onExternalResponse(GeckoSession session, GeckoSession.WebResponseInfo request) {
         }
 
         @Override
@@ -176,19 +144,23 @@ public class TestRunnerActivity extends Activity {
         public void onKill(GeckoSession session) {
             onContentProcessGone();
         }
-
-        @Override
-        public void onFirstComposite(final GeckoSession session) {
-        }
-
-        @Override
-        public void onWebAppManifest(final GeckoSession session, final JSONObject manifest) {
-        }
     };
 
-    private GeckoSession createSession() {
-        return createSession(null);
-    }
+    private WebExtension.ActionDelegate mActionDelegate = new WebExtension.ActionDelegate() {
+        @Nullable
+        @Override
+        public GeckoResult<GeckoSession> onOpenPopup(@NonNull WebExtension extension,
+                                                     @NonNull WebExtension.Action action) {
+            if (mPopupSession != null) {
+                mPopupSession.close();
+            }
+
+            mPopupSession = createBackgroundSession(null, /* active */ false);
+            mPopupSession.open(sRuntime);
+
+            return GeckoResult.fromValue(mPopupSession);
+        }
+    };
 
     private WebExtension.SessionTabDelegate mSessionTabDelegate = new WebExtension.SessionTabDelegate() {
         @NonNull
@@ -202,13 +174,37 @@ public class TestRunnerActivity extends Activity {
         public GeckoResult<AllowOrDeny> onUpdateTab(@NonNull WebExtension source,
                                                     @NonNull GeckoSession session,
                                                     @NonNull WebExtension.UpdateTabDetails updateDetails) {
-            webExtensionController().setTabActive(mActiveSession, false);
-            mActiveSession = session;
+            if (updateDetails.active == Boolean.TRUE) {
+                // Move session to the top since it's now the active tab
+                mOwnedSessions.remove(session);
+                mOwnedSessions.addFirst(session);
+            }
+
             return GeckoResult.fromValue(AllowOrDeny.ALLOW);
         }
     };
 
-    private GeckoSession createSession(GeckoSessionSettings settings) {
+    /**
+     * Creates a session and adds it to the owned sessions deque.
+     *
+     * @param active Whether this session is the "active" session for extension purposes.
+     *               The active session always sit at the top of the owned sessions deque.
+     * @return the newly created session.
+     */
+    private GeckoSession createSession(boolean active) {
+        return createSession(null, active);
+    }
+
+    /**
+     * Creates a session and adds it to the owned sessions deque.
+     *
+     * @param settings settings for the newly created {@link GeckoSession}, could be null
+     *                 if no extra settings need to be added.
+     * @param active Whether this session is the "active" session for extension purposes.
+     *               The active session always sit at the top of the owned sessions deque.
+     * @return the newly created session.
+     */
+    private GeckoSession createSession(GeckoSessionSettings settings, boolean active) {
         if (settings == null) {
             settings = new GeckoSessionSettings();
         }
@@ -221,15 +217,29 @@ public class TestRunnerActivity extends Activity {
         final WebExtension.SessionController sessionController =
                 session.getWebExtensionController();
         for (final WebExtension extension : mExtensions) {
+            sessionController.setActionDelegate(extension, mActionDelegate);
             sessionController.setTabDelegate(extension, mSessionTabDelegate);
         }
 
-        mOwnedSessions.add(session);
+        if (active) {
+            mOwnedSessions.addFirst(session);
+        } else {
+            mOwnedSessions.addLast(session);
+        }
         return session;
     }
 
-    private GeckoSession createBackgroundSession(final GeckoSessionSettings settings) {
-        final GeckoSession session = createSession(settings);
+    /**
+     * Creates a session with a display attached.
+     *
+     * @param settings settings for the newly created {@link GeckoSession}, could be null
+     *                 if no extra settings need to be added.
+     * @param active Whether this session is the "active" session for extension purposes.
+     *               The active session always sit at the top of the owned sessions deque.
+     * @return the newly created session.
+     */
+    private GeckoSession createBackgroundSession(final GeckoSessionSettings settings, boolean active) {
+        final GeckoSession session = createSession(settings, active);
 
         final Display display = new Display(mView.getWidth(), mView.getHeight());
         display.attach(session);
@@ -240,9 +250,8 @@ public class TestRunnerActivity extends Activity {
     }
 
     private void closeSession(GeckoSession session) {
-        if (session == mActiveSession) {
-            webExtensionController().setTabActive(mActiveSession, false);
-            mActiveSession = null;
+        if (session == mOwnedSessions.peek()) {
+            webExtensionController().setTabActive(session, false);
         }
         if (mDisplays.containsKey(session)) {
             final Display display = mDisplays.remove(session);
@@ -251,9 +260,8 @@ public class TestRunnerActivity extends Activity {
         mOwnedSessions.remove(session);
         session.close();
         if (!mOwnedSessions.isEmpty()) {
-            // Pick a random session to set as active
-            mActiveSession = mOwnedSessions.iterator().next();
-            webExtensionController().setTabActive(mActiveSession, true);
+            // Pick the top session as the current active
+            webExtensionController().setTabActive(mOwnedSessions.peek(), true);
         }
     }
 
@@ -280,8 +288,23 @@ public class TestRunnerActivity extends Activity {
                 runtimeSettingsBuilder.extras(extras);
             }
 
+            final ContentBlocking.SafeBrowsingProvider googleLegacy = ContentBlocking.SafeBrowsingProvider
+                    .from(ContentBlocking.GOOGLE_LEGACY_SAFE_BROWSING_PROVIDER)
+                    .getHashUrl("http://mochi.test:8888/safebrowsing-dummy/gethash")
+                    .updateUrl("http://mochi.test:8888/safebrowsing-dummy/update")
+                    .build();
+
+            final ContentBlocking.SafeBrowsingProvider google = ContentBlocking.SafeBrowsingProvider
+                    .from(ContentBlocking.GOOGLE_SAFE_BROWSING_PROVIDER)
+                    .getHashUrl("http://mochi.test:8888/safebrowsing4-dummy/gethash")
+                    .updateUrl("http://mochi.test:8888/safebrowsing4-dummy/update")
+                    .build();
+
             runtimeSettingsBuilder
                     .consoleOutput(true)
+                    .contentBlocking(new ContentBlocking.Settings.Builder()
+                        .safeBrowsingProviders(google, googleLegacy)
+                        .build())
                     .crashHandler(TestCrashHandler.class);
 
             sRuntime = GeckoRuntime.create(this, runtimeSettingsBuilder.build());
@@ -299,9 +322,8 @@ public class TestRunnerActivity extends Activity {
             });
         }
 
-        mSession = createSession();
-        mActiveSession = mSession;
-        webExtensionController().setTabActive(mActiveSession, true);
+        mSession = createSession(/* active */ true);
+        webExtensionController().setTabActive(mOwnedSessions.peek(), true);
         mSession.open(sRuntime);
 
         // If we were passed a URI in the Intent, open it
@@ -319,22 +341,33 @@ public class TestRunnerActivity extends Activity {
         webExtensionController().list().accept(extensions -> {
             mExtensions = extensions;
             for (WebExtension extension : mExtensions) {
+                extension.setActionDelegate(mActionDelegate);
                 extension.setTabDelegate(new WebExtension.TabDelegate() {
                     @Override
                     public GeckoResult<GeckoSession> onNewTab(WebExtension source,
                                                               WebExtension.CreateTabDetails details) {
-                        GeckoSession newSession = createSession();
-                        if (details.active == Boolean.TRUE) {
-                            webExtensionController().setTabActive(mActiveSession, false);
-                            mActiveSession = newSession;
+                        GeckoSessionSettings settings = null;
+                        if (details.cookieStoreId != null) {
+                            settings = new GeckoSessionSettings.Builder()
+                                    .contextId(details.cookieStoreId)
+                                    .build();
                         }
+
+                        if (details.active == Boolean.TRUE) {
+                            webExtensionController().setTabActive(mOwnedSessions.peek(), false);
+                        }
+                        GeckoSession newSession = createSession(
+                                settings,
+                                details.active == Boolean.TRUE);
                         return GeckoResult.fromValue(newSession);
                     }
                 });
 
                 for (final GeckoSession session : mOwnedSessions) {
-                    session.getWebExtensionController()
-                            .setTabDelegate(extension, mSessionTabDelegate);
+                    final WebExtension.SessionController controller =
+                            session.getWebExtensionController();
+                    controller.setActionDelegate(extension, mActionDelegate);
+                    controller.setTabDelegate(extension, mSessionTabDelegate);
                 }
             }
         });

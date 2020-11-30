@@ -171,16 +171,6 @@ impl ContentDistribution {
         Self { primary }
     }
 
-    fn from_bits(bits: u16) -> Self {
-        Self {
-            primary: AlignFlags::from_bits_truncate(bits as u8),
-        }
-    }
-
-    fn as_bits(&self) -> u16 {
-        self.primary.bits() as u16
-    }
-
     /// Returns whether this value is a <baseline-position>.
     pub fn is_baseline_position(&self) -> bool {
         matches!(
@@ -204,25 +194,28 @@ impl ContentDistribution {
         //      when this function is updated.
 
         // Try to parse normal first
-        if input.try(|i| i.expect_ident_matching("normal")).is_ok() {
+        if input
+            .try_parse(|i| i.expect_ident_matching("normal"))
+            .is_ok()
+        {
             return Ok(ContentDistribution::normal());
         }
 
         // Parse <baseline-position>, but only on the block axis.
         if axis == AxisDirection::Block {
-            if let Ok(value) = input.try(parse_baseline) {
+            if let Ok(value) = input.try_parse(parse_baseline) {
                 return Ok(ContentDistribution::new(value));
             }
         }
 
         // <content-distribution>
-        if let Ok(value) = input.try(parse_content_distribution) {
+        if let Ok(value) = input.try_parse(parse_content_distribution) {
             return Ok(ContentDistribution::new(value));
         }
 
         // <overflow-position>? <content-position>
         let overflow_position = input
-            .try(parse_overflow_position)
+            .try_parse(parse_overflow_position)
             .unwrap_or(AlignFlags::empty());
 
         let content_position = try_match_ident_ignore_ascii_case! { input,
@@ -292,6 +285,36 @@ impl SpecifiedValueInfo for AlignContent {
     }
 }
 
+/// Value for the `align-tracks` property.
+///
+/// <https://github.com/w3c/csswg-drafts/issues/4650>
+#[derive(
+    Clone,
+    Debug,
+    Default,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(transparent)]
+#[css(comma)]
+pub struct AlignTracks(#[css(iterable, if_empty = "normal")] pub crate::OwnedSlice<AlignContent>);
+
+impl Parse for AlignTracks {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let values = input.parse_comma_separated(|input| AlignContent::parse(context, input))?;
+        Ok(AlignTracks(values.into()))
+    }
+}
+
 /// Value for the `justify-content` property.
 ///
 /// <https://drafts.csswg.org/css-align/#propdef-justify-content>
@@ -329,18 +352,35 @@ impl SpecifiedValueInfo for JustifyContent {
         ContentDistribution::list_keywords(f, AxisDirection::Inline);
     }
 }
+/// Value for the `justify-tracks` property.
+///
+/// <https://github.com/w3c/csswg-drafts/issues/4650>
+#[derive(
+    Clone,
+    Debug,
+    Default,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(transparent)]
+#[css(comma)]
+pub struct JustifyTracks(
+    #[css(iterable, if_empty = "normal")] pub crate::OwnedSlice<JustifyContent>,
+);
 
-#[cfg(feature = "gecko")]
-impl From<u16> for JustifyContent {
-    fn from(bits: u16) -> Self {
-        JustifyContent(ContentDistribution::from_bits(bits))
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl From<JustifyContent> for u16 {
-    fn from(v: JustifyContent) -> u16 {
-        v.0.as_bits()
+impl Parse for JustifyTracks {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let values = input.parse_comma_separated(|input| JustifyContent::parse(context, input))?;
+        Ok(JustifyTracks(values.into()))
     }
 }
 
@@ -389,18 +429,18 @@ impl SelfAlignment {
         //
         // It's weird that this accepts <baseline-position>, but not
         // justify-content...
-        if let Ok(value) = input.try(parse_baseline) {
+        if let Ok(value) = input.try_parse(parse_baseline) {
             return Ok(SelfAlignment(value));
         }
 
         // auto | normal | stretch
-        if let Ok(value) = input.try(parse_auto_normal_stretch) {
+        if let Ok(value) = input.try_parse(parse_auto_normal_stretch) {
             return Ok(SelfAlignment(value));
         }
 
         // <overflow-position>? <self-position>
         let overflow_position = input
-            .try(parse_overflow_position)
+            .try_parse(parse_overflow_position)
             .unwrap_or(AlignFlags::empty());
         let self_position = parse_self_position(input, axis)?;
         Ok(SelfAlignment(overflow_position | self_position))
@@ -527,17 +567,17 @@ impl Parse for AlignItems {
         //      this function is updated.
 
         // <baseline-position>
-        if let Ok(baseline) = input.try(parse_baseline) {
+        if let Ok(baseline) = input.try_parse(parse_baseline) {
             return Ok(AlignItems(baseline));
         }
 
         // normal | stretch
-        if let Ok(value) = input.try(parse_normal_stretch) {
+        if let Ok(value) = input.try_parse(parse_normal_stretch) {
             return Ok(AlignItems(value));
         }
         // <overflow-position>? <self-position>
         let overflow = input
-            .try(parse_overflow_position)
+            .try_parse(parse_overflow_position)
             .unwrap_or(AlignFlags::empty());
         let self_position = parse_self_position(input, AxisDirection::Block)?;
         Ok(AlignItems(self_position | overflow))
@@ -556,7 +596,7 @@ impl SpecifiedValueInfo for AlignItems {
 /// Value of the `justify-items` property
 ///
 /// <https://drafts.csswg.org/css-align/#justify-items-property>
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss, ToShmem)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss, ToResolvedValue, ToShmem)]
 #[repr(C)]
 pub struct JustifyItems(pub AlignFlags);
 
@@ -586,23 +626,23 @@ impl Parse for JustifyItems {
         //
         // It's weird that this accepts <baseline-position>, but not
         // justify-content...
-        if let Ok(baseline) = input.try(parse_baseline) {
+        if let Ok(baseline) = input.try_parse(parse_baseline) {
             return Ok(JustifyItems(baseline));
         }
 
         // normal | stretch
-        if let Ok(value) = input.try(parse_normal_stretch) {
+        if let Ok(value) = input.try_parse(parse_normal_stretch) {
             return Ok(JustifyItems(value));
         }
 
         // legacy | [ legacy && [ left | right | center ] ]
-        if let Ok(value) = input.try(parse_legacy) {
+        if let Ok(value) = input.try_parse(parse_legacy) {
             return Ok(JustifyItems(value));
         }
 
         // <overflow-position>? <self-position>
         let overflow = input
-            .try(parse_overflow_position)
+            .try_parse(parse_overflow_position)
             .unwrap_or(AlignFlags::empty());
         let self_position = parse_self_position(input, AxisDirection::Inline)?;
         Ok(JustifyItems(overflow | self_position))
@@ -758,7 +798,7 @@ fn parse_legacy<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseE
     //      when this function is updated.
     let flags = try_match_ident_ignore_ascii_case! { input,
         "legacy" => {
-            let flags = input.try(parse_left_right_center)
+            let flags = input.try_parse(parse_left_right_center)
                 .unwrap_or(AlignFlags::empty());
 
             return Ok(AlignFlags::LEGACY | flags)

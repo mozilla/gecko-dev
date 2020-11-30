@@ -29,6 +29,7 @@
 #include "mozilla/dom/HTMLBRElement.h"
 #include "mozilla/dom/Text.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/StaticPrefs_converter.h"
 #include "mozilla/BinarySearch.h"
 #include "nsComputedDOMStyle.h"
 
@@ -41,7 +42,6 @@ using namespace mozilla::dom;
 
 #define PREF_STRUCTS "converter.html2txt.structs"
 #define PREF_HEADER_STRATEGY "converter.html2txt.header_strategy"
-#define PREF_ALWAYS_INCLUDE_RUBY "converter.html2txt.always_include_ruby"
 
 static const int32_t kTabSize = 4;
 static const int32_t kIndentSizeHeaders =
@@ -67,9 +67,6 @@ static int32_t GetUnicharStringWidth(const nsString& aString);
 
 // Someday may want to make this non-const:
 static const uint32_t TagStackSize = 500;
-
-static bool gPreferenceInitialized = false;
-static bool gAlwaysIncludeRuby = false;
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsPlainTextSerializer)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsPlainTextSerializer)
@@ -239,7 +236,7 @@ uint32_t nsPlainTextSerializer::OutputManager::GetOutputLength() const {
 nsPlainTextSerializer::nsPlainTextSerializer()
     : mFloatingLines(-1),
       mLineBreakDue(false),
-      kSpace(NS_LITERAL_STRING(" "))  // Init of "constant"
+      kSpace(u" "_ns)  // Init of "constant"
 {
   mHeadLevel = 0;
   mHasWrittenCiteBlockquote = false;
@@ -265,12 +262,6 @@ nsPlainTextSerializer::nsPlainTextSerializer()
   mULCount = 0;
 
   mIgnoredChildNodeLevel = 0;
-
-  if (!gPreferenceInitialized) {
-    Preferences::AddBoolVarCache(&gAlwaysIncludeRuby, PREF_ALWAYS_INCLUDE_RUBY,
-                                 true);
-    gPreferenceInitialized = true;
-  }
 }
 
 nsPlainTextSerializer::~nsPlainTextSerializer() {
@@ -321,11 +312,8 @@ void nsPlainTextSerializer::Settings::Init(const int32_t aFlags,
     mHeaderStrategy = Convert(headerStrategy);
   }
 
-  // The pref is default inited to false in libpref, but we use true
-  // as fallback value because we don't want to affect behavior in
-  // other places which use this serializer currently.
-  mWithRubyAnnotation =
-      gAlwaysIncludeRuby || (mFlags & nsIDocumentEncoder::OutputRubyAnnotation);
+  mWithRubyAnnotation = StaticPrefs::converter_html2txt_always_include_ruby() ||
+                        (mFlags & nsIDocumentEncoder::OutputRubyAnnotation);
 
   // XXX We should let the caller decide whether to do this or not
   mFlags &= ~nsIDocumentEncoder::OutputNoFramesContent;
@@ -395,13 +383,7 @@ void nsPlainTextSerializer::PushBool(nsTArray<bool>& aStack, bool aValue) {
 }
 
 bool nsPlainTextSerializer::PopBool(nsTArray<bool>& aStack) {
-  bool returnValue = false;
-  uint32_t size = aStack.Length();
-  if (size > 0) {
-    returnValue = aStack.ElementAt(size - 1);
-    aStack.RemoveElementAt(size - 1);
-  }
-  return returnValue;
+  return aStack.Length() ? aStack.PopLastElement() : false;
 }
 
 bool nsPlainTextSerializer::IsIgnorableRubyAnnotation(
@@ -812,7 +794,7 @@ nsresult nsPlainTextSerializer::DoOpenContainer(const nsAtom* aTag) {
           kTabSize;  // Check for some maximum value?
     }
   } else if (aTag == nsGkAtoms::q) {
-    Write(NS_LITERAL_STRING("\""));
+    Write(u"\""_ns);
   }
 
   // Else make sure we'll separate block level tags,
@@ -866,22 +848,22 @@ void nsPlainTextSerializer::OpenContainerForOutputFormatted(
     }
   } else if (aTag == nsGkAtoms::sup && mSettings.GetStructs() &&
              !currentNodeIsConverted) {
-    Write(NS_LITERAL_STRING("^"));
+    Write(u"^"_ns);
   } else if (aTag == nsGkAtoms::sub && mSettings.GetStructs() &&
              !currentNodeIsConverted) {
-    Write(NS_LITERAL_STRING("_"));
+    Write(u"_"_ns);
   } else if (aTag == nsGkAtoms::code && mSettings.GetStructs() &&
              !currentNodeIsConverted) {
-    Write(NS_LITERAL_STRING("|"));
+    Write(u"|"_ns);
   } else if ((aTag == nsGkAtoms::strong || aTag == nsGkAtoms::b) &&
              mSettings.GetStructs() && !currentNodeIsConverted) {
-    Write(NS_LITERAL_STRING("*"));
+    Write(u"*"_ns);
   } else if ((aTag == nsGkAtoms::em || aTag == nsGkAtoms::i) &&
              mSettings.GetStructs() && !currentNodeIsConverted) {
-    Write(NS_LITERAL_STRING("/"));
+    Write(u"/"_ns);
   } else if (aTag == nsGkAtoms::u && mSettings.GetStructs() &&
              !currentNodeIsConverted) {
-    Write(NS_LITERAL_STRING("_"));
+    Write(u"_"_ns);
   }
 
   /* Container elements are always block elements, so we shouldn't
@@ -1018,7 +1000,7 @@ nsresult nsPlainTextSerializer::DoCloseContainer(const nsAtom* aTag) {
     }
     mLineBreakDue = true;
   } else if (aTag == nsGkAtoms::q) {
-    Write(NS_LITERAL_STRING("\""));
+    Write(u"\""_ns);
   } else if (IsCssBlockLevelElement(mElement)) {
     // All other blocks get 1 vertical space after them
     // in formatted mode, otherwise 0.
@@ -1075,16 +1057,16 @@ void nsPlainTextSerializer::CloseContainerForOutputFormatted(
     Write(kSpace);
   } else if (aTag == nsGkAtoms::code && mSettings.GetStructs() &&
              !currentNodeIsConverted) {
-    Write(NS_LITERAL_STRING("|"));
+    Write(u"|"_ns);
   } else if ((aTag == nsGkAtoms::strong || aTag == nsGkAtoms::b) &&
              mSettings.GetStructs() && !currentNodeIsConverted) {
-    Write(NS_LITERAL_STRING("*"));
+    Write(u"*"_ns);
   } else if ((aTag == nsGkAtoms::em || aTag == nsGkAtoms::i) &&
              mSettings.GetStructs() && !currentNodeIsConverted) {
-    Write(NS_LITERAL_STRING("/"));
+    Write(u"/"_ns);
   } else if (aTag == nsGkAtoms::u && mSettings.GetStructs() &&
              !currentNodeIsConverted) {
-    Write(NS_LITERAL_STRING("_"));
+    Write(u"_"_ns);
   }
 }
 
@@ -1106,7 +1088,7 @@ bool nsPlainTextSerializer::MustSuppressLeaf() const {
   return false;
 }
 
-void nsPlainTextSerializer::DoAddText() { DoAddText(true, EmptyString()); }
+void nsPlainTextSerializer::DoAddText() { DoAddText(true, u""_ns); }
 
 void nsPlainTextSerializer::DoAddText(bool aIsLineBreak,
                                       const nsAString& aText) {
@@ -1201,8 +1183,7 @@ nsresult nsPlainTextSerializer::DoAddLeaf(const nsAtom* aTag) {
     } else if (NS_SUCCEEDED(
                    GetAttributeValue(nsGkAtoms::title, imageDescription)) &&
                !imageDescription.IsEmpty()) {
-      imageDescription =
-          NS_LITERAL_STRING(" [") + imageDescription + NS_LITERAL_STRING("] ");
+      imageDescription = u" ["_ns + imageDescription + u"] "_ns;
     }
 
     Write(imageDescription);

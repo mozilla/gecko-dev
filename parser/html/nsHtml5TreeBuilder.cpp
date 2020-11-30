@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2007 Henri Sivonen
- * Copyright (c) 2007-2015 Mozilla Foundation
+ * Copyright (c) 2007-2017 Mozilla Foundation
  * Portions of comments Copyright 2004-2008 Apple Computer, Inc., Mozilla
  * Foundation, and Opera Software ASA.
  *
@@ -235,15 +235,13 @@ void nsHtml5TreeBuilder::doctype(nsAtom* name, nsHtml5String publicIdentifier,
     emptyString.Release();
     if (isQuirky(name, publicIdentifier, systemIdentifier, forceQuirks)) {
       errQuirkyDoctype();
-      documentModeInternal(QUIRKS_MODE, publicIdentifier, systemIdentifier,
-                           false);
+      documentModeInternal(QUIRKS_MODE, publicIdentifier, systemIdentifier);
     } else if (isAlmostStandards(publicIdentifier, systemIdentifier)) {
       errAlmostStandardsDoctype();
       documentModeInternal(ALMOST_STANDARDS_MODE, publicIdentifier,
-                           systemIdentifier, false);
+                           systemIdentifier);
     } else {
-      documentModeInternal(STANDARDS_MODE, publicIdentifier, systemIdentifier,
-                           false);
+      documentModeInternal(STANDARDS_MODE, publicIdentifier, systemIdentifier);
     }
     mode = BEFORE_HTML;
     return;
@@ -379,7 +377,7 @@ void nsHtml5TreeBuilder::characters(const char16_t* buf, int32_t start,
           default: {
             switch (mode) {
               case INITIAL: {
-                documentModeInternal(QUIRKS_MODE, nullptr, nullptr, false);
+                documentModeInternal(QUIRKS_MODE, nullptr, nullptr);
                 mode = BEFORE_HTML;
                 i--;
                 continue;
@@ -551,7 +549,7 @@ void nsHtml5TreeBuilder::eof() {
   for (;;) {
     switch (mode) {
       case INITIAL: {
-        documentModeInternal(QUIRKS_MODE, nullptr, nullptr, false);
+        documentModeInternal(QUIRKS_MODE, nullptr, nullptr);
         mode = BEFORE_HTML;
         continue;
       }
@@ -1025,9 +1023,10 @@ starttagloop:
           case TBODY_OR_THEAD_OR_TFOOT:
           case TR:
           case TD_OR_TH: {
-            errStrayStartTag(name);
             eltPos = findLastInTableScope(nsGkAtoms::caption);
             if (eltPos == nsHtml5TreeBuilder::NOT_FOUND_ON_STACK) {
+              MOZ_ASSERT(fragment || isTemplateContents());
+              errStrayStartTag(name);
               NS_HTML5_BREAK(starttagloop);
             }
             generateImpliedEndTags();
@@ -1655,7 +1654,7 @@ starttagloop:
             NS_HTML5_BREAK(starttagloop);
           }
           default: {
-            errBadStartTagInHead(name);
+            errBadStartTagInNoscriptInHead(name);
             pop();
             mode = IN_HEAD;
             continue;
@@ -1853,7 +1852,7 @@ starttagloop:
       }
       case INITIAL: {
         errStartTagWithoutDoctype();
-        documentModeInternal(QUIRKS_MODE, nullptr, nullptr, false);
+        documentModeInternal(QUIRKS_MODE, nullptr, nullptr);
         mode = BEFORE_HTML;
         continue;
       }
@@ -2534,9 +2533,10 @@ void nsHtml5TreeBuilder::endTag(nsHtml5ElementName* elementName) {
             NS_HTML5_BREAK(endtagloop);
           }
           case TABLE: {
-            errTableClosedWhileCaptionOpen();
             eltPos = findLastInTableScope(nsGkAtoms::caption);
             if (eltPos == nsHtml5TreeBuilder::NOT_FOUND_ON_STACK) {
+              MOZ_ASSERT(fragment || isTemplateContents());
+              errStrayEndTag(name);
               NS_HTML5_BREAK(endtagloop);
             }
             generateImpliedEndTags();
@@ -3099,7 +3099,7 @@ void nsHtml5TreeBuilder::endTag(nsHtml5ElementName* elementName) {
       }
       case INITIAL: {
         errEndTagSeenWithoutDoctype();
-        documentModeInternal(QUIRKS_MODE, nullptr, nullptr, false);
+        documentModeInternal(QUIRKS_MODE, nullptr, nullptr);
         mode = BEFORE_HTML;
         continue;
       }
@@ -3333,9 +3333,9 @@ bool nsHtml5TreeBuilder::isSecondOnStackBody() {
   return currentPtr >= 1 && stack[1]->getGroup() == nsHtml5TreeBuilder::BODY;
 }
 
-void nsHtml5TreeBuilder::documentModeInternal(
-    nsHtml5DocumentMode m, nsHtml5String publicIdentifier,
-    nsHtml5String systemIdentifier, bool html4SpecificAdditionalErrorChecks) {
+void nsHtml5TreeBuilder::documentModeInternal(nsHtml5DocumentMode m,
+                                              nsHtml5String publicIdentifier,
+                                              nsHtml5String systemIdentifier) {
   if (isSrcdocDocument) {
     quirks = false;
     this->documentMode(STANDARDS_MODE);
@@ -3347,21 +3347,21 @@ void nsHtml5TreeBuilder::documentModeInternal(
 
 bool nsHtml5TreeBuilder::isAlmostStandards(nsHtml5String publicIdentifier,
                                            nsHtml5String systemIdentifier) {
-  if (nsHtml5Portability::lowerCaseLiteralEqualsIgnoreAsciiCaseString(
-          "-//w3c//dtd xhtml 1.0 transitional//en", publicIdentifier)) {
+  if (nsHtml5Portability::lowerCaseLiteralIsPrefixOfIgnoreAsciiCaseString(
+          "-//w3c//dtd xhtml 1.0 transitional//", publicIdentifier)) {
     return true;
   }
-  if (nsHtml5Portability::lowerCaseLiteralEqualsIgnoreAsciiCaseString(
-          "-//w3c//dtd xhtml 1.0 frameset//en", publicIdentifier)) {
+  if (nsHtml5Portability::lowerCaseLiteralIsPrefixOfIgnoreAsciiCaseString(
+          "-//w3c//dtd xhtml 1.0 frameset//", publicIdentifier)) {
     return true;
   }
   if (systemIdentifier) {
-    if (nsHtml5Portability::lowerCaseLiteralEqualsIgnoreAsciiCaseString(
-            "-//w3c//dtd html 4.01 transitional//en", publicIdentifier)) {
+    if (nsHtml5Portability::lowerCaseLiteralIsPrefixOfIgnoreAsciiCaseString(
+            "-//w3c//dtd html 4.01 transitional//", publicIdentifier)) {
       return true;
     }
-    if (nsHtml5Portability::lowerCaseLiteralEqualsIgnoreAsciiCaseString(
-            "-//w3c//dtd html 4.01 frameset//en", publicIdentifier)) {
+    if (nsHtml5Portability::lowerCaseLiteralIsPrefixOfIgnoreAsciiCaseString(
+            "-//w3c//dtd html 4.01 frameset//", publicIdentifier)) {
       return true;
     }
   }
@@ -3394,11 +3394,12 @@ bool nsHtml5TreeBuilder::isQuirky(nsAtom* name, nsHtml5String publicIdentifier,
     }
   }
   if (!systemIdentifier) {
-    if (nsHtml5Portability::lowerCaseLiteralEqualsIgnoreAsciiCaseString(
-            "-//w3c//dtd html 4.01 transitional//en", publicIdentifier)) {
+    if (nsHtml5Portability::lowerCaseLiteralIsPrefixOfIgnoreAsciiCaseString(
+            "-//w3c//dtd html 4.01 transitional//", publicIdentifier)) {
       return true;
-    } else if (nsHtml5Portability::lowerCaseLiteralEqualsIgnoreAsciiCaseString(
-                   "-//w3c//dtd html 4.01 frameset//en", publicIdentifier)) {
+    } else if (nsHtml5Portability::
+                   lowerCaseLiteralIsPrefixOfIgnoreAsciiCaseString(
+                       "-//w3c//dtd html 4.01 frameset//", publicIdentifier)) {
       return true;
     }
   } else if (nsHtml5Portability::lowerCaseLiteralEqualsIgnoreAsciiCaseString(

@@ -2,9 +2,10 @@
 
 import re
 import linecache
+from builtins import SyntaxError as BaseSyntaxError
 
 
-class SyntaxError(__builtins__['SyntaxError']):
+class SyntaxError(BaseSyntaxError):
     pass
 
 
@@ -159,6 +160,13 @@ class Tokenizer(FlatStringLexer):
 
     def take(self):
         return self._current_match.group()
+
+    def saw_line_terminator(self):
+        """True if there's a LineTerminator before the current token."""
+        i = self.previous_token_end
+        j = self.current_token_start
+        ws_between = self.src[i:j]
+        return any(c in ws_between for c in '\r\n\u2028\u2029')
 
     def _match(self, closing):
         # Advance over text matching ignore_re.

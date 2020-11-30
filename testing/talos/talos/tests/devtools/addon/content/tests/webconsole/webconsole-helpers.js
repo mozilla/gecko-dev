@@ -6,13 +6,71 @@
 
 const { reloadPageAndLog } = require("../head");
 
+/**
+ * @param {String} label: The name of the test.
+ * @param {Toolbox} toolbox: The DevTools toolbox.
+ * @param {Number|Array} expectedMessages: This can be, either the number of messages that
+ *        need to be displayed in the console, or an array of objects representing the
+ *        messages that need to be in the output. The objects must have the following shape:
+ *          - {String} text: A string that should be in the message.
+ *          - {Number} count: If > 1, indicate how many messages with this text should be
+ *                            in the output.
+ */
 exports.reloadConsoleAndLog = async function(label, toolbox, expectedMessages) {
   const onReload = async function() {
     const { hud } = toolbox.getPanel("webconsole");
 
+    const expected =
+      typeof expectedMessages === "number"
+        ? [{ text: "", count: expectedMessages }]
+        : expectedMessages;
+
+    let logMissingMessagesTimeoutId;
+
     await waitForConsoleOutputChildListChange(hud, consoleOutputEl => {
-      const messageCount = consoleOutputEl.querySelectorAll(".message").length;
-      return messageCount >= expectedMessages;
+      if (logMissingMessagesTimeoutId) {
+        clearTimeout(logMissingMessagesTimeoutId);
+        logMissingMessagesTimeoutId = null;
+      }
+
+      const messages = Array.from(consoleOutputEl.querySelectorAll(".message"));
+      const missing = new Map(expected.map(e => [e.text, e.count || 1]));
+
+      for (const { text, count = 1 } of expected) {
+        let found = 0;
+        for (const message of messages) {
+          const messageText = message.querySelector(".message-body").innerText;
+          if (messageText.includes(text)) {
+            const repeat = message
+              .querySelector(".message-repeats")
+              ?.innerText?.trim();
+            found = found + (repeat ? parseInt(repeat) : 1);
+          }
+        }
+        const allFound = found >= count;
+
+        if (allFound) {
+          missing.delete(text);
+        } else {
+          missing.set(text, count - found);
+        }
+      }
+
+      const foundAllMessages = missing.size == 0;
+      if (!foundAllMessages) {
+        // Only log missing messages after 3s, if there was no other DOM updates.
+        logMissingMessagesTimeoutId = setTimeout(() => {
+          dump(
+            `[TEST_LOG] Still waiting for the following messages: \n${Array.from(
+              missing.entries()
+            )
+              .map(([text, count]) => `${text || "<any text>"} (✕${count})`)
+              .join("\n")}\n`
+          );
+          dump("---\n");
+        }, 3000);
+      }
+      return foundAllMessages;
     });
   };
   await reloadPageAndLog(label + ".webconsole", toolbox, onReload);

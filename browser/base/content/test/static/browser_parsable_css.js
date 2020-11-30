@@ -13,7 +13,7 @@ let whitelist = [
   // CodeMirror is imported as-is, see bug 1004423.
   { sourceName: /codemirror\.css$/i, isFromDevTools: true },
   {
-    sourceName: /devtools\/client\/debugger\/src\/components\/([A-z\/]+).css/i,
+    sourceName: /devtools\/content\/debugger\/src\/components\/([A-z\/]+).css/i,
     isFromDevTools: true,
   },
   // Highlighter CSS uses a UA-only pseudo-class, see bug 985597.
@@ -24,7 +24,7 @@ let whitelist = [
   },
   // UA-only media features.
   {
-    sourceName: /\b(autocomplete-item|svg)\.css$/,
+    sourceName: /\b(autocomplete-item|svg|ua)\.css$/,
     errorMessage: /Expected media feature name but found \u2018-moz.*/i,
     isFromDevTools: false,
   },
@@ -35,7 +35,7 @@ let whitelist = [
     isFromDevTools: false,
   },
   {
-    sourceName: /\b(html|mathml|ua)\.css$/i,
+    sourceName: /\b(minimal-xul|html|mathml|ua|forms|svg)\.css$/i,
     errorMessage: /Unknown property.*-moz-/i,
     isFromDevTools: false,
   },
@@ -50,21 +50,6 @@ let whitelist = [
     errorMessage: /Unknown property.*overflow-clip-box/i,
     isFromDevTools: false,
   },
-  // System colors reserved to UA / chrome sheets
-  {
-    sourceName: /(?:res|gre-resources)\/forms\.css$/i,
-    errorMessage: /Expected color but found \u2018-moz.*/i,
-    platforms: ["linux"],
-    isFromDevTools: false,
-  },
-  // The '-moz-menulist-arrow-button' value is only supported in chrome and UA sheets
-  // but forms.css is loaded as a document sheet by this test.
-  // Maybe bug 1261237 will fix this?
-  {
-    sourceName: /(?:res|gre-resources)\/forms\.css$/i,
-    errorMessage: /Error in parsing value for \u2018-moz-appearance\u2019/iu,
-    isFromDevTools: false,
-  },
   // These variables are declared somewhere else, and error when we load the
   // files directly. They're all marked intermittent because their appearance
   // in the error console seems to not be consistent.
@@ -75,6 +60,24 @@ let whitelist = [
     isFromDevTools: true,
   },
 ];
+
+if (!Services.prefs.getBoolPref("layout.css.math-depth.enabled")) {
+  // mathml.css UA sheet rule for math-depth.
+  whitelist.push({
+    sourceName: /\b(minimal-xul|mathml)\.css$/i,
+    errorMessage: /Unknown property .*\bmath-depth\b/i,
+    isFromDevTools: false,
+  });
+}
+
+if (!Services.prefs.getBoolPref("layout.css.math-style.enabled")) {
+  // mathml.css UA sheet rule for math-style.
+  whitelist.push({
+    sourceName: /(?:res|gre-resources)\/mathml\.css$/i,
+    errorMessage: /Unknown property .*\bmath-style\b/i,
+    isFromDevTools: false,
+  });
+}
 
 if (
   !Services.prefs.getBoolPref(
@@ -89,23 +92,19 @@ if (
   });
 }
 
-if (
-  !Services.prefs.getBoolPref(
-    "layout.css.line-height-moz-block-height.content.enabled"
-  )
-) {
-  // -moz-block-height is used in form controls but not exposed to the web.
+if (Services.prefs.getBoolPref("layout.css.file-selector-button.enabled")) {
+  // System colors reserved to UA / chrome sheets
   whitelist.push({
     sourceName: /(?:res|gre-resources)\/forms\.css$/i,
-    errorMessage: /Error in parsing value for \u2018line-height\u2019/iu,
+    errorMessage: /Expected color but found \u2018-moz.*/i,
+    platforms: ["linux"],
     isFromDevTools: false,
   });
-}
-
-if (!Services.prefs.getBoolPref("layout.css.scrollbar-width.enabled")) {
+} else {
+  // Reserved to UA sheets, behind a pref for content.
   whitelist.push({
     sourceName: /(?:res|gre-resources)\/forms\.css$/i,
-    errorMessage: /Unknown property .*\bscrollbar-width\b/i,
+    errorMessage: /Unknown pseudo-.*file-selector-button/i,
     isFromDevTools: false,
   });
 }
@@ -508,9 +507,9 @@ add_task(async function checkAllTheCSS() {
   checkWhitelist(propNameWhitelist);
 
   // Clean up to avoid leaks:
-  iframe.remove();
   doc.head.innerHTML = "";
   doc = null;
+  iframe.remove();
   iframe = null;
   win = null;
   hiddenFrame.destroy();

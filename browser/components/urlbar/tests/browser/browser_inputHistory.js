@@ -1,4 +1,3 @@
-/* eslint-disable mozilla/no-arbitrary-setTimeout */
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
@@ -17,7 +16,6 @@ async function bumpScore(uri, searchString, counts, useMouseClick = false) {
     for (let i = 0; i < counts.picks; ++i) {
       await UrlbarTestUtils.promiseAutocompleteResultPopup({
         window,
-        waitForFocus: SimpleTest.waitForFocus,
         value: searchString,
       });
       let promise = BrowserTestUtils.waitForDocLoadAndStopIt(
@@ -58,75 +56,6 @@ add_task(async function setup() {
   });
 });
 
-add_task(async function test_adaptive_no_search_terms() {
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      // We get different Top Sites behaviour when this pref is on.
-      ["browser.urlbar.openViewOnFocus", false],
-    ],
-  });
-  let url1 = "http://site.tld/1";
-  let url2 = "http://site.tld/2";
-
-  info("Same visit count, different picks");
-  await PlacesUtils.history.clear();
-  await bumpScore(url1, "site", { visits: 3, picks: 3 });
-  await bumpScore(url2, "site", { visits: 3, picks: 1 });
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    waitForFocus: SimpleTest.waitForFocus,
-    value: "",
-  });
-  let result = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
-  Assert.equal(result.url, url1, "Check first result");
-  result = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
-  Assert.equal(result.url, url2, "Check second result");
-
-  info("Same visit count, different picks, invert");
-  await PlacesUtils.history.clear();
-  await bumpScore(url1, "site", { visits: 3, picks: 1 });
-  await bumpScore(url2, "site", { visits: 3, picks: 3 });
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    waitForFocus: SimpleTest.waitForFocus,
-    value: "",
-  });
-  result = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
-  Assert.equal(result.url, url2, "Check first result");
-  result = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
-  Assert.equal(result.url, url1, "Check second result");
-
-  info("Different visit count, same picks");
-  await PlacesUtils.history.clear();
-  await bumpScore(url1, "site", { visits: 3, picks: 3 });
-  await bumpScore(url2, "site", { visits: 1, picks: 3 });
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    waitForFocus: SimpleTest.waitForFocus,
-    value: "",
-  });
-  result = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
-  Assert.equal(result.url, url1, "Check first result");
-  result = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
-  Assert.equal(result.url, url2, "Check second result");
-
-  info("Different visit count, same picks, invert");
-  await PlacesUtils.history.clear();
-  await bumpScore(url1, "site", { visits: 1, picks: 3 });
-  await bumpScore(url2, "site", { visits: 3, picks: 3 });
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    waitForFocus: SimpleTest.waitForFocus,
-    value: "",
-  });
-  result = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
-  Assert.equal(result.url, url2, "Check first result");
-  result = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
-  Assert.equal(result.url, url1, "Check second result");
-
-  await SpecialPowers.popPrefEnv();
-});
-
 add_task(async function test_adaptive_with_search_terms() {
   let url1 = "http://site.tld/1";
   let url2 = "http://site.tld/2";
@@ -137,7 +66,6 @@ add_task(async function test_adaptive_with_search_terms() {
   await bumpScore(url2, "site", { visits: 3, picks: 3 });
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    waitForFocus: SimpleTest.waitForFocus,
     value: "si",
   });
   let result = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
@@ -153,7 +81,6 @@ add_task(async function test_adaptive_with_search_terms() {
   await bumpScore(url2, "si", { visits: 3, picks: 3 });
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    waitForFocus: SimpleTest.waitForFocus,
     value: "si",
   });
   result = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
@@ -167,7 +94,6 @@ add_task(async function test_adaptive_with_search_terms() {
   await bumpScore(url2, "si", { visits: 3, picks: 1 });
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    waitForFocus: SimpleTest.waitForFocus,
     value: "si",
   });
   result = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
@@ -181,7 +107,6 @@ add_task(async function test_adaptive_with_search_terms() {
   await bumpScore(url2, "si", { visits: 3, picks: 3 });
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    waitForFocus: SimpleTest.waitForFocus,
     value: "si",
   });
   result = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
@@ -195,7 +120,6 @@ add_task(async function test_adaptive_with_search_terms() {
   await bumpScore(url2, "site", { visits: 3, picks: 1 });
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    waitForFocus: SimpleTest.waitForFocus,
     value: "si",
   });
   result = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
@@ -209,7 +133,6 @@ add_task(async function test_adaptive_with_search_terms() {
   await bumpScore(url2, "site", { visits: 3, picks: 3 });
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    waitForFocus: SimpleTest.waitForFocus,
     value: "si",
   });
   result = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
@@ -229,7 +152,6 @@ add_task(async function test_adaptive_with_decay() {
   await bumpScore(url2, "si", { visits: 3, picks: 3 });
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    waitForFocus: SimpleTest.waitForFocus,
     value: "si",
   });
   let result = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
@@ -244,7 +166,6 @@ add_task(async function test_adaptive_with_decay() {
   await bumpScore(url1, "si", { visits: 3, picks: 3 });
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    waitForFocus: SimpleTest.waitForFocus,
     value: "si",
   });
   result = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
@@ -264,7 +185,6 @@ add_task(async function test_adaptive_limited() {
   await bumpScore(url2, "si", { visits: 3, picks: 3 });
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    waitForFocus: SimpleTest.waitForFocus,
     value: "si",
   });
   let result = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
@@ -279,7 +199,6 @@ add_task(async function test_adaptive_limited() {
   await bumpScore(url1, "si", { visits: 3, picks: 3 });
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    waitForFocus: SimpleTest.waitForFocus,
     value: "si",
   });
   result = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
@@ -316,7 +235,6 @@ add_task(async function test_adaptive_limited() {
   let expectedBookmarkIndex = Math.floor(n / 4) + 2;
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    waitForFocus: SimpleTest.waitForFocus,
     value: "site",
   });
   let result = await UrlbarTestUtils.getDetailsOfResultAt(
@@ -363,7 +281,6 @@ add_task(async function test_adaptive_behaviors() {
   });
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    waitForFocus: SimpleTest.waitForFocus,
     value: "site",
   });
   let result = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
@@ -392,7 +309,6 @@ add_task(async function test_adaptive_mouse() {
   await bumpScore(url2, "site", { visits: 3, picks: 1 }, true);
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    waitForFocus: SimpleTest.waitForFocus,
     value: "si",
   });
   let result = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
@@ -406,11 +322,48 @@ add_task(async function test_adaptive_mouse() {
   await bumpScore(url2, "site", { visits: 3, picks: 3 }, true);
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    waitForFocus: SimpleTest.waitForFocus,
     value: "si",
   });
   result = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
   Assert.equal(result.url, url2, "Check first result");
   result = await UrlbarTestUtils.getDetailsOfResultAt(window, 2);
   Assert.equal(result.url, url1, "Check second result");
+});
+
+add_task(async function test_adaptive_searchmode() {
+  info("Check adaptive history is not shown in search mode.");
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.urlbar.update2", true],
+      ["browser.urlbar.update2.oneOffsRefresh", true],
+    ],
+  });
+
+  let suggestionsEngine = await SearchTestUtils.promiseNewSearchEngine(
+    getRootDirectory(gTestPath) + "searchSuggestionEngine.xml"
+  );
+
+  let url1 = "http://site.tld/1";
+  let url2 = "http://site.tld/2";
+
+  info("Sanity check: adaptive history is shown for a normal search.");
+  await PlacesUtils.history.clear();
+  await bumpScore(url1, "site", { visits: 3, picks: 3 }, true);
+  await bumpScore(url2, "site", { visits: 3, picks: 1 }, true);
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "si",
+  });
+  let result = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
+  Assert.equal(result.url, url1, "Check first result");
+  result = await UrlbarTestUtils.getDetailsOfResultAt(window, 2);
+  Assert.equal(result.url, url2, "Check second result");
+
+  info("Entering search mode.");
+  // enterSearchMode checks internally that our site.tld URLs are not shown.
+  await UrlbarTestUtils.enterSearchMode(window, {
+    engineName: suggestionsEngine.name,
+  });
+
+  await SpecialPowers.popPrefEnv();
 });

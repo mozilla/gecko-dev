@@ -28,9 +28,7 @@ UNKNOWN_TEST = '''
 I was unable to find tests from the given argument(s).
 
 You should specify a test directory, filename, test suite name, or
-abbreviation. If no arguments are given, there must be local file
-changes and corresponding IMPACTED_TESTS annotations in moz.build
-files relevant to those files.
+abbreviation.
 
 It's possible my little brain doesn't know about the type of test you are
 trying to execute. If you suspect this, please request support by filing
@@ -305,11 +303,6 @@ class Test(MachCommandBase):
         * A test suite name
         * An alias to a test suite name (codes used on TreeHerder)
 
-        If no input is provided, tests will be run based on files changed in
-        the local tree. Relevant tests, tags, or flavors are determined by
-        IMPACTED_TESTS annotations in moz.build files relevant to the
-        changed files.
-
         When paths or directories are given, they are first resolved to test
         files known to the build system.
 
@@ -359,6 +352,7 @@ class Test(MachCommandBase):
             suite = TEST_SUITES[suite_name]
             kwargs = suite['kwargs']
             kwargs['log'] = log
+            kwargs.setdefault('subsuite', None)
 
             if 'mach_command' in suite:
                 res = self._mach_context.commands.dispatch(
@@ -382,6 +376,7 @@ class Test(MachCommandBase):
 
             kwargs = dict(m['kwargs'])
             kwargs['log'] = log
+            kwargs.setdefault('subsuite', None)
 
             res = self._mach_context.commands.dispatch(
                 m['mach_command'], self._mach_context,
@@ -420,7 +415,7 @@ class MachCommands(MachCommandBase):
 
         # If no tests specified, run all tests in main manifest
         tests = params['test_files']
-        if len(tests) == 0:
+        if not tests:
             tests = [os.path.join(self.distdir, 'cppunittests')]
             manifest_path = os.path.join(
                 self.topsrcdir, 'testing', 'cppunittest.ini')
@@ -518,7 +513,8 @@ class SpiderMonkeyTests(MachCommandBase):
         return subprocess.call(jstest_cmd)
 
     @Command('jit-test', category='testing',
-             description='Run SpiderMonkey jit-tests in the JS shell.')
+             description='Run SpiderMonkey jit-tests in the JS shell.',
+             ok_if_tests_disabled=True)
     @CommandArgument('--shell', help='The shell to be used')
     @CommandArgument('params', nargs=argparse.REMAINDER,
                      help="Extra arguments to pass down to the test harness.")
@@ -551,7 +547,10 @@ class SpiderMonkeyTests(MachCommandBase):
         if test_name:
             jsapi_tests_cmd.append(test_name)
 
-        return subprocess.call(jsapi_tests_cmd)
+        test_env = os.environ.copy()
+        test_env["TOPSRCDIR"] = self.topsrcdir
+
+        return subprocess.call(jsapi_tests_cmd, env=test_env)
 
     def run_check_js_msg(self):
         import subprocess
@@ -603,7 +602,7 @@ class JsShellTests(MachCommandBase):
              parser=get_jsshell_parser,
              description="Run benchmarks in the SpiderMonkey JS shell.")
     def run_jsshelltests(self, **kwargs):
-        self._activate_virtualenv()
+        self.activate_virtualenv()
         from jsshell import benchmark
         return benchmark.run(**kwargs)
 
@@ -619,7 +618,7 @@ class CramTest(MachCommandBase):
                      help="Extra arguments to pass down to the cram binary. See "
                           "'./mach python -m cram -- -h' for a list of available options.")
     def cramtest(self, cram_args=None, test_paths=None, test_objects=None):
-        self._activate_virtualenv()
+        self.activate_virtualenv()
         import mozinfo
         from manifestparser import TestManifest
 
@@ -782,7 +781,7 @@ class TestInfoCommand(MachCommandBase):
             self.config_environment
         except BuildEnvironmentNotFoundException:
             print("Looks like configure has not run yet, running it now...")
-            builder = Build(self._mach_context)
+            builder = Build(self._mach_context, None)
             builder.configure()
 
         ti = testinfo.TestInfoReport(verbose)
@@ -830,7 +829,7 @@ class TestFluentMigration(MachCommandBase):
     def run_migration_tests(self, test_paths=None, **kwargs):
         if not test_paths:
             test_paths = []
-        self._activate_virtualenv()
+        self.activate_virtualenv()
         from test_fluent_migrations import fmt
         rv = 0
         with_context = []

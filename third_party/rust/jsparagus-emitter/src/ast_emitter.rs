@@ -2,40 +2,178 @@
 //!
 //! Converts AST nodes to bytecode.
 
-use super::emitter::{EmitError, EmitOptions, EmitResult, InstructionWriter};
-use super::opcode::Opcode;
+use crate::array_emitter::*;
+use crate::block_emitter::BlockEmitter;
+use crate::compilation_info::CompilationInfo;
+use crate::emitter::{EmitError, EmitOptions, InstructionWriter};
+use crate::emitter_scope::{EmitterScopeStack, NameLocation};
+use crate::expression_emitter::*;
+use crate::function_declaration_emitter::{
+    AnnexBFunctionDeclarationEmitter, LazyFunctionEmitter, LexicalFunctionDeclarationEmitter,
+    TopLevelFunctionDeclarationEmitter,
+};
+use crate::object_emitter::*;
+use crate::reference_op_emitter::{
+    AssignmentEmitter, CallEmitter, DeclarationEmitter, ElemReferenceEmitter, GetElemEmitter,
+    GetNameEmitter, GetPropEmitter, GetSuperElemEmitter, GetSuperPropEmitter, NameReferenceEmitter,
+    NewEmitter, PropReferenceEmitter,
+};
+use crate::script_emitter::ScriptEmitter;
+use ast::source_atom_set::{CommonSourceAtomSetIndices, SourceAtomSetIndex};
 use ast::types::*;
+use stencil::opcode::Opcode;
+use stencil::regexp::RegExpItem;
+use stencil::result::EmitResult;
+use stencil::script::ScriptStencil;
 
-use crate::forward_jump_emitter::{ForwardJumpEmitter, JumpKind};
+use crate::control_structures::{
+    BreakEmitter, CForEmitter, ContinueEmitter, ControlStructureStack, DoWhileEmitter,
+    ForwardJumpEmitter, JumpKind, LabelEmitter, WhileEmitter,
+};
 
 /// Emit a program, converting the AST directly to bytecode.
-pub fn emit_program(ast: &Program, options: &EmitOptions) -> Result<EmitResult, EmitError> {
-    let mut emitter = AstEmitter {
-        emit: InstructionWriter::new(),
-        options,
-    };
+pub fn emit_program<'alloc>(
+    ast: &Program,
+    options: &EmitOptions,
+    mut compilation_info: CompilationInfo<'alloc>,
+) -> Result<EmitResult<'alloc>, EmitError> {
+    let emitter = AstEmitter::new(options, &mut compilation_info);
 
-    match ast {
+    let script = match ast {
         Program::Script(script) => emitter.emit_script(script)?,
         _ => {
             return Err(EmitError::NotImplemented("TODO: modules"));
         }
+    };
+
+    compilation_info.scripts.set_top_level(script);
+
+    Ok(EmitResult::new(
+        compilation_info.atoms.into(),
+        compilation_info.slices.into(),
+        compilation_info.scope_data_map.into(),
+        compilation_info.regexps.into(),
+        compilation_info.scripts.into(),
+        compilation_info.script_data_list.into(),
+    ))
+}
+
+pub struct AstEmitter<'alloc, 'opt> {
+    pub emit: InstructionWriter,
+    pub scope_stack: EmitterScopeStack,
+    pub options: &'opt EmitOptions,
+    pub compilation_info: &'opt mut CompilationInfo<'alloc>,
+    pub control_stack: ControlStructureStack,
+}
+
+impl<'alloc, 'opt> AstEmitter<'alloc, 'opt> {
+    fn new(
+        options: &'opt EmitOptions,
+        compilation_info: &'opt mut CompilationInfo<'alloc>,
+    ) -> Self {
+        Self {
+            emit: InstructionWriter::new(),
+            scope_stack: EmitterScopeStack::new(),
+            options,
+            compilation_info,
+            control_stack: ControlStructureStack::new(),
+        }
     }
 
-    Ok(emitter.emit.into_emit_result())
-}
+    pub fn lookup_name(&mut self, name: SourceAtomSetIndex) -> NameLocation {
+        self.scope_stack.lookup_name(name)
+    }
 
-pub struct AstEmitter<'alloc> {
-    pub emit: InstructionWriter,
-    options: &'alloc EmitOptions,
-}
+    pub fn lookup_name_in_var(&mut self, name: SourceAtomSetIndex) -> NameLocation {
+        self.scope_stack.lookup_name_in_var(name)
+    }
 
-impl<'alloc> AstEmitter<'alloc> {
-    fn emit_script(&mut self, ast: &Script) -> Result<(), EmitError> {
-        for statement in &ast.statements {
-            self.emit_statement(statement)?;
+    fn emit_script(mut self, ast: &Script) -> Result<ScriptStencil, EmitError> {
+        let scope_data_map = &self.compilation_info.scope_data_map;
+        let function_declarations = &self.compilation_info.function_declarations;
+
+        let scope_index = scope_data_map.get_global_index();
+        let scope_data = scope_data_map.get_global_at(scope_index);
+
+        let top_level_functions: Vec<&Function> = scope_data
+            .functions
+            .iter()
+            .map(|key| {
+                *function_declarations
+                    .get(key)
+                    .expect("function should exist")
+            })
+            .collect();
+
+        ScriptEmitter {
+            top_level_functions: top_level_functions.iter(),
+            top_level_function: |emitter, fun| emitter.emit_top_level_function_declaration(fun),
+            statements: ast.statements.iter(),
+            statement: |emitter, statement| emitter.emit_statement(statement),
         }
-        self.emit.ret_rval();
+        .emit(&mut self)?;
+
+        let script = self.emit.into_stencil(
+            &mut self.compilation_info.script_data_list,
+            self.options.extent.clone(),
+        )?;
+
+        Ok(script)
+    }
+
+    fn emit_top_level_function_declaration(&mut self, fun: &Function) -> Result<(), EmitError> {
+        if fun.is_generator {
+            return Err(EmitError::NotImplemented("TODO: Generator"));
+        }
+        if fun.is_async {
+            return Err(EmitError::NotImplemented("TODO: Async function"));
+        }
+
+        let stencil_index = *self
+            .compilation_info
+            .function_stencil_indices
+            .get(fun)
+            .expect("ScriptStencil should be created");
+        let fun_index = LazyFunctionEmitter { stencil_index }.emit(self);
+
+        TopLevelFunctionDeclarationEmitter { fun_index }.emit(self);
+
+        Ok(())
+    }
+
+    fn emit_non_top_level_function_declaration(&mut self, fun: &Function) -> Result<(), EmitError> {
+        if fun.is_generator {
+            return Err(EmitError::NotImplemented("TODO: Generator"));
+        }
+        if fun.is_async {
+            return Err(EmitError::NotImplemented("TODO: Async function"));
+        }
+
+        let stencil_index = *self
+            .compilation_info
+            .function_stencil_indices
+            .get(fun)
+            .expect("ScriptStencil should be created");
+
+        let is_annex_b = self
+            .compilation_info
+            .function_declaration_properties
+            .is_annex_b(stencil_index);
+
+        let fun_index = LazyFunctionEmitter { stencil_index }.emit(self);
+
+        let name = self
+            .compilation_info
+            .scripts
+            .get(stencil_index)
+            .fun_name()
+            .expect("Function declaration should have name");
+
+        if is_annex_b {
+            AnnexBFunctionDeclarationEmitter { fun_index, name }.emit(self)?;
+        } else {
+            LexicalFunctionDeclarationEmitter { fun_index, name }.emit(self)?;
+        }
 
         Ok(())
     }
@@ -45,29 +183,61 @@ impl<'alloc> AstEmitter<'alloc> {
             Statement::ClassDeclaration(_) => {
                 return Err(EmitError::NotImplemented("TODO: ClassDeclaration"));
             }
-            Statement::BlockStatement { .. } => {
-                return Err(EmitError::NotImplemented("TODO: BlockStatement"));
+            Statement::BlockStatement { block, .. } => {
+                let scope_data_map = &self.compilation_info.scope_data_map;
+                let function_declarations = &self.compilation_info.function_declarations;
+
+                let scope_index = scope_data_map.get_index(block);
+                let scope_data = scope_data_map.get_lexical_at(scope_index);
+
+                let functions: Vec<&Function> = scope_data
+                    .functions
+                    .iter()
+                    .map(|key| {
+                        *function_declarations
+                            .get(key)
+                            .expect("function should exist")
+                    })
+                    .collect();
+
+                BlockEmitter {
+                    scope_index: self.compilation_info.scope_data_map.get_index(block),
+                    functions: functions.iter(),
+                    function: |emitter, fun| emitter.emit_non_top_level_function_declaration(fun),
+                    statements: block.statements.iter(),
+                    statement: |emitter, statement| emitter.emit_statement(statement),
+                }
+                .emit(self)?;
             }
-            Statement::BreakStatement { .. } => {
-                return Err(EmitError::NotImplemented("TODO: BreakStatement"));
+            Statement::BreakStatement { label, .. } => {
+                BreakEmitter {
+                    label: label.as_ref().map(|x| x.value),
+                }
+                .emit(self);
             }
-            Statement::ContinueStatement { .. } => {
-                return Err(EmitError::NotImplemented("TODO: ContinueStatement"));
+            Statement::ContinueStatement { label, .. } => {
+                ContinueEmitter {
+                    label: label.as_ref().map(|x| x.value),
+                }
+                .emit(self);
             }
             Statement::DebuggerStatement { .. } => {
-                return Err(EmitError::NotImplemented("TODO: DebuggerStatement"));
+                self.emit.debugger();
             }
-            Statement::DoWhileStatement { .. } => {
-                return Err(EmitError::NotImplemented("TODO: DoWhileStatement"));
+            Statement::DoWhileStatement { block, test, .. } => {
+                DoWhileEmitter {
+                    enclosing_emitter_scope_depth: self.scope_stack.current_depth(),
+                    block: |emitter| emitter.emit_statement(block),
+                    test: |emitter| emitter.emit_expression(test),
+                }
+                .emit(self)?;
             }
             Statement::EmptyStatement { .. } => (),
             Statement::ExpressionStatement(ast) => {
-                self.emit_expression(ast)?;
-                if self.options.no_script_rval {
-                    self.emit.pop();
-                } else {
-                    self.emit.set_rval();
+                ExpressionEmitter {
+                    expr: |emitter| emitter.emit_expression(ast),
                 }
+                .emit(self)?;
             }
             Statement::ForInStatement { .. } => {
                 return Err(EmitError::NotImplemented("TODO: ForInStatement"));
@@ -75,14 +245,48 @@ impl<'alloc> AstEmitter<'alloc> {
             Statement::ForOfStatement { .. } => {
                 return Err(EmitError::NotImplemented("TODO: ForOfStatement"));
             }
-            Statement::ForStatement { .. } => {
-                return Err(EmitError::NotImplemented("TODO: ForStatement"));
+            Statement::ForStatement {
+                init,
+                test,
+                update,
+                block,
+                ..
+            } => {
+                CForEmitter {
+                    enclosing_emitter_scope_depth: self.scope_stack.current_depth(),
+                    maybe_init: init,
+                    maybe_test: test,
+                    maybe_update: update,
+                    init: |emitter, val| match val {
+                        VariableDeclarationOrExpression::VariableDeclaration(ast) => {
+                            emitter.emit_variable_declaration_statement(ast)
+                        }
+                        VariableDeclarationOrExpression::Expression(expr) => {
+                            emitter.emit_expression(expr)?;
+                            emitter.emit.pop();
+                            Ok(())
+                        }
+                    },
+                    test: |emitter, expr| emitter.emit_expression(expr),
+                    update: |emitter, expr| {
+                        emitter.emit_expression(expr)?;
+                        emitter.emit.pop();
+                        Ok(())
+                    },
+                    block: |emitter| emitter.emit_statement(block),
+                }
+                .emit(self)?;
             }
             Statement::IfStatement(if_statement) => {
                 self.emit_if(if_statement)?;
             }
-            Statement::LabeledStatement { .. } => {
-                return Err(EmitError::NotImplemented("TODO: LabeledStatement"));
+            Statement::LabelledStatement { label, body, .. } => {
+                LabelEmitter {
+                    enclosing_emitter_scope_depth: self.scope_stack.current_depth(),
+                    name: label.value,
+                    body: |emitter| emitter.emit_statement(body),
+                }
+                .emit(self)?;
             }
             Statement::ReturnStatement { .. } => {
                 return Err(EmitError::NotImplemented("TODO: ReturnStatement"));
@@ -97,7 +301,7 @@ impl<'alloc> AstEmitter<'alloc> {
             }
             Statement::ThrowStatement { expression, .. } => {
                 self.emit_expression(expression)?;
-                self.emit.throw();
+                self.emit.throw_();
             }
             Statement::TryCatchStatement { .. } => {
                 return Err(EmitError::NotImplemented("TODO: TryCatchStatement"));
@@ -105,21 +309,63 @@ impl<'alloc> AstEmitter<'alloc> {
             Statement::TryFinallyStatement { .. } => {
                 return Err(EmitError::NotImplemented("TODO: TryFinallyStatement"));
             }
-            Statement::VariableDeclarationStatement(_ast) => {
-                return Err(EmitError::NotImplemented(
-                    "TODO: VariableDeclarationStatement",
-                ));
+            Statement::VariableDeclarationStatement(ast) => {
+                self.emit_variable_declaration_statement(ast)?;
             }
-            Statement::WhileStatement { .. } => {
-                return Err(EmitError::NotImplemented("TODO: WhileStatement"));
+            Statement::WhileStatement { test, block, .. } => {
+                WhileEmitter {
+                    enclosing_emitter_scope_depth: self.scope_stack.current_depth(),
+                    test: |emitter| emitter.emit_expression(test),
+                    block: |emitter| emitter.emit_statement(block),
+                }
+                .emit(self)?;
             }
             Statement::WithStatement { .. } => {
                 return Err(EmitError::NotImplemented("TODO: WithStatement"));
             }
-            Statement::FunctionDeclaration(_) => {
-                return Err(EmitError::NotImplemented("TODO: FunctionDeclaration"));
-            }
+            Statement::FunctionDeclaration(_) => {}
         };
+
+        Ok(())
+    }
+
+    fn emit_variable_declaration_statement(
+        &mut self,
+        ast: &VariableDeclaration,
+    ) -> Result<(), EmitError> {
+        match ast.kind {
+            VariableDeclarationKind::Var { .. } => {}
+            VariableDeclarationKind::Let { .. } | VariableDeclarationKind::Const { .. } => {}
+        }
+
+        for decl in &ast.declarators {
+            if let Some(init) = &decl.init {
+                self.emit_declaration_assignment(&decl.binding, &init)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn emit_declaration_assignment(
+        &mut self,
+        binding: &Binding,
+        init: &Expression,
+    ) -> Result<(), EmitError> {
+        match binding {
+            Binding::BindingIdentifier(binding) => {
+                let name = binding.name.value;
+                DeclarationEmitter {
+                    lhs: |emitter| Ok(NameReferenceEmitter { name }.emit_for_declaration(emitter)),
+                    rhs: |emitter| emitter.emit_expression(init),
+                }
+                .emit(self)?;
+                self.emit.pop();
+            }
+            _ => {
+                return Err(EmitError::NotImplemented("BindingPattern"));
+            }
+        }
 
         Ok(())
     }
@@ -142,20 +388,20 @@ impl<'alloc> AstEmitter<'alloc> {
 
         if let Some(alternate) = &if_statement.alternate {
             let then_jump = ForwardJumpEmitter {
-                jump: JumpKind::IfEq,
+                jump: JumpKind::Goto,
             }
             .emit(self);
             // ^^ part of then branch
 
             // Else branch
-            alternate_jump.patch(self);
+            alternate_jump.patch_not_merge(self);
             self.emit_statement(alternate)?;
 
             // Merge point after else
-            then_jump.patch(self);
+            then_jump.patch_merge(self);
         } else {
             // Merge point without else
-            alternate_jump.patch(self);
+            alternate_jump.patch_merge(self);
         }
 
         Ok(())
@@ -163,64 +409,6 @@ impl<'alloc> AstEmitter<'alloc> {
 
     fn emit_expression(&mut self, ast: &Expression) -> Result<(), EmitError> {
         match ast {
-            Expression::MemberExpression(MemberExpression::ComputedMemberExpression(
-                ComputedMemberExpression {
-                    object: ExpressionOrSuper::Expression(object),
-                    expression,
-                    ..
-                },
-            )) => {
-                self.emit_expression(object)?;
-                self.emit_expression(expression)?;
-                self.emit.get_elem();
-            }
-
-            Expression::MemberExpression(MemberExpression::ComputedMemberExpression(
-                ComputedMemberExpression {
-                    object: ExpressionOrSuper::Super { .. },
-                    expression,
-                    ..
-                },
-            )) => {
-                self.emit_this()?;
-                self.emit_expression(expression)?;
-                self.emit.callee();
-                self.emit.super_base();
-                self.emit.get_elem_super();
-            }
-
-            Expression::MemberExpression(MemberExpression::StaticMemberExpression(
-                StaticMemberExpression {
-                    object: ExpressionOrSuper::Expression(object),
-                    property,
-                    ..
-                },
-            )) => {
-                self.emit_expression(object)?;
-                let name_index = self.emit.get_atom_index(&property.value);
-                self.emit.get_prop(name_index);
-            }
-
-            Expression::MemberExpression(MemberExpression::StaticMemberExpression(
-                StaticMemberExpression {
-                    object: ExpressionOrSuper::Super { .. },
-                    property,
-                    ..
-                },
-            )) => {
-                self.emit_this()?;
-                self.emit.callee();
-                self.emit.super_base();
-                let name_index = self.emit.get_atom_index(&property.value);
-                self.emit.get_prop_super(name_index);
-            }
-
-            Expression::MemberExpression(MemberExpression::PrivateFieldExpression(
-                PrivateFieldExpression { .. },
-            )) => {
-                return Err(EmitError::NotImplemented("PrivateFieldExpression"));
-            }
-
             Expression::ClassExpression(_) => {
                 return Err(EmitError::NotImplemented("TODO: ClassExpression"));
             }
@@ -230,23 +418,43 @@ impl<'alloc> AstEmitter<'alloc> {
             }
 
             Expression::LiteralInfinityExpression { .. } => {
-                self.emit.double(std::f64::INFINITY);
+                self.emit.double_(std::f64::INFINITY);
             }
 
             Expression::LiteralNullExpression { .. } => {
                 self.emit.null();
             }
 
-            Expression::LiteralNumericExpression { value, .. } => {
-                self.emit_numeric_expression(*value);
+            Expression::LiteralNumericExpression(num) => {
+                self.emit.numeric(num.value);
             }
 
-            Expression::LiteralRegExpExpression { .. } => {
-                return Err(EmitError::NotImplemented("TODO: LiteralRegExpExpression"));
+            Expression::LiteralRegExpExpression {
+                pattern,
+                global,
+                ignore_case,
+                multi_line,
+                dot_all,
+                sticky,
+                unicode,
+                ..
+            } => {
+                let item = RegExpItem {
+                    pattern: *pattern,
+                    global: *global,
+                    ignore_case: *ignore_case,
+                    multi_line: *multi_line,
+                    dot_all: *dot_all,
+                    sticky: *sticky,
+                    unicode: *unicode,
+                };
+                let regexp_index = self.compilation_info.regexps.push(item);
+                let index = self.emit.get_regexp_gcthing_index(regexp_index);
+                self.emit.reg_exp(index);
             }
 
             Expression::LiteralStringExpression { value, .. } => {
-                let str_index = self.emit.get_atom_index(value);
+                let str_index = self.emit.get_atom_gcthing_index(*value);
                 self.emit.string(str_index);
             }
 
@@ -302,6 +510,10 @@ impl<'alloc> AstEmitter<'alloc> {
 
             Expression::IdentifierExpression(ast) => {
                 self.emit_identifier_expression(ast);
+            }
+
+            Expression::MemberExpression(ast) => {
+                self.emit_member_expression(ast)?;
             }
 
             Expression::NewExpression {
@@ -445,92 +657,96 @@ impl<'alloc> AstEmitter<'alloc> {
         let jump = ForwardJumpEmitter { jump: jump }.emit(self);
         self.emit.pop();
         self.emit_expression(right)?;
-        jump.patch(self);
+        jump.patch_merge(self);
         return Ok(());
     }
 
-    fn emit_numeric_expression(&mut self, value: f64) {
-        if value.is_finite() && value.fract() == 0.0 {
-            if i8::min_value() as f64 <= value && value <= i8::max_value() as f64 {
-                self.emit.int8(value as i8);
-                return;
-            }
-            if i32::min_value() as f64 <= value && value <= i32::max_value() as f64 {
-                self.emit.int32(value as i32);
-                return;
-            }
-        }
-        self.emit.double(value);
-    }
-
     fn emit_object_expression(&mut self, object: &ObjectExpression) -> Result<(), EmitError> {
-        self.emit.new_init(0);
-
-        for property in object.properties.iter() {
-            self.emit_object_property(property)?;
+        ObjectEmitter {
+            properties: object.properties.iter(),
+            prop: |emitter, state, prop| emitter.emit_object_property(state, prop),
         }
-
-        Ok(())
+        .emit(self)
     }
 
-    fn emit_object_property(&mut self, property: &ObjectProperty) -> Result<(), EmitError> {
+    fn emit_object_property(
+        &mut self,
+        state: &mut ObjectEmitterState,
+        property: &ObjectProperty,
+    ) -> Result<(), EmitError> {
         match property {
             ObjectProperty::NamedObjectProperty(NamedObjectProperty::DataProperty(
                 DataProperty {
                     property_name,
-                    expression,
+                    expression: prop_value,
                     ..
                 },
-            )) => {
-                self.emit_expression(expression)?;
-
-                match property_name {
-                    PropertyName::StaticPropertyName(StaticPropertyName { value, .. }) => {
-                        let name_index = self.emit.get_atom_index(value);
-                        self.emit.init_prop(name_index);
+            )) => match property_name {
+                PropertyName::StaticPropertyName(StaticPropertyName { value, .. }) => {
+                    NamePropertyEmitter {
+                        state,
+                        key: *value,
+                        value: |emitter| emitter.emit_expression(prop_value),
                     }
-                    PropertyName::ComputedPropertyName(ComputedPropertyName { .. }) => {
-                        return Err(EmitError::NotImplemented("TODO: computed property"))
-                    }
+                    .emit(self)?;
                 }
-            }
+                PropertyName::StaticNumericPropertyName(NumericLiteral { value, .. }) => {
+                    IndexPropertyEmitter {
+                        state,
+                        key: *value,
+                        value: |emitter| emitter.emit_expression(prop_value),
+                    }
+                    .emit(self)?;
+                }
+                PropertyName::ComputedPropertyName(ComputedPropertyName {
+                    expression: prop_key,
+                    ..
+                }) => {
+                    ComputedPropertyEmitter {
+                        state,
+                        key: |emitter| emitter.emit_expression(prop_key),
+                        value: |emitter| emitter.emit_expression(prop_value),
+                    }
+                    .emit(self)?;
+                }
+            },
             _ => return Err(EmitError::NotImplemented("TODO: non data property")),
         }
-
         Ok(())
     }
 
     fn emit_array_expression(&mut self, array: &ArrayExpression) -> Result<(), EmitError> {
-        // Initialize the array to its minimum possible length.
-        let min_length = array
-            .elements
-            .iter()
-            .map(|e| match e {
-                ArrayExpressionElement::Expression(_) => 1,
-                ArrayExpressionElement::Elision { .. } => 1,
-                ArrayExpressionElement::SpreadElement { .. } => 0,
-            })
-            .sum::<u32>();
-
-        self.emit.new_array(min_length);
-
-        for (index, element) in array.elements.iter().enumerate() {
-            match element {
-                ArrayExpressionElement::Expression(expr) => {
-                    self.emit_expression(&expr)?;
-                    self.emit.init_elem_array(index as u32);
+        ArrayEmitter {
+            elements: array.elements.iter(),
+            elem_kind: |e| match e {
+                ArrayExpressionElement::Expression(..) => ArrayElementKind::Normal,
+                ArrayExpressionElement::Elision { .. } => ArrayElementKind::Elision,
+                ArrayExpressionElement::SpreadElement(..) => ArrayElementKind::Spread,
+            },
+            elem: |emitter, state, elem| {
+                match elem {
+                    ArrayExpressionElement::Expression(expr) => {
+                        ArrayElementEmitter {
+                            state,
+                            elem: |emitter| emitter.emit_expression(expr),
+                        }
+                        .emit(emitter)?;
+                    }
+                    ArrayExpressionElement::Elision { .. } => {
+                        ArrayElisionEmitter { state }.emit(emitter);
+                    }
+                    ArrayExpressionElement::SpreadElement(expr) => {
+                        ArraySpreadEmitter {
+                            state,
+                            elem: |emitter| emitter.emit_expression(expr),
+                        }
+                        .emit(emitter)?;
+                    }
                 }
-                ArrayExpressionElement::Elision { .. } => {
-                    self.emit.hole();
-                    self.emit.init_elem_array(index as u32);
-                }
-                ArrayExpressionElement::SpreadElement { .. } => {
-                    return Err(EmitError::NotImplemented("TODO: SpreadElement"));
-                }
-            }
+                Ok(())
+            },
         }
-
-        Ok(())
+        .emit(self)
     }
 
     fn emit_conditional_expression(
@@ -556,11 +772,11 @@ impl<'alloc> AstEmitter<'alloc> {
         .emit(self);
 
         // Else branch
-        else_jump.patch(self);
+        else_jump.patch_not_merge(self);
         self.emit_expression(alternate)?;
 
         // Merge point
-        finally_jump.patch(self);
+        finally_jump.patch_merge(self);
 
         Ok(())
     }
@@ -570,29 +786,73 @@ impl<'alloc> AstEmitter<'alloc> {
         binding: &AssignmentTarget,
         expression: &Expression,
     ) -> Result<(), EmitError> {
-        match binding {
-            AssignmentTarget::SimpleAssignmentTarget(
-                SimpleAssignmentTarget::AssignmentTargetIdentifier(AssignmentTargetIdentifier {
-                    name,
-                    ..
-                }),
-            ) => {
-                let name_index = self.emit.get_atom_index(name.value);
-                self.emit.bind_g_name(name_index);
-                self.emit_expression(expression)?;
-                self.emit.set_g_name(name_index);
-                return Ok(());
-            }
-            _ => {}
+        AssignmentEmitter {
+            lhs: |emitter| match binding {
+                AssignmentTarget::SimpleAssignmentTarget(
+                    SimpleAssignmentTarget::AssignmentTargetIdentifier(
+                        AssignmentTargetIdentifier { name, .. },
+                    ),
+                ) => Ok(NameReferenceEmitter { name: name.value }.emit_for_assignment(emitter)),
+                _ => Err(EmitError::NotImplemented(
+                    "non-identifier assignment target",
+                )),
+            },
+            rhs: |emitter| emitter.emit_expression(expression),
         }
-
-        return Err(EmitError::NotImplemented("TODO: AssignmentExpression"));
+        .emit(self)
     }
 
     fn emit_identifier_expression(&mut self, ast: &IdentifierExpression) {
-        let name = &ast.name.value;
-        let name_index = self.emit.get_atom_index(name);
-        self.emit.get_g_name(name_index);
+        let name = ast.name.value;
+        GetNameEmitter { name }.emit(self);
+    }
+
+    fn emit_member_expression(&mut self, ast: &MemberExpression) -> Result<(), EmitError> {
+        match ast {
+            MemberExpression::ComputedMemberExpression(ComputedMemberExpression {
+                object: ExpressionOrSuper::Expression(object),
+                expression,
+                ..
+            }) => GetElemEmitter {
+                obj: |emitter| emitter.emit_expression(object),
+                key: |emitter| emitter.emit_expression(expression),
+            }
+            .emit(self),
+
+            MemberExpression::ComputedMemberExpression(ComputedMemberExpression {
+                object: ExpressionOrSuper::Super { .. },
+                expression,
+                ..
+            }) => GetSuperElemEmitter {
+                this: |emitter| emitter.emit_this(),
+                key: |emitter| emitter.emit_expression(expression),
+            }
+            .emit(self),
+
+            MemberExpression::StaticMemberExpression(StaticMemberExpression {
+                object: ExpressionOrSuper::Expression(object),
+                property,
+                ..
+            }) => GetPropEmitter {
+                obj: |emitter| emitter.emit_expression(object),
+                key: property.value,
+            }
+            .emit(self),
+
+            MemberExpression::StaticMemberExpression(StaticMemberExpression {
+                object: ExpressionOrSuper::Super { .. },
+                property,
+                ..
+            }) => GetSuperPropEmitter {
+                this: |emitter| emitter.emit_this(),
+                key: property.value,
+            }
+            .emit(self),
+
+            MemberExpression::PrivateFieldExpression(PrivateFieldExpression { .. }) => {
+                Err(EmitError::NotImplemented("PrivateFieldExpression"))
+            }
+        }
     }
 
     fn emit_new_expression(
@@ -606,19 +866,14 @@ impl<'alloc> AstEmitter<'alloc> {
             }
         }
 
-        self.emit_expression(callee)?;
-        // Callee
-
-        self.emit.is_constructing();
-        // Callee JS_IS_CONSTRUCTING
-
-        self.emit_arguments(arguments)?;
-        // Callee JS_IS_CONSTRUCTING Args..
-
-        self.emit.dup_at(arguments.args.len() as u32 + 1);
-        // Callee JS_IS_CONSTRUCTING Args.. Callee
-
-        self.emit.new_(arguments.args.len() as u16);
+        NewEmitter {
+            callee: |emitter| emitter.emit_expression(callee),
+            arguments: |emitter| {
+                emitter.emit_arguments(arguments)?;
+                Ok(arguments.args.len())
+            },
+        }
+        .emit(self)?;
 
         Ok(())
     }
@@ -630,46 +885,57 @@ impl<'alloc> AstEmitter<'alloc> {
     ) -> Result<(), EmitError> {
         // Don't do super handling in an emit_expresion_or_super because the bytecode heavily
         // depends on how you're using the super
-        match callee {
-            ExpressionOrSuper::Expression(expr) => match &**expr {
-                Expression::IdentifierExpression(IdentifierExpression { name, .. }) => {
-                    self.emit_expression(expr)?;
-                    let name_index = self.emit.get_atom_index(name.value);
-                    self.emit.g_implicit_this(name_index);
-                }
-                Expression::MemberExpression(MemberExpression::StaticMemberExpression(
-                    StaticMemberExpression {
-                        object: ExpressionOrSuper::Expression(object),
-                        property,
-                        ..
-                    },
-                )) => {
-                    self.emit_expression(object)?;
-                    // [stack] Obj
 
-                    self.emit.dup();
-                    // [stack] Obj Obj
+        CallEmitter {
+            callee: |emitter| match callee {
+                ExpressionOrSuper::Expression(expr) => match &**expr {
+                    Expression::IdentifierExpression(IdentifierExpression { name, .. }) => {
+                        if name.value == CommonSourceAtomSetIndices::eval() {
+                            return Err(EmitError::NotImplemented("TODO: direct eval"));
+                        }
+                        Ok(NameReferenceEmitter { name: name.value }.emit_for_call(emitter))
+                    }
 
-                    let property_index = self.emit.get_atom_index(property.value);
-                    self.emit.call_prop(property_index);
-                    // [stack] Obj Callee
+                    Expression::MemberExpression(MemberExpression::StaticMemberExpression(
+                        StaticMemberExpression {
+                            object: ExpressionOrSuper::Expression(object),
+                            property,
+                            ..
+                        },
+                    )) => PropReferenceEmitter {
+                        obj: |emitter| emitter.emit_expression(object),
+                        key: property.value,
+                    }
+                    .emit_for_call(emitter),
 
-                    self.emit.swap();
-                    // [stack] Callee Obj/This
-                }
+                    Expression::MemberExpression(MemberExpression::ComputedMemberExpression(
+                        ComputedMemberExpression {
+                            object: ExpressionOrSuper::Expression(object),
+                            expression,
+                            ..
+                        },
+                    )) => ElemReferenceEmitter {
+                        obj: |emitter| emitter.emit_expression(object),
+                        key: |emitter| emitter.emit_expression(expression),
+                    }
+                    .emit_for_call(emitter),
+
+                    _ => {
+                        return Err(EmitError::NotImplemented(
+                            "TODO: Call (only global functions are supported)",
+                        ));
+                    }
+                },
                 _ => {
-                    return Err(EmitError::NotImplemented(
-                        "TODO: Call (only global functions are supported)",
-                    ));
+                    return Err(EmitError::NotImplemented("TODO: Super"));
                 }
             },
-            _ => {
-                return Err(EmitError::NotImplemented("TODO: Super"));
-            }
+            arguments: |emitter| {
+                emitter.emit_arguments(arguments)?;
+                Ok(arguments.args.len())
+            },
         }
-
-        self.emit_arguments(arguments)?;
-        self.emit.call(arguments.args.len() as u16);
+        .emit(self)?;
 
         Ok(())
     }

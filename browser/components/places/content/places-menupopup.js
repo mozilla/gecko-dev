@@ -39,19 +39,13 @@
         <vbox part="drop-indicator-bar" hidden="true">
           <image part="drop-indicator"/>
         </vbox>
-        <arrowscrollbox class="popup-internal-box" flex="1" orient="vertical"
-                        smoothscroll="false" part="popupbox">
+        <arrowscrollbox class="menupopup-arrowscrollbox" flex="1" orient="vertical"
+                        exportparts="scrollbox: arrowscrollbox-scrollbox"
+                        smoothscroll="false" part="arrowscrollbox">
           <html:slot></html:slot>
         </arrowscrollbox>
       </hbox>
     `;
-    }
-
-    initShadowDOM() {
-      super.initShadowDOM();
-      if (this.closest("#BMB_bookmarksPopup")) {
-        this.scrollBox.classList.add("in-bookmarks-menu");
-      }
     }
 
     connectedCallback() {
@@ -78,35 +72,35 @@
           return this._folder.elt;
         },
         set elt(val) {
-          return (this._folder.elt = val);
+          this._folder.elt = val;
         },
 
         get openTimer() {
           return this._folder.openTimer;
         },
         set openTimer(val) {
-          return (this._folder.openTimer = val);
+          this._folder.openTimer = val;
         },
 
         get hoverTime() {
           return this._folder.hoverTime;
         },
         set hoverTime(val) {
-          return (this._folder.hoverTime = val);
+          this._folder.hoverTime = val;
         },
 
         get closeTimer() {
           return this._folder.closeTimer;
         },
         set closeTimer(val) {
-          return (this._folder.closeTimer = val);
+          this._folder.closeTimer = val;
         },
 
         get closeMenuTimer() {
           return this._closeMenuTimer;
         },
         set closeMenuTimer(val) {
-          return (this._closeMenuTimer = val);
+          this._closeMenuTimer = val;
         },
 
         setTimer: function OF__setTimer(aTime) {
@@ -579,6 +573,7 @@
 
       const event_names = [
         "popupshowing",
+        "popuppositioned",
         "popupshown",
         "transitionend",
         "popuphiding",
@@ -606,9 +601,9 @@
           <vbox part="drop-indicator-bar" hidden="true">
             <image part="drop-indicator"/>
           </vbox>
-          <arrowscrollbox class="popup-internal-box" flex="1"
+          <arrowscrollbox class="menupopup-arrowscrollbox" flex="1"
                           orient="vertical" smoothscroll="false"
-                          part="popupbox">
+                          part="arrowscrollbox">
             <html:slot/>
           </arrowscrollbox>
         </box>
@@ -640,7 +635,7 @@
       return this.shadowRoot.querySelector(".panel-arrow");
     }
 
-    adjustArrowPosition() {
+    adjustArrowPosition(event) {
       let arrow = this.arrow;
 
       let anchor = this.anchorNode;
@@ -652,8 +647,8 @@
       let container = this.container;
       let arrowbox = this.arrowbox;
 
-      var position = this.alignmentPosition;
-      var offset = this.alignmentOffset;
+      var position = event.alignmentPosition;
+      var offset = event.alignmentOffset;
 
       this.setAttribute("arrowposition", position);
 
@@ -706,8 +701,13 @@
 
     on_popupshowing(event) {
       if (event.target == this) {
-        this.adjustArrowPosition();
         this.setAttribute("animate", "open");
+      }
+    }
+
+    on_popuppositioned(event) {
+      if (event.target == this) {
+        this.adjustArrowPosition(event);
       }
     }
 

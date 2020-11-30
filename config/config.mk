@@ -11,6 +11,8 @@
 # of the generic macros.
 #
 
+varize = $(subst -,_,$(subst a,A,$(subst b,B,$(subst c,C,$(subst d,D,$(subst e,E,$(subst f,F,$(subst g,G,$(subst h,H,$(subst i,I,$(subst j,J,$(subst k,K,$(subst l,L,$(subst m,M,$(subst n,N,$(subst o,O,$(subst p,P,$(subst q,Q,$(subst r,R,$(subst s,S,$(subst t,T,$(subst u,U,$(subst v,V,$(subst w,W,$(subst x,X,$(subst y,Y,$(subst z,Z,$1)))))))))))))))))))))))))))
+
 # Define an include-at-most-once flag
 ifdef INCLUDED_CONFIG_MK
 $(error Do not include config.mk twice!)
@@ -39,6 +41,10 @@ ifndef EXTERNALLY_MANAGED_MAKE_FILE
 ifndef STANDALONE_MAKEFILE
 GLOBAL_DEPS += backend.mk
 include backend.mk
+
+# Add e.g. `export:: $(EXPORT_TARGETS)` rules. The *_TARGETS variables are defined
+# in backend.mk.
+$(foreach tier,$(RUNNABLE_TIERS),$(eval $(tier):: $($(call varize,$(tier))_TARGETS)))
 endif
 
 endif
@@ -100,19 +106,11 @@ ifdef XPI_NAME
 ACDEFINES += -DXPI_NAME=$(XPI_NAME)
 endif
 
-# The VERSION_NUMBER is suffixed onto the end of the DLLs we ship.
-VERSION_NUMBER		= 50
-
-CONFIG_TOOLS	= $(MOZ_BUILD_ROOT)/config
-AUTOCONF_TOOLS	= $(MOZILLA_DIR)/build/autoconf
-
 CC := $(CC_WRAPPER) $(CC)
 CXX := $(CXX_WRAPPER) $(CXX)
 MKDIR ?= mkdir
 SLEEP ?= sleep
 TOUCH ?= touch
-
-PYTHON_PATH = $(PYTHON) $(topsrcdir)/config/pythonpath.py
 
 #
 # Build using PIC by default
@@ -144,6 +142,8 @@ PGO_LDFLAGS += $(PROFILE_USE_LDFLAGS)
 endif # MOZ_PROFILE_USE
 endif # NO_PROFILE_GUIDED_OPTIMIZE
 
+# Overloaded by comm builds to refer to $(commtopsrcdir), so that
+# `mail` resolves in en-US builds and in repacks.
 LOCALE_TOPDIR ?= $(topsrcdir)
 MAKE_JARS_FLAGS = \
 	-t $(LOCALE_TOPDIR) \
@@ -175,7 +175,7 @@ MOZ_LTO_CFLAGS :=
 MOZ_LTO_LDFLAGS :=
 endif
 
-LDFLAGS		= $(MOZ_LTO_LDFLAGS) $(COMPUTED_LDFLAGS) $(PGO_LDFLAGS) $(MK_LDFLAGS)
+LDFLAGS		= $(MOZ_LTO_LDFLAGS) $(COMPUTED_LDFLAGS) $(PGO_LDFLAGS)
 
 COMPILE_CFLAGS	= $(MOZ_LTO_CFLAGS) $(COMPUTED_CFLAGS) $(PGO_CFLAGS) $(_DEPEND_CFLAGS) $(MK_COMPILE_DEFINES)
 COMPILE_CXXFLAGS = $(MOZ_LTO_CFLAGS) $(COMPUTED_CXXFLAGS) $(PGO_CFLAGS) $(_DEPEND_CFLAGS) $(MK_COMPILE_DEFINES)
@@ -324,8 +324,6 @@ endif
 
 ######################################################################
 
-GARBAGE		+= $(DEPENDENCIES) core $(wildcard core.[0-9]*) $(wildcard *.err) $(wildcard *.pure) $(wildcard *_pure_*.o) Templates.DB
-
 ifeq ($(OS_ARCH),Darwin)
 ifndef NSDISTMODE
 NSDISTMODE=absolute_symlink
@@ -333,7 +331,7 @@ endif
 PWD := $(CURDIR)
 endif
 
-NSINSTALL_PY := $(PYTHON) $(abspath $(MOZILLA_DIR)/config/nsinstall.py)
+NSINSTALL_PY := $(PYTHON3) $(abspath $(MOZILLA_DIR)/config/nsinstall.py)
 ifneq (,$(or $(filter WINNT,$(HOST_OS_ARCH)),$(if $(COMPILE_ENVIRONMENT),,1)))
 NSINSTALL = $(NSINSTALL_PY)
 else
@@ -374,7 +372,7 @@ include $(MOZILLA_DIR)/config/AB_rCD.mk
 # Many locales directories want this definition.
 ACDEFINES += -DAB_CD=$(AB_CD)
 
-EXPAND_LOCALE_SRCDIR = $(if $(filter en-US,$(AB_CD)),$(LOCALE_TOPDIR)/$(1)/en-US,$(or $(realpath $(L10NBASEDIR)),$(abspath $(L10NBASEDIR)))/$(AB_CD)/$(subst /locales,,$(1)))
+EXPAND_LOCALE_SRCDIR = $(if $(filter en-US,$(AB_CD)),$(LOCALE_TOPDIR)/$(1)/en-US,$(REAL_LOCALE_MERGEDIR)/$(subst /locales,,$(1)))
 
 ifdef relativesrcdir
 LOCALE_RELATIVEDIR ?= $(relativesrcdir)
@@ -388,10 +386,7 @@ ifdef relativesrcdir
 MAKE_JARS_FLAGS += --relativesrcdir=$(LOCALE_RELATIVEDIR)
 ifneq (en-US,$(AB_CD))
 ifdef IS_LANGUAGE_REPACK
-MAKE_JARS_FLAGS += --locale-mergedir=$(REAL_LOCALE_MERGEDIR)
-endif
-ifdef IS_LANGUAGE_REPACK
-MAKE_JARS_FLAGS += --l10n-base=$(L10NBASEDIR)/$(AB_CD)
+MAKE_JARS_FLAGS += --l10n-base=$(REAL_LOCALE_MERGEDIR)
 endif
 else
 MAKE_JARS_FLAGS += -c $(LOCALE_SRCDIR)
@@ -400,38 +395,14 @@ else
 MAKE_JARS_FLAGS += -c $(LOCALE_SRCDIR)
 endif # ! relativesrcdir
 
-ifdef IS_LANGUAGE_REPACK
-MERGE_FILE = $(firstword \
-  $(wildcard $(REAL_LOCALE_MERGEDIR)/$(subst /locales,,$(LOCALE_RELATIVEDIR))/$(1)) \
-  $(wildcard $(LOCALE_SRCDIR)/$(1)) \
-  $(srcdir)/en-US/$(1) )
-# Like MERGE_FILE, but with the specified relative source directory
-# $(2) replacing $(srcdir).  It's expected that $(2) will include
-# '/locales' but not '/locales/en-US'.
-#
-# MERGE_RELATIVE_FILE and MERGE_FILE could be -- ahem -- merged by
-# making the second argument optional, but that expression makes for
-# difficult to read Make.
-MERGE_RELATIVE_FILE = $(firstword \
-  $(wildcard $(REAL_LOCALE_MERGEDIR)/$(subst /locales,,$(2))/$(1)) \
-  $(wildcard $(call EXPAND_LOCALE_SRCDIR,$(2))/$(1)) \
-  $(topsrcdir)/$(2)/en-US/$(1) )
-else
 MERGE_FILE = $(LOCALE_SRCDIR)/$(1)
 MERGE_RELATIVE_FILE = $(call EXPAND_LOCALE_SRCDIR,$(2))/$(1)
-endif
 
 ifneq (WINNT,$(OS_ARCH))
 RUN_TEST_PROGRAM = $(DIST)/bin/run-mozilla.sh
 endif # ! WINNT
 
-# autoconf.mk sets OBJ_SUFFIX to an error to avoid use before including
-# this file
-OBJ_SUFFIX := $(_OBJ_SUFFIX)
-
-PLY_INCLUDE = -I$(MOZILLA_DIR)/other-licenses/ply
-
 # Enable verbose logs when not using `make -s`
 ifeq (,$(findstring s, $(filter-out --%, $(MAKEFLAGS))))
-BUILD_VERBOSE_LOG = 1
+export BUILD_VERBOSE_LOG = 1
 endif

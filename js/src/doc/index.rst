@@ -5,6 +5,6 @@ SpiderMonkey
 .. toctree::
    :maxdepth: 1
 
-   JITOptimizations/index
+   build
    Debugger/index
    SavedFrame/index

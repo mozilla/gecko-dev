@@ -24,6 +24,7 @@
 #include "js/Conversions.h"
 #include "js/SourceText.h"
 #include "js/StableStringChars.h"
+#include "js/String.h"  // JS::{,Lossy}CopyLinearStringChars, JS::CopyStringChars, JS::Get{,Linear}StringLength, JS::MaxStringLength, JS::StringHasLatin1Chars
 #include "nsString.h"
 #include "xpcpublic.h"
 
@@ -206,13 +207,7 @@ class nsJSUtils {
     MOZ_MUST_USE nsresult ExecScript(JS::MutableHandle<JS::Value> aRetValue);
   };
 
-  static bool BinASTEncodingEnabled() {
-#ifdef JS_BUILD_BINAST
-    return mozilla::StaticPrefs::dom_script_loader_binast_encoding_enabled();
-#else
-    return false;
-#endif
-  }
+  static bool BinASTEncodingEnabled() { return false; }
 
   static nsresult CompileModule(JSContext* aCx,
                                 JS::SourceText<char16_t>& aSrcBuf,
@@ -225,10 +220,6 @@ class nsJSUtils {
                                 JS::Handle<JSObject*> aEvaluationGlobal,
                                 JS::CompileOptions& aCompileOptions,
                                 JS::MutableHandle<JSObject*> aModule);
-
-  static nsresult InitModuleSourceElement(JSContext* aCx,
-                                          JS::Handle<JSObject*> aModule,
-                                          nsIScriptElement* aElement);
 
   static nsresult ModuleInstantiate(JSContext* aCx,
                                     JS::Handle<JSObject*> aModule);
@@ -255,7 +246,7 @@ template <typename T, typename std::enable_if_t<std::is_same<
                           typename T::char_type, char16_t>::value>* = nullptr>
 inline bool AssignJSString(JSContext* cx, T& dest, JSString* s) {
   size_t len = JS::GetStringLength(s);
-  static_assert(js::MaxStringLength < (1 << 30),
+  static_assert(JS::MaxStringLength < (1 << 30),
                 "Shouldn't overflow here or in SetCapacity");
 
   const char16_t* chars;
@@ -282,7 +273,7 @@ inline bool AssignJSString(JSContext* cx, T& dest, JSString* s) {
     JS_ReportOutOfMemory(cx);
     return false;
   }
-  return js::CopyStringChars(cx, dest.BeginWriting(), s, len);
+  return JS::CopyStringChars(cx, dest.BeginWriting(), s, len);
 }
 
 // Specialization for UTF8String.
@@ -293,7 +284,7 @@ inline bool AssignJSString(JSContext* cx, T& dest, JSString* s) {
   CheckedInt<size_t> bufLen(JS::GetStringLength(s));
   // From the contract for JS_EncodeStringToUTF8BufferPartial, to guarantee that
   // the whole string is converted.
-  if (js::StringHasLatin1Chars(s)) {
+  if (JS::StringHasLatin1Chars(s)) {
     bufLen *= 2;
   } else {
     bufLen *= 3;
@@ -307,12 +298,13 @@ inline bool AssignJSString(JSContext* cx, T& dest, JSString* s) {
   // Shouldn't really matter, but worth being safe.
   const bool kAllowShrinking = true;
 
-  nsresult rv;
-  auto handle = dest.BulkWrite(bufLen.value(), 0, kAllowShrinking, rv);
-  if (MOZ_UNLIKELY(NS_FAILED(rv))) {
+  auto handleOrErr = dest.BulkWrite(bufLen.value(), 0, kAllowShrinking);
+  if (MOZ_UNLIKELY(handleOrErr.isErr())) {
     JS_ReportOutOfMemory(cx);
     return false;
   }
+
+  auto handle = handleOrErr.unwrap();
 
   auto maybe = JS_EncodeStringToUTF8BufferPartial(cx, s, handle.AsSpan());
   if (MOZ_UNLIKELY(!maybe)) {
@@ -330,12 +322,31 @@ inline bool AssignJSString(JSContext* cx, T& dest, JSString* s) {
 }
 
 inline void AssignJSLinearString(nsAString& dest, JSLinearString* s) {
-  size_t len = js::GetLinearStringLength(s);
-  static_assert(js::MaxStringLength < (1 << 30),
+  size_t len = JS::GetLinearStringLength(s);
+  static_assert(JS::MaxStringLength < (1 << 30),
                 "Shouldn't overflow here or in SetCapacity");
   dest.SetLength(len);
-  js::CopyLinearStringChars(dest.BeginWriting(), s, len);
+  JS::CopyLinearStringChars(dest.BeginWriting(), s, len);
 }
+
+inline void AssignJSLinearString(nsACString& dest, JSLinearString* s) {
+  size_t len = JS::GetLinearStringLength(s);
+  static_assert(JS::MaxStringLength < (1 << 30),
+                "Shouldn't overflow here or in SetCapacity");
+  dest.SetLength(len);
+  JS::LossyCopyLinearStringChars(dest.BeginWriting(), s, len);
+}
+
+template <typename T>
+class nsTAutoJSLinearString : public nsTAutoString<T> {
+ public:
+  explicit nsTAutoJSLinearString(JSLinearString* str) {
+    AssignJSLinearString(*this, str);
+  }
+};
+
+using nsAutoJSLinearString = nsTAutoJSLinearString<char16_t>;
+using nsAutoJSLinearCString = nsTAutoJSLinearString<char>;
 
 template <typename T>
 class nsTAutoJSString : public nsTAutoString<T> {

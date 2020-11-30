@@ -7,8 +7,8 @@ const COMPATIBLE_RUNTIME = "Compatible Runtime";
 const COMPATIBLE_DEVICE = "Compatible Device";
 const OLD_RUNTIME = "Old Runtime";
 const OLD_DEVICE = "Old Device";
-const DEBUGGER_67_RUNTIME = "Bad Runtime Debugger 67";
-const DEBUGGER_67_DEVICE = "Bad Device Debugger 67";
+const FENNEC_68_RUNTIME = "Bad Runtime Fennec 68";
+const FENNEC_68_DEVICE = "Bad Device Fennec 68";
 const RECENT_RUNTIME = "Recent Runtime";
 const RECENT_DEVICE = "Recent Device";
 
@@ -19,7 +19,7 @@ add_task(async function() {
   const {
     COMPATIBLE,
     TOO_OLD,
-    TOO_OLD_67_DEBUGGER,
+    TOO_OLD_FENNEC,
     TOO_RECENT,
   } = COMPATIBILITY_STATUS;
 
@@ -35,9 +35,9 @@ add_task(async function() {
   createRuntimeWithReport(mocks, RECENT_RUNTIME, RECENT_DEVICE, TOO_RECENT);
   createRuntimeWithReport(
     mocks,
-    DEBUGGER_67_RUNTIME,
-    DEBUGGER_67_DEVICE,
-    TOO_OLD_67_DEBUGGER
+    FENNEC_68_RUNTIME,
+    FENNEC_68_DEVICE,
+    TOO_OLD_FENNEC
   );
 
   const { document, tab } = await openAboutDebugging();
@@ -47,7 +47,7 @@ add_task(async function() {
   await connectToRuntime(COMPATIBLE_DEVICE, document);
   await connectToRuntime(OLD_DEVICE, document);
   await connectToRuntime(RECENT_DEVICE, document);
-  await connectToRuntime(DEBUGGER_67_DEVICE, document);
+  await connectToRuntime(FENNEC_68_DEVICE, document);
 
   info("Select the compatible runtime and check that no warning is displayed");
   await selectRuntime(COMPATIBLE_DEVICE, COMPATIBLE_RUNTIME, document);
@@ -75,11 +75,10 @@ add_task(async function() {
   );
 
   info(
-    "Select the runtime incompatible with Fx 67 " +
-      "and check that the debugger 67 warning is displayed"
+    "Select the Fennec 68 runtime and check that the correct warning is displayed"
   );
-  await selectRuntime(DEBUGGER_67_DEVICE, DEBUGGER_67_RUNTIME, document);
-  ok(document.querySelector(".qa-compatibility-warning-too-old-67-debugger"));
+  await selectRuntime(FENNEC_68_DEVICE, FENNEC_68_RUNTIME, document);
+  ok(document.querySelector(".qa-compatibility-warning-too-old-fennec"));
 
   await removeTab(tab);
 });

@@ -7,11 +7,11 @@ that encompasses a variety of things.
 - User preferences (e.g. things set from `about:preferences`)
 - Internal application parameters (e.g.
   `javascript.options.mem.nursery.max_kb`).
-- Testing and debugging flags (e.g. `network.disable.ipc.security`).
+- Testing and debugging flags (e.g. `network.dns.native-is-localhost`).
 - Things that might need locking in an enterprise installation.
 - Application data (e.g.
   `browser.onboarding.tour.onboarding-tour-addons.completed`,
-  `services.sync.clients.lastSync`, `network.predictor.cleaned-up`).
+  `services.sync.clients.lastSync`).
 - A cheap and dirty form of IPC(!) (some devtools prefs).
 
 Some of these (particularly the last two) are not an ideal use of libpref.
@@ -180,6 +180,11 @@ reads it.
 
 These files are not JavaScript; the `.js` suffix is present for historical
 reasons. They are read by a custom parser within libpref.
+
+User pref file syntax is slightly more restrictive than default pref file
+syntax. In user pref files `user_pref` definitions are allowed but `pref` and
+`sticky_pref` definitions are not, and attributes (such as `locked`) are not
+allowed.
 
 **Problem:** geckodriver has a separate prefs parser in the mozprofile crate.
 

@@ -687,8 +687,7 @@ void nsComputedDOMStyle::GetCSSImageURLs(const nsACString& aPropertyName,
   if (prop == eCSSProperty_UNKNOWN) {
     // Note: not using nsPrintfCString here in case aPropertyName contains
     // nulls.
-    aRv.ThrowSyntaxError(NS_LITERAL_CSTRING("Invalid property name '") +
-                         aPropertyName + NS_LITERAL_CSTRING("'"));
+    aRv.ThrowSyntaxError("Invalid property name '"_ns + aPropertyName + "'"_ns);
     return;
   }
 
@@ -1118,9 +1117,9 @@ void nsComputedDOMStyle::RemoveProperty(const nsACString& aPropertyName,
                                         nsAString& aReturn, ErrorResult& aRv) {
   // Note: not using nsPrintfCString here in case aPropertyName contains
   // nulls.
-  aRv.ThrowNoModificationAllowedError(
-      NS_LITERAL_CSTRING("Can't remove property '") + aPropertyName +
-      NS_LITERAL_CSTRING("' from computed style"));
+  aRv.ThrowNoModificationAllowedError("Can't remove property '"_ns +
+                                      aPropertyName +
+                                      "' from computed style"_ns);
 }
 
 void nsComputedDOMStyle::GetPropertyPriority(const nsACString& aPropertyName,
@@ -1135,9 +1134,8 @@ void nsComputedDOMStyle::SetProperty(const nsACString& aPropertyName,
                                      ErrorResult& aRv) {
   // Note: not using nsPrintfCString here in case aPropertyName contains
   // nulls.
-  aRv.ThrowNoModificationAllowedError(
-      NS_LITERAL_CSTRING("Can't set value for property '") + aPropertyName +
-      NS_LITERAL_CSTRING("' in computed style"));
+  aRv.ThrowNoModificationAllowedError("Can't set value for property '"_ns +
+                                      aPropertyName + "' in computed style"_ns);
 }
 
 void nsComputedDOMStyle::IndexedGetter(uint32_t aIndex, bool& aFound,
@@ -1231,7 +1229,7 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::DoGetTransformOrigin() {
   SetValueToPosition(position, valueList);
   if (!origin.depth.IsZero()) {
     RefPtr<nsROCSSPrimitiveValue> depth = new nsROCSSPrimitiveValue;
-    depth->SetAppUnits(origin.depth.ToAppUnits());
+    depth->SetPixels(origin.depth.ToCSSPixels());
     valueList->AppendCSSValue(depth.forget());
   }
   return valueList.forget();
@@ -1267,7 +1265,7 @@ already_AddRefed<nsROCSSPrimitiveValue> nsComputedDOMStyle::MatrixToCSSValue(
     const mozilla::gfx::Matrix4x4& matrix) {
   bool is3D = !matrix.Is2D();
 
-  nsAutoString resultString(NS_LITERAL_STRING("matrix"));
+  nsAutoString resultString(u"matrix"_ns);
   if (is3D) {
     resultString.AppendLiteral("3d");
   }
@@ -1326,8 +1324,8 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::DoGetOsxFontSmoothing() {
   }
 
   nsAutoString result;
-  mComputedStyle->GetComputedPropertyValue(
-      eCSSProperty__moz_osx_font_smoothing, result);
+  mComputedStyle->GetComputedPropertyValue(eCSSProperty__moz_osx_font_smoothing,
+                                           result);
   RefPtr<nsROCSSPrimitiveValue> val = new nsROCSSPrimitiveValue;
   val->SetString(result);
   return val.forget();
@@ -1545,6 +1543,12 @@ already_AddRefed<nsROCSSPrimitiveValue> nsComputedDOMStyle::GetGridTrackSize(
 already_AddRefed<CSSValue> nsComputedDOMStyle::GetGridTemplateColumnsRows(
     const StyleGridTemplateComponent& aTrackList,
     const ComputedGridTrackInfo& aTrackInfo) {
+  if (aTrackInfo.mIsMasonry) {
+    RefPtr<nsROCSSPrimitiveValue> val = new nsROCSSPrimitiveValue;
+    val->SetString("masonry");
+    return val.forget();
+  }
+
   if (aTrackInfo.mIsSubgrid) {
     RefPtr<nsDOMCSSValueList> valueList = GetROCSSValueList(false);
     RefPtr<nsROCSSPrimitiveValue> subgridKeyword = new nsROCSSPrimitiveValue;
@@ -1597,93 +1601,94 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::GetGridTemplateColumnsRows(
     }
   }
 
-  // Then add any explicit tracks and removed auto-fit tracks.
-  if (numExplicitTracks || hasRepeatAuto) {
-    uint32_t endOfRepeat = 0;  // first index after any repeat() tracks
-    int32_t offsetToLastRepeat = 0;
-    if (hasRepeatAuto) {
-      // offsetToLastRepeat is -1 if all repeat(auto-fit) tracks are empty
-      offsetToLastRepeat =
-          numExplicitTracks + 1 - aTrackInfo.mResolvedLineNames.Length();
-      endOfRepeat = aTrackInfo.mRepeatFirstTrack + offsetToLastRepeat + 1;
+  if (hasRepeatAuto) {
+    const auto* const autoRepeatValue = aTrackList.GetRepeatAutoValue();
+    const auto repeatLineNames = autoRepeatValue->line_names.AsSpan();
+    MOZ_ASSERT(repeatLineNames.Length() >= 2);
+    // Number of tracks inside the repeat, not including any repetitions.
+    // Check that if we have truncated the number of tracks due to overflowing
+    // the maximum track limit then we also truncate this repeat count.
+    MOZ_ASSERT(repeatLineNames.Length() ==
+               autoRepeatValue->track_sizes.len + 1);
+    // If we have truncated the first repetition of repeat tracks, then we
+    // can't index using autoRepeatValue->track_sizes.len, and
+    // aTrackInfo.mRemovedRepeatTracks.Length() will account for all repeat
+    // tracks that haven't been truncated.
+    const uint32_t numRepeatTracks =
+        std::min(aTrackInfo.mRemovedRepeatTracks.Length(),
+                 autoRepeatValue->track_sizes.len);
+    MOZ_ASSERT(repeatLineNames.Length() >= numRepeatTracks + 1);
+    // The total of all tracks in all repetitions of the repeat.
+    const uint32_t totalNumRepeatTracks =
+        aTrackInfo.mRemovedRepeatTracks.Length();
+    const uint32_t repeatStart = aTrackInfo.mRepeatFirstTrack;
+    // We need to skip over any track sizes which were resolved to 0 by
+    // collapsed tracks. Keep track of the iteration separately.
+    const auto explicitTrackSizeBegin =
+        trackSizes.cbegin() + numLeadingImplicitTracks;
+    const auto explicitTrackSizeEnd =
+        explicitTrackSizeBegin + numExplicitTracks;
+    auto trackSizeIter = explicitTrackSizeBegin;
+    // Write any leading explicit tracks before the repeat.
+    for (uint32_t i = 0; i < repeatStart; i++) {
+      AppendGridLineNames(valueList, aTrackInfo.mResolvedLineNames[i]);
+      RefPtr<nsROCSSPrimitiveValue> val = new nsROCSSPrimitiveValue;
+      val->SetAppUnits(*trackSizeIter++);
+      valueList->AppendCSSValue(val.forget());
     }
-
-    auto* autoRepeatValue = aTrackList.GetRepeatAutoValue();
-    auto beforeAutoRepeat =
-        autoRepeatValue ? autoRepeatValue->line_names.AsSpan()[0].AsSpan()
-                        : Span<StyleCustomIdent>();
-    auto afterAutoRepeat =
-        autoRepeatValue ? autoRepeatValue->line_names.AsSpan()[1].AsSpan()
-                        : Span<StyleCustomIdent>();
-    uint32_t repeatIndex = 0;
-    uint32_t numRepeatTracks = aTrackInfo.mRemovedRepeatTracks.Length();
-    enum LinePlacement { LinesPrecede, LinesFollow, LinesBetween };
-    auto AppendRemovedAutoFits =
-        [&aTrackInfo, &valueList, aTrackList, beforeAutoRepeat, afterAutoRepeat,
-         &repeatIndex, numRepeatTracks](LinePlacement aPlacement) {
-          // Add in removed auto-fit tracks and lines here, if necessary
-          bool atLeastOneTrackReported = false;
-          while (repeatIndex < numRepeatTracks &&
-                 aTrackInfo.mRemovedRepeatTracks[repeatIndex]) {
-            if ((aPlacement == LinesPrecede) ||
-                ((aPlacement == LinesBetween) && atLeastOneTrackReported)) {
-              // Precede it with the lines between repeats.
-              AppendGridLineNames(valueList, afterAutoRepeat, beforeAutoRepeat);
-            }
-
-            // Removed 'auto-fit' tracks are reported as 0px.
-            RefPtr<nsROCSSPrimitiveValue> val = new nsROCSSPrimitiveValue;
-            val->SetAppUnits(0);
-            valueList->AppendCSSValue(val.forget());
-            atLeastOneTrackReported = true;
-
-            if (aPlacement == LinesFollow) {
-              // Follow it with the lines between repeats.
-              AppendGridLineNames(valueList, afterAutoRepeat, beforeAutoRepeat);
-            }
-            repeatIndex++;
-          }
-          repeatIndex++;
-        };
-
-    for (uint32_t i = 0;; i++) {
-      if (hasRepeatAuto) {
-        if (i == aTrackInfo.mRepeatFirstTrack) {
-          const nsTArray<StyleCustomIdent>& lineNames =
-              aTrackInfo.mResolvedLineNames[i];
-          if (i == endOfRepeat) {
-            // All auto-fit tracks are empty, but we report them anyway.
-            AppendGridLineNames(valueList, lineNames);
-
-            AppendRemovedAutoFits(LinesBetween);
-
-            AppendGridLineNames(valueList,
-                                aTrackInfo.mResolvedLineNames[i + 1]);
-          } else {
-            AppendGridLineNames(valueList, lineNames);
-            AppendRemovedAutoFits(LinesFollow);
-          }
-        } else if (i == endOfRepeat) {
-          // Before appending the last line, finish off any removed auto-fits.
-          AppendRemovedAutoFits(LinesPrecede);
-
-          const nsTArray<StyleCustomIdent>& lineNames =
-              aTrackInfo.mResolvedLineNames[aTrackInfo.mRepeatFirstTrack + 1];
-          AppendGridLineNames(valueList, lineNames);
-        } else if (i > aTrackInfo.mRepeatFirstTrack && i < endOfRepeat) {
-          AppendGridLineNames(valueList, afterAutoRepeat, beforeAutoRepeat);
-          AppendRemovedAutoFits(LinesFollow);
-        } else {
-          uint32_t j = i > endOfRepeat ? i - offsetToLastRepeat : i;
-          const nsTArray<StyleCustomIdent>& lineNames =
-              aTrackInfo.mResolvedLineNames[j];
-          AppendGridLineNames(valueList, lineNames);
-        }
+    auto lineNameIter = aTrackInfo.mResolvedLineNames.cbegin() + repeatStart;
+    // Write the track names at the start of the repeat, including the names
+    // at the end of the last non-repeat track. Unlike all later repeat line
+    // name lists, this one needs the resolved line name which includes both
+    // the last non-repeat line names and the leading repeat line names.
+    AppendGridLineNames(valueList, *lineNameIter++);
+    {
+      // Write out the first repeat value, checking for size zero (removed
+      // track).
+      const nscoord firstRepeatTrackSize =
+          (!aTrackInfo.mRemovedRepeatTracks[0]) ? *trackSizeIter++ : 0;
+      RefPtr<nsROCSSPrimitiveValue> val = new nsROCSSPrimitiveValue;
+      val->SetAppUnits(firstRepeatTrackSize);
+      valueList->AppendCSSValue(val.forget());
+    }
+    // Write the line names and track sizes inside the repeat, checking for
+    // removed tracks (size 0).
+    for (uint32_t i = 1; i < totalNumRepeatTracks; i++) {
+      const uint32_t repeatIndex = i % numRepeatTracks;
+      // If we are rolling over from one repetition to the next, include track
+      // names from both the end of the previous repeat and the start of the
+      // next.
+      if (repeatIndex == 0) {
+        AppendGridLineNames(valueList,
+                            repeatLineNames[numRepeatTracks].AsSpan(),
+                            repeatLineNames[0].AsSpan());
       } else {
-        const nsTArray<StyleCustomIdent>& lineNames =
-            aTrackInfo.mResolvedLineNames[i];
-        AppendGridLineNames(valueList, lineNames);
+        AppendGridLineNames(valueList, repeatLineNames[repeatIndex].AsSpan());
       }
+      MOZ_ASSERT(aTrackInfo.mRemovedRepeatTracks[i] ||
+                 trackSizeIter != explicitTrackSizeEnd);
+      const nscoord repeatTrackSize =
+          (!aTrackInfo.mRemovedRepeatTracks[i]) ? *trackSizeIter++ : 0;
+      RefPtr<nsROCSSPrimitiveValue> val = new nsROCSSPrimitiveValue;
+      val->SetAppUnits(repeatTrackSize);
+      valueList->AppendCSSValue(val.forget());
+    }
+    // The resolved line names include a single repetition of the auto-repeat
+    // line names. Skip over those.
+    lineNameIter += numRepeatTracks - 1;
+    // Write out any more tracks after the repeat.
+    while (trackSizeIter != explicitTrackSizeEnd) {
+      AppendGridLineNames(valueList, *lineNameIter++);
+      RefPtr<nsROCSSPrimitiveValue> val = new nsROCSSPrimitiveValue;
+      val->SetAppUnits(*trackSizeIter++);
+      valueList->AppendCSSValue(val.forget());
+    }
+    // Write the final trailing line name.
+    AppendGridLineNames(valueList, *lineNameIter++);
+  } else if (numExplicitTracks > 0) {
+    // If there are explicit tracks but no repeat tracks, just serialize those.
+    for (uint32_t i = 0;; i++) {
+      AppendGridLineNames(valueList, aTrackInfo.mResolvedLineNames[i]);
       if (i == numExplicitTracks) {
         break;
       }
@@ -1692,7 +1697,6 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::GetGridTemplateColumnsRows(
       valueList->AppendCSSValue(val.forget());
     }
   }
-
   // Add any trailing implicit tracks.
   if (serializeImplicit) {
     for (uint32_t i = numLeadingImplicitTracks + numExplicitTracks;
@@ -1822,7 +1826,7 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::DoGetLineHeight() {
 
   auto& lh = StyleText()->mLineHeight;
   if (lh.IsLength()) {
-    val->SetAppUnits(lh.AsLength().ToAppUnits());
+    val->SetPixels(lh.AsLength().ToCSSPixels());
   } else if (lh.IsNumber()) {
     val->SetNumber(lh.AsNumber());
   } else if (lh.IsMozBlockHeight()) {
@@ -2019,12 +2023,27 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::GetNonStaticPositionOffset(
     coord = positionData->mOffset.Get(NS_OPPOSITE_SIDE(aSide));
     sign = -1;
   }
+  if (!coord.IsLengthPercentage()) {
+    val->SetPixels(0.0f);
+    return val.forget();
+  }
+
+  auto& lp = coord.AsLengthPercentage();
+  if (lp.ConvertsToLength()) {
+    val->SetPixels(sign * lp.ToLengthInCSSPixels());
+    return val.forget();
+  }
 
   PercentageBaseGetter baseGetter = (aSide == eSideLeft || aSide == eSideRight)
                                         ? aWidthGetter
                                         : aHeightGetter;
-
-  val->SetAppUnits(sign * StyleCoordToNSCoord(coord, baseGetter, 0, false));
+  nscoord percentageBase;
+  if (!(this->*baseGetter)(percentageBase)) {
+    val->SetPixels(0.0f);
+    return val.forget();
+  }
+  nscoord result = lp.Resolve(percentageBase);
+  val->SetAppUnits(sign * result);
   return val.forget();
 }
 
@@ -2075,7 +2094,7 @@ nscoord nsComputedDOMStyle::GetUsedAbsoluteOffset(mozilla::Side aSide) {
     containerRect.SizeTo(
         viewportFrame->AdjustViewportSizeForFixedPosition(containerRect));
   } else if (container->IsGridContainerFrame() &&
-             (mOuterFrame->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW))) {
+             mOuterFrame->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW)) {
     containerRect = nsGridContainerFrame::GridItemCB(mOuterFrame);
     rect.MoveBy(-containerRect.x, -containerRect.y);
   }
@@ -2166,11 +2185,11 @@ bool nsComputedDOMStyle::GetLineHeightCoord(nscoord& aCoord) {
   // the text zoom, if any.
   const nsStyleFont* font = StyleFont();
   float fCoord = float(aCoord);
-  if (font->mAllowZoom) {
+  if (font->mAllowZoomAndMinSize) {
     fCoord /= presContext->EffectiveTextZoom();
   }
   if (font->mFont.size != font->mSize) {
-    fCoord = fCoord * (float(font->mSize) / float(font->mFont.size));
+    fCoord *= font->mSize.ToCSSPixels() / font->mFont.size.ToCSSPixels();
   }
   aCoord = NSToCoordRound(fCoord);
 
@@ -2190,13 +2209,6 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::GetBorderWidthFor(
   }
   val->SetAppUnits(width);
 
-  return val.forget();
-}
-
-already_AddRefed<CSSValue> nsComputedDOMStyle::GetBorderColorFor(
-    mozilla::Side aSide) {
-  RefPtr<nsROCSSPrimitiveValue> val = new nsROCSSPrimitiveValue;
-  SetValueFromComplexColor(val, StyleBorder()->BorderColorFor(aSide));
   return val.forget();
 }
 
@@ -2274,11 +2286,11 @@ void nsComputedDOMStyle::SetValueToLengthPercentage(
     nsROCSSPrimitiveValue* aValue, const mozilla::LengthPercentage& aLength,
     bool aClampNegativeCalc) {
   if (aLength.ConvertsToLength()) {
-    nscoord result = aLength.ToLength();
+    CSSCoord length = aLength.ToLengthInCSSPixels();
     if (aClampNegativeCalc) {
-      result = std::max(result, 0);
+      length = std::max(float(length), 0.0f);
     }
-    return aValue->SetAppUnits(result);
+    return aValue->SetPixels(length);
   }
   if (aLength.ConvertsToPercentage()) {
     float result = aLength.ToPercentage();
@@ -2291,33 +2303,6 @@ void nsComputedDOMStyle::SetValueToLengthPercentage(
   nsAutoString result;
   Servo_LengthPercentage_ToCss(&aLength, &result);
   aValue->SetString(result);
-}
-
-nscoord nsComputedDOMStyle::StyleCoordToNSCoord(
-    const LengthPercentage& aCoord, PercentageBaseGetter aPercentageBaseGetter,
-    nscoord aDefaultValue, bool aClampNegativeCalc) {
-  MOZ_ASSERT(aPercentageBaseGetter, "Must have a percentage base getter");
-  if (aCoord.ConvertsToLength()) {
-    return aCoord.ToLength();
-  }
-  nscoord percentageBase;
-  if ((this->*aPercentageBaseGetter)(percentageBase)) {
-    nscoord result = aCoord.Resolve(percentageBase);
-    if (aClampNegativeCalc && result < 0) {
-      // It's expected that we can get a negative value here with calc().
-      // We can also get a negative value with a percentage value if
-      // percentageBase is negative; this isn't expected, but can happen
-      // when large length values overflow.
-      NS_WARNING_ASSERTION(percentageBase >= 0,
-                           "percentage base value overflowed to become "
-                           "negative for a property "
-                           "that disallows negative values");
-      result = 0;
-    }
-    return result;
-  }
-
-  return aDefaultValue;
 }
 
 bool nsComputedDOMStyle::GetCBContentWidth(nscoord& aWidth) {
@@ -2476,7 +2461,7 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::DoGetMask() {
   if (svg->mMask.mImageCount > 1 ||
       firstLayer.mClip != StyleGeometryBox::BorderBox ||
       firstLayer.mOrigin != StyleGeometryBox::BorderBox ||
-      firstLayer.mComposite != NS_STYLE_MASK_COMPOSITE_ADD ||
+      firstLayer.mComposite != StyleMaskComposite::Add ||
       firstLayer.mMaskMode != StyleMaskMode::MatchSource ||
       firstLayer.mPosition != Position::FromPercentage(0.0f) ||
       !firstLayer.mRepeat.IsInitialValue() ||

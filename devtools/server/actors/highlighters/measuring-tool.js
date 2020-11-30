@@ -12,8 +12,6 @@ const {
 } = require("devtools/shared/layout/utils");
 const {
   CanvasFrameAnonymousContentHelper,
-  createSVGNode,
-  createNode,
 } = require("devtools/server/actors/highlighters/utils/markup");
 
 // Hard coded value about the size of measuring tool label, in order to
@@ -52,6 +50,7 @@ function MeasuringToolHighlighter(highlighterEnv) {
     highlighterEnv,
     this._buildMarkup.bind(this)
   );
+  this.isReady = this.markup.initialize();
 
   this.coords = {
     x: 0,
@@ -65,19 +64,16 @@ function MeasuringToolHighlighter(highlighterEnv) {
 }
 
 MeasuringToolHighlighter.prototype = {
-  typeName: "MeasuringToolHighlighter",
-
   ID_CLASS_PREFIX: "measuring-tool-",
 
   _buildMarkup() {
     const prefix = this.ID_CLASS_PREFIX;
-    const { window } = this.env;
 
-    const container = createNode(window, {
+    const container = this.markup.createNode({
       attributes: { class: "highlighter-container" },
     });
 
-    const root = createNode(window, {
+    const root = this.markup.createNode({
       parent: container,
       attributes: {
         id: "root",
@@ -87,7 +83,7 @@ MeasuringToolHighlighter.prototype = {
       prefix,
     });
 
-    const svg = createSVGNode(window, {
+    const svg = this.markup.createSVGNode({
       nodeType: "svg",
       parent: root,
       attributes: {
@@ -100,7 +96,7 @@ MeasuringToolHighlighter.prototype = {
     });
 
     for (const side of SIDES) {
-      createSVGNode(window, {
+      this.markup.createSVGNode({
         nodeType: "line",
         parent: svg,
         attributes: {
@@ -112,7 +108,7 @@ MeasuringToolHighlighter.prototype = {
       });
     }
 
-    createNode(window, {
+    this.markup.createNode({
       nodeType: "label",
       attributes: {
         id: "label-size",
@@ -123,7 +119,7 @@ MeasuringToolHighlighter.prototype = {
       prefix,
     });
 
-    createNode(window, {
+    this.markup.createNode({
       nodeType: "label",
       attributes: {
         id: "label-position",
@@ -137,7 +133,7 @@ MeasuringToolHighlighter.prototype = {
     // Creating a <g> element in order to group all the paths below, that
     // together represent the measuring tool; so that would be easier move them
     // around
-    const g = createSVGNode(window, {
+    const g = this.markup.createSVGNode({
       nodeType: "g",
       attributes: {
         id: "tool",
@@ -146,7 +142,7 @@ MeasuringToolHighlighter.prototype = {
       prefix,
     });
 
-    createSVGNode(window, {
+    this.markup.createSVGNode({
       nodeType: "path",
       attributes: {
         id: "box-path",
@@ -156,7 +152,7 @@ MeasuringToolHighlighter.prototype = {
       prefix,
     });
 
-    createSVGNode(window, {
+    this.markup.createSVGNode({
       nodeType: "path",
       attributes: {
         id: "diagonal-path",
@@ -167,7 +163,7 @@ MeasuringToolHighlighter.prototype = {
     });
 
     for (const handler of HANDLERS) {
-      createSVGNode(window, {
+      this.markup.createSVGNode({
         nodeType: "circle",
         parent: g,
         attributes: {

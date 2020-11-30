@@ -10,6 +10,8 @@
 #include "GLContextEGL.h"
 #include "GLContextProvider.h"
 #include "GLLibraryEGL.h"
+#include "mozilla/gfx/gfxVars.h"
+#include "mozilla/layers/BuildConstants.h"
 #include "mozilla/webrender/RenderThread.h"
 #include "mozilla/widget/CompositorWidget.h"
 
@@ -20,8 +22,9 @@
 #endif
 
 #ifdef MOZ_WIDGET_ANDROID
+#  include "mozilla/java/GeckoSurfaceTextureWrappers.h"
+#  include "mozilla/layers/AndroidHardwareBuffer.h"
 #  include "mozilla/widget/AndroidCompositorWidget.h"
-#  include "GeneratedJNIWrappers.h"
 #  include <android/native_window.h>
 #  include <android/native_window_jni.h>
 #endif
@@ -30,7 +33,7 @@ namespace mozilla::wr {
 
 /* static */
 UniquePtr<RenderCompositor> RenderCompositorEGL::Create(
-    RefPtr<widget::CompositorWidget> aWidget) {
+    RefPtr<widget::CompositorWidget> aWidget, nsACString& aError) {
 #ifdef MOZ_WAYLAND
   if (!gdk_display_get_default() ||
       GDK_IS_X11_DISPLAY(gdk_display_get_default())) {
@@ -61,7 +64,6 @@ RenderCompositorEGL::RenderCompositorEGL(
 RenderCompositorEGL::~RenderCompositorEGL() {
 #ifdef MOZ_WIDGET_ANDROID
   java::GeckoSurfaceTexture::DestroyUnused((int64_t)gl());
-  java::GeckoSurfaceTexture::DetachAllFromGLContext((int64_t)gl());
 #endif
   DestroyEGLSurface();
 }
@@ -92,58 +94,91 @@ bool RenderCompositorEGL::BeginFrame() {
 
 RenderedFrameId RenderCompositorEGL::EndFrame(
     const nsTArray<DeviceIntRect>& aDirtyRects) {
-  RenderedFrameId frameId = GetNextRenderFrameId();
-  if (mEGLSurface != EGL_NO_SURFACE) {
-    gl()->SwapBuffers();
+#ifdef MOZ_WIDGET_ANDROID
+  const auto& gle = gl::GLContextEGL::Cast(gl());
+  const auto& egl = gle->mEgl;
+
+  EGLSync sync = nullptr;
+  if (layers::AndroidHardwareBufferApi::Get()) {
+    sync = egl->fCreateSync(LOCAL_EGL_SYNC_NATIVE_FENCE_ANDROID, nullptr);
   }
+  if (sync) {
+    int fenceFd = egl->fDupNativeFenceFDANDROID(sync);
+    if (fenceFd >= 0) {
+      mReleaseFenceFd = ipc::FileDescriptor(UniqueFileHandle(fenceFd));
+    }
+    egl->fDestroySync(sync);
+    sync = nullptr;
+  }
+#endif
+
+  RenderedFrameId frameId = GetNextRenderFrameId();
+  if (mEGLSurface != EGL_NO_SURFACE && aDirtyRects.Length() > 0) {
+    gfx::IntRegion bufferInvalid;
+    const auto bufferSize = GetBufferSize();
+    for (const DeviceIntRect& rect : aDirtyRects) {
+      const auto left = std::max(0, std::min(bufferSize.width, rect.origin.x));
+      const auto top = std::max(0, std::min(bufferSize.height, rect.origin.y));
+
+      const auto right = std::min(bufferSize.width,
+                                  std::max(0, rect.origin.x + rect.size.width));
+      const auto bottom = std::min(
+          bufferSize.height, std::max(0, rect.origin.y + rect.size.height));
+
+      const auto width = right - left;
+      const auto height = bottom - top;
+
+      bufferInvalid.OrWith(
+          gfx::IntRect(left, (GetBufferSize().height - bottom), width, height));
+    }
+    gl()->SetDamage(bufferInvalid);
+  }
+  gl()->SwapBuffers();
   return frameId;
 }
 
-void RenderCompositorEGL::Pause() {
-#ifdef MOZ_WIDGET_ANDROID
-  java::GeckoSurfaceTexture::DestroyUnused((int64_t)gl());
-  java::GeckoSurfaceTexture::DetachAllFromGLContext((int64_t)gl());
-#endif
-  DestroyEGLSurface();
-}
+void RenderCompositorEGL::Pause() { DestroyEGLSurface(); }
 
 bool RenderCompositorEGL::Resume() {
-#ifdef MOZ_WIDGET_ANDROID
-  // Destroy EGLSurface if it exists.
-  DestroyEGLSurface();
-  mEGLSurface = CreateEGLSurface();
-  gl::GLContextEGL::Cast(gl())->SetEGLSurfaceOverride(mEGLSurface);
+  if (kIsAndroid) {
+    // Destroy EGLSurface if it exists.
+    DestroyEGLSurface();
+    mEGLSurface = CreateEGLSurface();
+    gl::GLContextEGL::Cast(gl())->SetEGLSurfaceOverride(mEGLSurface);
 
-  // Query the new surface size as this may have changed. We cannot use
-  // mWidget->GetClientSize() due to a race condition between nsWindow::Resize()
-  // being called and the frame being rendered after the surface is resized.
-  EGLNativeWindowType window = mWidget->AsAndroid()->GetEGLNativeWindow();
-  JNIEnv* const env = jni::GetEnvForThread();
-  ANativeWindow* const nativeWindow =
-      ANativeWindow_fromSurface(env, reinterpret_cast<jobject>(window));
-  const int32_t width = ANativeWindow_getWidth(nativeWindow);
-  const int32_t height = ANativeWindow_getHeight(nativeWindow);
-  mEGLSurfaceSize = LayoutDeviceIntSize(width, height);
-  ANativeWindow_release(nativeWindow);
-#elif defined(MOZ_WAYLAND)
-  // Destroy EGLSurface if it exists and create a new one. We will set the
-  // swap interval after MakeCurrent() has been called.
-  DestroyEGLSurface();
-  mEGLSurface = CreateEGLSurface();
-  if (mEGLSurface != EGL_NO_SURFACE) {
-    // We have a new EGL surface, which on wayland needs to be configured for
-    // non-blocking buffer swaps. We need MakeCurrent() to set our current EGL
-    // context before we call eglSwapInterval, which is why we do it here rather
-    // than where the surface was created.
-    const auto& gle = gl::GLContextEGL::Cast(gl());
-    const auto& egl = gle->mEgl;
-    MakeCurrent();
-    // Make eglSwapBuffers() non-blocking on wayland.
-    egl->fSwapInterval(egl->Display(), 0);
-  } else {
-    RenderThread::Get()->HandleWebRenderError(WebRenderError::NEW_SURFACE);
+#ifdef MOZ_WIDGET_ANDROID
+    // Query the new surface size as this may have changed. We cannot use
+    // mWidget->GetClientSize() due to a race condition between
+    // nsWindow::Resize() being called and the frame being rendered after the
+    // surface is resized.
+    EGLNativeWindowType window = mWidget->AsAndroid()->GetEGLNativeWindow();
+    JNIEnv* const env = jni::GetEnvForThread();
+    ANativeWindow* const nativeWindow =
+        ANativeWindow_fromSurface(env, reinterpret_cast<jobject>(window));
+    const int32_t width = ANativeWindow_getWidth(nativeWindow);
+    const int32_t height = ANativeWindow_getHeight(nativeWindow);
+    mEGLSurfaceSize = LayoutDeviceIntSize(width, height);
+    ANativeWindow_release(nativeWindow);
+#endif  // MOZ_WIDGET_ANDROID
+  } else if (kIsWayland) {
+    // Destroy EGLSurface if it exists and create a new one. We will set the
+    // swap interval after MakeCurrent() has been called.
+    DestroyEGLSurface();
+    mEGLSurface = CreateEGLSurface();
+    if (mEGLSurface != EGL_NO_SURFACE) {
+      // We have a new EGL surface, which on wayland needs to be configured for
+      // non-blocking buffer swaps. We need MakeCurrent() to set our current EGL
+      // context before we call eglSwapInterval, which is why we do it here
+      // rather than where the surface was created.
+      const auto& gle = gl::GLContextEGL::Cast(gl());
+      const auto& egl = gle->mEgl;
+      MakeCurrent();
+      // Make eglSwapBuffers() non-blocking on wayland.
+      egl->fSwapInterval(0);
+    } else {
+      RenderThread::Get()->HandleWebRenderError(WebRenderError::NEW_SURFACE);
+    }
   }
-#endif
   return true;
 }
 
@@ -163,9 +198,19 @@ void RenderCompositorEGL::DestroyEGLSurface() {
   // Release EGLSurface of back buffer before calling ResizeBuffers().
   if (mEGLSurface) {
     gle->SetEGLSurfaceOverride(EGL_NO_SURFACE);
-    egl->fDestroySurface(egl->Display(), mEGLSurface);
+    egl->fDestroySurface(mEGLSurface);
     mEGLSurface = nullptr;
   }
+}
+
+ipc::FileDescriptor RenderCompositorEGL::GetAndResetReleaseFence() {
+#ifdef MOZ_WIDGET_ANDROID
+  MOZ_ASSERT(!layers::AndroidHardwareBufferApi::Get() ||
+             mReleaseFenceFd.IsValid());
+  return std::move(mReleaseFenceFd);
+#else
+  return ipc::FileDescriptor();
+#endif
 }
 
 LayoutDeviceIntSize RenderCompositorEGL::GetBufferSize() {
@@ -182,6 +227,62 @@ CompositorCapabilities RenderCompositorEGL::GetCompositorCapabilities() {
   caps.virtual_surface_size = 0;
 
   return caps;
+}
+
+bool RenderCompositorEGL::UsePartialPresent() {
+  return gfx::gfxVars::WebRenderMaxPartialPresentRects() > 0;
+}
+
+bool RenderCompositorEGL::RequestFullRender() { return false; }
+
+uint32_t RenderCompositorEGL::GetMaxPartialPresentRects() {
+  return gfx::gfxVars::WebRenderMaxPartialPresentRects();
+}
+
+bool RenderCompositorEGL::ShouldDrawPreviousPartialPresentRegions() {
+  return true;
+}
+
+size_t RenderCompositorEGL::GetBufferAge() const {
+  return gl::GLContextEGL::Cast(gl())->GetBufferAge();
+}
+
+void RenderCompositorEGL::SetBufferDamageRegion(const wr::DeviceIntRect* aRects,
+                                                size_t aNumRects) {
+  const auto& gle = gl::GLContextEGL::Cast(gl());
+  const auto& egl = gle->mEgl;
+  if (gle->HasKhrPartialUpdate()) {
+    std::vector<EGLint> rects;
+    rects.reserve(4 * aNumRects);
+    const auto bufferSize = GetBufferSize();
+    for (size_t i = 0; i < aNumRects; i++) {
+      const auto left =
+          std::max(0, std::min(bufferSize.width, aRects[i].origin.x));
+      const auto top =
+          std::max(0, std::min(bufferSize.height, aRects[i].origin.y));
+
+      const auto right =
+          std::min(bufferSize.width,
+                   std::max(0, aRects[i].origin.x + aRects[i].size.width));
+      const auto bottom =
+          std::min(bufferSize.height,
+                   std::max(0, aRects[i].origin.y + aRects[i].size.height));
+
+      const auto width = right - left;
+      const auto height = bottom - top;
+
+      rects.push_back(left);
+      rects.push_back(bufferSize.height - bottom);
+      rects.push_back(width);
+      rects.push_back(height);
+    }
+    const auto ret =
+        egl->fSetDamageRegion(mEGLSurface, rects.data(), rects.size() / 4);
+    if (ret == LOCAL_EGL_FALSE) {
+      const auto err = egl->mLib->fGetError();
+      gfxCriticalError() << "Error in eglSetDamageRegion: " << gfx::hexa(err);
+    }
+  }
 }
 
 }  // namespace mozilla::wr

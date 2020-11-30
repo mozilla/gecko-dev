@@ -19,43 +19,19 @@
  * @property {boolean} isInfoCollapsed
  */
 
-/**
- * TS-TODO
- *
- * This function replaces lazyRequireGetter, and TypeScript can understand it. It's
- * currently duplicated until we have consensus that TypeScript is a good idea.
- *
- * @template T
- * @type {(callback: () => T) => () => T}
- */
-function requireLazy(callback) {
-  /** @type {T | undefined} */
-  let cache;
-  return () => {
-    if (cache === undefined) {
-      cache = callback();
-    }
-    return cache;
-  };
-}
+const { createLazyLoaders } = ChromeUtils.import(
+  "resource://devtools/client/performance-new/typescript-lazy-load.jsm.js"
+);
 
-// Provide an exports object for the JSM to be properly read by TypeScript.
-/** @type {any} */ (this).module = {};
-
-const lazyServices = requireLazy(() =>
-  /** @type {import("resource://gre/modules/Services.jsm")} */
-  (ChromeUtils.import("resource://gre/modules/Services.jsm"))
-);
-const lazyPanelMultiView = requireLazy(() =>
-  /** @type {import("resource:///modules/PanelMultiView.jsm")} */
-  (ChromeUtils.import("resource:///modules/PanelMultiView.jsm"))
-);
-const lazyBackground = requireLazy(() =>
-  /** @type {import("resource://devtools/client/performance-new/popup/background.jsm.js")} */
-  (ChromeUtils.import(
-    "resource://devtools/client/performance-new/popup/background.jsm.js"
-  ))
-);
+const lazy = createLazyLoaders({
+  Services: () => ChromeUtils.import("resource://gre/modules/Services.jsm"),
+  PanelMultiView: () =>
+    ChromeUtils.import("resource:///modules/PanelMultiView.jsm"),
+  Background: () =>
+    ChromeUtils.import(
+      "resource://devtools/client/performance-new/popup/background.jsm.js"
+    ),
+});
 
 /**
  * This function collects all of the selection of the elements inside of the panel.
@@ -73,7 +49,8 @@ function selectElementsInPanelview(panelview) {
    */
   function getElementById(id) {
     /** @type {HTMLElement | null} */
-    const element = document.getElementById(id);
+    const { PanelMultiView } = lazy.PanelMultiView();
+    const element = PanelMultiView.getViewNode(document, id);
     if (!element) {
       throw new Error(`Could not find the element from the ID "${id}"`);
     }
@@ -86,6 +63,7 @@ function selectElementsInPanelview(panelview) {
     window: /** @type {ChromeWindow} */ (document.defaultView),
     inactive: getElementById("PanelUI-profiler-inactive"),
     active: getElementById("PanelUI-profiler-active"),
+    locked: getElementById("PanelUI-profiler-locked"),
     presetDescription: getElementById("PanelUI-profiler-content-description"),
     presetCustom: getElementById("PanelUI-profiler-content-custom"),
     presetsCustomButton: getElementById(
@@ -102,6 +80,8 @@ function selectElementsInPanelview(panelview) {
     startRecording: getElementById("PanelUI-profiler-startRecording"),
     stopAndDiscard: getElementById("PanelUI-profiler-stopAndDiscard"),
     stopAndCapture: getElementById("PanelUI-profiler-stopAndCapture"),
+    settingsSection: getElementById("PanelUI-profiler-content-settings"),
+    contentRecording: getElementById("PanelUI-profiler-content-recording"),
   };
 }
 
@@ -115,11 +95,18 @@ function selectElementsInPanelview(panelview) {
 function createViewControllers(state, elements) {
   return {
     updateInfoCollapse() {
-      const { header, info } = elements;
+      const { header, info, infoButton, panelview } = elements;
       header.setAttribute(
         "isinfocollapsed",
         state.isInfoCollapsed ? "true" : "false"
       );
+      panelview
+        .closest("panel")
+        .setAttribute(
+          "isinfoexpanded",
+          state.isInfoCollapsed ? "false" : "true"
+        );
+      infoButton.checked = !state.isInfoCollapsed;
 
       if (state.isInfoCollapsed) {
         const { height } = info.getBoundingClientRect();
@@ -130,35 +117,73 @@ function createViewControllers(state, elements) {
     },
 
     updatePresets() {
-      const { presets, getRecordingPreferencesFromBrowser } = lazyBackground();
-      const { presetName } = getRecordingPreferencesFromBrowser();
+      const { Services } = lazy.Services();
+      const { presets, getRecordingPreferences } = lazy.Background();
+      const { presetName } = getRecordingPreferences(
+        "aboutprofiling",
+        Services.profiler.GetFeatures()
+      );
       const preset = presets[presetName];
       if (preset) {
         elements.presetDescription.style.display = "block";
         elements.presetCustom.style.display = "none";
         elements.presetDescription.textContent = preset.description;
         elements.presetsMenuList.value = presetName;
+        // This works around XULElement height issues.
+        const { height } = elements.presetDescription.getBoundingClientRect();
+        elements.presetDescription.style.height = `${height}px`;
       } else {
         elements.presetDescription.style.display = "none";
         elements.presetCustom.style.display = "block";
+        elements.presetsMenuList.value = "custom";
       }
-      const { PanelMultiView } = lazyPanelMultiView();
+      const { PanelMultiView } = lazy.PanelMultiView();
       // Update the description height sizing.
       PanelMultiView.forNode(elements.panelview).descriptionHeightWorkaround();
     },
 
-    updateProfilerActive() {
-      const { Services } = lazyServices();
-      const isProfilerActive = Services.profiler.IsActive();
-      elements.inactive.setAttribute(
-        "hidden",
-        isProfilerActive ? "true" : "false"
-      );
-      elements.active.setAttribute(
-        "hidden",
-        isProfilerActive ? "false" : "true"
-      );
-      elements.presetsMenuList.disabled = isProfilerActive;
+    updateProfilerState() {
+      const { Services } = lazy.Services();
+      /**
+       * Convert two boolean values into a "profilerState" enum.
+       *
+       * @type {"active" | "inactive" | "locked"}
+       */
+      let profilerState = Services.profiler.IsActive() ? "active" : "inactive";
+      if (!Services.profiler.CanProfile()) {
+        // In private browsing mode, the profiler is locked.
+        profilerState = "locked";
+      }
+
+      switch (profilerState) {
+        case "active":
+          elements.inactive.setAttribute("hidden", "true");
+          elements.active.setAttribute("hidden", "false");
+          elements.settingsSection.setAttribute("hidden", "true");
+          elements.contentRecording.setAttribute("hidden", "false");
+          elements.locked.setAttribute("hidden", "true");
+          break;
+        case "inactive":
+          elements.inactive.setAttribute("hidden", "false");
+          elements.active.setAttribute("hidden", "true");
+          elements.settingsSection.setAttribute("hidden", "false");
+          elements.contentRecording.setAttribute("hidden", "true");
+          elements.locked.setAttribute("hidden", "true");
+          break;
+        case "locked": {
+          elements.inactive.setAttribute("hidden", "true");
+          elements.active.setAttribute("hidden", "true");
+          elements.settingsSection.setAttribute("hidden", "true");
+          elements.contentRecording.setAttribute("hidden", "true");
+          elements.locked.setAttribute("hidden", "false");
+          // This works around XULElement height issues.
+          const { height } = elements.locked.getBoundingClientRect();
+          elements.locked.style.height = `${height}px`;
+          break;
+        }
+        default:
+          throw new Error("Unhandled profiler state.");
+      }
     },
 
     createPresetsList() {
@@ -169,8 +194,8 @@ function createViewControllers(state, elements) {
         // The presets were already built.
         return;
       }
-      const { Services } = lazyServices();
-      const { presets } = lazyBackground();
+      const { Services } = lazy.Services();
+      const { presets } = lazy.Background();
       const currentPreset = Services.prefs.getCharPref(
         "devtools.performance.recording.preset"
       );
@@ -194,6 +219,7 @@ function createViewControllers(state, elements) {
       if (!panel) {
         throw new Error("Could not find the panel from the panelview.");
       }
+      panel.removeAttribute("isinfoexpanded");
       /** @type {any} */ (panel).hidePopup();
     },
   };
@@ -224,12 +250,12 @@ function initializePopup(state, elements, view) {
     // the size of the container. It needs to wait a second before the bounding box
     // returns an actual size.
     view.updateInfoCollapse();
-    view.updateProfilerActive();
+    view.updateProfilerState();
     view.updatePresets();
 
     // XUL <description> elements don't vertically size correctly, this is
     // the workaround for it.
-    const { PanelMultiView } = lazyPanelMultiView();
+    const { PanelMultiView } = lazy.PanelMultiView();
     PanelMultiView.forNode(elements.panelview).descriptionHeightWorkaround();
 
     // Now wait for another rAF, and turn the animations back on.
@@ -254,7 +280,7 @@ function addPopupEventHandlers(state, elements, view) {
     startProfiler,
     stopProfiler,
     captureProfile,
-  } = lazyBackground();
+  } = lazy.Background();
 
   /**
    * Adds a handler that automatically is removed once the panel is hidden.
@@ -280,7 +306,7 @@ function addPopupEventHandlers(state, elements, view) {
   });
 
   addHandler(elements.startRecording, "click", () => {
-    startProfiler();
+    startProfiler("aboutprofiling");
   });
 
   addHandler(elements.stopAndDiscard, "click", () => {
@@ -288,7 +314,7 @@ function addPopupEventHandlers(state, elements, view) {
   });
 
   addHandler(elements.stopAndCapture, "click", () => {
-    captureProfile();
+    captureProfile("aboutprofiling");
     view.hidePopup();
   });
 
@@ -298,7 +324,11 @@ function addPopupEventHandlers(state, elements, view) {
   });
 
   addHandler(elements.presetsMenuList, "command", () => {
-    changePreset(elements.presetsMenuList.value);
+    changePreset(
+      "aboutprofiling",
+      elements.presetsMenuList.value,
+      Services.profiler.GetFeatures()
+    );
     view.updatePresets();
   });
 
@@ -321,14 +351,25 @@ function addPopupEventHandlers(state, elements, view) {
   });
 
   // Update the view when the profiler starts/stops.
-  const { Services } = lazyServices();
-  Services.obs.addObserver(view.updateProfilerActive, "profiler-started");
-  Services.obs.addObserver(view.updateProfilerActive, "profiler-stopped");
-  state.cleanup.push(() => {
-    Services.obs.removeObserver(view.updateProfilerActive, "profiler-started");
-    Services.obs.removeObserver(view.updateProfilerActive, "profiler-stopped");
-  });
+  const { Services } = lazy.Services();
+
+  // These are all events that can affect the current state of the profiler.
+  const events = [
+    "profiler-started",
+    "profiler-stopped",
+    "chrome-document-global-created", // This is potentially a private browser.
+    "last-pb-context-exited",
+  ];
+  for (const event of events) {
+    Services.obs.addObserver(view.updateProfilerState, event);
+    state.cleanup.push(() => {
+      Services.obs.removeObserver(view.updateProfilerState, event);
+    });
+  }
 }
+
+// Provide an exports object for the JSM to be properly read by TypeScript.
+/** @type {any} */ (this).module = {};
 
 module.exports = {
   selectElementsInPanelview,

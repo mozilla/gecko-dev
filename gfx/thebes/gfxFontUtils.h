@@ -44,7 +44,6 @@ class gfxSparseBitSet {
   enum { NO_BLOCK = 0xffff };  // index value indicating missing (empty) block
 
   struct Block {
-    Block(const Block& aBlock) { memcpy(mBits, aBlock.mBits, sizeof(mBits)); }
     explicit Block(unsigned char memsetValue = 0) {
       memset(mBits, memsetValue, BLOCK_SIZE);
     }
@@ -53,10 +52,6 @@ class gfxSparseBitSet {
 
  public:
   gfxSparseBitSet() = default;
-  gfxSparseBitSet(const gfxSparseBitSet& aBitset) {
-    mBlockIndex.AppendElements(aBitset.mBlockIndex);
-    mBlocks.AppendElements(aBitset.mBlocks);
-  }
 
   bool Equals(const gfxSparseBitSet* aOther) const {
     if (mBlockIndex.Length() != aOther->mBlockIndex.Length()) {
@@ -322,8 +317,8 @@ class gfxSparseBitSet {
  private:
   friend struct IPC::ParamTraits<gfxSparseBitSet>;
   friend struct IPC::ParamTraits<gfxSparseBitSet::Block>;
-  nsTArray<uint16_t> mBlockIndex;
-  nsTArray<Block> mBlocks;
+  CopyableTArray<uint16_t> mBlockIndex;
+  CopyableTArray<Block> mBlocks;
 };
 
 namespace IPC {
@@ -1159,11 +1154,12 @@ class gfxFontUtils {
 
   // for color layer from glyph using COLR and CPAL tables
   static bool ValidateColorGlyphs(hb_blob_t* aCOLR, hb_blob_t* aCPAL);
-  static bool GetColorGlyphLayers(hb_blob_t* aCOLR, hb_blob_t* aCPAL,
-                                  uint32_t aGlyphId,
-                                  const mozilla::gfx::Color& aDefaultColor,
-                                  nsTArray<uint16_t>& aGlyphs,
-                                  nsTArray<mozilla::gfx::Color>& aColors);
+  static bool GetColorGlyphLayers(
+      hb_blob_t* aCOLR, hb_blob_t* aCPAL, uint32_t aGlyphId,
+      const mozilla::gfx::DeviceColor& aDefaultColor,
+      nsTArray<uint16_t>& aGlyphs,
+      nsTArray<mozilla::gfx::DeviceColor>& aColors);
+  static bool HasColorLayersForGlyph(hb_blob_t* aCOLR, uint32_t aGlyphId);
 
   // Helper used to implement gfxFontEntry::GetVariation{Axes,Instances} for
   // platforms where the native font APIs don't provide the info we want
@@ -1208,6 +1204,16 @@ class gfxFontUtils {
   static const mozilla::Encoding* gISOFontNameCharsets[];
   static const mozilla::Encoding* gMSFontNameCharsets[];
 };
+
+// Factors used to weight the distances between the available and target font
+// properties during font-matching. These ensure that we respect the CSS-fonts
+// requirement that font-stretch >> font-style >> font-weight; and in addition,
+// a mismatch between the desired and actual glyph presentation (emoji vs text)
+// will take precedence over any of the style attributes.
+constexpr double kPresentationMismatch = 1.0e12;
+constexpr double kStretchFactor = 1.0e8;
+constexpr double kStyleFactor = 1.0e4;
+constexpr double kWeightFactor = 1.0e0;
 
 // style distance ==> [0,500]
 static inline double StyleDistance(const mozilla::SlantStyleRange& aRange,

@@ -55,6 +55,38 @@ sftk_MapCryptError(int error)
     }
     return CKR_DEVICE_ERROR;
 }
+
+/*
+ * functions which adjust the mapping based on different contexts
+ * (Decrypt or Verify).
+ */
+
+/* used by Decrypt and UnwrapKey (indirectly) and Decrypt message */
+CK_RV
+sftk_MapDecryptError(int error)
+{
+    switch (error) {
+        /* usually a padding error, or aead tag mismatch */
+        case SEC_ERROR_BAD_DATA:
+            return CKR_ENCRYPTED_DATA_INVALID;
+        default:
+            return sftk_MapCryptError(error);
+    }
+}
+
+/*
+ * return CKR_SIGNATURE_INVALID instead of CKR_DEVICE_ERROR by default for
+ * backward compatibilty.
+ */
+CK_RV
+sftk_MapVerifyError(int error)
+{
+    CK_RV crv = sftk_MapCryptError(error);
+    if (crv == CKR_DEVICE_ERROR)
+        crv = CKR_SIGNATURE_INVALID;
+    return crv;
+}
+
 /*
  * ******************** Attribute Utilities *******************************
  */
@@ -684,7 +716,6 @@ sftk_modifyType(CK_ATTRIBUTE_TYPE type, CK_OBJECT_CLASS inClass)
         case CKA_PUBLIC_EXPONENT:
         case CKA_PRIVATE_EXPONENT:
         case CKA_PRIME:
-        case CKA_SUBPRIME:
         case CKA_BASE:
         case CKA_PRIME_1:
         case CKA_PRIME_2:
@@ -694,7 +725,7 @@ sftk_modifyType(CK_ATTRIBUTE_TYPE type, CK_OBJECT_CLASS inClass)
         case CKA_VALUE_LEN:
         case CKA_ALWAYS_SENSITIVE:
         case CKA_NEVER_EXTRACTABLE:
-        case CKA_NETSCAPE_DB:
+        case CKA_NSS_DB:
             mtype = SFTK_NEVER;
             break;
 
@@ -733,6 +764,11 @@ sftk_modifyType(CK_ATTRIBUTE_TYPE type, CK_OBJECT_CLASS inClass)
         /* DEPENDS ON CLASS */
         case CKA_VALUE:
             mtype = (inClass == CKO_DATA) ? SFTK_ALWAYS : SFTK_NEVER;
+            break;
+
+        case CKA_SUBPRIME:
+            /* allow the CKA_SUBPRIME to be added to dh private keys */
+            mtype = (inClass == CKO_PRIVATE_KEY) ? SFTK_ALWAYS : SFTK_NEVER;
             break;
 
         case CKA_SUBJECT:
@@ -1310,7 +1346,7 @@ static const CK_ULONG ecPubKeyAttrsCount =
 
 static const CK_ATTRIBUTE_TYPE commonPrivKeyAttrs[] = {
     CKA_DECRYPT, CKA_SIGN, CKA_SIGN_RECOVER, CKA_UNWRAP, CKA_SUBJECT,
-    CKA_SENSITIVE, CKA_EXTRACTABLE, CKA_NETSCAPE_DB, CKA_PUBLIC_KEY_INFO
+    CKA_SENSITIVE, CKA_EXTRACTABLE, CKA_NSS_DB, CKA_PUBLIC_KEY_INFO
 };
 static const CK_ULONG commonPrivKeyAttrsCount =
     sizeof(commonPrivKeyAttrs) / sizeof(commonPrivKeyAttrs[0]);
@@ -1354,13 +1390,13 @@ static const CK_ULONG trustAttrsCount =
     sizeof(trustAttrs) / sizeof(trustAttrs[0]);
 
 static const CK_ATTRIBUTE_TYPE smimeAttrs[] = {
-    CKA_SUBJECT, CKA_NETSCAPE_EMAIL, CKA_NETSCAPE_SMIME_TIMESTAMP, CKA_VALUE
+    CKA_SUBJECT, CKA_NSS_EMAIL, CKA_NSS_SMIME_TIMESTAMP, CKA_VALUE
 };
 static const CK_ULONG smimeAttrsCount =
     sizeof(smimeAttrs) / sizeof(smimeAttrs[0]);
 
 static const CK_ATTRIBUTE_TYPE crlAttrs[] = {
-    CKA_SUBJECT, CKA_VALUE, CKA_NETSCAPE_URL, CKA_NETSCAPE_KRL
+    CKA_SUBJECT, CKA_VALUE, CKA_NSS_URL, CKA_NSS_KRL
 };
 static const CK_ULONG crlAttrsCount =
     sizeof(crlAttrs) / sizeof(crlAttrs[0]);
@@ -1554,15 +1590,15 @@ sftk_CopyTokenObject(SFTKObject *destObject, SFTKObject *srcObject)
             crv = stfk_CopyTokenAttributes(destObject, src_to, certAttrs,
                                            certAttrsCount);
             break;
-        case CKO_NETSCAPE_TRUST:
+        case CKO_NSS_TRUST:
             crv = stfk_CopyTokenAttributes(destObject, src_to, trustAttrs,
                                            trustAttrsCount);
             break;
-        case CKO_NETSCAPE_SMIME:
+        case CKO_NSS_SMIME:
             crv = stfk_CopyTokenAttributes(destObject, src_to, smimeAttrs,
                                            smimeAttrsCount);
             break;
-        case CKO_NETSCAPE_CRL:
+        case CKO_NSS_CRL:
             crv = stfk_CopyTokenAttributes(destObject, src_to, crlAttrs,
                                            crlAttrsCount);
             break;
@@ -2019,7 +2055,7 @@ unsigned int
 sftk_CKRVToMask(CK_RV rv)
 {
     PR_STATIC_ASSERT(CKR_OK == 0);
-    return ~CT_NOT_ZERO(rv);
+    return ~PORT_CT_NOT_ZERO(rv);
 }
 
 /* sftk_CheckCBCPadding checks, in constant time, the padding validity and
@@ -2033,18 +2069,18 @@ sftk_CheckCBCPadding(CK_BYTE_PTR pBuf, unsigned int bufLen,
     unsigned int padSize = (unsigned int)pBuf[bufLen - 1];
 
     /* If padSize <= blockSize, set goodPad to all-1s and all-0s otherwise.*/
-    unsigned int goodPad = CT_DUPLICATE_MSB_TO_ALL(~(blockSize - padSize));
+    unsigned int goodPad = PORT_CT_DUPLICATE_MSB_TO_ALL(~(blockSize - padSize));
     /* padSize should not be 0 */
-    goodPad &= CT_NOT_ZERO(padSize);
+    goodPad &= PORT_CT_NOT_ZERO(padSize);
 
     unsigned int i;
     for (i = 0; i < blockSize; i++) {
         /* If i < padSize, set loopMask to all-1s and all-0s otherwise.*/
-        unsigned int loopMask = CT_DUPLICATE_MSB_TO_ALL(~(padSize - 1 - i));
+        unsigned int loopMask = PORT_CT_DUPLICATE_MSB_TO_ALL(~(padSize - 1 - i));
         /* Get the padding value (should be padSize) from buffer */
         unsigned int padVal = pBuf[bufLen - 1 - i];
         /* Update goodPad only if i < padSize */
-        goodPad &= CT_SEL(loopMask, ~(padVal ^ padSize), goodPad);
+        goodPad &= PORT_CT_SEL(loopMask, ~(padVal ^ padSize), goodPad);
     }
 
     /* If any of the final padding bytes had the wrong value, one or more
@@ -2054,12 +2090,12 @@ sftk_CheckCBCPadding(CK_BYTE_PTR pBuf, unsigned int bufLen,
     goodPad &= goodPad >> 2;
     goodPad &= goodPad >> 1;
     goodPad <<= sizeof(goodPad) * 8 - 1;
-    goodPad = CT_DUPLICATE_MSB_TO_ALL(goodPad);
+    goodPad = PORT_CT_DUPLICATE_MSB_TO_ALL(goodPad);
 
     /* Set outPadSize to padSize or 0 */
-    *outPadSize = CT_SEL(goodPad, padSize, 0);
+    *outPadSize = PORT_CT_SEL(goodPad, padSize, 0);
     /* Return OK if the pad is valid */
-    return CT_SEL(goodPad, CKR_OK, CKR_ENCRYPTED_DATA_INVALID);
+    return PORT_CT_SEL(goodPad, CKR_OK, CKR_ENCRYPTED_DATA_INVALID);
 }
 
 void

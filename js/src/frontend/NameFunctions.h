@@ -15,8 +15,10 @@ namespace js {
 namespace frontend {
 
 class ParseNode;
+class ParserAtomsTable;
 
-MOZ_MUST_USE bool NameFunctions(JSContext* cx, ParseNode* pn);
+MOZ_MUST_USE bool NameFunctions(JSContext* cx, ParserAtomsTable& parserAtoms,
+                                ParseNode* pn);
 
 } /* namespace frontend */
 } /* namespace js */

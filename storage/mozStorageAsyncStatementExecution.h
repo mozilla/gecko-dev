@@ -9,11 +9,10 @@
 
 #include "nscore.h"
 #include "nsTArray.h"
-#include "nsAutoPtr.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Attributes.h"
-#include "nsIRunnable.h"
+#include "nsThreadUtils.h"
 
 #include "SQLiteMutex.h"
 #include "mozIStoragePendingStatement.h"
@@ -28,11 +27,14 @@ namespace storage {
 class Connection;
 class ResultSet;
 class StatementData;
+}  // namespace storage
+}  // namespace mozilla
 
-class AsyncExecuteStatements final : public nsIRunnable,
+namespace mozilla::storage {
+class AsyncExecuteStatements final : public Runnable,
                                      public mozIStoragePendingStatement {
  public:
-  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIRUNNABLE
   NS_DECL_MOZISTORAGEPENDINGSTATEMENT
 
@@ -64,7 +66,7 @@ class AsyncExecuteStatements final : public nsIRunnable,
    * @param _stmt
    *        The handle to control the execution of the statements.
    */
-  static nsresult execute(StatementDataArray& aStatements,
+  static nsresult execute(StatementDataArray&& aStatements,
                           Connection* aConnection, sqlite3* aNativeConnection,
                           mozIStorageStatementCallback* aCallback,
                           mozIStoragePendingStatement** _stmt);
@@ -89,7 +91,7 @@ class AsyncExecuteStatements final : public nsIRunnable,
   nsresult notifyResultsOnCallingThread(ResultSet* aResultSet);
 
  private:
-  AsyncExecuteStatements(StatementDataArray& aStatements,
+  AsyncExecuteStatements(StatementDataArray&& aStatements,
                          Connection* aConnection, sqlite3* aNativeConnection,
                          mozIStorageStatementCallback* aCallback);
   ~AsyncExecuteStatements();
@@ -117,26 +119,25 @@ class AsyncExecuteStatements final : public nsIRunnable,
    *
    * @pre mMutex is not held
    *
-   * @param aStatement
-   *        The statement to execute and then process.
+   * @param aData
+   *        The StatementData to execute, and then process.
    * @param aLastStatement
    *        Indicates if this is the last statement or not.  If it is, we have
    *        to set the proper state.
    * @returns true if we should continue to process statements, false otherwise.
    */
-  bool executeAndProcessStatement(sqlite3_stmt* aStatement,
-                                  bool aLastStatement);
+  bool executeAndProcessStatement(StatementData& aData, bool aLastStatement);
 
   /**
    * Executes a statement to completion, properly handling any error conditions.
    *
    * @pre mMutex is not held
    *
-   * @param aStatement
-   *        The statement to execute to completion.
+   * @param aData
+   *        The StatementData to execute to completion.
    * @returns true if results were obtained, false otherwise.
    */
-  bool executeStatement(sqlite3_stmt* aStatement);
+  bool executeStatement(StatementData& aData);
 
   /**
    * Builds a result set up with a row from a given statement.  If we meet the
@@ -235,16 +236,8 @@ class AsyncExecuteStatements final : public nsIRunnable,
    * about the error message, the user gets reliable error messages.
    */
   SQLiteMutex& mDBMutex;
-
-  /**
-   * The instant at which the request was started.
-   *
-   * Used by telemetry.
-   */
-  TimeStamp mRequestStartDate;
 };
 
-}  // namespace storage
-}  // namespace mozilla
+}  // namespace mozilla::storage
 
 #endif  // mozStorageAsyncStatementExecution_h

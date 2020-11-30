@@ -345,19 +345,8 @@ class MOZ_STACK_CLASS LanguageTag final {
     privateuse_ = std::move(privateuse);
   }
 
- private:
-  enum class DuplicateVariants { Reject, Accept };
-
-  bool canonicalizeBaseName(JSContext* cx, DuplicateVariants duplicateVariants);
-
- public:
-  /**
-   * Canonicalize the base-name subtags, that means the language, script,
-   * region, and variant subtags.
-   */
-  bool canonicalizeBaseName(JSContext* cx) {
-    return canonicalizeBaseName(cx, DuplicateVariants::Reject);
-  }
+  /** Canonicalize the base-name (language, script, region, variant) subtags. */
+  bool canonicalizeBaseName(JSContext* cx);
 
   /**
    * Canonicalize all extension subtags.
@@ -479,10 +468,10 @@ class MOZ_STACK_CLASS LanguageTagParser final {
     size_t length = tok.length();
     if (locale_.is<const JS::Latin1Char*>()) {
       using T = const JS::Latin1Char;
-      subtag.set(mozilla::MakeSpan(locale_.as<T*>() + index, length));
+      subtag.set(mozilla::Span(locale_.as<T*>() + index, length));
     } else {
       using T = const char16_t;
-      subtag.set(mozilla::MakeSpan(locale_.as<T*>() + index, length));
+      subtag.set(mozilla::Span(locale_.as<T*>() + index, length));
     }
   }
 
@@ -703,6 +692,14 @@ class MOZ_STACK_CLASS LanguageTagParser final {
   // variants) of a language tag. Ignores any trailing characters.
   static bool parseBaseName(JSContext* cx, mozilla::Span<const char> locale,
                             LanguageTag& tag);
+
+  // Parse the input string as the base-name parts (language, script, region,
+  // variants) of a language tag. Returns Ok(true) if the input could be
+  // completely parsed, Ok(false) if the input couldn't be parsed, or Err() in
+  // case of internal error.
+  static JS::Result<bool> tryParseBaseName(JSContext* cx,
+                                           JSLinearString* locale,
+                                           LanguageTag& tag);
 
   // Return true iff |extension| can be parsed as a Unicode extension subtag.
   static bool canParseUnicodeExtension(mozilla::Span<const char> extension);

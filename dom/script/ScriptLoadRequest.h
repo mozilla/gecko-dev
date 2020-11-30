@@ -7,17 +7,21 @@
 #ifndef mozilla_dom_ScriptLoadRequest_h
 #define mozilla_dom_ScriptLoadRequest_h
 
+#include "mozilla/Atomics.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/CORSMode.h"
+#include "mozilla/dom/Element.h"
 #include "mozilla/dom/SRIMetadata.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/PreloaderBase.h"
 #include "mozilla/Utf8.h"  // mozilla::Utf8Unit
 #include "mozilla/Variant.h"
 #include "mozilla/Vector.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIScriptElement.h"
+#include "ScriptKind.h"
 
 class nsICacheInfoChannel;
 
@@ -26,8 +30,6 @@ namespace dom {
 
 class ModuleLoadRequest;
 class ScriptLoadRequestList;
-
-enum class ScriptKind { eClassic, eModule };
 
 /*
  * Some options used when fetching script resources. This only loosely
@@ -45,14 +47,13 @@ class ScriptFetchOptions {
   NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(ScriptFetchOptions)
 
   ScriptFetchOptions(mozilla::CORSMode aCORSMode,
-                     enum ReferrerPolicy aReferrerPolicy,
-                     nsIScriptElement* aElement,
+                     enum ReferrerPolicy aReferrerPolicy, Element* aElement,
                      nsIPrincipal* aTriggeringPrincipal);
 
   const mozilla::CORSMode mCORSMode;
   const enum ReferrerPolicy mReferrerPolicy;
   bool mIsPreload;
-  nsCOMPtr<nsIScriptElement> mElement;
+  nsCOMPtr<Element> mElement;
   nsCOMPtr<nsIPrincipal> mTriggeringPrincipal;
 };
 
@@ -61,7 +62,7 @@ class ScriptFetchOptions {
  */
 
 class ScriptLoadRequest
-    : public nsISupports,
+    : public PreloaderBase,
       private mozilla::LinkedListElement<ScriptLoadRequest> {
   typedef LinkedListElement<ScriptLoadRequest> super;
 
@@ -80,21 +81,30 @@ class ScriptLoadRequest
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(ScriptLoadRequest)
 
+  // PreloaderBase
+  static void PrioritizeAsPreload(nsIChannel* aChannel);
+  virtual void PrioritizeAsPreload() override;
+
   bool IsModuleRequest() const { return mKind == ScriptKind::eModule; }
 
   ModuleLoadRequest* AsModuleRequest();
 
+#ifdef MOZ_GECKO_PROFILER
+  TimeStamp mOffThreadParseStartTime;
+  TimeStamp mOffThreadParseStopTime;
+#endif
+
   void FireScriptAvailable(nsresult aResult) {
     bool isInlineClassicScript = mIsInline && !IsModuleRequest();
-    Element()->ScriptAvailable(aResult, Element(), isInlineClassicScript, mURI,
-                               mLineNo);
+    GetScriptElement()->ScriptAvailable(aResult, GetScriptElement(),
+                                        isInlineClassicScript, mURI, mLineNo);
   }
   void FireScriptEvaluated(nsresult aResult) {
-    Element()->ScriptEvaluated(aResult, Element(), mIsInline);
+    GetScriptElement()->ScriptEvaluated(aResult, GetScriptElement(), mIsInline);
   }
 
   bool IsPreload() const {
-    MOZ_ASSERT_IF(mFetchOptions->mIsPreload, !Element());
+    MOZ_ASSERT_IF(mFetchOptions->mIsPreload, !GetScriptElement());
     return mFetchOptions->mIsPreload;
   }
 
@@ -112,6 +122,19 @@ class ScriptLoadRequest
   void SetIsTracking() {
     MOZ_ASSERT(!mIsTracking);
     mIsTracking = true;
+  }
+
+  void BlockOnload(Document* aDocument) {
+    MOZ_ASSERT(!mLoadBlockedDocument);
+    aDocument->BlockOnload();
+    mLoadBlockedDocument = aDocument;
+  }
+
+  void MaybeUnblockOnload() {
+    if (mLoadBlockedDocument) {
+      mLoadBlockedDocument->UnblockOnload(false);
+      mLoadBlockedDocument = nullptr;
+    }
   }
 
   enum class Progress : uint8_t {
@@ -145,13 +168,7 @@ class ScriptLoadRequest
 
   bool IsUnknownDataType() const { return mDataType == DataType::eUnknown; }
   bool IsTextSource() const { return mDataType == DataType::eTextSource; }
-  bool IsBinASTSource() const {
-#ifdef JS_BUILD_BINAST
-    return mDataType == DataType::eBinASTSource;
-#else
-    return false;
-#endif
-  }
+  bool IsBinASTSource() const { return false; }
   bool IsSource() const { return IsTextSource() || IsBinASTSource(); }
   bool IsBytecode() const { return mDataType == DataType::eBytecode; }
 
@@ -238,14 +255,18 @@ class ScriptLoadRequest
   enum ReferrerPolicy ReferrerPolicy() const {
     return mFetchOptions->mReferrerPolicy;
   }
-  nsIScriptElement* Element() const { return mFetchOptions->mElement; }
+  nsIScriptElement* GetScriptElement() const {
+    nsCOMPtr<nsIScriptElement> scriptElement =
+        do_QueryInterface(mFetchOptions->mElement);
+    return scriptElement;
+  }
   nsIPrincipal* TriggeringPrincipal() const {
     return mFetchOptions->mTriggeringPrincipal;
   }
 
   // Make this request a preload (speculative) request.
   void SetIsPreloadRequest() {
-    MOZ_ASSERT(!Element());
+    MOZ_ASSERT(!GetScriptElement());
     MOZ_ASSERT(!IsPreload());
     mFetchOptions->mIsPreload = true;
   }
@@ -253,14 +274,14 @@ class ScriptLoadRequest
   // Make a preload request into an actual load request for the given element.
   void SetIsLoadRequest(nsIScriptElement* aElement) {
     MOZ_ASSERT(aElement);
-    MOZ_ASSERT(!Element());
+    MOZ_ASSERT(!GetScriptElement());
     MOZ_ASSERT(IsPreload());
-    mFetchOptions->mElement = aElement;
+    mFetchOptions->mElement = do_QueryInterface(aElement);
     mFetchOptions->mIsPreload = false;
   }
 
   FromParser GetParserCreated() const {
-    nsIScriptElement* element = Element();
+    nsIScriptElement* element = GetScriptElement();
     if (!element) {
       return NOT_FROM_PARSER;
     }
@@ -287,7 +308,6 @@ class ScriptLoadRequest
   bool mScriptFromHead;    // Synchronous head script block loading of other non
                            // js/css content.
   bool mIsInline;          // Is the script inline or loaded?
-  bool mHasSourceMapURL;   // Does the HTTP header have a source map url?
   bool mInDeferList;       // True if we live in mDeferRequests.
   bool mInAsyncList;       // True if we live in mLoadingAsyncRequests or
                            // mLoadedAsyncRequests.
@@ -303,7 +323,11 @@ class ScriptLoadRequest
   RefPtr<ScriptFetchOptions> mFetchOptions;
 
   JS::OffThreadToken* mOffThreadToken;  // Off-thread parsing token.
-  nsString mSourceMapURL;  // Holds source map url for loaded scripts
+  Maybe<nsString> mSourceMapURL;  // Holds source map url for loaded scripts
+
+  Atomic<Runnable*> mRunnable;  // Runnable created when dispatching off thread
+                                // compile. Tracked here so that it can be
+                                // properly released during cancellation.
 
   // Holds the top-level JSScript that corresponds to the current source, once
   // it is parsed, and planned to be saved in the bytecode cache.
@@ -330,6 +354,9 @@ class ScriptLoadRequest
   int32_t mLineNo;
   const SRIMetadata mIntegrity;
   const nsCOMPtr<nsIURI> mReferrer;
+
+  // Non-null if there is a document that this request is blocking from loading.
+  RefPtr<Document> mLoadBlockedDocument;
 
   // Holds the Cache information, which is used to register the bytecode
   // on the cache entry, such that we can load it the next time.

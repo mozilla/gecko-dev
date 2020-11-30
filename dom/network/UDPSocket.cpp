@@ -62,7 +62,7 @@ already_AddRefed<UDPSocket> UDPSocket::Constructor(const GlobalObject& aGlobal,
 
   nsCString remoteAddress;
   if (aOptions.mRemoteAddress.WasPassed()) {
-    remoteAddress = NS_ConvertUTF16toUTF8(aOptions.mRemoteAddress.Value());
+    CopyUTF16toUTF8(aOptions.mRemoteAddress.Value(), remoteAddress);
   } else {
     remoteAddress.SetIsVoid(true);
   }
@@ -219,7 +219,7 @@ void UDPSocket::JoinMulticastGroup(const nsAString& aMulticastGroupAddress,
   if (mSocket) {
     MOZ_ASSERT(!mSocketChild);
 
-    aRv = mSocket->JoinMulticast(address, EmptyCString());
+    aRv = mSocket->JoinMulticast(address, ""_ns);
     NS_WARNING_ASSERTION(!aRv.Failed(), "JoinMulticast failed");
 
     return;
@@ -227,7 +227,7 @@ void UDPSocket::JoinMulticastGroup(const nsAString& aMulticastGroupAddress,
 
   MOZ_ASSERT(mSocketChild);
 
-  mSocketChild->JoinMulticast(address, EmptyCString());
+  mSocketChild->JoinMulticast(address, ""_ns);
 }
 
 void UDPSocket::LeaveMulticastGroup(const nsAString& aMulticastGroupAddress,
@@ -250,14 +250,14 @@ void UDPSocket::LeaveMulticastGroup(const nsAString& aMulticastGroupAddress,
   if (mSocket) {
     MOZ_ASSERT(!mSocketChild);
 
-    aRv = mSocket->LeaveMulticast(address, EmptyCString());
+    aRv = mSocket->LeaveMulticast(address, ""_ns);
     NS_WARNING_ASSERTION(!aRv.Failed(), "mSocket->LeaveMulticast failed");
     return;
   }
 
   MOZ_ASSERT(mSocketChild);
 
-  mSocketChild->LeaveMulticast(address, EmptyCString());
+  mSocketChild->LeaveMulticast(address, ""_ns);
 }
 
 nsresult UDPSocket::DoPendingMcastCommand() {
@@ -303,7 +303,7 @@ bool UDPSocket::Send(const StringOrBlobOrArrayBufferOrArrayBufferView& aData,
   // arguments, throw InvalidAccessError.
   nsCString remoteAddress;
   if (aRemoteAddress.WasPassed()) {
-    remoteAddress = NS_ConvertUTF16toUTF8(aRemoteAddress.Value());
+    CopyUTF16toUTF8(aRemoteAddress.Value(), remoteAddress);
     UDPSOCKET_LOG(("%s: Send to %s", __FUNCTION__, remoteAddress.get()));
   } else if (!mRemoteAddress.IsVoid()) {
     remoteAddress = mRemoteAddress;
@@ -406,8 +406,7 @@ nsresult UDPSocket::InitLocal(const nsAString& aLocalAddress,
     UDPSOCKET_LOG(("%s: %s:%u", __FUNCTION__,
                    NS_ConvertUTF16toUTF8(aLocalAddress).get(), aLocalPort));
 
-    mozilla::net::NetAddr addr;
-    PRNetAddrToNetAddr(&prAddr, &addr);
+    mozilla::net::NetAddr addr(&prAddr);
     rv = sock->InitWithAddress(&addr, principal, mAddressReuse,
                                /* optionalArgc = */ 1);
   }
@@ -434,7 +433,7 @@ nsresult UDPSocket::InitLocal(const nsAString& aLocalAddress,
   if (NS_FAILED(rv)) {
     return rv;
   }
-  mLocalAddress = NS_ConvertUTF8toUTF16(localAddress);
+  CopyUTF8toUTF16(localAddress, mLocalAddress);
 
   uint16_t localPort;
   rv = localAddr->GetPort(&localPort);
@@ -479,7 +478,7 @@ nsresult UDPSocket::InitRemote(const nsAString& aLocalAddress,
     return NS_ERROR_FAILURE;
   }
 
-  nsCOMPtr<nsIEventTarget> target;
+  nsCOMPtr<nsISerialEventTarget> target;
   if (nsCOMPtr<nsIGlobalObject> global = GetOwnerGlobal()) {
     target = global->EventTargetFor(TaskCategory::Other);
   }
@@ -599,12 +598,12 @@ nsresult UDPSocket::DispatchReceivedData(const nsACString& aRemoteAddress,
 
   // Create DOM event
   RootedDictionary<UDPMessageEventInit> init(cx);
-  init.mRemoteAddress = NS_ConvertUTF8toUTF16(aRemoteAddress);
+  CopyUTF8toUTF16(aRemoteAddress, init.mRemoteAddress);
   init.mRemotePort = aRemotePort;
   init.mData = jsData;
 
   RefPtr<UDPMessageEvent> udpEvent =
-      UDPMessageEvent::Constructor(this, NS_LITERAL_STRING("message"), init);
+      UDPMessageEvent::Constructor(this, u"message"_ns, init);
 
   if (NS_WARN_IF(!udpEvent)) {
     return NS_ERROR_FAILURE;
@@ -686,7 +685,7 @@ UDPSocket::CallListenerOpened() {
   MOZ_ASSERT(mSocketChild);
 
   // Get real local address and local port
-  mLocalAddress = NS_ConvertUTF8toUTF16(mSocketChild->LocalAddress());
+  CopyUTF8toUTF16(mSocketChild->LocalAddress(), mLocalAddress);
 
   mLocalPort.SetValue(mSocketChild->LocalPort());
 

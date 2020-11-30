@@ -18,7 +18,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   TelemetryController: "resource://gre/modules/TelemetryController.jsm",
   TelemetryStorage: "resource://gre/modules/TelemetryStorage.jsm",
   UITelemetry: "resource://gre/modules/UITelemetry.jsm",
-  GCTelemetry: "resource://gre/modules/GCTelemetry.jsm",
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.jsm",
   TelemetryReportingPolicy:
     "resource://gre/modules/TelemetryReportingPolicy.jsm",
@@ -321,6 +320,11 @@ var Impl = {
   // The activity state for the user. If false, don't count the next
   // active tick. Otherwise, increment the active ticks as usual.
   _isUserActive: true,
+  // The activity state for the user. Inits to false since, even though
+  // launching Firefox is user activity, the idle manager always starts with
+  // user-interaction-active.
+  // Used to evaluate FOG user engagement.
+  _fogUserActive: false,
   _startupIO: {},
   // The previous build ID, if this is the first run with a new build.
   // Null if this is the first run, or the previous build ID is unknown.
@@ -733,22 +737,6 @@ var Impl = {
       ) {
         payloadObj.slowSQLStartup = this._slowSQLStartup;
       }
-
-      if (!this._isClassicReason(reason)) {
-        payloadObj.processes.parent.gc = protect(() =>
-          GCTelemetry.entries("main", clearSubsession)
-        );
-        payloadObj.processes.content.gc = protect(() =>
-          GCTelemetry.entries("content", clearSubsession)
-        );
-      }
-
-      // Adding captured stacks to the payload only if any exist and clearing
-      // captures for this sub-session.
-      let stacks = protect(() => Telemetry.snapshotCapturedStacks(true));
-      if (stacks && "captures" in stacks && stacks.captures.length) {
-        payloadObj.processes.parent.capturedStacks = stacks;
-      }
     }
 
     return payloadObj;
@@ -852,6 +840,9 @@ var Impl = {
     // Attach the active-ticks related observers.
     this.addObserver("user-interaction-active");
     this.addObserver("user-interaction-inactive");
+    // For FOG Engagement Evaluation, attach window observers.
+    this.addObserver("window-raised");
+    this.addObserver("window-lowered");
   },
 
   /**
@@ -1143,10 +1134,45 @@ var Impl = {
   },
 
   /**
+   * Instruments window raises and lowers during a Telemetry Session.
+   */
+  _onWindowChange(aWindow, aRaised) {
+    Telemetry.scalarSet("fog.eval.window_raised", aRaised);
+    let error = false;
+    if (aRaised) {
+      error = !TelemetryStopwatch.start("FOG_EVAL_WINDOW_RAISED_S", aWindow, {
+        inSeconds: true,
+      });
+    } else if (
+      this._fogFirstWindowChange !== false &&
+      !TelemetryStopwatch.running("FOG_EVAL_WINDOW_RAISED_S", aWindow)
+    ) {
+      // First time the user went inactive in this session.
+      // Time from the beginning of this subsession.
+      let histogram = Telemetry.getHistogramById("FOG_EVAL_WINDOW_RAISED_S");
+      histogram.add(
+        Math.floor(
+          (Policy.monotonicNow() - this._subsessionStartTimeMonotonic) / 1000
+        )
+      );
+    } else {
+      error = !TelemetryStopwatch.finish("FOG_EVAL_WINDOW_RAISED_S", aWindow);
+    }
+    if (error) {
+      Telemetry.scalarAdd("fog.eval.window_raised_error", 1);
+    }
+    this._fogFirstWindowChange = false;
+  },
+
+  /**
    * Tracks the number of "ticks" the user was active in.
    */
   _onActiveTick(aUserActive) {
     const needsUpdate = aUserActive && this._isUserActive;
+    const userActivityChanged =
+      (aUserActive && !this._fogUserActive) ||
+      (!aUserActive && this._fogUserActive);
+    this._fogUserActive = aUserActive;
     this._isUserActive = aUserActive;
 
     // Don't count the first active tick after we get out of
@@ -1154,6 +1180,41 @@ var Impl = {
     if (needsUpdate) {
       this._sessionActiveTicks++;
       Telemetry.scalarAdd("browser.engagement.active_ticks", 1);
+    }
+
+    if (userActivityChanged) {
+      // FOG User Engagement Evaluation.
+      Telemetry.scalarSet("fog.eval.user_active", aUserActive);
+      let error = false;
+      let inactiveError = false;
+      if (aUserActive) {
+        // The first change is from inactive to active, so this'll always
+        // error unless we skip that one.
+        if (this._fogFirstActivityChange === false) {
+          inactiveError = !TelemetryStopwatch.finish(
+            "FOG_EVAL_USER_INACTIVE_S"
+          );
+        }
+        error = !TelemetryStopwatch.start("FOG_EVAL_USER_ACTIVE_S", null, {
+          inSeconds: true,
+        });
+      } else {
+        inactiveError = !TelemetryStopwatch.start(
+          "FOG_EVAL_USER_INACTIVE_S",
+          null,
+          {
+            inSeconds: true,
+          }
+        );
+        error = !TelemetryStopwatch.finish("FOG_EVAL_USER_ACTIVE_S");
+      }
+      if (error) {
+        Telemetry.scalarAdd("fog.eval.user_active_error", 1);
+      }
+      if (inactiveError) {
+        Telemetry.scalarAdd("fog.eval.user_inactive_error", 1);
+      }
+      this._fogFirstActivityChange = false;
     }
   },
 
@@ -1230,6 +1291,12 @@ var Impl = {
         break;
       case "user-interaction-inactive":
         this._onActiveTick(false);
+        break;
+      case "window-raised":
+        this._onWindowChange(aSubject, true);
+        break;
+      case "window-lowered":
+        this._onWindowChange(aSubject, false);
         break;
     }
     return undefined;

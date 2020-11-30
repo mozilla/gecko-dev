@@ -118,10 +118,14 @@
 #       ifndef _XPG4_2
 #           define _XPG4_2
 #       endif
+#   elif U_PLATFORM == U_PF_ANDROID
+#       include <sys/system_properties.h>
+#       include <dlfcn.h>
 #   endif
 #elif U_PLATFORM == U_PF_QNX
 #   include <sys/neutrino.h>
 #endif
+
 
 /*
  * Only include langinfo.h if we have a way to get the codeset. If we later
@@ -1052,9 +1056,53 @@ static char* searchForTZFile(const char* path, DefaultTZInfo* tzInfo) {
 }
 #endif
 
+#if U_PLATFORM == U_PF_ANDROID
+typedef int(system_property_read_callback)(const prop_info* info,
+                                           void (*callback)(void* cookie,
+                                                            const char* name,
+                                                            const char* value,
+                                                            uint32_t serial),
+                                           void* cookie);
+typedef int(system_property_get)(const char*, char*);
+
+static char gAndroidTimeZone[PROP_VALUE_MAX] = { '\0' };
+
+static void u_property_read(void* cookie, const char* name, const char* value,
+                            uint32_t serial) {
+    uprv_strcpy((char* )cookie, value);
+}
+#endif
+
 U_CAPI void U_EXPORT2
 uprv_tzname_clear_cache()
 {
+#if U_PLATFORM == U_PF_ANDROID
+    /* Android's timezone is stored in system property. */
+    gAndroidTimeZone[0] = '\0';
+    void* libc = dlopen("libc.so", RTLD_NOLOAD);
+    if (libc) {
+        /* Android API 26+ has new API to get system property and old API
+         * (__system_property_get) is deprecated */
+        system_property_read_callback* property_read_callback =
+            (system_property_read_callback*)dlsym(
+                libc, "__system_property_read_callback");
+        if (property_read_callback) {
+            const prop_info* info =
+                __system_property_find("persist.sys.timezone");
+            if (info) {
+                property_read_callback(info, &u_property_read, gAndroidTimeZone);
+            }
+        } else {
+            system_property_get* property_get =
+                (system_property_get*)dlsym(libc, "__system_property_get");
+            if (property_get) {
+                property_get("persist.sys.timezone", gAndroidTimeZone);
+            }
+        }
+        dlclose(libc);
+    }
+#endif
+
 #if defined(CHECK_LOCALTIME_LINK) && !defined(DEBUG_SKIP_LOCALTIME_LINK)
     gTimeZoneBufferPtr = NULL;
 #endif
@@ -1093,7 +1141,11 @@ uprv_tzname(int n)
 
 /* This code can be temporarily disabled to test tzname resolution later on. */
 #ifndef DEBUG_TZNAME
+#if U_PLATFORM == U_PF_ANDROID
+    tzid = gAndroidTimeZone;
+#else
     tzid = getenv("TZ");
+#endif
     if (tzid != NULL && isValidOlsonID(tzid)
 #if U_PLATFORM == U_PF_SOLARIS
     /* When TZ equals localtime on Solaris, check the /etc/localtime file. */
@@ -1468,6 +1520,11 @@ static void U_CALLCONV TimeZoneDataDirInitFn(UErrorCode &status) {
 
     const char *dir = "";
 
+#if defined(ICU_TIMEZONE_FILES_DIR_PREFIX_ENV_VAR)
+    char timezonefilesdir_path_buffer[PATH_MAX];
+    const char *prefix = getenv(ICU_TIMEZONE_FILES_DIR_PREFIX_ENV_VAR);
+#endif
+
 #if U_PLATFORM_HAS_WINUWP_API == 1
 // The UWP version does not support the environment variable setting.
 
@@ -1493,6 +1550,13 @@ static void U_CALLCONV TimeZoneDataDirInitFn(UErrorCode &status) {
     if (dir == NULL) {
         dir = "";
     }
+
+#if defined(ICU_TIMEZONE_FILES_DIR_PREFIX_ENV_VAR)
+    if (prefix != NULL) {
+        snprintf(timezonefilesdir_path_buffer, PATH_MAX, "%s%s", prefix, dir);
+        dir = timezonefilesdir_path_buffer;
+    }
+#endif
 
     setTimeZoneFilesDir(dir, status);
 }

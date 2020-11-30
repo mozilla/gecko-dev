@@ -7,7 +7,7 @@
 /* UI Tour */
 
 #UITourHighlightContainer {
-  -moz-appearance: none;
+  appearance: none;
   -moz-window-shadow: none;
   border: none;
   background-color: transparent;
@@ -55,8 +55,7 @@
 }
 
 #UITourTooltipDescription {
-  margin-inline-start: 0;
-  margin-inline-end: 0;
+  margin-inline: 0;
   font-size: 1.15rem;
   line-height: 1.8rem;
   margin-bottom: 0; /* Override global.css */
@@ -64,7 +63,7 @@
 
 #UITourTooltipClose {
   position: relative;
-  -moz-appearance: none;
+  appearance: none;
   border: none;
   background-color: transparent;
   min-width: 0;
@@ -111,7 +110,7 @@
 }
 
 #UITourTooltipButtons > button:not(.button-link) {
-  -moz-appearance: none;
+  appearance: none;
   background-color: rgb(251,251,251);
   border-radius: 3px;
   border: 1px solid;
@@ -130,21 +129,19 @@
 
 #UITourTooltipButtons > label,
 #UITourTooltipButtons > button.button-link:not(:hover) {
-  -moz-appearance: none;
+  appearance: none;
   background: transparent;
   border: none;
   box-shadow: none;
   color: var(--panel-disabled-color);
-  padding-left: 10px;
-  padding-right: 10px;
+  padding-inline: 10px;
 }
 
 /* The primary button gets the same color as the customize button. */
 #UITourTooltipButtons > button.button-primary {
   background-color: rgb(116,191,67);
   color: white;
-  padding-left: 30px;
-  padding-right: 30px;
+  padding-inline: 30px;
 }
 
 #UITourTooltipButtons > button.button-primary:not(:active):hover {

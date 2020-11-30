@@ -9,7 +9,6 @@ job-defaults:
         max-run-time: 1800
     run-on-projects:
         - trunk
-        - try
     run:
         resources:
             - 'taskcluster/scripts/misc/build-gn-common.sh'
@@ -32,7 +31,7 @@ macosx64-gn:
         symbol: TM(gn)
     worker:
         env:
-            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/macosx64/cross-clang.manifest"
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/macosx64/cross-releng.manifest"
     run:
         script: build-gn-macosx.sh
         resources:
@@ -40,7 +39,7 @@ macosx64-gn:
         tooltool-downloads: internal
     fetches:
         toolchain:
-            - linux64-cctools-port
+            - linux64-cctools-port-clang-9
             - linux64-clang-9
 
 win32-gn:

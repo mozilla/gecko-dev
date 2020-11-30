@@ -81,15 +81,8 @@
   }
 
   MozElements.MozAutocompleteProfileListitem = class MozAutocompleteProfileListitem extends MozAutocompleteProfileListitemBase {
-    connectedCallback() {
-      if (this.delayConnectedCallback()) {
-        return;
-      }
-
-      this.textContent = "";
-
-      this.appendChild(
-        MozXULElement.parseXULToFragment(`
+    static get markup() {
+      return `
         <div xmlns="http://www.w3.org/1999/xhtml" class="autofill-item-box">
           <div class="profile-label-col profile-item-col">
             <span class="profile-label-affix"></span>
@@ -99,8 +92,17 @@
             <span class="profile-comment"></span>
           </div>
         </div>
-      `)
-      );
+        `;
+    }
+
+    connectedCallback() {
+      if (this.delayConnectedCallback()) {
+        return;
+      }
+
+      this.textContent = "";
+
+      this.appendChild(this.constructor.fragment);
 
       this._itemBox = this.querySelector(".autofill-item-box");
       this._labelAffix = this.querySelector(".profile-label-affix");
@@ -141,13 +143,16 @@
         `url(${this.getAttribute("ac-image")})`
       );
 
-      let { primaryAffix, primary, secondary } = JSON.parse(
+      let { primaryAffix, primary, secondary, ariaLabel } = JSON.parse(
         this.getAttribute("ac-value")
       );
 
       this._labelAffix.textContent = primaryAffix;
       this._label.textContent = primary;
       this._comment.textContent = secondary;
+      if (ariaLabel) {
+        this.setAttribute("aria-label", ariaLabel);
+      }
     }
   };
 
@@ -158,6 +163,15 @@
   );
 
   class MozAutocompleteProfileListitemFooter extends MozAutocompleteProfileListitemBase {
+    static get markup() {
+      return `
+        <div xmlns="http://www.w3.org/1999/xhtml" class="autofill-item-box autofill-footer">
+          <div class="autofill-footer-row autofill-warning"></div>
+          <div class="autofill-footer-row autofill-button"></div>
+        </div>
+      `;
+    }
+
     constructor() {
       super();
 
@@ -180,14 +194,7 @@
       }
 
       this.textContent = "";
-      this.appendChild(
-        MozXULElement.parseXULToFragment(`
-        <div xmlns="http://www.w3.org/1999/xhtml" class="autofill-item-box autofill-footer">
-          <div class="autofill-footer-row autofill-warning"></div>
-          <div class="autofill-footer-row autofill-button"></div>
-        </div>
-      `)
-      );
+      this.appendChild(this.constructor.fragment);
 
       this._itemBox = this.querySelector(".autofill-footer");
       this._optionButton = this.querySelector(".autofill-button");
@@ -276,12 +283,20 @@
         "resource://gre/modules/AppConstants.jsm",
         {}
       );
-      // TODO: The "Short" suffix is pointless now as normal version string is no longer needed,
-      // we should consider removing the suffix if possible when the next time locale change.
-      let buttonTextBundleKey =
-        AppConstants.platform == "macosx"
-          ? "autocompleteFooterOptionOSXShort"
-          : "autocompleteFooterOptionShort";
+
+      let buttonTextBundleKey;
+      if (this._itemBox.getAttribute("size") == "small") {
+        buttonTextBundleKey =
+          AppConstants.platform == "macosx"
+            ? "autocompleteFooterOptionOSXShort2"
+            : "autocompleteFooterOptionShort2";
+      } else {
+        buttonTextBundleKey =
+          AppConstants.platform == "macosx"
+            ? "autocompleteFooterOptionOSX2"
+            : "autocompleteFooterOption2";
+      }
+
       let buttonText = this._stringBundle.GetStringFromName(
         buttonTextBundleKey
       );
@@ -312,16 +327,18 @@
   );
 
   class MozAutocompleteCreditcardInsecureField extends MozAutocompleteProfileListitemBase {
+    static get markup() {
+      return `
+      <div xmlns="http://www.w3.org/1999/xhtml" class="autofill-insecure-item"></div>
+      `;
+    }
+
     connectedCallback() {
       if (this.delayConnectedCallback()) {
         return;
       }
       this.textContent = "";
-      this.appendChild(
-        MozXULElement.parseXULToFragment(`
-        <div xmlns="http://www.w3.org/1999/xhtml" class="autofill-insecure-item"></div>
-      `)
-      );
+      this.appendChild(this.constructor.fragment);
 
       this._itemBox = this.querySelector(".autofill-insecure-item");
 
@@ -353,6 +370,14 @@
   );
 
   class MozAutocompleteProfileListitemClearButton extends MozAutocompleteProfileListitemBase {
+    static get markup() {
+      return `
+        <div xmlns="http://www.w3.org/1999/xhtml" class="autofill-item-box autofill-footer">
+          <div class="autofill-footer-row autofill-button"></div>
+        </div>
+      `;
+    }
+
     constructor() {
       super();
 
@@ -371,13 +396,7 @@
       }
 
       this.textContent = "";
-      this.appendChild(
-        MozXULElement.parseXULToFragment(`
-        <div xmlns="http://www.w3.org/1999/xhtml" class="autofill-item-box autofill-footer">
-          <div class="autofill-footer-row autofill-button"></div>
-        </div>
-      `)
-      );
+      this.appendChild(this.constructor.fragment);
 
       this._itemBox = this.querySelector(".autofill-item-box");
       this._clearBtn = this.querySelector(".autofill-button");

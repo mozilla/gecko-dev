@@ -6,7 +6,96 @@
 // Test whether the content of the issue list will be changed when the rules are changed
 // on the rule view.
 
-const TEST_URI = `<div style="border-block-color: lime;"></div>`;
+const TEST_URI = `
+  <style>
+  .test-class {
+    border-block-color: lime;
+  }
+  div {
+    font-variant-alternates: historical-forms;
+  }
+  </style>
+  <div class="test-class">test class</div>
+  <div>test</div>
+`;
+
+const TEST_DATA_SELECTED = {
+  fullRule: {
+    expectedProperties: [
+      { property: "border-block-color" },
+      { property: "font-variant-alternates" },
+    ],
+    expectedNodes: [
+      {
+        property: "border-block-color",
+        nodes: [],
+      },
+      {
+        property: "font-variant-alternates",
+        nodes: [],
+      },
+    ],
+  },
+  classRule: {
+    expectedProperties: [{ property: "border-block-color" }],
+    expectedNodes: [
+      {
+        property: "border-block-color",
+        nodes: [],
+      },
+    ],
+  },
+  elementRule: {
+    expectedProperties: [{ property: "font-variant-alternates" }],
+    expectedNodes: [
+      {
+        property: "font-variant-alternates",
+        nodes: [],
+      },
+    ],
+  },
+};
+
+const TEST_DATA_ALL = {
+  fullRule: {
+    expectedProperties: [
+      { property: "border-block-color" },
+      { property: "font-variant-alternates" },
+    ],
+    expectedNodes: [
+      {
+        property: "border-block-color",
+        nodes: ["div.test-class"],
+      },
+      {
+        property: "font-variant-alternates",
+        nodes: ["div.test-class", "div"],
+      },
+    ],
+  },
+  classRule: {
+    expectedProperties: [{ property: "border-block-color" }],
+    expectedNodes: [
+      {
+        property: "border-block-color",
+        nodes: ["div.test-class"],
+      },
+    ],
+  },
+  elementRule: {
+    expectedProperties: [{ property: "font-variant-alternates" }],
+    expectedNodes: [
+      {
+        property: "font-variant-alternates",
+        nodes: ["div.test-class", "div"],
+      },
+    ],
+  },
+};
+
+const {
+  COMPATIBILITY_UPDATE_NODES_COMPLETE,
+} = require("devtools/client/inspector/compatibility/actions/index");
 
 add_task(async function() {
   info("Enable 3 pane mode");
@@ -14,25 +103,48 @@ add_task(async function() {
 
   await addTab("data:text/html;charset=utf-8," + encodeURIComponent(TEST_URI));
 
-  const { inspector, panel } = await openCompatibilityView();
-  await selectNode("div", inspector);
+  const {
+    allElementsPane,
+    inspector,
+    selectedElementPane,
+  } = await openCompatibilityView();
+  await selectNode(".test-class", inspector);
 
   info("Check the initial issue");
-  await assertIssueList(panel, [{ property: "border-block-color" }]);
+  await assertAll(selectedElementPane, TEST_DATA_SELECTED.fullRule);
+  await assertAll(allElementsPane, TEST_DATA_ALL.fullRule);
 
-  info("Check the issue after toggling the property");
-  const view = inspector.getPanel("ruleview").view;
-  const rule = getRuleViewRuleEditor(view, 0).rule;
-  await _togglePropStatus(view, rule.textProps[0]);
-  await assertIssueList(panel, []);
+  info("Check the issue after unchecking class rule");
+  await _togglePropStatus(inspector, 1, 0);
+  await assertAll(selectedElementPane, TEST_DATA_SELECTED.elementRule);
+  await assertAll(allElementsPane, TEST_DATA_ALL.elementRule);
 
-  info("Check the issue after toggling the property again");
-  await _togglePropStatus(view, rule.textProps[0]);
-  await assertIssueList(panel, [{ property: "border-block-color" }]);
+  info("Check the issue after unchecking div rule");
+  await _togglePropStatus(inspector, 2, 0);
+  await assertIssueList(selectedElementPane, []);
+  await assertIssueList(allElementsPane, []);
+
+  info("Check the issue after reverting class rule");
+  await _togglePropStatus(inspector, 1, 0);
+  await assertAll(selectedElementPane, TEST_DATA_SELECTED.classRule);
+  await assertAll(allElementsPane, TEST_DATA_ALL.classRule);
+
+  info("Check the issue after reverting div rule");
+  await _togglePropStatus(inspector, 2, 0);
+  await assertAll(selectedElementPane, TEST_DATA_SELECTED.fullRule);
+  await assertAll(allElementsPane, TEST_DATA_ALL.fullRule);
 });
 
-async function _togglePropStatus(view, textProp) {
-  const onRuleViewRefreshed = view.once("ruleview-changed");
-  textProp.editor.enable.click();
-  await onRuleViewRefreshed;
+async function assertAll(pane, { expectedProperties, expectedNodes }) {
+  await assertIssueList(pane, expectedProperties);
+  await assertNodeList(pane, expectedNodes);
+}
+
+async function _togglePropStatus(inspector, ruleIndex, propIndex) {
+  const onNodesUpdated = waitForDispatch(
+    inspector.store,
+    COMPATIBILITY_UPDATE_NODES_COMPLETE
+  );
+  await togglePropStatusOnRuleView(inspector, ruleIndex, propIndex);
+  await onNodesUpdated;
 }

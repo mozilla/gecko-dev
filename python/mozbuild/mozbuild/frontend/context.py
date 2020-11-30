@@ -41,7 +41,6 @@ from mozbuild.util import (
 from .. import schedules
 
 from ..testing import (
-    all_test_flavors,
     read_manifestparser_manifest,
     read_reftest_manifest,
 )
@@ -305,7 +304,25 @@ class InitializedDefines(ContextDerivedValue, OrderedDict):
         for define in context.config.substs.get('MOZ_DEBUG_DEFINES', ()):
             self[define] = 1
         if value:
+            if not isinstance(value, OrderedDict):
+                raise ValueError('Can only initialize with another OrderedDict')
             self.update(value)
+
+    def update(self, *other, **kwargs):
+        # Since iteration over non-ordered dicts is non-deterministic, this dict
+        # will be populated in an unpredictable order unless the argument to
+        # update() is also ordered. (It's important that we maintain this
+        # invariant so we can be sure that running `./mach build-backend` twice
+        # in a row without updating any files in the workspace generates exactly
+        # the same output.)
+        if kwargs:
+            raise ValueError('Cannot call update() with kwargs')
+        if other:
+            if not isinstance(other[0], OrderedDict):
+                raise ValueError(
+                    'Can only call update() with another OrderedDict')
+            return super(InitializedDefines, self).update(*other, **kwargs)
+        raise ValueError('No arguments passed to update()')
 
 
 class BaseCompileFlags(ContextDerivedValue, dict):
@@ -516,7 +533,7 @@ class CompileFlags(TargetCompileFlags):
              ('CXXFLAGS', 'CFLAGS')),
             ('OS_INCLUDES', list(itertools.chain(*(context.config.substs.get(v, []) for v in (
                 'NSPR_CFLAGS', 'NSS_CFLAGS', 'MOZ_JPEG_CFLAGS', 'MOZ_PNG_CFLAGS',
-                'MOZ_ZLIB_CFLAGS', 'MOZ_PIXMAN_CFLAGS')))),
+                'MOZ_ZLIB_CFLAGS', 'MOZ_PIXMAN_CFLAGS', 'MOZ_ICU_CFLAGS')))),
              ('CXXFLAGS', 'CFLAGS')),
             ('DSO', context.config.substs.get('DSO_CFLAGS'),
              ('CXXFLAGS', 'CFLAGS')),
@@ -548,6 +565,8 @@ class CompileFlags(TargetCompileFlags):
             ('MOZBUILD_CFLAGS', None, ('CFLAGS',)),
             ('MOZBUILD_CXXFLAGS', None, ('CXXFLAGS',)),
             ('COVERAGE', context.config.substs.get('COVERAGE_CFLAGS'), ('CXXFLAGS', 'CFLAGS')),
+            ('NEWPM', context.config.substs.get('MOZ_NEW_PASS_MANAGER_FLAGS'),
+             ('CXXFLAGS', 'CFLAGS')),
         )
 
         TargetCompileFlags.__init__(self, context)
@@ -602,6 +621,8 @@ class WasmFlags(TargetCompileFlags):
             ('WASM_DEFINES', None, ('WASM_CFLAGS', 'WASM_CXXFLAGS')),
             ('MOZBUILD_WASM_CFLAGS', None, ('WASM_CFLAGS',)),
             ('MOZBUILD_WASM_CXXFLAGS', None, ('WASM_CXXFLAGS',)),
+            ('NEWPM', context.config.substs.get('MOZ_NEW_PASS_MANAGER_FLAGS'),
+             ('WASM_CFLAGS', 'WASM_CXXFLAGS')),
         )
 
         TargetCompileFlags.__init__(self, context)
@@ -750,11 +771,6 @@ class SourcePath(Path):
 
         if value.startswith('/'):
             path = None
-            # If the path starts with a '/' and is actually relative to an
-            # external source dir, use that as base instead of topsrcdir.
-            if context.config.external_source_dir:
-                path = mozpath.join(context.config.external_source_dir,
-                                    value[1:])
             if not path or not os.path.exists(path):
                 path = mozpath.join(context.config.topsrcdir,
                                     value[1:])
@@ -1003,13 +1019,6 @@ def OrderedPathListWithAction(action):
 ManifestparserManifestList = OrderedPathListWithAction(read_manifestparser_manifest)
 ReftestManifestList = OrderedPathListWithAction(read_reftest_manifest)
 
-OrderedSourceList = ContextDerivedTypedList(SourcePath, StrictOrderingOnAppendList)
-OrderedTestFlavorList = TypedList(Enum(*all_test_flavors()),
-                                  StrictOrderingOnAppendList)
-OrderedStringList = TypedList(six.text_type, StrictOrderingOnAppendList)
-DependentTestsEntry = ContextDerivedTypedRecord(('files', OrderedSourceList),
-                                                ('tags', OrderedStringList),
-                                                ('flavors', OrderedTestFlavorList))
 BugzillaComponent = TypedNamedTuple('BugzillaComponent',
                                     [('product', six.text_type), ('component', six.text_type)])
 SchedulingComponents = ContextDerivedTypedRecord(
@@ -1020,8 +1029,8 @@ GeneratedFilesList = StrictOrderingOnAppendListWithFlagsFactory({
     'script': six.text_type,
     'inputs': list,
     'force': bool,
-    'py2': bool,
-    'flags': list, })
+    'flags': list,
+})
 
 
 class Files(SubContext):
@@ -1092,54 +1101,6 @@ class Files(SubContext):
 
             See :ref:`mozbuild_files_metadata_finalizing` for more info.
             """),
-        'IMPACTED_TESTS': (DependentTestsEntry, list,
-                           """File patterns, tags, and flavors for tests relevant to these files.
-
-            Maps source files to the tests potentially impacted by those files.
-            Tests can be specified by file pattern, tag, or flavor.
-
-            For example:
-
-            with Files('runtests.py'):
-               IMPACTED_TESTS.files += [
-                   '**',
-               ]
-
-            in testing/mochitest/moz.build will suggest that any of the tests
-            under testing/mochitest may be impacted by a change to runtests.py.
-
-            File patterns may be made relative to the topsrcdir with a leading
-            '/', so
-
-            with Files('httpd.js'):
-               IMPACTED_TESTS.files += [
-                   '/testing/mochitest/tests/Harness_sanity/**',
-               ]
-
-            in netwerk/test/httpserver/moz.build will suggest that any change to httpd.js
-            will be relevant to the mochitest sanity tests.
-
-            Tags and flavors are sorted string lists (flavors are limited to valid
-            values).
-
-            For example:
-
-            with Files('toolkit/devtools/*'):
-                IMPACTED_TESTS.tags += [
-                    'devtools',
-                ]
-
-            in the root moz.build would suggest that any test tagged 'devtools' would
-            potentially be impacted by a change to a file under toolkit/devtools, and
-
-            with Files('dom/base/nsGlobalWindow.cpp'):
-                IMPACTED_TESTS.flavors += [
-                    'mochitest',
-                ]
-
-            Would suggest that nsGlobalWindow.cpp is potentially relevant to
-            any plain mochitest.
-            """),
         'SCHEDULES': (Schedules, list,
                       """Maps source files to the CI tasks that should be scheduled when
             they change.  The tasks are grouped by named components, and those
@@ -1175,25 +1136,11 @@ class Files(SubContext):
         super(Files, self).__init__(parent)
         self.patterns = patterns
         self.finalized = set()
-        self.test_files = set()
-        self.test_tags = set()
-        self.test_flavors = set()
 
     def __iadd__(self, other):
         assert isinstance(other, Files)
 
-        self.test_files |= other.test_files
-        self.test_tags |= other.test_tags
-        self.test_flavors |= other.test_flavors
-
         for k, v in other.items():
-            if k == 'IMPACTED_TESTS':
-                self.test_files |= set(mozpath.relpath(e.full_path, e.context.config.topsrcdir)
-                                       for e in v.files)
-                self.test_tags |= set(v.tags)
-                self.test_flavors |= set(v.flavors)
-                continue
-
             if k == 'SCHEDULES' and 'SCHEDULES' in self:
                 self['SCHEDULES'] = self['SCHEDULES'] | v
                 continue
@@ -1403,6 +1350,12 @@ VARIABLES = {
         list,
         """Generic generated files.
 
+        Unless you have a reason not to, use the GeneratedFile template rather
+        than referencing GENERATED_FILES directly. The GeneratedFile template
+        has all the same arguments as the attributes listed below (``script``,
+        ``inputs``, ``flags``, ``force``), plus an additional ``entry_point``
+        argument to specify a particular function to run in the given script.
+
         This variable contains a list of files for the build system to
         generate at export time. The generation method may be declared
         with optional ``script``, ``inputs``, ``flags``, and ``force``
@@ -1448,7 +1401,8 @@ VARIABLES = {
         When the ``force`` attribute is present, the file is generated every
         build, regardless of whether it is stale.  This is special to the
         RecursiveMake backend and intended for special situations only (e.g.,
-        localization).  Please consult a build peer before using ``force``.
+        localization).  Please consult a build peer (on the #build channel at
+        https://chat.mozilla.org) before using ``force``.
         """
         ),
 
@@ -1472,14 +1426,11 @@ VARIABLES = {
 
         This will result in the compiler flags ``-DNS_NO_XPCOM``,
         ``-DMOZ_EXTENSIONS_DB_SCHEMA=15``, and ``-DDLL_SUFFIX='".so"'``,
-        respectively. These could also be combined into a single
-        update::
+        respectively.
 
-           DEFINES.update({
-               'NS_NO_XPCOM': True,
-               'MOZ_EXTENSIONS_DB_SCHEMA': 15,
-               'DLL_SUFFIX': '".so"',
-           })
+        Note that these entries are not necessarily passed to the assembler.
+        Whether they are depends on the type of assembly file. As an
+        alternative, you may add a ``-DKEY=value`` entry to ``ASFLAGS``.
         """
         ),
 
@@ -1608,7 +1559,7 @@ VARIABLES = {
         ``OBJDIR_FILES`` is similar to FINAL_TARGET_FILES, but it allows copying
         anywhere in the object directory. This is intended for various one-off
         cases, not for general use. If you wish to add entries to OBJDIR_FILES,
-        please consult a build peer.
+        please consult a build peer (on the #build channel at https://chat.mozilla.org).
         """),
 
     'OBJDIR_PP_FILES': (ContextDerivedTypedHierarchicalStringList(Path), list,
@@ -1748,12 +1699,6 @@ VARIABLES = {
         """),
     'RCFILE': (Path, six.text_type,
                """The program .rc file.
-
-        This variable can only be used on Windows.
-        """),
-
-    'RESFILE': (six.text_type, six.text_type,
-                """The program .res file.
 
         This variable can only be used on Windows.
         """),
@@ -2047,16 +1992,16 @@ VARIABLES = {
         These are commonly named crashtests.list.
         """),
 
-    'WEBRTC_SIGNALLING_TEST_MANIFESTS': (ManifestparserManifestList, list,
-                                         """List of manifest files defining WebRTC signalling tests.
-        """),
-
     'XPCSHELL_TESTS_MANIFESTS': (ManifestparserManifestList, list,
                                  """List of manifest files defining xpcshell tests.
         """),
 
     'PYTHON_UNITTEST_MANIFESTS': (ManifestparserManifestList, list,
                                   """List of manifest files defining python unit tests.
+        """),
+
+    'PERFTESTS_MANIFESTS': (ManifestparserManifestList, list,
+                            """List of manifest files defining MozPerftest performance tests.
         """),
 
     'CRAMTEST_MANIFESTS': (ManifestparserManifestList, list,
@@ -2348,11 +2293,6 @@ VARIABLES = {
            library.
         """),
 
-    'NO_COMPONENTS_MANIFEST': (bool, bool,
-                               """Do not create a binary-component manifest entry for the
-        corresponding XPCOMBinaryComponent.
-        """),
-
     'USE_NASM': (bool, bool,
                  """Use the nasm assembler to assemble assembly files from SOURCES.
 
@@ -2466,8 +2406,8 @@ FUNCTIONS = {
         This function is limited to the upper-case variables that have special
         meaning in moz.build files.
 
-        NOTE: Please consult with a build peer before adding a new use of this
-        function.
+        NOTE: Please consult with a build peer (on the #build channel at
+        https://chat.mozilla.org) before adding a new use of this function.
 
         Example usage
         ^^^^^^^^^^^^^

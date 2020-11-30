@@ -9,7 +9,7 @@
  */
 
 add_task(async function() {
-  const { tab, monitor } = await initNetMonitor(CORS_URL);
+  const { tab, monitor } = await initNetMonitor(CORS_URL, { requestCount: 1 });
   info("Starting test... ");
 
   const { store, windowRequire, connector } = monitor.panelWin;
@@ -87,7 +87,7 @@ add_task(async function() {
       `The ${item.method} request has the right method`
     );
     is(item.url, requestUrl, `The ${item.method} request has the right URL`);
-    is(item.status, 200, `The ${item.method} response has the right status`);
+    is(item.status, "200", `The ${item.method} response has the right status`);
 
     if (item.method === "POST") {
       is(

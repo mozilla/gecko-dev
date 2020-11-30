@@ -9,9 +9,10 @@
 #include "nsIScriptContext.h"
 #include "nsDocShellLoadState.h"
 #include "nsIWebNavigation.h"
-#include "nsIURIFixup.h"
+#include "nsIOService.h"
 #include "nsIURL.h"
 #include "nsIJARURI.h"
+#include "nsIURIMutator.h"
 #include "nsNetUtil.h"
 #include "nsCOMPtr.h"
 #include "nsEscape.h"
@@ -103,10 +104,9 @@ nsresult Location::GetURI(nsIURI** aURI, bool aGetInnermostURI) {
   }
 
   NS_ASSERTION(uri, "nsJARURI screwed up?");
-
-  nsCOMPtr<nsIURIFixup> urifixup(components::URIFixup::Service());
-
-  return urifixup->CreateExposableURI(uri, aURI);
+  nsCOMPtr<nsIURI> exposableURI = net::nsIOService::CreateExposableURI(uri);
+  exposableURI.forget(aURI);
+  return NS_OK;
 }
 
 void Location::GetHash(nsAString& aHash, nsIPrincipal& aSubjectPrincipal,
@@ -619,7 +619,7 @@ bool Location::CallerSubsumes(nsIPrincipal* aSubjectPrincipal) {
   // even though we only allow limited cross-origin access to Location objects
   // in general.
   nsCOMPtr<nsPIDOMWindowOuter> outer = bc->GetDOMWindow();
-  MOZ_ASSERT(outer);
+  MOZ_DIAGNOSTIC_ASSERT(outer);
   if (MOZ_UNLIKELY(!outer)) return false;
 
   nsCOMPtr<nsIScriptObjectPrincipal> sop = do_QueryInterface(outer);

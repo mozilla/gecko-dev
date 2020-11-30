@@ -13,6 +13,10 @@ const { Troubleshoot } = ChromeUtils.import(
   "resource://gre/modules/Troubleshoot.jsm"
 );
 
+const { FeatureGate } = ChromeUtils.import(
+  "resource://featuregates/FeatureGate.jsm"
+);
+
 function test() {
   waitForExplicitFinish();
   function doNextTest() {
@@ -44,12 +48,39 @@ var tests = [
     });
   },
 
+  async function experimentalFeatures(done) {
+    let featureGates = await FeatureGate.all();
+    ok(featureGates.length, "Should be at least one FeatureGate");
+
+    Troubleshoot.snapshot(snapshot => {
+      for (let i = 0; i < snapshot.experimentalFeatures.length; i++) {
+        let experimentalFeature = snapshot.experimentalFeatures[i];
+        is(
+          experimentalFeature[0],
+          featureGates[i].title,
+          "The first item in the array should be the title's l10n-id of the FeatureGate"
+        );
+        is(
+          experimentalFeature[1],
+          featureGates[i].preference,
+          "The second item in the array should be the preference name for the FeatureGate"
+        );
+        is(
+          experimentalFeature[2],
+          Services.prefs.getBoolPref(featureGates[i].preference),
+          "The third item in the array should be the preference value of the FeatureGate"
+        );
+      }
+      done();
+    });
+  },
+
   function modifiedPreferences(done) {
     let prefs = [
       "javascript.troubleshoot",
       "troubleshoot.foo",
-      "javascript.print_to_filename",
       "network.proxy.troubleshoot",
+      "print.print_to_filename",
     ];
     prefs.forEach(function(p) {
       Services.prefs.setBoolPref(p, true);
@@ -68,12 +99,12 @@ var tests = [
         "The pref should be absent because it's not in the whitelist."
       );
       ok(
-        !("javascript.print_to_filename" in p),
+        !("network.proxy.troubleshoot" in p),
         "The pref should be absent because it's blacklisted."
       );
       ok(
-        !("network.proxy.troubleshoot" in p),
-        "The pref should be absent because it's blacklisted."
+        !("print.print_to_filename" in p),
+        "The pref should be absent because it's not whitelisted."
       );
       prefs.forEach(p => Services.prefs.deleteBranch(p));
       done();
@@ -92,6 +123,24 @@ var tests = [
       let p = snapshot.modifiedPreferences;
       is(p[name], unicodeValue, "The pref should have correct Unicode value.");
       Services.prefs.deleteBranch(name);
+      done();
+    });
+  },
+
+  function printingPreferences(done) {
+    let prefs = ["javascript.print_to_filename", "print.print_to_filename"];
+    prefs.forEach(function(p) {
+      Services.prefs.setBoolPref(p, true);
+      is(Services.prefs.getBoolPref(p), true, "The pref should be set: " + p);
+    });
+    Troubleshoot.snapshot(function(snapshot) {
+      let p = snapshot.printingPreferences;
+      is(p["print.print_to_filename"], true, "The pref should be present");
+      ok(
+        !("javascript.print_to_filename" in p),
+        "The pref should be absent because it's not a print pref."
+      );
+      prefs.forEach(p => Services.prefs.deleteBranch(p));
       done();
     });
   },
@@ -119,6 +168,10 @@ const SNAPSHOT_SCHEMA = {
           required: true,
           type: "string",
         },
+        distributionID: {
+          required: true,
+          type: "string",
+        },
         userAgent: {
           required: true,
           type: "string",
@@ -143,10 +196,16 @@ const SNAPSHOT_SCHEMA = {
           type: "boolean",
           required: true,
         },
-        autoStartStatus: {
-          type: "number",
+        fissionAutoStart: {
+          type: "boolean",
+        },
+        fissionDecisionStatus: {
+          type: "string",
         },
         numTotalWindows: {
+          type: "number",
+        },
+        numFissionWindows: {
           type: "number",
         },
         numRemoteWindows: {
@@ -200,13 +259,17 @@ const SNAPSHOT_SCHEMA = {
         },
       },
     },
-    extensions: {
+    addons: {
       required: true,
       type: "array",
       items: {
         type: "object",
         properties: {
           name: {
+            required: true,
+            type: "string",
+          },
+          type: {
             required: true,
             type: "string",
           },
@@ -278,7 +341,19 @@ const SNAPSHOT_SCHEMA = {
         },
       },
     },
+    experimentalFeatures: {
+      required: true,
+      type: "array",
+    },
+    environmentVariables: {
+      required: true,
+      type: "object",
+    },
     modifiedPreferences: {
+      required: true,
+      type: "object",
+    },
+    printingPreferences: {
       required: true,
       type: "object",
     },
@@ -287,6 +362,10 @@ const SNAPSHOT_SCHEMA = {
       type: "object",
       properties: {
         "fission.autostart": {
+          required: false,
+          type: "boolean",
+        },
+        "fission.autostart.session": {
           required: false,
           type: "boolean",
         },
@@ -637,15 +716,6 @@ const SNAPSHOT_SCHEMA = {
         },
       },
     },
-    javaScript: {
-      required: true,
-      type: "object",
-      properties: {
-        incrementalGCEnabled: {
-          type: "boolean",
-        },
-      },
-    },
     accessibility: {
       required: true,
       type: "object",
@@ -822,6 +892,28 @@ const SNAPSHOT_SCHEMA = {
               },
             },
           },
+        },
+      },
+    },
+    startupCache: {
+      required: false,
+      type: "object",
+      properties: {
+        DiskCachePath: {
+          required: true,
+          type: "string",
+        },
+        IgnoreDiskCache: {
+          required: true,
+          type: "boolean",
+        },
+        FoundDiskCacheOnInit: {
+          required: true,
+          type: "boolean",
+        },
+        WroteToDiskCache: {
+          required: true,
+          type: "boolean",
         },
       },
     },

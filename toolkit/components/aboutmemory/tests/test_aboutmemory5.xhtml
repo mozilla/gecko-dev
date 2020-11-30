@@ -24,10 +24,6 @@
   let mgr = Cc["@mozilla.org/memory-reporter-manager;1"].
             getService(Ci.nsIMemoryReporterManager);
 
-  let socketProcessRunning = 0;
-  if (SpecialPowers.getBoolPref("network.process.enabled")) {
-    socketProcessRunning = 1;
-  }
   let numRemotes = 3;
   let numReady = 0;
 
@@ -42,10 +38,9 @@
 
   SpecialPowers.pushPrefEnv({"set": prefs}, function() {
     for (let i = 0; i < numRemotes; i++) {
-      let w = remotes[i] = docShell.rootTreeItem.domWindow.open("remote.xhtml", "", "chrome");
+      let w = remotes[i] = window.browsingContext.topChromeWindow.open("remote.xhtml", "", "chrome");
 
       w.addEventListener("load", function loadHandler() {
-        w.removeEventListener("load", loadHandler);
         let remoteBrowser = w.document.getElementById("remote");
         let mm = remoteBrowser.messageManager;
         mm.addMessageListener("test:ready", function readyHandler() {
@@ -59,7 +54,7 @@
         mm.loadFrameScript("data:," + encodeURI("sendAsyncMessage('test:ready');"), true);
       });
     }
-  });
+  }, {once: true});
 
   // Load the given file into the frame, then copy+paste the entire frame and
   // check that the cut text matches what we expect.
@@ -68,9 +63,7 @@
     frame.focus();
 
     function getFilePath(aFilename) {
-      let file = Cc["@mozilla.org/file/directory_service;1"]
-                 .getService(Ci.nsIProperties)
-                 .get("CurWorkD", Ci.nsIFile);
+      let file = SpecialPowers.Services.dirsvc.get("CurWorkD", Ci.nsIFile);
       file.append("chrome");
       file.append("toolkit");
       file.append("components");
@@ -88,7 +81,8 @@
     let dumper = Cc["@mozilla.org/memory-info-dumper;1"].
                     getService(Ci.nsIMemoryInfoDumper);
     dumper.dumpMemoryReportsToNamedFile(filePath, loadAndCheck, null,
-                                        /* anonymize = */ false);
+                                        /* anonymize = */ false,
+                                        /* minimize memory usage = */ false);
 
     function loadAndCheck() {
       // Load the file.
@@ -130,11 +124,17 @@
           let vsizes = actual.match(/vsize[^-]/g);
           let endOfBrowsers = actual.match(/End of Browser/g);
           if (endOfBrowsers == null) {
-            endOfBrowsers = actual.match(/End of Web Content/g);
+            endOfBrowsers = actual.match(/End of [wW]eb /g);
           }
+
+          let socketProcessRunning = 0;
+          if (SpecialPowers.Services.io.socketProcessLaunched) {
+            socketProcessRunning = 1;
+          }
+
           let m2 = (vsizes.length == (4 + socketProcessRunning) &&
                     endOfBrowsers.length == 3);
-          ok(m2, "three child processes present in loaded data");
+          ok(m2, "three content processes present in loaded data");
           good = good && !!m2;
 
           if (!good) {

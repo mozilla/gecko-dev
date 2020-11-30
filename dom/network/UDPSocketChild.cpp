@@ -24,7 +24,7 @@ NS_IMPL_ISUPPORTS(UDPSocketChildBase, nsISupports)
 
 UDPSocketChildBase::UDPSocketChildBase() : mIPCOpen(false) {}
 
-UDPSocketChildBase::~UDPSocketChildBase() {}
+UDPSocketChildBase::~UDPSocketChildBase() = default;
 
 void UDPSocketChildBase::ReleaseIPDLReference() {
   MOZ_ASSERT(mIPCOpen);
@@ -50,7 +50,7 @@ NS_IMETHODIMP_(MozExternalRefCountType) UDPSocketChild::Release(void) {
 
 UDPSocketChild::UDPSocketChild() : mBackgroundManager(nullptr), mLocalPort(0) {}
 
-UDPSocketChild::~UDPSocketChild() {}
+UDPSocketChild::~UDPSocketChild() = default;
 
 nsresult UDPSocketChild::SetBackgroundSpinsEvents() {
   using mozilla::ipc::BackgroundChild;
@@ -68,7 +68,7 @@ nsresult UDPSocketChild::Bind(nsIUDPSocketInternal* aSocket,
                               uint16_t aPort, bool aAddressReuse,
                               bool aLoopback, uint32_t recvBufferSize,
                               uint32_t sendBufferSize,
-                              nsIEventTarget* aMainThreadEventTarget) {
+                              nsISerialEventTarget* aMainThreadEventTarget) {
   UDPSOCKET_LOG(
       ("%s: %s:%u", __FUNCTION__, PromiseFlatCString(aHost).get(), aPort));
 
@@ -136,10 +136,7 @@ nsresult UDPSocketChild::SendDataInternal(const UDPSocketAddr& aAddr,
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  nsTArray<uint8_t> array;
-  array.SwapElements(fallibleArray);
-
-  SendOutgoingData(array, aAddr);
+  SendOutgoingData(UDPData{std::move(fallibleArray)}, aAddr);
 
   return NS_OK;
 }

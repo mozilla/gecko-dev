@@ -8,8 +8,6 @@
 global.Worker = require("workerjs");
 
 import path from "path";
-// import getConfig from "../../bin/getConfig";
-import { readFileSync } from "fs";
 import Enzyme from "enzyme";
 // $FlowIgnore
 import Adapter from "enzyme-adapter-react-16";
@@ -36,28 +34,9 @@ env.testing = true;
 
 const rootPath = path.join(__dirname, "../../");
 
-function getL10nBundle() {
-  const read = file => readFileSync(path.join(rootPath, file));
-
-  try {
-    return read("./assets/panel/debugger.properties");
-  } catch (e) {
-    return read("../locales/en-US/debugger.properties");
-  }
-}
-
-global.DebuggerConfig = {};
-global.L10N = require("devtools-launchpad").L10N;
-global.L10N.setBundle(getL10nBundle());
-global.jasmine.DEFAULT_TIMEOUT_INTERVAL = 20000;
-global.performance = { now: () => 0 };
-
-const { URL } = require("url");
-global.URL = URL;
-
-global.indexedDB = mockIndexeddDB();
-
 Enzyme.configure({ adapter: new Adapter() });
+
+global.jasmine.DEFAULT_TIMEOUT_INTERVAL = 20000;
 
 function formatException(reason, p) {
   console && console.log("Unhandled Rejection at:", p, "reason:", reason);
@@ -97,39 +76,9 @@ beforeEach(async () => {
   clearHistory();
   clearDocuments();
   prefs.projectDirectoryRoot = "";
+  prefs.projectDirectoryRootName = "";
   prefs.expressions = [];
 
   // Ensures window.dbg is there to track telemetry
   setupHelper({ selectors: {} });
 });
-
-function mockIndexeddDB() {
-  const store = {};
-  return {
-    open: () => ({}),
-    getItem: async key => store[key],
-    setItem: async (key, value) => {
-      store[key] = value;
-    },
-  };
-}
-
-// NOTE: We polyfill finally because TRY uses node 8
-if (!global.Promise.prototype.finally) {
-  global.Promise.prototype.finally = function finallyPolyfill(callback) {
-    const { constructor } = this;
-
-    return this.then(
-      function(value) {
-        return constructor.resolve(callback()).then(function() {
-          return value;
-        });
-      },
-      function(reason) {
-        return constructor.resolve(callback()).then(function() {
-          throw reason;
-        });
-      }
-    );
-  };
-}

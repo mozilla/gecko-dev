@@ -8,6 +8,7 @@ with Files('**'):
     BUG_COMPONENT = ('Core', 'Privacy: Anti-Tracking')
 
 XPIDL_SOURCES += [
+    'nsIPartitioningExceptionListService.idl',
     'nsIPurgeTrackerService.idl',
     'nsITrackingDBService.idl',
     'nsIURLDecorationAnnotationsService.idl',
@@ -21,6 +22,7 @@ EXTRA_COMPONENTS += [
 
 EXTRA_JS_MODULES += [
     'ContentBlockingAllowList.jsm',
+    'PartitioningExceptionListService.jsm',
     'PurgeTrackerService.jsm',
     'TrackingDBService.jsm',
     'URLDecorationAnnotationsService.jsm',
@@ -31,25 +33,43 @@ XPCOM_MANIFESTS += [
 ]
 
 EXPORTS.mozilla = [
-    'AntiTrackingCommon.h',
     'AntiTrackingIPCUtils.h',
+    'AntiTrackingRedirectHeuristic.h',
+    'AntiTrackingUtils.h',
+    'ContentBlocking.h',
     'ContentBlockingAllowList.h',
+    'ContentBlockingLog.h',
+    'ContentBlockingNotifier.h',
+    'ContentBlockingTelemetryService.h',
+    'ContentBlockingUserInteraction.h',
+    'DynamicFpiRedirectHeuristic.h',
     'StorageAccess.h',
     'StoragePrincipalHelper.h',
     'URLDecorationStripper.h',
 ]
 
 UNIFIED_SOURCES += [
-    'AntiTrackingCommon.cpp',
+    'AntiTrackingRedirectHeuristic.cpp',
+    'AntiTrackingUtils.cpp',
+    'ContentBlocking.cpp',
     'ContentBlockingAllowList.cpp',
+    'ContentBlockingLog.cpp',
+    'ContentBlockingNotifier.cpp',
+    'ContentBlockingTelemetryService.cpp',
+    'ContentBlockingUserInteraction.cpp',
+    'DynamicFpiRedirectHeuristic.cpp',
+    'PartitioningExceptionList.cpp',
+    'RejectForeignAllowList.cpp',
     'SettingsChangeObserver.cpp',
     'StorageAccess.cpp',
     'StoragePrincipalHelper.cpp',
+    'TemporaryAccessGrantObserver.cpp',
     'URLDecorationStripper.cpp',
 ]
 
 LOCAL_INCLUDES += [
-    '/extensions/permissions',
+    '/netwerk/base',
+    '/netwerk/protocol/http',
 ]
 
 include('/ipc/chromium/chromium-config.mozbuild')

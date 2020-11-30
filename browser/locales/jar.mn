@@ -8,6 +8,7 @@
 # having to create the same entry for each locale.
 
 [localization] @AB_CD@.jar:
+  preview/ion.ftl                                  (../components/ion/content/ion.ftl)
   preview/protections.ftl                          (../components/protections/content/protections.ftl)
   preview/interventions.ftl                        (../components/urlbar/content/interventions.ftl)
   browser                                          (%browser/**/*.ftl)
@@ -34,16 +35,12 @@
     locale/browser/translation.dtd                 (%chrome/browser/translation.dtd)
     locale/browser/translation.properties          (%chrome/browser/translation.properties)
     locale/browser/webrtcIndicator.properties      (%chrome/browser/webrtcIndicator.properties)
-    locale/browser/downloads/downloads.dtd         (%chrome/browser/downloads/downloads.dtd)
     locale/browser/downloads/downloads.properties  (%chrome/browser/downloads/downloads.properties)
     locale/browser/places/places.dtd               (%chrome/browser/places/places.dtd)
     locale/browser/places/places.properties        (%chrome/browser/places/places.properties)
-    locale/browser/places/editBookmarkOverlay.dtd  (%chrome/browser/places/editBookmarkOverlay.dtd)
     locale/browser/places/bookmarkProperties.properties (%chrome/browser/places/bookmarkProperties.properties)
     locale/browser/safebrowsing/safebrowsing.properties   (%chrome/browser/safebrowsing/safebrowsing.properties)
     locale/browser/feeds/subscribe.properties       (%chrome/browser/feeds/subscribe.properties)
-    locale/browser/migration/migration.dtd         (%chrome/browser/migration/migration.dtd)
-    locale/browser/migration/migration.properties  (%chrome/browser/migration/migration.properties)
     locale/browser/syncBrand.dtd                (%chrome/browser/syncBrand.dtd)
     locale/browser/syncSetup.properties         (%chrome/browser/syncSetup.properties)
 % locale browser-region @AB_CD@ %locale/browser-region/
@@ -52,9 +49,6 @@
     locale/browser/netError.dtd                (%chrome/overrides/netError.dtd)
     locale/browser/appstrings.properties       (%chrome/overrides/appstrings.properties)
     locale/browser/downloads/settingsChange.dtd  (%chrome/overrides/settingsChange.dtd)
-% locale pdf.js @AB_CD@ %locale/pdfviewer/
-    locale/pdfviewer/viewer.properties             (%pdfviewer/viewer.properties)
-    locale/pdfviewer/chrome.properties             (%pdfviewer/chrome.properties)
     locale/browser/newInstall.dtd                  (%chrome/browser/newInstall.dtd)
     locale/browser/brandings.dtd                   (%chrome/browser/brandings.dtd)
     locale/browser/fxmonitor.properties            (%chrome/browser/fxmonitor.properties)

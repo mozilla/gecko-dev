@@ -118,8 +118,6 @@ var gViewSourceUtils = {
     }
 
     if (browser) {
-      viewSourceBrowser.sameProcessAsFrameLoader = browser.frameLoader;
-
       // If we're dealing with a remote browser, then the browser
       // for view source needs to be remote as well.
       if (viewSourceBrowser.remoteType != browser.remoteType) {

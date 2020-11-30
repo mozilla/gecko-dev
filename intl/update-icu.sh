@@ -54,6 +54,11 @@ for patch in \
  suppress-warnings.diff \
  bug-1198952-workaround-make-3.82-bug.diff \
  bug-1433303-minimize-subtags.diff \
+ bug-1614941-dsb-hsb-dates.diff \
+ bug-1636984-alias-append-items-sink.diff \
+ bug-1636984-display-name-fractional-seconds.diff \
+ bug-1636984-append-item-dayperiod-fractional-seconds.diff \
+ bug-1534160-android-timezone.diff \
 ; do
   echo "Applying local patch $patch"
   patch -d ${icu_dir}/../../ -p1 --no-backup-if-mismatch < ${icu_dir}/../icu-patches/$patch
@@ -62,8 +67,8 @@ done
 topsrcdir=`dirname $0`/../
 python ${topsrcdir}/js/src/tests/non262/String/make-normalize-generateddata-input.py $topsrcdir
 
-# Update our moz.build files in config/external/icu, and
-# build a new ICU data file.
+# Update our moz.build files in config/external/icu, and build a new ICU data
+# file.
 python `dirname $0`/icu_sources_data.py $topsrcdir
 
 hg addremove "${icu_dir}/source" "${icu_dir}/GIT-INFO" ${topsrcdir}/config/external/icu

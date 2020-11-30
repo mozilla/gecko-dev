@@ -18,6 +18,7 @@
 #include "nsTreeColumns.h"
 
 using namespace mozilla;
+using dom::XULTreeElement;
 
 // A helper class for managing our ranges of selection.
 struct nsTreeRange {
@@ -269,7 +270,7 @@ NS_IMETHODIMP nsTreeSelection::GetSingle(bool* aSingle) {
   }
 
   *aSingle = mTree->AttrValueIs(kNameSpaceID_None, nsGkAtoms::seltype,
-                                NS_LITERAL_STRING("single"), eCaseMatters);
+                                u"single"_ns, eCaseMatters);
 
   return NS_OK;
 }
@@ -560,8 +561,8 @@ NS_IMETHODIMP nsTreeSelection::SetCurrentIndex(int32_t aIndex) {
   // Fire DOMMenuItemActive or DOMMenuItemInactive event for tree.
   NS_ENSURE_STATE(mTree);
 
-  NS_NAMED_LITERAL_STRING(DOMMenuItemActive, "DOMMenuItemActive");
-  NS_NAMED_LITERAL_STRING(DOMMenuItemInactive, "DOMMenuItemInactive");
+  constexpr auto DOMMenuItemActive = u"DOMMenuItemActive"_ns;
+  constexpr auto DOMMenuItemInactive = u"DOMMenuItemInactive"_ns;
 
   RefPtr<AsyncEventDispatcher> asyncDispatcher = new AsyncEventDispatcher(
       mTree, (aIndex != -1 ? DOMMenuItemActive : DOMMenuItemInactive),
@@ -693,9 +694,8 @@ nsTreeSelection::GetShiftSelectPivot(int32_t* aIndex) {
 nsresult nsTreeSelection::FireOnSelectHandler() {
   if (mSuppressed || !mTree) return NS_OK;
 
-  RefPtr<AsyncEventDispatcher> asyncDispatcher =
-      new AsyncEventDispatcher(mTree, NS_LITERAL_STRING("select"),
-                               CanBubble::eYes, ChromeOnlyDispatch::eNo);
+  RefPtr<AsyncEventDispatcher> asyncDispatcher = new AsyncEventDispatcher(
+      mTree, u"select"_ns, CanBubble::eYes, ChromeOnlyDispatch::eNo);
   asyncDispatcher->RunDOMEventWhenSafe();
   return NS_OK;
 }

@@ -8,7 +8,6 @@
 
 interface nsIArray;
 interface nsIX509CertValidity;
-interface nsIASN1Object;
 interface nsICertVerificationListener;
 
 %{ C++
@@ -190,14 +189,6 @@ interface nsIX509Cert : nsISupports {
   readonly attribute AString keyUsages;
 
   /**
-   *  This is the attribute which describes the ASN1 layout
-   *  of the certificate.  This can be used when doing a
-   *  "pretty print" of the certificate's ASN1 structure.
-   */
-  [must_use]
-  readonly attribute nsIASN1Object ASN1Structure;
-
-  /**
    *  Obtain a raw binary encoding of this certificate
    *  in DER format.
    *
@@ -236,13 +227,6 @@ interface nsIX509Cert : nsISupports {
    */
   [notxpcom, noscript, must_use]
   CERTCertificatePtr getCert();
-
-  /**
-   * Either delete the certificate from all cert databases,
-   * or mark it as untrusted.
-   */
-  [must_use]
-  void markForPermDeletion();
 
   [notxpcom, noscript]
   void SerializeToIPC(in IpcMessagePtr aMsg);

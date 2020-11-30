@@ -5,25 +5,108 @@
 
 #include "HTMLEditUtils.h"
 
-#include "mozilla/ArrayUtils.h"   // for ArrayLength
-#include "mozilla/Assertions.h"   // for MOZ_ASSERT, etc.
-#include "mozilla/EditAction.h"   // for EditAction
-#include "mozilla/EditorBase.h"   // for EditorBase
-#include "mozilla/dom/Element.h"  // for Element, nsINode
-#include "nsAString.h"            // for nsAString::IsEmpty
-#include "nsCOMPtr.h"             // for nsCOMPtr, operator==, etc.
-#include "nsCaseTreatment.h"
-#include "nsDebug.h"    // for NS_ASSERTION, etc.
-#include "nsError.h"    // for NS_SUCCEEDED
-#include "nsGkAtoms.h"  // for nsGkAtoms, nsGkAtoms::a, etc.
-#include "nsHTMLTags.h"
-#include "nsAtom.h"              // for nsAtom
-#include "nsNameSpaceManager.h"  // for kNameSpaceID_None
-#include "nsLiteralString.h"     // for NS_LITERAL_STRING
-#include "nsString.h"            // for nsAutoString
+#include "CSSEditUtils.h"  // for CSSEditUtils
+#include "WSRunObject.h"   // for WSRunScanner
+
+#include "mozilla/ArrayUtils.h"      // for ArrayLength
+#include "mozilla/Assertions.h"      // for MOZ_ASSERT, etc.
+#include "mozilla/EditAction.h"      // for EditAction
+#include "mozilla/EditorBase.h"      // for EditorBase, EditorType
+#include "mozilla/EditorDOMPoint.h"  // for EditorDOMPoint, etc.
+#include "mozilla/EditorUtils.h"     // for EditorUtils
+#include "mozilla/dom/Element.h"     // for Element, nsINode
 #include "mozilla/dom/HTMLAnchorElement.h"
+#include "mozilla/dom/Text.h"  // for Text
+
+#include "nsAString.h"  // for nsAString::IsEmpty
+#include "nsAtom.h"     // for nsAtom
+#include "nsCaseTreatment.h"
+#include "nsCOMPtr.h"        // for nsCOMPtr, operator==, etc.
+#include "nsDebug.h"         // for NS_ASSERTION, etc.
+#include "nsElementTable.h"  // for nsHTMLElement
+#include "nsError.h"         // for NS_SUCCEEDED
+#include "nsGkAtoms.h"       // for nsGkAtoms, nsGkAtoms::a, etc.
+#include "nsHTMLTags.h"
+#include "nsLiteralString.h"     // for NS_LITERAL_STRING
+#include "nsNameSpaceManager.h"  // for kNameSpaceID_None
+#include "nsString.h"            // for nsAutoString
+#include "nsStyledElement.h"
+#include "nsTextFragment.h"  // for nsTextFragment
 
 namespace mozilla {
+
+using namespace dom;
+using EditorType = EditorBase::EditorType;
+
+template EditorDOMPoint HTMLEditUtils::GetPreviousEditablePoint(
+    nsIContent& aContent, const Element* aAncestorLimiter,
+    InvisibleWhiteSpaces aInvisibleWhiteSpaces,
+    TableBoundary aHowToTreatTableBoundary);
+template EditorRawDOMPoint HTMLEditUtils::GetPreviousEditablePoint(
+    nsIContent& aContent, const Element* aAncestorLimiter,
+    InvisibleWhiteSpaces aInvisibleWhiteSpaces,
+    TableBoundary aHowToTreatTableBoundary);
+template EditorDOMPoint HTMLEditUtils::GetNextEditablePoint(
+    nsIContent& aContent, const Element* aAncestorLimiter,
+    InvisibleWhiteSpaces aInvisibleWhiteSpaces,
+    TableBoundary aHowToTreatTableBoundary);
+template EditorRawDOMPoint HTMLEditUtils::GetNextEditablePoint(
+    nsIContent& aContent, const Element* aAncestorLimiter,
+    InvisibleWhiteSpaces aInvisibleWhiteSpaces,
+    TableBoundary aHowToTreatTableBoundary);
+
+bool HTMLEditUtils::CanContentsBeJoined(const nsIContent& aLeftContent,
+                                        const nsIContent& aRightContent,
+                                        StyleDifference aStyleDifference) {
+  if (aLeftContent.NodeInfo()->NameAtom() !=
+      aRightContent.NodeInfo()->NameAtom()) {
+    return false;
+  }
+  if (aStyleDifference == StyleDifference::Ignore ||
+      !aLeftContent.IsElement()) {
+    return true;
+  }
+  if (aStyleDifference == StyleDifference::CompareIfSpanElements &&
+      !aLeftContent.IsHTMLElement(nsGkAtoms::span)) {
+    return true;
+  }
+  if (!aLeftContent.IsElement() || !aRightContent.IsElement()) {
+    return false;
+  }
+  nsStyledElement* leftStyledElement =
+      nsStyledElement::FromNode(const_cast<nsIContent*>(&aLeftContent));
+  if (!leftStyledElement) {
+    return false;
+  }
+  nsStyledElement* rightStyledElement =
+      nsStyledElement::FromNode(const_cast<nsIContent*>(&aRightContent));
+  if (!rightStyledElement) {
+    return false;
+  }
+  return CSSEditUtils::DoStyledElementsHaveSameStyle(*leftStyledElement,
+                                                     *rightStyledElement);
+}
+
+bool HTMLEditUtils::IsBlockElement(const nsIContent& aContent) {
+  if (!aContent.IsElement()) {
+    return false;
+  }
+  if (aContent.IsHTMLElement(nsGkAtoms::br)) {  // shortcut for TextEditor
+    MOZ_ASSERT(!nsHTMLElement::IsBlock(nsHTMLTags::AtomTagToId(nsGkAtoms::br)));
+    return false;
+  }
+  // We want to treat these as block nodes even though nsHTMLElement says
+  // they're not.
+  if (aContent.IsAnyOfHTMLElements(
+          nsGkAtoms::body, nsGkAtoms::head, nsGkAtoms::tbody, nsGkAtoms::thead,
+          nsGkAtoms::tfoot, nsGkAtoms::tr, nsGkAtoms::th, nsGkAtoms::td,
+          nsGkAtoms::dt, nsGkAtoms::dd)) {
+    return true;
+  }
+
+  return nsHTMLElement::IsBlock(
+      nsHTMLTags::AtomTagToId(aContent.NodeInfo()->NameAtom()));
+}
 
 /**
  * IsInlineStyle() returns true if aNode is an inline style.
@@ -103,9 +186,9 @@ bool HTMLEditUtils::IsListItem(nsINode* aNode) {
 }
 
 /**
- * IsTableElement() returns true if aNode is an html table, td, tr, ...
+ * IsAnyTableElement() returns true if aNode is an html table, td, tr, ...
  */
-bool HTMLEditUtils::IsTableElement(nsINode* aNode) {
+bool HTMLEditUtils::IsAnyTableElement(nsINode* aNode) {
   MOZ_ASSERT(aNode);
   return aNode->IsAnyOfHTMLElements(
       nsGkAtoms::table, nsGkAtoms::tr, nsGkAtoms::td, nsGkAtoms::th,
@@ -113,10 +196,10 @@ bool HTMLEditUtils::IsTableElement(nsINode* aNode) {
 }
 
 /**
- * IsTableElementButNotTable() returns true if aNode is an html td, tr, ...
+ * IsAnyTableElementButNotTable() returns true if aNode is an html td, tr, ...
  * (doesn't include table)
  */
-bool HTMLEditUtils::IsTableElementButNotTable(nsINode* aNode) {
+bool HTMLEditUtils::IsAnyTableElementButNotTable(nsINode* aNode) {
   MOZ_ASSERT(aNode);
   return aNode->IsAnyOfHTMLElements(nsGkAtoms::tr, nsGkAtoms::td, nsGkAtoms::th,
                                     nsGkAtoms::thead, nsGkAtoms::tfoot,
@@ -154,9 +237,9 @@ bool HTMLEditUtils::IsTableCellOrCaption(nsINode& aNode) {
 }
 
 /**
- * IsList() returns true if aNode is an html list.
+ * IsAnyListElement() returns true if aNode is an html list.
  */
-bool HTMLEditUtils::IsList(nsINode* aNode) {
+bool HTMLEditUtils::IsAnyListElement(nsINode* aNode) {
   MOZ_ASSERT(aNode);
   return aNode->IsAnyOfHTMLElements(nsGkAtoms::ul, nsGkAtoms::ol,
                                     nsGkAtoms::dl);
@@ -183,8 +266,8 @@ bool HTMLEditUtils::IsLink(nsINode* aNode) {
     return false;
   }
 
-  RefPtr<HTMLAnchorElement> anchor =
-      HTMLAnchorElement::FromNodeOrNull(aNode->AsContent());
+  RefPtr<dom::HTMLAnchorElement> anchor =
+      dom::HTMLAnchorElement::FromNodeOrNull(aNode->AsContent());
   if (!anchor) {
     return false;
   }
@@ -213,8 +296,7 @@ bool HTMLEditUtils::IsMozDiv(nsINode* aNode) {
   MOZ_ASSERT(aNode);
   return aNode->IsHTMLElement(nsGkAtoms::div) &&
          aNode->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
-                                         NS_LITERAL_STRING("_moz"),
-                                         eIgnoreCase);
+                                         u"_moz"_ns, eIgnoreCase);
 }
 
 /**
@@ -226,14 +308,14 @@ bool HTMLEditUtils::IsMailCite(nsINode* aNode) {
   // don't ask me why, but our html mailcites are id'd by "type=cite"...
   if (aNode->IsElement() &&
       aNode->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
-                                      NS_LITERAL_STRING("cite"), eIgnoreCase)) {
+                                      u"cite"_ns, eIgnoreCase)) {
     return true;
   }
 
   // ... but our plaintext mailcites by "_moz_quote=true".  go figure.
   if (aNode->IsElement() &&
       aNode->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::mozquote,
-                                      NS_LITERAL_STRING("true"), eIgnoreCase)) {
+                                      u"true"_ns, eIgnoreCase)) {
     return true;
   }
 
@@ -260,10 +342,10 @@ bool HTMLEditUtils::SupportsAlignAttr(nsINode& aNode) {
 }
 
 // We use bitmasks to test containment of elements. Elements are marked to be
-// in certain groups by setting the mGroup member of the nsElementInfo struct
+// in certain groups by setting the mGroup member of the `ElementInfo` struct
 // to the corresponding GROUP_ values (OR'ed together). Similarly, elements are
 // marked to allow containment of certain groups by setting the
-// mCanContainGroups member of the nsElementInfo struct to the corresponding
+// mCanContainGroups member of the `ElementInfo` struct to the corresponding
 // GROUP_ values (OR'ed together).
 // Testing containment then simply consists of checking whether the
 // mCanContainGroups bitmask of an element and the mGroup bitmask of a
@@ -333,7 +415,7 @@ bool HTMLEditUtils::SupportsAlignAttr(nsINode& aNode) {
 // p
 #define GROUP_P (1 << 19)
 
-// text, whitespace, newline, comment
+// text, white-space, newline, comment
 #define GROUP_LEAF (1 << 20)
 
 // XXX This is because the editor does sublists illegally.
@@ -359,7 +441,9 @@ struct ElementInfo final {
 #ifdef DEBUG
   nsHTMLTag mTag;
 #endif
+  // See `GROUP_NONE`'s comment.
   uint32_t mGroup;
+  // See `GROUP_NONE`'s comment.
   uint32_t mCanContainGroups;
   bool mIsContainer;
   bool mCanContainSelf;
@@ -457,7 +541,7 @@ static const ElementInfo kElements[eHTMLTag_userdefined] = {
     ELEM(legend, true, true, GROUP_NONE, GROUP_INLINE_ELEMENT),
     ELEM(li, true, false, GROUP_LI, GROUP_FLOW_ELEMENT),
     ELEM(link, false, false, GROUP_HEAD_CONTENT, GROUP_NONE),
-    ELEM(listing, false, false, GROUP_NONE, GROUP_NONE),
+    ELEM(listing, true, true, GROUP_BLOCK, GROUP_INLINE_ELEMENT),
     ELEM(main, true, true, GROUP_BLOCK, GROUP_FLOW_ELEMENT),
     ELEM(map, true, true, GROUP_SPECIAL, GROUP_BLOCK | GROUP_MAP_CONTENT),
     ELEM(mark, true, true, GROUP_PHRASE, GROUP_INLINE_ELEMENT),
@@ -525,7 +609,7 @@ static const ElementInfo kElements[eHTMLTag_userdefined] = {
     ELEM(var, true, true, GROUP_PHRASE, GROUP_INLINE_ELEMENT),
     ELEM(video, false, false, GROUP_NONE, GROUP_NONE),
     ELEM(wbr, false, false, GROUP_NONE, GROUP_NONE),
-    ELEM(xmp, false, false, GROUP_NONE, GROUP_NONE),
+    ELEM(xmp, true, false, GROUP_BLOCK, GROUP_NONE),
 
     // These aren't elements.
     ELEM(text, false, false, GROUP_LEAF, GROUP_NONE),
@@ -539,11 +623,14 @@ static const ElementInfo kElements[eHTMLTag_userdefined] = {
 
     ELEM(userdefined, true, false, GROUP_NONE, GROUP_FLOW_ELEMENT)};
 
-bool HTMLEditUtils::CanContain(int32_t aParent, int32_t aChild) {
-  NS_ASSERTION(aParent > eHTMLTag_unknown && aParent <= eHTMLTag_userdefined,
-               "aParent out of range!");
-  NS_ASSERTION(aChild > eHTMLTag_unknown && aChild <= eHTMLTag_userdefined,
-               "aChild out of range!");
+bool HTMLEditUtils::CanNodeContain(nsHTMLTag aParentTagId,
+                                   nsHTMLTag aChildTagId) {
+  NS_ASSERTION(
+      aParentTagId > eHTMLTag_unknown && aParentTagId <= eHTMLTag_userdefined,
+      "aParentTagId out of range!");
+  NS_ASSERTION(
+      aChildTagId > eHTMLTag_unknown && aChildTagId <= eHTMLTag_userdefined,
+      "aChildTagId out of range!");
 
 #ifdef DEBUG
   static bool checked = false;
@@ -558,43 +645,43 @@ bool HTMLEditUtils::CanContain(int32_t aParent, int32_t aChild) {
 #endif
 
   // Special-case button.
-  if (aParent == eHTMLTag_button) {
+  if (aParentTagId == eHTMLTag_button) {
     static const nsHTMLTag kButtonExcludeKids[] = {
         eHTMLTag_a,     eHTMLTag_fieldset, eHTMLTag_form,    eHTMLTag_iframe,
         eHTMLTag_input, eHTMLTag_select,   eHTMLTag_textarea};
 
     uint32_t j;
     for (j = 0; j < ArrayLength(kButtonExcludeKids); ++j) {
-      if (kButtonExcludeKids[j] == aChild) {
+      if (kButtonExcludeKids[j] == aChildTagId) {
         return false;
       }
     }
   }
 
   // Deprecated elements.
-  if (aChild == eHTMLTag_bgsound) {
+  if (aChildTagId == eHTMLTag_bgsound) {
     return false;
   }
 
   // Bug #67007, dont strip userdefined tags.
-  if (aChild == eHTMLTag_userdefined) {
+  if (aChildTagId == eHTMLTag_userdefined) {
     return true;
   }
 
-  const ElementInfo& parent = kElements[aParent - 1];
-  if (aParent == aChild) {
+  const ElementInfo& parent = kElements[aParentTagId - 1];
+  if (aParentTagId == aChildTagId) {
     return parent.mCanContainSelf;
   }
 
-  const ElementInfo& child = kElements[aChild - 1];
-  return (parent.mCanContainGroups & child.mGroup) != 0;
+  const ElementInfo& child = kElements[aChildTagId - 1];
+  return !!(parent.mCanContainGroups & child.mGroup);
 }
 
-bool HTMLEditUtils::IsContainer(int32_t aTag) {
-  NS_ASSERTION(aTag > eHTMLTag_unknown && aTag <= eHTMLTag_userdefined,
-               "aTag out of range!");
+bool HTMLEditUtils::IsContainerNode(nsHTMLTag aTagId) {
+  NS_ASSERTION(aTagId > eHTMLTag_unknown && aTagId <= eHTMLTag_userdefined,
+               "aTagId out of range!");
 
-  return kElements[aTag - 1].mIsContainer;
+  return kElements[aTagId - 1].mIsContainer;
 }
 
 bool HTMLEditUtils::IsNonListSingleLineContainer(nsINode& aNode) {
@@ -607,6 +694,262 @@ bool HTMLEditUtils::IsNonListSingleLineContainer(nsINode& aNode) {
 bool HTMLEditUtils::IsSingleLineContainer(nsINode& aNode) {
   return IsNonListSingleLineContainer(aNode) ||
          aNode.IsAnyOfHTMLElements(nsGkAtoms::li, nsGkAtoms::dt, nsGkAtoms::dd);
+}
+
+// static
+template <typename EditorDOMPointType>
+EditorDOMPointType HTMLEditUtils::GetPreviousEditablePoint(
+    nsIContent& aContent, const Element* aAncestorLimiter,
+    InvisibleWhiteSpaces aInvisibleWhiteSpaces,
+    TableBoundary aHowToTreatTableBoundary) {
+  MOZ_ASSERT(HTMLEditUtils::IsSimplyEditableNode(aContent));
+  NS_ASSERTION(!HTMLEditUtils::IsAnyTableElement(&aContent) ||
+                   HTMLEditUtils::IsTableCellOrCaption(aContent),
+               "HTMLEditUtils::GetPreviousEditablePoint() may return a point "
+               "between table structure elements");
+
+  // First, look for previous content.
+  nsIContent* previousContent = aContent.GetPreviousSibling();
+  if (!previousContent) {
+    if (!aContent.GetParentElement()) {
+      return EditorDOMPointType();
+    }
+    nsIContent* inclusiveAncestor = &aContent;
+    for (Element* parentElement : aContent.AncestorsOfType<Element>()) {
+      previousContent = parentElement->GetPreviousSibling();
+      if (!previousContent &&
+          (parentElement == aAncestorLimiter ||
+           !HTMLEditUtils::IsSimplyEditableNode(*parentElement) ||
+           !HTMLEditUtils::CanCrossContentBoundary(*parentElement,
+                                                   aHowToTreatTableBoundary))) {
+        // If cannot cross the parent element boundary, return the point of
+        // last inclusive ancestor point.
+        return EditorDOMPointType(inclusiveAncestor);
+      }
+
+      // Start of the parent element is a next editable point if it's an
+      // element which is not a table structure element.
+      if (!HTMLEditUtils::IsAnyTableElement(parentElement) ||
+          HTMLEditUtils::IsTableCellOrCaption(*parentElement)) {
+        inclusiveAncestor = parentElement;
+      }
+
+      if (!previousContent) {
+        continue;  // Keep looking for previous sibling of an ancestor.
+      }
+
+      // XXX Should we ignore data node like CDATA, Comment, etc?
+
+      // If previous content is not editable, let's return the point after it.
+      if (!HTMLEditUtils::IsSimplyEditableNode(*previousContent)) {
+        return EditorDOMPointType::After(*previousContent);
+      }
+
+      // If cannot cross previous content boundary, return start of last
+      // inclusive ancestor.
+      if (!HTMLEditUtils::CanCrossContentBoundary(*previousContent,
+                                                  aHowToTreatTableBoundary)) {
+        return inclusiveAncestor == &aContent
+                   ? EditorDOMPointType(inclusiveAncestor)
+                   : EditorDOMPointType(inclusiveAncestor, 0);
+      }
+      break;
+    }
+    if (!previousContent) {
+      return EditorDOMPointType(inclusiveAncestor);
+    }
+  } else if (!HTMLEditUtils::IsSimplyEditableNode(*previousContent)) {
+    return EditorDOMPointType::After(*previousContent);
+  } else if (!HTMLEditUtils::CanCrossContentBoundary(
+                 *previousContent, aHowToTreatTableBoundary)) {
+    return EditorDOMPointType(&aContent);
+  }
+
+  // Next, look for end of the previous content.
+  nsIContent* leafContent = previousContent;
+  if (previousContent->GetChildCount() &&
+      HTMLEditUtils::IsContainerNode(*previousContent)) {
+    for (nsIContent* maybeLeafContent = previousContent->GetLastChild();
+         maybeLeafContent;
+         maybeLeafContent = maybeLeafContent->GetLastChild()) {
+      // If it's not an editable content or cannot cross the boundary,
+      // return the point after the content.  Note that in this case,
+      // the content must not be any table elements except `<table>`
+      // because we've climbed down the tree.
+      if (!HTMLEditUtils::IsSimplyEditableNode(*maybeLeafContent) ||
+          !HTMLEditUtils::CanCrossContentBoundary(*maybeLeafContent,
+                                                  aHowToTreatTableBoundary)) {
+        return EditorDOMPointType::After(*maybeLeafContent);
+      }
+      leafContent = maybeLeafContent;
+      if (!HTMLEditUtils::IsContainerNode(*leafContent)) {
+        break;
+      }
+    }
+  }
+
+  if (leafContent->IsText()) {
+    Text* textNode = leafContent->AsText();
+    if (aInvisibleWhiteSpaces == InvisibleWhiteSpaces::Preserve) {
+      return EditorDOMPointType::AtEndOf(*textNode);
+    }
+    // There may be invisible trailing white-spaces which should be
+    // ignored.  Let's scan its start.
+    return WSRunScanner::GetAfterLastVisiblePoint<EditorDOMPointType>(
+        *textNode, aAncestorLimiter);
+  }
+
+  // If it's a container element, return end of it.  Otherwise, return
+  // the point after the non-container element.
+  return HTMLEditUtils::IsContainerNode(*leafContent)
+             ? EditorDOMPointType::AtEndOf(*leafContent)
+             : EditorDOMPointType::After(*leafContent);
+}
+
+// static
+template <typename EditorDOMPointType>
+EditorDOMPointType HTMLEditUtils::GetNextEditablePoint(
+    nsIContent& aContent, const Element* aAncestorLimiter,
+    InvisibleWhiteSpaces aInvisibleWhiteSpaces,
+    TableBoundary aHowToTreatTableBoundary) {
+  MOZ_ASSERT(HTMLEditUtils::IsSimplyEditableNode(aContent));
+  NS_ASSERTION(!HTMLEditUtils::IsAnyTableElement(&aContent) ||
+                   HTMLEditUtils::IsTableCellOrCaption(aContent),
+               "HTMLEditUtils::GetPreviousEditablePoint() may return a point "
+               "between table structure elements");
+
+  // First, look for next content.
+  nsIContent* nextContent = aContent.GetNextSibling();
+  if (!nextContent) {
+    if (!aContent.GetParentElement()) {
+      return EditorDOMPointType();
+    }
+    nsIContent* inclusiveAncestor = &aContent;
+    for (Element* parentElement : aContent.AncestorsOfType<Element>()) {
+      // End of the parent element is a next editable point if it's an
+      // element which is not a table structure element.
+      if (!HTMLEditUtils::IsAnyTableElement(parentElement) ||
+          HTMLEditUtils::IsTableCellOrCaption(*parentElement)) {
+        inclusiveAncestor = parentElement;
+      }
+
+      nextContent = parentElement->GetNextSibling();
+      if (!nextContent &&
+          (parentElement == aAncestorLimiter ||
+           !HTMLEditUtils::IsSimplyEditableNode(*parentElement) ||
+           !HTMLEditUtils::CanCrossContentBoundary(*parentElement,
+                                                   aHowToTreatTableBoundary))) {
+        // If cannot cross the parent element boundary, return the point of
+        // last inclusive ancestor point.
+        return EditorDOMPointType(inclusiveAncestor);
+      }
+
+      // End of the parent element is a next editable point if it's an
+      // element which is not a table structure element.
+      if (!HTMLEditUtils::IsAnyTableElement(parentElement) ||
+          HTMLEditUtils::IsTableCellOrCaption(*parentElement)) {
+        inclusiveAncestor = parentElement;
+      }
+
+      if (!nextContent) {
+        continue;  // Keep looking for next sibling of an ancestor.
+      }
+
+      // XXX Should we ignore data node like CDATA, Comment, etc?
+
+      // If next content is not editable, let's return the point after
+      // the last inclusive ancestor.
+      if (!HTMLEditUtils::IsSimplyEditableNode(*nextContent)) {
+        return EditorDOMPointType::After(*parentElement);
+      }
+
+      // If cannot cross next content boundary, return after the last
+      // inclusive ancestor.
+      if (!HTMLEditUtils::CanCrossContentBoundary(*nextContent,
+                                                  aHowToTreatTableBoundary)) {
+        return EditorDOMPointType::After(*inclusiveAncestor);
+      }
+      break;
+    }
+    if (!nextContent) {
+      return EditorDOMPointType::After(*inclusiveAncestor);
+    }
+  } else if (!HTMLEditUtils::IsSimplyEditableNode(*nextContent)) {
+    return EditorDOMPointType::After(aContent);
+  } else if (!HTMLEditUtils::CanCrossContentBoundary(
+                 *nextContent, aHowToTreatTableBoundary)) {
+    return EditorDOMPointType::After(aContent);
+  }
+
+  // Next, look for start of the next content.
+  nsIContent* leafContent = nextContent;
+  if (nextContent->GetChildCount() &&
+      HTMLEditUtils::IsContainerNode(*nextContent)) {
+    for (nsIContent* maybeLeafContent = nextContent->GetFirstChild();
+         maybeLeafContent;
+         maybeLeafContent = maybeLeafContent->GetFirstChild()) {
+      // If it's not an editable content or cannot cross the boundary,
+      // return the point at the content (i.e., start of its parent).  Note
+      // that in this case, the content must not be any table elements except
+      // `<table>` because we've climbed down the tree.
+      if (!HTMLEditUtils::IsSimplyEditableNode(*maybeLeafContent) ||
+          !HTMLEditUtils::CanCrossContentBoundary(*maybeLeafContent,
+                                                  aHowToTreatTableBoundary)) {
+        return EditorDOMPointType(maybeLeafContent);
+      }
+      leafContent = maybeLeafContent;
+      if (!HTMLEditUtils::IsContainerNode(*leafContent)) {
+        break;
+      }
+    }
+  }
+
+  if (leafContent->IsText()) {
+    Text* textNode = leafContent->AsText();
+    if (aInvisibleWhiteSpaces == InvisibleWhiteSpaces::Preserve) {
+      return EditorDOMPointType(textNode, 0);
+    }
+    // There may be invisible leading white-spaces which should be
+    // ignored.  Let's scan its start.
+    return WSRunScanner::GetFirstVisiblePoint<EditorDOMPointType>(
+        *textNode, aAncestorLimiter);
+  }
+
+  // If it's a container element, return start of it.  Otherwise, return
+  // the point at the non-container element (i.e., start of its parent).
+  return HTMLEditUtils::IsContainerNode(*leafContent)
+             ? EditorDOMPointType(leafContent, 0)
+             : EditorDOMPointType(leafContent);
+}
+
+// static
+Element*
+HTMLEditUtils::GetInclusiveAncestorEditableBlockElementOrInlineEditingHost(
+    nsIContent& aContent) {
+  MOZ_ASSERT(EditorUtils::IsEditableContent(aContent, EditorType::HTML));
+  Element* maybeInlineEditingHost = nullptr;
+  for (Element* element : aContent.InclusiveAncestorsOfType<Element>()) {
+    if (!EditorUtils::IsEditableContent(*element, EditorType::HTML)) {
+      return maybeInlineEditingHost;
+    }
+    if (HTMLEditUtils::IsBlockElement(*element)) {
+      return element;
+    }
+    maybeInlineEditingHost = element;
+  }
+  return maybeInlineEditingHost;
+}
+
+// static
+Element* HTMLEditUtils::GetClosestAncestorAnyListElement(
+    const nsIContent& aContent) {
+  for (Element* element : aContent.AncestorsOfType<Element>()) {
+    if (HTMLEditUtils::IsAnyListElement(element)) {
+      return element;
+    }
+  }
+
+  return nullptr;
 }
 
 EditAction HTMLEditUtils::GetEditActionForInsert(const nsAtom& aTagName) {

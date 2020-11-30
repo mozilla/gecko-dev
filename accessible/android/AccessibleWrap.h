@@ -7,8 +7,9 @@
 #define mozilla_a11y_AccessibleWrap_h_
 
 #include "Accessible.h"
-#include "GeneratedJNIWrappers.h"
 #include "mozilla/a11y/ProxyAccessible.h"
+#include "mozilla/java/GeckoBundleWrappers.h"
+#include "mozilla/java/SessionAccessibilityWrappers.h"
 #include "nsCOMPtr.h"
 
 namespace mozilla {
@@ -35,7 +36,7 @@ class AccessibleWrap : public Accessible {
 
   virtual bool GetSelectionBounds(int32_t* aStartOffset, int32_t* aEndOffset);
 
-  virtual void Pivot(int32_t aGranularity, bool aForward, bool aInclusive);
+  virtual void PivotTo(int32_t aGranularity, bool aForward, bool aInclusive);
 
   virtual void ExploreByTouch(float aX, float aY);
 

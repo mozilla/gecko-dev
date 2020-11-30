@@ -15,11 +15,12 @@ DevToolsModules(
     'initializer.js',
     'panel.js',
     'preference-management.js',
+    'symbolication.jsm.js',
+    'typescript-lazy-load.jsm.js',
     'utils.js',
 )
 
 BROWSER_CHROME_MANIFESTS += ['test/browser/browser.ini']
-MOCHITEST_CHROME_MANIFESTS += ['test/chrome/chrome.ini']
 XPCSHELL_TESTS_MANIFESTS += ['test/xpcshell/xpcshell.ini']
 
 with Files('**'):

@@ -19,7 +19,7 @@ function AboutPage(aboutHost, chromeURL, uriFlags) {
 }
 
 AboutPage.prototype = {
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIAboutModule]),
+  QueryInterface: ChromeUtils.generateQI(["nsIAboutModule"]),
   getURIFlags(aURI) {
     // eslint-disable-line no-unused-vars
     return this.uriFlags;
@@ -38,7 +38,7 @@ AboutPage.prototype = {
 
   createInstance(outer, iid) {
     if (outer !== null) {
-      throw Cr.NS_ERROR_NO_AGGREGATION;
+      throw Components.Exception("", Cr.NS_ERROR_NO_AGGREGATION);
     }
     return this.QueryInterface(iid);
   },

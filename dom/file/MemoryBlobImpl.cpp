@@ -37,9 +37,10 @@ already_AddRefed<MemoryBlobImpl> MemoryBlobImpl::CreateWithCustomLastModified(
 // static
 already_AddRefed<MemoryBlobImpl> MemoryBlobImpl::CreateWithLastModifiedNow(
     void* aMemoryBuffer, uint64_t aLength, const nsAString& aName,
-    const nsAString& aContentType) {
-  int64_t lastModificationDate =
-      nsRFPService::ReduceTimePrecisionAsUSecs(PR_Now(), 0);
+    const nsAString& aContentType, bool aCrossOriginIsolated) {
+  int64_t lastModificationDate = nsRFPService::ReduceTimePrecisionAsUSecs(
+      PR_Now(), 0,
+      /* aIsSystemPrincipal */ false, aCrossOriginIsolated);
   return CreateWithCustomLastModified(aMemoryBuffer, aLength, aName,
                                       aContentType, lastModificationDate);
 }
@@ -55,7 +56,7 @@ nsresult MemoryBlobImpl::DataOwnerAdapter::Create(DataOwner* aDataOwner,
 
   rv = NS_NewByteInputStream(
       getter_AddRefs(stream),
-      MakeSpan(static_cast<const char*>(aDataOwner->mData) + aStart, aLength),
+      Span(static_cast<const char*>(aDataOwner->mData) + aStart, aLength),
       NS_ASSIGNMENT_DEPEND);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -132,7 +133,7 @@ class MemoryBlobImplDataOwnerMemoryReporter final : public nsIMemoryReporter {
         }
 
         aHandleReport->Callback(
-            /* process */ NS_LITERAL_CSTRING(""),
+            /* process */ ""_ns,
             nsPrintfCString(
                 "explicit/dom/memory-file-data/large/file(length=%" PRIu64
                 ", sha1=%s)",
@@ -155,9 +156,8 @@ class MemoryBlobImplDataOwnerMemoryReporter final : public nsIMemoryReporter {
 
     if (smallObjectsTotal > 0) {
       aHandleReport->Callback(
-          /* process */ NS_LITERAL_CSTRING(""),
-          NS_LITERAL_CSTRING("explicit/dom/memory-file-data/small"), KIND_HEAP,
-          UNITS_BYTES, smallObjectsTotal,
+          /* process */ ""_ns, "explicit/dom/memory-file-data/small"_ns,
+          KIND_HEAP, UNITS_BYTES, smallObjectsTotal,
           nsPrintfCString(
               "Memory used to back small memory files (i.e. those taking up "
               "less "

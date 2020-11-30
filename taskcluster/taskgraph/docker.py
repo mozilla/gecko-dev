@@ -8,10 +8,10 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import json
 import os
+import six
 import tarfile
 from io import BytesIO
 
-from taskgraph.parameters import Parameters
 from taskgraph.optimize.strategies import IndexSearch
 from taskgraph.util import docker
 from taskgraph.util.taskcluster import (
@@ -23,12 +23,9 @@ from . import GECKO
 
 
 def load_image_by_name(image_name, tag=None):
-    params = Parameters(
-        level=os.environ.get('MOZ_SCM_LEVEL', '3'),
-        strict=False,
-    )
+    params = {'level': six.ensure_text(os.environ.get('MOZ_SCM_LEVEL', '3'))}
     tasks = load_tasks_for_kind(params, 'docker-image')
-    task = tasks['build-docker-image-{}'.format(image_name)]
+    task = tasks['docker-image-{}'.format(image_name)]
     task_id = IndexSearch().should_replace_task(
         task, {}, task.optimization.get('index-search', []))
 
@@ -68,7 +65,7 @@ def build_context(name, outputFile, args=None):
     if not os.path.isdir(image_dir):
         raise Exception('image directory does not exist: %s' % image_dir)
 
-    docker.create_context_tar(GECKO, image_dir, outputFile, "", args)
+    docker.create_context_tar(GECKO, image_dir, outputFile, image_name=name, args=args)
 
 
 def build_image(name, tag, args=None):
@@ -86,7 +83,7 @@ def build_image(name, tag, args=None):
     tag = tag or docker.docker_image(name, by_tag=True)
 
     buf = BytesIO()
-    docker.stream_context_tar(GECKO, image_dir, buf, '', args)
+    docker.stream_context_tar(GECKO, image_dir, buf, name, args)
     docker.post_to_docker(buf.getvalue(), '/build', nocache=1, t=tag)
 
     print('Successfully built %s and tagged with %s' % (name, tag))
@@ -156,10 +153,10 @@ def load_image(url, imageName=None, imageTag=None):
                     # here.
                     if len(repos.keys()) > 1:
                         raise Exception('file contains more than one image')
-                    info['image'] = image = repos.keys()[0]
+                    info['image'] = image = list(repos.keys())[0]
                     if len(repos[image].keys()) > 1:
                         raise Exception('file contains more than one tag')
-                    info['tag'] = tag = repos[image].keys()[0]
+                    info['tag'] = tag = list(repos[image].keys())[0]
                     info['layer'] = layer = repos[image][tag]
 
                     # Rewrite the repositories file

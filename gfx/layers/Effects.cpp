@@ -5,7 +5,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "Effects.h"
-#include "LayersLogging.h"  // for AppendToString
 #include "nsAString.h"
 #include "nsPrintfCString.h"  // for nsPrintfCString
 #include "nsString.h"         // for nsAutoCString
@@ -15,8 +14,8 @@ using namespace mozilla::layers;
 void TexturedEffect::PrintInfo(std::stringstream& aStream,
                                const char* aPrefix) {
   aStream << aPrefix;
-  aStream << nsPrintfCString("%s (0x%p)", Name(), this).get();
-  AppendToString(aStream, mTextureCoords, " [texture-coords=", "]");
+  aStream << nsPrintfCString("%s (0x%p)", Name(), this).get()
+          << " [texture-coords=" << mTextureCoords << "]";
 
   if (mPremultiplied) {
     aStream << " [premultiplied]";
@@ -24,14 +23,13 @@ void TexturedEffect::PrintInfo(std::stringstream& aStream,
     aStream << " [not-premultiplied]";
   }
 
-  AppendToString(aStream, mSamplingFilter, " [filter=", "]");
+  aStream << " [filter=" << mSamplingFilter << "]";
 }
 
 void EffectMask::PrintInfo(std::stringstream& aStream, const char* aPrefix) {
-  aStream << aPrefix;
-  aStream << nsPrintfCString("EffectMask (0x%p)", this).get();
-  AppendToString(aStream, mSize, " [size=", "]");
-  AppendToString(aStream, mMaskTransform, " [mask-transform=", "]");
+  aStream << aPrefix << nsPrintfCString("EffectMask (0x%p)", this).get()
+          << " [size=" << mSize << "]"
+          << " [mask-transform=" << mMaskTransform << "]";
 }
 
 void EffectRenderTarget::PrintInfo(std::stringstream& aStream,
@@ -59,6 +57,6 @@ void EffectBlendMode::PrintInfo(std::stringstream& aStream,
 void EffectColorMatrix::PrintInfo(std::stringstream& aStream,
                                   const char* aPrefix) {
   aStream << aPrefix;
-  aStream << nsPrintfCString("EffectColorMatrix (0x%p)", this).get();
-  AppendToString(aStream, mColorMatrix, " [matrix=", "]");
+  aStream << nsPrintfCString("EffectColorMatrix (0x%p)", this).get()
+          << " [matrix=" << mColorMatrix << "]";
 }

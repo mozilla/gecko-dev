@@ -13,13 +13,10 @@ if (CONFIG['OS_ARCH'] == 'WINNT' and CONFIG['CPU_ARCH'] != 'aarch64') or CONFIG[
 TEST_DIRS += [ 'tests' ]
 
 XPIDL_SOURCES += [
-    'nsIASN1Object.idl',
-    'nsIASN1PrintableItem.idl',
-    'nsIASN1Sequence.idl',
     'nsICertificateDialogs.idl',
     'nsICertOverrideService.idl',
     'nsIClientAuthDialogs.idl',
-    'nsIClientAuthRemember.idl',
+    'nsIClientAuthRememberService.idl',
     'nsIContentSignatureVerifier.idl',
     'nsICryptoHash.idl',
     'nsICryptoHMAC.idl',
@@ -73,6 +70,7 @@ EXPORTS += [
     'nsNSSComponent.h',
     'nsNSSHelper.h',
     'nsRandomGenerator.h',
+    'nsSecureBrowserUI.h',
     'nsSecurityHeaderParser.h',
     'NSSErrorsService.h',
     'nsSSLSocketProvider.h',
@@ -91,7 +89,7 @@ EXPORTS.mozilla += [
 ]
 
 EXPORTS.mozilla.psm += [
-    'PSMContentListener.h',
+    'PSMIPCCommon.h',
     'TransportSecurityInfo.h',
     'VerifySSLServerCertChild.h',
     'VerifySSLServerCertParent.h',
@@ -113,13 +111,11 @@ UNIFIED_SOURCES += [
     'nsClientAuthRemember.cpp',
     'nsCryptoHash.cpp',
     'nsKeyModule.cpp',
-    'nsNSSASN1Object.cpp',
     'nsNSSCallbacks.cpp',
     'nsNSSCertHelper.cpp',
     'nsNSSCertificate.cpp',
     'nsNSSCertificateDB.cpp',
     'nsNSSCertTrust.cpp',
-    'nsNSSCertValidity.cpp',
     'nsNSSComponent.cpp',
     'nsNSSIOLayer.cpp',
     'nsNSSModule.cpp',
@@ -130,7 +126,7 @@ UNIFIED_SOURCES += [
     'nsPKCS12Blob.cpp',
     'nsProtectedAuthThread.cpp',
     'nsRandomGenerator.cpp',
-    'nsSecureBrowserUIImpl.cpp',
+    'nsSecureBrowserUI.cpp',
     'nsSecurityHeaderParser.cpp',
     'NSSErrorsService.cpp',
     'nsSiteSecurityService.cpp',
@@ -139,7 +135,7 @@ UNIFIED_SOURCES += [
     'nsTLSSocketProvider.cpp',
     'OSKeyStore.cpp',
     'PKCS11ModuleDB.cpp',
-    'PSMContentListener.cpp',
+    'PSMIPCCommon.cpp',
     'PSMRunnable.cpp',
     'PublicKeyPinningService.cpp',
     'RootCertificateTelemetryUtils.cpp',
@@ -149,6 +145,7 @@ UNIFIED_SOURCES += [
     'TransportSecurityInfo.cpp',
     'VerifySSLServerCertChild.cpp',
     'VerifySSLServerCertParent.cpp',
+    'X509CertValidity.cpp',
 ]
 
 if CONFIG['OS_ARCH'] == 'WINNT':
@@ -189,7 +186,6 @@ if CONFIG['OS_ARCH'] == 'WINNT':
     ]
 
 IPDL_SOURCES += [
-    'PPSMContentDownloader.ipdl',
     'PSMIPCTypes.ipdlh',
     'PVerifySSLServerCert.ipdl',
 ]
@@ -231,7 +227,7 @@ LOCAL_INCLUDES += [
     '!/dist/public/nss',
 ]
 
-GeneratedFile('nsSTSPreloadList.h',
+GeneratedFile('nsSTSPreloadListGenerated.inc',
               script='../../../xpcom/ds/tools/make_dafsa.py',
               inputs=['nsSTSPreloadList.inc'])
 

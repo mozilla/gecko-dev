@@ -5,75 +5,71 @@
  /*
  * The current layout of a service worker item is
  *
- *  +----------------------------+----------------+
- *  | Service worker scope       | Unregister_btn |
- *  +---+----------+-------------+----------------|
- *  |     "Source" | script_name debug_link       |
-    |              | "Updated" update_time        |
- *  |--------------+-------------+----------------|
- *  |     "Status" | status start_button          |
- *  +---+----------+-------------+----------------|
+ *  +------------+------------------------------+
+ *  |     Worker | script_name                  |
+ *  |     Icon   |------------------------------|
+ *  |            | status    start_button       |
+ *  +------------+------------------------------+
  */
 
 .worker {
   display: grid;
-  grid-template-rows: auto auto auto;
   grid-template-columns: auto 1fr;
-  width: 100%;
-  grid-column-gap: 0;
-  padding: 1rem 0;
-  line-height: 1.5;
+  grid-template-areas: "icon  source"
+                       "icon  misc";
+  column-gap: calc(var(--base-unit) * 2);
+  row-gap: var(--base-unit);
+
+  line-height: calc(var(--base-unit) * 4);
   font-size: var(--body-10-font-size);
 }
 
-.worker:first-child {
-  padding-top: 0;
+.worker__icon {
+  grid-area: icon;
 }
 
-.worker:not(:last-child) {
-  border-bottom: 1px solid var(--separator-color);
+.worker__icon-image {
+  width: calc(var(--base-unit) * 4);
+  height: calc(var(--base-unit) * 4);
 }
 
-.worker__header {
-  grid-column: 1/3;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-column-gap: 2rem;
-  align-items: center;
-}
-
-.worker__scope {
-  font-weight: bold;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-.worker__scope,
-.worker__source-url {
+.worker__source {
+  grid-area: source;
   user-select: text;
 }
 
-.worker__meta-name {
-  color: var(--grey-50);
-  padding-inline-start: 4.5rem;
+.worker__misc {
+  grid-area: misc;
 }
 
-.worker__data {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-gap: 1rem;
+.worker__status {
+  text-transform: capitalize;
+  --status-bg-color: transparent;
+  --status-border-color: transparent;
 }
 
-.worker__data > * {
-  margin: 0;
+.worker__status::before {
+  content: "";
+  margin-inline-end: var(--base-unit);
+  width: calc(var(--base-unit) * 2);
+  height: calc(var(--base-unit) * 2);
+  display: inline-block;
+  background: var(--status-bg-color);
+  border: 1px solid var(--status-border-color);
+  border-radius: 100%;
 }
 
-.worker__data__updated {
-  color: var(--theme-text-color-alt);
+.worker__status--active {
+  --status-bg-color: var(--green-60);
+  --status-border-color: var(--green-60);
 }
 
-.worker__link-start,
-.worker__link-debug {
-  margin: 0 calc(var(--base-unit) * 2);
+.worker__status--waiting {
+  --status-bg-color: var(--theme-text-color-alt);
+  --status-border-color: var(--theme-text-color-alt);
+}
+
+.worker__status--installing, .worker__status--default {
+  --status-bg-color: transparent;
+  --status-border-color: var(--theme-text-color-alt);
 }

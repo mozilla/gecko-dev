@@ -27,9 +27,9 @@ using namespace mozilla::a11y;
  * String versions of consumer flags. See GetHumanReadableConsumersStr.
  */
 static const wchar_t* ConsumerStringMap[CONSUMERS_ENUM_LEN + 1] = {
-    L"NVDA",    L"JAWS",         L"OLDJAWS",  L"WE",       L"DOLPHIN",
-    L"SEROTEK", L"COBRA",        L"ZOOMTEXT", L"KAZAGURU", L"YOUDAO",
-    L"UNKNOWN", L"UIAUTOMATION", L"\0"};
+    L"NVDA",    L"JAWS",         L"OLDJAWS",       L"WE",       L"DOLPHIN",
+    L"SEROTEK", L"COBRA",        L"ZOOMTEXT",      L"KAZAGURU", L"YOUDAO",
+    L"UNKNOWN", L"UIAUTOMATION", L"VISPEROSHARED", L"\0"};
 
 bool Compatibility::IsModuleVersionLessThan(HMODULE aModuleHandle,
                                             unsigned long long aVersion) {
@@ -165,6 +165,10 @@ void Compatibility::InitConsumers() {
       ::GetModuleHandleW(L"uiautomationcore"))
     sConsumers |= UIAUTOMATION;
 
+  if (::GetModuleHandleW(L"AccEventCache")) {
+    sConsumers |= VISPEROSHARED;
+  }
+
   // If we have a known consumer remove the unknown bit.
   if (sConsumers != Compatibility::UNKNOWN)
     sConsumers &= ~Compatibility::UNKNOWN;
@@ -282,7 +286,7 @@ static bool IsSystemOleAcc(nsCOMPtr<nsIFile>& aFile) {
     return false;
   }
 
-  rv = oleAcc->Append(NS_LITERAL_STRING("oleacc.dll"));
+  rv = oleAcc->Append(u"oleacc.dll"_ns);
   if (NS_FAILED(rv)) {
     return false;
   }
@@ -295,12 +299,12 @@ static bool IsSystemOleAcc(nsCOMPtr<nsIFile>& aFile) {
 static bool IsTypelibPreferred() {
   // If IAccessible's Proxy/Stub CLSID is kUniversalMarshalerClsid, then any
   // external a11y clients are expecting to use a typelib.
-  NS_NAMED_LITERAL_STRING(kUniversalMarshalerClsid,
-                          "{00020424-0000-0000-C000-000000000046}");
+  constexpr auto kUniversalMarshalerClsid =
+      u"{00020424-0000-0000-C000-000000000046}"_ns;
 
-  NS_NAMED_LITERAL_STRING(
-      kIAccessiblePSClsidPath,
-      "Interface\\{618736E0-3C3D-11CF-810C-00AA00389B71}\\ProxyStubClsid32");
+  constexpr auto kIAccessiblePSClsidPath =
+      "Interface\\{618736E0-3C3D-11CF-810C-00AA00389B71}"
+      u"\\ProxyStubClsid32"_ns;
 
   nsAutoString psClsid;
   if (!ReadCOMRegDefaultString(kIAccessiblePSClsidPath, psClsid)) {
@@ -308,15 +312,14 @@ static bool IsTypelibPreferred() {
   }
 
   return psClsid.Equals(kUniversalMarshalerClsid,
-                        nsCaseInsensitiveStringComparator());
+                        nsCaseInsensitiveStringComparator);
 }
 
 static bool IsIAccessibleTypelibRegistered() {
   // The system default IAccessible typelib is always registered with version
   // 1.1, under the neutral locale (LCID 0).
-  NS_NAMED_LITERAL_STRING(
-      kIAccessibleTypelibRegPath,
-      "TypeLib\\{1EA4DBF0-3C3B-11CF-810C-00AA00389B71}\\1.1\\0\\win32");
+  constexpr auto kIAccessibleTypelibRegPath =
+      u"TypeLib\\{1EA4DBF0-3C3B-11CF-810C-00AA00389B71}\\1.1\\0\\win32"_ns;
 
   nsAutoString typelibPath;
   if (!ReadCOMRegDefaultString(kIAccessibleTypelibRegPath, typelibPath)) {
@@ -334,9 +337,8 @@ static bool IsIAccessibleTypelibRegistered() {
 }
 
 static bool IsIAccessiblePSRegistered() {
-  NS_NAMED_LITERAL_STRING(
-      kIAccessiblePSRegPath,
-      "CLSID\\{03022430-ABC4-11D0-BDE2-00AA001A1953}\\InProcServer32");
+  constexpr auto kIAccessiblePSRegPath =
+      u"CLSID\\{03022430-ABC4-11D0-BDE2-00AA001A1953}\\InProcServer32"_ns;
 
   nsAutoString proxyStubPath;
   if (!ReadCOMRegDefaultString(kIAccessiblePSRegPath, proxyStubPath)) {
@@ -369,8 +371,7 @@ static bool UseIAccessibleProxyStub() {
   // IAccessible configuration in the computer's registry. Let's annotate this
   // so that we can easily determine this condition during crash analysis.
   CrashReporter::AnnotateCrashReport(
-      CrashReporter::Annotation::IAccessibleConfig,
-      NS_LITERAL_CSTRING("NoSystemTypeLibOrPS"));
+      CrashReporter::Annotation::IAccessibleConfig, "NoSystemTypeLibOrPS"_ns);
   return false;
 }
 

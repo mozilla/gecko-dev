@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/HTMLEditor.h"
+#include "HTMLEditor.h"
 
 #include <math.h>
 
@@ -11,6 +11,7 @@
 #include "mozilla/EditAction.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
+#include "mozilla/dom/AncestorIterator.h"
 #include "mozilla/dom/Selection.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/EventTarget.h"
@@ -32,6 +33,7 @@
 #include "nsReadableUtils.h"
 #include "nsString.h"
 #include "nsStringFwd.h"
+#include "nsStyledElement.h"
 #include "nscore.h"
 #include <algorithm>
 
@@ -46,19 +48,22 @@ nsresult HTMLEditor::SetSelectionToAbsoluteOrStaticAsAction(
   AutoEditActionDataSetter editActionData(
       *this, EditAction::eSetPositionToAbsoluteOrStatic, aPrincipal);
   nsresult rv = editActionData.CanHandleAndMaybeDispatchBeforeInputEvent();
-  if (rv == NS_ERROR_EDITOR_ACTION_CANCELED || NS_WARN_IF(NS_FAILED(rv))) {
+  if (NS_FAILED(rv)) {
+    NS_WARNING_ASSERTION(rv == NS_ERROR_EDITOR_ACTION_CANCELED,
+                         "CanHandleAndMaybeDispatchBeforeInputEvent(), failed");
     return rv;
   }
 
   if (aEnabled) {
     EditActionResult result = SetSelectionToAbsoluteAsSubAction();
-    NS_WARNING_ASSERTION(result.Succeeded(),
-                         "SetSelectionToAbsoluteAsSubAction() failed");
+    NS_WARNING_ASSERTION(
+        result.Succeeded(),
+        "HTMLEditor::SetSelectionToAbsoluteAsSubAction() failed");
     return result.Rv();
   }
   EditActionResult result = SetSelectionToStaticAsSubAction();
   NS_WARNING_ASSERTION(result.Succeeded(),
-                       "SetSelectionToStaticAsSubAction() failed");
+                       "HTMLEditor::SetSelectionToStaticAsSubAction() failed");
   return result.Rv();
 }
 
@@ -69,58 +74,94 @@ HTMLEditor::GetAbsolutelyPositionedSelectionContainer() const {
     return nullptr;
   }
 
-  RefPtr<Element> element = GetSelectionContainerElement();
-  if (NS_WARN_IF(!element)) {
+  Element* selectionContainerElement = GetSelectionContainerElement();
+  if (NS_WARN_IF(!selectionContainerElement)) {
     return nullptr;
   }
 
-  nsAutoString positionStr;
-  while (element && !element->IsHTMLElement(nsGkAtoms::html)) {
-    nsresult rv = CSSEditUtils::GetComputedProperty(
-        *element, *nsGkAtoms::position, positionStr);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
+  AutoTArray<RefPtr<Element>, 24> arrayOfParentElements;
+  for (Element* element :
+       selectionContainerElement->InclusiveAncestorsOfType<Element>()) {
+    arrayOfParentElements.AppendElement(element);
+  }
+
+  nsAutoString positionValue;
+  for (RefPtr<Element> element = selectionContainerElement; element;
+       element = element->GetParentElement()) {
+    if (element->IsHTMLElement(nsGkAtoms::html)) {
+      NS_WARNING(
+          "HTMLEditor::GetAbsolutelyPositionedSelectionContainer() reached "
+          "<html> element");
       return nullptr;
     }
-    if (positionStr.EqualsLiteral("absolute")) {
+    nsCOMPtr<nsINode> parentNode = element->GetParentNode();
+    nsresult rv = CSSEditUtils::GetComputedProperty(
+        MOZ_KnownLive(*element), *nsGkAtoms::position, positionValue);
+    if (NS_FAILED(rv)) {
+      NS_WARNING(
+          "CSSEditUtils::GetComputedProperty(nsGkAtoms::position) failed");
+      return nullptr;
+    }
+    if (NS_WARN_IF(Destroyed()) ||
+        NS_WARN_IF(parentNode != element->GetParentNode())) {
+      return nullptr;
+    }
+    if (positionValue.EqualsLiteral("absolute")) {
       return element.forget();
     }
-    element = element->GetParentElement();
   }
   return nullptr;
 }
 
-NS_IMETHODIMP
-HTMLEditor::GetAbsolutePositioningEnabled(bool* aIsEnabled) {
+NS_IMETHODIMP HTMLEditor::GetAbsolutePositioningEnabled(bool* aIsEnabled) {
   *aIsEnabled = IsAbsolutePositionEditorEnabled();
   return NS_OK;
 }
 
-NS_IMETHODIMP
-HTMLEditor::SetAbsolutePositioningEnabled(bool aIsEnabled) {
+NS_IMETHODIMP HTMLEditor::SetAbsolutePositioningEnabled(bool aIsEnabled) {
   EnableAbsolutePositionEditor(aIsEnabled);
   return NS_OK;
 }
 
-nsresult HTMLEditor::RelativeChangeElementZIndex(Element& aElement,
-                                                 int32_t aChange,
-                                                 int32_t* aReturn) {
-  NS_ENSURE_ARG_POINTER(aReturn);
-  if (!aChange)  // early way out, no change
-    return NS_OK;
+Result<int32_t, nsresult> HTMLEditor::AddZIndexWithTransaction(
+    nsStyledElement& aStyledElement, int32_t aChange) {
+  if (!aChange) {
+    return 0;  // XXX Why don't we return current z-index value in this case?
+  }
 
-  int32_t zIndex = GetZIndex(aElement);
+  int32_t zIndex = GetZIndex(aStyledElement);
+  if (NS_WARN_IF(Destroyed())) {
+    return Err(NS_ERROR_EDITOR_DESTROYED);
+  }
   zIndex = std::max(zIndex + aChange, 0);
-  SetZIndex(aElement, zIndex);
-  *aReturn = zIndex;
-
-  return NS_OK;
+  nsresult rv = SetZIndexWithTransaction(aStyledElement, zIndex);
+  if (rv == NS_ERROR_EDITOR_DESTROYED) {
+    NS_WARNING("HTMLEditor::SetZIndexWithTransaction() destroyed the editor");
+    return Err(NS_ERROR_EDITOR_DESTROYED);
+  }
+  NS_WARNING_ASSERTION(
+      NS_SUCCEEDED(rv),
+      "HTMLEditor::SetZIndexWithTransaction() failed, but ignored");
+  return zIndex;
 }
 
-void HTMLEditor::SetZIndex(Element& aElement, int32_t aZindex) {
-  nsAutoString zIndexStr;
-  zIndexStr.AppendInt(aZindex);
+nsresult HTMLEditor::SetZIndexWithTransaction(nsStyledElement& aStyledElement,
+                                              int32_t aZIndex) {
+  nsAutoString zIndexValue;
+  zIndexValue.AppendInt(aZIndex);
 
-  mCSSEditUtils->SetCSSProperty(aElement, *nsGkAtoms::z_index, zIndexStr);
+  nsresult rv = mCSSEditUtils->SetCSSPropertyWithTransaction(
+      aStyledElement, *nsGkAtoms::z_index, zIndexValue);
+  if (rv == NS_ERROR_EDITOR_DESTROYED) {
+    NS_WARNING(
+        "CSSEditUtils::SetCSSPropertyWithTransaction(nsGkAtoms::z_index) "
+        "destroyed the editor");
+    return NS_ERROR_EDITOR_DESTROYED;
+  }
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                       "CSSEditUtils::SetCSSPropertyWithTransaction(nsGkAtoms::"
+                       "z_index) failed, but ignored");
+  return NS_OK;
 }
 
 nsresult HTMLEditor::AddZIndexAsAction(int32_t aChange,
@@ -130,12 +171,15 @@ nsresult HTMLEditor::AddZIndexAsAction(int32_t aChange,
   AutoEditActionDataSetter editActionData(
       *this, EditAction::eIncreaseOrDecreaseZIndex, aPrincipal);
   nsresult rv = editActionData.CanHandleAndMaybeDispatchBeforeInputEvent();
-  if (rv == NS_ERROR_EDITOR_ACTION_CANCELED || NS_WARN_IF(NS_FAILED(rv))) {
+  if (NS_FAILED(rv)) {
+    NS_WARNING_ASSERTION(rv == NS_ERROR_EDITOR_ACTION_CANCELED,
+                         "CanHandleAndMaybeDispatchBeforeInputEvent(), failed");
     return EditorBase::ToGenericNSResult(rv);
   }
 
   EditActionResult result = AddZIndexAsSubAction(aChange);
-  NS_WARNING_ASSERTION(result.Succeeded(), "AddZIndexAsSubAction() failed");
+  NS_WARNING_ASSERTION(result.Succeeded(),
+                       "HTMLEditor::AddZIndexAsSubAction() failed");
   return EditorBase::ToGenericNSResult(result.Rv());
 }
 
@@ -145,44 +189,70 @@ int32_t HTMLEditor::GetZIndex(Element& aElement) {
     return 0;
   }
 
-  nsAutoString zIndexStr;
+  nsAutoString zIndexValue;
 
   nsresult rv = CSSEditUtils::GetSpecifiedProperty(
-      aElement, *nsGkAtoms::z_index, zIndexStr);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
+      aElement, *nsGkAtoms::z_index, zIndexValue);
+  if (NS_FAILED(rv)) {
+    NS_WARNING("CSSEditUtils::GetSpecifiedProperty(nsGkAtoms::z_index) failed");
     return 0;
   }
-  if (zIndexStr.EqualsLiteral("auto")) {
+  if (zIndexValue.EqualsLiteral("auto")) {
+    if (!aElement.GetParentElement()) {
+      NS_WARNING("aElement was an orphan node or the root node");
+      return 0;
+    }
     // we have to look at the positioned ancestors
     // cf. CSS 2 spec section 9.9.1
-    nsCOMPtr<nsINode> node = aElement.GetParentNode();
-    nsAutoString positionStr;
-    while (node && zIndexStr.EqualsLiteral("auto") &&
-           !node->IsHTMLElement(nsGkAtoms::body)) {
-      rv = CSSEditUtils::GetComputedProperty(*node, *nsGkAtoms::position,
-                                             positionStr);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
+    nsAutoString positionValue;
+    for (RefPtr<Element> element = aElement.GetParentElement(); element;
+         element = element->GetParentElement()) {
+      if (element->IsHTMLElement(nsGkAtoms::body)) {
         return 0;
       }
-      if (positionStr.EqualsLiteral("absolute")) {
-        // ah, we found one, what's its z-index ? If its z-index is auto,
-        // we have to continue climbing the document's tree
-        rv = CSSEditUtils::GetComputedProperty(*node, *nsGkAtoms::z_index,
-                                               zIndexStr);
-        if (NS_WARN_IF(NS_FAILED(rv))) {
-          return 0;
-        }
+      nsCOMPtr<nsINode> parentNode = element->GetParentElement();
+      nsresult rv = CSSEditUtils::GetComputedProperty(
+          *element, *nsGkAtoms::position, positionValue);
+      if (NS_FAILED(rv)) {
+        NS_WARNING(
+            "CSSEditUtils::GetComputedProperty(nsGkAtoms::position) failed");
+        return 0;
       }
-      node = node->GetParentNode();
+      if (NS_WARN_IF(Destroyed()) ||
+          NS_WARN_IF(parentNode != element->GetParentNode())) {
+        return 0;
+      }
+      if (!positionValue.EqualsLiteral("absolute")) {
+        continue;
+      }
+      // ah, we found one, what's its z-index ? If its z-index is auto,
+      // we have to continue climbing the document's tree
+      rv = CSSEditUtils::GetComputedProperty(*element, *nsGkAtoms::z_index,
+                                             zIndexValue);
+      if (NS_FAILED(rv)) {
+        NS_WARNING(
+            "CSSEditUtils::GetComputedProperty(nsGkAtoms::z_index) failed");
+        return 0;
+      }
+      if (NS_WARN_IF(Destroyed()) ||
+          NS_WARN_IF(parentNode != element->GetParentNode())) {
+        return 0;
+      }
+      if (!zIndexValue.EqualsLiteral("auto")) {
+        break;
+      }
     }
   }
 
-  if (zIndexStr.EqualsLiteral("auto")) {
+  if (zIndexValue.EqualsLiteral("auto")) {
     return 0;
   }
 
-  nsresult errorCode;
-  return zIndexStr.ToInteger(&errorCode);
+  nsresult rvIgnored;
+  int32_t result = zIndexValue.ToInteger(&rvIgnored);
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
+                       "nsAString::ToInteger() failed, but ignored");
+  return result;
 }
 
 bool HTMLEditor::CreateGrabberInternal(nsIContent& aParentContent) {
@@ -191,25 +261,26 @@ bool HTMLEditor::CreateGrabberInternal(nsIContent& aParentContent) {
   }
 
   mGrabber = CreateAnonymousElement(nsGkAtoms::span, aParentContent,
-                                    NS_LITERAL_STRING("mozGrabber"), false);
+                                    u"mozGrabber"_ns, false);
 
   // mGrabber may be destroyed during creation due to there may be
   // mutation event listener.
-  if (NS_WARN_IF(!mGrabber)) {
+  if (!mGrabber) {
+    NS_WARNING(
+        "HTMLEditor::CreateAnonymousElement(nsGkAtoms::span, mozGrabber) "
+        "failed");
     return false;
   }
 
   EventListenerManager* eventListenerManager =
       mGrabber->GetOrCreateListenerManager();
   eventListenerManager->AddEventListenerByType(
-      mEventListener, NS_LITERAL_STRING("mousedown"),
-      TrustedEventsAtSystemGroupBubble());
+      mEventListener, u"mousedown"_ns, TrustedEventsAtSystemGroupBubble());
   MOZ_ASSERT(mGrabber);
   return true;
 }
 
-NS_IMETHODIMP
-HTMLEditor::RefreshGrabber() {
+NS_IMETHODIMP HTMLEditor::RefreshGrabber() {
   if (NS_WARN_IF(!mAbsolutelyPositionedObject)) {
     return NS_ERROR_FAILURE;
   }
@@ -220,28 +291,45 @@ HTMLEditor::RefreshGrabber() {
   }
 
   nsresult rv = RefreshGrabberInternal();
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return EditorBase::ToGenericNSResult(rv);
-  }
-  return NS_OK;
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                       "HTMLEditor::RefreshGrabberInternal() failed");
+  return EditorBase::ToGenericNSResult(rv);
 }
 
 nsresult HTMLEditor::RefreshGrabberInternal() {
   if (!mAbsolutelyPositionedObject) {
     return NS_OK;
   }
+  OwningNonNull<Element> absolutelyPositionedObject =
+      *mAbsolutelyPositionedObject;
   nsresult rv = GetPositionAndDimensions(
-      *mAbsolutelyPositionedObject, mPositionedObjectX, mPositionedObjectY,
+      absolutelyPositionedObject, mPositionedObjectX, mPositionedObjectY,
       mPositionedObjectWidth, mPositionedObjectHeight,
       mPositionedObjectBorderLeft, mPositionedObjectBorderTop,
       mPositionedObjectMarginLeft, mPositionedObjectMarginTop);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
+  if (NS_FAILED(rv)) {
+    NS_WARNING("HTMLEditor::GetPositionAndDimensions() failed");
     return rv;
   }
+  if (NS_WARN_IF(absolutelyPositionedObject != mAbsolutelyPositionedObject)) {
+    return NS_ERROR_FAILURE;
+  }
 
-  RefPtr<Element> grabber = mGrabber.get();
-  SetAnonymousElementPosition(mPositionedObjectX + 12, mPositionedObjectY - 14,
-                              grabber);
+  RefPtr<nsStyledElement> grabberStyledElement =
+      nsStyledElement::FromNodeOrNull(mGrabber.get());
+  if (!grabberStyledElement) {
+    return NS_OK;
+  }
+  rv = SetAnonymousElementPositionWithoutTransaction(
+      *grabberStyledElement, mPositionedObjectX + 12, mPositionedObjectY - 14);
+  if (NS_FAILED(rv)) {
+    NS_WARNING(
+        "HTMLEditor::SetAnonymousElementPositionWithoutTransaction() failed");
+    return rv;
+  }
+  if (NS_WARN_IF(grabberStyledElement != mGrabber.get())) {
+    return NS_ERROR_FAILURE;
+  }
   return NS_OK;
 }
 
@@ -257,9 +345,26 @@ void HTMLEditor::HideGrabberInternal() {
   ManualNACPtr grabber = std::move(mGrabber);
   ManualNACPtr positioningShadow = std::move(mPositioningShadow);
 
+  // If we're still in dragging mode, it means that the dragging is canceled
+  // by the web app.
+  if (mGrabberClicked || mIsMoving) {
+    mGrabberClicked = false;
+    mIsMoving = false;
+    if (mEventListener) {
+      DebugOnly<nsresult> rvIgnored =
+          static_cast<HTMLEditorEventListener*>(mEventListener.get())
+              ->ListenToMouseMoveEventForGrabber(false);
+      NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
+                           "HTMLEditorEventListener::"
+                           "ListenToMouseMoveEventForGrabber(false) failed");
+    }
+  }
+
   DebugOnly<nsresult> rv = absolutePositioningObject->UnsetAttr(
       kNameSpaceID_None, nsGkAtoms::_moz_abspos, true);
-  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Failed to unset the attribute");
+  NS_WARNING_ASSERTION(
+      NS_SUCCEEDED(rv),
+      "Element::UnsetAttr(nsGkAtoms::_moz_abspos) failed, but ignored");
 
   // We allow the pres shell to be null; when it is, we presume there
   // are no document observers to notify, but we still want to
@@ -285,20 +390,28 @@ nsresult HTMLEditor::ShowGrabberInternal(Element& aElement) {
   nsAutoString classValue;
   nsresult rv =
       GetTemporaryStyleForFocusedPositionedElement(aElement, classValue);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) {
+    NS_WARNING(
+        "HTMLEditor::GetTemporaryStyleForFocusedPositionedElement() failed");
+    return rv;
+  }
 
   rv = aElement.SetAttr(kNameSpaceID_None, nsGkAtoms::_moz_abspos, classValue,
                         true);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Element::SetAttr(nsGkAtoms::_moz_abspos) failed");
+    return rv;
+  }
 
   mAbsolutelyPositionedObject = &aElement;
 
-  nsIContent* parentContent = aElement.GetParent();
-  if (NS_WARN_IF(!parentContent)) {
+  Element* parentElement = aElement.GetParentElement();
+  if (NS_WARN_IF(!parentElement)) {
     return NS_ERROR_FAILURE;
   }
 
-  if (NS_WARN_IF(!CreateGrabberInternal(*parentContent))) {
+  if (!CreateGrabberInternal(*parentElement)) {
+    NS_WARNING("HTMLEditor::CreateGrabberInternal() failed");
     return NS_ERROR_FAILURE;
   }
 
@@ -308,23 +421,28 @@ nsresult HTMLEditor::ShowGrabberInternal(Element& aElement) {
 
   // Finally, move the grabber to proper position.
   rv = RefreshGrabberInternal();
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-  return NS_OK;
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                       "HTMLEditor::RefereshGrabberInternal() failed");
+  return rv;
 }
 
 nsresult HTMLEditor::StartMoving() {
-  nsCOMPtr<nsIContent> parentContent = mGrabber->GetParent();
-  if (NS_WARN_IF(!parentContent) || NS_WARN_IF(!mAbsolutelyPositionedObject)) {
+  MOZ_ASSERT(mGrabber);
+
+  RefPtr<Element> parentElement = mGrabber->GetParentElement();
+  if (NS_WARN_IF(!parentElement) || NS_WARN_IF(!mAbsolutelyPositionedObject)) {
     return NS_ERROR_FAILURE;
   }
 
   // now, let's create the resizing shadow
   mPositioningShadow =
-      CreateShadow(*parentContent, *mAbsolutelyPositionedObject);
-  if (NS_WARN_IF(!mPositioningShadow) ||
-      NS_WARN_IF(!mAbsolutelyPositionedObject)) {
+      CreateShadow(*parentElement, *mAbsolutelyPositionedObject);
+  if (!mPositioningShadow) {
+    NS_WARNING("HTMLEditor::CreateShadow() failed");
+    return NS_ERROR_FAILURE;
+  }
+  if (!mAbsolutelyPositionedObject) {
+    NS_WARNING("The target has gone during HTMLEditor::CreateShadow()");
     return NS_ERROR_FAILURE;
   }
   RefPtr<Element> positioningShadow = mPositioningShadow.get();
@@ -332,19 +450,47 @@ nsresult HTMLEditor::StartMoving() {
   nsresult rv =
       SetShadowPosition(*positioningShadow, *absolutelyPositionedObject,
                         mPositionedObjectX, mPositionedObjectY);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
+  if (NS_FAILED(rv)) {
+    NS_WARNING("HTMLEditor::SetShadowPosition() failed");
     return rv;
   }
 
   // make the shadow appear
-  mPositioningShadow->UnsetAttr(kNameSpaceID_None, nsGkAtoms::_class, true);
+  DebugOnly<nsresult> rvIgnored =
+      mPositioningShadow->UnsetAttr(kNameSpaceID_None, nsGkAtoms::_class, true);
+  NS_WARNING_ASSERTION(
+      NS_SUCCEEDED(rvIgnored),
+      "Element::UnsetAttr(nsGkAtoms::_class) failed, but ignored");
 
   // position it
-  positioningShadow = mPositioningShadow.get();
-  mCSSEditUtils->SetCSSPropertyPixels(*positioningShadow, *nsGkAtoms::width,
-                                      mPositionedObjectWidth);
-  mCSSEditUtils->SetCSSPropertyPixels(*positioningShadow, *nsGkAtoms::height,
-                                      mPositionedObjectHeight);
+  if (RefPtr<nsStyledElement> positioningShadowStyledElement =
+          nsStyledElement::FromNode(mPositioningShadow.get())) {
+    nsresult rv;
+    rv = mCSSEditUtils->SetCSSPropertyPixelsWithoutTransaction(
+        *positioningShadowStyledElement, *nsGkAtoms::width,
+        mPositionedObjectWidth);
+    if (rv == NS_ERROR_EDITOR_DESTROYED) {
+      NS_WARNING(
+          "CSSEditUtils::SetCSSPropertyPixelsWithoutTransaction("
+          "nsGkAtoms::width) destroyed the editor");
+      return NS_ERROR_EDITOR_DESTROYED;
+    }
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                         "CSSEditUtils::SetCSSPropertyPixelsWithoutTransaction("
+                         "nsGkAtoms::width) failed, but ignored");
+    rv = mCSSEditUtils->SetCSSPropertyPixelsWithoutTransaction(
+        *positioningShadowStyledElement, *nsGkAtoms::height,
+        mPositionedObjectHeight);
+    if (rv == NS_ERROR_EDITOR_DESTROYED) {
+      NS_WARNING(
+          "CSSEditUtils::SetCSSPropertyPixelsWithoutTransaction("
+          "nsGkAtoms::height) destroyed the editor");
+      return NS_ERROR_EDITOR_DESTROYED;
+    }
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                         "CSSEditUtils::SetCSSPropertyPixelsWithoutTransaction("
+                         "nsGkAtoms::height) failed, but ignored");
+  }
 
   mIsMoving = true;
   return NS_OK;  // XXX Looks like nobody refers this result
@@ -363,11 +509,14 @@ nsresult HTMLEditor::GrabberClicked() {
   }
   nsresult rv = static_cast<HTMLEditorEventListener*>(mEventListener.get())
                     ->ListenToMouseMoveEventForGrabber(true);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
+  if (NS_FAILED(rv)) {
+    NS_WARNING(
+        "HTMLEditorEventListener::ListenToMouseMoveEventForGrabber(true) "
+        "failed, but ignored");
     return NS_OK;
   }
   mGrabberClicked = true;
-  return rv;
+  return NS_OK;
 }
 
 nsresult HTMLEditor::EndMoving() {
@@ -387,20 +536,24 @@ nsresult HTMLEditor::EndMoving() {
         static_cast<HTMLEditorEventListener*>(mEventListener.get())
             ->ListenToMouseMoveEventForGrabber(false);
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
-                         "Failed to remove mousemove event listener");
+                         "HTMLEditorEventListener::"
+                         "ListenToMouseMoveEventForGrabber(false) failed");
   }
 
   mGrabberClicked = false;
   mIsMoving = false;
   nsresult rv = RefreshEditingUI();
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-  return NS_OK;
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                       "HTMLEditor::RefreshEditingUI() failed");
+  return rv;
 }
+
 nsresult HTMLEditor::SetFinalPosition(int32_t aX, int32_t aY) {
   nsresult rv = EndMoving();
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) {
+    NS_WARNING("HTMLEditor::EndMoving() failed");
+    return rv;
+  }
 
   // we have now to set the new width and height of the resized object
   // we don't set the x and y position because we don't control that in
@@ -417,26 +570,48 @@ nsresult HTMLEditor::SetFinalPosition(int32_t aX, int32_t aY) {
   y.AppendInt(newY);
 
   // we want one transaction only from a user's point of view
-  AutoPlaceholderBatch treatAsOneTransaction(*this);
+  AutoPlaceholderBatch treatAsOneTransaction(*this,
+                                             ScrollSelectionIntoView::Yes);
 
   if (NS_WARN_IF(!mAbsolutelyPositionedObject)) {
     return NS_ERROR_FAILURE;
   }
-  OwningNonNull<Element> absolutelyPositionedObject =
-      *mAbsolutelyPositionedObject;
-  mCSSEditUtils->SetCSSPropertyPixels(*absolutelyPositionedObject,
-                                      *nsGkAtoms::top, newY);
-  mCSSEditUtils->SetCSSPropertyPixels(*absolutelyPositionedObject,
-                                      *nsGkAtoms::left, newX);
+  if (RefPtr<nsStyledElement> styledAbsolutelyPositionedElement =
+          nsStyledElement::FromNode(mAbsolutelyPositionedObject)) {
+    nsresult rv;
+    rv = mCSSEditUtils->SetCSSPropertyPixelsWithTransaction(
+        *styledAbsolutelyPositionedElement, *nsGkAtoms::top, newY);
+    if (rv == NS_ERROR_EDITOR_DESTROYED) {
+      NS_WARNING(
+          "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::top) "
+          "destroyed the editor");
+      return NS_ERROR_EDITOR_DESTROYED;
+    }
+    NS_WARNING_ASSERTION(
+        NS_SUCCEEDED(rv),
+        "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::top) "
+        "failed, but ignored");
+    rv = mCSSEditUtils->SetCSSPropertyPixelsWithTransaction(
+        *styledAbsolutelyPositionedElement, *nsGkAtoms::left, newX);
+    if (rv == NS_ERROR_EDITOR_DESTROYED) {
+      NS_WARNING(
+          "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::left) "
+          "destroyed the editor");
+      return NS_ERROR_EDITOR_DESTROYED;
+    }
+    NS_WARNING_ASSERTION(
+        NS_SUCCEEDED(rv),
+        "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::left) "
+        "failed, but ignored");
+  }
   // keep track of that size
   mPositionedObjectX = newX;
   mPositionedObjectY = newY;
 
   rv = RefreshResizers();
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-  return NS_OK;
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                       "HTMLEditor::RefreshResizers() failed");
+  return rv;
 }
 
 void HTMLEditor::AddPositioningOffset(int32_t& aX, int32_t& aY) {
@@ -450,118 +625,265 @@ void HTMLEditor::AddPositioningOffset(int32_t& aX, int32_t& aY) {
 
 nsresult HTMLEditor::SetPositionToAbsoluteOrStatic(Element& aElement,
                                                    bool aEnabled) {
-  nsAutoString positionStr;
-  CSSEditUtils::GetComputedProperty(aElement, *nsGkAtoms::position,
-                                    positionStr);
-  bool isPositioned = (positionStr.EqualsLiteral("absolute"));
-
+  nsAutoString positionValue;
+  DebugOnly<nsresult> rvIgnored = CSSEditUtils::GetComputedProperty(
+      aElement, *nsGkAtoms::position, positionValue);
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
+                       "CSSEditUtils::GetComputedProperty(nsGkAtoms::position) "
+                       "failed, but ignored");
   // nothing to do if the element is already in the state we want
-  if (isPositioned == aEnabled) {
+  if (positionValue.EqualsLiteral("absolute") == aEnabled) {
     return NS_OK;
   }
 
   if (aEnabled) {
-    return SetPositionToAbsolute(aElement);
+    nsresult rv = SetPositionToAbsolute(aElement);
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                         "HTMLEditor::SetPositionToAbsolute() failed");
+    return rv;
   }
 
-  return SetPositionToStatic(aElement);
+  nsresult rv = SetPositionToStatic(aElement);
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                       "HTMLEditor::SetPositionToStatic() failed");
+  return rv;
 }
 
 nsresult HTMLEditor::SetPositionToAbsolute(Element& aElement) {
   MOZ_ASSERT(IsEditActionDataAvailable());
 
-  AutoPlaceholderBatch treatAsOneTransaction(*this);
+  AutoPlaceholderBatch treatAsOneTransaction(*this,
+                                             ScrollSelectionIntoView::Yes);
 
   int32_t x, y;
-  GetElementOrigin(aElement, x, y);
+  DebugOnly<nsresult> rvIgnored = GetElementOrigin(aElement, x, y);
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
+                       "HTMLEditor::GetElementOrigin() failed, but ignored");
 
-  mCSSEditUtils->SetCSSProperty(aElement, *nsGkAtoms::position,
-                                NS_LITERAL_STRING("absolute"));
+  nsStyledElement* styledElement = nsStyledElement::FromNode(&aElement);
+  if (styledElement) {
+    // MOZ_KnownLive(*styledElement): aElement's lifetime must be guarantted
+    // by the caller because of MOZ_CAN_RUN_SCRIPT method.
+    nsresult rv = mCSSEditUtils->SetCSSPropertyWithTransaction(
+        MOZ_KnownLive(*styledElement), *nsGkAtoms::position, u"absolute"_ns);
+    if (rv == NS_ERROR_EDITOR_DESTROYED) {
+      NS_WARNING(
+          "CSSEditUtils::SetCSSProperyWithTransaction(nsGkAtoms::Position) "
+          "destroyed the editor");
+      return NS_ERROR_EDITOR_DESTROYED;
+    }
+    NS_WARNING_ASSERTION(
+        NS_SUCCEEDED(rvIgnored),
+        "CSSEditUtils::SetCSSPropertyWithTransaction(nsGkAtoms::position, "
+        "absolute) failed, but ignored");
+  }
 
   AddPositioningOffset(x, y);
   SnapToGrid(x, y);
-  SetTopAndLeft(aElement, x, y);
+  if (styledElement) {
+    // MOZ_KnownLive(*styledElement): aElement's lifetime must be guarantted
+    // by the caller because of MOZ_CAN_RUN_SCRIPT method.
+    nsresult rv =
+        SetTopAndLeftWithTransaction(MOZ_KnownLive(*styledElement), x, y);
+    if (NS_FAILED(rv)) {
+      NS_WARNING("HTMLEditor::SetTopAndLeftWithTransaction() failed");
+      return rv;
+    }
+  }
 
   // we may need to create a br if the positioned element is alone in its
   // container
   nsINode* parentNode = aElement.GetParentNode();
-  if (parentNode->GetChildCount() == 1) {
-    RefPtr<Element> newBrElement =
-        InsertBRElementWithTransaction(EditorDOMPoint(parentNode, 0));
-    if (NS_WARN_IF(!newBrElement)) {
-      return NS_ERROR_FAILURE;
-    }
+  if (parentNode->GetChildCount() != 1) {
+    return NS_OK;
   }
-  return NS_OK;
+  RefPtr<Element> newBRElement =
+      InsertBRElementWithTransaction(EditorDOMPoint(parentNode, 0));
+  NS_WARNING_ASSERTION(newBRElement,
+                       "HTMLEditor::InsertBRElementWithTransaction() failed");
+  return newBRElement ? NS_OK : NS_ERROR_FAILURE;
 }
 
 nsresult HTMLEditor::SetPositionToStatic(Element& aElement) {
-  AutoPlaceholderBatch treatAsOneTransaction(*this);
-
-  mCSSEditUtils->RemoveCSSProperty(aElement, *nsGkAtoms::position,
-                                   EmptyString());
-  mCSSEditUtils->RemoveCSSProperty(aElement, *nsGkAtoms::top, EmptyString());
-  mCSSEditUtils->RemoveCSSProperty(aElement, *nsGkAtoms::left, EmptyString());
-  mCSSEditUtils->RemoveCSSProperty(aElement, *nsGkAtoms::z_index,
-                                   EmptyString());
-
-  if (!HTMLEditUtils::IsImage(&aElement)) {
-    mCSSEditUtils->RemoveCSSProperty(aElement, *nsGkAtoms::width,
-                                     EmptyString());
-    mCSSEditUtils->RemoveCSSProperty(aElement, *nsGkAtoms::height,
-                                     EmptyString());
+  nsStyledElement* styledElement = nsStyledElement::FromNode(&aElement);
+  if (NS_WARN_IF(!styledElement)) {
+    return NS_ERROR_INVALID_ARG;
   }
 
-  if (!aElement.IsHTMLElement(nsGkAtoms::div) ||
-      HTMLEditor::HasStyleOrIdOrClassAttribute(aElement)) {
+  AutoPlaceholderBatch treatAsOneTransaction(*this,
+                                             ScrollSelectionIntoView::Yes);
+
+  nsresult rv;
+  // MOZ_KnownLive(*styledElement): aElement's lifetime must be guarantted
+  // by the caller because of MOZ_CAN_RUN_SCRIPT method.
+  rv = mCSSEditUtils->RemoveCSSPropertyWithTransaction(
+      MOZ_KnownLive(*styledElement), *nsGkAtoms::position, u""_ns);
+  if (rv == NS_ERROR_EDITOR_DESTROYED) {
+    NS_WARNING(
+        "CSSEditUtils::RemoveCSSPropertyWithTransaction(nsGkAtoms::position) "
+        "destroyed the editor");
+    return NS_ERROR_EDITOR_DESTROYED;
+  }
+  NS_WARNING_ASSERTION(
+      NS_SUCCEEDED(rv),
+      "CSSEditUtils::RemoveCSSPropertyWithTransaction(nsGkAtoms::position) "
+      "failed, but ignored");
+  // MOZ_KnownLive(*styledElement): aElement's lifetime must be guarantted
+  // by the caller because of MOZ_CAN_RUN_SCRIPT method.
+  rv = mCSSEditUtils->RemoveCSSPropertyWithTransaction(
+      MOZ_KnownLive(*styledElement), *nsGkAtoms::top, u""_ns);
+  if (rv == NS_ERROR_EDITOR_DESTROYED) {
+    NS_WARNING(
+        "CSSEditUtils::RemoveCSSPropertyWithTransaction(nsGkAtoms::top) "
+        "destroyed the editor");
+    return NS_ERROR_EDITOR_DESTROYED;
+  }
+  NS_WARNING_ASSERTION(
+      NS_SUCCEEDED(rv),
+      "CSSEditUtils::RemoveCSSPropertyWithTransaction(nsGkAtoms::top) "
+      "failed, but ignored");
+  // MOZ_KnownLive(*styledElement): aElement's lifetime must be guarantted
+  // by the caller because of MOZ_CAN_RUN_SCRIPT method.
+  rv = mCSSEditUtils->RemoveCSSPropertyWithTransaction(
+      MOZ_KnownLive(*styledElement), *nsGkAtoms::left, u""_ns);
+  if (rv == NS_ERROR_EDITOR_DESTROYED) {
+    NS_WARNING(
+        "CSSEditUtils::RemoveCSSPropertyWithTransaction(nsGkAtoms::left) "
+        "destroyed the editor");
+    return NS_ERROR_EDITOR_DESTROYED;
+  }
+  NS_WARNING_ASSERTION(
+      NS_SUCCEEDED(rv),
+      "CSSEditUtils::RemoveCSSPropertyWithTransaction(nsGkAtoms::left) "
+      "failed, but ignored");
+  // MOZ_KnownLive(*styledElement): aElement's lifetime must be guarantted
+  // by the caller because of MOZ_CAN_RUN_SCRIPT method.
+  rv = mCSSEditUtils->RemoveCSSPropertyWithTransaction(
+      MOZ_KnownLive(*styledElement), *nsGkAtoms::z_index, u""_ns);
+  if (rv == NS_ERROR_EDITOR_DESTROYED) {
+    NS_WARNING(
+        "CSSEditUtils::RemoveCSSPropertyWithTransaction(nsGkAtoms::z_index) "
+        "destroyed the editor");
+    return NS_ERROR_EDITOR_DESTROYED;
+  }
+  NS_WARNING_ASSERTION(
+      NS_SUCCEEDED(rv),
+      "CSSEditUtils::RemoveCSSPropertyWithTransaction(nsGkAtoms::z_index) "
+      "failed, but ignored");
+
+  if (!HTMLEditUtils::IsImage(styledElement)) {
+    // MOZ_KnownLive(*styledElement): aElement's lifetime must be guarantted
+    // by the caller because of MOZ_CAN_RUN_SCRIPT method.
+    rv = mCSSEditUtils->RemoveCSSPropertyWithTransaction(
+        MOZ_KnownLive(*styledElement), *nsGkAtoms::width, u""_ns);
+    if (rv == NS_ERROR_EDITOR_DESTROYED) {
+      NS_WARNING(
+          "CSSEditUtils::RemoveCSSPropertyWithTransaction(nsGkAtoms::width) "
+          "destroyed the editor");
+      return NS_ERROR_EDITOR_DESTROYED;
+    }
+    NS_WARNING_ASSERTION(
+        NS_SUCCEEDED(rv),
+        "CSSEditUtils::RemoveCSSPropertyWithTransaction(nsGkAtoms::width) "
+        "failed, but ignored");
+    // MOZ_KnownLive(*styledElement): aElement's lifetime must be guarantted
+    // by the caller because of MOZ_CAN_RUN_SCRIPT method.
+    rv = mCSSEditUtils->RemoveCSSPropertyWithTransaction(
+        MOZ_KnownLive(*styledElement), *nsGkAtoms::height, u""_ns);
+    if (rv == NS_ERROR_EDITOR_DESTROYED) {
+      NS_WARNING(
+          "CSSEditUtils::RemoveCSSPropertyWithTransaction(nsGkAtoms::height) "
+          "destroyed the editor");
+      return NS_ERROR_EDITOR_DESTROYED;
+    }
+    NS_WARNING_ASSERTION(
+        NS_SUCCEEDED(rv),
+        "CSSEditUtils::RemoveCSSPropertyWithTransaction(nsGkAtoms::height) "
+        "failed, but ignored");
+  }
+
+  if (!styledElement->IsHTMLElement(nsGkAtoms::div) ||
+      HTMLEditor::HasStyleOrIdOrClassAttribute(*styledElement)) {
     return NS_OK;
   }
 
   // Make sure the first fild and last child of aElement starts/ends hard
   // line(s) even after removing `aElement`.
-  nsresult rv = EnsureHardLineBeginsWithFirstChildOf(aElement);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
+  // MOZ_KnownLive(*styledElement): aElement's lifetime must be guarantted
+  // by the caller because of MOZ_CAN_RUN_SCRIPT method.
+  rv = EnsureHardLineBeginsWithFirstChildOf(MOZ_KnownLive(*styledElement));
+  if (NS_FAILED(rv)) {
+    NS_WARNING("HTMLEditor::EnsureHardLineBeginsWithFirstChildOf() failed");
     return rv;
   }
-  rv = EnsureHardLineEndsWithLastChildOf(aElement);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
+  // MOZ_KnownLive(*styledElement): aElement's lifetime must be guarantted
+  // by the caller because of MOZ_CAN_RUN_SCRIPT method.
+  rv = EnsureHardLineEndsWithLastChildOf(MOZ_KnownLive(*styledElement));
+  if (NS_FAILED(rv)) {
+    NS_WARNING("HTMLEditor::EnsureHardLineEndsWithLastChildOf() failed");
     return rv;
   }
-  rv = RemoveContainerWithTransaction(aElement);
+  // MOZ_KnownLive(*styledElement): aElement's lifetime must be guarantted
+  // by the caller because of MOZ_CAN_RUN_SCRIPT method.
+  rv = RemoveContainerWithTransaction(MOZ_KnownLive(*styledElement));
+  if (NS_WARN_IF(Destroyed())) {
+    return NS_ERROR_EDITOR_DESTROYED;
+  }
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-                       "RemoveContainerWithTransaction() failed");
+                       "HTMLEditor::RemoveContainerWithTransaction() failed");
   return rv;
 }
 
-NS_IMETHODIMP
-HTMLEditor::SetSnapToGridEnabled(bool aEnabled) {
+NS_IMETHODIMP HTMLEditor::SetSnapToGridEnabled(bool aEnabled) {
   mSnapToGridEnabled = aEnabled;
   return NS_OK;
 }
 
-NS_IMETHODIMP
-HTMLEditor::GetSnapToGridEnabled(bool* aIsEnabled) {
+NS_IMETHODIMP HTMLEditor::GetSnapToGridEnabled(bool* aIsEnabled) {
   *aIsEnabled = mSnapToGridEnabled;
   return NS_OK;
 }
 
-NS_IMETHODIMP
-HTMLEditor::SetGridSize(uint32_t aSize) {
+NS_IMETHODIMP HTMLEditor::SetGridSize(uint32_t aSize) {
   mGridSize = aSize;
   return NS_OK;
 }
 
-NS_IMETHODIMP
-HTMLEditor::GetGridSize(uint32_t* aSize) {
+NS_IMETHODIMP HTMLEditor::GetGridSize(uint32_t* aSize) {
   *aSize = mGridSize;
   return NS_OK;
 }
 
-// self-explanatory
-void HTMLEditor::SetTopAndLeft(Element& aElement, int32_t aX, int32_t aY) {
-  AutoPlaceholderBatch treatAsOneTransaction(*this);
-  mCSSEditUtils->SetCSSPropertyPixels(aElement, *nsGkAtoms::left, aX);
-  mCSSEditUtils->SetCSSPropertyPixels(aElement, *nsGkAtoms::top, aY);
+nsresult HTMLEditor::SetTopAndLeftWithTransaction(
+    nsStyledElement& aStyledElement, int32_t aX, int32_t aY) {
+  AutoPlaceholderBatch treatAsOneTransaction(*this,
+                                             ScrollSelectionIntoView::Yes);
+  nsresult rv;
+  rv = mCSSEditUtils->SetCSSPropertyPixelsWithTransaction(aStyledElement,
+                                                          *nsGkAtoms::left, aX);
+  if (rv == NS_ERROR_EDITOR_DESTROYED) {
+    NS_WARNING(
+        "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::left) "
+        "destroyed the editor");
+    return NS_ERROR_EDITOR_DESTROYED;
+  }
+  NS_WARNING_ASSERTION(
+      NS_SUCCEEDED(rv),
+      "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::left) "
+      "failed, but ignored");
+  rv = mCSSEditUtils->SetCSSPropertyPixelsWithTransaction(aStyledElement,
+                                                          *nsGkAtoms::top, aY);
+  if (rv == NS_ERROR_EDITOR_DESTROYED) {
+    NS_WARNING(
+        "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::top) "
+        "destroyed the editor");
+    return NS_ERROR_EDITOR_DESTROYED;
+  }
+  NS_WARNING_ASSERTION(
+      NS_SUCCEEDED(rv),
+      "CSSEditUtils::SetCSSPropertyPixelsWithTransaction(nsGkAtoms::top) "
+      "failed, but ignored");
+  return NS_OK;
 }
 
 nsresult HTMLEditor::GetTemporaryStyleForFocusedPositionedElement(
@@ -578,27 +900,43 @@ nsresult HTMLEditor::GetTemporaryStyleForFocusedPositionedElement(
   // Otherwise don't change background/foreground
   aReturn.Truncate();
 
-  nsAutoString bgImageStr;
+  nsAutoString backgroundImageValue;
   nsresult rv = CSSEditUtils::GetComputedProperty(
-      aElement, *nsGkAtoms::background_image, bgImageStr);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (!bgImageStr.EqualsLiteral("none")) {
+      aElement, *nsGkAtoms::background_image, backgroundImageValue);
+  if (NS_FAILED(rv)) {
+    NS_WARNING(
+        "CSSEditUtils::GetComputedProperty(nsGkAtoms::background_image) "
+        "failed");
+    return rv;
+  }
+  if (!backgroundImageValue.EqualsLiteral("none")) {
     return NS_OK;
   }
 
-  nsAutoString bgColorStr;
+  nsAutoString backgroundColorValue;
   rv = CSSEditUtils::GetComputedProperty(aElement, *nsGkAtoms::backgroundColor,
-                                         bgColorStr);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (!bgColorStr.EqualsLiteral("rgba(0, 0, 0, 0)")) {
+                                         backgroundColorValue);
+  if (NS_FAILED(rv)) {
+    NS_WARNING(
+        "CSSEditUtils::GetComputedProperty(nsGkAtoms::backgroundColor) "
+        "failed");
+    return rv;
+  }
+  if (!backgroundColorValue.EqualsLiteral("rgba(0, 0, 0, 0)")) {
     return NS_OK;
   }
 
   RefPtr<ComputedStyle> style =
       nsComputedDOMStyle::GetComputedStyle(&aElement, nullptr);
-  NS_ENSURE_STATE(style);
+  if (NS_WARN_IF(Destroyed())) {
+    return NS_ERROR_EDITOR_DESTROYED;
+  }
+  if (!style) {
+    NS_WARNING("nsComputedDOMStyle::GetComputedStyle() failed");
+    return NS_ERROR_FAILURE;
+  }
 
-  const uint8_t kBlackBgTrigger = 0xd0;
+  static const uint8_t kBlackBgTrigger = 0xd0;
 
   const auto& color = style->StyleText()->mColor;
   if (color.red >= kBlackBgTrigger && color.green >= kBlackBgTrigger &&

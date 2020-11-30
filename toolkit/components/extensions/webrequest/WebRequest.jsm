@@ -18,9 +18,19 @@ const { XPCOMUtils } = ChromeUtils.import(
 );
 
 XPCOMUtils.defineLazyModuleGetters(this, {
+  ExtensionParent: "resource://gre/modules/ExtensionParent.jsm",
   ExtensionUtils: "resource://gre/modules/ExtensionUtils.jsm",
   WebRequestUpload: "resource://gre/modules/WebRequestUpload.jsm",
   SecurityInfo: "resource://gre/modules/SecurityInfo.jsm",
+});
+
+// WebRequest.jsm's only consumer is ext-webRequest.js, so we can depend on
+// the apiManager.global being initialized.
+XPCOMUtils.defineLazyGetter(this, "tabTracker", () => {
+  return ExtensionParent.apiManager.global.tabTracker;
+});
+XPCOMUtils.defineLazyGetter(this, "getCookieStoreIdForOriginAttributes", () => {
+  return ExtensionParent.apiManager.global.getCookieStoreIdForOriginAttributes;
 });
 
 function runLater(job) {
@@ -32,11 +42,12 @@ function parseFilter(filter) {
     filter = {};
   }
 
-  // FIXME: Support windowId filtering.
   return {
     urls: filter.urls || null,
     types: filter.types || null,
-    incognito: filter.incognito !== undefined ? filter.incognito : null,
+    tabId: filter.tabId ?? null,
+    windowId: filter.windowId ?? null,
+    incognito: filter.incognito ?? null,
   };
 }
 
@@ -118,7 +129,7 @@ class HeaderChanger {
     let origHeaders = this.getMap();
     for (let name of origHeaders.keys()) {
       if (!newHeaders.has(name)) {
-        this.setHeader(name, "");
+        this.setHeader(name, "", false, opts, name);
       }
     }
 
@@ -131,6 +142,9 @@ class HeaderChanger {
     // and an extension also added the header
     // "Set-Cookie: examplename=examplevalue") then the header value is not
     // re-set, but subsequent headers of the same type will be merged in.
+    //
+    // Multiple addons will be able to provide modifications to any headers
+    // listed in the default set.
     let headersAlreadySet = new Set();
     for (let { name, value, binaryValue } of headers) {
       if (binaryValue) {
@@ -181,7 +195,19 @@ class RequestHeaderChanger extends HeaderChanger {
 }
 
 class ResponseHeaderChanger extends HeaderChanger {
+  didModifyCSP = false;
+
   setHeader(name, value, merge, opts, lowerCaseName) {
+    if (lowerCaseName === "content-security-policy") {
+      // When multiple add-ons change the CSP, enforce the combined (strictest)
+      // policy - see bug 1462989 for motivation.
+      // When value is unset, don't force the header to be merged, to allow
+      // add-ons to clear the header if wanted.
+      if (value) {
+        merge = merge || this.didModifyCSP;
+      }
+      this.didModifyCSP = true;
+    }
     try {
       this.channel.setResponseHeader(name, value, merge);
     } catch (e) {
@@ -231,9 +257,12 @@ function serializeRequestData(eventName) {
     method: this.method,
     type: this.type,
     timeStamp: Date.now(),
-    frameId: this.windowId,
-    parentFrameId: this.parentWindowId,
+    tabId: this.tabId,
+    frameId: this.frameId,
+    parentFrameId: this.parentFrameId,
+    incognito: this.incognito,
     thirdParty: this.thirdParty,
+    cookieStoreId: this.cookieStoreId,
   };
 
   if (MAYBE_CACHED_EVENTS.has(eventName)) {
@@ -262,105 +291,12 @@ function serializeRequestData(eventName) {
 
 var HttpObserverManager;
 
-var nextFakeRequestId = 1;
-
-var ContentPolicyManager = {
-  policyData: new Map(),
-  idMap: new Map(),
-  nextId: 0,
-
-  init() {
-    Services.ppmm.initialProcessData.webRequestContentPolicies = this.policyData;
-
-    Services.ppmm.addMessageListener("WebRequest:ShouldLoad", this);
-    Services.mm.addMessageListener("WebRequest:ShouldLoad", this);
-  },
-
-  receiveMessage(msg) {
-    let browser =
-      ChromeUtils.getClassName(msg.target) == "XULFrameElement"
-        ? msg.target
-        : null;
-
-    let requestId = `fakeRequest-${++nextFakeRequestId}`;
-    let data = Object.assign(
-      { requestId, browser, serialize: serializeRequestData },
-      msg.data
-    );
-
-    this.runChannelListener("opening", data);
-    runLater(() => this.runChannelListener("onStop", data));
-  },
-
-  shouldRunListener(policyType, url, opts) {
-    let { filter } = opts;
-
-    if (filter.types && !filter.types.includes(policyType)) {
-      return false;
-    }
-
-    if (filter.urls && !filter.urls.matches(url)) {
-      return false;
-    }
-
-    let { policy } = opts;
-    if (policy && !policy.allowedOrigins.matches(url)) {
-      return false;
-    }
-
-    return true;
-  },
-
-  runChannelListener(kind, data) {
-    let listeners = HttpObserverManager.listeners[kind];
-    for (let [callback, opts] of listeners.entries()) {
-      if (this.shouldRunListener(data.type, data.url, opts)) {
-        try {
-          callback(data);
-        } catch (e) {
-          Cu.reportError(e);
-        }
-      }
-    }
-  },
-
-  addListener(callback, opts) {
-    // Clone opts, since we're going to modify them for IPC.
-    opts = Object.assign({}, opts);
-    let id = this.nextId++;
-    opts.id = id;
-    if (opts.filter.urls) {
-      opts.filter = Object.assign({}, opts.filter);
-      opts.filter.urls = opts.filter.urls.patterns.map(url => url.pattern);
-    }
-    Services.ppmm.broadcastAsyncMessage("WebRequest:AddContentPolicy", opts);
-
-    this.policyData.set(id, opts);
-
-    this.idMap.set(callback, id);
-  },
-
-  removeListener(callback) {
-    let id = this.idMap.get(callback);
-    Services.ppmm.broadcastAsyncMessage("WebRequest:RemoveContentPolicy", {
-      id,
-    });
-
-    this.policyData.delete(id);
-    this.idMap.delete(callback);
-  },
-};
-ContentPolicyManager.init();
-
 var ChannelEventSink = {
   _classDescription: "WebRequest channel event sink",
   _classID: Components.ID("115062f8-92f1-11e5-8b7f-080027b0f7ec"),
   _contractID: "@mozilla.org/webrequest/channel-event-sink;1",
 
-  QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIChannelEventSink,
-    Ci.nsIFactory,
-  ]),
+  QueryInterface: ChromeUtils.generateQI(["nsIChannelEventSink", "nsIFactory"]),
 
   init() {
     Components.manager
@@ -404,7 +340,7 @@ var ChannelEventSink = {
   // nsIFactory implementation
   createInstance(outer, iid) {
     if (outer) {
-      throw Cr.NS_ERROR_NO_AGGREGATION;
+      throw Components.Exception("", Cr.NS_ERROR_NO_AGGREGATION);
     }
     return this.QueryInterface(iid);
   },
@@ -428,7 +364,7 @@ class AuthRequestor {
     try {
       return this.notificationCallbacks.getInterface(iid);
     } catch (e) {}
-    throw Cr.NS_ERROR_NO_INTERFACE;
+    throw Components.Exception("", Cr.NS_ERROR_NO_INTERFACE);
   }
 
   _getForwardedInterface(iid) {
@@ -477,7 +413,7 @@ class AuthRequestor {
         return callbacks.getInterface(Ci.nsIAuthPrompt2);
       } catch (e) {}
     }
-    throw Cr.NS_ERROR_NO_INTERFACE;
+    throw Components.Exception("", Cr.NS_ERROR_NO_INTERFACE);
   }
 
   // nsIAuthPrompt2 asyncPromptAuth
@@ -536,10 +472,10 @@ class AuthRequestor {
       }
     };
 
-    this.httpObserver.runChannelListener(wrapper, "authRequired", data);
+    this.httpObserver.runChannelListener(wrapper, "onAuthRequired", data);
 
     return {
-      QueryInterface: ChromeUtils.generateQI([Ci.nsICancelable]),
+      QueryInterface: ChromeUtils.generateQI(["nsICancelable"]),
       cancel() {
         try {
           callback.onAuthCancelled(context, false);
@@ -559,38 +495,61 @@ AuthRequestor.prototype.QueryInterface = ChromeUtils.generateQI([
   "nsIAuthPrompt2",
 ]);
 
+// Most WebRequest events are implemented via the observer services, but
+// a few use custom xpcom interfaces.  This class (HttpObserverManager)
+// serves two main purposes:
+//  1. It abstracts away the names and details of the underlying
+//     implementation (e.g., onBeforeBeforeRequest is dispatched from
+//     the http-on-modify-request observable).
+//  2. It aggregates multiple listeners so that a single observer or
+//     handler can serve multiple webRequest listeners.
 HttpObserverManager = {
+  listeners: {
+    // onBeforeRequest uses http-on-modify observer for HTTP(S).
+    onBeforeRequest: new Map(),
+
+    // onBeforeSendHeaders and onSendHeaders correspond to the
+    // http-on-before-connect observer.
+    onBeforeSendHeaders: new Map(),
+    onSendHeaders: new Map(),
+
+    // onHeadersReceived corresponds to the http-on-examine-* obserservers.
+    onHeadersReceived: new Map(),
+
+    // onAuthRequired is handled via the nsIAuthPrompt2 xpcom interface
+    // which is managed here by AuthRequestor.
+    onAuthRequired: new Map(),
+
+    // onBeforeRedirect is handled by the nsIChannelEVentSink xpcom interface
+    // which is managed here by ChannelEventSink.
+    onBeforeRedirect: new Map(),
+
+    // onResponseStarted, onErrorOccurred, and OnCompleted correspond
+    // to events dispatched by the ChannelWrapper EventTarget.
+    onResponseStarted: new Map(),
+    onErrorOccurred: new Map(),
+    onCompleted: new Map(),
+  },
+
   openingInitialized: false,
-  modifyInitialized: false,
+  beforeConnectInitialized: false,
   examineInitialized: false,
   redirectInitialized: false,
   activityInitialized: false,
   needTracing: false,
   hasRedirects: false,
 
-  listeners: {
-    opening: new Map(),
-    modify: new Map(),
-    afterModify: new Map(),
-    headersReceived: new Map(),
-    authRequired: new Map(),
-    onRedirect: new Map(),
-    onStart: new Map(),
-    onError: new Map(),
-    onStop: new Map(),
-  },
-
   getWrapper(nativeChannel) {
     let wrapper = ChannelWrapper.get(nativeChannel);
     if (!wrapper._addedListeners) {
       /* eslint-disable mozilla/balanced-listeners */
-      if (this.listeners.onError.size) {
+      if (this.listeners.onErrorOccurred.size) {
         wrapper.addEventListener("error", this);
       }
-      if (this.listeners.onStart.size) {
+      if (this.listeners.onResponseStarted.size) {
         wrapper.addEventListener("start", this);
       }
-      if (this.listeners.onStop.size) {
+      if (this.listeners.onCompleted.size) {
         wrapper.addEventListener("stop", this);
       }
       /* eslint-enable mozilla/balanced-listeners */
@@ -606,10 +565,16 @@ HttpObserverManager = {
     );
   },
 
+  // This method is called whenever webRequest listeners are added or removed.
+  // It reconciles the set of listeners with underlying observers, event
+  // handlers, etc. by adding new low-level handlers for any newly added
+  // webRequest listeners and removing those that are no longer needed if
+  // there are no more listeners for corresponding webRequest events.
   addOrRemove() {
-    let needOpening = this.listeners.opening.size;
-    let needModify =
-      this.listeners.modify.size || this.listeners.afterModify.size;
+    let needOpening = this.listeners.onBeforeRequest.size;
+    let needBeforeConnect =
+      this.listeners.onBeforeSendHeaders.size ||
+      this.listeners.onSendHeaders.size;
     if (needOpening && !this.openingInitialized) {
       this.openingInitialized = true;
       Services.obs.addObserver(this, "http-on-modify-request");
@@ -617,11 +582,11 @@ HttpObserverManager = {
       this.openingInitialized = false;
       Services.obs.removeObserver(this, "http-on-modify-request");
     }
-    if (needModify && !this.modifyInitialized) {
-      this.modifyInitialized = true;
+    if (needBeforeConnect && !this.beforeConnectInitialized) {
+      this.beforeConnectInitialized = true;
       Services.obs.addObserver(this, "http-on-before-connect");
-    } else if (!needModify && this.modifyInitialized) {
-      this.modifyInitialized = false;
+    } else if (!needBeforeConnect && this.beforeConnectInitialized) {
+      this.beforeConnectInitialized = false;
       Services.obs.removeObserver(this, "http-on-before-connect");
     }
 
@@ -630,15 +595,15 @@ HttpObserverManager = {
     );
 
     this.needTracing =
-      this.listeners.onStart.size ||
-      this.listeners.onError.size ||
-      this.listeners.onStop.size ||
+      this.listeners.onResponseStarted.size ||
+      this.listeners.onErrorOccurred.size ||
+      this.listeners.onCompleted.size ||
       haveBlocking;
 
     let needExamine =
       this.needTracing ||
-      this.listeners.headersReceived.size ||
-      this.listeners.authRequired.size;
+      this.listeners.onHeadersReceived.size ||
+      this.listeners.onAuthRequired.size;
 
     if (needExamine && !this.examineInitialized) {
       this.examineInitialized = true;
@@ -655,9 +620,9 @@ HttpObserverManager = {
     // If we have any listeners, we need the channelsink so the channelwrapper is
     // updated properly. Otherwise events for channels that are redirected will not
     // happen correctly.  If we have no listeners, shut it down.
-    this.hasRedirects = this.listeners.onRedirect.size > 0;
+    this.hasRedirects = this.listeners.onBeforeRedirect.size > 0;
     let needRedirect =
-      this.hasRedirects || needExamine || needOpening || needModify;
+      this.hasRedirects || needExamine || needOpening || needBeforeConnect;
     if (needRedirect && !this.redirectInitialized) {
       this.redirectInitialized = true;
       ChannelEventSink.register();
@@ -666,7 +631,7 @@ HttpObserverManager = {
       ChannelEventSink.unregister();
     }
 
-    let needActivity = this.listeners.onError.size;
+    let needActivity = this.listeners.onErrorOccurred.size;
     if (needActivity && !this.activityInitialized) {
       this.activityInitialized = true;
       this.activityDistributor.addObserver(this);
@@ -690,10 +655,10 @@ HttpObserverManager = {
     let channel = this.getWrapper(subject);
     switch (topic) {
       case "http-on-modify-request":
-        this.runChannelListener(channel, "opening");
+        this.runChannelListener(channel, "onBeforeRequest");
         break;
       case "http-on-before-connect":
-        this.runChannelListener(channel, "modify");
+        this.runChannelListener(channel, "onBeforeSendHeaders");
         break;
       case "http-on-examine-cached-response":
       case "http-on-examine-merged-response":
@@ -744,7 +709,7 @@ HttpObserverManager = {
       Services.tm.dispatchToMainThread(() => {
         channel.errorCheck();
         if (!channel.errorString) {
-          this.runChannelListener(channel, "onError", {
+          this.runChannelListener(channel, "onErrorOccurred", {
             error:
               this.activityErrorsMap.get(lastActivity) ||
               `NS_ERROR_NET_UNKNOWN_${lastActivity}`,
@@ -761,23 +726,22 @@ HttpObserverManager = {
   },
 
   getRequestData(channel, extraData) {
-    let originAttributes =
-      channel.loadInfo && channel.loadInfo.originAttributes;
+    let originAttributes = channel.loadInfo?.originAttributes;
     let data = {
       requestId: String(channel.id),
       url: channel.finalURL,
       method: channel.method,
-      browser: channel.browserElement,
       type: channel.type,
       fromCache: channel.fromCache,
-      originAttributes,
+      incognito: originAttributes?.privateBrowsingId > 0,
       thirdParty: channel.thirdParty,
 
       originUrl: channel.originURL || undefined,
       documentUrl: channel.documentURL || undefined,
 
-      windowId: channel.windowId,
-      parentWindowId: channel.parentWindowId,
+      tabId: this.getBrowserData(channel).tabId,
+      frameId: channel.frameId,
+      parentFrameId: channel.parentFrameId,
 
       frameAncestors: channel.frameAncestors || undefined,
 
@@ -791,6 +755,12 @@ HttpObserverManager = {
       urlClassification: channel.urlClassification,
     };
 
+    if (originAttributes) {
+      data.cookieStoreId = getCookieStoreIdForOriginAttributes(
+        originAttributes
+      );
+    }
+
     return Object.assign(data, extraData);
   },
 
@@ -798,34 +768,47 @@ HttpObserverManager = {
     let channel = event.currentTarget;
     switch (event.type) {
       case "error":
-        this.runChannelListener(channel, "onError", {
+        this.runChannelListener(channel, "onErrorOccurred", {
           error: channel.errorString,
         });
         break;
       case "start":
-        this.runChannelListener(channel, "onStart");
+        this.runChannelListener(channel, "onResponseStarted");
         break;
       case "stop":
-        this.runChannelListener(channel, "onStop");
+        this.runChannelListener(channel, "onCompleted");
         break;
     }
   },
 
   STATUS_TYPES: new Set([
-    "headersReceived",
-    "authRequired",
-    "onRedirect",
-    "onStart",
-    "onStop",
+    "onHeadersReceived",
+    "onAuthRequired",
+    "onBeforeRedirect",
+    "onResponseStarted",
+    "onCompleted",
   ]),
   FILTER_TYPES: new Set([
-    "opening",
-    "modify",
-    "afterModify",
-    "headersReceived",
-    "authRequired",
-    "onRedirect",
+    "onBeforeRequest",
+    "onBeforeSendHeaders",
+    "onSendHeaders",
+    "onHeadersReceived",
+    "onAuthRequired",
+    "onBeforeRedirect",
   ]),
+
+  getBrowserData(wrapper) {
+    let browserData = wrapper._browserData;
+    if (!browserData) {
+      if (wrapper.browserElement) {
+        browserData = tabTracker.getBrowserData(wrapper.browserElement);
+      } else {
+        browserData = { tabId: -1, windowId: -1 };
+      }
+      wrapper._browserData = browserData;
+    }
+    return browserData;
+  },
 
   runChannelListener(channel, kind, extraData = null) {
     let handlerResults = [];
@@ -833,7 +816,7 @@ HttpObserverManager = {
     let responseHeaders;
 
     try {
-      if (kind !== "onError" && channel.errorString) {
+      if (kind !== "onErrorOccurred" && channel.errorString) {
         return;
       }
 
@@ -841,6 +824,15 @@ HttpObserverManager = {
       let commonData = null;
       let requestBody;
       this.listeners[kind].forEach((opts, callback) => {
+        if (opts.filter.tabId !== null || opts.filter.windowId !== null) {
+          const { tabId, windowId } = this.getBrowserData(channel);
+          if (
+            (opts.filter.tabId !== null && tabId != opts.filter.tabId) ||
+            (opts.filter.windowId !== null && windowId != opts.filter.windowId)
+          ) {
+            return;
+          }
+        }
         if (!channel.matches(opts.filter, opts.policy, extraData)) {
           return;
         }
@@ -926,11 +918,13 @@ HttpObserverManager = {
     responseHeaders
   ) {
     let shouldResume = !channel.suspended;
+    let suspenders = [];
 
     try {
       for (let { opts, result } of handlerResults) {
         if (isThenable(result)) {
-          channel.suspended = true;
+          suspenders.push(opts.addonId);
+          channel.suspend();
           try {
             result = await result;
           } catch (e) {
@@ -951,7 +945,7 @@ HttpObserverManager = {
         }
 
         if (
-          kind === "authRequired" &&
+          kind === "onAuthRequired" &&
           result.authCredentials &&
           channel.authPromptCallback
         ) {
@@ -965,7 +959,13 @@ HttpObserverManager = {
         }
 
         if (result.cancel) {
-          channel.suspended = false;
+          let text = "";
+          if (Services.profiler?.IsActive()) {
+            text =
+              `${kind} ${channel.finalURL}` +
+              ` by ${suspenders.join(", ")} canceled`;
+          }
+          channel.resume(text);
           channel.cancel(
             Cr.NS_ERROR_ABORT,
             Ci.nsILoadInfo.BLOCKING_REASON_EXTENSION_WEBREQUEST
@@ -982,33 +982,61 @@ HttpObserverManager = {
 
         if (result.redirectUrl) {
           try {
-            channel.suspended = false;
+            let text = "";
+            if (Services.profiler?.IsActive()) {
+              text =
+                `${kind} ${channel.finalURL}` +
+                ` by ${suspenders.join(", ")}` +
+                ` redirected to ${result.redirectUrl}`;
+            }
+            channel.resume(text);
             channel.redirectTo(Services.io.newURI(result.redirectUrl));
+
             // Web Extensions using the WebRequest API are allowed
             // to redirect a channel to a data: URI, hence we mark
-            // the channel to let the redirect blocker know.
+            // the channel to let the redirect blocker know. Please
+            // note that this marking needs to happen after the
+            // channel.redirectTo is called because the channel's
+            // RedirectTo() implementation explicitly drops the flag
+            // to avoid additional redirects not caused by the
+            // Web Extension.
             channel.loadInfo.allowInsecureRedirectToDataURI = true;
 
-            // Web Extentions using the WebRequest API are also allowed
-            // to redirect a channel before any data has been send.
-            // This means we dont have  "Access-Control-Allow-Origin"
-            // information at that point so CORS checks would fail.
-            // Since we trust the WebExtention, we mark the Channel
-            // to skip the CORS check.
-            channel.loadInfo.bypassCORSChecks = true;
+            // To pass CORS checks, we pretend the current request's
+            // response allows the triggering origin to access.
+            let origin = channel.getRequestHeader("Origin");
+            if (origin) {
+              channel.setResponseHeader("Access-Control-Allow-Origin", origin);
+              channel.setResponseHeader(
+                "Access-Control-Allow-Credentials",
+                "true"
+              );
 
-            // Please note that this marking needs to happen after the
-            // channel.redirectTo is called because the channel's
-            // RedirectTo() implementation explicitly drops the flags
-            // to avoid redirects not caused by the
-            // Web Extension.
+              // Compute an arbitrary 'Access-Control-Allow-Headers'
+              // for the  internal Redirect
+
+              let allowHeaders = channel
+                .getRequestHeaders()
+                .map(header => header.name)
+                .join();
+              channel.setResponseHeader(
+                "Access-Control-Allow-Headers",
+                allowHeaders
+              );
+
+              channel.setResponseHeader(
+                "Access-Control-Allow-Methods",
+                channel.method
+              );
+            }
+
             return;
           } catch (e) {
             Cu.reportError(e);
           }
         }
 
-        if (result.upgradeToSecure && kind === "opening") {
+        if (result.upgradeToSecure && kind === "onBeforeRequest") {
           try {
             channel.upgradeToSecure();
           } catch (e) {
@@ -1027,13 +1055,13 @@ HttpObserverManager = {
 
       // If a listener did not cancel the request or provide credentials, we
       // forward the auth request to the base handler.
-      if (kind === "authRequired" && channel.authPromptForward) {
+      if (kind === "onAuthRequired" && channel.authPromptForward) {
         channel.authPromptForward();
       }
 
-      if (kind === "modify" && this.listeners.afterModify.size) {
-        await this.runChannelListener(channel, "afterModify");
-      } else if (kind !== "onError") {
+      if (kind === "onBeforeSendHeaders" && this.listeners.onSendHeaders.size) {
+        await this.runChannelListener(channel, "onSendHeaders");
+      } else if (kind !== "onErrorOccurred") {
         channel.errorCheck();
       }
     } catch (e) {
@@ -1042,7 +1070,11 @@ HttpObserverManager = {
 
     // Only resume the channel if it was suspended by this call.
     if (shouldResume) {
-      channel.suspended = false;
+      let text = "";
+      if (Services.profiler?.IsActive()) {
+        text = `${kind} ${channel.finalURL} by ${suspenders.join(", ")}`;
+      }
+      channel.resume(text);
     }
   },
 
@@ -1060,13 +1092,13 @@ HttpObserverManager = {
   },
 
   examine(channel, topic, data) {
-    if (this.listeners.headersReceived.size) {
-      this.runChannelListener(channel, "headersReceived");
+    if (this.listeners.onHeadersReceived.size) {
+      this.runChannelListener(channel, "onHeadersReceived");
     }
 
     if (
       !channel.hasAuthRequestor &&
-      this.shouldHookListener(this.listeners.authRequired, channel, {
+      this.shouldHookListener(this.listeners.onAuthRequired, channel, {
         isProxy: true,
       })
     ) {
@@ -1084,29 +1116,11 @@ HttpObserverManager = {
     // We want originalURI, this will provide a moz-ext rather than jar or file
     // uri on redirects.
     if (this.hasRedirects) {
-      this.runChannelListener(channel, "onRedirect", {
+      this.runChannelListener(channel, "onBeforeRedirect", {
         redirectUrl: newChannel.originalURI.spec,
       });
     }
     channel.channel = newChannel;
-  },
-};
-
-var onBeforeRequest = {
-  allowedOptions: ["blocking", "requestBody"],
-
-  addListener(callback, filter = null, options = null, optionsObject = null) {
-    let opts = parseExtra(options, this.allowedOptions);
-    opts.filter = parseFilter(filter);
-    ContentPolicyManager.addListener(callback, opts);
-
-    opts = Object.assign({}, opts, optionsObject);
-    HttpObserverManager.addListener("opening", callback, opts);
-  },
-
-  removeListener(callback) {
-    HttpObserverManager.removeListener("opening", callback);
-    ContentPolicyManager.removeListener(callback);
   },
 };
 
@@ -1127,51 +1141,38 @@ HttpEvent.prototype = {
   },
 };
 
-var onBeforeSendHeaders = new HttpEvent("modify", [
+var onBeforeRequest = new HttpEvent("onBeforeRequest", [
+  "blocking",
+  "requestBody",
+]);
+var onBeforeSendHeaders = new HttpEvent("onBeforeSendHeaders", [
   "requestHeaders",
   "blocking",
 ]);
-var onSendHeaders = new HttpEvent("afterModify", ["requestHeaders"]);
-var onHeadersReceived = new HttpEvent("headersReceived", [
+var onSendHeaders = new HttpEvent("onSendHeaders", ["requestHeaders"]);
+var onHeadersReceived = new HttpEvent("onHeadersReceived", [
   "blocking",
   "responseHeaders",
 ]);
-var onAuthRequired = new HttpEvent("authRequired", [
+var onAuthRequired = new HttpEvent("onAuthRequired", [
   "blocking",
   "responseHeaders",
 ]);
-var onBeforeRedirect = new HttpEvent("onRedirect", ["responseHeaders"]);
-var onResponseStarted = new HttpEvent("onStart", ["responseHeaders"]);
-var onCompleted = new HttpEvent("onStop", ["responseHeaders"]);
-var onErrorOccurred = new HttpEvent("onError");
+var onBeforeRedirect = new HttpEvent("onBeforeRedirect", ["responseHeaders"]);
+var onResponseStarted = new HttpEvent("onResponseStarted", ["responseHeaders"]);
+var onCompleted = new HttpEvent("onCompleted", ["responseHeaders"]);
+var onErrorOccurred = new HttpEvent("onErrorOccurred");
 
 var WebRequest = {
-  // http-on-modify observer for HTTP(S), content policy for the other protocols (notably, data:)
-  onBeforeRequest: onBeforeRequest,
-
-  // http-on-modify observer.
-  onBeforeSendHeaders: onBeforeSendHeaders,
-
-  // http-on-modify observer.
-  onSendHeaders: onSendHeaders,
-
-  // http-on-examine-*observer.
-  onHeadersReceived: onHeadersReceived,
-
-  // http-on-examine-*observer.
-  onAuthRequired: onAuthRequired,
-
-  // nsIChannelEventSink.
-  onBeforeRedirect: onBeforeRedirect,
-
-  // OnStartRequest channel listener.
-  onResponseStarted: onResponseStarted,
-
-  // OnStopRequest channel listener.
-  onCompleted: onCompleted,
-
-  // nsIHttpActivityObserver.
-  onErrorOccurred: onErrorOccurred,
+  onBeforeRequest,
+  onBeforeSendHeaders,
+  onSendHeaders,
+  onHeadersReceived,
+  onAuthRequired,
+  onBeforeRedirect,
+  onResponseStarted,
+  onCompleted,
+  onErrorOccurred,
 
   getSecurityInfo: details => {
     let channel = ChannelWrapper.getRegisteredChannel(
@@ -1184,8 +1185,3 @@ var WebRequest = {
     }
   },
 };
-
-Services.ppmm.loadProcessScript(
-  "resource://gre/modules/WebRequestContent.js",
-  true
-);

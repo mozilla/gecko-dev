@@ -26,6 +26,10 @@
 #  define SANDBOX_ARCH_NAME "x86"
 #elif defined(__x86_64__)
 #  define SANDBOX_ARCH_NAME "amd64"
+#elif defined(__arm__)
+#  define SANDBOX_ARCH_NAME "arm"
+#elif defined(__aarch64__)
+#  define SANDBOX_ARCH_NAME "arm64"
 #else
 #  error "unrecognized architecture"
 #endif
@@ -135,6 +139,9 @@ static void SubmitToTelemetry(const SandboxReport& aReport) {
       break;
     case SandboxReport::ProcType::RDD:
       key.AppendLiteral("rdd");
+      break;
+    case SandboxReport::ProcType::SOCKET_PROCESS:
+      key.AppendLiteral("socket");
       break;
     default:
       MOZ_ASSERT(false);

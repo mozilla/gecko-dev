@@ -18,6 +18,7 @@ export * from "../reducers/ast";
 export * from "../reducers/project-text-search";
 export * from "../reducers/source-tree";
 export * from "../reducers/preview";
+export * from "../reducers/exceptions";
 
 export {
   getSourceActor,
@@ -55,8 +56,8 @@ export {
   getVisibleSelectedFrame,
 } from "./pause";
 
-// eslint-disable-next-line import/named
-import { objectInspector } from "devtools-reps";
+// $FlowIgnore
+import { objectInspector } from "devtools/client/shared/components/reps/index";
 
 const { reducer } = objectInspector;
 

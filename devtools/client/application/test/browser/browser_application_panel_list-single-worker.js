@@ -15,7 +15,7 @@ add_task(async function() {
   selectPage(panel, "service-workers");
 
   info("Check for non-existing service worker");
-  const isWorkerListEmpty = !!doc.querySelector(".worker-list-empty");
+  const isWorkerListEmpty = !!doc.querySelector(".js-registration-list-empty");
   ok(isWorkerListEmpty, "No Service Worker displayed");
 
   info("Register a service worker in the page.");
@@ -37,7 +37,7 @@ add_task(async function() {
   const scopeEl = workerContainer.querySelector(".js-sw-scope");
   const expectedScope =
     "example.com/browser/devtools/client/application/test/" +
-    "browser/resources/service-workers/";
+    "browser/resources/service-workers";
   ok(
     scopeEl.textContent.startsWith(expectedScope),
     "Service worker has the expected scope"
@@ -57,4 +57,8 @@ add_task(async function() {
 
   info("Wait until the service worker is removed from the application panel");
   await waitUntil(() => getWorkerContainers(doc).length === 0);
+
+  // close the tab
+  info("Closing the tab.");
+  await BrowserTestUtils.removeTab(tab);
 });

@@ -43,6 +43,18 @@ window.addEventListener("load", function onload(event) {
   }
 });
 
+function prefsTable(data) {
+  return sortedArrayFromObject(data).map(function([name, value]) {
+    return $.new("tr", [
+      $.new("td", name, "pref-name"),
+      // Very long preference values can cause users problems when they
+      // copy and paste them into some text editors.  Long values generally
+      // aren't useful anyway, so truncate them to a reasonable length.
+      $.new("td", String(value).substr(0, 120), "pref-value"),
+    ]);
+  });
+}
+
 // Fluent uses lisp-case IDs so this converts
 // the SentenceCase info IDs to lisp-case.
 const FLUENT_IDENT_REGEX = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
@@ -75,6 +87,7 @@ var snapshotFormatters = {
     }
     $("version-box").textContent = version;
     $("buildid-box").textContent = data.buildID;
+    $("distributionid-box").textContent = data.distributionID;
     if (data.updateChannel) {
       $("updatechannel-box").textContent = data.updateChannel;
     }
@@ -106,20 +119,20 @@ var snapshotFormatters = {
       );
     } catch (e) {}
 
-    let statusTextId = "multi-process-status-unknown";
+    const STATUS_STRINGS = {
+      experimentControl: "fission-status-experiment-control",
+      experimentTreatment: "fission-status-experiment-treatment",
+      disabledByE10sEnv: "fission-status-disabled-by-e10s-env",
+      enabledByEnv: "fission-status-enabled-by-env",
+      disabledBySafeMode: "fission-status-disabled-by-safe-mode",
+      enabledByDefault: "fission-status-enabled-by-default",
+      disabledByDefault: "fission-status-disabled-by-default",
+      enabledByUserPref: "fission-status-enabled-by-user-pref",
+      disabledByUserPref: "fission-status-disabled-by-user-pref",
+      disabledByE10sOther: "fission-status-disabled-by-e10s-other",
+    };
 
-    // Whitelist of known values with string descriptions:
-    switch (data.autoStartStatus) {
-      case 0:
-      case 1:
-      case 2:
-      case 4:
-      case 6:
-      case 7:
-      case 8:
-        statusTextId = "multi-process-status-" + data.autoStartStatus;
-        break;
-    }
+    let statusTextId = STATUS_STRINGS[data.fissionDecisionStatus];
 
     document.l10n.setAttributes(
       $("multiprocess-box-process-count"),
@@ -129,7 +142,15 @@ var snapshotFormatters = {
         totalWindows: data.numTotalWindows,
       }
     );
-    document.l10n.setAttributes($("multiprocess-box-status"), statusTextId);
+    document.l10n.setAttributes(
+      $("fission-box-process-count"),
+      "fission-windows",
+      {
+        fissionWindows: data.numFissionWindows,
+        totalWindows: data.numTotalWindows,
+      }
+    );
+    document.l10n.setAttributes($("fission-box-status"), statusTextId);
 
     if (Services.policies) {
       let policiesStrId = "";
@@ -251,15 +272,16 @@ var snapshotFormatters = {
     );
   },
 
-  extensions(data) {
+  addons(data) {
     $.append(
-      $("extensions-tbody"),
-      data.map(function(extension) {
+      $("addons-tbody"),
+      data.map(function(addon) {
         return $.new("tr", [
-          $.new("td", extension.name),
-          $.new("td", extension.version),
-          $.new("td", extension.isActive),
-          $.new("td", extension.id),
+          $.new("td", addon.name),
+          $.new("td", addon.type),
+          $.new("td", addon.version),
+          $.new("td", addon.isActive),
+          $.new("td", addon.id),
         ]);
       })
     );
@@ -325,30 +347,70 @@ var snapshotFormatters = {
     }
   },
 
-  modifiedPreferences(data) {
+  async experimentalFeatures(data) {
+    if (!data) {
+      return;
+    }
+    let titleL10nIds = data.map(([titleL10nId]) => titleL10nId);
+    let titleL10nObjects = await document.l10n.formatMessages(titleL10nIds);
+    if (titleL10nObjects.length != data.length) {
+      throw Error("Missing localized title strings in experimental features");
+    }
+    for (let i = 0; i < titleL10nObjects.length; i++) {
+      let localizedTitle = titleL10nObjects[i].attributes.find(
+        a => a.name == "label"
+      ).value;
+      data[i] = [localizedTitle, data[i][1], data[i][2]];
+    }
+
     $.append(
-      $("prefs-tbody"),
-      sortedArrayFromObject(data).map(function([name, value]) {
+      $("experimental-features-tbody"),
+      data.map(function([title, pref, value]) {
         return $.new("tr", [
-          $.new("td", name, "pref-name"),
-          // Very long preference values can cause users problems when they
-          // copy and paste them into some text editors.  Long values generally
-          // aren't useful anyway, so truncate them to a reasonable length.
-          $.new("td", String(value).substr(0, 120), "pref-value"),
+          $.new("td", `${title} (${pref})`, "pref-name"),
+          $.new("td", value, "pref-value"),
         ]);
       })
     );
   },
 
-  lockedPreferences(data) {
+  environmentVariables(data) {
+    if (!data) {
+      return;
+    }
     $.append(
-      $("locked-prefs-tbody"),
-      sortedArrayFromObject(data).map(function([name, value]) {
+      $("environment-variables-tbody"),
+      Object.entries(data).map(([name, value]) => {
         return $.new("tr", [
           $.new("td", name, "pref-name"),
-          $.new("td", String(value).substr(0, 120), "pref-value"),
+          $.new("td", value, "pref-value"),
         ]);
       })
+    );
+  },
+
+  modifiedPreferences(data) {
+    $.append($("prefs-tbody"), prefsTable(data));
+  },
+
+  lockedPreferences(data) {
+    $.append($("locked-prefs-tbody"), prefsTable(data));
+  },
+
+  printingPreferences(data) {
+    if (AppConstants.platform == "android") {
+      return;
+    }
+    const tbody = $("support-printing-prefs-tbody");
+    $.append(tbody, prefsTable(data));
+    $("support-printing-clear-settings-button").addEventListener(
+      "click",
+      function() {
+        for (let name in data) {
+          Services.prefs.clearUserPref(name);
+        }
+        tbody.textContent = "";
+      }
     );
   },
 
@@ -368,7 +430,14 @@ var snapshotFormatters = {
     let apzInfo = [];
     let formatApzInfo = function(info) {
       let out = [];
-      for (let type of ["Wheel", "Touch", "Drag", "Keyboard", "Autoscroll"]) {
+      for (let type of [
+        "Wheel",
+        "Touch",
+        "Drag",
+        "Keyboard",
+        "Autoscroll",
+        "Zooming",
+      ]) {
         let key = "Apz" + type + "Input";
 
         if (!(key in info)) {
@@ -568,11 +637,13 @@ var snapshotFormatters = {
       apzInfo.length
         ? [
             new Text(
-              (await document.l10n.formatValues(
-                apzInfo.map(id => {
-                  return { id };
-                })
-              )).join("; ")
+              (
+                await document.l10n.formatValues(
+                  apzInfo.map(id => {
+                    return { id };
+                  })
+                )
+              ).join("; ")
             ),
           ]
         : "apz-none"
@@ -640,7 +711,7 @@ var snapshotFormatters = {
         if (value === undefined || value === "") {
           continue;
         }
-        trs.push(buildRow(key, value));
+        trs.push(buildRow(key, [new Text(value)]));
       }
 
       if (!trs.length) {
@@ -669,39 +740,30 @@ var snapshotFormatters = {
     let featureLog = data.featureLog;
     delete data.featureLog;
 
-    let features = [];
-    for (let feature of featureLog.features) {
-      // Only add interesting decisions - ones that were not automatic based on
-      // all.js/StaticPrefs defaults.
-      if (feature.log.length > 1 || feature.log[0].status != "available") {
-        features.push(feature);
-      }
-    }
-
-    if (features.length) {
-      for (let feature of features) {
+    if (featureLog.features.length) {
+      for (let feature of featureLog.features) {
         let trs = [];
         for (let entry of feature.log) {
-          if (entry.type == "default" && entry.status == "available") {
-            continue;
-          }
-
           let contents;
-          if (entry.message.length && entry.message[0] == "#") {
+          if (!entry.hasOwnProperty("message")) {
+            // This is a default entry.
+            contents = entry.status + " by " + entry.type;
+          } else if (entry.message.length && entry.message[0] == "#") {
             // This is a failure ID. See nsIGfxInfo.idl.
             let m = /#BLOCKLIST_FEATURE_FAILURE_BUG_(\d+)/.exec(entry.message);
             if (m) {
               let bugSpan = $.new("span");
-              document.l10n.setAttributes(bugSpan, "blocklisted-bug");
 
               let bugHref = $.new("a");
               bugHref.href =
                 "https://bugzilla.mozilla.org/show_bug.cgi?id=" + m[1];
-              document.l10n.setAttributes(bugHref, "bug-link", {
+              bugHref.setAttribute("data-l10n-name", "bug-link");
+              bugSpan.append(bugHref);
+              document.l10n.setAttributes(bugSpan, "support-blocklisted-bug", {
                 bugNumber: m[1],
               });
 
-              contents = [bugSpan, bugHref];
+              contents = [bugSpan];
             } else {
               let unknownFailure = $.new("span");
               document.l10n.setAttributes(unknownFailure, "unknown-failure", {
@@ -915,10 +977,39 @@ var snapshotFormatters = {
       }
     }
 
+    function roundtripAudioLatency() {
+      insertBasicInfo("roundtrip-latency", "...");
+      window.windowUtils
+        .defaultDevicesRoundTripLatency()
+        .then(latency => {
+          var latencyString = `${(latency[0] * 1000).toFixed(2)}ms (${(
+            latency[1] * 1000
+          ).toFixed(2)})`;
+          data.defaultDevicesRoundTripLatency = latencyString;
+          document.querySelector(
+            'th[data-l10n-id="roundtrip-latency"]'
+          ).nextSibling.textContent = latencyString;
+        })
+        .catch(e => {});
+    }
+
     // Basic information
     insertBasicInfo("audio-backend", data.currentAudioBackend);
     insertBasicInfo("max-audio-channels", data.currentMaxAudioChannels);
     insertBasicInfo("sample-rate", data.currentPreferredSampleRate);
+
+    if (AppConstants.platform == "macosx") {
+      var micStatus = {};
+      let permission = Cc["@mozilla.org/ospermissionrequest;1"].getService(
+        Ci.nsIOSPermissionRequest
+      );
+      permission.getAudioCapturePermissionState(micStatus);
+      if (micStatus.value == permission.PERMISSION_STATE_AUTHORIZED) {
+        roundtripAudioLatency();
+      }
+    } else {
+      roundtripAudioLatency();
+    }
 
     // Output devices information
     insertDeviceInfo("output", data.audioOutputDevices);
@@ -928,10 +1019,6 @@ var snapshotFormatters = {
 
     // Media Capabilitites
     insertEnumerateDatabase();
-  },
-
-  javaScript(data) {
-    $("javascript-incremental-gc").textContent = data.incrementalGCEnabled;
   },
 
   remoteAgent(data) {
@@ -955,6 +1042,14 @@ var snapshotFormatters = {
     if (a11yInstantiator) {
       a11yInstantiator.textContent = data.instantiator;
     }
+  },
+
+  startupCache(data) {
+    $("startup-cache-disk-cache-path").textContent = data.DiskCachePath;
+    $("startup-cache-ignore-disk-cache").textContent = data.IgnoreDiskCache;
+    $("startup-cache-found-disk-cache-on-init").textContent =
+      data.FoundDiskCacheOnInit;
+    $("startup-cache-wrote-to-disk-cache").textContent = data.WroteToDiskCache;
   },
 
   libraryVersions(data) {
@@ -1431,11 +1526,9 @@ function openProfileDirectory() {
 function populateActionBox() {
   if (ResetProfile.resetSupported()) {
     $("reset-box").style.display = "block";
-    $("action-box").style.display = "block";
   }
   if (!Services.appinfo.inSafeMode && AppConstants.platform !== "android") {
     $("safe-mode-box").style.display = "block";
-    $("action-box").style.display = "block";
 
     if (Services.policies && !Services.policies.isAllowed("safeMode")) {
       $("restart-in-safe-mode-button").setAttribute("disabled", "true");
@@ -1466,6 +1559,42 @@ function setupEventListeners() {
   if (button) {
     button.addEventListener("click", function(event) {
       ResetProfile.openConfirmationDialog(window);
+    });
+  }
+  button = $("clear-startup-cache-button");
+  if (button) {
+    button.addEventListener("click", async function(event) {
+      const [
+        promptTitle,
+        promptBody,
+        restartButtonLabel,
+      ] = await document.l10n.formatValues([
+        { id: "startup-cache-dialog-title" },
+        { id: "startup-cache-dialog-body" },
+        { id: "restart-button-label" },
+      ]);
+      const buttonFlags =
+        Services.prompt.BUTTON_POS_0 * Services.prompt.BUTTON_TITLE_IS_STRING +
+        Services.prompt.BUTTON_POS_1 * Services.prompt.BUTTON_TITLE_CANCEL +
+        Services.prompt.BUTTON_POS_0_DEFAULT;
+      const result = Services.prompt.confirmEx(
+        window,
+        promptTitle,
+        promptBody,
+        buttonFlags,
+        restartButtonLabel,
+        null,
+        null,
+        null,
+        {}
+      );
+      if (result !== 0) {
+        return;
+      }
+      Services.appinfo.invalidateCachesOnRestart();
+      Services.startup.quit(
+        Ci.nsIAppStartup.eRestart | Ci.nsIAppStartup.eAttemptQuit
+      );
     });
   }
   button = $("restart-in-safe-mode-button");
@@ -1504,7 +1633,7 @@ function setupEventListeners() {
     button = $("show-update-history-button");
     if (button) {
       button.addEventListener("click", function(event) {
-        window.docShell.rootTreeItem.domWindow.openDialog(
+        window.browsingContext.topChromeWindow.openDialog(
           "chrome://mozapps/content/update/history.xhtml",
           "Update:History",
           "centerscreen,resizable=no,titlebar,modal"

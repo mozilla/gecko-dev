@@ -6,11 +6,11 @@ from __future__ import absolute_import
 
 from setuptools import setup
 
-PACKAGE_VERSION = "1.2.1"
+PACKAGE_VERSION = "1.2.2"
 
 # dependencies
 deps = [
-    "distro == 1.4.0",
+    "distro >= 1.4.0",
     "mozfile >= 0.12",
 ]
 

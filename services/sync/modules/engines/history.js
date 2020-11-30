@@ -17,7 +17,7 @@ const {
   SCORE_INCREMENT_SMALL,
   SCORE_INCREMENT_XLARGE,
 } = ChromeUtils.import("resource://services-sync/constants.js");
-const { Store, SyncEngine, Tracker } = ChromeUtils.import(
+const { Store, SyncEngine, LegacyTracker } = ChromeUtils.import(
   "resource://services-sync/engines.js"
 );
 const { CryptoWrapper } = ChromeUtils.import(
@@ -70,7 +70,6 @@ HistoryEngine.prototype = {
       { newSyncID }
     );
     await PlacesSyncUtils.history.ensureCurrentSyncId(newSyncID);
-    await super.ensureCurrentSyncID(newSyncID); // Remove in bug 1443021.
     return newSyncID;
   },
 
@@ -86,7 +85,6 @@ HistoryEngine.prototype = {
   async resetLocalSyncID() {
     let newSyncID = await PlacesSyncUtils.history.resetSyncId();
     this._log.debug("Assigned new sync ID ${newSyncID}", { newSyncID });
-    await super.ensureCurrentSyncID(newSyncID); // Remove in bug 1443021.
     return newSyncID;
   },
 
@@ -97,7 +95,6 @@ HistoryEngine.prototype = {
 
   async setLastSync(lastSync) {
     await PlacesSyncUtils.history.setLastSync(lastSync);
-    await super.setLastSync(lastSync); // Remove in bug 1443021.
   },
 
   shouldSyncURL(url) {
@@ -517,10 +514,10 @@ HistoryStore.prototype = {
 };
 
 function HistoryTracker(name, engine) {
-  Tracker.call(this, name, engine);
+  LegacyTracker.call(this, name, engine);
 }
 HistoryTracker.prototype = {
-  __proto__: Tracker.prototype,
+  __proto__: LegacyTracker.prototype,
 
   onStart() {
     this._log.info("Adding Places observer.");
@@ -540,8 +537,8 @@ HistoryTracker.prototype = {
   },
 
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsINavHistoryObserver,
-    Ci.nsISupportsWeakReference,
+    "nsINavHistoryObserver",
+    "nsISupportsWeakReference",
   ]),
 
   async onDeleteAffectsGUID(uri, guid, reason, source, increment) {

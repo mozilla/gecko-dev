@@ -6,7 +6,6 @@
 
 #include "mozilla/LazyIdleThread.h"
 #include "mozilla/SharedThreadPool.h"
-#include "mozilla/SystemGroup.h"
 #include "mozilla/ThrottledEventQueue.h"
 #include "nsComponentManagerUtils.h"
 #include "nsCOMPtr.h"
@@ -40,8 +39,7 @@ TEST(TestEventTargetQI, ThreadPool)
 
 TEST(TestEventTargetQI, SharedThreadPool)
 {
-  nsCOMPtr<nsIThreadPool> thing =
-      SharedThreadPool::Get(NS_LITERAL_CSTRING("TestPool"), 1);
+  nsCOMPtr<nsIThreadPool> thing = SharedThreadPool::Get("TestPool"_ns, 1);
   EXPECT_TRUE(thing);
 
   EXPECT_FALSE(TestQITo<nsISerialEventTarget>(thing));
@@ -73,8 +71,7 @@ TEST(TestEventTargetQI, ThrottledEventQueue)
 
 TEST(TestEventTargetQI, LazyIdleThread)
 {
-  nsCOMPtr<nsIThread> thing =
-      new LazyIdleThread(0, NS_LITERAL_CSTRING("TestThread"));
+  nsCOMPtr<nsIThread> thing = new LazyIdleThread(0, "TestThread"_ns);
   EXPECT_TRUE(thing);
 
   EXPECT_TRUE(TestQITo<nsISerialEventTarget>(thing));
@@ -82,15 +79,4 @@ TEST(TestEventTargetQI, LazyIdleThread)
   EXPECT_TRUE(TestQITo<nsIEventTarget>(thing));
 
   thing->Shutdown();
-}
-
-TEST(TestEventTargetQI, SchedulerGroup)
-{
-  nsCOMPtr<nsIEventTarget> thing =
-      SystemGroup::EventTargetFor(TaskCategory::Other);
-  EXPECT_TRUE(thing);
-
-  EXPECT_TRUE(TestQITo<nsISerialEventTarget>(thing));
-
-  EXPECT_TRUE(TestQITo<nsIEventTarget>(thing));
 }

@@ -470,6 +470,48 @@
       }
 
       /**
+       * Used by custom elements for caching fragments. We now would be
+       * caching once per class while also supporting subclasses.
+       *
+       * If available, returns the cached fragment.
+       * Otherwise, creates it.
+       *
+       * Example:
+       *
+       *  class ElementA extends MozXULElement {
+       *    static get markup() {
+       *      return `<hbox class="example"`;
+       *    }
+       *
+       *    static get entities() {
+       *      // Optional field for parseXULToFragment
+       *      return `["chrome://global/locale/notification.dtd"]`;
+       *    }
+       *
+       *    connectedCallback() {
+       *      this.appendChild(this.constructor.fragment);
+       *    }
+       *  }
+       *
+       * @return {importedNode} The imported node that has not been
+       * inserted into document tree.
+       */
+      static get fragment() {
+        if (!this.hasOwnProperty("_fragment")) {
+          let markup = this.markup;
+          if (markup) {
+            this._fragment = MozXULElement.parseXULToFragment(
+              markup,
+              this.entities
+            );
+          } else {
+            throw new Error("Markup is null");
+          }
+        }
+        return document.importNode(this._fragment, true);
+      }
+
+      /**
        * Allows eager deterministic construction of XUL elements with XBL attached, by
        * parsing an element tree and returning a DOM fragment to be inserted in the
        * document before any of the inner elements is referenced by JavaScript.
@@ -780,6 +822,7 @@
       "chrome://global/content/elements/checkbox.js",
       "chrome://global/content/elements/menu.js",
       "chrome://global/content/elements/menupopup.js",
+      "chrome://global/content/elements/moz-input-box.js",
       "chrome://global/content/elements/notificationbox.js",
       "chrome://global/content/elements/panel.js",
       "chrome://global/content/elements/popupnotification.js",
@@ -787,7 +830,6 @@
       "chrome://global/content/elements/richlistbox.js",
       "chrome://global/content/elements/autocomplete-popup.js",
       "chrome://global/content/elements/autocomplete-richlistitem.js",
-      "chrome://global/content/elements/textbox.js",
       "chrome://global/content/elements/tabbox.js",
       "chrome://global/content/elements/text.js",
       "chrome://global/content/elements/toolbarbutton.js",
@@ -801,14 +843,14 @@
       ["findbar", "chrome://global/content/elements/findbar.js"],
       ["menulist", "chrome://global/content/elements/menulist.js"],
       ["search-textbox", "chrome://global/content/elements/search-textbox.js"],
-      [
-        "autocomplete-input",
-        "chrome://global/content/elements/autocomplete-input.js",
-      ],
       ["stringbundle", "chrome://global/content/elements/stringbundle.js"],
       [
         "printpreview-toolbar",
         "chrome://global/content/printPreviewToolbar.js",
+      ],
+      [
+        "autocomplete-input",
+        "chrome://global/content/elements/autocomplete-input.js",
       ],
       ["editor", "chrome://global/content/elements/editor.js"],
     ]) {

@@ -3,8 +3,6 @@
 // This test checks whether applied WebExtension themes that attempt to change
 // popup properties are applied correctly to the autocomplete bar.
 const POPUP_COLOR = "#85A400";
-const POPUP_BORDER_COLOR = "#220300";
-const CHROME_CONTENT_SEPARATOR_COLOR = "#220301";
 const POPUP_TEXT_COLOR_DARK = "#000000";
 const POPUP_TEXT_COLOR_BRIGHT = "#ffffff";
 const POPUP_SELECTED_COLOR = "#9400ff";
@@ -16,7 +14,6 @@ const POPUP_URL_COLOR_BRIGHT = "#74c0ff";
 const POPUP_ACTION_COLOR_BRIGHT = "#30e60b";
 
 const SEARCH_TERM = "urlbar-reflows-" + Date.now();
-const ONEOFF_URLBAR_PREF = "browser.urlbar.oneOffSearches";
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   PlacesTestUtils: "resource://testing-common/PlacesTestUtils.jsm",
@@ -53,10 +50,8 @@ add_task(async function test_popup_url() {
         colors: {
           frame: ACCENT_COLOR,
           tab_background_text: TEXT_COLOR,
-          popup: POPUP_COLOR,
-          popup_border: POPUP_BORDER_COLOR,
-          toolbar_bottom_separator: CHROME_CONTENT_SEPARATOR_COLOR,
-          popup_text: POPUP_TEXT_COLOR_DARK,
+          toolbar_field_focus: POPUP_COLOR,
+          toolbar_field_text_focus: POPUP_TEXT_COLOR_DARK,
           popup_highlight: POPUP_SELECTED_COLOR,
           popup_highlight_text: POPUP_SELECTED_TEXT_COLOR,
         },
@@ -70,14 +65,12 @@ add_task(async function test_popup_url() {
   await extension.startup();
 
   let maxResults = Services.prefs.getIntPref("browser.urlbar.maxRichResults");
-  Services.prefs.setBoolPref(ONEOFF_URLBAR_PREF, true);
   let tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,
     "about:mozilla"
   );
   registerCleanupFunction(async function() {
     await PlacesUtils.history.clear();
-    Services.prefs.clearUserPref(ONEOFF_URLBAR_PREF);
     await BrowserTestUtils.removeTab(tab);
   });
 
@@ -101,44 +94,11 @@ add_task(async function test_popup_url() {
     "Should get maxResults=" + maxResults + " results"
   );
 
-  let popup = gURLBar.view.panel;
-
-  if (!gURLBar.megabar) {
-    // The urlbar popup supports these colors only with the legacy non-megabar
-    // design. With megabar, the popup visually extends the textbox and use its
-    // colors.
-    let popupCS = window.getComputedStyle(popup);
-
-    Assert.equal(
-      popupCS.backgroundColor,
-      `rgb(${hexToRGB(POPUP_COLOR).join(", ")})`,
-      `Popup background color should be set to ${POPUP_COLOR}`
-    );
-
-    Assert.equal(
-      popupCS.borderBottomColor,
-      `rgb(${hexToRGB(CHROME_CONTENT_SEPARATOR_COLOR).join(", ")})`,
-      `Popup bottom color should be set to ${CHROME_CONTENT_SEPARATOR_COLOR}`
-    );
-
-    Assert.equal(
-      popupCS.color,
-      `rgb(${hexToRGB(POPUP_TEXT_COLOR_DARK).join(", ")})`,
-      `Popup color should be set to ${POPUP_TEXT_COLOR_DARK}`
-    );
-  }
-
   // Set the selected attribute to true to test the highlight popup properties
   UrlbarTestUtils.setSelectedRowIndex(window, 1);
   let actionResult = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
   let urlResult = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
-  let resultCS;
-  if (gURLBar.megabar) {
-    // The megabar styles the highlight on the urlbarView-row-inner element.
-    resultCS = window.getComputedStyle(urlResult.element.row._content);
-  } else {
-    resultCS = window.getComputedStyle(urlResult.element.row);
-  }
+  let resultCS = window.getComputedStyle(urlResult.element.row._content);
 
   Assert.equal(
     resultCS.backgroundColor,
@@ -168,25 +128,7 @@ add_task(async function test_popup_url() {
     `Urlbar popup action color should be set to ${POPUP_ACTION_COLOR_DARK}`
   );
 
-  let root = document.documentElement;
-  Assert.equal(
-    root.hasAttribute("lwt-popup-brighttext"),
-    false,
-    "brighttext should not be set!"
-  );
-  Assert.equal(
-    root.getAttribute("lwt-popup-darktext"),
-    "true",
-    "darktext should be set!"
-  );
-
   await extension.unload();
-
-  Assert.equal(
-    root.hasAttribute("lwt-popup-darktext"),
-    false,
-    "lwt-popup-darktext attribute should be removed"
-  );
 
   // Load a manifest with popup_text being bright. Test for bright text properties.
   extension = ExtensionTestUtils.loadExtension({
@@ -198,8 +140,8 @@ add_task(async function test_popup_url() {
         colors: {
           frame: ACCENT_COLOR,
           tab_background_text: TEXT_COLOR,
-          popup: POPUP_COLOR,
-          popup_text: POPUP_TEXT_COLOR_BRIGHT,
+          toolbar_field_focus: POPUP_COLOR,
+          toolbar_field_text_focus: POPUP_TEXT_COLOR_BRIGHT,
           popup_highlight: POPUP_SELECTED_COLOR,
           popup_highlight_text: POPUP_SELECTED_TEXT_COLOR,
         },
@@ -211,17 +153,6 @@ add_task(async function test_popup_url() {
   });
 
   await extension.startup();
-
-  if (!gURLBar.megabar) {
-    // The urlbar popup supports this color only with the legacy non-megabar
-    // design. With megabar, the popup visually extends the textbox and use its
-    // colors.
-    Assert.equal(
-      window.getComputedStyle(popup).color,
-      `rgb(${hexToRGB(POPUP_TEXT_COLOR_BRIGHT).join(", ")})`,
-      `Popup color should be set to ${POPUP_TEXT_COLOR_BRIGHT}`
-    );
-  }
 
   Assert.equal(
     window.getComputedStyle(urlResult.element.url).color,
@@ -235,29 +166,5 @@ add_task(async function test_popup_url() {
     `Urlbar popup action color should be set to ${POPUP_ACTION_COLOR_BRIGHT}`
   );
 
-  Assert.equal(
-    root.getAttribute("lwt-popup-brighttext"),
-    "true",
-    "brighttext should be set to true!"
-  );
-  Assert.equal(
-    root.hasAttribute("lwt-popup-darktext"),
-    false,
-    "darktext should not be set!"
-  );
-
   await extension.unload();
-
-  // Check to see if popup-brighttext and secondary color are not set after
-  // unload of theme
-  Assert.equal(
-    root.hasAttribute("lwt-popup-brighttext"),
-    false,
-    "brighttext should not be set!"
-  );
-  Assert.equal(
-    root.hasAttribute("lwt-popup-darktext"),
-    false,
-    "darktext should not be set!"
-  );
 });

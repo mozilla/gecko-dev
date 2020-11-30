@@ -17,13 +17,31 @@ namespace dom {
 namespace syncedcontext {
 
 template <typename Context>
+nsCString FormatValidationError(IndexSet aFailedFields, const char* prefix) {
+  MOZ_ASSERT(!aFailedFields.isEmpty());
+  nsCString error(prefix);
+  bool first = true;
+  for (auto idx : aFailedFields) {
+    if (!first) {
+      error.Append(", ");
+    }
+    first = false;
+    error.Append(Context::FieldIndexToName(idx));
+  }
+  return error;
+}
+
+template <typename Context>
 nsresult Transaction<Context>::Commit(Context* aOwner) {
   if (NS_WARN_IF(aOwner->IsDiscarded())) {
-    return NS_ERROR_FAILURE;
+    return NS_ERROR_DOM_INVALID_STATE_ERR;
   }
 
-  if (!Validate(aOwner, nullptr)) {
-    MOZ_CRASH("Attempt to commit invalid transaction");
+  IndexSet failedFields = Validate(aOwner, nullptr);
+  if (!failedFields.isEmpty()) {
+    nsCString error = FormatValidationError<Context>(
+        failedFields, "CanSet failed for field(s): ");
+    MOZ_CRASH_UNSAFE_PRINTF("%s", error.get());
   }
 
   if (XRE_IsContentProcess()) {
@@ -32,8 +50,8 @@ nsresult Transaction<Context>::Commit(Context* aOwner) {
     // Increment the field epoch for fields affected by this transaction.
     uint64_t epoch = cc->NextBrowsingContextFieldEpoch();
     EachIndex([&](auto idx) {
-      if (GetAt(idx, mMaybeFields)) {
-        GetAt(idx, GetFieldStorage(aOwner).mEpochs) = epoch;
+      if (mModified.contains(idx)) {
+        FieldEpoch(idx, aOwner) = epoch;
       }
     });
 
@@ -66,8 +84,12 @@ mozilla::ipc::IPCResult Transaction<Context>::CommitFromIPC(
   Context* owner = aOwner.get();
 
   // Validate that the set from content is allowed before continuing.
-  if (!Validate(owner, aSource)) {
-    return IPC_FAIL(aSource, "Invalid Transaction from Child");
+  IndexSet failedFields = Validate(owner, aSource);
+  if (!failedFields.isEmpty()) {
+    nsCString error = FormatValidationError<Context>(
+        failedFields,
+        "Invalid Transaction from Child - CanSet failed for field(s): ");
+    return IPC_FAIL(aSource, error.get());
   }
 
   BrowsingContextGroup* group = owner->Group();
@@ -94,9 +116,8 @@ mozilla::ipc::IPCResult Transaction<Context>::CommitFromIPC(
 
   // Clear any fields which have been obsoleted by the epoch.
   EachIndex([&](auto idx) {
-    auto& field = GetAt(idx, mMaybeFields);
-    if (field && GetAt(idx, GetFieldStorage(owner).mEpochs) > aEpoch) {
-      field.reset();
+    if (mModified.contains(idx) && FieldEpoch(idx, owner) > aEpoch) {
+      mModified -= idx;
     }
   });
 
@@ -107,37 +128,86 @@ mozilla::ipc::IPCResult Transaction<Context>::CommitFromIPC(
 template <typename Context>
 void Transaction<Context>::Apply(Context* aOwner) {
   EachIndex([&](auto idx) {
-    if (auto& txnField = GetAt(idx, mMaybeFields)) {
-      GetAt(idx, GetFieldStorage(aOwner).mFields) = std::move(*txnField);
+    if (mModified.contains(idx)) {
+      auto& txnField = mValues.Get(idx);
+      auto& ownerField = aOwner->mFields.mValues.Get(idx);
+      std::swap(ownerField, txnField);
       aOwner->DidSet(idx);
-      txnField.reset();
+      aOwner->DidSet(idx, std::move(txnField));
     }
   });
+  mModified.clear();
 }
 
 template <typename Context>
-bool Transaction<Context>::Validate(Context* aOwner, ContentParent* aSource) {
-  bool ok = true;
+IndexSet Transaction<Context>::Validate(Context* aOwner,
+                                        ContentParent* aSource) {
+  IndexSet failedFields;
   // Validate that the set from content is allowed before continuing.
   EachIndex([&](auto idx) {
-    const auto& field = GetAt(idx, mMaybeFields);
-    if (field && NS_WARN_IF(!aOwner->CanSet(idx, *field, aSource))) {
-      ok = false;
+    if (mModified.contains(idx) &&
+        NS_WARN_IF(!aOwner->CanSet(idx, mValues.Get(idx), aSource))) {
+      failedFields += idx;
     }
   });
-  return ok;
+  return failedFields;
 }
 
 template <typename Context>
 void Transaction<Context>::Write(IPC::Message* aMsg,
                                  mozilla::ipc::IProtocol* aActor) const {
-  WriteIPDLParam(aMsg, aActor, mMaybeFields);
+  // Record which field indices will be included, and then write those fields
+  // out.
+  uint64_t modified = mModified.serialize();
+  WriteIPDLParam(aMsg, aActor, modified);
+  EachIndex([&](auto idx) {
+    if (mModified.contains(idx)) {
+      WriteIPDLParam(aMsg, aActor, mValues.Get(idx));
+    }
+  });
 }
 
 template <typename Context>
 bool Transaction<Context>::Read(const IPC::Message* aMsg, PickleIterator* aIter,
                                 mozilla::ipc::IProtocol* aActor) {
-  return ReadIPDLParam(aMsg, aIter, aActor, &mMaybeFields);
+  // Read in which field indices were sent by the remote, followed by the fields
+  // identified by those indices.
+  uint64_t modified = 0;
+  if (!ReadIPDLParam(aMsg, aIter, aActor, &modified)) {
+    return false;
+  }
+  mModified.deserialize(modified);
+
+  bool ok = true;
+  EachIndex([&](auto idx) {
+    if (ok && mModified.contains(idx)) {
+      ok = ReadIPDLParam(aMsg, aIter, aActor, &mValues.Get(idx));
+    }
+  });
+  return ok;
+}
+
+template <typename Base, size_t Count>
+void FieldValues<Base, Count>::Write(IPC::Message* aMsg,
+                                     mozilla::ipc::IProtocol* aActor) const {
+  // XXX The this-> qualification is necessary to work around a bug in older gcc
+  // versions causing an ICE.
+  EachIndex([&](auto idx) { WriteIPDLParam(aMsg, aActor, this->Get(idx)); });
+}
+
+template <typename Base, size_t Count>
+bool FieldValues<Base, Count>::Read(const IPC::Message* aMsg,
+                                    PickleIterator* aIter,
+                                    mozilla::ipc::IProtocol* aActor) {
+  bool ok = true;
+  EachIndex([&](auto idx) {
+    if (ok) {
+      // XXX The this-> qualification is necessary to work around a bug in older
+      // gcc versions causing an ICE.
+      ok = ReadIPDLParam(aMsg, aIter, aActor, &this->Get(idx));
+    }
+  });
+  return ok;
 }
 
 }  // namespace syncedcontext

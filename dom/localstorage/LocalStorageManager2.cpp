@@ -19,12 +19,12 @@ class AsyncRequestHelper final : public Runnable,
                                  public LSRequestChildCallback {
   enum class State {
     /**
-     * The AsyncRequestHelper has been created and dispatched to the DOM File
-     * Thread.
+     * The AsyncRequestHelper has been created and dispatched to the
+     * RemoteLazyInputStream Thread.
      */
     Initial,
     /**
-     * Start() has been invoked on the DOM File Thread and
+     * Start() has been invoked on the RemoteLazyInputStream Thread and
      * LocalStorageManager2::StartRequest has been invoked from there, sending
      * an IPC message to PBackground to service the request.  We stay in this
      * state until a response is received.
@@ -64,7 +64,7 @@ class AsyncRequestHelper final : public Runnable,
                      const LSRequestParams& aParams)
       : Runnable("dom::LocalStorageManager2::AsyncRequestHelper"),
         mManager(aManager),
-        mOwningEventTarget(GetCurrentThreadEventTarget()),
+        mOwningEventTarget(GetCurrentEventTarget()),
         mActor(nullptr),
         mPromise(aPromise),
         mParams(aParams),
@@ -262,14 +262,15 @@ LocalStorageManager2::GetNextGenLocalStorageEnabled(bool* aResult) {
 
 NS_IMETHODIMP
 LocalStorageManager2::Preload(nsIPrincipal* aPrincipal, JSContext* aContext,
-                              nsISupports** _retval) {
+                              Promise** _retval) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aPrincipal);
   MOZ_ASSERT(_retval);
 
   nsCString originAttrSuffix;
   nsCString originKey;
-  nsresult rv = GenerateOriginKey(aPrincipal, originAttrSuffix, originKey);
+  nsresult rv = aPrincipal->GetStorageOriginKey(originKey);
+  aPrincipal->OriginAttributesRef().CreateSuffix(originAttrSuffix);
   if (NS_FAILED(rv)) {
     return NS_ERROR_NOT_AVAILABLE;
   }
@@ -299,9 +300,10 @@ LocalStorageManager2::Preload(nsIPrincipal* aPrincipal, JSContext* aContext,
   RefPtr<AsyncRequestHelper> helper =
       new AsyncRequestHelper(this, promise, params);
 
-  // This will start and finish the async request on the DOM File thread.
-  // This must be done on DOM File Thread because it's very likely that a
-  // content process will issue a prepare datastore request for the same
+  // This will start and finish the async request on the RemoteLazyInputStream
+  // thread.
+  // This must be done on RemoteLazyInputStream Thread because it's very likely
+  // that a content process will issue a prepare datastore request for the same
   // principal while blocking the content process on the main thread.
   // There would be a potential for deadlock if the preloading was initialized
   // from the main thread of the parent process and a11y issued a synchronous
@@ -320,7 +322,7 @@ LocalStorageManager2::Preload(nsIPrincipal* aPrincipal, JSContext* aContext,
 
 NS_IMETHODIMP
 LocalStorageManager2::IsPreloaded(nsIPrincipal* aPrincipal, JSContext* aContext,
-                                  nsISupports** _retval) {
+                                  Promise** _retval) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aPrincipal);
   MOZ_ASSERT(_retval);
@@ -405,7 +407,7 @@ nsresult AsyncRequestHelper::Dispatch() {
   AssertIsOnOwningThread();
 
   nsCOMPtr<nsIEventTarget> domFileThread =
-      IPCBlobInputStreamThread::GetOrCreate();
+      RemoteLazyInputStreamThread::GetOrCreate();
   if (NS_WARN_IF(!domFileThread)) {
     return NS_ERROR_FAILURE;
   }

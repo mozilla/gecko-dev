@@ -256,7 +256,7 @@ var BootstrapMonitor = {
     let { id } = params;
 
     info(
-      `Bootstrap method ${method} for ${params.id} version ${params.version}`
+      `Bootstrap method ${method} ${reason} for ${params.id} version ${params.version}`
     );
 
     if (method !== "install") {
@@ -292,7 +292,7 @@ var BootstrapMonitor = {
         break;
       case "update":
         this.checkMatches("update", "install", params, this.installed.get(id));
-        this.installed.set(id, { reason, params });
+        this.installed.set(id, { reason, params, method });
         break;
     }
   },
@@ -345,6 +345,7 @@ var BootstrapMonitor = {
     if (version !== undefined) {
       equal(started.params.version, version, "Expected version number");
     }
+    return started;
   },
 
   checkNotStarted(id) {
@@ -357,6 +358,17 @@ var BootstrapMonitor = {
   checkInstalled(id, version = undefined) {
     const installed = this.installed.get(id);
     ok(installed, `Should have seen install call for ${id}`);
+
+    if (version !== undefined) {
+      equal(installed.params.version, version, "Expected version number");
+    }
+
+    return installed;
+  },
+
+  checkUpdated(id, version = undefined) {
+    const installed = this.installed.get(id);
+    equal(installed.method, "update", `Should have seen update call for ${id}`);
 
     if (version !== undefined) {
       equal(installed.params.version, version, "Expected version number");
@@ -1195,24 +1207,22 @@ async function mockGfxBlocklistItems(items) {
     Services.prefs.getCharPref("services.blocklist.gfx.collection"),
     { bucketNamePref: "services.blocklist.bucket" }
   );
-  const collection = await client.openCollection();
-  await collection.clear();
-  await collection.loadDump(
-    items.map(item => {
-      if (item.id && item.last_modified) {
-        return item;
-      }
-      return Object.assign(
-        {
-          id: generateUUID()
-            .toString()
-            .replace(/[{}]/g, ""),
-          last_modified: Date.now(),
-        },
-        item
-      );
-    })
-  );
+  const records = items.map(item => {
+    if (item.id && item.last_modified) {
+      return item;
+    }
+    return {
+      id: generateUUID()
+        .toString()
+        .replace(/[{}]/g, ""),
+      last_modified: Date.now(),
+      ...item,
+    };
+  });
+  const collectionTimestamp = Math.max(...records.map(r => r.last_modified));
+  await client.db.importChanges({}, collectionTimestamp, records, {
+    clear: true,
+  });
   let rv = await bsPass.GfxBlocklistRS.checkForEntries();
   return rv;
 }
@@ -1314,7 +1324,7 @@ async function setInitialState(addon, initialState) {
   }
 }
 
-async function installBuiltinExtension(extensionData) {
+async function setupBuiltinExtension(extensionData, location = "ext-test") {
   let xpi = await AddonTestUtils.createTempWebExtensionFile(extensionData);
 
   // The built-in location requires a resource: URL that maps to a
@@ -1324,11 +1334,17 @@ async function installBuiltinExtension(extensionData) {
   let resProto = Services.io
     .getProtocolHandler("resource")
     .QueryInterface(Ci.nsIResProtocolHandler);
-  resProto.setSubstitution("ext-test", base);
+  resProto.setSubstitution(location, base);
+}
+
+async function installBuiltinExtension(extensionData, waitForStartup = true) {
+  await setupBuiltinExtension(extensionData);
 
   let id = extensionData.manifest.applications.gecko.id;
   let wrapper = ExtensionTestUtils.expectExtension(id);
   await AddonManager.installBuiltinAddon("resource://ext-test/");
-  await wrapper.awaitStartup();
+  if (waitForStartup) {
+    await wrapper.awaitStartup();
+  }
   return wrapper;
 }

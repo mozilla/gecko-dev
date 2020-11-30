@@ -62,7 +62,7 @@ static nsresult convertRtfToNode(txIEvalContext* aContext,
   }
 
   RefPtr<DocumentFragment> domFragment =
-      new DocumentFragment(doc->NodeInfoManager());
+      new (doc->NodeInfoManager()) DocumentFragment(doc->NodeInfoManager());
 
   txOutputFormat format;
   txMozillaXMLOutput mozHandler(&format, domFragment, true);
@@ -90,7 +90,8 @@ static nsresult createTextNode(txIEvalContext* aContext, nsString& aValue,
     return NS_ERROR_UNEXPECTED;
   }
 
-  RefPtr<nsTextNode> text = new nsTextNode(doc->NodeInfoManager());
+  RefPtr<nsTextNode> text =
+      new (doc->NodeInfoManager()) nsTextNode(doc->NodeInfoManager());
 
   nsresult rv = text->SetText(aValue, false);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -109,7 +110,8 @@ static nsresult createAndAddToResult(nsAtom* aName, const nsAString& aValue,
       doc->CreateElem(nsDependentAtomString(aName), nullptr, kNameSpaceID_None);
   NS_ENSURE_TRUE(elem, NS_ERROR_NULL_POINTER);
 
-  RefPtr<nsTextNode> text = new nsTextNode(doc->NodeInfoManager());
+  RefPtr<nsTextNode> text =
+      new (doc->NodeInfoManager()) nsTextNode(doc->NodeInfoManager());
 
   nsresult rv = text->SetText(aValue, false);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -120,7 +122,7 @@ static nsresult createAndAddToResult(nsAtom* aName, const nsAString& aValue,
   rv = aResultHolder->AppendChildTo(elem, false);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsAutoPtr<txXPathNode> xpathNode(
+  UniquePtr<txXPathNode> xpathNode(
       txXPathNativeNode::createXPathNode(elem, true));
   NS_ENSURE_TRUE(xpathNode, NS_ERROR_OUT_OF_MEMORY);
 
@@ -256,7 +258,7 @@ nsresult txEXSLTFunctionCall::evaluate(txIEvalContext* aContext,
           nsAutoString value;
           exprResult->stringValue(value);
 
-          nsAutoPtr<txXPathNode> node;
+          UniquePtr<txXPathNode> node;
           rv = createTextNode(aContext, value, getter_Transfers(node));
           NS_ENSURE_SUCCESS(rv, rv);
 
@@ -440,8 +442,8 @@ nsresult txEXSLTFunctionCall::evaluate(txIEvalContext* aContext,
       Document* sourceDoc = getSourceDocument(aContext);
       NS_ENSURE_STATE(sourceDoc);
 
-      RefPtr<DocumentFragment> docFrag =
-          new DocumentFragment(sourceDoc->NodeInfoManager());
+      RefPtr<DocumentFragment> docFrag = new (sourceDoc->NodeInfoManager())
+          DocumentFragment(sourceDoc->NodeInfoManager());
 
       RefPtr<txNodeSet> resultSet;
       rv = aContext->recycler()->getNodeSet(getter_AddRefs(resultSet));
@@ -614,8 +616,7 @@ nsresult txEXSLTFunctionCall::evaluate(txIEvalContext* aContext,
       return NS_OK;
     }
     default: {
-      aContext->receiveError(NS_LITERAL_STRING("Internal error"),
-                             NS_ERROR_UNEXPECTED);
+      aContext->receiveError(u"Internal error"_ns, NS_ERROR_UNEXPECTED);
       return NS_ERROR_UNEXPECTED;
     }
   }
@@ -683,10 +684,10 @@ nsresult txEXSLTRegExFunctionCall::evaluate(txIEvalContext* aContext,
       rv = aContext->recycler()->getNodeSet(getter_AddRefs(resultSet));
       NS_ENSURE_SUCCESS(rv, rv);
 
-      nsAutoPtr<txXPathNode> node;
+      UniquePtr<txXPathNode> node;
       for (nsIContent* result = docFrag->GetFirstChild(); result;
            result = result->GetNextSibling()) {
-        node = txXPathNativeNode::createXPathNode(result, true);
+        node = WrapUnique(txXPathNativeNode::createXPathNode(result, true));
         rv = resultSet->add(*node);
         NS_ENSURE_SUCCESS(rv, rv);
       }
@@ -719,8 +720,7 @@ nsresult txEXSLTRegExFunctionCall::evaluate(txIEvalContext* aContext,
       return NS_OK;
     }
     default: {
-      aContext->receiveError(NS_LITERAL_STRING("Internal error"),
-                             NS_ERROR_UNEXPECTED);
+      aContext->receiveError(u"Internal error"_ns, NS_ERROR_UNEXPECTED);
       return NS_ERROR_UNEXPECTED;
     }
   }
@@ -760,39 +760,39 @@ extern nsresult TX_ConstructEXSLTFunction(nsAtom* aName, int32_t aNamespaceID,
 }
 
 extern bool TX_InitEXSLTFunction() {
-#define EXSLT_FUNCS(NS, CLASS, ...)                                           \
-  {                                                                           \
-    int32_t nsid = txNamespaceManager::getNamespaceID(NS_LITERAL_STRING(NS)); \
-    if (nsid == kNameSpaceID_Unknown) {                                       \
-      return false;                                                           \
-    }                                                                         \
-    MOZ_FOR_EACH(EXSLT_FUNC, (nsid, CLASS, ), (__VA_ARGS__))                  \
+#define EXSLT_FUNCS(NS, CLASS, ...)                                         \
+  {                                                                         \
+    int32_t nsid = txNamespaceManager::getNamespaceID(nsLiteralString(NS)); \
+    if (nsid == kNameSpaceID_Unknown) {                                     \
+      return false;                                                         \
+    }                                                                       \
+    MOZ_FOR_EACH(EXSLT_FUNC, (nsid, CLASS, ), (__VA_ARGS__))                \
   }
 
 #define EXSLT_FUNC(NS, CLASS, ...)                      \
   descriptTable[txEXSLTType::MOZ_ARG_1 __VA_ARGS__] = { \
       MOZ_ARGS_AFTER_1 __VA_ARGS__, CLASS::Create, NS};
 
-  EXSLT_FUNCS("http://exslt.org/common", txEXSLTFunctionCall,
+  EXSLT_FUNCS(u"http://exslt.org/common", txEXSLTFunctionCall,
               (NODE_SET, 1, 1, Expr::NODESET_RESULT, nsGkAtoms::nodeSet),
               (OBJECT_TYPE, 1, 1, Expr::STRING_RESULT, nsGkAtoms::objectType))
 
-  EXSLT_FUNCS("http://exslt.org/dates-and-times", txEXSLTFunctionCall,
+  EXSLT_FUNCS(u"http://exslt.org/dates-and-times", txEXSLTFunctionCall,
               (DATE_TIME, 0, 0, Expr::STRING_RESULT, nsGkAtoms::dateTime))
 
-  EXSLT_FUNCS("http://exslt.org/math", txEXSLTFunctionCall,
+  EXSLT_FUNCS(u"http://exslt.org/math", txEXSLTFunctionCall,
               (MAX, 1, 1, Expr::NUMBER_RESULT, nsGkAtoms::max),
               (MIN, 1, 1, Expr::NUMBER_RESULT, nsGkAtoms::min),
               (HIGHEST, 1, 1, Expr::NODESET_RESULT, nsGkAtoms::highest),
               (LOWEST, 1, 1, Expr::NODESET_RESULT, nsGkAtoms::lowest))
 
-  EXSLT_FUNCS("http://exslt.org/regular-expressions", txEXSLTRegExFunctionCall,
+  EXSLT_FUNCS(u"http://exslt.org/regular-expressions", txEXSLTRegExFunctionCall,
               (MATCH, 2, 3, Expr::NODESET_RESULT, nsGkAtoms::match),
               (REPLACE, 4, 4, Expr::STRING_RESULT, nsGkAtoms::replace),
               (TEST, 2, 3, Expr::BOOLEAN_RESULT, nsGkAtoms::test))
 
   EXSLT_FUNCS(
-      "http://exslt.org/sets", txEXSLTFunctionCall,
+      u"http://exslt.org/sets", txEXSLTFunctionCall,
       (DIFFERENCE_, 2, 2, Expr::NODESET_RESULT, nsGkAtoms::difference),
       (DISTINCT, 1, 1, Expr::NODESET_RESULT, nsGkAtoms::distinct),
       (HAS_SAME_NODE, 2, 2, Expr::BOOLEAN_RESULT, nsGkAtoms::hasSameNode),
@@ -800,7 +800,7 @@ extern bool TX_InitEXSLTFunction() {
       (LEADING, 2, 2, Expr::NODESET_RESULT, nsGkAtoms::leading),
       (TRAILING, 2, 2, Expr::NODESET_RESULT, nsGkAtoms::trailing))
 
-  EXSLT_FUNCS("http://exslt.org/strings", txEXSLTFunctionCall,
+  EXSLT_FUNCS(u"http://exslt.org/strings", txEXSLTFunctionCall,
               (CONCAT, 1, 1, Expr::STRING_RESULT, nsGkAtoms::concat),
               (SPLIT, 1, 2, Expr::STRING_RESULT, nsGkAtoms::split),
               (TOKENIZE, 1, 2, Expr::STRING_RESULT, nsGkAtoms::tokenize))

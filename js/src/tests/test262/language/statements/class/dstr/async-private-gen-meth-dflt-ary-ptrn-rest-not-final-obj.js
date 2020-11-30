@@ -1,4 +1,4 @@
-// |reftest| skip error:SyntaxError -- class-methods-private is not supported
+// |reftest| shell-option(--enable-private-methods) skip-if(!xulRuntime.shell) error:SyntaxError -- requires shell-options
 // This file was procedurally generated from the following sources:
 // - src/dstr-binding/ary-ptrn-rest-not-final-obj.case
 // - src/dstr-binding/default/cls-decl-async-private-gen-meth-dflt.template
@@ -6,7 +6,7 @@
 description: Rest element (object binding pattern) may not be followed by any element (private class expression async generator method (default parameters))
 esid: sec-class-definitions-runtime-semantics-evaluation
 features: [class, class-methods-private, async-iteration]
-flags: [generated, async]
+flags: [generated]
 negative:
   phase: parse
   type: SyntaxError

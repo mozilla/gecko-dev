@@ -12,6 +12,7 @@
 #include "nsWindow.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/Likely.h"
+#include "mozilla/LookAndFeel.h"
 #include "mozilla/MiscEvents.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Telemetry.h"
@@ -131,7 +132,7 @@ class GetWritingModeName : public nsAutoCString {
     }
     AssignLiteral("Vertical (RTL)");
   }
-  virtual ~GetWritingModeName() {}
+  virtual ~GetWritingModeName() = default;
 };
 
 class GetTextRangeStyleText final : public nsAutoCString {
@@ -201,7 +202,7 @@ class GetTextRangeStyleText final : public nsAutoCString {
     AppendPrintf("{ R=0x%02X, G=0x%02X, B=0x%02X, A=0x%02X }", NS_GET_R(aColor),
                  NS_GET_G(aColor), NS_GET_B(aColor), NS_GET_A(aColor));
   }
-  virtual ~GetTextRangeStyleText(){};
+  virtual ~GetTextRangeStyleText() = default;
 };
 
 const static bool kUseSimpleContextDefault = false;
@@ -1294,9 +1295,7 @@ void IMContextWrapper::SetInputContext(nsWindow* aCaller,
   mInputContext = *aContext;
 
   if (changingEnabledState) {
-#ifdef MOZ_WIDGET_GTK
-    static bool sInputPurposeSupported = !gtk_check_version(3, 6, 0);
-    if (sInputPurposeSupported && mInputContext.mIMEState.MaybeEditable()) {
+    if (mInputContext.mIMEState.MaybeEditable()) {
       GtkIMContext* currentContext = GetCurrentContext();
       if (currentContext) {
         GtkInputPurpose purpose = GTK_INPUT_PURPOSE_FREE_FORM;
@@ -1329,12 +1328,38 @@ void IMContextWrapper::SetInputContext(nsWindow* aCaller,
           purpose = GTK_INPUT_PURPOSE_PHONE;
         } else if (inputType.EqualsLiteral("number")) {
           purpose = GTK_INPUT_PURPOSE_NUMBER;
+        } else if (mInputContext.mHTMLInputInputmode.EqualsLiteral("decimal")) {
+          purpose = GTK_INPUT_PURPOSE_NUMBER;
+        } else if (mInputContext.mHTMLInputInputmode.EqualsLiteral("email")) {
+          purpose = GTK_INPUT_PURPOSE_EMAIL;
+        } else if (mInputContext.mHTMLInputInputmode.EqualsLiteral("numeric")) {
+          purpose = GTK_INPUT_PURPOSE_DIGITS;
+        } else if (mInputContext.mHTMLInputInputmode.EqualsLiteral("tel")) {
+          purpose = GTK_INPUT_PURPOSE_PHONE;
+        } else if (mInputContext.mHTMLInputInputmode.EqualsLiteral("url")) {
+          purpose = GTK_INPUT_PURPOSE_URL;
         }
+        // Search by type and inputmode isn't supported on GTK.
 
         g_object_set(currentContext, "input-purpose", purpose, nullptr);
+
+        // Although GtkInputHints is enum type, value is bit field.
+        gint hints = GTK_INPUT_HINT_NONE;
+        if (mInputContext.mHTMLInputInputmode.EqualsLiteral("none")) {
+          hints |= GTK_INPUT_HINT_INHIBIT_OSK;
+        }
+
+        if (mInputContext.mAutocapitalize.EqualsLiteral("characters")) {
+          hints |= GTK_INPUT_HINT_UPPERCASE_CHARS;
+        } else if (mInputContext.mAutocapitalize.EqualsLiteral("sentences")) {
+          hints |= GTK_INPUT_HINT_UPPERCASE_SENTENCES;
+        } else if (mInputContext.mAutocapitalize.EqualsLiteral("words")) {
+          hints |= GTK_INPUT_HINT_UPPERCASE_WORDS;
+        }
+
+        g_object_set(currentContext, "input-hints", hints, nullptr);
       }
     }
-#endif  // #ifdef MOZ_WIDGET_GTK
 
     // Even when aState is not enabled state, we need to set IME focus.
     // Because some IMs are updating the status bar of them at this time.

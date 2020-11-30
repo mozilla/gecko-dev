@@ -13,9 +13,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   UrlbarProvidersManager: "resource:///modules/UrlbarProvidersManager.jsm",
   UrlbarResult: "resource:///modules/UrlbarResult.jsm",
   UrlbarTestUtils: "resource://testing-common/UrlbarTestUtils.jsm",
-  URLBAR_SELECTED_RESULT_TYPES: "resource:///modules/BrowserUsageTelemetry.jsm",
-  URLBAR_SELECTED_RESULT_METHODS:
-    "resource:///modules/BrowserUsageTelemetry.jsm",
 });
 
 function snapshotHistograms() {
@@ -26,10 +23,10 @@ function snapshotHistograms() {
       "FX_URLBAR_SELECTED_RESULT_INDEX"
     ),
     resultTypeHist: TelemetryTestUtils.getAndClearHistogram(
-      "FX_URLBAR_SELECTED_RESULT_TYPE"
+      "FX_URLBAR_SELECTED_RESULT_TYPE_2"
     ),
     resultIndexByTypeHist: TelemetryTestUtils.getAndClearKeyedHistogram(
-      "FX_URLBAR_SELECTED_RESULT_INDEX_BY_TYPE"
+      "FX_URLBAR_SELECTED_RESULT_INDEX_BY_TYPE_2"
     ),
     resultMethodHist: TelemetryTestUtils.getAndClearHistogram(
       "FX_URLBAR_SELECTED_RESULT_METHOD"
@@ -43,7 +40,7 @@ function assertHistogramResults(histograms, type, index, method) {
 
   TelemetryTestUtils.assertHistogram(
     histograms.resultTypeHist,
-    URLBAR_SELECTED_RESULT_TYPES[type],
+    UrlbarUtils.SELECTED_RESULT_TYPES[type],
     1
   );
 
@@ -81,6 +78,7 @@ add_task(async function test() {
           icon: "",
           text: "This is a test tip.",
           buttonText: "OK",
+          type: "test",
         }
       ),
       { heuristic: true }
@@ -108,7 +106,7 @@ add_task(async function test() {
     histograms,
     "tip",
     0,
-    URLBAR_SELECTED_RESULT_METHODS.enter
+    UrlbarTestUtils.SELECTED_RESULT_METHODS.enter
   );
 
   UrlbarProvidersManager.unregisterProvider(provider);
@@ -121,7 +119,7 @@ class TipProvider extends UrlbarProvider {
     this._results = results;
   }
   get name() {
-    return "TestTipProvider";
+    return "TestProviderTip";
   }
   get type() {
     return UrlbarUtils.PROVIDER_TYPE.PROFILE;
@@ -138,6 +136,4 @@ class TipProvider extends UrlbarProvider {
       addCallback(this, result);
     }
   }
-  cancelQuery(context) {}
-  pickResult(result) {}
 }

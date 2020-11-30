@@ -7,7 +7,6 @@
 #ifndef mozilla_HoldDropJSObjects_h
 #define mozilla_HoldDropJSObjects_h
 
-#include "mozilla/TypeTraits.h"
 #include "nsCycleCollectionParticipant.h"
 
 class nsISupports;
@@ -18,7 +17,8 @@ class nsScriptObjectTracer;
 namespace mozilla {
 namespace cyclecollector {
 
-void HoldJSObjectsImpl(void* aHolder, nsScriptObjectTracer* aTracer);
+void HoldJSObjectsImpl(void* aHolder, nsScriptObjectTracer* aTracer,
+                       JS::Zone* aZone = nullptr);
 void HoldJSObjectsImpl(nsISupports* aHolder);
 void DropJSObjectsImpl(void* aHolder);
 void DropJSObjectsImpl(nsISupports* aHolder);
@@ -44,6 +44,16 @@ struct HoldDropJSObjectsHelper<T, true> {
   }
 };
 
+/**
+  Classes that hold strong references to JS GC things such as `JSObjects` and
+  `JS::Values` (e.g. `JS::Heap<JSObject*> mFoo;`) must use these, generally by
+  calling `HoldJSObjects(this)` and `DropJSObjects(this)` in the ctor and dtor
+  respectively.
+
+  For classes that are wrapper cached and hold no other strong references to JS
+  GC things, there's no need to call these; it will be taken care of
+  automatically by nsWrapperCache.
+**/
 template <class T>
 void HoldJSObjects(T* aHolder) {
   HoldDropJSObjectsHelper<T>::Hold(aHolder);
@@ -53,10 +63,6 @@ template <class T>
 void DropJSObjects(T* aHolder) {
   HoldDropJSObjectsHelper<T>::Drop(aHolder);
 }
-
-#ifdef DEBUG
-bool IsJSHolder(void* aHolder);
-#endif
 
 }  // namespace mozilla
 

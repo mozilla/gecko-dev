@@ -7,7 +7,7 @@
 
 use super::*;
 
-use cocoa::foundation::NSUInteger;
+use cocoa_foundation::foundation::NSUInteger;
 use foreign_types::ForeignType;
 use objc::runtime::{Object, NO, YES};
 use std::ffi::CStr;
@@ -48,7 +48,7 @@ impl VertexAttributeRef {
 }
 
 #[repr(u64)]
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum MTLFunctionType {
     Vertex = 1,
     Fragment = 2,
@@ -182,6 +182,7 @@ impl CompileOptionsRef {
 
 #[repr(u64)]
 #[allow(non_camel_case_types)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum MTLLibraryError {
     Unsupported = 1,
     Internal = 2,
@@ -198,6 +199,10 @@ foreign_obj_type! {
 }
 
 impl LibraryRef {
+    pub fn device(&self) -> &DeviceRef {
+        unsafe { msg_send![self, device] }
+    }
+
     pub fn label(&self) -> &str {
         unsafe {
             let label = msg_send![self, label];

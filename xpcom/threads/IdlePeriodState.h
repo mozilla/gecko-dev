@@ -25,6 +25,7 @@
 class nsIIdlePeriod;
 
 namespace mozilla {
+class TaskManager;
 namespace ipc {
 class IdleSchedulerChild;
 }  // namespace ipc
@@ -143,6 +144,10 @@ class IdlePeriodState {
   // aProofOfUnlock is the proof that our caller unlocked its mutex.
   TimeStamp GetIdleDeadlineInternal(bool aIsPeek,
                                     const MutexAutoUnlock& aProofOfUnlock);
+
+  // Whether we should be getting an idle token (i.e. are a content process
+  // and are using cross process idle scheduling).
+  bool ShouldGetIdleToken();
 
   // Set to true if we have claimed we have a ready-to-run idle task when asked.
   // In that case, we will ensure that we allow at least one task to run when

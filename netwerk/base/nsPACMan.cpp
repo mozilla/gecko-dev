@@ -20,6 +20,7 @@
 #include "nsThreadUtils.h"
 #include "mozilla/Result.h"
 #include "mozilla/ResultExtensions.h"
+#include "mozilla/Telemetry.h"
 
 //-----------------------------------------------------------------------------
 
@@ -32,6 +33,10 @@ LazyLogModule gProxyLog("proxy");
 #define LOG(args) MOZ_LOG(gProxyLog, LogLevel::Debug, args)
 #define MOZ_WPAD_URL "http://wpad/wpad.dat"
 #define MOZ_DHCP_WPAD_OPTION 252
+
+// These pointers are declared in nsProtocolProxyService.cpp
+extern const char kProxyType_HTTPS[];
+extern const char kProxyType_DIRECT[];
 
 // The PAC thread does evaluations of both PAC files and
 // nsISystemProxySettings because they can both block the calling thread and we
@@ -181,7 +186,10 @@ class PACLoadComplete final : public Runnable {
 
   NS_IMETHOD Run() override {
     MOZ_ASSERT(NS_IsMainThread(), "wrong thread");
-    mPACMan->mLoader = nullptr;
+    {
+      auto loader = mPACMan->mLoader.Lock();
+      loader.ref() = nullptr;
+    }
     mPACMan->PostProcessPendingQ();
     return NS_OK;
   }
@@ -300,10 +308,11 @@ class ExecutePACThreadAction final : public Runnable {
 //-----------------------------------------------------------------------------
 
 PendingPACQuery::PendingPACQuery(nsPACMan* pacMan, nsIURI* uri,
-                                 nsPACManCallback* callback,
+                                 nsPACManCallback* callback, uint32_t flags,
                                  bool mainThreadResponse)
     : Runnable("net::PendingPACQuery"),
       mPort(0),
+      mFlags(flags),
       mPACMan(pacMan),
       mCallback(callback),
       mOnMainThreadOnly(mainThreadResponse) {
@@ -349,8 +358,9 @@ static uint32_t sThreadLocalIndex = 0xdeadbeef;  // out of range
 static const char* kPACIncludePath =
     "network.proxy.autoconfig_url.include_path";
 
-nsPACMan::nsPACMan(nsIEventTarget* mainThreadEventTarget)
+nsPACMan::nsPACMan(nsISerialEventTarget* mainThreadEventTarget)
     : NeckoTargetHolder(mainThreadEventTarget),
+      mLoader("nsPACMan::mLoader"),
       mLoadPending(false),
       mShutdown(false),
       mLoadFailureCount(0),
@@ -380,7 +390,13 @@ nsPACMan::~nsPACMan() {
     }
   }
 
-  NS_ASSERTION(mLoader == nullptr, "pac man not shutdown properly");
+#ifdef DEBUG
+  {
+    auto loader = mLoader.Lock();
+    NS_ASSERTION(loader.ref() == nullptr, "pac man not shutdown properly");
+  }
+#endif
+
   NS_ASSERTION(mPendingQ.isEmpty(), "pac man not shutdown properly");
 }
 
@@ -427,6 +443,7 @@ nsresult nsPACMan::DispatchToPAC(already_AddRefed<nsIRunnable> aEvent,
 }
 
 nsresult nsPACMan::AsyncGetProxyForURI(nsIURI* uri, nsPACManCallback* callback,
+                                       uint32_t flags,
                                        bool mainThreadResponse) {
   MOZ_ASSERT(NS_IsMainThread(), "wrong thread");
   if (mShutdown) return NS_ERROR_NOT_AVAILABLE;
@@ -436,15 +453,15 @@ nsresult nsPACMan::AsyncGetProxyForURI(nsIURI* uri, nsPACManCallback* callback,
       TimeStamp::Now() > mScheduledReload) {
     LOG(("nsPACMan::AsyncGetProxyForURI reload as scheduled\n"));
 
-    LoadPACFromURI(mAutoDetect ? EmptyCString() : mPACURISpec, false);
+    LoadPACFromURI(mAutoDetect ? ""_ns : mPACURISpec, false);
   }
 
   RefPtr<PendingPACQuery> query =
-      new PendingPACQuery(this, uri, callback, mainThreadResponse);
+      new PendingPACQuery(this, uri, callback, flags, mainThreadResponse);
 
   if (IsPACURI(uri)) {
     // deal with this directly instead of queueing it
-    query->Complete(NS_OK, EmptyCString());
+    query->Complete(NS_OK, ""_ns);
     return NS_OK;
   }
 
@@ -455,7 +472,7 @@ nsresult nsPACMan::PostQuery(PendingPACQuery* query) {
   MOZ_ASSERT(!NS_IsMainThread(), "wrong thread");
 
   if (mShutdown) {
-    query->Complete(NS_ERROR_NOT_AVAILABLE, EmptyCString());
+    query->Complete(NS_ERROR_NOT_AVAILABLE, ""_ns);
     return NS_OK;
   }
 
@@ -483,7 +500,10 @@ nsresult nsPACMan::LoadPACFromURI(const nsACString& aSpec,
 
   CancelExistingLoad();
 
-  mLoader = loader;
+  {
+    auto locked = mLoader.Lock();
+    locked.ref() = loader.forget();
+  }
   mPACURIRedirectSpec.Truncate();
   mNormalPACURISpec.Truncate();  // set at load time
   if (aResetLoadFailureCount) {
@@ -518,10 +538,9 @@ nsresult nsPACMan::LoadPACFromURI(const nsACString& aSpec,
   if (!mLoadPending) {
     nsCOMPtr<nsIRunnable> runnable = NewRunnableMethod(
         "nsPACMan::StartLoading", this, &nsPACMan::StartLoading);
-    nsresult rv =
-        NS_IsMainThread()
-            ? Dispatch(runnable.forget())
-            : GetCurrentThreadEventTarget()->Dispatch(runnable.forget());
+    nsresult rv = NS_IsMainThread()
+                      ? Dispatch(runnable.forget())
+                      : GetCurrentEventTarget()->Dispatch(runnable.forget());
     if (NS_FAILED(rv)) return rv;
     mLoadPending = true;
   }
@@ -589,10 +608,17 @@ void nsPACMan::StartLoading() {
   MOZ_ASSERT(NS_IsMainThread(), "wrong thread");
   mLoadPending = false;
 
-  // CancelExistingLoad was called...
-  if (!mLoader) {
-    PostCancelPendingQ(NS_ERROR_ABORT);
-    return;
+  {
+    // CancelExistingLoad was called...
+    nsCOMPtr<nsIStreamLoader> loader;
+    {
+      auto locked = mLoader.Lock();
+      loader = locked.ref();
+    }
+    if (!loader) {
+      PostCancelPendingQ(NS_ERROR_ABORT);
+      return;
+    }
   }
 
   if (mAutoDetect) {
@@ -615,12 +641,18 @@ void nsPACMan::StartLoading() {
 void nsPACMan::ContinueLoadingAfterPACUriKnown() {
   MOZ_ASSERT(NS_IsMainThread(), "wrong thread");
 
+  nsCOMPtr<nsIStreamLoader> loader;
+  {
+    auto locked = mLoader.Lock();
+    loader = locked.ref();
+  }
+
   // CancelExistingLoad was called...
-  if (!mLoader) {
+  if (!loader) {
     PostCancelPendingQ(NS_ERROR_ABORT);
     return;
   }
-  if (NS_SUCCEEDED(mLoader->Init(this, nullptr))) {
+  if (NS_SUCCEEDED(loader->Init(this, nullptr))) {
     // Always hit the origin server when loading PAC.
     nsCOMPtr<nsIIOService> ios = do_GetIOService();
     if (ios) {
@@ -634,7 +666,7 @@ void nsPACMan::ContinueLoadingAfterPACUriKnown() {
         MOZ_RELEASE_ASSERT(NS_SUCCEEDED(rv));
         NS_NewChannel(getter_AddRefs(channel), pacURI,
                       nsContentUtils::GetSystemPrincipal(),
-                      nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+                      nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
                       nsIContentPolicy::TYPE_OTHER,
                       nullptr,  // nsICookieJarSettings
                       nullptr,  // PerformanceStorage
@@ -647,9 +679,13 @@ void nsPACMan::ContinueLoadingAfterPACUriKnown() {
       }
 
       if (channel) {
+        // allow deprecated HTTP request from SystemPrincipal
+        nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
+        loadInfo->SetAllowDeprecatedSystemRequests(true);
+
         channel->SetLoadFlags(nsIRequest::LOAD_BYPASS_CACHE);
         channel->SetNotificationCallbacks(this);
-        if (NS_SUCCEEDED(channel->AsyncOpen(mLoader))) return;
+        if (NS_SUCCEEDED(channel->AsyncOpen(loader))) return;
       }
     }
   }
@@ -684,11 +720,17 @@ void nsPACMan::OnLoadFailure() {
 }
 
 void nsPACMan::CancelExistingLoad() {
-  if (mLoader) {
+  nsCOMPtr<nsIStreamLoader> loader;
+  {
+    auto locked = mLoader.Lock();
+    loader.swap(*locked);
+  }
+  if (loader) {
     nsCOMPtr<nsIRequest> request;
-    mLoader->GetRequest(getter_AddRefs(request));
-    if (request) request->Cancel(NS_ERROR_ABORT);
-    mLoader = nullptr;
+    loader->GetRequest(getter_AddRefs(request));
+    if (request) {
+      request->Cancel(NS_ERROR_ABORT);
+    }
   }
 }
 
@@ -711,7 +753,7 @@ void nsPACMan::CancelPendingQ(nsresult status, bool aShutdown) {
 
   while (!mPendingQ.isEmpty()) {
     query = dont_AddRef(mPendingQ.popLast());
-    query->Complete(status, EmptyCString());
+    query->Complete(status, ""_ns);
   }
 
   if (aShutdown) mPAC.Shutdown();
@@ -741,7 +783,7 @@ bool nsPACMan::ProcessPending() {
   RefPtr<PendingPACQuery> query(dont_AddRef(mPendingQ.popFirst()));
 
   if (mShutdown || IsLoading()) {
-    query->Complete(NS_ERROR_NOT_AVAILABLE, EmptyCString());
+    query->Complete(NS_ERROR_NOT_AVAILABLE, ""_ns);
     return true;
   }
 
@@ -765,6 +807,18 @@ bool nsPACMan::ProcessPending() {
       NS_SUCCEEDED(mSystemProxySettings->GetProxyForURI(
           query->mSpec, query->mScheme, query->mHost, query->mPort,
           pacString))) {
+    if (query->mFlags & nsIProtocolProxyService::RESOLVE_PREFER_SOCKS_PROXY &&
+        query->mFlags & nsIProtocolProxyService::RESOLVE_PREFER_HTTPS_PROXY) {
+      if (StringBeginsWith(pacString, nsDependentCString(kProxyType_DIRECT),
+                           nsCaseInsensitiveUTF8StringComparator)) {
+        // DIRECT indicates that system proxy settings are not configured to use
+        // SOCKS proxy. Try https proxy as a secondary preferrable proxy. This
+        // is mainly for websocket whose precedence is SOCKS > HTTPS > DIRECT.
+        NS_SUCCEEDED(mSystemProxySettings->GetProxyForURI(
+            query->mSpec, nsDependentCString(kProxyType_HTTPS), query->mHost,
+            query->mPort, pacString));
+      }
+    }
     LOG(("Use proxy from system settings: %s\n", pacString.get()));
     query->Complete(NS_OK, pacString);
     completed = true;
@@ -790,13 +844,17 @@ nsPACMan::OnStreamComplete(nsIStreamLoader* loader, nsISupports* context,
                            nsresult status, uint32_t dataLen,
                            const uint8_t* data) {
   MOZ_ASSERT(NS_IsMainThread(), "wrong thread");
-  if (mLoader != loader) {
-    // If this happens, then it means that LoadPACFromURI was called more
-    // than once before the initial call completed.  In this case, status
-    // should be NS_ERROR_ABORT, and if so, then we know that we can and
-    // should delay any processing.
-    LOG(("OnStreamComplete: called more than once\n"));
-    if (status == NS_ERROR_ABORT) return NS_OK;
+
+  {
+    auto locked = mLoader.Lock();
+    if (locked.ref() != loader) {
+      // If this happens, then it means that LoadPACFromURI was called more
+      // than once before the initial call completed.  In this case, status
+      // should be NS_ERROR_ABORT, and if so, then we know that we can and
+      // should delay any processing.
+      LOG(("OnStreamComplete: called more than once\n"));
+      if (status == NS_ERROR_ABORT) return NS_OK;
+    }
   }
 
   LOG(("OnStreamComplete: entry\n"));
@@ -850,8 +908,13 @@ nsPACMan::GetInterface(const nsIID& iid, void** result) {
   if (iid.Equals(NS_GET_IID(nsIAuthPrompt))) {
     nsCOMPtr<nsIPromptFactory> promptFac =
         do_GetService("@mozilla.org/prompter;1");
-    NS_ENSURE_TRUE(promptFac, NS_ERROR_FAILURE);
-    return promptFac->GetPrompt(nullptr, iid, reinterpret_cast<void**>(result));
+    NS_ENSURE_TRUE(promptFac, NS_ERROR_NO_INTERFACE);
+    nsresult rv =
+        promptFac->GetPrompt(nullptr, iid, reinterpret_cast<void**>(result));
+    if (NS_FAILED(rv)) {
+      return NS_ERROR_NO_INTERFACE;
+    }
+    return NS_OK;
   }
 
   // In case loading the PAC file results in a redirect.

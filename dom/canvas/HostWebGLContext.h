@@ -14,6 +14,10 @@
 #include "WebGL2Context.h"
 #include "WebGLFramebuffer.h"
 #include "WebGLTypes.h"
+#include "WebGLCommandQueue.h"
+#include "WebGLCrossProcessCommandQueue.h"
+#include "ProducerConsumerQueue.h"
+#include "IpdlQueue.h"
 
 #include <unordered_map>
 #include <unordered_set>
@@ -27,8 +31,6 @@
 #endif  // WEBGL_BRIDGE_LOG_
 
 namespace mozilla {
-
-class HostWebGLCommandSink;
 
 extern LazyLogModule gWebGLBridgeLog;
 
@@ -64,9 +66,10 @@ struct LockedOutstandingContexts final {
  * nsICanvasRenderingContextInternal DOM class.  That is the
  * ClientWebGLContext.
  */
-class HostWebGLContext final : public SupportsWeakPtr<HostWebGLContext> {
+class HostWebGLContext final : public SupportsWeakPtr {
   friend class WebGLContext;
   friend class WebGLMemoryTracker;
+  friend class dom::WebGLParent;
 
   using ObjectId = webgl::ObjectId;
 
@@ -75,11 +78,10 @@ class HostWebGLContext final : public SupportsWeakPtr<HostWebGLContext> {
   }
 
  public:
-  MOZ_DECLARE_WEAKREFERENCE_TYPENAME(HostWebGLContext)
-
   struct RemotingData final {
     dom::WebGLParent& mParent;
-    UniquePtr<HostWebGLCommandSink> mCommandSink;
+    UniquePtr<HostWebGLCommandSinkP> mCommandSinkP;
+    UniquePtr<HostWebGLCommandSinkI> mCommandSinkI;
   };
   struct OwnerData final {
     Maybe<ClientWebGLContext*> inProcess;
@@ -181,12 +183,23 @@ class HostWebGLContext final : public SupportsWeakPtr<HostWebGLContext> {
     mContext->SetCompositableHost(compositableHost);
   }
 
-  void Present() { mContext->Present(); }
-  void ClearVRFrame() const { mContext->ClearVRFrame(); }
-
-  Maybe<ICRData> InitializeCanvasRenderer(layers::LayersBackend backend) {
-    return mContext->InitializeCanvasRenderer(backend);
+  void Present(const ObjectId xrFb, const layers::TextureType t,
+               const bool webvr) const {
+    return (void)mContext->Present(AutoResolve(xrFb), t, webvr);
   }
+  Maybe<layers::SurfaceDescriptor> GetFrontBuffer(ObjectId xrFb,
+                                                  const bool webvr) const;
+
+  // -
+
+  uvec2 GetFrontBufferSize() const { return mContext->DrawingBufferSize(); }
+  bool FrontBufferSnapshotInto(Range<uint8_t> dest) const {
+    return mContext->FrontBufferSnapshotInto(dest);
+  }
+
+  void ClearVRSwapChain() const { mContext->ClearVRSwapChain(); }
+
+  // -
 
   void Resize(const uvec2& size) { return mContext->Resize(size); }
 
@@ -216,6 +229,8 @@ class HostWebGLContext final : public SupportsWeakPtr<HostWebGLContext> {
 
   void CreateBuffer(ObjectId);
   void CreateFramebuffer(ObjectId);
+  bool CreateOpaqueFramebuffer(ObjectId,
+                               const webgl::OpaqueFramebufferOptions& options);
   void CreateProgram(ObjectId);
   void CreateQuery(ObjectId);
   void CreateRenderbuffer(ObjectId);
@@ -247,7 +262,7 @@ class HostWebGLContext final : public SupportsWeakPtr<HostWebGLContext> {
 
   bool IsEnabled(GLenum cap) const { return mContext->IsEnabled(cap); }
 
-  Maybe<double> GetParameter(GLenum pname) const {
+  Maybe<double> GetNumber(GLenum pname) const {
     return mContext->GetParameter(pname);
   }
 
@@ -409,10 +424,6 @@ class HostWebGLContext final : public SupportsWeakPtr<HostWebGLContext> {
     mContext->LinkProgram(*obj);
   }
 
-  void PixelStorei(GLenum pname, uint32_t param) const {
-    mContext->PixelStorei(pname, param);
-  }
-
   void PolygonOffset(GLfloat factor, GLfloat units) const {
     mContext->PolygonOffset(factor, units);
   }
@@ -466,21 +477,21 @@ class HostWebGLContext final : public SupportsWeakPtr<HostWebGLContext> {
                                           writeOffset, size);
   }
 
-  void GetBufferSubData(GLenum target, uint64_t srcByteOffset,
-                        RawBuffer<uint8_t>& dest) const {
-    const auto range = MakeRange(dest);
-    GetWebGL2Context()->GetBufferSubData(target, srcByteOffset, range);
+  bool GetBufferSubData(GLenum target, uint64_t srcByteOffset,
+                        const Range<uint8_t>& dest) const {
+    return GetWebGL2Context()->GetBufferSubData(target, srcByteOffset, dest);
   }
 
-  void BufferData(GLenum target, const RawBuffer<const uint8_t>& data,
-                  GLenum usage) const {
-    mContext->BufferData(target, data.Length(), data.Data(), usage);
+  void BufferData(GLenum target, const RawBuffer<>& data, GLenum usage) const {
+    const auto& beginOrNull = data.begin();
+    mContext->BufferData(target, data.size(), beginOrNull, usage);
   }
 
   void BufferSubData(GLenum target, uint64_t dstByteOffset,
-                     const RawBuffer<const uint8_t>& srcData) const {
-    mContext->BufferSubData(target, dstByteOffset, srcData.Length(),
-                            srcData.Data());
+                     const RawBuffer<>& srcData) const {
+    const auto& range = srcData.Data();
+    mContext->BufferSubData(target, dstByteOffset, range.length(),
+                            range.begin().get());
   }
 
   // -------------------------- Framebuffer Objects --------------------------
@@ -539,8 +550,7 @@ class HostWebGLContext final : public SupportsWeakPtr<HostWebGLContext> {
   // CompressedTexSubImage if `sub`
   void CompressedTexImage(bool sub, GLenum imageTarget, uint32_t level,
                           GLenum format, const uvec3& offset, const uvec3& size,
-                          const RawBuffer<const uint8_t>& src,
-                          const uint32_t pboImageSize,
+                          const RawBuffer<>& src, const uint32_t pboImageSize,
                           const Maybe<uint64_t>& pboOffset) const {
     mContext->CompressedTexImage(sub, imageTarget, level, format, offset, size,
                                  MakeRange(src), pboImageSize, pboOffset);
@@ -555,12 +565,10 @@ class HostWebGLContext final : public SupportsWeakPtr<HostWebGLContext> {
   }
 
   // TexSubImage if `!respecFormat`
-  void TexImage(GLenum imageTarget, uint32_t level, GLenum respecFormat,
-                const uvec3& offset, const uvec3& size,
-                const webgl::PackingInfo& pi, const TexImageSource& src,
-                const dom::HTMLCanvasElement& canvas) const {
-    mContext->TexImage(imageTarget, level, respecFormat, offset, size, pi, src,
-                       canvas);
+  void TexImage(uint32_t level, GLenum respecFormat, const uvec3& offset,
+                const webgl::PackingInfo& pi,
+                const webgl::TexUnpackBlobDesc& src) const {
+    mContext->TexImage(level, respecFormat, offset, pi, src);
   }
 
   void TexStorage(GLenum texTarget, uint32_t levels, GLenum internalFormat,
@@ -591,8 +599,8 @@ class HostWebGLContext final : public SupportsWeakPtr<HostWebGLContext> {
   // ------------------------ Uniforms and attributes ------------------------
 
   void UniformData(uint32_t loc, bool transpose,
-                   const RawBuffer<const uint8_t>& data) const {
-    mContext->UniformData(loc, transpose, MakeRange(data));
+                   const RawBuffer<>& data) const {
+    mContext->UniformData(loc, transpose, data.Data());
   }
 
   void VertexAttrib4T(GLuint index, const webgl::TypedQuad& data) const {
@@ -649,10 +657,9 @@ class HostWebGLContext final : public SupportsWeakPtr<HostWebGLContext> {
     mContext->ReadPixelsPbo(desc, offset);
   }
 
-  void ReadPixels(const webgl::ReadPixelsDesc& desc,
-                  RawBuffer<uint8_t>& dest) const {
-    const auto range = MakeRange(dest);
-    mContext->ReadPixels(desc, range);
+  webgl::ReadPixelsResult ReadPixelsInto(const webgl::ReadPixelsDesc& desc,
+                                         const Range<uint8_t>& dest) const {
+    return mContext->ReadPixelsInto(desc, dest);
   }
 
   // ----------------------------- Sampler -----------------------------------
@@ -716,6 +723,14 @@ class HostWebGLContext final : public SupportsWeakPtr<HostWebGLContext> {
     GetWebGL2Context()->TransformFeedbackVaryings(*obj, varyings, bufferMode);
   }
 
+  // -------------------------- Opaque Framebuffers ---------------------------
+  void SetFramebufferIsInOpaqueRAF(ObjectId id, bool value) {
+    WebGLFramebuffer* fb = AutoResolve(id);
+    if (fb) {
+      fb->mInOpaqueRAF = value;
+    }
+  }
+
   // -------------------------------------------------------------------------
   // Host-side extension methods.  Calls in the client are forwarded to the
   // host. Some extension methods are also available in WebGL2 Contexts.  For
@@ -771,10 +786,6 @@ class HostWebGLContext final : public SupportsWeakPtr<HostWebGLContext> {
  public:
   void OnLostContext();
   void OnRestoredContext();
-
-  // Etc
- public:
-  RefPtr<layers::SharedSurfaceTextureClient> GetVRFrame() const;
 
  protected:
   WebGL2Context* GetWebGL2Context() const {

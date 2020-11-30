@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef MOZILLA_DOMSVGLENGTH_H__
-#define MOZILLA_DOMSVGLENGTH_H__
+#ifndef DOM_SVG_DOMSVGLENGTH_H_
+#define DOM_SVG_DOMSVGLENGTH_H_
 
 #include "DOMSVGLengthList.h"
 #include "nsCycleCollectionParticipant.h"
@@ -14,18 +14,6 @@
 #include "SVGLength.h"
 #include "mozilla/Attributes.h"
 #include "nsWrapperCache.h"
-
-// We make DOMSVGLength a pseudo-interface to allow us to QI to it in order to
-// check that the objects that scripts pass to DOMSVGLengthList methods are our
-// *native* length objects.
-//
-// {A8468350-7F7B-4976-9A7E-3765A1DADF9A}
-#define MOZILLA_DOMSVGLENGTH_IID                     \
-  {                                                  \
-    0xA8468350, 0x7F7B, 0x4976, {                    \
-      0x9A, 0x7E, 0x37, 0x65, 0xA1, 0xDA, 0xDF, 0x9A \
-    }                                                \
-  }
 
 #define MOZ_SVG_LIST_INDEX_BIT_COUNT 22  // supports > 4 million list items
 
@@ -78,8 +66,9 @@ class SVGElement;
  * if-else as appropriate. The bug for doing that work is:
  * https://bugzilla.mozilla.org/show_bug.cgi?id=571734
  */
-class DOMSVGLength final : public nsISupports, public nsWrapperCache {
-  friend class AutoChangeLengthNotifier;
+class DOMSVGLength final : public nsWrapperCache {
+  template <class T>
+  friend class AutoChangeLengthListNotifier;
 
   /**
    * Ctor for creating the object returned by
@@ -88,12 +77,11 @@ class DOMSVGLength final : public nsISupports, public nsWrapperCache {
   DOMSVGLength(SVGAnimatedLength* aVal, dom::SVGElement* aSVGElement,
                bool aAnimVal);
 
-  ~DOMSVGLength();
+  ~DOMSVGLength() { CleanupWeakRefs(); }
 
  public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_DOMSVGLENGTH_IID)
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGLength)
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(DOMSVGLength)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(DOMSVGLength)
 
   /**
    * Generic ctor for DOMSVGLength objects that are created for an attribute.
@@ -117,21 +105,16 @@ class DOMSVGLength final : public nsISupports, public nsWrapperCache {
    */
   DOMSVGLength* Copy();
 
-  bool IsInList() const { return !!mList; }
+  /**
+   * Returns true if our attribute is animating.
+   */
+  bool IsAnimating() const;
 
   /**
    * In future, if this class is used for non-list lengths, this will be
    * different to IsInList().
    */
-  bool HasOwner() const { return !!mList; }
-
-  /**
-   * Returns whether this length object is reflecting a single SVG element
-   * attribute.  This includes the baseVal or animVal of SVGRectElement.x, for
-   * example, but not an item in an SVGLengthList, such as those in the
-   * baseVal or animVal of SVGTextElement.x.
-   */
-  bool IsReflectingAttribute() const { return mVal; }
+  bool HasOwner() const { return !!mOwner; }
 
   /**
    * This method is called to notify this DOM object that it is being inserted
@@ -173,24 +156,15 @@ class DOMSVGLength final : public nsISupports, public nsWrapperCache {
   void NewValueSpecifiedUnits(uint16_t aUnit, float aValue, ErrorResult& aRv);
   void ConvertToSpecifiedUnits(uint16_t aUnit, ErrorResult& aRv);
 
-  nsISupports* GetParentObject() const {
-    auto svgElement = mList ? Element() : mSVGElement.get();
-    return svgElement;
-  }
+  nsISupports* GetParentObject() { return mOwner; }
 
   JSObject* WrapObject(JSContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
  private:
-  dom::SVGElement* Element() const { return mList->Element(); }
+  dom::SVGElement* Element();
 
   uint8_t AttrEnum() const { return mAttrEnum; }
-
-  /**
-   * Get the axis that this length lies along. This method must only be called
-   * when this object is associated with an element (HasOwner() returns true).
-   */
-  uint8_t Axis() const { return mList->Axis(); }
 
   /**
    * Get a reference to the internal SVGLength list item that this DOM wrapper
@@ -214,7 +188,8 @@ class DOMSVGLength final : public nsISupports, public nsWrapperCache {
    */
   void CleanupWeakRefs();
 
-  RefPtr<DOMSVGLengthList> mList;
+  RefPtr<nsISupports> mOwner;  // Either a DOMSVGLengthList if we're in a list,
+                               // an SVGElement if we're an attribute or null
 
   // Bounds for the following are checked in the ctor, so be sure to update
   // that if you change the capacity of any of the following.
@@ -226,18 +201,12 @@ class DOMSVGLength final : public nsISupports, public nsWrapperCache {
   // The following members are only used when we're not in a list:
   uint32_t mUnit : 5;  // can handle 31 units (the 10 SVG 1.1 units + rem, vw,
                        // vh, wm, calc + future additions)
-  float mValue;
-
-  // The following members are only used when we have an SVGAnimatedLength
-  SVGAnimatedLength* mVal;  // kept alive because it belongs to mSVGElement
-  RefPtr<dom::SVGElement> mSVGElement;
+  float mValue = 0.0f;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(DOMSVGLength, MOZILLA_DOMSVGLENGTH_IID)
 
 }  // namespace dom
 }  // namespace mozilla
 
 #undef MOZ_SVG_LIST_INDEX_BIT_COUNT
 
-#endif  // MOZILLA_DOMSVGLENGTH_H__
+#endif  // DOM_SVG_DOMSVGLENGTH_H_

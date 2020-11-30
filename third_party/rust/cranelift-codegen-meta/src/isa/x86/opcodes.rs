@@ -54,6 +54,14 @@ pub static BIT_SCAN_FORWARD: [u8; 2] = [0x0f, 0xbc];
 /// Bit scan reverse (stores index of first encountered 1 from the back).
 pub static BIT_SCAN_REVERSE: [u8; 2] = [0x0f, 0xbd];
 
+/// Select packed single-precision floating-point values from xmm1 and xmm2/m128
+/// from mask specified in XMM0 and store the values into xmm1 (SSE4.1).
+pub static BLENDVPS: [u8; 4] = [0x66, 0x0f, 0x38, 0x14];
+
+/// Select packed double-precision floating-point values from xmm1 and xmm2/m128
+/// from mask specified in XMM0 and store the values into xmm1 (SSE4.1).
+pub static BLENDVPD: [u8; 4] = [0x66, 0x0f, 0x38, 0x15];
+
 /// Call near, relative, displacement relative to next instruction (sign-extended).
 pub static CALL_RELATIVE: [u8; 1] = [0xe8];
 
@@ -77,6 +85,10 @@ pub static CMPPD: [u8; 3] = [0x66, 0x0f, 0xc2];
 /// imm8 as comparison predicate (SSE).
 pub static CMPPS: [u8; 2] = [0x0f, 0xc2];
 
+/// Convert four packed signed doubleword integers from xmm2/mem to four packed single-precision
+/// floating-point values in xmm1 (SSE2).
+pub static CVTDQ2PS: [u8; 2] = [0x0f, 0x5b];
+
 /// Convert scalar double-precision floating-point value to scalar single-precision
 /// floating-point value.
 pub static CVTSD2SS: [u8; 3] = [0xf2, 0x0f, 0x5a];
@@ -90,6 +102,10 @@ pub static CVTSI2SS: [u8; 3] = [0xf3, 0x0f, 0x2a];
 /// Convert scalar single-precision floating-point value to scalar double-precision
 /// float-point value.
 pub static CVTSS2SD: [u8; 3] = [0xf3, 0x0f, 0x5a];
+
+/// Convert four packed single-precision floating-point values from xmm2/mem to four packed signed
+/// doubleword values in xmm1 using truncation (SSE2).
+pub static CVTTPS2DQ: [u8; 3] = [0xf3, 0x0f, 0x5b];
 
 /// Convert with truncation scalar double-precision floating-point value to signed
 /// integer.
@@ -287,6 +303,33 @@ pub static OR_IMM8_SIGN_EXTEND: [u8; 1] = [0x83];
 /// Return the bitwise logical OR of packed single-precision values in xmm and x/m (SSE).
 pub static ORPS: [u8; 2] = [0x0f, 0x56];
 
+/// Compute the absolute value of bytes in xmm2/m128 and store the unsigned result in xmm1 (SSSE3).
+pub static PABSB: [u8; 4] = [0x66, 0x0f, 0x38, 0x1c];
+
+/// Compute the absolute value of 32-bit integers in xmm2/m128 and store the unsigned result in
+/// xmm1 (SSSE3).
+pub static PABSD: [u8; 4] = [0x66, 0x0f, 0x38, 0x1e];
+
+/// Compute the absolute value of 16-bit integers in xmm2/m128 and store the unsigned result in
+/// xmm1 (SSSE3).
+pub static PABSW: [u8; 4] = [0x66, 0x0f, 0x38, 0x1d];
+
+/// Converts 8 packed signed word integers from xmm1 and from xmm2/m128 into 16 packed signed byte
+/// integers in xmm1 using signed saturation (SSE2).
+pub static PACKSSWB: [u8; 3] = [0x66, 0x0f, 0x63];
+
+/// Converts 4 packed signed doubleword integers from xmm1 and from xmm2/m128 into 8 packed signed
+/// word integers in xmm1 using signed saturation (SSE2).
+pub static PACKSSDW: [u8; 3] = [0x66, 0x0f, 0x6b];
+
+/// Converts 8 packed signed word integers from xmm1 and from xmm2/m128 into 16 packed unsigned byte
+/// integers in xmm1 using unsigned saturation (SSE2).
+pub static PACKUSWB: [u8; 3] = [0x66, 0x0f, 0x67];
+
+/// Converts 4 packed signed doubleword integers from xmm1 and from xmm2/m128 into 8 unpacked signed
+/// word integers in xmm1 using unsigned saturation (SSE4.1).
+pub static PACKUSDW: [u8; 4] = [0x66, 0x0f, 0x38, 0x2b];
+
 /// Add packed byte integers from xmm2/m128 and xmm1 (SSE2).
 pub static PADDB: [u8; 3] = [0x66, 0x0f, 0xfc];
 
@@ -311,11 +354,29 @@ pub static PADDUSB: [u8; 3] = [0x66, 0x0f, 0xdc];
 /// Add packed unsigned word integers from xmm2/m128 and xmm1 saturate the results (SSE).
 pub static PADDUSW: [u8; 3] = [0x66, 0x0f, 0xdd];
 
+/// Concatenate destination and source operands, extract a byte-aligned result into xmm1 that is
+/// shifted to the right by the constant number of bytes in imm8 (SSSE3).
+pub static PALIGNR: [u8; 4] = [0x66, 0x0f, 0x3a, 0x0f];
+
 /// Bitwise AND of xmm2/m128 and xmm1 (SSE2).
 pub static PAND: [u8; 3] = [0x66, 0x0f, 0xdb];
 
 /// Bitwise AND NOT of xmm2/m128 and xmm1 (SSE2).
 pub static PANDN: [u8; 3] = [0x66, 0x0f, 0xdf];
+
+/// Average packed unsigned byte integers from xmm2/m128 and xmm1 with rounding (SSE2).
+pub static PAVGB: [u8; 3] = [0x66, 0x0f, 0xE0];
+
+/// Average packed unsigned word integers from xmm2/m128 and xmm1 with rounding (SSE2).
+pub static PAVGW: [u8; 3] = [0x66, 0x0f, 0xE3];
+
+/// Select byte values from xmm1 and xmm2/m128 from mask specified in the high bit of each byte
+/// in XMM0 and store the values into xmm1 (SSE4.1).
+pub static PBLENDVB: [u8; 4] = [0x66, 0x0f, 0x38, 0x10];
+
+/// Select words from xmm1 and xmm2/m128 from mask specified in imm8 and store the values into xmm1
+/// (SSE4.1).
+pub static PBLENDW: [u8; 4] = [0x66, 0x0f, 0x3a, 0x0e];
 
 /// Compare packed data for equal (SSE2).
 pub static PCMPEQB: [u8; 3] = [0x66, 0x0f, 0x74];
@@ -407,6 +468,30 @@ pub static PMINUD: [u8; 4] = [0x66, 0x0f, 0x38, 0x3b];
 /// xmm1 (SSE4.1).
 pub static PMINUW: [u8; 4] = [0x66, 0x0f, 0x38, 0x3a];
 
+/// Sign extend 8 packed 8-bit integers in the low 8 bytes of xmm2/m64 to 8 packed 16-bit
+/// integers in xmm1 (SSE4.1).
+pub static PMOVSXBW: [u8; 4] = [0x66, 0x0f, 0x38, 0x20];
+
+/// Sign extend 4 packed 16-bit integers in the low 8 bytes of xmm2/m64 to 4 packed 32-bit
+/// integers in xmm1 (SSE4.1).
+pub static PMOVSXWD: [u8; 4] = [0x66, 0x0f, 0x38, 0x23];
+
+/// Sign extend 2 packed 32-bit integers in the low 8 bytes of xmm2/m64 to 2 packed 64-bit
+/// integers in xmm1 (SSE4.1).
+pub static PMOVSXDQ: [u8; 4] = [0x66, 0x0f, 0x38, 0x25];
+
+/// Zero extend 8 packed 8-bit integers in the low 8 bytes of xmm2/m64 to 8 packed 16-bit
+/// integers in xmm1 (SSE4.1).
+pub static PMOVZXBW: [u8; 4] = [0x66, 0x0f, 0x38, 0x30];
+
+/// Zero extend 4 packed 16-bit integers in the low 8 bytes of xmm2/m64 to 4 packed 32-bit
+/// integers in xmm1 (SSE4.1).
+pub static PMOVZXWD: [u8; 4] = [0x66, 0x0f, 0x38, 0x33];
+
+/// Zero extend 2 packed 32-bit integers in the low 8 bytes of xmm2/m64 to 2 packed 64-bit
+/// integers in xmm1 (SSE4.1).
+pub static PMOVZXDQ: [u8; 4] = [0x66, 0x0f, 0x38, 0x35];
+
 /// Multiply the packed signed word integers in xmm1 and xmm2/m128, and store the low 16 bits of
 /// the results in xmm1 (SSE2).
 pub static PMULLW: [u8; 3] = [0x66, 0x0f, 0xd5];
@@ -414,6 +499,14 @@ pub static PMULLW: [u8; 3] = [0x66, 0x0f, 0xd5];
 /// Multiply the packed doubleword signed integers in xmm1 and xmm2/m128 and store the low 32
 /// bits of each product in xmm1 (SSE4.1).
 pub static PMULLD: [u8; 4] = [0x66, 0x0f, 0x38, 0x40];
+
+/// Multiply the packed quadword signed integers in xmm2 and xmm3/m128 and store the low 64
+/// bits of each product in xmm1 (AVX512VL/DQ). Requires an EVEX encoding.
+pub static VPMULLQ: [u8; 4] = [0x66, 0x0f, 0x38, 0x40];
+
+/// Multiply packed unsigned doubleword integers in xmm1 by packed unsigned doubleword integers
+/// in xmm2/m128, and store the quadword results in xmm1 (SSE2).
+pub static PMULUDQ: [u8; 3] = [0x66, 0x0f, 0xf4];
 
 /// Pop top of stack into r{16,32,64}; increment stack pointer.
 pub static POP_REG: [u8; 1] = [0x58];
@@ -499,6 +592,30 @@ pub static PSUBUSW: [u8; 3] = [0x66, 0x0f, 0xd9];
 /// 0s (SSE4.1).
 pub static PTEST: [u8; 4] = [0x66, 0x0f, 0x38, 0x17];
 
+/// Unpack and interleave high-order bytes from xmm1 and xmm2/m128 into xmm1 (SSE2).
+pub static PUNPCKHBW: [u8; 3] = [0x66, 0x0f, 0x68];
+
+/// Unpack and interleave high-order words from xmm1 and xmm2/m128 into xmm1 (SSE2).
+pub static PUNPCKHWD: [u8; 3] = [0x66, 0x0f, 0x69];
+
+/// Unpack and interleave high-order doublewords from xmm1 and xmm2/m128 into xmm1 (SSE2).
+pub static PUNPCKHDQ: [u8; 3] = [0x66, 0x0f, 0x6A];
+
+/// Unpack and interleave high-order quadwords from xmm1 and xmm2/m128 into xmm1 (SSE2).
+pub static PUNPCKHQDQ: [u8; 3] = [0x66, 0x0f, 0x6D];
+
+/// Unpack and interleave low-order bytes from xmm1 and xmm2/m128 into xmm1 (SSE2).
+pub static PUNPCKLBW: [u8; 3] = [0x66, 0x0f, 0x60];
+
+/// Unpack and interleave low-order words from xmm1 and xmm2/m128 into xmm1 (SSE2).
+pub static PUNPCKLWD: [u8; 3] = [0x66, 0x0f, 0x61];
+
+/// Unpack and interleave low-order doublewords from xmm1 and xmm2/m128 into xmm1 (SSE2).
+pub static PUNPCKLDQ: [u8; 3] = [0x66, 0x0f, 0x62];
+
+/// Unpack and interleave low-order quadwords from xmm1 and xmm2/m128 into xmm1 (SSE2).
+pub static PUNPCKLQDQ: [u8; 3] = [0x66, 0x0f, 0x6C];
+
 /// Push r{16,32,64}.
 pub static PUSH_REG: [u8; 1] = [0x50];
 
@@ -578,6 +695,12 @@ pub static UCOMISS: [u8; 2] = [0x0f, 0x2e];
 
 /// Raise invalid opcode instruction.
 pub static UNDEFINED2: [u8; 2] = [0x0f, 0x0b];
+
+/// Convert four packed unsigned doubleword integers from xmm2/m128/m32bcst to packed
+/// single-precision floating-point values in xmm1 with writemask k1. Rounding behavior
+/// is controlled by MXCSR but can be overriden by EVEX.L'L in static rounding mode
+/// (AVX512VL, AVX512F).
+pub static VCVTUDQ2PS: [u8; 3] = [0xf2, 0x0f, 0x7a];
 
 /// imm{16,32} XOR r/m{16,32,64}, possibly sign-extended.
 pub static XOR_IMM: [u8; 1] = [0x81];

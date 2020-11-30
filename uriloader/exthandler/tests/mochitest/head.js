@@ -77,8 +77,8 @@ function createMockedObjects(createHandlerApp) {
     // PRTime is microseconds since epoch, Date.now() returns milliseconds:
     timeDownloadStarted: Date.now() * 1000,
     QueryInterface: ChromeUtils.generateQI([
-      Ci.nsICancelable,
-      Ci.nsIHelperAppLauncher,
+      "nsICancelable",
+      "nsIHelperAppLauncher",
     ]),
   };
 
@@ -101,7 +101,7 @@ async function openHelperAppDialog(launcher) {
     "@mozilla.org/helperapplauncherdialog;1"
   ].createInstance(Ci.nsIHelperAppLauncherDialog);
 
-  let helperAppDialogShownPromise = BrowserTestUtils.domWindowOpened();
+  let helperAppDialogShownPromise = BrowserTestUtils.domWindowOpenedAndLoaded();
   try {
     helperAppDialog.show(launcher, window, "foopy");
   } catch (ex) {
@@ -113,8 +113,6 @@ async function openHelperAppDialog(launcher) {
   }
   let dlg = await helperAppDialogShownPromise;
 
-  await BrowserTestUtils.waitForEvent(dlg, "load", false);
-
   is(
     dlg.location.href,
     "chrome://mozapps/content/downloads/unknownContentType.xhtml",
@@ -122,4 +120,58 @@ async function openHelperAppDialog(launcher) {
   );
 
   return dlg;
+}
+
+/**
+ * Wait for protocol ask dialog open/close.
+ * @param {*} browser - Browser element the dialog belongs to.
+ * @param {Boolean} state - true: dialog open, false: dialog close
+ * @returns {Promise<SubDialog>} - Returns a promise which resolves with the
+ * SubDialog object of the dialog which closed or opened.
+ */
+async function waitForProtocolAskDialog(browser, state) {
+  const CONTENT_HANDLING_URL = "chrome://mozapps/content/handling/dialog.xhtml";
+
+  let eventStr = state ? "dialogopen" : "dialogclose";
+
+  let tabDialogBox = gBrowser.getTabDialogBox(browser);
+  let dialogStack = tabDialogBox._dialogManager._dialogStack;
+
+  let checkFn;
+
+  if (state) {
+    checkFn = dialogEvent =>
+      dialogEvent.detail.dialog?._openedURL == CONTENT_HANDLING_URL;
+  }
+
+  let event = await BrowserTestUtils.waitForEvent(
+    dialogStack,
+    eventStr,
+    true,
+    checkFn
+  );
+
+  let { dialog } = event.detail;
+
+  // If the dialog is closing wait for it to be fully closed before resolving
+  if (!state) {
+    await dialog._closingPromise;
+  }
+
+  return event.detail.dialog;
+}
+
+async function promiseDownloadFinished(list) {
+  return new Promise(resolve => {
+    list.addView({
+      onDownloadChanged(download) {
+        info("Download changed!");
+        if (download.succeeded || download.error) {
+          info("Download succeeded or errored");
+          list.removeView(this);
+          resolve(download);
+        }
+      },
+    });
+  });
 }

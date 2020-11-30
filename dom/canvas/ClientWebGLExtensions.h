@@ -151,6 +151,8 @@ DECLARE_SIMPLE_WEBGL_EXTENSION(WebGLExtensionTextureHalfFloat)
 
 DECLARE_SIMPLE_WEBGL_EXTENSION(WebGLExtensionTextureHalfFloatLinear)
 
+DECLARE_SIMPLE_WEBGL_EXTENSION(WebGLExtensionTextureNorm16)
+
 DECLARE_SIMPLE_WEBGL_EXTENSION(WebGLExtensionColorBufferFloat)
 
 DECLARE_SIMPLE_WEBGL_EXTENSION(WebGLExtensionColorBufferHalfFloat)
@@ -317,7 +319,7 @@ class ClientWebGLExtensionExplicitPresent : public ClientWebGLExtensionBase {
       AutoJsWarning("present: Extension is `invalidated`.");
       return;
     }
-    mContext->Present();
+    mContext->OnBeforePaintTransaction();
   }
 };
 

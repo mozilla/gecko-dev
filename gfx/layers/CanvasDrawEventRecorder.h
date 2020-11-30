@@ -89,7 +89,12 @@ class CanvasEventRingBuffer final : public gfx::EventRingBuffer {
 
   bool good() const final { return mGood; }
 
-  void SetIsBad() final { mGood = false; }
+  bool WriterFailed() const { return mWrite->state == State::Failed; }
+
+  void SetIsBad() final {
+    mGood = false;
+    mRead->state = State::Failed;
+  }
 
   void write(const char* const aData, const size_t aSize) final;
 
@@ -178,20 +183,21 @@ class CanvasEventRingBuffer final : public gfx::EventRingBuffer {
      */
     AboutToWait,
     Waiting,
-    Stopped
+    Stopped,
+    Failed,
   };
 
   struct ReadFooter {
-    Atomic<uint32_t, ReleaseAcquire> count;
-    Atomic<uint32_t, ReleaseAcquire> returnCount;
-    Atomic<State, ReleaseAcquire> state;
+    Atomic<uint32_t> count;
+    Atomic<uint32_t> returnCount;
+    Atomic<State> state;
   };
 
   struct WriteFooter {
-    Atomic<uint32_t, ReleaseAcquire> count;
-    Atomic<uint32_t, ReleaseAcquire> returnCount;
-    Atomic<uint32_t, ReleaseAcquire> requiredDifference;
-    Atomic<State, ReleaseAcquire> state;
+    Atomic<uint32_t> count;
+    Atomic<uint32_t> returnCount;
+    Atomic<uint32_t> requiredDifference;
+    Atomic<State> state;
   };
 
   CanvasEventRingBuffer(const CanvasEventRingBuffer&) = delete;
@@ -246,6 +252,8 @@ class CanvasDrawEventRecorder final : public gfx::DrawEventRecorderPrivate {
 
     aEvent.RecordToStream(mOutputStream);
   }
+
+  void RecordSourceSurfaceDestruction(void* aSurface) final;
 
   void Flush() final {}
 

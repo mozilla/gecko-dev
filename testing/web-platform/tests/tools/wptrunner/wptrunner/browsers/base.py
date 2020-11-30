@@ -7,7 +7,7 @@ from six import iteritems
 
 from ..wptcommandline import require_arg  # noqa: F401
 
-here = os.path.split(__file__)[0]
+here = os.path.dirname(__file__)
 
 
 def inherit(super_module, child_globals, product_name):
@@ -18,30 +18,6 @@ def inherit(super_module, child_globals, product_name):
 
     for k in ("check_args", "browser", "browser_kwargs", "executor_kwargs",
               "env_extras", "env_options", "timeout_multiplier"):
-        attr = super_wptrunner[k]
-        child_globals[attr] = getattr(super_module, attr)
-
-    for v in super_module.__wptrunner__["executor"].values():
-        child_globals[v] = getattr(super_module, v)
-
-    if "run_info_extras" in super_wptrunner:
-        attr = super_wptrunner["run_info_extras"]
-        child_globals[attr] = getattr(super_module, attr)
-
-
-def cmd_arg(name, value=None):
-    prefix = "-" if platform.system() == "Windows" else "--"
-    rv = prefix + name
-
-
-def inherit(super_module, child_globals, product_name):
-    super_wptrunner = super_module.__wptrunner__
-    child_globals["__wptrunner__"] = child_wptrunner = deepcopy(super_wptrunner)
-
-    child_wptrunner["product"] = product_name
-
-    for k in ("check_args", "browser", "browser_kwargs", "executor_kwargs",
-              "env_extras", "env_options"):
         attr = super_wptrunner[k]
         child_globals[attr] = getattr(super_module, attr)
 
@@ -150,6 +126,12 @@ class Browser(object):
         pass
 
     def settings(self, test):
+        """Dictionary of metadata that is constant for a specific launch of a browser.
+
+        This is used to determine when the browser instance configuration changes, requiring
+        a relaunch of the browser. The test runner calls this method for each test, and if the
+        returned value differs from that for the previous test, the browser is relaunched.
+        """
         return {}
 
     @abstractmethod
@@ -171,10 +153,6 @@ class Browser(object):
     def is_alive(self):
         """Boolean indicating whether the browser process is still running"""
         pass
-
-    def setup_ssl(self, hosts):
-        """Return a certificate to use for tests requiring ssl that will be trusted by the browser"""
-        raise NotImplementedError("ssl testing not supported")
 
     def cleanup(self):
         """Browser-specific cleanup that is run after the testrun is finished"""

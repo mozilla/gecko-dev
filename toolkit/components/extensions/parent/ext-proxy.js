@@ -36,6 +36,7 @@ const DEFAULT_PORTS = new Map([
 ]);
 
 ExtensionPreferencesManager.addSetting("proxy.settings", {
+  permission: "proxy",
   prefNames: [
     "network.proxy.type",
     "network.proxy.http",
@@ -96,7 +97,7 @@ function registerProxyFilterEvent(
   let filter = { ...filterProps };
   if (filter.urls) {
     let perms = new MatchPatternSet([
-      ...extension.whiteListedHosts.patterns,
+      ...extension.allowedOrigins.patterns,
       ...extension.optionalOrigins.patterns,
     ]);
     filter.urls = new MatchPatternSet(filter.urls);

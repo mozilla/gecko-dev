@@ -9,10 +9,10 @@ const URL = "about:blank";
 const TEST_URL = "http://test2.example.org/";
 let windowActorOptions = {
   parent: {
-    moduleURI: "resource://testing-common/TestParent.jsm",
+    moduleURI: "resource://testing-common/TestWindowParent.jsm",
   },
   child: {
-    moduleURI: "resource://testing-common/TestChild.jsm",
+    moduleURI: "resource://testing-common/TestWindowChild.jsm",
 
     events: {
       mozshowdropdown: {},
@@ -29,11 +29,12 @@ function declTest(name, cfg) {
     includeChrome = false,
     matches,
     remoteTypes,
-    fission,
+    messageManagerGroups,
     test,
   } = cfg;
 
-  // Build the actor options object which will be used to register & unregister our window actor.
+  // Build the actor options object which will be used to register & unregister
+  // our window actor.
   let actorOptions = {
     parent: Object.assign({}, windowActorOptions.parent),
     child: Object.assign({}, windowActorOptions.child),
@@ -46,31 +47,24 @@ function declTest(name, cfg) {
   if (remoteTypes !== undefined) {
     actorOptions.remoteTypes = remoteTypes;
   }
+  if (messageManagerGroups !== undefined) {
+    actorOptions.messageManagerGroups = messageManagerGroups;
+  }
 
   // Add a new task for the actor test declared here.
   add_task(async function() {
     info("Entering test: " + name);
 
-    // Create a fresh window with the correct settings, and register our actor.
-    let win = await BrowserTestUtils.openNewBrowserWindow({
-      remote: true,
-      fission,
-    });
-    ChromeUtils.registerWindowActor("Test", actorOptions);
-
-    // Wait for the provided URL to load in our browser
-    let browser = win.gBrowser.selectedBrowser;
-    BrowserTestUtils.loadURI(browser, url);
-    await BrowserTestUtils.browserLoaded(browser, false, url);
-
-    // Run the provided test
-    info("browser ready");
+    // Register our actor, and load a new tab with the relevant URL
+    ChromeUtils.registerWindowActor("TestWindow", actorOptions);
     try {
-      await Promise.resolve(test(browser, win));
+      await BrowserTestUtils.withNewTab(url, async browser => {
+        info("browser ready");
+        await Promise.resolve(test(browser, window));
+      });
     } finally {
-      // Clean up after we're done.
-      ChromeUtils.unregisterWindowActor("Test");
-      await BrowserTestUtils.closeWindow(win);
+      // Unregister the actor after the test is complete.
+      ChromeUtils.unregisterWindowActor("TestWindow");
       info("Exiting test: " + name);
     }
   });

@@ -56,14 +56,37 @@ class DefinitionServer {
   addDefinition(overrides = {}) {
     const definition = definitionFactory(overrides);
     // convert targeted values, used by fromId
-    definition.isPublic = { default: definition.isPublic };
-    definition.defaultValue = { default: definition.defaultValue };
+    definition.isPublic = {
+      default: definition.isPublic,
+      "test-fact": !definition.isPublic,
+    };
+    definition.defaultValue = {
+      default: definition.defaultValue,
+      "test-fact": !definition.defaultValue,
+    };
     this.definitions[definition.id] = definition;
     return definition;
   }
 }
 
 // ============================================================================
+add_task(async function testReadAll() {
+  const server = new DefinitionServer();
+  let ids = ["test-featureA", "test-featureB", "test-featureC"];
+  for (let id of ids) {
+    server.addDefinition({ id });
+  }
+  let sortedIds = ids.sort();
+  const features = await FeatureGate.all(server.definitionsUrl);
+  for (let feature of features) {
+    equal(
+      feature.id,
+      sortedIds.shift(),
+      "Features are returned in order of definition"
+    );
+  }
+  equal(sortedIds.length, 0, "All features are returned when calling all()");
+});
 
 // The getters and setters should read correctly from the definition
 add_task(async function testReadFromDefinition() {
@@ -105,9 +128,30 @@ add_task(async function testReadFromDefinition() {
     "defaultValue should be processed as a targeted value"
   );
   equal(
+    feature.defaultValueWith(new Map()),
+    definition.defaultValue.default,
+    "An empty set of extra facts results in the same value"
+  );
+  equal(
+    feature.defaultValueWith(new Map([["test-fact", true]])),
+    !definition.defaultValue.default,
+    "Including an extra fact can change the value"
+  );
+
+  equal(
     feature.isPublic,
     definition.isPublic.default,
     "isPublic should be processed as a targeted value"
+  );
+  equal(
+    feature.isPublicWith(new Map()),
+    definition.isPublic.default,
+    "An empty set of extra facts results in the same value"
+  );
+  equal(
+    feature.isPublicWith(new Map([["test-fact", true]])),
+    !definition.isPublic.default,
+    "Including an extra fact can change the value"
   );
 
   // cleanup
@@ -116,21 +160,17 @@ add_task(async function testReadFromDefinition() {
 
 // Targeted values should return the correct value
 add_task(async function testTargetedValues() {
-  const backstage = ChromeUtils.import(
-    "resource://featuregates/FeatureGate.jsm",
-    null
-  );
   const targetingFacts = new Map(
     Object.entries({ true1: true, true2: true, false1: false, false2: false })
   );
 
   Assert.equal(
-    backstage.evaluateTargetedValue({ default: "foo" }, targetingFacts),
+    FeatureGate.evaluateTargetedValue({ default: "foo" }, targetingFacts),
     "foo",
     "A lone default value should be returned"
   );
   Assert.equal(
-    backstage.evaluateTargetedValue(
+    FeatureGate.evaluateTargetedValue(
       { default: "foo", true1: "bar" },
       targetingFacts
     ),
@@ -138,7 +178,7 @@ add_task(async function testTargetedValues() {
     "A true target should override the default"
   );
   Assert.equal(
-    backstage.evaluateTargetedValue(
+    FeatureGate.evaluateTargetedValue(
       { default: "foo", false1: "bar" },
       targetingFacts
     ),
@@ -146,7 +186,7 @@ add_task(async function testTargetedValues() {
     "A false target should not overrides the default"
   );
   Assert.equal(
-    backstage.evaluateTargetedValue(
+    FeatureGate.evaluateTargetedValue(
       { default: "foo", "true1,true2": "bar" },
       targetingFacts
     ),
@@ -154,7 +194,7 @@ add_task(async function testTargetedValues() {
     "A compound target of two true targets should override the default"
   );
   Assert.equal(
-    backstage.evaluateTargetedValue(
+    FeatureGate.evaluateTargetedValue(
       { default: "foo", "true1,false1": "bar" },
       targetingFacts
     ),
@@ -162,7 +202,7 @@ add_task(async function testTargetedValues() {
     "A compound target of a true target and a false target should not override the default"
   );
   Assert.equal(
-    backstage.evaluateTargetedValue(
+    FeatureGate.evaluateTargetedValue(
       { default: "foo", "false1,false2": "bar" },
       targetingFacts
     ),
@@ -170,7 +210,7 @@ add_task(async function testTargetedValues() {
     "A compound target of two false targets should not override the default"
   );
   Assert.equal(
-    backstage.evaluateTargetedValue(
+    FeatureGate.evaluateTargetedValue(
       { default: "foo", false1: "bar", true1: "baz" },
       targetingFacts
     ),

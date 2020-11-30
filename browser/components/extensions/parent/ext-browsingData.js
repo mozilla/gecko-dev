@@ -39,9 +39,43 @@ const makeRange = options => {
     : [PlacesUtils.toPRTime(options.since), PlacesUtils.toPRTime(Date.now())];
 };
 
-const clearCache = () => {
-  // Clearing the cache does not support timestamps.
-  return Sanitizer.items.cache.clear();
+// General implementation for clearing data using Services.clearData.
+// Currently Sanitizer.items uses this under the hood.
+async function clearData(options, flags) {
+  if (options.hostnames) {
+    await Promise.all(
+      options.hostnames.map(
+        host =>
+          new Promise(resolve => {
+            // Set aIsUserRequest to true. This means when the ClearDataService
+            // "Cleaner" implementation doesn't support clearing by host
+            // it will delete all data instead.
+            // This is appropriate for cases like |cache|, which doesn't
+            // support clearing by a time range.
+            // In future when we use this for other data types, we have to
+            // evaluate if that behavior is still acceptable.
+            Services.clearData.deleteDataFromHost(host, true, flags, resolve);
+          })
+      )
+    );
+    return;
+  }
+
+  if (options.since) {
+    const range = makeRange(options);
+    await new Promise(resolve => {
+      Services.clearData.deleteDataInTimeRange(...range, true, flags, resolve);
+    });
+    return;
+  }
+
+  // Don't return the promise here and above to prevent leaking the resolved
+  // value.
+  await new Promise(resolve => Services.clearData.deleteData(flags, resolve));
+}
+
+const clearCache = options => {
+  return clearData(options, Ci.nsIClearDataService.CLEAR_ALL_CACHES);
 };
 
 const clearCookies = async function(options) {
@@ -108,22 +142,25 @@ const clearIndexedDB = async function(options) {
           principal.schemeIs("https") ||
           principal.schemeIs("file")
         ) {
-          promises.push(
-            new Promise((resolve, reject) => {
-              let clearRequest = quotaManagerService.clearStoragesForPrincipal(
-                principal,
-                null,
-                "idb"
-              );
-              clearRequest.callback = () => {
-                if (clearRequest.resultCode == Cr.NS_OK) {
-                  resolve();
-                } else {
-                  reject({ message: "Clear indexedDB failed" });
-                }
-              };
-            })
-          );
+          let host = principal.hostPort;
+          if (!options.hostnames || options.hostnames.includes(host)) {
+            promises.push(
+              new Promise((resolve, reject) => {
+                let clearRequest = quotaManagerService.clearStoragesForPrincipal(
+                  principal,
+                  null,
+                  "idb"
+                );
+                clearRequest.callback = () => {
+                  if (clearRequest.resultCode == Cr.NS_OK) {
+                    resolve();
+                  } else {
+                    reject({ message: "Clear indexedDB failed" });
+                  }
+                };
+              })
+            );
+          }
         }
       }
 
@@ -156,7 +193,7 @@ const clearLocalStorage = async function(options) {
     Services.obs.notifyObservers(null, "extension:purge-localStorage");
   }
 
-  if (Services.lsm.nextGenLocalStorageEnabled) {
+  if (Services.domStorageManager.nextGenLocalStorageEnabled) {
     // Ideally we could reuse the logic in Sanitizer.jsm or nsIClearDataService,
     // but this API exposes an ability to wipe data at a much finger granularity
     // than those APIs.  So custom logic is used here to wipe only the QM
@@ -184,7 +221,7 @@ const clearLocalStorage = async function(options) {
             principal.schemeIs("https") ||
             principal.schemeIs("file")
           ) {
-            let host = principal.URI.hostPort;
+            let host = principal.hostPort;
             if (!options.hostnames || options.hostnames.includes(host)) {
               promises.push(
                 new Promise((resolve, reject) => {
@@ -230,7 +267,19 @@ const clearPasswords = async function(options) {
 };
 
 const clearPluginData = options => {
-  return Sanitizer.items.pluginData.clear(makeRange(options));
+  return clearData(options, Ci.nsIClearDataService.CLEAR_PLUGIN_DATA);
+};
+
+const clearServiceWorkers = options => {
+  if (!options.hostnames) {
+    return ServiceWorkerCleanUp.removeAll();
+  }
+
+  return Promise.all(
+    options.hostnames.map(host => {
+      return ServiceWorkerCleanUp.removeFromHost(host);
+    })
+  );
 };
 
 const doRemoval = (options, dataToRemove, extension) => {
@@ -250,7 +299,7 @@ const doRemoval = (options, dataToRemove, extension) => {
     if (dataToRemove[dataType]) {
       switch (dataType) {
         case "cache":
-          removalPromises.push(clearCache());
+          removalPromises.push(clearCache(options));
           break;
         case "cookies":
           removalPromises.push(clearCookies(options));
@@ -277,7 +326,7 @@ const doRemoval = (options, dataToRemove, extension) => {
           removalPromises.push(clearPluginData(options));
           break;
         case "serviceWorkers":
-          removalPromises.push(ServiceWorkerCleanUp.removeAll());
+          removalPromises.push(clearServiceWorkers(options));
           break;
         default:
           invalidDataTypes.push(dataType);

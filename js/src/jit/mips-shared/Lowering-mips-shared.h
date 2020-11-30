@@ -30,6 +30,8 @@ class LIRGeneratorMIPSShared : public LIRGeneratorShared {
                      MDefinition* lhs, MDefinition* rhs);
   void lowerUrshD(MUrsh* mir);
 
+  void lowerPowOfTwoI(MPow* mir);
+
   void lowerForALU(LInstructionHelper<1, 1, 0>* ins, MDefinition* mir,
                    MDefinition* input);
   void lowerForALU(LInstructionHelper<1, 2, 0>* ins, MDefinition* mir,
@@ -53,6 +55,7 @@ class LIRGeneratorMIPSShared : public LIRGeneratorShared {
 
   void lowerForBitAndAndBranch(LBitAndAndBranch* baab, MInstruction* mir,
                                MDefinition* lhs, MDefinition* rhs);
+  void lowerWasmBuiltinTruncateToInt32(MWasmBuiltinTruncateToInt32* ins);
   void lowerDivI(MDiv* div);
   void lowerModI(MMod* mod);
   void lowerMulI(MMul* mul, MDefinition* lhs, MDefinition* rhs);

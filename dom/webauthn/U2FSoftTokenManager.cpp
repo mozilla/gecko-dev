@@ -24,11 +24,10 @@ namespace dom {
 using namespace mozilla;
 using mozilla::dom::CreateECParamsForCurve;
 
-const nsCString U2FSoftTokenManager::mSecretNickname =
-    NS_LITERAL_CSTRING("U2F_NSSTOKEN");
+const nsCString U2FSoftTokenManager::mSecretNickname = "U2F_NSSTOKEN"_ns;
 
 namespace {
-NS_NAMED_LITERAL_CSTRING(kAttestCertSubjectName, "CN=Firefox U2F Soft Token");
+constexpr auto kAttestCertSubjectName = "CN=Firefox U2F Soft Token"_ns;
 
 // This U2F-compatible soft token uses FIDO U2F-compatible ECDSA keypairs
 // on the SEC_OID_SECG_EC_SECP256R1 curve. When asked to Register, it will
@@ -47,7 +46,8 @@ const uint32_t kWrappedKeyBufLen = 256;
 const uint32_t kWrappingKeyByteLen = 128 / 8;
 const uint32_t kSaltByteLen = 64 / 8;
 const uint32_t kVersion1KeyHandleLen = 162;
-NS_NAMED_LITERAL_STRING(kEcAlgorithm, WEBCRYPTO_NAMED_CURVE_P256);
+constexpr auto kEcAlgorithm =
+    NS_LITERAL_STRING_FROM_CSTRING(WEBCRYPTO_NAMED_CURVE_P256);
 
 const PRTime kOneDay = PRTime(PR_USEC_PER_SEC) * PRTime(60)  // sec
                        * PRTime(60)                          // min
@@ -419,9 +419,11 @@ static UniqueSECItem KeyHandleFromPrivateKey(
 
   // It's OK to ignore the return values here because we're writing into
   // pre-allocated space
-  keyHandleBuf.AppendElement(SoftTokenHandle::Version1, mozilla::fallible);
-  keyHandleBuf.AppendElement(sizeof(saltParam), mozilla::fallible);
-  keyHandleBuf.AppendElements(saltParam, sizeof(saltParam), mozilla::fallible);
+  (void)keyHandleBuf.AppendElement(SoftTokenHandle::Version1,
+                                   mozilla::fallible);
+  (void)keyHandleBuf.AppendElement(sizeof(saltParam), mozilla::fallible);
+  (void)keyHandleBuf.AppendElements(saltParam, sizeof(saltParam),
+                                    mozilla::fallible);
   keyHandleBuf.AppendSECItem(wrappedKey.get());
 
   UniqueSECItem keyHandle(::SECITEM_AllocItem(nullptr, nullptr, 0));
@@ -692,9 +694,9 @@ RefPtr<U2FRegisterPromise> U2FSoftTokenManager::Register(
 
   // // It's OK to ignore the return values here because we're writing into
   // // pre-allocated space
-  signedDataBuf.AppendElement(0x00, mozilla::fallible);
-  signedDataBuf.AppendElements(rpIdHash, mozilla::fallible);
-  signedDataBuf.AppendElements(clientDataHash, mozilla::fallible);
+  (void)signedDataBuf.AppendElement(0x00, mozilla::fallible);
+  (void)signedDataBuf.AppendElements(rpIdHash, mozilla::fallible);
+  (void)signedDataBuf.AppendElements(clientDataHash, mozilla::fallible);
   signedDataBuf.AppendSECItem(keyHandleItem.get());
   signedDataBuf.AppendSECItem(pubKey->u.ec.publicValue);
 
@@ -717,9 +719,9 @@ RefPtr<U2FRegisterPromise> U2FSoftTokenManager::Register(
     return U2FRegisterPromise::CreateAndReject(NS_ERROR_OUT_OF_MEMORY,
                                                __func__);
   }
-  registrationBuf.AppendElement(0x05, mozilla::fallible);
+  (void)registrationBuf.AppendElement(0x05, mozilla::fallible);
   registrationBuf.AppendSECItem(pubKey->u.ec.publicValue);
-  registrationBuf.AppendElement(keyHandleItem->len, mozilla::fallible);
+  (void)registrationBuf.AppendElement(keyHandleItem->len, mozilla::fallible);
   registrationBuf.AppendSECItem(keyHandleItem.get());
   registrationBuf.AppendSECItem(attestCert.get()->derCert);
   registrationBuf.AppendSECItem(signatureItem);
@@ -813,7 +815,9 @@ RefPtr<U2FSignPromise> U2FSoftTokenManager::Sign(
   }
 
   nsTArray<nsTArray<uint8_t>> appIds;
-  appIds.AppendElement(rpIdHash);
+  appIds.AppendElement(std::move(rpIdHash));
+
+  Maybe<nsTArray<uint8_t>> appIdHashExt = Nothing();
 
   if (aInfo.Extra().isSome()) {
     const auto& extra = aInfo.Extra().ref();
@@ -830,7 +834,8 @@ RefPtr<U2FSignPromise> U2FSoftTokenManager::Sign(
     // Process extensions.
     for (const WebAuthnExtension& ext : extra.Extensions()) {
       if (ext.type() == WebAuthnExtension::TWebAuthnExtensionAppId) {
-        appIds.AppendElement(ext.get_WebAuthnExtensionAppId().AppId());
+        appIdHashExt = Some(ext.get_WebAuthnExtensionAppId().AppId().Clone());
+        appIds.AppendElement(appIdHashExt->Clone());
       }
     }
   }
@@ -893,12 +898,12 @@ RefPtr<U2FSignPromise> U2FSoftTokenManager::Sign(
 
   // It's OK to ignore the return values here because we're writing into
   // pre-allocated space
-  signedDataBuf.AppendElements(chosenAppId.Elements(), chosenAppId.Length(),
-                               mozilla::fallible);
-  signedDataBuf.AppendElement(0x01, mozilla::fallible);
+  (void)signedDataBuf.AppendElements(chosenAppId.Elements(),
+                                     chosenAppId.Length(), mozilla::fallible);
+  (void)signedDataBuf.AppendElement(0x01, mozilla::fallible);
   signedDataBuf.AppendSECItem(counterItem);
-  signedDataBuf.AppendElements(clientDataHash.Elements(),
-                               clientDataHash.Length(), mozilla::fallible);
+  (void)signedDataBuf.AppendElements(
+      clientDataHash.Elements(), clientDataHash.Length(), mozilla::fallible);
 
   if (MOZ_LOG_TEST(gNSSTokenLog, LogLevel::Debug)) {
     nsAutoCString base64;
@@ -932,15 +937,15 @@ RefPtr<U2FSignPromise> U2FSoftTokenManager::Sign(
 
   // It's OK to ignore the return values here because we're writing into
   // pre-allocated space
-  signatureDataBuf.AppendElement(0x01, mozilla::fallible);
+  (void)signatureDataBuf.AppendElement(0x01, mozilla::fallible);
   signatureDataBuf.AppendSECItem(counterItem);
   signatureDataBuf.AppendSECItem(signatureItem);
 
   nsTArray<WebAuthnExtensionResult> extensions;
 
-  if (chosenAppId != rpIdHash) {
-    // Indicate to the RP that we used the FIDO appId.
-    extensions.AppendElement(WebAuthnExtensionResultAppId(true));
+  if (appIdHashExt) {
+    bool usedAppId = (chosenAppId == appIdHashExt.ref());
+    extensions.AppendElement(WebAuthnExtensionResultAppId(usedAppId));
   }
 
   CryptoBuffer counterBuf;

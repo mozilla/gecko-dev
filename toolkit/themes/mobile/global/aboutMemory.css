@@ -28,7 +28,7 @@ pre {
 
 div.ancillary {
   margin: 0.5em 0;
-  -moz-user-select: none;
+  user-select: none;
 }
 
 div.section {
@@ -36,8 +36,8 @@ div.section {
   margin: 1em 0em;
   border: 1px solid ThreeDShadow;
   border-radius: 10px;
-  background: -moz-Field;
-  color: -moz-FieldText;
+  background: Field;
+  color: FieldText;
 }
 
 div.outputContainer {
@@ -64,9 +64,9 @@ div.sidebarItem {
   margin: 1em 0em;
   border: 1px solid ThreeDShadow;
   border-radius: 10px;
-  background: -moz-Field;
-  color: -moz-FieldText;
-  -moz-user-select: none;  /* no need to include this when cutting+pasting */
+  background: Field;
+  color: FieldText;
+  user-select: none;  /* no need to include this when cutting+pasting */
 }
 
 input.filterInput {
@@ -89,8 +89,8 @@ div.opsRow {
   margin-top: 0.5em;
   border: 1px solid ThreeDShadow;
   border-radius: 10px;
-  background: -moz-Field;
-  color: -moz-FieldText;
+  background: Field;
+  color: FieldText;
   display: inline-block;
 }
 
@@ -129,7 +129,7 @@ h2 {
 }
 
 .treeline {
-  color: -moz-FieldText;
+  color: FieldText;
   opacity: 0.5;
 }
 
@@ -146,17 +146,17 @@ h2 {
 }
 
 .noselect {
-  -moz-user-select: none;  /* no need to include this when cutting+pasting */
+  user-select: none;  /* no need to include this when cutting+pasting */
 }
 
 .option {
   font-size: 80%;
-  -moz-user-select: none;  /* no need to include this when cutting+pasting */
+  user-select: none;  /* no need to include this when cutting+pasting */
 }
 
 .legend {
   font-size: 80%;
-  -moz-user-select: none;  /* no need to include this when cutting+pasting */
+  user-select: none;  /* no need to include this when cutting+pasting */
 }
 
 .debug {

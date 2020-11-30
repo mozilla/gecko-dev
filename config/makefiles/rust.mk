@@ -63,6 +63,11 @@ ifndef MOZ_DEBUG_RUST
 ifeq (,$(findstring gkrust_gtest,$(RUST_LIBRARY_FILE)))
 cargo_rustc_flags += -Clto
 endif
+# Versions of rust >= 1.45 need -Cembed-bitcode=yes for all crates when
+# using -Clto.
+ifeq (,$(filter 1.38.% 1.39.% 1.40.% 1.41.% 1.42.% 1.43.% 1.44.%,$(RUSTC_VERSION)))
+RUSTFLAGS += -Cembed-bitcode=yes
+endif
 endif
 endif
 
@@ -78,7 +83,7 @@ rustflags_neon += -C target_feature=+neon,-d16
 endif
 
 rustflags_sancov =
-ifdef FUZZING_INTERFACES
+ifdef LIBFUZZER
 ifndef MOZ_TSAN
 # These options should match what is implicitly enabled for `clang -fsanitize=fuzzer`
 #   here: https://github.com/llvm/llvm-project/blob/release/8.x/clang/lib/Driver/SanitizerArgs.cpp#L354
@@ -120,23 +125,28 @@ endif
 # https://github.com/alexcrichton/cc-rs/blob/baa71c0e298d9ad7ac30f0ad78f20b4b3b3a8fb2/src/lib.rs#L1715
 rust_host_cc_env_name := $(subst -,_,$(RUST_HOST_TARGET))
 
-export CC_$(rust_host_cc_env_name)=$(HOST_CC)
-export CXX_$(rust_host_cc_env_name)=$(HOST_CXX)
+# HOST_CC/HOST_CXX/CC/CXX usually contain base flags for e.g. the build target.
+# We want to pass those through CFLAGS_*/CXXFLAGS_* instead, so that they end up
+# after whatever cc-rs adds to the compiler command line, so that they win.
+# Ideally, we'd use CRATE_CC_NO_DEFAULTS=1, but that causes other problems at the
+# moment.
+export CC_$(rust_host_cc_env_name)=$(filter-out $(HOST_CC_BASE_FLAGS),$(HOST_CC))
+export CXX_$(rust_host_cc_env_name)=$(filter-out $(HOST_CXX_BASE_FLAGS),$(HOST_CXX))
 # We don't have a HOST_AR. If rust needs one, assume it's going to pick an appropriate one.
 
 rust_cc_env_name := $(subst -,_,$(RUST_TARGET))
 
-export CC_$(rust_cc_env_name)=$(CC)
-export CXX_$(rust_cc_env_name)=$(CXX)
+export CC_$(rust_cc_env_name)=$(filter-out $(CC_BASE_FLAGS),$(CC))
+export CXX_$(rust_cc_env_name)=$(filter-out $(CXX_BASE_FLAGS),$(CXX))
 export AR_$(rust_cc_env_name)=$(AR)
 ifeq (,$(NATIVE_SANITIZERS)$(MOZ_CODE_COVERAGE))
 # -DMOZILLA_CONFIG_H is added to prevent mozilla-config.h from injecting anything
 # in C/C++ compiles from rust. That's not needed in the other branch because the
 # base flags don't force-include mozilla-config.h.
-export CFLAGS_$(rust_host_cc_env_name)=$(COMPUTED_HOST_CFLAGS) -DMOZILLA_CONFIG_H
-export CXXFLAGS_$(rust_host_cc_env_name)=$(COMPUTED_HOST_CXXFLAGS) -DMOZILLA_CONFIG_H
-export CFLAGS_$(rust_cc_env_name)=$(COMPUTED_CFLAGS) -DMOZILLA_CONFIG_H
-export CXXFLAGS_$(rust_cc_env_name)=$(COMPUTED_CXXFLAGS) -DMOZILLA_CONFIG_H
+export CFLAGS_$(rust_host_cc_env_name)=$(HOST_CC_BASE_FLAGS) $(COMPUTED_HOST_CFLAGS) -DMOZILLA_CONFIG_H
+export CXXFLAGS_$(rust_host_cc_env_name)=$(HOST_CXX_BASE_FLAGS) $(COMPUTED_HOST_CXXFLAGS) -DMOZILLA_CONFIG_H
+export CFLAGS_$(rust_cc_env_name)=$(CC_BASE_FLAGS) $(COMPUTED_CFLAGS) -DMOZILLA_CONFIG_H
+export CXXFLAGS_$(rust_cc_env_name)=$(CXX_BASE_FLAGS) $(COMPUTED_CXXFLAGS) -DMOZILLA_CONFIG_H
 else
 # Because cargo doesn't allow to distinguish builds happening for build
 # scripts/procedural macros vs. those happening for the rust target,
@@ -168,6 +178,7 @@ export PKG_CONFIG
 export PKG_CONFIG_ALLOW_CROSS=1
 export RUST_BACKTRACE=full
 export MOZ_TOPOBJDIR=$(topobjdir)
+export PYTHON3
 
 # Set COREAUDIO_SDK_PATH for third_party/rust/coreaudio-sys/build.rs
 ifeq ($(OS_ARCH), Darwin)
@@ -193,7 +204,12 @@ HOST_RECIPES := \
 
 $(HOST_RECIPES): RUSTFLAGS:=$(rustflags_override)
 
-cargo_env = $(subst -,_,$(subst a,A,$(subst b,B,$(subst c,C,$(subst d,D,$(subst e,E,$(subst f,F,$(subst g,G,$(subst h,H,$(subst i,I,$(subst j,J,$(subst k,K,$(subst l,L,$(subst m,M,$(subst n,N,$(subst o,O,$(subst p,P,$(subst q,Q,$(subst r,R,$(subst s,S,$(subst t,T,$(subst u,U,$(subst v,V,$(subst w,W,$(subst x,X,$(subst y,Y,$(subst z,Z,$1)))))))))))))))))))))))))))
+# If this is a release build we want rustc to generate one codegen unit per
+# crate. This results in better optimization and less code duplication at the
+# cost of longer compile times.
+ifndef DEVELOPER_OPTIONS
+$(TARGET_RECIPES) $(HOST_RECIPES): RUSTFLAGS += -C codegen-units=1
+endif
 
 # We use the + prefix to pass down the jobserver fds to cargo, but we
 # don't use the prefix when make -n is used, so that cargo doesn't run
@@ -217,13 +233,9 @@ define CARGO_CHECK
 $(call RUN_CARGO,check)
 endef
 
-cargo_host_linker_env_var := CARGO_TARGET_$(call cargo_env,$(RUST_HOST_TARGET))_LINKER
-cargo_linker_env_var := CARGO_TARGET_$(call cargo_env,$(RUST_TARGET))_LINKER
+cargo_host_linker_env_var := CARGO_TARGET_$(call varize,$(RUST_HOST_TARGET))_LINKER
+cargo_linker_env_var := CARGO_TARGET_$(call varize,$(RUST_TARGET))_LINKER
 
-# Defining all of this for ASan/TSan builds results in crashes while running
-# some crates's build scripts (!), so disable it for now.
-# See https://github.com/rust-lang/cargo/issues/5754
-ifndef NATIVE_SANITIZERS
 # Cargo needs the same linker flags as the C/C++ compiler,
 # but not the final libraries. Filter those out because they
 # cause problems on macOS 10.7; see bug 1365993 for details.
@@ -250,7 +262,13 @@ export $(cargo_host_linker_env_var):=$(topsrcdir)/build/cargo-host-linker
 export $(cargo_linker_env_var):=$(topsrcdir)/build/cargo-linker
 WRAP_HOST_LINKER_LIBPATHS:=$(HOST_LINKER_LIBPATHS)
 endif
+
+# Defining all of this for ASan/TSan builds results in crashes while running
+# some crates's build scripts (!), so disable it for now.
+# See https://github.com/rust-lang/cargo/issues/5754
+ifndef NATIVE_SANITIZERS
 $(TARGET_RECIPES): MOZ_CARGO_WRAP_LDFLAGS:=$(filter-out -fsanitize=cfi% -framework Cocoa -lobjc AudioToolbox ExceptionHandling -fprofile-%,$(LDFLAGS))
+endif # NATIVE_SANITIZERS
 
 $(HOST_RECIPES): MOZ_CARGO_WRAP_LDFLAGS:=$(HOST_LDFLAGS) $(WRAP_HOST_LINKER_LIBPATHS)
 $(TARGET_RECIPES) $(HOST_RECIPES): MOZ_CARGO_WRAP_HOST_LDFLAGS:=$(HOST_LDFLAGS) $(WRAP_HOST_LINKER_LIBPATHS)
@@ -268,8 +286,6 @@ else
 $(HOST_RECIPES): MOZ_CARGO_WRAP_LD:=$(HOST_LINKER)
 $(TARGET_RECIPES) $(HOST_RECIPES): MOZ_CARGO_WRAP_HOST_LD:=$(HOST_LINKER)
 endif
-
-endif # NATIVE_SANITIZERS
 
 ifdef RUST_LIBRARY_FILE
 
@@ -290,12 +306,12 @@ $(RUST_LIBRARY_FILE): force-cargo-library-build
 # When we are building in --enable-release mode; we add an additional check to confirm
 # that we are not importing any networking-related functions in rust code. This reduces
 # the chance of proxy bypasses originating from rust code.
-# The check only works when rust code is built with -Clto.
-# Enabling sancov or TSan also causes this to fail.
+# The check only works when rust code is built with -Clto but without MOZ_LTO_RUST.
+# Sanitizers and sancov also fail because compiler-rt hooks network functions.
 ifndef MOZ_PROFILE_GENERATE
-ifndef MOZ_TSAN
 ifeq ($(OS_ARCH), Linux)
-ifeq (,$(rustflags_sancov))
+ifeq (,$(rustflags_sancov)$(MOZ_ASAN)$(MOZ_TSAN)$(MOZ_UBSAN))
+ifndef MOZ_LTO_RUST
 ifneq (,$(filter -Clto,$(cargo_rustc_flags)))
 	$(call py_action,check_binary,--target --networking $@)
 endif
@@ -337,7 +353,7 @@ force-cargo-host-library-build:
 	$(REPORT_BUILD)
 	$(call CARGO_BUILD) --lib $(cargo_host_flag) $(host_rust_features_flag)
 
-$(HOST_RUST_LIBRARY_FILE): force-cargo-host-library-build
+$(HOST_RUST_LIBRARY_FILE): force-cargo-host-library-build ;
 
 force-cargo-host-library-check:
 	$(call CARGO_CHECK) --lib $(cargo_host_flag) $(host_rust_features_flag)
@@ -348,13 +364,11 @@ endif # HOST_RUST_LIBRARY_FILE
 
 ifdef RUST_PROGRAMS
 
-GARBAGE_DIRS += $(RUST_TARGET)
-
-force-cargo-program-build: $(RESFILE)
+force-cargo-program-build: $(call resfile,module)
 	$(REPORT_BUILD)
-	$(call CARGO_BUILD) $(addprefix --bin ,$(RUST_CARGO_PROGRAMS)) $(cargo_target_flag) -- $(if $(RESFILE),-C link-arg=$(CURDIR)/$(RESFILE))
+	$(call CARGO_BUILD) $(addprefix --bin ,$(RUST_CARGO_PROGRAMS)) $(cargo_target_flag) -- $(addprefix -C link-arg=$(CURDIR)/,$(call resfile,module))
 
-$(RUST_PROGRAMS): force-cargo-program-build
+$(RUST_PROGRAMS): force-cargo-program-build ;
 
 force-cargo-program-check:
 	$(call CARGO_CHECK) $(addprefix --bin ,$(RUST_CARGO_PROGRAMS)) $(cargo_target_flag)
@@ -364,13 +378,11 @@ force-cargo-program-check:
 endif # RUST_PROGRAMS
 ifdef HOST_RUST_PROGRAMS
 
-GARBAGE_DIRS += $(RUST_HOST_TARGET)
-
 force-cargo-host-program-build:
 	$(REPORT_BUILD)
 	$(call CARGO_BUILD) $(addprefix --bin ,$(HOST_RUST_CARGO_PROGRAMS)) $(cargo_host_flag)
 
-$(HOST_RUST_PROGRAMS): force-cargo-host-program-build
+$(HOST_RUST_PROGRAMS): force-cargo-host-program-build ;
 
 force-cargo-host-program-check:
 	$(REPORT_BUILD)

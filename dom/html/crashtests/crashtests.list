@@ -33,7 +33,6 @@ load 580507-1.xhtml
 load 590387.html
 load 596785-1.html
 load 596785-2.html
-load 601422.html
 load 602117.html
 load 604807.html
 load 605264.html
@@ -59,7 +58,7 @@ load 795221-5.xml
 load 811226.html
 load 819745.html
 load 828180.html
-pref(dom.experimental_forms,true) load 828472.html
+load 828472.html
 load 837033.html
 load 838256-1.html
 load 862084.html

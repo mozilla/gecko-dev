@@ -342,7 +342,7 @@ static bool Moz2DRenderCallback(const Range<const uint8_t> aBlob,
                                 gfx::SurfaceFormat aFormat,
                                 const mozilla::wr::DeviceIntRect* aVisibleRect,
                                 const mozilla::wr::LayoutIntRect* aRenderRect,
-                                const uint16_t* aTileSize,
+                                const uint16_t aTileSize,
                                 const mozilla::wr::TileOffset* aTileOffset,
                                 const mozilla::wr::LayoutIntRect* aDirtyRect,
                                 Range<uint8_t> aOutput) {
@@ -438,7 +438,7 @@ static bool Moz2DRenderCallback(const Range<const uint8_t> aBlob,
     float g = float(rand()) / float(RAND_MAX);
     float b = float(rand()) / float(RAND_MAX);
     dt->FillRect(gfx::Rect(origin.x, origin.y, size.width, size.height),
-                 gfx::ColorPattern(gfx::Color(r, g, b, 0.5)));
+                 gfx::ColorPattern(gfx::DeviceColor(r, g, b, 0.5)));
   }
 
   if (aDirtyRect) {
@@ -464,7 +464,7 @@ bool wr_moz2d_render_cb(const mozilla::wr::ByteSlice blob,
                         mozilla::wr::ImageFormat aFormat,
                         const mozilla::wr::LayoutIntRect* aRenderRect,
                         const mozilla::wr::DeviceIntRect* aVisibleRect,
-                        const uint16_t* aTileSize,
+                        const uint16_t aTileSize,
                         const mozilla::wr::TileOffset* aTileOffset,
                         const mozilla::wr::LayoutIntRect* aDirtyRect,
                         mozilla::wr::MutByteSlice output) {

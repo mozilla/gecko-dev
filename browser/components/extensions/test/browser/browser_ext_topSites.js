@@ -11,6 +11,9 @@ const { PlacesTestUtils } = ChromeUtils.import(
 const { PlacesUtils } = ChromeUtils.import(
   "resource://gre/modules/PlacesUtils.jsm"
 );
+const {
+  ExtensionUtils: { makeDataURI },
+} = ChromeUtils.import("resource://gre/modules/ExtensionUtils.jsm");
 
 // A small 1x1 test png
 const IMAGE_1x1 =
@@ -20,8 +23,8 @@ async function updateTopSites(condition) {
   // Toggle the pref to clear the feed cache and force an update.
   await SpecialPowers.pushPrefEnv({
     set: [
-      ["browser.newtabpage.activity-stream.feeds.topsites", false],
-      ["browser.newtabpage.activity-stream.feeds.topsites", true],
+      ["browser.newtabpage.activity-stream.feeds.system.topsites", false],
+      ["browser.newtabpage.activity-stream.feeds.system.topsites", true],
     ],
   });
 
@@ -70,8 +73,8 @@ add_task(async function setup() {
         "https://www.youtube.com/,https://www.facebook.com/,https://www.amazon.com/,https://www.reddit.com/,https://www.wikipedia.org/,https://twitter.com/",
       ],
       // Toggle the feed off and on as a workaround to read the new prefs.
-      ["browser.newtabpage.activity-stream.feeds.topsites", false],
-      ["browser.newtabpage.activity-stream.feeds.topsites", true],
+      ["browser.newtabpage.activity-stream.feeds.system.topsites", false],
+      ["browser.newtabpage.activity-stream.feeds.system.topsites", true],
       [
         "browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts",
         true,
@@ -222,6 +225,55 @@ add_task(async function test_topSites_newtab_visits() {
   await PlacesUtils.history.clear();
 });
 
+// Tests that the newtab parameter is ignored if newtab Top Sites are disabled.
+add_task(async function test_topSites_newtab_ignored() {
+  let extension = await loadExtension();
+  // Add some visits to a couple of URLs.  We need to add at least two visits
+  // per URL for it to show up.  Add some extra to be safe, and add one more to
+  // the first so that its frecency is larger.
+  for (let i = 0; i < 5; i++) {
+    await PlacesTestUtils.addVisits([
+      "http://example-1.com/",
+      "http://example-2.com/",
+    ]);
+  }
+  await PlacesTestUtils.addVisits("http://example-1.com/");
+
+  // Wait for example-1.com to be listed second, after the Amazon search link.
+  await updateTopSites(sites => {
+    return sites && sites[1] && sites[1].url == "http://example-1.com/";
+  });
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.newtabpage.activity-stream.feeds.system.topsites", false]],
+  });
+
+  let expectedResults = [
+    {
+      type: "url",
+      url: "http://example-1.com/",
+      title: "test visit for http://example-1.com/",
+      favicon: null,
+    },
+    {
+      type: "url",
+      url: "http://example-2.com/",
+      title: "test visit for http://example-2.com/",
+      favicon: null,
+    },
+  ];
+
+  Assert.deepEqual(
+    expectedResults,
+    await getSites(extension, { newtab: true }),
+    "Got top-frecency links from Places"
+  );
+
+  await SpecialPowers.popPrefEnv();
+  await extension.unload();
+  await PlacesUtils.history.clear();
+});
+
 // Tests newtab links with some visits and favicons.
 add_task(async function test_topSites_newtab_visits_favicons() {
   let extension = await loadExtension();
@@ -248,13 +300,14 @@ add_task(async function test_topSites_newtab_visits_favicons() {
     return sites && sites[1] && sites[1].url == "http://example-1.com/";
   });
 
+  let base = "chrome://activity-stream/content/data/content/tippytop/images/";
+
   let expectedResults = [
     {
       type: "search",
       url: "https://amazon.com",
       title: "@amazon",
-      favicon:
-        "resource://activity-stream/data/content/tippytop/favicons/amazon.ico",
+      favicon: await makeDataURI(`${base}amazon@2x.png`),
     },
     {
       type: "url",
@@ -272,36 +325,31 @@ add_task(async function test_topSites_newtab_visits_favicons() {
       type: "url",
       url: "https://www.youtube.com/",
       title: "youtube",
-      favicon:
-        "resource://activity-stream/data/content/tippytop/favicons/youtube-com.png",
+      favicon: await makeDataURI(`${base}youtube-com@2x.png`),
     },
     {
       type: "url",
       url: "https://www.facebook.com/",
       title: "facebook",
-      favicon:
-        "resource://activity-stream/data/content/tippytop/favicons/facebook-com.ico",
+      favicon: await makeDataURI(`${base}facebook-com@2x.png`),
     },
     {
       type: "url",
       url: "https://www.reddit.com/",
       title: "reddit",
-      favicon:
-        "resource://activity-stream/data/content/tippytop/favicons/reddit-com.png",
+      favicon: await makeDataURI(`${base}reddit-com@2x.png`),
     },
     {
       type: "url",
       url: "https://www.wikipedia.org/",
       title: "wikipedia",
-      favicon:
-        "resource://activity-stream/data/content/tippytop/favicons/wikipedia-org.ico",
+      favicon: await makeDataURI(`${base}wikipedia-org@2x.png`),
     },
     {
       type: "url",
       url: "https://twitter.com/",
       title: "twitter",
-      favicon:
-        "resource://activity-stream/data/content/tippytop/favicons/twitter-com.ico",
+      favicon: await makeDataURI(`${base}twitter-com@2x.png`),
     },
   ];
 
@@ -346,8 +394,9 @@ add_task(async function test_topSites_newtab_visits_favicons_limit() {
       type: "search",
       url: "https://amazon.com",
       title: "@amazon",
-      favicon:
-        "resource://activity-stream/data/content/tippytop/favicons/amazon.ico",
+      favicon: await makeDataURI(
+        "chrome://activity-stream/content/data/content/tippytop/images/amazon@2x.png"
+      ),
     },
     {
       type: "url",

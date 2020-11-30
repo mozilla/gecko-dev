@@ -14,6 +14,7 @@
 #include "AnimationTimeline.h"
 #include "nsDOMNavigationTiming.h"  // for DOMHighResTimeStamp
 #include "nsRefreshDriver.h"
+#include "nsRefreshObservers.h"
 
 struct JSContext;
 
@@ -63,11 +64,7 @@ class DocumentTimeline final : public AnimationTimeline,
   // with a macro defined in winbase.h
   virtual Nullable<TimeDuration> GetCurrentTimeAsDuration() const override;
 
-  bool TracksWallclockTime() const override {
-    nsRefreshDriver* refreshDriver = GetRefreshDriver();
-    return !refreshDriver ||
-           !refreshDriver->IsTestControllingRefreshesEnabled();
-  }
+  bool TracksWallclockTime() const override;
   Nullable<TimeDuration> ToTimelineTime(
       const TimeStamp& aTimeStamp) const override;
   TimeStamp ToTimeStamp(const TimeDuration& aTimelineTime) const override;

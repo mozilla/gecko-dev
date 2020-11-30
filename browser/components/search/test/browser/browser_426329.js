@@ -1,9 +1,7 @@
 /* eslint-disable mozilla/no-arbitrary-setTimeout */
-ChromeUtils.defineModuleGetter(
-  this,
-  "FormHistory",
-  "resource://gre/modules/FormHistory.jsm"
-);
+XPCOMUtils.defineLazyModuleGetters(this, {
+  FormHistoryTestUtils: "resource://testing-common/FormHistoryTestUtils.jsm",
+});
 
 function expectedURL(aSearchTerms) {
   const ENGINE_HTML_BASE =
@@ -60,26 +58,6 @@ function getMenuEntries() {
   );
 }
 
-function countEntries(name, value) {
-  return new Promise(resolve => {
-    let count = 0;
-    let obj = name && value ? { fieldname: name, value } : {};
-    FormHistory.count(obj, {
-      handleResult(result) {
-        count = result;
-      },
-      handleError(error) {
-        throw error;
-      },
-      handleCompletion(reason) {
-        if (!reason) {
-          resolve(count);
-        }
-      },
-    });
-  });
-}
-
 var searchBar;
 var searchButton;
 var searchEntries = ["test"];
@@ -99,7 +77,6 @@ function promiseSetEngine() {
           searchBar = BrowserSearch.searchBar;
           searchButton = searchBar.querySelector(".search-go-button");
           ok(searchButton, "got search-go-button");
-          searchBar.value = "test";
 
           Services.obs.removeObserver(
             observer,
@@ -111,10 +88,9 @@ function promiseSetEngine() {
     }
 
     Services.obs.addObserver(observer, "browser-search-engine-modified");
-    ss.addEngine(
+    ss.addOpenSearchEngine(
       "http://mochi.test:8888/browser/browser/components/search/test/browser/426329.xml",
-      "data:image/x-icon,%00",
-      false
+      "data:image/x-icon,%00"
     );
   });
 }
@@ -166,6 +142,7 @@ add_task(async function testSetup() {
 
 add_task(async function testSetupEngine() {
   await promiseSetEngine();
+  searchBar.value = "test";
 });
 
 add_task(async function testReturn() {
@@ -288,9 +265,9 @@ add_task(async function testRightClick() {
 add_task(async function testSearchHistory() {
   let textbox = searchBar._textbox;
   for (let i = 0; i < searchEntries.length; i++) {
-    let count = await countEntries(
+    let count = await FormHistoryTestUtils.count(
       textbox.getAttribute("autocompletesearchparam"),
-      searchEntries[i]
+      { value: searchEntries[i], source: "Bug 426329" }
     );
     ok(count > 0, "form history entry '" + searchEntries[i] + "' should exist");
   }
@@ -328,7 +305,9 @@ add_task(async function testClearHistory() {
   let historyCleared = promiseObserver("satchel-storage-changed");
   menuitem.click();
   await historyCleared;
-  let count = await countEntries();
+  let count = await FormHistoryTestUtils.count(
+    textbox.getAttribute("autocompletesearchparam")
+  );
   ok(count == 0, "History cleared");
 });
 

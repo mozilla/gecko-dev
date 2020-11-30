@@ -19,6 +19,8 @@ const protocol = require("devtools/shared/protocol");
 const {
   browsingContextTargetSpec,
 } = require("devtools/shared/specs/targets/browsing-context");
+const { tabDescriptorSpec } = require("devtools/shared/specs/descriptors/tab");
+const Targets = require("devtools/server/actors/targets/index");
 
 var gTestGlobals = new Set();
 DevToolsServer.addTestGlobal = function(global) {
@@ -58,19 +60,19 @@ function TestTabList(connection) {
 
   // An array of actors for each global added with
   // DevToolsServer.addTestGlobal.
-  this._targetActors = [];
+  this._descriptorActors = [];
 
   // A pool mapping those actors' names to the actors.
-  this._targetActorPool = new LazyPool(connection);
+  this._descriptorActorPool = new LazyPool(connection);
 
   for (const global of gTestGlobals) {
     const actor = new TestTargetActor(connection, global);
-    actor.selected = false;
-    this._targetActors.push(actor);
-    this._targetActorPool.manage(actor);
-  }
-  if (this._targetActors.length > 0) {
-    this._targetActors[0].selected = true;
+    this._descriptorActorPool.manage(actor);
+
+    const descriptorActor = new TestDescriptorActor(connection, actor);
+    this._descriptorActorPool.manage(descriptorActor);
+
+    this._descriptorActors.push(descriptorActor);
   }
 }
 
@@ -78,7 +80,15 @@ TestTabList.prototype = {
   constructor: TestTabList,
   destroy() {},
   getList: function() {
-    return Promise.resolve([...this._targetActors]);
+    return Promise.resolve([...this._descriptorActors]);
+  },
+  // Helper method only available for the xpcshell implementation of tablist.
+  getTargetActorForTab: function(title) {
+    const descriptorActor = this._descriptorActors.find(d => d.title === title);
+    if (!descriptorActor) {
+      return null;
+    }
+    return descriptorActor._targetActor;
   },
 };
 
@@ -97,6 +107,46 @@ exports.createRootActor = function createRootActor(connection) {
   return root;
 };
 
+const TestDescriptorActor = protocol.ActorClassWithSpec(tabDescriptorSpec, {
+  initialize: function(conn, targetActor) {
+    protocol.Actor.prototype.initialize.call(this, conn);
+    this.conn = conn;
+    this._targetActor = targetActor;
+  },
+
+  // We don't exercise the selected tab in xpcshell tests.
+  get selected() {
+    return false;
+  },
+
+  get title() {
+    return this._targetActor.title;
+  },
+
+  form() {
+    const form = {
+      actor: this.actorID,
+      traits: {
+        getFavicon: true,
+        hasTabInfo: true,
+      },
+      selected: this.selected,
+      title: this._targetActor.title,
+      url: this._targetActor.url,
+    };
+
+    return form;
+  },
+
+  getFavicon() {
+    return "";
+  },
+
+  getTarget() {
+    return this._targetActor.form();
+  },
+});
+
 const TestTargetActor = protocol.ActorClassWithSpec(browsingContextTargetSpec, {
   initialize: function(conn, global) {
     protocol.Actor.prototype.initialize.call(this, conn);
@@ -111,23 +161,21 @@ const TestTargetActor = protocol.ActorClassWithSpec(browsingContextTargetSpec, {
     this._extraActors.threadActor = this.threadActor;
     this.makeDebugger = makeDebugger.bind(null, {
       findDebuggees: () => [this._global],
-      shouldAddNewGlobalAsDebuggee: g => {
-        if (gAllowNewThreadGlobals) {
-          return true;
-        }
-
-        return (
-          g.hostAnnotations &&
-          g.hostAnnotations.type == "document" &&
-          g.hostAnnotations.element === this._global
-        );
-      },
+      shouldAddNewGlobalAsDebuggee: g => gAllowNewThreadGlobals,
     });
     this.dbg = this.makeDebugger();
+    this.notifyResourceAvailable = this.notifyResourceAvailable.bind(this);
   },
+
+  targetType: Targets.TYPES.FRAME,
 
   get window() {
     return this._global;
+  },
+
+  // Both title and url point to this._global.__name
+  get title() {
+    return this._global.__name;
   },
 
   get url() {
@@ -142,7 +190,7 @@ const TestTargetActor = protocol.ActorClassWithSpec(browsingContextTargetSpec, {
   },
 
   form: function() {
-    const response = { actor: this.actorID, title: this._global.__name };
+    const response = { actor: this.actorID, title: this.title };
 
     // Walk over target-scoped actors and add them to a new LazyPool.
     const actorPool = new LazyPool(this.conn);
@@ -151,9 +199,9 @@ const TestTargetActor = protocol.ActorClassWithSpec(browsingContextTargetSpec, {
       actorPool,
       this
     );
-    if (!actorPool.isEmpty()) {
-      this._targetActorPool = actorPool;
-      this.conn.addActorPool(this._targetActorPool);
+    if (actorPool?._poolMap.size > 0) {
+      this._descriptorActorPool = actorPool;
+      this.conn.addActorPool(this._descriptorActorPool);
     }
 
     return { ...response, ...actors };
@@ -162,7 +210,7 @@ const TestTargetActor = protocol.ActorClassWithSpec(browsingContextTargetSpec, {
   attach: function(request) {
     this._attached = true;
 
-    return { type: "tabAttached", threadActor: this.threadActor.actorID };
+    return { threadActor: this.threadActor.actorID };
   },
 
   detach: function(request) {
@@ -182,9 +230,13 @@ const TestTargetActor = protocol.ActorClassWithSpec(browsingContextTargetSpec, {
 
   removeActorByName: function(name) {
     const actor = this._extraActors[name];
-    if (this._targetActorPool) {
-      this._targetActorPool.removeActor(actor);
+    if (this._descriptorActorPool) {
+      this._descriptorActorPool.removeActor(actor);
     }
     delete this._extraActors[name];
+  },
+
+  notifyResourceAvailable(resources) {
+    this.emit("resource-available-form", resources);
   },
 });

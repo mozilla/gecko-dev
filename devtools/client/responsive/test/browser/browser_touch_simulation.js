@@ -8,23 +8,24 @@
 const TEST_URL = `${URL_ROOT}touch.html`;
 const PREF_DOM_META_VIEWPORT_ENABLED = "dom.meta-viewport.enabled";
 
-addRDMTask(
-  TEST_URL,
-  async function({ ui }) {
-    reloadOnTouchChange(true);
+// A 300ms delay between a `touchend` and `click` event is added whenever double-tap zoom
+// is allowed.
+const DELAY_MIN = 250;
 
-    await waitBootstrap(ui);
-    await testWithNoTouch(ui);
-    await toggleTouchSimulation(ui);
-    await testWithTouch(ui);
-    await testWithMetaViewportEnabled(ui);
-    await testWithMetaViewportDisabled(ui);
-    testTouchButton(ui);
+addRDMTask(TEST_URL, async function({ ui }) {
+  reloadOnTouchChange(true);
 
-    reloadOnTouchChange(false);
-  },
-  { usingBrowserUI: true }
-);
+  await waitBootstrap(ui);
+  await testWithNoTouch(ui);
+  await toggleTouchSimulation(ui);
+  await promiseContentReflow(ui);
+  await testWithTouch(ui);
+  await testWithMetaViewportEnabled(ui);
+  await testWithMetaViewportDisabled(ui);
+  testTouchButton(ui);
+
+  reloadOnTouchChange(false);
+});
 
 async function testWithNoTouch(ui) {
   await SpecialPowers.spawn(ui.getViewportBrowser(), [], async function() {
@@ -156,6 +157,7 @@ async function testWithTouch(ui) {
     );
     x = 100;
     y = 100;
+    const touchMovePromise = ContentTaskUtils.waitForEvent(div, "touchmove");
     await EventUtils.synthesizeMouse(
       div,
       x,
@@ -163,6 +165,7 @@ async function testWithTouch(ui) {
       { type: "mousemove", isSynthesized: false },
       content
     );
+    await touchMovePromise;
     isnot(div.style.transform, "none", "touchmove should work");
     await EventUtils.synthesizeMouse(
       div,
@@ -219,14 +222,9 @@ async function testWithTouch(ui) {
         const changedTouch = event.changedTouches[0];
         ok(changedTouch, "Changed touch is defined.");
       },
-      true
+      { once: true }
     );
-
-    await EventUtils.synthesizeMouseAtCenter(
-      div,
-      { type: "mousedown", isSynthesized: false },
-      content
-    );
+    await EventUtils.synthesizeClick(div);
   });
 }
 
@@ -235,64 +233,50 @@ async function testWithMetaViewportEnabled(ui) {
     set: [[PREF_DOM_META_VIEWPORT_ENABLED, true]],
   });
 
-  await SpecialPowers.spawn(ui.getViewportBrowser(), [], async function() {
-    const { synthesizeClick } = EventUtils;
+  await SpecialPowers.spawn(
+    ui.getViewportBrowser(),
+    [{ delay_min: DELAY_MIN }],
+    async function({ delay_min }) {
+      // A helper for testing the delay between touchend and click events.
+      async function testDelay(mvc, el) {
+        const touchendPromise = ContentTaskUtils.waitForEvent(el, "touchend");
+        const clickPromise = ContentTaskUtils.waitForEvent(el, "click");
+        await EventUtils.synthesizeClick(el);
+        const { timeStamp: touchendTimestamp } = await touchendPromise;
+        const { timeStamp: clickTimeStamp } = await clickPromise;
+        const delay = clickTimeStamp - touchendTimestamp;
 
-    const meta = content.document.querySelector("meta[name=viewport]");
-    const div = content.document.querySelector("div");
-    div.dataset.isDelay = "false";
+        const expected = delay >= delay_min;
 
-    info(
-      "testWithMetaViewportEnabled: " +
-        "click the div element with <meta name='viewport'>"
-    );
-    meta.content = "";
-    await synthesizeClick(div);
-    is(
-      div.dataset.isDelay,
-      "true",
-      "300ms delay between touch events and mouse events should work"
-    );
+        ok(
+          expected,
+          `${mvc}: There should be greater than a ${delay_min}ms delay between touch events and mouse events. Got delay of ${delay}ms`
+        );
+      }
 
-    info(
-      "testWithMetaViewportEnabled: " +
-        "click the div element with " +
-        "<meta name='viewport' content='user-scalable=no'>"
-    );
-    meta.content = "user-scalable=no";
-    await synthesizeClick(div);
-    is(
-      div.dataset.isDelay,
-      "false",
-      "300ms delay between touch events and mouse events should not work"
-    );
+      // A helper function for waiting for reflow to complete.
+      const promiseReflow = () => {
+        return new Promise(resolve => {
+          content.window.requestAnimationFrame(() => {
+            content.window.requestAnimationFrame(resolve);
+          });
+        });
+      };
 
-    info(
-      "testWithMetaViewportEnabled: " +
-        "click the div element with " +
-        "<meta name='viewport' content='minimum-scale=1,maximum-scale=1'>"
-    );
-    meta.content = "minimum-scale=1,maximum-scale=1";
-    await synthesizeClick(div);
-    is(
-      div.dataset.isDelay,
-      "false",
-      "300ms delay between touch events and mouse events should not work"
-    );
+      const meta = content.document.querySelector("meta[name=viewport]");
+      const div = content.document.querySelector("div");
 
-    info(
-      "testWithMetaViewportEnabled: " +
-        "click the div element with " +
-        "<meta name='viewport' content='width=device-width'>"
-    );
-    meta.content = "width=device-width";
-    await synthesizeClick(div);
-    is(
-      div.dataset.isDelay,
-      "false",
-      "300ms delay between touch events and mouse events should not work"
-    );
-  });
+      info(
+        "testWithMetaViewportEnabled: " +
+          "click the div element with <meta name='viewport'>"
+      );
+      meta.content = "";
+      await promiseReflow();
+      await testDelay("(empty)", div);
+    }
+  );
+
+  await SpecialPowers.popPrefEnv();
 }
 
 async function testWithMetaViewportDisabled(ui) {
@@ -300,24 +284,32 @@ async function testWithMetaViewportDisabled(ui) {
     set: [[PREF_DOM_META_VIEWPORT_ENABLED, false]],
   });
 
-  await SpecialPowers.spawn(ui.getViewportBrowser(), [], async function() {
-    const { synthesizeClick } = EventUtils;
+  await SpecialPowers.spawn(
+    ui.getViewportBrowser(),
+    [{ delay_min: DELAY_MIN }],
+    async function({ delay_min }) {
+      const meta = content.document.querySelector("meta[name=viewport]");
+      const div = content.document.querySelector("div");
 
-    const meta = content.document.querySelector("meta[name=viewport]");
-    const div = content.document.querySelector("div");
-    div.dataset.isDelay = "false";
+      info(
+        "testWithMetaViewportDisabled: click the div with <meta name='viewport'>"
+      );
+      meta.content = "";
+      const touchendPromise = ContentTaskUtils.waitForEvent(div, "touchend");
+      const clickPromise = ContentTaskUtils.waitForEvent(div, "click");
+      await EventUtils.synthesizeClick(div);
+      const { timeStamp: touchendTimestamp } = await touchendPromise;
+      const { timeStamp: clickTimeStamp } = await clickPromise;
+      const delay = clickTimeStamp - touchendTimestamp;
 
-    info(
-      "testWithMetaViewportDisabled: click the div with <meta name='viewport'>"
-    );
-    meta.content = "";
-    await synthesizeClick(div);
-    is(
-      div.dataset.isDelay,
-      "true",
-      "300ms delay between touch events and mouse events should work"
-    );
-  });
+      const expected = delay >= delay_min;
+
+      ok(
+        expected,
+        `There should be greater than a ${delay_min}ms delay between touch events and mouse events. Got delay of ${delay}ms`
+      );
+    }
+  );
 }
 
 function testTouchButton(ui) {

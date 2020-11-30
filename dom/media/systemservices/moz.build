@@ -3,7 +3,7 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-include('/media/webrtc/webrtc.mozbuild')
+include('/dom/media/webrtc/third_party_build/webrtc.mozbuild')
 
 if CONFIG['MOZ_WEBRTC']:
     EXPORTS += [
@@ -19,10 +19,10 @@ if CONFIG['MOZ_WEBRTC']:
         'VideoFrameUtils.cpp'
     ]
     LOCAL_INCLUDES += [
+        '/dom/media/webrtc',
         '/media/libyuv/libyuv/include',
-        '/media/webrtc/signaling',
-        '/media/webrtc/trunk',
-        '/media/webrtc/trunk/webrtc',
+        '/third_party/libwebrtc',
+        '/third_party/libwebrtc/webrtc',
     ]
 
     if CONFIG['OS_TARGET'] == 'Android':
@@ -30,11 +30,22 @@ if CONFIG['MOZ_WEBRTC']:
             'android_video_capture/device_info_android.cc',
             'android_video_capture/video_capture_android.cc',
         ]
+    elif CONFIG['OS_TARGET'] == 'Darwin':
+        UNIFIED_SOURCES += [
+            'objc_video_capture/device_info.mm',
+            'objc_video_capture/device_info_objc.mm',
+            'objc_video_capture/rtc_video_capture_objc.mm',
+            'objc_video_capture/video_capture.mm',
+        ]
+        CMMFLAGS += [
+            '-fobjc-arc',
+        ]
 
     if CONFIG['OS_TARGET'] != 'Android':
         UNIFIED_SOURCES += [
             'video_engine/desktop_capture_impl.cc',
             'video_engine/platform_uithread.cc',
+            'video_engine/tab_capturer.cc',
         ]
 
 
@@ -96,3 +107,6 @@ FINAL_LIBRARY = 'xul'
 
 if CONFIG['CC_TYPE'] in ('clang', 'gcc'):
     CXXFLAGS += ['-Wno-error=shadow']
+
+with Files('android_video_capture/**'):
+    SCHEDULES.exclusive = ['android']

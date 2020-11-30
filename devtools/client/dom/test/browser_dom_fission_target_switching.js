@@ -8,8 +8,6 @@ const PARENT_PROCESS_URI = "about:robots";
 const CONTENT_PROCESS_URI = URL_ROOT + "page_basic.html";
 
 add_task(async function() {
-  await pushPref("devtools.target-switching.enabled", true);
-
   // We use about:robots as the starting page because it will run in the parent process.
   // Navigating from that page to a regular content page will always trigger a target
   // switch, with or without fission.
@@ -31,7 +29,7 @@ add_task(async function() {
   const onPropertiesFetched = waitForDispatch(panel, "FETCH_PROPERTIES");
   // Also wait for the toolbox to switch to the new target, to avoid hanging requests when
   // the test ends.
-  const onTargetSwitched = toolbox.once("switched-target");
+  const onTargetSwitched = toolbox.targetList.once("switched-target");
 
   await toolbox.target.navigateTo({ url: CONTENT_PROCESS_URI });
 

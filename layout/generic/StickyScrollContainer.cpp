@@ -36,6 +36,7 @@ StickyScrollContainer* StickyScrollContainer::GetStickyScrollContainerForFrame(
     nsIFrame* aFrame) {
   nsIScrollableFrame* scrollFrame = nsLayoutUtils::GetNearestScrollableFrame(
       aFrame->GetParent(), nsLayoutUtils::SCROLLABLE_SAME_DOC |
+                               nsLayoutUtils::SCROLLABLE_STOP_AT_PAGE |
                                nsLayoutUtils::SCROLLABLE_INCLUDE_HIDDEN);
   if (!scrollFrame) {
     // We might not find any, for instance in the case of
@@ -189,7 +190,7 @@ void StickyScrollContainer::ComputeStickyLimits(nsIFrame* aFrame,
     // cbFrame is the scrolledFrame, and it won't have continuations. Unlike the
     // else clause, we consider scrollable overflow rect because and the union
     // of its in-flow rects doesn't include the scrollable overflow area.
-    *aContain = cbFrame->GetScrollableOverflowRectRelativeToSelf();
+    *aContain = cbFrame->ScrollableOverflowRectRelativeToSelf();
     nsLayoutUtils::TransformRect(cbFrame, aFrame->GetParent(), *aContain);
   } else {
     *aContain = nsLayoutUtils::GetAllInFlowRectsUnion(
@@ -369,7 +370,7 @@ void StickyScrollContainer::UpdatePositions(nsPoint aScrollPosition,
   for (nsTArray<nsIFrame*>::size_type i = 0; i < mFrames.Length(); i++) {
     nsIFrame* f = mFrames[i];
     if (!nsLayoutUtils::IsFirstContinuationOrIBSplitSibling(f)) {
-      // This frame was added in nsFrame::Init before we knew it wasn't
+      // This frame was added in nsIFrame::Init before we knew it wasn't
       // the first ib-split-sibling.
       mFrames.RemoveElementAt(i);
       --i;

@@ -33,14 +33,6 @@ def add_signed_routes(config, jobs):
                 rest = ".".join(dep_route.split(".")[4:])
                 job['routes'].append(
                     'index.gecko.v2.{}.signed.{}'.format(branch, rest))
-        if dep_job.attributes.get('nightly') and enable_signing_routes:
-            for dep_route in dep_job.task.get('routes', []):
-                if not dep_route.startswith('index.gecko.v2'):
-                    continue
-                branch = dep_route.split(".")[3]
-                rest = ".".join(dep_route.split(".")[4:])
-                job['routes'].append(
-                    'index.gecko.v2.{}.signed-nightly.{}'.format(branch, rest))
 
         yield job
 

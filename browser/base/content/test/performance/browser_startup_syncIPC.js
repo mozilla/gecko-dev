@@ -13,27 +13,21 @@ const WEBRENDER = window.windowUtils.layerManagerType == "WebRender";
 
 /*
  * Specifying 'ignoreIfUnused: true' will make the test ignore unused entries;
- * without this the test is strict and will fail if a whitelist entry isn't used.
+ * without this the test is strict and will fail if a list entry isn't used.
  */
 const startupPhases = {
   // Anything done before or during app-startup must have a compelling reason
   // to run before we have even selected the user profile.
   "before profile selection": [],
 
-  "before opening first browser window": [
-    {
-      name: "PLayerTransaction::Msg_GetTextureFactoryIdentifier",
-      condition: LINUX,
-      maxCount: 1,
-    },
-  ],
+  "before opening first browser window": [],
 
   // We reach this phase right after showing the first browser window.
   // This means that any I/O at this point delayed first paint.
   "before first paint": [
     {
       name: "PLayerTransaction::Msg_GetTextureFactoryIdentifier",
-      condition: MAC,
+      condition: MAC || LINUX,
       maxCount: 1,
     },
     {
@@ -139,7 +133,8 @@ const startupPhases = {
     },
     {
       name: "PLayerTransaction::Msg_GetTextureFactoryIdentifier",
-      condition: !MAC && !WEBRENDER,
+      condition: (!MAC && !WEBRENDER) || (WIN && WEBRENDER),
+      ignoreIfUnused: true, // intermittently occurs in "before becoming idle"
       maxCount: 1,
     },
     {
@@ -185,17 +180,28 @@ const startupPhases = {
       maxCount: 1,
     },
     {
-      // bug 1554234
-      name: "PLayerTransaction::Msg_GetTextureFactoryIdentifier",
+      name: "PWebRenderBridge::Msg_EnsureConnected",
       condition: WIN && WEBRENDER,
-      ignoreIfUnused: true, // intermittently occurs in "before becoming idle"
+      ignoreIfUnused: true,
+      maxCount: 1,
+    },
+    {
+      name: "PContent::Reply_BeginDriverCrashGuard",
+      condition: WIN,
+      ignoreIfUnused: true, // Bug 1660590 - found while running test on windows hardware
+      maxCount: 1,
+    },
+    {
+      name: "PContent::Reply_EndDriverCrashGuard",
+      condition: WIN,
+      ignoreIfUnused: true, // Bug 1660590 - found while running test on windows hardware
       maxCount: 1,
     },
   ],
 
   // Things that are expected to be completely out of the startup path
   // and loaded lazily when used for the first time by the user should
-  // be blacklisted here.
+  // be listed here.
   "before becoming idle": [
     {
       // bug 1373773
@@ -218,19 +224,25 @@ const startupPhases = {
     {
       // bug 1554234
       name: "PLayerTransaction::Msg_GetTextureFactoryIdentifier",
-      condition: WIN && WEBRENDER,
+      condition: WIN || LINUX,
       ignoreIfUnused: true, // intermittently occurs in "before handling user events"
       maxCount: 1,
     },
     {
-      name: "PCompositorBridge::Msg_Initialize",
+      name: "PWebRenderBridge::Msg_EnsureConnected",
       condition: WIN && WEBRENDER,
+      ignoreIfUnused: true,
+      maxCount: 1,
+    },
+    {
+      name: "PCompositorBridge::Msg_Initialize",
+      condition: WIN,
       ignoreIfUnused: true, // Intermittently occurs in "before handling user events"
       maxCount: 1,
     },
     {
       name: "PCompositorWidget::Msg_Initialize",
-      condition: WIN && WEBRENDER,
+      condition: WIN,
       ignoreIfUnused: true, // Intermittently occurs in "before handling user events"
       maxCount: 1,
     },
@@ -242,13 +254,19 @@ const startupPhases = {
     },
     {
       name: "PCompositorBridge::Msg_FlushRendering",
-      condition: MAC,
+      condition: MAC || LINUX,
       ignoreIfUnused: true,
       maxCount: 1,
     },
     {
       name: "PWebRenderBridge::Msg_GetSnapshot",
       condition: WIN && WEBRENDER,
+      ignoreIfUnused: true,
+      maxCount: 1,
+    },
+    {
+      name: "PCompositorBridge::Msg_MakeSnapshot",
+      condition: WIN,
       ignoreIfUnused: true,
       maxCount: 1,
     },
@@ -320,11 +338,11 @@ add_task(async function() {
 
   let shouldPass = true;
   for (let phase in phases) {
-    let whitelist = startupPhases[phase];
-    if (whitelist.length) {
+    let knownIPCList = startupPhases[phase];
+    if (knownIPCList.length) {
       info(
-        `whitelisted sync IPC ${phase}:\n` +
-          whitelist
+        `known sync IPC ${phase}:\n` +
+          knownIPCList
             .map(e => `  ${e.name} - at most ${e.maxCount} times`)
             .join("\n")
       );
@@ -333,7 +351,7 @@ add_task(async function() {
     let markers = phases[phase];
     for (let marker of markers) {
       let expected = false;
-      for (let entry of whitelist) {
+      for (let entry of knownIPCList) {
         if (marker == entry.name) {
           entry.maxCount = (entry.maxCount || 0) - 1;
           entry._used = true;
@@ -347,7 +365,7 @@ add_task(async function() {
       }
     }
 
-    for (let entry of whitelist) {
+    for (let entry of knownIPCList) {
       let message = `sync IPC ${entry.name} `;
       if (entry.maxCount == 0) {
         message += "happened as many times as expected";
@@ -360,7 +378,7 @@ add_task(async function() {
       ok(entry.maxCount >= 0, `${message} ${phase}`);
 
       if (!("_used" in entry) && !entry.ignoreIfUnused) {
-        ok(false, `unused whitelist entry ${phase}: ${entry.name}`);
+        ok(false, `unused known IPC entry ${phase}: ${entry.name}`);
         shouldPass = false;
       }
     }

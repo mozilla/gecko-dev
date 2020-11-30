@@ -24,9 +24,6 @@ from taskgraph.util.treeherder import replace_group
 transforms = TransformSequence()
 
 beetmover_description_schema = schema.extend({
-    # depname is used in taskref's to identify the taskID of the unsigned things
-    Required('depname', default='build'): text_type,
-
     # unique label to describe this beetmover task, defaults to {dep.label}-beetmover
     Optional('label'): text_type,
 
@@ -114,7 +111,6 @@ def make_task_description(config, jobs):
 def craft_release_properties(config, job):
     params = config.params
     build_platform = job['attributes']['build_platform']
-    build_platform = build_platform.replace('-nightly', '')
     build_platform = build_platform.replace('-shippable', '')
     if build_platform.endswith("-source"):
         build_platform = build_platform.replace('-source', '-release')

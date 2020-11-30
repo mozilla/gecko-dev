@@ -25,7 +25,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   AddonManagerPrivate: "resource://gre/modules/AddonManager.jsm",
   AddonRepository: "resource://gre/modules/addons/AddonRepository.jsm",
   AddonSettings: "resource://gre/modules/addons/AddonSettings.jsm",
-  AppConstants: "resource://gre/modules/AppConstants.jsm",
   DeferredTask: "resource://gre/modules/DeferredTask.jsm",
   ExtensionUtils: "resource://gre/modules/ExtensionUtils.jsm",
   FileUtils: "resource://gre/modules/FileUtils.jsm",
@@ -88,6 +87,7 @@ const TOOLKIT_ID = "toolkit@mozilla.org";
 
 const KEY_APP_SYSTEM_ADDONS = "app-system-addons";
 const KEY_APP_SYSTEM_DEFAULTS = "app-system-defaults";
+const KEY_APP_SYSTEM_PROFILE = "app-system-profile";
 const KEY_APP_BUILTINS = "app-builtin";
 const KEY_APP_SYSTEM_LOCAL = "app-system-local";
 const KEY_APP_SYSTEM_SHARE = "app-system-share";
@@ -146,6 +146,7 @@ const PROP_JSON_FIELDS = [
   "targetApplications",
   "targetPlatforms",
   "signedState",
+  "signedDate",
   "seen",
   "dependencies",
   "incognito",
@@ -406,6 +407,13 @@ class AddonInternal {
 
   get isCorrectlySigned() {
     switch (this.location.name) {
+      case KEY_APP_SYSTEM_PROFILE:
+        // Add-ons installed via Normandy must be signed by the system
+        // key or the "Mozilla Extensions" key.
+        return [
+          AddonManager.SIGNEDSTATE_SYSTEM,
+          AddonManager.SIGNEDSTATE_PRIVILEGED,
+        ].includes(this.signedState);
       case KEY_APP_SYSTEM_ADDONS:
         // System add-ons must be signed by the system key.
         return this.signedState == AddonManager.SIGNEDSTATE_SYSTEM;
@@ -567,6 +575,10 @@ class AddonInternal {
   }
 
   async updateBlocklistState(options = {}) {
+    if (this.location.isSystem || this.location.isBuiltin) {
+      return;
+    }
+
     let { applySoftBlock = true, updateDatabase = true } = options;
 
     let oldState = this.blocklistState;
@@ -594,7 +606,7 @@ class AddonInternal {
     }
 
     if (this.inDatabase && updateDatabase) {
-      XPIDatabase.updateAddonDisabledState(this, {
+      await XPIDatabase.updateAddonDisabledState(this, {
         userDisabled,
         softDisabled,
       });
@@ -782,7 +794,7 @@ AddonWrapper = class {
   }
 
   get __AddonInternal__() {
-    return AppConstants.DEBUG ? addonFor(this) : undefined;
+    return addonFor(this);
   }
 
   get seen() {
@@ -924,7 +936,7 @@ AddonWrapper = class {
     return null;
   }
 
-  get isRecommended() {
+  get recommendationStates() {
     let addon = addonFor(this);
     let state = addon.recommendationState;
     if (
@@ -934,9 +946,22 @@ AddonWrapper = class {
       addon.isCorrectlySigned &&
       !this.temporarilyInstalled
     ) {
-      return state.states.includes("recommended");
+      return state.states;
     }
-    return false;
+    return [];
+  }
+
+  get isRecommended() {
+    return this.recommendationStates.includes("recommended");
+  }
+
+  get canBypassThirdParyInstallPrompt() {
+    // We only bypass if the extension is signed (to support distributions
+    // that turn off the signing requirement) and has recommendation states.
+    return (
+      this.signedState >= AddonManager.SIGNEDSTATE_SIGNED &&
+      this.recommendationStates.length
+    );
   }
 
   get applyBackgroundUpdates() {
@@ -1150,7 +1175,7 @@ AddonWrapper = class {
     return addonFor(this).setUserDisabled(true, allowSystemAddons);
   }
 
-  set softDisabled(val) {
+  async setSoftDisabled(val) {
     let addon = addonFor(this);
     if (val == addon.softDisabled) {
       return val;
@@ -1160,10 +1185,14 @@ AddonWrapper = class {
       // When softDisabling a theme just enable the active theme
       if (addon.type === "theme" && val && !addon.userDisabled) {
         if (addon.isWebExtension) {
-          XPIDatabase.updateAddonDisabledState(addon, { softDisabled: val });
+          await XPIDatabase.updateAddonDisabledState(addon, {
+            softDisabled: val,
+          });
         }
       } else {
-        XPIDatabase.updateAddonDisabledState(addon, { softDisabled: val });
+        await XPIDatabase.updateAddonDisabledState(addon, {
+          softDisabled: val,
+        });
       }
     } else if (!addon.userDisabled) {
       // Only set softDisabled if not already disabled
@@ -1365,8 +1394,19 @@ function defineAddonWrapperProperty(name, getter) {
 
 ["installDate", "updateDate"].forEach(function(aProp) {
   defineAddonWrapperProperty(aProp, function() {
-    return new Date(addonFor(this)[aProp]);
+    let addon = addonFor(this);
+    // installDate is always set, updateDate is sometimes missing.
+    return new Date(addon[aProp] ?? addon.installDate);
   });
+});
+
+defineAddonWrapperProperty("signedDate", function() {
+  let addon = addonFor(this);
+  let { signedDate } = addon;
+  if (signedDate != null) {
+    return new Date(signedDate);
+  }
+  return null;
 });
 
 ["sourceURI", "releaseNotesURI"].forEach(function(aProp) {
@@ -1602,7 +1642,7 @@ this.XPIDatabase = {
    */
   syncLoadDB(aRebuildOnError) {
     let err = new Error("Synchronously loading the add-ons database");
-    logger.debug(err);
+    logger.debug(err.message);
     AddonManagerPrivate.recordSimpleMeasure(
       "XPIDB_sync_stack",
       Log.stackTrace(err)
@@ -2980,9 +3020,23 @@ this.XPIDatabaseReconcile = {
 
     let checkSigning =
       aOldAddon.signedState === undefined && SIGNED_TYPES.has(aOldAddon.type);
+    // signedDate must be set if signedState is set.
+    let signedDateMissing =
+      aOldAddon.signedDate === undefined &&
+      (aOldAddon.signedState || checkSigning);
+
+    // If maxVersion was inadvertently updated for a locale, force a reload
+    // from the manifest.  See Bug 1646016 for details.
+    if (
+      !aReloadMetadata &&
+      aOldAddon.type === "locale" &&
+      aOldAddon.matchingTargetApplication
+    ) {
+      aReloadMetadata = aOldAddon.matchingTargetApplication.maxVersion === "*";
+    }
 
     let manifest = null;
-    if (checkSigning || aReloadMetadata) {
+    if (checkSigning || aReloadMetadata || signedDateMissing) {
       try {
         manifest = XPIInstall.syncLoadManifest(aAddonState, aLocation);
       } catch (err) {
@@ -2999,12 +3053,15 @@ this.XPIDatabaseReconcile = {
       aOldAddon.signedState = manifest.signedState;
     }
 
+    if (signedDateMissing) {
+      aOldAddon.signedDate = manifest.signedDate;
+    }
+
     // May be updating from a version of the app that didn't support all the
     // properties of the currently-installed add-ons.
     if (aReloadMetadata) {
       // Avoid re-reading these properties from manifest,
       // use existing addon instead.
-      // TODO - consider re-scanning for targetApplications.
       let remove = [
         "syncGUID",
         "foreignInstall",
@@ -3015,9 +3072,13 @@ this.XPIDatabaseReconcile = {
         "applyBackgroundUpdates",
         "sourceURI",
         "releaseNotesURI",
-        "targetApplications",
         "installTelemetryInfo",
       ];
+
+      // TODO - consider re-scanning for targetApplications for other addon types.
+      if (aOldAddon.type !== "locale") {
+        remove.push("targetApplications");
+      }
 
       let props = PROP_JSON_FIELDS.filter(a => !remove.includes(a));
       copyProperties(manifest, props, aOldAddon);
@@ -3366,30 +3427,9 @@ this.XPIDatabaseReconcile = {
           id
         );
 
-        if (
-          previousAddon.location &&
-          (!previousAddon._sourceBundle ||
-            (previousAddon._sourceBundle.exists() &&
-              !previousAddon._sourceBundle.equals(currentAddon._sourceBundle)))
-        ) {
-          promise = XPIInternal.BootstrapScope.get(previousAddon).update(
-            currentAddon
-          );
-        } else if (
-          this.isSystemAddonLocation(currentAddon.location) &&
-          previousAddon.version == currentAddon.version &&
-          previousAddon.userDisabled != currentAddon.userDisabled
-        ) {
-          // A system addon change, no need for install or update events.
-        } else {
-          let reason = XPIInstall.newVersionReason(
-            previousAddon.version,
-            currentAddon.version
-          );
-          XPIInternal.BootstrapScope.get(currentAddon).install(reason, false, {
-            oldVersion: previousAddon.version,
-          });
-        }
+        promise = XPIInternal.BootstrapScope.get(previousAddon).update(
+          currentAddon
+        );
       }
 
       if (isActive != wasActive) {

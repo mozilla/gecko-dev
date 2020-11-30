@@ -32,7 +32,7 @@ using mozilla::UniquePtr;
 
 void WaitForStartupTimer() {
   StartupCache* sc = StartupCache::GetSingleton();
-  PR_Sleep(10 * PR_TicksPerSecond());
+  PR_Sleep(3 * PR_TicksPerSecond());
 
   while (true) {
     NS_ProcessPendingEvents(nullptr);
@@ -53,9 +53,9 @@ class TestStartupCache : public ::testing::Test {
 
 TestStartupCache::TestStartupCache() {
   NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(mSCFile));
-  mSCFile->AppendNative(NS_LITERAL_CSTRING("test-startupcache.tmp"));
+  mSCFile->AppendNative("test-startupcache.tmp"_ns);
 #ifdef XP_WIN
-  nsAutoString env(NS_LITERAL_STRING("MOZ_STARTUP_CACHE="));
+  nsAutoString env(u"MOZ_STARTUP_CACHE="_ns);
   env.Append(mSCFile->NativePath());
   _wputenv(env.get());
 #else
@@ -121,7 +121,7 @@ TEST_F(TestStartupCache, WriteObject) {
 
   nsCOMPtr<nsIURI> obj;
 
-  NS_NAMED_LITERAL_CSTRING(spec, "http://www.mozilla.org");
+  constexpr auto spec = "http://www.mozilla.org"_ns;
   rv = NS_MutateURI(NS_SIMPLEURIMUTATOR_CONTRACTID).SetSpec(spec).Finalize(obj);
   EXPECT_TRUE(NS_SUCCEEDED(rv));
 

@@ -15,6 +15,7 @@
 #include "mozilla/dom/SpeechRecognitionBinding.h"
 #include "mozilla/dom/MediaStreamTrackBinding.h"
 #include "mozilla/dom/MediaStreamError.h"
+#include "mozilla/dom/RootedDictionary.h"
 #include "mozilla/MediaManager.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
@@ -114,7 +115,7 @@ CreateSpeechRecognitionService(nsPIDOMWindowInner* aWindow,
         NS_SPEECH_RECOGNITION_SERVICE_CONTRACTID_PREFIX "fake";
   } else {
     speechRecognitionServiceCID =
-        NS_LITERAL_CSTRING(NS_SPEECH_RECOGNITION_SERVICE_CONTRACTID_PREFIX) +
+        nsLiteralCString(NS_SPEECH_RECOGNITION_SERVICE_CONTRACTID_PREFIX) +
         speechRecognitionService;
   }
 
@@ -199,8 +200,8 @@ bool SpeechRecognition::IsAuthorized(JSContext* aCx, JSObject* aGlobal) {
   }
 
   uint32_t speechRecognition = nsIPermissionManager::UNKNOWN_ACTION;
-  rv = mgr->TestExactPermissionFromPrincipal(
-      principal, NS_LITERAL_CSTRING("speech-recognition"), &speechRecognition);
+  rv = mgr->TestExactPermissionFromPrincipal(principal, "speech-recognition"_ns,
+                                             &speechRecognition);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return false;
   }
@@ -483,7 +484,7 @@ void SpeechRecognition::Reset() {
 
 void SpeechRecognition::ResetAndEnd() {
   Reset();
-  DispatchTrustedEvent(NS_LITERAL_STRING("end"));
+  DispatchTrustedEvent(u"end"_ns);
 }
 
 void SpeechRecognition::WaitForAudioData(SpeechEvent* aEvent) {
@@ -497,9 +498,9 @@ void SpeechRecognition::StartedAudioCapture(SpeechEvent* aEvent) {
   mEstimationSamples +=
       ProcessAudioSegment(aEvent->mAudioSegment, aEvent->mTrackRate);
 
-  DispatchTrustedEvent(NS_LITERAL_STRING("audiostart"));
+  DispatchTrustedEvent(u"audiostart"_ns);
   if (mCurrentState == STATE_ESTIMATING) {
-    DispatchTrustedEvent(NS_LITERAL_STRING("start"));
+    DispatchTrustedEvent(u"start"_ns);
   }
 }
 
@@ -511,7 +512,7 @@ void SpeechRecognition::StopRecordingAndRecognize(SpeechEvent* aEvent) {
   // This will run SoundEnd on the service just before StopRecording begins
   // shutting the encode thread down.
   mSpeechListener->mRemovedPromise->Then(
-      GetCurrentThreadSerialEventTarget(), __func__,
+      GetCurrentSerialEventTarget(), __func__,
       [service = mRecognitionService] { service->SoundEnd(); });
 
   StopRecording();
@@ -535,7 +536,7 @@ void SpeechRecognition::DetectSpeech(SpeechEvent* aEvent) {
   if (mEndpointer.DidStartReceivingSpeech()) {
     mSpeechDetectionTimer->Cancel();
     SetState(STATE_RECOGNIZING);
-    DispatchTrustedEvent(NS_LITERAL_STRING("speechstart"));
+    DispatchTrustedEvent(u"speechstart"_ns);
   }
 }
 
@@ -544,7 +545,7 @@ void SpeechRecognition::WaitForSpeechEnd(SpeechEvent* aEvent) {
 
   ProcessAudioSegment(aEvent->mAudioSegment, aEvent->mTrackRate);
   if (mEndpointer.speech_input_complete()) {
-    DispatchTrustedEvent(NS_LITERAL_STRING("speechend"));
+    DispatchTrustedEvent(u"speechend"_ns);
 
     if (mCurrentState == STATE_RECOGNIZING) {
       // FIXME: StopRecordingAndRecognize should only be called for single
@@ -565,8 +566,8 @@ void SpeechRecognition::NotifyFinalResult(SpeechEvent* aEvent) {
   init.mInterpretation = JS::NullValue();
   // init.mEmma = nullptr;
 
-  RefPtr<SpeechRecognitionEvent> event = SpeechRecognitionEvent::Constructor(
-      this, NS_LITERAL_STRING("result"), init);
+  RefPtr<SpeechRecognitionEvent> event =
+      SpeechRecognitionEvent::Constructor(this, u"result"_ns, init);
   event->SetTrusted(true);
 
   DispatchEvent(*event);
@@ -580,7 +581,7 @@ void SpeechRecognition::AbortSilently(SpeechEvent* aEvent) {
       // This will run Abort on the service just before StopRecording begins
       // shutting the encode thread down.
       mSpeechListener->mRemovedPromise->Then(
-          GetCurrentThreadSerialEventTarget(), __func__,
+          GetCurrentSerialEventTarget(), __func__,
           [service = mRecognitionService] { service->Abort(); });
     } else {
       // Recording hasn't started yet. We can just call Abort().
@@ -589,7 +590,7 @@ void SpeechRecognition::AbortSilently(SpeechEvent* aEvent) {
   }
 
   StopRecording()->Then(
-      GetCurrentThreadSerialEventTarget(), __func__,
+      GetCurrentSerialEventTarget(), __func__,
       [self = RefPtr<SpeechRecognition>(this), this] { ResetAndEnd(); });
 
   SetState(STATE_ABORTING);
@@ -622,9 +623,9 @@ SpeechRecognition::StartRecording(RefPtr<AudioStreamTrack>& aTrack) {
   blockerName.AppendPrintf("SpeechRecognition %p shutdown", this);
   mShutdownBlocker =
       MakeAndAddRef<SpeechRecognitionShutdownBlocker>(this, blockerName);
-  RefPtr<nsIAsyncShutdownClient> shutdown = media::GetShutdownBarrier();
-  shutdown->AddBlocker(mShutdownBlocker, NS_LITERAL_STRING(__FILE__), __LINE__,
-                       NS_LITERAL_STRING("SpeechRecognition shutdown"));
+  media::GetShutdownBarrier()->AddBlocker(
+      mShutdownBlocker, NS_LITERAL_STRING_FROM_CSTRING(__FILE__), __LINE__,
+      u"SpeechRecognition shutdown"_ns);
 
   mEndpointer.StartSession();
 
@@ -653,7 +654,7 @@ RefPtr<GenericNonExclusivePromise> SpeechRecognition::StopRecording() {
   }
 
   mEndpointer.EndSession();
-  DispatchTrustedEvent(NS_LITERAL_STRING("audioend"));
+  DispatchTrustedEvent(u"audioend"_ns);
 
   // Block shutdown until the speech track listener has been removed from the
   // MSG, as it holds a reference to us, and we reference the world, which we
@@ -661,7 +662,7 @@ RefPtr<GenericNonExclusivePromise> SpeechRecognition::StopRecording() {
   mStopRecordingPromise =
       mSpeechListener->mRemovedPromise
           ->Then(
-              GetCurrentThreadSerialEventTarget(), __func__,
+              GetCurrentSerialEventTarget(), __func__,
               [self = RefPtr<SpeechRecognition>(this), this] {
                 SR_LOG("Shutting down encoding thread");
                 return mEncodeTaskQueue->BeginShutdown();
@@ -671,11 +672,9 @@ RefPtr<GenericNonExclusivePromise> SpeechRecognition::StopRecording() {
                 return ShutdownPromise::CreateAndResolve(false, __func__);
               })
           ->Then(
-              GetCurrentThreadSerialEventTarget(), __func__,
+              GetCurrentSerialEventTarget(), __func__,
               [self = RefPtr<SpeechRecognition>(this), this] {
-                RefPtr<nsIAsyncShutdownClient> shutdown =
-                    media::GetShutdownBarrier();
-                shutdown->RemoveBlocker(mShutdownBlocker);
+                media::GetShutdownBarrier()->RemoveBlocker(mShutdownBlocker);
                 mShutdownBlocker = nullptr;
 
                 MOZ_DIAGNOSTIC_ASSERT(mCurrentState != STATE_IDLE);
@@ -699,7 +698,7 @@ SpeechRecognition::Observe(nsISupports* aSubject, const char* aTopic,
       StateBetween(STATE_IDLE, STATE_WAITING_FOR_SPEECH)) {
     DispatchError(SpeechRecognition::EVENT_AUDIO_ERROR,
                   SpeechRecognitionErrorCode::No_speech,
-                  NS_LITERAL_STRING("No speech detected (timeout)"));
+                  u"No speech detected (timeout)"_ns);
   } else if (!strcmp(aTopic, SPEECH_RECOGNITION_TEST_END_TOPIC)) {
     nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
     obs->RemoveObserver(this, SPEECH_RECOGNITION_TEST_EVENT_REQUEST_TOPIC);
@@ -720,7 +719,7 @@ void SpeechRecognition::ProcessTestEventRequest(nsISupports* aSubject,
     DispatchError(
         SpeechRecognition::EVENT_AUDIO_ERROR,
         SpeechRecognitionErrorCode::Audio_capture,  // TODO different codes?
-        NS_LITERAL_STRING("AUDIO_ERROR test event"));
+        u"AUDIO_ERROR test event"_ns);
   } else {
     NS_ASSERTION(StaticPrefs::media_webspeech_test_fake_recognition_service(),
                  "Got request for fake recognition service event, but "
@@ -817,7 +816,7 @@ void SpeechRecognition::Start(const Optional<NonNull<DOMMediaStream>>& aStream,
     MediaManager::Get()
         ->GetUserMedia(GetOwner(), constraints, aCallerType)
         ->Then(
-            GetCurrentThreadSerialEventTarget(), __func__,
+            GetCurrentSerialEventTarget(), __func__,
             [this, self,
              generation = mStreamGeneration](RefPtr<DOMMediaStream>&& aStream) {
               nsTArray<RefPtr<AudioStreamTrack>> tracks;
@@ -973,8 +972,8 @@ void SpeechRecognition::DispatchError(EventType aErrorType,
   RefPtr<SpeechRecognitionError> srError =
       new SpeechRecognitionError(nullptr, nullptr, nullptr);
 
-  srError->InitSpeechRecognitionError(NS_LITERAL_STRING("error"), true, false,
-                                      aErrorCode, aMessage);
+  srError->InitSpeechRecognitionError(u"error"_ns, true, false, aErrorCode,
+                                      aMessage);
 
   RefPtr<SpeechEvent> event = new SpeechEvent(this, aErrorType);
   event->mError = srError;

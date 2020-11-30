@@ -125,6 +125,63 @@ add_task(async function() {
   );
 
   info(
+    "Throw an Error object in a direct evaluation to check that the console scrolls to the bottom"
+  );
+  message = await executeAndWaitForMessage(
+    hud,
+    `
+      x = new Error("myEvaluatedThrownErrorObject");
+      x.stack = "a@b/c.js:1:2\\nd@e/f.js:3:4";
+      throw x;
+    `,
+    "Uncaught Error: myEvaluatedThrownErrorObject",
+    ".error"
+  );
+  ok(
+    isScrolledToBottom(outputContainer),
+    "The console is scrolled to the bottom"
+  );
+
+  info(
+    "Wait until the stacktrace is rendered and check the console is scrolled"
+  );
+  await waitFor(() =>
+    message.node.querySelector(".objectBox-stackTrace .frame")
+  );
+  ok(
+    isScrolledToBottom(outputContainer),
+    "The console is scrolled to the bottom"
+  );
+
+  info("Throw an Error object to check that the console scrolls to the bottom");
+  message = await executeAndWaitForMessage(
+    hud,
+    `
+    setTimeout(() => {
+      x = new Error("myThrownErrorObject");
+      x.stack = "a@b/c.js:1:2\\nd@e/f.js:3:4";
+      throw x
+    }, 10)`,
+    "Uncaught Error: myThrownErrorObject",
+    ".error"
+  );
+  ok(
+    isScrolledToBottom(outputContainer),
+    "The console is scrolled to the bottom"
+  );
+
+  info(
+    "Wait until the stacktrace is rendered and check the console is scrolled"
+  );
+  await waitFor(() =>
+    message.node.querySelector(".objectBox-stackTrace .frame")
+  );
+  ok(
+    isScrolledToBottom(outputContainer),
+    "The console is scrolled to the bottom"
+  );
+
+  info(
     "Add a console.trace message to check that the console stays scrolled to bottom"
   );
   onMessage = waitForMessage(hud, "trace in C");
@@ -176,6 +233,61 @@ add_task(async function() {
   ok(
     isScrolledToBottom(outputContainer),
     "The console is scrolled to the bottom after a repeated message"
+  );
+
+  info(
+    "Check that switching between editor and inline mode keep the output scrolled to bottom"
+  );
+  await toggleLayout(hud);
+  // Wait until the output is scrolled to the bottom.
+  await waitFor(
+    () => isScrolledToBottom(outputContainer),
+    "Output does not scroll to the bottom after switching to editor mode"
+  );
+  ok(
+    true,
+    "The console is scrolled to the bottom after switching to editor mode"
+  );
+
+  // Switching back to inline mode
+  await toggleLayout(hud);
+  // Wait until the output is scrolled to the bottom.
+  await waitFor(
+    () => isScrolledToBottom(outputContainer),
+    "Output does not scroll to the bottom after switching back to inline mode"
+  );
+  ok(
+    true,
+    "The console is scrolled to the bottom after switching back to inline mode"
+  );
+
+  info(
+    "Check that expanding a large object does not scroll the output to the bottom"
+  );
+  // Clear the output so we only have the object
+  await clearOutput(hud);
+  // Evaluate an object with a hundred properties
+  const result = await executeAndWaitForMessage(
+    hud,
+    `Array.from({length: 100}, (_, i) => i)
+      .reduce(
+        (acc, item) => {acc["item-" + item] = item; return acc;},
+        {}
+      )`,
+    "Object",
+    ".message.result"
+  );
+  // Expand the object
+  result.node.querySelector(".arrow").click();
+  // Wait until we have 102 nodes (the root node, 100 properties + <prototype>)
+  await waitFor(() => result.node.querySelectorAll(".node").length === 102);
+  // wait for a bit to give time to the resize observer callback to be triggered
+  await wait(500);
+  ok(hasVerticalOverflow(outputContainer), "The output does overflow");
+  is(
+    isScrolledToBottom(outputContainer),
+    false,
+    "The output was not scrolled to the bottom"
   );
 });
 

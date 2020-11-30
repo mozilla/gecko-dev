@@ -136,7 +136,7 @@ bool Shape::makeOwnBaseShape(JSContext* cx) {
   new (nbase) BaseShape(StackBaseShape(this));
   nbase->setOwned(base()->toUnowned());
 
-  this->base_ = nbase;
+  setBase(nbase);
 
   return true;
 }
@@ -152,13 +152,10 @@ void Shape::handoffTableTo(Shape* shape) {
 
   BaseShape* nbase = base();
 
-  MOZ_ASSERT_IF(!shape->isEmptyShape() && shape->isDataProperty(),
-                nbase->slotSpan() > shape->slot());
-
-  this->base_ = nbase->baseUnowned();
+  setBase(nbase->baseUnowned());
   nbase->adoptUnowned(shape->base()->toUnowned());
 
-  shape->base_ = nbase;
+  shape->setBase(nbase);
 }
 
 /* static */
@@ -424,8 +421,8 @@ Shape* Shape::replaceLastProperty(JSContext* cx, StackBaseShape& base,
     if (!shape) {
       return nullptr;
     }
-    if (child.slot() >= obj->lastProperty()->base()->slotSpan()) {
-      if (!obj->setSlotSpan(cx, child.slot() + 1)) {
+    if (child.slot() >= obj->slotSpan()) {
+      if (!obj->ensureSlotsForDictionaryObject(cx, child.slot() + 1)) {
         new (shape) Shape(obj->lastProperty()->base()->unowned(), 0);
         return nullptr;
       }
@@ -540,7 +537,7 @@ bool js::NativeObject::toDictionaryMode(JSContext* cx, HandleNativeObject obj) {
   obj->setShape(root);
 
   MOZ_ASSERT(obj->inDictionaryMode());
-  root->base()->setSlotSpan(span);
+  obj->setDictionaryModeSlotSpan(span);
 
   return true;
 }
@@ -866,8 +863,8 @@ Shape* NativeObject::addEnumerableDataProperty(JSContext* cx,
     if (!shape) {
       return nullptr;
     }
-    if (slot >= obj->lastProperty()->base()->slotSpan()) {
-      if (MOZ_UNLIKELY(!obj->setSlotSpan(cx, slot + 1))) {
+    if (slot >= obj->slotSpan()) {
+      if (MOZ_UNLIKELY(!obj->ensureSlotsForDictionaryObject(cx, slot + 1))) {
         new (shape) Shape(obj->lastProperty()->base()->unowned(), 0);
         return nullptr;
       }
@@ -1090,7 +1087,7 @@ Shape* NativeObject::putDataProperty(JSContext* cx, HandleNativeObject obj,
     if (updateLast) {
       shape->base()->adoptUnowned(nbase);
     } else {
-      shape->base_ = nbase;
+      shape->setBase(nbase);
     }
 
     shape->setSlot(slot);
@@ -1196,7 +1193,7 @@ Shape* NativeObject::putAccessorProperty(JSContext* cx, HandleNativeObject obj,
     if (updateLast) {
       shape->base()->adoptUnowned(nbase);
     } else {
-      shape->base_ = nbase;
+      shape->setBase(nbase);
     }
 
     shape->setSlot(SHAPE_INVALID_SLOT);
@@ -1206,7 +1203,7 @@ Shape* NativeObject::putAccessorProperty(JSContext* cx, HandleNativeObject obj,
     AccessorShape& accShape = shape->asAccessorShape();
     accShape.rawGetter = getter;
     accShape.rawSetter = setter;
-    GetterSetterWriteBarrierPost(&accShape);
+    GetterSetterPostWriteBarrier(&accShape);
   } else {
     // Updating the last property in a non-dictionary-mode object. Find an
     // alternate shared child of the last property's previous shape.
@@ -1324,7 +1321,7 @@ bool NativeObject::removeProperty(JSContext* cx, HandleNativeObject obj,
       if (!nbase) {
         return false;
       }
-      previous->base_ = nbase;
+      previous->setBase(nbase);
     }
   }
 
@@ -1427,11 +1424,10 @@ bool NativeObject::rollbackProperties(JSContext* cx, HandleNativeObject obj,
     if (obj->lastProperty()->isEmptyShape()) {
       MOZ_ASSERT(slotSpan == 0);
       break;
-    } else {
-      uint32_t slot = obj->lastProperty()->slot();
-      if (slot < slotSpan) {
-        break;
-      }
+    }
+    uint32_t slot = obj->lastProperty()->slot();
+    if (slot < slotSpan) {
+      break;
     }
     if (!NativeObject::removeProperty(cx, obj, obj->lastProperty()->propid())) {
       return false;
@@ -1583,12 +1579,13 @@ Shape* Shape::setObjectFlags(JSContext* cx, BaseShape::Flag flags,
 }
 
 inline BaseShape::BaseShape(const StackBaseShape& base)
-    : clasp_(base.clasp), flags(base.flags), slotSpan_(0), unowned_(nullptr) {}
+    : TenuredCellWithNonGCPointer(base.clasp),
+      flags(base.flags),
+      unowned_(nullptr) {}
 
 /* static */
 void BaseShape::copyFromUnowned(BaseShape& dest, UnownedBaseShape& src) {
-  dest.clasp_ = src.clasp_;
-  dest.slotSpan_ = src.slotSpan_;
+  dest.setHeaderPtr(src.clasp());
   dest.unowned_ = &src;
   dest.flags = src.flags | OWNED_SHAPE;
 }
@@ -1598,10 +1595,7 @@ inline void BaseShape::adoptUnowned(UnownedBaseShape* other) {
   // unowned base shape of a new last property.
   MOZ_ASSERT(isOwned());
 
-  uint32_t span = slotSpan();
-
   BaseShape::copyFromUnowned(*this, *other);
-  setSlotSpan(span);
 
   assertConsistency();
 }
@@ -1908,6 +1902,10 @@ void Shape::sweep(JSFreeOp* fop) {
    * reallocated, since allocating a cell in a zone that is being marked will
    * set the mark bit for that cell.
    */
+
+  MOZ_ASSERT(zone()->isGCSweeping());
+  MOZ_ASSERT_IF(parent, parent->zone() == zone());
+
   if (parent && parent->isMarkedAny()) {
     if (inDictionary()) {
       if (parent->dictNext == DictionaryShapeLink(this)) {
@@ -1956,19 +1954,9 @@ void Shape::fixupShapeTreeAfterMovingGC() {
   MOZ_ASSERT(children.isShapeSet());
   ShapeSet* set = children.toShapeSet();
   for (ShapeSet::Enum e(*set); !e.empty(); e.popFront()) {
-    Shape* key = e.front();
-    if (IsForwarded(key)) {
-      key = Forwarded(key);
-    }
-
-    BaseShape* base = key->base();
-    if (IsForwarded(base)) {
-      base = Forwarded(base);
-    }
-    UnownedBaseShape* unowned = base->unowned();
-    if (IsForwarded(unowned)) {
-      unowned = Forwarded(unowned);
-    }
+    Shape* key = MaybeForwarded(e.front());
+    BaseShape* base = MaybeForwarded(key->base());
+    UnownedBaseShape* unowned = MaybeForwarded(base->unowned());
 
     GetterOp getter = key->getter();
     if (key->hasGetterObject()) {
@@ -2083,7 +2071,7 @@ void Shape::dump(js::GenericPrinter& out) const {
   out.printf(" g/s %p/%p slot %d attrs %x ",
              JS_FUNC_TO_DATA_PTR(void*, getter()),
              JS_FUNC_TO_DATA_PTR(void*, setter()),
-             isDataProperty() ? slot() : -1, attrs);
+             isDataProperty() ? int32_t(slot()) : -1, attrs);
 
   if (attrs) {
     int first = 1;

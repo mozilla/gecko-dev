@@ -15,6 +15,9 @@
 
   <script type="application/javascript"><![CDATA[
     const {BrowserTestUtils} = ChromeUtils.import("resource://testing-common/BrowserTestUtils.jsm");
+    const {Services} = ChromeUtils.import("resource://gre/modules/Services.jsm");
+    Services.prefs.setBoolPref("browser.navigation.requireUserInteraction", false);
+
     var imports = [ "SimpleTest", "is", "isnot", "ok"];
     for (var name of imports) {
       window[name] = window.arguments[0][name];
@@ -34,8 +37,13 @@
     function finish() {
       gBrowser.removeEventListener("pageshow", eventListener, true);
       // Work around bug 467960
-      var history = gBrowser.webNavigation.sessionHistory;
-      history.legacySHistory.PurgeHistory(history.count);
+      if (SpecialPowers.Services.appinfo.sessionHistoryInParent) {
+        var history = gBrowser.browsingContext.sessionHistory;
+        history.purgeHistory(history.count);
+      } else {
+        var history = gBrowser.webNavigation.sessionHistory;
+        history.legacySHistory.purgeHistory(history.count);
+      }
 
       window.close();
       window.arguments[0].SimpleTest.finish();
@@ -44,7 +52,7 @@
     function onLoad(e) {
       gBrowser = document.getElementById("content");
       gBrowser.addEventListener("pageshow", eventListener, true);
-       
+
       gTestsIterator = testsIterator();
       nextTest();
     }
@@ -76,7 +84,7 @@
       var scrollToX = gBrowser.contentWindow.scrollMaxX;
       var scrollToY = gBrowser.contentWindow.scrollMaxY;
       gBrowser.contentWindow.scrollBy(scrollToX, scrollToY);
-      
+
       // Save the scroll position for future comparison
       scrollX = gBrowser.contentWindow.scrollX;
       scrollY = gBrowser.contentWindow.scrollY;
@@ -106,7 +114,7 @@
       var formValue = gBrowser.contentDocument.getElementById("inp").value;
       isnot(formValue, text, testName + " form value incorrectly restored");
 
-    
+
       // https no-cache
       testName = "[nocache]";
 
@@ -126,7 +134,7 @@
       scrollToX = gBrowser.contentWindow.scrollMaxX;
       scrollToY = gBrowser.contentWindow.scrollMaxY;
       gBrowser.contentWindow.scrollBy(scrollToX, scrollToY);
-      
+
       // Save the scroll position for future comparison
       scrollX = gBrowser.contentWindow.scrollX;
       scrollY = gBrowser.contentWindow.scrollY;
@@ -152,7 +160,8 @@
          " vertical axis scroll position not correctly restored");
       var formValue = gBrowser.contentDocument.getElementById("inp").value;
       is(formValue, text, testName + " form value not correctly restored");
-      
+
+      Services.prefs.clearUserPref("browser.navigation.requireUserInteraction");
       finish();
     }
   ]]></script>

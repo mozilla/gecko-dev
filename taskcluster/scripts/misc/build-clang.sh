@@ -20,11 +20,11 @@ case "$JSON_CONFIG" in
 *macosx64*)
   # these variables are used in build-clang.py
   export CROSS_CCTOOLS_PATH=$MOZ_FETCHES_DIR/cctools
-  export CROSS_SYSROOT=$MOZ_FETCHES_DIR/MacOSX10.11.sdk
+  export CROSS_SYSROOT=$(ls -d $MOZ_FETCHES_DIR/MacOSX10.*.sdk)
   export PATH=$PATH:$CROSS_CCTOOLS_PATH/bin
   ;;
 *win64*)
-  UPLOAD_DIR=$ORIGPWD/public/build
+  export UPLOAD_DIR=$ORIGPWD/public/build
   # Set up all the Visual Studio paths.
   . taskcluster/scripts/misc/vs-setup.sh
 

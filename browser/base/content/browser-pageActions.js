@@ -7,8 +7,14 @@ ChromeUtils.defineModuleGetter(
   "SiteSpecificBrowser",
   "resource:///modules/SiteSpecificBrowserService.jsm"
 );
+ChromeUtils.defineModuleGetter(
+  this,
+  "SearchUIUtils",
+  "resource:///modules/SearchUIUtils.jsm"
+);
 
 var BrowserPageActions = {
+  _panelNode: null,
   /**
    * The main page action button in the urlbar (DOM node)
    */
@@ -21,8 +27,12 @@ var BrowserPageActions = {
    * The main page action panel DOM node (DOM node)
    */
   get panelNode() {
+    // Lazy load the page action panel the first time we need to display it
+    if (!this._panelNode) {
+      this.initializePanel();
+    }
     delete this.panelNode;
-    return (this.panelNode = document.getElementById("pageActionPanel"));
+    return (this.panelNode = this._panelNode);
   },
 
   /**
@@ -59,16 +69,12 @@ var BrowserPageActions = {
    * Inits.  Call to init.
    */
   init() {
-    this.placeAllActions();
+    this.placeAllActionsInUrlbar();
     this._onPanelShowing = this._onPanelShowing.bind(this);
-    this.panelNode.addEventListener("popupshowing", this._onPanelShowing);
-    this.panelNode.addEventListener("popuphiding", () => {
-      this.mainButtonNode.removeAttribute("open");
-    });
   },
 
   _onPanelShowing() {
-    this.placeLazyActionsInPanel();
+    this.initializePanel();
     for (let action of PageActions.actionsInPanel(window)) {
       let buttonNode = this.panelButtonNodeForActionID(action.id);
       action.onShowingInPanel(buttonNode);
@@ -88,17 +94,34 @@ var BrowserPageActions = {
   _actionsToLazilyPlaceInPanel: [],
 
   /**
-   * Places all registered actions.
+   * Places all registered actions in the urlbar.
    */
-  placeAllActions() {
-    let panelActions = PageActions.actionsInPanel(window);
-    for (let action of panelActions) {
-      this.placeActionInPanel(action);
-    }
+  placeAllActionsInUrlbar() {
     let urlbarActions = PageActions.actionsInUrlbar(window);
     for (let action of urlbarActions) {
       this.placeActionInUrlbar(action);
     }
+  },
+
+  /**
+   * Initializes the panel if necessary.
+   */
+  initializePanel() {
+    // Lazy load the page action panel the first time we need to display it
+    if (!this._panelNode) {
+      let template = document.getElementById("pageActionPanelTemplate");
+      template.replaceWith(template.content);
+      this._panelNode = document.getElementById("pageActionPanel");
+      this._panelNode.addEventListener("popupshowing", this._onPanelShowing);
+      this._panelNode.addEventListener("popuphiding", () => {
+        this.mainButtonNode.removeAttribute("open");
+      });
+    }
+
+    for (let action of PageActions.actionsInPanel(window)) {
+      this.placeActionInPanel(action);
+    }
+    this.placeLazyActionsInPanel();
   },
 
   /**
@@ -119,7 +142,7 @@ var BrowserPageActions = {
    *         The action to place.
    */
   placeActionInPanel(action) {
-    if (this.panelNode.state != "closed") {
+    if (this._panelNode && this.panelNode.state != "closed") {
       this._placeActionInPanelNow(action);
     } else {
       // Lazily place the action in the panel the next time it opens.
@@ -577,7 +600,7 @@ var BrowserPageActions = {
   _updateMethods: {
     disabled: "_updateActionDisabled",
     iconURL: "_updateActionIconURL",
-    title: "_updateActionTitle",
+    title: "_updateActionLabeling",
     tooltip: "_updateActionTooltip",
     wantsSubview: "_updateActionWantsSubview",
   },
@@ -626,21 +649,21 @@ var BrowserPageActions = {
     }
   },
 
-  _updateActionTitle(
+  _updateActionLabeling(
     action,
     panelNode,
     urlbarNode,
     title = action.getTitle(window)
   ) {
-    if (!title) {
-      // `title` is a required action property, but the bookmark action's is an
-      // empty string since its actual title is set via
-      // BookmarkingUI.updateBookmarkPageMenuItem().  The purpose of this early
-      // return is to ignore that empty title.
-      return;
-    }
+    let tabCount = gBrowser.selectedTabs.length;
     if (panelNode) {
-      panelNode.setAttribute("label", title);
+      if (action.panelFluentID) {
+        document.l10n.setAttributes(panelNode, action.panelFluentID, {
+          tabCount,
+        });
+      } else {
+        panelNode.setAttribute("label", title);
+      }
     }
     if (urlbarNode) {
       // Some actions (e.g. Save Page to Pocket) have a wrapper node with the
@@ -653,8 +676,14 @@ var BrowserPageActions = {
       }
       // tooltiptext falls back to the title, so update it too if necessary.
       let tooltip = action.getTooltip(window);
-      if (!tooltip && title) {
-        urlbarNode.setAttribute("tooltiptext", title);
+      if (!tooltip) {
+        if (action.urlbarFluentID) {
+          document.l10n.setAttributes(urlbarNode, action.urlbarFluentID, {
+            tabCount,
+          });
+        } else {
+          urlbarNode.setAttribute("tooltiptext", title);
+        }
       }
     }
   },
@@ -701,7 +730,14 @@ var BrowserPageActions = {
   },
 
   doCommandForAction(action, event, buttonNode) {
-    if (event && event.type == "click" && event.button != 0) {
+    // On mac, ctrl-click will send a context menu event from the widget, so we
+    // don't want to handle the click event when ctrl key is pressed.
+    if (
+      event &&
+      event.type == "click" &&
+      (event.button != 0 ||
+        (AppConstants.platform == "macosx" && event.ctrlKey))
+    ) {
       return;
     }
     if (event && event.type == "keypress") {
@@ -853,7 +889,11 @@ var BrowserPageActions = {
   mainButtonClicked(event) {
     event.stopPropagation();
     if (
-      (event.type == "mousedown" && event.button != 0) ||
+      // On mac, ctrl-click will send a context menu event from the widget, so
+      // we don't want to bring up the panel when ctrl key is pressed.
+      (event.type == "mousedown" &&
+        (event.button != 0 ||
+          (AppConstants.platform == "macosx" && event.ctrlKey))) ||
       (event.type == "keypress" &&
         event.charCode != KeyEvent.DOM_VK_SPACE &&
         event.keyCode != KeyEvent.DOM_VK_RETURN)
@@ -900,7 +940,7 @@ var BrowserPageActions = {
    * @param  popup (DOM node, required)
    *         The context menu popup DOM node.
    */
-  onContextMenuShowing(event, popup) {
+  async onContextMenuShowing(event, popup) {
     if (event.target != popup) {
       return;
     }
@@ -922,6 +962,16 @@ var BrowserPageActions = {
         : "extensionUnpinned";
     }
     popup.setAttribute("state", state);
+
+    let removeExtension = popup.querySelector(".removeExtensionItem");
+    let { extensionID } = this._contextAction;
+    let addon = extensionID && (await AddonManager.getAddonByID(extensionID));
+    removeExtension.hidden = !addon;
+    if (addon) {
+      removeExtension.disabled = !(
+        addon.permissions & AddonManager.PERM_CAN_UNINSTALL
+      );
+    }
   },
 
   /**
@@ -935,6 +985,11 @@ var BrowserPageActions = {
     this._contextAction = null;
 
     action.pinnedToUrlbar = !action.pinnedToUrlbar;
+    BrowserUsageTelemetry.recordWidgetChange(
+      action.id,
+      action.pinnedToUrlbar ? "page-action-buttons" : null,
+      "pageaction-context"
+    );
   },
 
   /**
@@ -957,35 +1012,25 @@ var BrowserPageActions = {
     window.BrowserOpenAddonsMgr(viewID);
   },
 
+  /**
+   * Call this from the menu item in the context menu that removes an add-on.
+   */
+  removeExtensionForContextAction() {
+    if (!this._contextAction) {
+      return;
+    }
+    let action = this._contextAction;
+    this._contextAction = null;
+
+    BrowserAddonUI.removeAddon(action.extensionID, "pageAction");
+  },
+
   _contextAction: null,
 
   /**
-   * Titles for a few of the built-in actions are defined in DTD, but the
-   * actions are created in JS.  So what we do is for each title, set an
-   * attribute in markup on the main page action panel whose value is the DTD
-   * string.  In gBuiltInActions, where the built-in actions are defined, we set
-   * the action's initial title to the name of this attribute.  Then when the
-   * action is set up, we get the action's current title, and then get the
-   * attribute on the main panel whose name is that title.  If the attribute
-   * exists, then its value is the actual title, and we update the action with
-   * this title.  Otherwise the action's title has already been set up in this
-   * manner.
-   *
-   * @param  action (PageActions.Action, required)
-   *         The action whose title you're setting.
-   */
-  takeActionTitleFromPanel(action) {
-    let titleOrAttrNameOnPanel = action.getTitle();
-    let attrValueOnPanel = this.panelNode.getAttribute(titleOrAttrNameOnPanel);
-    if (attrValueOnPanel) {
-      this.panelNode.removeAttribute(titleOrAttrNameOnPanel);
-      action.setTitle(attrValueOnPanel);
-    }
-  },
-
-  /**
-   * This is similar to takeActionTitleFromPanel, except it sets an attribute on
-   * a DOM node instead of setting the title on an action.  The point is to map
+   * We use this to set an attribute on the DOM node. If the attribute exists,
+   * then we get the panel node's attribute and set it on the DOM node. Otherwise,
+   * we get the title string and update the attribute with that value. The point is to map
    * attributes on the node to strings on the main panel.  Use this for DOM
    * nodes that don't correspond to actions, like buttons in subviews.
    *
@@ -1042,7 +1087,9 @@ function showBrowserPageActionFeedback(action, event = null, messageId = null) {
 // bookmark
 BrowserPageActions.bookmark = {
   onShowingInPanel(buttonNode) {
-    // Do nothing.
+    if (buttonNode.label == "null") {
+      BookmarkingUI.updateBookmarkPageMenuItem();
+    }
   },
 
   onCommand(event, buttonNode) {
@@ -1056,24 +1103,23 @@ BrowserPageActions.pinTab = {
   updateState() {
     let action = PageActions.actionForID("pinTab");
     let { pinned } = gBrowser.selectedTab;
+    let fluentID;
     if (pinned) {
-      action.setTitle(
-        BrowserPageActions.panelNode.getAttribute("unpinTab-title")
-      );
+      fluentID = "page-action-unpin-tab";
     } else {
-      action.setTitle(
-        BrowserPageActions.panelNode.getAttribute("pinTab-title")
-      );
+      fluentID = "page-action-pin-tab";
     }
 
     let panelButton = BrowserPageActions.panelButtonNodeForActionID(action.id);
     if (panelButton) {
+      document.l10n.setAttributes(panelButton, fluentID + "-panel");
       panelButton.toggleAttribute("pinned", pinned);
     }
     let urlbarButton = BrowserPageActions.urlbarButtonNodeForActionID(
       action.id
     );
     if (urlbarButton) {
+      document.l10n.setAttributes(urlbarButton, fluentID + "-urlbar");
       urlbarButton.toggleAttribute("pinned", pinned);
     }
   },
@@ -1116,11 +1162,6 @@ BrowserPageActions.launchSSB = {
 
 // copy URL
 BrowserPageActions.copyURL = {
-  onBeforePlacedInWindow(browserWindow) {
-    let action = PageActions.actionForID("copyURL");
-    BrowserPageActions.takeActionTitleFromPanel(action);
-  },
-
   onCommand(event, buttonNode) {
     PanelMultiView.hidePopup(BrowserPageActions.panelNode);
     Cc["@mozilla.org/widget/clipboardhelper;1"]
@@ -1135,11 +1176,6 @@ BrowserPageActions.copyURL = {
 
 // email link
 BrowserPageActions.emailLink = {
-  onBeforePlacedInWindow(browserWindow) {
-    let action = PageActions.actionForID("emailLink");
-    BrowserPageActions.takeActionTitleFromPanel(action);
-  },
-
   onCommand(event, buttonNode) {
     PanelMultiView.hidePopup(BrowserPageActions.panelNode);
     MailIntegration.sendLinkForBrowser(gBrowser.selectedBrowser);
@@ -1159,12 +1195,22 @@ BrowserPageActions.sendToDevice = {
   // selected.
   _updateTitle() {
     let action = PageActions.actionForID("sendToDevice");
-    let string = gBrowserBundle.GetStringFromName(
-      "pageAction.sendTabsToDevice.label"
-    );
     let tabCount = gBrowser.selectedTabs.length;
-    let title = PluralForm.get(tabCount, string).replace("#1", tabCount);
-    action.setTitle(title, window);
+
+    let panelButton = BrowserPageActions.panelButtonNodeForActionID(action.id);
+    if (panelButton) {
+      document.l10n.setAttributes(panelButton, action.panelFluentID, {
+        tabCount,
+      });
+    }
+    let urlbarButton = BrowserPageActions.urlbarButtonNodeForActionID(
+      action.id
+    );
+    if (urlbarButton) {
+      document.l10n.setAttributes(urlbarButton, action.urlbarFluentID, {
+        tabCount,
+      });
+    }
   },
 
   onSubviewPlaced(panelViewNode) {
@@ -1175,7 +1221,7 @@ BrowserPageActions.sendToDevice = {
       "subviewbutton-iconic",
       "pageAction-sendToDevice-notReady"
     );
-    notReady.setAttribute("label", "sendToDevice-notReadyTitle");
+    document.l10n.setAttributes(notReady, "page-action-send-tab-not-ready");
     notReady.setAttribute("disabled", "true");
     bodyNode.appendChild(notReady);
     for (let node of bodyNode.children) {
@@ -1283,37 +1329,17 @@ BrowserPageActions.addSearchEngine = {
   },
 
   _installEngine(uri, image) {
-    Services.search.addEngine(uri, image, false).then(
-      engine => {
-        showBrowserPageActionFeedback(this.action);
-      },
-      errorCode => {
-        if (errorCode != Ci.nsISearchService.ERROR_DUPLICATE_ENGINE) {
-          // Download error is shown by the search service
-          return;
+    SearchUIUtils.addOpenSearchEngine(
+      uri,
+      image,
+      gBrowser.selectedBrowser.browsingContext
+    )
+      .then(result => {
+        if (result) {
+          showBrowserPageActionFeedback(this.action);
         }
-        const kSearchBundleURI =
-          "chrome://global/locale/search/search.properties";
-        let searchBundle = Services.strings.createBundle(kSearchBundleURI);
-        let brandBundle = document.getElementById("bundle_brand");
-        let brandName = brandBundle.getString("brandShortName");
-        let title = searchBundle.GetStringFromName(
-          "error_invalid_engine_title"
-        );
-        let text = searchBundle.formatStringFromName(
-          "error_duplicate_engine_msg",
-          [brandName, uri]
-        );
-        Services.prompt.QueryInterface(Ci.nsIPromptFactory);
-        let prompt = Services.prompt.getPrompt(
-          gBrowser.contentWindow,
-          Ci.nsIPrompt
-        );
-        prompt.QueryInterface(Ci.nsIWritablePropertyBag2);
-        prompt.setPropertyAsBool("allowTabModal", true);
-        prompt.alert(title, text);
-      }
-    );
+      })
+      .catch(console.error);
   },
 };
 
@@ -1327,11 +1353,6 @@ BrowserPageActions.shareURL = {
 
   onShowingInPanel(buttonNode) {
     this._cached = false;
-  },
-
-  onBeforePlacedInWindow(browserWindow) {
-    let action = PageActions.actionForID("shareURL");
-    BrowserPageActions.takeActionTitleFromPanel(action);
   },
 
   onShowingSubview(panelViewNode) {
@@ -1374,10 +1395,7 @@ BrowserPageActions.shareURL = {
     });
 
     let item = document.createXULElement("toolbarbutton");
-    item.setAttribute(
-      "label",
-      BrowserPageActions.panelNode.getAttribute("shareMore-label")
-    );
+    document.l10n.setAttributes(item, "page-action-share-more-panel");
     item.classList.add(
       "subviewbutton",
       "subviewbutton-iconic",

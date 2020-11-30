@@ -7,7 +7,7 @@ function expectedTabInfo(tab, window) {
   return {
     url: browser.currentURI.spec,
     title: browser.contentTitle,
-    favIconUrl: window.gBrowser.getIcon(tab),
+    favIconUrl: window.gBrowser.getIcon(tab) || undefined,
     // 'selected' is marked as unsupported in schema, so we've removed it.
     // For more details, see bug 1337509
     selected: undefined,
@@ -28,7 +28,10 @@ add_task(async function test_sessions_get_recently_closed_tabs() {
   // Below, the test makes assumptions about the last accessed time of tabs that are
   // not true is we execute fast and reduce the timer precision enough
   await SpecialPowers.pushPrefEnv({
-    set: [["privacy.reduceTimerPrecision", false]],
+    set: [
+      ["privacy.reduceTimerPrecision", false],
+      ["browser.navigation.requireUserInteraction", false],
+    ],
   });
 
   async function background() {

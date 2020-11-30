@@ -18,7 +18,7 @@ CHECKPOINTS = [
     {
         'name': "After tabs open [+30s, forced GC]",
         'path': "memory-report-TabsOpenForceGC-4.json.gz",
-        'name_filter': 'Web Content',  # We only want the content process
+        'name_filter': ['web ', 'Web Content'],  # We only want the content process
         'median': True,  # We want the median from all content processes
     },
 ]
@@ -91,18 +91,18 @@ class TestMemoryUsage(AwsyTestCase):
         self.marionette.set_pref('dom.ipc.processPrelaunch.enabled', enabled)
 
     def test_open_tabs(self):
-        """Marionette test entry that returns an array of checkoint arrays.
+        """Marionette test entry that returns an array of checkpoint arrays.
 
         This will generate a set of checkpoints for each iteration requested.
-        Upon succesful completion the results will be stored in
+        Upon successful completion the results will be stored in
         |self.testvars["results"]| and accessible to the test runner via the
         |testvars| object it passed in.
         """
         # setup the results array
         results = [[] for _ in range(self.iterations())]
 
-        def create_checkpoint(name, iteration):
-            checkpoint = self.do_memory_report(name, iteration)
+        def create_checkpoint(name, iteration, minimize=False):
+            checkpoint = self.do_memory_report(name, iteration, minimize)
             self.assertIsNotNone(checkpoint, "Checkpoint was recorded")
             results[iteration].append(checkpoint)
 
@@ -113,9 +113,7 @@ class TestMemoryUsage(AwsyTestCase):
         self.set_preallocated_process_enabled_state(False)
         self.settle()
         self.settle()
-        self.assertTrue(self.do_full_gc())
-        self.settle()
-        create_checkpoint("TabsOpenForceGC", 0)
+        create_checkpoint("TabsOpenForceGC", 0, minimize=True)
         self.set_preallocated_process_enabled_state(True)
         # (If we wanted to do something after the preallocated process has been
         # recreated, we should call self.settle() again to wait for it.)

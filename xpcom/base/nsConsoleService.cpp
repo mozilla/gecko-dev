@@ -26,10 +26,11 @@
 #include "nsISupportsPrimitives.h"
 #include "mozilla/dom/WindowGlobalParent.h"
 #include "mozilla/dom/ContentParent.h"
+#include "mozilla/dom/BrowserParent.h"
 
 #include "mozilla/Preferences.h"
+#include "mozilla/SchedulerGroup.h"
 #include "mozilla/Services.h"
-#include "mozilla/SystemGroup.h"
 
 #if defined(ANDROID)
 #  include <android/log.h>
@@ -397,15 +398,15 @@ nsresult nsConsoleService::LogMessageWithMode(
     // Release |retiredMessage| on the main thread in case it is an instance of
     // a mainthread-only class like nsScriptErrorWithStack and we're off the
     // main thread.
-    NS_ReleaseOnMainThreadSystemGroup("nsConsoleService::retiredMessage",
-                                      retiredMessage.forget());
+    NS_ReleaseOnMainThread("nsConsoleService::retiredMessage",
+                           retiredMessage.forget());
   }
 
   if (r) {
     // avoid failing in XPCShell tests
     nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
     if (mainThread) {
-      SystemGroup::Dispatch(TaskCategory::Other, r.forget());
+      SchedulerGroup::Dispatch(TaskCategory::Other, r.forget());
     }
   }
 

@@ -15,6 +15,7 @@ CppUnitTests([
     'TestAlgorithm',
     'TestArray',
     'TestArrayUtils',
+    'TestAtomicBitfields',
     'TestAtomics',
     'TestBinarySearch',
     'TestBloomFilter',
@@ -22,6 +23,7 @@ CppUnitTests([
     'TestCasting',
     'TestCeilingFloor',
     'TestCheckedInt',
+    'TestCompactPair',
     'TestCountPopulation',
     'TestCountZeroes',
     'TestDefineEnum',
@@ -32,6 +34,7 @@ CppUnitTests([
     'TestEnumTypeTraits',
     'TestFastBernoulliTrial',
     'TestFloatingPoint',
+    'TestFunctionRef',
     'TestFunctionTypeTraits',
     'TestHashTable',
     'TestIntegerPrintfMacros',
@@ -44,7 +47,6 @@ CppUnitTests([
     'TestMaybe',
     'TestNonDereferenceable',
     'TestNotNull',
-    'TestPair',
     'TestRandomNum',
     'TestRange',
     'TestRefPtr',
@@ -57,6 +59,7 @@ CppUnitTests([
     'TestSmallPointerArray',
     'TestSplayTree',
     'TestSPSCQueue',
+    'TestTainting',
     'TestTemplateLib',
     'TestTextUtils',
     'TestThreadSafeWeakPtr',
@@ -100,3 +103,6 @@ USE_LIBS += [
 
 if CONFIG['CC_TYPE'] in ('clang', 'gcc'):
     CXXFLAGS += ['-Wno-error=shadow']
+
+CXXFLAGS += ['-O0']
+

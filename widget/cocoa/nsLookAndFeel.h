@@ -27,9 +27,8 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
 
   static bool UseOverlayScrollbars();
 
-  virtual nsTArray<LookAndFeelInt> GetIntCacheImpl() override;
-  virtual void SetIntCacheImpl(
-      const nsTArray<LookAndFeelInt>& aLookAndFeelIntCache) override;
+  LookAndFeelCache GetCacheImpl() override;
+  void SetCacheImpl(const LookAndFeelCache& aCache) override;
 
  protected:
   static bool SystemWantsOverlayScrollbars();
@@ -47,6 +46,9 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
 
   int32_t mSystemUsesDarkTheme;
   bool mSystemUsesDarkThemeCached;
+
+  int32_t mPrefersReducedMotion = -1;
+  bool mPrefersReducedMotionCached = false;
 
   nscolor mColorTextSelectBackground;
   nscolor mColorTextSelectBackgroundDisabled;

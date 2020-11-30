@@ -10,7 +10,6 @@
 #include "mozilla/layers/PAPZChild.h"
 
 namespace mozilla {
-
 namespace layers {
 
 class GeckoContentController;
@@ -21,20 +20,24 @@ class GeckoContentController;
  */
 class APZChild final : public PAPZChild {
  public:
+  using APZStateChange = GeckoContentController_APZStateChange;
+
   explicit APZChild(RefPtr<GeckoContentController> aController);
   virtual ~APZChild();
 
   mozilla::ipc::IPCResult RecvLayerTransforms(
-      const nsTArray<MatrixMessage>& aTransforms);
+      nsTArray<MatrixMessage>&& aTransforms);
 
   mozilla::ipc::IPCResult RecvRequestContentRepaint(
       const RepaintRequest& aRequest);
 
   mozilla::ipc::IPCResult RecvUpdateOverscrollVelocity(
-      const float& aX, const float& aY, const bool& aIsRootContent);
+      const ScrollableLayerGuid& aGuid, const float& aX, const float& aY,
+      const bool& aIsRootContent);
 
   mozilla::ipc::IPCResult RecvUpdateOverscrollOffset(
-      const float& aX, const float& aY, const bool& aIsRootContent);
+      const ScrollableLayerGuid& aGuid, const float& aX, const float& aY,
+      const bool& aIsRootContent);
 
   mozilla::ipc::IPCResult RecvNotifyMozMouseScrollEvent(const ViewID& aScrollId,
                                                         const nsString& aEvent);
@@ -61,7 +64,6 @@ class APZChild final : public PAPZChild {
 };
 
 }  // namespace layers
-
 }  // namespace mozilla
 
 #endif  // mozilla_layers_APZChild_h

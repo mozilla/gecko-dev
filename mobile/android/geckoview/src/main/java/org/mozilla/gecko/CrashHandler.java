@@ -5,6 +5,7 @@
 
 package org.mozilla.gecko;
 
+import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -249,6 +250,11 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
         extras.putString("Android_ProcessName", getProcessName());
         extras.putString("Android_PackageName", pkgName);
 
+        final String notes = GeckoAppShell.getAppNotes();
+        if (notes != null) {
+            extras.putString("Notes", notes);
+        }
+
         if (context != null) {
             final PackageManager pkgMgr = context.getPackageManager();
             try {
@@ -376,6 +382,7 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
      * @param exc An exception
      * @return Whether the exception was successfully reported
      */
+    @SuppressLint("SdCardPath")
     protected boolean reportException(final Thread thread, final Throwable exc) {
         final Context context = getAppContext();
         final String id = UUID.randomUUID().toString();

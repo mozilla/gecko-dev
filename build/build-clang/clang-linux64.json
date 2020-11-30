@@ -1,5 +1,6 @@
 {
-    "stages": "3",
+    "stages": "4",
+    "pgo" : true,
     "build_libcxx": true,
     "build_wasm": true,
     "build_type": "Release",
@@ -20,6 +21,8 @@
       "android-mangling-error.patch",
       "unpoison-thread-stacks.patch",
       "downgrade-mangling-error.patch",
+      "tsan-hang-be41a98ac222.patch",
+      "llvmorg-11-init-15486-gfc937806efd-dont-jump-to-landing-pads.patch",
       "loosen-msvc-detection.patch"
     ]
 }

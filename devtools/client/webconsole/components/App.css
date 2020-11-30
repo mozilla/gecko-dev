@@ -177,6 +177,7 @@ body {
 .webconsole-input-buttons {
   grid-column: -1 / -2;
   display: flex;
+  align-items: flex-start;
 }
 
 :root:dir(rtl) .webconsole-input-openEditorButton {
@@ -229,6 +230,7 @@ body {
 .sidebar-contents {
   grid-row: 2 / -1;
   overflow: auto;
+  direction: ltr;
 }
 
 .webconsole-sidebar-toolbar .sidebar-close-button {
@@ -331,14 +333,6 @@ body {
   -moz-context-properties: fill;
   fill: currentColor;
   margin-inline-end: 2px;
-}
-
-.jsterm-editor .webconsole-editor-toolbar .webconsole-evaluation-selector-button {
-  height: 20px;
-  margin-inline-start: 5px;
-  padding-inline: 8px 16px !important;
-  background-position-x: calc(100% - 5px) !important;
-  background-position-y: calc(50% + 1px) !important;
 }
 
 .jsterm-editor .webconsole-editor-toolbar .webconsole-editor-toolbar-history-prevExpressionButton {

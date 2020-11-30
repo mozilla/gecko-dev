@@ -2,7 +2,7 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-// Test whether a machine which exactly matches the blacklist entry is
+// Test whether a machine which exactly matches the blocklist entry is
 // successfully blocked.
 // Uses test_gfxBlacklist_AllOS.json
 
@@ -35,7 +35,7 @@ async function run_test() {
     case "Darwin":
       gfxInfo.spoofVendorID("0xabcd");
       gfxInfo.spoofDeviceID("0x1234");
-      gfxInfo.spoofOSVersion(0x1090);
+      gfxInfo.spoofOSVersion(0xa0900);
       break;
     case "Android":
       gfxInfo.spoofVendorID("abcd");
@@ -49,7 +49,7 @@ async function run_test() {
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "15.0", "8");
   await promiseStartupManager();
 
-  function checkBlacklist() {
+  function checkBlocklist() {
     var failureId = {};
     var status;
 
@@ -58,14 +58,14 @@ async function run_test() {
       failureId
     );
     Assert.equal(status, Ci.nsIGfxInfo.FEATURE_BLOCKED_DRIVER_VERSION);
-    Assert.equal(failureId.value, "FEATURE_FAILURE_DL_BLACKLIST_g1");
+    Assert.equal(failureId.value, "FEATURE_FAILURE_DL_BLOCKLIST_g1");
 
     status = gfxInfo.getFeatureStatus(
       Ci.nsIGfxInfo.FEATURE_DIRECT3D_9_LAYERS,
       failureId
     );
     Assert.equal(status, Ci.nsIGfxInfo.FEATURE_BLOCKED_DRIVER_VERSION);
-    Assert.equal(failureId.value, "FEATURE_FAILURE_DL_BLACKLIST_g2");
+    Assert.equal(failureId.value, "FEATURE_FAILURE_DL_BLOCKLIST_g2");
 
     status = gfxInfo.getFeatureStatus(
       Ci.nsIGfxInfo.FEATURE_DIRECT3D_10_LAYERS,
@@ -91,24 +91,18 @@ async function run_test() {
       failureId
     );
     Assert.equal(status, Ci.nsIGfxInfo.FEATURE_BLOCKED_DRIVER_VERSION);
-    Assert.equal(failureId.value, "FEATURE_FAILURE_DL_BLACKLIST_g11");
+    Assert.equal(failureId.value, "FEATURE_FAILURE_DL_BLOCKLIST_g11");
 
     status = gfxInfo.getFeatureStatus(
       Ci.nsIGfxInfo.FEATURE_WEBGL_ANGLE,
       failureId
     );
     Assert.equal(status, Ci.nsIGfxInfo.FEATURE_BLOCKED_DRIVER_VERSION);
-    Assert.equal(failureId.value, "FEATURE_FAILURE_DL_BLACKLIST_NO_ID");
+    Assert.equal(failureId.value, "FEATURE_FAILURE_DL_BLOCKLIST_NO_ID");
 
     status = gfxInfo.getFeatureStatus(Ci.nsIGfxInfo.FEATURE_WEBGL2, failureId);
     Assert.equal(status, Ci.nsIGfxInfo.FEATURE_BLOCKED_DRIVER_VERSION);
-    Assert.equal(failureId.value, "FEATURE_FAILURE_DL_BLACKLIST_NO_ID");
-
-    status = gfxInfo.getFeatureStatus(
-      Ci.nsIGfxInfo.FEATURE_WEBGL_MSAA,
-      failureId
-    );
-    Assert.equal(status, Ci.nsIGfxInfo.FEATURE_BLOCKED_DRIVER_VERSION);
+    Assert.equal(failureId.value, "FEATURE_FAILURE_DL_BLOCKLIST_NO_ID");
 
     status = gfxInfo.getFeatureStatus(
       Ci.nsIGfxInfo.FEATURE_STAGEFRIGHT,
@@ -164,7 +158,7 @@ async function run_test() {
   Services.obs.addObserver(function(aSubject, aTopic, aData) {
     // If we wait until after we go through the event loop, gfxInfo is sure to
     // have processed the gfxItems event.
-    executeSoon(checkBlacklist);
+    executeSoon(checkBlocklist);
   }, "blocklist-data-gfxItems");
 
   mockGfxBlocklistItemsFromDisk("../data/test_gfxBlacklist_AllOS.json");

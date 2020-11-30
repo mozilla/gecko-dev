@@ -33,6 +33,7 @@ const {
   FX_OAUTH_CLIENT_ID,
   ON_PROFILE_CHANGE_NOTIFICATION,
   PREF_LAST_FXA_USER,
+  SCOPE_OLD_SYNC,
   WEBCHANNEL_ID,
   log,
   logPII,
@@ -117,7 +118,11 @@ const EXTRA_ENGINES = ["addresses", "creditcards"];
  * doesn't have a stack trace.
  */
 function getErrorDetails(error) {
-  let details = { message: String(error), stack: null };
+  // Replace anything that looks like it might be a filepath on Windows or Unix
+  let cleanMessage = String(error)
+    .replace(/\\.*\\/gm, "[REDACTED]")
+    .replace(/\/.*\//gm, "[REDACTED]");
+  let details = { message: cleanMessage, stack: null };
 
   // Adapted from Console.jsm.
   if (error.stack) {
@@ -620,9 +625,9 @@ FxAccountsWebChannelHelpers.prototype = {
     // in updateDeviceRegistration (but it's not clear we really do need to
     // force keys here - see bug 1580398 for more)
     try {
-      await this._fxAccounts.keys.getKeys();
+      await this._fxAccounts.keys.getKeyForScope(SCOPE_OLD_SYNC);
     } catch (e) {
-      log.error("getKeys errored", e);
+      log.error("getKeyForScope errored", e);
     }
     await this._fxAccounts._internal.updateDeviceRegistration();
   },

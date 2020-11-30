@@ -1,3 +1,5 @@
+"use strict";
+
 const { HttpServer } = ChromeUtils.import("resource://testing-common/httpd.js");
 
 XPCOMUtils.defineLazyGetter(this, "URL", function() {
@@ -40,7 +42,7 @@ var progressCallback = {
     ) {
       return this;
     }
-    throw Cr.NS_ERROR_NO_INTERFACE;
+    throw Components.Exception("", Cr.NS_ERROR_NO_INTERFACE);
   },
 
   onStartRequest(request) {
@@ -68,16 +70,16 @@ var progressCallback = {
     delete this._listener;
   },
 
-  onProgress(request, context, progress, progressMax) {
+  onProgress(request, progress, progressMax) {
     Assert.equal(this._last_callback_handled, TYPE_ONSTATUS);
     this._last_callback_handled = TYPE_ONPROGRESS;
 
-    Assert.equal(mStatus, STATUS_RECEIVING_FROM);
+    Assert.equal(this.mStatus, STATUS_RECEIVING_FROM);
     last = progress;
     max = progressMax;
   },
 
-  onStatus(request, context, status, statusArg) {
+  onStatus(request, status, statusArg) {
     if (!this._got_onstartrequest) {
       // Ensure that all messages before onStartRequest are onStatus
       if (this._last_callback_handled) {
@@ -91,7 +93,7 @@ var progressCallback = {
     this._last_callback_handled = TYPE_ONSTATUS;
 
     Assert.equal(statusArg, "localhost");
-    mStatus = status;
+    this.mStatus = status;
   },
 
   mStatus: 0,

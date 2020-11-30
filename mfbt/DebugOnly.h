@@ -14,6 +14,8 @@
 
 #include "mozilla/Attributes.h"
 
+#include <utility>
+
 namespace mozilla {
 
 /**
@@ -42,10 +44,15 @@ class MOZ_STACK_CLASS DebugOnly {
   T value;
 
   DebugOnly() = default;
+  MOZ_IMPLICIT DebugOnly(T&& aOther) : value(std::move(aOther)) {}
   MOZ_IMPLICIT DebugOnly(const T& aOther) : value(aOther) {}
   DebugOnly(const DebugOnly& aOther) : value(aOther.value) {}
   DebugOnly& operator=(const T& aRhs) {
     value = aRhs;
+    return *this;
+  }
+  DebugOnly& operator=(T&& aRhs) {
+    value = std::move(aRhs);
     return *this;
   }
 
@@ -64,11 +71,15 @@ class MOZ_STACK_CLASS DebugOnly {
   T& operator->() { return value; }
   const T& operator->() const { return value; }
 
+  const T& inspect() const { return value; }
+
 #else
   DebugOnly() = default;
   MOZ_IMPLICIT DebugOnly(const T&) {}
   DebugOnly(const DebugOnly&) {}
   DebugOnly& operator=(const T&) { return *this; }
+  MOZ_IMPLICIT DebugOnly(T&&) {}
+  DebugOnly& operator=(T&&) { return *this; }
   void operator++(int) {}
   void operator--(int) {}
   DebugOnly& operator+=(const T&) { return *this; }

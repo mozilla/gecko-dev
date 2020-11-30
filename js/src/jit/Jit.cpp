@@ -7,10 +7,13 @@
 #include "jit/Jit.h"
 
 #include "jit/BaselineJIT.h"
+#include "jit/CalleeToken.h"
 #include "jit/Ion.h"
 #include "jit/JitCommon.h"
-#include "jit/JitRealm.h"
+#include "jit/JitRuntime.h"
+#include "js/friend/StackLimits.h"  // js::CheckRecursionLimit
 #include "vm/Interpreter.h"
+#include "vm/JSContext.h"
 
 #include "vm/Stack-inl.h"
 
@@ -78,10 +81,6 @@ static EnterJitStatus JS_HAZ_JSNATIVE_CALLER EnterJit(JSContext* cx,
     numActualArgs = 0;
     constructing = false;
     if (script->isDirectEvalInFunction()) {
-      if (state.asExecute()->newTarget().isNull()) {
-        ScriptFrameIter iter(cx);
-        state.asExecute()->setNewTarget(iter.newTarget());
-      }
       maxArgc = 1;
       maxArgv = state.asExecute()->addressOfNewTarget();
     } else {

@@ -29,6 +29,7 @@
 #include "unicode/utypes.h"
 #include "vm/GlobalObject.h"
 #include "vm/JSContext.h"
+#include "vm/PlainObject.h"  // js::PlainObject
 #include "vm/Runtime.h"
 #include "vm/StringType.h"
 
@@ -58,7 +59,7 @@ const JSClassOps CollatorObject::classOps_ = {
 };
 
 const JSClass CollatorObject::class_ = {
-    js_Object_str,
+    "Intl.Collator",
     JSCLASS_HAS_RESERVED_SLOTS(CollatorObject::SLOT_COUNT) |
         JSCLASS_HAS_CACHED_PROTO(JSProto_Collator) |
         JSCLASS_FOREGROUND_FINALIZE,
@@ -83,7 +84,7 @@ static const JSFunctionSpec collator_methods[] = {
 
 static const JSPropertySpec collator_properties[] = {
     JS_SELF_HOSTED_GET("compare", "$Intl_Collator_compare_get", 0),
-    JS_STRING_SYM_PS(toStringTag, "Object", JSPROP_READONLY), JS_PS_END};
+    JS_STRING_SYM_PS(toStringTag, "Intl.Collator", JSPROP_READONLY), JS_PS_END};
 
 static bool Collator(JSContext* cx, unsigned argc, Value* vp);
 

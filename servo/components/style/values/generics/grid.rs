@@ -131,7 +131,7 @@ impl Parse for GridLine<specified::Integer> {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let mut grid_line = Self::auto();
-        if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
+        if input.try_parse(|i| i.expect_ident_matching("auto")).is_ok() {
             return Ok(grid_line);
         }
 
@@ -144,7 +144,7 @@ impl Parse for GridLine<specified::Integer> {
         for _ in 0..3 {
             // Maximum possible entities for <grid-line>
             let location = input.current_source_location();
-            if input.try(|i| i.expect_ident_matching("span")).is_ok() {
+            if input.try_parse(|i| i.expect_ident_matching("span")).is_ok() {
                 if grid_line.is_span {
                     return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
@@ -154,7 +154,7 @@ impl Parse for GridLine<specified::Integer> {
                 }
 
                 grid_line.is_span = true;
-            } else if let Ok(i) = input.try(|i| specified::Integer::parse(context, i)) {
+            } else if let Ok(i) = input.try_parse(|i| specified::Integer::parse(context, i)) {
                 // FIXME(emilio): Probably shouldn't reject if it's calc()...
                 let value = i.value();
                 if value == 0 || val_before_span || !grid_line.line_num.is_zero() {
@@ -165,7 +165,7 @@ impl Parse for GridLine<specified::Integer> {
                     MIN_GRID_LINE,
                     cmp::min(value, MAX_GRID_LINE),
                 ));
-            } else if let Ok(name) = input.try(|i| i.expect_ident_cloned()) {
+            } else if let Ok(name) = input.try_parse(|i| i.expect_ident_cloned()) {
                 if val_before_span || grid_line.ident != atom!("") {
                     return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
@@ -432,7 +432,7 @@ impl Parse for RepeatCount<specified::Integer> {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(mut i) = input.try(|i| specified::Integer::parse_positive(context, i)) {
+        if let Ok(mut i) = input.try_parse(|i| specified::Integer::parse_positive(context, i)) {
             if i.value() > MAX_GRID_LINE {
                 i = specified::Integer::new(MAX_GRID_LINE);
             }
@@ -655,8 +655,10 @@ impl<L: ToCss, I: ToCss> ToCss for TrackList<L, I> {
 pub struct LineNameList {
     /// The optional `<line-name-list>`
     pub names: crate::OwnedSlice<crate::OwnedSlice<CustomIdent>>,
-    /// Indicates the line name that requires `auto-fill`, if in bounds.
-    pub fill_idx: usize,
+    /// Indicates the starting line names that requires `auto-fill`, if in bounds.
+    pub fill_start: usize,
+    /// Indicates the number of line names in the auto-fill
+    pub fill_len: usize,
 }
 
 impl Parse for LineNameList {
@@ -666,24 +668,23 @@ impl Parse for LineNameList {
     ) -> Result<Self, ParseError<'i>> {
         input.expect_ident_matching("subgrid")?;
         let mut line_names = vec![];
-        let mut fill_idx = None;
+        let mut fill_data = None;
 
         loop {
-            let repeat_parse_result = input.try(|input| {
+            let repeat_parse_result = input.try_parse(|input| {
                 input.expect_function_matching("repeat")?;
                 input.parse_nested_block(|input| {
                     let count = RepeatCount::parse(context, input)?;
                     input.expect_comma()?;
                     let mut names_list = vec![];
                     names_list.push(parse_line_names(input)?); // there should be at least one
-                    while let Ok(names) = input.try(parse_line_names) {
+                    while let Ok(names) = input.try_parse(parse_line_names) {
                         names_list.push(names);
                     }
                     Ok((names_list, count))
                 })
             });
-
-            if let Ok((mut names_list, count)) = repeat_parse_result {
+            if let Ok((names_list, count)) = repeat_parse_result {
                 match count {
                     // FIXME(emilio): we shouldn't expand repeat() at
                     // parse time for subgrid. (bug 1583429)
@@ -694,23 +695,15 @@ impl Parse for LineNameList {
                             .cycle()
                             .take(num.value() as usize * names_list.len()),
                     ),
-                    RepeatCount::AutoFill if fill_idx.is_none() => {
-                        // `repeat(autof-fill, ..)` should have just one line name.
-                        // FIXME(bug 1341507) the above comment is wrong per:
-                        // https://drafts.csswg.org/css-grid-2/#typedef-name-repeat
-                        if names_list.len() != 1 {
-                            return Err(
-                                input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
-                            );
-                        }
-                        let names = names_list.pop().unwrap();
-
-                        line_names.push(names);
-                        fill_idx = Some(line_names.len() - 1);
+                    RepeatCount::AutoFill if fill_data.is_none() => {
+                        let fill_idx = line_names.len();
+                        let fill_len = names_list.len();
+                        fill_data = Some((fill_idx, fill_len));
+                        line_names.extend(names_list.into_iter());
                     },
                     _ => return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
                 }
-            } else if let Ok(names) = input.try(parse_line_names) {
+            } else if let Ok(names) = input.try_parse(parse_line_names) {
                 line_names.push(names);
             } else {
                 break;
@@ -721,9 +714,12 @@ impl Parse for LineNameList {
             line_names.truncate(MAX_GRID_LINE as usize);
         }
 
+        let (fill_start, fill_len) = fill_data.unwrap_or((0, 0));
+
         Ok(LineNameList {
             names: line_names.into(),
-            fill_idx: fill_idx.unwrap_or(usize::MAX),
+            fill_start: fill_start,
+            fill_len: fill_len,
         })
     }
 }
@@ -734,9 +730,10 @@ impl ToCss for LineNameList {
         W: Write,
     {
         dest.write_str("subgrid")?;
-        let fill_idx = self.fill_idx;
+        let fill_start = self.fill_start;
+        let fill_len = self.fill_len;
         for (i, names) in self.names.iter().enumerate() {
-            if i == fill_idx {
+            if fill_len > 0 && i == fill_start {
                 dest.write_str(" repeat(auto-fill,")?;
             }
 
@@ -751,7 +748,7 @@ impl ToCss for LineNameList {
             }
 
             dest.write_str("]")?;
-            if i == fill_idx {
+            if fill_len > 0 && i == fill_start + fill_len - 1 {
                 dest.write_str(")")?;
             }
         }
@@ -789,6 +786,9 @@ pub enum GenericGridTemplateComponent<L, I> {
     /// TODO: Support animations for this after subgrid is addressed in [grid-2] spec.
     #[animation(error)]
     Subgrid(Box<LineNameList>),
+    /// `masonry` value.
+    /// https://github.com/w3c/csswg-drafts/issues/4650
+    Masonry,
 }
 
 pub use self::GenericGridTemplateComponent as GridTemplateComponent;

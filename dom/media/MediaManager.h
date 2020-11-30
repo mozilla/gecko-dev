@@ -34,16 +34,14 @@
 #include "DOMMediaStream.h"
 
 #ifdef MOZ_WEBRTC
-#  include "mtransport/runnable_utils.h"
+#  include "transport/runnable_utils.h"
 #endif
-
-// Note, these suck in Windows headers, unfortunately.
-#include "base/thread.h"
-#include "base/task.h"
 
 class nsIPrefBranch;
 
 namespace mozilla {
+class TaskQueue;
+class MediaTimer;
 namespace dom {
 struct MediaStreamConstraints;
 struct MediaTrackConstraints;
@@ -72,14 +70,15 @@ class MediaDevice : public nsIMediaDevice {
 
   MediaDevice(const RefPtr<AudioDeviceInfo>& aAudioDeviceInfo,
               const nsString& aID, const nsString& aGroupID,
-              const nsString& aRawID = NS_LITERAL_STRING(""));
-
-  MediaDevice(const RefPtr<MediaDevice>& aOther, const nsString& aID,
-              const nsString& aGroupID, const nsString& aRawID);
+              const nsString& aRawID = u""_ns);
 
   MediaDevice(const RefPtr<MediaDevice>& aOther, const nsString& aID,
               const nsString& aGroupID, const nsString& aRawID,
-              const nsString& aName);
+              const nsString& aRawGroupID);
+
+  MediaDevice(const RefPtr<MediaDevice>& aOther, const nsString& aID,
+              const nsString& aGroupID, const nsString& aRawID,
+              const nsString& aRawGroupID, const nsString& aName);
 
   uint32_t GetBestFitnessDistance(
       const nsTArray<const NormalizedConstraintSet*>& aConstraintSets,
@@ -127,6 +126,7 @@ class MediaDevice : public nsIMediaDevice {
   const nsString mID;
   const nsString mGroupID;
   const nsString mRawID;
+  const nsString mRawGroupID;
   const nsString mRawName;
 };
 
@@ -146,7 +146,7 @@ class MediaManager final : public nsIMediaManagerService, public nsIObserver {
   static MediaManager* Get();
   static MediaManager* GetIfExists();
   static void StartupInit();
-  static void PostTask(already_AddRefed<Runnable> task);
+  static void Dispatch(already_AddRefed<Runnable> task);
 
   /**
    * Posts an async operation to the media manager thread.
@@ -156,7 +156,7 @@ class MediaManager final : public nsIMediaManagerService, public nsIObserver {
    * manager thread.
    */
   template <typename MozPromiseType, typename FunctionType>
-  static RefPtr<MozPromiseType> PostTask(const char* aName,
+  static RefPtr<MozPromiseType> Dispatch(const char* aName,
                                          FunctionType&& aFunction);
 
 #ifdef DEBUG
@@ -255,6 +255,8 @@ class MediaManager final : public nsIMediaManagerService, public nsIObserver {
                                         const nsString& aDeviceId);
 
   void OnNavigation(uint64_t aWindowID);
+  void OnCameraMute(bool aMute);
+  void OnMicrophoneMute(bool aMute);
   bool IsActivelyCapturingOrHasAPermission(uint64_t aWindowId);
 
   MediaEventSource<void>& DeviceListChangeEvent() {
@@ -319,7 +321,7 @@ class MediaManager final : public nsIMediaManagerService, public nsIObserver {
   void GetPrefs(nsIPrefBranch* aBranch, const char* aData);
 
   // Make private because we want only one instance of this class
-  explicit MediaManager(UniquePtr<base::Thread> aMediaThread);
+  explicit MediaManager(already_AddRefed<TaskQueue> aMediaThread);
 
   ~MediaManager() = default;
   void Shutdown();
@@ -342,9 +344,12 @@ class MediaManager final : public nsIMediaManagerService, public nsIObserver {
   nsRefPtrHashtable<nsStringHashKey, GetUserMediaTask> mActiveCallbacks;
   nsClassHashtable<nsUint64HashKey, nsTArray<nsString>> mCallIds;
   nsTArray<RefPtr<dom::GetUserMediaRequest>> mPendingGUMRequest;
+  RefPtr<MediaTimer> mDeviceChangeTimer;
+  bool mCamerasMuted = false;
+  bool mMicrophonesMuted = false;
 
   // Always exists
-  const UniquePtr<base::Thread> mMediaThread;
+  const RefPtr<TaskQueue> mMediaThread;
   nsCOMPtr<nsIAsyncShutdownBlocker> mShutdownBlocker;
 
   // ONLY accessed from MediaManagerThread
@@ -353,7 +358,21 @@ class MediaManager final : public nsIMediaManagerService, public nsIObserver {
   static StaticRefPtr<MediaManager> sSingleton;
   static StaticMutex sSingletonMutex;
 
-  nsTArray<nsString> mDeviceIDs;
+  struct nsStringHasher {
+    using Key = nsString;
+    using Lookup = nsString;
+
+    static HashNumber hash(const Lookup& aLookup) {
+      return HashString(aLookup.get());
+    }
+
+    static bool match(const Key& aKey, const Lookup& aLookup) {
+      return aKey == aLookup;
+    }
+  };
+
+  using DeviceIdSet = HashSet<nsString, nsStringHasher, InfallibleAllocPolicy>;
+  DeviceIdSet mDeviceIDs;
 
   // Connect/Disconnect on media thread only
   MediaEventListener mDeviceListChangeListener;

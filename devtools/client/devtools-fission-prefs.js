@@ -27,10 +27,10 @@ const PREFERENCES = [
       "processes at the same time as resources from the parent process",
   ],
   [
-    "devtools.inspector.use-new-box-model-highlighter",
-    "Enables a new highlighter implementation that can simultaneously " +
-      "highlight content in the parent and content processes. This allows to " +
-      "use a single highlighter in the Multiprocess Browser Toolbox.",
+    "devtools.contenttoolbox.fission",
+    "Enable fission support in the regular Toolbox. Allows to see and debug " +
+      "resources from remote frames. Should only be used when " +
+      "`fission.autostart` is enabled",
   ],
   [
     "devtools.target-switching.enabled",
@@ -41,9 +41,9 @@ const PREFERENCES = [
       "two distinct domains if `fission.autostart` is set to true",
   ],
   [
-    "devtools.responsive.browserUI.enabled",
-    "Enable the new version of RDM that doesn't rely on tunnelling and is " +
-      "Fission compatible",
+    "devtools.testing.enableServerWatcherSupport",
+    "Enable experimental server-side resources (see watcher actor to get the " +
+      "list of impacted resources",
   ],
 ];
 
@@ -68,57 +68,7 @@ function showTooltip(toolbox) {
     return;
   }
 
-  const container = toolbox.doc.createElement("div");
-  container.style.padding = "12px";
-  container.style.fontSize = "11px";
-  container.classList.add("theme-body");
-
-  const header = toolbox.doc.createElement("h1");
-  header.style.fontSize = "11px";
-  header.style.margin = "0";
-  header.style.padding = "0";
-  header.textContent = "DevTools Fission preferences";
-  container.appendChild(header);
-
-  const prefList = toolbox.doc.createElement("ul");
-  prefList.style.listStyle = "none";
-  prefList.style.margin = "0";
-  prefList.style.padding = "0";
-  container.appendChild(prefList);
-
-  for (const [name, desc] of PREFERENCES) {
-    const isPrefEnabled = Services.prefs.getBoolPref(name, false);
-
-    const prefEl = toolbox.doc.createElement("li");
-    prefEl.classList.toggle("theme-comment", !isPrefEnabled);
-    prefEl.style.margin = "8px 0 0";
-    prefEl.style.lineHeight = "12px";
-    prefEl.style.display = "grid";
-    prefEl.style.gridTemplateColumns = "max-content auto max-content";
-    prefEl.style.gridColumnGap = "8px";
-
-    const prefInfo = toolbox.doc.createElement("div");
-    prefInfo.title = desc;
-    prefInfo.style.width = "12px";
-    prefInfo.style.height = "12px";
-    prefInfo.classList.add("fission-pref-icon");
-
-    const prefTitle = toolbox.doc.createElement("span");
-    prefTitle.textContent = name;
-    prefTitle.style.userSelect = "text";
-    prefTitle.style.fontWeight = isPrefEnabled ? "bold" : "normal";
-
-    const prefValue = toolbox.doc.createElement("span");
-    prefValue.textContent = isPrefEnabled;
-
-    prefEl.appendChild(prefInfo);
-    prefEl.appendChild(prefTitle);
-    prefEl.appendChild(prefValue);
-    prefList.appendChild(prefEl);
-  }
-
-  toolbox._fissionPrefsTooltip.panel.innerHTML = "";
-  toolbox._fissionPrefsTooltip.panel.appendChild(container);
+  updateTooltipContent(toolbox);
 
   const commandId = "command-button-fission-prefs";
   toolbox._fissionPrefsTooltip.show(toolbox.doc.getElementById(commandId));
@@ -134,6 +84,157 @@ function showTooltip(toolbox) {
   });
 }
 exports.showTooltip = showTooltip;
+function updateTooltipContent(toolbox) {
+  const container = toolbox.doc.createElement("div");
+
+  /*
+   *  This is the grid we want to have:
+   *  +--------------------------------------------+---------------+
+   *  | Header text                                | Reset button  |
+   *  +------+-----------------------------+-------+---------------+
+   *  | Icon | Preference name             | Value | Toggle button |
+   *  +------+-----------------------------+-------+---------------+
+   *  | Icon | Preference name             | Value | Toggle button |
+   *  +------+-----------------------------+-------+---------------+
+   */
+
+  Object.assign(container.style, {
+    display: "grid",
+    gridTemplateColumns:
+      "max-content minmax(300px, auto) max-content max-content",
+    gridColumnGap: "8px",
+    gridTemplateRows: `repeat(${PREFERENCES.length + 1}, auto)`,
+    gridRowGap: "8px",
+    padding: "12px",
+    fontSize: "11px",
+  });
+
+  container.classList.add("theme-body");
+
+  const headerContainer = toolbox.doc.createElement("header");
+  /**
+   * The grid layout of the header container is as follows:
+   *
+   *  +-------------------------+--------------+
+   *  | Header text             | Reset button |
+   *  +-------------------------+--------------+
+   */
+
+  Object.assign(headerContainer.style, {
+    display: "grid",
+    gridTemplateColumns: "subgrid",
+    gridColumn: "1 / -1",
+  });
+
+  const header = toolbox.doc.createElement("h1");
+
+  Object.assign(header.style, {
+    gridColumn: "1 / -2",
+    fontSize: "11px",
+    margin: "0",
+    padding: "0",
+  });
+
+  header.textContent = "DevTools Fission preferences";
+
+  const resetButton = toolbox.doc.createElement("button");
+  resetButton.addEventListener("click", () => {
+    for (const [name] of PREFERENCES) {
+      Services.prefs.clearUserPref(name);
+    }
+    updateTooltipContent(toolbox);
+  });
+  resetButton.textContent = "reset all";
+
+  headerContainer.append(header, resetButton);
+
+  const prefList = toolbox.doc.createElement("ul");
+  Object.assign(prefList.style, {
+    display: "grid",
+    gridTemplateColumns: "subgrid",
+    gridTemplateRows: "subgrid",
+    // Subgrid should span all grid columns
+    gridColumn: "1 / -1",
+    gridRow: "2 / -1",
+    listStyle: "none",
+    margin: "0",
+    padding: "0",
+  });
+
+  for (const [name, desc] of PREFERENCES) {
+    const prefEl = createPreferenceListItem(toolbox, name, desc);
+    prefList.appendChild(prefEl);
+  }
+
+  container.append(headerContainer, prefList);
+
+  toolbox._fissionPrefsTooltip.panel.innerHTML = "";
+  // There is a hardcoded 320px max width for doorhanger tooltips,
+  // see Bug 1654020.
+  toolbox._fissionPrefsTooltip.panel.style.maxWidth = "unset";
+  toolbox._fissionPrefsTooltip.panel.appendChild(container);
+}
+
+function createPreferenceListItem(toolbox, name, desc) {
+  const isPrefEnabled = Services.prefs.getBoolPref(name, false);
+
+  const prefEl = toolbox.doc.createElement("li");
+
+  /**
+   * The grid layout of a preference line is as follows:
+   *
+   *  +------+-----------------------------+-------+---------------+
+   *  | Icon | Preference name             | Value | Toggle button |
+   *  +------+-----------------------------+-------+---------------+
+   */
+
+  Object.assign(prefEl.style, {
+    margin: "0",
+    lineHeight: "12px",
+    display: "grid",
+    alignItems: "center",
+    gridTemplateColumns: "subgrid",
+    gridColumn: "1 / -1",
+  });
+
+  prefEl.classList.toggle("theme-comment", !isPrefEnabled);
+
+  // Icon
+  const prefInfo = toolbox.doc.createElement("div");
+  prefInfo.title = desc;
+
+  Object.assign(prefInfo.style, {
+    width: "12px",
+    height: "12px",
+  });
+
+  prefInfo.classList.add("fission-pref-icon");
+
+  // Preference name
+  const prefTitle = toolbox.doc.createElement("span");
+
+  Object.assign(prefTitle.style, {
+    userSelect: "text",
+    fontWeight: isPrefEnabled ? "bold" : "normal",
+  });
+
+  prefTitle.textContent = name;
+
+  // Value
+  const prefValue = toolbox.doc.createElement("span");
+  prefValue.textContent = isPrefEnabled;
+
+  // Toggle Button
+  const toggleButton = toolbox.doc.createElement("button");
+  toggleButton.addEventListener("click", () => {
+    Services.prefs.setBoolPref(name, !isPrefEnabled);
+    updateTooltipContent(toolbox);
+  });
+  toggleButton.textContent = "toggle";
+
+  prefEl.append(prefInfo, prefTitle, prefValue, toggleButton);
+  return prefEl;
+}
 
 function isAnyPreferenceEnabled() {
   for (const [name] of PREFERENCES) {

@@ -58,7 +58,6 @@
 //   indicates only a quarter of input values are set, for idct16 and up,
 //   a significant amount of calculation can be skipped, at the cost of more
 //   code duplication and special casing.
-// - Special case functions for e.g. more combinations with identity.
 
 const idct_coeffs, align=4
         // idct4
@@ -106,7 +105,7 @@ const iadst8_coeffs, align=4
         .short          4076, 401, 3612, 1931
         .short          2598, 3166, 1189, 3920
         // idct_coeffs
-        .short          2896, 2896*8, 1567, 3784, 0, 0, 0, 0
+        .short          2896, 0, 1567, 3784, 0, 0, 0, 0
 endconst
 
 const iadst16_coeffs, align=4
@@ -134,13 +133,6 @@ endconst
 .endif
 .endm
 
-.macro smull_sz d0, d1, s0, c, sz
-        smull           \d0\().4s, \s0\().4h, \c
-.ifc \sz, .8h
-        smull2          \d1\().4s, \s0\().8h, \c
-.endif
-.endm
-
 .macro rshrn_sz d0, s0, s1, shift, sz
         rshrn           \d0\().4h, \s0\().4s, \shift
 .ifc \sz, .8h
@@ -158,31 +150,6 @@ endconst
         sqrdmulh        \r5\sz,  \r5\sz,  \c
         sqrdmulh        \r6\sz,  \r6\sz,  \c
         sqrdmulh        \r7\sz,  \r7\sz,  \c
-.endif
-.endm
-
-.macro scale_wide sz, c, r0, r1, r2 r3, r4, r5, r6, r7
-        smull_sz        v2,  v3,  \r0, \c,  \sz
-        smull_sz        v4,  v5,  \r1, \c,  \sz
-        smull_sz        v6,  v7,  \r2, \c,  \sz
-        rshrn_sz        \r0, v2,  v3,  #12, \sz
-        smull_sz        v2,  v3,  \r3, \c,  \sz
-        rshrn_sz        \r1, v4,  v5,  #12, \sz
-.ifnb \r4
-        smull_sz        v4,  v5,  \r4, \c,  \sz
-.endif
-        rshrn_sz        \r2, v6,  v7,  #12, \sz
-.ifnb \r4
-        smull_sz        v6,  v7,  \r5, \c,  \sz
-.endif
-        rshrn_sz        \r3, v2,  v3,  #12, \sz
-.ifnb \r4
-        smull_sz        v2,  v3,  \r6, \c,  \sz
-        rshrn_sz        \r4, v4,  v5,  #12, \sz
-        smull_sz        v4,  v5,  \r7, \c,  \sz
-        rshrn_sz        \r5, v6,  v7,  #12, \sz
-        rshrn_sz        \r6, v2,  v3,  #12, \sz
-        rshrn_sz        \r7, v4,  v5,  #12, \sz
 .endif
 .endm
 
@@ -482,14 +449,14 @@ endfunc
         sqsub           \r2\sz,  v3\sz,   v7\sz
 .endm
 
-function inv_dct_4x4_neon
+function inv_dct_4h_x4_neon, export=1
         movrel          x16, idct_coeffs
         ld1             {v0.4h}, [x16]
         idct_4          v16, v17, v18, v19, .4h
         ret
 endfunc
 
-function inv_dct_8x4_neon
+function inv_dct_8h_x4_neon, export=1
         movrel          x16, idct_coeffs
         ld1             {v0.4h}, [x16]
         idct_4          v16, v17, v18, v19, .8h
@@ -522,12 +489,12 @@ endfunc
         rshrn           \o3\().4h, \o3\().4s, #12
 .endm
 
-function inv_adst_4x4_neon
+function inv_adst_4h_x4_neon, export=1
         iadst_4x4       v16, v17, v18, v19
         ret
 endfunc
 
-function inv_flipadst_4x4_neon
+function inv_flipadst_4h_x4_neon, export=1
         iadst_4x4       v19, v18, v17, v16
         ret
 endfunc
@@ -588,53 +555,52 @@ endfunc
         rshrn2          \o3\().8h, v5.4s,  #12
 .endm
 
-function inv_adst_8x4_neon
+function inv_adst_8h_x4_neon, export=1
         iadst_8x4       v16, v17, v18, v19
         ret
 endfunc
 
-function inv_flipadst_8x4_neon
+function inv_flipadst_8h_x4_neon, export=1
         iadst_8x4       v19, v18, v17, v16
         ret
 endfunc
 
-function inv_identity_4x4_neon
-        mov             w16, #5793
+function inv_identity_4h_x4_neon, export=1
+        mov             w16, #(5793-4096)*8
         dup             v0.4h,   w16
-        smull           v4.4s,   v16.4h,  v0.h[0]
-        smull           v5.4s,   v17.4h,  v0.h[0]
-        smull           v6.4s,   v18.4h,  v0.h[0]
-        smull           v7.4s,   v19.4h,  v0.h[0]
-        rshrn           v16.4h,  v4.4s,   #12
-        rshrn           v17.4h,  v5.4s,   #12
-        rshrn           v18.4h,  v6.4s,   #12
-        rshrn           v19.4h,  v7.4s,   #12
+        sqrdmulh        v4.4h,   v16.4h,  v0.h[0]
+        sqrdmulh        v5.4h,   v17.4h,  v0.h[0]
+        sqrdmulh        v6.4h,   v18.4h,  v0.h[0]
+        sqrdmulh        v7.4h,   v19.4h,  v0.h[0]
+        sqadd           v16.4h,  v16.4h,  v4.4h
+        sqadd           v17.4h,  v17.4h,  v5.4h
+        sqadd           v18.4h,  v18.4h,  v6.4h
+        sqadd           v19.4h,  v19.4h,  v7.4h
         ret
 endfunc
 
-function inv_identity_8x4_neon
-        mov             w16, #5793
+function inv_identity_8h_x4_neon, export=1
+        mov             w16, #(5793-4096)*8
         dup             v0.4h,   w16
-        smull           v2.4s,   v16.4h,  v0.h[0]
-        smull2          v3.4s,   v16.8h,  v0.h[0]
-        smull           v4.4s,   v17.4h,  v0.h[0]
-        smull2          v5.4s,   v17.8h,  v0.h[0]
-        rshrn           v16.4h,  v2.4s,   #12
-        rshrn2          v16.8h,  v3.4s,   #12
-        smull           v6.4s,   v18.4h,  v0.h[0]
-        smull2          v7.4s,   v18.8h,  v0.h[0]
-        rshrn           v17.4h,  v4.4s,   #12
-        rshrn2          v17.8h,  v5.4s,   #12
-        smull           v2.4s,   v19.4h,  v0.h[0]
-        smull2          v3.4s,   v19.8h,  v0.h[0]
-        rshrn           v18.4h,  v6.4s,   #12
-        rshrn2          v18.8h,  v7.4s,   #12
-        rshrn           v19.4h,  v2.4s,   #12
-        rshrn2          v19.8h,  v3.4s,   #12
+        sqrdmulh        v4.8h,   v16.8h,  v0.h[0]
+        sqrdmulh        v5.8h,   v17.8h,  v0.h[0]
+        sqrdmulh        v6.8h,   v18.8h,  v0.h[0]
+        sqrdmulh        v7.8h,   v19.8h,  v0.h[0]
+        sqadd           v16.8h,  v16.8h,  v4.8h
+        sqadd           v17.8h,  v17.8h,  v5.8h
+        sqadd           v18.8h,  v18.8h,  v6.8h
+        sqadd           v19.8h,  v19.8h,  v7.8h
         ret
 endfunc
 
-function inv_txfm_add_wht_wht_4x4_neon, export=1
+.macro identity_8x4_shift1 r0, r1, r2, r3, c
+.irp i, \r0\().8h, \r1\().8h, \r2\().8h, \r3\().8h
+        sqrdmulh        v2.8h,  \i,  \c
+        srhadd          \i,     \i,  v2.8h
+.endr
+.endm
+
+function inv_txfm_add_wht_wht_4x4_8bpc_neon, export=1
         mov             x15, x30
         movi            v31.8h,  #0
         ld1             {v16.4h,v17.4h,v18.4h,v19.4h}, [x2]
@@ -698,7 +664,7 @@ L(itx_4x4_end):
 endfunc
 
 .macro def_fn_4x4 txfm1, txfm2
-function inv_txfm_add_\txfm1\()_\txfm2\()_4x4_neon, export=1
+function inv_txfm_add_\txfm1\()_\txfm2\()_4x4_8bpc_neon, export=1
         mov             x15, x30
 
 .ifc \txfm1\()_\txfm2, dct_dct
@@ -718,8 +684,8 @@ function inv_txfm_add_\txfm1\()_\txfm2\()_4x4_neon, export=1
         b               L(itx_4x4_end)
 1:
 .endif
-        adr             x4,  inv_\txfm1\()_4x4_neon
-        adr             x5,  inv_\txfm2\()_4x4_neon
+        adr             x4,  inv_\txfm1\()_4h_x4_neon
+        adr             x5,  inv_\txfm2\()_4h_x4_neon
         b               inv_txfm_add_4x4_neon
 endfunc
 .endm
@@ -775,14 +741,14 @@ def_fn_4x4 identity, flipadst
         mov             \r6\szb, v6\szb         // out6
 .endm
 
-function inv_dct_8x8_neon
+function inv_dct_8h_x8_neon, export=1
         movrel          x16, idct_coeffs
         ld1             {v0.8h}, [x16]
         idct_8          v16, v17, v18, v19, v20, v21, v22, v23, .8h, .16b
         ret
 endfunc
 
-function inv_dct_4x8_neon
+function inv_dct_4h_x8_neon, export=1
         movrel          x16, idct_coeffs
         ld1             {v0.8h}, [x16]
         idct_8          v16, v17, v18, v19, v20, v21, v22, v23, .4h, .8b
@@ -856,51 +822,52 @@ endfunc
         sqneg           \o5\()\sz, v3\sz     // out5
 .endm
 
-function inv_adst_8x8_neon
+function inv_adst_8h_x8_neon, export=1
         iadst_8         v16, v17, v18, v19, v20, v21, v22, v23, .8h
         ret
 endfunc
 
-function inv_flipadst_8x8_neon
+function inv_flipadst_8h_x8_neon, export=1
         iadst_8         v23, v22, v21, v20, v19, v18, v17, v16, .8h
         ret
 endfunc
 
-function inv_adst_4x8_neon
+function inv_adst_4h_x8_neon, export=1
         iadst_8         v16, v17, v18, v19, v20, v21, v22, v23, .4h
         ret
 endfunc
 
-function inv_flipadst_4x8_neon
+function inv_flipadst_4h_x8_neon, export=1
         iadst_8         v23, v22, v21, v20, v19, v18, v17, v16, .4h
         ret
 endfunc
 
-function inv_identity_8x8_neon
-        shl             v16.8h,  v16.8h,  #1
-        shl             v17.8h,  v17.8h,  #1
-        shl             v18.8h,  v18.8h,  #1
-        shl             v19.8h,  v19.8h,  #1
-        shl             v20.8h,  v20.8h,  #1
-        shl             v21.8h,  v21.8h,  #1
-        shl             v22.8h,  v22.8h,  #1
-        shl             v23.8h,  v23.8h,  #1
+function inv_identity_8h_x8_neon, export=1
+        sqshl           v16.8h,  v16.8h,  #1
+        sqshl           v17.8h,  v17.8h,  #1
+        sqshl           v18.8h,  v18.8h,  #1
+        sqshl           v19.8h,  v19.8h,  #1
+        sqshl           v20.8h,  v20.8h,  #1
+        sqshl           v21.8h,  v21.8h,  #1
+        sqshl           v22.8h,  v22.8h,  #1
+        sqshl           v23.8h,  v23.8h,  #1
         ret
 endfunc
 
-function inv_identity_4x8_neon
-        shl             v16.4h,  v16.4h,  #1
-        shl             v17.4h,  v17.4h,  #1
-        shl             v18.4h,  v18.4h,  #1
-        shl             v19.4h,  v19.4h,  #1
-        shl             v20.4h,  v20.4h,  #1
-        shl             v21.4h,  v21.4h,  #1
-        shl             v22.4h,  v22.4h,  #1
-        shl             v23.4h,  v23.4h,  #1
+function inv_identity_4h_x8_neon, export=1
+        sqshl           v16.4h,  v16.4h,  #1
+        sqshl           v17.4h,  v17.4h,  #1
+        sqshl           v18.4h,  v18.4h,  #1
+        sqshl           v19.4h,  v19.4h,  #1
+        sqshl           v20.4h,  v20.4h,  #1
+        sqshl           v21.4h,  v21.4h,  #1
+        sqshl           v22.4h,  v22.4h,  #1
+        sqshl           v23.4h,  v23.4h,  #1
         ret
 endfunc
 
-function inv_txfm_add_8x8_neon
+.macro def_fn_8x8_base variant
+function inv_txfm_\variant\()add_8x8_neon
         movi            v28.8h,  #0
         movi            v29.8h,  #0
         movi            v30.8h,  #0
@@ -910,6 +877,9 @@ function inv_txfm_add_8x8_neon
         ld1             {v20.8h,v21.8h,v22.8h,v23.8h}, [x2]
         st1             {v28.8h,v29.8h,v30.8h,v31.8h}, [x2]
 
+.ifc \variant, identity_
+        // The identity shl #1 and downshift srshr #1 cancel out
+.else
         blr             x4
 
         srshr           v16.8h,  v16.8h,  #1
@@ -920,6 +890,7 @@ function inv_txfm_add_8x8_neon
         srshr           v21.8h,  v21.8h,  #1
         srshr           v22.8h,  v22.8h,  #1
         srshr           v23.8h,  v23.8h,  #1
+.endif
 
         transpose_8x8h  v16, v17, v18, v19, v20, v21, v22, v23, v24, v25
 
@@ -928,17 +899,25 @@ function inv_txfm_add_8x8_neon
         load_add_store_8x8 x0, x7
         br              x15
 endfunc
+.endm
+
+def_fn_8x8_base
+def_fn_8x8_base identity_
 
 .macro def_fn_8x8 txfm1, txfm2
-function inv_txfm_add_\txfm1\()_\txfm2\()_8x8_neon, export=1
+function inv_txfm_add_\txfm1\()_\txfm2\()_8x8_8bpc_neon, export=1
         mov             x15, x30
 
 .ifc \txfm1\()_\txfm2, dct_dct
         idct_dc         8,   8,   1
 .endif
-        adr             x4,  inv_\txfm1\()_8x8_neon
-        adr             x5,  inv_\txfm2\()_8x8_neon
+        adr             x5,  inv_\txfm2\()_8h_x8_neon
+.ifc \txfm1, identity
+        b               inv_txfm_identity_add_8x8_neon
+.else
+        adr             x4,  inv_\txfm1\()_8h_x8_neon
         b               inv_txfm_add_8x8_neon
+.endif
 endfunc
 .endm
 
@@ -1013,14 +992,14 @@ function inv_txfm_add_4x8_neon
 endfunc
 
 .macro def_fn_48 w, h, txfm1, txfm2
-function inv_txfm_add_\txfm1\()_\txfm2\()_\w\()x\h\()_neon, export=1
+function inv_txfm_add_\txfm1\()_\txfm2\()_\w\()x\h\()_8bpc_neon, export=1
         mov             x15, x30
 
 .ifc \txfm1\()_\txfm2, dct_dct
         idct_dc         \w,  \h,  0
 .endif
-        adr             x4,  inv_\txfm1\()_\h\()x\w\()_neon
-        adr             x5,  inv_\txfm2\()_\w\()x\h\()_neon
+        adr             x4,  inv_\txfm1\()_\h\()h_x\w\()_neon
+        adr             x5,  inv_\txfm2\()_\w\()h_x\h\()_neon
         b               inv_txfm_add_\w\()x\h\()_neon
 endfunc
 .endm
@@ -1083,9 +1062,12 @@ def_fns_48 8, 4
         rshrn_sz        v27, v6,  v7,  #12, \sz                   // t14a
 
         smull_smlsl     v4,  v5,  v29, v23, v0.h[2], v0.h[3], \sz // -> t13a
-        neg             v29\sz,  v29\sz
-        smull_smlsl     v6,  v7,  v29, v23, v0.h[3], v0.h[2], \sz // -> t10a
+        smull_smlal     v6,  v7,  v29, v23, v0.h[3], v0.h[2], \sz // -> t10a
         rshrn_sz        v29, v4,  v5,  #12, \sz                   // t13a
+        neg             v6.4s,   v6.4s
+.ifc \sz, .8h
+        neg             v7.4s,   v7.4s
+.endif
         rshrn_sz        v23, v6,  v7,  #12, \sz                   // t10a
 
         sqsub           v2\sz,   v17\sz,  v19\sz  // t11a
@@ -1128,14 +1110,14 @@ def_fns_48 8, 4
         mov             v22\szb, v3\szb
 .endm
 
-function inv_dct_8x16_neon
+function inv_dct_8h_x16_neon, export=1
         movrel          x16, idct_coeffs
         ld1             {v0.8h, v1.8h}, [x16]
         idct_16         .8h, .16b
         ret
 endfunc
 
-function inv_dct_4x16_neon
+function inv_dct_4h_x16_neon, export=1
         movrel          x16, idct_coeffs
         ld1             {v0.8h, v1.8h}, [x16]
         idct_16         .4h, .8b
@@ -1312,93 +1294,123 @@ endfunc
         sqneg           \o9\sz,  v7\sz // out9
 .endm
 
-function inv_adst_8x16_neon
+function inv_adst_8h_x16_neon, export=1
         iadst_16        v16, v17, v18, v19, v20, v21, v22, v23, v24, v25, v26, v27, v28, v29, v30, v31, .8h, .16b
         ret
 endfunc
 
-function inv_flipadst_8x16_neon
+function inv_flipadst_8h_x16_neon, export=1
         iadst_16        v31, v30, v29, v28, v27, v26, v25, v24, v23, v22, v21, v20, v19, v18, v17, v16, .8h, .16b
         ret
 endfunc
 
-function inv_adst_4x16_neon
+function inv_adst_4h_x16_neon, export=1
         iadst_16        v16, v17, v18, v19, v20, v21, v22, v23, v24, v25, v26, v27, v28, v29, v30, v31, .4h, .8b
         ret
 endfunc
 
-function inv_flipadst_4x16_neon
+function inv_flipadst_4h_x16_neon, export=1
         iadst_16        v31, v30, v29, v28, v27, v26, v25, v24, v23, v22, v21, v20, v19, v18, v17, v16, .4h, .8b
         ret
 endfunc
 
-function inv_identity_8x16_neon
-        mov             w16, #2*5793
+function inv_identity_8h_x16_neon, export=1
+        mov             w16, #2*(5793-4096)*8
         dup             v0.4h,   w16
 .irp i, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
-        smull           v2.4s,   v\i\().4h,  v0.h[0]
-        smull2          v3.4s,   v\i\().8h,  v0.h[0]
-        rshrn           v\i\().4h,  v2.4s,   #12
-        rshrn2          v\i\().8h,  v3.4s,   #12
+        sqrdmulh        v2.8h,      v\i\().8h,  v0.h[0]
+        sqadd           v\i\().8h,  v\i\().8h,  v\i\().8h
+        sqadd           v\i\().8h,  v\i\().8h,  v2.8h
 .endr
         ret
 endfunc
 
-function inv_identity_4x16_neon
-        mov             w16, #2*5793
+function inv_identity_4h_x16_neon, export=1
+        mov             w16, #2*(5793-4096)*8
         dup             v0.4h,   w16
 .irp i, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
-        smull           v2.4s,   v\i\().4h,  v0.h[0]
-        rshrn           v\i\().4h,  v2.4s,   #12
+        sqrdmulh        v2.4h,      v\i\().4h,  v0.h[0]
+        sqadd           v\i\().4h,  v\i\().4h,  v\i\().4h
+        sqadd           v\i\().4h,  v\i\().4h,  v2.4h
 .endr
         ret
 endfunc
 
-function inv_txfm_horz_16x8_neon
+.macro identity_8x16_shift2 c
+.irp i, v16.8h, v17.8h, v18.8h, v19.8h, v20.8h, v21.8h, v22.8h, v23.8h, v24.8h, v25.8h, v26.8h, v27.8h, v28.8h, v29.8h, v30.8h, v31.8h
+        sqrdmulh        v2.8h,   \i,      \c
+        sshr            v2.8h,   v2.8h,   #1
+        srhadd          \i,      \i,      v2.8h
+.endr
+.endm
+
+.macro identity_8x16_shift1 c
+.irp i, v16.8h, v17.8h, v18.8h, v19.8h, v20.8h, v21.8h, v22.8h, v23.8h, v24.8h, v25.8h, v26.8h, v27.8h, v28.8h, v29.8h, v30.8h, v31.8h
+        sqrdmulh        v2.8h,   \i,      \c
+        srshr           v2.8h,   v2.8h,   #1
+        sqadd           \i,      \i,      v2.8h
+.endr
+.endm
+
+.macro identity_8x8_shift1 c
+.irp i, v16.8h, v17.8h, v18.8h, v19.8h, v20.8h, v21.8h, v22.8h, v23.8h
+        sqrdmulh        v2.8h,   \i,      \c
+        srshr           v2.8h,   v2.8h,   #1
+        sqadd           \i,      \i,      v2.8h
+.endr
+.endm
+
+.macro identity_8x8 c
+.irp i, v16.8h, v17.8h, v18.8h, v19.8h, v20.8h, v21.8h, v22.8h, v23.8h
+        sqrdmulh        v2.8h,   \i,      \c
+        sqadd           \i,      \i,      \i
+        sqadd           \i,      \i,      v2.8h
+.endr
+.endm
+
+.macro def_horz_16 scale=0, identity=0, shift=2, suffix
+function inv_txfm_horz\suffix\()_16x8_neon
         mov             x14, x30
         movi            v7.8h,  #0
-.irp i, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
-        ld1             {v\i\().8h}, [x7]
-        st1             {v7.8h}, [x7], x8
-.endr
-        blr             x4
-.irp i, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
-        srshr           v\i\().8h,  v\i\().8h,  #2
-.endr
-        transpose_8x8h  v16, v17, v18, v19, v20, v21, v22, v23, v4, v5
-        transpose_8x8h  v24, v25, v26, v27, v28, v29, v30, v31, v4, v5
-
-.irp i, 16, 24, 17, 25, 18, 26, 19, 27, 20, 28, 21, 29, 22, 30, 23, 31
-        st1             {v\i\().8h}, [x6], #16
-.endr
-
-        br              x14
-endfunc
-
-function inv_txfm_horz_scale_16x8_neon
-        mov             x14, x30
-        movi            v7.8h,  #0
+.if \identity
+        mov             w16, #2*(5793-4096)*8
+        dup             v0.4h,   w16
+.elseif \scale
         mov             w16, #2896*8
         dup             v0.4h,   w16
-.irp i, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
-        ld1             {v\i\().8h}, [x7]
+.endif
+.irp i, v16.8h, v17.8h, v18.8h, v19.8h, v20.8h, v21.8h, v22.8h, v23.8h, v24.8h, v25.8h, v26.8h, v27.8h, v28.8h, v29.8h, v30.8h, v31.8h
+        ld1             {\i}, [x7]
         st1             {v7.8h}, [x7], x8
 .endr
+.if \scale
         scale_input     .8h, v0.h[0], v16, v17, v18, v19, v20, v21, v22, v23
         scale_input     .8h, v0.h[0], v24, v25, v26, v27, v28, v29, v30, v31
+.endif
+.if \identity
+        identity_8x16_shift2 v0.h[0]
+.else
         blr             x4
-.irp i, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
-        srshr           v\i\().8h,  v\i\().8h,  #1
+.endif
+.if \shift > 0
+.irp i, v16.8h, v17.8h, v18.8h, v19.8h, v20.8h, v21.8h, v22.8h, v23.8h, v24.8h, v25.8h, v26.8h, v27.8h, v28.8h, v29.8h, v30.8h, v31.8h
+        srshr           \i,  \i,  #\shift
 .endr
+.endif
         transpose_8x8h  v16, v17, v18, v19, v20, v21, v22, v23, v4, v5
         transpose_8x8h  v24, v25, v26, v27, v28, v29, v30, v31, v4, v5
 
-.irp i, 16, 24, 17, 25, 18, 26, 19, 27, 20, 28, 21, 29, 22, 30, 23, 31
-        st1             {v\i\().8h}, [x6], #16
+.irp i, v16.8h, v24.8h, v17.8h, v25.8h, v18.8h, v26.8h, v19.8h, v27.8h, v20.8h, v28.8h, v21.8h, v29.8h, v22.8h, v30.8h, v23.8h, v31.8h
+        st1             {\i}, [x6], #16
 .endr
 
         br              x14
 endfunc
+.endm
+
+def_horz_16 scale=0, identity=0, shift=2
+def_horz_16 scale=1, identity=0, shift=1, suffix=_scale
+def_horz_16 scale=0, identity=1, shift=0, suffix=_identity
 
 function inv_txfm_add_vert_8x16_neon
         mov             x14, x30
@@ -1421,7 +1433,7 @@ function inv_txfm_add_16x16_neon
 .endif
         add             x7,  x2,  #(\i*2)
         mov             x8,  #16*2
-        bl              inv_txfm_horz_16x8_neon
+        blr             x9
 .endr
         b               2f
 1:
@@ -1445,12 +1457,17 @@ function inv_txfm_add_16x16_neon
 endfunc
 
 .macro def_fn_16x16 txfm1, txfm2, eob_half
-function inv_txfm_add_\txfm1\()_\txfm2\()_16x16_neon, export=1
+function inv_txfm_add_\txfm1\()_\txfm2\()_16x16_8bpc_neon, export=1
 .ifc \txfm1\()_\txfm2, dct_dct
         idct_dc         16,  16,  2
 .endif
-        adr             x4,  inv_\txfm1\()_8x16_neon
-        adr             x5,  inv_\txfm2\()_8x16_neon
+.ifc \txfm1, identity
+        adr             x9,  inv_txfm_horz_identity_16x8_neon
+.else
+        adr             x9,  inv_txfm_horz_16x8_neon
+        adr             x4,  inv_\txfm1\()_8h_x16_neon
+.endif
+        adr             x5,  inv_\txfm2\()_8h_x16_neon
         mov             x13, #\eob_half
         b               inv_txfm_add_16x16_neon
 endfunc
@@ -1469,12 +1486,35 @@ def_fn_16x16 flipadst, adst, 36
 def_fn_16x16 flipadst, flipadst, 36
 def_fn_16x16 identity, dct, 8
 
-function inv_txfm_add_16x4_neon
+.macro def_fn_416_base variant
+function inv_txfm_\variant\()add_16x4_neon
         mov             x15, x30
         movi            v4.8h,  #0
 
-.irp i, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
-        ld1             {v\i\().4h}, [x2]
+.ifc \variant, identity_
+.irp i, v16.4h, v17.4h, v18.4h, v19.4h
+        ld1             {\i},    [x2]
+        st1             {v4.4h}, [x2], #8
+.endr
+.irp i, v16.d, v17.d, v18.d, v19.d
+        ld1             {\i}[1], [x2]
+        st1             {v4.4h}, [x2], #8
+.endr
+        mov             w16, #2*(5793-4096)*8
+        dup             v0.4h,   w16
+.irp i, v20.4h, v21.4h, v22.4h, v23.4h
+        ld1             {\i},    [x2]
+        st1             {v4.4h}, [x2], #8
+.endr
+.irp i, v20.d, v21.d, v22.d, v23.d
+        ld1             {\i}[1], [x2]
+        st1             {v4.4h}, [x2], #8
+.endr
+
+        identity_8x16_shift1 v0.h[0]
+.else
+.irp i, v16.4h, v17.4h, v18.4h, v19.4h, v20.4h, v21.4h, v22.4h, v23.4h, v24.4h, v25.4h, v26.4h, v27.4h, v28.4h, v29.4h, v30.4h, v31.4h
+        ld1             {\i},    [x2]
         st1             {v4.4h}, [x2], #8
 .endr
 
@@ -1484,14 +1524,21 @@ function inv_txfm_add_16x4_neon
         ins             v17.d[1], v21.d[0]
         ins             v18.d[1], v22.d[0]
         ins             v19.d[1], v23.d[0]
-.irp i, 16, 17, 18, 19
-        srshr           v\i\().8h,  v\i\().8h,  #1
+.irp i, v16.8h, v17.8h, v18.8h, v19.8h
+        srshr           \i,  \i,  #1
 .endr
+.endif
         transpose_4x8h  v16, v17, v18, v19, v2,  v3,  v4,  v5
         blr             x5
         mov             x6,  x0
         load_add_store_8x4 x6, x7
 
+.ifc \variant, identity_
+        mov             v16.16b, v20.16b
+        mov             v17.16b, v21.16b
+        mov             v18.16b, v22.16b
+        mov             v19.16b, v23.16b
+.else
         ins             v24.d[1], v28.d[0]
         ins             v25.d[1], v29.d[0]
         ins             v26.d[1], v30.d[0]
@@ -1500,6 +1547,7 @@ function inv_txfm_add_16x4_neon
         srshr           v17.8h,  v25.8h,  #1
         srshr           v18.8h,  v26.8h,  #1
         srshr           v19.8h,  v27.8h,  #1
+.endif
         transpose_4x8h  v16, v17, v18, v19, v2,  v3,  v4,  v5
         blr             x5
         add             x6,  x0,  #8
@@ -1508,7 +1556,7 @@ function inv_txfm_add_16x4_neon
         br              x15
 endfunc
 
-function inv_txfm_add_4x16_neon
+function inv_txfm_\variant\()add_4x16_neon
         mov             x15, x30
         movi            v2.8h,   #0
 
@@ -1517,8 +1565,17 @@ function inv_txfm_add_4x16_neon
         b.lt            1f
 
         add             x6,  x2,  #16
-.irp i, 16, 17, 18, 19
-        ld1             {v\i\().8h}, [x6]
+.ifc \variant, identity_
+.irp i, v24.8h, v25.8h, v26.8h, v27.8h
+        ld1             {\i},    [x6]
+        st1             {v2.8h}, [x6], x11
+.endr
+        mov             w16, #(5793-4096)*8
+        dup             v0.4h,   w16
+        identity_8x4_shift1 v24, v25, v26, v27, v0.h[0]
+.else
+.irp i, v16.8h, v17.8h, v18.8h, v19.8h
+        ld1             {\i},    [x6]
         st1             {v2.8h}, [x6], x11
 .endr
         blr             x4
@@ -1526,6 +1583,7 @@ function inv_txfm_add_4x16_neon
         srshr           v25.8h,  v17.8h,  #1
         srshr           v26.8h,  v18.8h,  #1
         srshr           v27.8h,  v19.8h,  #1
+.endif
         transpose_4x8h  v24, v25, v26, v27, v4,  v5,  v6,  v7
         ins             v28.d[0], v24.d[1]
         ins             v29.d[0], v25.d[1]
@@ -1534,19 +1592,25 @@ function inv_txfm_add_4x16_neon
 
         b               2f
 1:
-.irp i, 24, 25, 26, 27, 28, 29, 30, 31
-        movi            v\i\().4h,  #0
+.irp i, v24.4h, v25.4h, v26.4h, v27.4h, v28.4h, v29.4h, v30.4h, v31.4h
+        movi            \i,  #0
 .endr
 2:
         movi            v2.8h,   #0
-.irp i, 16, 17, 18, 19
-        ld1             {v\i\().8h}, [x2]
+.irp i, v16.8h, v17.8h, v18.8h, v19.8h
+        ld1             {\i},    [x2]
         st1             {v2.8h}, [x2], x11
 .endr
+.ifc \variant, identity_
+        mov             w16, #(5793-4096)*8
+        dup             v0.4h,   w16
+        identity_8x4_shift1 v16, v17, v18, v19, v0.h[0]
+.else
         blr             x4
-.irp i, 16, 17, 18, 19
-        srshr           v\i\().8h,  v\i\().8h,  #1
+.irp i, v16.8h, v17.8h, v18.8h, v19.8h
+        srshr           \i,  \i,  #1
 .endr
+.endif
         transpose_4x8h  v16, v17, v18, v19, v4,  v5,  v6,  v7
         ins             v20.d[0], v16.d[1]
         ins             v21.d[0], v17.d[1]
@@ -1559,21 +1623,29 @@ function inv_txfm_add_4x16_neon
 
         br              x15
 endfunc
+.endm
+
+def_fn_416_base
+def_fn_416_base identity_
 
 .macro def_fn_416 w, h, txfm1, txfm2, eob_half
-function inv_txfm_add_\txfm1\()_\txfm2\()_\w\()x\h\()_neon, export=1
+function inv_txfm_add_\txfm1\()_\txfm2\()_\w\()x\h\()_8bpc_neon, export=1
 .ifc \txfm1\()_\txfm2, dct_dct
         idct_dc         \w,  \h,  1
 .endif
 .if \w == 4
-        adr             x4,  inv_\txfm1\()_8x\w\()_neon
-        adr             x5,  inv_\txfm2\()_4x\h\()_neon
+        adr             x4,  inv_\txfm1\()_8h_x\w\()_neon
+        adr             x5,  inv_\txfm2\()_4h_x\h\()_neon
         mov             w13, #\eob_half
 .else
-        adr             x4,  inv_\txfm1\()_4x\w\()_neon
-        adr             x5,  inv_\txfm2\()_8x\h\()_neon
+        adr             x4,  inv_\txfm1\()_4h_x\w\()_neon
+        adr             x5,  inv_\txfm2\()_8h_x\h\()_neon
 .endif
+.ifc \txfm1, identity
+        b               inv_txfm_identity_add_\w\()x\h\()_neon
+.else
         b               inv_txfm_add_\w\()x\h\()_neon
+.endif
 endfunc
 .endm
 
@@ -1600,24 +1672,31 @@ def_fns_416 4, 16
 def_fns_416 16, 4
 
 
-function inv_txfm_add_16x8_neon
+.macro def_fn_816_base variant
+function inv_txfm_\variant\()add_16x8_neon
         mov             x15, x30
         movi            v4.8h,  #0
         mov             w16, #2896*8
         dup             v0.4h,   w16
 
-.irp i, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
-        ld1             {v\i\().8h}, [x2]
+.irp i, v16.8h, v17.8h, v18.8h, v19.8h, v20.8h, v21.8h, v22.8h, v23.8h, v24.8h, v25.8h, v26.8h, v27.8h, v28.8h, v29.8h, v30.8h, v31.8h
+        ld1             {\i},    [x2]
         st1             {v4.8h}, [x2], #16
 .endr
 
         scale_input     .8h, v0.h[0], v16, v17, v18, v19, v20, v21, v22, v23
         scale_input     .8h, v0.h[0], v24, v25, v26, v27, v28, v29, v30, v31
+.ifc \variant, identity_
+        mov             w16, #2*(5793-4096)*8
+        dup             v0.4h,   w16
+        identity_8x16_shift1 v0.h[0]
+.else
         blr             x4
 
-.irp i, 16, 17, 18, 19, 20, 21, 22, 23
-        srshr           v\i\().8h,  v\i\().8h,  #1
+.irp i, v16.8h, v17.8h, v18.8h, v19.8h, v20.8h, v21.8h, v22.8h, v23.8h
+        srshr           \i,  \i,  #1
 .endr
+.endif
         transpose_8x8h  v16, v17, v18, v19, v20, v21, v22, v23, v2, v3
 
         blr             x5
@@ -1625,6 +1704,16 @@ function inv_txfm_add_16x8_neon
         mov             x6,  x0
         load_add_store_8x8 x6, x7
 
+.ifc \variant, identity_
+        mov             v16.16b, v24.16b
+        mov             v17.16b, v25.16b
+        mov             v18.16b, v26.16b
+        mov             v19.16b, v27.16b
+        mov             v20.16b, v28.16b
+        mov             v21.16b, v29.16b
+        mov             v22.16b, v30.16b
+        mov             v23.16b, v31.16b
+.else
         srshr           v16.8h,  v24.8h,  #1
         srshr           v17.8h,  v25.8h,  #1
         srshr           v18.8h,  v26.8h,  #1
@@ -1633,6 +1722,7 @@ function inv_txfm_add_16x8_neon
         srshr           v21.8h,  v29.8h,  #1
         srshr           v22.8h,  v30.8h,  #1
         srshr           v23.8h,  v31.8h,  #1
+.endif
 
         transpose_8x8h  v16, v17, v18, v19, v20, v21, v22, v23, v2, v3
 
@@ -1644,7 +1734,7 @@ function inv_txfm_add_16x8_neon
         br              x15
 endfunc
 
-function inv_txfm_add_8x16_neon
+function inv_txfm_\variant\()add_8x16_neon
         mov             x15, x30
         movi            v4.8h,   #0
         mov             w16, #2896*8
@@ -1655,8 +1745,16 @@ function inv_txfm_add_8x16_neon
         b.lt            1f
 
         add             x6,  x2,  #16
-.irp i, 16, 17, 18, 19, 20, 21, 22, 23
-        ld1             {v\i\().8h}, [x6]
+.ifc \variant, identity_
+.irp i, v24.8h, v25.8h, v26.8h, v27.8h, v28.8h, v29.8h, v30.8h, v31.8h
+        ld1             {\i},    [x6]
+        st1             {v4.8h}, [x6], x11
+.endr
+        scale_input     .8h, v0.h[0], v24, v25, v26, v27, v28, v29, v30, v31
+        // The identity shl #1 and downshift srshr #1 cancel out
+.else
+.irp i, v16.8h, v17.8h, v18.8h, v19.8h, v20.8h, v21.8h, v22.8h, v23.8h
+        ld1             {\i},    [x6]
         st1             {v4.8h}, [x6], x11
 .endr
         scale_input     .8h, v0.h[0], v16, v17, v18, v19, v20, v21, v22, v23
@@ -1670,13 +1768,14 @@ function inv_txfm_add_8x16_neon
         srshr           v29.8h,  v21.8h,  #1
         srshr           v30.8h,  v22.8h,  #1
         srshr           v31.8h,  v23.8h,  #1
+.endif
         transpose_8x8h  v24, v25, v26, v27, v28, v29, v30, v31, v2, v3
 
         b               2f
 
 1:
-.irp i, 24, 25, 26, 27, 28, 29, 30, 31
-        movi            v\i\().8h,  #0
+.irp i, v24.8h, v25.8h, v26.8h, v27.8h, v28.8h, v29.8h, v30.8h, v31.8h
+        movi            \i,  #0
 .endr
 
 2:
@@ -1684,16 +1783,20 @@ function inv_txfm_add_8x16_neon
         mov             w16, #2896*8
         dup             v0.4h,   w16
 
-.irp i, 16, 17, 18, 19, 20, 21, 22, 23
-        ld1             {v\i\().8h}, [x2]
+.irp i, v16.8h, v17.8h, v18.8h, v19.8h, v20.8h, v21.8h, v22.8h, v23.8h
+        ld1             {\i},    [x2]
         st1             {v4.8h}, [x2], x11
 .endr
         scale_input     .8h, v0.h[0], v16, v17, v18, v19, v20, v21, v22, v23
+.ifc \variant, identity_
+        // The identity shl #1 and downshift srshr #1 cancel out
+.else
         blr             x4
 
-.irp i, 16, 17, 18, 19, 20, 21, 22, 23
-        srshr           v\i\().8h,  v\i\().8h,  #1
+.irp i, v16.8h, v17.8h, v18.8h, v19.8h, v20.8h, v21.8h, v22.8h, v23.8h
+        srshr           \i,  \i,  #1
 .endr
+.endif
 
         transpose_8x8h  v16, v17, v18, v19, v20, v21, v22, v23, v2, v3
 
@@ -1703,18 +1806,26 @@ function inv_txfm_add_8x16_neon
 
         br              x15
 endfunc
+.endm
+
+def_fn_816_base
+def_fn_816_base identity_
 
 .macro def_fn_816 w, h, txfm1, txfm2, eob_half
-function inv_txfm_add_\txfm1\()_\txfm2\()_\w\()x\h\()_neon, export=1
+function inv_txfm_add_\txfm1\()_\txfm2\()_\w\()x\h\()_8bpc_neon, export=1
 .ifc \txfm1\()_\txfm2, dct_dct
         idct_dc         \w,  \h,  1
 .endif
-        adr             x4,  inv_\txfm1\()_8x\w\()_neon
-        adr             x5,  inv_\txfm2\()_8x\h\()_neon
+        adr             x4,  inv_\txfm1\()_8h_x\w\()_neon
+        adr             x5,  inv_\txfm2\()_8h_x\h\()_neon
 .if \w == 8
         mov             x13, #\eob_half
 .endif
+.ifc \txfm1, identity
+        b               inv_txfm_identity_add_\w\()x\h\()_neon
+.else
         b               inv_txfm_add_\w\()x\h\()_neon
+.endif
 endfunc
 .endm
 
@@ -1740,7 +1851,7 @@ def_fn_816 \w, \h, identity, flipadst, 64
 def_fns_816 8, 16
 def_fns_816 16, 8
 
-function inv_dct32_odd_8x16_neon
+function inv_dct32_odd_8h_x16_neon, export=1
         movrel          x16, idct_coeffs, 2*16
         ld1             {v0.8h, v1.8h}, [x16]
         sub             x16, x16, #2*16
@@ -1918,7 +2029,7 @@ function inv_txfm_horz\suffix\()_dct_32x8_neon
         scale_input     .8h, v0.h[0], v16, v17, v18, v19, v20, v21, v22, v23
         scale_input     .8h, v0.h[0], v24, v25, v26, v27, v28, v29, v30, v31
 .endif
-        bl              inv_dct_8x16_neon
+        bl              inv_dct_8h_x16_neon
         transpose_8x8h  v16, v17, v18, v19, v20, v21, v22, v23, v4, v5
         transpose_8x8h  v24, v25, v26, v27, v28, v29, v30, v31, v4, v5
 
@@ -1948,15 +2059,13 @@ function inv_txfm_horz\suffix\()_dct_32x8_neon
         scale_input     .8h, v0.h[1], v16, v17, v18, v19, v20, v21, v22, v23
         scale_input     .8h, v0.h[1], v24, v25, v26, v27, v28, v29, v30, v31
 .endif
-        bl              inv_dct32_odd_8x16_neon
+        bl              inv_dct32_odd_8h_x16_neon
         transpose_8x8h  v31, v30, v29, v28, v27, v26, v25, v24, v4, v5
         transpose_8x8h  v23, v22, v21, v20, v19, v18, v17, v16, v4, v5
 .macro store2 r0, r1, shift
-        ld1             {v4.8h}, [x6], #16
-        ld1             {v5.8h}, [x6]
+        ld1             {v4.8h, v5.8h}, [x6]
         sqsub           v7.8h,   v4.8h,   \r0
         sqsub           v6.8h,   v5.8h,   \r1
-        sub             x6,  x6,  #16
         sqadd           v4.8h,   v4.8h,   \r0
         sqadd           v5.8h,   v5.8h,   \r1
         rev64           v6.8h,   v6.8h
@@ -1965,12 +2074,10 @@ function inv_txfm_horz\suffix\()_dct_32x8_neon
         srshr           v5.8h,   v5.8h,   #\shift
         srshr           v6.8h,   v6.8h,   #\shift
         srshr           v7.8h,   v7.8h,   #\shift
-        st1             {v4.8h}, [x6], #16
         ext             v6.16b,  v6.16b,  v6.16b,  #8
-        st1             {v5.8h}, [x6], #16
+        st1             {v4.8h, v5.8h}, [x6], #32
         ext             v7.16b,  v7.16b,  v7.16b,  #8
-        st1             {v6.8h}, [x6], #16
-        st1             {v7.8h}, [x6], #16
+        st1             {v6.8h, v7.8h}, [x6], #32
 .endm
 
         store2          v31.8h,  v23.8h, \shift
@@ -1998,7 +2105,7 @@ function inv_txfm_add_vert_dct_8x32_neon
 .endr
         sub             x7,  x7,  x8, lsl #4
 
-        bl              inv_dct_8x16_neon
+        bl              inv_dct_8h_x16_neon
 
 .irp i, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
         st1             {v\i\().8h}, [x7], x8
@@ -2011,7 +2118,7 @@ function inv_txfm_add_vert_dct_8x32_neon
 .endr
         sub             x7,  x7,  x8, lsl #4
         sub             x7,  x7,  x8, lsr #1
-        bl              inv_dct32_odd_8x16_neon
+        bl              inv_dct32_odd_8h_x16_neon
 
         neg             x9,  x8
         mov             x10, x6
@@ -2075,7 +2182,7 @@ const eob_8x32
         .short 43, 107, 171, 256
 endconst
 
-function inv_txfm_add_identity_identity_32x32_neon, export=1
+function inv_txfm_add_identity_identity_32x32_8bpc_neon, export=1
         movi            v0.8h,  #0
         movrel          x13, eob_32x32
 
@@ -2118,9 +2225,9 @@ endfunc
 .endm
 
 .macro def_identity_1632 w, h, wshort, hshort
-function inv_txfm_add_identity_identity_\w\()x\h\()_neon, export=1
+function inv_txfm_add_identity_identity_\w\()x\h\()_8bpc_neon, export=1
         mov             w16, #2896*8
-        mov             w17, #2*5793
+        mov             w17, #2*(5793-4096)*8
         dup             v1.4h,   w16
         movi            v0.8h,   #0
         mov             v1.h[1], w17
@@ -2140,12 +2247,11 @@ function inv_txfm_add_identity_identity_\w\()x\h\()_neon, export=1
 
 .if \w == 16
         // 16x32
-        scale_wide      .8h, v1.h[1], v16, v17, v18, v19, v20, v21, v22, v23
-        shift_8_regs    srshr, 1
+        identity_8x8_shift1 v1.h[1]
 .else
         // 32x16
-        shift_8_regs    shl, 1
-        scale_wide      .8h, v1.h[1], v16, v17, v18, v19, v20, v21, v22, v23
+        shift_8_regs    sqshl, 1
+        identity_8x8    v1.h[1]
 .endif
 
         transpose_8x8h  v16, v17, v18, v19, v20, v21, v22, v23, v4, v5
@@ -2179,12 +2285,13 @@ def_identity_1632 16, 32, _shortside,
 def_identity_1632 32, 16, , _shortside
 
 .macro def_identity_832 w, h
-function inv_txfm_add_identity_identity_\w\()x\h\()_neon, export=1
+function inv_txfm_add_identity_identity_\w\()x\h\()_8bpc_neon, export=1
         movi            v0.8h,  #0
         movrel          x13, eob_8x32
 
         mov             w8,  #2*\h
 1:
+        ldrh            w12, [x13], #2
 .irp i, v16.8h, v17.8h, v18.8h, v19.8h, v20.8h, v21.8h, v22.8h, v23.8h
         ld1             {\i}, [x2]
         st1             {v0.8h}, [x2], x8
@@ -2197,14 +2304,13 @@ function inv_txfm_add_identity_identity_\w\()x\h\()_neon, export=1
 
         transpose_8x8h  v16, v17, v18, v19, v20, v21, v22, v23, v4, v5
 
+        cmp             w3,  w12
 .if \w == 8
         load_add_store_8x8 x0, x7, shiftbits=2
 .else
         load_add_store_8x8 x0, x7, shiftbits=3
 .endif
 
-        ldrh            w12, [x13], #2
-        cmp             w3,  w12
         b.lt            9f
 .if \w == 8
         sub             x2,  x2,  x8, lsl #3
@@ -2223,7 +2329,7 @@ endfunc
 def_identity_832 8, 32
 def_identity_832 32, 8
 
-function inv_txfm_add_dct_dct_32x32_neon, export=1
+function inv_txfm_add_dct_dct_32x32_8bpc_neon, export=1
         idct_dc         32,  32,  2
 
         mov             x15, x30
@@ -2271,14 +2377,14 @@ function inv_txfm_add_dct_dct_32x32_neon, export=1
         br              x15
 endfunc
 
-function inv_txfm_add_dct_dct_16x32_neon, export=1
+function inv_txfm_add_dct_dct_16x32_8bpc_neon, export=1
         idct_dc         16,  32,  1
 
         mov             x15, x30
         sub             sp,  sp,  #1024
         movrel          x13, eob_16x32
         ldrh            w12, [x13], #2
-        adr             x4,  inv_dct_8x16_neon
+        adr             x4,  inv_dct_8h_x16_neon
 
 .irp i, 0, 8, 16, 24
         add             x6,  sp,  #(\i*16*2)
@@ -2320,13 +2426,13 @@ function inv_txfm_add_dct_dct_16x32_neon, export=1
         br              x15
 endfunc
 
-function inv_txfm_add_dct_dct_32x16_neon, export=1
+function inv_txfm_add_dct_dct_32x16_8bpc_neon, export=1
         idct_dc         32,  16,  1
 
         mov             x15, x30
         sub             sp,  sp,  #1024
 
-        adr             x5,  inv_dct_8x16_neon
+        adr             x5,  inv_dct_8h_x16_neon
 
 .irp i, 0, 8
         add             x6,  sp,  #(\i*32*2)
@@ -2365,7 +2471,7 @@ function inv_txfm_add_dct_dct_32x16_neon, export=1
         br              x15
 endfunc
 
-function inv_txfm_add_dct_dct_8x32_neon, export=1
+function inv_txfm_add_dct_dct_8x32_8bpc_neon, export=1
         idct_dc         8,   32, 2
 
         mov             x15, x30
@@ -2377,18 +2483,17 @@ function inv_txfm_add_dct_dct_8x32_neon, export=1
         mov             x8,  #2*32
         mov             w9,  #32
         mov             x6,  sp
-        mov             x7,  x2
 1:
 .irp i, 16, 17, 18, 19, 20, 21, 22, 23
-        ld1             {v\i\().8h}, [x7]
-        st1             {v28.8h}, [x7], x8
+        ld1             {v\i\().8h}, [x2]
+        st1             {v28.8h}, [x2], x8
 .endr
         ldrh            w12, [x13], #2
+        sub             x2,  x2,  x8, lsl #3
         sub             w9,  w9,  #8
-        sub             x7,  x7,  x8, lsl #3
-        add             x7,  x7,  #2*8
+        add             x2,  x2,  #2*8
 
-        bl              inv_dct_8x8_neon
+        bl              inv_dct_8h_x8_neon
 
 .irp i, 16, 17, 18, 19, 20, 21, 22, 23
         srshr           v\i\().8h,  v\i\().8h,  #2
@@ -2396,10 +2501,9 @@ function inv_txfm_add_dct_dct_8x32_neon, export=1
 
         transpose_8x8h  v16, v17, v18, v19, v20, v21, v22, v23, v24, v25
 
+        st1             {v16.8h, v17.8h, v18.8h, v19.8h}, [x6], #64
         cmp             w3,  w12
-.irp i, 16, 17, 18, 19, 20, 21, 22, 23
-        st1             {v\i\().8h}, [x6], #16
-.endr
+        st1             {v20.8h, v21.8h, v22.8h, v23.8h}, [x6], #64
 
         b.ge            1b
         cbz             w9,  3f
@@ -2424,7 +2528,7 @@ function inv_txfm_add_dct_dct_8x32_neon, export=1
         br              x15
 endfunc
 
-function inv_txfm_add_dct_dct_32x8_neon, export=1
+function inv_txfm_add_dct_dct_32x8_8bpc_neon, export=1
         idct_dc         32,  8,   2
 
         mov             x15, x30
@@ -2446,7 +2550,7 @@ function inv_txfm_add_dct_dct_32x8_neon, export=1
 .endr
         add             w9,  w9,  #8
 
-        bl              inv_dct_8x8_neon
+        bl              inv_dct_8h_x8_neon
 
         cmp             w9,  #32
 
@@ -2651,7 +2755,7 @@ endfunc
 .endm
 
 .macro def_dct64_func suffix, clear=0, scale=0
-function inv_txfm_dct\suffix\()_8x64_neon
+function inv_txfm_dct\suffix\()_8h_x64_neon, export=1
         mov             x14, x30
         mov             x6,  sp
         lsl             x8,  x8,  #2
@@ -2664,7 +2768,7 @@ function inv_txfm_dct\suffix\()_8x64_neon
         add             x7,  x7,  x8, lsr #1
         scale_if        \scale, v0.h[0], v16, v17, v18, v19, v20, v21, v22, v23
 
-        bl              inv_dct_8x16_neon
+        bl              inv_dct_8h_x16_neon
 
         store16         x6
 
@@ -2677,7 +2781,7 @@ function inv_txfm_dct\suffix\()_8x64_neon
         sub             x7,  x7,  x8, lsr #1
         scale_if        \scale, v0.h[0], v16, v17, v18, v19, v20, v21, v22, v23
 
-        bl              inv_dct32_odd_8x16_neon
+        bl              inv_dct32_odd_8h_x16_neon
 
         add             x10, x6,  #16*15
         sub             x6,  x6,  #16*16
@@ -2900,7 +3004,11 @@ endfunc
 
 .macro sub_sp space
 #ifdef _WIN32
-.if \space > 4096
+.if \space > 8192
+        // Here, we'd need to touch two (or more) pages while decrementing
+        // the stack pointer.
+        .error          "sub_sp_align doesn't support values over 8K at the moment"
+.elseif \space > 4096
         sub             x16, sp,  #4096
         ldr             xzr, [x16]
         sub             sp,  x16, #(\space - 4096)
@@ -2910,16 +3018,14 @@ endfunc
 #else
 .if \space >= 4096
         sub             sp,  sp,  #(\space)/4096*4096
+.endif
 .if (\space % 4096) != 0
         sub             sp,  sp,  #(\space)%4096
-.endif
-.else
-        sub             sp,  sp,  #\space
 .endif
 #endif
 .endm
 
-function inv_txfm_add_dct_dct_64x64_neon, export=1
+function inv_txfm_add_dct_dct_64x64_8bpc_neon, export=1
         idct_dc         64,  64,  2
 
         mov             x15, x30
@@ -2939,7 +3045,7 @@ function inv_txfm_add_dct_dct_64x64_neon, export=1
         add             x7,  x2,  #(\i*2)
         mov             x8,  #32*2
         mov             x12, #-2 // shift
-        bl              inv_txfm_dct_clear_8x64_neon
+        bl              inv_txfm_dct_clear_8h_x64_neon
         add             x6,  x5,  #(\i*64*2)
         bl              inv_txfm_horz_dct_64x8_neon
 .if \i < 24
@@ -2964,7 +3070,7 @@ function inv_txfm_add_dct_dct_64x64_neon, export=1
 .irp i, 0, 8, 16, 24, 32, 40, 48, 56
         add             x7,  x5,  #(\i*2)
         mov             x8,  #64*2
-        bl              inv_txfm_dct_8x64_neon
+        bl              inv_txfm_dct_8h_x64_neon
         add             x6,  x0,  #(\i)
         bl              inv_txfm_add_vert_dct_8x64_neon
 .endr
@@ -2973,7 +3079,7 @@ function inv_txfm_add_dct_dct_64x64_neon, export=1
         br              x15
 endfunc
 
-function inv_txfm_add_dct_dct_64x32_neon, export=1
+function inv_txfm_add_dct_dct_64x32_8bpc_neon, export=1
         idct_dc         64,  32,  1
 
         mov             x15, x30
@@ -2993,7 +3099,7 @@ function inv_txfm_add_dct_dct_64x32_neon, export=1
         add             x7,  x2,  #(\i*2)
         mov             x8,  #32*2
         mov             x12, #-1 // shift
-        bl              inv_txfm_dct_clear_scale_8x64_neon
+        bl              inv_txfm_dct_clear_scale_8h_x64_neon
         add             x6,  x5,  #(\i*64*2)
         bl              inv_txfm_horz_dct_64x8_neon
 .if \i < 24
@@ -3026,7 +3132,7 @@ function inv_txfm_add_dct_dct_64x32_neon, export=1
         br              x15
 endfunc
 
-function inv_txfm_add_dct_dct_32x64_neon, export=1
+function inv_txfm_add_dct_dct_32x64_8bpc_neon, export=1
         idct_dc         32,  64,  1
 
         mov             x15, x30
@@ -3067,7 +3173,7 @@ function inv_txfm_add_dct_dct_32x64_neon, export=1
 .irp i, 0, 8, 16, 24
         add             x7,  x5,  #(\i*2)
         mov             x8,  #32*2
-        bl              inv_txfm_dct_8x64_neon
+        bl              inv_txfm_dct_8h_x64_neon
         add             x6,  x0,  #(\i)
         bl              inv_txfm_add_vert_dct_8x64_neon
 .endr
@@ -3076,7 +3182,7 @@ function inv_txfm_add_dct_dct_32x64_neon, export=1
         br              x15
 endfunc
 
-function inv_txfm_add_dct_dct_64x16_neon, export=1
+function inv_txfm_add_dct_dct_64x16_8bpc_neon, export=1
         idct_dc         64,  16,  2
 
         mov             x15, x30
@@ -3092,14 +3198,16 @@ function inv_txfm_add_dct_dct_64x16_neon, export=1
         mov             w8,  #(16 - \i)
         cmp             w3,  w12
         b.lt            1f
-        ldrh            w12, [x13], #2
 .endif
         add             x7,  x2,  #(\i*2)
         mov             x8,  #16*2
         mov             x12, #-2 // shift
-        bl              inv_txfm_dct_clear_8x64_neon
+        bl              inv_txfm_dct_clear_8h_x64_neon
         add             x6,  x4,  #(\i*64*2)
         bl              inv_txfm_horz_dct_64x8_neon
+.if \i < 8
+        ldrh            w12, [x13], #2
+.endif
 .endr
         b               3f
 
@@ -3116,7 +3224,7 @@ function inv_txfm_add_dct_dct_64x16_neon, export=1
         b.gt            2b
 
 3:
-        adr             x5,  inv_dct_8x16_neon
+        adr             x5,  inv_dct_8h_x16_neon
 .irp i, 0, 8, 16, 24, 32, 40, 48, 56
         add             x6,  x0,  #(\i)
         add             x7,  x4,  #(\i*2)
@@ -3128,7 +3236,7 @@ function inv_txfm_add_dct_dct_64x16_neon, export=1
         br              x15
 endfunc
 
-function inv_txfm_add_dct_dct_16x64_neon, export=1
+function inv_txfm_add_dct_dct_16x64_8bpc_neon, export=1
         idct_dc         16,  64,  2
 
         mov             x15, x30
@@ -3139,7 +3247,7 @@ function inv_txfm_add_dct_dct_16x64_neon, export=1
         movrel          x13, eob_16x32
         ldrh            w12, [x13], #2
 
-        adr             x4,  inv_dct_8x16_neon
+        adr             x4,  inv_dct_8h_x16_neon
 .irp i, 0, 8, 16, 24
         add             x6,  x5,  #(\i*16*2)
 .if \i > 0
@@ -3170,7 +3278,7 @@ function inv_txfm_add_dct_dct_16x64_neon, export=1
 .irp i, 0, 8
         add             x7,  x5,  #(\i*2)
         mov             x8,  #16*2
-        bl              inv_txfm_dct_8x64_neon
+        bl              inv_txfm_dct_8h_x64_neon
         add             x6,  x0,  #(\i)
         bl              inv_txfm_add_vert_dct_8x64_neon
 .endr

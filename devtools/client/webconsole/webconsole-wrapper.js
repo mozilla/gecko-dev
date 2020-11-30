@@ -10,6 +10,7 @@ const {
 const ReactDOM = require("devtools/client/shared/vendor/react-dom");
 const { Provider } = require("devtools/client/shared/vendor/react-redux");
 const ToolboxProvider = require("devtools/client/framework/store-provider");
+const Services = require("Services");
 
 const actions = require("devtools/client/webconsole/actions/index");
 const { configureStore } = require("devtools/client/webconsole/store");
@@ -70,8 +71,6 @@ class WebConsoleWrapper {
     this.document = document;
 
     this.init = this.init.bind(this);
-    this.dispatchPaused = this.dispatchPaused.bind(this);
-    this.dispatchProgress = this.dispatchProgress.bind(this);
 
     this.queuedMessageAdds = [];
     this.queuedMessageUpdates = [];
@@ -111,11 +110,6 @@ class WebConsoleWrapper {
         webConsoleWrapper: this,
       });
 
-      if (this.toolbox) {
-        this.toolbox.threadFront.on("paused", this.dispatchPaused);
-        this.toolbox.threadFront.on("progress", this.dispatchProgress);
-      }
-
       const app = App({
         serviceContainer,
         webConsoleUI,
@@ -126,6 +120,9 @@ class WebConsoleWrapper {
         hideShowContentMessagesCheckbox:
           !webConsoleUI.isBrowserConsole &&
           !webConsoleUI.isBrowserToolboxConsole,
+        inputEnabled:
+          !webConsoleUI.isBrowserConsole ||
+          Services.prefs.getBoolPref("devtools.chrome.enabled"),
       });
 
       // Render the root Application component.
@@ -171,9 +168,7 @@ class WebConsoleWrapper {
     // since we can receive updates even if the message isn't rendered yet.
     const messages = [...getAllMessagesById(store.getState()).values()];
     this.queuedMessageUpdates = this.queuedMessageUpdates.filter(
-      ({ networkInfo }) => {
-        const { actor } = networkInfo;
-
+      ({ actor }) => {
         const queuedNetworkMessage = this.queuedMessageAdds.find(
           p => p.actor === actor
         );
@@ -213,37 +208,8 @@ class WebConsoleWrapper {
     store.dispatch(actions.privateMessagesClear());
   }
 
-  dispatchPaused(packet) {
-    if (packet.executionPoint) {
-      store.dispatch(actions.setPauseExecutionPoint(packet.executionPoint));
-    }
-  }
-
-  dispatchProgress(packet) {
-    const { executionPoint, recording } = packet;
-    const point = recording ? null : executionPoint;
-    store.dispatch(actions.setPauseExecutionPoint(point));
-  }
-
-  dispatchMessageUpdate(message, res) {
-    // network-message-updated will emit when all the update message arrives.
-    // Since we can't ensure the order of the network update, we check
-    // that networkInfo.updates has all we need.
-    // Note that 'requestPostData' is sent only for POST requests, so we need
-    // to count with that.
-    const NUMBER_OF_NETWORK_UPDATE = 8;
-
-    let expectedLength = NUMBER_OF_NETWORK_UPDATE;
-    if (res.networkInfo.updates.includes("responseCache")) {
-      expectedLength++;
-    }
-    if (res.networkInfo.updates.includes("requestPostData")) {
-      expectedLength++;
-    }
-
-    if (res.networkInfo.updates.length === expectedLength) {
-      this.batchedMessageUpdates({ res, message });
-    }
+  dispatchMessagesUpdate(messages) {
+    this.batchedMessagesUpdates(messages);
   }
 
   dispatchSidebarClose() {
@@ -269,9 +235,9 @@ class WebConsoleWrapper {
       // Add a type in order for this event packet to be identified by
       // utils/messages.js's `transformPacket`
       packet.type = "will-navigate";
+      packet.timeStamp = Date.now();
       this.dispatchMessageAdd(packet);
     } else {
-      this.webConsoleUI.clearNetworkRequests();
       this.dispatchMessagesClear();
       store.dispatch({
         type: Constants.WILL_NAVIGATE,
@@ -279,9 +245,11 @@ class WebConsoleWrapper {
     }
   }
 
-  batchedMessageUpdates(info) {
-    this.queuedMessageUpdates.push(info);
-    this.setTimeoutIfNeeded();
+  batchedMessagesUpdates(messages) {
+    if (messages.length > 0) {
+      this.queuedMessageUpdates.push(...messages);
+      this.setTimeoutIfNeeded();
+    }
   }
 
   batchedRequestUpdates(message) {
@@ -290,8 +258,10 @@ class WebConsoleWrapper {
   }
 
   batchedMessagesAdd(messages) {
-    this.queuedMessageAdds = this.queuedMessageAdds.concat(messages);
-    this.setTimeoutIfNeeded();
+    if (messages.length > 0) {
+      this.queuedMessageAdds.push(...messages);
+      this.setTimeoutIfNeeded();
+    }
   }
 
   requestData(id, type) {
@@ -341,7 +311,7 @@ class WebConsoleWrapper {
 
         store.dispatch(actions.messagesAdd(this.queuedMessageAdds));
 
-        const length = this.queuedMessageAdds.length;
+        const { length } = this.queuedMessageAdds;
 
         // This telemetry event is only useful when we have a toolbox so only
         // send it when we have one.
@@ -359,18 +329,17 @@ class WebConsoleWrapper {
         this.queuedMessageAdds = [];
 
         if (this.queuedMessageUpdates.length > 0) {
-          for (const { message, res } of this.queuedMessageUpdates) {
-            await store.dispatch(
-              actions.networkMessageUpdate(message, null, res)
-            );
-            this.webConsoleUI.emitForTests("network-message-updated", res);
-          }
+          await store.dispatch(
+            actions.networkMessageUpdates(this.queuedMessageUpdates, null)
+          );
+          this.webConsoleUI.emitForTests("network-messages-updated");
           this.queuedMessageUpdates = [];
         }
         if (this.queuedRequestUpdates.length > 0) {
-          for (const { id, data } of this.queuedRequestUpdates) {
-            await store.dispatch(actions.networkUpdateRequest(id, data));
-          }
+          await store.dispatch(
+            actions.networkUpdateRequests(this.queuedRequestUpdates)
+          );
+          const updateCount = this.queuedRequestUpdates.length;
           this.queuedRequestUpdates = [];
 
           // Fire an event indicating that all data fetched from
@@ -380,7 +349,11 @@ class WebConsoleWrapper {
           // (netmonitor/src/connector/firefox-data-provider).
           // This event might be utilized in tests to find the right
           // time when to finish.
-          this.webConsoleUI.emitForTests("network-request-payload-ready");
+
+          this.webConsoleUI.emitForTests(
+            "network-request-payload-ready",
+            updateCount
+          );
         }
         done();
       }, 50);

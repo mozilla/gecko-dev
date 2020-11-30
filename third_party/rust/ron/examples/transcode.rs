@@ -1,9 +1,5 @@
-extern crate ron;
-extern crate serde;
-extern crate serde_json;
-
 use ron::value::Value;
-use serde::ser::Serialize;
+use serde::Serialize;
 
 fn main() {
     let data = r#"
@@ -29,7 +25,7 @@ fn main() {
         )
         "#;
 
-    let value = Value::from_str(data).expect("Failed to deserialize");
+    let value: Value = data.parse().expect("Failed to deserialize");
     let mut ser = serde_json::Serializer::pretty(std::io::stdout());
     value.serialize(&mut ser).expect("Failed to serialize");
 }

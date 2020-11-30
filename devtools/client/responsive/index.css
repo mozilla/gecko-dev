@@ -238,7 +238,7 @@ input:-moz-focusring {
 }
 
 #rotate-button::before {
-  background-image: url("./images/rotate-viewport.svg");
+  background-image: url("chrome://devtools/content/responsive/images/rotate-viewport.svg");
 }
 
 #rotate-button.viewport-orientation-landscape::before {
@@ -246,7 +246,7 @@ input:-moz-focusring {
 }
 
 #touch-simulation-button::before {
-  background-image: url("./images/touch-events.svg");
+  background-image: url("chrome://devtools/content/responsive/images/touch-events.svg");
 }
 
 #screenshot-button::before {
@@ -295,106 +295,6 @@ input:-moz-focusring {
   fill: var(--theme-icon-dimmed-color);
 }
 
-#viewports-container {
-  display: flex;
-  overflow: auto;
-  height: 100%;
-  width: 100%;
-}
-
-.theme-light #viewports-container {
-  background-color: #F5F5F6;
-}
-
-#viewports {
-  /* Individual viewports are inline elements, make sure they stay on a single
-     line */
-  white-space: nowrap;
-  margin-top: 16px;
-}
-
-#viewports.left-aligned {
-  margin-left: 16px;
-}
-
-/**
- * Viewport Container
- */
-
-.viewport {
-  display: inline-block;
-  /* Align all viewports to the top */
-  vertical-align: top;
-}
-
-.resizable-viewport {
-  border: 1px solid var(--theme-splitter-color);
-  box-shadow: var(--rdm-box-shadow);
-  position: relative;
-}
-
-/**
- * Viewport Content
- */
-
-.viewport-content.resizing {
-  pointer-events: none;
-}
-
-/**
- * Viewport Browser
- */
-
-.browser {
-  display: block;
-  border: 0;
-  user-select: none;
-}
-
-.browser:-moz-focusring {
-  outline: none;
-}
-
-/**
- * Viewport Resize Handles
- */
-
-.viewport-resize-handle {
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  bottom: 0;
-  right: 0;
-  background-image: url("./images/grippers.svg");
-  background-position: bottom right;
-  padding: 0 1px 1px 0;
-  background-repeat: no-repeat;
-  background-origin: content-box;
-  cursor: se-resize;
-}
-
-.viewport-resize-handle.hidden {
-  display: none;
-}
-
-.viewport-horizontal-resize-handle {
-  position: absolute;
-  width: 5px;
-  height: calc(100% - 16px);
-  right: -4px;
-  top: 0;
-  cursor: e-resize;
-}
-
-.viewport-vertical-resize-handle {
-  position: absolute;
-  width: calc(100% - 16px);
-  height: 5px;
-  left: 0;
-  bottom: -4px;
-  cursor: s-resize;
-}
-
 /**
  * Viewport Dimension Input
  */
@@ -408,7 +308,7 @@ input:-moz-focusring {
 .viewport-dimension-input {
   text-align: center;
   width: 3em;
-  -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .viewport-dimension-separator {
@@ -765,7 +665,7 @@ input:-moz-focusring {
 }
 
 #device-form-pixel-ratio input {
-  -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 #device-form-user-agent {

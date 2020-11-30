@@ -10,6 +10,7 @@
 #include "mozilla/BasicEvents.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/ToString.h"
 #include "mozilla/dom/Element.h"
 #include "PluginInstanceParent.h"
 #include "BrowserStreamParent.h"
@@ -34,7 +35,6 @@
 #include "ImageContainer.h"
 #include "GLContext.h"
 #include "GLContextProvider.h"
-#include "LayersLogging.h"
 #include "mozilla/layers/TextureWrapperImage.h"
 #include "mozilla/layers/TextureClientRecycleAllocator.h"
 #include "mozilla/layers/ImageBridgeChild.h"
@@ -331,7 +331,11 @@ PluginInstanceParent::AnswerNPN_GetValue_SupportsAsyncBitmapSurface(
 bool PluginInstanceParent::SupportsPluginDirectDXGISurfaceDrawing() {
   bool value = false;
 #if defined(XP_WIN)
-  if (StaticPrefs::dom_ipc_plugins_allow_dxgi_surface()) {
+  // When WebRender does not use ANGLE, DXGISurface could not be used.
+  bool useAsyncDXGISurface =
+      StaticPrefs::dom_ipc_plugins_allow_dxgi_surface() &&
+      !(gfx::gfxVars::UseWebRender() && !gfx::gfxVars::UseWebRenderANGLE());
+  if (useAsyncDXGISurface) {
     auto cbc = CompositorBridgeChild::Get();
     if (cbc) {
       cbc->SendSupportsAsyncDXGISurface(&value);
@@ -551,7 +555,7 @@ class AsyncPluginSurfaceManager : public IGPUVideoSurfaceManager {
     if (!InImageBridgeChildThread()) {
       SynchronousTask task("AsyncPluginSurfaceManager readback sync");
       RefPtr<gfx::SourceSurface> result;
-      ImageBridgeChild::GetSingleton()->GetMessageLoop()->PostTask(
+      ImageBridgeChild::GetSingleton()->GetThread()->Dispatch(
           NewRunnableFunction("AsyncPluginSurfaceManager readback",
                               &DoSyncReadback, &pluginSD, &result, &task));
       task.Wait();
@@ -565,7 +569,7 @@ class AsyncPluginSurfaceManager : public IGPUVideoSurfaceManager {
       const SurfaceDescriptorGPUVideo& aSD) override {
     SurfaceDescriptorPlugin pluginSD = aSD;
     if (!InImageBridgeChildThread()) {
-      ImageBridgeChild::GetSingleton()->GetMessageLoop()->PostTask(
+      ImageBridgeChild::GetSingleton()->GetThread()->Dispatch(
           NewRunnableFunction("AsyncPluginSurfaceManager dealloc", &DoDealloc,
                               &pluginSD));
       return;
@@ -739,7 +743,7 @@ mozilla::ipc::IPCResult PluginInstanceParent::RecvInitDXGISurface(
   // render to.
   SurfaceDescriptorPlugin sd;
   SynchronousTask task("SendMakeAsyncPluginSurfaces sync");
-  ImageBridgeChild::GetSingleton()->GetMessageLoop()->PostTask(
+  ImageBridgeChild::GetSingleton()->GetThread()->Dispatch(
       NewRunnableFunction("SendingMakeAsyncPluginSurfaces", &InitDXGISurface,
                           format, size, &sd, &task));
   task.Wait();
@@ -781,9 +785,8 @@ mozilla::ipc::IPCResult PluginInstanceParent::RecvFinalizeDXGISurface(
   // Release the plugin surface but keep the display surface since it may
   // still be displayed.  Also let the display surface know that it should
   // not receive further requests to copy from the plugin surface.
-  ImageBridgeChild::GetSingleton()->GetMessageLoop()->PostTask(
-      NewRunnableFunction("SendingRemoveAsyncPluginSurface",
-                          &FinalizeDXGISurface, asi.mSD));
+  ImageBridgeChild::GetSingleton()->GetThread()->Dispatch(NewRunnableFunction(
+      "SendingRemoveAsyncPluginSurface", &FinalizeDXGISurface, asi.mSD));
 
   mAsyncSurfaceMap.remove(asiIt);
 #endif
@@ -855,8 +858,8 @@ mozilla::ipc::IPCResult PluginInstanceParent::RecvShowDirectBitmap(
 
   PLUGIN_LOG_DEBUG(
       ("   (RecvShowDirectBitmap received shmem=%p stride=%d size=%s dirty=%s)",
-       buffer.get<unsigned char>(), stride, Stringify(size).c_str(),
-       Stringify(dirty).c_str()));
+       buffer.get<unsigned char>(), stride, ToString(size).c_str(),
+       ToString(dirty).c_str()));
   return IPC_OK();
 }
 
@@ -897,9 +900,8 @@ mozilla::ipc::IPCResult PluginInstanceParent::RecvShowDirectDXGISurface(
 
   // Tell the ImageBridge to copy from the plugin surface to the display surface
   SynchronousTask task("SendUpdateAsyncPluginSurface sync");
-  ImageBridgeChild::GetSingleton()->GetMessageLoop()->PostTask(
-      NewRunnableFunction("SendingUpdateAsyncPluginSurface", &CopyDXGISurface,
-                          asi.mSD, &task));
+  ImageBridgeChild::GetSingleton()->GetThread()->Dispatch(NewRunnableFunction(
+      "SendingUpdateAsyncPluginSurface", &CopyDXGISurface, asi.mSD, &task));
   task.Wait();
 
   // Make sure we have an ImageContainer for SetCurrentImage.
@@ -913,7 +915,7 @@ mozilla::ipc::IPCResult PluginInstanceParent::RecvShowDirectDXGISurface(
 
   PLUGIN_LOG_DEBUG(("   (RecvShowDirectDXGISurface received handle=%p rect=%s)",
                     reinterpret_cast<void*>(pluginSurfHandle),
-                    Stringify(dirty).c_str()));
+                    ToString(dirty).c_str()));
 #endif
   return IPC_OK();
 }
@@ -2218,7 +2220,7 @@ mozilla::ipc::IPCResult PluginInstanceParent::AnswerPluginFocusChange(
   if (gotFocus) {
     nsPluginInstanceOwner* owner = GetOwner();
     if (owner) {
-      nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+      nsFocusManager* fm = nsFocusManager::GetFocusManager();
       RefPtr<dom::Element> element;
       owner->GetDOMElement(getter_AddRefs(element));
       if (fm && element) {

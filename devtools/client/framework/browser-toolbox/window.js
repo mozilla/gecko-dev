@@ -14,7 +14,7 @@ loader.require("devtools/client/framework/devtools-browser");
 var { gDevTools } = require("devtools/client/framework/devtools");
 var { Toolbox } = require("devtools/client/framework/toolbox");
 var Services = require("Services");
-var { DevToolsClient } = require("devtools/shared/client/devtools-client");
+var { DevToolsClient } = require("devtools/client/devtools-client");
 var { PrefsHelper } = require("devtools/client/shared/prefs");
 const KeyShortcuts = require("devtools/client/shared/key-shortcuts");
 const { LocalizationHelper } = require("devtools/shared/l10n");
@@ -135,9 +135,7 @@ function setPrefDefaults() {
     "devtools.command-button-noautohide.enabled",
     true
   );
-  // Bug 1225160 - Using source maps with browser debugging can lead to a crash
-  Services.prefs.setBoolPref("devtools.debugger.source-maps-enabled", false);
-  Services.prefs.setBoolPref("devtools.preference.new-panel-enabled", false);
+  Services.prefs.setBoolPref("devtools.performance.new-panel-enabled", false);
   Services.prefs.setBoolPref("layout.css.emulate-moz-box-with-flex", false);
 
   Services.prefs.setBoolPref("devtools.performance.enabled", false);

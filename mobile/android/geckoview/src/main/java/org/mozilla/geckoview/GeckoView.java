@@ -27,14 +27,12 @@ import android.graphics.RectF;
 import android.graphics.Region;
 import android.os.Build;
 import android.os.Handler;
-import android.os.Parcel;
-import android.os.Parcelable;
-import android.support.annotation.AnyThread;
-import android.support.annotation.IntDef;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.UiThread;
-import android.support.v4.view.ViewCompat;
+import androidx.annotation.AnyThread;
+import androidx.annotation.IntDef;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.UiThread;
+import androidx.core.view.ViewCompat;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.SparseArray;
@@ -75,38 +73,6 @@ public class GeckoView extends FrameLayout {
 
     private GeckoSession.SelectionActionDelegate mSelectionActionDelegate;
     private Autofill.Delegate mAutofillDelegate;
-
-    private static class SavedState extends BaseSavedState {
-        public final GeckoSession session;
-
-        public SavedState(final Parcelable superState, final GeckoSession session) {
-            super(superState);
-            this.session = session;
-        }
-
-        /* package */ SavedState(final Parcel in) {
-            super(in);
-            session = in.readParcelable(getClass().getClassLoader());
-        }
-
-        @Override // BaseSavedState
-        public void writeToParcel(final Parcel dest, final int flags) {
-            super.writeToParcel(dest, flags);
-            dest.writeParcelable(session, flags);
-        }
-
-        public static final Creator<SavedState> CREATOR = new Creator<SavedState>() {
-            @Override
-            public SavedState createFromParcel(final Parcel in) {
-                return new SavedState(in);
-            }
-
-            @Override
-            public SavedState[] newArray(final int size) {
-                return new SavedState[size];
-            }
-        };
-    }
 
     private class Display implements SurfaceViewWrapper.Listener {
         private final int[] mOrigin = new int[2];
@@ -225,11 +191,13 @@ public class GeckoView extends FrameLayout {
         }
     }
 
+    @SuppressWarnings("checkstyle:javadocmethod")
     public GeckoView(final Context context) {
         super(context);
         init();
     }
 
+    @SuppressWarnings("checkstyle:javadocmethod")
     public GeckoView(final Context context, final AttributeSet attrs) {
         super(context, attrs);
         init();
@@ -490,6 +458,7 @@ public class GeckoView extends FrameLayout {
     }
 
     @AnyThread
+    @SuppressWarnings("checkstyle:javadocmethod")
     public @Nullable GeckoSession getSession() {
         return mSession;
     }
@@ -499,14 +468,10 @@ public class GeckoView extends FrameLayout {
         return mSession.getEventDispatcher();
     }
 
+    @SuppressWarnings("checkstyle:javadocmethod")
     public @NonNull PanZoomController getPanZoomController() {
         ThreadUtils.assertOnUiThread();
         return mSession.getPanZoomController();
-    }
-
-    public @NonNull DynamicToolbarAnimator getDynamicToolbarAnimator() {
-        ThreadUtils.assertOnUiThread();
-        return mSession.getDynamicToolbarAnimator();
     }
 
     @Override
@@ -562,36 +527,6 @@ public class GeckoView extends FrameLayout {
             mDisplay.onGlobalLayout();
         }
         return super.gatherTransparentRegion(region);
-    }
-
-    @Override
-    protected Parcelable onSaveInstanceState() {
-        mStateSaved = true;
-        return new SavedState(super.onSaveInstanceState(), mSession);
-    }
-
-    @Override
-    protected void onRestoreInstanceState(final Parcelable state) {
-        mStateSaved = false;
-
-        if (!(state instanceof SavedState)) {
-            super.onRestoreInstanceState(state);
-            return;
-        }
-
-        final SavedState ss = (SavedState) state;
-        super.onRestoreInstanceState(ss.getSuperState());
-
-        restoreSession(ss.session);
-    }
-
-    private void restoreSession(final @Nullable GeckoSession savedSession) {
-        if (savedSession == null || savedSession.equals(mSession)) {
-            return;
-        }
-
-        // This can throw if there's already an open session set, but that's the right thing to do.
-        setSession(savedSession);
     }
 
     @Override
@@ -740,7 +675,15 @@ public class GeckoView extends FrameLayout {
     @SuppressLint("ClickableViewAccessibility")
     @Override
     public boolean onTouchEvent(final MotionEvent event) {
-        onTouchEventForResult(event);
+        if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+            requestFocus();
+        }
+
+        if (mSession == null) {
+            return false;
+        }
+
+        mSession.getPanZoomController().onTouchEvent(event);
         return true;
     }
 
@@ -749,51 +692,43 @@ public class GeckoView extends FrameLayout {
      * {@link #onTouchEvent(MotionEvent)}, but instead returns a {@link PanZoomController.InputResult}
      * indicating how the event was handled.
      *
+     * NOTE: It is highly recommended to only call this with ACTION_DOWN or in otherwise
+     * limited capacity. Returning a GeckoResult for every touch event will generate
+     * a lot of allocations and unnecessary GC pressure.
+     *
      * @param event A {@link MotionEvent}
      * @return One of the {@link PanZoomController#INPUT_RESULT_UNHANDLED INPUT_RESULT_*}) indicating how the event was handled.
      */
-    public @PanZoomController.InputResult int onTouchEventForResult(final @NonNull MotionEvent event) {
+    public @NonNull GeckoResult<Integer> onTouchEventForResult(final @NonNull MotionEvent event) {
         if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
             requestFocus();
         }
 
         if (mSession == null) {
-            return PanZoomController.INPUT_RESULT_UNHANDLED;
+            return GeckoResult.fromValue(PanZoomController.INPUT_RESULT_UNHANDLED);
         }
 
         // NOTE: Treat mouse events as "touch" rather than as "mouse", so mouse can be
         // used to pan/zoom. Call onMouseEvent() instead for behavior similar to desktop.
-        return mSession.getPanZoomController().onTouchEvent(event);
+        return mSession.getPanZoomController().onTouchEventForResult(event);
     }
 
     @Override
     public boolean onGenericMotionEvent(final MotionEvent event) {
-        onGenericMotionEventForResult(event);
-        return true;
-    }
-
-    /**
-     * Dispatches a {@link MotionEvent} to the {@link PanZoomController}. This is the same as
-     * {@link #onGenericMotionEvent(MotionEvent)} (MotionEvent)}, but instead returns
-     * a {@link PanZoomController.InputResult} indicating how the event was handled.
-     *
-     * @param event A {@link MotionEvent}
-     * @return One of the {@link PanZoomController#INPUT_RESULT_UNHANDLED INPUT_RESULT_*}) indicating how the event was handled.
-     */
-    public @PanZoomController.InputResult int onGenericMotionEventForResult(final @NonNull MotionEvent event) {
         if (AndroidGamepadManager.handleMotionEvent(event)) {
-            return PanZoomController.INPUT_RESULT_HANDLED;
+            return true;
         }
 
         if (mSession == null) {
-            return PanZoomController.INPUT_RESULT_UNHANDLED;
+            return true;
         }
 
         if (mSession.getAccessibility().onMotionEvent(event)) {
-            return PanZoomController.INPUT_RESULT_HANDLED;
+            return true;
         }
 
-        return mSession.getPanZoomController().onMotionEvent(event);
+        mSession.getPanZoomController().onMotionEvent(event);
+        return true;
     }
 
     @Override

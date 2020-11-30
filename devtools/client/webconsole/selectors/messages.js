@@ -5,13 +5,7 @@
 
 loader.lazyRequireGetter(
   this,
-  "getWarningGroupType",
-  "devtools/client/webconsole/utils/messages",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "getParentWarningGroupMessageId",
+  ["getParentWarningGroupMessageId", "getWarningGroupType"],
   "devtools/client/webconsole/utils/messages",
   true
 );
@@ -59,10 +53,6 @@ function getGroupsById(state) {
   return state.messages.groupsById;
 }
 
-function getPausedExecutionPoint(state) {
-  return state.messages.pausedExecutionPoint;
-}
-
 function getAllWarningGroupsById(state) {
   return state.messages.warningGroupsById;
 }
@@ -88,6 +78,5 @@ module.exports = {
   getGroupsById,
   getMessage,
   getVisibleMessages,
-  getPausedExecutionPoint,
   isMessageInWarningGroup,
 };

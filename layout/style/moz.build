@@ -77,6 +77,7 @@ EXPORTS.mozilla += [
     'CSSPropFlags.h',
     'DeclarationBlock.h',
     'DocumentStyleRootIterator.h',
+    'FontPreloader.h',
     'GeckoBindings.h',
     'GlobalStyleSheetCache.h',
     'ImportScanner.h',
@@ -106,6 +107,7 @@ EXPORTS.mozilla += [
     'ServoTypes.h',
     'ServoUtils.h',
     'ShadowParts.h',
+    'SharedStyleSheetCache.h',
     'StyleAnimationValue.h',
     'StyleColorInlines.h',
     'StyleSheet.h',
@@ -178,6 +180,7 @@ UNIFIED_SOURCES += [
     'FontFace.cpp',
     'FontFaceSet.cpp',
     'FontFaceSetIterator.cpp',
+    'FontPreloader.cpp',
     'GeckoBindings.cpp',
     'GlobalStyleSheetCache.cpp',
     'GroupRule.cpp',
@@ -220,6 +223,7 @@ UNIFIED_SOURCES += [
     'ServoElementSnapshot.cpp',
     'ServoStyleSet.cpp',
     'ShadowParts.cpp',
+    'SharedStyleSheetCache.cpp',
     'StreamLoader.cpp',
     'StyleAnimationValue.cpp',
     'StyleColor.cpp',
@@ -234,7 +238,6 @@ FINAL_LIBRARY = 'xul'
 LOCAL_INCLUDES += [
     '../base',
     '../generic',
-    '../svg',
     '../xul',
     '/dom/base',
     '/dom/html',
@@ -267,7 +270,6 @@ GeneratedFile('ServoCSSPropList.h',
               inputs=['!ServoCSSPropList.py'])
 GeneratedFile('ServoCSSPropList.py',
               script='GenerateServoCSSPropList.py', entry_point='generate_data',
-              py2=True,
               inputs=['ServoCSSPropList.mako.py'])
 
 if CONFIG['COMPILE_ENVIRONMENT']:
@@ -296,9 +298,8 @@ if CONFIG['COMPILE_ENVIRONMENT']:
                   script='GenerateCSSPropsGenerated.py',
                   entry_point='generate',
                   inputs=['!ServoCSSPropList.py'])
-    GeneratedFile('ServoStyleConsts.h', script='/build/RunCbindgen.py',
-                  entry_point='generate',
-                  inputs = ['/servo/ports/geckolib', '/servo/components/style'])
+    CbindgenHeader('ServoStyleConsts.h',
+                   inputs=['/servo/ports/geckolib', '/servo/components/style'])
 
     CONFIGURE_SUBST_FILES += [
         'bindgen.toml',

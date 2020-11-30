@@ -1,18 +1,65 @@
+mod array_emitter;
 mod ast_emitter;
+mod block_emitter;
+mod compilation_info;
+mod control_structures;
 mod dis;
 mod emitter;
-mod forward_jump_emitter;
-mod lower;
-pub mod opcode;
+mod emitter_scope;
+mod expression_emitter;
+mod function_declaration_emitter;
+mod object_emitter;
+mod reference_op_emitter;
+mod script_emitter;
 
 extern crate jsparagus_ast as ast;
+extern crate jsparagus_scope as scope;
+extern crate jsparagus_stencil as stencil;
 
-pub use crate::emitter::{EmitError, EmitOptions, EmitResult};
+pub use crate::emitter::{EmitError, EmitOptions};
 pub use dis::dis;
 
-pub fn emit(ast: &mut ast::types::Program, options: &EmitOptions) -> Result<EmitResult, EmitError> {
-    //lower::run(ast);
-    ast_emitter::emit_program(ast, options)
+use crate::compilation_info::CompilationInfo;
+
+use ast::source_atom_set::SourceAtomSet;
+use ast::source_slice_list::SourceSliceList;
+use scope::{ScopeBuildError, ScopePassResult};
+use stencil::result::EmitResult;
+
+pub fn emit<'alloc>(
+    ast: &'alloc ast::types::Program<'alloc>,
+    options: &EmitOptions,
+    atoms: SourceAtomSet<'alloc>,
+    slices: SourceSliceList<'alloc>,
+) -> Result<EmitResult<'alloc>, EmitError> {
+    let ScopePassResult {
+        scope_data_map,
+        function_declarations,
+        function_stencil_indices,
+        function_declaration_properties,
+        scripts,
+        error,
+    } = scope::generate_scope_data(ast);
+
+    // Error case for scope analysis will be removed once all syntax is
+    // supported. Use field instead of Result type here for simplicity.
+    match error {
+        Some(ScopeBuildError::NotImplemented(s)) => {
+            return Err(EmitError::NotImplemented(s));
+        }
+        None => {}
+    }
+
+    let compilation_info = CompilationInfo::new(
+        atoms,
+        slices,
+        scope_data_map,
+        function_declarations,
+        function_stencil_indices,
+        function_declaration_properties,
+        scripts,
+    );
+    ast_emitter::emit_program(ast, options, compilation_info)
 }
 
 #[cfg(test)]
@@ -21,25 +68,47 @@ mod tests {
 
     use super::{emit, EmitOptions};
     use crate::dis::*;
-    use crate::opcode::*;
+    use ast::source_atom_set::SourceAtomSet;
+    use ast::source_slice_list::SourceSliceList;
     use bumpalo::Bump;
     use parser::{parse_script, ParseOptions};
+    use std::cell::RefCell;
+    use std::convert::TryInto;
+    use std::rc::Rc;
+    use stencil::opcode::*;
+    use stencil::script::SourceExtent;
 
     fn bytecode(source: &str) -> Vec<u8> {
         let alloc = &Bump::new();
         let parse_options = ParseOptions::new();
-        let parse_result = parse_script(alloc, source, &parse_options).expect("Failed to parse");
+        let atoms = Rc::new(RefCell::new(SourceAtomSet::new()));
+        let slices = Rc::new(RefCell::new(SourceSliceList::new()));
+        let source_len = source.len();
+        let parse_result =
+            parse_script(alloc, source, &parse_options, atoms.clone(), slices.clone())
+                .expect("Failed to parse");
         // println!("{:?}", parse_result);
 
-        let emit_options = EmitOptions::new();
-        let bc = emit(
-            &mut ast::types::Program::Script(parse_result.unbox()),
+        let extent = SourceExtent::top_level_script(source_len.try_into().unwrap(), 1, 0);
+        let emit_options = EmitOptions::new(extent);
+
+        let result = emit(
+            alloc.alloc(ast::types::Program::Script(parse_result.unbox())),
             &emit_options,
+            atoms.replace(SourceAtomSet::new_uninitialized()),
+            slices.replace(SourceSliceList::new()),
         )
-        .expect("Should work!")
-        .bytecode;
-        println!("{}", dis(&bc));
-        bc
+        .expect("Should work!");
+
+        let script_data_index: usize = result.scripts[0]
+            .immutable_script_data
+            .expect("Top level script should have ImmutableScriptData")
+            .into();
+        let script_data = &result.script_data_list[script_data_index];
+        let bytecode = &script_data.bytecode;
+
+        println!("{}", dis(&bytecode));
+        bytecode.to_vec()
     }
 
     #[test]
@@ -64,12 +133,12 @@ mod tests {
             bytecode("dis()"),
             vec![
                 Opcode::GetGName as u8,
-                0,
+                1,
                 0,
                 0,
                 0,
                 Opcode::GImplicitThis as u8,
-                0,
+                1,
                 0,
                 0,
                 0,

@@ -28,12 +28,17 @@ using mozilla::ConvertUtf16toUtf8Partial;
 using mozilla::IsAscii;
 using mozilla::IsUtf8Latin1;
 using mozilla::LossyConvertUtf16toLatin1;
-using mozilla::MakeSpan;
 using mozilla::Span;
 using mozilla::Tie;
 using mozilla::Tuple;
 using mozilla::Unused;
 using mozilla::Utf8Unit;
+
+using JS::Latin1CharsZ;
+using JS::TwoByteCharsZ;
+using JS::UTF8Chars;
+using JS::UTF8CharsZ;
+using JS::WTF8Chars;
 
 using namespace js;
 using namespace js::unicode;
@@ -46,7 +51,7 @@ Latin1CharsZ JS::LossyTwoByteCharsToNewLatin1CharsZ(
   if (!latin1) {
     return Latin1CharsZ();
   }
-  LossyConvertUtf16toLatin1(tbchars, AsWritableChars(MakeSpan(latin1, len)));
+  LossyConvertUtf16toLatin1(tbchars, AsWritableChars(Span(latin1, len)));
   latin1[len] = '\0';
   return Latin1CharsZ(latin1, len);
 }
@@ -99,14 +104,14 @@ JS_PUBLIC_API size_t JS::DeflateStringToUTF8Buffer(JSLinearString* src,
                                                    mozilla::Span<char> dst) {
   JS::AutoCheckCannotGC nogc;
   if (src->hasLatin1Chars()) {
-    auto source = AsChars(MakeSpan(src->latin1Chars(nogc), src->length()));
+    auto source = AsChars(Span(src->latin1Chars(nogc), src->length()));
     size_t read;
     size_t written;
     Tie(read, written) = ConvertLatin1toUtf8Partial(source, dst);
     Unused << read;
     return written;
   }
-  auto source = MakeSpan(src->twoByteChars(nogc), src->length());
+  auto source = Span(src->twoByteChars(nogc), src->length());
   size_t read;
   size_t written;
   Tie(read, written) = ConvertUtf16toUtf8Partial(source, dst);
@@ -148,7 +153,7 @@ UTF8CharsZ JS::CharsToNewUTF8CharsZ(JSContext* maybeCx,
   }
 
   /* Encode to UTF8. */
-  ::ConvertToUTF8(MakeSpan(str, chars.length()), MakeSpan(utf8, len));
+  ::ConvertToUTF8(Span(str, chars.length()), Span(utf8, len));
   utf8[len] = '\0';
 
   return UTF8CharsZ(utf8, len);
@@ -177,8 +182,8 @@ static const uint32_t INVALID_UTF8 = UINT32_MAX;
 template <class InputCharsT>
 static uint32_t Utf8ToOneUcs4CharImpl(const uint8_t* utf8Buffer,
                                       int utf8Length) {
-  static_assert(std::is_same<InputCharsT, UTF8Chars>::value ||
-                    std::is_same<InputCharsT, WTF8Chars>::value,
+  static_assert(std::is_same_v<InputCharsT, UTF8Chars> ||
+                    std::is_same_v<InputCharsT, WTF8Chars>,
                 "must be either UTF-8 or WTF-8");
   MOZ_ASSERT(1 <= utf8Length && utf8Length <= 4);
 
@@ -204,7 +209,7 @@ static uint32_t Utf8ToOneUcs4CharImpl(const uint8_t* utf8Buffer,
   }
 
   // WTF-8 allows lone surrogate.
-  if (std::is_same<InputCharsT, UTF8Chars>::value &&
+  if (std::is_same_v<InputCharsT, UTF8Chars> &&
       MOZ_UNLIKELY(IsSurrogate(ucs4Char))) {
     return INVALID_UTF8;
   }
@@ -309,11 +314,11 @@ static bool InflateUTF8ToUTF16(JSContext* cx, const InputCharsT src,
           (v == 0xF0 && ((uint8_t)src[i + 1] & 0xF0) == 0x80) ||  // F0 90~BF
           (v == 0xF4 && ((uint8_t)src[i + 1] & 0xF0) != 0x80))    // F4 80~8F
       {
-        if (std::is_same<InputCharsT, UTF8Chars>::value) {
+        if constexpr (std::is_same_v<InputCharsT, UTF8Chars>) {
           INVALID(ReportInvalidCharacter, i, 1);
         } else {
           // WTF-8 allows lone surrogate as ED A0~BF 80~BF.
-          MOZ_ASSERT((std::is_same<InputCharsT, WTF8Chars>::value));
+          static_assert(std::is_same_v<InputCharsT, WTF8Chars>);
           if (v == 0xED && ((uint8_t)src[i + 1] & 0xE0) != 0xA0) {  // ED A0~BF
             INVALID(ReportInvalidCharacter, i, 1);
           }
@@ -384,9 +389,9 @@ template <OnUTF8Error ErrorAction, typename CharsT, class InputCharsT>
 static CharsT InflateUTF8StringHelper(JSContext* cx, const InputCharsT src,
                                       size_t* outlen, arena_id_t destArenaId) {
   using CharT = typename CharsT::CharT;
-  static_assert(std::is_same<CharT, char16_t>::value ||
-                    std::is_same<CharT, Latin1Char>::value,
-                "bad CharT");
+  static_assert(
+      std::is_same_v<CharT, char16_t> || std::is_same_v<CharT, Latin1Char>,
+      "bad CharT");
 
   *outlen = 0;
 
@@ -411,7 +416,7 @@ static CharsT InflateUTF8StringHelper(JSContext* cx, const InputCharsT src,
   }
 
   constexpr OnUTF8Error errorMode =
-      std::is_same<CharT, Latin1Char>::value
+      std::is_same_v<CharT, Latin1Char>
           ? OnUTF8Error::InsertQuestionMark
           : OnUTF8Error::InsertReplacementCharacter;
   CopyAndInflateUTF8IntoBuffer<errorMode>(cx, src, dst, *outlen, allASCII);
@@ -548,9 +553,9 @@ bool UTF8OrWTF8EqualsChars(const CharsT utfChars, const CharT* chars) {
 #ifdef DEBUG
     JS::SmallestEncoding encoding = JS::SmallestEncoding::ASCII;
     UpdateSmallestEncodingForChar(c, &encoding);
-    if (std::is_same<CharT, JS::Latin1Char>::value) {
+    if (std::is_same_v<CharT, JS::Latin1Char>) {
       MOZ_ASSERT(encoding <= JS::SmallestEncoding::Latin1);
-    } else if (!std::is_same<CharT, char16_t>::value) {
+    } else if (!std::is_same_v<CharT, char16_t>) {
       MOZ_CRASH("Invalid character type in UTF8EqualsChars");
     }
 #endif

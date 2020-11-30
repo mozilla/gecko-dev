@@ -1,3 +1,8 @@
+// |jit-test| --no-warp
+
+// Warp has COW arrays disabled (bug 1626854). Re-evaluate after that bug has
+// been fixed.
+
 // Ion eager fails the test below because we have not yet created any
 // template object in baseline before running the content of the top-level
 // function.
@@ -34,7 +39,7 @@ function escape(arr) { global_arr = arr; }
 function checkCOW() {
     assertEq(hasCopyOnWriteElements([1, 2, 3, 4]), false);
     // If this fails, we should probably update the tests below!
-    assertEq(hasCopyOnWriteElements([1, 2, 3, 4, 5, 6, 7]), true);
+    assertEq(hasCopyOnWriteElements([1, 2, 3, 4, 5, 6, 7]), isTypeInferenceEnabled());
 }
 checkCOW();
 

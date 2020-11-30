@@ -1,4 +1,6 @@
-function getLinkFile() {
+"use strict";
+
+function getUrlLinkFile() {
   if (mozinfo.os == "win") {
     return do_get_file("test_link.url");
   }
@@ -10,9 +12,6 @@ function getLinkFile() {
 }
 
 const ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
-var link;
-var linkURI;
-const newURI = ios.newURI("http://www.mozilla.org/");
 
 function NotificationCallbacks(origURI, newURI) {
   this._origURI = origURI;
@@ -34,7 +33,7 @@ NotificationCallbacks.prototype = {
     Assert.equal(newChan.originalURI.spec, this._newURI.spec);
     Assert.equal(newChan.originalURI, newChan.URI);
     Assert.equal(newChan.URI.spec, this._newURI.spec);
-    throw Cr.NS_ERROR_ABORT;
+    throw Components.Exception("", Cr.NS_ERROR_ABORT);
   },
 };
 
@@ -72,7 +71,7 @@ RequestObserver.prototype = {
   },
 };
 
-function test_cancel() {
+function test_cancel(linkURI, newURI) {
   var chan = NetUtil.newChannel({
     uri: linkURI,
     loadUsingSystemPrincipal: true,
@@ -85,12 +84,27 @@ function test_cancel() {
   Assert.ok(chan.isPending());
 }
 
+function test_channel(linkURI, newURI) {
+  const chan = NetUtil.newChannel({
+    uri: linkURI,
+    loadUsingSystemPrincipal: true,
+  });
+  Assert.equal(chan.URI, linkURI);
+  Assert.equal(chan.originalURI, linkURI);
+  chan.notificationCallbacks = new NotificationCallbacks(linkURI, newURI);
+  chan.asyncOpen(
+    new RequestObserver(linkURI, newURI, () => test_cancel(linkURI, newURI))
+  );
+  Assert.ok(chan.isPending());
+}
+
 function run_test() {
   if (mozinfo.os != "win" && mozinfo.os != "linux") {
     return;
   }
 
-  link = getLinkFile();
+  let link = getUrlLinkFile();
+  let linkURI;
   if (link.isSymlink()) {
     let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
     file.initWithPath(link.target);
@@ -100,13 +114,15 @@ function run_test() {
   }
 
   do_test_pending();
-  var chan = NetUtil.newChannel({
-    uri: linkURI,
-    loadUsingSystemPrincipal: true,
-  });
-  Assert.equal(chan.URI, linkURI);
-  Assert.equal(chan.originalURI, linkURI);
-  chan.notificationCallbacks = new NotificationCallbacks(linkURI, newURI);
-  chan.asyncOpen(new RequestObserver(linkURI, newURI, test_cancel));
-  Assert.ok(chan.isPending());
+  test_channel(linkURI, ios.newURI("http://www.mozilla.org/"));
+
+  if (mozinfo.os != "win") {
+    return;
+  }
+
+  link = do_get_file("test_link.lnk");
+  test_channel(
+    ios.newFileURI(link),
+    ios.newURI("file:///Z:/moz-nonexistent/index.html")
+  );
 }

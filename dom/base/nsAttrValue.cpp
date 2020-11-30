@@ -22,6 +22,7 @@
 #include "mozilla/ServoUtils.h"
 #include "mozilla/ShadowParts.h"
 #include "mozilla/DeclarationBlock.h"
+#include "mozilla/dom/CSSRuleBinding.h"
 #include "nsContentUtils.h"
 #include "nsReadableUtils.h"
 #include "nsHTMLCSSStyleSheet.h"
@@ -290,11 +291,13 @@ void nsAttrValue::SetTo(const nsAttrValue& aOther) {
       break;
     }
     case eAtomArray: {
-      if (!EnsureEmptyAtomArray() ||
-          !GetAtomArrayValue()->AppendElements(*otherCont->mValue.mAtomArray)) {
+      if (!EnsureEmptyAtomArray()) {
         Reset();
         return;
       }
+      // XXX(Bug 1631371) Check if this should use a fallible operation as it
+      // pretended earlier.
+      GetAtomArrayValue()->AppendElements(*otherCont->mValue.mAtomArray);
       break;
     }
     case eDoubleValue: {
@@ -550,7 +553,7 @@ void nsAttrValue::ToString(nsAString& aResult) const {
       } else {
         str.AppendInt(GetIntInternal());
       }
-      aResult = str + NS_LITERAL_STRING("%");
+      aResult = str + u"%"_ns;
 
       break;
     }
@@ -979,6 +982,99 @@ bool nsAttrValue::Equals(const nsAtom* aValue,
   return aValue->Equals(val);
 }
 
+struct HasPrefixFn {
+  static bool Check(const char16_t* aAttrValue, size_t aAttrLen,
+                    const nsAString& aSearchValue,
+                    nsCaseTreatment aCaseSensitive) {
+    if (aCaseSensitive == eCaseMatters) {
+      if (aSearchValue.Length() > aAttrLen) {
+        return false;
+      }
+      return !memcmp(aAttrValue, aSearchValue.BeginReading(),
+                     aSearchValue.Length() * sizeof(char16_t));
+    }
+    return StringBeginsWith(nsDependentString(aAttrValue, aAttrLen),
+                            aSearchValue,
+                            nsASCIICaseInsensitiveStringComparator);
+  }
+};
+
+struct HasSuffixFn {
+  static bool Check(const char16_t* aAttrValue, size_t aAttrLen,
+                    const nsAString& aSearchValue,
+                    nsCaseTreatment aCaseSensitive) {
+    if (aCaseSensitive == eCaseMatters) {
+      if (aSearchValue.Length() > aAttrLen) {
+        return false;
+      }
+      return !memcmp(aAttrValue + aAttrLen - aSearchValue.Length(),
+                     aSearchValue.BeginReading(),
+                     aSearchValue.Length() * sizeof(char16_t));
+    }
+    return StringEndsWith(nsDependentString(aAttrValue, aAttrLen), aSearchValue,
+                          nsASCIICaseInsensitiveStringComparator);
+  }
+};
+
+struct HasSubstringFn {
+  static bool Check(const char16_t* aAttrValue, size_t aAttrLen,
+                    const nsAString& aSearchValue,
+                    nsCaseTreatment aCaseSensitive) {
+    if (aCaseSensitive == eCaseMatters) {
+      if (aSearchValue.IsEmpty()) {
+        return true;
+      }
+      const char16_t* end = aAttrValue + aAttrLen;
+      return std::search(aAttrValue, end, aSearchValue.BeginReading(),
+                         aSearchValue.EndReading()) != end;
+    }
+    return FindInReadable(aSearchValue, nsDependentString(aAttrValue, aAttrLen),
+                          nsASCIICaseInsensitiveStringComparator);
+  }
+};
+
+template <typename F>
+bool nsAttrValue::SubstringCheck(const nsAString& aValue,
+                                 nsCaseTreatment aCaseSensitive) const {
+  switch (BaseType()) {
+    case eStringBase: {
+      auto str = static_cast<nsStringBuffer*>(GetPtr());
+      if (str) {
+        return F::Check(static_cast<char16_t*>(str->Data()),
+                        str->StorageSize() / sizeof(char16_t) - 1, aValue,
+                        aCaseSensitive);
+      }
+      return aValue.IsEmpty();
+    }
+    case eAtomBase: {
+      auto atom = static_cast<nsAtom*>(GetPtr());
+      return F::Check(atom->GetUTF16String(), atom->GetLength(), aValue,
+                      aCaseSensitive);
+    }
+    default:
+      break;
+  }
+
+  nsAutoString val;
+  ToString(val);
+  return F::Check(val.BeginReading(), val.Length(), aValue, aCaseSensitive);
+}
+
+bool nsAttrValue::HasPrefix(const nsAString& aValue,
+                            nsCaseTreatment aCaseSensitive) const {
+  return SubstringCheck<HasPrefixFn>(aValue, aCaseSensitive);
+}
+
+bool nsAttrValue::HasSuffix(const nsAString& aValue,
+                            nsCaseTreatment aCaseSensitive) const {
+  return SubstringCheck<HasSuffixFn>(aValue, aCaseSensitive);
+}
+
+bool nsAttrValue::HasSubstring(const nsAString& aValue,
+                               nsCaseTreatment aCaseSensitive) const {
+  return SubstringCheck<HasSubstringFn>(aValue, aCaseSensitive);
+}
+
 bool nsAttrValue::EqualsAsStrings(const nsAttrValue& aOther) const {
   if (Type() == aOther.Type()) {
     return Equals(aOther);
@@ -1125,10 +1221,9 @@ void nsAttrValue::ParseAtomArray(const nsAString& aValue) {
 
   AtomArray* array = GetAtomArrayValue();
 
-  if (!array->AppendElement(std::move(classAtom))) {
-    Reset();
-    return;
-  }
+  // XXX(Bug 1631371) Check if this should use a fallible operation as it
+  // pretended earlier.
+  array->AppendElement(std::move(classAtom));
 
   // parse the rest of the classnames
   while (iter != end) {
@@ -1140,10 +1235,9 @@ void nsAttrValue::ParseAtomArray(const nsAString& aValue) {
 
     classAtom = NS_AtomizeMainThread(Substring(start, iter));
 
-    if (!array->AppendElement(std::move(classAtom))) {
-      Reset();
-      return;
-    }
+    // XXX(Bug 1631371) Check if this should use a fallible operation as it
+    // pretended earlier.
+    array->AppendElement(std::move(classAtom));
 
     // skip whitespace
     while (iter != end && nsContentUtils::IsHTMLWhitespace(*iter)) {
@@ -1639,10 +1733,10 @@ bool nsAttrValue::ParseStyleAttribute(const nsAString& aString,
 
   nsCOMPtr<nsIReferrerInfo> referrerInfo =
       dom::ReferrerInfo::CreateForInternalCSSResources(ownerDoc);
-  RefPtr<URLExtraData> data =
-      new URLExtraData(baseURI, referrerInfo, principal);
+  auto data = MakeRefPtr<URLExtraData>(baseURI, referrerInfo, principal);
   RefPtr<DeclarationBlock> decl = DeclarationBlock::FromCssText(
-      aString, data, ownerDoc->GetCompatibilityMode(), ownerDoc->CSSLoader());
+      aString, data, ownerDoc->GetCompatibilityMode(), ownerDoc->CSSLoader(),
+      dom::CSSRule_Binding::STYLE_RULE);
   if (!decl) {
     return false;
   }

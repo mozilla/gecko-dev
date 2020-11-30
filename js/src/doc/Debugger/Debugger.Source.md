@@ -188,13 +188,24 @@ one of the following values:
 * `"eventHandler"`, for code assigned to DOM elements' event handler IDL
   attributes as a string.
 
-* `"scriptElement"`, for code belonging to `<script>` elements.
+* `"srcScript"`, for code belonging to `<script src="file.js">` elements.
+
+* `"inlineScript"`, for code belonging to `<script>code;</script>` elements.
+
+* `"injectedScript"`, for code belonging to scripts that _would_ be
+  `"inlineScript"` except that they were not part of the initial file itself.
+
+  For example, scripts created via:
+
+  * `document.write("<script>code;</script>")`
+  * `var s = document.createElement("script"); s.text = "code";`
+
+* `"importedModule"`, for code that was loaded indirectly by being imported
+  by another script using ESM static or dynamic imports.
 
 * `"javascriptURL"`, for code presented in `javascript:` URLs.
 
-* `"setTimeout"`, for code passed to `setTimeout` as a string.
-
-* `"setInterval"`, for code passed to `setInterval` as a string.
+* `"domTimer"`, for code passed to `setTimeout`/`setInterval` as a string.
 
 * `undefined`, if the implementation doesn't know how the code was
   introduced.

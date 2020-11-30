@@ -13,20 +13,19 @@ namespace dom {
 
 // nsISupports implementation
 
-NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED(XMLStylesheetProcessingInstruction,
-                                             ProcessingInstruction,
-                                             nsIStyleSheetLinkingElement)
+NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(
+    XMLStylesheetProcessingInstruction, ProcessingInstruction)
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(XMLStylesheetProcessingInstruction)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(
     XMLStylesheetProcessingInstruction, ProcessingInstruction)
-  tmp->nsStyleLinkElement::Traverse(cb);
+  tmp->LinkStyle::Traverse(cb);
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(
     XMLStylesheetProcessingInstruction, ProcessingInstruction)
-  tmp->nsStyleLinkElement::Unlink();
+  tmp->LinkStyle::Unlink();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 XMLStylesheetProcessingInstruction::~XMLStylesheetProcessingInstruction() =
@@ -64,7 +63,7 @@ void XMLStylesheetProcessingInstruction::SetNodeValueInternal(
   }
 }
 
-// nsStyleLinkElement
+// LinkStyle
 
 void XMLStylesheetProcessingInstruction::GetCharset(nsAString& aCharset) {
   if (!GetAttrValue(nsGkAtoms::charset, aCharset)) {
@@ -72,12 +71,11 @@ void XMLStylesheetProcessingInstruction::GetCharset(nsAString& aCharset) {
   }
 }
 
-/* virtual */
 void XMLStylesheetProcessingInstruction::OverrideBaseURI(nsIURI* aNewBaseURI) {
   mOverriddenBaseURI = aNewBaseURI;
 }
 
-Maybe<nsStyleLinkElement::SheetInfo>
+Maybe<LinkStyle::SheetInfo>
 XMLStylesheetProcessingInstruction::GetStyleSheetInfo() {
   // xml-stylesheet PI is special only in prolog
   if (!nsContentUtils::InProlog(this)) {
@@ -125,20 +123,18 @@ XMLStylesheetProcessingInstruction::GetStyleSheetInfo() {
   auto encoding = doc->GetDocumentCharacterSet();
   nsCOMPtr<nsIURI> uri;
   NS_NewURI(getter_AddRefs(uri), href, encoding, baseURL);
-  nsCOMPtr<nsIReferrerInfo> referrerInfo = new ReferrerInfo();
-  referrerInfo->InitWithDocument(doc);
 
   return Some(SheetInfo{
       *doc,
       this,
       uri.forget(),
       nullptr,
-      referrerInfo.forget(),
+      MakeAndAddRef<ReferrerInfo>(*doc),
       CORS_NONE,
       title,
       media,
-      /* integrity = */ EmptyString(),
-      /* nonce = */ EmptyString(),
+      /* integrity = */ u""_ns,
+      /* nonce = */ u""_ns,
       alternate ? HasAlternateRel::Yes : HasAlternateRel::No,
       IsInline::No,
       IsExplicitlyEnabled::No,
@@ -151,7 +147,9 @@ XMLStylesheetProcessingInstruction::CloneDataNode(
   nsAutoString data;
   GetData(data);
   RefPtr<mozilla::dom::NodeInfo> ni = aNodeInfo;
-  return do_AddRef(new XMLStylesheetProcessingInstruction(ni.forget(), data));
+  auto* nim = ni->NodeInfoManager();
+  return do_AddRef(new (nim)
+                       XMLStylesheetProcessingInstruction(ni.forget(), data));
 }
 
 }  // namespace dom

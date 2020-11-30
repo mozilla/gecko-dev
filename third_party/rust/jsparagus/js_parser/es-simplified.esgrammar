@@ -307,6 +307,8 @@ OptionalChain[Yield, Await] :
     => optional_computed_member_expr_tail($0, $2, $3)
   `?.` IdentifierName
     => optional_static_member_expr_tail($0, $1)
+  `?.` PrivateIdentifier
+    => optional_private_field_member_expr_tail($0, $1)
   `?.` Arguments[?Yield, ?Await]
     => optional_call_expr_tail($0, $1)
   `?.` TemplateLiteral[?Yield, ?Await, +Tagged]
@@ -315,6 +317,8 @@ OptionalChain[Yield, Await] :
     => optional_computed_member_expr($0, $2, $3)
   OptionalChain[?Yield, ?Await] `.` IdentifierName
     => optional_static_member_expr($0, $2)
+  OptionalChain[?Yield, ?Await] `.` PrivateIdentifier
+    => optional_private_field_member_expr($0, $2)
   OptionalChain[?Yield, ?Await] Arguments[?Yield, ?Await]
     => optional_call_expr($0, $1)
   OptionalChain[?Yield, ?Await] TemplateLiteral[?Yield, ?Await, +Tagged]
@@ -527,6 +531,8 @@ AssignmentExpression[In, Yield, Await] :
     => assignment_expr($0, $2)
   LeftHandSideExpression[?Yield, ?Await] AssignmentOperator AssignmentExpression[?In, ?Yield, ?Await]
     => compound_assignment_expr($0, $1, $2)
+  LeftHandSideExpression[?Yield, ?Await] LogicalAssignmentOperator AssignmentExpression[?In, ?Yield, ?Await]
+    => compound_assignment_expr($0, $1, $2)
 
 @returns CompoundAssignmentOperator
 AssignmentOperator :
@@ -555,6 +561,14 @@ AssignmentOperator :
   `**=`
     => box_assign_op(pow_assign_op($0))
 
+@returns CompoundAssignmentOperator
+LogicalAssignmentOperator :
+  `&&=`
+    => box_assign_op(logical_and_assign_op($0))
+  `||=`
+    => box_assign_op(logical_or_assign_op($0))
+  `??=`
+    => box_assign_op(coalesce_assign_op($0))
 
 AssignmentPattern[Yield, Await] :
   ObjectAssignmentPattern[?Yield, ?Await]
@@ -836,7 +850,7 @@ ExpressionStatement[Yield, Await] :
 IfStatement[Yield, Await, Return] :
   `if` `(` Expression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return] `else` Statement[?Yield, ?Await, ?Return]
     => if_statement($0, $2, $4, Some($6))
-  `if` `(` Expression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return]
+  `if` `(` Expression[+In, ?Yield, ?Await] `)` Statement[?Yield, ?Await, ?Return] [lookahead != `else`]
     => if_statement($0, $2, $4, None)
   `if` `(` Expression[+In, ?Yield, ?Await] `)` FunctionDeclaration[?Yield, ?Await, ~Default] `else` Statement[?Yield, ?Await, ?Return]
     => if_statement($0, $2, make_block_stmt_from_function_decl($4), Some($6))
@@ -844,7 +858,7 @@ IfStatement[Yield, Await, Return] :
     => if_statement($0, $2, $4, Some(make_block_stmt_from_function_decl($6)))
   `if` `(` Expression[+In, ?Yield, ?Await] `)` FunctionDeclaration[?Yield, ?Await, ~Default] `else` FunctionDeclaration[?Yield, ?Await, ~Default]
     => if_statement($0, $2, make_block_stmt_from_function_decl($4), Some(make_block_stmt_from_function_decl($6)))
-  `if` `(` Expression[+In, ?Yield, ?Await] `)` FunctionDeclaration[?Yield, ?Await, ~Default]
+  `if` `(` Expression[+In, ?Yield, ?Await] `)` FunctionDeclaration[?Yield, ?Await, ~Default] [lookahead != `else`]
     => if_statement($0, $2, make_block_stmt_from_function_decl($4), None)
 
 
@@ -1096,7 +1110,7 @@ ArrowFormalParameters[Yield, Await] :
 
 @returns MethodDefinition
 MethodDefinition[Yield, Await] :
-  PropertyName[?Yield, ?Await] `(` UniqueFormalParameters[~Yield, ~Await] `)` `{` FunctionBody[~Yield, ~Await] `}`
+  ClassElementName[?Yield, ?Await] `(` UniqueFormalParameters[~Yield, ~Await] `)` `{` FunctionBody[~Yield, ~Await] `}`
     => method_definition($0, $1, $2, $3, $4, $5, $6)
   GeneratorMethod[?Yield, ?Await]
     => $0
@@ -1104,9 +1118,9 @@ MethodDefinition[Yield, Await] :
     => $0
   AsyncGeneratorMethod[?Yield, ?Await]
     => $0
-  `get` PropertyName[?Yield, ?Await] `(` `)` `{` FunctionBody[~Yield, ~Await] `}`
+  `get` ClassElementName[?Yield, ?Await] `(` `)` `{` FunctionBody[~Yield, ~Await] `}`
     => getter($0, $1, $4, $5, $6)
-  `set` PropertyName[?Yield, ?Await] `(` PropertySetParameterList `)` `{` FunctionBody[~Yield, ~Await] `}`
+  `set` ClassElementName[?Yield, ?Await] `(` PropertySetParameterList `)` `{` FunctionBody[~Yield, ~Await] `}`
     => setter($0, $1, $2, $3, $4, $5, $6, $7)
 
 @returns Parameter
@@ -1117,7 +1131,7 @@ PropertySetParameterList :
 
 @returns MethodDefinition
 GeneratorMethod[Yield, Await] :
-  `*` PropertyName[?Yield, ?Await] `(` UniqueFormalParameters[+Yield, ~Await] `)` `{` GeneratorBody `}`
+  `*` ClassElementName[?Yield, ?Await] `(` UniqueFormalParameters[+Yield, ~Await] `)` `{` GeneratorBody `}`
     => generator_method($0, $1, $2, $3, $4, $5, $6, $7)
 
 @returns Statement
@@ -1149,7 +1163,7 @@ YieldExpression[In, Await] :
 
 @returns MethodDefinition
 AsyncGeneratorMethod[Yield, Await] :
-  `async` [no LineTerminator here] `*` PropertyName[?Yield, ?Await] `(` UniqueFormalParameters[+Yield, +Await] `)` `{` AsyncGeneratorBody `}`
+  `async` [no LineTerminator here] `*` ClassElementName[?Yield, ?Await] `(` UniqueFormalParameters[+Yield, +Await] `)` `{` AsyncGeneratorBody `}`
     => async_generator_method($0, $2, $3, $4, $5, $6, $7, $8)
 
 @returns Statement
@@ -1224,6 +1238,8 @@ ClassElement[Yield, Await] :
     => class_element_static($0, $1)
   FieldDefinition[?Yield, ?Await] `;`
     => class_element_to_vec($0)
+  `static` FieldDefinition[?Yield, ?Await] `;`
+    => class_element_static_field($0, $1)
   `;`
     => class_element_empty()
 

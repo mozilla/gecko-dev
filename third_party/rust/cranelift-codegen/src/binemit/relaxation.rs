@@ -163,7 +163,7 @@ fn try_fold_redundant_jump(
         }
     };
 
-    // For the moment, only attempt to fold a branch to an block that is parameterless.
+    // For the moment, only attempt to fold a branch to a block that is parameterless.
     // These blocks are mainly produced by critical edge splitting.
     //
     // TODO: Allow folding blocks that define SSA values and function as phi nodes.
@@ -302,7 +302,11 @@ fn fallthroughs(func: &mut Function) {
                 Opcode::Fallthrough => {
                     // Somebody used a fall-through instruction before the branch relaxation pass.
                     // Make sure it is correct, i.e. the destination is the layout successor.
-                    debug_assert_eq!(destination, succ, "Illegal fall-through in {}", block)
+                    debug_assert_eq!(
+                        destination, succ,
+                        "Illegal fallthrough from {} to {}, but {}'s successor is {}",
+                        block, destination, block, succ
+                    )
                 }
                 Opcode::Jump => {
                     // If this is a jump to the successor block, change it to a fall-through.

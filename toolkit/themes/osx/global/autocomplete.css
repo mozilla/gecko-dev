@@ -13,16 +13,16 @@ html|input[nomatch="true"][highlightnonmatches="true"] {
 
 panel[type="autocomplete-richlistbox"] {
   padding: 0px !important;
-  color: -moz-FieldText;
-  background-color: -moz-Field;
+  color: FieldText;
+  background-color: Field;
   font: icon;
-  -moz-appearance: none;
+  appearance: none;
 }
 
 /* ::::: richlistbox autocomplete ::::: */
 
 .autocomplete-richlistbox {
-  -moz-appearance: none;
+  appearance: none;
   margin: 0;
 }
 

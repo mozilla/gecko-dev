@@ -15,15 +15,6 @@
 #include "nsString.h"                      // nsString members
 #include "nscore.h"                        // NS_IMETHOD, nsAString
 
-class nsITransaction;
-
-#define NS_INSERTTEXTTXN_IID                         \
-  {                                                  \
-    0x8c9ad77f, 0x22a7, 0x4d01, {                    \
-      0xb1, 0x59, 0x8a, 0x0f, 0xdb, 0x1d, 0x08, 0xe9 \
-    }                                                \
-  }
-
 namespace mozilla {
 
 class EditorBase;
@@ -53,15 +44,14 @@ class InsertTextTransaction final : public EditTransactionBase {
       EditorBase& aEditorBase, const nsAString& aStringToInsert,
       const EditorDOMPointInText& aPointToInsert);
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_INSERTTEXTTXN_IID)
-
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(InsertTextTransaction,
                                            EditTransactionBase)
 
   NS_DECL_EDITTRANSACTIONBASE
+  NS_DECL_EDITTRANSACTIONBASE_GETASMETHODS_OVERRIDE(InsertTextTransaction)
 
-  NS_IMETHOD Merge(nsITransaction* aTransaction, bool* aDidMerge) override;
+  NS_IMETHOD Merge(nsITransaction* aOtherTransaction, bool* aDidMerge) override;
 
   /**
    * Return the string data associated with this transaction.
@@ -86,8 +76,6 @@ class InsertTextTransaction final : public EditTransactionBase {
   // The editor, which we'll need to get the selection.
   RefPtr<EditorBase> mEditorBase;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(InsertTextTransaction, NS_INSERTTEXTTXN_IID)
 
 }  // namespace mozilla
 

@@ -60,6 +60,7 @@ def getBuildId() {
 }
 
 android {
+    buildToolsVersion project.ext.buildToolsVersion
     compileSdkVersion project.ext.compileSdkVersion
 
     useLibrary 'android.test.runner'
@@ -70,6 +71,7 @@ android {
         targetSdkVersion project.ext.targetSdkVersion
         minSdkVersion project.ext.minSdkVersion
         manifestPlaceholders = project.ext.manifestPlaceholders
+        multiDexEnabled true
 
         versionCode computeVersionCode()
         versionName "${mozconfig.substs.MOZ_APP_VERSION}-${mozconfig.substs.MOZ_UPDATE_CHANNEL}"
@@ -153,8 +155,8 @@ android {
 
                 if (mozconfig.substs.MOZ_WEBRTC) {
                     srcDir "${topsrcdir}/dom/media/systemservices/android_video_capture/java/src"
-                    srcDir "${topsrcdir}/media/webrtc/trunk/webrtc/sdk/android"
-                    srcDir "${topsrcdir}/media/webrtc/trunk/webrtc/rtc_base/java"
+                    srcDir "${topsrcdir}/third_party/libwebrtc/webrtc/sdk/android"
+                    srcDir "${topsrcdir}/third_party/libwebrtc/webrtc/rtc_base/java"
                 }
             }
 
@@ -211,12 +213,21 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
 }
 
 dependencies {
-    implementation "com.android.support:support-v4:$support_library_version"
-    implementation "com.android.support:palette-v7:$support_library_version"
+    // For exoplayer.
+    compileOnly "com.google.code.findbugs:jsr305:3.0.2"
+    compileOnly "org.checkerframework:checker-compat-qual:2.5.0"
+    compileOnly "org.checkerframework:checker-qual:2.5.0"
+    compileOnly "org.jetbrains.kotlin:kotlin-annotations-jvm:1.3.70"
+
+    implementation "androidx.annotation:annotation:1.1.0"
+    implementation "androidx.legacy:legacy-support-v4:1.0.0"
+    implementation "androidx.palette:palette:1.0.0"
+
+    implementation "com.google.android.gms:play-services-fido:18.1.0"
     implementation "org.yaml:snakeyaml:1.24:android"
 
-    implementation "android.arch.lifecycle:extensions:$lifecycle_library_version"
-    implementation "android.arch.lifecycle:common-java8:$lifecycle_library_version"
+    implementation "androidx.lifecycle:lifecycle-extensions:2.0.0"
+    implementation "androidx.lifecycle:lifecycle-common-java8:2.0.0"
 
     testImplementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     testImplementation 'junit:junit:4.12'
@@ -230,9 +241,9 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.0'
 
-    androidTestImplementation "com.android.support:support-annotations:$support_library_version"
-
     androidTestImplementation 'com.koushikdutta.async:androidasync:2.+'
+
+    androidTestImplementation 'androidx.multidex:multidex:2.0.0'
 }
 
 apply from: "${topsrcdir}/mobile/android/gradle/with_gecko_binaries.gradle"
@@ -251,17 +262,33 @@ android.libraryVariants.all { variant ->
     // and amended from numerous Stackoverflow posts.
     def name = variant.name
     def javadoc = task "javadoc${name.capitalize()}"(type: Javadoc) {
+        failOnError = false
         description = "Generate Javadoc for build variant $name"
         destinationDir = new File(destinationDir, variant.baseName)
+
+        // The javadoc task will not re-run if the previous run is still up-to-date,
+        // this is a problem for the javadoc lint, which needs to read the output of the task
+        // to determine if there are warnings or errors. To force that we pass a -Pandroid-lint
+        // parameter to all lints that can be used here to force running the task every time.
+        outputs.upToDateWhen {
+            !project.hasProperty('android-lint')
+        }
+
         doFirst {
             classpath = files(variant.javaCompileProvider.get().classpath.files)
         }
 
         def results = []
         def listener = {
+            if (!it.toLowerCase().contains("warning") && !it.toLowerCase().contains("error")) {
+              // Likely not an error or a warning
+              return
+            }
             // Like '/abs/path/to/topsrcdir/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/ContentBlocking.java:480: warning: no @return'
-            def matches = (it =~ /(.+):(\d+): (warning|error): (.*)/)
+            def matches = (it =~ /(.+):(\d+):.*(warning|error)(.*)/)
             if (!matches) {
+                // could not parse, let's add it anyway since it's a warning or error
+                results << [path: "parsing-failed", lineno: 0, level: "error", message: it]
                 return
             }
             def (_, file, line, level, message) = matches[0]
@@ -297,9 +324,7 @@ android.libraryVariants.all { variant ->
             file("${System.properties['java.home']}/lib/rt.jar")] + android.bootClasspath
         options.memberLevel = JavadocMemberLevel.PROTECTED
         options.source = 8
-        // Bug 1555255: don't require a network connection to produce Javadoc.
-        // See https://stackoverflow.com/a/24026735.
-        options.linksOffline("https://d.android.com/reference/", "${android.sdkDirectory}/docs/reference");
+        options.links("https://d.android.com/reference/")
 
         options.docTitle = "GeckoView ${mozconfig.substs.MOZ_APP_VERSION} API"
         options.header = "GeckoView ${mozconfig.substs.MOZ_APP_VERSION} API"
@@ -328,16 +353,22 @@ android.libraryVariants.all { variant ->
         classifier 'sources'
         description = "Generate Javadoc for build variant $name"
         destinationDir = new File(destinationDir, variant.baseName)
-        from files(variant.javaCompileProvider.get().source)
+        from files(variant.sourceSets.collect({ it.java.srcDirs }).flatten())
     }
 
     task("checkstyle${name.capitalize()}", type: Checkstyle) {
         classpath = variant.javaCompileProvider.get().classpath
-        configFile file("checkstyle.xml")
         // TODO: cleanup and include all sources
         source = ['src/main/java/']
         include '**/*.java'
+
     }
+}
+
+checkstyle {
+    configDir = file(".")
+    configFile = file("checkstyle.xml")
+    toolVersion = "8.36.2"
 }
 
 android.libraryVariants.all { variant ->
@@ -530,6 +561,7 @@ apiLint {
     allowedPackages = [
         'java',
         'android',
+        'androidx',
         'org.json',
         'org.mozilla.geckoview',
     ]

@@ -6,11 +6,14 @@
 
 // Encoding and decoding packets off the wire.
 
-use neqo_common::{hex, matches, Decoder};
+use neqo_common::{hex, hex_with_len, Decoder};
 use neqo_crypto::random;
 
 use std::borrow::Borrow;
 use std::cmp::max;
+use std::convert::AsRef;
+
+pub const MAX_CONNECTION_ID_LEN: usize = 20;
 
 #[derive(Clone, Default, Eq, Hash, PartialEq)]
 pub struct ConnectionId {
@@ -19,7 +22,7 @@ pub struct ConnectionId {
 
 impl ConnectionId {
     pub fn generate(len: usize) -> Self {
-        assert!(matches!(len, 0..=20));
+        assert!(matches!(len, 0..=MAX_CONNECTION_ID_LEN));
         Self { cid: random(len) }
     }
 
@@ -31,8 +34,14 @@ impl ConnectionId {
         Self::generate(len)
     }
 
-    pub fn as_ref(&self) -> ConnectionIdRef {
+    pub fn as_cid_ref(&self) -> ConnectionIdRef {
         ConnectionIdRef::from(&self.cid[..])
+    }
+}
+
+impl AsRef<[u8]> for ConnectionId {
+    fn as_ref(&self) -> &[u8] {
+        self.borrow()
     }
 }
 
@@ -68,7 +77,7 @@ impl std::ops::Deref for ConnectionId {
 
 impl ::std::fmt::Debug for ConnectionId {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        write!(f, "CID {}", hex(&self.cid))
+        write!(f, "CID {}", hex_with_len(&self.cid))
     }
 }
 
@@ -91,13 +100,13 @@ pub struct ConnectionIdRef<'a> {
 
 impl<'a> ::std::fmt::Debug for ConnectionIdRef<'a> {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        write!(f, "CID {}", hex(&self.cid))
+        write!(f, "CID {}", hex_with_len(&self.cid))
     }
 }
 
 impl<'a> ::std::fmt::Display for ConnectionIdRef<'a> {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        write!(f, "{}", hex(&self.cid))
+        write!(f, "{}", hex_with_len(&self.cid))
     }
 }
 
@@ -133,7 +142,6 @@ pub trait ConnectionIdManager: ConnectionIdDecoder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use neqo_common::matches;
     use test_fixture::fixture_init;
 
     #[test]
@@ -141,7 +149,7 @@ mod tests {
         fixture_init();
         for _ in 0..100 {
             let cid = ConnectionId::generate_initial();
-            if !matches!(cid.len(), 8..=20) {
+            if !matches!(cid.len(), 8..=MAX_CONNECTION_ID_LEN) {
                 panic!("connection ID {:?}", cid);
             }
         }

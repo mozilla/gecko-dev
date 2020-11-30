@@ -100,7 +100,7 @@ ol {
 }
 
 .create-login-button-container {
-  box-shadow: 0 -1px var(--in-content-box-border-color);
+  border-top: 1px solid var(--in-content-box-border-color);
   display: flex;
   flex-direction: column;
 }
@@ -111,8 +111,11 @@ ol {
   padding-block: 10px;
   padding-inline: 12px 18px;
   border-inline-start: 4px solid transparent;
-  border-bottom: 1px solid var(--in-content-border-color);
   user-select: none;
+}
+
+.login-list-item + .login-list-item {
+  border-top: 1px solid var(--in-content-border-color);
 }
 
 .login-list-item:hover {
@@ -178,27 +181,16 @@ ol {
   color: var(--in-content-deemphasized-text);
 }
 
-:not(.breached) > .list-item-warning-icon {
-  display: none;
-}
-
-.list-item-warning-icon {
-  -moz-context-properties: fill;
-  fill: var(--red-90);
+.alert-icon {
   min-width: 16px;
+  width: 16px;
   margin-inline-start: 12px;
+  -moz-context-properties: fill, fill-opacity;
+  fill: currentColor;
+  fill-opacity: 0.75;
 }
 
-@media (-moz-windows-default-theme: 0) {
-  .list-item-warning-icon {
-    fill: currentColor;
-  }
-}
-
-@supports -moz-bool-pref("browser.in-content.dark-mode") {
-  @media (prefers-color-scheme: dark) {
-    .breached > .list-item-warning-icon {
-      fill: var(--red-60);
-    }
-  }
+.breached > .alert-icon {
+  fill: var(--red-60);
+  fill-opacity: 1;
 }

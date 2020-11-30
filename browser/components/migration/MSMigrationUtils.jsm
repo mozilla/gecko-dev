@@ -26,6 +26,11 @@ ChromeUtils.defineModuleGetter(
 );
 ChromeUtils.defineModuleGetter(
   this,
+  "PlacesUIUtils",
+  "resource:///modules/PlacesUIUtils.jsm"
+);
+ChromeUtils.defineModuleGetter(
+  this,
   "WindowsRegistry",
   "resource://gre/modules/WindowsRegistry.jsm"
 );
@@ -406,17 +411,20 @@ Bookmarks.prototype = {
     return this.__toolbarFolderName;
   },
 
+  _histogramBookmarkRoots: 0,
   migrate: function B_migrate(aCallback) {
     return (async () => {
       // Import to the bookmarks menu.
       let folderGuid = PlacesUtils.bookmarks.menuGuid;
-      if (!MigrationUtils.isStartupMigration) {
-        folderGuid = await MigrationUtils.createImportedBookmarksFolder(
-          this.importedAppLabel,
-          folderGuid
-        );
-      }
       await this._migrateFolder(this._favoritesFolder, folderGuid);
+      Services.telemetry
+        .getKeyedHistogramById("FX_MIGRATION_BOOKMARKS_ROOTS")
+        .add(
+          this._migrationType == MSMigrationUtils.MIGRATION_TYPE_IE
+            ? "ie"
+            : "edge",
+          this._histogramBookmarkRoots
+        );
     })().then(
       () => aCallback(true),
       e => {
@@ -428,12 +436,30 @@ Bookmarks.prototype = {
 
   async _migrateFolder(aSourceFolder, aDestFolderGuid) {
     let bookmarks = await this._getBookmarksInFolder(aSourceFolder);
-    if (bookmarks.length) {
-      await MigrationUtils.insertManyBookmarksWrapper(
-        bookmarks,
+    if (!bookmarks.length) {
+      return;
+    }
+
+    if (aDestFolderGuid == PlacesUtils.bookmarks.menuGuid) {
+      this._histogramBookmarkRoots |=
+        MigrationUtils.SOURCE_BOOKMARK_ROOTS_BOOKMARKS_MENU;
+    } else if (aDestFolderGuid == PlacesUtils.bookmarks.toolbarGuid) {
+      this._histogramBookmarkRoots |=
+        MigrationUtils.SOURCE_BOOKMARK_ROOTS_BOOKMARKS_TOOLBAR;
+    }
+
+    if (
+      !Services.prefs.getBoolPref("browser.toolbars.bookmarks.2h2020") &&
+      !MigrationUtils.isStartupMigration &&
+      PlacesUtils.getChildCountForFolder(aDestFolderGuid) >
+        PlacesUIUtils.NUM_TOOLBAR_BOOKMARKS_TO_UNHIDE
+    ) {
+      aDestFolderGuid = await MigrationUtils.createImportedBookmarksFolder(
+        this.importedAppLabel,
         aDestFolderGuid
       );
     }
+    await MigrationUtils.insertManyBookmarksWrapper(bookmarks, aDestFolderGuid);
   },
 
   async _getBookmarksInFolder(aSourceFolder) {
@@ -457,13 +483,8 @@ Bookmarks.prototype = {
           if (isBookmarksFolder && entry.isReadable()) {
             // Import to the bookmarks toolbar.
             let folderGuid = PlacesUtils.bookmarks.toolbarGuid;
-            if (!MigrationUtils.isStartupMigration) {
-              folderGuid = await MigrationUtils.createImportedBookmarksFolder(
-                this.importedAppLabel,
-                folderGuid
-              );
-            }
             await this._migrateFolder(entry, folderGuid);
+            PlacesUIUtils.maybeToggleBookmarkToolbarVisibilityAfterMigration();
           } else if (entry.isReadable()) {
             let childBookmarks = await this._getBookmarksInFolder(entry);
             rv.push({
@@ -727,7 +748,8 @@ Cookies.prototype = {
         false, // session
         expireTime,
         {},
-        Ci.nsICookie.SAMESITE_NONE
+        Ci.nsICookie.SAMESITE_NONE,
+        Ci.nsICookie.SCHEME_UNSET
       );
     }
   },

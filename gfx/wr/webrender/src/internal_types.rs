@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::{ColorF, DebugCommand, DocumentId, ExternalImageData, ExternalImageId, PrimitiveFlags};
-use api::{ImageFormat, ItemTag, NotificationRequest, Shadow, FilterOp, MAX_BLUR_RADIUS};
+use api::{ColorF, DocumentId, ExternalImageData, ExternalImageId, PrimitiveFlags};
+use api::{ImageFormat, NotificationRequest, Shadow, FilterOp};
 use api::units::*;
 use api;
+use crate::render_api::DebugCommand;
 use crate::composite::NativeSurfaceOperation;
 use crate::device::TextureFilter;
 use crate::renderer::PipelineInfo;
@@ -22,8 +23,10 @@ use std::hash::BuildHasherDefault;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+#[cfg(any(feature = "capture", feature = "replay"))]
+use crate::capture::CaptureConfig;
 #[cfg(feature = "capture")]
-use crate::capture::{CaptureConfig, ExternalCaptureImage};
+use crate::capture::ExternalCaptureImage;
 #[cfg(feature = "replay")]
 use crate::capture::PlainExternalImage;
 
@@ -68,7 +71,7 @@ const OPACITY_EPSILON: f32 = 0.001;
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub enum Filter {
     Identity,
-    Blur(f32),
+    Blur(f32, f32),
     Brightness(f32),
     Contrast(f32),
     Grayscale(f32),
@@ -86,22 +89,6 @@ pub enum Filter {
 }
 
 impl Filter {
-    /// Ensure that the parameters for a filter operation
-    /// are sensible.
-    pub fn sanitize(&mut self) {
-        match self {
-            Filter::Blur(ref mut radius) => {
-                *radius = radius.min(MAX_BLUR_RADIUS);
-            }
-            Filter::DropShadows(ref mut stack) => {
-                for shadow in stack {
-                    shadow.blur_radius = shadow.blur_radius.min(MAX_BLUR_RADIUS);
-                }
-            }
-            _ => {},
-        }
-    }
-
     pub fn is_visible(&self) -> bool {
         match *self {
             Filter::Identity |
@@ -130,13 +117,13 @@ impl Filter {
     pub fn is_noop(&self) -> bool {
         match *self {
             Filter::Identity => false, // this is intentional
-            Filter::Blur(length) => length == 0.0,
+            Filter::Blur(width, height) => width == 0.0 && height == 0.0,
             Filter::Brightness(amount) => amount == 1.0,
             Filter::Contrast(amount) => amount == 1.0,
             Filter::Grayscale(amount) => amount == 0.0,
             Filter::HueRotate(amount) => amount == 0.0,
             Filter::Invert(amount) => amount == 0.0,
-            Filter::Opacity(_, amount) => amount >= 1.0,
+            Filter::Opacity(api::PropertyBinding::Value(amount), _) => amount >= 1.0,
             Filter::Saturate(amount) => amount == 1.0,
             Filter::Sepia(amount) => amount == 0.0,
             Filter::DropShadows(ref shadows) => {
@@ -157,6 +144,7 @@ impl Filter {
                     0.0, 0.0, 0.0, 0.0
                 ]
             }
+            Filter::Opacity(api::PropertyBinding::Binding(..), _) |
             Filter::SrgbToLinear |
             Filter::LinearToSrgb |
             Filter::ComponentTransfer |
@@ -192,7 +180,7 @@ impl From<FilterOp> for Filter {
     fn from(op: FilterOp) -> Self {
         match op {
             FilterOp::Identity => Filter::Identity,
-            FilterOp::Blur(r) => Filter::Blur(r),
+            FilterOp::Blur(w, h) => Filter::Blur(w, h),
             FilterOp::Brightness(b) => Filter::Brightness(b),
             FilterOp::Contrast(c) => Filter::Contrast(c),
             FilterOp::Grayscale(g) => Filter::Grayscale(g),
@@ -298,11 +286,6 @@ pub enum TextureSource {
     /// shaders that want to draw a solid color.
     Dummy,
 }
-
-// See gpu_types.rs where we declare the number of possible documents and
-// number of items per document. This should match up with that.
-pub const ORTHO_NEAR_PLANE: f32 = -(1 << 22) as f32;
-pub const ORTHO_FAR_PLANE: f32 = ((1 << 22) - 1) as f32;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "capture", derive(Serialize))]
@@ -478,6 +461,9 @@ impl TextureUpdateList {
     pub fn push_reset(&mut self, id: CacheTextureId, info: TextureCacheAllocInfo) {
         self.debug_assert_coalesced(id);
 
+        // Drop any unapplied updates to the to-be-freed texture.
+        self.updates.remove(&id);
+
         // Coallesce this realloc into a previous alloc or realloc, if available.
         if let Some(cur) = self.allocations.iter_mut().find(|x| x.id == id) {
             match cur.kind {
@@ -561,7 +547,7 @@ pub enum DebugOutput {
     #[cfg(feature = "capture")]
     SaveCapture(CaptureConfig, Vec<ExternalCaptureImage>),
     #[cfg(feature = "replay")]
-    LoadCapture(PathBuf, Vec<PlainExternalImage>),
+    LoadCapture(CaptureConfig, Vec<PlainExternalImage>),
 }
 
 #[allow(dead_code)]
@@ -606,7 +592,6 @@ pub struct LayoutPrimitiveInfo {
     pub rect: LayoutRect,
     pub clip_rect: LayoutRect,
     pub flags: PrimitiveFlags,
-    pub hit_info: Option<ItemTag>,
 }
 
 impl LayoutPrimitiveInfo {
@@ -615,7 +600,6 @@ impl LayoutPrimitiveInfo {
             rect,
             clip_rect,
             flags: PrimitiveFlags::default(),
-            hit_info: None,
         }
     }
 }

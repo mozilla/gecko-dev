@@ -181,10 +181,15 @@ class AlignedBuffer {
   // Size in bytes of extra space allocated for padding.
   static size_t AlignmentPaddingSize() { return AlignmentOffset() * 2; }
 
-  void PopFront(size_t aSize) {
-    MOZ_DIAGNOSTIC_ASSERT(mLength >= aSize, "Popping too many frames");
-    PodMove(mData, mData + aSize, mLength - aSize);
-    mLength -= aSize;
+  void PopFront(size_t aCount) {
+    MOZ_DIAGNOSTIC_ASSERT(mLength >= aCount, "Popping too many elements.");
+    PodMove(mData, mData + aCount, mLength - aCount);
+    mLength -= aCount;
+  }
+
+  void PopBack(size_t aCount) {
+    MOZ_DIAGNOSTIC_ASSERT(mLength >= aCount, "Popping too many elements.");
+    mLength -= aCount;
   }
 
  private:
@@ -236,9 +241,9 @@ class AlignedBuffer {
     return true;
   }
   Type* mData;
-  size_t mLength;
+  size_t mLength;  // number of elements
   UniquePtr<uint8_t[]> mBuffer;
-  size_t mCapacity;
+  size_t mCapacity;  // in bytes
 };
 
 typedef AlignedBuffer<uint8_t> AlignedByteBuffer;
@@ -375,10 +380,6 @@ class AudioData : public MediaData {
   // If mAudioBuffer is null, creates it from mAudioData.
   void EnsureAudioBuffer();
 
-  // To check whether mAudioData has audible signal, it's used to distinguish
-  // the audiable data and silent data.
-  bool IsAudible() const;
-
   // Return true if the adjusted time is valid. Caller should handle error when
   // the result is invalid.
   bool AdjustForStartTime(const media::TimeUnit& aStartTime) override;
@@ -399,6 +400,7 @@ class AudioData : public MediaData {
   ~AudioData() = default;
 
  private:
+  friend class ArrayOfRemoteAudioData;
   AudioDataValue* GetAdjustedData() const;
   media::TimeUnit mOriginalTime;
   // mFrames frames, each with mChannels values
@@ -441,7 +443,6 @@ class VideoData : public MediaData {
       uint32_t mWidth;
       uint32_t mHeight;
       uint32_t mStride;
-      uint32_t mOffset;
       uint32_t mSkip;
     };
 
@@ -539,20 +540,29 @@ class CryptoTrack {
         mSkipByteBlock(0) {}
   CryptoScheme mCryptoScheme;
   int32_t mIVSize;
-  nsTArray<uint8_t> mKeyId;
+  CopyableTArray<uint8_t> mKeyId;
   uint8_t mCryptByteBlock;
   uint8_t mSkipByteBlock;
-  nsTArray<uint8_t> mConstantIV;
+  CopyableTArray<uint8_t> mConstantIV;
 
   bool IsEncrypted() const { return mCryptoScheme != CryptoScheme::None; }
 };
 
 class CryptoSample : public CryptoTrack {
  public:
-  nsTArray<uint16_t> mPlainSizes;
-  nsTArray<uint32_t> mEncryptedSizes;
-  nsTArray<uint8_t> mIV;
-  nsTArray<nsTArray<uint8_t>> mInitDatas;
+  // The num clear bytes in each subsample. The nth element in the array is the
+  // number of clear bytes at the start of the nth subsample.
+  // Clear sizes are stored as uint16_t in containers per ISO/IEC
+  // 23001-7, but we store them as uint32_t for 2 reasons
+  // - The Widevine CDM accepts clear sizes as uint32_t.
+  // - When converting samples to Annex B we modify the clear sizes and
+  //   clear sizes near UINT16_MAX can overflow if stored in a uint16_t.
+  CopyableTArray<uint32_t> mPlainSizes;
+  // The num encrypted bytes in each subsample. The nth element in the array is
+  // the number of encrypted bytes at the start of the nth subsample.
+  CopyableTArray<uint32_t> mEncryptedSizes;
+  CopyableTArray<uint8_t> mIV;
+  CopyableTArray<CopyableTArray<uint8_t>> mInitDatas;
   nsString mInitDataType;
 };
 
@@ -591,12 +601,12 @@ class MediaRawDataWriter {
 
   // Set size of buffer, allocating memory as required.
   // If size is increased, new buffer area is filled with 0.
-  MOZ_MUST_USE bool SetSize(size_t aSize);
+  [[nodiscard]] bool SetSize(size_t aSize);
   // Add aData at the beginning of buffer.
-  MOZ_MUST_USE bool Prepend(const uint8_t* aData, size_t aSize);
-  MOZ_MUST_USE bool Append(const uint8_t* aData, size_t aSize);
+  [[nodiscard]] bool Prepend(const uint8_t* aData, size_t aSize);
+  [[nodiscard]] bool Append(const uint8_t* aData, size_t aSize);
   // Replace current content with aData.
-  MOZ_MUST_USE bool Replace(const uint8_t* aData, size_t aSize);
+  [[nodiscard]] bool Replace(const uint8_t* aData, size_t aSize);
   // Clear the memory buffer. Will set target mData and mSize to 0.
   void Clear();
   // Remove aSize bytes from the front of the sample.
@@ -605,7 +615,7 @@ class MediaRawDataWriter {
  private:
   friend class MediaRawData;
   explicit MediaRawDataWriter(MediaRawData* aMediaRawData);
-  MOZ_MUST_USE bool EnsureSize(size_t aSize);
+  [[nodiscard]] bool EnsureSize(size_t aSize);
   MediaRawData* mTarget;
 };
 
@@ -615,6 +625,8 @@ class MediaRawData final : public MediaData {
   MediaRawData(const uint8_t* aData, size_t aSize);
   MediaRawData(const uint8_t* aData, size_t aSize, const uint8_t* aAlphaData,
                size_t aAlphaSize);
+  explicit MediaRawData(AlignedByteBuffer&& aData);
+  MediaRawData(AlignedByteBuffer&& aData, AlignedByteBuffer&& aAlphaData);
 
   // Pointer to data or null if not-yet allocated
   const uint8_t* Data() const { return mBuffer.Data(); }
@@ -628,7 +640,7 @@ class MediaRawData final : public MediaData {
            mAlphaBuffer.ComputedSizeOfExcludingThis();
   }
   // Access the buffer as a Span.
-  operator Span<const uint8_t>() { return MakeSpan(Data(), Size()); }
+  operator Span<const uint8_t>() { return Span{Data(), Size()}; }
 
   const CryptoSample& mCrypto;
   RefPtr<MediaByteBuffer> mExtraData;
@@ -663,6 +675,7 @@ class MediaRawData final : public MediaData {
 
  private:
   friend class MediaRawDataWriter;
+  friend class ArrayOfRemoteMediaRawData;
   AlignedByteBuffer mBuffer;
   AlignedByteBuffer mAlphaBuffer;
   CryptoSample mCryptoInternal;

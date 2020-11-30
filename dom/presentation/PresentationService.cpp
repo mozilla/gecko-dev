@@ -126,7 +126,7 @@ PresentationDeviceRequest::PresentationDeviceRequest(
     const nsAString& aOrigin, uint64_t aWindowId, EventTarget* aEventTarget,
     nsIPrincipal* aPrincipal, nsIPresentationServiceCallback* aCallback,
     nsIPresentationTransportBuilderConstructor* aBuilderConstructor)
-    : mRequestUrls(aUrls),
+    : mRequestUrls(aUrls.Clone()),
       mId(aId),
       mOrigin(aOrigin),
       mWindowId(aWindowId),
@@ -244,7 +244,7 @@ PresentationDeviceRequest::Cancel(nsresult aReason) {
 
 NS_IMPL_ISUPPORTS(PresentationService, nsIPresentationService, nsIObserver)
 
-PresentationService::PresentationService() {}
+PresentationService::PresentationService() = default;
 
 PresentationService::~PresentationService() { HandleShutdown(); }
 
@@ -1102,8 +1102,10 @@ already_AddRefed<nsIPresentationService> NS_CreatePresentationService() {
   if (XRE_GetProcessType() == GeckoProcessType_Content) {
     service = new mozilla::dom::PresentationIPCService();
   } else {
-    service = new PresentationService();
-    if (NS_WARN_IF(!static_cast<PresentationService*>(service.get())->Init())) {
+    service = new mozilla::dom::PresentationService();
+    if (NS_WARN_IF(
+            !static_cast<mozilla::dom::PresentationService*>(service.get())
+                 ->Init())) {
       return nullptr;
     }
   }

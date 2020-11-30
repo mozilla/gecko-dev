@@ -244,6 +244,31 @@ TEST(Base64, RFC4648Encoding)
   }
 }
 
+TEST(Base64, RFC4648Encoding_TransformAndAppend_EmptyPrefix)
+{
+  for (auto& testcase : sRFC4648TestCases) {
+    nsDependentCString in(testcase.mInput);
+    nsAutoString out;
+    nsresult rv =
+        mozilla::Base64EncodeAppend(in.BeginReading(), in.Length(), out);
+    ASSERT_TRUE(NS_SUCCEEDED(rv));
+    ASSERT_TRUE(out.EqualsASCII(testcase.mOutput));
+  }
+}
+
+TEST(Base64, RFC4648Encoding_TransformAndAppend_NonEmptyPrefix)
+{
+  for (auto& testcase : sRFC4648TestCases) {
+    nsDependentCString in(testcase.mInput);
+    nsAutoString out{u"foo"_ns};
+    nsresult rv =
+        mozilla::Base64EncodeAppend(in.BeginReading(), in.Length(), out);
+    ASSERT_TRUE(NS_SUCCEEDED(rv));
+    ASSERT_TRUE(StringBeginsWith(out, u"foo"_ns));
+    ASSERT_TRUE(Substring(out, 3).EqualsASCII(testcase.mOutput));
+  }
+}
+
 TEST(Base64, RFC4648Decoding)
 {
   for (auto& testcase : sRFC4648TestCases) {
@@ -391,7 +416,7 @@ TEST(Base64, DecodeNon8BitWideString)
 
 TEST(Base64, TruncateOnInvalidDecodeCString)
 {
-  NS_NAMED_LITERAL_CSTRING(invalid, "@@==");
+  constexpr auto invalid = "@@=="_ns;
   nsAutoCString out("I should be truncated!");
   nsresult rv = mozilla::Base64Decode(invalid, out);
   ASSERT_TRUE(NS_FAILED(rv));
@@ -400,7 +425,7 @@ TEST(Base64, TruncateOnInvalidDecodeCString)
 
 TEST(Base64, TruncateOnInvalidDecodeWideString)
 {
-  NS_NAMED_LITERAL_STRING(invalid, "@@==");
+  constexpr auto invalid = u"@@=="_ns;
   nsAutoString out(u"I should be truncated!");
   nsresult rv = mozilla::Base64Decode(invalid, out);
   ASSERT_TRUE(NS_FAILED(rv));

@@ -7,10 +7,12 @@
 
 #include <windows.h>
 
+#include <tuple>
 #include <vector>
 
+#include <string>
+
 #include "base/macros.h"
-#include "base/strings/string16.h"
 #include "base/win/scoped_handle.h"
 #include "sandbox/win/src/restricted_token_utils.h"
 #include "sandbox/win/src/security_level.h"
@@ -113,10 +115,10 @@ class RestrictedToken {
   // the error.
   //
   // Sample usage:
-  //    std::vector<base::string16> privilege_exceptions;
+  //    std::vector<std::wstring> privilege_exceptions;
   //    privilege_exceptions.push_back(SE_CHANGE_NOTIFY_NAME);
   //    restricted_token.DeleteAllPrivileges(&privilege_exceptions);
-  DWORD DeleteAllPrivileges(const std::vector<base::string16>* exceptions);
+  DWORD DeleteAllPrivileges(const std::vector<std::wstring>* exceptions);
 
   // Adds a privilege to the list of privileges to remove in the restricted
   // token.
@@ -173,6 +175,12 @@ class RestrictedToken {
   // default DACL when created.
   void SetLockdownDefaultDacl();
 
+  // Add a SID to the default DACL. These SIDs are added regardless of the
+  // SetLockdownDefaultDacl state.
+  DWORD AddDefaultDaclSid(const Sid& sid,
+                          ACCESS_MODE access_mode,
+                          ACCESS_MASK access);
+
  private:
   // The list of restricting sids in the restricted token.
   std::vector<Sid> sids_to_restrict_;
@@ -180,6 +188,8 @@ class RestrictedToken {
   std::vector<LUID> privileges_to_disable_;
   // The list of sids to mark as Deny Only in the restricted token.
   std::vector<Sid> sids_for_deny_only_;
+  // The list of sids to add to the default DACL of the restricted token.
+  std::vector<std::tuple<Sid, ACCESS_MODE, ACCESS_MASK>> sids_for_default_dacl_;
   // The token to restrict. Can only be set in a constructor.
   base::win::ScopedHandle effective_token_;
   // The token integrity level. Only valid on Vista.

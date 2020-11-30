@@ -62,7 +62,7 @@
       }
 
       this.textContent = "";
-      this.appendChild(MozXULElement.parseXULToFragment(this._markup));
+      this.appendChild(this.constructor.fragment);
       this.initializeAttributeInheritance();
 
       this._boundaryCutoff = null;
@@ -83,7 +83,7 @@
       };
     }
 
-    get _markup() {
+    static get markup() {
       return `
       <image class="ac-type-icon"/>
       <image class="ac-site-icon"/>
@@ -378,7 +378,7 @@
     }
 
     _unescapeUrl(url) {
-      return Services.textToSubURI.unEscapeURIForUI("UTF-8", url);
+      return Services.textToSubURI.unEscapeURIForUI(url);
     }
 
     _reuseAcItem() {
@@ -553,7 +553,7 @@
       };
     }
 
-    get _markup() {
+    static get markup() {
       return `
       <image class="ac-type-icon"/>
       <image class="ac-site-icon"/>
@@ -603,18 +603,59 @@
           "resource://gre/modules/LoginHelper.jsm"
         );
 
-        // ac-label gets populated from getCommentAt despite the attribute name.
-        // The "comment" is used to populate additional visible text.
-        let { formHostname } = JSON.parse(this.getAttribute("ac-label"));
-
         LoginHelper.openPasswordManager(this.ownerGlobal, {
-          filterString: formHostname,
           entryPoint: "autocomplete",
         });
+        Services.telemetry.recordEvent(
+          "exp_import",
+          "event",
+          "click",
+          "loginsFooter"
+        );
       }
 
       this.addEventListener("click", handleEvent);
     }
+  }
+
+  class MozAutocompleteImportableLearnMoreRichlistitem extends MozElements.MozAutocompleteRichlistitem {
+    constructor() {
+      super();
+      MozXULElement.insertFTLIfNeeded("toolkit/main-window/autocomplete.ftl");
+
+      this.addEventListener("click", event => {
+        window.openTrustedLinkIn(
+          Services.urlFormatter.formatURLPref("app.support.baseURL") +
+            "password-import",
+          "tab",
+          { relatedToCurrent: true }
+        );
+      });
+    }
+
+    static get markup() {
+      return `
+      <image class="ac-type-icon"/>
+      <image class="ac-site-icon"/>
+      <vbox class="ac-title" align="left">
+        <description class="ac-text-overflow-container">
+          <description class="ac-title-text"
+                       data-l10n-id="autocomplete-import-learn-more"/>
+        </description>
+      </vbox>
+      <hbox class="ac-separator" align="center">
+        <description class="ac-separator-text" value="—"/>
+      </hbox>
+      <hbox class="ac-url" align="center">
+        <description class="ac-text-overflow-container">
+          <description class="ac-url-text"/>
+        </description>
+      </hbox>
+    `;
+    }
+
+    // Override to avoid clearing out fluent description.
+    _setUpDescription() {}
   }
 
   class MozAutocompleteTwoLineRichlistitem extends MozElements.MozRichlistitem {
@@ -624,7 +665,7 @@
       }
 
       this.textContent = "";
-      this.appendChild(MozXULElement.parseXULToFragment(this._markup));
+      this.appendChild(this.constructor.fragment);
       this.initializeAttributeInheritance();
       this._adjustAcItem();
     }
@@ -638,7 +679,7 @@
       };
     }
 
-    get _markup() {
+    static get markup() {
       return `
       <div xmlns="http://www.w3.org/1999/xhtml"
            xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
@@ -653,11 +694,13 @@
     }
 
     _adjustAcItem() {
-      let outerBoxRect = this.parentNode.getBoundingClientRect();
-
+      const popup = this.parentNode.parentNode;
+      const minWidth = getComputedStyle(popup).minWidth.replace("px", "");
       // Make item fit in popup as XUL box could not constrain
       // item's width
-      this.firstElementChild.style.width = outerBoxRect.width + "px";
+      // popup.width is equal to the input field's width from the content process
+      this.firstElementChild.style.width =
+        Math.max(minWidth, popup.width) + "px";
     }
 
     _onOverflow() {}
@@ -733,6 +776,55 @@
     }
   }
 
+  class MozAutocompleteImportableLoginsRichlistitem extends MozAutocompleteTwoLineRichlistitem {
+    constructor() {
+      super();
+      MozXULElement.insertFTLIfNeeded("toolkit/main-window/autocomplete.ftl");
+
+      this.addEventListener("click", event => {
+        if (event.button != 0) {
+          return;
+        }
+
+        // Let the login manager parent handle this importable browser click.
+        gBrowser.selectedBrowser.browsingContext.currentWindowGlobal
+          .getActor("LoginManager")
+          .receiveMessage({
+            name: "PasswordManager:HandleImportable",
+            data: {
+              browserId: this.getAttribute("ac-value"),
+              type: "click",
+            },
+          });
+      });
+    }
+
+    static get markup() {
+      return `
+      <div xmlns="http://www.w3.org/1999/xhtml"
+           xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+           class="two-line-wrapper">
+        <xul:image class="ac-site-icon" />
+        <div class="labels-wrapper">
+          <div class="label-row line1-label" data-l10n-name="line1" />
+          <div class="label-row line2-label" data-l10n-name="line2" />
+        </div>
+      </div>
+    `;
+    }
+
+    _adjustAcItem() {
+      document.l10n.setAttributes(
+        this.querySelector(".labels-wrapper"),
+        `autocomplete-import-logins-${this.getAttribute("ac-value")}`,
+        {
+          host: this.getAttribute("ac-label").replace(/^www\./, ""),
+        }
+      );
+      super._adjustAcItem();
+    }
+  }
+
   customElements.define(
     "autocomplete-richlistitem",
     MozElements.MozAutocompleteRichlistitem,
@@ -776,6 +868,22 @@
   customElements.define(
     "autocomplete-generated-password-richlistitem",
     MozAutocompleteGeneratedPasswordRichlistitem,
+    {
+      extends: "richlistitem",
+    }
+  );
+
+  customElements.define(
+    "autocomplete-importable-learn-more-richlistitem",
+    MozAutocompleteImportableLearnMoreRichlistitem,
+    {
+      extends: "richlistitem",
+    }
+  );
+
+  customElements.define(
+    "autocomplete-importable-logins-richlistitem",
+    MozAutocompleteImportableLoginsRichlistitem,
     {
       extends: "richlistitem",
     }

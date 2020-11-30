@@ -6,51 +6,94 @@
 
 #include "mozilla/layers/APZUtils.h"
 
-#include "AsyncPanZoomController.h"
+#include "mozilla/StaticPrefs_apz.h"
 
 namespace mozilla {
 namespace layers {
+
 namespace apz {
 
-/*static*/ void InitializeGlobalState() {
-  MOZ_ASSERT(NS_IsMainThread());
-  AsyncPanZoomController::InitializeGlobalState();
-}
-
-/*static*/ const ScreenMargin CalculatePendingDisplayPort(
-    const FrameMetrics& aFrameMetrics, const ParentLayerPoint& aVelocity) {
-  return AsyncPanZoomController::CalculatePendingDisplayPort(aFrameMetrics,
-                                                             aVelocity);
-}
-
-/*static*/ bool IsCloseToHorizontal(float aAngle, float aThreshold) {
+bool IsCloseToHorizontal(float aAngle, float aThreshold) {
   return (aAngle < aThreshold || aAngle > (M_PI - aThreshold));
 }
 
-/*static*/ bool IsCloseToVertical(float aAngle, float aThreshold) {
+bool IsCloseToVertical(float aAngle, float aThreshold) {
   return (fabs(aAngle - (M_PI / 2)) < aThreshold);
 }
 
-/* static */ gfxFloat IntervalOverlap(gfxFloat aTranslation, gfxFloat aMin,
-                                      gfxFloat aMax) {
-  if (aTranslation > 0) {
-    return std::max(0.0, std::min(aMax, aTranslation) - std::max(aMin, 0.0));
-  }
-
-  return std::min(0.0, std::max(aMin, aTranslation) - std::min(aMax, 0.0));
+bool IsStuckAtBottom(gfxFloat aTranslation,
+                     const LayerRectAbsolute& aInnerRange,
+                     const LayerRectAbsolute& aOuterRange) {
+  // The item will be stuck at the bottom if the async scroll delta is in
+  // the range [aOuterRange.Y(), aInnerRange.Y()]. Since the translation
+  // is negated with repect to the async scroll delta (i.e. scrolling down
+  // produces a positive scroll delta and negative translation), we invert it
+  // and check to see if it falls in the specified range.
+  return aOuterRange.Y() <= -aTranslation && -aTranslation <= aInnerRange.Y();
 }
 
-/* static */ bool IsStuckAtBottom(gfxFloat aTranslation,
-                                  const LayerRectAbsolute& aInnerRange,
-                                  const LayerRectAbsolute& aOuterRange) {
-  gfxFloat diff =
-      (IntervalOverlap(aTranslation, aOuterRange.Y(), aOuterRange.YMost()) -
-       IntervalOverlap(aTranslation, aInnerRange.Y(), aInnerRange.YMost())) -
-      aTranslation;
+bool IsStuckAtTop(gfxFloat aTranslation, const LayerRectAbsolute& aInnerRange,
+                  const LayerRectAbsolute& aOuterRange) {
+  // Same as IsStuckAtBottom, except we want to check for the range
+  // [aInnerRange.YMost(), aOuterRange.YMost()].
+  return aInnerRange.YMost() <= -aTranslation &&
+         -aTranslation <= aOuterRange.YMost();
+}
 
-  // `inner.YMost() < 0` means the sticky layer is stuck at top of the target
-  // scroll layer?
-  return diff == 0.0f && aInnerRange.YMost() >= 0;
+ScreenPoint ComputeFixedMarginsOffset(
+    const ScreenMargin& aCompositorFixedLayerMargins, SideBits aFixedSides,
+    const ScreenMargin& aGeckoFixedLayerMargins) {
+  // Work out the necessary translation, in screen space.
+  ScreenPoint translation;
+
+  ScreenMargin effectiveMargin =
+      aCompositorFixedLayerMargins - aGeckoFixedLayerMargins;
+  if ((aFixedSides & SideBits::eLeftRight) == SideBits::eLeftRight) {
+    translation.x += (effectiveMargin.left - effectiveMargin.right) / 2;
+  } else if (aFixedSides & SideBits::eRight) {
+    translation.x -= effectiveMargin.right;
+  } else if (aFixedSides & SideBits::eLeft) {
+    translation.x += effectiveMargin.left;
+  }
+
+  if ((aFixedSides & SideBits::eTopBottom) == SideBits::eTopBottom) {
+    translation.y += (effectiveMargin.top - effectiveMargin.bottom) / 2;
+  } else if (aFixedSides & SideBits::eBottom) {
+    translation.y -= effectiveMargin.bottom;
+  } else if (aFixedSides & SideBits::eTop) {
+    translation.y += effectiveMargin.top;
+  }
+
+  return translation;
+}
+
+bool AboutToCheckerboard(const FrameMetrics& aPaintedMetrics,
+                         const FrameMetrics& aCompositorMetrics) {
+  // The main-thread code to compute the painted area can introduce some
+  // rounding error due to multiple unit conversions, so we inflate the rect by
+  // one app unit to account for that.
+  CSSRect painted = (aPaintedMetrics.GetCriticalDisplayPort().IsEmpty()
+                         ? aPaintedMetrics.GetDisplayPort()
+                         : aPaintedMetrics.GetCriticalDisplayPort()) +
+                    aPaintedMetrics.GetLayoutScrollOffset();
+  painted.Inflate(CSSMargin::FromAppUnits(nsMargin(1, 1, 1, 1)));
+
+  // Inflate the rect by the danger zone. See the description of the danger zone
+  // prefs in AsyncPanZoomController.cpp for an explanation of this.
+  CSSRect visible =
+      CSSRect(aCompositorMetrics.GetVisualScrollOffset(),
+              aCompositorMetrics.CalculateBoundedCompositedSizeInCssPixels());
+  visible.Inflate(LayerSize(StaticPrefs::apz_danger_zone_x(),
+                            StaticPrefs::apz_danger_zone_y()) /
+                  aCompositorMetrics.LayersPixelsPerCSSPixel());
+
+  // Clamp both rects to the scrollable rect, because having either of those
+  // exceed the scrollable rect doesn't make sense, and could lead to false
+  // positives.
+  painted = painted.Intersect(aPaintedMetrics.GetScrollableRect());
+  visible = visible.Intersect(aPaintedMetrics.GetScrollableRect());
+
+  return !painted.Contains(visible);
 }
 
 }  // namespace apz

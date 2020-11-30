@@ -34,10 +34,10 @@ var gExceptionPaths = [
   "resource://payments/",
 
   // https://github.com/mozilla/activity-stream/issues/3053
-  "resource://activity-stream/data/content/tippytop/images/",
-  "resource://activity-stream/data/content/tippytop/favicons/",
+  "chrome://activity-stream/content/data/content/tippytop/images/",
+  "chrome://activity-stream/content/data/content/tippytop/favicons/",
   // These resources are referenced by messages delivered through Remote Settings
-  "resource://activity-stream/data/content/assets/remote/",
+  "chrome://activity-stream/content/data/content/assets/remote/",
 
   // browser/extensions/pdfjs/content/build/pdf.js#1999
   "resource://pdf.js/web/images/",
@@ -70,7 +70,7 @@ if (AppConstants.platform == "macosx") {
 // referencing the whitelisted file in a way that the test can't detect, or a
 // bug number to remove or use the file if it is indeed currently unreferenced.
 var whitelist = [
-  // browser/extensions/pdfjs/content/PdfStreamConverter.jsm
+  // toolkt/components/pdfjs/content/PdfStreamConverter.jsm
   { file: "chrome://pdf.js/locale/chrome.properties" },
   { file: "chrome://pdf.js/locale/viewer.properties" },
 
@@ -105,9 +105,6 @@ var whitelist = [
 
   // modules/libpref/Preferences.cpp
   { file: "resource://gre/greprefs.js" },
-
-  // browser/extensions/pdfjs/content/web/viewer.js
-  { file: "resource://pdf.js/build/pdf.worker.js" },
 
   // layout/mathml/nsMathMLChar.cpp
   { file: "resource://gre/res/fonts/mathfontSTIXGeneral.properties" },
@@ -160,7 +157,7 @@ var whitelist = [
     platforms: ["linux", "macosx"],
   },
 
-  // browser/extensions/pdfjs/content/web/viewer.js#7450
+  // toolkt/components/pdfjs/content/web/viewer.js#7450
   { file: "resource://pdf.js/web/debugger.js" },
 
   // resource://app/modules/translation/TranslationContentHandler.jsm
@@ -185,15 +182,6 @@ var whitelist = [
   { file: "chrome://marionette/content/test.xhtml" },
   { file: "chrome://marionette/content/test_dialog.properties" },
   { file: "chrome://marionette/content/test_dialog.xhtml" },
-  // Bug 1348533
-  {
-    file: "chrome://mozapps/skin/downloads/buttons.png",
-    platforms: ["macosx"],
-  },
-  {
-    file: "chrome://mozapps/skin/downloads/downloadButtons.png",
-    platforms: ["linux", "win"],
-  },
   // Bug 1348559
   { file: "chrome://pippki/content/resetpassword.xhtml" },
   // Bug 1337345
@@ -218,12 +206,7 @@ var whitelist = [
     isFromDevTools: true,
   },
   { file: "chrome://devtools/skin/images/next.svg", isFromDevTools: true },
-  // Feature gates are available but not used yet - Bug 1479127
-  { file: "resource://featuregates/FeatureGate.jsm" },
-  {
-    file: "resource://featuregates/FeatureGateImplementation.jsm",
-  },
-  { file: "resource://featuregates/feature_definitions.json" },
+
   // Bug 1526672
   {
     file: "resource://app/localization/en-US/browser/touchbar/touchbar.ftl",
@@ -237,6 +220,12 @@ var whitelist = [
 
   // Referenced from the screenshots webextension
   { file: "resource://app/localization/en-US/browser/screenshots.ftl" },
+
+  // services/fxaccounts/RustFxAccount.js
+  { file: "resource://gre/modules/RustFxAccount.js" },
+
+  // dom/media/mediacontrol/MediaControlService.cpp
+  { file: "resource://gre/localization/en-US/dom/media.ftl" },
 ];
 
 if (AppConstants.NIGHTLY_BUILD && AppConstants.platform != "win") {
@@ -245,6 +234,15 @@ if (AppConstants.NIGHTLY_BUILD && AppConstants.platform != "win") {
   // can access the FxR UI via --chrome rather than --fxr (which includes VR-
   // specific functionality)
   whitelist.push({ file: "chrome://fxr/content/fxrui.html" });
+}
+
+if (!AppConstants.NIGHTLY_BUILD || AppConstants.platform == "android") {
+  // Bug 1656680, should be removed after Bug 1651111 lands.
+  // The l10n build system can't package string files only for some platforms.
+  // Referenced by aboutGlean.html
+  whitelist.push({
+    file: "resource://gre/localization/en-US/toolkit/about/aboutGlean.ftl",
+  });
 }
 
 whitelist = new Set(
@@ -290,6 +288,11 @@ if (!isDevtools) {
     "extension-storage.js",
   ]) {
     whitelist.add("resource://services-sync/engines/" + module);
+  }
+  // resource://devtools/shared/worker/loader.js,
+  // resource://devtools/shared/builtin-modules.js
+  if (!AppConstants.ENABLE_REMOTE_AGENT) {
+    whitelist.add("resource://gre/modules/jsdebugger.jsm");
   }
 }
 
@@ -391,9 +394,10 @@ function parseManifest(manifestUri) {
   });
 }
 
-// If the given URI is a webextension manifest, extract the scripts
-// for any embedded APIs.  Returns the passed in URI if the manifest
-// is not a webextension manifest, null otherwise.
+// If the given URI is a webextension manifest, extract files used by
+// any of its APIs (scripts, icons, style sheets, theme images).
+// Returns the passed in URI if the manifest is not a webextension
+// manifest, null otherwise.
 async function parseJsonManifest(uri) {
   uri = Services.io.newURI(convertToCodeURI(uri.spec));
 
@@ -428,6 +432,14 @@ async function parseJsonManifest(uri) {
   if (data.theme_experiment && data.theme_experiment.stylesheet) {
     let stylesheet = uri.resolve(data.theme_experiment.stylesheet);
     gReferencesFromCode.set(stylesheet, null);
+  }
+
+  for (let themeKey of ["theme", "dark_theme"]) {
+    if (data?.[themeKey]?.images?.additional_backgrounds) {
+      for (let background of data[themeKey].images.additional_backgrounds) {
+        gReferencesFromCode.set(uri.resolve(background), null);
+      }
+    }
   }
 
   return null;
@@ -806,9 +818,9 @@ add_task(async function checkAllTheFiles() {
   // read the contents.  This will populate gExtensionRoots with all
   // embedded extension APIs, and return any manifest.json files that aren't
   // webextensions.
-  let nonWebextManifests = (await Promise.all(
-    jsonManifests.map(parseJsonManifest)
-  )).filter(uri => !!uri);
+  let nonWebextManifests = (
+    await Promise.all(jsonManifests.map(parseJsonManifest))
+  ).filter(uri => !!uri);
   uris.push(...nonWebextManifests);
 
   addActorModules();

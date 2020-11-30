@@ -190,6 +190,9 @@ BufferTextureData* BufferTextureData::CreateForYCbCr(
                       cbOffset, crOffset, aStereoMode, aColorDepth,
                       aYUVColorSpace, aColorRange, hasIntermediateBuffer);
 
+  // extra SIMD padding needed for SWGL
+  bufSize += 16;
+
   return CreateInternal(
       aAllocator ? aAllocator->GetTextureForwarder() : nullptr, descriptor,
       gfx::BackendType::NONE, bufSize, aTextureFlags);
@@ -225,6 +228,14 @@ gfx::IntSize BufferTextureData::GetSize() const {
 
 Maybe<gfx::IntSize> BufferTextureData::GetCbCrSize() const {
   return ImageDataSerializer::CbCrSizeFromBufferDescriptor(mDescriptor);
+}
+
+Maybe<int32_t> BufferTextureData::GetYStride() const {
+  return ImageDataSerializer::YStrideFromBufferDescriptor(mDescriptor);
+}
+
+Maybe<int32_t> BufferTextureData::GetCbCrStride() const {
+  return ImageDataSerializer::CbCrStrideFromBufferDescriptor(mDescriptor);
 }
 
 Maybe<gfx::YUVColorSpace> BufferTextureData::GetYUVColorSpace() const {

@@ -35,10 +35,11 @@ class TypeConstraint;
 class TypeZone;
 class CompilerConstraintList;
 class HeapTypeSetKey;
+class PlainObject;
 
 namespace jit {
 
-struct IonScript;
+class IonScript;
 class JitScript;
 class TempAllocator;
 
@@ -201,7 +202,7 @@ class PreliminaryObjectArrayWithTemplate : public PreliminaryObjectArray {
 
   void trace(JSTracer* trc);
 
-  static void writeBarrierPre(
+  static void preWriteBarrier(
       PreliminaryObjectArrayWithTemplate* preliminaryObjects);
 };
 

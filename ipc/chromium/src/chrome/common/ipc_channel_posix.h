@@ -11,7 +11,6 @@
 
 #include <sys/socket.h>  // for CMSG macros
 
-#include <queue>
 #include <string>
 #include <vector>
 #include <list>
@@ -21,6 +20,8 @@
 #include "chrome/common/file_descriptor_set_posix.h"
 
 #include "mozilla/Maybe.h"
+#include "mozilla/Queue.h"
+#include "mozilla/UniquePtr.h"
 
 namespace IPC {
 
@@ -28,8 +29,10 @@ namespace IPC {
 // socketpairs.  See the .cc file for an overview of the implementation.
 class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
  public:
+  using ChannelId = Channel::ChannelId;
+
   // Mirror methods of Channel, see ipc_channel.h for description.
-  ChannelImpl(const std::wstring& channel_id, Mode mode, Listener* listener);
+  ChannelImpl(const ChannelId& channel_id, Mode mode, Listener* listener);
   ChannelImpl(int fd, Mode mode, Listener* listener);
   ~ChannelImpl() { Close(); }
   bool Connect();
@@ -39,7 +42,7 @@ class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
     listener_ = listener;
     return old;
   }
-  bool Send(Message* message);
+  bool Send(mozilla::UniquePtr<Message> message);
   void GetClientFileDescriptorMapping(int* src_fd, int* dest_fd) const;
 
   void ResetFileDescriptor(int fd);
@@ -54,7 +57,7 @@ class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
 
  private:
   void Init(Mode mode, Listener* listener);
-  bool CreatePipe(const std::wstring& channel_id, Mode mode);
+  bool CreatePipe(Mode mode);
   bool EnqueueHelloMessage();
 
   bool ProcessIncomingMessages();
@@ -68,7 +71,7 @@ class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
   void CloseDescriptors(uint32_t pending_fd_id);
 #endif
 
-  void OutputQueuePush(Message* msg);
+  void OutputQueuePush(mozilla::UniquePtr<Message> msg);
   void OutputQueuePop();
 
   Mode mode_;
@@ -91,38 +94,31 @@ class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
   int pipe_;
   int client_pipe_;  // The client end of our socketpair().
 
-  // The "name" of our pipe.  On Windows this is the global identifier for
-  // the pipe.  On POSIX it's used as a key in a local map of file descriptors.
-  std::string pipe_name_;
-
   Listener* listener_;
 
   // Messages to be sent are queued here.
-  std::queue<Message*> output_queue_;
+  mozilla::Queue<mozilla::UniquePtr<Message>, 64> output_queue_;
 
-  // We read from the pipe into this buffer
-  char input_buf_[Channel::kReadBufferSize];
+  // We read from the pipe into these buffers.
   size_t input_buf_offset_;
+  mozilla::UniquePtr<char[]> input_buf_;
+  mozilla::UniquePtr<char[]> input_cmsg_buf_;
 
-  // We want input_cmsg_buf_ to be big enough to hold
-  // CMSG_SPACE(Channel::kReadBufferSize) bytes (see the comment below for an
-  // explanation of where Channel::kReadBufferSize comes from). However,
-  // CMSG_SPACE is apparently not a constant on Macs, so we can't use it in the
-  // array size. Consequently, we pick a number here that is at least
-  // CMSG_SPACE(0) on all platforms. And we assert at runtime, in
-  // Channel::ChannelImpl::Init, that it's big enough.
-  enum { kControlBufferSlopBytes = 32 };
-
-  // This is a control message buffer large enough to hold all the file
-  // descriptors that will be read in when reading Channel::kReadBufferSize
-  // bytes of data. Message::WriteFileDescriptor always writes one word of
-  // data for every file descriptor added to the message, so kReadBufferSize
-  // bytes of data can never be accompanied by more than
-  // kReadBufferSize / sizeof(int) file descriptors. Since a file descriptor
-  // takes sizeof(int) bytes, the control buffer must be
-  // Channel::kReadBufferSize bytes. We add kControlBufferSlopBytes bytes
-  // for the control header.
-  char input_cmsg_buf_[Channel::kReadBufferSize + kControlBufferSlopBytes];
+  // The control message buffer will hold all of the file descriptors that will
+  // be read in during a single recvmsg call. Message::WriteFileDescriptor
+  // always writes one word of data for every file descriptor added to the
+  // message, and the number of file descriptors per message will not exceed
+  // MAX_DESCRIPTORS_PER_MESSAGE.
+  //
+  // This buffer also holds a control message header of size CMSG_SPACE(0)
+  // bytes. However, CMSG_SPACE is not a constant on Macs, so we can't use it
+  // here. Consequently, we pick a number here that is at least CMSG_SPACE(0) on
+  // all platforms. We assert at runtime, in Channel::ChannelImpl::Init, that
+  // it's big enough.
+  static constexpr size_t kControlBufferHeaderSize = 32;
+  static constexpr size_t kControlBufferSize =
+      FileDescriptorSet::MAX_DESCRIPTORS_PER_MESSAGE * sizeof(int) +
+      kControlBufferHeaderSize;
 
   // Large incoming messages that span multiple pipe buffers get built-up in the
   // buffers of this message.
@@ -142,6 +138,10 @@ class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
   // This flag is set after we've closed the channel.
   bool closed_;
 
+  // We keep track of the PID of the other side of this channel so that we can
+  // record this when generating logs of IPC messages.
+  int32_t other_pid_ = -1;
+
 #if defined(OS_MACOSX)
   struct PendingDescriptors {
     uint32_t id;
@@ -158,7 +158,7 @@ class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
   uint32_t last_pending_fd_id_;
 #endif
 
-  // This variable is updated so it matches output_queue_.size(), except we can
+  // This variable is updated so it matches output_queue_.Count(), except we can
   // read output_queue_length_ from any thread (if we're OK getting an
   // occasional out-of-date or bogus value).  We use output_queue_length_ to
   // implement Unsound_NumQueuedMessages.

@@ -4,6 +4,8 @@
 ---
 job-defaults:
     description: "fix-stacks toolchain build"
+    attributes:
+        local-toolchain: true
     worker-type: b-linux
     worker:
         max-run-time: 1800
@@ -11,7 +13,6 @@ job-defaults:
         script: build-fix-stacks.sh
     run-on-projects:
         - trunk
-        - try
     fetches:
         fetch:
             - fix-stacks
@@ -33,7 +34,7 @@ macosx64-fix-stacks:
         symbol: TM(fix-stacks)
     worker:
         env:
-            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/macosx64/cross-clang.manifest"
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/macosx64/cross-releng.manifest"
     run:
         arguments: ['x86_64-apple-darwin']
         resources:
@@ -42,7 +43,7 @@ macosx64-fix-stacks:
         tooltool-downloads: internal
     fetches:
         toolchain:
-            - linux64-cctools-port
+            - linux64-cctools-port-clang-9
             - linux64-clang-9
             - linux64-rust-macos
 

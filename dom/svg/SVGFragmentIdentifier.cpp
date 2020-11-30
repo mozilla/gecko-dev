@@ -8,6 +8,7 @@
 
 #include "mozilla/dom/SVGSVGElement.h"
 #include "mozilla/dom/SVGViewElement.h"
+#include "mozilla/SVGOuterSVGFrame.h"
 #include "nsCharSeparatedTokenizer.h"
 #include "nsContentUtils.h"  // for nsCharSeparatedTokenizerTemplate
 #include "SVGAnimatedTransformList.h"
@@ -37,10 +38,8 @@ static SVGViewElement* GetViewElement(Document* aDocument,
 // Handles setting/clearing the root's mSVGView pointer.
 class MOZ_RAII AutoSVGViewHandler {
  public:
-  explicit AutoSVGViewHandler(
-      SVGSVGElement* aRoot MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+  explicit AutoSVGViewHandler(SVGSVGElement* aRoot)
       : mRoot(aRoot), mValid(false) {
-    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
     mWasOverridden = mRoot->UseCurrentView();
     mRoot->mSVGView = nullptr;
     mRoot->mCurrentViewID = nullptr;
@@ -56,6 +55,11 @@ class MOZ_RAII AutoSVGViewHandler {
       mRoot->mSVGView = std::move(mSVGView);
     }
     mRoot->InvalidateTransformNotifyFrame();
+    if (nsIFrame* f = mRoot->GetPrimaryFrame()) {
+      if (SVGOuterSVGFrame* osf = do_QueryFrame(f)) {
+        osf->MaybeSendIntrinsicSizeAndRatioToEmbedder();
+      }
+    }
   }
 
   void CreateSVGView() {
@@ -71,20 +75,19 @@ class MOZ_RAII AutoSVGViewHandler {
     // If we encounter any attribute more than once or get any syntax errors
     // we're going to return false and cancel any changes.
 
-    if (IsMatchingParameter(aToken, NS_LITERAL_STRING("viewBox"))) {
+    if (IsMatchingParameter(aToken, u"viewBox"_ns)) {
       if (mSVGView->mViewBox.IsExplicitlySet() ||
           NS_FAILED(
               mSVGView->mViewBox.SetBaseValueString(aParams, mRoot, false))) {
         return false;
       }
-    } else if (IsMatchingParameter(aToken,
-                                   NS_LITERAL_STRING("preserveAspectRatio"))) {
+    } else if (IsMatchingParameter(aToken, u"preserveAspectRatio"_ns)) {
       if (mSVGView->mPreserveAspectRatio.IsExplicitlySet() ||
           NS_FAILED(mSVGView->mPreserveAspectRatio.SetBaseValueString(
               aParams, mRoot, false))) {
         return false;
       }
-    } else if (IsMatchingParameter(aToken, NS_LITERAL_STRING("transform"))) {
+    } else if (IsMatchingParameter(aToken, u"transform"_ns)) {
       if (mSVGView->mTransforms) {
         return false;
       }
@@ -93,7 +96,7 @@ class MOZ_RAII AutoSVGViewHandler {
               mSVGView->mTransforms->SetBaseValueString(aParams, mRoot))) {
         return false;
       }
-    } else if (IsMatchingParameter(aToken, NS_LITERAL_STRING("zoomAndPan"))) {
+    } else if (IsMatchingParameter(aToken, u"zoomAndPan"_ns)) {
       if (mSVGView->mZoomAndPan.IsExplicitlySet()) {
         return false;
       }
@@ -114,14 +117,13 @@ class MOZ_RAII AutoSVGViewHandler {
   UniquePtr<SVGView> mSVGView;
   bool mValid;
   bool mWasOverridden;
-  MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 bool SVGFragmentIdentifier::ProcessSVGViewSpec(const nsAString& aViewSpec,
                                                SVGSVGElement* aRoot) {
   AutoSVGViewHandler viewHandler(aRoot);
 
-  if (!IsMatchingParameter(aViewSpec, NS_LITERAL_STRING("svgView"))) {
+  if (!IsMatchingParameter(aViewSpec, u"svgView"_ns)) {
     return false;
   }
 
@@ -175,6 +177,11 @@ bool SVGFragmentIdentifier::ProcessFragmentIdentifier(
     *rootElement->mCurrentViewID = aAnchorName;
     rootElement->mSVGView = nullptr;
     rootElement->InvalidateTransformNotifyFrame();
+    if (nsIFrame* f = rootElement->GetPrimaryFrame()) {
+      if (SVGOuterSVGFrame* osf = do_QueryFrame(f)) {
+        osf->MaybeSendIntrinsicSizeAndRatioToEmbedder();
+      }
+    }
     // not an svgView()-style fragment identifier, return false so the caller
     // continues processing to match any :target pseudo elements
     return false;

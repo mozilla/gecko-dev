@@ -3,6 +3,9 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import copy
+import functools
+
+from ipdl.util import hash_str
 
 
 class Visitor:
@@ -405,6 +408,7 @@ Type.SIZE = Type('size_t')
 Type.VOID = Type('void')
 Type.VOIDPTR = Type('void', ptr=True)
 Type.AUTO = Type('auto')
+Type.AUTORVAL = Type('auto', rvalref=True)
 
 
 class TypeArray(Node):
@@ -442,6 +446,7 @@ class TypeFunction(Node):
         self.ret = ret
 
 
+@functools.total_ordering
 class Typedef(Node):
     def __init__(self, fromtype, totypename, templateargs=[]):
         assert isinstance(totypename, str)
@@ -451,15 +456,15 @@ class Typedef(Node):
         self.totypename = totypename
         self.templateargs = templateargs
 
-    def __cmp__(self, o):
-        return cmp(self.totypename, o.totypename)
+    def __lt__(self, other):
+        return self.totypename < other.totypename
 
-    def __eq__(self, o):
-        return (self.__class__ == o.__class__
-                and 0 == cmp(self, o))
+    def __eq__(self, other):
+        return (self.__class__ == other.__class__
+                and self.totypename == other.totypename)
 
     def __hash__(self):
-        return hash(self.totypename)
+        return hash_str(self.totypename)
 
 
 class Using(Node):

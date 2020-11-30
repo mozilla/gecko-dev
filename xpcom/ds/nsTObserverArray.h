@@ -8,6 +8,7 @@
 #define nsTObserverArray_h___
 
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/ReverseIterator.h"
 #include "nsTArray.h"
 #include "nsCycleCollectionNoteChild.h"
 
@@ -31,6 +32,9 @@ class nsTObserverArray_base {
 
  protected:
   class Iterator_base {
+   public:
+    Iterator_base(const Iterator_base&) = delete;
+
    protected:
     friend class nsTObserverArray_base;
 
@@ -183,8 +187,8 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
   // Append an element to the array.
   // @param aItem The item to append.
   template <class Item>
-  void AppendElement(const Item& aItem) {
-    mArray.AppendElement(aItem);
+  void AppendElement(Item&& aItem) {
+    mArray.AppendElement(std::forward<Item>(aItem));
   }
 
   // Same as above, but without copy-constructing. This is useful to avoid
@@ -226,9 +230,10 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
     return true;
   }
 
-  // See nsTArray::RemoveElementsBy.
+  // See nsTArray::RemoveElementsBy. Neither the predicate nor the removal of
+  // elements from the array must have any side effects that modify the array.
   template <typename Predicate>
-  void RemoveElementsBy(Predicate aPredicate) {
+  void NonObservingRemoveElementsBy(Predicate aPredicate) {
     index_type i = 0;
     mArray.RemoveElementsBy([&](const elem_type& aItem) {
       if (aPredicate(aItem)) {
@@ -269,6 +274,9 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
    protected:
     friend class nsAutoTObserverArray;
     typedef nsAutoTObserverArray<T, N> array_type;
+
+    Iterator(const Iterator& aOther)
+        : Iterator(aOther.mPosition, aOther.mArray) {}
 
     Iterator(index_type aPosition, const array_type& aArray)
         : Iterator_base(aPosition, aArray.mIterators),
@@ -325,6 +333,13 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
       NS_ASSERTION(HasMore(), "iterating beyond end of array");
       return base_type::mArray.Elements()[base_type::mPosition++];
     }
+
+    // Removes the element at the current iterator position.
+    // (the last element returned from |GetNext()|)
+    // This will not affect the next call to |GetNext()|
+    void Remove() {
+      return base_type::mArray.RemoveElementAt(base_type::mPosition - 1);
+    }
   };
 
   // EndLimitedIterator works like ForwardIterator, but will not iterate new
@@ -348,6 +363,13 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
     elem_type& GetNext() {
       NS_ASSERTION(HasMore(), "iterating beyond end of array");
       return base_type::mArray.Elements()[base_type::mPosition++];
+    }
+
+    // Removes the element at the current iterator position.
+    // (the last element returned from |GetNext()|)
+    // This will not affect the next call to |GetNext()|
+    void Remove() {
+      return base_type::mArray.RemoveElementAt(base_type::mPosition - 1);
     }
 
    private:
@@ -390,6 +412,110 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
     }
   };
 
+  struct EndSentinel {};
+
+  // Internal type, do not use directly, see
+  // ForwardRange()/EndLimitedRange()/BackwardRange().
+  template <typename Iterator, typename U>
+  struct STLIterator {
+    using value_type = std::remove_reference_t<U>;
+
+    explicit STLIterator(const nsAutoTObserverArray<T, N>& aArray)
+        : mIterator{aArray} {
+      operator++();
+    }
+
+    bool operator!=(const EndSentinel&) const {
+      // We are a non-end-sentinel and the other is an end-sentinel, so we are
+      // still valid if mCurrent is valid.
+      return mCurrent;
+    }
+
+    STLIterator& operator++() {
+      mCurrent = mIterator.HasMore() ? &mIterator.GetNext() : nullptr;
+      return *this;
+    }
+
+    value_type* operator->() { return mCurrent; }
+    U& operator*() { return *mCurrent; }
+
+   private:
+    Iterator mIterator;
+    value_type* mCurrent;
+  };
+
+  // Internal type, do not use directly, see
+  // ForwardRange()/EndLimitedRange()/BackwardRange().
+  template <typename Iterator, typename U>
+  class STLIteratorRange {
+   public:
+    using iterator = STLIterator<Iterator, U>;
+
+    explicit STLIteratorRange(const nsAutoTObserverArray<T, N>& aArray)
+        : mArray{aArray} {}
+
+    STLIteratorRange(const STLIteratorRange& aOther) = delete;
+
+    iterator begin() const { return iterator{mArray}; }
+    EndSentinel end() const { return {}; }
+
+   private:
+    const nsAutoTObserverArray<T, N>& mArray;
+  };
+
+  template <typename U>
+  using STLForwardIteratorRange = STLIteratorRange<ForwardIterator, U>;
+
+  template <typename U>
+  using STLEndLimitedIteratorRange = STLIteratorRange<EndLimitedIterator, U>;
+
+  template <typename U>
+  using STLBackwardIteratorRange = STLIteratorRange<BackwardIterator, U>;
+
+  // Constructs a range (usable with range-based for) based on the
+  // ForwardIterator semantics. Note that this range does not provide
+  // full-feature STL-style iterators usable with STL-style algorithms.
+  auto ForwardRange() { return STLForwardIteratorRange<T>{*this}; }
+
+  // Constructs a const range (usable with range-based for) based on the
+  // ForwardIterator semantics. Note that this range does not provide
+  // full-feature STL-style iterators usable with STL-style algorithms.
+  auto ForwardRange() const { return STLForwardIteratorRange<const T>{*this}; }
+
+  // Constructs a range (usable with range-based for) based on the
+  // EndLimitedIterator semantics. Note that this range does not provide
+  // full-feature STL-style iterators usable with STL-style algorithms.
+  auto EndLimitedRange() { return STLEndLimitedIteratorRange<T>{*this}; }
+
+  // Constructs a const range (usable with range-based for) based on the
+  // EndLimitedIterator semantics. Note that this range does not provide
+  // full-feature STL-style iterators usable with STL-style algorithms.
+  auto EndLimitedRange() const {
+    return STLEndLimitedIteratorRange<const T>{*this};
+  }
+
+  // Constructs a range (usable with range-based for) based on the
+  // BackwardIterator semantics. Note that this range does not provide
+  // full-feature STL-style iterators usable with STL-style algorithms.
+  auto BackwardRange() { return STLBackwardIteratorRange<T>{*this}; }
+
+  // Constructs a const range (usable with range-based for) based on the
+  // BackwardIterator semantics. Note that this range does not provide
+  // full-feature STL-style iterators usable with STL-style algorithms.
+  auto BackwardRange() const {
+    return STLBackwardIteratorRange<const T>{*this};
+  }
+
+  // Constructs a const range (usable with range-based for and STL-style
+  // algorithms) based on a non-observing iterator. The array must not be
+  // modified during iteration.
+  auto NonObservingRange() const {
+    return mozilla::detail::IteratorRange<
+        typename AutoTArray<T, N>::const_iterator,
+        typename AutoTArray<T, N>::const_reverse_iterator>{mArray.cbegin(),
+                                                           mArray.cend()};
+  }
+
  protected:
   AutoTArray<T, N> mArray;
 };
@@ -410,7 +536,18 @@ class nsTObserverArray : public nsAutoTObserverArray<T, 0> {
   explicit nsTObserverArray(size_type aCapacity) {
     base_type::mArray.SetCapacity(aCapacity);
   }
+
+  nsTObserverArray Clone() const {
+    auto result = nsTObserverArray{};
+    result.mArray.Assign(this->mArray);
+    return result;
+  }
 };
+
+template <typename T, size_t N>
+auto MakeBackInserter(nsAutoTObserverArray<T, N>& aArray) {
+  return mozilla::nsTArrayBackInserter<T, nsAutoTObserverArray<T, N>>{aArray};
+}
 
 template <typename T, size_t N>
 inline void ImplCycleCollectionUnlink(nsAutoTObserverArray<T, N>& aField) {
@@ -429,68 +566,31 @@ inline void ImplCycleCollectionTraverse(
   }
 }
 
-// XXXbz I wish I didn't have to pass in the observer type, but I
-// don't see a way to get it out of array_.
 // Note that this macro only works if the array holds pointers to XPCOM objects.
-#define NS_OBSERVER_ARRAY_NOTIFY_XPCOM_OBSERVERS(array_, obstype_, func_, \
-                                                 params_)                 \
-  do {                                                                    \
-    nsTObserverArray<obstype_*>::ForwardIterator iter_(array_);           \
-    RefPtr<obstype_> obs_;                                                \
-    while (iter_.HasMore()) {                                             \
-      obs_ = iter_.GetNext();                                             \
-      obs_->func_ params_;                                                \
-    }                                                                     \
+#define NS_OBSERVER_ARRAY_NOTIFY_XPCOM_OBSERVERS(array_, func_, params_) \
+  do {                                                                   \
+    for (RefPtr obs_ : array_.ForwardRange()) {                          \
+      obs_->func_ params_;                                               \
+    }                                                                    \
   } while (0)
 
 // Note that this macro only works if the array holds pointers to XPCOM objects.
-#define NS_OBSERVER_ARRAY_NOTIFY_OBSERVERS(array_, obstype_, func_, params_) \
-  do {                                                                       \
-    nsTObserverArray<obstype_*>::ForwardIterator iter_(array_);              \
-    obstype_* obs_;                                                          \
-    while (iter_.HasMore()) {                                                \
-      obs_ = iter_.GetNext();                                                \
-      obs_->func_ params_;                                                   \
-    }                                                                        \
+#define NS_OBSERVER_ARRAY_NOTIFY_OBSERVERS(array_, func_, params_) \
+  do {                                                             \
+    for (auto* obs_ : array_.ForwardRange()) {                     \
+      obs_->func_ params_;                                         \
+    }                                                              \
   } while (0)
 
-// Note that this macro only works if the array holds pointers to XPCOM objects.
-#define NS_OBSERVER_AUTO_ARRAY_NOTIFY_OBSERVERS(array_, obstype_, num_, func_, \
-                                                params_)                       \
-  do {                                                                         \
-    nsAutoTObserverArray<obstype_*, num_>::ForwardIterator iter_(array_);      \
-    obstype_* obs_;                                                            \
-    while (iter_.HasMore()) {                                                  \
-      obs_ = iter_.GetNext();                                                  \
-      obs_->func_ params_;                                                     \
-    }                                                                          \
+#define NS_OBSERVER_ARRAY_NOTIFY_OBSERVERS_WITH_QI(array_, obstype_, func_, \
+                                                   params_)                 \
+  do {                                                                      \
+    for (auto* obsbase_ : array_.ForwardRange()) {                          \
+      nsCOMPtr<obstype_> obs_ = do_QueryInterface(obsbase_);                \
+      if (obs_) {                                                           \
+        obs_->func_ params_;                                                \
+      }                                                                     \
+    }                                                                       \
   } while (0)
 
-#define NS_OBSERVER_ARRAY_NOTIFY_OBSERVERS_WITH_QI(array_, basetype_,        \
-                                                   obstype_, func_, params_) \
-  do {                                                                       \
-    nsTObserverArray<basetype_*>::ForwardIterator iter_(array_);             \
-    basetype_* obsbase_;                                                     \
-    while (iter_.HasMore()) {                                                \
-      obsbase_ = iter_.GetNext();                                            \
-      nsCOMPtr<obstype_> obs_ = do_QueryInterface(obsbase_);                 \
-      if (obs_) {                                                            \
-        obs_->func_ params_;                                                 \
-      }                                                                      \
-    }                                                                        \
-  } while (0)
-
-#define NS_OBSERVER_AUTO_ARRAY_NOTIFY_OBSERVERS_WITH_QI(                   \
-    array_, basetype_, num_, obstype_, func_, params_)                     \
-  do {                                                                     \
-    nsAutoTObserverArray<basetype_*, num_>::ForwardIterator iter_(array_); \
-    basetype_* obsbase_;                                                   \
-    while (iter_.HasMore()) {                                              \
-      obsbase_ = iter_.GetNext();                                          \
-      nsCOMPtr<obstype_> obs_ = do_QueryInterface(obsbase_);               \
-      if (obs_) {                                                          \
-        obs_->func_ params_;                                               \
-      }                                                                    \
-    }                                                                      \
-  } while (0)
 #endif  // nsTObserverArray_h___

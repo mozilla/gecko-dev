@@ -53,9 +53,10 @@ class ImageComposite {
   };
 
  protected:
-  void UpdateBias(size_t aImageIndex);
-
   virtual TimeStamp GetCompositionTime() const = 0;
+  virtual CompositionOpportunityId GetCompositionOpportunityId() const = 0;
+  virtual void AppendImageCompositeNotification(
+      const ImageCompositeNotificationInfo& aInfo) const = 0;
 
   struct TimedImage {
     CompositableTextureHostRef mTextureHost;
@@ -81,31 +82,55 @@ class ImageComposite {
   void ClearImages();
   void SetImages(nsTArray<TimedImage>&& aNewImages);
 
-  int32_t mLastFrameID;
-  int32_t mLastProducerID;
+ protected:
+  // Send ImageComposite notifications and update the ChooseImage bias.
+  void OnFinishRendering(int aImageIndex, const TimedImage* aImage,
+                         base::ProcessId aProcessId,
+                         const CompositableHandle& aHandle);
+
+  int32_t mLastFrameID = -1;
+  int32_t mLastProducerID = -1;
 
  private:
   nsTArray<TimedImage> mImages;
   TimeStamp GetBiasedTime(const TimeStamp& aInput) const;
-  // Scan new images and look for common ones in the existing mImages array.
-  // Will determine if an image has been dropped through gaps between images and
-  // adjust mDroppedFrames accordingly.
-  // Return the index of what the last returned image would have been.
-  uint32_t ScanForLastFrameIndex(const nsTArray<TimedImage>& aNewImages);
 
-  // Return true if we send image in a speed which is faster than the one we can
-  // composite image. It's used to decide whether we should report the frame
-  // dropping, because we only want to know the frame dropping, which is caused
-  // by machine overload.
-  bool IsImagesUpdateRateFasterThanCompositedRate(
-      const TimedImage& aNewImage, const TimedImage& aOldImage) const;
+  // Called when we know that frames older than aImage will never get another
+  // chance to be displayed.
+  // Counts frames in mImages that were skipped, and adds the skipped count to
+  // mSkippedFramesSinceLastComposite.
+  void CountSkippedFrames(const TimedImage* aImage);
+
+  // Update mLastFrameID and mLastProducerID, and report dropped frames.
+  // Returns whether the frame changed.
+  bool UpdateCompositedFrame(int aImageIndex,
+                             bool aWasVisibleAtPreviousComposition);
+
+  void UpdateBias(size_t aImageIndex, bool aFrameUpdated);
+
+  // Emit a profiler marker about video frame timestamp jitter.
+  void DetectTimeStampJitter(const TimedImage* aNewImage);
 
   /**
    * Bias to apply to the next frame.
    */
-  Bias mBias;
-  uint32_t mDroppedFrames;
-  uint32_t mLastChosenImageIndex;
+  Bias mBias = BIAS_NONE;
+
+  // Video frames that were in mImages but that will never reach the screen.
+  // This count is reset in UpdateCompositedFrame.
+  int32_t mSkippedFramesSinceLastComposite = 0;
+
+  // The number of dropped frames since the last call to
+  // GetDroppedFramesAndReset(). Not all skipped frames are considered "dropped"
+  // - for example, videos that are scrolled out of view or videos in background
+  // tabs are expected to skip frames, and those skipped frames are not counted
+  // as dropped frames.
+  uint32_t mDroppedFrames = 0;
+
+  // The composition opportunity IDs of the last calls to ChooseImageIndex and
+  // UpdateCompositedFrame, respectively.
+  CompositionOpportunityId mLastChooseImageIndexComposition;
+  CompositionOpportunityId mLastFrameUpdateComposition;
 };
 
 }  // namespace layers

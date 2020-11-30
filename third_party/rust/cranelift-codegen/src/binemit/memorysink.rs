@@ -14,9 +14,9 @@
 //! relocations to a `RelocSink` trait object. Relocations are less frequent than the
 //! `CodeSink::put*` methods, so the performance impact of the virtual callbacks is less severe.
 use super::{Addend, CodeInfo, CodeOffset, CodeSink, Reloc};
-use crate::binemit::stackmap::Stackmap;
+use crate::binemit::stack_map::StackMap;
 use crate::ir::entities::Value;
-use crate::ir::{ConstantOffset, ExternalName, Function, JumpTable, SourceLoc, TrapCode};
+use crate::ir::{ConstantOffset, ExternalName, Function, JumpTable, Opcode, SourceLoc, TrapCode};
 use crate::isa::TargetIsa;
 use core::ptr::write_unaligned;
 
@@ -38,7 +38,7 @@ pub struct MemoryCodeSink<'a> {
     offset: isize,
     relocs: &'a mut dyn RelocSink,
     traps: &'a mut dyn TrapSink,
-    stackmaps: &'a mut dyn StackmapSink,
+    stack_maps: &'a mut dyn StackMapSink,
     /// Information about the generated code and read-only data.
     pub info: CodeInfo,
 }
@@ -54,7 +54,7 @@ impl<'a> MemoryCodeSink<'a> {
         data: *mut u8,
         relocs: &'a mut dyn RelocSink,
         traps: &'a mut dyn TrapSink,
-        stackmaps: &'a mut dyn StackmapSink,
+        stack_maps: &'a mut dyn StackMapSink,
     ) -> Self {
         Self {
             data,
@@ -67,24 +67,35 @@ impl<'a> MemoryCodeSink<'a> {
             },
             relocs,
             traps,
-            stackmaps,
+            stack_maps,
         }
     }
 }
 
 /// A trait for receiving relocations for code that is emitted directly into memory.
 pub trait RelocSink {
-    /// Add a relocation referencing an block at the current offset.
+    /// Add a relocation referencing a block at the current offset.
     fn reloc_block(&mut self, _: CodeOffset, _: Reloc, _: CodeOffset);
 
     /// Add a relocation referencing an external symbol at the current offset.
-    fn reloc_external(&mut self, _: CodeOffset, _: Reloc, _: &ExternalName, _: Addend);
+    fn reloc_external(
+        &mut self,
+        _: CodeOffset,
+        _: SourceLoc,
+        _: Reloc,
+        _: &ExternalName,
+        _: Addend,
+    );
 
     /// Add a relocation referencing a constant.
     fn reloc_constant(&mut self, _: CodeOffset, _: Reloc, _: ConstantOffset);
 
     /// Add a relocation referencing a jump table.
     fn reloc_jt(&mut self, _: CodeOffset, _: Reloc, _: JumpTable);
+
+    /// Track a call site whose return address is the given CodeOffset, for the given opcode. Does
+    /// nothing in general, only useful for certain embedders (SpiderMonkey).
+    fn add_call_site(&mut self, _: Opcode, _: CodeOffset, _: SourceLoc) {}
 }
 
 /// A trait for receiving trap codes and offsets.
@@ -132,9 +143,15 @@ impl<'a> CodeSink for MemoryCodeSink<'a> {
         self.relocs.reloc_block(ofs, rel, block_offset);
     }
 
-    fn reloc_external(&mut self, rel: Reloc, name: &ExternalName, addend: Addend) {
+    fn reloc_external(
+        &mut self,
+        srcloc: SourceLoc,
+        rel: Reloc,
+        name: &ExternalName,
+        addend: Addend,
+    ) {
         let ofs = self.offset();
-        self.relocs.reloc_external(ofs, rel, name, addend);
+        self.relocs.reloc_external(ofs, srcloc, rel, name, addend);
     }
 
     fn reloc_constant(&mut self, rel: Reloc, constant_offset: ConstantOffset) {
@@ -165,41 +182,60 @@ impl<'a> CodeSink for MemoryCodeSink<'a> {
         self.info.total_size = self.offset();
     }
 
-    fn add_stackmap(&mut self, val_list: &[Value], func: &Function, isa: &dyn TargetIsa) {
+    fn add_stack_map(&mut self, val_list: &[Value], func: &Function, isa: &dyn TargetIsa) {
         let ofs = self.offset();
-        let stackmap = Stackmap::from_values(&val_list, func, isa);
-        self.stackmaps.add_stackmap(ofs, stackmap);
+        let stack_map = StackMap::from_values(&val_list, func, isa);
+        self.stack_maps.add_stack_map(ofs, stack_map);
+    }
+
+    fn add_call_site(&mut self, opcode: Opcode, loc: SourceLoc) {
+        debug_assert!(
+            opcode.is_call(),
+            "adding call site info for a non-call instruction."
+        );
+        let ret_addr = self.offset();
+        self.relocs.add_call_site(opcode, ret_addr, loc);
     }
 }
 
 /// A `RelocSink` implementation that does nothing, which is convenient when
 /// compiling code that does not relocate anything.
+#[derive(Default)]
 pub struct NullRelocSink {}
 
 impl RelocSink for NullRelocSink {
-    fn reloc_block(&mut self, _: u32, _: Reloc, _: u32) {}
-    fn reloc_external(&mut self, _: u32, _: Reloc, _: &ExternalName, _: i64) {}
+    fn reloc_block(&mut self, _: CodeOffset, _: Reloc, _: CodeOffset) {}
+    fn reloc_external(
+        &mut self,
+        _: CodeOffset,
+        _: SourceLoc,
+        _: Reloc,
+        _: &ExternalName,
+        _: Addend,
+    ) {
+    }
     fn reloc_constant(&mut self, _: CodeOffset, _: Reloc, _: ConstantOffset) {}
-    fn reloc_jt(&mut self, _: u32, _: Reloc, _: JumpTable) {}
+    fn reloc_jt(&mut self, _: CodeOffset, _: Reloc, _: JumpTable) {}
 }
 
 /// A `TrapSink` implementation that does nothing, which is convenient when
 /// compiling code that does not rely on trapping semantics.
+#[derive(Default)]
 pub struct NullTrapSink {}
 
 impl TrapSink for NullTrapSink {
     fn trap(&mut self, _offset: CodeOffset, _srcloc: SourceLoc, _code: TrapCode) {}
 }
 
-/// A trait for emitting stackmaps.
-pub trait StackmapSink {
+/// A trait for emitting stack maps.
+pub trait StackMapSink {
     /// Output a bitmap of the stack representing the live reference variables at this code offset.
-    fn add_stackmap(&mut self, _: CodeOffset, _: Stackmap);
+    fn add_stack_map(&mut self, _: CodeOffset, _: StackMap);
 }
 
-/// Placeholder StackmapSink that does nothing.
-pub struct NullStackmapSink {}
+/// Placeholder StackMapSink that does nothing.
+pub struct NullStackMapSink {}
 
-impl StackmapSink for NullStackmapSink {
-    fn add_stackmap(&mut self, _: CodeOffset, _: Stackmap) {}
+impl StackMapSink for NullStackMapSink {
+    fn add_stack_map(&mut self, _: CodeOffset, _: StackMap) {}
 }

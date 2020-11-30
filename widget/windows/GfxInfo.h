@@ -24,6 +24,8 @@ class GfxInfo : public GfxInfoBase {
   NS_IMETHOD GetD2DEnabled(bool* aD2DEnabled) override;
   NS_IMETHOD GetDWriteEnabled(bool* aDWriteEnabled) override;
   NS_IMETHOD GetDWriteVersion(nsAString& aDwriteVersion) override;
+  NS_IMETHOD GetEmbeddedInFirefoxReality(
+      bool* aEmbeddedInFirefoxReality) override;
   NS_IMETHOD GetHasBattery(bool* aHasBattery) override;
   NS_IMETHOD GetCleartypeParameters(nsAString& aCleartypeParams) override;
   NS_IMETHOD GetWindowProtocol(nsAString& aWindowProtocol) override;
@@ -55,6 +57,7 @@ class GfxInfo : public GfxInfoBase {
   using GfxInfoBase::GetFeatureSuggestedDriverVersion;
 
   nsresult Init() override;
+  NS_IMETHOD_(int32_t) GetMaxRefreshRate(bool* aMixed) override;
 
   uint32_t OperatingSystemVersion() override { return mWindowsVersion; }
   uint32_t OperatingSystemBuild() override { return mWindowsBuildNumber; }

@@ -7,12 +7,13 @@
 #ifndef nsImageRenderer_h__
 #define nsImageRenderer_h__
 
-#include "nsLayoutUtils.h"
 #include "nsStyleStruct.h"
 #include "Units.h"
 #include "mozilla/AspectRatio.h"
+#include "mozilla/SurfaceFromElementResult.h"
 
 class gfxDrawable;
+class nsDisplayItem;
 namespace mozilla {
 
 namespace layers {
@@ -97,7 +98,11 @@ class nsImageRenderer {
   typedef mozilla::layers::LayerManager LayerManager;
   typedef mozilla::layers::ImageContainer ImageContainer;
 
-  enum { FLAG_SYNC_DECODE_IMAGES = 0x01, FLAG_PAINTING_TO_WINDOW = 0x02 };
+  enum {
+    FLAG_SYNC_DECODE_IMAGES = 0x01,
+    FLAG_PAINTING_TO_WINDOW = 0x02,
+    FLAG_HIGH_QUALITY_SCALING = 0x04
+  };
   enum FitType { CONTAIN, COVER };
 
   nsImageRenderer(nsIFrame* aForFrame, const mozilla::StyleImage* aImage,
@@ -298,7 +303,7 @@ class nsImageRenderer {
   nsCOMPtr<imgIContainer> mImageContainer;
   const mozilla::StyleGradient* mGradientData;
   nsIFrame* mPaintServerFrame;
-  nsLayoutUtils::SurfaceFromElementResult mImageElementSurface;
+  SurfaceFromElementResult mImageElementSurface;
   ImgDrawResult mPrepareResult;
   nsSize mSize;  // unscaled size of the image, in app units
   uint32_t mFlags;

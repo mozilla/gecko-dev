@@ -3,6 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #ifndef _PK11PRIV_H_
 #define _PK11PRIV_H_
+
+#include <stddef.h>
+
 #include "plarena.h"
 #include "seccomon.h"
 #include "secoidt.h"
@@ -48,7 +51,7 @@ CK_ULONG PK11_ReadULongAttribute(PK11SlotInfo *slot, CK_OBJECT_HANDLE id,
 char *PK11_MakeString(PLArenaPool *arena, char *space, char *staticSring,
                       int stringLen);
 PRBool pk11_MatchString(const char *string,
-                        const char *staticString, int staticStringLen);
+                        const char *staticString, size_t staticStringLen);
 int PK11_MapError(CK_RV error);
 CK_SESSION_HANDLE PK11_GetRWSession(PK11SlotInfo *slot);
 void PK11_RestoreROSession(PK11SlotInfo *slot, CK_SESSION_HANDLE rwsession);
@@ -98,6 +101,7 @@ void PK11_AddMechanismEntry(CK_MECHANISM_TYPE type, CK_KEY_TYPE key,
                             int ivLen, int blocksize);
 CK_MECHANISM_TYPE PK11_GetKeyMechanism(CK_KEY_TYPE type);
 CK_MECHANISM_TYPE PK11_GetKeyGenWithSize(CK_MECHANISM_TYPE type, int size);
+PRBool PK11_DoesMechanismFlag(PK11SlotInfo *, CK_MECHANISM_TYPE type, CK_FLAGS flags);
 
 /**********************************************************************
  *                   Symetric, Public, and Private Keys
@@ -146,6 +150,14 @@ PK11Context *PK11_CreateContextByRawKey(PK11SlotInfo *slot,
                                         CK_MECHANISM_TYPE type, PK11Origin origin, CK_ATTRIBUTE_TYPE operation,
                                         SECItem *key, SECItem *param, void *wincx);
 PRBool PK11_HashOK(SECOidTag hashAlg);
+/*
+ * Testing interfaces, not for general use. If your code isn't in
+ * gtests or cmd, stay away from these. This function forces
+ * an AEAD context into simulation mode even though the target token
+ * can already do PKCS #11 v3.0 Message (e.i. softoken).
+ */
+SECStatus _PK11_ContextSetAEADSimulation(PK11Context *context);
+PRBool _PK11_ContextGetAEADSimulation(PK11Context *context);
 
 /**********************************************************************
  * Functions which are  deprecated....

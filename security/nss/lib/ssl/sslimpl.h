@@ -37,6 +37,7 @@
 typedef struct sslSocketStr sslSocket;
 typedef struct sslNamedGroupDefStr sslNamedGroupDef;
 typedef struct sslEsniKeysStr sslEsniKeys;
+typedef struct sslPskStr sslPsk;
 typedef struct sslDelegatedCredentialStr sslDelegatedCredential;
 typedef struct sslEphemeralKeyPairStr sslEphemeralKeyPair;
 typedef struct TLS13KeyShareEntryStr TLS13KeyShareEntry;
@@ -281,6 +282,8 @@ typedef struct sslOptionsStr {
     unsigned int enableV2CompatibleHello : 1;
     unsigned int enablePostHandshakeAuth : 1;
     unsigned int enableDelegatedCredentials : 1;
+    unsigned int enableDtls13VersionCompat : 1;
+    unsigned int suppressEndOfEarlyData : 1;
 } sslOptions;
 
 typedef enum { sslHandshakingUndetermined = 0,
@@ -653,8 +656,6 @@ typedef struct SSL3HandshakeStateStr {
      * One of NULL, ssl3_SendClientSecondRound, ssl3_FinishHandshake,
      * or ssl3_AlwaysFail */
     sslRestartTarget restartTarget;
-    /* Shared state between ssl3_HandleFinished and ssl3_FinishHandshake */
-    PRBool cacheSID;
 
     PRBool canFalseStart; /* Can/did we False Start */
     /* Which preliminaryinfo values have been set. */
@@ -689,9 +690,8 @@ typedef struct SSL3HandshakeStateStr {
     /* This group of values is used for TLS 1.3 and above */
     PK11SymKey *currentSecret;            /* The secret down the "left hand side"
                                            * of the TLS 1.3 key schedule. */
-    PK11SymKey *resumptionMasterSecret;   /* The resumption PSK. */
+    PK11SymKey *resumptionMasterSecret;   /* The resumption_master_secret. */
     PK11SymKey *dheSecret;                /* The (EC)DHE shared secret. */
-    PK11SymKey *pskBinderKey;             /* Used to compute the PSK binder. */
     PK11SymKey *clientEarlyTrafficSecret; /* The secret we use for 0-RTT. */
     PK11SymKey *clientHsTrafficSecret;    /* The source keys for handshake */
     PK11SymKey *serverHsTrafficSecret;    /* traffic keys. */
@@ -710,18 +710,29 @@ typedef struct SSL3HandshakeStateStr {
                                            * or received. */
     PRBool receivedCcs;                   /* A server received ChangeCipherSpec
                                            * before the handshake started. */
+    PRBool allowCcs;                      /* A server allows ChangeCipherSpec
+                                           * as the middlebox compatibility mode
+                                           * is explicitly indicarted by
+                                           * legacy_session_id in TLS 1.3 ClientHello. */
     PRBool clientCertRequested;           /* True if CertificateRequest received. */
+    PRBool endOfFlight;                   /* Processed a full flight (DTLS 1.3). */
     ssl3KEADef kea_def_mutable;           /* Used to hold the writable kea_def
                                            * we use for TLS 1.3 */
-    PRTime serverHelloTime;               /* Time the ServerHello flight was sent. */
     PRUint16 ticketNonce;                 /* A counter we use for tickets. */
     SECItem fakeSid;                      /* ... (server) the SID the client used. */
-    PRBool endOfFlight;                   /* Processed a full flight (DTLS 1.3). */
+
+    /* rttEstimate is used to guess the round trip time between server and client.
+     * When the server sends ServerHello it sets this to the current time.
+     * Only after it receives a message from the client's second flight does it
+     * set the value to something resembling an RTT estimate. */
+    PRTime rttEstimate;
 
     /* The following lists contain DTLSHandshakeRecordEntry */
     PRCList dtlsSentHandshake; /* Used to map records to handshake fragments. */
     PRCList dtlsRcvdHandshake; /* Handshake records we have received
                                 * used to generate ACKs. */
+
+    PRCList psks; /* A list of PSKs, resumption and/or external. */
 } SSL3HandshakeState;
 
 #define SSL_ASSERT_HASHES_EMPTY(ss)                                  \
@@ -1099,6 +1110,9 @@ struct sslSocketStr {
 
     /* Anti-replay for TLS 1.3 0-RTT. */
     SSLAntiReplayContext *antiReplay;
+
+    /* An out-of-band PSK. */
+    sslPsk *psk;
 };
 
 struct sslSelfEncryptKeysStr {
@@ -1682,8 +1696,14 @@ SECStatus ssl3_HandleServerSpki(sslSocket *ss);
 SECStatus ssl3_AuthCertificate(sslSocket *ss);
 SECStatus ssl_ReadCertificateStatus(sslSocket *ss, PRUint8 *b,
                                     PRUint32 length);
-SECStatus ssl3_EncodeSigAlgs(const sslSocket *ss, PRUint16 minVersion,
+SECStatus ssl3_EncodeSigAlgs(const sslSocket *ss, PRUint16 minVersion, PRBool forCert,
                              sslBuffer *buf);
+SECStatus ssl3_EncodeFilteredSigAlgs(const sslSocket *ss,
+                                     const SSLSignatureScheme *schemes,
+                                     PRUint32 numSchemes, sslBuffer *buf);
+SECStatus ssl3_FilterSigAlgs(const sslSocket *ss, PRUint16 minVersion, PRBool disableRsae, PRBool forCert,
+                             unsigned int maxSchemes, SSLSignatureScheme *filteredSchemes,
+                             unsigned int *numFilteredSchemes);
 SECStatus ssl_GetCertificateRequestCAs(const sslSocket *ss,
                                        unsigned int *calenp,
                                        const SECItem **namesp,
@@ -1860,6 +1880,8 @@ SSLExp_HkdfVariantExpandLabelWithMech(PRUint16 version, PRUint16 cipherSuite, PK
                                       const char *label, unsigned int labelLen,
                                       CK_MECHANISM_TYPE mech, unsigned int keySize,
                                       SSLProtocolVariant variant, PK11SymKey **keyp);
+
+SECStatus SSLExp_SetDtls13VersionWorkaround(PRFileDesc *fd, PRBool enabled);
 
 SECStatus SSLExp_SetTimeFunc(PRFileDesc *fd, SSLTimeFunc f, void *arg);
 

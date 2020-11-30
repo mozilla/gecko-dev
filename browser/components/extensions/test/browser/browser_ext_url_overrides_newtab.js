@@ -8,11 +8,15 @@ ChromeUtils.defineModuleGetter(
   "ExtensionSettingsStore",
   "resource://gre/modules/ExtensionSettingsStore.jsm"
 );
-XPCOMUtils.defineLazyServiceGetter(
+ChromeUtils.defineModuleGetter(
   this,
-  "aboutNewTabService",
-  "@mozilla.org/browser/aboutnewtab-service;1",
-  "nsIAboutNewTabService"
+  "AboutNewTab",
+  "resource:///modules/AboutNewTab.jsm"
+);
+ChromeUtils.defineModuleGetter(
+  this,
+  "ExtensionControlledPopup",
+  "resource:///modules/ExtensionControlledPopup.jsm"
 );
 
 const NEWTAB_URI_1 = "webext-newtab-1.html";
@@ -22,6 +26,7 @@ function getNotificationSetting(extensionId) {
 }
 
 function getNewTabDoorhanger() {
+  ExtensionControlledPopup._getAndMaybeCreatePanel(document);
   return document.getElementById("extension-new-tab-notification");
 }
 
@@ -720,15 +725,15 @@ add_task(async function test_overriding_newtab_incognito_not_allowed() {
   is(win.gURLBar.value, "", "newtab not used in private window");
 
   // Verify setting the pref directly doesn't bypass permissions.
-  let origUrl = aboutNewTabService.newTabURL;
-  aboutNewTabService.newTabURL = url;
+  let origUrl = AboutNewTab.newTabURL;
+  AboutNewTab.newTabURL = url;
   newTabOpened = waitForNewTab();
   win.BrowserOpenTab();
   await newTabOpened;
 
   is(win.gURLBar.value, "", "directly set newtab not used in private window");
 
-  aboutNewTabService.newTabURL = origUrl;
+  AboutNewTab.newTabURL = origUrl;
 
   await extension.unload();
   await BrowserTestUtils.closeWindow(win);
@@ -774,9 +779,7 @@ add_task(async function test_overriding_newtab_incognito_spanning() {
   let windowOpenedPromise = BrowserTestUtils.waitForNewWindow();
   let win = OpenBrowserWindow({ private: true });
   await windowOpenedPromise;
-  let panel = win.document
-    .getElementById("extension-new-tab-notification")
-    .closest("panel");
+  let panel = ExtensionControlledPopup._getAndMaybeCreatePanel(win.document);
   let popupShown = promisePopupShown(panel);
   win.BrowserOpenTab();
   await popupShown;

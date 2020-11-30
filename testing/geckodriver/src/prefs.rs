@@ -68,16 +68,16 @@ lazy_static! {
         // Do not warn on quitting Firefox
         ("browser.warnOnQuit", Pref::new(false)),
 
-        // Do not show datareporting policy notifications which can
-        // interfere with tests
-        ("datareporting.healthreport.about.reportUrl", Pref::new("http://%(server)s/dummy/abouthealthreport/")),  // removed in Firefox 59
+        // Defensively disable data reporting systems
         ("datareporting.healthreport.documentServerURI", Pref::new("http://%(server)s/dummy/healthreport/")),
         ("datareporting.healthreport.logging.consoleEnabled", Pref::new(false)),
         ("datareporting.healthreport.service.enabled", Pref::new(false)),
         ("datareporting.healthreport.service.firstRun", Pref::new(false)),
         ("datareporting.healthreport.uploadEnabled", Pref::new(false)),
+
+        // Do not show datareporting policy notifications which can
+        // interfere with tests
         ("datareporting.policy.dataSubmissionEnabled", Pref::new(false)),
-        ("datareporting.policy.dataSubmissionPolicyAccepted", Pref::new(false)),
         ("datareporting.policy.dataSubmissionPolicyBypassNotification", Pref::new(true)),
 
         // Disable the ProcessHangMonitor
@@ -90,10 +90,6 @@ lazy_static! {
 
         // Disable intalling any distribution extensions or add-ons
         ("extensions.installDistroAddons", Pref::new(false)),
-
-        // Disable extensions compatibility dialogue.
-        // TODO: Remove once minimum supported Firefox release is 61.
-        ("extensions.showMismatchUI", Pref::new(false)),
 
         // Turn off extension updates so they do not bother tests
         ("extensions.update.enabled", Pref::new(false)),
@@ -115,6 +111,10 @@ lazy_static! {
 
         // No hang monitor
         ("hangmonitor.timeout", Pref::new(0)),
+
+        // Disable idle-daily notifications to avoid expensive operations
+        // that may cause unexpected test timeouts.
+        ("idle.lastDailyNotification", Pref::new(-1)),
 
         // Show chrome errors and warnings in the error console
         ("javascript.options.showInConsole", Pref::new(true)),
@@ -149,8 +149,5 @@ lazy_static! {
 
         // Prevent starting into safe mode after application crashes
         ("toolkit.startup.max_resumed_crashes", Pref::new(-1)),
-
-        // We want to collect telemetry, but we don't want to send in the results
-        ("toolkit.telemetry.server", Pref::new("https://%(server)s/dummy/telemetry/")),
     ];
 }

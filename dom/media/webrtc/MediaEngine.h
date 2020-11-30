@@ -33,7 +33,7 @@ enum { kVideoTrack = 1, kAudioTrack = 2, kTrackCount };
 class MediaEngine {
  public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaEngine)
-  NS_DECL_OWNINGTHREAD
+  NS_DECL_OWNINGEVENTTARGET
 
   void AssertIsOnOwningThread() const { NS_ASSERT_OWNINGTHREAD(MediaEngine); }
 
@@ -47,7 +47,9 @@ class MediaEngine {
 
   virtual void Shutdown() = 0;
 
-  virtual void SetFakeDeviceChangeEventsEnabled(bool aEnable) {}
+  virtual void SetFakeDeviceChangeEventsEnabled(bool aEnable) {
+    MOZ_DIAGNOSTIC_ASSERT(false, "Fake events may not have started/stopped");
+  }
 
   virtual MediaEventSource<void>& DeviceListChangeEvent() = 0;
 

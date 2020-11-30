@@ -8,16 +8,15 @@
 #define mozilla_net_UrlClassifierFeatureBase_h
 
 #include "nsIUrlClassifierFeature.h"
-#include "nsIUrlClassifierSkipListService.h"
+#include "nsIUrlClassifierExceptionListService.h"
 #include "nsTArray.h"
 #include "nsString.h"
-#include "mozilla/AntiTrackingCommon.h"
 
 namespace mozilla {
 namespace net {
 
 class UrlClassifierFeatureBase : public nsIUrlClassifierFeature,
-                                 public nsIUrlClassifierSkipListObserver {
+                                 public nsIUrlClassifierExceptionListObserver {
  public:
   NS_DECL_ISUPPORTS
 
@@ -38,32 +37,32 @@ class UrlClassifierFeatureBase : public nsIUrlClassifierFeature,
                        nsACString& aPrefTableName, bool* aResult) override;
 
   NS_IMETHOD
-  GetSkipHostList(nsACString& aList) override;
+  GetExceptionHostList(nsACString& aList) override;
 
   NS_IMETHOD
-  OnSkipListUpdate(const nsACString& aList) override;
+  OnExceptionListUpdate(const nsACString& aList) override;
 
  protected:
   UrlClassifierFeatureBase(const nsACString& aName,
-                           const nsACString& aPrefBlacklistTables,
-                           const nsACString& aPrefWhitelistTables,
-                           const nsACString& aPrefBlacklistHosts,
-                           const nsACString& aPrefWhitelistHosts,
-                           const nsACString& aPrefBlacklistTableName,
-                           const nsACString& aPrefWhitelistTableName,
-                           const nsACString& aPrefSkipHosts);
+                           const nsACString& aPrefBlocklistTables,
+                           const nsACString& aPrefEntitylistTables,
+                           const nsACString& aPrefBlocklistHosts,
+                           const nsACString& aPrefEntitylistHosts,
+                           const nsACString& aPrefBlocklistTableName,
+                           const nsACString& aPrefEntitylistTableName,
+                           const nsACString& aPrefExceptionHosts);
 
   virtual ~UrlClassifierFeatureBase();
 
   void InitializePreferences();
   void ShutdownPreferences();
 
- private:
   nsCString mName;
 
-  nsCString mPrefSkipHosts;
+ private:
+  nsCString mPrefExceptionHosts;
 
-  // 2: blacklist and whitelist.
+  // 2: blocklist and entitylist.
   nsCString mPrefTables[2];
   nsTArray<nsCString> mTables[2];
 
@@ -71,7 +70,7 @@ class UrlClassifierFeatureBase : public nsIUrlClassifierFeature,
   nsCString mPrefTableNames[2];
   nsTArray<nsCString> mHosts[2];
 
-  nsCString mSkipHosts;
+  nsCString mExceptionHosts;
 };
 
 }  // namespace net

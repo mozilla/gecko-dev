@@ -56,8 +56,14 @@ add_task(async function test_no_logins_class() {
         content.document.l10n.getAttributes(
           loginIntro.shadowRoot.querySelector(".heading")
         ).id,
-        "login-intro-heading",
+        "about-logins-login-intro-heading-logged-out",
         "The default message should be the non-logged-in message"
+      );
+      ok(
+        loginIntro.shadowRoot
+          .querySelector("a.intro-help-link")
+          .href.includes("lockwise"),
+        "Check support href populated"
       );
 
       loginIntro.updateState(Cu.cloneInto({ loggedIn: true }, content));
@@ -70,9 +76,14 @@ add_task(async function test_no_logins_class() {
         "When logged in the message should update"
       );
 
+      let importClass = Services.prefs.getBoolPref(
+        "signon.management.page.fileImport.enabled"
+      )
+        ? ".intro-import-text.file-import"
+        : ".intro-import-text.no-file-import";
       is(
         ContentTaskUtils.is_hidden(
-          loginIntro.shadowRoot.querySelector(".intro-import-text")
+          loginIntro.shadowRoot.querySelector(importClass)
         ),
         aPlatform == "linux",
         "the import link should be hidden on Linux builds"
@@ -81,7 +92,7 @@ add_task(async function test_no_logins_class() {
         // End the test now for Linux since the link is hidden.
         return;
       }
-      loginIntro.shadowRoot.querySelector(".intro-import-text > a").click();
+      loginIntro.shadowRoot.querySelector(importClass + " > a").click();
       info("waiting for MigrationWizard to open");
     }
   );
@@ -89,10 +100,10 @@ add_task(async function test_no_logins_class() {
     // End the test now for Linux since the link is hidden.
     return;
   }
-  await TestUtils.waitForCondition(
-    () => Services.wm.getMostRecentWindow("Browser:MigrationWizard"),
-    "Migrator window opened"
-  );
+  await TestUtils.waitForCondition(() => {
+    let win = Services.wm.getMostRecentWindow("Browser:MigrationWizard");
+    return win && win.document && win.document.readyState == "complete";
+  }, "Migrator window loaded");
   let migratorWindow = Services.wm.getMostRecentWindow(
     "Browser:MigrationWizard"
   );
@@ -138,6 +149,9 @@ add_task(
         let loginList = content.document.querySelector("login-list");
         let loginItem = content.document.querySelector("login-item");
         let loginIntro = content.document.querySelector("login-intro");
+        await ContentTaskUtils.waitForCondition(() => {
+          return !loginList.classList.contains("no-logins");
+        }, "waiting for login-list to leave the no-logins view");
         ok(
           !loginList.classList.contains("empty-search"),
           "login-list should not be showing no logins view since one login exists"

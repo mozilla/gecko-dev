@@ -21,8 +21,8 @@
 
 #define BUFFER_SIZE 65536
 
-using namespace mozilla;
-using namespace mozilla::dom;
+namespace mozilla {
+namespace dom {
 
 class CopierCallbacks final : public nsIRequestObserver {
  public:
@@ -32,7 +32,7 @@ class CopierCallbacks final : public nsIRequestObserver {
   NS_DECL_ISUPPORTS
   NS_DECL_NSIREQUESTOBSERVER
  private:
-  ~CopierCallbacks() {}
+  ~CopierCallbacks() = default;
 
   RefPtr<PresentationTCPSessionTransport> mOwner;
 };
@@ -72,7 +72,7 @@ PresentationTCPSessionTransport::PresentationTCPSessionTransport()
       mCloseStatus(NS_OK),
       mDataNotificationEnabled(false) {}
 
-PresentationTCPSessionTransport::~PresentationTCPSessionTransport() {}
+PresentationTCPSessionTransport::~PresentationTCPSessionTransport() = default;
 
 NS_IMETHODIMP
 PresentationTCPSessionTransport::BuildTCPSenderTransport(
@@ -244,7 +244,7 @@ nsresult PresentationTCPSessionTransport::CreateInputStreamPump() {
     return rv;
   }
 
-  rv = mInputStreamPump->AsyncRead(this, nullptr);
+  rv = mInputStreamPump->AsyncRead(this);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -548,3 +548,6 @@ PresentationTCPSessionTransport::OnDataAvailable(nsIRequest* aRequest,
   // Pass the incoming data to the listener.
   return mCallback->NotifyData(data, false);
 }
+
+}  // namespace dom
+}  // namespace mozilla

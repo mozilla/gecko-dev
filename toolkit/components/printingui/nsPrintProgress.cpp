@@ -71,19 +71,26 @@ NS_IMETHODIMP nsPrintProgress::OpenProgressDialog(
     nsCOMPtr<nsPIDOMWindowOuter> pParentWindow =
         nsPIDOMWindowOuter::From(parent);
     NS_ENSURE_STATE(pParentWindow);
-    RefPtr<BrowsingContext> bc = pParentWindow->GetBrowsingContext();
-    NS_ENSURE_STATE(bc);
-    // We're in the Chrome process, so we can get the nsPIDOMWindowOuter:
-    nsCOMPtr<nsPIDOMWindowOuter> piOwnerWindow = bc->Top()->GetDOMWindow();
-    NS_ENSURE_STATE(piOwnerWindow);
+    nsCOMPtr<nsIDocShell> docShell = pParentWindow->GetDocShell();
+    NS_ENSURE_STATE(docShell);
+
+    nsCOMPtr<nsIDocShellTreeOwner> owner;
+    docShell->GetTreeOwner(getter_AddRefs(owner));
+
+    nsCOMPtr<nsIAppWindow> ownerAppWindow = do_GetInterface(owner);
+    nsCOMPtr<mozIDOMWindowProxy> ownerWindow = do_GetInterface(ownerAppWindow);
+    NS_ENSURE_STATE(ownerWindow);
+
+    nsCOMPtr<nsPIDOMWindowOuter> piOwnerWindow =
+        nsPIDOMWindowOuter::From(ownerWindow);
 
     // Open the dialog.
     RefPtr<BrowsingContext> newBC;
 
-    rv = piOwnerWindow->OpenDialog(
-        NS_ConvertASCIItoUTF16(dialogURL), NS_LITERAL_STRING("_blank"),
-        NS_LITERAL_STRING("chrome,titlebar,dependent,centerscreen"), array,
-        getter_AddRefs(newBC));
+    rv = piOwnerWindow->OpenDialog(NS_ConvertASCIItoUTF16(dialogURL),
+                                   u"_blank"_ns,
+                                   u"chrome,titlebar,dependent,centerscreen"_ns,
+                                   array, getter_AddRefs(newBC));
   }
 
   return rv;

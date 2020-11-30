@@ -16,6 +16,10 @@ const {
 
 const { l10n } = require("devtools/client/aboutdebugging/src/modules/l10n");
 const {
+  setDefaultPreferencesIfNeeded,
+  DEFAULT_PREFERENCES,
+} = require("devtools/client/aboutdebugging/src/modules/runtime-default-preferences");
+const {
   createClientForRuntime,
 } = require("devtools/client/aboutdebugging/src/modules/runtime-client-factory");
 const {
@@ -47,9 +51,6 @@ const {
   UPDATE_CONNECTION_PROMPT_SETTING_FAILURE,
   UPDATE_CONNECTION_PROMPT_SETTING_START,
   UPDATE_CONNECTION_PROMPT_SETTING_SUCCESS,
-  UPDATE_RUNTIME_CANDEBUGSW_FAILURE,
-  UPDATE_RUNTIME_CANDEBUGSW_START,
-  UPDATE_RUNTIME_CANDEBUGSW_SUCCESS,
   WATCH_RUNTIME_FAILURE,
   WATCH_RUNTIME_START,
   WATCH_RUNTIME_SUCCESS,
@@ -80,15 +81,11 @@ function onRemoteDevToolsClientClosed() {
   window.AboutDebugging.onUSBRuntimesUpdated();
 }
 
-function onCanDebugServiceWorkersUpdated() {
-  window.AboutDebugging.store.dispatch(updateCanDebugServiceWorkers());
-}
-
 function connectRuntime(id) {
   // Create a random connection id to track the connection attempt in telemetry.
   const connectionId = (Math.random() * 100000) | 0;
 
-  return async (dispatch, getState) => {
+  return async ({ dispatch, getState }) => {
     dispatch({ type: CONNECT_RUNTIME_START, connectionId, id });
 
     // The preferences test-connection-timing-out-delay and test-connection-cancel-delay
@@ -120,6 +117,8 @@ function connectRuntime(id) {
     try {
       const runtime = findRuntimeById(id, getState().runtimes);
       const clientWrapper = await createClientForRuntime(runtime);
+
+      await setDefaultPreferencesIfNeeded(clientWrapper, DEFAULT_PREFERENCES);
 
       const deviceDescription = await clientWrapper.getDeviceDescription();
       const compatibilityReport = await clientWrapper.checkVersionCompatibility();
@@ -176,11 +175,6 @@ function connectRuntime(id) {
         serviceWorkersAvailable,
       };
 
-      const deviceFront = await clientWrapper.getFront("device");
-      if (deviceFront) {
-        deviceFront.on("can-debug-sw-updated", onCanDebugServiceWorkersUpdated);
-      }
-
       if (runtime.type !== RUNTIMES.THIS_FIREFOX) {
         // `closed` event will be emitted when disabling remote debugging
         // on the connected remote runtime.
@@ -206,7 +200,7 @@ function connectRuntime(id) {
 }
 
 function createThisFirefoxRuntime() {
-  return (dispatch, getState) => {
+  return ({ dispatch, getState }) => {
     const thisFirefoxRuntime = {
       id: RUNTIMES.THIS_FIREFOX,
       isConnecting: false,
@@ -226,19 +220,11 @@ function createThisFirefoxRuntime() {
 }
 
 function disconnectRuntime(id, shouldRedirect = false) {
-  return async (dispatch, getState) => {
+  return async ({ dispatch, getState }) => {
     dispatch({ type: DISCONNECT_RUNTIME_START });
     try {
       const runtime = findRuntimeById(id, getState().runtimes);
       const { clientWrapper } = runtime.runtimeDetails;
-
-      const deviceFront = await clientWrapper.getFront("device");
-      if (deviceFront) {
-        deviceFront.off(
-          "can-debug-sw-updated",
-          onCanDebugServiceWorkersUpdated
-        );
-      }
 
       if (runtime.type !== RUNTIMES.THIS_FIREFOX) {
         clientWrapper.off("closed", onRemoteDevToolsClientClosed);
@@ -264,7 +250,7 @@ function disconnectRuntime(id, shouldRedirect = false) {
 }
 
 function updateConnectionPromptSetting(connectionPromptEnabled) {
-  return async (dispatch, getState) => {
+  return async ({ dispatch, getState }) => {
     dispatch({ type: UPDATE_CONNECTION_PROMPT_SETTING_START });
     try {
       const runtime = getCurrentRuntime(getState().runtimes);
@@ -291,30 +277,8 @@ function updateConnectionPromptSetting(connectionPromptEnabled) {
   };
 }
 
-function updateCanDebugServiceWorkers() {
-  return async (dispatch, getState) => {
-    dispatch({ type: UPDATE_RUNTIME_CANDEBUGSW_START });
-    try {
-      const runtime = getCurrentRuntime(getState().runtimes);
-      const { clientWrapper } = runtime.runtimeDetails;
-      // Re-get actual value from the runtime.
-      const {
-        canDebugServiceWorkers,
-      } = await clientWrapper.getDeviceDescription();
-
-      dispatch({
-        type: UPDATE_RUNTIME_CANDEBUGSW_SUCCESS,
-        runtime,
-        canDebugServiceWorkers,
-      });
-    } catch (e) {
-      dispatch({ type: UPDATE_RUNTIME_CANDEBUGSW_FAILURE, error: e });
-    }
-  };
-}
-
 function watchRuntime(id) {
-  return async (dispatch, getState) => {
+  return async ({ dispatch, getState }) => {
     dispatch({ type: WATCH_RUNTIME_START });
 
     try {
@@ -348,7 +312,7 @@ function watchRuntime(id) {
 }
 
 function unwatchRuntime(id) {
-  return async (dispatch, getState) => {
+  return async ({ dispatch, getState }) => {
     const runtime = findRuntimeById(id, getState().runtimes);
 
     dispatch({ type: UNWATCH_RUNTIME_START, runtime });
@@ -430,7 +394,7 @@ function _isRuntimeValid(runtime, runtimes) {
 }
 
 function updateRemoteRuntimes(runtimes, type) {
-  return async (dispatch, getState) => {
+  return async ({ dispatch, getState }) => {
     const currentRuntime = getCurrentRuntime(getState().runtimes);
 
     // Check if the updated remote runtimes should trigger a navigation out of the current
@@ -465,8 +429,7 @@ function updateRemoteRuntimes(runtimes, type) {
     runtimes.forEach(runtime => {
       const existingRuntime = findRuntimeById(runtime.id, getState().runtimes);
       const isConnectionValid =
-        existingRuntime &&
-        existingRuntime.runtimeDetails &&
+        existingRuntime?.runtimeDetails &&
         !existingRuntime.runtimeDetails.clientWrapper.isClosed();
       runtime.runtimeDetails = isConnectionValid
         ? existingRuntime.runtimeDetails
@@ -523,7 +486,7 @@ function updateRemoteRuntimes(runtimes, type) {
  * before leaving about:debugging.
  */
 function removeRuntimeListeners() {
-  return (dispatch, getState) => {
+  return ({ dispatch, getState }) => {
     const allRuntimes = getAllRuntimes(getState().runtimes);
     const remoteRuntimes = allRuntimes.filter(
       r => r.type !== RUNTIMES.THIS_FIREFOX

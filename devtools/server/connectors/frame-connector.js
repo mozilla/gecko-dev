@@ -7,6 +7,7 @@
 var Services = require("Services");
 var DevToolsUtils = require("devtools/shared/DevToolsUtils");
 var { dumpn } = DevToolsUtils;
+const { Pool } = require("devtools/shared/protocol/Pool");
 
 loader.lazyRequireGetter(
   this,
@@ -43,6 +44,12 @@ function connectToFrame(connection, frame, onDestroy, { addonId } = {}) {
     // or else fallback to asking the frameLoader itself.
     let mm = frame.messageManager || frame.frameLoader.messageManager;
     mm.loadFrameScript("resource://devtools/server/startup/frame.js", false);
+
+    const spawnInParentActorPool = new Pool(
+      connection,
+      "connectToFrame-spawnInParent"
+    );
+    connection.addActor(spawnInParentActorPool);
 
     const trackMessageManager = () => {
       frame.addEventListener("DevTools:BrowserSwap", onBrowserSwap);
@@ -139,7 +146,7 @@ function connectToFrame(connection, frame, onDestroy, { addonId } = {}) {
         instance.parentID = spawnedByActorID;
 
         // Manually set the actor ID in order to insert parent actorID as prefix
-        // in order to help identifying actor hiearchy via actor IDs.
+        // in order to help identifying actor hierarchy via actor IDs.
         // Remove `/` as it may confuse message forwarding between processes.
         const contentPrefix = spawnedByActorID
           .replace(connection.prefix, "")
@@ -147,7 +154,7 @@ function connectToFrame(connection, frame, onDestroy, { addonId } = {}) {
         instance.actorID = connection.allocID(
           contentPrefix + "/" + instance.typeName
         );
-        connection.addActor(instance);
+        spawnInParentActorPool.manage(instance);
 
         mm.sendAsyncMessage("debug:spawn-actor-in-parent:actor", {
           prefix: connPrefix,
@@ -242,6 +249,18 @@ function connectToFrame(connection, frame, onDestroy, { addonId } = {}) {
         prefix: connPrefix,
       });
 
+      // Destroy all actors created via spawnActorInParentProcess
+      // in case content wasn't able to destroy them via a message
+      spawnInParentActorPool.destroy();
+
+      if (actor) {
+        // The FrameTargetActor within the child process doesn't necessary
+        // have time to uninitialize itself when the frame is closed/killed.
+        // So ensure telling the client that the related actor is detached.
+        connection.send({ from: actor.actor, type: "tabDetached" });
+        actor = null;
+      }
+
       if (childTransport) {
         // If we have a child transport, the actor has already
         // been created. We need to stop using this message manager.
@@ -262,13 +281,6 @@ function connectToFrame(connection, frame, onDestroy, { addonId } = {}) {
         // had a chance to be created, so we are not able to create
         // the actor.
         resolve(null);
-      }
-      if (actor) {
-        // The FrameTargetActor within the child process doesn't necessary
-        // have time to uninitialize itself when the frame is closed/killed.
-        // So ensure telling the client that the related actor is detached.
-        connection.send({ from: actor.actor, type: "tabDetached" });
-        actor = null;
       }
 
       if (onDestroy) {

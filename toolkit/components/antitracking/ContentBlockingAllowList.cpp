@@ -6,31 +6,15 @@
 
 #include "AntiTrackingLog.h"
 #include "ContentBlockingAllowList.h"
-#include "ContentBlockingAllowListCache.h"
-#include "SettingsChangeObserver.h"
 
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/Document.h"
+#include "mozilla/PermissionManager.h"
 #include "mozilla/ScopeExit.h"
 #include "nsContentUtils.h"
 #include "nsIHttpChannelInternal.h"
-#include "nsPermissionManager.h"
 
 using namespace mozilla;
-
-/* static */ ContentBlockingAllowListCache& ContentBlockingAllowList::Cache() {
-  static bool initialized = false;
-  static ContentBlockingAllowListCache cache;
-  if (!initialized) {
-    SettingsChangeObserver::OnAntiTrackingSettingsChanged([&] {
-      // Drop everything in the cache, since the result of content blocking
-      // allow list checks may change past this point.
-      cache.Clear();
-    });
-    initialized = true;
-  }
-  return cache;
-}
 
 /* static */ bool ContentBlockingAllowList::Check(
     nsIPrincipal* aTopWinPrincipal, bool aIsPrivateBrowsing) {
@@ -49,70 +33,59 @@ using namespace mozilla;
   return false;
 }
 
+/* static */ bool ContentBlockingAllowList::Check(
+    nsICookieJarSettings* aCookieJarSettings) {
+  if (!aCookieJarSettings) {
+    LOG(
+        ("Could not check the content blocking allow list because the cookie "
+         "jar settings wasn't available"));
+    return false;
+  }
+
+  return aCookieJarSettings->GetIsOnContentBlockingAllowList();
+}
+
 /* static */ bool ContentBlockingAllowList::Check(nsPIDOMWindowInner* aWindow) {
-  ContentBlockingAllowListKey cacheKey(aWindow);
-  auto entry = Cache().Lookup(cacheKey);
-  if (entry) {
-    // We've recently performed a content blocking allow list check for this
-    // window, so let's quickly return the answer instead of continuing with the
-    // rest of this potentially expensive computation.
-    return entry.Data().mResult;
+  // TODO: this is a quick fix to ensure that we allow storage permission for
+  // a chrome window. We should check if there is a better way to do this in
+  // Bug 1626223.
+  if (nsGlobalWindowInner::Cast(aWindow)->GetPrincipal() ==
+      nsContentUtils::GetSystemPrincipal()) {
+    return true;
   }
 
-  nsPIDOMWindowOuter* top =
-      aWindow->GetBrowsingContext()->Top()->GetDOMWindow();
-  dom::Document* doc = top ? top->GetExtantDoc() : nullptr;
-  if (doc) {
-    bool isPrivateBrowsing = nsContentUtils::IsInPrivateBrowsing(doc);
+  // We can check the IsOnContentBlockingAllowList flag in the document's
+  // CookieJarSettings. Because this flag represents the fact that whether the
+  // top-level document is on the content blocking allow list. And this flag was
+  // propagated from the top-level as the CookieJarSettings inherits from the
+  // parent.
+  RefPtr<dom::Document> doc = nsGlobalWindowInner::Cast(aWindow)->GetDocument();
 
-    const bool result = ContentBlockingAllowList::Check(
-        doc->GetContentBlockingAllowListPrincipal(), isPrivateBrowsing);
-
-    entry.Set(ContentBlockingAllowListEntry(aWindow, result));
-
-    return result;
+  if (!doc) {
+    LOG(
+        ("Could not check the content blocking allow list because the document "
+         "wasn't available"));
+    return false;
   }
 
-  LOG(
-      ("Could not check the content blocking allow list because the top "
-       "window wasn't accessible"));
-  entry.Set(ContentBlockingAllowListEntry(aWindow, false));
-  return false;
+  nsCOMPtr<nsICookieJarSettings> cookieJarSettings = doc->CookieJarSettings();
+
+  return ContentBlockingAllowList::Check(cookieJarSettings);
 }
 
 /* static */ bool ContentBlockingAllowList::Check(nsIHttpChannel* aChannel) {
-  ContentBlockingAllowListKey cacheKey(aChannel);
-  auto entry = Cache().Lookup(cacheKey);
-  if (entry) {
-    // We've recently performed a content blocking allow list check for this
-    // channel, so let's quickly return the answer instead of continuing with
-    // the rest of this potentially expensive computation.
-    return entry.Data().mResult;
-  }
+  nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
+  nsCOMPtr<nsICookieJarSettings> cookieJarSettings;
 
-  nsCOMPtr<nsIPrincipal> principal;
-  nsCOMPtr<nsIHttpChannelInternal> httpChan = do_QueryInterface(aChannel);
-  if (httpChan) {
-    nsresult rv = httpChan->GetContentBlockingAllowListPrincipal(
-        getter_AddRefs(principal));
-    if (NS_FAILED(rv) || !principal) {
-      LOG(
-          ("Could not check the content blocking allow list because the top "
-           "window wasn't accessible"));
-      entry.Set(ContentBlockingAllowListEntry(aChannel, false));
-      return false;
-    }
-  }
+  Unused << loadInfo->GetCookieJarSettings(getter_AddRefs(cookieJarSettings));
 
-  const bool result = ContentBlockingAllowList::Check(
-      principal, NS_UsePrivateBrowsing(aChannel));
-  entry.Set(ContentBlockingAllowListEntry(aChannel, result));
-  return result;
+  return ContentBlockingAllowList::Check(cookieJarSettings);
 }
 
 nsresult ContentBlockingAllowList::Check(
     nsIPrincipal* aContentBlockingAllowListPrincipal, bool aIsPrivateBrowsing,
     bool& aIsAllowListed) {
+  MOZ_ASSERT(XRE_IsParentProcess());
   aIsAllowListed = false;
 
   if (!aContentBlockingAllowListPrincipal) {
@@ -124,28 +97,27 @@ nsresult ContentBlockingAllowList::Check(
             _spec),
            aContentBlockingAllowListPrincipal);
 
-  nsPermissionManager* permManager = nsPermissionManager::GetInstance();
+  PermissionManager* permManager = PermissionManager::GetInstance();
   NS_ENSURE_TRUE(permManager, NS_ERROR_FAILURE);
 
   // Check both the normal mode and private browsing mode user override
   // permissions.
-  Pair<const nsLiteralCString, bool> types[] = {
-      {NS_LITERAL_CSTRING("trackingprotection"), false},
-      {NS_LITERAL_CSTRING("trackingprotection-pb"), true}};
+  std::pair<const nsLiteralCString, bool> types[] = {
+      {"trackingprotection"_ns, false}, {"trackingprotection-pb"_ns, true}};
 
   for (const auto& type : types) {
-    if (aIsPrivateBrowsing != type.second()) {
+    if (aIsPrivateBrowsing != type.second) {
       continue;
     }
 
     uint32_t permissions = nsIPermissionManager::UNKNOWN_ACTION;
     nsresult rv = permManager->TestPermissionFromPrincipal(
-        aContentBlockingAllowListPrincipal, type.first(), &permissions);
+        aContentBlockingAllowListPrincipal, type.first, &permissions);
     NS_ENSURE_SUCCESS(rv, rv);
 
     if (permissions == nsIPermissionManager::ALLOW_ACTION) {
       aIsAllowListed = true;
-      LOG(("Found user override type %s", type.first().get()));
+      LOG(("Found user override type %s", type.first.get()));
       // Stop checking the next permisson type if we decided to override.
       break;
     }
@@ -172,10 +144,17 @@ nsresult ContentBlockingAllowList::Check(
     return;
   }
 
+  if (aDocumentPrincipal->SchemeIs("chrome") ||
+      aDocumentPrincipal->SchemeIs("about")) {
+    returnInputArgument.release();
+    *aPrincipal = nullptr;
+    return;
+  }
+
   // Take the host/port portion so we can allowlist by site. Also ignore the
   // scheme, since users who put sites on the allowlist probably don't expect
   // allowlisting to depend on scheme.
-  nsAutoCString escaped(NS_LITERAL_CSTRING("https://"));
+  nsAutoCString escaped("https://"_ns);
   nsAutoCString temp;
   nsresult rv = aDocumentPrincipal->GetHostPort(temp);
   // view-source URIs will be handled by the next block.
@@ -220,7 +199,7 @@ nsresult ContentBlockingAllowList::Check(
   // Take the host/port portion so we can allowlist by site. Also ignore the
   // scheme, since users who put sites on the allowlist probably don't expect
   // allowlisting to depend on scheme.
-  nsAutoCString escaped(NS_LITERAL_CSTRING("https://"));
+  nsAutoCString escaped("https://"_ns);
   nsAutoCString temp;
   nsresult rv = aURIBeingLoaded->GetHostPort(temp);
   // view-source URIs will be handled by the next block.

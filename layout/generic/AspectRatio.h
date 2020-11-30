@@ -10,12 +10,17 @@
 /* The aspect ratio of a box, in a "width / height" format. */
 
 #include "mozilla/Attributes.h"
-#include "mozilla/Maybe.h"
 #include "nsCoord.h"
+#include <algorithm>
+#include <limits>
 
 namespace mozilla {
 
+class WritingMode;
+
 struct AspectRatio {
+  friend struct IPC::ParamTraits<mozilla::AspectRatio>;
+
   AspectRatio() : mRatio(0.0f) {}
   explicit AspectRatio(float aRatio) : mRatio(std::max(aRatio, 0.0f)) {}
 
@@ -39,9 +44,19 @@ struct AspectRatio {
   }
 
   // Inverts the ratio, in order to get the height / width ratio.
-  MOZ_MUST_USE AspectRatio Inverted() const {
-    return *this ? AspectRatio(1.0f / mRatio) : *this;
+  [[nodiscard]] AspectRatio Inverted() const {
+    if (!*this) {
+      return AspectRatio();
+    }
+    // Clamp to a small epsilon, in case mRatio is absurdly large & produces
+    // 0.0f in the division here (so that valid ratios always generate other
+    // valid ratios when inverted).
+    return AspectRatio(
+        std::max(std::numeric_limits<float>::epsilon(), 1.0f / mRatio));
   }
+
+  [[nodiscard]] inline AspectRatio ConvertToWritingMode(
+      const WritingMode& aWM) const;
 
   bool operator==(const AspectRatio& aOther) const {
     return mRatio == aOther.mRatio;

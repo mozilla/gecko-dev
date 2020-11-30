@@ -4,6 +4,7 @@
 "use strict";
 
 // Check that messages are logged and observed with the correct category. See Bug 595934.
+const { MESSAGE_CATEGORY } = require("devtools/shared/constants");
 
 const TEST_URI =
   "data:text/html;charset=utf-8,Web Console test for " +
@@ -56,7 +57,7 @@ const TESTS = [
   {
     // #6
     file: "test-message-categories-css-parser.html",
-    category: "CSS Parser",
+    category: MESSAGE_CATEGORY.CSS_PARSER,
     matchString: "foobarCssParser",
   },
   {
@@ -74,7 +75,7 @@ const TESTS = [
   {
     // #9
     file: "test-message-categories-canvas-css.html",
-    category: "CSS Parser",
+    category: MESSAGE_CATEGORY.CSS_PARSER,
     matchString: "foobarCanvasCssParser",
   },
   {
@@ -90,7 +91,6 @@ const TESTS = [
 add_task(async function() {
   requestLongerTimeout(2);
 
-  await pushPref("devtools.target-switching.enabled", true);
   await pushPref("devtools.webconsole.filter.css", true);
   await pushPref("devtools.webconsole.filter.net", true);
 
@@ -100,6 +100,12 @@ add_task(async function() {
     info("Running test #" + i);
     await runTest(test, hud);
   }
+
+  await new Promise(resolve => {
+    Services.clearData.deleteData(Ci.nsIClearDataService.CLEAR_ALL, value =>
+      resolve()
+    );
+  });
 });
 
 async function runTest(test, hud) {

@@ -11,10 +11,10 @@
 #include "HyperTextAccessibleWrap.h"
 #include "AccEvent.h"
 
-#include "nsAutoPtr.h"
 #include "nsClassHashtable.h"
 #include "nsDataHashtable.h"
 #include "mozilla/dom/Document.h"
+#include "mozilla/UniquePtr.h"
 #include "nsIDocumentObserver.h"
 #include "nsIObserver.h"
 #include "nsITimer.h"
@@ -424,7 +424,10 @@ class DocAccessible : public HyperTextAccessibleWrap,
    * accessibles.
    */
   bool AppendChildDocument(DocAccessible* aChildDocument) {
-    return mChildDocuments.AppendElement(aChildDocument);
+    // XXX(Bug 1631371) Check if this should use a fallible operation as it
+    // pretended earlier, or change the return type to void.
+    mChildDocuments.AppendElement(aChildDocument);
+    return true;
   }
 
   /**
@@ -472,9 +475,10 @@ class DocAccessible : public HyperTextAccessibleWrap,
    * @param aAccessible   [in] accessible the DOM attribute is changed for
    * @param aNameSpaceID  [in] namespace of changed attribute
    * @param aAttribute    [in] changed attribute
+   * @param aModType      [in] modification type (changed/added/removed)
    */
   void AttributeChangedImpl(Accessible* aAccessible, int32_t aNameSpaceID,
-                            nsAtom* aAttribute);
+                            nsAtom* aAttribute, int32_t aModType);
 
   /**
    * Fire accessible events when ARIA attribute is changed.
@@ -602,8 +606,8 @@ class DocAccessible : public HyperTextAccessibleWrap,
    * State and property flags, kept by mDocFlags.
    */
   enum {
-    // Whether the document is a tab document.
-    eTabDocument = 1 << 0
+    // Whether the document is a top level content document in this process.
+    eTopLevelContentDocInProcess = 1 << 0
   };
 
   /**
@@ -645,8 +649,8 @@ class DocAccessible : public HyperTextAccessibleWrap,
     // ARIA attribute value
     const nsAtom* mARIAAttrOldValue;
 
-    // True if the accessible state bit was on
-    bool mStateBitWasOn;
+    // Previous state bits before attribute change
+    uint64_t mPrevStateBits;
   };
 
   nsTArray<RefPtr<DocAccessible>> mChildDocuments;
@@ -673,7 +677,7 @@ class DocAccessible : public HyperTextAccessibleWrap,
     AttrRelProvider& operator=(const AttrRelProvider&);
   };
 
-  typedef nsTArray<nsAutoPtr<AttrRelProvider>> AttrRelProviders;
+  typedef nsTArray<mozilla::UniquePtr<AttrRelProvider>> AttrRelProviders;
   typedef nsClassHashtable<nsStringHashKey, AttrRelProviders>
       DependentIDsHashtable;
 

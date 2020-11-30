@@ -21,7 +21,6 @@
 #include "mozilla/Attributes.h"
 
 class imgIContainer;
-class nsIFrame;
 class nsPresContext;
 class nsIURI;
 class nsIPrincipal;
@@ -90,7 +89,7 @@ class ImageLoader final {
 
   // This is called whenever an image we care about notifies the
   // GlobalImageObserver.
-  nsresult Notify(imgIRequest*, int32_t aType, const nsIntRect* aData);
+  void Notify(imgIRequest*, int32_t aType, const nsIntRect* aData);
 
  private:
   // Called when we stop caring about a given request.
@@ -111,7 +110,7 @@ class ImageLoader final {
     void ReflowCallbackCanceled() override;
   };
 
-  ~ImageLoader() {}
+  ~ImageLoader() = default;
 
   // We need to be able to look up the frames associated with a request (for
   // delivering notifications) and the requests associated with a frame (when
@@ -155,11 +154,11 @@ class ImageLoader final {
   void RequestReflowIfNeeded(FrameSet* aFrameSet, imgIRequest* aRequest);
   void RequestReflowOnFrame(FrameWithFlags* aFwf, imgIRequest* aRequest);
 
-  nsresult OnSizeAvailable(imgIRequest* aRequest, imgIContainer* aImage);
-  nsresult OnFrameComplete(imgIRequest* aRequest);
-  nsresult OnImageIsAnimated(imgIRequest* aRequest);
-  nsresult OnFrameUpdate(imgIRequest* aRequest);
-  nsresult OnLoadComplete(imgIRequest* aRequest);
+  void OnSizeAvailable(imgIRequest* aRequest, imgIContainer* aImage);
+  void OnFrameComplete(imgIRequest* aRequest);
+  void OnImageIsAnimated(imgIRequest* aRequest);
+  void OnFrameUpdate(imgIRequest* aRequest);
+  void OnLoadComplete(imgIRequest* aRequest);
 
   // Helpers for DropRequestsForFrame / DisassociateRequestFromFrame above.
   void RemoveRequestToFrameMapping(imgIRequest* aRequest, nsIFrame* aFrame);

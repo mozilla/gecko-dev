@@ -6,6 +6,9 @@ const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { SearchTelemetry } = ChromeUtils.import(
   "resource:///modules/SearchTelemetry.jsm"
 );
+const { SearchUtils } = ChromeUtils.import(
+  "resource://gre/modules/SearchUtils.jsm"
+);
 const { TelemetryTestUtils } = ChromeUtils.import(
   "resource://testing-common/TelemetryTestUtils.jsm"
 );
@@ -90,7 +93,8 @@ const TESTS = [
         false,
         Date.now() + 1000 * 60 * 60,
         {},
-        Ci.nsICookie.SAMESITE_NONE
+        Ci.nsICookie.SAMESITE_NONE,
+        Ci.nsICookie.SCHEME_HTTPS
       );
     },
     tearDown() {
@@ -113,11 +117,13 @@ const TESTS = [
     expectedSearchCountEntry: "duckduckgo.in-content:sap:ffab",
     expectedAdKey: "duckduckgo",
     adUrls: [
-      "https://duckduckgo.com/y.js?foo",
+      "https://duckduckgo.com/y.js?ad_provider=foo",
+      "https://duckduckgo.com/y.js?f=bar&ad_provider=foo",
       "https://www.amazon.co.uk/foo?tag=duckduckgo-ffab-uk-32-xk",
     ],
     nonAdUrls: [
       "https://duckduckgo.com/?q=foo&t=ffab&ia=images&iax=images",
+      "https://duckduckgo.com/y.js?ifu=foo",
       "https://improving.duckduckgo.com/t/bar",
     ],
   },
@@ -192,6 +198,11 @@ async function testAdUrlClicked(serpUrl, adUrl, expectedAdKey) {
     );
   }
 }
+
+add_task(async function setup() {
+  Services.prefs.setBoolPref(SearchUtils.BROWSER_SEARCH_PREF + "log", true);
+  await SearchTelemetry.init();
+});
 
 add_task(async function test_parsing_search_urls() {
   for (const test of TESTS) {

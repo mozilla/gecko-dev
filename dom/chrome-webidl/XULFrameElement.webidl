@@ -5,6 +5,7 @@
 
 interface nsIDocShell;
 interface nsIWebNavigation;
+interface nsIOpenWindowInfo;
 
 [ChromeOnly,
  Exposed=Window]
@@ -16,7 +17,15 @@ interface XULFrameElement : XULElement
   readonly attribute nsIWebNavigation? webNavigation;
 
   readonly attribute WindowProxy? contentWindow;
-  readonly attribute Document? contentDocument; 
+  readonly attribute Document? contentDocument;
+
+  readonly attribute unsigned long long browserId;
+
+  /**
+   * The optional open window information provided by the window creation code
+   * and used to initialize a new browser.
+   */
+  attribute nsIOpenWindowInfo? openWindowInfo;
 };
 
 XULFrameElement includes MozFrameLoaderOwner;

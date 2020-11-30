@@ -407,7 +407,8 @@ function promiseStartLegacyDownload(aSourceUrl, aOptions) {
           null,
           null,
           persist,
-          isPrivate
+          isPrivate,
+          Ci.nsITransfer.DOWNLOAD_ACCEPTABLE
         );
         persist.progressListener = transfer;
 
@@ -1042,7 +1043,7 @@ add_task(function test_common_initialize() {
   // Make sure that downloads started using nsIExternalHelperAppService are
   // saved to disk without asking for a destination interactively.
   let mock = {
-    QueryInterface: ChromeUtils.generateQI([Ci.nsIHelperAppLauncherDialog]),
+    QueryInterface: ChromeUtils.generateQI(["nsIHelperAppLauncherDialog"]),
     promptForSaveToFileAsync(
       aLauncher,
       aWindowContext,

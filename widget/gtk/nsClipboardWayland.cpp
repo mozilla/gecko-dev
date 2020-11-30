@@ -29,6 +29,9 @@
 #include <fcntl.h>
 #include <errno.h>
 
+using namespace mozilla;
+using namespace mozilla::widget;
+
 const char* nsRetrievalContextWayland::sTextMimeTypes[TEXT_MIME_TYPES_NUM] = {
     "text/plain;charset=utf-8", "UTF8_STRING", "COMPOUND_TEXT"};
 
@@ -89,13 +92,19 @@ GdkAtom* DataOffer::GetTargets(int* aTargetNum) {
 bool DataOffer::HasTarget(const char* aMimeType) {
   int length = mTargetMIMETypes.Length();
   for (int32_t j = 0; j < length; j++) {
-    if (mTargetMIMETypes[j] == gdk_atom_intern(aMimeType, FALSE)) return true;
+    if (mTargetMIMETypes[j] == gdk_atom_intern(aMimeType, FALSE)) {
+      LOGCLIP(("DataOffer::HasTarget() we have mime %s\n", aMimeType));
+      return true;
+    }
   }
+  LOGCLIP(("DataOffer::HasTarget() missing mime %s\n", aMimeType));
   return false;
 }
 
 char* DataOffer::GetData(wl_display* aDisplay, const char* aMimeType,
                          uint32_t* aContentLength) {
+  LOGCLIP(("DataOffer::GetData() mime %s\n", aMimeType));
+
   int pipe_fd[2];
   if (pipe(pipe_fd) == -1) return nullptr;
 
@@ -131,6 +140,7 @@ char* DataOffer::GetData(wl_display* aDisplay, const char* aMimeType,
   }
   // Quit for poll error() and timeout
   if (pollReturn <= 0) {
+    NS_WARNING("DataOffer::RequestDataTransfer() poll timeout!");
     close(pipe_fd[0]);
     return nullptr;
   }
@@ -165,6 +175,7 @@ char* DataOffer::GetData(wl_display* aDisplay, const char* aMimeType,
   g_io_channel_unref(channel);
   close(pipe_fd[0]);
 
+  LOGCLIP(("  Got clipboard data length %d\n", *aContentLength));
   return clipboardData;
 }
 
@@ -303,15 +314,27 @@ WaylandDataOffer::~WaylandDataOffer(void) {
 }
 
 bool PrimaryDataOffer::RequestDataTransfer(const char* aMimeType, int fd) {
-  if (mPrimaryDataOffer) {
-    gtk_primary_selection_offer_receive(mPrimaryDataOffer, aMimeType, fd);
+  if (mPrimaryDataOfferGtk) {
+    gtk_primary_selection_offer_receive(mPrimaryDataOfferGtk, aMimeType, fd);
+    return true;
+  }
+  if (mPrimaryDataOfferZwpV1) {
+    zwp_primary_selection_offer_v1_receive(mPrimaryDataOfferZwpV1, aMimeType,
+                                           fd);
     return true;
   }
   return false;
 }
 
 static void primary_data_offer(
-    void* data, gtk_primary_selection_offer* gtk_primary_selection_offer,
+    void* data, gtk_primary_selection_offer* primary_selection_offer,
+    const char* mime_type) {
+  auto* offer = static_cast<DataOffer*>(data);
+  offer->AddMIMEType(mime_type);
+}
+
+static void primary_data_offer(
+    void* data, zwp_primary_selection_offer_v1* primary_selection_offer,
     const char* mime_type) {
   auto* offer = static_cast<DataOffer*>(data);
   offer->AddMIMEType(mime_type);
@@ -323,18 +346,31 @@ static void primary_data_offer(
  *                      gtk_primary_selection_offer.
  */
 static const struct gtk_primary_selection_offer_listener
-    primary_selection_offer_listener = {primary_data_offer};
+    primary_selection_offer_listener_gtk = {primary_data_offer};
+
+static const struct zwp_primary_selection_offer_v1_listener
+    primary_selection_offer_listener_zwp_v1 = {primary_data_offer};
 
 PrimaryDataOffer::PrimaryDataOffer(
     gtk_primary_selection_offer* aPrimaryDataOffer)
-    : mPrimaryDataOffer(aPrimaryDataOffer) {
+    : mPrimaryDataOfferGtk(aPrimaryDataOffer), mPrimaryDataOfferZwpV1(nullptr) {
   gtk_primary_selection_offer_add_listener(
-      aPrimaryDataOffer, &primary_selection_offer_listener, this);
+      aPrimaryDataOffer, &primary_selection_offer_listener_gtk, this);
+}
+
+PrimaryDataOffer::PrimaryDataOffer(
+    zwp_primary_selection_offer_v1* aPrimaryDataOffer)
+    : mPrimaryDataOfferGtk(nullptr), mPrimaryDataOfferZwpV1(aPrimaryDataOffer) {
+  zwp_primary_selection_offer_v1_add_listener(
+      aPrimaryDataOffer, &primary_selection_offer_listener_zwp_v1, this);
 }
 
 PrimaryDataOffer::~PrimaryDataOffer(void) {
-  if (mPrimaryDataOffer) {
-    gtk_primary_selection_offer_destroy(mPrimaryDataOffer);
+  if (mPrimaryDataOfferGtk) {
+    gtk_primary_selection_offer_destroy(mPrimaryDataOfferGtk);
+  }
+  if (mPrimaryDataOfferZwpV1) {
+    zwp_primary_selection_offer_v1_destroy(mPrimaryDataOfferZwpV1);
   }
 }
 
@@ -433,6 +469,20 @@ void nsRetrievalContextWayland::RegisterNewDataOffer(
   }
 }
 
+void nsRetrievalContextWayland::RegisterNewDataOffer(
+    zwp_primary_selection_offer_v1* aPrimaryDataOffer) {
+  DataOffer* dataOffer = static_cast<DataOffer*>(
+      g_hash_table_lookup(mActiveOffers, aPrimaryDataOffer));
+  MOZ_ASSERT(
+      dataOffer == nullptr,
+      "Registered PrimaryDataOffer already exists. Wayland protocol error?");
+
+  if (!dataOffer) {
+    dataOffer = new PrimaryDataOffer(aPrimaryDataOffer);
+    g_hash_table_insert(mActiveOffers, aPrimaryDataOffer, dataOffer);
+  }
+}
+
 void nsRetrievalContextWayland::SetClipboardDataOffer(
     wl_data_offer* aWaylandDataOffer) {
   // Delete existing clipboard data offer
@@ -446,7 +496,7 @@ void nsRetrievalContextWayland::SetClipboardDataOffer(
     NS_ASSERTION(dataOffer, "We're missing stored clipboard data offer!");
     if (dataOffer) {
       g_hash_table_remove(mActiveOffers, aWaylandDataOffer);
-      mClipboardOffer = dataOffer;
+      mClipboardOffer = WrapUnique(dataOffer);
     }
   }
 }
@@ -464,7 +514,25 @@ void nsRetrievalContextWayland::SetPrimaryDataOffer(
     NS_ASSERTION(dataOffer, "We're missing primary data offer!");
     if (dataOffer) {
       g_hash_table_remove(mActiveOffers, aPrimaryDataOffer);
-      mPrimaryOffer = dataOffer;
+      mPrimaryOffer = WrapUnique(dataOffer);
+    }
+  }
+}
+
+void nsRetrievalContextWayland::SetPrimaryDataOffer(
+    zwp_primary_selection_offer_v1* aPrimaryDataOffer) {
+  // Release any primary offer we have.
+  mPrimaryOffer = nullptr;
+
+  // aPrimaryDataOffer can be null which means we lost
+  // the mouse selection.
+  if (aPrimaryDataOffer) {
+    DataOffer* dataOffer = static_cast<DataOffer*>(
+        g_hash_table_lookup(mActiveOffers, aPrimaryDataOffer));
+    NS_ASSERTION(dataOffer, "We're missing primary data offer!");
+    if (dataOffer) {
+      g_hash_table_remove(mActiveOffers, aPrimaryDataOffer);
+      mPrimaryOffer = WrapUnique(dataOffer);
     }
   }
 }
@@ -530,7 +598,6 @@ static void data_device_enter(void* data, struct wl_data_device* data_device,
   }
 
   LOGDRAG(("nsWindow data_device_enter for GtkWidget %p\n", (void*)gtkWidget));
-
   dragContext->DropDataEnter(gtkWidget, time, wl_fixed_to_int(x_fixed),
                              wl_fixed_to_int(y_fixed));
 }
@@ -542,6 +609,8 @@ static void data_device_leave(void* data, struct wl_data_device* data_device) {
   nsWaylandDragContext* dropContext = context->GetDragContext();
   WindowDragLeaveHandler(dropContext->GetWidget());
 
+  LOGDRAG(("nsWindow data_device_leave for GtkWidget %p\n",
+           (void*)dropContext->GetWidget()));
   context->ClearDragAndDropDataOffer();
 }
 
@@ -557,6 +626,8 @@ static void data_device_motion(void* data, struct wl_data_device* data_device,
   nscoord y = wl_fixed_to_int(y_fixed);
   dropContext->DropMotion(time, x, y);
 
+  LOGDRAG(("nsWindow data_device_motion for GtkWidget %p\n",
+           (void*)dropContext->GetWidget()));
   WindowDragMotionHandler(dropContext->GetWidget(), nullptr, dropContext, x, y,
                           time);
 }
@@ -570,6 +641,8 @@ static void data_device_drop(void* data, struct wl_data_device* data_device) {
   nscoord x, y;
   dropContext->GetLastDropInfo(&time, &x, &y);
 
+  LOGDRAG(("nsWindow data_device_drop GtkWidget %p\n",
+           (void*)dropContext->GetWidget()));
   WindowDragDropHandler(dropContext->GetWidget(), nullptr, dropContext, x, y,
                         time);
 }
@@ -600,24 +673,43 @@ static const struct wl_data_device_listener data_device_listener = {
     data_device_motion,     data_device_drop,  data_device_selection};
 
 static void primary_selection_data_offer(
-    void* data,
-    struct gtk_primary_selection_device* gtk_primary_selection_device,
-    struct gtk_primary_selection_offer* gtk_primary_offer) {
+    void* data, struct gtk_primary_selection_device* primary_selection_device,
+    struct gtk_primary_selection_offer* primary_offer) {
   LOGCLIP(("primary_selection_data_offer() callback\n"));
   // create and add listener
   nsRetrievalContextWayland* context =
       static_cast<nsRetrievalContextWayland*>(data);
-  context->RegisterNewDataOffer(gtk_primary_offer);
+  context->RegisterNewDataOffer(primary_offer);
+}
+
+static void primary_selection_data_offer(
+    void* data,
+    struct zwp_primary_selection_device_v1* primary_selection_device,
+    struct zwp_primary_selection_offer_v1* primary_offer) {
+  LOGCLIP(("primary_selection_data_offer() callback\n"));
+  // create and add listener
+  nsRetrievalContextWayland* context =
+      static_cast<nsRetrievalContextWayland*>(data);
+  context->RegisterNewDataOffer(primary_offer);
+}
+
+static void primary_selection_selection(
+    void* data, struct gtk_primary_selection_device* primary_selection_device,
+    struct gtk_primary_selection_offer* primary_offer) {
+  LOGCLIP(("primary_selection_selection() callback\n"));
+  nsRetrievalContextWayland* context =
+      static_cast<nsRetrievalContextWayland*>(data);
+  context->SetPrimaryDataOffer(primary_offer);
 }
 
 static void primary_selection_selection(
     void* data,
-    struct gtk_primary_selection_device* gtk_primary_selection_device,
-    struct gtk_primary_selection_offer* gtk_primary_offer) {
+    struct zwp_primary_selection_device_v1* primary_selection_device,
+    struct zwp_primary_selection_offer_v1* primary_offer) {
   LOGCLIP(("primary_selection_selection() callback\n"));
   nsRetrievalContextWayland* context =
       static_cast<nsRetrievalContextWayland*>(data);
-  context->SetPrimaryDataOffer(gtk_primary_offer);
+  context->SetPrimaryDataOffer(primary_offer);
 }
 
 /* gtk_primary_selection_device callback description:
@@ -634,13 +726,20 @@ static void primary_selection_selection(
  *                          there's no primary selection.
  */
 static const struct gtk_primary_selection_device_listener
-    primary_selection_device_listener = {
+    primary_selection_device_listener_gtk = {
+        primary_selection_data_offer,
+        primary_selection_selection,
+};
+
+static const struct zwp_primary_selection_device_v1_listener
+    primary_selection_device_listener_zwp_v1 = {
         primary_selection_data_offer,
         primary_selection_selection,
 };
 
 bool nsRetrievalContextWayland::HasSelectionSupport(void) {
-  return mDisplay->GetPrimarySelectionDeviceManager() != nullptr;
+  return (mDisplay->GetPrimarySelectionDeviceManagerZwpV1() != nullptr ||
+          mDisplay->GetPrimarySelectionDeviceManagerGtk() != nullptr);
 }
 
 nsRetrievalContextWayland::nsRetrievalContextWayland(void)
@@ -657,14 +756,20 @@ nsRetrievalContextWayland::nsRetrievalContextWayland(void)
       mDisplay->GetDataDeviceManager(), mDisplay->GetSeat());
   wl_data_device_add_listener(dataDevice, &data_device_listener, this);
 
-  gtk_primary_selection_device_manager* manager =
-      mDisplay->GetPrimarySelectionDeviceManager();
-  if (manager) {
+  if (mDisplay->GetPrimarySelectionDeviceManagerZwpV1()) {
+    zwp_primary_selection_device_v1* primaryDataDevice =
+        zwp_primary_selection_device_manager_v1_get_device(
+            mDisplay->GetPrimarySelectionDeviceManagerZwpV1(),
+            mDisplay->GetSeat());
+    zwp_primary_selection_device_v1_add_listener(
+        primaryDataDevice, &primary_selection_device_listener_zwp_v1, this);
+  } else if (mDisplay->GetPrimarySelectionDeviceManagerGtk()) {
     gtk_primary_selection_device* primaryDataDevice =
-        gtk_primary_selection_device_manager_get_device(manager,
-                                                        mDisplay->GetSeat());
+        gtk_primary_selection_device_manager_get_device(
+            mDisplay->GetPrimarySelectionDeviceManagerGtk(),
+            mDisplay->GetSeat());
     gtk_primary_selection_device_add_listener(
-        primaryDataDevice, &primary_selection_device_listener, this);
+        primaryDataDevice, &primary_selection_device_listener_gtk, this);
   }
 
   mInitialized = true;
@@ -743,7 +848,8 @@ const char* nsRetrievalContextWayland::GetClipboardData(
   NS_ASSERTION(mClipboardData == nullptr && mClipboardDataLength == 0,
                "Looks like we're leaking clipboard data here!");
 
-  LOGCLIP(("nsRetrievalContextWayland::GetClipboardData\n"));
+  LOGCLIP(("nsRetrievalContextWayland::GetClipboardData [%p] mime %s\n", this,
+           aMimeType));
 
   /* If actual clipboard data is owned by us we don't need to go
    * through Wayland but we ask Gtk+ to directly call data
@@ -752,13 +858,15 @@ const char* nsRetrievalContextWayland::GetClipboardData(
    */
   GdkAtom selection = GetSelectionAtom(aWhichClipboard);
   if (gdk_selection_owner_get(selection)) {
+    LOGCLIP(("  Internal clipboard content\n"));
     mClipboardRequestNumber++;
     gtk_clipboard_request_contents(
         gtk_clipboard_get(selection), gdk_atom_intern(aMimeType, FALSE),
         wayland_clipboard_contents_received,
         new FastTrackClipboard(mClipboardRequestNumber, this));
   } else {
-    DataOffer* dataOffer =
+    LOGCLIP(("  Remote clipboard content\n"));
+    const auto& dataOffer =
         (selection == GDK_SELECTION_PRIMARY) ? mPrimaryOffer : mClipboardOffer;
     if (!dataOffer) {
       // Something went wrong. We're requested to provide clipboard data
@@ -778,10 +886,10 @@ const char* nsRetrievalContextWayland::GetClipboardData(
 
 const char* nsRetrievalContextWayland::GetClipboardText(
     int32_t aWhichClipboard) {
-  LOGCLIP(("nsRetrievalContextWayland::GetClipboardText\n"));
+  LOGCLIP(("nsRetrievalContextWayland::GetClipboardText [%p]\n", this));
 
   GdkAtom selection = GetSelectionAtom(aWhichClipboard);
-  DataOffer* dataOffer =
+  const auto& dataOffer =
       (selection == GDK_SELECTION_PRIMARY) ? mPrimaryOffer : mClipboardOffer;
   if (!dataOffer) return nullptr;
 
@@ -796,7 +904,7 @@ const char* nsRetrievalContextWayland::GetClipboardText(
 
 void nsRetrievalContextWayland::ReleaseClipboardData(
     const char* aClipboardData) {
-  LOGCLIP(("nsRetrievalContextWayland::ReleaseClipboardData\n"));
+  LOGCLIP(("nsRetrievalContextWayland::ReleaseClipboardData [%p]\n", this));
 
   NS_ASSERTION(aClipboardData == mClipboardData,
                "Releasing unknown clipboard data!");

@@ -9,12 +9,12 @@
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Sprintf.h"
-#include "mozilla/TypeTraits.h"
 
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <type_traits>
 
 #include "gc/GC.h"
 #include "js/AllocPolicy.h"
@@ -77,7 +77,13 @@ class JSAPITest {
   bool knownFail;
   JSAPITestString msgs;
 
-  JSAPITest() : cx(nullptr), knownFail(false) {
+  // Whether this test is willing to skip its init() and reuse a global (and
+  // JSContext etc.) from a previous test that also has reuseGlobal=true. It
+  // also means this test is willing to skip its uninit() if it is followed by
+  // another reuseGlobal test.
+  bool reuseGlobal;
+
+  JSAPITest() : cx(nullptr), knownFail(false), reuseGlobal(false) {
     next = list;
     list = this;
   }
@@ -87,7 +93,19 @@ class JSAPITest {
     MOZ_RELEASE_ASSERT(!global);
   }
 
-  virtual bool init();
+  // Initialize this test, possibly with the cx from a previously run test.
+  bool init(JSContext* maybeReusedContext);
+
+  // If this test is ok with its cx and global being reused, release this
+  // test's cx to be reused by another test.
+  JSContext* maybeForgetContext();
+
+  static void MaybeFreeContext(JSContext* maybeCx);
+
+  // The real initialization happens in init(JSContext*), above, but this
+  // method may be overridden to perform additional initialization after the
+  // JSContext and global have been created.
+  virtual bool init() { return true; }
   virtual void uninit();
 
   virtual const char* name() = 0;
@@ -177,6 +195,9 @@ class JSAPITest {
     if (flags.multiline()) {
       str += "m";
     }
+    if (flags.dotAll()) {
+      str += "s";
+    }
     if (flags.unicode()) {
       str += "u";
     }
@@ -197,11 +218,11 @@ class JSAPITest {
   template <typename T, typename U>
   bool checkEqual(const T& actual, const U& expected, const char* actualExpr,
                   const char* expectedExpr, const char* filename, int lineno) {
-    static_assert(mozilla::IsSigned<T>::value == mozilla::IsSigned<U>::value,
+    static_assert(std::is_signed_v<T> == std::is_signed_v<U>,
                   "using CHECK_EQUAL with different-signed inputs triggers "
                   "compiler warnings");
     static_assert(
-        mozilla::IsUnsigned<T>::value == mozilla::IsUnsigned<U>::value,
+        std::is_unsigned_v<T> == std::is_unsigned_v<U>,
         "using CHECK_EQUAL with different-signed inputs triggers compiler "
         "warnings");
     return (actual == expected) ||
@@ -350,15 +371,8 @@ class JSAPITest {
     return cx;
   }
 
-  virtual void destroyContext() {
-    MOZ_RELEASE_ASSERT(cx);
-    JS_DestroyContext(cx);
-    cx = nullptr;
-  }
-
   static void reportWarning(JSContext* cx, JSErrorReport* report) {
-    MOZ_RELEASE_ASSERT(report);
-    MOZ_RELEASE_ASSERT(JSREPORT_IS_WARNING(report->flags));
+    MOZ_RELEASE_ASSERT(report->isWarning());
 
     fprintf(stderr, "%s:%u:%s\n",
             report->filename ? report->filename : "<no filename>",
@@ -370,13 +384,21 @@ class JSAPITest {
   virtual JSObject* createGlobal(JSPrincipals* principals = nullptr);
 };
 
-#define BEGIN_TEST_WITH_ATTRIBUTES(testname, attrs)           \
-  class cls_##testname : public JSAPITest {                   \
-   public:                                                    \
-    virtual const char* name() override { return #testname; } \
-    virtual bool run(JS::HandleObject global) override attrs
+#define BEGIN_TEST_WITH_ATTRIBUTES_AND_EXTRA(testname, attrs, extra) \
+  class cls_##testname : public JSAPITest {                          \
+   public:                                                           \
+    virtual const char* name() override { return #testname; }        \
+    extra virtual bool run(JS::HandleObject global) override attrs
+
+#define BEGIN_TEST_WITH_ATTRIBUTES(testname, attrs) \
+  BEGIN_TEST_WITH_ATTRIBUTES_AND_EXTRA(testname, attrs, )
 
 #define BEGIN_TEST(testname) BEGIN_TEST_WITH_ATTRIBUTES(testname, )
+
+#define BEGIN_REUSABLE_TEST(testname)   \
+  BEGIN_TEST_WITH_ATTRIBUTES_AND_EXTRA( \
+      testname, , cls_##testname()      \
+      : JSAPITest() { reuseGlobal = true; })
 
 #define END_TEST(testname) \
   }                        \

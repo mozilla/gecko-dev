@@ -4,7 +4,10 @@
 
 html {
   background-color: #edeceb;
-  font: message-box;
+}
+
+table {
+  font-family: monospace;
 }
 
 .controls {
@@ -25,7 +28,7 @@ html {
   margin: 0.5em 0.5em;
 }
 
-.log p {
+.log p, .prefs p {
   font-family: monospace;
   padding-left: 2em;
   text-indent: -2em;
@@ -88,10 +91,20 @@ html {
   border-color: black;
 }
 
-.ice-trickled { background-color: hsla(210, 66%, 75%, 1); }
-.ice-success { background-color: hsla(120, 66%, 75%, 1); }
-.ice-failed { background-color: hsla(0, 66%, 75%, 1); }
-.ice-cancelled { background-color: hsla(60, 66%, 75%, 1); }
+.peer-connection-config div {
+  margin-inline: 1em;
+}
+
+.peer-connection-config div:nth-of-type(odd) {
+  background-color: #ddd;
+}
+
+/* This is the pale colour scheme from:
+   https://personal.sron.nl/~pault/#sec:qualitative */
+.ice-trickled { background-color: #cceeff; }
+.ice-succeeded { background-color: #ccddaa; }
+.ice-failed { background-color: #ffcccc; }
+.ice-cancelled { background-color: #eeeebb; }
 
 .info-label {
   font-weight: bold;
@@ -116,4 +129,26 @@ div.fold-trigger {
   .no-print {
     display: none !important;
   }
+}
+
+.sdp-history {
+  display: flex;
+  height: 400px;
+}
+
+.sdp-history-link {
+  text-decoration: underline;
+}
+
+.sdp-history h5 {
+  background-color: #ddd;
+}
+
+.sdp-history div {
+  border: thin solid;
+  border-color: black;
+  flex: 1;
+  padding: 1em;
+  width: 50%;
+  overflow: scroll;
 }

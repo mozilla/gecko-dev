@@ -6,9 +6,11 @@
 #ifndef nsDeviceContextSpecGTK_h___
 #define nsDeviceContextSpecGTK_h___
 
+struct JSContext;
+
 #include "nsIDeviceContextSpec.h"
+#include "nsIPrinterList.h"
 #include "nsIPrintSettings.h"
-#include "nsIPrinterEnumerator.h"
 #include "nsCOMPtr.h"
 #include "nsString.h"
 #include "mozilla/Attributes.h"
@@ -43,8 +45,7 @@ class nsDeviceContextSpecGTK : public nsIDeviceContextSpec {
  protected:
   virtual ~nsDeviceContextSpecGTK();
   nsCOMPtr<nsPrintSettingsGTK> mPrintSettings;
-  bool mToPrinter : 1;  /* If true, print to printer */
-  bool mIsPPreview : 1; /* If true, is print preview */
+  bool mToPrinter : 1; /* If true, print to printer */
   GtkPrintSettings* mGtkPrintSettings;
   GtkPageSetup* mGtkPageSetup;
 
@@ -56,18 +57,6 @@ class nsDeviceContextSpecGTK : public nsIDeviceContextSpec {
   void EnumeratePrinters();
   void StartPrintJob();
   static gboolean PrinterEnumerator(GtkPrinter* aPrinter, gpointer aData);
-};
-
-//-------------------------------------------------------------------------
-// Printer Enumerator
-//-------------------------------------------------------------------------
-class nsPrinterEnumeratorGTK final : public nsIPrinterEnumerator {
-  ~nsPrinterEnumeratorGTK() {}
-
- public:
-  nsPrinterEnumeratorGTK();
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIPRINTERENUMERATOR
 };
 
 #endif /* !nsDeviceContextSpecGTK_h___ */

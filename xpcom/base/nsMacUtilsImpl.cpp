@@ -172,7 +172,7 @@ bool nsMacUtilsImpl::GetAppPath(nsCString& aAppPath) {
   // The binary path resides within the .app dir in Contents/MacOS,
   // e.g., Firefox.app/Contents/MacOS/firefox. Search backwards in
   // the binary path for the end of .app path.
-  auto pattern = NS_LITERAL_CSTRING("/Contents/MacOS/");
+  auto pattern = "/Contents/MacOS/"_ns;
   nsAutoCString::const_iterator start, end;
   appBinaryPath.BeginReading(start);
   appBinaryPath.EndReading(end);
@@ -431,12 +431,14 @@ nsresult nsMacUtilsImpl::GetRepoDir(nsIFile** aRepoDir) {
 #if defined(MOZ_SANDBOX)
   MOZ_ASSERT(mozilla::IsDevelopmentBuild());
 #endif
-  return GetDirFromBundlePlist(NS_LITERAL_STRING(MAC_DEV_REPO_KEY), aRepoDir);
+  return GetDirFromBundlePlist(NS_LITERAL_STRING_FROM_CSTRING(MAC_DEV_REPO_KEY),
+                               aRepoDir);
 }
 
 nsresult nsMacUtilsImpl::GetObjDir(nsIFile** aObjDir) {
 #if defined(MOZ_SANDBOX)
   MOZ_ASSERT(mozilla::IsDevelopmentBuild());
 #endif
-  return GetDirFromBundlePlist(NS_LITERAL_STRING(MAC_DEV_OBJ_KEY), aObjDir);
+  return GetDirFromBundlePlist(NS_LITERAL_STRING_FROM_CSTRING(MAC_DEV_OBJ_KEY),
+                               aObjDir);
 }

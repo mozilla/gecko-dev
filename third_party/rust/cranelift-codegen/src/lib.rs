@@ -1,5 +1,4 @@
 //! Cranelift code generation library.
-
 #![deny(missing_docs, trivial_numeric_casts, unused_extern_crates)]
 #![warn(unused_import_braces)]
 #![cfg_attr(feature = "std", deny(unstable_features))]
@@ -39,6 +38,13 @@
     )
 )]
 #![no_std]
+// Various bits and pieces of this crate might only be used for one platform or
+// another, but it's not really too useful to learn about that all the time. On
+// CI we build at least one version of this crate with `--features all-arch`
+// which means we'll always detect truly dead code, otherwise if this is only
+// built for one platform we don't have to worry too much about trimming
+// everything down.
+#![cfg_attr(not(feature = "all-arch"), allow(dead_code))]
 
 #[allow(unused_imports)] // #[macro_use] is required for no_std
 #[macro_use]
@@ -71,6 +77,7 @@ pub mod flowgraph;
 pub mod ir;
 pub mod isa;
 pub mod loop_analysis;
+pub mod machinst;
 pub mod print_errors;
 pub mod settings;
 pub mod timing;
@@ -86,6 +93,7 @@ mod context;
 mod dce;
 mod divconst_magic_numbers;
 mod fx;
+mod inst_predicates;
 mod iterators;
 mod legalizer;
 mod licm;
@@ -95,6 +103,7 @@ mod postopt;
 mod predicates;
 mod redundant_reload_remover;
 mod regalloc;
+mod remove_constant_phis;
 mod result;
 mod scoped_hash_map;
 mod simple_gvn;
@@ -103,6 +112,12 @@ mod stack_layout;
 mod topo_order;
 mod unreachable_code;
 mod value_label;
+
+#[cfg(feature = "enable-peepmatic")]
+mod peepmatic;
+
+#[cfg(feature = "souper-harvest")]
+mod souper_harvest;
 
 pub use crate::result::{CodegenError, CodegenResult};
 

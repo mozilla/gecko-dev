@@ -28,8 +28,6 @@
   --track-size: 5px;
   --thumb-size: 13px;
   --label-font-size: 13px;
-  --pip-toggle-bgcolor: rgb(0, 96, 223);
-  --pip-toggle-text-and-icon-color: rgb(255, 255, 255);
   --pip-toggle-padding: 5px;
   --pip-toggle-icon-width-height: 16px;
   --pip-toggle-translate-x: calc(100% - var(--pip-toggle-icon-width-height) - 2 * var(--pip-toggle-padding));
@@ -70,10 +68,22 @@
 }
 
 .controlsContainer [hidden],
-.controlBar[hidden],
+.controlBar[hidden] .progressBar,
+.controlBar[hidden] .bufferBar,
 .pictureInPictureToggleButton[hidden],
-.videocontrols[inDOMFullscreen] > .controlsContainer > .controlsOverlay > .pictureInPictureToggleButton {
+.videocontrols[inDOMFullscreen] > .controlsContainer > .controlsOverlay > .pictureInPictureToggleButton,
+.videocontrols[inDOMFullscreen] > .controlsContainer > .controlsOverlay > #pictureInPictureToggleExperiment {
   display: none;
+}
+
+/* We hide the controlBar visually so it doesn't obscure the video. However,
+ * we still want to expose it to a11y so users who don't use a mouse can access
+ * it.
+ */
+.controlBar[hidden] {
+  display: flex;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .controlBar[size="hidden"] {
@@ -104,6 +114,7 @@
   justify-content: center;
   align-items: center;
   background-color: rgb(80,80,80, .85);
+  color: #fff;
 }
 
 .controlsOverlay {
@@ -131,6 +142,7 @@
   height: 40px;
   padding: 0 9px;
   background-color: rgba(26,26,26,.8);
+  color: #fff;
 }
 
 .touch .controlBar {
@@ -150,18 +162,21 @@
   background-origin: content-box;
   background-clip: content-box;
   -moz-context-properties: fill;
-  fill: #ffffff;
+  fill: currentColor;
+  color: inherit;
+  /* We don't suppress ::-moz-focus-inner, so that does for a focus indicator */
+  outline: none;
 }
 
 .touch .controlBar > .button {
   background-size: 24px 24px;
 }
 
-.controlBar > .button:hover {
+.controlBar > .button:enabled:hover {
   fill: #48a0f7;
 }
 
-.controlBar > .button:hover:active {
+.controlBar > .button:enabled:hover:active {
   fill: #2d89e6;
 }
 
@@ -178,11 +193,8 @@
 .muteButton[muted] {
   background-image: url(chrome://global/skin/media/audioMutedButton.svg);
 }
-.muteButton[noAudio],
-.muteButton[noAudio]:hover,
-.muteButton[noAudio]:hover:active {
+.muteButton[noAudio] {
   background-image: url(chrome://global/skin/media/audioNoAudioButton.svg);
-  fill: white;
 }
 .muteButton[noAudio] + .volumeStack {
   display: none;
@@ -220,13 +232,13 @@
   width: var(--thumb-size);
   border: none;
   border-radius: 50%;
-  background-color: #ffffff;
+  background-color: #fff;
   filter: drop-shadow(0px 0px 2px rgba(0,0,0,0.65));
 }
 
-.volumeControl::-moz-focus-outer,
-.scrubber::-moz-focus-outer {
-  border: 0;
+.volumeControl,
+.scrubber {
+  outline: none;
 }
 
 .progressBackgroundBar {
@@ -263,7 +275,6 @@
 .bufferBar,
 .progressBar,
 .scrubber,
-.volumeBackground,
 .volumeControl {
   bottom: 0;
   left: 0;
@@ -275,17 +286,15 @@
   border-radius: calc(var(--track-size) / 2);
   margin: 0;
   background: none;
-  background-color: transparent;
+  outline: none;
 }
 
-.bufferBar,
-.volumeBackground {
+.bufferBar {
   background-color: rgba(0,0,0,0.7);
 }
 
 .bufferBar::-moz-progress-bar,
-.progressBar::-moz-progress-bar,
-.volumeBackground::-moz-meter-bar {
+.progressBar::-moz-progress-bar {
   height: 100%;
   padding: 0;
   margin: 0;
@@ -316,7 +325,7 @@
 }
 
 .volumeControl::-moz-range-progress {
-  background-color: #ffffff;
+  background-color: #fff;
 }
 
 .volumeControl::-moz-range-track {
@@ -346,11 +355,11 @@
 
 .textTrackList {
   flex: 0 1 auto;
-  border: 1px solid #000000;
+  border: 1px solid #000;
   border-radius: 2.5px;
   padding: 5px 0;
   vertical-align: middle;
-  background-color: #000000;
+  background-color: #000;
   opacity: 0.7;
   overflow-y: auto;
 }
@@ -371,12 +380,12 @@
   overflow: hidden;
   text-align: left;
   text-overflow: ellipsis;
-  color: #ffffff;
+  color: #fff;
   background-color: transparent;
 }
 
 .textTrackList > .textTrackItem:hover {
-  background-color: #444444;
+  background-color: #444;
 }
 
 .textTrackList > .textTrackItem[on] {
@@ -396,7 +405,6 @@
   font: message-box;
   font-size: var(--label-font-size);
   font-size-adjust: 0.55;
-  color: #ffffff;
 }
 
 %ifdef XP_MACOSX
@@ -444,17 +452,16 @@
   min-width: 84px;
   min-height: 84px;
   background-image: url(chrome://global/skin/media/pictureinpicture.svg);
-  -moz-context-properties: fill, stroke;
-  fill: #fff;
-  stroke: #fff;
+  -moz-context-properties: fill;
+  fill: currentColor;
 }
 
 .pictureInPictureToggleButton {
   display: flex;
-  -moz-appearance: none;
+  appearance: none;
   position: absolute;
-  background-color: var(--pip-toggle-bgcolor);
-  color: var(--pip-toggle-text-and-icon-color);
+  background-color: #0060df;
+  color: #fff;
   border: 0;
   padding: var(--pip-toggle-padding);
   right: 0;
@@ -493,9 +500,8 @@
   background-image: url(chrome://global/skin/media/pictureinpicture.svg);
   background-position: center left;
   background-repeat: no-repeat;
-  -moz-context-properties: fill, stroke;
-  fill: var(--pip-toggle-text-and-icon-color);
-  stroke: var(--pip-toggle-text-and-icon-color);
+  -moz-context-properties: fill;
+  fill: currentColor;
   width: var(--pip-toggle-icon-width-height);
   height: var(--pip-toggle-icon-width-height);
   min-width: max-content;
@@ -560,7 +566,7 @@
   background-size: 40% 40%;
   background-color: #1a1a1a;
   -moz-context-properties: fill;
-  fill: #ffffff;
+  fill: #fff;
   opacity: 0.8;
   position: relative;
   top: 20px;
@@ -591,6 +597,7 @@
   align-items: center;
   opacity: 1;
   background-color: rgb(12, 12, 13);
+  color: #fff;
 }
 
 /* Status description formatting */
@@ -599,20 +606,19 @@
   text-align: center;
   font: message-box;
   font-size: 14px;
-  color: #ffffff;
 }
 
 .statusLabel {
   display: none;
 }
 
-[status="errorAborted"]         > [id="errorAborted"],
-[status="errorNetwork"]         > [id="errorNetwork"],
-[status="errorDecode"]          > [id="errorDecode"],
-[status="errorSrcNotSupported"] > [id="errorSrcNotSupported"],
-[status="errorNoSource"]        > [id="errorNoSource"],
-[status="errorGeneric"]         > [id="errorGeneric"],
-[status="pictureInPicture"]     > [id="pictureInPicture"] {
+[status="errorAborted"]         > #errorAborted,
+[status="errorNetwork"]         > #errorNetwork,
+[status="errorDecode"]          > #errorDecode,
+[status="errorSrcNotSupported"] > #errorSrcNotSupported,
+[status="errorNoSource"]        > #errorNoSource,
+[status="errorGeneric"]         > #errorGeneric,
+[status="pictureInPicture"]     > #pictureInPicture {
   display: inline;
 }
 
@@ -624,3 +630,126 @@
   }
 }
 %endif
+
+.pip-wrapper {
+  position: absolute;
+  cursor: pointer;
+  -moz-appearance: none;
+  background: none;
+  border: none;
+  text-align: unset;
+  top: calc(75% - 40px);
+  opacity: 0;
+  transition: opacity 200ms;
+  --pip-icon-size: 24px;
+  --pip-toggle-margin: 8px;
+  --pip-icon-width-with-margins: calc(2 * var(--pip-toggle-margin) + var(--pip-icon-size));
+}
+
+.pip-wrapper[policy="hidden"] {
+  display: none;
+}
+
+.pip-label {
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.pip-expanded {
+  font-size: 14px;
+}
+
+.pip-wrapper[medium-video] > .pip-expanded > .pip-icon-label > .pip-label {
+  font-size: 13px;
+}
+
+.pip-wrapper[medium-video] > .pip-expanded {
+  font-size: 11px;
+}
+
+.controlsOverlay.hovering > .pip-wrapper {
+  opacity: 0.8;
+}
+
+.controlsOverlay[hidetoggle="true"].hovering > .pip-wrapper:not(.hovering) {
+  opacity: 0;
+}
+
+.controlsOverlay.hovering > .pip-wrapper.hovering {
+  opacity: 1;
+}
+
+.pip-wrapper[position="right"] {
+  right: 40px;
+}
+
+.pip-wrapper[position="left"] {
+  left: 12px;
+}
+
+.pip-expanded,
+.pip-small,
+.pip-icon,
+.pip-explainer {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.pip-icon {
+  top: 8px;
+  left: 8px;
+  pointer-events: none;
+  background-image: url("chrome://global/skin/media/pictureinpicture.svg");
+  background-size: var(--pip-icon-size) var(--pip-icon-size);
+  -moz-context-properties: fill;
+  fill: #fff;
+  height: var(--pip-icon-size);
+  width: var(--pip-icon-size);
+  background-repeat: no-repeat;
+  background-position: center, center;
+}
+
+.pip-wrapper[position="left"] > .pip-expanded > .pip-icon-label > .pip-label {
+  margin-left: var(--pip-icon-width-with-margins);
+  margin-right: var(--pip-toggle-margin);
+}
+
+.pip-expanded,
+.pip-explainer {
+  user-select: none;
+}
+
+.pip-small {
+  background-color: rgba(12,12,13,0.65);
+  box-shadow: 0px 4px 4px rgba(12,12,13,0.25);
+  width: 40px;
+  height: 40px;
+  border-radius: 25px;
+}
+
+.pip-expanded {
+  display: flex;
+  height: 40px;
+  background-color: rgba(12,12,13,0.9);
+  box-shadow: 0px 4px 4px rgba(12,12,13,0.25);
+  width: max-content;
+  border-radius: 8px;
+  opacity: 0;
+  color: #fff;
+  align-items: center;
+  scale: 0.33 1;
+}
+
+@media (prefers-reduced-motion) {
+  .pip-wrapper {
+    transition: none;
+  }
+}
+
+.a11y-only {
+  position: absolute;
+  left: -10000px;
+  width: 100px;
+  height: 100px;
+}

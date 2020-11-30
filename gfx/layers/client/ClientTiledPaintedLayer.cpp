@@ -23,7 +23,6 @@
 #include "mozilla/layers/PaintThread.h"
 #include "mozilla/mozalloc.h"  // for operator delete, etc
 #include "nsISupportsImpl.h"   // for MOZ_COUNT_CTOR, etc
-#include "LayersLogging.h"
 #include "mozilla/layers/MultiTiledContentClient.h"
 #include "mozilla/layers/SingleTiledContentClient.h"
 
@@ -218,7 +217,7 @@ void ClientTiledPaintedLayer::BeginPaint() {
 
   // Calculate the scroll offset since the last transaction
   mPaintData.mScrollOffset =
-      displayportMetrics.GetScrollOffset() * displayportMetrics.GetZoom();
+      displayportMetrics.GetLayoutScrollOffset() * displayportMetrics.GetZoom();
   TILING_LOG("TILING %p: Scroll offset %s\n", this,
              Stringify(mPaintData.mScrollOffset).c_str());
 }
@@ -244,11 +243,11 @@ bool ClientTiledPaintedLayer::IsScrollingOnCompositor(
   // is so small then we have nothing to gain from using paint heuristics.
   float COORDINATE_EPSILON = 1.f;
 
-  return !FuzzyEqualsAdditive(compositorMetrics.GetScrollOffset().x,
-                              aParentMetrics.GetScrollOffset().x,
+  return !FuzzyEqualsAdditive(compositorMetrics.GetVisualScrollOffset().x,
+                              aParentMetrics.GetVisualScrollOffset().x,
                               COORDINATE_EPSILON) ||
-         !FuzzyEqualsAdditive(compositorMetrics.GetScrollOffset().y,
-                              aParentMetrics.GetScrollOffset().y,
+         !FuzzyEqualsAdditive(compositorMetrics.GetVisualScrollOffset().y,
+                              aParentMetrics.GetVisualScrollOffset().y,
                               COORDINATE_EPSILON);
 }
 

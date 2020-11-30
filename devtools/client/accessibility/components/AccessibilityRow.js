@@ -91,6 +91,8 @@ class AccessibilityRow extends Component {
       dispatch: PropTypes.func.isRequired,
       toolboxDoc: PropTypes.object.isRequired,
       scrollContentNodeIntoView: PropTypes.bool.isRequired,
+      highlightAccessible: PropTypes.func.isRequired,
+      unhighlightAccessible: PropTypes.func.isRequired,
     };
   }
 
@@ -197,12 +199,16 @@ class AccessibilityRow extends Component {
    *          possible.
    */
   async scrollNodeIntoViewIfNeeded(accessibleFront) {
-    if (!accessibleFront.actorID) {
+    if (accessibleFront.isDestroyed()) {
       return;
     }
 
     const domWalker = (await accessibleFront.targetFront.getFront("inspector"))
       .walker;
+    if (accessibleFront.isDestroyed()) {
+      return;
+    }
+
     const node = await domWalker.getNodeFromActor(accessibleFront.actorID, [
       "rawAccessible",
       "DOMNode",
@@ -223,38 +229,18 @@ class AccessibilityRow extends Component {
 
   async highlight(accessibleFront, options, scrollContentNodeIntoView) {
     this.props.dispatch(unhighlight());
-    if (!accessibleFront) {
-      return;
-    }
-
-    const accessibleWalkerFront = accessibleFront.parent();
-    if (!accessibleWalkerFront) {
-      return;
-    }
-
     // If necessary scroll the node into view before showing the accessibility
     // highlighter.
     if (scrollContentNodeIntoView) {
       await this.scrollNodeIntoViewIfNeeded(accessibleFront);
     }
 
-    accessibleWalkerFront
-      .highlightAccessible(accessibleFront, options)
-      .catch(error => console.warn(error));
+    this.props.highlightAccessible(accessibleFront, options);
   }
 
   unhighlight(accessibleFront) {
     this.props.dispatch(unhighlight());
-    if (!accessibleFront) {
-      return;
-    }
-
-    const accessibleWalkerFront = accessibleFront.parent();
-    if (!accessibleWalkerFront) {
-      return;
-    }
-
-    accessibleWalkerFront.unhighlight().catch(error => console.warn(error));
+    this.props.unhighlightAccessible(accessibleFront);
   }
 
   async printToJSON() {
@@ -325,9 +311,6 @@ const mapStateToProps = ({
   scrollContentNodeIntoView,
 });
 
-module.exports = connect(
-  mapStateToProps,
-  null,
-  null,
-  { withRef: true }
-)(AccessibilityRow);
+module.exports = connect(mapStateToProps, null, null, { withRef: true })(
+  AccessibilityRow
+);

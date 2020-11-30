@@ -15,17 +15,18 @@
 #include "nsGridContainerFrame.h"
 #include "nsGfxScrollFrame.h"
 #include "nsIFrame.h"
-#include "nsSVGDisplayableFrame.h"
 #include "nsImageFrame.h"
 #include "nsInlineFrame.h"
+#include "nsPageFrame.h"
 #include "nsPlaceholderFrame.h"
 #include "nsRubyTextFrame.h"
 #include "nsRubyTextContainerFrame.h"
-#include "nsSVGContainerFrame.h"
 #include "nsTableCellFrame.h"
 #include "nsTableRowFrame.h"
 #include "nsTableRowGroupFrame.h"
 #include "nsTextFrame.h"
+#include "mozilla/ISVGDisplayableFrame.h"
+#include "mozilla/SVGContainerFrame.h"
 
 namespace mozilla {
 

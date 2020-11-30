@@ -15,7 +15,7 @@ add_task(async function aboutDialog_foregroundCheck_downloadAuto() {
 
   // Since the partial should be successful specify an invalid size for the
   // complete update.
-  let params = { queryString: "&invalidCompleteSize=1" };
+  let params = { queryString: "&invalidCompleteSize=1&promptWaitTime=0" };
   await runAboutDialogUpdateTest(params, [
     {
       panelId: "checkingForUpdates",
@@ -27,6 +27,31 @@ add_task(async function aboutDialog_foregroundCheck_downloadAuto() {
       checkActiveUpdate: { state: STATE_DOWNLOADING },
       continueFile: CONTINUE_DOWNLOAD,
       downloadInfo,
+    },
+    async function aboutDialog_restart_notification() {
+      await TestUtils.waitForCondition(
+        () => PanelUI.menuButton.hasAttribute("badge-status"),
+        "Waiting for update badge",
+        undefined,
+        200
+      ).catch(e => {
+        // Instead of throwing let the check below fail the test.
+        logTestInfo(e);
+      });
+      is(
+        PanelUI.notificationPanel.state,
+        "closed",
+        "The window's doorhanger is closed."
+      );
+      ok(
+        PanelUI.menuButton.hasAttribute("badge-status"),
+        "The window has a badge."
+      );
+      is(
+        PanelUI.menuButton.getAttribute("badge-status"),
+        "update-restart",
+        "The restart badge is showing for the background window"
+      );
     },
     {
       panelId: "apply",

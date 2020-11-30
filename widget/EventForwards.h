@@ -438,12 +438,17 @@ typedef nsTArray<OwningNonNull<dom::StaticRange>> OwningNonNullStaticRangeArray;
 // FontRange.h
 struct FontRange;
 
-enum MouseButton { eNotPressed = -1, eLeft = 0, eMiddle = 1, eRight = 2 };
+enum MouseButton {
+  eNotPressed = -1,
+  ePrimary = 0,
+  eMiddle = 1,
+  eSecondary = 2
+};
 
 enum MouseButtonsFlag {
   eNoButtons = 0x00,
-  eLeftFlag = 0x01,
-  eRightFlag = 0x02,
+  ePrimaryFlag = 0x01,
+  eSecondaryFlag = 0x02,
   eMiddleFlag = 0x04,
   // typicall, "back" button being left side of 5-button
   // mice, see "buttons" attribute document of DOM3 Events.

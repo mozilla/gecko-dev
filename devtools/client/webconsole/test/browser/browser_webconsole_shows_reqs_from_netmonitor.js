@@ -16,13 +16,17 @@ const TEST_PATH =
 
 const NET_PREF = "devtools.webconsole.filter.net";
 Services.prefs.setBoolPref(NET_PREF, true);
-registerCleanupFunction(() => {
+registerCleanupFunction(async () => {
   Services.prefs.clearUserPref(NET_PREF);
+
+  await new Promise(resolve => {
+    Services.clearData.deleteData(Ci.nsIClearDataService.CLEAR_ALL, value =>
+      resolve()
+    );
+  });
 });
 
 add_task(async function task() {
-  await pushPref("devtools.target-switching.enabled", true);
-
   // Test that the request appears in the console.
   const hud = await openNewTabAndConsole(TEST_URI);
   const currentTab = gBrowser.selectedTab;
@@ -54,15 +58,18 @@ add_task(async function task() {
 async function testNetmonitor(toolbox) {
   const monitor = toolbox.getCurrentPanel();
 
-  const { store, windowRequire } = monitor.panelWin;
+  const { document, store, windowRequire } = monitor.panelWin;
   const Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
   const { getSortedRequests } = windowRequire(
     "devtools/client/netmonitor/src/selectors/index"
   );
 
   store.dispatch(Actions.batchEnable(false));
-
+  const requestItem = document.querySelector(".request-list-item");
   await waitUntil(() => store.getState().requests.requests.length > 0);
+  // Lets also wait until all the event timings data requested
+  // has completed and the column is rendered.
+  await waitForDOM(requestItem, ".requests-list-timings-total");
 
   is(
     store.getState().requests.requests.length,

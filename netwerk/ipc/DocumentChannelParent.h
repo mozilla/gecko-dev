@@ -7,8 +7,8 @@
 #ifndef mozilla_net_DocumentChannelParent_h
 #define mozilla_net_DocumentChannelParent_h
 
-#include "mozilla/net/PDocumentChannelParent.h"
 #include "mozilla/net/DocumentLoadListener.h"
+#include "mozilla/net/PDocumentChannelParent.h"
 
 namespace mozilla {
 namespace dom {
@@ -17,69 +17,45 @@ class CanonicalBrowsingContext;
 namespace net {
 
 /**
- * An implementation of ADocumentChannelBridge that forwards all changes across
- * to DocumentChannelChild, the nsIChannel implementation owned by a content
- * process docshell.
+ * An actor that forwards all changes across to DocumentChannelChild, the
+ * nsIChannel implementation owned by a content process docshell.
  */
-class DocumentChannelParent final : public ADocumentChannelBridge,
-                                    public PDocumentChannelParent {
+class DocumentChannelParent final
+    : public PDocumentChannelParent,
+      public DocumentLoadListener::ObjectUpgradeHandler {
  public:
   NS_INLINE_DECL_REFCOUNTING(DocumentChannelParent, override);
 
-  explicit DocumentChannelParent(dom::CanonicalBrowsingContext* aContext,
-                                 nsILoadContext* aLoadContext,
-                                 PBOverrideStatus aOverrideStatus);
+  explicit DocumentChannelParent();
 
-  bool Init(const DocumentChannelCreationArgs& aArgs);
+  bool Init(dom::CanonicalBrowsingContext* aContext,
+            const DocumentChannelCreationArgs& aArgs);
 
   // PDocumentChannelParent
   bool RecvCancel(const nsresult& aStatus) {
-    if (mParent) {
-      mParent->Cancel(aStatus);
+    if (mDocumentLoadListener) {
+      mDocumentLoadListener->Cancel(aStatus);
     }
     return true;
   }
   void ActorDestroy(ActorDestroyReason aWhy) override {
-    if (mParent) {
-      mParent->DocumentChannelBridgeDisconnected();
-      mParent = nullptr;
+    if (mDocumentLoadListener) {
+      mDocumentLoadListener->Cancel(NS_BINDING_ABORTED);
     }
   }
 
  private:
-  // DocumentChannelListener
-  void DisconnectChildListeners(nsresult aStatus,
-                                nsresult aLoadGroupStatus) override {
-    if (CanSend()) {
-      Unused << SendDisconnectChildListeners(aStatus, aLoadGroupStatus);
-    }
-    mParent = nullptr;
-  }
-
-  void Delete() override {
-    if (CanSend()) {
-      Unused << SendDeleteSelf();
-    }
-  }
-
-  RefPtr<PDocumentChannelParent::ConfirmRedirectPromise> ConfirmRedirect(
-      const LoadInfoArgs& aLoadInfo, nsIURI* aNewURI) override {
-    return SendConfirmRedirect(aLoadInfo, aNewURI);
-  }
-
-  virtual ProcessId OtherPid() const override { return IProtocol::OtherPid(); }
-
-  virtual bool AttachStreamFilter(
-      Endpoint<mozilla::extensions::PStreamFilterParent>&& aEndpoint) override {
-    return SendAttachStreamFilter(std::move(aEndpoint));
-  }
+  RefPtr<ObjectUpgradePromise> UpgradeObjectLoad() override;
 
   RefPtr<PDocumentChannelParent::RedirectToRealChannelPromise>
-  RedirectToRealChannel(uint32_t aRedirectFlags, uint32_t aLoadFlags) override;
+  RedirectToRealChannel(
+      nsTArray<ipc::Endpoint<extensions::PStreamFilterParent>>&&
+          aStreamFilterEndpoints,
+      uint32_t aRedirectFlags, uint32_t aLoadFlags);
 
-  ~DocumentChannelParent();
+  virtual ~DocumentChannelParent();
 
-  RefPtr<DocumentLoadListener> mParent;
+  RefPtr<DocumentLoadListener> mDocumentLoadListener;
 };
 
 }  // namespace net

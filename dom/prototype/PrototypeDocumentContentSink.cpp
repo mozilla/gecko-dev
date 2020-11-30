@@ -11,7 +11,6 @@
 #include "nsIContent.h"
 #include "nsIURI.h"
 #include "nsNetUtil.h"
-#include "nsIStyleSheetLinkingElement.h"
 #include "nsHTMLParts.h"
 #include "nsCRT.h"
 #include "mozilla/StyleSheetInlines.h"
@@ -26,7 +25,6 @@
 #include "mozilla/Logging.h"
 #include "nsRect.h"
 #include "nsIScriptElement.h"
-#include "nsStyleLinkElement.h"
 #include "nsReadableUtils.h"
 #include "nsUnicharUtils.h"
 #include "nsIChannel.h"
@@ -46,6 +44,7 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/HTMLTemplateElement.h"
 #include "mozilla/dom/ProcessingInstruction.h"
+#include "mozilla/dom/XMLStylesheetProcessingInstruction.h"
 #include "mozilla/dom/ScriptLoader.h"
 #include "mozilla/LoadInfo.h"
 #include "mozilla/PresShell.h"
@@ -109,20 +108,18 @@ nsresult PrototypeDocumentContentSink::Init(Document* aDoc, nsIURI* aURI,
   mDocument->SetDelayFrameLoaderInitialization(true);
   mDocument->SetMayStartLayout(false);
 
-  // Get the URI.  Note that this should match nsDocShell::OnLoadingSite
+  // Get the URI.  this should match the uri used for the OnNewURI call in
+  // nsDocShell::CreateContentViewer.
   nsresult rv = NS_GetFinalChannelURI(aChannel, getter_AddRefs(mDocumentURI));
   NS_ENSURE_SUCCESS(rv, rv);
 
   mScriptLoader = mDocument->ScriptLoader();
 
-  mNodeInfoManager = aDoc->NodeInfoManager();
-
   return NS_OK;
 }
 
 NS_IMPL_CYCLE_COLLECTION(PrototypeDocumentContentSink, mParser, mDocumentURI,
-                         mDocument, mNodeInfoManager, mScriptLoader,
-                         mCurrentPrototype)
+                         mDocument, mScriptLoader, mCurrentPrototype)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(PrototypeDocumentContentSink)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIContentSink)
@@ -307,7 +304,7 @@ nsresult PrototypeDocumentContentSink::PrepareToWalk() {
   RefPtr<Element> root;
 
   // Add the root element
-  rv = CreateElementFromPrototype(proto, getter_AddRefs(root), true);
+  rv = CreateElementFromPrototype(proto, getter_AddRefs(root), nullptr);
   if (NS_FAILED(rv)) return rv;
 
   rv = mDocument->AppendChildTo(root, false);
@@ -339,12 +336,16 @@ nsresult PrototypeDocumentContentSink::CreateAndInsertPI(
   MOZ_ASSERT(aProtoPI, "null ptr");
   MOZ_ASSERT(aParent, "null ptr");
 
-  RefPtr<ProcessingInstruction> node = NS_NewXMLProcessingInstruction(
-      mNodeInfoManager, aProtoPI->mTarget, aProtoPI->mData);
+  RefPtr<ProcessingInstruction> node =
+      NS_NewXMLProcessingInstruction(aParent->OwnerDoc()->NodeInfoManager(),
+                                     aProtoPI->mTarget, aProtoPI->mData);
 
   nsresult rv;
   if (aProtoPI->mTarget.EqualsLiteral("xml-stylesheet")) {
-    rv = InsertXMLStylesheetPI(aProtoPI, aParent, aBeforeThis, node);
+    MOZ_ASSERT(LinkStyle::FromNode(*node),
+               "XML Stylesheet node does not implement LinkStyle!");
+    auto* pi = static_cast<XMLStylesheetProcessingInstruction*>(node.get());
+    rv = InsertXMLStylesheetPI(aProtoPI, aParent, aBeforeThis, pi);
   } else {
     // No special processing, just add the PI to the document.
     rv = aParent->InsertChildBefore(
@@ -357,30 +358,23 @@ nsresult PrototypeDocumentContentSink::CreateAndInsertPI(
 
 nsresult PrototypeDocumentContentSink::InsertXMLStylesheetPI(
     const nsXULPrototypePI* aProtoPI, nsINode* aParent, nsINode* aBeforeThis,
-    nsIContent* aPINode) {
-  nsCOMPtr<nsIStyleSheetLinkingElement> ssle(do_QueryInterface(aPINode));
-  NS_ASSERTION(ssle,
-               "passed XML Stylesheet node does not "
-               "implement nsIStyleSheetLinkingElement!");
-
+    XMLStylesheetProcessingInstruction* aPINode) {
   nsresult rv;
 
-  ssle->InitStyleLinkElement(false);
   // We want to be notified when the style sheet finishes loading, so
   // disable style sheet loading for now.
-  ssle->SetEnableUpdates(false);
-  ssle->OverrideBaseURI(mCurrentPrototype->GetURI());
+  aPINode->SetEnableUpdates(false);
+  aPINode->OverrideBaseURI(mCurrentPrototype->GetURI());
 
   rv = aParent->InsertChildBefore(
-      aPINode->AsContent(), aBeforeThis ? aBeforeThis->AsContent() : nullptr,
-      false);
+      aPINode, aBeforeThis ? aBeforeThis->AsContent() : nullptr, false);
   if (NS_FAILED(rv)) return rv;
 
-  ssle->SetEnableUpdates(true);
+  aPINode->SetEnableUpdates(true);
 
   // load the stylesheet if necessary, passing ourselves as
   // nsICSSObserver
-  auto result = ssle->UpdateStyleSheet(this);
+  auto result = aPINode->UpdateStyleSheet(this);
   if (result.isErr()) {
     // Ignore errors from UpdateStyleSheet; we don't want failure to
     // do that to break the XUL document load.  But do propagate out
@@ -411,9 +405,9 @@ nsresult PrototypeDocumentContentSink::ResumeWalk() {
   nsresult rv = ResumeWalkInternal();
   if (NS_FAILED(rv)) {
     nsContentUtils::ReportToConsoleNonLocalized(
-        NS_LITERAL_STRING("Failed to load document from prototype document."),
-        nsIScriptError::errorFlag, NS_LITERAL_CSTRING("Prototype Document"),
-        mDocument, mDocumentURI);
+        u"Failed to load document from prototype document."_ns,
+        nsIScriptError::errorFlag, "Prototype Document"_ns, mDocument,
+        mDocumentURI);
   }
   return rv;
 }
@@ -458,12 +452,11 @@ nsresult PrototypeDocumentContentSink::ResumeWalkInternal() {
               element->NodeInfo()->Equals(nsGkAtoms::style, kNameSpaceID_SVG)) {
             // XXX sucks that we have to do this -
             // see bug 370111
-            nsCOMPtr<nsIStyleSheetLinkingElement> ssle =
-                do_QueryInterface(element);
-            NS_ASSERTION(ssle,
+            auto* linkStyle = LinkStyle::FromNode(*element);
+            NS_ASSERTION(linkStyle,
                          "<html:style> doesn't implement "
                          "nsIStyleSheetLinkingElement?");
-            Unused << ssle->UpdateStyleSheet(nullptr);
+            Unused << linkStyle->UpdateStyleSheet(nullptr);
           }
         }
         // Now pop the context stack back up to the parent
@@ -475,9 +468,7 @@ nsresult PrototypeDocumentContentSink::ResumeWalkInternal() {
       nodeToPushTo = element;
       // For template elements append the content to the template's document
       // fragment.
-      if (element->IsHTMLElement(nsGkAtoms::_template)) {
-        HTMLTemplateElement* templateElement =
-            static_cast<HTMLTemplateElement*>(element.get());
+      if (auto* templateElement = HTMLTemplateElement::FromNode(element)) {
         nodeToPushTo = templateElement->Content();
       }
 
@@ -486,18 +477,15 @@ nsresult PrototypeDocumentContentSink::ResumeWalkInternal() {
       nsXULPrototypeNode* childproto = proto->mChildren[indx];
       mContextStack.SetTopIndex(++indx);
 
-      NS_ASSERTION(element, "no element on context stack");
-
       switch (childproto->mType) {
         case nsXULPrototypeNode::eType_Element: {
           // An 'element', which may contain more content.
-          nsXULPrototypeElement* protoele =
-              static_cast<nsXULPrototypeElement*>(childproto);
+          auto* protoele = static_cast<nsXULPrototypeElement*>(childproto);
 
           RefPtr<Element> child;
 
           rv = CreateElementFromPrototype(protoele, getter_AddRefs(child),
-                                          false);
+                                          nodeToPushTo);
           if (NS_FAILED(rv)) return rv;
 
           // ...and append it to the content model.
@@ -524,9 +512,7 @@ nsresult PrototypeDocumentContentSink::ResumeWalkInternal() {
         case nsXULPrototypeNode::eType_Script: {
           // A script reference. Execute the script immediately;
           // this may have side effects in the content model.
-          nsXULPrototypeScript* scriptproto =
-              static_cast<nsXULPrototypeScript*>(childproto);
-
+          auto* scriptproto = static_cast<nsXULPrototypeScript*>(childproto);
           if (scriptproto->mSrcURI) {
             // A transcluded script reference; this may
             // "block" our prototype walk if the script isn't
@@ -545,11 +531,11 @@ nsresult PrototypeDocumentContentSink::ResumeWalkInternal() {
         } break;
 
         case nsXULPrototypeNode::eType_Text: {
+          nsNodeInfoManager* nim = nodeToPushTo->NodeInfo()->NodeInfoManager();
           // A simple text node.
-          RefPtr<nsTextNode> text = new nsTextNode(mNodeInfoManager);
+          RefPtr<nsTextNode> text = new (nim) nsTextNode(nim);
 
-          nsXULPrototypeText* textproto =
-              static_cast<nsXULPrototypeText*>(childproto);
+          auto* textproto = static_cast<nsXULPrototypeText*>(childproto);
           text->SetText(textproto->mValue, false);
 
           rv = nodeToPushTo->AppendChildTo(text, false);
@@ -557,8 +543,7 @@ nsresult PrototypeDocumentContentSink::ResumeWalkInternal() {
         } break;
 
         case nsXULPrototypeNode::eType_PI: {
-          nsXULPrototypePI* piProto =
-              static_cast<nsXULPrototypePI*>(childproto);
+          auto* piProto = static_cast<nsXULPrototypePI*>(childproto);
 
           // <?xml-stylesheet?> doesn't have an effect
           // outside the prolog, like it used to. Issue a warning.
@@ -566,14 +551,13 @@ nsresult PrototypeDocumentContentSink::ResumeWalkInternal() {
           if (piProto->mTarget.EqualsLiteral("xml-stylesheet")) {
             AutoTArray<nsString, 1> params = {piProto->mTarget};
 
-            nsContentUtils::ReportToConsole(
-                nsIScriptError::warningFlag, NS_LITERAL_CSTRING("XUL Document"),
-                nullptr, nsContentUtils::eXUL_PROPERTIES, "PINotInProlog",
-                params, docURI);
+            nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
+                                            "XUL Document"_ns, nullptr,
+                                            nsContentUtils::eXUL_PROPERTIES,
+                                            "PINotInProlog", params, docURI);
           }
 
           nsIContent* parent = element.get();
-
           if (parent) {
             // an inline script could have removed the root element
             rv = CreateAndInsertPI(piProto, parent, nullptr);
@@ -596,7 +580,7 @@ nsresult PrototypeDocumentContentSink::ResumeWalkInternal() {
   return MaybeDoneWalking();
 }
 
-void PrototypeDocumentContentSink::InitialDocumentTranslationCompleted() {
+void PrototypeDocumentContentSink::InitialTranslationCompleted() {
   MaybeDoneWalking();
 }
 
@@ -606,7 +590,7 @@ nsresult PrototypeDocumentContentSink::MaybeDoneWalking() {
   }
 
   if (mDocument->HasPendingInitialTranslation()) {
-    mDocument->TriggerInitialDocumentTranslation();
+    mDocument->OnParsingCompleted();
     return NS_OK;
   }
 
@@ -624,14 +608,14 @@ nsresult PrototypeDocumentContentSink::DoneWalking() {
     mDocument->SetReadyStateInternal(Document::READYSTATE_INTERACTIVE);
     mDocument->NotifyPossibleTitleChange(false);
 
-    nsContentUtils::DispatchTrustedEvent(
-        mDocument, ToSupports(mDocument),
-        NS_LITERAL_STRING("MozBeforeInitialXULLayout"), CanBubble::eYes,
-        Cancelable::eNo);
+    nsContentUtils::DispatchEventOnlyToChrome(mDocument, ToSupports(mDocument),
+                                              u"MozBeforeInitialXULLayout"_ns,
+                                              CanBubble::eYes, Cancelable::eNo);
   }
 
   if (mScriptLoader) {
     mScriptLoader->ParsingComplete(false);
+    mScriptLoader->DeferCheckpointReached();
   }
 
   StartLayout();
@@ -749,11 +733,12 @@ nsresult PrototypeDocumentContentSink::LoadScript(
 
     // Note: the loader will keep itself alive while it's loading.
     nsCOMPtr<nsIStreamLoader> loader;
-    rv = NS_NewStreamLoader(getter_AddRefs(loader), aScriptProto->mSrcURI,
-                            this,       // aObserver
-                            mDocument,  // aRequestingContext
-                            nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_INHERITS,
-                            nsIContentPolicy::TYPE_INTERNAL_SCRIPT, group);
+    rv = NS_NewStreamLoader(
+        getter_AddRefs(loader), aScriptProto->mSrcURI,
+        this,       // aObserver
+        mDocument,  // aRequestingContext
+        nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_INHERITS_SEC_CONTEXT,
+        nsIContentPolicy::TYPE_INTERNAL_SCRIPT, group);
 
     if (NS_FAILED(rv)) {
       mCurrentScriptProto = nullptr;
@@ -820,7 +805,7 @@ PrototypeDocumentContentSink::OnStreamComplete(nsIStreamLoader* aLoader,
                                         !mOffThreadCompileStringBuf),
                "PrototypeDocument can't load multiple scripts at once");
 
-    rv = ScriptLoader::ConvertToUTF16(channel, string, stringLen, EmptyString(),
+    rv = ScriptLoader::ConvertToUTF16(channel, string, stringLen, u""_ns,
                                       mDocument, mOffThreadCompileStringBuf,
                                       mOffThreadCompileStringLength);
     if (NS_SUCCEEDED(rv)) {
@@ -994,9 +979,9 @@ nsresult PrototypeDocumentContentSink::ExecuteScript(
 }
 
 nsresult PrototypeDocumentContentSink::CreateElementFromPrototype(
-    nsXULPrototypeElement* aPrototype, Element** aResult, bool aIsRoot) {
+    nsXULPrototypeElement* aPrototype, Element** aResult, nsIContent* aParent) {
   // Create a content model element from a prototype element.
-  MOZ_ASSERT(aPrototype != nullptr, "null ptr");
+  MOZ_ASSERT(aPrototype, "null ptr");
   if (!aPrototype) return NS_ERROR_NULL_POINTER;
 
   *aResult = nullptr;
@@ -1011,10 +996,12 @@ nsresult PrototypeDocumentContentSink::CreateElementFromPrototype(
 
   RefPtr<Element> result;
 
+  Document* doc = aParent ? aParent->OwnerDoc() : mDocument.get();
   if (aPrototype->mNodeInfo->NamespaceEquals(kNameSpaceID_XUL)) {
+    const bool isRoot = !aParent;
     // If it's a XUL element, it'll be lightweight until somebody
     // monkeys with it.
-    rv = nsXULElement::CreateFromPrototype(aPrototype, mDocument, true, aIsRoot,
+    rv = nsXULElement::CreateFromPrototype(aPrototype, doc, true, isRoot,
                                            getter_AddRefs(result));
     if (NS_FAILED(rv)) return rv;
   } else {
@@ -1022,13 +1009,16 @@ nsresult PrototypeDocumentContentSink::CreateElementFromPrototype(
     // what. So we need to copy everything out of the prototype
     // into the element.  Get a nodeinfo from our nodeinfo manager
     // for this node.
-    RefPtr<mozilla::dom::NodeInfo> newNodeInfo;
-    newNodeInfo = mNodeInfoManager->GetNodeInfo(
+    RefPtr<NodeInfo> newNodeInfo = doc->NodeInfoManager()->GetNodeInfo(
         aPrototype->mNodeInfo->NameAtom(),
         aPrototype->mNodeInfo->GetPrefixAtom(),
         aPrototype->mNodeInfo->NamespaceID(), nsINode::ELEMENT_NODE);
-    if (!newNodeInfo) return NS_ERROR_OUT_OF_MEMORY;
-    RefPtr<mozilla::dom::NodeInfo> xtfNi = newNodeInfo;
+    if (!newNodeInfo) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+    const bool isScript =
+        newNodeInfo->Equals(nsGkAtoms::script, kNameSpaceID_XHTML) ||
+        newNodeInfo->Equals(nsGkAtoms::script, kNameSpaceID_SVG);
     if (aPrototype->mIsAtom &&
         newNodeInfo->NamespaceID() == kNameSpaceID_XHTML) {
       rv = NS_NewHTMLElement(getter_AddRefs(result), newNodeInfo.forget(),
@@ -1042,8 +1032,7 @@ nsresult PrototypeDocumentContentSink::CreateElementFromPrototype(
     rv = AddAttributes(aPrototype, result);
     if (NS_FAILED(rv)) return rv;
 
-    if (xtfNi->Equals(nsGkAtoms::script, kNameSpaceID_XHTML) ||
-        xtfNi->Equals(nsGkAtoms::script, kNameSpaceID_SVG)) {
+    if (isScript) {
       nsCOMPtr<nsIScriptElement> sele = do_QueryInterface(result);
       MOZ_ASSERT(sele, "Node didn't QI to script.");
       // Script loading is handled by the this content sink, so prevent the
@@ -1052,12 +1041,12 @@ nsresult PrototypeDocumentContentSink::CreateElementFromPrototype(
     }
   }
 
+  // FIXME(bug 1627474): Is this right if this is inside an <html:template>?
   if (result->HasAttr(kNameSpaceID_None, nsGkAtoms::datal10nid)) {
     mDocument->mL10nProtoElements.Put(result, RefPtr{aPrototype});
     result->SetElementCreatedFromPrototypeAndHasUnmodifiedL10n();
   }
   result.forget(aResult);
-
   return NS_OK;
 }
 

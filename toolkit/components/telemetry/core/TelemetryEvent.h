@@ -11,6 +11,7 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/TelemetryEventEnums.h"
 #include "mozilla/TelemetryProcessEnums.h"
+#include "nsTArray.h"
 #include "nsString.h"
 
 namespace mozilla {
@@ -36,9 +37,9 @@ void SetCanRecordBase(bool b);
 void SetCanRecordExtended(bool b);
 
 // C++ API Endpoint.
-void RecordEventNative(mozilla::Telemetry::EventID aId,
-                       const mozilla::Maybe<nsCString>& aValue,
-                       const mozilla::Maybe<nsTArray<EventExtraEntry>>& aExtra);
+void RecordEventNative(
+    mozilla::Telemetry::EventID aId, const mozilla::Maybe<nsCString>& aValue,
+    const mozilla::Maybe<CopyableTArray<EventExtraEntry>>& aExtra);
 
 // JS API Endpoints.
 nsresult RecordEvent(const nsACString& aCategory, const nsACString& aMethod,

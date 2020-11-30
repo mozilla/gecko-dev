@@ -12,6 +12,8 @@ function genericChecker() {
   }
   window.kind = kind;
 
+  let bcGroupId = SpecialPowers.wrap(window).browsingContext.group.id;
+
   browser.test.onMessage.addListener((msg, ...args) => {
     if (msg == kind + "-check-views") {
       let counts = {
@@ -36,6 +38,12 @@ function genericChecker() {
           );
           background = view;
         }
+
+        browser.test.assertEq(
+          bcGroupId,
+          SpecialPowers.wrap(view).browsingContext.group.id,
+          "browsing context group is correct"
+        );
       }
       if (background) {
         browser.runtime.getBackgroundPage().then(view => {
@@ -89,7 +97,7 @@ async function promiseBrowserContentUnloaded(browser) {
     browser,
     MSG_WINDOW_DESTROYED,
     MSG_WINDOW_DESTROYED => {
-      let innerWindowId = this.content.windowUtils.currentInnerWindowID;
+      let innerWindowId = this.content.windowGlobalChild.innerWindowId;
       let observer = subject => {
         if (
           innerWindowId === subject.QueryInterface(Ci.nsISupportsPRUint64).data

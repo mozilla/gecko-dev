@@ -6,11 +6,18 @@
 
 #include "vm/GeneratorObject.h"
 
+#include "frontend/CompilationInfo.h"
+#include "frontend/ParserAtom.h"
+#ifdef DEBUG
+#  include "js/friend/DumpFunctions.h"  // js::DumpObject, js::DumpValue
+#endif
 #include "js/PropertySpec.h"
 #include "vm/AsyncFunction.h"
 #include "vm/AsyncIteration.h"
+#include "vm/FunctionFlags.h"  // js::FunctionFlags
 #include "vm/GlobalObject.h"
 #include "vm/JSObject.h"
+#include "vm/PlainObject.h"  // js::PlainObject
 
 #include "debugger/DebugAPI-inl.h"
 #include "vm/ArrayObject-inl.h"
@@ -24,7 +31,6 @@ using namespace js;
 JSObject* AbstractGeneratorObject::create(JSContext* cx,
                                           AbstractFramePtr frame) {
   MOZ_ASSERT(frame.isGeneratorFrame());
-  MOZ_ASSERT(frame.script()->nfixed() == 0);
   MOZ_ASSERT(!frame.isConstructing());
 
   RootedFunction fun(cx, frame.callee());
@@ -47,7 +53,7 @@ JSObject* AbstractGeneratorObject::create(JSContext* cx,
     genObj->setArgsObj(frame.argsObj());
   }
   genObj->setSlot(ID_SLOT, NumberValue(cx->runtime()->nextGeneratorId++));
-  genObj->clearExpressionStack();
+  genObj->clearStackStorage();
 
   if (!DebugAPI::onNewGenerator(cx, frame, genObj)) {
     return nullptr;
@@ -62,47 +68,75 @@ void AbstractGeneratorObject::trace(JSTracer* trc) {
 
 bool AbstractGeneratorObject::suspend(JSContext* cx, HandleObject obj,
                                       AbstractFramePtr frame, jsbytecode* pc,
-                                      Value* vp, unsigned nvalues) {
+                                      unsigned nvalues) {
   MOZ_ASSERT(JSOp(*pc) == JSOp::InitialYield || JSOp(*pc) == JSOp::Yield ||
              JSOp(*pc) == JSOp::Await);
 
   auto genObj = obj.as<AbstractGeneratorObject>();
-  MOZ_ASSERT(!genObj->hasExpressionStack() || genObj->isExpressionStackEmpty());
+  MOZ_ASSERT(!genObj->hasStackStorage() || genObj->isStackStorageEmpty());
   MOZ_ASSERT_IF(JSOp(*pc) == JSOp::Await, genObj->callee().isAsync());
   MOZ_ASSERT_IF(JSOp(*pc) == JSOp::Yield, genObj->callee().isGenerator());
 
-  ArrayObject* stack = nullptr;
   if (nvalues > 0) {
-    do {
-      if (genObj->hasExpressionStack()) {
-        MOZ_ASSERT(genObj->expressionStack().getDenseInitializedLength() == 0);
-        auto result = genObj->expressionStack().setOrExtendDenseElements(
-            cx, 0, vp, nvalues, ShouldUpdateTypes::DontUpdate);
-        if (result == DenseElementResult::Success) {
-          MOZ_ASSERT(genObj->expressionStack().getDenseInitializedLength() ==
-                     nvalues);
-          break;
-        }
-        if (result == DenseElementResult::Failure) {
-          return false;
-        }
-      }
-
-      stack = NewDenseCopiedArray(cx, nvalues, vp);
+    ArrayObject* stack = nullptr;
+    if (genObj->hasStackStorage()) {
+      stack = &genObj->stackStorage();
+    } else {
+      stack = NewDenseEmptyArray(cx);
       if (!stack) {
         return false;
       }
-    } while (false);
+      genObj->setStackStorage(*stack);
+    }
+    if (!frame.saveGeneratorSlots(cx, nvalues, stack)) {
+      return false;
+    }
   }
 
   genObj->setResumeIndex(pc);
   genObj->setEnvironmentChain(*frame.environmentChain());
-  if (stack) {
-    genObj->setExpressionStack(*stack);
-  }
-
   return true;
 }
+
+#ifdef DEBUG
+void AbstractGeneratorObject::dump() const {
+  fprintf(stderr, "(AbstractGeneratorObject*) %p {\n", (void*)this);
+  fprintf(stderr, "  callee: (JSFunction*) %p,\n", (void*)&callee());
+  fprintf(stderr, "  environmentChain: (JSObject*) %p,\n",
+          (void*)&environmentChain());
+  if (hasArgsObj()) {
+    fprintf(stderr, "  argsObj: Some((ArgumentsObject*) %p),\n",
+            (void*)&argsObj());
+  } else {
+    fprintf(stderr, "  argsObj: None,\n");
+  }
+  if (hasStackStorage()) {
+    fprintf(stderr, "  stackStorage: Some(ArrayObject {\n");
+    ArrayObject& stack = stackStorage();
+    uint32_t denseLen = uint32_t(stack.getDenseInitializedLength());
+    fprintf(stderr, "    denseInitializedLength: %u\n,", denseLen);
+    uint32_t len = stack.length();
+    fprintf(stderr, "    length: %u\n,", len);
+    fprintf(stderr, "    data: [\n");
+    const Value* elements =
+        const_cast<AbstractGeneratorObject*>(this)->getDenseElements();
+    for (uint32_t i = 0; i < std::max(len, denseLen); i++) {
+      fprintf(stderr, "      [%u]: ", i);
+      js::DumpValue(elements[i]);
+    }
+    fprintf(stderr, "    ],\n");
+    fprintf(stderr, "  }),\n");
+  } else {
+    fprintf(stderr, "  stackStorage: None\n");
+  }
+  if (isSuspended()) {
+    fprintf(stderr, "  resumeIndex: Some(%u),\n", resumeIndex());
+  } else {
+    fprintf(stderr, "  resumeIndex: None, /* (not suspended) */\n");
+  }
+  fprintf(stderr, "}\n");
+}
+#endif
 
 void AbstractGeneratorObject::finalSuspend(HandleObject obj) {
   auto* genObj = &obj->as<AbstractGeneratorObject>();
@@ -124,21 +158,11 @@ AbstractGeneratorObject* js::GetGeneratorObjectForFrame(
   Shape* shape = callObj.lookup(cx, cx->names().dotGenerator);
   Value genValue = callObj.getSlot(shape->slot());
 
-  // If the `generator; setaliasedvar ".generator"; initialyield` bytecode
+  // If the `Generator; SetAliasedVar ".generator"; InitialYield` bytecode
   // sequence has not run yet, genValue is undefined.
   return genValue.isObject()
              ? &genValue.toObject().as<AbstractGeneratorObject>()
              : nullptr;
-}
-
-void js::SetGeneratorClosed(JSContext* cx, AbstractFramePtr frame) {
-  CallObject& callObj = frame.callObj();
-
-  // Get the generator object stored on the scope chain and close it.
-  Shape* shape = callObj.lookup(cx, cx->names().dotGenerator);
-  auto& genObj =
-      callObj.getSlot(shape->slot()).toObject().as<AbstractGeneratorObject>();
-  genObj.setClosed();
 }
 
 bool js::GeneratorThrowOrReturn(JSContext* cx, AbstractFramePtr frame,
@@ -177,13 +201,13 @@ bool AbstractGeneratorObject::resume(JSContext* cx,
     activation.regs().fp()->initArgsObj(genObj->argsObj());
   }
 
-  if (genObj->hasExpressionStack() && !genObj->isExpressionStackEmpty()) {
-    uint32_t len = genObj->expressionStack().getDenseInitializedLength();
-    MOZ_ASSERT(activation.regs().spForStackDepth(len));
-    const Value* src = genObj->expressionStack().getDenseElements();
-    mozilla::PodCopy(activation.regs().sp, src, len);
-    activation.regs().sp += len;
-    genObj->expressionStack().setDenseInitializedLength(0);
+  if (genObj->hasStackStorage() && !genObj->isStackStorageEmpty()) {
+    JSScript* script = activation.regs().fp()->script();
+    ArrayObject* storage = &genObj->stackStorage();
+    uint32_t len = storage->getDenseInitializedLength();
+    activation.regs().fp()->restoreGeneratorSlots(storage);
+    activation.regs().sp += len - script->nfixed();
+    storage->setDenseInitializedLength(0);
   }
 
   JSScript* script = callee->nonLazyScript();
@@ -252,8 +276,8 @@ JSObject* js::NewSingletonObjectWithFunctionPrototype(
   if (!proto) {
     return nullptr;
   }
-  RootedObject obj(
-      cx, NewObjectWithGivenProto<PlainObject>(cx, proto, SingletonObject));
+  RootedObject obj(cx,
+                   NewSingletonObjectWithGivenProto<PlainObject>(cx, proto));
   if (!obj) {
     return nullptr;
   }
@@ -382,14 +406,15 @@ bool JSObject::is<js::AbstractGeneratorObject>() const {
          is<AsyncGeneratorObject>();
 }
 
-GeneratorResumeKind js::AtomToResumeKind(JSContext* cx, JSAtom* atom) {
-  if (atom == cx->names().next) {
+GeneratorResumeKind js::ParserAtomToResumeKind(
+    JSContext* cx, const frontend::ParserAtom* atom) {
+  if (atom == cx->parserNames().next) {
     return GeneratorResumeKind::Next;
   }
-  if (atom == cx->names().throw_) {
+  if (atom == cx->parserNames().throw_) {
     return GeneratorResumeKind::Throw;
   }
-  MOZ_ASSERT(atom == cx->names().return_);
+  MOZ_ASSERT(atom == cx->parserNames().return_);
   return GeneratorResumeKind::Return;
 }
 

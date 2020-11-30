@@ -8,21 +8,12 @@
 #define jit_JitFrames_inl_h
 
 #include "jit/JitFrames.h"
-
-#include "jit/LIR.h"
+#include "vm/JSContext.h"
 
 #include "jit/JSJitFrameIter-inl.h"
 
 namespace js {
 namespace jit {
-
-inline void SafepointIndex::resolve() {
-  MOZ_ASSERT(!resolved);
-  safepointOffset_ = safepoint_->offset();
-#ifdef DEBUG
-  resolved = true;
-#endif
-}
 
 inline BaselineFrame* GetTopBaselineFrame(JSContext* cx) {
   JSJitFrameIter frame(cx->activation()->asJit());

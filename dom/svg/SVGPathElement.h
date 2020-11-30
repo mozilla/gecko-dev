@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_SVGPathElement_h
-#define mozilla_dom_SVGPathElement_h
+#ifndef DOM_SVG_SVGPATHELEMENT_H_
+#define DOM_SVG_SVGPATHELEMENT_H_
 
 #include "mozilla/gfx/2D.h"
 #include "mozilla/RefPtr.h"
@@ -20,12 +20,10 @@ namespace mozilla {
 
 namespace dom {
 
-class nsISVGPoint;
-
-typedef SVGGeometryElement SVGPathElementBase;
+using SVGPathElementBase = SVGGeometryElement;
 
 class SVGPathElement final : public SVGPathElementBase {
-  typedef mozilla::gfx::Path Path;
+  using Path = mozilla::gfx::Path;
 
  protected:
   friend nsresult(::NS_NewSVGPathElement(
@@ -41,7 +39,7 @@ class SVGPathElement final : public SVGPathElementBase {
   // nsIContent interface
   NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* name) const override;
 
-  // nsSVGSVGElement methods:
+  // SVGSVGElement methods:
   virtual bool HasValidDimensions() const override;
 
   // SVGGeometryElement methods:
@@ -56,6 +54,12 @@ class SVGPathElement final : public SVGPathElementBase {
    * See the comment for that function for more info on that.
    */
   virtual already_AddRefed<Path> GetOrBuildPathForMeasuring() override;
+
+  bool GetDistancesFromOriginToEndsOfVisibleSegments(
+      FallibleTArray<double>* aOutput) override {
+    return mD.GetAnimValue().GetDistancesFromOriginToEndsOfVisibleSegments(
+        aOutput);
+  }
 
   // nsIContent interface
   virtual nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
@@ -119,4 +123,4 @@ class SVGPathElement final : public SVGPathElementBase {
 }  // namespace dom
 }  // namespace mozilla
 
-#endif  // mozilla_dom_SVGPathElement_h
+#endif  // DOM_SVG_SVGPATHELEMENT_H_

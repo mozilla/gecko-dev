@@ -12,6 +12,8 @@
 #include "WrapperFactory.h"
 
 #include "jsapi.h"
+#include "js/friend/XrayJitInfo.h"  // JS::XrayJitInfo
+#include "js/Object.h"              // JS::GetReservedSlot
 #include "js/Proxy.h"
 #include "js/Wrapper.h"
 
@@ -33,14 +35,6 @@ class nsIPrincipal;
 
 namespace xpc {
 
-namespace XrayUtils {
-
-bool IsTransparent(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id);
-
-bool HasNativeProperty(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,
-                       bool* hasProp);
-}  // namespace XrayUtils
-
 enum XrayType {
   XrayForDOMObject,
   XrayForJSObject,
@@ -50,7 +44,7 @@ enum XrayType {
 
 class XrayTraits {
  public:
-  constexpr XrayTraits() {}
+  constexpr XrayTraits() = default;
 
   static JSObject* getTargetObject(JSObject* wrapper) {
     JSObject* target =
@@ -161,7 +155,7 @@ class DOMXrayTraits : public XrayTraits {
   bool defineProperty(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,
                       JS::Handle<JS::PropertyDescriptor> desc,
                       JS::Handle<JS::PropertyDescriptor> existingDesc,
-                      JS::ObjectOpResult& result, bool* defined);
+                      JS::ObjectOpResult& result, bool* done);
   virtual bool enumerateNames(JSContext* cx, JS::HandleObject wrapper,
                               unsigned flags, JS::MutableHandleIdVector props);
   static bool call(JSContext* cx, JS::HandleObject wrapper,
@@ -260,16 +254,16 @@ class JSXrayTraits : public XrayTraits {
   virtual JSObject* createHolder(JSContext* cx, JSObject* wrapper) override;
 
   static JSProtoKey getProtoKey(JSObject* holder) {
-    int32_t key = js::GetReservedSlot(holder, SLOT_PROTOKEY).toInt32();
+    int32_t key = JS::GetReservedSlot(holder, SLOT_PROTOKEY).toInt32();
     return static_cast<JSProtoKey>(key);
   }
 
   static bool isPrototype(JSObject* holder) {
-    return js::GetReservedSlot(holder, SLOT_ISPROTOTYPE).toBoolean();
+    return JS::GetReservedSlot(holder, SLOT_ISPROTOTYPE).toBoolean();
   }
 
   static JSProtoKey constructorFor(JSObject* holder) {
-    int32_t key = js::GetReservedSlot(holder, SLOT_CONSTRUCTOR_FOR).toInt32();
+    int32_t key = JS::GetReservedSlot(holder, SLOT_CONSTRUCTOR_FOR).toInt32();
     return static_cast<JSProtoKey>(key);
   }
 
@@ -369,7 +363,7 @@ XrayTraits* GetXrayTraits(JSObject* obj);
 
 template <typename Base, typename Traits>
 class XrayWrapper : public Base {
-  static_assert(std::is_base_of<js::BaseProxyHandler, Base>::value,
+  static_assert(std::is_base_of_v<js::BaseProxyHandler, Base>,
                 "Base *must* derive from js::BaseProxyHandler");
 
  public:
@@ -481,7 +475,7 @@ void ClearXrayExpandoSlots(JSObject* target, size_t slotIndex);
 JSObject* EnsureXrayExpandoObject(JSContext* cx, JS::HandleObject wrapper);
 
 // Information about xrays for use by the JITs.
-extern js::XrayJitInfo gXrayJitInfo;
+extern JS::XrayJitInfo gXrayJitInfo;
 
 }  // namespace xpc
 

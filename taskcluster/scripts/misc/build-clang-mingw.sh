@@ -22,7 +22,7 @@ else
 fi
 
 TOOLCHAIN_DIR=$MOZ_FETCHES_DIR/llvm-project
-INSTALL_DIR=$TOOLCHAIN_DIR/build/stage3/clang
+INSTALL_DIR=$TOOLCHAIN_DIR/build/stage4/clang
 CROSS_PREFIX_DIR=$INSTALL_DIR/$machine-w64-mingw32
 
 make_flags="-j$(nproc)"
@@ -304,6 +304,6 @@ popd
 mkdir -p $UPLOAD_DIR
 
 pushd $(dirname $INSTALL_DIR)
-tar caf clangmingw.tar.xz clang
-mv clangmingw.tar.xz $UPLOAD_DIR
+tar c clang | $GECKO_PATH/taskcluster/scripts/misc/zstdpy > clangmingw.tar.zst
+mv clangmingw.tar.zst $UPLOAD_DIR
 popd

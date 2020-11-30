@@ -19,8 +19,13 @@
 #include "mozilla/UseCounter.h"
 
 #include "AccessCheck.h"
+#include "js/experimental/JitInfo.h"  // JSJit{Getter,Setter,Method}CallArgs, JSJit{Getter,Setter}Op, JSJitInfo
+#include "js/friend/StackLimits.h"  // js::CheckRecursionLimitConservative
+#include "js/Id.h"
 #include "js/JSON.h"
+#include "js/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetReservedSlot, JS::SetReservedSlot
 #include "js/StableStringChars.h"
+#include "js/String.h"  // JS::GetStringLength, JS::MaxStringLength, JS::StringHasLatin1Chars
 #include "js/Symbol.h"
 #include "jsfriendapi.h"
 #include "nsContentCreatorFunctions.h"
@@ -29,8 +34,8 @@
 #include "nsHTMLTags.h"
 #include "nsIDOMGlobalPropertyInitializer.h"
 #include "nsINode.h"
+#include "nsIOService.h"
 #include "nsIPrincipal.h"
-#include "nsIURIFixup.h"
 #include "nsIXPConnect.h"
 #include "nsUTF8Utils.h"
 #include "WorkerPrivate.h"
@@ -41,12 +46,14 @@
 #include "nsPrintfCString.h"
 #include "mozilla/Sprintf.h"
 #include "nsReadableUtils.h"
+#include "nsWrapperCacheInlines.h"
 
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/CustomElementRegistry.h"
 #include "mozilla/dom/DeprecationReportBody.h"
 #include "mozilla/dom/DOMException.h"
 #include "mozilla/dom/ElementBinding.h"
+#include "mozilla/dom/Exceptions.h"
 #include "mozilla/dom/HTMLObjectElement.h"
 #include "mozilla/dom/HTMLObjectElementBinding.h"
 #include "mozilla/dom/HTMLEmbedElement.h"
@@ -66,7 +73,6 @@
 #include "mozilla/dom/WorkerScope.h"
 #include "mozilla/dom/XrayExpandoClass.h"
 #include "mozilla/dom/WindowProxyHolder.h"
-#include "mozilla/jsipc/CrossProcessObjectWrappers.h"
 #include "ipc/ErrorIPCUtils.h"
 #include "mozilla/UseCounter.h"
 #include "mozilla/dom/DocGroup.h"
@@ -142,34 +148,24 @@ void binding_detail::ThrowErrorMessage(JSContext* aCx,
   // end.  See also the behavior of
   // TErrorResult::SetPendingExceptionWithMessage, which this is mirroring for
   // exceptions that are thrown directly, not via an ErrorResult.
-  //
-  // XXXbz Once bug 1619087 is fixed, we can avoid the conversions to UTF-16
-  // here.
-  const char16_t* args[JS::MaxNumErrorArguments + 1];
+  const char* args[JS::MaxNumErrorArguments + 1];
   size_t argCount = GetErrorArgCount(static_cast<ErrNum>(aErrorNumber));
   MOZ_ASSERT(argCount > 0, "We have a context arg!");
-  // We statically assert that all these arg counts are smaller than
-  // JS::MaxNumErrorArguments already.
-  nsTArray<nsString> argHolders(argCount);
+  nsAutoCString firstArg;
 
   for (size_t i = 0; i < argCount; ++i) {
-    const char* arg = va_arg(ap, const char*);
+    args[i] = va_arg(ap, const char*);
     if (i == 0) {
-      if (!arg || !*arg) {
-        // Append an empty string
-        argHolders.AppendElement();
-      } else {
-        argHolders.AppendElement(NS_ConvertUTF8toUTF16(arg));
-        argHolders[0].AppendLiteral(": ");
+      if (args[0] && *args[0]) {
+        firstArg.Append(args[0]);
+        firstArg.AppendLiteral(": ");
       }
-    } else {
-      argHolders.AppendElement(NS_ConvertUTF8toUTF16(arg));
+      args[0] = firstArg.get();
     }
-    args[i] = argHolders[i].get();
   }
 
-  JS_ReportErrorNumberUCArray(aCx, GetErrorMessage, nullptr, aErrorNumber,
-                              args);
+  JS_ReportErrorNumberUTF8Array(aCx, GetErrorMessage, nullptr, aErrorNumber,
+                                args);
   va_end(ap);
 }
 
@@ -583,7 +579,7 @@ void TErrorResult<CleanupPolicy>::CloneTo(TErrorResult& aRv) const {
     aRv.mUnionState = HasMessage;
 #endif
     Message* message = aRv.InitMessage(new Message());
-    message->mArgs = mExtra.mMessage->mArgs;
+    message->mArgs = mExtra.mMessage->mArgs.Clone();
     message->mErrorNumber = mExtra.mMessage->mErrorNumber;
   } else if (IsDOMException()) {
 #ifdef DEBUG
@@ -671,6 +667,19 @@ void TErrorResult<CleanupPolicy>::NoteJSContextException(JSContext* aCx) {
   }
 }
 
+/* static */
+template <typename CleanupPolicy>
+void TErrorResult<CleanupPolicy>::EnsureUTF8Validity(nsCString& aValue,
+                                                     size_t aValidUpTo) {
+  nsCString valid;
+  if (NS_SUCCEEDED(UTF_8_ENCODING->DecodeWithoutBOMHandling(aValue, valid,
+                                                            aValidUpTo))) {
+    aValue = valid;
+  } else {
+    aValue.SetLength(aValidUpTo);
+  }
+}
+
 template class TErrorResult<JustAssertCleanupPolicy>;
 template class TErrorResult<AssertAndSuppressCleanupPolicy>;
 template class TErrorResult<JustSuppressCleanupPolicy>;
@@ -741,12 +750,12 @@ bool DefineUnforgeableAttributes(JSContext* cx, JS::Handle<JSObject*> obj,
 // funToString ObjectOps member for interface objects.
 JSString* InterfaceObjectToString(JSContext* aCx, JS::Handle<JSObject*> aObject,
                                   bool /* isToSource */) {
-  const JSClass* clasp = js::GetObjectClass(aObject);
+  const JSClass* clasp = JS::GetClass(aObject);
   MOZ_ASSERT(IsDOMIfaceAndProtoClass(clasp));
 
   const DOMIfaceAndProtoJSClass* ifaceAndProtoJSClass =
       DOMIfaceAndProtoJSClass::FromJSClass(clasp);
-  return JS_NewStringCopyZ(aCx, ifaceAndProtoJSClass->mToString);
+  return JS_NewStringCopyZ(aCx, ifaceAndProtoJSClass->mFunToString);
 }
 
 bool Constructor(JSContext* cx, unsigned argc, JS::Value* vp) {
@@ -771,7 +780,7 @@ static JSObject* CreateConstructor(JSContext* cx, JS::Handle<JSObject*> global,
   JSObject* constructor = JS_GetFunctionObject(fun);
   js::SetFunctionNativeReserved(
       constructor, CONSTRUCTOR_NATIVE_HOLDER_RESERVED_SLOT,
-      js::PrivateValue(const_cast<JSNativeHolder*>(nativeHolder)));
+      JS::PrivateValue(const_cast<JSNativeHolder*>(nativeHolder)));
   return constructor;
 }
 
@@ -908,7 +917,7 @@ static JSObject* CreateInterfaceObject(
                               namedConstructor))) {
         return nullptr;
       }
-      js::SetReservedSlot(constructor, namedConstructorSlot++,
+      JS::SetReservedSlot(constructor, namedConstructorSlot++,
                           JS::ObjectValue(*namedConstructor));
       ++namedConstructors;
     }
@@ -922,8 +931,7 @@ static JSObject* CreateInterfacePrototypeObject(
     JS::Handle<JSObject*> parentProto, const JSClass* protoClass,
     const NativeProperties* properties,
     const NativeProperties* chromeOnlyProperties,
-    const char* const* unscopableNames, const char* toStringTag,
-    bool isGlobal) {
+    const char* const* unscopableNames, bool isGlobal) {
   JS::Rooted<JSObject*> ourProto(
       cx, JS_NewObjectWithUniqueType(cx, protoClass, parentProto));
   if (!ourProto ||
@@ -952,21 +960,6 @@ static JSObject* CreateInterfacePrototypeObject(
                                           cx, JS::SymbolCode::unscopables)));
     // Readonly and non-enumerable to match Array.prototype.
     if (!JS_DefinePropertyById(cx, ourProto, unscopableId, unscopableObj,
-                               JSPROP_READONLY)) {
-      return nullptr;
-    }
-  }
-
-  if (toStringTag) {
-    JS::Rooted<JSString*> toStringTagStr(cx,
-                                         JS_NewStringCopyZ(cx, toStringTag));
-    if (!toStringTagStr) {
-      return nullptr;
-    }
-
-    JS::Rooted<jsid> toStringTagId(cx, SYMBOL_TO_JSID(JS::GetWellKnownSymbol(
-                                           cx, JS::SymbolCode::toStringTag)));
-    if (!JS_DefinePropertyById(cx, ourProto, toStringTagId, toStringTagStr,
                                JSPROP_READONLY)) {
       return nullptr;
     }
@@ -1018,9 +1011,9 @@ bool DefineProperties(JSContext* cx, JS::Handle<JSObject*> obj,
 void CreateInterfaceObjects(
     JSContext* cx, JS::Handle<JSObject*> global,
     JS::Handle<JSObject*> protoProto, const JSClass* protoClass,
-    JS::Heap<JSObject*>* protoCache, const char* toStringTag,
-    JS::Handle<JSObject*> constructorProto, const JSClass* constructorClass,
-    unsigned ctorNargs, const NamedConstructor* namedConstructors,
+    JS::Heap<JSObject*>* protoCache, JS::Handle<JSObject*> constructorProto,
+    const JSClass* constructorClass, unsigned ctorNargs,
+    const NamedConstructor* namedConstructors,
     JS::Heap<JSObject*>* constructorCache, const NativeProperties* properties,
     const NativeProperties* chromeOnlyProperties, const char* name,
     bool defineOnGlobal, const char* const* unscopableNames, bool isGlobal,
@@ -1051,8 +1044,6 @@ void CreateInterfaceObjects(
   MOZ_ASSERT(constructorProto || !constructorClass,
              "Must have a constructor proto if we plan to create a constructor "
              "object");
-  MOZ_ASSERT(protoClass || !toStringTag,
-             "Must have a prototype object if we have a @@toStringTag");
 
   bool isChrome = nsContentUtils::ThreadsafeIsSystemCaller(cx);
 
@@ -1060,8 +1051,7 @@ void CreateInterfaceObjects(
   if (protoClass) {
     proto = CreateInterfacePrototypeObject(
         cx, global, protoProto, protoClass, properties,
-        isChrome ? chromeOnlyProperties : nullptr, unscopableNames, toStringTag,
-        isGlobal);
+        isChrome ? chromeOnlyProperties : nullptr, unscopableNames, isGlobal);
     if (!proto) {
       return;
     }
@@ -1158,16 +1148,43 @@ bool TryPreserveWrapper(JS::Handle<JSObject*> obj) {
   MOZ_RELEASE_ASSERT(!clasp->isProxy(),
                      "Should not call addProperty for proxies.");
 
-  // The class should have an addProperty hook iff it is a CC participant.
-  MOZ_RELEASE_ASSERT(bool(domClass->mParticipant) == bool(addProperty));
-
   if (!addProperty) {
     return true;
   }
 
+  // The class should have an addProperty hook iff it is a CC participant.
+  MOZ_RELEASE_ASSERT(domClass->mParticipant);
+
   JS::Rooted<jsid> dummyId(RootingCx());
   JS::Rooted<JS::Value> dummyValue(RootingCx());
   return addProperty(nullptr, obj, dummyId, dummyValue);
+}
+
+bool HasReleasedWrapper(JS::Handle<JSObject*> obj) {
+  MOZ_ASSERT(obj);
+  MOZ_ASSERT(IsDOMObject(obj));
+
+  nsWrapperCache* cache = nullptr;
+  if (nsISupports* native = UnwrapDOMObjectToISupports(obj)) {
+    CallQueryInterface(native, &cache);
+  } else {
+    const DOMJSClass* domClass = GetDOMClass(obj);
+
+    // We expect all proxies to be nsISupports.
+    MOZ_RELEASE_ASSERT(!domClass->ToJSClass()->isProxy(),
+                       "Should not call getWrapperCache for proxies.");
+
+    WrapperCacheGetter getter = domClass->mWrapperCacheGetter;
+
+    if (getter) {
+      // If the class has a wrapper cache getter it must be a CC participant.
+      MOZ_RELEASE_ASSERT(domClass->mParticipant);
+
+      cache = getter(obj);
+    }
+  }
+
+  return cache && !cache->PreservingWrapper();
 }
 
 // Can only be called with a DOM JSClass.
@@ -1338,7 +1355,7 @@ inline const NativePropertyHooks* GetNativePropertyHooksFromConstructorFunction(
 
 inline const NativePropertyHooks* GetNativePropertyHooks(
     JSContext* cx, JS::Handle<JSObject*> obj, DOMObjectType& type) {
-  const JSClass* clasp = js::GetObjectClass(obj);
+  const JSClass* clasp = JS::GetClass(obj);
 
   const DOMJSClass* domClass = GetDOMClass(clasp);
   if (domClass) {
@@ -1352,9 +1369,9 @@ inline const NativePropertyHooks* GetNativePropertyHooks(
     return GetNativePropertyHooksFromConstructorFunction(obj);
   }
 
-  MOZ_ASSERT(IsDOMIfaceAndProtoClass(js::GetObjectClass(obj)));
+  MOZ_ASSERT(IsDOMIfaceAndProtoClass(JS::GetClass(obj)));
   const DOMIfaceAndProtoJSClass* ifaceAndProtoJSClass =
-      DOMIfaceAndProtoJSClass::FromJSClass(js::GetObjectClass(obj));
+      DOMIfaceAndProtoJSClass::FromJSClass(JS::GetClass(obj));
   type = ifaceAndProtoJSClass->mType;
   return ifaceAndProtoJSClass->mNativeHooks;
 }
@@ -1407,8 +1424,7 @@ static const PropertyInfo* XrayFindOwnPropertyInfo(
     JSContext* cx, JS::Handle<jsid> id,
     const NativeProperties* nativeProperties) {
   if (MOZ_UNLIKELY(nativeProperties->iteratorAliasMethodIndex >= 0) &&
-      id.get() == SYMBOL_TO_JSID(
-                      JS::GetWellKnownSymbol(cx, JS::SymbolCode::iterator))) {
+      id.isWellKnownSymbol(JS::SymbolCode::iterator)) {
     return nativeProperties->MethodPropertyInfos() +
            nativeProperties->iteratorAliasMethodIndex;
   }
@@ -1437,8 +1453,14 @@ static bool XrayResolveAttribute(JSContext* cx, JS::Handle<JSObject*> wrapper,
     return true;
   }
 
-  MOZ_ASSERT(attrSpec.isAccessor(),
-             "Bad JSPropertySpec declaration: not an accessor property");
+  if (!attrSpec.isAccessor()) {
+    MOZ_ASSERT(id.isWellKnownSymbol(JS::SymbolCode::toStringTag));
+
+    desc.setAttributes(attrSpec.attributes());
+    desc.object().set(wrapper);
+    return attrSpec.getValue(cx, desc.value());
+  }
+
   MOZ_ASSERT(
       !attrSpec.isSelfHosted(),
       "Bad JSPropertySpec declaration: unsupported self-hosted accessor");
@@ -1448,7 +1470,7 @@ static bool XrayResolveAttribute(JSContext* cx, JS::Handle<JSObject*> wrapper,
   // Because of centralization, we need to make sure we fault in the JitInfos as
   // well. At present, until the JSAPI changes, the easiest way to do this is
   // wrap them up as functions ourselves.
-  desc.setAttributes(attrSpec.flags);
+  desc.setAttributes(attrSpec.attributes());
   // They all have getters, so we can just make it.
   JS::Rooted<JSObject*> funobj(
       cx, XrayCreateFunction(cx, wrapper, attrSpec.u.accessors.getter.native, 0,
@@ -1646,7 +1668,7 @@ static bool ResolvePrototypeOrConstructor(
     found = XrayFindOwnPropertyInfo(cx, id, nativeProperties);
   }
   if (!found && (nativeProperties = nativePropertiesHolder.chromeOnly) &&
-      xpc::AccessCheck::isChrome(js::GetObjectCompartment(wrapper))) {
+      xpc::AccessCheck::isChrome(JS::GetCompartment(wrapper))) {
     found = XrayFindOwnPropertyInfo(cx, id, nativeProperties);
   }
 
@@ -1690,7 +1712,7 @@ static bool ResolvePrototypeOrConstructor(
     }
 
     if (id.get() == GetJSIDByIndex(cx, XPCJSContext::IDX_ISINSTANCE)) {
-      const JSClass* objClass = js::GetObjectClass(obj);
+      const JSClass* objClass = JS::GetClass(obj);
       if (IsDOMIfaceAndProtoClass(objClass) &&
           DOMIfaceAndProtoJSClass::FromJSClass(objClass)
               ->wantsInterfaceHasInstance) {
@@ -1712,9 +1734,8 @@ static bool ResolvePrototypeOrConstructor(
       }
     }
 
-    if (id.get() == SYMBOL_TO_JSID(JS::GetWellKnownSymbol(
-                        cx, JS::SymbolCode::hasInstance))) {
-      const JSClass* objClass = js::GetObjectClass(obj);
+    if (id.isWellKnownSymbol(JS::SymbolCode::hasInstance)) {
+      const JSClass* objClass = JS::GetClass(obj);
       if (IsDOMIfaceAndProtoClass(objClass) &&
           DOMIfaceAndProtoJSClass::FromJSClass(objClass)
               ->wantsInterfaceHasInstance) {
@@ -1764,11 +1785,11 @@ static bool ResolvePrototypeOrConstructor(
 bool XrayDefineProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
                         JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
                         JS::Handle<JS::PropertyDescriptor> desc,
-                        JS::ObjectOpResult& result, bool* defined) {
+                        JS::ObjectOpResult& result, bool* done) {
   if (!js::IsProxy(obj)) return true;
 
   const DOMProxyHandler* handler = GetDOMProxyHandler(obj);
-  return handler->defineProperty(cx, wrapper, id, desc, result, defined);
+  return handler->defineProperty(cx, wrapper, id, desc, result, done);
 }
 
 template <typename SpecType>
@@ -1782,7 +1803,8 @@ bool XrayAppendPropertyKeys(JSContext* cx, JS::Handle<JSObject*> obj,
       const SpecType* spec = pref->specs;
       do {
         const jsid id = infos++->Id();
-        if (((flags & JSITER_HIDDEN) || (spec->flags & JSPROP_ENUMERATE)) &&
+        if (((flags & JSITER_HIDDEN) ||
+             (spec->attributes() & JSPROP_ENUMERATE)) &&
             ((flags & JSITER_SYMBOLS) || !JSID_IS_SYMBOL(id)) &&
             !props.append(id)) {
           return false;
@@ -1906,7 +1928,7 @@ bool XrayOwnNativePropertyKeys(JSContext* cx, JS::Handle<JSObject*> wrapper,
   }
 
   if (nativeProperties.chromeOnly &&
-      xpc::AccessCheck::isChrome(js::GetObjectCompartment(wrapper)) &&
+      xpc::AccessCheck::isChrome(JS::GetCompartment(wrapper)) &&
       !XrayOwnPropertyKeys(cx, wrapper, obj, flags, props, type,
                            nativeProperties.chromeOnly)) {
     return false;
@@ -2096,8 +2118,7 @@ bool DictionaryBase::ParseJSON(JSContext* aCx, const nsAString& aJSON,
   if (aJSON.IsEmpty()) {
     return true;
   }
-  return JS_ParseJSON(aCx, PromiseFlatString(aJSON).get(), aJSON.Length(),
-                      aVal);
+  return JS_ParseJSON(aCx, aJSON.BeginReading(), aJSON.Length(), aVal);
 }
 
 bool DictionaryBase::StringifyToJSON(JSContext* aCx, JS::Handle<JSObject*> aObj,
@@ -2176,9 +2197,8 @@ void UpdateReflectorGlobal(JSContext* aCx, JS::Handle<JSObject*> aObjArg,
 
   // Assert it's possible to create wrappers when |aObj| and |newobj| are in
   // different compartments.
-  MOZ_ASSERT_IF(
-      js::GetObjectCompartment(aObj) != js::GetObjectCompartment(newobj),
-      js::AllowNewWrapper(js::GetObjectCompartment(aObj), newobj));
+  MOZ_ASSERT_IF(JS::GetCompartment(aObj) != JS::GetCompartment(newobj),
+                js::AllowNewWrapper(JS::GetCompartment(aObj), newobj));
 
   JS::Rooted<JSObject*> propertyHolder(aCx);
   JS::Rooted<JSObject*> copyFrom(aCx, isProxy ? expandoObject : aObj);
@@ -2189,7 +2209,7 @@ void UpdateReflectorGlobal(JSContext* aCx, JS::Handle<JSObject*> aObjArg,
       return;
     }
 
-    if (!JS_CopyPropertiesFrom(aCx, propertyHolder, copyFrom)) {
+    if (!JS_CopyOwnPropertiesAndPrivateFields(aCx, propertyHolder, copyFrom)) {
       aError.StealExceptionFromJSContext(aCx);
       return;
     }
@@ -2202,10 +2222,11 @@ void UpdateReflectorGlobal(JSContext* aCx, JS::Handle<JSObject*> aObjArg,
   //
   // NB: It's important to do this _after_ copying the properties to
   // propertyHolder. Otherwise, an object with |foo.x === foo| will
-  // crash when JS_CopyPropertiesFrom tries to call wrap() on foo.x.
-  js::SetReservedSlot(newobj, DOM_OBJECT_SLOT,
-                      js::GetReservedSlot(aObj, DOM_OBJECT_SLOT));
-  js::SetReservedSlot(aObj, DOM_OBJECT_SLOT, JS::PrivateValue(nullptr));
+  // crash when JS_CopyOwnPropertiesAndPrivateFields tries to call wrap() on
+  // foo.x.
+  JS::SetReservedSlot(newobj, DOM_OBJECT_SLOT,
+                      JS::GetReservedSlot(aObj, DOM_OBJECT_SLOT));
+  JS::SetReservedSlot(aObj, DOM_OBJECT_SLOT, JS::PrivateValue(nullptr));
 
   aObj = xpc::TransplantObjectRetainingXrayExpandos(aCx, aObj, newobj);
   if (!aObj) {
@@ -2214,10 +2235,7 @@ void UpdateReflectorGlobal(JSContext* aCx, JS::Handle<JSObject*> aObjArg,
 
   nsWrapperCache* cache = nullptr;
   CallQueryInterface(native, &cache);
-  bool preserving = cache->PreservingWrapper();
-  cache->SetPreservingWrapper(false);
-  cache->SetWrapper(aObj);
-  cache->SetPreservingWrapper(preserving);
+  cache->UpdateWrapperForNewGlobal(native, aObj);
 
   if (propertyHolder) {
     JS::Rooted<JSObject*> copyTo(aCx);
@@ -2227,7 +2245,8 @@ void UpdateReflectorGlobal(JSContext* aCx, JS::Handle<JSObject*> aObjArg,
       copyTo = aObj;
     }
 
-    if (!copyTo || !JS_CopyPropertiesFrom(aCx, copyTo, propertyHolder)) {
+    if (!copyTo ||
+        !JS_CopyOwnPropertiesAndPrivateFields(aCx, copyTo, propertyHolder)) {
       MOZ_CRASH();
     }
   }
@@ -2373,7 +2392,7 @@ bool InterfaceHasInstance(JSContext* cx, unsigned argc, JS::Value* vp) {
     return CallOrdinaryHasInstance(cx, args);
   }
 
-  const JSClass* thisClass = js::GetObjectClass(thisObj);
+  const JSClass* thisClass = JS::GetClass(thisObj);
 
   if (!IsDOMIfaceAndProtoClass(thisClass)) {
     return CallOrdinaryHasInstance(cx, args);
@@ -2396,16 +2415,6 @@ bool InterfaceHasInstance(JSContext* cx, unsigned argc, JS::Value* vp) {
   if (domClass &&
       domClass->mInterfaceChain[clasp->mDepth] == clasp->mPrototypeID) {
     args.rval().setBoolean(true);
-    return true;
-  }
-
-  if (jsipc::IsWrappedCPOW(instance)) {
-    bool boolp = false;
-    if (!jsipc::DOMInstanceOf(cx, js::UncheckedUnwrap(instance),
-                              clasp->mPrototypeID, clasp->mDepth, &boolp)) {
-      return false;
-    }
-    args.rval().setBoolean(boolp);
     return true;
   }
 
@@ -2454,7 +2463,7 @@ bool InterfaceIsInstance(JSContext* cx, unsigned argc, JS::Value* vp) {
     return true;
   }
 
-  const JSClass* thisClass = js::GetObjectClass(thisObj);
+  const JSClass* thisClass = JS::GetClass(thisObj);
   if (!IsDOMIfaceAndProtoClass(thisClass)) {
     args.rval().setBoolean(false);
     return true;
@@ -2499,7 +2508,7 @@ bool GetContentGlobalForJSImplementedObject(BindingCallContext& cx,
                                             nsIGlobalObject** globalObj) {
   // Be very careful to not get tricked here.
   MOZ_ASSERT(NS_IsMainThread());
-  if (!xpc::AccessCheck::isChrome(js::GetObjectCompartment(obj))) {
+  if (!xpc::AccessCheck::isChrome(JS::GetCompartment(obj))) {
     MOZ_CRASH("Should have a chrome object here");
   }
 
@@ -2540,6 +2549,12 @@ void ConstructJSImplementation(const char* aContractId,
   {
     AutoNoJSAPI nojsapi;
 
+    nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(aGlobal);
+    if (!window->IsCurrentInnerWindow()) {
+      aRv.ThrowInvalidStateError("Window no longer active");
+      return;
+    }
+
     // Get the XPCOM component containing the JS implementation.
     nsresult rv;
     nsCOMPtr<nsISupports> implISupports = do_CreateInstance(aContractId, &rv);
@@ -2554,7 +2569,6 @@ void ConstructJSImplementation(const char* aContractId,
     // and our global is a window.
     nsCOMPtr<nsIDOMGlobalPropertyInitializer> gpi =
         do_QueryInterface(implISupports);
-    nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(aGlobal);
     if (gpi) {
       JS::Rooted<JS::Value> initReturn(RootingCx());
       rv = gpi->Init(window, &initReturn);
@@ -2619,7 +2633,7 @@ bool NormalizeUSVString(binding_detail::FakeString<char16_t>& aString) {
   }
 
   char16_t* ptr = aString.BeginWriting();
-  auto span = MakeSpan(ptr, len);
+  auto span = Span(ptr, len);
   span[upTo] = 0xFFFD;
   EnsureUtf16ValiditySpan(span.From(upTo + 1));
   return true;
@@ -2646,7 +2660,7 @@ bool ConvertJSValueToByteString(BindingCallContext& cx, JS::Handle<JS::Value> v,
   // Conversion from Javascript string to ByteString is only valid if all
   // characters < 256. This is always the case for Latin1 strings.
   size_t length;
-  if (!js::StringHasLatin1Chars(s)) {
+  if (!JS::StringHasLatin1Chars(s)) {
     // ThrowErrorMessage can GC, so we first scan the string for bad chars
     // and report the error outside the AutoCheckCannotGC scope.
     bool foundBadChar = false;
@@ -2692,7 +2706,7 @@ bool ConvertJSValueToByteString(BindingCallContext& cx, JS::Handle<JS::Value> v,
     length = JS::GetStringLength(s);
   }
 
-  static_assert(js::MaxStringLength < UINT32_MAX,
+  static_assert(JS::MaxStringLength < UINT32_MAX,
                 "length+1 shouldn't overflow");
 
   if (!result.SetLength(length, fallible)) {
@@ -2707,7 +2721,7 @@ bool ConvertJSValueToByteString(BindingCallContext& cx, JS::Handle<JS::Value> v,
 }
 
 void FinalizeGlobal(JSFreeOp* aFreeOp, JSObject* aObj) {
-  MOZ_ASSERT(js::GetObjectClass(aObj)->flags & JSCLASS_DOM_GLOBAL);
+  MOZ_ASSERT(JS::GetClass(aObj)->flags & JSCLASS_DOM_GLOBAL);
   mozilla::dom::DestroyProtoAndIfaceCache(aObj);
 }
 
@@ -2749,7 +2763,7 @@ bool IsNonExposedGlobal(JSContext* aCx, JSObject* aGlobal,
                               GlobalNames::AudioWorkletGlobalScope)) == 0,
       "Unknown non-exposed global type");
 
-  const char* name = js::GetObjectClass(aGlobal)->name;
+  const char* name = JS::GetClass(aGlobal)->name;
 
   if ((aNonExposedGlobals & GlobalNames::Window) && !strcmp(name, "Window")) {
     return true;
@@ -3432,7 +3446,7 @@ bool GetMaplikeSetlikeBackingObject(JSContext* aCx, JS::Handle<JSObject*> aObj,
   // Retrieve the backing object from the reserved slot on the maplike/setlike
   // object. If it doesn't exist yet, create it.
   JS::Rooted<JS::Value> slotValue(aCx);
-  slotValue = js::GetReservedSlot(reflector, aSlotIndex);
+  slotValue = JS::GetReservedSlot(reflector, aSlotIndex);
   if (slotValue.isUndefined()) {
     // Since backing object access can happen in non-originating realms,
     // make sure to create the backing object in reflector realm.
@@ -3443,10 +3457,10 @@ bool GetMaplikeSetlikeBackingObject(JSContext* aCx, JS::Handle<JSObject*> aObj,
       if (NS_WARN_IF(!newBackingObj)) {
         return false;
       }
-      js::SetReservedSlot(reflector, aSlotIndex,
+      JS::SetReservedSlot(reflector, aSlotIndex,
                           JS::ObjectValue(*newBackingObj));
     }
-    slotValue = js::GetReservedSlot(reflector, aSlotIndex);
+    slotValue = JS::GetReservedSlot(reflector, aSlotIndex);
     *aBackingObjCreated = true;
   } else {
     *aBackingObjCreated = false;
@@ -3503,7 +3517,7 @@ bool ForEachHandler(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
 
 static inline prototypes::ID GetProtoIdForNewtarget(
     JS::Handle<JSObject*> aNewTarget) {
-  const JSClass* newTargetClass = js::GetObjectClass(aNewTarget);
+  const JSClass* newTargetClass = JS::GetClass(aNewTarget);
   if (IsDOMIfaceAndProtoClass(newTargetClass)) {
     const DOMIfaceAndProtoJSClass* newTargetIfaceClass =
         DOMIfaceAndProtoJSClass::FromJSClass(newTargetClass);
@@ -3974,7 +3988,34 @@ static const char* kDeprecatedOperations[] = {
     nullptr};
 #undef DEPRECATED_OPERATION
 
-void ReportDeprecation(nsPIDOMWindowInner* aWindow, nsIURI* aURI,
+class GetLocalizedStringRunnable final : public WorkerMainThreadRunnable {
+ public:
+  GetLocalizedStringRunnable(WorkerPrivate* aWorkerPrivate,
+                             const nsAutoCString& aKey,
+                             nsAutoString& aLocalizedString)
+      : WorkerMainThreadRunnable(aWorkerPrivate,
+                                 "GetLocalizedStringRunnable"_ns),
+        mKey(aKey),
+        mLocalizedString(aLocalizedString) {
+    MOZ_ASSERT(aWorkerPrivate);
+    aWorkerPrivate->AssertIsOnWorkerThread();
+  }
+
+  bool MainThreadRun() override {
+    AssertIsOnMainThread();
+
+    nsresult rv = nsContentUtils::GetLocalizedString(
+        nsContentUtils::eDOM_PROPERTIES, mKey.get(), mLocalizedString);
+    Unused << NS_WARN_IF(NS_FAILED(rv));
+    return true;
+  }
+
+ private:
+  const nsAutoCString& mKey;
+  nsAutoString& mLocalizedString;
+};
+
+void ReportDeprecation(nsIGlobalObject* aGlobal, nsIURI* aURI,
                        Document::DeprecatedOperations aOperation,
                        const nsAString& aFileName,
                        const Nullable<uint32_t>& aLineNumber,
@@ -3984,20 +4025,9 @@ void ReportDeprecation(nsPIDOMWindowInner* aWindow, nsIURI* aURI,
   // Anonymize the URL.
   // Strip the URL of any possible username/password and make it ready to be
   // presented in the UI.
-  nsCOMPtr<nsIURIFixup> urifixup = services::GetURIFixup();
-  if (NS_WARN_IF(!urifixup)) {
-    return;
-  }
-
-  nsCOMPtr<nsIURI> exposableURI;
-  nsresult rv =
-      urifixup->CreateExposableURI(aURI, getter_AddRefs(exposableURI));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return;
-  }
-
+  nsCOMPtr<nsIURI> exposableURI = net::nsIOService::CreateExposableURI(aURI);
   nsAutoCString spec;
-  rv = exposableURI->GetSpec(spec);
+  nsresult rv = exposableURI->GetSpec(spec);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return;
   }
@@ -4010,43 +4040,41 @@ void ReportDeprecation(nsPIDOMWindowInner* aWindow, nsIURI* aURI,
   key.AppendASCII("Warning");
 
   nsAutoString msg;
-  rv = nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES,
-                                          key.get(), msg);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return;
+  if (NS_IsMainThread()) {
+    rv = nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES,
+                                            key.get(), msg);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return;
+    }
+  } else {
+    // nsIStringBundle is thread-safe but its creation is not, and in particular
+    // nsContentUtils doesn't create and store nsIStringBundle objects in a
+    // thread-safe way. Better to call GetLocalizedString() on the main thread.
+    WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+    if (!workerPrivate) {
+      return;
+    }
+
+    RefPtr<GetLocalizedStringRunnable> runnable =
+        new GetLocalizedStringRunnable(workerPrivate, key, msg);
+
+    IgnoredErrorResult ignoredRv;
+    runnable->Dispatch(Canceling, ignoredRv);
+    if (NS_WARN_IF(ignoredRv.Failed())) {
+      return;
+    }
+
+    if (msg.IsEmpty()) {
+      return;
+    }
   }
 
   RefPtr<DeprecationReportBody> body =
-      new DeprecationReportBody(aWindow, type, nullptr /* date */, msg,
+      new DeprecationReportBody(aGlobal, type, nullptr /* date */, msg,
                                 aFileName, aLineNumber, aColumnNumber);
 
-  ReportingUtils::Report(aWindow, nsGkAtoms::deprecation,
-                         NS_LITERAL_STRING("default"),
+  ReportingUtils::Report(aGlobal, nsGkAtoms::deprecation, u"default"_ns,
                          NS_ConvertUTF8toUTF16(spec), body);
-}
-
-void MaybeReportDeprecation(nsPIDOMWindowInner* aWindow,
-                            Document::DeprecatedOperations aOperation,
-                            const nsAString& aFileName,
-                            const Nullable<uint32_t>& aLineNumber,
-                            const Nullable<uint32_t>& aColumnNumber) {
-  MOZ_ASSERT(aWindow);
-
-  if (!StaticPrefs::dom_reporting_enabled()) {
-    return;
-  }
-
-  if (NS_WARN_IF(!aWindow->GetExtantDoc())) {
-    return;
-  }
-
-  nsCOMPtr<nsIURI> uri = aWindow->GetExtantDoc()->GetDocumentURI();
-  if (NS_WARN_IF(!uri)) {
-    return;
-  }
-
-  ReportDeprecation(aWindow, uri, aOperation, aFileName, aLineNumber,
-                    aColumnNumber);
 }
 
 // This runnable is used to write a deprecation message from a worker to the
@@ -4080,6 +4108,78 @@ class DeprecationWarningRunnable final
   }
 };
 
+void MaybeShowDeprecationWarning(const GlobalObject& aGlobal,
+                                 Document::DeprecatedOperations aOperation) {
+  if (NS_IsMainThread()) {
+    nsCOMPtr<nsPIDOMWindowInner> window =
+        do_QueryInterface(aGlobal.GetAsSupports());
+    if (window && window->GetExtantDoc()) {
+      window->GetExtantDoc()->WarnOnceAbout(aOperation);
+    }
+    return;
+  }
+
+  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(aGlobal.Context());
+  if (!workerPrivate) {
+    return;
+  }
+
+  RefPtr<DeprecationWarningRunnable> runnable =
+      new DeprecationWarningRunnable(aOperation);
+  runnable->Dispatch(workerPrivate);
+}
+
+void MaybeReportDeprecation(const GlobalObject& aGlobal,
+                            Document::DeprecatedOperations aOperation) {
+  nsCOMPtr<nsIURI> uri;
+
+  if (NS_IsMainThread()) {
+    // After diverging from the recording, a replaying process is not able to
+    // report warnings and will be forced to rewind. Avoid reporting warnings
+    // in this case so that the debugger can access deprecated properties.
+    if (recordreplay::HasDivergedFromRecording()) {
+      return;
+    }
+
+    nsCOMPtr<nsPIDOMWindowInner> window =
+        do_QueryInterface(aGlobal.GetAsSupports());
+    if (!window || !window->GetExtantDoc()) {
+      return;
+    }
+
+    uri = window->GetExtantDoc()->GetDocumentURI();
+  } else {
+    WorkerPrivate* workerPrivate =
+        GetWorkerPrivateFromContext(aGlobal.Context());
+    if (!workerPrivate) {
+      return;
+    }
+
+    uri = workerPrivate->GetResolvedScriptURI();
+  }
+
+  if (NS_WARN_IF(!uri)) {
+    return;
+  }
+
+  nsAutoString fileName;
+  Nullable<uint32_t> lineNumber;
+  Nullable<uint32_t> columnNumber;
+  uint32_t line = 0;
+  uint32_t column = 0;
+  if (nsJSUtils::GetCallingLocation(aGlobal.Context(), fileName, &line,
+                                    &column)) {
+    lineNumber.SetValue(line);
+    columnNumber.SetValue(column);
+  }
+
+  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
+  MOZ_ASSERT(global);
+
+  ReportDeprecation(global, uri, aOperation, fileName, lineNumber,
+                    columnNumber);
+}
+
 }  // anonymous namespace
 
 void DeprecationWarning(JSContext* aCx, JSObject* aObject,
@@ -4095,54 +4195,23 @@ void DeprecationWarning(JSContext* aCx, JSObject* aObject,
 
 void DeprecationWarning(const GlobalObject& aGlobal,
                         Document::DeprecatedOperations aOperation) {
-  if (NS_IsMainThread()) {
-    // After diverging from the recording, a replaying process is not able to
-    // report warnings and will be forced to rewind. Avoid reporting warnings
-    // in this case so that the debugger can access deprecated properties.
-    if (recordreplay::HasDivergedFromRecording()) {
-      return;
-    }
-
-    nsCOMPtr<nsPIDOMWindowInner> window =
-        do_QueryInterface(aGlobal.GetAsSupports());
-    if (window && window->GetExtantDoc()) {
-      window->GetExtantDoc()->WarnOnceAbout(aOperation);
-
-      nsAutoString fileName;
-      Nullable<uint32_t> lineNumber;
-      Nullable<uint32_t> columnNumber;
-      uint32_t line = 0;
-      uint32_t column = 0;
-      if (nsJSUtils::GetCallingLocation(aGlobal.Context(), fileName, &line,
-                                        &column)) {
-        lineNumber.SetValue(line);
-        columnNumber.SetValue(column);
-      }
-
-      MaybeReportDeprecation(window, aOperation, fileName, lineNumber,
-                             columnNumber);
-    }
-
-    return;
-  }
-
-  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(aGlobal.Context());
-  if (!workerPrivate) {
-    return;
-  }
-
-  RefPtr<DeprecationWarningRunnable> runnable =
-      new DeprecationWarningRunnable(aOperation);
-  runnable->Dispatch(workerPrivate);
+  MaybeShowDeprecationWarning(aGlobal, aOperation);
+  MaybeReportDeprecation(aGlobal, aOperation);
 }
 
 namespace binding_detail {
-JSObject* UnprivilegedJunkScopeOrWorkerGlobal() {
+JSObject* UnprivilegedJunkScopeOrWorkerGlobal(const fallible_t&) {
   if (NS_IsMainThread()) {
-    return xpc::UnprivilegedJunkScope();
+    return xpc::UnprivilegedJunkScope(fallible);
   }
 
   return GetCurrentThreadWorkerGlobal();
+}
+
+JSObject* UnprivilegedJunkScopeOrWorkerGlobal() {
+  JSObject* scope = UnprivilegedJunkScopeOrWorkerGlobal(fallible);
+  MOZ_RELEASE_ASSERT(scope);
+  return scope;
 }
 }  // namespace binding_detail
 
@@ -4151,7 +4220,7 @@ JS::Handle<JSObject*> GetPerInterfaceObjectHandle(
     bool aDefineOnGlobal) {
   /* Make sure our global is sane.  Hopefully we can remove this sometime */
   JSObject* global = JS::CurrentGlobalOrNull(aCx);
-  if (!(js::GetObjectClass(global)->flags & JSCLASS_DOM_GLOBAL)) {
+  if (!(JS::GetClass(global)->flags & JSCLASS_DOM_GLOBAL)) {
     return nullptr;
   }
 
@@ -4189,8 +4258,7 @@ bool IsGetterEnabled(JSContext* aCx, JS::Handle<JSObject*> aObj,
     if (aAttributes->isEnabled(aCx, aObj)) {
       const JSPropertySpec* specs = aAttributes->specs;
       do {
-        MOZ_ASSERT(specs->isAccessor());
-        if (specs->isSelfHosted()) {
+        if (!specs->isAccessor() || specs->isSelfHosted()) {
           // It won't have a JSJitGetterOp.
           continue;
         }

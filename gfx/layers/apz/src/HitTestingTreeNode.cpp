@@ -5,12 +5,11 @@
 #include "HitTestingTreeNode.h"
 
 #include "AsyncPanZoomController.h"  // for AsyncPanZoomController
-#include "LayersLogging.h"           // for Stringify
 #include "mozilla/StaticPrefs_layout.h"
 #include "mozilla/gfx/Point.h"        // for Point4D
-#include "mozilla/layers/APZUtils.h"  // for CompleteAsyncTransform
-#include "mozilla/layers/AsyncCompositionManager.h"  // for ViewTransform::operator Matrix4x4()
+#include "mozilla/layers/APZUtils.h"  // for AsyncTransform, CompleteAsyncTransform
 #include "mozilla/layers/AsyncDragMetrics.h"  // for AsyncDragMetrics
+#include "mozilla/ToString.h"                 // for ToString
 #include "nsPrintfCString.h"                  // for nsPrintfCString
 #include "UnitTransforms.h"                   // for ViewAs
 
@@ -50,8 +49,11 @@ void HitTestingTreeNode::RecycleWith(
   mApzc = aApzc;
   mLayersId = aLayersId;
   MOZ_ASSERT(!mApzc || mApzc->GetLayersId() == mLayersId);
-  // The caller is expected to call SetHitTestData to repopulate the hit-test
-  // fields.
+  // The caller is expected to call appropriate setters (SetHitTestData,
+  // SetScrollbarData, SetFixedPosData, SetStickyPosData, etc.) to repopulate
+  // all the data fields before using this node for "real work". Otherwise
+  // those data fields may contain stale information from the previous use
+  // of this node object.
 }
 
 HitTestingTreeNode::~HitTestingTreeNode() = default;
@@ -174,10 +176,12 @@ void HitTestingTreeNode::SetPrevSibling(HitTestingTreeNode* aSibling) {
 void HitTestingTreeNode::SetStickyPosData(
     ScrollableLayerGuid::ViewID aStickyPosTarget,
     const LayerRectAbsolute& aScrollRangeOuter,
-    const LayerRectAbsolute& aScrollRangeInner) {
+    const LayerRectAbsolute& aScrollRangeInner,
+    const Maybe<uint64_t>& aStickyPositionAnimationId) {
   mStickyPosTarget = aStickyPosTarget;
   mStickyScrollRangeOuter = aScrollRangeOuter;
   mStickyScrollRangeInner = aScrollRangeInner;
+  mStickyPositionAnimationId = aStickyPositionAnimationId;
 }
 
 ScrollableLayerGuid::ViewID HitTestingTreeNode::GetStickyPosTarget() const {
@@ -190,6 +194,10 @@ const LayerRectAbsolute& HitTestingTreeNode::GetStickyScrollRangeOuter() const {
 
 const LayerRectAbsolute& HitTestingTreeNode::GetStickyScrollRangeInner() const {
   return mStickyScrollRangeInner;
+}
+
+Maybe<uint64_t> HitTestingTreeNode::GetStickyPositionAnimationId() const {
+  return mStickyPositionAnimationId;
 }
 
 void HitTestingTreeNode::MakeRoot() {
@@ -424,7 +432,7 @@ void HitTestingTreeNode::Dump(const char* aPrefix) const {
       ("%sHitTestingTreeNode (%p) APZC (%p) g=(%s) %s%s%sr=(%s) t=(%s) "
        "c=(%s)%s%s\n",
        aPrefix, this, mApzc.get(),
-       mApzc ? Stringify(mApzc->GetGuid()).c_str()
+       mApzc ? ToString(mApzc->GetGuid()).c_str()
              : nsPrintfCString("l=0x%" PRIx64, uint64_t(mLayersId)).get(),
        (mOverride & EventRegionsOverride::ForceDispatchToContent) ? "fdtc "
                                                                   : "",
@@ -432,8 +440,8 @@ void HitTestingTreeNode::Dump(const char* aPrefix) const {
        (mFixedPosTarget != ScrollableLayerGuid::NULL_SCROLL_ID)
            ? nsPrintfCString("fixed=%" PRIu64 " ", mFixedPosTarget).get()
            : "",
-       Stringify(mEventRegions).c_str(), Stringify(mTransform).c_str(),
-       mClipRegion ? Stringify(mClipRegion.ref()).c_str() : "none",
+       ToString(mEventRegions).c_str(), ToString(mTransform).c_str(),
+       mClipRegion ? ToString(mClipRegion.ref()).c_str() : "none",
        mScrollbarData.mDirection.isSome() ? " scrollbar" : "",
        IsScrollThumbNode() ? " scrollthumb" : ""));
 

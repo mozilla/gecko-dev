@@ -43,6 +43,8 @@ class WebRenderTextureHost : public TextureHost {
 
   virtual void NotifyNotUsed() override;
 
+  virtual bool IsValid() override;
+
   // Return the format used for reading the texture. Some hardware specific
   // textureHosts use their special data representation internally, but we could
   // treat these textureHost as the read-format when we read them.
@@ -64,33 +66,41 @@ class WebRenderTextureHost : public TextureHost {
 
   virtual void PrepareForUse() override;
 
-  wr::ExternalImageId GetExternalImageKey() { return mExternalImageId; }
+  wr::ExternalImageId GetExternalImageKey();
 
   int32_t GetRGBStride();
 
   bool HasIntermediateBuffer() const override;
+
+  bool NeedsDeferredDeletion() const override;
 
   uint32_t NumSubTextures() override;
 
   void PushResourceUpdates(wr::TransactionBuilder& aResources,
                            ResourceUpdateOp aOp,
                            const Range<wr::ImageKey>& aImageKeys,
-                           const wr::ExternalImageId& aExtID,
-                           const bool aPreferCompositorSurface) override;
+                           const wr::ExternalImageId& aExtID) override;
 
   void PushDisplayItems(wr::DisplayListBuilder& aBuilder,
                         const wr::LayoutRect& aBounds,
                         const wr::LayoutRect& aClip, wr::ImageRendering aFilter,
-                        const Range<wr::ImageKey>& aImageKeys) override;
+                        const Range<wr::ImageKey>& aImageKeys,
+                        PushDisplayItemFlagSet aFlags) override;
 
   bool NeedsYFlip() const override;
 
- protected:
-  void CreateRenderTextureHost(const SurfaceDescriptor& aDesc,
-                               TextureHost* aTexture);
+  void SetAcquireFence(mozilla::ipc::FileDescriptor&& aFenceFd) override;
 
+  void SetReleaseFence(mozilla::ipc::FileDescriptor&& aFenceFd) override;
+
+  mozilla::ipc::FileDescriptor GetAndResetReleaseFence() override;
+
+  AndroidHardwareBuffer* GetAndroidHardwareBuffer() const override;
+
+  void MaybeNotifyForUse(wr::TransactionBuilder& aTxn);
+
+ protected:
   RefPtr<TextureHost> mWrappedTextureHost;
-  wr::ExternalImageId mExternalImageId;
 };
 
 }  // namespace layers

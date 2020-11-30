@@ -23,6 +23,12 @@ AddonTestUtils.createAppInfo(
 );
 AddonTestUtils.overrideCertDB();
 
+// Attempting to set the
+// security.turn_off_all_security_so_that_viruses_can_take_over_this_computer
+// preference to enable Cu.exitIfInAutomation crashes, probably due to
+// shutdown behaviors faked by AddonTestUtils.jsm's cleanup function.
+do_disable_fast_shutdown();
+
 add_task(async function run_test() {
   _("Test fixtures.");
   // Part of this test ensures the default theme, via the preference
@@ -35,7 +41,7 @@ add_task(async function run_test() {
   await AddonTestUtils.promiseStartupManager();
 
   // Install another built-in theme.
-  await AddonManager.installBuiltinAddon("resource:///modules/themes/light/");
+  await AddonManager.installBuiltinAddon("resource://builtin-themes/light/");
 
   const defaultThemeAddon = await AddonManager.getAddonByID(DEFAULT_THEME_ID);
   ok(defaultThemeAddon, "Got an addon wrapper for the default theme");

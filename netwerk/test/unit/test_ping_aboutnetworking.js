@@ -3,6 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+"use strict";
+
 const gDashboard = Cc["@mozilla.org/network/dashboard;1"].getService(
   Ci.nsIDashboard
 );
@@ -24,6 +26,13 @@ function connectionFailed(status) {
 }
 
 function test_sockets(serverSocket) {
+  // TODO: enable this test in bug 1581892.
+  if (mozinfo.socketprocess_networking) {
+    info("skip test_sockets");
+    do_test_finished();
+    return;
+  }
+
   do_test_pending();
   gDashboard.requestSockets(function(data) {
     let index = -1;

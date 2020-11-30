@@ -130,6 +130,20 @@ class TsBase(Test):
                          # more recent copy).
     ]
 
+    def __init__(self, **kw):
+        super(TsBase, self).__init__(**kw)
+
+        # Unless set to False explicitly, all TsBase tests will have the blocklist
+        # enabled by default in order to more accurately test the startup paths.
+        BLOCKLIST_PREF = "extensions.blocklist.enabled"
+
+        if not hasattr(self, "preferences"):
+            self.preferences = {
+              BLOCKLIST_PREF: True,
+            }
+        elif BLOCKLIST_PREF not in self.preferences:
+            self.preferences[BLOCKLIST_PREF] = True
+
 
 @register_test()
 class ts_paint(TsBase):
@@ -173,10 +187,33 @@ class ts_paint_flex(ts_paint):
 
 @register_test()
 class startup_about_home_paint(ts_paint):
+    """
+    Tests loading about:home on startup with the about:home startup cache
+    disabled, to more accurately simulate startup when the cache does not
+    exist.
+    """
     url = None
     cycles = 20
     extensions = ['${talos}/startup_test/startup_about_home_paint/addon']
     tpmanifest = '${talos}/startup_test/startup_about_home_paint/startup_about_home_paint.manifest'
+    preferences = {
+        'browser.startup.homepage.abouthome_cache.enabled': False,
+    }
+
+
+@register_test()
+class startup_about_home_paint_cached(ts_paint):
+    """
+    Tests loading about:home on startup with the about:home startup cache
+    enabled.
+    """
+    url = None
+    cycles = 20
+    extensions = ['${talos}/startup_test/startup_about_home_paint/addon']
+    tpmanifest = '${talos}/startup_test/startup_about_home_paint/startup_about_home_paint.manifest'
+    preferences = {
+        'browser.startup.homepage.abouthome_cache.enabled': True,
+    }
 
 
 @register_test()
@@ -665,6 +702,7 @@ class basic_compositor_video(PageloaderTest):
     preferences = {'full-screen-api.allow-trusted-requests-only': False,
                    'layers.acceleration.force-enabled': False,
                    'layers.acceleration.disabled': True,
+                   'gfx.webrender.software': True,
                    'layout.frame_rate': 0,
                    'docshell.event_starvation_delay_hint': 1,
                    'full-screen-api.warning.timeout': 500,
@@ -1041,6 +1079,7 @@ class about_newtab_with_snippets(PageloaderTest):
             "http://fakedomain/tests/about-newtab/snippets.json",\
             "updateCycleInMs":14400000}',
             'browser.newtabpage.activity-stream.feeds.snippets': True,
+            'browser.newtabpage.activity-stream.feeds.system.topstories': True,
             'browser.newtabpage.activity-stream.feeds.section.topstories': True,
             'browser.newtabpage.activity-stream.feeds.section.topstories.options':\
             '{"provider_name":""}',

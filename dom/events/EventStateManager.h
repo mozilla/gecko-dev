@@ -15,8 +15,7 @@
 #include "nsCOMArray.h"
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/TimeStamp.h"
-#include "mozilla/layers/APZUtils.h"
-#include "nsIFrame.h"
+#include "mozilla/layers/APZPublicUtils.h"
 #include "Units.h"
 #include "WheelHandlingHelper.h"  // for WheelDeltaAdjustmentStrategy
 
@@ -24,6 +23,7 @@ class nsFrameLoader;
 class nsIContent;
 class nsIDocShell;
 class nsIDocShellTreeItem;
+class nsIFrame;
 class imgIContainer;
 class nsIContentViewer;
 class nsIScrollableFrame;
@@ -268,7 +268,9 @@ class EventStateManager : public nsSupportsWeakReference, public nsIObserver {
   // Sets the fullscreen event state on aElement to aIsFullscreen.
   static void SetFullscreenState(dom::Element* aElement, bool aIsFullscreen);
 
-  static bool IsRemoteTarget(nsIContent* aTarget);
+  static bool IsRemoteTarget(nsIContent* target);
+
+  static bool IsTopLevelRemoteTarget(nsIContent* aTarget);
 
   // Returns the kind of APZ action the given WidgetWheelEvent will perform.
   static Maybe<layers::APZWheelAction> APZWheelActionFor(
@@ -345,23 +347,6 @@ class EventStateManager : public nsSupportsWeakReference, public nsIObserver {
                                   TextEditor* aTextEditor);
 
  protected:
-  /**
-   * Prefs class capsules preference management.
-   */
-  class Prefs {
-   public:
-    static bool KeyCausesActivation() { return sKeyCausesActivation; }
-    static bool ClickHoldContextMenu() { return sClickHoldContextMenu; }
-
-    static void Init();
-
-   private:
-    static bool sKeyCausesActivation;
-    static bool sClickHoldContextMenu;
-
-    static int32_t GetAccessModifierMask(int32_t aItemType);
-  };
-
   /*
    * If aTargetFrame's widget has a cached cursor value, resets the cursor
    * such that the next call to SetCursor on the widget will force an update
@@ -654,26 +639,6 @@ class EventStateManager : public nsSupportsWeakReference, public nsIObserver {
     bool IsOverOnePageScrollAllowedX(const WidgetWheelEvent* aEvent);
     bool IsOverOnePageScrollAllowedY(const WidgetWheelEvent* aEvent);
 
-    /**
-     * WheelEventsEnabledOnPlugins() returns true if user wants to use mouse
-     * wheel on plugins.
-     */
-    static bool WheelEventsEnabledOnPlugins();
-
-    /**
-     * Returns whether the auto-dir feature is enabled for wheel scrolling. For
-     * detailed information on auto-dir,
-     * @see mozilla::WheelDeltaAdjustmentStrategy.
-     */
-    static bool IsAutoDirEnabled();
-
-    /**
-     * Returns whether auto-dir scrolling honours root elements instead of the
-     * scrolling targets. For detailed information on auto-dir,
-     * @see mozilla::WheelDeltaAdjustmentStrategy.
-     */
-    static bool HonoursRootForAutoDir();
-
    private:
     WheelPrefs();
     ~WheelPrefs();
@@ -748,9 +713,6 @@ class EventStateManager : public nsSupportsWeakReference, public nsIObserver {
     Action mOverriddenActionsX[COUNT_OF_MULTIPLIERS];
 
     static WheelPrefs* sInstance;
-    static bool sWheelEventsEnabledOnPlugins;
-    static bool sIsAutoDirEnabled;
-    static bool sHonoursRootForAutoDir;
   };
 
   /**
@@ -925,7 +887,7 @@ class EventStateManager : public nsSupportsWeakReference, public nsIObserver {
 
   void DoScrollHistory(int32_t direction);
   void DoScrollZoom(nsIFrame* aTargetFrame, int32_t adjustment);
-  nsresult ChangeZoom(int32_t change);
+  void ChangeZoom(bool aIncrease);
 
   /**
    * DeltaAccumulator class manages delta values for dispatching DOMMouseScroll
@@ -1104,7 +1066,8 @@ class EventStateManager : public nsSupportsWeakReference, public nsIObserver {
    * If you need to check if the event is posted to a remote process, you
    * can use aEvent->HasBeenPostedToRemoteProcess().
    */
-  void DispatchCrossProcessEvent(WidgetEvent* aEvent, nsFrameLoader* aRemote,
+  void DispatchCrossProcessEvent(WidgetEvent* aEvent,
+                                 dom::BrowserParent* aRemoteTarget,
                                  nsEventStatus* aStatus);
   /**
    * HandleCrossProcessEvent() may post aEvent to target remote processes.
@@ -1118,7 +1081,8 @@ class EventStateManager : public nsSupportsWeakReference, public nsIObserver {
 
   void ReleaseCurrentIMEContentObserver();
 
-  void HandleQueryContentEvent(WidgetQueryContentEvent* aEvent);
+  MOZ_CAN_RUN_SCRIPT void HandleQueryContentEvent(
+      WidgetQueryContentEvent* aEvent);
 
  private:
   // Removes a node from the :hover / :active chain if needed, notifying if the

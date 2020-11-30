@@ -56,6 +56,9 @@ class HashableValue {
   Value get() const { return value.get(); }
 
   void trace(JSTracer* trc) { TraceEdge(trc, &value, "HashableValue"); }
+
+  // Clear the value without invoking the pre-barrier.
+  void unbarrieredClear() { value.unbarrieredSet(UndefinedValue()); }
 };
 
 template <typename Wrapper>
@@ -147,6 +150,9 @@ class MapObject : public NativeObject {
   static const JSPropertySpec properties[];
   static const JSFunctionSpec methods[];
   static const JSPropertySpec staticProperties[];
+
+  static bool finishInit(JSContext* cx, HandleObject ctor, HandleObject proto);
+
   ValueMap* getData() { return static_cast<ValueMap*>(getPrivate()); }
   static ValueMap& extract(HandleObject o);
   static ValueMap& extract(const CallArgs& args);
@@ -201,8 +207,14 @@ class MapIteratorObject : public NativeObject {
   static void finalize(JSFreeOp* fop, JSObject* obj);
   static size_t objectMoved(JSObject* obj, JSObject* old);
 
-  static MOZ_MUST_USE bool next(Handle<MapIteratorObject*> mapIterator,
-                                HandleArrayObject resultPairObj, JSContext* cx);
+  void init(MapObject* mapObj, MapObject::IteratorKind kind) {
+    initFixedSlot(TargetSlot, JS::ObjectValue(*mapObj));
+    initFixedSlot(RangeSlot, JS::PrivateValue(nullptr));
+    initFixedSlot(KindSlot, JS::Int32Value(int32_t(kind)));
+  }
+
+  static MOZ_MUST_USE bool next(MapIteratorObject* mapIterator,
+                                ArrayObject* resultPairObj);
 
   static JSObject* createResultPair(JSContext* cx);
 
@@ -262,6 +274,8 @@ class SetObject : public NativeObject {
   static const JSFunctionSpec methods[];
   static const JSPropertySpec staticProperties[];
 
+  static bool finishInit(JSContext* cx, HandleObject ctor, HandleObject proto);
+
   ValueSet* getData() { return static_cast<ValueSet*>(getPrivate()); }
   static ValueSet& extract(HandleObject o);
   static ValueSet& extract(const CallArgs& args);
@@ -314,8 +328,14 @@ class SetIteratorObject : public NativeObject {
   static void finalize(JSFreeOp* fop, JSObject* obj);
   static size_t objectMoved(JSObject* obj, JSObject* old);
 
-  static MOZ_MUST_USE bool next(Handle<SetIteratorObject*> setIterator,
-                                HandleArrayObject resultObj, JSContext* cx);
+  void init(SetObject* setObj, SetObject::IteratorKind kind) {
+    initFixedSlot(TargetSlot, JS::ObjectValue(*setObj));
+    initFixedSlot(RangeSlot, JS::PrivateValue(nullptr));
+    initFixedSlot(KindSlot, JS::Int32Value(int32_t(kind)));
+  }
+
+  static MOZ_MUST_USE bool next(SetIteratorObject* setIterator,
+                                ArrayObject* resultObj);
 
   static JSObject* createResult(JSContext* cx);
 

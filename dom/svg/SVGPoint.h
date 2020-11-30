@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef MOZILLA_SVGPOINT_H__
-#define MOZILLA_SVGPOINT_H__
+#ifndef DOM_SVG_SVGPOINT_H_
+#define DOM_SVG_SVGPOINT_H_
 
 #include "nsDebug.h"
 #include "gfxPoint.h"
@@ -20,7 +20,7 @@ namespace mozilla {
  * The DOM wrapper class for this class is DOMSVGPoint.
  */
 class SVGPoint {
-  typedef mozilla::gfx::Point Point;
+  using Point = mozilla::gfx::Point;
 
  public:
   SVGPoint() : mX(0.0f), mY(0.0f) {}
@@ -78,4 +78,4 @@ inline SVGPoint operator*(const SVGPoint& aPoint, float aFactor) {
 
 }  // namespace mozilla
 
-#endif  // MOZILLA_SVGPOINT_H__
+#endif  // DOM_SVG_SVGPOINT_H_

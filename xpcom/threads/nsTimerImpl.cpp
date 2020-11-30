@@ -15,6 +15,7 @@
 #include "mozilla/Logging.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/ResultExtensions.h"
+#include "mozilla/Sprintf.h"
 #include "nsThreadManager.h"
 #include "nsThreadUtils.h"
 #include "pratom.h"
@@ -174,8 +175,7 @@ nsresult NS_NewTimerWithFuncCallback(nsITimer** aTimer,
 // - Otherwise, if we are on a platform that supports function name lookup
 //   (Mac or Linux) then the looked-up name will be shown with a
 //   "[from dladdr]" annotation. On Mac the looked-up name will be immediately
-//   useful. On Linux it'll need post-processing with
-//   tools/rb/fix_linux_stack.py.
+//   useful. On Linux it'll need post-processing with `tools/rb/fix_stacks.py`.
 //
 // - Otherwise, no name will be printed. If many timers hit this case then
 //   you'll need to re-run the workload on a Mac to find out which timers they
@@ -353,9 +353,9 @@ nsresult nsTimerImpl::InitWithNameableFuncCallback(
 }
 
 nsresult nsTimerImpl::InitWithCallback(nsITimerCallback* aCallback,
-                                       uint32_t aDelay, uint32_t aType) {
+                                       uint32_t aDelayInMs, uint32_t aType) {
   return InitHighResolutionWithCallback(
-      aCallback, TimeDuration::FromMilliseconds(aDelay), aType);
+      aCallback, TimeDuration::FromMilliseconds(aDelayInMs), aType);
 }
 
 nsresult nsTimerImpl::InitHighResolutionWithCallback(
@@ -373,7 +373,7 @@ nsresult nsTimerImpl::InitHighResolutionWithCallback(
   return InitCommon(aDelay, aType, std::move(cb));
 }
 
-nsresult nsTimerImpl::Init(nsIObserver* aObserver, uint32_t aDelay,
+nsresult nsTimerImpl::Init(nsIObserver* aObserver, uint32_t aDelayInMs,
                            uint32_t aType) {
   if (NS_WARN_IF(!aObserver)) {
     return NS_ERROR_INVALID_ARG;
@@ -385,7 +385,7 @@ nsresult nsTimerImpl::Init(nsIObserver* aObserver, uint32_t aDelay,
   NS_ADDREF(cb.mCallback.o);
 
   MutexAutoLock lock(mMutex);
-  return InitCommon(aDelay, aType, std::move(cb));
+  return InitCommon(aDelayInMs, aType, std::move(cb));
 }
 
 nsresult nsTimerImpl::Cancel() {
@@ -497,7 +497,7 @@ nsresult nsTimerImpl::SetTarget(nsIEventTarget* aTarget) {
   if (aTarget) {
     mEventTarget = aTarget;
   } else {
-    mEventTarget = mozilla::GetCurrentThreadEventTarget();
+    mEventTarget = mozilla::GetCurrentSerialEventTarget();
   }
   return NS_OK;
 }
@@ -675,10 +675,10 @@ void nsTimerImpl::LogFiring(const Callback& aCallback, uint8_t aType,
           }
 
         } else if (info.dli_fname) {
-          // The "#0: " prefix is necessary for fix_linux_stack.py to interpret
+          // The "#0: " prefix is necessary for `fix_stacks.py` to interpret
           // this string as something to convert.
-          snprintf(buf, buflen, "#0: ???[%s +0x%" PRIxPTR "]\n", info.dli_fname,
-                   uintptr_t(addr) - uintptr_t(info.dli_fbase));
+          SprintfLiteral(buf, "#0: ???[%s +0x%" PRIxPTR "]\n", info.dli_fname,
+                         uintptr_t(addr) - uintptr_t(info.dli_fbase));
           name = buf;
 
         } else {
@@ -775,7 +775,7 @@ size_t nsTimer::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
 /* static */
 RefPtr<nsTimer> nsTimer::WithEventTarget(nsIEventTarget* aTarget) {
   if (!aTarget) {
-    aTarget = mozilla::GetCurrentThreadEventTarget();
+    aTarget = mozilla::GetCurrentSerialEventTarget();
   }
   return do_AddRef(new nsTimer(aTarget));
 }

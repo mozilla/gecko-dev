@@ -55,8 +55,8 @@ struct Band;
 }
 
 template <>
-struct nsTArray_CopyChooser<regiondetails::Band> {
-  typedef nsTArray_CopyWithConstructors<regiondetails::Band> Type;
+struct nsTArray_RelocationStrategy<regiondetails::Band> {
+  typedef nsTArray_RelocateUsingMoveConstructor<regiondetails::Band> Type;
 };
 
 namespace regiondetails {
@@ -66,6 +66,9 @@ class UncheckedArray : public T {
  public:
   using T::Elements;
   using T::Length;
+
+  UncheckedArray() = default;
+  MOZ_IMPLICIT UncheckedArray(T&& aSrc) : T(std::move(aSrc)) {}
 
   E& operator[](size_t aIndex) { return Elements()[aIndex]; }
   const E& operator[](size_t aIndex) const { return Elements()[aIndex]; }
@@ -102,9 +105,10 @@ struct Strip {
 struct Band {
   using Strip = regiondetails::Strip;
 #ifndef DEBUG
-  using StripArray = regiondetails::UncheckedArray<AutoTArray<Strip, 2>, Strip>;
+  using StripArray =
+      regiondetails::UncheckedArray<CopyableAutoTArray<Strip, 2>, Strip>;
 #else
-  using StripArray = AutoTArray<Strip, 2>;
+  using StripArray = CopyableAutoTArray<Strip, 2>;
 #endif
 
   MOZ_IMPLICIT Band(const nsRectAbsolute& aRect)
@@ -348,7 +352,7 @@ struct Band {
       }
     }
 
-    mStrips = newStrips;
+    mStrips = std::move(newStrips);
   }
 
   bool Intersects(const Band& aOther) const {
@@ -500,13 +504,12 @@ class nsRegion {
   }
 
   nsRegion(const nsRegion& aRegion) { Copy(aRegion); }
-  nsRegion(nsRegion&& aRegion) {
-    mBands.SwapElements(aRegion.mBands);
-    mBounds = aRegion.mBounds;
+  nsRegion(nsRegion&& aRegion)
+      : mBands(std::move(aRegion.mBands)), mBounds(aRegion.mBounds) {
     aRegion.SetEmpty();
   }
   nsRegion& operator=(nsRegion&& aRegion) {
-    mBands.SwapElements(aRegion.mBands);
+    mBands = std::move(aRegion.mBands);
     mBounds = aRegion.mBounds;
     aRegion.SetEmpty();
     return *this;
@@ -1822,10 +1825,10 @@ class nsRegion {
    * @param aToAPP the APP to scale to
    * @note this can turn an empty region into a non-empty region
    */
-  MOZ_MUST_USE nsRegion ScaleToOtherAppUnitsRoundOut(int32_t aFromAPP,
+  [[nodiscard]] nsRegion ScaleToOtherAppUnitsRoundOut(int32_t aFromAPP,
+                                                      int32_t aToAPP) const;
+  [[nodiscard]] nsRegion ScaleToOtherAppUnitsRoundIn(int32_t aFromAPP,
                                                      int32_t aToAPP) const;
-  MOZ_MUST_USE nsRegion ScaleToOtherAppUnitsRoundIn(int32_t aFromAPP,
-                                                    int32_t aToAPP) const;
   nsRegion& ScaleRoundOut(float aXScale, float aYScale);
   nsRegion& ScaleInverseRoundOut(float aXScale, float aYScale);
   nsRegion& Transform(const mozilla::gfx::Matrix4x4& aTransform);
@@ -1900,7 +1903,7 @@ class nsRegion {
 
   nsRegion& Copy(const nsRegion& aRegion) {
     mBounds = aRegion.mBounds;
-    mBands = aRegion.mBands;
+    mBands = aRegion.mBands.Clone();
     return *this;
   }
 

@@ -30,6 +30,10 @@ add_task(async function() {
     waitForSelectedSource,
     waitForLoadedScopes: () => {},
   });
+  // Select the debugger in advance. (??? not sure about this)
+  await ToolboxTask.spawn(null, async () => {
+    await gToolbox.selectTool("jsdebugger");
+  });
 
   addTab("data:text/html,<script>debugger;</script>");
 
@@ -46,7 +50,7 @@ add_task(async function() {
 
     const dbg = gToolbox.getCurrentPanel().panelWin.dbg;
     await waitForPaused(dbg);
-    if (!gToolbox.isToolHighlighted("jsdebugger")) {
+    if (!gToolbox.component.state.highlightedTools.has("jsdebugger")) {
       throw new Error("Debugger not highlighted");
     }
   });

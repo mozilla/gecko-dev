@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef MOZILLA_DOMSVGANIMATEDNUMBERLIST_H__
-#define MOZILLA_DOMSVGANIMATEDNUMBERLIST_H__
+#ifndef DOM_SVG_DOMSVGANIMATEDNUMBERLIST_H_
+#define DOM_SVG_DOMSVGANIMATEDNUMBERLIST_H_
 
 #include "nsCycleCollectionParticipant.h"
 #include "SVGElement.h"
@@ -37,13 +37,12 @@ class DOMSVGNumberList;
  * out our pointers to them when they die (making our pointers to them true
  * weak refs).
  */
-class DOMSVGAnimatedNumberList final : public nsISupports,
-                                       public nsWrapperCache {
+class DOMSVGAnimatedNumberList final : public nsWrapperCache {
   friend class DOMSVGNumberList;
 
  public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGAnimatedNumberList)
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(DOMSVGAnimatedNumberList)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(DOMSVGAnimatedNumberList)
 
   /**
    * Factory method to create and return a DOMSVGAnimatedNumberList wrapper
@@ -130,4 +129,4 @@ class DOMSVGAnimatedNumberList final : public nsISupports,
 }  // namespace dom
 }  // namespace mozilla
 
-#endif  // MOZILLA_DOMSVGANIMATEDNUMBERLIST_H__
+#endif  // DOM_SVG_DOMSVGANIMATEDNUMBERLIST_H_

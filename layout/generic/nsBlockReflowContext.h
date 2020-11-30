@@ -9,9 +9,9 @@
 #ifndef nsBlockReflowContext_h___
 #define nsBlockReflowContext_h___
 
-#include "nsIFrame.h"
 #include "mozilla/ReflowOutput.h"
 
+class nsIFrame;
 class nsLineBox;
 class nsPresContext;
 namespace mozilla {
@@ -29,7 +29,7 @@ class nsBlockReflowContext {
  public:
   nsBlockReflowContext(nsPresContext* aPresContext,
                        const ReflowInput& aParentRI);
-  ~nsBlockReflowContext() {}
+  ~nsBlockReflowContext() = default;
 
   void ReflowBlock(const mozilla::LogicalRect& aSpace, bool aApplyBStartMargin,
                    nsCollapsingMargin& aPrevMargin, nscoord aClearance,

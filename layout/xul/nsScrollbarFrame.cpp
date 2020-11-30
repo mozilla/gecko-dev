@@ -166,7 +166,7 @@ nsresult nsScrollbarFrame::GetXULMargin(nsMargin& aMargin) {
   aMargin.SizeTo(0, 0, 0, 0);
 
   const bool overlayScrollbars =
-      !!LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars);
+      !!LookAndFeel::GetInt(LookAndFeel::IntID::UseOverlayScrollbars);
 
   const bool horizontal = IsXULHorizontal();
   bool didSetMargin = false;
@@ -190,10 +190,10 @@ nsresult nsScrollbarFrame::GetXULMargin(nsMargin& aMargin) {
   }
 
   if (!didSetMargin) {
-    DebugOnly<nsresult> rv = nsBox::GetXULMargin(aMargin);
+    DebugOnly<nsresult> rv = nsIFrame::GetXULMargin(aMargin);
     // TODO(emilio): Should probably not be fallible, it's not like anybody
     // cares about the return value anyway.
-    MOZ_ASSERT(NS_SUCCEEDED(rv), "nsBox::GetXULMargin can't really fail");
+    MOZ_ASSERT(NS_SUCCEEDED(rv), "nsIFrame::GetXULMargin can't really fail");
   }
 
   if (!horizontal) {
@@ -261,8 +261,7 @@ int32_t nsScrollbarFrame::MoveToNewPosition() {
 
   AutoWeakFrame weakFrame(this);
   if (mSmoothScroll) {
-    content->SetAttr(kNameSpaceID_None, nsGkAtoms::smooth,
-                     NS_LITERAL_STRING("true"), false);
+    content->SetAttr(kNameSpaceID_None, nsGkAtoms::smooth, u"true"_ns, false);
   }
   content->SetAttr(kNameSpaceID_None, nsGkAtoms::curpos, curposStr, false);
   // notify the nsScrollbarFrame of the change
@@ -272,11 +271,8 @@ int32_t nsScrollbarFrame::MoveToNewPosition() {
     return curpos;
   }
   // notify all nsSliderFrames of the change
-  nsIFrame::ChildListIterator childLists(this);
-  for (; !childLists.IsDone(); childLists.Next()) {
-    nsFrameList::Enumerator childFrames(childLists.CurrentList());
-    for (; !childFrames.AtEnd(); childFrames.Next()) {
-      nsIFrame* f = childFrames.get();
+  for (const auto& childList : ChildLists()) {
+    for (nsIFrame* f : childList.mList) {
       nsSliderFrame* sliderFrame = do_QueryFrame(f);
       if (sliderFrame) {
         sliderFrame->AttributeChanged(kNameSpaceID_None, nsGkAtoms::curpos,
@@ -300,18 +296,18 @@ static already_AddRefed<Element> MakeScrollbarButton(
 
   static constexpr nsLiteralString kSbattrValues[2][2] = {
       {
-          NS_LITERAL_STRING("scrollbar-up-top"),
-          NS_LITERAL_STRING("scrollbar-up-bottom"),
+          u"scrollbar-up-top"_ns,
+          u"scrollbar-up-bottom"_ns,
       },
       {
-          NS_LITERAL_STRING("scrollbar-down-top"),
-          NS_LITERAL_STRING("scrollbar-down-bottom"),
+          u"scrollbar-down-top"_ns,
+          u"scrollbar-down-bottom"_ns,
       },
   };
 
   static constexpr nsLiteralString kTypeValues[2] = {
-      NS_LITERAL_STRING("decrement"),
-      NS_LITERAL_STRING("increment"),
+      u"decrement"_ns,
+      u"increment"_ns,
   };
 
   aKey = AnonymousContentKey::Type_ScrollbarButton;
@@ -380,8 +376,7 @@ nsresult nsScrollbarFrame::CreateAnonymousContent(
         nodeInfoManager->GetNodeInfo(nsGkAtoms::slider, nullptr,
                                      kNameSpaceID_XUL, nsINode::ELEMENT_NODE));
     mSlider->SetAttr(kNameSpaceID_None, nsGkAtoms::orient, orient, false);
-    mSlider->SetAttr(kNameSpaceID_None, nsGkAtoms::flex, NS_LITERAL_STRING("1"),
-                     false);
+    mSlider->SetAttr(kNameSpaceID_None, nsGkAtoms::flex, u"1"_ns, false);
 
     aElements.AppendElement(ContentInfo(mSlider, key));
 

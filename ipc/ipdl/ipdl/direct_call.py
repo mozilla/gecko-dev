@@ -53,13 +53,6 @@ DIRECT_CALL_OVERRIDES = {
         "PresentationRequestParent", "mozilla/dom/PresentationParent.h"
     ),
 
-    ("PPSMContentDownloader", "child"): (
-        "PSMContentDownloaderChild", "mozilla/psm/PSMContentListener.h"
-    ),
-    ("PPSMContentDownloader", "parent"): (
-        "PSMContentDownloaderParent", "mozilla/psm/PSMContentListener.h"
-    ),
-
     ("PRemoteSpellcheckEngine", "child"): (
         "RemoteSpellcheckEngineChild", "mozilla/RemoteSpellCheckEngineChild.h"
     ),
@@ -445,8 +438,6 @@ DIRECT_CALL_OVERRIDES = {
 # set() of (Protocol, side)
 VIRTUAL_CALL_CLASSES = set([
     # Defined as a strange template
-    ("PJavaScript", "child"),
-    ("PJavaScript", "parent"),
     ("PMedia", "parent"),
     ("PTexture", "parent"),
 
@@ -582,6 +573,10 @@ VIRTUAL_CALL_CLASSES = set([
     # .h includes something that's a LOCAL_INCLUDE
     ("PBackgroundLocalStorageCache", "child"),
     ("PBackgroundLocalStorageCache", "parent"),
+    ("PBackgroundSessionStorageCache", "child"),
+    ("PBackgroundSessionStorageCache", "parent"),
+    ("PBackgroundSessionStorageManager", "child"),
+    ("PBackgroundSessionStorageManager", "parent"),
     ("PBackgroundStorage", "child"),
     ("PBackgroundStorage", "parent"),
     ("PBrowserStream", "parent"),

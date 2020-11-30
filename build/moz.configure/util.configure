@@ -34,10 +34,16 @@ def get_cmd_output(*args, **kwargs):
         # On Python 2 on Windows, close_fds prevents the process from inheriting
         # stdout/stderr. Elsewhere, it simply prevents it from inheriting extra
         # file descriptors, which is what we want.
-        close_fds=os.name != 'nt', universal_newlines=True, **kwargs)
+        close_fds=os.name != 'nt', **kwargs)
     stdout, stderr = proc.communicate()
-    stdout = six.ensure_text(stdout, encoding=system_encoding, errors='replace')
-    stderr = six.ensure_text(stderr, encoding=system_encoding, errors='replace')
+    # Normally we would set the `encoding` and `errors` arguments in the
+    # constructor to subprocess.Popen, but those arguments were added in 3.6
+    # and we need to support back to 3.5, so instead we need to do this
+    # nonsense.
+    stdout = six.ensure_text(stdout, encoding=system_encoding,
+                             errors='replace').replace('\r\n', '\n')
+    stderr = six.ensure_text(stderr, encoding=system_encoding,
+                             errors='replace').replace('\r\n', '\n')
     return proc.wait(), stdout, stderr
 
 
@@ -90,7 +96,7 @@ def windows_binary_type(path):
     """
     GetBinaryTypeW = ctypes.windll.kernel32.GetBinaryTypeW
     GetBinaryTypeW.argtypes = [wintypes.LPWSTR,
-                               wintypes.POINTER(wintypes.DWORD)]
+                               ctypes.POINTER(wintypes.DWORD)]
     GetBinaryTypeW.restype = wintypes.BOOL
 
     bin_type = wintypes.DWORD()
@@ -221,7 +227,7 @@ def try_invoke_compiler(compiler, language, source, flags=None, onerror=None):
 
         os.write(fd, ensure_binary(source))
         os.close(fd)
-        cmd = compiler + list(flags) + [path]
+        cmd = compiler + [path] + list(flags)
         kwargs = {'onerror': onerror}
         return check_cmd_output(*cmd, **kwargs)
     finally:
@@ -282,7 +288,7 @@ def unique_list(l):
 #     ('19.0', 'arm', r'C:\...\amd64_arm\cl.exe')
 #     ('19.0', 'x64', r'C:\...\amd64\cl.exe')
 #     ('19.0', 'x86', r'C:\...\amd64_x86\cl.exe')
-@imports(_import='_winreg', _as='winreg')
+@imports(_import='winreg')
 @imports(_from='__builtin__', _import='WindowsError')
 @imports(_from='fnmatch', _import='fnmatch')
 def get_registry_values(pattern, get_32_and_64_bit=False):
@@ -403,7 +409,9 @@ def dependable(obj):
         return obj
     if isfunction(obj):
         return depends(when=True)(obj)
-    return depends(when=True)(lambda: obj)
+    # Depend on --help to make lint happy if the dependable is used as an input
+    # to an option().
+    return depends('--help', when=True)(lambda _: obj)
 
 
 always = dependable(True)
@@ -452,11 +460,6 @@ def old_configure_assignments():
     return []
 
 
-@dependable
-def extra_old_configure_args():
-    return []
-
-
 @template
 def add_old_configure_assignment(var, value, when=None):
     var = dependable(var)
@@ -475,11 +478,3 @@ def add_old_configure_assignment(var, value, when=None):
             if isinstance(value, (list, tuple)):
                 value = quote(*value)
             assignments.append((var, str(value)))
-
-
-@template
-def add_old_configure_arg(arg):
-    @depends(extra_old_configure_args, arg)
-    def add_arg(args, arg):
-        if arg:
-            args.append(arg)

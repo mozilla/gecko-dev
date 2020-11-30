@@ -57,10 +57,6 @@
   flex-grow: 1;
 }
 
-.request-blocking-enable-bar button::before {
-  background-image: url("chrome://devtools/skin/images/add.svg");
-}
-
 .request-blocking-contents {
   flex: 0 1 auto;
   overflow-y: auto;
@@ -102,7 +98,6 @@
      DevTools shows that "the item was clamped to its minimum size" and the shrink
      part is thus ignored. So we're reserving 20px for the delete button. */
   max-width: calc(100% - 20px);
-  font-family: var(--monospace-font-family);
 }
 
 .request-blocking-remove-button {
@@ -122,8 +117,7 @@
   border: none;
 }
 
-.request-blocking-list li:hover .request-blocking-remove-button,
-.request-blocking-list li:focus-within .request-blocking-remove-button {
+.request-blocking-list li:hover .request-blocking-remove-button {
   opacity: 1;
 }
 
@@ -139,8 +133,7 @@
   fill: var(--theme-icon-color);
 }
 
-.request-blocking-remove-button:hover::before,
-.request-blocking-remove-button:focus::before {
+.request-blocking-remove-button:hover::before {
   fill: var(--theme-selection-color);
   background-color: var(--theme-selection-background);
 }
@@ -173,4 +166,19 @@
   padding-block: 4px;
   padding-inline: 20px 8px;
   background: none;
+}
+
+.request-blocking-list-empty-notice {
+  margin: 0;
+  flex: 1;
+  overflow-x: hidden;
+}
+
+.request-blocking-notice-element {
+  padding-top: 12px;
+  padding-inline: 12px;
+}
+
+.request-blocking-notice-element::before {
+  content:"• ";
 }

@@ -13,17 +13,16 @@
 
 #include "nsCOMPtr.h"
 #include "mozilla/dom/AbstractRange.h"
-#include "nsLayoutUtils.h"
 #include "prmon.h"
 #include "nsStubMutationObserver.h"
 #include "nsWrapperCache.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ErrorResult.h"
-#include "mozilla/GuardObjects.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/RangeBoundary.h"
 
 namespace mozilla {
+class RectCallback;
 namespace dom {
 struct ClientRectsAndTexts;
 class DocGroup;
@@ -97,17 +96,15 @@ class nsRange final : public mozilla::dom::AbstractRange,
    */
   bool IsInSelection() const { return !!mSelection; }
 
-  /**
-   * Called when the range is added/removed from a Selection.
-   */
-  // TODO: annotate this with `MOZ_CAN_RUN_SCRIPT` instead.
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY void SetSelection(
-      mozilla::dom::Selection* aSelection);
+  MOZ_CAN_RUN_SCRIPT void RegisterSelection(
+      mozilla::dom::Selection& aSelection);
+
+  void UnregisterSelection();
 
   /**
    * Returns pointer to a Selection if the range is associated with a Selection.
    */
-  mozilla::dom::Selection* GetSelection() const { return mSelection; }
+  mozilla::dom::Selection* GetSelection() const;
 
   /**
    * Return true if this range was generated.
@@ -208,13 +205,13 @@ class nsRange final : public mozilla::dom::AbstractRange,
       const mozilla::dom::GlobalObject& global, mozilla::ErrorResult& aRv);
 
   already_AddRefed<mozilla::dom::DocumentFragment> CreateContextualFragment(
-      const nsAString& aString, ErrorResult& aError);
+      const nsAString& aString, ErrorResult& aError) const;
   already_AddRefed<mozilla::dom::DocumentFragment> CloneContents(
       ErrorResult& aErr);
-  int16_t CompareBoundaryPoints(uint16_t aHow, nsRange& aOther,
-                                ErrorResult& aErr);
-  int16_t ComparePoint(nsINode& aContainer, uint32_t aOffset,
-                       ErrorResult& aErr) const;
+  int16_t CompareBoundaryPoints(uint16_t aHow, const nsRange& aOtherRange,
+                                ErrorResult& aRv);
+  int16_t ComparePoint(const nsINode& aContainer, uint32_t aOffset,
+                       ErrorResult& aRv) const;
   void DeleteContents(ErrorResult& aRv);
   already_AddRefed<mozilla::dom::DocumentFragment> ExtractContents(
       ErrorResult& aErr);
@@ -227,8 +224,8 @@ class nsRange final : public mozilla::dom::AbstractRange,
   }
   void InsertNode(nsINode& aNode, ErrorResult& aErr);
   bool IntersectsNode(nsINode& aNode, ErrorResult& aRv);
-  bool IsPointInRange(nsINode& aContainer, uint32_t aOffset,
-                      ErrorResult& aErr) const;
+  bool IsPointInRange(const nsINode& aContainer, uint32_t aOffset,
+                      ErrorResult& aRv) const;
   void ToString(nsAString& aReturn, ErrorResult& aErr);
   void Detach();
 
@@ -324,7 +321,7 @@ class nsRange final : public mozilla::dom::AbstractRange,
    * @param aTextList optional where nullptr = don't retrieve text
    */
   static void CollectClientRectsAndText(
-      nsLayoutUtils::RectCallback* aCollector,
+      mozilla::RectCallback* aCollector,
       mozilla::dom::Sequence<nsString>* aTextList, nsRange* aRange,
       nsINode* aStartContainer, uint32_t aStartOffset, nsINode* aEndContainer,
       uint32_t aEndOffset, bool aClampToEdge, bool aFlushLayout);
@@ -401,14 +398,10 @@ class nsRange final : public mozilla::dom::AbstractRange,
    private:
     nsRange& mRange;
     bool mOldValue;
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 
    public:
-    explicit AutoCalledByJSRestore(
-        nsRange& aRange MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-        : mRange(aRange), mOldValue(aRange.mCalledByJS) {
-      MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    }
+    explicit AutoCalledByJSRestore(nsRange& aRange)
+        : mRange(aRange), mOldValue(aRange.mCalledByJS) {}
     ~AutoCalledByJSRestore() { mRange.mCalledByJS = mOldValue; }
     bool SavedValue() const { return mOldValue; }
   };

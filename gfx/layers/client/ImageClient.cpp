@@ -64,9 +64,8 @@ already_AddRefed<ImageClient> ImageClient::CreateImageClient(
   return result.forget();
 }
 
-void ImageClient::RemoveTexture(TextureClient* aTexture,
-                                const Maybe<wr::RenderRoot>& aRenderRoot) {
-  GetForwarder()->RemoveTextureFromCompositable(this, aTexture, aRenderRoot);
+void ImageClient::RemoveTexture(TextureClient* aTexture) {
+  GetForwarder()->RemoveTextureFromCompositable(this, aTexture);
 }
 
 ImageClientSingle::ImageClientSingle(CompositableForwarder* aFwd,
@@ -84,7 +83,7 @@ void ImageClientSingle::FlushAllImages() {
     // the texture actually presents in a content render root, as the only
     // risk would be if the content render root has not / is not going to
     // generate a frame before the texture gets cleared.
-    RemoveTexture(b.mTextureClient, Some(wr::RenderRoot::Default));
+    RemoveTexture(b.mTextureClient);
   }
   mBuffers.Clear();
 }
@@ -162,8 +161,7 @@ already_AddRefed<TextureClient> ImageClient::CreateTextureClientForImage(
 }
 
 bool ImageClientSingle::UpdateImage(ImageContainer* aContainer,
-                                    uint32_t aContentFlags,
-                                    const Maybe<wr::RenderRoot>& aRenderRoot) {
+                                    uint32_t aContentFlags) {
   AutoTArray<ImageContainer::OwningImage, 4> images;
   uint32_t generationCounter;
   aContainer->GetCurrentImages(&images, &generationCounter);
@@ -173,12 +171,9 @@ bool ImageClientSingle::UpdateImage(ImageContainer* aContainer,
   }
   mLastUpdateGenerationCounter = generationCounter;
 
-  for (int32_t i = images.Length() - 1; i >= 0; --i) {
-    if (!images[i].mImage->IsValid()) {
-      // Don't try to update to an invalid image.
-      images.RemoveElementAt(i);
-    }
-  }
+  // Don't try to update to invalid images.
+  images.RemoveElementsBy(
+      [](const auto& image) { return !image.mImage->IsValid(); });
   if (images.IsEmpty()) {
     // This can happen if a ClearAllImages raced with SetCurrentImages from
     // another thread and ClearImagesFromImageBridge ran after the
@@ -187,7 +182,7 @@ bool ImageClientSingle::UpdateImage(ImageContainer* aContainer,
     // We return true because the caller would attempt to recreate the
     // ImageClient otherwise, and that isn't going to help.
     for (auto& b : mBuffers) {
-      RemoveTexture(b.mTextureClient, aRenderRoot);
+      RemoveTexture(b.mTextureClient);
     }
     mBuffers.Clear();
     return true;
@@ -251,12 +246,12 @@ bool ImageClientSingle::UpdateImage(ImageContainer* aContainer,
     texture->SyncWithObject(GetForwarder()->GetSyncObject());
   }
 
-  GetForwarder()->UseTextures(this, textures, aRenderRoot);
+  GetForwarder()->UseTextures(this, textures);
 
   for (auto& b : mBuffers) {
-    RemoveTexture(b.mTextureClient, aRenderRoot);
+    RemoveTexture(b.mTextureClient);
   }
-  mBuffers.SwapElements(newBuffers);
+  mBuffers = std::move(newBuffers);
 
   return true;
 }
@@ -287,8 +282,7 @@ ImageClientBridge::ImageClientBridge(CompositableForwarder* aFwd,
     : ImageClient(aFwd, aFlags, CompositableType::IMAGE_BRIDGE) {}
 
 bool ImageClientBridge::UpdateImage(ImageContainer* aContainer,
-                                    uint32_t aContentFlags,
-                                    const Maybe<wr::RenderRoot>& aRenderRoot) {
+                                    uint32_t aContentFlags) {
   if (!GetForwarder() || !mLayer) {
     return false;
   }

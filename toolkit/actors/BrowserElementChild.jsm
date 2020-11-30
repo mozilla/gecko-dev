@@ -17,30 +17,19 @@ class BrowserElementChild extends JSWindowActorChild {
   }
 
   receiveMessage(message) {
-    let context = this.manager.browsingContext;
-    let docShell = context.docShell;
-
     switch (message.name) {
-      case "PermitUnload": {
-        this.sendAsyncMessage("Running", {});
-
-        let permitUnload = true;
-        if (docShell && docShell.contentViewer) {
-          permitUnload = docShell.contentViewer.permitUnload(
-            message.data.flags
-          );
-        }
-
-        this.sendAsyncMessage("Done", { permitUnload });
-        break;
-      }
-
       case "EnterModalState": {
         this.contentWindow.windowUtils.enterModalState();
         break;
       }
 
       case "LeaveModalState": {
+        if (
+          !message.data.forceLeave &&
+          !this.contentWindow.windowUtils.isInModalState()
+        ) {
+          break;
+        }
         this.contentWindow.windowUtils.leaveModalState();
         break;
       }

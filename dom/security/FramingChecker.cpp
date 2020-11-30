@@ -6,112 +6,54 @@
 
 #include "FramingChecker.h"
 #include "nsCharSeparatedTokenizer.h"
+#include "nsContentUtils.h"
 #include "nsCSPUtils.h"
 #include "nsDocShell.h"
 #include "nsHttpChannel.h"
 #include "nsIChannel.h"
-#include "nsIConsoleService.h"
+#include "nsIConsoleReportCollector.h"
 #include "nsIContentSecurityPolicy.h"
 #include "nsIScriptError.h"
 #include "nsNetUtil.h"
 #include "nsQueryObject.h"
+#include "nsTArray.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/dom/nsCSPUtils.h"
 #include "mozilla/dom/LoadURIOptionsBinding.h"
+#include "mozilla/dom/WindowGlobalParent.h"
 #include "mozilla/NullPrincipal.h"
-#include "nsIStringBundle.h"
+#include "mozilla/net/HttpBaseChannel.h"
 
 #include "nsIObserverService.h"
 
 using namespace mozilla;
 
 /* static */
-void FramingChecker::ReportError(const char* aMessageTag, nsIURI* aParentURI,
-                                 nsIURI* aChildURI, const nsAString& aPolicy,
-                                 uint64_t aInnerWindowID) {
-  MOZ_ASSERT(aParentURI, "Need a parent URI");
-  if (!aChildURI || !aParentURI) {
-    return;
-  }
-
-  // Get the parent URL spec
-  nsAutoCString parentSpec;
-  nsresult rv;
-  rv = aParentURI->GetAsciiSpec(parentSpec);
-  if (NS_FAILED(rv)) {
-    return;
-  }
-
-  // Get the child URL spec
-  nsAutoCString childSpec;
-  rv = aChildURI->GetAsciiSpec(childSpec);
-  if (NS_FAILED(rv)) {
-    return;
-  }
-
-  nsCOMPtr<nsIStringBundleService> bundleService =
-      mozilla::services::GetStringBundleService();
-  nsCOMPtr<nsIStringBundle> bundle;
-  rv = bundleService->CreateBundle(
-      "chrome://global/locale/security/security.properties",
-      getter_AddRefs(bundle));
-  if (NS_FAILED(rv)) {
-    return;
-  }
-
-  if (NS_WARN_IF(!bundle)) {
-    return;
-  }
-
-  nsCOMPtr<nsIConsoleService> console(
-      do_GetService(NS_CONSOLESERVICE_CONTRACTID));
-  nsCOMPtr<nsIScriptError> error(do_CreateInstance(NS_SCRIPTERROR_CONTRACTID));
-  if (!console || !error) {
-    return;
-  }
-
-  // Localize the error message
-  nsAutoString message;
-  AutoTArray<nsString, 3> formatStrings;
-  formatStrings.AppendElement(aPolicy);
-  CopyASCIItoUTF16(childSpec, *formatStrings.AppendElement());
-  CopyASCIItoUTF16(parentSpec, *formatStrings.AppendElement());
-  rv = bundle->FormatStringFromName(aMessageTag, formatStrings, message);
-  if (NS_FAILED(rv)) {
-    return;
-  }
-
-  rv = error->InitWithWindowID(message, EmptyString(), EmptyString(), 0, 0,
-                               nsIScriptError::errorFlag, "X-Frame-Options",
-                               aInnerWindowID);
-  if (NS_FAILED(rv)) {
-    return;
-  }
-  console->LogMessage(error);
-}
-
-/* static */
 void FramingChecker::ReportError(const char* aMessageTag,
-                                 BrowsingContext* aParentContext,
-                                 nsIURI* aChildURI, const nsAString& aPolicy,
-                                 uint64_t aInnerWindowID) {
-  nsCOMPtr<nsIURI> parentURI;
-  if (aParentContext) {
-    BrowsingContext* topContext = aParentContext->Top();
-    // If fission is enabled, then ReportError is called in the parent
-    // process, otherwise in the content process. After Bug 1574372 we
-    // should be able to remove that branching code for querying parentURI.
-    if (XRE_IsParentProcess()) {
-      WindowGlobalParent* window =
-          topContext->Canonical()->GetCurrentWindowGlobal();
-      if (window) {
-        parentURI = window->GetDocumentURI();
-      }
-    } else if (nsPIDOMWindowOuter* windowOuter = topContext->GetDOMWindow()) {
-      parentURI = windowOuter->GetDocumentURI();
-    }
-    ReportError(aMessageTag, parentURI, aChildURI, aPolicy, aInnerWindowID);
+                                 nsIHttpChannel* aChannel, nsIURI* aURI,
+                                 const nsAString& aPolicy) {
+  MOZ_ASSERT(aChannel);
+  MOZ_ASSERT(aURI);
+
+  nsCOMPtr<net::HttpBaseChannel> httpChannel = do_QueryInterface(aChannel);
+  if (!httpChannel) {
+    return;
   }
+
+  // Get the URL spec
+  nsAutoCString spec;
+  nsresult rv = aURI->GetAsciiSpec(spec);
+  if (NS_FAILED(rv)) {
+    return;
+  }
+
+  nsTArray<nsString> params;
+  params.AppendElement(aPolicy);
+  params.AppendElement(NS_ConvertUTF8toUTF16(spec));
+
+  httpChannel->AddConsoleReport(nsIScriptError::errorFlag, "X-Frame-Options"_ns,
+                                nsContentUtils::eSECURITY_PROPERTIES, spec, 0,
+                                0, nsDependentCString(aMessageTag), params);
 }
 
 /* static */
@@ -120,15 +62,10 @@ bool FramingChecker::CheckOneFrameOptionsPolicy(nsIHttpChannel* aHttpChannel,
   nsCOMPtr<nsIURI> uri;
   aHttpChannel->GetURI(getter_AddRefs(uri));
 
-  nsCOMPtr<nsILoadInfo> loadInfo = aHttpChannel->LoadInfo();
-  uint64_t innerWindowID = loadInfo->GetInnerWindowID();
-  RefPtr<mozilla::dom::BrowsingContext> ctx;
-  loadInfo->GetBrowsingContext(getter_AddRefs(ctx));
-
   // return early if header does not have one of the values with meaning
   if (!aPolicy.LowerCaseEqualsLiteral("deny") &&
       !aPolicy.LowerCaseEqualsLiteral("sameorigin")) {
-    ReportError("XFOInvalid", ctx, uri, aPolicy, innerWindowID);
+    ReportError("XFrameOptionsInvalid", aHttpChannel, uri, aPolicy);
     return true;
   }
 
@@ -136,11 +73,17 @@ bool FramingChecker::CheckOneFrameOptionsPolicy(nsIHttpChannel* aHttpChannel,
   // parent chain must be from the same origin as this document.
   bool checkSameOrigin = aPolicy.LowerCaseEqualsLiteral("sameorigin");
 
+  nsCOMPtr<nsILoadInfo> loadInfo = aHttpChannel->LoadInfo();
+  RefPtr<mozilla::dom::BrowsingContext> ctx;
+  loadInfo->GetBrowsingContext(getter_AddRefs(ctx));
+
   while (ctx) {
     nsCOMPtr<nsIPrincipal> principal;
-    // If fission is enabled, then CheckOneFrameOptionsPolicy is called in the
-    // parent process, otherwise in the content process. After Bug 1574372 we
-    // should be able to remove that branching code for querying principal.
+    // Generally CheckOneFrameOptionsPolicy is consulted from within the
+    // DocumentLoadListener in the parent process. For loads of type object
+    // and embed it's called from the Document in the content process.
+    // After Bug 1646899 we should be able to remove that branching code for
+    // querying the principal.
     if (XRE_IsParentProcess()) {
       WindowGlobalParent* window = ctx->Canonical()->GetCurrentWindowGlobal();
       if (window) {
@@ -166,7 +109,7 @@ bool FramingChecker::CheckOneFrameOptionsPolicy(nsIHttpChannel* aHttpChannel,
       }
       // one of the ancestors is not same origin as this document
       if (!isSameOrigin) {
-        ReportError("XFOSameOrigin", ctx, uri, aPolicy, innerWindowID);
+        ReportError("XFrameOptionsDeny", aHttpChannel, uri, aPolicy);
         return false;
       }
     }
@@ -177,9 +120,7 @@ bool FramingChecker::CheckOneFrameOptionsPolicy(nsIHttpChannel* aHttpChannel,
   // not met (current docshell is not the top docshell), prohibit the
   // load.
   if (aPolicy.LowerCaseEqualsLiteral("deny")) {
-    RefPtr<mozilla::dom::BrowsingContext> ctx;
-    loadInfo->GetBrowsingContext(getter_AddRefs(ctx));
-    ReportError("XFODeny", ctx, uri, aPolicy, innerWindowID);
+    ReportError("XFrameOptionsDeny", aHttpChannel, uri, aPolicy);
     return false;
   }
 
@@ -206,16 +147,16 @@ static bool ShouldIgnoreFrameOptions(nsIChannel* aChannel,
   nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
   uint64_t innerWindowID = loadInfo->GetInnerWindowID();
   bool privateWindow = !!loadInfo->GetOriginAttributes().mPrivateBrowsingId;
-  AutoTArray<nsString, 2> params = {NS_LITERAL_STRING("x-frame-options"),
-                                    NS_LITERAL_STRING("frame-ancestors")};
+  AutoTArray<nsString, 2> params = {u"x-frame-options"_ns,
+                                    u"frame-ancestors"_ns};
   CSP_LogLocalizedStr("IgnoringSrcBecauseOfDirective", params,
-                      EmptyString(),  // no sourcefile
-                      EmptyString(),  // no scriptsample
-                      0,              // no linenumber
-                      0,              // no columnnumber
+                      u""_ns,  // no sourcefile
+                      u""_ns,  // no scriptsample
+                      0,       // no linenumber
+                      0,       // no columnnumber
                       nsIScriptError::warningFlag,
-                      NS_LITERAL_CSTRING("IgnoringSrcBecauseOfDirective"),
-                      innerWindowID, privateWindow);
+                      "IgnoringSrcBecauseOfDirective"_ns, innerWindowID,
+                      privateWindow);
 
   return true;
 }
@@ -247,28 +188,6 @@ bool FramingChecker::CheckFrameOptions(nsIChannel* aChannel,
     return true;
   }
 
-  // if the load is triggered by an extension, then xfo should
-  // not apply and we should allow the load.
-  if (loadInfo->TriggeringPrincipal()->GetIsAddonOrExpandedAddonPrincipal()) {
-    return true;
-  }
-
-  // Bug 1574372: Download should be fully done in the parent process.
-  // Unfortunately we currently can not determine whether a load will
-  // result in a download in the parent process. As an interim hotfix
-  // for Bug 1593832, we are going to allow loads using a content-type
-  // of 'application/octet-stream' which will definitley result in
-  // a download.
-  if (XRE_IsParentProcess()) {
-    // Bug 1599131: Remove carve outs for downloads within x-frame-options
-    // when fission enabled
-    nsAutoCString type;
-    aChannel->GetContentType(type);
-    if (type.LowerCaseEqualsLiteral("application/octet-stream")) {
-      return true;
-    }
-  }
-
   nsCOMPtr<nsIHttpChannel> httpChannel;
   nsresult rv = nsContentSecurityUtils::GetHttpChannelFromPotentialMultiPart(
       aChannel, getter_AddRefs(httpChannel));
@@ -293,8 +212,8 @@ bool FramingChecker::CheckFrameOptions(nsIChannel* aChannel,
   }
 
   nsAutoCString xfoHeaderCValue;
-  Unused << httpChannel->GetResponseHeader(
-      NS_LITERAL_CSTRING("X-Frame-Options"), xfoHeaderCValue);
+  Unused << httpChannel->GetResponseHeader("X-Frame-Options"_ns,
+                                           xfoHeaderCValue);
   NS_ConvertUTF8toUTF16 xfoHeaderValue(xfoHeaderCValue);
 
   // if no header value, there's nothing to do.

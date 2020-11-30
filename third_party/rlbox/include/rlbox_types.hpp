@@ -9,6 +9,13 @@ class tainted_opaque
 {
 private:
   T data{ 0 };
+
+public:
+  template<typename T2 = T>
+  void set_zero()
+  {
+    data = 0;
+  }
 };
 
 template<typename T, typename T_Sbx>
@@ -47,6 +54,40 @@ public:
   }
   inline bool UNSAFE_unverified() const { return val; }
   inline bool UNSAFE_unverified() { return val; }
+  inline auto INTERNAL_unverified_safe() { return UNSAFE_unverified(); }
+  inline auto INTERNAL_unverified_safe() const { return UNSAFE_unverified(); }
+};
+
+/**
+ * @brief Tainted integer value that serves as a "hint" and not a definite
+ * answer.  Comparisons with a tainted_volatile return such hints.  They are
+ * not `tainted<int>` values because a compromised sandbox can modify
+ * tainted_volatile data at any time.
+ */
+class tainted_int_hint
+{
+private:
+  int val;
+
+public:
+  tainted_int_hint(int init)
+    : val(init)
+  {}
+  tainted_int_hint(const tainted_int_hint&) = default;
+  inline tainted_int_hint& operator=(int rhs)
+  {
+    val = rhs;
+    return *this;
+  }
+  inline tainted_boolean_hint operator!() { return tainted_boolean_hint(!val); }
+  template<size_t N>
+  inline int unverified_safe_because(const char (&reason)[N]) const
+  {
+    (void)reason; /* unused */
+    return val;
+  }
+  inline int UNSAFE_unverified() const { return val; }
+  inline int UNSAFE_unverified() { return val; }
   inline auto INTERNAL_unverified_safe() { return UNSAFE_unverified(); }
   inline auto INTERNAL_unverified_safe() const { return UNSAFE_unverified(); }
 };

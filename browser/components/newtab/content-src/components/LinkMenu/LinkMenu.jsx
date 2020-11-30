@@ -32,9 +32,9 @@ export class _LinkMenu extends React.PureComponent {
 
     // Handle special case of default site
     const propOptions =
-      !site.isDefault || site.searchTopSite
-        ? props.options
-        : DEFAULT_SITE_MENU_OPTIONS;
+      site.isDefault && !site.searchTopSite && !site.sponsored_position
+        ? DEFAULT_SITE_MENU_OPTIONS
+        : props.options;
 
     const options = propOptions
       .map(o =>
@@ -50,7 +50,17 @@ export class _LinkMenu extends React.PureComponent {
       .map(option => {
         const { action, impression, id, type, userEvent } = option;
         if (!type && id) {
-          option.onClick = () => {
+          option.onClick = (event = {}) => {
+            const { ctrlKey, metaKey, shiftKey, button } = event;
+            // Only send along event info if there's something non-default to send
+            if (ctrlKey || metaKey || shiftKey || button === 1) {
+              action.data = Object.assign(
+                {
+                  event: { ctrlKey, metaKey, shiftKey, button },
+                },
+                action.data
+              );
+            }
             props.dispatch(action);
             if (userEvent) {
               const userEventData = Object.assign(

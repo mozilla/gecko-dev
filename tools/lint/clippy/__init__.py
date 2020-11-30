@@ -4,21 +4,29 @@
 
 import json
 import os
+import re
 import signal
+import six
 import subprocess
 
+from distutils.version import StrictVersion
 from mozfile import which
 from mozlint import result
 from mozlint.pathutils import get_ancestors_by_name
 from mozprocess import ProcessHandler
 
 
-CLIPPY_NOT_FOUND = """
-Could not find clippy! Install clippy and try again.
+CLIPPY_WRONG_VERSION = """
+You are probably using an old version of clippy.
+Expected version is {version}.
 
+To install it:
     $ rustup component add clippy
 
-And make sure that it is in the PATH
+Or to update it:
+    $ rustup update
+
+And make sure that 'cargo' is in the PATH
 """.strip()
 
 
@@ -34,22 +42,39 @@ def parse_issues(log, config, issues, path, onlyIn):
     for issue in issues:
 
         try:
-            detail = json.loads(issue.decode("utf-8"))
+            detail = json.loads(six.ensure_text(issue))
             if "message" in detail:
-                p = detail['target']['src_path']
+                p = detail["target"]["src_path"]
                 detail = detail["message"]
                 if "level" in detail:
-                    if ((detail["level"] == "error" or detail["level"] == "failure-note")
-                        and not detail["code"]):
-                        log.debug("Error outside of clippy."
-                                  "This means that the build failed. Therefore, skipping this")
+                    if (
+                        detail["level"] == "error" or detail["level"] == "failure-note"
+                    ) and not detail["code"]:
+                        log.debug(
+                            "Error outside of clippy."
+                            "This means that the build failed. Therefore, skipping this"
+                        )
                         log.debug("File = {} / Detail = {}".format(p, detail))
                         continue
                     # We are in a clippy warning
+                    if len(detail["spans"]) == 0:
+                        # For some reason, at the end of the summary, we can
+                        # get the following line
+                        # {'rendered': 'warning: 5 warnings emitted\n\n', 'children':
+                        # [], 'code': None, 'level': 'warning', 'message':
+                        # '5 warnings emitted', 'spans': []}
+                        # if this is the case, skip it
+                        log.debug(
+                            "Skipping the summary line {} for file {}".format(detail, p)
+                        )
+                        continue
+
                     l = detail["spans"][0]
                     if onlyIn and onlyIn not in p:
                         # Case when we have a .rs in the include list in the yaml file
-                        log.debug("{} is not part of the list of files '{}'".format(p, onlyIn))
+                        log.debug(
+                            "{} is not part of the list of files '{}'".format(p, onlyIn)
+                        )
                         continue
                     res = {
                         "path": p,
@@ -87,23 +112,25 @@ def get_cargo_binary(log):
     return which("cargo")
 
 
-def is_clippy_installed(binary):
+def get_clippy_version(log, binary):
     """
     Check if we are running the deprecated rustfmt
     """
     try:
         output = subprocess.check_output(
-            [binary, "clippy", "--help"],
+            [binary, "clippy", "--version"],
             stderr=subprocess.STDOUT,
             universal_newlines=True,
         )
-    except subprocess.CalledProcessError as e:
-        output = e.output
+    except subprocess.CalledProcessError:
+        # --version failed, clippy isn't installed.
+        return False
 
-    if "Checks a package" in output:
-        return True
+    log.debug("Found version: {}".format(output))
 
-    return False
+    version = re.findall(r"(\d+-\d+-\d+)", output)[0].replace("-", ".")
+    version = StrictVersion(version)
+    return version
 
 
 class clippyProcess(ProcessHandler):
@@ -136,15 +163,22 @@ def lint(paths, config, fix=None, **lintargs):
 
     if not cargo:
         print(CARGO_NOT_FOUND)
-        if 'MOZ_AUTOMATION' in os.environ:
+        if "MOZ_AUTOMATION" in os.environ:
             return 1
         return []
 
-    if not is_clippy_installed(cargo):
-        print(CLIPPY_NOT_FOUND)
-        if 'MOZ_AUTOMATION' in os.environ:
-            return 1
-        return []
+    min_version_str = config.get("min_clippy_version")
+    min_version = StrictVersion(min_version_str)
+    actual_version = get_clippy_version(log, cargo)
+    log.debug(
+        "Found version: {}. Minimal expected version: {}".format(
+            actual_version, min_version
+        )
+    )
+
+    if actual_version < min_version:
+        print(CLIPPY_WRONG_VERSION.format(version=min_version_str))
+        return 1
 
     cmd_args_clean = [cargo]
     cmd_args_clean.append("clean")
@@ -152,12 +186,17 @@ def lint(paths, config, fix=None, **lintargs):
     cmd_args_common = ["--manifest-path"]
     cmd_args_clippy = [
         cargo,
-        'clippy',
-        '--message-format=json',
+        "clippy",
+        "--message-format=json",
     ]
 
-    results = []
+    lock_files_to_delete = []
+    for p in paths:
+        lock_file = os.path.join(p, "Cargo.lock")
+        if not os.path.exists(lock_file):
+            lock_files_to_delete.append(lock_file)
 
+    results = []
     for p in paths:
         # Quick sanity check of the paths
         if p.endswith("Cargo.toml"):
@@ -182,7 +221,7 @@ def lint(paths, config, fix=None, **lintargs):
             # Make sure that we don't display that either
             onlyIn = p
 
-        cargo_files = get_ancestors_by_name('Cargo.toml', p, lintargs['root'])
+        cargo_files = get_ancestors_by_name("Cargo.toml", p, lintargs["root"])
         p = cargo_files[0]
 
         log.debug("Path translated to = {}".format(p))
@@ -194,6 +233,13 @@ def lint(paths, config, fix=None, **lintargs):
         base_command = cmd_args_clippy + cmd_args_common + [p]
         output = run_process(log, config, base_command)
 
+        # Remove build artifacts created by clippy
+        run_process(log, config, clean_command)
         results += parse_issues(log, config, output, p, onlyIn)
+
+    # Remove Cargo.lock files created by clippy
+    for lock_file in lock_files_to_delete:
+        if os.path.exists(lock_file):
+            os.remove(lock_file)
 
     return sorted(results, key=lambda issue: issue.path)

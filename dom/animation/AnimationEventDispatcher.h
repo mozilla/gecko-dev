@@ -16,8 +16,8 @@
 #include "mozilla/dom/AnimationPlaybackEvent.h"
 #include "nsCSSProps.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsPresContext.h"
 
-class nsPresContext;
 class nsRefreshDriver;
 
 namespace mozilla {
@@ -156,8 +156,7 @@ class AnimationEventDispatcher final {
 
     SortEvents();
 
-    EventArray events;
-    mPendingEvents.SwapElements(events);
+    EventArray events = std::move(mPendingEvents);
     // mIsSorted will be set to true by SortEvents above, and we leave it
     // that way since mPendingEvents is now empty
     for (AnimationEventInfo& info : events) {

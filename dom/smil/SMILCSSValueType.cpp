@@ -33,7 +33,8 @@ using namespace mozilla::dom;
 
 namespace mozilla {
 
-typedef AutoTArray<RefPtr<RawServoAnimationValue>, 1> ServoAnimationValues;
+using ServoAnimationValues =
+    CopyableAutoTArray<RefPtr<RawServoAnimationValue>, 1>;
 
 /*static*/
 SMILCSSValueType SMILCSSValueType::sSingleton;
@@ -48,7 +49,7 @@ struct ValueWrapper {
                const RefPtr<RawServoAnimationValue>& aValue)
       : mPropID(aPropID), mServoValues{(aValue)} {}
   ValueWrapper(nsCSSPropertyID aPropID, ServoAnimationValues&& aValues)
-      : mPropID(aPropID), mServoValues{aValues} {}
+      : mPropID(aPropID), mServoValues{std::move(aValues)} {}
 
   bool operator==(const ValueWrapper& aOther) const {
     if (mPropID != aOther.mPropID) {
@@ -489,8 +490,7 @@ SMILValue SMILCSSValueType::ValueFromAnimationValue(
   // string passed to CSPAllowsInlineStyle is only used for reporting violations
   // and an intermediate CSS value is not likely to be particularly useful
   // in that case, we just use a generic placeholder string instead.
-  static const nsLiteralString kPlaceholderText =
-      NS_LITERAL_STRING("[SVG animation of CSS]");
+  static const nsLiteralString kPlaceholderText = u"[SVG animation of CSS]"_ns;
   if (doc && !nsStyleUtil::CSPAllowsInlineStyle(nullptr, doc, nullptr, 0, 0,
                                                 kPlaceholderText, nullptr)) {
     return result;

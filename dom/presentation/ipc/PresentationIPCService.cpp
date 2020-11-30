@@ -18,9 +18,8 @@
 #include "PresentationIPCService.h"
 #include "PresentationLog.h"
 
-using namespace mozilla;
-using namespace mozilla::dom;
-using namespace mozilla::ipc;
+namespace mozilla {
+namespace dom {
 
 namespace {
 
@@ -473,3 +472,6 @@ nsresult PresentationIPCService::CloseContentSessionTransport(
 
   return info->Close(aReason);
 }
+
+}  // namespace dom
+}  // namespace mozilla

@@ -9,14 +9,12 @@
 #include "nsContentTreeOwner.h"
 #include "AppWindow.h"
 
-// Helper Classes
-#include "nsAutoPtr.h"
-
 // Interfaces needed to be included
 #include "nsIDOMWindow.h"
 #include "nsIDOMChromeWindow.h"
 #include "nsIBrowserDOMWindow.h"
 #include "nsIEmbeddingSiteWindow.h"
+#include "nsIOpenWindowInfo.h"
 #include "nsIPrompt.h"
 #include "nsIAuthPrompt.h"
 #include "nsIXULBrowserWindow.h"
@@ -28,7 +26,6 @@
 #include "nsIMIMEInfo.h"
 #include "nsIWidget.h"
 #include "nsWindowWatcher.h"
-#include "mozilla/BrowserElementParent.h"
 #include "mozilla/Components.h"
 #include "mozilla/NullPrincipal.h"
 #include "nsDocShell.h"
@@ -85,9 +82,8 @@ nsContentTreeOwner::GetWebBrowserChrome() {
     return nullptr;
   }
 
-  nsCOMPtr<nsPIDOMWindowOuter> outer(docShell->GetWindow());
   if (nsCOMPtr<nsIWebBrowserChrome3> chrome =
-          do_QueryActor(u"WebBrowserChrome", outer)) {
+          do_QueryActor("WebBrowserChrome", docShell->GetDocument())) {
     return chrome.forget();
   }
 
@@ -316,8 +312,7 @@ nsContentTreeOwner::SetPersistence(bool aPersistPosition, bool aPersistSize,
 
   ErrorResult rv;
   if (saveString) {
-    docShellElement->SetAttribute(NS_LITERAL_STRING("persist"), persistString,
-                                  rv);
+    docShellElement->SetAttribute(u"persist"_ns, persistString, rv);
   }
 
   return NS_OK;
@@ -412,15 +407,6 @@ NS_IMETHODIMP nsContentTreeOwner::ShouldLoadURIInThisProcess(nsIURI* aURI,
   return NS_OK;
 }
 
-NS_IMETHODIMP nsContentTreeOwner::ReloadInFreshProcess(
-    nsIDocShell* aDocShell, nsIURI* aURI, nsIReferrerInfo* aReferrerInfo,
-    nsIPrincipal* aTriggeringPrincipal, uint32_t aLoadFlags,
-    nsIContentSecurityPolicy* aCsp, bool* aRetVal) {
-  NS_WARNING("Cannot reload in fresh process from a nsContentTreeOwner!");
-  *aRetVal = false;
-  return NS_OK;
-}
-
 //*****************************************************************************
 // nsContentTreeOwner::nsIWebBrowserChrome
 //*****************************************************************************
@@ -472,11 +458,6 @@ NS_IMETHODIMP nsContentTreeOwner::InitWindow(nativeWindow aParentNativeWindow,
   NS_ENSURE_SUCCESS(SetPositionAndSize(x, y, cx, cy, 0), NS_ERROR_FAILURE);
 
   return NS_OK;
-}
-
-NS_IMETHODIMP nsContentTreeOwner::Create() {
-  NS_ASSERTION(false, "You can't call this");
-  return NS_ERROR_UNEXPECTED;
 }
 
 NS_IMETHODIMP nsContentTreeOwner::Destroy() {
@@ -619,16 +600,14 @@ NS_IMETHODIMP nsContentTreeOwner::SetTitle(const nsAString& aTitle) {
 //*****************************************************************************
 NS_IMETHODIMP
 nsContentTreeOwner::ProvideWindow(
-    mozIDOMWindowProxy* aParent, uint32_t aChromeFlags, bool aCalledFromJS,
-    bool aPositionSpecified, bool aSizeSpecified, nsIURI* aURI,
+    nsIOpenWindowInfo* aOpenWindowInfo, uint32_t aChromeFlags,
+    bool aCalledFromJS, bool aWidthSpecified, nsIURI* aURI,
     const nsAString& aName, const nsACString& aFeatures, bool aForceNoOpener,
     bool aForceNoReferrer, nsDocShellLoadState* aLoadState, bool* aWindowIsNew,
-    BrowsingContext** aReturn) {
-  NS_ENSURE_ARG_POINTER(aParent);
+    dom::BrowsingContext** aReturn) {
+  NS_ENSURE_ARG_POINTER(aOpenWindowInfo);
 
-  auto* parentWin = nsPIDOMWindowOuter::From(aParent);
-  dom::BrowsingContext* parent =
-      parentWin ? parentWin->GetBrowsingContext() : nullptr;
+  RefPtr<dom::BrowsingContext> parent = aOpenWindowInfo->GetParent();
 
   *aReturn = nullptr;
 
@@ -638,56 +617,20 @@ nsContentTreeOwner::ProvideWindow(
   }
 
 #ifdef DEBUG
-  nsCOMPtr<nsIWebNavigation> parentNav = do_GetInterface(aParent);
-  nsCOMPtr<nsIDocShellTreeOwner> parentOwner = do_GetInterface(parentNav);
+  nsCOMPtr<nsIDocShell> docshell = parent->GetDocShell();
+  nsCOMPtr<nsIDocShellTreeOwner> parentOwner = do_GetInterface(docshell);
   NS_ASSERTION(
       SameCOMIdentity(parentOwner, static_cast<nsIDocShellTreeOwner*>(this)),
       "Parent from wrong docshell tree?");
 #endif
 
-  // If aParent is inside an <iframe mozbrowser> and this isn't a request to
-  // open a modal-type window, we're going to create a new <iframe mozbrowser>
-  // and return its window here.
-  nsCOMPtr<nsIDocShell> docshell = do_GetInterface(aParent);
-  if (docshell && docshell->GetIsInMozBrowser() &&
-      !(aChromeFlags & (nsIWebBrowserChrome::CHROME_MODAL |
-                        nsIWebBrowserChrome::CHROME_OPENAS_DIALOG |
-                        nsIWebBrowserChrome::CHROME_OPENAS_CHROME))) {
-    BrowserElementParent::OpenWindowResult opened =
-        BrowserElementParent::OpenWindowInProcess(
-            parent, aURI, aName, aFeatures, aForceNoOpener, aReturn);
-
-    // If OpenWindowInProcess handled the open (by opening it or blocking the
-    // popup), tell our caller not to proceed trying to create a new window
-    // through other means.
-    if (opened != BrowserElementParent::OPEN_WINDOW_IGNORED) {
-      *aWindowIsNew = opened == BrowserElementParent::OPEN_WINDOW_ADDED;
-      return *aWindowIsNew ? NS_OK : NS_ERROR_ABORT;
-    }
-
-    // If we're in an app and the target is _blank, send the url to the OS
-    if (aName.LowerCaseEqualsLiteral("_blank")) {
-      nsCOMPtr<nsIExternalURLHandlerService> exUrlServ(
-          do_GetService(NS_EXTERNALURLHANDLERSERVICE_CONTRACTID));
-      if (exUrlServ) {
-        nsCOMPtr<nsIHandlerInfo> info;
-        bool found;
-        exUrlServ->GetURLHandlerInfoFromOS(aURI, &found, getter_AddRefs(info));
-
-        if (info && found) {
-          info->LaunchWithURI(aURI, nullptr);
-          return NS_ERROR_ABORT;
-        }
-      }
-    }
-  }
-
   int32_t openLocation = nsWindowWatcher::GetWindowOpenLocation(
-      parentWin, aChromeFlags, aCalledFromJS, aPositionSpecified,
-      aSizeSpecified);
+      parent->GetDOMWindow(), aChromeFlags, aCalledFromJS, aWidthSpecified,
+      aOpenWindowInfo->GetIsForPrinting());
 
   if (openLocation != nsIBrowserDOMWindow::OPEN_NEWTAB &&
-      openLocation != nsIBrowserDOMWindow::OPEN_CURRENTWINDOW) {
+      openLocation != nsIBrowserDOMWindow::OPEN_CURRENTWINDOW &&
+      openLocation != nsIBrowserDOMWindow::OPEN_PRINT_BROWSER) {
     // Just open a window normally
     return NS_OK;
   }
@@ -728,8 +671,9 @@ nsContentTreeOwner::ProvideWindow(
     // ourselves.
     RefPtr<NullPrincipal> nullPrincipal =
         NullPrincipal::CreateWithoutOriginAttributes();
-    return browserDOMWin->CreateContentWindow(
-        aURI, aParent, openLocation, flags, nullPrincipal, nullptr, aReturn);
+    return browserDOMWin->CreateContentWindow(aURI, aOpenWindowInfo,
+                                              openLocation, flags,
+                                              nullPrincipal, nullptr, aReturn);
   }
 }
 

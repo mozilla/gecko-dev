@@ -117,7 +117,8 @@ class CookieJarSettings final : public nsICookieJarSettings {
   static already_AddRefed<nsICookieJarSettings> Create();
 
   static already_AddRefed<nsICookieJarSettings> Create(
-      uint32_t aCookieBehavior);
+      uint32_t aCookieBehavior, const nsAString& aPartitionKey,
+      bool aIsFirstPartyIsolated, bool aIsOnContentBlockingAllowList);
 
   static CookieJarSettings* Cast(nsICookieJarSettings* aCS) {
     return static_cast<CookieJarSettings*>(aCS);
@@ -135,6 +136,22 @@ class CookieJarSettings final : public nsICookieJarSettings {
   // internal state and it must be sent beck to the content process.
   bool HasBeenChanged() const { return mToBeMerged; }
 
+  void UpdateIsOnContentBlockingAllowList(nsIChannel* aChannel);
+
+  void SetPartitionKey(nsIURI* aURI);
+  const nsAString& GetPartitionKey() { return mPartitionKey; };
+
+  // Utility function to test if the passed cookiebahvior is
+  // BEHAVIOR_REJECT_TRACKER, BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN or
+  // BEHAVIOR_REJECT_FOREIGN when
+  // network.cookie.rejectForeignWithExceptions.enabled pref is set to true.
+  static bool IsRejectThirdPartyContexts(uint32_t aCookieBehavior);
+
+  // This static method returns true if aCookieBehavior is
+  // BEHAVIOR_REJECT_FOREIGN and
+  // network.cookie.rejectForeignWithExceptions.enabled pref is set to true.
+  static bool IsRejectThirdPartyWithExceptions(uint32_t aCookieBehavior);
+
  private:
   enum State {
     // No cookie permissions are allowed to be stored in this object.
@@ -145,11 +162,15 @@ class CookieJarSettings final : public nsICookieJarSettings {
     eProgressive,
   };
 
-  CookieJarSettings(uint32_t aCookieBehavior, State aState);
+  CookieJarSettings(uint32_t aCookieBehavior, bool aIsFirstPartyIsolated,
+                    State aState);
   ~CookieJarSettings();
 
   uint32_t mCookieBehavior;
+  bool mIsFirstPartyIsolated;
   CookiePermissionList mCookiePermissions;
+  bool mIsOnContentBlockingAllowList;
+  nsString mPartitionKey;
 
   State mState;
 

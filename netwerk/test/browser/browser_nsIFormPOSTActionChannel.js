@@ -3,6 +3,8 @@
  * should be able to accept form POST.
  */
 
+/* eslint-env mozilla/frame-script */
+
 "use strict";
 
 const SCHEME = "x-bug1241377";
@@ -42,17 +44,14 @@ CustomProtocolHandler.prototype = {
   /** nsIFactory */
   createInstance(aOuter, aIID) {
     if (aOuter) {
-      throw Cr.NS_ERROR_NO_AGGREGATION;
+      throw Components.Exception("", Cr.NS_ERROR_NO_AGGREGATION);
     }
     return this.QueryInterface(aIID);
   },
   lockFactory() {},
 
   /** nsISupports */
-  QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIProtocolHandler,
-    Ci.nsIFactory,
-  ]),
+  QueryInterface: ChromeUtils.generateQI(["nsIProtocolHandler", "nsIFactory"]),
   classID: Components.ID("{16d594bc-d9d8-47ae-a139-ea714dc0c35c}"),
 };
 
@@ -76,7 +75,7 @@ CustomChannel.prototype = {
     return this._uploadStream;
   },
   set uploadStream(val) {
-    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+    throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
   },
   setUploadStream(aStream, aContentType, aContentLength) {
     this._uploadStream = aStream;
@@ -103,10 +102,10 @@ CustomChannel.prototype = {
     return -1;
   },
   set contentLength(val) {
-    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+    throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
   },
   open() {
-    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+    throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
   },
   asyncOpen(aListener) {
     var data = `

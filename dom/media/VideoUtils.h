@@ -11,8 +11,6 @@
 #include "MediaInfo.h"
 #include "TimeUnits.h"
 #include "VideoLimits.h"
-#include "mozilla/gfx/Point.h"  // for gfx::IntSize
-#include "mozilla/gfx/Types.h"
 #include "mozilla/AbstractThread.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/CheckedInt.h"
@@ -20,12 +18,14 @@
 #include "mozilla/ReentrantMonitor.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/SharedThreadPool.h"
+#include "mozilla/TaskQueue.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/gfx/Point.h"  // for gfx::IntSize
+#include "mozilla/gfx/Types.h"
 #include "nsCOMPtr.h"
 #include "nsINamed.h"
 #include "nsIThread.h"
 #include "nsITimer.h"
-
 #include "nsThreadUtils.h"
 #include "prtime.h"
 
@@ -155,6 +155,10 @@ void DownmixStereoToMono(mozilla::AudioDataValue* aBuffer, uint32_t aFrames);
 // given AudioInfo and the prefs that are being set.
 uint32_t DecideAudioPlaybackChannels(const AudioInfo& info);
 
+// Decide the sample-rate to use for audio output according to the
+// given AudioInfo and the prefs that are being set.
+uint32_t DecideAudioPlaybackSampleRate(const AudioInfo& info);
+
 bool IsDefaultPlaybackDeviceMono();
 
 bool IsVideoContentType(const nsCString& aContentType);
@@ -181,12 +185,12 @@ class AutoSetOnScopeExit {
 };
 
 enum class MediaThreadType {
-  PLAYBACK,          // MediaDecoderStateMachine and MediaFormatReader
+  CONTROLLER,  // MediaFormatReader, RemoteDecoderManager, MediaDecodeTask and
+               // others
   PLATFORM_DECODER,  // MediaDataDecoder
   PLATFORM_ENCODER,  // MediaDataEncoder
-  MTG_CONTROL,
   WEBRTC_DECODER,
-  MDSM,
+  MDSM,  // MediaDecoderStateMachine
 };
 // Returns the thread pool that is shared amongst all decoder state machines
 // for decoding streams.
@@ -542,7 +546,7 @@ static bool StringListContains(const ListString& aList,
 
 inline void AppendStringIfNotEmpty(nsACString& aDest, nsACString&& aSrc) {
   if (!aSrc.IsEmpty()) {
-    aDest.Append(NS_LITERAL_CSTRING("\n"));
+    aDest.Append("\n"_ns);
     aDest.Append(aSrc);
   }
 }

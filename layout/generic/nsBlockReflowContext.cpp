@@ -279,9 +279,10 @@ void nsBlockReflowContext::ReflowBlock(
     tI = space.LineLeft(mWritingMode, mContainerSize);
     tB = mBCoord;
 
-    if ((mFrame->GetStateBits() & NS_BLOCK_FLOAT_MGR) == 0)
+    if (!mFrame->HasAnyStateBits(NS_BLOCK_FLOAT_MGR)) {
       aFrameRI.mBlockDelta =
           mOuterReflowInput.mBlockDelta + mBCoord - aLine->BStart();
+    }
   }
 
 #ifdef DEBUG
@@ -429,16 +430,11 @@ bool nsBlockReflowContext::PlaceBlock(const ReflowInput& aReflowInput,
                    mMetrics.ISize(mWritingMode), mMetrics.BSize(mWritingMode),
                    mContainerSize);
 
-  WritingMode frameWM = mFrame->GetWritingMode();
-  LogicalPoint logPos =
-      LogicalPoint(mWritingMode, mICoord, mBCoord)
-          .ConvertTo(frameWM, mWritingMode,
-                     mContainerSize - mMetrics.PhysicalSize());
-
   // Now place the frame and complete the reflow process
   nsContainerFrame::FinishReflowChild(
-      mFrame, mPresContext, mMetrics, &aReflowInput, frameWM, logPos,
-      mContainerSize, nsIFrame::ReflowChildFlags::ApplyRelativePositioning);
+      mFrame, mPresContext, mMetrics, &aReflowInput, mWritingMode,
+      LogicalPoint(mWritingMode, mICoord, mBCoord), mContainerSize,
+      nsIFrame::ReflowChildFlags::ApplyRelativePositioning);
 
   aOverflowAreas = mMetrics.mOverflowAreas + mFrame->GetPosition();
 

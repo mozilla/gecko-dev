@@ -62,10 +62,10 @@ function timed(sec, f) {
   timeout(-1);
 }
 
-var parseScriptCpp = { module: false, rustFrontend: false };
-var parseScriptRust = { module: false, rustFrontend: true };
-var parseModuleRust = { module: true, rustFrontend: true };
-var parseModuleCpp = { module: true, rustFrontend: false };
+var parseScriptCpp = { module: false, smoosh: false };
+var parseScriptRust = { module: false, smoosh: true };
+var parseModuleRust = { module: true, smoosh: true };
+var parseModuleCpp = { module: true, smoosh: false };
 function test(code, verbose = false) {
   var isScriptCpp = false,
     isModuleCpp = false,
@@ -139,6 +139,7 @@ function JSFuzzIterate() {
   //   4) You must catch all exceptions.
   let code = String.fromCharCode(...fuzzBuf);
   timed(3, _ => test(code));
+  return 0;
 }
 
 function testFile(file) {

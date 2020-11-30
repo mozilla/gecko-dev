@@ -1,4 +1,3 @@
-// |reftest| skip -- Intl.DateTimeFormat-datetimestyle is not supported
 // Copyright 2018 Igalia, S.L. All rights reserved.
 // This code is governed by the BSD license found in the LICENSE file.
 
@@ -16,6 +15,10 @@ const expected = [
   "weekday", "year", "month", "day",
   // ToDateTimeOptions step 5.
   "hour", "minute", "second",
+  // ToDateTimeOptions step 6.
+  "dateStyle",
+  // ToDateTimeOptions step 7.
+  "timeStyle",
 
   // InitializeDateTimeFormat step 4.
   "localeMatcher",
@@ -23,13 +26,9 @@ const expected = [
   "hour12",
   // InitializeDateTimeFormat step 7.
   "hourCycle",
-  // InitializeDateTimeFormat step 22.
+  // InitializeDateTimeFormat step 23.
   "timeZone",
   // InitializeDateTimeFormat step 28.
-  "dateStyle",
-  // InitializeDateTimeFormat step 30.
-  "timeStyle",
-  // InitializeDateTimeFormat step 33.
   "weekday",
   "era",
   "year",
@@ -40,6 +39,10 @@ const expected = [
   "second",
   "timeZoneName",
   "formatMatcher",
+  // InitializeDateTimeFormat step 32.
+  "dateStyle",
+  // InitializeDateTimeFormat step 33.
+  "timeStyle",
 ];
 
 const actual = [];

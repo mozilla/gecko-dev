@@ -44,30 +44,6 @@ class MainThreadChannelEvent : public ChannelEvent {
   }
 };
 
-// This event is designed to be only used for e10s child channels.
-// The goal is to force the child channel to implement GetNeckoTarget()
-// which should return a labeled main thread event target so that this
-// channel event can be dispatched correctly.
-template <typename T>
-class NeckoTargetChannelEvent : public ChannelEvent {
- public:
-  explicit NeckoTargetChannelEvent(T* aChild) : mChild(aChild) {
-    MOZ_COUNT_CTOR(NeckoTargetChannelEvent);
-  }
-  virtual ~NeckoTargetChannelEvent() {
-    MOZ_COUNT_DTOR(NeckoTargetChannelEvent);
-  }
-
-  already_AddRefed<nsIEventTarget> GetEventTarget() override {
-    MOZ_ASSERT(mChild);
-
-    return mChild->GetNeckoTarget();
-  }
-
- protected:
-  T* mChild;
-};
-
 class ChannelFunctionEvent : public ChannelEvent {
  public:
   ChannelFunctionEvent(
@@ -170,6 +146,10 @@ class ChannelEventQueue final {
   // Resume flushes the queue asynchronously, i.e. items in queue will be
   // dispatched in a new event on the current thread.
   void Resume();
+
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+  bool IsEmpty() const { return mEventQueue.IsEmpty(); }
+#endif
 
  private:
   // Private destructor, to discourage deletion outside of Release():

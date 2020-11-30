@@ -4,10 +4,8 @@
 "use strict";
 
 const {
-  initCssProperties,
-  getCssProperties,
-} = require("devtools/shared/fronts/css-properties");
-const { CSS_PROPERTIES_DB } = require("devtools/shared/css/properties-db");
+  getClientCssProperties,
+} = require("devtools/client/fronts/css-properties");
 
 add_task(async function() {
   await pushPref("layout.css.backdrop-filter.enabled", true);
@@ -29,16 +27,7 @@ async function performTest() {
     "data:text/html," + "<h1>browser_outputParser.js</h1><div></div>"
   );
 
-  // Mock the toolbox that initCssProperties expect so we get the fallback css properties.
-  const toolbox = {
-    target: {
-      client: {},
-      hasActor: () => false,
-      getFront: typeName => ({ getCSSDatabase: () => CSS_PROPERTIES_DB }),
-    },
-  };
-  await initCssProperties(toolbox);
-  const cssProperties = getCssProperties(toolbox);
+  const cssProperties = getClientCssProperties();
 
   const parser = new OutputParser(doc, cssProperties);
   testParseCssProperty(doc, parser);
@@ -526,32 +515,57 @@ function testParseVariable(doc, parser) {
       text: "var(--seen)",
       variables: { "--seen": "chartreuse" },
       expected:
-        '<span>var(<span data-variable="--seen = chartreuse">--seen</span>)' +
+        /* eslint-disable */
+        '<span data-color="chartreuse">' +
+          "<span>var(" +
+            '<span data-variable="--seen = chartreuse">--seen</span>)' +
+          "</span>" +
         "</span>",
+        /* eslint-enable */
     },
     {
       text: "var(--not-seen)",
       variables: {},
       expected:
-        '<span>var(<span class="unmatched-class" ' +
-        'data-variable="--not-seen is not set">--not-seen</span>)</span>',
+        /* eslint-disable */
+        "<span>var(" +
+          '<span class="unmatched-class" data-variable="--not-seen is not set">--not-seen</span>' +
+        ")</span>",
+        /* eslint-enable */
     },
     {
       text: "var(--seen, seagreen)",
       variables: { "--seen": "chartreuse" },
       expected:
-        '<span>var(<span data-variable="--seen = chartreuse">--seen</span>,' +
-        '<span class="unmatched-class"> <span data-color="seagreen"><span>seagreen' +
-        "</span></span></span>)</span>",
+        /* eslint-disable */
+        '<span data-color="chartreuse">' +
+          "<span>var(" +
+            '<span data-variable="--seen = chartreuse">--seen</span>,' +
+            '<span class="unmatched-class"> ' +
+              '<span data-color="seagreen">' +
+                "<span>seagreen</span>" +
+              "</span>" +
+            "</span>)" +
+          "</span>" +
+        "</span>",
+        /* eslint-enable */
     },
     {
       text: "var(--not-seen, var(--seen))",
       variables: { "--seen": "chartreuse" },
       expected:
-        '<span>var(<span class="unmatched-class" ' +
-        'data-variable="--not-seen is not set">--not-seen</span>,<span> <span>var' +
-        '(<span data-variable="--seen = chartreuse">--seen</span>)</span></span>)' +
+        /* eslint-disable */
+        "<span>var(" +
+          '<span class="unmatched-class" data-variable="--not-seen is not set">--not-seen</span>,' +
+          "<span> " +
+            '<span data-color="chartreuse">' +
+              "<span>var(" +
+                '<span data-variable="--seen = chartreuse">--seen</span>)' +
+              "</span>" +
+            "</span>" +
+          "</span>)" +
         "</span>",
+        /* eslint-enable */
     },
   ];
 
@@ -561,7 +575,7 @@ function testParseVariable(doc, parser) {
     };
 
     const frag = parser.parseCssProperty("color", test.text, {
-      isVariableInUse: getValue,
+      getVariableValue: getValue,
       unmatchedVariableClass: "unmatched-class",
     });
 

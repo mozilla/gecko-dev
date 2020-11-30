@@ -132,7 +132,7 @@ already_AddRefed<nsHyphenator> nsHyphenationManager::GetHyphenator(
       // successive trailing subtags with "-*" to find fallback patterns,
       // so "de-DE-1996" -> "de-DE-*" (and then recursively -> "de-*")
       nsAtomCString localeStr(aLocale);
-      if (StringEndsWith(localeStr, NS_LITERAL_CSTRING("-*"))) {
+      if (StringEndsWith(localeStr, "-*"_ns)) {
         localeStr.Truncate(localeStr.Length() - 2);
       }
       int32_t i = localeStr.RFindChar('-');
@@ -140,9 +140,8 @@ already_AddRefed<nsHyphenator> nsHyphenationManager::GetHyphenator(
         localeStr.ReplaceLiteral(i, localeStr.Length() - i, "-*");
         RefPtr<nsAtom> fuzzyLocale = NS_Atomize(localeStr);
         return GetHyphenator(fuzzyLocale);
-      } else {
-        return nullptr;
       }
+      return nullptr;
     }
   }
   nsAutoCString hyphCapPref("intl.hyphenate-capitalized.");
@@ -178,7 +177,7 @@ void nsHyphenationManager::LoadPatternList() {
   nsCOMPtr<nsIFile> greDir;
   rv = dirSvc->Get(NS_GRE_DIR, NS_GET_IID(nsIFile), getter_AddRefs(greDir));
   if (NS_SUCCEEDED(rv)) {
-    greDir->AppendNative(NS_LITERAL_CSTRING("hyphenation"));
+    greDir->AppendNative("hyphenation"_ns);
     LoadPatternListFromDir(greDir);
   }
 
@@ -186,7 +185,7 @@ void nsHyphenationManager::LoadPatternList() {
   rv = dirSvc->Get(NS_XPCOM_CURRENT_PROCESS_DIR, NS_GET_IID(nsIFile),
                    getter_AddRefs(appDir));
   if (NS_SUCCEEDED(rv)) {
-    appDir->AppendNative(NS_LITERAL_CSTRING("hyphenation"));
+    appDir->AppendNative("hyphenation"_ns);
     bool equals;
     if (NS_SUCCEEDED(appDir->Equals(greDir, &equals)) && !equals) {
       LoadPatternListFromDir(appDir);
@@ -197,7 +196,7 @@ void nsHyphenationManager::LoadPatternList() {
   rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_LOCAL_50_DIR,
                               getter_AddRefs(profileDir));
   if (NS_SUCCEEDED(rv)) {
-    profileDir->AppendNative(NS_LITERAL_CSTRING("hyphenation"));
+    profileDir->AppendNative("hyphenation"_ns);
     LoadPatternListFromDir(profileDir);
   }
 }
@@ -205,12 +204,13 @@ void nsHyphenationManager::LoadPatternList() {
 // Extract the locale code we'll use to identify a given hyphenation resource
 // from the path name as found in omnijar or on disk.
 static already_AddRefed<nsAtom> LocaleAtomFromPath(const nsCString& aPath) {
-  MOZ_ASSERT(StringEndsWith(aPath, NS_LITERAL_CSTRING(".hyf")));
+  MOZ_ASSERT(StringEndsWith(aPath, ".hyf"_ns) ||
+             StringEndsWith(aPath, ".dic"_ns));
   nsCString locale(aPath);
-  locale.Truncate(locale.Length() - 4);      // strip ".hyf"
+  locale.Truncate(locale.Length() - 4);      // strip ".hyf" or ".dic"
   locale.Cut(0, locale.RFindChar('/') + 1);  // strip directory
   ToLowerCase(locale);
-  if (StringBeginsWith(locale, NS_LITERAL_CSTRING("hyph_"))) {
+  if (StringBeginsWith(locale, "hyph_"_ns)) {
     locale.Cut(0, 5);
   }
   for (uint32_t i = 0; i < locale.Length(); ++i) {
@@ -234,7 +234,7 @@ void nsHyphenationManager::LoadPatternListFromOmnijar(Omnijar::Type aType) {
   }
 
   nsZipFind* find;
-  zip->FindInit("hyphenation/hyph_*.hyf", &find);
+  zip->FindInit("hyphenation/hyph_*.*", &find);
   if (!find) {
     return;
   }
@@ -286,7 +286,7 @@ void nsHyphenationManager::LoadPatternListFromDir(nsIFile* aDir) {
     nsAutoString dictName;
     file->GetLeafName(dictName);
     NS_ConvertUTF16toUTF8 path(dictName);
-    if (!StringEndsWith(path, NS_LITERAL_CSTRING(".hyf"))) {
+    if (!(StringEndsWith(path, ".hyf"_ns) || StringEndsWith(path, ".dic"_ns))) {
       continue;
     }
     RefPtr<nsAtom> localeAtom = LocaleAtomFromPath(path);
@@ -328,22 +328,23 @@ void nsHyphenationManager::LoadAliases() {
 }
 
 void nsHyphenationManager::ShareHyphDictToProcess(
-    nsIURI* aURI, base::ProcessId aPid,
-    mozilla::ipc::SharedMemoryBasic::Handle* aOutHandle, uint32_t* aOutSize) {
+    nsIURI* aURI, base::ProcessId aPid, base::SharedMemoryHandle* aOutHandle,
+    uint32_t* aOutSize) {
   MOZ_ASSERT(XRE_IsParentProcess());
   // aURI will be referring to an omnijar resource (otherwise just bail).
-  *aOutHandle = ipc::SharedMemoryBasic::NULLHandle();
+  *aOutHandle = base::SharedMemory::NULLHandle();
   *aOutSize = 0;
-  nsCOMPtr<nsIJARURI> jar = do_QueryInterface(aURI);
-  if (!jar) {
-    MOZ_ASSERT_UNREACHABLE("not a JAR resource");
-    return;
-  }
 
   // Extract the locale code from the URI, and get the corresponding
   // hyphenator (loading it into shared memory if necessary).
   nsCString path;
-  jar->GetJAREntry(path);
+  nsCOMPtr<nsIJARURI> jar = do_QueryInterface(aURI);
+  if (jar) {
+    jar->GetJAREntry(path);
+  } else {
+    aURI->GetFilePath(path);
+  }
+
   RefPtr<nsAtom> localeAtom = LocaleAtomFromPath(path);
   RefPtr<nsHyphenator> hyph = GetHyphenator(localeAtom);
   if (!hyph) {

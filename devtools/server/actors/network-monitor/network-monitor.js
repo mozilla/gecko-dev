@@ -29,7 +29,7 @@ const NetworkMonitorActor = ActorClassWithSpec(networkMonitorSpec, {
    * parent process.
    *
    * @param object filters
-   *        Contains an `outerWindowID` attribute when this is used across processes.
+   *        Contains an `browserId` attribute when this is used across processes.
    *        Or a `window` attribute when instanciated in the same process.
    * @param number parentID (optional)
    *        To be removed, specify the ID of the Web console actor.
@@ -61,11 +61,11 @@ const NetworkMonitorActor = ActorClassWithSpec(networkMonitorSpec, {
     this.lastFrames = new Map();
 
     this.onStackTraceAvailable = this.onStackTraceAvailable.bind(this);
-    this.onRequestContent = this.onRequestContent.bind(this);
     this.onSetPreference = this.onSetPreference.bind(this);
     this.onBlockRequest = this.onBlockRequest.bind(this);
     this.onUnblockRequest = this.onUnblockRequest.bind(this);
     this.onSetBlockedUrls = this.onSetBlockedUrls.bind(this);
+    this.onGetBlockedUrls = this.onGetBlockedUrls.bind(this);
     this.onGetNetworkEventActor = this.onGetNetworkEventActor.bind(this);
     this.onDestroyMessage = this.onDestroyMessage.bind(this);
 
@@ -84,10 +84,6 @@ const NetworkMonitorActor = ActorClassWithSpec(networkMonitorSpec, {
       this.onStackTraceAvailable
     );
     this.messageManager.addMessageListener(
-      "debug:request-content:request",
-      this.onRequestContent
-    );
-    this.messageManager.addMessageListener(
       "debug:netmonitor-preference",
       this.onSetPreference
     );
@@ -102,6 +98,10 @@ const NetworkMonitorActor = ActorClassWithSpec(networkMonitorSpec, {
     this.messageManager.addMessageListener(
       "debug:set-blocked-urls",
       this.onSetBlockedUrls
+    );
+    this.messageManager.addMessageListener(
+      "debug:get-blocked-urls",
+      this.onGetBlockedUrls
     );
     this.messageManager.addMessageListener(
       "debug:get-network-event-actor:request",
@@ -119,10 +119,6 @@ const NetworkMonitorActor = ActorClassWithSpec(networkMonitorSpec, {
       this.onStackTraceAvailable
     );
     this.messageManager.removeMessageListener(
-      "debug:request-content:request",
-      this.onRequestContent
-    );
-    this.messageManager.removeMessageListener(
       "debug:netmonitor-preference",
       this.onSetPreference
     );
@@ -137,6 +133,10 @@ const NetworkMonitorActor = ActorClassWithSpec(networkMonitorSpec, {
     this.messageManager.removeMessageListener(
       "debug:set-blocked-urls",
       this.onSetBlockedUrls
+    );
+    this.messageManager.removeMessageListener(
+      "debug:get-blocked-urls",
+      this.onGetBlockedUrls
     );
     this.messageManager.removeMessageListener(
       "debug:get-network-event-actor:request",
@@ -189,49 +189,6 @@ const NetworkMonitorActor = ActorClassWithSpec(networkMonitorSpec, {
     }
   },
 
-  getRequestContentForActor(actor) {
-    const content = actor._response.content;
-    if (
-      actor._discardResponseBody ||
-      actor._truncated ||
-      !content ||
-      !content.size
-    ) {
-      // Do not return the stylesheet text if there is no meaningful content or if it's
-      // still loading. Let the caller handle it by doing its own separate request.
-      return null;
-    }
-
-    if (content.text.type != "longString") {
-      // For short strings, the text is available directly.
-      return {
-        content: content.text,
-        contentType: content.mimeType,
-      };
-    }
-    // For long strings, look up the actor that holds the full text.
-    const longStringActor = this.conn._getOrCreateActor(content.text.actor);
-    if (!longStringActor) {
-      return null;
-    }
-    return {
-      content: longStringActor.str,
-      contentType: content.mimeType,
-    };
-  },
-
-  onRequestContent(msg) {
-    const { url } = msg.data;
-    const actor = this._networkEventActorsByURL.get(url);
-    // Always reply with a message, but with a null `content` if this instance
-    // did not processed this request
-    const content = actor ? this.getRequestContentForActor(actor) : null;
-    this.messageManager.sendAsyncMessage("debug:request-content:response", {
-      url,
-      content,
-    });
-  },
-
   onSetPreference({ data }) {
     if ("saveRequestAndResponseBodies" in data) {
       this.observer.saveRequestAndResponseBodies =
@@ -258,6 +215,14 @@ const NetworkMonitorActor = ActorClassWithSpec(networkMonitorSpec, {
     const { urls } = data;
     this.observer.setBlockedUrls(urls);
     this.messageManager.sendAsyncMessage("debug:set-blocked-urls:response");
+  },
+
+  onGetBlockedUrls() {
+    const urls = this.observer.getBlockedUrls();
+    this.messageManager.sendAsyncMessage(
+      "debug:get-blocked-urls:response",
+      urls
+    );
   },
 
   onGetNetworkEventActor({ data }) {

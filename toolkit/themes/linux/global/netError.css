@@ -17,7 +17,7 @@ html {
 body {
   margin: 0;
   padding: 0 1em;
-  color: -moz-FieldText;
+  color: FieldText;
   font: message-box;
 }
 
@@ -50,7 +50,7 @@ ul {
   border-radius: 10px;
   padding: 3em;
   padding-inline-start: 30px;
-  background: url("moz-icon://stock/gtk-dialog-warning?size=dialog") left 0 no-repeat -moz-Field;
+  background: url("moz-icon://stock/gtk-dialog-warning?size=dialog") left 0 no-repeat Field;
   background-origin: content-box;
 }
 
@@ -62,11 +62,8 @@ ul {
   background-position: right 0;
 }
 
+#errorLongContent,
 #errorTitle {
-  margin-inline-start: 80px;
-}
-
-#errorLongContent {
   margin-inline-start: 80px;
 }
 
@@ -83,29 +80,9 @@ ul {
   font-size: 110%;
 }
 
-#errorLongDesc > p {
-}
-
 #errorTryAgain {
   margin-top: 2em;
   margin-inline-start: 80px;
-}
-
-#brand {
-  position: absolute;
-  right: 0;
-  bottom: -1.5em;
-  margin-inline-end: 10px;
-  opacity: .4;
-}
-
-#brand:dir(rtl) {
-  right: auto;
-  left: 0;
-}
-
-#brand > p {
-  margin: 0;
 }
 
 #errorContainer {

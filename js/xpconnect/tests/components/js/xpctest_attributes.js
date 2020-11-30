@@ -1,13 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-const {XPCOMUtils} = ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+const {ComponentUtils} = ChromeUtils.import("resource://gre/modules/ComponentUtils.jsm");
 
 function TestObjectReadWrite() {}
 TestObjectReadWrite.prototype = {
 
   /* Boilerplate */
-  QueryInterface: ChromeUtils.generateQI([Ci["nsIXPCTestObjectReadWrite"]]),
+  QueryInterface: ChromeUtils.generateQI(["nsIXPCTestObjectReadWrite"]),
   contractID: "@mozilla.org/js/xpc/test/js/ObjectReadWrite;1",
   classID: Components.ID("{8ff41d9c-66e9-4453-924a-7d8de0a5e966}"),
 
@@ -28,7 +28,7 @@ function TestObjectReadOnly() {}
 TestObjectReadOnly.prototype = {
 
   /* Boilerplate */
-  QueryInterface: ChromeUtils.generateQI([Ci["nsIXPCTestObjectReadOnly"]]),
+  QueryInterface: ChromeUtils.generateQI(["nsIXPCTestObjectReadOnly"]),
   contractID: "@mozilla.org/js/xpc/test/js/ObjectReadOnly;1",
   classID: Components.ID("{916c4247-253d-4ed0-a425-adfedf53ecc8}"),
 
@@ -45,4 +45,4 @@ TestObjectReadOnly.prototype = {
 };
 
 
-this.NSGetFactory = XPCOMUtils.generateNSGetFactory([TestObjectReadWrite, TestObjectReadOnly]);
+this.NSGetFactory = ComponentUtils.generateNSGetFactory([TestObjectReadWrite, TestObjectReadOnly]);

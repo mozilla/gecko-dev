@@ -11,6 +11,47 @@ const TLS_ERROR_REPORT_TELEMETRY_AUTO_CHECKED = 2;
 const TLS_ERROR_REPORT_TELEMETRY_AUTO_UNCHECKED = 3;
 const TLS_ERROR_REPORT_TELEMETRY_UI_SHOWN = 0;
 
+// Used to check if we have a specific localized message for an error.
+const KNOWN_ERROR_TITLE_IDS = new Set([
+  // Error titles:
+  "connectionFailure-title",
+  "deniedPortAccess-title",
+  "dnsNotFound-title",
+  "fileNotFound-title",
+  "fileAccessDenied-title",
+  "generic-title",
+  "captivePortal-title",
+  "malformedURI-title",
+  "netInterrupt-title",
+  "notCached-title",
+  "netOffline-title",
+  "contentEncodingError-title",
+  "unsafeContentType-title",
+  "netReset-title",
+  "netTimeout-title",
+  "unknownProtocolFound-title",
+  "proxyConnectFailure-title",
+  "proxyResolveFailure-title",
+  "redirectLoop-title",
+  "unknownSocketType-title",
+  "nssFailure2-title",
+  "csp-xfo-error-title",
+  "corruptedContentError-title",
+  "remoteXUL-title",
+  "sslv3Used-title",
+  "inadequateSecurityError-title",
+  "blockedByPolicy-title",
+  "clockSkewError-title",
+  "networkProtocolError-title",
+  "nssBadCert-title",
+  "nssBadCert-sts-title",
+  "certerror-mitm-title",
+]);
+
+/* The error message IDs from nsserror.ftl get processed into
+ * aboutNetErrorCodes.js which is loaded before we are: */
+/* global KNOWN_ERROR_MESSAGE_IDS */
+
 // The following parameters are parsed from the error URL:
 //   e - the error code
 //   s - custom CSS class to allow alternate styling/favicons
@@ -62,6 +103,11 @@ function toggleDisplay(node) {
 function showCertificateErrorReporting() {
   // Display error reporting UI
   document.getElementById("certificateErrorReporting").style.display = "block";
+}
+
+function showBlockingErrorReporting() {
+  // Display blocking error reporting UI for XFO error and CSP error.
+  document.getElementById("blockingErrorReporting").style.display = "block";
 }
 
 function showPrefChangeContainer() {
@@ -163,6 +209,29 @@ function disallowCertOverridesIfNeeded() {
   }
 }
 
+function setErrorPageStrings(err) {
+  let title = err + "-title";
+
+  let isCertError = err == "nssBadCert";
+  let className = getCSSClass();
+  if (isCertError && (window !== window.top || className == "badStsCert")) {
+    title = err + "-sts-title";
+  }
+
+  let cspXfoError = err === "cspBlocked" || err === "xfoBlocked";
+  if (cspXfoError) {
+    title = "csp-xfo-error-title";
+  }
+
+  let titleElement = document.querySelector(".title-text");
+
+  if (!KNOWN_ERROR_TITLE_IDS.has(title)) {
+    console.error("No strings exist for error:", title);
+    title = "generic-title";
+  }
+  document.l10n.setAttributes(titleElement, title);
+}
+
 function initPage() {
   var err = getErrorCode();
   // List of error pages with an illustration.
@@ -206,15 +275,12 @@ function initPage() {
 
   // if it's an unknown error or there's no title or description
   // defined, get the generic message
-  var errTitle = document.getElementById("et_" + l10nErrId);
   var errDesc = document.getElementById("ed_" + l10nErrId);
-  if (!errTitle || !errDesc) {
-    errTitle = document.getElementById("et_generic");
+  if (!errDesc) {
     errDesc = document.getElementById("ed_generic");
   }
 
-  // eslint-disable-next-line no-unsanitized/property
-  document.querySelector(".title-text").innerHTML = errTitle.innerHTML;
+  setErrorPageStrings(err);
 
   var sd = document.getElementById("errorShortDescText");
   if (sd) {
@@ -264,16 +330,40 @@ function initPage() {
     document.getElementById("netErrorButtonContainer").style.display = "none";
   }
 
+  let learnMoreLink = document.getElementById("learnMoreLink");
+  let baseURL = RPMGetFormatURLPref("app.support.baseURL");
+  learnMoreLink.setAttribute("href", baseURL + "connection-not-secure");
+
   if (err == "cspBlocked" || err == "xfoBlocked") {
     // Remove the "Try again" button for XFO and CSP violations,
     // since it's almost certainly useless. (Bug 553180)
     document.getElementById("netErrorButtonContainer").style.display = "none";
+
+    // Adding a button for opening websites blocked for CSP and XFO violations
+    // in a new window. (Bug 1461195)
+    document.getElementById("errorShortDesc").style.display = "none";
+
+    let hostString = document.location.hostname;
+    let longDescription = document.getElementById("errorLongDesc");
+    document.l10n.setAttributes(longDescription, "csp-xfo-blocked-long-desc", {
+      hostname: hostString,
+    });
+
+    document.getElementById("openInNewWindowContainer").style.display = "block";
+
+    let openInNewWindowButton = document.getElementById(
+      "openInNewWindowButton"
+    );
+    openInNewWindowButton.href = document.location.href;
+
+    // Add a learn more link
+    document.getElementById("learnMoreContainer").style.display = "block";
+    learnMoreLink.setAttribute("href", baseURL + "xframe-neterror-page");
+
+    setupBlockingReportingUI();
   }
 
   setNetErrorMessageFromCode();
-  let learnMoreLink = document.getElementById("learnMoreLink");
-  let baseURL = RPMGetFormatURLPref("app.support.baseURL");
-  learnMoreLink.setAttribute("href", baseURL + "connection-not-secure");
 
   // Pinning errors are of type nssFailure2
   if (err == "nssFailure2") {
@@ -369,6 +459,75 @@ function setupErrorUI() {
   }
 }
 
+function setupBlockingReportingUI() {
+  let checkbox = document.getElementById("automaticallyReportBlockingInFuture");
+
+  let reportingAutomatic = RPMGetBoolPref(
+    "security.xfocsp.errorReporting.automatic"
+  );
+  checkbox.checked = !!reportingAutomatic;
+
+  checkbox.addEventListener("change", function({ target: { checked } }) {
+    onSetBlockingReportAutomatic(checked);
+  });
+
+  let reportingEnabled = RPMGetBoolPref(
+    "security.xfocsp.errorReporting.enabled"
+  );
+
+  if (!reportingEnabled) {
+    return;
+  }
+
+  showBlockingErrorReporting();
+
+  if (reportingAutomatic) {
+    reportBlockingError();
+  }
+}
+
+function reportBlockingError() {
+  // We only report if we are in a frame.
+  if (window === window.top) {
+    return;
+  }
+
+  let err = getErrorCode();
+  // Ensure we only deal with XFO and CSP here.
+  if (!["xfoBlocked", "cspBlocked"].includes(err)) {
+    return;
+  }
+
+  let xfo_header = RPMGetHttpResponseHeader("X-Frame-Options");
+  let csp_header = RPMGetHttpResponseHeader("Content-Security-Policy");
+
+  // Extract the 'CSP: frame-ancestors' from the CSP header.
+  let reg = /(?:^|\s)frame-ancestors\s([^;]*)[$]*/i;
+  let match = reg.exec(csp_header);
+  csp_header = match ? match[1] : "";
+
+  // If it's the csp error page without the CSP: frame-ancestors, this means
+  // this error page is not triggered by CSP: frame-ancestors. So, we bail out
+  // early.
+  if (err === "cspBlocked" && !csp_header) {
+    return;
+  }
+
+  let xfoAndCspInfo = {
+    error_type: err === "xfoBlocked" ? "xfo" : "csp",
+    xfo_header,
+    csp_header,
+  };
+
+  RPMSendAsyncMessage("ReportBlockingError", {
+    scheme: document.location.protocol,
+    host: document.location.host,
+    port: parseInt(document.location.port) || -1,
+    path: document.location.pathname,
+    xfoAndCspInfo,
+  });
+}
+
 function onSetAutomatic(checked) {
   let bin = TLS_ERROR_REPORT_TELEMETRY_AUTO_UNCHECKED;
   if (checked) {
@@ -383,6 +542,15 @@ function onSetAutomatic(checked) {
       host: document.location.host,
       port: parseInt(document.location.port) || -1,
     });
+  }
+}
+
+function onSetBlockingReportAutomatic(checked) {
+  RPMSetBoolPref("security.xfocsp.errorReporting.automatic", checked);
+
+  // If we're enabling reports, send a report for this failure.
+  if (checked) {
+    reportBlockingError();
   }
 }
 
@@ -403,18 +571,18 @@ async function setNetErrorMessageFromCode() {
 
   let desc = document.getElementById("errorShortDescText");
   let errorCodeStr = securityInfo.errorCodeString || "";
+  let errorCodeStrId = errorCodeStr
+    .split("_")
+    .join("-")
+    .toLowerCase();
+  let errorCodeMsg = "";
 
-  let [errorCodeMsg] = await document.l10n.formatValues([
-    {
-      id: errorCodeStr
-        .split("_")
-        .join("-")
-        .toLowerCase(),
-    },
-  ]);
+  if (KNOWN_ERROR_MESSAGE_IDS.has(errorCodeStrId)) {
+    [errorCodeMsg] = await document.l10n.formatValues([errorCodeStrId]);
+  }
 
   if (!errorCodeMsg) {
-    console.error("No strings exist for this error type");
+    console.warn("This error page has no error code in its security info");
     document.l10n.setAttributes(desc, "ssl-connection-error", {
       errorMessage: errorCodeStr,
       hostname: hostString,
@@ -426,6 +594,7 @@ async function setNetErrorMessageFromCode() {
     errorMessage: errorCodeMsg,
     hostname: hostString,
   });
+
   let desc2 = document.getElementById("errorShortDescText2");
   document.l10n.setAttributes(desc2, "cert-error-code-prefix", {
     error: errorCodeStr,
@@ -490,7 +659,46 @@ function initPageCertError() {
     document.querySelector(".exceptionDialogButtonContainer").hidden = true;
   }
 
+  let els = document.querySelectorAll("[data-telemetry-id]");
+  for (let el of els) {
+    el.addEventListener("click", recordClickTelemetry);
+  }
+
+  let failedCertInfo = document.getFailedCertSecurityInfo();
+  // Truncate the error code to avoid going over the allowed
+  // string size limit for telemetry events.
+  let errorCode = failedCertInfo.errorCodeString.substring(0, 40);
+  RPMRecordTelemetryEvent(
+    "security.ui.certerror",
+    "load",
+    "aboutcerterror",
+    errorCode,
+    {
+      has_sts: (getCSSClass() == "badStsCert").toString(),
+      is_frame: (window.parent != window).toString(),
+    }
+  );
+
   setCertErrorDetails();
+}
+
+function recordClickTelemetry(e) {
+  let target = e.originalTarget;
+  let telemetryId = target.dataset.telemetryId;
+  let failedCertInfo = document.getFailedCertSecurityInfo();
+  // Truncate the error code to avoid going over the allowed
+  // string size limit for telemetry events.
+  let errorCode = failedCertInfo.errorCodeString.substring(0, 40);
+  RPMRecordTelemetryEvent(
+    "security.ui.certerror",
+    "click",
+    telemetryId,
+    errorCode,
+    {
+      has_sts: (getCSSClass() == "badStsCert").toString(),
+      is_frame: (window.parent != window).toString(),
+    }
+  );
 }
 
 function initCertErrorPageActions() {
@@ -538,11 +746,14 @@ async function getFailedCertificatesAsPEMString() {
   let errorMessage = failedCertInfo.errorMessage;
   let hasHSTS = failedCertInfo.hasHSTS.toString();
   let hasHPKP = failedCertInfo.hasHPKP.toString();
-  let [hstsLabel] = await document.l10n.formatValues([
+  let [
+    hstsLabel,
+    hpkpLabel,
+    failedChainLabel,
+  ] = await document.l10n.formatValues([
     { id: "cert-error-details-hsts-label", args: { hasHSTS } },
-  ]);
-  let [hpkpLabel] = await document.l10n.formatValues([
     { id: "cert-error-details-key-pinning-label", args: { hasHPKP } },
+    { id: "cert-error-details-cert-chain-label" },
   ]);
 
   let certStrings = failedCertInfo.certChainStrings;
@@ -554,9 +765,6 @@ async function getFailedCertificatesAsPEMString() {
       wrapped +
       "\r\n-----END CERTIFICATE-----\r\n";
   }
-  let [failedChainLabel] = await document.l10n.formatValues([
-    { id: "cert-error-details-cert-chain-label" },
-  ]);
 
   let details =
     location +
@@ -621,6 +829,7 @@ function setCertErrorDetails(event) {
   let clockSkew = false;
   document.body.setAttribute("code", failedCertInfo.errorCodeString);
 
+  let titleElement = document.querySelector(".title-text");
   let desc;
   switch (failedCertInfo.errorCodeString) {
     case "SSL_ERROR_BAD_CERT_DOMAIN":
@@ -684,9 +893,8 @@ function setCertErrorDetails(event) {
 
       learnMoreLink.href = baseURL + "security-error";
 
-      let title = document.getElementById("et_mitm");
+      document.l10n.setAttributes(titleElement, "certerror-mitm-title");
       desc = document.getElementById("ed_mitm");
-      document.querySelector(".title-text").textContent = title.textContent;
       // eslint-disable-next-line no-unsanitized/property
       document.getElementById("errorShortDescText").innerHTML = desc.innerHTML;
 
@@ -726,7 +934,7 @@ function setCertErrorDetails(event) {
       // and adjusting the date per the interval would make the cert valid, warn the user:
       if (
         Math.abs(difference) > 60 * 60 * 24 &&
-        now - lastFetched <= 60 * 60 * 24 * 5 &&
+        now - lastFetched <= 60 * 60 * 24 * 5 * 1000 &&
         certRange.notBefore < approximateDate &&
         certRange.notAfter > approximateDate
       ) {
@@ -760,11 +968,8 @@ function setCertErrorDetails(event) {
       ).textContent = systemDate;
       if (clockSkew) {
         document.body.classList.add("illustrated", "clockSkewError");
-        let clockErrTitle = document.getElementById("et_clockSkewError");
+        document.l10n.setAttributes(titleElement, "clockSkewError-title");
         let clockErrDesc = document.getElementById("ed_clockSkewError");
-        // eslint-disable-next-line no-unsanitized/property
-        document.querySelector(".title-text").textContent =
-          clockErrTitle.textContent;
         desc = document.getElementById("errorShortDescText");
         document.getElementById("errorShortDesc").style.display = "block";
         document.getElementById("certificateErrorReporting").style.display =
@@ -807,6 +1012,14 @@ function setCertErrorDetails(event) {
           let sd2 = document.getElementById("errorShortDescText2");
           // eslint-disable-next-line no-unsanitized/property
           sd2.innerHTML = errDesc2.innerHTML;
+          if (
+            Math.abs(difference) <= 60 * 60 * 24 &&
+            now - lastFetched <= 60 * 60 * 24 * 5 * 1000
+          ) {
+            errWhatToDo = document.getElementById(
+              "es_nssBadCert_SSL_ERROR_BAD_CERT_DOMAIN"
+            );
+          }
         }
 
         if (es) {
@@ -841,7 +1054,10 @@ function setCertErrorDetails(event) {
   }
 }
 
-async function setTechnicalDetailsOnCertError() {
+// The optional argument is only here for testing purposes.
+async function setTechnicalDetailsOnCertError(
+  failedCertInfo = document.getFailedCertSecurityInfo()
+) {
   let technicalInfo = document.getElementById("badCertTechnicalInfo");
 
   function setL10NLabel(l10nId, args = {}, attrs = {}, rewrite = true) {
@@ -882,7 +1098,6 @@ async function setTechnicalDetailsOnCertError() {
   let args = {
     hostname: hostString,
   };
-  let failedCertInfo = document.getFailedCertSecurityInfo();
   if (failedCertInfo.isUntrusted) {
     switch (failedCertInfo.errorCodeString) {
       case "MOZILLA_PKIX_ERROR_MITM_DETECTED":
@@ -927,9 +1142,7 @@ async function setTechnicalDetailsOnCertError() {
         setL10NLabel("cert-error-intro", args);
         setL10NLabel("cert-error-untrusted-default", {}, {}, false);
     }
-  }
-
-  if (failedCertInfo.isDomainMismatch) {
+  } else if (failedCertInfo.isDomainMismatch) {
     let subjectAltNames = failedCertInfo.subjectAltNames.split(",");
     subjectAltNames = subjectAltNames.filter(name => !!name.length);
     let numSubjectAltNames = subjectAltNames.length;
@@ -1007,9 +1220,7 @@ async function setTechnicalDetailsOnCertError() {
     } else {
       setL10NLabel("cert-error-domain-mismatch", { hostname: hostString });
     }
-  }
-
-  if (failedCertInfo.isNotValidAtThisTime) {
+  } else if (failedCertInfo.isNotValidAtThisTime) {
     let notBefore = failedCertInfo.validNotBefore;
     let notAfter = failedCertInfo.validNotAfter;
     args = {
@@ -1034,6 +1245,7 @@ async function setTechnicalDetailsOnCertError() {
       title: failedCertInfo.errorCodeString,
       id: "errorCode",
       "data-l10n-name": "error-code-link",
+      "data-telemetry-id": "error_code_link",
     },
     false
   );
@@ -1057,6 +1269,7 @@ function handleErrorCodeClick(event) {
   let debugInfo = document.getElementById("certificateErrorDebugInformation");
   debugInfo.style.display = "block";
   debugInfo.scrollIntoView({ block: "start", behavior: "smooth" });
+  recordClickTelemetry(event);
 }
 
 /* Only do autofocus if we're the toplevel frame; otherwise we

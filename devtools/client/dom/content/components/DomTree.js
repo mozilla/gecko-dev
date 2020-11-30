@@ -19,7 +19,7 @@ const TreeView = createFactory(
   require("devtools/client/shared/components/tree/TreeView")
 );
 // Reps
-const { REPS, MODE } = require("devtools/client/shared/components/reps/reps");
+const { REPS, MODE } = require("devtools/client/shared/components/reps/index");
 const { Rep } = REPS;
 
 const Grip = REPS.Grip;
@@ -124,7 +124,7 @@ class DomTree extends Component {
       });
 
       // Object can be an objectFront, while Rep always expect grips.
-      if (props && props.object && props.object.getGrip) {
+      if (props?.object?.getGrip) {
         repProps.object = props.object.getGrip();
       }
 

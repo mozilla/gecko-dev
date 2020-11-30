@@ -81,14 +81,24 @@ interface nsILoginManager : nsISupports {
   /**
    * Record that the password of a saved login was used (e.g. submitted or copied).
    *
-   * @param nsILoginInfo aLogin
+   * @param {nsILoginInfo} aLogin
    *        The login record of the password that was used.
+   * @param {boolean} aPrivateContextWithoutExplicitConsent
+   *        If the use was in private browsing AND without the user explicitly choosing to save/update.
+   *        Login use metadata will not be updated in this case but it will stil be counted for telemetry.
+   * @param {AString} aLoginType
+   *        One of "form_login", "form_password", "auth_login", or "prompt_login".
+   *        See saved_login_used in Events.yaml.
+   *        Don't assume that an auth. login is never used in a form and vice-versa. This argument
+   *        indicates the context of how it was used.
+   * @param {boolean} aFilled
+   *        Whether the login was filled, rather than being typed manually.
    *
    * If only the username was used, this method shouldn't be called as we don't
    * want to double-count the use if both the username and password are copied.
    * Copying of the username normally precedes the copying of the password anyways.
    */
-  void recordPasswordUse(in nsILoginInfo aLogin);
+  void recordPasswordUse(in nsILoginInfo aLogin, in boolean aPrivateContextWithoutExplicitConsent, in AString aLoginType, in boolean aFilled);
 
   /**
    * Remove all logins known to login manager.
@@ -102,6 +112,8 @@ interface nsILoginManager : nsISupports {
   /**
    * Fetch all logins in the login manager. An array is always returned;
    * if there are no logins the array is empty.
+   *
+   * @deprecated Use `getAllLoginsAsync` instead.
    *
    * @return An array of nsILoginInfo objects.
    */
@@ -146,6 +158,8 @@ interface nsILoginManager : nsISupports {
   /**
    * Search for logins matching the specified criteria. Called when looking
    * for logins that might be applicable to a form or authentication request.
+   *
+   * @deprecated Use `searchLoginsAsync` instead.
    *
    * @param aOrigin
    *        The origin to restrict searches to. For example: "http://www.site.com".
@@ -197,7 +211,8 @@ interface nsILoginManager : nsISupports {
    * @param {object} matchData
    *        The data used to search as a JS object. This does not follow the same
    *        requirements as findLogins for those fields. Wildcard matches are
-   *        simply not specified.
+   *        simply not specified. If a `guid` is specified then no other properties
+   *        are used (outside of GeckoView).
    * @return A promise resolving to an array of nsILoginInfo objects.
    */
   Promise searchLoginsAsync(in jsval matchData);
@@ -211,10 +226,42 @@ interface nsILoginManager : nsISupports {
    * @param matchData
    *        The data used to search. This does not follow the same
    *        requirements as findLogins for those fields. Wildcard matches are
-   *        simply not specified.
+   *        simply not specified. If a `guid` is specified then no other properties
+   *        are used (outside of GeckoView).
    * @return An array of nsILoginInfo objects.
    */
   Array<nsILoginInfo> searchLogins(in nsIPropertyBag matchData);
+
+  /**
+   * Returns the "sync id" used by Sync to know whether the store is current with
+   * respect to the sync servers.
+   *
+   * Returns null if the data doesn't exist or if the data can't be
+   * decrypted (including if the master-password prompt is cancelled). This is
+   * OK for Sync as it can't even begin syncing if the master-password is
+   * locked as the sync encrytion keys are stored in this login manager.
+   */
+  Promise getSyncID();
+
+  /**
+   * Sets the "sync id" used by Sync to know whether the store is current with
+   * respect to the sync servers. May be set to null.
+   *
+   * Throws if the data can't be encrypted (including if the master-password
+   * prompt is cancelled)
+   */
+  Promise setSyncID(in AString syncID);
+
+  /**
+   * Returns the timestamp of the last sync as a double (in seconds since Epoch
+   * rounded to two decimal places), or 0.0 if the data doesn't exist.
+   */
+  Promise getLastSync();
+
+  /**
+   * Sets the timestamp of the last sync.
+   */
+  Promise setLastSync(in double timestamp);
 
  /**
   * True when a master password prompt is being displayed.

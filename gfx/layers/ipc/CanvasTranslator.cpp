@@ -11,6 +11,7 @@
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/layers/TextureClient.h"
 #include "mozilla/SyncRunnable.h"
+#include "mozilla/Telemetry.h"
 #include "nsTHashtable.h"
 #include "RecordedCanvasEventImpl.h"
 
@@ -99,7 +100,10 @@ static void EnsureAllClosed() {
 
 CanvasTranslator::CanvasTranslator(
     already_AddRefed<CanvasThreadHolder> aCanvasThreadHolder)
-    : gfx::InlineTranslator(), mCanvasThreadHolder(aCanvasThreadHolder) {}
+    : gfx::InlineTranslator(), mCanvasThreadHolder(aCanvasThreadHolder) {
+  // Track when remote canvas has been activated.
+  Telemetry::ScalarAdd(Telemetry::ScalarID::GFX_CANVAS_REMOTE_ACTIVATED, 1);
+}
 
 CanvasTranslator::~CanvasTranslator() {
   if (mReferenceTextureData) {
@@ -121,26 +125,30 @@ mozilla::ipc::IPCResult CanvasTranslator::RecvInitTranslator(
     const CrossProcessSemaphoreHandle& aReaderSem,
     const CrossProcessSemaphoreHandle& aWriterSem) {
   mTextureType = aTextureType;
-#if defined(XP_WIN)
-  if (!CheckForFreshCanvasDevice(__LINE__)) {
-    gfxCriticalNote << "GFX: CanvasTranslator failed to get device";
-    return IPC_FAIL(this, "Failed to get canvas device.");
-  }
-#endif
 
+  // We need to initialize the stream first, because it might be used to
+  // communicate other failures back to the writer.
   mStream = MakeUnique<CanvasEventRingBuffer>();
   if (!mStream->InitReader(aReadHandle, aReaderSem, aWriterSem,
                            MakeUnique<RingBufferReaderServices>(this))) {
     return IPC_FAIL(this, "Failed to initialize ring buffer reader.");
   }
 
+#if defined(XP_WIN)
+  if (!CheckForFreshCanvasDevice(__LINE__)) {
+    gfxCriticalNote << "GFX: CanvasTranslator failed to get device";
+    return IPC_OK();
+  }
+#endif
+
   mTranslationTaskQueue = mCanvasThreadHolder->CreateWorkerTaskQueue();
   return RecvResumeTranslation();
 }
 
 ipc::IPCResult CanvasTranslator::RecvResumeTranslation() {
-  if (!IsValid()) {
-    return IPC_FAIL(this, "Canvas Translation failed.");
+  if (mDeactivated) {
+    // The other side might have sent a resume message before we deactivated.
+    return IPC_OK();
   }
 
   MOZ_ALWAYS_SUCCEEDS(mTranslationTaskQueue->Dispatch(
@@ -151,25 +159,79 @@ ipc::IPCResult CanvasTranslator::RecvResumeTranslation() {
 }
 
 void CanvasTranslator::StartTranslation() {
-  if (!TranslateRecording() && !GetIPCChannel()->Unsound_IsClosed()) {
+  if (!TranslateRecording() && GetIPCChannel()->CanSend()) {
     MOZ_ALWAYS_SUCCEEDS(mTranslationTaskQueue->Dispatch(
         NewRunnableMethod("CanvasTranslator::StartTranslation", this,
                           &CanvasTranslator::StartTranslation)));
   }
+
+  // If the stream has been marked as bad and the Writer hasn't failed,
+  // deactivate remote canvas.
+  if (!mStream->good() && !mStream->WriterFailed()) {
+    Telemetry::ScalarAdd(
+        Telemetry::ScalarID::GFX_CANVAS_REMOTE_DEACTIVATED_BAD_STREAM, 1);
+    Deactivate();
+  }
 }
 
 void CanvasTranslator::ActorDestroy(ActorDestroyReason why) {
+  MOZ_ASSERT(CanvasThreadHolder::IsInCanvasThread());
+
+  if (!mTranslationTaskQueue) {
+    return FinishShutdown();
+  }
+
   mTranslationTaskQueue->BeginShutdown()->Then(
-      MessageLoop::current()->SerialEventTarget(), __func__, this,
+      GetCurrentSerialEventTarget(), __func__, this,
       &CanvasTranslator::FinishShutdown, &CanvasTranslator::FinishShutdown);
 }
 
 void CanvasTranslator::FinishShutdown() {
+  MOZ_ASSERT(CanvasThreadHolder::IsInCanvasThread());
+
   // mTranslationTaskQueue has shutdown we can safely drop the ring buffer to
   // break the cycle caused by RingBufferReaderServices.
   mStream = nullptr;
+
+  // CanvasTranslators has a MOZ_ASSERT(CanvasThreadHolder::IsInCanvasThread())
+  // to ensure it is only called on the Canvas Thread. This takes a lock on
+  // CanvasThreadHolder::sCanvasThreadHolder, which is also locked in
+  // CanvasThreadHolder::StaticRelease on the compositor thread from
+  // ReleaseOnCompositorThread below. If that lock wins the race with the one in
+  // IsInCanvasThread and it is the last CanvasThreadHolder reference then it
+  // shuts down the canvas thread waiting for it to finish. However
+  // IsInCanvasThread is waiting for the lock on the canvas thread and we
+  // deadlock. So, we need to call CanvasTranslators before
+  // ReleaseOnCompositorThread.
+  CanvasTranslatorSet& canvasTranslators = CanvasTranslators();
   CanvasThreadHolder::ReleaseOnCompositorThread(mCanvasThreadHolder.forget());
-  CanvasTranslators().RemoveEntry(this);
+  canvasTranslators.RemoveEntry(this);
+}
+
+void CanvasTranslator::Deactivate() {
+  if (mDeactivated) {
+    return;
+  }
+  mDeactivated = true;
+
+  // We need to tell the other side to deactivate. Make sure the stream is
+  // marked as bad so that the writing side won't wait for space to write.
+  mStream->SetIsBad();
+  mCanvasThreadHolder->DispatchToCanvasThread(
+      NewRunnableMethod("CanvasTranslator::SendDeactivate", this,
+                        &CanvasTranslator::SendDeactivate));
+
+  {
+    // Unlock all of our textures.
+    gfx::AutoSerializeWithMoz2D serializeWithMoz2D(GetBackendType());
+    for (auto const& entry : mTextureDatas) {
+      entry.second->Unlock();
+    }
+  }
+
+  // Also notify anyone waiting for a surface descriptor. This must be done
+  // after mDeactivated is set to true.
+  mSurfaceDescriptorsMonitor.NotifyAll();
 }
 
 bool CanvasTranslator::TranslateRecording() {
@@ -182,7 +244,7 @@ bool CanvasTranslator::TranslateRecording() {
         [&](RecordedEvent* recordedEvent) -> bool {
           // Make sure that the whole event was read from the stream.
           if (!mStream->good()) {
-            if (GetIPCChannel()->Unsound_IsClosed()) {
+            if (!GetIPCChannel()->CanSend()) {
               // The other side has closed only warn about read failure.
               gfxWarning() << "Failed to read event type: "
                            << recordedEvent->GetType();
@@ -195,6 +257,11 @@ bool CanvasTranslator::TranslateRecording() {
 
           return recordedEvent->PlayEvent(this);
         });
+
+    // Check the stream is good here or we will log the issue twice.
+    if (!mStream->good()) {
+      return true;
+    }
 
     if (!success && !HandleExtensionEvent(eventType)) {
       if (mDeviceResetInProgress) {
@@ -225,7 +292,6 @@ bool CanvasTranslator::TranslateRecording() {
     eventType = mStream->ReadNextEvent();
   }
 
-  mIsValid = false;
   return true;
 }
 
@@ -233,7 +299,7 @@ bool CanvasTranslator::TranslateRecording() {
   case _typeenum: {                                                    \
     auto e = _class(*mStream);                                         \
     if (!mStream->good()) {                                            \
-      if (GetIPCChannel()->Unsound_IsClosed()) {                       \
+      if (!GetIPCChannel()->CanSend()) {                               \
         /* The other side has closed only warn about read failure. */  \
         gfxWarning() << "Failed to read event type: " << _typeenum;    \
       } else {                                                         \
@@ -258,8 +324,12 @@ void CanvasTranslator::BeginTransaction() { mIsInTransaction = true; }
 
 void CanvasTranslator::Flush() {
 #if defined(XP_WIN)
-  gfx::AutoSerializeWithMoz2D serializeWithMoz2D(
-      GetReferenceDrawTarget()->GetBackendType());
+  // We can end up without a device, due to a reset and failure to re-create.
+  if (!mDevice) {
+    return;
+  }
+
+  gfx::AutoSerializeWithMoz2D serializeWithMoz2D(GetBackendType());
   RefPtr<ID3D11DeviceContext> deviceContext;
   mDevice->GetImmediateContext(getter_AddRefs(deviceContext));
   deviceContext->Flush();
@@ -291,6 +361,9 @@ bool CanvasTranslator::CreateReferenceTexture() {
 
   mReferenceTextureData->Lock(OpenMode::OPEN_READ_WRITE);
   mBaseDT = mReferenceTextureData->BorrowDrawTarget();
+  if (mBaseDT) {
+    mBackendType = mBaseDT->GetBackendType();
+  }
   return true;
 }
 
@@ -327,7 +400,15 @@ bool CanvasTranslator::CheckForFreshCanvasDevice(int aLineNumber) {
                                  /*aForceDispatch*/ true);
 
   mDevice = gfx::DeviceManagerDx::Get()->GetCanvasDevice();
-  return mDevice && CreateReferenceTexture();
+  if (!mDevice) {
+    // We don't have a canvas device, we need to deactivate.
+    Telemetry::ScalarAdd(
+        Telemetry::ScalarID::GFX_CANVAS_REMOTE_DEACTIVATED_NO_DEVICE, 1);
+    Deactivate();
+    return false;
+  }
+
+  return CreateReferenceTexture();
 #else
   return false;
 #endif
@@ -340,7 +421,7 @@ void CanvasTranslator::NotifyDeviceChanged() {
                         &CanvasTranslator::SendNotifyDeviceChanged));
 }
 
-void CanvasTranslator::AddSurfaceDescriptor(gfx::ReferencePtr aRefPtr,
+void CanvasTranslator::AddSurfaceDescriptor(int64_t aTextureId,
                                             TextureData* aTextureData) {
   UniquePtr<SurfaceDescriptor> descriptor = MakeUnique<SurfaceDescriptor>();
   if (!aTextureData->Serialize(*descriptor)) {
@@ -348,7 +429,7 @@ void CanvasTranslator::AddSurfaceDescriptor(gfx::ReferencePtr aRefPtr,
   }
 
   MonitorAutoLock lock(mSurfaceDescriptorsMonitor);
-  mSurfaceDescriptors[aRefPtr] = std::move(descriptor);
+  mSurfaceDescriptors[aTextureId] = std::move(descriptor);
   mSurfaceDescriptorsMonitor.Notify();
 }
 
@@ -360,38 +441,34 @@ already_AddRefed<gfx::DrawTarget> CanvasTranslator::CreateDrawTarget(
     // It is important that AutoSerializeWithMoz2D is called within the loop
     // and doesn't hold during calls to CheckForFreshCanvasDevice, because that
     // might cause a deadlock with device reset code on the main thread.
-    gfx::AutoSerializeWithMoz2D serializeWithMoz2D(
-        GetReferenceDrawTarget()->GetBackendType());
+    gfx::AutoSerializeWithMoz2D serializeWithMoz2D(GetBackendType());
     TextureData* textureData = CreateTextureData(mTextureType, aSize, aFormat);
     if (textureData) {
+      MOZ_DIAGNOSTIC_ASSERT(mNextTextureId >= 0, "No texture ID set");
       textureData->Lock(OpenMode::OPEN_READ_WRITE);
-      mTextureDatas[aRefPtr] = UniquePtr<TextureData>(textureData);
-      AddSurfaceDescriptor(aRefPtr, textureData);
+      mTextureDatas[mNextTextureId] = UniquePtr<TextureData>(textureData);
+      AddSurfaceDescriptor(mNextTextureId, textureData);
       dt = textureData->BorrowDrawTarget();
     }
   } while (!dt && CheckForFreshCanvasDevice(__LINE__));
   AddDrawTarget(aRefPtr, dt);
+  mNextTextureId = -1;
 
   return dt.forget();
 }
 
-void CanvasTranslator::RemoveDrawTarget(gfx::ReferencePtr aDrawTarget) {
-  InlineTranslator::RemoveDrawTarget(aDrawTarget);
-  gfx::AutoSerializeWithMoz2D serializeWithMoz2D(
-      GetReferenceDrawTarget()->GetBackendType());
-  mTextureDatas.erase(aDrawTarget);
+void CanvasTranslator::RemoveTexture(int64_t aTextureId) {
+  gfx::AutoSerializeWithMoz2D serializeWithMoz2D(GetBackendType());
+  mTextureDatas.erase(aTextureId);
 
   // It is possible that the texture from the content process has never been
-  // forwarded to the GPU process, so we have to make sure it is removed here
-  // otherwise if the same pointer gets used for a DrawTarget again in the
-  // content process then it could pick up the old (now invalid) descriptor.
+  // forwarded to the GPU process, so make sure its descriptor is removed.
   MonitorAutoLock lock(mSurfaceDescriptorsMonitor);
-  mSurfaceDescriptors.erase(aDrawTarget);
+  mSurfaceDescriptors.erase(aTextureId);
 }
 
-TextureData* CanvasTranslator::LookupTextureData(
-    gfx::ReferencePtr aDrawTarget) {
-  TextureMap::const_iterator result = mTextureDatas.find(aDrawTarget);
+TextureData* CanvasTranslator::LookupTextureData(int64_t aTextureId) {
+  TextureMap::const_iterator result = mTextureDatas.find(aTextureId);
   if (result == mTextureDatas.end()) {
     return nullptr;
   }
@@ -399,16 +476,21 @@ TextureData* CanvasTranslator::LookupTextureData(
 }
 
 UniquePtr<SurfaceDescriptor> CanvasTranslator::WaitForSurfaceDescriptor(
-    gfx::ReferencePtr aDrawTarget) {
+    int64_t aTextureId) {
   MonitorAutoLock lock(mSurfaceDescriptorsMonitor);
   DescriptorMap::iterator result;
-  while ((result = mSurfaceDescriptors.find(aDrawTarget)) ==
+  while ((result = mSurfaceDescriptors.find(aTextureId)) ==
          mSurfaceDescriptors.end()) {
+    // If remote canvas has been deactivated just return null.
+    if (mDeactivated) {
+      return nullptr;
+    }
+
     mSurfaceDescriptorsMonitor.Wait();
   }
 
   UniquePtr<SurfaceDescriptor> descriptor = std::move(result->second);
-  mSurfaceDescriptors.erase(aDrawTarget);
+  mSurfaceDescriptors.erase(aTextureId);
   return descriptor;
 }
 

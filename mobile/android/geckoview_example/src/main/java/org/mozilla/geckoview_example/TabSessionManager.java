@@ -1,6 +1,6 @@
 package org.mozilla.geckoview_example;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.geckoview.GeckoSessionSettings;
@@ -12,6 +12,7 @@ public class TabSessionManager {
     private static ArrayList<TabSession> mTabSessions = new ArrayList<>();
     private int mCurrentSessionIndex = 0;
     private TabObserver mTabObserver;
+    private boolean mTrackingProtection;
 
     public interface TabObserver {
         void onCurrentSession(TabSession session);
@@ -37,6 +38,17 @@ public class TabSessionManager {
         }
     }
 
+    public void setUseTrackingProtection(boolean trackingProtection) {
+        if (trackingProtection == mTrackingProtection) {
+            return;
+        }
+        mTrackingProtection = trackingProtection;
+
+        for (final TabSession session : mTabSessions) {
+            session.getSettings().setUseTrackingProtection(trackingProtection);
+        }
+    }
+
     public void setTabObserver(TabObserver observer) {
         mTabObserver = observer;
     }
@@ -46,6 +58,9 @@ public class TabSessionManager {
     }
 
     public TabSession getSession(int index) {
+        if (index >= mTabSessions.size()) {
+            return null;
+        }
         return mTabSessions.get(index);
     }
 

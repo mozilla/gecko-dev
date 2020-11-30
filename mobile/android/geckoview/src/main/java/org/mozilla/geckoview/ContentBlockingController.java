@@ -12,11 +12,11 @@ import org.json.JSONObject;
 import org.mozilla.gecko.EventDispatcher;
 import org.mozilla.gecko.util.GeckoBundle;
 
-import android.support.annotation.AnyThread;
-import android.support.annotation.IntDef;
-import android.support.annotation.Nullable;
-import android.support.annotation.NonNull;
-import android.support.annotation.UiThread;
+import androidx.annotation.AnyThread;
+import androidx.annotation.IntDef;
+import androidx.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.UiThread;
 import android.util.Log;
 
 import java.lang.annotation.Retention;
@@ -67,7 +67,7 @@ public class ContentBlockingController {
          * Returns a ContentBlockingException reconstructed from JSON.
          *
          * @param savedException A JSONObject representation of a saved exception; should be the output of
-         *                       {@link toJson}.
+         *                       {@link #toJson}.
          *
          * @return A ContentBlockingException reconstructed from the supplied JSONObject.
          *
@@ -133,7 +133,7 @@ public class ContentBlockingController {
 
         /**
          * Creates a new exception list from a string. The string should be valid
-         * output from {@link toString}.
+         * output from {@link #toString}.
          *
          * @param savedList A string representation of a saved exception list.
          *
@@ -145,7 +145,7 @@ public class ContentBlockingController {
 
         /**
          * Creates a new exception list from a JSONObject. The JSONObject should be valid
-         * output from {@link toJson}.
+         * output from {@link #toJson}.
          *
          * @param savedList A JSONObject representation of a saved exception list.
          *
@@ -263,7 +263,7 @@ public class ContentBlockingController {
     /**
      * Restore the supplied {@link ExceptionList}, overwriting the existing exception list.
      *
-     * @param list An {@link ExceptionList} originally created by {@link saveExceptionList}.
+     * @param list An {@link ExceptionList} originally created by {@link #saveExceptionList}.
      */
     @Deprecated
     @UiThread
@@ -274,7 +274,7 @@ public class ContentBlockingController {
     /**
      * Restore the supplied List of {@link ContentBlockingException}, overwriting the existing exception list.
      *
-     * @param list A List of {@link ContentBlockingException} originally created by {@link saveExceptionList}.
+     * @param list A List of {@link ContentBlockingException} originally created by {@link #saveExceptionList}.
      */
     @AnyThread
     public void restoreExceptionList(final @NonNull List<ContentBlockingException> list) {
@@ -354,14 +354,14 @@ public class ContentBlockingController {
         public static final int COOKIES_LOADED                  = 0x00008000;
 
         /**
-         * Similar to {@link COOKIES_LOADED}, but only sent if the subject of the
+         * Similar to {@link #COOKIES_LOADED}, but only sent if the subject of the
          * action was a third-party tracker when the active cookie policy imposes
          * restrictions on such content.
          */
         public static final int COOKIES_LOADED_TRACKER          = 0x00040000;
 
         /**
-         * Similar to {@link COOKIES_LOADED}, but only sent if the subject of the
+         * Similar to {@link #COOKIES_LOADED}, but only sent if the subject of the
          * action was a third-party social tracker when the active cookie policy
          * imposes restrictions on such content.
          */
@@ -409,6 +409,20 @@ public class ContentBlockingController {
          * SocialTracking content has been loaded.
          */
         public static final int LOADED_SOCIALTRACKING_CONTENT   = 0x00020000;
+
+        /**
+         * Indicates that content that would have been blocked has instead been
+         * replaced with a shim.
+         * @deprecated use {@link #REPLACED_TRACKING_CONTENT} instead.
+         */
+        @Deprecated
+        public static final int REPLACED_UNSAFE_CONTENT        = 0x00000010;
+
+        /**
+         * Indicates that content that would have been blocked has instead been
+         * replaced with a shim.
+         */
+        public static final int REPLACED_TRACKING_CONTENT       = 0x00000010;
 
         protected Event() {}
     }

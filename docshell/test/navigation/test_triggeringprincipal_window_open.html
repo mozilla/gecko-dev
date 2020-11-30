@@ -36,13 +36,13 @@ function checkFinish() {
 var httpWin = window.open("file_triggeringprincipal_window_open.html", "_blank", "width=10,height=10");
 httpWin.onload = function() {
   var httpChannel = SpecialPowers.wrap(httpWin).docShell.currentDocumentChannel;
-  var httpTriggeringPrincipal = httpChannel.loadInfo.triggeringPrincipal.URI.asciiSpec;
+  var httpTriggeringPrincipal = httpChannel.loadInfo.triggeringPrincipal.asciiSpec;
   var httpLoadingPrincipal = httpChannel.loadInfo.loadingPrincipal;
 
-  is(httpTriggeringPrincipal, TRIGGERING_PRINCIPAL_URI,
+  is(httpTriggeringPrincipal.split("?")[0], TRIGGERING_PRINCIPAL_URI,
      "TriggeringPrincipal for window.open(http:) should be the principal of the document");
 
-  is(httpWin.document.referrer, TRIGGERING_PRINCIPAL_URI,
+  is(httpWin.document.referrer.split("?")[0], TRIGGERING_PRINCIPAL_URI,
      "Referrer for window.open(http:) should be the principal of the document");
 
   is(httpLoadingPrincipal, null,
@@ -57,10 +57,10 @@ httpWin.onload = function() {
 var jsWin = window.open("javascript:'<html><body>js</body></html>';", "_blank", "width=10,height=10");
 jsWin.onload = function() {
   var jsChannel = SpecialPowers.wrap(jsWin).docShell.currentDocumentChannel;
-  var jsTriggeringPrincipal = jsChannel.loadInfo.triggeringPrincipal.URI.asciiSpec;
+  var jsTriggeringPrincipal = jsChannel.loadInfo.triggeringPrincipal.asciiSpec;
   var jsLoadingPrincipal = jsChannel.loadInfo.loadingPrincipal;
 
-  is(jsTriggeringPrincipal, TRIGGERING_PRINCIPAL_URI,
+  is(jsTriggeringPrincipal.split("?")[0], TRIGGERING_PRINCIPAL_URI,
      "TriggeringPrincipal for window.open(javascript:) should be the principal of the document");
 
   is(jsWin.document.referrer, "",

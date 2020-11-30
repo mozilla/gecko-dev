@@ -81,11 +81,8 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
   nscoord GetMinISize(gfxContext* aRenderingContext) final;
   nscoord GetPrefISize(gfxContext* aRenderingContext) final;
   mozilla::IntrinsicSize GetIntrinsicSize() final { return mIntrinsicSize; }
-  mozilla::AspectRatio GetComputedIntrinsicRatio() const {
+  mozilla::AspectRatio GetIntrinsicRatio() const final {
     return mIntrinsicRatio;
-  }
-  mozilla::AspectRatio GetIntrinsicRatio() final {
-    return GetComputedIntrinsicRatio();
   }
   void Reflow(nsPresContext*, ReflowOutput&, const ReflowInput&,
               nsReflowStatus&) override;
@@ -118,13 +115,11 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
 #ifdef DEBUG_FRAME_DUMP
   nsresult GetFrameName(nsAString& aResult) const override;
   void List(FILE* out = stderr, const char* aPrefix = "",
-            uint32_t aFlags = 0) const final;
+            ListFlags aFlags = ListFlags()) const final;
 #endif
 
   LogicalSides GetLogicalSkipSides(
       const ReflowInput* aReflowInput = nullptr) const final;
-
-  nsresult GetIntrinsicImageSize(nsSize& aSize);
 
   static void ReleaseGlobals() {
     if (gIconLoad) {
@@ -137,7 +132,7 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
   nsresult StopAnimation();
 
   already_AddRefed<imgIRequest> GetCurrentRequest() const;
-  nsresult Notify(imgIRequest*, int32_t aType, const nsIntRect* aData);
+  void Notify(imgIRequest*, int32_t aType, const nsIntRect* aData);
 
   /**
    * Function to test whether given an element and its style, that element
@@ -221,11 +216,13 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
     return !HasAnyStateBits(NS_FRAME_FIRST_REFLOW);
   }
 
-  mozilla::LogicalSize ComputeSize(
-      gfxContext* aRenderingContext, mozilla::WritingMode aWritingMode,
-      const mozilla::LogicalSize& aCBSize, nscoord aAvailableISize,
-      const mozilla::LogicalSize& aMargin, const mozilla::LogicalSize& aBorder,
-      const mozilla::LogicalSize& aPadding, ComputeSizeFlags aFlags) final;
+  SizeComputationResult ComputeSize(gfxContext* aRenderingContext,
+                                    mozilla::WritingMode aWM,
+                                    const mozilla::LogicalSize& aCBSize,
+                                    nscoord aAvailableISize,
+                                    const mozilla::LogicalSize& aMargin,
+                                    const mozilla::LogicalSize& aBorderPadding,
+                                    mozilla::ComputeSizeFlags aFlags) final;
 
   bool IsServerImageMap();
 
@@ -267,9 +264,9 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
   friend class nsImageLoadingContent;
   friend class mozilla::PresShell;
 
-  nsresult OnSizeAvailable(imgIRequest* aRequest, imgIContainer* aImage);
-  nsresult OnFrameUpdate(imgIRequest* aRequest, const nsIntRect* aRect);
-  nsresult OnLoadComplete(imgIRequest* aRequest, nsresult aStatus);
+  void OnSizeAvailable(imgIRequest* aRequest, imgIContainer* aImage);
+  void OnFrameUpdate(imgIRequest* aRequest, const nsIntRect* aRect);
+  void OnLoadComplete(imgIRequest* aRequest, nsresult aStatus);
 
   /**
    * Notification that aRequest will now be the current request.
@@ -291,6 +288,8 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
   nsRect PredictedDestRect(const nsRect& aFrameContentBox);
 
  private:
+  void MaybeRecordContentUrlOnImageTelemetry();
+
   // random helpers
   inline void SpecToURI(const nsAString& aSpec, nsIURI** aURI);
 
@@ -363,6 +362,9 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
   nsCOMPtr<imgIContainer> mPrevImage;
   nsSize mComputedSize;
   mozilla::IntrinsicSize mIntrinsicSize;
+
+  // Stores mImage's intrinsic ratio, or a default AspectRatio if there's no
+  // intrinsic ratio.
   mozilla::AspectRatio mIntrinsicRatio;
 
   const Kind mKind;
@@ -408,7 +410,7 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
     }
 
    private:
-    ~IconLoad() {}
+    ~IconLoad() = default;
 
     void GetPrefs();
     nsTObserverArray<nsImageFrame*> mIconObservers;

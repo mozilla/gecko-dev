@@ -6,6 +6,7 @@
 // Tests that the platform can load the osclientcerts module.
 
 // Ensure that the appropriate initialization has happened.
+Services.prefs.setBoolPref("security.osclientcerts.autoload", false);
 do_get_profile();
 
 const { TestUtils } = ChromeUtils.import(
@@ -26,7 +27,10 @@ async function check_osclientcerts_module_loaded() {
     slot => slot.name
   );
   testModuleSlotNames.sort();
-  const expectedSlotNames = ["OS Client Cert Slot"];
+  const expectedSlotNames = [
+    "OS Client Cert Slot (Legacy)",
+    "OS Client Cert Slot (Modern)",
+  ];
   deepEqual(
     testModuleSlotNames,
     expectedSlotNames,

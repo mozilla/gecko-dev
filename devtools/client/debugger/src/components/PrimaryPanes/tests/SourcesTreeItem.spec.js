@@ -6,16 +6,35 @@
 
 import React from "react";
 import { shallow } from "enzyme";
-import { showMenu } from "devtools-contextmenu";
+import { showMenu } from "../../../context-menu/menu";
 
 import SourcesTreeItem from "../SourcesTreeItem";
-import { makeMockSource } from "../../../utils/test-mockup";
+import { makeMockDisplaySource } from "../../../utils/test-mockup";
 import { copyToTheClipboard } from "../../../utils/clipboard";
 
-jest.mock("devtools-contextmenu", () => ({ showMenu: jest.fn() }));
+jest.mock("../../../context-menu/menu", () => ({ showMenu: jest.fn() }));
 jest.mock("../../../utils/clipboard", () => ({
   copyToTheClipboard: jest.fn(),
 }));
+
+const blackBoxAllContexMenuItem = {
+  id: "node-blackbox-all",
+  label: "Ignore",
+  submenu: [
+    {
+      id: "node-blackbox-all-inside",
+      label: "Ignore files in this directory",
+      disabled: false,
+      click: expect.any(Function),
+    },
+    {
+      id: "node-blackbox-all-outside",
+      label: "Ignore files outside this directory",
+      disabled: false,
+      click: expect.any(Function),
+    },
+  ],
+};
 
 describe("SourceTreeItem", () => {
   afterEach(() => {
@@ -55,6 +74,7 @@ describe("SourceTreeItem", () => {
           id: "node-set-directory-root",
           label: "Set directory root",
         },
+        blackBoxAllContexMenuItem,
       ];
       const mockEvent = {
         preventDefault: jest.fn(),
@@ -85,11 +105,11 @@ describe("SourceTreeItem", () => {
           label: "Copy source URI",
         },
         {
-          accesskey: "B",
+          accesskey: "I",
           click: expect.any(Function),
           disabled: false,
           id: "node-menu-blackbox",
-          label: "Blackbox source",
+          label: "Ignore source",
         },
         {
           accesskey: "d",
@@ -120,7 +140,7 @@ describe("SourceTreeItem", () => {
       expect(copyToTheClipboard).toHaveBeenCalled();
     });
 
-    it("shows context menu on file to blackbox source", async () => {
+    it("shows context menu on file to ignore source", async () => {
       const menuOptions = [
         {
           accesskey: "u",
@@ -130,11 +150,11 @@ describe("SourceTreeItem", () => {
           label: "Copy source URI",
         },
         {
-          accesskey: "B",
+          accesskey: "I",
           click: expect.any(Function),
           disabled: false,
           id: "node-menu-blackbox",
-          label: "Blackbox source",
+          label: "Ignore source",
         },
         {
           accesskey: "d",
@@ -166,6 +186,57 @@ describe("SourceTreeItem", () => {
       expect(props.toggleBlackBox).toHaveBeenCalled();
     });
 
+    it("shows context menu on directory to ignore all with submenu options", async () => {
+      const menuOptions = [
+        {
+          click: expect.any(Function),
+          disabled: false,
+          id: "node-menu-collapse-all",
+          label: "Collapse all",
+        },
+        {
+          click: expect.any(Function),
+          disabled: false,
+          id: "node-menu-expand-all",
+          label: "Expand all",
+        },
+        {
+          click: expect.any(Function),
+          disabled: false,
+          id: "node-remove-directory-root",
+          label: "Remove directory root",
+        },
+        blackBoxAllContexMenuItem,
+      ];
+
+      const { props, instance } = render({
+        projectRoot: "root/",
+      });
+
+      const mockEvent = {
+        preventDefault: jest.fn(),
+        stopPropagation: jest.fn(),
+      };
+
+      await instance.onContextMenu(
+        mockEvent,
+        createMockDirectory("root/", "root")
+      );
+
+      expect(showMenu).toHaveBeenCalledWith(mockEvent, menuOptions);
+
+      expect(mockEvent.preventDefault).toHaveBeenCalled();
+      expect(mockEvent.stopPropagation).toHaveBeenCalled();
+
+      showMenu.mock.calls[0][1][3].submenu[0].click();
+      showMenu.mock.calls[0][1][3].submenu[1].click();
+
+      expect(props.setProjectDirectoryRoot).not.toHaveBeenCalled();
+      expect(props.clearProjectDirectoryRoot).not.toHaveBeenCalled();
+
+      expect(props.blackBoxSources.mock.calls).toHaveLength(2);
+    });
+
     it("shows context menu on file to download source file", async () => {
       const menuOptions = [
         {
@@ -176,11 +247,11 @@ describe("SourceTreeItem", () => {
           label: "Copy source URI",
         },
         {
-          accesskey: "B",
+          accesskey: "I",
           click: expect.any(Function),
           disabled: false,
           id: "node-menu-blackbox",
-          label: "Blackbox source",
+          label: "Ignore source",
         },
         {
           accesskey: "d",
@@ -237,6 +308,7 @@ describe("SourceTreeItem", () => {
           id: "node-remove-directory-root",
           label: "Remove directory root",
         },
+        blackBoxAllContexMenuItem,
       ];
       const { props, instance } = render({
         projectRoot: "root/",
@@ -348,10 +420,13 @@ describe("SourceTreeItem", () => {
       expect(node).toMatchSnapshot();
     });
 
-    it("should show source item with blackbox icon", async () => {
+    it("should show source item with ignore icon", async () => {
       const isBlackBoxed = true;
       const mockSource = {
-        ...makeMockSource("http://mdn.com/one.js", "server1.conn13.child1/39"),
+        ...makeMockDisplaySource(
+          "http://mdn.com/one.js",
+          "server1.conn13.child1/39"
+        ),
         isBlackBoxed,
       };
       const node = render({
@@ -364,7 +439,7 @@ describe("SourceTreeItem", () => {
     it("should show source item with prettyPrint icon", async () => {
       const node = render({
         item: createMockItem(),
-        hasPrettySource: true,
+        hasPrettyTab: true,
       });
       expect(node).toMatchSnapshot();
     });
@@ -466,7 +541,7 @@ describe("SourceTreeItem", () => {
 });
 
 function generateDefaults(overrides) {
-  const source = makeMockSource(
+  const source = makeMockDisplaySource(
     "http://mdn.com/one.js",
     "server1.conn13.child1/39"
   );
@@ -489,6 +564,17 @@ function generateDefaults(overrides) {
     selectItem: jest.fn(),
     focusItem: jest.fn(),
     setExpanded: jest.fn(),
+    blackBoxSources: jest.fn(),
+    getSourcesGroups: () => {
+      return {
+        sourcesInside: [
+          makeMockDisplaySource("https://example.com/a.js", "actor1"),
+        ],
+        sourcesOuside: [
+          makeMockDisplaySource("https://example.com/b.js", "actor2"),
+        ],
+      };
+    },
     threads: [{ name: "Main Thread" }],
     ...overrides,
   };
@@ -521,7 +607,7 @@ function createMockItem(overrides = {}) {
   overrides = {
     ...overrides,
     contents: {
-      ...makeMockSource(undefined, "server1.conn13.child1/39"),
+      ...makeMockDisplaySource(undefined, "server1.conn13.child1/39"),
       ...(overrides.contents || {}),
     },
   };

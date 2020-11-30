@@ -432,11 +432,9 @@ bool gfxContext::CurrentDash(FallibleTArray<Float>& dashes,
   const AzureState& state = CurrentState();
   int count = state.strokeOptions.mDashLength;
 
-  if (count <= 0 || !dashes.SetLength(count, fallible)) {
+  if (count <= 0 || !dashes.Assign(state.dashPattern, fallible)) {
     return false;
   }
-
-  dashes = state.dashPattern;
 
   *offset = state.strokeOptions.mDashOffset;
 
@@ -590,19 +588,19 @@ bool gfxContext::ClipContainsRect(const gfxRect& aRect) {
 
 // rendering sources
 
-void gfxContext::SetColor(const Color& aColor) {
+void gfxContext::SetColor(const sRGBColor& aColor) {
   CURRENTSTATE_CHANGED()
   CurrentState().pattern = nullptr;
   CurrentState().color = ToDeviceColor(aColor);
 }
 
-void gfxContext::SetDeviceColor(const Color& aColor) {
+void gfxContext::SetDeviceColor(const DeviceColor& aColor) {
   CURRENTSTATE_CHANGED()
   CurrentState().pattern = nullptr;
   CurrentState().color = aColor;
 }
 
-bool gfxContext::GetDeviceColor(Color& aColorOut) {
+bool gfxContext::GetDeviceColor(DeviceColor& aColorOut) {
   if (CurrentState().pattern) {
     return CurrentState().pattern->GetSolidColor(aColorOut);
   }

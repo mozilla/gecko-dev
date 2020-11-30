@@ -5,6 +5,7 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 # ***** END LICENSE BLOCK *****
 import copy
+import gzip
 import json
 import os
 import sys
@@ -93,6 +94,25 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidM
             "default": [],
             "help": "Defines an extra user preference."}
          ],
+        [["--skip-implementation-status"], {
+            "action": "extend",
+            "dest": "skip_implementation_status",
+            "default": [],
+            "help": "Defines a way to not run a specific implementation status "
+                    " (i.e. not implemented)."}
+         ],
+        [["--backlog"], {
+            "action": "store_true",
+            "dest": "backlog",
+            "default": False,
+            "help": "Defines if test category is backlog."}
+         ],
+        [["--skip-timeout"], {
+            "action": "store_true",
+            "dest": "skip_timeout",
+            "default": False,
+            "help": "Ignore tests that are expected status of TIMEOUT"}
+         ],
         [["--include"], {
             "action": "store",
             "dest": "include",
@@ -108,10 +128,11 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidM
             all_actions=[
                 'clobber',
                 'setup-avds',
-                'start-emulator',
                 'download-and-extract',
+                'download-and-process-manifest',
                 'create-virtualenv',
                 'pull',
+                'start-emulator',
                 'verify-device',
                 'install',
                 'run-tests',
@@ -153,10 +174,17 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidM
         dirs['abs_test_bin_dir'] = os.path.join(dirs['abs_test_install_dir'], 'bin')
         dirs["abs_wpttest_dir"] = os.path.join(dirs['abs_test_install_dir'], "web-platform")
         dirs['abs_blob_upload_dir'] = os.path.join(abs_dirs['abs_work_dir'], 'blobber_upload_dir')
+        dirs['abs_test_extensions_dir'] = os.path.join(dirs['abs_test_install_dir'],
+                                                       'extensions')
         if self.is_android:
             dirs['abs_xre_dir'] = os.path.join(abs_dirs['abs_work_dir'], 'hostutils')
         if self.is_emulator:
-            dirs['abs_avds_dir'] = self.config.get('avds_dir')
+            dirs['abs_avds_dir'] = os.path.join(abs_dirs["abs_work_dir"], ".android")
+            fetches_dir = os.environ.get('MOZ_FETCHES_DIR')
+            if fetches_dir:
+                dirs['abs_sdk_dir'] = os.path.join(fetches_dir, 'android-sdk-linux')
+            else:
+                dirs['abs_sdk_dir'] = os.path.join(abs_dirs['abs_work_dir'], 'android-sdk-linux')
 
         abs_dirs.update(dirs)
         self.abs_dirs = abs_dirs
@@ -209,27 +237,42 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidM
 
         mozinfo.find_and_update_from_json(dirs['abs_test_install_dir'])
 
+        raw_log_file, error_summary_file = self.get_indexed_logs(dirs['abs_blob_upload_dir'],
+                                                                 'wpt')
+
         cmd += ["--log-raw=-",
-                "--log-raw=%s" % os.path.join(dirs["abs_blob_upload_dir"],
-                                              "wpt_raw.log"),
+                "--log-raw=%s" % raw_log_file,
                 "--log-wptreport=%s" % os.path.join(dirs["abs_blob_upload_dir"],
                                                     "wptreport.json"),
-                "--log-errorsummary=%s" % os.path.join(dirs["abs_blob_upload_dir"],
-                                                       "wpt_errorsummary.log"),
+                "--log-errorsummary=%s" % error_summary_file,
                 "--binary=%s" % self.binary_path,
                 "--symbols-path=%s" % self.symbols_path,
                 "--stackwalk-binary=%s" % self.query_minidump_stackwalk(),
                 "--stackfix-dir=%s" % os.path.join(dirs["abs_test_install_dir"], "bin"),
-                "--run-by-dir=%i" % (3 if not mozinfo.info["asan"] else 0),
                 "--no-pause-after-test",
                 "--instrument-to-file=%s" % os.path.join(dirs["abs_blob_upload_dir"],
-                                                         "wpt_instruments.txt")]
+                                                         "wpt_instruments.txt"),
+                "--specialpowers-path=%s" % os.path.join(dirs['abs_test_extensions_dir'],
+                                                         "specialpowers@mozilla.org.xpi"),
+                ]
+
+        is_windows_7 = mozinfo.info["os"] == "win" and mozinfo.info["os_version"] == "6.1"
+
+        if (self.is_android or
+            "wdspec" in test_types or
+            "fission.autostart=true" in c['extra_prefs'] or
+            # Bug 1392106 - skia error 0x80070005: Access is denied.
+            is_windows_7 and mozinfo.info["debug"]):
+            processes = 1
+        else:
+            processes = 2
+        cmd.append("--processes=%s" % processes)
 
         if self.is_android:
             cmd += ["--device-serial=%s" % self.device_serial,
                     "--package-name=%s" % self.query_package_name()]
 
-        if mozinfo.info["os"] == "win" and mozinfo.info["os_version"] == "6.1":
+        if is_windows_7:
             # On Windows 7 --install-fonts fails, so fall back to a Firefox-specific codepath
             self._install_fonts()
         else:
@@ -246,19 +289,42 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidM
         if c["enable_webrender"]:
             cmd.append("--enable-webrender")
 
+        if c["skip_timeout"]:
+            cmd.append("--skip-timeout")
+
+        for implementation_status in c["skip_implementation_status"]:
+            cmd.append("--skip-implementation-status=%s" % implementation_status)
+
+        # Bug 1643177 - reduce timeout multiplier for web-platform-tests backlog
+        if c['backlog']:
+            cmd.append("--timeout-multiplier=0.25")
+
+        test_paths = set()
         if not (self.verify_enabled or self.per_test_coverage):
-            test_paths = json.loads(os.environ.get('MOZHARNESS_TEST_PATHS', '""'))
-            if test_paths:
-                keys = (['web-platform-tests-%s' % test_type for test_type in test_types] +
-                        ['web-platform-tests'])
-                for key in keys:
-                    if key in test_paths:
-                        relpaths = [os.path.relpath(p, 'testing/web-platform')
-                                    for p in test_paths.get(key, [])]
-                        paths = [os.path.join(dirs["abs_wpttest_dir"], relpath)
-                                 for relpath in relpaths]
-                        cmd.extend(paths)
+            mozharness_test_paths = json.loads(os.environ.get('MOZHARNESS_TEST_PATHS', '""'))
+            if mozharness_test_paths:
+                path = os.path.join(
+                    dirs["abs_fetches_dir"], 'wpt_tests_by_group.json')
+
+                if not os.path.exists(path):
+                    self.critical('Unable to locate web-platform-test groups file.')
+
+                cmd.append("--test-groups={}".format(path))
+
+                for key in mozharness_test_paths.keys():
+                    paths = mozharness_test_paths.get(key, [])
+                    for path in paths:
+                        if not path.startswith("/"):
+                            # Assume this is a filesystem path rather than a test id
+                            path = os.path.relpath(path, 'testing/web-platform')
+                            if ".." in path:
+                                self.fatal("Invalid WPT path: {}".format(path))
+                            path = os.path.join(dirs["abs_wpttest_dir"], path)
+                        test_paths.add(path)
             else:
+                # As per WPT harness, the --run-by-dir flag is incompatible with
+                # the --test-groups flag.
+                cmd.append("--run-by-dir=%i" % (3 if not mozinfo.info["asan"] else 0))
                 for opt in ["total_chunks", "this_chunk"]:
                     val = c.get(opt)
                     if val:
@@ -276,8 +342,9 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidM
 
         test_type_suite = {
             "testharness": "web-platform-tests",
-            "crashtest": "web-platform-tests-crashtests",
-            "reftest": "web-platform-tests-reftests",
+            "crashtest": "web-platform-tests-crashtest",
+            "print-reftest": "web-platform-tests-print-reftest",
+            "reftest": "web-platform-tests-reftest",
             "wdspec": "web-platform-tests-wdspec",
         }
         for test_type in test_types:
@@ -291,6 +358,8 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidM
         if "include" in c and c["include"]:
             cmd.append("--include=%s" % c["include"])
 
+        cmd.extend(test_paths)
+
         return cmd
 
     def download_and_extract(self):
@@ -298,6 +367,7 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidM
             extract_dirs=["mach",
                           "bin/*",
                           "config/*",
+                          "extensions/*",
                           "mozbase/*",
                           "marionette/*",
                           "tools/*",
@@ -312,6 +382,45 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidM
         if self.mkdir_p(dirs["abs_blob_upload_dir"]) == -1:
             self.fatal("Could not create blobber upload directory")
             # Exit
+
+    def download_and_process_manifest(self):
+        """Downloads the tests-by-manifest JSON mapping generated by the decision task.
+
+        web-platform-tests are chunked in the decision task as of Bug 1608837
+        and this means tests are resolved by the TestResolver as part of this process.
+
+        The manifest file contains tests keyed by the groups generated in
+        TestResolver.get_wpt_group().
+
+        Upon successful call, a JSON file containing only the web-platform test
+        groups are saved in the fetch directory.
+
+        Bug:
+            1634554
+        """
+        dirs = self.query_abs_dirs()
+        url = os.environ.get('TESTS_BY_MANIFEST_URL', '')
+        if not url:
+            self.fatal('TESTS_BY_MANIFEST_URL not defined.')
+
+        artifact_name = url.split('/')[-1]
+
+        # Save file to the MOZ_FETCHES dir.
+        self.download_file(url, file_name=artifact_name,
+                           parent_dir=dirs["abs_fetches_dir"])
+
+        with gzip.open(os.path.join(dirs["abs_fetches_dir"], artifact_name), 'r') as f:
+            tests_by_manifest = json.loads(f.read())
+
+        # We need to filter out non-web-platform-tests without knowing what the
+        # groups are. Fortunately, all web-platform test 'manifests' begin with a
+        # forward slash.
+        test_groups = {key: tests_by_manifest[key] for key in tests_by_manifest.keys()
+                       if key.startswith("/")}
+
+        outfile = os.path.join(dirs["abs_fetches_dir"], "wpt_tests_by_group.json")
+        with open(outfile, 'w+') as f:
+            json.dump(test_groups, f, indent=2, sort_keys=True)
 
     def install(self):
         if self.is_android:

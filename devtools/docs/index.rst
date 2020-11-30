@@ -1,16 +1,8 @@
-========
-DevTools
-========
+=================================
+Firefox DevTools Contributor Docs
+=================================
 
-This collection of linked pages contain design and architectural documents
-for the DevTools implementation in Firefox. DevTools code base lives under
-`devtools` directory.
-
-This `MDN page <https://developer.mozilla.org/en-US/docs/Tools>`__ contains
-information about DevTools features.
-
-This `MDN page <https://www.mozilla.org/en-US/firefox/developer>`__ contains
-information about Developer Edition.
+This is a guide to working on the code for Firefox Developer Tools. If you're looking for help with using the tools, see the `user docs <https://developer.mozilla.org/en-US/docs/Tools>`__. For other ways to get involved, check out our `community site <https://firefox-dev.tools/>`__.
 
 
 Getting Started
@@ -18,7 +10,6 @@ Getting Started
 .. toctree::
    :maxdepth: 1
 
-   Introduction <README.md>
    Getting Started <getting-started/README.md>
    Get a Bugzilla account <getting-started/bugzilla.md>
    Get and build the code <getting-started/build.md>
@@ -73,7 +64,6 @@ Tool Architectures
 .. toctree::
    :maxdepth: 1
 
-   Tool Architectures <tools/tools.md>
    Inspector Panel Architecture <tools/inspector-panel.md>
    Inspector Highlighters <tools/highlighters.md>
    Memory <tools/memory-panel.md>
@@ -88,7 +78,6 @@ Frontend
 .. toctree::
    :maxdepth: 1
 
-  Frontend <frontend/frontend.md>
   Panel SVGs <frontend/svgs.md>
   React <frontend/react.md>
   React Guidelines <frontend/react-guidelines.md>
@@ -103,7 +92,6 @@ Backend
 .. toctree::
    :maxdepth: 1
 
-   Backend <backend/backend.md>
    Remote Debugging Protocol <backend/protocol.md>
    Client API <backend/client-api.md>
    Debugger API <backend/debugger-api.md>

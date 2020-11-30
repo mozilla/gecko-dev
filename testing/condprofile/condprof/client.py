@@ -12,13 +12,22 @@ import tempfile
 import shutil
 import time
 
+from mozprofile.prefs import Preferences
+
 from condprof import check_install  # NOQA
 from condprof import progress
-from condprof.util import download_file, TASK_CLUSTER, logger, ArchiveNotFound
+from condprof.util import (
+    download_file,
+    TASK_CLUSTER,
+    logger,
+    check_exists,
+    ArchiveNotFound,
+)
 from condprof.changelog import Changelog
 
 
-ROOT_URL = "https://firefox-ci-tc.services.mozilla.com/api/index"
+TC_SERVICE = "https://firefox-ci-tc.services.mozilla.com"
+ROOT_URL = TC_SERVICE + "/api/index"
 INDEX_PATH = "gecko.v2.%(repo)s.latest.firefox.condprof-%(platform)s"
 PUBLIC_DIR = "artifacts/public/condprof"
 TC_LINK = ROOT_URL + "/v1/task/" + INDEX_PATH + "/" + PUBLIC_DIR + "/"
@@ -26,14 +35,89 @@ ARTIFACT_NAME = "profile-%(platform)s-%(scenario)s-%(customization)s.tgz"
 CHANGELOG_LINK = (
     ROOT_URL + "/v1/task/" + INDEX_PATH + "/" + PUBLIC_DIR + "/changelog.json"
 )
-DIRECT_LINK = "https://taskcluster-artifacts.net/%(task_id)s/0/public/condprof/"
+ARTIFACTS_SERVICE = "https://taskcluster-artifacts.net"
+DIRECT_LINK = ARTIFACTS_SERVICE + "/%(task_id)s/0/public/condprof/"
 CONDPROF_CACHE = "~/.condprof-cache"
 RETRIES = 3
-RETRY_PAUSE = 30
+RETRY_PAUSE = 45
+
+
+class ServiceUnreachableError(Exception):
+    pass
 
 
 class ProfileNotFoundError(Exception):
     pass
+
+
+class RetriesError(Exception):
+    pass
+
+
+def _check_service(url):
+    """Sanity check to see if we can reach the service root url."""
+
+    def _check():
+        exists, _ = check_exists(url, all_types=True)
+        if not exists:
+            raise ServiceUnreachableError(url)
+
+    try:
+        return _retries(_check)
+    except RetriesError:
+        raise ServiceUnreachableError(url)
+
+
+def _check_profile(profile_dir):
+    """Checks for prefs we need to remove or set."""
+    to_remove = ("gfx.blacklist.", "marionette.")
+
+    def _keep_pref(name, value):
+        for item in to_remove:
+            if not name.startswith(item):
+                continue
+            logger.info("Removing pref %s: %s" % (name, value))
+            return False
+        return True
+
+    def _clean_pref_file(name):
+        js_file = os.path.join(profile_dir, name)
+        prefs = Preferences.read_prefs(js_file)
+        cleaned_prefs = dict([pref for pref in prefs if _keep_pref(*pref)])
+        if name == "prefs.js":
+            # When we start Firefox, forces startupScanScopes to SCOPE_PROFILE (1)
+            # otherwise, side loading will be deactivated and the
+            # Raptor web extension won't be able to run.
+            cleaned_prefs["extensions.startupScanScopes"] = 1
+
+            # adding a marker so we know it's a conditioned profile
+            cleaned_prefs["profile.conditioned"] = True
+
+        with open(js_file, "w") as f:
+            Preferences.write(f, cleaned_prefs)
+
+    _clean_pref_file("prefs.js")
+    _clean_pref_file("user.js")
+
+
+def _retries(callable, onerror=None):
+    retries = 0
+    pause = RETRY_PAUSE
+
+    while retries < RETRIES:
+        try:
+            return callable()
+        except Exception as e:
+            if onerror is not None:
+                onerror(e)
+            logger.info("Failed, retrying")
+            retries += 1
+            time.sleep(pause)
+            pause *= 1.5
+
+    # If we reach that point, it means all attempts failed
+    logger.error("All attempt failed")
+    raise RetriesError()
 
 
 def get_profile(
@@ -62,8 +146,10 @@ def get_profile(
     filename = ARTIFACT_NAME % params
     if task_id is None:
         url = TC_LINK % params + filename
+        _check_service(TC_SERVICE)
     else:
         url = DIRECT_LINK % params + filename
+        _check_service(ARTIFACTS_SERVICE)
 
     logger.info("preparing download dir")
     if not download_cache:
@@ -76,54 +162,53 @@ def get_profile(
 
     downloaded_archive = os.path.join(download_dir, filename)
     logger.info("Downloaded archive path: %s" % downloaded_archive)
-    retries = 0
 
-    while retries < RETRIES:
+    def _get_profile():
+        logger.info("Getting %s" % url)
         try:
-            logger.info("Getting %s" % url)
+            archive = download_file(url, target=downloaded_archive)
+        except ArchiveNotFound:
+            raise ProfileNotFoundError(url)
+        try:
+            with tarfile.open(archive, "r:gz") as tar:
+                logger.info("Extracting the tarball content in %s" % target_dir)
+                size = len(list(tar))
+                with progress.Bar(expected_size=size) as bar:
+
+                    def _extract(self, *args, **kw):
+                        if not TASK_CLUSTER:
+                            bar.show(bar.last_progress + 1)
+                        return self.old(*args, **kw)
+
+                    tar.old = tar.extract
+                    tar.extract = functools.partial(_extract, tar)
+                    tar.extractall(target_dir)
+        except (OSError, tarfile.ReadError) as e:
+            logger.info("Failed to extract the tarball")
+            if download_cache and os.path.exists(archive):
+                logger.info("Removing cached file to attempt a new download")
+                os.remove(archive)
+            raise ProfileNotFoundError(str(e))
+        finally:
+            if not download_cache:
+                shutil.rmtree(download_dir)
+
+        _check_profile(target_dir)
+        logger.info("Success, we have a profile to work with")
+        return target_dir
+
+    def onerror(error):
+        logger.info("Failed to get the profile.")
+        if os.path.exists(downloaded_archive):
             try:
-                archive = download_file(url, target=downloaded_archive)
-            except ArchiveNotFound:
-                raise ProfileNotFoundError(url)
+                os.remove(downloaded_archive)
+            except Exception:
+                logger.error("Could not remove the file")
 
-            try:
-                with tarfile.open(archive, "r:gz") as tar:
-                    logger.info("Extracting the tarball content in %s" % target_dir)
-                    size = len(list(tar))
-                    with progress.Bar(expected_size=size) as bar:
-
-                        def _extract(self, *args, **kw):
-                            if not TASK_CLUSTER:
-                                bar.show(bar.last_progress + 1)
-                            return self.old(*args, **kw)
-
-                        tar.old = tar.extract
-                        tar.extract = functools.partial(_extract, tar)
-                        tar.extractall(target_dir)
-            except (OSError, tarfile.ReadError) as e:
-                logger.info("Failed to extract the tarball")
-                if download_cache and os.path.exists(archive):
-                    logger.info("Removing cached file to attempt a new download")
-                    os.remove(archive)
-                raise ProfileNotFoundError(str(e))
-            finally:
-                if not download_cache:
-                    shutil.rmtree(download_dir)
-            logger.info("Success, we have a profile to work with")
-            return target_dir
-        except Exception:
-            logger.info("Failed to get the profile.")
-            retries += 1
-            if os.path.exists(downloaded_archive):
-                try:
-                    os.remove(downloaded_archive)
-                except Exception:
-                    logger.error("Could not remove the file")
-            time.sleep(RETRY_PAUSE)
-
-    # If we reach that point, it means all attempts failed
-    logger.error("All attempt failed")
-    raise ProfileNotFoundError(url)
+    try:
+        return _retries(_get_profile, onerror)
+    except RetriesError:
+        raise ProfileNotFoundError(url)
 
 
 def read_changelog(platform, repo="mozilla-central"):
@@ -132,9 +217,16 @@ def read_changelog(platform, repo="mozilla-central"):
     logger.info("Getting %s" % changelog_url)
     download_dir = tempfile.mkdtemp()
     downloaded_changelog = os.path.join(download_dir, "changelog.json")
+
+    def _get_changelog():
+        try:
+            download_file(changelog_url, target=downloaded_changelog)
+        except ArchiveNotFound:
+            shutil.rmtree(download_dir)
+            raise ProfileNotFoundError(changelog_url)
+        return Changelog(download_dir)
+
     try:
-        download_file(changelog_url, target=downloaded_changelog)
-    except ArchiveNotFound:
-        shutil.rmtree(download_dir)
+        return _retries(_get_changelog)
+    except Exception:
         raise ProfileNotFoundError(changelog_url)
-    return Changelog(download_dir)

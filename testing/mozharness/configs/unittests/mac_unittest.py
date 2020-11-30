@@ -7,15 +7,17 @@ if 'MOZ_FETCHES_DIR' in os.environ:
     NODEJS_PATH = os.path.join(os.environ["MOZ_FETCHES_DIR"], "node/bin/node")
 
 XPCSHELL_NAME = 'xpcshell'
+HTTP3SERVER_NAME = 'http3server'
 EXE_SUFFIX = ''
 DISABLE_SCREEN_SAVER = False
 ADJUST_MOUSE_AND_SCREEN = False
 #####
 config = {
-    "virtualenv_modules": ['six==1.10.0', 'vcversioner==2.16.0.0'],
+    "virtualenv_modules": ['six==1.13.0', 'vcversioner==2.16.0.0'],
     ###
     "installer_path": INSTALLER_PATH,
     "xpcshell_name": XPCSHELL_NAME,
+    "http3server_name": HTTP3SERVER_NAME,
     "exe_suffix": EXE_SUFFIX,
     "run_file_names": {
         "mochitest": "runtests.py",
@@ -93,6 +95,7 @@ config = {
         },
         "xpcshell": {
             "options": [
+                "--self-test",
                 "--symbols-path=%(symbols_path)s",
                 "--test-plugin-path=%(test_plugin_path)s",
                 "--log-raw=%(raw_log_file)s",
@@ -154,6 +157,7 @@ config = {
     "all_xpcshell_suites": {
         "xpcshell": {
             'options': ["--xpcshell=%(abs_app_dir)s/" + XPCSHELL_NAME,
+                        "--http3server=%(abs_app_dir)s/" + HTTP3SERVER_NAME,
                         "--manifest=tests/xpcshell/tests/xpcshell.ini"],
             'tests': []
         },
@@ -177,6 +181,20 @@ config = {
             "architectures": ["32bit", "64bit"],
             "halt_on_failure": False,
             "enabled": DISABLE_SCREEN_SAVER
+        },
+        {
+            "name": "disable_dock",
+            "cmd": ["defaults", "write", "com.apple.dock", "autohide", "-bool", "true"],
+            "architectures": ["64bit"],
+            "halt_on_failure": True,
+            "enabled": True
+        },
+        {
+            "name": "kill_dock",
+            "cmd": ["killall", "Dock"],
+            "architectures": ["64bit"],
+            "halt_on_failure": True,
+            "enabled": True
         },
         {
             "name": "run mouse & screen adjustment script",

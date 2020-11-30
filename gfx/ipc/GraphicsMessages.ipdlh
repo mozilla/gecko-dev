@@ -35,12 +35,14 @@ struct DevicePrefs
   FeatureStatus advancedLayers;
   FeatureStatus useD2D1;
   FeatureStatus webGPU;
+  FeatureStatus d3d11HwAngle;
 };
 
 struct ContentDeviceData
 {
   DevicePrefs prefs;
   D3D11DeviceStatus d3d11;
+  uint8_t[] cmsOutputProfileData;
 };
 
 // Represents the state of a feature that has failed to initialize.
@@ -77,6 +79,13 @@ struct GfxVarUpdate
 {
   uint32_t index;
   GfxVarValue value;
+};
+
+struct GfxInfoFeatureStatus
+{
+    int32_t feature;
+    int32_t status;
+    nsCString failureId;
 };
 
 } // namespace gfx

@@ -91,12 +91,12 @@ void nsDisplayMathMLError::Paint(nsDisplayListBuilder* aBuilder,
   DrawTarget* drawTarget = aCtx->GetDrawTarget();
   Rect rect = NSRectToSnappedRect(nsRect(pt, mFrame->GetSize()),
                                   appUnitsPerDevPixel, *drawTarget);
-  ColorPattern red(ToDeviceColor(Color(1.f, 0.f, 0.f, 1.f)));
+  ColorPattern red(ToDeviceColor(sRGBColor(1.f, 0.f, 0.f, 1.f)));
   drawTarget->FillRect(rect, red);
 
-  aCtx->SetColor(Color(1.f, 1.f, 1.f));
+  aCtx->SetColor(sRGBColor::OpaqueWhite());
   nscoord ascent = fm->MaxAscent();
-  NS_NAMED_LITERAL_STRING(errorMsg, "invalid-markup");
+  constexpr auto errorMsg = u"invalid-markup"_ns;
   nsLayoutUtils::DrawUniDirString(errorMsg.get(), uint32_t(errorMsg.Length()),
                                   nsPoint(pt.x, pt.y + ascent), *fm, *aCtx);
 }
@@ -518,7 +518,7 @@ nsresult nsMathMLContainerFrame::FinalizeReflow(DrawTarget* aDrawTarget,
         // The Place() call above didn't request FinishReflowChild(),
         // so let's check that we eventually did through Stretch().
         for (nsIFrame* childFrame : PrincipalChildList()) {
-          NS_ASSERTION(!(childFrame->GetStateBits() & NS_FRAME_IN_REFLOW),
+          NS_ASSERTION(!childFrame->HasAnyStateBits(NS_FRAME_IN_REFLOW),
                        "DidReflow() was never called");
         }
       }
@@ -603,9 +603,7 @@ void nsMathMLContainerFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
     return;
   }
 
-  DisplayBorderBackgroundOutline(aBuilder, aLists);
-
-  BuildDisplayListForNonBlockChildren(aBuilder, aLists, DISPLAY_CHILD_INLINE);
+  BuildDisplayListForInline(aBuilder, aLists);
 
 #if defined(DEBUG) && defined(SHOW_BOUNDING_BOX)
   // for visual debug
@@ -759,7 +757,7 @@ bool nsMathMLContainerFrame::ComputeCustomOverflow(
       mBoundingMetrics.rightBearing - mBoundingMetrics.leftBearing,
       mBoundingMetrics.ascent + mBoundingMetrics.descent);
 
-  // REVIEW: Maybe this should contribute only to visual overflow
+  // REVIEW: Maybe this should contribute only to ink overflow
   // and not scrollable?
   aOverflowAreas.UnionAllWith(boundingBox);
   return nsContainerFrame::ComputeCustomOverflow(aOverflowAreas);
@@ -797,7 +795,7 @@ void nsMathMLContainerFrame::ReflowChild(nsIFrame* aChildFrame,
     if (!nsLayoutUtils::GetLastLineBaseline(wm, aChildFrame, &ascent)) {
       // We don't expect any other block children so just place the frame on
       // the baseline instead of going through DidReflow() and
-      // GetBaseline().  This is what nsFrame::GetBaseline() will do anyway.
+      // GetBaseline().  This is what nsIFrame::GetBaseline() will do anyway.
       aDesiredSize.SetBlockStartAscent(aDesiredSize.BSize(wm));
     } else {
       aDesiredSize.SetBlockStartAscent(ascent);
@@ -1101,7 +1099,7 @@ static nscoord GetInterFrameSpacing(int32_t aScriptLevel,
 }
 
 static nscoord GetThinSpace(const nsStyleFont* aStyleFont) {
-  return NSToCoordRound(float(aStyleFont->mFont.size) * float(3) / float(18));
+  return aStyleFont->mFont.size.ScaledBy(3.0f / 18.0f).ToAppUnits();
 }
 
 class nsMathMLContainerFrame::RowChildFrameIterator {
@@ -1144,7 +1142,7 @@ class nsMathMLContainerFrame::RowChildFrameIterator {
     // add inter frame spacing
     const nsStyleFont* font = mParentFrame->StyleFont();
     nscoord space =
-        GetInterFrameSpacing(font->mScriptLevel, prevFrameType, mChildFrameType,
+        GetInterFrameSpacing(font->mMathDepth, prevFrameType, mChildFrameType,
                              &mFromFrameType, &mCarrySpace);
     mX += space * GetThinSpace(font);
     return *this;
@@ -1295,7 +1293,7 @@ static nscoord AddInterFrameSpacingToSize(ReflowOutput& aDesiredSize,
     return 0;
   }
   if (parentContent->IsAnyOfMathMLElements(nsGkAtoms::math, nsGkAtoms::mtd_)) {
-    gap = GetInterFrameSpacingFor(aFrame->StyleFont()->mScriptLevel, parent,
+    gap = GetInterFrameSpacingFor(aFrame->StyleFont()->mMathDepth, parent,
                                   aFrame);
     // add our own italic correction
     nscoord leftCorrection = 0, italicCorrection = 0;
@@ -1339,7 +1337,7 @@ void nsMathMLContainerFrame::DidReflowChildren(nsIFrame* aFirst,
   for (nsIFrame* frame = aFirst; frame != aStop;
        frame = frame->GetNextSibling()) {
     NS_ASSERTION(frame, "aStop isn't a sibling");
-    if (frame->GetStateBits() & NS_FRAME_IN_REFLOW) {
+    if (frame->HasAnyStateBits(NS_FRAME_IN_REFLOW)) {
       // finish off principal descendants, too
       nsIFrame* grandchild = frame->PrincipalChildList().FirstChild();
       if (grandchild) DidReflowChildren(grandchild, nullptr);
@@ -1434,9 +1432,8 @@ void nsMathMLContainerFrame::PropagateFrameFlagFor(nsIFrame* aFrame,
 nsresult nsMathMLContainerFrame::ReportErrorToConsole(
     const char* errorMsgId, const nsTArray<nsString>& aParams) {
   return nsContentUtils::ReportToConsole(
-      nsIScriptError::errorFlag, NS_LITERAL_CSTRING("Layout: MathML"),
-      mContent->OwnerDoc(), nsContentUtils::eMATHML_PROPERTIES, errorMsgId,
-      aParams);
+      nsIScriptError::errorFlag, "Layout: MathML"_ns, mContent->OwnerDoc(),
+      nsContentUtils::eMATHML_PROPERTIES, errorMsgId, aParams);
 }
 
 nsresult nsMathMLContainerFrame::ReportParseError(const char16_t* aAttribute,

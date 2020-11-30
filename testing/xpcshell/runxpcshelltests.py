@@ -19,6 +19,7 @@ import sys
 import tempfile
 import time
 import traceback
+import six
 
 from argparse import Namespace
 from collections import defaultdict, deque, namedtuple
@@ -73,6 +74,7 @@ if os.path.isdir(mozbase):
 
 from manifestparser import TestManifest
 from manifestparser.filters import chunk_by_slice, tags, pathprefix
+from manifestparser.util import normsep
 from mozlog import commandline
 import mozcrash
 import mozfile
@@ -102,12 +104,43 @@ def cleanup_encoding(s):
        points, etc.  If it is a byte string, it is assumed to be
        UTF-8, but it may not be *correct* UTF-8.  Return a
        sanitized unicode object."""
-    if not isinstance(s, basestring):
-        return unicode(s)
-    if not isinstance(s, unicode):
+    if not isinstance(s, six.string_types):
+        if isinstance(s, six.binary_type):
+            return six.ensure_str(s)
+        else:
+            return six.text_type(s)
+    if isinstance(s, six.binary_type):
         s = s.decode('utf-8', 'replace')
     # Replace all C0 and C1 control characters with \xNN escapes.
     return _cleanup_encoding_re.sub(_cleanup_encoding_repl, s)
+
+
+def ensure_bytes(value, encoding='utf-8'):
+    if isinstance(value, six.text_type):
+        return value.encode(encoding)
+    return value
+
+
+def ensure_unicode(value, encoding='utf-8'):
+    if isinstance(value, six.binary_type):
+        return value.decode(encoding)
+    return value
+
+
+def ensure_subprocess_env(env, encoding='utf-8'):
+    """Ensure the environment is in the correct format for the `subprocess`
+    module.
+
+    This will convert all keys and values to bytes on Python 2, and text on
+    Python 3.
+
+    Args:
+        env (dict): Environment to ensure.
+        encoding (str): Encoding to use when converting to/from bytes/text
+                        (default: utf-8).
+    """
+    ensure = ensure_bytes if sys.version_info[0] < 3 else ensure_unicode
+    return {ensure(k, encoding): ensure(v, encoding) for k, v in six.iteritems(env)}
 
 
 """ Control-C handling """
@@ -137,7 +170,6 @@ class XPCShellTestThread(Thread):
         self.debuggerInfo = kwargs.get('debuggerInfo')
         self.jsDebuggerInfo = kwargs.get('jsDebuggerInfo')
         self.pluginsPath = kwargs.get('pluginsPath')
-        self.httpdManifest = kwargs.get('httpdManifest')
         self.httpdJSPath = kwargs.get('httpdJSPath')
         self.headJSPath = kwargs.get('headJSPath')
         self.testharnessdir = kwargs.get('testharnessdir')
@@ -159,8 +191,13 @@ class XPCShellTestThread(Thread):
         self.log = kwargs.get('log')
         self.app_dir_key = kwargs.get('app_dir_key')
         self.interactive = kwargs.get('interactive')
-        self.prefsFile = kwargs.get('prefsFile')
+        self.rootPrefsFile = kwargs.get('rootPrefsFile')
+        self.extraPrefs = kwargs.get('extraPrefs')
         self.verboseIfFails = kwargs.get('verboseIfFails')
+        self.headless = kwargs.get('headless')
+
+        # Default the test prefsFile to the rootPrefsFile.
+        self.prefsFile = self.rootPrefsFile
 
         # only one of these will be set to 1. adding them to the totals in
         # the harness
@@ -261,6 +298,12 @@ class XPCShellTestThread(Thread):
         """
         # timeout is needed by remote xpcshell to extend the
         # remote device timeout. It is not used in this function.
+        if six.PY3:
+            cwd = six.ensure_str(cwd)
+            for i in range(len(cmd)):
+                cmd[i] = six.ensure_str(cmd[i])
+
+        env = ensure_subprocess_env(env)
         if HAVE_PSUTIL:
             popen_func = psutil.Popen
         else:
@@ -287,8 +330,8 @@ class XPCShellTestThread(Thread):
         self.log.info("%s | current directory: %r" % (name, testdir))
         # Show only those environment variables that are changed from
         # the ambient environment.
-        changedEnv = (set("%s=%s" % i for i in self.env.iteritems())
-                      - set("%s=%s" % i for i in os.environ.iteritems()))
+        changedEnv = (set("%s=%s" % i for i in six.iteritems(self.env))
+                      - set("%s=%s" % i for i in six.iteritems(os.environ)))
         self.log.info("%s | environment: %s" % (name, list(changedEnv)))
         shell_command_tokens = [pipes.quote(tok) for tok in list(changedEnv) + completeCmd]
         self.log.info("%s | as shell command: (cd %s; %s)" %
@@ -345,6 +388,40 @@ class XPCShellTestThread(Thread):
         self.log.info("xpcshell return code: %s" % self.getReturnCode(proc))
         self.postCheck(proc)
         self.clean_temp_dirs(self.test_object['path'])
+
+    def updateTestPrefsFile(self):
+        # If the Manifest file has some additiona prefs, merge the
+        # prefs set in the user.js file stored in the _rootTempdir
+        # with the prefs from the manifest and the prefs specified
+        # in the extraPrefs option.
+        if 'prefs' in self.test_object:
+            # Merge the user preferences in a fake profile dir in a
+            # local temporary dir (self.tempDir is the remoteTmpDir
+            # for the RemoteXPCShellTestThread subclass and so we
+            # can't use that tempDir here).
+            localTempDir = mkdtemp(prefix='xpc-other-', dir=self._rootTempDir)
+
+            filename = 'user.js'
+            interpolation = {'server': 'dummyserver'}
+            profile = Profile(profile=localTempDir, restore=False)
+            profile.merge(self._rootTempDir, interpolation=interpolation)
+
+            prefs = self.test_object['prefs'].strip().split()
+            name = self.test_object['id']
+            if self.verbose:
+                self.log.info(
+                    "%s: Per-test extra prefs will be set:\n  {}".format(
+                        '\n  '.join(prefs)) % name
+                )
+
+            profile.set_preferences(parse_preferences(prefs), filename=filename)
+            # Make sure that the extra prefs form the command line are overriding
+            # any prefs inherited from the shared profile data or the manifest prefs.
+            profile.set_preferences(parse_preferences(self.extraPrefs), filename=filename)
+            return os.path.join(profile.profile, filename)
+
+        # Return the root prefsFile if there is no other prefs to merge.
+        return self.rootPrefsFile
 
     def buildCmdTestFile(self, name):
         """
@@ -463,9 +540,7 @@ class XPCShellTestThread(Thread):
             self.xpcshell,
             '-g', self.xrePath,
             '-a', self.appPath,
-            '-r', self.httpdManifest,
             '-m',
-            '-s',
             '-e', 'const _HEAD_JS_PATH = "%s";' % self.headJSPath,
             '-e', 'const _MOZINFO_JS_PATH = "%s";' % self.mozInfoJSPath,
             '-e', 'const _PREFS_FILE = "%s";' % self.prefsFile.replace('\\', '\\\\'),
@@ -549,7 +624,7 @@ class XPCShellTestThread(Thread):
     def log_line(self, line):
         """Log a line of output (either a parser json object or text output from
         the test process"""
-        if isinstance(line, basestring):
+        if isinstance(line, six.string_types) or isinstance(line, bytes):
             line = self.fix_text_output(line).rstrip('\r\n')
             self.log.process_output(self.proc_ident,
                                     line,
@@ -654,6 +729,9 @@ class XPCShellTestThread(Thread):
         self.tempDir = self.setupTempDir()
         self.mozInfoJSPath = self.setupMozinfoJS()
 
+        # Setup per-manifest prefs and write them into the tempdir.
+        self.prefsFile = self.updateTestPrefsFile()
+
         # The order of the command line is important:
         # 1) Arguments for xpcshell itself
         self.command = self.buildXpcsCmd()
@@ -683,7 +761,7 @@ class XPCShellTestThread(Thread):
         if self.test_object.get('subprocess') == 'true':
             self.env['PYTHON'] = sys.executable
 
-        if self.test_object.get('headless', False):
+        if self.test_object.get('headless', 'true' if self.headless else None) == 'true':
             self.env["MOZ_HEADLESS"] = '1'
             self.env["DISPLAY"] = '77'  # Set a fake display.
 
@@ -835,6 +913,7 @@ class XPCShellTests(object):
         self.log = log
         self.harness_timeout = HARNESS_TIMEOUT
         self.nodeProc = {}
+        self.http3ServerProc = {}
 
     def getTestManifest(self, manifest):
         if isinstance(manifest, TestManifest):
@@ -851,8 +930,8 @@ class XPCShellTests(object):
         if os.path.exists(ini_path):
             return TestManifest([ini_path], strict=True)
         else:
-            print >> sys.stderr, ("Failed to find manifest at %s; use --manifest "
-                                  "to set path explicitly." % (ini_path,))
+            self.log.error("Failed to find manifest at %s; use --manifest "
+                           "to set path explicitly." % ini_path)
             sys.exit(1)
 
     def normalizeTest(self, root, test_object):
@@ -904,22 +983,39 @@ class XPCShellTests(object):
         if test_tags:
             filters.append(tags(test_tags))
 
+        path_filter = None
         if test_paths:
-            filters.append(pathprefix(test_paths))
+            path_filter = pathprefix(test_paths)
+            filters.append(path_filter)
 
         if self.totalChunks > 1:
             filters.append(chunk_by_slice(self.thisChunk, self.totalChunks))
         try:
-            self.alltests = map(normalize, mp.active_tests(filters=filters, **mozinfo.info))
+            self.alltests = list(map(normalize, mp.active_tests(filters=filters, **mozinfo.info)))
         except TypeError:
             sys.stderr.write("*** offending mozinfo.info: %s\n" % repr(mozinfo.info))
             raise
 
+        if path_filter and path_filter.missing:
+            self.log.warning("The following path(s) didn't resolve any tests:\n  {}".format(
+                "  \n".join(sorted(path_filter.missing))))
+
         if len(self.alltests) == 0:
-            self.log.error("no tests to run using specified "
-                           "combination of filters: {}".format(
-                                mp.fmt_filters()))
-            sys.exit(1)
+            if (
+                test_paths and
+                path_filter.missing == set(test_paths) and
+                os.environ.get("MOZ_AUTOMATION") == "1"
+            ):
+                # This can happen in CI when a manifest doesn't exist due to a
+                # build config variable in moz.build traversal. Don't generate
+                # an error in this case. Adding a todo count avoids mozharness
+                # raising an error.
+                self.todoCount += len(path_filter.missing)
+            else:
+                self.log.error("no tests to run using specified "
+                               "combination of filters: {}".format(
+                                    mp.fmt_filters()))
+                sys.exit(1)
 
         if len(self.alltests) == 1 and not verify:
             self.singleFile = os.path.basename(self.alltests[0]['path'])
@@ -961,21 +1057,25 @@ class XPCShellTests(object):
         self.httpdJSPath = os.path.join(self.xrePath, 'components', 'httpd.js')
         self.httpdJSPath = self.httpdJSPath.replace('\\', '/')
 
-        self.httpdManifest = os.path.join(self.xrePath, 'components', 'httpd.manifest')
-        self.httpdManifest = self.httpdManifest.replace('\\', '/')
-
         if self.mozInfo is None:
             self.mozInfo = os.path.join(self.testharnessdir, "mozinfo.json")
 
     def buildPrefsFile(self, extraPrefs):
         # Create the prefs.js file
-        profile_data_dir = os.path.join(SCRIPT_DIR, 'profile_data')
 
+        # In test packages used in CI, the profile_data directory is installed
+        # in the SCRIPT_DIR.
+        profile_data_dir = os.path.join(SCRIPT_DIR, 'profile_data')
         # If possible, read profile data from topsrcdir. This prevents us from
         # requiring a re-build to pick up newly added extensions in the
         # <profile>/extensions directory.
         if build:
             path = os.path.join(build.topsrcdir, 'testing', 'profiles')
+            if os.path.isdir(path):
+                profile_data_dir = path
+        # Still not found? Look for testing/profiles relative to testing/xpcshell.
+        if not os.path.isdir(profile_data_dir):
+            path = os.path.abspath(os.path.join(SCRIPT_DIR, '..', 'profiles'))
             if os.path.isdir(path):
                 profile_data_dir = path
 
@@ -1026,6 +1126,13 @@ class XPCShellTests(object):
         # compatible with the sandbox.
         self.env["MOZ_DISABLE_CONTENT_SANDBOX"] = "1"
 
+        self.env["MOZ_DISABLE_SOCKET_PROCESS_SANDBOX"] = "1"
+
+        if self.mozInfo.get("socketprocess_networking"):
+            self.env["MOZ_FORCE_USE_SOCKET_PROCESS"] = "1"
+        else:
+            self.env["MOZ_DISABLE_SOCKET_PROCESS"] = "1"
+
         if self.enable_webrender:
             self.env["MOZ_WEBRENDER"] = "1"
             self.env["MOZ_ACCELERATED"] = "1"
@@ -1059,7 +1166,7 @@ class XPCShellTests(object):
             # symbolizer support
             llvmsym = os.path.join(
                 self.xrePath,
-                "llvm-symbolizer" + self.mozInfo["bin_suffix"].encode('ascii'))
+                "llvm-symbolizer" + self.mozInfo["bin_suffix"])
             if os.path.isfile(llvmsym):
                 if usingASan:
                     self.env["ASAN_SYMBOLIZER_PATH"] = llvmsym
@@ -1140,8 +1247,10 @@ class XPCShellTests(object):
             try:
                 # We pipe stdin to node because the server will exit when its
                 # stdin reaches EOF
+                self.env = ensure_subprocess_env(self.env)
                 process = Popen([nodeBin, serverJs], stdin=PIPE, stdout=PIPE,
-                                stderr=PIPE, env=self.env, cwd=os.getcwd())
+                                stderr=PIPE, env=self.env, cwd=os.getcwd(),
+                                universal_newlines=True)
                 self.nodeProc[name] = process
 
                 # Check to make sure the server starts properly by waiting for it to
@@ -1165,7 +1274,7 @@ class XPCShellTests(object):
         """
           Shut down our node process, if it exists
         """
-        for name, proc in self.nodeProc.iteritems():
+        for name, proc in six.iteritems(self.nodeProc):
             self.log.info('Node %s server shutting down ...' % name)
             if proc.poll() is not None:
                 self.log.info('Node server %s already dead %s' % (name, proc.poll()))
@@ -1181,6 +1290,86 @@ class XPCShellTests(object):
                     self.log.info(msg)
             dumpOutput(proc.stdout, "stdout")
             dumpOutput(proc.stderr, "stderr")
+        self.nodeProc = {}
+
+    def startHttp3Server(self):
+        """
+          Start a Http3 test server.
+        """
+        binSuffix = ""
+        if sys.platform == 'win32':
+            binSuffix = ".exe"
+
+        http3ServerPath = self.http3server
+        if not http3ServerPath:
+            http3ServerPath = os.path.join(SCRIPT_DIR, "http3server",
+                                           "http3server" + binSuffix)
+            if build:
+                http3ServerPath = os.path.join(build.topobjdir, "dist", "bin",
+                                               "http3server" + binSuffix)
+
+        if not os.path.exists(http3ServerPath):
+            self.log.warning("Http3 server not found at " + http3ServerPath +
+                             ". Tests requiring http/3 will fail.")
+            return
+
+        # OK, we found our server, let's try to get it running
+        self.log.info('Found %s' % (http3ServerPath))
+        try:
+            dbPath = os.path.join(SCRIPT_DIR, "http3server", "http3serverDB")
+            if build:
+                dbPath = os.path.join(build.topsrcdir, "netwerk", "test",
+                                      "http3serverDB")
+            self.log.info('Using %s' % (dbPath))
+            # We pipe stdin to the server because it will exit when its stdin
+            # reaches EOF
+            self.env = ensure_subprocess_env(self.env)
+            process = Popen([http3ServerPath, dbPath], stdin=PIPE, stdout=PIPE,
+                            stderr=PIPE, env=self.env, cwd=os.getcwd(),
+                            universal_newlines=True)
+            self.http3ServerProc['http3Server'] = process
+
+            # Check to make sure the server starts properly by waiting for it to
+            # tell us it's started
+            msg = process.stdout.readline()
+            if 'server listening' in msg:
+                searchObj = re.search(r'HTTP3 server listening on port ([0-9]+)',
+                                      msg, 0)
+                if searchObj:
+                    self.env["MOZHTTP3_PORT"] = searchObj.group(1)
+        except OSError as e:
+            # This occurs if the subprocess couldn't be started
+            self.log.error('Could not run the http3 server: %s' % (str(e)))
+
+    def shutdownHttp3Server(self):
+        """
+          Shutdown our http3Server process, if it exists
+        """
+        for name, proc in six.iteritems(self.http3ServerProc):
+            self.log.info('%s server shutting down ...' % name)
+            if proc.poll() is not None:
+                self.log.info('Http3 server %s already dead %s' % (name, proc.poll()))
+            else:
+                proc.terminate()
+                retries = 0
+                while proc.poll() is None:
+                    time.sleep(0.1)
+                    retries += 1
+                    if retries > 40:
+                        self.log.info('Killing proc')
+                        proc.kill()
+                        break
+
+            def dumpOutput(fd, label):
+                firstTime = True
+                for msg in fd:
+                    if firstTime:
+                        firstTime = False
+                        self.log.info('Process %s' % label)
+                    self.log.info(msg)
+            dumpOutput(proc.stdout, "stdout")
+            dumpOutput(proc.stderr, "stderr")
+        self.http3ServerProc = {}
 
     def buildXpcsRunArgs(self):
         """
@@ -1214,8 +1403,8 @@ class XPCShellTests(object):
         # All of the keys in question should be ASCII.
         fixedInfo = {}
         for k, v in self.mozInfo.items():
-            if isinstance(k, unicode):
-                k = k.encode('ascii')
+            if isinstance(k, bytes):
+                k = k.decode('utf-8')
             fixedInfo[k] = v
         self.mozInfo = fixedInfo
 
@@ -1234,9 +1423,34 @@ class XPCShellTests(object):
         self.mozInfo['verify'] = options.get('verify', False)
         self.mozInfo['webrender'] = self.enable_webrender
 
+        self.mozInfo['socketprocess_networking'] = prefs.get(
+            'network.http.network_access_on_socket_process.enabled', False)
+
         mozinfo.update(self.mozInfo)
 
         return True
+
+    def runSelfTest(self):
+        import selftest
+        import unittest
+        this = self
+
+        class XPCShellTestsTests(selftest.XPCShellTestsTests):
+            def __init__(self, name):
+                unittest.TestCase.__init__(self, name)
+                self.testing_modules = this.testingModulesDir
+                self.xpcshellBin = this.xpcshell
+                self.utility_path = this.utility_path
+                self.symbols_path = this.symbolsPath
+
+        old_info = dict(mozinfo.info)
+        try:
+            suite = unittest.TestLoader().loadTestsFromTestCase(XPCShellTestsTests)
+            return unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+        finally:
+            # The self tests modify mozinfo, so we need to reset it.
+            mozinfo.info.clear()
+            mozinfo.update(old_info)
 
     def runTests(self, options, testClass=XPCShellTestThread, mobileArgs=None):
         """
@@ -1269,7 +1483,7 @@ class XPCShellTests(object):
                 shutil.copyfile(options['failure_manifest'], rerun_manifest)
                 os.remove(options['failure_manifest'])
             else:
-                print >> sys.stderr, "No failures were found to re-run."
+                self.log.error("No failures were found to re-run.")
                 sys.exit(1)
 
         if options.get('testingModulesDir'):
@@ -1298,6 +1512,7 @@ class XPCShellTests(object):
             self.jsDebuggerInfo = JSDebuggerInfo(port=options['jsDebuggerPort'])
 
         self.xpcshell = options.get('xpcshell')
+        self.http3server = options.get('http3server')
         self.xrePath = options.get('xrePath')
         self.utility_path = options.get('utility_path')
         self.appPath = options.get('appPath')
@@ -1310,7 +1525,7 @@ class XPCShellTests(object):
         self.verboseIfFails = options.get('verboseIfFails')
         self.keepGoing = options.get('keepGoing')
         self.logfiles = options.get('logfiles')
-        self.totalChunks = options.get('totalChunks')
+        self.totalChunks = options.get('totalChunks', 1)
         self.thisChunk = options.get('thisChunk')
         self.profileName = options.get('profileName') or "xpcshell"
         self.mozInfo = options.get('mozInfo')
@@ -1321,6 +1536,7 @@ class XPCShellTests(object):
         self.threadCount = options.get('threadCount') or NUM_THREADS
         self.jscovdir = options.get('jscovdir')
         self.enable_webrender = options.get('enable_webrender')
+        self.headless = options.get('headless')
 
         self.testCount = 0
         self.passCount = 0
@@ -1335,6 +1551,10 @@ class XPCShellTests(object):
 
         if not self.updateMozinfo(prefs, options):
             return False
+
+        if options.get('self_test'):
+            if not self.runSelfTest():
+                return False
 
         if "tsan" in self.mozInfo and self.mozInfo["tsan"] and not options.get('threadCount'):
             # TSan requires significantly more memory, so reduce the amount of parallel
@@ -1361,6 +1581,8 @@ class XPCShellTests(object):
         # http/2 server.
         self.trySetupNode()
 
+        self.startHttp3Server()
+
         pStdout, pStderr = self.getPipes()
 
         self.buildTestList(options.get('test_tags'), options.get('testPaths'),
@@ -1381,7 +1603,6 @@ class XPCShellTests(object):
             'debuggerInfo': self.debuggerInfo,
             'jsDebuggerInfo': self.jsDebuggerInfo,
             'pluginsPath': self.pluginsPath,
-            'httpdManifest': self.httpdManifest,
             'httpdJSPath': self.httpdJSPath,
             'headJSPath': self.headJSPath,
             'tempDir': self.tempDir,
@@ -1405,8 +1626,10 @@ class XPCShellTests(object):
             'log': self.log,
             'interactive': self.interactive,
             'app_dir_key': appDirKey,
-            'prefsFile': self.prefsFile,
+            'rootPrefsFile': self.prefsFile,
+            'extraPrefs': options.get('extraPrefs') or [],
             'verboseIfFails': self.verboseIfFails,
+            'headless': self.headless,
         }
 
         if self.sequential:
@@ -1479,7 +1702,7 @@ class XPCShellTests(object):
                 # the logging system gets confused when 2 or more tests with the same
                 # name run at the same time.
                 sequential_tests = []
-                for i in xrange(VERIFY_REPEAT):
+                for i in range(VERIFY_REPEAT):
                     self.testCount += 1
                     test = testClass(test_object, retry=False,
                                      mobileArgs=mobileArgs, **kwargs)
@@ -1491,8 +1714,8 @@ class XPCShellTests(object):
             def step2():
                 # Run tests sequentially, with MOZ_CHAOSMODE enabled.
                 sequential_tests = []
-                self.env["MOZ_CHAOSMODE"] = "3"
-                for i in xrange(VERIFY_REPEAT):
+                self.env["MOZ_CHAOSMODE"] = "0xfb"
+                for i in range(VERIFY_REPEAT):
                     self.testCount += 1
                     test = testClass(test_object, retry=False,
                                      mobileArgs=mobileArgs, **kwargs)
@@ -1539,6 +1762,7 @@ class XPCShellTests(object):
                 self.log.info(':::')
 
         self.shutdownNode()
+        self.shutdownHttp3Server()
 
         return status
 
@@ -1560,7 +1784,14 @@ class XPCShellTests(object):
 
         tests_by_manifest = defaultdict(list)
         for test in self.alltests:
-            tests_by_manifest[test['manifest']].append(test['id'])
+            group = test['manifest']
+            if 'ancestor_manifest' in test:
+                ancestor_manifest = normsep(test['ancestor_manifest'])
+                # Only change the group id if ancestor is not the generated root manifest.
+                if '/' in ancestor_manifest:
+                    group = "{}:{}".format(ancestor_manifest, group)
+            tests_by_manifest[group].append(test['id'])
+
         self.log.suite_start(tests_by_manifest, name='xpcshell')
 
         while tests_queue or running_tests:
@@ -1651,7 +1882,7 @@ class XPCShellTests(object):
 
         # Clean up any slacker directories that might be lying around
         # Some might fail because of windows taking too long to unlock them.
-        # We don't do anything if this fails because the test slaves will have
+        # We don't do anything if this fails because the test machines will have
         # their $TEMP dirs cleaned up on reboot anyway.
         for directory in self.cleanup_dir_list:
             try:
@@ -1665,7 +1896,7 @@ class XPCShellTests(object):
                 self.log.error(t)
             raise exceptions[0]
 
-        if self.testCount == 0 and os.environ.get('TRY_SELECTOR') != 'coverage':
+        if self.testCount == 0 and os.environ.get("MOZ_AUTOMATION") != "1":
             self.log.error("No tests run. Did you pass an invalid --test-path?")
             self.failCount = 1
 
@@ -1692,12 +1923,13 @@ def main():
     log = commandline.setup_logging("XPCShell", options, {"tbpl": sys.stdout})
 
     if options.xpcshell is None:
-        print >> sys.stderr, """Must provide path to xpcshell using --xpcshell"""
+        log.error("Must provide path to xpcshell using --xpcshell")
+        sys.exit(1)
 
     xpcsh = XPCShellTests(log)
 
     if options.interactive and not options.testPath:
-        print >>sys.stderr, "Error: You must specify a test filename in interactive mode!"
+        log.error("Error: You must specify a test filename in interactive mode!")
         sys.exit(1)
 
     if not xpcsh.runTests(options):

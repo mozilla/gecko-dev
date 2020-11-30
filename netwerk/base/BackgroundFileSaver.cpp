@@ -7,6 +7,7 @@
 #include "BackgroundFileSaver.h"
 
 #include "ScopedNSSTypes.h"
+#include "mozilla/ArrayAlgorithm.h"
 #include "mozilla/Casting.h"
 #include "mozilla/Logging.h"
 #include "mozilla/Telemetry.h"
@@ -83,7 +84,7 @@ uint32_t BackgroundFileSaver::sTelemetryMaxThreadCount = 0;
 
 BackgroundFileSaver::BackgroundFileSaver()
     : mControlEventTarget(nullptr),
-      mWorkerThread(nullptr),
+      mBackgroundET(nullptr),
       mPipeOutputStream(nullptr),
       mPipeInputStream(nullptr),
       mObserver(nullptr),
@@ -121,10 +122,11 @@ nsresult BackgroundFileSaver::Init() {
                    HasInfiniteBuffer() ? UINT32_MAX : 0);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  mControlEventTarget = GetCurrentThreadEventTarget();
+  mControlEventTarget = GetCurrentEventTarget();
   NS_ENSURE_TRUE(mControlEventTarget, NS_ERROR_NOT_INITIALIZED);
 
-  rv = NS_NewNamedThread("BgFileSaver", getter_AddRefs(mWorkerThread));
+  rv = NS_CreateBackgroundTaskQueue("BgFileSaver",
+                                    getter_AddRefs(mBackgroundET));
   NS_ENSURE_SUCCESS(rv, rv);
 
   sThreadCount++;
@@ -257,7 +259,8 @@ BackgroundFileSaver::GetSignatureInfo(
     return NS_ERROR_NOT_AVAILABLE;
   }
   for (const auto& signatureChain : mSignatureInfo) {
-    aSignatureInfo.AppendElement(signatureChain);
+    aSignatureInfo.AppendElement(TransformIntoNewArray(
+        signatureChain, [](const auto& element) { return element.Clone(); }));
   }
   return NS_OK;
 }
@@ -283,12 +286,20 @@ nsresult BackgroundFileSaver::GetWorkerThreadAttention(
   }
 
   if (!mAsyncCopyContext) {
+    // Background event queues are not shutdown and could be called after
+    // the queue is reset to null.  To match the behavior of nsIThread
+    // return NS_ERROR_UNEXPECTED
+    if (!mBackgroundET) {
+      return NS_ERROR_UNEXPECTED;
+    }
+
     // Copy is not in progress, post an event to handle the change manually.
-    rv = mWorkerThread->Dispatch(
+    rv = mBackgroundET->Dispatch(
         NewRunnableMethod("net::BackgroundFileSaver::ProcessAttention", this,
                           &BackgroundFileSaver::ProcessAttention),
-        NS_DISPATCH_NORMAL);
+        NS_DISPATCH_EVENT_MAY_BLOCK);
     NS_ENSURE_SUCCESS(rv, rv);
+
   } else if (aShouldInterruptCopy) {
     // Interrupt the copy.  The copy will be resumed, if needed, by the
     // ProcessAttention function, invoked by the AsyncCopyCallback function.
@@ -586,7 +597,7 @@ nsresult BackgroundFileSaver::ProcessStateChange() {
   {
     MutexAutoLock lock(mLock);
 
-    rv = NS_AsyncCopy(mPipeInputStream, outputStream, mWorkerThread,
+    rv = NS_AsyncCopy(mPipeInputStream, outputStream, mBackgroundET,
                       NS_ASYNCCOPY_VIA_READSEGMENTS, 4096, AsyncCopyCallback,
                       this, false, true, getter_AddRefs(mAsyncCopyContext),
                       GetProgressCallback());
@@ -732,7 +743,7 @@ nsresult BackgroundFileSaver::NotifySaveComplete() {
   // completion observer callback.  Re-entering the loop can only delay the
   // final release and destruction of this saver object, since we are keeping a
   // reference to it through the event object.
-  mWorkerThread->Shutdown();
+  mBackgroundET = nullptr;
 
   sThreadCount--;
 
@@ -825,7 +836,7 @@ nsresult BackgroundFileSaver::ExtractSignatureInfo(const nsAString& filePath) {
           nsTArray<uint8_t> cert;
           cert.AppendElements(certChainElement->pCertContext->pbCertEncoded,
                               certChainElement->pCertContext->cbCertEncoded);
-          certList.AppendElement(cert);
+          certList.AppendElement(std::move(cert));
         }
         if (extractionSuccess) {
           mSignatureInfo.AppendElement(std::move(certList));

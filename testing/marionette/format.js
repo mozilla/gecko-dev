@@ -4,19 +4,18 @@
 
 "use strict";
 
+const EXPORTED_SYMBOLS = ["pprint", "truncate"];
+
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
-const { Log } = ChromeUtils.import("chrome://marionette/content/log.js");
-const { MarionettePrefs } = ChromeUtils.import(
-  "chrome://marionette/content/prefs.js",
-  null
-);
+XPCOMUtils.defineLazyModuleGetters(this, {
+  Log: "chrome://marionette/content/log.js",
+  MarionettePrefs: "chrome://marionette/content/prefs.js",
+});
 
-XPCOMUtils.defineLazyGetter(this, "log", Log.get);
-
-this.EXPORTED_SYMBOLS = ["pprint", "truncate"];
+XPCOMUtils.defineLazyGetter(this, "logger", () => Log.get());
 
 const ELEMENT_NODE = 1;
 const MAX_STRING_LENGTH = 250;
@@ -26,7 +25,10 @@ const MAX_STRING_LENGTH = 250;
  *
  * Usage::
  *
- *     const {pprint} = Cu.import("chrome://marionette/content/error.js", {});
+ *     const { pprint } = Cu.import(
+ *       "chrome://marionette/content/format.js", {}
+ *     );
+ *
  *     let bool = {value: true};
  *     pprint`Expected boolean, got ${bool}`;
  *     => 'Expected boolean, got [object Object] {"value": true}'
@@ -101,7 +103,7 @@ function pprint(ss, ...values) {
       try {
         s = pretty(values[i]);
       } catch (e) {
-        log.warn("Problem pretty printing:", e);
+        logger.warn("Problem pretty printing:", e);
         s = typeof values[i];
       }
       res.push(s);

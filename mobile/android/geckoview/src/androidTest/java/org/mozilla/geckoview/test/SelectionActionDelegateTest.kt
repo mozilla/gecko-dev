@@ -13,6 +13,7 @@ import org.mozilla.geckoview.test.util.Callbacks
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.graphics.RectF;
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.filters.MediumTest
 
@@ -182,6 +183,20 @@ class SelectionActionDelegateTest : BaseSessionTest() {
                    counter, equalTo(1))
     }
 
+    @Test fun compareClientRect() {
+        val jsCssReset = """(function() {
+            document.querySelector('${id}').style.display = "block";
+            document.querySelector('${id}').style.border = "0";
+            document.querySelector('${id}').style.padding = "0";
+        })()"""
+        val jsBorder10pxPadding10px = """(function() {
+            document.querySelector('${id}').style.display = "block";
+            document.querySelector('${id}').style.border = "10px solid";
+            document.querySelector('${id}').style.padding = "10px";
+        })()"""
+        val expectedDiff = RectF(20f, 20f, 20f, 20f) // left, top, right, bottom
+        testClientRect(selectedContent, jsCssReset, jsBorder10pxPadding10px, expectedDiff)
+    }
 
     /** Interface that defines behavior for a particular type of content */
     private interface SelectedContent {
@@ -228,6 +243,52 @@ class SelectionActionDelegateTest : BaseSessionTest() {
         sideEffects.forEach { it(content) }
     }
 
+    private fun testClientRect(content: SelectedContent,
+                               initialJsA: String,
+                               initialJsB: String,
+                               expectedDiff: RectF) {
+
+        // Show selection actions for collapsed selections, so we can test them.
+        // Also, always show accessible carets / selection actions for changes due to JS calls.
+        sessionRule.setPrefsUntilTestEnd(mapOf(
+                "geckoview.selection_action.show_on_focus" to true,
+                "layout.accessiblecaret.script_change_update_mode" to 2))
+
+        mainSession.loadTestPath(INPUTS_PATH)
+        mainSession.waitForPageStop()
+
+        val requestClientRect: (String) -> RectF = {
+            mainSession.reload()
+            mainSession.waitForPageStop()
+
+            mainSession.evaluateJS(it)
+            content.focus()
+
+            var clientRect = RectF()
+            content.select()
+            mainSession.waitUntilCalled(object : Callbacks.SelectionActionDelegate {
+                @AssertCalled(count = 1)
+                override fun onShowActionRequest(session: GeckoSession, selection: Selection) {
+                    clientRect = selection.clientRect!!
+                }
+            })
+
+            clientRect
+        }
+
+        val clientRectA = requestClientRect(initialJsA)
+        val clientRectB = requestClientRect(initialJsB)
+
+        val fuzzyEqual = { a: Float, b: Float, e: Float -> Math.abs(a + e - b) <= 1 }
+        val result = fuzzyEqual(clientRectA.top, clientRectB.top, expectedDiff.top)
+                  && fuzzyEqual(clientRectA.left, clientRectB.left, expectedDiff.left)
+                  && fuzzyEqual(clientRectA.width(), clientRectB.width(), expectedDiff.width())
+                  && fuzzyEqual(clientRectA.height(), clientRectB.height(), expectedDiff.height())
+
+        assertThat("Selection rect is not at expected location. a$clientRectA b$clientRectB",
+                   result, equalTo(true))
+    }
+
 
     /** Helpers. */
 
@@ -239,7 +300,7 @@ class SelectionActionDelegateTest : BaseSessionTest() {
     private fun withClipboard(content: String = "", lambda: () -> Unit) {
         val oldClip = clipboard.primaryClip
         try {
-            clipboard.primaryClip = ClipData.newPlainText("", content)
+            clipboard.setPrimaryClip(ClipData.newPlainText("", content))
 
             sessionRule.addExternalDelegateUntilTestEnd(
                     ClipboardManager.OnPrimaryClipChangedListener::class,
@@ -248,7 +309,7 @@ class SelectionActionDelegateTest : BaseSessionTest() {
                     ClipboardManager.OnPrimaryClipChangedListener {})
             lambda()
         } finally {
-            clipboard.primaryClip = oldClip ?: ClipData.newPlainText("", "")
+            clipboard.setPrimaryClip(oldClip ?: ClipData.newPlainText("", ""))
         }
     }
 

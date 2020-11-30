@@ -18,6 +18,7 @@
 #include "PrintProgressDialogParent.h"
 #include "PrintSettingsDialogParent.h"
 #include "mozilla/layout/RemotePrintJobParent.h"
+#include "mozilla/StaticPrefs_print.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -126,14 +127,14 @@ nsresult PrintingParent::ShowPrintDialog(PBrowserParent* aParent,
   nsString printerName;
   settings->GetPrinterName(printerName);
 #ifdef MOZ_X11
-  // Requesting the default printer name on Linux has been removed in the child,
-  // because it was causing a sandbox violation (see Bug 1329216).
-  // If no printer name is set at this point, use the print settings service
-  // to get the default printer name, unless we're printing to file.
+  // Requesting the last-used printer name on Linux has been removed in the
+  // child, because it was causing a sandbox violation (see Bug 1329216). If no
+  // printer name is set at this point, use the print settings service to get
+  // the last-used printer name, unless we're printing to file.
   bool printToFile = false;
   MOZ_ALWAYS_SUCCEEDS(settings->GetPrintToFile(&printToFile));
   if (!printToFile && printerName.IsEmpty()) {
-    mPrintSettingsSvc->GetDefaultPrinterName(printerName);
+    mPrintSettingsSvc->GetLastUsedPrinterName(printerName);
     settings->SetPrinterName(printerName);
   }
   mPrintSettingsSvc->InitPrintSettingsFromPrinter(printerName, settings);
@@ -142,7 +143,7 @@ nsresult PrintingParent::ShowPrintDialog(PBrowserParent* aParent,
   // If this is for print preview or we are printing silently then we just need
   // to initialize the print settings with anything specific from the printer.
   if (isPrintPreview || printSilently ||
-      Preferences::GetBool("print.always_print_silent", printSilently)) {
+      StaticPrefs::print_always_print_silent()) {
     settings->SetIsInitializedFromPrinter(false);
     mPrintSettingsSvc->InitPrintSettingsFromPrinter(printerName, settings);
   } else {
@@ -227,17 +228,6 @@ bool PrintingParent::DeallocPPrintSettingsDialogParent(
   return true;
 }
 
-PRemotePrintJobParent* PrintingParent::AllocPRemotePrintJobParent() {
-  MOZ_ASSERT_UNREACHABLE("No default constructors for implementations.");
-  return nullptr;
-}
-
-bool PrintingParent::DeallocPRemotePrintJobParent(
-    PRemotePrintJobParent* aDoomed) {
-  delete aDoomed;
-  return true;
-}
-
 void PrintingParent::ActorDestroy(ActorDestroyReason aWhy) {}
 
 nsPIDOMWindowOuter* PrintingParent::DOMWindowFromBrowserParent(
@@ -311,7 +301,7 @@ PrintingParent::PrintingParent() {
   MOZ_ASSERT(mPrintSettingsSvc);
 }
 
-PrintingParent::~PrintingParent() {}
+PrintingParent::~PrintingParent() = default;
 
 }  // namespace embedding
 }  // namespace mozilla

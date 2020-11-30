@@ -11,15 +11,24 @@ const { XPCOMUtils } = ChromeUtils.import(
 );
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
+XPCOMUtils.defineLazyModuleGetters(this, {
+  Region: "resource://gre/modules/Region.jsm",
+});
+
 const ADDRESSES_FIRST_TIME_USE_PREF = "extensions.formautofill.firstTimeUse";
 const AUTOFILL_CREDITCARDS_AVAILABLE_PREF =
   "extensions.formautofill.creditCards.available";
 const CREDITCARDS_USED_STATUS_PREF = "extensions.formautofill.creditCards.used";
-const DEFAULT_REGION_PREF = "browser.search.region";
 const ENABLED_AUTOFILL_ADDRESSES_PREF =
   "extensions.formautofill.addresses.enabled";
+const ENABLED_AUTOFILL_ADDRESSES_CAPTURE_PREF =
+  "extensions.formautofill.addresses.capture.enabled";
 const ENABLED_AUTOFILL_CREDITCARDS_PREF =
   "extensions.formautofill.creditCards.enabled";
+const ENABLED_AUTOFILL_CREDITCARDS_REAUTH_PREF =
+  "extensions.formautofill.reauth.enabled";
+const AUTOFILL_CREDITCARDS_HIDE_UI_PREF =
+  "extensions.formautofill.creditCards.hideui";
 const SUPPORTED_COUNTRIES_PREF = "extensions.formautofill.supportedCountries";
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -48,10 +57,15 @@ function debug() {
 
 var FormAutofill = {
   ENABLED_AUTOFILL_ADDRESSES_PREF,
+  ENABLED_AUTOFILL_ADDRESSES_CAPTURE_PREF,
   ENABLED_AUTOFILL_CREDITCARDS_PREF,
+  ENABLED_AUTOFILL_CREDITCARDS_REAUTH_PREF,
   ADDRESSES_FIRST_TIME_USE_PREF,
   CREDITCARDS_USED_STATUS_PREF,
 
+  get DEFAULT_REGION() {
+    return Region.home || "US";
+  },
   get isAutofillEnabled() {
     return (
       FormAutofill.isAutofillAddressesEnabled ||
@@ -83,14 +97,13 @@ var FormAutofill = {
 
 XPCOMUtils.defineLazyPreferenceGetter(
   FormAutofill,
-  "DEFAULT_REGION",
-  DEFAULT_REGION_PREF,
-  "US"
+  "isAutofillAddressesEnabled",
+  ENABLED_AUTOFILL_ADDRESSES_PREF
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   FormAutofill,
-  "isAutofillAddressesEnabled",
-  ENABLED_AUTOFILL_ADDRESSES_PREF
+  "isAutofillAddressesCaptureEnabled",
+  ENABLED_AUTOFILL_ADDRESSES_CAPTURE_PREF
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   FormAutofill,
@@ -101,6 +114,11 @@ XPCOMUtils.defineLazyPreferenceGetter(
   FormAutofill,
   "_isAutofillCreditCardsEnabled",
   ENABLED_AUTOFILL_CREDITCARDS_PREF
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  FormAutofill,
+  "isAutofillCreditCardsHideUI",
+  AUTOFILL_CREDITCARDS_HIDE_UI_PREF
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   FormAutofill,

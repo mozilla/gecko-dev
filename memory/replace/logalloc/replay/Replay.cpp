@@ -16,10 +16,12 @@ typedef intptr_t ssize_t;
 #  include <unistd.h>
 #endif
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 
 #include "mozilla/Assertions.h"
+#include "mozilla/MathAlgorithms.h"
 #include "FdPrintf.h"
 
 static void die(const char* message) {
@@ -75,13 +77,17 @@ class MappedArray {
 /* Type for records of allocations. */
 struct MemSlot {
   void* mPtr;
+
+  // mRequest is only valid if mPtr is non-null.  It doesn't need to be cleared
+  // when memory is freed or realloc()ed.
+  size_t mRequest;
 };
 
 /* An almost infinite list of slots.
  * In essence, this is a linked list of arrays of groups of slots.
- * Each group is 1MB. On 64-bits, one group allows to store 128k allocations.
+ * Each group is 1MB. On 64-bits, one group allows to store 64k allocations.
  * Each MemSlotList instance can store 1023 such groups, which means more
- * than 130M allocations. In case more would be needed, we chain to another
+ * than 67M allocations. In case more would be needed, we chain to another
  * MemSlotList, and so on.
  * Using 1023 groups makes the MemSlotList itself page sized on 32-bits
  * and 2 pages-sized on 64-bits.
@@ -293,7 +299,12 @@ size_t parseNumber(Buffer aBuf) {
 /* Class to handle dispatching the replay function calls to replace-malloc. */
 class Replay {
  public:
-  Replay() : mOps(0) {
+  Replay()
+      : mOps(0),
+        mNumUsedSlots(0),
+        mTotalRequestedSize(0),
+        mTotalAllocatedSize(0),
+        mCalculateSlop(false) {
 #ifdef _WIN32
     // See comment in FdPrintf.h as to why native win32 handles are used.
     mStdErr = reinterpret_cast<intptr_t>(GetStdHandle(STD_ERROR_HANDLE));
@@ -302,6 +313,8 @@ class Replay {
 #endif
   }
 
+  void enableSlopCalculation() { mCalculateSlop = true; }
+
   MemSlot& operator[](size_t index) const { return mSlots[index]; }
 
   void malloc(Buffer& aArgs, Buffer& aResult) {
@@ -309,6 +322,13 @@ class Replay {
     mOps++;
     size_t size = parseNumber(aArgs);
     aSlot.mPtr = ::malloc_impl(size);
+    if (aSlot.mPtr) {
+      aSlot.mRequest = size;
+      if (mCalculateSlop) {
+        mTotalRequestedSize += size;
+        mTotalAllocatedSize += ::malloc_usable_size_impl(aSlot.mPtr);
+      }
+    }
   }
 
   void posix_memalign(Buffer& aArgs, Buffer& aResult) {
@@ -319,6 +339,11 @@ class Replay {
     void* ptr;
     if (::posix_memalign_impl(&ptr, alignment, size) == 0) {
       aSlot.mPtr = ptr;
+      aSlot.mRequest = size;
+      if (mCalculateSlop) {
+        mTotalRequestedSize += size;
+        mTotalAllocatedSize += ::malloc_usable_size_impl(aSlot.mPtr);
+      }
     } else {
       aSlot.mPtr = nullptr;
     }
@@ -330,6 +355,13 @@ class Replay {
     size_t alignment = parseNumber(aArgs.SplitChar(','));
     size_t size = parseNumber(aArgs);
     aSlot.mPtr = ::aligned_alloc_impl(alignment, size);
+    if (aSlot.mPtr) {
+      aSlot.mRequest = size;
+      if (mCalculateSlop) {
+        mTotalRequestedSize += size;
+        mTotalAllocatedSize += ::malloc_usable_size_impl(aSlot.mPtr);
+      }
+    }
   }
 
   void calloc(Buffer& aArgs, Buffer& aResult) {
@@ -338,6 +370,13 @@ class Replay {
     size_t num = parseNumber(aArgs.SplitChar(','));
     size_t size = parseNumber(aArgs);
     aSlot.mPtr = ::calloc_impl(num, size);
+    if (aSlot.mPtr) {
+      aSlot.mRequest = num * size;
+      if (mCalculateSlop) {
+        mTotalRequestedSize += num * size;
+        mTotalAllocatedSize += ::malloc_usable_size_impl(aSlot.mPtr);
+      }
+    }
   }
 
   void realloc(Buffer& aArgs, Buffer& aResult) {
@@ -353,6 +392,13 @@ class Replay {
     void* old_ptr = old_slot.mPtr;
     old_slot.mPtr = nullptr;
     aSlot.mPtr = ::realloc_impl(old_ptr, size);
+    if (aSlot.mPtr) {
+      aSlot.mRequest = size;
+      if (mCalculateSlop) {
+        mTotalRequestedSize += size;
+        mTotalAllocatedSize += ::malloc_usable_size_impl(aSlot.mPtr);
+      }
+    }
   }
 
   void free(Buffer& aArgs, Buffer& aResult) {
@@ -376,6 +422,13 @@ class Replay {
     size_t alignment = parseNumber(aArgs.SplitChar(','));
     size_t size = parseNumber(aArgs);
     aSlot.mPtr = ::memalign_impl(alignment, size);
+    if (aSlot.mPtr) {
+      aSlot.mRequest = size;
+      if (mCalculateSlop) {
+        mTotalRequestedSize += size;
+        mTotalAllocatedSize += ::malloc_usable_size_impl(aSlot.mPtr);
+      }
+    }
   }
 
   void valloc(Buffer& aArgs, Buffer& aResult) {
@@ -383,6 +436,13 @@ class Replay {
     mOps++;
     size_t size = parseNumber(aArgs);
     aSlot.mPtr = ::valloc_impl(size);
+    if (aSlot.mPtr) {
+      aSlot.mRequest = size;
+      if (mCalculateSlop) {
+        mTotalRequestedSize += size;
+        mTotalAllocatedSize += ::malloc_usable_size_impl(aSlot.mPtr);
+      }
+    }
   }
 
   void jemalloc_stats(Buffer& aArgs, Buffer& aResult) {
@@ -391,17 +451,186 @@ class Replay {
     }
     mOps++;
     jemalloc_stats_t stats;
-    ::jemalloc_stats(&stats);
-    FdPrintf(mStdErr,
-             "#%zu mapped: %zu; allocated: %zu; waste: %zu; dirty: %zu; "
-             "bookkeep: %zu; binunused: %zu\n",
-             mOps, stats.mapped, stats.allocated, stats.waste, stats.page_cache,
-             stats.bookkeeping, stats.bin_unused);
+    jemalloc_bin_stats_t bin_stats[JEMALLOC_MAX_STATS_BINS];
+    ::jemalloc_stats_internal(&stats, bin_stats);
+
+    size_t num_objects = 0;
+    size_t num_sloppy_objects = 0;
+    size_t total_allocated = 0;
+    size_t total_slop = 0;
+    size_t large_slop = 0;
+    size_t large_used = 0;
+    size_t huge_slop = 0;
+    size_t huge_used = 0;
+    size_t bin_slop[JEMALLOC_MAX_STATS_BINS] = {0};
+
+    for (size_t slot_id = 0; slot_id < mNumUsedSlots; slot_id++) {
+      MemSlot& slot = mSlots[slot_id];
+      if (slot.mPtr) {
+        size_t used = ::malloc_usable_size_impl(slot.mPtr);
+        size_t slop = used - slot.mRequest;
+        total_allocated += used;
+        total_slop += slop;
+        num_objects++;
+        if (slop) {
+          num_sloppy_objects++;
+        }
+
+        if (used <= stats.page_size / 2) {
+          // We know that this is an inefficient linear search, but there's a
+          // small number of bins and this is simple.
+          for (unsigned i = 0; i < JEMALLOC_MAX_STATS_BINS; i++) {
+            auto& bin = bin_stats[i];
+            if (used == bin.size) {
+              bin_slop[i] += slop;
+              break;
+            }
+          }
+        } else if (used <= stats.large_max) {
+          large_slop += slop;
+          large_used += used;
+        } else {
+          huge_slop += slop;
+          huge_used += used;
+        }
+      }
+    }
+
+    FdPrintf(mStdErr, "\n");
+    FdPrintf(mStdErr, "Objects:      %9zu\n", num_objects);
+    FdPrintf(mStdErr, "Slots:        %9zu\n", mNumUsedSlots);
+    FdPrintf(mStdErr, "Ops:          %9zu\n", mOps);
+    FdPrintf(mStdErr, "mapped:       %9zu\n", stats.mapped);
+    FdPrintf(mStdErr, "allocated:    %9zu\n", stats.allocated);
+    FdPrintf(mStdErr, "waste:        %9zu\n", stats.waste);
+    FdPrintf(mStdErr, "dirty:        %9zu\n", stats.page_cache);
+    FdPrintf(mStdErr, "bookkeep:     %9zu\n", stats.bookkeeping);
+    FdPrintf(mStdErr, "bin-unused:   %9zu\n", stats.bin_unused);
+    FdPrintf(mStdErr, "quantum-max:  %9zu\n", stats.quantum_max);
+    FdPrintf(mStdErr, "subpage-max:  %9zu\n", stats.page_size / 2);
+    FdPrintf(mStdErr, "large-max:    %9zu\n", stats.large_max);
+    if (mCalculateSlop) {
+      size_t slop = mTotalAllocatedSize - mTotalRequestedSize;
+      FdPrintf(mStdErr,
+               "Total slop for all allocations: %zuKiB/%zuKiB (%zu%%)\n",
+               slop / 1024, mTotalAllocatedSize / 1024,
+               percent(slop, mTotalAllocatedSize));
+    }
+    FdPrintf(mStdErr, "Live sloppy objects: %zu/%zu (%zu%%)\n",
+             num_sloppy_objects, num_objects,
+             percent(num_sloppy_objects, num_objects));
+    FdPrintf(mStdErr, "Live sloppy bytes: %zuKiB/%zuKiB (%zu%%)\n",
+             total_slop / 1024, total_allocated / 1024,
+             percent(total_slop, total_allocated));
+
+    FdPrintf(mStdErr, "\n%8s %11s %10s %8s %9s %9s %8s\n", "bin-size",
+             "unused (c)", "total (c)", "used (c)", "non-full (r)", "total (r)",
+             "used (r)");
+    for (auto& bin : bin_stats) {
+      if (bin.size) {
+        FdPrintf(mStdErr, "%8zu %8zuKiB %7zuKiB %7zu%% %12zu %9zu %7zu%%\n",
+                 bin.size, bin.bytes_unused / 1024, bin.bytes_total / 1024,
+                 percent(bin.bytes_total - bin.bytes_unused, bin.bytes_total),
+                 bin.num_non_full_runs, bin.num_runs,
+                 percent(bin.num_runs - bin.num_non_full_runs, bin.num_runs));
+      }
+    }
+
+    FdPrintf(mStdErr, "\n%5s %8s %9s %7s\n", "bin", "slop", "used", "percent");
+    for (unsigned i = 0; i < JEMALLOC_MAX_STATS_BINS; i++) {
+      auto& bin = bin_stats[i];
+      if (bin.size) {
+        size_t used = bin.bytes_total - bin.bytes_unused;
+        FdPrintf(mStdErr, "%5zu %8zu %9zu %6zu%%\n", bin.size, bin_slop[i],
+                 used, percent(bin_slop[i], used));
+      }
+    }
+    FdPrintf(mStdErr, "%5s %8zu %9zu %6zu%%\n", "large", large_slop, large_used,
+             percent(large_slop, large_used));
+    FdPrintf(mStdErr, "%5s %8zu %9zu %6zu%%\n", "huge", huge_slop, huge_used,
+             percent(huge_slop, huge_used));
+
+    unsigned last_size = 0;
+    for (auto& bin : bin_stats) {
+      if (bin.size == 0) {
+        break;
+      }
+
+      if (bin.size <= 16) {
+        // 1 byte buckets.
+        print_distribution(bin.size, last_size, 1);
+      } else if (bin.size <= stats.quantum_max) {
+        // 4 buckets, (4 bytes per bucket with a 16 byte quantum).
+        print_distribution(bin.size, last_size, stats.quantum / 4);
+      } else {
+        // 16 buckets.
+        print_distribution(bin.size, last_size, (bin.size - last_size) / 16);
+      }
+
+      last_size = bin.size;
+    }
+
+    // 16 buckets.
+    print_distribution(stats.page_size, last_size,
+                       (stats.page_size - last_size) / 16);
+
+    // Buckets are 1/4 of the page size (12 buckets).
+    print_distribution(stats.page_size * 4, stats.page_size,
+                       stats.page_size / 4);
+
     /* TODO: Add more data, like actual RSS as measured by OS, but compensated
      * for the replay internal data. */
   }
 
  private:
+  const size_t MAX_NUM_BUCKETS = 16;
+
+  /*
+   * Create and print frequency distributions of memory requests.
+   */
+  void print_distribution(size_t size, size_t next_smallest,
+                          size_t bucket_size) {
+    unsigned shift = mozilla::CeilingLog2(bucket_size);
+
+    // The number of slots.
+    const unsigned array_slots = (size - next_smallest) >> shift;
+
+    // The translation to turn a slot index into a memory request size.
+    const unsigned array_offset = 1 + next_smallest;
+    const size_t array_offset_add = (1 << shift) + next_smallest;
+
+    // Avoid a variable length array.
+    MOZ_RELEASE_ASSERT(array_slots <= MAX_NUM_BUCKETS);
+    size_t requests[MAX_NUM_BUCKETS];
+    memset(requests, 0, sizeof(size_t) * array_slots);
+    size_t total_requests = 0;
+
+    for (size_t slot_id = 0; slot_id < mNumUsedSlots; slot_id++) {
+      MemSlot& slot = mSlots[slot_id];
+      if (slot.mPtr && slot.mRequest > next_smallest && slot.mRequest <= size) {
+        requests[(slot.mRequest - array_offset) >> shift]++;
+        total_requests++;
+      }
+    }
+
+    FdPrintf(mStdErr, "\n%zu-bin Distribution:\n", size);
+    FdPrintf(mStdErr, "   request   :  count percent\n");
+    size_t range_start = next_smallest + 1;
+    for (size_t j = 0; j < array_slots; j++) {
+      size_t range_end = (j << shift) + array_offset_add;
+      FdPrintf(mStdErr, "%5zu - %5zu: %6zu %6zu%%\n", range_start, range_end,
+               requests[j], percent(requests[j], total_requests));
+      range_start = range_end + 1;
+    }
+  }
+
+  static size_t percent(size_t a, size_t b) {
+    if (!b) {
+      return 0;
+    }
+    return size_t(round(double(a) / double(b) * 100.0));
+  }
+
   MemSlot& SlotForResult(Buffer& aResult) {
     /* Parse result value and get the corresponding slot. */
     Buffer dummy = aResult.SplitChar('=');
@@ -411,18 +640,40 @@ class Replay {
     }
 
     size_t slot_id = parseNumber(aResult);
+    mNumUsedSlots = std::max(mNumUsedSlots, slot_id + 1);
+
     return mSlots[slot_id];
   }
 
   intptr_t mStdErr;
   size_t mOps;
+
+  // The number of slots that have been used. It is used to iterate over slots
+  // without accessing those we haven't initialised.
+  size_t mNumUsedSlots;
+
   MemSlotList mSlots;
+  size_t mTotalRequestedSize;
+  size_t mTotalAllocatedSize;
+  // Whether to calculate slop for all allocations over the runtime of a
+  // process.
+  bool mCalculateSlop;
 };
 
-int main() {
+int main(int argc, const char* argv[]) {
   size_t first_pid = 0;
   FdReader reader(0);
   Replay replay;
+
+  for (int i = 1; i < argc; i++) {
+    const char *option = argv[i];
+    if (strcmp(option, "-s") == 0) {
+      replay.enableSlopCalculation();
+    } else {
+      fprintf(stderr, "Unknown command line option: %s\n", option);
+      return EXIT_FAILURE;
+    }
+  }
 
   /* Read log from stdin and dispatch function calls to the Replay instance.
    * The log format is essentially:

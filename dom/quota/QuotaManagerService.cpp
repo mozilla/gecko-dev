@@ -17,7 +17,7 @@
 #include "mozilla/ipc/BackgroundParent.h"
 #include "mozilla/ipc/BackgroundUtils.h"
 #include "mozilla/ipc/PBackgroundChild.h"
-#include "nsIIdleService.h"
+#include "nsIUserIdleService.h"
 #include "nsIObserverService.h"
 #include "nsXULAppAPI.h"
 #include "QuotaManager.h"
@@ -33,7 +33,7 @@ using namespace mozilla::ipc;
 
 namespace {
 
-const char kIdleServiceContractId[] = "@mozilla.org/widget/idleservice;1";
+const char kIdleServiceContractId[] = "@mozilla.org/widget/useridleservice;1";
 
 // The number of seconds we will wait after receiving the idle-daily
 // notification before beginning maintenance.
@@ -67,7 +67,7 @@ nsresult CheckedPrincipalToPrincipalInfo(nsIPrincipal* aPrincipal,
 
 nsresult GetClearResetOriginParams(nsIPrincipal* aPrincipal,
                                    const nsACString& aPersistenceType,
-                                   const nsAString& aClientType, bool aMatchAll,
+                                   const nsAString& aClientType,
                                    ClearResetOriginParams& aParams) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aPrincipal);
@@ -78,16 +78,16 @@ nsresult GetClearResetOriginParams(nsIPrincipal* aPrincipal,
     return rv;
   }
 
-  Nullable<PersistenceType> persistenceType;
-  rv = NullablePersistenceTypeFromText(aPersistenceType, &persistenceType);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  if (persistenceType.IsNull()) {
+  if (aPersistenceType.IsVoid()) {
     aParams.persistenceTypeIsExplicit() = false;
   } else {
-    aParams.persistenceType() = persistenceType.Value();
+    const auto maybePersistenceType =
+        PersistenceTypeFromString(aPersistenceType, fallible);
+    if (NS_WARN_IF(maybePersistenceType.isNothing())) {
+      return NS_ERROR_INVALID_ARG;
+    }
+
+    aParams.persistenceType() = maybePersistenceType.value();
     aParams.persistenceTypeIsExplicit() = true;
   }
 
@@ -103,8 +103,6 @@ nsresult GetClearResetOriginParams(nsIPrincipal* aPrincipal,
     aParams.clientType() = clientType;
     aParams.clientTypeIsExplicit() = true;
   }
-
-  aParams.matchAll() = aMatchAll;
 
   return NS_OK;
 }
@@ -351,7 +349,7 @@ void QuotaManagerService::PerformIdleMaintenance() {
     // We don't want user activity to impact this code if we're running tests.
     Unused << Observe(nullptr, OBSERVER_TOPIC_IDLE, nullptr);
   } else if (!mIdleObserverRegistered) {
-    nsCOMPtr<nsIIdleService> idleService =
+    nsCOMPtr<nsIUserIdleService> idleService =
         do_GetService(kIdleServiceContractId);
     MOZ_ASSERT(idleService);
 
@@ -367,7 +365,7 @@ void QuotaManagerService::RemoveIdleObserver() {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (mIdleObserverRegistered) {
-    nsCOMPtr<nsIIdleService> idleService =
+    nsCOMPtr<nsIUserIdleService> idleService =
         do_GetService(kIdleServiceContractId);
     MOZ_ASSERT(idleService);
 
@@ -383,6 +381,30 @@ NS_IMPL_ADDREF(QuotaManagerService)
 NS_IMPL_RELEASE_WITH_DESTROY(QuotaManagerService, Destroy())
 NS_IMPL_QUERY_INTERFACE(QuotaManagerService, nsIQuotaManagerService,
                         nsIObserver)
+
+NS_IMETHODIMP
+QuotaManagerService::StorageName(nsIQuotaRequest** _retval) {
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(nsContentUtils::IsCallerChrome());
+
+  if (NS_WARN_IF(!StaticPrefs::dom_quotaManager_testing())) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  RefPtr<Request> request = new Request();
+
+  StorageNameParams params;
+
+  RequestInfo info(request, params);
+
+  nsresult rv = InitiateRequest(info);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  request.forget(_retval);
+  return NS_OK;
+}
 
 NS_IMETHODIMP
 QuotaManagerService::StorageInitialized(nsIQuotaRequest** _retval) {
@@ -502,13 +524,13 @@ QuotaManagerService::InitStorageAndOrigin(nsIPrincipal* aPrincipal,
     return rv;
   }
 
-  Nullable<PersistenceType> persistenceType;
-  rv = NullablePersistenceTypeFromText(aPersistenceType, &persistenceType);
-  if (NS_WARN_IF(NS_FAILED(rv)) || persistenceType.IsNull()) {
+  const auto maybePersistenceType =
+      PersistenceTypeFromString(aPersistenceType, fallible);
+  if (NS_WARN_IF(maybePersistenceType.isNothing())) {
     return NS_ERROR_INVALID_ARG;
   }
 
-  params.persistenceType() = persistenceType.Value();
+  params.persistenceType() = maybePersistenceType.value();
 
   if (aClientType.IsVoid()) {
     params.clientTypeIsExplicit() = false;
@@ -658,13 +680,14 @@ QuotaManagerService::ClearStoragesForPrincipal(
   ClearResetOriginParams commonParams;
 
   nsresult rv = GetClearResetOriginParams(aPrincipal, aPersistenceType,
-                                          aClientType, aClearAll, commonParams);
+                                          aClientType, commonParams);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
 
-  RequestParams params;
-  params = ClearOriginParams(commonParams);
+  ClearOriginParams params;
+  params.commonParams() = std::move(commonParams);
+  params.matchAll() = aClearAll;
 
   RequestInfo info(request, params);
 
@@ -703,7 +726,7 @@ QuotaManagerService::Reset(nsIQuotaRequest** _retval) {
 NS_IMETHODIMP
 QuotaManagerService::ResetStoragesForPrincipal(
     nsIPrincipal* aPrincipal, const nsACString& aPersistenceType,
-    const nsAString& aClientType, bool aResetAll, nsIQuotaRequest** _retval) {
+    const nsAString& aClientType, nsIQuotaRequest** _retval) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aPrincipal);
 
@@ -711,21 +734,12 @@ QuotaManagerService::ResetStoragesForPrincipal(
     return NS_ERROR_UNEXPECTED;
   }
 
-  nsCString suffix;
-  aPrincipal->OriginAttributesRef().CreateSuffix(suffix);
-
-  if (NS_WARN_IF(aResetAll && !suffix.IsEmpty())) {
-    // The originAttributes should be default originAttributes when the
-    // aClearAll flag is set.
-    return NS_ERROR_INVALID_ARG;
-  }
-
   RefPtr<Request> request = new Request(aPrincipal);
 
   ClearResetOriginParams commonParams;
 
   nsresult rv = GetClearResetOriginParams(aPrincipal, aPersistenceType,
-                                          aClientType, aResetAll, commonParams);
+                                          aClientType, commonParams);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }

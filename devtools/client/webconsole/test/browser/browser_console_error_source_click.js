@@ -11,6 +11,10 @@ const TEST_URI =
   "<button onclick='foobar.explode()'>click!</button>";
 
 add_task(async function() {
+  // Disable the preloaded process as it creates processes intermittently
+  // which forces the emission of RDP requests we aren't correctly waiting for.
+  await pushPref("dom.ipc.processPrelaunch.enabled", false);
+
   await pushPref("devtools.browserconsole.contentMessages", true);
   await addTab(TEST_URI);
 
@@ -29,24 +33,25 @@ add_task(async function() {
     button.click();
   });
 
-  await waitForMessageAndViewSource(
-    hud,
-    "ReferenceError: foobar is not defined"
-  );
-});
+  const messageText = "ReferenceError: foobar is not defined";
 
-async function waitForMessageAndViewSource(hud, message) {
-  const msg = await waitFor(() => findMessage(hud, message));
-  ok(msg, `Message found: "${message}"`);
+  const msg = await waitFor(
+    () => findMessage(hud, messageText),
+    `Message "${messageText}" wasn't found`
+  );
+  ok(msg, `Message found: "${messageText}"`);
 
   const locationNode = msg.querySelector(
     ".message-location .frame-link-source"
   );
   ok(locationNode, "Message location link element found");
 
-  const onTabOpen = BrowserTestUtils.waitForNewTab(gBrowser, null, true);
+  const onTabOpen = BrowserTestUtils.waitForNewTab(
+    gBrowser,
+    url => url.startsWith("view-source:"),
+    true
+  );
   locationNode.click();
-  const newTab = await onTabOpen;
+  await onTabOpen;
   ok(true, "The view source tab was opened in response to clicking the link");
-  BrowserTestUtils.removeTab(newTab);
-}
+});

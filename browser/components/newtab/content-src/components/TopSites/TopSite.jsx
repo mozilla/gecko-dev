@@ -8,6 +8,7 @@ import {
   MIN_RICH_FAVICON_SIZE,
   TOP_SITES_CONTEXT_MENU_OPTIONS,
   TOP_SITES_SPOC_CONTEXT_MENU_OPTIONS,
+  TOP_SITES_SPONSORED_POSITION_CONTEXT_MENU_OPTIONS,
   TOP_SITES_SEARCH_SHORTCUTS_CONTEXT_MENU_OPTIONS,
   TOP_SITES_SOURCE,
 } from "./TopSitesConstants";
@@ -260,13 +261,20 @@ export class TopSiteLink extends React.PureComponent {
                 />
               )}
             </div>
-            <div className={`title ${link.isPinned ? "pinned" : ""}`}>
+            <div
+              className={`title${link.isPinned ? " has-icon pinned" : ""}${
+                link.type === SPOC_TYPE || link.sponsored_position
+                  ? " sponsored"
+                  : ""
+              }`}
+            >
               {link.isPinned && <div className="icon icon-pin-small" />}
-              <span dir="auto">{title}</span>
+              <span dir="auto">{title || <br />}</span>
+              <span
+                className="sponsored-label"
+                data-l10n-id="newtab-topsite-sponsored"
+              />
             </div>
-            {link.type === SPOC_TYPE ? (
-              <span className="top-site-spoc-label">Sponsored</span>
-            ) : null}
           </a>
           {children}
           {link.type === SPOC_TYPE ? (
@@ -316,7 +324,10 @@ export class TopSite extends React.PureComponent {
       value.card_type = "search";
       value.search_vendor = this.props.link.hostname;
     }
-    if (this.props.link.type === SPOC_TYPE) {
+    if (
+      this.props.link.type === SPOC_TYPE ||
+      this.props.link.sponsored_position
+    ) {
       value.card_type = "spoc";
     }
     return { value };
@@ -370,6 +381,17 @@ export class TopSite extends React.PureComponent {
           })
         );
       }
+      if (this.props.link.sendAttributionRequest) {
+        this.props.dispatch(
+          ac.OnlyToMain({
+            type: at.PARTNER_LINK_ATTRIBUTION,
+            data: {
+              targetURL: this.props.link.url,
+              source: "newtab",
+            },
+          })
+        );
+      }
     } else {
       this.props.dispatch(
         ac.OnlyToMain({
@@ -393,10 +415,16 @@ export class TopSite extends React.PureComponent {
     const { link } = props;
     const isContextMenuOpen = props.activeIndex === props.index;
     const title = link.label || link.hostname;
-    const menuOptions =
-      link.type !== SPOC_TYPE
-        ? TOP_SITES_CONTEXT_MENU_OPTIONS
-        : TOP_SITES_SPOC_CONTEXT_MENU_OPTIONS;
+    let menuOptions;
+    if (link.sponsored_position) {
+      menuOptions = TOP_SITES_SPONSORED_POSITION_CONTEXT_MENU_OPTIONS;
+    } else if (link.searchTopSite) {
+      menuOptions = TOP_SITES_SEARCH_SHORTCUTS_CONTEXT_MENU_OPTIONS;
+    } else if (link.type === SPOC_TYPE) {
+      menuOptions = TOP_SITES_SPOC_CONTEXT_MENU_OPTIONS;
+    } else {
+      menuOptions = TOP_SITES_CONTEXT_MENU_OPTIONS;
+    }
 
     return (
       <TopSiteLink
@@ -418,11 +446,7 @@ export class TopSite extends React.PureComponent {
               dispatch={props.dispatch}
               index={props.index}
               onUpdate={this.onMenuUpdate}
-              options={
-                link.searchTopSite
-                  ? TOP_SITES_SEARCH_SHORTCUTS_CONTEXT_MENU_OPTIONS
-                  : menuOptions
-              }
+              options={menuOptions}
               site={link}
               shouldSendImpressionStats={link.type === SPOC_TYPE}
               siteInfo={this._getTelemetryInfo()}
@@ -539,11 +563,37 @@ export class TopSiteList extends React.PureComponent {
         if (index === this.state.draggedIndex) {
           this.setState({ topSitesPreview: null });
         } else {
-          this.setState({ topSitesPreview: this._makeTopSitesPreview(index) });
+          let topSites = this._getTopSites();
+          let adjustedIndex = index;
+          // Disallow dropping on sponsored sites since their position is
+          // fixed.
+          while (
+            topSites[adjustedIndex] &&
+            topSites[adjustedIndex].sponsored_position
+          ) {
+            adjustedIndex++;
+          }
+          this.setState({
+            topSitesPreview: this._makeTopSitesPreview(adjustedIndex),
+          });
         }
         break;
       case "drop":
         if (index !== this.state.draggedIndex) {
+          // Adjust insertion index for sponsored sites since their position is
+          // fixed.
+          let topSites = this._getTopSites();
+          let adjustedIndex = index;
+          for (let i = 0; i < index; i++) {
+            if (
+              topSites[i] &&
+              topSites[i].sponsored_position &&
+              i !== this.state.draggedIndex
+            ) {
+              adjustedIndex--;
+            }
+          }
+
           this.dropped = true;
           this.props.dispatch(
             ac.AlsoToMain({
@@ -559,12 +609,12 @@ export class TopSiteList extends React.PureComponent {
                     searchTopSite: true,
                   }),
                 },
-                index,
+                index: adjustedIndex,
                 draggedFromIndex: this.state.draggedIndex,
               },
             })
           );
-          this.userEvent("DROP", index);
+          this.userEvent("DROP", adjustedIndex);
         }
         break;
     }
@@ -584,37 +634,44 @@ export class TopSiteList extends React.PureComponent {
   _makeTopSitesPreview(index) {
     const topSites = this._getTopSites();
     topSites[this.state.draggedIndex] = null;
-    const pinnedOnly = topSites.map(site =>
-      site && site.isPinned ? site : null
+    const preview = topSites.map(site =>
+      site && (site.isPinned || site.sponsored_position) ? site : null
     );
-    const unpinned = topSites.filter(site => site && !site.isPinned);
+    const unpinned = topSites.filter(
+      site => site && !site.isPinned && !site.sponsored_position
+    );
     const siteToInsert = Object.assign({}, this.state.draggedSite, {
       isPinned: true,
       isDragged: true,
     });
-    if (!pinnedOnly[index]) {
-      pinnedOnly[index] = siteToInsert;
+
+    if (!preview[index]) {
+      preview[index] = siteToInsert;
     } else {
       // Find the hole to shift the pinned site(s) towards. We shift towards the
       // hole left by the site being dragged.
       let holeIndex = index;
       const indexStep = index > this.state.draggedIndex ? -1 : 1;
-      while (pinnedOnly[holeIndex]) {
+      while (preview[holeIndex]) {
         holeIndex += indexStep;
       }
 
       // Shift towards the hole.
       const shiftingStep = index > this.state.draggedIndex ? 1 : -1;
-      while (holeIndex !== index) {
-        const nextIndex = holeIndex + shiftingStep;
-        pinnedOnly[holeIndex] = pinnedOnly[nextIndex];
+      while (
+        index > this.state.draggedIndex ? holeIndex < index : holeIndex > index
+      ) {
+        let nextIndex = holeIndex + shiftingStep;
+        while (preview[nextIndex] && preview[nextIndex].sponsored_position) {
+          nextIndex += shiftingStep;
+        }
+        preview[holeIndex] = preview[nextIndex];
         holeIndex = nextIndex;
       }
-      pinnedOnly[index] = siteToInsert;
+      preview[index] = siteToInsert;
     }
 
     // Fill in the remaining holes with unpinned sites.
-    const preview = pinnedOnly;
     for (let i = 0; i < preview.length; i++) {
       if (!preview[i]) {
         preview[i] = unpinned.shift() || null;

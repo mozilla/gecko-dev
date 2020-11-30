@@ -105,8 +105,8 @@ bool CSP_ShouldResponseInheritCSP(nsIChannel* aChannel) {
     rv = uri->GetSpec(aboutSpec);
     NS_ENSURE_SUCCESS(rv, false);
     // also allow about:blank#foo
-    if (StringBeginsWith(aboutSpec, NS_LITERAL_CSTRING("about:blank")) ||
-        StringBeginsWith(aboutSpec, NS_LITERAL_CSTRING("about:srcdoc"))) {
+    if (StringBeginsWith(aboutSpec, "about:blank"_ns) ||
+        StringBeginsWith(aboutSpec, "about:srcdoc"_ns)) {
       return true;
     }
   }
@@ -263,12 +263,17 @@ CSPDirective CSP_ContentTypeToDirective(nsContentPolicyType aType) {
     case nsIContentPolicy::TYPE_INTERNAL_MODULE:
     case nsIContentPolicy::TYPE_INTERNAL_MODULE_PRELOAD:
     case nsIContentPolicy::TYPE_INTERNAL_WORKER_IMPORT_SCRIPTS:
+    case nsIContentPolicy::TYPE_INTERNAL_AUDIOWORKLET:
+    case nsIContentPolicy::TYPE_INTERNAL_PAINTWORKLET:
+    case nsIContentPolicy::TYPE_INTERNAL_CHROMEUTILS_COMPILED_SCRIPT:
+    case nsIContentPolicy::TYPE_INTERNAL_FRAME_MESSAGEMANAGER_SCRIPT:
       return nsIContentSecurityPolicy::SCRIPT_SRC_DIRECTIVE;
 
     case nsIContentPolicy::TYPE_STYLESHEET:
       return nsIContentSecurityPolicy::STYLE_SRC_DIRECTIVE;
 
     case nsIContentPolicy::TYPE_FONT:
+    case nsIContentPolicy::TYPE_INTERNAL_FONT_PRELOAD:
       return nsIContentSecurityPolicy::FONT_SRC_DIRECTIVE;
 
     case nsIContentPolicy::TYPE_MEDIA:
@@ -290,13 +295,14 @@ CSPDirective CSP_ContentTypeToDirective(nsContentPolicyType aType) {
     case nsIContentPolicy::TYPE_BEACON:
     case nsIContentPolicy::TYPE_PING:
     case nsIContentPolicy::TYPE_FETCH:
+    case nsIContentPolicy::TYPE_INTERNAL_XMLHTTPREQUEST:
+    case nsIContentPolicy::TYPE_INTERNAL_FETCH_PRELOAD:
       return nsIContentSecurityPolicy::CONNECT_SRC_DIRECTIVE;
 
     case nsIContentPolicy::TYPE_OBJECT:
     case nsIContentPolicy::TYPE_OBJECT_SUBREQUEST:
       return nsIContentSecurityPolicy::OBJECT_SRC_DIRECTIVE;
 
-    case nsIContentPolicy::TYPE_XBL:
     case nsIContentPolicy::TYPE_DTD:
     case nsIContentPolicy::TYPE_OTHER:
     case nsIContentPolicy::TYPE_SPECULATIVE:
@@ -696,7 +702,7 @@ bool nsCSPHostSrc::permits(nsIURI* aUri, const nsAString& aNonce,
     // designating a globally unique identifier (such as blob:, data:, or
     // filesystem:) At the moment firefox does not support filesystem; but for
     // future compatibility we support it in CSP according to the spec,
-    // see: 4.2.2 Matching Source Expressions Note, that whitelisting any of
+    // see: 4.2.2 Matching Source Expressions Note, that allowlisting any of
     // these schemes would call nsCSPSchemeSrc::permits().
     if (aUri->SchemeIs("blob") || aUri->SchemeIs("data") ||
         aUri->SchemeIs("filesystem")) {
@@ -765,8 +771,8 @@ bool nsCSPHostSrc::permits(nsIURI* aUri, const nsAString& aNonce,
         return false;
       }
     }
-    // otherwise mPath whitelists a specific file, and we have to
-    // check if the loading resource matches that whitelisted file.
+    // otherwise mPath refers to a specific file, and we have to
+    // check if the loading resource matches the file.
     else {
       if (!mPath.Equals(decodedUriPath)) {
         return false;
@@ -1090,7 +1096,12 @@ void nsCSPDirective::toDomCSPStruct(mozilla::dom::CSP& outCSP) const {
   for (uint32_t i = 0; i < mSrcs.Length(); i++) {
     src.Truncate();
     mSrcs[i]->toString(src);
-    srcs.AppendElement(src, mozilla::fallible);
+    if (!srcs.AppendElement(src, mozilla::fallible)) {
+      // XXX(Bug 1632090) Instead of extending the array 1-by-1 (which might
+      // involve multiple reallocations) and potentially crashing here,
+      // SetCapacity could be called outside the loop once.
+      mozalloc_handle_oom(0);
+    }
   }
 
   switch (mDirective) {
@@ -1355,8 +1366,7 @@ nsCSPPolicy::~nsCSPPolicy() {
 bool nsCSPPolicy::permits(CSPDirective aDir, nsIURI* aUri,
                           bool aSpecific) const {
   nsString outp;
-  return this->permits(aDir, aUri, EmptyString(), false, aSpecific, false,
-                       outp);
+  return this->permits(aDir, aUri, u""_ns, false, aSpecific, false, outp);
 }
 
 bool nsCSPPolicy::permits(CSPDirective aDir, nsIURI* aUri,
@@ -1456,7 +1466,7 @@ bool nsCSPPolicy::allows(nsContentPolicyType aContentType,
 
 bool nsCSPPolicy::allows(nsContentPolicyType aContentType,
                          enum CSPKeyword aKeyword) const {
-  return allows(aContentType, aKeyword, NS_LITERAL_STRING(""), false);
+  return allows(aContentType, aKeyword, u""_ns, false);
 }
 
 void nsCSPPolicy::toString(nsAString& outStr) const {
@@ -1487,22 +1497,21 @@ bool nsCSPPolicy::hasDirective(CSPDirective aDir) const {
 }
 
 bool nsCSPPolicy::allowsNavigateTo(nsIURI* aURI, bool aWasRedirected,
-                                   bool aEnforceWhitelist) const {
+                                   bool aEnforceAllowlist) const {
   bool allowsNavigateTo = true;
 
   for (unsigned long i = 0; i < mDirectives.Length(); i++) {
     if (mDirectives[i]->equals(
             nsIContentSecurityPolicy::NAVIGATE_TO_DIRECTIVE)) {
-      // Early return if we can skip the whitelist AND 'unsafe-allow-redirects'
+      // Early return if we can skip the allowlist AND 'unsafe-allow-redirects'
       // is present.
-      if (!aEnforceWhitelist &&
-          mDirectives[i]->allows(CSP_UNSAFE_ALLOW_REDIRECTS, EmptyString(),
-                                 false)) {
+      if (!aEnforceAllowlist &&
+          mDirectives[i]->allows(CSP_UNSAFE_ALLOW_REDIRECTS, u""_ns, false)) {
         return true;
       }
-      // Otherwise, check against the whitelist.
-      if (!mDirectives[i]->permits(aURI, EmptyString(), aWasRedirected, false,
-                                   false, false)) {
+      // Otherwise, check against the allowlist.
+      if (!mDirectives[i]->permits(aURI, u""_ns, aWasRedirected, false, false,
+                                   false)) {
         allowsNavigateTo = false;
       }
     }

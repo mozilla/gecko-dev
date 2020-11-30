@@ -42,7 +42,7 @@ final class SamplePool {
             }
 
             if (mBufferless) {
-                return new Sample();
+                return Sample.obtain();
             } else {
                 return allocateSampleAndBuffer(size);
             }
@@ -53,7 +53,7 @@ final class SamplePool {
             try {
                 final SharedMemory shm = new SharedMemory(id, Math.max(size, mDefaultBufferSize));
                 mBuffers.put((Integer)id, new SampleBuffer(shm));
-                final Sample s = new Sample();
+                final Sample s = Sample.obtain();
                 s.bufferId = id;
                 return s;
             } catch (NoSuchMethodException | IOException e) {
@@ -82,14 +82,17 @@ final class SamplePool {
             for (Sample s : mRecycledSamples) {
                 disposeSample(s);
             }
-
             mRecycledSamples.clear();
+
+            for (SampleBuffer b: mBuffers.values()) {
+                b.dispose();
+            }
             mBuffers.clear();
         }
 
         private void disposeSample(final Sample sample) {
             if (sample.bufferId != Sample.NO_BUFFER) {
-                mBuffers.remove(sample.bufferId);
+                mBuffers.remove(sample.bufferId).dispose();
             }
             sample.dispose();
         }

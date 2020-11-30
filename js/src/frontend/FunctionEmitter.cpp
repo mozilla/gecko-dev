@@ -9,16 +9,17 @@
 #include "mozilla/Assertions.h"  // MOZ_ASSERT
 
 #include "builtin/ModuleObject.h"          // ModuleObject
-#include "frontend/BCEScriptStencil.h"     // BCEScriptStencil
 #include "frontend/BytecodeEmitter.h"      // BytecodeEmitter
+#include "frontend/FunctionSyntaxKind.h"   // FunctionSyntaxKind
 #include "frontend/ModuleSharedContext.h"  // ModuleSharedContext
 #include "frontend/NameAnalysisTypes.h"    // NameLocation
 #include "frontend/NameOpEmitter.h"        // NameOpEmitter
 #include "frontend/ParseContext.h"         // BindingIter
 #include "frontend/PropOpEmitter.h"        // PropOpEmitter
 #include "frontend/SharedContext.h"        // SharedContext
-#include "vm/AsyncFunction.h"              // AsyncFunctionResolveKind
+#include "vm/AsyncFunctionResolveKind.h"   // AsyncFunctionResolveKind
 #include "vm/JSScript.h"                   // JSScript
+#include "vm/ModuleBuilder.h"              // ModuleBuilder
 #include "vm/Opcodes.h"                    // JSOp
 #include "vm/Scope.h"                      // BindingKind
 #include "wasm/AsmJS.h"                    // IsAsmJSModule
@@ -34,36 +35,20 @@ FunctionEmitter::FunctionEmitter(BytecodeEmitter* bce, FunctionBox* funbox,
                                  IsHoisted isHoisted)
     : bce_(bce),
       funbox_(funbox),
-      fun_(bce_->cx, funbox_->function()),
-      name_(bce_->cx, funbox_->explicitName()),
+      name_(funbox_->explicitName()),
       syntaxKind_(syntaxKind),
       isHoisted_(isHoisted) {}
-
-bool FunctionEmitter::interpretedCommon() {
-  // Mark as singletons any function which will only be executed once, or
-  // which is inner to a lambda we only expect to run once. In the latter
-  // case, if the lambda runs multiple times then CloneFunctionObject will
-  // make a deep clone of its contents.
-  bool singleton = bce_->checkRunOnceContext();
-  return funbox_->setTypeForScriptedFunction(bce_->cx, singleton);
-}
 
 bool FunctionEmitter::prepareForNonLazy() {
   MOZ_ASSERT(state_ == State::Start);
 
   MOZ_ASSERT(funbox_->isInterpreted());
   MOZ_ASSERT(funbox_->emitBytecode);
-  MOZ_ASSERT(!funbox_->wasEmitted);
+  MOZ_ASSERT(!funbox_->wasEmitted());
 
   //                [stack]
 
-  funbox_->wasEmitted = true;
-
-  if (!interpretedCommon()) {
-    return false;
-  }
-
-  MOZ_ASSERT_IF(bce_->sc->strict(), funbox_->strictScript);
+  funbox_->setWasEmitted(true);
 
 #ifdef DEBUG
   state_ = State::NonLazy;
@@ -92,22 +77,15 @@ bool FunctionEmitter::emitLazy() {
 
   MOZ_ASSERT(funbox_->isInterpreted());
   MOZ_ASSERT(!funbox_->emitBytecode);
-  MOZ_ASSERT(!funbox_->wasEmitted);
+  MOZ_ASSERT(!funbox_->wasEmitted());
 
   //                [stack]
 
-  funbox_->wasEmitted = true;
+  funbox_->setWasEmitted(true);
 
-  if (!interpretedCommon()) {
-    return false;
-  }
-
-  funbox_->setEnclosingScopeForInnerLazyFunction(bce_->innermostScope());
-  if (bce_->emittingRunOnceLambda) {
-    // NOTE: The 'funbox' is only partially initialized so we defer checking
-    // the shouldSuppressRunOnce condition until delazification.
-    funbox_->setTreatAsRunOnce();
-  }
+  // Prepare to update the inner lazy script now that it's parent is fully
+  // compiled. These updates will be applied in UpdateEmittedInnerFunctions().
+  funbox_->setEnclosingScopeForInnerLazyFunction(bce_->innermostScopeIndex());
 
   if (!emitFunction()) {
     //              [stack] FUN?
@@ -122,7 +100,7 @@ bool FunctionEmitter::emitLazy() {
 
 bool FunctionEmitter::emitAgain() {
   MOZ_ASSERT(state_ == State::Start);
-  MOZ_ASSERT(funbox_->wasEmitted);
+  MOZ_ASSERT(funbox_->wasEmitted());
 
   //                [stack]
 
@@ -146,7 +124,7 @@ bool FunctionEmitter::emitAgain() {
   // If there are parameter expressions, the var name could be a
   // parameter.
   if (!lhsLoc && bce_->sc->isFunctionBox() &&
-      bce_->sc->asFunctionBox()->hasExtraBodyVarScope()) {
+      bce_->sc->asFunctionBox()->functionHasExtraBodyVarScope()) {
     lhsLoc = bce_->locationOfNameBoundInScope(
         name_, bce_->varEmitterScope->enclosingInFrame());
   }
@@ -191,12 +169,12 @@ bool FunctionEmitter::emitAgain() {
 bool FunctionEmitter::emitAsmJSModule() {
   MOZ_ASSERT(state_ == State::Start);
 
-  MOZ_ASSERT(!funbox_->wasEmitted);
-  MOZ_ASSERT(IsAsmJSModule(fun_));
+  MOZ_ASSERT(!funbox_->wasEmitted());
+  MOZ_ASSERT(funbox_->isAsmJSModule());
 
   //                [stack]
 
-  funbox_->wasEmitted = true;
+  funbox_->setWasEmitted(true);
 
   if (!emitFunction()) {
     //              [stack]
@@ -211,7 +189,7 @@ bool FunctionEmitter::emitAsmJSModule() {
 
 bool FunctionEmitter::emitFunction() {
   // Make the function object a literal in the outer script's pool.
-  uint32_t index;
+  GCThingIndex index;
   if (!bce_->perScriptData().gcThingList().append(funbox_, &index)) {
     return false;
   }
@@ -246,7 +224,7 @@ bool FunctionEmitter::emitFunction() {
   //                [stack]
 }
 
-bool FunctionEmitter::emitNonHoisted(unsigned index) {
+bool FunctionEmitter::emitNonHoisted(GCThingIndex index) {
   // Non-hoisted functions simply emit their respective op.
 
   //                [stack]
@@ -264,7 +242,7 @@ bool FunctionEmitter::emitNonHoisted(unsigned index) {
 
   if (syntaxKind_ == FunctionSyntaxKind::DerivedClassConstructor) {
     //              [stack] PROTO
-    if (!bce_->emitIndexOp(JSOp::FunWithProto, index)) {
+    if (!bce_->emitGCIndexOp(JSOp::FunWithProto, index)) {
       //            [stack] FUN
       return false;
     }
@@ -275,7 +253,7 @@ bool FunctionEmitter::emitNonHoisted(unsigned index) {
   // constructor. Emit the single instruction (without location info).
   JSOp op = syntaxKind_ == FunctionSyntaxKind::Arrow ? JSOp::LambdaArrow
                                                      : JSOp::Lambda;
-  if (!bce_->emitIndexOp(op, index)) {
+  if (!bce_->emitGCIndexOp(op, index)) {
     //              [stack] FUN
     return false;
   }
@@ -283,7 +261,7 @@ bool FunctionEmitter::emitNonHoisted(unsigned index) {
   return true;
 }
 
-bool FunctionEmitter::emitHoisted(unsigned index) {
+bool FunctionEmitter::emitHoisted(GCThingIndex index) {
   MOZ_ASSERT(syntaxKind_ == FunctionSyntaxKind::Statement);
 
   //                [stack]
@@ -297,7 +275,7 @@ bool FunctionEmitter::emitHoisted(unsigned index) {
     return false;
   }
 
-  if (!bce_->emitIndexOp(JSOp::Lambda, index)) {
+  if (!bce_->emitGCIndexOp(JSOp::Lambda, index)) {
     //              [stack] FUN
     return false;
   }
@@ -315,26 +293,21 @@ bool FunctionEmitter::emitHoisted(unsigned index) {
   return true;
 }
 
-bool FunctionEmitter::emitTopLevelFunction(unsigned index) {
+bool FunctionEmitter::emitTopLevelFunction(GCThingIndex index) {
   //                [stack]
 
   if (bce_->sc->isModuleContext()) {
     // For modules, we record the function and instantiate the binding
     // during ModuleInstantiate(), before the script is run.
-
-    JS::Rooted<ModuleObject*> module(bce_->cx,
-                                     bce_->sc->asModuleContext()->module());
-    if (!module->noteFunctionDeclaration(bce_->cx, name_, index)) {
-      return false;
-    }
-    return true;
+    return bce_->sc->asModuleContext()->builder.noteFunctionDeclaration(
+        bce_->cx, index);
   }
 
   MOZ_ASSERT(bce_->sc->isGlobalContext() || bce_->sc->isEvalContext());
   MOZ_ASSERT(syntaxKind_ == FunctionSyntaxKind::Statement);
   MOZ_ASSERT(bce_->inPrologue());
 
-  if (!bce_->emitIndexOp(JSOp::Lambda, index)) {
+  if (!bce_->emitGCIndexOp(JSOp::Lambda, index)) {
     //              [stack] FUN
     return false;
   }
@@ -382,15 +355,6 @@ bool FunctionScriptEmitter::prepareForParameters() {
     if (!namedLambdaEmitterScope_->enterNamedLambda(bce_, funbox_)) {
       return false;
     }
-  }
-
-  /*
-   * Mark the script so that initializers created within it may be given more
-   * precise types.
-   */
-  if (bce_->isRunOnceLambda()) {
-    bce_->script->setTreatAsRunOnce();
-    MOZ_ASSERT(!bce_->script->hasRunOnce());
   }
 
   if (bodyEnd_) {
@@ -477,7 +441,7 @@ bool FunctionScriptEmitter::prepareForBody() {
 
   if (funbox_->isClassConstructor()) {
     if (!funbox_->isDerivedClassConstructor()) {
-      if (!bce_->emitInitializeInstanceFields()) {
+      if (!bce_->emitInitializeInstanceMembers()) {
         //          [stack]
         return false;
       }
@@ -534,7 +498,7 @@ bool FunctionScriptEmitter::emitAsyncFunctionRejectEpilogue() {
 bool FunctionScriptEmitter::emitExtraBodyVarScope() {
   //                [stack]
 
-  if (!funbox_->hasExtraBodyVarScope()) {
+  if (!funbox_->functionHasExtraBodyVarScope()) {
     return true;
   }
 
@@ -553,8 +517,9 @@ bool FunctionScriptEmitter::emitExtraBodyVarScope() {
   //
   //   function f(x, y = 42) { var y; }
   //
-  JS::Rooted<JSAtom*> name(bce_->cx);
-  for (BindingIter bi(*funbox_->functionScopeBindings(), true); bi; bi++) {
+  const ParserAtom* name = nullptr;
+  for (ParserBindingIter bi(*funbox_->functionScopeBindings(), true); bi;
+       bi++) {
     name = bi.name();
 
     // There may not be a var binding of the same name.
@@ -566,8 +531,8 @@ bool FunctionScriptEmitter::emitExtraBodyVarScope() {
     // The '.this' and '.generator' function special
     // bindings should never appear in the extra var
     // scope. 'arguments', however, may.
-    MOZ_ASSERT(name != bce_->cx->names().dotThis &&
-               name != bce_->cx->names().dotGenerator);
+    MOZ_ASSERT(name != bce_->cx->parserNames().dotThis &&
+               name != bce_->cx->parserNames().dotGenerator);
 
     NameOpEmitter noe(bce_, name, NameOpEmitter::Kind::Initialize);
     if (!noe.prepareForRhs()) {
@@ -733,24 +698,17 @@ bool FunctionScriptEmitter::emitEndBody() {
   return true;
 }
 
-bool FunctionScriptEmitter::initScript(
-    const FieldInitializers& fieldInitializers) {
+bool FunctionScriptEmitter::intoStencil() {
   MOZ_ASSERT(state_ == State::EndBody);
 
-  uint32_t nslots;
-  if (!bce_->getNslots(&nslots)) {
+  if (!bce_->intoScriptStencil(&funbox_->functionStencil())) {
     return false;
   }
-  BCEScriptStencil stencil(*bce_, nslots);
-  if (!JSScript::fullyInitFromStencil(bce_->cx, bce_->script, stencil)) {
-    return false;
-  }
-
-  bce_->script->setFieldInitializers(fieldInitializers);
 
 #ifdef DEBUG
   state_ = State::End;
 #endif
+
   return true;
 }
 
@@ -760,7 +718,7 @@ FunctionParamsEmitter::FunctionParamsEmitter(BytecodeEmitter* bce,
       funbox_(funbox),
       functionEmitterScope_(bce_->innermostEmitterScope()) {}
 
-bool FunctionParamsEmitter::emitSimple(JS::Handle<JSAtom*> paramName) {
+bool FunctionParamsEmitter::emitSimple(const ParserAtom* paramName) {
   MOZ_ASSERT(state_ == State::Start);
 
   //                [stack]
@@ -797,7 +755,7 @@ bool FunctionParamsEmitter::prepareForDefault() {
   return true;
 }
 
-bool FunctionParamsEmitter::emitDefaultEnd(JS::Handle<JSAtom*> paramName) {
+bool FunctionParamsEmitter::emitDefaultEnd(const ParserAtom* paramName) {
   MOZ_ASSERT(state_ == State::Default);
 
   //                [stack] DEFAULT
@@ -903,7 +861,7 @@ bool FunctionParamsEmitter::emitDestructuringDefaultEnd() {
   return true;
 }
 
-bool FunctionParamsEmitter::emitRest(JS::Handle<JSAtom*> paramName) {
+bool FunctionParamsEmitter::emitRest(const ParserAtom* paramName) {
   MOZ_ASSERT(state_ == State::Start);
 
   //                [stack]
@@ -994,7 +952,7 @@ bool FunctionParamsEmitter::emitRestArray() {
   return true;
 }
 
-bool FunctionParamsEmitter::emitAssignment(JS::Handle<JSAtom*> paramName) {
+bool FunctionParamsEmitter::emitAssignment(const ParserAtom* paramName) {
   //                [stack] ARG
 
   NameLocation paramLoc =

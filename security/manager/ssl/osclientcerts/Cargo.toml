@@ -16,7 +16,7 @@ pkcs11 = "0.4"
 sha2 = "0.8"
 
 [target."cfg(target_os = \"macos\")".dependencies.core-foundation]
-version = "0.6"
+version = "0.9"
 
 [target."cfg(target_os = \"macos\")".dependencies.libloading]
 version = "0.5"
@@ -27,9 +27,6 @@ version = "0.5"
 [target."cfg(target_os = \"windows\")".dependencies.winapi]
 version = "0.3"
 features = ["wincrypt"]
-
-[build-dependencies]
-bindgen = {version = "0.51.1", default-features = false} # disable `logging` to reduce code size
 
 [lib]
 crate-type = ["staticlib"]

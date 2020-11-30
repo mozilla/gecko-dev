@@ -70,17 +70,22 @@ async function testMediaLink(editor, tab, ui, itemIndex, type, value) {
   let conditions = sidebar.querySelectorAll(".media-rule-condition");
 
   const onMediaChange = once(ui, "media-list-changed");
+  const onRDMOpened = once(ui, "responsive-mode-opened");
 
   info("Launching responsive mode");
   conditions[itemIndex].querySelector(responsiveModeToggleClass).click();
-
+  await onRDMOpened;
   const rdmUI = ResponsiveUIManager.getResponsiveUIForTab(tab);
-  const onContentResize = waitForResizeTo(rdmUI, type, value);
+
+  await waitForResizeTo(rdmUI, type, value);
   rdmUI.transitionsEnabled = false;
 
   info("Waiting for the @media list to update");
   await onMediaChange;
-  await onContentResize;
+
+  // Ensure that the content has reflowed, which will ensure that all the
+  // element classes are reported correctly.
+  await promiseContentReflow(rdmUI);
 
   ok(
     ResponsiveUIManager.isActiveForTab(tab),
@@ -137,6 +142,16 @@ function waitForResizeTo(rdmUI, type, value) {
     };
     info(`Waiting for content-resize to a ${type} of ${value}`);
     rdmUI.on("content-resize", onResize);
+  });
+}
+
+function promiseContentReflow(ui) {
+  return SpecialPowers.spawn(ui.getViewportBrowser(), [], async function() {
+    return new Promise(resolve => {
+      content.window.requestAnimationFrame(() => {
+        content.window.requestAnimationFrame(resolve);
+      });
+    });
   });
 }
 

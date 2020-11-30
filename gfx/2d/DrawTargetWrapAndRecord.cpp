@@ -27,10 +27,8 @@ static void WrapAndRecordSourceSurfaceUserDataFunc(void* aUserData) {
   WrapAndRecordSourceSurfaceUserData* userData =
       static_cast<WrapAndRecordSourceSurfaceUserData*>(aUserData);
 
-  userData->recorder->RemoveSourceSurface((SourceSurface*)userData->refPtr);
-  userData->recorder->RemoveStoredObject(userData->refPtr);
-  userData->recorder->RecordEvent(
-      RecordedSourceSurfaceDestruction(ReferencePtr(userData->refPtr)));
+  userData->recorder->RecordSourceSurfaceDestruction(
+      static_cast<SourceSurface*>(userData->refPtr));
 
   delete userData;
 }
@@ -202,7 +200,7 @@ class FilterNodeWrapAndRecord : public FilterNode {
   FORWARD_SET_ATTRIBUTE(const Matrix&, MATRIX);
   FORWARD_SET_ATTRIBUTE(const Matrix5x4&, MATRIX5X4);
   FORWARD_SET_ATTRIBUTE(const Point3D&, POINT3D);
-  FORWARD_SET_ATTRIBUTE(const Color&, COLOR);
+  FORWARD_SET_ATTRIBUTE(const DeviceColor&, COLOR);
 
 #undef FORWARD_SET_ATTRIBUTE
 
@@ -268,7 +266,7 @@ struct AdjustedPattern final {
         return mPattern;
       }
       default:
-        return new (mColPat) ColorPattern(Color());
+        return new (mColPat) ColorPattern(DeviceColor());
     }
 
     return mPattern;
@@ -356,6 +354,7 @@ void DrawTargetWrapAndRecord::Fill(const Path* aPath, const Pattern& aPattern,
 
 struct WrapAndRecordFontUserData {
   void* refPtr;
+  void* unscaledFont;
   RefPtr<DrawEventRecorderPrivate> recorder;
 };
 
@@ -366,6 +365,7 @@ static void WrapAndRecordFontUserDataDestroyFunc(void* aUserData) {
   userData->recorder->RecordEvent(
       RecordedScaledFontDestruction(ReferencePtr(userData->refPtr)));
   userData->recorder->RemoveScaledFont((ScaledFont*)userData->refPtr);
+  userData->recorder->DecrementUnscaledFontRefCount(userData->unscaledFont);
   delete userData;
 }
 
@@ -378,7 +378,7 @@ void DrawTargetWrapAndRecord::FillGlyphs(ScaledFont* aFont,
   UserDataKey* userDataKey = reinterpret_cast<UserDataKey*>(mRecorder.get());
   if (!aFont->GetUserData(userDataKey)) {
     UnscaledFont* unscaledFont = aFont->GetUnscaledFont();
-    if (!mRecorder->HasStoredUnscaledFont(unscaledFont)) {
+    if (mRecorder->IncrementUnscaledFontRefCount(unscaledFont) == 0) {
       RecordedFontData fontData(unscaledFont);
       RecordedFontDetails fontDetails;
       if (fontData.GetFontDetails(fontDetails)) {
@@ -401,13 +401,13 @@ void DrawTargetWrapAndRecord::FillGlyphs(ScaledFont* aFont,
                           "serialise UnscaledFont";
         }
       }
-      mRecorder->AddStoredUnscaledFont(unscaledFont);
     }
 
     mRecorder->RecordEvent(RecordedScaledFontCreation(aFont, unscaledFont));
 
     WrapAndRecordFontUserData* userData = new WrapAndRecordFontUserData;
     userData->refPtr = aFont;
+    userData->unscaledFont = unscaledFont;
     userData->recorder = mRecorder;
     aFont->AddUserData(userDataKey, userData,
                        &WrapAndRecordFontUserDataDestroyFunc);
@@ -492,8 +492,16 @@ void DrawTargetWrapAndRecord::DrawSurface(
                         aSurfOptions, aOptions);
 }
 
+void DrawTargetWrapAndRecord::DrawDependentSurface(
+    uint64_t aId, const Rect& aDest, const DrawSurfaceOptions& aSurfOptions,
+    const DrawOptions& aOptions) {
+  mRecorder->AddDependentSurface(aId);
+  mRecorder->RecordEvent(
+      RecordedDrawDependentSurface(this, aId, aDest, aSurfOptions, aOptions));
+}
+
 void DrawTargetWrapAndRecord::DrawSurfaceWithShadow(
-    SourceSurface* aSurface, const Point& aDest, const Color& aColor,
+    SourceSurface* aSurface, const Point& aDest, const DeviceColor& aColor,
     const Point& aOffset, Float aSigma, CompositionOp aOp) {
   EnsureSurfaceStored(mRecorder, aSurface, "DrawSurfaceWithShadow");
 
@@ -655,6 +663,7 @@ RefPtr<DrawTarget> DrawTargetWrapAndRecord::CreateClippedDrawTarget(
   similarDT = new DrawTargetWrapAndRecord(this->mRecorder, innerDT);
   mRecorder->RecordEvent(
       RecordedCreateClippedDrawTarget(this, similarDT.get(), aBounds, aFormat));
+  similarDT->SetTransform(mTransform);
   return similarDT;
 }
 

@@ -10,7 +10,7 @@
 
 #include "blapi.h"
 
-#define FREEBL_VERSION 0x0316
+#define FREEBL_VERSION 0x0324
 
 struct FREEBLVectorStr {
 
@@ -778,6 +778,42 @@ struct FREEBLVectorStr {
     void (*p_CMAC_Destroy)(CMACContext *ctx, PRBool free_it);
 
     /* Version 3.022 came to here */
+    SECStatus (*p_ChaCha20Poly1305_Encrypt)(
+        const ChaCha20Poly1305Context *ctx, unsigned char *output,
+        unsigned int *outputLen, unsigned int maxOutputLen,
+        const unsigned char *input, unsigned int inputLen,
+        const unsigned char *nonce, unsigned int nonceLen,
+        const unsigned char *ad, unsigned int adLen, unsigned char *tagOut);
+
+    SECStatus (*p_ChaCha20Poly1305_Decrypt)(
+        const ChaCha20Poly1305Context *ctx, unsigned char *output,
+        unsigned int *outputLen, unsigned int maxOutputLen,
+        const unsigned char *input, unsigned int inputLen,
+        const unsigned char *nonce, unsigned int nonceLen,
+        const unsigned char *ad, unsigned int adLen, unsigned char *tagIn);
+    SECStatus (*p_AES_AEAD)(AESContext *cx, unsigned char *output,
+                            unsigned int *outputLen, unsigned int maxOutputLen,
+                            const unsigned char *input, unsigned int inputLen,
+                            void *params, unsigned int paramsLen,
+                            const unsigned char *aad, unsigned int aadLen);
+    SECStatus (*p_AESKeyWrap_EncryptKWP)(AESKeyWrapContext *cx,
+                                         unsigned char *output,
+                                         unsigned int *outputLen,
+                                         unsigned int maxOutputLen,
+                                         const unsigned char *input,
+                                         unsigned int inputLen);
+
+    SECStatus (*p_AESKeyWrap_DecryptKWP)(AESKeyWrapContext *cx,
+                                         unsigned char *output,
+                                         unsigned int *outputLen,
+                                         unsigned int maxOutputLen,
+                                         const unsigned char *input,
+                                         unsigned int inputLen);
+
+    /* Version 3.023 came to here */
+
+    PRBool (*p_KEA_PrimeCheck)(SECItem *prime);
+    /* Version 3.024 came to here */
 
     /* Add new function pointers at the end of this struct and bump
      * FREEBL_VERSION at the beginning of this file. */
@@ -828,4 +864,56 @@ extern FREEBLGetVectorFn FREEBL_GetVector;
 
 SEC_END_PROTOS
 
+#endif
+
+#ifdef NSS_DISABLE_DEPRECATED_SEED
+typedef SECStatus (*F_SEED_InitContext)(SEEDContext *cx,
+                                        const unsigned char *key,
+                                        unsigned int keylen,
+                                        const unsigned char *iv,
+                                        int mode,
+                                        unsigned int encrypt,
+                                        unsigned int);
+
+typedef SEEDContext *(*F_SEED_AllocateContext)(void);
+
+typedef SEEDContext *(*F_SEED_CreateContext)(const unsigned char *key,
+                                             const unsigned char *iv,
+                                             int mode, PRBool encrypt);
+
+typedef void (*F_SEED_DestroyContext)(SEEDContext *cx, PRBool freeit);
+
+typedef SECStatus (*F_SEED_Encrypt)(SEEDContext *cx, unsigned char *output,
+                                    unsigned int *outputLen, unsigned int maxOutputLen,
+                                    const unsigned char *input, unsigned int inputLen);
+
+typedef SECStatus (*F_SEED_Decrypt)(SEEDContext *cx, unsigned char *output,
+                                    unsigned int *outputLen, unsigned int maxOutputLen,
+                                    const unsigned char *input, unsigned int inputLen);
+#endif
+
+#ifdef NSS_DISABLE_DEPRECATED_RC2
+typedef RC2Context *(*F_RC2_CreateContext)(const unsigned char *key,
+                                           unsigned int len, const unsigned char *iv,
+                                           int mode, unsigned effectiveKeyLen);
+
+typedef void (*F_RC2_DestroyContext)(RC2Context *cx, PRBool freeit);
+
+typedef SECStatus (*F_RC2_Encrypt)(RC2Context *cx, unsigned char *output,
+                                   unsigned int *outputLen, unsigned int maxOutputLen,
+                                   const unsigned char *input, unsigned int inputLen);
+
+typedef SECStatus (*F_RC2_Decrypt)(RC2Context *cx, unsigned char *output,
+                                   unsigned int *outputLen, unsigned int maxOutputLen,
+                                   const unsigned char *input, unsigned int inputLen);
+
+typedef SECStatus (*F_RC2_InitContext)(RC2Context *cx,
+                                       const unsigned char *key,
+                                       unsigned int keylen,
+                                       const unsigned char *iv,
+                                       int mode,
+                                       unsigned int effectiveKeyLen,
+                                       unsigned int);
+
+typedef RC2Context *(*F_RC2_AllocateContext)(void);
 #endif

@@ -29,10 +29,11 @@ ABIArg ABIArgGenerator::next(MIRType type) {
 #if defined(XP_WIN)
   static_assert(NumIntArgRegs == NumFloatArgRegs);
   if (regIndex_ == NumIntArgRegs) {
-    if (IsSimdType(type)) {
-      // On Win64, >64 bit args need to be passed by reference, but wasm
-      // doesn't allow passing SIMD values to FFIs. The only way to reach
-      // here is asm to asm calls, so we can break the ABI here.
+    if (type == MIRType::Simd128) {
+      // On Win64, >64 bit args need to be passed by reference.  However, wasm
+      // doesn't allow passing SIMD values to JS, so the only way to reach this
+      // is wasm to wasm calls.  Ergo we can break the native ABI here and use
+      // the Wasm ABI instead.
       stackOffset_ = AlignBytes(stackOffset_, SimdMemoryAlignment);
       current_ = ABIArg(stackOffset_);
       stackOffset_ += Simd128DataSize;
@@ -56,13 +57,7 @@ ABIArg ABIArgGenerator::next(MIRType type) {
     case MIRType::Double:
       current_ = ABIArg(FloatArgRegs[regIndex_++]);
       break;
-    case MIRType::Int8x16:
-    case MIRType::Int16x8:
-    case MIRType::Int32x4:
-    case MIRType::Float32x4:
-    case MIRType::Bool8x16:
-    case MIRType::Bool16x8:
-    case MIRType::Bool32x4:
+    case MIRType::Simd128:
       // On Win64, >64 bit args need to be passed by reference, but wasm
       // doesn't allow passing SIMD values to FFIs. The only way to reach
       // here is asm to asm calls, so we can break the ABI here.
@@ -99,13 +94,7 @@ ABIArg ABIArgGenerator::next(MIRType type) {
         current_ = ABIArg(FloatArgRegs[floatRegIndex_++]);
       }
       break;
-    case MIRType::Int8x16:
-    case MIRType::Int16x8:
-    case MIRType::Int32x4:
-    case MIRType::Float32x4:
-    case MIRType::Bool8x16:
-    case MIRType::Bool16x8:
-    case MIRType::Bool32x4:
+    case MIRType::Simd128:
       if (floatRegIndex_ == NumFloatArgRegs) {
         stackOffset_ = AlignBytes(stackOffset_, SimdMemoryAlignment);
         current_ = ABIArg(stackOffset_);
@@ -121,20 +110,6 @@ ABIArg ABIArgGenerator::next(MIRType type) {
 #endif
 }
 
-void Assembler::writeRelocation(JmpSrc src, RelocationKind reloc) {
-  if (!jumpRelocations_.length()) {
-    // The jump relocation table starts with a fixed-width integer pointing
-    // to the start of the extended jump table. But, we don't know the
-    // actual extended jump table offset yet, so write a 0 which we'll
-    // patch later.
-    jumpRelocations_.writeFixedUint32_t(0);
-  }
-  if (reloc == RelocationKind::JITCODE) {
-    jumpRelocations_.writeUnsigned(src.offset());
-    jumpRelocations_.writeUnsigned(jumps_.length());
-  }
-}
-
 void Assembler::addPendingJump(JmpSrc src, ImmPtr target,
                                RelocationKind reloc) {
   MOZ_ASSERT(target.value != nullptr);
@@ -142,20 +117,22 @@ void Assembler::addPendingJump(JmpSrc src, ImmPtr target,
   // Emit reloc before modifying the jump table, since it computes a 0-based
   // index. This jump is not patchable at runtime.
   if (reloc == RelocationKind::JITCODE) {
-    writeRelocation(src, reloc);
+    jumpRelocations_.writeUnsigned(src.offset());
   }
-  enoughMemory_ &=
-      jumps_.append(RelativePatch(src.offset(), target.value, reloc));
-}
 
-size_t Assembler::addPatchableJump(JmpSrc src, RelocationKind reloc) {
-  // This jump is patchable at runtime so we always need to make sure the
-  // jump table is emitted.
-  writeRelocation(src, reloc);
+  static_assert(MaxCodeBytesPerProcess <= uint64_t(2) * 1024 * 1024 * 1024,
+                "Code depends on using int32_t for cross-JitCode jump offsets");
 
-  size_t index = jumps_.length();
-  enoughMemory_ &= jumps_.append(RelativePatch(src.offset(), nullptr, reloc));
-  return index;
+  MOZ_ASSERT_IF(reloc == RelocationKind::JITCODE,
+                AddressIsInExecutableMemory(target.value));
+
+  RelativePatch patch(src.offset(), target.value, reloc);
+  if (reloc == RelocationKind::JITCODE ||
+      AddressIsInExecutableMemory(target.value)) {
+    enoughMemory_ &= codeJumps_.append(patch);
+  } else {
+    enoughMemory_ &= extendedJumps_.append(patch);
+  }
 }
 
 void Assembler::finish() {
@@ -163,7 +140,7 @@ void Assembler::finish() {
     return;
   }
 
-  if (!jumps_.length()) {
+  if (!extendedJumps_.length()) {
     // Since we may be folowed by non-executable data, eagerly insert an
     // undefined instruction byte to prevent processors from decoding
     // gibberish into their pipelines. See Intel performance guides.
@@ -175,17 +152,8 @@ void Assembler::finish() {
   masm.haltingAlign(SizeOfJumpTableEntry);
   extendedJumpTable_ = masm.size();
 
-  // Now that we know the offset to the jump table, squirrel it into the
-  // jump relocation buffer if any JitCode references exist and must be
-  // tracked for GC.
-  MOZ_ASSERT_IF(jumpRelocations_.length(),
-                jumpRelocations_.length() >= sizeof(uint32_t));
-  if (jumpRelocations_.length()) {
-    *(uint32_t*)jumpRelocations_.buffer() = extendedJumpTable_;
-  }
-
   // Zero the extended jumps table.
-  for (size_t i = 0; i < jumps_.length(); i++) {
+  for (size_t i = 0; i < extendedJumps_.length(); i++) {
 #ifdef DEBUG
     size_t oldSize = masm.size();
 #endif
@@ -204,15 +172,19 @@ void Assembler::finish() {
 void Assembler::executableCopy(uint8_t* buffer) {
   AssemblerX86Shared::executableCopy(buffer);
 
-  for (size_t i = 0; i < jumps_.length(); i++) {
-    RelativePatch& rp = jumps_[i];
+  for (RelativePatch& rp : codeJumps_) {
     uint8_t* src = buffer + rp.offset;
-    if (!rp.target) {
-      // The patch target is nullptr for jumps that have been linked to
-      // a label within the same code block, but may be repatched later
-      // to jump to a different code block.
-      continue;
-    }
+    MOZ_ASSERT(rp.target);
+
+    MOZ_RELEASE_ASSERT(X86Encoding::CanRelinkJump(src, rp.target));
+    X86Encoding::SetRel32(src, rp.target);
+  }
+
+  for (size_t i = 0; i < extendedJumps_.length(); i++) {
+    RelativePatch& rp = extendedJumps_[i];
+    uint8_t* src = buffer + rp.offset;
+    MOZ_ASSERT(rp.target);
+
     if (X86Encoding::CanRelinkJump(src, rp.target)) {
       X86Encoding::SetRel32(src, rp.target);
     } else {
@@ -235,40 +207,27 @@ void Assembler::executableCopy(uint8_t* buffer) {
 
 class RelocationIterator {
   CompactBufferReader reader_;
-  uint32_t tableStart_;
-  uint32_t offset_;
-  uint32_t extOffset_;
+  uint32_t offset_ = 0;
 
  public:
-  explicit RelocationIterator(CompactBufferReader& reader)
-      : reader_(reader), offset_(0), extOffset_(0) {
-    tableStart_ = reader_.readFixedUint32_t();
-  }
+  explicit RelocationIterator(CompactBufferReader& reader) : reader_(reader) {}
 
   bool read() {
     if (!reader_.more()) {
       return false;
     }
     offset_ = reader_.readUnsigned();
-    extOffset_ = reader_.readUnsigned();
     return true;
   }
 
   uint32_t offset() const { return offset_; }
-  uint32_t extendedOffset() const { return extOffset_; }
 };
 
 JitCode* Assembler::CodeFromJump(JitCode* code, uint8_t* jump) {
   uint8_t* target = (uint8_t*)X86Encoding::GetRel32Target(jump);
-  if (target >= code->raw() &&
-      target < code->raw() + code->instructionsSize()) {
-    // This jump is within the code buffer, so it has been redirected to
-    // the extended jump table.
-    MOZ_ASSERT(target + SizeOfJumpTableEntry <=
-               code->raw() + code->instructionsSize());
 
-    target = (uint8_t*)X86Encoding::GetPointer(target + SizeOfExtendedJump);
-  }
+  MOZ_ASSERT(!code->containsNativePC(target),
+             "Extended jump table not used for cross-JitCode jumps");
 
   return JitCode::FromExecutable(target);
 }

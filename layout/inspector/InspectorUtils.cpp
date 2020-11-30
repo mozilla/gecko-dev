@@ -12,8 +12,8 @@
 #include "gfxTextRun.h"
 #include "nsArray.h"
 #include "nsString.h"
-#include "nsIStyleSheetLinkingElement.h"
 #include "nsIContentInlines.h"
+#include "nsIScrollableFrame.h"
 #include "mozilla/dom/Document.h"
 #include "ChildIterator.h"
 #include "nsComputedDOMStyle.h"
@@ -28,6 +28,7 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/CSSStyleRule.h"
 #include "mozilla/dom/InspectorUtilsBinding.h"
+#include "mozilla/dom/LinkStyle.h"
 #include "mozilla/dom/ToJSValue.h"
 #include "nsCSSProps.h"
 #include "nsCSSValue.h"
@@ -42,6 +43,7 @@
 #include "mozilla/StaticPrefs_layout.h"
 #include "mozilla/dom/InspectorUtils.h"
 #include "mozilla/dom/InspectorFontFace.h"
+#include "mozilla/gfx/Matrix.h"
 
 using namespace mozilla;
 using namespace mozilla::css;
@@ -71,16 +73,14 @@ void InspectorUtils::GetAllStyleSheets(GlobalObject& aGlobalObject,
       }
     }
 
-    AutoTArray<StyleSheet*, 32> xblSheetArray;
-    styleSet->AppendAllNonDocumentAuthorSheets(xblSheetArray);
+    AutoTArray<StyleSheet*, 32> nonDocumentSheets;
+    styleSet->AppendAllNonDocumentAuthorSheets(nonDocumentSheets);
 
-    // The XBL stylesheet array will quite often be full of duplicates. Cope:
-    //
-    // FIXME(emilio, bug 1454467): I think this is not true since bug 1452525.
+    // The non-document stylesheet array can't have duplicates right now, but it
+    // could once we include adopted stylesheets.
     nsTHashtable<nsPtrHashKey<StyleSheet>> sheetSet;
-    for (StyleSheet* sheet : xblSheetArray) {
-      if (!sheetSet.Contains(sheet)) {
-        sheetSet.PutEntry(sheet);
+    for (StyleSheet* sheet : nonDocumentSheets) {
+      if (sheetSet.EnsureInserted(sheet)) {
         aResult.AppendElement(sheet);
       }
     }
@@ -92,7 +92,8 @@ void InspectorUtils::GetAllStyleSheets(GlobalObject& aGlobalObject,
   }
 
   // FIXME(emilio, bug 1617948): This doesn't deal with adopted stylesheets, and
-  // it should. It should also handle duplicates correctly when it does.
+  // it should. It should also handle duplicates correctly when it does, see
+  // above.
 }
 
 bool InspectorUtils::IsIgnorableWhitespace(CharacterData& aDataNode) {
@@ -269,19 +270,14 @@ uint32_t InspectorUtils::GetRelativeRuleLine(GlobalObject& aGlobal,
   // a 0 lineNumber.
   StyleSheet* sheet = aRule.GetStyleSheet();
   if (sheet && lineNumber != 0) {
-    nsINode* owningNode = sheet->GetOwnerNode();
-    if (owningNode) {
-      nsCOMPtr<nsIStyleSheetLinkingElement> link =
-          do_QueryInterface(owningNode);
-      if (link) {
-        // Check for underflow, which is one indication that we're
-        // trying to remap an already relative lineNumber.
-        uint32_t linkLineIndex0 = link->GetLineNumber() - 1;
-        if (linkLineIndex0 > lineNumber) {
-          lineNumber = 0;
-        } else {
-          lineNumber -= linkLineIndex0;
-        }
+    if (auto* link = LinkStyle::FromNodeOrNull(sheet->GetOwnerNode())) {
+      // Check for underflow, which is one indication that we're
+      // trying to remap an already relative lineNumber.
+      uint32_t linkLineIndex0 = link->GetLineNumber() - 1;
+      if (linkLineIndex0 > lineNumber) {
+        lineNumber = 0;
+      } else {
+        lineNumber -= linkLineIndex0;
       }
     }
   }
@@ -447,6 +443,12 @@ static uint8_t ToServoCssType(InspectorPropertyType aType) {
   }
 }
 
+bool InspectorUtils::Supports(GlobalObject&, const nsACString& aDeclaration,
+                              const SupportsOptions& aOptions) {
+  return Servo_CSSSupports(&aDeclaration, aOptions.mUserAgent, aOptions.mChrome,
+                           aOptions.mQuirks);
+}
+
 bool InspectorUtils::CssPropertySupportsType(GlobalObject& aGlobalObject,
                                              const nsACString& aProperty,
                                              InspectorPropertyType aType,
@@ -488,12 +490,19 @@ void InspectorUtils::RgbToColorName(GlobalObject& aGlobalObject, uint8_t aR,
 }
 
 /* static */
-void InspectorUtils::ColorToRGBA(GlobalObject& aGlobalObject,
-                                 const nsACString& aColorString,
+void InspectorUtils::ColorToRGBA(GlobalObject&, const nsACString& aColorString,
+                                 const Document* aDoc,
                                  Nullable<InspectorRGBATuple>& aResult) {
   nscolor color = NS_RGB(0, 0, 0);
 
-  if (!ServoCSSParser::ComputeColor(nullptr, NS_RGB(0, 0, 0), aColorString,
+  ServoStyleSet* styleSet = nullptr;
+  if (aDoc) {
+    if (PresShell* ps = aDoc->GetPresShell()) {
+      styleSet = ps->StyleSet();
+    }
+  }
+
+  if (!ServoCSSParser::ComputeColor(styleSet, NS_RGB(0, 0, 0), aColorString,
                                     &color)) {
     aResult.SetNull();
     return;
@@ -707,6 +716,91 @@ Element* InspectorUtils::ContainingBlockOf(GlobalObject&, Element& aElement) {
     return nullptr;
   }
   return Element::FromNodeOrNull(cb->GetContent());
+}
+
+static bool FrameHasSpecifiedSize(const nsIFrame* aFrame) {
+  auto wm = aFrame->GetWritingMode();
+
+  const nsStylePosition* stylePos = aFrame->StylePosition();
+
+  return stylePos->ISize(wm).IsLengthPercentage() ||
+         stylePos->BSize(wm).IsLengthPercentage();
+}
+
+static bool IsFrameOutsideOfAncestor(const nsIFrame* aFrame,
+                                     const nsIFrame* aAncestorFrame,
+                                     const nsRect& aAncestorRect) {
+  nsRect frameRectInAncestorSpace = nsLayoutUtils::TransformFrameRectToAncestor(
+      aFrame, aFrame->ScrollableOverflowRect(), RelativeTo{aAncestorFrame},
+      nullptr, nullptr, false, nullptr);
+
+  // We use nsRect::SaturatingUnionEdges because it correctly handles the case
+  // of a zero-width or zero-height frame, which we still want to consider as
+  // contributing to the union.
+  nsRect unionizedRect =
+      frameRectInAncestorSpace.SaturatingUnionEdges(aAncestorRect);
+
+  // If frameRectInAncestorSpace is inside aAncestorRect then union of
+  // frameRectInAncestorSpace and aAncestorRect should be equal to aAncestorRect
+  // hence if it is equal, then false should be returned.
+
+  return !(unionizedRect == aAncestorRect);
+}
+
+static void AddOverflowingChildrenOfElement(const nsIFrame* aFrame,
+                                            const nsIFrame* aAncestorFrame,
+                                            const nsRect& aRect,
+                                            nsSimpleContentList& aList) {
+  MOZ_ASSERT(aFrame, "we assume the passed-in frame is non-null");
+  for (const auto& childList : aFrame->ChildLists()) {
+    for (const nsIFrame* child : childList.mList) {
+      // We want to identify if the child or any of its children have a
+      // frame that is outside of aAncestorFrame. Ideally, child would have
+      // a frame rect that encompasses all of its children, but this is not
+      // guaranteed by the frame tree. So instead we first check other
+      // conditions that indicate child is an interesting frame:
+      //
+      // 1) child has a specified size
+      // 2) none of child's children are implicated
+      //
+      // If either of these conditions are true, we *then* check if child's
+      // frame is outside of aAncestorFrame, and if so, we add child's content
+      // to aList.
+
+      if (FrameHasSpecifiedSize(child) &&
+          IsFrameOutsideOfAncestor(child, aAncestorFrame, aRect)) {
+        aList.AppendElement(child->GetContent());
+        continue;
+      }
+
+      uint32_t currListLength = aList.Length();
+      AddOverflowingChildrenOfElement(child, aAncestorFrame, aRect, aList);
+
+      // If child is a leaf node, length of aList should remain same after
+      // calling AddOverflowingChildrenOfElement on it.
+      if (currListLength == aList.Length() &&
+          IsFrameOutsideOfAncestor(child, aAncestorFrame, aRect)) {
+        aList.AppendElement(child->GetContent());
+      }
+    }
+  }
+}
+
+already_AddRefed<nsINodeList> InspectorUtils::GetOverflowingChildrenOfElement(
+    GlobalObject& aGlobal, Element& aElement) {
+  RefPtr<nsSimpleContentList> list = new nsSimpleContentList(&aElement);
+  const nsIScrollableFrame* scrollFrame = aElement.GetScrollFrame();
+  // Element must have a nsIScrollableFrame
+  if (!scrollFrame) {
+    return list.forget();
+  }
+
+  auto scrollPortRect = scrollFrame->GetScrollPortRect();
+  const nsIFrame* outerFrame = do_QueryFrame(scrollFrame);
+  const nsIFrame* scrolledFrame = scrollFrame->GetScrolledFrame();
+  AddOverflowingChildrenOfElement(scrolledFrame, outerFrame, scrollPortRect,
+                                  *list);
+  return list.forget();
 }
 
 }  // namespace dom

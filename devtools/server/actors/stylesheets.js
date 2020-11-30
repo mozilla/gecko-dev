@@ -4,7 +4,7 @@
 
 "use strict";
 
-const { Ci } = require("chrome");
+const { Ci, Cu } = require("chrome");
 const defer = require("devtools/shared/defer");
 const protocol = require("devtools/shared/protocol");
 const { LongStringActor } = require("devtools/server/actors/string");
@@ -15,6 +15,9 @@ const {
   styleSheetsSpec,
 } = require("devtools/shared/specs/stylesheets");
 const InspectorUtils = require("InspectorUtils");
+const {
+  getSourcemapBaseURL,
+} = require("devtools/server/actors/utils/source-map-utils");
 
 loader.lazyRequireGetter(
   this,
@@ -23,13 +26,7 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   this,
-  "addPseudoClassLock",
-  "devtools/server/actors/highlighters/utils/markup",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "removePseudoClassLock",
+  ["addPseudoClassLock", "removePseudoClassLock"],
   "devtools/server/actors/highlighters/utils/markup",
   true
 );
@@ -39,6 +36,10 @@ loader.lazyRequireGetter(
   "devtools/shared/layout/utils",
   true
 );
+const {
+  TYPES,
+  getResourceWatcher,
+} = require("devtools/server/actors/resources/index");
 
 var TRANSITION_PSEUDO_CLASS = ":-moz-styleeditor-transitioning";
 var TRANSITION_DURATION_MS = 500;
@@ -90,7 +91,7 @@ var MediaRuleActor = protocol.ActorClassWithSpec(mediaRuleSpec, {
   },
 
   initialize: function(mediaRule, parentActor) {
-    protocol.Actor.prototype.initialize.call(this, null);
+    protocol.Actor.prototype.initialize.call(this, parentActor.conn);
 
     this.rawRule = mediaRule;
     this.parentActor = parentActor;
@@ -114,7 +115,11 @@ var MediaRuleActor = protocol.ActorClassWithSpec(mediaRuleSpec, {
 
   destroy: function() {
     if (this.mql) {
-      this.mql.removeListener(this._matchesChange);
+      // The content page may already be destroyed and mql be the dead wrapper.
+      if (!Cu.isDeadWrapper(this.mql)) {
+        this.mql.removeListener(this._matchesChange);
+      }
+      this.mql = null;
     }
 
     protocol.Actor.prototype.destroy.call(this);
@@ -139,7 +144,7 @@ var MediaRuleActor = protocol.ActorClassWithSpec(mediaRuleSpec, {
   },
 });
 
-function getSheetText(sheet, consoleActor) {
+function getSheetText(sheet) {
   const cssText = modifiedStyleSheets.get(sheet);
   if (cssText !== undefined) {
     return Promise.resolve(cssText);
@@ -151,7 +156,7 @@ function getSheetText(sheet, consoleActor) {
     return Promise.resolve(content);
   }
 
-  return fetchStylesheet(sheet, consoleActor).then(({ content }) => content);
+  return fetchStylesheet(sheet).then(({ content }) => content);
 }
 
 exports.getSheetText = getSheetText;
@@ -162,7 +167,7 @@ exports.getSheetText = getSheetText;
 function getCSSCharset(sheet) {
   if (sheet) {
     // charset attribute of <link> or <style> element, if it exists
-    if (sheet.ownerNode && sheet.ownerNode.getAttribute) {
+    if (sheet.ownerNode?.getAttribute) {
       const linkCharset = sheet.ownerNode.getAttribute("charset");
       if (linkCharset != null) {
         return linkCharset;
@@ -170,7 +175,7 @@ function getCSSCharset(sheet) {
     }
 
     // charset of referring document.
-    if (sheet.ownerNode && sheet.ownerNode.ownerDocument.characterSet) {
+    if (sheet.ownerNode?.ownerDocument.characterSet) {
       return sheet.ownerNode.ownerDocument.characterSet;
     }
   }
@@ -188,16 +193,8 @@ function getCSSCharset(sheet) {
  *           - contentType: the content type of the document
  *         If an error occurs, the promise is rejected with that error.
  */
-async function fetchStylesheet(sheet, consoleActor) {
+async function fetchStylesheet(sheet) {
   const href = sheet.href;
-
-  let result;
-  if (consoleActor) {
-    result = await consoleActor.getRequestContentForURL(href);
-    if (result) {
-      return result;
-    }
-  }
 
   const options = {
     loadFromCache: true,
@@ -220,6 +217,8 @@ async function fetchStylesheet(sheet, consoleActor) {
       options.principal = sheet.ownerNode.ownerDocument.nodePrincipal;
     }
   }
+
+  let result;
 
   try {
     result = await fetch(href, options);
@@ -323,10 +322,11 @@ var StyleSheetActor = protocol.ActorClassWithSpec(styleSheetSpec, {
         TRANSITION_PSEUDO_CLASS
       );
     }
+    protocol.Actor.prototype.destroy.call(this);
   },
 
   initialize: function(styleSheet, parentActor) {
-    protocol.Actor.prototype.initialize.call(this, null);
+    protocol.Actor.prototype.initialize.call(this, parentActor.conn);
 
     this.rawSheet = styleSheet;
     this.parentActor = parentActor;
@@ -430,6 +430,13 @@ var StyleSheetActor = protocol.ActorClassWithSpec(styleSheetSpec, {
       title: this.rawSheet.title,
       system: !CssLogic.isAuthorStylesheet(this.rawSheet),
       styleSheetIndex: this.styleSheetIndex,
+      sourceMapBaseURL: getSourcemapBaseURL(
+        // Technically resolveSourceURL should be used here alongside
+        // "this.rawSheet.sourceURL", but the style inspector does not support
+        // /*# sourceURL=*/ in CSS, so we're omitting it here (bug 880831).
+        this.href || docHref,
+        this.ownerWindow
+      ),
       sourceMapURL: this.rawSheet.sourceMapURL,
     };
 
@@ -489,23 +496,10 @@ var StyleSheetActor = protocol.ActorClassWithSpec(styleSheetSpec, {
       return Promise.resolve(this.text);
     }
 
-    return getSheetText(this.rawSheet, this._consoleActor).then(text => {
+    return getSheetText(this.rawSheet).then(text => {
       this.text = text;
       return text;
     });
-  },
-
-  /**
-   * Try to locate the console actor if it exists via our parent actor (the tab).
-   *
-   * Keep this in sync with the BrowsingContextTargetActor version.
-   */
-  get _consoleActor() {
-    if (this.parentActor.exited) {
-      return null;
-    }
-    const form = this.parentActor.form();
-    return this.conn._getOrCreateActor(form.consoleActor);
   },
 
   /**
@@ -627,38 +621,35 @@ var StyleSheetsActor = protocol.ActorClassWithSpec(styleSheetsSpec, {
     return this.window.document;
   },
 
-  form: function() {
-    return { actor: this.actorID };
-  },
-
   initialize: function(conn, targetActor) {
-    protocol.Actor.prototype.initialize.call(this, null);
+    protocol.Actor.prototype.initialize.call(this, targetActor.conn);
 
     this.parentActor = targetActor;
 
+    this._onApplicableStateChanged = this._onApplicableStateChanged.bind(this);
     this._onNewStyleSheetActor = this._onNewStyleSheetActor.bind(this);
-    this._onSheetAdded = this._onSheetAdded.bind(this);
     this._onWindowReady = this._onWindowReady.bind(this);
     this._transitionSheetLoaded = false;
 
     this.parentActor.on("stylesheet-added", this._onNewStyleSheetActor);
     this.parentActor.on("window-ready", this._onWindowReady);
 
-    // We listen for StyleSheetApplicableStateChanged rather than
-    // StyleSheetAdded, because the latter will be sent before the
-    // rules are ready.  Using the former (with a check to ensure that
-    // the sheet is enabled) ensures that the sheet is ready before we
-    // try to make an actor for it.
     this.parentActor.chromeEventHandler.addEventListener(
       "StyleSheetApplicableStateChanged",
-      this._onSheetAdded,
+      this._onApplicableStateChanged,
       true
     );
+  },
 
-    // This is used when creating a new style sheet, so that we can
-    // pass the correct flag when emitting our stylesheet-added event.
-    // See addStyleSheet and _onNewStyleSheetActor for more details.
-    this._nextStyleSheetIsNew = false;
+  getTraits() {
+    return {
+      traits: {
+        // FF81+ addStyleSheet supports file name parameter.
+        isFileNameSupported: true,
+        // FF81+ resource requesting supports.
+        supportResourceRequests: true,
+      },
+    };
   },
 
   destroy: function() {
@@ -673,7 +664,7 @@ var StyleSheetsActor = protocol.ActorClassWithSpec(styleSheetsSpec, {
 
     this.parentActor.chromeEventHandler.removeEventListener(
       "StyleSheetApplicableStateChanged",
-      this._onSheetAdded,
+      this._onApplicableStateChanged,
       true
     );
 
@@ -697,9 +688,16 @@ var StyleSheetsActor = protocol.ActorClassWithSpec(styleSheetsSpec, {
    *        The new style sheet actor.
    */
   _onNewStyleSheetActor: function(actor) {
+    const info = this._addingStyleSheetInfo?.get(actor.rawSheet);
+    this._addingStyleSheetInfo?.delete(actor.rawSheet);
+
     // Forward it to the client side.
-    this.emit("stylesheet-added", actor, this._nextStyleSheetIsNew);
-    this._nextStyleSheetIsNew = false;
+    this.emit(
+      "stylesheet-added",
+      actor,
+      info ? info.isNew : false,
+      info ? info.fileName : null
+    );
   },
 
   /**
@@ -730,10 +728,7 @@ var StyleSheetsActor = protocol.ActorClassWithSpec(styleSheetsSpec, {
     // Special case about:PreferenceStyleSheet, as it is generated on the
     // fly and the URI is not registered with the about: handler.
     // https://bugzilla.mozilla.org/show_bug.cgi?id=935803#c37
-    if (
-      sheet.href &&
-      sheet.href.toLowerCase() == "about:preferencestylesheet"
-    ) {
+    if (sheet.href?.toLowerCase() === "about:preferencestylesheet") {
       return false;
     }
 
@@ -741,18 +736,32 @@ var StyleSheetsActor = protocol.ActorClassWithSpec(styleSheetsSpec, {
   },
 
   /**
-   * Event handler that is called when a new style sheet is added to
-   * a document.  In particular,  StyleSheetApplicableStateChanged is
-   * listened for, because StyleSheetAdded is sent too early, before
-   * the rules are ready.
+   * Event handler that is called when the state of applicable of style sheet is changed.
    *
-   * @param {Event} evt
+   * For now, StyleSheetApplicableStateChanged event will be called at following timings.
+   * - Append <link> of stylesheet to document
+   * - Append <style> to document
+   * - Change disable attribute of stylesheet object
+   * - Change disable attribute of <link> to false
+   * When appending <link>, <style> or changing `disable` attribute to false, `applicable`
+   * is passed as true. The other hand, when changing `disable` to true, this will be
+   * false.
+   * NOTE: For now, StyleSheetApplicableStateChanged will not be called when removing the
+   *       link and style element.
+   *
+   * @param {StyleSheetApplicableStateChanged}
    *        The triggering event.
    */
-  _onSheetAdded: function(evt) {
-    const sheet = evt.stylesheet;
-    if (this._shouldListSheet(sheet) && !this._haveAncestorWithSameURL(sheet)) {
-      this.parentActor.createStyleSheetActor(sheet);
+  _onApplicableStateChanged: function({ applicable, stylesheet }) {
+    if (
+      // Have interest in applicable stylesheet only.
+      applicable &&
+      // No ownerNode means that this stylesheet is *not* associated to a DOM Element.
+      stylesheet.ownerNode &&
+      this._shouldListSheet(stylesheet) &&
+      !this._haveAncestorWithSameURL(stylesheet)
+    ) {
+      this.parentActor.createStyleSheetActor(stylesheet);
     }
   },
 
@@ -864,17 +873,21 @@ var StyleSheetsActor = protocol.ActorClassWithSpec(styleSheetsSpec, {
    *
    * @param  {object} request
    *         Debugging protocol request object, with 'text property'
+   * @param  {string} fileName
+   *         If the stylesheet adding is from file, `fileName` indicates the path.
    * @return {object}
    *         Object with 'styelSheet' property for form on new actor.
    */
-  addStyleSheet: function(text) {
-    // This is a bit convoluted.  The style sheet actor may be created
-    // by a notification from platform.  In this case, we can't easily
-    // pass the "new" flag through to createStyleSheetActor, so we set
-    // a flag locally and check it before sending an event to the
-    // client.  See |_onNewStyleSheetActor|.
-    this._nextStyleSheetIsNew = true;
+  async addStyleSheet(text, fileName = null) {
+    const styleSheetsWatcher = this._getStyleSheetsWatcher();
+    if (styleSheetsWatcher) {
+      await styleSheetsWatcher.addStyleSheet(this.document, text, fileName);
+      return;
+    }
 
+    // Following code can be removed once we enable STYLESHEET resource on the watcher/server
+    // side by default. For now it is being preffed off and we have to support the two
+    // codepaths. Once enabled we will only support the stylesheet watcher codepath.
     const parent = this.document.documentElement;
     const style = this.document.createElementNS(
       "http://www.w3.org/1999/xhtml",
@@ -887,8 +900,67 @@ var StyleSheetsActor = protocol.ActorClassWithSpec(styleSheetsSpec, {
     }
     parent.appendChild(style);
 
+    // This is a bit convoluted.  The style sheet actor may be created
+    // by a notification from platform.  In this case, we can't easily
+    // pass the "new" flag through to createStyleSheetActor, so we set
+    // a flag locally and check it before sending an event to the
+    // client.  See |_onNewStyleSheetActor|.
+    if (!this._addingStyleSheetInfo) {
+      this._addingStyleSheetInfo = new WeakMap();
+    }
+    this._addingStyleSheetInfo.set(style.sheet, { isNew: true, fileName });
+
     const actor = this.parentActor.createStyleSheetActor(style.sheet);
+    // eslint-disable-next-line consistent-return
     return actor;
+  },
+
+  _getStyleSheetActor(resourceId) {
+    return this.parentActor._targetScopedActorPool.getActorByID(resourceId);
+  },
+
+  _getStyleSheetsWatcher() {
+    return getResourceWatcher(this.parentActor, TYPES.STYLESHEET);
+  },
+
+  toggleDisabled(resourceId) {
+    const styleSheetsWatcher = this._getStyleSheetsWatcher();
+    if (styleSheetsWatcher) {
+      return styleSheetsWatcher.toggleDisabled(resourceId);
+    }
+
+    // Following code can be removed once we enable STYLESHEET resource on the watcher/server
+    // side by default. For now it is being preffed off and we have to support the two
+    // codepaths. Once enabled we will only support the stylesheet watcher codepath.
+    const actor = this._getStyleSheetActor(resourceId);
+    return actor.toggleDisabled();
+  },
+
+  async getText(resourceId) {
+    const styleSheetsWatcher = this._getStyleSheetsWatcher();
+    if (styleSheetsWatcher) {
+      const text = await styleSheetsWatcher.getText(resourceId);
+      return new LongStringActor(this.conn, text || "");
+    }
+
+    // Following code can be removed once we enable STYLESHEET resource on the watcher/server
+    // side by default. For now it is being preffed off and we have to support the two
+    // codepaths. Once enabled we will only support the stylesheet watcher codepath.
+    const actor = this._getStyleSheetActor(resourceId);
+    return actor.getText();
+  },
+
+  update(resourceId, text, transition) {
+    const styleSheetsWatcher = this._getStyleSheetsWatcher();
+    if (styleSheetsWatcher) {
+      return styleSheetsWatcher.update(resourceId, text, transition);
+    }
+
+    // Following code can be removed once we enable STYLESHEET resource on the watcher/server
+    // side by default. For now it is being preffed off and we have to support the two
+    // codepaths. Once enabled we will only support the stylesheet watcher codepath.
+    const actor = this._getStyleSheetActor(resourceId);
+    return actor.update(text, transition);
   },
 });
 

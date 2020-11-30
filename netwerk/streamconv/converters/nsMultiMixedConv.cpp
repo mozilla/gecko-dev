@@ -71,7 +71,7 @@ void nsPartChannel::SetContentDisposition(
   nsCOMPtr<nsIURI> uri;
   GetURI(getter_AddRefs(uri));
   NS_GetFilenameFromDisposition(mContentDispositionFilename,
-                                mContentDispositionHeader, uri);
+                                mContentDispositionHeader);
   mContentDisposition =
       NS_GetContentDispositionFromHeader(mContentDispositionHeader, this);
 }
@@ -424,7 +424,7 @@ nsMultiMixedConv::AsyncConvertData(const char* aFromType, const char* aToType,
 
 NS_IMETHODIMP
 nsMultiMixedConv::GetConvertedType(const nsACString& aFromType,
-                                   nsACString& aToType) {
+                                   nsIChannel* aChannel, nsACString& aToType) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -445,14 +445,12 @@ nsMultiMixedConv::OnStartRequest(nsIRequest* request) {
   // ask the HTTP channel for the content-type and extract the boundary from it.
   nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(mChannel, &rv);
   if (NS_SUCCEEDED(rv)) {
-    rv = httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("content-type"),
-                                        contentType);
+    rv = httpChannel->GetResponseHeader("content-type"_ns, contentType);
     if (NS_FAILED(rv)) {
       return rv;
     }
     nsCString csp;
-    rv = httpChannel->GetResponseHeader(
-        NS_LITERAL_CSTRING("content-security-policy"), csp);
+    rv = httpChannel->GetResponseHeader("content-security-policy"_ns, csp);
     if (NS_SUCCEEDED(rv)) {
       mRootContentSecurityPolicy = csp;
     }
@@ -508,8 +506,8 @@ nsMultiMixedConv::OnStartRequest(nsIRequest* request) {
 
   mBoundaryToken =
       mTokenizer.AddCustomToken(mBoundary, mTokenizer.CASE_SENSITIVE);
-  mBoundaryTokenWithDashes = mTokenizer.AddCustomToken(
-      NS_LITERAL_CSTRING("--") + mBoundary, mTokenizer.CASE_SENSITIVE);
+  mBoundaryTokenWithDashes =
+      mTokenizer.AddCustomToken("--"_ns + mBoundary, mTokenizer.CASE_SENSITIVE);
 
   return NS_OK;
 }
@@ -546,10 +544,6 @@ nsMultiMixedConv::OnDataAvailable(nsIRequest* request, nsIInputStream* inStr,
 NS_IMETHODIMP
 nsMultiMixedConv::OnStopRequest(nsIRequest* request, nsresult aStatus) {
   nsresult rv;
-
-  if (mBoundary.IsEmpty()) {  // no token, no love.
-    return NS_ERROR_FAILURE;
-  }
 
   if (mPartChannel) {
     mPartChannel->SetIsLastPart();
@@ -1020,7 +1014,7 @@ nsresult nsMultiMixedConv::ProcessHeader() {
           resultCSP.Append(mContentSecurityPolicy);
         }
         nsresult rv = httpChannel->SetResponseHeader(
-            NS_LITERAL_CSTRING("Content-Security-Policy"), resultCSP, false);
+            "Content-Security-Policy"_ns, resultCSP, false);
         if (NS_FAILED(rv)) {
           return NS_ERROR_CORRUPTED_CONTENT;
         }
@@ -1037,10 +1031,8 @@ nsresult nsMultiMixedConv::ProcessHeader() {
 
 nsresult NS_NewMultiMixedConv(nsMultiMixedConv** aMultiMixedConv) {
   MOZ_ASSERT(aMultiMixedConv != nullptr, "null ptr");
-  if (!aMultiMixedConv) return NS_ERROR_NULL_POINTER;
 
-  *aMultiMixedConv = new nsMultiMixedConv();
-
-  NS_ADDREF(*aMultiMixedConv);
+  RefPtr<nsMultiMixedConv> conv = new nsMultiMixedConv();
+  conv.forget(aMultiMixedConv);
   return NS_OK;
 }

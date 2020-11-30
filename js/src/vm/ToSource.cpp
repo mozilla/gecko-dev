@@ -12,14 +12,16 @@
 
 #include <stdint.h>  // uint32_t
 
-#include "jsfriendapi.h"  // CheckRecursionLimit, GetBuiltinClass
+#include "jsfriendapi.h"  // CheckRecursionLimit
 
-#include "builtin/Array.h"    // ArrayToSource
-#include "builtin/Boolean.h"  // BooleanToString
-#include "builtin/Object.h"   // ObjectToSource
-#include "gc/Allocator.h"     // CanGC
-#include "js/Class.h"         // ESClass
-#include "js/Symbol.h"        // SymbolCode, JS::WellKnownSymbolLimit
+#include "builtin/Array.h"          // ArrayToSource
+#include "builtin/Boolean.h"        // BooleanToString
+#include "builtin/Object.h"         // ObjectToSource
+#include "gc/Allocator.h"           // CanGC
+#include "js/Class.h"               // ESClass
+#include "js/friend/StackLimits.h"  // js::CheckRecursionLimit
+#include "js/Object.h"              // JS::GetBuiltinClass
+#include "js/Symbol.h"              // SymbolCode, JS::WellKnownSymbolLimit
 #include "js/TypeDecls.h"  // Rooted{Function, Object, String, Value}, HandleValue, Latin1Char
 #include "js/Utility.h"         // UniqueChars
 #include "js/Value.h"           // JS::Value
@@ -43,6 +45,8 @@ using namespace js;
 
 using mozilla::IsNegativeZero;
 
+using JS::GetBuiltinClass;
+
 /*
  * Convert a JSString to its source expression; returns null after reporting an
  * error, otherwise returns a new string reference. No Handle needed since the
@@ -56,29 +60,39 @@ static JSString* StringToSource(JSContext* cx, JSString* str) {
   return NewStringCopyZ<CanGC>(cx, chars.get());
 }
 
-static JSString* SymbolToSource(JSContext* cx, Symbol* symbol) {
+static JSString* SymbolToSource(JSContext* cx, JS::Symbol* symbol) {
+  using JS::SymbolCode;
+
   RootedString desc(cx, symbol->description());
   SymbolCode code = symbol->code();
-  if (code != SymbolCode::InSymbolRegistry &&
-      code != SymbolCode::UniqueSymbol) {
+  if (symbol->isWellKnownSymbol()) {
     // Well-known symbol.
-    MOZ_ASSERT(uint32_t(code) < JS::WellKnownSymbolLimit);
     return desc;
   }
 
   JSStringBuilder buf(cx);
-  if (code == SymbolCode::InSymbolRegistry ? !buf.append("Symbol.for(")
-                                           : !buf.append("Symbol(")) {
-    return nullptr;
-  }
-  if (desc) {
-    UniqueChars quoted = QuoteString(cx, desc, '"');
-    if (!quoted || !buf.append(quoted.get(), strlen(quoted.get()))) {
+  if (code == SymbolCode::PrivateNameSymbol) {
+    MOZ_ASSERT(desc);
+    if (!buf.append('#') || !buf.append(desc)) {
       return nullptr;
     }
-  }
-  if (!buf.append(')')) {
-    return nullptr;
+  } else {
+    MOZ_ASSERT(code == SymbolCode::InSymbolRegistry ||
+               code == SymbolCode::UniqueSymbol);
+
+    if (code == SymbolCode::InSymbolRegistry ? !buf.append("Symbol.for(")
+                                             : !buf.append("Symbol(")) {
+      return nullptr;
+    }
+    if (desc) {
+      UniqueChars quoted = QuoteString(cx, desc, '"');
+      if (!quoted || !buf.append(quoted.get(), strlen(quoted.get()))) {
+        return nullptr;
+      }
+    }
+    if (!buf.append(')')) {
+      return nullptr;
+    }
   }
   return buf.finishString();
 }

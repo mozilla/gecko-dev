@@ -201,7 +201,8 @@ function set_cookies(begin, end, expiry) {
       false,
       expiry,
       {},
-      Ci.nsICookie.SAMESITE_NONE
+      Ci.nsICookie.SAMESITE_NONE,
+      Ci.nsICookie.SCHEME_HTTPS
     );
 
     if (i == begin) {
@@ -240,7 +241,7 @@ function check_remaining_cookies(aNumberTotal, aNumberOld, aNumberToExpect) {
 
     if (aNumberTotal != aNumberToExpect) {
       // make sure the cookie is one of the batch we expect was purged.
-      var hostNumber = new Number(cookie.rawHost.split(".")[1]);
+      var hostNumber = Number(cookie.rawHost.split(".")[1]);
       if (hostNumber < aNumberOld - aNumberToExpect) {
         break;
       }

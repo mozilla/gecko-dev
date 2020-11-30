@@ -29,6 +29,7 @@ EXTRA_JS_MODULES += [
     'ExtensionStorage.jsm',
     'ExtensionStorageIDB.jsm',
     'ExtensionStorageSync.jsm',
+    'ExtensionStorageSyncKinto.jsm',
     'ExtensionTelemetry.jsm',
     'ExtensionUtils.jsm',
     'FindContent.jsm',
@@ -64,6 +65,7 @@ TESTING_JS_MODULES += [
 
 DIRS += [
     'schemas',
+    'storage',
     'webrequest',
 ]
 
@@ -97,6 +99,7 @@ FINAL_LIBRARY = 'xul'
 JAR_MANIFESTS += ['jar.mn']
 
 BROWSER_CHROME_MANIFESTS += [
+    'test/browser/browser-serviceworker.ini',
     'test/browser/browser.ini',
 ]
 
@@ -108,6 +111,7 @@ MOCHITEST_CHROME_MANIFESTS += ['test/mochitest/chrome.ini']
 XPCSHELL_TESTS_MANIFESTS += [
     'test/xpcshell/native_messaging.ini',
     'test/xpcshell/xpcshell-e10s.ini',
+    'test/xpcshell/xpcshell-legacy-ep.ini',
     'test/xpcshell/xpcshell-remote.ini',
     'test/xpcshell/xpcshell.ini',
 ]

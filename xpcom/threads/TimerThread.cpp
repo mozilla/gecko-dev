@@ -26,10 +26,11 @@ using namespace mozilla;
 using namespace mozilla::tasktracer;
 #endif
 
-NS_IMPL_ISUPPORTS(TimerThread, nsIRunnable, nsIObserver)
+NS_IMPL_ISUPPORTS_INHERITED(TimerThread, Runnable, nsIObserver)
 
 TimerThread::TimerThread()
-    : mInitialized(false),
+    : Runnable("TimerThread"),
+      mInitialized(false),
       mMonitor("TimerThread.mMonitor", /* aOrdered */ true),
       mShutdown(false),
       mWaiting(false),
@@ -175,12 +176,12 @@ class nsTimerEvent final : public CancelableRunnable {
   static TimerEventAllocator* sAllocator;
 
   static Atomic<int32_t, SequentiallyConsistent> sAllocatorUsers;
-  static bool sCanDeleteAllocator;
+  static Atomic<bool, SequentiallyConsistent> sCanDeleteAllocator;
 };
 
 TimerEventAllocator* nsTimerEvent::sAllocator = nullptr;
 Atomic<int32_t, SequentiallyConsistent> nsTimerEvent::sAllocatorUsers;
-bool nsTimerEvent::sCanDeleteAllocator = false;
+Atomic<bool, SequentiallyConsistent> nsTimerEvent::sCanDeleteAllocator;
 
 namespace {
 
@@ -411,7 +412,10 @@ TimerThread::Run() {
           // We are going to let the call to PostTimerEvent here handle the
           // release of the timer so that we don't end up releasing the timer
           // on the TimerThread instead of on the thread it targets.
-          timerRef = PostTimerEvent(timerRef.forget());
+          {
+            LogTimerEvent::Run run(timerRef.get());
+            timerRef = PostTimerEvent(timerRef.forget());
+          }
 
           if (timerRef) {
             // We got our reference back due to an error.
@@ -628,6 +632,8 @@ bool TimerThread::AddTimerInternal(nsTimerImpl* aTimer) {
 
   TimeStamp now = TimeStamp::Now();
 
+  LogTimerEvent::LogDispatch(aTimer);
+
   UniquePtr<Entry>* entry = mTimers.AppendElement(
       MakeUnique<Entry>(now, aTimer->mTimeout, aTimer), mozilla::fallible);
   if (!entry) {
@@ -673,11 +679,8 @@ void TimerThread::RemoveLeadingCanceledTimersInternal() {
   }
 
   // Finally, remove the canceled timers from the back of the
-  // nsTArray.  Note, since std::pop_heap() uses iterators
-  // we must convert to nsTArray indices and number of
-  // elements here.
-  mTimers.RemoveElementsAt(sortedEnd - mTimers.begin(),
-                           mTimers.end() - sortedEnd);
+  // nsTArray.
+  mTimers.RemoveLastElements(mTimers.end() - sortedEnd);
 }
 
 void TimerThread::RemoveFirstTimerInternal() {

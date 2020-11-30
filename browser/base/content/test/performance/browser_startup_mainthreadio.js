@@ -33,7 +33,13 @@ const LINUX = AppConstants.platform == "linux";
 const WIN = AppConstants.platform == "win";
 const MAC = AppConstants.platform == "macosx";
 
-/* Paths in the whitelist can:
+const kSharedFontList = SpecialPowers.getBoolPref("gfx.e10s.font-list.shared");
+
+/* This is an object mapping string phases of startup to lists of known cases
+ * of IO happening on the main thread. Ideally, IO should not be on the main
+ * thread, and should happen as late as possible (see above).
+ *
+ * Paths in the entries in these lists can:
  *  - be a full path, eg. "/etc/mime.types"
  *  - have a prefix which will be resolved using Services.dirsvc
  *    eg. "GreD:omni.ja"
@@ -47,13 +53,14 @@ const MAC = AppConstants.platform == "macosx";
  * automatically converted to '\'.
  *
  * Specifying 'ignoreIfUnused: true' will make the test ignore unused entries;
- * without this the test is strict and will fail if a whitelist entry isn't used.
+ * without this the test is strict and will fail if the described IO does not
+ * happen.
  *
  * Each entry specifies the maximum number of times an operation is expected to
  * occur.
  * The operations currently reported by the I/O interposer are:
  *   create/open: only supported on Windows currently. The test currently
- *     ignores these markers to have a shorter initial whitelist.
+ *     ignores these markers to have a shorter initial list of IO operations.
  *     Adding Unix support is bug 1533779.
  *   stat: supported on all platforms when checking the last modified date or
  *     file size. Supported only on Windows when checking if a file exists;
@@ -67,10 +74,10 @@ const MAC = AppConstants.platform == "macosx";
  *   fsync: supported only on Windows.
  *
  * If an entry specifies more than one operation, if at least one of them is
- * encountered, the test won't report a failure for the entry. This helps when
- * whitelisting cases where the reported operations aren't the same on all
- * platforms due to the I/O interposer inconsistencies across platforms
- * documented above.
+ * encountered, the test won't report a failure for the entry if other
+ * operations are not encountered. This helps when listing cases where the
+ * reported operations aren't the same on all platforms due to the I/O
+ * interposer inconsistencies across platforms documented above.
  */
 const startupPhases = {
   // Anything done before or during app-startup must have a compelling reason
@@ -131,7 +138,6 @@ const startupPhases = {
     {
       // bug 1541491 to stop using this file, bug 1541494 to write correctly.
       path: "ProfLD:compatibility.ini",
-      condition: !WIN, // Visible on Windows with an open marker
       write: 18,
       close: 1,
     },
@@ -209,17 +215,11 @@ const startupPhases = {
       close: 1,
     },
     {
-      path: "*ld.so.conf*",
-      condition: LINUX,
-      ignoreIfUnused: true,
-      read: 22,
-      close: 11,
-    },
-    {
       // bug 1546838
       path: "ProfD:xulstore/data.mdb",
       condition: WIN,
-      write: 1,
+      read: 1,
+      write: 3,
       fsync: 1,
     },
   ],
@@ -243,7 +243,7 @@ const startupPhases = {
       path: "ProfD:cookies.sqlite",
       condition: !LINUX,
       stat: 2,
-      read: 2,
+      read: 3,
       write: 1,
     },
     {
@@ -253,29 +253,6 @@ const startupPhases = {
       stat: 2,
     },
     {
-      // bug 975996
-      path: "ProfD:permissions.sqlite",
-      condition: WIN || MAC,
-      fsync: 8,
-      read: 2,
-      stat: 1,
-      write: 10,
-    },
-    {
-      // bug 975996
-      path: "ProfD:permissions.sqlite-journal",
-      condition: WIN || MAC,
-      fsync: 8,
-      stat: 28,
-      write: 40,
-    },
-    {
-      // bug 975996
-      path: "ProfD:permissions.sqlite-wal",
-      condition: WIN,
-      stat: 20,
-    },
-    {
       // Seems done by OS X and outside of our control.
       path: "*.savedState/restorecount.plist",
       condition: MAC,
@@ -283,21 +260,16 @@ const startupPhases = {
       write: 1,
     },
     {
+      // Side-effect of bug 1412090, via sandboxing (but the real
+      // problem there is main-thread CPU use; see bug 1439412)
       path: "*ld.so.conf*",
-      condition: LINUX,
-      ignoreIfUnused: true,
+      condition: LINUX && !AppConstants.MOZ_CODE_COVERAGE && !kSharedFontList,
       read: 22,
       close: 11,
     },
     {
       // bug 1541246
       path: "ProfD:extensions",
-      condition: WIN,
-      stat: 1,
-    },
-    {
-      // bug 1541246
-      path: "XCurProcD:extensions",
       condition: WIN,
       stat: 1,
     },
@@ -313,7 +285,7 @@ const startupPhases = {
       // bug 1546838
       path: "ProfD:xulstore/data.mdb",
       condition: WIN,
-      read: 1,
+      read: 2,
     },
   ],
 
@@ -358,6 +330,19 @@ const startupPhases = {
       read: 1,
     },
     {
+      // Bug 1626738
+      path: "SysD:spool/drivers/color/*",
+      condition: WIN,
+      read: 1,
+    },
+    {
+      // Sandbox policy construction
+      path: "*ld.so.conf*",
+      condition: LINUX && !AppConstants.MOZ_CODE_COVERAGE,
+      read: 22,
+      close: 11,
+    },
+    {
       // bug 1541246
       path: "UAppData:",
       ignoreIfUnused: true, // sometimes before opening first browser window,
@@ -399,7 +384,7 @@ const startupPhases = {
       // bug 1370516 - NSS should be initialized off main thread.
       path: "ProfD:cert9.db",
       condition: WIN,
-      read: 2,
+      read: 5,
       stat: 2,
     },
     {
@@ -434,7 +419,7 @@ const startupPhases = {
       // bug 1370516 - NSS should be initialized off main thread.
       path: "ProfD:key4.db",
       condition: WIN,
-      read: 2,
+      read: 8,
       stat: 2,
     },
     {
@@ -467,15 +452,18 @@ const startupPhases = {
       close: 1,
     },
     {
-      path: "XCurProcD:extensions",
+      // Bug 1660582 - access while running on windows10 hardware.
+      path: "ProfD:wmfvpxvideo.guard",
       condition: WIN,
+      ignoreIfUnused: true,
       stat: 1,
+      close: 1,
     },
   ],
 
   // Things that are expected to be completely out of the startup path
   // and loaded lazily when used for the first time by the user should
-  // be blacklisted here.
+  // be listed here.
   "before becoming idle": [
     {
       path: "XREAppFeat:screenshots@mozilla.org.xpi",
@@ -494,6 +482,7 @@ const startupPhases = {
       ignoreIfUnused: true,
       fsync: 1,
       stat: 4,
+      read: 1,
       write: 2,
     },
     {
@@ -502,6 +491,7 @@ const startupPhases = {
       ignoreIfUnused: true,
       stat: 4,
       fsync: 3,
+      read: 36,
       write: 148,
     },
     {
@@ -516,7 +506,7 @@ const startupPhases = {
       path: "ProfD:places.sqlite",
       ignoreIfUnused: true,
       fsync: 2,
-      read: 1,
+      read: 4,
       stat: 3,
       write: 1310,
     },
@@ -526,6 +516,7 @@ const startupPhases = {
       ignoreIfUnused: true,
       fsync: 2,
       stat: 7,
+      read: 2,
       write: 7,
     },
     {
@@ -534,6 +525,7 @@ const startupPhases = {
       ignoreIfUnused: true,
       fsync: 2,
       stat: 7,
+      read: 7,
       write: 15,
     },
     {
@@ -548,7 +540,7 @@ const startupPhases = {
       path: "ProfD:favicons.sqlite",
       ignoreIfUnused: true,
       fsync: 3,
-      read: 4,
+      read: 8,
       stat: 4,
       write: 1300,
     },
@@ -587,7 +579,7 @@ for (let name of [
   });
 }
 
-function expandWhitelistPath(path, canonicalize = false) {
+function expandPathWithDirServiceKey(path, canonicalize = false) {
   if (path.includes(":")) {
     let [prefix, suffix] = path.split(":");
     let [key, property] = prefix.split(".");
@@ -685,7 +677,7 @@ add_task(async function() {
     .wrappedJSObject;
   await startupRecorder.done;
 
-  // Add system add-ons to the whitelist dynamically.
+  // Add system add-ons to the list of known IO dynamically.
   // They should go in the omni.ja file (bug 1357205).
   {
     let addons = await AddonManager.getAddonsByTypes(["extension"]);
@@ -756,7 +748,8 @@ add_task(async function() {
     );
     if (!foundIOMarkers) {
       // If a profile unexpectedly contains no I/O marker, it's better to return
-      // early to avoid having plenty of confusing "unused whitelist entry" failures.
+      // early to avoid having a lot of of confusing "no main thread IO when we
+      // expected some" failures.
       return;
     }
   }
@@ -767,17 +760,17 @@ add_task(async function() {
     );
     startupPhases[phase].forEach(entry => {
       entry.listedPath = entry.path;
-      entry.path = expandWhitelistPath(entry.path, entry.canonicalize);
+      entry.path = expandPathWithDirServiceKey(entry.path, entry.canonicalize);
     });
   }
 
-  let tmpPath = expandWhitelistPath("TmpD:").toLowerCase();
+  let tmpPath = expandPathWithDirServiceKey("TmpD:").toLowerCase();
   let shouldPass = true;
   for (let phase in phases) {
-    let whitelist = startupPhases[phase];
+    let knownIOList = startupPhases[phase];
     info(
-      `whitelisted paths ${phase}:\n` +
-        whitelist
+      `known main thread IO paths during ${phase}:\n` +
+        knownIOList
           .map(e => {
             let operations = Object.keys(e)
               .filter(k => k != "path")
@@ -795,7 +788,7 @@ add_task(async function() {
         continue;
       }
 
-      // Convert to lower case before comparing because the OS X test slaves
+      // Convert to lower case before comparing because the OS X test machines
       // have the 'Firefox' folder in 'Library/Application Support' created
       // as 'firefox' for some reason.
       let filename = marker.filename.toLowerCase();
@@ -825,7 +818,7 @@ add_task(async function() {
       }
 
       let expected = false;
-      for (let entry of whitelist) {
+      for (let entry of knownIOList) {
         if (pathMatches(entry.path, filename)) {
           entry[marker.operation] = (entry[marker.operation] || 0) - 1;
           entry._used = true;
@@ -852,7 +845,7 @@ add_task(async function() {
       }
     }
 
-    for (let entry of whitelist) {
+    for (let entry of knownIOList) {
       for (let op in entry) {
         if (
           [
@@ -879,7 +872,7 @@ add_task(async function() {
       if (!("_used" in entry) && !entry.ignoreIfUnused) {
         ok(
           false,
-          `unused whitelist entry ${phase}: ${entry.path} (${entry.listedPath})`
+          `no main thread IO when we expected some during ${phase}: ${entry.path} (${entry.listedPath})`
         );
         shouldPass = false;
       }

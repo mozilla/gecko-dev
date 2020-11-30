@@ -56,16 +56,6 @@ loader.lazyImporter(
   "BrowserToolboxLauncher",
   "resource://devtools/client/framework/browser-toolbox/Launcher.jsm"
 );
-loader.lazyImporter(
-  this,
-  "ProfilerMenuButton",
-  "resource://devtools/client/performance-new/popup/menu-button.jsm.js"
-);
-loader.lazyRequireGetter(
-  this,
-  "ResponsiveUIManager",
-  "devtools/client/responsive/manager"
-);
 loader.lazyRequireGetter(
   this,
   "PICKER_TYPES",
@@ -124,14 +114,6 @@ exports.menuitems = [
     keyId: "browserConsole",
   },
   {
-    id: "menu_toggleProfilerButtonMenu",
-    l10nKey: "toggleProfilerButtonMenu",
-    checkbox: true,
-    oncommand(event) {
-      ProfilerMenuButton.toggle(event.target.ownerDocument);
-    },
-  },
-  {
     id: "menu_responsiveUI",
     l10nKey: "responsiveDesignMode",
     oncommand(event) {
@@ -154,10 +136,7 @@ exports.menuitems = [
 
       // If RDM is active, disable touch simulation events if they're enabled.
       // Similarly, enable them when the color picker is done picking.
-      if (
-        ResponsiveUIManager.isActiveForTab(target.localTab) &&
-        target.actorHasMethod("responsive", "setElementPickerState")
-      ) {
+      if (ResponsiveUIManager.isActiveForTab(target.localTab)) {
         const ui = ResponsiveUIManager.getResponsiveUIForTab(target.localTab);
         await ui.responsiveFront.setElementPickerState(
           true,

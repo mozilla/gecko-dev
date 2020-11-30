@@ -4,14 +4,14 @@
 
 // @flow
 
-import { makeMockSource } from "../../../utils/test-mockup";
+import { makeMockDisplaySource } from "../../../utils/test-mockup";
 import { updateTree, createTree } from "../index";
 
 type RawSource = {| url: string, id: string, actors?: any |};
 
 function createSourcesMap(sources: RawSource[]) {
   const sourcesMap = sources.reduce((map, source) => {
-    map[source.id] = makeMockSource(source.url, source.id);
+    map[source.id] = makeMockDisplaySource(source.url, source.id);
     return map;
   }, {});
 
@@ -19,6 +19,9 @@ function createSourcesMap(sources: RawSource[]) {
 }
 
 function formatTree(tree) {
+  if (!tree) {
+    throw new Error("Tree must exist");
+  }
   return JSON.stringify(tree.uncollapsedTree, null, 2);
 }
 
@@ -41,8 +44,9 @@ const threads = [
   {
     actor: "FakeThread",
     url: "https://davidwalsh.name",
-    type: "worker",
+    targetType: "worker",
     name: "FakeThread",
+    isTopLevel: false,
   },
 ];
 
@@ -56,6 +60,7 @@ describe("calls updateTree.js", () => {
       sources: prevSources,
       threads,
     });
+
     const newTree = updateTree({
       debuggeeUrl,
       prevSources,
@@ -90,6 +95,33 @@ describe("calls updateTree.js", () => {
     expect(formatTree(newTree)).toMatchSnapshot();
   });
 
+  it("update sources that change their display URL", () => {
+    const prevSources = createSourcesMap([sources[0]]);
+
+    const { sourceTree, uncollapsedTree } = createTree({
+      debuggeeUrl,
+      sources: prevSources,
+      threads,
+    });
+
+    const newTree = updateTree({
+      debuggeeUrl,
+      prevSources,
+      newSources: createSourcesMap([
+        {
+          ...sources[0],
+          url: `${sources[0].url}?param`,
+        },
+      ]),
+      uncollapsedTree,
+      sourceTree,
+      projectRoot: "",
+      threads,
+    });
+
+    expect(formatTree(newTree)).toMatchSnapshot();
+  });
+
   // NOTE: we currently only add sources to the tree and clear the tree
   // on navigate.
   it("shows all the sources", () => {
@@ -104,7 +136,7 @@ describe("calls updateTree.js", () => {
     const newTree = updateTree({
       debuggeeUrl,
       prevSources,
-      newSources: createSourcesMap([sources[1]]),
+      newSources: createSourcesMap([sources[0], sources[1]]),
       uncollapsedTree,
       sourceTree,
       projectRoot: "",

@@ -4,7 +4,7 @@
 
 "use strict";
 
-const { Cu } = require("chrome");
+const { Cu, Ci } = require("chrome");
 
 loader.lazyRequireGetter(this, "colorUtils", "devtools/shared/css/color", true);
 loader.lazyRequireGetter(this, "AsyncUtils", "devtools/shared/async-utils");
@@ -21,7 +21,7 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   this,
-  "isNativeAnonymous",
+  ["isNativeAnonymous", "getAdjustedQuads"],
   "devtools/shared/layout/utils",
   true
 );
@@ -39,20 +39,8 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   this,
-  "loadSheetForBackgroundCalculation",
+  ["loadSheetForBackgroundCalculation", "removeSheetForBackgroundCalculation"],
   "devtools/server/actors/utils/accessibility",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "removeSheetForBackgroundCalculation",
-  "devtools/server/actors/utils/accessibility",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "getAdjustedQuads",
-  "devtools/shared/layout/utils",
   true
 );
 loader.lazyRequireGetter(
@@ -109,7 +97,7 @@ function getNodeFlexType(node) {
 
 function getNodeGridType(node) {
   return {
-    isContainer: node.getGridFragments && node.getGridFragments().length,
+    isContainer: node.hasGridFragments && node.hasGridFragments(),
     isItem: !!findGridParentContainerForNode(node),
   };
 }
@@ -129,9 +117,7 @@ function isNodeDead(node) {
 
 function isInXULDocument(el) {
   const doc = nodeDocument(el);
-  return (
-    doc && doc.documentElement && doc.documentElement.namespaceURI === XUL_NS
-  );
+  return doc?.documentElement && doc.documentElement.namespaceURI === XUL_NS;
 }
 
 /**
@@ -167,6 +153,19 @@ function standardTreeWalkerFilter(node) {
   return nodeFilterConstants.FILTER_ACCEPT;
 }
 
+/**
+ * This DeepTreeWalker filter ignores anonymous content.
+ */
+function noAnonymousContentTreeWalkerFilter(node) {
+  // Ignore all native anonymous content inside a non-XUL document.
+  // We need to do this to skip things like form controls, scrollbars,
+  // video controls, etc (see bug 1187482).
+  if (!isInXULDocument(node) && isNativeAnonymous(node)) {
+    return nodeFilterConstants.FILTER_SKIP;
+  }
+
+  return nodeFilterConstants.FILTER_ACCEPT;
+}
 /**
  * This DeepTreeWalker filter is like standardTreeWalkerFilter except that
  * it also includes all anonymous content (like internal form controls).
@@ -544,8 +543,34 @@ async function getBackgroundColor({ rawNode: node, walker }) {
   );
 }
 
+/**
+ * Indicates if a document is ready (i.e. if it's not loading anymore)
+ *
+ * @param {HTMLDocument} document: The document we want to check
+ * @returns {Boolean}
+ */
+function isDocumentReady(document) {
+  if (!document) {
+    return false;
+  }
+
+  const { readyState } = document;
+  if (readyState == "interactive" || readyState == "complete") {
+    return true;
+  }
+
+  // A document might stay forever in unitialized state.
+  // If the target actor is not currently loading a document,
+  // assume the document is ready.
+  const webProgress = document.defaultView.docShell.QueryInterface(
+    Ci.nsIWebProgress
+  );
+  return !webProgress.isLoadingDocument;
+}
+
 module.exports = {
   allAnonymousContentTreeWalkerFilter,
+  isDocumentReady,
   isWhitespaceTextNode,
   findGridParentContainerForNode,
   getBackgroundColor,
@@ -558,4 +583,5 @@ module.exports = {
   nodeDocument,
   scrollbarTreeWalkerFilter,
   standardTreeWalkerFilter,
+  noAnonymousContentTreeWalkerFilter,
 };

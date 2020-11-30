@@ -13,44 +13,50 @@ argument types.
 See infer_types() for more.
 """
 
-import collections
+from __future__ import annotations
+# mypy: disallow-untyped-defs, disallow-incomplete-defs, disallow-untyped-calls
+
+from dataclasses import dataclass
+import typing
 from . import grammar
 
 
-TypeBase = collections.namedtuple('Type', 'name args')
+@dataclass(frozen=True)
+class Lifetime:
+    name: str
+
+    def __str__(self) -> str:
+        return "'" + self.name
+
 
 _all_types = {}
 
 
-class Type(TypeBase):
-    def __new__(cls, name, args=()):
-        # type checking
-        if type(name) is not str:
-            raise TypeError("Type() first argument must be a str, not {!r}".format(name))
-        args = tuple(args)
-        for arg in args:
-            if not isinstance(arg, (Type, TypeVar)):
-                raise TypeError("Type parameters must be types, not {!r}".format(arg))
+@dataclass(frozen=True)
+class Type:
+    name: str
+    args: typing.Tuple[TypeParameter, ...] = ()
+
+    def __new__(cls, name: str, args: typing.Tuple[TypeParameter, ...] = ()) -> Type:
+        assert isinstance(args, tuple)
 
         # caching
         key = name, args
         if key not in _all_types:
-            _all_types[key] = super().__new__(cls, name, args)
+            obj = super().__new__(cls)
+            _all_types[key] = obj
         return _all_types[key]
 
-    def __eq__(self, other):
-        return self.name == other.name and self.args == other.args
+    def __getnewargs__(self) -> typing.Tuple[str, typing.Tuple[TypeParameter, ...]]:
+        return (self.name, self.args)
 
-    def __hash__(self):
-        return hash((self.name, self.args))
-
-    def __str__(self):
+    def __str__(self) -> str:
         if self.args:
             return '{}<{}>'.format(self.name, ', '.join(map(str, self.args)))
         else:
             return self.name
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         if self.args:
             return 'Type({!r}, {!r})'.format(self.name, self.args)
         else:
@@ -83,30 +89,40 @@ class TypeVar:
     """
     __slots__ = ['name', 'precedence', 'value']
 
-    def __init__(self, name=None, precedence=0):
+    name: typing.Optional[str]
+    precedence: int
+    value: typing.Optional[TypeOrTypeVar]
+
+    def __init__(
+            self,
+            name: typing.Optional[str] = None,
+            precedence: int = 0
+    ) -> None:
         assert (precedence > 0) == (name is not None)
-        assert name is None or isinstance(name, str)
         self.name = name
         self.precedence = precedence
         self.value = None
 
-    def __str__(self):
+    def __str__(self) -> str:
         return 'TypeVar({!r})'.format(self.name)
 
 
+TypeOrTypeVar = typing.Union[Type, TypeVar]
+TypeParameter = typing.Union[Type, TypeVar, Lifetime]
+
+
 class JsparagusTypeError(Exception):
-    def annotate(self, line):
+    def annotate(self, line: str) -> None:
         message, *rest = self.args
         message = line + "\n" + message
         self.args = message, *rest
 
     @classmethod
-    def clash(cls, expected, actual):
+    def clash(cls, expected: TypeParameter, actual: TypeParameter) -> JsparagusTypeError:
         return cls("expected type {}, got type {}".format(expected, actual))
 
 
-def deref(t):
-    assert isinstance(t, (Type, TypeVar))
+def deref(t: TypeOrTypeVar) -> TypeOrTypeVar:
     if isinstance(t, TypeVar):
         if t.value is not None:
             t.value = deref(t.value)
@@ -114,7 +130,14 @@ def deref(t):
     return t
 
 
-def final_deref(ty):
+def final_deref_parameter(ty: TypeParameter) -> TypeParameter:
+    if isinstance(ty, Lifetime):
+        return ty
+    else:
+        return final_deref(ty)
+
+
+def final_deref(ty: TypeOrTypeVar) -> Type:
     """ Like deref(), but also replace any remaining unresolved type variables with
     synthesized Types.
     """
@@ -129,16 +152,19 @@ def final_deref(ty):
         assert isinstance(ty, Type)
         if ty.args:
             assert ty.name != 'Unit'
-            return Type(ty.name, tuple(final_deref(arg) for arg in ty.args))
+            return Type(ty.name, tuple(final_deref_parameter(arg) for arg in ty.args))
         return ty
 
 
-def unify(actual, expected):
+def unify(actual: TypeParameter, expected: TypeParameter) -> None:
+    if isinstance(actual, Lifetime) or isinstance(expected, Lifetime):
+        if actual is expected:
+            return
+        else:
+            raise JsparagusTypeError.clash(expected, actual)
+
     actual = deref(actual)
     expected = deref(expected)
-
-    assert isinstance(actual, (Type, TypeVar))
-    assert isinstance(expected, (Type, TypeVar))
 
     if actual is expected:
         pass
@@ -149,10 +175,10 @@ def unify(actual, expected):
         for i, (actual_arg, expected_arg) in enumerate(zip(actual.args, expected.args)):
             try:
                 unify(actual_arg, expected_arg)
-            except JsparagusTypeError:
+            except JsparagusTypeError as exc:
                 # The error message has to do with the parameter, but we want
                 # to provide the complete problem types.
-                raise JsparagusTypeError.clash(expected, actual)
+                raise JsparagusTypeError.clash(expected, actual) from exc
 
     elif isinstance(expected, TypeVar):
         assert expected.value is None
@@ -168,23 +194,20 @@ def unify(actual, expected):
             actual.value = expected
 
 
+@dataclass
 class MethodType:
     __slots__ = ['argument_types', 'return_type']
 
-    def __init__(self, argument_types, return_type):
-        self.argument_types = argument_types
-        self.return_type = return_type
+    argument_types: typing.List[TypeOrTypeVar]
+    return_type: TypeOrTypeVar
 
-    def resolve(self):
+    def resolve(self) -> MethodType:
         return MethodType(
             [final_deref(t) for t in self.argument_types],
             final_deref(self.return_type))
 
-    def __repr__(self):
-        return 'MethodType({!r}, {!r})'.format(self.argument_types, self.return_type)
 
-
-def infer_types(g):
+def infer_types(g: grammar.Grammar) -> None:
     """Assign a type to each nonterminal and each method in a grammar.
 
     The type system is pretty rigid. We don't have any polymorphism or union
@@ -197,11 +220,12 @@ def infer_types(g):
     each NtDef in `g.nonterminals` and to `g.methods`.
     """
 
-    def type_of_nt(nt, nt_def):
+    def type_of_nt(nt: typing.Union[grammar.Nt, str], nt_def: grammar.NtDef) -> TypeOrTypeVar:
         if nt_def.type is not None:
             return nt_def.type
         else:
             nt_name = nt if isinstance(nt, str) else nt.name
+            assert isinstance(nt_name, str)
             return TypeVar(nt_name, 2)
 
     nt_types = {
@@ -210,36 +234,40 @@ def infer_types(g):
         if not isinstance(nt, grammar.InitNt)
     }
 
-    method_types = {}
+    method_types: typing.Dict[str, MethodType] = {}
 
-    def element_type(e):
+    def element_type(e: grammar.Element) -> TypeOrTypeVar:
         if isinstance(e, str):
             if e in g.nonterminals:
                 return nt_types[e]
             else:
                 return TokenType
         elif isinstance(e, grammar.Optional):
-            return Type('Option', [element_type(e.inner)])
+            return Type('Option', (element_type(e.inner),))
         elif isinstance(e, grammar.Literal):
             return TokenType
         elif isinstance(e, grammar.UnicodeCategory):
             return TokenType
         elif isinstance(e, grammar.Exclude):
-            return Type('Exclude', [element_type(e.inner)] + [element_type(v) for v in e.exclusion_list])
+            return Type('Exclude',
+                        (element_type(e.inner),)
+                        + tuple(element_type(v) for v in e.exclusion_list))
         elif isinstance(e, grammar.Nt):
             # Cope with the awkward fact that g.nonterminals keys may be either
             # strings or Nt objects.
-            return nt_types[e if e in nt_types else e.name]
+            return nt_types[e if e in nt_types else e.name]  # type: ignore
         else:
             assert False, "unexpected element type: {!r}".format(e)
 
-    def expr_type(expr):
+    concrete_element_types: typing.List[TypeOrTypeVar]
+
+    def expr_type(expr: grammar.ReduceExprOrAccept) -> TypeOrTypeVar:
         if isinstance(expr, int):
             return concrete_element_types[expr]
         elif expr is None:
-            return Type('Option', [TypeVar()])
+            return Type('Option', (TypeVar(),))
         elif isinstance(expr, grammar.Some):
-            return Type('Option', [expr_type(expr.inner)])
+            return Type('Option', (expr_type(expr.inner),))
         elif isinstance(expr, grammar.CallMethod):
             arg_types = [expr_type(arg) for arg in expr.args]
             if expr.method in method_types:

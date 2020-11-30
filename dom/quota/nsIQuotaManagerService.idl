@@ -16,13 +16,28 @@ interface nsIQuotaUsageRequest;
 interface nsIQuotaManagerService : nsISupports
 {
   /**
+   * Asynchronously retrieves storage name and returns it as a plain string.
+   *
+   * If the dom.quotaManager.testing preference is not true the call will be
+   * a no-op.
+   */
+  [must_use] nsIQuotaRequest
+  storageName();
+
+  /**
    * Check if storage is initialized.
+   *
+   * If the dom.quotaManager.testing preference is not true the call will be
+   * a no-op.
    */
   [must_use] nsIQuotaRequest
   storageInitialized();
 
   /**
    * Check if temporary storage is initialized.
+   *
+   * If the dom.quotaManager.testing preference is not true the call will be
+   * a no-op.
    */
   [must_use] nsIQuotaRequest
   temporaryStorageInitialized();
@@ -209,15 +224,11 @@ interface nsIQuotaManagerService : nsISupports
    *        from Client.h, then only that client's storage will be cleared.
    *        If you want to clear multiple client types (but not all), then you
    *        must call this method multiple times.
-   * @param aResetAll
-   *        An optional boolean to indicate resetting all storages under the
-   *        given origin.
    */
   [must_use] nsIQuotaRequest
   resetStoragesForPrincipal(in nsIPrincipal aPrincipal,
                             [optional] in ACString aPersistenceType,
-                            [optional] in AString aClientType,
-                            [optional] in boolean aResetAll);
+                            [optional] in AString aClientType);
 
   /**
    * Check if given origin is persisted.

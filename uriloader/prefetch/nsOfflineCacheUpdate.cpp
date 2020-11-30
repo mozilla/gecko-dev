@@ -163,9 +163,8 @@ nsresult nsManifestCheck::Begin() {
         new mozilla::dom::ReferrerInfo(mReferrerURI);
     rv = httpChannel->SetReferrerInfoWithoutClone(referrerInfo);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
-    rv = httpChannel->SetRequestHeader(NS_LITERAL_CSTRING("X-Moz"),
-                                       NS_LITERAL_CSTRING("offline-resource"),
-                                       false);
+    rv =
+        httpChannel->SetRequestHeader("X-Moz"_ns, "offline-resource"_ns, false);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
   }
 
@@ -314,7 +313,7 @@ nsresult nsOfflineCacheUpdateItem::OpenChannel(nsOfflineCacheUpdate* aUpdate) {
   flags |= mLoadFlags;
 
   rv = NS_NewChannel(getter_AddRefs(mChannel), mURI, mLoadingPrincipal,
-                     nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+                     nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
                      nsIContentPolicy::TYPE_OTHER, aUpdate->CookieJarSettings(),
                      nullptr,  // PerformanceStorage
                      nullptr,  // aLoadGroup
@@ -344,9 +343,8 @@ nsresult nsOfflineCacheUpdateItem::OpenChannel(nsOfflineCacheUpdate* aUpdate) {
         new mozilla::dom::ReferrerInfo(mReferrerURI);
     rv = httpChannel->SetReferrerInfoWithoutClone(referrerInfo);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
-    rv = httpChannel->SetRequestHeader(NS_LITERAL_CSTRING("X-Moz"),
-                                       NS_LITERAL_CSTRING("offline-resource"),
-                                       false);
+    rv =
+        httpChannel->SetRequestHeader("X-Moz"_ns, "offline-resource"_ns, false);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
   }
 
@@ -509,9 +507,7 @@ nsOfflineCacheUpdateItem::AsyncOnChannelRedirect(
   nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aNewChannel);
   NS_ENSURE_STATE(httpChannel);
 
-  rv = httpChannel->SetRequestHeader(NS_LITERAL_CSTRING("X-Moz"),
-                                     NS_LITERAL_CSTRING("offline-resource"),
-                                     false);
+  rv = httpChannel->SetRequestHeader("X-Moz"_ns, "offline-resource"_ns, false);
   MOZ_ASSERT(NS_SUCCEEDED(rv));
 
   mChannel = aNewChannel;
@@ -711,8 +707,14 @@ nsresult nsOfflineManifestItem::AddNamespace(uint32_t namespaceType,
   return NS_OK;
 }
 
-static nsresult GetURIDirectory(nsIURI* uri, nsACString& directory) {
+static nsresult GetURIDirectory(nsIURI* uri, nsAutoCString& directory) {
   nsresult rv;
+
+  nsAutoCString path;
+  uri->GetFilePath(path);
+  if (path.Find("%2f") != kNotFound || path.Find("%2F") != kNotFound) {
+    return NS_ERROR_DOM_BAD_URI;
+  }
 
   nsCOMPtr<nsIURL> url(do_QueryInterface(uri, &rv));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -729,7 +731,9 @@ static nsresult CheckFileContainedInPath(nsIURI* file,
 
   nsAutoCString directory;
   rv = GetURIDirectory(file, directory);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
 
   bool contains = StringBeginsWith(directory, masterDirectory);
   if (!contains) {
@@ -914,8 +918,8 @@ nsresult nsOfflineManifestItem::HandleManifestLine(
         // or not conforming any namespace.
         // We achive that simply by adding an 'empty' - i.e. universal
         // namespace of BYPASS type into the cache.
-        AddNamespace(nsIApplicationCacheNamespace::NAMESPACE_BYPASS,
-                     EmptyCString(), EmptyCString());
+        AddNamespace(nsIApplicationCacheNamespace::NAMESPACE_BYPASS, ""_ns,
+                     ""_ns);
         break;
       }
 
@@ -932,8 +936,7 @@ nsresult nsOfflineManifestItem::HandleManifestLine(
       nsCString spec;
       if (NS_FAILED(bypassURI->GetAsciiSpec(spec))) break;
 
-      AddNamespace(nsIApplicationCacheNamespace::NAMESPACE_BYPASS, spec,
-                   EmptyCString());
+      AddNamespace(nsIApplicationCacheNamespace::NAMESPACE_BYPASS, spec, ""_ns);
       break;
     }
   }

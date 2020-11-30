@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+include protocol PBackgroundDataBridge;
 include protocol PBackgroundIDBFactory;
 include protocol PBackgroundIndexedDBUtils;
 include protocol PBackgroundSDBConnection;
@@ -10,6 +11,7 @@ include protocol PBackgroundLSObserver;
 include protocol PBackgroundLSRequest;
 include protocol PBackgroundLSSimpleRequest;
 include protocol PBackgroundLocalStorageCache;
+include protocol PBackgroundSessionStorageManager;
 include protocol PBackgroundStorage;
 include protocol PBackgroundTest;
 include protocol PBroadcastChannel;
@@ -24,7 +26,7 @@ include protocol PGamepadEventChannel;
 include protocol PGamepadTestChannel;
 include protocol PHttpBackgroundChannel;
 include protocol PIdleScheduler;
-include protocol PIPCBlobInputStream;
+include protocol PRemoteLazyInputStream;
 include protocol PMediaTransport;
 include protocol PRemoteWorker;
 include protocol PRemoteWorkerController;
@@ -72,6 +74,7 @@ namespace ipc {
 
 sync protocol PBackground
 {
+  manages PBackgroundDataBridge;
   manages PBackgroundIDBFactory;
   manages PBackgroundIndexedDBUtils;
   manages PBackgroundSDBConnection;
@@ -80,6 +83,7 @@ sync protocol PBackground
   manages PBackgroundLSRequest;
   manages PBackgroundLSSimpleRequest;
   manages PBackgroundLocalStorageCache;
+  manages PBackgroundSessionStorageManager;
   manages PBackgroundStorage;
   manages PBackgroundTest;
   manages PBroadcastChannel;
@@ -94,7 +98,7 @@ sync protocol PBackground
   manages PGamepadTestChannel;
   manages PHttpBackgroundChannel;
   manages PIdleScheduler;
-  manages PIPCBlobInputStream;
+  manages PRemoteLazyInputStream;
   manages PMediaTransport;
   manages PRemoteWorker;
   manages PRemoteWorkerController;
@@ -121,6 +125,8 @@ sync protocol PBackground
 parent:
   // Only called at startup during mochitests to check the basic infrastructure.
   async PBackgroundTest(nsCString testArg);
+
+  async PBackgroundDataBridge(uint64_t channelID);
 
   async PBackgroundIDBFactory(LoggingInfo loggingInfo);
 
@@ -166,6 +172,8 @@ parent:
                                      nsCString originKey,
                                      uint32_t privateBrowsingId);
 
+  async PBackgroundSessionStorageManager(uint64_t aTopContextId);
+
   async PBackgroundStorage(nsString profilePath);
 
   async PVsync();
@@ -190,6 +198,10 @@ parent:
   async PQuota();
 
   async ShutdownQuotaManager();
+
+  async ShutdownBackgroundSessionStorageManagers();
+
+  async RemoveBackgroundSessionStorageManager(uint64_t topContextId);
 
   async PFileSystemRequest(FileSystemParams params);
 
@@ -259,9 +271,9 @@ child:
   async PRemoteWorker(RemoteWorkerData data);
 
 both:
-  // PIPCBlobInputStream is created on the parent side only if the child starts
-  // a migration.
-  async PIPCBlobInputStream(nsID aID, uint64_t aSize);
+  // PRemoteLazyInputStream is created on the parent side only if the child
+  // starts a migration.
+  async PRemoteLazyInputStream(nsID aID, uint64_t aSize);
 
   async PFileDescriptorSet(FileDescriptor fd);
 };

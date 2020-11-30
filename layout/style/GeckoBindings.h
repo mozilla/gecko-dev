@@ -24,6 +24,7 @@ class nsAtom;
 class nsIURI;
 class nsSimpleContentList;
 struct nsFont;
+class ServoComputedData;
 
 namespace mozilla {
 class ComputedStyle;
@@ -106,7 +107,8 @@ void Gecko_DestroyStyleChildrenIterator(mozilla::dom::StyleChildrenIterator*);
 const nsINode* Gecko_GetNextStyleChild(mozilla::dom::StyleChildrenIterator*);
 
 nsAtom* Gecko_Element_ImportedPart(const nsAttrValue*, nsAtom*);
-nsAtom* Gecko_Element_ExportedPart(const nsAttrValue*, nsAtom*);
+nsAtom** Gecko_Element_ExportedParts(const nsAttrValue*, nsAtom*,
+                                     size_t* aOutLength);
 
 NS_DECL_THREADSAFE_FFI_REFCOUNTING(mozilla::css::SheetLoadDataHolder,
                                    SheetLoadDataHolder);
@@ -145,6 +147,7 @@ const mozilla::PreferenceSheet::Prefs* Gecko_GetPrefSheetPrefs(
 
 bool Gecko_IsTableBorderNonzero(const mozilla::dom::Element* element);
 bool Gecko_IsBrowserFrame(const mozilla::dom::Element* element);
+bool Gecko_IsSelectListBox(const mozilla::dom::Element* element);
 
 // Attributes.
 #define SERVO_DECLARE_ELEMENT_ATTR_MATCHING_FUNCTIONS(prefix_, implementor_)   \
@@ -499,24 +502,24 @@ void Gecko_nsStyleFont_CopyLangFrom(nsStyleFont* aFont,
 void Gecko_nsStyleFont_PrioritizeUserFonts(
     nsStyleFont* font, mozilla::StyleGenericFontFamily aDefaultGeneric);
 
-nscoord Gecko_nsStyleFont_ComputeMinSize(const nsStyleFont*,
-                                         const mozilla::dom::Document*);
+mozilla::Length Gecko_nsStyleFont_ComputeMinSize(const nsStyleFont*,
+                                                 const mozilla::dom::Document*);
 
 // Computes the default generic font for a generic family and language.
 mozilla::StyleGenericFontFamily Gecko_nsStyleFont_ComputeDefaultFontType(
     const mozilla::dom::Document*,
     mozilla::StyleGenericFontFamily generic_family, nsAtom* language);
 
-mozilla::FontSizePrefs Gecko_GetBaseSize(nsAtom* lang);
+mozilla::StyleDefaultFontSizes Gecko_GetBaseSize(nsAtom* lang);
 
 struct GeckoFontMetrics {
-  nscoord mChSize;  // -1.0 indicates not found
-  nscoord mXSize;
+  mozilla::Length mXSize;
+  mozilla::Length mChSize;  // negatives indicate not found.
 };
 
 GeckoFontMetrics Gecko_GetFontMetrics(const nsPresContext*, bool is_vertical,
                                       const nsStyleFont* font,
-                                      nscoord font_size,
+                                      mozilla::Length font_size,
                                       bool use_user_font_set);
 
 mozilla::StyleSheet* Gecko_StyleSheet_Clone(
@@ -567,15 +570,15 @@ void Gecko_SetJemallocThreadLocalArena(bool enabled);
 #undef CSS_PSEUDO_ELEMENT
 
 bool Gecko_ErrorReportingEnabled(const mozilla::StyleSheet* sheet,
-                                 const mozilla::css::Loader* loader);
+                                 const mozilla::css::Loader* loader,
+                                 uint64_t* aOutWindowId);
 
 void Gecko_ReportUnexpectedCSSError(
-    const mozilla::StyleSheet* sheet, const mozilla::css::Loader* loader,
-    nsIURI* uri, const char* message, const char* param, uint32_t paramLen,
-    const char* prefix, const char* prefixParam, uint32_t prefixParamLen,
-    const char* suffix, const char* source, uint32_t sourceLen,
-    const char* selectors, uint32_t selectorsLen, uint32_t lineNumber,
-    uint32_t colNumber);
+    uint64_t windowId, nsIURI* uri, const char* message, const char* param,
+    uint32_t paramLen, const char* prefix, const char* prefixParam,
+    uint32_t prefixParamLen, const char* suffix, const char* source,
+    uint32_t sourceLen, const char* selectors, uint32_t selectorsLen,
+    uint32_t lineNumber, uint32_t colNumber);
 
 // DOM APIs.
 void Gecko_ContentList_AppendAll(nsSimpleContentList* aContentList,
@@ -608,12 +611,16 @@ mozilla::StyleDisplayMode Gecko_MediaFeatures_GetDisplayMode(
     const mozilla::dom::Document*);
 
 uint32_t Gecko_MediaFeatures_GetColorDepth(const mozilla::dom::Document*);
+uint32_t Gecko_MediaFeatures_GetMonochromeBitsPerPixel(
+    const mozilla::dom::Document*);
 
 void Gecko_MediaFeatures_GetDeviceSize(const mozilla::dom::Document*,
                                        nscoord* width, nscoord* height);
 
 float Gecko_MediaFeatures_GetResolution(const mozilla::dom::Document*);
 bool Gecko_MediaFeatures_PrefersReducedMotion(const mozilla::dom::Document*);
+mozilla::StyleContrastPref Gecko_MediaFeatures_PrefersContrast(
+    const mozilla::dom::Document*, const bool aForcedColors);
 mozilla::StylePrefersColorScheme Gecko_MediaFeatures_PrefersColorScheme(
     const mozilla::dom::Document*);
 

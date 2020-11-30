@@ -5,17 +5,17 @@
 // Allow dead code in this module, since it's all packet consts anyways.
 #![allow(dead_code)]
 
-pub const HID_RPT_SIZE: usize = 64;
+pub const MAX_HID_RPT_SIZE: usize = 64;
 pub const U2FAPDUHEADER_SIZE: usize = 7;
 pub const CID_BROADCAST: [u8; 4] = [0xff, 0xff, 0xff, 0xff];
 pub const TYPE_MASK: u8 = 0x80;
 pub const TYPE_INIT: u8 = 0x80;
 pub const TYPE_CONT: u8 = 0x80;
 
-// Size of data chunk expected in U2F Init USB HID Packets
-pub const INIT_DATA_SIZE: usize = HID_RPT_SIZE - 7;
-// Size of data chunk expected in U2F Cont USB HID Packets
-pub const CONT_DATA_SIZE: usize = HID_RPT_SIZE - 5;
+// Size of header in U2F Init USB HID Packets
+pub const INIT_HEADER_SIZE: usize = 7;
+// Size of header in U2F Cont USB HID Packets
+pub const CONT_HEADER_SIZE: usize = 5;
 
 pub const PARAMETER_SIZE: usize = 32;
 
@@ -31,19 +31,21 @@ pub const U2FHID_FRAME_TIMEOUT: u32 = 500; // Default frame timeout in ms
 pub const U2FHID_TRANS_TIMEOUT: u32 = 3000; // Default message timeout in ms
 
 // U2FHID native commands
-pub const U2FHID_PING: u8 = (TYPE_INIT | 0x01); // Echo data through local processor only
-pub const U2FHID_MSG: u8 = (TYPE_INIT | 0x03); // Send U2F message frame
-pub const U2FHID_LOCK: u8 = (TYPE_INIT | 0x04); // Send lock channel command
-pub const U2FHID_INIT: u8 = (TYPE_INIT | 0x06); // Channel initialization
-pub const U2FHID_WINK: u8 = (TYPE_INIT | 0x08); // Send device identification wink
-pub const U2FHID_ERROR: u8 = (TYPE_INIT | 0x3f); // Error response
+pub const U2FHID_PING: u8 = TYPE_INIT | 0x01; // Echo data through local processor only
+pub const U2FHID_MSG: u8 = TYPE_INIT | 0x03; // Send U2F message frame
+pub const U2FHID_LOCK: u8 = TYPE_INIT | 0x04; // Send lock channel command
+pub const U2FHID_INIT: u8 = TYPE_INIT | 0x06; // Channel initialization
+pub const U2FHID_WINK: u8 = TYPE_INIT | 0x08; // Send device identification wink
+pub const U2FHID_ERROR: u8 = TYPE_INIT | 0x3f; // Error response
 
 // U2FHID_MSG commands
-pub const U2F_VENDOR_FIRST: u8 = (TYPE_INIT | 0x40); // First vendor defined command
-pub const U2F_VENDOR_LAST: u8 = (TYPE_INIT | 0x7f); // Last vendor defined command
+pub const U2F_VENDOR_FIRST: u8 = TYPE_INIT | 0x40; // First vendor defined command
+pub const U2F_VENDOR_LAST: u8 = TYPE_INIT | 0x7f; // Last vendor defined command
 pub const U2F_REGISTER: u8 = 0x01; // Registration command
 pub const U2F_AUTHENTICATE: u8 = 0x02; // Authenticate/sign command
 pub const U2F_VERSION: u8 = 0x03; // Read version string command
+
+pub const YKPIV_INS_GET_VERSION: u8 = 0xfd; // Get firmware version, yubico ext
 
 // U2F_REGISTER command defines
 pub const U2F_REGISTER_ID: u8 = 0x05; // Version 2 registration identifier

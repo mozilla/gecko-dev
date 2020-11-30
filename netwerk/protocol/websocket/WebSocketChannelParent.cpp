@@ -47,18 +47,18 @@ mozilla::ipc::IPCResult WebSocketChannelParent::RecvDeleteSelf() {
 }
 
 mozilla::ipc::IPCResult WebSocketChannelParent::RecvAsyncOpen(
-    const Maybe<URIParams>& aURI, const nsCString& aOrigin,
-    const uint64_t& aInnerWindowID, const nsCString& aProtocol,
-    const bool& aSecure, const uint32_t& aPingInterval,
-    const bool& aClientSetPingInterval, const uint32_t& aPingTimeout,
-    const bool& aClientSetPingTimeout, const Maybe<LoadInfoArgs>& aLoadInfoArgs,
+    nsIURI* aURI, const nsCString& aOrigin, const uint64_t& aInnerWindowID,
+    const nsCString& aProtocol, const bool& aSecure,
+    const uint32_t& aPingInterval, const bool& aClientSetPingInterval,
+    const uint32_t& aPingTimeout, const bool& aClientSetPingTimeout,
+    const Maybe<LoadInfoArgs>& aLoadInfoArgs,
     const Maybe<PTransportProviderParent*>& aTransportProvider,
     const nsCString& aNegotiatedExtensions) {
   LOG(("WebSocketChannelParent::RecvAsyncOpen() %p\n", this));
 
   nsresult rv;
-  nsCOMPtr<nsIURI> uri;
   nsCOMPtr<nsILoadInfo> loadInfo;
+  nsCOMPtr<nsIURI> uri;
 
   rv = LoadInfoArgsToLoadInfo(aLoadInfoArgs, getter_AddRefs(loadInfo));
   if (NS_FAILED(rv)) {
@@ -98,7 +98,7 @@ mozilla::ipc::IPCResult WebSocketChannelParent::RecvAsyncOpen(
       goto fail;
     }
   } else {
-    uri = DeserializeURI(aURI);
+    uri = aURI;
     if (!uri) {
       rv = NS_ERROR_FAILURE;
       goto fail;
@@ -217,13 +217,53 @@ WebSocketChannelParent::OnStop(nsISupports* aContext, nsresult aStatusCode) {
   return NS_OK;
 }
 
+static bool SendOnMessageAvailableHelper(
+    const nsACString& aMsg,
+    const std::function<bool(const nsDependentCSubstring&, bool)>& aSendFunc) {
+  // To avoid the crash caused by too large IPC message, we have to split the
+  // data in small chunks and send them to child process. Note that the chunk
+  // size used here is the same as what we used for PHttpChannel.
+  static uint32_t const kCopyChunkSize = 128 * 1024;
+  uint32_t count = aMsg.Length();
+  if (count <= kCopyChunkSize) {
+    return aSendFunc(nsDependentCSubstring(aMsg), false);
+  }
+
+  uint32_t start = 0;
+  uint32_t toRead = std::min<uint32_t>(count, kCopyChunkSize);
+  while (count) {
+    nsDependentCSubstring data(Substring(aMsg, start, toRead));
+
+    if (!aSendFunc(data, count > kCopyChunkSize)) {
+      return false;
+    }
+
+    start += toRead;
+    count -= toRead;
+    toRead = std::min<uint32_t>(count, kCopyChunkSize);
+  }
+
+  return true;
+}
+
 NS_IMETHODIMP
 WebSocketChannelParent::OnMessageAvailable(nsISupports* aContext,
                                            const nsACString& aMsg) {
   LOG(("WebSocketChannelParent::OnMessageAvailable() %p\n", this));
-  if (!CanRecv() || !SendOnMessageAvailable(nsCString(aMsg))) {
+
+  if (!CanRecv()) {
     return NS_ERROR_FAILURE;
   }
+
+  auto sendFunc = [self = UnsafePtr<WebSocketChannelParent>(this)](
+                      const nsDependentCSubstring& aMsg, bool aMoreData) {
+    return self->SendOnMessageAvailable(aMsg, aMoreData);
+  };
+
+  if (!SendOnMessageAvailableHelper(aMsg, sendFunc)) {
+    return NS_ERROR_FAILURE;
+  }
+
   return NS_OK;
 }
 
@@ -231,9 +271,20 @@ NS_IMETHODIMP
 WebSocketChannelParent::OnBinaryMessageAvailable(nsISupports* aContext,
                                                  const nsACString& aMsg) {
   LOG(("WebSocketChannelParent::OnBinaryMessageAvailable() %p\n", this));
-  if (!CanRecv() || !SendOnBinaryMessageAvailable(nsCString(aMsg))) {
+
+  if (!CanRecv()) {
     return NS_ERROR_FAILURE;
   }
+
+  auto sendFunc = [self = UnsafePtr<WebSocketChannelParent>(this)](
+                      const nsDependentCSubstring& aMsg, bool aMoreData) {
+    return self->SendOnBinaryMessageAvailable(aMsg, aMoreData);
+  };
+
+  if (!SendOnMessageAvailableHelper(aMsg, sendFunc)) {
+    return NS_ERROR_FAILURE;
+  }
+
   return NS_OK;
 }
 
@@ -263,7 +314,7 @@ void WebSocketChannelParent::ActorDestroy(ActorDestroyReason why) {
   // through a clean shutdown.
   if (mChannel) {
     Unused << mChannel->Close(nsIWebSocketChannel::CLOSE_GOING_AWAY,
-                              NS_LITERAL_CSTRING("Child was killed"));
+                              "Child was killed"_ns);
   }
 }
 
@@ -274,9 +325,14 @@ void WebSocketChannelParent::ActorDestroy(ActorDestroyReason why) {
 NS_IMETHODIMP
 WebSocketChannelParent::GetInterface(const nsIID& iid, void** result) {
   LOG(("WebSocketChannelParent::GetInterface() %p\n", this));
-  if (mAuthProvider && iid.Equals(NS_GET_IID(nsIAuthPromptProvider)))
-    return mAuthProvider->GetAuthPrompt(nsIAuthPromptProvider::PROMPT_NORMAL,
-                                        iid, result);
+  if (mAuthProvider && iid.Equals(NS_GET_IID(nsIAuthPromptProvider))) {
+    nsresult rv = mAuthProvider->GetAuthPrompt(
+        nsIAuthPromptProvider::PROMPT_NORMAL, iid, result);
+    if (NS_FAILED(rv)) {
+      return NS_ERROR_NO_INTERFACE;
+    }
+    return NS_OK;
+  }
 
   // Only support nsILoadContext if child channel's callbacks did too
   if (iid.Equals(NS_GET_IID(nsILoadContext)) && mLoadContext) {

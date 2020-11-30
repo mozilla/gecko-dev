@@ -9,6 +9,7 @@ EXPORTS.mozilla.dom += [
     'RemoteWorkerController.h',
     'RemoteWorkerControllerChild.h',
     'RemoteWorkerControllerParent.h',
+    'RemoteWorkerManager.h',
     'RemoteWorkerParent.h',
     'RemoteWorkerService.h',
     'RemoteWorkerServiceChild.h',
@@ -29,7 +30,6 @@ UNIFIED_SOURCES += [
 
 LOCAL_INCLUDES += [
     '/dom/serviceworkers',
-    '/extensions/permissions',
     '/xpcom/build',
 ]
 

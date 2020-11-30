@@ -400,16 +400,6 @@ XRE_API(void, XRE_SetAndroidChildFds,
 
 XRE_API(void, XRE_SetProcessType, (const char* aProcessTypeString))
 
-// Used in child processes.
-#if defined(XP_WIN)
-// Uses uintptr_t, even though it's really a HANDLE, because including
-// <windows.h> here caused compilation issues.
-XRE_API(bool, XRE_SetRemoteExceptionHandler,
-        (const char* aPipe, uintptr_t aCrashTimeAnnotationFile))
-#else
-XRE_API(bool, XRE_SetRemoteExceptionHandler, (const char* aPipe))
-#endif
-
 XRE_API(nsresult, XRE_InitChildProcess,
         (int aArgc, char* aArgv[], const XREChildData* aChildData))
 
@@ -449,14 +439,6 @@ XRE_API(bool, XRE_IsSocketProcess, ())
  * false if we should rely solely on the Gecko event loop.
  */
 XRE_API(bool, XRE_UseNativeEventProcessing, ())
-
-#if defined(XP_WIN)
-/**
- * @returns true if win32k calls are allowed in this process type, false if
- *          win32k is (or should be) disabled.
- */
-XRE_API(bool, XRE_Win32kCallsAllowed, ())
-#endif
 
 typedef void (*MainFunction)(void* aData);
 

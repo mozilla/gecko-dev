@@ -165,18 +165,16 @@ input {
 @import '../components/DiscoveryStreamImpressionStats/ImpressionStats';
 @import '../components/DiscoveryStreamComponents/DSEmptyState/DSEmptyState';
 @import '../components/DiscoveryStreamComponents/DSTextPromo/DSTextPromo';
+@import '../components/DiscoveryStreamComponents/DSSignup/DSSignup';
 @import '../components/DiscoveryStreamComponents/DSPrivacyModal/DSPrivacyModal';
 
 // AS Router
 @import '../asrouter/components/Button/Button';
 @import '../asrouter/components/SnippetBase/SnippetBase';
 @import '../asrouter/components/ModalOverlay/ModalOverlay';
-@import '../asrouter/templates/ReturnToAMO/ReturnToAMO';
 @import '../asrouter/templates/SimpleBelowSearchSnippet/SimpleBelowSearchSnippet';
 @import '../asrouter/templates/SimpleSnippet/SimpleSnippet';
 @import '../asrouter/templates/SubmitFormSnippet/SubmitFormSnippet';
 @import '../asrouter/templates/OnboardingMessage/OnboardingMessage';
+@import '../asrouter/templates/FirstRun/Triplets';
 @import '../asrouter/templates/EOYSnippet/EOYSnippet';
-@import '../asrouter/components/FxASignupForm/FxASignupForm';
-@import '../asrouter/templates/Trailhead/Trailhead';
-@import '../asrouter/templates/FullPageInterrupt/FullPageInterrupt';

@@ -161,7 +161,7 @@ nsresult nsXREDirProvider::Initialize(
 #endif
   mGREDir->Clone(getter_AddRefs(mGREBinDir));
 #ifdef XP_MACOSX
-  mGREBinDir->SetNativeLeafName(NS_LITERAL_CSTRING("MacOS"));
+  mGREBinDir->SetNativeLeafName("MacOS"_ns);
 #endif
 
   if (!mProfileDir) {
@@ -245,7 +245,7 @@ nsresult nsXREDirProvider::GetUserProfilesRootDir(nsIFile** aResult) {
 
   if (NS_SUCCEEDED(rv)) {
 #if !defined(XP_UNIX) || defined(XP_MACOSX)
-    rv = file->AppendNative(NS_LITERAL_CSTRING("Profiles"));
+    rv = file->AppendNative("Profiles"_ns);
 #endif
     // We must create the profile directory here if it does not exist.
     nsresult tmp = EnsureDirectoryExists(file);
@@ -263,7 +263,7 @@ nsresult nsXREDirProvider::GetUserProfilesLocalDir(nsIFile** aResult) {
 
   if (NS_SUCCEEDED(rv)) {
 #if !defined(XP_UNIX) || defined(XP_MACOSX)
-    rv = file->AppendNative(NS_LITERAL_CSTRING("Profiles"));
+    rv = file->AppendNative("Profiles"_ns);
 #endif
     // We must create the profile directory here if it does not exist.
     nsresult tmp = EnsureDirectoryExists(file);
@@ -291,18 +291,18 @@ static nsresult GetSystemParentDirectory(nsIFile** aFile) {
   rv = GetOSXFolderType(kOnSystemDisk, kApplicationSupportFolderType,
                         getter_AddRefs(localDir));
   if (NS_SUCCEEDED(rv)) {
-    rv = localDir->AppendNative(NS_LITERAL_CSTRING("Mozilla"));
+    rv = localDir->AppendNative("Mozilla"_ns);
   }
 #  else
-  NS_NAMED_LITERAL_CSTRING(dirname,
+  constexpr auto dirname =
 #    ifdef HAVE_USR_LIB64_DIR
-                           "/usr/lib64/mozilla"
+      "/usr/lib64/mozilla"_ns
 #    elif defined(__OpenBSD__) || defined(__FreeBSD__)
-                           "/usr/local/lib/mozilla"
+      "/usr/local/lib/mozilla"_ns
 #    else
-                           "/usr/lib/mozilla"
+      "/usr/lib/mozilla"_ns
 #    endif
-  );
+      ;
   rv = NS_NewNativeLocalFile(dirname, false, getter_AddRefs(localDir));
 #  endif
 
@@ -354,9 +354,20 @@ nsXREDirProvider::GetFile(const char* aProperty, bool* aPersistent,
   *aPersistent = true;
 
   if (!strcmp(aProperty, NS_GRE_DIR)) {
+#if defined(MOZ_WIDGET_ANDROID)
+    // On Android, libraries and other internal files are inside the APK, a zip
+    // file, so this folder doesn't really make sense.
+    return NS_ERROR_FAILURE;
+#else
     return mGREDir->Clone(aFile);
+#endif
   } else if (!strcmp(aProperty, NS_GRE_BIN_DIR)) {
+#if defined(MOZ_WIDGET_ANDROID)
+    // Same as NS_GRE_DIR
+    return NS_ERROR_FAILURE;
+#else
     return mGREBinDir->Clone(aFile);
+#endif
   } else if (!strcmp(aProperty, NS_OS_CURRENT_PROCESS_DIR) ||
              !strcmp(aProperty, NS_APP_INSTALL_CLEANUP_DIR)) {
     return GetAppDir()->Clone(aFile);
@@ -366,13 +377,18 @@ nsXREDirProvider::GetFile(const char* aProperty, bool* aPersistent,
   nsCOMPtr<nsIFile> file;
 
   if (!strcmp(aProperty, NS_APP_PREF_DEFAULTS_50_DIR)) {
+#if defined(MOZ_WIDGET_ANDROID)
+    // Same as NS_GRE_DIR
+    return NS_ERROR_FAILURE;
+#else
     // return the GRE default prefs directory here, and the app default prefs
     // directory (if applicable) in NS_APP_PREFS_DEFAULTS_DIR_LIST.
     rv = mGREDir->Clone(getter_AddRefs(file));
     if (NS_SUCCEEDED(rv)) {
-      rv = file->AppendNative(NS_LITERAL_CSTRING("defaults"));
-      if (NS_SUCCEEDED(rv)) rv = file->AppendNative(NS_LITERAL_CSTRING("pref"));
+      rv = file->AppendNative("defaults"_ns);
+      if (NS_SUCCEEDED(rv)) rv = file->AppendNative("pref"_ns);
     }
+#endif
   } else if (!strcmp(aProperty, NS_APP_APPLICATION_REGISTRY_DIR) ||
              !strcmp(aProperty, XRE_USER_APP_DATA_DIR)) {
     rv = GetUserAppDataDirectory(getter_AddRefs(file));
@@ -390,9 +406,9 @@ nsXREDirProvider::GetFile(const char* aProperty, bool* aPersistent,
     rv = GetUserDataDirectoryHome(getter_AddRefs(localDir), false);
     if (NS_SUCCEEDED(rv)) {
 #  if defined(XP_MACOSX)
-      rv = localDir->AppendNative(NS_LITERAL_CSTRING("Mozilla"));
+      rv = localDir->AppendNative("Mozilla"_ns);
 #  else
-      rv = localDir->AppendNative(NS_LITERAL_CSTRING(".mozilla"));
+      rv = localDir->AppendNative(".mozilla"_ns);
 #  endif
     }
     if (NS_SUCCEEDED(rv)) {
@@ -407,7 +423,7 @@ nsXREDirProvider::GetFile(const char* aProperty, bool* aPersistent,
   } else if (!strcmp(aProperty, NS_APP_APPLICATION_REGISTRY_FILE)) {
     rv = GetUserAppDataDirectory(getter_AddRefs(file));
     if (NS_SUCCEEDED(rv))
-      rv = file->AppendNative(NS_LITERAL_CSTRING(APP_REGISTRY_NAME));
+      rv = file->AppendNative(nsLiteralCString(APP_REGISTRY_NAME));
   } else if (!strcmp(aProperty, NS_APP_USER_PROFILES_ROOT_DIR)) {
     rv = GetUserProfilesRootDir(getter_AddRefs(file));
   } else if (!strcmp(aProperty, NS_APP_USER_PROFILES_LOCAL_ROOT_DIR)) {
@@ -471,12 +487,10 @@ nsXREDirProvider::GetFile(const char* aProperty, bool* aPersistent,
   } else if (!strcmp(aProperty, XRE_APP_DISTRIBUTION_DIR)) {
     bool persistent = false;
     rv = GetFile(NS_GRE_DIR, &persistent, getter_AddRefs(file));
-    if (NS_SUCCEEDED(rv))
-      rv = file->AppendNative(NS_LITERAL_CSTRING("distribution"));
+    if (NS_SUCCEEDED(rv)) rv = file->AppendNative("distribution"_ns);
   } else if (!strcmp(aProperty, XRE_APP_FEATURES_DIR)) {
     rv = GetAppDir()->Clone(getter_AddRefs(file));
-    if (NS_SUCCEEDED(rv))
-      rv = file->AppendNative(NS_LITERAL_CSTRING("features"));
+    if (NS_SUCCEEDED(rv)) rv = file->AppendNative("features"_ns);
   } else if (!strcmp(aProperty, XRE_ADDON_APP_DIR)) {
     nsCOMPtr<nsIDirectoryServiceProvider> dirsvc(
         do_GetService("@mozilla.org/file/directory_service;1", &rv));
@@ -504,7 +518,7 @@ nsXREDirProvider::GetFile(const char* aProperty, bool* aPersistent,
     // We need to allow component, xpt, and chrome registration to
     // occur prior to the profile-after-change notification.
     if (!strcmp(aProperty, NS_APP_USER_CHROME_DIR)) {
-      rv = file->AppendNative(NS_LITERAL_CSTRING("chrome"));
+      rv = file->AppendNative("chrome"_ns);
     }
   }
 
@@ -519,11 +533,11 @@ nsXREDirProvider::GetFile(const char* aProperty, bool* aPersistent,
     if (!strcmp(aProperty, NS_APP_PREFS_50_DIR)) {
       rv = NS_OK;
     } else if (!strcmp(aProperty, NS_APP_PREFS_50_FILE)) {
-      rv = file->AppendNative(NS_LITERAL_CSTRING("prefs.js"));
+      rv = file->AppendNative("prefs.js"_ns);
     } else if (!strcmp(aProperty, NS_APP_PREFS_OVERRIDE_DIR)) {
       rv = mProfileDir->Clone(getter_AddRefs(file));
       nsresult tmp =
-          file->AppendNative(NS_LITERAL_CSTRING(PREF_OVERRIDE_DIRNAME));
+          file->AppendNative(nsLiteralCString(PREF_OVERRIDE_DIRNAME));
       if (NS_FAILED(tmp)) {
         rv = tmp;
       }
@@ -721,7 +735,7 @@ static already_AddRefed<nsIFile> GetProcessSandboxTempDir(
     return nullptr;
   }
 
-  rv = localFile->Append(NS_LITERAL_STRING("Temp-") + tempDirSuffix);
+  rv = localFile->Append(u"Temp-"_ns + tempDirSuffix);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return nullptr;
   }
@@ -1132,9 +1146,11 @@ static nsresult HashInstallPath(nsAString& aInstallPath, nsAString& aPathHash) {
   }
 
   mozilla::UniquePtr<NS_tchar[]> hash;
-  nsresult rv =
+  bool success =
       ::GetInstallHash(PromiseFlatString(aInstallPath).get(), vendor, hash);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (!success) {
+    return NS_ERROR_FAILURE;
+  }
 
   // The hash string is a NS_tchar*, which is wchar* in Windows and char*
   // elsewhere.
@@ -1215,12 +1231,12 @@ nsresult nsXREDirProvider::GetLegacyInstallHash(nsAString& aPathHash) {
   if (SUCCEEDED(hres)) {
     nsDependentString strPathX86(pathX86);
     if (!StringBeginsWith(installPath, strPathX86,
-                          nsCaseInsensitiveStringComparator())) {
+                          nsCaseInsensitiveStringComparator)) {
       PWSTR path = nullptr;
       hres = SHGetKnownFolderPath(FOLDERID_ProgramFiles, 0, nullptr, &path);
       if (SUCCEEDED(hres)) {
         if (StringBeginsWith(installPath, nsDependentString(path),
-                             nsCaseInsensitiveStringComparator())) {
+                             nsCaseInsensitiveStringComparator)) {
           installPath.Replace(0, wcslen(path), strPathX86);
         }
       }
@@ -1272,11 +1288,11 @@ nsresult nsXREDirProvider::GetUpdateRootDir(nsIFile** aResult,
             nsDependentCString(hasVendor ? GetAppVendor() : GetAppName())))) {
       return NS_ERROR_FAILURE;
     }
-  } else if (NS_FAILED(localDir->AppendNative(NS_LITERAL_CSTRING("Mozilla")))) {
+  } else if (NS_FAILED(localDir->AppendNative("Mozilla"_ns))) {
     return NS_ERROR_FAILURE;
   }
 
-  if (NS_FAILED(localDir->Append(NS_LITERAL_STRING("updates"))) ||
+  if (NS_FAILED(localDir->Append(u"updates"_ns)) ||
       NS_FAILED(localDir->AppendRelativePath(appDirPath))) {
     return NS_ERROR_FAILURE;
   }
@@ -1403,7 +1419,7 @@ nsresult nsXREDirProvider::GetUserDataDirectoryHome(nsIFile** aFile,
   OSErr err = ::FSFindFolder(kUserDomain, folderType, kCreateFolder, &fsRef);
   NS_ENSURE_FALSE(err, NS_ERROR_FAILURE);
 
-  rv = NS_NewNativeLocalFile(EmptyCString(), true, getter_AddRefs(localDir));
+  rv = NS_NewNativeLocalFile(""_ns, true, getter_AddRefs(localDir));
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsILocalFileMac> dirFileMac = do_QueryInterface(localDir);
@@ -1453,8 +1469,7 @@ nsresult nsXREDirProvider::GetUserDataDirectoryHome(nsIFile** aFile,
     } else {
       rv = NS_NewNativeLocalFile(nsDependentCString(homeDir), true,
                                  getter_AddRefs(localDir));
-      if (NS_SUCCEEDED(rv))
-        rv = localDir->AppendNative(NS_LITERAL_CSTRING(".cache"));
+      if (NS_SUCCEEDED(rv)) rv = localDir->AppendNative(".cache"_ns);
     }
   } else {
     rv = NS_NewNativeLocalFile(nsDependentCString(homeDir), true,
@@ -1521,13 +1536,13 @@ nsresult nsXREDirProvider::GetSystemExtensionsDirectory(nsIFile** aFile) {
 
   rv = GetSystemParentDirectory(getter_AddRefs(localDir));
   if (NS_SUCCEEDED(rv)) {
-    NS_NAMED_LITERAL_CSTRING(sExtensions,
+    constexpr auto sExtensions =
 #  if defined(XP_MACOSX)
-                             "Extensions"
+        "Extensions"_ns
 #  else
-                             "extensions"
+        "extensions"_ns
 #  endif
-    );
+        ;
 
     rv = localDir->AppendNative(sExtensions);
     if (NS_SUCCEEDED(rv)) {

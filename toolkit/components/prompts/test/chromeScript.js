@@ -1,8 +1,17 @@
 /* eslint-env mozilla/frame-script */
 
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
-const { clearInterval, setInterval } = ChromeUtils.import(
+const { clearInterval, setInterval, setTimeout } = ChromeUtils.import(
   "resource://gre/modules/Timer.jsm"
+);
+
+const { BrowserTestUtils } = ChromeUtils.import(
+  "resource://testing-common/BrowserTestUtils.jsm"
+);
+
+var tabSubDialogsEnabled = Services.prefs.getBoolPref(
+  "prompts.tabChromePromptSubDialog",
+  false
 );
 
 // Define these to make EventUtils happy.
@@ -16,22 +25,72 @@ Services.scriptloader.loadSubScript(
 );
 
 addMessageListener("handlePrompt", msg => {
-  handlePromptWhenItAppears(msg.action, msg.isTabModal, msg.isSelect);
+  handlePromptWhenItAppears(msg.action, msg.modalType, msg.isSelect);
 });
 
-function handlePromptWhenItAppears(action, isTabModal, isSelect) {
-  let interval = setInterval(() => {
-    if (handlePrompt(action, isTabModal, isSelect)) {
-      clearInterval(interval);
-    }
-  }, 100);
+async function handlePromptWhenItAppears(action, modalType, isSelect) {
+  if (!(await handlePrompt(action, modalType, isSelect))) {
+    setTimeout(
+      () => this.handlePromptWhenItAppears(action, modalType, isSelect),
+      100
+    );
+  }
 }
 
-function handlePrompt(action, isTabModal, isSelect) {
-  let ui;
+function checkTabModal(prompt, browser) {
+  let doc = browser.ownerDocument;
 
-  if (isTabModal) {
-    let browserWin = Services.wm.getMostRecentWindow("navigator:browser");
+  let { bottom: toolboxBottom } = doc
+    .getElementById("navigator-toolbox")
+    .getBoundingClientRect();
+
+  let { mainContainer } = prompt.ui;
+
+  let { x, y } = mainContainer.getBoundingClientRect();
+  ok(y > 0, "Container should have y > 0");
+  // Inset by 1px since the corner point doesn't return the frame due to the
+  // border-radius.
+  is(
+    doc.elementFromPoint(x + 1, y + 1).parentNode,
+    mainContainer,
+    "Check tabmodalprompt is visible"
+  );
+
+  info("Click to the left of the dialog over the content area");
+  isnot(
+    doc.elementFromPoint(x - 10, y + 50),
+    browser,
+    "Check clicks on the content area don't go to the browser"
+  );
+  is(
+    doc.elementFromPoint(x - 10, y + 50).parentNode,
+    prompt.element,
+    "Check clicks on the content area go to the prompt dialog background"
+  );
+
+  if (prompt.args.modalType == Ci.nsIPrompt.MODAL_TYPE_TAB) {
+    ok(
+      y <= toolboxBottom - 5,
+      "Dialog should overlap the toolbox by at least 5px"
+    );
+  } else {
+    ok(y >= toolboxBottom, "Dialog must not overlap with toolbox.");
+  }
+
+  ok(
+    browser.hasAttribute("tabmodalPromptShowing"),
+    "Check browser has @tabmodalPromptShowing"
+  );
+}
+
+async function handlePrompt(action, modalType, isSelect) {
+  let ui;
+  let browserWin = Services.wm.getMostRecentWindow("navigator:browser");
+
+  if (
+    modalType === Services.prompt.MODAL_TYPE_CONTENT ||
+    (!tabSubDialogsEnabled && modalType === Services.prompt.MODAL_TYPE_TAB)
+  ) {
     let gBrowser = browserWin.gBrowser;
     let promptManager = gBrowser.getTabModalPromptBox(gBrowser.selectedBrowser);
     let prompts = promptManager.listPrompts();
@@ -40,6 +99,7 @@ function handlePrompt(action, isTabModal, isSelect) {
     }
 
     ui = prompts[0].Dialog.ui;
+    checkTabModal(prompts[0], gBrowser.selectedBrowser);
   } else {
     let doc = getDialogDoc();
     if (!doc) {
@@ -53,6 +113,11 @@ function handlePrompt(action, isTabModal, isSelect) {
     }
   }
 
+  let dialogClosed = BrowserTestUtils.waitForEvent(
+    browserWin,
+    "DOMModalDialogClosed"
+  );
+
   let promptState;
   if (isSelect) {
     promptState = getSelectState(ui);
@@ -61,6 +126,13 @@ function handlePrompt(action, isTabModal, isSelect) {
     promptState = getPromptState(ui);
     dismissPrompt(ui, action);
   }
+
+  // Wait until the prompt has been closed before sending callback msg.
+  // Unless the test explicitly doesn't request a button click.
+  if (action.buttonClick !== "none") {
+    await dialogClosed;
+  }
+
   sendAsyncMessage("promptHandled", { promptState });
   return true;
 }
@@ -90,7 +162,7 @@ function getPromptState(ui) {
   state.checkHidden = ui.checkboxContainer.hidden;
   state.checkMsg = state.checkHidden ? "" : ui.checkbox.label;
   state.checked = state.checkHidden ? false : ui.checkbox.checked;
-  // tab-modal prompts don't have an infoIcon
+  // TabModalPrompts don't have an infoIcon
   state.iconClass = ui.infoIcon ? ui.infoIcon.className : null;
   state.textValue = ui.loginTextbox.value;
   state.passValue = ui.password1Textbox.value;

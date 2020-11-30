@@ -4,10 +4,6 @@
 
 The Application panel is a Firefox Developer Tools panel meant to allow the inspection and debugging of features usually present in Progressive Web Apps, such as service workers or the Web App Manifest.
 
-### How to enable the Application panel
-
-At the moment, the panel is shown by default on Nightly builds only, behind a configuration flag. In order to enable it, type `about:config` in the address bar, look for the `devtools.application.enabled` flag and set it to true. It will then appear as a tab with the rest of the panels within the Developer Tools toolbox.
-
 ## Technical overview
 
 The Application panel is a React + Redux web app.
@@ -120,7 +116,7 @@ Synchronous actions are regular Redux actions. Their type is defined in the gene
 
 ```js
 function fooAction() {
-  return async (dispatch, getState) => {
+  return async ({ dispatch, getState }) => {
     dispatch({ type: FOO_START });
 
     try {
@@ -147,7 +143,7 @@ We are sharing some constants / enum-like constants across the source. They are 
 
 ## Tests
 
-You should read DevTools' general [guidelines for automated tests](https://docs.firefox-dev.tools/tests/).
+You should read DevTools' general [guidelines for automated tests](https://firefox-source-docs.mozilla.org/devtools/tests/README.html).
 
 ### Mochitests (e2e / integration)
 

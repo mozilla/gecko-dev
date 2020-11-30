@@ -9,7 +9,6 @@
 #include "nsIJARURI.h"
 #include "nsIResProtocolHandler.h"
 #include "nsIChromeRegistry.h"
-#include "nsAutoPtr.h"
 #include "nsStringStream.h"
 #include "StartupCacheUtils.h"
 #include "mozilla/scache/StartupCache.h"
@@ -21,9 +20,8 @@ namespace scache {
 nsresult NewObjectInputStreamFromBuffer(const char* buffer, uint32_t len,
                                         nsIObjectInputStream** stream) {
   nsCOMPtr<nsIInputStream> stringStream;
-  nsresult rv =
-      NS_NewByteInputStream(getter_AddRefs(stringStream), MakeSpan(buffer, len),
-                            NS_ASSIGNMENT_DEPEND);
+  nsresult rv = NS_NewByteInputStream(getter_AddRefs(stringStream),
+                                      Span(buffer, len), NS_ASSIGNMENT_DEPEND);
   MOZ_ALWAYS_SUCCEEDS(rv);
 
   nsCOMPtr<nsIObjectInputStream> objectInput =
@@ -157,7 +155,7 @@ nsresult ResolveURI(nsIURI* in, nsIURI** out) {
     return ioService->NewURI(spec, nullptr, nullptr, out);
   } else if (in->SchemeIs("chrome")) {
     nsCOMPtr<nsIChromeRegistry> chromeReg =
-        mozilla::services::GetChromeRegistryService();
+        mozilla::services::GetChromeRegistry();
     if (!chromeReg) return NS_ERROR_UNEXPECTED;
 
     return chromeReg->ConvertChromeURL(in, out);

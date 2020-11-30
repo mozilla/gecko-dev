@@ -23,14 +23,14 @@ add_task(async function test_panelview_bookmarks_delete() {
 
   await gCUITestUtils.openMainMenu();
 
+  document.getElementById("appMenu-library-button").click();
   let libraryView = document.getElementById("appMenu-libraryView");
   let promise = BrowserTestUtils.waitForEvent(libraryView, "ViewShown");
-  document.getElementById("appMenu-library-button").click();
   await promise;
 
+  document.getElementById("appMenu-library-bookmarks-button").click();
   let bookmarksView = document.getElementById("PanelUI-bookmarks");
   promise = BrowserTestUtils.waitForEvent(bookmarksView, "ViewShown");
-  document.getElementById("appMenu-library-bookmarks-button").click();
   await promise;
 
   let list = document.getElementById("panelMenu_bookmarksMenu");

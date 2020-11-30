@@ -44,7 +44,7 @@ already_AddRefed<CompositionEvent> CompositionEvent::Constructor(
   RefPtr<CompositionEvent> e = new CompositionEvent(t, nullptr, nullptr);
   bool trusted = e->Init(t);
   e->InitCompositionEvent(aType, aParam.mBubbles, aParam.mCancelable,
-                          aParam.mView, aParam.mData, EmptyString());
+                          aParam.mView, aParam.mData, u""_ns);
   e->mDetail = aParam.mDetail;
   e->SetTrusted(trusted);
   e->SetComposed(aParam.mComposed);
@@ -80,7 +80,7 @@ void CompositionEvent::InitCompositionEvent(const nsAString& aType,
 void CompositionEvent::GetRanges(TextClauseArray& aRanges) {
   // If the mRanges is not empty, we return the cached value.
   if (!mRanges.IsEmpty()) {
-    aRanges = mRanges;
+    aRanges = mRanges.Clone();
     return;
   }
   RefPtr<TextRangeArray> textRangeArray = mEvent->AsCompositionEvent()->mRanges;
@@ -93,7 +93,7 @@ void CompositionEvent::GetRanges(TextClauseArray& aRanges) {
     const TextRange& range = textRangeArray->ElementAt(i);
     mRanges.AppendElement(new TextClause(window, range, targetRange));
   }
-  aRanges = mRanges;
+  aRanges = mRanges.Clone();
 }
 
 }  // namespace dom

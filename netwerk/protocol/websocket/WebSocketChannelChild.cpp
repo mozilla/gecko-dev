@@ -294,11 +294,22 @@ class MessageEvent : public WebSocketEvent {
   bool mBinary;
 };
 
-mozilla::ipc::IPCResult WebSocketChannelChild::RecvOnMessageAvailable(
-    const nsCString& aMsg) {
-  mEventQ->RunOrEnqueue(new EventTargetDispatcher(
-      this, new MessageEvent(aMsg, false), mTargetThread));
+void WebSocketChannelChild::RecvOnMessageAvailableInternal(
+    const nsDependentCSubstring& aMsg, bool aMoreData, bool aBinary) {
+  if (aMoreData) {
+    mReceivedMsgBuffer.Append(aMsg);
+    return;
+  }
 
+  mReceivedMsgBuffer.Append(aMsg);
+  mEventQ->RunOrEnqueue(new EventTargetDispatcher(
+      this, new MessageEvent(mReceivedMsgBuffer, aBinary), mTargetThread));
+  mReceivedMsgBuffer.Truncate();
+}
+
+mozilla::ipc::IPCResult WebSocketChannelChild::RecvOnMessageAvailable(
+    const nsDependentCSubstring& aMsg, const bool& aMoreData) {
+  RecvOnMessageAvailableInternal(aMsg, aMoreData, false);
   return IPC_OK();
 }
 
@@ -319,10 +330,8 @@ void WebSocketChannelChild::OnMessageAvailable(const nsCString& aMsg) {
 }
 
 mozilla::ipc::IPCResult WebSocketChannelChild::RecvOnBinaryMessageAvailable(
-    const nsCString& aMsg) {
-  mEventQ->RunOrEnqueue(new EventTargetDispatcher(
-      this, new MessageEvent(aMsg, true), mTargetThread));
-
+    const nsDependentCSubstring& aMsg, const bool& aMoreData) {
+  RecvOnMessageAvailableInternal(aMsg, aMoreData, true);
   return IPC_OK();
 }
 
@@ -443,9 +452,6 @@ WebSocketChannelChild::AsyncOpen(nsIURI* aURI, const nsACString& aOrigin,
     browserChild =
         static_cast<mozilla::dom::BrowserChild*>(iBrowserChild.get());
   }
-  if (MissingRequiredBrowserChild(browserChild, "websocket")) {
-    return NS_ERROR_ILLEGAL_VALUE;
-  }
 
   ContentChild* cc = static_cast<ContentChild*>(gNeckoChild->Manager());
   if (cc->IsShuttingDown()) {
@@ -455,13 +461,12 @@ WebSocketChannelChild::AsyncOpen(nsIURI* aURI, const nsACString& aOrigin,
   // Corresponding release in DeallocPWebSocket
   AddIPDLReference();
 
-  Maybe<URIParams> uri;
+  nsCOMPtr<nsIURI> uri;
   Maybe<LoadInfoArgs> loadInfoArgs;
   Maybe<PTransportProviderChild*> transportProvider;
 
   if (!mIsServerSide) {
-    uri.emplace(URIParams());
-    SerializeURI(aURI, uri.ref());
+    uri = aURI;
     nsresult rv = LoadInfoToLoadInfoArgs(mLoadInfo, &loadInfoArgs);
     NS_ENSURE_SUCCESS(rv, rv);
 

@@ -21,12 +21,16 @@
  *   response header sent
  */
 
+/* eslint-env node */
+/* global serverPort */
+
+"use strict";
+
 const pps = Cc["@mozilla.org/network/protocol-proxy-service;1"].getService();
-const { NodeServer } = ChromeUtils.import("resource://testing-common/httpd.js");
 
 let proxy_port;
-let server_port;
 let filter;
+let proxy;
 
 // See moz-http2
 const proxy_auth = "authorization-token";
@@ -38,9 +42,9 @@ class ProxyFilter {
     this._host = host;
     this._port = port;
     this._flags = flags;
-    this.QueryInterface = ChromeUtils.generateQI([Ci.nsIProtocolProxyFilter]);
+    this.QueryInterface = ChromeUtils.generateQI(["nsIProtocolProxyFilter"]);
   }
-  applyFilter(pps, uri, pi, cb) {
+  applyFilter(uri, pi, cb) {
     if (
       uri.pathQueryRef.startsWith("/execute") ||
       uri.pathQueryRef.startsWith("/fork") ||
@@ -68,24 +72,39 @@ class ProxyFilter {
 class UnxpectedAuthPrompt2 {
   constructor(signal) {
     this.signal = signal;
-    this.QueryInterface = ChromeUtils.generateQI([Ci.nsIAuthPrompt2]);
+    this.QueryInterface = ChromeUtils.generateQI(["nsIAuthPrompt2"]);
   }
   asyncPromptAuth() {
     this.signal.triggered = true;
-    throw Cr.ERROR_UNEXPECTED;
+    throw Components.Exception("", Cr.ERROR_UNEXPECTED);
+  }
+}
+
+class SimpleAuthPrompt2 {
+  constructor(signal) {
+    this.signal = signal;
+    this.QueryInterface = ChromeUtils.generateQI(["nsIAuthPrompt2"]);
+  }
+  asyncPromptAuth(channel, callback, context, encryptionLevel, authInfo) {
+    this.signal.triggered = true;
+    executeSoon(function() {
+      authInfo.username = "user";
+      authInfo.password = "pass";
+      callback.onAuthAvailable(context, authInfo);
+    });
   }
 }
 
 class AuthRequestor {
   constructor(prompt) {
     this.prompt = prompt;
-    this.QueryInterface = ChromeUtils.generateQI([Ci.nsIInterfaceRequestor]);
+    this.QueryInterface = ChromeUtils.generateQI(["nsIInterfaceRequestor"]);
   }
   getInterface(iid) {
     if (iid.equals(Ci.nsIAuthPrompt2)) {
       return this.prompt();
     }
-    throw Cr.NS_ERROR_NO_INTERFACE;
+    throw Components.Exception("", Cr.NS_ERROR_NO_INTERFACE);
   }
 }
 
@@ -206,12 +225,26 @@ class http2ProxyCode {
       const target = headers[":authority"];
 
       const authorization_token = headers["proxy-authorization"];
-      if (
-        "authorization-token" != authorization_token ||
-        target == "407.example.com:443"
-      ) {
+      if (target == "407.example.com:443") {
         stream.respond({ ":status": 407 });
         // Deliberately send no Proxy-Authenticate header
+        stream.end();
+        return;
+      }
+      if (target == "407.basic.example.com:443") {
+        // we want to return a different response than 407 to not re-request
+        // credentials (and thus loop) but also not 200 to not let the channel
+        // attempt to waste time connecting a non-existing https server - hence
+        // 418 I'm a teapot :)
+        if ("Basic dXNlcjpwYXNz" == authorization_token) {
+          stream.respond({ ":status": 418 });
+          stream.end();
+          return;
+        }
+        stream.respond({
+          ":status": 407,
+          "proxy-authenticate": "Basic realm='foo'",
+        });
         stream.end();
         return;
       }
@@ -282,7 +315,7 @@ add_task(async function setup() {
   const env = Cc["@mozilla.org/process/environment;1"].getService(
     Ci.nsIEnvironment
   );
-  server_port = env.get("MOZHTTP2_PORT");
+  let server_port = env.get("MOZHTTP2_PORT");
   Assert.notEqual(server_port, null);
   processId = await NodeServer.fork();
   await NodeServer.execute(processId, `serverPort = ${server_port}`);
@@ -301,6 +334,10 @@ add_task(async function setup() {
 
   Services.prefs.setBoolPref("network.http.spdy.enabled", true);
   Services.prefs.setBoolPref("network.http.spdy.enabled.http2", true);
+
+  // Even with network state isolation active, we don't end up using the
+  // partitioned principal.
+  Services.prefs.setBoolPref("privacy.partition.network_state", true);
 
   // make all native resolve calls "secretly" resolve localhost instead
   Services.prefs.setBoolPref("network.dns.native-is-localhost", true);
@@ -374,6 +411,31 @@ add_task(async function proxy_auth_failure() {
   Assert.equal(proxy_connect_response_code, 407);
   Assert.equal(http_code, undefined);
   Assert.equal(auth_prompt.triggered, false, "Auth prompt didn't trigger");
+  Assert.equal(
+    await proxy_session_counter(),
+    1,
+    "No new session created by 407"
+  );
+});
+
+// The proxy responses with 407 with Proxy-Authenticate header presence. Make
+// sure that we prompt the auth prompt to ask for credentials.
+add_task(async function proxy_auth_basic() {
+  const chan = make_channel(`https://407.basic.example.com/`);
+  const auth_prompt = { triggered: false };
+  chan.notificationCallbacks = new AuthRequestor(
+    () => new SimpleAuthPrompt2(auth_prompt)
+  );
+  const { status, http_code, proxy_connect_response_code } = await get_response(
+    chan,
+    CL_EXPECT_FAILURE
+  );
+
+  // 418 indicates we pass the basic authentication.
+  Assert.equal(status, Cr.NS_ERROR_PROXY_CONNECTION_REFUSED);
+  Assert.equal(proxy_connect_response_code, 418);
+  Assert.equal(http_code, undefined);
+  Assert.equal(auth_prompt.triggered, true, "Auth prompt should trigger");
   Assert.equal(
     await proxy_session_counter(),
     1,

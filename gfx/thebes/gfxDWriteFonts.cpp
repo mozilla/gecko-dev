@@ -95,17 +95,6 @@ gfxDWriteFont::gfxDWriteFont(const RefPtr<UnscaledFontDWrite>& aUnscaledFont,
 
 gfxDWriteFont::~gfxDWriteFont() { delete mMetrics; }
 
-static void ForceFontUpdate() {
-  // update device context font cache
-  // Dirty but easiest way:
-  // Changing nsIPrefBranch entry which triggers callbacks
-  // and flows into calling mDeviceContext->FlushFontCache()
-  // to update the font cache in all the instance of Browsers
-  static const char kPrefName[] = "font.internaluseonly.changed";
-  bool fontInternalChange = Preferences::GetBool(kPrefName, false);
-  Preferences::SetBool(kPrefName, !fontInternalChange);
-}
-
 void gfxDWriteFont::UpdateSystemTextQuality() {
   BYTE newQuality = GetSystemTextQuality();
   if (gfxVars::SystemTextQuality() != newQuality) {
@@ -115,10 +104,9 @@ void gfxDWriteFont::UpdateSystemTextQuality() {
 
 void gfxDWriteFont::SystemTextQualityChanged() {
   // If ClearType status has changed, update our value,
+  Factory::SetSystemTextQuality(gfxVars::SystemTextQuality());
   // flush cached stuff that depended on the old setting, and force
   // reflow everywhere to ensure we are using correct glyph metrics.
-  ForceFontUpdate();
-  Factory::SetSystemTextQuality(gfxVars::SystemTextQuality());
   gfxPlatform::FlushFontAndWordCaches();
   gfxPlatform::ForceGlobalReflow();
 }
@@ -142,7 +130,7 @@ bool gfxDWriteFont::GetFakeMetricsForArialBlack(
   style.weight = FontWeight(700);
 
   gfxFontEntry* fe = gfxPlatformFontList::PlatformFontList()->FindFontForFamily(
-      NS_LITERAL_CSTRING("Arial"), &style);
+      "Arial"_ns, &style);
   if (!fe || fe == mFontEntry) {
     return false;
   }

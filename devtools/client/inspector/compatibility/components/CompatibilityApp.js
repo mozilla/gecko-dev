@@ -12,44 +12,116 @@ const {
 const dom = require("devtools/client/shared/vendor/react-dom-factories");
 const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
 
+const FluentReact = require("devtools/client/shared/vendor/fluent-react");
+
 const Types = require("devtools/client/inspector/compatibility/types");
 
-const IssueList = createFactory(
-  require("devtools/client/inspector/compatibility/components/IssueList")
+const Accordion = createFactory(
+  require("devtools/client/shared/components/Accordion")
+);
+const Footer = createFactory(
+  require("devtools/client/inspector/compatibility/components/Footer")
+);
+const IssuePane = createFactory(
+  require("devtools/client/inspector/compatibility/components/IssuePane")
+);
+const Settings = createFactory(
+  require("devtools/client/inspector/compatibility/components/Settings")
 );
 
 class CompatibilityApp extends PureComponent {
   static get propTypes() {
     return {
+      // getString prop is injected by the withLocalization wrapper
+      getString: PropTypes.func.isRequired,
+      isSettingsVisibile: PropTypes.bool.isRequired,
+      isTopLevelTargetProcessing: PropTypes.bool.isRequired,
       selectedNodeIssues: PropTypes.arrayOf(PropTypes.shape(Types.issue))
         .isRequired,
+      topLevelTargetIssues: PropTypes.arrayOf(PropTypes.shape(Types.issue))
+        .isRequired,
+      hideBoxModelHighlighter: PropTypes.func.isRequired,
+      setSelectedNode: PropTypes.func.isRequired,
+      showBoxModelHighlighterForNode: PropTypes.func.isRequired,
     };
   }
 
-  _renderNoIssues() {
-    return dom.div(
-      { className: "devtools-sidepanel-no-result" },
-      "No compatibility issues found."
-    );
-  }
-
   render() {
-    const { selectedNodeIssues } = this.props;
+    const {
+      getString,
+      isSettingsVisibile,
+      isTopLevelTargetProcessing,
+      selectedNodeIssues,
+      topLevelTargetIssues,
+      hideBoxModelHighlighter,
+      setSelectedNode,
+      showBoxModelHighlighterForNode,
+    } = this.props;
 
-    return dom.div(
+    const selectedNodeIssuePane = IssuePane({
+      issues: selectedNodeIssues,
+    });
+
+    const topLevelTargetIssuePane =
+      topLevelTargetIssues.length > 0 || !isTopLevelTargetProcessing
+        ? IssuePane({
+            issues: topLevelTargetIssues,
+            hideBoxModelHighlighter,
+            setSelectedNode,
+            showBoxModelHighlighterForNode,
+          })
+        : null;
+
+    const throbber = isTopLevelTargetProcessing
+      ? dom.div({
+          className: "compatibility-app__throbber devtools-throbber",
+        })
+      : null;
+
+    return dom.section(
       {
         className: "compatibility-app theme-sidebar inspector-tabpanel",
       },
-      selectedNodeIssues.length
-        ? IssueList({ issues: selectedNodeIssues })
-        : this._renderNoIssues()
+      dom.div(
+        {
+          className:
+            "compatibility-app__container" +
+            (isSettingsVisibile ? " compatibility-app__container-hidden" : ""),
+        },
+        Accordion({
+          className: "compatibility-app__main",
+          items: [
+            {
+              id: "compatibility-app--selected-element-pane",
+              header: getString("compatibility-selected-element-header"),
+              component: selectedNodeIssuePane,
+              opened: true,
+            },
+            {
+              id: "compatibility-app--all-elements-pane",
+              header: getString("compatibility-all-elements-header"),
+              component: [topLevelTargetIssuePane, throbber],
+              opened: true,
+            },
+          ],
+        }),
+        Footer({
+          className: "compatibility-app__footer",
+        })
+      ),
+      isSettingsVisibile ? Settings() : null
     );
   }
 }
 
 const mapStateToProps = state => {
   return {
+    isSettingsVisibile: state.compatibility.isSettingsVisibile,
+    isTopLevelTargetProcessing: state.compatibility.isTopLevelTargetProcessing,
     selectedNodeIssues: state.compatibility.selectedNodeIssues,
+    topLevelTargetIssues: state.compatibility.topLevelTargetIssues,
   };
 };
-module.exports = connect(mapStateToProps)(CompatibilityApp);
+module.exports = FluentReact.withLocalization(
+  connect(mapStateToProps)(CompatibilityApp)
+);

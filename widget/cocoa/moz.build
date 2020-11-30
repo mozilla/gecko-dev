@@ -6,6 +6,10 @@
 
 with Files("**"):
     BUG_COMPONENT = ("Core", "Widget: Cocoa")
+    SCHEDULES.exclusive = ['macosx']
+
+with Files("*TextInput*"):
+    BUG_COMPONENT = ("Core", "DOM: UI Events & Focus Handling")
 
 XPIDL_SOURCES += [
     'nsPIWidgetCocoa.idl',
@@ -15,6 +19,7 @@ XPIDL_MODULE = 'widget_cocoa'
 
 EXPORTS += [
     'CFTypeRefPtr.h',
+    'DesktopBackgroundImage.h',
     'MediaHardwareKeysEventSourceMac.h',
     'MediaHardwareKeysEventSourceMacMediaCenter.h',
     'MediaPlayerWrapper.h',
@@ -29,6 +34,7 @@ EXPORTS += [
 UNIFIED_SOURCES += [
     'ComplexTextInputPanel.mm',
     'GfxInfo.mm',
+    'IconLoaderHelperCocoa.mm',
     'NativeKeyBindings.mm',
     'nsAppShell.mm',
     'nsBidiKeyboard.mm',
@@ -39,8 +45,6 @@ UNIFIED_SOURCES += [
     'nsCursorManager.mm',
     'nsDeviceContextSpecX.mm',
     'nsFilePicker.mm',
-    'nsIconLoaderService.mm',
-    'nsIdleServiceX.mm',
     'nsLookAndFeel.mm',
     'nsMacCursor.mm',
     'nsMacDockSupport.mm',
@@ -53,6 +57,7 @@ UNIFIED_SOURCES += [
     'nsMenuItemX.mm',
     'nsMenuUtilsX.mm',
     'nsMenuX.mm',
+    'nsNativeBasicThemeCocoa.cpp',
     'nsPrintDialogX.mm',
     'nsPrintSettingsServiceX.mm',
     'nsPrintSettingsX.mm',
@@ -64,6 +69,7 @@ UNIFIED_SOURCES += [
     'nsTouchBarInput.mm',
     'nsTouchBarInputIcon.mm',
     'nsTouchBarUpdater.mm',
+    'nsUserIdleServiceX.mm',
     'nsWidgetFactory.mm',
     'nsWindowMap.mm',
     'OSXNotificationCenter.mm',
@@ -78,6 +84,7 @@ UNIFIED_SOURCES += [
 
 # These files cannot be built in unified mode because they cause symbol conflicts
 SOURCES += [
+    'DesktopBackgroundImage.mm',
     'MediaHardwareKeysEventSourceMac.mm',
     'MediaHardwareKeysEventSourceMacMediaCenter.mm',
     'MediaKeysEventSourceFactory.cpp',
@@ -93,6 +100,10 @@ if not CONFIG['RELEASE_OR_BETA'] or CONFIG['MOZ_DEBUG']:
     SOURCES += [
         'nsSandboxViolationSink.mm',
     ]
+
+XPCOM_MANIFESTS += [
+    'components.conf',
+]
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
@@ -165,3 +176,5 @@ CXXFLAGS += CONFIG['TK_CFLAGS']
 OS_LIBS += [
     '-framework IOSurface',
 ]
+
+SPHINX_TREES['/widget/cocoa'] = 'docs'

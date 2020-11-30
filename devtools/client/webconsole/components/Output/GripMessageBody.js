@@ -16,11 +16,12 @@ const {
 const actions = require("devtools/client/webconsole/actions/index");
 
 loader.lazyGetter(this, "objectInspector", function() {
-  return require("devtools/client/shared/components/reps/reps").objectInspector;
+  return require("devtools/client/shared/components/reps/index")
+    .objectInspector;
 });
 
 loader.lazyGetter(this, "MODE", function() {
-  return require("devtools/client/shared/components/reps/reps").MODE;
+  return require("devtools/client/shared/components/reps/index").MODE;
 });
 
 GripMessageBody.displayName = "GripMessageBody";
@@ -57,6 +58,7 @@ function GripMessageBody(props) {
     mode = MODE.LONG,
     dispatch,
     maybeScrollToBottom,
+    customFormat = false,
   } = props;
 
   let styleObject;
@@ -71,6 +73,7 @@ function GripMessageBody(props) {
     autoExpandDepth: shouldAutoExpandObjectInspector(props) ? 1 : 0,
     mode,
     maybeScrollToBottom,
+    customFormat,
     onCmdCtrlClick: (node, { depth, event, focused, expanded }) => {
       const front = objectInspector.utils.node.getFront(node);
       if (front) {
@@ -82,7 +85,7 @@ function GripMessageBody(props) {
   if (
     typeof grip === "string" ||
     (grip && grip.type === "longString") ||
-    (grip && grip.getGrip && grip.getGrip().type === "longString")
+    (grip?.getGrip && grip.getGrip().type === "longString")
   ) {
     Object.assign(objectInspectorProps, {
       useQuotes,

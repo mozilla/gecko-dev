@@ -23,6 +23,18 @@ function col(text, className) {
   return column;
 }
 
+function link(text) {
+  let column = document.createElement("td");
+  let a = document.createElement("a");
+  a.href =
+    "https://github.com/mozilla/policy-templates/blob/master/README.md#" + text;
+  a.target = "_blank";
+  let content = document.createTextNode(text);
+  a.appendChild(content);
+  column.appendChild(a);
+  return column;
+}
+
 function addMissingColumns() {
   const table = document.getElementById("activeContent");
   let maxColumns = 0;
@@ -274,6 +286,7 @@ function generateDocumentation() {
   // map specific policies to a different string ID, to allow updates to
   // existing descriptions
   let string_mapping = {
+    DisableMasterPasswordCreation: "DisablePrimaryPasswordCreation",
     DisableSetDesktopBackground: "DisableSetAsDesktopBackground",
     Certificates: "CertificatesDescription",
     SanitizeOnShutdown: "SanitizeOnShutdown2",
@@ -288,7 +301,7 @@ function generateDocumentation() {
       content.classList.toggle("content");
     });
     let row = document.createElement("tr");
-    row.appendChild(col(policyName));
+    row.appendChild(link(policyName));
     let descriptionColumn = col("");
     let stringID = string_mapping[policyName] || policyName;
     descriptionColumn.setAttribute("data-l10n-id", `policy-${stringID}`);
@@ -391,7 +404,7 @@ function show(button) {
   button.setAttribute("selected", "true");
 
   let title = document.getElementById("sectionTitle");
-  title.textContent = button.children[1].textContent;
+  title.textContent = button.textContent;
   location.hash = category;
   restoreScrollPosition(category);
 }

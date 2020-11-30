@@ -131,13 +131,13 @@ class FloatRegister : public FloatRegisterMIPSShared {
   bool equiv(const FloatRegister& other) const { return other.kind_ == kind_; }
   size_t size() const { return (kind_ == Double) ? 8 : 4; }
   size_t pushSize() const { return size(); }
-  bool isInvalid() const { return code_ == FloatRegisters::invalid_freg; }
 
   bool isNotOdd() const { return !isInvalid() && ((code_ & 1) == 0); }
 
   bool isSingle() const { return kind_ == Single; }
   bool isDouble() const { return kind_ == Double; }
   bool isInvalid() const { return code_ == FloatRegisters::invalid_freg; }
+  bool isSimd128() const { return false; }
 
   FloatRegister doubleOverlay() const;
   FloatRegister singleOverlay() const;

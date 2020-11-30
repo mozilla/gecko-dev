@@ -48,7 +48,7 @@ def dump_symbols(target, tracking_file, count_ctors=False):
     os_arch = buildconfig.substs['OS_ARCH']
     if os_arch == 'WINNT':
         sym_store_args.extend(['-c', '--vcs-info'])
-        if os.environ.get('PDBSTR_PATH'):
+        if 'PDBSTR' in buildconfig.substs:
             sym_store_args.append('-i')
     elif os_arch == 'Darwin':
         cpu = {
@@ -69,7 +69,7 @@ def dump_symbols(target, tracking_file, count_ctors=False):
     if objcopy:
         os.environ['OBJCOPY'] = objcopy
 
-    args = ([buildconfig.substs['PYTHON'],
+    args = ([sys.executable,
              os.path.join(buildconfig.topsrcdir, 'toolkit',
                           'crashreporter', 'tools', 'symbolstore.py')] +
             sym_store_args +
@@ -80,8 +80,8 @@ def dump_symbols(target, tracking_file, count_ctors=False):
     if count_ctors:
         args.append('--count-ctors')
     print('Running: %s' % ' '.join(args))
-    out_files = subprocess.check_output(args)
-    with open(tracking_file, 'w') as fh:
+    out_files = subprocess.check_output(args, universal_newlines=True)
+    with open(tracking_file, 'w', encoding='utf-8', newline='\n') as fh:
         fh.write(out_files)
         fh.flush()
 

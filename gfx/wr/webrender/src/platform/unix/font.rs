@@ -104,6 +104,7 @@ macro_rules! ft_dyn_fn {
 ft_dyn_fn!(FT_Get_MM_Var(face: FT_Face, desc: *mut *mut FT_MM_Var) -> FT_Error);
 ft_dyn_fn!(FT_Done_MM_Var(library: FT_Library, desc: *mut FT_MM_Var) -> FT_Error);
 ft_dyn_fn!(FT_Set_Var_Design_Coordinates(face: FT_Face, num_vals: FT_UInt, vals: *mut FT_Fixed) -> FT_Error);
+ft_dyn_fn!(FT_Get_Var_Design_Coordinates(face: FT_Face, num_vals: FT_UInt, vals: *mut FT_Fixed) -> FT_Error);
 
 extern "C" {
     fn FT_GlyphSlot_Embolden(slot: FT_GlyphSlot);
@@ -335,9 +336,9 @@ impl FontContext {
             })
         } else {
             // TODO(gw): Provide detailed error values.
-            Err(ResourceCacheError::new(
-                format!("Failed to initialize FreeType - {}", result)
-            ))
+            // Once this panic has been here for a while with no issues we should get rid of
+            // ResourceCacheError as this was the only place that could fail previously.
+            panic!("Failed to initialize FreeType - {}", result)
         }
     }
 
@@ -397,6 +398,19 @@ impl FontContext {
                     let mm_var = normal_face.mm_var;
                     let num_axis = (*mm_var).num_axis;
                     let mut coords: Vec<FT_Fixed> = Vec::with_capacity(num_axis as usize);
+
+                    // Calling this before FT_Set_Var_Design_Coordinates avoids a bug with font variations
+                    // not initialized properly in the font face, even if we ignore the result.
+                    // See bug 1647035.
+                    let mut tmp = [0; 16];
+                    let res = FT_Get_Var_Design_Coordinates(
+                        normal_face.face,
+                        num_axis.min(16),
+                        tmp.as_mut_ptr()
+                    );
+                    debug_assert!(succeeded(res));
+
+
                     for i in 0 .. num_axis {
                         let axis = (*mm_var).axis.offset(i as isize);
                         let mut value = (*axis).def;
@@ -410,7 +424,8 @@ impl FontContext {
                         }
                         coords.push(value);
                     }
-                    FT_Set_Var_Design_Coordinates(var_face, num_axis, coords.as_mut_ptr());
+                    let res = FT_Set_Var_Design_Coordinates(var_face, num_axis, coords.as_mut_ptr());
+                    debug_assert!(succeeded(res));
                 }
                 entry.insert(VariationFace(var_face));
                 Some(var_face)
@@ -551,8 +566,8 @@ impl FontContext {
         let format = unsafe { (*slot).format };
         match format {
             FT_Glyph_Format::FT_GLYPH_FORMAT_BITMAP => {
-                let y_size = unsafe { (*(*(*slot).face).size).metrics.y_ppem };
-                Some((slot, req_size as f32 / y_size as f32))
+                let bitmap_size = unsafe { (*(*(*slot).face).size).metrics.y_ppem };
+                Some((slot, req_size as f32 / bitmap_size as f32))
             }
             FT_Glyph_Format::FT_GLYPH_FORMAT_OUTLINE => Some((slot, 1.0)),
             _ => {
@@ -868,14 +883,23 @@ impl FontContext {
             }
             _ => panic!("Unsupported mode"),
         };
-        let mut final_buffer = vec![0u8; actual_width * actual_height * 4];
+
+        // If we need padding, we will need to expand the buffer size.
+        let (buffer_width, buffer_height, padding) = if font.use_texture_padding() {
+            (actual_width + 2, actual_height + 2, 1)
+        } else {
+            (actual_width, actual_height, 0)
+        };
+
+        let mut final_buffer = vec![0u8; buffer_width * buffer_height * 4];
 
         // Extract the final glyph from FT format into BGRA8 format, which is
         // what WR expects.
         let subpixel_bgr = font.flags.contains(FontInstanceFlags::SUBPIXEL_BGR);
         let mut src_row = bitmap.buffer;
-        let mut dest: usize = 0;
-        while dest < final_buffer.len() {
+        let mut dest = 4 * padding * (padding + buffer_width);
+        let actual_end = final_buffer.len() - 4 * padding * (buffer_width + 1);
+        while dest < actual_end {
             let mut src = src_row;
             let row_end = dest + actual_width * 4;
             match pixel_mode {
@@ -947,7 +971,14 @@ impl FontContext {
                 _ => panic!("Unsupported mode"),
             }
             src_row = unsafe { src_row.offset(bitmap.pitch as isize) };
-            dest = row_end;
+            dest = row_end + 8 * padding;
+        }
+
+        if font.use_texture_padding() {
+            left -= padding as i32;
+            top += padding as i32;
+            actual_width = buffer_width;
+            actual_height = buffer_height;
         }
 
         match format {

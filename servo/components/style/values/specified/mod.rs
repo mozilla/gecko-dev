@@ -18,9 +18,8 @@ use crate::context::QuirksMode;
 use crate::parser::{Parse, ParserContext};
 use crate::values::serialize_atom_identifier;
 use crate::values::specified::calc::CalcNode;
-use crate::{Atom, Namespace, Prefix, Zero};
+use crate::{Atom, Namespace, One, Prefix, Zero};
 use cssparser::{Parser, Token};
-use num_traits::One;
 use std::f32;
 use std::fmt::{self, Write};
 use std::ops::Add;
@@ -28,9 +27,9 @@ use style_traits::values::specified::AllowedNumericType;
 use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 
 #[cfg(feature = "gecko")]
-pub use self::align::{AlignContent, AlignItems, AlignSelf, ContentDistribution};
+pub use self::align::{AlignContent, AlignItems, AlignSelf, AlignTracks, ContentDistribution};
 #[cfg(feature = "gecko")]
-pub use self::align::{JustifyContent, JustifyItems, JustifySelf, SelfAlignment};
+pub use self::align::{JustifyContent, JustifyItems, JustifySelf, JustifyTracks, SelfAlignment};
 pub use self::angle::{AllowUnitlessZeroAngle, Angle};
 pub use self::background::{BackgroundRepeat, BackgroundSize};
 pub use self::basic_shape::FillRule;
@@ -51,10 +50,10 @@ pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
 pub use self::font::{FontFamily, FontLanguageOverride, FontStyle};
 pub use self::font::{FontFeatureSettings, FontVariantLigatures, FontVariantNumeric};
-pub use self::font::{FontSize, FontSizeAdjust, FontStretch, FontSynthesis};
+pub use self::font::{FontSize, FontSizeAdjust, FontSizeKeyword, FontStretch, FontSynthesis};
 pub use self::font::{FontVariantAlternates, FontWeight};
 pub use self::font::{FontVariantEastAsian, FontVariationSettings};
-pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XLang, XTextZoom};
+pub use self::font::{MathDepth, MozScriptMinSize, MozScriptSizeMultiplier, XLang, XTextZoom};
 pub use self::image::{EndingShape as GradientEndingShape, Gradient};
 pub use self::image::{Image, MozImageRect};
 pub use self::length::{AbsoluteLength, CalcLengthPercentage, CharacterWidth};
@@ -72,7 +71,10 @@ pub use self::list::Quotes;
 pub use self::motion::{OffsetPath, OffsetRotate};
 pub use self::outline::OutlineStyle;
 pub use self::percentage::Percentage;
-pub use self::position::{GridAutoFlow, GridTemplateAreas, Position, PositionOrAuto};
+pub use self::position::AspectRatio;
+pub use self::position::{
+    GridAutoFlow, GridTemplateAreas, MasonryAutoFlow, Position, PositionOrAuto,
+};
 pub use self::position::{PositionComponent, ZIndex};
 pub use self::rect::NonNegativeLengthOrNumberRect;
 pub use self::resolution::Resolution;
@@ -80,12 +82,12 @@ pub use self::svg::MozContextProperties;
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint};
 pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
 pub use self::svg_path::SVGPathData;
+pub use self::text::TextAlignLast;
 pub use self::text::TextUnderlinePosition;
 pub use self::text::{InitialLetter, LetterSpacing, LineBreak, LineHeight, TextAlign};
 pub use self::text::{OverflowWrap, TextEmphasisPosition, TextEmphasisStyle, WordBreak};
 pub use self::text::{TextAlignKeyword, TextDecorationLine, TextOverflow, WordSpacing};
 pub use self::text::{TextDecorationLength, TextDecorationSkipInk, TextTransform};
-pub use self::text::TextAlignLast;
 pub use self::time::Time;
 pub use self::transform::{Rotate, Scale, Transform};
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};
@@ -146,7 +148,7 @@ impl AngleOrPercentage {
         input: &mut Parser<'i, 't>,
         allow_unitless_zero: AllowUnitlessZeroAngle,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(per) = input.try(|i| Percentage::parse(context, i)) {
+        if let Ok(per) = input.try_parse(|i| Percentage::parse(context, i)) {
             return Ok(AngleOrPercentage::Percentage(per));
         }
 
@@ -375,10 +377,28 @@ impl Parse for NonNegativeNumber {
     }
 }
 
+impl One for NonNegativeNumber {
+    #[inline]
+    fn one() -> Self {
+        NonNegativeNumber::new(1.0)
+    }
+
+    #[inline]
+    fn is_one(&self) -> bool {
+        self.get() == 1.0
+    }
+}
+
 impl NonNegativeNumber {
     /// Returns a new non-negative number with the value `val`.
     pub fn new(val: CSSFloat) -> Self {
         NonNegative::<Number>(Number::new(val.max(0.)))
+    }
+
+    /// Returns the numeric value.
+    #[inline]
+    pub fn get(&self) -> f32 {
+        self.0.get()
     }
 }
 
@@ -411,7 +431,9 @@ impl NumberOrPercentage {
         input: &mut Parser<'i, 't>,
         type_: AllowedNumericType,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(per) = input.try(|i| Percentage::parse_with_clamping_mode(context, i, type_)) {
+        if let Ok(per) =
+            input.try_parse(|i| Percentage::parse_with_clamping_mode(context, i, type_))
+        {
             return Ok(NumberOrPercentage::Percentage(per));
         }
 
@@ -542,14 +564,10 @@ impl One for Integer {
     fn one() -> Self {
         Self::new(1)
     }
-}
 
-// This is not great, because it loses calc-ness, but it's necessary for One.
-impl ::std::ops::Mul<Integer> for Integer {
-    type Output = Self;
-
-    fn mul(self, other: Self) -> Self {
-        Self::new(self.value * other.value)
+    #[inline]
+    fn is_one(&self) -> bool {
+        self.value() == 1
     }
 }
 
@@ -734,7 +752,7 @@ impl ClipRect {
             let bottom;
             let left;
 
-            if input.try(|input| input.expect_comma()).is_ok() {
+            if input.try_parse(|input| input.expect_comma()).is_ok() {
                 right = parse_argument(context, input, allow_quirks)?;
                 input.expect_comma()?;
                 bottom = parse_argument(context, input, allow_quirks)?;
@@ -766,7 +784,7 @@ impl ClipRectOrAuto {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(v) = input.try(|i| ClipRect::parse_quirky(context, i, allow_quirks)) {
+        if let Ok(v) = input.try_parse(|i| ClipRect::parse_quirky(context, i, allow_quirks)) {
             return Ok(generics::GenericClipRectOrAuto::Rect(v));
         }
         input.expect_ident_matching("auto")?;
@@ -850,8 +868,8 @@ impl Attr {
     ) -> Result<Attr, ParseError<'i>> {
         // Syntax is `[namespace? `|`]? ident`
         // no spaces allowed
-        let first = input.try(|i| i.expect_ident_cloned()).ok();
-        if let Ok(token) = input.try(|i| i.next_including_whitespace().map(|t| t.clone())) {
+        let first = input.try_parse(|i| i.expect_ident_cloned()).ok();
+        if let Ok(token) = input.try_parse(|i| i.next_including_whitespace().map(|t| t.clone())) {
             match token {
                 Token::Delim('|') => {
                     let location = input.current_source_location();

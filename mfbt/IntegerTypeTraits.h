@@ -9,8 +9,9 @@
 #ifndef mozilla_IntegerTypeTraits_h
 #define mozilla_IntegerTypeTraits_h
 
-#include "mozilla/TypeTraits.h"
+#include <stddef.h>
 #include <stdint.h>
+#include <type_traits>
 
 namespace mozilla {
 
@@ -76,7 +77,7 @@ struct SignedStdintTypeForSize
 
 template <typename IntegerType>
 struct PositionOfSignBit {
-  static_assert(IsIntegral<IntegerType>::value,
+  static_assert(std::is_integral_v<IntegerType>,
                 "PositionOfSignBit is only for integral types");
   // 8 here should be CHAR_BIT from limits.h, but the world has moved on.
   static const size_t value = 8 * sizeof(IntegerType) - 1;

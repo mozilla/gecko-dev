@@ -6,7 +6,7 @@ use crate::cdsl::instructions::{
 use crate::cdsl::operands::Operand;
 use crate::cdsl::types::ValueType;
 use crate::cdsl::typevar::{Interval, TypeSetBuilder, TypeVar};
-
+use crate::shared::entities::EntityRefs;
 use crate::shared::formats::Formats;
 use crate::shared::immediates::Immediates;
 use crate::shared::types;
@@ -16,6 +16,7 @@ pub(crate) fn define(
     mut all_instructions: &mut AllInstructions,
     formats: &Formats,
     immediates: &Immediates,
+    entities: &EntityRefs,
 ) -> InstructionGroup {
     let mut ig = InstructionGroupBuilder::new(&mut all_instructions);
 
@@ -137,6 +138,37 @@ pub(crate) fn define(
         type, returns the smallest signed value the output type can represent.
 
         This instruction does not trap.
+        "#,
+            &formats.unary,
+        )
+        .operands_in(vec![x])
+        .operands_out(vec![a]),
+    );
+
+    let f32x4 = &TypeVar::new(
+        "f32x4",
+        "A floating point number",
+        TypeSetBuilder::new()
+            .floats(32..32)
+            .simd_lanes(4..4)
+            .build(),
+    );
+    let i32x4 = &TypeVar::new(
+        "i32x4",
+        "An integer type with the same number of lanes",
+        TypeSetBuilder::new().ints(32..32).simd_lanes(4..4).build(),
+    );
+    let x = &Operand::new("x", i32x4);
+    let a = &Operand::new("a", f32x4);
+
+    ig.push(
+        Inst::new(
+            "x86_vcvtudq2ps",
+            r#"
+        Convert unsigned integer to floating point.
+
+        Convert packed doubleword unsigned integers to packed single-precision floating-point 
+        values. This instruction does not trap.
         "#,
             &formats.unary,
         )
@@ -273,7 +305,7 @@ pub(crate) fn define(
     );
     let a = &Operand::new("a", TxN).with_doc("A vector value (i.e. held in an XMM register)");
     let b = &Operand::new("b", TxN).with_doc("A vector value (i.e. held in an XMM register)");
-    let i = &Operand::new("i", uimm8,).with_doc( "An ordering operand controlling the copying of data from the source to the destination; see PSHUFD in Intel manual for details");
+    let i = &Operand::new("i", uimm8).with_doc("An ordering operand controlling the copying of data from the source to the destination; see PSHUFD in Intel manual for details");
 
     ig.push(
         Inst::new(
@@ -282,7 +314,7 @@ pub(crate) fn define(
     Packed Shuffle Doublewords -- copies data from either memory or lanes in an extended
     register and re-orders the data according to the passed immediate byte.
     "#,
-            &formats.extract_lane,
+            &formats.binary_imm8,
         )
         .operands_in(vec![a, i]) // TODO allow copying from memory here (need more permissive type than TxN)
         .operands_out(vec![a]),
@@ -301,6 +333,20 @@ pub(crate) fn define(
         .operands_out(vec![a]),
     );
 
+    let mask = &Operand::new("mask", uimm8).with_doc("mask to select lanes from b");
+    ig.push(
+        Inst::new(
+            "x86_pblendw",
+            r#"
+    Blend packed words using an immediate mask. Each bit of the 8-bit immediate corresponds to a 
+    lane in ``b``: if the bit is set, the lane is copied into ``a``.
+    "#,
+            &formats.ternary_imm8,
+        )
+        .operands_in(vec![a, b, mask])
+        .operands_out(vec![a]),
+    );
+
     let Idx = &Operand::new("Idx", uimm8).with_doc("Lane index");
     let x = &Operand::new("x", TxN);
     let a = &Operand::new("a", &TxN.lane_of());
@@ -313,7 +359,7 @@ pub(crate) fn define(
         The lane index, ``Idx``, is an immediate value, not an SSA value. It
         must indicate a valid lane index for the type of ``x``.
         "#,
-            &formats.extract_lane,
+            &formats.binary_imm8,
         )
         .operands_in(vec![x, Idx])
         .operands_out(vec![a]),
@@ -341,9 +387,9 @@ pub(crate) fn define(
         The lane index, ``Idx``, is an immediate value, not an SSA value. It
         must indicate a valid lane index for the type of ``x``.
         "#,
-            &formats.insert_lane,
+            &formats.ternary_imm8,
         )
-        .operands_in(vec![x, Idx, y])
+        .operands_in(vec![x, y, Idx])
         .operands_out(vec![a]),
     );
 
@@ -368,9 +414,43 @@ pub(crate) fn define(
         extracted from and which it is inserted to. This is similar to x86_pinsr but inserts
         floats, which are already stored in an XMM register.
         "#,
-            &formats.insert_lane,
+            &formats.ternary_imm8,
         )
-        .operands_in(vec![x, Idx, y])
+        .operands_in(vec![x, y, Idx])
+        .operands_out(vec![a]),
+    );
+
+    let x = &Operand::new("x", TxN);
+    let y = &Operand::new("y", TxN);
+    let a = &Operand::new("a", TxN);
+
+    ig.push(
+        Inst::new(
+            "x86_punpckh",
+            r#"
+        Unpack the high-order lanes of ``x`` and ``y`` and interleave into ``a``. With notional
+        i8x4 vectors, where ``x = [x3, x2, x1, x0]`` and ``y = [y3, y2, y1, y0]``, this operation
+        would result in ``a = [y3, x3, y2, x2]`` (using the Intel manual's right-to-left lane
+        ordering). 
+        "#,
+            &formats.binary,
+        )
+        .operands_in(vec![x, y])
+        .operands_out(vec![a]),
+    );
+
+    ig.push(
+        Inst::new(
+            "x86_punpckl",
+            r#"
+        Unpack the low-order lanes of ``x`` and ``y`` and interleave into ``a``. With notional
+        i8x4 vectors, where ``x = [x3, x2, x1, x0]`` and ``y = [y3, y2, y1, y0]``, this operation
+        would result in ``a = [y1, x1, y0, x0]`` (using the Intel manual's right-to-left lane
+        ordering).
+        "#,
+            &formats.binary,
+        )
+        .operands_in(vec![x, y])
         .operands_out(vec![a]),
     );
 
@@ -411,10 +491,11 @@ pub(crate) fn define(
             .includes_scalars(false)
             .build(),
     );
-    let I64x2 = &TypeVar::new(
-        "I64x2",
-        "A SIMD vector type containing one large integer (the upper lane is concatenated with \
-         the lower lane to form the integer)",
+    let I128 = &TypeVar::new(
+        "I128",
+        "A SIMD vector type containing one large integer (due to Cranelift type constraints, \
+        this uses the Cranelift I64X2 type but should be understood as one large value, i.e., the \
+        upper lane is concatenated with the lower lane to form the integer)",
         TypeSetBuilder::new()
             .ints(64..64)
             .simd_lanes(2..2)
@@ -423,7 +504,7 @@ pub(crate) fn define(
     );
 
     let x = &Operand::new("x", IxN).with_doc("Vector value to shift");
-    let y = &Operand::new("y", I64x2).with_doc("Number of bits to shift");
+    let y = &Operand::new("y", I128).with_doc("Number of bits to shift");
     let a = &Operand::new("a", IxN);
 
     ig.push(
@@ -461,6 +542,47 @@ pub(crate) fn define(
         Shift Packed Data Right Arithmetic -- This implements the behavior of the shared
         instruction ``sshr`` but alters the shift operand to live in an XMM register as expected by
         the PSRA* family of instructions.
+        "#,
+            &formats.binary,
+        )
+        .operands_in(vec![x, y])
+        .operands_out(vec![a]),
+    );
+
+    let I64x2 = &TypeVar::new(
+        "I64x2",
+        "A SIMD vector type containing two 64-bit integers",
+        TypeSetBuilder::new()
+            .ints(64..64)
+            .simd_lanes(2..2)
+            .includes_scalars(false)
+            .build(),
+    );
+
+    let x = &Operand::new("x", I64x2);
+    let y = &Operand::new("y", I64x2);
+    let a = &Operand::new("a", I64x2);
+    ig.push(
+        Inst::new(
+            "x86_pmullq",
+            r#"
+        Multiply Packed Integers -- Multiply two 64x2 integers and receive a 64x2 result with
+        lane-wise wrapping if the result overflows. This instruction is necessary to add distinct
+        encodings for CPUs with newer vector features.
+        "#,
+            &formats.binary,
+        )
+        .operands_in(vec![x, y])
+        .operands_out(vec![a]),
+    );
+
+    ig.push(
+        Inst::new(
+            "x86_pmuludq",
+            r#"
+        Multiply Packed Integers -- Using only the bottom 32 bits in each lane, multiply two 64x2
+        unsigned integers and receive a 64x2 result. This instruction avoids the need for handling
+        overflow as in `x86_pmullq`.
         "#,
             &formats.binary,
         )
@@ -540,6 +662,61 @@ pub(crate) fn define(
         )
         .operands_in(vec![x, y])
         .operands_out(vec![a]),
+    );
+
+    let c = &Operand::new("c", uimm8)
+        .with_doc("The number of bytes to shift right; see PALIGNR in Intel manual for details");
+    ig.push(
+        Inst::new(
+            "x86_palignr",
+            r#"
+        Concatenate destination and source operands, extracting a byte-aligned result shifted to 
+        the right by `c`.
+        "#,
+            &formats.ternary_imm8,
+        )
+        .operands_in(vec![x, y, c])
+        .operands_out(vec![a]),
+    );
+
+    let i64_t = &TypeVar::new(
+        "i64_t",
+        "A scalar 64bit integer",
+        TypeSetBuilder::new().ints(64..64).build(),
+    );
+
+    let GV = &Operand::new("GV", &entities.global_value);
+    let addr = &Operand::new("addr", i64_t);
+
+    ig.push(
+        Inst::new(
+            "x86_elf_tls_get_addr",
+            r#"
+        Elf tls get addr -- This implements the GD TLS model for ELF. The clobber output should
+        not be used.
+            "#,
+            &formats.unary_global_value,
+        )
+        // This is a bit overly broad to mark as clobbering *all* the registers, because it should
+        // only preserve caller-saved registers. There's no way to indicate this to register
+        // allocation yet, though, so mark as clobbering all registers instead.
+        .clobbers_all_regs(true)
+        .operands_in(vec![GV])
+        .operands_out(vec![addr]),
+    );
+    ig.push(
+        Inst::new(
+            "x86_macho_tls_get_addr",
+            r#"
+        Mach-O tls get addr -- This implements TLS access for Mach-O. The clobber output should
+        not be used.
+            "#,
+            &formats.unary_global_value,
+        )
+        // See above comment for x86_elf_tls_get_addr.
+        .clobbers_all_regs(true)
+        .operands_in(vec![GV])
+        .operands_out(vec![addr]),
     );
 
     ig.build()

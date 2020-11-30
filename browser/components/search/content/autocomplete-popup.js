@@ -6,6 +6,10 @@
 
 // Wrap in a block to prevent leaking to window scope.
 {
+  XPCOMUtils.defineLazyModuleGetters(this, {
+    SearchOneOffs: "resource:///modules/SearchOneOffs.jsm",
+  });
+
   /**
    * A richlistbox popup custom element for for a browser search autocomplete
    * widget.
@@ -95,7 +99,7 @@
       return this._oneOffButtons;
     }
 
-    get _markup() {
+    static get markup() {
       return `
       <hbox class="search-panel-header search-panel-current-engine">
         <image class="searchbar-engine-image"></image>

@@ -1,4 +1,4 @@
-// |reftest| skip -- class-static-fields-private,class-fields-private is not supported
+// |reftest| shell-option(--enable-private-fields) skip-if(!xulRuntime.shell) -- requires shell-options
 // This file was procedurally generated from the following sources:
 // - src/class-elements/private-static-field-shadowed-by-field-on-nested-class.case
 // - src/class-elements/default/cls-expr.template

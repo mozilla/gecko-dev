@@ -102,7 +102,7 @@ class ImageHost : public CompositableHost, public ImageComposite {
   // Acquire the TextureSource for the currently prepared frame.
   RefPtr<TextureSource> AcquireTextureSource(const RenderInfo& aInfo);
 
-  // Send ImageComposite notifications and update the ChooseImage bias.
+  // Send ImageComposite notifications.
   void FinishRendering(const RenderInfo& aInfo);
 
   // This should only be called inside a lock, or during rendering. It is
@@ -115,6 +115,9 @@ class ImageHost : public CompositableHost, public ImageComposite {
  protected:
   // ImageComposite
   TimeStamp GetCompositionTime() const override;
+  CompositionOpportunityId GetCompositionOpportunityId() const override;
+  void AppendImageCompositeNotification(
+      const ImageCompositeNotificationInfo& aInfo) const override;
 
   // Use a simple RefPtr because the same texture is already held by a
   // a CompositableTextureHostRef in the array of TimedImage.

@@ -6,6 +6,7 @@
 
 #include "DocumentTimeline.h"
 #include "mozilla/ScopeExit.h"
+#include "mozilla/dom/DocumentInlines.h"
 #include "mozilla/dom/DocumentTimelineBinding.h"
 #include "AnimationUtils.h"
 #include "nsContentUtils.h"
@@ -70,6 +71,11 @@ already_AddRefed<DocumentTimeline> DocumentTimeline::Constructor(
 
 Nullable<TimeDuration> DocumentTimeline::GetCurrentTimeAsDuration() const {
   return ToTimelineTime(GetCurrentTimeStamp());
+}
+
+bool DocumentTimeline::TracksWallclockTime() const {
+  nsRefreshDriver* refreshDriver = GetRefreshDriver();
+  return !refreshDriver || !refreshDriver->IsTestControllingRefreshesEnabled();
 }
 
 TimeStamp DocumentTimeline::GetCurrentTimeStamp() const {
@@ -201,7 +207,8 @@ void DocumentTimeline::ObserveRefreshDriver(nsRefreshDriver* aDriver) {
   // MostRecentRefreshTimeUpdated which has an assertion for
   // mIsObserveingRefreshDriver check.
   mIsObservingRefreshDriver = true;
-  aDriver->AddRefreshObserver(this, FlushType::Style);
+  aDriver->AddRefreshObserver(this, FlushType::Style,
+                              "DocumentTimeline animations");
   aDriver->AddTimerAdjustmentObserver(this);
 }
 

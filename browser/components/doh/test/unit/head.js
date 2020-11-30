@@ -15,9 +15,7 @@ const { TestUtils } = ChromeUtils.import(
 );
 
 let h2Port, trrServer1, trrServer2;
-const { DNSLookup, LookupAggregator, TRRRacer } = ChromeUtils.import(
-  "resource:///modules/TRRPerformance.jsm"
-);
+let DNSLookup, LookupAggregator, TRRRacer;
 
 function readFile(file) {
   let fstream = Cc["@mozilla.org/network/file-input-stream;1"].createInstance(
@@ -75,22 +73,35 @@ function setup() {
   );
   addCertFromFile(certdb, "http2-ca.pem", "CTu,u,u");
 
-  Services.prefs.setCharPref(
-    "doh-rollout.trrRace.trrList",
-    `${trrServer1}, ${trrServer2}`
-  );
-
   Services.prefs.setIntPref("doh-rollout.trrRace.randomSubdomainCount", 2);
 
   Services.prefs.setCharPref(
     "doh-rollout.trrRace.popularDomains",
-    "foo.example.com, bar.example.com"
+    "foo.example.com., bar.example.com."
   );
 
   Services.prefs.setCharPref(
     "doh-rollout.trrRace.canonicalDomain",
-    "firefox-dns-perf-test.net"
+    "firefox-dns-perf-test.net."
   );
+
+  let defaultPrefBranch = Services.prefs.getDefaultBranch("");
+  let origResolverList = defaultPrefBranch.getCharPref("network.trr.resolvers");
+
+  Services.prefs
+    .getDefaultBranch("")
+    .setCharPref(
+      "network.trr.resolvers",
+      `[{"url": "${trrServer1}"}, {"url": "${trrServer2}"}]`
+    );
+
+  let TRRPerformance = ChromeUtils.import(
+    "resource:///modules/TRRPerformance.jsm"
+  );
+
+  DNSLookup = TRRPerformance.DNSLookup;
+  LookupAggregator = TRRPerformance.LookupAggregator;
+  TRRRacer = TRRPerformance.TRRRacer;
 
   let oldCanRecord = Services.telemetry.canRecordExtended;
   Services.telemetry.canRecordExtended = true;
@@ -99,6 +110,7 @@ function setup() {
     Services.prefs.clearUserPref("network.http.spdy.enabled");
     Services.prefs.clearUserPref("network.http.spdy.enabled.http2");
     Services.prefs.clearUserPref("network.dns.native-is-localhost");
+    defaultPrefBranch.setCharPref("network.trr.resolvers", origResolverList);
 
     Services.telemetry.canRecordExtended = oldCanRecord;
   });

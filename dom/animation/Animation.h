@@ -7,6 +7,7 @@
 #ifndef mozilla_dom_Animation_h
 #define mozilla_dom_Animation_h
 
+#include "X11UndefineNone.h"
 #include "nsWrapperCache.h"
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/AnimationPerformanceWarning.h"
@@ -24,11 +25,6 @@
 #include "mozilla/dom/Promise.h"
 #include "nsCSSPropertyID.h"
 #include "nsIGlobalObject.h"
-
-// X11 has a #define for CurrentTime.
-#ifdef CurrentTime
-#  undef CurrentTime
-#endif
 
 struct JSContext;
 class nsCSSPropertyIDSet;
@@ -53,6 +49,14 @@ class Animation : public DOMEventTargetHelper,
  public:
   explicit Animation(nsIGlobalObject* aGlobal)
       : DOMEventTargetHelper(aGlobal), mAnimationIndex(sNextAnimationIndex++) {}
+
+  // Constructs a copy of |aOther| with a new effect and timeline.
+  // This is only intended to be used while making a static clone of a document
+  // during printing, and does not assume that |aOther| is in the same document
+  // as any of the other arguments.
+  static already_AddRefed<Animation> ClonePausedAnimation(
+      nsIGlobalObject* aGlobal, const Animation& aOther,
+      AnimationEffect& aEffect, AnimationTimeline& aTimeline);
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(Animation, DOMEventTargetHelper)
@@ -146,7 +150,7 @@ class Animation : public DOMEventTargetHelper,
   virtual void Reverse(ErrorResult& aRv);
 
   void Persist();
-  void CommitStyles(ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT void CommitStyles(ErrorResult& aRv);
 
   bool IsRunningOnCompositor() const;
 
@@ -417,6 +421,30 @@ class Animation : public DOMEventTargetHelper,
 
   int32_t& CachedChildIndexRef() { return mCachedChildIndex; }
 
+  void SetPartialPrerendered(uint64_t aIdOnCompositor) {
+    mIdOnCompositor = aIdOnCompositor;
+    mIsPartialPrerendered = true;
+  }
+  bool IsPartialPrerendered() const { return mIsPartialPrerendered; }
+  uint64_t IdOnCompositor() const { return mIdOnCompositor; }
+  /**
+   * Needs to be called when the pre-rendered animation is going to no longer
+   * run on the compositor.
+   */
+  void ResetPartialPrerendered() {
+    MOZ_ASSERT(mIsPartialPrerendered);
+    mIsPartialPrerendered = false;
+    mIdOnCompositor = 0;
+  }
+  /**
+   * Called via NotifyJankedAnimations IPC call from the compositor to update
+   * pre-rendered area on the main-thread.
+   */
+  void UpdatePartialPrerendered() {
+    ResetPartialPrerendered();
+    PostUpdate();
+  }
+
  protected:
   void SilentlySetCurrentTime(const TimeDuration& aNewCurrentTime);
   void CancelNoUpdate();
@@ -614,6 +642,11 @@ class Animation : public DOMEventTargetHelper,
   RefPtr<MicroTaskRunnable> mFinishNotificationTask;
 
   nsString mId;
+
+ private:
+  // The id for this animaiton on the compositor.
+  uint64_t mIdOnCompositor = 0;
+  bool mIsPartialPrerendered = false;
 };
 
 }  // namespace dom

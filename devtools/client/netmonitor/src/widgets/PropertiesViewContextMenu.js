@@ -5,6 +5,9 @@
 "use strict";
 
 const { L10N } = require("devtools/client/netmonitor/src/utils/l10n");
+const {
+  contextMenuFormatters,
+} = require("devtools/client/netmonitor/src/utils/context-menu-utils");
 
 loader.lazyRequireGetter(
   this,
@@ -20,55 +23,86 @@ loader.lazyRequireGetter(
 );
 
 class PropertiesViewContextMenu {
-  constructor(props) {
+  constructor(props = {}) {
     this.props = props;
   }
 
   /**
    * Handle the context menu opening.
-   * @param {*} event open event
-   * @param {*} member member of the right-clicked row
-   * @param {*} object the whole data object
+   * @param {Object} event open event
+   * @param {Object} selection object representing the current selection
+   * @param {Object} data object containing information
+   * @param {Object} data.member member of the right-clicked row
+   * @param {Object} data.object the whole tree data
    */
-  open(event = {}, { member, object }) {
-    const menu = [];
+  open(event = {}, selection, { member, object }) {
+    const menuItems = [
+      {
+        id: "properties-view-context-menu-copy",
+        label: L10N.getStr("netmonitor.context.copy"),
+        accesskey: L10N.getStr("netmonitor.context.copy.accesskey"),
+        click: () => this.copy(member, selection),
+      },
+      {
+        id: "properties-view-context-menu-copyall",
+        label: L10N.getStr("netmonitor.context.copyAll"),
+        accesskey: L10N.getStr("netmonitor.context.copyAll.accesskey"),
+        click: () => this.copyAll(object, selection),
+      },
+    ];
 
-    menu.push({
-      id: "properties-view-context-menu-copy",
-      label: L10N.getStr("netmonitor.context.copy"),
-      accesskey: L10N.getStr("netmonitor.context.copy.accesskey"),
-      click: () => this.copySelected(member),
-    });
-
-    menu.push({
-      id: "properties-view-context-menu-copyall",
-      label: L10N.getStr("netmonitor.context.copyAll"),
-      accesskey: L10N.getStr("netmonitor.context.copyAll.accesskey"),
-      click: () => this.copyAll(object),
-    });
-
-    showMenu(menu, {
+    showMenu(menuItems, {
       screenX: event.screenX,
       screenY: event.screenY,
     });
   }
 
-  copyAll(data) {
+  /**
+   * Copies all.
+   * @param {Object} object the whole tree data
+   * @param {Object} selection object representing the current selection
+   */
+  copyAll(object, selection) {
+    let buffer = "";
+    if (selection.toString() !== "") {
+      buffer = selection.toString();
+    } else {
+      const { customFormatters } = this.props;
+      buffer = contextMenuFormatters.baseCopyAllFormatter(object);
+      if (customFormatters?.copyAllFormatter) {
+        buffer = customFormatters.copyAllFormatter(
+          object,
+          contextMenuFormatters.baseCopyAllFormatter
+        );
+      }
+    }
     try {
-      copyString(JSON.stringify(data));
+      copyString(buffer);
     } catch (error) {}
   }
 
-  copySelected({ object, hasChildren }) {
-    if (hasChildren) {
-      // If has children, copy the data as JSON
-      try {
-        copyString(JSON.stringify({ [object.name]: object.value }));
-      } catch (error) {}
+  /**
+   * Copies single item.
+   * @param {Object} member member of the right-clicked row
+   * @param {Object} selection object representing the current selection
+   */
+  copy(member, selection) {
+    let buffer = "";
+    if (selection.toString() !== "") {
+      buffer = selection.toString();
     } else {
-      // Copy the data as key-value format
-      copyString(`${object.name}: ${object.value}`);
+      const { customFormatters } = this.props;
+      buffer = contextMenuFormatters.baseCopyFormatter(member);
+      if (customFormatters?.copyFormatter) {
+        buffer = customFormatters.copyFormatter(
+          member,
+          contextMenuFormatters.baseCopyFormatter
+        );
+      }
     }
+    try {
+      copyString(buffer);
+    } catch (error) {}
   }
 }
 

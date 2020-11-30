@@ -20,7 +20,7 @@ NS_IMPL_ISUPPORTS(nsFilePickerProxy, nsIFilePicker)
 nsFilePickerProxy::nsFilePickerProxy()
     : mSelectedType(0), mCapture(captureNone), mIPCActive(false) {}
 
-nsFilePickerProxy::~nsFilePickerProxy() {}
+nsFilePickerProxy::~nsFilePickerProxy() = default;
 
 NS_IMETHODIMP
 nsFilePickerProxy::Init(mozIDOMWindowProxy* aParent, const nsAString& aTitle,
@@ -221,7 +221,7 @@ class SimpleEnumerator final : public nsSimpleEnumerator {
  public:
   explicit SimpleEnumerator(
       const nsTArray<OwningFileOrDirectory>& aFilesOrDirectories)
-      : mFilesOrDirectories(aFilesOrDirectories), mIndex(0) {}
+      : mFilesOrDirectories(aFilesOrDirectories.Clone()), mIndex(0) {}
 
   NS_IMETHOD
   HasMoreElements(bool* aRetvalue) override {

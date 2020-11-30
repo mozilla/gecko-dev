@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "FeaturePolicyUtils.h"
-#include "nsIURIFixup.h"
+#include "nsIOService.h"
 
 #include "mozilla/dom/DOMTypes.h"
 #include "mozilla/ipc/IPDLParamTraits.h"
@@ -13,6 +13,7 @@
 #include "mozilla/dom/ReportingUtils.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/dom/Document.h"
+#include "nsJSUtils.h"
 
 namespace mozilla {
 namespace dom {
@@ -32,6 +33,7 @@ static FeatureMap sSupportedFeatures[] = {
     {"microphone", FeaturePolicyUtils::FeaturePolicyValue::eSelf},
     {"display-capture", FeaturePolicyUtils::FeaturePolicyValue::eSelf},
     {"fullscreen", FeaturePolicyUtils::FeaturePolicyValue::eSelf},
+    {"web-share", FeaturePolicyUtils::FeaturePolicyValue::eSelf},
 };
 
 /*
@@ -45,12 +47,15 @@ static FeatureMap sExperimentalFeatures[] = {
     // policy.
     {"autoplay", FeaturePolicyUtils::FeaturePolicyValue::eAll},
     {"encrypted-media", FeaturePolicyUtils::FeaturePolicyValue::eAll},
+    {"gamepad", FeaturePolicyUtils::FeaturePolicyValue::eSelf},
     {"midi", FeaturePolicyUtils::FeaturePolicyValue::eSelf},
     {"payment", FeaturePolicyUtils::FeaturePolicyValue::eAll},
     {"document-domain", FeaturePolicyUtils::FeaturePolicyValue::eAll},
     // TODO: not supported yet!!!
     {"speaker", FeaturePolicyUtils::FeaturePolicyValue::eSelf},
     {"vr", FeaturePolicyUtils::FeaturePolicyValue::eAll},
+    // https://immersive-web.github.io/webxr/#feature-policy
+    {"xr-spatial-tracking", FeaturePolicyUtils::FeaturePolicyValue::eSelf},
 };
 
 /* static */
@@ -151,10 +156,6 @@ bool FeaturePolicyUtils::IsFeatureUnsafeAllowedAll(
     Document* aDocument, const nsAString& aFeatureName) {
   MOZ_ASSERT(aDocument);
 
-  if (!StaticPrefs::dom_security_featurePolicy_enabled()) {
-    return false;
-  }
-
   if (!aDocument->IsHTMLDocument()) {
     return false;
   }
@@ -163,6 +164,7 @@ bool FeaturePolicyUtils::IsFeatureUnsafeAllowedAll(
   MOZ_ASSERT(policy);
 
   return policy->HasFeatureUnsafeAllowsAll(aFeatureName) &&
+         !policy->IsSameOriginAsSrc(aDocument->NodePrincipal()) &&
          !policy->AllowsFeatureExplicitlyInAncestorChain(
              aFeatureName, policy->DefaultOrigin()) &&
          !IsSameOriginAsTop(aDocument);
@@ -173,17 +175,9 @@ bool FeaturePolicyUtils::IsFeatureAllowed(Document* aDocument,
                                           const nsAString& aFeatureName) {
   MOZ_ASSERT(aDocument);
 
-  if (!StaticPrefs::dom_security_featurePolicy_enabled()) {
-    return true;
-  }
-
-  // Skip apply features in experimental pharse
+  // Skip apply features in experimental phase
   if (!StaticPrefs::dom_security_featurePolicy_experimental_enabled() &&
       IsExperimentalFeature(aFeatureName)) {
-    return true;
-  }
-
-  if (!aDocument->IsHTMLDocument()) {
     return true;
   }
 
@@ -210,19 +204,9 @@ void FeaturePolicyUtils::ReportViolation(Document* aDocument,
 
   // Strip the URL of any possible username/password and make it ready to be
   // presented in the UI.
-  nsCOMPtr<nsIURIFixup> urifixup = services::GetURIFixup();
-  if (NS_WARN_IF(!urifixup)) {
-    return;
-  }
-
-  nsCOMPtr<nsIURI> exposableURI;
-  nsresult rv = urifixup->CreateExposableURI(uri, getter_AddRefs(exposableURI));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return;
-  }
-
+  nsCOMPtr<nsIURI> exposableURI = net::nsIOService::CreateExposableURI(uri);
   nsAutoCString spec;
-  rv = exposableURI->GetSpec(spec);
+  nsresult rv = exposableURI->GetSpec(spec);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return;
   }
@@ -247,13 +231,12 @@ void FeaturePolicyUtils::ReportViolation(Document* aDocument,
   }
 
   RefPtr<FeaturePolicyViolationReportBody> body =
-      new FeaturePolicyViolationReportBody(window, aFeatureName, fileName,
-                                           lineNumber, columnNumber,
-                                           NS_LITERAL_STRING("enforce"));
+      new FeaturePolicyViolationReportBody(window->AsGlobal(), aFeatureName,
+                                           fileName, lineNumber, columnNumber,
+                                           u"enforce"_ns);
 
-  ReportingUtils::Report(window, nsGkAtoms::featurePolicyViolation,
-                         NS_LITERAL_STRING("default"),
-                         NS_ConvertUTF8toUTF16(spec), body);
+  ReportingUtils::Report(window->AsGlobal(), nsGkAtoms::featurePolicyViolation,
+                         u"default"_ns, NS_ConvertUTF8toUTF16(spec), body);
 }
 
 }  // namespace dom
@@ -274,8 +257,11 @@ void IPDLParamTraits<dom::FeaturePolicy*>::Write(IPC::Message* aMsg,
   info.selfOrigin() = aParam->GetSelfOrigin();
   info.srcOrigin() = aParam->GetSrcOrigin();
 
-  aParam->GetDeclaredString(info.declaredString());
-  aParam->GetInheritedDeniedFeatureNames(info.inheritedDeniedFeatureNames());
+  info.declaredString() = aParam->DeclaredString();
+  info.inheritedDeniedFeatureNames() =
+      aParam->InheritedDeniedFeatureNames().Clone();
+  info.attributeEnabledFeatureNames() =
+      aParam->AttributeEnabledFeatureNames().Clone();
 
   WriteIPDLParam(aMsg, aActor, info);
 }
@@ -298,20 +284,23 @@ bool IPDLParamTraits<dom::FeaturePolicy*>::Read(
     return false;
   }
 
-  // Note that we only do IPC for feature policy to inherit poicy from parent
+  // Note that we only do IPC for feature policy to inherit policy from parent
   // to child document. That does not need to bind feature policy with a node.
   RefPtr<dom::FeaturePolicy> featurePolicy = new dom::FeaturePolicy(nullptr);
   featurePolicy->SetDefaultOrigin(info.defaultOrigin());
   featurePolicy->SetInheritedDeniedFeatureNames(
       info.inheritedDeniedFeatureNames());
 
-  nsString declaredString = info.declaredString();
-  if (declaredString.IsEmpty() || !info.selfOrigin()) {
-    *aResult = std::move(featurePolicy);
-    return true;
+  const auto& declaredString = info.declaredString();
+  if (info.selfOrigin() && !declaredString.IsEmpty()) {
+    featurePolicy->SetDeclaredPolicy(nullptr, declaredString, info.selfOrigin(),
+                                     info.srcOrigin());
   }
-  featurePolicy->SetDeclaredPolicy(nullptr, declaredString, info.selfOrigin(),
-                                   info.srcOrigin());
+
+  for (auto& featureName : info.attributeEnabledFeatureNames()) {
+    featurePolicy->MaybeSetAllowedPolicy(featureName);
+  }
+
   *aResult = std::move(featurePolicy);
   return true;
 }

@@ -11,20 +11,13 @@ const { LoginManagerParent } = ChromeUtils.import(
 
 // new-password to the happy path
 const NEW_PASSWORD_TEMPLATE_ARG = {
-  autocompleteInfo: {
-    section: "",
-    addressType: "",
-    contactType: "",
-    fieldName: "new-password",
-    canAutomaticallyPersist: false,
-  },
-  formOrigin: "https://example.com",
   actionOrigin: "https://mozilla.org",
   searchString: "",
   previousResult: null,
   requestId: "foo",
+  hasBeenTypePassword: true,
   isSecure: true,
-  isPasswordField: true,
+  isProbablyANewPasswordField: true,
 };
 
 add_task(async function setup() {
@@ -51,7 +44,10 @@ add_task(async function test_generated_noLogins() {
 
   ok(LMP.doAutocompleteSearch, "doAutocompleteSearch exists");
 
-  let result1 = await LMP.doAutocompleteSearch(NEW_PASSWORD_TEMPLATE_ARG);
+  let result1 = await LMP.doAutocompleteSearch(
+    "https://example.com",
+    NEW_PASSWORD_TEMPLATE_ARG
+  );
   equal(result1.logins.length, 0, "no logins");
   ok(result1.generatedPassword, "has a generated password");
   equal(result1.generatedPassword.length, 15, "generated password length");
@@ -61,7 +57,10 @@ add_task(async function test_generated_noLogins() {
   );
 
   info("repeat the search and ensure the same password was used");
-  let result2 = await LMP.doAutocompleteSearch(NEW_PASSWORD_TEMPLATE_ARG);
+  let result2 = await LMP.doAutocompleteSearch(
+    "https://example.com",
+    NEW_PASSWORD_TEMPLATE_ARG
+  );
   equal(result2.logins.length, 0, "no logins");
   equal(
     result2.generatedPassword,
@@ -75,9 +74,12 @@ add_task(async function test_generated_noLogins() {
 
   info("Check cases where a password shouldn't be generated");
 
-  let result3 = await LMP.doAutocompleteSearch({
+  let result3 = await LMP.doAutocompleteSearch("https://example.com", {
     ...NEW_PASSWORD_TEMPLATE_ARG,
-    ...{ isPasswordField: false },
+    ...{
+      hasBeenTypePassword: false,
+      isProbablyANewPasswordField: false,
+    },
   });
   equal(
     result3.generatedPassword,
@@ -85,18 +87,22 @@ add_task(async function test_generated_noLogins() {
     "no generated password when not a pw. field"
   );
 
-  // Deep copy since we need to modify a property of autocompleteInfo.
-  let arg1_2 = JSON.parse(JSON.stringify(NEW_PASSWORD_TEMPLATE_ARG));
-  arg1_2.autocompleteInfo.fieldName = "";
-  let result4 = await LMP.doAutocompleteSearch(arg1_2);
+  let result4 = await LMP.doAutocompleteSearch("https://example.com", {
+    ...NEW_PASSWORD_TEMPLATE_ARG,
+    ...{
+      // This is false when there is no autocomplete="new-password" attribute &&
+      // LoginAutoComplete._isProbablyANewPasswordField returns false
+      isProbablyANewPasswordField: false,
+    },
+  });
   equal(
     result4.generatedPassword,
     null,
-    "no generated password when not autocomplete=new-password"
+    "no generated password when isProbablyANewPasswordField is false"
   );
 
   LMP.useBrowsingContext(999);
-  let result5 = await LMP.doAutocompleteSearch({
+  let result5 = await LMP.doAutocompleteSearch("https://example.com", {
     ...NEW_PASSWORD_TEMPLATE_ARG,
   });
   equal(
@@ -111,7 +117,7 @@ add_task(async function test_generated_emptyUsernameSavedLogin() {
   await LoginTestUtils.addLogin({
     username: "",
     password: "my-saved-password",
-    origin: NEW_PASSWORD_TEMPLATE_ARG.formOrigin,
+    origin: "https://example.com",
     formActionOrigin: NEW_PASSWORD_TEMPLATE_ARG.actionOrigin,
   });
 
@@ -120,7 +126,10 @@ add_task(async function test_generated_emptyUsernameSavedLogin() {
 
   ok(LMP.doAutocompleteSearch, "doAutocompleteSearch exists");
 
-  let result1 = await LMP.doAutocompleteSearch(NEW_PASSWORD_TEMPLATE_ARG);
+  let result1 = await LMP.doAutocompleteSearch(
+    "https://example.com",
+    NEW_PASSWORD_TEMPLATE_ARG
+  );
   equal(result1.logins.length, 1, "1 login");
   ok(result1.generatedPassword, "has a generated password");
   equal(result1.generatedPassword.length, 15, "generated password length");

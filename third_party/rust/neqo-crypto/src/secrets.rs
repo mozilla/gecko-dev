@@ -5,7 +5,7 @@
 // except according to those terms.
 
 use crate::agentio::as_c_void;
-use crate::constants::*;
+use crate::constants::Epoch;
 use crate::err::Res;
 use crate::p11::{PK11SymKey, PK11_ReferenceSymKey, SymKey};
 use crate::ssl::{PRFileDesc, SSLSecretCallback, SSLSecretDirection};
@@ -69,6 +69,7 @@ pub struct Secrets {
 }
 
 impl Secrets {
+    #[allow(clippy::unused_self)]
     unsafe extern "C" fn secret_available(
         _fd: *mut PRFileDesc,
         epoch: u16,

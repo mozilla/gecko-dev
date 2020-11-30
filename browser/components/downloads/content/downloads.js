@@ -208,6 +208,7 @@ var DownloadsPanel = {
    * only when data is ready.
    */
   showPanel() {
+    Services.telemetry.scalarAdd("downloads.panel_shown", 1);
     DownloadsCommon.log("Opening the downloads panel.");
 
     if (this.isPanelShowing) {
@@ -819,12 +820,21 @@ var DownloadsView = {
       while (target.nodeName != "richlistitem") {
         target = target.parentNode;
       }
+      Services.telemetry.scalarAdd("downloads.file_opened", 1);
       let download = DownloadsView.itemForElement(target).download;
+      let command = "downloadsCmd_open";
       if (download.hasBlockedData) {
-        goDoCommand("downloadsCmd_showBlockedInfo");
-      } else {
-        goDoCommand("downloadsCmd_open");
+        command = "downloadsCmd_showBlockedInfo";
+      } else if (aEvent.shiftKey || aEvent.ctrlKey || aEvent.metaKey) {
+        // We adjust the command for supported modifiers to suggest where the download
+        // may be opened
+        let openWhere = target.ownerGlobal.whereToOpenLink(aEvent, false, true);
+        if (["tab", "window", "tabshifted"].includes(openWhere)) {
+          command += ":" + openWhere;
+        }
       }
+      DownloadsCommon.log("onDownloadClick, resolved command: ", command);
+      goDoCommand(command);
     }
   },
 
@@ -927,6 +937,10 @@ var DownloadsView = {
 
     DownloadsViewController.updateCommands();
 
+    let download = element._shell.download;
+    let mimeInfo = DownloadsCommon.getMimeInfo(download);
+    let { preferredAction, useSystemDefault } = mimeInfo ? mimeInfo : {};
+
     // Set the state attribute so that only the appropriate items are displayed.
     let contextMenu = document.getElementById("downloadsContextMenu");
     contextMenu.setAttribute("state", element.getAttribute("state"));
@@ -939,6 +953,30 @@ var DownloadsView = {
       "temporary-block",
       element.classList.contains("temporary-block")
     );
+    if (element.hasAttribute("viewable-internally")) {
+      contextMenu.setAttribute("viewable-internally", "true");
+      let alwaysUseSystemViewerItem = contextMenu.querySelector(
+        ".downloadAlwaysUseSystemDefaultMenuItem"
+      );
+      if (preferredAction === useSystemDefault) {
+        alwaysUseSystemViewerItem.setAttribute("checked", "true");
+      } else {
+        alwaysUseSystemViewerItem.removeAttribute("checked");
+      }
+      alwaysUseSystemViewerItem.toggleAttribute(
+        "enabled",
+        DownloadsCommon.alwaysOpenInSystemViewerItemEnabled
+      );
+      let useSystemViewerItem = contextMenu.querySelector(
+        ".downloadUseSystemDefaultMenuItem"
+      );
+      useSystemViewerItem.toggleAttribute(
+        "enabled",
+        DownloadsCommon.openInSystemViewerItemEnabled
+      );
+    } else {
+      contextMenu.removeAttribute("viewable-internally");
+    }
   },
 
   onDownloadDragStart(aEvent) {
@@ -981,24 +1019,20 @@ XPCOMUtils.defineConstant(this, "DownloadsView", DownloadsView);
  * @param aElement
  *        XUL element corresponding to the single download item in the view.
  */
-function DownloadsViewItem(download, aElement) {
-  this.download = download;
-  this.element = aElement;
-  this.element._shell = this;
 
-  this.element.setAttribute("type", "download");
-  this.element.classList.add("download-state");
+class DownloadsViewItem extends DownloadsViewUI.DownloadElementShell {
+  constructor(download, aElement) {
+    super();
 
-  this.isPanel = true;
-}
+    this.download = download;
+    this.element = aElement;
+    this.element._shell = this;
 
-DownloadsViewItem.prototype = {
-  __proto__: DownloadsViewUI.DownloadElementShell.prototype,
+    this.element.setAttribute("type", "download");
+    this.element.classList.add("download-state");
 
-  /**
-   * The XUL element corresponding to the associated richlistbox item.
-   */
-  _element: null,
+    this.isPanel = true;
+  }
 
   onChanged() {
     let newState = DownloadsCommon.stateOfDownload(this.download);
@@ -1008,11 +1042,15 @@ DownloadsViewItem.prototype = {
     } else {
       this._updateStateInner();
     }
-  },
+  }
 
   isCommandEnabled(aCommand) {
     switch (aCommand) {
-      case "downloadsCmd_open": {
+      case "downloadsCmd_open":
+      case "downloadsCmd_open:current":
+      case "downloadsCmd_open:tab":
+      case "downloadsCmd_open:tabshifted":
+      case "downloadsCmd_open:window": {
         if (!this.download.succeeded) {
           return false;
         }
@@ -1044,33 +1082,36 @@ DownloadsViewItem.prototype = {
       this,
       aCommand
     );
-  },
+  }
 
   doCommand(aCommand) {
     if (this.isCommandEnabled(aCommand)) {
-      this[aCommand]();
+      let [command, modifier] = aCommand.split(":");
+      // split off an optional command "modifier" into an argument,
+      // e.g. "downloadsCmd_open:window"
+      this[command](modifier);
     }
-  },
+  }
 
   // Item commands
 
   downloadsCmd_unblock() {
     DownloadsPanel.hidePanel();
     this.confirmUnblock(window, "unblock");
-  },
+  }
 
   downloadsCmd_chooseUnblock() {
     DownloadsPanel.hidePanel();
     this.confirmUnblock(window, "chooseUnblock");
-  },
+  }
 
   downloadsCmd_unblockAndOpen() {
     DownloadsPanel.hidePanel();
     this.unblockAndOpenDownload().catch(Cu.reportError);
-  },
+  }
 
-  downloadsCmd_open() {
-    this.download.launch().catch(Cu.reportError);
+  downloadsCmd_open(openWhere) {
+    super.downloadsCmd_open(openWhere);
 
     // We explicitly close the panel here to give the user the feedback that
     // their click has been received, and we're handling the action.
@@ -1078,7 +1119,23 @@ DownloadsViewItem.prototype = {
     // before the panel would close. This also helps to prevent the user from
     // accidentally opening a file several times.
     DownloadsPanel.hidePanel();
-  },
+  }
+
+  downloadsCmd_openInSystemViewer() {
+    super.downloadsCmd_openInSystemViewer();
+
+    // We explicitly close the panel here to give the user the feedback that
+    // their click has been received, and we're handling the action.
+    DownloadsPanel.hidePanel();
+  }
+
+  downloadsCmd_alwaysOpenInSystemViewer() {
+    super.downloadsCmd_alwaysOpenInSystemViewer();
+
+    // We explicitly close the panel here to give the user the feedback that
+    // their click has been received, and we're handling the action.
+    DownloadsPanel.hidePanel();
+  }
 
   downloadsCmd_show() {
     let file = new FileUtils.File(this.download.target.path);
@@ -1090,30 +1147,30 @@ DownloadsViewItem.prototype = {
     // window to open before the panel closed. This also helps to prevent the
     // user from opening the containing folder several times.
     DownloadsPanel.hidePanel();
-  },
+  }
 
   downloadsCmd_showBlockedInfo() {
     DownloadsBlockedSubview.toggle(
       this.element,
       ...this.rawBlockedTitleAndDetails
     );
-  },
+  }
 
   downloadsCmd_openReferrer() {
     openURL(this.download.source.referrerInfo.originalReferrer);
-  },
+  }
 
   downloadsCmd_copyLocation() {
     DownloadsCommon.copyDownloadLink(this.download);
-  },
+  }
 
   downloadsCmd_doDefault() {
     let defaultCommand = this.currentDefaultCommandName;
     if (defaultCommand && this.isCommandEnabled(defaultCommand)) {
       this.doCommand(defaultCommand);
     }
-  },
-};
+  }
+}
 
 // DownloadsViewController
 
@@ -1143,7 +1200,10 @@ var DownloadsViewController = {
     if (!DownloadsViewUI.isCommandName(aCommand)) {
       return false;
     }
-    if (!(aCommand in this) && !(aCommand in DownloadsViewItem.prototype)) {
+    // Strip off any :modifier suffix before checking if the command name is
+    // a method on our view
+    let [command] = aCommand.split(":");
+    if (!(command in this) && !(command in DownloadsViewItem.prototype)) {
       return false;
     }
     // The currently supported commands depend on whether the blocked subview is

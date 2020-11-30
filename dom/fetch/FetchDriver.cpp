@@ -74,13 +74,10 @@ void GetBlobURISpecFromChannel(nsIRequest* aRequest, nsCString& aBlobURISpec) {
   uri->GetSpec(aBlobURISpec);
 }
 
-bool ShouldCheckSRI(const InternalRequest* const aRequest,
-                    const InternalResponse* const aResponse) {
-  MOZ_DIAGNOSTIC_ASSERT(aRequest);
-  MOZ_DIAGNOSTIC_ASSERT(aResponse);
-
-  return !aRequest->GetIntegrity().IsEmpty() &&
-         aResponse->Type() != ResponseType::Error;
+bool ShouldCheckSRI(const InternalRequest& aRequest,
+                    const InternalResponse& aResponse) {
+  return !aRequest.GetIntegrity().IsEmpty() &&
+         aResponse.Type() != ResponseType::Error;
 }
 
 }  // anonymous namespace
@@ -323,15 +320,15 @@ AlternativeDataStreamListener::CheckListenerChain() { return NS_OK; }
 NS_IMPL_ISUPPORTS(FetchDriver, nsIStreamListener, nsIChannelEventSink,
                   nsIInterfaceRequestor, nsIThreadRetargetableStreamListener)
 
-FetchDriver::FetchDriver(InternalRequest* aRequest, nsIPrincipal* aPrincipal,
-                         nsILoadGroup* aLoadGroup,
+FetchDriver::FetchDriver(SafeRefPtr<InternalRequest> aRequest,
+                         nsIPrincipal* aPrincipal, nsILoadGroup* aLoadGroup,
                          nsIEventTarget* aMainThreadEventTarget,
                          nsICookieJarSettings* aCookieJarSettings,
                          PerformanceStorage* aPerformanceStorage,
                          bool aIsTrackingFetch)
     : mPrincipal(aPrincipal),
       mLoadGroup(aLoadGroup),
-      mRequest(aRequest),
+      mRequest(std::move(aRequest)),
       mMainThreadEventTarget(aMainThreadEventTarget),
       mCookieJarSettings(aCookieJarSettings),
       mPerformanceStorage(aPerformanceStorage),
@@ -346,7 +343,7 @@ FetchDriver::FetchDriver(InternalRequest* aRequest, nsIPrincipal* aPrincipal,
 {
   AssertIsOnMainThread();
 
-  MOZ_ASSERT(aRequest);
+  MOZ_ASSERT(mRequest);
   MOZ_ASSERT(aPrincipal);
   MOZ_ASSERT(aMainThreadEventTarget);
 }
@@ -357,6 +354,81 @@ FetchDriver::~FetchDriver() {
   // We assert this since even on failures, we should call
   // FailWithNetworkError().
   MOZ_ASSERT(mResponseAvailableCalled);
+}
+
+already_AddRefed<PreloaderBase> FetchDriver::FindPreload(nsIURI* aURI) {
+  // Decide if we allow reuse of an existing <link rel=preload as=fetch>
+  // response for this request.  First examine this fetch requets itself if it
+  // is 'pure' enough to use the response and then try to find a preload.
+
+  if (!mDocument) {
+    // Preloads are mapped on the document, no document, no preload.
+    return nullptr;
+  }
+  CORSMode cors;
+  switch (mRequest->Mode()) {
+    case RequestMode::No_cors:
+      cors = CORSMode::CORS_NONE;
+      break;
+    case RequestMode::Cors:
+      cors = mRequest->GetCredentialsMode() == RequestCredentials::Include
+                 ? CORSMode::CORS_USE_CREDENTIALS
+                 : CORSMode::CORS_ANONYMOUS;
+      break;
+    default:
+      // Can't be satisfied by a preload because preload cannot define any of
+      // remaining modes.
+      return nullptr;
+  }
+  if (!mRequest->Headers()->HasOnlySimpleHeaders()) {
+    // Preload can't set any headers.
+    return nullptr;
+  }
+  if (!mRequest->GetIntegrity().IsEmpty()) {
+    // There is currently no support for SRI checking in the fetch preloader.
+    return nullptr;
+  }
+  if (mRequest->GetCacheMode() != RequestCache::Default) {
+    // Preload can only go with the default caching mode.
+    return nullptr;
+  }
+  if (mRequest->SkipServiceWorker()) {
+    // Preload can't be forbidden interception.
+    return nullptr;
+  }
+  if (mRequest->GetRedirectMode() != RequestRedirect::Follow) {
+    // Preload always follows redirects.
+    return nullptr;
+  }
+  nsAutoCString method;
+  mRequest->GetMethod(method);
+  if (!method.EqualsLiteral("GET")) {
+    // Preload can only do GET, this also eliminates the case we do upload, so
+    // no need to check if the request has any body to send out.
+    return nullptr;
+  }
+
+  // OK, this request can be satisfied by a preloaded response, try to find one.
+
+  auto preloadKey = PreloadHashKey::CreateAsFetch(aURI, cors);
+  return mDocument->Preloads().LookupPreload(preloadKey);
+}
+
+void FetchDriver::UpdateReferrerInfoFromNewChannel(nsIChannel* aChannel) {
+  nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aChannel);
+  if (!httpChannel) {
+    return;
+  }
+
+  nsCOMPtr<nsIReferrerInfo> referrerInfo = httpChannel->GetReferrerInfo();
+  if (!referrerInfo) {
+    return;
+  }
+
+  nsAutoString computedReferrerSpec;
+  mRequest->SetReferrerPolicy(referrerInfo->ReferrerPolicy());
+  Unused << referrerInfo->GetComputedReferrerSpec(computedReferrerSpec);
+  mRequest->SetReferrer(computedReferrerSpec);
 }
 
 nsresult FetchDriver::Fetch(AbortSignalImpl* aSignalImpl,
@@ -441,6 +513,36 @@ nsresult FetchDriver::HttpFetch(
     }
   }
 
+  RefPtr<PreloaderBase> fetchPreload = FindPreload(uri);
+  if (fetchPreload) {
+    fetchPreload->RemoveSelf(mDocument);
+    fetchPreload->NotifyUsage(PreloaderBase::LoadBackground::Keep);
+
+    rv = fetchPreload->AsyncConsume(this);
+    if (NS_SUCCEEDED(rv)) {
+      mFromPreload = true;
+
+      mChannel = fetchPreload->Channel();
+      MOZ_ASSERT(mChannel);
+      mChannel->SetNotificationCallbacks(this);
+
+      // Copied from AsyncOnChannelRedirect.
+      for (const auto& redirect : fetchPreload->Redirects()) {
+        if (redirect.Flags() & nsIChannelEventSink::REDIRECT_INTERNAL) {
+          mRequest->SetURLForInternalRedirect(redirect.Flags(), redirect.Spec(),
+                                              redirect.Fragment());
+        } else {
+          mRequest->AddURL(redirect.Spec(), redirect.Fragment());
+        }
+      }
+
+      return NS_OK;
+    }
+
+    // The preload failed to be consumed.  Behave like there were no preload.
+    fetchPreload = nullptr;
+  }
+
   // Step 2 deals with letting ServiceWorkers intercept requests. This is
   // handled by Necko after the channel is opened.
   // FIXME(nsm): Bug 1119026: The channel's skip service worker flag should be
@@ -472,12 +574,12 @@ nsresult FetchDriver::HttpFetch(
 
   nsSecurityFlags secFlags = 0;
   if (mRequest->Mode() == RequestMode::Cors) {
-    secFlags |= nsILoadInfo::SEC_REQUIRE_CORS_DATA_INHERITS;
+    secFlags |= nsILoadInfo::SEC_REQUIRE_CORS_INHERITS_SEC_CONTEXT;
   } else if (mRequest->Mode() == RequestMode::Same_origin ||
              mRequest->Mode() == RequestMode::Navigate) {
-    secFlags |= nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_INHERITS;
+    secFlags |= nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_INHERITS_SEC_CONTEXT;
   } else if (mRequest->Mode() == RequestMode::No_cors) {
-    secFlags |= nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_INHERITS;
+    secFlags |= nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_INHERITS_SEC_CONTEXT;
   } else {
     MOZ_ASSERT_UNREACHABLE("Unexpected request mode!");
     return NS_ERROR_UNEXPECTED;
@@ -537,6 +639,12 @@ nsresult FetchDriver::HttpFetch(
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
+  {
+    nsCOMPtr<nsILoadInfo> loadInfo = chan->LoadInfo();
+    rv = loadInfo->SetLoadingEmbedderPolicy(mRequest->GetEmbedderPolicy());
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
   // Insert ourselves into the notification callbacks chain so we can set
   // headers on redirects.
 #ifdef DEBUG
@@ -592,7 +700,7 @@ nsresult FetchDriver::HttpFetch(
     }
 
     rv = FetchUtil::SetRequestReferrer(mPrincipal, mDocument, httpChan,
-                                       mRequest);
+                                       *mRequest);
     NS_ENSURE_SUCCESS(rv, rv);
 
     // Bug 1120722 - Authorization will be handled later.
@@ -619,7 +727,7 @@ nsresult FetchDriver::HttpFetch(
     // Set the initiator type
     nsCOMPtr<nsITimedChannel> timedChannel(do_QueryInterface(httpChan));
     if (timedChannel) {
-      timedChannel->SetInitiatorType(NS_LITERAL_STRING("fetch"));
+      timedChannel->SetInitiatorType(u"fetch"_ns);
     }
   }
 
@@ -630,8 +738,7 @@ nsresult FetchDriver::HttpFetch(
   if (uploadChan) {
     nsAutoCString contentType;
     ErrorResult result;
-    mRequest->Headers()->GetFirst(NS_LITERAL_CSTRING("content-type"),
-                                  contentType, result);
+    mRequest->Headers()->GetFirst("content-type"_ns, contentType, result);
     // We don't actually expect "result" to have failed here: that only happens
     // for invalid header names.  But if for some reason it did, just propagate
     // it out.
@@ -643,7 +750,7 @@ nsresult FetchDriver::HttpFetch(
     // void string if no header was set.
 #ifdef DEBUG
     bool hasContentTypeHeader =
-        mRequest->Headers()->Has(NS_LITERAL_CSTRING("content-type"), result);
+        mRequest->Headers()->Has("content-type"_ns, result);
     MOZ_ASSERT(!result.Failed());
     MOZ_ASSERT_IF(!hasContentTypeHeader, contentType.IsVoid());
 #endif  // DEBUG
@@ -694,8 +801,8 @@ nsresult FetchDriver::HttpFetch(
   if (!aPreferredAlternativeDataType.IsEmpty()) {
     nsCOMPtr<nsICacheInfoChannel> cic = do_QueryInterface(chan);
     if (cic) {
-      cic->PreferAlternativeDataType(aPreferredAlternativeDataType,
-                                     EmptyCString(), true);
+      cic->PreferAlternativeDataType(aPreferredAlternativeDataType, ""_ns,
+                                     true);
       MOZ_ASSERT(!mAltDataListener);
       mAltDataListener = new AlternativeDataStreamListener(
           this, chan, aPreferredAlternativeDataType);
@@ -708,9 +815,9 @@ nsresult FetchDriver::HttpFetch(
     if (mRequest->GetIntegrity().IsEmpty()) {
       nsCOMPtr<nsICacheInfoChannel> cic = do_QueryInterface(chan);
       if (cic) {
-        cic->PreferAlternativeDataType(
-            NS_LITERAL_CSTRING(WASM_ALT_DATA_TYPE_V1),
-            NS_LITERAL_CSTRING(WASM_CONTENT_TYPE), false);
+        cic->PreferAlternativeDataType(nsLiteralCString(WASM_ALT_DATA_TYPE_V1),
+                                       nsLiteralCString(WASM_CONTENT_TYPE),
+                                       false);
       }
     }
 
@@ -759,8 +866,10 @@ already_AddRefed<InternalResponse> FetchDriver::BeginAndGetFilteredResponse(
 
   MOZ_ASSERT(filteredResponse);
   MOZ_ASSERT(mObserver);
-  if (!ShouldCheckSRI(mRequest, filteredResponse)) {
-    mObserver->OnResponseAvailable(filteredResponse);
+  if (!ShouldCheckSRI(*mRequest, *filteredResponse)) {
+    // Need to keep mObserver alive.
+    RefPtr<FetchDriverObserver> observer = mObserver;
+    observer->OnResponseAvailable(filteredResponse);
 #ifdef DEBUG
     mResponseAvailableCalled = true;
 #endif
@@ -773,10 +882,16 @@ void FetchDriver::FailWithNetworkError(nsresult rv) {
   AssertIsOnMainThread();
   RefPtr<InternalResponse> error = InternalResponse::NetworkError(rv);
   if (mObserver) {
-    mObserver->OnResponseAvailable(error);
+    // Need to keep mObserver alive.
+    RefPtr<FetchDriverObserver> observer = mObserver;
+    observer->OnResponseAvailable(error);
 #ifdef DEBUG
     mResponseAvailableCalled = true;
 #endif
+  }
+
+  // mObserver could be null after OnResponseAvailable().
+  if (mObserver) {
     mObserver->OnResponseEnd(FetchDriverObserver::eByNetworking);
     mObserver = nullptr;
   }
@@ -791,6 +906,11 @@ FetchDriver::OnStartRequest(nsIRequest* aRequest) {
   // Note, this can be called multiple times if we are doing an opaqueredirect.
   // In that case we will get a simulated OnStartRequest() and then the real
   // channel will call in with an errored OnStartRequest().
+
+  if (mFromPreload && mAborted) {
+    aRequest->Cancel(NS_BINDING_ABORTED);
+    return NS_BINDING_ABORTED;
+  }
 
   if (!mChannel) {
     MOZ_ASSERT(!mObserver);
@@ -869,10 +989,8 @@ FetchDriver::OnStartRequest(nsIRequest* aRequest) {
     // Content-Length (which refer to the decoded data) is obscured behind the
     // encodings.
     ErrorResult result;
-    if (response->Headers()->Has(NS_LITERAL_CSTRING("content-encoding"),
-                                 result) ||
-        response->Headers()->Has(NS_LITERAL_CSTRING("transfer-encoding"),
-                                 result)) {
+    if (response->Headers()->Has("content-encoding"_ns, result) ||
+        response->Headers()->Has("transfer-encoding"_ns, result)) {
       // We cannot trust the content-length when content-encoding or
       // transfer-encoding are set.  There are many servers which just
       // get this wrong.
@@ -880,19 +998,18 @@ FetchDriver::OnStartRequest(nsIRequest* aRequest) {
     }
     MOZ_ASSERT(!result.Failed());
   } else {
-    response = new InternalResponse(200, NS_LITERAL_CSTRING("OK"),
-                                    mRequest->GetCredentialsMode());
+    response =
+        new InternalResponse(200, "OK"_ns, mRequest->GetCredentialsMode());
 
     if (!contentType.IsEmpty()) {
       nsAutoCString contentCharset;
       channel->GetContentCharset(contentCharset);
       if (NS_SUCCEEDED(rv) && !contentCharset.IsEmpty()) {
-        contentType += NS_LITERAL_CSTRING(";charset=") + contentCharset;
+        contentType += ";charset="_ns + contentCharset;
       }
 
       IgnoredErrorResult result;
-      response->Headers()->Append(NS_LITERAL_CSTRING("Content-Type"),
-                                  contentType, result);
+      response->Headers()->Append("Content-Type"_ns, contentType, result);
       MOZ_ASSERT(!result.Failed());
     }
 
@@ -901,8 +1018,7 @@ FetchDriver::OnStartRequest(nsIRequest* aRequest) {
       contentLenStr.AppendInt(contentLength);
 
       IgnoredErrorResult result;
-      response->Headers()->Append(NS_LITERAL_CSTRING("Content-Length"),
-                                  contentLenStr, result);
+      response->Headers()->Append("Content-Length"_ns, contentLenStr, result);
       MOZ_ASSERT(!result.Failed());
     }
   }
@@ -1044,7 +1160,7 @@ FetchDriver::OnStartRequest(nsIRequest* aRequest) {
   }
 
   // From "Main Fetch" step 19: SRI-part1.
-  if (ShouldCheckSRI(mRequest, mResponse) && mSRIMetadata.IsEmpty()) {
+  if (ShouldCheckSRI(*mRequest, *mResponse) && mSRIMetadata.IsEmpty()) {
     nsIConsoleReportCollector* reporter = nullptr;
     if (mObserver) {
       reporter = mObserver->GetReporter();
@@ -1059,7 +1175,7 @@ FetchDriver::OnStartRequest(nsIRequest* aRequest) {
     SRICheck::IntegrityMetadata(mRequest->GetIntegrity(), sourceUri, reporter,
                                 &mSRIMetadata);
     mSRIDataVerifier =
-        new SRICheckDataVerifier(mSRIMetadata, sourceUri, reporter);
+        MakeUnique<SRICheckDataVerifier>(mSRIMetadata, sourceUri, reporter);
 
     // Do not retarget off main thread when using SRI API.
     return NS_OK;
@@ -1151,10 +1267,12 @@ FetchDriver::OnDataAvailable(nsIRequest* aRequest, nsIInputStream* aInputStream,
   if (mNeedToObserveOnDataAvailable) {
     mNeedToObserveOnDataAvailable = false;
     if (mObserver) {
+      // Need to keep mObserver alive.
+      RefPtr<FetchDriverObserver> observer = mObserver;
       if (NS_IsMainThread()) {
-        mObserver->OnDataAvailable();
+        observer->OnDataAvailable();
       } else {
-        RefPtr<Runnable> runnable = new DataAvailableRunnable(mObserver);
+        RefPtr<Runnable> runnable = new DataAvailableRunnable(observer);
         nsresult rv = mMainThreadEventTarget->Dispatch(runnable.forget(),
                                                        NS_DISPATCH_NORMAL);
         if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -1174,10 +1292,11 @@ FetchDriver::OnDataAvailable(nsIRequest* aRequest, nsIInputStream* aInputStream,
   // Note: Avoid checking the hidden opaque body.
   nsresult rv;
   if (mResponse->Type() != ResponseType::Opaque &&
-      ShouldCheckSRI(mRequest, mResponse)) {
+      ShouldCheckSRI(*mRequest, *mResponse)) {
     MOZ_ASSERT(mSRIDataVerifier);
 
-    SRIVerifierAndOutputHolder holder(mSRIDataVerifier, mPipeOutputStream);
+    SRIVerifierAndOutputHolder holder(mSRIDataVerifier.get(),
+                                      mPipeOutputStream);
     rv = aInputStream->ReadSegments(CopySegmentToStreamAndSRI, &holder, aCount,
                                     &aRead);
   } else {
@@ -1229,7 +1348,7 @@ FetchDriver::OnStopRequest(nsIRequest* aRequest, nsresult aStatusCode) {
     MOZ_ASSERT(!mResponse->IsError());
 
     // From "Main Fetch" step 19: SRI-part3.
-    if (ShouldCheckSRI(mRequest, mResponse)) {
+    if (ShouldCheckSRI(*mRequest, *mResponse)) {
       MOZ_ASSERT(mSRIDataVerifier);
 
       nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
@@ -1286,14 +1405,18 @@ void FetchDriver::FinishOnStopRequest(
 
   if (mObserver) {
     // From "Main Fetch" step 19.1, 19.2: Process response.
-    if (ShouldCheckSRI(mRequest, mResponse)) {
+    if (ShouldCheckSRI(*mRequest, *mResponse)) {
       MOZ_ASSERT(mResponse);
-      mObserver->OnResponseAvailable(mResponse);
+      // Need to keep mObserver alive.
+      RefPtr<FetchDriverObserver> observer = mObserver;
+      observer->OnResponseAvailable(mResponse);
 #ifdef DEBUG
       mResponseAvailableCalled = true;
 #endif
     }
+  }
 
+  if (mObserver) {
     mObserver->OnResponseEnd(FetchDriverObserver::eByNetworking);
     mObserver = nullptr;
   }
@@ -1307,19 +1430,14 @@ FetchDriver::AsyncOnChannelRedirect(nsIChannel* aOldChannel,
                                     nsIAsyncVerifyRedirectCallback* aCallback) {
   nsCOMPtr<nsIHttpChannel> oldHttpChannel = do_QueryInterface(aOldChannel);
   nsCOMPtr<nsIHttpChannel> newHttpChannel = do_QueryInterface(aNewChannel);
-  if (newHttpChannel) {
-    uint32_t responseCode = 0;
+  if (oldHttpChannel && newHttpChannel) {
     nsAutoCString method;
     mRequest->GetMethod(method);
+
+    // Fetch 4.4.11
     bool rewriteToGET = false;
-    if (oldHttpChannel &&
-        NS_SUCCEEDED(oldHttpChannel->GetResponseStatus(&responseCode))) {
-      // Fetch 4.4.11
-      rewriteToGET =
-          (responseCode <= 302 && method.LowerCaseEqualsASCII("post")) ||
-          (responseCode == 303 && !method.LowerCaseEqualsASCII("get") &&
-           !method.LowerCaseEqualsASCII("head"));
-    }
+    Unused << oldHttpChannel->ShouldStripRequestBodyHeader(method,
+                                                           &rewriteToGET);
 
     SetRequestHeaders(newHttpChannel, rewriteToGET);
   }
@@ -1357,19 +1475,7 @@ FetchDriver::AsyncOnChannelRedirect(nsIChannel* aOldChannel,
 
   // In redirect, httpChannel already took referrer-policy into account, so
   // updates request’s associated referrer policy from channel.
-  if (newHttpChannel) {
-    nsAutoString computedReferrerSpec;
-    nsCOMPtr<nsIReferrerInfo> referrerInfo = newHttpChannel->GetReferrerInfo();
-    if (referrerInfo) {
-      mRequest->SetReferrerPolicy(referrerInfo->ReferrerPolicy());
-      Unused << referrerInfo->GetComputedReferrerSpec(computedReferrerSpec);
-    }
-
-    // Step 8 https://fetch.spec.whatwg.org/#main-fetch
-    // If request’s referrer is not "no-referrer" (empty), set request’s
-    // referrer to the result of invoking determine request’s referrer.
-    mRequest->SetReferrer(computedReferrerSpec);
-  }
+  UpdateReferrerInfoFromNewChannel(aNewChannel);
 
   aCallback->OnRedirectVerifyCallback(NS_OK);
   return NS_OK;
@@ -1487,6 +1593,8 @@ void FetchDriver::Abort() {
     mChannel->Cancel(NS_BINDING_ABORTED);
     mChannel = nullptr;
   }
+
+  mAborted = true;
 }
 
 }  // namespace dom

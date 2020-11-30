@@ -80,7 +80,6 @@ add_task(async function testFilter() {
 
   await resetFilters(hud);
   await clearOutput(hud);
-  await BrowserConsoleManager.toggleBrowserConsole();
 });
 
 // Test that console.profile / profileEnd trigger the right events

@@ -18,6 +18,7 @@
 #include "mozilla/Vector.h"
 
 #include <memory>
+#include <type_traits>
 
 namespace mozilla {
 namespace interceptor {
@@ -57,7 +58,7 @@ class MOZ_STACK_CLASS WritableTargetFunction final {
     AutoProtect(const MMPolicy& aMMPolicy, uintptr_t aAddr, size_t aNumBytes,
                 uint32_t aNewProt)
         : mMMPolicy(aMMPolicy) {
-      const uint32_t pageSize = MMPolicy::GetPageSize();
+      const uint32_t pageSize = mMMPolicy.GetPageSize();
       const uintptr_t limit = aAddr + aNumBytes - 1;
       const uintptr_t limitPageNum = limit / pageSize;
       const uintptr_t basePageNum = aAddr / pageSize;
@@ -100,7 +101,7 @@ class MOZ_STACK_CLASS WritableTargetFunction final {
 
    private:
     void Clear() {
-      const uint32_t pageSize = MMPolicy::GetPageSize();
+      const uint32_t pageSize = mMMPolicy.GetPageSize();
       for (auto&& entry : mProtects) {
         uint32_t prevProt;
         DebugOnly<bool> ok =
@@ -397,12 +398,9 @@ class MOZ_STACK_CLASS WritableTargetFunction final {
 };
 
 template <typename MMPolicy>
-class ReadOnlyTargetBytes;
-
-template <>
-class ReadOnlyTargetBytes<MMPolicyInProcess> {
+class ReadOnlyTargetBytes {
  public:
-  ReadOnlyTargetBytes(const MMPolicyInProcess& aMMPolicy, const void* aBase)
+  ReadOnlyTargetBytes(const MMPolicy& aMMPolicy, const void* aBase)
       : mMMPolicy(aMMPolicy), mBase(reinterpret_cast<const uint8_t*>(aBase)) {}
 
   ReadOnlyTargetBytes(ReadOnlyTargetBytes&& aOther)
@@ -439,7 +437,7 @@ class ReadOnlyTargetBytes<MMPolicyInProcess> {
     }
 
     // Otherwise, let's query |adjusted|
-    return mMMPolicy.IsPageAccessible(reinterpret_cast<void*>(adjusted));
+    return mMMPolicy.IsPageAccessible(adjusted);
   }
 
   /**
@@ -456,13 +454,13 @@ class ReadOnlyTargetBytes<MMPolicyInProcess> {
    */
   uintptr_t GetBase() const { return reinterpret_cast<uintptr_t>(mBase); }
 
-  const MMPolicyInProcess& GetMMPolicy() const { return mMMPolicy; }
+  const MMPolicy& GetMMPolicy() const { return mMMPolicy; }
 
   ReadOnlyTargetBytes& operator=(const ReadOnlyTargetBytes&) = delete;
   ReadOnlyTargetBytes& operator=(ReadOnlyTargetBytes&&) = delete;
 
  private:
-  const MMPolicyInProcess& mMMPolicy;
+  const MMPolicy& mMMPolicy;
   uint8_t const* const mBase;
 };
 
@@ -573,7 +571,7 @@ class ReadOnlyTargetBytes<MMPolicyOutOfProcess> {
     }
 
     // Otherwise, let's query |adjusted|
-    return mMMPolicy.IsPageAccessible(reinterpret_cast<void*>(adjusted));
+    return mMMPolicy.IsPageAccessible(adjusted);
   }
 
   /**
@@ -619,15 +617,12 @@ class ReadOnlyTargetBytes<MMPolicyOutOfProcess> {
   uint8_t const* const mBase;
 };
 
-template <typename TargetMMPolicy>
-class TargetBytesPtr;
-
-template <>
-class TargetBytesPtr<MMPolicyInProcess> {
+template <typename MMPolicy>
+class TargetBytesPtr {
  public:
-  typedef TargetBytesPtr<MMPolicyInProcess> Type;
+  typedef TargetBytesPtr<MMPolicy> Type;
 
-  static Type Make(const MMPolicyInProcess& aMMPolicy, const void* aFunc) {
+  static Type Make(const MMPolicy& aMMPolicy, const void* aFunc) {
     return TargetBytesPtr(aMMPolicy, aFunc);
   }
 
@@ -636,7 +631,7 @@ class TargetBytesPtr<MMPolicyInProcess> {
     return TargetBytesPtr(aOther, aOffsetFromOther);
   }
 
-  ReadOnlyTargetBytes<MMPolicyInProcess>* operator->() { return &mTargetBytes; }
+  ReadOnlyTargetBytes<MMPolicy>* operator->() { return &mTargetBytes; }
 
   TargetBytesPtr(TargetBytesPtr&& aOther)
       : mTargetBytes(std::move(aOther.mTargetBytes)) {}
@@ -648,13 +643,13 @@ class TargetBytesPtr<MMPolicyInProcess> {
   TargetBytesPtr& operator=(TargetBytesPtr&&) = delete;
 
  private:
-  TargetBytesPtr(const MMPolicyInProcess& aMMPolicy, const void* aFunc)
+  TargetBytesPtr(const MMPolicy& aMMPolicy, const void* aFunc)
       : mTargetBytes(aMMPolicy, aFunc) {}
 
   TargetBytesPtr(const TargetBytesPtr& aOther, const uint32_t aOffsetFromOther)
       : mTargetBytes(aOther.mTargetBytes, aOffsetFromOther) {}
 
-  ReadOnlyTargetBytes<MMPolicyInProcess> mTargetBytes;
+  ReadOnlyTargetBytes<MMPolicy> mTargetBytes;
 };
 
 template <>
@@ -776,7 +771,47 @@ class MOZ_STACK_CLASS ReadOnlyTargetFunction final {
     return result;
   }
 
-#endif
+  bool IsRelativeShortJump(uintptr_t* aOutTarget) {
+    if ((*this)[0] == 0xeb) {
+      int8_t offset = static_cast<int8_t>((*this)[1]);
+      *aOutTarget = GetAddress() + 2 + offset;
+      return true;
+    }
+    return false;
+  }
+
+#  if defined(_M_X64)
+  // Currently this function is used only in x64.
+  bool IsRelativeNearJump(uintptr_t* aOutTarget) {
+    if ((*this)[0] == 0xe9) {
+      *aOutTarget = (*this + 1).ReadDisp32AsAbsolute();
+      return true;
+    }
+    return false;
+  }
+#  endif  // defined(_M_X64)
+
+  bool IsIndirectNearJump(uintptr_t* aOutTarget) {
+    if ((*this)[0] == 0xff && (*this)[1] == 0x25) {
+#  if defined(_M_X64)
+      *aOutTarget = (*this + 2).ChasePointerFromDisp();
+#  else
+      *aOutTarget = (*this + 2).template ChasePointer<uintptr_t*>();
+#  endif  // defined(_M_X64)
+      return true;
+    }
+#  if defined(_M_X64)
+    else if ((*this)[0] == 0x48 && (*this)[1] == 0xff && (*this)[2] == 0x25) {
+      // According to Intel SDM, JMP does not have REX.W except JMP m16:64,
+      // but CPU can execute JMP r/m32 with REX.W.  We handle it just in case.
+      *aOutTarget = (*this + 3).ChasePointerFromDisp();
+      return true;
+    }
+#  endif  // defined(_M_X64)
+    return false;
+  }
+
+#endif  // defined(_M_ARM64)
 
   void Rewind() { mOffset = 0; }
 
@@ -837,10 +872,10 @@ class MOZ_STACK_CLASS ReadOnlyTargetFunction final {
   template <typename T>
   auto ChasePointer() {
     mTargetBytes->EnsureLimit(mOffset + sizeof(T));
-    const typename RemoveCV<T>::Type result =
-        *reinterpret_cast<const typename RemoveCV<T>::Type*>(
+    const std::remove_cv_t<T> result =
+        *reinterpret_cast<const std::remove_cv_t<T>*>(
             mTargetBytes->GetLocalBytes() + mOffset);
-    return ChasePointerHelper<typename RemoveCV<T>::Type>::Result(
+    return ChasePointerHelper<std::remove_cv_t<T>>::Result(
         mTargetBytes->GetMMPolicy(), result);
   }
 

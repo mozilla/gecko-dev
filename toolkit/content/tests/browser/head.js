@@ -64,7 +64,7 @@ async function waitForTabPlayingEvent(tab, expectPlaying) {
   if (tab.soundPlaying == expectPlaying) {
     ok(true, "The tab should " + (expectPlaying ? "" : "not ") + "be playing");
   } else {
-    info("Playing state doens't match, wait for attributes changes.");
+    info("Playing state doesn't match, wait for attributes changes.");
     await BrowserTestUtils.waitForEvent(
       tab,
       "TabAttrModified",
@@ -155,7 +155,7 @@ function leave_icon(icon) {
  */
 class DateTimeTestHelper {
   constructor() {
-    this.panel = document.getElementById("DateTimePickerPanel");
+    this.panel = gBrowser._getAndMaybeCreateDateTimePickerPanel();
     this.panel.setAttribute("animate", false);
     this.tab = null;
     this.frame = null;
@@ -166,14 +166,15 @@ class DateTimeTestHelper {
    * ready for testing.
    *
    * @param  {String} pageUrl
+   * @param  {bool} inFrame true if input is in the first child frame
    */
-  async openPicker(pageUrl) {
+  async openPicker(pageUrl, inFrame) {
     this.tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, pageUrl);
-    await BrowserTestUtils.synthesizeMouseAtCenter(
-      "input",
-      {},
-      gBrowser.selectedBrowser
-    );
+    let bc = gBrowser.selectedBrowser;
+    if (inFrame) {
+      bc = bc.browsingContext.children[0];
+    }
+    await BrowserTestUtils.synthesizeMouseAtCenter("input", {}, bc);
     this.frame = this.panel.querySelector("#dateTimePopupFrame");
     await this.waitForPickerReady();
   }

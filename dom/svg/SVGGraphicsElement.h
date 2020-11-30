@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_SVGGraphicsElement_h
-#define mozilla_dom_SVGGraphicsElement_h
+#ifndef DOM_SVG_SVGGRAPHICSELEMENT_H_
+#define DOM_SVG_SVGGRAPHICSELEMENT_H_
 
 #include "mozilla/dom/SVGTests.h"
 #include "mozilla/dom/SVGTransformableElement.h"
@@ -13,7 +13,7 @@
 namespace mozilla {
 namespace dom {
 
-typedef SVGTransformableElement SVGGraphicsElementBase;
+using SVGGraphicsElementBase = SVGTransformableElement;
 
 class SVGGraphicsElement : public SVGGraphicsElementBase, public SVGTests {
  protected:
@@ -25,7 +25,14 @@ class SVGGraphicsElement : public SVGGraphicsElementBase, public SVGTests {
   // interfaces:
   NS_DECL_ISUPPORTS_INHERITED
 
+  // WebIDL
+  bool Autofocus() const { return GetBoolAttr(nsGkAtoms::autofocus); }
+  void SetAutofocus(bool aAutofocus) {
+    SetBoolAttr(nsGkAtoms::autofocus, aAutofocus);
+  }
+
   bool IsFocusableInternal(int32_t* aTabIndex, bool aWithMouse) override;
+  nsresult BindToTree(BindContext&, nsINode& aParent) override;
   SVGElement* AsSVGElement() final { return this; }
 
  protected:
@@ -47,4 +54,4 @@ class SVGGraphicsElement : public SVGGraphicsElementBase, public SVGTests {
 }  // namespace dom
 }  // namespace mozilla
 
-#endif  // mozilla_dom_SVGGraphicsElement_h
+#endif  // DOM_SVG_SVGGRAPHICSELEMENT_H_

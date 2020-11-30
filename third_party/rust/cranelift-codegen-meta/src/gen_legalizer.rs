@@ -560,7 +560,7 @@ fn gen_transform_group<'a>(
     fmt: &mut Formatter,
 ) {
     fmt.doc_comment(group.doc);
-    fmt.line("#[allow(unused_variables,unused_assignments,non_snake_case)]");
+    fmt.line("#[allow(unused_variables,unused_assignments,unused_imports,non_snake_case)]");
 
     // Function arguments.
     fmtln!(fmt, "pub fn {}(", group.name);
@@ -700,6 +700,7 @@ fn gen_isa(
 pub(crate) fn generate(
     isas: &[TargetIsa],
     transform_groups: &TransformGroups,
+    extra_legalization_groups: &[&'static str],
     filename_prefix: &str,
     out_dir: &str,
 ) -> Result<(), error::Error> {
@@ -711,8 +712,14 @@ pub(crate) fn generate(
         fmt.update_file(format!("{}-{}.rs", filename_prefix, isa.name), out_dir)?;
     }
 
+    // Add extra legalization groups that were explicitly requested.
+    for group in extra_legalization_groups {
+        shared_group_names.insert(group);
+    }
+
     // Generate shared legalize groups.
     let mut fmt = Formatter::new();
+    // Generate shared legalize groups.
     let mut type_sets = UniqueTable::new();
     let mut sorted_shared_group_names = Vec::from_iter(shared_group_names);
     sorted_shared_group_names.sort();

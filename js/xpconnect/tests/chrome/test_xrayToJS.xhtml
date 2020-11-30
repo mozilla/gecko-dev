@@ -35,7 +35,6 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=933681
   var {AppConstants} = SpecialPowers.Cu.import("resource://gre/modules/AppConstants.jsm", {});
   var isNightlyBuild = AppConstants.NIGHTLY_BUILD;
   var isReleaseOrBeta = AppConstants.RELEASE_OR_BETA;
-  var isEarlyBetaOrEarlier = AppConstants.EARLY_BETA_OR_EARLIER;
 
   typedArrayClasses = ['Uint8Array', 'Int8Array', 'Uint16Array', 'Int16Array',
                        'Uint32Array', 'Int32Array', 'Float32Array', 'Float64Array',
@@ -78,8 +77,8 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=933681
          "we end up with the appropriate constructor: " + c);
       is(Cu.unwaiveXrays(Cu.waiveXrays(new iwin[c](...args)).constructor), iwin[c],
          "constructor property is set up right: " + c);
-      let expectedProto = /Opaque/.test(new iwin[c](...args)) ? iwin['Object'].prototype
-                                                     : iwin[c].prototype;
+      let expectedProto = Cu.isOpaqueWrapper(new iwin[c](...args)) ?
+        iwin['Object'].prototype : iwin[c].prototype;
       is(Object.getPrototypeOf(new iwin[c](...args)), expectedProto,
          "prototype is correct: " + c);
       is(global(new iwin[c](...args)), iwin, "Got the right global: " + c);
@@ -148,8 +147,8 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=933681
          "we end up with the appropriate AggregateError constructor");
       is(Cu.unwaiveXrays(Cu.waiveXrays(new iwin.AggregateError(...args)).constructor), iwin.AggregateError,
          "AggregateError constructor property is set up right");
-      let expectedProto = /Opaque/.test(new iwin.AggregateError(...args)) ? iwin['Object'].prototype
-                                                                          : iwin.AggregateError.prototype;
+      let expectedProto =  Cu.isOpaqueWrapper(new iwin.AggregateError(...args)) ?
+        iwin['Object'].prototype : iwin.AggregateError.prototype;
       is(Object.getPrototypeOf(new iwin.AggregateError(...args)), expectedProto,
          "AggregateError prototype is correct");
       is(global(new iwin.AggregateError(...args)), iwin, "Got the right global for AggregateError");
@@ -253,9 +252,6 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=933681
       gPrototypeProperties[c] = ["constructor", "name", "message", "stack"];
       gConstructorProperties[c] = constructorProps([]);
   }
-  if (gPrototypeProperties['AggregateError']) {
-      gPrototypeProperties['AggregateError'].push("errors");
-  }
   // toString and toSource only live on the parent proto (Error.prototype).
   gPrototypeProperties['Error'].push('toString');
   gPrototypeProperties['Error'].push('toSource');
@@ -268,7 +264,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=933681
   gPrototypeProperties['RegExp'] =
     ["constructor", "toSource", "toString", "compile", "exec", "test",
      Symbol.match, Symbol.matchAll, Symbol.replace, Symbol.search, Symbol.split,
-     "flags", "global", "ignoreCase", "multiline", "source", "sticky", "unicode"];
+     "flags", "dotAll", "global", "ignoreCase", "multiline", "source", "sticky", "unicode"];
   gConstructorProperties['RegExp'] =
     constructorProps(["input", "lastMatch", "lastParen",
                       "leftContext", "rightContext", "$1", "$2", "$3", "$4",
@@ -278,23 +274,15 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=933681
   gPrototypeProperties['Promise'] =
     ["constructor", "catch", "then", "finally", Symbol.toStringTag];
   gConstructorProperties['Promise'] =
-    constructorProps(["resolve", "reject", "all", "allSettled", "race", Symbol.species]);
-  if (isNightlyBuild) {
-    gConstructorProperties['Promise'].push("any");
-  }
+    constructorProps(["resolve", "reject", "all", "allSettled", "any", "race", Symbol.species]);
 
   gPrototypeProperties['ArrayBuffer'] =
     ["constructor", "byteLength", "slice", Symbol.toStringTag];
   gConstructorProperties['ArrayBuffer'] =
     constructorProps(["isView", Symbol.species]);
 
-  // The pref for SAB is turned on by default on Nightly and early Beta.
-  if (isEarlyBetaOrEarlier) {
-    gPrototypeProperties['SharedArrayBuffer'] = ["constructor", "slice", "byteLength", Symbol.toStringTag];
-    gConstructorProperties['SharedArrayBuffer'] = constructorProps([Symbol.species]);
-  } else {
-    is(typeof SharedArrayBuffer, "undefined", "Enable tests!");
-  }
+  gPrototypeProperties['SharedArrayBuffer'] = ["constructor", "slice", "byteLength", Symbol.toStringTag];
+  gConstructorProperties['SharedArrayBuffer'] = constructorProps([Symbol.species]);
 
   gPrototypeProperties['Map'] =
     ["constructor", "size", Symbol.toStringTag, "get", "has", "set", "delete",
@@ -383,11 +371,11 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=933681
         is(method.call(xray) + "", local.call(xray) + "",
            "Xray and local method results stringify identically");
 
-        // If invoking this method returns something non-Xrayable, the
-        // stringification is going to return [object Opaque].
+        // If invoking this method returns something non-Xrayable (opaque), the
+        // stringification is going to return [object Object].
         // This happens for set[@@iterator] and other Iterator objects.
         let callable = lookupCallable(xray.wrappedJSObject);
-        if (!/Opaque/.test(method.call(xray)) && callable) {
+        if (!Cu.isOpaqueWrapper(method.call(xray)) && callable) {
           is(method.call(xray) + "",
              callable.call(xray.wrappedJSObject) + "",
              "Xray and waived method results stringify identically");
@@ -889,9 +877,9 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=933681
         is(errors[0], 'error 1', "errors[0] has the correct value");
         is(errors[1], 'error 2', "errors[1] has the correct value");
 
-        Object.defineProperty(e.wrappedJSObject, 'errors', {value: 42});
-        is(e.wrappedJSObject.errors, 42, "Set tricky expando");
-        is(e.errors.length, 2, "errors accessor works over Xrays");
+        e.wrappedJSObject.errors = 42;
+        is(e.wrappedJSObject.errors, 42, "errors is a plain data property");
+        is(e.errors, 42, "visible over Xrays");
       }
 
       // Note - an Exception newed via Xrays is going to have an empty stack given the

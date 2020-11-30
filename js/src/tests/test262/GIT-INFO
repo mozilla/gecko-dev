@@ -1,11 +1,5 @@
-commit 4383f2c6bacbc4f3fb11dcec6afebdf1a98786a4
+commit 323905b70e644d90faa957235f8ac59eac4ba8ba
 Author: Alexey Shvayka <shvaikalesh@gmail.com>
-Date:   Tue Jan 14 18:31:45 2020 +0200
+Date:   Wed Sep 9 22:59:23 2020 +0300
 
-    Add Object.{freeze,preventExtensions,seal} abrupt completion tests (#2468)
-    
-    * Add Object.freeze test
-    
-    * Add Object.preventExtensions test
-    
-    * Add Object.seal test
+    Improve RegExp.prototype[@@replace] poisoned stdlib test

@@ -16,8 +16,9 @@ ChromeUtils.defineModuleGetter(
 class ThumbnailsChild extends JSWindowActorChild {
   receiveMessage(message) {
     switch (message.name) {
-      case "Browser:Thumbnail:ContentSize": {
-        return PageThumbUtils.getContentSize(this.contentWindow);
+      case "Browser:Thumbnail:ContentInfo": {
+        let [width, height] = PageThumbUtils.getContentSize(this.contentWindow);
+        return { width, height };
       }
       case "Browser:Thumbnail:CheckState": {
         /**
@@ -25,6 +26,16 @@ class ThumbnailsChild extends JSWindowActorChild {
          */
         return new Promise(resolve =>
           Services.tm.idleDispatchToMainThread(() => {
+            if (!this.manager) {
+              // If we have no manager, our actor has been destroyed, which
+              // means we can't respond, and trying to touch
+              // `this.contentWindow` or `this.browsingContext` will throw.
+              // The `sendQuery` call in the parent will already have been
+              // rejected when the actor was destroyed, so there's no need to
+              // reject our promise or log an additional error.
+              return;
+            }
+
             let result = PageThumbUtils.shouldStoreContentThumbnail(
               this.contentWindow,
               this.browsingContext.docShell

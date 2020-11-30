@@ -11,9 +11,16 @@ class ReftestFissionChild extends JSWindowActorChild {
 
     let parentContext = this.browsingContext.parent;
     if (parentContext) {
-      this.sendAsyncMessage("ForwardAfterPaintEvent",
-        {toBrowsingContext: parentContext, fromBrowsingContext: this.browsingContext,
-         rects, originalTargetUri});
+      try {
+        this.sendAsyncMessage("ForwardAfterPaintEvent",
+          {toBrowsingContext: parentContext, fromBrowsingContext: this.browsingContext,
+           rects, originalTargetUri});
+      } catch (e) {
+        // |this| can be destroyed here and unable to send messages, which is
+        // not a problem, the reftest harness probably torn down the page and
+        // moved on to the next test.
+        Cu.reportError(e);
+      }
     }
   }
 
@@ -45,6 +52,15 @@ class ReftestFissionChild extends JSWindowActorChild {
     switch (msg.name) {
       case "ForwardAfterPaintEventToSelfAndParent":
       {
+        // The embedderElement can be null if the child we got this from was removed.
+        // Not much we can do to transform the rects, but it doesn't matter, the rects
+        // won't reach reftest-content.js.
+        if (msg.data.fromBrowsingContext.embedderElement == null) {
+          this.forwardAfterPaintEventToParent(msg.data.rects, msg.data.originalTargetUri,
+            /* dispatchToSelfAsWell */ true);
+          return;
+        }
+
         // Transform the rects from fromBrowsingContext to us.
         // We first translate from the content rect to the border rect of the iframe.
         let style = this.contentWindow.getComputedStyle(msg.data.fromBrowsingContext.embedderElement);

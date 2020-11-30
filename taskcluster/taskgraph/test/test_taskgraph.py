@@ -19,12 +19,13 @@ class TestTaskGraph(unittest.TestCase):
     def test_taskgraph_to_json(self):
         tasks = {
             'a': Task(kind='test', label='a',
+                      description='Task A',
                       attributes={'attr': 'a-task'},
                       task={'taskdef': True}),
             'b': Task(kind='test', label='b',
                       attributes={},
                       task={'task': 'def'},
-                      optimization={'seta': None},
+                      optimization={'skip-unless-has-relevant-tests': None},
                       # note that this dep is ignored, superseded by that
                       # from the taskgraph's edges
                       dependencies={'first': 'a'}),
@@ -38,20 +39,24 @@ class TestTaskGraph(unittest.TestCase):
             'a': {
                 'kind': 'test',
                 'label': 'a',
+                'description': 'Task A',
                 'attributes': {'attr': 'a-task', 'kind': 'test'},
                 'task': {'taskdef': True},
                 'dependencies': {'edgelabel': 'b'},
                 'soft_dependencies': [],
+                'if_dependencies': [],
                 'optimization': None,
             },
             'b': {
                 'kind': 'test',
                 'label': 'b',
+                'description': '',
                 'attributes': {'kind': 'test'},
                 'task': {'task': 'def'},
                 'dependencies': {},
                 'soft_dependencies': [],
-                'optimization': {'seta': None},
+                'if_dependencies': [],
+                'optimization': {'skip-unless-has-relevant-tests': None},
             }
         })
 
@@ -60,16 +65,17 @@ class TestTaskGraph(unittest.TestCase):
             'a': Task(
                 kind='fancy',
                 label='a',
+                description='Task A',
                 attributes={},
                 dependencies={'prereq': 'b'},  # must match edges, below
-                optimization={'seta': None},
+                optimization={'skip-unless-has-relevant-tests': None},
                 task={'task': 'def'}),
             'b': Task(
                 kind='pre',
                 label='b',
                 attributes={},
                 dependencies={},
-                optimization={'seta': None},
+                optimization={'skip-unless-has-relevant-tests': None},
                 task={'task': 'def2'}),
         }, graph=Graph(nodes={'a', 'b'}, edges={('a', 'b', 'prereq')}))
 
@@ -82,14 +88,14 @@ class TestTaskGraph(unittest.TestCase):
             label='a',
             attributes={},
             dependencies={'prereq': 'b'},  # must match edges, below
-            optimization={'seta': None},
+            optimization={'skip-unless-has-relevant-tests': None},
             task={'task': 'def'}),
         'b': Task(
             kind='pre',
             label='b',
             attributes={},
             dependencies={},
-            optimization={'seta': None},
+            optimization={'skip-unless-has-relevant-tests': None},
             task={'task': 'def2'}),
     }, graph=Graph(nodes={'a', 'b'}, edges={('a', 'b', 'prereq')}))
 

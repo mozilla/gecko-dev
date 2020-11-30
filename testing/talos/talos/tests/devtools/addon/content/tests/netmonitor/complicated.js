@@ -12,9 +12,16 @@ const {
   testTeardown,
   COMPLICATED_URL,
 } = require("../head");
-const { exportHar, waitForNetworkRequests } = require("./netmonitor-helpers");
+const {
+  exportHar,
+  waitForNetworkRequests,
+  openResponseDetailsPanel,
+} = require("./netmonitor-helpers");
 
-const EXPECTED_REQUESTS = 280;
+const EXPECTED_REQUESTS = {
+  min: 230,
+  max: 280,
+};
 
 module.exports = async function() {
   await testSetup(COMPLICATED_URL);
@@ -26,12 +33,15 @@ module.exports = async function() {
   const requestsDone = waitForNetworkRequests(
     "complicated.netmonitor",
     toolbox,
-    EXPECTED_REQUESTS
+    EXPECTED_REQUESTS.min,
+    EXPECTED_REQUESTS.max
   );
   await reloadPageAndLog("complicated.netmonitor", toolbox);
   await requestsDone;
 
   await exportHar("complicated.netmonitor", toolbox);
+
+  await openResponseDetailsPanel("complicated.netmonitor", toolbox);
 
   await closeToolboxAndLog("complicated.netmonitor", toolbox);
 

@@ -74,7 +74,6 @@ if CONFIG['MOZ_UPDATER'] and CONFIG['OS_TARGET'] != 'Android':
 
 DIRS += [
     '/ipc',
-    '/js/ipc',
     '/hal',
     '/js/xpconnect',
     '/modules/libjar',
@@ -93,7 +92,7 @@ DIRS += [
 if CONFIG['MOZ_WEBRTC'] and CONFIG['COMPILE_ENVIRONMENT']:
     DIRS += [
         '/media/webrtc',
-        '/media/mtransport',
+        '/dom/media/webrtc/transport',
     ]
 
 if CONFIG['ENABLE_TESTS']:
@@ -192,16 +191,12 @@ if CONFIG['ENABLE_TESTS']:
         '/testing/extensions',
     ]
 
-    # The file id utility requires breakpad libraries.
-    if CONFIG['MOZ_CRASHREPORTER']:
-        DIRS += ['/testing/tools/fileid']
-
     if CONFIG['MOZ_MEMORY']:
         DIRS += ['/memory/gtest']
 
     if CONFIG['MOZ_WEBRTC'] and not CONFIG['MOZ_TASK_TRACER']:
         DIRS += [
-            '/media/mtransport/test',
+            '/dom/media/webrtc/transport/test',
         ]
 
 if CONFIG['FUZZING']:

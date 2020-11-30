@@ -56,14 +56,21 @@ DWORD CreateRestrictedToken(HANDLE effective_token,
                             IntegrityLevel integrity_level,
                             TokenType token_type,
                             bool lockdown_default_dacl,
+                            PSID unique_restricted_sid,
                             bool use_restricting_sids,
                             base::win::ScopedHandle* token) {
   RestrictedToken restricted_token;
   restricted_token.Init(effective_token);
   if (lockdown_default_dacl)
     restricted_token.SetLockdownDefaultDacl();
+  if (unique_restricted_sid) {
+    restricted_token.AddDefaultDaclSid(Sid(unique_restricted_sid), GRANT_ACCESS,
+                                       GENERIC_ALL);
+    restricted_token.AddDefaultDaclSid(Sid(WinCreatorOwnerRightsSid),
+                                       GRANT_ACCESS, READ_CONTROL);
+  }
 
-  std::vector<base::string16> privilege_exceptions;
+  std::vector<std::wstring> privilege_exceptions;
   std::vector<Sid> sid_exceptions;
 
   bool deny_sids = true;
@@ -96,6 +103,21 @@ DWORD CreateRestrictedToken(HANDLE effective_token,
       privilege_exceptions.push_back(SE_CHANGE_NOTIFY_NAME);
       break;
     }
+    case USER_RESTRICTED_NON_ADMIN: {
+      sid_exceptions.push_back(WinBuiltinUsersSid);
+      sid_exceptions.push_back(WinWorldSid);
+      sid_exceptions.push_back(WinInteractiveSid);
+      sid_exceptions.push_back(WinAuthenticatedUserSid);
+      privilege_exceptions.push_back(SE_CHANGE_NOTIFY_NAME);
+      restricted_token.AddRestrictingSid(WinBuiltinUsersSid);
+      restricted_token.AddRestrictingSid(WinWorldSid);
+      restricted_token.AddRestrictingSid(WinInteractiveSid);
+      restricted_token.AddRestrictingSid(WinAuthenticatedUserSid);
+      restricted_token.AddRestrictingSid(WinRestrictedCodeSid);
+      restricted_token.AddRestrictingSidCurrentUser();
+      restricted_token.AddRestrictingSidLogonSession();
+      break;
+    }
     case USER_INTERACTIVE: {
       sid_exceptions.push_back(WinBuiltinUsersSid);
       sid_exceptions.push_back(WinWorldSid);
@@ -108,6 +130,8 @@ DWORD CreateRestrictedToken(HANDLE effective_token,
         restricted_token.AddRestrictingSid(WinRestrictedCodeSid);
         restricted_token.AddRestrictingSidCurrentUser();
         restricted_token.AddRestrictingSidLogonSession();
+        if (unique_restricted_sid)
+          restricted_token.AddRestrictingSid(Sid(unique_restricted_sid));
       }
       break;
     }
@@ -120,6 +144,8 @@ DWORD CreateRestrictedToken(HANDLE effective_token,
         restricted_token.AddRestrictingSid(WinBuiltinUsersSid);
         restricted_token.AddRestrictingSid(WinWorldSid);
         restricted_token.AddRestrictingSid(WinRestrictedCodeSid);
+        if (unique_restricted_sid)
+          restricted_token.AddRestrictingSid(Sid(unique_restricted_sid));
 
         // This token has to be able to create objects in BNO.
         // Unfortunately, on Vista+, it needs the current logon sid
@@ -127,6 +153,8 @@ DWORD CreateRestrictedToken(HANDLE effective_token,
         // low integrity level so it can't access object created by other
         // processes.
         restricted_token.AddRestrictingSidLogonSession();
+      } else {
+        restricted_token.AddUserSidForDenyOnly();
       }
       break;
     }
@@ -135,6 +163,8 @@ DWORD CreateRestrictedToken(HANDLE effective_token,
       restricted_token.AddUserSidForDenyOnly();
       if (use_restricting_sids) {
         restricted_token.AddRestrictingSid(WinRestrictedCodeSid);
+        if (unique_restricted_sid)
+          restricted_token.AddRestrictingSid(Sid(unique_restricted_sid));
       }
       break;
     }
@@ -142,6 +172,8 @@ DWORD CreateRestrictedToken(HANDLE effective_token,
       restricted_token.AddUserSidForDenyOnly();
       if (use_restricting_sids) {
         restricted_token.AddRestrictingSid(WinNullSid);
+        if (unique_restricted_sid)
+          restricted_token.AddRestrictingSid(Sid(unique_restricted_sid));
       }
       break;
     }
@@ -186,7 +218,7 @@ DWORD SetObjectIntegrityLabel(HANDLE handle,
                               const wchar_t* ace_access,
                               const wchar_t* integrity_level_sid) {
   // Build the SDDL string for the label.
-  base::string16 sddl = L"S:(";  // SDDL for a SACL.
+  std::wstring sddl = L"S:(";    // SDDL for a SACL.
   sddl += SDDL_MANDATORY_LABEL;  // Ace Type is "Mandatory Label".
   sddl += L";;";                 // No Ace Flags.
   sddl += ace_access;            // Add the ACE access.
@@ -338,7 +370,7 @@ DWORD CreateLowBoxToken(HANDLE base_token,
   NtCreateLowBoxToken CreateLowBoxToken = nullptr;
   ResolveNTFunctionPtr("NtCreateLowBoxToken", &CreateLowBoxToken);
 
-  if (base::win::GetVersion() < base::win::VERSION_WIN8)
+  if (base::win::GetVersion() < base::win::Version::WIN8)
     return ERROR_CALL_NOT_IMPLEMENTED;
 
   if (token_type != PRIMARY && token_type != IMPERSONATION)
@@ -365,7 +397,8 @@ DWORD CreateLowBoxToken(HANDLE base_token,
       &token_lowbox, base_token, TOKEN_ALL_ACCESS, &obj_attr,
       security_capabilities->AppContainerSid,
       security_capabilities->CapabilityCount,
-      security_capabilities->Capabilities, saved_handles_count, saved_handles);
+      security_capabilities->Capabilities, saved_handles_count,
+      saved_handles_count > 0 ? saved_handles : nullptr);
   if (!NT_SUCCESS(status))
     return GetLastErrorFromNtStatus(status);
 
@@ -418,7 +451,7 @@ DWORD CreateLowBoxObjectDirectory(PSID lowbox_sid,
     return ::GetLastError();
 
   std::unique_ptr<wchar_t, LocalFreeDeleter> sid_string_ptr(sid_string);
-  base::string16 directory_path = base::StringPrintf(
+  std::wstring directory_path = base::StringPrintf(
       L"\\Sessions\\%d\\AppContainerNamedObjects\\%ls", session_id, sid_string);
 
   NtCreateDirectoryObjectFunction CreateObjectDirectory = nullptr;

@@ -441,9 +441,6 @@ nsDocShellTreeOwner::InitWindow(nativeWindow aParentNativeWindow,
 }
 
 NS_IMETHODIMP
-nsDocShellTreeOwner::Create() { return NS_ERROR_NULL_POINTER; }
-
-NS_IMETHODIMP
 nsDocShellTreeOwner::Destroy() {
   nsCOMPtr<nsIWebBrowserChrome> webBrowserChrome = GetWebBrowserChrome();
   if (webBrowserChrome) {
@@ -805,16 +802,18 @@ nsDocShellTreeOwner::AddChromeListeners() {
     }
   }
 
-  // register dragover and drop event listeners with the listener manager
   nsCOMPtr<EventTarget> target;
   GetDOMEventTarget(mWebBrowser, getter_AddRefs(target));
 
-  EventListenerManager* elmP = target->GetOrCreateListenerManager();
-  if (elmP) {
-    elmP->AddEventListenerByType(this, NS_LITERAL_STRING("dragover"),
-                                 TrustedEventsAtSystemGroupBubble());
-    elmP->AddEventListenerByType(this, NS_LITERAL_STRING("drop"),
-                                 TrustedEventsAtSystemGroupBubble());
+  // register dragover and drop event listeners with the listener manager
+  MOZ_ASSERT(target, "how does this happen? (see bug 1659758)");
+  if (target) {
+    if (EventListenerManager* elmP = target->GetOrCreateListenerManager()) {
+      elmP->AddEventListenerByType(this, u"dragover"_ns,
+                                   TrustedEventsAtSystemGroupBubble());
+      elmP->AddEventListenerByType(this, u"drop"_ns,
+                                   TrustedEventsAtSystemGroupBubble());
+    }
   }
 
   return rv;
@@ -835,9 +834,9 @@ nsDocShellTreeOwner::RemoveChromeListeners() {
 
   EventListenerManager* elmP = piTarget->GetOrCreateListenerManager();
   if (elmP) {
-    elmP->RemoveEventListenerByType(this, NS_LITERAL_STRING("dragover"),
+    elmP->RemoveEventListenerByType(this, u"dragover"_ns,
                                     TrustedEventsAtSystemGroupBubble());
-    elmP->RemoveEventListenerByType(this, NS_LITERAL_STRING("drop"),
+    elmP->RemoveEventListenerByType(this, u"drop"_ns,
                                     TrustedEventsAtSystemGroupBubble());
   }
 
@@ -1009,18 +1008,18 @@ ChromeTooltipListener::AddTooltipListener() {
   if (mEventTarget) {
     nsresult rv = NS_OK;
 #ifndef XP_WIN
-    rv = mEventTarget->AddSystemEventListener(NS_LITERAL_STRING("keydown"),
-                                              this, false, false);
+    rv =
+        mEventTarget->AddSystemEventListener(u"keydown"_ns, this, false, false);
     NS_ENSURE_SUCCESS(rv, rv);
 #endif
-    rv = mEventTarget->AddSystemEventListener(NS_LITERAL_STRING("mousedown"),
-                                              this, false, false);
+    rv = mEventTarget->AddSystemEventListener(u"mousedown"_ns, this, false,
+                                              false);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = mEventTarget->AddSystemEventListener(NS_LITERAL_STRING("mouseout"),
-                                              this, false, false);
+    rv = mEventTarget->AddSystemEventListener(u"mouseout"_ns, this, false,
+                                              false);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = mEventTarget->AddSystemEventListener(NS_LITERAL_STRING("mousemove"),
-                                              this, false, false);
+    rv = mEventTarget->AddSystemEventListener(u"mousemove"_ns, this, false,
+                                              false);
     NS_ENSURE_SUCCESS(rv, rv);
 
     mTooltipListenerInstalled = true;
@@ -1049,15 +1048,11 @@ NS_IMETHODIMP
 ChromeTooltipListener::RemoveTooltipListener() {
   if (mEventTarget) {
 #ifndef XP_WIN
-    mEventTarget->RemoveSystemEventListener(NS_LITERAL_STRING("keydown"), this,
-                                            false);
+    mEventTarget->RemoveSystemEventListener(u"keydown"_ns, this, false);
 #endif
-    mEventTarget->RemoveSystemEventListener(NS_LITERAL_STRING("mousedown"),
-                                            this, false);
-    mEventTarget->RemoveSystemEventListener(NS_LITERAL_STRING("mouseout"), this,
-                                            false);
-    mEventTarget->RemoveSystemEventListener(NS_LITERAL_STRING("mousemove"),
-                                            this, false);
+    mEventTarget->RemoveSystemEventListener(u"mousedown"_ns, this, false);
+    mEventTarget->RemoveSystemEventListener(u"mouseout"_ns, this, false);
+    mEventTarget->RemoveSystemEventListener(u"mousemove"_ns, this, false);
     mTooltipListenerInstalled = false;
   }
 
@@ -1138,7 +1133,7 @@ nsresult ChromeTooltipListener::MouseMove(Event* aMouseEvent) {
     if (mPossibleTooltipNode) {
       nsresult rv = NS_NewTimerWithFuncCallback(
           getter_AddRefs(mTooltipTimer), sTooltipCallback, this,
-          LookAndFeel::GetInt(LookAndFeel::eIntID_TooltipDelay, 500),
+          LookAndFeel::GetInt(LookAndFeel::IntID::TooltipDelay, 500),
           nsITimer::TYPE_ONE_SHOT, "ChromeTooltipListener::MouseMove", target);
       if (NS_FAILED(rv)) {
         mPossibleTooltipNode = nullptr;
@@ -1241,10 +1236,18 @@ void ChromeTooltipListener::sTooltipCallback(nsITimer* aTimer,
                                              void* aChromeTooltipListener) {
   auto self = static_cast<ChromeTooltipListener*>(aChromeTooltipListener);
   if (self && self->mPossibleTooltipNode) {
+    // release tooltip target once done, no matter what we do here.
+    auto cleanup = MakeScopeExit([&] { self->mPossibleTooltipNode = nullptr; });
     if (!self->mPossibleTooltipNode->IsInComposedDoc()) {
-      // release tooltip target if there is one, NO MATTER WHAT
-      self->mPossibleTooltipNode = nullptr;
       return;
+    }
+    // Check that the document or its ancestors haven't been replaced.
+    Document* doc = self->mPossibleTooltipNode->OwnerDoc();
+    while (doc) {
+      if (!doc->IsCurrentActiveDocument()) {
+        return;
+      }
+      doc = doc->GetInProcessParentDocument();
     }
 
     // The actual coordinates we want to put the tooltip at are relative to the
@@ -1270,8 +1273,6 @@ void ChromeTooltipListener::sTooltipCallback(nsITimer* aTimer,
     }
 
     if (!widget || !docShell || !docShell->GetIsActive()) {
-      // release tooltip target if there is one, NO MATTER WHAT
-      self->mPossibleTooltipNode = nullptr;
       return;
     }
 
@@ -1288,24 +1289,13 @@ void ChromeTooltipListener::sTooltipCallback(nsITimer* aTimer,
 
       if (textFound && (!self->mTooltipShownOnce ||
                         tooltipText != self->mLastShownTooltipText)) {
-        LayoutDeviceIntPoint screenDot = widget->WidgetToScreenOffset();
-        double scaleFactor = 1.0;
-        if (presShell->GetPresContext()) {
-          nsDeviceContext* dc = presShell->GetPresContext()->DeviceContext();
-          scaleFactor = double(AppUnitsPerCSSPixel()) /
-                        dc->AppUnitsPerDevPixelAtUnitFullZoom();
-        }
-        // ShowTooltip expects widget-relative position.
-        self->ShowTooltip(self->mMouseScreenX - screenDot.x / scaleFactor,
-                          self->mMouseScreenY - screenDot.y / scaleFactor,
-                          tooltipText, directionText);
+        // ShowTooltip expects screen-relative position.
+        self->ShowTooltip(self->mMouseScreenX, self->mMouseScreenY, tooltipText,
+                          directionText);
         self->mLastShownTooltipText = std::move(tooltipText);
         self->mLastDocshell = do_GetWeakReference(
             self->mPossibleTooltipNode->OwnerDoc()->GetDocShell());
       }
     }
-
-    // release tooltip target if there is one, NO MATTER WHAT
-    self->mPossibleTooltipNode = nullptr;
   }
 }

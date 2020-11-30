@@ -8,11 +8,13 @@
 
 #ifdef WR_FEATURE_YUV
 flat varying mat3 vYuvColorMatrix;
+flat varying vec3 vYuvOffsetVector;
 flat varying float vYuvCoefficient;
 flat varying int vYuvFormat;
-varying vec3 vUV_y;
-varying vec3 vUV_u;
-varying vec3 vUV_v;
+flat varying vec3 vYuvLayers;
+varying vec2 vUV_y;
+varying vec2 vUV_u;
+varying vec2 vUV_v;
 flat varying vec4 vUVBounds_y;
 flat varying vec4 vUVBounds_u;
 flat varying vec4 vUVBounds_v;
@@ -20,19 +22,26 @@ flat varying vec4 vUVBounds_v;
 flat varying vec4 vColor;
 flat varying float vLayer;
 varying vec2 vUv;
+flat varying vec4 vUVBounds;
 #endif
 
 #ifdef WR_VERTEX_SHADER
-in vec4 aDeviceRect;
-in vec4 aDeviceClipRect;
-in vec4 aColor;
-in vec4 aParams;
-in vec3 aTextureLayers;
+// CPU side data is in CompositeInstance (gpu_types.rs) and is
+// converted to GPU data using desc::COMPOSITE (renderer.rs) by
+// filling vaos.composite_vao with VertexArrayKind::Composite.
+PER_INSTANCE in vec4 aDeviceRect;
+PER_INSTANCE in vec4 aDeviceClipRect;
+PER_INSTANCE in vec4 aColor;
+PER_INSTANCE in vec4 aParams;
+PER_INSTANCE in vec3 aTextureLayers;
 
 #ifdef WR_FEATURE_YUV
-in vec4 aUvRect0;
-in vec4 aUvRect1;
-in vec4 aUvRect2;
+// YUV treats these as a UV clip rect (clamp)
+PER_INSTANCE in vec4 aUvRect0;
+PER_INSTANCE in vec4 aUvRect1;
+PER_INSTANCE in vec4 aUvRect2;
+#else
+PER_INSTANCE in vec4 aUvRect0;
 #endif
 
 void main(void) {
@@ -51,13 +60,14 @@ void main(void) {
     float yuv_coefficient = aParams.w;
 
     vYuvColorMatrix = get_yuv_color_matrix(yuv_color_space);
+    vYuvOffsetVector = get_yuv_offset_vector(yuv_color_space);
     vYuvCoefficient = yuv_coefficient;
     vYuvFormat = yuv_format;
 
+    vYuvLayers = aTextureLayers.xyz;
     write_uv_rect(
         aUvRect0.xy,
         aUvRect0.zw,
-        aTextureLayers.x,
         uv,
         TEX_SIZE(sColor0),
         vUV_y,
@@ -66,7 +76,6 @@ void main(void) {
     write_uv_rect(
         aUvRect1.xy,
         aUvRect1.zw,
-        aTextureLayers.y,
         uv,
         TEX_SIZE(sColor1),
         vUV_u,
@@ -75,14 +84,29 @@ void main(void) {
     write_uv_rect(
         aUvRect2.xy,
         aUvRect2.zw,
-        aTextureLayers.z,
         uv,
         TEX_SIZE(sColor2),
         vUV_v,
         vUVBounds_v
     );
 #else
-    vUv = uv;
+    vUv = mix(aUvRect0.xy, aUvRect0.zw, uv);
+    // flip_y might have the UV rect "upside down", make sure
+    // clamp works correctly:
+    vUVBounds = vec4(aUvRect0.x, min(aUvRect0.y, aUvRect0.w),
+                     aUvRect0.z, max(aUvRect0.y, aUvRect0.w));
+    int rescale_uv = int(aParams.y);
+    if (rescale_uv == 1)
+    {
+        // using an atlas, so UVs are in pixels, and need to be
+        // normalized and clamped.
+        vec2 texture_size = TEX_SIZE(sColor0);
+        vUVBounds += vec4(0.5, 0.5, -0.5, -0.5);
+    #ifndef WR_FEATURE_TEXTURE_RECT
+        vUv /= texture_size;
+        vUVBounds /= texture_size.xyxy;
+    #endif
+    }
     // Pass through color and texture array layer
     vColor = aColor;
     vLayer = aTextureLayers.x;
@@ -98,7 +122,9 @@ void main(void) {
     vec4 color = sample_yuv(
         vYuvFormat,
         vYuvColorMatrix,
+        vYuvOffsetVector,
         vYuvCoefficient,
+        vYuvLayers,
         vUV_y,
         vUV_u,
         vUV_v,
@@ -108,9 +134,14 @@ void main(void) {
     );
 #else
     // The color is just the texture sample modulated by a supplied color
-	vec4 texel = textureLod(sColor0, vec3(vUv, vLayer), 0.0);
+    vec2 uv = clamp(vUv.xy, vUVBounds.xy, vUVBounds.zw);
+#   if defined(WR_FEATURE_TEXTURE_EXTERNAL) || defined(WR_FEATURE_TEXTURE_2D) || defined(WR_FEATURE_TEXTURE_RECT)
+    vec4 texel = TEX_SAMPLE(sColor0, vec3(uv, vLayer));
+#   else
+    vec4 texel = textureLod(sColor0, vec3(uv, vLayer), 0.0);
+#   endif
     vec4 color = vColor * texel;
 #endif
-	write_output(color);
+    write_output(color);
 }
 #endif

@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "FilterSupport.h"
+#include "FilterDescription.h"
 
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Filters.h"
@@ -15,6 +16,7 @@
 #include "gfxContext.h"
 #include "gfxPattern.h"
 #include "gfxPlatform.h"
+#include "gfxUtils.h"
 #include "gfx2DGlue.h"
 
 #include "nsMargin.h"
@@ -212,7 +214,7 @@ static already_AddRefed<FilterNode> GaussianBlur(DrawTarget* aDT,
 already_AddRefed<FilterNode> Clear(DrawTarget* aDT) {
   RefPtr<FilterNode> filter = aDT->CreateFilter(FilterType::FLOOD);
   if (filter) {
-    filter->SetAttribute(ATT_FLOOD_COLOR, Color(0, 0, 0, 0));
+    filter->SetAttribute(ATT_FLOOD_COLOR, DeviceColor());
     return filter.forget();
   }
   return nullptr;
@@ -777,7 +779,7 @@ static already_AddRefed<FilterNode> FilterNodeFromPrimitiveDescription(
     }
 
     already_AddRefed<FilterNode> operator()(const FloodAttributes& aFlood) {
-      Color color = aFlood.mColor;
+      DeviceColor color = ToDeviceColor(aFlood.mColor);
       RefPtr<FilterNode> filter = mDT->CreateFilter(FilterType::FLOOD);
       if (!filter) {
         return nullptr;
@@ -798,14 +800,18 @@ static already_AddRefed<FilterNode> FilterNodeFromPrimitiveDescription(
 
     already_AddRefed<FilterNode> operator()(
         const ComponentTransferAttributes& aComponentTransfer) {
-      RefPtr<FilterNode> filters[4];  // one for each FILTER_*_TRANSFER type
-      bool useRgb = aComponentTransfer.mTypes[kChannelG] ==
-                        SVG_FECOMPONENTTRANSFER_TYPE_UNKNOWN &&
-                    aComponentTransfer.mTypes[kChannelB] ==
-                        SVG_FECOMPONENTTRANSFER_TYPE_UNKNOWN;
+      MOZ_ASSERT(aComponentTransfer.mTypes[0] !=
+                 SVG_FECOMPONENTTRANSFER_SAME_AS_R);
+      MOZ_ASSERT(aComponentTransfer.mTypes[3] !=
+                 SVG_FECOMPONENTTRANSFER_SAME_AS_R);
 
+      RefPtr<FilterNode> filters[4];  // one for each FILTER_*_TRANSFER type
       for (int32_t i = 0; i < 4; i++) {
-        int32_t inputIndex = useRgb && i < 3 ? 0 : i;
+        int32_t inputIndex = (aComponentTransfer.mTypes[i] ==
+                              SVG_FECOMPONENTTRANSFER_SAME_AS_R) &&
+                                     (i < 3)
+                                 ? 0
+                                 : i;
         ConvertComponentTransferFunctionToFilter(aComponentTransfer, inputIndex,
                                                  i, mDT, filters[0], filters[1],
                                                  filters[2], filters[3]);
@@ -994,13 +1000,13 @@ static already_AddRefed<FilterNode> FilterNodeFromPrimitiveDescription(
       if (!flood) {
         return nullptr;
       }
-      Color color = aDropShadow.mColor;
+      sRGBColor color = aDropShadow.mColor;
       if (mDescription.InputColorSpace(0) == ColorSpace::LinearRGB) {
-        color = Color(gsRGBToLinearRGBMap[uint8_t(color.r * 255)],
-                      gsRGBToLinearRGBMap[uint8_t(color.g * 255)],
-                      gsRGBToLinearRGBMap[uint8_t(color.b * 255)], color.a);
+        color = sRGBColor(gsRGBToLinearRGBMap[uint8_t(color.r * 255)],
+                          gsRGBToLinearRGBMap[uint8_t(color.g * 255)],
+                          gsRGBToLinearRGBMap[uint8_t(color.b * 255)], color.a);
       }
-      flood->SetAttribute(ATT_FLOOD_COLOR, color);
+      flood->SetAttribute(ATT_FLOOD_COLOR, ToDeviceColor(color));
 
       RefPtr<FilterNode> composite = mDT->CreateFilter(FilterType::COMPOSITE);
       if (!composite) {
@@ -1064,7 +1070,7 @@ static already_AddRefed<FilterNode> FilterNodeFromPrimitiveDescription(
         return nullptr;
       }
 
-      filter->SetAttribute(ATT_LIGHTING_COLOR, aLighting.mColor);
+      filter->SetAttribute(ATT_LIGHTING_COLOR, ToDeviceColor(aLighting.mColor));
       filter->SetAttribute(ATT_LIGHTING_SURFACE_SCALE, aLighting.mSurfaceScale);
       filter->SetAttribute(ATT_LIGHTING_KERNEL_UNIT_LENGTH,
                            aLighting.mKernelUnitLength);

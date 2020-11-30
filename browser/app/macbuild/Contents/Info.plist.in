@@ -163,7 +163,7 @@
 		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
-	<string>replay</string>
+	<string>%MOZ_APP_NAME%</string>
 	<key>CFBundleGetInfoString</key>
 	<string>%MAC_APP_NAME% %APP_VERSION%</string>
 	<key>CFBundleIconFile</key>
@@ -237,8 +237,10 @@
 	<key>LSFileQuarantineEnabled</key>
 	<true/>
 	<key>LSMinimumSystemVersion</key>
-	<string>10.9.0</string>
+	<string>10.12.0</string>
   <key>NSSupportsAutomaticGraphicsSwitching</key>
+  <true/>
+  <key>NSRequiresAquaSystemAppearance</key>
   <true/>
   <key>NSPrincipalClass</key>
   <string>GeckoNSApplication</string>

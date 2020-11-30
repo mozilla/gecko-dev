@@ -10,10 +10,10 @@ Configurable preferences
 ### `remote.enabled`
 
 Indicates whether the remote agent is enabled.  When the remote
-agent is enabled, it exposes a [`--remote-debugger` flag] for Firefox.
+agent is enabled, it exposes a [`--remote-debugging-port` flag] for Firefox.
 When set to false, the remote agent will not be loaded on startup.
 
-[`--remote-debugger` flag]: Usage.html
+[`--remote-debugging` flag]: Usage.html
 
 ### `remote.force-local`
 
@@ -26,3 +26,7 @@ Defines the verbosity of the internal logger.  Available levels
 are, in descending order of severity, `Trace`, `Debug`, `Config`,
 `Info`, `Warn`, `Error`, and `Fatal`.  Note that the value is
 treated case-sensitively.
+
+### `remote.log.truncate`
+
+Defines whether long log messages should be truncated. Defaults to true.

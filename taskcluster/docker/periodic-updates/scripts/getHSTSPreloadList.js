@@ -26,7 +26,7 @@ const { FileUtils } = ChromeUtils.import(
 const SOURCE =
   "https://chromium.googlesource.com/chromium/src/net/+/master/http/transport_security_state_static.json?format=TEXT";
 const TOOL_SOURCE =
-  "https://hg.mozilla.org/mozilla-central/file/tip/taskcluster/docker/periodic-updates/scripts/getHSTSPreloadList.js";
+  "https://hg.mozilla.org/mozilla-central/file/default/taskcluster/docker/periodic-updates/scripts/getHSTSPreloadList.js";
 const OUTPUT = "nsSTSPreloadList.inc";
 const ERROR_OUTPUT = "nsSTSPreloadList.errors";
 const MINIMUM_REQUIRED_MAX_AGE = 60 * 60 * 24 * 7 * 18;
@@ -175,7 +175,7 @@ function RedirectAndAuthStopper() {}
 RedirectAndAuthStopper.prototype = {
   // nsIChannelEventSink
   asyncOnChannelRedirect(oldChannel, newChannel, flags, callback) {
-    throw new Error(Cr.NS_ERROR_ENTITY_CHANGED);
+    throw Components.Exception("", Cr.NS_ERROR_ENTITY_CHANGED);
   },
 
   // nsIAuthPrompt2
@@ -184,7 +184,7 @@ RedirectAndAuthStopper.prototype = {
   },
 
   asyncPromptAuth(channel, callback, context, level, authInfo) {
-    throw new Error(Cr.NS_ERROR_NOT_IMPLEMENTED);
+    throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
   },
 
   getInterface(iid) {
@@ -192,8 +192,8 @@ RedirectAndAuthStopper.prototype = {
   },
 
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIChannelEventSink,
-    Ci.nsIAuthPrompt2,
+    "nsIChannelEventSink",
+    "nsIAuthPrompt2",
   ]),
 };
 

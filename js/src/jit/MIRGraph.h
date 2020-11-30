@@ -10,14 +10,15 @@
 // This file declares the data structures used to build a control-flow graph
 // containing MIR.
 
+#include "jit/CompileInfo.h"
 #include "jit/FixedList.h"
+#include "jit/InlineScriptTree.h"
 #include "jit/JitAllocPolicy.h"
 #include "jit/MIR.h"
 
 namespace js {
 namespace jit {
 
-class BytecodeAnalysis;
 class MBasicBlock;
 class MIRGraph;
 class MStart;
@@ -419,7 +420,10 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock> {
     return instructions_.rbegin(at);
   }
   MInstructionReverseIterator rend() { return instructions_.rend(); }
+
   bool isLoopHeader() const { return kind_ == LOOP_HEADER; }
+  bool isPendingLoopHeader() const { return kind_ == PENDING_LOOP_HEADER; }
+
   bool hasUniqueBackedge() const {
     MOZ_ASSERT(isLoopHeader());
     MOZ_ASSERT(numPredecessors() >= 2);
@@ -562,6 +566,10 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock> {
   MBasicBlock* getSuccessor(size_t index) const {
     MOZ_ASSERT(lastIns());
     return lastIns()->getSuccessor(index);
+  }
+  MBasicBlock* getSingleSuccessor() const {
+    MOZ_ASSERT(numSuccessors() == 1);
+    return getSuccessor(0);
   }
   size_t getSuccessorIndex(MBasicBlock*) const;
   size_t getPredecessorIndex(MBasicBlock*) const;
@@ -780,6 +788,11 @@ class MIRGraph {
     blocks_.remove(block);
     blocks_.insertBefore(at, block);
   }
+  void moveBlockAfter(MBasicBlock* at, MBasicBlock* block) {
+    MOZ_ASSERT(block->id());
+    blocks_.remove(block);
+    blocks_.insertAfter(at, block);
+  }
   void removeBlockFromList(MBasicBlock* block) {
     blocks_.remove(block);
     numBlocks_--;
@@ -794,7 +807,11 @@ class MIRGraph {
     MOZ_ASSERT(!osrBlock_);
     osrBlock_ = osrBlock;
   }
-  MBasicBlock* osrBlock() { return osrBlock_; }
+  MBasicBlock* osrBlock() const { return osrBlock_; }
+
+  MBasicBlock* osrPreHeaderBlock() const {
+    return osrBlock() ? osrBlock()->getSingleSuccessor() : nullptr;
+  }
 
   bool hasTryBlock() const { return hasTryBlock_; }
   void setHasTryBlock() { hasTryBlock_ = true; }

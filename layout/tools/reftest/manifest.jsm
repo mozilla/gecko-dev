@@ -110,6 +110,7 @@ function ReadManifest(aURL, aFilter, aManifestID)
         var maxAsserts = 0;
         var needs_focus = false;
         var slow = false;
+        var skip = false;
         var testPrefSettings = defaultTestPrefSettings.concat();
         var refPrefSettings = defaultRefPrefSettings.concat();
         var fuzzy_delta = { min: 0, max: 2 };
@@ -227,7 +228,7 @@ function ReadManifest(aURL, aFilter, aManifestID)
                 } else if (stat == "random") {
                     expected_status = EXPECTED_RANDOM;
                 } else if (stat == "skip") {
-                    expected_status = EXPECTED_DEATH;
+                    skip = true;
                 } else if (stat == "silentfail") {
                     allow_silent_fail = true;
                 }
@@ -279,14 +280,14 @@ function ReadManifest(aURL, aFilter, aManifestID)
                 throw "Error in manifest file " + aURL.spec + " line " + lineNo + ": use of include with http";
 
             // If the expected_status is EXPECTED_PASS (the default) then allow
-            // the include. If it is EXPECTED_DEATH, that means there was a skip
+            // the include. If 'skip' is true, that means there was a skip
             // or skip-if annotation (with a true condition) on this include
             // statement, so we should skip the include. Any other expected_status
             // is disallowed since it's nonintuitive as to what the intended
             // effect is.
             if (nonSkipUsed) {
                 throw "Error in manifest file " + aURL.spec + " line " + lineNo + ": include statement with annotation other than 'skip' or 'skip-if'";
-            } else if (expected_status == EXPECTED_DEATH) {
+            } else if (skip) {
                 g.logger.info("Skipping included manifest at " + aURL.spec + " line " + lineNo + " due to matching skip condition");
             } else {
                 // poor man's assertion
@@ -335,7 +336,7 @@ function ReadManifest(aURL, aFilter, aManifestID)
             var type = items[0];
             if (items.length != 2)
                 throw "Error in manifest file " + aURL.spec + " line " + lineNo + ": incorrect number of arguments to " + type;
-            if (type == TYPE_LOAD && expected_status != EXPECTED_PASS && expected_status != EXPECTED_DEATH)
+            if (type == TYPE_LOAD && expected_status != EXPECTED_PASS)
                 throw "Error in manifest file " + aURL.spec + " line " + lineNo + ": incorrect known failure type for load test";
             AddTestItem({ type: type,
                           expected: expected_status,
@@ -346,6 +347,7 @@ function ReadManifest(aURL, aFilter, aManifestID)
                           maxAsserts: maxAsserts,
                           needsFocus: needs_focus,
                           slow: slow,
+                          skip: skip,
                           prefSettings1: testPrefSettings,
                           prefSettings2: refPrefSettings,
                           fuzzyMinDelta: fuzzy_delta.min,
@@ -383,7 +385,7 @@ function ReadManifest(aURL, aFilter, aManifestID)
                 // comparing the two failures, which is not a useful result.
                 if (expected_status === EXPECTED_FAIL ||
                     expected_status === EXPECTED_RANDOM) {
-                    expected_status = EXPECTED_DEATH;
+                    skip = true;
                 }
             }
 
@@ -396,6 +398,7 @@ function ReadManifest(aURL, aFilter, aManifestID)
                           maxAsserts: maxAsserts,
                           needsFocus: needs_focus,
                           slow: slow,
+                          skip: skip,
                           prefSettings1: testPrefSettings,
                           prefSettings2: refPrefSettings,
                           fuzzyMinDelta: fuzzy_delta.min,
@@ -438,6 +441,7 @@ function BuildConditionSandbox(aURL) {
     var xr = Cc[NS_XREAPPINFO_CONTRACTID].getService(Ci.nsIXULRuntime);
     var appInfo = Cc[NS_XREAPPINFO_CONTRACTID].getService(Ci.nsIXULAppInfo);
     sandbox.isDebugBuild = g.debug.isDebugBuild;
+    sandbox.isCoverageBuild = g.isCoverageBuild;
     var prefs = Cc["@mozilla.org/preferences-service;1"].
                 getService(Ci.nsIPrefBranch);
     var env = Cc["@mozilla.org/process/environment;1"].
@@ -462,9 +466,11 @@ function BuildConditionSandbox(aURL) {
     try {
       sandbox.d2d = readGfxInfo(gfxInfo, "D2DEnabled");
       sandbox.dwrite = readGfxInfo(gfxInfo, "DWriteEnabled");
+      sandbox.embeddedInFirefoxReality = readGfxInfo(gfxInfo, "EmbeddedInFirefoxReality");
     } catch (e) {
       sandbox.d2d = false;
       sandbox.dwrite = false;
+      sandbox.embeddedInFirefoxReality = false;
     }
 
     var info = gfxInfo.getInfo();
@@ -490,8 +496,10 @@ function BuildConditionSandbox(aURL) {
       g.windowUtils.layerManagerType == "Direct3D 9";
     sandbox.layersOpenGL =
       g.windowUtils.layerManagerType == "OpenGL";
+    sandbox.swgl =
+      g.windowUtils.layerManagerType == "WebRender (Software)";
     sandbox.webrender =
-      g.windowUtils.layerManagerType == "WebRender";
+      g.windowUtils.layerManagerType == "WebRender" || sandbox.swgl;
     sandbox.layersOMTC =
       g.windowUtils.layerManagerRemote == true;
     sandbox.advancedLayers =
@@ -545,8 +553,6 @@ function BuildConditionSandbox(aURL) {
     let retainedDisplayListsEnabled = prefs.getBoolPref("layout.display-list.retain", false);
     sandbox.retainedDisplayLists = retainedDisplayListsEnabled && !g.compareRetainedDisplayLists;
     sandbox.compareRetainedDisplayLists = g.compareRetainedDisplayLists;
-
-    sandbox.skiaPdf = false;
 
 #ifdef RELEASE_OR_BETA
     sandbox.release_or_beta = true;
@@ -606,7 +612,7 @@ function BuildConditionSandbox(aURL) {
     sandbox.verify = prefs.getBoolPref("reftest.verify", false);
 
     // Running with a variant enabled?
-    sandbox.fission = prefs.getBoolPref("fission.autostart", false);
+    sandbox.fission = Services.appinfo.fissionAutostart;
     sandbox.serviceWorkerE10s = prefs.getBoolPref("dom.serviceWorkers.parent_intercept", false);
 
     if (!g.dumpedConditionSandbox) {
@@ -712,9 +718,9 @@ function CreateUrls(test) {
             return file;
 
         var testURI = g.ioService.newURI(file, null, testbase);
-        let isChrome = testURI.scheme == "chrome";
-        let principal = isChrome ? secMan.getSystemPrincipal() :
-                                   secMan.createContentPrincipal(manifestURL, {});
+        let isChromeOrViewSource = testURI.scheme == "chrome" || testURI.scheme == "view-source";
+        let principal = isChromeOrViewSource ? secMan.getSystemPrincipal() :
+                                               secMan.createContentPrincipal(manifestURL, {});
         secMan.checkLoadURIWithPrincipal(principal, testURI,
                                          Ci.nsIScriptSecurityManager.DISALLOW_SCRIPT);
         return testURI;

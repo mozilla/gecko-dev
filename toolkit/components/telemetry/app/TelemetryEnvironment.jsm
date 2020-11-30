@@ -31,11 +31,6 @@ ChromeUtils.defineModuleGetter(
 );
 ChromeUtils.defineModuleGetter(
   this,
-  "ctypes",
-  "resource://gre/modules/ctypes.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
   "ProfileAge",
   "resource://gre/modules/ProfileAge.jsm"
 );
@@ -53,6 +48,11 @@ ChromeUtils.defineModuleGetter(
   this,
   "fxAccounts",
   "resource://gre/modules/FxAccounts.jsm"
+);
+ChromeUtils.defineModuleGetter(
+  this,
+  "WindowsVersionInfo",
+  "resource://gre/modules/components-utils/WindowsVersionInfo.jsm"
 );
 
 // The maximum length of a string (e.g. description) in the addons section.
@@ -237,7 +237,6 @@ const DEFAULT_ENVIRONMENT_PREFS = new Map([
   ["app.update.interval", { what: RECORD_PREF_VALUE }],
   ["app.update.service.enabled", { what: RECORD_PREF_VALUE }],
   ["app.update.silent", { what: RECORD_PREF_VALUE }],
-  ["app.update.url", { what: RECORD_PREF_VALUE }],
   ["browser.cache.disk.enable", { what: RECORD_PREF_VALUE }],
   ["browser.cache.disk.capacity", { what: RECORD_PREF_VALUE }],
   ["browser.cache.memory.enable", { what: RECORD_PREF_VALUE }],
@@ -251,8 +250,6 @@ const DEFAULT_ENVIRONMENT_PREFS = new Map([
   ["browser.search.widget.inNavBar", { what: RECORD_DEFAULTPREF_VALUE }],
   ["browser.startup.homepage", { what: RECORD_PREF_STATE }],
   ["browser.startup.page", { what: RECORD_PREF_VALUE }],
-  ["toolkit.cosmeticAnimations.enabled", { what: RECORD_PREF_VALUE }],
-  ["browser.urlbar.openViewOnFocus", { what: RECORD_PREF_VALUE }],
   ["browser.urlbar.suggest.searches", { what: RECORD_PREF_VALUE }],
   ["devtools.chrome.enabled", { what: RECORD_PREF_VALUE }],
   ["devtools.debugger.enabled", { what: RECORD_PREF_VALUE }],
@@ -264,15 +261,22 @@ const DEFAULT_ENVIRONMENT_PREFS = new Map([
   ["extensions.autoDisableScopes", { what: RECORD_PREF_VALUE }],
   ["extensions.enabledScopes", { what: RECORD_PREF_VALUE }],
   ["extensions.blocklist.enabled", { what: RECORD_PREF_VALUE }],
-  ["extensions.blocklist.url", { what: RECORD_PREF_VALUE }],
   ["extensions.formautofill.addresses.enabled", { what: RECORD_PREF_VALUE }],
+  [
+    "extensions.formautofill.addresses.capture.enabled",
+    { what: RECORD_PREF_VALUE },
+  ],
   ["extensions.formautofill.creditCards.enabled", { what: RECORD_PREF_VALUE }],
+  [
+    "extensions.formautofill.creditCards.available",
+    { what: RECORD_PREF_VALUE },
+  ],
+  ["extensions.formautofill.creditCards.used", { what: RECORD_PREF_VALUE }],
   ["extensions.strictCompatibility", { what: RECORD_PREF_VALUE }],
   ["extensions.update.enabled", { what: RECORD_PREF_VALUE }],
   ["extensions.update.url", { what: RECORD_PREF_VALUE }],
   ["extensions.update.background.url", { what: RECORD_PREF_VALUE }],
   ["extensions.screenshots.disabled", { what: RECORD_PREF_VALUE }],
-  ["fission.autostart", { what: RECORD_PREF_VALUE }],
   ["general.config.filename", { what: RECORD_DEFAULTPREF_STATE }],
   ["general.smoothScroll", { what: RECORD_PREF_VALUE }],
   ["gfx.direct2d.disabled", { what: RECORD_PREF_VALUE }],
@@ -316,6 +320,13 @@ const DEFAULT_ENVIRONMENT_PREFS = new Map([
   ["signon.autofillForms", { what: RECORD_PREF_VALUE }],
   ["signon.generation.enabled", { what: RECORD_PREF_VALUE }],
   ["signon.rememberSignons", { what: RECORD_PREF_VALUE }],
+  ["toolkit.telemetry.pioneerId", { what: RECORD_PREF_STATE }],
+  ["widget.content.allow-gtk-dark-theme", { what: RECORD_DEFAULTPREF_VALUE }],
+  ["widget.content.gtk-theme-override", { what: RECORD_PREF_STATE }],
+  [
+    "widget.content.gtk-high-contrast.enabled",
+    { what: RECORD_DEFAULTPREF_VALUE },
+  ],
   ["xpinstall.signatures.required", { what: RECORD_PREF_VALUE }],
 ]);
 
@@ -328,7 +339,6 @@ const PREF_DISTRIBUTOR = "app.distributor";
 const PREF_DISTRIBUTOR_CHANNEL = "app.distributor.channel";
 const PREF_APP_PARTNER_BRANCH = "app.partner.";
 const PREF_PARTNER_ID = "mozilla.partner.id";
-const PREF_SEARCH_COHORT = "browser.search.cohort";
 
 const COMPOSITOR_CREATED_TOPIC = "compositor:created";
 const COMPOSITOR_PROCESS_ABORTED_TOPIC = "compositor:process-aborted";
@@ -518,74 +528,6 @@ function getGfxAdapter(aSuffix = "") {
 }
 
 /**
- * Gets the service pack and build information on Windows platforms. The initial version
- * was copied from nsUpdateService.js.
- *
- * @return An object containing the service pack major and minor versions, along with the
- *         build number.
- */
-function getWindowsVersionInfo() {
-  const UNKNOWN_VERSION_INFO = {
-    servicePackMajor: null,
-    servicePackMinor: null,
-    buildNumber: null,
-  };
-
-  if (AppConstants.platform !== "win") {
-    return UNKNOWN_VERSION_INFO;
-  }
-
-  const BYTE = ctypes.uint8_t;
-  const WORD = ctypes.uint16_t;
-  const DWORD = ctypes.uint32_t;
-  const WCHAR = ctypes.char16_t;
-  const BOOL = ctypes.int;
-
-  // This structure is described at:
-  // http://msdn.microsoft.com/en-us/library/ms724833%28v=vs.85%29.aspx
-  const SZCSDVERSIONLENGTH = 128;
-  const OSVERSIONINFOEXW = new ctypes.StructType("OSVERSIONINFOEXW", [
-    { dwOSVersionInfoSize: DWORD },
-    { dwMajorVersion: DWORD },
-    { dwMinorVersion: DWORD },
-    { dwBuildNumber: DWORD },
-    { dwPlatformId: DWORD },
-    { szCSDVersion: ctypes.ArrayType(WCHAR, SZCSDVERSIONLENGTH) },
-    { wServicePackMajor: WORD },
-    { wServicePackMinor: WORD },
-    { wSuiteMask: WORD },
-    { wProductType: BYTE },
-    { wReserved: BYTE },
-  ]);
-
-  let kernel32 = ctypes.open("kernel32");
-  try {
-    let GetVersionEx = kernel32.declare(
-      "GetVersionExW",
-      ctypes.winapi_abi,
-      BOOL,
-      OSVERSIONINFOEXW.ptr
-    );
-    let winVer = OSVERSIONINFOEXW();
-    winVer.dwOSVersionInfoSize = OSVERSIONINFOEXW.size;
-
-    if (0 === GetVersionEx(winVer.address())) {
-      throw new Error("Failure in GetVersionEx (returned 0)");
-    }
-
-    return {
-      servicePackMajor: winVer.wServicePackMajor,
-      servicePackMinor: winVer.wServicePackMinor,
-      buildNumber: winVer.dwBuildNumber,
-    };
-  } catch (e) {
-    return UNKNOWN_VERSION_INFO;
-  } finally {
-    kernel32.close();
-  }
-}
-
-/**
  * Encapsulates the asynchronous magic interfacing with the addon manager. The builder
  * is owned by a parent environment object and is an addon listener.
  */
@@ -602,6 +544,9 @@ function EnvironmentAddonBuilder(environment) {
 
   // Set to true once initial load is complete and we're watching for changes.
   this._loaded = false;
+
+  // The state reported by the shutdown blocker if we hang shutdown.
+  this._shutdownState = "Initial";
 }
 EnvironmentAddonBuilder.prototype = {
   /**
@@ -609,27 +554,33 @@ EnvironmentAddonBuilder.prototype = {
    * @returns Promise<void> when the initial load is complete.
    */
   async init() {
-    AddonManager.beforeShutdown.addBlocker("EnvironmentAddonBuilder", () =>
-      this._shutdownBlocker()
+    AddonManager.beforeShutdown.addBlocker(
+      "EnvironmentAddonBuilder",
+      () => this._shutdownBlocker(),
+      { fetchState: () => this._shutdownState }
     );
 
     this._pendingTask = (async () => {
       try {
+        this._shutdownState = "Awaiting _updateAddons";
         // Gather initial addons details
         await this._updateAddons(true);
 
         if (!this._environment._addonsAreFull) {
           // The addon database has not been loaded, wait for it to
           // initialize and gather full data as soon as it does.
+          this._shutdownState = "Awaiting AddonManagerPrivate.databaseReady";
           await AddonManagerPrivate.databaseReady;
 
           // Now gather complete addons details.
+          this._shutdownState = "Awaiting second _updateAddons";
           await this._updateAddons();
         }
       } catch (err) {
         this._environment._log.error("init - Exception in _updateAddons", err);
       } finally {
         this._pendingTask = null;
+        this._shutdownState = "_pendingTask init complete. No longer blocking.";
       }
     })();
 
@@ -702,9 +653,11 @@ EnvironmentAddonBuilder.prototype = {
       return;
     }
 
+    this._shutdownState = "_checkForChanges awaiting _updateAddons";
     this._pendingTask = this._updateAddons().then(
       result => {
         this._pendingTask = null;
+        this._shutdownState = "No longer blocking, _updateAddons resolved";
         if (result.changed) {
           this._environment._onEnvironmentChange(
             changeReason,
@@ -714,6 +667,7 @@ EnvironmentAddonBuilder.prototype = {
       },
       err => {
         this._pendingTask = null;
+        this._shutdownState = "No longer blocking, _updateAddons rejected";
         this._environment._log.error(
           "_checkForChanges: Error collecting addons",
           err
@@ -1195,7 +1149,7 @@ EnvironmentCache.prototype = {
   },
 
   setExperimentActive(id, branch, options) {
-    this._log.trace("setExperimentActive");
+    this._log.trace(`setExperimentActive - id: ${id}, branch: ${branch}`);
     // Make sure both the id and the branch have sane lengths.
     const saneId = limitStringToLength(id, MAX_EXPERIMENT_ID_LENGTH);
     const saneBranch = limitStringToLength(
@@ -1356,7 +1310,7 @@ EnvironmentCache.prototype = {
     );
   },
 
-  QueryInterface: ChromeUtils.generateQI([Ci.nsISupportsWeakReference]),
+  QueryInterface: ChromeUtils.generateQI(["nsISupportsWeakReference"]),
 
   /**
    * Start watching the preferences.
@@ -1485,11 +1439,6 @@ EnvironmentCache.prototype = {
       return;
     }
 
-    if (!Services.search) {
-      // Just ignore cases where the search service is not implemented.
-      return;
-    }
-
     this._log.trace(
       "_updateSearchEngine - isInitialized: " + Services.search.isInitialized
     );
@@ -1515,13 +1464,6 @@ EnvironmentCache.prototype = {
       this._currentEnvironment.settings.defaultPrivateSearchEngineData = {
         ...defaultEngineInfo.defaultPrivateSearchEngineData,
       };
-    }
-
-    // Record the cohort identifier used for search defaults A/B testing.
-    if (Services.prefs.prefHasUserValue(PREF_SEARCH_COHORT)) {
-      const searchCohort = Services.prefs.getCharPref(PREF_SEARCH_COHORT);
-      this._currentEnvironment.settings.searchCohort = searchCohort;
-      TelemetryEnvironment.setExperimentActive("searchCohort", searchCohort);
     }
   },
 
@@ -1666,6 +1608,7 @@ EnvironmentCache.prototype = {
       ),
       e10sEnabled: Services.appinfo.browserTabsRemoteAutostart,
       e10sMultiProcesses: Services.appinfo.maxWebProcessCount,
+      fissionEnabled: Services.appinfo.fissionAutostart,
       telemetryEnabled: Utils.isTelemetryEnabled,
       locale: getBrowserLocale(),
       // We need to wait for browser-delayed-startup-finished to ensure that the locales
@@ -1969,7 +1912,7 @@ EnvironmentCache.prototype = {
       const WINDOWS_UBR_KEY_PATH =
         "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion";
 
-      let versionInfo = getWindowsVersionInfo();
+      let versionInfo = WindowsVersionInfo.get({ throwOnError: false });
       this._osData.servicePackMajor = versionInfo.servicePackMajor;
       this._osData.servicePackMinor = versionInfo.servicePackMinor;
       this._osData.windowsBuildNumber = versionInfo.buildNumber;
@@ -2043,6 +1986,7 @@ EnvironmentCache.prototype = {
       DWriteEnabled: getGfxField("DWriteEnabled", null),
       ContentBackend: getGfxField("ContentBackend", null),
       Headless: getGfxField("isHeadless", null),
+      EmbeddedInFirefoxReality: getGfxField("EmbeddedInFirefoxReality", null),
       // The following line is disabled due to main thread jank and will be enabled
       // again as part of bug 1154500.
       // DWriteVersion: getGfxField("DWriteVersion", null),

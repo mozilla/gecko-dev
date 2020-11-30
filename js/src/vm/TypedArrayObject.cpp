@@ -25,18 +25,21 @@
 
 #include "builtin/Array.h"
 #include "builtin/DataViewObject.h"
-#include "builtin/TypedObjectConstants.h"
+#include "builtin/TypedArrayConstants.h"
 #include "gc/Barrier.h"
 #include "gc/Marking.h"
 #include "gc/MaybeRooted.h"
 #include "jit/InlinableNatives.h"
 #include "js/Conversions.h"
+#include "js/experimental/TypedData.h"  // JS_GetArrayBufferViewType, JS_GetTypedArray{Length,ByteOffset,ByteLength}, JS_IsTypedArrayObject
 #include "js/PropertySpec.h"
+#include "js/ScalarType.h"  // js::Scalar::Type
 #include "js/UniquePtr.h"
 #include "js/Wrapper.h"
 #include "util/Text.h"
 #include "util/Windows.h"
 #include "vm/ArrayBufferObject.h"
+#include "vm/FunctionFlags.h"  // js::FunctionFlags
 #include "vm/GlobalObject.h"
 #include "vm/Interpreter.h"
 #include "vm/JSContext.h"
@@ -44,6 +47,7 @@
 #include "vm/PIC.h"
 #include "vm/SelfHosting.h"
 #include "vm/SharedMem.h"
+#include "vm/Uint8Clamped.h"
 #include "vm/WrapperObject.h"
 
 #include "gc/Nursery-inl.h"
@@ -90,6 +94,7 @@ bool TypedArrayObject::convertForSideEffect(JSContext* cx,
     }
     case Scalar::MaxTypedArrayViewType:
     case Scalar::Int64:
+    case Scalar::Simd128:
       MOZ_CRASH("Unsupported TypedArray type");
   }
   MOZ_ASSERT_UNREACHABLE("Invalid scalar type");
@@ -206,7 +211,7 @@ size_t TypedArrayObject::objectMoved(JSObject* obj, JSObject* old) {
 
   Nursery& nursery = obj->runtimeFromMainThread()->gc.nursery();
   if (!nursery.isInside(buf)) {
-    nursery.removeMallocedBuffer(buf);
+    nursery.removeMallocedBufferDuringMinorGC(buf);
     size_t nbytes = RoundUp(newObj->byteLength(), sizeof(Value));
     AddCellMemory(newObj, nbytes, MemoryUse::TypedArrayElements);
     return 0;
@@ -267,7 +272,7 @@ bool TypedArrayObject::hasInlineElements() const {
 }
 
 void TypedArrayObject::setInlineElements() {
-  char* dataSlot = reinterpret_cast<char*>(this) + this->dataOffset();
+  char* dataSlot = reinterpret_cast<char*>(this) + dataOffset();
   *reinterpret_cast<void**>(dataSlot) =
       this->fixedData(TypedArrayObject::FIXED_DATA_START);
 }
@@ -416,8 +421,12 @@ class TypedArrayObjectTemplate : public TypedArrayObject {
                                                   newKind);
     }
 
-    jsbytecode* pc;
-    RootedScript script(cx, cx->currentScript(&pc));
+    jsbytecode* pc = nullptr;
+    RootedScript script(cx);
+    if (IsTypeInferenceEnabled()) {
+      script = cx->currentScript(&pc);
+    }
+
     Rooted<TypedArrayObject*> obj(
         cx, newBuiltinClassInstance(cx, allocKind, GenericObject));
     if (!obj) {
@@ -479,8 +488,13 @@ class TypedArrayObjectTemplate : public TypedArrayObject {
     MOZ_ASSERT(allocKind >= gc::GetGCObjectKind(instanceClass()));
 
     AutoSetNewObjectMetadata metadata(cx);
-    jsbytecode* pc;
-    RootedScript script(cx, cx->currentScript(&pc));
+
+    jsbytecode* pc = nullptr;
+    RootedScript script(cx);
+    if (IsTypeInferenceEnabled()) {
+      script = cx->currentScript(&pc);
+    }
+
     Rooted<TypedArrayObject*> tarray(
         cx, newBuiltinClassInstance(cx, allocKind, TenuredObject));
     if (!tarray) {
@@ -525,7 +539,7 @@ class TypedArrayObjectTemplate : public TypedArrayObject {
       InitObjectPrivate(tarray, buf, nbytes, MemoryUse::TypedArrayElements);
     } else {
 #ifdef DEBUG
-      constexpr size_t dataOffset = TypedArrayObject::dataOffset();
+      constexpr size_t dataOffset = ArrayBufferViewObject::dataOffset();
       constexpr size_t offset = dataOffset + sizeof(HeapSlot);
       MOZ_ASSERT(offset + nbytes <= GetGCKindBytes(allocKind));
 #endif
@@ -2072,6 +2086,7 @@ bool TypedArrayObject::getElement<CanGC>(JSContext* cx, uint32_t index,
 #undef GET_ELEMENT
     case Scalar::MaxTypedArrayViewType:
     case Scalar::Int64:
+    case Scalar::Simd128:
       break;
   }
 
@@ -2096,6 +2111,7 @@ bool TypedArrayObject::getElementPure(uint32_t index, Value* vp) {
 #undef GET_ELEMENT
     case Scalar::MaxTypedArrayViewType:
     case Scalar::Int64:
+    case Scalar::Simd128:
       break;
   }
 
@@ -2123,6 +2139,7 @@ bool TypedArrayObject::getElements(JSContext* cx,
 #undef GET_ELEMENTS
     case Scalar::MaxTypedArrayViewType:
     case Scalar::Int64:
+    case Scalar::Simd128:
       break;
   }
 
@@ -2210,8 +2227,8 @@ const JSClass TypedArrayObject::classes[Scalar::MaxTypedArrayViewType] = {
 // above), but it's what we've always done, so keep doing it till we
 // implement @@toStringTag or ES6 changes.
 const JSClass TypedArrayObject::protoClasses[Scalar::MaxTypedArrayViewType] = {
-#define IMPL_TYPED_ARRAY_PROTO_CLASS(NativeType, Name)                      \
-  {#Name "ArrayPrototype", JSCLASS_HAS_CACHED_PROTO(JSProto_##Name##Array), \
+#define IMPL_TYPED_ARRAY_PROTO_CLASS(NativeType, Name)                       \
+  {#Name "Array.prototype", JSCLASS_HAS_CACHED_PROTO(JSProto_##Name##Array), \
    JS_NULL_CLASS_OPS, &TypedArrayObjectClassSpecs[Scalar::Type::Name]},
 
     JS_FOR_EACH_TYPED_ARRAY(IMPL_TYPED_ARRAY_PROTO_CLASS)
@@ -2238,33 +2255,18 @@ bool js::IsTypedArrayConstructor(const JSObject* obj) {
   return false;
 }
 
-bool js::IsTypedArrayConstructor(HandleValue v, uint32_t type) {
-  switch (type) {
-    case Scalar::Int8:
-      return IsNativeFunction(v, Int8Array::class_constructor);
-    case Scalar::Uint8:
-      return IsNativeFunction(v, Uint8Array::class_constructor);
-    case Scalar::Int16:
-      return IsNativeFunction(v, Int16Array::class_constructor);
-    case Scalar::Uint16:
-      return IsNativeFunction(v, Uint16Array::class_constructor);
-    case Scalar::Int32:
-      return IsNativeFunction(v, Int32Array::class_constructor);
-    case Scalar::Uint32:
-      return IsNativeFunction(v, Uint32Array::class_constructor);
-    case Scalar::BigInt64:
-      return IsNativeFunction(v, BigInt64Array::class_constructor);
-    case Scalar::BigUint64:
-      return IsNativeFunction(v, BigUint64Array::class_constructor);
-    case Scalar::Float32:
-      return IsNativeFunction(v, Float32Array::class_constructor);
-    case Scalar::Float64:
-      return IsNativeFunction(v, Float64Array::class_constructor);
-    case Scalar::Uint8Clamped:
-      return IsNativeFunction(v, Uint8ClampedArray::class_constructor);
-    case Scalar::MaxTypedArrayViewType:
-      break;
+bool js::IsTypedArrayConstructor(HandleValue v, Scalar::Type type) {
+  return IsNativeFunction(v, TypedArrayConstructorNative(type));
+}
+
+JSNative js::TypedArrayConstructorNative(Scalar::Type type) {
+#define TYPED_ARRAY_CONSTRUCTOR_NATIVE(T, N) \
+  if (type == Scalar::N) {                   \
+    return N##Array::class_constructor;      \
   }
+  JS_FOR_EACH_TYPED_ARRAY(TYPED_ARRAY_CONSTRUCTOR_NATIVE)
+#undef TYPED_ARRAY_CONSTRUCTOR_NATIVE
+
   MOZ_CRASH("unexpected typed array type");
 }
 
@@ -2495,6 +2497,7 @@ bool js::SetTypedArrayElement(JSContext* cx, Handle<TypedArrayObject*> obj,
 #undef SET_TYPED_ARRAY_ELEMENT
     case Scalar::MaxTypedArrayViewType:
     case Scalar::Int64:
+    case Scalar::Simd128:
       break;
   }
 
@@ -2554,6 +2557,7 @@ bool js::DefineTypedArrayElement(JSContext* cx, HandleObject obj,
 #undef DEFINE_TYPED_ARRAY_ELEMENT
       case Scalar::MaxTypedArrayViewType:
       case Scalar::Int64:
+      case Scalar::Simd128:
         break;
     }
 

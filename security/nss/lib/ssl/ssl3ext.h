@@ -77,6 +77,16 @@ struct TLSExtensionDataStr {
     SSLSignatureScheme *sigSchemes;
     unsigned int numSigSchemes;
 
+    /* Keep track of signature schemes that the remote peer supports for
+     * Delegated Credentials signatures, as well was those we have
+     * advertised (for purposes of validating any received DC).
+     * This list may not be the same as those supported for certificates.
+     * Only valid for TLS 1.3. */
+    SSLSignatureScheme *delegCredSigSchemes;
+    unsigned int numDelegCredSigSchemes;
+    SSLSignatureScheme *delegCredSigSchemesAdvertised;
+    unsigned int numDelegCredSigSchemesAdvertised;
+
     SECItem certReqContext;
     CERTDistNames certReqAuthorities;
 
@@ -124,6 +134,10 @@ struct TLSExtensionDataStr {
      * |tls13_MaybeSetDelegatedCredential|.
      */
     PRBool sendingDelegCredToPeer;
+
+    /* A non-owning reference to the selected PSKs. MUST NOT be freed directly,
+     * rather through tls13_DestoryPskList(). */
+    sslPsk *selectedPsk;
 };
 
 typedef struct TLSExtensionStr {

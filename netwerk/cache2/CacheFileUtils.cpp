@@ -195,6 +195,10 @@ void AppendKeyPrefix(nsILoadContextInfo* aInfo, nsACString& _retval) {
    * Keep the attributes list sorted according their ASCII code.
    */
 
+  if (!aInfo) {
+    return;
+  }
+
   OriginAttributes const* oa = aInfo->OriginAttributesPtr();
   nsAutoCString suffix;
   oa->CreateSuffix(suffix);
@@ -223,8 +227,7 @@ void AppendTagWithValue(nsACString& aTarget, char const aTag,
       aTarget.Append(aValue);
     } else {
       nsAutoCString escapedValue(aValue);
-      escapedValue.ReplaceSubstring(NS_LITERAL_CSTRING(","),
-                                    NS_LITERAL_CSTRING(",,"));
+      escapedValue.ReplaceSubstring(","_ns, ",,"_ns);
       aTarget.Append(escapedValue);
     }
   }

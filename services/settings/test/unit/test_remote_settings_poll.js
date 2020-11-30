@@ -9,8 +9,8 @@ const { setTimeout } = ChromeUtils.import("resource://gre/modules/Timer.jsm");
 const { UptakeTelemetry } = ChromeUtils.import(
   "resource://services-common/uptake-telemetry.js"
 );
-const { Kinto } = ChromeUtils.import(
-  "resource://services-common/kinto-offline-client.js"
+const { RemoteSettingsClient } = ChromeUtils.import(
+  "resource://services-settings/RemoteSettingsClient.jsm"
 );
 const { pushBroadcastService } = ChromeUtils.import(
   "resource://gre/modules/PushBroadcastService.jsm"
@@ -33,7 +33,6 @@ const PREF_LAST_UPDATE = "services.settings.last_update_seconds";
 const PREF_LAST_ETAG = "services.settings.last_etag";
 const PREF_CLOCK_SKEW_SECONDS = "services.settings.clock_skew_seconds";
 
-const DB_NAME = "remote-settings";
 // Telemetry report result.
 const TELEMETRY_HISTOGRAM_POLL_KEY = "settings-changes-monitoring";
 const TELEMETRY_HISTOGRAM_SYNC_KEY = "settings-sync";
@@ -688,6 +687,31 @@ add_task(async function test_server_error() {
 });
 add_task(clear_state);
 
+add_task(async function test_server_error_5xx() {
+  const startHistogram = getUptakeTelemetrySnapshot(
+    TELEMETRY_HISTOGRAM_POLL_KEY
+  );
+
+  function simulateErrorResponse(request, response) {
+    response.setHeader("Date", new Date(3000).toUTCString());
+    response.setHeader("Content-Type", "text/html; charset=UTF-8");
+    response.write("<html></html>");
+    response.setStatusLine(null, 504, "Gateway Timeout");
+  }
+  server.registerPathHandler(CHANGES_PATH, simulateErrorResponse);
+
+  try {
+    await RemoteSettings.pollChanges();
+  } catch (e) {}
+
+  const endHistogram = getUptakeTelemetrySnapshot(TELEMETRY_HISTOGRAM_POLL_KEY);
+  const expectedIncrements = {
+    [UptakeTelemetry.STATUS.SERVER_ERROR]: 1,
+  };
+  checkUptakeTelemetry(startHistogram, endHistogram, expectedIncrements);
+});
+add_task(clear_state);
+
 add_task(async function test_client_error() {
   const startHistogram = getUptakeTelemetrySnapshot(
     TELEMETRY_HISTOGRAM_SYNC_KEY
@@ -916,12 +940,12 @@ add_task(async function test_syncs_clients_with_local_database() {
   // This simulates what remote-settings would do when initializing a local database.
   // We don't want to instantiate a client using the RemoteSettings() API
   // since we want to test «unknown» clients that have a local database.
-  await new Kinto.adapters.IDB("blocklists/addons", {
-    dbName: DB_NAME,
-  }).saveLastModified(42);
-  await new Kinto.adapters.IDB("main/recipes", {
-    dbName: DB_NAME,
-  }).saveLastModified(43);
+  new RemoteSettingsClient("addons", {
+    bucketNamePref: "services.blocklist.bucket", // bucketName = "blocklists"
+  }).db.importChanges({}, 42);
+  new RemoteSettingsClient("recipes", {
+    bucketNamePref: "services.settings.default_bucket", // bucketName = "main"
+  }).db.importChanges({}, 43);
 
   let error;
   try {

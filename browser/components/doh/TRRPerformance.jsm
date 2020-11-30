@@ -59,28 +59,16 @@ XPCOMUtils.defineLazyServiceGetter(
 );
 
 // The list of participating TRRs.
-XPCOMUtils.defineLazyPreferenceGetter(
-  this,
-  "kTRRs",
-  "doh-rollout.trrRace.trrList",
-  null,
-  null,
-  val =>
-    val
-      ? val.split(",").map(t => t.trim())
-      : [
-          "https://mozilla.cloudflare-dns.com/dns-query",
-          "https://trr.dns.nextdns.io/",
-          "https://doh.xfinity.com/dns-query",
-        ]
-);
+const kTRRs = JSON.parse(
+  Services.prefs.getDefaultBranch("").getCharPref("network.trr.resolvers")
+).map(trr => trr.url);
 
 // The canonical domain whose subdomains we will be resolving.
 XPCOMUtils.defineLazyPreferenceGetter(
   this,
   "kCanonicalDomain",
   "doh-rollout.trrRace.canonicalDomain",
-  "firefox-dns-perf-test.net"
+  "firefox-dns-perf-test.net."
 );
 
 // The number of random subdomains to resolve per TRR.
@@ -101,7 +89,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
   val =>
     val
       ? val.split(",").map(t => t.trim())
-      : ["google.com", "youtube.com", "amazon.com", "facebook.com", "yahoo.com"]
+      : [
+          "google.com.",
+          "youtube.com.",
+          "amazon.com.",
+          "facebook.com.",
+          "yahoo.com.",
+        ]
 );
 
 function getRandomSubdomain() {
@@ -128,10 +122,11 @@ class DNSLookup {
     this.retryCount++;
     try {
       this.usedDomain = this._domain || getRandomSubdomain();
-      gDNSService.asyncResolveWithTrrServer(
+      gDNSService.asyncResolve(
         this.usedDomain,
-        this.trrServer,
+        Ci.nsIDNSService.RESOLVE_TYPE_DEFAULT,
         Ci.nsIDNSService.RESOLVE_BYPASS_CACHE,
+        gDNSService.newTRRResolverInfo(this.trrServer),
         this,
         Services.tm.currentThread,
         {}
@@ -153,9 +148,7 @@ class DNSLookup {
   }
 }
 
-DNSLookup.prototype.QueryInterface = ChromeUtils.generateQI([
-  Ci.nsIDNSListener,
-]);
+DNSLookup.prototype.QueryInterface = ChromeUtils.generateQI(["nsIDNSListener"]);
 
 // A wrapper around a single set of measurements. The required lookups are
 // triggered and the results aggregated before telemetry is sent. If aborted,
@@ -195,7 +188,10 @@ class LookupAggregator {
               domain: usedDomain,
               trr,
               status,
-              time: record ? record.trrFetchDurationNetworkOnly : -1,
+              time: record
+                ? record.QueryInterface(Ci.nsIDNSAddrRecord)
+                    .trrFetchDurationNetworkOnly
+                : -1,
               retryCount,
             });
 
@@ -260,9 +256,11 @@ class LookupAggregator {
 // spawned next time we get a link, up to 5 times. On the fifth time, we just
 // let the aggegator complete and mark it as tainted.
 class TRRRacer {
-  constructor() {
+  constructor(onCompleteCallback) {
     this._aggregator = null;
     this._retryCount = 0;
+    this._complete = false;
+    this._onCompleteCallback = onCompleteCallback;
   }
 
   run() {
@@ -285,7 +283,85 @@ class TRRRacer {
   onComplete() {
     Services.obs.removeObserver(this, "ipc:network:captive-portal-set-state");
     Services.obs.removeObserver(this, "network:link-status-changed");
-    Services.prefs.setBoolPref("doh-rollout.trrRace.complete", true);
+
+    this._complete = true;
+
+    if (this._onCompleteCallback) {
+      this._onCompleteCallback();
+    }
+  }
+
+  getFastestTRR(returnRandomDefault = false) {
+    if (!this._complete) {
+      throw new Error("getFastestTRR: Measurement still running.");
+    }
+
+    return this._getFastestTRRFromResults(
+      this._aggregator.results,
+      returnRandomDefault
+    );
+  }
+
+  /*
+   * Given an array of { trr, time }, returns the trr with smallest mean time.
+   * Separate from _getFastestTRR for easy unit-testing.
+   *
+   * @returns The TRR with the fastest average time.
+   *          If returnRandomDefault is false-y, returns undefined if no valid
+   *          times were present in the results. Otherwise, returns one of the
+   *          present TRRs at random.
+   */
+  _getFastestTRRFromResults(results, returnRandomDefault = false) {
+    // First, organize the results into a map of TRR -> array of times
+    let TRRTimingMap = new Map();
+    let TRRErrorCount = new Map();
+    for (let { trr, time } of results) {
+      if (!TRRTimingMap.has(trr)) {
+        TRRTimingMap.set(trr, []);
+      }
+      if (time != -1) {
+        TRRTimingMap.get(trr).push(time);
+      } else {
+        TRRErrorCount.set(trr, 1 + (TRRErrorCount.get(trr) || 0));
+      }
+    }
+
+    // Loop through each TRR's array of times, compute the geometric means,
+    // and remember the fastest TRR. Geometric mean is a bit more forgiving
+    // in the presence of noise (anomalously high values).
+    // We don't need the full geometric mean, we simply calculate the arithmetic
+    // means in log-space and then compare those values.
+    let fastestTRR;
+    let fastestAverageTime = -1;
+    let trrs = [...TRRTimingMap.keys()];
+    for (let trr of trrs) {
+      let times = TRRTimingMap.get(trr);
+      if (!times.length) {
+        continue;
+      }
+
+      // Skip TRRs that had an error rate of more than 30%.
+      let errorCount = TRRErrorCount.get(trr) || 0;
+      let totalResults = times.length + errorCount;
+      if (errorCount / totalResults > 0.3) {
+        continue;
+      }
+
+      // Arithmetic mean in log space. Take log of (a + 1) to ensure we never
+      // take log(0) which would be -Infinity.
+      let averageTime =
+        times.map(a => Math.log(a + 1)).reduce((a, b) => a + b) / times.length;
+      if (fastestAverageTime == -1 || averageTime < fastestAverageTime) {
+        fastestAverageTime = averageTime;
+        fastestTRR = trr;
+      }
+    }
+
+    if (returnRandomDefault && !fastestTRR) {
+      fastestTRR = trrs[Math.floor(Math.random() * trrs.length)];
+    }
+
+    return fastestTRR;
   }
 
   _runNewAggregator() {

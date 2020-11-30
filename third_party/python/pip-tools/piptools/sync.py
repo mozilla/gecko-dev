@@ -4,8 +4,10 @@ import sys
 import tempfile
 from subprocess import check_call  # nosec
 
+from pip._internal.commands.freeze import DEV_PKGS
+from pip._internal.utils.compat import stdlib_pkgs
+
 from . import click
-from ._compat import DEV_PKGS, stdlib_pkgs
 from .exceptions import IncompatibleRequirements
 from .utils import (
     flat_map,
@@ -80,18 +82,19 @@ def merge(requirements, ignore_conflicts):
         # Limitation: URL requirements are merged by precise string match, so
         # "file:///example.zip#egg=example", "file:///example.zip", and
         # "example==1.0" will not merge with each other
-        key = key_from_ireq(ireq)
+        if ireq.match_markers():
+            key = key_from_ireq(ireq)
 
-        if not ignore_conflicts:
-            existing_ireq = by_key.get(key)
-            if existing_ireq:
-                # NOTE: We check equality here since we can assume that the
-                # requirements are all pinned
-                if ireq.specifier != existing_ireq.specifier:
-                    raise IncompatibleRequirements(ireq, existing_ireq)
+            if not ignore_conflicts:
+                existing_ireq = by_key.get(key)
+                if existing_ireq:
+                    # NOTE: We check equality here since we can assume that the
+                    # requirements are all pinned
+                    if ireq.specifier != existing_ireq.specifier:
+                        raise IncompatibleRequirements(ireq, existing_ireq)
 
-        # TODO: Always pick the largest specifier in case of a conflict
-        by_key[key] = ireq
+            # TODO: Always pick the largest specifier in case of a conflict
+            by_key[key] = ireq
     return by_key.values()
 
 
@@ -144,39 +147,59 @@ def diff(compiled_requirements, installed_dists):
     return (to_install, to_uninstall)
 
 
-def sync(to_install, to_uninstall, verbose=False, dry_run=False, install_flags=None):
+def sync(
+    to_install,
+    to_uninstall,
+    verbose=False,
+    dry_run=False,
+    install_flags=None,
+    ask=False,
+):
     """
     Install and uninstalls the given sets of modules.
     """
+    exit_code = 0
+
     if not to_uninstall and not to_install:
         if verbose:
             click.echo("Everything up-to-date")
-        return 0
+        return exit_code
 
     pip_flags = []
     if not verbose:
         pip_flags += ["-q"]
 
-    if to_uninstall:
-        if dry_run:
+    if ask:
+        dry_run = True
+
+    if dry_run:
+        if to_uninstall:
             click.echo("Would uninstall:")
-            for pkg in to_uninstall:
+            for pkg in sorted(to_uninstall):
                 click.echo("  {}".format(pkg))
-        else:
+
+        if to_install:
+            click.echo("Would install:")
+            for ireq in sorted(to_install, key=key_from_ireq):
+                click.echo("  {}".format(format_requirement(ireq)))
+
+        exit_code = 1
+
+    if ask and click.confirm("Would you like to proceed with these changes?"):
+        dry_run = False
+        exit_code = 0
+
+    if not dry_run:
+        if to_uninstall:
             check_call(  # nosec
                 [sys.executable, "-m", "pip", "uninstall", "-y"]
                 + pip_flags
                 + sorted(to_uninstall)
             )
 
-    if to_install:
-        if install_flags is None:
-            install_flags = []
-        if dry_run:
-            click.echo("Would install:")
-            for ireq in to_install:
-                click.echo("  {}".format(format_requirement(ireq)))
-        else:
+        if to_install:
+            if install_flags is None:
+                install_flags = []
             # prepare requirement lines
             req_lines = []
             for ireq in sorted(to_install, key=key_from_ireq):
@@ -197,4 +220,4 @@ def sync(to_install, to_uninstall, verbose=False, dry_run=False, install_flags=N
             finally:
                 os.unlink(tmp_req_file.name)
 
-    return 0
+    return exit_code

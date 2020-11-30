@@ -32,7 +32,7 @@ var prefs = Cc["@mozilla.org/preferences-service;1"].getService(
  */
 function TestProtocolHandler() {}
 TestProtocolHandler.prototype = {
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIProtocolHandler]),
+  QueryInterface: ChromeUtils.generateQI(["nsIProtocolHandler"]),
   scheme: "moz-test",
   defaultPort: -1,
   protocolFlags:
@@ -41,7 +41,7 @@ TestProtocolHandler.prototype = {
     Ci.nsIProtocolHandler.ALLOWS_PROXY |
     Ci.nsIProtocolHandler.URI_DANGEROUS_TO_LOAD,
   newChannel(uri, aLoadInfo) {
-    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+    throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
   },
   allowPort(port, scheme) {
     return true;
@@ -97,8 +97,8 @@ TestFilter.prototype = {
   _port: -1,
   _flags: 0,
   _timeout: 0,
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIProtocolProxyFilter]),
-  applyFilter(pps, uri, pi, cb) {
+  QueryInterface: ChromeUtils.generateQI(["nsIProtocolProxyFilter"]),
+  applyFilter(uri, pi, cb) {
     var pi_tail = pps.newProxyInfo(
       this._type,
       this._host,
@@ -120,8 +120,8 @@ TestFilter.prototype = {
 
 function BasicFilter() {}
 BasicFilter.prototype = {
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIProtocolProxyFilter]),
-  applyFilter(pps, uri, pi, cb) {
+  QueryInterface: ChromeUtils.generateQI(["nsIProtocolProxyFilter"]),
+  applyFilter(uri, pi, cb) {
     cb.onProxyFilterResult(
       pps.newProxyInfo(
         "http",
@@ -139,8 +139,8 @@ BasicFilter.prototype = {
 
 function BasicChannelFilter() {}
 BasicChannelFilter.prototype = {
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIProtocolProxyChannelFilter]),
-  applyFilter(pps, channel, pi, cb) {
+  QueryInterface: ChromeUtils.generateQI(["nsIProtocolProxyChannelFilter"]),
+  applyFilter(channel, pi, cb) {
     cb.onProxyFilterResult(
       pps.newProxyInfo(
         "http",
@@ -160,7 +160,7 @@ function resolveCallback() {}
 resolveCallback.prototype = {
   nextFunction: null,
 
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIProtocolProxyCallback]),
+  QueryInterface: ChromeUtils.generateQI(["nsIProtocolProxyCallback"]),
 
   onProxyAvailable(req, channel, pi, status) {
     this.nextFunction(pi);
@@ -471,7 +471,7 @@ function TestResolveCallback(type, nexttest) {
   this.nexttest = nexttest;
 }
 TestResolveCallback.prototype = {
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIProtocolProxyCallback]),
+  QueryInterface: ChromeUtils.generateQI(["nsIProtocolProxyCallback"]),
 
   onProxyAvailable: function TestResolveCallback_onProxyAvailable(
     req,
@@ -673,7 +673,7 @@ function finish_pac_test() {
 
 function TestResolveCancelationCallback() {}
 TestResolveCancelationCallback.prototype = {
-  QueryInterface: ChromeUtils.generateQI([Ci.nsIProtocolProxyCallback]),
+  QueryInterface: ChromeUtils.generateQI(["nsIProtocolProxyCallback"]),
 
   onProxyAvailable: function TestResolveCancelationCallback_onProxyAvailable(
     req,

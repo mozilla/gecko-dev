@@ -4,14 +4,17 @@
 
 import os
 import signal
+import six
 import re
 import subprocess
 from collections import namedtuple
+from distutils.version import StrictVersion
 
 from mozfile import which
 from mozlint import result
 from mozlint.pathutils import expand_exclusions
 from mozprocess import ProcessHandler
+
 
 RUSTFMT_NOT_FOUND = """
 Could not find rustfmt! Install rustfmt and try again.
@@ -29,9 +32,11 @@ Try to install it manually with:
 """.strip()
 
 
-RUSTFMT_DEPRECATED_VERSION = """
-You are probably using the old 'rustfmt' program.
-Please use rustfmt-nightly (https://crates.io/crates/rustfmt-nightly)
+RUSTFMT_WRONG_VERSION = """
+You are probably using an old version of rustfmt.
+Expected version is {version}.
+Try to update it:
+    $ rustup update stable
 """.strip()
 
 
@@ -43,7 +48,7 @@ def parse_issues(config, output, paths):
     line_no = 0
     diff = ""
     for line in output:
-        line = line.decode("utf-8")
+        line = six.ensure_text(line)
         match = diff_line.match(line)
         if match:
             if diff:
@@ -106,28 +111,26 @@ def get_rustfmt_binary():
     return which("rustfmt")
 
 
-def is_old_rustfmt(binary):
+def get_rustfmt_version(binary):
     """
-    Check if we are running the deprecated rustfmt
+    Returns found binary's version
     """
     try:
         output = subprocess.check_output(
-            [binary, " --version"],
+            [binary, "--version"],
             stderr=subprocess.STDOUT,
             universal_newlines=True,
         )
     except subprocess.CalledProcessError as e:
         output = e.output
 
-    if "This version of rustfmt is deprecated" in output:
-        return True
-
-    return False
+    version = re.findall(r"\d.\d+.\d+", output)[0]
+    return StrictVersion(version)
 
 
 def lint(paths, config, fix=None, **lintargs):
-    log = lintargs['log']
-    paths = list(expand_exclusions(paths, config, lintargs['root']))
+    log = lintargs["log"]
+    paths = list(expand_exclusions(paths, config, lintargs["root"]))
 
     # An empty path array can occur when the user passes in `-n`. If we don't
     # return early in this case, rustfmt will attempt to read stdin and hang.
@@ -136,21 +139,30 @@ def lint(paths, config, fix=None, **lintargs):
 
     binary = get_rustfmt_binary()
 
-    if is_old_rustfmt(binary):
-        print(RUSTFMT_DEPRECATED_VERSION)
-        return 1
-
     if not binary:
         print(RUSTFMT_NOT_FOUND)
         if "MOZ_AUTOMATION" in os.environ:
             return 1
         return []
 
+    min_version_str = config.get("min_rustfmt_version")
+    min_version = StrictVersion(min_version_str)
+    actual_version = get_rustfmt_version(binary)
+    log.debug(
+        "Found version: {}. Minimal expected version: {}".format(
+            actual_version, min_version
+        )
+    )
+
+    if actual_version < min_version:
+        print(RUSTFMT_WRONG_VERSION.format(version=min_version_str))
+        return 1
+
     cmd_args = [binary]
     if not fix:
         cmd_args.append("--check")
     base_command = cmd_args + paths
-    log.debug("Command: {}".format(' '.join(cmd_args)))
+    log.debug("Command: {}".format(" ".join(cmd_args)))
     output = run_process(config, base_command)
 
     if fix:

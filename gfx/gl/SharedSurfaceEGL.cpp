@@ -10,159 +10,119 @@
 #include "GLContextProvider.h"
 #include "GLLibraryEGL.h"
 #include "GLReadTexImageHelper.h"
+#include "MozFramebuffer.h"
 #include "mozilla/layers/LayersSurfaces.h"  // for SurfaceDescriptor, etc
 #include "SharedSurface.h"
+
+#if defined(MOZ_WIDGET_ANDROID)
+#  include "AndroidNativeWindow.h"
+#  include "mozilla/java/SurfaceAllocatorWrappers.h"
+#  include "mozilla/java/GeckoSurfaceTextureWrappers.h"
+#endif  // defined(MOZ_WIDGET_ANDROID)
 
 namespace mozilla {
 namespace gl {
 
+static bool HasEglImageExtensions(const GLContextEGL& gl) {
+  const auto& egl = *(gl.mEgl);
+  return egl.HasKHRImageBase() &&
+         egl.IsExtensionSupported(EGLExtension::KHR_gl_texture_2D_image) &&
+         (gl.IsExtensionSupported(GLContext::OES_EGL_image_external) ||
+          gl.IsExtensionSupported(GLContext::OES_EGL_image));
+}
+
+/*static*/
+UniquePtr<SurfaceFactory_EGLImage> SurfaceFactory_EGLImage::Create(
+    GLContext& gl_) {
+  auto& gl = *GLContextEGL::Cast(&gl_);
+  if (!HasEglImageExtensions(gl)) return nullptr;
+
+  const auto partialDesc = PartialSharedSurfaceDesc{
+      &gl, SharedSurfaceType::EGLImageShare, layers::TextureType::EGLImage,
+      false,  // Can't recycle, as mSync changes never update TextureHost.
+  };
+  return AsUnique(new SurfaceFactory_EGLImage(partialDesc));
+}
+
+// -
+
 /*static*/
 UniquePtr<SharedSurface_EGLImage> SharedSurface_EGLImage::Create(
-    GLContext* prodGL, const GLFormats& formats, const gfx::IntSize& size,
-    bool hasAlpha, EGLContext context) {
-  const auto& gle = GLContextEGL::Cast(prodGL);
-  const auto& egl = gle->mEgl;
-  MOZ_ASSERT(egl);
-  MOZ_ASSERT(context);
+    const SharedSurfaceDesc& desc) {
+  const auto& gle = GLContextEGL::Cast(desc.gl);
+  const auto& context = gle->mContext;
+  const auto& egl = *(gle->mEgl);
 
-  UniquePtr<SharedSurface_EGLImage> ret;
+  auto fb = MozFramebuffer::Create(desc.gl, desc.size, 0, false);
+  if (!fb) return nullptr;
 
-  if (!HasExtensions(egl, prodGL)) {
-    return ret;
-  }
+  const auto buffer = reinterpret_cast<EGLClientBuffer>(fb->ColorTex());
+  const auto image =
+      egl.fCreateImage(context, LOCAL_EGL_GL_TEXTURE_2D, buffer, nullptr);
+  if (!image) return nullptr;
 
-  MOZ_ALWAYS_TRUE(prodGL->MakeCurrent());
-  GLuint prodTex = CreateTextureForOffscreen(prodGL, formats, size);
-  if (!prodTex) {
-    return ret;
-  }
-
-  EGLClientBuffer buffer =
-      reinterpret_cast<EGLClientBuffer>(uintptr_t(prodTex));
-  EGLImage image = egl->fCreateImage(egl->Display(), context,
-                                     LOCAL_EGL_GL_TEXTURE_2D, buffer, nullptr);
-  if (!image) {
-    prodGL->fDeleteTextures(1, &prodTex);
-    return ret;
-  }
-
-  ret.reset(new SharedSurface_EGLImage(prodGL, size, hasAlpha, formats, prodTex,
-                                       image));
-  return ret;
+  return AsUnique(new SharedSurface_EGLImage(desc, std::move(fb), image));
 }
 
-bool SharedSurface_EGLImage::HasExtensions(GLLibraryEGL* egl, GLContext* gl) {
-  return egl->HasKHRImageBase() &&
-         egl->IsExtensionSupported(GLLibraryEGL::KHR_gl_texture_2D_image) &&
-         (gl->IsExtensionSupported(GLContext::OES_EGL_image_external) ||
-          gl->IsExtensionSupported(GLContext::OES_EGL_image));
-}
-
-SharedSurface_EGLImage::SharedSurface_EGLImage(GLContext* gl,
-                                               const gfx::IntSize& size,
-                                               bool hasAlpha,
-                                               const GLFormats& formats,
-                                               GLuint prodTex, EGLImage image)
-    : SharedSurface(
-          SharedSurfaceType::EGLImageShare, AttachmentType::GLTexture, gl, size,
-          hasAlpha,
-          false)  // Can't recycle, as mSync changes never update TextureHost.
-      ,
+SharedSurface_EGLImage::SharedSurface_EGLImage(const SharedSurfaceDesc& desc,
+                                               UniquePtr<MozFramebuffer>&& fb,
+                                               const EGLImage image)
+    : SharedSurface(desc, std::move(fb)),
       mMutex("SharedSurface_EGLImage mutex"),
-      mFormats(formats),
-      mProdTex(prodTex),
-      mImage(image),
-      mSync(0) {}
+      mImage(image) {}
 
 SharedSurface_EGLImage::~SharedSurface_EGLImage() {
-  const auto& gle = GLContextEGL::Cast(mGL);
+  const auto& gle = GLContextEGL::Cast(mDesc.gl);
   const auto& egl = gle->mEgl;
-  egl->fDestroyImage(egl->Display(), mImage);
+  egl->fDestroyImage(mImage);
 
   if (mSync) {
     // We can't call this unless we have the ext, but we will always have
     // the ext if we have something to destroy.
-    egl->fDestroySync(egl->Display(), mSync);
+    egl->fDestroySync(mSync);
     mSync = 0;
   }
-
-  if (!mGL || !mGL->MakeCurrent()) return;
-
-  mGL->fDeleteTextures(1, &mProdTex);
-  mProdTex = 0;
 }
 
 void SharedSurface_EGLImage::ProducerReleaseImpl() {
-  const auto& gle = GLContextEGL::Cast(mGL);
-  const auto& egl = gle->mEgl;
+  const auto& gl = GLContextEGL::Cast(mDesc.gl);
+  const auto& egl = gl->mEgl;
 
   MutexAutoLock lock(mMutex);
-  mGL->MakeCurrent();
+  gl->MakeCurrent();
 
-  if (egl->IsExtensionSupported(GLLibraryEGL::KHR_fence_sync) &&
-      mGL->IsExtensionSupported(GLContext::OES_EGL_sync)) {
+  if (egl->IsExtensionSupported(EGLExtension::KHR_fence_sync) &&
+      gl->IsExtensionSupported(GLContext::OES_EGL_sync)) {
     if (mSync) {
       MOZ_RELEASE_ASSERT(false, "GFX: Non-recycleable should not Fence twice.");
-      MOZ_ALWAYS_TRUE(egl->fDestroySync(egl->Display(), mSync));
+      MOZ_ALWAYS_TRUE(egl->fDestroySync(mSync));
       mSync = 0;
     }
 
-    mSync = egl->fCreateSync(egl->Display(), LOCAL_EGL_SYNC_FENCE, nullptr);
+    mSync = egl->fCreateSync(LOCAL_EGL_SYNC_FENCE, nullptr);
     if (mSync) {
-      mGL->fFlush();
+      gl->fFlush();
       return;
     }
   }
 
   MOZ_ASSERT(!mSync);
-  mGL->fFinish();
+  gl->fFinish();
 }
 
 void SharedSurface_EGLImage::ProducerReadAcquireImpl() {
-  const auto& gle = GLContextEGL::Cast(mGL);
+  const auto& gle = GLContextEGL::Cast(mDesc.gl);
   const auto& egl = gle->mEgl;
   // Wait on the fence, because presumably we're going to want to read this
   // surface
   if (mSync) {
-    egl->fClientWaitSync(egl->Display(), mSync, 0, LOCAL_EGL_FOREVER);
+    egl->fClientWaitSync(mSync, 0, LOCAL_EGL_FOREVER);
   }
 }
 
-bool SharedSurface_EGLImage::ToSurfaceDescriptor(
-    layers::SurfaceDescriptor* const out_descriptor) {
-  *out_descriptor = layers::EGLImageDescriptor(
-      (uintptr_t)mImage, (uintptr_t)mSync, mSize, mHasAlpha);
-  return true;
-}
-
-bool SharedSurface_EGLImage::ReadbackBySharedHandle(
-    gfx::DataSourceSurface* out_surface) {
-  const auto& gle = GLContextEGL::Cast(mGL);
-  const auto& egl = gle->mEgl;
-  MOZ_ASSERT(out_surface);
-  MOZ_ASSERT(NS_IsMainThread());
-  return egl->ReadbackEGLImage(mImage, out_surface);
-}
-
-////////////////////////////////////////////////////////////////////////
-
-/*static*/
-UniquePtr<SurfaceFactory_EGLImage> SurfaceFactory_EGLImage::Create(
-    GLContext* prodGL, const SurfaceCaps& caps,
-    const RefPtr<layers::LayersIPCChannel>& allocator,
-    const layers::TextureFlags& flags) {
-  const auto& gle = GLContextEGL::Cast(prodGL);
-  const auto& egl = gle->mEgl;
-  const auto& context = gle->mContext;
-
-  typedef SurfaceFactory_EGLImage ptrT;
-  UniquePtr<ptrT> ret;
-
-  if (SharedSurface_EGLImage::HasExtensions(egl, prodGL)) {
-    ret.reset(new ptrT(prodGL, caps, allocator, flags, context));
-  }
-
-  return ret;
+Maybe<layers::SurfaceDescriptor> SharedSurface_EGLImage::ToSurfaceDescriptor() {
+  return Some(layers::EGLImageDescriptor((uintptr_t)mImage, (uintptr_t)mSync,
+                                         mDesc.size, true));
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -171,43 +131,67 @@ UniquePtr<SurfaceFactory_EGLImage> SurfaceFactory_EGLImage::Create(
 
 /*static*/
 UniquePtr<SharedSurface_SurfaceTexture> SharedSurface_SurfaceTexture::Create(
-    GLContext* prodGL, const GLFormats& formats, const gfx::IntSize& size,
-    bool hasAlpha, java::GeckoSurface::Param surface) {
-  MOZ_ASSERT(surface);
+    const SharedSurfaceDesc& desc) {
+  const auto& size = desc.size;
 
-  UniquePtr<SharedSurface_SurfaceTexture> ret;
+  jni::Object::LocalRef surfaceObj;
+  const bool useSingleBuffer =
+      desc.gl->Renderer() != GLRenderer::AndroidEmulator;
 
-  AndroidNativeWindow window(surface);
-  const auto& gle = GLContextEGL::Cast(prodGL);
-  MOZ_ASSERT(gle);
-  EGLSurface eglSurface = gle->CreateCompatibleSurface(window.NativeWindow());
-  if (!eglSurface) {
-    return ret;
+  if (useSingleBuffer) {
+    surfaceObj =
+        java::SurfaceAllocator::AcquireSurface(size.width, size.height, true);
   }
 
-  ret.reset(new SharedSurface_SurfaceTexture(prodGL, size, hasAlpha, formats,
-                                             surface, eglSurface));
-  return ret;
+  if (!surfaceObj) {
+    // Try multi-buffer mode
+    surfaceObj =
+        java::SurfaceAllocator::AcquireSurface(size.width, size.height, false);
+  }
+
+  if (!surfaceObj) {
+    // Give up
+    NS_WARNING("Failed to allocate SurfaceTexture!");
+    return nullptr;
+  }
+  const auto surface = java::GeckoSurface::Ref::From(surfaceObj);
+
+  AndroidNativeWindow window(surface);
+  const auto& gle = GLContextEGL::Cast(desc.gl);
+  MOZ_ASSERT(gle);
+  const auto eglSurface = gle->CreateCompatibleSurface(window.NativeWindow());
+  if (!eglSurface) return nullptr;
+
+  return AsUnique(new SharedSurface_SurfaceTexture(desc, surface, eglSurface));
 }
 
 SharedSurface_SurfaceTexture::SharedSurface_SurfaceTexture(
-    GLContext* gl, const gfx::IntSize& size, bool hasAlpha,
-    const GLFormats& formats, java::GeckoSurface::Param surface,
-    EGLSurface eglSurface)
-    : SharedSurface(SharedSurfaceType::AndroidSurfaceTexture,
-                    AttachmentType::Screen, gl, size, hasAlpha, true),
+    const SharedSurfaceDesc& desc, java::GeckoSurface::Param surface,
+    const EGLSurface eglSurface)
+    : SharedSurface(desc, nullptr),
       mSurface(surface),
-      mEglSurface(eglSurface) {}
+      mEglSurface(eglSurface),
+      mEglDisplay(GLContextEGL::Cast(desc.gl)->mEgl) {}
 
 SharedSurface_SurfaceTexture::~SharedSurface_SurfaceTexture() {
-  GLContextProviderEGL::DestroyEGLSurface(mEglSurface);
+  if (mOrigEglSurface) {
+    // We are about to destroy mEglSurface.
+    // Make sure gl->SetEGLSurfaceOverride() doesn't keep a reference
+    // to the surface.
+    UnlockProd();
+  }
+
+  std::shared_ptr<EglDisplay> display = mEglDisplay.lock();
+  if (display) {
+    display->fDestroySurface(mEglSurface);
+  }
   java::SurfaceAllocator::DisposeSurface(mSurface);
 }
 
 void SharedSurface_SurfaceTexture::LockProdImpl() {
   MOZ_RELEASE_ASSERT(mSurface->GetAvailable());
 
-  GLContextEGL* gl = GLContextEGL::Cast(mGL);
+  GLContextEGL* gl = GLContextEGL::Cast(mDesc.gl);
   mOrigEglSurface = gl->GetEGLSurfaceOverride();
   gl->SetEGLSurfaceOverride(mEglSurface);
 }
@@ -215,18 +199,41 @@ void SharedSurface_SurfaceTexture::LockProdImpl() {
 void SharedSurface_SurfaceTexture::UnlockProdImpl() {
   MOZ_RELEASE_ASSERT(mSurface->GetAvailable());
 
-  GLContextEGL* gl = GLContextEGL::Cast(mGL);
+  GLContextEGL* gl = GLContextEGL::Cast(mDesc.gl);
   MOZ_ASSERT(gl->GetEGLSurfaceOverride() == mEglSurface);
 
   gl->SetEGLSurfaceOverride(mOrigEglSurface);
   mOrigEglSurface = nullptr;
 }
 
+void SharedSurface_SurfaceTexture::ProducerReadReleaseImpl() {
+  // This GeckoSurfaceTexture is not SurfaceTexture of this class's GeckoSurface
+  // when current process is content process. In this case, SurfaceTexture of
+  // this class's GeckoSurface does not exist in this process. It exists in
+  // compositor's process. Then GeckoSurfaceTexture in this process is a sync
+  // surface that copies back the SurfaceTextrure from compositor's process. It
+  // was added by Bug 1486659. Then SurfaceTexture::UpdateTexImage() becomes
+  // very heavy weight, since it does copy back the SurfaceTextrure from
+  // compositor's process.
+  java::GeckoSurfaceTexture::LocalRef surfaceTexture =
+      java::GeckoSurfaceTexture::Lookup(mSurface->GetHandle());
+  if (!surfaceTexture) {
+    NS_ERROR("Didn't find GeckoSurfaceTexture in ProducerReadReleaseImpl");
+    return;
+  }
+  surfaceTexture->UpdateTexImage();
+  // Non single buffer mode Surface does not need ReleaseTexImage() call.
+  // When SurfaceTexture is sync Surface, it might not be single buffer mode.
+  if (surfaceTexture->IsSingleBuffer()) {
+    surfaceTexture->ReleaseTexImage();
+  }
+}
+
 void SharedSurface_SurfaceTexture::Commit() {
   MOZ_RELEASE_ASSERT(mSurface->GetAvailable());
 
   LockProdImpl();
-  mGL->SwapBuffers();
+  mDesc.gl->SwapBuffers();
   UnlockProdImpl();
   mSurface->SetAvailable(false);
 }
@@ -239,46 +246,16 @@ bool SharedSurface_SurfaceTexture::IsBufferAvailable() const {
   return mSurface->GetAvailable();
 }
 
-bool SharedSurface_SurfaceTexture::ToSurfaceDescriptor(
-    layers::SurfaceDescriptor* const out_descriptor) {
-  *out_descriptor = layers::SurfaceTextureDescriptor(
-      mSurface->GetHandle(), mSize, gfx::SurfaceFormat::R8G8B8A8,
-      false /* NOT continuous */, false /* Do not ignore transform */);
-  return true;
+Maybe<layers::SurfaceDescriptor>
+SharedSurface_SurfaceTexture::ToSurfaceDescriptor() {
+  return Some(layers::SurfaceTextureDescriptor(
+      mSurface->GetHandle(), mDesc.size, gfx::SurfaceFormat::R8G8B8A8,
+      false /* NOT continuous */, false /* Do not ignore transform */));
 }
 
-////////////////////////////////////////////////////////////////////////
-
-/*static*/
-UniquePtr<SurfaceFactory_SurfaceTexture> SurfaceFactory_SurfaceTexture::Create(
-    GLContext* prodGL, const SurfaceCaps& caps,
-    const RefPtr<layers::LayersIPCChannel>& allocator,
-    const layers::TextureFlags& flags) {
-  UniquePtr<SurfaceFactory_SurfaceTexture> ret(
-      new SurfaceFactory_SurfaceTexture(prodGL, caps, allocator, flags));
-  return ret;
-}
-
-UniquePtr<SharedSurface> SurfaceFactory_SurfaceTexture::CreateShared(
-    const gfx::IntSize& size) {
-  bool hasAlpha = mReadCaps.alpha;
-
-  jni::Object::LocalRef surface =
-      java::SurfaceAllocator::AcquireSurface(size.width, size.height, true);
-  if (!surface) {
-    // Try multi-buffer mode
-    surface =
-        java::SurfaceAllocator::AcquireSurface(size.width, size.height, false);
-    if (!surface) {
-      // Give up
-      NS_WARNING("Failed to allocate SurfaceTexture!");
-      return nullptr;
-    }
-  }
-
-  return SharedSurface_SurfaceTexture::Create(
-      mGL, mFormats, size, hasAlpha, java::GeckoSurface::Ref::From(surface));
-}
+SurfaceFactory_SurfaceTexture::SurfaceFactory_SurfaceTexture(GLContext& gl)
+    : SurfaceFactory({&gl, SharedSurfaceType::AndroidSurfaceTexture,
+                      layers::TextureType::AndroidNativeWindow, true}) {}
 
 #endif  // MOZ_WIDGET_ANDROID
 

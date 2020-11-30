@@ -7,11 +7,21 @@
 
 """A parser for cross-platform IDL (XPIDL) files."""
 
+# Note that this file is used by the searchfox indexer in ways that are
+# not tested in Firefox's CI. Please try to keep this file py2-compatible
+# if the burden for that is low. If you are making changes you know to be
+# incompatible with py2, please give a searchfox maintainer a heads-up so
+# that any necessary changes can be made on the searchfox side.
+
+from __future__ import absolute_import
+from __future__ import print_function
+
 import sys
 import os.path
 import re
 from ply import lex
 from ply import yacc
+import six
 from collections import namedtuple
 
 """A type conforms to the following pattern:
@@ -30,16 +40,15 @@ Interface members const/method/attribute conform to the following pattern:
 
 
 # XXX(nika): Fix the IDL files which do this so we can remove this list?
-def rustBlacklistedForward(s):
+def rustPreventForward(s):
     """These types are foward declared as interfaces, but never actually defined
     in IDL files. We don't want to generate references to them in rust for that
     reason."""
-    blacklisted = [
+    return s in (
         "nsIFrame",
         "nsIObjectFrame",
         "nsSubDocumentFrame",
-    ]
-    return s in blacklisted
+    )
 
 
 def attlistToIDL(attlist):
@@ -47,7 +56,7 @@ def attlistToIDL(attlist):
         return ''
 
     attlist = list(attlist)
-    attlist.sort(cmp=lambda a, b: cmp(a[0], b[0]))
+    attlist.sort(key=lambda a: a[0])
 
     return '[%s] ' % ','.join(["%s%s" % (name, value is not None and '(%s)' % value or '')
                                for name, value, aloc in attlist])
@@ -130,8 +139,9 @@ class Builtin(object):
             raise IDLError("Use string class types for string Array elements", self.location)
 
         if const:
-            print >>sys.stderr, IDLError(
-                "[const] doesn't make sense on builtin types.", self.location, warning=True)
+            print(IDLError(
+                "[const] doesn't make sense on builtin types.",
+                self.location, warning=True), file=sys.stderr)
             const = 'const '
         elif calltype == 'in' and self.isPointer():
             const = 'const '
@@ -202,7 +212,7 @@ class Location(object):
 
     def pointerline(self):
         def i():
-            for i in xrange(0, self._colno):
+            for i in range(0, self._colno):
                 yield " "
             yield "^"
 
@@ -231,7 +241,7 @@ class NameMap(object):
         return self._d[key]
 
     def __iter__(self):
-        return self._d.itervalues()
+        return six.itervalues(self._d)
 
     def __contains__(self, key):
         return key in builtinMap or key in self._d
@@ -307,7 +317,8 @@ class Include(object):
             if not os.path.exists(file):
                 continue
 
-            self.IDL = parent.parser.parse(open(file).read(), filename=file)
+            self.IDL = parent.parser.parse(open(file, encoding='utf-8').read(),
+                                           filename=file)
             self.IDL.resolve(parent.incdirs, parent.parser, parent.webidlconfig)
             for type in self.IDL.getNames():
                 parent.setName(type)
@@ -437,10 +448,10 @@ class Forward(object):
         # Hack alert: if an identifier is already present, move the doccomments
         # forward.
         if parent.hasName(self.name):
-            for i in xrange(0, len(parent.productions)):
+            for i in range(0, len(parent.productions)):
                 if parent.productions[i] is self:
                     break
-            for i in xrange(i + 1, len(parent.productions)):
+            for i in range(i + 1, len(parent.productions)):
                 if hasattr(parent.productions[i], 'doccomments'):
                     parent.productions[i].doccomments[0:0] = self.doccomments
                     break
@@ -453,7 +464,7 @@ class Forward(object):
         return "%s *%s" % (self.name, '*' if 'out' in calltype else '')
 
     def rustType(self, calltype):
-        if rustBlacklistedForward(self.name):
+        if rustPreventForward(self.name):
             raise RustNoncompat("forward declaration %s is unsupported" % self.name)
         if calltype == 'element':
             return 'RefPtr<%s>' % self.name
@@ -631,12 +642,13 @@ class WebIDL(object):
 
         parent.setName(self)
 
-    def nativeType(self, calltype):
+    def nativeType(self, calltype, const=False):
         if calltype == 'element':
-            return 'RefPtr<%s>' % self.native
-        return "%s *%s" % (self.native, '*' if 'out' in calltype else '')
+            return 'RefPtr<%s%s>' % ('const ' if const else '', self.native)
+        return "%s%s *%s" % ('const ' if const else '', self.native,
+                             '*' if 'out' in calltype else '')
 
-    def rustType(self, calltype):
+    def rustType(self, calltype, const=False):
         # Just expose the type as a void* - we can't do any better.
         return "%s*const libc::c_void" % ('*mut ' if 'out' in calltype else '')
 
@@ -953,6 +965,32 @@ class CEnum(object):
         return "\tcenum %s : %d { %s };\n" % (self.name, self.width, body)
 
 
+# Infallible doesn't work for all return types.
+#
+# It also must be implemented on a builtinclass (otherwise it'd be unsound as
+# it could be implemented by JS).
+def ensureInfallibleIsSound(methodOrAttribute):
+    if not methodOrAttribute.infallible:
+        return
+    if methodOrAttribute.realtype.kind not in ['builtin',
+                                               'interface',
+                                               'forward',
+                                               'webidl',
+                                               'cenum']:
+        raise IDLError('[infallible] only works on interfaces, domobjects, and builtin types '
+                       '(numbers, booleans, cenum, and raw char types)',
+                       methodOrAttribute.location)
+    if not methodOrAttribute.iface.attributes.builtinclass:
+        raise IDLError('[infallible] attributes and methods are only allowed on '
+                       '[builtinclass] interfaces',
+                       methodOrAttribute.location)
+
+    if methodOrAttribute.notxpcom:
+        raise IDLError('[infallible] does not make sense for a [notxpcom] '
+                       'method or attribute',
+                       methodOrAttribute.location)
+
+
 # An interface cannot be implemented by JS if it has a notxpcom
 # method or attribute, so it must be marked as builtinclass.
 #
@@ -1048,19 +1086,8 @@ class Attribute(object):
     def resolve(self, iface):
         self.iface = iface
         self.realtype = iface.idl.getName(self.type, self.location)
-        if self.infallible and self.realtype.kind not in ['builtin',
-                                                          'interface',
-                                                          'forward',
-                                                          'webidl',
-                                                          'cenum']:
-            raise IDLError('[infallible] only works on interfaces, domobjects, and builtin types '
-                           '(numbers, booleans, cenum, and raw char types)',
-                           self.location)
-        if self.infallible and not iface.attributes.builtinclass:
-            raise IDLError('[infallible] attributes are only allowed on '
-                           '[builtinclass] interfaces',
-                           self.location)
 
+        ensureInfallibleIsSound(self)
         ensureBuiltinClassIfNeeded(self)
 
     def toIDL(self):
@@ -1094,6 +1121,7 @@ class Method(object):
     # explicit_can_run_script is true if the method is explicitly annotated
     # as being able to cause script to run.
     explicit_can_run_script = False
+    infallible = False
 
     def __init__(self, type, name, attlist, paramlist, location, doccomments, raises):
         self.type = type
@@ -1132,6 +1160,8 @@ class Method(object):
                 self.must_use = True
             elif name == 'can_run_script':
                 self.explicit_can_run_script = True
+            elif name == 'infallible':
+                self.infallible = True
             else:
                 raise IDLError("Unexpected attribute '%s'" % name, aloc)
 
@@ -1143,6 +1173,7 @@ class Method(object):
         self.iface = iface
         self.realtype = self.iface.idl.getName(self.type, self.location)
 
+        ensureInfallibleIsSound(self)
         ensureBuiltinClassIfNeeded(self)
 
         for p in self.params:
@@ -1453,7 +1484,10 @@ class IDLParser(object):
         t.lexer.lineno += len(t.value)
 
     def t_nativeid_NATIVEID(self, t):
-        r'[^()\n]+(?=\))'
+        # Matches non-parenthesis characters, or a single open and closing
+        # parenthesis with at least one non-parenthesis character before,
+        # between and after them (for compatibility with std::function).
+        r'[^()\n]+(?:\([^()\n]+\)[^()\n]+)?(?=\))'
         t.lexer.begin('INITIAL')
         return t
 
@@ -1818,17 +1852,10 @@ class IDLParser(object):
             location = Location(self.lexer, t.lineno, t.lexpos)
             raise IDLError("invalid syntax", location)
 
-    def __init__(self, outputdir=''):
+    def __init__(self):
         self._doccomments = []
-        self.lexer = lex.lex(object=self,
-                             outputdir=outputdir,
-                             lextab='xpidllex',
-                             optimize=1)
-        self.parser = yacc.yacc(module=self,
-                                outputdir=outputdir,
-                                debug=0,
-                                tabmodule='xpidlyacc',
-                                optimize=1)
+        self.lexer = lex.lex(object=self, debug=False)
+        self.parser = yacc.yacc(module=self, write_tables=False, debug=False)
 
     def clearComments(self):
         self._doccomments = []
@@ -1858,4 +1885,4 @@ if __name__ == '__main__':
     p = IDLParser()
     for f in sys.argv[1:]:
         print("Parsing %s" % f)
-        p.parse(open(f).read(), filename=f)
+        p.parse(open(f, encoding='utf-8').read(), filename=f)

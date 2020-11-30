@@ -15,6 +15,7 @@
 #include "nsThreadUtils.h"
 #include "mozilla/Logging.h"
 #include "prtime.h"
+#include "mozilla/StaticPrefs_storage.h"
 
 #include "mozStorageConnection.h"
 #include "mozIStorageStatement.h"
@@ -137,7 +138,7 @@ bool Vacuumer::execute() {
   if (NS_FAILED(rv) || !Service::pageSizeIsValid(expectedPageSize)) {
     NS_WARNING("Invalid page size requested for database, will use default ");
     NS_WARNING(mDBFilename.get());
-    expectedPageSize = Service::getDefaultPageSize();
+    expectedPageSize = Service::kDefaultPageSize;
   }
 
   // Get the database filename.  Last vacuum time is stored under this name
@@ -151,7 +152,7 @@ bool Vacuumer::execute() {
   nsAutoString databaseFilename;
   rv = databaseFile->GetLeafName(databaseFilename);
   NS_ENSURE_SUCCESS(rv, false);
-  mDBFilename = NS_ConvertUTF16toUTF8(databaseFilename);
+  CopyUTF16toUTF8(databaseFilename, mDBFilename);
   MOZ_ASSERT(!mDBFilename.IsEmpty(), "Database filename cannot be empty");
 
   // Check interval from last vacuum.
@@ -198,8 +199,7 @@ bool Vacuumer::execute() {
   NS_ENSURE_SUCCESS(rv, false);
 
   nsCOMPtr<mozIStorageAsyncStatement> stmt;
-  rv = mDBConn->CreateAsyncStatement(NS_LITERAL_CSTRING("VACUUM"),
-                                     getter_AddRefs(stmt));
+  rv = mDBConn->CreateAsyncStatement("VACUUM"_ns, getter_AddRefs(stmt));
   NS_ENSURE_SUCCESS(rv, false);
   rv = stmt->ExecuteAsync(this, getter_AddRefs(ps));
   NS_ENSURE_SUCCESS(rv, false);

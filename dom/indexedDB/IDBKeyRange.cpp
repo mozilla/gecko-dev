@@ -21,11 +21,10 @@ namespace {
 
 void GetKeyFromJSVal(JSContext* aCx, JS::Handle<JS::Value> aVal, Key& aKey,
                      ErrorResult& aRv) {
-  auto result = aKey.SetFromJSVal(aCx, aVal, aRv);
-  if (!result.Is(Ok, aRv)) {
-    if (result.Is(Invalid, aRv)) {
-      aRv.Throw(NS_ERROR_DOM_INDEXEDDB_DATA_ERR);
-    }
+  auto result = aKey.SetFromJSVal(aCx, aVal);
+  if (result.isErr()) {
+    aRv = result.unwrapErr().ExtractErrorResult(
+        InvalidMapsTo<NS_ERROR_DOM_INDEXEDDB_DATA_ERR>);
     return;
   }
 
@@ -116,7 +115,7 @@ void IDBKeyRange::ToSerialized(SerializedKeyRange& aKeyRange) const {
   }
 }
 
-NS_IMPL_CYCLE_COLLECTION_CLASS(IDBKeyRange)
+NS_IMPL_CYCLE_COLLECTION_MULTI_ZONE_JSHOLDER_CLASS(IDBKeyRange)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(IDBKeyRange)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mGlobal)

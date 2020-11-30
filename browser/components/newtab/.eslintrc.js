@@ -1,6 +1,9 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 module.exports = {
   // When adding items to this file please check for effects on sub-directories.
-  parser: "babel-eslint",
   parserOptions: {
     ecmaVersion: 2018,
     ecmaFeatures: {
@@ -36,11 +39,11 @@ module.exports = {
       // These files use fluent-dom to insert content
       files: [
         "content-src/aboutwelcome/components/HeroText.jsx",
+        "content-src/aboutwelcome/components/Zap.jsx",
+        "content-src/aboutwelcome/components/MultiStageAboutWelcome.jsx",
+        "content-src/aboutwelcome/components/ReturnToAMO.jsx",
         "content-src/asrouter/templates/OnboardingMessage/**",
         "content-src/asrouter/templates/FirstRun/**",
-        "content-src/asrouter/templates/Trailhead/**",
-        "content-src/asrouter/templates/FullPageInterrupt/FullPageInterrupt.jsx",
-        "content-src/asrouter/components/FxASignupForm/FxASignupForm.jsx",
         "content-src/components/TopSites/**",
         "content-src/components/MoreRecommendations/MoreRecommendations.jsx",
         "content-src/components/CollapsibleSection/CollapsibleSection.jsx",

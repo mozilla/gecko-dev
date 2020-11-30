@@ -54,82 +54,7 @@ class Handler {
   get messageQueue() {
     return this.store.messageQueue;
   }
-
-  get stateChangeNotifier() {
-    return this.store.stateChangeNotifier;
-  }
 }
-
-/**
- * Listens for state change notifcations from webProgress and notifies each
- * registered observer for either the start of a page load, or its completion.
- */
-class StateChangeNotifier extends Handler {
-  constructor(store) {
-    super(store);
-
-    this._observers = new Set();
-    let ifreq = this.mm.docShell.QueryInterface(Ci.nsIInterfaceRequestor);
-    let webProgress = ifreq.getInterface(Ci.nsIWebProgress);
-    webProgress.addProgressListener(
-      this,
-      Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT
-    );
-  }
-
-  /**
-   * Adds a given observer |obs| to the set of observers that will be notified
-   * when when a new document starts or finishes loading.
-   *
-   * @param obs (object)
-   */
-  addObserver(obs) {
-    this._observers.add(obs);
-  }
-
-  /**
-   * Notifies all observers that implement the given |method|.
-   *
-   * @param method (string)
-   */
-  notifyObservers(method) {
-    for (let obs of this._observers) {
-      if (typeof obs[method] == "function") {
-        obs[method]();
-      }
-    }
-  }
-
-  /**
-   * @see nsIWebProgressListener.onStateChange
-   */
-  onStateChange(webProgress, request, stateFlags, status) {
-    // Ignore state changes for subframes because we're only interested in the
-    // top-document starting or stopping its load.
-    if (!webProgress.isTopLevel || webProgress.DOMWindow != this.mm.content) {
-      return;
-    }
-
-    // onStateChange will be fired when loading the initial about:blank URI for
-    // a browser, which we don't actually care about. This is particularly for
-    // the case of unrestored background tabs, where the content has not yet
-    // been restored: we don't want to accidentally send any updates to the
-    // parent when the about:blank placeholder page has loaded.
-    if (!this.mm.docShell.hasLoadedNonBlankURI) {
-      return;
-    }
-
-    if (stateFlags & Ci.nsIWebProgressListener.STATE_START) {
-      this.notifyObservers("onPageLoadStarted");
-    } else if (stateFlags & Ci.nsIWebProgressListener.STATE_STOP) {
-      this.notifyObservers("onPageLoadCompleted");
-    }
-  }
-}
-StateChangeNotifier.prototype.QueryInterface = ChromeUtils.generateQI([
-  Ci.nsIWebProgressListener,
-  Ci.nsISupportsWeakReference,
-]);
 
 /**
  * Listens for and handles content events that we need for the
@@ -193,11 +118,6 @@ class SessionHistoryListener extends Handler {
 
     this._fromIdx = kNoIndex;
 
-    // The state change observer is needed to handle initial subframe loads.
-    // It will redundantly invalidate with the SHistoryListener in some cases
-    // but these invalidations are very cheap.
-    this.stateChangeNotifier.addObserver(this);
-
     // By adding the SHistoryListener immediately, we will unfortunately be
     // notified of every history entry as the tab is restored. We don't bother
     // waiting to add the listener later because these notifications are cheap.
@@ -205,7 +125,16 @@ class SessionHistoryListener extends Handler {
     // a delay.
     this.mm.docShell
       .QueryInterface(Ci.nsIWebNavigation)
-      .sessionHistory.legacySHistory.addSHistoryListener(this);
+      .sessionHistory.legacySHistory.addSHistoryListener(this); // OK in non-geckoview
+
+    let webProgress = this.mm.docShell
+      .QueryInterface(Ci.nsIInterfaceRequestor)
+      .getInterface(Ci.nsIWebProgress);
+
+    webProgress.addProgressListener(
+      this,
+      Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT
+    );
 
     // Collect data if we start with a non-empty shistory.
     if (!SessionHistory.isEmpty(this.mm.docShell)) {
@@ -216,18 +145,22 @@ class SessionHistoryListener extends Handler {
       // case we fire off a history message here with about:blank in it. If we
       // don't do it ASAP then there is going to be a browser swap and the parent
       // will be all confused by that message.
-      this.messageQueue.send();
+      this.store.messageQueue.send();
     }
 
     // Listen for page title changes.
     this.mm.addEventListener("DOMTitleChanged", this);
   }
 
+  get mm() {
+    return this.store.mm;
+  }
+
   uninit() {
     let sessionHistory = this.mm.docShell.QueryInterface(Ci.nsIWebNavigation)
       .sessionHistory;
     if (sessionHistory) {
-      sessionHistory.legacySHistory.removeSHistoryListener(this);
+      sessionHistory.legacySHistory.removeSHistoryListener(this); // OK in non-geckoview
     }
   }
 
@@ -259,7 +192,7 @@ class SessionHistoryListener extends Handler {
     }
 
     this._fromIdx = idx;
-    this.messageQueue.push("historychange", () => {
+    this.store.messageQueue.push("historychange", () => {
       if (this._fromIdx === kNoIndex) {
         return null;
       }
@@ -274,17 +207,10 @@ class SessionHistoryListener extends Handler {
     this.collect();
   }
 
-  onPageLoadCompleted() {
-    this.collect();
-  }
-
-  onPageLoadStarted() {
-    this.collect();
-  }
-
   OnHistoryNewEntry(newURI, oldIndex) {
-    // We ought to collect the previously current entry as well, see bug 1350567.
-    this.collectFrom(oldIndex);
+    // Collect the current entry as well, to make sure to collect any changes
+    // that were made to the entry while the document was active.
+    this.collectFrom(oldIndex == -1 ? oldIndex : oldIndex - 1);
   }
 
   OnHistoryGotoIndex() {
@@ -304,10 +230,37 @@ class SessionHistoryListener extends Handler {
   OnHistoryReplaceEntry() {
     this.collect();
   }
+
+  /**
+   * @see nsIWebProgressListener.onStateChange
+   */
+  onStateChange(webProgress, request, stateFlags, status) {
+    // Ignore state changes for subframes because we're only interested in the
+    // top-document starting or stopping its load.
+    if (!webProgress.isTopLevel || webProgress.DOMWindow != this.mm.content) {
+      return;
+    }
+
+    // onStateChange will be fired when loading the initial about:blank URI for
+    // a browser, which we don't actually care about. This is particularly for
+    // the case of unrestored background tabs, where the content has not yet
+    // been restored: we don't want to accidentally send any updates to the
+    // parent when the about:blank placeholder page has loaded.
+    if (!this.mm.docShell.hasLoadedNonBlankURI) {
+      return;
+    }
+
+    if (stateFlags & Ci.nsIWebProgressListener.STATE_START) {
+      this.collect();
+    } else if (stateFlags & Ci.nsIWebProgressListener.STATE_STOP) {
+      this.collect();
+    }
+  }
 }
 SessionHistoryListener.prototype.QueryInterface = ChromeUtils.generateQI([
-  Ci.nsISHistoryListener,
-  Ci.nsISupportsWeakReference,
+  "nsIWebProgressListener",
+  "nsISHistoryListener",
+  "nsISupportsWeakReference",
 ]);
 
 /**
@@ -550,33 +503,41 @@ class MessageQueue extends Handler {
  */
 const MESSAGES = [
   "SessionStore:restoreHistory",
+  "SessionStore:finishRestoreHistory",
+  "SessionStore:OnHistoryReload",
+  "SessionStore:OnHistoryNewEntry",
   "SessionStore:restoreTabContent",
   "SessionStore:resetRestore",
   "SessionStore:flush",
   "SessionStore:becomeActiveProcess",
+  "SessionStore:prepareForProcessChange",
 ];
 
 class ContentSessionStore {
   constructor(mm) {
     this.mm = mm;
     this.messageQueue = new MessageQueue(this);
-    this.stateChangeNotifier = new StateChangeNotifier(this);
 
     this.epoch = 0;
 
     this.contentRestoreInitialized = false;
+
+    this.waitRestoreSHistoryInParent = false;
+    this.restoreTabContentData = null;
 
     XPCOMUtils.defineLazyGetter(this, "contentRestore", () => {
       this.contentRestoreInitialized = true;
       return new ContentRestore(mm);
     });
 
-    this.handlers = [
-      new EventListener(this),
-      new SessionHistoryListener(this),
-      this.stateChangeNotifier,
-      this.messageQueue,
-    ];
+    this.handlers = [new EventListener(this), this.messageQueue];
+
+    this._shistoryInParent = Services.appinfo.sessionHistoryInParent;
+    if (this._shistoryInParent) {
+      this.mm.sendAsyncMessage("SessionStore:addSHistoryListener");
+    } else {
+      this.handlers.push(new SessionHistoryListener(this));
+    }
 
     MESSAGES.forEach(m => mm.addMessageListener(m, this));
 
@@ -597,7 +558,7 @@ class ContentSessionStore {
     // override that to signal a new era in this tab's life. This enables it
     // to ignore async messages that were already sent but not yet received
     // and would otherwise confuse the internal tab state.
-    if (data.epoch && data.epoch != this.epoch) {
+    if (data && data.epoch && data.epoch != this.epoch) {
       this.epoch = data.epoch;
     }
 
@@ -605,8 +566,45 @@ class ContentSessionStore {
       case "SessionStore:restoreHistory":
         this.restoreHistory(data);
         break;
+      case "SessionStore:finishRestoreHistory":
+        this.finishRestoreHistory();
+        break;
+      case "SessionStore:OnHistoryNewEntry":
+        this.contentRestore.restoreOnNewEntry(data.uri);
+        break;
+      case "SessionStore:OnHistoryReload":
+        // On reload, restore tab contents.
+        this.contentRestore.restoreTabContent(
+          null,
+          false,
+          () => {
+            // Tell SessionStore.jsm that it may want to restore some more tabs,
+            // since it restores a max of MAX_CONCURRENT_TAB_RESTORES at a time.
+            this.mm.sendAsyncMessage("SessionStore:restoreTabContentComplete", {
+              epoch: this.epoch,
+            });
+          },
+          () => {
+            // Tell SessionStore.jsm to remove restoreListener.
+            this.mm.sendAsyncMessage("SessionStore:removeRestoreListener", {
+              epoch: this.epoch,
+            });
+          },
+          () => {
+            // Tell SessionStore.jsm to reload currentEntry.
+            this.mm.sendAsyncMessage("SessionStore:reloadCurrentEntry", {
+              epoch: this.epoch,
+            });
+          }
+        );
+        break;
       case "SessionStore:restoreTabContent":
-        this.restoreTabContent(data);
+        if (this.waitRestoreSHistoryInParent) {
+          // Queue the TabContentData if we haven't finished sHistoryRestore yet.
+          this.restoreTabContentData = data;
+        } else {
+          this.restoreTabContent(data);
+        }
         break;
       case "SessionStore:resetRestore":
         this.contentRestore.resetRestore();
@@ -615,7 +613,18 @@ class ContentSessionStore {
         this.flush(data);
         break;
       case "SessionStore:becomeActiveProcess":
-        SessionHistoryListener.collect();
+        if (!this._shistoryInParent) {
+          SessionHistoryListener.collect();
+        }
+        break;
+      case "SessionStore:prepareForProcessChange":
+        // During normal in-process navigations, the DocShell would take
+        // care of automatically persisting layout history state to record
+        // scroll positions on the nsSHEntry. Unfortunately, process switching
+        // is not a normal navigation, so for now we do this ourselves. This
+        // is a workaround until session history state finally lives in the
+        // parent process.
+        this.mm.docShell.persistLayoutHistoryState();
         break;
       default:
         debug("received unknown message '" + name + "'");
@@ -624,27 +633,55 @@ class ContentSessionStore {
   }
 
   restoreHistory({ epoch, tabData, loadArguments, isRemotenessUpdate }) {
-    this.contentRestore.restoreHistory(tabData, loadArguments, {
-      // Note: The callbacks passed here will only be used when a load starts
-      // that was not initiated by sessionstore itself. This can happen when
-      // some code calls browser.loadURI() or browser.reload() on a pending
-      // browser/tab.
+    this.contentRestore.restoreHistory(
+      tabData,
+      loadArguments,
+      {
+        // Note: The callbacks passed here will only be used when a load starts
+        // that was not initiated by sessionstore itself. This can happen when
+        // some code calls browser.loadURI() or browser.reload() on a pending
+        // browser/tab.
 
-      onLoadStarted: () => {
-        // Notify the parent that the tab is no longer pending.
-        this.mm.sendAsyncMessage("SessionStore:restoreTabContentStarted", {
-          epoch,
-        });
-      },
+        onLoadStarted: () => {
+          // Notify the parent that the tab is no longer pending.
+          this.mm.sendAsyncMessage("SessionStore:restoreTabContentStarted", {
+            epoch,
+          });
+        },
 
-      onLoadFinished: () => {
-        // Tell SessionStore.jsm that it may want to restore some more tabs,
-        // since it restores a max of MAX_CONCURRENT_TAB_RESTORES at a time.
-        this.mm.sendAsyncMessage("SessionStore:restoreTabContentComplete", {
-          epoch,
-        });
+        onLoadFinished: () => {
+          // Tell SessionStore.jsm that it may want to restore some more tabs,
+          // since it restores a max of MAX_CONCURRENT_TAB_RESTORES at a time.
+          this.mm.sendAsyncMessage("SessionStore:restoreTabContentComplete", {
+            epoch,
+          });
+        },
+
+        removeRestoreListener: () => {
+          if (!this._shistoryInParent) {
+            return;
+          }
+
+          // Notify the parent that the tab is no longer pending.
+          this.mm.sendAsyncMessage("SessionStore:removeRestoreListener", {
+            epoch,
+          });
+        },
+
+        requestRestoreSHistory: () => {
+          if (!this._shistoryInParent) {
+            return;
+          }
+
+          this.waitRestoreSHistoryInParent = true;
+          // Send tabData to the parent process.
+          this.mm.sendAsyncMessage("SessionStore:restoreSHistoryInParent", {
+            epoch,
+          });
+        },
       },
-    });
+      this._shistoryInParent
+    );
 
     if (Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_DEFAULT) {
       // For non-remote tabs, when restoreHistory finishes, we send a synchronous
@@ -661,12 +698,55 @@ class ContentSessionStore {
         epoch,
         isRemotenessUpdate,
       });
-    } else {
+    } else if (!this._shistoryInParent) {
       this.mm.sendAsyncMessage("SessionStore:restoreHistoryComplete", {
         epoch,
         isRemotenessUpdate,
       });
     }
+  }
+
+  finishRestoreHistory() {
+    this.contentRestore.finishRestoreHistory({
+      // Note: The callbacks passed here will only be used when a load starts
+      // that was not initiated by sessionstore itself. This can happen when
+      // some code calls browser.loadURI() or browser.reload() on a pending
+      // browser/tab.
+      onLoadStarted: () => {
+        // Notify the parent that the tab is no longer pending.
+        this.mm.sendAsyncMessage("SessionStore:restoreTabContentStarted", {
+          epoch: this.epoch,
+        });
+      },
+
+      onLoadFinished: () => {
+        // Tell SessionStore.jsm that it may want to restore some more tabs,
+        // since it restores a max of MAX_CONCURRENT_TAB_RESTORES at a time.
+        this.mm.sendAsyncMessage("SessionStore:restoreTabContentComplete", {
+          epoch: this.epoch,
+        });
+      },
+
+      removeRestoreListener: () => {
+        if (!this._shistoryInParent) {
+          return;
+        }
+
+        // Notify the parent that the tab is no longer pending.
+        this.mm.sendAsyncMessage("SessionStore:removeRestoreListener", {
+          epoch: this.epoch,
+        });
+      },
+    });
+
+    this.mm.sendAsyncMessage("SessionStore:restoreHistoryComplete", {
+      epoch: this.epoch,
+    });
+    if (this.restoreTabContentData) {
+      this.restoreTabContent(this.restoreTabContentData);
+      this.restoreTabContentData = null;
+    }
+    this.waitRestoreSHistoryInParent = false;
   }
 
   restoreTabContent({ loadArguments, isRemotenessUpdate, reason }) {
@@ -682,6 +762,17 @@ class ContentSessionStore {
         this.mm.sendAsyncMessage("SessionStore:restoreTabContentComplete", {
           epoch,
           isRemotenessUpdate,
+        });
+      },
+      () => {
+        // Tell SessionStore.jsm to remove restore listener.
+        this.mm.sendAsyncMessage("SessionStore:removeRestoreListener", {
+          epoch,
+        });
+      },
+      () => {
+        this.mm.sendAsyncMessage("SessionStore:reloadCurrentEntry", {
+          epoch,
         });
       }
     );

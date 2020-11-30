@@ -5,19 +5,19 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
-use cocoa::foundation::NSUInteger;
+use cocoa_foundation::foundation::NSUInteger;
 
 use crate::depthstencil::MTLCompareFunction;
 
 #[repr(u64)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum MTLSamplerMinMagFilter {
     Nearest = 0,
     Linear = 1,
 }
 
 #[repr(u64)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum MTLSamplerMipFilter {
     NotMipmapped = 0,
     Nearest = 1,
@@ -25,7 +25,7 @@ pub enum MTLSamplerMipFilter {
 }
 
 #[repr(u64)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum MTLSamplerAddressMode {
     ClampToEdge = 0,
     MirrorClampToEdge = 1,
@@ -36,7 +36,7 @@ pub enum MTLSamplerAddressMode {
 }
 
 #[repr(u64)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum MTLSamplerBorderColor {
     TransparentBlack = 0,
     OpaqueBlack = 1,

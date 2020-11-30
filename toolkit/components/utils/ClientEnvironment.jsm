@@ -6,52 +6,17 @@
 
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
-ChromeUtils.defineModuleGetter(
-  this,
-  "ShellService",
-  "resource:///modules/ShellService.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "AddonManager",
-  "resource://gre/modules/AddonManager.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "TelemetryArchive",
-  "resource://gre/modules/TelemetryArchive.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "TelemetryController",
-  "resource://gre/modules/TelemetryController.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "TelemetryEnvironment",
-  "resource://gre/modules/TelemetryEnvironment.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "UpdateUtils",
-  "resource://gre/modules/UpdateUtils.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "AppConstants",
-  "resource://gre/modules/AppConstants.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "FirstStartup",
-  "resource://gre/modules/FirstStartup.jsm"
-);
-
-ChromeUtils.defineModuleGetter(
-  this,
-  "AttributionCode",
-  "resource:///modules/AttributionCode.jsm"
-);
+/* eslint-disable prettier/prettier */
+ChromeUtils.defineModuleGetter(this, "ShellService", "resource:///modules/ShellService.jsm");
+ChromeUtils.defineModuleGetter(this, "AddonManager", "resource://gre/modules/AddonManager.jsm");
+ChromeUtils.defineModuleGetter(this, "TelemetryArchive", "resource://gre/modules/TelemetryArchive.jsm");
+ChromeUtils.defineModuleGetter(this, "TelemetryController", "resource://gre/modules/TelemetryController.jsm");
+ChromeUtils.defineModuleGetter(this, "UpdateUtils", "resource://gre/modules/UpdateUtils.jsm");
+ChromeUtils.defineModuleGetter(this, "AppConstants", "resource://gre/modules/AppConstants.jsm");
+ChromeUtils.defineModuleGetter(this, "AttributionCode", "resource:///modules/AttributionCode.jsm");
+ChromeUtils.defineModuleGetter(this, "WindowsVersionInfo", "resource://gre/modules/components-utils/WindowsVersionInfo.jsm");
+ChromeUtils.defineModuleGetter(this, "NormandyUtils", "resource://normandy/lib/NormandyUtils.jsm");
+/* eslint-enable prettier/prettier */
 
 var EXPORTED_SYMBOLS = ["ClientEnvironmentBase"];
 
@@ -116,6 +81,10 @@ class ClientEnvironmentBase {
         if (prop == "main") {
           return target.main;
         }
+        if (prop == "then") {
+          // this isn't a Promise, but it's not a problem to check
+          return undefined;
+        }
         throw new Error(
           `Live telemetry only includes the main ping, not the ${prop} ping`
         );
@@ -124,6 +93,16 @@ class ClientEnvironmentBase {
         return prop == "main";
       },
     });
+  }
+
+  // Note that we intend to replace usages of this with client_id in https://bugzilla.mozilla.org/show_bug.cgi?id=1542955
+  static get randomizationId() {
+    let id = Services.prefs.getCharPref("app.normandy.user_id", "");
+    if (!id) {
+      id = NormandyUtils.generateUuid();
+      Services.prefs.setCharPref("app.normandy.user_id", id);
+    }
+    return id;
   }
 
   static get version() {
@@ -139,15 +118,9 @@ class ClientEnvironmentBase {
   }
 
   static get searchEngine() {
-    // Telemetry Environment is not available in early first-startup.
-    if (FirstStartup.state === FirstStartup.IN_PROGRESS) {
-      return undefined;
-    }
-
     return (async () => {
-      await TelemetryEnvironment.onInitialized();
-      return TelemetryEnvironment.currentEnvironment.settings
-        .defaultSearchEngine;
+      const defaultEngineInfo = await Services.search.getDefaultEngineInfo();
+      return defaultEngineInfo.defaultSearchEngine;
     })();
   }
 
@@ -212,48 +185,72 @@ class ClientEnvironmentBase {
   }
 
   static get os() {
-    // Telemetry Environment is not available in early first-startup.
-    if (FirstStartup.state === FirstStartup.IN_PROGRESS) {
-      return undefined;
-    }
-
     function coerceToNumber(version) {
       const parts = version.split(".");
       return parseFloat(parts.slice(0, 2).join("."));
     }
 
-    return (async () => {
-      await TelemetryEnvironment.onInitialized();
-
-      const { system } = TelemetryEnvironment.currentEnvironment;
-      const rv = {
-        isWindows: AppConstants.platform === "win",
-        isMac: AppConstants.platform === "macosx",
-        isLinux: AppConstants.platform === "linux",
-        windowsVersion: null,
-        windowsBuildNumber: null,
-        macVersion: null,
-        darwinVersion: null,
-      };
-
-      if (rv.isWindows) {
-        rv.windowsVersion = coerceToNumber(system.os.version);
-        rv.windowsBuildNumber = system.os.windowsBuildNumber;
-      } else if (rv.isMac) {
-        rv.darwinVersion = coerceToNumber(system.os.version);
-        // Versions of OSX with Darwin < 5 don't follow this pattern
-        if (rv.darwinVersion >= 5) {
-          // OSX 10.1 used Darwin 5, OSX 10.2 used Darwin 6, and so on.
-          const intPart = Math.floor(rv.darwinVersion);
-          rv.macVersion = 10 + 0.1 * (intPart - 4);
-        }
+    function getOsVersion() {
+      let version = null;
+      try {
+        version = Services.sysinfo.getProperty("version", null);
+      } catch (_e) {
+        // getProperty can throw if the version does not exist
       }
+      if (version) {
+        version = coerceToNumber(version);
+      }
+      return version;
+    }
+
+    let osInfo = {
+      isWindows: AppConstants.platform == "win",
+      isMac: AppConstants.platform === "macosx",
+      isLinux: AppConstants.platform === "linux",
+
+      get windowsVersion() {
+        if (!osInfo.isWindows) {
+          return null;
+        }
+        return getOsVersion();
+      },
+
+      /**
+       * Gets the windows build number by querying the OS directly. The initial
+       * version was copied from toolkit/components/telemetry/app/TelemetryEnvironment.jsm
+       * @returns {number | null} The build number, or null on non-Windows platform or if there is an error.
+       */
+      get windowsBuildNumber() {
+        if (!osInfo.isWindows) {
+          return null;
+        }
+
+        return WindowsVersionInfo.get({ throwOnError: false }).buildNumber;
+      },
+
+      get macVersion() {
+        const darwinVersion = osInfo.darwinVersion;
+        // Versions of OSX with Darwin < 5 don't follow this pattern
+        if (darwinVersion >= 5) {
+          // OSX 10.1 used Darwin 5, OSX 10.2 used Darwin 6, and so on.
+          const intPart = Math.floor(darwinVersion);
+          return 10 + 0.1 * (intPart - 4);
+        }
+        return null;
+      },
+
+      get darwinVersion() {
+        if (!osInfo.isMac) {
+          return null;
+        }
+        return getOsVersion();
+      },
 
       // Version information on linux is a lot harder and a lot less useful, so
       // don't do anything about it here.
+    };
 
-      return rv;
-    })();
+    return osInfo;
   }
 
   static get attribution() {

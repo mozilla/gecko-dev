@@ -4,6 +4,9 @@
 
 /* globals ExtensionAPI */
 
+const { ComponentUtils } = ChromeUtils.import(
+  "resource://gre/modules/ComponentUtils.jsm"
+);
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
@@ -40,7 +43,7 @@ function TalosPowersService() {
 }
 
 TalosPowersService.prototype = {
-  factory: XPCOMUtils._getFactory(TalosPowersService),
+  factory: ComponentUtils._getFactory(TalosPowersService),
   classDescription: "Talos Powers",
   classID: Components.ID("{f5d53443-d58d-4a2f-8df0-98525d4f91ad}"),
   contractID: "@mozilla.org/talos/talos-powers-service;1",
@@ -139,6 +142,7 @@ TalosPowersService.prototype = {
    */
   profilerFinish(profileFile) {
     return new Promise((resolve, reject) => {
+      Services.profiler.Pause();
       Services.profiler.getProfileDataAsync().then(
         profile => {
           let encoder = new TextEncoder();
@@ -171,7 +175,7 @@ TalosPowersService.prototype = {
    */
   profilerPause(marker = null) {
     if (marker) {
-      Services.profiler.AddMarker(marker);
+      ChromeUtils.addProfilerMarker(marker);
     }
 
     Services.profiler.PauseSampling();
@@ -188,7 +192,7 @@ TalosPowersService.prototype = {
     Services.profiler.ResumeSampling();
 
     if (marker) {
-      Services.profiler.AddMarker(marker);
+      ChromeUtils.addProfilerMarker(marker);
     }
   },
 
@@ -196,7 +200,7 @@ TalosPowersService.prototype = {
    * Adds a marker to the Profile in the parent process.
    */
   profilerMarker(marker) {
-    Services.profiler.AddMarker(marker);
+    ChromeUtils.addProfilerMarker(marker);
   },
 
   receiveProfileCommand(message) {
@@ -352,7 +356,7 @@ TalosPowersService.prototype = {
         "resource://gre/modules/Troubleshoot.jsm"
       );
       Troubleshoot.snapshot(function(snapshot) {
-        dump("about:support\t" + JSON.stringify(snapshot));
+        dump("about:support\t" + JSON.stringify(snapshot) + "\n");
       });
       callback();
     },

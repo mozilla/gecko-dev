@@ -15,6 +15,7 @@
 #include "nsINode.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsPIDOMWindow.h"
+#include "nsRefreshDriver.h"
 #include "AnimationEvent.h"
 #include "BeforeUnloadEvent.h"
 #include "ClipboardEvent.h"
@@ -67,10 +68,6 @@
 #  include "mozilla/dom/Element.h"
 #  include "mozilla/Likely.h"
 using namespace mozilla::tasktracer;
-#endif
-
-#ifdef MOZ_GECKO_PROFILER
-#  include "ProfilerMarkerPayload.h"
 #endif
 
 namespace mozilla {
@@ -149,9 +146,8 @@ class EventTargetChainItem {
 
   static void DestroyLast(nsTArray<EventTargetChainItem>& aChain,
                           EventTargetChainItem* aItem) {
-    uint32_t lastIndex = aChain.Length() - 1;
-    MOZ_ASSERT(&aChain[lastIndex] == aItem);
-    aChain.RemoveElementAt(lastIndex);
+    MOZ_ASSERT(&aChain.LastElement() == aItem);
+    aChain.RemoveLastElement();
   }
 
   static EventTargetChainItem* GetFirstCanHandleEventTarget(
@@ -749,7 +745,7 @@ nsresult EventDispatcher::Dispatch(nsISupports* aTarget,
     } else {
       Event::GetWidgetEventType(aEvent, eventTypeU16);
     }
-    eventType = NS_ConvertUTF16toUTF8(eventTypeU16);
+    CopyUTF16toUTF8(eventTypeU16, eventType);
 
     nsCOMPtr<Element> element = do_QueryInterface(aTarget);
     nsAutoString elementId;
@@ -850,7 +846,7 @@ nsresult EventDispatcher::Dispatch(nsISupports* aTarget,
     if (!sCachedMainThreadChain) {
       sCachedMainThreadChain = new nsTArray<EventTargetChainItem>();
     }
-    chain.SwapElements(*sCachedMainThreadChain);
+    chain = std::move(*sCachedMainThreadChain);
     chain.SetCapacity(128);
   }
 
@@ -892,13 +888,16 @@ nsresult EventDispatcher::Dispatch(nsISupports* aTarget,
   bool clearTargets = false;
 
   nsCOMPtr<nsIContent> content = do_QueryInterface(aEvent->mOriginalTarget);
-  bool isInAnon = content && content->IsInAnonymousSubtree();
+  bool isInAnon = content && content->IsInNativeAnonymousSubtree();
 
   aEvent->mFlags.mIsBeingDispatched = true;
 
   // Create visitor object and start event dispatching.
   // GetEventTargetParent for the original target.
-  nsEventStatus status = aEventStatus ? *aEventStatus : nsEventStatus_eIgnore;
+  nsEventStatus status =
+      aDOMEvent && aDOMEvent->DefaultPrevented()
+          ? nsEventStatus_eConsumeNoDefault
+          : aEventStatus ? *aEventStatus : nsEventStatus_eIgnore;
   nsCOMPtr<EventTarget> targetForPreVisitor = aEvent->mTarget;
   EventChainPreVisitor preVisitor(aPresContext, aEvent, aDOMEvent, status,
                                   isInAnon, targetForPreVisitor);
@@ -1021,8 +1020,8 @@ nsresult EventDispatcher::Dispatch(nsISupports* aTarget,
             // This is tiny bit slow, but happens only once per event.
             // Similar code also in EventListenerManager.
             nsCOMPtr<EventTarget> et = aEvent->mOriginalTarget;
-            RefPtr<Event> event = EventDispatcher::CreateEvent(
-                et, aPresContext, aEvent, EmptyString());
+            RefPtr<Event> event =
+                EventDispatcher::CreateEvent(et, aPresContext, aEvent, u""_ns);
             event.swap(postVisitor.mDOMEvent);
           }
           nsAutoString typeStr;
@@ -1032,23 +1031,61 @@ nsresult EventDispatcher::Dispatch(nsISupports* aTarget,
 
           nsCOMPtr<nsIDocShell> docShell;
           docShell = nsContentUtils::GetDocShellForEventTarget(aEvent->mTarget);
-          Maybe<uint64_t> innerWindowID;
+          MarkerInnerWindowId innerWindowId;
           if (nsCOMPtr<nsPIDOMWindowInner> inner =
                   do_QueryInterface(aEvent->mTarget->GetOwnerGlobal())) {
-            innerWindowID = Some(inner->WindowID());
+            innerWindowId = MarkerInnerWindowId{inner->WindowID()};
           }
-          PROFILER_ADD_MARKER_WITH_PAYLOAD(
-              "DOMEvent", DOM, DOMEventMarkerPayload,
-              (typeStr, aEvent->mTimeStamp, "DOMEvent", TRACING_INTERVAL_START,
-               innerWindowID));
+
+          struct DOMEventMarker {
+            static constexpr Span<const char> MarkerTypeName() {
+              // Note: DOMEventMarkerPayload was originally a sub-class of
+              // TracingMarkerPayload, so it uses the same payload type.
+              // TODO: Change to its own distinct type, but this will require
+              // front-end changes.
+              return MakeStringSpan("DOMEvent");
+            }
+            static void StreamJSONMarkerData(
+                JSONWriter& aWriter, const ProfilerString16View& aEventType,
+                const TimeStamp& aStartTime, const TimeStamp& aEventTimeStamp) {
+              aWriter.StringProperty(
+                  "eventType", NS_ConvertUTF16toUTF8(aEventType.Data(),
+                                                     aEventType.Length()));
+              // This is the event processing latency, which is the time from
+              // when the event was created, to when it was started to be
+              // processed. Note that the computation of this latency is
+              // deferred until serialization time, at the expense of some extra
+              // memory.
+              aWriter.DoubleProperty(
+                  "latency", (aStartTime - aEventTimeStamp).ToMilliseconds());
+            }
+            static MarkerSchema MarkerTypeDisplay() {
+              using MS = MarkerSchema;
+              MS schema{MS::Location::markerChart, MS::Location::markerTable,
+                        MS::Location::timelineOverview};
+              schema.SetChartLabel("{marker.data.eventType}");
+              schema.SetTooltipLabel("{marker.data.eventType} - DOMEvent");
+              schema.SetTableLabel("{marker.data.eventType}");
+              schema.AddKeyLabelFormat("latency", "Latency",
+                                       MS::Format::duration);
+              return schema;
+            }
+          };
+
+          auto startTime = TimeStamp::NowUnfuzzed();
+          profiler_add_marker("DOMEvent", geckoprofiler::category::DOM,
+                              {MarkerTiming::IntervalStart(),
+                               MarkerInnerWindowId(innerWindowId)},
+                              DOMEventMarker{}, typeStr, startTime,
+                              aEvent->mTimeStamp);
 
           EventTargetChainItem::HandleEventTargetChain(chain, postVisitor,
                                                        aCallback, cd);
 
-          PROFILER_ADD_MARKER_WITH_PAYLOAD(
-              "DOMEvent", DOM, DOMEventMarkerPayload,
-              (typeStr, aEvent->mTimeStamp, "DOMEvent", TRACING_INTERVAL_END,
-               innerWindowID));
+          profiler_add_marker(
+              "DOMEvent", geckoprofiler::category::DOM,
+              {MarkerTiming::IntervalEnd(), std::move(innerWindowId)},
+              DOMEventMarker{}, typeStr, startTime, aEvent->mTimeStamp);
         } else
 #endif
         {
@@ -1102,7 +1139,7 @@ nsresult EventDispatcher::Dispatch(nsISupports* aTarget,
   }
 
   if (!externalDOMEvent && preVisitor.mDOMEvent) {
-    // An dom::Event was created while dispatching the event.
+    // A dom::Event was created while dispatching the event.
     // Duplicate private data if someone holds a pointer to it.
     nsrefcnt rc = 0;
     NS_RELEASE2(preVisitor.mDOMEvent, rc);
@@ -1254,7 +1291,7 @@ nsresult EventDispatcher::DispatchDOMEvent(nsISupports* aTarget,
   if (aEventType.LowerCaseEqualsLiteral("deviceorientationevent")) {
     DeviceOrientationEventInit init;
     RefPtr<Event> event =
-        DeviceOrientationEvent::Constructor(aOwner, EmptyString(), init);
+        DeviceOrientationEvent::Constructor(aOwner, u""_ns, init);
     event->MarkUninitialized();
     return event.forget();
   }
@@ -1286,8 +1323,7 @@ nsresult EventDispatcher::DispatchDOMEvent(nsISupports* aTarget,
   }
   if (aEventType.LowerCaseEqualsLiteral("hashchangeevent")) {
     HashChangeEventInit init;
-    RefPtr<Event> event =
-        HashChangeEvent::Constructor(aOwner, EmptyString(), init);
+    RefPtr<Event> event = HashChangeEvent::Constructor(aOwner, u""_ns, init);
     event->MarkUninitialized();
     return event.forget();
   }
@@ -1296,7 +1332,7 @@ nsresult EventDispatcher::DispatchDOMEvent(nsISupports* aTarget,
   }
   if (aEventType.LowerCaseEqualsLiteral("storageevent")) {
     RefPtr<Event> event =
-        StorageEvent::Constructor(aOwner, EmptyString(), StorageEventInit());
+        StorageEvent::Constructor(aOwner, u""_ns, StorageEventInit());
     event->MarkUninitialized();
     return event.forget();
   }

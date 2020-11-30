@@ -1,4 +1,3 @@
-const PREF_MULTISELECT_TABS = "browser.tabs.multiselect";
 const PREF_DELAY_AUTOPLAY = "media.block-autoplay-until-in-foreground";
 const PAGE =
   "https://example.com/browser/browser/base/content/test/tabs/file_mediaPlayback.html";
@@ -11,6 +10,12 @@ function activeMediaBlocked(tab) {
   return tab.activeMediaBlocked;
 }
 
+async function toggleMuteAudio(tab, expectMuted) {
+  let mutedPromise = get_wait_for_mute_promise(tab, expectMuted);
+  tab.toggleMuteAudio();
+  await mutedPromise;
+}
+
 async function addMediaTab() {
   const tab = BrowserTestUtils.addTab(gBrowser, PAGE, { skipAnimation: true });
   const browser = gBrowser.getBrowserForTab(tab);
@@ -20,7 +25,7 @@ async function addMediaTab() {
 
 add_task(async function setPref() {
   await SpecialPowers.pushPrefEnv({
-    set: [[PREF_MULTISELECT_TABS, true], [PREF_DELAY_AUTOPLAY, true]],
+    set: [[PREF_DELAY_AUTOPLAY, true]],
   });
 });
 
@@ -121,8 +126,8 @@ add_task(async function unmuteTabs_usingButton() {
   await play(tab2, false);
 
   // Mute tab3 and tab4
-  tab3.toggleMuteAudio();
-  tab4.toggleMuteAudio();
+  await toggleMuteAudio(tab3, true);
+  await toggleMuteAudio(tab4, true);
 
   // Multiselecting tab0, tab1, tab2 and tab3
   await triggerClickOn(tab3, { shiftKey: true });
@@ -237,8 +242,8 @@ add_task(async function playTabs_usingButton() {
   await triggerClickOn(tab3, { shiftKey: true });
 
   // Mute tab0 and tab4
-  tab0.toggleMuteAudio();
-  tab4.toggleMuteAudio();
+  await toggleMuteAudio(tab0, true);
+  await toggleMuteAudio(tab4, true);
 
   // Check multiselection
   for (let i = 0; i <= 3; i++) {
@@ -293,9 +298,9 @@ add_task(async function checkTabContextMenu() {
   );
 
   await play(tab0, false);
-  tab0.toggleMuteAudio();
+  await toggleMuteAudio(tab0, false);
   await play(tab1, false);
-  tab2.toggleMuteAudio();
+  await toggleMuteAudio(tab2, true);
 
   // multiselect tab0, tab1, tab2.
   await triggerClickOn(tab0, { ctrlKey: true });

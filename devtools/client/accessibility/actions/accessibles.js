@@ -14,14 +14,14 @@ const {
  * Fetch child accessibles for a given accessible object.
  * @param {Object} accessible front
  */
-exports.fetchChildren = accessible => dispatch =>
+exports.fetchChildren = accessible => ({ dispatch }) =>
   accessible
     .children()
     .then(response => dispatch({ accessible, type: FETCH_CHILDREN, response }))
     .catch(error => dispatch({ accessible, type: FETCH_CHILDREN, error }));
 
-exports.select = accessible => dispatch => {
-  const accessibleWalkerFront = accessible.parent();
+exports.select = accessible => ({ dispatch }) => {
+  const accessibleWalkerFront = accessible.getParent();
   if (!accessibleWalkerFront) {
     dispatch({
       accessible,
@@ -38,8 +38,8 @@ exports.select = accessible => dispatch => {
     .catch(error => dispatch({ accessible, type: SELECT, error }));
 };
 
-exports.highlight = accessible => dispatch => {
-  const accessibleWalkerFront = accessible.parent();
+exports.highlight = accessible => ({ dispatch }) => {
+  const accessibleWalkerFront = accessible.getParent();
   if (!accessibleWalkerFront) {
     dispatch({
       accessible,
@@ -56,4 +56,4 @@ exports.highlight = accessible => dispatch => {
     .catch(error => dispatch({ accessible, type: HIGHLIGHT, error }));
 };
 
-exports.unhighlight = () => dispatch => dispatch({ type: UNHIGHLIGHT });
+exports.unhighlight = () => ({ dispatch }) => dispatch({ type: UNHIGHLIGHT });

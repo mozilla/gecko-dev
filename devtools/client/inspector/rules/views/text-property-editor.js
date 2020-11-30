@@ -25,13 +25,7 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   this,
-  "parseDeclarations",
-  "devtools/shared/css/parsing-utils",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "parseSingleValue",
+  ["parseDeclarations", "parseSingleValue"],
   "devtools/shared/css/parsing-utils",
   true
 );
@@ -43,6 +37,8 @@ loader.lazyRequireGetter(
 );
 
 const HTML_NS = "http://www.w3.org/1999/xhtml";
+const INLINE_COMPATIBILITY_WARNING_PREF =
+  "devtools.inspector.ruleview.inline-compatibility-warning.enabled";
 
 const SHARED_SWATCH_CLASS = "ruleview-swatch";
 const COLOR_SWATCH_CLASS = "ruleview-colorswatch";
@@ -220,6 +216,17 @@ TextPropertyEditor.prototype = {
       class: "ruleview-unused-warning",
       hidden: "",
     });
+
+    const inlineCompatibilityWarningEnabled = Services.prefs.getBoolPref(
+      INLINE_COMPATIBILITY_WARNING_PREF
+    );
+
+    if (inlineCompatibilityWarningEnabled) {
+      this.compatibilityState = createChild(this.container, "div", {
+        class: "ruleview-compatibility-warning",
+        hidden: "",
+      });
+    }
 
     // Filter button that filters for the current property name and is
     // displayed when the property is overridden by another rule.
@@ -498,7 +505,7 @@ TextPropertyEditor.prototype = {
       baseURI: this.sheetHref,
       unmatchedVariableClass: "ruleview-unmatched-variable",
       matchedVariableClass: "ruleview-variable",
-      isVariableInUse: varName =>
+      getVariableValue: varName =>
         this.rule.elementStyle.getVariable(varName, this.rule.pseudoElement),
     };
     const frag = outputParser.parseCssProperty(name, val, parserOptions);
@@ -740,11 +747,11 @@ TextPropertyEditor.prototype = {
   updatePropertyState: function() {
     if (this.prop.enabled) {
       this.enable.style.removeProperty("visibility");
-      this.enable.setAttribute("checked", "");
     } else {
       this.enable.style.visibility = "visible";
-      this.enable.removeAttribute("checked");
     }
+
+    this.enable.checked = this.prop.enabled;
 
     this.warning.title = !this.isNameValid()
       ? l10n("rule.warningName.title")
@@ -771,6 +778,14 @@ TextPropertyEditor.prototype = {
     }
 
     this.updatePropertyUsedIndicator();
+
+    const inlineCompatibilityWarningEnabled = Services.prefs.getBoolPref(
+      INLINE_COMPATIBILITY_WARNING_PREF
+    );
+
+    if (inlineCompatibilityWarningEnabled) {
+      this.updatePropertyCompatibilityIndicator();
+    }
   },
 
   updatePropertyUsedIndicator: function() {
@@ -782,6 +797,16 @@ TextPropertyEditor.prototype = {
     } else {
       this.element.classList.add("unused");
       this.unusedState.hidden = false;
+    }
+  },
+
+  updatePropertyCompatibilityIndicator: async function() {
+    const { isCompatible } = await this.prop.isCompatible();
+
+    if (this.editing || isCompatible) {
+      this.compatibilityState.hidden = true;
+    } else {
+      this.compatibilityState.hidden = false;
     }
   },
 
@@ -926,13 +951,7 @@ TextPropertyEditor.prototype = {
    * Handles clicks on the disabled property.
    */
   _onEnableChanged: function(event) {
-    const checked = this.enable.hasAttribute("checked");
-    if (checked) {
-      this.enable.removeAttribute("checked");
-    } else {
-      this.enable.setAttribute("checked", "");
-    }
-    this.prop.setEnabled(!checked);
+    this.prop.setEnabled(this.enable.checked);
     event.stopPropagation();
     this.telemetry.recordEvent("edit_rule", "ruleview", null, {
       session_id: this.toolbox.sessionId,

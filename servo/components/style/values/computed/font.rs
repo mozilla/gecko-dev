@@ -21,7 +21,6 @@ use crate::values::specified::font::{
 use crate::values::specified::length::{FontBaseSize, NoCalcLength};
 use crate::values::CSSFloat;
 use crate::Atom;
-use byteorder::{BigEndian, ByteOrder};
 use cssparser::{serialize_identifier, CssStringWriter, Parser};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -33,9 +32,10 @@ use std::mem::{self, ManuallyDrop};
 use std::slice;
 use style_traits::{CssWriter, ParseError, ToCss};
 #[cfg(feature = "gecko")]
-use to_shmem::{SharedMemoryBuilder, ToShmem};
+use to_shmem::{self, SharedMemoryBuilder, ToShmem};
 
 pub use crate::values::computed::Length as MozScriptMinSize;
+pub use crate::values::specified::Integer as SpecifiedInteger;
 pub use crate::values::specified::font::{FontSynthesis, MozScriptSizeMultiplier};
 pub use crate::values::specified::font::{XLang, XTextZoom};
 
@@ -82,13 +82,14 @@ impl ToAnimatedValue for FontWeight {
     ToCss,
     ToResolvedValue,
 )]
+#[cfg_attr(feature = "servo", derive(Serialize, Deserialize))]
 /// The computed value of font-size
 pub struct FontSize {
     /// The size.
     pub size: NonNegativeLength,
     /// If derived from a keyword, the keyword and additional transformations applied to it
     #[css(skip)]
-    pub keyword_info: Option<KeywordInfo>,
+    pub keyword_info: KeywordInfo,
 }
 
 impl FontWeight {
@@ -156,8 +157,8 @@ impl FontSize {
     /// Get default value of font size.
     pub fn medium() -> Self {
         Self {
-            size: NonNegative(Length::new(specified::FONT_MEDIUM_PX as CSSFloat)),
-            keyword_info: Some(KeywordInfo::medium()),
+            size: NonNegative(Length::new(specified::FONT_MEDIUM_PX)),
+            keyword_info: KeywordInfo::medium(),
         }
     }
 }
@@ -174,13 +175,13 @@ impl ToAnimatedValue for FontSize {
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
         FontSize {
             size: NonNegative(animated.clamp_to_non_negative()),
-            keyword_info: None,
+            keyword_info: KeywordInfo::none(),
         }
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, ToResolvedValue)]
-#[cfg_attr(feature = "servo", derive(Hash, MallocSizeOf))]
+#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue, ToResolvedValue)]
+#[cfg_attr(feature = "servo", derive(Hash, MallocSizeOf, Serialize, Deserialize))]
 /// Specifies a prioritized list of font family names or generic family names.
 pub struct FontFamily {
     /// The actual list of family names.
@@ -228,7 +229,9 @@ impl ToCss for FontFamily {
     }
 }
 
-#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToResolvedValue, ToShmem)]
+#[derive(
+    Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem,
+)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 /// The name of a font family of choice
 pub struct FamilyName {
@@ -271,7 +274,9 @@ impl ToCss for FamilyName {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToResolvedValue, ToShmem)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem,
+)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 /// Font family names must either be given quoted as strings,
 /// or unquoted as a sequence of one or more identifiers.
@@ -286,7 +291,9 @@ pub enum FontFamilyNameSyntax {
     Identifiers,
 }
 
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToCss, ToResolvedValue, ToShmem)]
+#[derive(
+    Clone, Debug, Eq, MallocSizeOf, PartialEq, ToCss, ToComputedValue, ToResolvedValue, ToShmem,
+)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize, Hash))]
 /// A set of faces that vary in weight, width or slope.
 pub enum SingleFontFamily {
@@ -302,7 +309,18 @@ pub enum SingleFontFamily {
 /// `gfxPlatformFontList.h`s ranged array and `gfxFontFamilyList`'s
 /// sSingleGenerics are updated as well.
 #[derive(
-    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, Parse, ToCss, ToResolvedValue, ToShmem,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    PartialEq,
+    Parse,
+    ToCss,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(u8)]
@@ -328,7 +346,7 @@ pub enum GenericFontFamily {
 impl SingleFontFamily {
     /// Parse a font-family value.
     pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        if let Ok(value) = input.try(|i| i.expect_string_cloned()) {
+        if let Ok(value) = input.try_parse(|i| i.expect_string_cloned()) {
             return Ok(SingleFontFamily::FamilyName(FamilyName {
                 name: Atom::from(&*value),
                 syntax: FontFamilyNameSyntax::Quoted,
@@ -363,7 +381,7 @@ impl SingleFontFamily {
             value.push(' ');
             value.push_str(&ident);
         }
-        while let Ok(ident) = input.try(|i| i.expect_ident_cloned()) {
+        while let Ok(ident) = input.try_parse(|i| i.expect_ident_cloned()) {
             serialize_quoted = serialize_quoted || ident.contains(' ');
             value.push(' ');
             value.push_str(&ident);
@@ -428,35 +446,52 @@ impl SingleFontFamily {
 }
 
 #[cfg(feature = "servo")]
-#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToResolvedValue, ToShmem)]
+#[derive(
+    Clone,
+    Debug,
+    Deserialize,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    PartialEq,
+    Serialize,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
 /// A list of SingleFontFamily
 pub struct FontFamilyList(Box<[SingleFontFamily]>);
 
 #[cfg(feature = "gecko")]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, ToComputedValue, ToResolvedValue)]
 /// A list of SingleFontFamily
 pub enum FontFamilyList {
     /// A strong reference to a Gecko SharedFontList object.
-    SharedFontList(RefPtr<structs::SharedFontList>),
+    SharedFontList(
+        #[compute(no_field_bound)]
+        #[resolve(no_field_bound)]
+        RefPtr<structs::SharedFontList>,
+    ),
     /// A font-family generic ID.
     Generic(GenericFontFamily),
 }
 
 #[cfg(feature = "gecko")]
 impl ToShmem for FontFamilyList {
-    fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+    fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> to_shmem::Result<Self> {
         // In practice, the only SharedFontList objects we create from shared
         // style sheets are ones with a single generic entry.
-        ManuallyDrop::new(match *self {
+        Ok(ManuallyDrop::new(match *self {
             FontFamilyList::SharedFontList(ref r) => {
-                assert!(
-                    r.mNames.len() == 1 && r.mNames[0].mName.mRawPtr.is_null(),
-                    "ToShmem failed for FontFamilyList: cannot handle non-generic families",
-                );
+                if !(r.mNames.len() == 1 && r.mNames[0].mName.mRawPtr.is_null()) {
+                    return Err(String::from(
+                        "ToShmem failed for FontFamilyList: cannot handle non-generic families",
+                    ));
+                }
                 FontFamilyList::Generic(r.mNames[0].mGeneric)
             },
             FontFamilyList::Generic(t) => FontFamilyList::Generic(t),
-        })
+        }))
     }
 }
 
@@ -689,6 +724,43 @@ impl FontLanguageOverride {
     pub fn zero() -> FontLanguageOverride {
         FontLanguageOverride(0)
     }
+
+    /// Returns this value as a `&str`, backed by `storage`.
+    #[inline]
+    pub(crate) fn to_str(self, storage: &mut [u8; 4]) -> &str {
+        *storage = u32::to_be_bytes(self.0);
+        // Safe because we ensure it's ASCII during computing
+        let slice = if cfg!(debug_assertions) {
+            std::str::from_utf8(&storage[..]).unwrap()
+        } else {
+            unsafe { std::str::from_utf8_unchecked(&storage[..]) }
+        };
+        slice.trim_end()
+    }
+
+    /// Parses a str, return `Self::zero()` if the input isn't a valid OpenType
+    /// "language system" tag.
+    #[inline]
+    pub fn from_str(lang: &str) -> Self {
+        if lang.is_empty() || lang.len() > 4 {
+            return Self::zero();
+        }
+        let mut bytes = [b' '; 4];
+        for (byte, lang_byte) in bytes.iter_mut().zip(lang.as_bytes()) {
+            if !lang_byte.is_ascii() {
+                return Self::zero();
+            }
+            *byte = *lang_byte;
+        }
+        Self(u32::from_be_bytes(bytes))
+    }
+
+    /// Unsafe because `Self::to_str` requires the value to represent a UTF-8
+    /// string.
+    #[inline]
+    pub unsafe fn from_u32(value: u32) -> Self {
+        Self(value)
+    }
 }
 
 impl ToCss for FontLanguageOverride {
@@ -696,27 +768,19 @@ impl ToCss for FontLanguageOverride {
     where
         W: fmt::Write,
     {
-        use std::str;
-
         if self.0 == 0 {
             return dest.write_str("normal");
         }
-        let mut buf = [0; 4];
-        BigEndian::write_u32(&mut buf, self.0);
-        // Safe because we ensure it's ASCII during computing
-        let slice = if cfg!(debug_assertions) {
-            str::from_utf8(&buf).unwrap()
-        } else {
-            unsafe { str::from_utf8_unchecked(&buf) }
-        };
-        slice.trim_end().to_css(dest)
+        self.to_str(&mut [0; 4]).to_css(dest)
     }
 }
 
+// FIXME(emilio): Make Gecko use the cbindgen'd fontLanguageOverride, then
+// remove this.
 #[cfg(feature = "gecko")]
 impl From<u32> for FontLanguageOverride {
-    fn from(bits: u32) -> FontLanguageOverride {
-        FontLanguageOverride(bits)
+    fn from(v: u32) -> Self {
+        unsafe { Self::from_u32(v) }
     }
 }
 
@@ -748,38 +812,39 @@ impl ToComputedValue for specified::MozScriptMinSize {
     }
 }
 
-/// The computed value of the -moz-script-level property.
-pub type MozScriptLevel = i8;
+/// The computed value of the math-depth property.
+pub type MathDepth = i8;
 
 #[cfg(feature = "gecko")]
-impl ToComputedValue for specified::MozScriptLevel {
-    type ComputedValue = MozScriptLevel;
+impl ToComputedValue for specified::MathDepth {
+    type ComputedValue = MathDepth;
 
     fn to_computed_value(&self, cx: &Context) -> i8 {
-        use crate::properties::longhands::_moz_math_display::SpecifiedValue as DisplayValue;
+        use crate::properties::longhands::math_style::SpecifiedValue as MathStyleValue;
         use std::{cmp, i8};
 
         let int = match *self {
-            specified::MozScriptLevel::Auto => {
-                let parent = cx.builder.get_parent_font().clone__moz_script_level() as i32;
-                let display = cx.builder.get_parent_font().clone__moz_math_display();
-                if display == DisplayValue::Inline {
+            specified::MathDepth::AutoAdd => {
+                let parent = cx.builder.get_parent_font().clone_math_depth() as i32;
+                let style = cx.builder.get_parent_font().clone_math_style();
+                if style == MathStyleValue::Compact {
                     parent + 1
                 } else {
                     parent
                 }
             },
-            specified::MozScriptLevel::Relative(rel) => {
-                let parent = cx.builder.get_parent_font().clone__moz_script_level();
-                parent as i32 + rel
+            specified::MathDepth::Add(rel) => {
+                let parent = cx.builder.get_parent_font().clone_math_depth();
+                parent as i32 + rel.to_computed_value(cx)
             },
-            specified::MozScriptLevel::MozAbsolute(abs) => abs,
+            specified::MathDepth::Absolute(abs) => abs.to_computed_value(cx),
         };
         cmp::min(int, i8::MAX as i32) as i8
     }
 
     fn from_computed_value(other: &i8) -> Self {
-        specified::MozScriptLevel::MozAbsolute(*other as i32)
+        let computed_value = *other as i32;
+        specified::MathDepth::Absolute(SpecifiedInteger::from_computed_value(&computed_value))
     }
 }
 

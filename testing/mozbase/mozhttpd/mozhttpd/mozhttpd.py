@@ -17,6 +17,7 @@ import os
 import re
 import moznetwork
 import time
+import traceback
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from six import iteritems
@@ -46,6 +47,9 @@ class EasyServer(ThreadingMixIn, HTTPServer):
             pass  # remote hang up before the result is sent
         else:
             logging.error(error)
+            # The error can be ambiguous just the short description is logged, so we
+            # dump a stack trace to discover its origin.
+            traceback.print_exc()
 
 
 class Request(object):
@@ -140,7 +144,7 @@ class RequestHandler(SimpleHTTPRequestHandler):
             else:
                 self.send_response(404)
                 self.end_headers()
-                self.wfile.write('')
+                self.wfile.write(b'')
 
     def do_POST(self):
         # if we don't have a match, we always fall through to 404 (this may
@@ -149,7 +153,7 @@ class RequestHandler(SimpleHTTPRequestHandler):
         if not self._try_handler('POST'):
             self.send_response(404)
             self.end_headers()
-            self.wfile.write('')
+            self.wfile.write(b'')
 
     def do_DEL(self):
         # if we don't have a match, we always fall through to 404 (this may
@@ -158,7 +162,7 @@ class RequestHandler(SimpleHTTPRequestHandler):
         if not self._try_handler('DEL'):
             self.send_response(404)
             self.end_headers()
-            self.wfile.write('')
+            self.wfile.write(b'')
 
     def translate_path(self, path):
         # this is taken from SimpleHTTPRequestHandler.translate_path(),

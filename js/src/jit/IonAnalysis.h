@@ -9,9 +9,25 @@
 
 // This file declares various analysis passes that operate on MIR.
 
+#include "mozilla/Attributes.h"
+
+#include <stddef.h>
+#include <stdint.h>
+
+#include "jit/IonTypes.h"
 #include "jit/JitAllocPolicy.h"
+#include "js/TypeDecls.h"
+#include "js/Utility.h"
+#include "js/Vector.h"
 
 namespace js {
+
+class DPAConstraintInfo;
+class GenericPrinter;
+class ObjectGroup;
+class PlainObject;
+class TypeNewScriptInitializer;
+
 namespace jit {
 
 class MBasicBlock;
@@ -46,6 +62,8 @@ MOZ_MUST_USE bool EliminateDeadResumePointOperands(MIRGenerator* mir,
                                                    MIRGraph& graph);
 
 MOZ_MUST_USE bool EliminateDeadCode(MIRGenerator* mir, MIRGraph& graph);
+
+MOZ_MUST_USE bool FoldLoadsWithUnbox(MIRGenerator* mir, MIRGraph& graph);
 
 MOZ_MUST_USE bool ApplyTypeInformation(MIRGenerator* mir, MIRGraph& graph);
 
@@ -95,7 +113,8 @@ struct SimpleLinearSum {
 enum class MathSpace { Modulo, Infinite, Unknown };
 
 SimpleLinearSum ExtractLinearSum(MDefinition* ins,
-                                 MathSpace space = MathSpace::Unknown);
+                                 MathSpace space = MathSpace::Unknown,
+                                 int32_t recursionDepth = 0);
 
 MOZ_MUST_USE bool ExtractLinearInequality(MTest* test,
                                           BranchDirection direction,
@@ -159,8 +178,8 @@ MCompare* ConvertLinearInequality(TempAllocator& alloc, MBasicBlock* block,
                                   const LinearSum& sum);
 
 MOZ_MUST_USE bool AnalyzeNewScriptDefiniteProperties(
-    JSContext* cx, DPAConstraintInfo& constraintInfo, HandleFunction fun,
-    ObjectGroup* group, HandlePlainObject baseobj,
+    JSContext* cx, DPAConstraintInfo& constraintInfo, JS::HandleFunction fun,
+    ObjectGroup* group, JS::Handle<PlainObject*> baseobj,
     Vector<TypeNewScriptInitializer>* initializerList);
 
 MOZ_MUST_USE bool AnalyzeArgumentsUsage(JSContext* cx, JSScript* script);
@@ -169,7 +188,9 @@ bool DeadIfUnused(const MDefinition* def);
 
 bool IsDiscardable(const MDefinition* def);
 
-void DumpMIRExpressions(MIRGraph& graph);
+class CompileInfo;
+void DumpMIRExpressions(MIRGraph& graph, const CompileInfo& info,
+                        const char* phase);
 
 }  // namespace jit
 }  // namespace js

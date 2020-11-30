@@ -293,7 +293,7 @@ var NetUtil = {
           Components.stack.caller
         );
       }
-      securityFlags = Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL;
+      securityFlags = Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL;
     }
 
     if (contentPolicyType === undefined) {
@@ -308,7 +308,7 @@ var NetUtil = {
       contentPolicyType = Ci.nsIContentPolicy.TYPE_OTHER;
     }
 
-    return Services.io.newChannelFromURI(
+    let channel = Services.io.newChannelFromURI(
       uri,
       loadingNode || null,
       loadingPrincipal || null,
@@ -316,6 +316,10 @@ var NetUtil = {
       securityFlags,
       contentPolicyType
     );
+    if (loadUsingSystemPrincipal) {
+      channel.loadInfo.allowDeprecatedSystemRequests = true;
+    }
+    return channel;
   },
 
   /**

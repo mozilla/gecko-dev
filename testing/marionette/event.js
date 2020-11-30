@@ -2,25 +2,30 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/** Provides functionality for creating and sending DOM events. */
-this.event = {};
-
-("use strict");
+"use strict";
 /* global content, is */
 /* eslint-disable no-restricted-globals */
 
-const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+const EXPORTED_SYMBOLS = ["event"];
 
-const { element } = ChromeUtils.import(
-  "chrome://marionette/content/element.js"
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+const { XPCOMUtils } = ChromeUtils.import(
+  "resource://gre/modules/XPCOMUtils.jsm"
 );
 
-const dblclickTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+XPCOMUtils.defineLazyModuleGetters(this, {
+  element: "chrome://marionette/content/element.js",
+});
+
+/** Provides functionality for creating and sending DOM events. */
+this.event = {};
+
+XPCOMUtils.defineLazyGetter(this, "dblclickTimer", () => {
+  return Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+});
 
 //  Max interval between two clicks that should result in a dblclick (in ms)
 const DBLCLICK_INTERVAL = 640;
-
-this.EXPORTED_SYMBOLS = ["event"];
 
 // TODO(ato): Document!
 let seenEvent = false;
@@ -327,6 +332,9 @@ function computeKeyCodeFromChar_(char, win) {
 
     case "\n":
       return KeyboardEvent.DOM_VK_RETURN;
+
+    case " ":
+      return KeyboardEvent.DOM_VK_SPACE;
 
     default:
       return 0;

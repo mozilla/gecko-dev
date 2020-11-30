@@ -53,10 +53,10 @@ with Files("update-packaging/**"):
 with Files("update-verify/**"):
     BUG_COMPONENT = ("Release Engineering", "Release Automation: Updates")
 
-SPHINX_TREES['moztreedocs'] = 'moztreedocs/docs'
+with Files("vcs/**"):
+    BUG_COMPONENT = ("Firefox Build System", "General")
 
-with Files('lint/docs/**'):
-    SCHEDULES.exclusive = ['docs']
+SPHINX_TREES['moztreedocs'] = 'moztreedocs/docs'
 
 SPHINX_TREES['try'] = 'tryselect/docs'
 
@@ -75,6 +75,5 @@ CRAMTEST_MANIFESTS += [
 
 PYTHON_UNITTEST_MANIFESTS += [
     'lint/test/python.ini',
-    'rb/python.ini',
     'tryselect/test/python.ini',
 ]

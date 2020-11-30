@@ -15,6 +15,7 @@ const ENABLE_CODE_FOLDING = "devtools.editor.enableCodeFolding";
 const KEYMAP_PREF = "devtools.editor.keymap";
 const AUTO_CLOSE = "devtools.editor.autoclosebrackets";
 const AUTOCOMPLETE = "devtools.editor.autocomplete";
+const CARET_BLINK_TIME = "ui.caretBlinkTime";
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
 const VALID_KEYMAPS = new Map([
@@ -149,11 +150,13 @@ function Editor(config) {
     themeSwitching: true,
     autocomplete: false,
     autocompleteOpts: {},
-    // Expect a CssProperties object (see devtools/shared/fronts/css-properties.js)
+    // Expect a CssProperties object (see devtools/client/fronts/css-properties.js)
     cssProperties: null,
     // Set to true to prevent the search addon to be activated.
     disableSearchAddon: false,
     maxHighlightLength: 1000,
+    // Disable codeMirror setTimeout-based cursor blinking (will be replaced by a CSS animation)
+    cursorBlinkRate: 0,
   };
 
   // Additional shortcuts.
@@ -209,7 +212,7 @@ function Editor(config) {
   // indenting with tabs, insert one tab. Otherwise insert N
   // whitespaces where N == indentUnit option.
   this.config.extraKeys.Tab = cm => {
-    if (config.extraKeys && config.extraKeys.Tab) {
+    if (config.extraKeys?.Tab) {
       // If a consumer registers its own extraKeys.Tab, we execute it before doing
       // anything else. If it returns false, that mean that all the key handling work is
       // done, so we can do an early return.
@@ -256,7 +259,7 @@ Editor.prototype = {
    */
   get CodeMirror() {
     const codeMirror = editors.get(this);
-    return codeMirror && codeMirror.constructor;
+    return codeMirror?.constructor;
   },
 
   /**
@@ -418,9 +421,11 @@ Editor.prototype = {
 
     const pipedEvents = [
       "beforeChange",
+      "blur",
       "changes",
       "cursorActivity",
       "focus",
+      "keyHandled",
       "scroll",
     ];
     for (const eventName of pipedEvents) {
@@ -460,6 +465,23 @@ Editor.prototype = {
         replaceAll: null,
       });
     }
+
+    // Retrieve the cursor blink rate from user preference, or fall back to CodeMirror's
+    // default value.
+    let cursorBlinkingRate = win.CodeMirror.defaults.cursorBlinkRate;
+    if (Services.prefs.prefHasUserValue(CARET_BLINK_TIME)) {
+      cursorBlinkingRate = Services.prefs.getIntPref(
+        CARET_BLINK_TIME,
+        cursorBlinkingRate
+      );
+    }
+    // This will be used in the animation-duration property we set on the cursor to
+    // implement the blinking animation. If cursorBlinkingRate is 0 or less, the cursor
+    // won't blink.
+    cm.getWrapperElement().style.setProperty(
+      "--caret-blink-time",
+      `${Math.max(0, cursorBlinkingRate)}ms`
+    );
 
     editors.set(this, cm);
 
@@ -1337,7 +1359,7 @@ Editor.prototype = {
       return "";
     }
 
-    return mark.title || "";
+    return mark.attributes["data-completion"] || "";
   },
 
   setAutoCompletionText: function(text) {
@@ -1355,7 +1377,9 @@ Editor.prototype = {
       if (text) {
         cm.markText({ ...cursor, ch: cursor.ch - 1 }, cursor, {
           className,
-          title: text,
+          attributes: {
+            "data-completion": text,
+          },
         });
       }
     });
@@ -1414,7 +1438,7 @@ Editor.prototype = {
 
     // Remove the link between the document and code-mirror.
     const cm = editors.get(this);
-    if (cm && cm.doc) {
+    if (cm?.doc) {
       cm.doc.cm = null;
     }
 

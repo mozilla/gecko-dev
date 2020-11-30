@@ -66,6 +66,9 @@ with Files('DeferredTask.jsm'):
 with Files("E10SUtils.jsm"):
     BUG_COMPONENT = ("Core", "Security: Process Sandboxing")
 
+with Files("nsIE10SUtils.idl"):
+    BUG_COMPONENT = ("Core", "Security: Process Sandboxing")
+
 with Files('Finder*.jsm'):
     BUG_COMPONENT = ('Toolkit', 'Find Toolbar')
 
@@ -106,22 +109,13 @@ with Files('PermissionsUtils.jsm'):
     BUG_COMPONENT = ('Toolkit', 'Add-ons Manager')
 
 with Files('PopupNotifications.jsm'):
-    BUG_COMPONENT = ('Toolkit', 'Password Manager')
+    BUG_COMPONENT = ('Toolkit', 'Notifications and Alerts')
 
 with Files('PrivateBrowsingUtils.jsm'):
     BUG_COMPONENT = ('Firefox', 'Private Browsing')
 
 with Files('Promise*.jsm'):
     BUG_COMPONENT = ('Toolkit', 'Async Tooling')
-
-with Files('RemoteController.jsm'):
-    BUG_COMPONENT = ('Core', 'Widget')
-
-with Files('RemoteSecurityUI.jsm'):
-    BUG_COMPONENT = ('Firefox', 'Tabbed Browser')
-
-with Files('RemoteWebProgress.jsm'):
-    BUG_COMPONENT = ('Core', 'DOM: Navigation')
 
 with Files('ResponsivenessMonitor.jsm'):
     BUG_COMPONENT = ('Firefox', 'Migration')
@@ -131,6 +125,9 @@ with Files('ShortcutUtils.jsm'):
 
 with Files('Sqlite.jsm'):
     BUG_COMPONENT = ('Toolkit', 'Storage')
+
+with Files("SubDialog.jsm"):
+    BUG_COMPONENT = ("Toolkit", "Notifications and Alerts")
 
 with Files('UpdateUtils.jsm'):
     BUG_COMPONENT = ('Toolkit', 'Application Update')
@@ -145,6 +142,7 @@ MOCHITEST_CHROME_MANIFESTS += ['tests/chrome/chrome.ini']
 
 TESTING_JS_MODULES += [
     'tests/modules/MockDocument.jsm',
+    'tests/modules/OSKeyStoreTestUtils.jsm',
     'tests/modules/PromiseTestUtils.jsm',
     'tests/modules/Task.jsm',
     'tests/xpcshell/TestIntegration.jsm',
@@ -198,6 +196,8 @@ EXTRA_JS_MODULES += [
     'NLP.jsm',
     'ObjectUtils.jsm',
     'offlineAppCache.jsm',
+    'OsEnvironment.jsm',
+    'OSKeyStore.jsm',
     'PageMenu.jsm',
     'PermissionsUtils.jsm',
     'PopupNotifications.jsm',
@@ -206,17 +206,16 @@ EXTRA_JS_MODULES += [
     'ProfileAge.jsm',
     'Promise-backend.js',
     'Promise.jsm',
-    'PromiseMessage.jsm',
     'PromiseUtils.jsm',
-    'RemoteController.jsm',
-    'RemoteSecurityUI.jsm',
-    'RemoteWebProgress.jsm',
+    'Region.jsm',
+    'RemotePageAccessManager.jsm',
     'ResetProfile.jsm',
     'ResponsivenessMonitor.jsm',
     'ServiceRequest.jsm',
     'Services.jsm',
     'ShortcutUtils.jsm',
     'Sqlite.jsm',
+    'SubDialog.jsm',
     'Timer.jsm',
     'Troubleshoot.jsm',
     'UpdateUtils.jsm',
@@ -235,6 +234,8 @@ EXTRA_JS_MODULES.sessionstore += [
     'sessionstore/SessionHistory.jsm',
     'sessionstore/Utils.jsm',
 ]
+
+EXTRA_JS_MODULES.third_party.fathom += ['third_party/fathom/fathom.jsm']
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] in ('windows', 'gtk'):
     DEFINES['MENUBAR_CAN_AUTOHIDE'] = 1
@@ -272,6 +273,7 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
 
 for var in ('ANDROID_PACKAGE_NAME',
             'MOZ_APP_NAME',
+            'MOZ_APP_BASENAME',
             'MOZ_APP_VERSION',
             'MOZ_APP_VERSION_DISPLAY',
             'MOZ_BING_API_CLIENTID',
@@ -298,3 +300,11 @@ for var in ('MOZ_ALLOW_ADDON_SIDELOAD',
 JAR_MANIFESTS += ['jar.mn']
 
 DEFINES['TOPOBJDIR'] = TOPOBJDIR
+
+XPIDL_SOURCES += [
+    'nsIBrowserWindowTracker.idl',
+    'nsIE10SUtils.idl',
+    'nsIRegion.idl',
+]
+
+XPIDL_MODULE = 'toolkit_modules'

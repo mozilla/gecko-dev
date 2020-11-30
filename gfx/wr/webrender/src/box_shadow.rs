@@ -4,15 +4,12 @@
 
 use api::{BorderRadius, BoxShadowClipMode, ClipMode, ColorF, PrimitiveKeyKind};
 use api::PropertyBinding;
-use api::MAX_BLUR_RADIUS;
 use api::units::*;
-use crate::clip::{ClipItemKey, ClipItemKeyKind};
+use crate::clip::{ClipItemKey, ClipItemKeyKind, ClipChainId};
 use crate::scene_building::SceneBuilder;
-use crate::gpu_cache::GpuCacheHandle;
+use crate::spatial_tree::SpatialNodeIndex;
 use crate::gpu_types::BoxShadowStretchMode;
-use crate::prim_store::ScrollNodeAndClipChain;
 use crate::render_task_cache::RenderTaskCacheEntryHandle;
-use crate::util::RectHelpers;
 use crate::internal_types::LayoutPrimitiveInfo;
 
 #[derive(Debug, Clone, MallocSizeOf)]
@@ -30,7 +27,6 @@ pub struct BoxShadowClipSource {
     // to the cached clip region and blurred texture.
     pub cache_key: Option<(DeviceIntSize, BoxShadowCacheKey)>,
     pub cache_handle: Option<RenderTaskCacheEntryHandle>,
-    pub clip_data_handle: GpuCacheHandle,
 
     // Local-space size of the required render task size.
     pub shadow_rect_alloc_size: LayoutSize,
@@ -51,6 +47,10 @@ pub struct BoxShadowClipSource {
 // The blur shader samples BLUR_SAMPLE_SCALE * blur_radius surrounding texels.
 pub const BLUR_SAMPLE_SCALE: f32 = 3.0;
 
+// Maximum blur radius for box-shadows (different than blur filters).
+// Taken from nsCSSRendering.cpp in Gecko.
+pub const MAX_BLUR_RADIUS: f32 = 300.;
+
 // A cache key that uniquely identifies a minimally sized
 // and blurred box-shadow rect that can be stored in the
 // texture cache and applied to clip-masks.
@@ -67,12 +67,14 @@ pub struct BoxShadowCacheKey {
     pub br_top_right: DeviceIntSize,
     pub br_bottom_right: DeviceIntSize,
     pub br_bottom_left: DeviceIntSize,
+    pub device_pixel_scale: Au,
 }
 
 impl<'a> SceneBuilder<'a> {
     pub fn add_box_shadow(
         &mut self,
-        clip_and_scroll: ScrollNodeAndClipChain,
+        spatial_node_index: SpatialNodeIndex,
+        clip_chain_id: ClipChainId,
         prim_info: &LayoutPrimitiveInfo,
         box_offset: &LayoutVector2D,
         color: ColorF,
@@ -104,7 +106,7 @@ impl<'a> SceneBuilder<'a> {
                 .rect
                 .translate(*box_offset)
                 .inflate(spread_amount, spread_amount),
-            clip_and_scroll.spatial_node_index,
+            spatial_node_index,
         );
 
         // If blur radius is zero, we can use a fast path with
@@ -118,7 +120,7 @@ impl<'a> SceneBuilder<'a> {
             let mut clips = Vec::with_capacity(2);
             let (final_prim_rect, clip_radius) = match clip_mode {
                 BoxShadowClipMode::Outset => {
-                    if !shadow_rect.is_well_formed_and_nonempty() {
+                    if shadow_rect.is_empty() {
                         return;
                     }
 
@@ -129,20 +131,18 @@ impl<'a> SceneBuilder<'a> {
                             border_radius,
                             ClipMode::ClipOut,
                         ),
-                        spatial_node_index: clip_and_scroll.spatial_node_index,
                     });
 
                     (shadow_rect, shadow_radius)
                 }
                 BoxShadowClipMode::Inset => {
-                    if shadow_rect.is_well_formed_and_nonempty() {
+                    if !shadow_rect.is_empty() {
                         clips.push(ClipItemKey {
                             kind: ClipItemKeyKind::rounded_rect(
                                 shadow_rect,
                                 shadow_radius,
                                 ClipMode::ClipOut,
                             ),
-                            spatial_node_index: clip_and_scroll.spatial_node_index,
                         });
                     }
 
@@ -156,11 +156,11 @@ impl<'a> SceneBuilder<'a> {
                     clip_radius,
                     ClipMode::Clip,
                 ),
-                spatial_node_index: clip_and_scroll.spatial_node_index,
             });
 
             self.add_primitive(
-                clip_and_scroll,
+                spatial_node_index,
+                clip_chain_id,
                 &LayoutPrimitiveInfo::with_clip_rect(final_prim_rect, prim_info.clip_rect),
                 clips,
                 PrimitiveKeyKind::Rectangle {
@@ -180,7 +180,6 @@ impl<'a> SceneBuilder<'a> {
                     border_radius,
                     prim_clip_mode,
                 ),
-                spatial_node_index: clip_and_scroll.spatial_node_index,
             });
 
             // Get the local rect of where the shadow will be drawn,
@@ -202,13 +201,12 @@ impl<'a> SceneBuilder<'a> {
                     blur_radius,
                     clip_mode,
                 ),
-                spatial_node_index: clip_and_scroll.spatial_node_index,
             };
 
             let prim_info = match clip_mode {
                 BoxShadowClipMode::Outset => {
                     // Certain spread-radii make the shadow invalid.
-                    if !shadow_rect.is_well_formed_and_nonempty() {
+                    if shadow_rect.is_empty() {
                         return;
                     }
 
@@ -232,7 +230,7 @@ impl<'a> SceneBuilder<'a> {
                     // Inset shadows are still visible, even if the
                     // inset shadow rect becomes invalid (they will
                     // just look like a solid rectangle).
-                    if shadow_rect.is_well_formed_and_nonempty() {
+                    if !shadow_rect.is_empty() {
                         extra_clips.push(shadow_clip_source);
                     }
 
@@ -242,7 +240,8 @@ impl<'a> SceneBuilder<'a> {
             };
 
             self.add_primitive(
-                clip_and_scroll,
+                spatial_node_index,
+                clip_chain_id,
                 &prim_info,
                 extra_clips,
                 prim,

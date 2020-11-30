@@ -50,7 +50,7 @@ impl<'a> From<&'a CFString> for Cow<'a, str> {
         unsafe {
             // Do this without allocating if we can get away with it
             let c_string = CFStringGetCStringPtr(cf_str.0, kCFStringEncodingUTF8);
-            if c_string != ptr::null() {
+            if !c_string.is_null() {
                 let c_str = CStr::from_ptr(c_string);
                 Cow::Borrowed(str::from_utf8_unchecked(c_str.to_bytes()))
             } else {
@@ -79,11 +79,11 @@ impl<'a> From<&'a CFString> for Cow<'a, str> {
                                                      buffer.as_mut_ptr(),
                                                      buffer.len().to_CFIndex(),
                                                      &mut bytes_used);
-                assert!(chars_written == char_len);
+                assert_eq!(chars_written, char_len);
 
                 // This is dangerous; we over-allocate and null-terminate the string (during
                 // initialization).
-                assert!(bytes_used == buffer.len().to_CFIndex());
+                assert_eq!(bytes_used, buffer.len().to_CFIndex());
                 Cow::Owned(String::from_utf8_unchecked(buffer))
             }
         }
@@ -141,10 +141,57 @@ impl CFString {
     }
 }
 
+impl<'a> PartialEq<&'a str> for CFString {
+    fn eq(&self, other: &&str) -> bool {
+        unsafe {
+            let temp = CFStringCreateWithBytesNoCopy(kCFAllocatorDefault,
+                                                           other.as_ptr(),
+                                                           other.len().to_CFIndex(),
+                                                           kCFStringEncodingUTF8,
+                                                           false as Boolean,
+                                                           kCFAllocatorNull);
+            self.eq(&CFString::wrap_under_create_rule(temp))
+        }
+    }
+}
+
+impl<'a> PartialEq<CFString> for &'a str {
+    #[inline]
+    fn eq(&self, other: &CFString) -> bool {
+        other.eq(self)
+    }
+}
+
+impl PartialEq<CFString> for String {
+    #[inline]
+    fn eq(&self, other: &CFString) -> bool {
+        other.eq(&self.as_str())
+    }
+}
+
+impl PartialEq<String> for CFString {
+    #[inline]
+    fn eq(&self, other: &String) -> bool {
+        self.eq(&other.as_str())
+    }
+}
+
+#[test]
+fn str_cmp() {
+    let cfstr = CFString::new("hello");
+    assert_eq!("hello", cfstr);
+    assert_eq!(cfstr, "hello");
+    assert_ne!(cfstr, "wrong");
+    assert_ne!("wrong", cfstr);
+    let hello = String::from("hello");
+    assert_eq!(hello, cfstr);
+    assert_eq!(cfstr, hello);
+}
+
 #[test]
 fn string_and_back() {
     let original = "The quick brown fox jumped over the slow lazy dog.";
     let cfstr = CFString::from_static_string(original);
     let converted = cfstr.to_string();
-    assert!(converted == original);
+    assert_eq!(converted, original);
 }

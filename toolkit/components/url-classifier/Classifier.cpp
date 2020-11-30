@@ -29,13 +29,13 @@ extern mozilla::LazyLogModule gUrlClassifierDbServiceLog;
 #define LOG_ENABLED() \
   MOZ_LOG_TEST(gUrlClassifierDbServiceLog, mozilla::LogLevel::Debug)
 
-#define STORE_DIRECTORY NS_LITERAL_CSTRING("safebrowsing")
-#define TO_DELETE_DIR_SUFFIX NS_LITERAL_CSTRING("-to_delete")
-#define BACKUP_DIR_SUFFIX NS_LITERAL_CSTRING("-backup")
-#define UPDATING_DIR_SUFFIX NS_LITERAL_CSTRING("-updating")
+#define STORE_DIRECTORY "safebrowsing"_ns
+#define TO_DELETE_DIR_SUFFIX "-to_delete"_ns
+#define BACKUP_DIR_SUFFIX "-backup"_ns
+#define UPDATING_DIR_SUFFIX "-updating"_ns
 
-#define V4_METADATA_SUFFIX NS_LITERAL_CSTRING(".metadata")
-#define V2_METADATA_SUFFIX NS_LITERAL_CSTRING(".sbstore")
+#define V4_METADATA_SUFFIX ".metadata"_ns
+#define V2_METADATA_SUFFIX ".sbstore"_ns
 
 // The amount of time, in milliseconds, that our IO thread will stay alive after
 // the last event it processes.
@@ -83,7 +83,7 @@ nsresult Classifier::GetPrivateStoreDirectory(
     const nsACString& aProvider, nsIFile** aPrivateStoreDirectory) {
   NS_ENSURE_ARG_POINTER(aPrivateStoreDirectory);
 
-  if (!StringEndsWith(aTableName, NS_LITERAL_CSTRING("-proto"))) {
+  if (!StringEndsWith(aTableName, "-proto"_ns)) {
     // Only V4 table names (ends with '-proto') would be stored
     // to per-provider sub-directory.
     nsCOMPtr<nsIFile>(aRootStoreDirectory).forget(aPrivateStoreDirectory);
@@ -137,9 +137,9 @@ Classifier::Classifier()
       mUpdateInterrupted(true),
       mIsClosed(false) {
   // Make a lazy thread for any IO
-  mUpdateThread = new LazyIdleThread(
-      DEFAULT_THREAD_TIMEOUT_MS, NS_LITERAL_CSTRING("Classifier Update"),
-      LazyIdleThread::ShutdownMethod::ManualShutdown);
+  mUpdateThread =
+      new LazyIdleThread(DEFAULT_THREAD_TIMEOUT_MS, "Classifier Update"_ns,
+                         LazyIdleThread::ShutdownMethod::ManualShutdown);
 }
 
 Classifier::~Classifier() {
@@ -224,13 +224,10 @@ nsresult Classifier::ClearLegacyFiles() {
   }
 
   nsTArray<nsLiteralCString> tables = {
-      NS_LITERAL_CSTRING("test-phish-simple"),
-      NS_LITERAL_CSTRING("test-malware-simple"),
-      NS_LITERAL_CSTRING("test-unwanted-simple"),
-      NS_LITERAL_CSTRING("test-harmful-simple"),
-      NS_LITERAL_CSTRING("test-track-simple"),
-      NS_LITERAL_CSTRING("test-trackwhite-simple"),
-      NS_LITERAL_CSTRING("test-block-simple"),
+      "test-phish-simple"_ns,    "test-malware-simple"_ns,
+      "test-unwanted-simple"_ns, "test-harmful-simple"_ns,
+      "test-track-simple"_ns,    "test-trackwhite-simple"_ns,
+      "test-block-simple"_ns,
   };
 
   const auto fnFindAndRemove = [](nsIFile* aRootDirectory,
@@ -262,10 +259,8 @@ nsresult Classifier::ClearLegacyFiles() {
 
   for (const auto& table : tables) {
     // Remove both .sbstore and .vlpse if .sbstore exists
-    if (fnFindAndRemove(mRootStoreDirectory,
-                        table + NS_LITERAL_CSTRING(".sbstore"))) {
-      fnFindAndRemove(mRootStoreDirectory,
-                      table + NS_LITERAL_CSTRING(".vlpset"));
+    if (fnFindAndRemove(mRootStoreDirectory, table + ".sbstore"_ns)) {
+      fnFindAndRemove(mRootStoreDirectory, table + ".vlpset"_ns);
     }
   }
 
@@ -747,7 +742,7 @@ nsresult Classifier::AsyncApplyUpdates(const TableUpdateArray& aUpdates,
   RefPtr<Classifier> self = this;
   nsCOMPtr<nsIRunnable> bgRunnable = NS_NewRunnableFunction(
       "safebrowsing::Classifier::AsyncApplyUpdates",
-      [self, aUpdates, aCallback, callerThread]() mutable {
+      [self, aUpdates = aUpdates.Clone(), aCallback, callerThread]() mutable {
         MOZ_ASSERT(self->OnUpdateThread(), "MUST be on update thread");
 
         nsresult bgRv;
@@ -757,7 +752,7 @@ nsresult Classifier::AsyncApplyUpdates(const TableUpdateArray& aUpdates,
 
         // Make a copy of the array since we'll be removing entries as
         // we process them on the background thread.
-        if (updates.AppendElements(aUpdates, fallible)) {
+        if (updates.AppendElements(std::move(aUpdates), fallible)) {
           LOG(("Step 1. ApplyUpdatesBackground on update thread."));
           bgRv = self->ApplyUpdatesBackground(updates, failedTableNames);
         } else {
@@ -774,7 +769,8 @@ nsresult Classifier::AsyncApplyUpdates(const TableUpdateArray& aUpdates,
         // it in the udpate thread.
         nsCOMPtr<nsIRunnable> fgRunnable = NS_NewRunnableFunction(
             "safebrowsing::Classifier::AsyncApplyUpdates",
-            [self = std::move(self), aCallback, bgRv, failedTableNames,
+            [self = std::move(self), aCallback, bgRv,
+             failedTableNames = std::move(failedTableNames),
              callerThread]() mutable {
               RefPtr<Classifier> classifier = std::move(self);
 
@@ -951,8 +947,7 @@ nsresult Classifier::RegenActiveTables() {
 
   // The extension of V2 and V4 prefix files is .vlpset
   // We still check .pset here for legacy load.
-  nsTArray<nsCString> exts = {NS_LITERAL_CSTRING(".vlpset"),
-                              NS_LITERAL_CSTRING(".pset")};
+  nsTArray<nsCString> exts = {".vlpset"_ns, ".pset"_ns};
   nsTArray<nsCString> foundTables;
   nsresult rv = ScanStoreDir(mRootStoreDirectory, exts, foundTables);
   Unused << NS_WARN_IF(NS_FAILED(rv));
@@ -985,13 +980,10 @@ nsresult Classifier::RegenActiveTables() {
 
 nsresult Classifier::AddMozEntries(nsTArray<nsCString>& aTables) {
   nsTArray<nsLiteralCString> tables = {
-      NS_LITERAL_CSTRING("moztest-phish-simple"),
-      NS_LITERAL_CSTRING("moztest-malware-simple"),
-      NS_LITERAL_CSTRING("moztest-unwanted-simple"),
-      NS_LITERAL_CSTRING("moztest-harmful-simple"),
-      NS_LITERAL_CSTRING("moztest-track-simple"),
-      NS_LITERAL_CSTRING("moztest-trackwhite-simple"),
-      NS_LITERAL_CSTRING("moztest-block-simple"),
+      "moztest-phish-simple"_ns,    "moztest-malware-simple"_ns,
+      "moztest-unwanted-simple"_ns, "moztest-harmful-simple"_ns,
+      "moztest-track-simple"_ns,    "moztest-trackwhite-simple"_ns,
+      "moztest-block-simple"_ns,
   };
 
   for (const auto& table : tables) {
@@ -1044,7 +1036,7 @@ nsresult Classifier::ScanStoreDir(nsIFile* aDirectory,
 }
 
 nsresult Classifier::ActiveTables(nsTArray<nsCString>& aTables) const {
-  aTables = mActiveTablesCache;
+  aTables = mActiveTablesCache.Clone();
   return NS_OK;
 }
 
@@ -1173,7 +1165,7 @@ nsresult Classifier::CopyDirectoryInterruptible(nsCOMPtr<nsIFile>& aDestDir,
       rv = CopyDirectoryInterruptible(dest, source);
       NS_ENSURE_SUCCESS(rv, rv);
     } else {
-      rv = source->CopyToNative(aDestDir, EmptyCString());
+      rv = source->CopyToNative(aDestDir, ""_ns);
       NS_ENSURE_SUCCESS(rv, rv);
     }
   }
@@ -1276,13 +1268,13 @@ bool Classifier::CheckValidUpdate(TableUpdateArray& aUpdates,
 nsCString Classifier::GetProvider(const nsACString& aTableName) {
   nsUrlClassifierUtils* urlUtil = nsUrlClassifierUtils::GetInstance();
   if (NS_WARN_IF(!urlUtil)) {
-    return EmptyCString();
+    return ""_ns;
   }
 
   nsCString provider;
   nsresult rv = urlUtil->GetProvider(aTableName, provider);
 
-  return NS_SUCCEEDED(rv) ? provider : EmptyCString();
+  return NS_SUCCEEDED(rv) ? provider : ""_ns;
 }
 
 /*
@@ -1575,7 +1567,7 @@ RefPtr<LookupCache> Classifier::GetLookupCache(const nsACString& aTable,
     }
   }
 
-  if (StringEndsWith(aTable, NS_LITERAL_CSTRING("-proto"))) {
+  if (StringEndsWith(aTable, "-proto"_ns)) {
     cache = new LookupCacheV4(aTable, provider, rootStoreDirectory);
   } else {
     cache = new LookupCacheV2(aTable, provider, rootStoreDirectory);
@@ -1705,7 +1697,7 @@ nsresult Classifier::LoadHashStore(nsIFile* aDirectory, nsACString& aResult,
     ChunkSet& subs = store.SubChunks();
 
     // Open HashStore will always succeed even that is not a v2 table.
-    // So skip tables without add and sub chunks.
+    // So exception tables without add and sub chunks.
     if (adds.Length() == 0 && subs.Length() == 0) {
       continue;
     }

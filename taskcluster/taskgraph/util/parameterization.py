@@ -6,6 +6,8 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import re
 
+import six
+
 from taskgraph.util.time import json_time_from_now
 from taskgraph.util.taskcluster import get_artifact_url
 
@@ -20,9 +22,9 @@ def _recurse(val, param_fns):
         elif isinstance(val, dict):
             if len(val) == 1:
                 for param_key, param_fn in param_fns.items():
-                    if val.keys() == [param_key]:
+                    if set(six.iterkeys(val)) == {param_key}:
                         return param_fn(val[param_key])
-            return {k: recurse(v) for k, v in val.iteritems()}
+            return {k: recurse(v) for k, v in six.iteritems(val)}
         else:
             return val
     return recurse(val)
@@ -35,7 +37,7 @@ def resolve_timestamps(now, task_def):
     })
 
 
-def resolve_task_references(label, task_def, dependencies):
+def resolve_task_references(label, task_def, task_id, decision_task_id, dependencies):
     """Resolve all instances of
       {'task-reference': '..<..>..'}
     and
@@ -47,6 +49,10 @@ def resolve_task_references(label, task_def, dependencies):
     def task_reference(val):
         def repl(match):
             key = match.group(1)
+            if key == 'self':
+                return task_id
+            elif key == 'decision':
+                return decision_task_id
             try:
                 return dependencies[key]
             except KeyError:
@@ -61,10 +67,19 @@ def resolve_task_references(label, task_def, dependencies):
         def repl(match):
             dependency, artifact_name = match.group(1, 2)
 
-            try:
-                task_id = dependencies[dependency]
-            except KeyError:
-                raise KeyError("task '{}' has no dependency named '{}'".format(label, dependency))
+            if dependency == 'self':
+                raise KeyError(
+                    "task '{}' can't reference artifacts of self".format(label)
+                )
+            elif dependency == 'decision':
+                task_id = decision_task_id
+            else:
+                try:
+                    task_id = dependencies[dependency]
+                except KeyError:
+                    raise KeyError(
+                        "task '{}' has no dependency named '{}'".format(label, dependency)
+                    )
 
             assert artifact_name.startswith('public/'), \
                 "artifact-reference only supports public artifacts, not `{}`".format(artifact_name)

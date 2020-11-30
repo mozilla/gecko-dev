@@ -10,7 +10,10 @@
 #include "nsServiceManagerUtils.h"
 #include "nsDocShellCID.h"
 #include "nsIWebNavigationInfo.h"
+#include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "mozilla/dom/Document.h"
+#include "mozilla/dom/WindowGlobalParent.h"
+#include "mozilla/Unused.h"
 #include "nsError.h"
 #include "nsContentSecurityManager.h"
 #include "nsDocShellLoadTypes.h"
@@ -41,23 +44,48 @@ void MaybeCloseWindowHelper::SetShouldCloseWindow(bool aShouldCloseWindow) {
 }
 
 BrowsingContext* MaybeCloseWindowHelper::MaybeCloseWindow() {
-  if (mShouldCloseWindow) {
-    // Reset the window context to the opener window so that the dependent
-    // dialogs have a parent
-    RefPtr<BrowsingContext> opener = mBrowsingContext->GetOpener();
-
-    if (opener && !opener->IsDiscarded()) {
-      mBCToClose = mBrowsingContext;
-      mBrowsingContext = opener;
-
-      // Now close the old window.  Do it on a timer so that we don't run
-      // into issues trying to close the window before it has fully opened.
-      NS_ASSERTION(!mTimer, "mTimer was already initialized once!");
-      NS_NewTimerWithCallback(getter_AddRefs(mTimer), this, 0,
-                              nsITimer::TYPE_ONE_SHOT);
-    }
+  if (!mShouldCloseWindow) {
+    return mBrowsingContext;
   }
+
+  // This method should not be called more than once, but it's better to avoid
+  // closing the current window again.
+  mShouldCloseWindow = false;
+
+  // Reset the window context to the opener window so that the dependent
+  // dialogs have a parent
+  RefPtr<BrowsingContext> newBC = ChooseNewBrowsingContext(mBrowsingContext);
+
+  if (newBC != mBrowsingContext && newBC && !newBC->IsDiscarded()) {
+    mBCToClose = mBrowsingContext;
+    mBrowsingContext = newBC;
+
+    // Now close the old window.  Do it on a timer so that we don't run
+    // into issues trying to close the window before it has fully opened.
+    NS_ASSERTION(!mTimer, "mTimer was already initialized once!");
+    NS_NewTimerWithCallback(getter_AddRefs(mTimer), this, 0,
+                            nsITimer::TYPE_ONE_SHOT);
+  }
+
   return mBrowsingContext;
+}
+
+already_AddRefed<BrowsingContext>
+MaybeCloseWindowHelper::ChooseNewBrowsingContext(BrowsingContext* aBC) {
+  RefPtr<BrowsingContext> opener = aBC->GetOpener();
+  if (opener && !opener->IsDiscarded()) {
+    return opener.forget();
+  }
+
+  if (!XRE_IsParentProcess()) {
+    return nullptr;
+  }
+
+  opener = BrowsingContext::Get(aBC->Canonical()->GetCrossGroupOpenerId());
+  if (!opener || opener->IsDiscarded()) {
+    return nullptr;
+  }
+  return opener.forget();
 }
 
 NS_IMETHODIMP
@@ -86,24 +114,6 @@ NS_INTERFACE_MAP_BEGIN(nsDSURIContentListener)
   NS_INTERFACE_MAP_ENTRY(nsIURIContentListener)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
 NS_INTERFACE_MAP_END
-
-NS_IMETHODIMP
-nsDSURIContentListener::OnStartURIOpen(nsIURI* aURI, bool* aAbortOpen) {
-  // If mDocShell is null here, that means someone's starting a load in our
-  // docshell after it's already been destroyed.  Don't let that happen.
-  if (!mDocShell) {
-    *aAbortOpen = true;
-    return NS_OK;
-  }
-
-  nsCOMPtr<nsIURIContentListener> parentListener;
-  GetParentContentListener(getter_AddRefs(parentListener));
-  if (parentListener) {
-    return parentListener->OnStartURIOpen(aURI, aAbortOpen);
-  }
-
-  return NS_OK;
-}
 
 NS_IMETHODIMP
 nsDSURIContentListener::DoContent(const nsACString& aContentType,
@@ -135,7 +145,7 @@ nsDSURIContentListener::DoContent(const nsACString& aContentType,
         RefPtr<MaybeCloseWindowHelper> maybeCloseWindowHelper =
             new MaybeCloseWindowHelper(mDocShell->GetBrowsingContext());
         maybeCloseWindowHelper->SetShouldCloseWindow(true);
-        maybeCloseWindowHelper->MaybeCloseWindow();
+        Unused << maybeCloseWindowHelper->MaybeCloseWindow();
       }
       return NS_OK;
     }
@@ -182,6 +192,7 @@ nsDSURIContentListener::DoContent(const nsACString& aContentType,
 
   if (NS_FAILED(rv)) {
     // we don't know how to handle the content
+    nsCOMPtr<nsIStreamListener> forget = dont_AddRef(*aContentHandler);
     *aContentHandler = nullptr;
     return rv;
   }

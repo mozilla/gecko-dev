@@ -38,7 +38,6 @@ using mozilla::LayoutDeviceIntPoint from "Units.h";
 using mozilla::LayoutDeviceIntRegion from "Units.h";
 using mozilla::LayoutDeviceIntSize from "Units.h";
 using class mozilla::TimeStamp from "mozilla/TimeStamp.h";
-using class mozilla::layers::FrameUniformityData from "mozilla/layers/FrameUniformityData.h";
 using mozilla::layers::TextureFlags from "mozilla/layers/CompositorTypes.h";
 using mozilla::layers::CompositorOptions from "mozilla/layers/CompositorOptions.h";
 using mozilla::wr::PipelineId from "mozilla/webrender/WebRenderTypes.h";
@@ -48,8 +47,6 @@ using mozilla::wr::MaybeExternalImageId from "mozilla/webrender/WebRenderTypes.h
 using mozilla::layers::LayersObserverEpoch from "mozilla/layers/LayersTypes.h";
 using mozilla::layers::TransactionId from "mozilla/layers/LayersTypes.h";
 using struct DxgiAdapterDesc from "mozilla/D3DMessageUtils.h";
-using mozilla::webgl::InitContextDesc from "mozilla/dom/WebGLIpdl.h";
-using mozilla::webgl::InitContextResult from "mozilla/dom/WebGLIpdl.h";
 
 namespace mozilla {
 namespace layers {
@@ -163,6 +160,8 @@ child:
 
   async CompositorOptionsChanged(LayersId id, CompositorOptions newOptions);
 
+  async NotifyJankedAnimations(LayersId id, uint64_t[] aJankedAnimations);
+
 parent:
   async __delete__();
 
@@ -184,9 +183,6 @@ parent:
    * Confirmation callback for UpdatePluginConfigurations and HideAllPlugins.
    */
   async RemotePluginsReady();
-
-  // Child requests frame uniformity measurements
-  sync GetFrameUniformity() returns (FrameUniformityData data);
 
   // The child is about to be destroyed, so perform any necessary cleanup.
   sync WillClose();
@@ -300,9 +296,7 @@ parent:
   async RequestFxrOutput();
 
   // Actor that represents one WebGL context.
-  // (modeled after `sync PBackgroundLSSnapshot`)
-  sync PWebGL(InitContextDesc desc)
-    returns (InitContextResult res);
+  async PWebGL();
 
 child:
   // Send back Compositor Frame Metrics from APZCs so tiled layers can

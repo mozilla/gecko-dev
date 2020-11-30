@@ -10,6 +10,8 @@
 
 var EXPORTED_SYMBOLS = ["FormAutofillHandler"];
 
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+
 const { AppConstants } = ChromeUtils.import(
   "resource://gre/modules/AppConstants.jsm"
 );
@@ -36,14 +38,28 @@ ChromeUtils.defineModuleGetter(
   "resource://gre/modules/FormLikeFactory.jsm"
 );
 
+const formFillController = Cc[
+  "@mozilla.org/satchel/form-fill-controller;1"
+].getService(Ci.nsIFormFillController);
+
 XPCOMUtils.defineLazyGetter(this, "reauthPasswordPromptMessage", () => {
   const brandShortName = FormAutofillUtils.brandBundle.GetStringFromName(
     "brandShortName"
   );
+  // The string name for Mac is changed because the value needed updating.
+  const platform = AppConstants.platform.replace("macosx", "macos");
   return FormAutofillUtils.stringBundle.formatStringFromName(
-    `useCreditCardPasswordPrompt.${AppConstants.platform}`,
+    `useCreditCardPasswordPrompt.${platform}`,
     [brandShortName]
   );
+});
+
+XPCOMUtils.defineLazyModuleGetters(this, {
+  CreditCard: "resource://gre/modules/CreditCard.jsm",
+});
+
+XPCOMUtils.defineLazyServiceGetters(this, {
+  gUUIDGenerator: ["@mozilla.org/uuid-generator;1", "nsIUUIDGenerator"],
 });
 
 this.log = null;
@@ -252,13 +268,48 @@ class FormAutofillSection {
       if (
         maxLength === undefined ||
         maxLength < 0 ||
-        profile[key].length <= maxLength
+        profile[key].toString().length <= maxLength
       ) {
         continue;
       }
 
       if (maxLength) {
-        profile[key] = profile[key].substr(0, maxLength);
+        switch (typeof profile[key]) {
+          case "string":
+            // If this is an expiration field and our previous
+            // adaptations haven't resulted in a string that is
+            // short enough to satisfy the field length, and the
+            // field is constrained to a length of 5, then we
+            // assume it is intended to hold an expiration of the
+            // form "MM/YY".
+            if (key == "cc-exp" && maxLength == 5) {
+              const month2Digits = (
+                "0" + profile["cc-exp-month"].toString()
+              ).slice(-2);
+              const year2Digits = profile["cc-exp-year"].toString().slice(-2);
+              profile[key] = `${month2Digits}/${year2Digits}`;
+            } else {
+              profile[key] = profile[key].substr(0, maxLength);
+            }
+            break;
+          case "number":
+            // There's no way to truncate a number smaller than a
+            // single digit.
+            if (maxLength < 1) {
+              maxLength = 1;
+            }
+            // The only numbers we store are expiration month/year,
+            // and if they truncate, we want the final digits, not
+            // the initial ones.
+            profile[key] = profile[key] % Math.pow(10, maxLength);
+            break;
+          default:
+            log.warn(
+              "adaptFieldMaxLength: Don't know how to truncate",
+              typeof profile[key],
+              profile[key]
+            );
+        }
       } else {
         delete profile[key];
       }
@@ -278,6 +329,8 @@ class FormAutofillSection {
    *
    * @param {Object} profile
    *        A profile to be filled in.
+   * @returns {boolean}
+   *          True if successful, false if failed
    */
   async autofillFields(profile) {
     let focusedDetail = this._focusedDetail;
@@ -287,9 +340,11 @@ class FormAutofillSection {
 
     if (!(await this.prepareFillingProfile(profile))) {
       log.debug("profile cannot be filled", profile);
-      return;
+      return false;
     }
     log.debug("profile in autofillFields:", profile);
+
+    let focusedInput = focusedDetail.elementWeakRef.get();
 
     this.filledRecordGUID = profile.guid;
     for (let fieldDetail of this.fieldDetails) {
@@ -310,12 +365,13 @@ class FormAutofillSection {
         // For the focused input element, it will be filled with a valid value
         // anyway.
         // For the others, the fields should be only filled when their values
-        // are empty.
-        let focusedInput = focusedDetail.elementWeakRef.get();
+        // are empty or are the result of an earlier auto-fill.
         if (
           element == focusedInput ||
-          (element != focusedInput && !element.value)
+          (element != focusedInput && !element.value) ||
+          fieldDetail.state == FIELD_STATES.AUTO_FILLED
         ) {
+          element.focus({ preventScroll: true });
           element.setUserInput(value);
           this._changeFieldState(fieldDetail, FIELD_STATES.AUTO_FILLED);
         }
@@ -329,6 +385,7 @@ class FormAutofillSection {
         // Use case for multiple select is not considered here.
         if (!option.selected) {
           option.selected = true;
+          element.focus({ preventScroll: true });
           element.dispatchEvent(
             new element.ownerGlobal.Event("input", { bubbles: true })
           );
@@ -340,6 +397,8 @@ class FormAutofillSection {
         this._changeFieldState(fieldDetail, FIELD_STATES.AUTO_FILLED);
       }
     }
+    focusedInput.focus({ preventScroll: true });
+    return true;
   }
 
   /**
@@ -472,17 +531,8 @@ class FormAutofillSection {
       }
     }
 
-    switch (nextState) {
-      case FIELD_STATES.NORMAL: {
-        if (fieldDetail.state == FIELD_STATES.AUTO_FILLED) {
-          element.removeEventListener("input", this, { mozSystemGroup: true });
-        }
-        break;
-      }
-      case FIELD_STATES.AUTO_FILLED: {
-        element.addEventListener("input", this, { mozSystemGroup: true });
-        break;
-      }
+    if (nextState == FIELD_STATES.AUTO_FILLED) {
+      element.addEventListener("input", this, { mozSystemGroup: true });
     }
 
     fieldDetail.state = nextState;
@@ -523,6 +573,9 @@ class FormAutofillSection {
       record: {},
       untouchedFields: [],
     };
+    if (this.flowId) {
+      data.flowId = this.flowId;
+    }
 
     details.forEach(detail => {
       let element = detail.elementWeakRef.get();
@@ -560,8 +613,37 @@ class FormAutofillSection {
         }
         const target = event.target;
         const targetFieldDetail = this.getFieldDetailByElement(target);
+        const isCreditCardField = FormAutofillUtils.isCreditCardField(
+          targetFieldDetail.fieldName
+        );
+
+        // If the user manually blanks a credit card field, then
+        // we want the popup to be activated.
+        if (
+          ChromeUtils.getClassName(target) !== "HTMLSelectElement" &&
+          isCreditCardField &&
+          target.value === ""
+        ) {
+          formFillController.showPopup();
+        }
+
+        if (targetFieldDetail.state == FIELD_STATES.NORMAL) {
+          return;
+        }
 
         this._changeFieldState(targetFieldDetail, FIELD_STATES.NORMAL);
+
+        if (isCreditCardField) {
+          Services.telemetry.recordEvent(
+            "creditcard",
+            "filled_modified",
+            "cc_form",
+            this.flowId,
+            {
+              field_name: targetFieldDetail.fieldName,
+            }
+          );
+        }
 
         let isAutofilled = false;
         let dimFieldDetails = [];
@@ -815,8 +897,73 @@ class FormAutofillAddressSection extends FormAutofillSection {
 }
 
 class FormAutofillCreditCardSection extends FormAutofillSection {
-  constructor(fieldDetails, winUtils) {
+  /**
+   * Credit Card Section Constructor
+   *
+   * @param {Object} fieldDetails
+   *        The fieldDetail objects for the fields in this section
+   * @param {Object} winUtils
+   *        A WindowUtils reference for the Window the section appears in
+   * @param {Object} handler
+   *        The FormAutofillHandler responsible for this section
+   */
+  constructor(fieldDetails, winUtils, handler) {
     super(fieldDetails, winUtils);
+
+    this.handler = handler;
+
+    // Identifier used to correlate events relating to the same form
+    this.flowId = gUUIDGenerator.generateUUID().toString();
+    log.debug("Creating new credit card section with flowId =", this.flowId);
+
+    if (!this.isValidSection()) {
+      return;
+    }
+
+    // Record which fields could be identified
+    let identified = new Set();
+    fieldDetails.forEach(detail => identified.add(detail.fieldName));
+    Services.telemetry.recordEvent(
+      "creditcard",
+      "detected",
+      "cc_form",
+      this.flowId,
+      {
+        cc_name_found: identified.has("cc-name") ? "true" : "false",
+        cc_number_found: identified.has("cc-number") ? "true" : "false",
+        cc_exp_found:
+          identified.has("cc-exp") ||
+          (identified.has("cc-exp-month") && identified.has("cc-exp-year"))
+            ? "true"
+            : "false",
+      }
+    );
+    Services.telemetry.scalarAdd(
+      "formautofill.creditCards.detected_sections_count",
+      1
+    );
+
+    // Check whether the section is in an <iframe>; and, if so,
+    // watch for the <iframe> to pagehide.
+    if (handler.window.location != handler.window.parent?.location) {
+      log.debug(
+        "Credit card form is in an iframe -- watching for pagehide",
+        fieldDetails
+      );
+      handler.window.addEventListener(
+        "pagehide",
+        this._handlePageHide.bind(this)
+      );
+    }
+  }
+
+  _handlePageHide(event) {
+    this.handler.window.removeEventListener(
+      "pagehide",
+      this._handlePageHide.bind(this)
+    );
+    log.debug("Credit card subframe is pagehideing", this.handler.form);
+    this.handler.onFormSubmitted();
   }
 
   isValidSection() {
@@ -937,6 +1084,35 @@ class FormAutofillCreditCardSection extends FormAutofillSection {
     this.adaptFieldMaxLength(profile);
   }
 
+  computeFillingValue(value, fieldDetail, element) {
+    if (
+      fieldDetail.fieldName != "cc-type" ||
+      ChromeUtils.getClassName(element) !== "HTMLSelectElement"
+    ) {
+      return value;
+    }
+
+    if (CreditCard.isValidNetwork(value)) {
+      return value;
+    }
+
+    // Don't save the record when the option value is empty *OR* there
+    // are multiple options being selected. The empty option is usually
+    // assumed to be default along with a meaningless text to users.
+    if (value && element.selectedOptions.length == 1) {
+      let selectedOption = element.selectedOptions[0];
+      let networkType =
+        CreditCard.getNetworkFromName(selectedOption.text) ??
+        CreditCard.getNetworkFromName(selectedOption.value);
+      if (networkType) {
+        return networkType;
+      }
+    }
+    // If we couldn't match the value to any network, we'll
+    // strip this field when submitting.
+    return value;
+  }
+
   /**
    * Customize for previewing prorifle.
    *
@@ -978,6 +1154,54 @@ class FormAutofillCreditCardSection extends FormAutofillSection {
     }
     return true;
   }
+
+  async autofillFields(profile) {
+    if (!(await super.autofillFields(profile))) {
+      return false;
+    }
+
+    // Calculate values for telemetry
+    let extra = {
+      cc_name: "unavailable",
+      cc_number: "unavailable",
+      cc_exp: "unavailable",
+    };
+
+    for (let fieldDetail of this.fieldDetails) {
+      let element = fieldDetail.elementWeakRef.get();
+      let state = profile[fieldDetail.fieldName] ? "filled" : "not_filled";
+
+      if (
+        fieldDetail.state == FIELD_STATES.NORMAL &&
+        (ChromeUtils.getClassName(element) == "HTMLSelectElement" ||
+          (ChromeUtils.getClassName(element) == "HTMLInputElement" &&
+            element.value.length))
+      ) {
+        state = "user_filled";
+      }
+      switch (fieldDetail.fieldName) {
+        case "cc-name":
+          extra.cc_name = state;
+          break;
+        case "cc-number":
+          extra.cc_number = state;
+          break;
+        case "cc-exp":
+        case "cc-exp-month":
+        case "cc-exp-year":
+          extra.cc_exp = state;
+          break;
+      }
+    }
+    Services.telemetry.recordEvent(
+      "creditcard",
+      "filled",
+      "cc_form",
+      this.flowId,
+      extra
+    );
+    return true;
+  }
 }
 
 /**
@@ -988,19 +1212,37 @@ class FormAutofillHandler {
    * Initialize the form from `FormLike` object to handle the section or form
    * operations.
    * @param {FormLike} form Form that need to be auto filled
+   * @param {function} onFormSubmitted Function that can be invoked
+   *                   to simulate form submission. Function is passed
+   *                   three arguments: (1) a FormLike for the form being
+   *                   submitted, (2) the corresponding Window, and (3) the
+   *                   responsible FormAutofillHandler.
    */
-  constructor(form) {
+  constructor(form, onFormSubmitted = () => {}) {
     this._updateForm(form);
+
+    /**
+     * The window to which this form belongs
+     */
+    this.window = this.form.rootElement.ownerGlobal;
 
     /**
      * A WindowUtils reference of which Window the form belongs
      */
-    this.winUtils = this.form.rootElement.ownerGlobal.windowUtils;
+    this.winUtils = this.window.windowUtils;
 
     /**
      * Time in milliseconds since epoch when a user started filling in the form.
      */
     this.timeStartedFillingMS = null;
+
+    /**
+     * This function is used if the form handler (or one of its sections)
+     * determines that it needs to act as if the form had been submitted.
+     */
+    this.onFormSubmitted = () => {
+      onFormSubmitted(this.form, this.window, this);
+    };
   }
 
   set focusedInput(element) {
@@ -1115,7 +1357,8 @@ class FormAutofillHandler {
       } else if (type == FormAutofillUtils.SECTION_TYPES.CREDIT_CARD) {
         section = new FormAutofillCreditCardSection(
           fieldDetails,
-          this.winUtils
+          this.winUtils,
+          this
         );
       } else {
         throw new Error("Unknown field type.");

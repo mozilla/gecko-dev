@@ -19,6 +19,9 @@
 #ifdef XP_WIN
 #  include "mozilla/WindowsVersion.h"
 #  include "mozilla/layers/D3D11YCbCrImage.h"
+#elif XP_MACOSX
+#  include "MacIOSurfaceImage.h"
+#  include "mozilla/gfx/gfxVars.h"
 #endif
 
 namespace mozilla {
@@ -31,14 +34,6 @@ using media::TimeUnit;
 
 const char* AudioData::sTypeName = "audio";
 const char* VideoData::sTypeName = "video";
-
-bool IsDataLoudnessHearable(const AudioDataValue aData) {
-  // We can transfer the digital value to dBFS via following formula. According
-  // to American SMPTE standard, 0 dBu equals -20 dBFS. In theory 0 dBu is still
-  // hearable, so we choose a smaller value as our threshold. If the loudness
-  // is under this threshold, it might not be hearable.
-  return 20.0f * std::log10(AudioSampleToFloat(aData)) > -100;
-}
 
 AudioData::AudioData(int64_t aOffset, const media::TimeUnit& aTime,
                      AlignedAudioBuffer&& aData, uint32_t aChannels,
@@ -53,7 +48,7 @@ AudioData::AudioData(int64_t aOffset, const media::TimeUnit& aTime,
       mFrames(mAudioData.Length() / aChannels) {}
 
 Span<AudioDataValue> AudioData::Data() const {
-  return MakeSpan(GetAdjustedData(), mFrames * mChannels);
+  return Span{GetAdjustedData(), mFrames * mChannels};
 }
 
 bool AudioData::AdjustForStartTime(const media::TimeUnit& aStartTime) {
@@ -138,23 +133,6 @@ size_t AudioData::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const {
     size += mAudioBuffer->SizeOfIncludingThis(aMallocSizeOf);
   }
   return size;
-}
-
-bool AudioData::IsAudible() const {
-  if (!mAudioData) {
-    return false;
-  }
-
-  const AudioDataValue* data = GetAdjustedData();
-
-  for (uint32_t frame = 0; frame < mFrames; ++frame) {
-    for (uint32_t channel = 0; channel < mChannels; ++channel) {
-      if (IsDataLoudnessHearable(data[frame * mChannels + channel])) {
-        return true;
-      }
-    }
-  }
-  return false;
 }
 
 AlignedAudioBuffer AudioData::MoveableData() {
@@ -263,12 +241,12 @@ PlanarYCbCrData ConstructPlanarYCbCrData(const VideoInfo& aInfo,
   const VideoData::YCbCrBuffer::Plane& Cr = aBuffer.mPlanes[2];
 
   PlanarYCbCrData data;
-  data.mYChannel = Y.mData + Y.mOffset;
+  data.mYChannel = Y.mData;
   data.mYSize = IntSize(Y.mWidth, Y.mHeight);
   data.mYStride = Y.mStride;
   data.mYSkip = Y.mSkip;
-  data.mCbChannel = Cb.mData + Cb.mOffset;
-  data.mCrChannel = Cr.mData + Cr.mOffset;
+  data.mCbChannel = Cb.mData;
+  data.mCrChannel = Cr.mData;
   data.mCbCrSize = IntSize(Cb.mWidth, Cb.mHeight);
   data.mCbCrStride = Cb.mStride;
   data.mCbSkip = Cb.mSkip;
@@ -345,6 +323,17 @@ already_AddRefed<VideoData> VideoData::CreateAndCopyData(
                                 : aAllocator,
                             aContainer, data)) {
       v->mImage = d3d11Image;
+      return v.forget();
+    }
+  }
+#elif XP_MACOSX
+  if (aAllocator && aAllocator->GetCompositorBackendType() ==
+                        layers::LayersBackend::LAYERS_WR) {
+    RefPtr<layers::MacIOSurfaceImage> ioImage =
+        new layers::MacIOSurfaceImage(nullptr);
+    PlanarYCbCrData data = ConstructPlanarYCbCrData(aInfo, aBuffer, aPicture);
+    if (ioImage->SetData(aContainer, data)) {
+      v->mImage = ioImage;
       return v.forget();
     }
   }
@@ -460,6 +449,18 @@ MediaRawData::MediaRawData(const uint8_t* aData, size_t aSize,
       mCrypto(mCryptoInternal),
       mBuffer(aData, aSize),
       mAlphaBuffer(aAlphaData, aAlphaSize) {}
+
+MediaRawData::MediaRawData(AlignedByteBuffer&& aData)
+    : MediaData(Type::RAW_DATA),
+      mCrypto(mCryptoInternal),
+      mBuffer(std::move(aData)) {}
+
+MediaRawData::MediaRawData(AlignedByteBuffer&& aData,
+                           AlignedByteBuffer&& aAlphaData)
+    : MediaData(Type::RAW_DATA),
+      mCrypto(mCryptoInternal),
+      mBuffer(std::move(aData)),
+      mAlphaBuffer(std::move(aAlphaData)) {}
 
 already_AddRefed<MediaRawData> MediaRawData::Clone() const {
   RefPtr<MediaRawData> s = new MediaRawData;

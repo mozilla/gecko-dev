@@ -19,7 +19,7 @@ add_task(async function test_with_rs_messages() {
     set: [
       [
         "browser.newtabpage.activity-stream.asrouter.providers.whats-new-panel",
-        `{"id":"cfr","enabled":true,"type":"remote-settings","bucket":"cfr","frequency":{"custom":[{"period":"daily","cap":200}]},"categories":["cfrAddons","cfrFeatures"],"updateCycleInMs":0}`,
+        `{"id":"cfr","enabled":true,"type":"remote-settings","bucket":"cfr","updateCycleInMs":0}`,
       ],
     ],
   });
@@ -28,15 +28,20 @@ add_task(async function test_with_rs_messages() {
   );
   const initialMessageCount = ASRouter.state.messages.length;
   const client = RemoteSettings("cfr");
-  const collection = await client.openCollection();
-  await collection.clear();
-  await collection.create(
-    // Modify targeting to ensure the messages always show up
-    { ...msg, targeting: "true" },
-    { useRecordId: true }
+  await client.db.importChanges(
+    {},
+    42,
+    [
+      {
+        // Modify targeting and randomize message name to work around the message
+        // getting blocked (for --verify)
+        ...msg,
+        id: `MOMENTS_MOCHITEST_${Date.now()}`,
+        targeting: "true",
+      },
+    ],
+    { clear: true }
   );
-  await collection.db.saveLastModified(42); // Prevent from loading JSON dump.
-
   // Reload the provider
   await ASRouter._updateMessageProviders();
   // Wait to load the WNPanel messages
@@ -59,15 +64,14 @@ add_task(async function test_with_rs_messages() {
 
   // Insert a new message and test that priority override works as expected
   msg.content.action.data.url = "https://www.mozilla.org/#mochitest";
-  await collection.create(
+  await client.db.create(
     // Modify targeting to ensure the messages always show up
     {
       ...msg,
       id: `MOMENTS_MOCHITEST_${Date.now()}`,
       priority: 2,
       targeting: "true",
-    },
-    { useRecordId: true }
+    }
   );
 
   // Reset so we can `await` for the pref value to be set again
@@ -96,7 +100,7 @@ add_task(async function test_with_rs_messages() {
     "Correct value set for higher priority message"
   );
 
-  await collection.clear();
+  await client.db.clear();
   // Wait to reset the WNPanel messages from state
   const previousMessageCount = ASRouter.state.messages.length;
   await BrowserTestUtils.waitForCondition(async () => {

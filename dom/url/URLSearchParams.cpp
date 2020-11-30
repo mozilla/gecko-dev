@@ -78,13 +78,8 @@ void URLParams::Set(const nsAString& aName, const nsAString& aValue) {
 }
 
 void URLParams::Delete(const nsAString& aName) {
-  for (uint32_t i = 0; i < mParams.Length();) {
-    if (mParams[i].mKey.Equals(aName)) {
-      mParams.RemoveElementAt(i);
-    } else {
-      ++i;
-    }
-  }
+  mParams.RemoveElementsBy(
+      [&aName](const auto& param) { return param.mKey.Equals(aName); });
 }
 
 /* static */
@@ -331,7 +326,7 @@ already_AddRefed<URLSearchParams> URLSearchParams::Constructor(
 
   if (aInit.IsUSVString()) {
     NS_ConvertUTF16toUTF8 input(aInit.GetAsUSVString());
-    if (StringBeginsWith(input, NS_LITERAL_CSTRING("?"))) {
+    if (StringBeginsWith(input, "?"_ns)) {
       sp->ParseInput(Substring(input, 1, input.Length() - 1));
     } else {
       sp->ParseInput(input);
@@ -451,7 +446,7 @@ nsresult URLParams::Sort() {
     }
   }
 
-  mParams.SwapElements(params);
+  mParams = std::move(params);
   return NS_OK;
 }
 

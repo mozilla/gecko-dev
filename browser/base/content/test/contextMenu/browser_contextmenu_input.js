@@ -45,149 +45,6 @@ add_task(async function test_text_input() {
   ]);
 });
 
-add_task(async function test_text_input_spellcheck() {
-  await test_contextmenu(
-    "#input_spellcheck_no_value",
-    [
-      "context-undo",
-      false,
-      "---",
-      null,
-      "context-cut",
-      true,
-      "context-copy",
-      true,
-      "context-paste",
-      null, // ignore clipboard state
-      "context-delete",
-      false,
-      "---",
-      null,
-      "context-selectall",
-      false,
-      "---",
-      null,
-      "spell-check-enabled",
-      true,
-      "spell-dictionaries",
-      true,
-      [
-        "spell-check-dictionary-en-US",
-        true,
-        "---",
-        null,
-        "spell-add-dictionaries",
-        true,
-      ],
-      null,
-    ],
-    {
-      waitForSpellCheck: true,
-      // Need to dynamically add/remove the "password" type or LoginManager
-      // will think that the form inputs on the page are part of a login
-      // and will add fill-login context menu items.
-      async preCheckContextMenuFn() {
-        await SpecialPowers.spawn(
-          gBrowser.selectedBrowser,
-          [],
-          async function() {
-            let doc = content.document;
-            let input = doc.getElementById("input_spellcheck_no_value");
-            input.setAttribute("spellcheck", "true");
-            input.clientTop; // force layout flush
-          }
-        );
-      },
-    }
-  );
-});
-
-add_task(async function test_text_input_spellcheckwrong() {
-  await test_contextmenu(
-    "#input_spellcheck_incorrect",
-    [
-      "*prodigality",
-      true, // spelling suggestion
-      "spell-add-to-dictionary",
-      true,
-      "---",
-      null,
-      "context-undo",
-      false,
-      "---",
-      null,
-      "context-cut",
-      true,
-      "context-copy",
-      true,
-      "context-paste",
-      null, // ignore clipboard state
-      "context-delete",
-      false,
-      "---",
-      null,
-      "context-selectall",
-      true,
-      "---",
-      null,
-      "spell-check-enabled",
-      true,
-      "spell-dictionaries",
-      true,
-      [
-        "spell-check-dictionary-en-US",
-        true,
-        "---",
-        null,
-        "spell-add-dictionaries",
-        true,
-      ],
-      null,
-    ],
-    { waitForSpellCheck: true }
-  );
-});
-
-add_task(async function test_text_input_spellcheckcorrect() {
-  await test_contextmenu(
-    "#input_spellcheck_correct",
-    [
-      "context-undo",
-      false,
-      "---",
-      null,
-      "context-cut",
-      true,
-      "context-copy",
-      true,
-      "context-paste",
-      null, // ignore clipboard state
-      "context-delete",
-      false,
-      "---",
-      null,
-      "context-selectall",
-      true,
-      "---",
-      null,
-      "spell-check-enabled",
-      true,
-      "spell-dictionaries",
-      true,
-      [
-        "spell-check-dictionary-en-US",
-        true,
-        "---",
-        null,
-        "spell-add-dictionaries",
-        true,
-      ],
-      null,
-    ],
-    { waitForSpellCheck: true }
-  );
-});
-
 add_task(async function test_text_input_disabled() {
   await test_contextmenu(
     "#input_disabled",
@@ -207,7 +64,7 @@ add_task(async function test_text_input_disabled() {
       "---",
       null,
       "context-selectall",
-      true,
+      false,
       "---",
       null,
       "spell-check-enabled",
@@ -261,9 +118,10 @@ add_task(async function test_password_input() {
     ],
     {
       skipFocusChange: true,
-      // Need to dynamically add/remove the "password" type or LoginManager
-      // will think that the form inputs on the page are part of a login
-      // and will add fill-login context menu items.
+      // Need to dynamically add the "password" type or LoginManager
+      // will think that the form inputs on the page are part of a login form
+      // and will add fill-login context menu items. The element needs to be
+      // re-created as type=text afterwards since it uses hasBeenTypePassword.
       async preCheckContextMenuFn() {
         await SpecialPowers.spawn(
           gBrowser.selectedBrowser,
@@ -283,7 +141,7 @@ add_task(async function test_password_input() {
           async function() {
             let doc = content.document;
             let input = doc.getElementById("input_password");
-            input.type = "text";
+            input.outerHTML = `<input id=\"input_password\">`;
             input.clientTop; // force layout flush
           }
         );

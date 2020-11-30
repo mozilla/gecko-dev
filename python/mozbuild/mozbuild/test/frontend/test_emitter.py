@@ -188,11 +188,7 @@ class TestEmitterBasic(unittest.TestCase):
         wanted = {
             'NO_DIST_INSTALL': True,
             'RCFILE': 'foo.rc',
-            'RESFILE': 'bar.res',
             'RCINCLUDE': 'bar.rc',
-            'EXTRA_DEPS': [mozpath.join(mozpath.relpath(reader.config.topsrcdir,
-                                                        reader.config.topobjdir),
-                                        'baz.def')],
             'WIN32_EXE_LDFLAGS': ['-subsystem:console'],
         }
 

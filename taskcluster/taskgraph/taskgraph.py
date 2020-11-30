@@ -18,6 +18,9 @@ class TaskGraph(object):
 
     A task graph is a combination of a Graph and a dictionary of tasks indexed
     by label. TaskGraph instances should be treated as immutable.
+
+    In the graph, tasks are said to "link to" their dependencies. Whereas
+    tasks are "linked from" their dependents.
     """
 
     tasks = attr.ib()
@@ -61,11 +64,11 @@ class TaskGraph(object):
         """
         tasks = {}
         edges = set()
-        for key, value in tasks_dict.iteritems():
+        for key, value in six.iteritems(tasks_dict):
             tasks[key] = Task.from_json(value)
             if 'task_id' in value:
                 tasks[key].task_id = value['task_id']
-            for depname, dep in value['dependencies'].iteritems():
+            for depname, dep in six.iteritems(value['dependencies']):
                 edges.add((key, dep, depname))
         task_graph = cls(tasks, Graph(set(tasks), edges))
         return tasks, task_graph

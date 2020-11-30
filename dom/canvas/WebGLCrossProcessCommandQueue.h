@@ -7,8 +7,15 @@
 #define WEBGLCROSSPROCESSCOMMANDQUEUE_H_
 
 #include "mozilla/dom/WebGLCommandQueue.h"
+#include "ProducerConsumerQueue.h"
+#include "IpdlQueue.h"
 
 namespace mozilla {
+
+namespace dom {
+class WebGLParent;
+class WebGLChild;
+}  // namespace dom
 
 namespace layers {
 class PCompositorBridgeParent;
@@ -21,7 +28,9 @@ using mozilla::webgl::ProducerConsumerQueue;
 /**
  * The source for the WebGL Command Queue.
  */
-using ClientWebGLCommandSource = SyncCommandSource<size_t>;
+using ClientWebGLCommandSourceP =
+    SyncCommandSource<size_t, mozilla::webgl::PcqProducer,
+                      mozilla::webgl::ProducerConsumerQueue>;
 
 /**
  * The sink for the WebGL Command Queue.  This object is created in the client
@@ -29,30 +38,56 @@ using ClientWebGLCommandSource = SyncCommandSource<size_t>;
  * then uses for executing methods.  Add new commands to DispatchCommand using
  * the WEBGL_SYNC_COMMAND and WEBGL_ASYNC_COMMAND macros.
  */
-class HostWebGLCommandSink : public SyncCommandSink<size_t> {
+template <typename Consumer, typename Queue>
+class HostWebGLCommandSink final
+    : public SyncCommandSink<size_t, Consumer, Queue> {
  public:
   HostWebGLCommandSink(UniquePtr<Consumer>&& aConsumer,
-                       UniquePtr<Producer>&& aResponseProducer)
-      : SyncCommandSink(std::move(aConsumer), std::move(aResponseProducer)) {}
+                       UniquePtr<typename Queue::Producer>&& aResponseProducer)
+      : SyncCommandSink<size_t, Consumer, Queue>(
+            std::move(aConsumer), std::move(aResponseProducer)) {}
 
   HostWebGLContext* mHostContext = nullptr;
 
- protected:
   // For IPDL:
-  friend struct mozilla::ipc::IPDLParamTraits<HostWebGLCommandSink>;
-  friend class mozilla::layers::PCompositorBridgeParent;
   HostWebGLCommandSink() = default;
 
-  bool DispatchCommand(size_t command) override;
+ protected:
+  friend struct mozilla::ipc::IPDLParamTraits<HostWebGLCommandSink>;
+  friend class mozilla::layers::PCompositorBridgeParent;
+
+  bool DispatchCommand(size_t command) override {
+    MOZ_CRASH("TODO:");
+    return false;
+  }
 };
+
+using HostWebGLCommandSinkP =
+    HostWebGLCommandSink<mozilla::webgl::PcqConsumer,
+                         mozilla::webgl::ProducerConsumerQueue>;
+
+using IpdlWebGLCommandQueue =
+    mozilla::dom::IpdlQueue<mozilla::dom::WebGLChild,
+                            mozilla::dom::WebGLParent>;
+using IpdlWebGLResponseQueue =
+    mozilla::dom::IpdlQueue<mozilla::dom::WebGLParent,
+                            mozilla::dom::WebGLChild>;
+
+using ClientWebGLCommandSourceI =
+    SyncCommandSource<size_t, typename IpdlWebGLCommandQueue::Producer,
+                      IpdlWebGLResponseQueue>;
+using HostWebGLCommandSinkI =
+    HostWebGLCommandSink<typename IpdlWebGLCommandQueue::Consumer,
+                         IpdlWebGLResponseQueue>;
 
 namespace ipc {
 
-template <>
-struct IPDLParamTraits<mozilla::HostWebGLCommandSink>
-    : public IPDLParamTraits<mozilla::SyncCommandSink<size_t>> {
+template <typename Consumer, typename Queue>
+struct IPDLParamTraits<mozilla::HostWebGLCommandSink<Consumer, Queue>>
+    : public IPDLParamTraits<
+          mozilla::SyncCommandSink<size_t, Consumer, Queue>> {
  public:
-  typedef mozilla::HostWebGLCommandSink paramType;
+  typedef mozilla::HostWebGLCommandSink<Consumer, Queue> paramType;
 };
 
 }  // namespace ipc

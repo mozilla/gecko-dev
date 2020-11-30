@@ -41,8 +41,8 @@ bool FileSystemUtils::IsValidRelativeDOMPath(const nsAString& aPath,
     return false;
   }
 
-  NS_NAMED_LITERAL_STRING(kCurrentDir, ".");
-  NS_NAMED_LITERAL_STRING(kParentDir, "..");
+  constexpr auto kCurrentDir = u"."_ns;
+  constexpr auto kParentDir = u".."_ns;
 
   // Split path and check each path component.
   nsCharSeparatedTokenizerTemplate<TokenizerIgnoreNothing> tokenizer(
@@ -71,7 +71,7 @@ nsresult FileSystemUtils::DispatchRunnable(
 
   nsCOMPtr<nsIEventTarget> target;
   if (!aGlobal) {
-    target = SystemGroup::EventTargetFor(TaskCategory::Other);
+    target = GetMainThreadSerialEventTarget();
   } else {
     target = aGlobal->EventTargetFor(TaskCategory::Other);
   }

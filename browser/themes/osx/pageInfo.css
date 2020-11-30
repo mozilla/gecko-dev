@@ -2,13 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-@import "chrome://global/skin/";
+@import "chrome://global/skin/global.css";
 @namespace html url("http://www.w3.org/1999/xhtml");
 
-%include ../../../toolkit/themes/osx/global/shared.inc
-
 #topBar {
-  -moz-appearance: toolbar;
+  appearance: auto;
+  -moz-default-appearance: toolbar;
   -moz-window-dragging: drag;
   -moz-box-align: center;
   -moz-box-pack: center;
@@ -22,9 +21,9 @@
 #viewGroup > toolbarbutton {
   -moz-box-orient: vertical;
   -moz-box-align: center;
-  -moz-appearance: toolbarbutton;
+  appearance: auto;
+  -moz-default-appearance: toolbarbutton;
   font: menu;
-  text-shadow: @loweredShadow@;
   margin: 0;
   padding: 0 6px;
   height: 22px;
@@ -108,8 +107,9 @@ treechildren::-moz-tree-cell-text(broken) {
 #permList {
   margin: .5em;
   overflow: auto;
-  -moz-appearance: listbox;
-  color: -moz-fieldtext;
+  appearance: auto;
+  -moz-default-appearance: listbox;
+  color: FieldText;
 }
 
 .permission {

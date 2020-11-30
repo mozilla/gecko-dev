@@ -17,6 +17,7 @@ from mach.decorators import (
 from mozbuild.base import (
     MachCommandBase,
     MachCommandConditions as conditions,
+    BinaryNotFoundException,
 )
 
 
@@ -31,12 +32,8 @@ class MachCommands(MachCommandBase):
     '''
     Run Valgrind tests.
     '''
-
-    def __init__(self, context):
-        MachCommandBase.__init__(self, context)
-
     @Command('valgrind-test', category='testing',
-             conditions=[conditions.is_firefox, is_valgrind_build],
+             conditions=[conditions.is_firefox_or_thunderbird, is_valgrind_build],
              description='Run the Valgrind test job (memory-related errors).')
     @CommandArgument('--suppressions', default=[], action='append',
                      metavar='FILENAME',
@@ -105,7 +102,10 @@ class MachCommands(MachCommandBase):
             env['XPCOM_DEBUG_BREAK'] = 'warn'
 
             outputHandler = OutputHandler(self.log)
-            kp_kwargs = {'processOutputLine': [outputHandler]}
+            kp_kwargs = {
+                'processOutputLine': [outputHandler],
+                'universal_newlines': True,
+            }
 
             valgrind = 'valgrind'
             if not os.path.exists(valgrind):
@@ -155,6 +155,7 @@ class MachCommands(MachCommandBase):
 
             exitcode = None
             timeout = 1800
+            binary_not_found_exception = None
             try:
                 runner = FirefoxRunner(profile=profile,
                                        binary=self.get_binary_path(),
@@ -163,7 +164,8 @@ class MachCommands(MachCommandBase):
                                        process_args=kp_kwargs)
                 runner.start(debug_args=valgrind_args)
                 exitcode = runner.wait(timeout=timeout)
-
+            except BinaryNotFoundException as e:
+                binary_not_found_exception = e
             finally:
                 errs = outputHandler.error_count
                 supps = outputHandler.suppression_count
@@ -182,7 +184,15 @@ class MachCommands(MachCommandBase):
                     status = 1  # turns the TBPL job orange
                     # We've already printed details of the errors.
 
-                if exitcode is None:
+                if binary_not_found_exception:
+                    status = 2  # turns the TBPL job red
+                    self.log(logging.ERROR, 'valgrind-fail-errors',
+                             {'error': str(binary_not_found_exception)},
+                             'TEST-UNEXPECTED-FAIL | valgrind-test | {error}')
+                    self.log(logging.INFO, 'valgrind-fail-errors',
+                             {'help': binary_not_found_exception.help()},
+                             '{help}')
+                elif exitcode is None:
                     status = 2  # turns the TBPL job red
                     self.log(logging.ERROR, 'valgrind-fail-timeout',
                              {'timeout': timeout},

@@ -1,6 +1,10 @@
 /**
  * Read count bytes from stream and return as a String object
  */
+
+/* import-globals-from head_cache.js */
+/* import-globals-from head_cookies.js */
+
 function read_stream(stream, count) {
   /* assume stream has non-ASCII data */
   var wrapper = Cc["@mozilla.org/binaryinputstream;1"].createInstance(
@@ -253,12 +257,12 @@ ChannelEventSink.prototype = {
     if (iid.equals(Ci.nsIChannelEventSink)) {
       return this;
     }
-    throw Cr.NS_ERROR_NO_INTERFACE;
+    throw Components.Exception("", Cr.NS_ERROR_NO_INTERFACE);
   },
 
   asyncOnChannelRedirect(oldChannel, newChannel, flags, callback) {
     if (this._flags & ES_ABORT_REDIRECT) {
-      throw Cr.NS_BINDING_ABORTED;
+      throw Components.Exception("", Cr.NS_BINDING_ABORTED);
     }
 
     callback.onRedirectVerifyCallback(Cr.NS_OK);
@@ -294,4 +298,56 @@ function addCertFromFile(certdb, filename, trustString) {
     .replace(/-----END CERTIFICATE-----/, "")
     .replace(/[\r\n]/g, "");
   certdb.addCertFromBase64(pem, trustString);
+}
+
+// Helper code to test nsISerializable
+function serialize_to_escaped_string(obj) {
+  let objectOutStream = Cc["@mozilla.org/binaryoutputstream;1"].createInstance(
+    Ci.nsIObjectOutputStream
+  );
+  let pipe = Cc["@mozilla.org/pipe;1"].createInstance(Ci.nsIPipe);
+  pipe.init(false, false, 0, 0xffffffff, null);
+  objectOutStream.setOutputStream(pipe.outputStream);
+  objectOutStream.writeCompoundObject(obj, Ci.nsISupports, true);
+  objectOutStream.close();
+
+  let objectInStream = Cc["@mozilla.org/binaryinputstream;1"].createInstance(
+    Ci.nsIObjectInputStream
+  );
+  objectInStream.setInputStream(pipe.inputStream);
+  let data = [];
+  // This reads all the data from the stream until an error occurs.
+  while (true) {
+    try {
+      let bytes = objectInStream.readByteArray(1);
+      data.push(String.fromCharCode.apply(null, bytes));
+    } catch (e) {
+      break;
+    }
+  }
+  return escape(data.join(""));
+}
+
+function deserialize_from_escaped_string(str) {
+  let payload = unescape(str);
+  let data = [];
+  let i = 0;
+  while (i < payload.length) {
+    data.push(payload.charCodeAt(i++));
+  }
+
+  let objectOutStream = Cc["@mozilla.org/binaryoutputstream;1"].createInstance(
+    Ci.nsIObjectOutputStream
+  );
+  let pipe = Cc["@mozilla.org/pipe;1"].createInstance(Ci.nsIPipe);
+  pipe.init(false, false, 0, 0xffffffff, null);
+  objectOutStream.setOutputStream(pipe.outputStream);
+  objectOutStream.writeByteArray(data);
+  objectOutStream.close();
+
+  let objectInStream = Cc["@mozilla.org/binaryinputstream;1"].createInstance(
+    Ci.nsIObjectInputStream
+  );
+  objectInStream.setInputStream(pipe.inputStream);
+  return objectInStream.readObject(true);
 }

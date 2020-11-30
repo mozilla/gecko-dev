@@ -1,4 +1,4 @@
-// |reftest| skip error:SyntaxError -- regexp-named-groups is not supported
+// |reftest| error:SyntaxError
 // Copyright 2017 the V8 project authors. All rights reserved.
 // This code is governed by the BSD license found in the LICENSE file.
 
@@ -13,4 +13,4 @@ features: [regexp-named-groups]
 
 $DONOTEVALUATE();
 
-/(?<a\u{104A4}>.)/;
+/(?<a\u{1F08B}>.)/;

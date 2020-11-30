@@ -38,18 +38,18 @@ loader.lazyRequireGetter(
   true
 );
 
-const OS = Services.appinfo.OS;
+const { OS } = Services.appinfo;
 
 class RequestListContextMenu {
   constructor(props) {
     this.props = props;
   }
 
-  // eslint-disable-next-line complexity
-  open(event, clickedRequest, requests, blockedUrls) {
+  createCopySubMenu(clickedRequest, requests) {
+    const { connector } = this.props;
+
     const {
       id,
-      isCustom,
       formDataSections,
       method,
       mimeType,
@@ -64,21 +64,10 @@ class RequestListContextMenu {
       responseContentAvailable,
       url,
     } = clickedRequest;
-    const {
-      connector,
-      cloneRequest,
-      openDetailsPanelTab,
-      sendCustomRequest,
-      openStatistics,
-      openRequestInTab,
-      openRequestBlockingAndAddUrl,
-      openRequestBlockingAndDisableUrls,
-      removeBlockedUrl,
-    } = this.props;
-    const menu = [];
-    const copySubmenu = [];
 
-    copySubmenu.push({
+    const copySubMenu = [];
+
+    copySubMenu.push({
       id: "request-list-context-copy-url",
       label: L10N.getStr("netmonitor.context.copyUrl"),
       accesskey: L10N.getStr("netmonitor.context.copyUrl.accesskey"),
@@ -86,7 +75,7 @@ class RequestListContextMenu {
       click: () => this.copyUrl(url),
     });
 
-    copySubmenu.push({
+    copySubMenu.push({
       id: "request-list-context-copy-url-params",
       label: L10N.getStr("netmonitor.context.copyUrlParams"),
       accesskey: L10N.getStr("netmonitor.context.copyUrlParams.accesskey"),
@@ -94,7 +83,7 @@ class RequestListContextMenu {
       click: () => this.copyUrlParams(url),
     });
 
-    copySubmenu.push({
+    copySubMenu.push({
       id: "request-list-context-copy-post-data",
       label: L10N.getFormatStr("netmonitor.context.copyRequestData", method),
       accesskey: L10N.getStr("netmonitor.context.copyRequestData.accesskey"),
@@ -108,7 +97,7 @@ class RequestListContextMenu {
     });
 
     if (OS === "WINNT") {
-      copySubmenu.push({
+      copySubMenu.push({
         id: "request-list-context-copy-as-curl-win",
         label: L10N.getFormatStr(
           "netmonitor.context.copyAsCurl.win",
@@ -130,7 +119,7 @@ class RequestListContextMenu {
           ),
       });
 
-      copySubmenu.push({
+      copySubMenu.push({
         id: "request-list-context-copy-as-curl-posix",
         label: L10N.getFormatStr(
           "netmonitor.context.copyAsCurl.posix",
@@ -152,7 +141,7 @@ class RequestListContextMenu {
           ),
       });
     } else {
-      copySubmenu.push({
+      copySubMenu.push({
         id: "request-list-context-copy-as-curl",
         label: L10N.getStr("netmonitor.context.copyAsCurl"),
         accesskey: L10N.getStr("netmonitor.context.copyAsCurl.accesskey"),
@@ -171,7 +160,7 @@ class RequestListContextMenu {
       });
     }
 
-    copySubmenu.push({
+    copySubMenu.push({
       id: "request-list-context-copy-as-fetch",
       label: L10N.getStr("netmonitor.context.copyAsFetch"),
       accesskey: L10N.getStr("netmonitor.context.copyAsFetch.accesskey"),
@@ -180,12 +169,12 @@ class RequestListContextMenu {
         this.copyAsFetch(id, url, method, requestHeaders, requestPostData),
     });
 
-    copySubmenu.push({
+    copySubMenu.push({
       type: "separator",
-      visible: copySubmenu.slice(0, 4).some(subMenu => subMenu.visible),
+      visible: copySubMenu.slice(0, 4).some(subMenu => subMenu.visible),
     });
 
-    copySubmenu.push({
+    copySubMenu.push({
       id: "request-list-context-copy-request-headers",
       label: L10N.getStr("netmonitor.context.copyRequestHeaders"),
       accesskey: L10N.getStr("netmonitor.context.copyRequestHeaders.accesskey"),
@@ -198,7 +187,7 @@ class RequestListContextMenu {
       click: () => this.copyRequestHeaders(id, requestHeaders),
     });
 
-    copySubmenu.push({
+    copySubMenu.push({
       id: "response-list-context-copy-response-headers",
       label: L10N.getStr("netmonitor.context.copyResponseHeaders"),
       accesskey: L10N.getStr(
@@ -213,7 +202,7 @@ class RequestListContextMenu {
       click: () => this.copyResponseHeaders(id, responseHeaders),
     });
 
-    copySubmenu.push({
+    copySubMenu.push({
       id: "request-list-context-copy-response",
       label: L10N.getStr("netmonitor.context.copyResponse"),
       accesskey: L10N.getStr("netmonitor.context.copyResponse.accesskey"),
@@ -226,7 +215,7 @@ class RequestListContextMenu {
       click: () => this.copyResponse(id, responseContent),
     });
 
-    copySubmenu.push({
+    copySubMenu.push({
       id: "request-list-context-copy-image-as-data-uri",
       label: L10N.getStr("netmonitor.context.copyImageAsDataUri"),
       accesskey: L10N.getStr("netmonitor.context.copyImageAsDataUri.accesskey"),
@@ -239,12 +228,12 @@ class RequestListContextMenu {
       click: () => this.copyImageAsDataUri(id, mimeType, responseContent),
     });
 
-    copySubmenu.push({
+    copySubMenu.push({
       type: "separator",
-      visible: copySubmenu.slice(5, 9).some(subMenu => subMenu.visible),
+      visible: copySubMenu.slice(5, 9).some(subMenu => subMenu.visible),
     });
 
-    copySubmenu.push({
+    copySubMenu.push({
       id: "request-list-context-copy-all-as-har",
       label: L10N.getStr("netmonitor.context.copyAllAsHar"),
       accesskey: L10N.getStr("netmonitor.context.copyAllAsHar.accesskey"),
@@ -252,11 +241,43 @@ class RequestListContextMenu {
       click: () => HarMenuUtils.copyAllAsHar(requests, connector),
     });
 
+    return copySubMenu;
+  }
+
+  createMenu(clickedRequest, requests, blockedUrls) {
+    const {
+      connector,
+      cloneRequest,
+      openDetailsPanelTab,
+      sendCustomRequest,
+      openStatistics,
+      openRequestInTab,
+      openRequestBlockingAndAddUrl,
+      openRequestBlockingAndDisableUrls,
+      removeBlockedUrl,
+    } = this.props;
+
+    const {
+      id,
+      isCustom,
+      method,
+      mimeType,
+      requestHeaders,
+      requestPostData,
+      responseContent,
+      responseContentAvailable,
+      url,
+    } = clickedRequest;
+
+    const copySubMenu = this.createCopySubMenu(clickedRequest, requests);
+
+    const menu = [];
+
     menu.push({
       label: L10N.getStr("netmonitor.context.copy"),
       accesskey: L10N.getStr("netmonitor.context.copy.accesskey"),
       visible: !!clickedRequest,
-      submenu: copySubmenu,
+      submenu: copySubMenu,
     });
 
     menu.push({
@@ -282,7 +303,7 @@ class RequestListContextMenu {
 
     menu.push({
       type: "separator",
-      visible: copySubmenu.slice(10, 14).some(subMenu => subMenu.visible),
+      visible: copySubMenu.slice(10, 14).some(subMenu => subMenu.visible),
     });
 
     menu.push({
@@ -339,7 +360,7 @@ class RequestListContextMenu {
 
     menu.push({
       type: "separator",
-      visible: copySubmenu.slice(15, 16).some(subMenu => subMenu.visible),
+      visible: copySubMenu.slice(15, 16).some(subMenu => subMenu.visible),
     });
 
     menu.push({
@@ -396,6 +417,12 @@ class RequestListContextMenu {
         this.useAsFetch(id, url, method, requestHeaders, requestPostData),
     });
 
+    return menu;
+  }
+
+  open(event, clickedRequest, requests, blockedUrls) {
+    const menu = this.createMenu(clickedRequest, requests, blockedUrls);
+
     showMenu(menu, {
       screenX: event.screenX,
       screenY: event.screenY,
@@ -407,7 +434,7 @@ class RequestListContextMenu {
    */
   openInDebugger(url) {
     const toolbox = gDevTools.getToolbox(this.props.connector.getTabTarget());
-    toolbox.viewSourceInDebugger(url, 0);
+    toolbox.viewGeneratedSourceInDebugger(url);
   }
 
   /**
@@ -415,7 +442,7 @@ class RequestListContextMenu {
    */
   openInStyleEditor(url) {
     const toolbox = gDevTools.getToolbox(this.props.connector.getTabTarget());
-    toolbox.viewSourceInStyleEditor(url, 0);
+    toolbox.viewGeneratedSourceInStyleEditor(url);
   }
 
   /**
@@ -441,7 +468,7 @@ class RequestListContextMenu {
   async copyPostData(id, formDataSections, requestPostData) {
     let params = [];
     // Try to extract any form data parameters if formDataSections is already
-    // available, which is only true if ParamsPanel has ever been mounted before.
+    // available, which is only true if RequestPanel has ever been mounted before.
     if (formDataSections) {
       formDataSections.forEach(section => {
         const paramsArray = parseQueryString(section);

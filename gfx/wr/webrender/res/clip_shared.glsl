@@ -6,40 +6,29 @@
 
 #ifdef WR_VERTEX_SHADER
 
-in ivec2 aTransformIds;
-in ivec4 aClipDataResourceAddress;
-in vec2 aClipLocalPos;
-in vec4 aClipTileRect;
-in vec4 aClipDeviceArea;
-in vec4 aClipOrigins;
-in float aDevicePixelScale;
+PER_INSTANCE in vec4 aClipDeviceArea;
+PER_INSTANCE in vec4 aClipOrigins;
+PER_INSTANCE in float aDevicePixelScale;
+PER_INSTANCE in ivec2 aTransformIds;
 
-struct ClipMaskInstance {
-    int clip_transform_id;
-    int prim_transform_id;
-    ivec2 clip_data_address;
-    ivec2 resource_address;
-    vec2 local_pos;
-    RectWithSize tile_rect;
+struct ClipMaskInstanceCommon {
     RectWithSize sub_rect;
     vec2 task_origin;
     vec2 screen_origin;
     float device_pixel_scale;
+    int clip_transform_id;
+    int prim_transform_id;
 };
 
-ClipMaskInstance fetch_clip_item() {
-    ClipMaskInstance cmi;
+ClipMaskInstanceCommon fetch_clip_item_common() {
+    ClipMaskInstanceCommon cmi;
 
-    cmi.clip_transform_id = aTransformIds.x;
-    cmi.prim_transform_id = aTransformIds.y;
-    cmi.clip_data_address = aClipDataResourceAddress.xy;
-    cmi.resource_address = aClipDataResourceAddress.zw;
-    cmi.local_pos = aClipLocalPos;
-    cmi.tile_rect = RectWithSize(aClipTileRect.xy, aClipTileRect.zw);
     cmi.sub_rect = RectWithSize(aClipDeviceArea.xy, aClipDeviceArea.zw);
     cmi.task_origin = aClipOrigins.xy;
     cmi.screen_origin = aClipOrigins.zw;
     cmi.device_pixel_scale = aDevicePixelScale;
+    cmi.clip_transform_id = aTransformIds.x;
+    cmi.prim_transform_id = aTransformIds.y;
 
     return cmi;
 }

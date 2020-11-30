@@ -16,6 +16,7 @@
 #include "gc/Scheduling.h"
 #include "js/GCAPI.h"
 #include "js/HeapAPI.h"
+#include "js/shadow/Zone.h"  // JS::shadow::Zone
 #include "vm/MallocProvider.h"
 
 namespace JS {
@@ -65,8 +66,11 @@ class ZoneAllocator : public JS::shadow::Zone,
   }
 
   void updateMemoryCountersOnGCStart();
-  void updateGCThresholds(gc::GCRuntime& gc, JSGCInvocationKind invocationKind,
-                          const js::AutoLockGC& lock);
+  void updateGCStartThresholds(gc::GCRuntime& gc,
+                               JSGCInvocationKind invocationKind,
+                               const js::AutoLockGC& lock);
+  void setGCSliceThresholds(gc::GCRuntime& gc);
+  void clearGCSliceThresholds();
 
   // Memory accounting APIs for malloc memory owned by GC cells.
 
@@ -80,7 +84,7 @@ class ZoneAllocator : public JS::shadow::Zone,
     mallocTracker.trackGCMemory(cell, nbytes, use);
 #endif
 
-    maybeMallocTriggerZoneGC();
+    maybeTriggerGCOnMalloc();
   }
 
   void removeCellMemory(js::gc::Cell* cell, size_t nbytes, js::MemoryUse use,
@@ -126,7 +130,7 @@ class ZoneAllocator : public JS::shadow::Zone,
     mallocTracker.incNonGCMemory(mem, nbytes, use);
 #endif
 
-    maybeMallocTriggerZoneGC();
+    maybeTriggerGCOnMalloc();
   }
   void decNonGCMemory(void* mem, size_t nbytes, MemoryUse use, bool wasSwept) {
     MOZ_ASSERT(nbytes);
@@ -155,7 +159,7 @@ class ZoneAllocator : public JS::shadow::Zone,
   }
 
   // Check malloc allocation threshold and trigger a zone GC if necessary.
-  void maybeMallocTriggerZoneGC() {
+  void maybeTriggerGCOnMalloc() {
     maybeTriggerZoneGC(mallocHeapSize, mallocHeapThreshold,
                        JS::GCReason::TOO_MUCH_MALLOC);
   }
@@ -164,7 +168,7 @@ class ZoneAllocator : public JS::shadow::Zone,
   void maybeTriggerZoneGC(const js::gc::HeapSize& heap,
                           const js::gc::HeapThreshold& threshold,
                           JS::GCReason reason) {
-    if (heap.bytes() >= threshold.bytes()) {
+    if (heap.bytes() >= threshold.startBytes()) {
       gc::MaybeMallocTriggerZoneGC(runtimeFromAnyThread(), this, heap,
                                    threshold, reason);
     }
@@ -176,10 +180,6 @@ class ZoneAllocator : public JS::shadow::Zone,
 
   // Threshold used to trigger GC based on GC heap size.
   gc::GCHeapThreshold gcHeapThreshold;
-
-  // Amount of data to allocate before triggering a new incremental slice for
-  // the current GC.
-  MainThreadData<size_t> gcDelayBytes;
 
   // Amount of malloc data owned by tenured GC things in this zone, including
   // external allocations supplied by JS::AddAssociatedMemory.
@@ -248,7 +248,9 @@ class ZoneAllocPolicy : public MallocProvider<ZoneAllocPolicy> {
     return *this;
   }
   ZoneAllocPolicy& operator=(ZoneAllocPolicy&& other) {
+    MOZ_ASSERT(this != &other);
     zone()->unregisterNonGCMemory(this, MemoryUse::ZoneAllocPolicy);
+    zone_ = other.zone();
     zone()->moveOtherMemory(this, &other, MemoryUse::ZoneAllocPolicy);
     other.zone_ = nullptr;
     return *this;

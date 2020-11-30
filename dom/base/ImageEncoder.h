@@ -12,7 +12,6 @@
 #include "mozilla/dom/File.h"
 #include "mozilla/dom/HTMLCanvasElementBinding.h"
 #include "mozilla/UniquePtr.h"
-#include "nsLayoutUtils.h"
 #include "nsSize.h"
 
 class nsICanvasRenderingContextInternal;
@@ -20,7 +19,7 @@ class nsICanvasRenderingContextInternal;
 namespace mozilla {
 
 namespace layers {
-class AsyncCanvasRenderer;
+class CanvasRenderer;
 class Image;
 }  // namespace layers
 
@@ -40,7 +39,7 @@ class ImageEncoder {
   static nsresult ExtractData(nsAString& aType, const nsAString& aOptions,
                               const nsIntSize aSize, bool aUsePlaceholder,
                               nsICanvasRenderingContextInternal* aContext,
-                              layers::AsyncCanvasRenderer* aRenderer,
+                              layers::CanvasRenderer* aRenderer,
                               nsIInputStream** aStream);
 
   // Extracts data asynchronously. aType may change to "image/png" if we had to
@@ -86,7 +85,7 @@ class ImageEncoder {
       const nsAString& aType, const nsAString& aOptions, uint8_t* aImageBuffer,
       int32_t aFormat, const nsIntSize aSize, bool aUsePlaceholder,
       layers::Image* aImage, nsICanvasRenderingContextInternal* aContext,
-      layers::AsyncCanvasRenderer* aRenderer, nsIInputStream** aStream,
+      layers::CanvasRenderer* aRenderer, nsIInputStream** aStream,
       imgIEncoder* aEncoder);
 
   // Creates and returns an encoder instance of the type specified in aType.

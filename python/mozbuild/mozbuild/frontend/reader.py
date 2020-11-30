@@ -45,12 +45,6 @@ from mozbuild.util import (
     ReadOnlyDefaultDict,
 )
 
-from mozbuild.testing import (
-    TEST_MANIFESTS,
-    REFTEST_FLAVORS,
-    WEB_PLATFORM_TESTS_FLAVORS,
-)
-
 from mozbuild.backend.configenvironment import ConfigEnvironment
 
 from mozpack.files import FileFinder
@@ -124,7 +118,6 @@ class EmptyConfig(object):
 
         self.substs = self.PopulateOnGetDict(EmptyValue, substs or self.default_substs)
         self.defines = self.substs
-        self.external_source_dir = None
         self.error_is_fatal = False
 
 
@@ -146,12 +139,6 @@ def is_read_allowed(path, config):
 
     if mozpath.basedir(path, [topsrcdir]):
         return True
-
-    if config.external_source_dir:
-        external_dir = os.path.normcase(config.external_source_dir)
-        norm_path = os.path.normcase(path)
-        if mozpath.basedir(norm_path, [external_dir]):
-            return True
 
     return False
 
@@ -856,6 +843,15 @@ class BuildReader(object):
             self._relevant_mozbuild_finder.ignore.add(os.path.dirname(path))
 
         max_workers = cpu_count()
+        if sys.platform.startswith('win'):
+            # In python 3, on Windows, ProcessPoolExecutor uses
+            # _winapi.WaitForMultipleObjects, which doesn't work on large
+            # number of objects. It also has some automatic capping to avoid
+            # _winapi.WaitForMultipleObjects being unhappy as a consequence,
+            # but that capping is actually insufficient in python 3.7 and 3.8
+            # (as well as inexistent in older versions). So we cap ourselves
+            # to 60, see https://bugs.python.org/issue26903#msg365886.
+            max_workers = min(max_workers, 60)
         self._gyp_worker_pool = ProcessPoolExecutor(max_workers=max_workers)
         self._gyp_processors = []
         self._execution_time = 0.0
@@ -1082,11 +1078,11 @@ class BuildReader(object):
     def _read_mozbuild(self, path, config, descend, metadata):
         path = mozpath.normpath(path)
         log(self._log, logging.DEBUG, 'read_mozbuild', {'path': path},
-            'Reading file: {path}')
+            'Reading file: {path}'.format(path=path))
 
         if path in self._read_files:
             log(self._log, logging.WARNING, 'read_already', {'path': path},
-                'File already read. Skipping: {path}')
+                'File already read. Skipping: {path}'.format(path=path))
             return
 
         self._read_files.add(path)
@@ -1094,14 +1090,6 @@ class BuildReader(object):
         time_start = time.time()
 
         topobjdir = config.topobjdir
-
-        if not mozpath.basedir(path, [config.topsrcdir]):
-            external = config.external_source_dir
-            if external and mozpath.basedir(path, [external]):
-                config = ConfigEnvironment.from_config_status(
-                    mozpath.join(topobjdir, 'config.status'))
-                config.topsrcdir = external
-                config.external_source_dir = None
 
         relpath = mozpath.relpath(path, config.topsrcdir)
         reldir = mozpath.dirname(relpath)
@@ -1111,7 +1099,6 @@ class BuildReader(object):
             config = ConfigEnvironment.from_config_status(
                 mozpath.join(topobjdir, reldir, 'config.status'))
             config.topobjdir = topobjdir
-            config.external_source_dir = None
 
         context = Context(VARIABLES, config, self.finder)
         sandbox = MozbuildSandbox(context, metadata=metadata,
@@ -1342,20 +1329,6 @@ class BuildReader(object):
         """
         paths, _ = self.read_relevant_mozbuilds(paths)
 
-        # For thousands of inputs (say every file in a sub-tree),
-        # test_defaults_for_path() gets called with the same contexts multiple
-        # times (once for every path in a directory that doesn't have any
-        # test metadata). So, we cache the function call.
-        defaults_cache = {}
-
-        def test_defaults_for_path(ctxs):
-            key = tuple(ctx.current_path or ctx.main_path for ctx in ctxs)
-
-            if key not in defaults_cache:
-                defaults_cache[key] = self.test_defaults_for_path(ctxs)
-
-            return defaults_cache[key]
-
         r = {}
 
         # Only do wildcard matching if the '*' character is present.
@@ -1392,40 +1365,6 @@ class BuildReader(object):
                 if any(path_matches_pattern(relpath, p) for p in ctx.patterns):
                     flags += ctx
 
-            if not any([flags.test_tags, flags.test_files, flags.test_flavors]):
-                flags += test_defaults_for_path(ctxs)
-
             r[path] = flags
 
         return r
-
-    def test_defaults_for_path(self, ctxs):
-        # This names the context keys that will end up emitting a test
-        # manifest.
-        test_manifest_contexts = set(
-            ['%s_MANIFESTS' % key for key in TEST_MANIFESTS] +
-            ['%s_MANIFESTS' % flavor.upper() for flavor in REFTEST_FLAVORS] +
-            ['%s_MANIFESTS' % flavor.upper().replace('-', '_')
-             for flavor in WEB_PLATFORM_TESTS_FLAVORS]
-        )
-
-        result_context = Files(Context())
-        for ctx in ctxs:
-            for key in ctx:
-                if key not in test_manifest_contexts:
-                    continue
-                for paths, obj in ctx[key]:
-                    if isinstance(paths, tuple):
-                        path, tests_root = paths
-                        tests_root = mozpath.join(ctx.relsrcdir, tests_root)
-                        for t in (mozpath.join(tests_root, it[0]) for it in obj):
-                            result_context.test_files.add(mozpath.dirname(t) + '/**')
-                    else:
-                        for t in obj.tests:
-                            if 'relpath' in t:
-                                relpath = t['relpath']
-                            else:
-                                relpath = mozpath.relpath(t['path'],
-                                                          self.config.topsrcdir)
-                            result_context.test_files.add(mozpath.dirname(relpath) + '/**')
-        return result_context

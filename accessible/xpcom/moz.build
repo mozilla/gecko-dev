@@ -45,7 +45,15 @@ elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
     ]
 elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
     LOCAL_INCLUDES += [
+        '/accessible/ipc',
+        '/accessible/ipc/other',
         '/accessible/mac',
+    ]
+    UNIFIED_SOURCES += [
+        'xpcAccessibleMacInterface.mm'
+    ]
+    EXPORTS += [
+        'xpcAccessibleMacInterface.h',
     ]
 elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
     LOCAL_INCLUDES += [
@@ -60,11 +68,8 @@ else:
 GeneratedFile(
     'xpcAccEvents.h', 'xpcAccEvents.cpp',
     script='AccEventGen.py', entry_point='gen_files',
-    py2=True,
     inputs=[
         'AccEvents.conf',
-        '!/xpcom/idl-parser/xpidl/xpidllex.py',
-        '!/xpcom/idl-parser/xpidl/xpidlyacc.py',
     ])
 
 FINAL_LIBRARY = 'xul'

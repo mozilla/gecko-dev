@@ -6,10 +6,12 @@
 
 #include "FilePreferences.h"
 
+#include "mozilla/Atomics.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPtr.h"
+#include "mozilla/TextUtils.h"
 #include "mozilla/Tokenizer.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsDirectoryServiceDefs.h"
@@ -32,24 +34,29 @@ static WinPaths& PathWhitelist() {
 }
 
 #ifdef XP_WIN
+const auto kDevicePathSpecifier = u"\\\\?\\"_ns;
+
 typedef char16_t char_path_t;
 #else
 typedef char char_path_t;
 #endif
 
-// Initially false to make concurrent consumers acquire the lock and sync
-static bool sBlacklistEmpty = false;
+// Initially false to make concurrent consumers acquire the lock and sync.
+// The plain bool is synchronized with sMutex, the atomic one is for a quick
+// check w/o the need to acquire the lock on the hot path.
+static bool sForbiddenPathsEmpty = false;
+static Atomic<bool, Relaxed> sForbiddenPathsEmptyQuickCheck{false};
 
 typedef nsTArray<nsTString<char_path_t>> Paths;
-static StaticAutoPtr<Paths> sBlacklist;
+static StaticAutoPtr<Paths> sForbiddenPaths;
 
-static Paths& PathBlacklist() {
+static Paths& ForbiddenPaths() {
   sMutex.AssertCurrentThreadOwns();
-  if (!sBlacklist) {
-    sBlacklist = new nsTArray<nsTString<char_path_t>>();
-    ClearOnShutdown(&sBlacklist);
+  if (!sForbiddenPaths) {
+    sForbiddenPaths = new nsTArray<nsTString<char_path_t>>();
+    ClearOnShutdown(&sForbiddenPaths);
   }
-  return *sBlacklist;
+  return *sForbiddenPaths;
 }
 
 static void AllowUNCDirectory(char const* directory) {
@@ -67,7 +74,7 @@ static void AllowUNCDirectory(char const* directory) {
   // The whitelist makes sense only for UNC paths, because this code is used
   // to block only UNC paths, hence, no need to add non-UNC directories here
   // as those would never pass the check.
-  if (!StringBeginsWith(path, NS_LITERAL_STRING("\\\\"))) {
+  if (!StringBeginsWith(path, u"\\\\"_ns)) {
     return;
   }
 
@@ -82,33 +89,34 @@ void InitPrefs() {
   sBlockUNCPaths =
       Preferences::GetBool("network.file.disable_unc_paths", false);
 
-  nsTAutoString<char_path_t> blacklist;
+  nsTAutoString<char_path_t> forbidden;
 #ifdef XP_WIN
-  Preferences::GetString("network.file.path_blacklist", blacklist);
+  Preferences::GetString("network.file.path_blacklist", forbidden);
 #else
-  Preferences::GetCString("network.file.path_blacklist", blacklist);
+  Preferences::GetCString("network.file.path_blacklist", forbidden);
 #endif
 
   StaticMutexAutoLock lock(sMutex);
 
-  if (blacklist.IsEmpty()) {
-    sBlacklistEmpty = true;
+  if (forbidden.IsEmpty()) {
+    sForbiddenPathsEmptyQuickCheck = (sForbiddenPathsEmpty = true);
     return;
   }
 
-  PathBlacklist().Clear();
-  TTokenizer<char_path_t> p(blacklist);
+  ForbiddenPaths().Clear();
+  TTokenizer<char_path_t> p(forbidden);
   while (!p.CheckEOF()) {
     nsTString<char_path_t> path;
     Unused << p.ReadUntil(TTokenizer<char_path_t>::Token::Char(','), path);
     path.Trim(" ");
     if (!path.IsEmpty()) {
-      PathBlacklist().AppendElement(path);
+      ForbiddenPaths().AppendElement(path);
     }
     Unused << p.CheckChar(',');
   }
 
-  sBlacklistEmpty = PathBlacklist().Length() == 0;
+  sForbiddenPathsEmptyQuickCheck =
+      (sForbiddenPathsEmpty = ForbiddenPaths().Length() == 0);
 }
 
 void InitDirectoriesWhitelist() {
@@ -219,6 +227,28 @@ class TNormalizer : public TTokenizer<TChar> {
   nsTArray<nsTDependentSubstring<TChar>> mStack;
 };
 
+#ifdef XP_WIN
+bool IsDOSDevicePathWithDrive(const nsAString& aFilePath) {
+  if (!StringBeginsWith(aFilePath, kDevicePathSpecifier)) {
+    return false;
+  }
+
+  const auto pathNoPrefix =
+      nsDependentSubstring(aFilePath, kDevicePathSpecifier.Length());
+
+  // After the device path specifier, the rest of file path can be:
+  // - starts with the volume or drive. e.g. \\?\C:\...
+  // - UNCs. e.g. \\?\UNC\Server\Share\Test\Foo.txt
+  // - device UNCs. e.g. \\?\server1\e:\utilities\\filecomparer\...
+  // The first case should not be blocked by IsBlockedUNCPath.
+  if (!StartsWithDiskDesignatorAndBackslash(pathNoPrefix)) {
+    return false;
+  }
+
+  return true;
+}
+#endif
+
 }  // namespace
 
 bool IsBlockedUNCPath(const nsAString& aFilePath) {
@@ -227,9 +257,18 @@ bool IsBlockedUNCPath(const nsAString& aFilePath) {
     return false;
   }
 
-  if (!StringBeginsWith(aFilePath, NS_LITERAL_STRING("\\\\"))) {
+  if (!StringBeginsWith(aFilePath, u"\\\\"_ns)) {
     return false;
   }
+
+#ifdef XP_WIN
+  // ToDo: We don't need to check this once we can check if there is a valid
+  // server or host name that is prefaced by "\\".
+  // https://docs.microsoft.com/en-us/dotnet/standard/io/file-path-formats
+  if (IsDOSDevicePathWithDrive(aFilePath)) {
+    return false;
+  }
+#endif
 
   nsAutoString normalized;
   if (!Normalizer(aFilePath, Normalizer::Token::Char('\\')).Get(normalized)) {
@@ -268,21 +307,20 @@ const char kPathSeparator = '/';
 bool IsAllowedPath(const nsTSubstring<char_path_t>& aFilePath) {
   typedef TNormalizer<char_path_t> Normalizer;
 
-  // A quick check out of the lock.
-  if (sBlacklistEmpty) {
+  // An atomic quick check out of the lock, because this is mostly `true`.
+  if (sForbiddenPathsEmptyQuickCheck) {
     return true;
   }
 
   StaticMutexAutoLock lock(sMutex);
 
-  // Recheck the flag under the lock to reload it.
-  if (sBlacklistEmpty) {
+  if (sForbiddenPathsEmpty) {
     return true;
   }
 
-  // If sBlacklist has been cleared at shutdown, we must avoid calling
-  // PathBlacklist() again, as that will recreate the array and we will leak.
-  if (!sBlacklist) {
+  // If sForbidden has been cleared at shutdown, we must avoid calling
+  // ForbiddenPaths() again, as that will recreate the array and we will leak.
+  if (!sForbiddenPaths) {
     return true;
   }
 
@@ -293,7 +331,7 @@ bool IsAllowedPath(const nsTSubstring<char_path_t>& aFilePath) {
     return false;
   }
 
-  for (const auto& prefix : PathBlacklist()) {
+  for (const auto& prefix : ForbiddenPaths()) {
     if (StringBeginsWith(normalized, prefix)) {
       if (normalized.Length() > prefix.Length() &&
           normalized[prefix.Length()] != kPathSeparator) {
@@ -305,6 +343,18 @@ bool IsAllowedPath(const nsTSubstring<char_path_t>& aFilePath) {
 
   return true;
 }
+
+#ifdef XP_WIN
+bool StartsWithDiskDesignatorAndBackslash(const nsAString& aAbsolutePath) {
+  // aAbsolutePath can only be (in regular expression):
+  // UNC path: ^\\\\.*
+  // A single backslash: ^\\.*
+  // A disk designator with a backslash: ^[A-Za-z]:\\.*
+  return aAbsolutePath.Length() >= 3 && IsAsciiAlpha(aAbsolutePath.CharAt(0)) &&
+         aAbsolutePath.CharAt(1) == L':' &&
+         aAbsolutePath.CharAt(2) == kPathSeparator;
+}
+#endif
 
 void testing::SetBlockUNCPaths(bool aBlock) { sBlockUNCPaths = aBlock; }
 

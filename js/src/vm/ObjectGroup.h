@@ -7,11 +7,14 @@
 #ifndef vm_ObjectGroup_h
 #define vm_ObjectGroup_h
 
+#include "js/shadow/ObjectGroup.h"  // JS::shadow::ObjectGroup
+
 #include "jsfriendapi.h"
 
 #include "ds/IdValuePair.h"
+#include "gc/Allocator.h"
 #include "gc/Barrier.h"
-#include "gc/GCTrace.h"
+#include "gc/GCProbes.h"
 #include "js/CharacterEncoding.h"
 #include "js/GCHashTable.h"
 #include "js/TypeDecls.h"
@@ -28,6 +31,7 @@ class AutoClearTypeInferenceStateOnOOM;
 class AutoSweepObjectGroup;
 class CompilerConstraintList;
 class ObjectGroupRealm;
+class PlainObject;
 
 namespace gc {
 void MergeRealms(JS::Realm* source, JS::Realm* target);
@@ -47,12 +51,6 @@ enum NewObjectKind {
    * singleton and is allocated in the tenured heap.
    */
   SingletonObject,
-
-  /*
-   * CrossCompartmentWrappers use the common Proxy class, but are allowed
-   * to have nursery lifetime.
-   */
-  NurseryAllocatedProxy,
 
   /*
    * Objects which will not benefit from being allocated in the nursery
@@ -84,14 +82,14 @@ enum NewObjectKind {
  */
 
 /* Type information about an object accessed by a script. */
-class ObjectGroup : public gc::TenuredCell {
+class ObjectGroup : public gc::TenuredCellWithNonGCPointer<const JSClass> {
  public:
   class Property;
 
- private:
-  /* Class shared by objects in this group. */
-  const JSClass* const clasp_;  // set by constructor
+  /* Class shared by objects in this group, stored in the cell header. */
+  const JSClass* clasp() const { return headerPtr(); }
 
+ private:
   /* Prototype shared by objects in this group. */
   GCPtr<TaggedProto> proto_;  // set by constructor
 
@@ -151,9 +149,7 @@ class ObjectGroup : public gc::TenuredCell {
   // END OF PROPERTIES
 
  private:
-  static inline uint32_t offsetOfClasp() {
-    return offsetof(ObjectGroup, clasp_);
-  }
+  static inline uint32_t offsetOfClasp() { return offsetOfHeaderPtr(); }
 
   static inline uint32_t offsetOfProto() {
     return offsetof(ObjectGroup, proto_);
@@ -172,14 +168,11 @@ class ObjectGroup : public gc::TenuredCell {
   }
 
   friend class gc::GCRuntime;
-  friend class gc::GCTrace;
 
   // See JSObject::offsetOfGroup() comment.
   friend class js::jit::MacroAssembler;
 
  public:
-  const JSClass* clasp() const { return clasp_; }
-
   bool hasDynamicPrototype() const { return proto_.isDynamic(); }
 
   const GCPtr<TaggedProto>& proto() const { return proto_; }
@@ -448,7 +441,7 @@ class ObjectGroup : public gc::TenuredCell {
 
   static void staticAsserts() {
     static_assert(offsetof(ObjectGroup, proto_) ==
-                  offsetof(js::shadow::ObjectGroup, proto));
+                  offsetof(JS::shadow::ObjectGroup, proto));
   }
 
  public:
@@ -463,14 +456,25 @@ class ObjectGroup : public gc::TenuredCell {
   static bool useSingletonForAllocationSite(JSScript* script, jsbytecode* pc,
                                             JSProtoKey key);
 
+ public:
   // Static accessors for ObjectGroupRealm NewTable.
 
   static ObjectGroup* defaultNewGroup(JSContext* cx, const JSClass* clasp,
                                       TaggedProto proto,
                                       JSObject* associated = nullptr);
-  static ObjectGroup* lazySingletonGroup(JSContext* cx, ObjectGroup* oldGroup,
+
+  // For use in creating a singleton group without needing to replace an
+  // existing group.
+  static ObjectGroup* lazySingletonGroup(JSContext* cx, ObjectGroupRealm& realm,
+                                         JS::Realm* objectRealm,
                                          const JSClass* clasp,
                                          TaggedProto proto);
+
+  // For use in replacing an already-existing group with a singleton group.
+  static inline ObjectGroup* lazySingletonGroup(JSContext* cx,
+                                                ObjectGroup* oldGroup,
+                                                const JSClass* clasp,
+                                                TaggedProto proto);
 
   static void setDefaultNewGroupUnknown(JSContext* cx, ObjectGroupRealm& realm,
                                         const JSClass* clasp,

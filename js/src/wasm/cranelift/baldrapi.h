@@ -57,26 +57,28 @@ struct ModuleEnvironment;
 // to, but which can't be automatically provided to Rust.
 
 struct CraneliftStaticEnvironment {
-  bool hasSse2;
-  bool hasSse3;
-  bool hasSse41;
-  bool hasSse42;
-  bool hasPopcnt;
-  bool hasAvx;
-  bool hasBmi1;
-  bool hasBmi2;
-  bool hasLzcnt;
-  bool platformIsWindows;
-  bool refTypesEnabled;
-  size_t staticMemoryBound;
-  size_t memoryGuardSize;
-  size_t memoryBaseTlsOffset;
-  size_t instanceTlsOffset;
-  size_t interruptTlsOffset;
-  size_t cxTlsOffset;
-  size_t realmCxOffset;
-  size_t realmTlsOffset;
-  size_t realmFuncImportTlsOffset;
+  bool has_sse2;
+  bool has_sse3;
+  bool has_sse41;
+  bool has_sse42;
+  bool has_popcnt;
+  bool has_avx;
+  bool has_bmi1;
+  bool has_bmi2;
+  bool has_lzcnt;
+  bool platform_is_windows;
+  bool ref_types_enabled;
+  bool threads_enabled;
+  size_t static_memory_bound;
+  size_t memory_guard_size;
+  size_t memory_base_tls_offset;
+  size_t instance_tls_offset;
+  size_t interrupt_tls_offset;
+  size_t cx_tls_offset;
+  size_t realm_cx_offset;
+  size_t realm_tls_offset;
+  size_t realm_func_import_tls_offset;
+  size_t size_of_wasm_frame;
 
   // Not bindgen'd because it's inlined.
   inline CraneliftStaticEnvironment();
@@ -103,11 +105,11 @@ struct BD_Stackmaps;
 
 struct CraneliftFuncCompileInput {
   const uint8_t* bytecode;
-  size_t bytecodeSize;
+  size_t bytecode_size;
   uint32_t index;
   uint32_t offset_in_module;
 
-  // The stackmaps sink to use when compiling this function
+  // The stackmaps sink to use when compiling this function.
   BD_Stackmaps* stackmaps;
 
   // Not bindgen'd because it's inlined.
@@ -122,15 +124,9 @@ struct CraneliftFuncCompileInput {
 // handle them, with a lot of unsafe'ing.
 
 struct CraneliftMetadataEntry {
-  enum Which {
-    DirectCall,
-    IndirectCall,
-    Trap,
-    MemoryAccess,
-    SymbolicAccess
-  } which;
-  uint32_t codeOffset;
-  uint32_t moduleBytecodeOffset;
+  enum Which { DirectCall, IndirectCall, Trap, SymbolicAccess } which;
+  uint32_t code_offset;
+  uint32_t module_bytecode_offset;
   size_t extra;
 };
 
@@ -139,27 +135,27 @@ struct CraneliftMetadataEntry {
 // prologue/epilogue etc.
 
 struct CraneliftCompiledFunc {
-  size_t numMetadata;
+  size_t num_metadata;
   const CraneliftMetadataEntry* metadatas;
 
-  size_t framePushed;
-  bool containsCalls;
+  size_t frame_pushed;
+  bool contains_calls;
 
   // The compiled code comprises machine code, relocatable jump tables, and
   // copyable read-only data, concatenated without padding.  The "...Size"
   // members give the sizes of the individual sections.  The code starts at
   // offsets 0; the other offsets can be derived from the sizes.
   const uint8_t* code;
-  size_t codeSize;
-  size_t jumptablesSize;
-  size_t rodataSize;
-  size_t totalSize;
+  size_t code_size;
+  size_t jumptables_size;
+  size_t rodata_size;
+  size_t total_size;
 
   // Relocation information for instructions that reference into the jump tables
   // and read-only data segments.  The relocation information is
   // machine-specific.
-  size_t numRodataRelocs;
-  const uint32_t* rodataRelocs;
+  size_t num_rodata_relocs;
+  const uint32_t* rodata_relocs;
 };
 
 // Possible constant values for initializing globals.
@@ -210,15 +206,36 @@ enum class BD_SymbolicAddress : uint32_t {
   TruncF64,
   PreBarrier,
   PostBarrier,
+  WaitI32,
+  WaitI64,
+  Wake,
   Limit
 };
 
 extern "C" {
 js::wasm::TypeCode env_unpack(BD_ValType type);
 
+size_t env_num_tables(const CraneliftModuleEnvironment* env);
+size_t env_num_globals(const CraneliftModuleEnvironment* env);
+size_t env_num_types(const CraneliftModuleEnvironment* env);
+size_t env_num_funcs(const CraneliftModuleEnvironment* env);
+size_t env_num_elems(const CraneliftModuleEnvironment* env);
+size_t env_num_datas(const CraneliftModuleEnvironment* env);
+js::wasm::TypeCode env_elem_typecode(const CraneliftModuleEnvironment* env,
+                                     uint32_t index);
+bool env_is_func_valid_for_ref(const CraneliftModuleEnvironment* env,
+                               uint32_t index);
+/// Returns the maximum memory size as an uint32, or UINT32_MAX if not defined.
+uint32_t env_max_memory(const CraneliftModuleEnvironment* env);
+
 bool env_uses_shared_memory(const CraneliftModuleEnvironment* env);
-const js::wasm::FuncTypeWithId* env_function_signature(
+bool env_has_memory(const CraneliftModuleEnvironment* env);
+const js::wasm::FuncTypeWithId* env_type(const CraneliftModuleEnvironment* env,
+                                         size_t typeIndex);
+const js::wasm::FuncTypeWithId* env_func_sig(
     const CraneliftModuleEnvironment* env, size_t funcIndex);
+size_t env_func_sig_index(const CraneliftModuleEnvironment* env,
+                          size_t funcIndex);
 size_t env_func_import_tls_offset(const CraneliftModuleEnvironment* env,
                                   size_t funcIndex);
 bool env_func_is_import(const CraneliftModuleEnvironment* env,
@@ -237,6 +254,10 @@ js::wasm::TypeCode global_type(const js::wasm::GlobalDesc*);
 size_t global_tlsOffset(const js::wasm::GlobalDesc*);
 
 size_t table_tlsOffset(const js::wasm::TableDesc*);
+uint32_t table_initialLimit(const js::wasm::TableDesc*);
+// Returns the maximum limit as an uint32, or UINT32_MAX if not defined.
+uint32_t table_maximumLimit(const js::wasm::TableDesc*);
+js::wasm::TypeCode table_elementTypeCode(const js::wasm::TableDesc*);
 
 size_t funcType_numArgs(const js::wasm::FuncTypeWithId*);
 const BD_ValType* funcType_args(const js::wasm::FuncTypeWithId*);

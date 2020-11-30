@@ -75,6 +75,7 @@
 #define mozilla_HashTable_h
 
 #include <utility>
+#include <type_traits>
 
 #include "mozilla/AllocPolicy.h"
 #include "mozilla/Assertions.h"
@@ -87,15 +88,13 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Opaque.h"
 #include "mozilla/OperatorNewExtensions.h"
-#include "mozilla/PodOperations.h"
 #include "mozilla/ReentrancyGuard.h"
-#include "mozilla/TypeTraits.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/WrappingOperations.h"
 
 namespace mozilla {
 
-template <class>
+template <class, class = void>
 struct DefaultHasher;
 
 template <class, class>
@@ -745,7 +744,7 @@ struct PointerHasher {
 };
 
 // The default hash policy, which only works with integers.
-template <class Key>
+template <class Key, typename>
 struct DefaultHasher {
   using Lookup = Key;
 
@@ -759,6 +758,22 @@ struct DefaultHasher {
   static bool match(const Key& aKey, const Lookup& aLookup) {
     // Use builtin or overloaded operator==.
     return aKey == aLookup;
+  }
+
+  static void rekey(Key& aKey, const Key& aNewKey) { aKey = aNewKey; }
+};
+
+// A DefaultHasher specialization for enums.
+template <class T>
+struct DefaultHasher<T, std::enable_if_t<std::is_enum_v<T>>> {
+  using Key = T;
+  using Lookup = Key;
+
+  static HashNumber hash(const Lookup& aLookup) { return HashGeneric(aLookup); }
+
+  static bool match(const Key& aKey, const Lookup& aLookup) {
+    // Use builtin or overloaded operator==.
+    return aKey == static_cast<Key>(aLookup);
   }
 
   static void rekey(Key& aKey, const Key& aNewKey) { aKey = aNewKey; }
@@ -925,10 +940,6 @@ class HashMapEntry {
   void operator=(const HashMapEntry&) = delete;
 };
 
-template <typename K, typename V>
-struct IsPod<HashMapEntry<K, V>>
-    : IntegralConstant<bool, IsPod<K>::value && IsPod<V>::value> {};
-
 namespace detail {
 
 template <class T, class HashPolicy, class AllocPolicy>
@@ -940,7 +951,7 @@ class EntrySlot;
 template <typename T>
 class HashTableEntry {
  private:
-  using NonConstT = typename RemoveConst<T>::Type;
+  using NonConstT = std::remove_const_t<T>;
 
   // Instead of having a hash table entry store that looks like this:
   //
@@ -1069,7 +1080,7 @@ class HashTableEntry {
 // in the hash table. These two things are not stored in contiguous memory.
 template <class T>
 class EntrySlot {
-  using NonConstT = typename RemoveConst<T>::Type;
+  using NonConstT = std::remove_const_t<T>;
 
   using Entry = HashTableEntry<T>;
 
@@ -1164,7 +1175,7 @@ template <class T, class HashPolicy, class AllocPolicy>
 class HashTable : private AllocPolicy {
   friend class mozilla::ReentrancyGuard;
 
-  using NonConstT = typename RemoveConst<T>::Type;
+  using NonConstT = std::remove_const_t<T>;
   using Key = typename HashPolicy::KeyType;
   using Lookup = typename HashPolicy::Lookup;
 

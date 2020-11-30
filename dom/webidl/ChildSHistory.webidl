@@ -19,8 +19,7 @@ interface ChildSHistory {
   readonly attribute long index;
 
   boolean canGo(long aOffset);
-  [Throws]
-  void go(long aOffset);
+  [Throws] void go(long aOffset, optional boolean aRequireUserInteraction = false);
 
   /**
    * Reload the current entry. The flags which should be passed to this
@@ -32,9 +31,17 @@ interface ChildSHistory {
   /**
    * Getter for the legacy nsISHistory implementation.
    *
-   * This getter _will be going away_, but is needed while we finish
-   * implementing all of the APIs which we will need in the content
-   * process on ChildSHistory.
+   * legacySHistory has been deprecated. Don't use it, but instead handle
+   * the interaction with nsISHistory in the parent process.
    */
+  [Throws]
   readonly attribute nsISHistory legacySHistory;
+
+  /**
+   * asyncHistoryLength can be enabled to test Fission-like asynchronous
+   * history.length handling with non-Fission session history implementation.
+   * Throws if session history is running in the parent process.
+   */
+  [SetterThrows]
+  attribute boolean asyncHistoryLength;
 };

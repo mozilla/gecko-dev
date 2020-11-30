@@ -92,7 +92,7 @@ nsIndexedToHTML::AsyncConvertData(const char* aFromType, const char* aToType,
 
 NS_IMETHODIMP
 nsIndexedToHTML::GetConvertedType(const nsACString& aFromType,
-                                  nsACString& aToType) {
+                                  nsIChannel* aChannel, nsACString& aToType) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -135,7 +135,7 @@ nsresult nsIndexedToHTML::DoOnStartRequest(nsIRequest* request,
     if (NS_FAILED(rv)) return rv;
   }
 
-  channel->SetContentType(NS_LITERAL_CSTRING("text/html"));
+  channel->SetContentType("text/html"_ns);
 
   mParser = nsDirIndexParser::CreateInstance();
   if (!mParser) return NS_ERROR_FAILURE;
@@ -151,10 +151,7 @@ nsresult nsIndexedToHTML::DoOnStartRequest(nsIRequest* request,
   if (NS_FAILED(rv)) return rv;
 
   nsCOMPtr<nsIURI> titleURL;
-  rv = NS_MutateURI(uri)
-           .SetQuery(EmptyCString())
-           .SetRef(EmptyCString())
-           .Finalize(titleURL);
+  rv = NS_MutateURI(uri).SetQuery(""_ns).SetRef(""_ns).Finalize(titleURL);
   if (NS_FAILED(rv)) {
     titleURL = uri;
   }
@@ -182,8 +179,7 @@ nsresult nsIndexedToHTML::DoOnStartRequest(nsIRequest* request,
     if (NS_FAILED(rv)) return rv;
     if (!pw.IsEmpty()) {
       nsCOMPtr<nsIURI> newUri;
-      rv =
-          NS_MutateURI(titleURL).SetPassword(EmptyCString()).Finalize(titleURL);
+      rv = NS_MutateURI(titleURL).SetPassword(""_ns).Finalize(titleURL);
       if (NS_FAILED(rv)) return rv;
     }
 
@@ -192,7 +188,7 @@ nsresult nsIndexedToHTML::DoOnStartRequest(nsIRequest* request,
     if (NS_FAILED(rv)) return rv;
 
     if (!path.EqualsLiteral("//") && !path.LowerCaseEqualsLiteral("/%2f")) {
-      rv = uri->Resolve(NS_LITERAL_CSTRING(".."), parentStr);
+      rv = uri->Resolve(".."_ns, parentStr);
       if (NS_FAILED(rv)) return rv;
     }
   } else if (uri->SchemeIs("file")) {
@@ -200,7 +196,6 @@ nsresult nsIndexedToHTML::DoOnStartRequest(nsIRequest* request,
     nsCOMPtr<nsIFile> file;
     rv = fileUrl->GetFile(getter_AddRefs(file));
     if (NS_FAILED(rv)) return rv;
-    file->SetFollowLinks(true);
 
     nsAutoCString url;
     rv = net_GetURLSpecFromFile(file, url);
@@ -230,8 +225,8 @@ nsresult nsIndexedToHTML::DoOnStartRequest(nsIRequest* request,
     // XXX this won't work correctly when the name of the directory being
     // XXX displayed ends with "!", but then again, jar: URIs don't deal
     // XXX particularly well with such directories anyway
-    if (!StringEndsWith(path, NS_LITERAL_CSTRING("!/"))) {
-      rv = uri->Resolve(NS_LITERAL_CSTRING(".."), parentStr);
+    if (!StringEndsWith(path, "!/"_ns)) {
+      rv = uri->Resolve(".."_ns, parentStr);
       if (NS_FAILED(rv)) return rv;
     }
   } else {
@@ -246,7 +241,7 @@ nsresult nsIndexedToHTML::DoOnStartRequest(nsIRequest* request,
       mozilla::Unused << NS_MutateURI(uri).SetPathQueryRef(path).Finalize(uri);
     }
     if (!path.EqualsLiteral("/")) {
-      rv = uri->Resolve(NS_LITERAL_CSTRING(".."), parentStr);
+      rv = uri->Resolve(".."_ns, parentStr);
       if (NS_FAILED(rv)) return rv;
     }
   }
@@ -504,19 +499,10 @@ nsresult nsIndexedToHTML::DoOnStartRequest(nsIRequest* request,
   }
 
   nsAutoString unEscapeSpec;
-  rv = mTextToSubURI->UnEscapeAndConvert(NS_LITERAL_CSTRING("UTF-8"), titleUri,
-                                         unEscapeSpec);
-  // unescape may fail because
-  // 1. file URL may be encoded in platform charset for backward compatibility
-  // 2. query part may not be encoded in UTF-8 (see bug 261929)
-  // so try the platform's default if this is file url
-  if (NS_FAILED(rv) && uri->SchemeIs("file") && !NS_IsNativeUTF8()) {
-    auto encoding = mozilla::dom::FallbackEncoding::FromLocale();
-    nsAutoCString charset;
-    encoding->Name(charset);
-    rv = mTextToSubURI->UnEscapeAndConvert(charset, titleUri, unEscapeSpec);
+  rv = mTextToSubURI->UnEscapeAndConvert("UTF-8"_ns, titleUri, unEscapeSpec);
+  if (NS_FAILED(rv)) {
+    return rv;
   }
-  if (NS_FAILED(rv)) return rv;
 
   nsCString htmlEscSpecUtf8;
   nsAppendEscapedHTML(NS_ConvertUTF16toUTF8(unEscapeSpec), htmlEscSpecUtf8);
@@ -556,7 +542,7 @@ nsresult nsIndexedToHTML::DoOnStartRequest(nsIRequest* request,
     NS_ERROR("broken protocol handler didn't escape double-quote.");
   }
 
-  nsCString direction(NS_LITERAL_CSTRING("ltr"));
+  nsCString direction("ltr"_ns);
   if (LocaleService::GetInstance()->IsAppLocaleRTL()) {
     direction.AssignLiteral("rtl");
   }
@@ -822,7 +808,7 @@ nsIndexedToHTML::OnIndexAvailable(nsIRequest* aRequest, nsISupports* aCtxt,
     FormatTime(kDateFormatShort, kTimeFormatNone, t, formatted);
     AppendNonAsciiToNCR(formatted, pushBuffer);
     pushBuffer.AppendLiteral("</td>\n <td>");
-    FormatTime(kDateFormatNone, kTimeFormatSeconds, t, formatted);
+    FormatTime(kDateFormatNone, kTimeFormatLong, t, formatted);
     // use NCR to show date in any doc charset
     AppendNonAsciiToNCR(formatted, pushBuffer);
   }

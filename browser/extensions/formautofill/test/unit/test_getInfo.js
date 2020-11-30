@@ -107,7 +107,7 @@ const TESTCASES = [
                <input id="targetElement" type="text">`,
     elementId: "targetElement",
     expectedReturnValue: {
-      fieldName: "address-line1",
+      fieldName: "street-address",
       section: "",
       addressType: "",
       contactType: "",
@@ -234,6 +234,20 @@ const TESTCASES = [
     elementId: "targetElement",
     expectedReturnValue: {
       fieldName: "cc-number",
+      section: "",
+      addressType: "",
+      contactType: "",
+    },
+  },
+  {
+    description: "Identify credit card type field",
+    document: `<form>
+                 <label for="targetElement">Card Type</label>
+                 <input id="targetElement" type="text">
+               </form>`,
+    elementId: "targetElement",
+    expectedReturnValue: {
+      fieldName: "cc-type",
       section: "",
       addressType: "",
       contactType: "",

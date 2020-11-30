@@ -5,11 +5,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #ifndef include_dom_media_ipc_RemoteDecoderChild_h
 #define include_dom_media_ipc_RemoteDecoderChild_h
-#include "mozilla/PRemoteDecoderChild.h"
 
 #include <functional>
+
 #include "IRemoteDecoderChild.h"
-#include "mozilla/ShmemPool.h"
+#include "mozilla/PRemoteDecoderChild.h"
+#include "mozilla/ShmemRecycleAllocator.h"
 
 namespace mozilla {
 
@@ -17,7 +18,8 @@ class RemoteDecoderManagerChild;
 using mozilla::MediaDataDecoder;
 using mozilla::ipc::IPCResult;
 
-class RemoteDecoderChild : public PRemoteDecoderChild,
+class RemoteDecoderChild : public ShmemRecycleAllocator<RemoteDecoderChild>,
+                           public PRemoteDecoderChild,
                            public IRemoteDecoderChild {
   friend class PRemoteDecoderChild;
 
@@ -48,14 +50,14 @@ class RemoteDecoderChild : public PRemoteDecoderChild,
   virtual ~RemoteDecoderChild() = default;
   void AssertOnManagerThread() const;
 
-  virtual MediaResult ProcessOutput(const DecodedOutputIPDL& aDecodedData) = 0;
+  virtual MediaResult ProcessOutput(DecodedOutputIPDL&& aDecodedData) = 0;
   virtual void RecordShutdownTelemetry(bool aForAbnormalShutdown) {}
 
   RefPtr<RemoteDecoderChild> mIPDLSelfRef;
   MediaDataDecoder::DecodedData mDecodedData;
 
  private:
-  RefPtr<nsIThread> mThread;
+  const nsCOMPtr<nsISerialEventTarget> mThread;
 
   MozPromiseHolder<MediaDataDecoder::InitPromise> mInitPromise;
   MozPromiseRequestHolder<PRemoteDecoderChild::InitPromise> mInitPromiseRequest;
@@ -75,7 +77,6 @@ class RemoteDecoderChild : public PRemoteDecoderChild,
   const bool mRecreatedOnCrash;
   MediaDataDecoder::ConversionRequired mConversion =
       MediaDataDecoder::ConversionRequired::kNeedNone;
-  ShmemPool mRawFramePool;
 };
 
 }  // namespace mozilla

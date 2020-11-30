@@ -3,7 +3,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-var EXPORTED_SYMBOLS = ["Finder", "GetClipboardSearchString"];
+var EXPORTED_SYMBOLS = [
+  "Finder",
+  "GetClipboardSearchString",
+  "SetClipboardSearchString",
+];
 
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
@@ -55,7 +59,7 @@ function Finder(docShell) {
     .QueryInterface(Ci.nsIInterfaceRequestor)
     .getInterface(Ci.nsIWebProgress)
     .addProgressListener(this, Ci.nsIWebProgress.NOTIFY_LOCATION);
-  BrowserUtils.getRootWindow(this._docShell).addEventListener(
+  docShell.domWindow.addEventListener(
     "unload",
     this.onLocationChange.bind(this, { isTopLevel: true })
   );
@@ -113,16 +117,7 @@ Finder.prototype = {
     let foundLink = this._fastFind.foundLink;
     let linkURL = null;
     if (foundLink) {
-      let docCharset = null;
-      let ownerDoc = foundLink.ownerDocument;
-      if (ownerDoc) {
-        docCharset = ownerDoc.characterSet;
-      }
-
-      linkURL = Services.textToSubURI.unEscapeURIForUI(
-        docCharset,
-        foundLink.href
-      );
+      linkURL = Services.textToSubURI.unEscapeURIForUI(foundLink.href);
     }
 
     options.linkURL = linkURL;
@@ -152,14 +147,7 @@ Finder.prototype = {
   },
 
   set clipboardSearchString(aSearchString) {
-    if (!aSearchString || !Clipboard.supportsFindClipboard()) {
-      return;
-    }
-
-    ClipboardHelper.copyStringToClipboard(
-      aSearchString,
-      Ci.nsIClipboard.kFindClipboard
-    );
+    SetClipboardSearchString(aSearchString);
   },
 
   set caseSensitive(aSensitive) {
@@ -805,8 +793,8 @@ Finder.prototype = {
   },
 
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIWebProgressListener,
-    Ci.nsISupportsWeakReference,
+    "nsIWebProgressListener",
+    "nsISupportsWeakReference",
   ]),
 };
 
@@ -834,4 +822,15 @@ function GetClipboardSearchString(aLoadContext) {
   } catch (ex) {}
 
   return searchString;
+}
+
+function SetClipboardSearchString(aSearchString) {
+  if (!aSearchString || !Clipboard.supportsFindClipboard()) {
+    return;
+  }
+
+  ClipboardHelper.copyStringToClipboard(
+    aSearchString,
+    Ci.nsIClipboard.kFindClipboard
+  );
 }

@@ -503,6 +503,7 @@ class Simulator : public DecoderVisitor {
  public:
 #ifdef JS_CACHE_SIMULATOR_ARM64
   using Decoder = CachingDecoder;
+  mozilla::Atomic<bool> pendingCacheRequests = mozilla::Atomic<bool>{ false };
 #endif
   explicit Simulator(Decoder* decoder, FILE* stream = stdout);
   ~Simulator();
@@ -528,9 +529,6 @@ class Simulator : public DecoderVisitor {
   void VisitCallRedirection(const Instruction* instr);
   static uintptr_t StackLimit() {
     return Simulator::Current()->stackLimit();
-  }
-  static bool supportsAtomics() {
-    return true;
   }
   template<typename T> T Read(uintptr_t address);
   template <typename T> void Write(uintptr_t address_, T value);
@@ -2519,15 +2517,16 @@ class SimulatorProcess
   };
   using ICacheFlushes = mozilla::Vector<ICacheFlush, 2>;
   struct SimFlushes {
-    Simulator* thread;
+    vixl::Simulator* thread;
     ICacheFlushes records;
   };
   mozilla::Vector<SimFlushes, 1> pendingFlushes_;
 
   static void recordICacheFlush(void* start, size_t length);
-  static ICacheFlushes& getICacheFlushes(Simulator* sim);
-  static MOZ_MUST_USE bool registerSimulator(Simulator* sim);
-  static void unregisterSimulator(Simulator* sim);
+  static void membarrier();
+  static ICacheFlushes& getICacheFlushes(vixl::Simulator* sim);
+  static MOZ_MUST_USE bool registerSimulator(vixl::Simulator* sim);
+  static void unregisterSimulator(vixl::Simulator* sim);
 #endif
 
   static void setRedirection(vixl::Redirection* redirection) {

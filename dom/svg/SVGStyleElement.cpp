@@ -6,6 +6,7 @@
 
 #include "mozilla/dom/SVGStyleElement.h"
 
+#include "mozilla/RefPtr.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/SVGStyleElementBinding.h"
 #include "nsCOMPtr.h"
@@ -26,19 +27,18 @@ JSObject* SVGStyleElement::WrapNode(JSContext* aCx,
 
 NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED(SVGStyleElement,
                                              SVGStyleElementBase,
-                                             nsIStyleSheetLinkingElement,
                                              nsIMutationObserver)
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(SVGStyleElement)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(SVGStyleElement,
                                                   SVGStyleElementBase)
-  tmp->nsStyleLinkElement::Traverse(cb);
+  tmp->LinkStyle::Traverse(cb);
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(SVGStyleElement,
                                                 SVGStyleElementBase)
-  tmp->nsStyleLinkElement::Unlink();
+  tmp->LinkStyle::Unlink();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 //----------------------------------------------------------------------
@@ -171,7 +171,7 @@ void SVGStyleElement::SetTitle(const nsAString& aTitle, ErrorResult& rv) {
 //----------------------------------------------------------------------
 // nsStyleLinkElement methods
 
-Maybe<nsStyleLinkElement::SheetInfo> SVGStyleElement::GetStyleSheetInfo() {
+Maybe<LinkStyle::SheetInfo> SVGStyleElement::GetStyleSheetInfo() {
   if (!IsCSSMimeTypeAttributeForStyleElement(*this)) {
     return Nothing();
   }
@@ -179,8 +179,6 @@ Maybe<nsStyleLinkElement::SheetInfo> SVGStyleElement::GetStyleSheetInfo() {
   nsAutoString title;
   nsAutoString media;
   GetTitleAndMediaForElement(*this, title, media);
-  nsCOMPtr<nsIReferrerInfo> referrerInfo = new ReferrerInfo();
-  referrerInfo->InitWithNode(this);
 
   return Some(SheetInfo{
       *OwnerDoc(),
@@ -191,14 +189,14 @@ Maybe<nsStyleLinkElement::SheetInfo> SVGStyleElement::GetStyleSheetInfo() {
       nullptr,
       // FIXME(bug 1459822): Why does this need a crossorigin attribute, but
       // HTMLStyleElement doesn't?
-      referrerInfo.forget(),
+      MakeAndAddRef<ReferrerInfo>(*this),
       AttrValueToCORSMode(GetParsedAttr(nsGkAtoms::crossorigin)),
       title,
       media,
-      /* integrity = */ EmptyString(),
+      /* integrity = */ u""_ns,
       /* nsStyleUtil::CSPAllowsInlineStyle takes care of nonce checking for
          inline styles. Bug 1607011 */
-      /* nonce = */ EmptyString(),
+      /* nonce = */ u""_ns,
       HasAlternateRel::No,
       IsInline::Yes,
       IsExplicitlyEnabled::No,

@@ -4,6 +4,8 @@
 // Test that domain eviction occurs when the cookies per base domain limit is
 // reached, and that expired cookies are evicted before live cookies.
 
+"use strict";
+
 var test_generator = do_run_test();
 
 function run_test() {
@@ -75,7 +77,8 @@ function* do_run_test() {
     false,
     shortExpiry,
     {},
-    Ci.nsICookie.SAMESITE_NONE
+    Ci.nsICookie.SAMESITE_NONE,
+    Ci.nsICookie.SCHEME_HTTPS
   );
   do_timeout(2100, continue_test);
   yield;
@@ -91,7 +94,8 @@ function* do_run_test() {
     false,
     futureExpiry,
     {},
-    Ci.nsICookie.SAMESITE_NONE
+    Ci.nsICookie.SAMESITE_NONE,
+    Ci.nsICookie.SCHEME_HTTPS
   );
   Assert.equal(countCookies("captchart.com", "captchart.com"), 50);
 
@@ -118,7 +122,8 @@ function setCookies(aHost, aNumber, aExpiry) {
       false,
       aExpiry,
       {},
-      Ci.nsICookie.SAMESITE_NONE
+      Ci.nsICookie.SAMESITE_NONE,
+      Ci.nsICookie.SCHEME_HTTPS
     );
   }
 }

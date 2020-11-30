@@ -23,22 +23,24 @@ var proxy = new Proxy({
 }));
 
 var fractionalSecondDigits = isNightly ? ["fractionalSecondDigits"] : [];
-var calendarAndNumberingSystem = isNightly ? ["calendar", "numberingSystem"] : [];
+var dayPeriod = isNightly ? ["dayPeriod"] : [];
 
 var constructorAccesses = [
     // ToDateTimeOptions(options, "any", "date").
     "weekday", "year", "month", "day",
-    "hour", "minute", "second", ...fractionalSecondDigits,
+    ...dayPeriod, "hour", "minute", "second", ...fractionalSecondDigits,
+    "dateStyle", "timeStyle",
 
     // InitializeDateTimeFormat
-    "localeMatcher", ...calendarAndNumberingSystem, "hour12", "hourCycle", "timeZone",
+    "localeMatcher", "calendar", "numberingSystem", "hour12", "hourCycle", "timeZone",
 
     // Table 5: Components of date and time formats
-    "weekday", "era", "year", "month", "day", "hour", "minute", "second", "timeZoneName",
+    "weekday", "era", "year", "month", "day", ...dayPeriod, "hour", "minute", "second", "timeZoneName",
 
     // InitializeDateTimeFormat
     ...fractionalSecondDigits,
     "formatMatcher",
+    "dateStyle", "timeStyle",
 ];
 
 log = [];
@@ -52,7 +54,8 @@ new Date().toLocaleString(undefined, proxy);
 assertEqArray(log, [
     // ToDateTimeOptions(options, "any", "all").
     "weekday", "year", "month", "day",
-    "hour", "minute", "second", ...fractionalSecondDigits,
+    ...dayPeriod, "hour", "minute", "second", ...fractionalSecondDigits,
+    "dateStyle", "timeStyle",
 
     ...constructorAccesses
 ]);
@@ -63,6 +66,7 @@ new Date().toLocaleDateString(undefined, proxy);
 assertEqArray(log, [
     // ToDateTimeOptions(options, "date", "date").
     "weekday", "year", "month", "day",
+    "dateStyle", "timeStyle",
 
     ...constructorAccesses
 ]);
@@ -72,7 +76,8 @@ new Date().toLocaleTimeString(undefined, proxy);
 
 assertEqArray(log, [
     // ToDateTimeOptions(options, "time", "time").
-    "hour", "minute", "second", ...fractionalSecondDigits,
+    ...dayPeriod, "hour", "minute", "second", ...fractionalSecondDigits,
+    "dateStyle", "timeStyle",
 
     ...constructorAccesses
 ]);

@@ -11,8 +11,7 @@
 <script>
 "use strict";
 /* exported expectedContentApisTargetSpecific, expectedBackgroundApisTargetSpecific */
-let expectedContentApisTargetSpecific = [
-];
+let expectedContentApisTargetSpecific = [];
 
 let expectedBackgroundApisTargetSpecific = [
   "tabs.MutedInfoReason",
@@ -32,6 +31,8 @@ let expectedBackgroundApisTargetSpecific = [
   "tabs.getCurrent",
   "tabs.getZoom",
   "tabs.getZoomSettings",
+  "tabs.goBack",
+  "tabs.goForward",
   "tabs.highlight",
   "tabs.insertCSS",
   "tabs.move",
@@ -58,6 +59,7 @@ let expectedBackgroundApisTargetSpecific = [
   "tabs.setZoomSettings",
   "tabs.toggleReaderMode",
   "tabs.update",
+  "tabs.warmup",
   "windows.CreateType",
   "windows.WINDOW_ID_CURRENT",
   "windows.WINDOW_ID_NONE",

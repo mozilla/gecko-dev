@@ -8,7 +8,7 @@ import { isTesting } from "devtools-environment";
 import type { ThunkArgs } from "../../types";
 import { prefs } from "../../../utils/prefs";
 
-const blacklist = [
+const ignoreList = [
   "ADD_BREAKPOINT_POSITIONS",
   "SET_SYMBOLS",
   "OUT_OF_SCOPE_LOCATIONS",
@@ -21,6 +21,7 @@ const blacklist = [
   "SET_FOCUSED_SOURCE_ITEM",
   "NODE_EXPAND",
   "IN_SCOPE_LINES",
+  "SET_PREVIEW",
 ];
 
 function cloneAction(action: any) {
@@ -28,7 +29,7 @@ function cloneAction(action: any) {
   action = { ...action };
 
   // ADD_TAB, ...
-  if (action.source && action.source.text) {
+  if (action.source?.text) {
     const source = { ...action.source, text: "" };
     action.source = source;
   }
@@ -46,7 +47,7 @@ function cloneAction(action: any) {
     action.text = "";
   }
 
-  if (action.value && action.value.text) {
+  if (action.value?.text) {
     const value = { ...action.value, text: "" };
     action.value = value;
   }
@@ -66,7 +67,7 @@ function formatPause(pause) {
 function serializeAction(action) {
   try {
     action = cloneAction(action);
-    if (blacklist.includes(action.type)) {
+    if (ignoreList.includes(action.type)) {
       action = {};
     }
 
@@ -76,7 +77,7 @@ function serializeAction(action) {
 
     const serializer = function(key, value) {
       // Serialize Object/LongString fronts
-      if (value && value.getGrip) {
+      if (value?.getGrip) {
         return value.getGrip();
       }
       return value;

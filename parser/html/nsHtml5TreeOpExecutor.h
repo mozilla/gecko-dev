@@ -130,7 +130,7 @@ class nsHtml5TreeOpExecutor final
    */
   NS_IMETHOD WillResume() override;
 
-  virtual void InitialDocumentTranslationCompleted() override;
+  virtual void InitialTranslationCompleted() override;
 
   /**
    * Sets the parser.
@@ -243,7 +243,7 @@ class nsHtml5TreeOpExecutor final
 
   void PreloadImage(const nsAString& aURL, const nsAString& aCrossOrigin,
                     const nsAString& aSrcset, const nsAString& aSizes,
-                    const nsAString& aImageReferrerPolicy);
+                    const nsAString& aImageReferrerPolicy, bool aLinkPreload);
 
   void PreloadOpenPicture();
 
@@ -251,6 +251,12 @@ class nsHtml5TreeOpExecutor final
 
   void PreloadPictureSource(const nsAString& aSrcset, const nsAString& aSizes,
                             const nsAString& aType, const nsAString& aMedia);
+
+  void PreloadFont(const nsAString& aURL, const nsAString& aCrossOrigin,
+                   const nsAString& aReferrerPolicy);
+
+  void PreloadFetch(const nsAString& aURL, const nsAString& aCrossOrigin,
+                    const nsAString& aReferrerPolicy);
 
   void SetSpeculationBase(const nsAString& aURL);
 

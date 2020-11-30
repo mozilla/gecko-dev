@@ -49,9 +49,13 @@ try:
     from marionette_driver.addons import Addons
     from marionette_harness import Marionette
 except ImportError as e:  # noqa
-    # Defer ImportError until attempt to use Marionette
+    # Defer ImportError until attempt to use Marionette.
+    # Python 3 deletes the exception once the except block
+    # is exited. Save a version to raise later.
+    e_save = ImportError(str(e))
+
     def reraise_(*args, **kwargs):
-        raise(e)  # noqa
+        raise(e_save)  # noqa
     Marionette = reraise_
 
 from output import OutputHandler, ReftestFormatter
@@ -234,7 +238,7 @@ class ReftestResolver(object):
                     manifests[manifest] = set()
                 manifests[manifest].add(filter_str)
         manifests_by_url = {}
-        for key in manifests.iterkeys():
+        for key in manifests.keys():
             id = os.path.relpath(os.path.abspath(os.path.dirname(key)), options.topsrcdir)
             id = id.replace(os.sep, posixpath.sep)
             if None in manifests[key]:
@@ -339,13 +343,21 @@ class RefTest(object):
             profile = mozprofile.Profile(**kwargs)
 
         # First set prefs from the base profiles under testing/profiles.
-        profile_data_dir = os.path.join(SCRIPT_DIRECTORY, 'profile_data')
 
+        # In test packages used in CI, the profile_data directory is installed
+        # in the SCRIPT_DIRECTORY.
+        profile_data_dir = os.path.join(SCRIPT_DIRECTORY, 'profile_data')
         # If possible, read profile data from topsrcdir. This prevents us from
         # requiring a re-build to pick up newly added extensions in the
         # <profile>/extensions directory.
         if build_obj:
             path = os.path.join(build_obj.topsrcdir, 'testing', 'profiles')
+            if os.path.isdir(path):
+                profile_data_dir = path
+        # Still not found? Look for testing/profiles relative to layout/tools/reftest.
+        if not os.path.isdir(profile_data_dir):
+            path = os.path.abspath(os.path.join(SCRIPT_DIRECTORY, '..', '..', '..',
+                                                'testing', 'profiles'))
             if os.path.isdir(path):
                 profile_data_dir = path
 
@@ -381,8 +393,13 @@ class RefTest(object):
         prefs['reftest.logLevel'] = options.log_tbpl_level or 'info'
         prefs['reftest.suite'] = options.suite
         prefs['gfx.font_rendering.ahem_antialias_none'] = True
+        # Run the "deferred" font-loader immediately, because if it finishes
+        # mid-test, the extra reflow that is triggered can disrupt the test.
+        prefs['gfx.font_loader.delay'] = 0
+        prefs['gfx.font_loader.interval'] = 0
         # Disable dark scrollbars because it's semi-transparent.
         prefs['widget.disable-dark-scrollbar'] = True
+        prefs['reftest.isCoverageBuild'] = mozinfo.info.get('ccov', False)
 
         # Set tests to run or manifests to parse.
         if tests:
@@ -398,6 +415,11 @@ class RefTest(object):
             prefs['browser.tabs.remote.autostart'] = True
         else:
             prefs['browser.tabs.remote.autostart'] = False
+
+        if options.fission:
+            prefs['fission.autostart'] = True
+        else:
+            prefs['fission.autostart'] = False
 
         if not self.run_by_manifest:
             if options.totalChunks:
@@ -535,13 +557,13 @@ class RefTest(object):
             stepOptions = copy.deepcopy(options)
             stepOptions.repeat = VERIFY_REPEAT
             stepOptions.runUntilFailure = True
-            stepOptions.environment.append("MOZ_CHAOSMODE=3")
+            stepOptions.environment.append("MOZ_CHAOSMODE=0xfb")
             result = self.runTests(tests, stepOptions)
             return result
 
         def step4():
             stepOptions = copy.deepcopy(options)
-            stepOptions.environment.append("MOZ_CHAOSMODE=3")
+            stepOptions.environment.append("MOZ_CHAOSMODE=0xfb")
             for i in range(VERIFY_REPEAT_SINGLE_BROWSER):
                 result = self.runTests(tests, stepOptions)
                 if result != 0:
@@ -760,6 +782,7 @@ class RefTest(object):
         env = self.buildBrowserEnv(options, profile.profile)
 
         self.log.info("Running with e10s: {}".format(options.e10s))
+        self.log.info("Running with fission: {}".format(options.fission))
 
         def timeoutHandler():
             self.handleTimeout(

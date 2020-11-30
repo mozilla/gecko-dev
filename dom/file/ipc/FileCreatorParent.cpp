@@ -13,7 +13,7 @@ namespace mozilla {
 namespace dom {
 
 FileCreatorParent::FileCreatorParent()
-    : mBackgroundEventTarget(GetCurrentThreadEventTarget()), mIPCActive(true) {}
+    : mBackgroundEventTarget(GetCurrentEventTarget()), mIPCActive(true) {}
 
 FileCreatorParent::~FileCreatorParent() = default;
 
@@ -127,7 +127,7 @@ nsresult FileCreatorParent::CreateBlobImpl(
   }
 
   if (!aIsFromNsIFile) {
-    impl->SetMozFullPath(EmptyString());
+    impl->SetMozFullPath(u""_ns);
   }
 
   impl.forget(aBlobImpl);

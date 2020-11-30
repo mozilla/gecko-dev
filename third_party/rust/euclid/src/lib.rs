@@ -18,9 +18,9 @@
 //! a screen-space position by a world-space vector and this can be expressed using
 //! the generic Unit parameter.
 //!
-//! This unit system is not mandatory and all * structures have an alias
+//! This unit system is not mandatory and all structures have an alias
 //! with the default unit: `UnknownUnit`.
-//! for example ```Point2D<T>``` is equivalent to ```Point2D<T, UnknownUnit>```.
+//! for example ```default::Point2D<T>``` is equivalent to ```Point2D<T, UnknownUnit>```.
 //! Client code typically creates a set of aliases for each type and doesn't need
 //! to deal with the specifics of typed units further. For example:
 //!
@@ -38,46 +38,39 @@
 //! All euclid types are marked `#[repr(C)]` in order to facilitate exposing them to
 //! foreign function interfaces (provided the underlying scalar type is also `repr(C)`).
 //!
+#![deny(unconditional_recursion)]
 
-#[cfg(feature = "serde")]
-#[macro_use]
-extern crate serde;
+pub use crate::angle::Angle;
+pub use crate::box2d::Box2D;
+pub use crate::homogen::HomogeneousVector;
+pub use crate::length::Length;
+pub use crate::point::{point2, point3, Point2D, Point3D};
+pub use crate::scale::Scale;
+pub use crate::transform2d::Transform2D;
+pub use crate::transform3d::Transform3D;
+pub use crate::vector::{bvec2, bvec3, BoolVector2D, BoolVector3D};
+pub use crate::vector::{vec2, vec3, Vector2D, Vector3D};
 
-#[cfg(feature = "mint")]
-pub extern crate mint;
-extern crate num_traits;
-#[cfg(test)]
-use std as core;
-
-pub use box2d::Box2D;
-pub use length::Length;
-pub use scale::Scale;
-pub use transform2d::Transform2D;
-pub use transform3d::Transform3D;
-pub use point::{Point2D, Point3D, point2, point3};
-pub use vector::{Vector2D, Vector3D, vec2, vec3};
-pub use vector::{BoolVector2D, BoolVector3D, bvec2, bvec3};
-pub use homogen::HomogeneousVector;
-pub use nonempty::NonEmpty;
-
-pub use rect::{rect, Rect};
-pub use rigid::{RigidTransform3D};
-pub use box3d::{box3d, Box3D};
-pub use translation::{Translation2D, Translation3D};
-pub use rotation::{Angle, Rotation2D, Rotation3D};
-pub use side_offsets::SideOffsets2D;
-pub use size::{Size2D, Size3D, size2, size3};
-pub use trig::Trig;
+pub use crate::box3d::{box3d, Box3D};
+pub use crate::rect::{rect, Rect};
+pub use crate::rigid::RigidTransform3D;
+pub use crate::rotation::{Rotation2D, Rotation3D};
+pub use crate::side_offsets::SideOffsets2D;
+pub use crate::size::{size2, size3, Size2D, Size3D};
+pub use crate::translation::{Translation2D, Translation3D};
+pub use crate::trig::Trig;
 
 #[macro_use]
 mod macros;
 
+mod angle;
 pub mod approxeq;
 pub mod approxord;
 mod box2d;
+mod box3d;
 mod homogen;
-pub mod num;
 mod length;
+pub mod num;
 mod point;
 mod rect;
 mod rigid;
@@ -90,15 +83,16 @@ mod transform3d;
 mod translation;
 mod trig;
 mod vector;
-mod box3d;
-mod nonempty;
 
 /// The default unit.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct UnknownUnit;
 
 pub mod default {
+    //! A set of aliases for all types, tagged with the default unknown unit.
+
     use super::UnknownUnit;
+    pub type Length<T> = super::Length<T, UnknownUnit>;
     pub type Point2D<T> = super::Point2D<T, UnknownUnit>;
     pub type Point3D<T> = super::Point3D<T, UnknownUnit>;
     pub type Vector2D<T> = super::Vector2D<T, UnknownUnit>;
@@ -114,6 +108,7 @@ pub mod default {
     pub type Transform3D<T> = super::Transform3D<T, UnknownUnit, UnknownUnit>;
     pub type Rotation2D<T> = super::Rotation2D<T, UnknownUnit, UnknownUnit>;
     pub type Rotation3D<T> = super::Rotation3D<T, UnknownUnit, UnknownUnit>;
+    pub type Translation2D<T> = super::Translation2D<T, UnknownUnit, UnknownUnit>;
     pub type Translation3D<T> = super::Translation3D<T, UnknownUnit, UnknownUnit>;
     pub type Scale<T> = super::Scale<T, UnknownUnit, UnknownUnit>;
     pub type RigidTransform3D<T> = super::RigidTransform3D<T, UnknownUnit, UnknownUnit>;

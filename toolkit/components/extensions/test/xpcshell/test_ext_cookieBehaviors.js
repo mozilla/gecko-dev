@@ -138,7 +138,13 @@ add_task(async function test_ext_page_allowed_storage() {
     "BEHAVIOR_REJECT_FOREIGN",
     "BEHAVIOR_REJECT",
     "BEHAVIOR_REJECT_TRACKER",
+    "BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN",
   ];
+  equal(
+    cookieBehaviors.length,
+    Ci.nsICookieService.BEHAVIOR_LAST,
+    "all behaviors should be covered"
+  );
 
   for (const behavior of cookieBehaviors) {
     info(
@@ -271,9 +277,9 @@ add_task(async function test_ext_page_3rdparty_cookies() {
   const testRequests = ["xhr", "fetch", "worker fetch"];
   const tests = [
     { behavior: "BEHAVIOR_ACCEPT", cookiesCount: 1 },
-    { behavior: "BEHAVIOR_REJECT_FOREIGN", cookiesCount: 0 },
+    { behavior: "BEHAVIOR_REJECT_FOREIGN", cookiesCount: 1 },
     { behavior: "BEHAVIOR_REJECT", cookiesCount: 0 },
-    { behavior: "BEHAVIOR_LIMIT_FOREIGN", cookiesCount: 0 },
+    { behavior: "BEHAVIOR_LIMIT_FOREIGN", cookiesCount: 1 },
     { behavior: "BEHAVIOR_REJECT_TRACKER", cookiesCount: 1 },
   ];
 

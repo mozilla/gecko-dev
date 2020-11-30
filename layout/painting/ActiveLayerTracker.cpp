@@ -17,6 +17,7 @@
 #include "nsExpirationTracker.h"
 #include "nsContainerFrame.h"
 #include "nsIContent.h"
+#include "nsIScrollableFrame.h"
 #include "nsRefreshDriver.h"
 #include "nsPIDOMWindow.h"
 #include "mozilla/dom/Document.h"
@@ -25,6 +26,7 @@
 #include "nsTransitionManager.h"
 #include "nsDisplayList.h"
 #include "nsDOMCSSDeclaration.h"
+#include "nsLayoutUtils.h"
 
 namespace mozilla {
 
@@ -218,8 +220,8 @@ static LayerActivity* GetLayerActivityForUpdate(nsIFrame* aFrame) {
     gLayerActivityTracker->MarkUsed(layerActivity);
   } else {
     if (!gLayerActivityTracker) {
-      gLayerActivityTracker = new LayerActivityTracker(
-          SystemGroup::EventTargetFor(TaskCategory::Other));
+      gLayerActivityTracker =
+          new LayerActivityTracker(GetMainThreadSerialEventTarget());
     }
     layerActivity = new LayerActivity(aFrame);
     gLayerActivityTracker->AddObject(layerActivity);
@@ -597,8 +599,8 @@ bool ActiveLayerTracker::IsContentActive(nsIFrame* aFrame) {
 /* static */
 void ActiveLayerTracker::SetCurrentScrollHandlerFrame(nsIFrame* aFrame) {
   if (!gLayerActivityTracker) {
-    gLayerActivityTracker = new LayerActivityTracker(
-        SystemGroup::EventTargetFor(TaskCategory::Other));
+    gLayerActivityTracker =
+        new LayerActivityTracker(GetMainThreadSerialEventTarget());
   }
   gLayerActivityTracker->mCurrentScrollHandlerFrame = aFrame;
 }

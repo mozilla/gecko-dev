@@ -11,20 +11,35 @@ EXPORTS += [
 EXPORTS.mozilla.a11y += [
     'AccessibleWrap.h',
     'HyperTextAccessibleWrap.h',
+    'RangeTypes.h',
 ]
 
 UNIFIED_SOURCES += [
     'AccessibleWrap.mm',
     'DocAccessibleWrap.mm',
+    'GeckoTextMarker.mm',
+    'HyperTextAccessibleWrap.mm',
     'MacUtils.mm',
+    'MOXAccessibleBase.mm',
+    'MOXLandmarkAccessibles.mm',
+    'MOXMathAccessibles.mm',
+    'MOXSearchInfo.mm',
+    'MOXTextMarkerDelegate.mm',
+    'MOXWebAreaAccessible.mm',
     'mozAccessible.mm',
     'mozActionElements.mm',
-    'mozDocAccessible.mm',
     'mozHTMLAccessible.mm',
+    'mozRootAccessible.mm',
+    'mozSelectableElements.mm',
     'mozTableAccessible.mm',
     'mozTextAccessible.mm',
     'Platform.mm',
     'RootAccessibleWrap.mm',
+    'RotorRules.mm',
+]
+
+SOURCES += [
+    '!MacSelectorMap.mm',
 ]
 
 LOCAL_INCLUDES += [
@@ -39,6 +54,13 @@ LOCAL_INCLUDES += [
     '/widget',
     '/widget/cocoa',
 ]
+
+GeneratedFile('MacSelectorMap.h',
+              script='/accessible/mac/SelectorMapGen.py', entry_point='gen_h',
+              inputs=['MOXAccessibleProtocol.h'])
+GeneratedFile('MacSelectorMap.mm',
+              script='/accessible/mac/SelectorMapGen.py', entry_point='gen_mm',
+              inputs=['MOXAccessibleProtocol.h'])
 
 FINAL_LIBRARY = 'xul'
 

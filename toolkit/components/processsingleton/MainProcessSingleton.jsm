@@ -10,8 +10,8 @@ function MainProcessSingleton() {}
 MainProcessSingleton.prototype = {
   classID: Components.ID("{0636a680-45cb-11e4-916c-0800200c9a66}"),
   QueryInterface: ChromeUtils.generateQI([
-    Ci.nsIObserver,
-    Ci.nsISupportsWeakReference,
+    "nsIObserver",
+    "nsISupportsWeakReference",
   ]),
 
   observe(subject, topic, data) {
@@ -33,11 +33,6 @@ MainProcessSingleton.prototype = {
         );
         Services.ppmm.loadProcessScript(
           "chrome://global/content/process-content.js",
-          true,
-          true
-        );
-        Services.ppmm.loadProcessScript(
-          "resource:///modules/ContentObservers.js",
           true
         );
         break;

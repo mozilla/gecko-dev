@@ -777,11 +777,11 @@ PopupNotifications.prototype = {
         }
       // fall through
       case "TabSelect":
-        let self = this;
         // setTimeout(..., 0) needed, otherwise openPopup from "activate" event
         // handler results in the popup being hidden again for some reason...
-        this.window.setTimeout(function() {
-          self._update();
+        this.window.setTimeout(() => {
+          this._suppress = this._shouldSuppress();
+          this._update();
         }, 0);
         break;
       case "click":
@@ -981,6 +981,12 @@ PopupNotifications.prototype = {
       } else {
         popupnotification.removeAttribute("secondname");
         popupnotification.removeAttribute("secondendlabel");
+      }
+
+      if (n.options.hintText) {
+        popupnotification.setAttribute("hinttext", n.options.hintText);
+      } else {
+        popupnotification.removeAttribute("hinttext");
       }
 
       popupnotification.setAttribute("id", popupnotificationID);

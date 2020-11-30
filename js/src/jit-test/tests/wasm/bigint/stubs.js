@@ -52,11 +52,11 @@
 
   ex = wasmEvalText(
     `(module
-        (import $ffi "a" "ffi" (param i64) (result i64))
-        (import $ffi2 "a" "ffi2"
+        (import "a" "ffi" (func $ffi (param i64) (result i64)))
+        (import "a" "ffi2" (func $ffi2
           (param i64 i32 i32 i32 i32 i32 i32)
-          (result i64))
-        (import $ffi3 "a" "ffi3" (param i64 i64 i64 i64) (result i64))
+          (result i64)))
+        (import "a" "ffi3" (func $ffi3 (param i64 i64 i64 i64) (result i64)))
 
         (func (export "callffi") (param i64) (result i64)
          local.get 0
@@ -107,38 +107,36 @@
 })();
 
 // Test JIT entry stub
-if (wasmBigIntEnabled()) {
-  (function testJitEntry() {
-    let options = getJitCompilerOptions();
-    if (!options["baseline.enable"]) return;
+(function testJitEntry() {
+  let options = getJitCompilerOptions();
+  if (!options["baseline.enable"]) return;
 
-    let baselineTrigger = options["baseline.warmup.trigger"];
+  let baselineTrigger = options["baseline.warmup.trigger"];
 
-    i = wasmEvalText(
-      `(module
-        (func (export "foo") (param i64) (result i64)
-         local.get 0
-         i64.const 1
-         i64.add
-         return
-        )
-    )`,
-      {}
-    ).exports;
+  i = wasmEvalText(
+    `(module
+      (func (export "foo") (param i64) (result i64)
+       local.get 0
+       i64.const 1
+       i64.add
+       return
+      )
+  )`,
+    {}
+  ).exports;
 
-    function caller(n) {
-      return i.foo(42n);
-    }
+  function caller(n) {
+    return i.foo(42n);
+  }
 
-    // Baseline compile ffis.
-    for (let i = baselineTrigger + 1; i-- > 0; ) {
-      caller(i);
-    }
+  // Baseline compile ffis.
+  for (let i = baselineTrigger + 1; i-- > 0; ) {
+    caller(i);
+  }
 
-    // Enable the jit entry.
-    assertEq(caller(0), 43n);
+  // Enable the jit entry.
+  assertEq(caller(0), 43n);
 
-    // Test the jit exit under normal conditions.
-    assertEq(caller(0), 43n);
-  })();
-}
+  // Test the jit exit under normal conditions.
+  assertEq(caller(0), 43n);
+})();

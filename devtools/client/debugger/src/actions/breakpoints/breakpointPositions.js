@@ -21,7 +21,9 @@ import {
 import type {
   MappedLocation,
   Range,
+  Source,
   SourceLocation,
+  SourceId,
   BreakpointPositions,
   Context,
 } from "../../types";
@@ -35,10 +37,14 @@ import { fulfilled } from "../../utils/async-value";
 import type { ThunkArgs } from "../../actions/types";
 import { loadSourceActorBreakpointColumns } from "../source-actors";
 
+type LocationsList = {
+  number: ?(number[]),
+};
+
 async function mapLocations(
   generatedLocations: SourceLocation[],
   { sourceMaps }: ThunkArgs
-) {
+): Promise<MappedLocation[]> {
   if (generatedLocations.length == 0) {
     return [];
   }
@@ -47,24 +53,31 @@ async function mapLocations(
     generatedLocations
   );
 
-  return zip(originalLocations, generatedLocations).map(
-    ([location, generatedLocation]) => ({ location, generatedLocation })
-  );
+  return zip(
+    originalLocations,
+    generatedLocations
+  ).map(([location, generatedLocation]) => ({ location, generatedLocation }));
 }
 
 // Filter out positions, that are not in the original source Id
-function filterBySource(positions, sourceId) {
+function filterBySource(
+  positions: MappedLocation[],
+  sourceId: SourceId
+): MappedLocation[] {
   if (!isOriginalId(sourceId)) {
     return positions;
   }
   return positions.filter(position => position.location.sourceId == sourceId);
 }
 
-function filterByUniqLocation(positions: MappedLocation[]) {
+function filterByUniqLocation(positions: MappedLocation[]): MappedLocation[] {
   return uniqBy(positions, ({ location }) => makeBreakpointId(location));
 }
 
-function convertToList(results, source) {
+function convertToList(
+  results: LocationsList,
+  source: Source
+): SourceLocation[] {
   const { id, url } = source;
   const positions = [];
 
@@ -82,7 +95,7 @@ function convertToList(results, source) {
   return positions;
 }
 
-function groupByLine(results, sourceId, line) {
+function groupByLine(results: MappedLocation[], sourceId: SourceId, line) {
   const isOriginal = isOriginalId(sourceId);
   const positions = {};
 
@@ -104,7 +117,12 @@ function groupByLine(results, sourceId, line) {
   return positions;
 }
 
-async function _setBreakpointPositions(cx, sourceId, line, thunkArgs) {
+async function _setBreakpointPositions(
+  cx: Context,
+  sourceId: SourceId,
+  line,
+  thunkArgs: ThunkArgs
+): Promise<void> {
   const { client, dispatch, getState, sourceMaps } = thunkArgs;
   let generatedSource = getSource(getState(), sourceId);
   if (!generatedSource) {
@@ -191,7 +209,7 @@ async function _setBreakpointPositions(cx, sourceId, line, thunkArgs) {
   });
 }
 
-function generatedSourceActorKey(state, sourceId) {
+function generatedSourceActorKey(state, sourceId: SourceId): string {
   const generatedSource = getSource(
     state,
     isOriginalId(sourceId) ? originalToGeneratedId(sourceId) : sourceId
@@ -205,7 +223,7 @@ function generatedSourceActorKey(state, sourceId) {
 }
 
 export const setBreakpointPositions: MemoizedAction<
-  {| cx: Context, sourceId: string, line?: number |},
+  {| cx: Context, sourceId: SourceId, line?: number |},
   ?BreakpointPositions
 > = memoizeableAction("setBreakpointPositions", {
   getValue: ({ sourceId, line }, { getState }) => {

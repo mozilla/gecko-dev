@@ -13,6 +13,7 @@
 #include "mozilla/Tuple.h"
 
 #include <stdint.h>
+#include <type_traits>
 #include <utility>
 
 #include "js/Initialization.h"
@@ -57,14 +58,12 @@ class Thread {
   // Create a Thread in an initially unjoinable state. A thread of execution can
   // be created for this Thread by calling |init|. Some of the thread's
   // properties may be controlled by passing options to this constructor.
-  template <
-      typename O = Options,
-      // SFINAE to make sure we don't try and treat functors for the other
-      // constructor as an Options and vice versa.
-      typename NonConstO = typename mozilla::RemoveConst<O>::Type,
-      typename DerefO = typename mozilla::RemoveReference<NonConstO>::Type,
-      typename = typename mozilla::EnableIf<
-          mozilla::IsSame<DerefO, Options>::value, void*>::Type>
+  template <typename O = Options,
+            // SFINAE to make sure we don't try and treat functors for the other
+            // constructor as an Options and vice versa.
+            typename NonConstO = std::remove_const_t<O>,
+            typename DerefO = std::remove_reference_t<NonConstO>,
+            typename = std::enable_if_t<std::is_same_v<DerefO, Options>>>
   explicit Thread(O&& options = Options())
       : id_(ThreadId()), options_(std::forward<O>(options)) {
     MOZ_ASSERT(isInitialized());
@@ -183,7 +182,7 @@ class ThreadTrampoline {
   // thread. To avoid this dangerous and highly non-obvious footgun, the
   // standard requires a "decay" copy of the arguments at the cost of making it
   // impossible to pass references between threads.
-  mozilla::Tuple<typename mozilla::Decay<Args>::Type...> args;
+  mozilla::Tuple<std::decay_t<Args>...> args;
 
   // Protect the thread id during creation.
   Mutex createMutex;

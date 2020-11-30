@@ -14,7 +14,7 @@
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/PClientManagerParent.h"
 #include "mozilla/ipc/BackgroundParent.h"
-#include "mozilla/SystemGroup.h"
+#include "mozilla/SchedulerGroup.h"
 #include "mozilla/Unused.h"
 
 namespace mozilla {
@@ -75,7 +75,8 @@ void ClientSourceParent::KillInvalidChild() {
   // there is a small window of time before we kill the process.  This is why
   // we start the actor destruction immediately above.
   nsCOMPtr<nsIRunnable> r = new KillContentParentRunnable(std::move(process));
-  MOZ_ALWAYS_SUCCEEDS(SystemGroup::Dispatch(TaskCategory::Other, r.forget()));
+  MOZ_ALWAYS_SUCCEEDS(
+      SchedulerGroup::Dispatch(TaskCategory::Other, r.forget()));
 }
 
 mozilla::ipc::IPCResult ClientSourceParent::RecvWorkerSyncPing() {
@@ -119,8 +120,7 @@ IPCResult ClientSourceParent::RecvFreeze() {
 
   // Frozen clients should not be observable.  Act as if the client has
   // been destroyed.
-  nsTArray<ClientHandleParent*> handleList(mHandleList);
-  for (ClientHandleParent* handle : handleList) {
+  for (ClientHandleParent* handle : mHandleList.Clone()) {
     Unused << ClientHandleParent::Send__delete__(handle);
   }
 
@@ -152,7 +152,8 @@ IPCResult ClientSourceParent::RecvInheritController(
           swm->NoteInheritedController(clientInfo, controller);
         });
 
-    MOZ_ALWAYS_SUCCEEDS(SystemGroup::Dispatch(TaskCategory::Other, r.forget()));
+    MOZ_ALWAYS_SUCCEEDS(
+        SchedulerGroup::Dispatch(TaskCategory::Other, r.forget()));
   }
 
   return IPC_OK();
@@ -170,7 +171,8 @@ IPCResult ClientSourceParent::RecvNoteDOMContentLoaded() {
                                  swm->MaybeCheckNavigationUpdate(clientInfo);
                                });
 
-    MOZ_ALWAYS_SUCCEEDS(SystemGroup::Dispatch(TaskCategory::Other, r.forget()));
+    MOZ_ALWAYS_SUCCEEDS(
+        SchedulerGroup::Dispatch(TaskCategory::Other, r.forget()));
   }
   return IPC_OK();
 }
@@ -179,8 +181,7 @@ void ClientSourceParent::ActorDestroy(ActorDestroyReason aReason) {
   DebugOnly<bool> removed = mService->RemoveSource(this);
   MOZ_ASSERT(removed);
 
-  nsTArray<ClientHandleParent*> handleList(mHandleList);
-  for (ClientHandleParent* handle : handleList) {
+  for (ClientHandleParent* handle : mHandleList.Clone()) {
     // This should trigger DetachHandle() to be called removing
     // the entry from the mHandleList.
     Unused << ClientHandleParent::Send__delete__(handle);

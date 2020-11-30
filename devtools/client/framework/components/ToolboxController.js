@@ -59,6 +59,7 @@ class ToolboxController extends Component {
     this.setPanelDefinitions = this.setPanelDefinitions.bind(this);
     this.updateButtonIds = this.updateButtonIds.bind(this);
     this.updateFocusedButton = this.updateFocusedButton.bind(this);
+    this.setDebugTargetData = this.setDebugTargetData.bind(this);
   }
 
   shouldComponentUpdate() {
@@ -124,10 +125,6 @@ class ToolboxController extends Component {
     this.setState({ canRender: true }, this.updateButtonIds);
   }
 
-  isToolHighlighted(toolID) {
-    return this.state.highlightedTools.has(toolID);
-  }
-
   highlightTool(highlightedTool) {
     const { highlightedTools } = this.state;
     highlightedTools.add(highlightedTool);
@@ -191,6 +188,10 @@ class ToolboxController extends Component {
       { toolboxButtons, visibleToolboxButtonCount },
       this.updateButtonIds
     );
+  }
+
+  setDebugTargetData(data) {
+    this.setState({ debugTargetData: data });
   }
 
   render() {

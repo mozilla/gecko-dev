@@ -126,8 +126,6 @@ class DebuggerFrame : public NativeObject {
     ONSTEP_HANDLER_SLOT,
     ONPOP_HANDLER_SLOT,
 
-    HAS_INCREMENTED_STEPPER_SLOT,
-
     // If this is a frame for a generator call, and the generator object has
     // been created (which doesn't happen until after default argument
     // evaluation and destructuring), then this is a PrivateValue pointing to a
@@ -195,13 +193,15 @@ class DebuggerFrame : public NativeObject {
   // Like isOnStack, but works even in the midst of a relocating GC.
   bool isOnStackMaybeForwarded() const;
 
+  bool isSuspended() const;
+
   OnStepHandler* onStepHandler() const;
   OnPopHandler* onPopHandler() const;
   void setOnPopHandler(JSContext* cx, OnPopHandler* handler);
 
-  inline bool hasGenerator() const;
+  inline bool hasGeneratorInfo() const;
 
-  // If hasGenerator(), return an direct cross-compartment reference to this
+  // If hasGeneratorInfo(), return an direct cross-compartment reference to this
   // Debugger.Frame's generator object.
   AbstractGeneratorObject& unwrappedGenerator() const;
 
@@ -226,8 +226,8 @@ class DebuggerFrame : public NativeObject {
    * association while the call is on the stack, and the relationships are easy
    * to discern.
    */
-  MOZ_MUST_USE bool setGenerator(JSContext* cx,
-                                 Handle<AbstractGeneratorObject*> genObj);
+  MOZ_MUST_USE bool setGeneratorInfo(JSContext* cx,
+                                     Handle<AbstractGeneratorObject*> genObj);
 
   /*
    * Undo the effects of a prior call to setGenerator.
@@ -244,10 +244,7 @@ class DebuggerFrame : public NativeObject {
    * function will not otherwise disturb generatorFrames. Passing the enum
    * allows this function to be used while iterating over generatorFrames.
    */
-  void clearGenerator(JSFreeOp* fop);
-  void clearGenerator(
-      JSFreeOp* fop, Debugger* owner,
-      Debugger::GeneratorWeakMap::Enum* maybeGeneratorFramesEnum = nullptr);
+  void clearGeneratorInfo(JSFreeOp* fop);
 
   /*
    * Called after a generator/async frame is resumed, before exposing this
@@ -256,6 +253,9 @@ class DebuggerFrame : public NativeObject {
   bool resume(const FrameIter& iter);
 
   bool hasAnyHooks() const;
+
+  bool isInstance() const;
+  Debugger* owner() const;
 
  private:
   static const JSClassOps classOps_;
@@ -266,9 +266,6 @@ class DebuggerFrame : public NativeObject {
   static void finalize(JSFreeOp* fop, JSObject* obj);
 
   static AbstractFramePtr getReferent(HandleDebuggerFrame frame);
-  static MOZ_MUST_USE bool getFrameIter(JSContext* cx,
-                                        HandleDebuggerFrame frame,
-                                        mozilla::Maybe<FrameIter>& result);
   static MOZ_MUST_USE bool requireScriptReferent(JSContext* cx,
                                                  HandleDebuggerFrame frame);
 
@@ -276,22 +273,23 @@ class DebuggerFrame : public NativeObject {
 
   struct CallData;
 
-  Debugger* owner() const;
+  MOZ_MUST_USE bool incrementStepperCounter(JSContext* cx,
+                                            AbstractFramePtr referent);
+  MOZ_MUST_USE bool incrementStepperCounter(JSContext* cx, JSScript* script);
+  void decrementStepperCounter(JSFreeOp* fop, JSScript* script);
+  void decrementStepperCounter(JSFreeOp* fop, AbstractFramePtr referent);
 
-  bool hasIncrementedStepper() const;
-  void setHasIncrementedStepper(bool incremented);
-
-  MOZ_MUST_USE bool maybeIncrementStepperCounter(JSContext* cx,
-                                                 AbstractFramePtr referent);
-  MOZ_MUST_USE bool maybeIncrementStepperCounter(JSContext* cx,
-                                                 JSScript* script);
-  void maybeDecrementStepperCounter(JSFreeOp* fop, JSScript* script);
-
- public:
   FrameIter::Data* frameIterData() const;
   void setFrameIterData(FrameIter::Data*);
   void freeFrameIterData(JSFreeOp* fop);
-  void maybeDecrementStepperCounter(JSFreeOp* fop, AbstractFramePtr referent);
+
+ public:
+  FrameIter getFrameIter(JSContext* cx);
+
+  void terminate(JSFreeOp* fop, AbstractFramePtr frame);
+  void suspend(JSFreeOp* fop);
+
+  MOZ_MUST_USE bool replaceFrameIterData(JSContext* cx, const FrameIter&);
 
   class GeneratorInfo;
   inline GeneratorInfo* generatorInfo() const;

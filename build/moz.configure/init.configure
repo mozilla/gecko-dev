@@ -23,9 +23,9 @@ option(env='DIST', nargs=1, help='DIST directory')
 @imports(_from='os.path', _import='exists')
 @imports(_from='six', _import='ensure_text')
 def check_build_environment(help, dist):
-    topobjdir = os.path.realpath(os.path.abspath('.'))
-    topsrcdir = os.path.realpath(os.path.abspath(
-        os.path.join(os.path.dirname(__file__), '..', '..')))
+    topobjdir = os.path.realpath('.')
+    topsrcdir = os.path.realpath(
+        os.path.join(os.path.dirname(__file__), '..', '..'))
 
     if dist:
         dist = normsep(dist[0])
@@ -115,15 +115,12 @@ def check_build_environment(help, dist):
 
 set_config('TOPSRCDIR', check_build_environment.topsrcdir)
 set_config('TOPOBJDIR', check_build_environment.topobjdir)
-set_config('MOZ_BUILD_ROOT', check_build_environment.topobjdir)
 set_config('DIST', check_build_environment.dist)
 
 add_old_configure_assignment(
     '_topsrcdir', check_build_environment.topsrcdir)
 add_old_configure_assignment(
     '_objdir', check_build_environment.topobjdir)
-add_old_configure_assignment(
-    'MOZ_BUILD_ROOT', check_build_environment.topobjdir)
 add_old_configure_assignment(
     'DIST', check_build_environment.dist)
 
@@ -135,18 +132,6 @@ option(env='OLD_CONFIGURE', nargs=1, help='Path to the old configure script')
 
 option(env='MOZCONFIG', nargs=1, help='Mozconfig location')
 
-option('--with-external-source-dir', env='EXTERNAL_SOURCE_DIR', nargs=1,
-       help='External directory containing additional build files')
-
-
-@depends('--with-external-source-dir')
-def external_source_dir(value):
-    if value:
-        return value[0]
-
-
-set_config('EXTERNAL_SOURCE_DIR', external_source_dir)
-add_old_configure_assignment('EXTERNAL_SOURCE_DIR', external_source_dir)
 
 # Read user mozconfig
 # ==============================================================
@@ -155,12 +140,11 @@ add_old_configure_assignment('EXTERNAL_SOURCE_DIR', external_source_dir)
 # be called when --help is passed, and the mozconfig wouldn't be read.
 
 
-@depends('MOZCONFIG', 'OLD_CONFIGURE',
-         check_build_environment, '--with-external-source-dir',
+@depends('MOZCONFIG', 'OLD_CONFIGURE', check_build_environment,
          '--help')
 @imports(_from='mozbuild.mozconfig', _import='MozconfigLoader')
-def mozconfig(mozconfig, old_configure, build_env,
-              external_source_dir, help):
+@imports(_from='mozboot.mozconfig', _import='find_mozconfig')
+def mozconfig(mozconfig, old_configure, build_env, help):
     if not old_configure and not help:
         die('The OLD_CONFIGURE environment variable must be set')
 
@@ -184,11 +168,9 @@ def mozconfig(mozconfig, old_configure, build_env,
         return {'path': None}
 
     topsrcdir = build_env.topsrcdir
-    if external_source_dir:
-        topsrcdir = external_source_dir[0]
     loader = MozconfigLoader(topsrcdir)
     mozconfig = mozconfig[0] if mozconfig else None
-    mozconfig = loader.find_mozconfig(env={'MOZCONFIG': mozconfig})
+    mozconfig = find_mozconfig(topsrcdir, env={'MOZCONFIG': mozconfig})
     mozconfig = loader.read_mozconfig(mozconfig)
 
     return mozconfig
@@ -233,13 +215,17 @@ def help_shell(help, shell):
 shell = help_shell | shell
 
 
-# Python 2
+# Python 3
 # ========
 
-option(env='PYTHON', nargs=1, help='Python 2.7 interpreter')
+option(env='PYTHON3', nargs=1, help='Python 3 interpreter (3.6 or later)')
+
+option(env='VIRTUALENV_NAME', nargs=1, default='init_py3',
+       help='Name of the in-objdir virtualenv')
 
 
-@depends('PYTHON', check_build_environment, 'MOZILLABUILD', mozconfig, '--help')
+@depends('PYTHON3', 'VIRTUALENV_NAME', check_build_environment, mozconfig,
+         '--help')
 @imports(_from='__builtin__', _import='Exception')
 @imports('os')
 @imports('sys')
@@ -248,11 +234,11 @@ option(env='PYTHON', nargs=1, help='Python 2.7 interpreter')
 @imports(_from='mozbuild.configure.util', _import='LineIO')
 @imports(_from='mozbuild.virtualenv', _import='VirtualenvManager')
 @imports(_from='mozbuild.virtualenv', _import='verify_python_version')
-@imports(_from='mozbuild.virtualenv', _import='PY2')
-@imports(_from='mozbuild.pythonutil', _import='find_python2_executable')
+@imports(_from='mozbuild.pythonutil', _import='find_python3_executable')
 @imports(_from='mozbuild.pythonutil', _import='python_executable_version')
 @imports(_from='six', _import='ensure_text')
-def virtualenv_python2(env_python, build_env, mozillabuild, mozconfig, help):
+def virtualenv_python3(env_python, virtualenv_name, build_env, mozconfig, help):
+    # Avoid re-executing python when running configure --help.
     if help:
         return
 
@@ -265,29 +251,38 @@ def virtualenv_python2(env_python, build_env, mozillabuild, mozconfig, help):
     # Because of this the code is written to re-execute itself with the correct
     # interpreter if required.
 
-    log.debug("python2: running with pid %r" % os.getpid())
-    log.debug("python2: sys.executable: %r" % sys.executable)
+    log.debug("python3: running with pid %r" % os.getpid())
+    log.debug("python3: sys.executable: %r" % sys.executable)
 
     python = env_python[0] if env_python else None
+    virtualenv_name = virtualenv_name[0]
 
     # Did our python come from mozconfig? Overrides environment setting.
     # Ideally we'd rely on the mozconfig injection from mozconfig_options,
     # but we'd rather avoid the verbosity when we need to reexecute with
     # a different python.
     if mozconfig['path']:
-        if 'PYTHON' in mozconfig['env']['added']:
-            python = mozconfig['env']['added']['PYTHON']
-        elif 'PYTHON' in mozconfig['env']['modified']:
-            python = mozconfig['env']['modified']['PYTHON'][1]
-        elif 'PYTHON' in mozconfig['vars']['added']:
-            python = mozconfig['vars']['added']['PYTHON']
-        elif 'PYTHON' in mozconfig['vars']['modified']:
-            python = mozconfig['vars']['modified']['PYTHON'][1]
+        if 'PYTHON3' in mozconfig['env']['added']:
+            python = mozconfig['env']['added']['PYTHON3']
+        elif 'PYTHON3' in mozconfig['env']['modified']:
+            python = mozconfig['env']['modified']['PYTHON3'][1]
+        elif 'PYTHON3' in mozconfig['vars']['added']:
+            python = mozconfig['vars']['added']['PYTHON3']
+        elif 'PYTHON3' in mozconfig['vars']['modified']:
+            python = mozconfig['vars']['modified']['PYTHON3'][1]
 
-    log.debug("python2: executable from configuration: %r" % python)
+    log.debug("python3: executable from configuration: %r" % python)
 
+    # Verify that the Python version we executed this code with is the minimum
+    # required version to handle all project code.
     with LineIO(lambda l: log.error(l)) as out:
         verify_python_version(out)
+
+    # If this is a mozilla-central build, we'll find the virtualenv in the top
+    # source directory. If this is a SpiderMonkey build, we assume we're at
+    # js/src and try to find the virtualenv from the mozilla-central root.
+    # See mozilla-central changeset d2cce982a7c809815d86d5daecefe2e7a563ecca
+    # Bug 784841
     topsrcdir, topobjdir = build_env.topsrcdir, build_env.topobjdir
     if topobjdir.endswith('/js/src'):
         topobjdir = topobjdir[:-7]
@@ -295,90 +290,108 @@ def virtualenv_python2(env_python, build_env, mozillabuild, mozconfig, help):
     virtualenvs_root = os.path.join(topobjdir, '_virtualenvs')
     with LineIO(lambda l: log.info(l), 'replace') as out:
         manager = VirtualenvManager(
-            topsrcdir, topobjdir,
-            os.path.join(virtualenvs_root, 'init'), out,
-            os.path.join(topsrcdir, 'build', 'virtualenv_packages.txt'))
+            topsrcdir,
+            os.path.join(virtualenvs_root, virtualenv_name), out,
+            os.path.join(topsrcdir, 'build', 'build_virtualenv_packages.txt'))
 
     # If we're not in the virtualenv, we need to update the path to include some
     # necessary modules for find_program.
-    if normsep(sys.executable) != normsep(manager.python_path):
+    if 'MOZBUILD_VIRTUALENV' in os.environ:
+        python = sys.executable
+    else:
         sys.path.insert(
             0, os.path.join(topsrcdir, 'testing', 'mozbase', 'mozfile'))
         sys.path.insert(
             0, os.path.join(topsrcdir, 'third_party', 'python', 'backports'))
 
+    # If we know the Python executable the caller is asking for then verify its
+    # version. If the caller did not ask for a specific executable then find
+    # a reasonable default.
     if python:
         found_python = find_program(python)
         if not found_python:
-            die('The PYTHON environment variable does not contain '
+            die('The PYTHON3 environment variable does not contain '
                 'a valid path. Cannot find %s', python)
         python = found_python
         try:
             version = python_executable_version(python).version
         except Exception as e:
-            raise FatalCheckError(
-                'could not determine version of given PYTHON: %s' % e)
-    elif mozillabuild:
-        # MozillaBuild provides a Python 2.
-        python = normsep('%s/python/python2.exe' % mozillabuild)
-
-        try:
-            version = python_executable_version(python).version
-        except Exception as e:
-            raise FatalCheckError('could not determine version of '
-                                  'MozillaBuild python: %s' % e)
+            raise FatalCheckError('could not determine version of PYTHON3 '
+                                  '(%s): %s' % (python, e))
     else:
-        python, version = find_python2_executable()
+        # Fall back to the search routine.
+        python, version = find_python3_executable(min_version='3.6.0')
+
+        # The API returns a bytes whereas everything in configure is unicode.
         if python:
             python = ensure_text(python)
 
     if not python:
-        raise FatalCheckError(
-            'Python 2.7 is required to build. Ensure a `python2.7` executable '
-            'is in your PATH or define PYTHON to point to a Python 2.7 '
-            'executable.')
+        raise FatalCheckError('Python 3.6 or newer is required to build. '
+                              'Ensure a `python3.x` executable is in your '
+                              'PATH or define PYTHON3 to point to a Python '
+                              '3.6 executable.')
 
-    if version < (2, 7, 0):
-        raise FatalCheckError(
-            'Python 2.7 is required to build; '
-            '%s is Python %d.%d' % (python, version[0], version[1]))
+    if version < (3, 6, 0):
+        raise FatalCheckError('Python 3.6 or newer is required to build; '
+                              '%s is Python %d.%d' % (python, version[0],
+                                                      version[1]))
 
-    log.debug("python2: found executable: %r" % python)
+    log.debug("python3: found executable: %r" % python)
 
     if not manager.up_to_date(python):
-        log.info('Creating Python 2 environment')
+        log.info('Creating Python 3 environment')
         manager.build(python)
     else:
-        log.debug("python2: venv is up to date")
+        log.debug("python3: venv is up to date")
 
     python = normsep(manager.python_path)
 
-    # The currently running interpreter could be Python 2 or Python 3. We make the
-    # part of the code that re-executes everything with the virtualenv's Python
-    # conditional on running the same major version as the current interpreter. If we
-    # don't do this then the configure code for the Py 2 and Py 3 virtualenvs could
-    # activate each other from inside the other's virtualenv.  We can't guarantee
-    # how the virtualenvs would interact if that happens.
-    if PY2:
-        if not normsep(sys.executable).startswith(normsep(virtualenvs_root)):
-            log.debug("python2: executing as %s, should be running as %s" % (
-                sys.executable, manager.python_path))
-            log.info('Reexecuting in the virtualenv')
-            if env_python:
-                del os.environ['PYTHON']
-            # One would prefer to use os.execl, but that's completely borked on
-            # Windows.
-            sys.exit(subprocess.call([python] + sys.argv))
+    if not normsep(sys.executable).startswith(normsep(virtualenvs_root)):
+        log.debug("python3: executing as %s, should be running as %s" % (
+            sys.executable, manager.python_path))
+        log.info('Re-executing in the virtualenv')
+        if env_python:
+            del os.environ['PYTHON3']
+        # Homebrew on macOS will change Python's sys.executable to a custom
+        # value which messes with mach's virtualenv handling code. Override
+        # Homebrew's changes with the correct sys.executable value.
+        os.environ['PYTHONEXECUTABLE'] = python
+        # Another quirk on macOS, with the system python, the virtualenv is
+        # not fully operational (missing entries in sys.path) if
+        # __PYVENV_LAUNCHER__ is set.
+        os.environ.pop('__PYVENV_LAUNCHER__', None)
+        # One would prefer to use os.execl, but that's completely borked on
+        # Windows.
+        sys.exit(subprocess.call([python] + sys.argv))
 
-        # We are now in the virtualenv
-        if not distutils.sysconfig.get_python_lib():
-            die('Could not determine python site packages directory')
+    # We are now in the virtualenv
+    if not distutils.sysconfig.get_python_lib():
+        die('Could not determine python site packages directory')
 
-    return python
+    # We may have set PYTHONEXECUTABLE above, and that affects python
+    # subprocesses we may invoke as part of configure (e.g. hg), so
+    # unset it.
+    os.environ.pop('PYTHONEXECUTABLE', None)
+
+    str_version = '.'.join(str(v) for v in version)
+
+    return namespace(
+        path=python,
+        version=version,
+        str_version=str_version,
+    )
 
 
-set_config('PYTHON', virtualenv_python2)
-add_old_configure_assignment('PYTHON', virtualenv_python2)
+@depends(virtualenv_python3)
+@checking('for Python 3', callback=lambda x: '%s (%s)' % (x.path, x.str_version))
+def virtualenv_python3(venv):
+    return venv
+
+
+set_config('PYTHON3', virtualenv_python3.path)
+set_config('PYTHON3_VERSION', virtualenv_python3.str_version)
+add_old_configure_assignment('PYTHON3', virtualenv_python3.path)
 
 
 # Inject mozconfig options
@@ -389,12 +402,13 @@ add_old_configure_assignment('PYTHON', virtualenv_python2)
 
 @template
 def early_options():
-    @dependable
+    @depends('--help')
     @imports('__sandbox__')
-    def early_options():
+    @imports(_from='six', _import='itervalues')
+    def early_options(_):
         return set(
             option.env
-            for option in __sandbox__._options.itervalues()
+            for option in itervalues(__sandbox__._options)
             if option.env
         )
     return early_options
@@ -403,12 +417,12 @@ def early_options():
 early_options = early_options()
 
 
-@depends(mozconfig, 'MOZ_AUTOMATION', '--help')
+@depends(mozconfig, early_options, 'MOZ_AUTOMATION', '--help')
 # This gives access to the sandbox. Don't copy this blindly.
 @imports('__sandbox__')
 @imports('os')
 @imports('six')
-def mozconfig_options(mozconfig, automation, help):
+def mozconfig_options(mozconfig, early_options, automation, help):
     if mozconfig['path']:
         if 'MOZ_AUTOMATION_MOZCONFIG' in mozconfig['env']['added']:
             if not automation:
@@ -431,7 +445,8 @@ def mozconfig_options(mozconfig, automation, help):
             if key.isupper():
                 arg = '%s=%s' % (key, value)
                 log.info('  %s' % arg)
-                helper.add(arg, origin='mozconfig', args=helper._args)
+                if key not in early_options:
+                    helper.add(arg, origin='mozconfig', args=helper._args)
 
         for key, value in six.iteritems(mozconfig['env']['added']):
             add(key, value)
@@ -443,167 +458,6 @@ def mozconfig_options(mozconfig, automation, help):
             add(key, value)
         for key, (_, value) in six.iteritems(mozconfig['vars']['modified']):
             add(key, value)
-
-
-# Python 3
-# ========
-
-option(env='PYTHON3', nargs=1, help='Python 3 interpreter (3.5 or later)')
-
-
-@depends(
-    'PYTHON3', check_build_environment, 'MOZILLABUILD', mozconfig, '--help')
-@checking('for Python 3',
-          callback=lambda x: '%s (%s)' % (x.path, x.str_version) if x else 'no')
-@imports(_from='__builtin__', _import='Exception')
-@imports('os')
-@imports('sys')
-@imports('subprocess')
-@imports('distutils.sysconfig')
-@imports(_from='mozbuild.configure.util', _import='LineIO')
-@imports(_from='mozbuild.virtualenv', _import='VirtualenvManager')
-@imports(_from='mozbuild.virtualenv', _import='verify_python_version')
-@imports(_from='mozbuild.virtualenv', _import='PY3')
-@imports(_from='mozbuild.pythonutil', _import='find_python3_executable')
-@imports(_from='mozbuild.pythonutil', _import='python_executable_version')
-@imports(_from='six', _import='ensure_text')
-def virtualenv_python3(env_python, build_env, mozillabuild, mozconfig, help):
-    if help:
-        return
-
-    # NOTE: We cannot assume the Python we are calling this code with is the
-    # Python we want to set up a virtualenv for.
-    #
-    # We also cannot assume that the Python the caller is configuring meets our
-    # build requirements.
-    #
-    # Because of this the code is written to re-execute itself with the correct
-    # interpreter if required.
-
-    log.debug("python3: running with pid %r" % os.getpid())
-    log.debug("python3: sys.executable: %r" % sys.executable)
-
-    # Verify that the Python version we executed this code with is the minimum
-    # required version to handle all project code.
-    with LineIO(lambda l: log.error(l)) as out:
-        verify_python_version(out)
-
-    python = env_python[0] if env_python else None
-
-    # Ideally we'd rely on the mozconfig injection from mozconfig_options,
-    # but we'd rather avoid the verbosity when we need to reexecute with
-    # a different python.
-    if mozconfig['path']:
-        if 'PYTHON3' in mozconfig['env']['added']:
-            python = mozconfig['env']['added']['PYTHON3']
-        elif 'PYTHON3' in mozconfig['env']['modified']:
-            python = mozconfig['env']['modified']['PYTHON3'][1]
-        elif 'PYTHON3' in mozconfig['vars']['added']:
-            python = mozconfig['vars']['added']['PYTHON3']
-        elif 'PYTHON3' in mozconfig['vars']['modified']:
-            python = mozconfig['vars']['modified']['PYTHON3'][1]
-
-    log.debug("python3: executable from configuration: %r" % python)
-
-    # If this is a mozilla-central build, we'll find the virtualenv in the top
-    # source directory. If this is a SpiderMonkey build, we assume we're at
-    # js/src and try to find the virtualenv from the mozilla-central root.
-    # See mozilla-central changeset d2cce982a7c809815d86d5daecefe2e7a563ecca
-    # Bug 784841
-    topsrcdir, topobjdir = build_env.topsrcdir, build_env.topobjdir
-    if topobjdir.endswith('/js/src'):
-        topobjdir = topobjdir[:-7]
-
-    # If we know the Python executable the caller is asking for then verify its
-    # version. If the caller did not ask for a specific executable then find
-    # a reasonable default.
-    if python:
-        try:
-            version = python_executable_version(python).version
-        except Exception as e:
-            raise FatalCheckError('could not determine version of PYTHON '
-                                  '(%s): %s' % (python, e))
-    elif mozillabuild:
-        # MozillaBuild provides a Python 3.
-        python = normsep('%s/python3/python3.exe' % mozillabuild)
-
-        try:
-            version = python_executable_version(python).version
-        except Exception as e:
-            raise FatalCheckError('could not determine version of '
-                                  'MozillaBuild python: %s' % e)
-    else:
-        # Fall back to the search routine.
-        python, version = find_python3_executable(min_version='3.5.0')
-
-        # The API returns a bytes whereas everything in configure is unicode.
-        if python:
-            python = ensure_text(python)
-
-    if not python:
-        raise FatalCheckError('Python 3.5 or newer is required to build. '
-                              'Ensure a `python3.x` executable is in your '
-                              'PATH or define PYTHON3 to point to a Python '
-                              '3.5 executable.')
-
-    if version < (3, 5, 0):
-        raise FatalCheckError('Python 3.5 or newer is required to build; '
-                              '%s is Python %d.%d' % (python, version[0],
-                                                      version[1]))
-
-    log.debug("python3: found executable: %r" % python)
-
-    virtualenvs_root = os.path.join(topobjdir, '_virtualenvs')
-    with LineIO(lambda l: log.info(l), 'replace') as out:
-        manager = VirtualenvManager(
-            topsrcdir, topobjdir,
-            os.path.join(virtualenvs_root, 'init_py3'), out,
-            os.path.join(topsrcdir, 'build', 'virtualenv_packages.txt'))
-
-    log.debug("python3: using venv: %r" % manager.virtualenv_root)
-
-    if not manager.up_to_date(python):
-        log.info('Creating Python 3 environment')
-        manager.build(python)
-    else:
-        log.debug("python3: venv is up to date")
-
-    python = normsep(manager.python_path)
-
-    # The currently running interpreter could be Python 2 or Python 3. We make the
-    # part of the code that re-executes everything with the virtualenv's Python
-    # conditional on running the same major version as the current interpreter. If we
-    # don't do this then the configure code for the Py 2 and Py 3 virtualenvs could
-    # activate each other from inside the other's virtualenv.  We can't guarantee
-    # how the virtualenvs would interact if that happens.
-    if PY3:
-        if not normsep(sys.executable).startswith(normsep(virtualenvs_root)):
-            log.debug("python3: executing as %s, should be running as %s" % (
-                sys.executable, manager.python_path))
-            log.info('Re-executing in the virtualenv')
-            if env_python:
-                del os.environ['PYTHON3']
-            # One would prefer to use os.execl, but that's completely borked on
-            # Windows.
-            sys.exit(subprocess.call([python] + sys.argv))
-
-        # We are now in the virtualenv
-        if not distutils.sysconfig.get_python_lib():
-            die('Could not determine python site packages directory')
-
-    str_version = '.'.join(str(v) for v in version)
-
-    return namespace(
-        path=python,
-        version=version,
-        str_version=str_version,
-    )
-
-
-set_config('PYTHON3', depends(virtualenv_python3)(lambda p: p.path))
-set_config(
-    'PYTHON3_VERSION',
-    depends(virtualenv_python3)(lambda p: p.str_version))
 
 
 # Source checkout and version control integration.
@@ -829,9 +683,6 @@ def split_triplet(triplet, allow_msvc=False):
     elif os.startswith('darwin'):
         canonical_kernel = 'Darwin'
         canonical_os = 'OSX'
-    elif os.startswith('ios'):
-        canonical_kernel = 'Darwin'
-        canonical_os = 'iOS'
     elif os.startswith('dragonfly'):
         canonical_os = canonical_kernel = 'DragonFly'
     elif os.startswith('freebsd'):
@@ -877,6 +728,9 @@ def split_triplet(triplet, allow_msvc=False):
     elif cpu.startswith('arm'):
         canonical_cpu = 'arm'
         endianness = 'big' if cpu.startswith(('armeb', 'armbe')) else 'little'
+    elif cpu in ('m68k'):
+        canonical_cpu = 'm68k'
+        endianness = 'big'
     elif cpu in ('mips', 'mipsel'):
         canonical_cpu = 'mips32'
         endianness = 'little' if 'el' in cpu else 'big'
@@ -885,6 +739,9 @@ def split_triplet(triplet, allow_msvc=False):
         endianness = 'little' if 'el' in cpu else 'big'
     elif cpu.startswith('aarch64'):
         canonical_cpu = 'aarch64'
+        endianness = 'little'
+    elif cpu in ('riscv64', 'riscv64gc'):
+        canonical_cpu = 'riscv64'
         endianness = 'little'
     elif cpu == 'sh4':
         canonical_cpu = 'sh4'
@@ -959,7 +816,15 @@ def real_host(value, shell):
     if not value:
         config_guess = os.path.join(os.path.dirname(__file__), '..',
                                     'autoconf', 'config.guess')
-        host = check_cmd_output(shell, config_guess).strip()
+
+        # Ensure that config.guess is determining the host triplet, not the target
+        # triplet
+        env = os.environ.copy()
+        env.pop('CC_FOR_BUILD', None)
+        env.pop('HOST_CC', None)
+        env.pop('CC', None)
+
+        host = check_cmd_output(shell, config_guess, env=env).strip()
         try:
             return split_triplet(host)
         except ValueError:
@@ -994,6 +859,11 @@ def real_target(value, host, shell, project, application):
         project = project[0]
     if not value:
         if project == 'mobile/android':
+            if host.raw_os == 'mingw32':
+                log.warning(
+                    'Building Firefox for Android on Windows is not fully '
+                    'supported. See https://bugzilla.mozilla.org/show_bug.cgi?'
+                    'id=1169873 for details.')
             return split_triplet('arm-unknown-linux-androideabi')
         return host
     # If --target was only given a cpu arch, expand it with the
@@ -1057,24 +927,14 @@ set_config('HOST_MAJOR_VERSION', host_os_kernel_major_version)
 
 
 @depends(host)
-def host_for_old_configure(host):
+def host_for_sub_configure(host):
     return '--host=%s' % host.alias
 
 
-add_old_configure_arg(host_for_old_configure)
-
-
 @depends(target)
-def target_for_old_configure(target):
+def target_for_sub_configure(target):
     target_alias = target.alias
-    # old-configure does plenty of tests against $target and $target_os
-    # and expects darwin for iOS, so make it happy.
-    if target.os == 'iOS':
-        target_alias = target_alias.replace('-ios', '-darwin')
     return '--target=%s' % target_alias
-
-
-add_old_configure_arg(target_for_old_configure)
 
 
 # These variables are for compatibility with the current moz.builds and
@@ -1160,15 +1020,6 @@ set_define('XP_DARWIN', target_is_darwin)
 
 
 @depends(target)
-def target_is_ios(target):
-    if target.kernel == 'Darwin' and target.os == 'iOS':
-        return True
-
-
-set_define('XP_IOS', target_is_ios)
-
-
-@depends(target)
 def target_is_osx(target):
     if target.kernel == 'Darwin' and target.os == 'OSX':
         return True
@@ -1236,17 +1087,13 @@ def target_is_sparc(target):
 set_define('SPARC64', target_is_sparc)
 
 
-@depends('--enable-project', '--with-external-source-dir',
-         check_build_environment, '--help')
+@depends('--enable-project', check_build_environment, '--help')
 @imports(_from='os.path', _import='exists')
-def include_project_configure(project, external_source_dir, build_env, help):
+def include_project_configure(project, build_env, help):
     if not project:
         die('--enable-project is required.')
 
     base_dir = build_env.topsrcdir
-    if external_source_dir:
-        base_dir = os.path.join(base_dir, external_source_dir[0])
-
     path = os.path.join(base_dir, project[0], 'moz.configure')
     if not exists(path):
         die('Cannot find project %s', project[0])
@@ -1265,23 +1112,8 @@ set_define('MOZ_BUILD_APP', build_project)
 add_old_configure_assignment('MOZ_BUILD_APP', build_project)
 
 
-# This is temporary until js/src/configure and configure are merged.
-# Use instead of option() in js/moz.configure and more generally, for
-# options that are shared between configure and js/src/configure.
-@template
-def js_option(*args, **kwargs):
-    opt = option(*args, **kwargs)
-
-    @depends(opt.option, build_project, when=kwargs.get('when'))
-    def js_option(value, build_project):
-        if build_project != 'js':
-            return value.format(opt.option)
-
-    add_old_configure_arg(js_option)
-
-
-js_option(env='MOZILLA_OFFICIAL',
-          help='Build an official release')
+option(env='MOZILLA_OFFICIAL',
+       help='Build an official release')
 
 
 @depends('MOZILLA_OFFICIAL')
@@ -1444,9 +1276,9 @@ set_define('MOZ_UPDATE_CHANNEL', update_channel)
 add_old_configure_assignment('MOZ_UPDATE_CHANNEL', update_channel)
 
 
-js_option(env='MOZBUILD_STATE_PATH', nargs=1,
-          help='Path to a persistent state directory for the build system '
-               'and related tools')
+option(env='MOZBUILD_STATE_PATH', nargs=1,
+       help='Path to a persistent state directory for the build system '
+            'and related tools')
 
 
 @depends('MOZBUILD_STATE_PATH', '--help')
@@ -1490,7 +1322,27 @@ def project_flag(env=None, set_for_old_configure=False,
 
 # milestone.is_nightly corresponds to cases NIGHTLY_BUILD is set.
 
-
 @depends(milestone)
 def enabled_in_nightly(milestone):
     return milestone.is_nightly
+
+# Branding
+# ==============================================================
+option('--with-app-basename', env='MOZ_APP_BASENAME', nargs=1,
+       help='Typically stays consistent for multiple branded versions of a '
+       'given application (e.g. Aurora and Firefox both use "Firefox"), but '
+       'may vary for full rebrandings (e.g. Iceweasel). Used for '
+       'application.ini\'s "Name" field, which controls profile location in '
+       'the absence of a "Profile" field (see below), and various system '
+       'integration hooks (Unix remoting, Windows MessageWindow name, etc.')
+
+@depends('--with-app-basename', target_is_android)
+def moz_app_basename(value, target_is_android):
+    if value:
+        return value[0]
+    if target_is_android:
+        return 'Fennec'
+    return 'Firefox'
+
+set_config('MOZ_APP_BASENAME', moz_app_basename,
+           when=depends(build_project)(lambda p: p != 'js'))
